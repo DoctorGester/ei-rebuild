@@ -25,9 +25,8 @@
 class CStream;              // core_streams.h
 struct DeltaState;          // net_delta.h
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
-struct UnitVitalsPacked;    // unit.h
 
-// An active effect (0x14 bytes; CArray at +0x194, the same record as UnitEffect in unit.h).
+// An active effect (0x14 bytes; CArray at +0x194).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
 // 0x13 stench, 0x19 stun, 0x1A antimagic, 0x1C, 0x1D strengthen, 0x1E weaken, 0x1F regeneration,
 // 0x20 feeble mind, 0x21 speed, 0x22 slow, 0x25 enlarge, 0x26 shrink.
@@ -53,6 +52,22 @@ struct MapEffect {
     void Save(CStream* stream) const;
 };
 static_assert(sizeof(MapEffect) == 0x14);
+
+// The hit points, mana and protection rounded (CMapObject + 0x17C, 0x18 bytes; 00522C50 writes it from
+// the server companion's UnitVitals, unit.h).
+struct UnitVitalsPacked {
+    // 005233B0. Zeroes it. Returns 0 (EAX).
+    int Reset();
+
+    std::uint8_t unknown_00;
+    std::uint8_t unknown_01;
+    std::int16_t hitPoints;         // +0x02
+    std::int16_t maxHitPoints;      // +0x04
+    std::uint16_t mana;             // +0x06 (read unsigned)
+    std::uint16_t maxMana;          // +0x08
+    std::int16_t protection[7];     // +0x0A
+};
+static_assert(sizeof(UnitVitalsPacked) == 0x18);
 
 // Effect types with a special meaning for the base class.
 namespace mapeffect {
@@ -102,7 +117,8 @@ public:
     virtual int DrawCollectDirty(void* context);
     virtual int DrawFigureShadow(void* context);
     virtual void AdvanceTime(float time);   // 25: 0050E410 empty; units 0052FC40
-    virtual void LoadFigures();        // 26: CObject3D 00517500 (units 0052E910)
+    // 26: loads the figure (CObject3D 00517500, units 0052E910). Returns 1 (or the loader's EAX).
+    virtual std::uintptr_t LoadFigures();
     // 27: units 00532A80. 0050F2D0 (map_object.cpp): resets the scale (slot 30) and grows or shrinks
     // it by 0.4 per net level of enlarge/shrink (x, y, z) or, without those, strengthen/weaken (x
     // and, except for heroes, z). Components stay >= 0. Marks part 1 changed. Returns what the
@@ -121,10 +137,10 @@ public:
     // 31 (0x7C): a hit (DamageInfo) from `attacker` (units: to the controller's TakeHit; other
     // objects ignore it, 0050E460).
     virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster);
-    virtual void StatsChanged();       // 32: 0050E970 PackVitals (units 0052EB50)
+    virtual int StatsChanged();        // 32: 0050E970 PackVitals (units 0052EB50); 1
     // 33 (0x84): 0050E960; units 0052EB30 hand the argument to
     // their controller's slot 19.
-    virtual void ScaleEffectChanged(int scaleEffect);
+    virtual std::uintptr_t ScaleEffectChanged(int scaleEffect);
     // 34 (0x88, RET 4): the prototype by name (units 0052EB70: their statistics). 0050E9B0
     // (map_object_stub_slots.cpp): the vitals of the prototype `prototype` (the owner's
     // BuildFromPrototype, 005136D0, asked for no statistics) packed into +0x17C. The vitals are a
@@ -132,12 +148,12 @@ public:
     virtual void TakePrototype(const char* prototype);
     // 35 (0x8C): 0050E480 empty; units 00530A20: a CUnitServer controller (class 0x3E) copies the
     // statistics (00552F40, CUnitServer::SetStats).
-    virtual void SetStats(const UnitStats* stats);
+    virtual std::uintptr_t SetStats(const UnitStats* stats);
     // 36 (RET 4): 0050F050 (map_object.cpp) hands `data` (0x58 bytes) to a CMapObjectServer companion.
     // Returns what the original leaves in EAX.
     virtual std::uintptr_t SetServerData(const void* data);
     // 37 (0x94): 0050E490 empty; units 00530A50, the controller's slot 23 (CUnitServer 00552FB0).
-    virtual void UpdateSizeClasses();
+    virtual std::uintptr_t UpdateSizeClasses();
     virtual int IsUsable();            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
     virtual int IsDirectUseBlocked();  // 39: 0 (0050F0D0); levers +0x260 (0052B2D0). Best guess
     virtual std::uint32_t KeyId();     // 40: the key it asks for: -123 (0050F0E0); levers 0052BBC0
@@ -159,7 +175,7 @@ public:
     // is dropped) and, for an effect lasting more than one tick, removes older ones of the same type,
     // end flag and +0x0C (within 0.001) that last no longer and are no stronger.
     virtual std::uintptr_t AddEffect(const MapEffect* effect);
-    virtual void SetStunned(int on);   // 46 (RET 4): 0050E4A0 ignores it; units 0052F7F0 SetFlag1000000
+    virtual std::uint32_t SetStunned(int on);   // 46 (RET 4): 0050E4A0 ignores it; units 0052F7F0 (the new flags_)
     virtual int SetVisibilityMode(int mode);    // 47 (0xBC): 004467C0 hands it to the companion
     virtual Vector3* EyePoint(Vector3* out);        // 48 (0xC0): where the object sees from; returns `out`
     virtual std::uint32_t ReadNetState(int first);   // 49 (RET 4): 0050EC30 (units 0052EF90)
@@ -183,6 +199,13 @@ public:
     virtual float Radius();                         // 60 (0xF0): units' +0x328 (004468A0), ST0
     // 61 (0xF4): units (00446830) keep `name` in their CString +0x238 (the script name).
     virtual void SetScriptName(const char* name);
+
+    // 0050E9F0. Records that part `part` (0..15; negative: none) of the object changed, marks it
+    // dirty (flags_ bit 1) and stamps it with the world's change counter. Returns what the original
+    // leaves in EAX (0, or the world when the object is referenced). It touches nothing beyond +0x1DE.
+    std::uintptr_t MarkChanged(int part);
+    // 0050F630. Has the object an active effect of type `type` (compared with MapEffect::type)?
+    int HasEffect(std::uint32_t type);
 
     // map_object_lifetime.cpp.
     // 0050E2D0. The constructor: the 3D object (00515BD0), the effect array (vtable 0073DBA0),
@@ -294,17 +317,13 @@ public:
     CObject3D* Object3D() { return this; }
 
     // The packed vitals (+0x17C) and the network state (+0x1C4).
-    UnitVitalsPacked* PackedVitals() { return reinterpret_cast<UnitVitalsPacked*>(packedVitals); }
+    UnitVitalsPacked* PackedVitals() { return &packedVitals; }
     DeltaState* NetState() { return reinterpret_cast<DeltaState*>(netState); }
 
     // --- Not rewritten (forwarders) ---
 
     // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
     void* World();
-    // 0050E9F0 / 0050F630 (unit.cpp: CUnit::MarkChanged / CUnit::HasEffect, reached through their
-    // game addresses).
-    std::uintptr_t MarkChanged(int part);
-    int HasEffect(std::uint32_t type);
 
     // +0x000-0x16C: CObject3D (position +0x1C, orientation +0x34, the side half `attached` +0x94,
     // name +0xA4 (the prototype name for units), scale +0xC4, bounds centre +0x128 (GroundPoint),
@@ -312,7 +331,7 @@ public:
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
     int unknown_174;                // +0x174 (5 after Create)
     float animationSpeed;           // +0x178 the animation's speed factor (CUnit::animationSpeed; 1 after Create)
-    std::uint8_t packedVitals[0x18];    // +0x17C a UnitVitalsPacked (unit.h): PackedVitals()
+    UnitVitalsPacked packedVitals;  // +0x17C hit points +0x17E, maximum +0x180, mana +0x182, maximum +0x184
     void* effectsVtable;            // +0x194 \ CArray<MapEffect> (vtable 0073DBA0; SetSize 0050FE70)
     MapEffect* effects;             // +0x198 |
     int effectCount;                // +0x19C |
@@ -350,8 +369,8 @@ namespace mapslot {
 constexpr int kResetScale = 30;           // 0x78
 } // namespace mapslot
 
-// CMapObjectVirtuals is the name callers outside the map object files reach the slots by (the units'
-// vtable 0073EA8C has the same slots; CUnit does not derive from CMapObject).
+// CMapObjectVirtuals is the name callers outside the map object files reach the slots by (CUnit,
+// vtable 0073EA8C, derives from CMapObject).
 using CMapObjectVirtuals = CMapObject;
 
 // A map object's companion (CMapObjectServer / CMapObjectClientSpecific) as the base class calls it.

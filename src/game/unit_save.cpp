@@ -249,15 +249,15 @@ void CUnit::LoadUnit(UnitStream* stream) {
     stream->Read(&unknown_438, 4);
     if (stream->version < kVersionPrototypeNames) return;
 
-    mfc::CString name;
-    ReadStringInto(stream, name);
-    At<int>(this, kPrototypeIndex) = PrototypeIndexOf(PrototypeByName(name));
+    mfc::CString prototypeName;
+    ReadStringInto(stream, prototypeName);
+    At<int>(this, kPrototypeIndex) = PrototypeIndexOf(PrototypeByName(prototypeName));
     char* second;
     if (stream->version < kVersionSecondName) {
-        second = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, name);
+        second = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, prototypeName);
     } else {
-        ReadStringInto(stream, name);
-        second = PrototypeByName(name);
+        ReadStringInto(stream, prototypeName);
+        second = PrototypeByName(prototypeName);
     }
     prototype23C = PrototypeIndexOf(second);
 }
@@ -298,13 +298,13 @@ void CUnit::SaveUnit(UnitStream* stream) {
     WriteCopy(stream, standingHeight);
     stream->Write(&unknown_438, 4);
 
-    // The prototype's name (the record's first field is a CString; a record out of range is
+    // The prototype's prototypeName (the record's first field is a CString; a record out of range is
     // copied from address 0, as the original does), then the second prototype's or "".
-    mfc::CString name(*reinterpret_cast<const mfc::CString*>(PrototypeAt(static_cast<std::uint32_t>(At<int>(this, kPrototypeIndex)))));
-    WriteString(stream, name);
+    mfc::CString prototypeName(*reinterpret_cast<const mfc::CString*>(PrototypeAt(static_cast<std::uint32_t>(At<int>(this, kPrototypeIndex)))));
+    WriteString(stream, prototypeName);
     const char* second = PrototypeAt(static_cast<std::uint32_t>(prototype23C));
-    if (second) name = *reinterpret_cast<const mfc::CString*>(second);
-    else name = "";
-    WriteString(stream, name);
+    if (second) prototypeName = *reinterpret_cast<const mfc::CString*>(second);
+    else prototypeName = "";
+    WriteString(stream, prototypeName);
 }
 EI_REPLACE_METHOD(0x005321C0, CUnit::SaveUnit);

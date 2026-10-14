@@ -175,7 +175,7 @@ EI_VERIFY(0x0052EBE0, SetFlag40Verify, 6, s_setFlag40);
 // 0052F7F0: MOV EAX,[ESP+4]; TEST EAX,EAX (6 bytes).
 static std::uint32_t(__fastcall* s_setFlag1)(CUnit*, void*, int);
 static std::uint32_t __fastcall SetFlag1Verify(CUnit* self, void*, int on) {
-    return SameUnitWrites<std::uint32_t>("CUnit::SetFlag1000000", self, nullptr, [&] { return self->SetFlag1000000(on); },
+    return SameUnitWrites<std::uint32_t>("CUnit::SetFlag1000000", self, nullptr, [&] { return self->CUnit::SetStunned(on); },
                                          [&] { return s_setFlag1(self, nullptr, on); });
 }
 EI_VERIFY(0x0052F7F0, SetFlag1Verify, 6, s_setFlag1);
@@ -293,7 +293,7 @@ static int(__fastcall* s_canCast)(CUnit*, void*, std::uint32_t, int);
 static int __fastcall CanCastVerify(CUnit* self, void*, std::uint32_t slot, int unused) {
     int expected = s_canCast(self, nullptr, slot, unused);
     ei::verify::Check("CUnit::CanCastSpell", expected, self->CanCastSpell(slot, unused), "unit %d slot %u mana %u",
-                      self->id_, slot, self->mana);
+                      self->id_, slot, self->packedVitals.mana);
     return expected;
 }
 EI_VERIFY(0x0052F820, CanCastVerify, 7, s_canCast);
@@ -434,7 +434,7 @@ EI_VERIFY(0x005327D0, ResistanceVerify, 7, s_resistance);
 static bool(__fastcall* s_acceptsTarget)(CUnit*, void*, const void*);
 static bool __fastcall AcceptsTargetVerify(CUnit* self, void*, const void* target) {
     bool expected = s_acceptsTarget(self, nullptr, target);
-    ei::verify::Check("CUnit::AcceptsTarget", expected, self->AcceptsTarget(target), "type %X", self->type_);
+    ei::verify::Check("CUnit::AcceptsTarget", expected, self->CUnit::AcceptsAnimation(target), "type %X", self->type_);
     return expected;
 }
 EI_VERIFY(0x00532DA0, AcceptsTargetVerify, 7, s_acceptsTarget);
@@ -484,7 +484,7 @@ EI_VERIFY(0x005156C0, ServerOverkilledVerify, 9, s_serverOverkilled);
 static BOOL(__fastcall* s_clientIsDead)(CMapObjectClientSpecific*);
 static BOOL __fastcall ClientIsDeadVerify(CMapObjectClientSpecific* self) {
     BOOL expected = s_clientIsDead(self);
-    ei::verify::Check("CMapObjectClientSpecific::IsDead", expected, self->CMapObjectClientSpecific::IsDead(), "hp %d", self->Unit()->hitPoints);
+    ei::verify::Check("CMapObjectClientSpecific::IsDead", expected, self->CMapObjectClientSpecific::IsDead(), "hp %d", self->Unit()->packedVitals.hitPoints);
     return expected;
 }
 EI_VERIFY(0x005104D0, ClientIsDeadVerify, 5, s_clientIsDead);
@@ -494,7 +494,7 @@ static BOOL(__fastcall* s_clientOverkilled)(CMapObjectClientSpecific*);
 static BOOL __fastcall ClientOverkilledVerify(CMapObjectClientSpecific* self) {
     BOOL expected = s_clientOverkilled(self);
     ei::verify::Check("CMapObjectClientSpecific::IsOverkilled", expected, self->CMapObjectClientSpecific::IsOverkilled(), "hp %d max %d",
-                      self->Unit()->hitPoints, self->Unit()->maxHitPoints);
+                      self->Unit()->packedVitals.hitPoints, self->Unit()->packedVitals.maxHitPoints);
     return expected;
 }
 EI_VERIFY(0x005104F0, ClientOverkilledVerify, 10, s_clientOverkilled);

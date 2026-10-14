@@ -97,7 +97,7 @@ EI_REPLACE_METHOD(0x00608210, CBriefingScreen::StartPhrases);
 
 void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third) {
     // (The original compares a CString copy of the name.)
-    bool human = GameMbscmp(unit->prototypeName, HumanPrototype()) == 0;
+    bool human = GameMbscmp(unit->name, HumanPrototype()) == 0;
     int number;
     if (talking) {
         if (third)

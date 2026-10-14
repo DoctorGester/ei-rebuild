@@ -143,7 +143,7 @@ EI_REPLACE_METHOD(0x0054C760, CUnitServer::TargetBusy);
 void CUnitServer::PlayAnimation(const char* name) {
     const FigureAnimation* entry;
     {
-        mfc::CString figure(unit->prototypeName);
+        mfc::CString figure(unit->name);
         auto* world = static_cast<CWorld*>(ManagerContext());
         entry = FindFigureAnimation(static_cast<CBaseManager*>(world->MapObjectManager()), nullptr, figure, name);
     }

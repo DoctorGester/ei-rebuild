@@ -631,7 +631,10 @@ public:
     float radius;                   // +0x134
     Vector3 below;                  // +0x138 box minimum - centre
     Vector3 above;                  // +0x144 box maximum - centre
-    std::uint8_t unknown_150[0x15C - 0x150];   // cleared with the bounds
+    std::uint8_t unknown_150[0x158 - 0x150];   // cleared with the bounds
+    // +0x158 cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a
+    // unit's eye height (005CA410).
+    float unknown_158;
     void* partBoxArrayVtable;       // +0x15C \ CArray of the part boxes (vtable 0073DE40)
     FootprintPart* partBoxes;       // +0x160 | (ai_map.h)
     int partBoxCount;               // +0x164 |
@@ -657,4 +660,5 @@ static_assert(offsetof(CObject3D, center) == 0x128);
 static_assert(offsetof(CObject3D, radius) == 0x134);
 static_assert(offsetof(CObject3D, below) == 0x138);
 static_assert(offsetof(CObject3D, above) == 0x144);
+static_assert(offsetof(CObject3D, unknown_158) == 0x158);
 static_assert(sizeof(CObject3D) == 0x170);

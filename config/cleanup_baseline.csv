@@ -269,7 +269,7 @@ src/game/ui_trade_grid_draw.cpp,1,1,0,0,0,0,0,0,0,0,0
 src/game/ui_trade_panel.cpp,0,0,0,0,1,0,0,1,0,0,0
 src/game/ui_view_screen.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_window.cpp,0,0,1,0,0,0,0,1,0,0,0
-src/game/unit.cpp,9,3,0,1,0,0,0,0,0,0,0
+src/game/unit.cpp,7,1,0,1,0,0,0,0,0,0,0
 src/game/unit_ai.cpp,0,1,0,1,4,0,0,3,0,0,2
 src/game/unit_ai.h,0,0,0,0,2,0,1,0,0,0,0
 src/game/unit_ai_brain.cpp,0,0,0,0,0,0,0,0,0,0,2
@@ -303,7 +303,7 @@ src/game/unit_skins.cpp,0,0,0,0,0,0,0,0,0,1,0
 src/game/unit_stats.cpp,2,0,0,1,0,0,0,0,0,0,0
 src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,2,0,0,0
 src/game/unit_update.cpp,0,0,1,1,1,0,0,0,0,0,0
-src/game/unit_vitals.cpp,2,0,4,1,24,0,0,6,0,0,0
+src/game/unit_vitals.cpp,2,0,4,1,24,0,0,4,0,0,0
 src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5
 src/game/weather_draw.cpp,10,0,0,0,0,0,0,1,0,0,0
 src/game/world.h,0,0,0,0,0,0,0,0,0,4,5

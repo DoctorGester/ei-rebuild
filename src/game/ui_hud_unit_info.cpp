@@ -139,13 +139,13 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     panel.labels = At<const mfc::CString*>(self, 0x1A0);
     panel.rect = {5, 0x23, 0x9B, 0x32};
 
-    std::int16_t health = unitObject->hitPoints;
+    std::int16_t health = unitObject->packedVitals.hitPoints;
     panel.text.Format(kValuePair, static_cast<const char*>(panel.labels[0]), health > 0 ? static_cast<int>(health) : 0,
-                      static_cast<int>(unitObject->maxHitPoints));
+                      static_cast<int>(unitObject->packedVitals.maxHitPoints));
     panel.DrawLine();
     bool outside = OutsideGroup(hud, unit);
-    panel.text.Format(kValuePair, static_cast<const char*>(panel.labels[1]), static_cast<int>(unitObject->mana),
-                      static_cast<int>(unitObject->maxMana));
+    panel.text.Format(kValuePair, static_cast<const char*>(panel.labels[1]), static_cast<int>(unitObject->packedVitals.mana),
+                      static_cast<int>(unitObject->packedVitals.maxMana));
     panel.DrawLine();
 
     std::uint8_t moveBonus = params->movementKind;

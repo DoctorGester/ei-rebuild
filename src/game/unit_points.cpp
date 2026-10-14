@@ -85,7 +85,7 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
     Vector3 offset = {0.0f, 0.0f, 0.0f};
     auto* entry = reinterpret_cast<const FigureAnimation*>(ObjectAnimationEntryOriginal(unit, nullptr, index));
     if (!entry) {
-        DebugMessageOriginal(kNoEntry, static_cast<unsigned>(index), unit->prototypeName);
+        DebugMessageOriginal(kNoEntry, static_cast<unsigned>(index), unit->name);
     } else if ((entry->key & 0x3C0000) == 0x1C0000) {
         std::uint32_t side = entry->flags & 0x1C00000;
         Vector3 axis;

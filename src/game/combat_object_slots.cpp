@@ -80,7 +80,7 @@ void CUnitServer::Resettle() {
     if (ObjectSlots(unit)->IsDead()) return;
     auto* world = static_cast<CWorldServer*>(ManagerContext());
     world->Sectors()->Remove(unit);
-    unit->Object3D()->SetUpAnimatedFigure(unit->prototypeName);
+    unit->Object3D()->SetUpAnimatedFigure(unit->name);
     unit->UpdateSizeClasses();   // CUnit slot 37 (both unit vtables hold 00530A50)
     unit->UpdateSizeClass();
     CAIMap* map = world->AIMap();

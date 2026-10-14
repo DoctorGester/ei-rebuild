@@ -241,13 +241,13 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
     }
     case 7: {
         float base = RoundToFloat(kGroupBase + static_cast<double>(score));
-        int hp = candidate->hitPoints;
-        long limit = std::lrint(RoundToFloat(control->stats.ReduceKind1(static_cast<float>(candidate->maxHitPoints))));
+        int hp = candidate->packedVitals.hitPoints;
+        long limit = std::lrint(RoundToFloat(control->stats.ReduceKind1(static_cast<float>(candidate->packedVitals.maxHitPoints))));
         if (hp > limit - 2) return kNoScore;
         if (hp * 3 < limit) {
             float weight = control->Brain()->attention.healWeight;
             score = RoundToFloat(kHealFactor * weight);
-            if (self->hitPoints == self->maxHitPoints) score = RoundToFloat(static_cast<double>(score) + weight);
+            if (self->packedVitals.hitPoints == self->packedVitals.maxHitPoints) score = RoundToFloat(static_cast<double>(score) + weight);
         } else {
             double partial = static_cast<double>(base) + kHealGroupBase;
             int count = others < cap ? others : cap;
@@ -270,7 +270,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     if (!(result >= threshold)) return result;
     if (option->kind >= 0 && option->kind <= 3) {
-        int hits = (damage & 0xFFFF) == 0 ? kNoHitsKnown : candidate->hitPoints / static_cast<int>(damage & 0xFFFF);
+        int hits = (damage & 0xFFFF) == 0 ? kNoHitsKnown : candidate->packedVitals.hitPoints / static_cast<int>(damage & 0xFFFF);
         result -= static_cast<double>(hits) * kHitWeight;
     }
     return result;

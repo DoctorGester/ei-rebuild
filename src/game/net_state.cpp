@@ -48,7 +48,7 @@ void __fastcall MapObjectWriteNetState(std::uint8_t* object) {
     CMapObject* self = AsMapObject(object);
     DeltaState* state = StateOf(object);
     if (DeltaField* field = state->BeginField(0)) {
-        field->WriteDelta(self->packedVitals, 0x18);   // 00523700
+        field->WriteDelta(&self->packedVitals, 0x18);   // 00523700
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(1)) {
@@ -172,7 +172,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
     std::uint32_t complete = 1;
     if (DeltaField* field = state->BeginField(0)) {
         short before = self->PackedVitals()->hitPoints;   // +0x17E
-        field->ReadDelta(self->packedVitals, 0x18);   // 00523710
+        field->ReadDelta(&self->packedVitals, 0x18);   // 00523710
         complete = SnapshotConsumed();
         field->EndField();
         if (before != self->PackedVitals()->hitPoints || first == 1) ObjectSlots(self)->RefreshWounds();
@@ -254,7 +254,7 @@ bool Exceeds(float v) {
 
 std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first) {
     CUnit* unit = AsUnit(object);
-    float hpBefore = static_cast<float>(static_cast<double>(unit->hitPoints) / unit->maxHitPoints);
+    float hpBefore = static_cast<float>(static_cast<double>(unit->packedVitals.hitPoints) / unit->packedVitals.maxHitPoints);
     std::uint32_t complete = MapObjectReadNetState(object, nullptr, first);
     DeltaState* state = StateOf(object);
     bool gotItems = false;
@@ -280,8 +280,8 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         } else if (first == 0) {
             unit->Controller()->RefreshWounds();
         }
-        float maxHp = static_cast<float>(unit->maxHitPoints);
-        float hpNow = static_cast<float>(unit->hitPoints) / maxHp;
+        float maxHp = static_cast<float>(unit->packedVitals.maxHitPoints);
+        float hpNow = static_cast<float>(unit->packedVitals.hitPoints) / maxHp;
         // FCOMP + TEST AH,0x41: a drop (before > now, ordered), or flag 0x10 otherwise.
         bool dropped = !x87::IsNaN(hpBefore) && !x87::IsNaN(hpNow) && hpBefore > hpNow;
         if ((dropped || (unit->Params()->flags & 0x10)) && first != 0) {

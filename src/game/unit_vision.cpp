@@ -42,7 +42,7 @@ double UnitParams::VisionRange(float daylight) {
 }
 EI_REPLACE_METHOD(0x005271E0, UnitParams::VisionRange);
 
-void CUnit::AdvanceUnitTime(float time) {
+void CUnit::AdvanceTime(float time) {
     if (controller) Controller()->AdvanceTime(time);
     if (!(IsTextKey(id_) & 0xFF)) return;
     volatile float daylight = static_cast<float>(WorldDayTimeOriginal(ClientWorldObject()));
@@ -50,7 +50,8 @@ void CUnit::AdvanceUnitTime(float time) {
     if (moveMode == 0) range = range * kOne;
     ClientWorldMarkSightOriginal(ClientWorldObject(), nullptr, &position.x, range);
 }
-EI_REPLACE_METHOD(0x0052FC40, CUnit::AdvanceUnitTime);
+void __fastcall UnitAdvanceTimeHook(CUnit* self, void*, float time) { self->CUnit::AdvanceTime(time); }
+EI_REPLACE(0x0052FC40, UnitAdvanceTimeHook);
 
 int CMapObject::SetVisibilityLevel(float level) {
     CMapObjectVirtuals* slots = ObjectSlots(this);

@@ -70,7 +70,7 @@ static double __fastcall BodyExtentVerify(CUnit* self) {
     double expected = s_bodyExtent(self);
     double actual = self->BodyExtent();
     ei::verify::CheckNear("CUnit::BodyExtent", expected, actual, "unit %d type 0x%X '%s': %g vs %g", self->id_,
-                          self->type_, self->prototypeName ? self->prototypeName : "", expected, actual);
+                          self->type_, self->name ? self->name : "", expected, actual);
     return actual;
 }
 EI_VERIFY(0x005304A0, BodyExtentVerify, 9, s_bodyExtent);

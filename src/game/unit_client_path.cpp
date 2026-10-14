@@ -126,7 +126,7 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     float frames = 1.0f;
     float span = database->length;
     if (!(x87::IsNaN(span) || span == 0.0f))
-        frames = ((database->end - database->start) * unit->animationCC + database->start) / span;
+        frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
     double moved = std::sqrt((static_cast<double>(direction.z) * direction.z + static_cast<double>(direction.y) * direction.y) +
                              static_cast<double>(direction.x) * direction.x);
     double numerator = moved * speed * kAnimationRate;

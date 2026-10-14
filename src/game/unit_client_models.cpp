@@ -103,7 +103,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
 
     void* model;
     {
-        stlp::string name(unit->prototypeName);
+        stlp::string name(unit->name);
         model = FindModel(manager, nullptr, &name);
     }
     if (!model) return false;
@@ -165,7 +165,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
 
     void* model;
     {
-        stlp::string name(unit->prototypeName);
+        stlp::string name(unit->name);
         model = FindModel(FigureManager(), nullptr, &name);
     }
     if (!model) return false;   // the slot stays cleared
@@ -226,7 +226,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     console::CStringArray names;
     void* model;
     {
-        stlp::string name(unit->prototypeName);
+        stlp::string name(unit->name);
         model = FindModel(FigureManager(), nullptr, &name);
     }
     if (previous != kNone) {
@@ -449,7 +449,7 @@ void SetLayerBytes(SkinRequest& request, int bytes) {
 
 // "<prototype name><texture>.mmp" into `texture`, the way the original builds it.
 void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
-    mfc::CString named = mfc::operator+(unit->prototypeName, texture);
+    mfc::CString named = mfc::operator+(unit->name, texture);
     mfc::CString withExtension = mfc::operator+(named, Text(0x0078FB4C));   // ".mmp"
     texture = withExtension;
 }
@@ -489,9 +489,9 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     request.flags = kFlagDetailed;
     const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18), unitdb::kPrototypeSize);
     if (prototype)
-        texture.Format(Text(0x0078FB64), unit->prototypeName, Prototype(prototype)->skin);   // "%sskin_%.2d.mmp"
+        texture.Format(Text(0x0078FB64), unit->name, Prototype(prototype)->skin);   // "%sskin_%.2d.mmp"
     else
-        texture.Format(Text(0x0078FB54), unit->prototypeName);   // "%sskin_00.mmp"
+        texture.Format(Text(0x0078FB54), unit->name);   // "%sskin_00.mmp"
     AddTexture(request, texture);
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);

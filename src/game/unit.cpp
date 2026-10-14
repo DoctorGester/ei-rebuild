@@ -31,7 +31,6 @@ constexpr float kOverkill = -5.0f;                              // 0073DDC0
 
 constexpr int kPartRelations = 11;
 constexpr int kPartEquipment = 5;
-constexpr std::uint32_t kFlagDirty = 2;
 constexpr std::uint32_t kFlagSideChanged = 0x80000;
 constexpr int kClassQuickItem = 0x13;
 
@@ -69,30 +68,7 @@ std::uintptr_t RemoveFromSlots(CUnit* unit, CEngineObject** slots, std::uint32_t
 }
 } // namespace
 
-void* CUnit::World() { return ObjectWorld(this); }
-__declspec(naked) double CUnit::AnimationFactor(float) EI_ORIGINAL(0x00518D30)
 __declspec(naked) PartyUnitRecord* PartyRecords::Find(int) EI_ORIGINAL(0x006621B0)
-
-// --- Change tracking -------------------------------------------------------------------------
-
-std::uintptr_t CUnit::MarkChanged(int part) {
-    if (part >= 0) changedParts = static_cast<std::uint16_t>(changedParts | (1u << (part & 31)));
-    flags_ |= kFlagDirty;
-    if (refCount_ == 0) return 0;
-    void* world = World();
-    if (world) changeStamp = Field<int>(static_cast<const char*>(world), 0x68);
-    return reinterpret_cast<std::uintptr_t>(world);
-}
-EI_REPLACE_METHOD(0x0050E9F0, CUnit::MarkChanged);
-
-BOOL CUnit::HasEffect(std::uint32_t type) {
-    for (int i = 0; i < effectCount; ++i) {
-        UnitEffect effect = effects[i];   // the original copies the whole record
-        if ((effect.kind & 0xFF) == type) return 1;
-    }
-    return 0;
-}
-EI_REPLACE_METHOD(0x0050F630, CUnit::HasEffect);
 
 // --- Sides -----------------------------------------------------------------------------------
 
@@ -172,7 +148,7 @@ std::uintptr_t CUnit::SetFlag40000000Off(bool on) {
 }
 EI_REPLACE_METHOD(0x0052EBE0, CUnit::SetFlag40000000Off);
 
-std::uint32_t CUnit::SetFlag1000000(int on) {
+std::uint32_t CUnit::SetStunned(int on) {
     if (on) {
         flags_ |= 0x1000000u;
     } else {
@@ -180,7 +156,8 @@ std::uint32_t CUnit::SetFlag1000000(int on) {
     }
     return flags_;
 }
-EI_REPLACE_METHOD(0x0052F7F0, CUnit::SetFlag1000000);
+std::uint32_t __fastcall UnitSetStunnedHook(CUnit* self, void*, int on) { return self->CUnit::SetStunned(on); }
+EI_REPLACE(0x0052F7F0, UnitSetStunnedHook);
 
 // --- Equipment -------------------------------------------------------------------------------
 
@@ -308,7 +285,7 @@ int CUnit::CanCastSpell(std::uint32_t slot, int) {
     void* spell = GetSpellObject(slot);
     if (!spell) return 3;
     float cost = Field<float>(static_cast<const char*>(spell), 0x40);
-    float available = static_cast<float>(mana);
+    float available = static_cast<float>(packedVitals.mana);
     double needed = reinterpret_cast<UnitParams*>(unknown_330)->Period() * cost;
     return !(available >= needed) ? 1 : 0;
 }
@@ -441,18 +418,21 @@ float CUnit::ResistanceTo(const void* hit) {
 }
 EI_REPLACE_METHOD(0x005327D0, CUnit::ResistanceTo);
 
-bool CUnit::AcceptsTarget(const void* target) {
+bool CUnit::AcceptsAnimation(const void* entry) {
     if (type_ != kUnitTypeHero) return true;
     std::uint32_t required = 0;
-    if (ei::VCall<bool>(controller, 0x90 / 4)) required = 0x10;
-    if (ei::VCall<bool>(controller, 0x94 / 4)) required |= 0x20;
-    return (Field<std::uint32_t>(static_cast<const char*>(target), 0x18) & required) == required;
+    if (Controller()->HasOtherArmour()) required = 0x10;
+    if (Controller()->HasMainArmour()) required |= 0x20;
+    return (static_cast<const FigureAnimation*>(entry)->flags & required) == required;
 }
-EI_REPLACE_METHOD(0x00532DA0, CUnit::AcceptsTarget);
+bool __fastcall UnitAcceptsAnimationHook(CUnit* self, void*, const void* entry) {
+    return self->CUnit::AcceptsAnimation(entry);
+}
+EI_REPLACE(0x00532DA0, UnitAcceptsAnimationHook);
 
 double CUnit::AnimationRatio() {
-    volatile float denominator = static_cast<float>(AnimationFactor(animation1B4));   // FSTP to a float local
-    return AnimationFactor(animationCC) / denominator;
+    volatile float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // FSTP to a float local
+    return AnimationFactor(scale.z) / denominator;
 }
 EI_REPLACE_METHOD(0x00532E00, CUnit::AnimationRatio);
 
@@ -469,13 +449,13 @@ BOOL CMapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill >
 BOOL __fastcall ServerIsOverkilledHook(CMapObjectServer* self) { return self->CMapObjectServer::IsOverkilled(); }
 EI_REPLACE(0x005156C0, ServerIsOverkilledHook);
 
-BOOL CMapObjectClientSpecific::IsDead() { return Unit()->hitPoints <= 0; }
+BOOL CMapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
 BOOL __fastcall ClientIsDeadHook(CMapObjectClientSpecific* self) { return self->CMapObjectClientSpecific::IsDead(); }
 EI_REPLACE(0x005104D0, ClientIsDeadHook);
 
 BOOL CMapObjectClientSpecific::IsOverkilled() {
-    int maximum = Unit()->maxHitPoints;
-    return Unit()->hitPoints < -maximum * 4 - maximum;
+    int maximum = Unit()->packedVitals.maxHitPoints;
+    return Unit()->packedVitals.hitPoints < -maximum * 4 - maximum;
 }
 BOOL __fastcall ClientIsOverkilledHook(CMapObjectClientSpecific* self) {
     return self->CMapObjectClientSpecific::IsOverkilled();

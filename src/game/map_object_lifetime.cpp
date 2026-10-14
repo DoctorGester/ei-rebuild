@@ -38,7 +38,6 @@ constexpr std::uintptr_t kEffectArrayVtable = std::uintptr_t(0x0073DBA0);
 constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073DB94);
 // CMemoryStream's second vtable (the network queue's streams, 0073C960).
 constexpr std::uintptr_t kQueueStreamVtable = std::uintptr_t(0x0073C960);
-constexpr std::uintptr_t kUnitVtable = std::uintptr_t(0x0073EA8C);
 constexpr std::uintptr_t kCarriedArrayVtable = std::uintptr_t(0x0073EB84);
 // The unit motion's arrays (UnitMotion: points, waypoints, step speeds) while constructed / destroyed.
 constexpr std::uintptr_t kMotionPointsVtable = std::uintptr_t(0x0073EB9C);
@@ -293,7 +292,7 @@ CUnit* CUnit::Construct() {
     carriedGrowBy = 0;
     carriedCapacity = 0;
     carriedCount = 0;
-    SetVtable(this, kUnitVtable);
+    SetVtable(this, CUnit::kVtableAddress);
     controller = nullptr;
     player = nullptr;
     ResetUnitAt(this);
@@ -347,11 +346,11 @@ void CUnit::Reset() {
 EI_REPLACE_METHOD(0x0052E5B0, CUnit::Reset);
 
 void CUnit::DestructBody() {
-    SetVtable(this, kUnitVtable);
+    SetVtable(this, CUnit::kVtableAddress);
     // The vtable's slot 5 (0052E740, the release from the player), called through the vtable's
     // memory as the original does.
     using Slot = void(__fastcall*)(CUnit*);
-    reinterpret_cast<const Slot*>(kUnitVtable)[5](this);
+    reinterpret_cast<const Slot*>(CUnit::kVtableAddress)[5](this);
     MapObjectDestroy(this);
     ResetUnitAt(this);
     unknown_49C = static_cast<std::uint32_t>(kCarriedArrayVtable);
