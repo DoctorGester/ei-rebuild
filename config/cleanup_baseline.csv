@@ -1,5 +1,5 @@
 file,offset access (At<>/Field<>),VCall slot call,__asm block,float_control pragma,raw game address (0x004..0x007 literal),*At view struct,placeholder virtual (SlotNN),byte offset arithmetic,per-file container struct,per-file vector/map/set struct,hand-written vector maths
-src/game/ai_alarm.cpp,14,0,0,0,10,0,0,0,0,0,0
+src/game/ai_alarm.cpp,0,0,0,0,10,0,0,0,0,0,0
 src/game/ai_area_lists.cpp,0,0,0,0,6,0,0,1,0,0,0
 src/game/ai_bridges.cpp,0,0,0,0,0,0,0,0,0,1,0
 src/game/ai_footprint.cpp,0,3,0,0,0,0,0,1,0,0,2
@@ -16,7 +16,7 @@ src/game/ai_path.cpp,0,0,4,0,0,0,0,1,0,0,2
 src/game/ai_path_save.cpp,0,2,0,0,0,0,0,0,0,0,0
 src/game/ai_path_stand.cpp,0,0,1,2,0,0,0,2,0,0,0
 src/game/ai_plan.cpp,8,0,0,0,2,0,0,2,0,0,0
-src/game/ai_refresh.cpp,14,0,1,2,6,0,0,0,0,0,0
+src/game/ai_refresh.cpp,3,0,1,2,6,0,0,0,0,0,0
 src/game/ai_shape_cache.cpp,0,1,0,2,0,0,0,0,0,0,0
 src/game/ai_unit_layer.cpp,0,2,0,0,0,0,0,0,0,0,0
 src/game/ai_water_patch.cpp,0,0,0,2,1,0,0,0,0,0,0
@@ -79,7 +79,7 @@ src/game/figure_part_draw_plain.cpp,5,0,2,0,0,0,0,0,0,0,0
 src/game/figure_rasterise.cpp,8,0,0,2,0,0,0,0,0,0,0
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0
 src/game/ground_decal.cpp,0,0,0,0,0,0,0,0,0,0,3
-src/game/hoover_loot.cpp,15,1,0,0,0,0,0,0,0,0,0
+src/game/hoover_loot.cpp,3,1,0,0,0,0,0,0,0,0,0
 src/game/item.cpp,8,0,0,0,0,0,0,0,0,0,0
 src/game/item_constructor.cpp,8,14,1,0,7,0,0,5,0,0,0
 src/game/item_db_text.cpp,2,1,0,0,0,0,0,0,0,0,0
@@ -218,7 +218,7 @@ src/game/texture.cpp,0,2,0,0,0,0,0,0,0,0,0
 src/game/texture_mmp.cpp,0,3,0,0,0,0,0,0,0,0,0
 src/game/ui.h,0,0,0,0,0,0,0,1,0,0,2
 src/game/ui_alpha_draws.cpp,5,0,0,0,0,0,0,0,0,0,0
-src/game/ui_battle_commands.cpp,15,0,0,0,0,0,0,3,0,0,2
+src/game/ui_battle_commands.cpp,2,0,0,0,0,0,0,2,0,0,2
 src/game/ui_battle_hover.cpp,6,7,0,0,0,0,0,0,0,0,2
 src/game/ui_battle_setup.cpp,0,2,0,0,2,0,0,5,0,0,0
 src/game/ui_battle_update.cpp,10,1,0,0,1,0,0,3,0,0,0
