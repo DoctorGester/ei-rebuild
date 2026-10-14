@@ -51,6 +51,12 @@ The page polls every few seconds; nothing is published.
 WB1 database + work.py start/note/status/done; WB2 scheduler + `work.py test`; WB3 server and pages;
 WB4 worker brief and area-worker switched to work.py, coordinator habits (start at spawn, done at merge).
 
+Coordinator: at spawn, `work.py start <ID>` if the worker has not registered (`work.py status` shows it);
+`work.py done <ID>` at merge; `work.py serve` for the live page (http://127.0.0.1:8765/). The worker side is
+in docs/worker-brief.md and .claude/agents/area-worker.md (untracked: .claude/ is ignored): start first,
+note at milestones, `work.py test` for every game run, a single scenario too (it queues fairly and shows on
+the board; its few seconds of scheduler start are the only cost). run_all.py directly only if work.py is broken.
+
 ## WB1: the database and work.py start / note / status / done (2026-10-14)
 
 Built: tools/work.py (standard library only) and the lock in tools/tickets.py.
@@ -119,3 +125,78 @@ with 24 concurrent `tickets.py note WB1 <token> --append`: without the lock 7 of
 one of three rounds left tickets.toml unparseable (one process's restore of `before` raced another's
 write); with it, 24 of 24 in three rounds and the file checks. The same worktree's `work.py db` opened
 E:/workspace/ei/build/live/work.db.
+
+## WB3: the live server and pages (2026-10-14)
+
+Built: `work.py serve [--port 8765]` (only the `serve` subcommand is in work.py) and tools/work_board/:
+server.py (standard library; `ThreadingHTTPServer` on 127.0.0.1 only, exclusive bind so a second one on
+the port fails, a Host-header check against DNS rebinding), index.html + app.js + board.css (the ticket
+board's tokens and light/dark), sample_db.py. Start it from any checkout: `python tools/work.py serve`,
+open http://127.0.0.1:8765/ (`#tickets` and `#runs` are the two views; the page polls /api/status every 3 s).
+Nothing is published.
+
+**Reads only.** Each request opens its own connection with `query_only` (no transaction held across
+requests); the server's one write is its heartbeat row (`process` name 'server', every 5 s, short
+transaction; the row is deleted on a clean exit). Tickets come from the main checkout's docs/tickets.toml
+through tools/tickets.py's `load()` / `derive()` (reloaded when the file's mtime changes). Last commits:
+one `git for-each-ref refs/heads` in the main checkout, reused for 10 s, so polling never forks git per
+ticket. A process counts as alive when its heartbeat is under 20 s old (the scheduler must refresh its
+`process` row at least that often).
+
+**Endpoints** (GET, JSON): `/api/status` = everything the page needs (time, processes, runs, tickets);
+`/api/tickets` (every ticket with state, `assignment` {agent, worktree, branch, started, open}, the last 3
+`notes`, `commit` {hash, time, subject} of the assigned branch, and `batch`: the ticket's latest batch with
+counts total/queued/running/done/passed/failed and up to 12 failed games); `/api/runs` (`running` and
+`queued` batches with all their `games`: scenario, install, state, slot, elapsed vs expected, result,
+failure lines; `history`: the last 40 finished or cancelled batches with duration and failed games);
+`/api/batch/<id>` (one batch with all games); `/api/processes` (scheduler and server: alive, pid,
+heartbeat_age). A game counts as passed when its result is PASS or PASS*.
+
+**Testing without WB2's data.** `python tools/work_board/sample_db.py <path>` writes a database with
+assignments, notes, a running batch with games, a queued one, finished ones with failures, and a fresh
+scheduler row (it refuses the real build/live/work.db); then `WORK_DB=<path> python tools/work.py serve`.
+Checked 2026-10-14 in the built-in browser (both views, no console errors) and with an empty database.
+
+## WB2: `work.py test` and the scheduler (2026-10-14)
+
+Built: tools/work_sched.py (both commands; work.py only gained the two subcommands), tools/run_all.py split
+into `parse_args`, `plan` (the scenario/install selection), `uses_hooks`, `load_times`/`save_times`, `line`,
+`summary`, with `run`, `compare_widescreen`, `rebirth_scenarios` taking `root`/`build` (and `run` a
+`take_slot`). Plain run_all output and behaviour are unchanged. No schema change.
+
+**`work.py test ID [run_all args]`** parses the arguments with run_all's parser, expands them with
+`run_all.plan()` in the checkout the work.py lives in (its verify build: EI_BUILD_DIR or build/verify),
+and writes the batch and its runs in one transaction (alone from `sets_display_mode`, expected from that
+build's run_times.json, folder = `<build>/runs/<scenario>-<install>`, submitter = its pid). It starts the
+scheduler if none holds the lock, prints run_all's header and each run's `line()` as rows finish, then the
+batch's summary, and exits with its exit code. Every 5 s it starts a scheduler again if none is alive (one
+that left on idle just as the batch came in, or died). Ctrl+C cancels the batch's queued runs (exit 130).
+The summary's "N runs in Ts" counts from the batch's first game, not from submission.
+
+**`work.py scheduler`**: singleton by a byte lock on build/live/scheduler.lock (next to the database);
+registers `process('scheduler')`, heartbeat every 5 s, leaves after WORK_SCHED_IDLE (120) s with nothing
+queued. `test` starts it with CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP (breakaway from the job if
+allowed), from the main checkout's tools when main has work_sched.py, output appended to
+build/live/scheduler.log. Each 0.5 s pass: record finished games, cancel batches whose submitter pid is
+gone, start games, finish batches. Order: batches by id; within one, alone runs first, then expected
+descending (unknown = 1000 s, as run_all). A batch takes free slots up to its `--jobs`; then the next batch
+gets what is left (backfill). An alone run stops all new starts, takes the `alone` gate and gathers every
+slot while ours and others' games end, then runs by itself. Slots are run_all's lock files (probing the
+gate as machine_slot does), so plain run_all and the scheduler share the 16. Two runs of one folder (two
+batches from one build) never run at once. The game thread calls `run_all.run_with_retries` with
+`run(root=worktree, build=build, take_slot=False)` and stays in its slot for retries (attempt in the row);
+the main thread does every DB write. A finished batch gets `run_all.summary()`'s text and exit code and its
+build's run_times.json is updated. A new scheduler requeues runs left `running` by a dead one.
+
+**Tested.** tools/test_work_sched.py (fake runner, temp database and slot folder, 8 s): FIFO + backfill +
+longest first, `--jobs` letting the next batch in, an alone run with nothing beside it, another process
+holding two slots and then the gate (a plain run_all), retries (PASS*, attempt) and summary/exit code and
+run_times.json, a dead submitter cancelling queued runs, one game per folder, singleton + idle exit through
+the CLI. Real: `work.py test WB2 smoke console ui_options_bind --vanilla-only --jobs 4` (ALL PASS, exit 0,
+waited ~35 s for slots on a full machine); then two batches at once, A (5 runs, --jobs 3) and B (2 runs,
+--jobs 1, EI_BUILD_DIR=another build folder): B's first game started only after A's last had started, in
+the slot A's game freed; both ALL PASS. A plain `run_all.py smoke --vanilla-only` beside other suites passed.
+
+**Not done / risks.** Games of a cancelled batch are not killed. A killed scheduler leaves its games running
+and the next one runs them again (its run folders are emptied under them). The pid check can be fooled by
+pid reuse (only delays a cancel). A batch from an old work.py is read by whichever scheduler is running.

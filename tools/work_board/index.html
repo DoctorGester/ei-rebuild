@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evil Islands Work Board</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Evil Islands Work Board</h1>
+    <div class="bar">
+      <div class="tabs">
+        <button class="tab" data-view="tickets" aria-pressed="true">Tickets</button>
+        <button class="tab" data-view="runs" aria-pressed="false">Test runs</button>
+      </div>
+      <div class="procs" id="procs"></div>
+    </div>
+    <p class="sub">Live from build/live/work.db, docs/tickets.toml and git, polled every few seconds. <span id="asof" class="mono"></span></p>
+  </header>
+  <div id="view"></div>
+  <p id="error"></p>
+  <footer>Local only (work.py serve); nothing is published.</footer>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

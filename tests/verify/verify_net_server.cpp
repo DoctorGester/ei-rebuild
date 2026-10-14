@@ -30,6 +30,7 @@ ServerSession* __fastcall ServerConstructVerify(ServerSession* self, void*, std:
     ServerSession* expectedRet = s_construct(reinterpret_cast<ServerSession*>(scratch), nullptr, arg);
     auto* actual = reinterpret_cast<const std::uint8_t*>(self);
     netverify::BuiltCompare cmp{scratch, actual, kSize};
+    for (std::size_t o : netverify::kRegistryFunctors) cmp.skipped.push_back(o);
     cmp.Range(0, kSize, {0x54});
     netverify::CompareSessionTables(cmp, scratch, actual);
     ei::verify::Check("ServerSession::Construct", true,

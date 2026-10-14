@@ -914,6 +914,11 @@ public:
 // The verify build's interface census (tests/verify/ui_census.cpp) is told which window owns each
 // surface: AddSurface (`added`), RemoveSurfaceAt, ClearSurfaces and the destructor. Null otherwise.
 extern void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurface* surface, bool added);
+// ... and when a whole-surface pixel helper runs on a surface (CaptureScreen, Rgb565Copy, Greyscale,
+// PixelAt, SwapContents; ui_surface_pixels.cpp), whether called through its game address or
+// directly; `writes` for the ones that change the surface's pixels; `caller` the stack slot of the
+// helper's return address (where its caller's chain starts). Null otherwise.
+extern void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bool writes, void* const* caller);
 static_assert(offsetof(CUiWindow, inputVtable_) == 0x94);
 static_assert(offsetof(CUiWindow, interface_) == 0x98);
 static_assert(offsetof(CUiWindow, inputHandled_) == 0x9C);
