@@ -78,6 +78,12 @@ def machine_slot(alone=False):
         if alone:
             while not (gate := _lock(os.path.join(SLOT_DIR, 'alone'))):
                 time.sleep(0.5)
+        else:
+            # A game waiting for all the slots holds the gate; others take no new slot meanwhile,
+            # or freed slots go to them first and it starves (35 minutes once with four suites).
+            while not (probe := _lock(os.path.join(SLOT_DIR, 'alone'))):
+                time.sleep(0.5)
+            _unlock(probe)
         while True:
             for i in range(MACHINE_SLOTS):
                 if alone and i in [h[0] for h in held]:
