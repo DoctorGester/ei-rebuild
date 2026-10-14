@@ -95,6 +95,8 @@ class CFigureMesh {
 public:
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073C224);   // class 0x44, the base
     static constexpr std::uintptr_t kMeshVtableAddress = std::uintptr_t(0x0073FC48);   // class 0x43
+    static constexpr std::uintptr_t kPlainMeshVtableAddress = std::uintptr_t(0x0073C1C4);   // class 0x42
+    static constexpr std::uintptr_t kSharedMeshVtableAddress = std::uintptr_t(0x0073FBF0);   // class 0x41
 
     // 005A18E0. Reads the bounding volume (centre, box, radius) that follows the mesh header and
     // morphs it: "FIG8" files hold 8 corner versions of each value, blended trilinearly by the

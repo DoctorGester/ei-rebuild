@@ -3,6 +3,9 @@
 // their vtable); an unknown one gives null.
 #include "verify.h"
 
+#include "../../src/game/engine_object.h"
+#include "../../src/game/figure_mesh.h"
+
 #include <cstdint>
 
 void* __fastcall CreateFigureObject(void*, void*, int classId);
@@ -12,9 +15,9 @@ void* s_unused;
 
 std::uint32_t ExpectedVtable(int classId) {
     switch (classId) {
-    case 0x41: return 0x0073FBF0;
-    case 0x42: return 0x0073C1C4;
-    case 0x43: return 0x0073FC48;
+    case 0x41: return CFigureMesh::kSharedMeshVtableAddress;
+    case 0x42: return CFigureMesh::kPlainMeshVtableAddress;
+    case 0x43: return CFigureMesh::kMeshVtableAddress;
     default: return 0;
     }
 }
@@ -28,8 +31,9 @@ static void* __fastcall CreateFigureObjectVerify(void* self, void*, int classId)
     if (!Known(classId)) {
         ok = object == nullptr;
     } else {
-        ok = object && *reinterpret_cast<int*>(static_cast<char*>(object) + 0x10) == classId &&
-             (!ExpectedVtable(classId) || *static_cast<std::uint32_t*>(object) == ExpectedVtable(classId));
+        ok = object && static_cast<CEngineObject*>(object)->type_ == classId &&
+             (!ExpectedVtable(classId) ||
+              reinterpret_cast<std::uintptr_t>(static_cast<CFigureMesh*>(object)->vtable_) == ExpectedVtable(classId));
     }
     ei::verify::Check("CreateFigureObject", true, ok, "class %x -> %p", classId, object);
     return object;

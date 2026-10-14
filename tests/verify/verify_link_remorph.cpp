@@ -128,9 +128,9 @@ static void __fastcall RemorphOldPartVerify(CLinkFigureLoader* self, void*, CLin
 EI_VERIFY(0x004FA670, RemorphOldPartVerify, 7, s_remorphOld);
 
 // 004F9E50 (ours only): true only for a part whose record was found; the part is still a part.
-static bool(__fastcall* s_remorphPart)(CLinkFigureLoader*, void*, CLinkMesh*, LinkFigureSet*, const stlp::string*, float,
+static bool(__fastcall* s_remorphPart)(CLinkFigureLoader*, void*, CLinkMesh*, FigureModel*, const stlp::string*, float,
                                        float, float);
-static bool __fastcall RemorphPartVerify(CLinkFigureLoader* self, void*, CLinkMesh* mesh, LinkFigureSet* set,
+static bool __fastcall RemorphPartVerify(CLinkFigureLoader* self, void*, CLinkMesh* mesh, FigureModel* set,
                                          const stlp::string* name, float s, float t, float u) {
     const bool had = mesh->ranges_.find(*name) != mesh->ranges_.end();
     const bool actual = self->RemorphPart(mesh, set, name, s, t, u);

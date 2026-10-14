@@ -15,21 +15,7 @@
 struct AnimationTrack;
 struct FigureBone;
 
-// A cached figure model (0x20 bytes, constructor 005A9A50): the mesh, bones and animation archives
-// of "<name>.mod / .bon / .anm" (0x6C-byte CMMIOResource objects; null when missing), then the
-// animation map.
-struct FigureModel {
-    CMappedResource* mesh;                // +0x00
-    CMappedResource* bones;               // +0x04
-    CMappedResource* animations;          // +0x08
-    std::uint8_t unknown_0C[0x20 - 0x0C]; // +0x0C hash_map<string, entry> (FindModelAnimation)
-
-    // 005A9EB0 (RET 0xC; the link figure loader's sets, 004FAB00; A-W14). Opens the three archives
-    // from the images of the figure's .mod / .bon / .anm files (OpenFromMemory); a null image
-    // leaves its archive alone.
-    void Open(const void* mod, const void* bon, const void* anm);
-};
-static_assert(sizeof(FigureModel) == 0x20);
+// FigureModel, the cached model, is in model.h.
 
 class CFigureManager : public CResourceManager {
 public:

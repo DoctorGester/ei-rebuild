@@ -167,16 +167,16 @@ EI_VERIFY(0x004F7D20, LoadArchivePartVerify, 0, s_loadArchivePart);
 
 // 004FAB00 (A-S8): PUSH -1; PUSH imm32 (7 bytes). A cached set: the original's lookup and ours agree.
 // A new one (ours only): a non-null set is stored under the name; null leaves no entry.
-static LinkFigureSet* (__fastcall* s_findFigureSet)(CLinkFigureLoader*, void*, const stlp::string*);
-static LinkFigureSet* __fastcall FindFigureSetVerify(CLinkFigureLoader* self, void*, const stlp::string* name) {
+static FigureModel* (__fastcall* s_findFigureSet)(CLinkFigureLoader*, void*, const stlp::string*);
+static FigureModel* __fastcall FindFigureSetVerify(CLinkFigureLoader* self, void*, const stlp::string* name) {
     if (self->figureSets_.Find(*name)) {
-        LinkFigureSet* expected = s_findFigureSet(self, nullptr, name);
-        LinkFigureSet* actual = self->FindFigureSet(name);
+        FigureModel* expected = s_findFigureSet(self, nullptr, name);
+        FigureModel* actual = self->FindFigureSet(name);
         ei::verify::Check("CLinkFigureLoader::FindFigureSet", expected, actual, "%p");
         return actual;
     }
     const std::size_t before = self->figureSets_.Size();
-    LinkFigureSet* actual = self->FindFigureSet(name);
+    FigureModel* actual = self->FindFigureSet(name);
     auto* node = self->figureSets_.Find(*name);
     const bool ok = actual ? node && node->value == actual && self->figureSets_.Size() == before + 1
                            : !node && self->figureSets_.Size() == before;
