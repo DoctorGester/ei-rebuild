@@ -51,7 +51,7 @@ int CMapObject::CreateMapObject() {
     CallCreate3D(this);
     DetachCompanion(this);
     PackedVitals()->Reset();
-    unknown_178 = 1.0f;
+    animationSpeed = 1.0f;
     PackedVitals()->Reset();
     NetFieldsSetSize(NetState(), nullptr, kMapObjectNetFields, -1);
     NetState()->Reset();

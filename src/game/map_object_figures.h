@@ -404,6 +404,8 @@ struct CountedRef {
 
 class CObject3D : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DDD4);
+
     // map_object_lifetime.cpp.
     // 00515BD0. The constructor: the engine object and transform bases (vtables 0073B8E0,
     // 0073BA38), identity orientations, empty name, part list (vtable 0073DE4C), arrays and

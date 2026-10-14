@@ -32,10 +32,8 @@ namespace {
 using ei::SetVtable;
 
 // Vtables.
-constexpr std::uintptr_t kObject3DVtable = std::uintptr_t(0x0073DDD4);
 constexpr std::uintptr_t kPartListVtable = std::uintptr_t(0x0073DE4C);
 constexpr std::uintptr_t kFrameArrayVtable = std::uintptr_t(0x0073DE40);
-constexpr std::uintptr_t kMapObjectVtable = std::uintptr_t(0x0073DAA0);
 constexpr std::uintptr_t kEffectArrayVtable = std::uintptr_t(0x0073DBA0);
 constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073DB94);
 // CMemoryStream's second vtable (the network queue's streams, 0073C960).
@@ -175,7 +173,7 @@ CObject3D* CObject3D::Construct() {
     partBoxGrowBy = 0;
     partBoxCapacity = 0;
     partBoxCount = 0;
-    SetVtable(this, kObject3DVtable);
+    SetVtable(this, CObject3D::kVtableAddress);
     attached = nullptr;
     animation = nullptr;
     std::memset(&scale, 0, sizeof(scale));
@@ -185,7 +183,7 @@ CObject3D* CObject3D::Construct() {
 EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
 
 void CObject3D::DestructBody() {
-    SetVtable(this, kObject3DVtable);
+    SetVtable(this, CObject3D::kVtableAddress);
     ReleaseParts(this);
     partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
     if (partBoxes) gamecrt::operator_delete(partBoxes);
@@ -241,18 +239,18 @@ CMapObject* CMapObject::Construct() {
     stream->Reset();
     SetVtable(stream, kQueueStreamVtable);
     ResetNetRecords(records);
-    SetVtable(this, kMapObjectVtable);
+    SetVtable(this, CMapObject::kVtableAddress);
     companion = nullptr;
     ResetPackedVitals(PackedVitals());
     sectorCellX = -1;
     sectorCellY = -1;
-    SetBits(unknown_178, kOne);
+    SetBits(animationSpeed, kOne);
     return this;
 }
 EI_REPLACE_METHOD(0x0050E2D0, CMapObject::Construct);
 
 void CMapObject::DestructBody() {
-    SetVtable(this, kMapObjectVtable);
+    SetVtable(this, CMapObject::kVtableAddress);
     DeltaState* records = NetState();
     DestroyStream(&records->header_[1]);
     DestroyStream(&records->header_[0]);

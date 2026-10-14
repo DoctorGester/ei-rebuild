@@ -187,7 +187,7 @@ public:
     // map_object_lifetime.cpp.
     // 0050E2D0. The constructor: the 3D object (00515BD0), the effect array (vtable 0073DBA0),
     // the second name, the network record array and its two memory streams (+0x1C4), then the
-    // vtable 0073DAA0, no companion, packed vitals cleared, no sector cell, +0x178 = 1. Returns
+    // vtable 0073DAA0, no companion, packed vitals cleared, no sector cell, animationSpeed 1. Returns
     // this.
     CMapObject* Construct();
     // 0050E660. The destructor body: the streams' buffers, the network records (00510340), the
@@ -239,7 +239,7 @@ public:
 
     // map_object_create.cpp (A-U).
     // 0050E770. Virtual slot 2 (Create; another name so it is no override): the 3D object's
-    // Create (00515F70), the companion detached and released, the packed vitals reset (+0x178 = 1
+    // Create (00515F70), the companion detached and released, the packed vitals reset (animationSpeed 1
     // between two resets), 4 network fields (SetSize 0050FA30) reset (0047FB70), changeStamp -1,
     // the effects freed, +0x174 = 5, the second name emptied, the base scale 0. Returns 1.
     int CreateMapObject();
@@ -248,7 +248,7 @@ public:
     void DestroyMapObject();
 
     // map_object_save.cpp (A-U2).
-    // 0050F7A0. Virtual slot 9 (Load): the companion's Load, then +0x178, the position, the
+    // 0050F7A0. Virtual slot 9 (Load): the companion's Load, then animationSpeed, the position, the
     // orientation, the name, the scale, the effects (count, then MapEffect::Load 00688550 each),
     // flags_, the second name and, from version 0x4F, the base scale.
     void LoadMapObject(CStream* stream);
@@ -311,7 +311,7 @@ public:
     // radius +0x134, half box `above` +0x144).
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
     int unknown_174;                // +0x174 (5 after Create)
-    float unknown_178;              // +0x178 (1 after Create)
+    float animationSpeed;           // +0x178 the animation's speed factor (CUnit::animationSpeed; 1 after Create)
     std::uint8_t packedVitals[0x18];    // +0x17C a UnitVitalsPacked (unit.h): PackedVitals()
     void* effectsVtable;            // +0x194 \ CArray<MapEffect> (vtable 0073DBA0; SetSize 0050FE70)
     MapEffect* effects;             // +0x198 |
