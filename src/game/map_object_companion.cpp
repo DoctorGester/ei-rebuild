@@ -152,24 +152,24 @@ int CMapObjectClientSpecific::Update() {
     // The light follows the object, kLightHeight above it, aimed down at it.
     CEngineObject* lamp = light;
     if (lamp && !(lamp->flags_ & kFlagHidden)) {
-        float lightPosition[3];
-        std::memcpy(lightPosition, PositionOf(lamp), sizeof(lightPosition));
-        float lightZ = lightPosition[2] - kLightHeight;   // FSTP to the copy
-        CMapObject* owner = OwnerOf(this);
-        double dx = static_cast<double>(lightPosition[0]) - owner->position.x;
-        double dy = static_cast<double>(lightPosition[1]) - owner->position.y;
-        double dz = static_cast<double>(lightZ) - owner->position.z;
-        double distance2 = (dz * dz + dy * dy) + dx * dx;
+        Vector3 lightPosition;
+        std::memcpy(&lightPosition, PositionOf(lamp), sizeof(lightPosition));
+        float lightZ = lightPosition.z - kLightHeight;   // FSTP to the copy
+        CMapObject* followed = OwnerOf(this);
+        double dx = static_cast<double>(lightPosition.x) - followed->position.x;
+        double dy = static_cast<double>(lightPosition.y) - followed->position.y;
+        double dz = static_cast<double>(lightZ) - followed->position.z;
+        double distance2 = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
         if (distance2 < 0.0 || distance2 > 0.0) {   // FCOMP 0: C3 (equal or unordered) skips
-            float direction[3];
-            direction[0] = owner->position.x - lightPosition[0];
-            direction[1] = owner->position.y - lightPosition[1];
-            direction[2] = owner->position.z - lightZ;
-            AimLight(LightManager(), nullptr, lamp, direction);
-            owner = OwnerOf(this);
+            Vector3 direction;
+            direction.x = followed->position.x - lightPosition.x;
+            direction.y = followed->position.y - lightPosition.y;
+            direction.z = followed->position.z - lightZ;
+            AimLight(LightManager(), nullptr, lamp, &direction.x);
+            followed = OwnerOf(this);
             float* position = PositionOf(light);
-            std::memcpy(position, &owner->position.x, 2 * sizeof(float));
-            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + owner->position.z);
+            std::memcpy(position, &followed->position.x, 2 * sizeof(float));
+            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + followed->position.z);
         }
     }
     return 1;

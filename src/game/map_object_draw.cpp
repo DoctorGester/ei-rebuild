@@ -58,20 +58,17 @@ using LightList = lib::AlignedArray<CEngineObject*>;
 
 // Does `light` reach `object`: its range + 10 squared at least the squared distance.
 bool InReach(const CObject3D* object, const CLight* light) {
-    const float* at = &light->position_.x;
-    float dx = static_cast<float>(static_cast<double>(object->position.x) - at[0]);
-    float dy = static_cast<float>(static_cast<double>(object->position.y) - at[1]);
-    float dz = static_cast<float>(static_cast<double>(object->position.z) - at[2]);
+    const Vector3& at = light->position_;
+    float dx = static_cast<float>(static_cast<double>(object->position.x) - at.x);
+    float dy = static_cast<float>(static_cast<double>(object->position.y) - at.y);
+    float dz = static_cast<float>(static_cast<double>(object->position.z) - at.z);
     double reach = static_cast<double>(light->range_) + kLightMargin;
-    double distanceSquared = (static_cast<double>(dx) * dx + static_cast<double>(dz) * dz) + static_cast<double>(dy) * dy;
+    double distanceSquared = LengthSquaredUnrounded<Sum3::ZXY, double>(dx, dy, dz);
     return reach * reach >= distanceSquared;   // NaN does not reach
 }
 
 bool PartTooFar(const FigurePart* part) {
-    double x = part->position.x;
-    double y = part->position.y;
-    double z = part->position.z;
-    return (x * x + y * y) + z * z > kNearSquared;
+    return LengthSquaredUnrounded<Sum3::XYZ, double>(part->position) > kNearSquared;
 }
 
 // The end of a draw: the iterator's reference to the light list and the light list itself.
@@ -97,8 +94,8 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     if (object->flags_ & kObjectNotDrawn) return 1;
     std::uint32_t anyDirty = 0;
     CTransformPipeline* pipeline = context->pipeline_;
-    float at[3];
-    std::memcpy(at, &object->position, sizeof(at));
+    Vector3 at;
+    std::memcpy(&at, &object->position, sizeof(at));
     ObjectSlots(object)->LoadFigures();
     if (!(object->flags_ & kObjectAnimated)) object->flags_ &= ~kObjectStatic;
     if (dirty) {
@@ -145,7 +142,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     std::uint8_t lit = 0xFF;
     if (!(object->flags_ & kObjectUnlit)) {
         Terrain* terrain = static_cast<CWorldClient*>(ManagerContext())->terrain_;
-        lit = IsLit(terrain, nullptr, at);   // AL as it is
+        lit = IsLit(terrain, nullptr, &at.x);   // AL as it is
     }
 
     // The parts of both sets.

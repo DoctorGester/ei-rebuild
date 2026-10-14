@@ -88,17 +88,17 @@ EI_REPLACE_METHOD(0x0052B370, Lever::CreateLever);
 int Lever::UpdateLever() {
     Update();
     if (static_cast<CWorld*>(ManagerContext())->IsServer()) return 0;
-    float shown[3] = {scale.x, scale.y, scale.z};
+    Vector3 shown = {scale.x, scale.y, scale.z};
     double t = (endTick - static_cast<double>(GameTick())) * rate;
     if (t > 0.0) {
-        shown[1] = StoreFloat(static_cast<float>(to - (to - from) * t));
-        Object3D()->SetFigureScale(shown);
+        shown.y = StoreFloat(static_cast<float>(to - (to - from) * t));
+        Object3D()->SetFigureScale(&shown.x);
         ClientRefreshObjectOriginal(ClientWorldObject(), nullptr, this);
         return 1;
     }
-    if (Differ(shown[1], to)) {
-        shown[1] = to;
-        Object3D()->SetFigureScale(shown);
+    if (Differ(shown.y, to)) {
+        shown.y = to;
+        Object3D()->SetFigureScale(&shown.x);
         ClientRefreshObjectOriginal(ClientWorldObject(), nullptr, this);
     }
     return 0;

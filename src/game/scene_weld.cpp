@@ -55,8 +55,7 @@ void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
             for (; index < points.size; ++index) {
                 const Vector3& q = reinterpret_cast<Vector3*>(points.data)[index];
                 float dx = q.x - p.x, dy = q.y - p.y, dz = q.z - p.z;
-                double length = std::sqrt(static_cast<double>(dx) * dx + static_cast<double>(dy) * dy +
-                                          static_cast<double>(dz) * dz);
+                double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz));
                 if (!(length >= weld)) break;
             }
             if (index == points.size) {

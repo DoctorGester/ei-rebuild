@@ -37,7 +37,7 @@ CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other)
 
 void CTransformObject::CombineRotation(const Quaternion& g) {
     const Quaternion& f = localRotation_;
-    float w = f.w * g.w - ((f.y * g.y + f.x * g.x) + f.z * g.z);
+    float w = f.w * g.w - DotUnrounded<Sum3::XYZ>(f.x, f.y, f.z, g.x, g.y, g.z);
     float x = ((f.z * g.y - f.y * g.z) + f.x * g.w) + f.w * g.x;
     float y = ((f.x * g.z - f.z * g.x) + f.y * g.w) + f.w * g.y;
     float z = ((f.y * g.x - f.x * g.y) + f.z * g.w) + f.w * g.z;
@@ -50,19 +50,21 @@ void CTransformObject::CombineRotation(const Quaternion& g) {
 // world = parent + rotate(parentRotation, local), with the rotation expanded as
 // (w^2 - u.u) L + 2w (u x L) + 2 (u.L) u. Each term is rounded to float where the original passes
 // it to the Vector3 constructor; the shared factors (2 u.L, w^2 - u.u) stay unrounded, so they are
-// recomputed (identically) in each component rather than held in a float local.
+// recomputed (identically) in each component rather than held in a float local. 2 u.L is written
+// (2u).L, the form /fp:fast gives the written-out ((u.L) * 2): the same value (doubling is exact),
+// and an inlined sum times 2 is regrouped differently (vecmath.h, Dot2DUnrounded).
 void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     CombineRotation(q);
     const float ux = q.x, uy = q.y, uz = q.z;
     const Vector3& l = localPosition_;
-#define EI_DOT2 ((ux * l.x + uz * l.z + uy * l.y) * 2.0f)
+#define EI_DOT2 DotUnrounded<Sum3::ZXY>(ux * 2.0f, uy * 2.0f, uz * 2.0f, l.x, l.y, l.z)
     Vector3 along = {StoreFloat(EI_DOT2 * ux), StoreFloat(uy * EI_DOT2), StoreFloat(uz * EI_DOT2)};
 #undef EI_DOT2
     Vector3 cross = {StoreFloat(uy * l.z - uz * l.y), StoreFloat(uz * l.x - ux * l.z),
                      StoreFloat(ux * l.y - uy * l.x)};
     Vector3 around = {StoreFloat(cross.x * (q.w * 2.0f)), StoreFloat(cross.y * (q.w * 2.0f)),
                       StoreFloat(cross.z * (q.w * 2.0f))};
-#define EI_SCALE (q.w * q.w - ((uz * uz + uy * uy) + ux * ux))
+#define EI_SCALE (q.w * q.w - LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz))
     Vector3 scaled = {StoreFloat(EI_SCALE * l.x), StoreFloat(EI_SCALE * l.y), StoreFloat(EI_SCALE * l.z)};
 #undef EI_SCALE
     Vector3 sum1, sum2;
@@ -116,10 +118,11 @@ EI_REPLACE(0x00401540, LoadTransformHook);
 void CCamera::GroundPoint(Vector3* out) const {
     const Quaternion& r = localRotation_;
     const Vector3& pos = localPosition_;
-    // The rotated Z axis, with x and y rounded to float temporaries and z rounded for the tests.
-    float ax = StoreFloat((r.z * r.x + r.w * r.y) * 2.0f);
-    float ay = StoreFloat((r.z * r.y - r.w * r.x) * 2.0f);
-    float az = StoreFloat((r.w * r.w - ((r.y * r.y + r.x * r.x) + r.z * r.z)) + r.z * r.z * 2.0f);
+    // The rotated Z axis (AxisZ's order), every component rounded to float.
+    const Vector3 axis = RotatedAxisZ(r);
+    float ax = axis.x;
+    float ay = axis.y;
+    float az = axis.z;
     if (std::fabs(az) > 1e-5 && -(pos.z / az) > 0.0f) {
         float x = StoreFloat(ax * -(pos.z / az)) + pos.x;
         float y = StoreFloat(ay * -(pos.z / az)) + pos.y;

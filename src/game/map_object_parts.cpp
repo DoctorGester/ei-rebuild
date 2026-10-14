@@ -94,12 +94,14 @@ float* CObject3D::PartWorldPosition(float* out, const FigurePart* part) {
     const float w = orientation.w;
     const float ux = orientation.x, uy = orientation.y, uz = orientation.z;
     const float vx = part->position.x, vy = part->position.y, vz = part->position.z;
-    float twiceDot = 2.0f * ((uz * vz + uy * vy) + ux * vx);
+    // 2(u.v) with the doubling on u, as /fp:fast spreads it over the written-out sum (an inlined
+    // 2.0f * Dot regroups to (2xx + s) + s).
+    float twiceDot = DotUnrounded<Sum3::ZYX>(ux * 2.0f, uy * 2.0f, uz * 2.0f, vx, vy, vz);
     float twiceW = w + w;
     float crossX = uy * vz - uz * vy;
     float crossY = uz * vx - vz * ux;
     float crossZ = ux * vy - uy * vx;
-    float along = w * w - (ux * ux + uy * uy + uz * uz);
+    float along = w * w - LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz);
     float x = (along * vx + twiceW * crossX) + twiceDot * ux;
     float y = (along * vy + twiceW * crossY) + twiceDot * uy;
     float z = (along * vz + twiceW * crossZ) + twiceDot * uz;

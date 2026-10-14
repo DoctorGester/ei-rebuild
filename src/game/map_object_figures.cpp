@@ -88,12 +88,7 @@ struct BoxBits {
 };
 
 // (x * x + y * y) + z * z of the part's position, unrounded.
-double DistanceSquared(const FigurePart* part) {
-    double x = part->position.x;
-    double y = part->position.y;
-    double z = part->position.z;
-    return (x * x + y * y) + z * z;
-}
+double DistanceSquared(const FigurePart* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->position); }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
 void AddPlacedPart(BoxBits& box, const FigurePart* p) {
@@ -148,8 +143,7 @@ std::uint32_t CObject3D::ComputeBounds() {
     below.x = belowXf;
     below.y = belowY;
     below.z = belowZ;
-    double yz = static_cast<double>(belowZ) * belowZ + static_cast<double>(belowY) * belowY;
-    double length = x87::fsqrt(yz + belowX * belowX);
+    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(belowX, belowY, belowZ));
     above.x = aboveX;
     above.y = aboveY;
     above.z = aboveZ;

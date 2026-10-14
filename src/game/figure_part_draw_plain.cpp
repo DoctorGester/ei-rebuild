@@ -8,7 +8,7 @@
 // (its own function-local static 007C2E60, guard 007C2E70 bit 1, freed at exit by 005A7A50). Any
 // draw that is not off screen marks the mesh drawn. See docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
-#include "figure_mesh.h"          // PositionBlock
+#include "figure_mesh.h"          // VertexPacket
 #include "link_figure.h"          // FigureMeshDrawer
 #include "lib/containers.h"
 #include "lib/gameapi.h"
@@ -26,7 +26,7 @@ namespace {
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 
 // The moved positions (lib::AlignedArray; its inlined SetSize allocates through 00452E70).
-lib::AlignedArray<PositionBlock>& MovedPositions() { return *reinterpret_cast<lib::AlignedArray<PositionBlock>*>(0x007C2E60); }
+lib::AlignedArray<VertexPacket>& MovedPositions() { return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007C2E60); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E70); }
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
@@ -60,16 +60,16 @@ void Fill(ColourArray& a, std::uint32_t value) {
 
 // The positions with the per-vertex offsets added, in 007C2E60.
 const void* MovedPositionsOf(CFigureMesh* mesh) {
-    lib::AlignedArray<PositionBlock>& moved = MovedPositions();
+    lib::AlignedArray<VertexPacket>& moved = MovedPositions();
     int blocks = mesh->buffers_.vertexCount;
     moved.SetSize(blocks);
     if (blocks) std::memcpy(moved.data, mesh->buffers_.vertices, static_cast<std::size_t>(blocks) * 64);
     for (int i = 0; i < mesh->offsets_.size; ++i) {
-        const float* offset = reinterpret_cast<const float*>(mesh->offsets_.data) + i * 3;
-        float* x = moved.data[i >> 2].v + (i & 3);
-        AddOffset(&offset[0], &x[0]);
-        AddOffset(&offset[1], &x[4]);
-        AddOffset(&offset[2], &x[8]);
+        const float* offset = &mesh->offsets_.data[i].x;
+        VertexPacket& packet = moved.data[i >> 2];
+        AddOffset(&offset[0], &packet.block[0][i & 3]);
+        AddOffset(&offset[1], &packet.block[1][i & 3]);
+        AddOffset(&offset[2], &packet.block[2][i & 3]);
     }
     return moved.data;
 }
@@ -89,7 +89,7 @@ int __fastcall DrawFigurePartPlain(FigureMeshDrawer* node, void*, CTextureDevice
     if (node->mesh_->flags_ & 0x80) return 1;
     if (!(Guard() & 1)) {
         Guard() |= 1;
-        MovedPositions() = lib::AlignedArray<PositionBlock>{};
+        MovedPositions() = lib::AlignedArray<VertexPacket>{};
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005A7A50));
     }
     int drawFlags = 0;
