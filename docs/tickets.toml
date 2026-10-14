@@ -404,11 +404,12 @@ note = "SetRect / AddPoint / sprite place; `resolution` / `widescreen` steps; ru
 id = "W2"
 title = "Sprite shapes, text extent and text draw, control rectangles"
 group = "widescreen"
-status = "review"
+status = "done"
 started = "2026-10-14"
 model = "opus"
 depends = ["W1"]
 note = "Sprite shape builders, text extent / text surface draw, the +0x98 rectangles of console / edit / list / chat / tooltip."
+done = "2026-10-14"
 
 [[ticket]]
 id = "W3"
