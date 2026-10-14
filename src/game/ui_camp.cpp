@@ -361,10 +361,7 @@ int CCampPages::Price(std::uint8_t* item, int kind) {
 
 #pragma float_control(pop)
 
-namespace {
-int __fastcall CampPrice(CCampPages* self, void*, std::uint8_t* item, int kind) { return self->Price(item, kind); }
-} // namespace
-EI_REPLACE(0x0060FAB0, CampPrice);
+EI_REPLACE_METHOD(0x0060FAB0, CCampPages::Price);
 EI_REBIRTH_IMPLEMENTS(0x0060FAB0, ei::rebirth::Patch::FixRepairPrice);
 
 bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
@@ -492,10 +489,7 @@ bool CCampPages::CanEquip(std::uint8_t* item, int mode) {
     }
 }
 
-namespace {
-bool __fastcall CampCanEquip(CCampPages* self, void*, std::uint8_t* item, int mode) { return self->CanEquip(item, mode); }
-} // namespace
-EI_REPLACE(0x006100E0, CampCanEquip);
+EI_REPLACE_METHOD(0x006100E0, CCampPages::CanEquip);
 
 // --- 00611930: UpdateAction ------------------------------------------------------------------------
 
@@ -789,10 +783,7 @@ BOOL CCampPages::Draw(int pass) {
     return 1;
 }
 
-namespace {
-BOOL __fastcall CampDraw(CCampPages* self, void*, int pass) { return self->Draw(pass); }
-} // namespace
-EI_REPLACE(0x0060F050, CampDraw);
+EI_REPLACE_METHOD(0x0060F050, CCampPages::Draw);
 
 // --- 00612290 / 00612600: what the constructors would make ---------------------------------------
 
@@ -914,10 +905,7 @@ bool CCampPages::CanMakeSpell() {
     if (mana < GameFtol(D(Read<float>(made, 0x40)))) return false;
     return skill >= Read<int>(made, 0x50);
 }
-namespace {
-bool __fastcall CampCanMakeSpell(CCampPages* self, void*) { return self->CanMakeSpell(); }
-} // namespace
-EI_REPLACE(0x00612290, CampCanMakeSpell);
+EI_REPLACE_METHOD(0x00612290, CCampPages::CanMakeSpell);
 
 bool CCampPages::CanMakeItem() {
     ItemConstructorAt* constructor = static_cast<ItemConstructorAt*>(ListSlot(itemResults_, 16));
@@ -978,10 +966,7 @@ bool CCampPages::CanMakeItem() {
     ReleaseObject(spell);
     return true;
 }
-namespace {
-bool __fastcall CampCanMakeItem(CCampPages* self, void*) { return self->CanMakeItem(); }
-} // namespace
-EI_REPLACE(0x00612600, CampCanMakeItem);
+EI_REPLACE_METHOD(0x00612600, CCampPages::CanMakeItem);
 
 // --- 0060E6B0: leaving the camp ---------------------------------------------------------------
 
@@ -1068,10 +1053,7 @@ void CCampPages::Close() {
     records.vtable = reinterpret_cast<void*>(0x0073FAA4);
     if (records.data) gamecrt::operator_delete(records.data);
 }
-namespace {
-void __fastcall CampClose(CCampPages* self, void*) { self->Close(); }
-} // namespace
-EI_REPLACE(0x0060E6B0, CampClose);
+EI_REPLACE_METHOD(0x0060E6B0, CCampPages::Close);
 
 // --- 0060E3E0: the trade panel's destructor body (vtable 007417A8) --------------------------------
 
@@ -1206,10 +1188,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     StatsPanelDrawStatsOriginal(statsPanel_);
     return result;
 }
-namespace {
-int __fastcall CampTakeOff(CCampPages* self, void*, std::uint8_t* item) { return self->TakeOff(item); }
-} // namespace
-EI_REPLACE(0x0060FE40, CampTakeOff);
+EI_REPLACE_METHOD(0x0060FE40, CCampPages::TakeOff);
 
 // --- 0060FCA0: putting an item on the hero ----------------------------------------------------
 
@@ -1285,10 +1264,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
     PlayerDropItem(GlueAt(0x007AFEA5)->PlayerData(), nullptr, item, 0);
     StatsPanelDrawStatsOriginal(statsPanel_);
 }
-namespace {
-void __fastcall CampPutOn(CCampPages* self, void*, std::uint8_t* item) { self->PutOn(item); }
-} // namespace
-EI_REPLACE(0x0060FCA0, CampPutOn);
+EI_REPLACE_METHOD(0x0060FCA0, CCampPages::PutOn);
 
 // --- 00610920 / 00610AD0: moving an item between the camp's lists ------------------------------
 
@@ -1363,10 +1339,7 @@ void CCampPages::PutOnFromStrip(std::uint8_t* item) {
     }
     interface_->PlaySound(GameText(kSoundPutOn), 0);
 }
-namespace {
-void __fastcall CampPutOnFromStrip(CCampPages* self, void*, std::uint8_t* item) { self->PutOnFromStrip(item); }
-} // namespace
-EI_REPLACE(0x00610920, CampPutOnFromStrip);
+EI_REPLACE_METHOD(0x00610920, CCampPages::PutOnFromStrip);
 
 void CCampPages::MoveItem(std::uint8_t* item, int mode) {
     auto canEquip = reinterpret_cast<CanEquipFn>(vtable_[43]);   // slot 43 (+0xAC)
@@ -1487,10 +1460,7 @@ void CCampPages::MoveItem(std::uint8_t* item, int mode) {
     }
     interface_->PlaySound(GameText(kSoundPutOff), 0);
 }
-namespace {
-void __fastcall CampMoveItem(CCampPages* self, void*, std::uint8_t* item, int mode) { self->MoveItem(item, mode); }
-} // namespace
-EI_REPLACE(0x00610AD0, CampMoveItem);
+EI_REPLACE_METHOD(0x00610AD0, CCampPages::MoveItem);
 
 // --- 0060F9E0 / 0060F980: the hero's unit after a change ---------------------------------------
 
@@ -1527,10 +1497,7 @@ void CCampPages::RefreshWeapons() {
     using Fn = void(__thiscall*)(CCampPages*);
     reinterpret_cast<Fn>(vtable_[47])(this);
 }
-namespace {
-void __fastcall CampRefreshWeapons(CCampPages* self, void*) { self->RefreshWeapons(); }
-} // namespace
-EI_REPLACE(0x0060F9E0, CampRefreshWeapons);
+EI_REPLACE_METHOD(0x0060F9E0, CCampPages::RefreshWeapons);
 
 void CCampPages::RefreshStats() {
     if (heroes_[hero_]) {
@@ -1541,10 +1508,7 @@ void CCampPages::RefreshStats() {
     }
     StatsPanelDrawStatsOriginal(statsPanel_);
 }
-namespace {
-void __fastcall CampRefreshStats(CCampPages* self, void*) { self->RefreshStats(); }
-} // namespace
-EI_REPLACE(0x0060F980, CampRefreshStats);
+EI_REPLACE_METHOD(0x0060F980, CCampPages::RefreshStats);
 
 // --- 0060F6B0 / 0060F710 / 0060F7A0 / 0060F830: turning and choosing the hero ------------------
 
@@ -1614,10 +1578,7 @@ void CCampPages::Update() {
         std::memcpy(&heroTurn_, &turned, 4);
     }
 }
-namespace {
-void __fastcall CampUpdate(CCampPages* self, void*) { self->Update(); }
-} // namespace
-EI_REPLACE(0x0060F6B0, CampUpdate);
+EI_REPLACE_METHOD(0x0060F6B0, CCampPages::Update);
 
 namespace {
 // The search both directions share: from the current hero, step until a record of the hero
@@ -1658,12 +1619,8 @@ void CCampPages::PreviousHero() {
     using Fn = void(__thiscall*)(CCampPages*);
     reinterpret_cast<Fn>(vtable_[46])(this);
 }
-namespace {
-void __fastcall CampNextHero(CCampPages* self, void*) { self->NextHero(); }
-void __fastcall CampPreviousHero(CCampPages* self, void*) { self->PreviousHero(); }
-} // namespace
-EI_REPLACE(0x0060F710, CampNextHero);
-EI_REPLACE(0x0060F7A0, CampPreviousHero);
+EI_REPLACE_METHOD(0x0060F710, CCampPages::NextHero);
+EI_REPLACE_METHOD(0x0060F7A0, CCampPages::PreviousHero);
 
 void CCampPages::ShowHero() {
     std::uint8_t* unit = heroes_[hero_];
