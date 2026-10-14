@@ -1,6 +1,6 @@
 # Ticket queue
 
-Generated from docs/tickets.toml by tools/tickets.py: edit the toml, then run the script. The ticket board shows the same data.
+Generated from docs/tickets.toml by tools/tickets.py: never edit this file; read one ticket with `python tools/tickets.py show ID` and change tickets through the script. The ticket board shows the same data.
 
 - Workers own one ticket or area for about a usage session, commit small green groups (all checks green), and follow docs/worker-brief.md. The coordinator merges, runs the suite and keeps this file current.
 - Mark a ticket running with the start date when a worker takes it, done with the date when it is merged.
