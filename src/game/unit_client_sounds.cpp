@@ -282,11 +282,11 @@ void CUnitClientSpecific::PlayStepSounds() {
         gamecrt::sprintf(partName, left ? "ll%d" : "rl%d", part);
         FigurePart* foot = unit->Object3D()->FindPartByPrefix(partName);
         if (!foot) break;
-        float footAt[3];
-        unit->Object3D()->PartWorldPosition(footAt, foot);
+        Vector3 footAt;
+        unit->Object3D()->PartWorldPosition(&footAt.x, foot);
         Vector3 facing;
         unit->orientation.AxisY(&facing);
-        double length = std::sqrt(facing.y * facing.y + facing.x * facing.x);
+        double length = std::sqrt(LengthSquared2DUnrounded(facing.y, facing.x));
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
         volatile float cosine = static_cast<float>(facing.y / length);
         float clamped = cosine;
@@ -303,8 +303,8 @@ void CUnitClientSpecific::PlayStepSounds() {
         float scale = prototype->valuesE0[0];
         if (unit->moveMode == 0) scale *= kCrawlPrintScale;
         else if (unit->moveMode == 1) scale *= kWalkPrintScale;
-        int id = AddFootprint(WorldClient(), nullptr, footAt[0] - sizeX * facing.x * kHalf,
-                              footAt[1] - sizeY * facing.y * kHalf, sizeX, sizeY, turn, (left << 16) | printKind, scale,
+        int id = AddFootprint(WorldClient(), nullptr, footAt.x - sizeX * facing.x * kHalf,
+                              footAt.y - sizeY * facing.y * kHalf, sizeX, sizeY, turn, (left << 16) | printKind, scale,
                               shown, footprint);
         if (footprintRepeats > 0) --footprintRepeats;
         else footprint = -1;

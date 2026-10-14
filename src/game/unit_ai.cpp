@@ -393,7 +393,8 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
     float pointY = point->y;
     volatile float segX = previousPosition.x - position.x;     // FSTP float [EBP+0xC]
     volatile float segY = previousPosition.y - position.y;     // FSTP float [EBP+8]
-    volatile float t = ((pointX - position.x) * segX + (pointY - position.y) * segY) / (segY * segY + segX * segX);
+    volatile float t = static_cast<float>(((pointX - position.x) * segX + (pointY - position.y) * segY) /
+                                          LengthSquared2DUnrounded<double>(segY, segX));
     // Clamp to [0, 1] with the original's FCOMP/mask selects (C0: "less or unordered"): t is kept
     // when 0 < t or unordered, else 0; then 1 is taken when 1 < t or unordered.
     float clamped = !(0.0f >= t) ? static_cast<float>(t) : 0.0f;
@@ -532,7 +533,7 @@ struct AttackOrder {
     int kind;                       // +0x00 3
     int what;                       // +0x04 6
     CEngineObject* object;          // +0x08 counted
-    float point[3];                 // +0x0C left uninitialised by the original
+    Vector3 point;                  // +0x0C left uninitialised by the original
     std::uint8_t flag;              // +0x18
     std::uint8_t unknown_19[3];
 };
