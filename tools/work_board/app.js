@@ -8,15 +8,13 @@ let data = null, fetchedAt = Date.now();
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const base = p => String(p || '').split('/').filter(Boolean).pop() || '';
+// Elapsed times are spans the page counts up every second between polls (data-t: start, ms since epoch).
+const tickText = t => dur(Math.max(0, (Date.now() - t) / 1000));
+const tick = t => `<span class="tick" data-t="${Math.round(t)}">${tickText(t)}</span>`;
+const fromFetch = secs => tick(fetchedAt - secs * 1000);     // an age the server measured at fetch time
 function ageOf(stamp) {
   const t = Date.parse(stamp); if (!stamp || isNaN(t)) return '';
-  return coarse(Math.max(0, (Date.now() - t) / 1000));
-}
-// Ages to the minute: "now", "8m", "1h03m", "2d".
-function coarse(s) {
-  if (s < 60) return 'now';
-  if (s < 3600) return Math.floor(s / 60) + 'm';
-  return dur(s).replace(/\d+s$/, '');
+  return tick(t);
 }
 function dur(s) {
   if (s == null) return '';
@@ -36,15 +34,15 @@ function progress(b) {
     `<i class="p" style="width:${w(b.passed)}"></i><i class="f" style="width:${w(b.failed)}"></i><i class="r" style="width:${w(b.running)}"></i></div>`;
 }
 function batchSummary(b) {
-  const parts = [`#${b.id}`, b.state];
+  const parts = [`#${b.id}`, esc(b.state)];
   if (b.total) parts.push(`${b.done}/${b.total} games`);
   if (b.running) parts.push(`${b.running} running`);
   if (b.queued && b.state !== 'queued') parts.push(`${b.queued} queued`);
-  const time = b.state === 'running' ? 'for ' + dur((b.elapsed || 0) + sinceFetch())
-    : b.state === 'queued' ? 'waiting ' + dur((b.queued_for || 0) + sinceFetch()) : b.finished ? dur(b.elapsed) + ', ' + ageOf(b.finished) + ' ago' : '';
+  const time = b.state === 'running' ? 'for ' + fromFetch(b.elapsed || 0)
+    : b.state === 'queued' ? 'waiting ' + fromFetch(b.queued_for || 0) : b.finished ? dur(b.elapsed) + ', ' + ageOf(b.finished) + ' ago' : '';
   if (time) parts.push(time);
   const bad = b.failed ? ` <span class="bad">${b.failed} failed</span>` : b.state === 'finished' && b.total ? ' <span class="ok">all passed</span>' : '';
-  return esc(parts.join(' · ')) + bad;
+  return parts.join(' · ') + bad;
 }
 
 // ---- tickets view
@@ -55,17 +53,17 @@ const shortAgent = a => String(a || '?').replace(/^agent-/, '').slice(0, 7);
 const defaultBranch = a => a.branch === 'worktree-' + a.agent || a.branch === 'worktree-' + base(a.worktree);
 function freshness(t) {
   const a = t.assignment, n = t.notes[0], c = t.commit, b = t.batch;
-  if (b && b.state === 'running') return { cls: 'live', text: 'testing now' };
+  if (b && b.state === 'running') return { cls: 'live', html: 'testing now' };
   // Activity since the assignment began: notes, commits on the branch, test batches.
   const since = a ? secsSince(a.started) : null;
   const stamps = [n && n.time, c && c.time, b && (b.finished || b.started)].map(secsSince)
     .filter(x => x != null && (since == null || x <= since + 60));
   if (!stamps.length) {
-    if (since == null) return { cls: 'quiet', text: '' };
-    return { cls: since < 3600 ? 'slow' : 'quiet', text: 'nothing yet' };
+    if (since == null) return { cls: 'quiet', html: '' };
+    return { cls: since < 3600 ? 'slow' : 'quiet', html: 'nothing yet' };
   }
   const quiet = Math.min(...stamps);
-  return { cls: quiet < 1200 ? 'live' : quiet < 3600 ? 'slow' : 'quiet', text: quiet < 60 ? 'active now' : 'active ' + coarse(quiet) + ' ago' };
+  return { cls: quiet < 1200 ? 'live' : quiet < 3600 ? 'slow' : 'quiet', html: 'active ' + tick(Date.now() - quiet * 1000) + ' ago' };
 }
 function ticketCard(t) {
   const a = t.assignment, c = t.commit, n = t.notes[0], b = t.batch;
@@ -91,7 +89,7 @@ function ticketCard(t) {
     `<ul class="failures">${b.failures.map(g => `<li>${esc(g.scenario)} (${esc(g.install)}): ${esc(g.result || '')}${g.failures[0] ? ' - ' + esc(g.failures[0]) : ''}</li>`).join('')}</ul>`) : '';
   return `<article class="card s-${t.state} f-${f.cls}">
     <div class="top"><span class="id">${esc(t.id)}</span><span class="title">${esc(t.title)}</span></div>
-    <div class="tags"><span class="pill st">${esc(t.state)}</span>${t.model ? `<span class="pill">${esc(t.model)}</span>` : ''}<span class="fresh">${esc(f.text)}</span></div>
+    <div class="tags"><span class="pill st">${esc(t.state)}</span>${t.model ? `<span class="pill">${esc(t.model)}</span>` : ''}<span class="fresh">${f.html}</span></div>
     ${sub.length ? `<div class="subline">${sub.join('<span class="dot">·</span>')}</div>` : ''}
     ${act.length ? `<div class="acts">${act.join('')}</div>` : ''}
     ${moreNotes}${fails}</article>`;
@@ -126,11 +124,12 @@ function gameRow(g, now) {
   let bar = '';
   if (g.expected && elapsed != null) {
     const pct = Math.min(100, 100 * elapsed / g.expected);
-    bar = `<span class="gamebar"><i class="${elapsed > g.expected ? 'over' : ''}" style="width:${pct.toFixed(0)}%"></i></span>`;
+    const live = g.state === 'running' ? ` data-t="${Math.round(fetchedAt - (g.elapsed || 0) * 1000)}" data-exp="${g.expected}"` : '';
+    bar = `<span class="gamebar"><i class="${elapsed > g.expected ? 'over' : ''}"${live} style="width:${pct.toFixed(0)}%"></i></span>`;
   }
   const result = g.state === 'finished' ? `<span class="${/^PASS/.test(g.result || '') ? 'ok' : 'bad'}">${esc(g.result || '')}</span>` : esc(g.state);
   return `<tr><td>${esc(g.scenario)}${g.alone ? ' <span class="pill">alone</span>' : ''}${g.attempt ? ` <span class="pill">retry ${g.attempt}</span>` : ''}</td><td>${esc(g.install)}</td>` +
-    `<td class="num">${g.slot ?? ''}</td><td>${bar}<span class="mono">${elapsed != null ? dur(elapsed) : ''}${g.expected ? ' / ' + dur(g.expected) : ''}</span></td><td>${result}</td></tr>` +
+    `<td class="num">${g.slot ?? ''}</td><td>${bar}<span class="mono">${g.state === 'running' ? fromFetch(g.elapsed || 0) : elapsed != null ? dur(elapsed) : ''}${g.expected ? ' / ' + dur(g.expected) : ''}</span></td><td>${result}</td></tr>` +
     (g.failures.length ? `<tr><td colspan="5"><ul class="failures">${g.failures.slice(0, 6).map(f => `<li>${esc(f)}</li>`).join('')}</ul></td></tr>` : '');
 }
 function gamesTable(b, now) {
@@ -176,7 +175,7 @@ function procs() {
   return Object.entries(data.processes).map(([name, p]) => p.alive
     ? `<span class="pill up">${name} up</span>`
     : name === 'scheduler' ? `<span class="pill">scheduler idle</span>`
-    : `<span class="pill down">${name} ${p.heartbeat_age == null ? 'never seen' : 'down ' + dur(p.heartbeat_age + sinceFetch())}</span>`).join('');
+    : `<span class="pill down">${name} ${p.heartbeat_age == null ? 'never seen' : 'down ' + fromFetch(p.heartbeat_age)}</span>`).join('');
 }
 function render() {
   if (!data) return;
@@ -209,4 +208,13 @@ document.addEventListener('toggle', e => {
   if (k) e.target.open ? open.add(k) : open.delete(k);
 }, true);
 window.addEventListener('hashchange', () => { const v = location.hash.slice(1); if (v === 'runs' || v === 'tickets') { state.view = v; render(); } });
-poll(); setInterval(poll, POLL_MS);
+function tickAll() {
+  const now = Date.now();
+  for (const el of document.querySelectorAll('.tick')) el.textContent = tickText(+el.dataset.t);
+  for (const el of document.querySelectorAll('.gamebar i[data-exp]')) {
+    const secs = (now - +el.dataset.t) / 1000, exp = +el.dataset.exp;
+    el.style.width = Math.min(100, 100 * secs / exp).toFixed(0) + '%';
+    el.classList.toggle('over', secs > exp);
+  }
+}
+poll(); setInterval(poll, POLL_MS); setInterval(tickAll, 1000);
