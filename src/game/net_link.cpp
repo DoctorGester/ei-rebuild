@@ -119,23 +119,23 @@ FileStream* FileStream::DeletingDestruct(unsigned flags) {   // 00477F90
 EI_REPLACE_METHOD(0x00477F90, FileStream::DeletingDestruct);
 
 std::uint32_t FileStream::Read(void* buffer, std::uint32_t size) {   // 00477F00
-    std::uint32_t read = ei::VCall<std::uint32_t>(file_, kFileRead, buffer, size);
+    std::uint32_t read = File()->Read(buffer, size);
     ok_ = static_cast<std::uint8_t>(ok_ & (read == size ? 1 : 0));
     return read;
 }
 
-void FileStream::Write(const void* buffer, std::uint32_t size) { ei::VCall<void>(file_, kFileWrite, buffer, size); }   // 00477F30
+void FileStream::Write(const void* buffer, std::uint32_t size) { File()->Write(buffer, size); }   // 00477F30
 
-long FileStream::SeekFrom(long position) { return ei::VCall<long>(file_, kFileSeek, position, 0u); }   // 00477F50
+long FileStream::SeekFrom(long position) { return File()->Seek(position, 0u); }   // 00477F50
 EI_REPLACE_METHOD(0x00477F50, FileStream::SeekFrom);
 void FileStream::Seek(std::uint32_t position) { SeekFrom(static_cast<long>(position)); }
 
-std::uint32_t FileStream::Size() { return ei::VCall<std::uint32_t>(file_, kFileGetLength); }       // 00477F70
-std::uint32_t FileStream::Position() { return ei::VCall<std::uint32_t>(file_, kFileGetPosition); } // 00477F80
+std::uint32_t FileStream::Size() { return File()->GetLength(); }       // 00477F70
+std::uint32_t FileStream::Position() { return File()->GetPosition(); } // 00477F80
 
 long FileStream::Restart() {   // 00477EE0
     ok_ = 1;
-    return ei::VCall<long>(file_, kFileSeek, 0L, 0u);
+    return File()->Seek(0L, 0u);
 }
 EI_REPLACE_METHOD(0x00477EE0, FileStream::Restart);
 void FileStream::Clear() { Restart(); }

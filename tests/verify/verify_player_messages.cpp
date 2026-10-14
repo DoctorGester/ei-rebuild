@@ -27,14 +27,14 @@ struct MessageState {
         if (p->out_.data_) bytes.assign(p->out_.data_, p->out_.data_ + p->out_.capacity_);
         std::memcpy(head, reinterpret_cast<char*>(p) + 0x1C, sizeof(head));
         flag70 = p->flag70_;
-        dirty = p->player_ ? *reinterpret_cast<std::uint32_t*>(p->player_ + 0x130) : 0;
+        dirty = p->player_ ? static_cast<std::uint32_t>(p->player_->dirty_) : 0;
     }
     void Restore(CPlayerServer* p) const {
         RawCopy(&p->out_, &header);
         if (!bytes.empty()) std::memcpy(p->out_.data_, bytes.data(), bytes.size());
         std::memcpy(reinterpret_cast<char*>(p) + 0x1C, head, sizeof(head));
         p->flag70_ = flag70;
-        if (p->player_) *reinterpret_cast<std::uint32_t*>(p->player_ + 0x130) = dirty;
+        if (p->player_) p->player_->dirty_ = static_cast<int>(dirty);
     }
     bool SameAs(const MessageState& o) const {
         if (std::memcmp(&header, &o.header, sizeof(BitStream)) != 0) return false;
@@ -178,11 +178,11 @@ static void __fastcall SetVariableMaxVerify(CPlayerServer* self, void*, const ch
 EI_VERIFY(0x0066EE80, SetVariableMaxVerify, 0, s_unused);
 static void __fastcall SendState73Verify(CPlayerServer* self, void*, void* source) {
     self->SendState73(source);
-    bool ok = !self->player_ || (*reinterpret_cast<std::uint32_t*>(self->player_ + 0x130) & 0x20) == 0;
+    bool ok = !self->player_ || (self->player_->dirty_ & 0x20) == 0;
     ei::verify::Check("CPlayerServer::SendState73", true, ok, "player %p", self);
 }
 EI_VERIFY(0x0066F240, SendState73Verify, 0, s_unused);
-static void __fastcall WriteToVerify(CPlayerServer* self, void*, void* target) { self->WriteTo(target); }
+static void __fastcall WriteToVerify(CPlayerServer* self, void*, CStream* target) { self->WriteTo(target); }
 EI_VERIFY(0x0066D230, WriteToVerify, 0, s_unused);
 
 // 006221B0: MOV EDX,[ECX+34h]; XOR EAX,EAX (5 bytes). Pure.

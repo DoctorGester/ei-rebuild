@@ -37,9 +37,7 @@ const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 // as the description when a map message is held (else empty), the number of clients, the maximum
 // and whether a password is set.
 void ServerSession::Describe(RefPtr* out) {
-    auto* entry = static_cast<ServerEntry*>(gamecrt::operator_new(sizeof(ServerEntry)));
-    std::uint32_t zero = 0;   // the count and flags, before the null check (as the original)
-    std::memcpy(reinterpret_cast<std::uint8_t*>(entry) + 4, &zero, 4);
+    auto* entry = NewMessageMemory<ServerEntry>();
     if (entry) {
         entry->ConstructBase();
         std::uint8_t allocator = 0;

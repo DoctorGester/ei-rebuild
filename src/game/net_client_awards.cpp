@@ -5,19 +5,19 @@
 
 #include "net_messages.h"
 #include "core_refcount.h"
+#include "item.h"
+#include "party.h"
+#include "player_messages.h"
 
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
 #include "originals_library.h"
 #include "originals_core.h"
 
 #include <cstring>
-
-class CEngineObject;
 
 namespace net {
 
@@ -51,21 +51,15 @@ __declspec(naked) int __cdecl GameFtol(double) {
 constexpr std::uintptr_t kWorld = 0x007AFF60;
 constexpr std::uintptr_t kPtrListVtable = 0x0073BE80;       // CPtrList of objects
 constexpr std::uintptr_t kCountedListVtable = 0x0073BE74;   // list of counted objects
-constexpr int kPlayerGold = 0xC0;
-constexpr int kPlayerParty = 0x70;     // the player's party / inventory object (00661050 class)
-constexpr int kPlayerItems = 0xE4;     // head of the player's item list
 constexpr int kClassQuestItem = 0x14;
-constexpr int kSlotFactory = 18;       // of the party: the item manager
 
 void* World() { return reinterpret_cast<void*>(kWorld); }
+// 00594180: player 0 of the world (the local player), or null.
+CPlayer* LocalPlayer() { return static_cast<CPlayer*>(WorldGetPlayer(World(), nullptr, 0)); }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 std::int32_t GameMode() { return *reinterpret_cast<const std::int32_t*>(0x007C2CC4); }
 std::uint32_t Unknown7B00BC() { return *reinterpret_cast<const std::uint32_t*>(0x007B00BC); }
 void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 
 void InitList(ObjectList& list, std::uintptr_t vtable) {
     list.vtable = reinterpret_cast<void*>(vtable);
@@ -80,17 +74,16 @@ void InitList(ObjectList& list, std::uintptr_t vtable) {
 } // namespace
 
 // 0041CD80: applies the received awards (+0x2608: counted award messages, net_server_awards.cpp)
-// to player 0 and empties the list. Kind 0: experience (005911C0 with the value's bits); 1: gold
-// (+0xC0, the value truncated), then an empty item list given; 2: the item named by the text,
-// given; 3: the first item of the player's list that the named item's slot 14 accepts (returns 0)
-// is removed; 4: the party's items are reset and every quest item (class 0x14) removed.
+// to player 0 and empties the list. Kind 0: experience (005911C0 with the value's bits); 1: money
+// (the party's, the value truncated), then an empty item list given; 2: the item named by the text,
+// given; 3: the first given item whose IsSameAs (slot 14) with the named item returns 0 is taken
+// (by id); 4: the party's quest items removed and every given quest item (class 0x14) taken.
 void ClientSession::ApplyAwards() {
     ClientSession* self = this;
-    std::uint8_t* player = static_cast<std::uint8_t*>(WorldGetPlayer(World(), nullptr, 0));
+    CPlayer* player = LocalPlayer();
     if (!player) return;
-    for (void** node = static_cast<void**>(static_cast<void**>(self->awards_)[0]); node != self->awards_;
-         node = static_cast<void**>(node[0])) {
-        auto* award = static_cast<AwardMessage*>(node[2]);
+    for (RefNode* node = static_cast<RefNode*>(self->awards_)->next; node != self->awards_; node = node->next) {
+        auto* award = static_cast<AwardMessage*>(node->data.ptr);
         const char* name = award->text_.start;
         switch (award->kind_) {
         case 0: {
@@ -102,7 +95,7 @@ void ClientSession::ApplyAwards() {
         case 1: {
             ObjectList none;
             InitList(none, kPtrListVtable);
-            At<std::int32_t>(player, kPlayerGold) += GameFtol(award->value_);
+            player->Party()->Money() += GameFtol(award->value_);
             PlayerGiveItems(player, nullptr, &none, 0);
             none.vtable = reinterpret_cast<void*>(kPtrListVtable);
             PtrListRemoveAll(&none);
@@ -111,8 +104,7 @@ void ClientSession::ApplyAwards() {
         case 2: {
             ObjectList items;
             InitList(items, kCountedListVtable);
-            void* manager = ei::VCall<void*>(player + kPlayerParty, kSlotFactory);
-            CEngineObject* item = ItemManagerCreateItemOriginal(manager, nullptr, name);
+            CEngineObject* item = ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name);
             ObjectList::Node* added = CountedNewNode(&items, nullptr, items.tail, nullptr);
             ReferenceAssign(&added->data, nullptr, item);
             if (items.tail) items.tail->next = added;
@@ -124,29 +116,28 @@ void ClientSession::ApplyAwards() {
             break;
         }
         case 3: {
-            void* manager = ei::VCall<void*>(player + kPlayerParty, kSlotFactory);
-            CEngineObject* item = ItemManagerCreateItemOriginal(manager, nullptr, name);
-            if (item) ++At<std::int32_t>(item, 4);
-            for (auto* position = At<ObjectList::Node*>(player, kPlayerItems); position;) {
+            auto* item = static_cast<CItem*>(ItemManagerCreateItemOriginal(player->Party()->ItemManager(), nullptr, name));
+            if (item) ++item->refCount_;
+            for (ObjectList::Node* position = player->items_.head; position;) {
                 ObjectList::Node* current = position;
                 position = position->next;
-                CEngineObject* owned = current->data;
-                if (!ei::VCall<int>(owned, 14, item)) {
-                    std::int32_t index = At<std::int32_t>(owned, 0xC);
-                    if (index >= 0) PlayerRemoveItem(player, nullptr, index);
+                auto* owned = static_cast<CItem*>(current->data);
+                if (!owned->IsSameAs(item)) {
+                    std::int32_t id = owned->id_;
+                    if (id >= 0) PlayerRemoveItem(player, nullptr, id);
                     break;
                 }
             }
-            if (item) ei::VCall<int>(item, 4);   // Release
+            if (item) item->Release();
             break;
         }
         case 4:
-            PartyResetItems(player + kPlayerParty);
-            for (auto* position = At<ObjectList::Node*>(player, kPlayerItems); position;) {
+            PartyResetItems(player->Party());
+            for (ObjectList::Node* position = player->items_.head; position;) {
                 ObjectList::Node* current = position;
                 position = position->next;
                 CEngineObject* owned = current->data;
-                if (ei::VCall<int>(owned, 12) == kClassQuestItem) PlayerRemoveItem(player, nullptr, At<std::int32_t>(owned, 0xC));
+                if (owned->GetClassId() == kClassQuestItem) PlayerRemoveItem(player, nullptr, owned->id_);
             }
             break;
         default:
@@ -155,38 +146,39 @@ void ClientSession::ApplyAwards() {
     }
 
     // The list emptied inline: each award released, each node back to the 16-byte pool list.
-    for (void** node = static_cast<void**>(static_cast<void**>(self->awards_)[0]); node != self->awards_;) {
-        void** current = node;
-        node = static_cast<void**>(node[0]);
-        if (auto* award = static_cast<CRefObject*>(current[2])) {
+    auto* sentinel = static_cast<RefNode*>(self->awards_);
+    for (RefNode* node = sentinel->next; node != self->awards_;) {
+        RefNode* current = node;
+        node = node->next;
+        if (CRefObject* award = current->data.ptr) {
             --award->refs_;
             if (award->refs_ == 0) delete award;
         }
         if (current) {
-            current[0] = NodeFreeList();
+            current->next = static_cast<RefNode*>(NodeFreeList());
             NodeFreeList() = current;
         }
     }
-    static_cast<void**>(self->awards_)[0] = self->awards_;
-    static_cast<void**>(self->awards_)[1] = self->awards_;
+    static_cast<RefNode*>(self->awards_)->next = static_cast<RefNode*>(self->awards_);
+    static_cast<RefNode*>(self->awards_)->prev = static_cast<RefNode*>(self->awards_);
 }
 EI_REPLACE_METHOD(0x0041CD80, ClientSession::ApplyAwards);
 
 // 0041CCD0 (slot 14): the client base tick, then the timers (+0x2604: {next, prev, seconds, ...})
 // count down by `dt` (as a float) and those below zero are dropped. Awards are applied in a game of
-// mode 3 when player 0 exists with its +0x20 object's +0x20 at 1 and 007B00BC is set.
+// mode 3 when player 0 exists with its connection in state 1 and 007B00BC is set.
 void ClientSession::Tick(double dt) {
     ClientSession* self = this;
     ClientBaseTick(self, nullptr, dt);
     void* timers = &self->timers_;
-    void** sentinel = static_cast<void**>(self->timers_);
-    void** node = static_cast<void**>(sentinel[0]);
+    auto* sentinel = static_cast<TimedNode*>(self->timers_);
+    TimedNode* node = sentinel->next;
     if (node != sentinel) {
         const float step = static_cast<float>(dt);
         do {
-            void** current = node;
-            node = static_cast<void**>(node[0]);
-            float& seconds = *reinterpret_cast<float*>(&current[2]);
+            TimedNode* current = node;
+            node = node->next;
+            float& seconds = current->data.seconds;
             const double left = static_cast<double>(seconds) - step;
             seconds = static_cast<float>(left);
             if (!(left >= GameFloat(0x0073B858))) {
@@ -195,10 +187,10 @@ void ClientSession::Tick(double dt) {
             }
         } while (node != self->timers_);
     }
-    void** awards = static_cast<void**>(self->awards_);
-    if (awards[0] == awards || GameMode() != 3) return;
-    std::uint8_t* player = static_cast<std::uint8_t*>(WorldGetPlayer(World(), nullptr, 0));
-    if (!player || At<std::int32_t>(At<void*>(player, 0x20), 0x20) != 1 || !Unknown7B00BC()) return;
+    auto* awards = static_cast<RefNode*>(self->awards_);
+    if (awards->next == awards || GameMode() != 3) return;
+    CPlayer* player = LocalPlayer();
+    if (!player || player->connection_->state_ != 1 || !Unknown7B00BC()) return;
     ApplyAwards();
 }
 namespace {

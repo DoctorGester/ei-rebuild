@@ -249,11 +249,11 @@ public:
     // in the login record (+0x2C) and raises its version.
     void NotifyUnitChanged(CUnit* unit);
 
-    CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
+    CPlayer* Owner() const { return player_; }
 
     void* vtable_;
     std::uint8_t engineObject_[0x1C - 0x04];
-    std::uint8_t* player_;          // +0x1C the world player
+    CPlayer* player_;               // +0x1C the world player
     int state_;                     // +0x20 0 connecting, 1 logged in, 2 sending the camera, ...
     // +0x24 the message handlers by type (thiscall, 0: refused), built by 00667230 (256 of them).
     using Handler = int(__fastcall*)(CPlayerClient*, void*);

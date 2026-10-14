@@ -8,7 +8,6 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_library.h"
 
 #include <cstdint>
@@ -324,9 +323,9 @@ int __fastcall MasterLinkTick(MasterLink* self) {
             return self->state;
         }
         GameBuffer* in = &self->in;
-        ei::VCall<int>(in, 6, Length(in));
+        in->Seek(Length(in));
         if (in->cur + n > in->end) {
-            ei::VCall<int>(in, 4, data, n);
+            in->WriteMore(data, n);
             return self->state;
         }
         in->flags |= 1;

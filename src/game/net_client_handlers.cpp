@@ -68,7 +68,7 @@ __declspec(naked) void __fastcall FlowWriteMapFile(void* /*flow*/, void*, const 
 __declspec(naked) void** __fastcall AwardsEnd(void*, void*, void**) EI_ORIGINAL(0x004210E0)
 __declspec(naked) void** __fastcall AwardsInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00424720)
 void** __fastcall PartiesInsert(void* a0, void*, void** a2, void* a3, const void* a4) { return ListInsert423190Original(a0, nullptr, a2, a3, a4); }
-// The trade records (+0x2614: TradeRecordNode below).
+// The trade records (+0x2614: TradeRecordNode, net_classes.h).
 __declspec(naked) void** __fastcall TradesInsertDefault(void* /*list*/, void*, void** /*out*/, void* /*pos*/) EI_ORIGINAL(0x00424900)
 __declspec(naked) void __fastcall TradeRecordDestroy(void* /*record*/) EI_ORIGINAL(0x00424DB0)
 // Parties (00661050 class, outside this range).
@@ -86,17 +86,6 @@ __declspec(naked) void __fastcall RefVectorConstruct(RefVector* /*vector*/, void
 
 constexpr std::uintptr_t kTextTable = 0x007C7D50;
 constexpr std::uintptr_t kFlow = 0x007AFE20;
-
-// A node of the trade records (+0x2614, 0x160 bytes): the revisions of a finished trade and copies
-// of the two parties and the traded one.
-struct TradeRecordNode {
-    TradeRecordNode* next;
-    TradeRecordNode* prev;
-    std::uint32_t acceptedRevision;   // +0x08 our offer's accepted revision of the partner's
-    std::uint32_t revision;           // +0x0C our offer's revision
-    UnitRecordBuilder parties[3];     // +0x10 ours, the partner's, the traded party
-};
-static_assert(sizeof(TradeRecordNode) == 0x160);
 
 void* TextTable() { return reinterpret_cast<void*>(kTextTable); }
 void* Flow() { return reinterpret_cast<void*>(kFlow); }
@@ -209,15 +198,15 @@ void DropParty(ClientSession* self) {
 
 // The trade records emptied inline: each record destroyed, its node freed.
 void ClearTradeRecords(ClientSession* self) {
-    auto* first = static_cast<TradeRecordNode*>(self->tradeRecords_)->next;
+    TradeRecordNode* first = self->tradeRecords_->next;
     for (TradeRecordNode* node = first; node != self->tradeRecords_;) {
         TradeRecordNode* current = node;
         node = node->next;
         TradeRecordDestroy(&current->acceptedRevision);
         if (current) gamecrt::operator_delete(current);
     }
-    static_cast<void**>(self->tradeRecords_)[0] = self->tradeRecords_;
-    static_cast<void**>(self->tradeRecords_)[1] = self->tradeRecords_;
+    self->tradeRecords_->next = self->tradeRecords_;
+    self->tradeRecords_->prev = self->tradeRecords_;
 }
 
 } // namespace
@@ -237,12 +226,12 @@ void __fastcall ClientRecordTrade(ClientSession* self, void*, const void* party)
     ++ours->version_;
     std::uint32_t a = ours->acceptedRevision_;
     std::uint32_t b = ours->revision_;
-    auto* sentinel = static_cast<TradeRecordNode*>(self->tradeRecords_);
+    TradeRecordNode* sentinel = self->tradeRecords_;
     for (TradeRecordNode* node = sentinel->next; node != sentinel; node = node->next)
         if (node->revision == b && node->acceptedRevision == a) return;
     void* inserted;
     TradesInsertDefault(&self->tradeRecords_, nullptr, &inserted, self->tradeRecords_);
-    TradeRecordNode* record = static_cast<TradeRecordNode*>(self->tradeRecords_)->prev;   // the node just added
+    TradeRecordNode* record = self->tradeRecords_->prev;   // the node just added
     record->acceptedRevision = ours->acceptedRevision_;
     record->revision = ours->revision_;
     PartyCopyFrom(&record->parties[0], nullptr, &self->parties_[0]);
@@ -270,7 +259,7 @@ void __fastcall ClientStartParty(ClientSession* self, void*, CRefObject* partner
         party->acceptedRevision_ = 0;
         party->revision_ = 1;
         party->accepted_ = 0;
-        party->partyValue_ = 0;
+        party->money_ = 0;
         party->trading_ = 0;
     }
     auto* holder = &self->party_;
@@ -461,7 +450,7 @@ void __fastcall ClientOnTradeChanged(ClientSession* self, TradeMessage* message)
         b = message->partnerRevision_;
         a = message->revision_;
     }
-    auto* sentinel = static_cast<TradeRecordNode*>(self->tradeRecords_);
+    TradeRecordNode* sentinel = self->tradeRecords_;
     for (TradeRecordNode* node = sentinel->next; node != sentinel; node = node->next) {
         if (node->revision == b && node->acceptedRevision == a) {
             UiTradeDone(TextTable(), nullptr, &node->parties[1], &node->parties[0], &node->parties[2]);

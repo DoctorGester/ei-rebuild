@@ -82,7 +82,7 @@ int CPlayerServer::OnGameStateRequest() {
     out_.Write(&value, 4);
     value = WorldServer()->tick_;
     out_.Write(&value, 4);
-    player->unknown_130 &= ~kDirtyGameState;
+    player->dirty_ &= ~kDirtyGameState;
     state_ = kStateSendingCamera;
     return 1;
 }

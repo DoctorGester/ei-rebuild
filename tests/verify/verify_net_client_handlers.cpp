@@ -180,9 +180,9 @@ void __fastcall RecordTradeVerify(net::ClientSession* s, void*, const void* part
     if (records) {
         auto* ours = static_cast<PartyMessage*>(s->party_.ptr);
         std::uint32_t a = ours->acceptedRevision_, b = ours->revision_;
-        void** sentinel = static_cast<void**>(s->tradeRecords_);
-        for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0]))
-            if (reinterpret_cast<std::uintptr_t>(node[2]) == a && reinterpret_cast<std::uintptr_t>(node[3]) == b) found = true;
+        net::TradeRecordNode* sentinel = s->tradeRecords_;
+        for (net::TradeRecordNode* node = sentinel->next; node != sentinel; node = node->next)
+            if (node->acceptedRevision == a && node->revision == b) found = true;
     }
     ei::verify::Check("ClientRecordTrade", true, found, "");
 }

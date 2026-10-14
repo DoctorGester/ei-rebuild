@@ -40,8 +40,8 @@ NetLink* __fastcall RecordVerify(NetLink* self) {
     return result;
 }
 
-void __fastcall PumpVerify(DriverSession* self, void*, CRefObject* world) {
-    self->PumpDrivers(world);
+void __fastcall PumpVerify(DriverSession* self, void*, net::SessionBase* session) {
+    self->PumpDrivers(session);
     bool ok = true;
     for (DriverNode* n = self->drivers_->next; ok && n != self->drivers_; n = n->next) ok = Alive(n->Driver()->player_);
     ei::verify::Check("SessionPump", true, ok, "");

@@ -407,9 +407,7 @@ void SessionBase::AddClient(const NetAddress* address, std::uint32_t id, int rat
         StringBufferFree(&peer);
     }
     RemoveClient(ClientAt(address));
-    auto* memory = static_cast<Connection*>(gamecrt::operator_new(sizeof(Connection)));
-    std::uint32_t zero = 0;   // the count and flags, before the null check (as the original)
-    std::memcpy(reinterpret_cast<std::uint8_t*>(memory) + 4, &zero, 4);
+    auto* memory = NewMessageMemory<Connection>();
     Connection* connection = memory ? memory->Construct(id) : nullptr;
     Connection* ref;
     ClientRefInit(&ref, connection);

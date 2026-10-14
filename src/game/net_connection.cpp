@@ -267,10 +267,9 @@ void Connection::QueueHeader(int budget) {
 }
 EI_REPLACE_METHOD(0x00434990, Connection::QueueHeader);
 
-void Connection::RollBack(std::uint8_t* historyData) {
-    auto* node = reinterpret_cast<HistoryNode*>(historyData - 8);
-    if (node->rolledBack) return;
-    for (SentItem* item = node->items->next; item != node->items; item = item->next) {
+void Connection::RollBack(SentPacket* packet) {
+    if (packet->rolledBack) return;
+    for (SentItem* item = packet->items->next; item != packet->items; item = item->next) {
         // Unreliable sends are forgotten (the entry is sent again); a reliable change only when
         // the entry still carries the version this packet sent.
         if (item->action == SentItem::kChanged) {
@@ -279,13 +278,13 @@ void Connection::RollBack(std::uint8_t* historyData) {
             item->entry->version_ = 0;
         }
     }
-    if (node->header.Size() != 0) {
+    if (packet->header.Size() != 0) {
         HeaderNode* position;
         HeadersBeginForInsert(&headers_, nullptr, &position);
         HeaderNode* out;
-        HeadersInsertCopy(&headers_, nullptr, &out, position, &node->header);
+        HeadersInsertCopy(&headers_, nullptr, &out, position, &packet->header);
     }
-    node->rolledBack = 1;
+    packet->rolledBack = 1;
 }
 EI_REPLACE_METHOD(0x00433F20, Connection::RollBack);
 
@@ -315,7 +314,7 @@ bool Connection::SendUpdate(int budget) {
     c.Reset(nullptr, 0, 0);
     c.sink = nullptr;
     GameBuffer* out = SendBuffer();
-    ei::VCall<void>(out, 6, 0);   // Seek(0)
+    out->Seek(0);
     c.BeginWrite(out, budget + 0x400);
 
     *c.p = 0;   // packet kind: update
@@ -335,9 +334,9 @@ bool Connection::SendUpdate(int budget) {
     HistoryNode* inserted;
     HistoryInsert(&history_, nullptr, &inserted, history_);
     HistoryNode* sent = history_->prev;
-    std::memcpy(&sent->time, &clock_, sizeof(sent->time));
-    sent->sequence = sequence;
-    sent->header = chunk;
+    std::memcpy(&sent->data.time, &clock_, sizeof(sent->data.time));
+    sent->data.sequence = sequence;
+    sent->data.header = chunk;
     HeaderNode* afterErase;
     HeadersErase(&headers_, nullptr, &afterErase, headers_->next);
 
@@ -397,8 +396,8 @@ bool Connection::SendUpdate(int budget) {
             }
             ++*count;
             SentItem* added;
-            ItemsInsert(&sent->items, nullptr, &added, sent->items);
-            SentItem* item = sent->items->prev;
+            ItemsInsert(&sent->data.items, nullptr, &added, sent->data.items);
+            SentItem* item = sent->data.items->prev;
             ReplicaEntry* old = item->entry;
             item->entry = entry;
             ++entry->refs_;
@@ -425,7 +424,7 @@ bool Connection::SendUpdate(int budget) {
 
     if (CurrentSession()->socket_.SendTo(&address_, out)) return complete;
     // Not sent: undo what the history entry recorded and drop it.
-    RollBack(reinterpret_cast<std::uint8_t*>(history_->prev) + 8);
+    RollBack(&history_->prev->data);
     HistoryNode* last = history_;
     ListIteratorDecrement(&last);
     HistoryNode* afterHistoryErase;
@@ -527,9 +526,7 @@ void Connection::Track(Replicated* item) {
     std::int32_t type = found[0] ? static_cast<std::int32_t>(found[0]->value) : -1;
 
     // A new entry (vtable 0073BF4C) with no version and no id yet.
-    auto* entry = static_cast<ReplicaEntry*>(gamecrt::operator_new(sizeof(ReplicaEntry)));
-    std::uint32_t zero = 0;   // the count and flags, before the null check (as the original)
-    std::memcpy(reinterpret_cast<std::uint8_t*>(entry) + 4, &zero, 4);
+    auto* entry = NewMessageMemory<ReplicaEntry>();
     if (entry) {
         ei::SetVtable(entry, kRefValueVtable);
         RefPtrFromRawOriginal(&entry->object_, nullptr, nullptr);
@@ -796,16 +793,16 @@ constexpr std::uintptr_t kDuplicate = 0x00783E3C;   // "DUPLICATE update receive
 
 void Connection::Acknowledge(std::uint16_t sequence) {
     for (HistoryNode* node = history_->next; node != history_; node = node->next) {
-        if (node->sequence == sequence) {
-            Delivered(reinterpret_cast<std::uint8_t*>(node) + 8);
+        if (node->data.sequence == sequence) {
+            Delivered(&node->data);
             HistoryNode* after;
             HistoryErase(&history_, nullptr, &after, node);
             return;
         }
     }
     for (HistoryNode* node = acknowledged_->next; node != acknowledged_; node = node->next) {
-        if (node->sequence == sequence) {
-            Delivered(reinterpret_cast<std::uint8_t*>(node) + 8);
+        if (node->data.sequence == sequence) {
+            Delivered(&node->data);
             HistoryNode* after;
             HistoryErase(&acknowledged_, nullptr, &after, node);
             return;
@@ -885,12 +882,12 @@ void Connection::ProcessHeaders() {
             if (node->data.Sequence() == incomingSequence_) {
                 GameBuffer* in = &reliableIn_;
                 if (in->cur > in->high) in->high = in->cur;
-                ei::VCall<int>(in, 6, in->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->begin)) +
-                                          static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->high)));
+                in->Seek(in->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->begin)) +
+                         static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->high)));
                 std::uint32_t size = node->data.Size();
                 const std::uint8_t* from = node->data.bytes + 3;
                 if (in->cur + size > in->end) {
-                    ei::VCall<int>(in, 4, from, size);
+                    in->WriteMore(from, size);
                 } else {
                     in->flags |= 1;
                     std::memcpy(in->cur, from, size);

@@ -86,9 +86,9 @@ bool Connection::Tick(double dt) {
     float kept = Store(static_cast<double>(CurrentSession()->maxRoundTrip_));
 
     for (HistoryNode* node = history_->next; node != history_;) {
-        double age = Get(&clock_) - Get(&node->time);
+        double age = Get(&clock_) - Get(&node->data.time);
         if (!(D(loss) < age)) break;
-        RollBack(reinterpret_cast<std::uint8_t*>(node) + 8);
+        RollBack(&node->data);
         HistoryNode* next = node->next;
         HistoryNode* end;
         HistoryEnd(&acknowledged_, nullptr, &end);
@@ -97,7 +97,7 @@ bool Connection::Tick(double dt) {
         if (node == history_) break;
     }
     for (HistoryNode* node = acknowledged_->next; node != acknowledged_;) {
-        double age = Get(&clock_) - Get(&node->time);
+        double age = Get(&clock_) - Get(&node->data.time);
         if (!(D(kept) < age)) {
             node = node->next;
         } else {
@@ -173,16 +173,15 @@ float RttKeep() { return GameFloat(0x0073BF30); }   // the share of the old aver
 float One() { return GameFloat(0x0073B84C); }       // 1.0f
 } // namespace
 
-void Connection::Delivered(std::uint8_t* historyData) {
-    auto* node = reinterpret_cast<HistoryNode*>(historyData - 8);
-    double sample = Get(&clock_) - Get(&node->time);
+void Connection::Delivered(SentPacket* packet) {
+    double sample = Get(&clock_) - Get(&packet->time);
     double kept = D(RttKeep()) * D(roundTrip_);
     roundTrip_ = Store(kept);
     roundTrip_ = Store((D(One()) - D(RttKeep())) * sample + kept);
     double keptSquare = D(RttKeep()) * D(roundTripSquare_);
     roundTripSquare_ = Store(keptSquare);
     roundTripSquare_ = Store((D(One()) - D(RttKeep())) * sample * sample + keptSquare);
-    for (SentItem* item = node->items->next; item != node->items; item = item->next) {
+    for (SentItem* item = packet->items->next; item != packet->items; item = item->next) {
         auto action = static_cast<std::int32_t>(item->action);
         if (action == SentItem::kChangedReliable) {
             std::uint32_t version = item->version;

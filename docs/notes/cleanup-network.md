@@ -24,7 +24,7 @@ qualified member).
 - `net_messages.h`: one novtable class per message deriving from `Message` with slot 2 `OnShutdown` (the reset), slot 3 `Clone` (covariant), slots 4 / 5
   `Write` / `Read`, a static `Create` (the registry's factory), `Construct` (only where the constructor body is a function of its own) and `Destruct`.
   Duplicate layouts merged: `TextMessage` (one string; Say / Zone / Map differ only in vtable), `PairMessage` (two counted pointers; Binding /
-  FileRequest, accessors `PlayerRef` / `FileRef` / `ConnectionRef`), `RefVector`, `TradeRecordNode` (0x160: two revisions and three `UnitRecordBuilder`s).
+  FileRequest, accessors `PlayerRef` / `FileRef` / `ConnectionRef`), `RefVector`, `TradeRecordNode` (0x160: two revisions and three `PartyStorage`s; in `net_classes.h` since C2n).
   `NewMessageMemory<T>()` is the inlined operator new with the count dword cleared before the null check; `SessionBase::AddHandlerFor<T>(channel,
   handler)` builds the prototype with `T::Construct`.
 - `net_link.h`: `FileStream : CStream` (0073C8D8; the slot 3 and slot 6 bodies return the CFile's seek result, so they are the non-virtual `SeekFrom` /
@@ -33,6 +33,36 @@ qualified member).
   `Connection*`), `DriverSession` with `Pump` / `Start` members. Slots 4 / 5 / 6 / 13 are declared `bool` (some bodies set only AL), the hooks of bodies that
   returned an int still return 0 / 1 as an int. `net_coder.h` `GameBuffer`: novtable, slots 0-6 declared only (ReserveRead, ReserveWrite, Commit, ReadMore,
   WriteMore, deleting destructor, Seek); `InitView` replaces the aggregate-built views; copies are byte copies, vtable included.
+
+## C2n: the remaining network files and the players
+
+The six counts (duplicate forwarders, `At<>` / `Field<>`, `VCall`, byte offset arithmetic, `*At` views, per-file containers) in
+`net_*` / `player*` went from 0 / 8 / 36 / 3 / 0 / 1 to 0 / 0 / 0 / 0 / 0 / 1 (`QueryVector`, kept: see "Left").
+
+- `ClientSession::parties_` are `PartyStorage` (a CParty's 0x70 bytes with `Party()`, as `CPlayer::party_`; the class is abstract in C++),
+  replacing the misnamed `UnitRecordBuilder`; `TradeRecordNode` (three parties) moved to `net_classes.h` and `tradeRecords_` is typed. The
+  party publish / apply (`net_client_party.cpp`) read our party's items (`items_`, `CItem::spell_`, `type_`, `unknown_18` the packed id,
+  `Save` / `Load` slots 10 / 9) and the partner party's `SpellManager()` / `ItemManager()` (slots 22 / 18) and `CreateObject` (slot 23);
+  `PartyMessage::partyValue_` is `money_` (the party's money, `CParty::Money()`). The object vector is an `stlp::vector<CEngineObject*>`.
+- `ApplyAwards` / the client tick go through `CPlayer` (`Party()->Money()`, `items_`, `connection_->state_`) and `CItem::IsSameAs` /
+  `GetClassId` / `Release`. Checked against Ghidra (0041CD80): kind 3 takes the first given item whose slot 14 returns 0, as ours did.
+- `CPlayerConnection` gained `state_` (+0x20, both connection classes); `CPlayer::unknown_130` is `dirty_` (the state bits the server's
+  writers clear); `CPlayerServer::player_` and `CPlayerClient::player_` are `CPlayer*`. The writers reach the party variables
+  (`Party()->variables_`, was +0xC4) and the game state (`sessionKind100_`, was +0x100) through `Owner()`. `WriteTo` takes a `CStream*`
+  (slot 7 `CopyFrom`, the world server's zone header); `CPlayer::Tick` calls `RunTick` (slot 6). The value the 0x0C / 0x14 writers send is the
+  item's `charge_` (+0x28; the FLD / FSTP copy is kept).
+- `GameBuffer` slot calls are virtual (`Seek` 6, `ReadMore` 3, `WriteMore` 4); `FileStream`'s CFile goes through `mfc::CFileVirtuals`
+  (`File()`), the `kFile*` slot numbers are gone.
+- `DriverSession::PumpDrivers` takes the `SessionBase` it is given (the game client or server; `clients_` was "+0x28 of the world") and asks
+  the game server (`GameServer()`, 00417E40) about each connection.
+- Shared list values in `net_classes.h`: `RefNode` (= `stlp::list<RefPtr>::Node`), `TimedEntry` / `TimedNode` ({seconds as a float or its
+  bits, counted object}: the client's timers, the server's awards and finished trades; the client's and the award code's own entry structs are
+  gone). `net_lobby.cpp`'s `ValueOf` reads `stlp::list<T>::Node::data`. `SentPacket` is a history node's value: `RollBack` / `Delivered` take
+  it instead of "node + 8" bytes. `NewMessageMemory` moved to `net_classes.h` and replaces five inline copies (entries, connections, clones).
+- Calls checked in the release objects (dumpbin): every new virtual call dispatches through the vtable (no devirtualised call to a rewritten
+  body such as `CMemoryStream::Write` or `CItem::Save`).
+- Not the same instruction: `AppendServer` clears the copy-on-share bit with a byte AND of `flags6_` where the original ANDs the word at +6
+  with 0xFFFE (same result).
 
 ## Behaviour notes
 
@@ -44,9 +74,16 @@ qualified member).
 
 ## Left
 
-- The remaining `At<>` / `VCall` uses of the message classes' readers in `net_server_*.cpp` / `net_client_*.cpp`; `world_game.cpp`'s `AnnounceHost`
-  builds a `HostMessage` by hand (can use `HostMessage` and `NewMessageMemory`); the `UnitRecordBuilder` offsets the party code reads through the
-  client (+0x2660, +0x2664, +0x2670, +0x26E0) and the party / unit VCalls in `net_client_party.cpp` / `net_client_awards.cpp` (units / items tickets).
+- `QueryVector` (an STLport vector of `Query` and a dword) keeps its own layout: the connect screen (`ui_connect_screen.cpp`, interface owner)
+  reads `begin` / `end` / `eos` / `extra` by name; it can become `stlp::vector<Query>` plus the dword when that file moves with it.
+- The `ClientSession` / `ServerSession` / `ClientBase` list members are still `void*` sentinels, typed at the use sites (`RefNode`, `TimedNode`,
+  `TradeRecordNode`); typing the members touches `ui_chat_window.cpp` (`ClientList(client->offers_)`). `net_lobby.cpp` walks its lists
+  (servers, waiting addresses, pending joins) through a links-only `Node`; `net_client_handlers.cpp`'s `Append` / `RemoveValue` take `void*` lists.
+- `Connection::Construct` stores float members as integer bits (`Put32` on `sendInterval_` and the halves of `clock_`): kept (no FPU load).
+- `player_messages.cpp`: `PartyRecords` (`party_record_lookup.h`; 006621B0) is a byte view of a CParty's record array (`records + i * 0x784 +
+  0x1C`), a `CParty` member with `PartyUnitRecord` (party owner); the `CPlayerServer` engine-object bytes (`vtable_`, `engineObject_`) are not a `CEngineObject` base.
+- `net_server_awards.cpp` / `net_server_map.cpp` read map registry entries as bytes (+0xC, +0x10, +0x14) (world subsystem's registry).
+- `world_game.cpp`'s `AnnounceHost` builds a `HostMessage` by hand (can use `HostMessage` and `NewMessageMemory`).
 - Forwarders to the STLport list / vector / string instantiations the handlers call (library layer) and the timed-entry list nodes ({delay, object}) use raw
   node offsets; the MFC `CFile` slots (FileStream, `world_savefile.cpp`) and its `CStream` VCalls on `void*` streams (world subsystem); GameBuffer's own slot
   bodies (the view's Seek / destructors in `net_coder.cpp`) are free functions; the growing buffer's forwarders (004DA7F0 ...) are declared per file.

@@ -23,13 +23,13 @@ namespace net {
 
 namespace {
 
-// An STLport list node; the value follows the links.
+// An STLport list node's links; the value follows them (stlp::list<T>::Node).
 struct Node {
     Node* next;
     Node* prev;
 };
 template <typename T>
-T& ValueOf(Node* node) { return *reinterpret_cast<T*>(reinterpret_cast<std::uint8_t*>(node) + 8); }
+T& ValueOf(Node* node) { return reinterpret_cast<typename stlp::list<T>::Node*>(node)->data; }
 Node* Sentinel(void* list) { return static_cast<Node*>(list); }
 ServerEntry* EntryOf(Node* node) { return ValueOf<ServerEntry*>(node); }
 
@@ -142,7 +142,7 @@ void EndCursor(BufferCursor& c) {
 void AppendServer(ClientBase* self, RefPtr& entry) {
     CRefObject* raw = entry.ptr;
     --raw->refs_;
-    reinterpret_cast<std::uint16_t*>(reinterpret_cast<std::uint8_t*>(raw) + 6)[0] &= 0xFFFE;
+    raw->flags6_ &= static_cast<std::uint8_t>(~CRefCounted::kCopyOnShare);   // the original ANDs the word +6 with 0xFFFE
     entry.ptr = nullptr;
     RefPtr holder;
     HolderInitAt(&holder, raw);

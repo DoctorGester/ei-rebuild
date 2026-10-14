@@ -2,6 +2,7 @@
 // net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
 #include "net_messages.h"
+#include "party.h"
 
 #include "core_refcount.h"
 #include "ei/hook.h"
@@ -27,8 +28,9 @@ void __fastcall RegisterTradeHandler(SessionBase* self, void*, int channel, void
 namespace {
 
 // 004DA7F0: the growing byte buffer's constructor (net_coder.h, GameBuffer).
-// 00661050: the unit record builder's constructor (world.md).
-UnitRecordBuilder* __fastcall UnitRecordBuilderConstruct(UnitRecordBuilder* a0) { return (UnitRecordBuilder*)PartyRecordsConstructOriginal((void*)a0); }
+// 00661050: the embedded party's constructor (CParty::Construct, called at its address).
+void PartyConstruct(PartyStorage* party) { PartyRecordsConstructOriginal(party); }
+static_assert(sizeof(PartyStorage) == sizeof(CParty));
 // 0041F460: an empty STLport string (library).
 
 // STLport list constructors, list(const allocator&), one per element type (library).
@@ -95,8 +97,8 @@ ClientSession* ClientSession::Construct() {
     ListConstruct4231C0(&offers_, nullptr, &allocator);
     ListConstruct4249E0(&tradeRecords_, nullptr, &allocator);
     trade_ = nullptr;
-    UnitRecordBuilderConstruct(&parties_[0]);
-    UnitRecordBuilderConstruct(&parties_[1]);
+    PartyConstruct(&parties_[0]);
+    PartyConstruct(&parties_[1]);
     ei::SetVtable(this, kVtableAddress);
 
     // The local player's login.
@@ -151,8 +153,8 @@ ClientSession* ClientSession::Construct() {
     RegisterTradeHandler(this, nullptr, 1, Handler(0x0041F270));
     RegisterTradeHandler(this, nullptr, 2, Handler(0x0041F3A0));
 
-    ei::VCall<void>(&parties_[0], 2);
-    ei::VCall<void>(&parties_[1], 2);
+    parties_[0].Party()->Create();
+    parties_[1].Party()->Create();
     return this;
 }
 EI_REPLACE_METHOD(0x0041BC40, ClientSession::Construct);
@@ -163,11 +165,10 @@ EI_REPLACE_METHOD(0x0041BC40, ClientSession::Construct);
 void ClientSession::CollectReplicated(ReplicatedVector** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);
-    auto head = [](void* list) { return *static_cast<void**>(list); };
-    auto next = [](void* node) { return *static_cast<void**>(node); };
-    auto value = [](void* node, std::size_t at) { return *reinterpret_cast<void**>(static_cast<std::uint8_t*>(node) + at); };
-    for (void* n = next(head(&self->timers_)); n != head(&self->timers_); n = next(n)) PushReplicated(*out, value(n, 0xC), 1);
-    for (void* n = next(head(&self->fileRequests_)); n != head(&self->fileRequests_); n = next(n)) PushReplicated(*out, value(n, 8), 1);
+    auto* timers = static_cast<TimedNode*>(self->timers_);
+    for (TimedNode* n = timers->next; n != self->timers_; n = n->next) PushReplicated(*out, n->data.object.ptr, 1);
+    auto* requests = static_cast<RefNode*>(self->fileRequests_);
+    for (RefNode* n = requests->next; n != self->fileRequests_; n = n->next) PushReplicated(*out, n->data.ptr, 1);
     if (void* group = self->party_.ptr) {
         PushReplicatedInline(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {

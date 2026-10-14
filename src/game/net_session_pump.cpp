@@ -20,11 +20,7 @@ namespace netlink {
 
 namespace {
 
-bool IsLive(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
-
-// The players of the world object the pump is given (its class is not mapped yet): the list's
-// header node at +0x28 (list<RefPtr> of net::Connection).
-DriverNode* WorldPlayers(CRefObject* world) { return *reinterpret_cast<DriverNode**>(reinterpret_cast<std::uint8_t*>(world) + 0x28); }
+bool IsLive(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
 // list::insert (0047A450 / 0047A480: RET 0xC) and list::erase (0047A380, RET 8); the nodes'
 // deallocation (0047A650, 12 bytes back to the pool) and the pool's free (00404D70).
@@ -37,8 +33,8 @@ void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (
 __declspec(naked) void* __fastcall HolderDelete(RefPtr*, void*, unsigned) EI_ORIGINAL(0x0047A6D0)
 // 00419CC0: raises a reliable stream's high-water mark.
 __declspec(naked) void __fastcall BufferUpdateHigh(GameBuffer*) EI_ORIGINAL(0x00419CC0)
-// 00417E40 (thiscall on the manager 0079B5DC, RET 4): whether the player is one of its players.
-__declspec(naked) bool __fastcall ManagerHasPlayer(void*, void*, void*) EI_ORIGINAL(0x00417E40)
+// 00417E40 (thiscall on the game server, RET 4): whether the connection is one of its players.
+__declspec(naked) bool __fastcall ServerHasConnection(net::ServerSession*, void*, net::Connection*) EI_ORIGINAL(0x00417E40)
 // 00413250 (__fastcall size): operator new with the reference count cleared.
 __declspec(naked) void* __fastcall AllocRefObject(std::size_t) EI_ORIGINAL(0x00413250)
 
@@ -57,13 +53,13 @@ DriverLink* NewDriver(DriverSession* self, CRefObject* player, void* raw) {
 
 } // namespace
 
-// A driver for every player of `world` the session has none for, when the player has something
-// queued and the manager 0079B5DC knows it; then each driver pumped (slot 10), and those whose
-// player is gone or detached erased.
-void DriverSession::PumpDrivers(CRefObject* world) {   // 00479E30
-    if (!IsLive(world)) return;
-    for (DriverNode* node = WorldPlayers(world)->next; node != WorldPlayers(world); node = node->next) {
-        CRefObject* player = node->value.ptr;
+// A driver for every connection of `session` this one has none for, when the connection has
+// something queued and the game server (0079B5DC) knows it; then each driver pumped (slot 10), and
+// those whose player is gone or detached erased.
+void DriverSession::PumpDrivers(net::SessionBase* session) {   // 00479E30
+    if (!IsLive(session)) return;
+    for (net::ClientNode* node = session->clients_->next; node != session->clients_; node = node->next) {
+        CRefObject* player = node->connection;
         bool known = false;
         for (DriverNode* it = drivers_->next, *end = drivers_; it != end; it = it->next) {
             if (it->Driver()->player_ == player) {
@@ -72,13 +68,13 @@ void DriverSession::PumpDrivers(CRefObject* world) {   // 00479E30
             }
         }
         if (known) continue;
-        GameBuffer* in = &static_cast<net::Connection*>(node->value.ptr)->reliableIn_;
+        GameBuffer* in = &node->connection->reliableIn_;
         BufferUpdateHigh(in);
         if (in->base - Addr(in->begin) + Addr(in->high) <= 0) continue;
-        void* manager = *reinterpret_cast<void**>(0x0079B5DC);
-        if (!IsLive(static_cast<CRefObject*>(manager))) continue;
-        if (!ManagerHasPlayer(manager, nullptr, node->value.ptr)) continue;
-        player = node->value.ptr;
+        net::ServerSession* server = net::GameServer();
+        if (!IsLive(server)) continue;
+        if (!ServerHasConnection(server, nullptr, node->connection)) continue;
+        player = node->connection;
         DriverLink* driver = NewDriver(this, player, AllocRefObject(sizeof(DriverLink)));
         // The original then destroys the emptied temporary holder (00413270 on null: nothing).
         RefPtr held{driver};

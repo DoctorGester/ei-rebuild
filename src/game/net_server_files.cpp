@@ -81,7 +81,7 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
         ChunkVectorInsert(&chunks, nullptr, chunks.end(), static_cast<std::uint32_t>(chunkCount) - have, &filler);
     filler.Destroy();
 
-    ei::VCall<int>(data, 6, 0);   // Seek(0)
+    data->Seek(0);
     std::int32_t remaining = size;
     for (std::int32_t i = 0; i < chunkCount; ++i) {
         static_cast<FileChunkMessage*>(chunks.begin()[i].ptr)->file_.Assign(file);
@@ -91,7 +91,7 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
         if (data->cur + n > data->high) {
             BufferReadPastEnd(data, nullptr, to, n);
         } else if (data->cur + n > data->end) {
-            ei::VCall<int>(data, 3, to, n);
+            data->ReadMore(to, n);
         } else {
             std::memcpy(to, data->cur, n);
             data->cur += n;

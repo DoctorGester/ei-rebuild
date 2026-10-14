@@ -101,9 +101,9 @@ void __fastcall QueueHeaderVerify(Connection* self, void*, int budget) {
 }
 
 // 00433F20: ours only. The history entry ends marked as rolled back.
-void __fastcall RollBackVerify(Connection* self, void*, std::uint8_t* data) {
-    self->RollBack(data);
-    ei::verify::Check("Connection::RollBack", true, reinterpret_cast<HistoryNode*>(data - 8)->rolledBack == 1, "");
+void __fastcall RollBackVerify(Connection* self, void*, net::SentPacket* packet) {
+    self->RollBack(packet);
+    ei::verify::Check("Connection::RollBack", true, packet->rolledBack == 1, "");
 }
 
 // 00435A00 / 00435F30: ours only (packets go out, records and handlers run).
@@ -195,8 +195,8 @@ EI_VERIFY(0x00433BD0, TickVerify, 0, s_unusedTick);
 namespace {
 // The receive side (00433FA0, 00434CE0, 00434D70, 00434E50, 00434AE0, 00436470): ours only (they
 // change the connection's lists and streams).
-void __fastcall DeliveredVerify(net::Connection* self, void*, std::uint8_t* historyData) {
-    self->Delivered(historyData);
+void __fastcall DeliveredVerify(net::Connection* self, void*, net::SentPacket* packet) {
+    self->Delivered(packet);
     ei::verify::Check("Connection::Delivered", true, true, "");
 }
 void __fastcall AcknowledgeVerify(net::Connection* self, void*, std::uint16_t sequence) {

@@ -57,7 +57,7 @@ CPlayer* CPlayer::Construct() {
     Clear();
     Party()->Destroy();
     Party()->Create();
-    unknown_130 = 0;
+    dirty_ = 0;
     playerId_ = -1;
     unknown_108 = 0;
     if (link_ != nullptr) link_->Disconnect();
@@ -122,7 +122,7 @@ void CPlayer::DestroyPlayer() {
     Clear();
     Party()->Destroy();
     Party()->Create();
-    unknown_130 = 0;
+    dirty_ = 0;
     playerId_ = -1;
     unknown_108 = 0;
     if (link_ != nullptr) link_->Disconnect();
@@ -214,7 +214,7 @@ void CPlayer::ForgetKnownObjects() {
     ObjectMapClearOriginal(&knownTimed_);
     ObjectMapClearOriginal(&knownObjects_);
     if (connection_ != nullptr) connection_->ForgetSentObjects();
-    unknown_130 = -1;
+    dirty_ = -1;
 }
 EI_REPLACE_METHOD(0x006651D0, CPlayer::ForgetKnownObjects);
 

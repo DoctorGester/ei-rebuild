@@ -28,16 +28,6 @@
 
 namespace net {
 
-// The memory of a message (or another reference-counted object) as the game's code allocates it
-// inline: operator new, then the reference count dword cleared before the null check.
-template <typename T>
-T* NewMessageMemory() {
-    auto* p = static_cast<std::uint8_t*>(gamecrt::operator_new(sizeof(T)));
-    const std::uint32_t zero = 0;
-    std::memcpy(p + 4, &zero, 4);
-    return reinterpret_cast<T*>(p);
-}
-
 // An STLport vector of counted pointers (start, finish, end of storage), as the file and party
 // messages embed it.
 using RefVector = stlp::vector<RefPtr>;
@@ -182,7 +172,7 @@ public:
     void Destruct();                            // 004178F0
 
     RefVector members_;              // +0x0C the party members (PartyMemberMessage)
-    std::uint32_t partyValue_;       // +0x18
+    std::uint32_t money_;            // +0x18 the offered party's money (CParty::Money)
     std::uint8_t accepted_;          // +0x1C the partner's offer is accepted
     std::uint8_t unknown_1D[3];
     std::uint32_t acceptedRevision_; // +0x20 the partner's revision accepted
@@ -192,7 +182,7 @@ public:
     std::uint8_t trading_;           // +0x30 in a trade (server side; not sent)
     std::uint8_t unknown_31[3];
 };
-static_assert(offsetof(PartyMessage, partyValue_) == 0x18);
+static_assert(offsetof(PartyMessage, money_) == 0x18);
 static_assert(offsetof(PartyMessage, accepted_) == 0x1C);
 static_assert(offsetof(PartyMessage, revision_) == 0x24);
 static_assert(offsetof(PartyMessage, player_) == 0x28);

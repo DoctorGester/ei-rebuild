@@ -81,7 +81,7 @@ public:
     void SendValue12(std::uint32_t unused, std::uint32_t value);
     void SendText13(std::uint32_t unused, const char* text);        // 0066D770: the text is the 2nd argument
     void SendText(std::uint8_t type, const char* text);             // 0066D7B0
-    void WriteTo(void* target);                                     // 0066D230: target's slot 7 (stream)
+    void WriteTo(CStream* target);                                  // 0066D230: target->CopyFrom(out_) (slot 7)
     void SetDisconnect();                                           // 0066D250: state 4
     void SetFlag70(std::uint8_t value);                             // 0066D260
 
@@ -254,11 +254,11 @@ public:
     void SendPathMessage(CEngineObject* unit, void* path, const float* point, int kind, int flag,
                          std::uint32_t limitBits);
 
-    CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
+    CPlayer* Owner() const { return player_; }
 
     void* vtable_;
     std::uint8_t engineObject_[0x1C - 0x04];
-    std::uint8_t* player_;          // +0x1C the world player (+0xC4 variables, +0x100, +0x130 dirty bits)
+    CPlayer* player_;               // +0x1C the world player
     int state_;                     // +0x20
     std::uint32_t unknown24_;       // +0x24 sent with message 0x60
     // 0066C9A0 (slot 2; player_messages.cpp). The outgoing messages emptied, both sent-object
@@ -342,8 +342,11 @@ public:
     virtual int Receive();                  // 23: server 0066D270, client 00667A30
 
     CPlayer* player_;   // +0x1C the owner (set by CPlayer::SetConnection)
+    int state_;         // +0x20 both classes' state_ (1: logged in / joined)
 };
 static_assert(offsetof(CPlayerConnection, player_) == 0x1C);
+static_assert(offsetof(CPlayerConnection, state_) == 0x20);
+static_assert(offsetof(CPlayerServer, state_) == 0x20);
 
 // A world player (vtable 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by 0066C110).
 // player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists.
@@ -443,7 +446,7 @@ public:
     int logTraffic_;                            // +0x10C logs the size of every flush
     int unknown_110;                            // +0x110 -1 after Create
     mfc::CTypedPtrList<void> objects_;          // +0x114 ids of items recharging (vtable 00743138)
-    int unknown_130;                            // +0x130 0 after Create, -1 after 006651D0
+    int dirty_;                                 // +0x130 state to send (bits the server's state messages clear); -1 after 006651D0
 };
 static_assert(offsetof(CPlayer, link_) == 0x1C);
 static_assert(offsetof(CPlayer, knownObjects_) == 0x28);

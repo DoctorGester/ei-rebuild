@@ -2,6 +2,7 @@
 // docs/notes/objects.md.
 
 #include "player_messages.h"
+#include "item.h"
 #include "party.h"
 #include "party_record_lookup.h"
 #include "random.h"
@@ -19,11 +20,6 @@
 
 namespace {
 
-// The player fields the writers touch.
-constexpr std::size_t kPlayerVariables = 0xC4;   // NamedFloatTable (object_tables.h)
-constexpr std::size_t kPlayerValue100 = 0x100;
-constexpr std::size_t kPlayerDirty = 0x130;      // bits the state messages clear once sent
-
 // The variables table (object_tables.cpp / not rewritten), through the game addresses.
 void __fastcall VariableSet(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
@@ -31,19 +27,20 @@ double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)
 __declspec(naked) void __fastcall StreamWriteState(BitStream* /*stream*/, void*, int /*value*/) EI_ORIGINAL(0x0047DA80)
 __declspec(naked) void __fastcall WriteStateTo(void* /*source*/, void*, BitStream* /*stream*/) EI_ORIGINAL(0x006D4570)
 
-void Write(BitStream* out, const void* data, std::uint32_t size) { ei::VCall<void>(out, 2, data, size); }
+void Write(BitStream* out, const void* data, std::uint32_t size) { out->Write(data, size); }
 void WriteByte(BitStream* out, std::uint8_t value) { Write(out, &value, 1); }
 void WriteDword(BitStream* out, std::uint32_t value) { Write(out, &value, 4); }
 void WriteText(BitStream* out, const char* text) {
     Write(out, text, static_cast<std::uint32_t>(std::strlen(text) + 1));
 }
 
-std::uint32_t ObjectId(const void* object) { return *reinterpret_cast<const std::uint32_t*>(static_cast<const char*>(object) + 0x0C); }
+std::uint32_t ObjectId(const void* object) { return static_cast<std::uint32_t>(static_cast<const CEngineObject*>(object)->id_); }
 
-// The float at +0x28 of an object, copied through FLD / FSTP as the original does.
-std::uint32_t ObjectValue28(const void* object) {
+// An item's charge (the float at +0x28; the client's 0x0C / 0x14 handlers store it there), copied
+// through FLD / FSTP as the original does.
+std::uint32_t ItemCharge(const void* object) {
     std::uint32_t bits;
-    const void* from = static_cast<const char*>(object) + 0x28;
+    const void* from = &static_cast<const CItem*>(static_cast<const CEngineObject*>(object))->charge_;
     __asm {
         mov eax, from
         fld dword ptr [eax]
@@ -52,7 +49,8 @@ std::uint32_t ObjectValue28(const void* object) {
     return bits;
 }
 
-std::uint32_t& Dirty(std::uint8_t* player) { return *reinterpret_cast<std::uint32_t*>(player + kPlayerDirty); }
+// The world player's party variables (a NamedFloatTable, object_tables.h).
+void* Variables(CPlayer* player) { return &player->Party()->variables_; }
 
 bool IsNaN(std::uint32_t bits) { return (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0; }
 
@@ -61,7 +59,7 @@ bool IsNaN(std::uint32_t bits) { return (bits & 0x7F800000u) == 0x7F800000u && (
 // --- Variables and state -------------------------------------------------------------------------
 
 void CPlayerServer::SetVariable(const char* name, std::uint32_t value) {
-    VariableSet(player_ + kPlayerVariables, nullptr, name, value);
+    VariableSet(Variables(Owner()), nullptr, name, value);
     WriteByte(&out_, 0x81);
     WriteText(&out_, name);
     WriteDword(&out_, value);
@@ -69,7 +67,7 @@ void CPlayerServer::SetVariable(const char* name, std::uint32_t value) {
 
 void CPlayerServer::SetVariableMax(const char* name, float value) {
     // Rounded to float (FST) before any comparison.
-    volatile float stored = static_cast<float>(VariableGet(player_ + kPlayerVariables, nullptr, name));
+    volatile float stored = static_cast<float>(VariableGet(Variables(Owner()), nullptr, name));
     float current = stored;
     std::uint32_t currentBits, valueBits;
     std::memcpy(&currentBits, &current, 4);
@@ -80,35 +78,35 @@ void CPlayerServer::SetVariableMax(const char* name, float value) {
     std::memcpy(&result, &resultBits, 4);
     // Nothing to do when it compares equal (or unordered).
     if (IsNaN(resultBits) || IsNaN(currentBits) || result == current) return;
-    VariableSet(player_ + kPlayerVariables, nullptr, name, resultBits);
+    VariableSet(Variables(Owner()), nullptr, name, resultBits);
     WriteByte(&out_, 0x81);
     WriteText(&out_, name);
     WriteDword(&out_, resultBits);
 }
 
 void CPlayerServer::DeleteVariable(const char* name) {
-    VariableRemove(player_ + kPlayerVariables, nullptr, name);
+    VariableRemove(Variables(Owner()), nullptr, name);
     WriteByte(&out_, 0x82);
     WriteText(&out_, name);
 }
 
 void CPlayerServer::SendGameTime() {
-    std::uint32_t value = *reinterpret_cast<const std::uint32_t*>(player_ + kPlayerValue100);
+    std::uint32_t value = static_cast<std::uint32_t>(Owner()->sessionKind100_);
     WriteByte(&out_, 0x07);
     WriteDword(&out_, value);
     WriteDword(&out_, *reinterpret_cast<const std::uint32_t*>(0x007AFFC4));
-    Dirty(player_) &= ~0x10u;
+    Owner()->dirty_ &= ~0x10;
 }
 
 int CPlayerServer::SendState02(int value) {
-    Dirty(player_) &= ~0x1u;
+    Owner()->dirty_ &= ~0x1;
     WriteByte(&out_, 0x02);
     StreamWriteState(&out_, nullptr, value);
     return 1;
 }
 
 int CPlayerServer::SendState70(std::uint8_t a, std::uint16_t b) {
-    Dirty(player_) &= ~0x2u;
+    Owner()->dirty_ &= ~0x2;
     std::uint8_t payload[3] = {a, static_cast<std::uint8_t>(b), static_cast<std::uint8_t>(b >> 8)};
     WriteByte(&out_, 0x70);
     Write(&out_, payload, 3);
@@ -116,7 +114,7 @@ int CPlayerServer::SendState70(std::uint8_t a, std::uint16_t b) {
 }
 
 int CPlayerServer::SendState71(std::uint32_t a, std::uint32_t b) {
-    Dirty(player_) &= ~0x4u;
+    Owner()->dirty_ &= ~0x4;
     std::uint32_t payload[2] = {a, b};
     WriteByte(&out_, 0x71);
     Write(&out_, payload, 8);
@@ -124,7 +122,7 @@ int CPlayerServer::SendState71(std::uint32_t a, std::uint32_t b) {
 }
 
 int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z, std::uint32_t w) {
-    Dirty(player_) &= ~0x8u;
+    Owner()->dirty_ &= ~0x8;
     WriteByte(&out_, 0x72);
     std::uint32_t xyz[3] = {x, y, z};
     Write(&out_, xyz, 12);
@@ -135,7 +133,7 @@ int CPlayerServer::SendState72(std::uint32_t x, std::uint32_t y, std::uint32_t z
 void CPlayerServer::SendState73(void* source) {
     WriteByte(&out_, 0x73);
     WriteStateTo(source, nullptr, &out_);
-    Dirty(player_) &= ~0x20u;
+    Owner()->dirty_ &= ~0x20;
 }
 
 int CPlayerServer::SendPosition04(const Vector3* at, std::uint32_t a, std::uint32_t b) {
@@ -176,13 +174,14 @@ void CPlayerServer::SendPair16(std::uint32_t a, std::uint32_t b) {
 
 void CPlayerServer::SendObjects0C(const void* list) {
     WriteByte(&out_, 0x0C);
-    // An MFC CPtrList: head at +4; nodes {next, prev, object}.
-    auto* node = *reinterpret_cast<void* const*>(static_cast<const char*>(list) + 4);
+    // An MFC CPtrList of objects.
+    using ObjectList = mfc::CTypedPtrList<CEngineObject>;
+    ObjectList::Node* node = static_cast<const ObjectList*>(list)->head;
     while (node != nullptr) {
-        void* next = *static_cast<void**>(node);
-        const void* object = static_cast<void**>(node)[2];
+        ObjectList::Node* next = node->next;
+        const CEngineObject* object = node->data;
         WriteDword(&out_, ObjectId(object));
-        WriteDword(&out_, ObjectValue28(object));
+        WriteDword(&out_, ItemCharge(object));
         node = next;
     }
     WriteDword(&out_, 0xFFFFFFFFu);
@@ -191,7 +190,7 @@ void CPlayerServer::SendObjects0C(const void* list) {
 void CPlayerServer::SendObject14(const void* object) {
     WriteByte(&out_, 0x14);
     WriteDword(&out_, ObjectId(object));
-    WriteDword(&out_, ObjectValue28(object));
+    WriteDword(&out_, ItemCharge(object));
 }
 
 void CPlayerServer::SendText0D(const char* text) {
@@ -245,7 +244,7 @@ void CPlayerServer::SendText(std::uint8_t type, const char* text) {
     WriteText(&out_, text);
 }
 
-void CPlayerServer::WriteTo(void* target) { ei::VCall<void>(target, 7, &out_); }
+void CPlayerServer::WriteTo(CStream* target) { target->CopyFrom(&out_); }
 
 void CPlayerServer::SetDisconnect() { state_ = 4; }
 
@@ -272,7 +271,7 @@ void CPlayer::Tick() {
         node = node->next;
         int id = static_cast<int>(reinterpret_cast<std::intptr_t>(current->data));
         CEngineObject* object = ManagerFindObject(Party()->ItemManager(), nullptr, id);
-        if (object == nullptr || ei::VCall<int>(object, 6) == 0) objects_.RemoveAt(current);
+        if (object == nullptr || object->RunTick() == 0) objects_.RemoveAt(current);
     }
     connection_->TickDone();
 }

@@ -40,11 +40,11 @@ bool Live(const void* object) {
 // NaN) are erased. The end is read again after every entry, as the original does.
 template <typename Erase>
 void CountDown(void*& list, Erase erase, float dt) {
-    void** node = static_cast<void**>(static_cast<void**>(list)[0]);
+    TimedNode* node = static_cast<TimedNode*>(list)->next;
     while (node != list) {
-        void** current = node;
-        node = static_cast<void**>(node[0]);
-        float& seconds = *reinterpret_cast<float*>(&current[2]);
+        TimedNode* current = node;
+        node = node->next;
+        float& seconds = current->data.seconds;
         float left = seconds - dt;
         seconds = left;
         if (!(left >= GameFloat(kZero))) {
