@@ -12,16 +12,7 @@
 #include <new>
 
 namespace mapspec {
-mfc::CString* __fastcall SpecTypeName(Spec*, void*, mfc::CString* out);
-mfc::CString* __fastcall ObjectSpecTypeName(ObjectSpec* self, void*, mfc::CString* out);
-mfc::CString* __fastcall TrapSpecTypeName(TrapSpec*, void*, mfc::CString* out);
-void* __fastcall SpecWorldObject(Spec* self);
 Vector3* __fastcall QuaternionRotate(const Quaternion* q, void*, Vector3* out, const Vector3* v);
-ObjectSpec* __fastcall ObjectSpecConstruct(ObjectSpec* self);
-FlameSpec* __fastcall FlameSpecConstruct(FlameSpec* self);
-TrapSpec* __fastcall TrapSpecConstruct(TrapSpec* self);
-LeverSpec* __fastcall LeverSpecConstruct(LeverSpec* self);
-Spec* __fastcall SpecConstruct(Spec* self);
 } // namespace mapspec
 
 namespace {
@@ -38,10 +29,11 @@ std::uint32_t VtableOf(const void* p) {
 template <typename Self>
 using NameFn = mfc::CString*(__fastcall*)(Self*, void*, mfc::CString*);
 template <typename Self>
-mfc::CString* CompareName(const char* what, NameFn<Self> original, NameFn<Self> ours, Self* self, mfc::CString* out) {
+mfc::CString* CompareName(const char* what, NameFn<Self> original, mfc::CString* (Self::*ours)(mfc::CString*), Self* self,
+                          mfc::CString* out) {
     alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
     auto* expected = original(self, nullptr, reinterpret_cast<mfc::CString*>(raw));
-    ours(self, nullptr, out);
+    (self->*ours)(out);
     ei::verify::Check(what, true, std::strcmp(*expected, *out) == 0, static_cast<const char*>(*out));
     expected->~CString();
     return out;
@@ -50,23 +42,23 @@ mfc::CString* CompareName(const char* what, NameFn<Self> original, NameFn<Self> 
 // 00469DB0 / 0046B520: PUSH ECX, PUSH ESI (2), MOV ESI,[ESP+0xC] (4).
 NameFn<Spec> s_specName;
 mfc::CString* __fastcall SpecNameVerify(Spec* self, void*, mfc::CString* out) {
-    return CompareName<Spec>("SpecTypeName", s_specName, SpecTypeName, self, out);
+    return CompareName<Spec>("SpecTypeName", s_specName, &Spec::SpecTypeName, self, out);
 }
 NameFn<TrapSpec> s_trapName;
 mfc::CString* __fastcall TrapNameVerify(TrapSpec* self, void*, mfc::CString* out) {
-    return CompareName<TrapSpec>("TrapSpecTypeName", s_trapName, TrapSpecTypeName, self, out);
+    return CompareName<TrapSpec>("TrapSpecTypeName", s_trapName, &TrapSpec::TrapSpecTypeName, self, out);
 }
 // 0046B090: PUSH -1 (2), PUSH imm32 (5).
 NameFn<ObjectSpec> s_objectName;
 mfc::CString* __fastcall ObjectNameVerify(ObjectSpec* self, void*, mfc::CString* out) {
-    return CompareName<ObjectSpec>("ObjectSpecTypeName", s_objectName, ObjectSpecTypeName, self, out);
+    return CompareName<ObjectSpec>("ObjectSpecTypeName", s_objectName, &ObjectSpec::ObjectSpecTypeName, self, out);
 }
 
 // 00469F20: MOV EAX,ECX (2), MOV ECX,[007AF5F8] (6).
 void*(__fastcall* s_worldObject)(Spec*);
 void* __fastcall WorldObjectVerify(Spec* self) {
     void* expected = s_worldObject(self);
-    void* got = SpecWorldObject(self);
+    void* got = self->SpecWorldObject();
     ei::verify::Check("SpecWorldObject", reinterpret_cast<std::uintptr_t>(expected), reinterpret_cast<std::uintptr_t>(got), "");
     return got;
 }
@@ -86,27 +78,27 @@ Vector3* __fastcall RotateVerify(const Quaternion* q, void*, Vector3* out, const
 
 // Constructors, ours only.
 Spec* __fastcall SpecVerify(Spec* self) {
-    SpecConstruct(self);
+    self->SpecConstruct();
     ei::verify::Check("SpecConstruct", true, VtableOf(self) == 0x0073C5C4 && self->kind == 0 && self->id == -1, "");
     return self;
 }
 ObjectSpec* __fastcall ObjectVerify(ObjectSpec* self) {
-    ObjectSpecConstruct(self);
+    self->ObjectSpecConstruct();
     ei::verify::Check("ObjectSpecConstruct", true, VtableOf(self) == 0x0073C5F0 && self->base.kind == 1 && self->player == -1, "");
     return self;
 }
 FlameSpec* __fastcall FlameVerify(FlameSpec* self) {
-    FlameSpecConstruct(self);
+    self->FlameSpecConstruct();
     ei::verify::Check("FlameSpecConstruct", true, VtableOf(self) == 0x0073C620 && self->object.base.kind == 6, "");
     return self;
 }
 TrapSpec* __fastcall TrapVerify(TrapSpec* self) {
-    TrapSpecConstruct(self);
+    self->TrapSpecConstruct();
     ei::verify::Check("TrapSpecConstruct", true, VtableOf(self) == 0x0073C650 && self->object.base.kind == 7 && self->interval == 15, "");
     return self;
 }
 LeverSpec* __fastcall LeverVerify(LeverSpec* self) {
-    LeverSpecConstruct(self);
+    self->LeverSpecConstruct();
     ei::verify::Check("LeverSpecConstruct", true, VtableOf(self) == 0x0073C6B0 && self->object.base.kind == 8 && self->states == 2, "");
     return self;
 }

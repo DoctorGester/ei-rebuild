@@ -29,12 +29,6 @@ struct TargetChunk {
 };
 static_assert(sizeof(TargetChunk) == 0x1C);
 
-// Rewritten in map_spec.cpp.
-ObjectSpec* __fastcall ObjectSpecConstruct(ObjectSpec* self);
-void __fastcall ObjectSpecDestruct(ObjectSpec* self);
-void __fastcall ObjectSpecWriteFields(ObjectSpec* self);
-void __fastcall ObjectSpecOnChunk(ObjectSpec* self);
-
 namespace {
 
 constexpr std::uintptr_t kUnitVtable = 0x0073C6E0;
@@ -329,7 +323,7 @@ EI_REPLACE(0x0046C900, BehaviourWrite);
 
 // 0046C010. Returns this.
 UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
-    ObjectSpecConstruct(&self->object);
+    self->object.ObjectSpecConstruct();
     VectorConstruct(self->behaviour, sizeof(Behaviour), 5, kBehaviourConstruct, kBehaviourDestruct);
     new (&self->prototype) mfc::CString();
     for (mfc::CStringArray& list : self->lists) list.Construct();
@@ -352,7 +346,7 @@ void __fastcall UnitSpecDestruct(UnitSpec* self) {
     for (int i = 4; i >= 0; --i) StringArrayDestruct(&self->lists[i]);
     self->prototype.~CString();
     VectorDestruct(self->behaviour, sizeof(Behaviour), 5, kBehaviourDestruct);
-    ObjectSpecDestruct(&self->object);
+    self->object.ObjectSpecDestruct();
 }
 EI_REPLACE(0x0046C140, UnitSpecDestruct);
 
@@ -401,7 +395,7 @@ void __fastcall UnitSpecSave(UnitSpec* self) {
     c.WriteString(0xBBBB0002, self->prototype);
     for (int i = 4; i >= 0; --i) c.WriteStringArray(0xBBBB0005 + i, &self->lists[i]);
     c.WriteBlob(0xBBBB0004, self->stats, sizeof(self->stats));
-    ObjectSpecWriteFields(&self->object);
+    self->object.ObjectSpecWriteFields();
     TargetChunk writer;
     writer.chunk.Construct(nullptr);
     SetVtable(&writer, kBehaviourChunkVtable);
@@ -445,7 +439,7 @@ void __fastcall UnitSpecOnChunk(UnitSpec* self) {
         reader.chunk.Destruct();
         break;
     }
-    default: ObjectSpecOnChunk(&self->object); break;
+    default: self->object.ObjectSpecOnChunk(); break;
     }
 }
 EI_REPLACE(0x0046D080, UnitSpecOnChunk);
