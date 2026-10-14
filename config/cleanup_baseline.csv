@@ -197,7 +197,6 @@ src/game/script_exec.cpp,0,0,3,0,2,0,0,0,0,0,0
 src/game/script_exec_helpers.cpp,16,1,1,0,1,0,0,0,0,0,0
 src/game/script_exec_run.cpp,0,0,3,0,3,0,0,0,0,0,0
 src/game/script_group.cpp,0,0,0,0,0,0,0,1,0,0,0
-src/game/script_load.cpp,22,0,0,0,0,0,0,0,0,0,0
 src/game/script_parse_load.cpp,0,0,2,0,1,3,0,0,0,0,0
 src/game/script_reset.cpp,11,0,0,0,0,0,0,0,0,0,0
 src/game/script_save.cpp,9,0,0,0,0,0,0,1,0,0,0
