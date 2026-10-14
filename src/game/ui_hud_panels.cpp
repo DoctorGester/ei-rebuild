@@ -293,7 +293,7 @@ void CHudTopPanel::ShowItems() {
         node = node->next;
         CItem* same = nullptr;
         for (auto* entry = merged.head; entry && !same; entry = entry->next)
-            if (entry->data->IsSameAsSlot(item)) same = entry->data;
+            if (entry->data->IsSameAs(item)) same = entry->data;
         if (same) {
             same->count_ += item->count_;
             continue;

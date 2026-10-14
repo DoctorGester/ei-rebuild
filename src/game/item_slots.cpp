@@ -21,9 +21,6 @@ bool EqualOrUnordered(std::uint32_t a, std::uint32_t b) {
     return EqualOrUnordered(x, y);
 }
 
-template <typename Record>
-const Record* RecordOf(const char* record) { return reinterpret_cast<const Record*>(record); }
-
 } // namespace
 
 // --- Slot 21 -----------------------------------------------------------------------------------
@@ -51,71 +48,98 @@ BOOL CItem::IsSameAs(CItem* other) {
     if (spell->unknown_18 != otherSpell->unknown_18) return 0;
     return std::memcmp(spell->modifiers_, otherSpell->modifiers_, sizeof(spell->modifiers_)) == 0 ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x0069FE90, CItem::IsSameAs);
 
-BOOL CItemArmor::IsSameAs(CItemArmor* other) {
-    if (!CItem::IsSameAs(other)) return 0;
+BOOL CItemArmor::IsSameAs(CItem* item) {
+    if (!CItem::IsSameAs(item)) return 0;
+    auto* other = static_cast<CItemArmor*>(item);
     // Both absorption rows and the layer masks, compared as dwords.
     static_assert(offsetof(CItemArmor, layerMask_) + sizeof(layerMask_) - offsetof(CItemArmor, absorb_) == 0x40);
     return std::memcmp(absorb_, other->absorb_, 0x40) == 0 ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x006A30D0, CItemArmor::IsSameAs);
 
-BOOL CItemQuick::IsSameAs(CItemQuick* other) {
+BOOL CItemQuick::IsSameAs(CItem* other) {
     if (!CItem::IsSameAs(other)) return 0;
-    return other->unknown_4C == unknown_4C ? 1 : 0;
+    return static_cast<CItemQuick*>(other)->unknown_4C == unknown_4C ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x006A3C20, CItemQuick::IsSameAs);
 
-BOOL CItemQuest::IsSameAs(CItemQuest* other) {
+BOOL CItemQuest::IsSameAs(CItem* other) {
     if (!CItem::IsSameAs(other)) return 0;
-    return other->questItemId_ == questItemId_ ? 1 : 0;
+    return static_cast<CItemQuest*>(other)->questItemId_ == questItemId_ ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x006A4510, CItemQuest::IsSameAs);
 
-BOOL CItemLoot::IsSameAs(CItemLoot* other) {
-    if (!CItem::IsSameAs(other)) return 0;
+BOOL CItemLoot::IsSameAs(CItem* item) {
+    if (!CItem::IsSameAs(item)) return 0;
+    auto* other = static_cast<CItemLoot*>(item);
     if (other->kind_ != kind_ || other->recordType_ != recordType_) return 0;
     return other->index_ == index_ ? 1 : 0;
 }
-EI_REPLACE_METHOD(0x006A4B00, CItemLoot::IsSameAs);
 
 // --- Slot 13 (each inlines CItem's body first) ---------------------------------------------------
 
-void CItemWeapon::InitFromRecord(const char* record) {
+void CItemWeapon::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
-    auto* r = RecordOf<WeaponRecord>(record);
+    auto* r = static_cast<const WeaponRecord*>(record);
     std::memcpy(&reach_, &r->reach, 4);
     std::memcpy(&damage_, &r->damage, 4);
     std::memcpy(&damageSpread_, &r->damageSpread, 4);
 }
-EI_REPLACE_METHOD(0x006A0660, CItemWeapon::InitFromRecord);
 
-void CItemArmor::InitFromRecord(const char* record) {
+void CItemArmor::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
-    auto* r = RecordOf<ArmorRecord>(record);
+    auto* r = static_cast<const ArmorRecord*>(record);
     std::memcpy(absorb_[0], r->absorbFirst, sizeof(absorb_[0]));
     std::memcpy(absorb_[1], r->absorbOthers, sizeof(absorb_[1]));
 }
-EI_REPLACE_METHOD(0x006A3070, CItemArmor::InitFromRecord);
 
-void CItemQuick::InitFromRecord(const char* record) {
+void CItemQuick::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
-    unknown_4C = RecordOf<QuickItemRecord>(record)->value70;
+    unknown_4C = static_cast<const QuickItemRecord*>(record)->value70;
 }
-EI_REPLACE_METHOD(0x006A3BE0, CItemQuick::InitFromRecord);
 
-void CItemQuest::InitFromRecord(const char* record) {
+void CItemQuest::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
-    questItemId_ = RecordOf<ItemRecordHead>(record)->category;
+    questItemId_ = record->category;
 }
-EI_REPLACE_METHOD(0x006A44D0, CItemQuest::InitFromRecord);
 
-void CItemLoot::InitFromRecord(const char* record) {
+void CItemLoot::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
-    auto* r = RecordOf<LootItemRecord>(record);
+    auto* r = static_cast<const LootItemRecord*>(record);
     kind_ = r->category;
     recordType_ = r->recordType;
     index_ = r->index;
 }
-EI_REPLACE_METHOD(0x006A4AB0, CItemLoot::InitFromRecord);
+
+// --- The virtual slots' entry points (rule 4) -----------------------------------------------------
+
+namespace {
+BOOL __fastcall ItemIsSameAsHook(CItem* self, void*, CItem* other) { return self->CItem::IsSameAs(other); }
+BOOL __fastcall ArmorIsSameAsHook(CItemArmor* self, void*, CItem* other) { return self->CItemArmor::IsSameAs(other); }
+BOOL __fastcall QuickIsSameAsHook(CItemQuick* self, void*, CItem* other) { return self->CItemQuick::IsSameAs(other); }
+BOOL __fastcall QuestIsSameAsHook(CItemQuest* self, void*, CItem* other) { return self->CItemQuest::IsSameAs(other); }
+BOOL __fastcall LootIsSameAsHook(CItemLoot* self, void*, CItem* other) { return self->CItemLoot::IsSameAs(other); }
+void __fastcall WeaponInitFromRecordHook(CItemWeapon* self, void*, const ItemRecordHead* record) {
+    self->CItemWeapon::InitFromRecord(record);
+}
+void __fastcall ArmorInitFromRecordHook(CItemArmor* self, void*, const ItemRecordHead* record) {
+    self->CItemArmor::InitFromRecord(record);
+}
+void __fastcall QuickInitFromRecordHook(CItemQuick* self, void*, const ItemRecordHead* record) {
+    self->CItemQuick::InitFromRecord(record);
+}
+void __fastcall QuestInitFromRecordHook(CItemQuest* self, void*, const ItemRecordHead* record) {
+    self->CItemQuest::InitFromRecord(record);
+}
+void __fastcall LootInitFromRecordHook(CItemLoot* self, void*, const ItemRecordHead* record) {
+    self->CItemLoot::InitFromRecord(record);
+}
+} // namespace
+EI_REPLACE(0x0069FE90, ItemIsSameAsHook);
+EI_REPLACE(0x006A30D0, ArmorIsSameAsHook);
+EI_REPLACE(0x006A3C20, QuickIsSameAsHook);
+EI_REPLACE(0x006A4510, QuestIsSameAsHook);
+EI_REPLACE(0x006A4B00, LootIsSameAsHook);
+EI_REPLACE(0x006A0660, WeaponInitFromRecordHook);
+EI_REPLACE(0x006A3070, ArmorInitFromRecordHook);
+EI_REPLACE(0x006A3BE0, QuickInitFromRecordHook);
+EI_REPLACE(0x006A44D0, QuestInitFromRecordHook);
+EI_REPLACE(0x006A4AB0, LootInitFromRecordHook);

@@ -89,15 +89,20 @@ double CItemWeapon::RollDamage() {
 }
 EI_REPLACE_METHOD(0x006A2DE0, CItemWeapon::RollDamage);
 
-BOOL CItemWeapon::IsSameAs(CItemWeapon* other) {
-    if (!CItem::IsSameAs(other)) return 0;
+BOOL CItemWeapon::IsSameAs(CItem* item) {
+    if (!CItem::IsSameAs(item)) return 0;
+    auto* other = static_cast<CItemWeapon*>(item);
     if (other->unknown_4C != unknown_4C) return 0;
     if (!EqualOrUnordered(other->damage_, damage_)) return 0;
     if (!EqualOrUnordered(other->damageSpread_, damageSpread_)) return 0;
     if (!EqualOrUnordered(other->reach_, reach_)) return 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x006A06C0, CItemWeapon::IsSameAs);
+namespace {
+// Slot 14's entry point (rule 4).
+BOOL __fastcall WeaponIsSameAsHook(CItemWeapon* self, void*, CItem* other) { return self->CItemWeapon::IsSameAs(other); }
+} // namespace
+EI_REPLACE(0x006A06C0, WeaponIsSameAsHook);
 
 int CItemArmor::GetType() {
     return ArmorAt(PrototypeIndex(unknown_18))->type;

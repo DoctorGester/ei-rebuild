@@ -287,7 +287,7 @@ CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
     CEngineObject* factory = ItemFactory();
     CEngineObject* copy = FactoryMakeItem(factory, nullptr, type, static_cast<int>(packed >> 16),
                                           static_cast<int>(packed & 0xFFFF), -1);
-    source->CopyToSlot(static_cast<CItem*>(copy), SpellManager());
+    source->CopyTo(static_cast<CItem*>(copy), SpellManager());
     std::memcpy(&static_cast<CItem*>(copy)->charge_, &source->charge_, 4);
     // An item below its maximum is kept on the counted list (once).
     float current = source->charge_;

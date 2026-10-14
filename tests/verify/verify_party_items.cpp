@@ -61,7 +61,7 @@ EI_VERIFY(0x0069FF70, CloneVerify, 0, s_unused);
 // 0069FFC0 (stolen 0): 0 for another kind (target untouched), else the target has the values.
 static BOOL __fastcall CopyToVerify(CItem* self, void*, CItem* target, CSpellManager* spells) {
     int targetKind = target->type_;
-    BOOL result = self->CopyTo(target, spells);
+    BOOL result = self->CItem::CopyTo(target, spells);
     bool ok = targetKind != self->type_
                   ? result == 0
                   : result == 1 && SameValues(target, self) && target->count_ == 1 &&

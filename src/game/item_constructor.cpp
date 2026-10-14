@@ -25,7 +25,6 @@ using namespace itemdb;
 
 namespace {
 
-constexpr int kSlotInitFromRecord = 13;          // CItem slot 13 (+0x34)
 
 // Item class ids (GetClassId).
 constexpr int kClassWeapon = 0x11;
@@ -142,10 +141,9 @@ __declspec(naked) CSpell* __fastcall CallCreateSpellFromText(void*, void*, const
 
 // --- CItem ---------------------------------------------------------------------------------------
 
-void CItem::InitFromRecord(const char* record) {
+void CItem::InitFromRecord(const ItemRecordHead* head) {
     // The condition and the charge pass through the FPU in the original (FLD, FST, FSTP), which
     // quiets a signalling NaN; the other fields are copied as dwords.
-    const auto* head = reinterpret_cast<const ItemRecordHead*>(record);
     FpuCopy(&conditionMax_, &head->condition);
     FpuCopy(&condition_, &head->condition);
     std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
@@ -156,7 +154,13 @@ void CItem::InitFromRecord(const char* record) {
     unknown_3C = head->value3C;
     magicLevel_ = head->magicLevel;
 }
-EI_REPLACE_METHOD(0x006A0490, CItem::InitFromRecord);
+namespace {
+// Slot 13's entry point (rule 4).
+void __fastcall ItemInitFromRecordHook(CItem* self, void*, const ItemRecordHead* record) {
+    self->CItem::InitFromRecord(record);
+}
+} // namespace
+EI_REPLACE(0x006A0490, ItemInitFromRecordHook);
 
 void CItem::AttachSpell(CSpell* spell) {
     auto* previous = static_cast<CSpell*>(spell_);
@@ -379,7 +383,7 @@ BOOL CItemConstructor::Build() {
     FillCommon(record, prototype, material);
     std::uint32_t index = FillClass(item_->GetClassId(), record, prototype, material);
 
-    ei::VCall<void>(item_, kSlotInitFromRecord, record);
+    item_->InitFromRecord(record);
     if (item_->GetClassId() == kClassQuick && static_cast<int>(prototype->category) == kCategoryWand) {
         CSpellManager* spellManager = static_cast<CManagerContext*>(manager_->context_)->SpellManager();
         CSpell* spell = CallCreateSpellFromText(spellManager, nullptr,

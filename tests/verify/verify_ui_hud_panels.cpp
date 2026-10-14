@@ -339,7 +339,7 @@ static void __fastcall ShowItemsVerify(CHudTopPanel* self) {
     for (auto* node = player->items.head; node; node = node->next) {
         auto* item = static_cast<CItem*>(node->data);
         bool seen = false;
-        for (CItem* kind : kinds) seen = seen || kind->IsSameAsSlot(item);
+        for (CItem* kind : kinds) seen = seen || kind->IsSameAs(item);
         if (!seen) kinds.push_back(item);
     }
     int money = static_cast<int>(reinterpret_cast<CParty*>(LocalPlayerData())->unknown_50);

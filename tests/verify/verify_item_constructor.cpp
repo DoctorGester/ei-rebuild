@@ -39,12 +39,12 @@ R CompareOnObject(const char* name, void* object, std::size_t size, Ours ours, O
 
 // 006A0490 writes the item's +0x20..+0x44: ours, bytes saved and restored, original; compared.
 // MOV EAX,[ESP+4]; FLD [EAX+0x48] (7 bytes).
-static void(__fastcall* s_initFromRecord)(CItem*, void*, const char*);
-static void __fastcall InitFromRecordVerify(CItem* self, void*, const char* record) {
+static void(__fastcall* s_initFromRecord)(CItem*, void*, const itemdb::ItemRecordHead*);
+static void __fastcall InitFromRecordVerify(CItem* self, void*, const itemdb::ItemRecordHead* record) {
     char* bytes = reinterpret_cast<char*>(self) + 0x20;
     char before[0x28], ours[0x28];
     std::memcpy(before, bytes, sizeof(before));
-    self->InitFromRecord(record);
+    self->CItem::InitFromRecord(record);
     std::memcpy(ours, bytes, sizeof(ours));
     std::memcpy(bytes, before, sizeof(before));
     s_initFromRecord(self, nullptr, record);
