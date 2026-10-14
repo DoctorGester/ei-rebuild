@@ -315,9 +315,11 @@ public:
     // spell or quick item clicked twice is used at once.
     bool doubleClick_;               // +0x7F
     bool rightDown_;                 // +0x80 the right button is held
-    std::uint8_t unknown_81[0x84 - 0x81];
+    // +0x81 the top window is asked every frame (slot 35) until it agrees ("autosave" sets it).
+    bool pollTop_;
+    std::uint8_t unknown_82[0x84 - 0x82];
     stlp::list<mfc::CString> messages_;   // +0x84 queued message texts (ShowMessage takes the first)
-    std::uint8_t unknown_88;
+    bool disconnected_;              // +0x88 a network client lost the server (the frame shows a message)
     // +0x89..+0x97: the state saved with a game (LoadState), cleared by ResetSavedState.
     std::uint8_t unknown_89[3];
     int unknown_8C;
@@ -363,7 +365,8 @@ static_assert(offsetof(CInterface3D, console_) == 0x14);
 static_assert(offsetof(CInterface3D, root_) == 0x1C);
 static_assert(offsetof(CInterface3D, drawing_) == 0x30);
 static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
-static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
+static_assert(offsetof(CInterface3D, rightDown_) == 0x80 && offsetof(CInterface3D, pollTop_) == 0x81 &&
+              offsetof(CInterface3D, disconnected_) == 0x88);
 static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
 static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
@@ -746,6 +749,16 @@ public:
         using Fn = void(__thiscall*)(CUiWindow*, int, unsigned, char*);
         reinterpret_cast<Fn>(vtable_[32])(this, id, event, extra);
     }
+    // Slot 34 (+0x88): a "briefing <name>" string event.
+    void VirtualShowBriefing(const char* name) {
+        using Fn = void(__thiscall*)(CUiWindow*, const char*);
+        reinterpret_cast<Fn>(vtable_[34])(this, name);
+    }
+    // Slot 35 (+0x8C): whether the window lets the interface stop asking (pollTop_).
+    bool VirtualReadyToStopPolling() {
+        using Fn = bool(__thiscall*)(CUiWindow*);
+        return reinterpret_cast<Fn>(vtable_[35])(this);
+    }
     void VirtualPlayersChanged(int added) {
         using Fn = void(__thiscall*)(CUiWindow*, int);
         reinterpret_cast<Fn>(vtable_[36])(this, added);
@@ -755,6 +768,11 @@ public:
         reinterpret_cast<Fn>(vtable_[37])(this, partyB, partyA, partyC);
     }
     void VirtualSaveState() { CallVirtual(40); }
+    // Slot 27 (+0x6C): the value a window above left pending when it closed.
+    void VirtualMessageResult(int result) {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[27])(this, result);
+    }
     // Slot 26 (+0x68): the window is closed (taken off the screen, before it is deleted).
     void CloseWindow() {
         using Fn = void(__thiscall*)(CUiWindow*);
