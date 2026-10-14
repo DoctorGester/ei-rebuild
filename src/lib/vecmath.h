@@ -344,6 +344,11 @@ __forceinline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
 template <typename T>
 __forceinline T Dot2DUnrounded(T x, T y, T x2, T y2) { return x * x2 + y * y2; }
 
+// d + x * x2 + y * y2 with the offset added first, (d + x * x2) + y * y2: a plane's value at a point
+// (PlaneHeight 006BE3A0, d + nx * x + ny * y; V3f). Not the same as d + Dot2DUnrounded(...).
+template <typename T>
+__forceinline T OffsetDot2DUnrounded(T d, T x, T y, T x2, T y2) { return (d + x * x2) + y * y2; }
+
 // The 3-term sums on the caller's scalars (V3c), grouped as named (Sum3), in T. Like the 2D forms
 // they are the written-out expression: they replace one only where the object code stays the same.
 template <Sum3 O, typename T>

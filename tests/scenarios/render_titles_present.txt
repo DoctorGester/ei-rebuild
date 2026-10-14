@@ -10,7 +10,7 @@
 # DirectDraw surface".
 render new,present
 reject Script error
-wait 6000
+waitmenu
 
 # The main menu.
 move 400 20
@@ -21,12 +21,14 @@ unfreeze
 
 # The titles; a click ends them.
 clickregion 4
-wait 2500
+waitwindow 10 titles
+wait 1000
 freeze
 capture titles
 unfreeze
 click 400 300
-wait 3000
+waitwindow 10 menu
+wait 500
 freeze
 capture menu_again
 unfreeze

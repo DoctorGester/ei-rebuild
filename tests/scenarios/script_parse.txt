@@ -8,7 +8,7 @@
 # and only a successful load counts a file. So definition lines end with a deliberate top-level error
 # (EndMarker...), and the very next line uses the names. Identifiers avoid keyword prefixes (the
 # lexer splits "Run1" into "Run" and "1").
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

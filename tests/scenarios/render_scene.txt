@@ -18,15 +18,16 @@
 # 004EF610 are rewritten code).
 render new
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
 move 400 60
-wait 2000
+wait 1000
 freeze
 capture world
 oldobjects off

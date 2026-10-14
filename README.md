@@ -57,6 +57,16 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
 - `waitfor <seconds> <expression>` waits until the expression is nonzero (fails after <seconds>);
   prefer it to fixed `wait`s.
   `waitline <seconds> <text>` waits until the console has printed <text> (e.g. `Saved savea`).
+- Waits on the interface rather than the clock (each fails the run after <seconds>):
+  `waitmenu [seconds]` (default 30) waits until the main menu is up and taking input, and every
+  scenario starts with it. `waitwindow <seconds> <window>` waits until that window is on top, nothing is
+  queued to replace it, no game request (new game, load) is pending, and the save/load or options
+  window has finished sliding in, for two frames in a row. Names: `menu battle briefing map camp
+  view trade escmenu saveload options objectives help msgbox difficulty heroes titles`, or a
+  vtable in hex. A new game's battle screen comes seconds after the leader has HP, so input for it
+  waits on `waitwindow 15 battle` first. `waitunit <seconds> <name>` waits until `clickunit` would
+  find the unit on screen. `frames <n>` lets the game run <n> frames (input posted before it has been
+  handled after one). Plain `wait <ms>` is left for "let the world run this long".
 - `key <key>` and `click/rclick/move <x> <y>` send keyboard and mouse input to the game window
   (coordinates in the 800x600 interface layout); Esc and mouse clicks reach the interface.
   `clickregion/rclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
@@ -97,7 +107,7 @@ need no clicks and leave the install alone: startup movies are skipped, the tuto
 saves and `config\tutorial.ini` go to `build\verify\harness_saves`, every other file the game writes under
 its folder (the composed-skin cache `textures\*.mmp`, `config\keyboard.ini`, `config\addrbook.ini`,
 `mp\*.mp`, ...) goes to a copy-on-write overlay there (reads prefer the overlay copy), settings are not written to the
-registry, and a game that hangs on exit (Rebirth) is ended 10 s after the scenario quits. When the game crashes,
+registry, and a game that hangs on exit (Rebirth) is ended 3 s after the scenario quits. When the game crashes,
 the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions.
 
     harness.cmd tests\scenarios\sandbox_actions.txt

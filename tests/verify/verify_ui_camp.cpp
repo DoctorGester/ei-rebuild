@@ -386,9 +386,9 @@ static void __fastcall GlobalMapUpdateVerify(CGlobalMap* self, void*) {
     self->Update();
     float actual = self->bobTime_;
     bool ok = std::memcmp(&actual, const_cast<float*>(&expected), 4) == 0 && self->selectPending_ == 0 &&
-              (!turning || !(self->turn_[0] < 0.0f));
+              (!turning || !(self->turn_.w < 0.0f));
     ei::verify::Check("CGlobalMap::Update", true, ok, "bob %g -> %g (expected %g) turning %d w %g", before, actual,
-                      static_cast<float>(expected), turning, self->turn_[0]);
+                      static_cast<float>(expected), turning, self->turn_.w);
 }
 EI_VERIFY(0x0062F050, GlobalMapUpdateVerify, 0, s_unused);
 
@@ -614,7 +614,7 @@ EI_VERIFY(0x0060F830, CampShowHeroVerify, 0, s_unused);
 static CGlobalMap* __fastcall GlobalMapConstructVerify(CGlobalMap* self, void*, CInterface3D* ui) {
     CGlobalMap* result = self->Construct(ui);
     bool ok = result == self && self->vtable_ == reinterpret_cast<void**>(0x00740B3C) && self->interface_ == ui &&
-              self->zones_.size == 0 && self->links_.size == 0 && self->quests_.size == 0 && self->turn_[0] == 1.0f;
+              self->zones_.size == 0 && self->links_.size == 0 && self->quests_.size == 0 && self->turn_.w == 1.0f;
     ei::verify::Check("CGlobalMap::Construct", true, ok, "vtable %p zones %d links %d quests %d", self->vtable_,
                       self->zones_.size, self->links_.size, self->quests_.size);
     return result;

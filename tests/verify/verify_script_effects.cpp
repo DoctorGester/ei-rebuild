@@ -122,7 +122,7 @@ void __fastcall CreateFxSourceVerify(CScript* script, void*, const SSCCmd* cmd) 
               script->nextFxId_ == (automatic ? nextId - 1 : nextId) && (existed || node == script->fxSources_.tail);
     if (ok) {
         const ScriptFxSource& s = node->data;
-        ok = SameBits(s.position, &f[1], 12) && SameBits(&s.volume, &f[4], 4) && SameBits(&s.radius, &f[5], 4) &&
+        ok = SameBits(&s.position, &f[1], 12) && SameBits(&s.volume, &f[4], 4) && SameBits(&s.radius, &f[5], 4) &&
              std::strcmp(s.name, name) == 0;
         if (ok && cmd->id == 0x16) {
             auto* sound = static_cast<CEffectSound*>(s.object);
@@ -207,7 +207,7 @@ void __fastcall CreateParticleSourceVerify(CScript* script, void*, const SSCCmd*
             ok = particles && particles == NewestEffect() && particles->GetClassId() == 0x4A &&
                  particles->type_ == type->type && SameBits(&particles->localPosition_, &f[1], 12) &&
                  SameBits(&particles->size_, &f[4], 4) && particles->refCount_ >= 2 && s.deleteAfterMove == 0 &&
-                 s.moving == 0 && s.steps == 0 && s.step[0] == 0.0f && s.step[1] == 0.0f && s.step[2] == 0.0f &&
+                 s.moving == 0 && s.steps == 0 && s.step.x == 0.0f && s.step.y == 0.0f && s.step.z == 0.0f &&
                  s.lifetime == type->lifetime;
         }
     }
@@ -239,7 +239,7 @@ void __fastcall MoveParticleSourceVerify(CScript* script, void*, const SSCCmd* c
                           expected.steps == actual.steps && expected.lifetime == actual.lifetime,
                       "source %d", actual.id);
     for (int i = 0; i < 3; ++i)
-        ei::verify::CheckNear("ScriptMoveParticleSource step", expected.step[i], actual.step[i], "source %d axis %d",
+        ei::verify::CheckNear("ScriptMoveParticleSource step", (&expected.step.x)[i], (&actual.step.x)[i], "source %d axis %d",
                               actual.id, i);
 }
 

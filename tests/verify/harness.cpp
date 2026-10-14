@@ -3,7 +3,25 @@
 // When ei_launch runs with --harness <scenario>, it sets EI_HARNESS to the scenario path. The
 // scenario is a text file of steps, run on the game's main thread from its message loop:
 //
-//   wait <milliseconds>       let the game run
+//   wait <milliseconds>       let the game run (prefer a step that waits for the state wanted:
+//                             waitmenu, waitwindow, waitfor, waitline, waitzone, frames)
+//   waitmenu [seconds]        wait until the main menu is up and takes input (as "waitwindow
+//                             <seconds> menu", default 30 s): the first step of a scenario, before
+//                             its first console, newgame or menu click
+//   waitwindow <seconds> <window>
+//                             wait until <window> is the window on top of the interface and takes
+//                             input: no window queued (005F57C0 activates it on the next frame), no
+//                             game request pending (007AFE20), the save/load and options windows
+//                             done sliding in (they ignore input meanwhile), on top for two frames;
+//                             fails after <seconds>. <window>: menu, battle, briefing, map, camp,
+//                             view, trade, escmenu, saveload, options, objectives, help, msgbox,
+//                             difficulty, heroes, titles, or a window vtable in hex
+//   waitunit <seconds> <name> wait until the unit with script name <name> is drawn and the game's
+//                             picking finds it, as "clickunit" needs (a unit just added to the
+//                             server reaches the client and the screen a few frames later)
+//   frames <n>                let the game run <n> frames of its main loop (after the input posted
+//                             so far has been handled): for what follows a posted key or mouse
+//                             step on the next frames, whatever the frame rate
 //   console <command line>    run a console command (the game's own console: exec, server, give,
 //                             ...). After the cheat word ("console thingamabob"), "@<command>" runs a
 //                             world script command and "#<expression>" prints a script expression.
@@ -261,6 +279,25 @@ std::size_t g_waitForFrom = 0;
 DWORD g_waitForNext = 0;
 DWORD g_waitForDeadline = 0;
 DWORD g_waitForStart = 0;
+// Frames drawn so far: passes of WinMain's loop through its after-frame PeekMessageA (see
+// PeekMessageHook). A pending "frames": the count it waits for.
+unsigned g_frames = 0;
+bool g_waitingFrames = false;
+unsigned g_waitFramesUntil = 0;
+// A pending "waitwindow": the window's vtables (either of a window's two), its name, when it
+// started and gives up, and the frame from which it has been ready (kNotReady: not ready now).
+constexpr unsigned kNotReady = ~0u;
+bool g_waitingWindow = false;
+std::string g_waitWindowName;
+std::uintptr_t g_waitWindowVtables[2] = {};
+DWORD g_waitWindowStart = 0;
+DWORD g_waitWindowDeadline = 0;
+unsigned g_waitWindowReadyFrom = kNotReady;
+// A pending "waitunit": the unit's script name, when it started and gives up.
+bool g_waitingUnit = false;
+std::string g_waitUnitName;
+DWORD g_waitUnitStart = 0;
+DWORD g_waitUnitDeadline = 0;
 // A pending "capture": its name and when to give up (real time); the frames written so far.
 bool g_capturing = false;
 std::string g_captureName;
@@ -995,25 +1032,25 @@ constexpr std::uintptr_t kClientWorld = 0x007AF5B8;
 constexpr int kClientPickList = 0xF0;
 constexpr std::uint32_t kPickableUnit = 0x400000;   // the flag 00638B30 requires of the unit
 
-std::string PostUnitMouse(const std::string& argument) {
-    char name[64] = "", button[8] = "l", modifier[8] = "";
-    if (sscanf_s(argument.c_str(), "%63s %7s %7s", name, unsigned(sizeof(name)), button, unsigned(sizeof(button)),
-                 modifier, unsigned(sizeof(modifier))) < 1)
-        return "clickunit needs <name> [l|r|move] [ctrl]";
-    std::string what = std::string("clickunit ") + name;
+// Where a click finds the unit with script name `name` in this frame (client coordinates) and the
+// unit the game's pick returns there; "" or why there is no such point. `what` names the step in
+// the log and the error (null: nothing logged).
+std::string FindUnitPoint(const char* name, const char* what, POINT* point, void** unit) {
+    std::string label = std::string(what ? what : "waitunit") + " " + name;
     int id = HarnessObjectIdFromName(name);
     auto* world = reinterpret_cast<std::uint8_t*>(kClientWorld);
     auto* header = *reinterpret_cast<std::uint8_t**>(world + kClientPickList);
-    if (!header) return what + ": no pick list (not in a game)";
+    if (!header) return label + ": no pick list (not in a game)";
     // The unit's rectangle in this frame's list (the last entry for the id).
     const RECT* rect = nullptr;
     for (auto* node = *reinterpret_cast<std::uint8_t**>(header); node && node != header;
          node = *reinterpret_cast<std::uint8_t**>(node)) {
         if (*reinterpret_cast<int*>(node + 0xC) == id) rect = reinterpret_cast<const RECT*>(node + 0x10);
     }
-    if (!rect) return what + " (id " + std::to_string(id) + "): not drawn this frame (off screen?)";
-    Log("harness: %s: id %d, rectangle (%ld,%ld)-(%ld,%ld)", what.c_str(), id, rect->left, rect->top, rect->right,
-        rect->bottom);
+    if (!rect) return label + " (id " + std::to_string(id) + "): not drawn this frame (off screen?)";
+    if (what)
+        Log("harness: %s: id %d, rectangle (%ld,%ld)-(%ld,%ld)", label.c_str(), id, rect->left, rect->top, rect->right,
+            rect->bottom);
     // Candidates: the centre, then a 9x9 grid inside the rectangle from the middle outwards.
     std::vector<POINT> candidates;
     long cx = (rect->left + rect->right) / 2, cy = (rect->top + rect->bottom) / 2;
@@ -1029,23 +1066,33 @@ std::string PostUnitMouse(const std::string& argument) {
             }
         }
     }
-    void* hit = nullptr;
-    POINT at{};
     for (const POINT& p : candidates) {
-        int point[2] = {p.x, p.y};
-        hit = HarnessUnitAtPoint(world, nullptr, point);
+        int at[2] = {p.x, p.y};
+        void* hit = HarnessUnitAtPoint(world, nullptr, at);
         if (hit && *reinterpret_cast<int*>(static_cast<std::uint8_t*>(hit) + 0xC) == id) {
-            at = p;
-            break;
+            *point = p;
+            *unit = hit;
+            return "";
         }
-        hit = nullptr;
     }
-    if (!hit) return what + ": the game's pick (00565E40) finds another object everywhere in its rectangle";
+    return label + ": the game's pick (00565E40) finds another object everywhere in its rectangle";
+}
+
+std::string PostUnitMouse(const std::string& argument) {
+    char name[64] = "", button[8] = "l", modifier[8] = "";
+    if (sscanf_s(argument.c_str(), "%63s %7s %7s", name, unsigned(sizeof(name)), button, unsigned(sizeof(button)),
+                 modifier, unsigned(sizeof(modifier))) < 1)
+        return "clickunit needs <name> [l|r|move] [ctrl]";
+    POINT at{};
+    void* hit = nullptr;
+    std::string error = FindUnitPoint(name, "clickunit", &at, &hit);
+    if (!error.empty()) return error;
     std::uint32_t flags = *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(hit) + 8);
     RECT client{};
     GetClientRect(GameWindow(), &client);
-    Log("harness: %s: at (%ld,%ld) (client %ldx%ld), flags %08X%s", what.c_str(), at.x, at.y, client.right - client.left,
-        client.bottom - client.top, flags, (flags & kPickableUnit) ? "" : " (no 0x400000: the battle screen ignores it)");
+    Log("harness: clickunit %s: at (%ld,%ld) (client %ldx%ld), flags %08X%s", name, at.x, at.y,
+        client.right - client.left, client.bottom - client.top, flags,
+        (flags & kPickableUnit) ? "" : " (no 0x400000: the battle screen ignores it)");
     // The battle screen reads the message's coordinates as they are (the pick space is the client
     // area); the harness's cursor follows them.
     g_mouseX = at.x;
@@ -1167,6 +1214,75 @@ std::string CampPutOn(const std::string& argument) {
     if (static_cast<int>(chosen.size()) < count)
         return "campputon: " + std::to_string(chosen.size()) + " items of the type, wanted " + std::to_string(count);
     return "";
+}
+
+// --- waitwindow <seconds> <window> (ticket T1) ----------------------------------------------
+// The interface windows a scenario waits for, by the two vtables each is built with (the window
+// on top has one of them at +0; ui.h, ui_screens.h, ui_camp.h).
+struct KnownWindow {
+    const char* name;
+    std::uintptr_t vtables[2];
+};
+constexpr KnownWindow kKnownWindows[] = {
+    {"menu", {0x00740688, 0x00740654}},         // CMainMenu (CreateScreen 2)
+    {"battle", {0x00740764, 0x00740730}},       // the in-game screen (CreateScreen 1)
+    {"briefing", {0x007405AC, 0x00740578}},     // the base / briefing screen (CreateScreen 3)
+    {"map", {0x00740B08, 0x00740B3C}},          // the island map (CreateScreen 4)
+    {"camp", {0x007408E8, 0x0074091C}},         // CCampScreen (CreateScreen 5)
+    {"view", {0x00740840, 0x0074080C}},         // CViewScreen (CreateScreen 7)
+    {"trade", {0x00740D18, 0x00740CE4}},        // trading between players (CreateScreen 9)
+    {"escmenu", {0x00741270, 0x007412A4}},      // CEscMenu
+    {"saveload", {0x00741388, 0x00741354}},     // CSaveLoadWindow
+    {"options", {0x00741FAC, 0x00741F78}},      // COptionsWindow
+    {"objectives", {0x007411BC, 0x00741188}},   // CObjectivesWindow
+    {"help", {0x00740E28, 0x00740DF4}},         // the help / message window
+    {"msgbox", {0x00742348, 0x00742314}},       // CMessageBox
+    {"difficulty", {0x0074225C, 0x00742228}},   // CDifficultyBox
+    {"heroes", {0x00742118, 0x0074214C}},       // the multiplayer hero screen (main menu region 5)
+    {"titles", {0x00740C08, 0x00740C3C}},       // CCreditsScreen
+};
+
+// The vtables of `name` (a name above or one vtable in hex); false when unknown.
+bool WindowVtables(const std::string& name, std::uintptr_t (&vtables)[2]) {
+    for (const KnownWindow& w : kKnownWindows) {
+        if (name == w.name) {
+            vtables[0] = w.vtables[0];
+            vtables[1] = w.vtables[1];
+            return true;
+        }
+    }
+    char* end = nullptr;
+    unsigned long value = std::strtoul(name.c_str(), &end, 16);
+    if (name.empty() || *end || value < 0x00401000 || value >= 0x00800000) return false;
+    vtables[0] = vtables[1] = value;
+    return true;
+}
+
+// Whether the awaited window is on top and takes input (see the step's description).
+bool WindowReady(std::uintptr_t (&vtables)[2]) {
+    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    CUiWindow* top = ui->GetActiveWindow();
+    if (!top || ui->queuedWindow_ || g_request.kind != 0) return false;
+    std::uintptr_t vtable = *reinterpret_cast<const std::uintptr_t*>(top);
+    if (vtable != vtables[0] && vtable != vtables[1]) return false;
+    if (vtable == 0x00741388 || vtable == 0x00741354) return !reinterpret_cast<CSaveLoadWindow*>(top)->sliding_;
+    if (vtable == 0x00741FAC || vtable == 0x00741F78) return !reinterpret_cast<COptionsWindow*>(top)->sliding_;
+    return true;
+}
+
+// For failure messages: the window on top and what keeps it from counting.
+std::string DescribeTopWindow() {
+    auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+    CUiWindow* top = ui->GetActiveWindow();
+    std::uintptr_t vtable = top ? *reinterpret_cast<const std::uintptr_t*>(top) : 0;
+    const char* name = "?";
+    for (const KnownWindow& w : kKnownWindows)
+        if (vtable == w.vtables[0] || vtable == w.vtables[1]) name = w.name;
+    char text[200];
+    std::snprintf(text, sizeof(text), "top window %p vtable %08X (%s), queued %p, request %d, campaign mode %d", top,
+                  unsigned(vtable), top ? name : "none", ui->queuedWindow_, g_request.kind,
+                  *reinterpret_cast<int*>(kCampaignMode));
+    return text;
 }
 
 // The steps that post input messages to the game window.
@@ -1364,6 +1480,45 @@ void RunSteps() {
             return;
         }
     }
+    if (g_waitingFrames) {
+        if (g_frames < g_waitFramesUntil) return;
+        g_waitingFrames = false;
+    }
+    if (g_waitingWindow) {
+        // Ready on two frames in a row, and done in an input loop pass (input steps follow).
+        if (!WindowReady(g_waitWindowVtables)) g_waitWindowReadyFrom = kNotReady;
+        else if (g_waitWindowReadyFrom == kNotReady) g_waitWindowReadyFrom = g_frames;
+        if (g_waitWindowReadyFrom != kNotReady && g_frames >= g_waitWindowReadyFrom + 2 && g_inputLoop) {
+            const CScreenFade* fade = reinterpret_cast<CInterface3D*>(0x007C7D50)->fade_;
+            Log("harness: waitwindow %s done after %lu ms (frame %u; screen fade %s, alpha %.0f)", g_waitWindowName.c_str(),
+                Now() - g_waitWindowStart, g_frames, fade && fade->active_ ? "running" : "off", fade ? fade->alpha_ : 0.0f);
+            g_waitingWindow = false;
+        } else if (Now() >= g_waitWindowDeadline) {
+            std::string what = "waitwindow " + g_waitWindowName + " timed out (" + DescribeTopWindow() + ")";
+            Log("harness: %s", what.c_str());
+            g_failures.push_back(what);
+            g_waitingWindow = false;
+        } else {
+            return;
+        }
+    }
+    if (g_waitingUnit) {
+        // Checked in input loop passes: the pick list is the last frame's, and clickunit follows.
+        POINT at{};
+        void* unit = nullptr;
+        std::string why = g_inputLoop ? FindUnitPoint(g_waitUnitName.c_str(), nullptr, &at, &unit) : "not checked";
+        if (why.empty()) {
+            Log("harness: waitunit %s done after %lu ms (at %ld,%ld)", g_waitUnitName.c_str(), Now() - g_waitUnitStart,
+                at.x, at.y);
+            g_waitingUnit = false;
+        } else if (Now() >= g_waitUnitDeadline) {
+            Log("harness: waitunit %s timed out: %s", g_waitUnitName.c_str(), why.c_str());
+            g_failures.push_back("waitunit " + g_waitUnitName + " timed out: " + why);
+            g_waitingUnit = false;
+        } else {
+            return;
+        }
+    }
     while (g_next < g_steps.size()) {
         if (Now() < g_waitUntil) return;
         Step s = g_steps[g_next++];
@@ -1394,6 +1549,40 @@ void RunSteps() {
         Log("harness: %s %s", s.verb.c_str(), s.argument.c_str());
         if (s.verb == "wait") {
             g_waitUntil = Now() + std::strtoul(s.argument.c_str(), nullptr, 10);
+        } else if (s.verb == "frames") {
+            g_waitingFrames = true;
+            g_waitFramesUntil = g_frames + std::strtoul(s.argument.c_str(), nullptr, 10);
+            return;
+        } else if (s.verb == "waitwindow" || s.verb == "waitmenu") {
+            unsigned long seconds = 30;
+            std::string name = "menu";
+            if (s.verb == "waitmenu") {
+                if (!s.argument.empty()) seconds = std::strtoul(s.argument.c_str(), nullptr, 10);
+            } else {
+                char* rest = nullptr;
+                seconds = std::strtoul(s.argument.c_str(), &rest, 10);
+                while (rest && *rest == ' ') ++rest;
+                name = rest ? rest : "";
+            }
+            if (!WindowVtables(name, g_waitWindowVtables)) {
+                g_failures.push_back("waitwindow: unknown window '" + name + "'");
+                continue;
+            }
+            g_waitingWindow = true;
+            g_waitWindowName = name;
+            g_waitWindowReadyFrom = kNotReady;
+            g_waitWindowStart = Now();
+            g_waitWindowDeadline = g_waitWindowStart + seconds * 1000;
+            return;
+        } else if (s.verb == "waitunit") {
+            char* rest = nullptr;
+            unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
+            while (rest && *rest == ' ') ++rest;
+            g_waitingUnit = true;
+            g_waitUnitName = rest ? rest : "";
+            g_waitUnitStart = Now();
+            g_waitUnitDeadline = g_waitUnitStart + seconds * 1000;
+            return;
         } else if (s.verb == "console") {
             ConsoleExecute(s.argument.c_str());
         } else if (s.verb == "newgame") {
@@ -1719,6 +1908,10 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
     SetMainThread();
     TraceFpu("in the message loop");
     KeepGameWindowActive();
+    // A frame has been drawn: the original's after-frame call (00457610) or the rewritten loop's.
+    if (reinterpret_cast<std::uintptr_t>(_ReturnAddress()) == kInputLoopReturns[1] ||
+        ei::mainloop::g_site == ei::mainloop::Site::PeekAfterFrame)
+        ++g_frames;
     if (g_running && !g_inStep) {
         g_inStep = true;   // console commands can pump messages themselves
         g_inputLoop = IsInputLoop(_ReturnAddress());

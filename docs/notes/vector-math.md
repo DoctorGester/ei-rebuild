@@ -137,6 +137,7 @@ All `__forceinline`, by value:
 | `RotatedAxisY(q)` (V3c; precise; no intermediate stores since V3e) | AxisY 0040F560 and its inlined copies 00547280 / 005CA410: `2(yx - wz)`, `(w^2 - ((x^2 + z^2) + y^2)) + 2y^2`, `2(yz + wx)`, each component rounded to float |
 | `DotWZYXUnrounded<T>(a, b)` (V3e; precise off) | quaternion dot `((w*w' + z*z') + y*y') + x*x'` (Slerp 0049ED20) |
 | `RotatedAxisX / Z(q)` (V3e; precise) | Quaternion::AxisX 0040D940 / AxisZ 0040D6B0's orders, each component rounded to float |
+| `OffsetDot2DUnrounded<T>(d, x, y, x2, y2)` (V3f; precise off) | `(d + x*x2) + y*y2`, the offset added first (a plane's value at a point, PlaneHeight 006BE3A0); not `d + Dot2DUnrounded(...)` |
 | `Atan2(y, x)` | `x87::fpatan` (include/ei/x87.h), unrounded double |
 | `Acos(c)`, `Asin(s)` | the game's CRT `acos` 006E7334 / `asin` 006E83D4 (`gamecrt::`, src/lib/crt.h): the C entries of the bodies behind _CIacos 006E7320 / _CIasin 006E83C0; unrounded double |
 
@@ -312,6 +313,24 @@ identical, or only stack slots / scheduling / commuted FMUL operands.
   ahead) with `.x / .z` in terrain_animation / terrain_lighting / terrain_lights / terrain_shadow / terrain_sector, the two
   verify files and render_terrain.cpp:346. Self-test: tests/verify/verify_vecmath.cpp checks the unrounded forms alone
   and `(2a) . b`, and `RotatedAxis* * 2`, against one-rounding-per-operation references (not run here).
+- Batch V3f 2026-10-14 (every file outside src/render, renderer_init.cpp and device_buffers.h): 40 -> 8 in the tree; the
+  8 left are terrain_sector.h `SectorPosition::xyz[3]` (above: tied to render_terrain.cpp:346) and R9a2's renderer files.
+  Fields: sound.h SoundSlot / DeferredSound / SoundEmitter / SoundSequence `position`, CSoundManager `listener` /
+  `listenerAxis` (Vector3); script.h ScriptPointLight / ScriptParticleSource `step`, ScriptFxSource `position` (Vector3);
+  ui_camp.h CGlobalMap `position_` (Vector3) and `turn_` (Quaternion, w first as it was; the local Rotate forwarder to
+  0046A4B0 takes `const Quaternion*`). Locals: net_state / player_client / player_sync figure scales and positions,
+  script_addon_units' search point, map_spec's chunk quaternion. Sums: CameraViewMatrix 004F0EF0's inlined Y / Z axes
+  through `RotatedAxisY / Z` (traced on 004F0EF0: the same orders; the base port's float locals stored the products, which
+  changes nothing at 24 bits, and the new code keeps w^2 / z^2 as qwords); LightRotation, FormationOffsets,
+  UseOrderDistanceSquared, AttackRoll, GetIntensityAt, wall spell's plane distance, CVisibilityFog::ComputeBounds through
+  the V3c scalar forms; QuaternionRotate 0046A4B0's `2(q . v)` doubles the operands (`2.0f * DotUnrounded` became
+  s + (2yv + s), s = xv + zv, the V3c hazard; the base had distributed the 2 into the products, exact); PlaneHeight
+  006BE3A0's `(d + nx x) + ny y` gets `OffsetDot2DUnrounded` (`d + Dot2DUnrounded` compiled to d + (nx x + ny y)). Release
+  objects compared with v3d's symbolic x87 comparison: every changed function the same expressions except CameraViewMatrix
+  (float-store roundings of products dropped, same groupings) and CGlobalMap::Update (the sign flip of turn_ written per
+  member; FLD / FCHS / FSTP as before, w reuses the compare's load); the rest stack slots and scheduling. No skips added.
+  The self-test checks OffsetDot2DUnrounded on inputs that separate it from d + (xx' + yy'). (The "unrounded forms" test
+  finds only 1 of 24 inputs separating both its dot and its square: pre-existing, worth splitting.)
 
 ## 7. Risks
 

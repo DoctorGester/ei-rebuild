@@ -5,7 +5,7 @@
 # Global variables and scripts declared by a console line can only be used by the very next line,
 # and only when the declaring line failed (see script_parse.txt): those pairs come first, before
 # "reject Script error". Names avoid keyword prefixes (the lexer splits "Run1" into "Run" and "1").
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

@@ -3,7 +3,7 @@
 # menu (the effect savers, against the original) and loaded back (the loaders, record / replay).
 # The creators' verify wrappers check every new effect. The game runs ~5.5x faster.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -33,13 +33,16 @@ wait 1000
 
 # Escape menu, Save: OK saves into a new folder (rectangles as in ui_saveload); then load it.
 key esc
-wait 1000
+waitwindow 10 escmenu
 click 395 120
-wait 1500
+waitwindow 10 saveload
 clickregion 0
 waitline 15 Saved save1
 wait 500
+# The leader of the running game has HP too: wait for the load itself (the request, then the
+# battle screen of the loaded game).
 load save1
+waitwindow 30 battle
 waitfor 20 IsGreater(HP(GetLeader()),0)
 check IsAlive(GetLeader())
 report

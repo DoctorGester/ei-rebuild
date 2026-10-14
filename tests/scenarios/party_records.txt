@@ -5,7 +5,7 @@
 # The player's own records (party_members.cpp): AddUnitToParty (006628D0 -> 006621F0, 00664950),
 # CopyItems from the hero (00660500), RemoveUnitFromParty (006620F0, then again for a missing key).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

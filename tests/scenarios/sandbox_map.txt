@@ -3,7 +3,7 @@
 # sight, lighting, scripts, and the save the game writes when a new game starts.
 # The zone1 intro runs on real time (~37 s), so this scenario needs more than the default 60 s.
 timeout 80
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

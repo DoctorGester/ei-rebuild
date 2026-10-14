@@ -18,7 +18,7 @@
 # 0x10000000) and the ground click casts it at the point (SelectUnit -> 00637750).
 # Coordinates are the 800x600 layout. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -26,18 +26,18 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 
 console @GiveItem(0,"wand 3.iron[lightning]")
-wait 300
+frames 5
 console @GiveItem(0,"wand 3.iron[fireball]")
-wait 300
+frames 5
 
 # The camp (page 0): both wands on the hero, as clicks on them in the item strip do (the
 # strip's tab 3 holds class 0x3007, not the quick items: the first run's clicks put nothing on).
 screen 5
-wait 3000
+waitwindow 15 camp
 campputon 3006 2
-wait 500
+frames 3
 key esc
-wait 3000
+waitwindow 15 battle
 waitfor 15 IsGreater(HP(GetLeader()),0)
 
 console @BlockUnit(GetLeader(),1)
@@ -45,14 +45,14 @@ console @GodMode(0,1)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
 console @GiveUnitSpell(GetLeader(),"fireball")
-wait 500
+frames 5
 
 # The hero's portrait: selects it and shows its quick items and spells. hudstate logs the
 # selection and the quick item panel before and after; "hudstate 2" fails the run when the panel
 # does not show two of the hero's own quick items (the wands did not reach its quick slots).
 hudstate
 click 400 560
-wait 300
+frames 5
 hudstate 2
 check IsAlive(GetLeader())
 
@@ -68,73 +68,75 @@ console @BlockUnit(GetObjectByName("QuickWolf0"),1)
 console @BlockUnit(GetObjectByName("QuickWolf1"),1)
 console @BlockUnit(GetObjectByName("QuickWolf2"),1)
 console @BlockUnit(GetObjectByName("QuickWolf3"),1)
-wait 500
+waitunit 10 QuickWolf0
+waitunit 10 QuickWolf1
+waitunit 10 QuickWolf2
 
 # Quick slots 0-3: the slot, the ground, a wolf.
 move 695 575
-wait 200
+frames 3
 click 695 575
-wait 200
+frames 3
 hudstate
 click 90 320
-wait 300
+frames 5
 clickunit QuickWolf0
-wait 500
+frames 10
 move 645 575
-wait 200
+frames 3
 click 645 575
-wait 200
+frames 3
 hudstate
 click 90 320
-wait 300
+frames 5
 clickunit QuickWolf1
-wait 500
+frames 10
 move 595 575
-wait 200
+frames 3
 click 595 575
-wait 200
+frames 3
 hudstate
 click 90 320
-wait 300
+frames 5
 clickunit QuickWolf2
-wait 500
+frames 10
 move 545 575
-wait 200
+frames 3
 click 545 575
-wait 200
+frames 3
 hudstate
 click 90 320
-wait 300
+frames 5
 # (QuickWolf3 is often not drawn here by now; the fourth slot is empty with two wands)
-wait 500
+frames 5
 
 # The fireball spell at a point, twice (the first click may only cancel the highlight).
 move 780 490
-wait 200
+frames 3
 click 780 490
-wait 200
+frames 3
 hudstate
 click 90 320
-wait 500
+frames 10
 move 780 490
-wait 200
+frames 3
 click 780 490
-wait 200
+frames 3
 hudstate
 click 90 320
-wait 1000
+frames 10
 # A double click (the interface's flag +0x7F on the last release) uses the quick item (0063E020)
 # or the spell (0063EF60) at once: an attack spell on the nearest unit the hero sees (a wolf), or
 # the "nomagic" sound when it sees none.
 move 695 575
-wait 200
+frames 3
 dblclick 695 575
-wait 500
+frames 10
 hudstate
 move 780 490
-wait 200
+frames 3
 dblclick 780 490
-wait 500
+frames 10
 hudstate
 check IsAlive(GetLeader())
 report

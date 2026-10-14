@@ -147,7 +147,7 @@ double HeightFactor(float h) {
 int CSoundManager::FlatVolume(int level, int fade, int isSpeech) const {
     double v = level;
     if (fade != 0) {
-        float h = listener[2];
+        float h = listener.z;
         if (!(h < kHeightSilent)) v = 0.0;
         else if (!(h <= kHeightFull)) v = v * HeightFactor(h);
     }
@@ -188,8 +188,8 @@ SoundSlot* CSoundManager::SlotForHandle(int handle) const {
 // at farDistance, and the camera height fade; the pan from the angle between the listener axis and
 // the direction to the sound (0 ahead or behind, +-100 to the sides).
 void CSoundManager::UpdatePositional(SoundSlot* slot) {
-    float dx = Store(D(slot->position[0]) - listener[0]);
-    double dyRaw = D(slot->position[1]) - listener[1];
+    float dx = Store(D(slot->position.x) - listener.x);
+    double dyRaw = D(slot->position.y) - listener.y;
     float dy = Store(dyRaw);
     double dist2 = dyRaw * dy + D(dx) * dx;
     double farDist = slot->farDistance;
@@ -199,7 +199,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
     }
     double dist = x87::fsqrt(dist2);
     float distF = Store(dist);
-    float h = listener[2];
+    float h = listener.z;
     int level;
     if (!(dist >= slot->nearDistance)) {
         double v = kHundred;
@@ -221,7 +221,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
     }
     slot->volume = level;
 
-    float ahead = AbsBits(Store(Dot2DUnrounded<double>(dy, dx, listenerAxis[1], listenerAxis[0])));
+    float ahead = AbsBits(Store(Dot2DUnrounded<double>(dy, dx, listenerAxis.y, listenerAxis.x)));
     if (ahead > distF) {
         slot->pan = 0;
         return;
@@ -235,7 +235,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
     double scale = D(kHundred) / HalfPi();
     int pan = x87::fistp(Store(scale * angle));
     slot->pan = pan;
-    if (D(dy) * listenerAxis[0] > D(dx) * listenerAxis[1]) slot->pan = -pan;
+    if (D(dy) * listenerAxis.x > D(dx) * listenerAxis.y) slot->pan = -pan;
 }
 EI_REPLACE_METHOD(0x006B7FC0, CSoundManager::UpdatePositional);
 
@@ -271,18 +271,18 @@ EI_REPLACE_METHOD(0x006B78A0, CSoundManager::SetSpeechVolume);
 // 006B9750. The camera's position and direction (CCamera::Update every frame).
 void CSoundManager::SetListener(const float* position, const float* axis) {
     if (enabled == 0) return;
-    std::memcpy(listener, position, sizeof(listener));
-    std::memcpy(listenerAxis, axis, sizeof(listenerAxis));
-    double len = x87::fsqrt(LengthSquared2DUnrounded<double>(listenerAxis[0], listenerAxis[1]));
+    std::memcpy(&listener, position, sizeof(listener));
+    std::memcpy(&listenerAxis, axis, sizeof(listenerAxis));
+    double len = x87::fsqrt(LengthSquared2DUnrounded<double>(listenerAxis.x, listenerAxis.y));
     if (!NonZero(len)) {
-        listenerAxis[0] = 1.0f;
-        listenerAxis[1] = 0.0f;
-        listenerAxis[2] = 0.0f;
+        listenerAxis.x = 1.0f;
+        listenerAxis.y = 0.0f;
+        listenerAxis.z = 0.0f;
     } else {
         double inv = D(kOne) / len;
-        listenerAxis[0] = Store(inv * listenerAxis[0]);
-        listenerAxis[1] = Store(inv * listenerAxis[1]);
-        listenerAxis[2] = Store(inv * listenerAxis[2]);
+        listenerAxis.x = Store(inv * listenerAxis.x);
+        listenerAxis.y = Store(inv * listenerAxis.y);
+        listenerAxis.z = Store(inv * listenerAxis.z);
     }
     RefreshVoices(this);
 }
@@ -387,7 +387,7 @@ int CSoundManager::SetSoundPosition(int handle, const float* position, float nea
             if (slot->finished != 0) {
                 if (slot->playing != 0) EndSlot(slot);
             } else {
-                std::memcpy(slot->position, position, sizeof(slot->position));
+                std::memcpy(&slot->position, position, sizeof(slot->position));
                 slot->nearDistance = nearDist;
                 slot->farDistance = farDist;
                 slot->flat = 0;
@@ -401,7 +401,7 @@ int CSoundManager::SetSoundPosition(int handle, const float* position, float nea
         DeferredNode* node = deferred.Find(handle);
         if (node != nullptr && node->value != nullptr) {
             DeferredSound* rec = node->value;
-            std::memcpy(rec->position, position, sizeof(rec->position));
+            std::memcpy(&rec->position, position, sizeof(rec->position));
             rec->flat = 0;
             rec->nearDistance = nearDist;
             rec->farDistance = farDist;
@@ -457,7 +457,7 @@ void CSoundManager::MoveEmitter(int index, const float* position, float inner, f
     if (index < 0 || index > 16) return;
     SoundEmitter* e = EmitterAt(this, index);
     if (e->active == 0) return;
-    std::memcpy(e->position, position, sizeof(e->position));
+    std::memcpy(&e->position, position, sizeof(e->position));
     e->innerRadius = inner;
     e->outerRadius = outer;
     e->minInterval = minInterval;
@@ -486,12 +486,12 @@ int CSoundManager::RemoveEmitter(int index) {
     if (index < 0 || index > 16) return -1;
     SoundEmitter* e = EmitterAt(this, index);
     if (e->active == 0) return -1;
-    e->position[0] = 0.0f;
+    e->position.x = 0.0f;
     e->active = 0;
     e->maxInterval = -1;
     e->minInterval = -1;
-    e->position[1] = 0.0f;
-    e->position[2] = 0.0f;
+    e->position.y = 0.0f;
+    e->position.z = 0.0f;
     e->outerRadius = 0.0f;
     e->innerRadius = 0.0f;
     e->lastPlayed = 0;
@@ -510,14 +510,14 @@ int SoundSequence::PlayNext(CSoundManager* manager) {
         index = next;
         if (next < 0) return 0;
         index = next & 0xBFFFFFFF;
-        int h = manager->Play3D(static_cast<const char*>(names.data[next & 0xBFFFFFFF]), priority, position, nearDistance, farDistance,
+        int h = manager->Play3D(static_cast<const char*>(names.data[next & 0xBFFFFFFF]), priority, &position.x, nearDistance, farDistance,
                                 next & 0x40000000, 0);
         handle = h;
         return h != -1 ? 1 : 0;
     }
     if (remaining == 0) return 0;
     if (random != 0) index = static_cast<std::int32_t>(GlobalRandom().Next() % static_cast<std::uint32_t>(names.size));
-    int h = manager->Play3D(static_cast<const char*>(names.data[index]), priority, position, nearDistance, farDistance, 0, 0);
+    int h = manager->Play3D(static_cast<const char*>(names.data[index]), priority, &position.x, nearDistance, farDistance, 0, 0);
     handle = h;
     if (h == -1) return 0;
     index = (index + 1) % names.size;
@@ -538,7 +538,7 @@ int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const 
     s->id = s->generation << 8 | i;
     s->active = 1;
     CopyNames(&s->names, nullptr, names);
-    std::memcpy(s->position, position, sizeof(s->position));
+    std::memcpy(&s->position, position, sizeof(s->position));
     s->nearDistance = nearDist;
     s->farDistance = farDist;
     s->random = randomOrder;
@@ -570,7 +570,7 @@ void MoveSequenceSound(CSoundManager* m, int handle, const float* position, floa
         if (slot->finished != 0) {
             if (slot->playing != 0) m->EndSlot(slot);
         } else {
-            std::memcpy(slot->position, position, sizeof(slot->position));
+            std::memcpy(&slot->position, position, sizeof(slot->position));
             slot->flat = 0;
             slot->nearDistance = nearDist;
             slot->farDistance = farDist;
@@ -583,7 +583,7 @@ void MoveSequenceSound(CSoundManager* m, int handle, const float* position, floa
     DeferredNode* node = m->deferred.Find(handle);
     if (node == nullptr || node->value == nullptr) return;
     DeferredSound* rec = node->value;
-    std::memcpy(rec->position, position, sizeof(rec->position));
+    std::memcpy(&rec->position, position, sizeof(rec->position));
     rec->flat = 0;
     rec->nearDistance = nearDist;
     rec->farDistance = farDist;
@@ -595,7 +595,7 @@ int CSoundManager::MoveSequence(std::uint32_t id, const float* position) {
     if (enabled == 0 || (id & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, id);
     if (s == nullptr) return 0;
-    std::memcpy(s->position, position, sizeof(s->position));
+    std::memcpy(&s->position, position, sizeof(s->position));
     if (enabled != 0) MoveSequenceSound(this, s->handle, position, s->nearDistance, s->farDistance);
     return 1;
 }
@@ -606,7 +606,7 @@ int CSoundManager::UpdateSequence(std::uint32_t id, const float* position, float
     if (enabled == 0 || (id & 0xFF) >= 8) return 0;
     SoundSequence* s = SequenceForId(this, id);
     if (s == nullptr) return 0;
-    std::memcpy(s->position, position, sizeof(s->position));
+    std::memcpy(&s->position, position, sizeof(s->position));
     s->nearDistance = nearDist;
     s->farDistance = farDist;
     s->remaining = count;
@@ -698,7 +698,7 @@ void CSoundManager::Tick() {
         std::memcpy(&slot->length, &rec->length, 4);
         slot->flat = rec->flat;
         slot->heightFade = rec->heightFade;
-        std::memcpy(slot->position, rec->position, sizeof(slot->position));
+        std::memcpy(&slot->position, &rec->position, sizeof(slot->position));
         std::memcpy(&slot->nearDistance, &rec->nearDistance, 4);
         std::memcpy(&slot->farDistance, &rec->farDistance, 4);
         AilInitSample()(slot->sample);
@@ -747,8 +747,8 @@ void CSoundManager::Tick() {
     for (int k = 0; k < 16; ++k) {
         SoundEmitter* e = &emitters[k];
         if (e->active == 0) continue;
-        double dx = D(listener[0]) - e->position[0];
-        double dy = D(listener[1]) - e->position[1];
+        double dx = D(listener.x) - e->position.x;
+        double dy = D(listener.y) - e->position.y;
         double dist = x87::fsqrt(LengthSquared2DUnrounded(dy, dx));
         float distF = Store(dist);
         std::uint32_t minInterval, maxInterval;
@@ -1098,7 +1098,7 @@ int CSoundManager::AllocateVoice(int priority) {
         std::memcpy(&rec->length, &slot->length, 4);
         rec->flat = slot->flat;
         rec->heightFade = slot->heightFade;
-        std::memcpy(rec->position, slot->position, sizeof(rec->position));
+        std::memcpy(&rec->position, &slot->position, sizeof(rec->position));
         std::memcpy(&rec->nearDistance, &slot->nearDistance, 4);
         std::memcpy(&rec->farDistance, &slot->farDistance, 4);
         rec->handle = slot->handle;
@@ -1124,7 +1124,7 @@ SampleUintFn AilSetSampleMsPosition() { return *reinterpret_cast<SampleUintFn*>(
 int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech) {
     double v = volume;
     if (heightFade != 0) {
-        float h = m->listener[2];
+        float h = m->listener.z;
         if (!(h < kHeightSilent) && !x87::IsNaN(h)) v = 0.0;
         else if (h > kHeightFull) v = v * HeightFactor(h);
     }
@@ -1212,7 +1212,7 @@ int CSoundManager::Play3D(const char* name, int priority, const float* position,
         auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
         if (rec) stlp::string::Reserve(*reinterpret_cast<stlp::string*>(rec->name), 8);
         reinterpret_cast<stlp::string*>(rec->name)->Assign(name, name + std::strlen(name));
-        std::memcpy(rec->position, position, sizeof(rec->position));
+        std::memcpy(&rec->position, position, sizeof(rec->position));
         std::memcpy(&rec->nearDistance, &nearDist, 4);
         std::memcpy(&rec->farDistance, &farDist, 4);
         rec->flat = 0;
@@ -1229,7 +1229,7 @@ int CSoundManager::Play3D(const char* name, int priority, const float* position,
     SoundSlot* slot = &slots[index];
     AilInitSample()(slot->sample);
     slot->looping = loop;
-    std::memcpy(slot->position, position, sizeof(slot->position));
+    std::memcpy(&slot->position, position, sizeof(slot->position));
     std::memcpy(&slot->nearDistance, &nearDist, 4);
     std::memcpy(&slot->farDistance, &farDist, 4);
     slot->flat = 0;

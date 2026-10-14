@@ -28,7 +28,7 @@ src/game/chunk_stream.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/chunk_stream.h,0,0,0,0,2,0,0,0,0,0,0,0,0
 src/game/class_templates.h,0,0,0,0,0,0,0,0,0,0,0,4,0
 src/game/clip.cpp,0,0,1,1,0,0,0,0,0,0,0,0,0
-src/game/combat.cpp,0,0,3,1,1,0,0,0,0,0,1,0,0
+src/game/combat.cpp,0,0,3,1,1,0,0,0,0,0,0,0,0
 src/game/combat.h,0,0,0,0,0,0,0,0,0,0,0,39,0
 src/game/combat_actions.cpp,0,0,1,1,0,0,0,0,0,0,0,0,0
 src/game/combat_orders.cpp,0,0,1,1,0,0,0,0,0,0,0,0,0
@@ -48,7 +48,7 @@ src/game/device_mesh.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/device_shadow.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0,0,0,0,0
 src/game/effects.h,0,0,0,0,0,0,0,0,0,0,0,19,0
-src/game/effects_weather.cpp,0,0,0,0,1,0,0,0,0,0,1,0,0
+src/game/effects_weather.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0
 src/game/engine_object.h,0,0,0,0,1,0,0,0,0,0,0,1,0
 src/game/fake_unit.cpp,0,0,0,0,5,0,0,0,0,0,0,0,0
 src/game/figure.h,0,0,0,0,0,0,0,0,0,0,0,7,0
@@ -86,7 +86,7 @@ src/game/map_object_figures.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/map_object_figures.h,0,0,0,0,0,0,0,0,0,0,0,22,0
 src/game/map_object_shadow.cpp,0,0,0,1,0,0,0,0,0,0,0,5,0
 src/game/map_object_shadow.h,0,0,0,0,0,0,0,0,0,0,0,1,0
-src/game/map_spec.cpp,0,0,0,0,9,0,0,0,0,0,3,0,0
+src/game/map_spec.cpp,0,0,0,0,9,0,0,0,0,0,0,0,0
 src/game/map_spec.h,0,0,0,0,0,0,0,0,0,0,0,24,0
 src/game/map_spec_effect.cpp,0,0,0,0,7,0,0,0,0,0,0,0,0
 src/game/map_spec_unit.cpp,0,0,0,0,9,0,0,0,0,0,0,0,0
@@ -121,7 +121,6 @@ src/game/net_server_trade.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0
 src/game/net_server_vars.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0,0,0,0,0
 src/game/net_session_tick.cpp,0,0,0,1,9,0,0,0,0,0,0,0,0
-src/game/net_state.cpp,0,0,0,0,0,0,0,0,0,0,2,0,0
 src/game/object.h,0,0,0,0,1,0,0,0,0,0,0,0,0
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0
 src/game/object_tables.h,0,0,0,0,0,0,0,0,0,0,0,4,0
@@ -138,12 +137,10 @@ src/game/party.h,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/party_manager.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/party_record_lookup.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/party_records.h,0,0,0,0,0,0,0,0,0,0,0,1,0
-src/game/player_client.cpp,0,0,0,0,0,0,0,0,0,0,1,0,0
 src/game/player_client.h,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/player_messages.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/player_messages.h,0,0,0,0,0,0,0,0,0,0,0,8,0
-src/game/player_server_handlers.cpp,0,0,0,0,0,0,0,0,0,0,2,1,0
-src/game/player_sync.cpp,0,0,0,0,0,0,0,0,0,0,1,0,0
+src/game/player_server_handlers.cpp,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/quaternion.cpp,0,0,4,1,1,0,0,0,0,0,0,0,0
 src/game/quest_database.cpp,0,0,0,0,16,0,0,0,0,0,0,0,0
 src/game/quest_records.h,0,0,0,0,0,0,0,0,0,0,0,2,0
@@ -159,9 +156,8 @@ src/game/scene_loader.cpp,0,0,1,0,0,0,0,0,0,0,0,9,0
 src/game/scene_loader.h,0,0,0,0,0,0,0,0,0,0,0,26,0
 src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0,0,0,0,0
 src/game/scene_registry.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
-src/game/script.h,0,0,0,0,0,0,0,0,0,0,3,2,0
+src/game/script.h,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/script_addon.cpp,0,0,5,0,1,0,0,0,0,0,0,0,0
-src/game/script_addon_units.cpp,0,0,0,0,0,0,0,0,0,0,1,0,0
 src/game/script_blocks.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0
 src/game/script_copy.cpp,0,0,1,0,8,0,0,0,0,0,0,0,0
 src/game/script_destroy.cpp,0,0,0,0,10,0,0,0,0,0,0,0,0
@@ -174,18 +170,16 @@ src/game/script_vars.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/script_vars_append.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/server_specific_manager.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/sky_object.h,0,0,0,0,0,0,0,0,0,0,0,11,0
-src/game/sound.h,0,0,0,0,0,0,0,0,0,0,6,4,0
+src/game/sound.h,0,0,0,0,0,0,0,0,0,0,0,4,0
 src/game/sound_manager.cpp,0,0,1,1,0,0,0,0,0,0,0,0,0
 src/game/sound_manager_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,1,0
-src/game/spell.cpp,0,0,0,0,0,0,0,0,0,0,1,0,0
 src/game/spell.h,0,0,0,0,0,0,0,0,0,0,0,40,0
 src/game/spell_cast.cpp,0,0,2,1,2,0,0,0,0,0,0,0,0
-src/game/spell_effect.cpp,0,0,0,1,0,0,0,0,0,0,1,0,0
+src/game/spell_effect.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/spell_effect_internal.h,0,0,18,0,12,0,0,0,0,0,0,0,0
 src/game/spell_effect_update.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0
 src/game/string_map.cpp,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/sys_info.h,0,0,0,0,0,0,0,0,0,0,0,1,0
-src/game/terrain.cpp,0,0,0,0,0,0,0,0,0,0,2,0,0
 src/game/terrain.h,0,0,0,0,0,0,0,0,0,0,0,3,0
 src/game/terrain_landscape.cpp,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/terrain_sector.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
@@ -202,7 +196,7 @@ src/game/ui_briefing_create.cpp,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/ui_camera_keys.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/ui_camera_keys.h,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/ui_camp.cpp,0,0,3,3,12,0,0,0,0,0,0,0,0
-src/game/ui_camp.h,0,0,0,0,0,0,0,0,0,0,2,25,0
+src/game/ui_camp.h,0,0,0,0,0,0,0,0,0,0,0,25,0
 src/game/ui_console_window.cpp,0,0,0,0,3,0,0,0,0,0,0,0,0
 src/game/ui_container_draws.cpp,0,0,0,0,1,0,0,0,0,0,0,0,0
 src/game/ui_credits.cpp,0,0,0,0,0,0,0,0,0,0,0,1,0
@@ -257,7 +251,6 @@ src/game/unit_stats.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,0,0,0,0,0,0
 src/game/unit_update.cpp,0,0,1,1,1,0,0,0,0,0,0,0,0
 src/game/unit_vitals.cpp,0,0,4,1,24,0,0,0,0,0,0,0,0
-src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5,0,0
 src/game/world.h,0,0,0,0,0,0,0,0,0,0,0,58,0
 src/game/world_briefing.cpp,0,0,0,0,10,0,0,0,0,0,0,0,0
 src/game/world_client_draw.cpp,0,0,6,0,3,0,0,0,0,0,0,0,0

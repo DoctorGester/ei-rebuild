@@ -4,7 +4,7 @@
 # the party at (23, 138.5). The zone has one magic trap of its own, "Pyramid" (id 4515, a lightning
 # trap at 194.9, 72.4), and 213 units (orcs, toads, wolves, ...). No quest state: the zone's scripts
 # read q.gz3g.*, ZT17..ZT22, cave1, pyramid, goblinbodycount, all unset (0).
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

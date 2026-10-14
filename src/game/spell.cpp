@@ -191,7 +191,7 @@ float CLight::GetIntensityAt(const Vector3* point) {
     float dx = point->x - position_.x;
     float dy = point->y - position_.y;
     float dz = point->z - position_.z;
-    float distanceSquared = dz * dz + dy * dy + dx * dx;
+    float distanceSquared = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz);
     if (!(distanceSquared >= rangeSquared_)) {
         return (color_[2] * kLumaBlue + color_[1] * kLumaGreen + color_[0] * kLumaRed) *
                (kOne - distanceSquared * inverseRangeSquared_);

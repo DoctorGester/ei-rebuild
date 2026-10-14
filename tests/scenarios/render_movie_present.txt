@@ -7,7 +7,7 @@
 # (not deterministic: expect small differences).
 render new,present
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

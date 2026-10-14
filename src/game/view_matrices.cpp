@@ -16,13 +16,8 @@ void __stdcall CameraViewMatrix(float* out, const CTransformObject* camera) {
     const Quaternion& q = camera->localRotation_;
     Vector3 axisX;
     q.AxisX(&axisX);
-    const float w = q.w, x = q.x, y = q.y, z = q.z;
-    double yy = y * y;
-    Vector3 axisY = {static_cast<float>((y * x - z * w) * 2.0f), static_cast<float>(w * w - (x * x + z * z + yy) + (yy + yy)),
-                     static_cast<float>((w * x + y * z) * 2.0f)};
-    double zz = z * z;
-    Vector3 axisZ = {static_cast<float>((z * x + y * w) * 2.0f), static_cast<float>((z * y - w * x) * 2.0f),
-                     static_cast<float>(w * w - (x * x + y * y + zz) + (zz + zz))};
+    Vector3 axisY = RotatedAxisY(q);   // inlined copies of 0040F560 / 0040D6B0, the same orders
+    Vector3 axisZ = RotatedAxisZ(q);
     const Vector3 p = camera->localPosition_;
     out[0] = axisX.x;
     out[1] = axisX.y;
@@ -47,7 +42,7 @@ void __stdcall LightRotation(const Vector3* direction, Quaternion* out) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     double x = direction->x;
     float y = direction->y;
-    double scale = 1.0f / std::sqrt(y * y + x * x);
+    double scale = 1.0f / std::sqrt(LengthSquared2DUnrounded<double>(y, x));
     float scaleF = StoreFloat(static_cast<float>(scale));
     double cosine = x * scale;
     float yNormal = StoreFloat(scaleF * y);
