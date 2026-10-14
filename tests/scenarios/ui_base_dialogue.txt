@@ -5,7 +5,7 @@
 # "goodbye", state 1). A click on a topic region starts it (006064E0, state 3: phrases, each click
 # 00604C50), then rewards (state 4, 00608450). The leader walks to Smith first so that the base
 # camera (it follows the leader) has him on screen; the verify counts show how far it got.
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

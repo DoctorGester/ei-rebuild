@@ -6,7 +6,7 @@
 # capture skips two presented frames. world and world_again come from the same freeze and must match
 # (samecapture; a difference means something on screen moves while frozen).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 # The main menu.

@@ -9,7 +9,7 @@
 # counts for CBattleScreenSetup::UseOnUnit / UseAtPoint show which were reached.
 # Coordinates are the 800x600 layout. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

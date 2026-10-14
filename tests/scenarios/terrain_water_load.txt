@@ -3,7 +3,7 @@
 # "Landscape passes, light tests"). The change runs over 5000 world updates, so it is still pending
 # when the game is saved. The game runs ~5.5x faster.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

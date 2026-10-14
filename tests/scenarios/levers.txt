@@ -6,7 +6,7 @@
 # 0052BAD0) and gives it a lock (SetScience, 0052BB20); the escape menu's Save writes it (0052BE40)
 # and loading the save rebuilds it (destructors 0052B300 / 0052B320, Load 0052BDD0).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

@@ -12,7 +12,7 @@
 # get no DirectDraw texture ...").
 render new,present
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 # The main menu.

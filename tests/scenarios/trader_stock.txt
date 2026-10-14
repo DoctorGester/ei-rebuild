@@ -9,7 +9,7 @@
 # 006995E0 / 00699A40, the materials 0069A110. Pages 2 and 4 (regions 6 and 8) are the trade pages
 # showing it. Esc (page 7) leaves the camp and the game goes on.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 newgame

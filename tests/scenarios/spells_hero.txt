@@ -17,7 +17,7 @@
 # block and lift it. Or() is a Rebirth addon function (vanilla: "Parameter of type float
 # expected"), so the checks use plain comparisons.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

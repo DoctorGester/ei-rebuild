@@ -4,7 +4,7 @@
 # the party left the world with the request, so no unit is picked), Ctrl its cursor keys
 # (005EBB80 / 005EBBC0) and Space toggles the server's pause flag twice.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

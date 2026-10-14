@@ -6,7 +6,7 @@
 # movie; spell, action and quick-item buttons only get mouse moves (a click there would start a
 # targeting mode that the Esc key would then cancel instead of opening the menu).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

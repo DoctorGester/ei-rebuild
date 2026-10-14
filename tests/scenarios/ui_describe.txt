@@ -6,7 +6,7 @@
 # redraws it with its spell (key handlers 005EE640 / 005EE680). Page 1 (level up) adds the trade
 # panel's skills, school and perks. Coordinates are the 800x600 layout of the vanilla install.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

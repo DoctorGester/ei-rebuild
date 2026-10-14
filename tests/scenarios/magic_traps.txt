@@ -13,7 +13,7 @@
 # 0052B070 for every trap); loading save1 removes the map objects (DestructBody 00529F90 through
 # the deleting destructor) and reads the traps back (Construct, LoadTrap 0052ADC0).
 # prepare: make_trap_mob.py
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

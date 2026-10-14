@@ -14,7 +14,7 @@
 # install: the flags follow addon.dll and the wrappers compare with the patched originals.
 rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars AddNewScriptCommands ObjectsDrawRadius LandscapeDrawRadius
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

@@ -10,7 +10,7 @@
 # (unit, amount), GiveSkill (unit, "melee" | "archery" | ... | "science", amount), GiveItem / GiveMoney
 # (player, ...), Rest / Lie / Crawl / Stand (unit), InflictDamage (unit, amount).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

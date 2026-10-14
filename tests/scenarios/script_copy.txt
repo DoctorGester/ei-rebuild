@@ -4,7 +4,7 @@
 # its list (ScriptVars 004CB7E0, names 004CBA00), every run (object / group values 004CBDB0 /
 # 004CBEF0) and every command block (SSCCmd 004CE750, nested calls 004CCAA0). Parsing the console
 # lines copies commands with nested calls too.
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

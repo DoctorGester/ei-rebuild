@@ -5,7 +5,7 @@
 # starts. The plain message box's Create (00634790) is reached by ui_screens' quit box.
 # Region 5 (multiplayer) is in ui_screens, region 2 (exit: a movie, then quit) is never clicked.
 reject Script error
-wait 6000
+waitmenu
 
 # Options, cancelled.
 clickregion 3

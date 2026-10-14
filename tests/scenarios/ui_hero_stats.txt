@@ -5,7 +5,7 @@
 # the first run's clicks at y 232 fell between rows 195..210 and 240..255). Layout coordinates; the
 # regions are not offset by the panel. Nothing is created or sent.
 reject Script error
-wait 6000
+waitmenu
 
 # Main menu region 5: the hero list; its region 5: a new hero (mode 10, the panel on page 10).
 clickregion 5

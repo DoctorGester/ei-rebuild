@@ -5,7 +5,7 @@
 # down with 0061A350). Unconfirmed: that the typed name reaches the name field and that the
 # default attributes add up to the points the create button wants.
 reject Script error
-wait 6000
+waitmenu
 clickregion 5
 wait 2000
 clickregion 5

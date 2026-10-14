@@ -10,7 +10,7 @@
 # whose first weapon is "bone short bow.decayed bones", so its attacks go through the missile
 # branch of DeliverAttack. WolfTutor dies to the first hit (as in combat.txt).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 console filter all on
 newgame

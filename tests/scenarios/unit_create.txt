@@ -6,7 +6,7 @@
 # removed from the server (the destructor bodies, the companions' destructors). The verify totals
 # in the report show what ran. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

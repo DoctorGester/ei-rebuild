@@ -5,7 +5,7 @@
 # purchases happen in the Rebirth run only (vanilla: the press buys nothing, the release still
 # runs).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 newgame

@@ -3,7 +3,7 @@
 # to the list and the main menu. The hero is never created (that writes <n>.mp files) and nothing
 # touches the network. Regions are clicked by number (the harness finds them on the top window).
 reject Script error
-wait 6000
+waitmenu
 
 # Main menu region 5: Multiplayer -> the hero list (mode 9).
 clickregion 5

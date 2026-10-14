@@ -4,7 +4,7 @@
 # action button (region 1, UndoAction: Settle(0, 0)) and leaving with Esc (page 7: Settle(0, 1))
 # put the hero's statistics back from the record.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 newgame

@@ -8,7 +8,7 @@
 # take the memory (then plain surfaces are used). world / world_again must match.
 render new,cpuwindows
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 # The main menu.

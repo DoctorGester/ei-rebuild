@@ -6,7 +6,7 @@
 # sector map moves. Script signatures: Walk/Run/Crawl(unit), MoveToPoint(unit, x, y),
 # MoveToObject(unit, target), Follow(unit, leader). The game runs ~5.5x faster (10 ms per update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

@@ -4,7 +4,7 @@
 # PlaybackStart / PlaybackStep). keyboard.ini: F9-F12 camera1-4, N camera_norm, arrows scroll
 # (F5 / F8 are quicksave / quickload: not used).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

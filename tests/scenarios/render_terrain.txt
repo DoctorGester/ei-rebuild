@@ -10,7 +10,7 @@
 # Needs the hooks (the terrain page draw 006BFF40 and the present 004EF610 are rewritten code).
 render new
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 newgame

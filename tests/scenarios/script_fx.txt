@@ -3,7 +3,7 @@
 # menu (the effect savers, against the original) and loaded back (the loaders, record / replay).
 # The creators' verify wrappers check every new effect. The game runs ~5.5x faster.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

@@ -11,7 +11,7 @@
 # old and new frames use "render new,cpuwindows" instead (the old path then draws the textures).
 render new,present
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

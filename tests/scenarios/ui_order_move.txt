@@ -5,7 +5,7 @@
 # selected; the clicks are away from the HUD panels (800x600 layout). The hero must then walk
 # away from where it stood. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

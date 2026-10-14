@@ -5,7 +5,7 @@
 # the camp (page 0, campputon 3004) and attacks a wolf three squares to the right (clickunit, a player's order: the zone's
 # intro script ends a scripted Attack order at once).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

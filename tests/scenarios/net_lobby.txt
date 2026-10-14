@@ -3,7 +3,7 @@
 # (004122D0, net_session.cpp) then ticks both every frame, the lobby's records go through memory
 # streams (core_streams.cpp) and the RefPtr copies (refptr_copies.cpp). About 25 s.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 console server bz7g-lmp
 wait 15000

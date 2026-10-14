@@ -10,7 +10,7 @@
 # The targets are WolfTutor wolves (one hit kills them, see combat.txt); a dead wolf's HP is
 # also below the stored value, so each waitfor holds whether the spell hurt or killed it.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

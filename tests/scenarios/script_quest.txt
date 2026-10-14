@@ -3,7 +3,7 @@
 # it into the console's mission script. The verify wrapper compares ours' text with the original's
 # (the original's load is skipped). The generated conditions name variables the mission may not
 # have, so the load can fail quietly (QFinish prints nothing); the game must go on afterwards.
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

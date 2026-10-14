@@ -7,7 +7,7 @@
 # items, so two wands (quick items, class 0x3006) are given first (the first run's campputon found
 # an empty item strip).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 newgame

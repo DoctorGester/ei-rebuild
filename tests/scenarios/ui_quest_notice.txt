@@ -4,7 +4,7 @@
 # of an unset quest variable (skipped) and of a set one; two parts: the bare line. The quest names
 # have no "quest <name>" text, so the lines carry only the "combat_*" titles.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

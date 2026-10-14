@@ -5,7 +5,7 @@
 # remaining save is selected and OK loads it (Confirm -> LoadSelected). The rows' titles come from
 # the zone / allod texts (ZoneTitle, AllodTitle). Rectangles from menus.reg; rows are regions 3...
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

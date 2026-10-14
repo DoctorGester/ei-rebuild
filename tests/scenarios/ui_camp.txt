@@ -2,7 +2,7 @@
 # battle screen setup"). The camp and the global map are asked for with the harness's "screen"
 # step, as the global map's buttons ask the server for them (a zone exit is not needed).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 newgame

@@ -7,7 +7,7 @@
 # SetCPFast(object, x, y, z); HideObject(object, on). No lever is known on zone1, so
 # SwitchLeverState is not used. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

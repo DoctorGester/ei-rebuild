@@ -10,7 +10,7 @@
 # DirectDraw surface".
 render new,present
 reject Script error
-wait 6000
+waitmenu
 
 # The main menu.
 move 400 20

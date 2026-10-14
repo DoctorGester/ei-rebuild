@@ -6,7 +6,7 @@
 # and the escape menu keep the wheel, character and key-up handlers too; the battle screen keeps the
 # right button's. The point (10, 10) is off the main menu's buttons; 'x' is no key of these menus.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 # Main menu.

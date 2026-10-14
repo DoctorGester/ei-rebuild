@@ -4,7 +4,7 @@
 # each item kind: weapon (plain and with a spell), quick item (potion), spell container (rune),
 # quest item. The item strings are ones the game's own maps use.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

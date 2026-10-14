@@ -4,7 +4,7 @@
 # one zone is listed, so nothing), cancel (1; one button, so nothing), the first exit (9: the
 # cancel sound, or SelectExit), then OK (0: the pending value 0 closes the window). Keys: below.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 newgame

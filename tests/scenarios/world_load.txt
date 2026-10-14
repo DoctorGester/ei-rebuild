@@ -5,7 +5,7 @@
 # autosave is loaded back (ClearMapObjects, SetZoneExits, the saved map objects). The game runs
 # ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

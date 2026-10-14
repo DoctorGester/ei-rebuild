@@ -2,7 +2,7 @@
 # negative power (each power has its own branch layout and animation), drawn for a few seconds and
 # deleted, then the lightning spell on a wolf (a bolt that follows its two units).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
