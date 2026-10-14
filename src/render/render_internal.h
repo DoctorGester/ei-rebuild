@@ -135,7 +135,7 @@ std::uint32_t FrameNumber();
 std::uint32_t CommitNumber();
 
 // Index of `m` in the frame's matrices (added when it differs from the last one).
-int AddMatrix(const float* m);
+int AddMatrix(const Matrix4& m);
 // The frame's fog (FOGENABLE / FOGCOLOR of the old device), read once per frame.
 void ReadFog(Frame& f);
 // Render states / stage 0..1 texture stage states of the old device (GetRenderState /

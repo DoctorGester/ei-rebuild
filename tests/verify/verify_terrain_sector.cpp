@@ -275,19 +275,19 @@ static void __fastcall ApplyWaterVerify(SectorData* s, void*) {
     std::vector<float> rowBefore = RowCopy(row);
     std::vector<std::uint8_t> recBefore(reinterpret_cast<std::uint8_t*>(s->records.data),
                                         reinterpret_cast<std::uint8_t*>(s->records.data + s->records.size));
-    std::vector<float> vBefore(s->vertices.data->xyz, s->vertices.data->xyz + s->vertices.size * 3);
+    std::vector<SectorPosition> vBefore(s->vertices.data, s->vertices.data + s->vertices.size);
     s_applyWater(s, nullptr);
     std::vector<float> rowOriginal = RowCopy(row);
     std::vector<std::uint8_t> recOriginal(reinterpret_cast<std::uint8_t*>(s->records.data),
                                           reinterpret_cast<std::uint8_t*>(s->records.data + s->records.size));
-    std::vector<float> vOriginal(s->vertices.data->xyz, s->vertices.data->xyz + s->vertices.size * 3);
+    std::vector<SectorPosition> vOriginal(s->vertices.data, s->vertices.data + s->vertices.size);
     RowRestore(row, rowBefore);
     std::memcpy(s->records.data, recBefore.data(), recBefore.size());
-    std::memcpy(s->vertices.data, vBefore.data(), vBefore.size() * 4);
+    std::memcpy(s->vertices.data, vBefore.data(), vBefore.size() * sizeof(SectorPosition));
     s->ApplyWaterLevels();
     bool ok = RowCopy(row) == rowOriginal &&
               std::memcmp(s->records.data, recOriginal.data(), recOriginal.size()) == 0 &&
-              std::memcmp(s->vertices.data, vOriginal.data(), vOriginal.size() * 4) == 0;
+              std::memcmp(s->vertices.data, vOriginal.data(), vOriginal.size() * sizeof(SectorPosition)) == 0;
     Report("SectorData::ApplyWaterLevels", ok, "levels", s);
 }
 // 006c30e0 PUSH ECX; PUSH EBX; PUSH EBP; PUSH ESI; MOV ESI,ECX (6 bytes)

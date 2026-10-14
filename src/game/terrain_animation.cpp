@@ -126,7 +126,7 @@ void SectorData::Animate(TerrainFields* landscape, int frame) {
     float height = landscape->waveHeight;
     float phase = landscape->wavePhase;
     float fullTurn = RoundToFloat(kPi + kPi);
-    Vector2 first = {positions[0].xyz[0], positions[0].xyz[1]};
+    Vector2 first = {positions[0].x, positions[0].y};
     float rowStart = RoundToFloat(std::fmod(Dot2D(direction, first) + fullTurn, static_cast<double>(fullTurn)));
 
     int lastMaterial = -1;
@@ -167,16 +167,16 @@ void SectorData::Animate(TerrainFields* landscape, int frame) {
                 double lift = s * amplitude;
                 if (kind == 4) {
                     if (!SignClear(record.depth)) {
-                        position.xyz[0] = static_cast<float>(lift + record.position.x);
-                        position.xyz[1] = static_cast<float>(lift + record.position.y);
+                        position.x = static_cast<float>(lift + record.position.x);
+                        position.y = static_cast<float>(lift + record.position.y);
                     }
                 } else {
-                    position.xyz[2] = static_cast<float>(lift * kRiseScale + record.position.z);
+                    position.z = static_cast<float>(lift * kRiseScale + record.position.z);
                     float time = RoundToFloat((GameTicks() + GameTickFraction()) * kTimeScale);
                     float sineX = Sine(landscape, column * kQuarterTurn + time);
-                    position.xyz[0] = sineX * amplitude * kCircleScale + record.position.x;
+                    position.x = sineX * amplitude * kCircleScale + record.position.x;
                     float sineY = Sine(landscape, row * kQuarterTurn + time);
-                    position.xyz[1] = sineY * amplitude * kCircleScale + record.position.y;
+                    position.y = sineY * amplitude * kCircleScale + record.position.y;
                 }
             }
             along = RoundToFloat(along + stepX);

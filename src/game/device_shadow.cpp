@@ -84,7 +84,7 @@ void HandOver(CTextureDevice* device, const void* positions, const char* uvs, in
     m.cornerCount = count;
     m.indices = indices;
     m.indexCount = indexCount;
-    m.matrix = device->pipeline_->Top(kScreenStack)->m;
+    m.matrix = device->pipeline_->Top(kScreenStack);
     m.screenMatrix = true;
     m.clipped = clipped;
     m.distanceFog = false;   // no fog pass (slot 35) here

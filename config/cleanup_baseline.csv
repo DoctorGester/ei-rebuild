@@ -43,7 +43,6 @@ src/game/core_streams.h,0,0,0,0,4,0,0,0,0,0,0,1,0
 src/game/core_transform.h,0,0,0,0,1,0,0,0,0,0,0,0,0
 src/game/core_transform_math.cpp,0,0,8,1,1,0,0,0,0,0,0,0,0
 src/game/deleting_destructors_400.cpp,0,0,0,0,33,0,0,0,0,0,0,0,0
-src/game/device_buffers.h,0,0,0,0,0,0,0,0,0,0,1,0,0
 src/game/device_mesh.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/device_shadow.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0,0,0,0,0
@@ -145,7 +144,7 @@ src/game/quaternion.cpp,0,0,4,1,1,0,0,0,0,0,0,0,0
 src/game/quest_database.cpp,0,0,0,0,16,0,0,0,0,0,0,0,0
 src/game/quest_records.h,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/registry.cpp,0,0,1,0,1,0,0,0,0,0,0,0,0
-src/game/renderer_init.cpp,0,0,2,0,0,0,0,0,0,0,1,0,0
+src/game/renderer_init.cpp,0,0,2,0,0,0,0,0,0,0,0,0,0
 src/game/renderer_lines.h,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/renderer_strip.cpp,0,0,2,0,0,0,0,0,0,0,0,0,0
 src/game/resource.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0
@@ -183,7 +182,7 @@ src/game/sys_info.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/terrain.h,0,0,0,0,0,0,0,0,0,0,0,3,0
 src/game/terrain_landscape.cpp,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/terrain_sector.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/game/terrain_sector.h,0,0,0,0,0,0,0,0,0,0,1,19,0
+src/game/terrain_sector.h,0,0,0,0,0,0,0,0,0,0,0,19,0
 src/game/texture.h,0,0,0,0,0,0,0,0,0,0,0,7,0
 src/game/trap_object.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/ui.h,0,0,0,0,0,0,0,0,0,0,0,51,0
@@ -272,6 +271,4 @@ src/game/world_zone.cpp,0,0,0,0,6,0,0,0,0,0,0,0,0
 src/lib/mfc.h,0,0,0,0,0,0,0,0,0,0,0,3,0
 src/lib/stlp.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/render/render_game.h,0,0,0,0,4,0,0,0,0,0,0,0,0
-src/render/render_mesh.cpp,0,0,0,0,0,0,0,0,0,0,4,0,0
 src/render/render_state.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0
-src/render/render_terrain.cpp,0,0,0,0,0,0,0,0,0,0,1,0,0
