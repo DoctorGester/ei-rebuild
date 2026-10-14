@@ -72,6 +72,8 @@ __declspec(naked) inline void __fastcall EditFieldSetTextOriginal(void* /*edit*/
     EI_ORIGINAL(0x0065C290)
 // 005E5200: the mouse cursor (007C7BD8) SetShape(shape), RET 4, returns the previous shape or -1.
 __declspec(naked) inline int __fastcall CursorSetShapeOriginal(void* /*cursor*/, void*, int /*shape*/) EI_ORIGINAL(0x005E5200)
+// 005E4A10 (thiscall, plain RET; rewritten as console::ConsoleWindow::DrawInput): the console window's input line.
+__declspec(naked) inline void __fastcall ConsoleDrawInputOriginal(void* /*window*/) EI_ORIGINAL(0x005E4A10)
 // 00634650: constructs a message box window in `memory` (RET 0x18, returns it).
 __declspec(naked) inline void* __fastcall MessageBoxConstructOriginal(void* /*memory*/, void*, CInterface3D*,
                                                                       const char*, const char*, int, int, int)

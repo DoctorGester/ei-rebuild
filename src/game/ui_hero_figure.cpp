@@ -85,7 +85,7 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     const auto* first = reinterpret_cast<const char* const*>(defaults_);
     int index = IndexOf(first, reinterpret_cast<const char* const*>(defaultsEnd_), prototype);
     if (index >= 0) figureStrips_[0]->selected_ = index;
-    index = IndexOf(names_.begin, names_.end, prototype);
+    index = IndexOf(names_.begin(), names_.end(), prototype);
     bool firstVoices = index < 0;
     if (index >= 0) figureStrips_[1]->selected_ = index;
 
@@ -105,10 +105,10 @@ void CMpHeroScreen::ChooseFigure(const char* prototype) {
     voices_ = reinterpret_cast<char**>(firstVoices ? &voiceLists_[0] : &voiceLists_[1]);
     MpVoiceVector& voices = Voices();
     // The first entry's file (read even when the list is empty, as the original does).
-    hero->texts[6] = reinterpret_cast<const mfc::CString&>(voices.begin->file);
+    hero->texts[6] = reinterpret_cast<const mfc::CString&>(voices.begin()->file);
     // The entry count compared unsigned (the subtraction shifted arithmetically).
     std::uint32_t count = static_cast<std::uint32_t>(
-        (reinterpret_cast<char*>(voices.end) - reinterpret_cast<char*>(voices.begin)) >> 3);
+        (reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin())) >> 3);
     ScrollbarSetRangeOriginal(voiceScroll_, nullptr, count > kVoiceRows ? static_cast<int>(count) - kVoiceRows : 0);
     static_cast<CUiScrollbar*>(voiceScroll_)->CallSetPosition(0);
     if (mode_ == kModeNewHero) CallDrawVoices();

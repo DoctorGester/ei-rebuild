@@ -31,8 +31,8 @@ bool Ordered(const char* const* begin, const char* const* end, int direction) {
 }
 
 bool VoicesOk(const MpVoiceVector& voices, std::ptrdiff_t figures) {
-    if (voices.end - voices.begin > figures) return false;
-    for (const MpVoiceEntry* at = voices.begin; at != voices.end; ++at)
+    if (voices.end() - voices.begin() > figures) return false;
+    for (const MpVoiceEntry* at = voices.begin(); at != voices.end(); ++at)
         if (!at->file || !at->name) return false;
     return true;
 }
@@ -50,12 +50,12 @@ static void __fastcall HeroScreenCreateVerify(CMpHeroScreen* self) {
     ei::verify::Check("CMpHeroScreen::Create selection", heroes == 0 ? -1 : 0, self->heroIndex_, "heroes %d", heroes);
     auto* men = reinterpret_cast<const char* const*>(self->defaults_);
     auto* menEnd = reinterpret_cast<const char* const*>(self->defaultsEnd_);
-    const bool figures = Ordered(men, menEnd, 1) && Ordered(self->names_.begin, self->names_.end, -1) &&
+    const bool figures = Ordered(men, menEnd, 1) && Ordered(self->names_.begin(), self->names_.end(), -1) &&
                          VoicesOk(self->voiceLists_[0], menEnd - men) &&
-                         VoicesOk(self->voiceLists_[1], self->names_.end - self->names_.begin);
+                         VoicesOk(self->voiceLists_[1], self->names_.end() - self->names_.begin());
     ei::verify::Check("CMpHeroScreen::Create figures", true, figures, "men %d women %d voices %d %d",
-                      static_cast<int>(menEnd - men), static_cast<int>(self->names_.end - self->names_.begin),
-                      static_cast<int>(self->voiceLists_[0].end - self->voiceLists_[0].begin),
-                      static_cast<int>(self->voiceLists_[1].end - self->voiceLists_[1].begin));
+                      static_cast<int>(menEnd - men), static_cast<int>(self->names_.end() - self->names_.begin()),
+                      static_cast<int>(self->voiceLists_[0].end() - self->voiceLists_[0].begin()),
+                      static_cast<int>(self->voiceLists_[1].end() - self->voiceLists_[1].begin()));
 }
 EI_VERIFY(0x00613EA0, HeroScreenCreateVerify, 0, s_unused);

@@ -1056,6 +1056,15 @@ struct UiD3DDevice {
         using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, void*, DWORD, DWORD, float, DWORD);
         return reinterpret_cast<Fn>(vtable_[10])(this, count, rects, flags, colour, z, stencil);
     }
+    // Slots 36 / 37: Get / SetTextureStageState(stage, type, value).
+    long GetTextureStageState(DWORD stage, DWORD type, std::uint32_t* value) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, DWORD, std::uint32_t*);
+        return reinterpret_cast<Fn>(vtable_[36])(this, stage, type, value);
+    }
+    long SetTextureStageState(DWORD stage, DWORD type, DWORD value) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, DWORD, DWORD);
+        return reinterpret_cast<Fn>(vtable_[37])(this, stage, type, value);
+    }
     long SetRenderState(std::uint32_t state, std::uint32_t value) {
         using Fn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, std::uint32_t);
         return reinterpret_cast<Fn>(vtable_[20])(this, state, value);
@@ -1264,7 +1273,8 @@ public:
     // Item of the region at `index` (-1: empty). The original indexes this with the result of
     // RegionAt unchecked, so index -1 reads the dword before the array (+0x168).
     int RegionItem(int index) const {
-        return reinterpret_cast<const int*>(reinterpret_cast<const std::uint8_t*>(this) + 0x16C)[index];
+        const int* items = regionItem_;   // declared below
+        return items[index];
     }
 
     // The vanilla bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; hooked in the

@@ -146,7 +146,7 @@ EI_VERIFY(0x006167C0, HeroListDrawVerify, 0, s_unused);
 static void __fastcall VoicesDrawVerify(CMpHeroScreen* self) {
     self->DrawVoices();
     MpVoiceVector& voices = self->Voices();
-    int count = static_cast<int>(voices.end - voices.begin);
+    int count = static_cast<int>(voices.end() - voices.begin());
     int top = self->voiceTop_, selected = self->voiceIndex_;
     bool expected = selected >= top && selected < top + 11 && selected < count && top >= 0;
     ei::verify::Check("CMpHeroScreen::DrawVoices", expected, FrameShown(self), "top %d selected %d", top, selected);
@@ -200,7 +200,7 @@ static void __fastcall ChooseFigureVerify(CMpHeroScreen* self, void*, const char
         return -1;
     };
     int first = indexIn(reinterpret_cast<const char* const*>(self->defaults_), reinterpret_cast<const char* const*>(self->defaultsEnd_));
-    int second = indexIn(self->names_.begin, self->names_.end);
+    int second = indexIn(self->names_.begin(), self->names_.end());
     PartyUnitRecord* hero = player->members_.data;
     const auto* stats = reinterpret_cast<const UnitStats*>(hero->stats);
     bool ok = player->members_.size == 1 && name == static_cast<const char*>(hero->texts[5]) && name == self->text_ &&

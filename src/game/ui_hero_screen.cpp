@@ -243,8 +243,8 @@ EI_REPLACE(0x00634560, ReleaseCachedObjects);
 
 namespace {
 void DestroyVoices(MpVoiceVector& voices) {
-    for (MpVoiceEntry* entry = voices.begin; entry != voices.end; ++entry) entry->Destroy();
-    FreeBlock8Original(voices.begin, static_cast<int>(voices.capacity - voices.begin));
+    for (MpVoiceEntry* entry = voices.begin(); entry != voices.end(); ++entry) entry->Destroy();
+    FreeBlock8Original(voices.begin(), static_cast<int>(voices.EndOfStorage() - voices.begin()));
 }
 void DestroyStrings(const char** begin, const char** end) {
     for (const char** at = begin; at != end; ++at) CStringDestroy(at);
@@ -259,8 +259,8 @@ void CMpHeroScreen::Destroy() {
     DestroyVoices(voiceLists_[1]);
     DestroyVoices(voiceLists_[0]);
     CStringDestroy(&text_);
-    DestroyStrings(names_.begin, names_.end);
-    FreeBlock4Original(names_.begin, static_cast<int>(names_.capacity - names_.begin));
+    DestroyStrings(names_.begin(), names_.end());
+    FreeBlock4Original(names_.begin(), static_cast<int>(names_.EndOfStorage() - names_.begin()));
     for (void** at = defaults_; at != defaultsEnd_; ++at) CStringDestroy(at);
     FreeBlock4ProxyOriginal(&defaultsCapacity_, nullptr, defaults_, static_cast<int>(defaultsCapacity_ - defaults_));
     ReleaseTexturesAt(&screen->textures_);
@@ -332,14 +332,14 @@ void CMpHeroScreen::DrawVoices() {
     std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);
     for (int offset = 0; offset < 165; offset += 15, ++index) {
         MpVoiceVector& voices = Voices();
-        int bytes = static_cast<int>(reinterpret_cast<char*>(voices.end) - reinterpret_cast<char*>(voices.begin));
+        int bytes = static_cast<int>(reinterpret_cast<char*>(voices.end()) - reinterpret_cast<char*>(voices.begin()));
         if (index >= static_cast<std::uint32_t>(bytes >> 3)) break;
         if (static_cast<int>(index) == voiceIndex_) {
             SelectionFrame(window)->visible_ = 1;
             float y = static_cast<float>(static_cast<double>(offset) + VoiceFrameTop());
             SelectionFrame(window)->Place(97.5f, y, kFrameDepth);
         }
-        SurfaceDrawText(surface, nullptr, voices.begin[index].name, &rect, 0, kListColour, kListFormat, 1);
+        SurfaceDrawText(surface, nullptr, voices.begin()[index].name, &rect, 0, kListColour, kListFormat, 1);
         gameapi::OffsetRect(&rect, 0, 15);
     }
     SurfaceReleaseDC(surface);

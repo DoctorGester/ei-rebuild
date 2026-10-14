@@ -54,16 +54,14 @@ inline UiInput* InputOf(void* window) {
     return reinterpret_cast<UiInput*>(static_cast<char*>(window) + kUiInputOffset);
 }
 
-// Window fields shared by every screen (inside CUiWindow's unknown bytes).
-// +0x9C: set by a handler that consumed the event (input sub-object +8); the interface manager
-// then stops passing it on.
-inline bool& UiHandled(void* window) { return *reinterpret_cast<bool*>(static_cast<char*>(window) + 0x9C); }
+// The window's input side's handled flag (+0x9C): set by a handler that consumed the event; the
+// interface manager then stops passing it on.
+inline bool& UiHandled(void* window) { return static_cast<CUiWindow*>(window)->Input()->handled_; }
 
-// CInterface3D fields not named in ui.h.
-// +0x0C: the input sub-object that captured the mouse (scroll arrows held down), or null.
-inline void*& UiCapture(CInterface3D* ui) { return *reinterpret_cast<void**>(reinterpret_cast<char*>(ui) + 0x0C); }
-// +0x7D: a shift key is held (set by the key-down dispatch 005F78C0).
-inline bool UiShiftDown(const CInterface3D* ui) { return reinterpret_cast<const char*>(ui)[0x7D] != 0; }
+// The input sub-object that captured the mouse (scroll arrows held down), or null.
+inline void*& UiCapture(CInterface3D* ui) { return ui->mouseCapture_; }
+// A shift key is held (set by the key-down dispatch 005F78C0).
+inline bool UiShiftDown(const CInterface3D* ui) { return ui->shiftDown_ != 0; }
 
 // What the original stores as the capture: the input sub-object of `window`, or null for a null
 // window (LEA EAX,[ESI-0x94]; NEG; SBB; AND ESI).
@@ -111,6 +109,9 @@ struct ItemPrototypeRecord {
 static_assert(offsetof(ItemPrototypeRecord, materialClass_) == 0x10);
 static_assert(offsetof(ItemPrototypeRecord, buildable_) == 0x68);
 
+// An STLport vector<CString> (the figure names), its elements as their data pointers.
+using MpStringVector = stlp::vector<const char*>;
+
 // --- Camp item strip ------------------------------------------------------------------------
 //
 // The horizontal strip of items (or spells) at the bottom (y 500) or top (y 0) of the camp screens:
@@ -118,7 +119,6 @@ static_assert(offsetof(ItemPrototypeRecord, buildable_) == 0x68);
 // `visible_` slots. Vtables 007419E8/00741A1C (strip) and 00741948/0074197C (strip that forwards
 // item clicks to its owner); created by the camp screen (0060C870) and the exchange window
 // (0062C250). Regions: 0/1 left/right arrows, 2-7 tabs, 8 the strip.
-struct MpStringVector;
 
 class CUiItemStrip {
 public:
@@ -295,16 +295,7 @@ struct MpVoiceEntry {
     const char* name;           // +4 CString
 };
 static_assert(sizeof(MpVoiceEntry) == 8);
-struct MpVoiceVector {
-    MpVoiceEntry* begin;
-    MpVoiceEntry* end;
-    MpVoiceEntry* capacity;
-};
-struct MpStringVector {
-    const char** begin;         // CStrings
-    const char** end;
-    const char** capacity;
-};
+using MpVoiceVector = stlp::vector<MpVoiceEntry>;
 //
 // Opened by the main menu's Multiplayer button (region 5 of 00632D70; vtables 00742118/0074214C,
 // 0x220 bytes). Modes (+0x190, set by 00615D30): 9 hero list, 10 new hero (portrait, name and
@@ -550,12 +541,12 @@ struct UnitSoundEntry {
     std::uint32_t flags;           // +0x28 (the hero screen's voice takes entries with 0x2282 set)
 };
 static_assert(sizeof(UnitSoundEntry) == 0x2C);
-struct UnitSoundSet {
+// A sound set (the map's value).
+struct UnitSoundBank {
     std::uint8_t unknown_000[0x1AC];
-    UnitSoundEntry* entries;       // +0x1AC
-    UnitSoundEntry* entriesEnd;    // +0x1B0
+    stlp::vector<UnitSoundEntry> entries;   // +0x1AC
 };
-static_assert(offsetof(UnitSoundSet, entries) == 0x1AC);
+static_assert(offsetof(UnitSoundBank, entries) == 0x1AC);
 
 // --- Multiplayer connection screen (0061B2C0-0061E8F0; ui_connect_screen.cpp) ----------------
 //

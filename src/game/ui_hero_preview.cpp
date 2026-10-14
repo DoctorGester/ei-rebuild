@@ -5,6 +5,7 @@
 // values it keeps on the FPU stack stay unrounded (double), products and sums keep its operand
 // order, constants are read from the exe's memory.
 #include "ui.h"
+#include "model.h"
 
 #include "ei/hook.h"
 #include "render/render_state.h"
@@ -44,22 +45,13 @@ R VirtualCall(void* object, int slot, Args... args) {
     return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
 }
 
-// A COM method (IDirect3DDevice7: stdcall, the interface pointer pushed first).
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>(fn)(object, args...);
-}
-
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // The device's state around a frame part (thiscall, not rewritten): 004E7840 and 004E7A40.
-struct DeviceAt {
-    void Flush();     // 004E7840
-    void Restore();   // 004E7A40
-};
-void DeviceAt::Flush() { DeviceFlushBatchAOriginal((void*)this); }
-void DeviceAt::Restore() { DeviceFlushBatchBOriginal((void*)this); }
+void FlushAndRestore(UiRenderer* renderer) {
+    renderer->FlushBatchA();
+    renderer->FlushBatchB();
+}
 
 // The game's vector helpers as the original calls them (00401E00 dot, unrounded; 00448A10 /
 // 00410770 scale; 004489D0 cross; 0040CDC0 sum; results stored as float).
@@ -91,23 +83,18 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
     return out;
 }
 
-constexpr int kD3DClear = 10;               // IDirect3DDevice7::Clear
-constexpr int kGetStageState = 36;          // GetTextureStageState
-constexpr int kSetStageState = 37;          // SetTextureStageState
 constexpr unsigned long kStageState = 0x12;
 
 // D3DCLEAR_ZBUFFER, with D3DCLEAR_STENCIL when the device has a stencil buffer.
-unsigned long ClearFlags(std::uint8_t* device) {
-    if ((Get<std::uint32_t>(device, 0x90) & 0x4000) != 0 && Get<std::uint32_t>(device, 0x9C) != 0) return 6;
+unsigned long ClearFlags(const UiRenderer* renderer) {
+    if ((renderer->caps_ & 0x4000) != 0 && renderer->stencil_ != 0) return 6;
     return 2;
 }
 
-void ClearDepth(std::uint8_t* device, unsigned long count, RECT* rects, float z) {
-    unsigned long flags = ClearFlags(device);
+void ClearDepth(UiRenderer* renderer, unsigned long count, RECT* rects, float z) {
+    unsigned long flags = ClearFlags(renderer);
     gameapi::EnterCriticalSection(DeviceLock());
-    void* d3d = Get<void*>(device, 0x54);
-    long hr = ComCall(d3d, kD3DClear, count, rects, flags, 0ul, z, 0ul);
-    Set(device, 8, hr);
+    renderer->result_ = renderer->device_->Clear(count, rects, flags, 0, z, 0);
     gameapi::LeaveCriticalSection(DeviceLock());
     render::Rect r[6];
     int n = count < 6 ? static_cast<int>(count) : 6;
@@ -119,21 +106,15 @@ void ClearDepth(std::uint8_t* device, unsigned long count, RECT* rects, float z)
 
 void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, float depth, int wide) {
     if (!model) return;
-    auto deviceOf = [this] { return Get<std::uint8_t*>(interface_, 8); };
-    {
-        auto* device = reinterpret_cast<DeviceAt*>(deviceOf());
-        device->Flush();
-        device->Restore();
-    }
+    auto deviceOf = [this] { return interface_->renderer_; };
+    FlushAndRestore(deviceOf());
 
     // The whole depth buffer (stencil too), then the preview's rectangles to the far plane.
     {
-        std::uint8_t* device = deviceOf();
-        unsigned long flags = ClearFlags(device);
+        UiRenderer* renderer = deviceOf();
+        unsigned long flags = ClearFlags(renderer);
         gameapi::EnterCriticalSection(DeviceLock());
-        void* d3d = Get<void*>(device, 0x54);
-        long hr = ComCall(d3d, kD3DClear, 0ul, static_cast<RECT*>(nullptr), flags, 0ul, 0.0f, 0ul);
-        Set(device, 8, hr);
+        renderer->result_ = renderer->device_->Clear(0, nullptr, flags, 0, 0.0f, 0);
         gameapi::LeaveCriticalSection(DeviceLock());
         render::ClearDepth(0.0f, nullptr, 0);
     }
@@ -164,9 +145,10 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     std::uint8_t savedPosition[12], savedOrientation[16];
     std::memcpy(savedPosition, model + 0x1C, 12);
     std::memcpy(savedOrientation, model + 0x34, 16);
-    std::uint32_t savedColour = Get<std::uint32_t>(pass, 0x18);
+    auto* renderer = static_cast<CSceneRenderer*>(pass);
+    std::uint32_t savedColour = renderer->colour_;
     // White: three FISTPs of 255.0 packed as 0xFF rr gg bb.
-    VirtualCall(pass, 7, 0xFFFFFFFFu);
+    renderer->SetColour(0xFFFFFFFFu);
     Set(model, 8, Get<std::uint32_t>(model, 8) | 0x800);
     {
         std::uint32_t now = gameapi::timeGetTime();
@@ -214,16 +196,13 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     Set(light, 0xF0, 1.2f);
     Set(light, 0xF4, 1.2f);
     Set(light, 0xF8, 1.2f);
-    std::uint8_t* device = deviceOf();
+    UiRenderer* device = deviceOf();
     std::uint32_t savedStage = 0;
-    void* d3d = Get<void*>(device, 0x54);
-    Set(device, 8, ComCall(d3d, kGetStageState, 0ul, kStageState, &savedStage));
-    d3d = Get<void*>(device, 0x54);
-    Set(device, 8, ComCall(d3d, kSetStageState, 0ul, kStageState, 1ul));
+    device->result_ = device->device_->GetTextureStageState(0, kStageState, &savedStage);
+    device->result_ = device->device_->SetTextureStageState(0, kStageState, 1);
     render::state::Stage(0, kStageState, 1);
     VirtualCall(model, 22, pass);
-    d3d = Get<void*>(device, 0x54);
-    Set(device, 8, ComCall(d3d, kSetStageState, 0ul, kStageState, static_cast<unsigned long>(savedStage)));
+    device->result_ = device->device_->SetTextureStageState(0, kStageState, savedStage);
     render::state::Stage(0, kStageState, savedStage);
     light = Get<std::uint8_t*>(model, 0x94);
     Set(light, 0xF0, 1.0f);
@@ -232,9 +211,7 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     std::memcpy(model + 0x1C, savedPosition, 12);
     std::memcpy(model + 0x34, savedOrientation, 16);
     Set(model, 8, Get<std::uint32_t>(model, 8) & ~0x800u);
-    VirtualCall(pass, 7, savedColour);
-    auto* last = reinterpret_cast<DeviceAt*>(deviceOf());
-    last->Flush();
-    last->Restore();
+    renderer->SetColour(savedColour);
+    FlushAndRestore(deviceOf());
 }
 EI_REPLACE_METHOD(0x005EC300, CUiWindow::DrawHeroPreview);

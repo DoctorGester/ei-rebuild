@@ -1,6 +1,7 @@
 // The save/load and options windows opened from the Esc menu: their mouse handlers, the slide-in
 // drawing and update, and the small slots. See ui.h and docs/notes/ui.md.
 #include "ui.h"
+#include "sound.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -367,8 +368,8 @@ void COptionsWindow::Update() {
             if (id >= 7) {
                 if (id <= 9)
                     displayModeChanged_ = true;
-                else if (id == 0x18)   // the sound system's +0x8A4 switch
-                    *reinterpret_cast<int*>(Global<std::uint8_t*>(0x007AF784) + 0x8A4) = value != 0;
+                else if (id == 0x18)   // the sound system's pan switch
+                    sound::Manager()->panDirect = value != 0;
             }
         }
     }

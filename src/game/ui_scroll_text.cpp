@@ -29,22 +29,16 @@ constexpr char kEscape = '\a';
 // 005F8340 (Rebirth-patched, called through its address; thiscall on the interface, RET 0xC):
 // the extent of `text` in interface font `font`. It takes a CString by value and releases it; a
 // naked forwarder cannot declare one, so the string's data pointer is handed over (as ui_text.cpp).
-struct TextMetricsAt {
-    // The SIZE comes back through the hidden pointer, as a member function's struct result does.
-    SIZE TextExtentRaw(char* text, int font) {
-        SIZE size;
-        InterfaceTextExtentOriginal(reinterpret_cast<CInterface3D*>(this), nullptr, &size, text, font);
-        return size;
-    }
-    SIZE TextExtent(const mfc::CString& text, int font) {
-        mfc::CString copy(text);
-        char* data;
-        std::memcpy(&data, &copy, sizeof(data));
-        mfc::CString empty;
-        std::memcpy(&copy, &empty, sizeof(data));   // `copy` now owns nothing
-        return TextExtentRaw(data, font);
-    }
-};
+SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
+    mfc::CString copy(text);
+    char* data;
+    std::memcpy(&data, &copy, sizeof(data));
+    mfc::CString empty;
+    std::memcpy(&copy, &empty, sizeof(data));   // `copy` now owns nothing
+    SIZE size;
+    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    return size;
+}
 
 // 0065E010 (RET 8): CArray::SetSize of the token array. The original calls it for a format token
 // and inlines the same template code (SetAtGrow) for a word.
@@ -154,7 +148,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
                 ei::SetVtable(w, kWordVtable);
                 w->width_ = 0;
             }
-            SIZE size = reinterpret_cast<TextMetricsAt*>(interface_)->TextExtent(token, font);
+            SIZE size = TextExtent(interface_, token, font);
             w->width_ = size.cx;
             *reinterpret_cast<mfc::CString*>(&w->text_) = token;
             Append(tokens_, w);
@@ -199,7 +193,7 @@ void CUiScrollText::DrawLines(int scroll) {
     int heights[kMeasuredFonts];
     for (int font = 0; font < kMeasuredFonts; ++font) {
         mfc::CString sample(FontSampleText());
-        heights[font] = reinterpret_cast<TextMetricsAt*>(interface_)->TextExtent(sample, font).cy;
+        heights[font] = TextExtent(interface_, sample, font).cy;
     }
 
     // The format in effect at the line: the last format token before it (the first token
@@ -382,7 +376,7 @@ void CUiScrollText::Layout() {
     int heights[kFontSlots] = {};
     for (int f = 0; f < kMeasuredFonts; ++f) {
         mfc::CString sample(FontSampleText());
-        heights[f] = reinterpret_cast<TextMetricsAt*>(interface_)->TextExtent(sample, f).cy;
+        heights[f] = TextExtent(interface_, sample, f).cy;
     }
     for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);
     lines_.SetSize(0, -1);

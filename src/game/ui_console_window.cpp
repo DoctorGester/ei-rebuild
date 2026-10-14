@@ -39,12 +39,7 @@ constexpr UINT kDrawLine = 0x800;      // DT_NOPREFIX
 constexpr UINT kDrawMark = 0x802;      // DT_NOPREFIX | DT_RIGHT
 
 // Calls between the window's functions go through the original addresses (verify wrappers, and
-// any mod patch of the callee, stay in the path).
-struct WindowAt : ConsoleWindow {
-    void CallDrawInput();   // 005E4A10
-};
-__declspec(naked) void WindowAt::CallDrawInput() EI_ORIGINAL(0x005E4A10)
-WindowAt* At(ConsoleWindow* w) { return static_cast<WindowAt*>(w); }
+// any mod patch of the callee, stay in the path): DrawInput through ConsoleDrawInputOriginal.
 
 mfc::CString Left(const mfc::CString& s, int count) { return s.Left(count); }
 
@@ -76,7 +71,7 @@ void ConsoleWindow::Show(bool shown) {
                               : nullptr;
         }
         ConsoleDrawLinesOriginal(this);
-        At(this)->CallDrawInput();
+        ConsoleDrawInputOriginal(this);
         return;
     }
     if (CUiSurface* surface = static_cast<CUiSurface*>(surface_)) {
@@ -109,7 +104,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         if (!ctrl_) {
             caret_ = Length(input_);
             if (!shift_) anchor_ = caret_;
-            At(this)->CallDrawInput();
+            ConsoleDrawInputOriginal(this);
             return;
         }
         scroll_ = 0;
@@ -118,7 +113,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
         if (!ctrl_) {
             caret_ = 0;
             if (!shift_) anchor_ = 0;
-            At(this)->CallDrawInput();
+            ConsoleDrawInputOriginal(this);
             return;
         }
         {
@@ -130,7 +125,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     case VK_RIGHT:
         caret_ += key == VK_LEFT ? -1 : 1;
         if (!shift_) anchor_ = caret_;
-        At(this)->CallDrawInput();
+        ConsoleDrawInputOriginal(this);
         return;
     case VK_UP:
     case VK_DOWN:
@@ -145,14 +140,14 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
             input_.Empty();
         caret_ = Length(input_);
         anchor_ = caret_;
-        At(this)->CallDrawInput();
+        ConsoleDrawInputOriginal(this);
         return;
     case VK_DELETE:
         if (anchor_ == caret_) {
             if (caret_ < Length(input_)) {
                 mfc::CString rest = Ops(input_).Mid(caret_ + 1);
                 input_ = Left(input_, caret_) + rest;
-                At(this)->CallDrawInput();
+                ConsoleDrawInputOriginal(this);
             }
         } else {
             int low = anchor_ < caret_ ? anchor_ : caret_;
@@ -161,7 +156,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
             input_ = Left(input_, low) + rest;
             caret_ = low;
             anchor_ = low;
-            At(this)->CallDrawInput();
+            ConsoleDrawInputOriginal(this);
         }
         return;
     default:
@@ -260,7 +255,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
             --caret_;
             anchor_ = caret_;
         }
-        At(this)->CallDrawInput();
+        ConsoleDrawInputOriginal(this);
         return;
     }
     case 9:
@@ -276,7 +271,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         input_.Empty();
         caret_ = 0;
         anchor_ = 0;
-        At(this)->CallDrawInput();
+        ConsoleDrawInputOriginal(this);
         AddTextAt(this, nullptr, (mfc::CString(GameText(kPromptText)) + commands_.data[0]) + GameText(kNewLine));
         ExecuteAt(commands_.data[0]);
         return;
@@ -285,7 +280,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         input_.Empty();
         caret_ = 0;
         anchor_ = 0;
-        At(this)->CallDrawInput();
+        ConsoleDrawInputOriginal(this);
         return;
     default:
         break;
@@ -295,7 +290,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         if (letter == 'a') {
             anchor_ = 0;
             caret_ = Length(input_);
-            At(this)->CallDrawInput();
+            ConsoleDrawInputOriginal(this);
         } else if ((letter == 'c' || letter == 'x') && low != high) {
             const char* text = input_;
             CopyToClipboard(text + low, text + high);
@@ -305,7 +300,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
                 input_ = head + rest;
                 caret_ = low;
                 anchor_ = low;
-                At(this)->CallDrawInput();
+                ConsoleDrawInputOriginal(this);
             }
         } else if (letter == 'v') {
             mfc::CString clip(ClipboardText().c_str());
@@ -317,7 +312,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
             int position = Length(clip) - (anchor_ != caret_ ? 1 : 0) + high;
             caret_ = position;
             anchor_ = position;
-            At(this)->CallDrawInput();
+            ConsoleDrawInputOriginal(this);
         }
     }
     if (ctrl_) return;
@@ -326,7 +321,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
     input_ = PlusChar(head, static_cast<char>(key)) + rest;
     caret_ = low + 1;
     anchor_ = low + 1;
-    At(this)->CallDrawInput();
+    ConsoleDrawInputOriginal(this);
 }
 EI_REPLACE_METHOD(0x005E44A0, ConsoleWindow::OnChar);
 EI_REBIRTH_IMPLEMENTS(0x005E44A0, ei::rebirth::Patch::ImproveConsole);

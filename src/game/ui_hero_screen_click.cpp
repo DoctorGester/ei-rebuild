@@ -314,10 +314,10 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         int index = voiceTop_ + region - 9;
         if (index < 0) return;
         MpVoiceVector& voices = Voices();
-        if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end - voices.begin)) return;
+        if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end() - voices.begin())) return;
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
         voiceIndex_ = index;
-        const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(&voices.begin[index].file);
+        const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(&voices.begin()[index].file);
         HeroRecordOf(this)->texts[6] = file;
         PlayVoiceAt(this);
         CallDrawVoices();
@@ -460,9 +460,9 @@ EI_REPLACE(0x00618060, MpHeroRename);
 // --- 00619150: the voice's sound ----------------------------------------------------------------
 
 namespace {
-// 00619FB0 (RET 4): the sound sets' hash_map<string, UnitSoundSet*>::operator[] (inserts a null
+// 00619FB0 (RET 4): the sound sets' hash_map<string, UnitSoundBank*>::operator[] (inserts a null
 // entry for an unknown name); EAX = the value slot.
-__declspec(naked) UnitSoundSet** __fastcall SoundSetAt(void* /*map*/, void*, const stlp::string* /*key*/)
+__declspec(naked) UnitSoundBank** __fastcall SoundSetAt(void* /*map*/, void*, const stlp::string* /*key*/)
     EI_ORIGINAL(0x00619FB0)
 void* UnitPrototypes() { return reinterpret_cast<void*>(0x007AF364); }
 void* SoundSets() { return reinterpret_cast<void*>(0x007C8A6C); }
@@ -481,7 +481,7 @@ void CMpHeroScreen::PlayVoice() {
         prototype = static_cast<char*>(*PrototypeMapAtOriginal(UnitPrototypes(), nullptr, &key));
     }
     if (!prototype) return;
-    UnitSoundSet* set;
+    UnitSoundBank* set;
     {
         stlp::string key(*reinterpret_cast<const char* const*>(prototype));
         set = *SoundSetAt(SoundSets(), nullptr, &key);
@@ -490,11 +490,11 @@ void CMpHeroScreen::PlayVoice() {
     // The original gathers the voice entries in a temporary vector; here they are counted and
     // found again by their rank (no allocation).
     int count = 0;
-    for (const UnitSoundEntry* e = set->entries; e != set->entriesEnd; ++e)
+    for (const UnitSoundEntry* e = set->entries.begin(); e != set->entries.end(); ++e)
         if (IsVoice(*e)) ++count;
     if (count == 0) return;
     auto nth = [&](int rank) -> const UnitSoundEntry* {
-        for (const UnitSoundEntry* e = set->entries; e != set->entriesEnd; ++e)
+        for (const UnitSoundEntry* e = set->entries.begin(); e != set->entries.end(); ++e)
             if (IsVoice(*e) && rank-- == 0) return e;
         return nullptr;
     };
