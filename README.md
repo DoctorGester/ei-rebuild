@@ -102,6 +102,11 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `compare.py --clock`) overrides: `virtual` or `real`, plus `clocktrace` (every clock read and wait
   by function, caller and thread, in `ei_hook.log`) and `randtrace` (every random draw with its frame
   and caller, in `randtrace.txt`; `compare.py --clock virtual,randtrace` to find where two runs part).
+- The game-state digest (`tests/verify/harness_digest.h`): `digest <N>` (or `EI_DIGEST=<N>`) writes the
+  world's state (units, positions, vitals, effects, AI state, generators, players) every N world updates to
+  the run's `digest.txt`, `dump <name>` all of it once; `python tools\golden.py diff <run A> <run B>` names
+  the first world update and field where two runs differ, and `golden.py record` / `compare` keep and check
+  golden runs of the original code in `tests/golden/` (docs/notes/standalone-verification.md, SV2).
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
 before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and run_all.py): the

@@ -143,6 +143,12 @@
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
 //                             <tolerance> (default 8), as tools/compare_frames.py counts
+//   digest <N>|off, digest    a record of the game state (world, generators, players, every world
+//                             object: harness_digest.h) every <N> world updates from now into
+//                             digest.txt, none (off), or one now (no argument); EI_DIGEST=<N> takes
+//                             them for the whole run. tools/golden.py compares two runs' records and
+//                             names the first field that differs
+//   dump <name>               the whole game state now into dump_<name>.txt (harness_digest.h)
 //   uicensus                  count how the interface draws into its window surfaces (GDI calls per
 //                             surface, call sites, readers, drawing no hook explains) and write
 //                             ui_census.csv with the report (ui_census.cpp; also EI_UI_CENSUS=1;
@@ -162,6 +168,7 @@
 #include "verify.h"
 #include "harness_capture.h"
 #include "harness_clock.h"
+#include "harness_digest.h"
 #include "harness_starter.h"
 #include "ui_census.h"
 
@@ -764,6 +771,7 @@ using WorldUpdate = int(__fastcall*)(void*, void*);
 int __fastcall HeldServerUpdate(void* server, void*) {
     const int result = reinterpret_cast<WorldUpdate>(kServerUpdate)(server, nullptr);
     if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    digest::AfterWorldUpdate(server);   // a state record when its period says so
     return result;
 }
 int __fastcall HeldClientSegment(void* client, void*) {
@@ -853,6 +861,7 @@ BOOL WINAPI RedirectedSetFileAttributes(LPCSTR name, DWORD attributes) {
 
 void WriteReport() {
     clock::FlushRandomTrace();
+    digest::Flush();
     if (census::Enabled()) census::Write();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
@@ -869,6 +878,7 @@ void WriteReport() {
     });
     if (!g_capturedFrames.empty()) std::fprintf(f, "\nframes captured:\n");
     for (const std::string& frame : g_capturedFrames) std::fprintf(f, "  %s\n", frame.c_str());
+    if (std::string digest = digest::Summary(); !digest.empty()) std::fprintf(f, "\nstate digest: %s\n", digest.c_str());
     std::fprintf(f, "\nconsole output:\n");
     for (const std::string& line : g_console) std::fprintf(f, "  %s\n", line.c_str());
     for (const std::string& failure : g_failures) std::fprintf(f, "FAILED: %s\n", failure.c_str());
@@ -1935,6 +1945,12 @@ void RunSteps() {
             Sleep(INFINITE);
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
             clock::Freeze(s.verb == "freeze");
+        } else if (s.verb == "digest" || s.verb == "dump") {
+            std::string error = s.verb == "digest" ? digest::Step(s.argument) : digest::Dump(s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
         } else if (s.verb == "reject") {
             g_rejected.push_back(s.argument);
         } else if (s.verb == "report") {
@@ -2406,6 +2422,7 @@ struct Harness {
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
         ei::verify::starter::Install();
+        digest::Init(&g_frames);   // EI_DIGEST
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
