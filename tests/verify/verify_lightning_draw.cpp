@@ -9,7 +9,6 @@ void* s_unused;
 }
 
 int __fastcall DrawLightning(CLightning* self, void*, void* device);
-void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const Vector3* position, int phase, float size);
 
 namespace {
 int __fastcall DrawVerify(CLightning* self, void*, void* device) {
@@ -18,7 +17,7 @@ int __fastcall DrawVerify(CLightning* self, void*, void* device) {
     return result;
 }
 void __fastcall GlowVerify(CLightning* self, void*, void* device, const Vector3* position, int phase, float size) {
-    DrawLightningGlow(self, nullptr, device, position, phase, size);
+    self->DrawGlow(device, position, phase, size);
     const int* sprites = reinterpret_cast<const int*>(0x0079C1E0);
     const int* points = reinterpret_cast<const int*>(0x0079C1D0);
     bool ok = (sprites[2] == 8 && points[1] == 8) || !sprites[1];

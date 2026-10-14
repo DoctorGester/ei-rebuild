@@ -37,7 +37,7 @@ CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self) {
     ei::SetVtable(self, CEngineObject::kVtableAddress);
     self->refCount_ = 0;
     self->id_ = -1;
-    self->unknown_18 = 0;
+    self->prototypeId_ = 0;
     self->type_ = 0;
     self->flags_ = 0;
     self->owner_ = nullptr;
@@ -186,12 +186,12 @@ int CCamera::Init(CameraSettings* settings, std::uint32_t nearBits, std::uint32_
 EI_REPLACE_METHOD(0x0040D0A0, CCamera::Init);
 
 // 0040D380: the near distance, far distance and field of view (as dwords).
-void __fastcall CameraGetRange(const CCamera* self, void*, std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) {
-    std::memcpy(a, &self->nearDistance_, 4);
-    std::memcpy(b, &self->farDistance_, 4);
-    std::memcpy(c, &self->fieldOfView_, 4);
+void CCamera::GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const {
+    std::memcpy(a, &nearDistance_, 4);
+    std::memcpy(b, &farDistance_, 4);
+    std::memcpy(c, &fieldOfView_, 4);
 }
-EI_REPLACE(0x0040D380, CameraGetRange);
+EI_REPLACE_METHOD(0x0040D380, CCamera::GetRange);
 
 // 0040FB20: the point the camera is placed by: its own position when playing a file or placed
 // freely, else the focus.
@@ -214,7 +214,7 @@ const char kRecordFolder[] = ".\\camera\\";
 // name's number is read from its title past the fourth character ("ra0005": always 0, so the
 // rename goes to camera0001.cam; kept as the original has it). Sets bit 0x10 of 007AF5C0 either
 // way. Returns 1 (file name kept at +0x2EC, flag 0x10 set) when the file can be created, else 0.
-int __fastcall CameraOpenFile(CCamera* self, void*, const char* name) {
+int CCamera::OpenFile(const char* name) {
     mfc::CFileFind find;
     mfc::CFile file;
     if (find.FindFile(kCurrentRecord, 0) == 1) {
@@ -248,32 +248,32 @@ int __fastcall CameraOpenFile(CCamera* self, void*, const char* name) {
     {
         mfc::CString folder(kRecordFolder);
         mfc::CString full = folder + name;
-        self->fileName_ = full;
+        fileName_ = full;
     }
-    self->flags_ |= CCamera::kRecording;
+    flags_ |= CCamera::kRecording;
     file.Close();
     return 1;
 }
-EI_REPLACE(0x0040E910, CameraOpenFile);
+EI_REPLACE_METHOD(0x0040E910, CCamera::OpenFile);
 
 // 0040EB60: while recording (flag 0x10), appends a frame {time, -, local position, local rotation}
 // to the file named at +0x2EC. Returns 1 when written, 0 when not recording or the file does not
 // open.
-int __fastcall CameraRecordFrame(CCamera* self, void*, std::uint32_t time) {
+int CCamera::RecordFrame(std::uint32_t time) {
     CameraKey record;
     mfc::CFile file;
-    if (!(self->flags_ & CCamera::kRecording)) return 0;
-    if (!file.Open(self->fileName_, 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
+    if (!(flags_ & CCamera::kRecording)) return 0;
+    if (!file.Open(fileName_, 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
     reinterpret_cast<mfc::CFileVirtuals*>(&file)->Seek(0, 2);   // Seek(0, end), through slot 10
     std::memcpy(&record.time, &time, sizeof(record.time));
     record.reserved = 0;
-    std::memcpy(&record.position, &self->localPosition_, sizeof(record.position));
-    std::memcpy(&record.rotation, &self->localRotation_, sizeof(record.rotation));
+    std::memcpy(&record.position, &localPosition_, sizeof(record.position));
+    std::memcpy(&record.rotation, &localRotation_, sizeof(record.rotation));
     CFileWrite(&file, nullptr, &record, sizeof(record));
     file.Close();
     return 1;
 }
-EI_REPLACE(0x0040EB60, CameraRecordFrame);
+EI_REPLACE_METHOD(0x0040EB60, CCamera::RecordFrame);
 
 // 0040ECB0: closes the camera file: flag 0x10 off, the file name emptied. Returns 1.
 int __fastcall CameraCloseFile(CCamera* self) {

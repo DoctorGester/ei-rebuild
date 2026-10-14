@@ -35,7 +35,7 @@ static BOOL(__fastcall* s_create)(CSpell*);
 static BOOL __fastcall CreateVerify(CSpell* self) {
     BOOL expected;
     bool same = SameWrites(self, 0x30, 0x5C, [&] { return self->Clear(); }, [&] { return s_create(self); }, expected);
-    ei::verify::Check("CSpell::Clear", true, same, "spell %08X", self->unknown_18);
+    ei::verify::Check("CSpell::Clear", true, same, "spell %08X", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x0068B320, CreateVerify, 7, s_create);
@@ -46,7 +46,7 @@ static BOOL __fastcall InitFromPrototypeVerify(CSpell* self, void*, const char* 
     BOOL expected;
     bool same = SameWrites(self, 0x1C, 0x5C, [&] { return self->InitFromPrototype(prototype); },
                            [&] { return s_initFromPrototype(self, nullptr, prototype); }, expected);
-    ei::verify::Check("CSpell::InitFromPrototype", true, same, "spell %08X", self->unknown_18);
+    ei::verify::Check("CSpell::InitFromPrototype", true, same, "spell %08X", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x0068B430, InitFromPrototypeVerify, 7, s_initFromPrototype);
@@ -55,7 +55,7 @@ EI_VERIFY(0x0068B430, InitFromPrototypeVerify, 7, s_initFromPrototype);
 static char*(__fastcall* s_spellPrototype)(CSpell*);
 static char* __fastcall SpellPrototypeVerify(CSpell* self) {
     char* expected = s_spellPrototype(self);
-    ei::verify::Check("CSpell::GetPrototype", expected, self->GetPrototype(), "spell %08X", self->unknown_18);
+    ei::verify::Check("CSpell::GetPrototype", expected, self->GetPrototype(), "spell %08X", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x0068BA20, SpellPrototypeVerify, 6, s_spellPrototype);
@@ -69,7 +69,7 @@ static int __fastcall ModifierCountVerify(CSpell* self) {
     const auto* bytes = reinterpret_cast<const unsigned char*>(self) + 0x54;
     int expected = 0;
     while (expected < 8 && bytes[expected] != 0) ++expected;
-    ei::verify::Check("CSpell::GetModifierCount", expected, actual, "spell %08X", self->unknown_18);
+    ei::verify::Check("CSpell::GetModifierCount", expected, actual, "spell %08X", self->prototypeId_);
     return actual;
 }
 EI_VERIFY(0x0068BA60, ModifierCountVerify, 0, s_modifierCount);
@@ -79,7 +79,7 @@ static bool(__fastcall* s_hasCastFlag)(CSpell*);
 static bool __fastcall HasCastFlagVerify(CSpell* self) {
     bool expected = s_hasCastFlag(self);
     ei::verify::Check("CSpell::HasCastFlagModifier", expected, self->HasCastFlagModifier(), "spell %08X",
-                      self->unknown_18);
+                      self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x0068B7C0, HasCastFlagVerify, 7, s_hasCastFlag);
@@ -88,7 +88,7 @@ EI_VERIFY(0x0068B7C0, HasCastFlagVerify, 7, s_hasCastFlag);
 static int(__fastcall* s_damageType)(CSpell*);
 static int __fastcall DamageTypeVerify(CSpell* self) {
     int expected = s_damageType(self);
-    ei::verify::Check("CSpell::GetDamageType", expected, self->GetDamageType(), "spell %08X", self->unknown_18);
+    ei::verify::Check("CSpell::GetDamageType", expected, self->GetDamageType(), "spell %08X", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x0068B700, DamageTypeVerify, 6, s_damageType);
@@ -96,7 +96,7 @@ EI_VERIFY(0x0068B700, DamageTypeVerify, 6, s_damageType);
 static bool(__fastcall* s_isOffensive)(CSpell*);
 static bool __fastcall IsOffensiveVerify(CSpell* self) {
     bool expected = s_isOffensive(self);
-    ei::verify::Check("CSpell::IsOffensive", expected, self->IsOffensive(), "spell %08X", self->unknown_18);
+    ei::verify::Check("CSpell::IsOffensive", expected, self->IsOffensive(), "spell %08X", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x0068B770, IsOffensiveVerify, 6, s_isOffensive);

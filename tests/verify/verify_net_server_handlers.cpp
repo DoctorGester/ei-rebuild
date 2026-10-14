@@ -26,25 +26,25 @@ void* s_unused;
 // 0041ACA0: MOV EDX,ECX (2), PUSH ESI (1), MOV ESI,[ESP+8] (4).
 void(__fastcall* s_onMaster)(net::ServerSession*, void*, const net::NetAddress*, BufferCursor*);
 void __fastcall OnMasterVerify(net::ServerSession* self, void*, const net::NetAddress* from, BufferCursor* cursor) {
-    std::uint32_t savedValue = self->unknown_2578;
+    std::uint32_t savedValue = self->masterToken_;
     std::uint8_t* savedPosition = cursor->p;
     s_onMaster(self, nullptr, from, cursor);
-    std::uint32_t expectedValue = self->unknown_2578;
+    std::uint32_t expectedValue = self->masterToken_;
     std::uint8_t* expectedPosition = cursor->p;
-    self->unknown_2578 = savedValue;
+    self->masterToken_ = savedValue;
     cursor->p = savedPosition;
     self->ServerSession::OnMaster(from, cursor);
-    ei::verify::Check("ServerSession::OnMaster", expectedValue, self->unknown_2578, "the kept dword");
+    ei::verify::Check("ServerSession::OnMaster", expectedValue, self->masterToken_, "the kept dword");
     ei::verify::Check("ServerSession::OnMaster", static_cast<int>(expectedPosition - savedPosition),
                       static_cast<int>(cursor->p - savedPosition), "bytes read");
 }
 
 void __fastcall AnnounceVerify(net::ServerSession* self) {
-    std::uint32_t kept = self->unknown_2578;
+    std::uint32_t kept = self->masterToken_;
     std::uint32_t players = self->ClientCount();
     self->AnnounceToMaster();
     ei::verify::Check("ServerSession::AnnounceToMaster", true,
-                      kept == self->unknown_2578 && players == self->ClientCount(), "%u players", players);
+                      kept == self->masterToken_ && players == self->ClientCount(), "%u players", players);
 }
 
 void __fastcall OnSayVerify(net::ServerSession* server, net::SayMessage* message) {

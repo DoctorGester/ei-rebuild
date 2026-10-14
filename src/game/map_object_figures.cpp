@@ -1,6 +1,7 @@
 // The 3D object base under CMapObject: loading the figure's parts, rescaling them and their
 // bounding box. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
 #include "map_object_figures.h"
+#include "link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "world.h"   // CWorld: the figure manager and cache
 
 #include "lib/crt.h"
@@ -39,19 +40,19 @@ template <std::floating_point T> float Float(T) = delete;
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
 // 005AC2F0. Figure manager: builds `part` from `model` at the scale x, y, z given as float bits.
-__declspec(naked) void __fastcall BuildPart(void*, void*, FigurePart*, void*, std::uint32_t, std::uint32_t,
+__declspec(naked) void __fastcall BuildPart(void*, void*, CFigureMesh*, void*, std::uint32_t, std::uint32_t,
                                             std::uint32_t) EI_ORIGINAL(0x005AC2F0)
 // 0059F3D0. Part: remembers its owner.
-void __fastcall SetPartOwner(FigurePart* a0, void*, CObject3D* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall SetPartOwner(CFigureMesh* a0, void*, CObject3D* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
 // 0050D0E0. Animation state: a part was added.
-void AnimationAddPart(void* state, void*, FigurePart* part) { AnimationStateAddPartOriginal(state, nullptr, part); }
+void AnimationAddPart(void* state, void*, CFigureMesh* part) { AnimationStateAddPartOriginal(state, nullptr, part); }
 // 0050D7C0. Animation state: rescale to x, y, z given as float bits.
 void AnimationSetScale(void* state, void*, std::uint32_t x, std::uint32_t y, std::uint32_t z) {
     AnimationStateSetScaleOriginal(state, nullptr, x, y, z);
 }
 // 005197B0. map<string, piece>::find on the figure's piece map at figure + 0x14: writes the node,
 // or the map's header when absent, to *out.
-void __fastcall FindPiece(void* a0, void*, const FigurePieceRecord** a2, const stlp::string* a3) { StringMapFindOriginal(a0, nullptr, (void**)a2, (const void*)a3); }
+void __fastcall FindPiece(void* a0, void*, const LinkHeaderMap::Node** a2, const stlp::string* a3) { StringMapFindOriginal(a0, nullptr, (void**)a2, (const void*)a3); }
 // Rewritten here, called through their game addresses so their verify wrappers stay in the path.
 __declspec(naked) std::uint32_t __fastcall ComputeBoundsAt(CObject3D*) EI_ORIGINAL(0x00518310)
 __declspec(naked) void __fastcall SetAtGrowAt(AlignedPtrArray*, void*, int, void*) EI_ORIGINAL(0x00519E80)
@@ -88,39 +89,39 @@ struct BoxBits {
 };
 
 // (x * x + y * y) + z * z of the part's position, unrounded.
-double DistanceSquared(const FigurePart* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->position); }
+double DistanceSquared(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_); }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
-void AddPlacedPart(BoxBits& box, const FigurePart* p) {
-    box.low[0] = KeepLower(box.low[0], Sum3(p->boxMin.x, p->position.x, p->offset.x));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->boxMax.x, p->position.x, p->offset.x));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->boxMin.y, p->position.y, p->offset.y));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->boxMax.y, p->position.y, p->offset.y));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->boxMin.z, p->position.z, p->offset.z));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->boxMax.z, p->position.z, p->offset.z));
+void AddPlacedPart(BoxBits& box, const CFigureMesh* p) {
+    box.low[0] = KeepLower(box.low[0], Sum3(p->bounds_.boxMin.x, p->localPosition_.x, p->bounds_.center.x));
+    box.high[0] = KeepHigher(box.high[0], Sum3(p->bounds_.boxMax.x, p->localPosition_.x, p->bounds_.center.x));
+    box.low[1] = KeepLower(box.low[1], Sum3(p->bounds_.boxMin.y, p->localPosition_.y, p->bounds_.center.y));
+    box.high[1] = KeepHigher(box.high[1], Sum3(p->bounds_.boxMax.y, p->localPosition_.y, p->bounds_.center.y));
+    box.low[2] = KeepLower(box.low[2], Sum3(p->bounds_.boxMin.z, p->localPosition_.z, p->bounds_.center.z));
+    box.high[2] = KeepHigher(box.high[2], Sum3(p->bounds_.boxMax.z, p->localPosition_.z, p->bounds_.center.z));
 }
 
 // A pending part (position just reset to 0; the sums keep the original's operand order).
-void AddPendingPart(BoxBits& box, const FigurePart* p) {
-    box.low[0] = KeepLower(box.low[0], static_cast<float>(static_cast<double>(p->boxMin.x) + p->offset.x));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->boxMax.x, p->offset.x, p->position.x));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->boxMin.y, p->offset.y, p->position.y));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->boxMax.y, p->offset.y, p->position.y));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->boxMin.z, p->position.z, p->offset.z));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->boxMax.z, p->position.z, p->offset.z));
+void AddPendingPart(BoxBits& box, const CFigureMesh* p) {
+    box.low[0] = KeepLower(box.low[0], static_cast<float>(static_cast<double>(p->bounds_.boxMin.x) + p->bounds_.center.x));
+    box.high[0] = KeepHigher(box.high[0], Sum3(p->bounds_.boxMax.x, p->bounds_.center.x, p->localPosition_.x));
+    box.low[1] = KeepLower(box.low[1], Sum3(p->bounds_.boxMin.y, p->bounds_.center.y, p->localPosition_.y));
+    box.high[1] = KeepHigher(box.high[1], Sum3(p->bounds_.boxMax.y, p->bounds_.center.y, p->localPosition_.y));
+    box.low[2] = KeepLower(box.low[2], Sum3(p->bounds_.boxMin.z, p->localPosition_.z, p->bounds_.center.z));
+    box.high[2] = KeepHigher(box.high[2], Sum3(p->bounds_.boxMax.z, p->localPosition_.z, p->bounds_.center.z));
 }
 } // namespace
 
 std::uint32_t CObject3D::ComputeBounds() {
     BoxBits box;
     for (int i = 0; i < parts.size; ++i) {
-        auto* part = static_cast<FigurePart*>(parts.data[i]);
+        auto* part = static_cast<CFigureMesh*>(parts.data[i]);
         if (DistanceSquared(part) > kNearSquared) continue;   // NaN distances count as near
         AddPlacedPart(box, part);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        auto* part = static_cast<FigurePart*>(pendingParts.data[i]);
-        std::memset(&part->position, 0, sizeof(part->position));
+        auto* part = static_cast<CFigureMesh*>(pendingParts.data[i]);
+        std::memset(&part->localPosition_, 0, sizeof(part->localPosition_));
         AddPendingPart(box, part);
     }
     if (parts.size == 0 && pendingParts.size == 0) return 0;   // EAX: the pending count
@@ -163,23 +164,24 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
     if (!Differs(scale.x, newScale[0]) && !Differs(scale.y, newScale[1]) && !Differs(scale.z, newScale[2]))
         return 0;   // the original leaves the FPU status word in AX here
     std::memcpy(&scale, newScale, sizeof(scale));
-    if (CEngineObject* current = figure) {
-        CFigureCache* cache = static_cast<CWorld*>(ManagerContext())->FigureCache();
-        CEngineObject* rebuilt = cache->ScaledFigure(current, Bits(scale.x), Bits(scale.y), Bits(scale.z));
+    if (CLinkMesh* current = figure) {
+        CLinkFigureLoader* loader = static_cast<CWorld*>(ManagerContext())->FigureLoader();
+        CLinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
         FigureRef().Assign(rebuilt);   // 00519580
         for (int i = 0; i < parts.size; ++i) {
-            auto* part = static_cast<FigurePart*>(parts.data[i]);
+            auto* part = static_cast<CFigureMesh*>(parts.data[i]);
             const char* pieceName = part->GetName();
-            const FigurePieceRecord* piece;
+            const LinkHeaderMap::Node* piece;
             {
                 stlp::string key(pieceName);
-                FindPiece(reinterpret_cast<CFigureInstance*>(figure)->pieces, nullptr, &piece, &key);
+                FindPiece(&figure->headers_, nullptr, &piece, &key);
             }
-            part = static_cast<FigurePart*>(parts.data[i]);
-            std::memcpy(&part->offset, &piece->offset, sizeof(part->offset));
-            std::memcpy(&part->boxMin, &piece->boxMin, sizeof(part->boxMin));
-            std::memcpy(&part->boxMax, &piece->boxMax, sizeof(part->boxMax));
-            std::memcpy(&part->radius, &piece->radius, sizeof(float));
+            part = static_cast<CFigureMesh*>(parts.data[i]);
+            const ClipBounds& bounds = piece->second.bounds;
+            std::memcpy(&part->bounds_.center, &bounds.center, sizeof(part->bounds_.center));
+            std::memcpy(&part->bounds_.boxMin, &bounds.boxMin, sizeof(part->bounds_.boxMin));
+            std::memcpy(&part->bounds_.boxMax, &bounds.boxMax, sizeof(part->bounds_.boxMax));
+            std::memcpy(&part->bounds_.radius, &bounds.radius, sizeof(float));
         }
     }
     if (animation) AnimationSetScale(animation, nullptr, Bits(scale.x), Bits(scale.y), Bits(scale.z));
@@ -189,7 +191,7 @@ EI_REPLACE_METHOD(0x00517700, CObject3D::SetFigureScale);
 
 // --- Parts ------------------------------------------------------------------------------------
 
-int CObject3D::AddPart(FigurePart* part) {
+int CObject3D::AddPart(CFigureMesh* part) {
     for (int k = 0; k < parts.size; ++k)
         if (parts.data[k] == part) return 1;
     parts.SetAtGrow(parts.size, part);   // inlined in the original (allocating through 0051A170)
@@ -212,10 +214,10 @@ int CObject3D::LoadFigures() {
         model = FigureManagerFindModelOriginal(manager, nullptr, &key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        BuildPart(manager, nullptr, static_cast<FigurePart*>(pendingParts.data[i]), model, Bits(scale.x),
+        BuildPart(manager, nullptr, static_cast<CFigureMesh*>(pendingParts.data[i]), model, Bits(scale.x),
                   Bits(scale.y), Bits(scale.z));
-        --static_cast<FigurePart*>(pendingParts.data[i])->refCount_;   // no release at 0
-        auto* part = static_cast<FigurePart*>(pendingParts.data[i]);
+        --static_cast<CFigureMesh*>(pendingParts.data[i])->refCount_;   // no release at 0
+        auto* part = static_cast<CFigureMesh*>(pendingParts.data[i]);
         bool known = false;
         for (int k = 0; k < parts.size && !known; ++k) known = parts.data[k] == part;
         if (known) continue;
@@ -227,7 +229,7 @@ int CObject3D::LoadFigures() {
     }
     SetSizeAt(&pendingParts, nullptr, 0, -1);
     if (GetClassId() != kClassUnit) {
-        for (int i = 0; i < parts.size; ++i) static_cast<FigurePart*>(parts.data[i])->flags_ |= kPartFlagStatic;
+        for (int i = 0; i < parts.size; ++i) static_cast<CFigureMesh*>(parts.data[i])->flags_ |= kPartFlagStatic;
         flags_ |= kFlagPartsMarked;
     }
     Specific()->ApplyMaterials();

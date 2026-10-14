@@ -30,7 +30,7 @@ static void(__fastcall* s_attackParams)(CUnitClientSpecific*, void*, AttackParam
 static void __fastcall ClientAttackParamsVerify(CUnitClientSpecific* self, void*, AttackParams* out) {
     AttackParams expected = *out;
     s_attackParams(self, nullptr, &expected);
-    ClientGetAttackParams(self, nullptr, out);
+    self->GetAttackParams(out);
     ei::verify::Check("ClientGetAttackParams", true, SameFigures(expected, *out),
                       "unit %d: type %d/%d damage type %d/%d attack %d/%d defence %d/%d damage %g-%g / %g-%g "
                       "speed %g/%g spread %g/%g",

@@ -76,8 +76,8 @@ static void __fastcall RewindVerify(CAnimationNode* node, void*) {
     bool ok = node->clock_[0] == 0 && node->clock_[1] == 0 && node->rotationCursor_ == 0 &&
               node->translationCursor_ == 0 && node->normalCursor_ == 0 && node->morphCursor_ == 0;
     if (CFigureMesh* mesh = node->mesh_) {
-        ok = ok && std::memcmp(&mesh->position_, &node->posePosition_, sizeof(Vector3)) == 0 &&
-             std::memcmp(&mesh->rotation_, &node->poseRotation_, sizeof(Quaternion)) == 0 &&
+        ok = ok && std::memcmp(&mesh->localPosition_, &node->posePosition_, sizeof(Vector3)) == 0 &&
+             std::memcmp(&mesh->localRotation_, &node->poseRotation_, sizeof(Quaternion)) == 0 &&
              mesh->offsets_.size == node->pointsB_.size;
     }
     ei::verify::Check("CAnimationNode::Rewind", true, ok, "mesh %p, %d children", static_cast<void*>(node->mesh_),
@@ -105,7 +105,7 @@ bool MeshesBound(const CAnimationNode* node, const lib::AlignedArray<void*>* par
         if (std::strcmp(part->GetName(), node->name_) != 0) continue;
         CFigureMesh* mesh = node->mesh_;
         if (mesh != parts->data[i]) return false;
-        if (std::memcmp(&mesh->position_, &node->posePosition_, sizeof(Vector3)) != 0) return false;
+        if (std::memcmp(&mesh->localPosition_, &node->posePosition_, sizeof(Vector3)) != 0) return false;
         break;
     }
     for (int i = 0; i < node->children_.size; ++i) {

@@ -1,6 +1,6 @@
 // Combat, seventh part: the controller's movement modes, idle and movement animations, paths to a
 // point, the start of a planned action and the controller's reset. See combat.h, combat_plan.h
-// and docs/notes/combat.md ("Fourth round").
+// and docs/notes/combat.md ("Update").
 //
 // Animation lists cached on the controller: +0x944 the movement animation (key +0x940), +0x960
 // the idle animation (key +0x95C; its start time +0x974).
@@ -506,7 +506,7 @@ void CUnitServer::UpdateSneak() {
         motionChanged = 1;
         return;
     }
-    int allowed = unit->player ? PlayerOf(unit)->unknown_108 : 1;
+    int allowed = unit->player ? PlayerOf(unit)->godMode_ : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
     if (allowed == 0 && !(ServerVitals(unit).mana > 0.0f)) return;   // the breath (vitals +0x14)
     if (!MapCheapCell(world->AIMap(), nullptr, unit)) return;

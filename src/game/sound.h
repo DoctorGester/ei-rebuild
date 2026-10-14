@@ -180,7 +180,7 @@ struct CSoundManager : CEngineObject {
     std::int32_t streamLoopAt;
     std::int32_t streamFrameBytes;
     std::uint8_t streamSilence;
-    std::uint8_t unknown141[3];
+    std::uint8_t unused_141[3];
     SoundFader musicFader;              // +0x144 music volume (options) and fades
     mfc::CString streamName;            // +0x160 playing
     mfc::CString nextName;              // +0x164 requested
@@ -202,9 +202,9 @@ struct CSoundManager : CEngineObject {
     mfc::CString midiNextName;          // +0x1E0
     lib::AlignedArray<std::int32_t> midiArray1E4;   // +0x1E4
     lib::AlignedArray<std::int32_t> midiArray1F4;   // +0x1F4
-    std::uint8_t unknown204[8];
+    std::uint8_t unused_204[8];
     SoundFader midiFader;               // +0x20C
-    std::uint8_t unknown228[4];
+    std::uint8_t unused_228[4];
     std::uint8_t midiLock[0x18];        // +0x22C CRITICAL_SECTION
     mfc::CWinThread* midiThread;        // +0x244 006BBCB0's thread
     volatile std::int32_t threadsQuit;  // +0x248 set by Close; both threads end on it
@@ -221,7 +221,7 @@ struct CSoundManager : CEngineObject {
     std::uint8_t cacheBuckets[0x10];    // +0x874 its bucket vector and element count
     DeferredMap deferred;               // +0x884
     std::int32_t enabled;               // +0x898
-    std::int32_t unknown89C;
+    std::int32_t spare;                 // +0x89C 0 after Reset; nothing reads it
     std::int32_t reverbOn;              // +0x8A0
     std::int32_t panDirect;             // +0x8A4 0: pans are mirrored
     float reverb[3];                    // +0x8A8 room type / level / reflect time (006B69E0)

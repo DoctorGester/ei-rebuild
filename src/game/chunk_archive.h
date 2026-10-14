@@ -39,7 +39,7 @@ public:
     // occurrence of a child id the next search for it takes.
     struct Ref {
         std::uint8_t id;
-        std::uint8_t unknown_01[3];
+        std::uint8_t unused_01[3];
         std::int32_t offset;     // of the content in dataStream_
         std::int32_t size;
         std::int32_t occurrence;

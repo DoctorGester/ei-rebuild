@@ -1,5 +1,5 @@
 // CPlayerClient's remaining message handlers and its slot 14 (A-H23). See player_client.h and
-// docs/notes/objects.md ("Client" handler table).
+// docs/notes/objects.md ("Players").
 #include "player_client.h"
 
 #include "camera.h"
@@ -110,12 +110,12 @@ int CPlayerClient::OnCameraPlacement() {
 
 int CPlayerClient::OnGameState() {
     CPlayer* player = Owner();
-    player->unknown_104 = static_cast<std::uint32_t>(player->sessionKind100_);
+    player->lastScreen_ = static_cast<std::uint32_t>(player->sessionKind100_);
     int state;
     in_.Read(&state, 4);
     int tick;
     in_.Read(&tick, 4);
-    if (unknown_84) {
+    if (localSession_) {
         TheInterface()->OnKeyDown(-1, kKeyEnter, 0);
         return 1;
     }

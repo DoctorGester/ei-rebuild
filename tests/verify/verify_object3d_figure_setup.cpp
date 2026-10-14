@@ -85,15 +85,15 @@ static int __fastcall AddVerify(AlignedPtrArray* self, void*, void* value) {
 }
 EI_VERIFY(0x00519A10, AddVerify, 0, s_unusedAdd);
 
-static FigurePart* __fastcall LoadPartVerify(CObject3D* self, void*, const char* partName, void* model,
+static CFigureMesh* __fastcall LoadPartVerify(CObject3D* self, void*, const char* partName, void* model,
                                              std::uint32_t arg) {
-    FigurePart* part = self->LoadPart(partName, model, arg);
+    CFigureMesh* part = self->LoadPart(partName, model, arg);
     bool ok = true;
     if (part) {
         bool listed = false;
         for (int i = 0; i < self->parts.size; ++i) listed = listed || self->parts.data[i] == part;
-        ok = listed && (part->boxFlags & 4) != 0 && part->boxPivot.x == part->position.x &&
-             part->boxPivot.y == part->position.y && part->boxPivot.z == part->position.z;
+        ok = listed && (part->bounds_.flags & 4) != 0 && part->boxPivot_.x == part->localPosition_.x &&
+             part->boxPivot_.y == part->localPosition_.y && part->boxPivot_.z == part->localPosition_.z;
     }
     ei::verify::Check("CObject3D::LoadPart", true, ok, "%s: %p", partName ? partName : "-", static_cast<void*>(part));
     return part;

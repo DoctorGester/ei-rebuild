@@ -129,6 +129,11 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vec
 // inside a circle, 0x200 the alternate limits.
 class CCamera : public CTransformObject {
 public:
+    void GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const;
+    // camera_object.cpp. 0040E910 (RET 4): starts recording into ".\camera\" + `name` (1 when the file
+    // can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
+    int OpenFile(const char* name);
+    int RecordFrame(std::uint32_t time);
     static constexpr std::uintptr_t kVtableAddress = 0x0073B9E0;
 
     static constexpr std::uint32_t kFollowing = 0x8;
@@ -347,7 +352,4 @@ inline const char* EmptyStringData() { return *reinterpret_cast<const char* cons
 
 } // namespace camera
 
-// camera_object.cpp. 0040E910 (RET 4): starts recording into ".\camera\" + `name` (1 when the file
-// can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
-int __fastcall CameraOpenFile(CCamera* self, void*, const char* name);
 int __fastcall CameraCloseFile(CCamera* self);

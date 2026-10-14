@@ -18,7 +18,7 @@
 #include "originals_render.h"    // DeviceDrawFlatOriginal
 #include "originals_ui.h"        // TextureNamedOriginal, TextureLoadOriginal
 #include "originals_world.h"     // ClientProjectDecalOriginal
-#include "terrain_sector.h"      // TerrainFields::SurfaceClass
+#include "terrain.h"             // Terrain::SurfaceClass
 #include "texture.h"
 #include "world.h"
 
@@ -97,7 +97,7 @@ int RandomQuarter() { return gamecrt::rand() * 4 / 0x7FFF % 4; }
 // The prints.db entry for the ground at (x, y), or null.
 template <typename Record>
 const Record* EntryAt(const stlp::vector<Record>& table, CWorldClient* world, float x, float y) {
-    auto surface = static_cast<std::uint32_t>(reinterpret_cast<terrain::TerrainFields*>(world->terrain_)->SurfaceClass(x, y));
+    auto surface = static_cast<std::uint32_t>(world->terrain_->SurfaceClass(x, y));
     return surface < table.size() ? &table[surface] : nullptr;
 }
 

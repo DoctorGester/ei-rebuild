@@ -313,10 +313,10 @@ void CPlayerServer::ClearState() {
     lastPosition_.x = 0.0f;
     lastPosition_.y = 0.0f;
     lastPosition_.z = 0.0f;
-    unknown_44 = -1;
+    spare_ = -1;
     group50F8_.SetSize(0, -1);
     partyUnits_.SetSize(0, -1);
-    unknown24_ = 0xFFFFFFFFu;
+    possessedId_ = 0xFFFFFFFFu;
     refreshPending_ = 0;
     flag70_ = 0;
     PlacementsSetSizeOriginal(&placements_, nullptr, 0, -1);

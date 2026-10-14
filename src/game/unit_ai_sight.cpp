@@ -81,8 +81,7 @@ void AIViewer::Prepare(CUnit* self) {
     facing = -axis;
 }
 
-void __fastcall PrepareHook(AIViewer* self, void*, CUnit* unit) { self->Prepare(unit); }
-EI_REPLACE(0x005CA410, PrepareHook);
+EI_REPLACE_METHOD(0x005CA410, AIViewer::Prepare);
 
 void AIViewer::Refresh(CUnit* self, AIBrain* brain) {
     if (--brain->nearbyCountdown > 0) return;

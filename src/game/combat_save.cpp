@@ -1,5 +1,5 @@
 // CUnitServer's Load and Save slots (vtable 0073EF38 slots 9 and 10). See combat.h and
-// docs/notes/combat.md ("Third round").
+// docs/notes/combat.md ("Rewritten").
 #include "combat.h"
 
 #include "map_object.h"
@@ -141,11 +141,11 @@ void __fastcall SaveStepList(const AnimationSteps* steps, UnitStream* stream) {
 }
 EI_REPLACE(0x00558420, SaveStepList);
 
-void __fastcall SaveArmourSpell(const ArmourSpell* entry, void*, UnitStream* stream) {
-    WriteCopy(stream, IdOrNone(entry->item));
-    WriteCopy(stream, entry->countdown);
+void ArmourSpell::Save(UnitStream* stream) const {
+    WriteCopy(stream, IdOrNone(item));
+    WriteCopy(stream, countdown);
 }
-EI_REPLACE(0x00545430, SaveArmourSpell);
+EI_REPLACE_METHOD(0x00545430, ArmourSpell::Save);
 
 void __fastcall LoadArmourSpells(ArmourSpellList* list, UnitStream* stream) {
     int count = 0;
@@ -283,7 +283,7 @@ void CUnitServer::SaveServer(UnitStream* stream) {
     for (auto* node = armourSpells.head; node;) {
         auto* current = node;
         node = node->next;
-        SaveArmourSpell(&current->data, nullptr, stream);
+        current->data.Save(stream);
     }
     WriteCopy(stream, followsLeader);
     WriteCopy(stream, IdOrNone(followedLeader));

@@ -2,7 +2,7 @@
 
 // The unit record the world server applies to a unit it creates (00477B00, called from
 // CWorldServer's object creation 005927C0): base stats, skills, the inventory, spells and
-// equipment. Names are provisional; see docs/notes/objects.md ("Unit record").
+// equipment. Names are provisional; see docs/notes/objects.md ("Rewritten").
 
 #include <cstddef>
 #include <cstdint>

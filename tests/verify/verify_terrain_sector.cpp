@@ -223,9 +223,9 @@ EI_VERIFY(0x006C1C00, BuildVerify, 8, s_build);
 // 006C13A0 SectorData::Load. Ours on the real sector, then the original on a scratch copy whose
 // arrays are emptied (its first step, Clear, would free them); the archive reference the second
 // GetFile takes is dropped again with CloseFile.
-static int(__fastcall* s_load)(SectorData*, void*, void*, int, int, int, int, const char*, TerrainFields*);
+static int(__fastcall* s_load)(SectorData*, void*, void*, int, int, int, int, const char*, Terrain*);
 static int __fastcall LoadVerify(SectorData* s, void*, void* archive, int sx, int sy, int pages, int perPage,
-                                 const char* prefix, TerrainFields* owner) {
+                                 const char* prefix, Terrain* owner) {
     int r = s->Load(archive, sx, sy, pages, perPage, prefix, owner);
     if (r != 1 || !(s->built & 1)) return r;
     auto* scratch = static_cast<SectorData*>(gamecrt::operator_new(sizeof(SectorData)));
@@ -295,8 +295,8 @@ EI_VERIFY(0x006C30E0, ApplyWaterVerify, 6, s_applyWater);
 
 // 006C3DD0 SectorData::Ensure: ours only (it builds); the result must be wanted & built, and
 // what was asked for must be built.
-static std::uint32_t(__fastcall* s_unusedEnsure)(SectorData*, void*, std::uint32_t, TerrainFields*);
-static std::uint32_t __fastcall EnsureVerify(SectorData* s, void*, std::uint32_t wanted, TerrainFields* owner) {
+static std::uint32_t(__fastcall* s_unusedEnsure)(SectorData*, void*, std::uint32_t, Terrain*);
+static std::uint32_t __fastcall EnsureVerify(SectorData* s, void*, std::uint32_t wanted, Terrain* owner) {
     bool already = (wanted & s->built) != 0;
     std::uint32_t r = s->Ensure(wanted, owner);
     bool ok = already ? r == 1
@@ -306,21 +306,21 @@ static std::uint32_t __fastcall EnsureVerify(SectorData* s, void*, std::uint32_t
 }
 EI_VERIFY(0x006C3DD0, EnsureVerify, 0, s_unusedEnsure);
 
-// 006C53C0 TerrainFields::TileUv: pure.
-static const float*(__fastcall* s_tileUv)(TerrainFields*, void*, int, int, int);
-static const float* __fastcall TileUvVerify(TerrainFields* self, void*, int rotation, int index, int page) {
+// 006C53C0 Terrain::TileUv: pure.
+static const float*(__fastcall* s_tileUv)(Terrain*, void*, int, int, int);
+static const float* __fastcall TileUvVerify(Terrain* self, void*, int rotation, int index, int page) {
     const float* expected = s_tileUv(self, nullptr, rotation, index, page);
-    ei::verify::Check("TerrainFields::TileUv", expected, self->TileUv(rotation, index, page), "%d %d %d", rotation, index, page);
+    ei::verify::Check("Terrain::TileUv", expected, self->TileUv(rotation, index, page), "%d %d %d", rotation, index, page);
     return expected;
 }
 // 006c53c0 MOV EAX,[ESP+0xc]; PUSH ESI (5 bytes)
 EI_VERIFY(0x006C53C0, TileUvVerify, 5, s_tileUv);
 
-// 006C8D40 TerrainFields::SurfaceClass: side by side (the sector lookup only refreshes the cache).
-static int(__fastcall* s_surfaceClass)(TerrainFields*, void*, float, float);
-static int __fastcall SurfaceClassVerify(TerrainFields* self, void*, float x, float y) {
+// 006C8D40 Terrain::SurfaceClass: side by side (the sector lookup only refreshes the cache).
+static int(__fastcall* s_surfaceClass)(Terrain*, void*, float, float);
+static int __fastcall SurfaceClassVerify(Terrain* self, void*, float x, float y) {
     int expected = s_surfaceClass(self, nullptr, x, y);
-    ei::verify::Check("TerrainFields::SurfaceClass", expected, self->SurfaceClass(x, y), "x=%g y=%g", x, y);
+    ei::verify::Check("Terrain::SurfaceClass", expected, self->SurfaceClass(x, y), "x=%g y=%g", x, y);
     return expected;
 }
 // 006c8d40 PUSH EBP; MOV EBP,ESP; SUB ESP,0xc (6 bytes)

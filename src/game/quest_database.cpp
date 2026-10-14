@@ -126,7 +126,7 @@ void PushPlace(QuestRecord* quest, float value) {
 
 // The "quest" section into the quest record.
 void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places) {
-    quest->unknown_10 = 0;
+    quest->field2 = 0;
     {
         mfc::CString name = reg.GetString(Text(kQuest), Text(kName), Copy(game::EmptyText()));
         const char* text = name;
@@ -226,7 +226,7 @@ void ConstructBriefing(QuestBriefingRecord* briefing) {
 // "briefing receive": the lists read inline (the first three erased over their range, the others
 // cleared), added like the quest.
 void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
-    briefing->unknown_68 = 0;
+    briefing->field10 = 0;
     ReadBriefingHeader(reg, briefing, kReceive, false);
     for (int i = 0; i < 6; ++i) ReadListInline(reg, kReceive, i, briefing, i < 3);
     AddReceiveBriefing(db, briefing);

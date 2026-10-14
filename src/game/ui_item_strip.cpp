@@ -1,6 +1,6 @@
 // The item strip's layout (00620380): the camp's and the hero screen's strips of items along the
 // top or bottom edge, and the forwarding strip's draw (00621B50). See ui_screens.h
-// (CUiItemStrip::Build, Draw) and docs/notes/ui.md ("Tenth pass", "Fourteenth pass").
+// (CUiItemStrip::Build, Draw) and docs/notes/ui.md ("Camp, global map, hero screens").
 #include "ui_item_info.h"
 #include "ui_screens.h"
 

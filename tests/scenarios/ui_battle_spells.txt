@@ -1,4 +1,4 @@
-# The battle screen's spell target modes (docs/notes/ui.md, "Seventeenth pass"). The hero gets
+# The battle screen's spell target modes (docs/notes/ui.md, "Battle screen"). The hero gets
 # three spells (GiveUnitSpell) and a click on its portrait refreshes the spell column (00637DC0 ->
 # 0063E820): the spells' buttons stand at x 760..800, the last one at y 470..510 and each earlier
 # one 40 higher (0063E4B0), so with three spells their centres are (780, 410), (780, 450) and

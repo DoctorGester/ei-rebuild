@@ -173,7 +173,7 @@ public:
     float timeout_;          // +0x18 seconds until the entry is checked again (1e38: never)
     float ping_;             // +0x1C seconds; the constant at 0073BFA0 when unknown
     std::uint8_t foreign_;   // +0x20 the reply's echoed word differs from the magic
-    std::uint8_t unknown_21[3];
+    std::uint8_t unused_21[3];
     std::uint32_t state_;    // +0x24 State
 };
 static_assert(offsetof(ServerEntryBase, address_) == 0x08);
@@ -200,7 +200,7 @@ public:
     std::uint8_t players_;        // +0x44
     std::uint8_t maxPlayers_;     // +0x45
     std::uint8_t password_;       // +0x46 whether joining needs a password
-    std::uint8_t unknown_47;
+    std::uint8_t unused_47;
 };
 static_assert(offsetof(ServerEntry, name_) == 0x28);
 static_assert(offsetof(ServerEntry, description_) == 0x38);
@@ -318,7 +318,7 @@ struct ClientNode {
 struct Replicated {
     Message* object;           // replicated while it is listed
     std::uint8_t priority;     // 0..10
-    std::uint8_t unknown_05[3];
+    std::uint8_t unused_05[3];
 };
 using ReplicatedVector = stlp::vector<Replicated>;
 static_assert(sizeof(ReplicatedVector) == 12);
@@ -404,7 +404,7 @@ public:
                                         //       stay remembered (seconds)
     std::int32_t idReuseTime_;          // +0x14 75: seconds before a freed message id is reused
     std::uint32_t frame_;               // +0x18 1; Tick counts its calls
-    std::uint32_t unknown_1C;           // +0x1C not set by the constructors
+    std::uint32_t unused_1C;           // +0x1C not set by the constructors
     double time_;                       // +0x20 0; Tick adds the elapsed time
     ClientNode* clients_;               // +0x28 the connections (list sentinel, 12-byte nodes)
     TypeRegistry types_;                // +0x2C
@@ -458,7 +458,7 @@ public:
     void SendInfo(const NetAddress* address, std::uint32_t echo);
 
     void* joins_;                       // +0x2568 STLport list<PendingJoin> (0041FD30)
-    std::uint32_t unknown_256C;         // +0x256C not set
+    std::uint32_t unused_256C;         // +0x256C not set
 };
 static_assert(offsetof(ServerBase, joins_) == 0x2568);
 static_assert(sizeof(ServerBase) == 0x2570);
@@ -542,8 +542,9 @@ public:
 
     float announceTimer_;               // +0x2570 seconds to the next announcement to the master server
     std::uint8_t public_;               // +0x2574 announced to the master server
-    std::uint8_t unknown_2575[3];
-    std::uint32_t unknown_2578;         // +0x2578 0 (the announcement's +0x20)
+    std::uint8_t unused_2575[3];
+    std::uint32_t masterToken_;         // +0x2578 0; the dword the master server last sent (OnMaster), sent back
+                                        // with the next announcement (GameInfoRecord::masterToken)
     NetAddress masterAddress_;          // +0x257C the master server (port 28004)
     std::uint32_t nextLine_;            // +0x258C the number of the next chat line
     void* players_;                     // +0x2590 player records (0073BC70)
@@ -567,7 +568,8 @@ public:
     std::uint32_t maxPlayers_;          // +0x25E0 8; set by the creator (0057E740)
     std::uint32_t kind_;                // +0x25E4 the constructor's argument: the game kind
     std::uint8_t password_[0x14];       // +0x25E8 the join password (empty: none)
-    std::uint32_t unknown_25FC;         // +0x25FC set by the creator
+    std::uint32_t masterKey_;           // +0x25FC set by the creator (StartServer); announced, and the master
+                                        // server's packets must start with it (OnMaster)
 };
 static_assert(offsetof(ServerSession, announceTimer_) == 0x2570);
 static_assert(offsetof(ServerSession, masterAddress_) == 0x257C);
@@ -628,7 +630,7 @@ public:
     std::uint32_t joinId_;              // +0x2594 rand() << 16 | tick count
     std::uint32_t joinState_;           // +0x2598 JoinState
     std::uint8_t refusal_;              // +0x259C the reason the host gave
-    std::uint8_t unknown_259D[3];
+    std::uint8_t unused_259D[3];
     float retryTimer_;                  // +0x25A0 seconds to the next join request
     float retryInterval_;               // +0x25A4 doubles with every request (0.1 first)
     void* servers_;                     // +0x25A8 STLport list of counted ServerEntry
@@ -636,7 +638,7 @@ public:
     void* waiting_;                     // +0x25BC addresses waiting to be asked (list<NetAddress>)
     NetAddress alwaysAsk_;              // +0x25C0 asked on every refresh (ip 0: none)
     std::uint32_t nextQuery_;           // +0x25D0 the query the refresh pings next
-    std::uint32_t unknown_25D4;         // +0x25D4 not set
+    std::uint32_t unused_25D4;         // +0x25D4 not set
 };
 static_assert(offsetof(ClientBase, host_) == 0x2568);
 static_assert(offsetof(ClientBase, joinData_) == 0x2578);
@@ -731,10 +733,10 @@ struct GameInfoRecord {
     StringRep description;       // +0x0C
     std::uint8_t players;        // +0x18 number of players
     std::uint8_t maxPlayers;     // +0x19 the server's maxPlayers_
-    std::uint8_t unknown_1A;
-    std::uint8_t unknown_1B;
-    std::uint32_t unknown_1C;
-    std::uint32_t unknown_20;    // +0x20 the server's +0x2578
+    std::uint8_t kind;           // +0x1A the server's kind_ (ServerEntry::kind_)
+    std::uint8_t hasPassword;    // +0x1B joining needs a password (ServerEntry::password_)
+    std::uint32_t masterKey;     // +0x1C the server's masterKey_
+    std::uint32_t masterToken;   // +0x20 the server's masterToken_
     std::uint32_t magic;         // +0x24 kSessionMagic
 
     void Write(GameBuffer* buffer) const;   // 00401000

@@ -1,6 +1,9 @@
 // The 3D object's Create / Destroy slots, its effect sources and the counted figure reference.
 // See map_object_figures.h and docs/notes/map_objects.md ("Figures").
 #include "map_object_figures.h"
+#include "link_figure.h"   // CLinkMesh: the figure
+#include "map_object_shadow.h"   // WoundsMaterial: the client half's
+#include "model.h"               // CRenderPreset: the wounds material's
 
 #include "lib/crt.h"
 
@@ -17,20 +20,33 @@ const float* DefaultFigureScale() { return reinterpret_cast<const float*>(0x007A
 // Not rewritten, forwarder: 0050D3A0, the animation state lets go of every part (plain RET).
 __declspec(naked) int __fastcall AnimationReleaseParts(CFigureAnimationState* /*state*/) EI_ORIGINAL(0x0050D3A0)
 
-void DropReference(CEngineObject* object) {
-    if (object && --object->refCount_ == 0) delete object;
+// The counted objects CountedRef holds: their count (+0x04) and their deletion (slot 0 with 1).
+inline int& CountOf(CLinkMesh* figure) { return figure->refCount_; }
+inline int& CountOf(WoundsMaterial* material) { return material->refCount; }
+inline int& CountOf(CRenderPreset* preset) { return preset->refs_; }
+inline void DeleteCounted(CLinkMesh* figure) { figure->DeleteThis(1); }
+inline void DeleteCounted(WoundsMaterial* material) { material->DeletingDestructor(1); }
+inline void DeleteCounted(CRenderPreset* preset) { preset->DeleteThis(1); }
+
+template <typename T>
+void DropReference(T* object) {
+    if (object && --CountOf(object) == 0) DeleteCounted(object);
 }
 } // namespace
 
-void CountedRef::Assign(CEngineObject* value) {
-    CEngineObject* old = object;
+template <typename T>
+void CountedRef<T>::Assign(T* value) {
+    T* old = object;
     object = value;
-    if (value) ++value->refCount_;
+    if (value) ++CountOf(value);
     DropReference(old);
 }
-EI_REPLACE_METHOD(0x00519580, CountedRef::Assign);
-EI_REPLACE_METHOD(0x0051E4F0, CountedRef::Assign);   // byte-identical copies (A-U11)
-EI_REPLACE_METHOD(0x0051E570, CountedRef::Assign);
+template struct CountedRef<CLinkMesh>;
+template struct CountedRef<WoundsMaterial>;
+template struct CountedRef<CRenderPreset>;
+EI_REPLACE_METHOD(0x00519580, CountedRef<CLinkMesh>::Assign);
+EI_REPLACE_METHOD(0x0051E570, CountedRef<WoundsMaterial>::Assign);   // byte-identical copies (A-U11)
+EI_REPLACE_METHOD(0x0051E4F0, CountedRef<CRenderPreset>::Assign);
 
 int CObject3D::Create3D() {
     std::memset(&position, 0, sizeof(position));
@@ -40,7 +56,7 @@ int CObject3D::Create3D() {
     spare09C = 0;
     animations = nullptr;
     std::memset(&scale, 0, sizeof(scale));
-    CEngineObject* old = figure;
+    CLinkMesh* old = figure;
     figure = nullptr;
     DropReference(old);
     std::memcpy(&defaultScale, DefaultFigureScale(), sizeof(defaultScale));

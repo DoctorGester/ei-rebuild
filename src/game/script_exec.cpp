@@ -493,7 +493,7 @@ __declspec(naked) int CameraCalls::Play(const char*, int) EI_ORIGINAL(0x00578820
 using PtrList = mfc::CList<void*>;
 struct PartySlot {
     int unitId;
-    std::uint8_t unknown_04[36];
+    std::uint8_t unused_04[36];
 };
 using PartyArray = mfc::CArray<PartySlot>;
 __declspec(naked) PartyArray* __fastcall PartySlotsConstruct(PartyArray*) EI_ORIGINAL(0x004BB000)

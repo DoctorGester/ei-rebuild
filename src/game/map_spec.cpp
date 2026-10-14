@@ -1,6 +1,6 @@
 // The zone file's object records: the base record, objects, flames, magic traps and levers
 // (map_spec.h), and the quaternion rotation the editor uses (0046A4B0). Plain float maths
-// (rule 7). See docs/notes/objects.md ("Sixth round").
+// (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "map_spec.h"
 #include "game_strings.h"
 #include "map_object.h"
@@ -79,7 +79,7 @@ Spec* Spec::SpecConstruct() {
     SetVtable(this, kSpecVtable);
     mfc::CString none(Text(0x007846F0));   // "none"
     id = -1;
-    unknown_44 = -1;
+    spareId = -1;
     position = {0.0f, 0.0f, 0.0f};
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     kind = 0;
@@ -142,7 +142,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     new (&texture) mfc::CString();
     new (&primaryTexture) mfc::CString();
     new (&parentIname) mfc::CString();
-    new (&unknown_74) mfc::CString();
+    new (&skinTexture) mfc::CString();
     StringArrayConstruct(&parts);
     SetVtable(this, kObjectVtable);
     mfc::CString none(Text(0x007846F0));
@@ -157,9 +157,9 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     scale.z = 0.5f;
     shadow = 0;
     visible = 1;
-    unknown_6E = 0;
+    side = 0;
     parentIname = none;
-    unknown_74 = none;
+    skinTexture = none;
     StringArraySetSize(&parts, nullptr, 0, -1);
     return this;
 }
@@ -169,7 +169,7 @@ EI_REPLACE_METHOD(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
 void ObjectSpec::ObjectSpecDestruct() {
     SetVtable(this, kObjectVtable);
     StringArrayDestruct(&parts);
-    unknown_74.~CString();
+    skinTexture.~CString();
     parentIname.~CString();
     primaryTexture.~CString();
     texture.~CString();
@@ -197,7 +197,7 @@ void ObjectSpec::ObjectSpecAssign(const ObjectSpec* from) {
     Spec& b = base;
     const Spec& f = from->base;
     b.object = f.object;
-    b.unknown_44 = f.unknown_44;
+    b.spareId = f.spareId;
     b.id = f.id;
     b.position = f.position;
     b.rotation = f.rotation;
@@ -211,9 +211,9 @@ void ObjectSpec::ObjectSpecAssign(const ObjectSpec* from) {
     std::memcpy(&scale, &from->scale, sizeof(scale));
     shadow = from->shadow;
     visible = from->visible;
-    unknown_6E = from->unknown_6E;
+    side = from->side;
     parentIname = from->parentIname;
-    unknown_74 = from->unknown_74;
+    skinTexture = from->skinTexture;
     StringArraySetSize(&parts, nullptr, 0, -1);
     StringArrayAppend(&parts, nullptr, &from->parts);
 }
@@ -223,14 +223,14 @@ EI_REPLACE_METHOD(0x0046A710, ObjectSpec::ObjectSpecAssign);
 void ObjectSpec::ObjectSpecWriteFields() {
     Chunk& c = base.chunk;
     c.WriteStringArray(0xB00D, &parts);
-    c.WriteByte(0xB011, unknown_6E);
+    c.WriteByte(0xB011, side);
     c.WriteInt(0xB002, base.id);
     c.WriteInt(0xB003, parentId);
     c.WriteString(0xB004, base.name);
     c.WriteString(0xB006, texture);
     c.WriteString(0xB00E, primaryTexture);
     c.WriteString(0xB007, parentIname);
-    c.WriteString(0xB008, unknown_74);
+    c.WriteString(0xB008, skinTexture);
     c.WriteString(0xB00F, base.comment);
     WriteVector(c, 0xB009, base.position);
     Quaternion rotation;
@@ -264,7 +264,7 @@ void ObjectSpec::ObjectSpecOnChunk() {
     case 0xB004: ReadInto(c, base.name); break;
     case 0xB006: ReadInto(c, texture); break;
     case 0xB007: ReadInto(c, parentIname); break;
-    case 0xB008: ReadInto(c, unknown_74); break;
+    case 0xB008: ReadInto(c, skinTexture); break;
     case 0xB009: {
         Vector3 v;
         std::memcpy(&base.position, c.ReadVector3(&v), sizeof(Vector3));
@@ -283,7 +283,7 @@ void ObjectSpec::ObjectSpecOnChunk() {
     case 0xB00D: c.ReadStringArray(&parts); break;
     case 0xB00E: ReadInto(c, primaryTexture); break;
     case 0xB00F: ReadInto(c, base.comment); break;
-    case 0xB011: unknown_6E = c.ReadByte(); break;
+    case 0xB011: side = c.ReadByte(); break;
     case 0xB012: player = c.ReadInt(); break;
     case 0xB013: shadow = ReadFlag(c); break;
     case 0xB014: visible = ReadFlag(c); break;
@@ -529,7 +529,7 @@ LeverSpec* LeverSpec::LeverSpecConstruct() {
     states = 2;
     cycled = 0;
     castOnce = 0;
-    unknown_A2 = 0;
+    field04 = 0;
     SetVtable(this, kLeverVtable);
     object.base.kind = 8;
     return this;
@@ -555,7 +555,7 @@ void LeverSpec::LeverSpecSave() {
     c.WriteBlob(0xBBAC0006, stats, 12);
     c.WriteByte(0xBBAC0002, static_cast<std::uint8_t>(state));
     c.WriteByte(0xBBAC0003, static_cast<std::uint8_t>(states));
-    c.WriteByte(0xBBAC0004, unknown_A2);
+    c.WriteByte(0xBBAC0004, field04);
     c.WriteByte(0xBBAC0007, cycled);
     c.WriteByte(0xBBAC0008, castOnce);
     object.ObjectSpecWriteFields();
@@ -569,7 +569,7 @@ void LeverSpec::LeverSpecOnChunk() {
     switch (c.id_) {
     case 0xBBAC0002: state = c.ReadByte(); break;
     case 0xBBAC0003: states = c.ReadByte(); break;
-    case 0xBBAC0004: unknown_A2 = ReadFlag(c); break;
+    case 0xBBAC0004: field04 = ReadFlag(c); break;
     case 0xBBAC0006: c.ReadBytes(stats, 12); break;
     case 0xBBAC0007: cycled = ReadFlag(c); break;
     case 0xBBAC0008: castOnce = ReadFlag(c); break;

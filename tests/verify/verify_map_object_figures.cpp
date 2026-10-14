@@ -90,7 +90,7 @@ static int __fastcall LoadFiguresVerify(CObject3D* self) {
 EI_VERIFY(0x00517500, LoadFiguresVerify, 0, s_unused);
 
 // 005164B0. Ours only (references the part): the part is in the list afterwards.
-static int __fastcall AddPartVerify(CObject3D* self, void*, FigurePart* part) {
+static int __fastcall AddPartVerify(CObject3D* self, void*, CFigureMesh* part) {
     int result = self->AddPart(part);
     bool found = false;
     for (int k = 0; k < self->parts.size && !found; ++k) found = self->parts.data[k] == part;

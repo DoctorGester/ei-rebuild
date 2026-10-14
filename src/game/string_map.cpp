@@ -37,7 +37,7 @@ public:
     RECT shown_;                 // +0x1C the rectangle on screen
     RECT asked_;                 // +0x2C the rectangle asked for
     std::uint8_t visible_;       // +0x3C
-    std::uint8_t unknown_3D[3];
+    std::uint8_t unused_3D[3];
     DWORD lastDraw_;             // +0x40 the tick of the last drawing
 };
 static_assert(offsetof(CDebugPanel, entries_) == 0x04 && offsetof(CDebugPanel, ui_) == 0x10 &&

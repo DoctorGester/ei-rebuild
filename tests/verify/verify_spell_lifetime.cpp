@@ -118,7 +118,7 @@ void __fastcall CastInitVerify(CSpellEffect* self, void*, CWorldServer* world, C
               self->silentEnd == static_cast<std::uint8_t>(flagA4) &&
               std::memcmp(&self->position, &from, sizeof(from)) == 0 &&
               std::memcmp(&self->targetPoint, &to, sizeof(to)) == 0 &&
-              self->Spell()->unknown_18 == spell->unknown_18 &&
+              self->Spell()->prototypeId_ == spell->prototypeId_ &&
               (!countable || caster->refCount_ == casterCount + (newCaster ? 1 : 0));
     ei::verify::Check("CSpellEffect::Init", true, ok, "effect %p caster %p target %p", static_cast<void*>(self),
                       static_cast<void*>(caster), static_cast<void*>(target));

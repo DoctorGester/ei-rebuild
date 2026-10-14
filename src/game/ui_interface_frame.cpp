@@ -1,4 +1,4 @@
-// CInterface3D's per-frame update (game.exe 005F57C0). See docs/notes/ui.md ("Interface frame").
+// CInterface3D's per-frame update (game.exe 005F57C0). See docs/notes/ui.md ("Interface base").
 #include "ui.h"
 
 #include "console.h"

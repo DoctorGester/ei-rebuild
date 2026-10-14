@@ -1,6 +1,6 @@
 // Combat, sixth part: the controller's update (CUnitServer slot 6, called once per world update for
 // every creature on the server) and the animation queue and order states it drives. See combat.h,
-// combat_plan.h and docs/notes/combat.md ("Fourth round").
+// combat_plan.h and docs/notes/combat.md ("Update").
 //
 // The controller's animation queue is the AnimationSteps at +0x24 (steps +0x28, count +0x2C) with
 // the game time its first step started at +0x38; a hit reaction saves it to +0x148 (its time to
@@ -687,7 +687,7 @@ void CUnitServer::TickItemSpells() {
         auto* spell = static_cast<CSpell*>(item->spell_);
         float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
-        if ((spell->unknown_18 & 0xFFFF0000u) == 0x180000) {
+        if ((spell->prototypeId_ & 0xFFFF0000u) == 0x180000) {
             // A healing spell: only one a tick, and only when the unit is hurt.
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;

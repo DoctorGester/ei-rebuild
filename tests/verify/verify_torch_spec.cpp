@@ -64,7 +64,7 @@ EI_VERIFY(0x0052C500, SpecSaveVerify, 5, s_save);
 
 static int __fastcall SpecCreateVerify(CTorchObjectSpec* self) {
     int result = self->CreateSpec();
-    bool ok = result == 1 && self->torch_ == nullptr && self->unknown_20 == 0 && static_cast<const char*>(self->name_)[0] == 0 &&
+    bool ok = result == 1 && self->torch_ == nullptr && self->lightKind_ == 0 && static_cast<const char*>(self->name_)[0] == 0 &&
               self->values_[1] == 10.0f && self->values_[0] == 1.0f && self->values_[5] == 1.0f;
     ei::verify::Check("CTorchObjectSpec::CreateSpec", true, ok, "");
     return result;

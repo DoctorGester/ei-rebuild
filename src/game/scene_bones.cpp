@@ -5,7 +5,7 @@
 // normals-sized array, the node's rest rotation and pivot, and, for nodes with morph keys, one
 // morph frame per frame of the animation whose points are the morph keys interpolated linearly in
 // between; then a child bone per child node. A node with a pivot other than (0, 0, 0) is a fatal
-// error. Names provisional; see docs/notes/objects.md ("Fifth round").
+// error. Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "figure.h"
 #include "scene_loader.h"
 

@@ -1,5 +1,5 @@
 // CUnit's Load and Save slots (vtable 0073EA8C slots 9 and 10). See unit.h and
-// docs/notes/units.md ("Third round").
+// docs/notes/units.md ("Creation, databases, save").
 #include "unit.h"
 
 #include "ai_motion.h"
@@ -206,7 +206,7 @@ void CUnit::LoadUnit(UnitStream* stream) {
 
     mfc::CString prototypeName;
     ReadStringInto(stream, prototypeName);
-    unknown_18 = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
+    prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
     char* second;
     if (stream->version < kVersionSecondName) {
         second = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, prototypeName);
@@ -255,7 +255,7 @@ void CUnit::SaveUnit(UnitStream* stream) {
 
     // The prototype's name (the record's first field is a CString; a record out of range is
     // copied from address 0, as the original does), then the second prototype's or "".
-    mfc::CString prototypeName(*reinterpret_cast<const mfc::CString*>(PrototypeAt(unknown_18)));
+    mfc::CString prototypeName(*reinterpret_cast<const mfc::CString*>(PrototypeAt(prototypeId_)));
     WriteString(stream, prototypeName);
     const char* second = PrototypeAt(static_cast<std::uint32_t>(prototype23C));
     if (second) prototypeName = *reinterpret_cast<const mfc::CString*>(second);

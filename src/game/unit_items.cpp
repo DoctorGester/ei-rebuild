@@ -45,7 +45,7 @@ CEngineObject* CUnit::EquipArmour(CEngineObject* item) {
     CEngineObject* previous = armor[ArmourType(item)];
     armor[ArmourType(item)] = item;
     ++item->refCount_;
-    Controller()->ArmourPutOn(item->unknown_18);
+    Controller()->ArmourPutOn(item->prototypeId_);
     if (previous) previous->Release();
     MarkChanged(kPartEquipment);
     return previous;

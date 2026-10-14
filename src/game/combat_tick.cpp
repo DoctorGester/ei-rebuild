@@ -1,7 +1,6 @@
 // Combat, fifth part: the per-tick order machine of CUnitServer: taking over the queued order,
 // carrying out the current one (closing in on the target, planning the moment of the action) and
-// what is left when an order ends. See combat.h, combat_plan.h and docs/notes/combat.md ("Third
-// round").
+// what is left when an order ends. See combat.h, combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "originals_combat.h"
 #include "combat_plan.h"

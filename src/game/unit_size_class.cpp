@@ -1,5 +1,5 @@
 // A unit's size class, standing height and radius (00530570). See unit.h and docs/notes/units.md
-// ("Seventh round (U5)").
+// ("Creation, databases, save").
 #include "unit.h"
 
 #include "combat.h"
@@ -49,8 +49,8 @@ void CUnit::UpdateSizeClass() {
     float limited = standingHeight;
     standingHeight = !(kMaxHeight >= limited) ? kMaxHeight : limited;
     if (sizeClass != 0) return;
-    // The prototype by unknown_18; out of range the original reads address 0x24 (kept).
-    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize));
+    // The prototype by prototypeId_; out of range the original reads address 0x24 (kept).
+    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().At(prototypeId_, unitdb::kPrototypeSize));
     // FCOMP; TEST AH,0x41: only for a value above 1.5.
     if (std::bit_cast<float>(prototype->height) > kDeepPrototype) std::memcpy(&standingHeight, &kShallowHeight, 4);
 }

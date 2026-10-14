@@ -16,12 +16,13 @@
 
 namespace app {
 
+// The records are the lever table's (Levers.ldb; LeverRecord in lever.h has the same layout).
 struct DeviceRecord {
     mfc::CString name;           // +0x00
     std::uint32_t guid[4];       // +0x04
-    std::uint32_t unknown_14;    // +0x14
-    std::uint32_t unknown_18;    // +0x18
-    std::uint32_t unknown_1C;    // +0x1C
+    std::uint32_t spotCount;     // +0x14 (LeverRecord::spotCount)
+    std::uint32_t farScale;      // +0x18 float bits (LeverRecord::farScale)
+    std::uint32_t duration;      // +0x1C (LeverRecord::duration)
     mfc::CString text[3];        // +0x20
 };
 static_assert(sizeof(DeviceRecord) == 0x2C);
@@ -40,9 +41,9 @@ __declspec(naked) void __fastcall RecordArchiveAt(DeviceRecord*, void*, void*) E
 
 void CopyPlain(DeviceRecord* to, const DeviceRecord* from) {
     std::memcpy(to->guid, from->guid, sizeof(to->guid));
-    to->unknown_14 = from->unknown_14;
-    to->unknown_18 = from->unknown_18;
-    to->unknown_1C = from->unknown_1C;
+    to->spotCount = from->spotCount;
+    to->farScale = from->farScale;
+    to->duration = from->duration;
 }
 } // namespace
 
@@ -50,9 +51,9 @@ void CopyPlain(DeviceRecord* to, const DeviceRecord* from) {
 void __fastcall RecordArchive(DeviceRecord* self, void*, ChunkArchive* archive) {
     ArchiveString(archive, nullptr, 0, &self->name);
     ArchiveField(archive, nullptr, 1, self->guid, 0x10);
-    ArchiveField(archive, nullptr, 2, &self->unknown_14, 4);
-    ArchiveField(archive, nullptr, 3, &self->unknown_18, 4);
-    ArchiveField(archive, nullptr, 4, &self->unknown_1C, 4);
+    ArchiveField(archive, nullptr, 2, &self->spotCount, 4);
+    ArchiveField(archive, nullptr, 3, &self->farScale, 4);
+    ArchiveField(archive, nullptr, 4, &self->duration, 4);
     ArchiveString(archive, nullptr, 5, &self->text[0]);
     ArchiveString(archive, nullptr, 6, &self->text[1]);
     ArchiveString(archive, nullptr, 7, &self->text[2]);

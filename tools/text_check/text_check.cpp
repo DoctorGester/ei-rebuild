@@ -963,6 +963,100 @@ int Explain(int rectWidth, unsigned format, int fontIndex) {
     return 0;
 }
 
+// --pictures <out.bmp> [font K] [count]: game strings whose word-wrapped lines break differently with Liberation, drawn
+// both ways, white on black: Windows' Times New Roman (DrawTextA) on the left, render::text's Liberation on the right,
+// the rectangle's edges in grey. One row per string.
+int Pictures(const std::string& outPath, const std::string& textsPath, int fontIndex, int count) {
+    const FontSpec spec = FontSpecs()[static_cast<std::size_t>(fontIndex)];
+    const int pixels = PointSizeToPixels(spec.tenths);
+    const HFONT hfont = MakeGdiFont(spec.face, pixels, NONANTIALIASED_QUALITY);
+    TextFont gdiFont(std::make_unique<GdiFont>(hfont), false);
+    auto loaded = LoadFont(FontDirectory() + "/" + FontFileForFace(spec.face), pixels);
+    if (!loaded) return 2;
+    TextFont stbFont(std::move(loaded), true);
+    struct Case {
+        std::string bytes;
+        std::u32string text;
+        int width, height;
+        std::size_t gdiLines, stbLines;
+    };
+    std::vector<Case> all;
+    for (const TestString& test : LoadTexts(textsPath)) {
+        if (test.bytes.size() < 40 || test.bytes.size() > 360 || test.bytes[0] == '#') continue;   // # lines are data files
+        const std::u32string text = DecodeCp1251(test.bytes.c_str(), static_cast<int>(test.bytes.size()));
+        for (int width : {220, 420}) {
+            const int rectWidth = width * spec.screenWidth / 800;
+            TextLayout a, b;
+            Layout(gdiFont, text, Rect{0, 0, rectWidth, 100000}, kWordBreak | kCalcRect, a);
+            Layout(stbFont, text, Rect{0, 0, rectWidth, 100000}, kWordBreak | kCalcRect, b);
+            bool differ = a.lines.size() != b.lines.size();
+            for (std::size_t i = 0; !differ && i < a.lines.size(); ++i) differ = a.lines[i].begin != b.lines[i].begin || a.lines[i].end != b.lines[i].end;
+            if (differ) all.push_back({test.bytes, text, rectWidth, std::max(a.result, b.result), a.lines.size(), b.lines.size()});
+        }
+    }
+    std::printf("%zu layouts break differently at %s\n", all.size(), spec.name.c_str());
+    std::vector<Case> cases;
+    for (int i = 0; i < count && !all.empty(); ++i) cases.push_back(all[static_cast<std::size_t>(i) * all.size() / static_cast<std::size_t>(count)]);
+    const int pad = 10, header = 22;
+    int panel = 0, height = header;
+    for (const Case& c : cases) {
+        panel = std::max(panel, c.width + 2 * pad);
+        height += c.height + 2 * pad;
+    }
+    Dib picture(2 * panel + pad, height);
+    std::vector<std::uint32_t> mine(static_cast<std::size_t>(picture.width) * static_cast<std::size_t>(picture.height), 0);
+    const HFONT label = MakeGdiFont("Arial", 13, ANTIALIASED_QUALITY);
+    SelectObject(picture.dc, label);
+    SetTextColor(picture.dc, RGB(150, 150, 150));
+    RECT left{pad, 4, panel, header}, right{panel + pad + pad, 4, 2 * panel + pad, header};
+    DrawTextA(picture.dc, ("Windows GDI, Times New Roman " + std::to_string(pixels) + " px").c_str(), -1, &left, DT_NOPREFIX);
+    DrawTextA(picture.dc, ("render::text, Liberation Serif " + std::to_string(pixels) + " px").c_str(), -1, &right, DT_NOPREFIX);
+    SelectObject(picture.dc, hfont);
+    SetTextColor(picture.dc, RGB(255, 255, 255));
+    const HBRUSH grey = CreateSolidBrush(RGB(70, 70, 70));
+    int y = header;
+    for (const Case& c : cases) {
+        const int top = y + pad, bottom = y + pad + c.height;
+        RECT gdiRect{pad, top, pad + c.width, bottom};
+        DrawTextA(picture.dc, c.bytes.c_str(), -1, &gdiRect, kWordBreak);
+        const int x = panel + pad + pad;
+        TextLayout layout;
+        Layout(stbFont, c.text, Rect{x, top, x + c.width, bottom}, kWordBreak, layout);
+        ComposeAgainstBlack(stbFont, layout, 0xFFFFFF, mine.data(), picture.width, picture.height, picture.width);
+        for (int edge : {pad - 2, pad + c.width + 1, x - 2, x + c.width + 1}) {
+            RECT line{edge, top - 2, edge + 1, bottom + 2};
+            FillRect(picture.dc, &line, grey);
+        }
+        std::printf("  width %d: GDI %zu lines, Liberation %zu lines: %s\n", c.width, c.gdiLines, c.stbLines, Utf8(c.text).c_str());
+        y += c.height + 2 * pad;
+    }
+    GdiFlush();
+    for (std::size_t i = 0; i < mine.size(); ++i)
+        if (mine[i] & 0xFFFFFF) picture.pixels[i] = mine[i];
+    BITMAPFILEHEADER file{};
+    BITMAPINFOHEADER info{};
+    info.biSize = sizeof info;
+    info.biWidth = picture.width;
+    info.biHeight = -picture.height;
+    info.biPlanes = 1;
+    info.biBitCount = 32;
+    const DWORD bytes = static_cast<DWORD>(mine.size() * 4);
+    file.bfType = 0x4D42;
+    file.bfOffBits = sizeof file + sizeof info;
+    file.bfSize = file.bfOffBits + bytes;
+    std::FILE* out = nullptr;
+    fopen_s(&out, outPath.c_str(), "wb");
+    if (!out) return 2;
+    std::fwrite(&file, sizeof file, 1, out);
+    std::fwrite(&info, sizeof info, 1, out);
+    std::fwrite(picture.pixels, bytes, 1, out);
+    std::fclose(out);
+    DeleteObject(grey);
+    DeleteObject(label);
+    DeleteObject(hfont);
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -970,6 +1064,11 @@ int main(int argc, char** argv) {
         const int font = argc == 6 ? std::atoi(argv[5]) : 0;
         if (font < 0 || font >= static_cast<int>(FontSpecs().size())) return 2;
         return Explain(std::atoi(argv[3]), static_cast<unsigned>(std::strtoul(argv[4], nullptr, 0)), font);
+    }
+    if ((argc >= 3 && argc <= 5) && std::string(argv[1]) == "--pictures") {
+        const int font = argc >= 4 ? std::atoi(argv[3]) : 0;
+        if (font < 0 || font >= static_cast<int>(FontSpecs().size())) return 2;
+        return Pictures(argv[2], "F:\\games\\EvilIslands\\Res\\texts.res", font, argc == 5 ? std::atoi(argv[4]) : 8);
     }
     bool rules = false;
     Options options;
@@ -987,7 +1086,8 @@ int main(int argc, char** argv) {
         else if (arg == "--fonts" && i + 1 < argc) SetFontDirectory(argv[++i]);
         else {
             std::printf("usage: ei_text_check [--rules] [--gdi] [--report] [--texts path] [--fonts dir] [--threads N] [--pixels-every N] [--examples N] [--font K]\n"
-                        "       ei_text_check --explain <text> <rect width> <format> [font K]\n");
+                        "       ei_text_check --explain <text> <rect width> <format> [font K]\n"
+                        "       ei_text_check --pictures <out.bmp> [font K] [count]\n");
             return 2;
         }
     }

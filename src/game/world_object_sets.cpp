@@ -49,13 +49,11 @@ void CountingPass(int shift, const ObjectSet& src, ObjectSet& dst) {
 } // namespace
 
 // 0047B770 (RET 8): SetSize(n, growBy): 0 frees the block; growing copies the elements.
-void __fastcall ObjectSetSetSize(ObjectSet* self, void*, int n, int growBy) { self->SetSize(n, growBy); }
-EI_REPLACE(0x0047B770, ObjectSetSetSize);
+EI_REPLACE_METHOD(0x0047B770, ObjectSet::SetSize);
 
 // 0047B880 (RET 8): the sort's SetSize(n, growBy): no special case for 0 (an empty block is
 // allocated), and growing does not keep the elements.
-void __fastcall ObjectSetResize(ObjectSet* self, void*, int n, int growBy) { self->SetSizeDiscardStep(n, growBy); }
-EI_REPLACE(0x0047B880, ObjectSetResize);
+EI_REPLACE_METHOD(0x0047B880, ObjectSet::SetSizeDiscardStep);
 
 // 0047B120 (ECX shift, EDX source, RET 4): one counting pass of the radix sort.
 void __fastcall ObjectSetRadixPass(int shift, ObjectSet* src, ObjectSet* dst) { CountingPass(shift, *src, *dst); }
@@ -83,7 +81,7 @@ void __fastcall ObjectSetSortUnique(ObjectSet* self) {
         std::uint32_t value = *p;
         if (value != p[-1]) *out++ = value;
     }
-    ObjectSetResize(self, nullptr, static_cast<int>(out - self->data), -1);
+    self->SetSizeDiscardStep(static_cast<int>(out - self->data), -1);
 }
 EI_REPLACE(0x0047ADF0, ObjectSetSortUnique);
 
@@ -137,11 +135,11 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
             added->data[addedCount++] = *c++;
             ++ObjectOf(c[-1])->refCount_;
         }
-        ObjectSetSetSize(sent, nullptr, current->size, -1);
+        sent->SetSize(current->size, -1);
         if (current->size != 0) std::memcpy(sent->data, current->data, static_cast<std::size_t>(current->size) * 4);
     }
-    ObjectSetSetSize(added, nullptr, addedCount, -1);
-    ObjectSetSetSize(gone, nullptr, goneCount, -1);
-    ObjectSetSetSize(same, nullptr, sameCount, -1);
+    added->SetSize(addedCount, -1);
+    gone->SetSize(goneCount, -1);
+    same->SetSize(sameCount, -1);
 }
 EI_REPLACE(0x0047B1F0, DiffObjectSets);

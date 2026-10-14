@@ -1,4 +1,4 @@
-# A click on the ground orders the selected hero there (docs/notes/ui.md, "Fifteenth pass"): the
+# A click on the ground orders the selected hero there (docs/notes/ui.md, "Battle screen"): the
 # button release (00638B30) finds no unit under the point, SelectUnit (00638EF0) takes its plain
 # action and, with no targetable object there either, calls CBattleScreen::OrderAt (00636F10),
 # which nods the hero's portrait and gives the local view the move order. The new game's hero is

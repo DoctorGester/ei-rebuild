@@ -22,7 +22,7 @@ struct ProcessorInfo {
     std::uint32_t brand;       // 007CAED4
     std::uint32_t features2;   // 007CAED8
     std::uint8_t terminator;   // 007CAEDC
-    std::uint8_t unknown_0D[3];
+    std::uint8_t unused_0D[3];
     std::uint32_t features;    // 007CAEE0
 };
 static_assert(offsetof(ProcessorInfo, terminator) == 0x0C && offsetof(ProcessorInfo, features) == 0x10 &&

@@ -10,10 +10,12 @@ class CBaseManager;
 // vtable (kVtableAddress); no C++ constructor is declared. Non-virtual members: object.cpp.
 class CEngineObject {
 public:
+    void SetFlagBits(std::uint32_t bits);
+    void ClearFlagBits(std::uint32_t bits);
     static constexpr std::uintptr_t kVtableAddress = 0x0073B8E0;
 
     virtual ~CEngineObject();                          // 0: 00402D20 (scalar deleting destructor)
-    virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (flags_, type_, unknown_18)
+    virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (flags_, type_, prototypeId_)
     virtual int Create() = 0;                          // 2
     virtual void Destroy() = 0;                        // 3
     virtual void Release();                            // 4: 00455980 (refcount; the owner releases it at 0)
@@ -48,6 +50,9 @@ public:
     int id_;                // +0x0C -1 until a manager registers the object
     int type_;              // +0x10 class-specific kind (texture usage for CTexture)
     CBaseManager* owner_;   // +0x14 manager that owns the object
-    std::uint32_t unknown_18;   // +0x18 saved and loaded with id and type by CBaseManager::Save / Load
+    // +0x18 the database prototype: items pack its index (high word) with the material (low word;
+    // PrototypeIndex / MaterialIndex, item.h), spells keep the index in the high word, units the plain
+    // index. Saved and loaded with id and type by CBaseManager::Save / Load.
+    std::uint32_t prototypeId_;
 };
 static_assert(sizeof(CEngineObject) == 0x1C);

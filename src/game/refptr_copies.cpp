@@ -172,13 +172,13 @@ RefPtr* __fastcall RefPtrReleaseDelete(RefPtr* self, void*, unsigned flags) {
 EI_REPLACE(0x0047A6D0, RefPtrReleaseDelete);
 
 // A holder of a raw pointer with a reference added, returning the holder. 2 copies.
-RefPtr* __fastcall RefPtrFromRawCounted(RefPtr* self, void*, CRefObject* object) {
-    self->ptr = object;
+RefPtr* RefPtr::FromRawCounted(CRefObject* object) {
+    ptr = object;
     if (object) ++object->refs_;
-    return self;
+    return this;
 }
-EI_REPLACE(0x0040A770, RefPtrFromRawCounted);
-EI_REPLACE(0x0041DD50, RefPtrFromRawCounted);
+EI_REPLACE_METHOD(0x0040A770, RefPtr::FromRawCounted);
+EI_REPLACE_METHOD(0x0041DD50, RefPtr::FromRawCounted);
 
 // The owning pointer's constructor from a raw pointer (RefPtr::Share, 00418BE0, which returns
 // nothing) as the instantiations emit it out of line: the same body, returning the holder.
@@ -205,20 +205,20 @@ EI_REPLACE(0x0043A120, ReleaseThird);
 
 // Assignment of an owning pointer (the original inlines Destroy and Share): from another holder
 // (0042A770) and from a raw object (00438110). Nothing happens when it already holds the object.
-RefPtr* __fastcall RefPtrAssignHolder(RefPtr* self, void*, const RefPtr* other) {
-    if (other->ptr == self->ptr) return self;
-    self->Destroy();
-    self->Share(other->ptr);
-    return self;
+RefPtr* RefPtr::AssignHolder(const RefPtr* other) {
+    if (other->ptr == ptr) return this;
+    Destroy();
+    Share(other->ptr);
+    return this;
 }
-EI_REPLACE(0x0042A770, RefPtrAssignHolder);
-RefPtr* __fastcall RefPtrAssignObject(RefPtr* self, void*, CRefObject* object) {
-    if (object == self->ptr) return self;
-    self->Destroy();
-    self->Share(object);
-    return self;
+EI_REPLACE_METHOD(0x0042A770, RefPtr::AssignHolder);
+RefPtr* RefPtr::AssignObject(CRefObject* object) {
+    if (object == ptr) return this;
+    Destroy();
+    Share(object);
+    return this;
 }
-EI_REPLACE(0x00438110, RefPtrAssignObject);
+EI_REPLACE_METHOD(0x00438110, RefPtr::AssignObject);
 
 // 00429D80: whether the object has exactly one reference (AL).
 bool __fastcall RefIsUnique(const CRefObject* object) { return object->refs_ == 1; }

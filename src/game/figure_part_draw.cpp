@@ -9,7 +9,8 @@
 // that figure's own slots; the screen rectangle goes to the drawer and to `rect`. See
 // docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
-#include "figure_mesh.h"          // CFigureMesh, FigureMeshDrawer, FigureMaterial, FigureLights
+#include "figure_mesh.h"          // CFigureMesh, FigureMeshDrawer, FigureLights
+#include "material.h"             // CMaterial
 #include "link_figure.h"          // CLinkMesh, ITransformPipeline
 #include "map_object_figures.h"   // CObject3D
 #include "model.h"                // CTransformPipeline, CSceneRenderer
@@ -51,7 +52,7 @@ std::uint32_t AnimatedDrawerFlags() { return *reinterpret_cast<const std::uint32
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
 // 005A7160: the drawer's animation at a time (float bits). 005A7290: after the draw (the renderer).
 // 0068D280 (CLight::SetLitColors): a light's colours for a material and the ambient level (float bits).
-__declspec(naked) void __fastcall LightForMaterial(CLight*, void*, FigureMaterial* /*material*/, std::uint32_t /*ambient*/)
+__declspec(naked) void __fastcall LightForMaterial(CLight*, void*, CMaterial* /*material*/, std::uint32_t /*ambient*/)
     EI_ORIGINAL(0x0068D280)
 // The device's mesh draws (device_mesh.cpp): DrawMesh / DrawMesh2, originals_render.h.
 // STLport string members: 004217E0 string(allocator), 00425080 the end-of-storage member from an
@@ -467,7 +468,7 @@ struct Part {
     FigureMeshDrawer* node;   // this
     CTextureDevice* device;
     const FigureLights* lights;
-    FigureMaterial* material;
+    CMaterial* material;
     int alpha;
     RECT* rect;
     CTexture* textureA;
@@ -543,7 +544,7 @@ void Light(Part& part) {
         StringRepDestroy(&s);
     } else {
         std::uint32_t vector[3];
-        std::memcpy(vector, part.material->lightVector_, sizeof(vector));
+        std::memcpy(vector, &part.material->colors.emissive, sizeof(vector));
         CFigureMesh* mesh = part.Mesh();
         transform->LightMesh(mesh->buffers_.vertices, mesh->buffers_.normals, part.Colours().data, mesh->buffers_.words,
                              mesh->buffers_.wordCount, part.lights->data, part.lights->count, vector);
@@ -671,11 +672,11 @@ constexpr std::uintptr_t kFreeMovedPositions = std::uintptr_t(0x005A8AE0);
 // receives the screen rectangle, the textures (their surfaces) select the two-texture draw.
 // Returns 1.
 int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* device, const FigureLights* lights,
-                              FigureMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
+                              CMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
     CFigureMesh* mesh = node->mesh_;
     mesh->flags_ &= ~0x40u;
     if (node->mesh_->flags_ & 0x80) return 1;
-    CObject3D* owner = node->mesh_->owner_;
+    CObject3D* owner = node->mesh_->object_;
     Part part{node, device, lights, material, alpha, rect, textureA, textureB,
               owner ? reinterpret_cast<CLinkMesh*>(owner->figure) : nullptr, 0};
     if (!(Guard() & 1)) {

@@ -51,7 +51,7 @@ CParty* PlayerParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
 CItem* ItemAt(CParty* party, int index) { return static_cast<CItem*>(party->items_.data[index]); }
 int ItemCount(const CParty* party) { return party->items_.size; }
 // The prototype index an item's packed id carries (its high word).
-std::uint32_t PrototypeIndex(const CEngineObject* object) { return object->unknown_18 >> 16; }
+std::uint32_t PrototypeIndex(const CEngineObject* object) { return object->prototypeId_ >> 16; }
 // An item record (+0x1C) marked as made by a constructor (+0x10).
 bool MadeByConstructor(const CItem* item) {
     auto* record = reinterpret_cast<const std::uint8_t*>(item->link_);
@@ -168,7 +168,7 @@ bool CCampPages::DeconstructItem() {
     // null, as in the original.
     for (std::uint32_t i = 0; i < reinterpret_cast<const itemdb::ItemRecordHead*>(copy->GetPrototype())->materialUnits; ++i) {
         auto* material = reinterpret_cast<const itemdb::MaterialRecordHead*>(
-            itemdb::Materials().At(MaterialIndex(copy->unknown_18), itemdb::kMaterialSize));
+            itemdb::Materials().At(MaterialIndex(copy->prototypeId_), itemdb::kMaterialSize));
         // The original builds CString("material") + '.' + key (operator+ twice); the text is the same.
         mfc::CString name(MaterialText());
         name += ".";

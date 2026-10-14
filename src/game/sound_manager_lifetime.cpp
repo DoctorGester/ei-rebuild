@@ -375,7 +375,7 @@ SampleProcessorFn AilSetSampleProcessor() { return *reinterpret_cast<SampleProce
 
 // Miles' sample (HSAMPLE), as far as the stream reads it: the functions of its codec stage.
 struct MilesSample {
-    std::uint8_t unknown_000[0x144];
+    std::uint8_t unused_000[0x144];
     void* codecFunctions[4];   // +0x144; slot 3 closes a stream
 };
 static_assert(offsetof(MilesSample, codecFunctions) == 0x144);
@@ -815,7 +815,7 @@ void CSoundManager::Reset() {
     speechVolume = kFullVolume;
     effectsVolume = kFullVolume;
     enabled = 0;
-    unknown89C = 0;
+    spare = 0;
     reverbOn = 0;
     panDirect = 0;
     reverb[0] = reverb[1] = reverb[2] = 0.0f;

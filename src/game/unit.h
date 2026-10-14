@@ -186,7 +186,8 @@ class CUnit;
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
 // unit_client_models.h) for party units on the client; their abstract base has vtable 0073EDBC.
 // Slots declared `void Name()` keep their place in the order only (their real arguments are not
-// declared; give them their signature when calling them; docs/notes/drafts/DR-C2.md). The
+// declared; give them their signature when calling them; docs/notes/map_objects.md ("Virtual slot
+// names")). The
 // controller classes do not derive from this declaration (their rewritten slots are registered by
 // address); CUnit::Controller() reaches it. unit_ai.h's UnitController names fields of the same
 // objects.
@@ -267,6 +268,7 @@ static_assert(offsetof(CUnitController, unit_) == 0x1C);
 // unit's own slots 62-76 are not declared (CFakeUnit, 0073BFE8, shares the rewritten ones).
 class __declspec(novtable) CUnit : public CMapObject {
 public:
+    CEngineObject* CarriedItem(int index) const;
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073EA8C);
 
     // 0050E930. Called when the unit leaves the sector map; not rewritten (sector_map.cpp).
@@ -338,7 +340,7 @@ public:
     // 005307B0. Sum of +0x34 (weight) over all carried items.
     double TotalItemWeight();
 
-    // 00530930. The unit's prototype record (index unknown_18), or null.
+    // 00530930. The unit's prototype record (index prototypeId_), or null.
     char* GetPrototype();
     // 00530970. The record (0x168 bytes) the prototype's +0x08 indexes, or null.
     char* GetPrototypeModel();
@@ -482,7 +484,7 @@ public:
     // reset (0047FB70) and +0x438 = 1.
     void Reset();
 
-    // unit_create.cpp (fourth round).
+    // unit_create.cpp.
     // 00532AC0. After a hit: armour pieces and weapons whose condition (+0x20) rounds to 0 or
     // less leave their slots (armour: the controller's slot 27 with the type; weapons: message
     // 0x16 to the player, the slots above move down, the controller's slot 25 with -1 at the
@@ -490,10 +492,10 @@ public:
     // a player keep everything.
     void DropBrokenEquipment();
 
-    // unit_save.cpp (third round).
+    // unit_save.cpp.
     // 00531A80. Virtual slot 9 (Load): the map object part, the controller, the unit's name,
     // relations, player, movement fields, items by id (counted references), the carried items,
-    // and from version 0x4D the prototype names (unknown_18 / prototype23C).
+    // and from version 0x4D the prototype names (prototypeId_ / prototype23C).
     void LoadUnit(UnitStream* stream);
     // 005321C0. Virtual slot 10 (Save): the same fields in the same order (the active weapon
     // twice), items as ids (-1 for none), the prototype names as zero-terminated strings.

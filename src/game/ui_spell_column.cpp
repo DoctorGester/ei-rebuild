@@ -1,5 +1,5 @@
 // The spell column's unit (0063E820): a sprite and a tooltip per spell of the unit. See ui.h
-// (CHudSpellColumn::SetUnit) and docs/notes/ui.md ("Tenth pass").
+// (CHudSpellColumn::SetUnit) and docs/notes/ui.md ("Battle HUD panels").
 #include "ui.h"
 
 #include "ei/hook.h"

@@ -1,7 +1,7 @@
 // The zone file's effect records: particle sources (vtable 0073C758, kind 4), lights (0073C788,
 // kind 2) and sounds (0073C7B8, kind 3) on their base 0073C728 (map_spec.h). They keep the world
 // object they made at +0x1C and its effect at +0x4C, are kept above the terrain when moved, and
-// save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Sixth round").
+// save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
 #include "map_spec.h"
 #include "core_transform.h"
 #include "world_effect.h"
@@ -294,14 +294,14 @@ SoundSpec* SoundSpec::SoundSpecConstruct() {
     SetVtable(this, kSoundVtable);
     effect.base.kind = 3;
     StringArraySetSize(&sounds, nullptr, 0, -1);
-    unknown_68 = 10;
-    unknown_6C = 15;
-    unknown_70 = 1;
-    unknown_74 = 1500;
-    unknown_78 = 3000;
-    unknown_7C = 0;
-    unknown_80 = 0;
-    unknown_84 = 0;
+    volume = 10;
+    radius = 15;
+    unused_70 = 1;
+    minInterval = 1500;
+    maxInterval = 3000;
+    unused_7C = 0;
+    unused_80 = 0;
+    ambient = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x0046DE70, SoundSpec::SoundSpecConstruct);
@@ -336,14 +336,14 @@ void SoundSpec::SoundSpecSave() {
     c.WriteStringArray(0xCC0A, &sounds);
     c.WriteInt(0xCC02, effect.base.id);
     WriteVector(c, 0xCC03, effect.base.position);
-    c.WriteInt(0xCC04, unknown_68);
-    c.WriteInt(0xCC0B, unknown_6C);
+    c.WriteInt(0xCC04, volume);
+    c.WriteInt(0xCC0B, radius);
     c.WriteString(0xCC05, effect.base.name);
     c.WriteString(0xCC08, effect.base.comment);
-    c.WriteInt(0xCC06, unknown_74);
-    c.WriteInt(0xCC07, unknown_78);
-    c.WriteByte(0xCC0D, unknown_84);
-    c.WriteByte(0xCC0E, unknown_85);
+    c.WriteInt(0xCC06, minInterval);
+    c.WriteInt(0xCC07, maxInterval);
+    c.WriteByte(0xCC0D, ambient);
+    c.WriteByte(0xCC0E, field0E);
     c.EndWrite();
 }
 EI_REPLACE_METHOD(0x0046E090, SoundSpec::SoundSpecSave);
@@ -354,18 +354,18 @@ void SoundSpec::SoundSpecOnChunk() {
     switch (c.id_) {
     case 0xCC02: effect.base.id = c.ReadInt(); break;
     case 0xCC03: ReadVector(c, effect.base.position); break;
-    case 0xCC04: unknown_68 = c.ReadInt(); break;
+    case 0xCC04: volume = c.ReadInt(); break;
     case 0xCC05: ReadInto(c, effect.base.name); break;
-    case 0xCC06: unknown_74 = c.ReadInt(); break;
-    case 0xCC07: unknown_78 = c.ReadInt(); break;
+    case 0xCC06: minInterval = c.ReadInt(); break;
+    case 0xCC07: maxInterval = c.ReadInt(); break;
     case 0xCC08: ReadInto(c, effect.base.comment); break;
     case 0xCC0A:
         StringArraySetSize(&sounds, nullptr, 0, -1);
         c.ReadStringArray(&sounds);
         break;
-    case 0xCC0B: unknown_6C = c.ReadInt(); break;
-    case 0xCC0D: unknown_84 = c.ReadByte() == 1; break;
-    case 0xCC0E: unknown_85 = c.ReadByte() == 1; break;
+    case 0xCC0B: radius = c.ReadInt(); break;
+    case 0xCC0D: ambient = c.ReadByte() == 1; break;
+    case 0xCC0E: field0E = c.ReadByte() == 1; break;
     default: break;
     }
 }

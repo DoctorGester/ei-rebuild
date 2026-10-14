@@ -10,7 +10,7 @@
 //   subclasses' Save).
 // The record classes (vtables, kind at +0x48): the base 0073C5C4 (0); objects 0073C5F0 (1); flames
 // 0073C620 (6); magic traps 0073C650 (7); levers 0073C6B0 (8); units 0073C6E0 (5). Names are
-// provisional; see docs/notes/objects.md ("Sixth round").
+// provisional; see docs/notes/objects.md ("Rewritten").
 #include "chunk_stream.h"
 #include "maths.h"
 #include "lib/mfc.h"
@@ -28,9 +28,9 @@ using PlainArray = mfc::CArray<std::uint8_t>;
 // A waypoint (0x14 bytes).
 struct Waypoint {
     Vector3 position;            // +0x00
-    float wait;                  // +0x0C
-    std::int16_t unknown_10;     // +0x10
-    std::uint16_t unknown_12;    // +0x12
+    float wait;                  // +0x0C the look's turning time (AILook::time; chunk BBBE0003)
+    std::int16_t lookWait;       // +0x10 the wait after the look (AILook::wait; chunk BBBE0002)
+    std::uint16_t stopFirst;     // +0x12 bit 0: AILook::stopFirst (chunk BBBE0004)
 };
 static_assert(sizeof(Waypoint) == 0x14);
 
@@ -43,15 +43,18 @@ static_assert(sizeof(Patrol) == 0x20);
 
 // A unit's behaviour record (0x4C bytes; constructor 0045D5B0, destructor 0046C290).
 struct Behaviour {
+    void Read(void* stream);
+    void Write(void* stream);
     std::int32_t type;           // +0x00 (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
     mfc::CArray<Patrol> patrols;       // +0x04 (vtable 0073C37C)
     Vector3 guard;               // +0x18 the unit's position when saved
     std::uint32_t loop;          // +0x24 (1) a patrol loops; 0: its points are walked back too
     std::uint32_t flags;         // +0x28 bit 3: the unit is always updated (the brain's +0x37)
     float guardRadius;           // +0x2C (10)
-    float unknown_30;            // +0x30 (-1)
+    float field0A;               // +0x30 (-1) chunk BBBC000A, only read and written with the record
     std::uint32_t alarmKind;     // +0x34 the alarm raised when the countdown ends (low byte)
-    std::uint32_t unknown_38;    // +0x38
+    std::uint32_t enabled;       // +0x38 (1 for the first record) HearAlarm applies a record other than the
+                                 // first only when set
     std::uint32_t callRadius;    // +0x3C float bits (from 0073C378)
     std::uint32_t alertMode;     // +0x40
     std::uint32_t alarmDelay;    // +0x44 (75) the alarm countdown (at least 1)
@@ -104,7 +107,7 @@ struct Spec {
     Quaternion rotation;         // +0x2C (1, 0, 0, 0)
     mfc::CString name;           // +0x3C
     mfc::CString comment;        // +0x40
-    std::int32_t unknown_44;     // +0x44 (-1)
+    std::int32_t spareId;        // +0x44 (-1) only set and copied (ObjectSpecAssign)
     std::int32_t kind;           // +0x48
 };
 static_assert(offsetof(Spec, position) == 0x20);
@@ -147,10 +150,10 @@ struct ObjectSpec {
     Vector3 scale;               // +0x60 (0.5 each; read and written y, x, z)
     std::uint8_t shadow;         // +0x6C
     std::uint8_t visible;        // +0x6D (1)
-    std::uint8_t unknown_6E;     // +0x6E
-    std::uint8_t unknown_6F;
+    std::uint8_t side;           // +0x6E the owner's player number (chunk B011; UnitSetSide, the traps' hostile players)
+    std::uint8_t unused_6F;
     mfc::CString parentIname;    // +0x70
-    mfc::CString unknown_74;     // +0x74
+    mfc::CString skinTexture;    // +0x74 (chunk B008) the texture swapped onto the figure ("none": none)
     mfc::CStringArray parts;      // +0x78
 };
 static_assert(offsetof(ObjectSpec, model) == 0x4C);
@@ -205,7 +208,7 @@ struct TrapSpec {
     TargetArray targets;         // +0xB4 8-byte elements (vtable 0073C680)
     std::int32_t interval;       // +0xC8 (15)
     std::uint8_t castOnce;       // +0xCC
-    std::uint8_t unknown_CD[3];
+    std::uint8_t unused_CD[3];
 };
 static_assert(offsetof(TrapSpec, areas) == 0xA0);
 static_assert(offsetof(TrapSpec, interval) == 0xC8);
@@ -230,8 +233,8 @@ struct LeverSpec {
     std::uint32_t states;        // +0x9C (2)
     std::uint8_t cycled;         // +0xA0
     std::uint8_t castOnce;       // +0xA1
-    std::uint8_t unknown_A2;     // +0xA2
-    std::uint8_t unknown_A3;
+    std::uint8_t field04;        // +0xA2 chunk BBAC0004 (a flag), only read and written with the record
+    std::uint8_t unused_A3;
 };
 static_assert(sizeof(LeverSpec) == 0xA4);
 
@@ -277,7 +280,7 @@ struct EffectSpec {
     Spec base;                   // +0x00
     void* effect;                // +0x4C the effect the world object runs
     std::uint8_t visible;        // +0x50 (1)
-    std::uint8_t unknown_51[3];
+    std::uint8_t unused_51[3];
 };
 static_assert(sizeof(EffectSpec) == 0x54);
 
@@ -322,7 +325,7 @@ struct LightSpec {               // 0073C788
     EffectSpec effect;
     Vector3 colour;              // +0x54 (1, 1, 1)
     std::uint8_t shadows;        // +0x60 (1)
-    std::uint8_t unknown_61[3];
+    std::uint8_t unused_61[3];
     float radius;                // +0x64 (10)
 };
 static_assert(sizeof(LightSpec) == 0x68);
@@ -346,19 +349,19 @@ struct SoundSpec {               // 0073C7B8
 
     EffectSpec effect;
     mfc::CStringArray sounds;     // +0x54 (none made without any)
-    std::int32_t unknown_68;     // +0x68 (10) the ambient sound's volume (CreateObject, 005927C0)
-    std::int32_t unknown_6C;     // +0x6C (15) the ambient sound's radius
-    std::int32_t unknown_70;     // +0x70 (1)
-    std::int32_t unknown_74;     // +0x74 (1500)
-    std::int32_t unknown_78;     // +0x78 (3000)
-    std::int32_t unknown_7C;     // +0x7C
-    std::int32_t unknown_80;     // +0x80
-    std::uint8_t unknown_84;     // +0x84 set: an ambient sound (class 0x49), else a plain one (0x48)
-    std::uint8_t unknown_85;     // +0x85
-    std::uint8_t unknown_86[2];
+    std::int32_t volume;         // +0x68 (10; chunk CC04) the sound's volume (CreateObject, 005927C0)
+    std::int32_t radius;         // +0x6C (15; chunk CC0B) the sound's radius
+    std::int32_t unused_70;      // +0x70 (1)
+    std::int32_t minInterval;    // +0x74 (1500; chunk CC06) an ambient sound's shortest pause
+    std::int32_t maxInterval;    // +0x78 (3000; chunk CC07) and longest
+    std::int32_t unused_7C;      // +0x7C
+    std::int32_t unused_80;      // +0x80
+    std::uint8_t ambient;        // +0x84 (chunk CC0D) set: an ambient sound (class 0x49), else a plain one (0x48)
+    std::uint8_t field0E;        // +0x85 chunk CC0E, only read and written with the record
+    std::uint8_t unused_86[2];
 };
-static_assert(offsetof(SoundSpec, unknown_68) == 0x68);
-static_assert(offsetof(SoundSpec, unknown_84) == 0x84);
+static_assert(offsetof(SoundSpec, volume) == 0x68);
+static_assert(offsetof(SoundSpec, ambient) == 0x84);
 static_assert(sizeof(SoundSpec) == 0x88);
 
 // A unit record (vtable 0073C6E0, 0x324 bytes; code in map_spec_unit.cpp). The world server's
@@ -371,7 +374,7 @@ struct UnitSpec {
     std::uint8_t stats[0xAC];    // +0x210 (applied to the unit by 00477B00)
     mfc::CStringArray lists[5];   // +0x2BC ... +0x30C (chunks BBBB0005 ... BBBB0009); [1]: the item
                                  // names the unit wears (CreateObject, 005927C0)
-    std::uint32_t unknown_320;   // +0x320
+    std::uint32_t field0A;       // +0x320 chunk BBBB000A (a byte), only read and written with the record
 };
 static_assert(offsetof(UnitSpec, behaviour) == 0x90);
 static_assert(offsetof(UnitSpec, prototype) == 0x20C);

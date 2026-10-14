@@ -1,7 +1,7 @@
 // Rewinding a fake unit's skeleton (00507E80, 005081C0, 00508990): each bone (CAnimationNode,
 // figure.h) goes back to the pose of its animation's first key and places its mesh there. The scene
 // loader (LoadFakeUnitScene 00446C10) rewinds the skin once its bones are bound. See
-// docs/notes/objects.md ("Scene loader").
+// docs/notes/objects.md ("Facts").
 #include "figure.h"         // CAnimationNode
 #include "figure_mesh.h"    // CFigureMesh
 #include "scene_loader.h"   // SceneSkin
@@ -57,8 +57,8 @@ void CAnimationNode::Rewind() {
     clock_[1] = 0;
     CallResetPose(this);
     if (mesh_) {
-        mesh_->position_ = posePosition_;
-        mesh_->rotation_ = poseRotation_;
+        mesh_->localPosition_ = posePosition_;
+        mesh_->localRotation_ = poseRotation_;
         CFigureMesh::OffsetSpan points{pointsB_.data, pointsB_.size};
         mesh_->SetOffsets(&points);
     }
@@ -74,8 +74,8 @@ int CAnimationNode::AttachMeshes(const lib::AlignedArray<void*>* parts) {
         mesh_ = static_cast<CFigureMesh*>(parts->data[i]);
         ++mesh_->refCount_;
         if (mesh_) {
-            mesh_->position_ = posePosition_;
-            mesh_->rotation_ = poseRotation_;
+            mesh_->localPosition_ = posePosition_;
+            mesh_->localRotation_ = poseRotation_;
             CFigureMesh::OffsetSpan points{pointsB_.data, pointsB_.size};
             mesh_->SetOffsets(&points);
         }

@@ -31,8 +31,9 @@ static_assert(sizeof(MaterialEntry) == 0x10);
 
 // A material (vtable 00743BB4, class id 5, "CMaterial", 0x9C bytes; material.cpp), made by the material
 // manager (*007AF740, CMaterialManager::NewMaterial) and by the scene loader for its helpers
-// (00454E40 builds an array of them; SceneHelper in scene_loader.h is this layout). Names
-// provisional.
+// (00454E40 constructs the array of them, FakeUnitScene::helpers in scene_loader.h; the file's
+// vectors are the ambient, diffuse and specular colours, the power and the diffuse alpha). It is
+// also the material a figure part is drawn with (005A7A70). Names provisional.
 class CMaterial : public CEngineObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743BB4);

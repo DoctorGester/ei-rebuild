@@ -3,7 +3,7 @@
 // Items: the in-game objects created from the item databases (item_db.h). Class names come from
 // the game's own GetClassName strings; field names are provisional.
 //
-// unknown_18 of CEngineObject is the item's packed id: prototype index << 16 | material index.
+// prototypeId_ of CEngineObject is the item's packed id: prototype index << 16 | material index.
 
 #include "engine_object.h"
 #include "item_db.h"

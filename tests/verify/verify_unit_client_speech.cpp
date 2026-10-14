@@ -26,7 +26,7 @@ void* s_unusedSpeak;
 static int(__fastcall* s_speechReplaced)(const SpeechFilter*, void*, const ClientSpeech*);
 static int __fastcall SpeechReplacedVerify(const SpeechFilter* filter, void*, const ClientSpeech* queued) {
     int expected = s_speechReplaced(filter, nullptr, queued);
-    int actual = SpeechReplaced(filter, nullptr, queued);
+    int actual = filter->Replaced(queued);
     ei::verify::Check("SpeechReplaced", expected, actual, "kind %d over %d", filter->kind, queued->kind);
     return actual;
 }
@@ -36,7 +36,7 @@ EI_VERIFY(0x00537F60, SpeechReplacedVerify, 7, s_speechReplaced);
 static bool(__fastcall* s_speechFinished)(const SpeechFilter*, void*, const ClientSpeech*);
 static bool __fastcall SpeechFinishedVerify(const SpeechFilter* filter, void*, const ClientSpeech* queued) {
     bool expected = s_speechFinished(filter, nullptr, queued);
-    bool actual = SpeechFinished(filter, nullptr, queued);
+    bool actual = filter->Finished(queued);
     ei::verify::Check("SpeechFinished", expected, actual, "unit %d sound %d", filter->unitId, queued->sound);
     return actual;
 }

@@ -1,7 +1,7 @@
 // Item copies and item lists: CItem::Clone / CopyTo (0069FF70, 0069FFC0) and the subclasses' CopyTo
 // (006A0730, 006A3140, 006A3C50, 006A4540, 006A4B50, 006A57F0), the party's item list
 // (00661DB0, 00661F30) and the party unit records' four item lists (006608D0-00661000). See
-// party.h, item.h, unit.h and docs/notes/items_spells.md ("Area ticket A-H").
+// party.h, item.h, unit.h and docs/notes/items_spells.md ("Party item lists").
 #include "base_manager.h"
 #include "item.h"
 #include "party.h"
@@ -73,7 +73,7 @@ EI_REPLACE_METHOD(0x0069FF70, CItem::Clone);
 BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
     if (target->type_ != type_) return 0;
     target->Destroy();
-    target->unknown_18 = unknown_18;
+    target->prototypeId_ = prototypeId_;
     // +0x20..+0x40 copied as dwords.
     std::memcpy(&target->condition_, &condition_, offsetof(CItem, spell_) - offsetof(CItem, condition_));
     CSpell* previous = target->spell_;
@@ -170,7 +170,7 @@ EI_REPLACE(0x006A57F0, SpellCopyToHook);
 // --- The party's items --------------------------------------------------------------------------
 
 CItem* CParty::MakeCopyOf(CItem* item) {
-    std::uint32_t packed = item->unknown_18;
+    std::uint32_t packed = item->prototypeId_;
     CItem* copy = static_cast<CItemManager*>(ItemManager())->MakeItem(item->type_, packed >> 16, packed & 0xFFFF, -1);
     item->CopyTo(copy, SpellManager());
     return copy;

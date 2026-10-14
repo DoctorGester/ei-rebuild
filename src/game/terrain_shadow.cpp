@@ -102,7 +102,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
             }
         }
         if (crossed) {
-            auto* next = reinterpret_cast<terrain::SectorData*>(SectorAt(sx, sy, kLoaded, 1));
+            auto* next = SectorAt(sx, sy, kLoaded, 1);
             if (!next) return 1;
             vertex = next->vertices.data + (row * kRow + column);
         }

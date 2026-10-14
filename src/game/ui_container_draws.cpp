@@ -1,5 +1,5 @@
 // Interface draws that still talked to the old Direct3D device without handing anything to the new
-// renderer (ticket R5, docs/notes/renderer.md section 5 point 6 and section 12):
+// renderer (ticket R5, docs/notes/renderer.md sections 5 and 8):
 // - 00600EF0, the container windows' base draw (CUiContainer slot 20): stage-0 state block
 //   007AEDD8 applied, then the window's own sprites and models (005FEB90) and its enabled children;
 // - 00602BF0 and 00632A90, the slot-20 draws of interface screens 3 (the base / briefing screen,
