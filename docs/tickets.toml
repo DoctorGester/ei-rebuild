@@ -206,11 +206,12 @@ note = "R9c1 tests the recreation with render::LoseDevice (Present reported DXGI
 id = "R10"
 title = "Hooked harness runs on our renderer by default; dgVoodoo only for reference runs"
 group = "renderer"
-status = "queued"
+status = "running"
 size = 0.8
 model = "opus"
 files = ["tools/run_all.py", "tools/work_sched.py", "tools/compare.py", "tests/verify/harness.cpp"]
 note = "Asked 2026-10-15 (user): switch test runs to our renderer. Runs of our code (vanilla and Rebirth with hooks) default to EI_RENDER=new,present; dgVoodoo stays only for runs of the original code (--no-hooks, rebirth-nohooks in --widescreen, compare.py's original side), which have nothing else to draw with. Our renderer goes full screen without a display mode change, so its runs need not be 'alone': only dgVoodoo runs that set a resolution keep the machine to themselves (today 6 scenarios: render_present_fullscreen/window, ui_widescreen*; they run in series and dominate widescreen suites). Also cache the reference runs' frames by the scenario's last-change commit (like WB6's timing table) so the dgVoodoo reference runs only rerun when a scenario changes. Check the cross-renderer frame comparisons (filtering) and the minimise rerun (SV1c, dgVoodoo only). First get the full --native suite green on main."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- native interface drawing
 
