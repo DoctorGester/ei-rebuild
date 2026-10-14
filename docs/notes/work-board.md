@@ -114,4 +114,8 @@ ISO 8601 with offset, to the second (`work.now()`); JSON columns hold text from 
 **tickets.py lock.** Every command but check / show / list now runs under `toml_lock()`: a one-byte
 lock on build/tickets/tickets.lock in that checkout (msvcrt, or flock elsewhere), held from reading
 tickets.toml to writing it, tickets.md and tickets.json, waiting up to 120 s. Each checkout has its own
-toml, so the lock is per checkout; the system drops it when a process dies.
+toml, so the lock is per checkout; the system drops it when a process dies. Tested in a second worktree
+with 24 concurrent `tickets.py note WB1 <token> --append`: without the lock 7 of 24 tokens survived, and
+one of three rounds left tickets.toml unparseable (one process's restore of `before` raced another's
+write); with it, 24 of 24 in three rounds and the file checks. The same worktree's `work.py db` opened
+E:/workspace/ei/build/live/work.db.
