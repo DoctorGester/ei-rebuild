@@ -182,11 +182,11 @@ EI_VERIFY(0x0052F7F0, SetFlag1Verify, 6, s_setFlag1);
 
 // --- Equipment -------------------------------------------------------------------------------
 
-// 0052EC10 only writes `out` (11 ints): the original into a scratch array.
+// 0052EC10 only writes `out` (11 ids): the original into a scratch array.
 // PUSH EBX; MOV EBX,[ESP+8] (5 bytes).
-static void(__fastcall* s_equipmentIds)(CUnit*, void*, int*);
-static void __fastcall EquipmentIdsVerify(CUnit* self, void*, int* out) {
-    int expected[11];
+static void(__fastcall* s_equipmentIds)(CUnit*, void*, std::uint32_t*);
+static void __fastcall EquipmentIdsVerify(CUnit* self, void*, std::uint32_t* out) {
+    std::uint32_t expected[11];
     s_equipmentIds(self, nullptr, expected);
     self->GetEquipmentIds(out);
     ei::verify::Check("CUnit::GetEquipmentIds", true, std::memcmp(expected, out, sizeof(expected)) == 0, "unit %d",
@@ -420,15 +420,15 @@ EI_VERIFY(0x005308A0, SetPrototype23CVerify, 9, s_setPrototype23C);
 // --- Combat ----------------------------------------------------------------------------------
 
 // 005327D0: MOV EAX,[ESP+4]; MOV EAX,[EAX+0x14] (7 bytes).
-static float(__fastcall* s_resistance)(CUnit*, void*, const void*);
-static float __fastcall ResistanceVerify(CUnit* self, void*, const void* hit) {
-    float expected = s_resistance(self, nullptr, hit);
-    float actual = self->ResistanceTo(hit);
-    ei::verify::Check("CUnit::ResistanceTo", Bits(expected), Bits(actual), "flags %08X: %g vs %g",
-                      *reinterpret_cast<const std::uint32_t*>(static_cast<const char*>(hit) + 0x14), expected, actual);
+static float(__fastcall* s_actionSpeed)(CUnit*, void*, const FigureAnimation*);
+static float __fastcall ActionSpeedVerify(CUnit* self, void*, const FigureAnimation* entry) {
+    float expected = s_actionSpeed(self, nullptr, entry);
+    float actual = self->ActionSpeed(entry);
+    ei::verify::Check("CUnit::ActionSpeed", Bits(expected), Bits(actual), "key %08X: %g vs %g", entry->key, expected,
+                      actual);
     return expected;
 }
-EI_VERIFY(0x005327D0, ResistanceVerify, 7, s_resistance);
+EI_VERIFY(0x005327D0, ActionSpeedVerify, 7, s_actionSpeed);
 
 // 00532DA0: PUSH ESI; MOV ESI,ECX; CMP dword [ESI+0x10],0x32 (7 bytes). AL only.
 static bool(__fastcall* s_acceptsTarget)(CUnit*, void*, const void*);

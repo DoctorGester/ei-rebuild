@@ -259,10 +259,10 @@ EI_REPLACE_METHOD(0x00524FE0, UnitVitals::TakeHit);
 
 BOOL CUnit::IsBehind(const CEngineObject* target) {
     if (!player) return 0;
-    const char* t = reinterpret_cast<const char*>(target);
-    volatile float dx = Field<float>(t, 0x1C) - position.x;
-    volatile float dy = Field<float>(t, 0x20) - position.y;
-    volatile float dz = Field<float>(t, 0x24) - position.z;
+    auto* t = static_cast<const CObject3D*>(target);
+    volatile float dx = t->position.x - position.x;
+    volatile float dy = t->position.y - position.y;
+    volatile float dz = t->position.z - position.z;
     double length = x87::fsqrt(dz * dz + dy * dy + dx * dx);
     if (length > kZero) {
         dx = static_cast<float>(dx / length);
@@ -282,11 +282,11 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
         if (static_cast<CItemWeapon*>(weapon)->GetType() == 5) return 0;
         if (static_cast<CItemWeapon*>(weapon)->GetType() == 6) return 0;
     }
-    // The target's facing from its orientation quaternion (a, b, c, d at +0x34).
-    float a = Field<float>(t, 0x34);
-    float b = Field<float>(t, 0x38);
-    float c = Field<float>(t, 0x3C);
-    float d = Field<float>(t, 0x40);
+    // The target's facing from its orientation quaternion.
+    float a = t->orientation.w;
+    float b = t->orientation.x;
+    float c = t->orientation.y;
+    float d = t->orientation.z;
     double x = c * b - a * d;
     x = x + x;
     double cc = c * c;

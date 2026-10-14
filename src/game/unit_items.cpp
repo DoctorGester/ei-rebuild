@@ -6,24 +6,20 @@
 #include "item.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_units.h"
 #include "unit_create.h"
 
+#include <bit>
 #include <cstring>
 
 namespace {
 constexpr int kPartEquipment = 5;
 constexpr int kPartStats = 4;
 
-// Controller slots.
-constexpr int kControllerArmourAdded = 0x68 / 4;     // (item id)
-constexpr int kControllerArmourRemoved = 0x6C / 4;   // (armour type)
-constexpr int kControllerItemsReleased = 0x70 / 4;
-constexpr int kControllerArmourIds = 0x80 / 4;       // (ids, 7)
-constexpr int kControllerWeaponIds = 0x84 / 4;       // (ids, 4)
+// Controller slot 27 (ArmourTakenOff), called through the vtable read before the argument.
+constexpr int kControllerArmourRemoved = 0x6C / 4;
 
 constexpr int kCarriedGrowMin = 4;
 constexpr int kCarriedGrowMax = 0x400;
@@ -45,11 +41,11 @@ void ReleaseSlots(CUnit* unit, CEngineObject** slots, int count) {
 
 CEngineObject* CUnit::EquipArmour(CEngineObject* item) {
     if (!item) return nullptr;
-    if (x87::fistp(Field<float>(reinterpret_cast<const char*>(item), 0x20)) <= 0) return nullptr;
+    if (x87::fistp(std::bit_cast<float>(static_cast<const CItem*>(item)->unknown_20)) <= 0) return nullptr;   // broken
     CEngineObject* previous = armor[ArmourType(item)];
     armor[ArmourType(item)] = item;
     ++item->refCount_;
-    ei::VCall<int>(controller, kControllerArmourAdded, item->unknown_18);
+    Controller()->ArmourPutOn(item->unknown_18);
     if (previous) previous->Release();
     MarkChanged(kPartEquipment);
     return previous;
@@ -87,7 +83,7 @@ void CUnit::ReleaseAllItems() {
         MarkChanged(kPartEquipment);
         MarkChanged(kPartStats);
     }
-    ei::VCall<int>(controller, kControllerItemsReleased);
+    Controller()->ClearOuterArmourLayers();
     ReleaseSlots(this, quickItems, 4);
     ReleaseSlots(this, spells, 8);
     for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(carriedCount); ++i) carried[i]->Release();
@@ -154,10 +150,10 @@ int CUnit::RemoveCarried(int index) {
 EI_REPLACE_METHOD(0x005313B0, CUnit::RemoveCarried);
 
 std::uintptr_t CUnit::SendEquipment() {
-    int ids[11];   // 4 weapons, then 7 armour pieces
+    std::uint32_t ids[11];   // 4 weapons, then 7 armour pieces (-1 for none)
     GetEquipmentIds(ids);
-    ei::VCall<int>(controller, kControllerArmourIds, &ids[4], 7);
-    return ei::VCall<std::uintptr_t>(controller, kControllerWeaponIds, &ids[0], 4);
+    Controller()->SetArmourModels(&ids[4], 7);
+    return Controller()->SetWeaponModels(&ids[0], 4);
 }
 EI_REPLACE_METHOD(0x00531110, CUnit::SendEquipment);
 

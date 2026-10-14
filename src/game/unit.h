@@ -217,7 +217,8 @@ public:
     virtual void RefreshModel();            // 30: after a weapon change
     virtual int RefreshWounds();            // 31: client 00537360 (1), base 0 (00533C50); CUnit's slot 58 (00446810) tail-jumps here
     virtual void SetArmourModels(const std::uint32_t* ids, std::uint32_t count);   // 32: client 00538140 (RET 8; count capped at 7), base empty (00533C60)
-    virtual void SetWeaponModels(const std::uint32_t* ids, std::uint32_t count);   // 33: client 00538860 (RET 8; count capped at 4)
+    // 33: client 00538860 (RET 8; count capped at 4); CUnit's SendEquipment (00531110) passes EAX on.
+    virtual std::uintptr_t SetWeaponModels(const std::uint32_t* ids, std::uint32_t count);
     virtual bool WeaponAdded(std::uint32_t itemId);     // 34: client 005388C0 (AddWeaponModel)
     virtual void RemoveWeaponModel();       // 35: (id) client 00538920
     virtual bool HasOtherArmour();          // 36: server 005567A0 (client 005391B0: weapon models); AL
@@ -305,7 +306,7 @@ public:
 
     // 0052EC10. Writes the item ids (+0x18) of the 4 weapons and then of the 7 armour pieces to
     // `out` (-1 for an empty slot).
-    void GetEquipmentIds(int* out);
+    void GetEquipmentIds(std::uint32_t* out);
 
     // 0052F820. Can the unit cast the spell in slot `slot` (0..7)? 0 yes, 1 not enough mana, 3 no
     // spell, 4 an effect of type 0x20 prevents it. The second argument is not used.
@@ -367,8 +368,10 @@ public:
     // 00531A10. The CSpell (+0x44) of the spell item in slot `slot`, or null.
     void* GetSpellObject(std::uint32_t slot);
 
-    // 005327D0. Resistance factor against the damage type in bits 18-21 of hit + 0x14.
-    float ResistanceTo(const void* hit);
+    // 005327D0. The unit's speed factor for the action of animation `entry` (its key's bits
+    // 18-21: 0x80000 attack, 0xC0000 cast, 0x240000 mode transition (heroes: the global
+    // 007C542C), 0x40000 skill; others 1). Animation steps divide the entry's frames by it.
+    float ActionSpeed(const FigureAnimation* entry);
 
     // 00532DA0. Virtual slot 18: for hero units, whether the animation entry's flags (+0x18) have
     // the bits the controller asks for (0x10 by its slot 36, 0x20 by slot 37); true for other units.
@@ -577,7 +580,7 @@ public:
     UnitMotion* Motion() { return reinterpret_cast<UnitMotion*>(motion); }
 
     // +0x000-0x237: CMapObject.
-    char* scriptName;               // +0x238 CString (virtual slot 61 sets it; network field 9)
+    mfc::CString scriptName;        // +0x238 (virtual slot 61 sets it; network field 9; GetName)
     int prototype23C;              // +0x23C a second prototype index (-1 none)
     CEngineObject* controller;      // +0x240 (the script code calls it the perception object)
     std::uint32_t relationsA;       // +0x244 \ a unit regards side s as hostile when both have
@@ -621,7 +624,7 @@ public:
     int carriedCount;               // +0x4A4
     int carriedCapacity;            // +0x4A8
     int carriedGrowBy;              // +0x4AC (0: an eighth of the count, 4..1024)
-    float resistances[6];           // +0x4B0 per damage type (see ResistanceTo)
+    float actionSpeeds[6];          // +0x4B0 per action kind (ActionSpeed; the model record's +0x2C)
     float levels4C8[5];             // +0x4C8 any at most 2 (or NaN) asks for a party refresh (0066E430)
 };
 static_assert(offsetof(CUnit, bodyParts) == 0x374);
@@ -637,7 +640,7 @@ static_assert(offsetof(CUnit, unknown_438) == 0x438);
 static_assert(offsetof(CUnit, weapons) == 0x440);
 static_assert(offsetof(CUnit, armor) == 0x480);
 static_assert(offsetof(CUnit, carried) == 0x4A0);
-static_assert(offsetof(CUnit, resistances) == 0x4B0);
+static_assert(offsetof(CUnit, actionSpeeds) == 0x4B0);
 static_assert(offsetof(CUnit, dead) == 0x274);
 static_assert(offsetof(CUnit, heightOffset) == 0x320);
 static_assert(offsetof(CUnit, scriptName) == 0x238);

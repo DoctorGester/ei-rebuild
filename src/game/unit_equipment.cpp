@@ -10,7 +10,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "world.h"
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "originals_gameplay.h"
@@ -20,8 +20,6 @@
 namespace {
 constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units given armour and weapons
 constexpr int kManagerWorld = 0xAC;         // the manager's map object context (the world)
-constexpr int kWorldItemManager = 0x48 / 4; // world slot 18: the item manager
-constexpr int kWorldSpellOwner = 0x58 / 4;  // world slot 22: passed on to the spell factory
 
 // The game's texts: "none" (a weapon name that gives no weapon) and the FatalError formats.
 constexpr std::uintptr_t kNone = 0x007846F0;
@@ -61,9 +59,9 @@ CEngineObject* MakeWeapon(void* items, const mfc::CString& name, const char* pro
 } // namespace
 
 int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
-    CEngineObject* world = *reinterpret_cast<CEngineObject**>(reinterpret_cast<char*>(this) + kManagerWorld);
-    void* spellOwner = ei::VCall<void*>(world, kWorldSpellOwner);
-    void* items = ei::VCall<void*>(world, kWorldItemManager);
+    CWorld* world = *reinterpret_cast<CWorld**>(reinterpret_cast<char*>(this) + kManagerWorld);
+    void* spellOwner = world->SpellManager();   // passed on to the spell factory
+    void* items = world->ItemFactory();
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name));
     if (!prototype) {
         game::FatalError(Text(kNoPrototype), name);

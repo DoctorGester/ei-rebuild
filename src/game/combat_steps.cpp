@@ -132,7 +132,7 @@ inline double __fastcall UnitGroundAt(CUnit* a0, void*, float a2, float a3) { re
 // AddStep(animation, duration), 00544DD0 set every step's +8.
 void __fastcall StepsAddStep(AnimationSteps* a0, void*, int a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall StepsSetField8(AnimationSteps*, void*, int) EI_ORIGINAL(0x00544DD0)
-// Rewritten elsewhere, through their game addresses: 005327D0 (CUnit::ResistanceTo, the unit's
+// Rewritten elsewhere, through their game addresses: 005327D0 (CUnit::ActionSpeed, the unit's
 // speed factor for an animation entry's action, in ST0) and 0054C070 ActionDistance.
 __declspec(naked) double __fastcall UnitAnimationSpeed(CUnit*, void*, const void*) EI_ORIGINAL(0x005327D0)
 

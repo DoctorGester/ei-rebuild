@@ -5,7 +5,6 @@
 #include "random.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 
@@ -44,7 +43,7 @@ void ReleaseRef(CEngineObject*& ref) {
 }
 
 // Virtual slot 55 (0xDC) of units and objects: non-zero when dead / gone.
-int IsGone(CEngineObject* object) { return ei::VCall<int>(object, 0xDC / 4); }
+int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 
 // The game's ostream (MSVC 6 iostream): operator<< for strings, chars and manipulators.
 struct GameOstream {

@@ -301,7 +301,7 @@ CUnit* CUnit::Construct() {
 EI_REPLACE_METHOD(0x0052E110, CUnit::Construct);
 
 void CUnit::Reset() {
-    reinterpret_cast<mfc::CString*>(&scriptName)->Empty();
+    scriptName.Empty();
     prototype23C = -1;
     heightOffset = 0.0f;
     sizeClass = 3;
