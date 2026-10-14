@@ -33,7 +33,7 @@ CFigureMesh* CFigureMesh::ConstructBase() {
     ei::SetVtable(this, CEngineObject::kVtableAddress);
     refCount_ = 0;
     id_ = -1;
-    unknown_18 = 0;
+    prototypeId_ = 0;
     type_ = 0;
     flags_ = 0;
     owner_ = nullptr;
