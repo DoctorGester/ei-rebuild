@@ -64,11 +64,7 @@ void ReadCounted(Chunk* chunk, void* data, std::uint32_t size) {
 
 // The decoder of 004D8E10 (outside this range): two byte vectors, the decoded text and the coded
 // input; vector<uint8_t> members (library): constructor, erase, fill insert.
-struct ByteVector {
-    std::uint8_t* start;
-    std::uint8_t* finish;
-    std::uint8_t* eos;
-};
+using ByteVector = stlp::vector<std::uint8_t>;
 struct TextDecoder {
     ByteVector text;    // +0x00
     ByteVector input;   // +0x0C
@@ -302,12 +298,12 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
     ByteVectorConstruct(&decoder.text, nullptr, &allocator);
     ByteVectorConstruct(&decoder.input, nullptr, &allocator);
     std::uint8_t zero = 0;
-    std::uint32_t had = static_cast<std::uint32_t>(decoder.input.finish - decoder.input.start);
+    std::uint32_t had = static_cast<std::uint32_t>(decoder.input.size());
     if (length < had)
-        ByteVectorErase(&decoder.input, nullptr, decoder.input.start + length, decoder.input.finish);
+        ByteVectorErase(&decoder.input, nullptr, decoder.input.begin() + length, decoder.input.end());
     else
-        ByteVectorFill(&decoder.input, nullptr, decoder.input.finish, length - had, &zero);
-    FileRead(File(), decoder.input.start, length);
+        ByteVectorFill(&decoder.input, nullptr, decoder.input.end(), length - had, &zero);
+    FileRead(File(), decoder.input.begin(), length);
     if (parent_) parent_->Advance(static_cast<int>(length));
     consumed_ += static_cast<int>(length);
     {
@@ -315,8 +311,8 @@ mfc::CString* Chunk::ReadEncodedString(mfc::CString* out) {
         DecodeText(&decoder, nullptr, &text);
         new (out) mfc::CString(text);
     }
-    stlp::deallocate(decoder.input.start, static_cast<std::size_t>(decoder.input.eos - decoder.input.start));
-    stlp::deallocate(decoder.text.start, static_cast<std::size_t>(decoder.text.eos - decoder.text.start));
+    stlp::deallocate(decoder.input.Start(), static_cast<std::size_t>(decoder.input.EndOfStorage() - decoder.input.Start()));
+    stlp::deallocate(decoder.text.Start(), static_cast<std::size_t>(decoder.text.EndOfStorage() - decoder.text.Start()));
     return out;
 }
 EI_REPLACE_METHOD(0x0042C650, Chunk::ReadEncodedString);

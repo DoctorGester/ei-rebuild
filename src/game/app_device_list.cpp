@@ -6,6 +6,7 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include <cstdint>
 #include <cstring>
@@ -23,11 +24,8 @@ struct DeviceRecord {
 };
 static_assert(sizeof(DeviceRecord) == 0x2C);
 
-struct DeviceVector {            // STLport vector<DeviceRecord>
-    DeviceRecord* begin;
-    DeviceRecord* end;
-    DeviceRecord* eos;
-};
+using DeviceVector = stlp::vector<DeviceRecord>;
+static_assert(sizeof(DeviceVector) == 12);
 
 namespace {
 // The chunk archive (originals_engine.h): +0x58 is its loading flag, +0x50 its chunk stack.
@@ -97,19 +95,19 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, DeviceVector* li
     if (!ArchiveEnter(ar, nullptr, id)) return;
     int n;
     if (*(static_cast<std::uint8_t*>(archive) + 0x58)) {
-        DeviceRecord* end = list->end;
-        DeviceRecord* kept = RecordsCopy(end, end, list->begin, list, 0);
-        for (DeviceRecord* r = kept; r != list->end; ++r) RecordDestructAt(r);
-        list->end = kept;
+        DeviceRecord* end = list->end();
+        DeviceRecord* kept = RecordsCopy(end, end, list->begin(), list, 0);
+        for (DeviceRecord* r = kept; r != list->end(); ++r) RecordDestructAt(r);
+        list->Finish() = kept;
         n = ArchiveCount(ar, nullptr, 1);
         RecordsResize(list, nullptr, static_cast<unsigned>(n));
     } else {
-        n = static_cast<int>(list->end - list->begin);
+        n = static_cast<int>(list->size());
     }
     for (int i = 0; i < n; ++i) {
         void* chunk = *reinterpret_cast<void**>(*reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(archive) + 0x50) + 4);
         *reinterpret_cast<int*>(static_cast<std::uint8_t*>(chunk) + 0x14) = i + 1;
-        DeviceRecord* record = list->begin + i;
+        DeviceRecord* record = list->begin() + i;
         if (!ArchiveEnter(ar, nullptr, 1)) continue;
         RecordArchiveAt(record, nullptr, archive);
         ArchiveLeave(ar);

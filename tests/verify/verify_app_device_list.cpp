@@ -9,7 +9,6 @@
 
 namespace app {
 struct DeviceRecord;
-struct DeviceVector;
 DeviceRecord* __fastcall RecordCopyConstruct(DeviceRecord* self, void*, const DeviceRecord* from);
 DeviceRecord* __fastcall RecordAssign(DeviceRecord* self, void*, const DeviceRecord* from);
 } // namespace app
