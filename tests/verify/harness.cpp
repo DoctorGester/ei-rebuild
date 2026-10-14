@@ -91,7 +91,10 @@
 //   reject <text>             fail if <text> appears in the console output from now on
 //   report                    write the verify totals to harness_report.txt
 //   quit                      write the report and exit the game through the console
-//   deterministic             virtual game clock, fixed seeds: runs repeat exactly (see below)
+//   realtime, deterministic   the game on real time, or (the default) on the virtual game clock
+//                             with fixed seeds, where runs repeat exactly (see below)
+//   clocktrace, randtrace     log every clock read and wait (ei_hook.log), every random draw
+//                             (randtrace.txt; harness_clock.h)
 //   vanilla <step>, rebirth <step>   run the step only in that install
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
@@ -147,6 +150,7 @@
 // ends a game that hangs after "quit".
 #include "verify.h"
 #include "harness_capture.h"
+#include "harness_clock.h"
 #include "harness_starter.h"
 #include "ui_census.h"
 
@@ -255,7 +259,33 @@ struct Step {
 
 std::vector<Step> g_steps;
 std::size_t g_next = 0;
-DWORD g_waitUntil = 0;
+
+// When a wait ends: after `ms` on the harness's clock (virtual time in deterministic mode), or at a
+// real-time safety limit, so that a game which stops drawing frames (the virtual clock stands
+// still) still fails the wait instead of the whole run's time limit: four times the wait plus 10 s
+// (a busy machine draws slowly, and the virtual clock is then slower than real time).
+struct Deadline {
+    DWORD start = 0, at = 0;           // harness clock
+    DWORD realStart = 0, realAt = 0;   // GetTickCount
+    void Set(DWORD ms) {
+        start = clock::Now();
+        at = start + ms;
+        realStart = GetTickCount();
+        realAt = realStart + (clock::Virtual() ? 4 * ms + 10000 : ms);
+    }
+    bool Passed() const {
+        return static_cast<LONG>(clock::Now() - at) >= 0 || static_cast<LONG>(GetTickCount() - realAt) >= 0;
+    }
+    // For a failure message: "" when the wait's own time passed, else what the clock did meanwhile.
+    std::string Why() const {
+        if (static_cast<LONG>(clock::Now() - at) >= 0) return "";
+        char text[120];
+        std::snprintf(text, sizeof(text), " (real-time limit: the game's clock moved %lu ms in %lu ms)",
+                      clock::Now() - start, GetTickCount() - realStart);
+        return text;
+    }
+};
+Deadline g_waitUntil;   // "wait"
 volatile bool g_quitting = false;
 bool g_running = false;
 bool g_inStep = false;
@@ -274,38 +304,37 @@ std::vector<std::string> g_failures;
 bool g_checking = false;
 std::string g_checkExpr;
 std::size_t g_checkFrom = 0;
-DWORD g_checkDeadline = 0;
+Deadline g_checkDeadline;
 // A pending "waitfor": the expression, when it was last evaluated (its output starts at
 // g_waitForFrom), when to evaluate it next, and when to give up.
 // A pending "waitline": the text to find anywhere in the console output so far, and when to give up.
 bool g_waitingLine = false;
 std::string g_waitLineText;
-DWORD g_waitLineDeadline = 0;
+Deadline g_waitLineDeadline;
 std::size_t g_waitLineFrom = 0;   // waitline: 0 (any time); waitexpect: since the last expect
 bool g_waitLineIsExpect = false;
 // A pending "waitzone": the zone and when to give up.
 bool g_waitingZone = false;
 std::string g_waitZoneName;
-DWORD g_waitZoneDeadline = 0;
-DWORD g_waitZoneStart = 0;
+Deadline g_waitZoneDeadline;
 bool g_waitingFor = false;
 bool g_waitForPending = false;
 std::string g_waitForExpr;
 std::size_t g_waitForFrom = 0;
 DWORD g_waitForNext = 0;
-DWORD g_waitForDeadline = 0;
-DWORD g_waitForStart = 0;
+Deadline g_waitForDeadline;
 // Frames drawn so far: passes of WinMain's loop through its after-frame PeekMessageA (see
 // PeekMessageHook). A pending "frames": the count it waits for.
 unsigned g_frames = 0;
 bool g_waitingFrames = false;
 unsigned g_waitFramesUntil = 0;
+Deadline g_waitFramesDeadline;   // real time only: 10 s plus 100 ms a frame
 // A pending "waitpresent" (R9c): the game window's presents when it started, its deadline, whether it
 // waits for a gamma ramp check too, and the ramp checks a previous one has seen.
 bool g_waitingPresent = false;
 bool g_waitPresentGamma = false;
 std::uint32_t g_waitPresentFrom = 0;
-DWORD g_waitPresentDeadline = 0;
+Deadline g_waitPresentDeadline;
 int g_rampChecksSeen = 0;
 // A pending "waitwindow": the window's vtables (either of a window's two), its name, when it
 // started and gives up, and the frame from which it has been ready (kNotReady: not ready now).
@@ -313,14 +342,12 @@ constexpr unsigned kNotReady = ~0u;
 bool g_waitingWindow = false;
 std::string g_waitWindowName;
 std::uintptr_t g_waitWindowVtables[2] = {};
-DWORD g_waitWindowStart = 0;
-DWORD g_waitWindowDeadline = 0;
+Deadline g_waitWindowDeadline;
 unsigned g_waitWindowReadyFrom = kNotReady;
 // A pending "waitunit": the unit's script name, when it started and gives up.
 bool g_waitingUnit = false;
 std::string g_waitUnitName;
-DWORD g_waitUnitStart = 0;
-DWORD g_waitUnitDeadline = 0;
+Deadline g_waitUnitDeadline;
 // A pending "capture": its name and when to give up (real time); the frames written so far.
 bool g_capturing = false;
 std::string g_captureName;
@@ -700,9 +727,33 @@ int& g_showTutorial = *reinterpret_cast<int*>(0x0079BE78);
 
 // Game speed. The main loop runs one world update per 0078FF34 milliseconds of real time (55 by
 // default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms> every
-// frame, since loading a zone resets it. 0 = leave it to the game.
+// frame, since loading a zone resets it, and again after every world update (HeldServerUpdate,
+// HeldClientSegment): the battle clock's set-up (00648520) and CBattleScreenSetup::Close (00635E60,
+// on leaving a screen such as the camp) set 55 inside the client's tick, and the main loop's client
+// loop, which tested its backlog against the held 10 before the tick, subtracts the 55 it reads
+// after it: the unsigned backlog (10..54) wraps to about 4.29e9 and the loop runs some 78 million
+// client ticks (minutes). Real-time runs mostly got away with it by timing; on the virtual clock
+// ui_camp_deals, ui_trade_hold, effects_bow, ... hung every time. 0 = leave it to the game.
 unsigned& g_tickLength = *reinterpret_cast<unsigned*>(0x0078FF34);
 unsigned g_heldTickLength = 0;
+
+// The main loop's calls of the server's update and the client's tick (thiscall, EAX 0 stops the
+// frame), redirected here (the rewritten loop calls through the same CALLs' targets, app_main.cpp).
+constexpr std::uintptr_t kServerUpdateCall = 0x00457314;
+constexpr std::uintptr_t kServerUpdate = 0x0058DFF0;
+constexpr std::uintptr_t kClientSegmentCall = 0x00457368;
+constexpr std::uintptr_t kClientSegment = 0x005641F0;
+using WorldUpdate = int(__fastcall*)(void*, void*);
+int __fastcall HeldServerUpdate(void* server, void*) {
+    const int result = reinterpret_cast<WorldUpdate>(kServerUpdate)(server, nullptr);
+    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    return result;
+}
+int __fastcall HeldClientSegment(void* client, void*) {
+    const int result = reinterpret_cast<WorldUpdate>(kClientSegment)(client, nullptr);
+    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    return result;
+}
 
 // Startup movies: config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik), read with
 // GetPrivateProfileStringA. Harness runs read the "movies" keys as empty, so nothing plays.
@@ -784,6 +835,7 @@ BOOL WINAPI RedirectedSetFileAttributes(LPCSTR name, DWORD attributes) {
 }
 
 void WriteReport() {
+    clock::FlushRandomTrace();
     if (census::Enabled()) census::Write();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
@@ -808,53 +860,23 @@ void WriteReport() {
     Log("harness: report written (%lu mismatches, %u failures)", mismatches, unsigned(g_failures.size()));
 }
 
-// Deterministic mode (a "deterministic" line anywhere in the scenario). The game's clock becomes
-// virtual: timeGetTime returns a counter that starts at a fixed value and advances by four world
-// updates each time the main loop reads it (004571DC), so every frame runs exactly four updates,
-// whatever the real frame rate. The random generators are seeded from timeGetTime too, so two runs
-// of the same scenario take the same course, and a run with and without hooks (tools/compare.py)
-// must print the same console output. The harness's own waits use the same clock.
-// EXPERIMENTAL: runs do not repeat yet. Zone loading still depends on real time (a new game sometimes
-// never finishes loading under the virtual clock) and the sound thread, which feeds AI hearing,
-// runs on its own; see docs/open-questions.md.
-constexpr std::uintptr_t kTimeGetTimeSlot = 0x0073B6A0;      // game.exe import table
-constexpr std::uintptr_t kMainLoopTimeReturn = 0x004571E2;   // after the main loop's timeGetTime call
-constexpr unsigned kUpdatesPerFrame = 4;                     // the main loop runs at most 5 per frame
-bool g_deterministic = false;
-volatile DWORD g_virtualNow = 1000000;
-volatile unsigned g_callsSinceFrame = 0;
-decltype(&::timeGetTime) g_timeGetTime;
-volatile bool g_frozen = false;   // "freeze" (see HeldClock below)
-// The thread that runs WinMain's loop (set by PeekMessageHook).
-volatile DWORD g_loopThread = 0;
-
-// Whether a timeGetTime call is the main loop's: the original WinMain's by its return address, the
-// rewritten one's (src/game/app_main.cpp) by the site it names on the loop's thread.
-bool IsMainLoopTime(const void* returnAddress) {
-    if (reinterpret_cast<std::uintptr_t>(returnAddress) == kMainLoopTimeReturn) return true;
-    return ei::mainloop::g_site == ei::mainloop::Site::FrameTime && GetCurrentThreadId() == g_loopThread;
-}
-
-DWORD WINAPI VirtualTimeGetTime() {
-    if (g_frozen) return g_virtualNow;
-    if (IsMainLoopTime(_ReturnAddress())) {
-        g_virtualNow += kUpdatesPerFrame * g_tickLength;
-        g_callsSinceFrame = 0;
-    } else if (++g_callsSinceFrame % 10000 == 0) {
-        ++g_virtualNow;   // a spin-wait outside the main loop (loading screens) still sees time pass
-    }
-    return g_virtualNow;
-}
-
-// The other clocks the game reads: GetTickCount (network, UI, sound) follows the virtual clock;
-// GetLocalTime/GetSystemTime (the main menu's time of day, save dates) return a fixed date.
-constexpr std::uintptr_t kGetTickCountSlot = 0x0073B344;
-constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;
+// Deterministic mode, the default (a "realtime" line anywhere in the scenario turns it off,
+// "deterministic" back on; EI_HARNESS_CLOCK overrides both): the virtual clock (harness_clock.h;
+// every frame of the main loop runs exactly five world updates, the main thread's sleeps and timed
+// waits take no real time, sample ends come on virtual time), a fixed date and fixed random seeds,
+// so two runs of the same scenario take the same course, and a run with and without hooks
+// (tools/compare.py) must print the same console output. The harness's waits count virtual time
+// too, each with a real-time safety limit. Scenarios that do not repeat yet: docs/open-questions.md.
+bool g_deterministic = true;
+// "clocktrace": log the game's clock reads and waits (harness_clock.h).
+bool g_clockTrace = false;
+// "randtrace": log every random draw (harness_clock.h), installed at the first message loop pass.
+bool g_randomTrace = false;
+constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;   // game.exe import table
 constexpr std::uintptr_t kGetSystemTimeSlot = 0x0073B228;
-decltype(&::GetTickCount) g_getTickCount;
 decltype(&::GetLocalTime) g_getLocalTime;
 decltype(&::GetSystemTime) g_getSystemTime;
-DWORD WINAPI VirtualGetTickCount() { return g_virtualNow; }
+// GetLocalTime/GetSystemTime (the main menu's time of day, save dates) return a fixed date.
 void WINAPI FixedTime(LPSYSTEMTIME t) {
     *t = SYSTEMTIME{2001, 3, 1, 26, 12, 0, 0, 0};   // 2001-03-26 12:00, game.exe's build date
 }
@@ -876,38 +898,13 @@ void WINAPI FixedTime(LPSYSTEMTIME t) {
 // effects) is not held; the harness's own waits use real time (in deterministic mode the virtual
 // clock, which stops too: use "capture", not "wait", while frozen there).
 bool g_freezeUsed = false;
-struct HeldClock {
-    DWORD(WINAPI* base)() = nullptr;
-    DWORD offset = 0;   // the game's time is base() - offset while running
-    DWORD heldAt = 0;
-    DWORD Read() const { return g_frozen ? heldAt : base() - offset; }
-    void Hold() { heldAt = base() - offset; }
-    void Resume() { offset = base() - heldAt; }
-};
-HeldClock g_heldTimeGetTime, g_heldTickCount;
-DWORD WINAPI HeldTimeGetTime() { return g_heldTimeGetTime.Read(); }
-DWORD WINAPI HeldGetTickCount() { return g_heldTickCount.Read(); }
-
-void Freeze(bool on) {
-    if (on == g_frozen) return;
-    if (!g_deterministic && g_heldTimeGetTime.base) {
-        if (on) {
-            g_heldTimeGetTime.Hold();
-            g_heldTickCount.Hold();
-        } else {
-            g_heldTimeGetTime.Resume();
-            g_heldTickCount.Resume();
-        }
-    }
-    g_frozen = on;
-}
 
 // The main loop's per-frame camera update: CALL 0040FB30 at 00457595 (thiscall on the camera
 // 0079B2A8, one float, RET 4), redirected here when the scenario freezes.
 constexpr std::uintptr_t kFrameCameraUpdateCall = 0x00457595;
 constexpr std::uintptr_t kCameraUpdate = 0x0040FB30;
 void __fastcall HeldCameraUpdate(void* camera, void*, float dt) {
-    if (g_frozen) return;
+    if (clock::Frozen()) return;
     reinterpret_cast<void(__fastcall*)(void*, void*, float)>(kCameraUpdate)(camera, nullptr, dt);
 }
 
@@ -952,7 +949,7 @@ void JumpTo(std::uintptr_t from, const void* to) {
 }
 
 // The clock the harness's waits and timeouts use.
-DWORD Now() { return g_deterministic ? g_virtualNow : GetTickCount(); }
+DWORD Now() { return clock::Now(); }
 
 // Input for the interface screens: window messages to the game window (0079BC28; its window
 // procedure 00457970 handles the mouse and key messages).
@@ -1456,9 +1453,9 @@ void RunSteps() {
             Log("harness: check %s -> %s (%s)", g_checkExpr.c_str(), out.c_str(), ok ? "ok" : "FAILED");
             if (!ok) g_failures.push_back("check " + g_checkExpr + " printed '" + out + "'");
             g_checking = false;
-        } else if (Now() >= g_checkDeadline) {
-            Log("harness: check %s printed nothing", g_checkExpr.c_str());
-            g_failures.push_back("check " + g_checkExpr + " printed nothing");
+        } else if (g_checkDeadline.Passed()) {
+            Log("harness: check %s printed nothing%s", g_checkExpr.c_str(), g_checkDeadline.Why().c_str());
+            g_failures.push_back("check " + g_checkExpr + " printed nothing" + g_checkDeadline.Why());
             g_checking = false;
         } else {
             return;
@@ -1472,15 +1469,15 @@ void RunSteps() {
             double value = std::strtod(out.c_str(), &end);
             g_waitForPending = false;
             if (end != out.c_str() && value != 0) {
-                Log("harness: waitfor %s done after %lu ms", g_waitForExpr.c_str(), now - g_waitForStart);
+                Log("harness: waitfor %s done after %lu ms", g_waitForExpr.c_str(), now - g_waitForDeadline.start);
                 g_waitingFor = false;
             } else {
                 g_waitForNext = now + 250;
             }
         }
-        if (g_waitingFor && now >= g_waitForDeadline) {
-            Log("harness: waitfor %s timed out", g_waitForExpr.c_str());
-            g_failures.push_back("waitfor " + g_waitForExpr + " timed out");
+        if (g_waitingFor && g_waitForDeadline.Passed()) {
+            Log("harness: waitfor %s timed out%s", g_waitForExpr.c_str(), g_waitForDeadline.Why().c_str());
+            g_failures.push_back("waitfor " + g_waitForExpr + " timed out" + g_waitForDeadline.Why());
             g_waitingFor = false;
         }
         if (g_waitingFor) {
@@ -1515,10 +1512,11 @@ void RunSteps() {
             Log("harness: %s '%s' found", verb, g_waitLineText.c_str());
             g_waitingLine = false;
             if (g_waitLineIsExpect) g_expectFrom = g_console.size();
-        } else if (Now() >= g_waitLineDeadline) {
-            Log("harness: %s '%s' timed out", verb, g_waitLineText.c_str());
-            g_failures.push_back(g_waitLineIsExpect ? "expected console output '" + g_waitLineText + "' (waited)"
-                                                    : "waitline " + g_waitLineText + " timed out");
+        } else if (g_waitLineDeadline.Passed()) {
+            Log("harness: %s '%s' timed out%s", verb, g_waitLineText.c_str(), g_waitLineDeadline.Why().c_str());
+            g_failures.push_back((g_waitLineIsExpect ? "expected console output '" + g_waitLineText + "' (waited)"
+                                                     : "waitline " + g_waitLineText + " timed out") +
+                                 g_waitLineDeadline.Why());
             g_waitingLine = false;
             if (g_waitLineIsExpect) g_expectFrom = g_console.size();
         } else {
@@ -1537,13 +1535,13 @@ void RunSteps() {
         }
         if (ready) {
             Log("harness: waitzone %s done after %lu ms (campaign mode %d)", g_waitZoneName.c_str(),
-                Now() - g_waitZoneStart, *reinterpret_cast<int*>(kCampaignMode));
+                Now() - g_waitZoneDeadline.start, *reinterpret_cast<int*>(kCampaignMode));
             g_waitingZone = false;
-        } else if (Now() >= g_waitZoneDeadline) {
-            char what[400];
-            std::snprintf(what, sizeof(what), "waitzone %s timed out (zone '%s', request %d, campaign mode %d, %s)",
+        } else if (g_waitZoneDeadline.Passed()) {
+            char what[500];
+            std::snprintf(what, sizeof(what), "waitzone %s timed out (zone '%s', request %d, campaign mode %d, %s)%s",
                           g_waitZoneName.c_str(), ServerZoneName(), g_request.kind, *reinterpret_cast<int*>(kCampaignMode),
-                          DescribeLocalPlayer().c_str());
+                          DescribeLocalPlayer().c_str(), g_waitZoneDeadline.Why().c_str());
             Log("harness: %s", what);
             g_failures.push_back(what);
             g_waitingZone = false;
@@ -1552,7 +1550,13 @@ void RunSteps() {
         }
     }
     if (g_waitingFrames) {
-        if (g_frames < g_waitFramesUntil) return;
+        if (g_frames < g_waitFramesUntil && static_cast<LONG>(GetTickCount() - g_waitFramesDeadline.realAt) < 0) return;
+        if (g_frames < g_waitFramesUntil) {
+            std::string what = "frames: " + std::to_string(g_waitFramesUntil - g_frames) + " frames still to go after " +
+                   std::to_string(GetTickCount() - g_waitFramesDeadline.realStart) + " ms";
+            Log("harness: %s", what.c_str());
+            g_failures.push_back(what);
+        }
         g_waitingFrames = false;
     }
     if (g_waitingPresent) {
@@ -1573,7 +1577,7 @@ void RunSteps() {
                 }
             }
             g_waitingPresent = false;
-        } else if (now.failed || Now() >= g_waitPresentDeadline) {
+        } else if (now.failed || g_waitPresentDeadline.Passed()) {
             char what[200];
             std::snprintf(what, sizeof(what), "waitpresent: %s (%u presented, %d ramp checks, one pending %d, identity %d)",
                           now.failed ? "the game window's swap chain failed" : "timed out", now.presents - g_waitPresentFrom,
@@ -1592,10 +1596,11 @@ void RunSteps() {
         if (g_waitWindowReadyFrom != kNotReady && g_frames >= g_waitWindowReadyFrom + 2 && g_inputLoop) {
             const CScreenFade* fade = reinterpret_cast<CInterface3D*>(0x007C7D50)->fade_;
             Log("harness: waitwindow %s done after %lu ms (frame %u; screen fade %s, alpha %.0f)", g_waitWindowName.c_str(),
-                Now() - g_waitWindowStart, g_frames, fade && fade->active_ ? "running" : "off", fade ? fade->alpha_ : 0.0f);
+                Now() - g_waitWindowDeadline.start, g_frames, fade && fade->active_ ? "running" : "off", fade ? fade->alpha_ : 0.0f);
             g_waitingWindow = false;
-        } else if (Now() >= g_waitWindowDeadline) {
-            std::string what = "waitwindow " + g_waitWindowName + " timed out (" + DescribeTopWindow() + ")";
+        } else if (g_waitWindowDeadline.Passed()) {
+            std::string what = "waitwindow " + g_waitWindowName + " timed out (" + DescribeTopWindow() + ")" +
+                               g_waitWindowDeadline.Why();
             Log("harness: %s", what.c_str());
             g_failures.push_back(what);
             g_waitingWindow = false;
@@ -1609,10 +1614,11 @@ void RunSteps() {
         void* unit = nullptr;
         std::string why = g_inputLoop ? FindUnitPoint(g_waitUnitName.c_str(), nullptr, &at, &unit) : "not checked";
         if (why.empty()) {
-            Log("harness: waitunit %s done after %lu ms (at %ld,%ld)", g_waitUnitName.c_str(), Now() - g_waitUnitStart,
+            Log("harness: waitunit %s done after %lu ms (at %ld,%ld)", g_waitUnitName.c_str(), Now() - g_waitUnitDeadline.start,
                 at.x, at.y);
             g_waitingUnit = false;
-        } else if (Now() >= g_waitUnitDeadline) {
+        } else if (g_waitUnitDeadline.Passed()) {
+            why += g_waitUnitDeadline.Why();
             Log("harness: waitunit %s timed out: %s", g_waitUnitName.c_str(), why.c_str());
             g_failures.push_back("waitunit " + g_waitUnitName + " timed out: " + why);
             g_waitingUnit = false;
@@ -1621,7 +1627,11 @@ void RunSteps() {
         }
     }
     while (g_next < g_steps.size()) {
-        if (Now() < g_waitUntil) return;
+        if (!g_waitUntil.Passed()) return;
+        if (std::string why = g_waitUntil.Why(); !why.empty()) {
+            g_failures.push_back("wait" + why);
+            g_waitUntil = Deadline{};
+        }
         Step s = g_steps[g_next++];
         // "vanilla <step>" / "rebirth <step>": only in that install (Rebirth changes some behaviour
         // itself, e.g. script error messages). Rebirth is recognised by its addon.dll.
@@ -1648,11 +1658,14 @@ void RunSteps() {
             return;
         }
         Log("harness: %s %s", s.verb.c_str(), s.argument.c_str());
+        clock::RandomNote("step %s %s", s.verb.c_str(), s.argument.c_str());
         if (s.verb == "wait") {
-            g_waitUntil = Now() + std::strtoul(s.argument.c_str(), nullptr, 10);
+            g_waitUntil.Set(std::strtoul(s.argument.c_str(), nullptr, 10));
         } else if (s.verb == "frames") {
             g_waitingFrames = true;
             g_waitFramesUntil = g_frames + std::strtoul(s.argument.c_str(), nullptr, 10);
+            g_waitFramesDeadline.Set(0);
+            g_waitFramesDeadline.realAt = g_waitFramesDeadline.realStart + 10000 + 100 * (g_waitFramesUntil - g_frames);
             return;
         } else if (s.verb == "waitwindow" || s.verb == "waitmenu") {
             unsigned long seconds = 30;
@@ -1672,8 +1685,7 @@ void RunSteps() {
             g_waitingWindow = true;
             g_waitWindowName = name;
             g_waitWindowReadyFrom = kNotReady;
-            g_waitWindowStart = Now();
-            g_waitWindowDeadline = g_waitWindowStart + seconds * 1000;
+            g_waitWindowDeadline.Set(seconds * 1000);
             return;
         } else if (s.verb == "waitunit") {
             char* rest = nullptr;
@@ -1681,8 +1693,7 @@ void RunSteps() {
             while (rest && *rest == ' ') ++rest;
             g_waitingUnit = true;
             g_waitUnitName = rest ? rest : "";
-            g_waitUnitStart = Now();
-            g_waitUnitDeadline = g_waitUnitStart + seconds * 1000;
+            g_waitUnitDeadline.Set(seconds * 1000);
             return;
         } else if (s.verb == "console") {
             ConsoleExecute(s.argument.c_str());
@@ -1774,18 +1785,18 @@ void RunSteps() {
             while (rest && *rest == ' ') ++rest;
             g_waitingZone = true;
             g_waitZoneName = rest ? rest : "";
-            g_waitZoneStart = Now();
-            g_waitZoneDeadline = g_waitZoneStart + seconds * 1000;
+            g_waitZoneDeadline.Set(seconds * 1000);
             return;
         } else if (s.verb == "check") {
             g_checking = true;
             g_checkExpr = s.argument;
             g_checkFrom = g_console.size();
-            g_checkDeadline = Now() + 3000;
+            g_checkDeadline.Set(3000);
             ConsoleExecute(("#" + s.argument).c_str());
             return;
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
+            if (g_heldTickLength) g_tickLength = g_heldTickLength;
         } else if (s.verb == "waitline" || s.verb == "waitexpect") {
             char* rest = nullptr;
             unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
@@ -1794,7 +1805,7 @@ void RunSteps() {
             g_waitLineIsExpect = s.verb == "waitexpect";
             g_waitLineFrom = g_waitLineIsExpect ? g_expectFrom : 0;
             g_waitLineText = rest ? rest : "";
-            g_waitLineDeadline = Now() + seconds * 1000;
+            g_waitLineDeadline.Set(seconds * 1000);
             return;
         } else if (s.verb == "waitfor") {
             char* rest = nullptr;
@@ -1803,8 +1814,8 @@ void RunSteps() {
             g_waitingFor = true;
             g_waitForPending = false;
             g_waitForExpr = rest ? rest : "";
-            g_waitForStart = g_waitForNext = Now();
-            g_waitForDeadline = g_waitForStart + seconds * 1000;
+            g_waitForDeadline.Set(seconds * 1000);
+            g_waitForNext = g_waitForDeadline.start;
             return;
         } else if (s.verb == "expect") {
             bool found = false;
@@ -1862,14 +1873,14 @@ void RunSteps() {
             sscanf_s(s.argument.c_str(), "%d %15s", &seconds, what, unsigned(sizeof(what)));
             g_waitPresentFrom = render::WindowPresents().presents;
             g_waitPresentGamma = std::strcmp(what, "gamma") == 0;
-            g_waitPresentDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
+            g_waitPresentDeadline.Set(static_cast<DWORD>(seconds) * 1000);
             g_waitingPresent = true;
             return;
         } else if (s.verb == "focus" || s.verb == "windowsize") {
             std::string error = s.verb == "focus" ? FocusStep(s.argument) : WindowSizeStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
-            Freeze(s.verb == "freeze");
+            clock::Freeze(s.verb == "freeze");
         } else if (s.verb == "reject") {
             g_rejected.push_back(s.argument);
         } else if (s.verb == "report") {
@@ -2036,7 +2047,53 @@ int WINAPI TracedAilStartup() {
 // front, so the harness keeps every game active: it subclasses the window and drops the
 // deactivation (and minimise) messages.
 WNDPROC g_gameWindowProc;
+// A game that Windows gave the foreground (when the window in front closed) and that then loses it
+// to a starting game is minimised by dgVoodoo, in the middle of a pass, and its surfaces are lost:
+// the pass's BeginScene failed with DDERR_SURFACELOST ("Can't begin scene") and the run ended on the
+// game's error box. The game itself restores its surfaces only when it is activated again (the main
+// loop's RestoreAllSurfaces, 00457140), which the harness's always-active window never sees. So the
+// harness notes the minimise (WM_SIZE, sent from inside a PeekMessageA while dgVoodoo handles the
+// deactivation) and, once that PeekMessageA has returned and dgVoodoo is done, puts the window back
+// without activating it and restores the surfaces as that code does (under the device lock, the
+// result in the device's lastLoadResult_), after every peek for the next 50 (surfaces still lost
+// right after the minimise were seen to fail the next BeginScene even so). Seen so far, though, the
+// minimise always came twice within ~100 ms, and the second took the exclusive mode as well.
+HWND g_minimised;
+int g_restoresLeft;
+void RestoreAfterMinimise() {
+    if (!g_minimised) return;
+    if (g_restoresLeft == 50) {
+        g_showWindow(g_minimised, SW_SHOWNOACTIVATE);
+        Log("harness: the game window was minimised (it had the foreground and lost it): shown again");
+    }
+    CTextureDevice* device = RenderDeviceObject();
+    if (device && device->ddraw_) {
+        auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);   // the render device's lock
+        EnterCriticalSection(lock);
+        HRESULT result = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
+        device->lastLoadResult_ = result;
+        LeaveCriticalSection(lock);
+        if (result == DDERR_NOEXCLUSIVEMODE) {
+            // A second minimise soon after the first also takes the exclusive mode away, and getting
+            // it back (the renderer's restore after a switch back, 00504780) hangs while the window
+            // is in the background: the run ends on the game's lost-surface box, and run_all.py runs
+            // it again.
+            Log("harness: the exclusive mode was lost with the foreground; the run ends on the game's lost-surface "
+                "box and run_all.py runs it again");
+            g_minimised = nullptr;
+            return;
+        }
+        if (g_restoresLeft == 50 || result != DD_OK) Log("harness: surfaces restored (%08X)", unsigned(result));
+    }
+    if (--g_restoresLeft <= 0) g_minimised = nullptr;
+}
+
 LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == WM_SIZE && wParam == SIZE_MINIMIZED) {
+        g_minimised = window;
+        g_restoresLeft = 50;
+        return 0;
+    }
     if (message == WM_ACTIVATE && (LOWORD(wParam) == WA_INACTIVE || HIWORD(wParam) != 0)) return 0;
     if (message == WM_ACTIVATEAPP && !wParam) return 0;
     return CallWindowProcA(g_gameWindowProc, window, message, wParam, lParam);
@@ -2133,23 +2190,29 @@ bool IsWinMainLoop(const void* returnAddress) {
 
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
     SetMainThread();
+    if (g_randomTrace) clock::InstallRandomTrace(&g_frames);
     TraceFpu("in the message loop");
     KeepGameWindowActive();
     // A frame has been drawn: the original's after-frame call (00457610) or the rewritten loop's.
-    if (reinterpret_cast<std::uintptr_t>(_ReturnAddress()) == kInputLoopReturns[1] ||
-        ei::mainloop::g_site == ei::mainloop::Site::PeekAfterFrame) {
+    const bool afterFrame = reinterpret_cast<std::uintptr_t>(_ReturnAddress()) == kInputLoopReturns[1] ||
+                            ei::mainloop::g_site == ei::mainloop::Site::PeekAfterFrame;
+    if (afterFrame) {
         ++g_frames;
         if (census::Enabled()) census::Frame();
     }
-    if (g_running && !g_inStep) {
+    // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
+    // depends on the real messages it gets (Miles' 50 ms WM_TIMER, WM_PAINT), and a step that
+    // follows a console command's output would otherwise run in this frame or the next.
+    if (g_running && !g_inStep && (afterFrame || !clock::Virtual())) {
         g_inStep = true;   // console commands can pump messages themselves
         g_inputLoop = IsInputLoop(_ReturnAddress());
         g_winMainLoop = IsWinMainLoop(_ReturnAddress());
-        if (g_winMainLoop) g_loopThread = GetCurrentThreadId();
         RunSteps();
         g_inStep = false;
     }
-    return g_peekMessage(msg, hwnd, min, max, remove);
+    const BOOL result = g_peekMessage(msg, hwnd, min, max, remove);
+    RestoreAfterMinimise();
+    return result;
 }
 
 bool LoadScenario(const char* path) {
@@ -2164,8 +2227,15 @@ bool LoadScenario(const char* path) {
         text = text.substr(start);
         std::size_t space = text.find(' ');
         g_steps.push_back({text.substr(0, space), space == std::string::npos ? "" : text.substr(space + 1)});
-        if (g_steps.back().verb == "deterministic") {
-            g_deterministic = true;
+        if (g_steps.back().verb == "randtrace") {
+            g_randomTrace = true;
+            g_steps.pop_back();
+            continue;
+        }
+        if (g_steps.back().verb == "deterministic" || g_steps.back().verb == "realtime" ||
+            g_steps.back().verb == "clocktrace") {
+            if (g_steps.back().verb == "clocktrace") g_clockTrace = true;
+            else g_deterministic = g_steps.back().verb == "deterministic";
             g_steps.pop_back();
             continue;
         }
@@ -2220,6 +2290,14 @@ struct Harness {
             }
             TerminateProcess(GetCurrentProcess(), 2);   // never leave a game waiting in the menu
         }
+        // EI_HARNESS_CLOCK (run_all.py / compare.py --clock): "virtual" or "real" overrides the
+        // scenario's clock, "trace" adds the clock trace.
+        char clockMode[32] = "";
+        GetEnvironmentVariableA("EI_HARNESS_CLOCK", clockMode, sizeof(clockMode));
+        if (std::strstr(clockMode, "virtual")) g_deterministic = true;
+        if (std::strstr(clockMode, "real")) g_deterministic = false;
+        if (std::strstr(clockMode, "clocktrace")) g_clockTrace = true;
+        if (std::strstr(clockMode, "randtrace")) g_randomTrace = true;
         if (report) {
             std::fputs("RESULT: RUNNING\n", report);
             std::fclose(report);
@@ -2280,20 +2358,22 @@ struct Harness {
         PatchSlot(kWritePrivateProfileStringASlot, &RedirectedWriteProfileString, g_writeProfileString);
         PatchSlot(kGetPrivateProfileSectionNamesASlot, &RedirectedGetProfileSectionNames, g_getProfileSectionNames);
         if (g_deterministic) {
-            PatchSlot(kTimeGetTimeSlot, &VirtualTimeGetTime, g_timeGetTime);
-            PatchSlot(kGetTickCountSlot, &VirtualGetTickCount, g_getTickCount);
+            clock::InstallVirtual(&g_tickLength);
+            render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
             JumpTo(0x0049F660, reinterpret_cast<const void*>(&FixedIsaacSeed));
-            Log("harness: deterministic mode (virtual clock, %u world updates per frame)", kUpdatesPerFrame);
+            Log("harness: deterministic mode (virtual clock)");
         } else if (g_freezeUsed) {
-            PatchSlot(kTimeGetTimeSlot, &HeldTimeGetTime, g_heldTimeGetTime.base);
-            PatchSlot(kGetTickCountSlot, &HeldGetTickCount, g_heldTickCount.base);
+            clock::InstallHeld();
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
             Log("harness: the game's clocks can be frozen (fixed date)");
         }
+        if (g_clockTrace) clock::InstallTrace();
         if (g_freezeUsed) RedirectCall(kFrameCameraUpdateCall, kCameraUpdate, reinterpret_cast<const void*>(&HeldCameraUpdate));
+        RedirectCall(kServerUpdateCall, kServerUpdate, reinterpret_cast<const void*>(&HeldServerUpdate));
+        RedirectCall(kClientSegmentCall, kClientSegment, reinterpret_cast<const void*>(&HeldClientSegment));
         for (const Step& step : g_steps)
             if (step.verb == "capture") {
                 capture::Install();

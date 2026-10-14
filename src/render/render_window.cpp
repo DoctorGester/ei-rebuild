@@ -32,6 +32,9 @@ ID3D11RenderTargetView* g_view = nullptr;
 int g_chainWidth = 0, g_chainHeight = 0;
 bool g_failed = false;        // no swap chain could be made, or the device is gone: nothing is shown
 int g_presentFailures = 0;
+// Present waits for the vertical blank (sync interval 1) unless the harness's virtual clock runs
+// the game, where a frame's length no longer depends on the display.
+bool g_waitForVsync = true;
 bool g_recreated = false;     // the swap chain was made again once after a failed resize
 
 sg_shader g_shader{};
@@ -366,7 +369,7 @@ void PresentWindow() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_checkRamp && g_chain) CheckRamp(g_chainWidth, g_chainHeight);
 #endif
-    HRESULT hr = g_chain->Present(1, 0);
+    HRESULT hr = g_chain->Present(g_waitForVsync ? 1 : 0, 0);
     if (IsDeviceLost(hr)) {
         DeviceLost("Present", hr);
         return;
@@ -378,6 +381,8 @@ void PresentWindow() {
 }
 
 } // namespace detail
+
+void SetWaitForVsync(bool on) { g_waitForVsync = on; }
 
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue) {
     // The ramp's full scale is the game's 65280 (255 * 256: 00504A60 multiplies by it); entries are

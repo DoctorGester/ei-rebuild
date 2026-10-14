@@ -1,7 +1,7 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth | --native] [--no-hooks]
-                               [--jobs N] [--retries N] [--verified-candidates N]
+                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--verified-candidates N]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
                    Every scenario runs on vanilla; under Rebirth only those config/rebirth_scenarios.csv
@@ -22,12 +22,15 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
   --retries N      re-run a failed scenario up to N times (default 1); fights against spawned
                    enemies are random, and the hero occasionally loses one on the original too.
                    A pass after a retry is reported as "PASS*".
+  --clock virtual|real[,clocktrace][,randtrace]
+                   run every scenario on the virtual clock or on real time, whatever its own lines say
+                   (EI_HARNESS_CLOCK; tests/verify/harness_clock.h), with the clock or random trace
   --verified-candidates N
                    afterwards, list rewritten functions with at least N verify calls and no
                    mismatch in any run that are not yet in tests/verify/verified.txt
 exit code: 0 when every run passed
 """
-import argparse, collections, concurrent.futures, contextlib, glob, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
+import argparse, functools, collections, concurrent.futures, contextlib, glob, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
 
 import prepare_scenario
 
@@ -124,13 +127,42 @@ def game_environment(environ=None):
             if k.startswith('EI_') and k not in NOT_GAME_ENV}
 
 
-def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True, game_env=None):
+# A game window that had the foreground (Windows hands it to another game when the one in front
+# closes) and lost it to a starting game is minimised by dgVoodoo, which takes its surfaces and,
+# when that comes twice, its exclusive mode: the run ends on the game's "surface memory is gone"
+# box (harness.cpp, RestoreAfterMinimise). That is the machine, not the code: such a run is run again.
+MINIMISED = 'harness: the game window was minimised'
+MINIMISED_RERUNS = 2
+
+
+def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None):
     """One game of a scenario on an install. root: the checkout whose tests/scenarios and run/ it uses;
     build: the verify build folder (ei_launch.exe; the run folder is <build>/runs/<folder>).
     take_slot False: the caller already holds a machine slot for it (tools/work_sched.py).
+    clock overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',clocktrace',
+    ',randtrace').
     game_env: None, the game inherits this process's environment; a dict (also {}), the game's EI_* variables
     are exactly these (this process's other game variables are dropped), for a scheduler running other
-    submitters' batches. It goes to the subprocess only; os.environ stays as it is."""
+    submitters' batches. It goes to the subprocess only; os.environ stays as it is.
+    A run that fails after dgVoodoo minimised its window is run again (MINIMISED)."""
+    for attempt in range(MINIMISED_RERUNS + 1):
+        result, seconds, failures, counts, notes = run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env)
+        if result == 'PASS' or attempt == MINIMISED_RERUNS or not minimised(build, folder or f'{name}-{install}'):
+            break
+        print(f'  {folder or name + "-" + install}: {result} after dgVoodoo minimised the window; running it again',
+              flush=True)
+    return result, seconds, failures, counts, notes
+
+
+def minimised(build, folder):
+    path = os.path.join(build, 'runs', folder, 'ei_hook.log')
+    with contextlib.suppress(OSError):
+        with open(path, encoding='cp1251', errors='replace') as f:
+            return any(MINIMISED in line for line in f)
+    return False
+
+
+def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
     shutil.rmtree(out, ignore_errors=True)
@@ -151,6 +183,8 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
         cmd += ['--exe', os.path.join(root, 'run', 'rebirth', 'game.exe')]
     if not hooks:
         cmd.append('--no-hooks')
+    if clock:
+        env = dict(os.environ if env is None else env, EI_HARNESS_CLOCK=clock)
     with machine_slot(alone=sets_display_mode(scenario)) if take_slot else contextlib.nullcontext():
         start = time.time()
         proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env)
@@ -167,6 +201,14 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
     notes = [l for l in (proc.stdout + proc.stderr).splitlines() if 'terminating' in l or 'not found' in l or 'open window' in l]
     notes += [l for l in report.splitlines() if l.startswith('EXIT: ')]   # a message box after quit
     return result, seconds, failures, counts, notes
+
+
+def console_of(folder, build=BUILD):
+    """The console output a run's report holds (its lines after "console output:")."""
+    path = os.path.join(build, 'runs', folder, 'harness_report.txt')
+    lines = open(path, encoding='cp1251', errors='replace').read().splitlines() if os.path.exists(path) else []
+    lines = lines[lines.index('console output:') + 1:] if 'console output:' in lines else []
+    return [l for l in lines if l.startswith('  ')]
 
 
 def run_with_retries(name, install, hooks, retries, folder=None, runner=run):
@@ -249,6 +291,7 @@ def parse_args(argv=None):
     ap.add_argument('--widescreen', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
+    ap.add_argument('--clock')
     ap.add_argument('--jobs', type=int, default=16)
     return ap.parse_args(argv)
 
@@ -361,7 +404,8 @@ def main():
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         # (--widescreen's "rebirth-nohooks": Rebirth without our hooks, in its own folder)
-        futures = {pool.submit(run_with_retries, n, i.split('-')[0], uses_hooks(i, args), args.retries, f'{n}-{i}'): (n, i)
+        futures = {pool.submit(run_with_retries, n, i.split('-')[0], uses_hooks(i, args), args.retries, f'{n}-{i}',
+                               functools.partial(run, clock=args.clock)): (n, i)
                    for n, i in order}
         for future in concurrent.futures.as_completed(futures):
             name, install = futures[future]
