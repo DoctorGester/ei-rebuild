@@ -297,11 +297,11 @@ src/game/world_client.cpp,0,0,0,0,0,0,0,0,0,0,5
 src/game/world_client_draw.cpp,0,0,6,0,3,0,0,0,0,0,0
 src/game/world_client_maps.cpp,0,0,0,0,0,0,0,0,0,0,3
 src/game/world_client_view.cpp,0,0,0,2,0,0,0,0,0,0,0
-src/game/world_effect_internal.h,0,13,1,0,7,0,0,0,0,0,0
+src/game/world_effect_internal.h,0,0,1,0,7,0,0,0,0,0,0
 src/game/world_effect_missile.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_moshka.cpp,0,0,0,0,0,0,0,0,0,0,4
 src/game/world_effect_tornado.cpp,0,0,0,0,0,0,0,0,0,0,1
-src/game/world_effect_visual.cpp,0,3,4,0,0,0,0,17,0,0,1
+src/game/world_effect_visual.cpp,0,0,4,0,0,0,0,0,0,0,1
 src/game/world_game.cpp,1,1,2,0,3,0,0,0,0,0,1
 src/game/world_guard.cpp,3,0,0,0,0,0,0,0,0,0,0
 src/game/world_loot.cpp,3,4,0,0,2,0,0,0,0,0,0

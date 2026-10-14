@@ -17,6 +17,7 @@
 
 #include "core_transform.h"
 #include "effects.h"
+#include "lightning.h"
 #include "net_delta.h"
 #include "spell.h"
 #include "lib/mfc.h"
@@ -33,6 +34,16 @@ public:
     virtual Vector3* Position(void* group) = 0; // 20: its position as `group` sees it (00675FA0)
 };
 inline CTimedObjectVirtuals* TimedSlots(CEngineObject* object) { return static_cast<CTimedObjectVirtuals*>(object); }
+
+// An effect as callers reach slots 21-23 through its vtable (pure in the base vtable 007434AC). The
+// rewritten slot bodies stay plain members of the effect classes (rule 4).
+class CEffectVirtuals : public CTimedObjectVirtuals {
+public:
+    virtual int Unpack(int update, DeltaField* field) = 0;   // 21: 0 when the field did not end where expected
+    virtual void Pack(DeltaField* field) = 0;                // 22
+    virtual void Start(int update) = 0;                      // 23: 0 creates the sound / light / source, else moves it
+};
+inline CEffectVirtuals* EffectSlots(CEngineObject* object) { return static_cast<CEffectVirtuals*>(object); }
 
 // The common base (vtable 007434AC; slots 11, 12, 21-23 pure). 0x14C bytes.
 class CEffect : public CTransformObject {
@@ -193,7 +204,7 @@ public:
 
     Vector3 color_;            // +0x14C
     float range_;              // +0x158 negative: flag 0x400 on the light
-    CEngineObject* light_;     // +0x15C the CLight (reference counted), null: none
+    CLight* light_;            // +0x15C reference counted, null: none
     std::uint32_t lightFlags_; // +0x160 ored into the light's flags
 };
 static_assert(offsetof(CEffectPointLight, color_) == 0x14C);
@@ -231,7 +242,7 @@ public:
     float param164_;           // +0x164 copied to the source's +0x11C
     int attachedTo_;           // +0x168 object id, -1: none
     Vector3 target_;           // +0x16C moves towards it
-    void* source_;             // +0x178 the CParticleSource (reference counted)
+    CParticleSource* source_;  // +0x178 reference counted
     int unitId_;               // +0x17C a unit whose position is used when unpacking, -1: none
 };
 static_assert(offsetof(CEffectParticle, source_) == 0x178);
@@ -281,7 +292,7 @@ public:
     Vector3 from_;             // +0x14C
     Vector3 to_;               // +0x158
     float width_;              // +0x164
-    CEngineObject* bolt_;      // +0x168 the drawn bolt (reference counted)
+    CLightning* bolt_;         // +0x168 the drawn bolt (reference counted)
     int toObject_;             // +0x16C its position (+1 in z) becomes to_
     int fromObject_;           // +0x170 a unit: its 00532860 point becomes from_ (server only)
     std::uint8_t flag_;        // +0x174

@@ -6,9 +6,9 @@
 
 #include "world_effect.h"
 #include "game_strings.h"
+#include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -24,11 +24,10 @@ namespace effect {
 
 inline void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
 inline void* LightManager() { return *reinterpret_cast<void**>(0x007AF738); }
-inline void* LightFactory() { return *reinterpret_cast<void**>(0x007AF748); }     // slot 23 creates lights
+inline CLightFactory* LightFactory() { return *reinterpret_cast<CLightFactory**>(0x007AF748); }   // CreateObject makes lights
 inline void* ParticleManager() { return *reinterpret_cast<void**>(0x007AF754); }
-inline void* BoltFactory() { return *reinterpret_cast<void**>(0x007AF758); }      // slot 23 creates bolts
+inline CLightningManager* BoltFactory() { return *reinterpret_cast<CLightningManager**>(0x007AF758); }   // CreateObject makes bolts
 inline void* ObjectManager() { return *reinterpret_cast<void**>(0x007AF5F8); }    // CBaseManager
-inline void* WorldClient() { return reinterpret_cast<void*>(0x007AF5B8); }        // scorch marks (0056D4C0)
 inline void* CameraObject() { return *reinterpret_cast<void**>(0x007AF7C8); }
 inline int ChangeStamp() { return *reinterpret_cast<const int*>(0x007AFFC8); }
 inline int GameTick() { return *reinterpret_cast<const int*>(0x007AF61C); }
@@ -102,19 +101,10 @@ inline void* FindObject(void* manager, void*, int id) { return ManagerFindObject
 // 00532860 (unit). A point of the unit (its effect origin); returns `out`.
 __declspec(naked) inline Vector3* __fastcall UnitEffectPoint(void* /*unit*/, void*, Vector3* /*out*/) EI_ORIGINAL(0x00532860)
 
-// Virtual slots used on objects whose classes are not declared here.
-inline void* ObjectById(void* holder, int id) { return ei::VCall<void*>(holder, 40, id); }       // slot 40 (+0xA0)
-inline double GroundHeight(void* world, float x, float y) { return ei::VCall<double>(world, 28, x, y); }  // slot 28 (+0x70)
-inline int IsClientSide(void* context) { return ei::VCall<int>(context, 26); }                // slot 26 (+0x68)
-inline int ClassId(const void* object) { return ei::VCall<int>(object, 12); }                 // slot 12
-inline void Release(void* object) { ei::VCall<void>(object, 4); }                            // slot 4
-
-// --- The effect's own virtual slots --------------------------------------------------------------
-
-inline void CallReset(CEffect* e) { ei::VCall<void>(e, 18); }
-inline int CallUnpack(CEffect* e, int update, DeltaField* field) { return ei::VCall<int>(e, 21, update, field); }
-inline void CallPack(CEffect* e, DeltaField* field) { ei::VCall<void>(e, 22, field); }
-inline void CallStart(CEffect* e, int update) { ei::VCall<void>(e, 23, update); }
+// The world an object belongs to (the effects' manager context is the world, too). The effects
+// reach their own slots 18-23 through TimedSlots / EffectSlots (world_effect.h).
+inline CWorld* WorldOf(const void* object) { return static_cast<CWorld*>(ObjectWorld(object)); }
+inline CWorld* ContextWorld(const void* object) { return static_cast<CWorld*>(ManagerContext(object)); }
 
 // --- Replicated fields (net_delta.cpp, through the game addresses) --------------------------------
 
@@ -141,18 +131,18 @@ inline void EmptyField(DeltaField* f) {
     ResizeStream(&f->out[1], nullptr, 0);
 }
 
-// Every Unpack ends by checking that the snapshot was read to its end (slots 5 and 4).
+// Every Unpack ends by checking that the snapshot was read to its end (Position, then Size).
 inline bool SnapshotReadToEnd() {
     BitStream* s = ReadSnapshot();
-    std::uint32_t position = ei::VCall<std::uint32_t>(s, 5);
-    return position == ei::VCall<std::uint32_t>(s, 4);
+    std::uint32_t position = s->Position();
+    return position == s->Size();
 }
 
-// --- Save streams (slot 1 Read, slot 2 Write; +8 the save version) --------------------------------
+// --- Save streams (the effects' Load / Save slots take the CStream as void*) ----------------------
 
-inline void Read(void* stream, void* data, std::uint32_t size) { ei::VCall<std::uint32_t>(stream, 1, data, size); }
-inline void Write(void* stream, const void* data, std::uint32_t size) { ei::VCall<void>(stream, 2, data, size); }
-inline int Version(const void* stream) { return static_cast<const int*>(stream)[2]; }
+inline void Read(void* stream, void* data, std::uint32_t size) { static_cast<CStream*>(stream)->Read(data, size); }
+inline void Write(void* stream, const void* data, std::uint32_t size) { static_cast<CStream*>(stream)->Write(data, size); }
+inline int Version(const void* stream) { return static_cast<int>(static_cast<const CStream*>(stream)->version_); }
 // A dword written through a stack copy, as the original writes most scalars.
 inline void WriteCopy(void* stream, const void* field) {
     std::uint32_t copy;

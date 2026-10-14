@@ -55,19 +55,19 @@ void MoveByVelocity(CEffect* e) {
 
 void CEffect::SendFull() {
     DeltaField* field = BeginWrite(&state_, nullptr, 0);
-    CallPack(this, field);
+    EffectSlots(this)->Pack(field);
     EndField(&state_);
 }
 
 void CEffect::SendDelta() {
     DeltaField* field = BeginWrite(&state_, nullptr, 1);
-    CallPack(this, field);
+    EffectSlots(this)->Pack(field);
     EndField(&state_);
 }
 
 int CEffect::Receive(int update, BitStream* reader) {
     DeltaField* field = BeginRead(&state_, nullptr, update, reader);
-    int result = CallUnpack(this, update, field);
+    int result = EffectSlots(this)->Unpack(update, field);
     EndField(&state_);
     return result;
 }
@@ -94,12 +94,12 @@ void CEffect::MarkChanged() {
 void CEffect::UpdateMoving() { moving_ = IsMoving(velocity_); }
 
 int CEffect::CreateEffect() {
-    CallReset(this);
+    TimedSlots(this)->Reset();
     SendFull();
     return 1;
 }
 
-void CEffect::DestroyEffect() { CallReset(this); }
+void CEffect::DestroyEffect() { TimedSlots(this)->Reset(); }
 
 void CEffect::SetVelocity(const Vector3* velocity) {
     std::memcpy(&velocity_, velocity, sizeof(Vector3));
@@ -157,7 +157,7 @@ int CEffectSound::Unpack(int update, DeltaField* field) {
     moving_ = IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
-    CallStart(this, update);
+    EffectSlots(this)->Start(update);
     return 1;
 }
 
@@ -303,7 +303,7 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     ReadDelta(field, nullptr, &unknown_16C, 4);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
-    CallStart(this, update);
+    EffectSlots(this)->Start(update);
     return 1;
 }
 
