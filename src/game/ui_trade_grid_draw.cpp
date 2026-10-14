@@ -60,10 +60,9 @@ long ComCall(void* object, int slot, Args... args) {
 // IDirect3DDevice7::Clear of the depth buffer (and the stencil when the device has one) over
 // `rect` to `z`, result in the renderer's +8; handed to the new renderer too.
 void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
-    auto* r = reinterpret_cast<std::uint8_t*>(renderer);
-    unsigned long flags = (At<std::uint32_t>(r, 0x90) & 0x4000) && At<std::uint32_t>(r, 0x9C) ? 6ul : 2ul;
+    unsigned long flags = (renderer->caps_ & 0x4000) && renderer->stencil_ ? 6ul : 2ul;
     gameapi::EnterCriticalSection(DeviceLock());
-    At<long>(r, 8) = ComCall(At<void*>(r, 0x54), kD3DClear, 1ul, rect, flags, 0ul, z, 0ul);
+    renderer->result_ = ComCall(renderer->device_, kD3DClear, 1ul, rect, flags, 0ul, z, 0ul);
     gameapi::LeaveCriticalSection(DeviceLock());
     render::Rect nr{rect->left, rect->top, rect->right, rect->bottom};
     render::ClearDepth(z, &nr, 1);
@@ -71,24 +70,24 @@ void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
 
 // One list's items: cell i at column i % 4, row i / 4; `y0` and the sizes differ between the
 // bought (upper) and sold (lower) lists, as do the text rows.
-void DrawItems(CTradeGrid* grid, int pass, void* list, SurfaceText* surface, mfc::CString& text, float yOffset,
+void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surface, mfc::CString& text, float yOffset,
                float bigSize, float smallSize, int countTop, int priceTop, int kind) {
-    void** items = *static_cast<void***>(list);
-    int count = At<int>(list, 4);
+    CItem** items = list->data;
+    int count = list->size;
     for (int i = 0; i < count; ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
         ItemCell cell{items[i], static_cast<float>(x) + GameFloat(0x0073BF48), static_cast<float>(y) + yOffset,
-                      i <= 3 ? bigSize : smallSize, 100.0f, At<int>(grid, 0x148)};
-        DrawItemModel(At<void*>(grid, 0x14C), nullptr, pass, &cell);
+                      i <= 3 ? bigSize : smallSize, 100.0f, grid->mode_};
+        DrawItemModel(grid->owner_, nullptr, pass, &cell);
         int pieces = At<int>(cell.item, 0x48);
         if (pieces > 1) {
             text.Format(Text(0x0078EEEC), pieces);
             RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
             surface->Draw(text, &r, 1, kTextColour, 2, 1);
         }
-        if (!At<char>(grid, 0x160)) {
-            int price = ei::VCall<int>(At<void*>(grid, 0x14C), 0xD8 / 4, cell.item, kind);
+        if (!grid->flag_) {
+            int price = ei::VCall<int>(grid->owner_, 0xD8 / 4, cell.item, kind);
             text.Format(Text(0x0078EEEC), price);
             RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
             surface->Draw(text, &r, 1, kTextColour, 1, 1);
@@ -105,7 +104,7 @@ int __fastcall TradeGridDraw(CTradeGrid* self, void*, int pass) {
     ui->renderer_->FlushBatchB();
     RECT grid{200, 100, 600, 500};
     ui->CallScaleRectToScreen(&grid);
-    RECT screen{0, 0, At<int>(ui, 0), At<int>(ui, 4)};
+    RECT screen{0, 0, ui->width_, ui->height_};
     ClearDepth(ui->renderer_, &screen, 0.0f);
     RECT inside = grid;
     ClearDepth(ui->renderer_, &inside, 1.0f);
@@ -117,15 +116,15 @@ int __fastcall TradeGridDraw(CTradeGrid* self, void*, int pass) {
     auto* surface = reinterpret_cast<SurfaceText*>(self->surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
-    DrawItems(self, pass, At<void*>(self, 0x150), surface, text, GameFloat(0x0073D618), 48.0f, 24.0f, 0x0F, 0x41,
-              At<int>(self, 0x158));
-    DrawItems(self, pass, At<void*>(self, 0x154), surface, text, GameFloat(0x00741F18), 12.0f, 6.0f, 0xD7, 0x109,
-              At<int>(self, 0x15C));
+    DrawItems(self, pass, self->bought_, surface, text, GameFloat(0x0073D618), 48.0f, 24.0f, 0x0F, 0x41,
+              self->buyKind_);
+    DrawItems(self, pass, self->sold_, surface, text, GameFloat(0x00741F18), 12.0f, 6.0f, 0xD7, 0x109,
+              self->sellKind_);
     surface->End();
     ui = self->interface_;
     ui->renderer_->FlushBatchA();
     ui->renderer_->FlushBatchB();
-    RECT whole{0, 0, At<int>(ui, 0), At<int>(ui, 4)};
+    RECT whole{0, 0, ui->width_, ui->height_};
     ClearDepth(ui->renderer_, &whole, 1.0f);
     return 1;
 }

@@ -52,14 +52,14 @@ const char* const kNoMaterial = Text(0x007846F0);         // "none"
 const char* const kUnknownMaterial = Text(0x007963C0);    // "uq"
 
 // Record fields used here.
-constexpr int kRecordNumber = 0x18;     // the number in the names
-constexpr int kRecordVariant = 0x1C;    // the model variant
 constexpr int kRecordNameList = 0x20;   // CStringArray
-constexpr int kMaterialName = 0x08;     // char* (CString)
-constexpr int kQuickMaterial = 0x10;    // char* (CString): "none" for items without a material
 constexpr int kSpellFigureNumber = 0x60;
 
-int Number(const char* record) { return record ? Field<int>(record, kRecordNumber) : -1; }
+// The records are read without a null check where the original reads them without one.
+const ItemRecordHead* Head(const char* record) { return reinterpret_cast<const ItemRecordHead*>(record); }
+const MaterialRecordHead* Material(const char* record) { return reinterpret_cast<const MaterialRecordHead*>(record); }
+
+int Number(const char* record) { return record ? Head(record)->number : -1; }
 
 // "<code>_<number>.<material>.<variant>", or "" without a prototype or material (slot 17).
 mfc::CString ModelNameOf(const RecordTable& table, int stride, const char* const (&codes)[7], std::uint32_t id) {
@@ -67,9 +67,8 @@ mfc::CString ModelNameOf(const RecordTable& table, int stride, const char* const
     const char* prototype = table.At(PrototypeIndex(id), stride);
     mfc::CString name;
     if (prototype && material)
-        name.Format(kModelFormat, TypeCode(codes, Field<int>(prototype, field::kItemType)),
-                    Field<int>(prototype, kRecordNumber), Field<const char*>(material, kMaterialName),
-                    Field<int>(prototype, kRecordVariant));
+        name.Format(kModelFormat, TypeCode(codes, Head(prototype)->type), Head(prototype)->number,
+                    Material(material)->name, Head(prototype)->variant);
     return name;
 }
 
@@ -96,9 +95,9 @@ mfc::CString HumanFigureName(CItem* item) {
 mfc::CString PictureNameOf(const RecordTable& table, int stride, const char* const (&codes)[7], const char* format,
                            std::uint32_t id) {
     const char* prototype = table.At(PrototypeIndex(id), stride);
-    const char* code = TypeCode(codes, Field<int>(prototype, field::kItemType));
+    const char* code = TypeCode(codes, Head(prototype)->type);
     mfc::CString name;
-    name.Format(format, code, Field<int>(prototype, kRecordNumber));
+    name.Format(format, code, Head(prototype)->number);
     return name;
 }
 
@@ -145,7 +144,7 @@ bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
     char block[0x24];
     char* number = block;
     char* name = block + 4;
-    gamecrt::sprintf(number, Text(0x00796454), Field<int>(prototype, kRecordNumber));   // "%.2d"
+    gamecrt::sprintf(number, Text(0x00796454), Head(prototype)->number);   // "%.2d"
     static const std::uintptr_t kBases[5] = {
         0x00796448,   // "basesword"
         0x00796440,   // "baseaxe"
@@ -154,7 +153,7 @@ bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
         0x0079641C,   // "baseclub"
     };
     auto copy = [](char* to, const char* from) { std::memcpy(to, from, std::strlen(from) + 1); };
-    std::uint32_t type = static_cast<std::uint32_t>(Field<int>(prototype, field::kItemType));
+    std::uint32_t type = static_cast<std::uint32_t>(Head(prototype)->type);
     if (type < 5) {
         copy(name, Text(kBases[type]));
         copy(name + std::strlen(name), number);
@@ -175,10 +174,10 @@ EI_REPLACE(0x006A0CC0, WeaponBaseFigure);
 mfc::CString CItemQuick::FigureName() {
     mfc::CString name;
     const char* prototype = GetPrototype();
-    if (prototype && gamecrt::mbsicmp(Field<const unsigned char*>(prototype, kQuickMaterial),
+    if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->text10)),
                                       reinterpret_cast<const unsigned char*>(kNoMaterial)) != 0) {
         const char* material = Materials().At(MaterialIndex(unknown_18), kMaterialSize);
-        const char* materialName = material ? Field<const char*>(material, kMaterialName) : kUnknownMaterial;
+        const char* materialName = material ? Material(material)->name : kUnknownMaterial;
         name.Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);
         return name;
     }
@@ -236,14 +235,14 @@ mfc::CString CItemLoot::FigureName() {
             bool weapon = recordType_ == kRecordWeapon;
             const char* record = weapon ? Weapons().At(index_, kWeaponSize) : Armors().At(index_, kArmorSize);
             mfc::CString code;
-            int type = Field<int>(record, field::kItemType);
+            int type = Head(record)->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
-            name.Format(kRecordModelFormat, static_cast<const char*>(code), Field<int>(record, kRecordNumber),
-                        Field<int>(record, kRecordVariant));
+            name.Format(kRecordModelFormat, static_cast<const char*>(code), Head(record)->number,
+                        Head(record)->variant);
             break;
         }
         case kRecordQuick:
-            name.Format(kQuickFigure, Field<int>(QuickItems().At(index_, kQuickItemSize), kRecordNumber));
+            name.Format(kQuickFigure, Head(QuickItems().At(index_, kQuickItemSize))->number);
             break;
         case kRecordSpell:
             name.Format(kPrototypeFigure, Field<int>(Spells().At(index_, kSpellSize), kSpellFigureNumber));
@@ -273,14 +272,14 @@ mfc::CString CItemLoot::PictureName() {
             bool weapon = recordType_ == kRecordWeapon;
             const char* record = weapon ? Weapons().At(index_, kWeaponSize) : Armors().At(index_, kArmorSize);
             mfc::CString code;
-            int type = Field<int>(record, field::kItemType);
+            int type = Head(record)->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
             name.Format(weapon ? kWeaponPicture : kArmorPicture, static_cast<const char*>(code),
-                        Field<int>(record, kRecordNumber));
+                        Head(record)->number);
             break;
         }
         case kRecordQuick:
-            name.Format(kQuickPicture, Field<int>(QuickItems().At(index_, kQuickItemSize), kRecordNumber));
+            name.Format(kQuickPicture, Head(QuickItems().At(index_, kQuickItemSize))->number);
             break;
         case kRecordSpell:
         case kRecordModifier:

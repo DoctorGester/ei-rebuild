@@ -3,6 +3,9 @@
 // panel's label table followed by values, drawn with the panel surface's text routine and moved
 // down 15 pixels. See docs/notes/ui.md ("Unit info texts").
 #include "console.h"
+#include "ui.h"
+#include "unit.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -46,7 +49,6 @@ constexpr int kLevelDifferenceLimit = 25;
 // the prototype [00530930], the level [00532D40].
 __declspec(naked) double __fastcall MoveSpeedFor(void*, void*, int) EI_ORIGINAL(0x0052FAF0)
 __declspec(naked) double __fastcall MoveSpeed(void*) EI_ORIGINAL(0x0052FA20)
-static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 // The world (007AF5B8): the time of day [0055FC50, ST0].
 double __fastcall WorldDayTime(void* a0) { return WorldDayTimeOriginal(a0); }
 // The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0;
@@ -110,8 +112,8 @@ struct Panel {
 };
 
 // Whether `unit` is not in the group (+0x148: +0x16C units, +0x170 count).
-bool OutsideGroup(char* self, void* unit) {
-    char* group = At<char*>(self, 0x148);
+bool OutsideGroup(CHudUnitPanel* self, void* unit) {
+    char* group = reinterpret_cast<char*>(self->owner_);
     int count = At<int>(group, 0x170);
     void** units = At<void**>(group, 0x16C);
     for (int i = 0; i < count; ++i) {
@@ -127,23 +129,26 @@ bool IsEmpty(const mfc::CString& s) { return reinterpret_cast<const int*>(static
 // 00647040. Draws the info lines of `unit`.
 void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     void* texts = *reinterpret_cast<void**>(0x007AF788);
+    auto* hud = reinterpret_cast<CHudUnitPanel*>(self);
+    auto* unitObject = reinterpret_cast<CUnit*>(unit);
+    UnitParams* params = unitObject->Params();
     char* stats = unit + 0x330;
     mfc::CString suffix;
     Panel panel;
-    panel.surface = *At<void**>(self, 0x118);
+    panel.surface = *hud->surfaces_.data;
     panel.labels = At<const mfc::CString*>(self, 0x1A0);
     panel.rect = {5, 0x23, 0x9B, 0x32};
 
-    std::int16_t health = At<std::int16_t>(unit, 0x17E);
+    std::int16_t health = unitObject->hitPoints;
     panel.text.Format(kValuePair, static_cast<const char*>(panel.labels[0]), health > 0 ? static_cast<int>(health) : 0,
-                      static_cast<int>(At<std::int16_t>(unit, 0x180)));
+                      static_cast<int>(unitObject->maxHitPoints));
     panel.DrawLine();
-    bool outside = OutsideGroup(self, unit);
-    panel.text.Format(kValuePair, static_cast<const char*>(panel.labels[1]), static_cast<int>(At<std::uint16_t>(unit, 0x182)),
-                      static_cast<int>(At<std::uint16_t>(unit, 0x184)));
+    bool outside = OutsideGroup(hud, unit);
+    panel.text.Format(kValuePair, static_cast<const char*>(panel.labels[1]), static_cast<int>(unitObject->mana),
+                      static_cast<int>(unitObject->maxMana));
     panel.DrawLine();
 
-    std::uint8_t moveBonus = At<std::uint8_t>(stats, 0xF);
+    std::uint8_t moveBonus = params->movementKind;
     if (moveBonus > 1) {
         panel.text.Format(kMoveKey, moveBonus - 1);
         TextsGetString(texts, nullptr, panel.text, &suffix);
@@ -160,7 +165,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     panel.DrawLine();
 
     CombatInfo combat;
-    void* controller = At<void*>(unit, 0x240);
+    void* controller = unitObject->controller;
     reinterpret_cast<void(__fastcall*)(void*, void*, CombatInfo*)>((*static_cast<void***>(controller))[kCombatInfoSlot])(
         controller, nullptr, &combat);
     panel.text.Format(kValue, static_cast<const char*>(panel.labels[3]), combat.attack);
@@ -176,19 +181,19 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     panel.text.Format(kDamageLine, static_cast<const char*>(panel.labels[9]), damageMin, damageMax,
                       static_cast<const char*>(suffix));
     panel.DrawLine();
-    panel.text.Format(kValue, static_cast<const char*>(panel.labels[15]), static_cast<int>(At<std::uint8_t>(stats, 0x15)));
+    panel.text.Format(kValue, static_cast<const char*>(panel.labels[15]), static_cast<int>(params->rate));
     panel.DrawLine();
 
     std::uint8_t description[0x1C];
-    UnitParameterBlock(stats, nullptr, unit + 0x17C, description, IsTextKeyOriginal(At<int>(unit, 0xC)));
+    UnitParameterBlock(stats, nullptr, unit + 0x17C, description, IsTextKeyOriginal(unitObject->id_));
     console::CStringArray lines;
     DescriptionLines(description, &lines, 1);
     panel.DrawLabelled(10, lines[0]);
     if (outside) {
         if (!IsEmpty(lines[1])) panel.DrawLabelled(11, lines[1]);
-        char* prototype = UnitPrototype(unit);
-        if (At<void**>(prototype, 0x104) - At<void**>(prototype, 0x100) != 0) panel.DrawLine(panel.labels[5]);
-        char* group = At<char*>(self, 0x148);
+        auto* prototype = static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit));
+        if (prototype->spellNames.end != prototype->spellNames.begin) panel.DrawLine(panel.labels[5]);
+        char* group = reinterpret_cast<char*>(hud->owner_);
         if (At<int>(group, 0x170) > 0) {
             void* leader = At<void**>(group, 0x16C)[0];
             int difference = UnitLevel(reinterpret_cast<CUnit*>(unit)) - UnitLevel(static_cast<CUnit*>(leader));
@@ -211,7 +216,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
 
     if (IsNetworkClientOriginal() && !outside) {
         TextsGetString(texts, nullptr, kCampExp, &suffix);
-        panel.text.Format(kValue, static_cast<const char*>(suffix), At<int>(stats, 8));
+        panel.text.Format(kValue, static_cast<const char*>(suffix), params->unspentExperience);
         panel.DrawLine();
     }
 }

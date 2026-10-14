@@ -9,6 +9,8 @@
 // their source asks for it. Buffers are function-local statics (007AEF60..007AEFF8). See
 // docs/notes/models.md ("Renderer").
 #include "clip.h"
+#include "model.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "render/render_state.h"
@@ -136,7 +138,8 @@ TLVertex* CornerData() { return Corners().data; }
 std::uint16_t* IndexData() { return Indices().data; }
 // --- Device calls --------------------------------------------------------------------------------
 
-void* Device(char* renderer) { return At<void*>(At<char*>(renderer, 0x20), 0x54); }
+CSceneRenderer* Renderer(char* renderer) { return reinterpret_cast<CSceneRenderer*>(renderer); }
+void* Device(char* renderer) { return Renderer(renderer)->device_->d3dDevice_; }
 template <typename... Args>
 long ComCall(void* object, int slot, Args... args) {
     return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
@@ -165,8 +168,8 @@ std::uint32_t ThroughFpu(std::uint32_t bits) {
 
 // The top of the pipeline's matrix stack at +0x24 (data) / +0x28 (count), transposed. The original
 // moves the lower triangle up as integers and the upper one down through the FPU.
-void TransposedTop(char* pipeline, std::uint32_t (&m)[16]) {
-    const char* top = At<char*>(pipeline, 0x24) + (At<int>(pipeline, 0x28) - 1) * 64;
+void TransposedTop(CTransformPipeline* pipeline, std::uint32_t (&m)[16]) {
+    const Matrix4* top = pipeline->Top(CTransformPipeline::kClipStack);
     std::memcpy(m, top, sizeof(m));
     for (int r = 0; r < 4; ++r) {
         for (int c = r + 1; c < 4; ++c) {
@@ -262,14 +265,14 @@ int SortBackToFront() {
 // The batch's triangle list through the device holder (renderer + 0x20); with +0x158 set the
 // vertices go to the tracker (+0xAC -> +0xC, slot 35) first. False when the draw fails.
 bool Draw(char* renderer, int vertexCount, int indexCount) {
-    char* holder = At<char*>(renderer, 0x20);
+    CTextureDevice* holder = Renderer(renderer)->device_;
     TLVertex* vertices = CornerData();
     std::uint16_t* indices = IndexData();
-    if (At<int>(holder, 0x158)) {
-        void* tracker = At<void*>(At<char*>(holder, 0xAC), 0xC);
+    if (holder->unknown_158) {
+        void* tracker = holder->pipeline_->transform_;
         ThisCall<void>(tracker, 35, static_cast<void*>(vertices), vertexCount);
     }
-    return DrawIndexedAt(holder, nullptr, kTriangleList, kFvfTlVertex, vertices, vertexCount, indices, indexCount, 0) !=
+    return DrawIndexedAt(reinterpret_cast<char*>(holder), nullptr, kTriangleList, kFvfTlVertex, vertices, vertexCount, indices, indexCount, 0) !=
            0;
 }
 
@@ -300,9 +303,9 @@ struct ScreenSize {
 
 // Some corners off screen: each triangle goes through the clipper, which may append vertices.
 bool DrawClipped(char* renderer, int sprites, ScreenSize& screen) {
-    char* holder = At<char*>(renderer, 0x20);
-    if (At<void*>(holder, 0x14)) {
-        char* target = At<char*>(holder, 0x18);
+    CTextureDevice* holder = Renderer(renderer)->device_;
+    if (holder->primary_) {
+        CDXSurface* target = holder->renderTarget_;
         screen.width = At<std::uint32_t>(target, 0x14);
         screen.height = At<std::uint32_t>(target, 0x18);
     }
@@ -394,19 +397,20 @@ EI_REPLACE(0x005037D0, SpriteMergePass);
 // calls (+0x16C..+0x174). Returns 1.
 int __fastcall DrawIndexed(char* holder, void*, int primitive, int fvf, void* vertices, int vertexCount,
                            std::uint16_t* indices, int indexCount, int flags) {
+    auto* device = reinterpret_cast<CTextureDevice*>(holder);
     auto enter = *reinterpret_cast<void(__stdcall* const*)(void*)>(0x0073B1B4);
     auto leave = *reinterpret_cast<void(__stdcall* const*)(void*)>(0x0073B230);
     void* section = reinterpret_cast<void*>(0x007AEE78);
     // The new renderer (src/render) takes the draw; with the old path's objects off it is skipped.
     if (render::TlDraw(holder, vertices, fvf, vertexCount, indices, indexCount, primitive)) {
         enter(section);
-        At<long>(holder, 8) = ComCall(At<void*>(holder, 0x54), kDrawIndexedPrimitive, primitive, fvf, vertices,
-                                      vertexCount, indices, indexCount, flags);
+        device->lastLoadResult_ = ComCall(device->d3dDevice_, kDrawIndexedPrimitive, primitive, fvf, vertices,
+                                          vertexCount, indices, indexCount, flags);
         leave(section);
     }
-    At<int>(holder, 0x16C) += vertexCount;
-    At<std::uint32_t>(holder, 0x170) += static_cast<std::uint32_t>(indexCount) / 3;
-    At<int>(holder, 0x174) += 1;
+    device->vertexCount_ += vertexCount;
+    device->primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
+    device->drawCount_ += 1;
     return 1;
 }
 EI_REPLACE(0x00503680, DrawIndexed);
@@ -421,8 +425,8 @@ EI_REPLACE(0x00503680, DrawIndexed);
 int __fastcall DrawSprites(char* renderer, void*, char additive, const void* pointArray, const void* spriteArray) {
     const auto* points = static_cast<const PointArray*>(pointArray);
     const auto* sprites = static_cast<const SpriteArray*>(spriteArray);
-    char* pipeline = At<char*>(renderer, 8);
-    void* transform = At<void*>(pipeline, 0xC);
+    CTransformPipeline* pipeline = Renderer(renderer)->pipeline_;
+    void* transform = pipeline->transform_;
     EnsureStatics();
     Unused().SetSizeDiscard(0x200);
     Corners().SetSizeDiscard(0x2000);

@@ -364,7 +364,16 @@ public:
     int errorCode_;         // +0x1F0
     int errorLine_;         // +0x1F4
 };
+static_assert(offsetof(CScript, pointLights_) == 0x00);
 static_assert(offsetof(CScript, particles_) == 0x14);
+static_assert(offsetof(CScript, fxSources_) == 0x30);
+static_assert(offsetof(CScript, lightning_) == 0x4C);
+static_assert(offsetof(CScript, nextFxId_) == 0x6C);
+static_assert(offsetof(CScript, definitions_) == 0x8C);
+static_assert(offsetof(CScript, runs_) == 0x15C);
+static_assert(offsetof(CScript, worldBlocks_) == 0x178);
+static_assert(offsetof(CScript, loaded_) == 0x1A8);
+static_assert(offsetof(CScript, fileCount_) == 0x1AC);
 static_assert(offsetof(CScript, nextParticleId_) == 0x68);
 static_assert(offsetof(CScript, blocks_) == 0x70);
 static_assert(offsetof(CScript, globals_) == 0xA0);

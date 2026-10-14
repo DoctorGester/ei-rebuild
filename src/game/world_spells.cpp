@@ -4,6 +4,8 @@
 
 #include "core_maths.h"
 #include "script.h"
+#include "spell.h"
+#include "unit.h"
 
 #include "lib/crt.h"
 
@@ -37,10 +39,8 @@ constexpr std::uintptr_t kUnitListVtable = 0x0073D454;
 constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 
 // Spell fields (the spell object passed in).
-constexpr int kSpellKind = 0x18;          // the high word is the spell type
 constexpr int kSpellRadius = 0x34;
 constexpr int kSpellTargets = 0x38;
-constexpr int kSpellFlags = 0x3C;
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
@@ -71,7 +71,7 @@ __declspec(naked) void __fastcall BrainAttackedBy(void*, void*, CEngineObject*) 
 constexpr int kSlotIsDead = 55;
 constexpr int kSlotGroundHeight = 28;
 
-int SpellType(const void* spell) { return static_cast<int>(At<std::uint32_t>(const_cast<void*>(spell), kSpellKind) >> 16); }
+int SpellType(const void* spell) { return static_cast<int>(static_cast<const CSpell*>(spell)->unknown_18 >> 16); }
 
 // Whether the spell type turns the target against the caster (the original's switch at
 // 0058E7DC: 0x13, 0x19, 0x1E, 0x20, 0x22, 0x26).
@@ -104,30 +104,30 @@ void Unlink(UnitList& list, UnitList::Node* node) {
 
 void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vector3 from, CEngineObject* target,
                                  const Vector3* to, int extra) {
-    const Vector3* aim = target ? &At<Vector3>(target, 0x1C) : to;
+    const Vector3* aim = target ? &static_cast<CUnit*>(target)->position : to;
     Vector3 end;
     std::memcpy(&end, aim, sizeof(end));
-    if (At<std::uint32_t>(const_cast<void*>(spell), kSpellFlags) & kSpellAreaFlag) target = nullptr;
+    if (static_cast<const CSpell*>(spell)->targetFlags_ & kSpellAreaFlag) target = nullptr;
     end.z = StoreFloat(static_cast<float>(ei::VCall<double>(this, kSlotGroundHeight, end.x, end.y) + GameFloat(0x0073C54C)));
-    if (caster) std::memcpy(&from, &At<Vector3>(caster, 0x1C), sizeof(from));
+    if (caster) std::memcpy(&from, &static_cast<CUnit*>(caster)->position, sizeof(from));
 
     void* memory = gamecrt::operator_new(0xA8);
-    At<std::uint32_t>(memory, 4) = 0;   // written before the null test
+    static_cast<Projectile*>(memory)->references = 0;   // written before the null test
     Projectile* missile = memory ? ProjectileConstruct(memory, nullptr) : nullptr;
     MissileInit(missile, nullptr, this, spell, caster, &from, target, &end, extra);
     if (MissileUpdate(missile, nullptr)) {
         auto& list = projectiles_;
         ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);
-        auto* old = reinterpret_cast<std::uint8_t*>(node->data);
+        Projectile* old = node->data;
         node->data = missile;
-        if (missile) ++At<std::int16_t>(missile, 4);
-        if (old && --At<std::int16_t>(old, 4) == 0) ei::VCall<void>(old, 0, 1u);   // deleting destructor
+        if (missile) ++missile->referenceCount;
+        if (old && --old->referenceCount == 0) ei::VCall<void>(old, 0, 1u);   // deleting destructor
         if (list.tail) list.tail->next = node;
         else list.head = node;
         list.tail = node;
     }
     if (target && target->GetClassId() == world::kClassUnit && caster) {
-        void* controller = At<void*>(target, 0x240);
+        void* controller = static_cast<CUnit*>(target)->controller;
         if (IsHostileType(SpellType(spell))) {
             BrainAttackedBy(static_cast<std::uint8_t*>(controller) + 0x980, nullptr, caster);
             DiplomacyOnAttack(diplomacy_, nullptr, caster, target, 10);
@@ -143,7 +143,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     if (unknown12D64_ != kKindSinglePlayer && caster) return;
     int type = SpellType(spell);
     if (type == 0x15 || type == 0x1B || type == 0x24) return;
-    std::uint32_t flags = At<std::uint32_t>(const_cast<void*>(spell), kSpellFlags);
+    std::uint32_t flags = static_cast<const CSpell*>(spell)->targetFlags_;
     int targets = At<int>(const_cast<void*>(spell), kSpellTargets);
     if (!(flags & 0xFFFF) && targets <= 1) {
         CreateMissileAt(this, nullptr, spell, caster, *from, target, to, extra);
@@ -161,14 +161,14 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     units.blocks = nullptr;
     units.blockSize = 10;
     if (caster) {
-        if (void* owner = At<void*>(caster, 0x24C)) heroes = At<void*>(owner, 0x20);
+        if (char* owner = static_cast<CUnit*>(caster)->player) heroes = reinterpret_cast<WorldPlayer*>(owner)->server;
     }
     if ((flags & kSpellAreaFlag) && !(flags & kSpellNoTargetFlag)) {
         --targets;
         CreateMissileAt(this, nullptr, spell, caster, *from, target, to, extra);
     }
     Vector3 center;
-    std::memcpy(&center, caster ? &At<Vector3>(caster, 0x1C) : from, sizeof(center));
+    std::memcpy(&center, caster ? &static_cast<CUnit*>(caster)->position : from, sizeof(center));
     float radius = At<float>(const_cast<void*>(spell), kSpellRadius);
     SectorMapFindUnitsInRadius(sectorMap_, nullptr, &center, &units, radius);
     if (target && target->GetClassId() == world::kClassUnit) {
@@ -201,9 +201,9 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
                 bestNode = node;
                 break;
             } else {
-                double dz = static_cast<double>(to->z) - At<float>(unit, 0x24);
-                double dy = static_cast<double>(to->y) - At<float>(unit, 0x20);
-                double dx = static_cast<double>(to->x) - At<float>(unit, 0x1C);
+                double dz = static_cast<double>(to->z) - static_cast<CUnit*>(unit)->position.z;
+                double dy = static_cast<double>(to->y) - static_cast<CUnit*>(unit)->position.y;
+                double dx = static_cast<double>(to->x) - static_cast<CUnit*>(unit)->position.x;
                 double distance = dx * dx + dy * dy + dz * dz;
                 float bestDistance;
                 std::memcpy(&bestDistance, &bestBits, 4);
@@ -227,18 +227,18 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
             hit = GroupContains(reinterpret_cast<const ScriptGroup*>(static_cast<std::uint8_t*>(heroes) + 0x510C), nullptr, best) != 0;
         } else {
             // The caster's friends (a list at controller +0xA94), else diplomacy says.
-            auto* friends = At<UnitList::Node*>(At<void*>(caster, 0x240), 0xA94);
+            auto* friends = At<UnitList::Node*>(static_cast<CUnit*>(caster)->controller, 0xA94);
             while (friends && friends->data != best) friends = friends->next;
             if (friends) {
                 hit = true;
             } else {
-                int casterSide = At<int>(caster, 0x250);
-                int bestSide = At<int>(best, 0x250);
+                int casterSide = static_cast<CUnit*>(caster)->side;
+                int bestSide = static_cast<CUnit*>(best)->side;
                 hit = (At<std::uint32_t>(diplomacy_, bestSide * 4) & (1u << (casterSide & 31))) != 0;
             }
         }
         if (!hit) continue;
-        Vector3* at = &At<Vector3>(best, 0x1C);
+        Vector3* at = &static_cast<CUnit*>(best)->position;
         if (!SpellReaches(this, spell, caster, from, best, at)) continue;
         if (!SpellAffects(spell, nullptr, caster, best)) continue;
         CreateMissileAt(this, nullptr, spell, caster, *from, best, at, extra);

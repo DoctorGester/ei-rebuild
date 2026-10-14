@@ -134,6 +134,7 @@ struct PartyUnitRecord {
 };
 static_assert(offsetof(PartyUnitRecord, stats) == 0x20);
 static_assert(offsetof(PartyUnitRecord, unknown_724) == 0x724);
+static_assert(offsetof(PartyUnitRecord, height) == 0x72C);
 static_assert(offsetof(PartyUnitRecord, weaponIndex) == 0x774);
 static_assert(offsetof(PartyUnitRecord, unknown_780) == 0x780);
 static_assert(sizeof(PartyUnitRecord) == 0x784);
@@ -1115,6 +1116,9 @@ struct UnitStats {
     float fixedMaxHitPoints;        // +0x6FC the maximum of units without a text key
     float pendingExperience;        // +0x700
 };
+static_assert(offsetof(UnitStats, stat10Base) == 0x0C && offsetof(UnitStats, stat10) == 0x10);
+static_assert(offsetof(UnitStats, stat18Base) == 0x14 && offsetof(UnitStats, stat18) == 0x18);
+static_assert(offsetof(UnitStats, stat20Base) == 0x1C);
 static_assert(offsetof(UnitStats, stat20) == 0x20);
 static_assert(offsetof(UnitStats, speedBase) == 0x24);
 static_assert(offsetof(UnitStats, load) == 0x50);
