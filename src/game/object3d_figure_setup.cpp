@@ -134,9 +134,10 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             low.z = Lower(low.z, StoreFloat(box->pivot.z + box->boxMin.z + box->offset.z));
 
             const char* partName = bone->GetName();
-            if (gamecrt::strnicmp(partName, "BASE", 4) == 0) box->flags |= kBoxBase;
-            if (gamecrt::strnicmp(partName, "CROWN", 5) == 0) box->flags |= kBoxCrown;
-            if (gamecrt::strnicmp(partName, "EMPTY", 5) == 0) box->flags |= kBoxEmpty;
+            const int* fold = gamecrt::CaseFoldTable();
+            if (gamecrt::SameIgnoringCase(fold, partName, "BASE", 4)) box->flags |= kBoxBase;
+            if (gamecrt::SameIgnoringCase(fold, partName, "CROWN", 5)) box->flags |= kBoxCrown;
+            if (gamecrt::SameIgnoringCase(fold, partName, "EMPTY", 5)) box->flags |= kBoxEmpty;
         }
         AnimationStateReleasePartsOriginal(animation);
     }
@@ -263,9 +264,10 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
         // The box and the pivot (bounds_, boxPivot_) as one FootprintPart.
         std::memcpy(&part->bounds_, &piece.bounds, sizeof(FootprintPart));
     }
-    if (gamecrt::strnicmp(partName, "BASE", 4) == 0) part->bounds_.flags |= kBoxBase;
-    if (gamecrt::strnicmp(partName, "CROWN", 5) == 0) part->bounds_.flags |= kBoxCrown;
-    if (gamecrt::strnicmp(partName, "EMPTY", 5) == 0) {
+    const int* fold = gamecrt::CaseFoldTable();
+    if (gamecrt::SameIgnoringCase(fold, partName, "BASE", 4)) part->bounds_.flags |= kBoxBase;
+    if (gamecrt::SameIgnoringCase(fold, partName, "CROWN", 5)) part->bounds_.flags |= kBoxCrown;
+    if (gamecrt::SameIgnoringCase(fold, partName, "EMPTY", 5)) {
         part->bounds_.flags |= kBoxEmptyMark;
         part->bounds_.flags |= kBoxCrown;
     }

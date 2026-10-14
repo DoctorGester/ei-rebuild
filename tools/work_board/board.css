@@ -83,6 +83,8 @@ header { display: grid; gap: 10px }
 .batchline { display: grid; gap: 3px }
 .batchline .txt { font-size: 12px; color: var(--muted) }
 .bad { color: var(--watch) }
+.muted { color: var(--muted) }
+.run { color: var(--accent) }
 .ok { color: var(--good) }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; display: grid; gap: 10px; min-width: 0 }
 .panel .head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap }
@@ -92,6 +94,8 @@ th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacin
 td { padding: 3px 10px 3px 0; border-top: 1px solid var(--line); vertical-align: middle }
 td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums }
 .scroll { overflow-x: auto }
+table.games { table-layout: fixed; min-width: 560px }
+table.games td { overflow-wrap: anywhere }
 .gamebar { display: inline-block; vertical-align: middle; width: 90px; height: 6px; border-radius: 3px; background: var(--track); overflow: hidden; margin-right: 6px }
 .gamebar i { display: block; height: 100%; background: var(--accent) }
 .gamebar i.over { background: var(--watch) }
@@ -104,3 +108,4 @@ details summary { cursor: pointer; font-size: 12px; color: var(--muted) }
 footer, #error { color: var(--muted); font-size: 12px }
 #error { color: var(--accent) }
 #view { display: grid; gap: 22px }
+.act.tests.prev::before { background: var(--line) }
