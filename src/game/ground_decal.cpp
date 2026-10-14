@@ -26,8 +26,8 @@ int Inside(float d) {
 void CopyVertex(DecalVertex* to, const DecalVertex* from) { std::memcpy(to, from, sizeof(DecalVertex)); }
 
 // ((a.z * p.z + a.y * p.y) + p.x * a.x) + offset, the order of the corner and plane sums.
-float Project(const Vector3& axis, const float* p, float offset) {
-    return axis.z * p[2] + axis.y * p[1] + p[0] * axis.x + offset;
+float Project(const Vector3& axis, const Vector3& p, float offset) {
+    return DotUnrounded<Sum3::ZYX>(axis, p) + offset;
 }
 
 // Keeps the buffer and sets the size to 0; a missing buffer is allocated for 0 elements (the
@@ -61,7 +61,7 @@ void EmptyKeepingBuffer(lib::AlignedArray<T>* a) {
 
 } // namespace
 
-double Vector3::LengthSquared() const { return x * x + y * y + z * z; }
+double Vector3::LengthSquared() const { return LengthSquaredUnrounded<Sum3::XYZ>(*this); }
 EI_REPLACE_METHOD(0x004D8470, Vector3::LengthSquared);
 
 namespace decal {
@@ -231,19 +231,19 @@ void DecalBuilder::Emit(const DecalVertex* tri) {
 }
 
 void DecalBuilder::ClipStage(DecalVertex* tri, int stage) {
-    float d[3];
+    float distances[3];   // per corner
     for (int k = 0; k < 3; ++k) {
         const DecalVertex& c = tri[k];
         switch (stage) {
-        case 0: d[k] = Project(normal_, &c.position.x, planeOffset_); break;
-        case 1: d[k] = c.u; break;
-        case 2: d[k] = c.v; break;
-        case 3: d[k] = 1.0f - c.u; break;
-        default: d[k] = 1.0f - c.v; break;
+        case 0: distances[k] = Project(normal_, c.position, planeOffset_); break;
+        case 1: distances[k] = c.u; break;
+        case 2: distances[k] = c.v; break;
+        case 3: distances[k] = 1.0f - c.u; break;
+        default: distances[k] = 1.0f - c.v; break;
         }
     }
     DecalVertex* second = s_stageBuffers[stage];
-    int count = decal::ClipTriangle(tri, second, d[0], d[1], d[2]);
+    int count = decal::ClipTriangle(tri, second, distances[0], distances[1], distances[2]);
     if (stage + 1 == kEmitStage) {
         if (count > 0) Emit(tri);
         if (count > 1) Emit(second);
@@ -261,8 +261,8 @@ void DecalBuilder::AddCorners(DecalVertex* tri, const Vector3* a, const Vector3*
     const Vector3* corners[3] = {a, b, c};
     for (int k = 0; k < 3; ++k) {
         std::memcpy(&tri[k].position, corners[k], sizeof(Vector3));
-        tri[k].u = Project(uAxis_, &tri[k].position.x, uOffset_);
-        tri[k].v = Project(vAxis_, &tri[k].position.x, vOffset_);
+        tri[k].u = Project(uAxis_, tri[k].position, uOffset_);
+        tri[k].v = Project(vAxis_, tri[k].position, vOffset_);
     }
 }
 

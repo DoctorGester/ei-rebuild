@@ -291,17 +291,17 @@ using CornerFn = float (*)(const float*, float, float, float);
 // radius: 6 floats), written straight into `bounds`. The two loaders round the x component and
 // the box minimum differently.
 void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float u, CornerFn minX, CornerFn minYZ) {
-    float c[3] = {CornerKept(p, s, t, u), CornerPerOp(p + 1, s, t, u), CornerPerOp(p + 2, s, t, u)};
+    Vector3 c = {CornerKept(p, s, t, u), CornerPerOp(p + 1, s, t, u), CornerPerOp(p + 2, s, t, u)};
     const float* q = p + 0x12;
-    float mn[3] = {minX(q, s, t, u), minYZ(q + 1, s, t, u), minYZ(q + 2, s, t, u)};
+    Vector3 mn = {minX(q, s, t, u), minYZ(q + 1, s, t, u), minYZ(q + 2, s, t, u)};
     q = p + 0x24;
-    float mx[3] = {CornerPerOpKeptSum(q, s, t, u), CornerPerOpKeptSum(q + 1, s, t, u), CornerPerOpKeptSum(q + 2, s, t, u)};
+    Vector3 mx = {CornerPerOpKeptSum(q, s, t, u), CornerPerOpKeptSum(q + 1, s, t, u), CornerPerOpKeptSum(q + 2, s, t, u)};
     float radius = MorphScalar6(p + 0x36, s, t, u);
-    std::memcpy(&bounds.center, c, 12);
+    std::memcpy(&bounds.center, &c, 12);
     bounds.flags |= 1;
     bounds.radius = radius;
-    std::memcpy(&bounds.boxMin, mn, 12);
-    std::memcpy(&bounds.boxMax, mx, 12);
+    std::memcpy(&bounds.boxMin, &mn, 12);
+    std::memcpy(&bounds.boxMax, &mx, 12);
     bounds.flags |= 2;
 }
 

@@ -194,7 +194,7 @@ void __fastcall ComputeMeshBounds(SceneMesh* mesh) {
     const float half = GameFloat(0x0073B86C);
     centre = {(high.x + low.x) * half, (high.y + low.y) * half, (high.z + low.z) * half};
     float dx = (high.x - low.x) * half, dy = (high.y - low.y) * half, dz = (high.z - low.z) * half;
-    mesh->radius = std::sqrt(dz * dz + dy * dy + dx * dx);
+    mesh->radius = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
     low.x -= centre.x;
     low.y -= centre.y;
     low.z -= centre.z;

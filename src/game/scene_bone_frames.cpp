@@ -36,7 +36,7 @@ Quaternion AxisAngle(const Vector3& axis, float angle) {
 // The axis and angle of a unit rotation: the angle 2 acos(w), the axis the vector part over its
 // length; (1, 0, 0) and 0 when the squared length is at most 1e-8 (0073BAE0) or NaN.
 float ToAxisAngle(const Quaternion& q, Vector3* axis) {
-    float squared = q.z * q.z + q.y * q.y + q.x * q.x;
+    float squared = LengthSquaredUnrounded<Sum3::ZYX>(q.x, q.y, q.z);
     if (!(squared > GameFloat(0x0073BAE0))) {
         *axis = {1.0f, 0.0f, 0.0f};
         return GameFloat(0x0073B858);
@@ -80,9 +80,9 @@ void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, 
             float m20 = xz - yw, m21 = yz + xw, m22 = one - (xx + yy);
             Vector3& offset = bone->position_;
             Vector3 dd = offset;
-            offset.x = (m02 * dd.z + m00 * dd.x) + m01 * dd.y;
-            offset.y = (m12 * dd.z + m10 * dd.x) + m11 * dd.y;
-            offset.z = (m22 * dd.z + m20 * dd.x) + m21 * dd.y;
+            offset.x = SumOfProductsUnrounded<Sum3::ZXY>(m00, m01, m02, dd.x, dd.y, dd.z);
+            offset.y = SumOfProductsUnrounded<Sum3::ZXY>(m10, m11, m12, dd.x, dd.y, dd.z);
+            offset.z = SumOfProductsUnrounded<Sum3::ZXY>(m20, m21, m22, dd.x, dd.y, dd.z);
 
             Vector3& rest = bone->restPosition_;
             rest.x = rest.x - origin.x;

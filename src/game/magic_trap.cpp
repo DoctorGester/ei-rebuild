@@ -72,7 +72,7 @@ bool StaysInside(MagicTrap* trap, CEngineObject* unit) {
     for (int i = 0; i < count; ++i, ++circle) {
         float dx = x - circle->x;
         float dy = y - circle->y;
-        if (circle->radius * circle->radius > dy * dy + dx * dx) return !IsDead(unit);
+        if (circle->radius * circle->radius > LengthSquared2DUnrounded(dy, dx)) return !IsDead(unit);
     }
     return false;
 }
@@ -136,8 +136,8 @@ void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32
     UnitList found{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kPtrListBlockSize};
     for (int i = 0; i < area->count; ++i) {
         const TrapCircle& circle = area->circles[i];
-        float point[3] = {circle.x, circle.y, 0.0f};
-        SectorMapFindUnitsInRadius(sectors, nullptr, point, &found, circle.radius);
+        Vector3 point = {circle.x, circle.y, 0.0f};
+        SectorMapFindUnitsInRadius(sectors, nullptr, &point, &found, circle.radius);
         for (UnitList::Node* node = found.head; node;) {
             CEngineObject* unit = node->data;
             node = node->next;
@@ -160,17 +160,16 @@ constexpr float kFar = 1e30f;                        // 0073E73C, a squared dist
 void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
     using UnitList = mfc::CTypedPtrList<CEngineObject>;
     if (units->count == 0 || !spell) return;
-    const float* origin = &position.x;
-    float from[3] = {origin[0], origin[1], origin[2]};
+    const Vector3& origin = position;
+    Vector3 from = {origin.x, origin.y, origin.z};
     auto* world = static_cast<CWorld*>(ObjectWorld(this));
     // The world's slot 28: the height at (x, y), in ST0.
-    from[2] = static_cast<float>(world->RawSurfaceHeightAt(from[0], from[1]) + from[2]);
+    from.z = static_cast<float>(world->RawSurfaceHeightAt(from.x, from.y) + from.z);
     if (!(static_cast<CSpell*>(spell)->targetFlags_ & kSpellAtUnits) && points.count != 0) {
         for (int i = 0; i < points.count; ++i) {
             const float* point = points.points + 2 * i;
-            float at[3] = {point[0], point[1], 0.0f};
-            WorldCastSpellOriginal(WorldServer(), nullptr, spell, nullptr, reinterpret_cast<const Vector3*>(from), nullptr,
-                                   reinterpret_cast<const Vector3*>(at), 0);
+            Vector3 at = {point[0], point[1], 0.0f};
+            WorldCastSpellOriginal(WorldServer(), nullptr, spell, nullptr, &from, nullptr, &at, 0);
         }
     } else {
         if (singleTarget != 0) {
@@ -178,11 +177,11 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
             CEngineObject* closest = nullptr;
             for (UnitList::Node* node = units->head; node; node = node->next) {
                 CEngineObject* unit = node->data;
-                float dx = AsMapObject(unit)->position.x - origin[0];
-                float dy = AsMapObject(unit)->position.y - origin[1];
-                float dz = AsMapObject(unit)->position.z - origin[2];
+                float dx = AsMapObject(unit)->position.x - origin.x;
+                float dy = AsMapObject(unit)->position.y - origin.y;
+                float dz = AsMapObject(unit)->position.z - origin.z;
                 // FCOMP; TEST AH,1: taken when below, or NaN.
-                if (!(dz * dz + dy * dy + dx * dx >= kFar)) closest = unit;
+                if (!(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) >= kFar)) closest = unit;
             }
             if (!closest) return;
             units->RemoveAll();
@@ -191,7 +190,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         for (UnitList::Node* node = units->head; node;) {
             UnitList::Node* next = node->next;
             CEngineObject* unit = node->data;
-            WorldCastSpellOriginal(WorldServer(), nullptr, spell, nullptr, reinterpret_cast<const Vector3*>(from), unit,
+            WorldCastSpellOriginal(WorldServer(), nullptr, spell, nullptr, &from, unit,
                                    &AsMapObject(unit)->position, 0);
             node = next;
         }

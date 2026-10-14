@@ -13,6 +13,7 @@
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
 #include "../lib/stlp.h"
+#include "../lib/vecmath.h"
 #include "random.h"
 
 #include "ei/hook.h"
@@ -220,7 +221,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
     }
     slot->volume = level;
 
-    float ahead = AbsBits(Store(D(dy) * listenerAxis[1] + D(dx) * listenerAxis[0]));
+    float ahead = AbsBits(Store(Dot2DUnrounded<double>(dy, dx, listenerAxis[1], listenerAxis[0])));
     if (ahead > distF) {
         slot->pan = 0;
         return;
@@ -272,7 +273,7 @@ void CSoundManager::SetListener(const float* position, const float* axis) {
     if (enabled == 0) return;
     std::memcpy(listener, position, sizeof(listener));
     std::memcpy(listenerAxis, axis, sizeof(listenerAxis));
-    double len = x87::fsqrt(D(listenerAxis[0]) * listenerAxis[0] + D(listenerAxis[1]) * listenerAxis[1]);
+    double len = x87::fsqrt(LengthSquared2DUnrounded<double>(listenerAxis[0], listenerAxis[1]));
     if (!NonZero(len)) {
         listenerAxis[0] = 1.0f;
         listenerAxis[1] = 0.0f;
@@ -748,7 +749,7 @@ void CSoundManager::Tick() {
         if (e->active == 0) continue;
         double dx = D(listener[0]) - e->position[0];
         double dy = D(listener[1]) - e->position[1];
-        double dist = x87::fsqrt(dy * dy + dx * dx);
+        double dist = x87::fsqrt(LengthSquared2DUnrounded(dy, dx));
         float distF = Store(dist);
         std::uint32_t minInterval, maxInterval;
         if (!(dist >= e->innerRadius)) {
