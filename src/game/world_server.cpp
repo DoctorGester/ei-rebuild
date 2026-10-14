@@ -192,7 +192,7 @@ void CWorldServer::RemoveTimedObject(unsigned id) {
 
 void CWorldServer::AddToUpdateMap(CEngineObject* unit) {
     // The unit's update slot.
-    ObjectSlots(unit)->unknown_174 = ((reinterpret_cast<int>(unit) >> 5) & 0xF) + 0x80;
+    ObjectSlots(unit)->updateCountdown = ((reinterpret_cast<int>(unit) >> 5) & 0xF) + 0x80;
     unsigned id = static_cast<unsigned>(unit->id_);
     updateMap_.Set(id, unit);
 }

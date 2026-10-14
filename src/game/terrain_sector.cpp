@@ -591,11 +591,11 @@ SectorData* SectorData::Construct() {
     for (auto& lists : tiles) lists.Construct(kTileListArrayVtable);
     animated.Construct();
     classCounts.Construct();
-    unknown_170 = 0;
+    detail = 0;
     sx = -1;
     sy = -1;
-    unknown_178 = 0;
-    unknown_174 = 0;
+    seamAfter = 0;
+    seamBefore = 0;
     hasWater = 0;
     hasWaterTiles = 0;
     data = nullptr;
@@ -605,9 +605,9 @@ SectorData* SectorData::Construct() {
     built = 0;
     lastUsed = 0;
     relightCountdown = 0;
-    unknown_060 = kCulled;
-    unknown_38C = 0;
-    unknown_390 = 0;
+    clipMode = kCulled;
+    spare38C = 0;
+    spare390 = 0;
     hasSpecular = 0;
     ProjectionInput().SetSize(kProjectionVertices);
     ProjectionOutput().SetSize(kProjectionVertices);
@@ -640,8 +640,8 @@ void SectorData::DestructBody() {
 EI_REPLACE_METHOD(0x006BF8A0, SectorData::DestructBody);
 
 int SectorData::Project(CTransformPipeline* pipeline) {
-    const int columnStep = unknown_170 >= 1 ? 2 : 1;
-    const int rowStep = unknown_170 >= 2 ? 2 : 1;
+    const int columnStep = detail >= 1 ? 2 : 1;
+    const int rowStep = detail >= 2 ? 2 : 1;
     for (int q = 0; q < 4; ++q) {
         if (quarterMode[q] == kCulled) continue;
         const int corner = ((q / 2) * kRow + q % 2) * kQuarterCells;
@@ -673,7 +673,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
                     ++out;
                 }
     }
-    return unknown_060;
+    return clipMode;
 }
 EI_REPLACE_METHOD(0x006BFC80, SectorData::Project);
 

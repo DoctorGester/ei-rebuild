@@ -312,7 +312,7 @@ void CWorldServer::TickSleepingEffects() {
     mapObjects_.map.ForEach([this](auto* node) {
         auto* object = static_cast<CMapObject*>(node->value);
         if ((object->flags_ & 1) || object->refCount_ == 0 || object->effectCount == 0) return;
-        if (object->unknown_174 > 0 || !object->companion) return;
+        if (object->updateCountdown > 0 || !object->companion) return;
         bool expired = false;
         for (int i = 0; i < object->effectCount; ++i) {
             if (--object->effects[i].ticksLeft <= 0) expired = true;

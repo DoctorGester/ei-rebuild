@@ -87,7 +87,7 @@ const char* CompareBuild(const SectorData* a, const SectorData* b, bool lists) {
     // a = ours (real), b = the original's (scratch)
     if (std::memcmp(reinterpret_cast<const char*>(a) + 4, reinterpret_cast<const char*>(b) + 4, 0x15C - 4))
         return DiffDword("sector field", a, b, 4, 0x15C - 4);
-    if (a->unknown_170 != b->unknown_170 || a->unknown_174 != b->unknown_174 || a->unknown_178 != b->unknown_178) return "+0x170";
+    if (a->detail != b->detail || a->seamBefore != b->seamBefore || a->seamAfter != b->seamAfter) return "+0x170";
     if (a->waterMaterials.size != b->waterMaterials.size ||
         (a->waterMaterials.size && std::memcmp(a->waterMaterials.data, b->waterMaterials.data, a->waterMaterials.size)))
         return "water materials";

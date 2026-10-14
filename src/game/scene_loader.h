@@ -82,7 +82,7 @@ static_assert(sizeof(DwordMap) == 0x1C && sizeof(MapAssoc) == 0x10);
 struct FileFace {
     std::uint32_t position[3];
     std::uint32_t texture[3];
-    std::uint32_t unknown_18;
+    std::uint32_t unused_18;
 };
 static_assert(sizeof(FileFace) == 0x1C);
 
@@ -137,22 +137,22 @@ constexpr std::size_t kNormals = 0xE4;     // CArray of 12-byte records (version
 // The node's key records (the loader fills them; the frame is read as a signed short).
 struct NodeRotationKey {        // 0x14: the frame, (+4 kept), a vector
     std::int16_t frame;
-    std::uint16_t unknown_02;
-    std::uint32_t unknown_04;
+    std::uint16_t unused_02;
+    std::uint32_t unused_04;
     Vector3 value;              // +0x08 (a pivot: the skeleton's translation keys)
 };
 static_assert(sizeof(NodeRotationKey) == 0x14);
 struct NodePositionKey {        // 0x18: the frame, an angle and an axis (a rotation)
     std::int16_t frame;
-    std::uint16_t unknown_02;
-    std::uint32_t unknown_04;
+    std::uint16_t unused_02;
+    std::uint32_t unused_04;
     float angle;                // +0x08
     Vector3 axis;               // +0x0C
 };
 static_assert(sizeof(NodePositionKey) == 0x18);
 struct NodeMorphKey {           // 0x14: the frame and the mesh's points at it
     std::int16_t frame;
-    std::uint16_t unknown_02;
+    std::uint16_t unused_02;
     lib::AlignedArray<Vector3> points;   // +0x04
 };
 static_assert(sizeof(NodeMorphKey) == 0x14);
@@ -165,7 +165,7 @@ struct NodeMorphKeyElements {
 
 // A node's frame record (40 bytes; BuildSkeleton puts the pivot and rotation in the first).
 struct NodeFrame {
-    std::uint32_t unknown_00[3];
+    std::uint32_t unused_00[3];
     Vector3 pivot;                      // +0x0C
     Quaternion rotation;                // +0x18
 };
@@ -174,13 +174,13 @@ static_assert(sizeof(NodeFrame) == 40);
 // A node (the node:: offsets above). The loader fills the key arrays (their instantiations zero
 // new elements, the morph keys' construct them out of line); scene_skeleton.cpp names the rest.
 struct SceneNode {
-    std::uint32_t unknown_000;
+    std::uint32_t unused_000;
     mfc::CString name;                  // +0x004
     mfc::CString parent;                // +0x008
-    std::uint32_t unknown_00C;
-    std::uint32_t unknown_010;          // +0x010 cleared by BuildSkeleton
-    std::uint32_t unknown_014;          // +0x014 cleared by BuildSkeleton
-    std::uint8_t unknown_018[0x54 - 0x18];
+    std::uint32_t unused_00C;
+    std::uint32_t spare010;             // +0x010 cleared by BuildSkeleton; nothing reads it
+    std::uint32_t spare014;             // +0x014 cleared by BuildSkeleton; nothing reads it
+    std::uint8_t unused_018[0x54 - 0x18];
     Vector3 offset;                     // +0x054 the pivot (must be 0, 0, 0: BuildBone)
     Vector3 axis;                       // +0x060 the first position key's axis
     float angle;                        // +0x06C its angle
@@ -218,14 +218,14 @@ static_assert(sizeof(MeshCornerKey) == 6);
 // A mesh (mesh:: offsets): an engine object whose slot 7 (GetName) gives its name. Only the
 // members the scene code uses are declared.
 struct SceneMesh : CEngineObject {
-    std::uint8_t unknown_01C[0x94 - 0x1C];
+    std::uint8_t unused_01C[0x94 - 0x1C];
     mfc::CString name;                  // +0x094
-    std::uint8_t unknown_098[0xA8 - 0x98];
+    std::uint8_t unused_098[0xA8 - 0x98];
     // +0x0A8 / +0x0B8 the positions and the normals packed four to a 64-byte block (x[4], y[4],
     // z[4], w[4]; 0044E3B0 / 0044DCF0); the figures copy them (CFigureMesh +0x1C0 / +0x1D0).
     BlockBuffer positionBlocks;
     BlockBuffer normalBlocks;
-    std::uint8_t unknown_0C8[0xD8 - 0xC8];
+    std::uint8_t unused_0C8[0xD8 - 0xC8];
     PointBuffer positions;              // +0x0D8 the file's bits
     UvBuffer texCoords;                 // +0x0E8
     PointBuffer normals;                // +0x0F8 one per position (0044DCF0)
@@ -285,24 +285,26 @@ struct SceneSkin {
     int Create();
     // 005088E0. The root bone destroyed and deleted (the bone list emptied), +0x00 0, no names.
     void Clear();
-    // 00508930 (RET 4). +0x00 becomes `value`.
-    void SetUnknown00(std::uint32_t value);
+    // 00508930 (RET 4). The owner becomes `value`.
+    void SetOwner(std::uint32_t value);
 
-    std::uint32_t unknown_00;
+    // +0x00 the fake unit the skin belongs to (CFakeUnit's Create 00446AF0; 0 when the unit lets
+    // its parts go, fake_unit.cpp); 0 after Destruct / Clear. Nothing here reads it.
+    std::uint32_t owner;
     lib::AlignedArray<CAnimationNode*> bones;   // +0x04 every bone, in build order (SetAtGrow 00452C40)
     CAnimationNode* root;                       // +0x14
     // +0x18 the clock (the unused 00508A30 stores its float argument here as a double, then zeroes it).
     std::uint32_t clock[2];
     mfc::CString name;                          // +0x20 "none" after Create
     mfc::CStringArray names;                    // +0x24
-    std::uint32_t unknown_38;                   // +0x38 0 after the constructor
-    lib::AlignedArray<void*> unknown_3C;        // +0x3C (only emptied and freed here)
-    std::uint32_t unknown_4C;                   // +0x4C 0 after Create
+    std::uint32_t spare38;                      // +0x38 0 after the constructor; nothing reads it
+    lib::AlignedArray<void*> spareArray;        // +0x3C only emptied and freed here
+    std::uint32_t spare4C;                      // +0x4C 0 after Create; nothing reads it
 };
 static_assert(offsetof(SceneSkin, bones) == 0x04);
 static_assert(offsetof(SceneSkin, root) == 0x14);
 static_assert(offsetof(SceneSkin, name) == 0x20);
-static_assert(offsetof(SceneSkin, unknown_3C) == 0x3C);
+static_assert(offsetof(SceneSkin, spareArray) == 0x3C);
 static_assert(sizeof(SceneSkin) == 0x50);
 
 // 004492F0 (scene_bones.cpp; __fastcall, RET 8). Adds `bone` to the skin's list and builds it (and
@@ -334,22 +336,25 @@ constexpr std::size_t kName3 = 0x94;       // CString
 
 using HelperArray = mfc::CArray<struct SceneHelper, mfc::RawElements<struct SceneHelper>>;
 
-// A helper (helper:: offsets; 0x9C bytes): three names and the file's vectors, kept as bits.
+// A helper (helper:: offsets; 0x9C bytes): three names and the file's vectors, kept as bits. It is
+// a CMaterial (material.h; the gaps take its member names): vectorB is colors.diffuse (value2C its
+// alpha), vectorA colors.ambient, vectorC colors.specular and value60 colors.power.
 struct SceneHelper {
-    std::uint8_t unknown_00[0x1C];
+    std::uint8_t engineObject[0x1C];    // +0x00 the CEngineObject part
     mfc::CString name;                  // +0x1C
-    Vector3 vectorB;                    // +0x20 (file +0x0C)
-    std::uint32_t value2C;              // +0x2C (file +0x30)
-    Vector3 vectorA;                    // +0x30 (file +0x00)
-    std::uint32_t unknown_3C;
-    Vector3 vectorC;                    // +0x40 (file +0x18)
-    std::uint8_t unknown_4C[0x60 - 0x4C];
-    std::uint32_t value60;              // +0x60 (file +0x24)
-    std::uint8_t unknown_64[0x8C - 0x64];
+    Vector3 vectorB;                    // +0x20 (file +0x0C) colors.diffuse
+    std::uint32_t value2C;              // +0x2C (file +0x30) colors.diffuse.w
+    Vector3 vectorA;                    // +0x30 (file +0x00) colors.ambient
+    std::uint32_t ambientAlpha;         // +0x3C colors.ambient.w
+    Vector3 vectorC;                    // +0x40 (file +0x18) colors.specular
+    std::uint32_t specularAlpha;        // +0x4C colors.specular.w
+    std::uint32_t emissive[4];          // +0x50 colors.emissive
+    std::uint32_t value60;              // +0x60 (file +0x24) colors.power
+    std::uint8_t entries[0x8C - 0x64];  // +0x64 CMaterial::entries (an stlp::deque)
     mfc::CString name2;                 // +0x8C
-    std::uint32_t unknown_90;
+    std::uint32_t spare90;              // +0x90 CMaterial::spare90
     mfc::CString name3;                 // +0x94
-    std::uint32_t unknown_98;
+    std::uint32_t spare98;              // +0x98 CMaterial::spare98
 };
 static_assert(offsetof(SceneHelper, name) == helper::kName);
 static_assert(offsetof(SceneHelper, vectorB) == helper::kVectorB);
@@ -389,7 +394,7 @@ struct TextureLinkRecord {
 // A texture of the unit's material holder (CObject3D::attached; 0051B2F0 finds one by id, 0051B470
 // adds a link): only its name is written here.
 struct SceneTexture {
-    std::uint8_t unknown_00[0x1C];
+    std::uint8_t engineObject[0x1C];    // +0x00 the CEngineObject part
     mfc::CString name;                  // +0x1C
 };
 

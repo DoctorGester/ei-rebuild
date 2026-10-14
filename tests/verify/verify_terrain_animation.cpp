@@ -55,7 +55,7 @@ void __fastcall ClearVerify(SectorData* self, void*) {
         for (int i = 0; i < self->tiles[q].size; ++i) empty = empty && self->tiles[q][i].data == nullptr;
     }
     ei::verify::Check("SectorData::Clear", true, empty, "arrays emptied");
-    ei::verify::Check("SectorData::Clear", true, self->sx == -1 && self->built == 0 && self->unknown_060 == 2,
+    ei::verify::Check("SectorData::Clear", true, self->sx == -1 && self->built == 0 && self->clipMode == 2,
                       "fields reset");
 }
 EI_VERIFY(0x006C3C80, ClearVerify, 0, s_clear);

@@ -70,23 +70,23 @@ using GroupRecordArray = mfc::CArray<FaceGroup, OriginalElements<FaceGroup, Cons
 // FPU into the node's keys).
 struct FileRotationKey {       // E (0x14): a vector at +8
     std::uint16_t frame;
-    std::uint16_t unknown_02;
-    std::uint32_t unknown_04;
+    std::uint16_t unused_02;
+    std::uint32_t unused_04;
     std::uint32_t value[3];
 };
 struct FilePositionKey {       // F (0x18): an axis at +8, the angle at +0x14
     std::uint16_t frame;
-    std::uint16_t unknown_02;
-    std::uint32_t unknown_04;
+    std::uint16_t unused_02;
+    std::uint32_t unused_04;
     std::uint32_t axis[3];
     std::uint32_t angle;
 };
 struct FileMorphHead {         // G (8): the frame (low word) and a second dword, read separately
     std::uint32_t frame;
-    std::uint32_t unknown_04;
+    std::uint32_t extra;       // read and dropped
 };
 struct FileNormal {            // H (0x14): a normal at +8
-    std::uint32_t unknown_00[2];
+    std::uint32_t unused_00[2];
     std::uint32_t value[3];
 };
 static_assert(sizeof(FileRotationKey) == 0x14 && sizeof(FilePositionKey) == 0x18);
@@ -359,7 +359,7 @@ void Loader::LoadMorphKeys(RecordArrays& r, const RecordHeader& h, SceneNode* no
         PointBits* points = count ? PointBuffer::Allocate(count) : nullptr;
         FileMorphHead& head = r.morphHeads.data[k];
         Read(file_, &head.frame, 4);
-        Read(file_, &head.unknown_04, 4);
+        Read(file_, &head.extra, 4);
         Read(file_, points, h.pointCount * 12);
         NodeMorphKey& key = keys.data[k];
         key.frame = static_cast<std::int16_t>(head.frame);
@@ -517,7 +517,7 @@ void Loader::SkipRecord() {
         ConstructPointBlock(&points);
         SetSizePointBlock(&points, nullptr, h.pointCount, -1);
         Read(file_, &morphHeads.data[k].frame, 4);
-        Read(file_, &morphHeads.data[k].unknown_04, 4);
+        Read(file_, &morphHeads.data[k].extra, 4);
         Read(file_, points.data, h.pointCount * 12);
         DestroyPointBlock(&points);
     }
@@ -535,9 +535,9 @@ void Loader::LoadHelper(SceneHelper* helper) {
         std::uint32_t vectorB[3];    // +0C
         std::uint32_t vectorC[3];    // +18
         std::uint32_t value60;       // +24
-        std::uint32_t unknown_28[2]; // +28
+        std::uint32_t unused_28[2];  // +28
         std::uint32_t value2C;       // +30
-        std::uint32_t unknown_34;    // +34
+        std::uint32_t unused_34;     // +34
         std::uint16_t nameLength;    // +38
         std::uint16_t name2Length;   // +3A
         std::uint16_t name3Length;   // +3C
@@ -570,7 +570,7 @@ mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, VtArray* meshes, VtArray* he
         int skippedCount;
         int helperCount;
         std::uint16_t flags;
-        std::uint16_t unknown_12;
+        std::uint16_t unused_12;
     } header;
     static_assert(sizeof(FileHeader) == 0x14);
     Read(file, &header, sizeof(header));
@@ -751,7 +751,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     figureArray.SetSize(meshes->size);
     for (int i = 0; i < meshes->size; ++i) {
         figureArray.data[i].name_ = meshArray.data[i].GetName();
-        figureArray.data[i].unknown_158 = static_cast<std::uint32_t>(meshArray.data[i].materialValue);
+        figureArray.data[i].materialValue_ = static_cast<std::uint32_t>(meshArray.data[i].materialValue);
         figureArray.data[i].meshType_ = static_cast<std::uint32_t>(meshArray.data[i].materialType);
     }
 

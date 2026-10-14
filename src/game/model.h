@@ -195,7 +195,7 @@ public:
 
     void* vtable_;
     int refs_;                        // +0x04
-    std::uint8_t unknown_08[4];
+    std::uint8_t unused_08[4];
     ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)
     void* library_;                   // +0x10 3DfpFPU.dll's module (FreeLibrary in the destructor 004F0E10)
     MatrixStack stacks_[16];    // +0x14 (models.md: stacks 0-2, 5-10 and 14 are in use)

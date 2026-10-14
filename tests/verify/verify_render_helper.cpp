@@ -475,7 +475,7 @@ CTransformPipeline* __fastcall PipelineConstructVerify(CTransformPipeline* self,
     CTransformPipeline* result = self->TransformPipelineConstruct(folder);
     const ProcessorInfo actual = ComparableProcessor();
     bool same = result == self && self->vtable_ == theirs->vtable_ && self->refs_ == theirs->refs_ &&
-                std::memcmp(self->unknown_08, theirs->unknown_08, sizeof(self->unknown_08)) == 0 &&
+                std::memcmp(self->unused_08, theirs->unused_08, sizeof(self->unused_08)) == 0 &&
                 self->transform_ == theirs->transform_ && self->library_ == theirs->library_ &&
                 std::memcmp(&expected, &actual, sizeof(expected)) == 0;
     for (int i = 0; i < 16; ++i) {

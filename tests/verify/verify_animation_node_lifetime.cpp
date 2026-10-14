@@ -45,7 +45,7 @@ EI_VERIFY(0x00506710, ConstructVerify, 9, s_construct);
 static void* s_unusedDestruct;
 static void __fastcall DestructBodyVerify(CAnimationNode* node, void*) {
     node->DestructBody();
-    bool ok = !node->mesh_ && node->children_.size == 0 && !node->children_.data && node->unknown_000 == 0;
+    bool ok = !node->mesh_ && node->children_.size == 0 && !node->children_.data && node->spare000_ == 0;
     ei::verify::Check("CAnimationNode::DestructBody", true, ok, "node %p", static_cast<void*>(node));
 }
 EI_VERIFY(0x005068C0, DestructBodyVerify, 0, s_unusedDestruct);

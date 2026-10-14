@@ -179,7 +179,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
             std::memcpy(&part->offset, &piece->offset, sizeof(part->offset));
             std::memcpy(&part->boxMin, &piece->boxMin, sizeof(part->boxMin));
             std::memcpy(&part->boxMax, &piece->boxMax, sizeof(part->boxMax));
-            std::memcpy(&part->unknown_198, &piece->unknown_34, sizeof(float));
+            std::memcpy(&part->radius, &piece->radius, sizeof(float));
         }
     }
     if (animation) AnimationSetScale(animation, nullptr, Bits(scale.x), Bits(scale.y), Bits(scale.z));

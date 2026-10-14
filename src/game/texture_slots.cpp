@@ -79,7 +79,7 @@ int CTexture::Create() {
     uploadResult_ = 0;
     std::memset(&format_, 0, sizeof(format_));
     format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
-    unknown_64 = 0;
+    spare64_ = 0;
     extra_.RemoveAll();
     return 1;
 }
@@ -87,7 +87,7 @@ int CTexture::Create() {
 void CTexture::Destroy() {
     FreeBlock();
     DropSurface(this);
-    unknown_64 = 0;
+    spare64_ = 0;
     flags_ = 0;
 }
 
@@ -95,7 +95,7 @@ void CTexture::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
     FreeBlock();
     DropSurface(this);
-    unknown_64 = 0;
+    spare64_ = 0;
     flags_ = 0;
     // The members' destructors: the counted surface pointer is null by now; the extra block (its
     // pointer is not cleared), the name.

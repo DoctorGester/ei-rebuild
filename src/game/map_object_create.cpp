@@ -32,7 +32,7 @@ inline void NetFieldsSetSize(DeltaState* state, void*, int size, int growBy) { N
 
 namespace {
 constexpr int kMapObjectNetFields = 4;
-constexpr int kInitialCountdown = 5;      // CMapObject::unknown_174
+constexpr int kInitialCountdown = 5;      // CMapObject::updateCountdown
 
 // 00515F70 (object3d_lifetime.cpp), called through its game address so its verify wrapper stays in
 // the path (this is its only caller besides the 3D object's vtable).
@@ -62,7 +62,7 @@ int CMapObject::CreateMapObject() {
     }
     effectCapacity = 0;
     effectCount = 0;
-    unknown_174 = kInitialCountdown;
+    updateCountdown = kInitialCountdown;
     *reinterpret_cast<mfc::CString*>(&name2) = game::EmptyText();
     baseScale.x = baseScale.y = baseScale.z = 0.0f;
     return 1;

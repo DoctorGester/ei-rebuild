@@ -118,7 +118,7 @@ void ResetMotion(CCamera* c) {
     CopyFloat(&c->tiltRate_, &zero);
     CopyFloat(&c->tiltTarget_, &zero);
     CopyFloat(&c->zoomRate_, &zero);
-    c->unknownD0_ = 0;
+    c->zoomTarget_ = 0;
 }
 
 } // namespace
@@ -250,7 +250,7 @@ void CCamera::StopMotion() {
     if (IsNaN(tiltRate_)) CopyFloat(&tiltRate_, &tiltTarget_);
     turnTarget_ = 0.0f;
     if (IsNaN(turnRate_)) CopyFloat(&turnRate_, &turnTarget_);
-    unknownD0_ = 0;
+    zoomTarget_ = 0;
 }
 EI_REPLACE_METHOD(0x0040F430, CCamera::StopMotion);
 
@@ -443,7 +443,7 @@ void CCamera::Update(float dt) {
 
     // Zoom.
     float zoomTarget;
-    std::memcpy(&zoomTarget, &unknownD0_, sizeof(float));
+    std::memcpy(&zoomTarget, &zoomTarget_, sizeof(float));
     Approach(&zoomRate_, &zoomTarget, zoomResponse_, dt);
     if (NonZero(zoomRate_)) distance_ = Store(D(dt) * zoomRate_ + distance_);
 

@@ -50,3 +50,41 @@ the old `At` / `Member` / `ZeroArrays` calls, and `call [reg+slot*4]` in place o
   - map_object_shadow.cpp has its own raster target.
 - `CFigureMesh::CopyFrom` still calls `TransformCopy` (00401490) through its address.
 - Outside this ticket's files: device_mesh.cpp (9 offset accesses), map_object_figures.cpp (1 VCall, 1 float pragma).
+
+## F4: unknown fields of the scene, figure, terrain, map object and texture files (2026-10-14)
+
+Every `unknown_XXX` member of scene_loader.h / .cpp, map_object_figures.h, terrain_sector.h, terrain.h,
+terrain_landscape.cpp, camera.h, figure_mesh.h, figure.h, map_object.h, texture.h, link_figure.h,
+map_object_shadow.h / .cpp, object_tables.h, figure_part_bounds.cpp, material.h, renderer_lines.h and model.h
+(143) is named or `unused_XXX` (374 -> 231 across src). Method as F2: all renamed to unused_, the verify build
+run with `-k 0`, each compile error a use. Fields only written (zero, -1, a constant) are `spare*` with "nothing
+reads it"; gaps of view structs take the real class's member names.
+- The views and what they mirror: `FigurePart` is a `CFigureMesh` (worldPosition / worldRotation, owner,
+  buffers, textureOffsetU/V, poseMatrix, name, directory, colorsA/B and the mesh bounds now declared there);
+  `FigurePieceRecord`'s piece (+0x1C) is a `LinkPartHeader`; `FigureMaterial` has `CMaterial`'s layout
+  (diffuse +0x20, ambient +0x30, specular +0x40, emissive +0x50: CLight::SetLitColors scales +0x20 / +0x40);
+  `SceneHelper` is a `CMaterial` (the helper record's vectors are ambient, diffuse, specular, power and the
+  diffuse alpha); `TerrainFields` is `Terrain`, `TerrainSector` is `terrain::SectorData`, `TerrainOwner` is
+  the client world; `SectorBox` +0x10 is ClipBounds' radius; the shadow's `SurfaceDescription` is a
+  DDSURFACEDESC2.
+- `CFigureMesh` +0x158 `materialValue_` and +0x15C `meshType_` are the scene mesh's material value and type
+  (the numbers in its material group's name, scene_registry.cpp); the .fig file stores them as the two dwords
+  after the header (value first), `LinkPartHeader` keeps them as meshType (+0x00) / materialValue (+0x04), and
+  the object's parts get them as piece15C / piece158.
+- `FigurePart` +0xD4 / +0xD8 are CFigureMesh's flatColour_ / flatSpecular_: the interface's model view sets
+  them for every part (`SetPartsFlatColour` / `SetPartsFlatSpecular`, were SetPartsUnknownD4 / D8). +0x198 is
+  the part box's radius (the blood particles' size).
+- `FigureAnimation` +0x24 `stride` (float): the distance one play of the animation moves the unit; the client
+  path code divides the movement by it for the animation speed.
+- `CObject3D` +0x158 `eyeHeight` (the AI adds it to the eye), +0x11C / +0x120 the part names' CStringArray
+  capacity and grow step. `CMapObject` +0x174 `updateCountdown`; `MapEffect` +0x0C `strength` (saved;
+  Rebirth compares it).
+- `CCamera` +0xD0 `zoomTarget_` (`SetZoomTarget`, was SetUnknownD0), +0x2F8 / +0x2FC the keys' capacity
+  and grow step; `CameraKey` +0x04 `reserved`. `SceneSkin` +0x00 `owner` (the fake unit; `SetOwner`, was
+  SetUnknown00).
+- Terrain: `SectorData` +0x60 `clipMode`, +0x170 `detail`, +0x174 / +0x178 `seamBefore` / `seamAfter`.
+  The map file's material +0x1C (`warpSpeed`, the name modding notes use) is copied to TerrainMaterial +0x30
+  and never read.
+- `ChannelLayout` +0x00 `bitCount` is read by the texture upload's size but never written, so that size is
+  always 0 (the original's behaviour, kept).
+

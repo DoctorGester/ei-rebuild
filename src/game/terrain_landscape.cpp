@@ -409,8 +409,8 @@ struct MapMaterial {
     float opacity;
     float light;                    // +0x14 scales the colour
     float priority;                 // +0x18
-    float unknown_1C;
-    std::uint8_t unknown_20[0xC];   // not read
+    float warpSpeed;                // +0x1C (the name modding notes give it); copied, nothing reads it
+    std::uint8_t unused_20[0xC];    // not read
 };
 static_assert(sizeof(MapMaterial) == 0x2C);
 
@@ -522,7 +522,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
         material.colour.y = CappedAtOne(RoundToFloat(static_cast<double>(material.waveColour.y) * source.light));
         material.colour.z = CappedAtOne(RoundToFloat(static_cast<double>(source.light) * material.waveColour.z));
         material.priority = source.priority;
-        material.unknown_30 = source.unknown_1C;
+        material.warpSpeed = source.warpSpeed;
         material.level = 0.0f;
     }
 

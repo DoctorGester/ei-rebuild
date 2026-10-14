@@ -552,7 +552,7 @@ const char* NoFunctionText() { return reinterpret_cast<const char*>(0x0078EB5C);
 // object taken. No library, or no such function in it (the library is unloaded again): throws.
 CTransformPipeline* CTransformPipeline::TransformPipelineConstruct(const char* folder) {
     refs_ = 0;
-    std::memset(unknown_08, 0, sizeof(unknown_08));
+    std::memset(unused_08, 0, sizeof(unused_08));
     ei::SetVtable(this, 0x0073D768);
     for (int i = 0; i < kMatrixStacks; ++i) MatrixStackConstructOriginal(&stacks_[i]);
     ei::SetVtable(this, 0x0073D778);

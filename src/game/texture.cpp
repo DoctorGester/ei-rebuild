@@ -178,7 +178,7 @@ CEngineObject* CTextureManager::NewObject(int type) {
     texture->uploadResult_ = 0;
     std::memset(&texture->format_, 0, sizeof(texture->format_));
     texture->format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
-    texture->unknown_64 = 0;
+    texture->spare64_ = 0;
     texture->extra_.SetSize(0, -1);
     texture->type_ = type;
     return texture;

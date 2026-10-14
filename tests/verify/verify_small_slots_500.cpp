@@ -6,7 +6,7 @@
 // - VectorCopy (00503F20), MatrixTransposeInPlace (00501980), CTransformPipeline::Top (005019D0):
 //   no scenario (their callers are rewritten or never called).
 // Ours only (the state afterwards is checked):
-// - SceneSkin::Construct / Destruct / Clear / SetUnknown00 (00508700, 005087B0, 005088E0,
+// - SceneSkin::Construct / Destruct / Clear / SetOwner (00508700, 005087B0, 005088E0,
 //   00508930): every fake unit made and dropped (the main menu's and the interface's figures).
 //   Create (00508870): a fake unit's scene load (00446AF0).
 // - CSceneRenderer::CreateBase (00500540): once, at every start of the game.
@@ -128,9 +128,9 @@ EI_VERIFY(0x005019D0, PipelineTopVerify, 8, s_PipelineTop);
 
 static SceneSkin* __fastcall SkinConstructVerify(SceneSkin* self) {
     SceneSkin* result = self->Construct();
-    bool ok = result == self && !self->root && !self->bones.data && self->unknown_00 == 0 && self->clock[0] == 0 &&
-              self->clock[1] == 0xBFF00000u && self->names.size == 0 && !self->unknown_3C.data &&
-              self->unknown_38 == 0 && static_cast<const char*>(self->name)[0] == 0;
+    bool ok = result == self && !self->root && !self->bones.data && self->owner == 0 && self->clock[0] == 0 &&
+              self->clock[1] == 0xBFF00000u && self->names.size == 0 && !self->spareArray.data &&
+              self->spare38 == 0 && static_cast<const char*>(self->name)[0] == 0;
     ei::verify::Check("SceneSkin::Construct", true, ok, "");
     return result;
 }
@@ -138,14 +138,14 @@ EI_VERIFY(0x00508700, SkinConstructVerify, 0, s_unused);
 
 static void __fastcall SkinDestructVerify(SceneSkin* self) {
     self->Destruct();
-    ei::verify::Check("SceneSkin::Destruct", true, !self->root && self->unknown_00 == 0, "");
+    ei::verify::Check("SceneSkin::Destruct", true, !self->root && self->owner == 0, "");
 }
 EI_VERIFY(0x005087B0, SkinDestructVerify, 0, s_unused);
 
 static int __fastcall SkinCreateVerify(SceneSkin* self) {
     int result = self->Create();
     bool ok = result == 1 && !self->root && self->clock[0] == 0 && self->clock[1] == 0 && self->names.size == 0 &&
-              self->unknown_4C == 0 && std::strcmp(static_cast<const char*>(self->name), "none") == 0;
+              self->spare4C == 0 && std::strcmp(static_cast<const char*>(self->name), "none") == 0;
     ei::verify::Check("SceneSkin::Create", true, ok, "");
     return result;
 }
@@ -154,16 +154,16 @@ EI_VERIFY(0x00508870, SkinCreateVerify, 0, s_unused);
 static void __fastcall SkinClearVerify(SceneSkin* self) {
     const bool hadRoot = self->root != nullptr;
     self->Clear();
-    bool ok = !self->root && self->unknown_00 == 0 && self->names.size == 0 && (!hadRoot || self->bones.size == 0);
+    bool ok = !self->root && self->owner == 0 && self->names.size == 0 && (!hadRoot || self->bones.size == 0);
     ei::verify::Check("SceneSkin::Clear", true, ok, "");
 }
 EI_VERIFY(0x005088E0, SkinClearVerify, 0, s_unused);
 
-static void __fastcall SkinSetUnknown00Verify(SceneSkin* self, void*, std::uint32_t value) {
-    self->SetUnknown00(value);
-    ei::verify::Check("SceneSkin::SetUnknown00", value, self->unknown_00, "");
+static void __fastcall SkinSetOwnerVerify(SceneSkin* self, void*, std::uint32_t value) {
+    self->SetOwner(value);
+    ei::verify::Check("SceneSkin::SetOwner", value, self->owner, "");
 }
-EI_VERIFY(0x00508930, SkinSetUnknown00Verify, 0, s_unused);
+EI_VERIFY(0x00508930, SkinSetOwnerVerify, 0, s_unused);
 
 // --- The renderer ---------------------------------------------------------------------------------------
 

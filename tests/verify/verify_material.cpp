@@ -29,7 +29,7 @@ bool SameEmptyDeque(const stlp::deque<MaterialEntry>& a, const stlp::deque<Mater
 }
 
 bool ResetDone(const CMaterial* m) {
-    return IsNone(m->name) && IsNone(m->name2) && IsNone(m->name3) && m->unknown_90 == 0 && m->unknown_98 == 0 &&
+    return IsNone(m->name) && IsNone(m->name2) && IsNone(m->name3) && m->spare90 == 0 && m->spare98 == 0 &&
            m->colors.diffuse.w == 1.0f && m->entries.empty();
 }
 
@@ -47,7 +47,7 @@ CMaterial* __fastcall ConstructVerify(CMaterial* self) {
                     std::strcmp(expected->name, self->name) == 0 && std::strcmp(expected->name2, self->name2) == 0 &&
                     std::strcmp(expected->name3, self->name3) == 0 &&
                     std::memcmp(&expected->colors, &self->colors, sizeof(MaterialColors)) == 0 &&
-                    expected->unknown_90 == self->unknown_90 && expected->unknown_98 == self->unknown_98 &&
+                    expected->spare90 == self->spare90 && expected->spare98 == self->spare98 &&
                     SameEmptyDeque(expected->entries, self->entries) && VtableOf(self) == CMaterial::kVtableAddress;
     ei::verify::Check("CMaterial::Construct", true, ok, "material %p", self);
     expected->Destruct();

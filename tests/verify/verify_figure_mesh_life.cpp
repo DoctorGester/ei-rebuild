@@ -39,7 +39,7 @@ bool BuffersClear(const CFigureMesh* mesh) {
 // What Clear leaves.
 bool Cleared(const CFigureMesh* mesh) {
     return mesh->name_.GetLength() == 0 && mesh->directory_.GetLength() == 0 && Empty(mesh->offsets_) &&
-           Empty(mesh->colorsA_) && Empty(mesh->colorsB_) && BuffersClear(mesh) && mesh->unknown_158 == 0 &&
+           Empty(mesh->colorsA_) && Empty(mesh->colorsB_) && BuffersClear(mesh) && mesh->materialValue_ == 0 &&
            mesh->meshType_ == 0 && mesh->drawer_ == nullptr && mesh->flags_ == 0;
 }
 

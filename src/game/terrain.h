@@ -49,13 +49,32 @@ int AmbientVariants(int soundClass);
 }
 
 // A 32x32-cell block of terrain. Each sector holds two layers of 33x33 vertices (x, y, z): the
-// ground, and the water surface when the sector has water.
+// ground, and the water surface when the sector has water. It is terrain::SectorData
+// (terrain_sector.h), whose member names the fields not used here take.
 struct TerrainSector {
-    std::uint8_t unknown_000[0x10];
-    std::uint32_t hasWater;         // +0x10
-    std::uint8_t unknown_014[0x180 - 0x14];
+    std::uint8_t hasSpecular;       // +0x000
+    std::uint8_t pad_001[3];
+    std::uint32_t built;            // +0x004
+    int sx, sy;                     // +0x008
+    std::uint32_t hasWater;         // +0x010
+    int hasWaterTiles;              // +0x014
+    const std::uint8_t* data;       // +0x018
+    void* owner;                    // +0x01C
+    int pages;                      // +0x020
+    int perPage;                    // +0x024
+    std::uint8_t box[0x38];         // +0x028 SectorBox
+    int clipMode;                   // +0x060
+    std::uint8_t quarters[0x144 - 0x64];   // +0x064 SectorBox[4]
+    int quarterMode[4];             // +0x144
+    float minZ;                     // +0x154
+    float maxZ;                     // +0x158
+    std::uint8_t waterMaterials[0x170 - 0x15C];   // +0x15C mfc::CArray<std::uint8_t>
+    int detail, seamBefore, seamAfter;   // +0x170
+    void* verticesVtable;           // +0x17C the CArray's
     float* vertices;                // +0x180 2 x 33 x 33 x (x, y, z)
 };
+static_assert(offsetof(TerrainSector, clipMode) == 0x60 && offsetof(TerrainSector, detail) == 0x170);
+static_assert(offsetof(TerrainSector, vertices) == 0x180);
 
 // The area a point light reaches (006CAA70): the sectors it covers, and the first / last vertex
 // column and row inside the first / last sector.
@@ -348,7 +367,7 @@ public:
     float SurfaceHeight(float x, float y);
 
 private:
-    char unknown_000[0x180];
+    char clientWorld_[0x180];   // the client world's members before terrain_ (CWorldClient, world.h)
     Terrain* terrain_;        // +0x180
 };
 static_assert(sizeof(void*) == 4, "game.exe is 32-bit");

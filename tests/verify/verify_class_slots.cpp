@@ -132,7 +132,7 @@ int __fastcall ManagerCreateVerify(CLightningManager* self) {
 
 int __fastcall FakeUnitCreateVerify(scene::FakeUnitScene* self) {
     int result = FakeUnitCreate(self);
-    bool good = self->skin.unknown_00 == static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(self));
+    bool good = self->skin.owner == static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(self));
     ei::verify::Check("CFakeUnit::Create", true, good, "result %d", result);
     return result;
 }

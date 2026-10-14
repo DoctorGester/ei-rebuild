@@ -172,8 +172,8 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             const float scale = RoundToFloat(One() / size);
             static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached)->figureScale = Vector3{scale, scale, scale};
             // The first page draws the model in full colour, the others at half.
-            model->SetPartsUnknownD4(bodyPart_ == 0 ? 0xFFFFFFFFu : 0xFF808080u);
-            model->SetPartsUnknownD8(0xFF000000u);
+            model->SetPartsFlatColour(bodyPart_ == 0 ? 0xFFFFFFFFu : 0xFF808080u);
+            model->SetPartsFlatSpecular(0xFF000000u);
             model->SetPartFlags(kPartHighlight);
             unit->flags_ |= kPreviewDraw;
 

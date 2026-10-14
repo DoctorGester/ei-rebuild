@@ -24,14 +24,14 @@ const Vector3& DefaultPosition() { return *reinterpret_cast<const Vector3*>(std:
 
 CAnimationNode* CAnimationNode::Construct() {
     new (&name_) mfc::CString();
-    new (&unknown_008) mfc::CString();
-    new (&unknown_00C) mfc::CString();
+    new (&spareName008_) mfc::CString();
+    new (&spareName00C_) mfc::CString();
     children_.Construct();
     rotationKeys_.Construct();
     translationKeys_.Construct();
     normals_.Construct(kNormalsVtable);
     morphFrames_.Construct(kMorphFramesVtable);
-    unknown_09C = {1.0f, 0.0f, 0.0f, 0.0f};
+    defaultRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
     poseRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
     pointsB_.Construct();
     restRotation_ = {1.0f, 0.0f, 0.0f, 0.0f};
@@ -41,18 +41,18 @@ CAnimationNode* CAnimationNode::Construct() {
     translationCursor_ = kNoKey;
     morphCursor_ = kNoKey;
     normalCursor_ = kNoKey;
-    unknown_000 = 0;
-    unknown_010[2] = 0;
+    spare000_ = 0;
+    spare010_[2] = 0;
     mesh_ = nullptr;
     clock_[1] = 0;
-    unknown_034 = 0;
+    spare034_ = 0;
     frameCount_ = 0;
     parent_ = nullptr;
     position_ = DefaultPosition();
-    unknown_0AC = DefaultPosition();
-    unknown_09C = DefaultRotation();
-    unknown_010[0] = 0;
-    unknown_010[1] = 0;
+    defaultPosition_ = DefaultPosition();
+    defaultRotation_ = DefaultRotation();
+    spare010_[0] = 0;
+    spare010_[1] = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00506710, CAnimationNode::Construct);
@@ -70,7 +70,7 @@ void CAnimationNode::DestructBody() {
         }
     }
     children_.SetSize(0, -1);
-    unknown_000 = 0;
+    spare000_ = 0;
     pointsA_.FreeData();
     pointsB_.FreeData();
     morphFrames_.vtable = reinterpret_cast<void*>(kMorphFramesVtable);
@@ -80,8 +80,8 @@ void CAnimationNode::DestructBody() {
     translationKeys_.FreeData();
     rotationKeys_.FreeData();
     children_.FreeData();
-    unknown_00C.~CString();
-    unknown_008.~CString();
+    spareName00C_.~CString();
+    spareName008_.~CString();
     name_.~CString();
 }
 EI_REPLACE_METHOD(0x005068C0, CAnimationNode::DestructBody);
