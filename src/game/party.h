@@ -82,7 +82,7 @@ public:
     virtual void PlayerList();                 // 20: 0065F4E0 (null)
     virtual void SpecificManager();            // 21: 0065F4F0 (null)
     virtual CSpellManager* SpellManager();     // 22: spellManager_
-    virtual void FigureCache();                // 23: 0065F500 (null)
+    virtual void FigureLoader();               // 23: 0065F500 (null)
     // 24: 0055E940. A new item made like `item` (the item factory, slot 18) and given its values
     // (its slot 15 with the spell manager, slot 22).
     virtual CItem* CopyItem(CItem* item);

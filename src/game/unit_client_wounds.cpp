@@ -162,19 +162,10 @@ void AssignTexture(CTexture** slot, CTexture* value) {
     if (old) old->Release();
 }
 
-// 0051E570 / 0051E4F0: a counted root (refs at +4, slot 0 deletes) assigned; the old one deleted at
-// its last reference.
-int& RefsOf(WoundsMaterial* material) { return material->refCount; }
-int& RefsOf(CRenderPreset* preset) { return preset->refs_; }
-void DeleteRoot(WoundsMaterial* material) { material->DeletingDestructor(1); }
-void DeleteRoot(CRenderPreset* preset) { preset->DeleteThis(1); }
+// The material's slot and its preset's as the counted references 0051E570 / 0051E4F0 assign
+// (CountedRef<T>::Assign, object3d_lifetime.cpp; 0051C3D0 calls them).
 template <typename T>
-void AssignCountedRoot(T** slot, T* value) {
-    T* old = *slot;
-    *slot = value;
-    if (value) ++RefsOf(value);
-    if (old && --RefsOf(old) == 0) DeleteRoot(old);
-}
+inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedRef<T>*>(&slot); }
 
 // The material's constructor, inlined by 0051C3D0: the counted root's fields, then its own.
 WoundsMaterial* NewWoundsMaterial() {
@@ -211,15 +202,15 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         woundsTexture->flags_ &= ~kTextureLoaded;
         if (!TextureLoadOriginal(manager, nullptr, woundsTexture)) {
             AssignTexture(&woundsTexture, nullptr);
-            AssignCountedRoot(&woundsMaterial, static_cast<WoundsMaterial*>(nullptr));
+            AsCountedRef(woundsMaterial).Assign(nullptr);
             extra.FreeData();
             return 0;
         }
     }
     if (!woundsMaterial) {
-        AssignCountedRoot(&woundsMaterial, NewWoundsMaterial());
+        AsCountedRef(woundsMaterial).Assign(NewWoundsMaterial());
         CRenderHelper* helper = static_cast<CSceneRenderer*>(SceneContext())->helper_;
-        AssignCountedRoot(&woundsMaterial->preset, helper->Preset(kWoundsPreset));
+        AsCountedRef(woundsMaterial->preset).Assign(helper->Preset(kWoundsPreset));
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
     }

@@ -151,3 +151,17 @@ original does); a local keeps the old code.
   aside). MakeFigure and SetFigureScale are not: the scale floats now go through `fld / fstp` to the argument slots
   instead of being pushed as dwords (and registers / stack slots moved). An x87 float load and store is exact for
   every value but a signalling NaN, which a figure scale never is; checked with a suite run (below).
+
+## F4e: ShowWounds onto CountedRef<T> (2026-10-14)
+
+- unit_client_wounds.cpp lost its own `AssignCountedRoot` / `RefsOf` / `DeleteRoot`: ShowWounds (0051C3D0)
+  assigns the wounds material and its preset through `CountedRef<WoundsMaterial>::Assign` /
+  `CountedRef<CRenderPreset>::Assign` (object3d_lifetime.cpp, F4d), reached through a local inline
+  `AsCountedRef(T*&)` (the slot viewed as the reference, like CObject3D::FigureRef).
+- The old template was not inlined in release either (a call to a file-local copy), so the release code now
+  calls the shared copies instead, which is what the original does (0051E570 / 0051E4F0). dumpbin before / after:
+  the three calls change callee and pass the slot in ECX (thiscall) instead of pushing it; registers and the
+  stack slot holding `&woundsMaterial` moved. Checked with combat, combat_more and units on both installs:
+  all pass, ShowWounds 75 verify calls, 0 mismatches.
+- party.h: CParty's slot 23 renamed `FigureLoader` (CWorld's name since F4d; still null there).
+- Left: HideWounds (0051C920) and object3d_client_parts.cpp still drop the wounds material by hand (ticket F4f).
