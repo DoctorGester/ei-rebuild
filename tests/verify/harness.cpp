@@ -142,12 +142,14 @@
 // Harness runs are hands-off and leave the install alone: no startup movies, the tutorial option
 // off, saves and config\tutorial.ini kept in harness_saves next to the DLL, every other write under
 // the game's root (the composed-skin cache textures\*.mmp, config\keyboard.ini, ...) going to a
-// copy-on-write overlay there too, no registry writes.
+// copy-on-write overlay there too, no registry writes, and a UDP port of its own for the multiplayer
+// sessions instead of 8888 (harness_net.h).
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
 #include "verify.h"
 #include "harness_capture.h"
 #include "harness_starter.h"
+#include "harness_net.h"
 #include "ui_census.h"
 
 #include "../../src/hook/log.h"
@@ -2257,6 +2259,7 @@ struct Harness {
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
         ei::verify::starter::Install();
+        net_port::Install();   // a UDP port of its own (harness_net.h)
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
