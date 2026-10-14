@@ -387,7 +387,7 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
         double dx = position.x - point->x;
         double dy = position.y - point->y;
         // FCOMP; TEST AH,1: "less or unordered".
-        if (!(dy * dy + dx * dx >= radiusSq)) return true;
+        if (!(LengthSquared2DUnrounded(dy, dx) >= radiusSq)) return true;
     }
     // TEST AH,0x40 twice: the unit has not moved (equal or unordered) -> not near.
     if (!(position.x < previousPosition.x) && !(position.x > previousPosition.x) && !(position.y < previousPosition.y) &&
@@ -405,7 +405,7 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
     float u = !(1.0f >= clampedStored) ? 1.0f : static_cast<float>(clampedStored);
     double ex = position.x - (pointX - u * segX);
     double ey = position.y - (pointY - u * segY);
-    return !(ey * ey + ex * ex >= radiusSq);
+    return !(LengthSquared2DUnrounded(ey, ex) >= radiusSq);
 }
 EI_REPLACE_METHOD(0x005D50E0, AIBrain::IsNearPath);
 
@@ -445,7 +445,7 @@ void AIBrain::UpdateMove() {
         double dy = actionPoint.y - unit->position.y;     // kept on the FPU stack
         double dx = actionPoint.x - unit->position.x;
         // TEST AH,0x41; JNZ: continue below when <= or unordered.
-        if (dx * dx + dy * dy > kArrivedDistanceSq) {
+        if (LengthSquared2DUnrounded(dx, dy) > kArrivedDistanceSq) {
             if (target) reinterpret_cast<AIRef*>(&target)->Reset();
             target = nullptr;
             action = kActionNone;

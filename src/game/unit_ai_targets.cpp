@@ -76,9 +76,7 @@ struct Scored {
 } // namespace
 
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b) {
-    double dy = static_cast<double>(a->y) - b->y;
-    double dx = static_cast<double>(a->x) - b->x;
-    return dx * dx + dy * dy;
+    return DistanceSquaredXYUnrounded<double>(*a, *b);
 }
 EI_REPLACE(0x005CFE20, AIDistance2);
 
@@ -187,7 +185,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const int* partAndObject) {
         auto* other = static_cast<CUnit*>(node->data);
         double dy = static_cast<double>(at.y) - other->position.y;
         double dx = static_cast<double>(at.x) - other->position.x;
-        if (!(dx * dx + dy * dy >= kAllyNear2) && Allied(other->side, self->side)) {
+        if (!(LengthSquared2DUnrounded(dx, dy) >= kAllyNear2) && Allied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (!(PrototypeSize(other) >= kHalf)) return false;
         }
@@ -195,7 +193,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const int* partAndObject) {
     double dy = static_cast<double>(self->position.y) - at.y;
     double dx = static_cast<double>(self->position.x) - at.x;
     double radius = option->radius;
-    return !(radius * radius >= dx * dx + dy * dy);
+    return !(radius * radius >= LengthSquared2DUnrounded(dx, dy));
 }
 
 bool __fastcall IsUsableHook(AIAttention* self, void*, AIBrain* brain, const int* partAndObject) {
@@ -267,9 +265,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
         reach = option->range;
         scale = 10.0f;
     }
-    double dy = static_cast<double>(candidate->position.y) - from->y;
-    double dx = static_cast<double>(candidate->position.x) - from->x;
-    float beyond = RoundToFloat(std::sqrt(dx * dx + dy * dy) - reach);
+    float beyond = RoundToFloat(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->position, *from)) - reach);
     float penalty = !(kZero >= beyond) ? beyond : kZero;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     if (!(result >= threshold)) return result;

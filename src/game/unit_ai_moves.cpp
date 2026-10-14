@@ -309,7 +309,7 @@ EI_REPLACE_METHOD(0x005D6F90, AIBrain::UpdateFollow);
 bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* to) {
     double fy = from->y - to->y;
     double fx = from->x - to->x;
-    if (!(fx * fx + fy * fy >= kSamePointSq)) return false;
+    if (!(LengthSquared2DUnrounded(fx, fy) >= kSamePointSq)) return false;
     ScopedPath local;
     double dx = from->x - to->x;
     double dy = from->y - to->y;
