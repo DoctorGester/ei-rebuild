@@ -148,10 +148,11 @@ started = "2026-10-14"
 id = "R9c1"
 title = "Lost Direct3D 11 device: make the device, swap chain and textures again"
 group = "renderer"
-status = "queued"
+status = "running"
 model = "opus"
 depends = ["R9c"]
 note = "R9c logs a removed / reset / hung device (GetDeviceRemovedReason) and stops presenting; nothing is recreated. Recreate sokol's device and every image, reupload textures from the decoded copies (renderer.md section 9, R9c)."
+started = "2026-10-14"
 
 [[ticket]]
 id = "R9c2"
@@ -365,10 +366,11 @@ done = "2026-10-14"
 id = "N0b"
 title = "ui_help opens help: H, not F1"
 group = "native-ui"
-status = "queued"
+status = "running"
 size = 0.25
 files = ["tests/scenarios/ui_help.txt"]
 note = "ui_help presses F1, which is select1 in keyboard.ini; the help key is H (tutorial_script), so it never opened the help window (N0a, ui-census.md Coverage). Switch it to H on a topic with a tutorial text, or fold it into ui_help_page, and keep its checks."
+started = "2026-10-14"
 
 [[ticket]]
 id = "N0c"
