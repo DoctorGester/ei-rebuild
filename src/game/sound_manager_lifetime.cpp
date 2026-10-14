@@ -785,7 +785,7 @@ void CSoundManager::Reset() {
     cacheBytes = 0;
     for (SoundEmitter& e : emitters) {
         e.active = 0;
-        e.position[0] = e.position[1] = e.position[2] = 0.0f;
+        e.position.x = e.position.y = e.position.z = 0.0f;
         e.innerRadius = 0.0f;
         e.outerRadius = 0.0f;
         e.minInterval = -1;
@@ -795,7 +795,7 @@ void CSoundManager::Reset() {
     for (SoundSequence& q : sequences) {
         q.active = 0;
         q.handle = -1;
-        q.position[0] = q.position[1] = q.position[2] = 0.0f;
+        q.position.x = q.position.y = q.position.z = 0.0f;
         q.nearDistance = 0.0f;
         q.farDistance = 0.0f;
         q.remaining = -1;

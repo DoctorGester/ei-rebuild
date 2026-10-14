@@ -136,7 +136,6 @@ src/game/script_exec_run.cpp,0,0,3,0,3,0,0,0,0,0,0
 src/game/script_parse_load.cpp,0,0,2,0,1,0,0,0,0,0,0
 src/game/script_vars.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/script_vars_append.cpp,0,0,1,0,0,0,0,0,0,0,0
-src/game/sound.h,0,0,0,0,0,0,0,0,0,0,6
 src/game/sound_manager.cpp,0,0,1,1,0,0,0,0,0,0,0
 src/game/spell.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/spell_cast.cpp,0,0,2,1,2,0,0,0,0,0,0
@@ -193,7 +192,6 @@ src/game/unit_stats.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,0,0,0,0
 src/game/unit_update.cpp,0,0,1,1,1,0,0,0,0,0,0
 src/game/unit_vitals.cpp,0,0,4,1,24,0,0,0,0,0,0
-src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5
 src/game/world_briefing.cpp,0,0,0,0,10,0,0,0,0,0,0
 src/game/world_client_draw.cpp,0,0,6,0,3,0,0,0,0,0,0
 src/game/world_client_view.cpp,0,0,0,2,0,0,0,0,0,0,0
