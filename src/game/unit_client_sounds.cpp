@@ -259,7 +259,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (!PassedFrame(frame, lastAnimationTime, now)) continue;
         if (!unit->HasEffect(kEffectSilence)) {
             auto* world = static_cast<CWorldClient*>(ManagerContext());
-            int ground = reinterpret_cast<terrain::TerrainFields*>(world->terrain_)->SurfaceClass(position.x, position.y);
+            int ground = world->terrain_->SurfaceClass(position.x, position.y);
             CallFootstepSound(this, nullptr, ground, &sound);
         }
         if (unit->moveMode == 0) break;

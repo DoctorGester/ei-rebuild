@@ -655,7 +655,7 @@ inline const PrintLook& LookOf(const PrintRecord2& r, bool second) {
 }
 
 // prints.db (007C89C8, loaded at startup by 006D0630), indexed by the ground's surface class
-// (TerrainFields::SurfaceClass): chunk 1 blood and bloody footprints, chunk 2 footprints, chunk 3
+// (Terrain::SurfaceClass): chunk 1 blood and bloody footprints, chunk 2 footprints, chunk 3
 // scorch marks; each table is followed by a hash_map by name (filled by the load, not read by the
 // rewritten code).
 struct PrintsDatabase {

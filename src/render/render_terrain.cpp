@@ -60,7 +60,7 @@ void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod,
 
 // --- Game memory -------------------------------------------------------------------------------------
 
-// The landscape's page textures: TerrainFields +0xD8, an array of CTexture*, indexed
+// The landscape's page textures: Terrain::pageTextures (+0xD8), an array of CTexture*, indexed
 // page % (pages + 2) (006C6460 binds them so before each page).
 const void* PageTexture(const SectorData* s, int page) {
     const char* owner = reinterpret_cast<const char*>(s->owner);

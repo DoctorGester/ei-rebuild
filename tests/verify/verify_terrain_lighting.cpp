@@ -20,10 +20,10 @@ constexpr int kVertices = 33 * 33;
 // 006C31C0: PUSH EBP; MOV EBP,ESP; SUB ESP,0xB8 (9 bytes). Writes the record's colour / specular
 // words and may set the sector's hasSpecular. Ours first, then (all three restored) the original,
 // whose results stay, so the original Light run below sees original per-vertex results.
-void(__fastcall* s_lightVertex)(SectorData*, void*, const SectorPosition*, SectorVertex*, TerrainFields*, int);
+void(__fastcall* s_lightVertex)(SectorData*, void*, const SectorPosition*, SectorVertex*, Terrain*, int);
 
 void __fastcall LightVertexVerify(SectorData* self, void*, const SectorPosition* position, SectorVertex* record,
-                                  TerrainFields* owner, int layer) {
+                                  Terrain* owner, int layer) {
     std::uint32_t colour = record->colour, specular = record->specular;
     std::uint8_t flag = self->hasSpecular;
     self->LightVertex(position, record, owner, layer);
@@ -43,10 +43,10 @@ EI_VERIFY(0x006C31C0, LightVertexVerify, 9, s_lightVertex);
 // 006C36B0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x34 (6 bytes). Writes the record's lit colour: ours
 // first, restored, then the original (its result stays). Both versions run the shadow test 006C92C0, which may load the sectors the ray
 // crosses (the second run then finds them cached; the vertices it reads are the same).
-void(__fastcall* s_shadeSun)(SectorData*, void*, CLight*, const SectorPosition*, SectorVertex*, TerrainFields*, int);
+void(__fastcall* s_shadeSun)(SectorData*, void*, CLight*, const SectorPosition*, SectorVertex*, Terrain*, int);
 
 void __fastcall ShadeSunVerify(SectorData* self, void*, CLight* sun, const SectorPosition* position,
-                               SectorVertex* record, TerrainFields* owner, int layer) {
+                               SectorVertex* record, Terrain* owner, int layer) {
     Vector3 lit, ours;
     std::memcpy(&lit, &record->lit, sizeof(lit));
     self->ShadeSun(sun, position, record, owner, layer);
@@ -64,9 +64,9 @@ EI_VERIFY(0x006C36B0, ShadeSunVerify, 6, s_shadeSun);
 // through the two wrappers above), then every record, the sector's hasSpecular / built /
 // relightCountdown and the owner's lighting fields are restored and ours runs; the records' colour,
 // specular and lit colour compared (mismatch count and the first one reported).
-void(__fastcall* s_light)(SectorData*, void*, CLight*, TerrainFields*, int, int, int, int, int);
+void(__fastcall* s_light)(SectorData*, void*, CLight*, Terrain*, int, int, int, int, int);
 
-void __fastcall LightVerify(SectorData* self, void*, CLight* sun, TerrainFields* owner, int skipSun, int x0, int y0,
+void __fastcall LightVerify(SectorData* self, void*, CLight* sun, Terrain* owner, int skipSun, int x0, int y0,
                             int x1, int y1) {
     int count = self->records.size;
     std::vector<SectorVertex> before(self->records.data, self->records.data + count);
