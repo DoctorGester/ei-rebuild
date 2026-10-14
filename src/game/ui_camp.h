@@ -278,6 +278,9 @@ public:
     // the "pers" texts (every node erased, 005FAFA0, then the header), the hero ids and the party
     // array (their vtables, storage freed), then the container's.
     void DestroyBody();
+    // 005F5FC0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CBattleScreenSetup* BattleScreenSetupDelete(unsigned flags);
     UiDwordArray& Party() { return *reinterpret_cast<UiDwordArray*>(partyArray_); }
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
@@ -413,6 +416,9 @@ struct GlobalMapStep {
 
 class CGlobalMap : public CUiWindow {
 public:
+    // 005F6900 (slot 0, the deleting destructor; ui_window_delete.cpp). GlobalMapDestroy, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CGlobalMap* GlobalMapDelete(unsigned flags);
     // 0062D350 (slot 25). Builds the map of the local player's allod: the island model, the
     // zones, the quests the player holds ("q.<zone>.<quest>" = 1) and the links to zones the
     // player may enter ("z.<zone>" = 2), the clock text, the camp and turn buttons, the weather.
@@ -1007,6 +1013,9 @@ public:
     void HoverInfo(int x, int y, ItemHoverInfo* info);
     // 0060E360 (ui_window_delete.cpp). The destructor body: the texts, the title, then the window's.
     void DestroyBody();
+    // 0060E340 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHeroStatsPanel* StatsPanelDelete(unsigned flags);
     // 006232D0 (RET 8). Shows hero `heroIndex` of the owner (and `title` when not null): the
     // hero arrows (scene objects 0, 1) and their regions' tooltips only for a party of more than
     // one, +0x170 = the hero's height * 100 (truncated), then DrawStats (through its address).
@@ -1205,6 +1214,9 @@ class CSpellMakerPage : public CConstructorPage {
 public:
     // 0060E600 (ui_window_delete.cpp). The destructor body: the texts, then the window's.
     void DestroyBody();
+    // 0060E5E0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CSpellMakerPage* SpellMakerDelete(unsigned flags);
 
     void* textsVtable_;              // +0x158
     const char** texts_;             // +0x15C CString data

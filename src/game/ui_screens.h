@@ -209,6 +209,9 @@ public:
     // the visible list's storage, then the window's. The plain strip's (0060E280) frees nothing of
     // its own.
     void DestroyForwarding();
+    // 0060E290 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyForwarding, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CUiItemStrip* ForwardingStripDelete(unsigned flags);
 
     // Settles the pending scroll on release (inlined twice by the original).
     void SettleScroll();
@@ -407,6 +410,9 @@ public:
     // storage, the CString +0x1F4, the two string vectors, the texture and model caches (objects
     // released, nodes erased), then the container's body (00600BA0).
     void Destroy();
+    // 00633240 (slot 0, the deleting destructor; ui_window_delete.cpp). Destroy, then the memory
+    // freed when bit 0 of `flags` is set; returns this.
+    CMpHeroScreen* HeroScreenDelete(unsigned flags);
     // The level-up and experience lines of the statistics page (inlined by Draw).
     void DrawExperience();
     // 00618060 (ui_hero_screen_click.cpp). Region 6 of the list: the rename edit window enabled and
@@ -611,6 +617,9 @@ public:
     // 00618570 (ui_window_delete.cpp). The destructor body: the two text arrays, the password,
     // the entries (texts, storage), then the container's.
     void DestroyBody();
+    // 00618550 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CMpConnectScreen* ConnectScreenDelete(unsigned flags);
     // 0061B2C0 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
     // only). The screen over 800 x 600: the "saveload" and "scrollbar" textures, the stone menu
     // model ("unmoco2" with "MainMenu00labels", parts "but03" and "button03_multiplayer") at
@@ -746,6 +755,9 @@ public:
                                  const net::NetAddress* address, std::uint32_t extra);
     // 0061E460 (ui_window_delete.cpp). The destructor body: the link (00440D40), then the box's.
     void DestroyBody();
+    // 0061E440 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CMasterRequestBox* MasterRequestBoxDelete(unsigned flags);
     // 0061E4E0 (slot 24). The bar's right edge at 225 + 355 * the received share (0041D9A0); the
     // link steps: done (3) hands the reply to the client's server list (0041D600); the box closes
     // (0x40002) when the link is done or, stepping again, closed (up to three steps a frame).

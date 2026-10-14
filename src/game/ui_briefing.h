@@ -135,6 +135,9 @@ public:
     // 00608ED0 (ui_window_delete.cpp). The destructor body: the texts, each held player released,
     // the vector's storage, then the window's.
     void DestroyBody();
+    // 00608EB0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CChatWindow* ChatWindowDelete(unsigned flags);
     // 00608F90 (RET 8). A face: every fourth one first makes a 256 x 256 texture (kind 0x20);
     // `texture` is copied into the newest texture's quarter (count % 4: left / right, top / bottom)
     // and a sprite of `model` placed at the face's centre (depth 7, scale 0.3, turned pi * 1.05
@@ -357,6 +360,9 @@ public:
     // header), the dialogue text, the movers (nodes, sentinel), the party array (vtable 007402AC,
     // storage), the topic and the topics, then the container's.
     void DestroyBody();
+    // 005F6B80 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CBriefingScreen* BriefingDelete(unsigned flags);
     // 005F6B70 (slot 38, RET 4; ui_small_members.cpp). chatActive_ = `mode`.
     void SetChatActive(int mode);
 

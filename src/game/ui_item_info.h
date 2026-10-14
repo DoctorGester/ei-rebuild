@@ -152,6 +152,15 @@ public:
 // caches of item models (by the item's slot 20 name) and figure textures (slot 19 name).
 class CItemScreen : public CUiWindow {
 public:
+    // 005F6FF0 (slot 0, the deleting destructor; ui_window_delete.cpp). Screen9Destroy, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CItemScreen* Screen9Delete(unsigned flags);
+    // 005F6600 (slot 0, the deleting destructor; ui_window_delete.cpp). CampScreenDestroy, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CItemScreen* CampScreenDelete(unsigned flags);
+    // 005F6450 (slot 0, the deleting destructor; ui_window_delete.cpp). ItemScreenDestroy, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CItemScreen* ItemScreenDelete(unsigned flags);
     // 005ECA10 (RET 8). Draws `cell`'s item: its model (cached, created by 005EBFB0) with its
     // texture (cached, 005EC020) turning while the mouse is on it, a glow in the colour of the
     // carried spell's school, a frame behind it, the modifier marks of a spell container, and a
@@ -257,6 +266,9 @@ public:
     // 005EE380 (ui_window_delete.cpp). The destructor body: its vtables, the skill and item text
     // arrays, the item list (00661050 class's 006611D0), then the window's.
     void DestroyBody();
+    // 005EE420 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CItemInfoPanel* ItemInfoPanelDelete(unsigned flags);
 
     // 005EE720 (ui_small_members.cpp; the Describe* members call it). The described item: the
     // list's first entry, or null.

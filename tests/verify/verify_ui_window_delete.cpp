@@ -15,7 +15,6 @@
 #include <cstdint>
 
 void __fastcall InputSideDestroy(UiInputSide* side);
-UiInputSide* __fastcall InputSideDelete(UiInputSide* self, void*, unsigned flags);
 
 namespace {
 void* s_unused;
@@ -140,12 +139,20 @@ EI_VERIFY(0x006070C0, SaveLoadDestroyVerify, 0, s_unused);
 
 // --- Deleting destructors -----------------------------------------------------------------------------
 
-#define EI_DELETE_VERIFY(Type, Fn)                                                       \
-    Type* __fastcall Fn(Type* self, void*, unsigned flags);                              \
-    static Type* __fastcall Fn##Verify(Type* self, void*, unsigned flags) {              \
-        Type* result = Fn(self, nullptr, flags);                                         \
-        CheckDeleted(#Fn, self, result, flags);                                          \
-        return result;                                                                   \
+#define EI_DELETE_VERIFY(Type, Fn)                                                      \
+    static Type* __fastcall Fn##Verify(Type* self, void*, unsigned flags) {             \
+        Type* result = self->Fn(flags);                                                 \
+        CheckDeleted(#Fn, self, result, flags);                                         \
+        return result;                                                                  \
+    }
+
+// The deleting destructors still free functions (the screens without a class of their own).
+#define EI_DELETE_VERIFY_FREE(Type, Fn)                                                 \
+    Type* __fastcall Fn(Type* self, void*, unsigned flags);                             \
+    static Type* __fastcall Fn##Verify(Type* self, void*, unsigned flags) {             \
+        Type* result = Fn(self, nullptr, flags);                                        \
+        CheckDeleted(#Fn, self, result, flags);                                         \
+        return result;                                                                  \
     }
 
 EI_DELETE_VERIFY(CUiWindow, UiWindowDelete)
@@ -158,13 +165,13 @@ EI_DELETE_VERIFY(CItemScreen, CampScreenDelete)
 EI_DELETE_VERIFY(CItemScreen, Screen9Delete)
 EI_DELETE_VERIFY(CGlobalMap, GlobalMapDelete)
 EI_DELETE_VERIFY(CBriefingScreen, BriefingDelete)
-EI_DELETE_VERIFY(void, Screen8Delete)
+EI_DELETE_VERIFY_FREE(void, Screen8Delete)
 EI_DELETE_VERIFY(CHelpWindow, HelpWindowDelete)
 EI_DELETE_VERIFY(CObjectivesWindow, ObjectivesDelete)
 EI_DELETE_VERIFY(CSaveLoadWindow, SaveLoadDelete)
 EI_DELETE_VERIFY(CChatWindow, ChatWindowDelete)
 EI_DELETE_VERIFY(CUiItemStrip, ForwardingStripDelete)
-EI_DELETE_VERIFY(CUiWindow, TradePanelDelete)
+EI_DELETE_VERIFY_FREE(CUiWindow, TradePanelDelete)
 EI_DELETE_VERIFY(CHeroStatsPanel, StatsPanelDelete)
 EI_DELETE_VERIFY(CSpellMakerPage, SpellMakerDelete)
 EI_DELETE_VERIFY(CMpConnectScreen, ConnectScreenDelete)
@@ -182,7 +189,7 @@ EI_DELETE_VERIFY(CHudActionColumn, HudActionColumnDelete)
 EI_DELETE_VERIFY(CHudPortraits, HudPortraitsDelete)
 
 static UiInputSide* __fastcall InputSideDeleteVerify(UiInputSide* self, void*, unsigned flags) {
-    UiInputSide* result = InputSideDelete(self, nullptr, flags);
+    UiInputSide* result = self->InputSideDelete(flags);
     CheckDeleted("InputSideDelete", self, result, flags);
     return result;
 }
