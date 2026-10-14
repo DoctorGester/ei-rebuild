@@ -187,7 +187,11 @@ function batchPanel(b, pos) {
 function runsView() {
   const r = data.runs, p = data.processes;
   const out = [];
-  if (!p.scheduler.alive) out.push(`<p class="empty bad">The scheduler is not running${r.queued.length ? ', so queued batches wait' : ''}; it starts with the next <code>work.py test</code>.</p>`);
+  // Not alive means no heartbeat for a while: either it exited (the next work.py test starts one) or it is stuck.
+  const hb = p.scheduler.heartbeat_age;
+  if (!p.scheduler.alive && (r.queued.length || r.running.length)) out.push(hb != null && hb < 600
+    ? `<p class="empty bad">The scheduler has not checked in for ${fromFetch(hb)}; queued batches wait until it does (<code>build/live/scheduler.log</code>).</p>`
+    : `<p class="empty bad">The scheduler is not running, so queued batches wait; it starts with the next <code>work.py test</code>.</p>`);
   out.push(`<section class="lane"><h2>Running<span class="n">${r.running.length}</span></h2>` +
     (r.running.length ? r.running.map(b => batchPanel(b, 0)).join('') : '<p class="empty">No batch is running.</p>') + '</section>');
   out.push(`<section class="lane"><h2>Queue<span class="n">${r.queued.length}</span></h2>` +
