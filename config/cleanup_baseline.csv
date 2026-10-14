@@ -150,8 +150,8 @@ src/game/spell_effect.cpp,0,0,0,1,0,0,0,0,0,0,1
 src/game/spell_effect_internal.h,0,0,18,0,12,0,0,0,0,0,0
 src/game/spell_effect_update.cpp,0,0,0,0,6,0,0,0,0,0,0
 src/game/terrain.cpp,0,0,0,0,0,0,0,0,0,0,2
-src/game/terrain_sector.cpp,0,0,0,1,0,0,0,0,0,0,1
-src/game/terrain_sector.h,0,0,0,0,0,0,0,0,0,0,7
+src/game/terrain_sector.cpp,0,0,0,1,0,0,0,0,0,0,0
+src/game/terrain_sector.h,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui.h,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_battle_commands.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_battle_hover.cpp,0,0,0,0,0,0,0,0,0,0,2
