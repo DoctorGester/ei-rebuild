@@ -692,6 +692,7 @@ static_assert(offsetof(CUnit, effects) == 0x198);
 static_assert(offsetof(CUnit, sectorCellX) == 0x1B8);
 static_assert(offsetof(CUnit, changedParts) == 0x1DC);
 static_assert(offsetof(CUnit, controller) == 0x240);
+static_assert(offsetof(CUnit, player) == 0x24C);
 static_assert(offsetof(CUnit, side) == 0x250);
 static_assert(offsetof(CUnit, moveMode) == 0x264);
 static_assert(offsetof(CUnit, activeWeapon) == 0x26C);
@@ -855,6 +856,7 @@ struct UnitStatPair {
     float base;
     float current;
 };
+static_assert(sizeof(UnitStatPair) == 8 && offsetof(UnitStatPair, current) == 4);
 
 struct UnitStats;
 

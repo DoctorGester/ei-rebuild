@@ -2,6 +2,8 @@
 // (state 1, 00681BB0) and the lasting effects (state 2, 00682650), plus the release helpers
 // 0067EE00-0067EE80. See docs/notes/items_spells.md.
 #include "spell_effect_internal.h"
+#include "combat.h"
+#include "unit.h"
 
 using namespace spellfx;
 
@@ -32,8 +34,8 @@ void* RevealGroup(void* player) { return At<char*>(player, 0x20) + 0x50F8; }
 void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool arrow) {
     CEngineObject* missile = e->visual;
     if (!missile) return;
-    std::memcpy(&e->position, &At<Vector3>(missile, kUnitPosition), 12);
-    if (At<int>(missile, 0x14C) == 0) return;
+    std::memcpy(&e->position, &static_cast<CEffectMissile*>(missile)->localPosition_, 12);
+    if (static_cast<CEffectMissile*>(missile)->arrived_ == 0) return;
 
     DamageInfo hit;
     EffectGetDamage(e, nullptr, &hit);
@@ -43,9 +45,9 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     e->ReleaseLight();
 
     CEngineObject* target = e->target;   // no null check
-    std::memcpy(&e->targetPoint, &At<Vector3>(target, kUnitPosition), 12);
+    std::memcpy(&e->targetPoint, &static_cast<CUnit*>(target)->position, 12);
     Vector3 at;
-    std::memcpy(&at, &At<Vector3>(target, kUnitPosition), 12);
+    std::memcpy(&at, &static_cast<CUnit*>(target)->position, 12);
     at.z = static_cast<float>(UnitModeSpeed(target));
     at.z = GroundPlus(e, kWorldSlotGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, kSplashScale);
@@ -162,7 +164,7 @@ void FireWall(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
-            EffectHitUnitsAlong(e, nullptr, &At<Vector3>(e->visual, 0x180));
+            EffectHitUnitsAlong(e, nullptr, &static_cast<CEffectWall*>(e->visual)->direction_);
             e->flags |= 1;
         }
         e->timer = e->timer - 1;
@@ -170,7 +172,7 @@ void FireWall(CSpellEffect* e) {
     }
     if (ticks == -1) {
         Vector3 at = e->position;
-        if (e->sound) std::memcpy(&at, &At<Vector3>(e->sound, kUnitPosition), 12);
+        if (e->sound) std::memcpy(&at, &static_cast<CEffect*>(e->sound)->localPosition_, 12);
         e->UpdateFootprint(6, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
@@ -185,11 +187,11 @@ void LightWall(CSpellEffect* e) {
     int ticks = e->timer;
     if (ticks >= 0) {
         if ((ticks & 3) == 0 && e->visual) {
-            CEngineObject* bolt = e->visual;
+            CEffectLightning* bolt = static_cast<CEffectLightning*>(e->visual);
             Vector3 along;
-            along.x = At<float>(bolt, 0x158) - At<float>(bolt, 0x14C);
-            along.y = At<float>(bolt, 0x15C) - At<float>(bolt, 0x150);
-            along.z = At<float>(bolt, 0x160) - At<float>(bolt, 0x154);
+            along.x = bolt->to_.x - bolt->from_.x;
+            along.y = bolt->to_.y - bolt->from_.y;
+            along.z = bolt->to_.z - bolt->from_.z;
             EffectHitUnitsAlong(e, nullptr, &along);
             e->flags |= 1;
         }
@@ -264,7 +266,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
 // 10 a closing particle and sound. Ends with the timer or without a caster.
 void Clairvoyance(CSpellEffect* e, UnitList& units) {
     if (IsUnit(e->caster)) {
-        void* player = At<void*>(e->caster, 0x24C);
+        void* player = static_cast<CUnit*>(e->caster)->player;
         if (player) {
             void* group = RevealGroup(player);
             SectorMapFindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
@@ -293,8 +295,8 @@ void Possession(CSpellEffect* e) {
         e->state = 3;
         return;
     }
-    void* player = At<void*>(e->caster, 0x24C);
-    if (player && ClassId(e->target) == kClassUnit) {   // no null check on the target
+    void* player = static_cast<CUnit*>(e->caster)->player;
+    if (player && ClassId(e->target) == spellfx::kClassUnit) {   // no null check on the target
         CEngineObject* target = e->target;
         char* controller = static_cast<char*>(ControllerOf(target));
         void* group = RevealGroup(player);
@@ -303,12 +305,13 @@ void Possession(CSpellEffect* e) {
         GroupInsertAll(group, nullptr, controller + 0xAAC);
         At<int>(At<void*>(player, 0x20), 0x24) = target->id_;
         target->flags_ |= 0x2000000;
-        float sight = At<float>(controller, 0x904) * At<float>(controller, 0x294);
-        float floor = At<float>(controller, 0x2A4);
+        CUnitServer* server = reinterpret_cast<CUnitServer*>(controller);
+        float sight = server->moveFactors[3] * server->stats.valuesB0[0].current;
+        float floor = server->stats.valuesB0[2].current;
         float reach = !(sight >= floor) ? floor : sight;
         float wake;
         MultiplyAdd(&reach, ConstPtr(kPossessWake), ConstPtr(kPossessWakeBase), &wake);
-        WorldWakeUnits(e->world, nullptr, &At<Vector3>(target, kUnitPosition), wake);
+        WorldWakeUnits(e->world, nullptr, &static_cast<CUnit*>(target)->position, wake);
     }
     int ticks = e->timer - 1;
     e->timer = ticks;
