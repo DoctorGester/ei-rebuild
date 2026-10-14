@@ -140,6 +140,16 @@ struct ScriptVars {
     BOOL FindVariable(const char* name, int* index, int* type) const;
     // 004B3940. Drops references to deleted objects from object variables and groups.
     void RemoveDeletedObjects();
+    // 004CBAE0 (__thiscall (const ScriptVars&), returns this; script_copy.cpp). Assignment: every array
+    // through its instantiation's SetSize / Copy, floats through the FPU.
+    ScriptVars* ScriptVarsAssign(const ScriptVars* other);
+    // 004CB7E0 (RET 4; script_copy.cpp). Copy constructor: names through 004CBA00, string values through
+    // 004C2510 / GetAt, objects through the reference helpers, groups assigned (004C1290) from GetAt
+    // copies. Returns this.
+    ScriptVars* ScriptVarsCopyConstruct(const ScriptVars* other);
+    // 004C00D0 (script_copy.cpp). Default constructor: the eight arrays empty with their vtables
+    // (base constructors 004C24F0 / 004C2030 / 004C3960, then the derived vtable). Returns this.
+    ScriptVars* ScriptVarsConstruct();
 
     mfc::CArray<float> floats;                 // +0x00
     mfc::CArray<mfc::CString> floatNames;      // +0x14
@@ -425,6 +435,9 @@ public:
     void Clear();
     // 004BF640 (forwarder). Destructor body (frees the arrays and the nested calls).
     void Destruct();
+    // 004C6BC0 (RET 4; script_copy.cpp). Assignment, returns this: the arrays through the instantiations'
+    // SetSize / Copy, floats through the FPU, the nested calls deep-copied (004C6D10).
+    SSCCmd* ScriptCmdAssign(const SSCCmd* other);
 
     int id;                                     // +0x00 ScriptKeyword::id
     mfc::CArray<float> floatArgs;                  // +0x04
@@ -527,6 +540,9 @@ const ScriptKeyword* KeywordTable();
 // The command block the loader creates for a then-section or a For body (CList node data in
 // CScript +0x70): the commands and the block's id (+0x14, saved with SSCCmd::calledScript).
 struct ScriptDecl {
+    // 004CB2D0 (RET 4; script_copy.cpp). Assignment: the commands array copied (CommandsCopy 004CC0C0), the id; returns this.
+    ScriptDecl* ScriptDeclAssign(const ScriptDecl* other);
+
     mfc::CArray<SSCCmd> commands;
     int id;
 };
@@ -548,6 +564,9 @@ static_assert(sizeof(ScriptIfThen) == 8);
 struct ScriptDefinition {
     // 004BB800. Adds a parameter variable and its type letter to `params`; 0 if the name exists.
     BOOL AddParameter(const mfc::CString& name, int type);
+    // 004CB460 (RET 4; script_copy.cpp). Assignment, returns this: index, name and parameters, the if-then
+    // pairs (SetSize 004C59C0, copied as words), the variables as ScriptVars::operator= copies them.
+    ScriptDefinition* ScriptDefinitionAssign(const ScriptDefinition* other);
 
     int index;                          // +0x00 (0 after loading)
     mfc::CString name;                  // +0x04 (qualified)
@@ -567,6 +586,8 @@ struct ScriptRun {
     // (Sleep, WaitSegment, SleepUntil, SleepUntilIdle) or the block ends. Counts the call in
     // `ticks`. Returns 0 when the block had already ended (index past the end) on entry, else 1.
     BOOL Execute(CScript* script);
+    // 004CB570 (RET 4; script_copy.cpp). Assignment, returns this: the first five fields, then the variables.
+    ScriptRun* ScriptRunAssign(const ScriptRun* other);
 
     ScriptDecl* block;      // +0x00 the commands
     int index;              // +0x04 next command
@@ -753,9 +774,6 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd);
 
 // ---- Constructor, reset and small loaders (ticket S5) ---------------------------------------------
 // Callers keep going through the original addresses, so the wrappers see every call.
-// 004C00D0 (ScriptVars constructor, __thiscall; script_copy.cpp): the eight arrays empty with
-// their vtables; returns the set.
-ScriptVars* __fastcall ScriptVarsConstruct(ScriptVars* vars);
 // 004D3320 (ScriptDefinition reset, __thiscall; script_reset.cpp): if-then pairs freed, every
 // variable array SetSize(0), index 0, parameters and name empty.
 void __fastcall ScriptDefinitionReset(ScriptDefinition* definition);
@@ -815,15 +833,10 @@ void __fastcall ScriptVarsClear(ScriptVars* vars);
 
 // __thiscall (const T& other), returning this. Arrays through the instantiations' SetSize / Copy;
 // floats copied through the FPU; SSCCmd's nested calls deep-copied (004C6D10).
-ScriptVars* __fastcall ScriptVarsAssign(ScriptVars* self, void* edx, const ScriptVars* other);   // 004CBAE0
-ScriptRun* __fastcall ScriptRunAssign(ScriptRun* self, void* edx, const ScriptRun* other);       // 004CB570
-SSCCmd* __fastcall ScriptCmdAssign(SSCCmd* self, void* edx, const SSCCmd* other);                // 004C6BC0
-ScriptDecl* __fastcall ScriptDeclAssign(ScriptDecl* self, void* edx, const ScriptDecl* other);   // 004CB2D0
 // 004CB220: the FX source list element (0x34 bytes; name CString at +0x08).
 void* __fastcall ScriptFxSourceAssign(void* self, void* edx, const void* other);
 
 // Copy constructors (script_copy.cpp), __thiscall (const T& other), returning this.
-ScriptVars* __fastcall ScriptVarsCopyConstruct(ScriptVars* self, void* edx, const ScriptVars* other);   // 004CB7E0
 mfc::CArray<mfc::CString>* __fastcall ScriptNamesCopyConstruct(mfc::CArray<mfc::CString>* self, void* edx,
                                                             const mfc::CArray<mfc::CString>* other);       // 004CBA00
 ScriptNamedValues<ScriptObjectRef>* __fastcall ScriptObjectsCopyConstruct(
@@ -997,10 +1010,6 @@ ScriptNamedValues<float>* __fastcall ScriptFloatsCopyConstruct(ScriptNamedValues
                                                                const ScriptNamedValues<float>* other);
 ScriptNamedValues<mfc::CString>* __fastcall ScriptStringsCopyConstruct(ScriptNamedValues<mfc::CString>* self, void* edx,
                                                                        const ScriptNamedValues<mfc::CString>* other);
-// 004CB460 (ScriptDefinition::operator=, __thiscall, RET 4, `this` returned): index, name and
-// parameters, the if-then pairs (SetSize 004C59C0, copied as words), the variables as
-// ScriptVars::operator= copies them.
-ScriptDefinition* __fastcall ScriptDefinitionAssign(ScriptDefinition* self, void* edx, const ScriptDefinition* other);
 // 004C81B0 (__thiscall). Group values' destructor: the names, then each group's references (element
 // destructor 004CE1E0) and storage, then the array's; only base vtables are written.
 void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars);

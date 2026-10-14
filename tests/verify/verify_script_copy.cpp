@@ -95,7 +95,7 @@ std::vector<unsigned char> CmdImage(const SSCCmd* c) {
 
 void __fastcall VarsAssignVerify(ScriptVars* self, void*, const ScriptVars* other) {
     std::vector<unsigned char> expected = VarsImage(other);
-    ScriptVarsAssign(self, nullptr, other);
+    self->ScriptVarsAssign(other);
     ei::verify::Check("ScriptVarsAssign", true, VarsImage(self) == expected, "%p = %p", self, other);
 }
 
@@ -103,21 +103,21 @@ void __fastcall RunAssignVerify(ScriptRun* self, void*, const ScriptRun* other) 
     std::vector<unsigned char> expected = VarsImage(&other->vars);
     unsigned char head[0x14];
     std::memcpy(head, other, 0x14);
-    ScriptRunAssign(self, nullptr, other);
+    self->ScriptRunAssign(other);
     bool ok = std::memcmp(self, head, 0x14) == 0 && VarsImage(&self->vars) == expected;
     ei::verify::Check("ScriptRunAssign", true, ok, "%p = %p", self, other);
 }
 
 void __fastcall CmdAssignVerify(SSCCmd* self, void*, const SSCCmd* other) {
     std::vector<unsigned char> expected = CmdImage(other);
-    ScriptCmdAssign(self, nullptr, other);
+    self->ScriptCmdAssign(other);
     ei::verify::Check("ScriptCmdAssign", true, CmdImage(self) == expected, "command %d", self->id);
 }
 
 void __fastcall DeclAssignVerify(ScriptDecl* self, void*, const ScriptDecl* other) {
     CaptureStream before;
     DeclSave(other, nullptr, &before);
-    ScriptDeclAssign(self, nullptr, other);
+    self->ScriptDeclAssign(other);
     CaptureStream after;
     DeclSave(self, nullptr, &after);
     ei::verify::Check("ScriptDeclAssign", true, before.bytes == after.bytes, "block %d", self->id);
@@ -163,7 +163,7 @@ bool CmdVtables(const SSCCmd* c) {
 
 ScriptVars* __fastcall VarsCopyVerify(ScriptVars* self, void*, const ScriptVars* other) {
     std::vector<unsigned char> expected = VarsImage(other);
-    ScriptVarsCopyConstruct(self, nullptr, other);
+    self->ScriptVarsCopyConstruct(other);
     bool ok = VarsImage(self) == expected && HasVtable(self->floats, 0x0073D2E0) &&
               HasVtable(self->strings, 0x0073D2D4) && HasVtable(self->objects, 0x0073D110) &&
               HasVtable(self->groups, 0x0073D304);
@@ -236,7 +236,7 @@ ScriptVars* __fastcall VarsConstructVerify(ScriptVars* self) {
     std::memset(raw, 0xCC, sizeof(raw));
     auto* scratch = reinterpret_cast<ScriptVars*>(raw);
     ScriptVars* expected = s_varsConstruct(scratch);
-    ScriptVars* actual = ScriptVarsConstruct(self);
+    ScriptVars* actual = self->ScriptVarsConstruct();
     bool ok = expected == scratch && actual == self && std::memcmp(raw, self, sizeof(ScriptVars)) == 0;
     std::size_t at = 0;
     while (at < sizeof(ScriptVars) && raw[at] == reinterpret_cast<const unsigned char*>(self)[at]) ++at;
