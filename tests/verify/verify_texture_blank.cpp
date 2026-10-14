@@ -6,6 +6,7 @@
 #include "verify.h"
 #include "memory_texture.h"
 
+#include "../../src/game/device.h"   // device::WithoutDirectDraw
 #include "../../src/game/dx_surface.h"
 #include "../../src/game/texture.h"
 #include "../../src/hook/log.h"
@@ -64,9 +65,20 @@ CDXSurface* HolderOf(const void* texture) {
 
 bool MemoryOnly(const CDXSurface* holder) { return holder && !holder->surface && render::SurfaceMemoryOf(holder); }
 
+bool CanLend() {
+    if (!device::WithoutDirectDraw()) return true;
+    static bool logged = false;
+    if (!logged) {
+        logged = true;
+        ei::Log("verify: the game has no DirectDraw device; originals that write memory textures run ours only");
+    }
+    return false;
+}
+
 bool Lend(CDXSurface* holder) {
     std::uint32_t memory[0x1F];
-    if (!MemoryOnly(holder) || !holder->device || !holder->device->ddraw_ || !ClientPixels(holder, memory)) return false;
+    if (!MemoryOnly(holder) || !CanLend() || !holder->device || !holder->device->ddraw_ || !ClientPixels(holder, memory))
+        return false;
     DDSURFACEDESC2 desc{};
     desc.dwSize = sizeof(desc);
     desc.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;

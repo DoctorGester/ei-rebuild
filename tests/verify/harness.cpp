@@ -114,6 +114,7 @@
 #include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
+#include "../../src/game/device.h"   // device::WithoutDirectDraw
 #include "../../src/game/ui.h"
 #include "../../src/game/item.h"
 #include "../../src/game/spell.h"
@@ -1580,12 +1581,29 @@ LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam
     return CallWindowProcA(g_gameWindowProc, window, message, wParam, lParam);
 }
 
+// The window is shown and made without activating it (ShowWithoutActivating); under dgVoodoo its
+// exclusive cooperative level activates the window all the same (WM_ACTIVATE, which sets the game's
+// active flag 0079BC5C and starts its frames). Without DirectDraw (the switch-over, device.h) nothing
+// does, and the game never draws a frame: once the device object exists and the game is not active,
+// the harness sends the activation a foreground start would have given (ticket R9a2).
+void ActivateWithoutDirectDraw(HWND window) {
+    static bool sent = false;
+    if (sent || !device::WithoutDirectDraw() || !*reinterpret_cast<void**>(0x007AF080)) return;
+    sent = true;
+    if (*reinterpret_cast<std::uint8_t*>(0x0079BC5C)) return;
+    Log("harness: the game window activated (the switch-over has no DirectDraw to activate it)");
+    SendMessageA(window, WM_ACTIVATE, WA_ACTIVE, 0);
+}
+
 void KeepGameWindowActive() {
     HWND window = GameWindow();
-    if (g_gameWindowProc || !window) return;
-    g_gameWindowProc = reinterpret_cast<WNDPROC>(
-        SetWindowLongPtrA(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&AlwaysActiveWindowProc)));
-    Log("harness: the game window stays active when it loses focus");
+    if (!window) return;
+    if (!g_gameWindowProc) {
+        g_gameWindowProc = reinterpret_cast<WNDPROC>(
+            SetWindowLongPtrA(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&AlwaysActiveWindowProc)));
+        Log("harness: the game window stays active when it loses focus");
+    }
+    ActivateWithoutDirectDraw(window);
 }
 
 // Posted input reaches the game only through its main loop (WinMain 00456440: PeekMessageA, then

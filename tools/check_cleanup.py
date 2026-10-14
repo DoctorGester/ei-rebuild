@@ -77,6 +77,12 @@ PATTERNS = {
     'per-file vector/map/set struct': re.compile(r'(?<!template )\bstruct\s+\w*(?:Vector|Map|Set)\b(?=\s*[:{])'),
     # Vector maths written out instead of the vecmath.h helpers and types (count_vector_maths above).
     'hand-written vector maths': count_vector_maths,
+    # A member (or local) still named after its offset: unknownXX / unknown_XXX. Each becomes a name
+    # for what it holds, or unused_XXX when no code reads or writes it (tickets F1-F5).
+    'unknown field': re.compile(r'^[ \t]*(?!return\b)(?:const\s+|volatile\s+|mutable\s+)?[\w:]+(?:\s*<[^;()\n]*>)?'
+                                r'[\s*&]+unknown\w*\s*(?:\[[^\]\n]*\]\s*)*(?:\{[^}\n]*\}|=[^;\n]*)?;', re.M),
+    # An unused_XXX member that some code does touch after all: it needs a real name.
+    'unused field accessed': re.compile(r'(?:\.|->)\s*unused\w*\b(?!\s*\()'),
 }
 # Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its inline
 # helpers with precise semantics on purpose: /fp:fast regrouped their sums with the caller's

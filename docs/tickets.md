@@ -11,6 +11,7 @@ section; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrati
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
+- R9a2 merged 2026-10-14: the five present scenarios pass on vanilla and --native (movie holders, video-memory pictures, the harness activates a game without DirectDraw). Present under Rebirth still crashes (not in the suite; R9c). R9b: the 73 calling places in the old-device log.
 - R8 merged (both parts; textures without DirectDraw in the switch-over, renderer.md section 16).
 - R9 (user 2026-10-14: in parallel with the cleanup; starts when C2d's device-file cleanup is merged) our own swap chain, dgVoodoo gone, renderer.md section 9, one Opus ticket at a time: R9a device setup without DirectDraw / Direct3D in the switch-over (the device object filled for the game, the fixed texture format table, the screen format from the colour depth) and `render::Present` on a flip-model swap chain on the game window, plus a run config without dgVoodoo; R9b every old-device call left guarded for a device object without a device (524 sites in 143 functions); R9c movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Then native UI drawing window by window.
 
@@ -32,6 +33,18 @@ Priority (user, 2026-10-13): finish the port; three area workers at once, refill
 - X28 done 2026-10-09: LoadSky's check expected GetClassId 0x44 (the factory class; CSkyObject's is 0x20); UnitTextureRecords put items[1..6] in records 1..6, the original in 2..7. Both re-enabled.
 
 - X29 done 2026-10-10: ProjectDecal 0056C750 pushed its matrices through PushMatrix (004D9B80's sum order) instead of the original's inlined push via 004D9880; both checks expected one texture coordinate per vertex, but the builder leaves the array at its reserved size with unwritten tail elements (ProjectDecal now compares the indexed vertices only). Both re-enabled.
+
+## Unknown fields (user 2026-10-14: to 0, each named or unused)
+
+tools/check_cleanup.py counts `unknown field` (members and locals named unknownXX / unknown_XXX: 727 in 97 files, 2026-10-14) and `unused field accessed` (must stay 0). Each unknown field becomes:
+- a name for what it holds, from the code that reads and writes it (a field only written and saved or sent is named by what is written);
+- or `unused_XXX` (same offset suffix, same type and size) when no code in src reads or writes it apart from construction / memset / copy of the whole object. Byte gaps that are partly used are split into named members and unused gaps. Rebirth's DLL may still read a field we call unused; the name speaks for game.exe only.
+Layout never changes (static_asserts / offsetof checks stay); renames only, so the builds, checks and suite decide. Notes go into the area's cleanup-*.md only where a meaning was found that the code alone does not show.
+- F1 world, combat, effects, spells (~180): world.h, combat.h, spell.h, effects.h, world_effect.h, sky_object.h, lightning / trap / lever / cage, particle_emitters.cpp.
+- F2 units, AI, items (~175): unit.h, unit_db.h (+ unit_db_destroy.cpp), unit_ai.h, ai_map.h, ai_*, item_db.h, item*.h/.cpp, unit_looks.h, unit_client_*, class_templates.h, party*.
+- F3 interface (~125): ui.h, ui_camp.h, ui_screens.h, ui_briefing.h and the other ui_* files.
+- F4 scene, figures, terrain, map objects, textures (~140): scene_loader.h/.cpp, map_object_figures.h, terrain_sector.h, terrain*, figure*.h/.cpp, camera.h, texture.h, map_object*.h/.cpp, link_figure.h, object_tables.h, material.h, model.h, renderer_lines.h.
+- F5 the rest (~105): map_spec.h, net_*, player_*, sound*, script*, app_*, bink_video.cpp, quest_records.h, base_manager.h, src/lib, everything else left.
 
 ## Vector math (planned 2026-10-09)
 

@@ -442,7 +442,9 @@ int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data,
         desc[kFlags] = 7;
         desc[kWidth] = picture->width;
         desc[kHeight] = picture->height;
-        bool video = (flag & 0xFF) != 0;
+        // Without DirectDraw (device.h) a video-memory request would be refused: the picture gets the
+        // new renderer's memory as a system-memory one does (ticket R9a2).
+        bool video = (flag & 0xFF) != 0 && !device::WithoutDirectDraw();
         desc[kCapsWord] = video ? 0x4040 : kCaps;   // DDSCAPS_VIDEOMEMORY | DDSCAPS_OFFSCREENPLAIN, or system memory
         // (The original's "no DXDD" report for a holder without a device is unreachable after the
         // read above, as is its release of an earlier surface: there is none on this path.)

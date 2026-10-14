@@ -267,6 +267,7 @@ EI_VERIFY(0x005FD240, PixelAtVerify, 6, s_pixelAt);
 // pixels then moved into the memory), ours writes the memory; both are read from the memory.
 static void*(__fastcall* s_figureTexture)(const char*);
 static void* __fastcall FigureTextureVerify(const char* name) {
+    if (!memory_texture::CanLend()) return ItemFigureTexture(name);   // no DirectDraw: ours only
     void* expected;
     {
         memory_texture::LendNewTextures lend;
