@@ -542,10 +542,11 @@ done = "2026-10-14"
 id = "SV2"
 title = "State digest and dump in the harness; golden record / compare"
 group = "verification"
-status = "running"
+status = "done"
 size = 1
 depends = ["SV1"]
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV3"
@@ -592,6 +593,14 @@ size = 0.5
 model = "opus"
 files = ["docs/open-questions.md"]
 note = "From SV1: random draws identical up to where runs part, no clock read, step or sound event differs before it; rebirth_flags' unit group order changes run to run. Guess: an order that depends on heap addresses. SV2's digest would name the first field that differs. Listed in open-questions.md under 'Harness runs that do not repeat on the virtual clock'."
+
+[[ticket]]
+id = "SV2a"
+title = "Digest: the client world, missiles, timed objects, script queues"
+group = "verification"
+status = "queued"
+depends = ["SV2"]
+note = "SV2's digest (tests/verify/harness_digest.cpp) reads the server world only. Not yet in it: the client world's units (positions the screen shows), each missile's position and target (Projectile 0xA8 bytes, layout unknown), timed objects' own state (spells, effects: class/flags/type only), the script command queues and countdowns, the AI event table. Add what a parting run needs first."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -821,6 +830,13 @@ files = ["tools/work_sched.py"]
 note = "Seen 2026-10-15: the scheduler started before SV1 merged had an old run_all without --clock, so batch_args() returned None for SV1a's and SV1d's batches and they sat queued 18 min with no message while later batches ran. A batch whose args do not parse should finish as failed with the parse error in its summary (shown on the board), not be skipped forever. WB6's restart-on-new-code makes this rarer, not impossible."
 started = "2026-10-15"
 done = "2026-10-15"
+
+[[ticket]]
+id = "WB8"
+title = "work.py test passes run_all's --clock to the games"
+group = "harness"
+status = "queued"
+note = "Found in SV2: work.py test SV2 <scenario> --clock virtual,randtrace ran without the random trace (work_sched.py never reads --clock; run_all.run takes clock=). Workaround: EI_HARNESS_CLOCK in the environment. Pass args.clock through the batch to run_all.run, or reject it visibly (WB7)."
 
 # ---------------------------------------------------------------- cleanup
 

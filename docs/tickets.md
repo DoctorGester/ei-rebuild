@@ -76,13 +76,14 @@ Every unknown_XXX member becomes a real name or unused_XXX (same type and offset
 
 The SV loop comes before any standalone ticket (user 2026-10-14).
 
-- **SV2** State digest and dump in the harness; golden record / compare (running since 2026-10-15; 1 session). After: SV1.
 - **SV1a** units and sandbox_actions: our wolf dies 300 ms of virtual time sooner than the original (running since 2026-10-14; opus, 0.5 sessions). From SV1 (2026-10-14): both repeat on the virtual clock on each side, but ours kills the wolf at 400 ms against 700 ms in the original, every run. CRT rand() sequence identical; where the draws fall drifts by about two frames. Compare randtrace side by side by value (or SV2's state digest) to find the first differing draw. Files: `tests/scenarios/units.txt`, `tests/scenarios/sandbox_actions.txt`, `tests/verify/harness_clock.cpp`.
+- **SV3** Record goldens for the suite (ready; 1 session). Vanilla, Rebirth flags on and off; saves at checkpoints. After: SV2.
+- **SV4** Function vector record mode and replay test exe (ready; 2 sessions). After: SV2.
 - **SV1b** combat, combat_more, sound and rebirth_flags do not repeat on the virtual clock (ready; opus, 0.5 sessions). From SV1: random draws identical up to where runs part, no clock read, step or sound event differs before it; rebirth_flags' unit group order changes run to run. Guess: an order that depends on heap addresses. SV2's digest would name the first field that differs. Listed in open-questions.md under 'Harness runs that do not repeat on the virtual clock'. Files: `docs/open-questions.md`.
-- **SV3** Record goldens for the suite (waiting on SV2; 1 session). Vanilla, Rebirth flags on and off; saves at checkpoints.
-- **SV4** Function vector record mode and replay test exe (waiting on SV2; 2 sessions).
+- **SV2a** Digest: the client world, missiles, timed objects, script queues (ready). SV2's digest (tests/verify/harness_digest.cpp) reads the server world only. Not yet in it: the client world's units (positions the screen shows), each missile's position and target (Projectile 0xA8 bytes, layout unknown), timed objects' own state (spells, effects: class/flags/type only), the script command queues and countdowns, the AI event table. Add what a parting run needs first. After: SV2.
 - **SV5** Coverage list and scenarios for what it shows uncovered (waiting on SV3; 1 session).
 - **SV1** Virtual game clock: runs that repeat (done 2026-10-14; 1.5 sessions). Zone loading and the sound code's clocks on the virtual clock; every scenario passes compare.py --runs 3 on both sides.
+- **SV2** State digest and dump in the harness; golden record / compare (done 2026-10-15; 1 session). After: SV1.
 
 ## Harness and suite
 
@@ -91,6 +92,7 @@ Scenarios, run_all and the tools around them; X tickets are problems seen in run
 - **T2** T1 follow-ups: remaining fixed waits and weak scenarios (ready). 8-10 s waits in ground_prints, sandbox_map, particles, map_objects, movement; world_client waits for the battle window; ui_help's clickregion hits a window with no regions; ui_hero_delete's question never appears; run_all keeps the first attempt's log on retry; ui_widescreen's wait 6000 (after SV1). No longer reached reliably: ScriptFloats/Strings/Objects/GroupsConstruct on load, acks::PickEnvironmentSpeech, CUnitServer::EndOrder. After: T1.
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **SV1c** Keep harness games from taking the foreground, then drop the minimise rerun (ready; sonnet, 0.4 sessions). From SV1: a game that got the foreground and lost it to a starting game is minimised twice by dgVoodoo and loses exclusive mode; run_all.run reruns such runs (MINIMISED). Block the activation so no harness game is ever foreground, then remove the rerun. Files: `tests/verify/harness.cpp`, `tools/run_all.py`.
+- **WB8** work.py test passes run_all's --clock to the games (ready). Found in SV2: work.py test SV2 <scenario> --clock virtual,randtrace ran without the random trace (work_sched.py never reads --clock; run_all.run takes clock=). Workaround: EI_HARNESS_CLOCK in the environment. Pass args.clock through the batch to run_all.run, or reject it visibly (WB7).
 - **X32** Rebirth runs: game still running 10 s after quit (watch). Since 2026-10-13; runs pass. Suspects: wrappers that fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct). Not a dialog (message boxes are caught).
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.

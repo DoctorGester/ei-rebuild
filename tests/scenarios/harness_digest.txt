@@ -1,0 +1,16 @@
+# The harness's state digest (harness_digest.h, ticket SV2): records every 5 world updates while the
+# hero walks, one taken by hand, then a full dump. tools/golden.py diff compares two runs' records.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+digest 5
+console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),4),GetY(GetLeader()))
+frames 40
+digest off
+digest
+dump walked
+report
+quit

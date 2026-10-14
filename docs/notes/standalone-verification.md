@@ -68,3 +68,56 @@ counts. New scenarios target that list before the hook build is retired.
 
 Multiplayer is not covered: the harness starts only the lobby. A two-client harness (also wanted for the
 Rebirth multiplayer patches, rebirth.md) would add network runs to the goldens.
+
+## SV2: the state digest and the golden tooling (2026-10-15)
+
+**The digest** (tests/verify/harness_digest.h/.cpp, verify build). A record is the world server's state as
+named fields, read from the shared layouts without changing anything:
+- `world`: tick, update count, pause, the clock (time base, seconds per tick), wind, night level, weather,
+  the five alarms, climate / cave, the zone flags, start position, session kind, the counts of every id map,
+  missiles, counted objects and shared objects, both diplomacy tables;
+- `random`: the ISAAC generator (count, a, b, c, hashes of its results and memory) and the CRT's rand()
+  state of the main thread (`_getptd()+0x14`, 006F00D1);
+- `player<id>`: the world player's numbers and its party: money, items, members' unit ids, the variables
+  ("var.<name>", sorted by name);
+- `obj<id>`, every object of the server's `objects_` (by id): class, flags, type, prototype; for map
+  objects (those in `mapObjects_`, `sentObjects_`, `otherMapObjects_`) position, orientation, scale,
+  update countdown, animation speed, sector cell, every effect, and the server half's hit points and mana;
+  for units the owner (player id), side, relations, death, animation, movement modes, weapons, the motion
+  (points, segment, speed), the controller (state, busy, combat, commands and targets by id, experience,
+  speed, move factors) and the AI brain (action, point, look time, target and seen by id, alertness,
+  alarm, decay, noticed point and level, list counts, the mode in charge and the mode list by name).
+No pointer is written: objects by id, AI modes by name (their game.exe vtable when not known).
+
+`digest.txt` holds one record every N world updates (scenario step `digest <N>`, or `EI_DIGEST=<N>` for a
+whole run; taken after the main loop's server update, which the harness already wraps), plus one per
+`digest` step without a period. Each record is a header (record number, world update, frame, tick, zone,
+hash and the four section hashes) and the fields that changed since the record before; the first lists
+everything, so any record's whole state can be rebuilt. `dump <name>` writes the full state now to
+`dump_<name>.txt`. With `randtrace` each record is also a note in randtrace.txt, so a digest difference and
+the random draws around it line up. Size: zone1 has about 780 world objects (48 units); the first record
+is about 0.5 MB, later ones a few KB each (moving units, the generator, regeneration counters).
+
+**The tool** (tools/golden.py): `diff A B` walks two runs' digests record by record and prints, at the first
+record whose state differs, every differing field in record order (world, random, players, objects by
+id), e.g. `obj1804 (80 unhuma "") pos.x: 65.1067123 in A, 65.1067162 in B`; `--ulps N` lets floats differ
+by N units in the last place, `--ignore` drops fields, `--records K` shows more records. `state A --record N`
+prints a rebuilt state. `record` keeps a passing `--no-hooks` run with a digest as
+`tests/golden/<scenario>/<install>/` (console.txt, digest.txt, golden.json: date, commit, digest period,
+reason); `compare` checks a run against it (console, then the digests). golden.py starts no games: runs
+go through the scheduler (`EI_DIGEST=10` in the environment reaches the games of `work.py test`).
+
+For SV1a / SV1b: put `digest 1` (or `EI_DIGEST=1`) and `randtrace` on the scenario, run the two sides,
+then `golden.py diff` names the first update and field where they part.
+
+Left out on purpose: a unit's motion floats while it has no trajectory (never written before the first
+path; zero in a run of the original alone, heap leftovers with our hooks), and pointers. `golden.py`
+leaves `updateCountdown` out of comparisons unless `--all-fields`: it follows the unit's heap address
+(open-questions.md, "Harness runs that do not repeat"), so even two runs of the original differ there.
+Not in the digest yet: the client world, missiles' own state (only their count), timed objects' own
+state (class, flags, type only), the script queues and countdowns, the AI event table.
+
+First results (harness_digest, 2026-10-15): the original repeats itself and ours repeats itself in every
+other field; original against ours agree for 225 world updates, then only `random crt.rand` differs (an
+animation pick one update earlier in ours; open-questions.md). Note: `work.py test` drops run_all's
+`--clock`; set `EI_HARNESS_CLOCK=virtual,randtrace` in the environment instead.
