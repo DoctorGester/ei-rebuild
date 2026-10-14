@@ -13,14 +13,8 @@
 
 #include "lib/stlp.h"
 
-// STLport vector of pointers (start, finish, end of storage).
-struct StockPtrVector {
-    char** start;
-    char** finish;
-    char** eos;
-
-    std::size_t size() const { return static_cast<std::size_t>(finish - start); }
-};
+// STLport vector of record pointers.
+using StockPtrVector = stlp::vector<char*>;
 
 // A material entry (16 bytes, vector at +0x2C): the material record, the count range of a material
 // stack (0069A110), and the units left for weapons and armors (0069AE20 takes the prototype's
@@ -33,36 +27,17 @@ struct StockMaterial {
 };
 static_assert(sizeof(StockMaterial) == 0x10);
 
-struct StockMaterialVector {
-    StockMaterial* start;
-    StockMaterial* finish;
-    StockMaterial* eos;
-
-    std::size_t size() const { return static_cast<std::size_t>(finish - start); }
-};
+using StockMaterialVector = stlp::vector<StockMaterial>;
 
 // STLport list of pointers (the list object is the sentinel pointer).
 using StockList = stlp::list<void*>;
 using StockListNode = StockList::Node;
 
-// A vector of spell recipes (0x34-byte records inline; 007C8568 for weapons, 007C855C for armors):
-// +0x00 the spell's name (STLport string), +0x0C / +0x18 the required / optional modifier names
-// (vectors of strings), +0x24 the modifier repeated while it fits, +0x30 the classes it suits (bit
-// per ItemStock::classIndex).
+// The spell recipes' records (0x34 bytes, inline in a SpellRecipeVector).
 constexpr int kSpellRecipeSize = 0x34;
-struct SpellRecipeVector {
-    char* start;
-    char* finish;
-    char* eos;
-};
 
-// STLport vector<string> (start, finish, end of storage).
-struct StockStringVector {
-    const stlp::string* start;
-    const stlp::string* finish;
-    const stlp::string* eos;
-    unsigned size() const { return static_cast<unsigned>(finish - start); }
-};
+// STLport vector<string>.
+using StockStringVector = stlp::vector<stlp::string>;
 
 // A spell recipe (kSpellRecipeSize bytes, inline in a SpellRecipeVector).
 struct SpellRecipe {
@@ -76,6 +51,9 @@ static_assert(offsetof(SpellRecipe, required) == 0x0C);
 static_assert(offsetof(SpellRecipe, repeated) == 0x24);
 static_assert(offsetof(SpellRecipe, classMask) == 0x30);
 static_assert(sizeof(SpellRecipe) == kSpellRecipeSize);
+
+// A vector of spell recipes (007C8568 for weapons, 007C855C for armors, 007C8550 for scrolls).
+using SpellRecipeVector = stlp::vector<SpellRecipe>;
 
 // A pair of the recipe map (ItemStock::spellMap, hash_map<string, list<recipe*>>) and its node.
 struct StockRecipeEntry {
@@ -102,11 +80,7 @@ namespace stock {
 // Scratch vectors: the prototypes taken (007C8680), the candidate materials of one prototype
 // (007C8650, pointers into the stock's material entries), the material entries taken (007C8640),
 // the spells (007C8670) and modifiers (007C8660) taken.
-struct CandidateVector {
-    StockMaterial** start;
-    StockMaterial** finish;
-    StockMaterial** eos;
-};
+using CandidateVector = stlp::vector<StockMaterial*>;
 inline StockPtrVector& TakenPrototypes() { return *reinterpret_cast<StockPtrVector*>(0x007C8680); }
 inline CandidateVector& Candidates() { return *reinterpret_cast<CandidateVector*>(0x007C8650); }
 inline StockMaterialVector& TakenMaterials() { return *reinterpret_cast<StockMaterialVector*>(0x007C8640); }

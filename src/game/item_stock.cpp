@@ -141,39 +141,39 @@ using PtrDeallocateFn = void(__fastcall*)(char**, std::size_t);
 void AssignPointers(StockPtrVector& to, const StockPtrVector& from, PtrAllocateCopyFn allocate = PtrAllocateCopy,
                     PtrDeallocateFn deallocate = PtrDeallocate) {
     std::size_t length = from.size();
-    if (length > static_cast<std::size_t>(to.eos - to.start)) {
-        char** block = allocate(&to, nullptr, length, from.start, from.finish);
-        deallocate(to.start, static_cast<std::size_t>(to.eos - to.start));
-        to.start = block;
-        to.eos = block + length;
+    if (length > static_cast<std::size_t>(to.EndOfStorage() - to.begin())) {
+        char** block = allocate(&to, nullptr, length, from.begin(), from.end());
+        deallocate(to.begin(), static_cast<std::size_t>(to.EndOfStorage() - to.begin()));
+        to.Start() = block;
+        to.EndOfStorage() = block + length;
     } else if (to.size() >= length) {
-        for (std::size_t i = 0; i < length; ++i) to.start[i] = from.start[i];
+        for (std::size_t i = 0; i < length; ++i) to[i] = from[i];
     } else {
         std::size_t size = to.size();
-        for (std::size_t i = 0; i < size; ++i) to.start[i] = from.start[i];
-        char** dest = to.finish;
-        for (char** p = from.start + size; p != from.finish; ++p, ++dest) *dest = *p;
+        for (std::size_t i = 0; i < size; ++i) to[i] = from[i];
+        char** dest = to.end();
+        for (char** p = from.begin() + size; p != from.end(); ++p, ++dest) *dest = *p;
     }
-    to.finish = to.start + length;
+    to.Finish() = to.begin() + length;
 }
 
 // vector<StockMaterial>::operator=, as the original inlines it.
 void AssignMaterials(StockMaterialVector& to, const StockMaterialVector& from) {
     std::size_t length = from.size();
-    if (length > static_cast<std::size_t>(to.eos - to.start)) {
-        StockMaterial* block = MaterialAllocateCopy(&to, nullptr, length, from.start, from.finish);
-        MaterialDeallocate(to.start, static_cast<std::size_t>(to.eos - to.start));
-        to.start = block;
-        to.eos = block + length;
+    if (length > static_cast<std::size_t>(to.EndOfStorage() - to.begin())) {
+        StockMaterial* block = MaterialAllocateCopy(&to, nullptr, length, from.begin(), from.end());
+        MaterialDeallocate(to.begin(), static_cast<std::size_t>(to.EndOfStorage() - to.begin()));
+        to.Start() = block;
+        to.EndOfStorage() = block + length;
     } else if (to.size() >= length) {
-        for (std::size_t i = 0; i < length; ++i) to.start[i] = from.start[i];
+        for (std::size_t i = 0; i < length; ++i) to[i] = from[i];
     } else {
         std::size_t size = to.size();
-        for (std::size_t i = 0; i < size; ++i) to.start[i] = from.start[i];
-        StockMaterial* dest = to.finish;
-        for (StockMaterial* p = from.start + size; p != from.finish; ++p, ++dest) *dest = *p;
+        for (std::size_t i = 0; i < size; ++i) to[i] = from[i];
+        StockMaterial* dest = to.end();
+        for (StockMaterial* p = from.begin() + size; p != from.end(); ++p, ++dest) *dest = *p;
     }
-    to.finish = to.start + length;
+    to.Finish() = to.begin() + length;
 }
 
 // Appends an item to the output list (counted by the caller).
@@ -203,9 +203,9 @@ StockMaterial* DrawMaterial(char* prototype) {
     float seventh = Round(Record(prototype)->price * stock::SeventhFactor());
     float fifth = Round(Record(prototype)->price * stock::FifthFactor());
     CandidateVector& c = Candidates();
-    if (c.start == c.finish) return nullptr;
+    if (c.begin() == c.end()) return nullptr;
     float low = Round((seventh + seventh) - fifth);
-    for (StockMaterial** q = c.start; q != c.finish; ++q) {
+    for (StockMaterial** q = c.begin(); q != c.end(); ++q) {
         int chance = 10;
         float quality = Material(*q)->unitPrice;
         if (quality >= low && !(quality > fifth)) {
@@ -283,44 +283,44 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
 
     int count = RandomCount(minCount, maxCount);
     StockPtrVector& taken = TakenPrototypes();
-    taken.finish = taken.start;   // erase(begin, end)
+    taken.Finish() = taken.begin();   // erase(begin, end)
     if (prototypes->size() > static_cast<std::size_t>(count)) {
-        Shuffle(prototypes->start, prototypes->finish);
-        PtrInsertRange(&taken, nullptr, taken.start, prototypes->start, prototypes->start + count, prototypes);
+        Shuffle(prototypes->begin(), prototypes->end());
+        PtrInsertRange(&taken, nullptr, taken.begin(), prototypes->begin(), prototypes->begin() + count, prototypes);
     } else if (prototypes != &taken) {
         AssignPointers(taken, *prototypes);
     }
 
     CandidateVector& candidates = Candidates();
-    for (char** p = taken.start; p != taken.finish; ++p) {
+    for (char** p = taken.begin(); p != taken.end(); ++p) {
         char* prototype = *p;
         if (Compare(PrototypeName(prototype), game::WandText()) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(itemdb::RecordSlots(Record(prototype))->Kind(), -1);
         ctor->SetPrototype(prototype);
-        candidates.finish = candidates.start;   // erase(begin, end)
+        candidates.Finish() = candidates.begin();   // erase(begin, end)
         if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {
-            for (StockMaterial* e = materials.start; e != materials.finish; ++e) {
+            for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
                 if (Compare(MaterialClass(prototype), Material(e)->soundName) != 0) continue;
                 if (MaterialUnits(prototype) > e->left) continue;
-                if (candidates.finish != candidates.eos) {
-                    if (candidates.finish) *candidates.finish = e;
-                    ++candidates.finish;
+                if (candidates.end() != candidates.EndOfStorage()) {
+                    if (candidates.end()) *candidates.Finish() = e;
+                    ++candidates.Finish();
                 } else {
-                    PtrInsertOverflow(&candidates, nullptr, candidates.finish, &e, 1);
+                    PtrInsertOverflow(&candidates, nullptr, candidates.end(), &e, 1);
                 }
             }
         }
         StockMaterial* chosen = DrawMaterial(prototype);
         if (!chosen) {
             if (CompareNoCase(MaterialClass(prototype), game::NoneText()) != 0) {
-                if (candidates.finish == candidates.start) {
+                if (candidates.end() == candidates.begin()) {
                     ctor->Cancel();
                     ctor->SetManager(nullptr);
                     continue;
                 }
-                Shuffle(candidates.start, candidates.finish);
-                chosen = *candidates.start;
+                Shuffle(candidates.begin(), candidates.end());
+                chosen = *candidates.begin();
             }
         }
         if (chosen) {
@@ -342,7 +342,7 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
         Output(out, item);
         DestroySpellList(spellList);
     }
-    candidates.finish = candidates.start;
+    candidates.Finish() = candidates.begin();
 }
 EI_REPLACE_METHOD(0x0069AE20, ItemStock::GenerateItems);
 
@@ -368,16 +368,16 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     void* manager = PartyOf(this)->ItemManager();
     int count = RandomCount(minCount, maxCount);
     StockMaterialVector& taken = TakenMaterials();
-    taken.finish = taken.start;   // erase(begin, end)
+    taken.Finish() = taken.begin();   // erase(begin, end)
     if (materials.size() > static_cast<std::size_t>(count)) {
-        Shuffle(materials.start, materials.finish);
-        MaterialInsertRange(&taken, nullptr, taken.start, materials.start, materials.start + count,
+        Shuffle(materials.begin(), materials.end());
+        MaterialInsertRange(&taken, nullptr, taken.begin(), materials.begin(), materials.begin() + count,
                             static_cast<std::size_t>(count));
     } else if (&materials != &taken) {
         AssignMaterials(taken, materials);
     }
     char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, game::MaterialText());
-    for (StockMaterial* e = taken.start; e != taken.finish; ++e) {
+    for (StockMaterial* e = taken.begin(); e != taken.end(); ++e) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
@@ -389,7 +389,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
         AddReference(item);
         Output(out, item);
     }
-    taken.finish = taken.start;
+    taken.Finish() = taken.begin();
 }
 EI_REPLACE_METHOD(0x0069A110, ItemStock::GenerateMaterials);
 
@@ -406,10 +406,10 @@ void GenerateInstructions(ItemStock* stock, const StockPtrVector& source, const 
     Constructor* ctor = ConstructorOf(stock);
     void* manager = PartyOf(stock)->ItemManager();
     StockPtrVector& taken = TakenPrototypes();
-    taken.finish = taken.start;   // erase(begin, end)
+    taken.Finish() = taken.begin();   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source);
     char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, prototypeName);
-    for (char** p = taken.start; p != taken.finish; ++p) {
+    for (char** p = taken.begin(); p != taken.end(); ++p) {
         if (skip && Compare(PrototypeName(*p), skip) == 0) continue;
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
@@ -423,7 +423,7 @@ void GenerateInstructions(ItemStock* stock, const StockPtrVector& source, const 
         AddReference(item);
         Output(out, item);
     }
-    taken.finish = taken.start;
+    taken.Finish() = taken.begin();
 }
 
 } // namespace
@@ -471,7 +471,7 @@ __declspec(naked) void __fastcall RecipeListDestroy(StockList*) EI_ORIGINAL(0x00
 __declspec(naked) void __fastcall RecipeListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0069C2E0)
 __declspec(naked) void __fastcall RecipeListInsert(StockList*, void*, StockListNode**, StockListNode*, char* const*)
     EI_ORIGINAL(0x0069C2F0)
-__declspec(naked) void __fastcall RecipePairConstruct(void*, void*, const char* /*record*/, const StockList*)
+__declspec(naked) void __fastcall RecipePairConstruct(void*, void*, const stlp::string* /*key*/, const StockList*)
     EI_ORIGINAL(0x0069C1C0)
 __declspec(naked) void __fastcall RecipePairDestroy(void*) EI_ORIGINAL(0x004AD640)
 // The modifier map (+0x64, STLport map<string, modifier*>): clear 004AB2B0, operator[] with a
@@ -546,24 +546,24 @@ void ClearModifierList(StockList& list) {
 void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
     RecipeMapClear(spellMap);
     ModifierMapClear(modifierMap);
-    for (char* r = recipes->start; r != recipes->finish; r += kSpellRecipeSize) {
-        if (!(reinterpret_cast<const SpellRecipe*>(r)->classMask & (1u << (classIndex & 31)))) continue;
-        char* spell = *SpellByName(stock::SpellsByName(), nullptr, r);   // keyed by the recipe's spell name (+0)
+    for (SpellRecipe* recipe = recipes->begin(); recipe != recipes->end(); ++recipe) {
+        if (!(recipe->classMask & (1u << (classIndex & 31)))) continue;
+        char* spell = *SpellByName(stock::SpellsByName(), nullptr, &recipe->spell);   // keyed by the recipe's spell name
         if (!spell) continue;
         bool offered = false;
-        for (char** s = spells.start; s != spells.finish; ++s) {
+        for (char** s = spells.begin(); s != spells.end(); ++s) {
             if (*s == spell) {
                 offered = true;
                 break;
             }
         }
         if (!offered) continue;
-        char* value = r;
+        char* value = reinterpret_cast<char*>(recipe);   // the recipe lists hold raw record pointers
         StockList list;
         char allocator = 0;
         RecipeListConstruct(&list, nullptr, &allocator);
         alignas(4) std::uint8_t pair[0x10];
-        RecipePairConstruct(pair, nullptr, r, &list);
+        RecipePairConstruct(pair, nullptr, &recipe->spell, &list);
         StockRecipeEntry* inserted = RecipeMapInsert(spellMap, nullptr, pair);
         RecipePairDestroy(pair);
         RecipeListDestroy(&list);
@@ -574,7 +574,7 @@ void ItemStock::FillSpellMaps(const SpellRecipeVector* recipes) {
         RecipeListInsert(entries, nullptr, &result, end, &value);
     }
 
-    for (char** p = modifiers.start; p != modifiers.finish; ++p) {
+    for (char** p = modifiers.begin(); p != modifiers.end(); ++p) {
         char* m = *p;
         char letters[2] = {Modifier(m)->code[0], Modifier(m)->code[1]};
         switch (ModifierKind(m)) {
@@ -617,7 +617,7 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
             float cost = prototype->mana;
             const StockStringVector& required = recipe->required;
             for (unsigned i = 0; i < required.size(); ++i) {
-                char* m = ModifierSlot(this, required.start[i]);
+                char* m = ModifierSlot(this, required[i]);
                 if (!m) continue;
                 AppendModifier(chosen, m);
                 cost = Round(cost + ModifierCost(m));
@@ -628,7 +628,7 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
             const StockStringVector& optional = recipe->optional;
             for (unsigned i = 0; i < optional.size() && count < 8; ++i) {
                 if (GlobalRandom().Next() % 101 < 50) continue;
-                char* m = ModifierSlot(this, optional.start[i]);
+                char* m = ModifierSlot(this, optional[i]);
                 if (!m || budget < ModifierLevel(m) + level) continue;
                 AppendModifier(chosen, m);
                 cost = Round(cost + ModifierCost(m));
@@ -708,9 +708,9 @@ void ReadName(void* stream, mfc::CString& name) {
 
 // std::find (0069E350..0069E3D0, one instantiation per list), then push_back when missing.
 void AddUnique(StockPtrVector& list, char* record, PushFn push) {
-    char** p = list.start;
-    while (p != list.finish && *p != record) ++p;
-    if (p == list.finish) push(&list, nullptr, &record);
+    char** p = list.begin();
+    while (p != list.end() && *p != record) ++p;
+    if (p == list.end()) push(&list, nullptr, &record);
 }
 
 // A record section: a count, then names lower-cased and looked up in `table`.
@@ -764,11 +764,11 @@ void ItemStock::LoadLists(void* stream) {
         entry.minCount = values[0];
         entry.maxCount = values[1];
         entry.left = values[2];
-        if (materials.finish != materials.eos) {
-            if (materials.finish) *materials.finish = entry;
-            ++materials.finish;
+        if (materials.end() != materials.EndOfStorage()) {
+            if (materials.end()) *materials.Finish() = entry;
+            ++materials.Finish();
         } else {
-            MaterialInsertOverflow(&materials, nullptr, materials.finish, &entry, 1);
+            MaterialInsertOverflow(&materials, nullptr, materials.end(), &entry, 1);
         }
     }
 
@@ -789,7 +789,7 @@ void WriteText(CStream* stream, const char* text) {
 
 void SaveItemRecords(CStream* stream, const StockPtrVector& list) {
     WriteInt(stream, static_cast<std::uint32_t>(list.size()));
-    for (char** p = list.start; p != list.finish; ++p)
+    for (char** p = list.begin(); p != list.end(); ++p)
         WriteText(stream, reinterpret_cast<const itemdb::ItemRecordHead*>(*p)->text04);
 }
 
@@ -802,7 +802,7 @@ void ItemStock::SaveLists(void* stream) {
     SaveItemRecords(out, quickItems);
 
     WriteInt(out, static_cast<std::uint32_t>(materials.size()));
-    for (StockMaterial* e = materials.start; e != materials.finish; ++e) {
+    for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
         WriteText(out, reinterpret_cast<const itemdb::MaterialRecordHead*>(e->record)->key);
         WriteInt(out, static_cast<std::uint32_t>(e->minCount));
         WriteInt(out, static_cast<std::uint32_t>(e->maxCount));
@@ -810,14 +810,14 @@ void ItemStock::SaveLists(void* stream) {
     }
 
     WriteInt(out, static_cast<std::uint32_t>(spells.size()));
-    for (char** p = spells.start; p != spells.finish; ++p)
+    for (char** p = spells.begin(); p != spells.end(); ++p)
         WriteText(out, reinterpret_cast<const itemdb::SpellRecord*>(*p)->code);
 
     // The modifiers' codes go through a CString made from a stack copy of their first four bytes
     // (the original's fifth byte is an uninitialised stack byte, its sixth a zero; ours stops
     // after the four).
     WriteInt(out, static_cast<std::uint32_t>(modifiers.size()));
-    for (char** p = modifiers.start; p != modifiers.finish; ++p) {
+    for (char** p = modifiers.begin(); p != modifiers.end(); ++p) {
         char code[5] = {};
         std::memcpy(code, reinterpret_cast<const itemdb::SpellModifierRecord*>(*p)->code, 4);
         mfc::CString text(code);
@@ -829,7 +829,7 @@ EI_REPLACE_METHOD(0x0069BAC0, ItemStock::SaveLists);
 // ---- 006993B0 / 00699440 --------------------------------------------------------------------------
 
 void ItemStock::ResetMaterialUnits() {
-    for (StockMaterial* e = materials.start; e != materials.finish; ++e) {
+    for (StockMaterial* e = materials.begin(); e != materials.end(); ++e) {
         e->left = e->maxCount;
         if (e->maxCount > e->minCount) e->left = RandomCount(e->minCount, e->maxCount);
     }
@@ -889,10 +889,10 @@ void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, S
     Constructor* ctor = ConstructorOf(stock);
     void* manager = PartyOf(stock)->ItemManager();
     PartyOf(stock)->SpellManager();   // (fetched and not used)
-    taken.finish = taken.start;   // erase(begin, end)
+    taken.Finish() = taken.begin();   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source, allocate, deallocate);
     char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, prototypeName);
-    for (char** p = taken.start; p != taken.finish; ++p) {
+    for (char** p = taken.begin(); p != taken.end(); ++p) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
         ctor->SetPrototype(prototype);
@@ -904,7 +904,7 @@ void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, S
         AddReference(item);
         Output(out, item);
     }
-    taken.finish = taken.start;
+    taken.Finish() = taken.begin();
 }
 
 } // namespace
@@ -964,19 +964,11 @@ EI_REPLACE_METHOD(0x0069AC20, ItemStock::GenerateScrolls);
 
 namespace {
 
-// The stock's vectors are STLport vectors (push_back grows them as _M_insert_overflow does).
-stlp::vector<char*>& AsVector(StockPtrVector& v) { return reinterpret_cast<stlp::vector<char*>&>(v); }
-stlp::vector<StockMaterial>& AsVector(StockMaterialVector& v) {
-    return reinterpret_cast<stlp::vector<StockMaterial>&>(v);
-}
-static_assert(sizeof(stlp::vector<char*>) == sizeof(StockPtrVector));
-static_assert(sizeof(stlp::vector<StockMaterial>) == sizeof(StockMaterialVector));
-
 void AddUnlessPresent(StockPtrVector& list, char* record) {
     if (!record) return;
-    char** p = list.start;
-    while (p != list.finish && *p != record) ++p;
-    if (p == list.finish) AsVector(list).push_back(record);
+    char** p = list.begin();
+    while (p != list.end() && *p != record) ++p;
+    if (p == list.end()) list.push_back(record);  // grows as _M_insert_overflow does
 }
 
 } // namespace
@@ -994,10 +986,10 @@ EI_REPLACE_METHOD(0x00699200, ItemStock::AddModifier);
 
 void ItemStock::AddMaterial(char* record, int minCount, int maxCount) {
     if (!record) return;
-    StockMaterial* entry = materials.start;
-    while (entry != materials.finish && entry->record != record) ++entry;
-    if (entry == materials.finish) {
-        AsVector(materials).push_back(StockMaterial{record, minCount, maxCount, maxCount});
+    StockMaterial* entry = materials.begin();
+    while (entry != materials.end() && entry->record != record) ++entry;
+    if (entry == materials.end()) {
+        materials.push_back(StockMaterial{record, minCount, maxCount, maxCount});
         return;
     }
     entry->minCount = minCount;
