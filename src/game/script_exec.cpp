@@ -307,8 +307,8 @@ struct UnitCalls {
 };
 void UnitCalls::SetHostileMask(std::uint32_t a0) { UnitSetHostileMaskOriginal((void*)this, nullptr, a0); }
 void UnitCalls::SetController(WorldPlayer* player) { UnitSetControllerOriginal(this, nullptr, player); }
-__declspec(naked) void UnitCalls::GiveQuestItem(CEngineObject*) EI_ORIGINAL(0x00531220)
-__declspec(naked) void UnitCalls::AddSpell(CEngineObject*) EI_ORIGINAL(0x00531820)
+void UnitCalls::GiveQuestItem(CEngineObject* item) { UnitAddCarriedOriginal(this, nullptr, item); }
+void UnitCalls::AddSpell(CEngineObject* spell) { UnitAddSpellOriginal(this, nullptr, spell); }
 void UnitCalls::MarkChanged(int what) { UnitMarkChanged(this, nullptr, what); }
 UnitCalls* UnitOf(CEngineObject* unit) { return reinterpret_cast<UnitCalls*>(unit); }
 

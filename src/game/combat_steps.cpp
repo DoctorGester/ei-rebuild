@@ -134,7 +134,6 @@ void __fastcall StepsAddStep(AnimationSteps* a0, void*, int a2, int a3) { StepsA
 __declspec(naked) void __fastcall StepsSetField8(AnimationSteps*, void*, int) EI_ORIGINAL(0x00544DD0)
 // Rewritten elsewhere, through their game addresses: 005327D0 (CUnit::ResistanceTo, the unit's
 // speed factor for an animation entry's action, in ST0) and 0054C070 ActionDistance.
-__declspec(naked) double __fastcall UnitAnimationSpeed(CUnit*, void*, const void*) EI_ORIGINAL(0x005327D0)
 
 } // namespace
 
@@ -164,7 +163,7 @@ int EntryTicks(CUnit* unit, std::uint32_t index, int offset) {
     if (!entry) return 0;
     volatile std::int64_t wide = Get<std::uint32_t>(entry, offset);
     volatile float frames = static_cast<float>(wide);
-    double speed = UnitAnimationSpeed(unit, nullptr, entry);
+    double speed = UnitResistanceToOriginal(unit, nullptr, entry);
     return FtolQuotient(frames, speed);
 }
 

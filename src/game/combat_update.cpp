@@ -110,7 +110,6 @@ __declspec(naked) void __fastcall CtlUpdateState(CUnitServer*) EI_ORIGINAL(0x005
 __declspec(naked) void __fastcall CtlAdvanceAnimation(CUnitServer*) EI_ORIGINAL(0x00546F30)
 __declspec(naked) void __fastcall CtlTickItemSpells(CUnitServer*) EI_ORIGINAL(0x00552B90)
 __declspec(naked) bool __fastcall CtlActionInReach(CUnitServer*) EI_ORIGINAL(0x00549D40)
-__declspec(naked) bool __fastcall CtlPopFinishedSteps(CUnitServer*) EI_ORIGINAL(0x00546B40)
 __declspec(naked) void __fastcall CtlPlayHitReaction(CUnitServer*) EI_ORIGINAL(0x00547100)
 __declspec(naked) void __fastcall CtlTickAction(CUnitServer*) EI_ORIGINAL(0x00549160)
 // Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same

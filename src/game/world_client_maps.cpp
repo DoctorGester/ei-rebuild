@@ -717,7 +717,6 @@ void __fastcall Unit518860(void* a0) { Object3DRestartAnimationOriginal(a0); }
 void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
 void __fastcall UnitAddWeapon(void* a0, void*, void* a2) { UnitAddWeaponOriginal(a0, nullptr, a2); }
 void __fastcall UnitEquipArmour(void* a0, void*, void* a2) { UnitEquipArmourOriginal(a0, nullptr, a2); }
-__declspec(naked) void __fastcall UnitAddQuickItem(void*, void*, void*) EI_ORIGINAL(0x00531180)
 // The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
 // [006A39E0, on the item].
 void __fastcall Figure51C970(void* a0) { FigureLoadTexturesOriginal(a0); }
@@ -793,7 +792,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
             if (allArmour || ArmourType(armour) != 0) UnitEquipArmour(unit, nullptr, armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
-            UnitAddQuickItem(unit, nullptr, record->quickItems[j]);
+            UnitAddQuickItemOriginal(unit, nullptr, record->quickItems[j]);
         unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();
         slots->SetScriptName(record->texts[0]);

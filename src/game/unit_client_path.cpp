@@ -29,7 +29,6 @@ namespace {
 // direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
 // facing axis [0040F560 on the quaternion (out)].
 inline double __fastcall UnitGroundHeight(void* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
-__declspec(naked) double __fastcall UnitAnimationSpeed(void*, void*, const void*) EI_ORIGINAL(0x005327D0)
 Vector3* __fastcall FacingAxis(const Quaternion* q, void*, Vector3* out) { return QuaternionAxisY(q, nullptr, out); }
 
 constexpr float kCellScale = 1.0f;            // 0073EBF0
@@ -115,7 +114,7 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     std::memcpy(&length, animation->unknown_24, sizeof(length));   // +0x24, a float
     // FCOMP + TEST AH,0x40: equal to 0 (or unordered).
     if (x87::IsNaN(length) || length == 0.0f) {
-        unit->animationSpeed = static_cast<float>(UnitAnimationSpeed(unit, nullptr, animation));
+        unit->animationSpeed = static_cast<float>(UnitResistanceToOriginal(unit, nullptr, animation));
         return;
     }
     // The database the animation is in: its index (read as a dword) back to the first one.

@@ -519,3 +519,22 @@ __declspec(naked) inline void __fastcall UnitStatsResetToBaseOriginal(void* /*st
 // 00525AF0 (rewritten as UnitStats::RefillSlots; plain RET): every slot of kind 2 or more back to its maximum; EAX the
 // end of the slot array.
 __declspec(naked) inline void* __fastcall UnitStatsRefillSlotsOriginal(void* /*stats*/) EI_ORIGINAL(0x00525AF0)
+// 00531180 / 00531820 (rewritten as CUnit::AddQuickItem / AddSpell; RET 4): adds a quick item / a spell; EAX the slot,
+// 1 when already there, -1 when full (0 for a null item). 00531220 (rewritten as CUnit::AddCarried; RET 4): adds a
+// carried (quest) item; EAX not a result.
+__declspec(naked) inline int __fastcall UnitAddQuickItemOriginal(void* /*unit*/, void*, void* /*item*/) EI_ORIGINAL(0x00531180)
+__declspec(naked) inline void __fastcall UnitAddCarriedOriginal(void* /*unit*/, void*, void* /*item*/) EI_ORIGINAL(0x00531220)
+__declspec(naked) inline int __fastcall UnitAddSpellOriginal(void* /*unit*/, void*, void* /*spell*/) EI_ORIGINAL(0x00531820)
+// 00546B40 (rewritten as CUnitServer::PopFinishedSteps; plain RET): drops the finished steps of the queue; AL whether
+// any was dropped (00546FE0 tests it).
+__declspec(naked) inline bool __fastcall CtlPopFinishedSteps(CUnitServer* /*controller*/) EI_ORIGINAL(0x00546B40)
+// 00554830 (rewritten as CUnitServer::PlanMove; thiscall on the unit controller, RET 0x10): plans a move to `point`;
+// `range` is a float.
+__declspec(naked) inline void __fastcall ControllerPlanMoveOriginal(void* /*controller*/, void*, const float* /*point*/,
+                                                                    int /*moving*/, int /*run*/, float /*range*/)
+    EI_ORIGINAL(0x00554830)
+// 005327D0 (rewritten as CUnit::ResistanceTo; RET 4): the unit's factor (+0x4B0..+0x4C4) for the kind in the hit's (or
+// animation entry's) flags at +0x14, 1 by default; FLD of a float, so declared float. The step code reads it as the speed
+// factor of an animation entry.
+__declspec(naked) inline float __fastcall UnitResistanceToOriginal(void* /*unit*/, void*, const void* /*hit*/)
+    EI_ORIGINAL(0x005327D0)
