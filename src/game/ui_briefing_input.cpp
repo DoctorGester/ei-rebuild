@@ -177,13 +177,13 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (!CanTalk(object)) return;
         BriefingFindTopicsOriginal(this, nullptr, id);
         if (topics_.size > 0) GameCursor()->SetShape(kCursorTalk);
-        const PersonTextNode* node = personTexts_.Find(id);
-        if (node == personTexts_.header) return;
+        const PersonTextNode* node = personTexts_.find(id);
+        if (node == personTexts_.end()) return;
         CUiSurface* label = surfaces_.data[1];
         SurfaceGetDC(label);
         SurfaceClearOriginal(label);
         RECT rect{0, 0, 0, 0};
-        SurfaceDrawText(label, nullptr, node->text, &rect, kTextFormat, kLabelColour, 1, 1);
+        SurfaceDrawText(label, nullptr, node->second, &rect, kTextFormat, kLabelColour, 1, 1);
         SurfaceReleaseDC(label);
         POINT at{x, y};
         interface_->CallScalePointFromScreen(&at);

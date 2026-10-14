@@ -20,7 +20,6 @@ struct ItemObjectCache;
 struct tagRECT;
 struct tagPOINT;
 struct Vector3;
-struct PersonTextNode;
 class CUiWindow;
 class CUnit;
 class CItemScreen;
@@ -470,8 +469,8 @@ __declspec(naked) inline void __fastcall MusicFadeOutOriginal(void* /*music*/) E
 // node's iterator is written to `result`, which is returned.
 __declspec(naked) inline void __fastcall TextsFindKeysOriginal(void* /*texts*/, void*, void* /*out CStringArray*/,
                                                                const char* /*pattern*/) EI_ORIGINAL(0x004DEFA0)
-__declspec(naked) inline PersonTextNode** __fastcall PersonMapInsertHintOriginal(void* /*map*/, void*, PersonTextNode** /*result*/,
-                                                                                 PersonTextNode* /*hint*/, const void* /*pair*/)
+__declspec(naked) inline void** __fastcall PersonMapInsertHintOriginal(void* /*map*/, void*, void** /*result*/,
+                                                                       void* /*hint*/, const void* /*pair*/)
     EI_ORIGINAL(0x00609E70)
 // 00578760 (the client glue 007AFEA6, not read; RET 8): the server unit with id `id` is moved to height `z` (its
 // sector map entry updated, part 2 marked) unless it is there already. 006089D0 (the briefing screen; RET 0x28): `unit`

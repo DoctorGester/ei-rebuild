@@ -223,30 +223,30 @@ using PtrArray = mfc::CArray<void*>;
 
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
-    if (ids->end != ids->capacity) {
-        IdConstruct(ids->end, value);
-        ++ids->end;
+    if (ids->Finish() != ids->EndOfStorage()) {
+        IdConstruct(ids->Finish(), value);
+        ++ids->Finish();
     } else {
-        DwordVectorInsertOverflowOriginal(ids, nullptr, ids->end, value, 1);
+        DwordVectorInsertOverflowOriginal(ids, nullptr, ids->Finish(), value, 1);
     }
 }
 // The same with the construction inlined (as the original's third case).
 void PushIdInline(IdVector* ids, const int* value) {
-    if (ids->end != ids->capacity) {
-        if (ids->end) *ids->end = *value;
-        ++ids->end;
+    if (ids->Finish() != ids->EndOfStorage()) {
+        if (ids->Finish()) *ids->Finish() = *value;
+        ++ids->Finish();
     } else {
-        DwordVectorInsertOverflowOriginal(ids, nullptr, ids->end, value, 1);
+        DwordVectorInsertOverflowOriginal(ids, nullptr, ids->Finish(), value, 1);
     }
 }
 
 // std::sort: the introsort loop with depth 2 * floor(log2(n)), then the final insertion sort.
 void SortIds(IdVector* ids) {
-    if (ids->begin == ids->end) return;
+    if (ids->begin() == ids->end()) return;
     int depth = 0;
-    for (int n = static_cast<int>(ids->end - ids->begin); n != 1; n >>= 1) ++depth;
-    IdsIntroSort(ids->begin, ids->end, nullptr, depth * 2);
-    IdsFinalSort(ids->begin, ids->end);
+    for (int n = static_cast<int>(ids->end() - ids->begin()); n != 1; n >>= 1) ++depth;
+    IdsIntroSort(ids->begin(), ids->end(), nullptr, depth * 2);
+    IdsFinalSort(ids->begin(), ids->end());
 }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
@@ -282,7 +282,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
         auto* party = reinterpret_cast<UiDwordArray*>(screen->partyArray_);
         PartyArraySetSizeOriginal(party, nullptr, 0, -1);
         bool cameraFirst = false;
-        for (int* id = ids.withUnit.begin; id != ids.withUnit.end; ++id) {
+        for (int* id = ids.withUnit.begin(); id != ids.withUnit.end(); ++id) {
             int unitId = *id;
             CUnit* unit = FindUnit(reinterpret_cast<void*>(kWorld), nullptr, unitId);
             if (!unit) continue;
@@ -457,8 +457,8 @@ EI_REPLACE(0x00638280, BattleScreenUpdate);
 
 namespace {
 bool SameIds(const IdVector& a, const IdVector& b) {
-    if (a.end - a.begin != b.end - b.begin) return false;
-    for (const int *x = a.begin, *y = b.begin; x != a.end; ++x, ++y)
+    if (a.end() - a.begin() != b.end() - b.begin()) return false;
+    for (const int *x = a.begin(), *y = b.begin(); x != a.end(); ++x, ++y)
         if (*x != *y) return false;
     return true;
 }

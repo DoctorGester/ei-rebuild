@@ -44,8 +44,8 @@ bool SameText(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 static CBattleScreenSetup::PartyIds* __fastcall PartyIdsConstructVerify(CBattleScreenSetup::PartyIds* self) {
     CBattleScreenSetup::PartyIds* result = self->Construct();
-    bool ok = result == self && !self->withUnit.begin && !self->withUnit.end && !self->withUnit.capacity &&
-              !self->without.begin && !self->without.end && !self->without.capacity;
+    bool ok = result == self && !self->withUnit.begin() && !self->withUnit.end() && !self->withUnit.EndOfStorage() &&
+              !self->without.begin() && !self->without.end() && !self->without.EndOfStorage();
     ei::verify::Check("CBattleScreenSetup::PartyIds::Construct", true, ok, "");
     return result;
 }

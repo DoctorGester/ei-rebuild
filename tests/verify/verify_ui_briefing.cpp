@@ -142,7 +142,7 @@ namespace {
 int CountInOrder(const PersonTextNode* node, const PersonTextNode** last, bool* ordered) {
     if (!node) return 0;
     int n = CountInOrder(node->left, last, ordered);
-    if (*last && !((*last)->key < node->key)) *ordered = false;
+    if (*last && !((*last)->first < node->first)) *ordered = false;
     *last = node;
     return n + 1 + CountInOrder(node->right, last, ordered);
 }
@@ -151,11 +151,11 @@ int CountInOrder(const PersonTextNode* node, const PersonTextNode** last, bool* 
 static void __fastcall PersonTextsVerify(CBriefingScreen* self, void*) {
     const PersonTextNode* last = nullptr;
     bool ordered = true;
-    int before = CountInOrder(self->personTexts_.header->parent, &last, &ordered);
+    int before = CountInOrder(self->personTexts_.end()->parent, &last, &ordered);
     self->LoadPersonTexts();
     last = nullptr;
     ordered = true;
-    int after = CountInOrder(self->personTexts_.header->parent, &last, &ordered);
+    int after = CountInOrder(self->personTexts_.end()->parent, &last, &ordered);
     ei::verify::Check("CBriefingScreen::LoadPersonTexts", true, ordered && after >= before, "%d -> %d texts", before,
                       after);
 }

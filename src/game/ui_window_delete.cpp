@@ -45,16 +45,13 @@ void FreeVectorStorage(T* begin, T* capacity) {
 
 // A "pers" texts map destroyed as the screens' destructors inline it: with nodes, every node
 // erased (005FAFA0) and the header reset, the count 0; then the header freed.
-void DestroyPersonTexts(PersonTextMap& map, std::uint32_t& count) {
-    PersonTextNode* header = map.header;
-    if (count != 0) {
+void DestroyPersonTexts(PersonTextMap& map) {
+    PersonTextNode* header = map.end();
+    if (map.size() != 0) {
         PersonTextsEraseAt(&map, nullptr, header->parent);
-        header->left = header;
-        header->parent = nullptr;
-        header->right = header;
-        count = 0;
+        map.ResetToEmpty();
     }
-    stlp::deallocate(map.header, sizeof(PersonTextNode));
+    stlp::deallocate(map.end(), sizeof(PersonTextNode));
 }
 
 // An STLport list emptied and its sentinel freed (the destructor's inlined clear).
@@ -162,9 +159,9 @@ void CChatOverlay::DestroyBody() {
 EI_REPLACE_METHOD(0x005E28E0, CChatOverlay::DestroyBody);
 
 void CBattleScreenSetup::DestroyBody() {
-    FreeVectorStorage(partyWithout_.begin, partyWithout_.capacity);
-    FreeVectorStorage(partyWithUnit_.begin, partyWithUnit_.capacity);
-    DestroyPersonTexts(personTexts_, personTextCount_);
+    FreeVectorStorage(partyWithout_.begin(), partyWithout_.EndOfStorage());
+    FreeVectorStorage(partyWithUnit_.begin(), partyWithUnit_.EndOfStorage());
+    DestroyPersonTexts(personTexts_);
     heroes_.vtable = DwordArrayVtable();
     heroes_.FreeData();
     Party().vtable = PartyArrayVtable();
@@ -189,7 +186,7 @@ void CBriefingScreen::DestroyBody() {
     shown_->next = shown_;
     shown_->prev = shown_;
     stlp::deallocate(shown_, sizeof(BriefingShownItem));
-    DestroyPersonTexts(personTexts_, personTextCount_);
+    DestroyPersonTexts(personTexts_);
     dialogueText_.~CString();
     for (BriefingMover* node = movers_->next; node != movers_;) {
         BriefingMover* next = node->next;

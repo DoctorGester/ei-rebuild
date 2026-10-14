@@ -240,8 +240,8 @@ static bool __fastcall PartyIdsEqualVerify(const PartyIds* self, void*, const Pa
     bool expected = s_partyIdsEqual(self, nullptr, other);
     bool actual = self->Equals(*other);
     ei::verify::Check("PartyIds::Equals", expected, actual, "sizes %d / %d",
-                      static_cast<int>(self->withUnit.end - self->withUnit.begin),
-                      static_cast<int>(other->withUnit.end - other->withUnit.begin));
+                      static_cast<int>(self->withUnit.end() - self->withUnit.begin()),
+                      static_cast<int>(other->withUnit.end() - other->withUnit.begin()));
     return expected;
 }
 EI_VERIFY(0x006381E0, PartyIdsEqualVerify, 5, s_partyIdsEqual);

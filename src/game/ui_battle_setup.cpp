@@ -315,7 +315,7 @@ void CBattleScreenSetup::Create() {
     unknown_1FC = 0;
 
     // The "pers <name>" texts: one line per person, by the person's text key.
-    personTexts_.Load();
+    LoadPersonTexts(&personTexts_);
     unknown_164 = 0;
     if (IsMultiplayerClient()) {
         using SlotFn = void(__thiscall*)(CUiWindow*, int);

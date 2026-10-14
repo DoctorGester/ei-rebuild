@@ -151,8 +151,8 @@ void CBriefingScreen::NextPhrase(bool skip) {
         } else {
             speaker = unit->GetName();
             if (speaker.GetLength() == 0) {
-                const PersonTextNode* node = personTexts_.Find(unit->id_);
-                speaker = node == personTexts_.header ? words[1] : node->text;
+                const PersonTextNode* node = personTexts_.find(unit->id_);
+                speaker = node == personTexts_.end() ? words[1] : node->second;
             }
         }
         TextReadToHash(texts, nullptr, &phrase, 1);
