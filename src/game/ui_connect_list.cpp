@@ -1,8 +1,9 @@
 // The multiplayer connection screen's list (CMpConnectScreen::DrawListVanilla 0061D780): the
 // servers' rows, the new game's controls and the selected entry's details, drawn on the screen's
-// first surface. Rebirth patches it: WideScreen is reproduced behind its flag (W2), ExtendedServerName
-// is not, so it is hooked in the vanilla launch only; the screen's other members call it through its
-// address. See ui_screens.h and
+// first surface. Rebirth patches it twice and both are reproduced behind their flags: WideScreen (W2: the
+// line under the titles scaled without the margin) and ExtendedServerName (W2a: wider columns, the
+// servers' names and the new game's row drawn shortened with an ellipsis, the selected server's name
+// wrapped); the screen's other members call it through its address. See ui_screens.h and
 // docs/notes/ui.md, section 5.
 #include "ui_screens.h"
 
@@ -17,6 +18,7 @@
 #include "originals_ui.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -44,6 +46,19 @@ constexpr int kTipUnlisted = 0x9EA4, kTipPassword = 0x9EA5;
 constexpr int kNewGameType = 4;
 constexpr int kGameTypes = 4;
 
+// ExtendedServerName (addon's replacements of the draw calls at 0061DC7F, 0061DC9E, 0061E009 and the
+// constants at 0061D9FC, 0061DB23, 0061DBEF, 0061DD40): vanilla / extended.
+struct Layout {
+    int rowRight, lineRight, rowLeftPing;
+    float selectionX;
+};
+constexpr Layout kVanillaLayout{265, 270, 220, 239.0f};
+constexpr Layout kExtendedLayout{278, 283, 233, 244.75f};
+constexpr int kFormatEllipsis = 0x18000;   // DT_END_ELLIPSIS | DT_MODIFYSTRING
+constexpr std::size_t kExtendedTextSize = 90;
+constexpr int kExtendedNameRight = 140;    // the servers' names are drawn within this column
+constexpr int kDetailsNameLines = 3;
+
 // Where the sort arrow stands for each column pair of sortKey_.
 float SortArrowX(int column) {
     switch (column) {
@@ -57,6 +72,13 @@ float SortArrowX(int column) {
 
 void Draw(CUiSurface* surface, const char* text, RECT* rect, int format) {
     SurfaceDrawText(surface, nullptr, text, rect, kFont, TextColour(), format, 1);
+}
+// addon's wrapper of the text draw: the text goes through a 90-byte buffer (strcpy_s there; a longer one
+// would hit the CRT's invalid parameter handler, here it is cut) and is drawn with an ellipsis.
+void DrawEllipsis(CUiSurface* surface, const char* text, RECT* rect, int format) {
+    char buffer[kExtendedTextSize];
+    strncpy_s(buffer, kExtendedTextSize, text, _TRUNCATE);
+    Draw(surface, buffer, rect, format | kFormatEllipsis);
 }
 void Down(RECT* rect, int dy = kRowHeight) { gameapi::OffsetRect(rect, 0, dy); }
 
@@ -83,6 +105,8 @@ void CMpConnectScreen::DrawListVanilla() {
     }
     newGameTips_ = newGame;
 
+    const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
+    const Layout& layout = extended ? kExtendedLayout : kVanillaLayout;
     mfc::CString text;
     CUiSurface* surface = surfaces_.data[0];
     ui_gdi::GameDC* dc = SurfaceGetDC(surface);
@@ -103,7 +127,7 @@ void CMpConnectScreen::DrawListVanilla() {
     row.left = 248;
     Draw(surface, label(15), &row, 0);
     row.left = 12;
-    row.right = 265;
+    row.right = layout.rowRight;
     CUiMesh* arrow = sprite(kSpriteSortArrow);
     if (sortKey_ % 2 == 0)
         arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
@@ -118,7 +142,7 @@ void CMpConnectScreen::DrawListVanilla() {
     pen.Construct(PS_SOLID, 1, TextColour());
     void* oldPen = dc->SelectPen(&pen);
     POINT from{8, row.bottom - 2};
-    POINT to{270, row.bottom - 2};
+    POINT to{layout.lineRight, row.bottom - 2};
     // WideScreen (0061DB0E / 0061DB3E: XOR ECX,ECX): without the margin.
     interface_->CallScalePointToScreenNoMargin(&from);
     interface_->CallScalePointToScreenNoMargin(&to);
@@ -131,16 +155,25 @@ void CMpConnectScreen::DrawListVanilla() {
         if (index >= static_cast<unsigned>(entries_.size())) break;
         if (index == static_cast<unsigned>(selected_)) {
             sprite(kSpriteSelection)->visible_ = 1;
-            sprite(kSpriteSelection)->Place(239.0f, static_cast<float>(y), 3.0f);
+            sprite(kSpriteSelection)->Place(layout.selectionX, static_cast<float>(y), 3.0f);
         }
         const MpAddressEntry& entry = entries_[index];
         TextColour() = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
             text.Format(GameText(0x00792F34), label(7), nameEdit_->text_);   // "%s %s"
-            Draw(surface, text, &row, kFormatNoPrefix);
+            if (extended)
+                DrawEllipsis(surface, text, &row, kFormatNoPrefix);
+            else
+                Draw(surface, text, &row, kFormatNoPrefix);
         } else {
-            Draw(surface, entry.name, &row, kFormatNoPrefix);
+            if (extended) {
+                RECT nameRect = row;   // (addon's wrapper draws a copy with the right edge at 140)
+                nameRect.right = kExtendedNameRight;
+                DrawEllipsis(surface, entry.name, &nameRect, kFormatNoPrefix);
+            } else {
+                Draw(surface, entry.name, &row, kFormatNoPrefix);
+            }
             row.left = 142;
             text.Format(GameText(0x00793BB8), entry.players, entry.maxPlayers);   // "%d/%d"
             Draw(surface, text, &row, 0);
@@ -150,7 +183,7 @@ void CMpConnectScreen::DrawListVanilla() {
             else
                 text.Format(GameText(0x0079190C), allod(entry.gameType));   // "%s"
             Draw(surface, text, &row, 0);
-            row.left = 220;
+            row.left = layout.rowLeftPing;
             text.Format(GameText(0x0078EEEC), entry.ping);   // "%d"
             Draw(surface, text, &row, kFormatRight);
             row.left = 12;
@@ -187,7 +220,14 @@ void CMpConnectScreen::DrawListVanilla() {
             Draw(surface, label(17), &row, 0);
         } else {
             text.Format(GameText(0x00792F34), label(0), static_cast<const char*>(entry.name));   // "%s %s"
-            Draw(surface, text, &row, 0);
+            if (extended) {
+                // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
+                int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, TextColour(), 0, 1);
+                row.top += lines * kRowHeight - kRowHeight;
+                row.bottom += lines * kRowHeight - kRowHeight;
+            } else {
+                Draw(surface, text, &row, 0);
+            }
             Down(&row);
             text.Format(GameText(0x00793BAC), label(1), entry.players, entry.maxPlayers);   // "%s %d / %d"
             Draw(surface, text, &row, 0);
@@ -222,5 +262,4 @@ void CMpConnectScreen::DrawListVanilla() {
     pen.Destruct();
 }
 EI_REPLACE_METHOD(0x0061D780, CMpConnectScreen::DrawListVanilla);
-// (Rebirth's ExtendedServerName patches it too, not reproduced: in a Rebirth launch it stays skipped.)
-EI_REBIRTH_IMPLEMENTS(0x0061D780, ei::rebirth::Patch::WideScreen);
+EI_REBIRTH_IMPLEMENTS(0x0061D780, ei::rebirth::Patch::WideScreen, ei::rebirth::Patch::ExtendedServerName);

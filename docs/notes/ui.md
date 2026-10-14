@@ -218,7 +218,7 @@ forwarders (rule 9), and none of Rebirth's patches is reproduced. The worker cou
 | battle panels (`ui_hud_build.cpp`, `ui_battle_keys.cpp`) | builders 0063BAB0, 0063BCC0, 0063C050 (weapon bar), 0063C800, 0063CAE0 (quick items), 0063E2A0, 0063E4B0 (spell column), 0063F300, 0063F500 (action column); 0063A560 the battle screen's key-down | O (counts and layout read back; the key handler: portrait pick and order keys), 0063C050 S; any battle scenario, every key pressed over the battle screen |
 | camp (`ui_camp_create.cpp`) | 0060C870 `CCampPages::Create` | O; `ui_camp`, `ui_camp_deals`, `ui_trade_*` |
 | hero screen (`ui_hero_screen_create.cpp`, `ui_hero_screen_mode.cpp`) | 00613EA0 `CMpHeroScreen::Create`, 00615D30 `SetModeVanilla` | O (regions, sprites, surfaces, mode; the figure lists' order); `ui_hero_screen`, `ui_hero_stats`, `ui_hero_delete` |
-| connection screen (`ui_connect_screen.cpp`, `ui_connect_list.cpp`) | 0061B2C0 `CMpConnectScreen::Create`, 0061D780 the list draw | O; no scenario opens the screen |
+| connection screen (`ui_connect_screen.cpp`, `ui_connect_list.cpp`) | 0061B2C0 `CMpConnectScreen::Create`, 0061D780 the list draw | O; ui_mp_host reaches the list draw (side by side with the original / addon, W2a) |
 
 CSV: library.csv 12 rows (the chat line list, help topic / cache map nodes, `CFont` / `CRect` inlines, EH-only
 destructors), dead_code.csv 0063C010, 0063F6E0. Forwarded on purpose: the Rebirth-patched callees (`CUiMesh::SetRectangle` /
