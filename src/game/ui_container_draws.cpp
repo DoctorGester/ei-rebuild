@@ -17,6 +17,7 @@
 #include "ui.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
+#include "originals_ui.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -84,10 +85,6 @@ void Flush(UiRenderer* device) {
 __declspec(naked) int __fastcall ContainerDrawAt(CUiWindow*, void*, int) EI_ORIGINAL(0x00600EF0)
 // 006A39E0 (thiscall on an armour item): its body part type (rewritten, item.cpp).
 __declspec(naked) int __fastcall ArmourType(void*) EI_ORIGINAL(0x006A39E0)
-struct DrawItemAt {
-    void DrawItem(int pass, ItemCell* cell);   // 005ECA10 (rewritten, ui_item_view.cpp)
-};
-__declspec(naked) void DrawItemAt::DrawItem(int, ItemCell*) EI_ORIGINAL(0x005ECA10)
 
 // 00602BF0 / 00632A90 share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
@@ -148,16 +145,16 @@ int __fastcall HeroEquipPanelDraw(CHeroEquipPanel* self, void*, int pass) {
         frame(1)->visible_ = 0;
     }
     self->DrawBase(pass);
-    auto* owner = reinterpret_cast<DrawItemAt*>(self->owner_);
+    auto* owner = reinterpret_cast<CItemScreen*>(self->owner_);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) {
         ItemCell cell{static_cast<CItem*>(hero->weapons[i]), static_cast<float>(50 + 100 * i), 50.0f, 12.0f, 100.0f,
                       self->mode_};
-        owner->DrawItem(pass, &cell);
+        ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
     }
     for (int i = 0; i < static_cast<int>(hero->quickItemCount); ++i) {
         ItemCell cell{static_cast<CItem*>(hero->quickItems[i]), static_cast<float>(750 - 100 * i), 50.0f, 12.0f, 100.0f,
                       self->mode_};
-        owner->DrawItem(pass, &cell);
+        ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
     }
     if (!self->body_) return 1;
 
@@ -178,7 +175,7 @@ int __fastcall HeroEquipPanelDraw(CHeroEquipPanel* self, void*, int pass) {
         int type = ArmourType(item);
         ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,
                       self->mode_};
-        owner->DrawItem(pass, &cell);
+        ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
     }
     Flush(DeviceOf(self));
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);

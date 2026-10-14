@@ -111,10 +111,6 @@ struct VariableIterator {
     VariableNode* NextBucket();   // 005E0DB0: first node of the next non-empty bucket, or null
 };
 VariableNode* VariableIterator::NextBucket() { return (VariableNode*)VariableIteratorNextOriginal((void*)this); }
-struct VariableTableAt {
-    void Begin(VariableIterator* it);   // 004614C0
-};
-__declspec(naked) void VariableTableAt::Begin(VariableIterator*) EI_ORIGINAL(0x004614C0)
 
 // 004DBE40: splits `text` at `separator` into `out`.
 
@@ -279,7 +275,7 @@ void __fastcall ListVar(CStringArray* args) {
             EndLine(Out() << GameText(0x0079266C) << static_cast<const char*>((*args)[1]) << GameText(0x00792680));
     }
     VariableIterator it;
-    reinterpret_cast<VariableTableAt*>(player + 0xC4)->Begin(&it);
+    FloatTableBeginOriginal(player + 0xC4, nullptr, &it);
     while (it.node) {
         EndLine((Out() << it.node->name << GameText(0x0078DA6C)).PutFloat(it.node->value));   // " = "
         if (writing) {

@@ -171,7 +171,6 @@ using IdVector = CBattleScreenSetup::IdVector;
 using PartyIds = CBattleScreenSetup::PartyIds;
 __declspec(naked) void __fastcall IdsConstruct(IdVector*, void*, const void*) EI_ORIGINAL(0x005F8F10)
 __declspec(naked) void __fastcall IdConstruct(int*, const int*) EI_ORIGINAL(0x0064B620)
-__declspec(naked) void __fastcall IdsInsertOverflow(IdVector*, void*, int*, const int*, int) EI_ORIGINAL(0x004E2FA0)
 __declspec(naked) void __fastcall IdsIntroSort(int*, int*, const int*, int) EI_ORIGINAL(0x0060B1E0)
 __declspec(naked) void __fastcall IdsFinalSort(int*, int*) EI_ORIGINAL(0x0064B750)
 __declspec(naked) void __fastcall IdsAssign(IdVector*, void*, const IdVector*) EI_ORIGINAL(0x0064AF30)
@@ -182,7 +181,6 @@ __declspec(naked) bool __fastcall PartyIdsEqual(const PartyIds*, void*, const Pa
 
 // The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
 // 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
-__declspec(naked) void __fastcall PartySetSize(UiDwordArray*, void*, int, int) EI_ORIGINAL(0x005EBDB0)
 __declspec(naked) void __fastcall PartySetAtGrow(UiDwordArray*, void*, int, CUnit*) EI_ORIGINAL(0x0060AD50)
 __declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AEC0)
 // 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
@@ -197,7 +195,6 @@ __declspec(naked) void __fastcall RefreshSelectionAt(CBattleScreenSetup*) EI_ORI
 // message box's constructor.
 void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
 __declspec(naked) void __fastcall ShowNextMessage(CInterface3D*, void*, int) EI_ORIGINAL(0x005F8A80)
-__declspec(naked) void __fastcall PushWindow(CInterface3D*, void*, void*, int, int) EI_ORIGINAL(0x005F7350)
 void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 
 // The game menu object 007AFEA5: 00578BA0 the local player's data (its +0x30 / +0x34 unit
@@ -212,11 +209,7 @@ int __fastcall CanLeaveZone(void* glue, void*, void* records, int exit, void* se
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
-__declspec(naked) void __fastcall UnitListConstruct(List*, void*, const void*) EI_ORIGINAL(0x00411850)
 __declspec(naked) void __fastcall IndexListConstruct(List*, void*, const void*) EI_ORIGINAL(0x00404A70)
-__declspec(naked) ListNode** __fastcall IndexListEnd(List*, void*, ListNode**) EI_ORIGINAL(0x004049D0)
-__declspec(naked) ListNode** __fastcall IndexListInsert(List*, void*, ListNode**, ListNode*, const int*)
-    EI_ORIGINAL(0x00404A40)
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
 void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }   // the 12-byte nodes
 
@@ -234,7 +227,7 @@ void PushId(IdVector* ids, const int* value) {
         IdConstruct(ids->end, value);
         ++ids->end;
     } else {
-        IdsInsertOverflow(ids, nullptr, ids->end, value, 1);
+        DwordVectorInsertOverflowOriginal(ids, nullptr, ids->end, value, 1);
     }
 }
 // The same with the construction inlined (as the original's third case).
@@ -243,7 +236,7 @@ void PushIdInline(IdVector* ids, const int* value) {
         if (ids->end) *ids->end = *value;
         ++ids->end;
     } else {
-        IdsInsertOverflow(ids, nullptr, ids->end, value, 1);
+        DwordVectorInsertOverflowOriginal(ids, nullptr, ids->end, value, 1);
     }
 }
 
@@ -287,7 +280,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
     SortIds(&ids.without);
     if (!PartyIdsEqual(&ids, nullptr, reinterpret_cast<const PartyIds*>(&screen->partyWithUnit_))) {
         auto* party = reinterpret_cast<UiDwordArray*>(screen->partyArray_);
-        PartySetSize(party, nullptr, 0, -1);
+        PartyArraySetSizeOriginal(party, nullptr, 0, -1);
         bool cameraFirst = false;
         for (int* id = ids.withUnit.begin; id != ids.withUnit.end; ++id) {
             int unitId = *id;
@@ -298,9 +291,9 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
                 // Insert at the front (the original's inlined InsertAt).
                 int n = party->size;
                 if (n <= 0) {
-                    PartySetSize(party, nullptr, 1, -1);
+                    PartyArraySetSizeOriginal(party, nullptr, 1, -1);
                 } else {
-                    PartySetSize(party, nullptr, n + 1, -1);
+                    PartyArraySetSizeOriginal(party, nullptr, n + 1, -1);
                     GameMemmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
                     PartyConstruct(party->data, 1);
                 }
@@ -388,7 +381,7 @@ void CBattleScreenSetup::Update() {
                                                      reinterpret_cast<const char*>(0x00794408),    // "leave_zone_msg"
                                                      0x10000, 3, 1)
                                : nullptr;
-            PushWindow(interface_, nullptr, box, 1, 1);
+            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
             savedFlag_ = 0;
         }
         second.vtable = reinterpret_cast<void*>(0x0073FAA4);
@@ -402,7 +395,7 @@ void CBattleScreenSetup::Update() {
     if (unknown_1C1) {
         std::uint8_t allocator = 0;
         List units;
-        UnitListConstruct(&units, nullptr, &allocator);
+        ListConstruct411850(&units, nullptr, &allocator);
         UnitsInBox(reinterpret_cast<void*>(kWorld), nullptr, &selectionBox_, &units);
         List inside;
         IndexListConstruct(&inside, nullptr, &allocator);
@@ -410,9 +403,9 @@ void CBattleScreenSetup::Update() {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
                 ListNode* end;
-                IndexListEnd(&inside, nullptr, &end);
+                ListEnd4049D0Original(&inside, nullptr, reinterpret_cast<void**>(&end));
                 ListNode* inserted;
-                IndexListInsert(&inside, nullptr, &inserted, end, &i);
+                ListInsert404A40Original(&inside, nullptr, reinterpret_cast<void**>(&inserted), end, &i);
             }
         }
         using MarkFn = void(__thiscall*)(void*, int);
@@ -513,7 +506,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     int first = -1;
     std::uint8_t allocator = 0;
     List units;
-    UnitListConstruct(&units, nullptr, &allocator);
+    ListConstruct411850(&units, nullptr, &allocator);
     UnitsInBox(world, nullptr, &selectionBox_, &units);
     List inside;
     IndexListConstruct(&inside, nullptr, &allocator);
@@ -522,9 +515,9 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
                 ListNode* end;
-                IndexListEnd(&inside, nullptr, &end);
+                ListEnd4049D0Original(&inside, nullptr, reinterpret_cast<void**>(&end));
                 ListNode* inserted;
-                IndexListInsert(&inside, nullptr, &inserted, end, &i);
+                ListInsert404A40Original(&inside, nullptr, reinterpret_cast<void**>(&inserted), end, &i);
                 if (first < 0) first = i;
             }
         }

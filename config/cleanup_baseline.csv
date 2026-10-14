@@ -46,7 +46,7 @@ src/game/combat_update.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/console.cpp,0,0,0,0,54,3,0,0,0,0,0
 src/game/console.h,0,0,0,0,3,0,0,0,0,1,0
 src/game/console_addon.cpp,0,0,0,0,0,1,0,1,0,0,0
-src/game/console_commands.cpp,13,0,0,0,34,7,0,1,0,0,0
+src/game/console_commands.cpp,13,0,0,0,34,6,0,1,0,0,0
 src/game/console_window.cpp,0,0,0,0,0,2,0,0,0,0,0
 src/game/core_maths.cpp,0,0,0,2,0,0,0,0,0,0,7
 src/game/core_streams.h,0,0,0,0,4,0,0,0,0,0,0
@@ -233,9 +233,9 @@ src/game/ui_camera_keys.cpp,0,0,0,1,0,0,0,0,0,0,1
 src/game/ui_camp.cpp,0,0,3,3,21,17,0,4,0,1,0
 src/game/ui_camp.h,0,0,0,0,0,0,2,0,0,2,2
 src/game/ui_console_window.cpp,0,0,0,0,3,3,0,0,0,0,0
-src/game/ui_container_draws.cpp,1,3,0,0,1,1,0,0,0,0,0
+src/game/ui_container_draws.cpp,1,3,0,0,1,0,0,0,0,0,0
 src/game/ui_create_screen.cpp,0,0,0,0,0,2,0,6,0,0,0
-src/game/ui_global_map.cpp,0,0,2,1,9,6,0,7,0,0,1
+src/game/ui_global_map.cpp,0,0,2,1,9,5,0,7,0,0,1
 src/game/ui_hero_panels.cpp,0,0,1,1,1,0,0,5,0,0,1
 src/game/ui_hero_preview.cpp,0,0,0,1,0,1,0,0,0,0,3
 src/game/ui_hero_screen_click.cpp,14,0,0,0,8,0,0,0,0,0,0
@@ -245,12 +245,12 @@ src/game/ui_hud_map.cpp,5,1,5,1,3,0,0,4,0,0,3
 src/game/ui_hud_portraits.cpp,0,0,2,1,1,0,0,5,0,0,3
 src/game/ui_hud_unit_info.cpp,5,0,1,0,2,0,0,0,0,0,0
 src/game/ui_interface.cpp,0,0,0,2,0,0,0,0,0,0,0
-src/game/ui_interface_frame.cpp,0,3,0,0,0,6,0,1,0,0,0
+src/game/ui_interface_frame.cpp,0,3,0,0,0,5,0,1,0,0,0
 src/game/ui_interface_keys.cpp,0,0,0,0,0,0,0,1,0,0,0
 src/game/ui_interface_save.cpp,0,0,0,0,13,0,0,0,0,0,0
 src/game/ui_item_info.cpp,14,0,13,1,41,2,0,2,0,0,0
 src/game/ui_item_screen.cpp,0,0,0,1,1,0,0,0,0,0,0
-src/game/ui_item_view.cpp,0,0,4,1,18,1,0,0,0,1,2
+src/game/ui_item_view.cpp,0,0,4,1,18,0,0,0,0,1,2
 src/game/ui_layouts.cpp,0,0,0,0,10,2,0,11,0,0,0
 src/game/ui_menu_keys.cpp,0,0,0,0,8,0,0,1,0,0,0
 src/game/ui_menus.cpp,0,0,0,2,0,0,0,1,0,0,0

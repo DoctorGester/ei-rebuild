@@ -1928,8 +1928,6 @@ namespace {
 
 // 0057DEE0 (RET 4). The flow's party setup step (1 here).
 void __fastcall FlowPartyStep(GameFlow* flow, void*, int step) { FlowPartyStepOriginal(flow, nullptr, step); }
-// 00461540. The named float table's clear, through its address.
-__declspec(naked) void __fastcall VariablesClear(NamedFloatTable*) EI_ORIGINAL(0x00461540)
 // 00661FB0. The party outside a game (007C82B0) resets its members.
 // 00426A80 (RET 8). STLport string assign(first, last) (the second call is inlined in the
 // original, the same algorithm).
@@ -1947,7 +1945,7 @@ void GameFlow::AfterServerStart() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        VariablesClear(variables);
+        FloatTableClearOriginal(variables);
     PartyResetItems(GlobalParty());
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->count == 1) {
@@ -1975,7 +1973,6 @@ __declspec(naked) void __fastcall QuestFilesClear(void*) EI_ORIGINAL(0x00581860)
 // Local NamedFloatTable copies: 00581790 an empty one (100 buckets), 00580900 a copy.
 void __fastcall VariablesConstruct(NamedFloatTable* a0) { NamedTableConstructOriginal(a0); }
 __declspec(naked) void __fastcall VariablesCopy(NamedFloatTable*, void*, const NamedFloatTable*) EI_ORIGINAL(0x00580900)
-__declspec(naked) void __fastcall VariablesClearAt(NamedFloatTable*) EI_ORIGINAL(0x00461540)
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void __fastcall VariableSetBits(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
 // The flow's methods, through their addresses.
@@ -2073,7 +2070,7 @@ void GameFlow::UpdateFromServer() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        VariablesClearAt(variables);
+        FloatTableClearOriginal(variables);
     VariableSet(variables, nullptr, Text(kConstructionVariable), construction);
     if (auto* map = static_cast<net::MapMessage*>(net::GameClient()->map_)) {
         if (Active(map)) FlowLoadZoneQuests(this, nullptr, map->text_.start);
@@ -2207,8 +2204,7 @@ __declspec(naked) void __fastcall RecordsPart661640(void*) EI_ORIGINAL(0x0066164
 __declspec(naked) void __fastcall RecordsVariablesDestroy(void*) EI_ORIGINAL(0x00663330)
 __declspec(naked) void __fastcall RecordsArrayDestroy(void*) EI_ORIGINAL(0x006643F0)
 __declspec(naked) void __fastcall RecordsPart664160(void*) EI_ORIGINAL(0x00664160)
-// 004616A0 (RET 4): the variables table frees one node (what the original's inlined clear does).
-__declspec(naked) void __fastcall VariablesFreeNode(NamedFloatTable*, void*, NamedFloatTable::Node*) EI_ORIGINAL(0x004616A0)
+// 004616A0 (RET 4, FloatTableDeleteNodeOriginal): the variables table frees one node (what the original's inlined clear does).
 
 void DestroyPartyEntry(SavedPartyEntry* entry) {
     PartyRecords* records = &entry->records;
@@ -2258,7 +2254,7 @@ void SavedParties::Reload() {
                     NamedFloatTable::Node* node = variables->buckets[b];
                     while (node) {
                         NamedFloatTable::Node* next = node->next;
-                        VariablesFreeNode(variables, nullptr, node);
+                        FloatTableDeleteNodeOriginal(variables, nullptr, node);
                         node = next;
                     }
                     variables->buckets[b] = nullptr;

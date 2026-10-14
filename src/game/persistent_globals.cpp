@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 
 #include <cstring>
 #include <iterator>
@@ -23,9 +24,8 @@
 
 namespace {
 
-// 00461540 (clear) and 00460BC0 (Set, RET 8: name, value) of the game's table, through their
-// addresses.
-__declspec(naked) void __fastcall TableClear(NamedFloatTable*) EI_ORIGINAL(0x00461540)
+// 00461540 (clear, FloatTableClearOriginal) and 00460BC0 (Set, RET 8: name, value) of the game's table, through
+// their addresses.
 void __fastcall TableSet(NamedFloatTable* a0, void*, const char* a2, float a3) { NamedTableSet((void*)a0, nullptr, a2, std::bit_cast<std::uint32_t>(a3)); }
 
 // MSVC 2010's std::unordered_map<std::string, float>, insertion order only: the element list,
@@ -143,6 +143,6 @@ void ClearVariablesKeepingGlobals(NamedFloatTable* table) {
             kept.Find(node->key).value = node->value;
         }
     }
-    TableClear(table);
+    FloatTableClearOriginal(table);
     for (const AddonStringMap::Element& e : kept.Elements()) TableSet(table, nullptr, e.key.c_str(), e.value);
 }

@@ -18,8 +18,7 @@ namespace {
 // 005E70E0 a textured rectangle (RET 0x28), 005E8450 a framed rectangle (RET 0x2C), 005E7680 a
 // rectangle of `count` repeated cells (RET 0x30).
 void __fastcall StripRectangle(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, int a8, int a9, int a10, int a11) { UiMeshRectangleOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
-__declspec(naked) void __fastcall StripFrame(CUiMesh*, void*, float /*depth*/, float /*scale*/, float, float, float, float,
-                                             float /*border*/, int, int, int, int) EI_ORIGINAL(0x005E8450)
+void __fastcall StripFrame(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, float a8, int a9, int a10, int a11, int a12) { UiMeshFramedOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12); }
 void __fastcall StripCells(CUiMesh* a0, void*, float a2, float a3, float a4, float a5, float a6, float a7, int a8, int a9, int a10, int a11, int a12, int a13) { UiMeshCellsOriginal((void*)a0, nullptr, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13); }
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -30,11 +29,6 @@ float StoreFloat(float value) {
     return stored;
 }
 
-// The owner screen's item cell draw (005ECA10, rewritten in ui_item_view.cpp; through its address).
-struct StripOwner {
-    void DrawItem(int pass, ItemCell* cell);
-};
-__declspec(naked) void StripOwner::DrawItem(int, ItemCell*) EI_ORIGINAL(0x005ECA10)
 
 // A surface's DC (005FDC00 / 005FDC60), its clear (005FE2F0) and a line of text (005FDE20,
 // Rebirth-patched).
@@ -190,7 +184,7 @@ BOOL CUiItemStrip::Draw(int pass) {
         cell.x = ((static_cast<float>(i) - frac) + one) * hundred;
         cell.y = static_cast<float>(top_) + fifty;
         cell.depth = scale_ * GameFloat(0x0073C51C);   // 1.5
-        reinterpret_cast<StripOwner*>(owner_)->DrawItem(pass, &cell);
+        ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(owner_), nullptr, pass, &cell);   // the owner screen's item cell draw
     }
 
     // The text rectangle of cell i: 70 x 20 from 15 pixels into the cell.

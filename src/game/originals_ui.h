@@ -23,6 +23,8 @@ struct Vector3;
 struct PersonTextNode;
 class CUiWindow;
 class CUnit;
+class CItemScreen;
+struct ItemCell;
 struct NamedFloatTable;
 
 __declspec(naked) inline void __fastcall BrainResetAll(void*) EI_ORIGINAL(0x005D4F70)
@@ -107,6 +109,12 @@ __declspec(naked) inline void __fastcall UiMeshCellsOriginal(void* /*mesh*/, voi
                                                              float /*bottom*/, int /*u0*/, int /*v0*/, int /*u1*/,
                                                              int /*v1*/, int /*count*/, int /*flag*/)
     EI_ORIGINAL(0x005E7680)
+// 005E8450 (rewritten as CUiMeshBuilder::Framed through MeshFramed): the sprite as a framed rectangle (depth, scale, left, top,
+// right, bottom, border, u0, v0, u1, v1; RET 0x2C, EAX not a result).
+__declspec(naked) inline void __fastcall UiMeshFramedOriginal(void* /*mesh*/, void*, float /*depth*/, float /*scale*/,
+                                                              float /*left*/, float /*top*/, float /*right*/,
+                                                              float /*bottom*/, float /*border*/, int /*u0*/, int /*v0*/,
+                                                              int /*u1*/, int /*v1*/) EI_ORIGINAL(0x005E8450)
 // The cursor object 007C7BD8: 005E5270 shows / hides it (thiscall, RET 4: +0x0C = `show` under its lock +0xA0);
 // 005E65F0 / 005E6610 enter / leave its lock +0xA0 in mode 2 (ECX, plain RET).
 __declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, void*, int /*show*/) EI_ORIGINAL(0x005E5270)
@@ -178,6 +186,10 @@ __declspec(naked) inline void __fastcall TooltipSetTextOriginal(struct CUiToolti
 __declspec(naked) inline void __fastcall ConsoleOnCharOriginal(void* /*console*/, void*, int, int, int) EI_ORIGINAL(0x005E44A0)
 __declspec(naked) inline void __fastcall ConsoleOnKeyUpOriginal(void* /*console*/, void*, int, int, int) EI_ORIGINAL(0x005E47E0)
 
+// 005ECA10 (rewritten as CItemScreen::DrawItem; through its address so the wrapper runs; thiscall, RET 8): the item screen
+// draws the item model of `cell` on a draw pass. The panels that sit on the screen call it on their owner.
+__declspec(naked) inline void __fastcall ItemScreenDrawItemOriginal(CItemScreen* /*screen*/, void*, int /*pass*/,
+                                                                    ItemCell* /*cell*/) EI_ORIGINAL(0x005ECA10)
 // A-I4. 005F7350 (rewritten as CInterface3D::PushWindow; through its address so the wrapper runs): opens `window` on top
 // (thiscall, RET 0xC; no result). 005F51F0 (rewritten as CInterface3D::ResetSavedState): clears the saved state
 // (ECX, plain RET). 00600CC0 (rewritten as CUiContainer::AddInput): appends an extra input side (RET 4).

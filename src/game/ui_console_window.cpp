@@ -41,10 +41,8 @@ constexpr UINT kDrawMark = 0x802;      // DT_NOPREFIX | DT_RIGHT
 // Calls between the window's functions go through the original addresses (verify wrappers, and
 // any mod patch of the callee, stay in the path).
 struct WindowAt : ConsoleWindow {
-    void CallDrawLines();   // 005E4800
     void CallDrawInput();   // 005E4A10
 };
-__declspec(naked) void WindowAt::CallDrawLines() EI_ORIGINAL(0x005E4800)
 __declspec(naked) void WindowAt::CallDrawInput() EI_ORIGINAL(0x005E4A10)
 WindowAt* At(ConsoleWindow* w) { return static_cast<WindowAt*>(w); }
 
@@ -83,7 +81,7 @@ void ConsoleWindow::Show(bool shown) {
             void* memory = gamecrt::operator_new(0x38);
             surface_ = memory ? static_cast<SurfaceAt*>(memory)->Construct(screen_, rect_, 4) : nullptr;
         }
-        At(this)->CallDrawLines();
+        ConsoleDrawLinesOriginal(this);
         At(this)->CallDrawInput();
         return;
     }
@@ -175,7 +173,7 @@ void ConsoleWindow::OnKeyDown(int key, int, int) {
     default:
         return;
     }
-    At(this)->CallDrawLines();
+    ConsoleDrawLinesOriginal(this);
 }
 EI_REPLACE_METHOD(0x005E4180, ConsoleWindow::OnKeyDown);
 

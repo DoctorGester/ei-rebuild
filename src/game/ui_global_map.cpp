@@ -179,10 +179,6 @@ struct VariableIterator {
     NamedFloatTable::Node* NextBucket();                // 005E0DB0
 };
 NamedFloatTable::Node* VariableIterator::NextBucket() { return (NamedFloatTable::Node*)VariableIteratorNextOriginal((void*)this); }
-struct BeginAt {
-    void Begin(VariableIterator* it);                   // 004614C0
-};
-__declspec(naked) void BeginAt::Begin(VariableIterator*) EI_ORIGINAL(0x004614C0)
 
 // A local hash_map<CString, float>, freed the way the original's inlined destructor does: every
 // node's key released and the node returned to the 16-byte free list, then the bucket storage.
@@ -458,7 +454,7 @@ void CGlobalMap::Create() {
         variable.Format(GameText(0x00794140), zones_.data[i].name);   // "q.%s"
         reinterpret_cast<LocalPlayerOriginal*>(0x007AFEA5)->CopyVariables(variable, vars.Table());
         VariableIterator it;
-        reinterpret_cast<BeginAt*>(vars.Table())->Begin(&it);
+        FloatTableBeginOriginal(vars.Table(), nullptr, &it);
         while (NamedFloatTable::Node* node = it.node) {
             std::uint32_t value;
             std::memcpy(&value, &node->value, 4);

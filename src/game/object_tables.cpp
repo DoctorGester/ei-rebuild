@@ -81,10 +81,8 @@ __declspec(naked) void __fastcall TableResize(NamedFloatTable*, void*, std::uint
 __declspec(naked) NamedFloatTable::Node* __fastcall TableNewNode(NamedFloatTable*, void*, const KeyValue*) EI_ORIGINAL(0x004615B0)
 __declspec(naked) void __fastcall NodeDeallocate(NamedFloatTable::Node*, int) EI_ORIGINAL(0x00461710)
 // clear (00461540), operator[] (004613C0: returns the value's address), _M_delete_node (004616A0).
-__declspec(naked) void __fastcall TableClearAt(NamedFloatTable*) EI_ORIGINAL(0x00461540)
 __declspec(naked) float* __fastcall TableIndex(NamedFloatTable*, void*, const mfc::CString*) EI_ORIGINAL(0x004613C0)
-__declspec(naked) void __fastcall TableDeleteNode(NamedFloatTable*, void*, NamedFloatTable::Node*) EI_ORIGINAL(0x004616A0)
-void TableClear(NamedFloatTable* table) { TableClearAt(table); }
+void TableClear(NamedFloatTable* table) { FloatTableClearOriginal(table); }
 
 std::uint32_t BucketCount(const NamedFloatTable* table) {
     return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<std::uintptr_t>(table->finish) -
@@ -195,7 +193,7 @@ void NamedFloatTable::Load(CStream* stream) {
     for (std::uint32_t i = 0; i < BucketCount(this); ++i) {
         for (Node* node = buckets[i]; node;) {
             Node* next = node->next;
-            TableDeleteNode(this, nullptr, node);
+            FloatTableDeleteNodeOriginal(this, nullptr, node);
             node = next;
         }
         buckets[i] = nullptr;
