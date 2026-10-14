@@ -647,12 +647,13 @@ note = "F4a folded FigurePart into CFigureMesh but kept 'using FigurePart = CFig
 id = "F4c"
 title = "CFigureInstance into CLinkMesh (F4a follow-up)"
 group = "cleanup"
-status = "queued"
+status = "running"
 size = 2
 model = "opus"
 depends = ["F4a"]
 files = ["map_object_figures.h", "link_figure.h", "map_object_*.cpp", "object3d_*.cpp"]
 note = "CFigureInstance (map_object_figures.h) is a view of CLinkMesh (vtable 0073D790) as CObject3D +0xF0 holds it. Confirm every offset the code uses against link_figure.h, then use CLinkMesh directly; keep the slot names from becoming overrides (EI_REPLACE_METHOD on a virtual name registers a vcall thunk). Release objects should differ only in names."
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
