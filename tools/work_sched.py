@@ -213,11 +213,15 @@ def real_runner(batch, run, retries, on_attempt):
     """run_all.run_with_retries() of one run row, in the batch's checkout and build, in a slot we hold."""
     attempts = iter(range(retries + 1))
     env = batch_env(batch)
+    try:
+        clock = parse_batch_args(batch['args']).clock   # --clock, as run_all passes it (WB8)
+    except (KeyError, IndexError, ValueError):
+        clock = None
 
     def one(name, install, hooks, folder):
         on_attempt(next(attempts))
         return run_all.run(name, install, hooks, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
-                           game_env=env)
+                           clock=clock, game_env=env)
     return run_all.run_with_retries(run['scenario'], run['install'].split('-')[0], bool(run['hooks']), retries,
                                     os.path.basename(run['folder']), runner=one)
 

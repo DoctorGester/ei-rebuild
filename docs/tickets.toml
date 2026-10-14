@@ -835,8 +835,9 @@ done = "2026-10-15"
 id = "WB8"
 title = "work.py test passes run_all's --clock to the games"
 group = "harness"
-status = "queued"
+status = "done"
 note = "Found in SV2: work.py test SV2 <scenario> --clock virtual,randtrace ran without the random trace (work_sched.py never reads --clock; run_all.run takes clock=). Workaround: EI_HARNESS_CLOCK in the environment. Pass args.clock through the batch to run_all.run, or reject it visibly (WB7)."
+done = "2026-10-15"
 
 # ---------------------------------------------------------------- cleanup
 
