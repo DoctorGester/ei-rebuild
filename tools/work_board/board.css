@@ -109,3 +109,11 @@ footer, #error { color: var(--muted); font-size: 12px }
 #error { color: var(--accent) }
 #view { display: grid; gap: 22px }
 .act.tests.prev::before { background: var(--line) }
+
+/* Batch panels and the history table fold away; the summary holds the head (and progress bar). */
+details.panel.batch { display: block }
+details.batch > summary { list-style: none; font-size: inherit; color: inherit; display: grid; gap: 10px }
+details.batch > summary::-webkit-details-marker { display: none }
+details.batch > summary .head::before { content: 'B8'; color: var(--muted); display: inline-block; width: 1em; transition: transform .15s }
+details.batch[open] > summary .head::before { transform: rotate(90deg) }
+details.batch > .body { display: grid; gap: 10px; margin-top: 10px; min-width: 0 }

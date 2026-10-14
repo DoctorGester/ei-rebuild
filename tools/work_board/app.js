@@ -169,14 +169,15 @@ function gamesTable(b, now) {
     games.map(g => gameRow(g)).join('') + `</tbody></table></div>`;
 }
 function batchPanel(b, pos) {
-  const now = sinceFetch();
-  return `<section class="panel"><div class="head"><span class="id">#${b.id}</span><span>${esc(b.ticket || '-')}</span>` +
+  // Collapsed by default: the head and progress bar show; a click opens the arguments and the games.
+  const now = sinceFetch(), key = 'b-' + b.id;
+  return `<details class="panel batch" data-key="${key}"${open.has(key) ? ' open' : ''}><summary><div class="head"><span class="id">#${b.id}</span><span>${esc(b.ticket || '-')}</span>` +
     `<span class="mono" style="color:var(--muted)">${esc(b.worktree)}</span>${pos ? `<span class="pill">position ${pos}</span>` : ''}` +
-    `<span class="sub" style="margin-left:auto">${batchSummary(b, false)}</span></div>${progress(b)}` +
+    `<span class="sub" style="margin-left:auto">${batchSummary(b, false)}</span></div>${progress(b)}</summary><div class="body">` +
     (b.args.length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">${esc(b.args.join(' '))}</div>` : '') +
     // The submitter's EI_* variables the games ran with (EI_PROFILE=1, EI_PLAIN=1, ...).
     (Object.keys(b.env || {}).length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)" title="Environment of this batch's games">env: ${esc(Object.entries(b.env).map(([k, v]) => k + '=' + v).join(' '))}</div>` : '') +
-    (b.games.length ? gamesTable(b, now) : '') + `</section>`;
+    (b.games.length ? gamesTable(b, now) : '<p class="empty">No games yet.</p>') + `</div></details>`;
 }
 function runsView() {
   const r = data.runs, p = data.processes;
@@ -198,8 +199,11 @@ function runsView() {
       (Object.keys(b.env || {}).length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">env: ${esc(Object.entries(b.env).map(([k, v]) => k + '=' + v).join(' '))}</div>` : '') +
       `</td><td>${fails}</td></tr>`;
   }).join('');
+  const bad = r.history.filter(b => b.state !== 'cancelled' && (failCount(b) || b.exit_code)).length;
   out.push(`<section class="lane"><h2>History<span class="n">${r.history.length}</span></h2>` + (rows ?
-    `<div class="panel scroll"><table><thead><tr><th class="num">Batch</th><th>Ticket</th><th>Worktree</th><th class="num">Ago</th><th class="num">Took</th><th>Result</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` :
+    `<details class="panel batch" data-key="history"${open.has('history') ? ' open' : ''}><summary><div class="head">` +
+    `<span>${r.history.length} finished batch${r.history.length > 1 ? 'es' : ''}</span>${bad ? `<span class="bad">${bad} with failures</span>` : ''}</div></summary>` +
+    `<div class="body scroll"><table><thead><tr><th class="num">Batch</th><th>Ticket</th><th>Worktree</th><th class="num">Ago</th><th class="num">Took</th><th>Result</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></details>` :
     '<p class="empty">No finished batches yet.</p>') + '</section>');
   return out.join('');
 }
