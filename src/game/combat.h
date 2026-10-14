@@ -228,6 +228,12 @@ struct AIEventPresence {
 // An entry of the armour spell list (CUnitServer + 0x91C; 005528F0 builds it): the item (a counted
 // reference), its countdown and whether it is still worn.
 struct ArmourSpell {
+    // combat_save.cpp (A-U7). 00545430 (thiscall on the entry, RET 4): the item's id (-1 without one)
+    // and the countdown. 005585F0 (__fastcall, plain RET): the list from a save: `count` new entries
+    // appended (no item, countdown 0; the original's `worn` byte is stack garbage, ours 0), then each
+    // entry from the head takes its item (the item manager's object of the id read, referenced) and
+    // countdown.
+    void Save(UnitStream* stream) const;
     // 00558840 (RET 4; combat_small_records.cpp, A-U12; the list's SetAt in RefreshItemSpells).
     // The record assigned: `other`'s item referenced (the old one released after), its countdown
     // and worn byte. Returns this.
@@ -251,12 +257,6 @@ class CSpell;
 bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
                                  CUnit* toUnit, const Vector3* to);
 
-// combat_save.cpp (A-U7). 00545430 (thiscall on the entry, RET 4): the item's id (-1 without one)
-// and the countdown. 005585F0 (__fastcall, plain RET): the list from a save: `count` new entries
-// appended (no item, countdown 0; the original's `worn` byte is stack garbage, ours 0), then each
-// entry from the head takes its item (the item manager's object of the id read, referenced) and
-// countdown.
-void __fastcall SaveArmourSpell(const ArmourSpell* entry, void*, UnitStream* stream);
 void __fastcall LoadArmourSpells(ArmourSpellList* list, UnitStream* stream);
 
 class CUnitServer : public CEngineObject {
@@ -529,7 +529,7 @@ public:
 
     void CallFinishCast();
 
-    // combat_save.cpp (third round).
+    // combat_save.cpp.
     // 00555D10. Virtual slot 9 (Load): the controller's state (animation lists, the motion and
     // plan objects, both orders, the stats copy, movement factors, the brain, the voice, the
     // effect object and the attackers list), version dependent from 0x44 on.
@@ -537,7 +537,7 @@ public:
     // 005561C0. Virtual slot 10 (Save): the same in the same order, at the current version.
     void SaveServer(UnitStream* stream);
 
-    // combat_sight.cpp (third round): can an order be carried out from here, and when.
+    // combat_sight.cpp: can an order be carried out from here, and when.
     // 0054BCB0. What a cast (kinds 4, 5) or an order on a unit must see: false for a point order
     // with flag18, a missing spell, a spell whose prototype +0x40 is 0, or (other kinds) a target
     // that is not a unit. Callers test AL.
@@ -564,7 +564,7 @@ public:
     bool CallCanActFrom(const UnitAction* order, const float* point, int time);
     bool CallPlanAction(const UnitAction* order, struct OrderPlan* plan);
 
-    // combat_steps.cpp (third round): the animation steps of an order. The unit's animation
+    // combat_steps.cpp: the animation steps of an order. The unit's animation
     // entries are looked up by a key of weapon, movement and action bits (CUnit 005301B0).
     // 00551A40 / 00551A90. The duration / the moment of the action of animation entry `index`, in
     // ticks: the entry's +0x20 / +0x40 divided by the unit's speed factor for it (005327D0),
@@ -588,7 +588,7 @@ public:
     void CallBuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
     int CallAnimationMoment(std::uint32_t index);
 
-    // combat_tick.cpp (third round): the per-tick order machine.
+    // combat_tick.cpp: the per-tick order machine.
     // 0054B390. Every tick: takes over the queued order, else follows the path and continues the
     // current order (ContinueAction for actions; a finished move or animation lets the queue on).
     void UpdateOrders();
@@ -620,7 +620,7 @@ public:
     void CallTakeQueuedOrder();
     void CallSetUnitMoveMode2(int mode);
 
-    // combat_update.cpp (fourth round): the update and the animation queue.
+    // combat_update.cpp: the update and the animation queue.
     // 00552300. Virtual slot 6, once per world update. A living unit regenerates, tells the AI
     // events where it is, ticks its item spells, party units their memory and boredom, then the
     // alarm, the brain and hostility; the orders (when not frozen, reacting to a hit or acting),
@@ -666,7 +666,7 @@ public:
     // countdown runs out and the item's charge covers it (type 0x18: one a tick, when hurt).
     void TickItemSpells();
 
-    // combat_motion.cpp (fourth round): movement modes, idle and movement animations, paths.
+    // combat_motion.cpp: movement modes, idle and movement animations, paths.
     // 00549D00. False while an attack turns (state 2) and `ticks` from now would pass the next
     // attack's time (+0x184). Callers test AL.
     bool CanReactFor(int ticks);
@@ -732,7 +732,7 @@ public:
     // entries keep their countdown, new ones start at 0, entries of items no longer worn go.
     void RefreshItemSpells();
 
-    // combat_planning.cpp (fourth round): the way to an order's target.
+    // combat_planning.cpp: the way to an order's target.
     // 0054DF50. For a use order on a target (kind 6, source 0): the reachable spot the target
     // offers (its slot 44, for the unit's size) whose path is cheapest becomes the order's point
     // (flag18 set), its path into `motionOrder` (if given); false when no spot can be reached.

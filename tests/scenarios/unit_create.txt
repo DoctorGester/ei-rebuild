@@ -1,5 +1,5 @@
 # Unit creation and destruction (src/game/unit_create*.cpp, map_object_lifetime.cpp,
-# map_object_figures.cpp, map_object_shadow.cpp; docs/notes/units.md, "Fourth round"): units of
+# map_object_figures.cpp, map_object_shadow.cpp; docs/notes/units.md, "Creation, databases, save"): units of
 # several prototypes are spawned (the map object factory, the CUnit / CMapObject / CObject3D
 # constructors, ApplyPrototype with BuildFromPrototype and the NPC statistics, the prototype name
 # lookups, the figures loaded and scaled), drawn with their shadows for a while, then killed or

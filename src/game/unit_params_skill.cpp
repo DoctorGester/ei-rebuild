@@ -1,5 +1,5 @@
 // The weapon skill bonus on a unit's packed parameters (00527850). See unit.h (UnitParams) and
-// docs/notes/units.md ("Weapon skill on the packed parameters").
+// docs/notes/units.md ("Statistics in play").
 #include "item_db.h"
 #include "unit.h"
 #include "unit_db.h"

@@ -1,6 +1,6 @@
 // The item database's name-indexed tables read from an archive stream: quick items, quest items and
 // loot (006A6E50 / 006A7110 / 006A73B0, from the database's load 006A67A0). See item_db.h
-// (itemdb::IndexedRecordTable) and docs/notes/items_spells.md (A-H17).
+// (itemdb::IndexedRecordTable) and docs/notes/items_spells.md ("Databases and naming").
 #include "item_db.h"
 
 #include "chunk_archive.h"

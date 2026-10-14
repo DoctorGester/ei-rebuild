@@ -1,7 +1,7 @@
 // The global map's Create (slot 25 of 00740B3C, 0062D350): the island model of the local player's
 // allod, its zones, the quests the player holds and the links to the zones the player may enter,
-// the clock text, the camp and turn buttons, the weather. See docs/notes/ui.md ("Camp, global map
-// and battle screen setup").
+// the clock text, the camp and turn buttons, the weather. See docs/notes/ui.md ("Camp, global map, hero
+// screens").
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the

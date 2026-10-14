@@ -5,15 +5,13 @@
 
 #include <cstdint>
 
-CRefObject* __fastcall CacheGet(UnitShapeCache* cache, void*, void* handle);
-
 namespace {
 void* s_unused;
 }
 
 // 005BD7F0.
 static CRefObject* __fastcall CacheGetVerify(UnitShapeCache* cache, void*, void* handle) {
-    CRefObject* result = CacheGet(cache, nullptr, handle);
+    CRefObject* result = cache->Get(handle);
     const auto* fields = static_cast<const ShapeCacheHandle*>(handle);
     bool ok = fields->cache == cache && fields->ref == result;
     ei::verify::Check("CacheGet", true, ok, "%p", result);

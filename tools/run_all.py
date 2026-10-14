@@ -32,7 +32,7 @@ import argparse, collections, concurrent.futures, contextlib, glob, json, msvcrt
 import prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUILD = os.path.join(ROOT, 'build', 'verify')
+BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
 LAUNCH = os.path.join(BUILD, 'ei_launch.exe')
 RUNS = os.path.join(BUILD, 'runs')
 # Each run's seconds from the last suite: the longest start first, so the last games to finish are

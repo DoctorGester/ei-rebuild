@@ -21,8 +21,6 @@ RefPtr* __fastcall RefPtrShareReturn(RefPtr* self, void*, CRefObject* object);  
 void __fastcall PairReleaseSecond(void* self);                                    // refptr_copies.cpp
 void __fastcall PairDestroySecond(void* self);                                    // refptr_copies.cpp
 void __fastcall ReleaseThird(void* self);                                         // refptr_copies.cpp
-RefPtr* __fastcall RefPtrAssignHolder(RefPtr* self, void*, const RefPtr* other);  // refptr_copies.cpp
-RefPtr* __fastcall RefPtrAssignObject(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
 bool __fastcall RefIsUnique(const CRefObject* object);                            // refptr_copies.cpp
 int __fastcall RefDetachShutdown(CRefObject* object);                             // refptr_copies.cpp
 void __fastcall ObjectHolderRelease(CEngineObject** self);                         // refptr_copies.cpp
@@ -32,7 +30,6 @@ void __fastcall ObjectHolderAssign(CEngineObject** self, void*, CEngineObject* o
 void __fastcall RefPtrClear(RefPtr* self);                                        // refptr_copies.cpp
 RefPtr* __fastcall RefPtrNull(RefPtr* self);                                      // refptr_copies.cpp
 RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);               // refptr_copies.cpp
-RefPtr* __fastcall RefPtrFromRawCounted(RefPtr* self, void*, CRefObject* object); // refptr_copies.cpp
 
 namespace {
 
@@ -355,7 +352,7 @@ EI_RAW_COPY(00428C20) EI_RAW_COPY(00428C30) EI_RAW_COPY(00428C40) EI_RAW_COPY(00
 
 // The counted raw holders add a reference: ours only (the copy points at the object).
 RefPtr* __fastcall RawCountedVerify(RefPtr* self, void*, CRefObject* object) {
-    RefPtr* result = RefPtrFromRawCounted(self, nullptr, object);
+    RefPtr* result = self->FromRawCounted(object);
     ei::verify::Check("RefPtrFromRawCounted", true, result == self && self->ptr == object, "");
     return result;
 }
@@ -459,12 +456,12 @@ void __fastcall ThirdReleaseVerify(void* self) {
 
 // The assignments, the holder of engine objects: ours only (they release and share).
 RefPtr* __fastcall AssignHolderVerify(RefPtr* self, void*, const RefPtr* other) {
-    RefPtr* result = RefPtrAssignHolder(self, nullptr, other);
+    RefPtr* result = self->AssignHolder(other);
     ei::verify::Check("RefPtrAssignHolder", true, result == self, "");
     return result;
 }
 RefPtr* __fastcall AssignObjectVerify(RefPtr* self, void*, CRefObject* object) {
-    RefPtr* result = RefPtrAssignObject(self, nullptr, object);
+    RefPtr* result = self->AssignObject(object);
     ei::verify::Check("RefPtrAssignObject", true, result == self, "");
     return result;
 }

@@ -108,6 +108,16 @@
 //                             animation, while the frames keep being drawn. Do not "check"/"waitfor"
 //                             while frozen (script output needs world updates); a scenario that
 //                             freezes also sees a fixed date (as in deterministic mode)
+//   focus off|on              the focus lost (WM_ACTIVATE inactive, the window minimised) or given
+//                             back (restored, WM_ACTIVATE click-active), as Windows does it
+//   windowsize <w> <h>        resize the game window (its client area) to <w> x <h>
+//   fullscreen 0|1            answer the game's FullScreen setting for this run (harness_starter.h)
+//   waitpresent <seconds> [gamma]
+//                             wait until the switch-over has presented a frame on the game window
+//                             (its own swap chain); with "gamma" also until the verify build has
+//                             checked a presented frame against a gamma ramp that is not the
+//                             identity (one to one only; fails on a difference). Fails after
+//                             <seconds> or when the swap chain failed
 //   render <spec>             the new renderer for this run (src/render/render.h; the format of
 //                             EI_RENDER, e.g. "new" or "new,split"). Read before the game starts.
 //                             With it, "capture" also writes frames\<name>.new.bmp
@@ -289,6 +299,13 @@ DWORD g_waitForStart = 0;
 unsigned g_frames = 0;
 bool g_waitingFrames = false;
 unsigned g_waitFramesUntil = 0;
+// A pending "waitpresent" (R9c): the game window's presents when it started, its deadline, whether it
+// waits for a gamma ramp check too, and the ramp checks a previous one has seen.
+bool g_waitingPresent = false;
+bool g_waitPresentGamma = false;
+std::uint32_t g_waitPresentFrom = 0;
+DWORD g_waitPresentDeadline = 0;
+int g_rampChecksSeen = 0;
 // A pending "waitwindow": the window's vtables (either of a window's two), its name, when it
 // started and gives up, and the frame from which it has been ready (kNotReady: not ready now).
 constexpr unsigned kNotReady = ~0u;
@@ -962,12 +979,28 @@ void PostKey(const std::string& name) {
     PostMessageA(GameWindow(), WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
 }
 
-void PostMouse(const std::string& verb, int x, int y) {
+// The client area mouse steps aim at: the game window's, or in the switch-over the frame's
+// (render::FrameInWindow: the frame may be scaled into a larger window, R9c); a point of it reaches
+// the window through ToWindow.
+RECT GameClient() {
     RECT client{};
+    int width = 0, height = 0;
+    render::Rect placed{};
+    if (render::FrameInWindow(&width, &height, &placed)) return RECT{0, 0, width, height};
     GetClientRect(GameWindow(), &client);
-    LPARAM at = MAKELPARAM(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
-    g_mouseX = x * (client.right - client.left) / 800;
-    g_mouseY = y * (client.bottom - client.top) / 600;
+    return client;
+}
+POINT ToWindow(int x, int y) {
+    render::FrameToWindow(&x, &y);
+    return POINT{x, y};
+}
+
+void PostMouse(const std::string& verb, int x, int y) {
+    RECT client = GameClient();
+    POINT window = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
+    LPARAM at = MAKELPARAM(window.x, window.y);
+    g_mouseX = window.x;
+    g_mouseY = window.y;
     PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
     if (verb == "click") {
         PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
@@ -995,9 +1028,8 @@ void PostMouse(const std::string& verb, int x, int y) {
 
 // A wheel turn at (x, y) in the 800x600 layout. WM_MOUSEWHEEL carries screen coordinates.
 void PostWheel(int x, int y, int delta) {
-    RECT client{};
-    GetClientRect(GameWindow(), &client);
-    POINT point{x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600};
+    RECT client = GameClient();
+    POINT point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
     PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
     ClientToScreen(GameWindow(), &point);
     PostMessageA(GameWindow(), WM_MOUSEWHEEL, MAKEWPARAM(0, static_cast<short>(delta)), MAKELPARAM(point.x, point.y));
@@ -1020,12 +1052,12 @@ void PostRegionMouse(const std::string& verb, int index) {
     Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window,
         region->bounds_.left, region->bounds_.top, region->bounds_.right, region->bounds_.bottom, region->enabled_);
     ui->CallScalePointToScreen(&point);
-    RECT client{};
-    GetClientRect(GameWindow(), &client);
+    RECT client = GameClient();
     if (ui->width_ > 0 && ui->height_ > 0) {
         point.x = point.x * (client.right - client.left) / ui->width_;
         point.y = point.y * (client.bottom - client.top) / ui->height_;
     }
+    point = ToWindow(point.x, point.y);
     LPARAM at = MAKELPARAM(point.x, point.y);
     PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
     if (verb == "clickregion") {
@@ -1117,6 +1149,7 @@ std::string PostUnitMouse(const std::string& argument) {
         (flags & kPickableUnit) ? "" : " (no 0x400000: the battle screen ignores it)");
     // The battle screen reads the message's coordinates as they are (the pick space is the client
     // area); the harness's cursor follows them.
+    at = ToWindow(at.x, at.y);   // the frame's pixel in the window (R9c)
     g_mouseX = at.x;
     g_mouseY = at.y;
     LPARAM where = MAKELPARAM(at.x, at.y);
@@ -1311,7 +1344,8 @@ std::string DescribeTopWindow() {
 bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" ||
-           verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit";
+           verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit" ||
+           verb == "focus" || verb == "windowsize";
 }
 
 // Unhandled exceptions end the run with a failure. Installed at start and re-asserted every step:
@@ -1392,6 +1426,9 @@ void HotPatch(const char* name, void* replacement) {
     VirtualProtect(p - 5, 7, old, &old);
     FlushInstructionCache(GetCurrentProcess(), p - 5, 7);
 }
+
+std::string FocusStep(const std::string& argument);
+std::string WindowSizeStep(const std::string& argument);
 
 void RunSteps() {
     SetUnhandledExceptionFilter(&HarnessUnhandled);
@@ -1505,6 +1542,36 @@ void RunSteps() {
     if (g_waitingFrames) {
         if (g_frames < g_waitFramesUntil) return;
         g_waitingFrames = false;
+    }
+    if (g_waitingPresent) {
+        render::WindowPresentInfo now = render::WindowPresents();
+        bool presented = now.presents > g_waitPresentFrom;
+        bool checked = !g_waitPresentGamma ||
+                       (now.rampChecks > g_rampChecksSeen && !now.rampCheckPending && !now.rampIdentity);
+        if (presented && checked) {
+            Log("harness: waitpresent: %u frames presented on the game window%s", now.presents - g_waitPresentFrom,
+                g_waitPresentGamma ? " and the gamma ramp checked" : "");
+            if (g_waitPresentGamma) {
+                g_rampChecksSeen = now.rampChecks;
+                if (now.rampDiffering) {
+                    char what[160];
+                    std::snprintf(what, sizeof(what), "waitpresent: %d of %d points of the presented frame differ from the gamma ramp",
+                                  now.rampDiffering, now.rampPoints);
+                    g_failures.push_back(what);
+                }
+            }
+            g_waitingPresent = false;
+        } else if (now.failed || Now() >= g_waitPresentDeadline) {
+            char what[200];
+            std::snprintf(what, sizeof(what), "waitpresent: %s (%u presented, %d ramp checks, one pending %d, identity %d)",
+                          now.failed ? "the game window's swap chain failed" : "timed out", now.presents - g_waitPresentFrom,
+                          now.rampChecks, now.rampCheckPending, now.rampIdentity);
+            Log("harness: %s", what);
+            g_failures.push_back(what);
+            g_waitingPresent = false;
+        } else {
+            return;
+        }
     }
     if (g_waitingWindow) {
         // Ready on two frames in a row, and done in an input loop pass (input steps follow).
@@ -1777,6 +1844,18 @@ void RunSteps() {
             render::SetDrawOldObjects(s.argument != "off");
         } else if (s.verb == "oldinterface") {
             render::SetDrawOldInterface(s.argument != "off");
+        } else if (s.verb == "waitpresent") {
+            int seconds = 10;
+            char what[16] = "";
+            sscanf_s(s.argument.c_str(), "%d %15s", &seconds, what, unsigned(sizeof(what)));
+            g_waitPresentFrom = render::WindowPresents().presents;
+            g_waitPresentGamma = std::strcmp(what, "gamma") == 0;
+            g_waitPresentDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
+            g_waitingPresent = true;
+            return;
+        } else if (s.verb == "focus" || s.verb == "windowsize") {
+            std::string error = s.verb == "focus" ? FocusStep(s.argument) : WindowSizeStep(s.argument);
+            if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
             Freeze(s.verb == "freeze");
         } else if (s.verb == "reject") {
@@ -1885,6 +1964,42 @@ void ActivateWithoutDirectDraw(HWND window) {
     if (*reinterpret_cast<std::uint8_t*>(0x0079BC5C)) return;
     Log("harness: the game window activated (the switch-over has no DirectDraw to activate it)");
     SendMessageA(window, WM_ACTIVATE, WA_ACTIVE, 0);
+}
+
+// focus off: what Windows sends the game when another window takes the focus (WM_ACTIVATE
+// WA_INACTIVE, which AlwaysActiveWindowProc otherwise keeps from it): the game deactivates and asks
+// to be minimised, which ShowWithoutActivating leaves out, so the step minimises the window itself
+// (activating nothing). focus on: the window restored (not activated) and the activation Windows
+// sends when the user comes back (WA_CLICKACTIVE). Ticket R9c.
+std::string FocusStep(const std::string& argument) {
+    HWND window = GameWindow();
+    if (!window || !g_gameWindowProc) return "focus: no game window yet";
+    if (argument == "off") {
+        Log("harness: focus off (WM_ACTIVATE inactive, the window minimised)");
+        CallWindowProcA(g_gameWindowProc, window, WM_ACTIVATE, WA_INACTIVE, 0);
+        g_showWindow(window, SW_SHOWMINNOACTIVE);
+        return "";
+    }
+    if (argument == "on") {
+        Log("harness: focus on (the window restored, WM_ACTIVATE click-active)");
+        g_showWindow(window, SW_SHOWNOACTIVATE);
+        CallWindowProcA(g_gameWindowProc, window, WM_ACTIVATE, WA_CLICKACTIVE, 0);
+        return "";
+    }
+    return "focus needs off or on";
+}
+
+// windowsize <width> <height>: the game window resized (it is a WS_POPUP: its size is the client
+// area's), as the user or a display change could; the switch-over scales the frame into it.
+std::string WindowSizeStep(const std::string& argument) {
+    int width = 0, height = 0;
+    if (sscanf_s(argument.c_str(), "%d %d", &width, &height) != 2 || width <= 0 || height <= 0)
+        return "windowsize needs <width> <height>";
+    HWND window = GameWindow();
+    if (!window) return "windowsize: no game window yet";
+    Log("harness: windowsize %dx%d", width, height);
+    SetWindowPos(window, nullptr, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+    return "";
 }
 
 void KeepGameWindowActive() {

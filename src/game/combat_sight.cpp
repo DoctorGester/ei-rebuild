@@ -1,6 +1,6 @@
 // Combat, third part: whether an order can be carried out from where the unit stands (reach, units
 // in the way, line of sight) and the planner that finds the moment it can. See combat.h,
-// combat_plan.h and docs/notes/combat.md ("Third round").
+// combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "combat_plan.h"
 

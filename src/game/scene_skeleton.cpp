@@ -4,7 +4,7 @@
 // the zero vector 0079B9B0), the mesh named like a node moved into the node's frame, the bones built
 // from the root node (00449240), then each node's frame array (+0xF8, 40-byte records) sized to the
 // frame count with the pivot and rotation in its first record. Plain float maths (rule 7). Names
-// provisional; see docs/notes/objects.md ("Sixth round").
+// provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "figure.h"

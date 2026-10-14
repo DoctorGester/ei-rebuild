@@ -93,42 +93,42 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
 }
 EI_REPLACE(0x004A5BD0, PartyRecordsReset);
 
-void* __fastcall PartyRecordsFind(const NamedPartyRecords* list, void*, const char* name) {
+void* NamedPartyRecords::Find(const char* name) const {
     void* unnamed = nullptr;
-    for (unsigned i = 0; i < static_cast<unsigned>(list->records.size()); ++i) {
-        if (MbsCmp(NameOf(list->records.begin()[i]), name) == 0) return list->records.begin()[i]->party;
-        if (MbsCmp(NameOf(list->records.begin()[i]), game::EmptyText()) == 0) unnamed = list->records.begin()[i]->party;
+    for (unsigned i = 0; i < static_cast<unsigned>(records.size()); ++i) {
+        if (MbsCmp(NameOf(records.begin()[i]), name) == 0) return records.begin()[i]->party;
+        if (MbsCmp(NameOf(records.begin()[i]), game::EmptyText()) == 0) unnamed = records.begin()[i]->party;
     }
     return unnamed;
 }
-EI_REPLACE(0x004A5E10, PartyRecordsFind);
+EI_REPLACE_METHOD(0x004A5E10, NamedPartyRecords::Find);
 
-void __fastcall PartyRecordsAdd(NamedPartyRecords* list, void*, const char* name) {
+void NamedPartyRecords::Add(const char* name) {
     PartyRecord* record = NewRecord();
     AssignText(&record->name, nullptr, name);
     PartyRecord* temp = record;
     if (temp) ++temp->refCount;
-    if (list->records.Finish() == list->records.EndOfStorage()) {
-        RecordInsertOverflow(list, nullptr, list->records.Finish(), &temp, 1);
+    if (records.Finish() == records.EndOfStorage()) {
+        RecordInsertOverflow(this, nullptr, records.Finish(), &temp, 1);
     } else {
-        if (list->records.Finish()) {
-            *list->records.Finish() = temp;
+        if (records.Finish()) {
+            *records.Finish() = temp;
             if (temp) ++temp->refCount;
         }
-        ++list->records.Finish();
+        ++records.Finish();
     }
     Release(temp);
 }
-EI_REPLACE(0x004A5E90, PartyRecordsAdd);
+EI_REPLACE_METHOD(0x004A5E90, NamedPartyRecords::Add);
 
-void __fastcall PartyRecordsRemove(NamedPartyRecords* list, void*, const char* name) {
-    for (unsigned i = 0; i < static_cast<unsigned>(list->records.Finish() - list->records.Start()); ++i) {
-        if (MbsCmp(NameOf(list->records.Start()[i]), name) != 0) continue;
+void NamedPartyRecords::Remove(const char* name) {
+    for (unsigned i = 0; i < static_cast<unsigned>(records.Finish() - records.Start()); ++i) {
+        if (MbsCmp(NameOf(records.Start()[i]), name) != 0) continue;
         // erase(i): the tail moved down one slot by counted assignment, the last slot released.
         // The index still advances, so the record moved into slot i is not tested.
-        PartyRecord** p = list->records.Start() + i;
-        if (p + 1 != list->records.Finish()) {
-            for (int n = static_cast<int>(list->records.Finish() - (p + 1)); n > 0; --n, ++p) {
+        PartyRecord** p = records.Start() + i;
+        if (p + 1 != records.Finish()) {
+            for (int n = static_cast<int>(records.Finish() - (p + 1)); n > 0; --n, ++p) {
                 PartyRecord* next = p[1];
                 PartyRecord* old = p[0];
                 p[0] = next;
@@ -136,11 +136,11 @@ void __fastcall PartyRecordsRemove(NamedPartyRecords* list, void*, const char* n
                 Release(old);
             }
         }
-        --list->records.Finish();
-        RecordPtrRelease(list->records.Finish());
+        --records.Finish();
+        RecordPtrRelease(records.Finish());
     }
 }
-EI_REPLACE(0x004A5FA0, PartyRecordsRemove);
+EI_REPLACE_METHOD(0x004A5FA0, NamedPartyRecords::Remove);
 
 // ---- The party manager (007AA5A0) -----------------------------------------------------------------
 

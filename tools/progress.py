@@ -144,7 +144,10 @@ HOOK_ERA_COUNTS = [
     ('stlp:: uses', r'\bstlp::'),
     ('gamecrt:: uses', r'\bgamecrt::'),
     ('gameapi:: uses', r'\bgameapi::'),
-    ('EI_REPLACE registrations', r'\bEI_REPLACE(?:_METHOD)?\s*\('),
+    # The interface input shims (UI_INPUT_HANDLER / UI_WHEEL_HANDLER, ui_hud.cpp) register through
+    # EI_REPLACE inside the macro, so each use counts as one registration like the replaced-function
+    # count above.
+    ('EI_REPLACE registrations', r'\b(?:EI_REPLACE(?:_METHOD)?|(?<!#define )UI_(?:INPUT|WHEEL)_HANDLER)\s*\('),
 ]
 
 

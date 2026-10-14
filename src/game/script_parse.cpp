@@ -105,6 +105,50 @@ const ScriptKeyword* KeywordTable() {
     return *reinterpret_cast<const ScriptKeyword* const*>(0x004CF69B);
 }
 
+// The game CRT's _strnicmp (006FA1A0) folds both bytes through _tolower_lk (006EBAC2), which under
+// the game's locale sends every upper-case byte through LCMapStringW: most of a zone's script load
+// went there (docs/notes/script.md, PF1). The fold of a byte depends only on the CRT's LC_CTYPE
+// state (its locale handle and code page), so it is tabled from the game CRT's own tolower and the
+// table is rebuilt when either changes (setlocale).
+namespace {
+
+struct CaseFold {
+    bool built = false;
+    unsigned localeHandle = 0;
+    unsigned codePage = 0;
+    int fold[256];
+};
+
+unsigned CrtCtypeHandle() { return *reinterpret_cast<const unsigned*>(0x007CABF0); }   // __lc_handle[LC_CTYPE]
+unsigned CrtCodePage() { return *reinterpret_cast<const unsigned*>(0x007CAC00); }      // __lc_codepage
+
+CaseFold caseFold;
+
+} // namespace
+
+const int* scriptparse::CaseFoldTable() {
+    CaseFold& table = caseFold;
+    const unsigned handle = CrtCtypeHandle();
+    const unsigned codePage = CrtCodePage();
+    if (!table.built || table.localeHandle != handle || table.codePage != codePage) {
+        for (int c = 0; c < 256; ++c) table.fold[c] = gamecrt::tolower(c);
+        table.localeHandle = handle;
+        table.codePage = codePage;
+        table.built = true;
+    }
+    return table.fold;
+}
+
+bool scriptparse::SameIgnoringCase(const int* fold, const char* a, const char* b, int n) {
+    for (; n > 0; --n, ++a, ++b) {
+        const unsigned char ca = static_cast<unsigned char>(*a);
+        const unsigned char cb = static_cast<unsigned char>(*b);
+        if (ca == 0 || cb == 0) return ca == cb;
+        if (ca != cb && fold[ca] != fold[cb]) return false;
+    }
+    return true;
+}
+
 void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
     const char* p = text;
     if (IsDigit(*p) || *p == '.' || *p == '-') {
@@ -142,10 +186,11 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
     if (id) *id = 0;
     int best = -1;
     const bool addon = scriptaddon::Enabled();
+    const int* fold = CaseFoldTable();
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         int length = static_cast<int>(std::strlen(k->name));
         if (length < best) continue;
-        if (gamecrt::strnicmp(p, k->name, length) != 0) continue;
+        if (!SameIgnoringCase(fold, p, k->name, length)) continue;
         best = length;
         // AddNewScriptCommands (hook at 004CF6F0, after the instructions that set the best
         // length): an identifier-like match must end the identifier.

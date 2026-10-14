@@ -4,6 +4,7 @@
 #include "../../src/game/device_switchover.h"
 #include "../../src/game/model.h"
 #include "../../src/game/texture.h"
+#include "../../src/render/render.h"
 
 #include <ddraw.h>
 
@@ -49,13 +50,27 @@ static void* s_gamma;
 static bool __fastcall SetGammaVerify(CSceneRenderer* renderer, void*, float brightness, float contrast, float gamma) {
     using Original = bool(__fastcall*)(CSceneRenderer*, void*, float, float, float);
     if (device::WithoutDirectDraw()) {
-        // The original would ask the stand-in for the capabilities: ours only (R9b). No gamma ramp
-        // without DirectDraw: it returns false before it keeps the three values.
-        const float before[3] = {renderer->brightness_, renderer->contrast_, renderer->gamma_};
+        // The original would ask the stand-in for the capabilities: ours only (R9b). Without
+        // DirectDraw the new renderer takes the ramp (R9c): true, the three values kept, the
+        // lookup in use never decreasing (every ramp of 00504A60 rises) and the identity for
+        // all three at 0. The presented frame is checked against it by the renderer (verify
+        // build: "gamma ramp check").
         bool result = renderer->SetGamma(brightness, contrast, gamma);
-        const float after[3] = {renderer->brightness_, renderer->contrast_, renderer->gamma_};
-        ei::verify::Check("SetGamma", true, !result && std::memcmp(before, after, sizeof(before)) == 0,
-                          "without DirectDraw (ours only): (%g, %g, %g) result %d", brightness, contrast, gamma, result);
+        const float kept[3] = {renderer->brightness_, renderer->contrast_, renderer->gamma_};
+        const float asked[3] = {brightness, contrast, gamma};
+        std::uint8_t lookup[256 * 4];
+        render::GammaRamp(lookup);
+        bool rising = true, identity = true;
+        for (int i = 0; i < 256; ++i)
+            for (int c = 0; c < 3; ++c) {
+                if (i > 0 && lookup[i * 4 + c] < lookup[(i - 1) * 4 + c]) rising = false;
+                if (lookup[i * 4 + c] != i) identity = false;
+            }
+        bool zero = brightness == 0.0f && contrast == 0.0f && gamma == 0.0f;
+        ei::verify::Check("SetGamma", true,
+                          result && std::memcmp(kept, asked, sizeof(kept)) == 0 && rising && (!zero || identity),
+                          "without DirectDraw (ours only): (%g, %g, %g) result %d rising %d identity %d", brightness,
+                          contrast, gamma, result, rising, identity);
         return result;
     }
     bool expected = reinterpret_cast<Original>(s_gamma)(renderer, nullptr, brightness, contrast, gamma);

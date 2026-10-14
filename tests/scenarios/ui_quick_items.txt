@@ -1,4 +1,4 @@
-# Quick items and spells on a target (docs/notes/ui.md, "Eighteenth pass (ticket I9)"): two wands
+# Quick items and spells on a target (docs/notes/ui.md, "Battle HUD panels"): two wands
 # go into the hero's quick slots through the camp, then the battle screen uses them on a unit and
 # at a point, and a spell aimed at a point is cast on the ground.
 #

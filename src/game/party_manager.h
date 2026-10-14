@@ -3,7 +3,7 @@
 // The party manager (the object at 007AA5A0): the parties stored by key (the players' parties
 // between zones), a list of entries, the named party records and the class templates, saved with
 // the game through a chunk archive (004A8560) and loaded back (004A8310). Names provisional; see
-// docs/notes/script.md ("A-S9") and docs/notes/world.md ("Party records and class templates").
+// docs/notes/script.md ("Leftovers") and docs/notes/world.md ("Party records and class templates").
 
 #include "class_templates.h"
 #include "party_records.h"

@@ -1,7 +1,7 @@
 // The material type of a face group name (0044A2A0, Ghidra: ParseMaterial; called by
 // LoadFigureRegistry): the name split at its dots must have three parts; the second (lower-cased)
 // names the texture type, the third the material. Unknown names are fatal errors. Names
-// provisional; see docs/notes/objects.md ("Sixth round").
+// provisional; see docs/notes/objects.md ("Rewritten").
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "ei/hook.h"

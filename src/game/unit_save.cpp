@@ -1,5 +1,5 @@
 // CUnit's Load and Save slots (vtable 0073EA8C slots 9 and 10). See unit.h and
-// docs/notes/units.md ("Third round").
+// docs/notes/units.md ("Creation, databases, save").
 #include "unit.h"
 
 #include "ai_motion.h"

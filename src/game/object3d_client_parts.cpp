@@ -41,11 +41,6 @@ void AssignCounted(T** slot, T* value) {
     if (old) old->Release();
 }
 
-// The wounds material loses a reference; its slot 0 deletes it at the last one.
-void DropWoundsMaterial(WoundsMaterial* material) {
-    if (material && --material->refCount == 0) material->DeletingDestructor(1);
-}
-
 // Whether a texture of `kind` belongs to the first part set (the switch of 0051B2F0: the table at
 // 0051B460 for kinds 1..0x10; any other kind goes to the second).
 bool IsPrimaryKind(int kind) {
@@ -147,9 +142,7 @@ CObject3DClientSpecific* CObject3DClientSpecific::Construct() {
     materialCursor = -1;
     AssignCounted<CEngineObject>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
-    WoundsMaterial* material = woundsMaterial;
-    woundsMaterial = nullptr;
-    DropWoundsMaterial(material);
+    ClearWoundsMaterial();
     bounds[3] = 0.0f;
     bounds[2] = 0.0f;
     bounds[1] = 0.0f;
@@ -164,9 +157,7 @@ int CObject3DClientSpecific::CreateClient() {
     flags_ = 0;
     AssignCounted<CEngineObject>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
-    WoundsMaterial* material = woundsMaterial;
-    woundsMaterial = nullptr;
-    DropWoundsMaterial(material);
+    ClearWoundsMaterial();
     bounds[3] = 0.0f;
     bounds[2] = 0.0f;
     bounds[1] = 0.0f;
@@ -185,9 +176,7 @@ EI_REPLACE_METHOD(0x0051AEC0, CObject3DClientSpecific::CreateClient);
 void CObject3DClientSpecific::DestroyClient() {
     AssignCounted<CEngineObject>(&texture, nullptr);
     AssignCounted<CTexture>(&woundsTexture, nullptr);
-    WoundsMaterial* material = woundsMaterial;
-    woundsMaterial = nullptr;
-    DropWoundsMaterial(material);
+    AsCountedRef(woundsMaterial).Assign(nullptr);   // the call to 0051E570
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = partSets[k];
         if (!set) continue;
@@ -219,7 +208,7 @@ void CObject3DClientSpecific::DestructBody() {
     DestroyClient();
     secondSkinName.~CString();
     skinName.~CString();
-    DropWoundsMaterial(woundsMaterial);
+    if (woundsMaterial) woundsMaterial->Release();
     if (woundsTexture) woundsTexture->Release();
     if (texture) texture->Release();
     if (indices.data) lib::FreeAligned32(indices.data);

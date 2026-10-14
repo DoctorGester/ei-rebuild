@@ -1,5 +1,5 @@
 // The camp's page switch (0060E9E0) and the camp panels' layout code (see docs/notes/ui.md, "Camp,
-// global map and battle screen setup").
+// global map, hero screens").
 #include "device.h"   // the old device's calls
 #include "ui_camp.h"
 

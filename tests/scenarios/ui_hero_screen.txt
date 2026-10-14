@@ -1,4 +1,5 @@
-# The multiplayer hero screen's left button (00617050; docs/notes/ui.md, "Ninth pass"): the hero
+# The multiplayer hero screen's left button (00617050; docs/notes/ui.md, "Camp, global map, hero
+# screens"): the hero
 # list's rotate arrows, a new hero (mode 10) and its voice rows, arrows and defaults, then back
 # to the list and the main menu. The hero is never created (that writes <n>.mp files) and nothing
 # touches the network. Regions are clicked by number (the harness finds them on the top window).

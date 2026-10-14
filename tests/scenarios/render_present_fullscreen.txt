@@ -1,0 +1,47 @@
+# R9c: full screen in the switch-over (docs/notes/renderer.md, section 9): at 800x600 the game window
+# covers the monitor without a display mode change and the frame is scaled into it with its aspect;
+# the menus and the battle screen take the mapped mouse. The focus lost and given back (Alt+Tab as
+# Windows reports it: WM_ACTIVATE inactive and the window minimised, then restored and activated):
+# the game deactivates (the display mode "restored" through the stand-in), and on its return
+# rebuilds the cursor (005DAE70, full screen only) and draws and presents again. A window resized
+# by someone else (a display change) covers the monitor again at the next present. run_all runs a
+# "resolution" scenario alone.
+render new,present
+resolution 800x600
+fullscreen 1
+reject Script error
+waitmenu
+console thingamabob
+waitpresent 10
+
+clickregion 3
+waitwindow 10 options
+clickregion 1
+waitwindow 10 menu
+
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+move 400 60
+waitpresent 10
+capture world
+
+focus off
+wait 500
+focus on
+waitwindow 15 battle
+waitpresent 10
+move 400 60
+capture after_focus
+
+windowsize 1024 768
+frames 5
+waitpresent 10
+screen 5
+waitwindow 15 camp
+key esc
+waitwindow 15 battle
+report
+quit

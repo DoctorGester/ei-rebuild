@@ -1,0 +1,44 @@
+# R9c: the switch-over presenting through its own swap chain (docs/notes/renderer.md, section 9):
+# the gamma ramp as a shader step, and a window that is not the frame's size. The game runs windowed
+# at 800x600 (no display mode change in the switch-over; run_all runs a "resolution" scenario alone).
+#
+# Gamma: the options' gamma slider (group 0, row 12; its right arrow at 674,456 in the 800x600
+# layout) held for 0.6 s (the slider scrolls while an arrow is held, 0065B360): the options
+# window's Update (00650A30) calls SetGamma (00504A60), which hands the ramp to the new renderer;
+# "waitpresent 10 gamma" needs a presented frame checked against it (verify
+# build, at a grid of points, one to one). Cancel puts the old value back.
+#
+# Resize: the window resized to 1600x900, the frame is scaled into it with its aspect (1200x900 at
+# x 200, black bars); the mouse steps reach the menus through the mapping (the harness aims at frame
+# pixels through render::FrameToWindow, the game maps the messages back: present_window.h).
+render new,present
+resolution 800x600
+fullscreen 0
+reject Script error
+waitmenu
+waitpresent 10
+
+clickregion 3
+waitwindow 10 options
+ldown 674 456
+wait 600
+lup 674 456
+waitpresent 10 gamma
+move 400 20
+wait 300
+freeze
+capture options
+unfreeze
+clickregion 1
+waitwindow 10 menu
+
+# The window resized: the options again through the mapped clicks, then Cancel.
+windowsize 1600 900
+waitpresent 10
+clickregion 3
+waitwindow 10 options
+waitpresent 10
+clickregion 1
+waitwindow 10 menu
+report
+quit

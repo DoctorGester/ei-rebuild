@@ -1,6 +1,6 @@
 // Combat, sixth part: the controller's update (CUnitServer slot 6, called once per world update for
 // every creature on the server) and the animation queue and order states it drives. See combat.h,
-// combat_plan.h and docs/notes/combat.md ("Fourth round").
+// combat_plan.h and docs/notes/combat.md ("Update").
 //
 // The controller's animation queue is the AnimationSteps at +0x24 (steps +0x28, count +0x2C) with
 // the game time its first step started at +0x38; a hit reaction saves it to +0x148 (its time to

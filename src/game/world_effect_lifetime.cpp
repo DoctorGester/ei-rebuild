@@ -1,6 +1,5 @@
 // The effects' constructor and destructor bodies, their slot 0 (deleting destructor) and the state
-// field's constructor and emptying. See world_effect.h and docs/notes/effects.md ("Effect
-// objects").
+// field's constructor and emptying. See world_effect.h and docs/notes/effects.md ("Missiles and visibility").
 #include "world_effect.h"
 
 #include "console.h"

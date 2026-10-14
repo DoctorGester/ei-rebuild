@@ -5,7 +5,7 @@
 // Width, Height) moves the group's texture coordinates into that rectangle of the texture (each
 // coordinate once per mesh). Then the material type of the mesh's last group name (0044A2A0) is
 // stored in the mesh (+0x184 / +0x188) and recorded, with the texture name, in the two caller
-// arrays. Names provisional; see docs/notes/objects.md ("Scene loader").
+// arrays. Names provisional; see docs/notes/objects.md ("Facts").
 #include "scene_loader.h"
 
 #include "console.h"

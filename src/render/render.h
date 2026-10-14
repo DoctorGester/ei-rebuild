@@ -231,4 +231,30 @@ void Present();
 // has no frame.
 bool ReadFrame(int* width, int* height, std::vector<std::uint8_t>* bgr);
 
+// The switch-over's own present on the game window (render_window.cpp; docs/notes/renderer.md,
+// section 9). The display's gamma ramp (00504A60's three 256-entry ramps, full scale 65280; null
+// channels identity) applied as the frame goes to the window; captures read the frame before it.
+// GammaRamp copies the lookup in use (256 RGBA8 entries).
+void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue);
+void GammaRamp(std::uint8_t* rgba256);
+// Frames presented on the game window so far; the verify build's checks of the presented frame
+// against the gamma ramp (after each SetGammaRamp, at a grid of points, when the frame shows one
+// to one): how many ran, the last one's points and differing points, whether one is still due.
+struct WindowPresentInfo {
+    std::uint32_t presents = 0;
+    int rampChecks = 0, rampPoints = 0, rampDiffering = 0;
+    bool rampCheckPending = false;
+    bool rampIdentity = true;   // the ramp in use is the identity
+    bool failed = false;   // no swap chain, or the device was lost
+};
+WindowPresentInfo WindowPresents();
+// Where the frame shows in the game window's client area: the frame's size and its rectangle there
+// (aspect kept, centred; the rest black). False when the new renderer does not present itself.
+bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed);
+// Client-area point to frame pixel (outside the frame: beyond its edges) and back (the centre of the
+// frame pixel's window pixels). Unchanged when the frame fills the client area one to one or the new
+// renderer does not present itself.
+void WindowToFrame(int* x, int* y);
+void FrameToWindow(int* x, int* y);
+
 } // namespace render

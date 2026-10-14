@@ -1,6 +1,5 @@
 // The battle screen panels' tooltips: the weapon bar's unit (0063C180), a quick item's tip
-// (0063CEE0) and the action column's unit (0063F800). See ui.h and docs/notes/ui.md
-// ("Thirteenth pass").
+// (0063CEE0) and the action column's unit (0063F800). See ui.h and docs/notes/ui.md ("Battle screen").
 #include "ui.h"
 
 #include "item.h"

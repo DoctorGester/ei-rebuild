@@ -106,3 +106,27 @@ them renamed to unused_ and the verify build run with `-k 0`; each compile error
 - unit_db_destroy.cpp's local `SkillLevelRecord` (0x18) / `SkillRecord` (0x44) are unit_db.h's SkillRecord /
   SkillLevelRecord (the names are swapped there; the layouts and the destructor order are right).
 - AIEvent's creator 005C9630 has no callers in the Ghidra database (+0x08 is x, y again; +0x14 only saved).
+
+## C11 batch 1: shims to member functions (2026-10-14)
+
+63 `__fastcall Fn(T* self, void*, ...)` shims became `T::Fn(...)` registered with EI_REPLACE_METHOD (counted by
+tools/progress.py: 1,274 before, 1,211 after; the ticket's "497" does not match that metric). Release objects
+differ only in the registration thunks (EI_REPLACE_METHOD's form) and the removed `xor edx, edx` at the callers.
+- Class A (body moved into the member, header declaration added): AIPath StandAndTurn / StandAndTrack /
+  StandAndTurnUntil / StandStill / LoadPath / SavePath, FootprintCellSet AlongDirection / DiscAt,
+  UnitShapeCache::Get, MotionWaypoint::Construct, CTextManager::PeekWord, CLightning::DrawGlow, CCamera
+  GetRange / OpenFile / RecordFrame, NamedPartyRecords Find / Add / Remove, RefPtr FromRawCounted /
+  AssignHolder / AssignObject, SpeechFilter Replaced / Finished, CUnitClientSpecific::GetAttackParams,
+  Behaviour Read / Write, ArmourSpell::Save, CEngineObject SetFlagBits / ClearFlagBits, CUnit::CarriedItem.
+- Class B (the shim only forwarded to an existing non-virtual member, so it is deleted and the member
+  registered): CTransformObject WorldMatrix / TiltTowards / TurnTowards / RollTowards / Rotate /
+  TurnUpTowards / SetHeading, PlayerMode UpdateCombat / AddPartyTargets / CollectParty / StaysWithParty,
+  AIViewer::Prepare, AIAttention IsUsable / Choose, ObjectListIterator::First, the 16 lib::AlignedArray<T>
+  SetSize / Add / SetAtGrow / Copy instances in aligned_arrays.cpp, ObjectSet SetSize / SetSizeDiscardStep.
+- Skipped: text_reader Open / ReadLine / ReadToHash / Split / FindLine, ClassTemplate::SetLevels and
+  RefPtrShareReturn (callers in ui_* / net_*: wait for W2 / F5); CLightning DrawLightning (virtual `Draw` of the
+  same name, C2535); UnitPrototypeAt (another file has a different forwarder of the same name); FindFigureAnimation
+  (map_object_figures.h, F4a); QuaternionRotate (src/lib/vecmath.h, F5); shims on aliases of lib / mfc
+  templates (AICallArray, AIReportArray, AILookArray, PatrolPointArray, CorpseList, TextSourceList, TweenArray,
+  SmoothEdgeArray, PathCellList, SearchGrid<T>, ClassTemplateVector: no member can be added); shims of virtual
+  slots (rule 4: a vtable thunk cannot be registered by member pointer); shims with a void* / uint8_t* self.

@@ -1,4 +1,4 @@
-# The battle screen's quest notice (006369D0, slot 33; docs/notes/ui.md, "Fourteenth pass"): a
+# The battle screen's quest notice (006369D0, slot 33; docs/notes/ui.md, "Battle screen"): a
 # "q." player variable set while the battle screen is on top reaches it through the quest log
 # (005F7FC0). Three parts: a new quest (1), completed (2), failed (3); four parts: a sub-objective
 # of an unset quest variable (skipped) and of a set one; two parts: the bare line. The quest names

@@ -1,6 +1,6 @@
 // Unit queries on the figure (U11): animation entries for a key, the body's extent, the height of
 // the ground under a point and the point effects start from. See unit.h and docs/notes/units.md
-// ("Thirteenth round (U11)").
+// ("Creation, databases, save").
 #include "unit.h"
 
 #include "ai_map.h"

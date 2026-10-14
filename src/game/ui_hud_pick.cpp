@@ -1,7 +1,6 @@
 // The HUD buttons that start or drop a pending action on the battle screen: a spell button
 // (0063EC90), an action button (0063FB50), a quick item slot (0063DD70), and the battle screen's
-// pending action they share (inlined by the original). See ui.h and docs/notes/ui.md
-// ("Nineteenth pass (ticket I10)").
+// pending action they share (inlined by the original). See ui.h and docs/notes/ui.md ("Battle screen").
 #include "ui.h"
 
 #include "item.h"

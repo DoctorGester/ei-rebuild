@@ -1,4 +1,4 @@
-// Text layout on interface surfaces (game.exe 005FDFA0). See docs/notes/ui.md ("Text layout").
+// Text layout on interface surfaces (game.exe 005FDFA0). See docs/notes/ui.md ("Interface base").
 #include "ui.h"
 #include "console.h"
 

@@ -1,5 +1,5 @@
-# The save / load window's Delete and a load from it (A-H14; docs/notes/items_spells.md, "Save
-# screen pieces"): after the new game's autosave (savea) a save into a new folder (save1, Confirm on
+# The save / load window's Delete and a load from it (A-H14; docs/notes/ui.md, "Objectives, save/load,
+# options"): after the new game's autosave (savea) a save into a new folder (save1, Confirm on
 # the new save's row), then in the Load window the first row is selected, Delete asks (AskDelete),
 # Enter answers yes (DeleteSave: the folder's files and the folder go, the list is refilled), the
 # remaining save is selected and OK loads it (Confirm -> LoadSelected). The rows' titles come from

@@ -178,7 +178,30 @@ EI_VERIFY(0x004CF470, ErrorVerify, 0, s_unused);
 
 // 004CF600: SUB ESP,8; PUSH EBX; PUSH EBP (5 bytes). Pure apart from its outputs.
 static void(__fastcall* s_classify)(const char*, int*, int*);
+// Ours compares keywords with CaseFoldTable / SameIgnoringCase instead of the game CRT's _strnicmp:
+// on the first call every pair of bytes is compared both ways (ours against the original).
+static void CheckCaseFold() {
+    const int* fold = CaseFoldTable();
+    int mismatches = 0;
+    char a[2] = {}, b[2] = {};
+    for (int x = 0; x < 256; ++x) {
+        for (int y = 0; y < 256; ++y) {
+            a[0] = static_cast<char>(x);
+            b[0] = static_cast<char>(y);
+            bool expected = gamecrt::strnicmp(a, b, 2) == 0;
+            if (SameIgnoringCase(fold, a, b, 2) != expected && mismatches++ < 8)
+                ei::verify::Check("ClassifyToken case fold", true, false, "%02X %02X: strnicmp %s", x, y, expected ? "equal" : "different");
+        }
+    }
+    ei::verify::Check("ClassifyToken case fold", true, mismatches == 0, "%d of 65536 byte pairs differ", mismatches);
+}
+
 static void __fastcall ClassifyVerify(const char* text, int* id, int* rest) {
+    static bool foldChecked = false;
+    if (!foldChecked) {
+        foldChecked = true;
+        CheckCaseFold();
+    }
     int id0 = 0x7777, rest0 = 0x7777, id1 = 0x7777, rest1 = 0x7777;
     s_classify(text, id ? &id0 : nullptr, rest ? &rest0 : nullptr);
     ClassifyToken(text, id ? &id1 : nullptr, rest ? &rest1 : nullptr);

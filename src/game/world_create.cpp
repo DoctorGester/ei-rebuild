@@ -1,6 +1,6 @@
 // 0055EE40: the world's managers created (the server's and the client's world both call it, and
-// it is a virtual slot of their base, vtable entry 0073F194). See docs/notes/combat.md ("Fourth
-// round"), the 0055C000-00560000 managers.
+// it is a virtual slot of their base, vtable entry 0073F194). See docs/notes/combat.md ("Rewritten"),
+// the 0055C000-00560000 managers.
 //
 // The world's paths are taken from the command line globals; every manager is made, referenced
 // and attached to the world (its slot 13 with the world, or slot 2); a 0x0C-byte helper goes into

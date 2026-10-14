@@ -3,7 +3,7 @@
 // renderer's "cpuwindows" option a surface whose pixels are in the new renderer's memory
 // (dx_surface.cpp, a DIB section) is drawn through a memory DC on it instead of DirectDraw's GetDC:
 // the GDI drawing lands in the same memory without DirectDraw (in the switch-over the holder has no
-// DirectDraw surface at all). See docs/notes/renderer.md ("Interface windows", section 14).
+// DirectDraw surface at all). See docs/notes/renderer.md ("Interface windows", section 6).
 #include "dx_surface.h"
 
 #include "device.h"
