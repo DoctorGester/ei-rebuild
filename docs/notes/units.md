@@ -160,7 +160,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   0052CB40 (unknown names add a null record). `SetState` (0052B7A0): a negative (or NaN) duration takes the model's default
   (map 0079C1AC) or 10; a negative state is the next (wraps when cycling); with a live world units within radius + 0.5
   leave the sector map around the move, the end tick is (tick + duration) + 1, MarkChanged(5), lifted units that cannot stay
-  go to a free cell and are resynced (00554450). `UseSpots` (0052BBE0, slot 44, from FindUseSpot 0054DF50).
+  go to a free cell and are resynced (00554450). `CollectUseSpots` (0052BBE0, slot 44, from FindUseSpot 0054DF50).
 - **Magic traps** (class 0x3B, 0x290 bytes, vtable 0073E63C, derived from CMapObject with members +0x238..+0x28C; flags_
   0x80000 armed, a new trap is armed until a script disarms it; 0x40 kind): `UpdateTrap` (slot 6): server only (world slot
   26: 1 for CWorldServer 0058A380, 0 for CWorldClient 0055EB30; `world_effect_internal.h`'s IsClientSide is this slot,
@@ -170,7 +170,7 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   narrowed to the last unit; casts through 0058E850 (007AFF60) with caster 0. `SetUp` (0052A2C0, per MagicTrap record at
   +0x8C from the zone loader). `ForgetObject` (slot 56, from RemoveObject 005935C0) removes every node equal to the object
   (null included). The zone loader registers traps in no name map (005927C0, record type 7): scripts use `GetObject(id)`.
-- Torch (class 0x3A, vtable 0073E834; spec at +0x238) `TorchCreate` (0052BFC0); `CreateUnit` (0052E400) calls CUnit::Reset
+- Torch (class 0x3A, vtable 0073E834; spec at +0x238) `CTorchObject::CreateTorch` (0052BFC0); `CreateUnit` (0052E400) calls CUnit::Reset
   and sets 14 network fields. `TakeRandomItem` (00531400, stealing): carried items first, else a random filled quick item
   slot emptied without release. CTrapObject (placed trap, class 0x55) is armed by 0058ECE0 when a trap item is used and sets
   off "Mushroom" particles through a world script.
@@ -207,7 +207,7 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
 | 00539A10, 00539B20, 00539E70, 0053EBC0, 0053ED30, 0053A7B0 | ConstructUnitDatabase (the tables' STLport constructors forwarded), DestroyPrototypeTable / ModelTable (0057DEE0's reload; the name map clear shared with NpcTable as `DestroyNames`), DestroyPrototypeRecord / NpcRecord, ChunkArchive::Construct (= ConstructLocal; every database load) | unit_db_destroy.cpp, chunk_archive.cpp | ours |
 | 00527850, 00528050, 005285D0, 00538960, 005230C0, 00523300, 00523020, 00525E90, 00527EB0, 005270E0, 00526860 | WeaponSkillBonus (packed), SkillPrice, ScaleDamageByEffects copy, ClientGetAttackParams (O, 4 ULPs), AddArmourLayer, RebuildArmourLayers, PackBodyProtection, AttributeWithItems, SpellSchoolSkill, ProtectionBlock, WeaponPrototypeSkillBonus | unit_params_*.cpp, unit_skill_price.cpp, unit_armour_layers.cpp | P / O |
 | 00530570, 00525B20, 00531400, 005301B0, 00530240, 005304A0, 00530280, 00532860, 0052FCC0, 0052FDF0, 00535850 | UpdateSizeClass, PickLocation, TakeRandomItem, FindAnimation, AnimationEntry, BodyExtent, GroundHeight, EffectPoint (skipped where the original rotates uninitialised stack), UnitPredictPosition, UnitActionPoint, ClientPlaceOnPath | unit_size_class.cpp, unit_hit_location.cpp, unit_steal.cpp, unit_figure_queries.cpp, unit_points.cpp, unit_client_path.cpp | differential (random generators saved; 8 ULPs, quaternion strict) |
-| 0052E400, 0052BFC0, 0052E970, 0052E9D0, 005300D0, 0052E740, 0052E590, 0052EB70 | CUnit::CreateUnit, TorchCreate, SetHostileMask, RefreshMotion (path forgets the unit, motion +0x27C rebuilt from GetMoveSpeeds; part 10), SetPlayer, ReleaseUnit, DestroyUnit, PackPrototypeStats (differential) | map_object_create.cpp, unit_controller.cpp, unit_prototype_stats.cpp | ours |
+| 0052E400, 0052BFC0, 0052E970, 0052E9D0, 005300D0, 0052E740, 0052E590, 0052EB70 | CUnit::CreateUnit, CTorchObject::CreateTorch, SetHostileMask, RefreshMotion (path forgets the unit, motion +0x27C rebuilt from GetMoveSpeeds; part 10), SetPlayer, ReleaseUnit, DestroyUnit, PackPrototypeStats (differential) | map_object_create.cpp, unit_controller.cpp, unit_prototype_stats.cpp | ours |
 | 0052FC40, 0050F170 | AdvanceUnitTime (controller slot 40, then a party unit's sight on the client world, 0056D740), CMapObject::SetVisibilityLevel (47) | unit_vision.cpp | ours |
 | 005341A0, 005344E0, 005344A0, 00539160, 00537360, 0051B6D0, 0051B6F0 | CUnitClientSpecific::UpdateClient (6), FiguresLoaded (13), RestartFadeIn (43; EAX 0), Level (24: ln(packed experience / 007C5488) / ln(007C548C), rounded; compared), RefreshWounds (31: through 005370F0 / 0051C3D0, else 0051C920), CObject3DClientSpecific::FirstDrawnPart / NextDrawnPart (cursor +0x48) | unit_client_update.cpp | ours |
 | 00537CB0, 00538C20, 00535590, 00535CB0, 00536300, 00536670, 005381B0, 005385A0 | ShowWeaponParts, UpdateArrow (bow arrow "rh3.arrow00" between frames +0x28 / +0x2C), ChangeWeaponModel, CollectArmourPartNames, BuildSkinLayers, ComposeSkin, WearArmourModel, RemoveArmourModel | unit_client_models.cpp | ours / O |
@@ -218,7 +218,7 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
 | 00536EA0, 005370F0, 0051C920, 00535770, 00538DB0 | WoundLevels (O), ComposeWoundsTexture, HideWounds (+0xD8 texture, +0xDC material), WeaponPoint (node by WeaponBaseFigure or "baserh3", its +0x74), LoadFaceTexture ("<model>mouth[_NN]" kind 0x3D) | unit_client_wounds.cpp | ours / O |
 | 005179E0, 00516DA0, 00518100, 00516B50, 00517240, 00517110, 00519A10, 005190C0, 00519380, 0051A010, 0051A190 | CObject3D::SetUpAnimatedFigure, MakeFigure (from the cache: whole for an animated object without names (slot 4), else from the piece names (slot 3); LoadParts, bounds, flags_ 0x80), UpdatePartBounds (S, CheckNear), CollectPartsByPrefix, LoadPart (piece box, BASE / CROWN / EMPTY flags), LoadParts, AlignedPtrArray::Add, RandomAnimation (variant bits, chance +0x1C narrowing; S with rand saved), RandomAnimationOfKind, the candidate list's SetAtGrow / SetSize copies | object3d_figure_setup.cpp, object3d_animations.cpp | ours |
 | 0051AD20, 0051AC30, 0051C970 | CObject3DClientSpecific::ExtraScale (18: +0xF0..+0xF8), CObject3DServer's (1, 1, 1), RegisterPartMaterials (world slot 33 material manager, 0068EAF0) | object3d_specific_slots.cpp | P / ours |
-| 0052B7A0, 0052BBE0, 0052B1F0-0052BE40 (22) | Lever::SetState, UseSpots (O, 8 ULPs); Lever Construct, DestructBody / DeletingDestruct, Create (2), Update (6), Load / Save, net state, SetUp (zone record), Enable, SetLock (S), slots 29 / 38-43 / 60, class name / id | unit_lever.cpp, lever_object.cpp | |
+| 0052B7A0, 0052BBE0, 0052B1F0-0052BE40 (22) | Lever::SetState, CollectUseSpots (O, 8 ULPs); Lever Construct, DestructBody / DeletingDestruct, Create (2), Update (6), Load / Save, net state, SetUp (zone record), Enable, SetLock (S), slots 29 / 38-43 / 60, class name / id | unit_lever.cpp, lever_object.cpp | |
 | 00529DD0, 00529F90, 0052A100, 0052A200, 0052AC20, 0052AB30, 0052AC90, 0052A2C0, 0052A4B0, 0052A680, 0052ADC0, 0052B070 (C), 0052A920 (O) | MagicTrap Construct, DestructBody, CreateTrap, DestroyTrap, UpdateTrap, FireAtOccupants, ForgetObject, SetUp, CastAtUnits, UpdateVictims, LoadTrap (recording stream, round trip through the original Save), SaveTrap, FindTrapVictims | magic_trap.cpp | ours |
 | 0052BEE0-0052C2C0 (13), 0052C490-0052C680 (7) | CTorchObject lifetime, Destroy, Update, Load / Save, AttachTorchObject, net state; CTorchObjectSpec Create / Destroy / Load / Save / setters 16-18 | torch_object.cpp, torch_spec.cpp | C / S / P |
 | 005296E0-00529A10 (20), 0052B030 / 0052B050 / 0052A8F0 / 0050E220 / 0050E290 | CTree / CBuilding / CStone / CStuffObject (PlainMapObject<vtable>) lifetimes and class slots; AIRef Reset / Assign / Load / Save | map_object_kinds.cpp, counted_ref.cpp | |
@@ -260,7 +260,7 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
   3-6; RemoveArmourModel empties the slot before looking up the figure; DropBrokenEquipment gives broken pieces to the
   player and releases the unit's reference after; CUnit::Reset clears item slots without releasing; packed WeaponSkillBonus
   reads the level byte at +0xE3 + type for any type below 5, negative ones too.
-- UseSpots trusts the record's spot count (a count above 2 reads the count and factor as offsets); UpdateSizeClass reads the
+- CollectUseSpots trusts the record's spot count (a count above 2 reads the count and factor as offsets); UpdateSizeClass reads the
   prototype's +0x24 unchecked (an out-of-range index reads address 0x24); CastAtUnits returns without restarting the
   countdown when +0x28C finds no unit and changes the caller's list; ChangeWeaponModel leaves +0x75 when the new slot holds
   no weapon; UpdateVictims tests only x and y against the circles while FindTrapVictims uses the sector map (a unit in two
@@ -304,7 +304,7 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
 - Destructors, the factory, the slot-style functions and the order / hit paths are consistency checks only. Under 64-bit FPU
   precision `TotalItemWeight`'s double accumulator rounds differently; SkillPrice may show a rare off-by-one at a truncation
   edge (rule 7). 005179E0: the animation state's parts appear during the call (0050D320 gives it the model).
-- Not reached by every scenario: TakeRandomItem (stealing), TorchCreate, UseSpots (no lever on zone1), AttributeWithItems,
+- Not reached by every scenario: TakeRandomItem (stealing), CTorchObject::CreateTorch, CollectUseSpots (no lever on zone1), AttributeWithItems,
   ClientGetAttackParams, SkillPrice, packed WeaponSkillBonus (party unit holding a weapon), RemoveArmourModel (Rebirth's
   GiveUnitArmor refuses text-key units), FireAtOccupants (only traps with a period above 0), DestroyNpcTable /
   DestroyModelRecord, the lever's key slots 38-42 (science on a lever), the torch (none on zone1 known), the placed trap (use

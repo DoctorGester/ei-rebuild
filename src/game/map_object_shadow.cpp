@@ -47,7 +47,6 @@ int ShadowSwitch(int classId) {
 const float* DefaultLight() { return reinterpret_cast<const float*>(0x007AF230); }   // three floats
 void* TextureManager() { return *reinterpret_cast<void**>(0x007AF744); }
 void* RenderDevice() { return *reinterpret_cast<void**>(0x007AF080); }
-void* LightManager() { return *reinterpret_cast<void**>(0x007AF738); }
 void* ShadowProjector() { return reinterpret_cast<void*>(0x007AF5B8); }
 void* TextureStages() { return reinterpret_cast<void*>(0x007AF060); }
 // The work buffers: projected points (two floats each), their pixels (two ints each), and the

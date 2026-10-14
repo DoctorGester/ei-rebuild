@@ -6,7 +6,7 @@ CEffectMissile (abstract, vtable 00743754, 0x158): +0x14C arrived, +0x150 target
 CEffectArrow (0x4E, vtable 007436F0, 0x6C0) embeds a CEffectParticle (+0x158), CEffectPointLight (+0x2D8) and
 CEffectSound (+0x43C), then the sound name CString +0x6A0, light colour / range, particle type / size, caster id
 +0x6BC. Steer (0067AAB0, shared with class 0x5B, which doubles the speed 0.6667) aims at the target's
-+0x1C position with z + extent.z / 2 + pointOffset.z; arrived when the planar distance is below one step (or NaN).
++0x1C position with z + above.z / 2 + center.z; arrived when the planar distance is below one step (or NaN).
 On a client the missile is kept 1 above the world's slot 28 height. Tick moves, and on a client moves the parts
 (slot 24, Start(1) each). Start copies the settings into the parts (light velocity (0.0001, 0, 0), flags 0x840,
 sound radius 30, looping) and starts them. Scenario spells (arrow, acid ray). CSpellEffect::Update calls Start /

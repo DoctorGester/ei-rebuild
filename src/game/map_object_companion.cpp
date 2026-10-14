@@ -43,9 +43,8 @@ __declspec(naked) BOOL __fastcall ApplyHit(void* /*stats*/, void*, const void* /
 // 0050F5B0 (map_object.cpp), through its game address.
 __declspec(naked) std::uintptr_t __fastcall ClearEffectsAt(CMapObject*) EI_ORIGINAL(0x0050F5B0)
 
-// The sound system (global 007AF784) and the light manager (007AF738); thiscall.
+// The sound system (global 007AF784); thiscall.
 void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
-void* LightManager() { return *reinterpret_cast<void**>(0x007AF738); }
 // 006B8600. Plays a 3D sound at `position`; returns its handle.
 // Arguments: sounds, -, name, 0, position, near distance, far distance, 0, 0.
 __declspec(naked) int __fastcall PlaySound3D(void*, void*, const char*, int, const float*, float, float, int, int)

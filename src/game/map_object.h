@@ -341,6 +341,10 @@ static_assert(sizeof(CMapObject) == 0x238);   // CUnit's fields start at +0x238
 void __fastcall MapObjectWriteNetState(std::uint8_t* object);
 std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int first);
 
+// The light manager (*007AF738; camera.h's TheTerrain reads the same global): the map object files
+// hand it to the light calls (add, remove, aim, IsLit) as their `this`.
+inline void* LightManager() { return *reinterpret_cast<void* const*>(0x007AF738); }
+
 // The slot the verify wrapper of RecomputeScale reads to tell plain objects from units.
 namespace mapslot {
 constexpr int kResetScale = 30;           // 0x78
