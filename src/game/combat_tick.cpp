@@ -663,8 +663,8 @@ void CUnitServer::ExecuteOrder() {
         CallApproachTarget();
         return;
     }
-    if (unit->unknown_270 != static_cast<int>(unit->activeWeapon))
-        ServerSlots(unit->controller)->TakeUpWeapon(unit->unknown_270);
+    if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
+        ServerSlots(unit->controller)->TakeUpWeapon(unit->pendingWeapon);
     OrderPlan* plan = &currentPlan;
     if (!CallPlanAction(&action, plan)) {
         CallApproachTarget();

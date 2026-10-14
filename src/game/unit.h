@@ -44,14 +44,6 @@ constexpr int kUnitTypeHero = 0x32;
 // (GetClassName "CUnitClientSpecific"); their items live in the player's inventory records.
 constexpr int kClassPartyController = 0x3D;
 
-// An entry of a unit's active effect list (+0x198, 0x14 bytes). The low byte of `kind` is the
-// effect type (0x20: one that stops spell casting).
-struct UnitEffect {
-    std::uint32_t kind;
-    std::uint32_t unknown_04[4];
-};
-static_assert(sizeof(UnitEffect) == 0x14);
-
 // The record the player keeps for each unit of the party (0x784 bytes, found by unit id through
 // 006621B0; a party's record array, party.h). Each item list is an aligned pointer array (data,
 // count, capacity, grow-by; AlignedPtrArray's layout) of the record's own copies of the items.
@@ -225,11 +217,12 @@ public:
     virtual void RefreshModel();            // 30: after a weapon change
     virtual int RefreshWounds();            // 31: client 00537360 (1), base 0 (00533C50); CUnit's slot 58 (00446810) tail-jumps here
     virtual void SetArmourModels(const std::uint32_t* ids, std::uint32_t count);   // 32: client 00538140 (RET 8; count capped at 7), base empty (00533C60)
-    virtual void SetWeaponModels(const std::uint32_t* ids, std::uint32_t count);   // 33: client 00538860 (RET 8; count capped at 4)
+    // 33: client 00538860 (RET 8; count capped at 4); CUnit's SendEquipment (00531110) passes EAX on.
+    virtual std::uintptr_t SetWeaponModels(const std::uint32_t* ids, std::uint32_t count);
     virtual bool WeaponAdded(std::uint32_t itemId);     // 34: client 005388C0 (AddWeaponModel)
     virtual void RemoveWeaponModel();       // 35: (id) client 00538920
-    virtual void HasOtherArmour();          // 36: server 005567A0 (client 005391B0: weapon models)
-    virtual void HasMainArmour();           // 37: server 005567E0, client 005391E0
+    virtual bool HasOtherArmour();          // 36: server 005567A0 (client 005391B0: weapon models); AL
+    virtual bool HasMainArmour();           // 37: server 005567E0, client 005391E0; AL
     virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
     virtual int TamingStage();              // 39: server 005460A0 (+0x908, the taming stage), base 0 (00533CB0)
     virtual void AdvanceTime(float time);   // 40: client 00535B30
@@ -266,25 +259,25 @@ public:
 };
 static_assert(offsetof(CUnitController, unit_) == 0x1C);
 
-class CUnit : public CEngineObject {
+// CUnit derives from the map object (map_object.h; CObject3D holds the first 0x170 bytes, CMapObject
+// the rest up to +0x238): the prototype name is CObject3D::name (+0xA4), the figure's build its
+// scale.y (+0xC8), the packed vitals (hit points, mana) CMapObject::packedVitals (+0x17C). The game
+// builds units (constructor 0052E110 stores the vtable): novtable. Slots 13-61 are CMapObject's; the
+// unit's own slots 62-76 are not declared (CFakeUnit, 0073BFE8, shares the rewritten ones).
+class __declspec(novtable) CUnit : public CMapObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073EA8C);
+
     // 0050E930. Called when the unit leaves the sector map; not rewritten (sector_map.cpp).
     void OnLeftSectorMap();
+
+    // The overrides of CMapObject's slots are registered through __fastcall ...Hook shims (rewrite
+    // guide rule 4); calls that meant this body and not the slot are qualified (CUnit::...).
 
     // unit_vision.cpp (A-U3). 0052FC40, virtual slot 25: the world time moved on to `time`. The
     // controller's slot 40 runs; a text-key (party) unit then marks its sight on the client world
     // (0056D740): its VisionRange at the world's daylight (0055FC50), around its position.
-    void AdvanceUnitTime(float time);
-
-    // 0050E9F0. Records that part `part` (0..15; negative: none) of the object changed, marks it
-    // dirty (flags_ bit 1) and stamps it with the world's change counter. Returns what the original
-    // leaves in EAX (0, or the world when the object is referenced). A method of the base class of
-    // all map objects (it touches nothing beyond +0x1DE); declared here until that class exists.
-    std::uintptr_t MarkChanged(int part);
-
-    // 0050F630. Has the object an active effect of type `type` (low byte of UnitEffect::kind)?
-    // Also a map object base method.
-    BOOL HasEffect(std::uint32_t type);
+    void AdvanceTime(float time) override;
 
     // 0052E940. Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows.
     // Returns the new mask. (0052E970 sets the mask and tells the controller; not rewritten.)
@@ -299,21 +292,22 @@ public:
 
     // 0052E9B0. Sets unknown_438; marks part 13.
     std::uintptr_t SetUnknown438(int value);
-    // 0052EA90. Sets the bytes at +0x254, +0x255, +0x256 and the int at +0x258; marks part 8.
-    std::uintptr_t SetUnknown254(std::int8_t a, std::int8_t b, int c, std::int8_t d);
-    // 0052EAD0 / 0052EAF0. Set unknown_25C / unknown_260; mark part 7 when they change.
-    std::uintptr_t SetUnknown25C(int value);
-    std::uintptr_t SetUnknown260(int value);
+    // 0052EA90. Sets the animation entries (+0x254, +0x255), the action sound (+0x256) and the
+    // animation start (+0x258); marks part 8.
+    std::uintptr_t SetAnimationEntries(std::int8_t entry, std::int8_t second, int start, std::int8_t sound);
+    // 0052EAD0 / 0052EAF0. Set motionMode / pathTimeShift; mark part 7 when they change.
+    std::uintptr_t SetMotionMode(int mode);
+    std::uintptr_t SetPathTimeShift(int shift);
     // 0052EB10. Sets both movement modes (+0x264, +0x268); marks part 6.
     std::uintptr_t SetMoveModes(int mode, int mode2);
     // 0052EBE0. Clears (on) or sets (off) flags_ bit 0x40000000; marks part 5.
     std::uintptr_t SetFlag40000000Off(bool on);
-    // 0052F7F0. Virtual slot 46: sets or clears flags_ bit 0x1000000. Returns the new flags.
-    std::uint32_t SetFlag1000000(int on);
+    // 0052F7F0. Virtual slot 46: sets (stunned) or clears flags_ bit 0x1000000. Returns the new flags.
+    std::uint32_t SetStunned(int on) override;
 
     // 0052EC10. Writes the item ids (+0x18) of the 4 weapons and then of the 7 armour pieces to
     // `out` (-1 for an empty slot).
-    void GetEquipmentIds(int* out);
+    void GetEquipmentIds(std::uint32_t* out);
 
     // 0052F820. Can the unit cast the spell in slot `slot` (0..7)? 0 yes, 1 not enough mana, 3 no
     // spell, 4 an effect of type 0x20 prevents it. The second argument is not used.
@@ -375,50 +369,53 @@ public:
     // 00531A10. The CSpell (+0x44) of the spell item in slot `slot`, or null.
     void* GetSpellObject(std::uint32_t slot);
 
-    // 005327D0. Resistance factor against the damage type in bits 18-21 of hit + 0x14.
-    float ResistanceTo(const void* hit);
+    // 005327D0. The unit's speed factor for the action of animation `entry` (its key's bits
+    // 18-21: 0x80000 attack, 0xC0000 cast, 0x240000 mode transition (heroes: the global
+    // 007C542C), 0x40000 skill; others 1). Animation steps divide the entry's frames by it.
+    float ActionSpeed(const FigureAnimation* entry);
 
-    // 00532DA0. Virtual slot 18: for hero units, whether `target` + 0x18 has the bits the
-    // controller asks for (0x10 by its slot 36, 0x20 by slot 37); true for other units.
-    bool AcceptsTarget(const void* target);
+    // 00532DA0. Virtual slot 18: for hero units, whether the animation entry's flags (+0x18) have
+    // the bits the controller asks for (0x10 by its slot 36, 0x20 by slot 37); true for other units.
+    bool AcceptsAnimation(const void* entry) override;
 
-    // 00532E00. Ratio of the 00518D30 values at +0xCC and +0x1B4.
+    // 00532E00. Ratio of the animation factors (00518D30) of the scale's and the base scale's z.
     double AnimationRatio();
 
-    // unit_update.cpp: virtual slots (registered by address; the vtable is not declared).
-    // 0052F7D0. Slot 6, the per-tick update: the controller's update (its slot 6), then the map
-    // object's (0050F1C0). Returns 1.
+    // unit_update.cpp: virtual slots.
+    // 0052F7D0. Slot 6, the per-tick update (another name, so it is no override): the controller's
+    // update (its slot 6), then the map object's (0050F1C0). Returns 1.
     int Tick();
     // 00532A80. Slot 27: the map object's scale recomputation (0050F2D0), then the controller's
     // slot 44. Returns what that leaves in EAX.
-    std::uintptr_t RecomputeUnitScale();
+    std::uintptr_t RecomputeScale() override;
     // 00532AB0. Slot 28 (effects changed): the controller's slot 49.
-    std::uintptr_t EffectsChanged();
-    // 00532AA0. Slot 30: the figures take the base scale (+0x1AC) again (00517700).
-    std::uintptr_t ResetUnitScale();
+    std::uintptr_t EffectsChanged() override;
+    // 00532AA0. Slot 30: the figures take the base scale (+0x1AC) again (00517700). Returns what
+    // that leaves in EAX.
+    std::uint32_t ApplyBaseScale() override;
     // 0052E910. Slot 26: loads the figures (00517500, unless flags_ has 0x80) and tells the
     // controller (its slot 13). Returns the loader's result, or 1.
-    std::uintptr_t LoadUnitFigures();
+    std::uintptr_t LoadFigures() override;
     // 0052E870. Slot 19: a companion of type 0x48 becomes the controller (the old one is
     // detached and released; returns the new reference count); others go to the map object's
     // 0050E890.
-    std::uintptr_t AttachCompanion(CEngineObject* attached);
+    std::uintptr_t AttachObject(CEngineObject* object) override;
     // 0052EB50. Slot 32 (statistics changed): the map object's 0050E970 (packs the server
     // object's vitals into +0x17C), then the controller's slot 22. Returns 1.
-    int StatsChanged();
+    int StatsChanged() override;
     // 0052EB30. Slot 33: the controller's slot 19 with `value` (0 without a controller).
-    std::uintptr_t ScaleEffectChanged(int value);
+    std::uintptr_t ScaleEffectChanged(int value) override;
     // 00530A20. Slot 35: a server controller (class 0x3E) copies `stats` in (00552F40). Returns
     // what is left in EAX (the controller's class id when it is not one).
-    std::uintptr_t SetServerStats(const UnitStats* stats);
+    std::uintptr_t SetStats(const UnitStats* stats) override;
     // 00530A50. Slot 37: the controller's slot 23.
-    std::uintptr_t UpdateSizeClasses();
-    // 005303A0. Slot 48: `out` = the position with z = the ground (or water surface) height plus
-    // the mode speed (ModeSpeed as a float). Returns `out`.
+    std::uintptr_t UpdateSizeClasses() override;
+    // 005303A0. Slot 48 (another name, as CMapObject::GroundPoint): `out` = the position with z =
+    // the ground (or water surface) height plus the mode speed (ModeSpeed as a float). Returns `out`.
     float* StandPoint(float* out);
     // 0052F740. Slot 51: stores `offset` (+0x320) and puts the unit on the ground (or, for
     // movement kind 2, on the water surface plus its z or the offset).
-    void PlaceUnitOnGround(float offset);
+    void PlaceOnGround(float offset) override;
     // 00532A20. Sets the parameter block, the hit point maximum and the hit points from `stats`.
     void SetFromStats(UnitStats* stats);
 
@@ -456,13 +453,13 @@ public:
     // unit_prototype_stats.cpp (A-U4). 0052EB70, virtual slot 34 (RET 4; the zone loader with the
     // record's prototype name): fresh vitals and statistics (reset, then the owner's
     // BuildFromPrototype for `prototype`) packed into +0x17C and the parameters +0x330.
-    void PackPrototypeStats(const char* prototype);
+    void TakePrototype(const char* prototype) override;
     // 00531110. Sends the equipment ids to the controller (slot 32: the 7 armour ids, slot 33:
     // the 4 weapon ids). Returns what slot 33 leaves in EAX.
     std::uintptr_t SendEquipment();
     // 005308D0. unknown_23C = the index of the unit prototype named `name` (00514930), or -1.
     // Returns what the original leaves in EAX (-1, or the low half of its division product).
-    std::uint32_t SetPrototype23CByName(const char* name);
+    std::uint32_t SetPrototype23CByName(const char* prototypeName);
     // 00530920. unknown_23C = `index`. Returns `index` (EAX).
     int SetPrototype23CIndex(int index);
 
@@ -579,83 +576,37 @@ public:
     CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
     // The parameter block at +0x330 (the fields below repeat parts of it).
     UnitParams* Params() { return reinterpret_cast<UnitParams*>(unknown_330); }
-    // The unit as the 3D object it starts with (map_object_figures.h; CUnit repeats its fields).
-    CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
-    // The unit as the map object it starts with (map_object.h; CUnit repeats its fields).
-    CMapObject* MapObject() { return reinterpret_cast<CMapObject*>(this); }
+    // The unit as the map object it is (map_object.h).
+    CMapObject* MapObject() { return this; }
     UnitMotion* Motion() { return reinterpret_cast<UnitMotion*>(motion); }
 
-    // Not rewritten (forwarders):
-    // 00455950. The world the object lives in (owner_ + 0xAC, its slot 13), or null.
-    void* World();
-    // 00518D30. An animation time factor (1 for no animation).
-    double AnimationFactor(float time);
-
-    Vector3 position;               // +0x01C
-    std::uint8_t unknown_028[0x34 - 0x28];
-    Quaternion orientation;         // +0x034
-    std::uint8_t unknown_044[0xA4 - 0x44];
-    const char* prototypeName;      // +0x0A4 e.g. "unhuma"
-    std::uint8_t unknown_0A8[0xC8 - 0xA8];
-    float build;                    // +0x0C8 the figure's build (HUD faces: below 0.2 thin, above 0.8 fat)
-    float animationCC;              // +0x0CC an animation time
-    std::uint8_t unknown_0D0[0xF4 - 0xD0];
-    Vector3 modelHeight;            // +0x0F4 (0, the model record's height, 0); set by the client's 00667EC0
-    std::uint8_t unknown_100[0x124 - 0x100];
-    // The figure parts' bounding box as CObject3D keeps it (map_object_figures.h, 00518310).
-    std::uint32_t boundsFlags;      // +0x124 bits 1 and 2: the bounds are valid
-    Vector3 center;                 // +0x128 relative to the position
-    float radius;                   // +0x134
-    Vector3 below;                  // +0x138 box minimum - centre
-    Vector3 above;                  // +0x144 box maximum - centre
-    std::uint8_t unknown_150[8];
-    float unknown_158;              // +0x158 part of the AI's eye height (005CA410)
-    std::uint8_t unknown_15C[4];
-    FootprintPart* partBoxes;       // +0x160 per figure part (the index 00517990 finds by name)
-    std::uint8_t unknown_164[0x170 - 0x164];
-    CEngineObject* companion;       // +0x170 CMapObjectServer (server) / CMapObjectClientSpecific (client)
-    std::uint8_t unknown_174[0x178 - 0x174];
-    float animationSpeed;          // +0x178 the animation's speed factor (the client's 00535850)
-    std::uint8_t unknown_17C[0x17E - 0x17C];
-    std::int16_t hitPoints;         // +0x17E
-    std::int16_t maxHitPoints;      // +0x180
-    std::uint16_t mana;             // +0x182
-    std::uint16_t maxMana;          // +0x184
-    std::uint8_t unknown_186[0x198 - 0x186];
-    UnitEffect* effects;            // +0x198
-    int effectCount;                // +0x19C
-    std::uint8_t unknown_1A0[0x1B4 - 0x1A0];
-    float animation1B4;             // +0x1B4 an animation time
-    int sectorCellX;                // +0x1B8 cell the unit is registered in, -1 when not
-    int sectorCellY;                // +0x1BC
-    int changeStamp;                // +0x1C0 world + 0x68 when last changed
-    std::uint8_t unknown_1C4[0x1DC - 0x1C4];
-    std::uint16_t changedParts;     // +0x1DC bit per part changed (MarkChanged)
-    std::uint8_t unknown_1DE[0x238 - 0x1DE];
-    char* scriptName;               // +0x238 CString (virtual slot 61 sets it; network field 9)
+    // +0x000-0x237: CMapObject.
+    mfc::CString scriptName;        // +0x238 (virtual slot 61 sets it; network field 9; GetName)
     int prototype23C;              // +0x23C a second prototype index (-1 none)
     CEngineObject* controller;      // +0x240 (the script code calls it the perception object)
     std::uint32_t relationsA;       // +0x244 \ a unit regards side s as hostile when both have
     std::uint32_t relationsB;       // +0x248 / bit s set
     char* player;                   // +0x24C the player that owns the unit (null: none)
     int side;                       // +0x250
-    std::int8_t unknown_254;
-    std::int8_t unknown_255;
-    std::int8_t unknown_256;
+    // +0x254 / +0x255 the animation entries (FigureAnimation::index) the unit shows: -1 none; the
+    // second -2 for the special idle. The client's RestartAnimation (controller slot 14) plays them.
+    std::int8_t animationEntry;
+    std::int8_t secondEntry;
+    std::int8_t actionSound;        // +0x256 a hero's action sound (CUnitClientSpecific's sounds)
     std::uint8_t unknown_257;
-    int unknown_258;
-    int unknown_25C;
-    int unknown_260;
+    int animationStart;             // +0x258 the world tick the animation started at (+1 per paused tick)
+    int motionMode;                 // +0x25C 0 plays, 1 paused (the start moves on), 2 scaled
+    int pathTimeShift;              // +0x260 1: the client shifts its motion path's time each update
     int moveMode;                   // +0x264 0..4
     int moveMode2;                  // +0x268
     std::uint32_t activeWeapon;     // +0x26C slot of the weapon in use
-    int unknown_270;
+    int pendingWeapon;              // +0x270 the weapon slot to take up (-1 none; TakeUpWeapon / ShowWeapon)
     int dead;                       // +0x274 (virtual slot 55 returns it; CUnitServer::SetDead)
     std::uint32_t unknown_278;      // +0x278 ("large unit": slot 54 returns it)
     std::uint8_t motion[0xA4];      // +0x27C the unit's UnitMotion (ai_motion.h): Motion()
     float heightOffset;             // +0x320 height above the water surface (PlaceOnGround)
     int sizeClass;                  // +0x324 selects the 4-bit passability field in each AI map cell
-    float unknown_328;              // +0x328 0.75 after Reset
+    float unitRadius;               // +0x328 virtual slot 60 (Radius); 0.75 after Reset
     float standingHeight;           // +0x32C; deeper water or higher ground than (2 - height) * 16 blocks it
     std::uint8_t unknown_330[0x33E - 0x330];
     std::uint8_t attackRate;        // +0x33E (25 / value: see UnitParamsPeriod)
@@ -676,26 +627,10 @@ public:
     int carriedCount;               // +0x4A4
     int carriedCapacity;            // +0x4A8
     int carriedGrowBy;              // +0x4AC (0: an eighth of the count, 4..1024)
-    float resistances[6];           // +0x4B0 per damage type (see ResistanceTo)
+    float actionSpeeds[6];          // +0x4B0 per action kind (ActionSpeed; the model record's +0x2C)
     float levels4C8[5];             // +0x4C8 any at most 2 (or NaN) asks for a party refresh (0066E430)
 };
-static_assert(offsetof(CUnit, prototypeName) == 0xA4);
-static_assert(offsetof(CUnit, build) == 0xC8);
-static_assert(offsetof(CUnit, modelHeight) == 0xF4);
-static_assert(offsetof(CUnit, position) == 0x1C);
-static_assert(offsetof(CUnit, orientation) == 0x34);
-static_assert(offsetof(CUnit, boundsFlags) == 0x124);
-static_assert(offsetof(CUnit, center) == 0x128);
-static_assert(offsetof(CUnit, radius) == 0x134);
-static_assert(offsetof(CUnit, above) == 0x144);
-static_assert(offsetof(CUnit, partBoxes) == 0x160);
-static_assert(offsetof(CUnit, hitPoints) == 0x17E);
-static_assert(offsetof(CUnit, mana) == 0x182);
-static_assert(offsetof(CUnit, maxMana) == 0x184);
 static_assert(offsetof(CUnit, bodyParts) == 0x374);
-static_assert(offsetof(CUnit, effects) == 0x198);
-static_assert(offsetof(CUnit, sectorCellX) == 0x1B8);
-static_assert(offsetof(CUnit, changedParts) == 0x1DC);
 static_assert(offsetof(CUnit, controller) == 0x240);
 static_assert(offsetof(CUnit, player) == 0x24C);
 static_assert(offsetof(CUnit, side) == 0x250);
@@ -708,12 +643,13 @@ static_assert(offsetof(CUnit, unknown_438) == 0x438);
 static_assert(offsetof(CUnit, weapons) == 0x440);
 static_assert(offsetof(CUnit, armor) == 0x480);
 static_assert(offsetof(CUnit, carried) == 0x4A0);
-static_assert(offsetof(CUnit, resistances) == 0x4B0);
+static_assert(offsetof(CUnit, actionSpeeds) == 0x4B0);
 static_assert(offsetof(CUnit, dead) == 0x274);
 static_assert(offsetof(CUnit, heightOffset) == 0x320);
-static_assert(offsetof(CUnit, companion) == 0x170);
 static_assert(offsetof(CUnit, scriptName) == 0x238);
-static_assert(offsetof(CUnit, unknown_254) == 0x254);
+static_assert(offsetof(CUnit, animationEntry) == 0x254);
+static_assert(offsetof(CUnit, pendingWeapon) == 0x270);
+static_assert(offsetof(CUnit, unitRadius) == 0x328);
 static_assert(offsetof(CUnit, unknown_278) == 0x278);
 static_assert(offsetof(CUnit, motion) == 0x27C);
 static_assert(offsetof(CUnit, unknown_330) == 0x330);
@@ -792,21 +728,6 @@ static_assert(offsetof(UnitParams, slots) == 0x30);
 static_assert(offsetof(UnitParams, attributes) == 0xD8);
 static_assert(offsetof(UnitParams, flags) == 0x107);
 static_assert(sizeof(UnitParams) == 0x108);
-
-// The hit points, mana and protection rounded (CUnit + 0x17C, 0x18 bytes; 00522C50 writes it).
-struct UnitVitalsPacked {
-    // 005233B0. Zeroes it. Returns 0 (EAX).
-    int Reset();
-
-    std::uint8_t unknown_00;
-    std::uint8_t unknown_01;
-    std::int16_t hitPoints;         // +0x02
-    std::int16_t maxHitPoints;      // +0x04
-    std::int16_t mana;              // +0x06
-    std::int16_t maxMana;           // +0x08
-    std::int16_t protection[7];     // +0x0A
-};
-static_assert(sizeof(UnitVitalsPacked) == 0x18);
 
 // Unit prototypes (global vectors; see item_db.h for the lookup rule).
 namespace unitdb {
@@ -1337,9 +1258,8 @@ public:
     // its id removed and released, no object.
     void DestroyClientCompanion();
 
-    // The owner (+0x1C) as the unit it is where the client reads hit points (CUnit does not derive
-    // from CMapObject).
-    CUnit* Unit() const { return reinterpret_cast<CUnit*>(owner); }
+    // The owner (+0x1C) as the unit it is where the client reads hit points.
+    CUnit* Unit() const { return static_cast<CUnit*>(owner); }
 
     std::uint32_t unknown_20;   // +0x20 cleared by Create and Destroy
     std::uint32_t unknown_24;

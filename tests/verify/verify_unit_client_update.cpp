@@ -61,7 +61,7 @@ static int __fastcall UpdateClientVerify(CUnitClientSpecific* self) {
     CUnit* unit = self->unit;
     const FigureAnimation* current = unit->Object3D()->animation->current;
     bool longDead = unit->dead && static_cast<CWorld*>(ObjectWorld(self))->tick_ >
-                                      static_cast<std::uint8_t>(unit->unknown_254) + 50;
+                                      static_cast<std::uint8_t>(unit->animationEntry) + 50;
     bool drawn = !longDead && current &&
                  ((current->key & 0x38000) != 0x30000 || (current->key & 0x3C0000) == 0x240000);
     int result = self->UpdateClient();

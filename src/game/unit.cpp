@@ -1,9 +1,10 @@
 #include "unit.h"
 
 #include "item.h"
+#include "spell.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_engine.h"
 
@@ -31,15 +32,17 @@ constexpr float kOverkill = -5.0f;                              // 0073DDC0
 
 constexpr int kPartRelations = 11;
 constexpr int kPartEquipment = 5;
-constexpr std::uint32_t kFlagDirty = 2;
 constexpr std::uint32_t kFlagSideChanged = 0x80000;
 constexpr int kClassQuickItem = 0x13;
 
 // Globals read by the formulas.
 float BackwardSpeedScale() { return *reinterpret_cast<const float*>(0x007C5438); }
-float HeroResistance9() { return *reinterpret_cast<const float*>(0x007C542C); }
+float HeroTransitionSpeed() { return *reinterpret_cast<const float*>(0x007C542C); }
 
-float ItemWeight(const CEngineObject* item) { return Field<float>(reinterpret_cast<const char*>(item), 0x34); }
+float ItemWeight(const CEngineObject* item) { return static_cast<const CItem*>(item)->Weight(); }
+
+// A spell's mana cost (CSpell +0x40, a float kept as a dword).
+float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->unknown_40); }
 
 PartyRecords* RecordsOf(char* player) { return reinterpret_cast<PartyRecords*>(player + 0x70); }
 
@@ -69,30 +72,7 @@ std::uintptr_t RemoveFromSlots(CUnit* unit, CEngineObject** slots, std::uint32_t
 }
 } // namespace
 
-void* CUnit::World() { return ObjectWorld(this); }
-__declspec(naked) double CUnit::AnimationFactor(float) EI_ORIGINAL(0x00518D30)
 __declspec(naked) PartyUnitRecord* PartyRecords::Find(int) EI_ORIGINAL(0x006621B0)
-
-// --- Change tracking -------------------------------------------------------------------------
-
-std::uintptr_t CUnit::MarkChanged(int part) {
-    if (part >= 0) changedParts = static_cast<std::uint16_t>(changedParts | (1u << (part & 31)));
-    flags_ |= kFlagDirty;
-    if (refCount_ == 0) return 0;
-    void* world = World();
-    if (world) changeStamp = Field<int>(static_cast<const char*>(world), 0x68);
-    return reinterpret_cast<std::uintptr_t>(world);
-}
-EI_REPLACE_METHOD(0x0050E9F0, CUnit::MarkChanged);
-
-BOOL CUnit::HasEffect(std::uint32_t type) {
-    for (int i = 0; i < effectCount; ++i) {
-        UnitEffect effect = effects[i];   // the original copies the whole record
-        if ((effect.kind & 0xFF) == type) return 1;
-    }
-    return 0;
-}
-EI_REPLACE_METHOD(0x0050F630, CUnit::HasEffect);
 
 // --- Sides -----------------------------------------------------------------------------------
 
@@ -132,28 +112,28 @@ std::uintptr_t CUnit::SetUnknown438(int value) {
 }
 EI_REPLACE_METHOD(0x0052E9B0, CUnit::SetUnknown438);
 
-std::uintptr_t CUnit::SetUnknown254(std::int8_t a, std::int8_t b, int c, std::int8_t d) {
-    unknown_254 = a;
-    unknown_255 = b;
-    unknown_256 = d;
-    unknown_258 = c;
+std::uintptr_t CUnit::SetAnimationEntries(std::int8_t a, std::int8_t b, int c, std::int8_t d) {
+    animationEntry = a;
+    secondEntry = b;
+    actionSound = d;
+    animationStart = c;
     return MarkChanged(8);
 }
-EI_REPLACE_METHOD(0x0052EA90, CUnit::SetUnknown254);
+EI_REPLACE_METHOD(0x0052EA90, CUnit::SetAnimationEntries);
 
-std::uintptr_t CUnit::SetUnknown25C(int value) {
-    if (unknown_25C == value) return static_cast<std::uintptr_t>(value);
-    unknown_25C = value;
+std::uintptr_t CUnit::SetMotionMode(int value) {
+    if (motionMode == value) return static_cast<std::uintptr_t>(value);
+    motionMode = value;
     return MarkChanged(7);
 }
-EI_REPLACE_METHOD(0x0052EAD0, CUnit::SetUnknown25C);
+EI_REPLACE_METHOD(0x0052EAD0, CUnit::SetMotionMode);
 
-std::uintptr_t CUnit::SetUnknown260(int value) {
-    if (unknown_260 == value) return static_cast<std::uintptr_t>(value);
-    unknown_260 = value;
+std::uintptr_t CUnit::SetPathTimeShift(int value) {
+    if (pathTimeShift == value) return static_cast<std::uintptr_t>(value);
+    pathTimeShift = value;
     return MarkChanged(7);
 }
-EI_REPLACE_METHOD(0x0052EAF0, CUnit::SetUnknown260);
+EI_REPLACE_METHOD(0x0052EAF0, CUnit::SetPathTimeShift);
 
 std::uintptr_t CUnit::SetMoveModes(int mode, int mode2) {
     moveMode = mode;
@@ -172,7 +152,7 @@ std::uintptr_t CUnit::SetFlag40000000Off(bool on) {
 }
 EI_REPLACE_METHOD(0x0052EBE0, CUnit::SetFlag40000000Off);
 
-std::uint32_t CUnit::SetFlag1000000(int on) {
+std::uint32_t CUnit::SetStunned(int on) {
     if (on) {
         flags_ |= 0x1000000u;
     } else {
@@ -180,16 +160,17 @@ std::uint32_t CUnit::SetFlag1000000(int on) {
     }
     return flags_;
 }
-EI_REPLACE_METHOD(0x0052F7F0, CUnit::SetFlag1000000);
+std::uint32_t __fastcall UnitSetStunnedHook(CUnit* self, void*, int on) { return self->CUnit::SetStunned(on); }
+EI_REPLACE(0x0052F7F0, UnitSetStunnedHook);
 
 // --- Equipment -------------------------------------------------------------------------------
 
-void CUnit::GetEquipmentIds(int* out) {
+void CUnit::GetEquipmentIds(std::uint32_t* out) {
     for (int i = 0; i < 4; ++i) {
-        out[i] = weapons[i] ? static_cast<int>(weapons[i]->unknown_18) : -1;
+        out[i] = weapons[i] ? weapons[i]->unknown_18 : 0xFFFFFFFFu;
     }
     for (int i = 0; i < 7; ++i) {
-        out[4 + i] = armor[i] ? static_cast<int>(armor[i]->unknown_18) : -1;
+        out[4 + i] = armor[i] ? armor[i]->unknown_18 : 0xFFFFFFFFu;
     }
 }
 EI_REPLACE_METHOD(0x0052EC10, CUnit::GetEquipmentIds);
@@ -235,7 +216,7 @@ CEngineObject* CUnit::GetQuickItem(std::uint32_t slot) {
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
         if (!record || slot >= record->quickItemCount) return nullptr;
         CEngineObject* item = record->quickItems[slot];
-        if (!item || Field<int>(reinterpret_cast<const char*>(item), 0x48) < 1) return nullptr;
+        if (!item || static_cast<int>(static_cast<CItem*>(item)->unknown_48) < 1) return nullptr;   // its count
         return item;
     }
     return slot < 4 ? quickItems[slot] : nullptr;
@@ -259,7 +240,7 @@ void* CUnit::GetSpellObject(std::uint32_t slot) {
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
         if (!record || slot >= record->spellCount) return nullptr;
         // No null check on the item here (the original reads through it).
-        return Field<void*>(reinterpret_cast<const char*>(record->spells[slot]), 0x44);
+        return static_cast<CItem*>(record->spells[slot])->spell_;
     }
     if (slot >= 8 || !spells[slot]) return nullptr;
     return static_cast<CItem*>(spells[slot])->spell_;
@@ -307,9 +288,9 @@ int CUnit::CanCastSpell(std::uint32_t slot, int) {
     if (HasEffect(0x20)) return 4;
     void* spell = GetSpellObject(slot);
     if (!spell) return 3;
-    float cost = Field<float>(static_cast<const char*>(spell), 0x40);
-    float available = static_cast<float>(mana);
-    double needed = reinterpret_cast<UnitParams*>(unknown_330)->Period() * cost;
+    float cost = SpellCost(spell);
+    float available = static_cast<float>(packedVitals.mana);
+    double needed = Params()->Period() * cost;
     return !(available >= needed) ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x0052F820, CUnit::CanCastSpell);
@@ -319,8 +300,7 @@ int CUnit::CanUseQuickItem(std::uint32_t slot, int) {
     if (!object || object->GetClassId() != kClassQuickItem) return 3;
     CItem* item = static_cast<CItem*>(object);
     if (item->GetCategory() != 5 && item->GetCategory() != 8) return 3;
-    const char* spell = static_cast<const char*>(item->spell_);
-    if (item->GetCategory() == 5 && !(item->charge_ >= Field<float>(spell, 0x40))) return 1;
+    if (item->GetCategory() == 5 && !(item->charge_ >= SpellCost(item->spell_))) return 1;
     return 0;
 }
 EI_REPLACE_METHOD(0x0052F8B0, CUnit::CanUseQuickItem);
@@ -394,7 +374,7 @@ EI_REPLACE_METHOD(0x00530370, CUnit::BaseSpeed);
 
 double CUnit::ModeSpeed() {
     volatile float speed = static_cast<float>(BaseSpeed());   // FSTP to a float local in the original
-    if (moveMode != 0 && ei::VCall<int>(this, 0xDC / 4) == 0) {
+    if (moveMode != 0 && IsDead() == 0) {
         if (moveMode == 1) return speed * kSlowModeScale;
         return speed;
     }
@@ -410,7 +390,8 @@ EI_REPLACE_METHOD(0x00530930, CUnit::GetPrototype);
 char* CUnit::GetPrototypeModel() {
     char* prototype = unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize);
     if (!prototype) return nullptr;
-    return unitdb::Models().At(Field<std::uint32_t>(prototype, 0x08), unitdb::kModelSize);
+    return unitdb::Models().At(static_cast<std::uint32_t>(reinterpret_cast<const UnitPrototypeRecord*>(prototype)->modelIndex),
+                               unitdb::kModelSize);
 }
 EI_REPLACE_METHOD(0x00530970, CUnit::GetPrototypeModel);
 
@@ -428,31 +409,34 @@ EI_REPLACE_METHOD(0x005308A0, CUnit::SetPrototype23C);
 
 // --- Combat ----------------------------------------------------------------------------------
 
-float CUnit::ResistanceTo(const void* hit) {
-    switch (Field<std::uint32_t>(static_cast<const char*>(hit), 0x14) & 0x3C0000) {
-    case 0x80000: return resistances[0];
-    case 0xC0000: return resistances[1];
-    case 0x200000: return resistances[2];
-    case 0x1C0000: return resistances[3];
-    case 0x240000: return type_ == kUnitTypeHero ? HeroResistance9() : resistances[4];
-    case 0x40000: return resistances[5];
+float CUnit::ActionSpeed(const FigureAnimation* entry) {
+    switch (entry->key & 0x3C0000) {
+    case 0x80000: return actionSpeeds[0];
+    case 0xC0000: return actionSpeeds[1];
+    case 0x200000: return actionSpeeds[2];
+    case 0x1C0000: return actionSpeeds[3];
+    case 0x240000: return type_ == kUnitTypeHero ? HeroTransitionSpeed() : actionSpeeds[4];
+    case 0x40000: return actionSpeeds[5];
     default: return kOne;
     }
 }
-EI_REPLACE_METHOD(0x005327D0, CUnit::ResistanceTo);
+EI_REPLACE_METHOD(0x005327D0, CUnit::ActionSpeed);
 
-bool CUnit::AcceptsTarget(const void* target) {
+bool CUnit::AcceptsAnimation(const void* entry) {
     if (type_ != kUnitTypeHero) return true;
     std::uint32_t required = 0;
-    if (ei::VCall<bool>(controller, 0x90 / 4)) required = 0x10;
-    if (ei::VCall<bool>(controller, 0x94 / 4)) required |= 0x20;
-    return (Field<std::uint32_t>(static_cast<const char*>(target), 0x18) & required) == required;
+    if (Controller()->HasOtherArmour()) required = 0x10;
+    if (Controller()->HasMainArmour()) required |= 0x20;
+    return (static_cast<const FigureAnimation*>(entry)->flags & required) == required;
 }
-EI_REPLACE_METHOD(0x00532DA0, CUnit::AcceptsTarget);
+bool __fastcall UnitAcceptsAnimationHook(CUnit* self, void*, const void* entry) {
+    return self->CUnit::AcceptsAnimation(entry);
+}
+EI_REPLACE(0x00532DA0, UnitAcceptsAnimationHook);
 
 double CUnit::AnimationRatio() {
-    volatile float denominator = static_cast<float>(AnimationFactor(animation1B4));   // FSTP to a float local
-    return AnimationFactor(animationCC) / denominator;
+    volatile float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // FSTP to a float local
+    return AnimationFactor(scale.z) / denominator;
 }
 EI_REPLACE_METHOD(0x00532E00, CUnit::AnimationRatio);
 
@@ -469,13 +453,13 @@ BOOL CMapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill >
 BOOL __fastcall ServerIsOverkilledHook(CMapObjectServer* self) { return self->CMapObjectServer::IsOverkilled(); }
 EI_REPLACE(0x005156C0, ServerIsOverkilledHook);
 
-BOOL CMapObjectClientSpecific::IsDead() { return Unit()->hitPoints <= 0; }
+BOOL CMapObjectClientSpecific::IsDead() { return Unit()->packedVitals.hitPoints <= 0; }
 BOOL __fastcall ClientIsDeadHook(CMapObjectClientSpecific* self) { return self->CMapObjectClientSpecific::IsDead(); }
 EI_REPLACE(0x005104D0, ClientIsDeadHook);
 
 BOOL CMapObjectClientSpecific::IsOverkilled() {
-    int maximum = Unit()->maxHitPoints;
-    return Unit()->hitPoints < -maximum * 4 - maximum;
+    int maximum = Unit()->packedVitals.maxHitPoints;
+    return Unit()->packedVitals.hitPoints < -maximum * 4 - maximum;
 }
 BOOL __fastcall ClientIsOverkilledHook(CMapObjectClientSpecific* self) {
     return self->CMapObjectClientSpecific::IsOverkilled();

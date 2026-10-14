@@ -36,9 +36,9 @@ static void* s_unusedTakeUpWeapon;
 static BOOL __fastcall TakeUpWeaponVerify(CUnitServer* self, void*, int slot) {
     BOOL result = self->TakeUpWeapon(slot);
     int expected = result ? slot : -1;
-    bool ok = static_cast<int>(self->unit->activeWeapon) == expected && self->unit->unknown_270 == expected;
+    bool ok = static_cast<int>(self->unit->activeWeapon) == expected && self->unit->pendingWeapon == expected;
     ei::verify::Check("CUnitServer::TakeUpWeapon", true, ok, "unit %d slot %d: result %d, active %d wanted %d",
-                      UnitId(self), slot, result, static_cast<int>(self->unit->activeWeapon), self->unit->unknown_270);
+                      UnitId(self), slot, result, static_cast<int>(self->unit->activeWeapon), self->unit->pendingWeapon);
     return result;
 }
 EI_VERIFY(0x00553610, TakeUpWeaponVerify, 0, s_unusedTakeUpWeapon);

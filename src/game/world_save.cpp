@@ -301,7 +301,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
                 unitdb::Prototypes().At(object->unknown_18, unitdb::kPrototypeSize));
             auto* model = reinterpret_cast<const UnitModelRecord*>(
                 unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
-            std::memcpy(static_cast<CUnit*>(object)->resistances, model->unknown_2C, 24);
+            std::memcpy(static_cast<CUnit*>(object)->actionSpeeds, model->actionSpeeds, 24);
         }
 
         // Every part is marked changed when any change was saved (the original tests the part's

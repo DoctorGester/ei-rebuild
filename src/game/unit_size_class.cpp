@@ -2,29 +2,16 @@
 // ("Seventh round (U5)").
 #include "unit.h"
 
-#include "ei/hook.h"
-#include "ei/vcall.h"
+#include "combat.h"
+#include "unit_db.h"
 
+#include "ei/hook.h"
+
+#include <bit>
 #include <cstdint>
 #include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
-
-constexpr int kClassUnitServer = 0x3E;
-constexpr int kControllerSlotMoveFactors = 0xB4 / 4;   // the server's 005536B0; empty (00533D10) on the others
-// The server controller's size classes (its CombatStats + 0x68 / 0x6C / 0x6E), read unsigned.
-constexpr int kServerSizeClass = 0x248;
-constexpr int kServerSizeClassMode0 = 0x24C;
-constexpr int kServerSizeClassMode1 = 0x24E;
-constexpr int kExtentX = 0x144;           // the unit's half extents (UnitActionPoint's offsets)
-constexpr int kExtentY = 0x148;
-constexpr int kRadius = 0x328;            // virtual slot 60
-constexpr int kPrototypeDepth = 0x24;     // unit prototype: compared with 1.5 for size class 0
 
 constexpr float kHeightScale = 0.9f;      // 0073CD70
 constexpr float kRadiusExtra = 0.05f;     // 0073C52C
@@ -38,32 +25,33 @@ constexpr std::uint8_t kMovesOnWater = 2;               // movementKind
 } // namespace
 
 void CUnit::UpdateSizeClass() {
-    ei::VCall<void>(controller, kControllerSlotMoveFactors);
+    Controller()->UpdateMoveFactors();   // the server's 005536B0; empty (00533D10) on the others
     if (controller->GetClassId() != kClassUnitServer) {
         sizeClass = movementKind == kMovesOnWater ? 0 : 3;
-        At<std::uint32_t>(this, kRadius) = kDefaultRadius;
+        std::memcpy(&unitRadius, &kDefaultRadius, 4);
         return;
     }
-    void* server = controller;
-    if (moveMode == 0) sizeClass = At<std::uint16_t>(server, kServerSizeClassMode0);
-    else if (moveMode == 1) sizeClass = At<std::uint16_t>(server, kServerSizeClassMode1);
-    else sizeClass = At<std::uint16_t>(server, kServerSizeClass);
+    // The server controller's size classes, read unsigned.
+    CombatStats& combat = static_cast<CUnitServer*>(controller)->Combat();
+    if (moveMode == 0) sizeClass = static_cast<std::uint16_t>(combat.sizeClass20);
+    else if (moveMode == 1) sizeClass = static_cast<std::uint16_t>(combat.sizeClass60);
+    else sizeClass = static_cast<std::uint16_t>(combat.sizeClass);
 
-    // The larger extent, selected bitwise by FCOMP's C0: +0x148 when +0x144 is below it or NaN.
-    float extentX = At<float>(this, kExtentX);
-    float extentY = At<float>(this, kExtentY);
+    // The larger half extent, selected bitwise by FCOMP's C0: above.y when above.x is below it or NaN.
+    float extentX = above.x;
+    float extentY = above.y;
     float extent = !(extentX >= extentY) ? extentY : extentX;
     float height = extent * kHeightScale;
     standingHeight = height;
-    At<float>(this, kRadius) = height + kRadiusExtra;
+    unitRadius = height + kRadiusExtra;
     if (player) standingHeight = height + kPlayerExtra;
     // At most 2, selected the same way: 2 when below the height or NaN.
     float limited = standingHeight;
     standingHeight = !(kMaxHeight >= limited) ? kMaxHeight : limited;
     if (sizeClass != 0) return;
     // The prototype by unknown_18; out of range the original reads address 0x24 (kept).
-    const char* prototype = unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize);
+    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize));
     // FCOMP; TEST AH,0x41: only for a value above 1.5.
-    if (Field<float>(prototype, kPrototypeDepth) > kDeepPrototype) std::memcpy(&standingHeight, &kShallowHeight, 4);
+    if (std::bit_cast<float>(prototype->unknown_24) > kDeepPrototype) std::memcpy(&standingHeight, &kShallowHeight, 4);
 }
 EI_REPLACE_METHOD(0x00530570, CUnit::UpdateSizeClass);

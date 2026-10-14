@@ -81,14 +81,14 @@ CMaterial* CObject3DClientSpecific::NextMaterial() {
 EI_REPLACE_METHOD(0x0051B6F0, CObject3DClientSpecific::NextMaterial);
 
 int CUnitClientSpecific::UpdateClient() {
-    if (unit->unknown_260 == 1) MotionPath()->ShiftTime(1);
-    if (unit->unknown_25C == 1) ++unit->unknown_258;
+    if (unit->pathTimeShift == 1) MotionPath()->ShiftTime(1);
+    if (unit->motionMode == 1) ++unit->animationStart;
     const FigureAnimation* current = unit->Object3D()->animation->current;
     if (current) CallShowWeaponParts(this, nullptr, (current->key & kKeyLowBits) == 0);
 
     bool drawn;
     if (unit->dead && static_cast<CWorld*>(ObjectWorld(this))->tick_ >
-                          static_cast<std::uint8_t>(unit->unknown_254) + kDeadShownTicks) {
+                          static_cast<std::uint8_t>(unit->animationEntry) + kDeadShownTicks) {
         drawn = false;
     } else {
         drawn = current && ((current->key & kKeyMovement) != kKeyMovementStill ||
@@ -136,7 +136,7 @@ int CUnitClientSpecific::UpdateClient() {
             SpeechEraseOriginal(&speech, nullptr, &after, speech->next);
         }
     }
-    if (unit->unknown_255 == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)
+    if (unit->secondEntry == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)
         ClientStartIdleAnimationOriginal(this, nullptr, 0);
     return 1;
 }

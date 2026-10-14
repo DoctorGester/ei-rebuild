@@ -5,6 +5,7 @@
 // is read from / written to the tagged-chunk archive (model.h, ChunkArchive). Names provisional;
 // the field ids are the archive's. See docs/notes/units.md ("Database records").
 
+#include "ei/x87.h"
 #include "lib/mfc.h"
 #include "maths.h"
 
@@ -150,7 +151,7 @@ struct UnitModelRecord {
     std::uint32_t unknown_14;       // 5 (-> statistics +0x60)
     float angle;                    // +0x18 6 (degrees)
     std::uint32_t modeSpeeds[4];    // +0x1C 7
-    std::uint32_t unknown_2C[6];    // 0x24
+    std::uint32_t actionSpeeds[6];  // +0x2C 0x24 (float bits; copied to CUnit::actionSpeeds)
     std::uint32_t unknown_44;       // 8 (-> statistics +0x64)
     std::uint32_t sizeClass;        // +0x48 9
     std::uint32_t sizeClassSmall;   // +0x4C 10
@@ -303,9 +304,15 @@ struct SkillLevelRecord {
     mfc::CString unknown_0C;        // +0x0C 10
     std::uint32_t unknown_10;       // +0x10 0x17
     mfc::CString unknown_14;        // +0x14 11
-    std::uint32_t values[10];       // +0x18 12..21 (values[7], +0x34: the level's value)
+    std::uint32_t values[10];       // +0x18 12..21 (values[6], +0x30: its worth exponent; values[7], +0x34: the level's value)
     std::uint8_t unknown_40;        // +0x40 22 (one byte)
     std::uint8_t unknown_41[3];
+
+    // The level's value (values[7], unsigned), loaded as the original's FILD of a zero-extended
+    // qword (exact).
+    double Value() const { return x87::FromUnsigned(values[7]); }
+    // The worth exponent the skill prices use (values[6], signed).
+    int WorthExponent() const { return static_cast<int>(values[6]); }
 };
 static_assert(offsetof(SkillLevelRecord, values) == 0x18 && sizeof(SkillLevelRecord) == 0x44);
 

@@ -44,7 +44,7 @@ static double __fastcall VisionRangeVerify(UnitParams* self, void*, float daylig
 EI_VERIFY(0x005271E0, VisionRangeVerify, 5, s_visionRange);
 
 static void __fastcall AdvanceUnitTimeVerify(CUnit* self, void*, float time) {
-    self->AdvanceUnitTime(time);
+    self->CUnit::AdvanceTime(time);
     ei::verify::Check("CUnit::AdvanceUnitTime", true, true, "unit %d", self->id_);
 }
 EI_VERIFY(0x0052FC40, AdvanceUnitTimeVerify, 0, s_unusedTime);

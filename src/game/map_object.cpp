@@ -30,12 +30,6 @@ std::uint32_t ClampToZero(float v) {
 
 void StoreBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(bits)); }
 
-bool HasEffectType(const CMapObject* object, int type) {
-    for (int i = 0; i < object->effectCount; ++i)
-        if (object->effects[i].type == type) return true;
-    return false;
-}
-
 // The world's slot 27 (GridHeightAt): the height at (x, y), in ST0.
 double GroundHeight(void* world, float x, float y) { return static_cast<CWorld*>(world)->GridHeightAt(x, y); }
 
@@ -44,8 +38,27 @@ int UpdateCount(void* world) { return static_cast<CWorld*>(world)->updateCount_;
 } // namespace
 
 void* CMapObject::World() { return ObjectWorld(this); }
-std::uintptr_t CMapObject::MarkChanged(int part) { return reinterpret_cast<std::uintptr_t>(UnitMarkChanged(this, nullptr, part)); }
-__declspec(naked) int CMapObject::HasEffect(std::uint32_t) EI_ORIGINAL(0x0050F630)
+
+// --- Change tracking -------------------------------------------------------------------------
+
+std::uintptr_t CMapObject::MarkChanged(int part) {
+    if (part >= 0) changedParts = static_cast<std::uint16_t>(changedParts | (1u << (part & 31)));
+    flags_ |= kFlagDirty;
+    if (refCount_ == 0) return 0;
+    void* world = World();
+    if (world) changeStamp = UpdateCount(world);
+    return reinterpret_cast<std::uintptr_t>(world);
+}
+EI_REPLACE_METHOD(0x0050E9F0, CMapObject::MarkChanged);
+
+int CMapObject::HasEffect(std::uint32_t type) {
+    for (int i = 0; i < effectCount; ++i) {
+        MapEffect effect = effects[i];   // the original copies the whole record
+        if (effect.type == type) return 1;
+    }
+    return 0;
+}
+EI_REPLACE_METHOD(0x0050F630, CMapObject::HasEffect);
 
 // --- Per-tick update -------------------------------------------------------------------------
 
@@ -153,9 +166,9 @@ EI_REPLACE_METHOD(0x0050F690, CMapObject::EffectValue);
 
 std::uintptr_t CMapObject::RecomputeScale() {
     ApplyBaseScale();
-    int strength = (HasEffectType(this, mapeffect::kStrengthen) ? 1 : 0) - (HasEffectType(this, mapeffect::kWeaken) ? 1 : 0);
+    int strength = (HasEffect(mapeffect::kStrengthen) ? 1 : 0) - (HasEffect(mapeffect::kWeaken) ? 1 : 0);
     float strengthLevel = static_cast<float>(strength);   // FILD, FSTP float
-    int size = (HasEffectType(this, mapeffect::kEnlarge) ? 1 : 0) - (HasEffectType(this, mapeffect::kShrink) ? 1 : 0);
+    int size = (HasEffect(mapeffect::kEnlarge) ? 1 : 0) - (HasEffect(mapeffect::kShrink) ? 1 : 0);
     double sizeLevel = size;                               // FILD, kept on the stack
     float total = static_cast<float>(sizeLevel + strengthLevel);
     if (size == 0) {

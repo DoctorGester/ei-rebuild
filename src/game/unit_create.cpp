@@ -11,9 +11,9 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 
+#include <bit>
 #include <cstring>
 #include "originals_gameplay.h"
 #include "originals_units.h"
@@ -22,12 +22,6 @@ namespace {
 constexpr int kPartStats = 4;          // MarkChanged parts
 constexpr int kPartEquipment = 5;
 constexpr int kPartWeapons = 6;
-
-// Controller slots (vtable 0073EDBC and the classes deriving from it).
-constexpr int kControllerWeaponsChanged = 0x64 / 4;   // 25 (-1: re-pick the active weapon)
-constexpr int kControllerArmourRemoved = 0x6C / 4;    // 27 (the piece's armour type)
-// CUnitServer slot 19 (0x4C), called around the slot refill.
-constexpr int kServerStatsSlot = 0x4C / 4;
 
 constexpr std::uint32_t kLastPlainRemark = 0x29;
 constexpr std::uint32_t kExtraRemark = 0x30;
@@ -47,8 +41,9 @@ void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) { PlayerGi
 // The player's message writer (CPlayerServer, player + 0x20).
 void* PlayerMessages(const char* player) { return *reinterpret_cast<void* const*>(player + 0x20); }
 
+// The item's condition (CItem +0x20, a float kept as a dword) rounds to nothing.
 bool IsBroken(const CEngineObject* item) {
-    return x87::fistp(Field<float>(reinterpret_cast<const char*>(item), 0x20)) <= 0;
+    return x87::fistp(std::bit_cast<float>(static_cast<const CItem*>(item)->unknown_20)) <= 0;
 }
 
 using ItemList = mfc::CTypedPtrList<CEngineObject>;
@@ -71,15 +66,15 @@ EI_REPLACE_METHOD(0x00514930, UnitPrototypeTable::FindByName);
 std::uintptr_t CUnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&stats, source, sizeof(UnitStats));
     unit->MarkChanged(kPartStats);
-    ei::VCall<int>(this, kServerStatsSlot, 0);
+    ServerSlots(this)->RefreshVitals(0);
     UnitStatsRefillSlotsOriginal(&stats);
-    ei::VCall<int>(this, kServerStatsSlot, 0);
-    // The companion's vitals (UnitVitals at +0x20): hit points and mana at their maxima.
-    char* vitals = reinterpret_cast<char*>(reinterpret_cast<CMapObject*>(unit)->companion);
-    std::memcpy(vitals + 0x28, vitals + 0x2C, 4);
-    vitals = reinterpret_cast<char*>(reinterpret_cast<CMapObject*>(unit)->companion);
-    std::memcpy(vitals + 0x34, vitals + 0x38, 4);
-    return reinterpret_cast<std::uintptr_t>(vitals);
+    ServerSlots(this)->RefreshVitals(0);
+    // The companion's vitals: hit points and mana at their maxima (the companion read again).
+    auto* companion = static_cast<CMapObjectServer*>(unit->companion);
+    std::memcpy(&companion->vitals.hitPoints, &companion->vitals.maxHitPoints, 4);
+    companion = static_cast<CMapObjectServer*>(unit->companion);
+    std::memcpy(&companion->vitals.mana, &companion->vitals.maxMana, 4);
+    return reinterpret_cast<std::uintptr_t>(companion);
 }
 EI_REPLACE_METHOD(0x00552F40, CUnitServer::SetStats);
 
@@ -108,7 +103,7 @@ void CUnit::DropBrokenEquipment() {
         CEngineObject* piece = slot;
         slot = nullptr;
         if (piece) {
-            ei::VCall<int>(controller, kControllerArmourRemoved, static_cast<CItemArmor*>(piece)->GetType());
+            Controller()->ArmourTakenOff(static_cast<std::uint32_t>(static_cast<CItemArmor*>(piece)->GetType()));
             piece->Release();
         }
         MarkChanged(kPartEquipment);
@@ -131,7 +126,7 @@ void CUnit::DropBrokenEquipment() {
         MarkChanged(kPartWeapons);
         weaponLost = true;
     }
-    if (weaponLost) ei::VCall<int>(controller, kControllerWeaponsChanged, -1);
+    if (weaponLost) Controller()->ShowWeapon(0xFFFFFFFFu);   // re-pick the active weapon
 
     if (broken.count != 0) {
         PlayerReceiveItems(owner, nullptr, &broken, 1);

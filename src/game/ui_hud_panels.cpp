@@ -86,19 +86,19 @@ void CUiScrollbar::CallSetRect(const RECT* rect) {
 void CHudUnitPanel::ShowHealth(CUnit* unit) {
     Sprite(this, 11)->visible_ = 1;
     float ratio;
-    if (unit->maxHitPoints != 0 && unit->hitPoints > 0 && BarRatio(unit->hitPoints, unit->maxHitPoints, &ratio))
+    if (unit->packedVitals.maxHitPoints != 0 && unit->packedVitals.hitPoints > 0 && BarRatio(unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, &ratio))
         FillBar(Sprite(this, 10), ratio, 100.0f, 0.396484375f, 0.376953125f);
     mfc::CString health;
-    health.Format("%d", unit->hitPoints > 0 ? unit->hitPoints : 0);
+    health.Format("%d", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
     DrawPanelText(this, health, RECT{130, 185, 160, 200}, kTextColour, 0, 1);
 
     for (int i = 0; i < owner_->partyCount_; ++i) {
         if (owner_->party_[i] != unit) continue;
         Sprite(this, 13)->visible_ = 1;
-        if (unit->maxMana != 0 && unit->mana != 0 && BarRatio(unit->mana, unit->maxMana, &ratio))
+        if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
             FillBar(Sprite(this, 12), ratio, 100.0f, 0.369140625f, 0.349609375f);
         mfc::CString mana;
-        mana.Format("%d", static_cast<int>(unit->mana));
+        mana.Format("%d", static_cast<int>(unit->packedVitals.mana));
         DrawPanelText(this, mana, RECT{130, 200, 160, 215}, kTextColour, 0, 1);
         break;
     }

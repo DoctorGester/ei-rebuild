@@ -204,14 +204,14 @@ void CHudPortraits::Rebuild(int wide) {
     for (int i = 0; i < owner_->partyCount_; ++i) {
         CUnit* unit = owner_->party_[i];
         const int skin = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->skin;
-        SexOf(unit->prototypeName, sex);
-        const float figureBuild = unit->build;
+        SexOf(unit->name, sex);
+        const float figureBuild = unit->scale.y;
         build = GameText(0x007844A8);                              // "me"
         if (!(figureBuild >= Thin()))
             build = GameText(0x007945AC);                          // "th"
         else if (figureBuild > Fat())
             build = GameText(0x007945A8);                          // "fa"
-        const char* figure = unit->prototypeName;
+        const char* figure = unit->name;
         model.Format(GameText(0x007935AC), figure, static_cast<const char*>(build),   // "infa%s%s%dface"
                      reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair + 1);
         picture.Format(GameText(0x00792E88), static_cast<const char*>(sex), skin);     // "face%s%02d"
@@ -223,10 +223,10 @@ void CHudPortraits::Rebuild(int wide) {
             slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, WobbleAngle() * Seventh());
         }
         slots_[i].flash_ = 0.0f;
-        slots_[i].lastHitPoints_ = owner_->party_[i]->hitPoints;
+        slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
         slots_[i].FaceName() = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].ModelPrefix().Format(GameText(0x007945A0), unit->prototypeName);   // "infa%s"
+        slots_[i].ModelPrefix().Format(GameText(0x007945A0), unit->name);   // "infa%s"
         const int hair = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair;
         slots_[i].ModelSuffix().Format(GameText(0x00794598), hair + 1);             // "%dface"
         slots_[i].build_ = figureBuild;

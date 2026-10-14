@@ -96,7 +96,7 @@ static void __fastcall AdvanceTimeVerify(CUnitClientSpecific* self, void*, float
     self->AdvanceTime(time);
     bool ok = !(step >= 0.0f) ? std::memcmp(&self->lastTime, &last, sizeof(float)) == 0
                               : std::memcmp(&self->lastTime, &time, sizeof(float)) == 0 &&
-                                    (self->unit->unknown_260 == 0 || self->unit->animationSpeed == 1.0f);
+                                    (self->unit->pathTimeShift == 0 || self->unit->animationSpeed == 1.0f);
     ei::verify::Check("CUnitClientSpecific::AdvanceTime", true, ok, "unit %d time %g (last %g)", self->unit->id_, time,
                       last);
 }
@@ -108,7 +108,7 @@ static void __fastcall RestartAnimationVerify(CUnitClientSpecific* self, void*, 
     self->RestartAnimation(time);
     const CFigureAnimationState* state = self->unit->Object3D()->animation;
     bool ok = frozen ? std::memcmp(&self->lastTime, &last, sizeof(float)) == 0
-                     : state->queue.count <= 1 && !(self->lastTime < static_cast<float>(self->unit->unknown_258));
+                     : state->queue.count <= 1 && !(self->lastTime < static_cast<float>(self->unit->animationStart));
     ei::verify::Check("CUnitClientSpecific::RestartAnimation", true, ok, "unit %d time %g, %d queued", self->unit->id_,
                       time, state->queue.count);
 }

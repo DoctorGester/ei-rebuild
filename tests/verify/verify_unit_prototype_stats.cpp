@@ -18,7 +18,7 @@ static void __fastcall PackPrototypeStatsVerify(CUnit* self, void*, const char* 
     std::uint8_t vitalsBefore[0x18], paramsBefore[0x108];
     std::memcpy(vitalsBefore, bytes + 0x17C, sizeof(vitalsBefore));
     std::memcpy(paramsBefore, bytes + 0x330, sizeof(paramsBefore));
-    self->PackPrototypeStats(prototype);
+    self->CUnit::TakePrototype(prototype);
     std::uint8_t vitalsOurs[0x18], paramsOurs[0x108];
     std::memcpy(vitalsOurs, bytes + 0x17C, sizeof(vitalsOurs));
     std::memcpy(paramsOurs, bytes + 0x330, sizeof(paramsOurs));

@@ -185,16 +185,16 @@ void CHudPortraits::Update() {
         CUnit* unit = owner_->party_[i];
 
         // Health bar (object 5i+2) and mana bar (5i+3).
-        int hitPoints = unit->hitPoints < 0 ? 0 : unit->hitPoints;
-        double health = unit->maxHitPoints > 0
-                            ? static_cast<double>(hitPoints) / static_cast<double>(unit->maxHitPoints)
+        int hitPoints = unit->packedVitals.hitPoints < 0 ? 0 : unit->packedVitals.hitPoints;
+        double health = unit->packedVitals.maxHitPoints > 0
+                            ? static_cast<double>(hitPoints) / static_cast<double>(unit->packedVitals.maxHitPoints)
                             : 0.0;
         SetBar(object(2), health, kHealthV0, kHealthV1);
         std::uint16_t maxMana;
         std::memcpy(&maxMana, reinterpret_cast<const std::uint8_t*>(unit) + 0x184, 2);
         double mana = 0.0;
         if (maxMana != 0) {
-            float current = static_cast<float>(unit->mana);   // exact (16 bits)
+            float current = static_cast<float>(unit->packedVitals.mana);   // exact (16 bits)
             float positive = 0.0f < current || x87::IsNaN(current) ? current : 0.0f;
             mana = D(positive) / static_cast<double>(static_cast<int>(maxMana));
         }
@@ -235,7 +235,7 @@ void CHudPortraits::Update() {
             std::uint16_t maximum;
             std::memcpy(&maximum, reinterpret_cast<const std::uint8_t*>(unit) + 0x184, 2);
             if (maximum == 0 ||
-                !(static_cast<double>(static_cast<int>(unit->mana)) / static_cast<double>(static_cast<int>(maximum)) >=
+                !(static_cast<double>(static_cast<int>(unit->packedVitals.mana)) / static_cast<double>(static_cast<int>(maximum)) >=
                   kLowMana))
                 state = 3;
         }

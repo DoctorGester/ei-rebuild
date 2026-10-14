@@ -77,9 +77,9 @@ static void __fastcall AdvanceAnimationVerify(CUnitServer* self) {
     self->AdvanceAnimation();
     const AnimationSteps& queue = Queue(self);
     int kind = frozen ? 1 : (queue.count ? queue.steps[0].unknown_08 : 0);
-    bool ok = self->unit->unknown_25C == kind && self->unit->unknown_260 == ((frozen || held) ? 1 : 0);
+    bool ok = self->unit->motionMode == kind && self->unit->pathTimeShift == ((frozen || held) ? 1 : 0);
     ei::verify::Check("CUnitServer::AdvanceAnimation", true, ok, "unit %d, +25C %d (expected %d), +260 %d", UnitId(self),
-                      self->unit->unknown_25C, kind, self->unit->unknown_260);
+                      self->unit->motionMode, kind, self->unit->pathTimeShift);
 }
 EI_VERIFY(0x00546F30, AdvanceAnimationVerify, 0, s_unused);
 
@@ -108,8 +108,8 @@ static void __fastcall ShowCurrentStepVerify(CUnitServer* self) {
     self->ShowCurrentStep();
     const AnimationSteps& queue = Queue(self);
     bool shown = queue.count && (queue.steps[0].animation != 0xFF || queue.steps[0].unknown_01 != 0xFF);
-    bool ok = !shown || (static_cast<std::uint8_t>(self->unit->unknown_254) == queue.steps[0].animation &&
-                         self->unit->unknown_258 == queue.extra);
+    bool ok = !shown || (static_cast<std::uint8_t>(self->unit->animationEntry) == queue.steps[0].animation &&
+                         self->unit->animationStart == queue.extra);
     ei::verify::Check("CUnitServer::ShowCurrentStep", true, ok, "unit %d", UnitId(self));
 }
 EI_VERIFY(0x00546C10, ShowCurrentStepVerify, 0, s_unused);

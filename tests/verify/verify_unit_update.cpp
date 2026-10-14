@@ -47,28 +47,28 @@ EI_VERIFY(0x0052F7D0, TickVerify, 0, s_unused);
 
 // 00532A80 / 00532AB0 / 00532AA0 / 00530A50 / 0052EB30 / 00530A20: ours only (counted).
 static std::uintptr_t __fastcall RecomputeUnitScaleVerify(CUnit* self) {
-    std::uintptr_t result = self->RecomputeUnitScale();
+    std::uintptr_t result = self->CUnit::RecomputeScale();
     ei::verify::Check("CUnit::RecomputeUnitScale", true, true, "");
     return result;
 }
 EI_VERIFY(0x00532A80, RecomputeUnitScaleVerify, 0, s_unused);
 
 static std::uintptr_t __fastcall EffectsChangedVerify(CUnit* self) {
-    std::uintptr_t result = self->EffectsChanged();
+    std::uintptr_t result = self->CUnit::EffectsChanged();
     ei::verify::Check("CUnit::EffectsChanged", true, true, "");
     return result;
 }
 EI_VERIFY(0x00532AB0, EffectsChangedVerify, 0, s_unused);
 
 static std::uintptr_t __fastcall ResetUnitScaleVerify(CUnit* self) {
-    std::uintptr_t result = self->ResetUnitScale();
+    std::uintptr_t result = self->CUnit::ApplyBaseScale();
     ei::verify::Check("CUnit::ResetUnitScale", true, true, "");
     return result;
 }
 EI_VERIFY(0x00532AA0, ResetUnitScaleVerify, 0, s_unused);
 
 static std::uintptr_t __fastcall UpdateSizeClassesVerify(CUnit* self) {
-    std::uintptr_t result = self->UpdateSizeClasses();
+    std::uintptr_t result = self->CUnit::UpdateSizeClasses();
     ei::verify::Check("CUnit::UpdateSizeClasses", true, true, "");
     return result;
 }
@@ -76,7 +76,7 @@ EI_VERIFY(0x00530A50, UpdateSizeClassesVerify, 0, s_unused);
 
 static std::uintptr_t __fastcall ScaleEffectChangedVerify(CUnit* self, void*, int value) {
     bool hadController = self->controller != nullptr;
-    std::uintptr_t result = self->ScaleEffectChanged(value);
+    std::uintptr_t result = self->CUnit::ScaleEffectChanged(value);
     ei::verify::Check("CUnit::ScaleEffectChanged", true, hadController || result == 0, "");
     return result;
 }
@@ -84,7 +84,7 @@ EI_VERIFY(0x0052EB30, ScaleEffectChangedVerify, 0, s_unused);
 
 static std::uintptr_t __fastcall SetServerStatsVerify(CUnit* self, void*, const UnitStats* stats) {
     int classId = self->controller->GetClassId();
-    std::uintptr_t result = self->SetServerStats(stats);
+    std::uintptr_t result = self->CUnit::SetStats(stats);
     ei::verify::Check("CUnit::SetServerStats", true, classId == 0x3E || result == static_cast<std::uintptr_t>(classId),
                       "class %X", classId);
     return result;
@@ -93,7 +93,7 @@ EI_VERIFY(0x00530A20, SetServerStatsVerify, 0, s_unused);
 
 // 0052E910: ours only; afterwards the figures are loaded (flags_ 0x80).
 static std::uintptr_t __fastcall LoadUnitFiguresVerify(CUnit* self) {
-    std::uintptr_t result = self->LoadUnitFigures();
+    std::uintptr_t result = self->CUnit::LoadFigures();
     ei::verify::Check("CUnit::LoadUnitFigures", true, (self->flags_ & 0x80) != 0, "unit %d", self->id_);
     return result;
 }
@@ -102,7 +102,7 @@ EI_VERIFY(0x0052E910, LoadUnitFiguresVerify, 0, s_unused);
 // 0052E870: ours only; a controller-type companion is attached both ways and referenced.
 static std::uintptr_t __fastcall AttachCompanionVerify(CUnit* self, void*, CEngineObject* companion) {
     bool isController = companion && companion->type_ == 0x48;
-    std::uintptr_t result = self->AttachCompanion(companion);
+    std::uintptr_t result = self->CUnit::AttachObject(companion);
     bool ok = !isController ||
               (self->controller == companion &&
                *reinterpret_cast<CUnit**>(reinterpret_cast<char*>(companion) + 0x1C) == self &&
@@ -114,7 +114,7 @@ EI_VERIFY(0x0052E870, AttachCompanionVerify, 0, s_unused);
 
 // 0052EB50: ours only; returns 1.
 static int __fastcall StatsChangedVerify(CUnit* self) {
-    int result = self->StatsChanged();
+    int result = self->CUnit::StatsChanged();
     ei::verify::Check("CUnit::StatsChanged", 1, result, "unit %d", self->id_);
     return result;
 }
@@ -138,7 +138,7 @@ EI_VERIFY(0x005303A0, StandPointVerify, 5, s_standPoint);
 // 0052F740: PUSH ECX; MOV EAX,[ESP+8] (5 bytes).
 static void(__fastcall* s_placeOnGround)(CUnit*, void*, float);
 static void __fastcall PlaceOnGroundVerify(CUnit* self, void*, float offset) {
-    SameUnit("CUnit::PlaceUnitOnGround", self, [&] { self->PlaceUnitOnGround(offset); },
+    SameUnit("CUnit::PlaceUnitOnGround", self, [&] { self->CUnit::PlaceOnGround(offset); },
              [&] { s_placeOnGround(self, nullptr, offset); });
 }
 EI_VERIFY(0x0052F740, PlaceOnGroundVerify, 5, s_placeOnGround);

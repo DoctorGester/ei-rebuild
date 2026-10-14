@@ -270,7 +270,7 @@ Next StartHealing(CSpellEffect* e) {
     CEngineObject* unit = e->target;
     float size = Power(e);
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
-    bool full = static_cast<CUnit*>(e->target)->hitPoints == static_cast<CUnit*>(e->target)->maxHitPoints;
+    bool full = static_cast<CUnit*>(e->target)->packedVitals.hitPoints == static_cast<CUnit*>(e->target)->packedVitals.maxHitPoints;
     if (e->unknown_A4 == 0 || !full) {
         e->CreateSound(0, GameString(0x00795520), &static_cast<CUnit*>(e->target)->position, &kZeroVector, kVolume, kHearing);
         Vector3 rise{0.0f, 0.0f, LightRise(e)};

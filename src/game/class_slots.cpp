@@ -127,7 +127,7 @@ EI_REPLACE(0x004468B0, UnitForwardSpeed);
 // 00446830, slot 61 (RET 4): the script name (the CString at +0x238) becomes `name`. Returns the
 // string, as the assignment does.
 const mfc::CString* __fastcall UnitSetScriptName(CUnit* unit, void*, const char* name) {
-    auto* text = reinterpret_cast<mfc::CString*>(&unit->scriptName);
+    mfc::CString* text = &unit->scriptName;
     return &(*text = name);
 }
 EI_REPLACE(0x00446830, UnitSetScriptName);

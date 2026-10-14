@@ -390,7 +390,7 @@ void CCampPages::Create() {
             std::uint32_t random = IsaacRandom::Global().Next();
             double frames = FramesNow();
             int start = static_cast<int>(gamecrt::Ftol(frames - static_cast<int>(random % 51)));
-            unit->SetUnknown254(-1, static_cast<std::int8_t>(animation->index), start, 0);
+            unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
         unit->Controller()->ShowWeapon(0xFFFFFFFF);
         unit->Controller()->RefreshModel();

@@ -8,7 +8,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "ei/x87.h"
 
@@ -40,7 +39,7 @@ void ReleaseRef(CEngineObject*& ref) {
     }
 }
 
-int IsGone(CEngineObject* object) { return ei::VCall<int>(object, 0xDC / 4); }
+int IsGone(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
 
 // Copies a float through FLD/FSTP as the original does (a signalling NaN would be quietened).
 void FpuCopy(float* dst, const float* src) {

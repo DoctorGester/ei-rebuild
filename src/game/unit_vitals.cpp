@@ -5,9 +5,9 @@
 #include "unit.h"
 
 #include "object_tables.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_units.h"
 
 #include <bit>
@@ -124,35 +124,27 @@ __declspec(naked) double __cdecl IntelligenceFactor(const float* /*intelligence*
 double LevelValueOf(const UnitStats* stats, int skill) {
     std::uint8_t level = stats->skillLevels[skill];
     if (level == 0) return kZero;
-    const char* record =
-        unitdb::SkillLevels().At(static_cast<std::uint32_t>(skill * 3 - 1 + level), unitdb::kSkillLevelSize);
+    auto* record = reinterpret_cast<const SkillLevelRecord*>(
+        unitdb::SkillLevels().At(static_cast<std::uint32_t>(skill * 3 - 1 + level), unitdb::kSkillLevelSize));
     if (!record) return kZero;
-    volatile std::int64_t wide = Field<std::uint32_t>(record, 0x34);
-    return static_cast<double>(wide);
+    return record->Value();
 }
 
-// The same for a level record pointer from SkillLevelRecord.
-double RecordValue(const char* record) {
-    volatile std::int64_t wide = Field<std::uint32_t>(record, 0x34);
-    return static_cast<double>(wide);
-}
+// The same for a level record pointer from UnitStats::SkillLevelRecord.
+double RecordValue(const char* record) { return reinterpret_cast<const SkillLevelRecord*>(record)->Value(); }
 
 // The original's branch-free selects (FCOMP, the C0 bit as a mask): `a` when a < b or unordered.
 float LessOrUnordered(float a, float b, float ifLess, float otherwise) { return !(a >= b) ? ifLess : otherwise; }
 
-UnitEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
-float EffectValueField(const UnitEffect& effect) {
+MapEffect EffectAt(const CUnit* unit, int index) { return unit->effects[index]; }
+float EffectValueField(const MapEffect& effect) {
     float value;
-    std::memcpy(&value, &effect.unknown_04[1], sizeof(value));   // MapEffect +0x08
+    std::memcpy(&value, &effect.value, sizeof(value));
     return value;
 }
 
-CEngineObject* ServerObjectOf(const CUnit* unit) {
-    return *reinterpret_cast<CEngineObject* const*>(reinterpret_cast<const char*>(unit) + 0x170);
-}
-UnitVitals* VitalsOf(CEngineObject* server) {
-    return reinterpret_cast<UnitVitals*>(reinterpret_cast<char*>(server) + 0x20);
-}
+CEngineObject* ServerObjectOf(const CUnit* unit) { return unit->companion; }
+UnitVitals* VitalsOf(CEngineObject* server) { return &static_cast<CMapObjectServer*>(server)->vitals; }
 
 // strengthen / weaken scale: (1 + v(0x1D) * k) / (1 + v(0x1E) * k), the numerator stored as a
 // float; 1 without a unit. Unrounded.
@@ -419,8 +411,8 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     // The strongest effect of each type.
     float strongest[kEffectTypes] = {};
     for (int i = 0; i < unit->effectCount; ++i) {
-        UnitEffect effect = EffectAt(unit, i);   // the original copies the whole record
-        std::uint32_t type = effect.kind & 0xFF;
+        MapEffect effect = EffectAt(unit, i);   // the original copies the whole record
+        std::uint32_t type = effect.type;
         if (type >= static_cast<std::uint32_t>(kEffectTypes)) continue;
         float value = EffectValueField(effect);
         float old = strongest[type];

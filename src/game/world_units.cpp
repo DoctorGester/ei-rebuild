@@ -336,8 +336,8 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         }
         ControllerReposition(controller, nullptr);
         if (unknown12D64_ == kKindSinglePlayer || unknown12D64_ == kKindNoRangeTest)
-            AsUnit(unit)->unknown_270 = static_cast<int>(record->weaponIndex);
-        if (placement && unknown12D64_ != kKindNoRangeTest) AsUnit(unit)->unknown_270 = static_cast<int>(placement->value24);
+            AsUnit(unit)->pendingWeapon = static_cast<int>(record->weaponIndex);
+        if (placement && unknown12D64_ != kKindNoRangeTest) AsUnit(unit)->pendingWeapon = static_cast<int>(placement->value24);
     }
 
     // Followers follow their leaders.
@@ -617,7 +617,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
                     index = 0;
             }
             auto* model = reinterpret_cast<const UnitModelRecord*>(unitdb::Models().At(index, unitdb::kModelSize));
-            std::memcpy(AsUnit(object)->resistances, model->unknown_2C, 24);
+            std::memcpy(AsUnit(object)->actionSpeeds, model->actionSpeeds, 24);
             UnitMarkChanged(object, nullptr, 5);
             UnitMarkChanged(object, nullptr, 6);
             UnitMarkChanged(object, nullptr, 0xB);

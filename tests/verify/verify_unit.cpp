@@ -133,8 +133,8 @@ EI_VERIFY(0x0052E9B0, Set438Verify, 6, s_set438);
 // 0052EA90: MOV AL,[ESP+4]; MOV DL,[ESP+8] (8 bytes).
 static std::uintptr_t(__fastcall* s_set254)(CUnit*, void*, std::int8_t, std::int8_t, int, std::int8_t);
 static std::uintptr_t __fastcall Set254Verify(CUnit* self, void*, std::int8_t a, std::int8_t b, int c, std::int8_t d) {
-    return SameUnitWrites<std::uintptr_t>("CUnit::SetUnknown254", self, nullptr,
-                                          [&] { return self->SetUnknown254(a, b, c, d); },
+    return SameUnitWrites<std::uintptr_t>("CUnit::SetAnimationEntries", self, nullptr,
+                                          [&] { return self->SetAnimationEntries(a, b, c, d); },
                                           [&] { return s_set254(self, nullptr, a, b, c, d); });
 }
 EI_VERIFY(0x0052EA90, Set254Verify, 8, s_set254);
@@ -142,14 +142,14 @@ EI_VERIFY(0x0052EA90, Set254Verify, 8, s_set254);
 // 0052EAD0 / 0052EAF0: MOV EAX,[ESP+4]; MOV EDX,[ECX+0x25C / 0x260] (10 bytes).
 static std::uintptr_t(__fastcall* s_set25C)(CUnit*, void*, int);
 static std::uintptr_t __fastcall Set25CVerify(CUnit* self, void*, int value) {
-    return SameUnitWrites<std::uintptr_t>("CUnit::SetUnknown25C", self, nullptr, [&] { return self->SetUnknown25C(value); },
+    return SameUnitWrites<std::uintptr_t>("CUnit::SetMotionMode", self, nullptr, [&] { return self->SetMotionMode(value); },
                                           [&] { return s_set25C(self, nullptr, value); });
 }
 EI_VERIFY(0x0052EAD0, Set25CVerify, 10, s_set25C);
 
 static std::uintptr_t(__fastcall* s_set260)(CUnit*, void*, int);
 static std::uintptr_t __fastcall Set260Verify(CUnit* self, void*, int value) {
-    return SameUnitWrites<std::uintptr_t>("CUnit::SetUnknown260", self, nullptr, [&] { return self->SetUnknown260(value); },
+    return SameUnitWrites<std::uintptr_t>("CUnit::SetPathTimeShift", self, nullptr, [&] { return self->SetPathTimeShift(value); },
                                           [&] { return s_set260(self, nullptr, value); });
 }
 EI_VERIFY(0x0052EAF0, Set260Verify, 10, s_set260);
@@ -175,18 +175,18 @@ EI_VERIFY(0x0052EBE0, SetFlag40Verify, 6, s_setFlag40);
 // 0052F7F0: MOV EAX,[ESP+4]; TEST EAX,EAX (6 bytes).
 static std::uint32_t(__fastcall* s_setFlag1)(CUnit*, void*, int);
 static std::uint32_t __fastcall SetFlag1Verify(CUnit* self, void*, int on) {
-    return SameUnitWrites<std::uint32_t>("CUnit::SetFlag1000000", self, nullptr, [&] { return self->SetFlag1000000(on); },
+    return SameUnitWrites<std::uint32_t>("CUnit::SetFlag1000000", self, nullptr, [&] { return self->CUnit::SetStunned(on); },
                                          [&] { return s_setFlag1(self, nullptr, on); });
 }
 EI_VERIFY(0x0052F7F0, SetFlag1Verify, 6, s_setFlag1);
 
 // --- Equipment -------------------------------------------------------------------------------
 
-// 0052EC10 only writes `out` (11 ints): the original into a scratch array.
+// 0052EC10 only writes `out` (11 ids): the original into a scratch array.
 // PUSH EBX; MOV EBX,[ESP+8] (5 bytes).
-static void(__fastcall* s_equipmentIds)(CUnit*, void*, int*);
-static void __fastcall EquipmentIdsVerify(CUnit* self, void*, int* out) {
-    int expected[11];
+static void(__fastcall* s_equipmentIds)(CUnit*, void*, std::uint32_t*);
+static void __fastcall EquipmentIdsVerify(CUnit* self, void*, std::uint32_t* out) {
+    std::uint32_t expected[11];
     s_equipmentIds(self, nullptr, expected);
     self->GetEquipmentIds(out);
     ei::verify::Check("CUnit::GetEquipmentIds", true, std::memcmp(expected, out, sizeof(expected)) == 0, "unit %d",
@@ -293,7 +293,7 @@ static int(__fastcall* s_canCast)(CUnit*, void*, std::uint32_t, int);
 static int __fastcall CanCastVerify(CUnit* self, void*, std::uint32_t slot, int unused) {
     int expected = s_canCast(self, nullptr, slot, unused);
     ei::verify::Check("CUnit::CanCastSpell", expected, self->CanCastSpell(slot, unused), "unit %d slot %u mana %u",
-                      self->id_, slot, self->mana);
+                      self->id_, slot, self->packedVitals.mana);
     return expected;
 }
 EI_VERIFY(0x0052F820, CanCastVerify, 7, s_canCast);
@@ -420,21 +420,21 @@ EI_VERIFY(0x005308A0, SetPrototype23CVerify, 9, s_setPrototype23C);
 // --- Combat ----------------------------------------------------------------------------------
 
 // 005327D0: MOV EAX,[ESP+4]; MOV EAX,[EAX+0x14] (7 bytes).
-static float(__fastcall* s_resistance)(CUnit*, void*, const void*);
-static float __fastcall ResistanceVerify(CUnit* self, void*, const void* hit) {
-    float expected = s_resistance(self, nullptr, hit);
-    float actual = self->ResistanceTo(hit);
-    ei::verify::Check("CUnit::ResistanceTo", Bits(expected), Bits(actual), "flags %08X: %g vs %g",
-                      *reinterpret_cast<const std::uint32_t*>(static_cast<const char*>(hit) + 0x14), expected, actual);
+static float(__fastcall* s_actionSpeed)(CUnit*, void*, const FigureAnimation*);
+static float __fastcall ActionSpeedVerify(CUnit* self, void*, const FigureAnimation* entry) {
+    float expected = s_actionSpeed(self, nullptr, entry);
+    float actual = self->ActionSpeed(entry);
+    ei::verify::Check("CUnit::ActionSpeed", Bits(expected), Bits(actual), "key %08X: %g vs %g", entry->key, expected,
+                      actual);
     return expected;
 }
-EI_VERIFY(0x005327D0, ResistanceVerify, 7, s_resistance);
+EI_VERIFY(0x005327D0, ActionSpeedVerify, 7, s_actionSpeed);
 
 // 00532DA0: PUSH ESI; MOV ESI,ECX; CMP dword [ESI+0x10],0x32 (7 bytes). AL only.
 static bool(__fastcall* s_acceptsTarget)(CUnit*, void*, const void*);
 static bool __fastcall AcceptsTargetVerify(CUnit* self, void*, const void* target) {
     bool expected = s_acceptsTarget(self, nullptr, target);
-    ei::verify::Check("CUnit::AcceptsTarget", expected, self->AcceptsTarget(target), "type %X", self->type_);
+    ei::verify::Check("CUnit::AcceptsTarget", expected, self->CUnit::AcceptsAnimation(target), "type %X", self->type_);
     return expected;
 }
 EI_VERIFY(0x00532DA0, AcceptsTargetVerify, 7, s_acceptsTarget);
@@ -484,7 +484,7 @@ EI_VERIFY(0x005156C0, ServerOverkilledVerify, 9, s_serverOverkilled);
 static BOOL(__fastcall* s_clientIsDead)(CMapObjectClientSpecific*);
 static BOOL __fastcall ClientIsDeadVerify(CMapObjectClientSpecific* self) {
     BOOL expected = s_clientIsDead(self);
-    ei::verify::Check("CMapObjectClientSpecific::IsDead", expected, self->CMapObjectClientSpecific::IsDead(), "hp %d", self->Unit()->hitPoints);
+    ei::verify::Check("CMapObjectClientSpecific::IsDead", expected, self->CMapObjectClientSpecific::IsDead(), "hp %d", self->Unit()->packedVitals.hitPoints);
     return expected;
 }
 EI_VERIFY(0x005104D0, ClientIsDeadVerify, 5, s_clientIsDead);
@@ -494,7 +494,7 @@ static BOOL(__fastcall* s_clientOverkilled)(CMapObjectClientSpecific*);
 static BOOL __fastcall ClientOverkilledVerify(CMapObjectClientSpecific* self) {
     BOOL expected = s_clientOverkilled(self);
     ei::verify::Check("CMapObjectClientSpecific::IsOverkilled", expected, self->CMapObjectClientSpecific::IsOverkilled(), "hp %d max %d",
-                      self->Unit()->hitPoints, self->Unit()->maxHitPoints);
+                      self->Unit()->packedVitals.hitPoints, self->Unit()->packedVitals.maxHitPoints);
     return expected;
 }
 EI_VERIFY(0x005104F0, ClientOverkilledVerify, 10, s_clientOverkilled);

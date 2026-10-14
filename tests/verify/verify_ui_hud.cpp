@@ -426,7 +426,7 @@ EI_VERIFY(0x0064A200, TopPanelMouseUpVerify, 0, s_unused);
 
 static void __fastcall WeaponBarUpdateVerify(CHudWeaponBar* self, void*) {
     self->CHudWeaponBar::Update();
-    bool ok = !self->unit_ || self->selected_ == self->unit_->unknown_270;
+    bool ok = !self->unit_ || self->selected_ == self->unit_->pendingWeapon;
     ei::verify::Check("CHudWeaponBar::Update", true, ok, "selected %d", self->selected_);
 }
 EI_VERIFY(0x0063C600, WeaponBarUpdateVerify, 0, s_unused);

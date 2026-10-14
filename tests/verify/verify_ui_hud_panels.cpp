@@ -139,7 +139,7 @@ void __fastcall ShowHealthVerify(CHudUnitPanel* self, void*, CUnit* unit) {
     int i = CompareBarRuns(
         self, 10, 4, [&] { s_showHealth(self, nullptr, unit); }, [&] { self->ShowHealth(unit); }, &expected, &actual);
     ei::verify::Check("CHudUnitPanel::ShowHealth", -1, i, "hp %d/%d mana %u/%u: sprite %d visible %d/%d edge %g/%g u %g/%g",
-                      unit->hitPoints, unit->maxHitPoints, unit->mana, unit->maxMana, i < 0 ? -1 : 10 + i,
+                      unit->packedVitals.hitPoints, unit->packedVitals.maxHitPoints, unit->packedVitals.mana, unit->packedVitals.maxMana, i < 0 ? -1 : 10 + i,
                       i < 0 ? 0 : expected[i].visible, i < 0 ? 0 : actual[i].visible, i < 0 ? 0.0 : expected[i].quad[0],
                       i < 0 ? 0.0 : actual[i].quad[0], i < 0 ? 0.0 : expected[i].uv[0], i < 0 ? 0.0 : actual[i].uv[0]);
 }

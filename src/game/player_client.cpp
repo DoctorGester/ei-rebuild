@@ -652,10 +652,10 @@ int CPlayerClient::OnNewObject() {
         const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);
         auto* modelRecord = reinterpret_cast<const UnitModelRecord*>(
             unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
-        unit->modelHeight.x = 0.0f;
-        unit->modelHeight.y = modelRecord->height;
-        unit->modelHeight.z = 0.0f;
-        std::memcpy(unit->resistances, modelRecord->unknown_2C, sizeof(unit->resistances));
+        unit->defaultScale.x = 0.0f;
+        unit->defaultScale.y = modelRecord->height;
+        unit->defaultScale.z = 0.0f;
+        std::memcpy(unit->actionSpeeds, modelRecord->actionSpeeds, sizeof(unit->actionSpeeds));
         unit->SetPrototype23CIndex(prototypeValue);
     }
     if (header.flags & kHeaderFlagHidden) created->flags_ |= kHeaderFlagHidden;

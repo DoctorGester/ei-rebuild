@@ -149,8 +149,8 @@ void DropEffectObject(CUnitServer* self) {
 
 // The weapon slot the unit wants (+0x270) taken up when it differs from the active one.
 void SwitchWeaponIfWanted(CUnit* unit) {
-    if (unit->unknown_270 != static_cast<int>(unit->activeWeapon))
-        ServerSlots(unit->controller)->TakeUpWeapon(unit->unknown_270);
+    if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
+        ServerSlots(unit->controller)->TakeUpWeapon(unit->pendingWeapon);
 }
 
 // The unit's standing flag (CUnit + 0x278) changed, re-registered on the sector map.
@@ -389,7 +389,7 @@ void CUnitServer::AdvanceAnimation() {
         ++SavedQueueTime(this);
         ++Plan(this).startTime;
         ++Plan(this).endTime;
-        ++unit->unknown_258;
+        ++unit->animationStart;
         return;
     }
     bool held = unknown_021 != 0;
@@ -698,7 +698,7 @@ void CUnitServer::TickItemSpells() {
         if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
         if ((spell->unknown_18 & 0xFFFF0000u) == 0x180000) {
             // A healing spell: only one a tick, and only when the unit is hurt.
-            if (healed || unit->hitPoints == unit->maxHitPoints) continue;
+            if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;
         }
         CtlUseItemCharge(this, nullptr, item, std::bit_cast<float>(spell->unknown_40));

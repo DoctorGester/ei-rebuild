@@ -1,6 +1,7 @@
 // Creature statistics: attribute, skill and skill level lookups over UnitStats, and small helpers
 // of the hit (DamageInfo) and lock records. See unit.h.
 #include "unit.h"
+#include "unit_db.h"
 
 #include "spell.h"
 
@@ -33,28 +34,19 @@ constexpr int kLevelBase6E9 = 0x41;
 float Global7C5430() { return *reinterpret_cast<const float*>(0x007C5430); }
 float Global7AF280() { return *reinterpret_cast<const float*>(0x007AF280); }
 
-const std::uint8_t* Bytes(const UnitStats* stats) { return reinterpret_cast<const std::uint8_t*>(stats); }
-
-// +0x34 of the skill level record `index`, or null when there is none.
-const char* LevelRecord(std::uint32_t index) {
-    return unitdb::SkillLevels().At(index, unitdb::kSkillLevelSize);
+// The skill level record `index`, or null when there is none.
+const SkillLevelRecord* LevelRecord(std::uint32_t index) {
+    return reinterpret_cast<const SkillLevelRecord*>(unitdb::SkillLevels().At(index, unitdb::kSkillLevelSize));
 }
 
 bool IsZeroOrNaN(float f) { return !(f < kZero || f > kZero); }
 
-// +0x34 of a level record (unsigned), loaded exactly like the original's FILD of a zero-extended
-// qword. A plain uint32 conversion adds 2^32 to values >= 2^31 with an FADD, which the FPU's
-// precision control rounds; the volatile int64 keeps it a single exact FILD.
-double LevelValue(const char* record) {
-    volatile std::int64_t wide = Field<std::uint32_t>(record, 0x34);
-    return static_cast<double>(wide);
-}
 } // namespace
 
 double UnitStats::Period20() { return kStatBase / stat20; }
 EI_REPLACE_METHOD(0x00523CD0, UnitStats::Period20);
 
-float UnitStats::AttributeBase(int index) { return static_cast<float>(Bytes(this)[0x6C8 + index]); }
+float UnitStats::AttributeBase(int index) { return static_cast<float>(attributes[index]); }
 EI_REPLACE_METHOD(0x00525DF0, UnitStats::AttributeBase);
 
 double UnitStats::AttributeWithBonus(int index) {
@@ -67,15 +59,15 @@ double UnitStats::AttributeWithBonus(int index) {
 }
 EI_REPLACE_METHOD(0x00525E10, UnitStats::AttributeWithBonus);
 
-float UnitStats::SkillBase(int index) { return static_cast<float>(Bytes(this)[0x6CB + index]); }
+float UnitStats::SkillBase(int index) { return static_cast<float>(skills[index]); }
 EI_REPLACE_METHOD(0x00527030, UnitStats::SkillBase);
 
 double UnitStats::SkillWithBonus(std::uint32_t index) {
-    float skill = static_cast<float>(Bytes(this)[0x6CB + index]);
-    // The skill's name (via the record's +0x0C) picks the stat; a missing record faults.
-    const char* record = unitdb::Skills().At(index, unitdb::kSkillSize);
-    const char* const* name = Field<const char* const*>(record, 0x0C);
-    switch (**name) {
+    float skill = static_cast<float>(skills[index]);
+    // The first letter of the skill's first stat name picks the stat; a missing record faults.
+    auto* skillRecord = reinterpret_cast<const SkillRecord*>(unitdb::Skills().At(index, unitdb::kSkillSize));
+    const char* name = skillRecord->statNames.begin[0];
+    switch (*name) {
     case 'd': return (stat18 - kStatBase) + skill;
     case 'i': return (stat20 - kStatBase) + skill;
     case 's': return (stat10 - kStatBase) + skill;
@@ -93,17 +85,17 @@ float UnitStats::WeaponSkill(int type) {
 EI_REPLACE_METHOD(0x00526780, UnitStats::WeaponSkill);
 
 char* UnitStats::SkillLevelRecord(int index) {
-    std::uint8_t level = Bytes(this)[0x6D3 + index];
+    std::uint8_t level = skillLevels[index];
     if (level == 0) return nullptr;
     return unitdb::SkillLevels().At(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
 }
 EI_REPLACE_METHOD(0x00528270, UnitStats::SkillLevelRecord);
 
 double UnitStats::SkillLevelValue(int index) {
-    std::uint8_t level = Bytes(this)[0x6D3 + index];
+    std::uint8_t level = skillLevels[index];
     if (level != 0) {
-        const char* record = LevelRecord(static_cast<std::uint32_t>(index * 3 - 1 + level));
-        if (record) return LevelValue(record);
+        const ::SkillLevelRecord* record = LevelRecord(static_cast<std::uint32_t>(index * 3 - 1 + level));
+        if (record) return record->Value();
     }
     return kZero;
 }
@@ -113,9 +105,9 @@ double UnitStats::Value6E8() {
     double strength = stat10 * kTwelve;   // kept on the FPU stack in the original
     std::uint8_t level = skillLevels[0x6E8 - 0x6D3];
     if (level != 0) {
-        const char* record = LevelRecord(level + kLevelBase6E8);
+        const ::SkillLevelRecord* record = LevelRecord(level + kLevelBase6E8);
         if (record) {
-            return (LevelValue(record) * kPercent + kOne) * strength;
+            return (record->Value() * kPercent + kOne) * strength;
         }
     }
     return (kZero * kPercent + kOne) * strength;
@@ -126,9 +118,9 @@ double UnitStats::Value6E9() {
     double base = Global7C5430();
     std::uint8_t level = skillLevels[0x6E9 - 0x6D3];
     if (level != 0) {
-        const char* record = LevelRecord(level + kLevelBase6E9);
+        const ::SkillLevelRecord* record = LevelRecord(level + kLevelBase6E9);
         if (record) {
-            return LevelValue(record) * kPercent + base;
+            return record->Value() * kPercent + base;
         }
     }
     return kZero * kPercent + base;

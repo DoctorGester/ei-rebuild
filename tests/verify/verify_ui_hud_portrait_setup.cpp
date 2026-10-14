@@ -31,8 +31,8 @@ static void __fastcall PortraitsRebuildVerify(CHudPortraits* self, void*, int wi
     for (int i = 0; ok && i < party; ++i) {
         const HudPortraitSlot& slot = self->slots_[i];
         const CUnit* unit = self->owner_->party_[i];
-        if (slot.lastHitPoints_ != unit->hitPoints || slot.playerId_ != -1 || slot.hasPlayer_ ||
-            std::memcmp(&slot.build_, &unit->build, 4) != 0 || slot.faceState_ != 0 || slot.wobbleKind_ != 0) {
+        if (slot.lastHitPoints_ != unit->packedVitals.hitPoints || slot.playerId_ != -1 || slot.hasPlayer_ ||
+            std::memcmp(&slot.build_, &unit->scale.y, 4) != 0 || slot.faceState_ != 0 || slot.wobbleKind_ != 0) {
             ok = false;
             bad = i;
         }

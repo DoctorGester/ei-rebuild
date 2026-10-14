@@ -50,7 +50,7 @@ BOOL CUnitServer::TakeUpWeapon(int slot) {
     int taken = Usable(weapon) ? slot : -1;
     unit->MarkChanged(kPartWeapons);
     unit->activeWeapon = static_cast<std::uint32_t>(taken);
-    unit->unknown_270 = taken;
+    unit->pendingWeapon = taken;
     if (unit->player) AttentionRebuild(&BrainOf(this)->attention, nullptr, unit);
     RefreshItemSpells();
     return Usable(weapon) ? 1 : 0;
@@ -80,7 +80,7 @@ void CUnitServer::Resettle() {
     if (ObjectSlots(unit)->IsDead()) return;
     auto* world = static_cast<CWorldServer*>(ManagerContext());
     world->Sectors()->Remove(unit);
-    unit->Object3D()->SetUpAnimatedFigure(unit->prototypeName);
+    unit->Object3D()->SetUpAnimatedFigure(unit->name);
     unit->UpdateSizeClasses();   // CUnit slot 37 (both unit vtables hold 00530A50)
     unit->UpdateSizeClass();
     CAIMap* map = world->AIMap();
