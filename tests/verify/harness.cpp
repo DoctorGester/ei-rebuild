@@ -76,6 +76,10 @@
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
 //                             installed; in a Rebirth launch the flags follow addon.dll anyway.
+//   resolution <W>x<H>|desktop, widescreen 0|1
+//                             answer the game's VideoResolution and the starter's WideScreen setting
+//                             for this run (game.exe's and addon.dll's registry reads; read before
+//                             the game starts; harness_starter.h)
 //   capture <name>            write the frame presented after the next two to frames\<name>.bmp in
 //                             the output folder (the render target before the software cursor and
 //                             the flip; harness_capture.cpp); fails after 10 s without a frame
@@ -109,6 +113,7 @@
 // ends a game that hangs after "quit".
 #include "verify.h"
 #include "harness_capture.h"
+#include "harness_starter.h"
 
 #include "../../src/hook/log.h"
 #include "ei/main_loop.h"
@@ -1734,6 +1739,10 @@ bool LoadScenario(const char* path) {
             g_steps.pop_back();
             continue;
         }
+        if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
+            g_steps.pop_back();
+            continue;
+        }
         if (g_steps.back().verb == "render") {
             render::Configure(g_steps.back().argument.c_str());
             g_steps.pop_back();
@@ -1806,6 +1815,8 @@ struct Harness {
         PatchSlot(kGetCursorPosSlot, &HarnessCursorPos, g_getCursorPos);
         // VideoResolution / FullScreen overrides (SmallVideoResolution) are off: a 1280x720 full screen
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
+        // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
+        ei::verify::starter::Install();
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);

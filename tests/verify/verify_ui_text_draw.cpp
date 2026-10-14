@@ -55,10 +55,10 @@ static void __fastcall MeshPlaceVerify(CUiMesh* self, void*, float x, float y, f
     s_place(self, nullptr, x, y, depth);
     Vector3 expected = self->position_;
     self->position_ = before;
-    self->PlaceVanilla(x, y, depth);
-    ei::verify::CheckNear("CUiMesh::PlaceVanilla x", expected.x, self->position_.x, "x %f depth %f", double(x), double(depth));
-    ei::verify::CheckNear("CUiMesh::PlaceVanilla y", expected.y, self->position_.y, "y %f depth %f", double(y), double(depth));
-    ei::verify::Check("CUiMesh::PlaceVanilla z", true, std::memcmp(&expected.z, &self->position_.z, sizeof(float)) == 0,
+    self->PlaceBody(x, y, depth);
+    ei::verify::CheckNear("CUiMesh::PlaceBody x", expected.x, self->position_.x, "x %f depth %f", double(x), double(depth));
+    ei::verify::CheckNear("CUiMesh::PlaceBody y", expected.y, self->position_.y, "y %f depth %f", double(y), double(depth));
+    ei::verify::Check("CUiMesh::PlaceBody z", true, std::memcmp(&expected.z, &self->position_.z, sizeof(float)) == 0,
                       "");
 }
 EI_VERIFY(0x005E6FA0, MeshPlaceVerify, 7, s_place);
