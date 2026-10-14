@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "map_object.h"
 #include "unit.h"
+#include "unit_db.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -33,17 +34,12 @@ void* GetPlayer(int number) { return WorldGetPlayer(reinterpret_cast<void*>(0x00
 inline void __fastcall PtrListDestruct(mfc::CTypedPtrList<CEngineObject>* a0) { PtrListDestructOriginal((void*)a0); }
 void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);
 
-// A unit's prototype record (00530930): +0 its name, +4 its race (char pointers).
-static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
+// A unit's prototype record (00530930): its name and, at +4, its model name (the race).
+static const UnitPrototypeRecord* UnitPrototype(void* unit) { return static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit)); }
 // The unit's parameters (+0x330): the 7-value block 005270E0 fills from the unit's +0x17C (the
 // last argument: the id is a text key, >= 1000000000).
 
 IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
-
-template <typename T>
-T& Field(void* object, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
 ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]; }
@@ -82,20 +78,12 @@ bool DataField(Call* call, float UnitStats::* field, const char* function) {
     return true;
 }
 
-// The world's object map (007C2CD0, an STLport hash table: buckets at +4..+8, nodes {next, key,
-// object}) in bucket order (addon's iterator 1001B02C / 1001B058).
-struct ObjectNode {
-    ObjectNode* next;
-    int key;
-    CEngineObject* object;
-};
+// The world's object map (007C2CD0, an STLport hash table by object id) in bucket order (addon's
+// iterator 1001B02C / 1001B058).
+using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
 template <typename Visit>
 void ForWorldObjects(Visit visit) {
-    char* table = reinterpret_cast<char*>(0x007C2CD0);
-    ObjectNode** bucket = Field<ObjectNode**>(table, 4);
-    ObjectNode** end = Field<ObjectNode**>(table, 8);
-    for (; bucket < end; ++bucket)
-        for (ObjectNode* node = *bucket; node; node = node->next) visit(node->object);
+    reinterpret_cast<const ObjectMap*>(0x007C2CD0)->ForEach([&](ObjectMap::Node* node) { visit(node->value); });
 }
 
 } // namespace
@@ -265,16 +253,16 @@ bool GetPerk(Call* call) {
 bool GetPrototype(Call* call) {
     auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
     if (!data) return InvalidArguments("GetPrototype");
-    char* prototype = UnitPrototype(data->unit);
-    *static_cast<mfc::CString*>(call->result) = Field<const char*>(prototype, 0);
+    const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
+    *static_cast<mfc::CString*>(call->result) = static_cast<const char*>(prototype->name);
     return true;
 }
 
 bool GetRace(Call* call) {
     auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
     if (!data) return InvalidArguments("GetRace");
-    char* prototype = UnitPrototype(data->unit);
-    *static_cast<mfc::CString*>(call->result) = Field<const char*>(prototype, 4);
+    const UnitPrototypeRecord* prototype = UnitPrototype(data->unit);
+    *static_cast<mfc::CString*>(call->result) = static_cast<const char*>(prototype->modelName);
     return true;
 }
 
