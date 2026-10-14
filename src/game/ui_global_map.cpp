@@ -13,7 +13,9 @@
 #include "dx_surface.h"
 #include "item_db_text.h"
 #include "maths.h"
+#include "model.h"
 #include "object_tables.h"
+#include "texture.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -27,9 +29,10 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 
+#include <ddraw.h>
+
 #include <cstdint>
 #include <cstring>
-#include <initializer_list>
 #include <new>
 #include <bit>
 
@@ -67,29 +70,6 @@ __declspec(naked) int __cdecl GameFtol(double) {
 
 // --- Game data ----------------------------------------------------------------------------------
 
-// A zone exit of the map database (0x3C bytes): the zone it leads to at +0x28.
-struct MapExitRecord {
-    std::uint8_t unknown_00[0x28];
-    char* target;                    // +0x28 CString
-    std::uint8_t unknown_2C[0x3C - 0x2C];
-};
-static_assert(sizeof(MapExitRecord) == 0x3C);
-
-// A zone of the map database (MapRecord, object_tables.h).
-struct MapZoneRecord {
-    char* name;                      // +0x00 CString
-    char* allod;                     // +0x04 CString
-    std::uint8_t unknown_08[0x10 - 0x08];
-    char* figure;                    // +0x10 CString: its marker on the global map (may be empty)
-    std::uint8_t unknown_14[0x28 - 0x14];
-    int type;                        // +0x28 0 game, 1 brief (a base), 2 edge (a way between zones)
-    std::uint8_t unknown_2C[0x4C - 0x2C];
-    MapExitRecord* exits;            // +0x4C
-    int exitCount;                   // +0x50
-    std::uint8_t unknown_54[0x5C - 0x54];
-};
-static_assert(sizeof(MapZoneRecord) == 0x5C);
-
 // An allod of the map database (AllodRecord, object_tables.h): its global map figures and zones.
 struct AllodView {
     char* name;                      // +0x00 CString
@@ -106,10 +86,10 @@ struct AllodView {
 static_assert(sizeof(AllodView) == 0x2C);
 
 CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
-MapZoneRecord* FindZone(const char* name) {
-    return reinterpret_cast<MapZoneRecord*>(MapDatabase()->FindMap(name));
-}
-MapZoneRecord* ZoneAt(int index) { return reinterpret_cast<MapZoneRecord*>(MapDatabase()->maps.data) + index; }
+// A zone of the map database: its figure is its marker on the global map (may be empty), its
+// kind 0 a game zone and 2 a way between zones here.
+MapRecord* FindZone(const char* name) { return MapDatabase()->FindMap(name); }
+MapRecord* ZoneAt(int index) { return MapDatabase()->maps.data + index; }
 
 bool NonEmpty(const char* cstring) { return reinterpret_cast<const int*>(cstring)[-2] != 0; }
 
@@ -134,24 +114,21 @@ __declspec(naked) void MapScreen::SetWeather() EI_ORIGINAL(0x0062EE90)
 // The marker arrays (MFC CArray instantiations) and their elements' assignment. The zones'
 // SetAtGrow (00631CC0) is rewritten below; called through its address so its wrapper runs.
 __declspec(naked) void __fastcall ZonesSetAtGrowAt(GlobalMapZoneArray*, void*, int, const GlobalMapZone*) EI_ORIGINAL(0x00631CC0)
-struct PlaceArrayAt {
-    void SetLinksSize(int size, int growBy);    // 00631E70
-    void SetQuestsSize(int size, int growBy);   // 00631FF0
-};
-__declspec(naked) void PlaceArrayAt::SetLinksSize(int, int) EI_ORIGINAL(0x00631E70)
-__declspec(naked) void PlaceArrayAt::SetQuestsSize(int, int) EI_ORIGINAL(0x00631FF0)
-struct PlaceAt {
-    void AssignLink(const GlobalMapPlace& from);    // 00632490
-    void AssignQuest(const GlobalMapPlace& from);   // 006324E0
-};
-__declspec(naked) void PlaceAt::AssignLink(const GlobalMapPlace&) EI_ORIGINAL(0x00632490)
-__declspec(naked) void PlaceAt::AssignQuest(const GlobalMapPlace&) EI_ORIGINAL(0x006324E0)
+// The links' and the quests' SetSize (00631E70 / 00631FF0, thiscall, RET 8) and their elements'
+// assignment (GlobalMapPlace::Assign / AssignCopy, 00632490 / 006324E0, RET 4).
+__declspec(naked) void __fastcall LinksSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x00631E70)
+__declspec(naked) void __fastcall QuestsSetSize(mfc::CArray<GlobalMapPlace>*, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x00631FF0)
+__declspec(naked) void __fastcall AssignLink(GlobalMapPlace*, void*, const GlobalMapPlace& /*from*/)
+    EI_ORIGINAL(0x00632490)
+__declspec(naked) void __fastcall AssignQuest(GlobalMapPlace*, void*, const GlobalMapPlace& /*from*/)
+    EI_ORIGINAL(0x006324E0)
 
-// 0046A4B0: `out` = the vector `v` turned by the quaternion.
-struct TurnAt {
-    Vector3* Rotate(Vector3* out, const Vector3* v);
-};
-__declspec(naked) Vector3* TurnAt::Rotate(Vector3*, const Vector3*) EI_ORIGINAL(0x0046A4B0)
+// 0046A4B0 (QuaternionRotate, map_spec.cpp; thiscall on the quaternion, RET 8): `out` = the vector
+// `v` turned by the quaternion.
+__declspec(naked) Vector3* __fastcall Rotate(const float* /*quaternion*/, void*, Vector3* /*out*/, const Vector3* /*v*/)
+    EI_ORIGINAL(0x0046A4B0)
 
 // Sprites (CUiMesh) beyond ui.h.
 struct SpriteOps : SpritePositionOriginal {
@@ -161,19 +138,12 @@ void SpriteOps::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr
 SpriteOps* Ops(CUiMesh* sprite) { return reinterpret_cast<SpriteOps*>(sprite); }
 
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
-struct SurfaceDraw {
-    void* Begin() { return SurfaceGetDC(this); }                                                                  // 005FDC00
-    int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
-    void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
-};
-int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
-SurfaceDraw* Draw(CUiSurface* surface) { return reinterpret_cast<SurfaceDraw*>(surface); }
+int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
+    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
+}
 
-// The local player's variables, copied by name prefix into a hash_map<CString, float>.
-struct TableAt {
-    void Construct();                                   // 00581790 (100 buckets)
-};
-__declspec(naked) void TableAt::Construct() EI_ORIGINAL(0x00581790)
+// The local player's variables, copied by name prefix into a hash_map<CString, float> (constructed
+// with 100 buckets by 00581790).
 struct VariableIterator {
     NamedFloatTable::Node* node;
     NamedFloatTable* table;
@@ -185,7 +155,7 @@ NamedFloatTable::Node* VariableIterator::NextBucket() { return (NamedFloatTable:
 // node's key released and the node returned to the 16-byte free list, then the bucket storage.
 class VariableTable {
 public:
-    VariableTable() { reinterpret_cast<TableAt*>(&table_)->Construct(); }
+    VariableTable() { NamedTableConstructOriginal(&table_); }
     ~VariableTable() {
         std::size_t n = static_cast<std::size_t>(table_.finish - table_.buckets);
         for (std::size_t b = 0; b < n; ++b) {
@@ -210,10 +180,6 @@ private:
 };
 
 // The rest (not rewritten).
-struct GameObjects {
-    void ResetView(int a, int b);                       // 005786A0 (on 007AFEA6)
-};
-__declspec(naked) void GameObjects::ResetView(int, int) EI_ORIGINAL(0x005786A0)
 struct SaveStream {
     void Resize(int size);                              // 004A54D0 (the save stream 007AFDF8)
 };
@@ -227,27 +193,19 @@ struct WeatherObject {
 };
 __declspec(naked) void WeatherObject::Construct(int) EI_ORIGINAL(0x00499DC0)
 __declspec(naked) void WeatherObject::Start() EI_ORIGINAL(0x00499EE0)
-// 00500960: the display settings (007AF060).
-std::uint8_t* DisplaySettings() { return reinterpret_cast<std::uint8_t*>(0x007AF060); }
+// The scene renderer (007AF060, what 00500960 returns).
+CSceneRenderer* Renderer() { return reinterpret_cast<CSceneRenderer*>(0x007AF060); }
 // 006570E0: saves the game into saves\<name> (ECX name, DL flag).
 
 // --- Sprite fields set directly -------------------------------------------------------------------
 
-void SetField(CUiMesh* sprite, int offset, std::uint32_t value) {
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + offset, &value, 4);
-}
-void SetTexture(CUiMesh* sprite, const void* texture) {
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x280, &texture, 4);
-}
-void SetPlain(CUiMesh* sprite) {
-    std::uint32_t flags;
-    std::memcpy(&flags, reinterpret_cast<std::uint8_t*>(sprite) + 0x08, 4);
-    flags |= 0x100;
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x08, &flags, 4);
-}
-void SetPosition(CUiMesh* sprite, const Vector3& p) { std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x1C, &p, 12); }
+// Float fields are written with their bits, as the original's immediate stores do.
+void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
+void SetTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
+void SetPlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
+void SetPosition(CUiMesh* sprite, const Vector3& p) { std::memcpy(&sprite->position_, &p, 12); }
 void SetWhite(CUiMesh* sprite) {
-    for (int offset : {0x224, 0x228, 0x22C}) SetField(sprite, offset, 0x3F800000);
+    for (float& tint : sprite->tint_) SetBits(tint, 0x3F800000);
 }
 CUiMesh* AddFigure(CUiWindow* window, const char* name) { return window->AddSprite(name); }
 
@@ -275,12 +233,12 @@ public:
     Vector3 ModelPoint(const Vector3& local) const {
         Vector3 centre = Centre();
         Vector3 turned;
-        reinterpret_cast<TurnAt*>(map_->turn_)->Rotate(&turned, &local);
+        Rotate(map_->turn_, nullptr, &turned, &local);
         Vector3 out;
         AddVectors(&out, centre, turned);
         return out;
     }
-    void Turn(CUiMesh* sprite) const { std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x34, map_->turn_, 16); }
+    void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->orientation_, map_->turn_, 16); }
     CEngineObject* Texture(int index) const { return map_->objects_.data[index]; }
 
     // A marker of the map model: the figure at `local`, scaled, turned, white; returns the sprite.
@@ -302,7 +260,7 @@ public:
         Vector3 centre = Centre();
         Vector3 local = {0.0f, 0.0f, height};
         Vector3 turned;
-        reinterpret_cast<TurnAt*>(map_->turn_)->Rotate(&turned, &local);
+        Rotate(map_->turn_, nullptr, &turned, &local);
         Vector3 p;
         p.Construct(Store(D(centre.x) + D(turned.x)), Store(D(centre.y) + D(turned.y)),
                     Store(D(centre.z) + D(turned.z)));
@@ -357,7 +315,7 @@ void CGlobalMap::Create() {
     autosave_ = false;
     if (*reinterpret_cast<const int*>(0x007AFE1C) != 0)
         reinterpret_cast<SaveStream*>(0x007AFDF8)->Resize(0);
-    else if (*reinterpret_cast<const int*>(*reinterpret_cast<std::uint8_t**>(WorldClient()->LocalView() + 0x1C) + 0x104) != 5)
+    else if (reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player->lastScreen != 5)
         autosave_ = true;   // not back from the camp
     depth_ = Bits(0x41200000);     // 10
     centreX_ = Bits(0x43C80000);   // 400
@@ -365,7 +323,7 @@ void CGlobalMap::Create() {
     turning_ = 0;
     bobTime_ = 0.0f;
 
-    MapZoneRecord* current;
+    MapRecord* current;
     {
         alignas(4) std::uint8_t raw[4];
         mfc::CString* name = LocalPlayerName(reinterpret_cast<mfc::CString*>(raw));
@@ -430,8 +388,8 @@ void CGlobalMap::Create() {
 
     // The game zones of the allod that have a marker, with the player's "z.<zone>" state.
     for (int i = 0; i < allod->zoneCount; ++i) {
-        MapZoneRecord* zone = ZoneAt(allod->zones[i]);
-        if (zone->type != 0 || !NonEmpty(zone->figure)) continue;
+        MapRecord* zone = ZoneAt(allod->zones[i]);
+        if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
         ZonesSetAtGrowAt(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
         variable.Format(GameText(0x00794148), zone->name);   // "z.%s"
         zones_.data[zoneCount_].link = -1;
@@ -462,8 +420,8 @@ void CGlobalMap::Create() {
                 StringSplit(node->key, &parts, '.');
                 if (parts.GetSize() == 3) {
                     int n = questCount_;
-                    reinterpret_cast<PlaceArrayAt*>(&quests_)->SetQuestsSize(quests_.size + 1, -1);
-                    reinterpret_cast<PlaceAt*>(&quests_.data[quests_.size - 1])->AssignQuest(questTemplate.Get());
+                    QuestsSetSize(&quests_, nullptr, quests_.size + 1, -1);
+                    AssignQuest(&quests_.data[quests_.size - 1], nullptr, questTemplate.Get());
                     GlobalMapPlace& quest = quests_.data[n];
                     *reinterpret_cast<mfc::CString*>(&quest.name) = parts[2];
                     quests_.data[n].zone = i;
@@ -498,12 +456,12 @@ void CGlobalMap::Create() {
 
     // The ways out of each zone the player may take ("z.<way>" = 2), with a region each.
     for (int i = 0; i < zoneCount_; ++i) {
-        MapZoneRecord* zone = FindZone(zones_.data[i].name);
-        for (int e = 0; e < zone->exitCount; ++e) {
-            MapZoneRecord* way = FindZone(zone->exits[e].target);
+        MapRecord* zone = FindZone(zones_.data[i].name);
+        for (int e = 0; e < zone->exits.size; ++e) {
+            MapRecord* way = FindZone(zone->exits.data[e].target);
             if (!way) continue;
             variable.Format(GameText(0x00794148), way->name);   // "z.%s"
-            if (way->type != 2) continue;
+            if (way->kind != 2) continue;
             // FCOMP / TEST AH,0x40: equal to 2, or unordered.
             double state = D(LocalPlayerVariable(variable));
             double two = D(GameFloat(0x0073CDB8));
@@ -511,8 +469,8 @@ void CGlobalMap::Create() {
             if (!NonEmpty(way->figure)) continue;
             if (zones_.data[i].state == 2) zones_.data[i].link = linkCount_;
             int n = linkCount_;
-            reinterpret_cast<PlaceArrayAt*>(&links_)->SetLinksSize(links_.size + 1, -1);
-            reinterpret_cast<PlaceAt*>(&links_.data[links_.size - 1])->AssignLink(linkTemplate.Get());
+            LinksSetSize(&links_, nullptr, links_.size + 1, -1);
+            AssignLink(&links_.data[links_.size - 1], nullptr, linkTemplate.Get());
             links_.data[n].zone = i;
             *reinterpret_cast<mfc::CString*>(&links_.data[n].name) = *reinterpret_cast<mfc::CString*>(&way->name);
             {
@@ -542,22 +500,19 @@ void CGlobalMap::Create() {
     // Three plain layers over the model (shadow, haze, glow).
     {
         CUiMesh* shadow = builder.Layer(0x100, 0x100, 0, Bits(0xBF000000));   // -0.5
-        SetField(shadow, 0xD4, 0xA08200C8);
-        SetField(shadow, 0xD0, 0x3E99999A);   // 0.3
+        shadow->plainColour_ = 0xA08200C8;
+        SetBits(shadow->vOffset_, 0x3E99999A);   // 0.3
         SetPlain(shadow);
         CUiMesh* haze = builder.Layer(0, 0x100, 0x100, Bits(0x3F333333));    // 0.7
-        SetField(haze, 0xD4, 0xF0B400FF);
-        SetField(haze, 0xD0, 0x3F19999A);     // 0.6
+        haze->plainColour_ = 0xF0B400FF;
+        SetBits(haze->vOffset_, 0x3F19999A);     // 0.6
         SetPlain(haze);
         CUiMesh* glow = builder.Layer(0, 0x100, 0x100, Bits(0x40000000));    // 2.0
-        SetField(glow, 0xD4, 0x4BFFFFFF);
-        SetField(glow, 0x220, 0);
+        glow->plainColour_ = 0x4BFFFFFF;
+        glow->visible_ = 0;
         SetPlain(glow);
     }
-    {
-        std::uint32_t colour = 0xFF3C005A;
-        std::memcpy(DisplaySettings() + 0x14, &colour, 4);
-    }
+    Renderer()->fogColour_ = 0xFF3C005A;
 
     {
         void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -568,10 +523,10 @@ void CGlobalMap::Create() {
         CUiMesh* shade = AddSprite(0);
         SetTexture(shade, nullptr);
         SetPlain(shade);
-        SetField(shade, 0xD4, 0xA0000000);
-        SetField(shade, 0x220, 0);
+        shade->plainColour_ = 0xA0000000;
+        shade->visible_ = 0;
         CUiMesh* picture = AddSprite(0);
-        SetField(picture, 0x220, 0);
+        picture->visible_ = 0;
         SetTexture(picture, builder.Texture(3));
     }
     {
@@ -585,7 +540,7 @@ void CGlobalMap::Create() {
         CUiMesh* shade = AddSprite(0);
         shade->SetRectangle(3.0f, 100.0f, 20.0f, 20.0f, 170.0f, 70.0f, 0, 0, 0x100, 0x100);
         SetTexture(shade, nullptr);
-        SetField(shade, 0xD4, 0xA0000000);
+        shade->plainColour_ = 0xA0000000;
         SetPlain(shade);
         CUiMesh* frame = AddSprite(0);
         frame->SetFrame(3.0f, 100.0f, 15.0f, 15.0f, 175.0f, 75.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
@@ -607,12 +562,12 @@ void CGlobalMap::Create() {
         CUiSurface* text = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 20, 20, 170, 70, 5, 1)
                                   : nullptr;
         AddSurface(text);
-        Draw(text)->Begin();
+        SurfaceGetDC(text);
         RECT line1 = {0, 5, 150, 25};
-        Draw(text)->Text(allodTitle_, &line1, 2, 0xA7D7E4, 0x25, 1);
+        SurfaceText(text, allodTitle_, &line1, 2, 0xA7D7E4, 0x25, 1);
         RECT line2 = {0, 25, 150, 45};
-        Draw(text)->Text(clock, &line2, 2, 0xA7D7E4, 0x25, 1);
-        Draw(text)->End();
+        SurfaceText(text, clock, &line2, 2, 0xA7D7E4, 0x25, 1);
+        SurfaceReleaseDC(text);
     }
 
     // The camp button (hidden with "i.nocamp" = 1) and the two turn buttons.
@@ -621,7 +576,7 @@ void CGlobalMap::Create() {
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         SetTexture(camp, builder.Texture(3));
         noCamp_ = GameFtol(D(LocalPlayerVariable(GameText(0x00794114))));   // "i.nocamp"
-        if (noCamp_ == 1) SetField(camp, 0x220, 0);
+        if (noCamp_ == 1) camp->visible_ = 0;
         CUiMesh* left = AddSprite(0);
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
         SetTexture(left, builder.Texture(3));
@@ -653,7 +608,7 @@ void CGlobalMap::Create() {
     selectPending_ = 1;
     GlobalMapSelectZoneOriginal(this, nullptr, -1, 0);
     dragging_ = false;
-    reinterpret_cast<GameObjects*>(0x007AFEA6)->ResetView(0, 0);
+    GameSetWeatherOriginal(reinterpret_cast<void*>(0x007AFEA6), nullptr, 0, 0.0f);   // clear
     (*reinterpret_cast<SoundMixer**>(0x007AF760))->ResetMusic();
     {
         WeatherObject* weather = static_cast<WeatherObject*>(gamecrt::operator_new(0x34));
@@ -695,23 +650,12 @@ inline double __fastcall FrameTime(CUiWindow* w) { return WindowFrameTimeOrigina
 // 006010E0 (not rewritten): the container's base update (its children).
 void __fastcall UpdateChildren(CUiWindow* a0) { UiUpdateChildrenOriginal((void*)a0); }
 
-struct MapScreenMore {
-    void RefreshSelection();   // 00630670
-};
-__declspec(naked) void MapScreenMore::RefreshSelection() EI_ORIGINAL(0x00630670)
+// CGlobalMap::RefreshSelection (00630670, thiscall).
+__declspec(naked) void __fastcall RefreshSelectionOriginal(CGlobalMap*) EI_ORIGINAL(0x00630670)
 
-// The weather drawer (+0x214): 00499F10 draws into locked surface memory.
-struct WeatherDraw {
-    void Draw(void* pixels, float seconds);
-};
-__declspec(naked) void WeatherDraw::Draw(void*, float) EI_ORIGINAL(0x00499F10)
-
-// 004800E0 (cdecl): a fatal DirectX error with its message.
-
-struct CursorAt {
-    int SetShape(int shape);   // 005E5200 (on 007C7BD8)
-};
-int CursorAt::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
+// The weather (+0x214, a CCloudNoise): 00499F10 (RET 8) draws into locked surface memory.
+__declspec(naked) void __fastcall WeatherDrawOriginal(GlobalMapWeather*, void*, void* /*pixels*/, float /*seconds*/)
+    EI_ORIGINAL(0x00499F10)
 
 // fmod(a, *divisor) through the game's _CIfmod (006E95AA), stored as float.
 float FmodStored(float a, const float* divisor) {
@@ -746,7 +690,7 @@ void SetFrameFraction(CEngineObject* layer, float time, float rate) {
     double v = D(time) * D(rate);
     int whole = GameFtol(v);
     float fraction = Store(v - static_cast<double>(whole));
-    std::memcpy(reinterpret_cast<std::uint8_t*>(layer) + 0xCC, &fraction, 4);
+    std::memcpy(&reinterpret_cast<CUiMesh*>(layer)->uOffset_, &fraction, 4);
 }
 
 } // namespace
@@ -819,37 +763,34 @@ void CGlobalMap::Update() {
     SetFrameFraction(sceneObjects_.data[markerCount_ + 4], bobTime_, GameFloat(0x0073F8A0));
     SetFrameFraction(sceneObjects_.data[markerCount_ + 5], bobTime_, GameFloat(0x007420E0));
 
-    if (selectPending_ != 0) reinterpret_cast<MapScreenMore*>(this)->RefreshSelection();
+    if (selectPending_ != 0) RefreshSelectionOriginal(this);
     selectPending_ = 0;
 
     // The weather is drawn straight into texture 4's surface; in the switch-over that texture has
     // only the new renderer's memory (00691D80, ticket R8), drawn into directly (no Lock / Unlock).
     if (objects_.size > 4) {
-        std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(objects_.data[4]) + 0x5C);
+        CDXSurface* holder = static_cast<CTexture*>(objects_.data[4])->surface_;
         auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
         gameapi::EnterCriticalSection(lock);
         std::uint32_t desc[0x1F] = {};
         desc[0] = 0x7C;
         bool direct = DirectPixels(holder, desc);
         if (!direct) {
-            void** surface = *reinterpret_cast<void***>(holder + 0x10);
-            using LockFn = long(__stdcall*)(void*, RECT*, void*, unsigned long, void*);
-            long hr = reinterpret_cast<LockFn>((*reinterpret_cast<void***>(surface))[25])(surface, nullptr, desc, 1, nullptr);
-            std::memcpy(holder + 8, &hr, 4);
+            long hr = static_cast<IDirectDrawSurface7*>(holder->surface)
+                          ->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc), DDLOCK_WAIT, nullptr);
+            holder->result = hr;
             if (hr != 0) FatalDirectX(hr, GameText(0x0078E30C));   // "Can't lock surface"
         }
         float seconds = Store(FrameTime(this));
-        reinterpret_cast<WeatherDraw*>(weather_)->Draw(reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
+        WeatherDrawOriginal(weather_, nullptr, reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
         gameapi::LeaveCriticalSection(lock);
         if (!direct) {
-            using UnlockFn = long(__stdcall*)(void*, RECT*);
-            void** surface = *reinterpret_cast<void***>(holder + 0x10);
-            long hr = reinterpret_cast<UnlockFn>((*reinterpret_cast<void***>(surface))[32])(surface, nullptr);
-            std::memcpy(holder + 8, &hr, 4);
+            long hr = static_cast<IDirectDrawSurface7*>(holder->surface)->Unlock(nullptr);
+            holder->result = hr;
             if (hr != 0) FatalDirectX(hr, GameText(0x0078E2F4));   // "Can't unlock surface"
         }
     }
-    reinterpret_cast<CursorAt*>(0x007C7BD8)->SetShape(dragging_ ? 0x16 : 0);
+    CursorSetShapeOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, dragging_ ? 0x16 : 0);
 }
 
 namespace {
