@@ -132,7 +132,7 @@ bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHer
         double dz = static_cast<double>(self->position.z) - target->position.z;
         double dy = static_cast<double>(self->position.y) - target->position.y;
         double dx = static_cast<double>(self->position.x) - target->position.x;
-        float distance = RoundToFloat(std::sqrt(dx * dx + dy * dy + dz * dz));
+        float distance = RoundToFloat(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         float range = RoundToFloat(self->ScaledValue(distance));
         float targetRadius = RoundToFloat(MapObject(target)->Radius());
         float minDistance = RoundToFloat(static_cast<double>(MapObject(self)->Radius()) + targetRadius);

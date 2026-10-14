@@ -241,7 +241,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     std::memcpy(&from, &PositionOf(unit), sizeof(from));
     std::memcpy(&goal, target, sizeof(goal));
     std::memcpy(&path->goal, target, sizeof(goal));
-    if (target->x * target->x + target->y * target->y > 100000000.0) return false;   // NaN goes on
+    if (LengthSquared2DUnrounded(target->x, target->y) > 100000000.0) return false;   // NaN goes on
 
     SectorMapRemove(SectorMap(), nullptr, unit);
     if (!SnapTarget(unit, &goal, false, minDistance)) {
@@ -255,7 +255,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     float fx = 1.0f / (1.0f * 0.5f) * from.x;
     float fy = 1.0f / (1.0f * 0.5f) * from.y;
     float ddx = fx - goal.x, ddy = fy - goal.y;
-    if (!(ddy * ddy + ddx * ddx >= 0.001f)) {
+    if (!(LengthSquared2DUnrounded(ddy, ddx) >= 0.001f)) {
         SectorMapAdd(SectorMap(), nullptr, unit);
         return false;
     }

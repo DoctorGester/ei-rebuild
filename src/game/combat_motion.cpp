@@ -664,7 +664,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     float dx = point[0] - unit->position.x;
     float dy = point[1] - unit->position.y;
     float dz = point[2] - unit->position.z;
-    if ((dz * dz + dy * dy) + dx * dx > *reinterpret_cast<const float*>(0x0073CA98)) {
+    if (LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > *reinterpret_cast<const float*>(0x0073CA98)) {
         CSectorMap* sectors = world->Sectors();
         SectorMapFindUnitsInRadius(sectors, nullptr, point, list, 4.0f);
         void* group = &reinterpret_cast<CPlayerServer*>(player->connection_)->partyUnits_;

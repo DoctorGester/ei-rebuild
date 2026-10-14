@@ -31,7 +31,7 @@ double Distance2(const CUnit* a, const float* b) {
     double dx = static_cast<double>(a->position.x) - b[0];
     double dy = static_cast<double>(a->position.y) - b[1];
     double dz = static_cast<double>(a->position.z) - b[2];
-    return dz * dz + dx * dx + dy * dy;
+    return LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
 }
 
 console::GameOStream& PutLong(console::GameOStream& os, long value) {
@@ -93,7 +93,7 @@ CUnit* AIBrain::NearestEnemy(CUnit* self) {
         double dx = static_cast<double>(self->position.x) - other->position.x;
         double dy = static_cast<double>(self->position.y) - other->position.y;
         double dz = static_cast<double>(self->position.z) - other->position.z;
-        double d2 = dz * dz + dx * dx + dy * dy;
+        double d2 = LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
         if (!(d2 >= best)) {
             best = RoundToFloat(d2);
             nearest = other;
@@ -113,7 +113,7 @@ void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
     double dx = static_cast<double>(self->position.x) - other->position.x;
     double dy = static_cast<double>(self->position.y) - other->position.y;
     double dz = static_cast<double>(self->position.z) - other->position.z;
-    float distance = RoundToFloat(std::sqrt(dz * dz + dy * dy + dx * dx));
+    float distance = RoundToFloat(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     AIBrain* theirBrain = theirs->Brain();
     bool attacksUs = (theirBrain->action == kActionAttack || theirBrain->action == kActionCast) &&
                      theirBrain->target == static_cast<CEngineObject*>(self);
@@ -180,7 +180,7 @@ void AIBrain::MeasureExposure(UnitController* self, float* out) {
         double dx = static_cast<double>(other->position.x) - unit->position.x;
         double dy = static_cast<double>(other->position.y) - unit->position.y;
         double dz = static_cast<double>(other->position.z) - unit->position.z;
-        float distance = RoundToFloat(std::sqrt(dz * dz + dy * dy + dx * dx));
+        float distance = RoundToFloat(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
         float sight = RoundToFloat(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
                                    theirs->stats.valuesB0[0].current * self->stats.valuesE0[0].current);
         if (!(distance >= sight)) {

@@ -316,7 +316,7 @@ void AIBrain::CallAllies(const Vector3* point) {
             double dy = self->position.y - other->position.y;
             double dx = self->position.x - other->position.x;
             message.Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
-                           std::sqrt(dx * dx + dy * dy + dz * dz));
+                           std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         }
         PerceptionOf(ally)->HearCall(point, 0x1A, message);
     }
@@ -456,7 +456,7 @@ void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory
                 float dx = call.point.x - brain->noticedX;
                 float dy = call.point.y - brain->noticedY;
                 float dz = call.point.z - 0.0f;
-                changed = dz * dz + dy * dy + dx * dx > 10.0f;
+                changed = LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz) > 10.0f;
             }
             float copy[2];
             const float* point = CopyPoint2Original(copy, &call.point.x);

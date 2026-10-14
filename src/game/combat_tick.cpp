@@ -870,8 +870,7 @@ void CUnitServer::ApproachTarget() {
         }
         Vector3 axis;
         other->orientation.AxisY(&axis);
-        double dot = static_cast<double>(axis.z) * vz + static_cast<double>(axis.y) * vy;
-        volatile float along = static_cast<float>(dot + static_cast<double>(axis.x) * vx);
+        volatile float along = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, vx, vy, vz));
         closing = Slots(other)->MoveSpeed() * along + mySpeed;
     } else {
         closing = mySpeed;

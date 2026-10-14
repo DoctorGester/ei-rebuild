@@ -131,6 +131,9 @@ All `__forceinline`, by value:
 | `Conjugate(q)` | `(w, -x, -y, -z)` |
 | `RoundToFloat(double)` | volatile float store (replaces the local Store / StoreFloat / Round copies) |
 | `LengthSquared2DUnrounded<T>(x, y)`, `DistanceSquaredXYUnrounded<T>(a, b)` (V3b; precise off, nothing stored) | `x*x + y*y`; `dy = a.y - b.y`, then `dx`, `dx*dx + dy*dy`, in T (`double` where the site keeps the x87 value, `float` for float locals) |
+| `Dot2DUnrounded<T>(x, y, x2, y2)`, `DotUnrounded<Sum3, T>(x, y, z, x2, y2, z2)`, `LengthSquaredUnrounded<Sum3, T>(x, y, z)` (V3c; precise off, on the caller's scalars) | `x*x2 + y*y2`; the named grouping of the three products, in T |
+| `AxisXUnrounded<T>(q)` (V3c; precise off; returns `AxisUnrounded<T>` {x, y, z}) | 0040D940's X axis, `(w^2 - ((y^2 + z^2) + x^2)) + 2x^2`, `2(wz + xy)`, `2(xz - wy)`, each doubling an addition |
+| `RotatedAxisY(q)` (V3c; precise) | the inlined AxisY of 00547280 / 005CA410: `2(yx - wz)`, `(w^2 - ((x^2 + z^2) + y^2)) + 2y^2`, `2(yz + wx)`, each component rounded to float |
 | `Atan2(y, x)` | `x87::fpatan` (include/ei/x87.h), unrounded double |
 | `Acos(c)`, `Asin(s)` | the game's CRT `acos` 006E7334 / `asin` 006E83D4 (`gamecrt::`, src/lib/crt.h): the C entries of the bodies behind _CIacos 006E7320 / _CIasin 006E83C0; unrounded double |
 
@@ -224,6 +227,34 @@ identical, or only stack slots / scheduling / commuted FMUL operands.
   UpdateCombat keep `LengthSquared2DUnrounded(dx, dy)` instead of the Vector3 form). The x87 stackifier is sensitive to
   any inlined call: compare every function, not only the edited lines. The rest of the counted sites in these files are
   3D sums (batch 4) and quaternion axis forms.
+- Unit / AI / combat files (unit_*, ai_*, combat_* under src/game), V3c 2026-10-14: 77 -> 0 in those files (tree 332
+  -> 255). New forms in vecmath.h (table above): `Dot2DUnrounded`, `DotUnrounded<Sum3, T>`, `LengthSquaredUnrounded<Sum3,
+  T>` on scalars (most sites keep differences in double locals or volatile floats, so a Vector3 form would change the
+  code), `AxisXUnrounded<T>` and the precise `RotatedAxisY`. float[3] locals / members became Vector3 (ai_motion target,
+  combat_planning bestSpot / previous / aim with `AimPointInto(Vector3*)`, combat_sight's volatile facing / delta,
+  unit_ai AttackOrder::point, unit_client_animation / _effects / _sounds, unit_create_stats scale, unit_figure_queries
+  EffectPoint); forwarders taking `float*` (ObjectPartPositionOriginal, PartWorldPosition, ObjectSetFigureScaleOriginal,
+  CWorld::MoveObject) get `&v.x`. Every match was vector maths; nothing went to the counter's skip list.
+  Release objects compared function by function (dumpbin, all 114 files): 91 files identical; in the other 23 the
+  differences are stack slots, register choice, load order, commuted FADD / FMUL operands, compare operand order (same
+  NaN branch), exact float -> double conversions spilled as qwords (unit_ai_fear Evaluate, combat_sight PlanAction), and
+  volatiles read once instead of twice (combat_sight SomeoneInTheWay / PlanAction, unit_ai IsNearPath, unit_ai_modes
+  GuardMode::Execute, unit_hits IsBehind): same operations, same groupings, same bits. Each was read by hand.
+  Three sites needed more than spelling, all quaternion forms in /fp:fast code:
+  - unit_figure_queries Rotate: an inlined unrounded dot followed by the caller's `2.0f *` became (2xx' + d) + d with d =
+    yy' + zz' (a second rounding; written out it had been (2yy' + 2zz') + 2xx', exact). It uses the precise `DotZYX` /
+    `LengthSquaredXYZ` (`2 * round(dot)`, the same bits at 24 bits).
+  - combat_update StandStill (00547280) and unit_ai_sight Prepare (005CA410): the previous ports' written-out 2(yz + wx)
+    had already become (2wx + yz) + yz under /fp:fast, a second rounding the game does not make (it adds, FADD ST0,ST0,
+    then stores), and Prepare's -2(yx - wz) had become (wz - yx) + (wz - yx), +0 where the game's FCHS gives -0. Both now
+    use the precise `RotatedAxisY` and negate: the game's operations (rounding stores at 24 bits only). This changes
+    those two functions' z component in rare last-bit cases and the sign of a zero x, towards the original. Prepare's
+    wrapper compares with the original (CheckNear on the facing, every scenario with AI units); StandStill's checks
+    ours only.
+  Lesson: a precise-off helper is the written-out expression only while the caller does nothing more with its result;
+  `2 *`, doubling and negation of a fast helper's sum regroup (the same hazard the precise helpers exist for). Use the
+  unrounded forms for sums that are compared, stored, passed or square-rooted, and the precise forms (rounded result)
+  where the caller scales the sum and the function runs on the main thread.
 
 ## 7. Risks
 
