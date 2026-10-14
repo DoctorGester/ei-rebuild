@@ -21,40 +21,11 @@
 
 namespace {
 
-template <typename T>
-T& At(void* base, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
-
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
-// The record layouts (raw: their members are the original's STLport containers).
-// Quest (0x38): +0 name (string), +0xC exp, +0x10 a dword (0), +0x14 money, +0x18 zone index,
-// +0x1C order, +0x20 the quest places (vector<float>, x and y in turn), +0x2C a string.
-constexpr std::size_t kQuestSize = 0x38;
-constexpr std::size_t kQuestExp = 0x0C;
-constexpr std::size_t kQuestUnknown10 = 0x10;
-constexpr std::size_t kQuestMoney = 0x14;
-constexpr std::size_t kQuestZone = 0x18;
-constexpr std::size_t kQuestOrder = 0x1C;
-constexpr std::size_t kQuestPlaces = 0x20;
-constexpr std::size_t kQuestString2C = 0x2C;
-// Briefing (0x6C): +0 name, +0xC exp, +0x10 money, six vectors of CString (give items, remove
-// items, give quests, complete quests, available zones, complete zones), +0x5C a string, +0x68 a
-// dword (0).
-constexpr std::size_t kBriefingSize = 0x6C;
-constexpr std::size_t kBriefingExp = 0x0C;
-constexpr std::size_t kBriefingMoney = 0x10;
-constexpr std::size_t kBriefingLists = 0x14;   // six, 12 bytes apart
-constexpr std::size_t kBriefingString5C = 0x5C;
-constexpr std::size_t kBriefingUnknown68 = 0x68;
-
-// The database: +0 the quests (vector), +0xC their index (hash map by name); +0x20 the briefings,
-// +0x2C their index.
-constexpr std::size_t kQuests = 0x00;
-constexpr std::size_t kQuestIndex = 0x0C;
-constexpr std::size_t kBriefings = 0x20;
-constexpr std::size_t kBriefingIndex = 0x2C;
+// The records are built in raw stack buffers (their constructors are the original's own calls).
+constexpr std::size_t kQuestSize = sizeof(QuestRecord);
+constexpr std::size_t kBriefingSize = sizeof(QuestBriefingRecord);
 
 // The section and key names, by their original addresses.
 constexpr std::uintptr_t kName = 0x007967C4;           // "name"
@@ -144,15 +115,15 @@ void __fastcall TrimRightChar(mfc::CString* a0, void*, char a2) { CStringTrimRig
 // An allocator argument: the members read at most a byte through it.
 const std::uint8_t kAllocator = 0;
 
-char* List(char* briefing, int i) { return briefing + kBriefingLists + i * 12; }
+CStringVector* List(QuestBriefingRecord* briefing, int i) { return &briefing->lists[i]; }
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
 // push_back on the quest places as inlined: the value stored at the end, or the insert-overflow
 // path when the vector is full.
-void PushPlace(char* quest, float value) {
-    float*& finish = At<float*>(quest, kQuestPlaces + 4);
-    if (finish == At<float*>(quest, kQuestPlaces + 8)) {
-        PlacesInsertOverflow(quest + kQuestPlaces, nullptr, finish, &value, 1);
+void PushPlace(QuestRecord* quest, float value) {
+    float*& finish = quest->places.Finish();
+    if (finish == quest->places.EndOfStorage()) {
+        PlacesInsertOverflow(&quest->places, nullptr, finish, &value, 1);
         return;
     }
     if (finish) std::memcpy(finish, &value, 4);
@@ -160,17 +131,17 @@ void PushPlace(char* quest, float value) {
 }
 
 // The "quest" section into the quest record.
-void ReadQuest(Registry& reg, char* quest, console::CStringArray& places) {
-    At<std::uint32_t>(quest, kQuestUnknown10) = 0;
+void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places) {
+    quest->unknown_10 = 0;
     {
         mfc::CString name = reg.GetString(Text(kQuest), Text(kName), Copy(game::EmptyText()));
         const char* text = name;
-        StringAssignRange(quest, nullptr, text, text + std::strlen(text));
+        StringAssignRange(&quest->name, nullptr, text, text + std::strlen(text));
     }
-    At<float>(quest, kQuestExp) = static_cast<float>(reg.GetFloat(Text(kQuest), Text(kExp), 0));
-    At<float>(quest, kQuestMoney) = static_cast<float>(reg.GetFloat(Text(kQuest), Text(kMoney), 0));
-    At<int>(quest, kQuestZone) = reg.GetInt(Text(kQuest), Text(kZoneIndex), 0);
-    At<int>(quest, kQuestOrder) = reg.GetInt(Text(kQuest), Text(kOrder), 0);
+    quest->exp = static_cast<float>(reg.GetFloat(Text(kQuest), Text(kExp), 0));
+    quest->money = static_cast<float>(reg.GetFloat(Text(kQuest), Text(kMoney), 0));
+    quest->zone = reg.GetInt(Text(kQuest), Text(kZoneIndex), 0);
+    quest->order = reg.GetInt(Text(kQuest), Text(kOrder), 0);
     reg.GetStringArray(Text(kQuest), Text(kQuestPlacesKey), &places);
     // Each place "{x;y}": the braces trimmed, split at ';'; with two parts x and y are appended.
     for (int i = 0; i < places.GetSize(); ++i) {
@@ -189,59 +160,59 @@ void ReadQuest(Registry& reg, char* quest, console::CStringArray& places) {
 
 // Adds the quest unless its name is indexed with a record already; the index is rebuilt over the
 // whole vector after the push_back (it may have moved the records).
-void AddQuest(char* db, const char* quest) {
-    void* map = db + kQuestIndex;
+void AddQuest(QuestDatabase* db, const QuestRecord* quest) {
+    void* map = &db->questsByName;
     void* found[2];
     QuestFind(map, nullptr, found, quest);
     void* end[2];
     QuestIterator(end, nullptr, nullptr, map);
-    if (found[0] != end[0] && At<void*>(found[0], 0x10) != nullptr) return;
-    QuestPushBack(db + kQuests, nullptr, quest);
+    if (found[0] != end[0] && static_cast<const QuestDatabase::QuestIndex::Node*>(found[0])->value != nullptr) return;
+    QuestPushBack(&db->quests, nullptr, quest);
     QuestIndexClear(map);
-    for (char* r = At<char*>(db, kQuests); r != At<char*>(db, kQuests + 4); r += kQuestSize) {
+    for (QuestRecord* r = db->quests.begin(); r != db->quests.end(); ++r) {
         *QuestIndexAt(map, nullptr, r) = r;
     }
 }
 
-void AddReceiveBriefing(char* db, const char* briefing) {
-    char* briefings = db + kBriefings;
-    void* map = briefings + 0xC;
+void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) {
+    QuestBriefingTable* briefings = &db->briefings;
+    void* map = &briefings->index;
     void* found[2];
     BriefingFind(map, nullptr, found, briefing);
     void* end[2];
     BriefingIterator(end, nullptr, nullptr, map);
-    if (found[0] != end[0] && At<void*>(found[0], 0x10) != nullptr) return;
-    BriefingPushBack(briefings, nullptr, briefing);
+    if (found[0] != end[0] && static_cast<const QuestBriefingTable::Index::Node*>(found[0])->value != nullptr) return;
+    BriefingPushBack(&briefings->records, nullptr, briefing);
     BriefingIndexClear(map);
-    for (char* r = At<char*>(briefings, 0); r != At<char*>(briefings, 4); r += kBriefingSize) {
+    for (QuestBriefingRecord* r = briefings->records.begin(); r != briefings->records.end(); ++r) {
         *BriefingIndexAt(map, nullptr, r) = r;
     }
 }
 
 // A briefing's name, exp and money; `assignChars` uses the C-string assignment (the "complete"
 // briefing) instead of the range one.
-void ReadBriefingHeader(Registry& reg, char* briefing, std::uintptr_t section, bool assignChars) {
+void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, std::uintptr_t section, bool assignChars) {
     {
         mfc::CString name = reg.GetString(Text(section), Text(kName), Copy(game::EmptyText()));
         const char* text = name;
         if (assignChars) {
-            StringAssign(briefing, nullptr, text);
+            StringAssign(&briefing->name, nullptr, text);
         } else {
-            StringAssignRange(briefing, nullptr, text, text + std::strlen(text));
+            StringAssignRange(&briefing->name, nullptr, text, text + std::strlen(text));
         }
     }
-    At<float>(briefing, kBriefingExp) = static_cast<float>(reg.GetFloat(Text(section), Text(kExp), 0));
-    At<float>(briefing, kBriefingMoney) = static_cast<float>(reg.GetFloat(Text(section), Text(kMoney), 0));
+    briefing->exp = static_cast<float>(reg.GetFloat(Text(section), Text(kExp), 0));
+    briefing->money = static_cast<float>(reg.GetFloat(Text(section), Text(kMoney), 0));
 }
 
 // A string list read inline: emptied (erased over its range, or cleared), reserved for the list's
 // size, then every non-empty string appended.
-void ReadListInline(Registry& reg, std::uintptr_t section, int list, char* briefing, bool erase) {
+void ReadListInline(Registry& reg, std::uintptr_t section, int list, QuestBriefingRecord* briefing, bool erase) {
     console::CStringArray strings;
     reg.GetStringArray(Text(section), Text(kListKeys[list]), &strings);
-    char* v = List(briefing, list);
+    CStringVector* v = List(briefing, list);
     if (erase) {
-        ListErase(v, nullptr, At<void*>(v, 0), At<void*>(v, 4));
+        ListErase(v, nullptr, v->begin, v->end);
     } else {
         ListClear(v);
     }
@@ -251,17 +222,17 @@ void ReadListInline(Registry& reg, std::uintptr_t section, int list, char* brief
     }
 }
 
-void ConstructBriefing(char* briefing) {
-    StringInitEmpty(briefing);
+void ConstructBriefing(QuestBriefingRecord* briefing) {
+    StringInitEmpty(&briefing->name);
     FirstListConstruct(List(briefing, 0), nullptr, &kAllocator);
     for (int i = 1; i < 6; ++i) ListConstruct(List(briefing, i), nullptr, &kAllocator);
-    StringInitEmpty(briefing + kBriefingString5C);
+    StringInitEmpty(&briefing->text);
 }
 
 // "briefing receive": the lists read inline (the first three erased over their range, the others
 // cleared), added like the quest.
-void ReadReceiveBriefing(Registry& reg, char* db, char* briefing) {
-    At<std::uint32_t>(briefing, kBriefingUnknown68) = 0;
+void ReadReceiveBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
+    briefing->unknown_68 = 0;
     ReadBriefingHeader(reg, briefing, kReceive, false);
     for (int i = 0; i < 6; ++i) ReadListInline(reg, kReceive, i, briefing, i < 3);
     AddReceiveBriefing(db, briefing);
@@ -269,26 +240,27 @@ void ReadReceiveBriefing(Registry& reg, char* db, char* briefing) {
 
 // "briefing reject": the item lists read inline (cleared first), the others by 006AE740; added by
 // 006B0600 (also unless the name is there).
-void ReadRejectBriefing(Registry& reg, char* db, char* briefing) {
+void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, kReject, false);
     ReadListInline(reg, kReject, 0, briefing, false);
     ReadListInline(reg, kReject, 1, briefing, false);
     for (int i = 2; i < 6; ++i) ReadList(&reg, Text(kReject), Text(kListKeys[i]), List(briefing, i));
-    BriefingAdd(db + kBriefings, nullptr, briefing);
+    BriefingAdd(&db->briefings, nullptr, briefing);
 }
 
 // "briefing complete": the name assigned as a C string, all six lists by 006AE740.
-void ReadCompleteBriefing(Registry& reg, char* db, char* briefing) {
+void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, kComplete, true);
     for (int i = 0; i < 6; ++i) ReadList(&reg, Text(kComplete), Text(kListKeys[i]), List(briefing, i));
-    BriefingAdd(db + kBriefings, nullptr, briefing);
+    BriefingAdd(&db->briefings, nullptr, briefing);
 }
 
 } // namespace
 
 // 006AE8E0 (thiscall on the database, RET 4). `image` is the quest's registry file in memory.
 // Returns false when it is not a registry, true otherwise.
-bool __fastcall QuestDatabaseLoad(char* db, void*, const void* image) {
+bool __fastcall QuestDatabaseLoad(char* database, void*, const void* image) {
+    auto* db = reinterpret_cast<QuestDatabase*>(database);
     Registry reg;
     reg.Construct();
     if (!reg.Attach(image)) {
@@ -296,16 +268,18 @@ bool __fastcall QuestDatabaseLoad(char* db, void*, const void* image) {
         return false;
     }
 
-    alignas(4) char quest[kQuestSize];
-    StringInitEmpty(quest);
-    PlacesConstruct(quest + kQuestPlaces, nullptr, &kAllocator);
-    StringInitEmpty(quest + kQuestString2C);
+    alignas(4) char questStorage[kQuestSize];
+    auto* quest = reinterpret_cast<QuestRecord*>(questStorage);
+    StringInitEmpty(&quest->name);
+    PlacesConstruct(&quest->places, nullptr, &kAllocator);
+    StringInitEmpty(&quest->text);
     {
         console::CStringArray places;
         ReadQuest(reg, quest, places);
         AddQuest(db, quest);
 
-        alignas(4) char briefing[kBriefingSize];
+        alignas(4) char briefingStorage[kBriefingSize];
+        auto* briefing = reinterpret_cast<QuestBriefingRecord*>(briefingStorage);
         ConstructBriefing(briefing);
         ReadReceiveBriefing(reg, db, briefing);
         ReadRejectBriefing(reg, db, briefing);
