@@ -42,9 +42,10 @@ Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src
 
 Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `run_all --widescreen` compares with addon.
 
-- **W2** Sprite shapes, text extent and text draw, control rectangles (running since 2026-10-14; opus). Sprite shape builders, text extent / text surface draw, the +0x98 rectangles of console / edit / list / chat / tooltip. After: W1.
+- **W2** Sprite shapes, text extent and text draw, control rectangles (review since 2026-10-14; opus). Sprite shape builders, text extent / text surface draw, the +0x98 rectangles of console / edit / list / chat / tooltip. After: W1.
 - **W3** Battle-screen panel builders (waiting on W2; opus). Then widescreen::SetPanelOffset replaces addon's variable.
 - **W4** Camp and hero screens, help, global map, cursor rectangles, interface creation (waiting on W3; opus). Also camera mouse moves and 004F1330.
+- **W2a** Connect list 0061D780 under Rebirth: ExtendedServerName with WideScreen (waiting on W2; sonnet, 0.5 sessions). W2 rewrote its WideScreen caret (+0x38E/+0x3BE) but the Rebirth launch skips the hook: the function also holds ExtendedServerName (+0x27C, not reproduced). Reproduce that site too (EI_REBIRTH_IMPLEMENTS both), then compare in a Rebirth launch (net_lobby's connect list).
 - **W1** Layout widths, scaling functions, harness resolution steps (done 2026-10-14). SetRect / AddPoint / sprite place; `resolution` / `widescreen` steps; run_all --widescreen within tolerance. Open: options slider thumbs a few pixels wider than the original (also with WideScreen off).
 
 ## Unknown fields

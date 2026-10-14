@@ -296,7 +296,7 @@ note = "SetRect / AddPoint / sprite place; `resolution` / `widescreen` steps; ru
 id = "W2"
 title = "Sprite shapes, text extent and text draw, control rectangles"
 group = "widescreen"
-status = "running"
+status = "review"
 started = "2026-10-14"
 model = "opus"
 depends = ["W1"]
@@ -319,6 +319,16 @@ status = "queued"
 model = "opus"
 depends = ["W3"]
 note = "Also camera mouse moves and 004F1330."
+
+[[ticket]]
+id = "W2a"
+title = "Connect list 0061D780 under Rebirth: ExtendedServerName with WideScreen"
+group = "widescreen"
+status = "queued"
+size = 0.5
+model = "sonnet"
+depends = ["W2"]
+note = "W2 rewrote its WideScreen caret (+0x38E/+0x3BE) but the Rebirth launch skips the hook: the function also holds ExtendedServerName (+0x27C, not reproduced). Reproduce that site too (EI_REBIRTH_IMPLEMENTS both), then compare in a Rebirth launch (net_lobby's connect list)."
 
 # ---------------------------------------------------------------- unknown fields
 

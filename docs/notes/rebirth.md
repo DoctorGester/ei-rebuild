@@ -246,7 +246,9 @@ holds ExtendedServerName (+0x27C), so it keeps addon's code in a Rebirth launch 
 Verified against addon's code in a Rebirth launch (`ui_widescreen_more`, a second widescreen scenario: the multiplayer hero screen's name
 field, tooltips at both screen edges, the console, the Esc menu's Save window): the shapes, the text extent, the tooltip at 0 mismatches;
 the text draw, the edit field, the list and the chat line compare the surface's pixels side by side (`tests/verify/gdi_pixels.h`,
-`ui_surface_pixels.h`) at 0 mismatches. The chat line is not drawn in a single player game (the overlay's root is drawn only for
+`ui_surface_pixels.h`; the text draw reads only its rectangle's rows) at 0 mismatches. Every Rebirth launch of the suite is wide too
+(the starter's settings here: the desktop's mode, WideScreen on), so the Rebirth half of the suite compares these wrappers with addon's
+code as well (ui_camp: DrawTextIn 8301 calls). The chat line is not drawn in a single player game (the overlay's root is drawn only for
 network clients): the harness's `chat 1|0` step opens it for the wrapper. A pausing window's frame (the Save window) leaves out what moved
 in `<f>_moving` / `<f>_moving_later`, captured before it opened (run_all); the unit panel is slid out first, as the window's picture is a
 copy of the screen with the animated hero in it.
