@@ -683,10 +683,11 @@ done = "2026-10-14"
 id = "F4f"
 title = "HideWounds / client parts: wounds material drop onto CountedRef"
 group = "cleanup"
-status = "review"
+status = "done"
 depends = ["F4e"]
 note = "unit_client_wounds.cpp HideWounds (0051C920) and object3d_client_parts.cpp (DropWoundsMaterial and three hand-written drops) release the wounds material by hand. Check in Ghidra whether the originals call 0051E570 or inline it; if they call, use CountedRef<WoundsMaterial>::Assign(nullptr) (see F4e's AsCountedRef); else a shared inline drop. Compare release code with dumpbin; run combat / units if it changes."
 started = "2026-10-14"
+done = "2026-10-14"
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
