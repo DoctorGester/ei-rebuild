@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/stlp.h"
 
 #include <cstring>
 #include "originals_library.h"
@@ -31,24 +32,13 @@ bool IsNaN(float f) {
 }
 
 // The hash map at CAIMap + 0x10C (an STLport hash_map<int, unsigned short>).
-struct BridgeHeightMap {
-    struct Node {
-        Node* next;
-        int key;
-        std::uint16_t value;
-    };
-    std::uint32_t unknown_0;
-    Node** bucketsBegin;
-    Node** bucketsEnd;
+using BridgeHeightMap = stlp::hash_map<int, std::uint16_t, stlp::IntHash>;
+static_assert(sizeof(BridgeHeightMap) == 0x14);
 
-    const Node* Find(short x, short y) const {
-        std::uint32_t key = static_cast<std::uint32_t>(x * 0x10000 + y);
-        std::uint32_t count = static_cast<std::uint32_t>((bucketsEnd - bucketsBegin));
-        const Node* node = bucketsBegin[key % count];
-        while (node && static_cast<std::uint32_t>(node->key) != key) node = node->next;
-        return node;
-    }
-};
+// The entry of the cell (x, y): the key is (short)x << 16 | (short)y.
+const BridgeHeightMap::Node* FindBridgeHeight(const BridgeHeightMap* map, short x, short y) {
+    return map->Find(x * 0x10000 + y);
+}
 
 const BridgeHeightMap* Bridges(const CAIMap* map) {
     return reinterpret_cast<const BridgeHeightMap*>(map->bridgeHeights);
@@ -67,7 +57,7 @@ int __stdcall StandingLevel(const CUnit* unit) {
 EI_REPLACE(0x005B7B70, StandingLevel);
 
 int __fastcall BridgeHeight(const void* map, void*, short x, short y) {
-    const auto* node = static_cast<const BridgeHeightMap*>(map)->Find(x, y);
+    const auto* node = FindBridgeHeight(static_cast<const BridgeHeightMap*>(map), x, y);
     return node ? node->value : 0;
 }
 EI_REPLACE(0x005B3160, BridgeHeight);
@@ -186,7 +176,7 @@ float CAIMap::SurfaceHeightAt(const Vector3* position) {
     if (x < 0 || y < 0 || x >= width || y >= height) return 0.0f;
     const AIMapCell& cell = cells[y][x];
     if (!(cell.flags & kCellBridge)) return static_cast<float>(static_cast<int>(cell.groundLevel)) / heightScale;
-    const auto* node = Bridges(this)->Find(static_cast<short>(x), static_cast<short>(y));
+    const auto* node = FindBridgeHeight(Bridges(this), static_cast<short>(x), static_cast<short>(y));
     return static_cast<float>(node ? static_cast<int>(node->value) : 0) / heightScale;
 }
 EI_REPLACE_METHOD(0x005BBA10, CAIMap::SurfaceHeightAt);
