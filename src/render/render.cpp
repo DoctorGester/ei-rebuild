@@ -566,12 +566,10 @@ bool GameTargetSize(int* width, int* height) {
     return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
 }
 
-int AddMatrix(const float* m) {
-    if (!g_frame.matrices.empty() && std::memcmp(g_frame.matrices.back().m, m, sizeof(Matrix4)) == 0)
+int AddMatrix(const Matrix4& m) {
+    if (!g_frame.matrices.empty() && std::memcmp(&g_frame.matrices.back(), &m, sizeof(Matrix4)) == 0)
         return static_cast<int>(g_frame.matrices.size()) - 1;
-    Matrix4 copy;
-    std::memcpy(copy.m, m, sizeof(copy.m));
-    g_frame.matrices.push_back(copy);
+    g_frame.matrices.push_back(m);
     return static_cast<int>(g_frame.matrices.size()) - 1;
 }
 

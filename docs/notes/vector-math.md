@@ -331,6 +331,19 @@ identical, or only stack slots / scheduling / commuted FMUL operands.
   member; FLD / FCHS / FSTP as before, w reuses the compare's load); the rest stack slots and scheduling. No skips added.
   The self-test checks OffsetDot2DUnrounded on inputs that separate it from d + (xx' + yy'). (The "unrounded forms" test
   finds only 1 of 24 inputs separating both its dot and its square: pre-existing, worth splitting.)
+- Batch V3g 2026-10-14 (the last 8): 8 -> 0 in the tree. terrain_sector.h `struct SectorPosition : Vector3 {}` (users
+  in terrain_animation / lighting / lights / sector / shadow, the verify files and render_terrain.cpp read `.x / .y / .z`;
+  the load / record loops step a `SectorPosition*` instead of a float pointer); device_buffers.h `struct ProjectedVertex :
+  Vector4 {}`; renderer_init's default light position a Vector3 (LightSet 0068D0A0 takes `const Vector3*`), and IsLit
+  006CB020 (originals_effects.h) takes `const Vector3*`, its five callers no longer pass `&v.x`. The new renderer's
+  matrices are Matrix4: MeshDraw::matrix (render.h) is `const Matrix4*`, AddMatrix takes `const Matrix4&`,
+  ScreenToClip returns one, the shaders' uniform blocks hold a `Matrix4 matrix` (VsParams / Params, same 96 bytes),
+  TerrainPage reads the pipeline stack as Matrix4s. No helpers added, no skips. Release objects compared (x87sim): the
+  same expressions everywhere; LightVertex no longer calls ToVector (a MOV copy) and reads the position in place
+  (`Vector3 at = *position`: member-wise initialisation had become FLD / FSTP round trips), BuildRecords keeps `rec` /
+  `vin` in other stack slots, the rest address-operand order and the mangled names of IsLit / LightSet. The self-test's
+  unrounded forms run in two loops (dots and `(2a) . b` on inputs separating the three dots, squares on inputs separating
+  the three squares): 24 inputs found for each, 2904 checks, 0 mismatches (frames_basic).
 
 ## 7. Risks
 

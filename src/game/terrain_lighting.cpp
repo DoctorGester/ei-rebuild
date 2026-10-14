@@ -49,8 +49,6 @@ bool SignClear(float v) {
     return (bits & 0x80000000u) == 0;
 }
 
-Vector3 ToVector(const float* xyz) { return {xyz[0], xyz[1], xyz[2]}; }
-
 // Channel bytes: the value times 255 stored as a float, then FISTP (here: chop).
 std::uint32_t Channel(float v) { return static_cast<std::uint32_t>(x87::fistp(RoundToFloat(v * 255.0f))); }
 
@@ -96,7 +94,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
 void SectorData::LightVertex(const SectorPosition* position, SectorVertex* record, TerrainFields* terrain, int layer) {
     Vector3 colour = record->lit;
     Vector3 specular = {0.0f, 0.0f, 0.0f};
-    Vector3 at = ToVector(position->xyz);
+    Vector3 at = *position;
     for (LightRef* ref = record->lights; ref;) {
         LightRef* next = ref->next;
         CLight* light = ref->light;
@@ -134,7 +132,7 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
     std::uint32_t g = Channel(AtMostOne(Max(colour.y, specular.y)));
     std::uint32_t b = Channel(AtMostOne(Max(colour.z, specular.z)));
     record->colour = ((((static_cast<std::uint32_t>(record->materialByte) << 8) | r) << 8 | g) << 8) | b;
-    std::uint32_t edge = IsLit(terrain, nullptr, position->xyz);
+    std::uint32_t edge = IsLit(terrain, nullptr, position);
     if (hasSpecular) {
         std::uint32_t word = (edge & 0xFF) << 8 | gamecrt::Ftol(specular.x * 255.0f);
         word = word << 8 | gamecrt::Ftol(specular.y * 255.0f);

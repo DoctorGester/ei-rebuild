@@ -127,7 +127,7 @@ void __stdcall UpdateVertexLightsVerify(SectorData* sector, CLight* light, const
     for (int y = y0; y <= y1; ++y) {
         for (int x = x0; x <= x1; ++x) {
             const SectorPosition& p = sector->vertices.data[y * 33 + x];
-            Vector3 offset = Vector3{p.xyz[0], p.xyz[1], p.xyz[2]} - *position;
+            Vector3 offset = Vector3{p.x, p.y, p.z} - *position;
             int expected = remove || LengthSquaredZYX(offset) >= rangeSquared ? 0 : 1;
             if (CountInList(sector->records.data[y * 33 + x], light, &linked) != expected) {
                 if (firstWrong < 0) firstWrong = y * 33 + x;

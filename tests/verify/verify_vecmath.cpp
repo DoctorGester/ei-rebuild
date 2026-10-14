@@ -335,21 +335,27 @@ void TestTwoTermHelpers(Inputs& in) {
 }
 
 void TestUnrounded(Inputs& in) {
-    auto separates = [](const Vector3& a, const Vector3& b) {
-        return Distinct(RefDot(Sum3::XYZ, a, b), RefDot(Sum3::ZYX, a, b), RefDot(Sum3::ZXY, a, b)) &&
-               Distinct(RefDot(Sum3::XYZ, a, a), RefDot(Sum3::ZYX, a, a), RefDot(Sum3::ZXY, a, a));
+    // The dots and the squares in two loops: inputs separating both the three dots of (a, b) and the
+    // three squares of a at once are rare (1 of kInputs found).
+    auto separatesDot = [](const Vector3& a, const Vector3& b) {
+        return Distinct(RefDot(Sum3::XYZ, a, b), RefDot(Sum3::ZYX, a, b), RefDot(Sum3::ZXY, a, b));
     };
-    ForSeparatingInputs("unrounded forms", in, separates, [](const Vector3& a, const Vector3& b) {
+    ForSeparatingInputs("unrounded dots", in, separatesDot, [](const Vector3& a, const Vector3& b) {
         float dot[3] = {DotUnroundedOf<Sum3::XYZ>(a, b), DotUnroundedOf<Sum3::ZYX>(a, b), DotUnroundedOf<Sum3::ZXY>(a, b)};
-        float squared[3] = {LengthSquaredUnroundedOf<Sum3::XYZ>(a), LengthSquaredUnroundedOf<Sum3::ZYX>(a),
-                            LengthSquaredUnroundedOf<Sum3::ZXY>(a)};
         float twice[3] = {TwiceDotUnroundedOf<Sum3::XYZ>(a, b), TwiceDotUnroundedOf<Sum3::ZYX>(a, b),
                           TwiceDotUnroundedOf<Sum3::ZXY>(a, b)};
         for (int o = 0; o < 3; ++o) {
             Compare("DotUnrounded", o, RefDot(kOrders[o], a, b), dot[o], a, b);
-            Compare("LengthSquaredUnrounded", o, RefDot(kOrders[o], a, a), squared[o], a, b);
             Compare("DotUnrounded(2a, b)", o, R(RefDot(kOrders[o], a, b) * 2.0f), twice[o], a, b);
         }
+    });
+    auto separatesSquare = [](const Vector3& a, const Vector3&) {
+        return Distinct(RefDot(Sum3::XYZ, a, a), RefDot(Sum3::ZYX, a, a), RefDot(Sum3::ZXY, a, a));
+    };
+    ForSeparatingInputs("unrounded squares", in, separatesSquare, [](const Vector3& a, const Vector3& b) {
+        float squared[3] = {LengthSquaredUnroundedOf<Sum3::XYZ>(a), LengthSquaredUnroundedOf<Sum3::ZYX>(a),
+                            LengthSquaredUnroundedOf<Sum3::ZXY>(a)};
+        for (int o = 0; o < 3; ++o) Compare("LengthSquaredUnrounded", o, RefDot(kOrders[o], a, a), squared[o], a, b);
     });
     // The offset first (V3f), on inputs where (d + xx') + yy' and d + (xx' + yy') differ; a.z * b.z as d.
     auto separatesOffset = [](const Vector3& a, const Vector3& b) {

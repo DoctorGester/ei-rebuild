@@ -142,7 +142,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     std::uint8_t lit = 0xFF;
     if (!(object->flags_ & kObjectUnlit)) {
         Terrain* terrain = static_cast<CWorldClient*>(ManagerContext())->terrain_;
-        lit = IsLit(terrain, nullptr, &at.x);   // AL as it is
+        lit = IsLit(terrain, nullptr, &at);   // AL as it is
     }
 
     // The parts of both sets.

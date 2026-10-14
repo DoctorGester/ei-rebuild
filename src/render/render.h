@@ -37,6 +37,8 @@
 #include <cstdint>
 #include <vector>
 
+struct Matrix4;   // lib/vecmath.h
+
 namespace terrain {
 struct SectorData;
 }
@@ -131,7 +133,7 @@ struct MeshDraw {
     int indexCount;
     float uOffset, vOffset;            // added to the texture coordinates when `moveUv`
     bool moveUv;
-    const float* matrix;               // row-major, out = M * (x, y, z, 1)
+    const Matrix4* matrix;             // row-major, out = M * (x, y, z, 1)
     bool screenMatrix;                 // `matrix` gives screen pixels after the divide (the pipeline's
                                        // +0x1C stack), else Direct3D clip space (+0x24)
     bool clipped;                      // the old path clips it (else only projects it: the depth is

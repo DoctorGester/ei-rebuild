@@ -39,16 +39,22 @@ int g_dropped = 0;
 
 // A matrix giving screen pixels after the divide (sx = row0.p / row3.p, sy = row1.p / row3.p) as a
 // clip-space one: ndc x = 2 sx / width - 1, ndc y = 1 - 2 sy / height; z and w unchanged.
-void ScreenToClip(const float* s, float* c, int width, int height) {
+Matrix4 ScreenToClip(const Matrix4& screen, int width, int height) {
     float kx = 2.0f / static_cast<float>(width);
     float ky = 2.0f / static_cast<float>(height);
+    const float* s = screen.m;
+    Matrix4 clip;
+    float* c = clip.m;
     for (int k = 0; k < 4; ++k) {
         c[k] = kx * s[k] - s[12 + k];
         c[4 + k] = s[12 + k] - ky * s[4 + k];
         c[8 + k] = s[8 + k];
         c[12 + k] = s[12 + k];
     }
+    return clip;
 }
+
+const Matrix4 kIdentity = {{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1}};
 
 // The mesh's corners as vertices and its triangles, once per mesh (the passes share them).
 bool Build(Frame& f, Pending& p) {
@@ -281,7 +287,7 @@ float4 ps_main(vs_out i) : SV_Target0 {
 )";
 
 struct VsParams {
-    float rows[16];
+    Matrix4 matrix;
     float distanceFog[4];
     float shift[4];
 };
@@ -449,7 +455,7 @@ void DrawMeshBatch(const Frame& f, const MeshBatch& batch) {
     }
     sg_apply_bindings(&b);
     VsParams vs{};
-    std::memcpy(vs.rows, f.matrices[static_cast<std::size_t>(batch.matrix)].m, sizeof(vs.rows));
+    vs.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     if (batch.distanceFog && batch.fogScale > 0.0f) {
         vs.distanceFog[0] = 1.0f;
         vs.distanceFog[1] = batch.fogNear;
@@ -510,13 +516,13 @@ void BeginMesh(void* device, const MeshDraw& mesh) {
         if (g_dropped++ == 0) ei::Log("render: too many meshes in one frame; the rest are dropped");
         return;
     }
-    float clip[16];
+    Matrix4 clip;
     if (mesh.screenMatrix) {
         int width = 0, height = 0;
         if (!GameTargetSize(&width, &height)) return;
-        ScreenToClip(mesh.matrix, clip, width, height);
+        clip = ScreenToClip(*mesh.matrix, width, height);
     } else {
-        std::memcpy(clip, mesh.matrix, sizeof(clip));
+        clip = *mesh.matrix;
     }
     g_pending.active = true;
     g_pending.mesh = mesh;
@@ -573,9 +579,7 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     if (!GameTargetSize(&width, &height)) return true;
     Frame& f = CurrentFrame();
     if (f.meshVertices.size() > 4'000'000) return true;
-    static const float kIdentity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
-    float clip[16];
-    ScreenToClip(kIdentity, clip, width, height);
+    Matrix4 clip = ScreenToClip(kIdentity, width, height);
     int stride = fvf == 0x1C4 ? 32 : 24;
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < vertexCount; ++i) {
@@ -645,9 +649,7 @@ bool ScreenDraw(void* device, const ScreenVertex* vertices, int count, const std
     int width = 0, height = 0;
     if (!GameTargetSize(&width, &height)) return true;
     Frame& f = CurrentFrame();
-    static const float kIdentity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
-    float clip[16];
-    ScreenToClip(kIdentity, clip, width, height);
+    Matrix4 clip = ScreenToClip(kIdentity, width, height);
     auto base = static_cast<std::uint32_t>(f.meshVertices.size());
     for (int i = 0; i < count; ++i) {
         const ScreenVertex& s = vertices[i];
