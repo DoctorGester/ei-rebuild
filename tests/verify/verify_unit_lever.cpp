@@ -44,7 +44,7 @@ static void(__fastcall* s_useSpots)(Lever*, void*, LeverSpots*, float);
 static void __fastcall UseSpotsVerify(Lever* lever, void*, LeverSpots* out, float userRadius) {
     LeverSpots expected{out->vtable, nullptr, 0, 0, out->growBy};
     s_useSpots(lever, nullptr, &expected, userRadius);
-    lever->UseSpots(out, userRadius);
+    lever->CollectUseSpots(out, userRadius);
     bool ok = expected.size == out->size;
     int bad = -1;
     for (int i = 0; ok && i < out->size; ++i) {
@@ -57,7 +57,7 @@ static void __fastcall UseSpotsVerify(Lever* lever, void*, LeverSpots* out, floa
     const Vector3 none{0.0f, 0.0f, 0.0f};
     const Vector3& a = bad >= 0 ? expected.data[bad] : none;
     const Vector3& b = bad >= 0 ? out->data[bad] : none;
-    ei::verify::Check("Lever::UseSpots", true, ok,
+    ei::verify::Check("Lever::CollectUseSpots", true, ok,
                       "radius %g: %d spots (%d expected); spot %d (%g %g %g) vs (%g %g %g)", userRadius, out->size,
                       expected.size, bad, b.x, b.y, b.z, a.x, a.y, a.z);
     if (expected.data) gamecrt::operator_delete(expected.data);

@@ -24,7 +24,10 @@ bool CMapObject::ApplyScience(int, int) {
     DebugMessageOriginal("Science is applied on wrong object");
     return false;
 }
-EI_REPLACE_METHOD(0x0050F0F0, CMapObject::ApplyScience);
+bool __fastcall ApplyScienceHook(CMapObject* self, void*, int first, int second) {
+    return self->CMapObject::ApplyScience(first, second);
+}
+EI_REPLACE(0x0050F0F0, ApplyScienceHook);
 
 void CMapObject::FreeArray(void* array, int) {
     auto* raw = static_cast<RawArray*>(array);

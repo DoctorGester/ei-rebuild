@@ -82,7 +82,7 @@ struct ArrayView {
 } // namespace
 
 static bool __fastcall ApplyScienceVerify(CMapObject* self, void*, int first, int second) {
-    bool result = self->ApplyScience(first, second);
+    bool result = self->CMapObject::ApplyScience(first, second);
     ei::verify::Check("CMapObject::ApplyScience", false, result, "object %d", self->id_);
     return result;
 }

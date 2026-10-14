@@ -255,7 +255,7 @@ static std::uintptr_t __fastcall AddEffectVerify(CMapObject* self, void*, const 
     self->changedParts = parts;
     self->flags_ = flags;
     self->changeStamp = stamp;
-    std::uintptr_t result = self->AddEffect(effect);
+    std::uintptr_t result = self->CMapObject::AddEffect(effect);
 
     char what[160] = "";
     if (self->effectCount != expectedCount) {
@@ -320,9 +320,9 @@ static std::uintptr_t(__fastcall* s_recomputeScale)(CMapObject*);
 static std::uintptr_t __fastcall RecomputeScaleVerify(CMapObject* self) {
     if (VtableSlot(self, mapslot::kResetScale) == reinterpret_cast<void*>(0x0050E440))
         return SameWrites<std::uintptr_t>("CMapObject::RecomputeScale", self->id_, self, kTrackedSize, nullptr, 0, true,
-                                          [&] { return self->RecomputeScale(); },
+                                          [&] { return self->CMapObject::RecomputeScale(); },
                                           [&] { return s_recomputeScale(self); });
-    std::uintptr_t result = self->RecomputeScale();
+    std::uintptr_t result = self->CMapObject::RecomputeScale();
     bool ok = (self->changedParts & 2) && (self->flags_ & 2);
     ei::verify::Check("CMapObject::RecomputeScale", true, ok, "object %d (ours only): parts %X", self->id_,
                       self->changedParts);
@@ -395,7 +395,7 @@ __declspec(naked) static void __fastcall OriginalPlaceOnGround(CMapObject*, void
 static void* s_unusedPlaceOnGround;
 static void __fastcall PlaceOnGroundVerify(CMapObject* self, void*, float offset) {
     float before = self->position.z;
-    self->PlaceOnGround(offset);
+    self->CMapObject::PlaceOnGround(offset);
     float actual = self->position.z;
     self->position.z = before;
     OriginalPlaceOnGround(self, nullptr, offset);
@@ -413,7 +413,7 @@ static std::uintptr_t __fastcall SetServerDataVerify(CMapObject* self, void*, co
     // Only a CMapObjectServer companion is written (and known to be at least 0x78 bytes).
     CEngineObject* server = self->companion && self->companion->GetClassId() == 0x39 ? self->companion : nullptr;
     return SameWrites<std::uintptr_t>("CMapObject::SetServerData", self->id_, self, kTrackedSize, server,
-                                      server ? kServerSize : 0, true, [&] { return self->SetServerData(data); },
+                                      server ? kServerSize : 0, true, [&] { return self->CMapObject::SetServerData(data); },
                                       [&] { return s_setServerData(self, nullptr, data); });
 }
 EI_VERIFY(0x0050F050, SetServerDataVerify, 9, s_setServerData);
@@ -460,7 +460,7 @@ EI_VERIFY(0x0050E8F0, AttachCompanionVerify, 0, s_unusedAttach);
 static void* s_unusedAttachObject;
 static std::uintptr_t __fastcall AttachObjectVerify(CMapObject* self, void*, CEngineObject* object) {
     bool companionType = object && object->type_ == 0x47;
-    std::uintptr_t result = self->AttachObject(object);
+    std::uintptr_t result = self->CMapObject::AttachObject(object);
     bool ok = !companionType || (self->companion == object && CompanionOwner(object) == self &&
                                  result == static_cast<std::uintptr_t>(object->refCount_));
     ei::verify::Check("CMapObject::AttachObject", true, ok, "object %d", self->id_);

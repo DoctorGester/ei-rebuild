@@ -505,4 +505,7 @@ int MagicTrap::ForgetObject(CEngineObject* object) {
     }
     return 0;
 }
-EI_REPLACE_METHOD(0x0052AC90, MagicTrap::ForgetObject);
+int __fastcall ForgetObjectHook(MagicTrap* self, void*, CEngineObject* object) {
+    return self->MagicTrap::ForgetObject(object);
+}
+EI_REPLACE(0x0052AC90, ForgetObjectHook);

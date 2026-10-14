@@ -89,15 +89,6 @@ volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_minimumTilt = 20.0;
 
-// FLD y; FLD x; FPATAN: atan(y / x) in ST0.
-__declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
-    __asm {
-        fld qword ptr [esp + 4]
-        fld qword ptr [esp + 12]
-        fpatan
-        ret
-    }
-}
 
 // --- Not rewritten, forwarders ----------------------------------------------------------------
 // 00692010. Texture manager: a new 64x64 texture.
@@ -273,7 +264,7 @@ void LightDirection(const float* sum, float* direction) {
     float horizontal = static_cast<float>(
         x87::fsqrt(static_cast<double>(direction[1]) * direction[1] + static_cast<double>(direction[0]) * direction[0]));
     float height = std::bit_cast<float>(std::bit_cast<std::uint32_t>(direction[2]) & 0x7FFFFFFFu);
-    double elevation = Fpatan(height, horizontal);
+    double elevation = x87::fpatan(height, horizontal);   // FLD y; FLD x; FPATAN
     double minimum = g_pi * g_perDegree * g_minimumTilt;
     if (elevation >= minimum) return;   // NaN tilts
     double z = static_cast<double>(horizontal) * kTiltSlope;

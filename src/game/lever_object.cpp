@@ -231,7 +231,8 @@ int Lever::NeedsKey() {
 EI_REPLACE_METHOD(0x0052BB00, Lever::NeedsKey);
 
 std::uint32_t Lever::KeyId() { return (lock.mask & kKeyById) ? lock.id : 0; }
-EI_REPLACE_METHOD(0x0052BBC0, Lever::KeyId);
+std::uint32_t __fastcall LeverKeyIdHook(Lever* self) { return self->Lever::KeyId(); }
+EI_REPLACE(0x0052BBC0, LeverKeyIdHook);
 
 bool Lever::ApplyKey(const LockKey* key, int) {
     if (!LockOpensOriginal(key, nullptr, &lock)) return false;
