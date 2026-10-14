@@ -1359,7 +1359,7 @@ CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     inputVtable_ = reinterpret_cast<void**>(0x007409F8);
     std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is
     heroes_.Construct(0x007402AC);
-    StringArrayConstruct(&pageTitlesVtable_);
+    StringArrayConstruct(&pageTitles_);
     vtable_ = reinterpret_cast<void**>(0x0074091C);
     inputVtable_ = reinterpret_cast<void**>(0x007408E8);
     return this;

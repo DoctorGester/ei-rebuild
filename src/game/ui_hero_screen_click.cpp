@@ -118,7 +118,7 @@ CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
     camp->inputVtable_ = reinterpret_cast<void**>(0x007409F8);
     camp->fromHeroScreen_ = true;   // opened from the hero screen
     camp->heroes_.Construct(0x007402AC);
-    StringArrayConstruct(&camp->pageTitlesVtable_);
+    StringArrayConstruct(&camp->pageTitles_);
     camp->vtable_ = reinterpret_cast<void**>(0x0074091C);
     camp->inputVtable_ = reinterpret_cast<void**>(0x007408E8);
     return camp;

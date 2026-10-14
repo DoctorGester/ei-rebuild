@@ -977,10 +977,7 @@ public:
     std::uint8_t* itemMade_;         // +0x214 the item the item constructor would make, or null
     std::uint8_t* spellMade_;        // +0x218 the spell the spell constructor would make, or null
     std::uint32_t priceWeights_[9];  // +0x21C the constructor's price multipliers (floats; ClassTemplate::weights)
-    void* pageTitlesVtable_;         // +0x240 CStringArray: the seven pages' titles and "quit"
-    char** pageTitles_;              // +0x244 its data
-    int pageTitleCount_;             // +0x248
-    std::uint8_t unknown_24C[0x254 - 0x24C];
+    mfc::CStringArray pageTitles_;   // +0x240 the seven pages' titles and "quit"
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
     std::uint8_t unknown_255[0x258 - 0x255];
     std::uint32_t heroTurn_;         // +0x258 passed to the hero preview (005EC300)
@@ -993,7 +990,7 @@ static_assert(offsetof(CCampPages, spellResults_) == 0x1D4);
 static_assert(offsetof(CCampPages, statsPanel_) == 0x1D8);
 static_assert(offsetof(CCampPages, trade_) == 0x1F4);
 static_assert(offsetof(CCampPages, itemConstructor3_) == 0x208);
-static_assert(offsetof(CCampPages, pageTitles_) == 0x244);
+static_assert(offsetof(CCampPages, pageTitles_) == 0x240);
 static_assert(offsetof(CCampPages, heroes_) == 0x19C);
 static_assert(offsetof(CCampPages, priceWeights_) == 0x21C);
 static_assert(offsetof(CCampPages, noConstructor_) == 0x254);

@@ -413,7 +413,7 @@ void CCampPages::Create() {
     // The pages' titles.
     auto* texts = static_cast<CTextManager*>(GameFlowOriginal());
     mfc::CString title;
-    auto& titles = *reinterpret_cast<mfc::CStringArray*>(&pageTitlesVtable_);
+    auto& titles = pageTitles_;
     const char* const titleKeys[] = {
         GameText(0x0079364C),   // "mode_weapons"
         GameText(0x00793640),   // "mode_spells"

@@ -235,7 +235,7 @@ src/game/ui_hud_unit_info.cpp,0,0,1,0,2,0,0,0,0,0,0
 src/game/ui_interface.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/ui_interface_save.cpp,0,0,0,0,13,0,0,0,0,0,0
 src/game/ui_item_info.cpp,0,0,13,1,41,0,0,0,0,0,0
-src/game/ui_item_screen.cpp,0,0,0,1,1,0,0,0,0,0,0
+src/game/ui_item_screen.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/ui_item_view.cpp,0,0,4,1,18,0,0,0,0,0,2
 src/game/ui_layouts.cpp,0,0,0,0,10,0,0,0,0,0,0
 src/game/ui_menu_keys.cpp,0,0,0,0,8,0,0,0,0,0,0
