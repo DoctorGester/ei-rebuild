@@ -93,7 +93,7 @@ Rewritten as `CObject3D::SetFigureScale` (src/game/map_object_figures.cpp).
 ### 0x0051FE80: 2 files, 2 sites, signatures differ
 Rewritten as `SkillDatabase::IndexOf` (src/game/unit_db.cpp).
 - `src/game/originals_units.h:197`: `int __fastcall SkillIndexOfOriginal(const void* /*database*/, void*, const char* /*name*/)`
-- `src/game/ui_item_info.cpp:336`: `int SkillDatabase::IndexOf(const char*)`
+- `src/game/ui_item_info.cpp:338`: `int SkillDatabase::IndexOf(const char*)`
 
 ### 0x00523370: 2 files, 2 sites, signatures differ
 Rewritten as `UnitVitals::Reset` (src/game/unit_stats_pack.cpp).
@@ -343,13 +343,13 @@ Rewritten as `CUnitServer::PlanMove` (src/game/combat_planning.cpp).
 Rewritten as `CWorldClient::Select` (src/game/world_client_maps.cpp).
 - `src/game/originals_ui.h:329`: `void __fastcall ClientWorldControlUnitOriginal(void* /*world*/, void*, void* /*unit*/)`
 - `src/game/ui_battle_commands.cpp:57`: `void __fastcall WorldControlUnit(void*, void*, CUnit*)`
-- `src/game/ui_battle_update.cpp:160`: `void __fastcall WorldControl(void*, void*, CUnit*)`
+- `src/game/ui_battle_update.cpp:163`: `void __fastcall WorldControl(void*, void*, CUnit*)`
 
 ### 0x00566100: 3 files, 3 sites, signatures differ
 Rewritten as `CWorldClient::Deselect` (src/game/world_client_maps.cpp).
 - `src/game/originals_ui.h:552`: `void __fastcall ClientWorldSelectOriginal(void* /*world*/, void*, void* /*unit*/)`
 - `src/game/ui_battle_commands.cpp:56`: `void __fastcall WorldClearSelection(void*, void*, CUnit*)`
-- `src/game/ui_battle_update.cpp:486`: `void __fastcall WorldSelect(void*, void*, CUnit*)`
+- `src/game/ui_battle_update.cpp:489`: `void __fastcall WorldSelect(void*, void*, CUnit*)`
 
 ### 0x005699F0: 5 files, 5 sites, signatures differ
 Rewritten as `CWorldClient::LocalView` (src/game/world_client.cpp).
@@ -367,7 +367,7 @@ Rewritten as `GameSetUnknownE4E8` (src/game/world_glue.cpp).
 
 ### 0x00578BA0: 3 files, 3 sites, signatures differ
 Rewritten as `LocalPlayerData` (src/game/world_rules.cpp).
-- `src/game/ui_battle_update.cpp:204`: `std::uint8_t* __fastcall LocalPlayerData(void*)`
+- `src/game/ui_battle_update.cpp:207`: `std::uint8_t* __fastcall LocalPlayerData(void*)`
 - `src/game/ui_camp.cpp:1001`: `std::uint8_t* GameGlue::PlayerData()`
 - `src/game/ui_trade_panel.cpp:358`: `std::uint8_t* __fastcall TradePlayerData(void*)`
 
@@ -568,7 +568,7 @@ Rewritten as `CItemScreen::DrawItem` (src/game/ui_item_view.cpp).
 ### 0x005F7350: 7 files, 8 sites, signatures differ
 Rewritten as `InterfacePushWindow` (src/game/ui_create_screen.cpp).
 - `src/game/originals_ui.h:185`: `void __fastcall InterfacePushWindowOriginal(CInterface3D*, void*, void* /*window*/, int, int)`
-- `src/game/ui_battle_update.cpp:198`: `void __fastcall PushWindow(CInterface3D*, void*, void*, int, int)`
+- `src/game/ui_battle_update.cpp:201`: `void __fastcall PushWindow(CInterface3D*, void*, void*, int, int)`
 - `src/game/ui_hero_screen_click.cpp:76`: `void __fastcall PushWindow(CInterface3D*, void*, void*, int, int)`
 - `src/game/ui_interface_frame.cpp:103`: `void InterfaceAt::Push(void*, int, int)`
 - `src/game/ui_interface_frame.cpp:222`: `void __fastcall InterfaceShowWindow(CInterface3D*, void*, void*, int, int)`
@@ -623,7 +623,7 @@ Rewritten as `CUiSurface::Clear` (src/game/ui_surface_frame.cpp).
 - `src/game/ui_camp.cpp:69`: `void SurfaceDraw::Clear()`
 - `src/game/ui_hero_panels.cpp:77`: `void SurfaceDraw::Clear()`
 - `src/game/ui_hero_screen_click.cpp:62`: `void SurfaceDraw::Clear()`
-- `src/game/ui_item_info.cpp:247`: `void SurfaceDraw::Clear()`
+- `src/game/ui_item_info.cpp:249`: `void SurfaceDraw::Clear()`
 - `src/game/ui_item_strip.cpp:47`: `void StripSurface::Clear()`
 - `src/game/ui_objectives.cpp:243`: `void SurfaceDraw::Clear()`
 - `src/game/ui_trade_grid_draw.cpp:52`: `void SurfaceText::Clear()`
@@ -656,7 +656,7 @@ Rewritten as `TradeSettle` (src/game/ui_trade_panel.cpp).
 Rewritten as `CBattleScreenSetup::RefreshSelection` (src/game/ui_battle_update.cpp).
 - `src/game/originals_ui.h:300`: `void __fastcall BattleRefreshSelectionOriginal(void* /*screen*/)`
 - `src/game/ui_battle_commands.cpp:64`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
-- `src/game/ui_battle_update.cpp:191`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
+- `src/game/ui_battle_update.cpp:194`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
 
 ### 0x0065AFE0: 3 files, 3 sites, signatures differ
 Rewritten as `CUiScrollbar::SetMaximum` (src/game/ui_scroll_text.cpp).
@@ -712,7 +712,7 @@ Rewritten as `CParty::RemoveItem` (src/game/party_items.cpp).
 ### 0x00665440: 2 files, 2 sites, signatures differ
 Rewritten as `CPlayer::IsLeader` (src/game/player.cpp).
 - `src/game/originals_gameplay.h:142`: `int __fastcall PlayerOwnsUnitOriginal(const void* /*player*/, void*, const void* /*unit*/)`
-- `src/game/ui_battle_update.cpp:40`: `int __fastcall PlayerOwns(std::uint8_t*, void*, CUnit*)`
+- `src/game/ui_battle_update.cpp:43`: `int __fastcall PlayerOwns(std::uint8_t*, void*, CUnit*)`
 
 ### 0x00665DE0: 2 files, 2 sites, signatures differ
 Rewritten as `CPlayer::Tick` (src/game/player_messages.cpp).
@@ -820,7 +820,7 @@ Rewritten as `CSpell::CanAffect` (src/game/spell.cpp).
 Rewritten as `CSpell::GetPrototype` (src/game/spell.cpp).
 - `src/game/combat_planning.cpp:55`: `char* __fastcall SpellPrototype(void*)`
 - `src/game/spell_effect_internal.h:101`: `char* __fastcall SpellPrototype(CSpell*)`
-- `src/game/ui_item_info.cpp:287`: `char* SpellAt::Prototype()`
+- `src/game/ui_item_info.cpp:289`: `char* SpellAt::Prototype()`
 - `src/game/ui_screens.cpp:58`: `char* __fastcall SpellPrototype(void*)`
 - `src/game/ui_spell_column.cpp:33`: `std::uint8_t* __fastcall SpellPrototypeOf(void*)`
 
@@ -863,7 +863,7 @@ Rewritten as `CIniFile::GetList` (src/game/ini_file.cpp).
 
 ### 0x006A0110: 2 files, 2 sites, signatures differ
 Rewritten as `CItem::GetPrototype` (src/game/item.cpp).
-- `src/game/ui_item_info.cpp:277`: `char* ItemAt::Prototype()`
+- `src/game/ui_item_info.cpp:279`: `char* ItemAt::Prototype()`
 - `src/game/world_party.cpp:71`: `itemdb::QuestItemRecord* __fastcall QuestItemInfo(CEngineObject*, void*)`
 
 ### 0x006A04D0: 2 files, 2 sites, signatures differ
@@ -883,7 +883,7 @@ Rewritten as `CItem::GetCategory` (src/game/item.cpp).
 - `src/game/item_stock.cpp:57`: `int __fastcall ItemCategory(CItem*)`
 - `src/game/ui_battle_hover.cpp:66`: `int __fastcall HoverItemCategory(void*)`
 - `src/game/ui_hud.cpp:721`: `int __fastcall ItemCategory(void*)`
-- `src/game/ui_item_info.cpp:278`: `int ItemAt::Category()`
+- `src/game/ui_item_info.cpp:280`: `int ItemAt::Category()`
 
 ### 0x006A5C50: 2 files, 2 sites, signatures differ
 Rewritten as `CItemConstructor::BeginCreateItem` (src/game/item_constructor.cpp).
@@ -968,19 +968,19 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x004049D0: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:436`: `void** __fastcall ListEnd4049D0Original(const void* /*list*/, void*, void** /*out*/)`
-- `src/game/ui_battle_update.cpp:215`: `ListNode** __fastcall IndexListEnd(List*, void*, ListNode**)`
+- `src/game/ui_battle_update.cpp:218`: `ListNode** __fastcall IndexListEnd(List*, void*, ListNode**)`
 
 ### 0x00404A40: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:438`: `void** __fastcall ListInsert404A40Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*value*/)`
-- `src/game/ui_battle_update.cpp:217`: `ListNode** __fastcall IndexListInsert(List*, void*, ListNode**, ListNode*, const int*)`
+- `src/game/ui_battle_update.cpp:220`: `ListNode** __fastcall IndexListInsert(List*, void*, ListNode**, ListNode*, const int*)`
 
 ### 0x00404A70: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:440`: `void* __fastcall ListConstruct404A70Original(void* /*list*/, void*, const void* /*alloc*/)`
-- `src/game/ui_battle_update.cpp:214`: `void __fastcall IndexListConstruct(List*, void*, const void*)`
+- `src/game/ui_battle_update.cpp:217`: `void __fastcall IndexListConstruct(List*, void*, const void*)`
 
 ### 0x00411850: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:107`: `void __fastcall ListConstruct411850(void* /*list*/, void*, const void* /*alloc*/)`
-- `src/game/ui_battle_update.cpp:213`: `void __fastcall UnitListConstruct(List*, void*, const void*)`
+- `src/game/ui_battle_update.cpp:216`: `void __fastcall UnitListConstruct(List*, void*, const void*)`
 
 ### 0x00460500: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:446`: `void __fastcall DwordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, std::uint32_t /*value*/)`
@@ -1004,7 +1004,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x004E2FA0: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:453`: `void __fastcall DwordVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/, const void* /*value*/, std::uint32_t /*count*/)`
-- `src/game/ui_battle_update.cpp:172`: `void __fastcall IdsInsertOverflow(IdVector*, void*, int*, const int*, int)`
+- `src/game/ui_battle_update.cpp:175`: `void __fastcall IdsInsertOverflow(IdVector*, void*, int*, const int*, int)`
 
 ### 0x005335E0: 2 files, 2 sites, signatures differ
 - `src/game/originals_units.h:195`: `void** __fastcall PrototypeMapAtOriginal(void* /*map*/, void*, const void* /*key*/)`
@@ -1018,10 +1018,10 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/originals_ui.h:298`: `void __fastcall PartyArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)`
 - `src/game/ui_battle_commands.cpp:49`: `void __fastcall OrderUnitsSetSize(OrderUnits*, void*, int, int)`
 - `src/game/ui_battle_setup.cpp:113`: `void __fastcall PartyArraySetSize(void* /*array*/, void*, int, int)`
-- `src/game/ui_battle_update.cpp:183`: `void __fastcall PartySetSize(UiDwordArray*, void*, int, int)`
+- `src/game/ui_battle_update.cpp:186`: `void __fastcall PartySetSize(UiDwordArray*, void*, int, int)`
 
 ### 0x005F8F10: 2 files, 2 sites, signatures differ
-- `src/game/ui_battle_update.cpp:170`: `void __fastcall IdsConstruct(IdVector*, void*, const void*)`
+- `src/game/ui_battle_update.cpp:173`: `void __fastcall IdsConstruct(IdVector*, void*, const void*)`
 - `src/game/ui_create_screen.cpp:42`: `void __fastcall Member5F8F10(void*, void*, const void*)`
 
 ### 0x006E6370: 2 files, 2 sites, signatures differ
