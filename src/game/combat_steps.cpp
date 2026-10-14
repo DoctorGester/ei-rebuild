@@ -12,7 +12,6 @@
 #include "lib/gameapi.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_library.h"
 #include "originals_units.h"
@@ -72,8 +71,6 @@ constexpr int kLocationCount = 6;
 // 0078FD48, printed when not even the fallback attack animation exists.
 const char* const kNoAnimationMessage = reinterpret_cast<const char*>(0x0078FD48);
 
-constexpr int kSlotAimPoint = 0xD4 / 4;   // Vector3* (Vector3* out)
-constexpr int kSlotRadius = 0xF0 / 4;     // ST0 ()
 
 template <typename T>
 T Get(const void* object, int offset) {
@@ -467,7 +464,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     float y = unit->position.y;
     float z = unit->position.z;
     Vector3 aim;
-    ei::VCall<float*>(target, kSlotAimPoint, &aim);
+    ObjectSlots(target)->AimPoint(&aim);
     double dz = static_cast<double>(z) - aim.z;
     double dy = static_cast<double>(y) - aim.y;
     double dx = static_cast<double>(x) - aim.x;
@@ -475,7 +472,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     volatile float orderDistance = static_cast<float>(CtlActionDistance(this, nullptr, &order));
     float reach = Select(distance, orderDistance, distance, orderDistance);
 
-    void* victimStats = static_cast<char*>(static_cast<void*>(victim->controller)) + 0x1E0;
+    void* victimStats = &reinterpret_cast<CUnitServer*>(victim->controller)->stats;
     volatile float myBase = static_cast<float>(UnitGroundAt(unit, nullptr, x, y) + z);
     volatile float mySize = static_cast<float>(UnitSize(unit));
     volatile float theirBase = static_cast<float>(UnitGroundAt(victim, nullptr, aim.x, aim.y) + aim.z);
@@ -560,9 +557,9 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
 
     if (unit->type_ != kUnitTypeHeroes) {
         // Other creatures strike low at targets that reach further than the distance between them.
-        volatile float myRadius = static_cast<float>(ei::VCall<double>(unit, kSlotRadius));
+        volatile float myRadius = unit->Radius();
         CEngineObject* other = order.target;
-        volatile float span = static_cast<float>(ei::VCall<double>(other, kSlotRadius) + myRadius);
+        volatile float span = static_cast<float>(static_cast<double>(ObjectSlots(other)->Radius()) + myRadius);
         if (other && other->GetClassId() == kClassUnit) {
             double scale = (static_cast<double>(Get<float>(this, 0x244)) + kOne) * myRadius;
             span = static_cast<float>(static_cast<double>(static_cast<CUnit*>(other)->standingHeight) + scale);

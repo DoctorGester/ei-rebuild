@@ -5,10 +5,12 @@
 #include "combat_internal.h"
 
 #include "item.h"
+#include "item_db.h"
 #include "maths.h"
+#include "unit_db.h"
+#include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_units.h"
 #include "originals_world.h"
@@ -32,8 +34,6 @@ constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr std::uint32_t kNoPointZ = 0xC4A42000u;    // -1313.0f: "no point"
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
-constexpr int kUnitSlotAimPoint = 53;   // CUnit slot 53: Vector3* (Vector3* out)
-constexpr int kUnitSlotIsDead = 55;
 constexpr float kReachHeight = 1.5f;    // 0073C51C
 
 // Party messages (0066D6E0 codes).
@@ -52,7 +52,15 @@ void FpuCopy(void* dst, const void* src) {
     }
 }
 
-void* AIEventsOf(void* world) { return static_cast<char*>(world) + 0x2838; }
+AIEventTable* AIEventsOf(void* world) { return static_cast<CWorldServer*>(world)->AIEvents(); }
+
+// The prototype records behind a spell and a unit.
+const itemdb::SpellRecord* SpellPrototype(CSpell* spell) {
+    return reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype());
+}
+const UnitPrototypeRecord* UnitPrototypeOf(CUnit* unit) {
+    return reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
+}
 
 // The inlined reset of an order: kind 9, target released, flag18 / +0x1C / +0x20 cleared.
 void ResetOrder(UnitAction* order) {
@@ -78,7 +86,7 @@ void SetTarget(UnitAction* order, CEngineObject* target) {
 }
 
 void TellParty(CUnit* unit, int message) {
-    if (unit->player) PlayerMessage(*reinterpret_cast<void**>(unit->player + 0x20), nullptr, unit, message);
+    if (unit->player) PlayerMessage(reinterpret_cast<WorldPlayer*>(unit->player)->server, nullptr, unit, message);
 }
 } // namespace
 
@@ -110,7 +118,7 @@ void CUnitServer::FinishCast() {
         std::memcpy(&at, &action.point, sizeof(at));
     } else {
         Vector3 point;
-        std::memcpy(&at, ei::VCall<const Vector3*>(action.target, kUnitSlotAimPoint, &point), sizeof(at));
+        std::memcpy(&at, ObjectSlots(action.target)->AimPoint(&point), sizeof(at));
     }
     if (carrier) {
         float cost = std::bit_cast<float>(spell->unknown_40);
@@ -136,7 +144,7 @@ void CUnitServer::FinishCast() {
         unit->MarkChanged(0);
     }
     WorldCastSpellOriginal(world, nullptr, spell, unit, &unit->position, action.target, &at, 0);
-    if (Field<int>(spell->GetPrototype(), 0x10) != 1) {
+    if (SpellPrototype(spell)->unknown_10 != 1) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kCastNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
     }
@@ -177,8 +185,8 @@ EI_REPLACE_METHOD(0x00554740, CUnitServer::OrderMove);
 void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledShot, int planArg) {
     if (!target || target == unit) return;
     if (target->GetClassId() == kClassUnit && location < 6) {
-        const char* slots = reinterpret_cast<const char*>(static_cast<CUnit*>(target)->controller) + 0x3D0;
-        if (*reinterpret_cast<const int*>(slots + location * 0xF4) != 3) location = 6;
+        auto* controller = reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(target)->controller);
+        if (controller->stats.slots[location].kind != 3) location = 6;
     }
     ResetOrder(&action2);
     action2.kind = 3;
@@ -188,7 +196,7 @@ void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledSho
     // CanReachTarget (0054C800) inlined on the queued order.
     if (action2.kind == 3 || action2.kind == 6) {
         CEngineObject* other = action2.target;
-        if (other && other->GetClassId() == kClassUnit && ei::VCall<int>(other, kUnitSlotIsDead) == 0 &&
+        if (other && other->GetClassId() == kClassUnit && ObjectSlots(other)->IsDead() == 0 &&
             static_cast<CUnit*>(other)->sizeClass == 0) {
             bool ranged = false;
             if (action2.kind == 3) {
@@ -197,7 +205,8 @@ void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledSho
             }
             if (!ranged) {
                 auto* victim = static_cast<CUnit*>(other);
-                double height = static_cast<double>(Field<float>(victim->GetPrototype(), 0x24)) + victim->position.z;
+                double height =
+                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(victim)->unknown_24)) + victim->position.z;
                 if (!LessOrUnordered(height, kReachHeight)) {
                     TellParty(unit, kMessageOutOfReach);
                     action2.kind = 9;
@@ -230,7 +239,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
         int needed = static_cast<int>(spell->unknown_50);
         float skill = static_cast<float>(
-            UnitStatsSpellSchoolSkill(&self->stats, nullptr, Field<int>(spell->GetPrototype(), 0x14)));
+            UnitStatsSpellSchoolSkill(&self->stats, nullptr, SpellPrototype(spell)->school));
         if (x87::fistp(skill) < needed) return false;
     }
     return !(self->unit->flags_ & kFlagSpellBlocked);
@@ -276,7 +285,7 @@ EI_REPLACE_METHOD(0x00554D00, CUnitServer::OrderCastAt);
 
 void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run) {
     Vector3 aim;
-    ei::VCall<const Vector3*>(target, kUnitSlotAimPoint, &aim);    // result unused (sic)
+    ObjectSlots(target)->AimPoint(&aim);    // result unused (sic)
     if (source & kQuickItemSource) {
         CItem* carrier = SpellCarrier(source);
         if (carrier && carrier->GetCategory() == kCategoryScroll) {

@@ -35,10 +35,10 @@ src/game/clip.cpp,0,0,1,1,0,0,0,0,0,0,0
 src/game/combat.cpp,0,0,3,1,1,0,0,0,0,0,1
 src/game/combat_actions.cpp,0,0,1,1,0,0,0,0,0,0,4
 src/game/combat_motion.cpp,0,0,0,0,0,0,0,0,0,0,1
-src/game/combat_orders.cpp,3,3,1,1,0,0,0,2,0,0,0
+src/game/combat_orders.cpp,0,0,1,1,0,0,0,0,0,0,0
 src/game/combat_planning.cpp,0,0,0,0,0,0,0,0,0,0,3
-src/game/combat_sight.cpp,3,8,3,1,4,0,0,0,0,0,5
-src/game/combat_steps.cpp,0,3,1,1,1,0,0,1,0,0,1
+src/game/combat_sight.cpp,0,0,3,1,4,0,0,0,0,0,5
+src/game/combat_steps.cpp,0,0,1,1,1,0,0,0,0,0,1
 src/game/combat_tick.cpp,0,0,1,1,1,0,0,0,0,0,1
 src/game/combat_update.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/console.cpp,0,0,0,0,54,3,0,0,0,0,0
@@ -316,7 +316,7 @@ src/game/world_tick.cpp,0,1,0,0,3,0,0,0,0,0,0
 src/game/world_units.cpp,0,0,4,2,1,0,0,0,0,0,3
 src/game/world_update.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/world_weather.cpp,1,4,0,2,3,0,0,0,0,0,0
-src/game/world_zone.cpp,5,5,0,0,6,0,0,0,0,0,0
+src/game/world_zone.cpp,0,0,0,0,6,0,0,0,0,0,0
 src/game/zone_records.cpp,3,0,0,0,1,0,0,1,0,0,0
 src/render/render.cpp,0,0,0,0,0,0,0,1,0,0,0
 src/render/render_blit.cpp,0,0,0,0,0,0,0,1,0,0,0
