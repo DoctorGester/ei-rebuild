@@ -1,6 +1,7 @@
 // A new unit's starting equipment from its prototype (005141F0; the world adds zone units with it
 // after ApplyPrototype). See unit_create.h (CMapObjectManager) and docs/notes/units.md ("Rewritten").
 #include "unit_create.h"
+#include "game_strings.h"
 
 #include "engine_object.h"
 #include "unit.h"
@@ -26,7 +27,6 @@ constexpr std::uintptr_t kNoPrototype = 0x0078F330;   // Can't find prototype "%
 constexpr std::uintptr_t kNoArmour = 0x0078F308;      // Can't create armor "%s" for unit "%s".
 constexpr std::uintptr_t kNoWeapon = 0x0078F2DC;      // Can't create weapon "%s" for unit "%s".
 constexpr std::uintptr_t kNoSpell = 0x0078F2B4;       // Can't create spell "%s" for unit "%s".
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // Through their game addresses (rewritten elsewhere; their verify wrappers stay in the path, and
 // Rebirth's patches of 006AC970 and 00480080 still run): 005144D0 the prototype table's name
@@ -43,14 +43,14 @@ std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32
 // A weapon name other than "none" (_mbscmp) and not empty.
 bool Named(const mfc::CString& name) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                           reinterpret_cast<const unsigned char*>(Text(kNone))) != 0 &&
+                           reinterpret_cast<const unsigned char*>(game::Text(kNone))) != 0 &&
            name.GetLength() != 0;
 }
 
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
 CEngineObject* MakeWeapon(void* items, const mfc::CString& name, const char* prototype) {
     CEngineObject* weapon = ItemManagerCreateItemOriginal(items, nullptr, name);
-    if (!weapon) game::FatalError(Text(kNoWeapon), static_cast<const char*>(name), prototype);
+    if (!weapon) game::FatalError(game::Text(kNoWeapon), static_cast<const char*>(name), prototype);
     return weapon;
 }
 } // namespace
@@ -61,7 +61,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     void* items = world->ItemFactory();
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name));
     if (!prototype) {
-        game::FatalError(Text(kNoPrototype), name);
+        game::FatalError(game::Text(kNoPrototype), name);
         return 0;
     }
     if (unit->type_ == kTypeArmed) {
@@ -69,7 +69,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             CEngineObject* armour = ItemManagerCreateItemOriginal(items, nullptr, prototype->armourNames.begin()[i]);
             if (armour) EquipArmourAt(unit, nullptr, armour);
-            else game::FatalError(Text(kNoArmour), static_cast<const char*>(prototype->armourNames.begin()[i]), name);
+            else game::FatalError(game::Text(kNoArmour), static_cast<const char*>(prototype->armourNames.begin()[i]), name);
         }
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
@@ -82,7 +82,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CEngineObject* spell = CreateSpellAt(items, nullptr, prototype->spellNames.begin()[i], spellOwner);
         if (spell) UnitAddSpellOriginal(unit, nullptr, spell);
-        else game::FatalError(Text(kNoSpell), static_cast<const char*>(prototype->spellNames.begin()[i]), name);
+        else game::FatalError(game::Text(kNoSpell), static_cast<const char*>(prototype->spellNames.begin()[i]), name);
     }
     return 1;
 }

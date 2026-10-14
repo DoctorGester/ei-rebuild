@@ -3,6 +3,7 @@
 // The page itself is built by 00659420 (Rebirth-patched, through its address; its vanilla body is
 // in ui_help_page.cpp). See docs/notes/ui.md.
 #include "ui.h"
+#include "game_strings.h"
 #include "ui_screens.h"
 
 #include "item_db_text.h"
@@ -19,14 +20,13 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* SaveLoadTexture() { return Text(0x00793380); }   // "saveload"
-const char* TutorialSection() { return Text(0x00794A78); }   // "tutorial "
-const char* ScreenLine() { return Text(0x00794A70); }        // "#screen"
-const char* TutorSection() { return Text(0x00794A68); }      // "tutor "
-const char* LineEnds() { return Text(0x0078DD00); }          // "\r\n"
-const char* NextSound() { return Text(0x00794A84); }         // "buttons\tutorial\next.wav"
-const char* OkSound() { return Text(0x0079477C); }           // "buttons\tutorial\ok.wav"
+const char* SaveLoadTexture() { return game::Text(0x00793380); }   // "saveload"
+const char* TutorialSection() { return game::Text(0x00794A78); }   // "tutorial "
+const char* ScreenLine() { return game::Text(0x00794A70); }        // "#screen"
+const char* TutorSection() { return game::Text(0x00794A68); }      // "tutor "
+const char* LineEnds() { return game::Text(0x0078DD00); }          // "\r\n"
+const char* NextSound() { return game::Text(0x00794A84); }         // "buttons\tutorial\next.wav"
+const char* OkSound() { return game::Text(0x0079477C); }           // "buttons\tutorial\ok.wav"
 
 constexpr char kHelpAction = ';';   // the help key's action (KeyActions)
 

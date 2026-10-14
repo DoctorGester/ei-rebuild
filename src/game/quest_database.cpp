@@ -21,7 +21,6 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // The records are built in raw stack buffers (their constructors are the original's own calls).
 constexpr std::size_t kQuestSize = sizeof(QuestRecord);
@@ -128,15 +127,15 @@ void PushPlace(QuestRecord* quest, float value) {
 void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places) {
     quest->field2 = 0;
     {
-        mfc::CString name = reg.GetString(Text(kQuest), Text(kName), Copy(game::EmptyText()));
+        mfc::CString name = reg.GetString(game::Text(kQuest), game::Text(kName), Copy(game::EmptyText()));
         const char* text = name;
         StringAssignRange(&quest->name, nullptr, text, text + std::strlen(text));
     }
-    quest->exp = static_cast<float>(reg.GetFloat(Text(kQuest), Text(kExp), 0));
-    quest->money = static_cast<float>(reg.GetFloat(Text(kQuest), Text(kMoney), 0));
-    quest->zone = reg.GetInt(Text(kQuest), Text(kZoneIndex), 0);
-    quest->order = reg.GetInt(Text(kQuest), Text(kOrder), 0);
-    reg.GetStringArray(Text(kQuest), Text(kQuestPlacesKey), &places);
+    quest->exp = static_cast<float>(reg.GetFloat(game::Text(kQuest), game::Text(kExp), 0));
+    quest->money = static_cast<float>(reg.GetFloat(game::Text(kQuest), game::Text(kMoney), 0));
+    quest->zone = reg.GetInt(game::Text(kQuest), game::Text(kZoneIndex), 0);
+    quest->order = reg.GetInt(game::Text(kQuest), game::Text(kOrder), 0);
+    reg.GetStringArray(game::Text(kQuest), game::Text(kQuestPlacesKey), &places);
     // Each place "{x;y}": the braces trimmed, split at ';'; with two parts x and y are appended.
     for (int i = 0; i < places.GetSize(); ++i) {
         console::CStringArray parts;
@@ -187,7 +186,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
 // briefing) instead of the range one.
 void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, std::uintptr_t section, bool assignChars) {
     {
-        mfc::CString name = reg.GetString(Text(section), Text(kName), Copy(game::EmptyText()));
+        mfc::CString name = reg.GetString(game::Text(section), game::Text(kName), Copy(game::EmptyText()));
         const char* text = name;
         if (assignChars) {
             StringAssign(&briefing->name, nullptr, text);
@@ -195,15 +194,15 @@ void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, std::uintp
             StringAssignRange(&briefing->name, nullptr, text, text + std::strlen(text));
         }
     }
-    briefing->exp = static_cast<float>(reg.GetFloat(Text(section), Text(kExp), 0));
-    briefing->money = static_cast<float>(reg.GetFloat(Text(section), Text(kMoney), 0));
+    briefing->exp = static_cast<float>(reg.GetFloat(game::Text(section), game::Text(kExp), 0));
+    briefing->money = static_cast<float>(reg.GetFloat(game::Text(section), game::Text(kMoney), 0));
 }
 
 // A string list read inline: emptied (erased over its range, or cleared), reserved for the list's
 // size, then every non-empty string appended.
 void ReadListInline(Registry& reg, std::uintptr_t section, int list, QuestBriefingRecord* briefing, bool erase) {
     console::CStringArray strings;
-    reg.GetStringArray(Text(section), Text(kListKeys[list]), &strings);
+    reg.GetStringArray(game::Text(section), game::Text(kListKeys[list]), &strings);
     CStringVector* v = List(briefing, list);
     if (erase) {
         ListErase(v, nullptr, v->begin(), v->end());
@@ -238,14 +237,14 @@ void ReadRejectBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* b
     ReadBriefingHeader(reg, briefing, kReject, false);
     ReadListInline(reg, kReject, 0, briefing, false);
     ReadListInline(reg, kReject, 1, briefing, false);
-    for (int i = 2; i < 6; ++i) ReadList(&reg, Text(kReject), Text(kListKeys[i]), List(briefing, i));
+    for (int i = 2; i < 6; ++i) ReadList(&reg, game::Text(kReject), game::Text(kListKeys[i]), List(briefing, i));
     BriefingAdd(&db->briefings, nullptr, briefing);
 }
 
 // "briefing complete": the name assigned as a C string, all six lists by 006AE740.
 void ReadCompleteBriefing(Registry& reg, QuestDatabase* db, QuestBriefingRecord* briefing) {
     ReadBriefingHeader(reg, briefing, kComplete, true);
-    for (int i = 0; i < 6; ++i) ReadList(&reg, Text(kComplete), Text(kListKeys[i]), List(briefing, i));
+    for (int i = 0; i < 6; ++i) ReadList(&reg, game::Text(kComplete), game::Text(kListKeys[i]), List(briefing, i));
     BriefingAdd(&db->briefings, nullptr, briefing);
 }
 

@@ -2,6 +2,7 @@
 // Both run the file's calls inside MFC's TRY / CATCH(CException) (lib/mfc_try.h): what the file
 // throws ends in a message box and a result of 0.
 #include "dib.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -12,7 +13,6 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 constexpr WORD kBitmapFileType = 0x4D42;   // "BM"
 
@@ -44,11 +44,11 @@ int CDib::Read(mfc::CFile* source) {
         try {
             BITMAPFILEHEADER fileHeader;
             if (input->Read(&fileHeader, sizeof(fileHeader)) != sizeof(fileHeader)) {
-                AfxMessageBox(Text(0x00796D7C), 0, 0);   // "read error 1"
+                AfxMessageBox(game::Text(0x00796D7C), 0, 0);   // "read error 1"
                 return 0;
             }
             if (fileHeader.bfType != kBitmapFileType) {
-                AfxMessageBox(Text(0x00796CF0), 0, 0);   // "Invalid bitmap file"
+                AfxMessageBox(game::Text(0x00796CF0), 0, 0);   // "Invalid bitmap file"
                 return 0;
             }
             // Everything between the file header and the bits: the info header, then masks or colours.
@@ -63,7 +63,7 @@ int CDib::Read(mfc::CFile* source) {
             input->Read(bits, imageSize);
         } catch (CException* caught) {
             link.exception = caught;
-            AfxMessageBox(Text(0x00796D6C), 0, 0);   // "Read error 1"
+            AfxMessageBox(game::Text(0x00796D6C), 0, 0);   // "Read error 1"
             return 0;
         }
     }
@@ -88,7 +88,7 @@ int CDib::Write(mfc::CFile* target) {
         output->Write(bits, imageSize);
     } catch (CException* caught) {
         link.exception = caught;
-        AfxMessageBox(Text(0x00796D8C), 0, 0);   // "write error"
+        AfxMessageBox(game::Text(0x00796D8C), 0, 0);   // "write error"
         return 0;
     }
     return 1;

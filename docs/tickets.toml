@@ -861,8 +861,9 @@ done = "2026-10-14"
 id = "C5"
 title = "C4 leftovers: per-file streams and Text helpers"
 group = "cleanup"
-status = "queued"
+status = "review"
 note = "UnitStream, SaveStream, FileStream, the unit_ai stream, verify_magic_trap's wrapper, the per-file Text(0x...) helpers (cleanup-engine-base.md)."
+started = "2026-10-15"
 
 [[ticket]]
 id = "C9b"

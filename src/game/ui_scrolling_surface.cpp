@@ -2,6 +2,7 @@
 // window surface with a hidden RichEdit control holding an RTF text, formatted into the surface
 // at a scroll offset that moves with the game time. See docs/notes/items_spells.md (A-H17, A-H25).
 #include "ui_screens.h"
+#include "game_strings.h"
 
 #include "originals_ui.h"
 #include "resource.h"
@@ -23,9 +24,8 @@ constexpr int kExtraTwipsBelow = 1000;   // formatted below the visible height
 constexpr int kSurfaceFormat = 5;
 constexpr COLORREF kWhite = 0xFFFFFF;
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* const kRichEditLibrary = Text(0x00794C54);   // "Riched20.dll"
-const char* const kRichEditClass = Text(0x00794C48);     // "RichEdit20A"
+const char* const kRichEditLibrary = game::Text(0x00794C54);   // "Riched20.dll"
+const char* const kRichEditClass = game::Text(0x00794C48);     // "RichEdit20A"
 
 HWND GameWindow() { return *reinterpret_cast<HWND*>(std::uintptr_t(0x0079BC28)); }
 HINSTANCE GameInstance() { return *reinterpret_cast<HINSTANCE*>(std::uintptr_t(0x0079BC24)); }

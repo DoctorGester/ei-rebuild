@@ -61,8 +61,8 @@ double AIAttackOption::Weight() const {
     }
 }
 
-void AIAttackOption::Load(AIStream* stream) {
-    if (stream->version < 0x5A) {
+void AIAttackOption::Load(CStream* stream) {
+    if (stream->version_ < 0x5A) {
         stream->Read(&part, 4);
         std::uint32_t dropped;
         stream->Read(&dropped, 4);
@@ -83,7 +83,7 @@ void AIAttackOption::Load(AIStream* stream) {
     stream->Read(damage, sizeof(damage));
 }
 
-void AIAttackOption::Save(AIStream* stream) {
+void AIAttackOption::Save(CStream* stream) {
     // The fields after the first go through a stack copy, as the original writes them.
     stream->Write(&kind, 4);
     for (std::uint32_t value : {std::bit_cast<std::uint32_t>(part), std::bit_cast<std::uint32_t>(range),
@@ -202,12 +202,12 @@ void AIAttention::Build(CUnit* unit) {
 }
 
 namespace {
-__declspec(naked) void __fastcall OptionLoadAt(AIAttackOption*, void*, AIStream*) EI_ORIGINAL(0x005CE860)
+__declspec(naked) void __fastcall OptionLoadAt(AIAttackOption*, void*, CStream*) EI_ORIGINAL(0x005CE860)
 } // namespace
 
 // 005D9B80 (fastcall, plain RET): the count, the array sized to it (SetSize inlined), then each
 // option (005CE860, through its address).
-void __fastcall LoadAttackOptions(AIAttackOptions* options, AIStream* stream) {
+void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream) {
     int count;
     stream->Read(&count, 4);
     options->SetSize(count, -1);

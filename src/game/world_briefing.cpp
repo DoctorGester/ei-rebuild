@@ -27,7 +27,6 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 constexpr std::uintptr_t kBriefingSection = 0x007906E4;   // "briefing "
 constexpr std::uintptr_t kShowTag = 0x007906DC;           // "#show"
@@ -66,18 +65,18 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     void* texts = BriefingTexts();
     bool missing;
     {
-        mfc::CString prefix(Text(kBriefingSection));
+        mfc::CString prefix(game::Text(kBriefingSection));
         mfc::CString section = prefix + briefing;
         missing = TextsOpenSection(texts, nullptr, section) == 0;
     }
     if (missing) return new (out) mfc::CString(game::EmptyText());
     // The first "#show" line whose second word is not "Hero" names the speaker.
     console::CStringArray words;
-    while (TextFindLineOriginal(texts, nullptr, Text(kShowTag))) {
+    while (TextFindLineOriginal(texts, nullptr, game::Text(kShowTag))) {
         ReaderSplit(static_cast<CTextManager*>(texts), nullptr, &words, 1);
         if (words.GetSize() >= 2 &&
             gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(words[1])),
-                             reinterpret_cast<const unsigned char*>(Text(kHero))) != 0)
+                             reinterpret_cast<const unsigned char*>(game::Text(kHero))) != 0)
             return new (out) mfc::CString(words[1]);
     }
     return new (out) mfc::CString(game::EmptyText());
@@ -87,13 +86,13 @@ mfc::CString* __stdcall BriefingVariableInto(mfc::CString* out, const char* brie
     StringSlot speaker;
     BriefingSpeakerAt(speaker.Raw(), briefing);
     if (!IsEmpty(speaker.Get())) {
-        mfc::CString prefix(Text(kVariablePrefix));
+        mfc::CString prefix(game::Text(kVariablePrefix));
         mfc::CString withSpeaker = prefix + speaker.Get();
-        mfc::CString withDot = withSpeaker + Text(kDot);
+        mfc::CString withDot = withSpeaker + game::Text(kDot);
         mfc::CString variable = withDot + briefing;
         speaker.Get() = variable;
     } else {
-        mfc::CString prefix(Text(kElderPrefix));
+        mfc::CString prefix(game::Text(kElderPrefix));
         mfc::CString variable = prefix + briefing;
         speaker.Get() = variable;
     }
@@ -192,7 +191,7 @@ void ShareQuestFile(const char* path, const char* name) {
     LocalBuffer local;
     GameBuffer* data = local.Get();
     LocalFile source;
-    source.file.Open(path, Text(kReadBinary), kReadOnlyFlags);
+    source.file.Open(path, game::Text(kReadBinary), kReadOnlyFlags);
     net::BufferUpdateHigh(&source.file);
     const std::int32_t size = static_cast<std::int32_t>(source.file.high - source.file.begin) + source.file.base;
     data->Seek(0);
@@ -217,7 +216,7 @@ stlp::string MapFilePath(const mfc::CString& file) {
 bool __stdcall LoadZoneQuests(const char* zone) {
     auto* texts = static_cast<CTextManager*>(BriefingTexts());
     if (!texts) return false;
-    mfc::CString file = mfc::CString(zone) + Text(kQuestFileSuffix);
+    mfc::CString file = mfc::CString(zone) + game::Text(kQuestFileSuffix);
     bool found;
     {
         mfc::CFileFind find;
@@ -258,7 +257,7 @@ void GameFlow::OnVariableChanged(const void* event) {
     {
         mfc::CString prefix = name.Left(2);
         quest = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(prefix)),
-                                reinterpret_cast<const unsigned char*>(Text(kQuestPrefix))) == 0;
+                                reinterpret_cast<const unsigned char*>(game::Text(kQuestPrefix))) == 0;
     }
     if (quest) {
         QuestLogUpdateOriginal(reinterpret_cast<void*>(0x007C7D50), nullptr, name, value);
@@ -308,7 +307,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     bool registered;
     {
         mfc::CString base(folder);
-        mfc::CString path = base + Text(kQuestRegistry);
+        mfc::CString path = base + game::Text(kQuestRegistry);
         registered = TextsOpenSection(texts, nullptr, path) != 0;
     }
     if (!registered) return;
@@ -317,7 +316,7 @@ void GameFlow::RegisterQuests(const char* folder) {
                    const_cast<char*>(static_cast<CTextManager*>(texts)->cursor_));
     {
         mfc::CString base(folder);
-        mfc::CString path = base + Text(kMapList);
+        mfc::CString path = base + game::Text(kMapList);
         MapDatabaseLoad(reinterpret_cast<void*>(0x0079BF00), nullptr, path);
     }
     // push_back(folder)
@@ -345,7 +344,7 @@ mfc::CString* __stdcall SessionMapNameInto(mfc::CString* out) {
     void* texts = BriefingTexts();
     int found;
     {
-        mfc::CString prefix(Text(kQuestSection));
+        mfc::CString prefix(game::Text(kQuestSection));
         mfc::CString section = prefix + name;
         found = TextsOpenSection(texts, nullptr, section);
     }

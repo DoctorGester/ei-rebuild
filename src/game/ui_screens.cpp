@@ -1,6 +1,7 @@
 // Interface screens of 00610000-00630000: the camp's item strips, the multiplayer hero screen, the
 // escape menu, the credits and the exchange window. See ui_screens.h and docs/notes/ui.md.
 #include "ui_screens.h"
+#include "game_strings.h"
 
 #include "core_maths.h"
 #include "item.h"
@@ -15,13 +16,11 @@
 #include "originals_units.h"
 
 namespace {
-// The game's own strings (the sound system is given the game's pointers, as the original does).
-const char* GameString(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* const kSoundCampScroll = GameString(0x00793CB8);   // "buttons\camp\scroll.wav"
-const char* const kSoundCampMode = GameString(0x00793CA0);     // "buttons\camp\mode.wav"
-const char* const kSoundMenuStone = GameString(0x00793FCC);    // "buttons\menu\stone.wav"
-const char* const kSoundMenuOk = GameString(0x00793FF0);       // "buttons\menu\ok.wav"
-const char* const kSoundMessageOk = GameString(0x00793A88);    // "buttons\messbox\ok.wav"
+const char* const kSoundCampScroll = game::Text(0x00793CB8);   // "buttons\camp\scroll.wav"
+const char* const kSoundCampMode = game::Text(0x00793CA0);     // "buttons\camp\mode.wav"
+const char* const kSoundMenuStone = game::Text(0x00793FCC);    // "buttons\menu\stone.wav"
+const char* const kSoundMenuOk = game::Text(0x00793FF0);       // "buttons\menu\ok.wav"
+const char* const kSoundMessageOk = game::Text(0x00793A88);    // "buttons\messbox\ok.wav"
 
 // Item fields read by the strips.
 int ItemType(const char* item) { return *reinterpret_cast<const int*>(item + 0x10); }

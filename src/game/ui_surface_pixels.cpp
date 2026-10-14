@@ -9,6 +9,7 @@
 // DirectDraw: no Lock, the screen copy from the new renderer's frame only, the stretched copy on the
 // CPU.
 #include "ui.h"
+#include "game_strings.h"
 
 #include "device.h"   // device::SameSurface
 #include "dx_surface.h"
@@ -32,7 +33,6 @@ using SurfaceHolder = CDXSurface;
 
 SurfaceHolder* HolderOf(const CUiSurface* surface) { return surface->holder_; }
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
@@ -128,7 +128,7 @@ void CUiSurface::CaptureScreen() {
         gameapi::EnterCriticalSection(DeviceLock());
         long hr = Blt(holder->surface, nullptr, screen->surface, &rect_, 0, nullptr);
         gameapi::LeaveCriticalSection(DeviceLock());
-        if (hr != 0) ReportError(hr, Text(0x00793224));
+        if (hr != 0) ReportError(hr, game::Text(0x00793224));
     }
     // With the new renderer (src/render) the copy is taken from its frame: the old path's may lack
     // what it no longer draws.
@@ -155,7 +155,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
         gameapi::EnterCriticalSection(DeviceLock());
         hr = Blt(to->surface, nullptr, from->surface, nullptr, kBltWait, nullptr);
         gameapi::LeaveCriticalSection(DeviceLock());
-        if (hr != 0) ReportError(hr, Text(0x00793248));
+        if (hr != 0) ReportError(hr, game::Text(0x00793248));
     }
 
     int count = static_cast<int>(static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height));
@@ -170,7 +170,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     if (!direct) {
         hr = LockSurface(holder->surface, desc);
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
+        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
     }
     int bytes = static_cast<int>(desc[kDescBits] >> 3);
     ChannelLayout converter;
@@ -191,7 +191,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     if (!direct) {
         hr = UnlockSurface(holder->surface);
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
+        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
     }
     if (copy) {
         copy->ReleaseContents();
@@ -212,7 +212,7 @@ void CUiSurface::Greyscale() {
     if (!direct) {
         hr = LockSurface(holder->surface, desc);
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
+        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
     }
     std::uint32_t count = desc[kDescWidth] * desc[kDescHeight];
     std::uint32_t bits = desc[kDescBits];
@@ -269,7 +269,7 @@ void CUiSurface::Greyscale() {
     if (direct) return;
     hr = UnlockSurface(holder->surface);
     holder->result = hr;
-    if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
+    if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
 }
 
 namespace {
@@ -310,7 +310,7 @@ void CUiSurface::SwapContents(int restore) {
             if (!DirectPixels(holder, desc)) {
                 long hr = GetSurfaceDesc(holder->surface, desc);
                 holder->result = hr;
-                if (hr != 0) FatalDirectX(hr, Text(0x0078E6C4));
+                if (hr != 0) FatalDirectX(hr, game::Text(0x0078E6C4));
             }
             SurfaceBytesTotal() += desc[kDescHeight] * desc[kDescPitch];
         }
@@ -323,7 +323,7 @@ void CUiSurface::SwapContents(int restore) {
         if (!direct) {
             long hr = LockSurface(holder->surface, desc);
             holder->result = hr;
-            if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
+            if (hr != 0) FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
         }
         std::memcpy(reinterpret_cast<void*>(desc[kDescSurface]), kept_, keptSize_);
         KeptBytesTotal() -= keptSize_;
@@ -332,7 +332,7 @@ void CUiSurface::SwapContents(int restore) {
         if (!direct) {
             long hr = UnlockSurface(holder->surface);
             holder->result = hr;
-            if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
+            if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
         }
         gamecrt::operator_delete(kept_);
         kept_ = nullptr;
@@ -348,7 +348,7 @@ void CUiSurface::SwapContents(int restore) {
     if (!direct) {
         long hr = LockSurface(holder->surface, desc);
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
+        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
     }
     if (kept_) gamecrt::operator_delete(kept_);
     keptSize_ = desc[kDescHeight] * desc[kDescPitch];
@@ -360,7 +360,7 @@ void CUiSurface::SwapContents(int restore) {
     if (!direct) {
         long hr = UnlockSurface(holder->surface);
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
+        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
     }
     SurfaceBytesTotal() -= keptSize_;
     SurfaceHolder* released = holder_;
@@ -385,7 +385,7 @@ std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y) {
     if (!direct) {
         long hr = LockSurface(holder->surface, desc);
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
+        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
     }
     int bytes = static_cast<int>(desc[kDescBits] >> 3);
     std::uint32_t at = desc[kDescSurface] + desc[kDescPitch] * static_cast<std::uint32_t>(y) +
@@ -399,7 +399,7 @@ std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y) {
     if (!direct) {
         long hr = UnlockSurface(holder->surface);
         holder->result = hr;
-        if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
+        if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
     }
     return rgb;
 }

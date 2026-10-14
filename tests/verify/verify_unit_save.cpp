@@ -13,7 +13,7 @@
 
 namespace {
 using unitverify::CaptureStream;
-using SaveFn = void(__fastcall*)(CUnit*, void*, UnitStream*);
+using SaveFn = void(__fastcall*)(CUnit*, void*, CStream*);
 SaveFn s_originalSave;
 void* s_unused;
 
@@ -24,7 +24,7 @@ bool SlotsReferenced(CEngineObject* const* slots, int count) {
 }
 } // namespace
 
-static void __fastcall SaveUnitVerify(CUnit* self, void*, UnitStream* stream) {
+static void __fastcall SaveUnitVerify(CUnit* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_originalSave(self, nullptr, &expected);
     self->SaveUnit(&actual);
@@ -37,7 +37,7 @@ EI_VERIFY(0x005321C0, SaveUnitVerify, 7, s_originalSave);
 
 // Load: ours only. Every item slot is empty or referenced, the carried array is consistent, and
 // the prototype indices are -1 or in the table.
-static void __fastcall LoadUnitVerify(CUnit* self, void*, UnitStream* stream) {
+static void __fastcall LoadUnitVerify(CUnit* self, void*, CStream* stream) {
     self->LoadUnit(stream);
     char* begin = *reinterpret_cast<char**>(0x007AF358);
     char* end = *reinterpret_cast<char**>(0x007AF35C);
@@ -48,9 +48,9 @@ static void __fastcall LoadUnitVerify(CUnit* self, void*, UnitStream* stream) {
               self->carriedCount >= 0 && self->carriedCount <= self->carriedCapacity &&
               (self->carriedCount == 0 || self->carried != nullptr) &&
               SlotsReferenced(self->carried, self->carriedCount);
-    if (stream->version >= 0x4D)
+    if (stream->version_ >= 0x4D)
         ok = ok && index >= -1 && index < prototypes && self->prototype23C >= -1 && self->prototype23C < prototypes;
     ei::verify::Check("CUnit::LoadUnit", true, ok, "unit %d version %d: carried %d/%d, prototypes %d/%d", self->id_,
-                      stream->version, self->carriedCount, self->carriedCapacity, index, self->prototype23C);
+                      stream->version_, self->carriedCount, self->carriedCapacity, index, self->prototype23C);
 }
 EI_VERIFY(0x00531A80, LoadUnitVerify, 0, s_unused);

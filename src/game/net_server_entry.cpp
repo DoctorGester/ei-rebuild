@@ -29,7 +29,6 @@ void __fastcall StringAppendTag(StringRep* a0, void*, const char* a2, const char
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::uintptr_t kWorld = 0x007AFE20;
 
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
 } // namespace
 
@@ -45,9 +44,9 @@ void ServerSession::Describe(RefPtr* out) {
         *entry->name_.finish = 0;
         StringInitEmpty(&entry->description_);
         ei::SetVtable(entry, ServerEntry::kVtableAddress);
-        StringAssignText(&entry->name_, nullptr, Text(kEmptyText));
+        StringAssignText(&entry->name_, nullptr, game::Text(kEmptyText));
         entry->kind_ = 4;
-        StringAssignText(&entry->description_, nullptr, Text(kEmptyText));
+        StringAssignText(&entry->description_, nullptr, game::Text(kEmptyText));
         entry->players_ = 0;
         entry->maxPlayers_ = 0;
         entry->password_ = 0;

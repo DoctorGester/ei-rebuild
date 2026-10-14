@@ -3,6 +3,7 @@
 // names the texture type, the third the material. Unknown names are fatal errors. Names
 // provisional; see docs/notes/objects.md ("Rewritten").
 #include "../lib/crt.h"
+#include "game_strings.h"
 #include "../lib/mfc.h"
 #include "ei/hook.h"
 
@@ -21,10 +22,9 @@ void __fastcall AppendChar(mfc::CString* a0, void*, char a2) { CStringAppendChar
 inline int __fastcall FindChar(const mfc::CString* s, void*, char c) { return CStringFindCharOriginal(s, nullptr, c); }
 void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 bool Is(const mfc::CString& s, std::uintptr_t text) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s)),
-                           reinterpret_cast<const unsigned char*>(Text(text))) == 0;
+                           reinterpret_cast<const unsigned char*>(game::Text(text))) == 0;
 }
 
 struct Entry {
@@ -71,7 +71,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             }
         }
         if (!found) {
-            game::FatalError(Text(0x007844B4), static_cast<const char*>(parts.data[1]), name);   // unknown texture type
+            game::FatalError(game::Text(0x007844B4), static_cast<const char*>(parts.data[1]), name);   // unknown texture type
             *texture = 1;
         }
         parts.data[2].MakeUpper();
@@ -84,7 +84,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             }
         }
         if (!found) {
-            game::FatalError(Text(0x0078444C), static_cast<const char*>(parts.data[2]), name);   // unknown material
+            game::FatalError(game::Text(0x0078444C), static_cast<const char*>(parts.data[2]), name);   // unknown material
             *material = 0x15;
         }
     }

@@ -2,6 +2,7 @@
 // zone / quest display are in ui_objectives.cpp. See ui.h (CObjectivesWindow) and
 // docs/notes/ui.md ("Objectives, save/load, options").
 #include "ui.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "item_db_text.h"
@@ -20,14 +21,13 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* OkSound() { return Text(0x0079477C); }       // "buttons\tutorial\ok.wav"
-const char* CancelSound() { return Text(0x007937E4); }   // "buttons\messbox\cancel.wav"
-const char* SelectSound() { return Text(0x0079475C); }   // "buttons\objectives\select.wav"
-const char* EnterSound() { return Text(0x0079473C); }    // "buttons\objectives\enter.wav"
-const char* MessageOkSound() { return Text(0x00793A88); }   // "buttons\messbox\ok.wav"
-const char* MapText() { return Text(0x007856A0); }       // "map.txt"
-const char* QuestHeader() { return Text(0x007941D4); }   // "#quest %s"
+const char* OkSound() { return game::Text(0x0079477C); }       // "buttons\tutorial\ok.wav"
+const char* CancelSound() { return game::Text(0x007937E4); }   // "buttons\messbox\cancel.wav"
+const char* SelectSound() { return game::Text(0x0079475C); }   // "buttons\objectives\select.wav"
+const char* EnterSound() { return game::Text(0x0079473C); }    // "buttons\objectives\enter.wav"
+const char* MessageOkSound() { return game::Text(0x00793A88); }   // "buttons\messbox\ok.wav"
+const char* MapText() { return game::Text(0x007856A0); }       // "map.txt"
+const char* QuestHeader() { return game::Text(0x007941D4); }   // "#quest %s"
 
 constexpr int kRegionOk = 0;
 constexpr int kRegionCancel = 1;

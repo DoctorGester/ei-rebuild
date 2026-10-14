@@ -7,6 +7,7 @@
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); nothing of ours is
 // unwound on the way, and every such throw ends the game in WinMain.
 #include "device.h"
+#include "game_strings.h"
 #include "device_material.h"
 
 #include "dx_errors.h"
@@ -26,7 +27,6 @@
 
 namespace {
 
-using device::Text;
 
 // The four state blocks of texture stage 0's colour and alpha operations, in the order they are
 // recorded: their handles (007AEDDC texture x current with the texture's alpha, the terrain's;
@@ -80,8 +80,8 @@ void RecordStageBlocks(CTextureDevice* device) {
     for (const StageBlock& block : kStageBlocks) {
         IDirect3DDevice7* d3d = device::D3D(device);
         device->lastLoadResult_ = device::BeginStateBlock(d3d);
-        if (device->lastLoadResult_ != 0 && !FatalDirectX(device->lastLoadResult_, Text(0x0078E034)))   // "Can't begin state block.\n"
-            ThrowGameError(Text(0x0078E034));
+        if (device->lastLoadResult_ != 0 && !FatalDirectX(device->lastLoadResult_, game::Text(0x0078E034)))   // "Can't begin state block.\n"
+            ThrowGameError(game::Text(0x0078E034));
         device::SetTextureStageState(d3d, 0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
         device::SetTextureStageState(d3d, 0, D3DTSS_COLOROP, D3DTOP_MODULATE);
         device::SetTextureStageState(d3d, 0, D3DTSS_COLORARG2, block.colourArg2);
@@ -89,8 +89,8 @@ void RecordStageBlocks(CTextureDevice* device) {
         device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAOP, block.alphaOp);
         device::SetTextureStageState(d3d, 0, D3DTSS_ALPHAARG2, block.alphaArg2);
         device->lastLoadResult_ = device::EndStateBlock(d3d, block.handle);
-        if (device->lastLoadResult_ != 0 && !FatalDirectX(device->lastLoadResult_, Text(0x0078E01C)))   // "Can't end state block.\n"
-            ThrowGameError(Text(0x0078E01C));
+        if (device->lastLoadResult_ != 0 && !FatalDirectX(device->lastLoadResult_, game::Text(0x0078E01C)))   // "Can't end state block.\n"
+            ThrowGameError(game::Text(0x0078E01C));
     }
 }
 
@@ -163,8 +163,8 @@ void CTextureDevice::BuildFormatTable() {
     textureFormats_.ClearWith([](PixelFormat*) {});
     lastLoadResult_ = device::EnumTextureFormats(device::D3D(this), &PixelFormatCallback, &textureFormats_);
     // "Choosen HW device have no texture support.\n"
-    if (lastLoadResult_ == D3DERR_TEXTURE_NO_SUPPORT) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E288));
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E264));   // "Can't enumerate texture formats.\n"
+    if (lastLoadResult_ == D3DERR_TEXTURE_NO_SUPPORT) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E288));
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E264));   // "Can't enumerate texture formats.\n"
 
     formats_.Clear();
     largestFormatId_ = 0;
@@ -181,7 +181,7 @@ void CTextureDevice::BuildFormatTable() {
                 char text[5];
                 std::memcpy(text, &code, 4);
                 text[4] = 0;
-                game::DebugLog(Text(0x0078E238), code, text);   // "Non-DXT FourCC format found: 0x%.8X = %s.\n"
+                game::DebugLog(game::Text(0x0078E238), code, text);   // "Non-DXT FourCC format found: 0x%.8X = %s.\n"
                 continue;
             }
             id = code;
@@ -231,16 +231,16 @@ void CTextureDevice::CreateDepthBuffer(int depthBits, int stencilBits) {
     DepthRequest(desc.ddpfPixelFormat, renderTarget_->bitsPerPixel, stencilBits);
     if (!FindDepthFormat(format)) {
         // "Can't find render-compartible z-buffer format %d:%d\n"
-        game::DebugLog(Text(0x0078E200), renderTarget_->bitsPerPixel, stencilBits);
+        game::DebugLog(game::Text(0x0078E200), renderTarget_->bitsPerPixel, stencilBits);
         DepthRequest(desc.ddpfPixelFormat, depthBits, stencilBits);
         // "Can't find acceptable z-buffer format %d:%d.\n"
-        if (!FindDepthFormat(format)) ThrowGameError(Text(0x0078E1D0), depthBits, stencilBits);
+        if (!FindDepthFormat(format)) ThrowGameError(game::Text(0x0078E1D0), depthBits, stencilBits);
     }
     depthFormat_ = *format;
 
     device::AssignHolder(depth_, NewHolder(this, &desc));
     lastLoadResult_ = device::Surface(renderTarget_)->AddAttachedSurface(device::Surface(depth_));
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E1AC));   // "pDXSRender->AddAttachedSurface.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E1AC));   // "pDXSRender->AddAttachedSurface.\n"
     // A second depth surface of one pixel.
     desc.dwHeight = 1;
     desc.dwWidth = 1;
@@ -253,7 +253,7 @@ void CTextureDevice::Destruct() {
     for (const StageBlock& block : kStageBlocks) {
         const DWORD handle = *block.handle;
         lastLoadResult_ = device::DeleteStateBlock(device::D3D(this), handle);
-        if (lastLoadResult_ != 0) FatalDirectX(lastLoadResult_, Text(0x0078E18C), handle);   // "Can't delete state block %d.\n"
+        if (lastLoadResult_ != 0) FatalDirectX(lastLoadResult_, game::Text(0x0078E18C), handle);   // "Can't delete state block %d.\n"
     }
     ReleaseBuffers(batch_.used);
     ReleaseBuffers(batch2_.used);
@@ -319,10 +319,10 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     }
 
     lastLoadResult_ =device::DDraw(this)->QueryInterface(device::IidDirect3D7(), &d3d_);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E170));   // "Can't create D3D object.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E170));   // "Can't create D3D object.\n"
     // (The callback by its address, as the original passes it: its verify wrapper stays in the path.)
     lastLoadResult_ = device::Direct3D(this)->EnumDevices(reinterpret_cast<LPD3DENUMDEVICESCALLBACK7>(0x004ED820), &devices_);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E150));   // "Can't enumerate D3D devices.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E150));   // "Can't enumerate D3D devices.\n"
 
     // The last hardware (HAL) device listed.
     Direct3DDeviceRecord* chosen = nullptr;
@@ -339,7 +339,7 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
         else if (bits == 24) depth = DDBD_24;
         else if (bits == 32) depth = DDBD_32;
         // "Can't create HW IDirect3DDevice# interface - unsupported render bit depth.\n"
-        if (!(chosen->desc.dwDeviceRenderBitDepth & depth)) ThrowGameErrorResult(DDERR_INVALIDMODE, Text(0x0078E104));
+        if (!(chosen->desc.dwDeviceRenderBitDepth & depth)) ThrowGameErrorResult(DDERR_INVALIDMODE, game::Text(0x0078E104));
         IDirect3DDevice7* made = nullptr;
         lastLoadResult_ = device::Direct3D(this)->CreateDevice(chosen->desc.deviceGUID, device::Surface(renderTarget_), &made);
         d3dDevice_ = made;
@@ -347,19 +347,19 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
         lastLoadResult_ = E_FAIL;
     }
     // "Can't create HW IDirect3DDevice# interface (w/ or w/o T&L).\n"
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E0C4));
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E0C4));
     deviceGuid_ = chosen->desc.deviceGUID;
     zEnable_ = D3DZB_TRUE;
 
     DeviceBuildFormatTableOriginal(this);
     depthFormats_.ClearWith([](PixelFormat*) {});
     lastLoadResult_ = device::Direct3D(this)->EnumZBufferFormats(deviceGuid_, &PixelFormatCallback, &depthFormats_);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E0A0));   // "Can't enumerate z-buffer formats.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E0A0));   // "Can't enumerate z-buffer formats.\n"
     DeviceCreateDepthBufferOriginal(this, nullptr, depthBits, stencilBits);
 
     lastLoadResult_ = device::SetRenderTarget(device::D3D(this), device::Surface(renderTarget_), 0);
     // "Can't set render surface as render target for device.\n"
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E068));
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E068));
     D3DVIEWPORT7 viewport;
     viewport.dwX = static_cast<DWORD>(screen_.left);
     viewport.dwY = static_cast<DWORD>(screen_.top);
@@ -368,7 +368,7 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     viewport.dvMinZ = 0.0f;
     viewport.dvMaxZ = 1.0f;
     lastLoadResult_ = device::SetViewport(device::D3D(this), &viewport);
-    if (lastLoadResult_ != 0) FatalDirectX(lastLoadResult_, Text(0x0078E050));   // "Can't set viewport.\n"
+    if (lastLoadResult_ != 0) FatalDirectX(lastLoadResult_, game::Text(0x0078E050));   // "Can't set viewport.\n"
     for (CDXSurface*& holder : stageSurfaces_) holder = nullptr;
     RecordStageBlocks(this);
     colour_ = 0xFF000000;

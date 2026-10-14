@@ -107,7 +107,6 @@ __declspec(naked) void __fastcall NamesSetAtGrow(void*, void*, int, const mfc::C
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
 // The type letters (0078BBD8 "f", 0078BBD4 "s", 0078BBD0 "o", 0078BBCC "g").
-const char* Letter(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 } // namespace
 
 // The new name goes in through a temporary CString: SetAtGrow at the end of the names for floats,
@@ -127,7 +126,7 @@ BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mf
             NamesSetAtGrow(&vars.floatNames, nullptr, vars.floatNames.size, &temp);
             result = 1;
         }
-        letter = Letter(0x0078BBD8);
+        letter = game::Text(0x0078BBD8);
         break;
     case kScriptString:
         if (FindName(vars.stringNames, text) >= 0) {
@@ -138,7 +137,7 @@ BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mf
             NamesSetAtGrow(&vars.stringNames, nullptr, vars.stringNames.size, &temp);
             result = 1;
         }
-        letter = Letter(0x0078BBD4);
+        letter = game::Text(0x0078BBD4);
         break;
     case kScriptObject:
         if (FindName(vars.objectNames, text) >= 0) {
@@ -149,7 +148,7 @@ BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mf
             NamesSetAtGrow(&vars.objectNames, nullptr, vars.objectNames.size, &temp);
             result = 1;
         }
-        letter = Letter(0x0078BBD0);
+        letter = game::Text(0x0078BBD0);
         break;
     case kScriptGroup:
         if (FindName(vars.groupNames, text) >= 0) {
@@ -162,7 +161,7 @@ BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mf
             vars.groupNames.data[at] = temp;
             result = 1;
         }
-        letter = Letter(0x0078BBCC);
+        letter = game::Text(0x0078BBCC);
         break;
     default:
         // The original leaves the name argument in the result register: nonzero, and `params`

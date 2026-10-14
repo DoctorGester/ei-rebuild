@@ -22,7 +22,7 @@ using NameFn = const char*(__fastcall*)(CMapObject*);
 using IdFn = int(__fastcall*)(CMapObject*);
 NameFn s_treeName, s_buildingName, s_stoneName, s_stuffName;
 IdFn s_treeId, s_buildingId, s_stoneId, s_stuffId;
-void(__fastcall* s_refSave)(AIRef*, void*, AIStream*);
+void(__fastcall* s_refSave)(AIRef*, void*, CStream*);
 
 const char* CheckName(const char* what, NameFn original, NameFn ours, CMapObject* self) {
     const char* expected = original(self);
@@ -103,19 +103,18 @@ static void __fastcall RefAssignVerify(AIRef* self, void*, CEngineObject* object
 }
 EI_VERIFY(0x0052A8F0, RefAssignVerify, 0, s_unused);
 
-static void __fastcall RefLoadVerify(AIRef* self, void*, AIStream* stream, void* world) {
+static void __fastcall RefLoadVerify(AIRef* self, void*, CStream* stream, void* world) {
     self->Load(stream, world);
     ei::verify::Check("AIRef::Load", true, !self->object || self->object->refCount_ > 0, "");
 }
 EI_VERIFY(0x0050E220, RefLoadVerify, 0, s_unused);
 
 // 0050E290: PUSH ECX; MOV EAX,[ECX]; TEST EAX,EAX (5 bytes).
-static void __fastcall RefSaveVerify(AIRef* self, void*, AIStream* stream) {
-    auto* real = reinterpret_cast<UnitStream*>(stream);
-    CaptureStream expected(real), actual(real);
-    s_refSave(self, nullptr, reinterpret_cast<AIStream*>(&expected));
-    self->Save(reinterpret_cast<AIStream*>(&actual));
+static void __fastcall RefSaveVerify(AIRef* self, void*, CStream* stream) {
+    CaptureStream expected(stream), actual(stream);
+    s_refSave(self, nullptr, &expected);
+    self->Save(&actual);
     ei::verify::Check("AIRef::Save", true, expected.Same(actual), "");
-    expected.Forward(real);
+    expected.Forward(stream);
 }
 EI_VERIFY(0x0050E290, RefSaveVerify, 5, s_refSave);

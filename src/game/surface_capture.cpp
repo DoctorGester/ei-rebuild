@@ -2,6 +2,7 @@
 // ui_interface_keys.cpp) and the movie recorder's frames (app_frame.cpp). The surface is locked
 // for reading and its rows copied from the last to the first, as a .bmp keeps them.
 #include "dib.h"
+#include "game_strings.h"
 
 #include "app.h"
 #include "texture.h"
@@ -26,10 +27,9 @@ __declspec(naked) CDib* __fastcall CallCaptureSurface(CDXSurface*) EI_ORIGINAL(0
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* NoPixelFormatText() { return Text(0x0078E714); }   // "Can't get pixel format from surface.\n"
-const char* CantLockText() { return Text(0x0078E30C); }        // "Can't lock surface.\n"
-const char* CantUnlockText() { return Text(0x0078E2F4); }      // "Can't unlock surface.\n"
+const char* NoPixelFormatText() { return game::Text(0x0078E714); }   // "Can't get pixel format from surface.\n"
+const char* CantLockText() { return game::Text(0x0078E30C); }        // "Can't lock surface.\n"
+const char* CantUnlockText() { return game::Text(0x0078E2F4); }      // "Can't unlock surface.\n"
 
 constexpr DWORD kLockReadWait = DDLOCK_WAIT | DDLOCK_READONLY;   // 0x11
 

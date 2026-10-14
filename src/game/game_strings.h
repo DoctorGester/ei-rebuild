@@ -6,6 +6,9 @@
 
 namespace game {
 
+// A string constant of game.exe, passed by its original address (Rebirth may patch the data).
+inline const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+
 // 0079B298: the exe's empty string (""). The game's text readers and CString constructors fall back
 // to it, and some loops compare against this address (not only against the contents).
 constexpr std::uintptr_t kEmptyTextAddress = 0x0079B298;

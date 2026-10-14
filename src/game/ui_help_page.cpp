@@ -5,6 +5,7 @@
 // addresses: the surface's text 005FDE20, the sprites' Place 005E6FA0, SetRectangle 005E70E0 and
 // SetFrame 005E7D60, the regions' SetRect 005FC9E0. See docs/notes/items_spells.md ("A-H26").
 #include "ui.h"
+#include "game_strings.h"
 
 #include "item_db_text.h"
 #include "object_tables.h"      // FindCommandByKey
@@ -24,7 +25,6 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 constexpr std::uintptr_t kTutorialSection = std::uintptr_t(0x00794A78);   // "tutorial "
 constexpr std::uintptr_t kScreenLine = std::uintptr_t(0x00794A70);        // "#screen"
 constexpr std::uintptr_t kPositionLine = std::uintptr_t(0x007941E0);      // "#position"
@@ -59,7 +59,7 @@ struct PageEntry {
 
 bool Same(const char* word, std::uintptr_t text) {
     return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(word),
-                            reinterpret_cast<const unsigned char*>(Text(text))) == 0;
+                            reinterpret_cast<const unsigned char*>(game::Text(text))) == 0;
 }
 
 void SetTint(CUiMesh* sprite, float value) { sprite->tint_[0] = sprite->tint_[1] = sprite->tint_[2] = value; }
@@ -95,7 +95,7 @@ void CHelpWindow::ShowPageVanilla() {
     console::CStringArray words;
     BOOL found;
     {
-        mfc::CString section = mfc::CString(Text(kTutorialSection)) + text_;
+        mfc::CString section = mfc::CString(game::Text(kTutorialSection)) + text_;
         found = TextOpen(texts, nullptr, section);
     }
     if (!found) {
@@ -104,7 +104,7 @@ void CHelpWindow::ShowPageVanilla() {
     }
     // The page's "#screen" line; the line after it is the page's title key.
     for (int i = page_ + 1; i != 0; --i) {
-        if (!TextFindLine(texts, nullptr, Text(kScreenLine))) {
+        if (!TextFindLine(texts, nullptr, game::Text(kScreenLine))) {
             interface_->SetPendingValue(0);
             return;
         }
@@ -117,7 +117,7 @@ void CHelpWindow::ShowPageVanilla() {
     RECT page{200, 50, 600, 560};
     bool rowsGiven = false;
     const char* resume = texts->cursor_;
-    if (TextFindLine(texts, nullptr, Text(kPositionLine))) {
+    if (TextFindLine(texts, nullptr, game::Text(kPositionLine))) {
         TextSplit(texts, nullptr, &words, 1);
         if (words.GetSize() > 3) {
             page.left = GameAtoi(words[1]);
@@ -158,7 +158,7 @@ void CHelpWindow::ShowPageVanilla() {
     RECT line{0, 8, width, 30};
     SurfaceDrawText(header, nullptr, lines_.data[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
-    text.Format(Text(kTitleFormat), static_cast<const char*>(title_), page_ + 1, lines_.size);
+    text.Format(game::Text(kTitleFormat), static_cast<const char*>(title_), page_ + 1, lines_.size);
     SurfaceDrawText(header, nullptr, text, &line, 1, kTitleColour, DT_CENTER, 1);
     SurfaceReleaseDC(header);
 
@@ -214,7 +214,7 @@ void CHelpWindow::ShowPageVanilla() {
                     const int cellX = pictures / 4 * kPictureSize;
                     const int cellY = pictures % 4 * kPictureSize;
                     {
-                        mfc::CString name = mfc::CString(Text(kPicturePrefix)) + entry.picture.data();
+                        mfc::CString name = mfc::CString(game::Text(kPicturePrefix)) + entry.picture.data();
                         CopyImage(objects_.data[1], name, kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
                                   cellY, 0, 0);
                     }
@@ -238,11 +238,11 @@ void CHelpWindow::ShowPageVanilla() {
             text.Empty();
             BOOL open;
             {
-                mfc::CString section = mfc::CString(Text(kTutorSection)) + entry.key.data();
+                mfc::CString section = mfc::CString(game::Text(kTutorSection)) + entry.key.data();
                 open = TextOpen(texts, nullptr, section);
             }
             if (open) TextReadToHash(texts, nullptr, &text, 1);
-            text.TrimRight(Text(kLineEnds));
+            text.TrimRight(game::Text(kLineEnds));
             int height = body->DrawWrappedText(text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.
             if (withPicture && height <= 80) height = 80;
@@ -287,8 +287,8 @@ void CHelpWindow::ShowPageVanilla() {
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
         mfc::CString hint;
-        texts->GetString(Text(kHelpKeyText), &hint);
-        hint += Text(kSpace);
+        texts->GetString(game::Text(kHelpKeyText), &hint);
+        hint += game::Text(kSpace);
         hint += key;
         RECT label{width / 3, 5, 2 * width / 3, 25};
         SurfaceDrawText(footer, nullptr, hint, &label, 0, kTitleColour, DT_CENTER, 1);

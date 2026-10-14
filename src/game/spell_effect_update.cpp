@@ -2,6 +2,7 @@
 // (state 1, 00681BB0) and the lasting effects (state 2, 00682650), plus the release helpers
 // 0067EE00-0067EE80. See docs/notes/items_spells.md.
 #include "spell_effect_internal.h"
+#include "game_strings.h"
 #include "combat.h"
 #include "player_messages.h"
 #include "unit.h"
@@ -95,7 +96,7 @@ void FireballFlight(CSpellEffect* e) {
         float radius = e->radius;
         float alpha = Power(e);
         ParticleSetColors(blast, nullptr, alpha, radius);
-        e->CreateSound(0, GameString(0x00795754), &at, &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, game::Text(0x00795754), &at, &kZeroVector, kVolume, kHearing);
         Vector3 velocity{0.0f, 0.0f, LightRiseScaled(e, kRiseScale)};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
@@ -178,7 +179,7 @@ void FireWall(CSpellEffect* e) {
         e->UpdateFootprint(6, 0);
         e->ReleaseSound();
         e->ReleaseVisual();
-        e->CreateSound(0, GameString(0x007957E4), &at, &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, game::Text(0x007957E4), &at, &kZeroVector, kVolume, kHearing);
         RiseLight(e);
     }
     Linger(e);
@@ -221,7 +222,7 @@ void PoisonCloud(CSpellEffect* e) {
         return;
     }
     if (ticks == -1) {
-        e->CreateSound(0, GameString(0x007957FC), &e->targetPoint, &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, game::Text(0x007957FC), &e->targetPoint, &kZeroVector, kVolume, kHearing);
         RiseLight(e);
         e->UpdateFootprint(8, 0);
         e->ReleaseSound();
@@ -256,7 +257,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
         return;
     }
     if (ticks == -1) {
-        e->CreateSound(0, GameString(0x007957B8), &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, game::Text(0x007957B8), &e->position, &kZeroVector, kVolume, kHearing);
         e->ReleaseVisual();
         e->ReleaseSound();
         RiseLight(e);
@@ -286,7 +287,7 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
     if (ticks < 0 || !e->caster) e->state = 3;
     if (ticks == 10) {
         e->CreateParticle(0, 0x2018, &e->targetPoint, -e->radius, 1.0f, &kZeroVector, nullptr);
-        e->CreateSound(0, GameString(0x0079579C), &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, game::Text(0x0079579C), &e->position, &kZeroVector, kVolume, kHearing);
     }
 }
 
@@ -336,9 +337,9 @@ void Link(CSpellEffect* e) {
         int ticks = e->timer - 1;
         e->timer = ticks;
         if (ticks >= 0) return;
-        e->CreateSound(0, GameString(0x007957D0), &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, game::Text(0x007957D0), &e->position, &kZeroVector, kVolume, kHearing);
     } else {
-        e->CreateSound(0, GameString(0x007957D0), &e->position, &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, game::Text(0x007957D0), &e->position, &kZeroVector, kVolume, kHearing);
         if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x19);
     }
     e->state = 3;
@@ -400,11 +401,11 @@ void CSpellEffect::UpdateMissile(int type) {
     switch (type) {
     case 0x00:
     case 0x28:
-        MissileImpact(this, 0x2041, GameString(0x00795784), true);
+        MissileImpact(this, 0x2041, game::Text(0x00795784), true);
         CountDown(this);
         break;
     case 0x02:
-        MissileImpact(this, 0x2042, GameString(0x0079576C), false);
+        MissileImpact(this, 0x2042, game::Text(0x0079576C), false);
         CountDown(this);
         break;
     case 0x03: FireballFlight(this); break;

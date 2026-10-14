@@ -7,6 +7,7 @@
 // and it is hooked in the vanilla launch only. See ui_camp.h (CBattleScreenSetup) and
 // docs/notes/ui.md, section 6.
 #include "ui_camp.h"
+#include "game_strings.h"
 
 #include "camera.h"
 #include "player_client.h"
@@ -25,15 +26,14 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* ClockSound() { return GameText(0x0079447C); }     // "buttons\\battle\\clock.wav"
-const char* ClickSound() { return GameText(0x00794460); }     // "buttons\\battle\\click.wav"
-const char* WeaponSound() { return GameText(0x00794444); }    // "buttons\\battle\\weapon.wav"
-const char* SlingSound() { return GameText(0x00794428); }     // "buttons\\battle\\sling.wav"
-const char* OnOffSound() { return GameText(0x007935BC); }     // "buttons\\battle\\on_off.wav"
-const char* QuickSaveName() { return GameText(0x007933AC); }  // "saveq"
-const char* FollowName() { return GameText(0x00787928); }     // "follow"
-const char* ScienceName() { return GameText(0x0078B8FC); }    // "science"
+const char* ClockSound() { return game::Text(0x0079447C); }     // "buttons\\battle\\clock.wav"
+const char* ClickSound() { return game::Text(0x00794460); }     // "buttons\\battle\\click.wav"
+const char* WeaponSound() { return game::Text(0x00794444); }    // "buttons\\battle\\weapon.wav"
+const char* SlingSound() { return game::Text(0x00794428); }     // "buttons\\battle\\sling.wav"
+const char* OnOffSound() { return game::Text(0x007935BC); }     // "buttons\\battle\\on_off.wav"
+const char* QuickSaveName() { return game::Text(0x007933AC); }  // "saveq"
+const char* FollowName() { return game::Text(0x00787928); }     // "follow"
+const char* ScienceName() { return game::Text(0x0078B8FC); }    // "science"
 
 // 006481D0 (plain RET): the unit panel shows which body part is selected (its four buttons' tints).
 __declspec(naked) void __fastcall UnitPanelShowPartOriginal(CHudUnitPanel*) EI_ORIGINAL(0x006481D0)

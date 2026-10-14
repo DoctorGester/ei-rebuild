@@ -9,6 +9,7 @@
 // (MmpHeader::FilledBytes). A format the new renderer does not decode keeps its DirectDraw texture.
 // See docs/notes/renderer.md (section 7).
 #include "texture.h"
+#include "game_strings.h"
 
 #include "device.h"
 
@@ -30,7 +31,6 @@
 namespace {
 
 const char* DataPath() { return *reinterpret_cast<const char* const*>(0x007AF460); }
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // Nonzero when mipmaps are used (otherwise every texture gets a single level).
 int MipmapsEnabled() { return *reinterpret_cast<const int*>(0x0079BCE0); }
@@ -224,7 +224,7 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     std::memset(&header, 0, sizeof(header));
     mfc::CString path;
     mfc::CFile file;
-    path.Format(Text(0x00795DCC), DataPath(), name);   // "%stextures\\%s.mmp"
+    path.Format(game::Text(0x00795DCC), DataPath(), name);   // "%stextures\\%s.mmp"
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         file.Read(&header, sizeof(header));
         int size = static_cast<int>(header.extraSize);
@@ -233,7 +233,7 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
         file.Close();
         return 1;
     }
-    path.Format(Text(0x00795F44), name, Text(0x0078FB4C));   // "%s%s", ".mmp"
+    path.Format(game::Text(0x00795F44), name, game::Text(0x0078FB4C));   // "%s%s", ".mmp"
     void* data = GetFile(path, nullptr);
     if (!data) {
         out->SetSizeDiscard(0);

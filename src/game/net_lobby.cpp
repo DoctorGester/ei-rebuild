@@ -4,6 +4,7 @@
 // 5 info (the echoed time, magic, the server entry), 6 accepted (id), 7 refused (id, reason).
 // Plain float maths (rule 7). See docs/notes/network.md.
 #include "chunk_archive.h"
+#include "game_strings.h"
 #include "core_refcount.h"
 #include "net_classes.h"
 #include "net_coder.h"
@@ -77,18 +78,17 @@ __declspec(naked) bool __fastcall DriverIsLocalAt(SocketDriver*, void*, const Ne
 __declspec(naked) bool __fastcall DriverBroadcastAt(SocketDriver*, void*, NetAddress* /*out*/, unsigned /*index*/, int /*port*/) EI_ORIGINAL(0x00440A90)
 __declspec(naked) void __fastcall SessionTickAt(SessionBase*, void*, double) EI_ORIGINAL(0x00437370)
 
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
 // "<text>\n" and a flush.
 void LogLine(std::uintptr_t text) {
-    if (LogStream* log = NetLog()) log->Put(Text(text))->PutChar('\n')->Flush();
+    if (LogStream* log = NetLog()) log->Put(game::Text(text))->PutChar('\n')->Flush();
 }
 // "<text><address>\n" and a flush; the address string is freed again.
 void LogAddressLine(std::uintptr_t text, const NetAddress* address) {
     if (!NetLog()) return;
     StringRep s;
     address->ToString(&s);
-    NetLog()->Put(Text(text))->Put(s.start)->PutChar('\n')->Flush();
+    NetLog()->Put(game::Text(text))->Put(s.start)->PutChar('\n')->Flush();
     if (s.start) stlp::deallocate(s.start, static_cast<std::size_t>(s.eos - s.start));
 }
 

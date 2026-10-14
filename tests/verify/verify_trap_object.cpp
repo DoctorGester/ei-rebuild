@@ -26,7 +26,7 @@ int(__fastcall* s_slot38)(CTrapObject*);
 BOOL(__fastcall* s_accepted)(const LockKey*);
 void(__fastcall* s_arm)(CTrapObject*);
 bool(__fastcall* s_disarm)(CTrapObject*, void*, const LockKey*, int);
-void(__fastcall* s_save)(CTrapObject*, void*, UnitStream*);
+void(__fastcall* s_save)(CTrapObject*, void*, CStream*);
 constexpr std::uint32_t kArmed = 0x80000;
 } // namespace
 
@@ -93,10 +93,10 @@ static bool __fastcall DisarmVerify(CTrapObject* self, void*, const LockKey* key
 EI_VERIFY(0x00529D30, DisarmVerify, 10, s_disarm);
 
 // 00529DA0: PUSH ESI; PUSH EDI; MOV EDI,[ESP+0xC] (6 bytes).
-static void __fastcall TrapSaveVerify(CTrapObject* self, void*, UnitStream* stream) {
+static void __fastcall TrapSaveVerify(CTrapObject* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_save(self, nullptr, &expected);
-    self->SaveTrapObject(reinterpret_cast<CStream*>(&actual));
+    self->SaveTrapObject(&actual);
     ei::verify::Check("CTrapObject::SaveTrapObject", true, expected.Same(actual), "first difference at %d",
                       expected.FirstDifference(actual));
     expected.Forward(stream);

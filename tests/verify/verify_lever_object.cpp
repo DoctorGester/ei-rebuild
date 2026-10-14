@@ -40,7 +40,6 @@ bool Reset(const Lever* lever) {
            lever->from == 0.0f && lever->to == 0.0f && lever->endTick == 0.0f && lever->rate == 0.0f;
 }
 
-CStream* AsStream(UnitStream* stream) { return reinterpret_cast<CStream*>(stream); }
 constexpr std::uint32_t kDisabled = 0x80000;
 
 using ClassNameFn = const char*(__fastcall*)(Lever*);
@@ -52,7 +51,7 @@ using KeyFn = BOOL(__fastcall*)(Lever*, void*, const LockKey*);
 using SetUpFn = std::uintptr_t(__fastcall*)(Lever*, void*, const LeverSetup*);
 using EnableFn = std::uintptr_t(__fastcall*)(Lever*, void*, bool);
 using SetLockFn = std::uintptr_t(__fastcall*)(Lever*, void*, const LockKey*);
-using SaveFn = void(__fastcall*)(Lever*, void*, UnitStream*);
+using SaveFn = void(__fastcall*)(Lever*, void*, CStream*);
 ClassNameFn s_className;
 IntFn s_classId, s_flag260, s_needsKey;
 BoolFn s_keepsMapFlag;
@@ -184,10 +183,10 @@ static std::uintptr_t __fastcall SetLockVerify(Lever* self, void*, const LockKey
 EI_VERIFY(0x0052BB20, SetLockVerify, 5, s_setLock);
 
 // 0052BE40: PUSH ESI; MOV ESI,[ESP+8]; PUSH EDI (6 bytes).
-static void __fastcall SaveVerify(Lever* self, void*, UnitStream* stream) {
+static void __fastcall SaveVerify(Lever* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_save(self, nullptr, &expected);
-    self->SaveLever(AsStream(&actual));
+    self->SaveLever(&actual);
     ei::verify::Check("Lever::SaveLever", true, expected.Same(actual), "lever %d: %u vs %u bytes, first difference at %d",
                       self->id_, static_cast<unsigned>(expected.bytes.size()), static_cast<unsigned>(actual.bytes.size()),
                       expected.FirstDifference(actual));
@@ -268,11 +267,11 @@ EI_VERIFY(0x0052BB50, ApplyKeyVerify, 0, s_unused);
 // A-U11. 00522A30 LockKey::WriteTo: both into capture streams, compared (PUSH ECX; PUSH ESI; MOV ESI,[ESP+0xC]:
 // 6 bytes). 005229F0 LockKey::ReadFrom: ours only (three dwords read). The rewritten lever Load / Save call them
 // directly, so these run only from original code (none left); Lever::SaveLever's compare covers the bytes.
-static void(__fastcall* s_lockWrite)(const LockKey*, void*, UnitStream*);
-static void __fastcall LockWriteVerify(const LockKey* self, void*, UnitStream* stream) {
+static void(__fastcall* s_lockWrite)(const LockKey*, void*, CStream*);
+static void __fastcall LockWriteVerify(const LockKey* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_lockWrite(self, nullptr, &expected);
-    self->WriteTo(AsStream(&actual));
+    self->WriteTo(&actual);
     ei::verify::Check("LockKey::WriteTo", true, expected.Same(actual), "first difference at %d",
                       expected.FirstDifference(actual));
     expected.Forward(stream);

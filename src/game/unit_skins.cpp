@@ -6,6 +6,7 @@
 // the list of its textures goes to the figure maker (+0x34, slot 3). Names provisional; see
 // docs/notes/world.md.
 #include "console.h"
+#include "game_strings.h"
 #include "item_db.h"
 #include "model.h"
 #include "unit.h"
@@ -36,7 +37,6 @@ __declspec(naked) void __fastcall UnitTextureRecordsAt(char /*body*/, const void
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // --- Tables --------------------------------------------------------------------------------------
 
@@ -145,7 +145,7 @@ void AppendText(char* to, const char* from) { CopyText(to + std::strlen(to), fro
 void AppendName(const UnitModelRecord* model, const mfc::CString& name, char* buffer) {
     CopyText(buffer, ModelPrefix(model));
     AppendText(buffer, name);
-    AppendText(buffer, Text(0x0078FB4C));   // ".mmp"
+    AppendText(buffer, game::Text(0x0078FB4C));   // ".mmp"
 }
 
 void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t id) {
@@ -222,9 +222,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         mfc::CString skin;
         StringArraySetSize(&set.names, nullptr, 0, -1);
         if (prototype) {
-            skin.Format(Text(0x0078FB64), ModelPrefix(model), prototype->skin);   // "%sskin_%.2d.mmp"
+            skin.Format(game::Text(0x0078FB64), ModelPrefix(model), prototype->skin);   // "%sskin_%.2d.mmp"
         } else {
-            skin.Format(Text(0x0078FB54), ModelPrefix(model));                             // "%sskin_00.mmp"
+            skin.Format(game::Text(0x0078FB54), ModelPrefix(model));                             // "%sskin_00.mmp"
         }
         NamesSetAtGrowString(&set.names, nullptr, set.names.GetSize(), &skin);
         for (int slot = 3; slot <= 6; ++slot) {
@@ -234,9 +234,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
 
         mfc::CString name;
         if (record->modelNumber != -1) {
-            name.Format(Text(0x0078FB7C), record->modelNumber);                     // "mo%dp"
+            name.Format(game::Text(0x0078FB7C), record->modelNumber);                     // "mo%dp"
         } else {
-            name.Format(Text(0x0078FB74), static_cast<int>(record->prototype));     // "prot%dp"
+            name.Format(game::Text(0x0078FB74), static_cast<int>(record->prototype));     // "prot%dp"
         }
         Compose(self, built, set, name, 0x100, 1);
 
@@ -246,9 +246,9 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         if (items[0] != kNone) AddItem(set, model, items[0]);
         AddExtraWeapon(set, model, record);
         if (record->modelNumber != -1) {
-            name.Format(Text(0x0078FB44), record->modelNumber);                     // "mo%ds"
+            name.Format(game::Text(0x0078FB44), record->modelNumber);                     // "mo%ds"
         } else {
-            name.Format(Text(0x0078FB3C), static_cast<int>(record->prototype));     // "prot%ds"
+            name.Format(game::Text(0x0078FB3C), static_cast<int>(record->prototype));     // "prot%ds"
         }
         Compose(self, built, set, name, 0x80, 2);
     }

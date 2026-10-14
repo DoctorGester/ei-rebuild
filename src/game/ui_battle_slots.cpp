@@ -49,7 +49,6 @@ void* TheGame() { return reinterpret_cast<void*>(0x007AFE20); }
 float SelectedFaceAngle() {
     return *reinterpret_cast<const volatile float*>(0x007C8144) * *reinterpret_cast<const volatile float*>(0x0073CDCC);
 }
-const char* GameString(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
 void** SaveLoadVtable() { return reinterpret_cast<void**>(0x00741388); }
@@ -266,15 +265,15 @@ void CBattleScreenSetup::OnGameOver(char won) {
     MenuCallOriginal();
     void* box;
     if (!won) {
-        interface_->PlaySound(GameString(0x00793528), 0);   // "buttons\gameover.wav"
+        interface_->PlaySound(game::Text(0x00793528), 0);   // "buttons\gameover.wav"
         void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-        box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, GameString(0x0079350C),   // "game_over"
-                                                   GameString(0x00793518), 0x20000, 3, 1)               // "game_over_msg"
+        box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, game::Text(0x0079350C),   // "game_over"
+                                                   game::Text(0x00793518), 0x20000, 3, 1)               // "game_over_msg"
                      : nullptr;
     } else {
         void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-        box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, GameString(0x007942F0),   // "end_of_game"
-                                                   GameString(0x007942FC), static_cast<int>(0xFFFF0000u), 3, 1)   // "end_of_game_msg"
+        box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, game::Text(0x007942F0),   // "end_of_game"
+                                                   game::Text(0x007942FC), static_cast<int>(0xFFFF0000u), 3, 1)   // "end_of_game_msg"
                      : nullptr;
     }
     InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);

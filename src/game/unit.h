@@ -4,6 +4,7 @@
 // 0073BFE8 derives from it). Field and method names are provisional, from how the code uses them.
 // The AI map (ai_map.h) and the sector map use the position, sector cell and size class fields.
 
+#include "core_streams.h"
 #include "engine_object.h"
 #include "item_db.h"
 #include "map_object.h"   // CMapObjectCompanion
@@ -17,23 +18,10 @@
 
 class CItem;   // item.h
 class CParty;   // party.h
-class CStream;   // core_streams.h
 struct UnitStats;
 struct UnitParams;
 struct DamageInfo;   // spell.h
 struct FootprintPart;   // ai_map.h
-
-// The stream the game's Load / Save slots read and write (the same interface as unit_ai.h's
-// AIStream): slot 1 reads, slot 2 writes; +0x08 is the format version of a stream being loaded.
-struct UnitStream {
-    // 0: the deleting destructor (CStream 00417400; its flags argument is not declared).
-    virtual void DeletingDestructor() = 0;
-    virtual int Read(void* buffer, unsigned size) = 0;          // 1: nonzero when read
-    virtual void Write(const void* buffer, unsigned size) = 0;   // 2
-
-    int reading;                        // +0x04 CStream::reading_ (its low byte)
-    int version;            // +0x08
-};
 
 constexpr int kClassUnit = 0x50;    // CEngineObject::GetClassId() of units (creatures)
 
@@ -496,10 +484,10 @@ public:
     // 00531A80. Virtual slot 9 (Load): the map object part, the controller, the unit's name,
     // relations, player, movement fields, items by id (counted references), the carried items,
     // and from version 0x4D the prototype names (prototypeId_ / prototype23C).
-    void LoadUnit(UnitStream* stream);
+    void LoadUnit(CStream* stream);
     // 005321C0. Virtual slot 10 (Save): the same fields in the same order (the active weapon
     // twice), items as ids (-1 for none), the prototype names as zero-terminated strings.
-    void SaveUnit(UnitStream* stream);
+    void SaveUnit(CStream* stream);
 
     // unit_size_class.cpp (U5).
     // 00530570. After the controller's slot 45 (a server controller's movement factors): with a
@@ -834,9 +822,9 @@ struct UnitStats {
     // unit_stats_io.cpp (A-U4). 005287A0 (RET 4): pendingExperience 0, then the block read raw,
     // as long as the stream's format version knew it (below 0x45: 0x6F8 bytes, below 0x50: 0x6FC,
     // below 0x63: 0x700, else 0x704). Returns the stream's result.
-    int LoadFrom(UnitStream* stream);
+    int LoadFrom(CStream* stream);
     // 00528800 (RET 4). The whole block (0x704 bytes) written raw.
-    void SaveTo(UnitStream* stream);
+    void SaveTo(CStream* stream);
     // 00525DF0. Attribute byte `index` (+0x6C8) as a float.
     float AttributeBase(int index);
     // 00525E10. Attribute `index` (0..2) with the bonus of the stat it depends on (stat - 25).

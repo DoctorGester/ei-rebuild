@@ -95,7 +95,6 @@ void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
 const mfc::CString& TextPath() { return *reinterpret_cast<const mfc::CString*>(0x007AF45C); }
 // "music.reg" (the pointer at 00744090).
 const char* MusicReg() { return *reinterpret_cast<const char* const*>(0x00744090); }
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 } // namespace
 
@@ -114,32 +113,32 @@ int CMusicSystem::LoadThemes() {
         int result;
         {
             mfc::CString file(MusicReg());
-            mfc::CString message = Text(0x0079684C) + file;   // "CMusicSystem::Create()\nUnable to open file \""
-            mfc::CString full = message + Text(0x0078DA64);    // "\""
+            mfc::CString message = game::Text(0x0079684C) + file;   // "CMusicSystem::Create()\nUnable to open file \""
+            mfc::CString full = message + game::Text(0x0078DA64);    // "\""
             result = game::FatalError(static_cast<const char*>(full));
         }
         reg.Destroy();
         return result;
     }
-    const char* const common = Text(0x00796844);   // "Common"
-    credits = reg.GetString(common, Text(0x00790EF4), Copy(game::EmptyText()));    // "Credits"
-    mainMenu = reg.GetString(common, Text(0x007904EC), Copy(game::EmptyText()));   // "MainMenu"
+    const char* const common = game::Text(0x00796844);   // "Common"
+    credits = reg.GetString(common, game::Text(0x00790EF4), Copy(game::EmptyText()));    // "Credits"
+    mainMenu = reg.GetString(common, game::Text(0x007904EC), Copy(game::EmptyText()));   // "MainMenu"
     {
         console::CStringArray sections;
         reg.GetSectionNames(&sections);
         for (int i = 0; i < sections.size; ++i) {
             const char* section = sections.data[i];
-            if (CompareNoCase(section, Text(0x0079683C)) == 0) continue;   // "common"
+            if (CompareNoCase(section, game::Text(0x0079683C)) == 0) continue;   // "common"
             LocalTheme read;
             read.name = sections.data[i];
             read.dungeon = 0;
-            read.briefing = reg.GetString(section, Text(0x00796830), Copy(game::EmptyText()));      // "Briefing"
-            read.constructor = reg.GetString(section, Text(0x00796824), Copy(game::EmptyText()));   // "Constructor"
-            reg.GetStringArray(section, Text(0x00796818), &read.calm);     // "CalmOpen"
-            reg.GetStringArray(section, Text(0x00796810), &read.combat);   // "Combat"
+            read.briefing = reg.GetString(section, game::Text(0x00796830), Copy(game::EmptyText()));      // "Briefing"
+            read.constructor = reg.GetString(section, game::Text(0x00796824), Copy(game::EmptyText()));   // "Constructor"
+            reg.GetStringArray(section, game::Text(0x00796818), &read.calm);     // "CalmOpen"
+            reg.GetStringArray(section, game::Text(0x00796810), &read.combat);   // "Combat"
             AppendTheme(this, read);
             read.dungeon = 1;
-            reg.GetStringArray(section, Text(0x00796804), &read.calm);     // "CalmDungeon"
+            reg.GetStringArray(section, game::Text(0x00796804), &read.calm);     // "CalmDungeon"
             AppendTheme(this, read);
         }
     }

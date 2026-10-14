@@ -2,6 +2,7 @@
 // 00690B30, 00690D30; CreateFromMmp, texture_mmp.cpp, calls it) and loading a .bmp texture with its
 // alpha file (00690260).
 #include "texture.h"
+#include "game_strings.h"
 
 #include "app.h"
 #include "console.h"
@@ -20,14 +21,13 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* CopyCantLockText() { return Text(0x00795C48); }      // "CTexture::CopyToSurface\n Can't lock surface\n"
-const char* CopyCantUnlockText() { return Text(0x00795C18); }    // "... Can't unlock surface\n"
-const char* UnpackCantLockText() { return Text(0x00795CB0); }    // "CTexture::UnpackToSurface\n Can't lock render surface\n"
-const char* UnpackCantUnlockText() { return Text(0x00795C78); }  // "... Can't unlock render surface\n"
-const char* NoDecodeFormatText() { return Text(0x00795AF0); }    // "Can't find decode format.\n"
-const char* AlreadyLoadedText() { return Text(0x00795BE8); }     // "CTexture::Load.\n Texture \"%s\" already loaded.\n"
-const char* AlphaPrefixText() { return Text(0x00795BE4); }       // "a_"
+const char* CopyCantLockText() { return game::Text(0x00795C48); }      // "CTexture::CopyToSurface\n Can't lock surface\n"
+const char* CopyCantUnlockText() { return game::Text(0x00795C18); }    // "... Can't unlock surface\n"
+const char* UnpackCantLockText() { return game::Text(0x00795CB0); }    // "CTexture::UnpackToSurface\n Can't lock render surface\n"
+const char* UnpackCantUnlockText() { return game::Text(0x00795C78); }  // "... Can't unlock render surface\n"
+const char* NoDecodeFormatText() { return game::Text(0x00795AF0); }    // "Can't find decode format.\n"
+const char* AlreadyLoadedText() { return game::Text(0x00795BE8); }     // "CTexture::Load.\n Texture \"%s\" already loaded.\n"
+const char* AlphaPrefixText() { return game::Text(0x00795BE4); }       // "a_"
 
 constexpr DWORD kLockWriteWait = DDLOCK_WAIT | DDLOCK_WRITEONLY | DDLOCK_NOSYSLOCK;   // 0x821
 constexpr DWORD kMipLevelCaps = DDSCAPS_TEXTURE | DDSCAPS_MIPMAP;                     // 0x401000

@@ -2,6 +2,8 @@
 
 // A stream for Save checks (verify build): records every Write (bytes and sizes); Forward replays
 // the writes into another stream. The format version is copied from the real stream.
+#include "fake_stream.h"
+
 #include "../../src/game/unit.h"
 
 #include <cstddef>
@@ -9,22 +11,18 @@
 
 namespace unitverify {
 
-class CaptureStream : public UnitStream {
+class CaptureStream : public FakeStream {
 public:
-    explicit CaptureStream(const UnitStream* real) {
-        reading = 0;
-        version = real->version;
-    }
-    void DeletingDestructor() override {}
-    int Read(void*, unsigned) override { return 0; }
-    void Write(const void* buffer, unsigned size) override {
+    explicit CaptureStream(const CStream* real) { version_ = real ? real->version_ : 0; }
+    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
+    void Write(const void* buffer, std::uint32_t size) override {
         auto* p = static_cast<const unsigned char*>(buffer);
         bytes.insert(bytes.end(), p, p + size);
         chunks.push_back(size);
     }
-    void Forward(UnitStream* stream) const {
+    void Forward(CStream* stream) const {
         std::size_t pos = 0;
-        for (unsigned size : chunks) {
+        for (std::uint32_t size : chunks) {
             stream->Write(bytes.data() + pos, size);
             pos += size;
         }
@@ -38,28 +36,27 @@ public:
         return bytes.size() == other.bytes.size() ? -1 : static_cast<int>(n);
     }
     std::vector<unsigned char> bytes;
-    std::vector<unsigned> chunks;
+    std::vector<std::uint32_t> chunks;
 };
 
 // Forwards every call to the real stream and records the bytes read (Load checks).
-class ReadRecorder : public UnitStream {
+class ReadRecorder : public FakeStream {
 public:
-    explicit ReadRecorder(UnitStream* real) : real_(real) {
-        reading = real->reading;
-        version = real->version;
+    explicit ReadRecorder(CStream* real) : real_(real) {
+        reading_ = real->reading_;
+        version_ = real->version_;
     }
-    void DeletingDestructor() override { real_->DeletingDestructor(); }
-    int Read(void* buffer, unsigned size) override {
-        int result = real_->Read(buffer, size);
+    std::uint32_t Read(void* buffer, std::uint32_t size) override {
+        std::uint32_t result = real_->Read(buffer, size);
         auto* p = static_cast<const unsigned char*>(buffer);
         bytes.insert(bytes.end(), p, p + size);
         return result;
     }
-    void Write(const void* buffer, unsigned size) override { real_->Write(buffer, size); }
+    void Write(const void* buffer, std::uint32_t size) override { real_->Write(buffer, size); }
     std::vector<unsigned char> bytes;
 
 private:
-    UnitStream* real_;
+    CStream* real_;
 };
 
 } // namespace unitverify

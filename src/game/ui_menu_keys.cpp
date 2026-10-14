@@ -5,6 +5,7 @@
 // pass the key to the base handler first (00601820), set the input side's handled flag for the
 // keys they use, and ignore keys while the window slides in.
 #include "ui.h"
+#include "game_strings.h"
 #include "ui_screens.h"
 
 #include "console.h"
@@ -29,8 +30,6 @@ constexpr int kMaxNameLength = 60;       // characters of a typed save name
 constexpr int kMaxNameWidth = 0xB2;      // its width limit in pixels (font 1)
 constexpr int kScanEsc = 1;              // the scan code that gives up a key binding
 
-// Strings of game.exe, by address (rewrite-guide rule 9).
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 constexpr std::uintptr_t kSoundCancel = 0x007937E4;     // "buttons\messbox\cancel.wav"
 constexpr std::uintptr_t kSoundOk = 0x00793A88;         // "buttons\messbox\ok.wav"
 constexpr std::uintptr_t kSoundSelect = 0x00793A60;     // "buttons\save\select.wav"
@@ -65,9 +64,9 @@ __declspec(naked) void CSaveLoadWindow::CallShowSelection() EI_ORIGINAL(0x006554
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
     const unsigned char* folder = reinterpret_cast<const unsigned char*>(entriesBegin_[index].folder_);
-    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(Text(kQuickSave))) == 0) return true;
-    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(Text(kAutoSaveA))) == 0) return true;
-    return gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(Text(kAutoSaveB))) == 0;
+    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::Text(kQuickSave))) == 0) return true;
+    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::Text(kAutoSaveA))) == 0) return true;
+    return gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::Text(kAutoSaveB))) == 0;
 }
 
 // --- 00655430 ------------------------------------------------------------------------------------
@@ -98,7 +97,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
         inputHandled_ = true;
         break;
     case kKeyEsc:
-        interface_->PlaySound(Text(kSoundCancel), 0);
+        interface_->PlaySound(game::Text(kSoundCancel), 0);
         interface_->SetPendingValue(kCloseSaveLoad);
         inputHandled_ = true;
         break;
@@ -109,7 +108,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     default: break;
     }
     if (step != 0) {
-        interface_->PlaySound(Text(kSoundSelect), 0);
+        interface_->PlaySound(game::Text(kSoundSelect), 0);
         selected_ += step;
         CallShowSelection();
         inputHandled_ = true;
@@ -244,7 +243,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             }
         }
         if (!pressed) {
-            interface_->PlaySound(Text(kSoundCancel), 0);
+            interface_->PlaySound(game::Text(kSoundCancel), 0);
             return;
         }
         waitingForKey_ = false;
@@ -253,19 +252,19 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             CallRefreshRows();
             return;
         }
-        interface_->PlaySound(Text(kSoundOk), 0);
+        interface_->PlaySound(game::Text(kSoundOk), 0);
         int code = keyOfScan_[pressed->scan_];
         OptionBinding* other = bindings_.begin();
         while (other != bindings_.end() && other->action_->id_ != code) ++other;
         if (other != bindings_.end() && other != nullptr && other != binding) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
             void* memory = gamecrt::operator_new(0x180);
-            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, Text(kKeyMapped),
-                                                          Text(kKeyMappedText), 0x10000, 3, 1)
+            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::Text(kKeyMapped),
+                                                          game::Text(kKeyMappedText), 0x10000, 3, 1)
                                     : nullptr;
             mfc::CString format;
             mfc::CString message;
-            Texts()->GetString(Text(kKeyMappedText), &format);
+            Texts()->GetString(game::Text(kKeyMappedText), &format);
             message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
             // The box's text (a null box is written through, as in the original).
             *reinterpret_cast<mfc::CString*>(&static_cast<CMessageBox*>(box)->text_) = static_cast<const char*>(message);
@@ -291,19 +290,19 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             row.setting_->spin_->GetValue(&value);
             rows_[selectedRow_].setting_->spin_->SetValue(value + 1);
         }
-        interface_->PlaySound(Text(kSoundOk), 0);
+        interface_->PlaySound(game::Text(kSoundOk), 0);
         CallRefreshRows();
         inputHandled_ = true;
         return;
     }
     case kKeyEsc:
         RestoreSettings();
-        interface_->PlaySound(Text(kSoundCancel), 0);
+        interface_->PlaySound(game::Text(kSoundCancel), 0);
         interface_->SetPendingValue(kCloseOptions);
         break;
     case kKeyPageUp:
     case kKeyPageDown:
-        interface_->PlaySound(Text(kSoundSelect), 0);
+        interface_->PlaySound(game::Text(kSoundSelect), 0);
         CallShowGroup(key == kKeyPageUp ? group_ - 1 : group_ + 1);
         break;
     case kKeyLeft:
@@ -317,7 +316,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         return;
     }
     case kKeyUp:
-        interface_->PlaySound(Text(kSoundSelect), 0);
+        interface_->PlaySound(game::Text(kSoundSelect), 0);
         for (int i = selectedRow_ - 1; i >= 0; --i) {
             if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;
@@ -327,7 +326,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         }
         break;
     case kKeyDown:
-        interface_->PlaySound(Text(kSoundSelect), 0);
+        interface_->PlaySound(game::Text(kSoundSelect), 0);
         for (int i = selectedRow_ + 1; i < kOptionRows; ++i) {
             if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;

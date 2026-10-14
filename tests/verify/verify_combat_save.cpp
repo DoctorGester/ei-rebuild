@@ -10,12 +10,12 @@
 
 namespace {
 using unitverify::CaptureStream;
-using SaveFn = void(__fastcall*)(CUnitServer*, void*, UnitStream*);
+using SaveFn = void(__fastcall*)(CUnitServer*, void*, CStream*);
 SaveFn s_originalSave;
 void* s_unused;
 } // namespace
 
-static void __fastcall SaveServerVerify(CUnitServer* self, void*, UnitStream* stream) {
+static void __fastcall SaveServerVerify(CUnitServer* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_originalSave(self, nullptr, &expected);
     self->SaveServer(&actual);
@@ -28,13 +28,13 @@ EI_VERIFY(0x005561C0, SaveServerVerify, 5, s_originalSave);
 
 // Load: ours only. +0x918 is cleared, the effect object (if any) is referenced, and the attackers
 // list's count matches its nodes.
-static void __fastcall LoadServerVerify(CUnitServer* self, void*, UnitStream* stream) {
+static void __fastcall LoadServerVerify(CUnitServer* self, void*, CStream* stream) {
     self->LoadServer(stream);
     auto* base = reinterpret_cast<char*>(self);
     int nodes = 0;
     for (void* node = *reinterpret_cast<void**>(base + 0x920); node; node = *static_cast<void**>(node)) ++nodes;
     bool ok = *reinterpret_cast<int*>(base + 0x918) == 0 && (!self->effectObject || self->effectObject->refCount_ >= 1) &&
               nodes == *reinterpret_cast<int*>(base + 0x928);
-    ei::verify::Check("CUnitServer::LoadServer", true, ok, "%p version %d: %d attacker nodes", self, stream->version, nodes);
+    ei::verify::Check("CUnitServer::LoadServer", true, ok, "%p version %d: %d attacker nodes", self, stream->version_, nodes);
 }
 EI_VERIFY(0x00555D10, LoadServerVerify, 0, s_unused);

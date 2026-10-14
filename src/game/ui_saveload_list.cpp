@@ -6,6 +6,7 @@
 // surface's text 005FDE20, the text extent 005F8340, the point scaling 005F7D20 and the sprite's
 // Place 005E6FA0. See ui.h (CSaveLoadWindow) and docs/notes/items_spells.md ("A-H26").
 #include "ui.h"
+#include "game_strings.h"
 
 #include "item_db_text.h"       // CTextManager
 #include "ui_gdi.h"
@@ -27,7 +28,6 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 constexpr std::uintptr_t kQuickFolder = std::uintptr_t(0x007933AC);    // "saveq"
 constexpr std::uintptr_t kAutoFolderA = std::uintptr_t(0x007942E8);    // "savea"
 constexpr std::uintptr_t kAutoFolderB = std::uintptr_t(0x007940F0);    // "saveb"
@@ -65,7 +65,7 @@ int TextWidth(CInterface3D* ui, const mfc::CString& text, int font) {
 
 bool SameFolder(const char* folder, std::uintptr_t name) {
     return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(folder),
-                            reinterpret_cast<const unsigned char*>(Text(name))) == 0;
+                            reinterpret_cast<const unsigned char*>(game::Text(name))) == 0;
 }
 
 } // namespace
@@ -117,7 +117,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
         }
         if (!isSave_ || index != 0) {
             alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-            mfc::CString* date = TimeFormat(&entry.savedAt_, nullptr, storage, Text(kDateFormat));
+            mfc::CString* date = TimeFormat(&entry.savedAt_, nullptr, storage, game::Text(kDateFormat));
             SurfaceDrawText(surface, nullptr, *date, &dateRect, kFont, kTextColour, DT_RIGHT, 1);
             date->~CString();
         }
@@ -136,10 +136,10 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const SaveEntry& entry = entriesBegin_[selected_];
     RECT detailRect{340, 260, 590, 284};
     mfc::CString line;
-    line.Format(Text(kPlainFormat), static_cast<const char*>(entry.AllodTitle()));
+    line.Format(game::Text(kPlainFormat), static_cast<const char*>(entry.AllodTitle()));
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
-    line.Format(Text(kPlainFormat), static_cast<const char*>(entry.ZoneTitle()));
+    line.Format(game::Text(kPlainFormat), static_cast<const char*>(entry.ZoneTitle()));
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 
@@ -149,8 +149,8 @@ void CSaveLoadWindow::RefreshListVanilla() {
     const int hour = minuteOfDay / 60;
     const int minute = minuteOfDay - hour * 60;
     mfc::CString dayText;
-    reinterpret_cast<CTextManager*>(GameClientTexts())->GetString(Text(kDayText), &dayText);
-    line.Format(Text(kGameTimeFormat), static_cast<const char*>(dayText), day + 1, hour, minute);
+    reinterpret_cast<CTextManager*>(GameClientTexts())->GetString(game::Text(kDayText), &dayText);
+    line.Format(game::Text(kGameTimeFormat), static_cast<const char*>(dayText), day + 1, hour, minute);
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
 
     RECT folderRect{340, 360, 580, 385};

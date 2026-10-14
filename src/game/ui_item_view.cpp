@@ -6,6 +6,7 @@
 // game's _ftol), values it stores as float go through Store, products keep their operand order
 // (precise floating point), constants are read from the exe's memory.
 #include "ui_item_info.h"
+#include "game_strings.h"
 
 #include "dx_surface.h"
 #include "item.h"
@@ -508,7 +509,6 @@ char** FigurePrototypeAt(void* map, void*, const stlp::string* key) { return Fig
 __declspec(naked) Quaternion* __fastcall QuaternionProduct(Quaternion*, const Quaternion*, const Quaternion*)
     EI_ORIGINAL(0x00506C70)
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // The inlined strcmp(a, b) == 0.
 bool SameText(const char* a, const char* b) {
@@ -533,12 +533,12 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     }
     mfc::CString sex;
     const char* figureModel = Get<const char*>(figure, 0xE8);
-    if (SameText(figureModel, GameText(0x007908C8)))          // "unhuma"
-        sex = GameText(0x00792EAC);                                   // "m"
-    else if (SameText(figureModel, GameText(0x00792EA4)))     // "unhufe"
-        sex = GameText(0x0078BBD8);                                   // "f"
-    model->Format(GameText(0x00792E94), figureModel, Get<int>(unit, 0x10) + 1);         // "infa%sme%dface"
-    texture->Format(GameText(0x00792E88), static_cast<const char*>(sex), Get<int>(unit, 0x0C));   // "face%s%02d"
+    if (SameText(figureModel, game::Text(0x007908C8)))          // "unhuma"
+        sex = game::Text(0x00792EAC);                                   // "m"
+    else if (SameText(figureModel, game::Text(0x00792EA4)))     // "unhufe"
+        sex = game::Text(0x0078BBD8);                                   // "f"
+    model->Format(game::Text(0x00792E94), figureModel, Get<int>(unit, 0x10) + 1);         // "infa%sme%dface"
+    texture->Format(game::Text(0x00792E88), static_cast<const char*>(sex), Get<int>(unit, 0x0C));   // "face%s%02d"
 }
 
 std::uint8_t* CItemScreen::CachedModelNamed(const char* name) {
@@ -648,7 +648,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     std::uint8_t* image;
     {
         mfc::CString base(name);
-        mfc::CString file = base + GameText(0x0078FB4C);   // ".mmp"
+        mfc::CString file = base + game::Text(0x0078FB4C);   // ".mmp"
         image = FindImage(manager, nullptr, file);
     }
     int width, height;
@@ -673,7 +673,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     desc[0] = 0x7C;
     bool direct;
     long hr = LockTexture(holder, desc, &direct);
-    if (hr != 0 && FatalDirectX(hr, GameText(0x0078E30C)) == 0) {   // "Can't lock surface"
+    if (hr != 0 && FatalDirectX(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         VirtualCall(texture, 4);
@@ -701,7 +701,7 @@ void* __fastcall ItemFigureTexture(const char* name) {
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     hr = UnlockTexture(holder, direct);
-    if (hr != 0 && FatalDirectX(hr, GameText(0x0078E2F4)) == 0) {   // "Can't unlock surface"
+    if (hr != 0 && FatalDirectX(hr, game::Text(0x0078E2F4)) == 0) {   // "Can't unlock surface"
         VirtualCall(texture, 4);
         return nullptr;
     }
@@ -718,7 +718,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     std::uint8_t* image;
     {
         mfc::CString base(name);
-        mfc::CString file = base + GameText(0x0078FB4C);   // ".mmp"
+        mfc::CString file = base + game::Text(0x0078FB4C);   // ".mmp"
         image = FindImage(TextureManager(), nullptr, file);
     }
     std::uint32_t* pixels = nullptr;
@@ -736,7 +736,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     desc[0] = 0x7C;
     bool direct;
     long hr = LockTexture(holder, desc, &direct);
-    if (hr != 0 && FatalDirectX(hr, GameText(0x0078E30C)) == 0) {   // "Can't lock surface"
+    if (hr != 0 && FatalDirectX(hr, game::Text(0x0078E30C)) == 0) {   // "Can't lock surface"
         // The original leaves the device lock held here.
         if (pixels) gamecrt::operator_delete(pixels);
         return 0;
@@ -763,7 +763,7 @@ int CUiWindow::CopyImage(CEngineObject* texture, const char* name, int imageWidt
     if (pixels) gamecrt::operator_delete(pixels);
     gameapi::LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78));
     hr = UnlockTexture(holder, direct);
-    if (hr != 0) FatalDirectX(hr, GameText(0x0078E2F4));   // "Can't unlock surface"
+    if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
     VirtualCall(TextureManager(), 22);
     return image != nullptr;
 }

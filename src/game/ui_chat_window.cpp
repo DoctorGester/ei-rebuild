@@ -1,6 +1,7 @@
 // A network client's player list on the base screen (CChatWindow, 00608D20-00609900). See
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
 #include "ui_briefing.h"
+#include "game_strings.h"
 
 #include "item_db_text.h"
 #include "net_classes.h"
@@ -21,7 +22,6 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
 void** MainVtable() { return reinterpret_cast<void**>(0x00741478); }
@@ -30,12 +30,12 @@ void** InputVtable() { return reinterpret_cast<void**>(0x00741444); }
 // The status texts' keys, in texts_ order.
 const char* TextKey(int i) {
     const char* const keys[] = {
-        GameText(0x0079359C),   // "lmp_status_zone"
-        GameText(0x0079358C),   // "lmp_status_base"
-        GameText(0x0079357C),   // "lmp_status_camp"
-        GameText(0x00793568),   // "lmp_status_connect"
-        GameText(0x00793554),   // "lmp_exch_we_offer"
-        GameText(0x00793540),   // "lmp_exch_they_offer"
+        game::Text(0x0079359C),   // "lmp_status_zone"
+        game::Text(0x0079358C),   // "lmp_status_base"
+        game::Text(0x0079357C),   // "lmp_status_camp"
+        game::Text(0x00793568),   // "lmp_status_connect"
+        game::Text(0x00793554),   // "lmp_exch_we_offer"
+        game::Text(0x00793540),   // "lmp_exch_they_offer"
     };
     return keys[i];
 }
@@ -44,7 +44,7 @@ constexpr int kWeOffer = 4, kTheyOffer = 5;
 
 void* UnitPrototypes() { return reinterpret_cast<void*>(0x007AF364); }     // hash_map<string, UnitPrototypeRecord*>
 void* FigurePrototypes() { return reinterpret_cast<void*>(0x007AF3A4); }   // hash_map<string, FigurePrototypeRecord*>
-const char* OnOffSound() { return GameText(0x007935BC); }                    // "buttons\battle\on_off.wav"
+const char* OnOffSound() { return game::Text(0x007935BC); }                    // "buttons\battle\on_off.wav"
 
 constexpr int kSurfaceFormat = 5;
 constexpr int kTextureKind = 0x20;
@@ -216,13 +216,13 @@ void CChatWindow::ShowPlayers() {
             stlp::string key(static_cast<const char*>(prototype->modelName));
             figure = reinterpret_cast<FigurePrototypeRecord*>(*FigureMapAtOriginal(FigurePrototypes(), nullptr, &key));
         }
-        if (SameText(figure->model, GameText(0x007908C8)))          // "unhuma"
-            sex = GameText(0x00792EAC);                             // "m"
-        else if (SameText(figure->model, GameText(0x00792EA4)))     // "unhufe"
-            sex = GameText(0x0078BBD8);                             // "f"
-        build = GameText(0x007844A8);                               // "me"
-        model.Format(GameText(0x007935AC), figure->model, static_cast<const char*>(build), prototype->hair + 1);   // "infa%s%s%dface"
-        picture.Format(GameText(0x00792E88), static_cast<const char*>(sex), prototype->skin);                      // "face%s%02d"
+        if (SameText(figure->model, game::Text(0x007908C8)))          // "unhuma"
+            sex = game::Text(0x00792EAC);                             // "m"
+        else if (SameText(figure->model, game::Text(0x00792EA4)))     // "unhufe"
+            sex = game::Text(0x0078BBD8);                             // "f"
+        build = game::Text(0x007844A8);                               // "me"
+        model.Format(game::Text(0x007935AC), figure->model, static_cast<const char*>(build), prototype->hair + 1);   // "infa%s%s%dface"
+        picture.Format(game::Text(0x00792E88), static_cast<const char*>(sex), prototype->skin);                      // "face%s%02d"
         AddPortrait(model, picture);
         regions_.data[portraits_ - 1]->SetTipString(player->name_.start, 1, 0);
     }
@@ -285,7 +285,7 @@ void CChatWindow::OnLButtonDown(int, int x, int y) {
     int pick = static_cast<CBriefingScreen*>(interface_->GetActiveWindow())->chatActive_;
     if (pick != 0) {
         char text[0x80];
-        gamecrt::sprintf(text, GameText(0x0078EEEC), PlayerOf(players_[index])->serial_);   // "%d"
+        gamecrt::sprintf(text, game::Text(0x0078EEEC), PlayerOf(players_[index])->serial_);   // "%d"
         if (pick == 1)
             net::GameClient()->SendCommand(kPickCommandA, text);
         else if (pick == 2)

@@ -542,7 +542,7 @@ EI_REPLACE(0x005CC560, ReportsContains);
 namespace {
 // The original's Save functions copy each scalar into a stack slot before writing it.
 template <typename T>
-void WriteCopy(AIStream* stream, const T& value) {
+void WriteCopy(CStream* stream, const T& value) {
     T copy = value;
     stream->Write(&copy, sizeof(T));
 }
@@ -607,7 +607,7 @@ void AssignCurrent(AIMode*& current, AIMode* mode) {
 }
 } // namespace
 
-void AIBrain::Load(AIStream* stream) {
+void AIBrain::Load(CStream* stream) {
     ReleaseAllModes(modes);
     AssignCurrent(current, nullptr);
     nearX = kNearPointCleared;
@@ -659,19 +659,19 @@ void AIBrain::Load(AIStream* stream) {
     if (!(callRadius < settings.callForHelpRadiusDefault) && !(callRadius > settings.callForHelpRadiusDefault))
         std::memcpy(&callRadius, &settings.callForHelpRadius, 4);
     stream->Read(&alwaysUpdated, 1);
-    if (stream->version < 0x4B) return;
+    if (stream->version_ < 0x4B) return;
     attention.healWeight = 0.0f;
     AttackOptionsLoadOriginal(&attention.weapons, stream);
-    if (stream->version >= 0x5A) {
+    if (stream->version_ >= 0x5A) {
         AttackOptionsLoadOriginal(&attention.spells, stream);
         stream->Read(&attention.healWeight, 4);
     }
-    if (stream->version < 0x71) return;
+    if (stream->version_ < 0x71) return;
     stream->Read(&alarmSlot, 1);
 }
 EI_REPLACE_METHOD(0x005D8310, AIBrain::Load);
 
-void AIBrain::Save(AIStream* stream) {
+void AIBrain::Save(CStream* stream) {
     WriteCopy(stream, action);
     stream->Write(&actionPoint, 12);
     LooksSaveOriginal(&looks, stream);

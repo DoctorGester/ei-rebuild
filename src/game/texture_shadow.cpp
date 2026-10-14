@@ -29,9 +29,8 @@
 namespace {
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* CantLockText() { return Text(0x0078E30C); }     // "Can't lock surface.\n"
-const char* CantUnlockText() { return Text(0x0078E2F4); }   // "Can't unlock surface.\n"
+const char* CantLockText() { return game::Text(0x0078E30C); }     // "Can't lock surface.\n"
+const char* CantUnlockText() { return game::Text(0x0078E2F4); }   // "Can't unlock surface.\n"
 
 constexpr std::uint32_t kLockWriteWait = 0x821;   // DDLOCK_WAIT | DDLOCK_WRITEONLY | DDLOCK_NOSYSLOCK
 constexpr std::uint32_t kDescBytes = 0x7C;        // DDSURFACEDESC2

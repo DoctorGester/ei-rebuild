@@ -2,6 +2,7 @@
 // base slot 2 of vtable 0073D8A0, called once by the renderer's creation 00500B70; A-U12): makes
 // the transform pipeline, checks the processor for MMX and loads the 2D graphics library.
 #include "model.h"
+#include "game_strings.h"
 
 #include "options.h"
 #include "sys_info.h"
@@ -22,7 +23,6 @@ constexpr std::uintptr_t kAcquiringText = std::uintptr_t(0x0078E3F4);     // "Ac
 constexpr std::uintptr_t kNoLibraryText = std::uintptr_t(0x0078ED40);     // "CVisualizator::Create.\n Can't load 2D graphics library.\n"
 constexpr std::uintptr_t kNoFunctionText = std::uintptr_t(0x0078ED7C);    // "... have no function \"GetGraphicsProcessor\".\n"
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // 004F0B90 (RET 4): the transform pipeline's constructor (loads 3DfpFPU.dll from `folder`;
 // render_helper.cpp), through its address: the verify build's wrapper runs there.
@@ -44,24 +44,24 @@ void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* setting
 
     ReadProcessorInfo();
     if (!(TheProcessorInfo()->features & kProcessorMmx)) {
-        game::FatalError(Text(kNoMmxText));
+        game::FatalError(game::Text(kNoMmxText));
         ExitGame(-1);
     }
 
     graphicsLibrary_ = gameapi::LoadLibraryA(workPath + "2DintMMX.dll");   // the exe's 0078E46C
-    game::DebugLog(Text(kLibraryLoadedText));
+    game::DebugLog(game::Text(kLibraryLoadedText));
     if (!graphicsLibrary_) {
-        game::FatalError(Text(kNoLibraryText));
+        game::FatalError(game::Text(kNoLibraryText));
         ExitGame(-1);
     }
     using GetGraphicsProcessor = void*(__cdecl*)();
     auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
         gameapi::GetProcAddress(static_cast<HMODULE>(graphicsLibrary_), "GetGraphicsProcessor"));   // the exe's 0078E42C
     if (!getProcessor) {
-        game::FatalError(Text(kNoFunctionText));
+        game::FatalError(game::Text(kNoFunctionText));
         ExitGame(-1);
     }
-    game::DebugLog(Text(kAcquiringText));
+    game::DebugLog(game::Text(kAcquiringText));
     graphicsProcessor_ = getProcessor();
     return graphicsProcessor_;
 }

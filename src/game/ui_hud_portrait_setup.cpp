@@ -3,6 +3,7 @@
 // client, per player without a live unit) through AddPortrait (00640060); ShowFace (00640670) copies
 // a face picture into the portrait's quarter of a face texture. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
+#include "game_strings.h"
 
 #include "maths.h"
 #include "net_classes.h"
@@ -31,7 +32,6 @@ float Thin() { return GameFloat(0x0073BAD4); }            // 0.2
 float Fat() { return GameFloat(0x0073CCA8); }             // 0.8
 float WobbleAngle() { return GameFloat(0x007C8144); }     // a global angle (ui_hud_portraits.cpp)
 const Quaternion& Identity() { return *reinterpret_cast<const Quaternion*>(0x007C8150); }
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 void* UnitPrototypes() { return reinterpret_cast<void*>(0x007AF364); }     // hash_map<string, UnitPrototypeRecord*>
 void* FigurePrototypes() { return reinterpret_cast<void*>(0x007AF3A4); }   // hash_map<string, FigurePrototypeRecord*>
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
@@ -58,10 +58,10 @@ bool SameText(const char* a, const char* b) {
 
 // The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
 void SexOf(const char* figure, mfc::CString& sex) {
-    if (SameText(figure, GameText(0x007908C8)))          // "unhuma"
-        sex = GameText(0x00792EAC);                     // "m"
-    else if (SameText(figure, GameText(0x00792EA4)))     // "unhufe"
-        sex = GameText(0x0078BBD8);                     // "f"
+    if (SameText(figure, game::Text(0x007908C8)))          // "unhuma"
+        sex = game::Text(0x00792EAC);                     // "m"
+    else if (SameText(figure, game::Text(0x00792EA4)))     // "unhufe"
+        sex = game::Text(0x0078BBD8);                     // "f"
 }
 
 // A client player record in the client's list (stlp list node: next, prev, value).
@@ -90,11 +90,11 @@ void CHudPortraits::ShowFace(int index, int state) {
     }
     mfc::CString name(slots_[index].FaceName());
     if (state == 1)
-        name += GameText(0x00794594);   // "a"
+        name += game::Text(0x00794594);   // "a"
     else if (state == 2)
-        name += GameText(0x0079254C);   // "c"
+        name += game::Text(0x0079254C);   // "c"
     else if (state == 3)
-        name += GameText(0x00792558);   // "b"
+        name += game::Text(0x00792558);   // "b"
     const int texture = index / 4 + 1;
     if (static_cast<char>(CopyImage(objects_.data[texture], name, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
         CopyImage(objects_.data[texture], slots_[index].FaceName(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
@@ -206,15 +206,15 @@ void CHudPortraits::Rebuild(int wide) {
         const int skin = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->skin;
         SexOf(unit->name, sex);
         const float figureBuild = unit->scale.y;
-        build = GameText(0x007844A8);                              // "me"
+        build = game::Text(0x007844A8);                              // "me"
         if (!(figureBuild >= Thin()))
-            build = GameText(0x007945AC);                          // "th"
+            build = game::Text(0x007945AC);                          // "th"
         else if (figureBuild > Fat())
-            build = GameText(0x007945A8);                          // "fa"
+            build = game::Text(0x007945A8);                          // "fa"
         const char* figure = unit->name;
-        model.Format(GameText(0x007935AC), figure, static_cast<const char*>(build),   // "infa%s%s%dface"
+        model.Format(game::Text(0x007935AC), figure, static_cast<const char*>(build),   // "infa%s%s%dface"
                      reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair + 1);
-        picture.Format(GameText(0x00792E88), static_cast<const char*>(sex), skin);     // "face%s%02d"
+        picture.Format(game::Text(0x00792E88), static_cast<const char*>(sex), skin);     // "face%s%02d"
         AddPortraitAt(model, picture, wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
@@ -226,9 +226,9 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].lastHitPoints_ = owner_->party_[i]->packedVitals.hitPoints;
         slots_[i].FaceName() = picture;
         slots_[i].faceState_ = 0;
-        slots_[i].ModelPrefix().Format(GameText(0x007945A0), unit->name);   // "infa%s"
+        slots_[i].ModelPrefix().Format(game::Text(0x007945A0), unit->name);   // "infa%s"
         const int hair = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->hair;
-        slots_[i].ModelSuffix().Format(GameText(0x00794598), hair + 1);             // "%dface"
+        slots_[i].ModelSuffix().Format(game::Text(0x00794598), hair + 1);             // "%dface"
         slots_[i].build_ = figureBuild;
         slots_[i].playerId_ = -1;
         BattleShowPanelUnitOriginal(owner_, nullptr, owner_->party_[i], &tip);
@@ -256,9 +256,9 @@ void CHudPortraits::Rebuild(int wide) {
                 static_cast<NamePair*>(FigureMapInsertOriginal(FigurePrototypes(), nullptr, &key))->value);
         }
         SexOf(figure->model, sex);
-        build = GameText(0x007844A8);                              // "me"
-        model.Format(GameText(0x007935AC), figure->model, static_cast<const char*>(build), prototype->hair + 1);
-        picture.Format(GameText(0x00792E88), static_cast<const char*>(sex), prototype->skin);
+        build = game::Text(0x007844A8);                              // "me"
+        model.Format(game::Text(0x007935AC), figure->model, static_cast<const char*>(build), prototype->hair + 1);
+        picture.Format(game::Text(0x00792E88), static_cast<const char*>(sex), prototype->skin);
         AddPortraitAt(model, picture, wide, 1);
         HudPortraitSlot& slot = slots_[count_ - 1];
         slot.flash_ = 0.0f;

@@ -6,7 +6,7 @@
 
 #include <cstdint>
 
-class AIStream;   // unit_ai.h
+class CStream;   // core_streams.h
 
 struct AIAlarm {
     // 005AEA40. Everything cleared.
@@ -16,8 +16,8 @@ struct AIAlarm {
     // 005AEA60 (RET 4). The pending level becomes at least `level`.
     void Raise(int level);
     // 005AEC40 / 005AEC80 (RET 4). The four values from / to a save (4 bytes each).
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
 
     int level;      // +0x00 what the group's members raised this step
     int pending;    // +0x04 raised by the unit's own AI since the last step

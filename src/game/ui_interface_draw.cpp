@@ -2,6 +2,7 @@
 // scene's BeginScene and EndScene) and the screen fade drawn over it (CScreenFade::Draw 005E69C0).
 // See docs/notes/ui.md, section 3, and docs/notes/renderer.md, section 2.
 #include "ui.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "core_maths.h"
@@ -42,7 +43,6 @@ RECT ScreenOf(const CSceneRenderer* renderer) {
 
 // --- The overlays (005F5320) ---
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 // The surfaces' memory totals (CUiSurface::SwapContents keeps them).
 int SurfaceBytesKept() { return *reinterpret_cast<const volatile int*>(0x007C7E74); }
@@ -132,10 +132,10 @@ EI_REPLACE_METHOD(0x005F5220, CInterface3D::Draw);
 void CInterface3D::DrawOverlays() {
     mfc::CString text;
     void* panel = DebugInfoPanel();
-    text.Format(GameText(0x0078EEEC), SurfaceBytesKept());   // "%d"
-    DebugPanelSet(panel, GameText(0x00793064), text);         // "surface stored"
-    text.Format(GameText(0x0078EEEC), SurfaceBytesAllocated());
-    DebugPanelSet(panel, GameText(0x00793054), text);         // "surface alloc"
+    text.Format(game::Text(0x0078EEEC), SurfaceBytesKept());   // "%d"
+    DebugPanelSet(panel, game::Text(0x00793064), text);         // "surface stored"
+    text.Format(game::Text(0x0078EEEC), SurfaceBytesAllocated());
+    DebugPanelSet(panel, game::Text(0x00793054), text);         // "surface alloc"
     if (stackBegin_ != stackEnd_) {
         CallSlot(stackEnd_[-1], kRedrawSlot);
         CallSlot(stackEnd_[-1], kTipsSlot);
@@ -170,11 +170,11 @@ void CInterface3D::DrawOverlays() {
             mfc::CString rate;
             float perSecond =
                 static_cast<float>(fpsFrames_) * GameFloat(0x0073C34C) / static_cast<float>(static_cast<int>(elapsed));
-            rate.Format(GameText(0x00792F78), static_cast<double>(perSecond));   // "%.1f"
+            rate.Format(game::Text(0x00792F78), static_cast<double>(perSecond));   // "%.1f"
             SurfaceGetDC(fpsSurface_);
             fpsSurface_->Clear();
             RECT rect{0, 0, 60, 18};
-            SurfaceDrawText(fpsSurface_, nullptr, GameText(0x0079304C), &rect, kFpsFont, kWhite, 0, 1);   // "FPS:"
+            SurfaceDrawText(fpsSurface_, nullptr, game::Text(0x0079304C), &rect, kFpsFont, kWhite, 0, 1);   // "FPS:"
             rect = RECT{0, 0, 60, 18};
             SurfaceDrawText(fpsSurface_, nullptr, rate, &rect, kFpsFont, kWhite, 2, 1);
             SurfaceReleaseDC(fpsSurface_);

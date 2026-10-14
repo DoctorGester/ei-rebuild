@@ -15,8 +15,7 @@ void* s_unused;
 const char*(__fastcall* s_className)(CTorchObject*);
 int(__fastcall* s_classId)(CTorchObject*);
 int(__fastcall* s_update)(CTorchObject*);
-void(__fastcall* s_save)(CTorchObject*, void*, UnitStream*);
-CStream* AsStream(UnitStream* stream) { return reinterpret_cast<CStream*>(stream); }
+void(__fastcall* s_save)(CTorchObject*, void*, CStream*);
 } // namespace
 
 // 0052BF20 / 0052BF30 / 0052BF10: MOV EAX,imm32 (5 bytes).
@@ -50,10 +49,10 @@ static bool __fastcall TorchSlot29Verify(CTorchObject* self) {
 EI_VERIFY(0x0052BF00, TorchSlot29Verify, 0, s_unused);
 
 // 0052C2A0: PUSH ESI; PUSH EDI; MOV EDI,[ESP+0xC] (6 bytes).
-static void __fastcall TorchSaveVerify(CTorchObject* self, void*, UnitStream* stream) {
+static void __fastcall TorchSaveVerify(CTorchObject* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_save(self, nullptr, &expected);
-    self->SaveTorch(AsStream(&actual));
+    self->SaveTorch(&actual);
     ei::verify::Check("CTorchObject::SaveTorch", true, expected.Same(actual), "torch %d: %u vs %u bytes, first difference at %d",
                       self->id_, static_cast<unsigned>(expected.bytes.size()), static_cast<unsigned>(actual.bytes.size()),
                       expected.FirstDifference(actual));
