@@ -10,7 +10,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/mfc.h"
 #include "random.h"
 #include "originals_ai.h"
@@ -44,8 +43,8 @@ IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 float* FloatResult(Call* call) { return static_cast<float*>(call->result); }
 ScriptObjectRef* ObjectArg(Call* call, int i) { return call->cmd->objectArgs.data[i]; }
 
-// Virtual slot 55 (+0xDC) of a unit: 0 alive, 1 dead (addon's 10013192).
-int DeathState(CEngineObject* unit) { return ei::VCall<int>(unit, 0xDC / 4); }
+// CMapObject::IsDead (slot 55) of any object: 0 alive, 1 dead (addon's 10013192).
+int DeathState(CEngineObject* unit) { return static_cast<CMapObject*>(unit)->IsDead(); }
 
 // The filter of NearestUnit and UnitsNearPoint (10011421, 10013076): units pass with flag 1,
 // other objects with flag 2, and with flag 4 any living object with a text-key id.

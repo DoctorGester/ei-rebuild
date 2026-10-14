@@ -18,6 +18,7 @@
 #include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "engine_object.h"
+#include "unit.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -275,7 +276,7 @@ bool IsUnit(CEngineObject* object) { return object->GetClassId() == 0x50; }
 void* UnitData(const ScriptObjectRef* ref) {
     if (!ref || !ref->object) return nullptr;
     if (!IsUnit(ref->object)) return nullptr;
-    return *reinterpret_cast<void**>(reinterpret_cast<char*>(ref->object) + 0x240);
+    return static_cast<CUnit*>(ref->object)->controller;
 }
 
 bool Report(const char*, const char*, ...) { return true; }

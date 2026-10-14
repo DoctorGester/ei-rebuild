@@ -3,10 +3,11 @@
 // docs/notes/script.md.
 #include "script.h"
 #include "game_strings.h"
+#include "base_manager.h"
+#include "world.h"
 #include "world_effect.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_library.h"
@@ -30,6 +31,9 @@ struct World {
 void World::RemoveTimedObject(int id) { ::WorldRemoveTimed(this, nullptr, id); }
 void World::AddTimedObject(void* object) { WorldAddTimed(this, nullptr, static_cast<CEngineObject*>(object)); }
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
+
+// The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
+CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()->manager48_); }
 
 // CArray<ScriptAreaPart>::SetSize(newSize, -1) as the area functions inline it.
 void SetPartCount(mfc::CArray<ScriptAreaPart>* parts, int newSize) {
@@ -186,8 +190,7 @@ void __fastcall ScriptCreatePointLight(CScript* script, void*, const SSCCmd* cmd
     Lights(script)[i].id = id;
     Lights(script)[i].removeWhenDone = 0;
     ScriptPointLight* slot = &Lights(script)[i];
-    void* factory = *reinterpret_cast<void**>(0x007AFFA8);
-    slot->object = ei::VCall<CEngineObject*>(factory, 0x5C / 4, 0x4B, -1);
+    slot->object = EffectManager()->CreateObject(0x4B, -1);
     CEffectPointLight* object = static_cast<CEffectPointLight*>(Lights(script)[i].object);
     ++object->refCount_;
     f = cmd->floatArgs.data;
