@@ -771,6 +771,14 @@ public:
         using Fn = void(__thiscall*)(CUiWindow*, void*, void*, void*);
         reinterpret_cast<Fn>(vtable_[37])(this, partyB, partyA, partyC);
     }
+    // Slot 38 (+0x98): a multiplayer screen's player list window for kicking (mode 1) or
+    // banning (2) a player (the console's kick / ban without a name).
+    void VirtualPlayerList(int mode) {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[38])(this, mode);
+    }
+    // Slot 39 (+0x9C): the camp's DebugFill (the console's "give <player> assortment").
+    void VirtualDebugFill() { CallVirtual(39); }
     void VirtualSaveState() { CallVirtual(40); }
     // Slot 27 (+0x6C): the value a window above left pending when it closed.
     void VirtualMessageResult(int result) {

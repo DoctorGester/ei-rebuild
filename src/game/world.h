@@ -105,7 +105,8 @@ struct WorldPlayer {
     std::uint32_t unknown100;
     int lastScreen;                      // +0x104 the interface screen it comes from (5: the camp)
     std::uint8_t unknown108;             // +0x108 saved with the world (one byte)
-    std::uint8_t unknown_109[0x110 - 0x109];
+    std::uint8_t unknown_109[0x10C - 0x109];
+    int logTraffic;                      // +0x10C logs the size of every flush (the console's "net")
     int lastTick;                        // +0x110
     mfc::CList<std::uint32_t> ids;       // +0x114 saved with the world from version 0x55 (AddTail 0059CC60)
     std::uint32_t dirty;                 // +0x130 changes still to send to this player
@@ -118,6 +119,7 @@ static_assert(offsetof(WorldPlayer, link) == 0x1C);
 static_assert(offsetof(WorldPlayer, party) == 0x70);
 static_assert(offsetof(WorldPlayer, unknownFC) == 0xFC);
 static_assert(offsetof(WorldPlayer, unknown108) == 0x108);
+static_assert(offsetof(WorldPlayer, logTraffic) == 0x10C);
 static_assert(offsetof(WorldPlayer, lastTick) == 0x110);
 static_assert(offsetof(WorldPlayer, ids) == 0x114);
 static_assert(offsetof(WorldPlayer, server) == 0x20);

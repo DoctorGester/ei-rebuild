@@ -2,6 +2,7 @@
 // game.exe 0x005DC150-0x005DD91F and 0x004DC200. See docs/notes/console.md.
 #include "console.h"
 #include "game_strings.h"
+#include "ui.h"
 
 #include "../lib/crt.h"
 
@@ -40,6 +41,9 @@ GameOStream& GameOStream::operator<<(int a0) { return *static_cast<GameOStream*>
 GameOStream& GameOStream::operator<<(double v) { return *static_cast<GameOStream*>(OstreamPutDoubleOriginal(this, nullptr, v)); }
 GameOStream& GameOStream::Apply(void* manipulator) { return *static_cast<GameOStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 
+__declspec(naked) void ConsoleStreambuf::StreambufConstruct(char*, int) EI_ORIGINAL(0x006FCAD2)
+__declspec(naked) void ConsoleStreambuf::StreambufDestruct() EI_ORIGINAL(0x006FCB35)
+
 __declspec(naked) CommandHandler* __fastcall CommandIndex(CommandMap*, void*, const mfc::CString&) EI_ORIGINAL(0x005E0B20)
 
 namespace {
@@ -50,20 +54,8 @@ int Mbscmp(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
-// The old iostream streambuf base.
-struct StreambufBaseAt {
-    void Init(char* buffer, int length);   // 006FCAD2 streambuf(char*, int)
-    void Destruct();                       // 006FCB35 ~streambuf
-};
-__declspec(naked) void StreambufBaseAt::Init(char*, int) EI_ORIGINAL(0x006FCAD2)
-__declspec(naked) void StreambufBaseAt::Destruct() EI_ORIGINAL(0x006FCB35)
-
-// 007C7D50: the interface manager; 005F7EB0 hands a line to its console window (+0x14), if any.
-struct InterfaceAt {
-    void AddConsoleLine(const char* text);   // 005F7EB0
-};
-__declspec(naked) void InterfaceAt::AddConsoleLine(const char*) EI_ORIGINAL(0x005F7EB0)
-inline InterfaceAt* Interface() { return reinterpret_cast<InterfaceAt*>(0x007C7D50); }
+// 007C7D50: the interface manager (ConsoleAddText hands a line to its console window, if any).
+inline CInterface3D* Interface() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
 
 // 0057F440 (called with the game at 007AFE20 in ECX): a network game is running (server object
 // 0079B5D8 present and active).
@@ -71,12 +63,11 @@ bool NetworkGame() { return IsNetworkClientOriginal(); }
 
 // 00455F20: posts WM_QUIT (when the game window exists); the exit code in ECX.
 
-// 005785D0 (on 007AFEA6): loads `text` into the mission script 007C29CC, runs one tick when it
-// loaded and `run` is set, and copies the loader's error into `error`. Returns nonzero on success.
-struct MissionAt {
-    int LoadScript(mfc::CString* text, int run, ScriptLoadError* error);
-};
-__declspec(naked) int MissionAt::LoadScript(mfc::CString*, int, ScriptLoadError*) EI_ORIGINAL(0x005785D0)
+// 005785D0 (RunScriptText, world_glue.h; thiscall on the glue 007AFEA6, which it does not read;
+// RET 0xC): loads `text` into the mission script 007C29CC, runs one tick when it loaded and `run`
+// is set, and copies the loader's error into `error`. Returns nonzero on success. Through its
+// address, so its verify wrapper runs.
+__declspec(naked) int __stdcall RunScriptTextAt(mfc::CString*, int /*run*/, ScriptLoadError*) EI_ORIGINAL(0x005785D0)
 
 // Calls between the console functions go through the original addresses, so that each runs
 // through its own verify wrapper in verify builds (and through any other mod's patch).
@@ -96,7 +87,7 @@ void PrintLine(const char* text) { EndLine(Out() << text); }
 
 // 005DC200
 ConsoleStreambuf* ConsoleStreambuf::Construct(unsigned filter) {
-    reinterpret_cast<StreambufBaseAt*>(this)->Init(buffer_, sizeof(buffer_));
+    StreambufConstruct(buffer_, sizeof(buffer_));
     filter_ = filter;
     line_ = *reinterpret_cast<char**>(0x00796E48);   // CString(): the shared empty string
     vtable_ = reinterpret_cast<void**>(kConsoleStreambufVtable);
@@ -108,7 +99,7 @@ EI_REPLACE_METHOD(0x005DC200, ConsoleStreambuf::Construct);
 void ConsoleStreambuf::Destruct() {
     vtable_ = reinterpret_cast<void**>(kConsoleStreambufVtable);
     Line().~CString();
-    reinterpret_cast<StreambufBaseAt*>(this)->Destruct();
+    StreambufDestruct();
 }
 EI_REPLACE_METHOD(0x005DC260, ConsoleStreambuf::Destruct);
 
@@ -139,7 +130,7 @@ EI_REPLACE_METHOD(0x005DC150, ConsoleStreambuf::Overflow);
 int ConsoleStreambuf::Sync() {
     using OverflowFn = int(__thiscall*)(ConsoleStreambuf*, int);
     reinterpret_cast<OverflowFn>(vtable_[7])(this, -1);
-    Interface()->AddConsoleLine(line_);
+    Interface()->ConsoleAddText(line_);
     Line() = game::EmptyText();   // ""
     return 0;
 }
@@ -304,7 +295,7 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
         line += arg;
     }
     Ops(line).AppendText(suffix);
-    if (!reinterpret_cast<MissionAt*>(0x007AFEA6)->LoadScript(&line, 1, &error))
+    if (!RunScriptTextAt(&line, 1, &error))
         EndLine(Out() << GameText(0x007924CC) << static_cast<const char*>(error.text));   // "Script error: "
 }
 EI_REPLACE(0x005DD800, RunScriptLine);

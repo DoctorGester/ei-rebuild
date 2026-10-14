@@ -15,6 +15,11 @@
 #include "acks_db.h"
 #include "world_glue.h"
 #include "originals_units.h"
+#include "model.h"
+#include "net_messages.h"
+#include "party.h"
+#include "player_messages.h"
+#include "ui.h"
 #include "unit.h"
 #include "world.h"
 
@@ -39,63 +44,14 @@ bool ArgOn(const CStringArray* args, int i) { return ArgIs(args, i, 0x00787C00) 
 bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, 0x007856B8) || ArgIs(args, i, 0x0078D5E0); }
 
 // 007C7D50: the interface manager.
-struct InterfaceAt {
-    void SetConsoleRect(int* rect);     // 005F7ED0 (console window +0x14, if any: 005E3E90)
-    void SetConsoleHistory(int lines);  // 005F7EF0 (005E3F90)
-    void SetDebugInfoRect(int* rect);   // 005F7F10 (00444C10 on 0079B930)
-    void ShowFps(bool on);              // 005F5700
-};
-__declspec(naked) void InterfaceAt::SetConsoleRect(int*) EI_ORIGINAL(0x005F7ED0)
-__declspec(naked) void InterfaceAt::SetConsoleHistory(int) EI_ORIGINAL(0x005F7EF0)
-__declspec(naked) void InterfaceAt::SetDebugInfoRect(int*) EI_ORIGINAL(0x005F7F10)
-__declspec(naked) void InterfaceAt::ShowFps(bool) EI_ORIGINAL(0x005F5700)
-inline InterfaceAt* Interface() { return reinterpret_cast<InterfaceAt*>(0x007C7D50); }
+CInterface3D* Interface() { return reinterpret_cast<CInterface3D*>(0x007C7D50); }
 
-// 007AF5B8: the renderer's debug display flags (+0x88).
-struct DebugDisplayAt {
-    void FpsOn();               // 00569A10
-    void FpsOff();              // 00569A20
-    void RenderInfoOn();        // 00569A40
-    void RenderInfoOff();       // 00569A50
-    void ManagersOn();          // 00569A90
-    void ManagersOff();         // 00569AA0
-    void WorldDataOn();         // 00569B10
-    void WorldDataOff();        // 00569B20
-};
-__declspec(naked) void DebugDisplayAt::FpsOn() EI_ORIGINAL(0x00569A10)
-__declspec(naked) void DebugDisplayAt::FpsOff() EI_ORIGINAL(0x00569A20)
-__declspec(naked) void DebugDisplayAt::RenderInfoOn() EI_ORIGINAL(0x00569A40)
-__declspec(naked) void DebugDisplayAt::RenderInfoOff() EI_ORIGINAL(0x00569A50)
-__declspec(naked) void DebugDisplayAt::ManagersOn() EI_ORIGINAL(0x00569A90)
-__declspec(naked) void DebugDisplayAt::ManagersOff() EI_ORIGINAL(0x00569AA0)
-__declspec(naked) void DebugDisplayAt::WorldDataOn() EI_ORIGINAL(0x00569B10)
-__declspec(naked) void DebugDisplayAt::WorldDataOff() EI_ORIGINAL(0x00569B20)
-inline DebugDisplayAt* DebugDisplay() { return reinterpret_cast<DebugDisplayAt*>(0x007AF5B8); }
-
-// 007AFF60: the world.
-struct WorldAt {
-    char* GetPlayer(int index);   // 00594180
-    void LootAll();               // 00593D60
-};
-char* WorldAt::GetPlayer(int id) { return static_cast<char*>(::WorldGetPlayer(this, nullptr, id)); }
-__declspec(naked) void WorldAt::LootAll() EI_ORIGINAL(0x00593D60)
-inline WorldAt* World() { return reinterpret_cast<WorldAt*>(0x007AFF60); }
-
-// Player members used here: +0x20 its state object (quest variables, inventory, party), +0xA0 the
-// party units (0x784 bytes each), +0xA4 their count, +0xC0 money, +0xC4 the global variables
-// (hash_map<const char*, float>).
-template <typename T>
-T& Field(char* base, int offset) { return *reinterpret_cast<T*>(base + offset); }
-WorldPlayer* AsPlayer(char* player) { return reinterpret_cast<WorldPlayer*>(player); }
-
-struct PlayerStateAt {
-    void SetVariable(const char* name, float value) { PlayerStateSetVariableOriginal(this, nullptr, name, value); }   // 0066EE10
-    void Refresh();                                    // 0066EF80
-    void ResendParty();                                // 0066F450
-};
-void PlayerStateAt::Refresh() { PlayerStateRefreshOriginal((void*)this); }
-void PlayerStateAt::ResendParty() { PlayerResendPartyOriginal((void*)this); }
-
+// The world's player `id` (00594180, through its address), or null.
+WorldPlayer* GetPlayer(int id) { return static_cast<WorldPlayer*>(WorldGetPlayer(WorldServer(), nullptr, id)); }
+// The client world's local player (its local view's player).
+WorldPlayer* LocalPlayer() {
+    return reinterpret_cast<LocalViewData*>(ClientWorldLocalViewOriginal(WorldClient()))->player;
+}
 
 // The global variables' hash table: a node is {next, name, value}.
 struct VariableNode {
@@ -110,34 +66,17 @@ struct VariableIterator {
 };
 VariableNode* VariableIterator::NextBucket() { return (VariableNode*)VariableIteratorNextOriginal((void*)this); }
 
-// 004DBE40: splits `text` at `separator` into `out`.
+// 0079B5D8: the network client session, active unless it was detached.
+inline net::ClientSession* Server() { return net::GameClient(); }
+bool ServerActive(net::ClientSession* server) { return server && !(server->flags7_ & CRefCounted::kDetached); }
 
-
-// 0057F440 (with the game 007AFE20 in ECX): a network game is running.
-
-// 0079B5D8: the network server, active unless +4 has bit 31.
-inline char* Server() { return *reinterpret_cast<char**>(0x0079B5D8); }
-bool ServerActive(char* server) { return server && !(Field<unsigned>(server, 4) & 0x80000000u); }
-
-// 007C7D68: the screen fader.
-struct FaderAt {
-    void FadeOut(int milliseconds);   // 005E6B90
-};
-__declspec(naked) void FaderAt::FadeOut(int) EI_ORIGINAL(0x005E6B90)
-
-// 00500960: the timer (007AF060); vtable +0x18 gives the last frame time in milliseconds.
-void* __cdecl FrameTimer() { return DisplayObject(); }
-
-// MFC CTime (a time_t).
-struct TimeAt {
-    long time;
-    TimeAt* Construct(int year, int month, int day, int hour, int minute, int second, int dst);   // 006FE3BB
-};
-__declspec(naked) TimeAt* TimeAt::Construct(int, int, int, int, int, int, int) EI_ORIGINAL(0x006FE3BB)
-
-void SetRect(void (InterfaceAt::*set)(int*), int left, int top, int right, int bottom) {
+void SetDebugInfoRect(int left, int top, int right, int bottom) {
+    RECT rect = {left, top, right, bottom};
+    Interface()->SetDebugInfoRect(&rect);
+}
+void SetConsoleRect(int left, int top, int right, int bottom) {
     int rect[4] = {left, top, right, bottom};
-    (Interface()->*set)(rect);
+    Interface()->SetConsoleRect(rect);
 }
 
 } // namespace
@@ -157,13 +96,13 @@ EI_REPLACE(0x005DF5E0, Help);
 void __fastcall DebugInfo(CStringArray* args) {
     if (args->GetSize() != 0) {
         if (ArgIs(args, 0, 0x0079251C) || ArgIs(args, 0, 0x0078F9AC))   // left, l
-            return SetRect(&InterfaceAt::SetDebugInfoRect, 10, 10, 0x122, 0x24E);
+            return SetDebugInfoRect(10, 10, 0x122, 0x24E);
         if (ArgIs(args, 0, 0x00792514) || ArgIs(args, 0, 0x00792510))   // right, r
-            return SetRect(&InterfaceAt::SetDebugInfoRect, 0x1FE, 10, 0x316, 0x24E);
+            return SetDebugInfoRect(0x1FE, 10, 0x316, 0x24E);
         if (ArgIs(args, 0, 0x00792508) || ArgIs(args, 0, 0x00792504))   // lefttop, lt
-            return SetRect(&InterfaceAt::SetDebugInfoRect, 10, 10, 0x122, 0x122);
+            return SetDebugInfoRect(10, 10, 0x122, 0x122);
         if (ArgIs(args, 0, 0x007924F8) || ArgIs(args, 0, 0x007849E4))   // righttop, rt
-            return SetRect(&InterfaceAt::SetDebugInfoRect, 0x1FE, 10, 0x316, 0x122);
+            return SetDebugInfoRect(0x1FE, 10, 0x316, 0x122);
     }
     PrintLine(GameText(0x007924DC));   // "Invalid debug info position"
 }
@@ -173,17 +112,17 @@ EI_REPLACE(0x005DD920, DebugInfo);
 void __fastcall ConsolePos(CStringArray* args) {
     if (args->GetSize() != 0) {
         if (ArgIs(args, 0, 0x0079251C) || ArgIs(args, 0, 0x0078F9AC))   // left, l
-            return SetRect(&InterfaceAt::SetConsoleRect, 0, 0, 0xC8, 0x258);
+            return SetConsoleRect(0, 0, 0xC8, 0x258);
         if (ArgIs(args, 0, 0x00792514) || ArgIs(args, 0, 0x00792510))   // right, r
-            return SetRect(&InterfaceAt::SetConsoleRect, 0x258, 0, 0x320, 0x258);
+            return SetConsoleRect(0x258, 0, 0x320, 0x258);
         if (ArgIs(args, 0, 0x00792568) || ArgIs(args, 0, 0x00792564))   // top, t
-            return SetRect(&InterfaceAt::SetConsoleRect, 0, 0, 0x320, 0x96);
+            return SetConsoleRect(0, 0, 0x320, 0x96);
         if (ArgIs(args, 0, 0x0079255C) || ArgIs(args, 0, 0x00792558))   // bottom, b
-            return SetRect(&InterfaceAt::SetConsoleRect, 0, 0x1C2, 0x320, 0x258);
+            return SetConsoleRect(0, 0x1C2, 0x320, 0x258);
         if (ArgIs(args, 0, 0x00792550) || ArgIs(args, 0, 0x0079254C))   // center, c
-            return SetRect(&InterfaceAt::SetConsoleRect, 0xC8, 0x96, 0x258, 0x1C2);
+            return SetConsoleRect(0xC8, 0x96, 0x258, 0x1C2);
         if (ArgIs(args, 0, 0x00792540) || ArgIs(args, 0, 0x0078BBD8))   // fullscreen, f
-            return SetRect(&InterfaceAt::SetConsoleRect, 0, 0, 0x320, 0x258);
+            return SetConsoleRect(0, 0, 0x320, 0x258);
     }
     PrintLine(GameText(0x00792524));   // "Invalid console position"
 }
@@ -231,25 +170,25 @@ EI_REPLACE(0x005DDFE0, Filter);
 // 005DE460: show fps|managers|render_info|world_data 1|on|0|off (anything else: nothing).
 void __fastcall Show(CStringArray* args) {
     if (args->GetSize() < 2) return PrintLine(GameText(0x00792634));   // 'Invalid number of parameters for command "show"'
-    void (DebugDisplayAt::*on)();
-    void (DebugDisplayAt::*off)();
+    void (CWorldClient::*on)();
+    void (CWorldClient::*off)();
     if (ArgIs(args, 0, 0x007923F8)) {            // fps
-        on = &DebugDisplayAt::FpsOn;
-        off = &DebugDisplayAt::FpsOff;
+        on = &CWorldClient::ShowFps;
+        off = &CWorldClient::HideFps;
     } else if (ArgIs(args, 0, 0x00792628)) {     // managers
-        on = &DebugDisplayAt::ManagersOn;
-        off = &DebugDisplayAt::ManagersOff;
+        on = &CWorldClient::ShowManagers;
+        off = &CWorldClient::HideManagers;
     } else if (ArgIs(args, 0, 0x0079261C)) {     // render_info
-        on = &DebugDisplayAt::RenderInfoOn;
-        off = &DebugDisplayAt::RenderInfoOff;
+        on = &CWorldClient::ShowRenderInfo;
+        off = &CWorldClient::HideRenderInfo;
     } else if (ArgIs(args, 0, 0x00792610)) {     // world_data
-        on = &DebugDisplayAt::WorldDataOn;
-        off = &DebugDisplayAt::WorldDataOff;
+        on = &CWorldClient::ShowWorldData;
+        off = &CWorldClient::HideWorldData;
     } else {
         return PrintLine(GameText(0x007925E8));   // "Invalid parameters in command 'show'"
     }
-    if (ArgOn(args, 1)) (DebugDisplay()->*on)();
-    else if (ArgOff(args, 1)) (DebugDisplay()->*off)();
+    if (ArgOn(args, 1)) (WorldClient()->*on)();
+    else if (ArgOff(args, 1)) (WorldClient()->*off)();
 }
 EI_REPLACE(0x005DE460, Show);
 
@@ -257,11 +196,11 @@ EI_REPLACE(0x005DE460, Show);
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
 void __fastcall ListVar(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine(GameText(0x007926A4));   // usage
-    char* player;
+    WorldPlayer* player;
     if (IsNetworkClientOriginal())
-        player = Field<char*>(reinterpret_cast<char*>(ClientWorldLocalViewOriginal(DebugDisplay())), 0x1C);
+        player = LocalPlayer();
     else
-        player = World()->GetPlayer(GameAtoi((*args)[0]));
+        player = GetPlayer(GameAtoi((*args)[0]));
     if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
 
     mfc::CString line;
@@ -273,7 +212,7 @@ void __fastcall ListVar(CStringArray* args) {
             EndLine(Out() << GameText(0x0079266C) << static_cast<const char*>((*args)[1]) << GameText(0x00792680));
     }
     VariableIterator it;
-    FloatTableBeginOriginal(player + 0xC4, nullptr, &it);
+    FloatTableBeginOriginal(player->variables, nullptr, &it);
     while (it.node) {
         EndLine((Out() << it.node->name << GameText(0x0078DA6C)).PutFloat(it.node->value));   // " = "
         if (writing) {
@@ -291,9 +230,9 @@ EI_REPLACE(0x005DEA00, ListVar);
 // 005DEC90: loadvar <player> <file>: sets the variables of each "name value" line.
 void __fastcall LoadVar(CStringArray* args) {
     if (args->GetSize() < 2) return PrintLine(GameText(0x007926E4));   // usage
-    char* player = World()->GetPlayer(GameAtoi((*args)[0]));
+    WorldPlayer* player = GetPlayer(GameAtoi((*args)[0]));
     if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
-    auto* state = reinterpret_cast<PlayerStateAt*>(AsPlayer(player)->server);
+    CPlayerServer* state = player->server;
     if (!state) return PrintLine(GameText(0x00792690));
 
     mfc::CString line;
@@ -308,7 +247,7 @@ void __fastcall LoadVar(CStringArray* args) {
         if (parts.GetSize() > 1) {
             const char* name = parts[0];
             float value = static_cast<float>(GameAtof(parts[1]));
-            state->SetVariable(name, value);
+            PlayerStateSetVariableOriginal(state, nullptr, name, value);
         }
     }
     file.Close();
@@ -317,10 +256,9 @@ EI_REPLACE(0x005DEC90, LoadVar);
 
 // 005DEEE0: "Current FPS: " 1000 / last frame time (printed as float).
 void __fastcall LastFps(CStringArray*) {
-    void* timer = FrameTimer();
+    auto* timer = static_cast<CSceneRenderer*>(DisplayObject());
     GameOStream& os = Out() << GameText(0x00792710);
-    using FrameTimeFn = unsigned(__thiscall*)(void*);
-    unsigned ms = (*reinterpret_cast<FrameTimeFn**>(timer))[0x18 / 4](timer);
+    unsigned ms = timer->FrameTime();
     double fps = *reinterpret_cast<const float*>(0x0073C34C) / x87::FromUnsigned(ms);
     EndLine(os.PutFloat(fps));
 }
@@ -354,27 +292,25 @@ void __fastcall Give(CStringArray* args) {
         PrintLine(GameText(0x00792784));   // "give [NPlayer] money [NMoney]"
         return PrintLine(GameText(0x00792768));
     }
-    char* player = World()->GetPlayer(GameAtoi((*args)[0]));
+    WorldPlayer* player = GetPlayer(GameAtoi((*args)[0]));
     if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
-    auto* state = reinterpret_cast<PlayerStateAt*>(AsPlayer(player)->server);
+    CPlayerServer* state = player->server;
     if (!state) return PrintLine(GameText(0x00792690));
     if (ArgIs(args, 1, 0x00792760) && args->GetSize() > 2) {   // money
         int amount = GameAtoi((*args)[2]);
-        Field<int>(player, 0xC0) += amount;
-        return state->Refresh();
+        player->Party()->Money() += amount;
+        return PlayerStateRefreshOriginal(state);
     }
     if (ArgIs(args, 1, 0x0079275C) && args->GetSize() > 2) {   // exp
-        int count = AsPlayer(player)->mercCount;
+        int count = player->mercCount;
         // Rounded to float once, as the original stores it (volatile: /fp:fast would keep a double).
         volatile float share = static_cast<float>(GameAtof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
-            UnitStatsAddExperience(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(AsPlayer(player)->mercs)[i].stats), nullptr, share);
-        return state->Refresh();
+            UnitStatsAddExperience(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(player->mercs)[i].stats), nullptr, share);
+        return PlayerStateRefreshOriginal(state);
     }
     if (ArgIs(args, 1, 0x00792750)) {   // assortment
-        void* window = InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(Interface()));
-        using OpenFn = void(__thiscall*)(void*);
-        (*reinterpret_cast<OpenFn**>(window))[0x9C / 4](window);
+        InterfaceActiveWindowOriginal(Interface())->VirtualDebugFill();
         return;
     }
     PrintLine(GameText(0x00792744));   // "Give what?"
@@ -384,15 +320,14 @@ EI_REPLACE(0x005DF0F0, Give);
 // 005DF5B0: lootall.
 void __fastcall LootAll(CStringArray*) {
     PrintLine(GameText(0x00792838));   // "Looting..."
-    World()->LootAll();
+    WorldServer()->LootDeadUnits();
 }
 EI_REPLACE(0x005DF5B0, LootAll);
 
 // 005DF8E0: fadeout <milliseconds>.
 void __fastcall FadeOut(CStringArray* args) {
     if (args->GetSize() <= 0) return PrintLine(GameText(0x00792B40));   // "FADEOUT nMillSec"
-    FaderAt* fader = *reinterpret_cast<FaderAt**>(0x007C7D68);
-    fader->FadeOut(GameAtoi((*args)[0]));
+    Interface()->fade_->Start(GameAtoi((*args)[0]));
     PrintLine(GameText(0x00792B54));   // "Ok"
 }
 EI_REPLACE(0x005DF8E0, FadeOut);
@@ -406,17 +341,16 @@ void __fastcall Net(CStringArray* args) {
     }
     if (Mbsicmp((*args)[0], GameText(0x00792B68)) == 0) {   // client
         mfc::CString value((*args)[1]);
-        char* client = Field<char*>(reinterpret_cast<char*>(ClientWorldLocalViewOriginal(DebugDisplay())), 0x1C);
-        Field<int>(client, 0x10C) = GameAtoi(value);
+        LocalPlayer()->logTraffic = GameAtoi(value);
     }
     if (Mbsicmp((*args)[0], GameText(0x00792450)) == 0) {   // server
-        if (char* player = World()->GetPlayer(0)) Field<int>(player, 0x10C) = GameAtoi((*args)[1]);
+        if (WorldPlayer* player = GetPlayer(0)) player->logTraffic = GameAtoi((*args)[1]);
     }
     if (Mbsicmp((*args)[0], GameText(0x00792B60)) == 0)     // time
         *reinterpret_cast<int*>(0x0079BC60) = GameAtoi((*args)[1]);
     if (Mbsicmp((*args)[0], GameText(0x00792B58)) == 0 && ServerActive(Server())) {   // zone
         mfc::CString zone((*args)[1]);
-        SessionCommand(reinterpret_cast<net::ClientSession*>(Server()), nullptr, 0, zone);
+        SessionCommand(Server(), nullptr, 0, zone);
     }
 }
 EI_REPLACE(0x005DF9B0, Net);
@@ -488,16 +422,16 @@ void __fastcall Days(CStringArray* args) {
             if (month >= 1 && month <= 12) {
                 int day = number(0, 0, 2);
                 if (day >= 1 && day <= 31) {
-                    TimeAt birth;
-                    long from = birth.Construct(year, month, day, 6, 0, 0, -1)->time;
+                    mfc::CTime birth;
+                    long from = birth.Construct(year, month, day, 6, 0, 0, -1)->time_;
                     int year2 = number(1, 4, 4);
                     if (year2 >= 1900) {
                         int month2 = number(1, 2, 2);
                         if (month2 >= 1 && month2 <= 12) {
                             int day2 = number(1, 0, 2);
                             if (day2 >= 1 && day2 <= 31) {
-                                TimeAt now;
-                                long to = now.Construct(year2, month2, day2, 7, 1, 1, -1)->time;
+                                mfc::CTime now;
+                                long to = now.Construct(year2, month2, day2, 7, 1, 1, -1)->time_;
                                 int days = static_cast<int>((to - from) / 86400);
                                 EndLine(Out() << GameText(0x00792CA0) << days << GameText(0x00792CAC));   // "Your age: " " days"
                                 return;
@@ -515,7 +449,7 @@ EI_REPLACE(0x005E00D0, Days);
 
 // 005E0570: partyresend.
 void __fastcall PartyResend(CStringArray*) {
-    if (char* player = World()->GetPlayer(0)) reinterpret_cast<PlayerStateAt*>(AsPlayer(player)->server)->ResendParty();
+    if (WorldPlayer* player = GetPlayer(0)) PlayerResendPartyOriginal(player->server);
 }
 EI_REPLACE(0x005E0570, PartyResend);
 
@@ -525,13 +459,12 @@ namespace {
 void KickOrBan(CStringArray* args, int windowMode, int command) {
     int count = args->GetSize();
     if (count == 0) {
-        char* server = Server();
+        net::ClientSession* server = Server();
         if (ServerActive(server)) {
-            if (*(Field<char*>(Field<char*>(server, 0x25F0), 0xC) + 0x28)) {
-                void* window = InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(Interface()));
-                using OpenFn = void(__thiscall*)(void*, int);
-                (*reinterpret_cast<OpenFn**>(window))[0x98 / 4](window, windowMode);
-            }
+            // Our binding's player record: only the host gets the window.
+            auto* binding = static_cast<net::BindingMessage*>(server->binding_);
+            if (static_cast<net::PlayerMessage*>(binding->PlayerRef().ptr)->host_)
+                InterfaceActiveWindowOriginal(Interface())->VirtualPlayerList(windowMode);
             return;
         }
     }
@@ -539,7 +472,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
     mfc::CString name((*args)[0]);
     const char* text = name;
     if (text[0] == '"' && text[Length(name) - 1] == '"') name = Ops(name).Mid(1, Length(name) - 2);
-    if (ServerActive(Server())) SessionCommand(reinterpret_cast<net::ClientSession*>(Server()), nullptr, command, name);
+    if (ServerActive(Server())) SessionCommand(Server(), nullptr, command, name);
 }
 } // namespace
 
@@ -554,8 +487,8 @@ EI_REPLACE(0x005E06E0, Ban);
 // 005E0830: fps 1|on|0|off (anything else: nothing).
 void __fastcall Fps(CStringArray* args) {
     if (args->GetSize() < 1) return PrintLine(GameText(0x00792CB4));   // 'Invalid number of parameters for command "FPS"'
-    if (ArgOn(args, 0)) Interface()->ShowFps(true);
-    else if (ArgOff(args, 0)) Interface()->ShowFps(false);
+    if (ArgOn(args, 0)) Interface()->ShowFps(1);
+    else if (ArgOff(args, 0)) Interface()->ShowFps(0);
 }
 EI_REPLACE(0x005E0830, Fps);
 
