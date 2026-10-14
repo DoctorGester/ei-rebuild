@@ -375,11 +375,12 @@ done = "2026-10-14"
 id = "N0b"
 title = "ui_help opens help: H, not F1"
 group = "native-ui"
-status = "review"
+status = "done"
 size = 0.25
 files = ["tests/scenarios/ui_help.txt"]
 note = "ui_help presses F1, which is select1 in keyboard.ini; the help key is H (tutorial_script), so it never opened the help window (N0a, ui-census.md Coverage). Switch it to H on a topic with a tutorial text, or fold it into ui_help_page, and keep its checks."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "N0c"
