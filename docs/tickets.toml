@@ -100,10 +100,11 @@ note = "R9a and R9a2 merged: the five present scenarios pass on vanilla and --na
 id = "R9b"
 title = "Guard every old-device call for a device object without a device"
 group = "renderer"
-status = "queued"
+status = "running"
 model = "opus"
 depends = ["R9a"]
 note = "The 73 calling places in the old-device log (524 sites in 143 functions overall)."
+started = "2026-10-14"
 
 [[ticket]]
 id = "R9c"
@@ -120,11 +121,12 @@ note = "Movies and the loading screen through Present, full screen / resize, gam
 id = "N0"
 title = "Census of interface drawing per window and surface"
 group = "native-ui"
-status = "review"
+status = "done"
 started = "2026-10-14"
 size = 1
 files = ["tests/verify/ui_census.cpp", "src/game/ui_surface_dc.cpp", "src/game/ui_window.cpp"]
 note = "gdi32 / user32 import slots of game.exe and addon.dll, HDC to surface through g_memoryDcs; GDI metric calls too; uncaught drawing by DIB checksums. Report in docs/notes/ui-census.md. Result 2026-10-14 (docs/notes/ui-census.md): no uncaught drawing; addon.dll makes no GDI calls; primitives are fill / FrameRect (tooltip) / lines / SetPixel (HUD map) / DrawText / RichEdit; six every-frame surfaces; SwapContents on every window show and hide; run with EI_UI_CENSUS=1 EI_RENDER=new,cpuwindows, merge with tools/ui_census_report.py --summary."
+done = "2026-10-14"
 
 [[ticket]]
 id = "N1"
