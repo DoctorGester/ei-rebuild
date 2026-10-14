@@ -243,6 +243,9 @@ async function poll() {
     const r = await fetch('/api/status', { cache: 'no-store' });
     if (!r.ok) throw new Error(r.status + ' ' + (await r.text()).slice(0, 200));
     data = await r.json(); fetchedAt = Date.now();
+    // A worker that takes on a second ticket mid-task marks it running in its own worktree's toml,
+    // which main sees only at merge; the open assignment is the live truth.
+    for (const t of data.tickets) if (t.assignment && t.assignment.open && !ACTIVE_STATES.includes(t.state) && t.state !== 'done') t.state = 'running';
     document.getElementById('error').textContent = '';
     render();
   } catch (e) { document.getElementById('error').textContent = 'Could not load /api/status: ' + e; }
