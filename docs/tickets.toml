@@ -592,7 +592,7 @@ status = "queued"
 size = 0.5
 model = "opus"
 files = ["docs/open-questions.md"]
-note = "From SV1: random draws identical up to where runs part, no clock read, step or sound event differs before it; rebirth_flags' unit group order changes run to run. Guess: an order that depends on heap addresses. SV2's digest would name the first field that differs. Listed in open-questions.md under 'Harness runs that do not repeat on the virtual clock'."
+note = "From SV1: random draws identical up to where runs part, no clock read, step or sound event differs before it; rebirth_flags' unit group order changes run to run. Guess: an order that depends on heap addresses. SV2's digest would name the first field that differs. Listed in open-questions.md under 'Harness runs that do not repeat on the virtual clock'. SV2 (2026-10-15): a unit's update-map countdown (CMapObject +0x174) is set from bits 5-8 of its heap address (0058D5D0, 005927C0) and differs between runs of the original alone; it decides when an idle unit stops being updated, a likely cause. Use tools/golden.py diff --all-fields on digests of two runs."
 
 [[ticket]]
 id = "SV2a"
