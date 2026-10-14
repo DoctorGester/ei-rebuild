@@ -297,9 +297,10 @@ DWORD WINAPI VirtualGetTickCount() { return OnMainThread() ? g_now : OtherThread
 // The main thread's sleeps and timed waits take no real time: the clock moves by what they would
 // have waited. Other threads wait for real (and only read the clock).
 // A main thread that sleeps over and over without a frame between is waiting for another thread (the
-// music's WaitAndEndAfter, the sound start-up): Sleep(0) lets only threads of its own priority run,
-// and on a busy machine the one it waits for got no time (games hung at start-up for the 60 s
-// limit, before the sound was open). After the first 50 such sleeps each one sleeps 1 ms for real.
+// music's WaitAndEndAfter): Sleep(0) lets only threads of its own priority run, so on a busy machine
+// the one it waits for may get no time. After the first 50 such sleeps each one sleeps 1 ms for real.
+// (Start-up hangs for the 60 s limit on a busy machine turned out to be DirectSound's device open
+// inside Miles' waveOutOpen, on both sides and on either clock; this guard is kept regardless.)
 void WINAPI VirtualSleep(DWORD ms) {
     if (!OnMainThread()) return g_sleep(ms);
     Advance(ms);
