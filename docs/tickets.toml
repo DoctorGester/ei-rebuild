@@ -456,12 +456,23 @@ started = "2026-10-14"
 id = "W2a"
 title = "Connect list 0061D780 under Rebirth: ExtendedServerName with WideScreen"
 group = "widescreen"
-status = "review"
+status = "done"
 size = 0.5
 model = "sonnet"
 depends = ["W2"]
 note = "W2 rewrote its WideScreen caret (+0x38E/+0x3BE) but the Rebirth launch skips the hook: the function also holds ExtendedServerName (+0x27C, not reproduced). Reproduce that site too (EI_REBIRTH_IMPLEMENTS both), then compare in a Rebirth launch (net_lobby's connect list)."
 started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "W2b"
+title = "Connect screen Create 0061B2C0: addon's ExtendedServerName sites"
+group = "widescreen"
+status = "queued"
+size = 0.3
+model = "sonnet"
+files = ["src/game/ui_connect_screen.cpp", "config/rebirth_patches.csv"]
+note = "From W2a (2026-10-14): the connect list draw now reproduces ExtendedServerName, but Create 0061B2C0 still carries addon's sites (field sizes, 0061BB51 and neighbours) plus the 0061B5CE float. Same approach as W2a: read addon's live bytes, gate on Patch::ExtendedServerName, compare in ui_mp_host under Rebirth."
 
 # ---------------------------------------------------------------- unknown fields
 
