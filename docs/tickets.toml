@@ -505,10 +505,11 @@ done = "2026-10-14"
 id = "SV1"
 title = "Virtual game clock: runs that repeat"
 group = "verification"
-status = "running"
+status = "done"
 started = "2026-10-14"
 size = 1.5
 note = "Zone loading and the sound code's clocks on the virtual clock; every scenario passes compare.py --runs 3 on both sides."
+done = "2026-10-14"
 
 [[ticket]]
 id = "SV2"
@@ -542,6 +543,26 @@ group = "verification"
 status = "queued"
 size = 1
 depends = ["SV3"]
+
+[[ticket]]
+id = "SV1a"
+title = "units and sandbox_actions: our wolf dies 300 ms of virtual time sooner than the original"
+group = "verification"
+status = "queued"
+size = 0.5
+model = "opus"
+files = ["tests/scenarios/units.txt", "tests/scenarios/sandbox_actions.txt", "tests/verify/harness_clock.cpp"]
+note = "From SV1 (2026-10-14): both repeat on the virtual clock on each side, but ours kills the wolf at 400 ms against 700 ms in the original, every run. CRT rand() sequence identical; where the draws fall drifts by about two frames. Compare randtrace side by side by value (or SV2's state digest) to find the first differing draw."
+
+[[ticket]]
+id = "SV1b"
+title = "combat, combat_more, sound and rebirth_flags do not repeat on the virtual clock"
+group = "verification"
+status = "queued"
+size = 0.5
+model = "opus"
+files = ["docs/open-questions.md"]
+note = "From SV1: random draws identical up to where runs part, no clock read, step or sound event differs before it; rebirth_flags' unit group order changes run to run. Guess: an order that depends on heap addresses. SV2's digest would name the first field that differs. Listed in open-questions.md under 'Harness runs that do not repeat on the virtual clock'."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -725,6 +746,36 @@ depends = ["WB5"]
 files = ["tools/work_sched.py", "tools/run_all.py", "tools/work.py"]
 note = "Asked 2026-10-14 (user): one shared store of run times instead of each build's run_times.json, keyed by the commit that last changed the scenario. A new MIGRATIONS entry adds timing(scenario, install, scenario_rev, seconds, time, batch); every finished run appends a row (scheduler runs, and plain run_all too). scenario_rev = git log -1 --format=%H -- tests/scenarios/<name>.txt in the run's checkout. Expected = median of the last few rows for (scenario, install, scenario_rev); else the same without rev; else the build's run_times.json. Fresh worktrees then get estimates; a changed scenario drops its old ones. Keep run_times.json writes for plain run_all users. Also: the scheduler is long-lived, so merged scheduler changes only take effect once it idles out. Make it notice when tools/work_sched.py or tools/run_all.py on main changed since it started and, once no game of its own is running, exit so the next waiting test restarts it from the new code (never kill games for this)."
 started = "2026-10-14"
+
+[[ticket]]
+id = "SV1c"
+title = "Keep harness games from taking the foreground, then drop the minimise rerun"
+group = "harness"
+status = "queued"
+size = 0.4
+model = "sonnet"
+files = ["tests/verify/harness.cpp", "tools/run_all.py"]
+note = "From SV1: a game that got the foreground and lost it to a starting game is minimised twice by dgVoodoo and loses exclusive mode; run_all.run reruns such runs (MINIMISED). Block the activation so no harness game is ever foreground, then remove the rerun."
+
+[[ticket]]
+id = "SV1d"
+title = "A stalled game outlived its scenario limit and ei_launch"
+group = "harness"
+status = "queued"
+size = 0.3
+model = "sonnet"
+files = ["tests/verify/harness.cpp"]
+note = "From SV1: a sandbox_map-vanilla game stalled at 23:20 on 2026-10-14 and was not ended by the 80 s scenario limit or ei_launch; killed by hand 25 min later. Three older games (from 15:45 and 19:05) also survived Stop-Process. Find which state the watchdog misses; ei_launch should end the game when the limit plus a margin passes. Related: start-up hangs under load in DirectSound's device open inside Miles' waveOutOpen (both sides, either clock)."
+
+[[ticket]]
+id = "SV1e"
+title = "Native runs fail at start-up with 'DirectX 7 or higher required' on the real clock"
+group = "harness"
+status = "queued"
+size = 0.2
+model = "sonnet"
+files = ["tools/run_all.py"]
+note = "From SV1: 51 of 77 real-clock native runs failed at 0 s with that box. PF3 (native skips the GetDxVersion probe) may already cover it: check on current main first, close if so."
 
 # ---------------------------------------------------------------- cleanup
 
