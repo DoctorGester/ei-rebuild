@@ -72,9 +72,36 @@ def machine_slot():
         time.sleep(0.5)
 
 
+# A game window that had the foreground (Windows hands it to another game when the one in front
+# closes) and lost it to a starting game is minimised by dgVoodoo, which takes its surfaces and,
+# when that comes twice, its exclusive mode: the run ends on the game's "surface memory is gone"
+# box (harness.cpp, RestoreAfterMinimise). That is the machine, not the code: such a run is run again.
+MINIMISED = 'harness: the game window was minimised'
+MINIMISED_RERUNS = 2
+
+
 def run(name, install, hooks, folder=None, clock=None):
     """One run of a scenario in build\\verify\\runs\\<folder> (default <name>-<install>); `clock`
-    overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',clocktrace', ',randtrace')."""
+    overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',clocktrace', ',randtrace').
+    A run that fails after dgVoodoo minimised its window is run again (MINIMISED)."""
+    for attempt in range(MINIMISED_RERUNS + 1):
+        result, seconds, failures, counts, notes = run_once(name, install, hooks, folder, clock)
+        if result == 'PASS' or attempt == MINIMISED_RERUNS or not minimised(name, install, folder):
+            break
+        print(f'  {folder or name + "-" + install}: {result} after dgVoodoo minimised the window; running it again',
+              flush=True)
+    return result, seconds, failures, counts, notes
+
+
+def minimised(name, install, folder):
+    path = os.path.join(RUNS, folder or f'{name}-{install}', 'ei_hook.log')
+    with contextlib.suppress(OSError):
+        with open(path, encoding='cp1251', errors='replace') as f:
+            return any(MINIMISED in line for line in f)
+    return False
+
+
+def run_once(name, install, hooks, folder=None, clock=None):
     scenario = os.path.join(ROOT, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(RUNS, folder or f'{name}-{install}')
     shutil.rmtree(out, ignore_errors=True)

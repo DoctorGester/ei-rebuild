@@ -1852,7 +1852,8 @@ WNDPROC g_gameWindowProc;
 // deactivation) and, once that PeekMessageA has returned and dgVoodoo is done, puts the window back
 // without activating it and restores the surfaces as that code does (under the device lock, the
 // result in the device's lastLoadResult_), after every peek for the next 50 (surfaces still lost
-// right after the minimise were seen to fail the next BeginScene even so).
+// right after the minimise were seen to fail the next BeginScene even so). Seen so far, though, the
+// minimise always came twice within ~100 ms, and the second took the exclusive mode as well.
 HWND g_minimised;
 int g_restoresLeft;
 void RestoreAfterMinimise() {
@@ -1865,9 +1866,19 @@ void RestoreAfterMinimise() {
     if (device && device->ddraw_) {
         auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);   // the render device's lock
         EnterCriticalSection(lock);
-        const HRESULT result = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
+        HRESULT result = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
         device->lastLoadResult_ = result;
         LeaveCriticalSection(lock);
+        if (result == DDERR_NOEXCLUSIVEMODE) {
+            // A second minimise soon after the first also takes the exclusive mode away, and getting
+            // it back (the renderer's restore after a switch back, 00504780) hangs while the window
+            // is in the background: the run ends on the game's lost-surface box, and run_all.py runs
+            // it again.
+            Log("harness: the exclusive mode was lost with the foreground; the run ends on the game's lost-surface "
+                "box and run_all.py runs it again");
+            g_minimised = nullptr;
+            return;
+        }
         if (g_restoresLeft == 50 || result != DD_OK) Log("harness: surfaces restored (%08X)", unsigned(result));
     }
     if (--g_restoresLeft <= 0) g_minimised = nullptr;
