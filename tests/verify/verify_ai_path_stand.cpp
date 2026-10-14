@@ -6,14 +6,6 @@
 
 #include <cstdint>
 
-void __fastcall StandAndTurn(AIPath* path, void*, int time, std::uint8_t* unit, std::uint32_t direction,
-                             std::uint32_t rate);
-void __fastcall StandAndTrack(AIPath* path, void*, int time, std::uint8_t* unit, std::uint32_t id, std::uint32_t from,
-                              std::uint32_t to);
-void __fastcall StandAndTurnUntil(AIPath* path, void*, int time, std::uint8_t* unit, std::uint32_t direction,
-                                  std::uint32_t a, std::uint32_t b);
-void __fastcall StandStill(AIPath* path, void*, std::uint8_t* unit);
-
 namespace {
 void* s_unused;
 
@@ -28,7 +20,7 @@ void CheckStand(const char* name, const AIPath* path, const std::uint8_t* unit) 
 // 005B1DE0.
 static void __fastcall StandAndTurnVerify(AIPath* path, void*, int time, std::uint8_t* unit, std::uint32_t direction,
                                           std::uint32_t rate) {
-    StandAndTurn(path, nullptr, time, unit, direction, rate);
+    path->StandAndTurn(time, unit, direction, rate);
     CheckStand("StandAndTurn", path, unit);
 }
 EI_VERIFY(0x005B1DE0, StandAndTurnVerify, 0, s_unused);
@@ -36,7 +28,7 @@ EI_VERIFY(0x005B1DE0, StandAndTurnVerify, 0, s_unused);
 // 005B1F10.
 static void __fastcall StandAndTrackVerify(AIPath* path, void*, int time, std::uint8_t* unit, std::uint32_t id,
                                            std::uint32_t from, std::uint32_t to) {
-    StandAndTrack(path, nullptr, time, unit, id, from, to);
+    path->StandAndTrack(time, unit, id, from, to);
     CheckStand("StandAndTrack", path, unit);
 }
 EI_VERIFY(0x005B1F10, StandAndTrackVerify, 0, s_unused);
@@ -44,14 +36,14 @@ EI_VERIFY(0x005B1F10, StandAndTrackVerify, 0, s_unused);
 // 005B2050.
 static void __fastcall StandAndTurnUntilVerify(AIPath* path, void*, int time, std::uint8_t* unit,
                                                std::uint32_t direction, std::uint32_t a, std::uint32_t b) {
-    StandAndTurnUntil(path, nullptr, time, unit, direction, a, b);
+    path->StandAndTurnUntil(time, unit, direction, a, b);
     CheckStand("StandAndTurnUntil", path, unit);
 }
 EI_VERIFY(0x005B2050, StandAndTurnUntilVerify, 0, s_unused);
 
 // 005B2190.
 static void __fastcall StandStillVerify(AIPath* path, void*, std::uint8_t* unit) {
-    StandStill(path, nullptr, unit);
+    path->StandStill(unit);
     CheckStand("StandStill", path, unit);
 }
 EI_VERIFY(0x005B2190, StandStillVerify, 0, s_unused);

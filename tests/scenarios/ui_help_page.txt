@@ -1,0 +1,54 @@
+# The help window's pages (CHelpWindow, ui_help_window.cpp; the page 00659420, ui_help_page.cpp,
+# A-H26; docs/notes/ui-census.md): the help key is H ("tutorial_script" in config\keyboard.ini;
+# F1 is "select1"), and only topics with a "tutorial <topic>" text open a window (config\tutorial.ini
+# lists them): the main menu's options ("options"), the objectives window ("quest_mission") and
+# the camp's pages ("camp_weapons"). Each page is drawn by 00659420 into the window's surface; the
+# objectives' help is paged with the arrows (regions 2 / 0) and closed with OK (region 1), the
+# camp's with the help key again. Nothing is saved.
+reject Script error
+waitmenu
+
+# Options (main menu region 3): help, OK, then the options cancelled.
+clickregion 3
+waitwindow 10 options
+key h
+waitwindow 10 help
+frames 10
+clickregion 1
+waitwindow 10 options
+clickregion 1
+waitwindow 10 menu
+
+# A game: the objectives' help, its pages, OK.
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+key tab
+waitwindow 10 objectives
+key h
+waitwindow 10 help
+frames 10
+key enter
+frames 5
+clickregion 2
+frames 5
+clickregion 0
+frames 5
+clickregion 1
+waitwindow 10 objectives
+key esc
+waitwindow 10 battle
+
+# The camp (screen 5): its page's help, closed with the help key.
+screen 5
+waitwindow 15 camp
+key h
+waitwindow 10 help
+frames 10
+key h
+waitwindow 10 camp
+report
+quit

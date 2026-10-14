@@ -53,8 +53,12 @@ static void __fastcall GetPlacementVerify(const CUiMesh* self, void*, float* x, 
     float ox = *x, oy = *y, od = *depth;
     float mx, my, md;
     self->GetPlacement(&mx, &my, &md);
-    ei::verify::CheckNear("CUiMesh::GetPlacement x", ox, mx, "");
-    ei::verify::CheckNear("CUiMesh::GetPlacement y", oy, my, "");
+    // x is (p / 400-ish + 1) * 400: near the left edge the sum cancels and one ULP of the quotient
+    // becomes several of the result (the hero screen's statistics page: 50 against 49.99998). The
+    // screen position is compared to a thousandth of a pixel instead of in ULPs.
+    float dx = ox - mx, dy = oy - my;
+    ei::verify::Check("CUiMesh::GetPlacement x", true, dx < 1e-3f && dx > -1e-3f, "%.9g, ours %.9g", double(ox), double(mx));
+    ei::verify::Check("CUiMesh::GetPlacement y", true, dy < 1e-3f && dy > -1e-3f, "%.9g, ours %.9g", double(oy), double(my));
     ei::verify::Check("CUiMesh::GetPlacement depth", true, std::memcmp(&od, &md, sizeof(float)) == 0, "");
 }
 EI_VERIFY(0x005E7010, GetPlacementVerify, 6, s_getPlacement);

@@ -111,11 +111,12 @@ done = "2026-10-14"
 id = "R9c"
 title = "Movies, loading screen, full screen, gamma and lost device through Present"
 group = "renderer"
-status = "running"
+status = "done"
 model = "opus"
 depends = ["R9b"]
 note = "Movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Present under Rebirth crashes: NullDirect3DDevice7::SetTexture with surface 0x7463 from CUiMesh::Draw, plus a CBattleScreenSetup::Create verify mismatch in the same runs (seen on main 2026-10-14)."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "R9b1"
@@ -142,6 +143,42 @@ group = "renderer"
 status = "running"
 note = "Profile 2026-10-14: under dgVoodoo every DirectDrawCreateEx builds a D3D12 device (~190 ms, with driver signature checks). Startup does it four times: GetDxVersion's two probes (~390 ms), FirstHardwareDirectDrawDriver (~195 ms) and CTextureDevice::CreateDirectDraw (the one kept). Skipping the probes (DirectX 7 is a given) and reusing the enumerated object saves ~0.6 s of the ~1.8 s to the main menu, but changes what the original does; also fixes R9b1. Waits on the user's decision (flag, native only, or standalone only). Decided (user 2026-10-14): only in native runs (EI_RENDER present, run/native) and the standalone exe; vanilla and Rebirth runs keep the original's probes."
 started = "2026-10-14"
+
+[[ticket]]
+id = "R9c1"
+title = "Lost Direct3D 11 device: make the device, swap chain and textures again"
+group = "renderer"
+status = "queued"
+model = "opus"
+depends = ["R9c"]
+note = "R9c logs a removed / reset / hung device (GetDeviceRemovedReason) and stops presenting; nothing is recreated. Recreate sokol's device and every image, reupload textures from the decoded copies (renderer.md section 9, R9c)."
+
+[[ticket]]
+id = "R9c2"
+title = "Software cursor moving between frames (movies, loading) without DirectDraw"
+group = "renderer"
+status = "queued"
+model = "opus"
+depends = ["R9c"]
+note = "The cursor thread 005E5690 draws nothing in present mode; the cursor is drawn in each frame and hidden during movies and loading. Moving it between frames needs a present from the cursor thread (thread-safe sokol use or a separate overlay) or a hardware cursor (renderer.md section 9, R9c)."
+
+[[ticket]]
+id = "R9c3"
+title = "Scroll Lock screenshot and movie recorder from the new frame"
+group = "renderer"
+status = "queued"
+model = "sonnet"
+depends = ["R9c"]
+note = "006D6D40 gives no bitmap for a holder without a surface (logged since R9a); take the picture from render::ReadFrame instead (renderer.md section 9)."
+
+[[ticket]]
+id = "R9c4"
+title = "Resolution change and real display mode change in present mode"
+group = "renderer"
+status = "queued"
+model = "opus"
+depends = ["R9c"]
+note = "R9c covers a window resized from outside (the window covers the monitor again, the swap chain resizes). The game's own device re-creation on a resolution change in the options, and a desktop mode change while running, are not exercised by any scenario (renderer.md section 9, R9c)."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -307,11 +344,12 @@ note = "Drop the DIB and memcmp for native surfaces; renderer.md section 6 and u
 id = "N0a"
 title = "Census coverage: help page, chat, connect list, escape-menu capture, save picture, global-map pick"
 group = "native-ui"
-status = "running"
+status = "done"
 size = 0.5
 files = ["tests/scenarios/", "tests/verify/ui_census.cpp"]
 note = "N0's suite did not reach the help page 00659420, chat line / window, connect list 0061D780, escape-menu CaptureScreen + greyscale, save picture 005FD440, global-map pick PixelAt, FPS surface, debug panel drawing. Add scenarios (or N4 gallery steps) and rerun the census (docs/notes/ui-census.md). Also explain the four Rebirth-only owners with heap vtables (2FBD....) in ui_trade_hold before P3c keys on vtables under Rebirth."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "N2a"
@@ -322,6 +360,33 @@ size = 0.3
 depends = ["N2"]
 note = "Dropped 2026-10-14: the user is fine with Liberation's wrapping and heights (screenshots from ei_text_check --pictures)."
 done = "2026-10-14"
+
+[[ticket]]
+id = "N0b"
+title = "ui_help opens help: H, not F1"
+group = "native-ui"
+status = "queued"
+size = 0.25
+files = ["tests/scenarios/ui_help.txt"]
+note = "ui_help presses F1, which is select1 in keyboard.ini; the help key is H (tutorial_script), so it never opened the help window (N0a, ui-census.md Coverage). Switch it to H on a topic with a tutorial text, or fold it into ui_help_page, and keep its checks."
+
+[[ticket]]
+id = "N0c"
+title = "ui_mp_host under Rebirth: disconnect box after the chat line"
+group = "native-ui"
+status = "queued"
+size = 0.5
+files = ["tests/scenarios/ui_mp_host.txt"]
+note = "Under Rebirth a 'disconnect' message box (disconnect_msg) sometimes appears on the briefing about a second after the chat line is sent in ui_mp_host; the scenario still passes. Find whether EI_Plugin.asi / Rebirth's net patches or our client/server cause it (vanilla never shows it)."
+
+[[ticket]]
+id = "N0d"
+title = "Census call chains: stale return addresses"
+group = "native-ui"
+status = "queued"
+size = 0.25
+files = ["tests/verify/ui_census.cpp"]
+note = "Chain() scans the stack for return-address-like values, so the pixel helpers' rows sometimes name stale callers (Rebirth's greyscale marked [in verify], SwapContents 'by' Connection::SendUpdate / CastSpell with zero counts). Walk only from the helper's own return address with real frames, or mark the helpers noinline (N0a, ui-census.md Readers)."
 
 # ---------------------------------------------------------------- widescreen
 
@@ -552,12 +617,64 @@ done = "2026-10-14"
 id = "PF2"
 title = "Faster hook installation"
 group = "harness"
-status = "running"
+status = "done"
 size = 0.5
 model = "sonnet"
 files = ["src/hook/hook.cpp"]
 note = "Profile 2026-10-14: installing ~6000 hooks costs ~300 ms per launch: ThunkEntryAt and VerifyEntry scan the whole hook list per hook (O(n^2), 130 ms), two VirtualProtect calls per hook (page-table work, ~160 ms), and one VirtualAlloc (a 64 KB granule) per trampoline. Index hooks by address, unprotect .text once, allocate trampolines from one block. Harness only, every run benefits."
 started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "WB1"
+title = "Work board: live database and work.py start/note/status/done"
+group = "harness"
+status = "done"
+size = 1
+model = "opus"
+files = ["tools/work.py", "tools/tickets.py"]
+note = "docs/notes/work-board.md: build/live/work.db (SQLite WAL, shared by every worktree via git-common-dir), tables assignment/note/batch/run; work.py start/note/status/done; a lock around tickets.py's read-modify-write of the toml."
+started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "WB2"
+title = "Work board: test batches through one scheduler"
+group = "harness"
+status = "done"
+size = 1.5
+model = "opus"
+depends = ["WB1"]
+files = ["tools/work.py", "tools/run_all.py"]
+note = "docs/notes/work-board.md 'Scheduler': work.py test <ID> [run_all args] submits a batch and waits, printing run_all's summary and exit code; one on-demand scheduler owns the 16 slots, runs batches in order with backfill, display-mode runs alone, uses run_all.run() pointed at the batch's worktree/build. Plain run_all keeps working."
+started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "WB3"
+title = "Work board: local live server and pages"
+group = "harness"
+status = "done"
+size = 1
+model = "sonnet"
+depends = ["WB1"]
+files = ["tools/work.py", "tools/work_board/"]
+note = "docs/notes/work-board.md 'Server': work.py serve on localhost:8765, JSON API over work.db + tickets.toml + git log of assigned branches; ticket page (worker, worktree, last note, last commit and age, latest batch progress) and test-run page (queue, running, history). Board style from tools/tickets_board. Polls; never published."
+started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "WB4"
+title = "Work board: workers and coordinator switch to work.py"
+group = "harness"
+status = "done"
+size = 0.3
+model = "sonnet"
+depends = ["WB2", "WB3"]
+files = ["docs/worker-brief.md", ".claude/agents/area-worker.md"]
+note = "Worker brief: work.py start at the beginning, note at milestones, test instead of run_all; coordinator: done at merge."
+started = "2026-10-14"
+done = "2026-10-14"
 
 # ---------------------------------------------------------------- cleanup
 
@@ -618,7 +735,7 @@ title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 status = "running"
 model = "sonnet"
-note = "Counts 2026-10-14: 497 __fastcall self shims, 368 constexpr game addresses; per-file At() copies already 0. Batches of about 100 shims, one area at a time."
+note = "Counts 2026-10-14: 497 __fastcall self shims, 368 constexpr game addresses; per-file At() copies already 0. Batches of about 100 shims, one area at a time. Batch 1 (2026-10-14): 63 shims converted to member functions (1,274 -> 1,211 by tools/progress.py; the ticket's 497 does not match that metric). Class A (body moved into the member) plus class B (forwarders deleted, member registered: transform math, unit_ai_*, 16 AlignedArray instances, ObjectSet). Skipped: ui_/net_ callers (text_reader Open/ReadLine/ReadToHash/Split/FindLine, ClassTemplate::SetLevels, RefPtrShareReturn), virtual-slot shims, aliases of lib/mfc templates, DrawLightning (virtual Draw clash), UnitPrototypeAt (name collision), FindFigureAnimation (F4a header), QuaternionRotate (src/lib). Left: 1,211 two-slot shims; next the ui/net callers after W2/F5. See docs/notes/cleanup-units.md. Batch 1 merged 2026-10-14: 63 shims (progress.py count 1,274 -> 1,211); skipped ui_/net_ callers until W2/F5, see cleanup-units.md 'C11 batch 1'."
 started = "2026-10-14"
 
 [[ticket]]
@@ -823,11 +940,24 @@ note = "The connection screen Create / list draw, exchange slots 0062D100 / 0062
 id = "PF1"
 title = "Script keyword matching without per-character locale calls"
 group = "port"
-status = "running"
+status = "done"
 size = 0.5
 model = "opus"
 files = ["src/game/script_parse.cpp"]
 note = "Profile 2026-10-14 (EI_PROFILE, Superluminal): ClassifyToken (004CF600) calls the game CRT's _strnicmp for every keyword of every token; under the game's locale each character goes through LCMapStringW. That is ~55% of the first map load (390 of 720 ms, zone scripts) and ~200 ms at startup. Same results with a 256-byte fold table built from the game CRT's own tolower (rebuilt if the CRT's LC_CTYPE handle changes), used as a first-character prefilter or a full strnicmp. No behaviour change; scripts/world_load reach it."
+started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "PF1a"
+title = "Case-fold table for the other game _strnicmp callers"
+group = "port"
+status = "running"
+size = 0.3
+model = "sonnet"
+depends = ["PF1"]
+files = ["src/game/resource.cpp", "src/game/object3d_figure_setup.cpp", "src/game/net_server_players.cpp"]
+note = "PF1 follow-up: CMappedResource::FindEntry, object3d_figure_setup.cpp and net_server_players.cpp still call gamecrt::strnicmp (LCMapStringW per character). Move SameIgnoringCase / CaseFoldTable into lib/crt and use it there; measure first with EI_PROFILE, skip any caller that is not hot."
 started = "2026-10-14"
 
 # ---------------------------------------------------------------- docs

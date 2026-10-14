@@ -17,9 +17,6 @@ BOOL __fastcall TextOpen(CTextManager* self, void* edx, const char* key);
 BOOL __fastcall TextClose(CTextManager* self);
 // 004DF4E0 (__fastcall). The code of the character at `p`.
 int __fastcall TextCharCode(const char* p);
-// 004DF770. The first word at the cursor (leading spaces and line ends skipped; it ends at a
-// space, tab, CR or LF) into `out`; the cursor does not move. 0 when the cursor is at the end.
-BOOL __fastcall TextPeekWord(CTextManager* self, void* edx, mfc::CString* out);
 // 004DF6E0. Moves the cursor past the next LF. 0 (cursor left at the end) when there is none.
 BOOL __fastcall TextSkipLine(CTextManager* self);
 // 004DF510. Moves the cursor to the start of the next line that is not a "##" comment. 0 at the end.

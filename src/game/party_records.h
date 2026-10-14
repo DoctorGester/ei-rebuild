@@ -38,6 +38,14 @@ static_assert(offsetof(PartyRecord, name) == 0x78);
 
 // The named records (007AA5A0 +0x24): an STLport vector of counted pointers, then two strings.
 struct NamedPartyRecords {
+    // 004A5E10 (__thiscall). The party (+0x08) of the first record named `name` (_mbscmp), else of the
+    // last unnamed record, else null.
+    void* Find(const char* name) const;
+    // 004A5E90 (__thiscall). Appends a new record named `name`.
+    void Add(const char* name);
+    // 004A5FA0 (__thiscall). Removes the records named `name`; after a removal the record moved into
+    // the slot is skipped (original behaviour).
+    void Remove(const char* name);
     stlp::vector<PartyRecord*> records;
     mfc::CString text0C;        // +0x0C
     mfc::CString text10;        // +0x10
@@ -60,14 +68,6 @@ static_assert(sizeof(NamedPartyRecords) == 0x14);
 // unnamed record and gives its party the member "Hero" ("Human Hero"), the zone text "gz1g" and
 // the variable gtime = 6.
 void __fastcall PartyRecordsReset(NamedPartyRecords* list);
-// 004A5E10 (__thiscall). The party (+0x08) of the first record named `name` (_mbscmp), else of the
-// last unnamed record, else null.
-void* __fastcall PartyRecordsFind(const NamedPartyRecords* list, void* edx, const char* name);
-// 004A5E90 (__thiscall). Appends a new record named `name`.
-void __fastcall PartyRecordsAdd(NamedPartyRecords* list, void* edx, const char* name);
-// 004A5FA0 (__thiscall). Removes the records named `name`; after a removal the record moved into
-// the slot is skipped (original behaviour).
-void __fastcall PartyRecordsRemove(NamedPartyRecords* list, void* edx, const char* name);
 
 // The party manager (007AA5A0): records at +0x24, class templates at +0x38. __thiscall.
 // 004A88A0 / 004A88C0: new game; the records reset (004A5BD0), then five / four templates (004A7630).

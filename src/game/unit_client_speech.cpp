@@ -85,17 +85,17 @@ void EraseWhere(ClientSpeechNode*& queue, Pick pick) {
 }
 } // namespace
 
-int __fastcall SpeechReplaced(const SpeechFilter* filter, void*, const ClientSpeech* queued) {
-    return Replaces(filter->kind, queued->kind) ? 1 : 0;
+int SpeechFilter::Replaced(const ClientSpeech* queued) const {
+    return Replaces(kind, queued->kind) ? 1 : 0;
 }
-EI_REPLACE(0x00537F60, SpeechReplaced);
+EI_REPLACE_METHOD(0x00537F60, SpeechFilter::Replaced);
 
-bool __fastcall SpeechFinished(const SpeechFilter* filter, void*, const ClientSpeech* queued) {
+bool SpeechFilter::Finished(const ClientSpeech* queued) const {
     if (queued->sound == -1 || SoundBusy(queued->sound)) return false;
-    if (queued->talking) SetTalking(filter->unitId, false);
+    if (queued->talking) SetTalking(unitId, false);
     return true;
 }
-EI_REPLACE(0x00537FD0, SpeechFinished);
+EI_REPLACE_METHOD(0x00537FD0, SpeechFilter::Finished);
 
 void CUnitClientSpecific::Say(const SpeechRecord* record, int kind) {
     if (!record) return;

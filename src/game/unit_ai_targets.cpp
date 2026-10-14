@@ -196,10 +196,7 @@ bool AIAttention::IsUsable(AIBrain* brain, const int* partAndObject) {
     return !(radius * radius >= LengthSquared2DUnrounded(dx, dy));
 }
 
-bool __fastcall IsUsableHook(AIAttention* self, void*, AIBrain* brain, const int* partAndObject) {
-    return self->IsUsable(brain, partAndObject);
-}
-EI_REPLACE(0x005CF7F0, IsUsableHook);
+EI_REPLACE_METHOD(0x005CF7F0, AIAttention::IsUsable);
 
 double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
                          float threshold, const AIAttackOption* option) {
@@ -382,8 +379,4 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
     partAndObject[1] = current[1];
 }
 
-void __fastcall ChooseHook(AIAttention* self, void*, AIBrain* brain, int* partAndObject, AIObjectList* candidates,
-                           const Vector3* from, bool alliesOnly, int reachArg) {
-    self->Choose(brain, partAndObject, candidates, from, alliesOnly, reachArg);
-}
-EI_REPLACE(0x005D0030, ChooseHook);
+EI_REPLACE_METHOD(0x005D0030, AIAttention::Choose);
