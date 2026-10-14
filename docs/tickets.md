@@ -138,4 +138,4 @@ Finished 2026-10-14: every hookable game function is rewritten (99.97% of game c
 
 ## Docs
 
-- **D2** Retarget code comments that cite removed sections (ready; sonnet). About 150 comments citing "Nth round", "pass", old renderer section numbers, items_spells.md "(A-H17)"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations.
+- **D2** Retarget code comments that cite removed sections (running since 2026-10-14; sonnet). About 150 comments citing "Nth round", "pass", old renderer section numbers, items_spells.md "(A-H17)"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations.
