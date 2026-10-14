@@ -46,10 +46,8 @@ src/game/core_transform.h,0,0,0,0,1,0,0,0,0,0,0
 src/game/core_transform_math.cpp,0,0,8,1,1,0,0,0,0,0,12
 src/game/deleting_destructors_400.cpp,0,0,0,0,33,0,0,0,0,0,0
 src/game/device_buffers.h,0,0,0,0,0,0,0,0,0,0,1
-src/game/device_mesh.cpp,9,0,1,0,0,0,0,0,0,0,0
-src/game/device_present.cpp,8,0,0,0,0,0,0,0,0,0,0
-src/game/device_shadow.cpp,5,0,1,0,0,0,0,0,0,0,0
-src/game/device_states.cpp,12,0,0,0,0,0,0,0,0,0,0
+src/game/device_mesh.cpp,0,0,1,0,0,0,0,0,0,0,0
+src/game/device_shadow.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/dx_surface.cpp,0,2,0,0,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0,0,0
 src/game/effects_weather.cpp,0,1,0,0,1,0,0,0,0,0,1
@@ -138,9 +136,7 @@ src/game/quest_database.cpp,0,0,0,0,16,0,0,0,0,0,0
 src/game/refptr_copies.cpp,0,3,0,0,0,0,0,0,0,0,0
 src/game/registry.cpp,0,0,1,0,1,0,0,0,0,0,0
 src/game/renderer_init.cpp,0,0,2,0,0,0,0,0,0,0,1
-src/game/renderer_sprites.cpp,2,0,0,0,0,0,0,0,0,0,0
 src/game/renderer_strip.cpp,0,0,2,0,0,0,0,0,0,0,0
-src/game/renderer_triangles.cpp,9,0,0,0,0,0,0,0,0,0,0
 src/game/resource.cpp,0,0,0,0,4,0,2,0,0,0,0
 src/game/resource.h,0,0,0,0,0,0,2,0,0,0,0
 src/game/resource_manager.h,0,0,0,0,1,0,0,0,0,0,0
@@ -180,8 +176,6 @@ src/game/terrain.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/terrain_sector.cpp,0,0,0,1,0,0,0,0,0,0,1
 src/game/terrain_sector.h,0,0,0,0,0,0,0,0,0,0,7
 src/game/text_reader.cpp,0,1,0,0,0,0,0,0,0,0,0
-src/game/texture.cpp,0,2,0,0,0,0,0,0,0,0,0
-src/game/texture_mmp.cpp,0,3,0,0,0,0,0,0,0,0,0
 src/game/ui.h,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_battle_commands.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_battle_hover.cpp,0,0,0,0,0,0,0,0,0,0,2
@@ -255,7 +249,6 @@ src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,0,0,0,0
 src/game/unit_update.cpp,0,0,1,1,1,0,0,0,0,0,0
 src/game/unit_vitals.cpp,0,0,4,1,24,0,0,0,0,0,0
 src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5
-src/game/weather_draw.cpp,10,0,0,0,0,0,0,1,0,0,0
 src/game/world.h,0,0,0,0,0,0,0,0,0,0,5
 src/game/world_briefing.cpp,0,0,0,0,10,0,0,0,0,0,0
 src/game/world_client.cpp,0,0,0,0,0,0,0,0,0,0,5
