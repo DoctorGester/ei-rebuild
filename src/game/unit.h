@@ -6,6 +6,7 @@
 
 #include "engine_object.h"
 #include "item_db.h"
+#include "map_object.h"   // CMapObjectCompanion
 #include "maths.h"
 #include "object_tables.h"
 
@@ -1166,17 +1167,19 @@ BOOL __fastcall HasElementalDamage(const DamageInfo* info);
 
 // The server-side state object of map objects (GetClassName "CMapObjectServer", class id 0x39,
 // vtable 0073DD6C). Only the hit points.
-class CMapObjectServer : public CEngineObject {
+class __declspec(novtable) CMapObjectServer : public CMapObjectCompanion {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DD6C);
+
     // map_object_lifetime.cpp. 00515610 / 00515720: constructor (the engine object fields, two
     // names, a string array, vtable 0073DD6C, vitals reset; returns this) and destructor body.
     CMapObjectServer* Construct();
     void DestructBody();
 
     // 005156A0. Virtual slot 17: hit points rounded (FISTP) to a 16-bit value are <= 0.
-    BOOL IsDead();
+    BOOL IsDead() override;
     // 005156C0. Virtual slot 18: hit points below -5 times the maximum.
-    BOOL IsOverkilled();
+    BOOL IsOverkilled() override;
 
     // map_object_companion.cpp (+0x1C is the map object it belongs to, map_object.h):
     // 00515820. Virtual slot 6, the per-tick update: counts down the owner's effects and removes
@@ -1202,7 +1205,7 @@ public:
     // operator delete with flags bit 0. Returns this.
     CMapObjectServer* DeleteServer(unsigned flags);
 
-    CMapObject* owner;      // +0x1C the map object (map_object.h CompanionOwner)
+    // +0x1C owner (CMapObjectCompanion)
     UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
     mfc::CString name78;    // +0x78
     mfc::CString name7C;    // +0x7C
@@ -1258,9 +1261,11 @@ using EffectParticleArray = mfc::CArray<EffectParticle>;
 using EffectSoundArray = mfc::CArray<EffectSoundRecord>;
 
 // The client-side companion of a map object (GetClassName "CMapObjectClientSpecific", vtable
-// 0073DBEC); +0x1C is the object it belongs to (a unit for these two).
-class CMapObjectClientSpecific : public CEngineObject {
+// 0073DBEC); +0x1C is the object it belongs to (a unit for IsDead / IsOverkilled).
+class __declspec(novtable) CMapObjectClientSpecific : public CMapObjectCompanion {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DBEC);
+
     // map_object_lifetime.cpp. 00510450: constructor (the engine object fields, the particle and
     // sound arrays, no light, vtable 0073DBEC; returns this). 00510560: destructor body (the
     // particles and the light removed, the arrays freed).
@@ -1268,9 +1273,9 @@ public:
     void DestructBody();
 
     // 005104D0. Virtual slot 17: the unit's hit points <= 0.
-    BOOL IsDead();
+    BOOL IsDead() override;
     // 005104F0. Virtual slot 18: the unit's hit points below -5 times its maximum.
-    BOOL IsOverkilled();
+    BOOL IsOverkilled() override;
     // map_object_companion_slots.cpp (A-U12). 00510540, virtual slot 0 (RET 4): DestructBody, then
     // operator delete with flags bit 0. Returns this.
     CMapObjectClientSpecific* DeleteClientCompanion(unsigned flags);
@@ -1291,7 +1296,7 @@ public:
     // changed; the particles (00510B80) and the looping sounds (005112A0) follow it. `first` is
     // set when the list arrives with the object (no sounds; particles run 30 ticks ahead, the
     // scale effects' one-shot rings are left out).
-    void EffectsChanged(bool first);
+    void OnEffectsChanged(bool first);   // not the override: `first` is a bool here
     // 00510B80. One particle record per effect (types 9-0x0E, 0x10, 0x13, 0x19, 0x1A, 0x1D-0x22 merged
     // to the highest power); records still matching are kept (a power change rescales the
     // source), new ones make the source of their type (0x0F invisibility and 0x19 stun set flags_
@@ -1315,12 +1320,16 @@ public:
     // 00511A00 (RET 4), virtual slot 19. Mode 1: the light (a new default one, 0079BEB0 / 0079BEBC,
     // when there is none) is shown and held (flags_ 0x200), its id added to the light factory's
     // list (+0xD4); mode 2: a light is hidden, its id removed from the list and the light released.
-    void SetLightMode(int mode);
+    // Not declared as the override: the original sets no result (the slot's return is EAX as left).
+    void ApplyLightMode(int mode);
     // 005107B0, virtual slot 3 (Destroy): +0x20 / +0x24 cleared, no particles, the light hidden,
     // its id removed and released, no object.
     void DestroyClientCompanion();
 
-    CUnit* object;          // +0x1C
+    // The owner (+0x1C) as the unit it is where the client reads hit points (CUnit does not derive
+    // from CMapObject).
+    CUnit* Unit() const { return reinterpret_cast<CUnit*>(owner); }
+
     std::uint32_t unknown_20;   // +0x20 cleared by Create and Destroy
     std::uint32_t unknown_24;
     EffectParticleArray particles;  // +0x28 the effect particles (SetSize 005121B0)

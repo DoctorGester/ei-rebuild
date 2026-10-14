@@ -462,16 +462,22 @@ EI_REPLACE_METHOD(0x005271C0, UnitParams::Period);
 // --- Map object state ------------------------------------------------------------------------
 
 BOOL CMapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
-EI_REPLACE_METHOD(0x005156A0, CMapObjectServer::IsDead);
+BOOL __fastcall ServerIsDeadHook(CMapObjectServer* self) { return self->CMapObjectServer::IsDead(); }
+EI_REPLACE(0x005156A0, ServerIsDeadHook);
 
 BOOL CMapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints ? 1 : 0; }
-EI_REPLACE_METHOD(0x005156C0, CMapObjectServer::IsOverkilled);
+BOOL __fastcall ServerIsOverkilledHook(CMapObjectServer* self) { return self->CMapObjectServer::IsOverkilled(); }
+EI_REPLACE(0x005156C0, ServerIsOverkilledHook);
 
-BOOL CMapObjectClientSpecific::IsDead() { return object->hitPoints <= 0; }
-EI_REPLACE_METHOD(0x005104D0, CMapObjectClientSpecific::IsDead);
+BOOL CMapObjectClientSpecific::IsDead() { return Unit()->hitPoints <= 0; }
+BOOL __fastcall ClientIsDeadHook(CMapObjectClientSpecific* self) { return self->CMapObjectClientSpecific::IsDead(); }
+EI_REPLACE(0x005104D0, ClientIsDeadHook);
 
 BOOL CMapObjectClientSpecific::IsOverkilled() {
-    int maximum = object->maxHitPoints;
-    return object->hitPoints < -maximum * 4 - maximum;
+    int maximum = Unit()->maxHitPoints;
+    return Unit()->hitPoints < -maximum * 4 - maximum;
 }
-EI_REPLACE_METHOD(0x005104F0, CMapObjectClientSpecific::IsOverkilled);
+BOOL __fastcall ClientIsOverkilledHook(CMapObjectClientSpecific* self) {
+    return self->CMapObjectClientSpecific::IsOverkilled();
+}
+EI_REPLACE(0x005104F0, ClientIsOverkilledHook);

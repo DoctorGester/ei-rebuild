@@ -45,7 +45,7 @@ int CMapObjectClientSpecific::CreateClientCompanion() {
     unknown_24 = 0;
     CompanionParticlesSetSizeOriginal(&particles, nullptr, 0, -1);
     endSound = kNoSound;
-    object = nullptr;
+    owner = nullptr;
     return 1;
 }
 EI_REPLACE_METHOD(0x00510770, CMapObjectClientSpecific::CreateClientCompanion);
@@ -58,7 +58,7 @@ CUnitClientSpecific* CUnitClientSpecific::DeleteClient(std::uint32_t flags) {
 EI_REPLACE_METHOD(0x00533E80, CUnitClientSpecific::DeleteClient);
 
 int CMapObjectServer::CreateServer() {
-    CompanionOwner(this) = nullptr;
+    owner = nullptr;
     vitals.Reset();
     return 1;
 }
@@ -67,7 +67,7 @@ EI_REPLACE_METHOD(0x005157C0, CMapObjectServer::CreateServer);
 void CMapObjectServer::DestroyServer() {
     vitals.Reset();
     StringArraySetSize(&stringsVtable, nullptr, 0, -1);
-    CompanionOwner(this) = nullptr;
+    owner = nullptr;
 }
 EI_REPLACE_METHOD(0x005157E0, CMapObjectServer::DestroyServer);
 

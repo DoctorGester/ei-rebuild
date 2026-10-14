@@ -352,8 +352,10 @@ using CMapObjectVirtuals = CMapObject;
 
 // A map object's companion (CMapObjectServer / CMapObjectClientSpecific) as the base class calls it.
 // The two classes (unit.h) do not derive from it; CompanionSlots reaches a companion through it.
-class CMapObjectCompanion : public CEngineObject {
+class __declspec(novtable) CMapObjectCompanion : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DC54);
+
     virtual void EffectsChanged(int first);   // 13: client 005117D0, server 005106D0 (empty, RET 4)
     virtual void Unused14();         // 14: empty in both (client 005104B0, server 00515810)
     virtual int Query(int first, int second);   // 15: 005104C0 in both (0)
@@ -367,6 +369,17 @@ public:
     // 19 (0x4C, RET 4): client 00511A00 (CMapObjectClientSpecific::SetLightMode), server 00510700
     // (empty). Neither sets a result; the objects' slot 47 (004467C0) passes EAX on as it is.
     virtual std::uintptr_t SetLightMode(int mode);
+
+    // map_object_companion_slots.cpp: the base's own bodies of CEngineObject's slots (other names,
+    // so they are no overrides). 00510730: the destructor body (the base's vtable, no map object,
+    // the engine object's). 00510710 (slot 0, RET 4): that, then operator delete with flags bit 0;
+    // returns this. 00510750 / 00510760 (slots 2 / 3): no map object (Create returns 1). 005106E0
+    // (slot 6, the per-tick update): 0.
+    void DestructCompanion();
+    CMapObjectCompanion* DeleteCompanion(unsigned flags);
+    int CreateCompanion();
+    void DestroyCompanion();
+    int UpdateCompanion();
 
     CMapObject* owner;              // +0x1C the map object (CMapObject::AttachCompanion sets it)
 };

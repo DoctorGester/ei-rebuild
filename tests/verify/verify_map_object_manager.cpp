@@ -37,11 +37,6 @@
 const char* __fastcall MapObjectManagerFolder(CMapObjectManager*);
 const char* __fastcall MapObjectManagerClassName(CMapObjectManager*);
 int __fastcall MapObjectManagerClassId(CMapObjectManager*);
-void __fastcall CompanionDestruct(CMapObjectCompanion* self);
-CMapObjectCompanion* __fastcall CompanionDelete(CMapObjectCompanion* self, void*, unsigned flags);
-int __fastcall CompanionCreate(CMapObjectCompanion* self);
-void __fastcall CompanionDestroy(CMapObjectCompanion* self);
-int __fastcall CompanionUpdate(CMapObjectCompanion*);
 void __fastcall CompanionIgnore(CMapObjectCompanion*, void*, int);
 int __fastcall CompanionQuery(CMapObjectCompanion*, void*, int, int);
 void __fastcall CompanionHit(CMapObjectCompanion*, void*, int, int);
@@ -183,34 +178,34 @@ EI_VERIFY(0x005143E0, PrototypeEquipmentVerify, 0, s_unused);
 // --- The companions -------------------------------------------------------------------------------------
 
 static void __fastcall CompanionDestructVerify(CMapObjectCompanion* self) {
-    CompanionDestruct(self);
+    self->DestructCompanion();
     ei::verify::Check("CMapObjectCompanion::Destruct", true,
-                      VtableOf(self) == CEngineObject::kVtableAddress && !CompanionOwner(self), "");
+                      VtableOf(self) == CEngineObject::kVtableAddress && !self->owner, "");
 }
 EI_VERIFY(0x00510730, CompanionDestructVerify, 0, s_unused);
 
 static CMapObjectCompanion* __fastcall CompanionDeleteVerify(CMapObjectCompanion* self, void*, unsigned flags) {
-    CMapObjectCompanion* result = CompanionDelete(self, nullptr, flags);
+    CMapObjectCompanion* result = self->DeleteCompanion(flags);
     ei::verify::Check("CMapObjectCompanion::Delete", static_cast<void*>(self), static_cast<void*>(result), "");
     return result;
 }
 EI_VERIFY(0x00510710, CompanionDeleteVerify, 0, s_unused);
 
 static int __fastcall CompanionCreateVerify(CMapObjectCompanion* self) {
-    int result = CompanionCreate(self);
-    ei::verify::Check("CMapObjectCompanion::Create", true, result == 1 && !CompanionOwner(self), "");
+    int result = self->CreateCompanion();
+    ei::verify::Check("CMapObjectCompanion::Create", true, result == 1 && !self->owner, "");
     return result;
 }
 EI_VERIFY(0x00510750, CompanionCreateVerify, 0, s_unused);
 
 static void __fastcall CompanionDestroyVerify(CMapObjectCompanion* self) {
-    CompanionDestroy(self);
-    ei::verify::Check("CMapObjectCompanion::Destroy", true, !CompanionOwner(self), "");
+    self->DestroyCompanion();
+    ei::verify::Check("CMapObjectCompanion::Destroy", true, !self->owner, "");
 }
 EI_VERIFY(0x00510760, CompanionDestroyVerify, 0, s_unused);
 
 static int __fastcall CompanionUpdateVerify(CMapObjectCompanion* self) {
-    int result = CompanionUpdate(self);
+    int result = self->UpdateCompanion();
     ei::verify::Check("CMapObjectCompanion::Update", 0, result, "");
     return result;
 }

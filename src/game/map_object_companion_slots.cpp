@@ -12,7 +12,6 @@
 #include "originals_world.h"
 
 namespace {
-constexpr std::uintptr_t kCompanionVtable = std::uintptr_t(0x0073DC54);
 constexpr std::uintptr_t kClientClassName = std::uintptr_t(0x0078EF9C);   // "CMapObjectClientSpecific"
 constexpr std::uintptr_t kServerClassName = std::uintptr_t(0x0078F360);   // "CMapObjectServer"
 constexpr int kClientClassId = 0x3A;
@@ -25,34 +24,30 @@ CEngineObject* AsObject(CParticleSource* particleSource) { return reinterpret_ca
 
 // --- The base companion -------------------------------------------------------------------------------
 
-// 00510730. The destructor body: the base's vtable, no map object, the engine object's.
-void __fastcall CompanionDestruct(CMapObjectCompanion* self) {
-    ei::SetVtable(self, kCompanionVtable);
-    CompanionOwner(self) = nullptr;
-    self->DestructBase();
+void CMapObjectCompanion::DestructCompanion() {
+    ei::SetVtable(this, kVtableAddress);
+    owner = nullptr;
+    DestructBase();
 }
-EI_REPLACE(0x00510730, CompanionDestruct);
+EI_REPLACE_METHOD(0x00510730, CMapObjectCompanion::DestructCompanion);
 
-// 00510710 (slot 0, RET 4).
-CMapObjectCompanion* __fastcall CompanionDelete(CMapObjectCompanion* self, void*, unsigned flags) {
-    CompanionDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CMapObjectCompanion* CMapObjectCompanion::DeleteCompanion(unsigned flags) {
+    DestructCompanion();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x00510710, CompanionDelete);
+EI_REPLACE_METHOD(0x00510710, CMapObjectCompanion::DeleteCompanion);
 
-// 00510750 (slot 2): no map object; 1. 00510760 (slot 3): no map object.
-int __fastcall CompanionCreate(CMapObjectCompanion* self) {
-    CompanionOwner(self) = nullptr;
+int CMapObjectCompanion::CreateCompanion() {
+    owner = nullptr;
     return 1;
 }
-EI_REPLACE(0x00510750, CompanionCreate);
-void __fastcall CompanionDestroy(CMapObjectCompanion* self) { CompanionOwner(self) = nullptr; }
-EI_REPLACE(0x00510760, CompanionDestroy);
+EI_REPLACE_METHOD(0x00510750, CMapObjectCompanion::CreateCompanion);
+void CMapObjectCompanion::DestroyCompanion() { owner = nullptr; }
+EI_REPLACE_METHOD(0x00510760, CMapObjectCompanion::DestroyCompanion);
 
-// 005106E0 (slot 6, the per-tick update): 0.
-int __fastcall CompanionUpdate(CMapObjectCompanion*) { return 0; }
-EI_REPLACE(0x005106E0, CompanionUpdate);
+int CMapObjectCompanion::UpdateCompanion() { return 0; }
+EI_REPLACE_METHOD(0x005106E0, CMapObjectCompanion::UpdateCompanion);
 // 005106D0 (slot 13 EffectsChanged; the server's too) and 00510700 (slot 19), RET 4: nothing.
 void __fastcall CompanionIgnore(CMapObjectCompanion*, void*, int) {}
 EI_REPLACE(0x005106D0, CompanionIgnore);
@@ -79,8 +74,7 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::DeleteClientCompanion(unsign
 EI_REPLACE_METHOD(0x00510540, CMapObjectClientSpecific::DeleteClientCompanion);
 
 void CMapObjectClientSpecific::ShowHit(int damage, int kind) {
-    if (ObjectSlots(CompanionOwner(this))->IsDead() != 0) return;
-    CMapObject* owner = CompanionOwner(this);
+    if (ObjectSlots(owner)->IsDead() != 0) return;
     if (!(owner->flags_ & kShowsNumbers)) return;
     ClientShowNumberOriginal(ManagerContext(), nullptr, owner->id_, damage, kind);
 }

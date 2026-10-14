@@ -242,11 +242,11 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
 }
 EI_REPLACE(0x005114D0, PlayEffectSound);
 
-void CMapObjectClientSpecific::EffectsChanged(bool first) {
+void CMapObjectClientSpecific::OnEffectsChanged(bool first) {
     CallUpdateEffectParticles(this, nullptr, first);
     CallUpdateEffectSounds(this, nullptr, first);
 }
-EI_REPLACE_METHOD(0x005117D0, CMapObjectClientSpecific::EffectsChanged);
+EI_REPLACE_METHOD(0x005117D0, CMapObjectClientSpecific::OnEffectsChanged);
 
 void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     CMapObject* owner = CompanionOwner(this);
@@ -487,7 +487,7 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
 }
 EI_REPLACE_METHOD(0x00511830, CMapObjectClientSpecific::CreateLight);
 
-void CMapObjectClientSpecific::SetLightMode(int mode) {
+void CMapObjectClientSpecific::ApplyLightMode(int mode) {
     if (mode == 1) {
         if (!light) {
             float colour[4] = {DefaultLightColour()[0], DefaultLightColour()[1], DefaultLightColour()[2], 1.0f};
@@ -506,13 +506,13 @@ void CMapObjectClientSpecific::SetLightMode(int mode) {
     }
     if (mode == 2 && light) DropLight(this);
 }
-EI_REPLACE_METHOD(0x00511A00, CMapObjectClientSpecific::SetLightMode);
+EI_REPLACE_METHOD(0x00511A00, CMapObjectClientSpecific::ApplyLightMode);
 
 void CMapObjectClientSpecific::DestroyClientCompanion() {
     unknown_20 = 0;
     unknown_24 = 0;
     CompanionParticlesSetSizeOriginal(&particles, nullptr, 0, -1);
     if (light) DropLight(this);
-    object = nullptr;
+    owner = nullptr;
 }
 EI_REPLACE_METHOD(0x005107B0, CMapObjectClientSpecific::DestroyClientCompanion);
