@@ -782,11 +782,11 @@ started = "2026-10-14"
 id = "SV1e"
 title = "Native runs fail at start-up with 'DirectX 7 or higher required' on the real clock"
 group = "harness"
-status = "queued"
+status = "review"
 size = 0.2
 model = "sonnet"
 files = ["tools/run_all.py"]
-note = "From SV1: 51 of 77 real-clock native runs failed at 0 s with that box. PF3 (native skips the GetDxVersion probe) may already cover it: check on current main first, close if so."
+note = "Checked 2026-10-15 on main c93af795 + SV1d: run_all --native --clock real, 8 scenarios (smoke console camera items movement models particles levers), 4 at once: all PASS, none at the DirectX box. PF3 (native skips the GetDxVersion probe) covers it; no change needed."
 
 # ---------------------------------------------------------------- cleanup
 
