@@ -407,10 +407,11 @@ done = "2026-10-15"
 id = "N0d"
 title = "Census call chains: stale return addresses"
 group = "native-ui"
-status = "queued"
+status = "running"
 size = 0.25
 files = ["tests/verify/ui_census.cpp"]
 note = "Chain() scans the stack for return-address-like values, so the pixel helpers' rows sometimes name stale callers (Rebirth's greyscale marked [in verify], SwapContents 'by' Connection::SendUpdate / CastSpell with zero counts). Walk only from the helper's own return address with real frames, or mark the helpers noinline (N0a, ui-census.md Readers)."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- widescreen
 
