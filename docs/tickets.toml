@@ -202,6 +202,16 @@ status = "queued"
 depends = ["R9c1"]
 note = "R9c1 tests the recreation with render::LoseDevice (Present reported DXGI_ERROR_DEVICE_REMOVED without a real removal). A real one without a driver reset: a test-only device made through D3D11On12CreateDevice whose ID3D12Device5::RemoveDevice removes it (Windows 10 1809+, no install); check the swap chain works with an 11on12 device first (renderer.md section 9, R9c1)."
 
+[[ticket]]
+id = "R10"
+title = "Hooked harness runs on our renderer by default; dgVoodoo only for reference runs"
+group = "renderer"
+status = "queued"
+size = 0.8
+model = "opus"
+files = ["tools/run_all.py", "tools/work_sched.py", "tools/compare.py", "tests/verify/harness.cpp"]
+note = "Asked 2026-10-15 (user): switch test runs to our renderer. Runs of our code (vanilla and Rebirth with hooks) default to EI_RENDER=new,present; dgVoodoo stays only for runs of the original code (--no-hooks, rebirth-nohooks in --widescreen, compare.py's original side), which have nothing else to draw with. Our renderer goes full screen without a display mode change, so its runs need not be 'alone': only dgVoodoo runs that set a resolution keep the machine to themselves (today 6 scenarios: render_present_fullscreen/window, ui_widescreen*; they run in series and dominate widescreen suites). Also cache the reference runs' frames by the scenario's last-change commit (like WB6's timing table) so the dgVoodoo reference runs only rerun when a scenario changes. Check the cross-renderer frame comparisons (filtering) and the minimise rerun (SV1c, dgVoodoo only). First get the full --native suite green on main."
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
