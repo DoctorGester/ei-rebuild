@@ -12,6 +12,7 @@
 #include "originals_units.h"
 #include "originals_library.h"
 
+#include <concepts>
 #include <bit>
 #include <cstring>
 
@@ -37,6 +38,8 @@ constexpr int kCacheScaledFigure = 0x18 / 4;
 
 std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
 float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float Float(T) = delete;
 
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.

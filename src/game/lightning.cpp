@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 
+#include <concepts>
 #include <cstring>
 #include <initializer_list>
 
@@ -64,6 +65,8 @@ float FromBits(std::uint32_t bits) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float FromBits(T) = delete;
 
 // Randomize a key as the original does inline. The up-noise keys of SampleNoise multiply the
 // normaliser by the amplitude before the weight; everything else multiplies the weight first.

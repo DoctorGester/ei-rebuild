@@ -8,6 +8,8 @@
 #include "object_maths.h"
 #include "unit.h"
 
+#include <concepts>
+
 #pragma float_control(precise, on)
 
 using namespace particle;
@@ -925,6 +927,8 @@ inline float F(std::uint32_t bits) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> inline float F(T) = delete;
 
 // The beam's frame from the extent (the first emission).
 void SetUpLink(CParticleSource* s) {

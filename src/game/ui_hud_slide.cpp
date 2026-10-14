@@ -24,6 +24,7 @@
 #include "originals_render.h"   // QuaternionSetAxisAngleOriginal
 #include "originals_ui.h"       // SpritePlaceOriginal, WindowFrameTimeOriginal
 
+#include <concepts>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -67,6 +68,8 @@ float FromBits(std::uint32_t bits) {
     std::memcpy(&value, &bits, sizeof(value));
     return value;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float FromBits(T) = delete;
 
 void Place(CUiWindow* window, int index, float x, float y, float depth) {
     SpritePlaceOriginal(window->sceneObjects_.data[index], nullptr, x, y, depth);

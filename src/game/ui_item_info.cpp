@@ -23,6 +23,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include "originals_effects.h"
@@ -53,6 +54,8 @@ float FloatOf(std::uint32_t bits) {
     std::memcpy(&v, &bits, sizeof(v));
     return v;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float FloatOf(T) = delete;
 
 const itemdb::SpellRecord* AsSpell(const char* record) { return reinterpret_cast<const itemdb::SpellRecord*>(record); }
 

@@ -28,6 +28,7 @@
 #include "originals_ui.h"
 #include "originals_engine.h"
 
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include <new>
@@ -50,6 +51,8 @@ float Bits(std::uint32_t bits) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float Bits(T) = delete;
 
 float AbsBits(float f) {
     std::uint32_t bits;

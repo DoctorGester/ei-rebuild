@@ -18,6 +18,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 
+#include <concepts>
 #include <bit>
 #include <cstring>
 #include "originals_library.h"
@@ -40,6 +41,8 @@ float FloatBits(std::uint32_t bits) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float FloatBits(T) = delete;
 
 float AbsBits(float f) {
     std::uint32_t bits;

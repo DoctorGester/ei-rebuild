@@ -14,6 +14,7 @@
 #include "map_object.h"
 #include "world.h"
 
+#include <concepts>
 #include <cstring>
 
 namespace {
@@ -56,6 +57,8 @@ float AsFloat(std::uint32_t bits) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float AsFloat(T) = delete;
 
 void CopyBits(float* dst, const void* src) { std::memcpy(dst, src, sizeof(float)); }
 

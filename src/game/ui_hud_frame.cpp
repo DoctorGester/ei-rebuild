@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
@@ -33,6 +34,8 @@ float FloatFromBits(std::uint32_t bits) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float FloatFromBits(T) = delete;
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 float Pi() { return GameFloat(0x007423F8); }

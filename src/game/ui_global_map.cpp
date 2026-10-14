@@ -29,6 +29,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 
+#include <concepts>
 #include <ddraw.h>
 
 #include <cstdint>
@@ -54,6 +55,8 @@ float Bits(std::uint32_t bits) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float Bits(T) = delete;
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }

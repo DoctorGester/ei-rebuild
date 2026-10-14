@@ -10,6 +10,7 @@
 #include "originals_units.h"
 #include "originals_library.h"
 
+#include <concepts>
 #include <bit>
 #include <cstring>
 
@@ -78,6 +79,8 @@ constexpr int kRebirthMaxEffects = 20;
 constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)
 
 float FloatBits(std::uint32_t bits) { return std::bit_cast<float>(bits); }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float FloatBits(T) = delete;
 
 // Rebirth (addon.dll 100181D5): after adding `effect`, older effects (not the new last one) of
 // the same type and end flag whose +0x0C is within 0.001 of the new one's, that last no longer and

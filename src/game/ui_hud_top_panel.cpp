@@ -10,6 +10,7 @@
 #include "lib/mfc.h"
 #include "originals_ui.h"
 
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 
@@ -23,6 +24,8 @@ float FloatFromBits(std::uint32_t bits) {
     std::memcpy(&f, &bits, sizeof(f));
     return f;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> float FloatFromBits(T) = delete;
 
 // The message log, the battle screen's child window 9.
 void* MessageLog(CBattleScreen* screen) { return screen->children_.data[9]; }

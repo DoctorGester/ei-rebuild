@@ -15,6 +15,7 @@
 #include "originals_world.h"
 #include "originals_script.h"
 
+#include <concepts>
 #include <cstdint>
 #include <cstring>
 
@@ -57,6 +58,8 @@ inline float FromBits(std::uint32_t u) {
     std::memcpy(&f, &u, 4);
     return f;
 }
+// A float argument would convert to an integer first: callers pass raw bits only.
+template <std::floating_point T> inline float FromBits(T) = delete;
 inline float StoreFloat(float v) {
     volatile float r = v;
     return r;
