@@ -132,7 +132,7 @@ const RECT* UnitScreenRect(CUnit* unit) {
     FigurePart* part = nullptr;
     for (int i = 0; i < 3 && !part; ++i) part = object->FindPartByPrefix(worlddata::HeroPartText(i));
     if (!part) return nullptr;
-    if (part->flags_ & kPartOwnMesh) return &part->mesh->screenRect_;
+    if (part->flags_ & kPartOwnMesh) return &part->drawer_->screen_;
     return reinterpret_cast<const RECT*>(object->dirtyRect);
 }
 

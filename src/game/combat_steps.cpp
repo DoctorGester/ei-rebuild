@@ -1,6 +1,6 @@
 // Combat, fourth part: the animation steps of an order (which animation of the unit plays, for how
-// long, and when the action happens). See combat.h, combat_plan.h and docs/notes/combat.md
-// ("Third round").
+// long, and when the action happens). See combat.h, combat_plan.h and docs/notes/combat.md ("Order
+// lifecycle").
 #include "combat.h"
 #include "combat_plan.h"
 

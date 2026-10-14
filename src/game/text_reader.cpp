@@ -137,13 +137,13 @@ EI_REPLACE(0x004DF020, TextClose);
 int __fastcall TextCharCode(const char* p) { return CharCode(p); }
 EI_REPLACE(0x004DF4E0, TextCharCode);
 
-BOOL __fastcall TextPeekWord(CTextManager* self, void*, mfc::CString* out) {
+BOOL CTextManager::PeekWord(mfc::CString* out) {
     mfc::CString tmp;
-    const char* p = self->cursor_;
+    const char* p = cursor_;
     bool started = false;
     out->Empty();
-    if (!Inside(self, p)) return 0;
-    while (Inside(self, p)) {
+    if (!Inside(this, p)) return 0;
+    while (Inside(this, p)) {
         int code = CharCode(p);
         if (code == 13 || code == 9) break;
         if (code == 0x20 || code == 10) {
@@ -156,7 +156,7 @@ BOOL __fastcall TextPeekWord(CTextManager* self, void*, mfc::CString* out) {
     }
     return 1;
 }
-EI_REPLACE(0x004DF770, TextPeekWord);
+EI_REPLACE_METHOD(0x004DF770, CTextManager::PeekWord);
 
 BOOL __fastcall TextSkipLine(CTextManager* self) {
     const char* p = self->cursor_;

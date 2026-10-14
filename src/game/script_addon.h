@@ -1,7 +1,7 @@
 #pragma once
 
 // Rebirth's AddNewScriptCommands (addon.dll v0.12.4.2), reproduced behind its flag
-// (include/ei/rebirth.h, docs/notes/rebirth.md "AddNewScriptCommands"): 69 script functions and
+// (include/ei/rebirth.h, docs/notes/rebirth.md "Scripting and console"): 69 script functions and
 // commands added to the keyword table, seven of them replacing a game one, the '?' (optional
 // parameter) and '+' (repeat the previous type) signature letters, and a stricter keyword match.
 // Internal to script_addon*.cpp and the script functions that call into it.

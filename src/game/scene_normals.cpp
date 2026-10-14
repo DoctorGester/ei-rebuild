@@ -3,8 +3,7 @@
 // normalised sum of the normals of the faces using it (the zero vector 0079B9B0 when the sum is
 // within the weld distance of zero), the faces' position indices refreshed, and the normals packed
 // four at a time into 64-byte blocks (x[4], y[4], z[4], w[4]; unused lanes repeat the last
-// normal, w is 1). Plain float maths (rule 7). Names provisional; see docs/notes/objects.md
-// ("Sixth round").
+// normal, w is 1). Plain float maths (rule 7). Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "../lib/crt.h"

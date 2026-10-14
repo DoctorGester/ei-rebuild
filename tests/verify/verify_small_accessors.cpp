@@ -27,22 +27,18 @@
 // small_accessors.cpp (no header declares the shims).
 void __fastcall DropObjectReference(CEngineObject** slot);
 Vector3* __fastcall Vector3FromParts(Vector3* self, void*, float x, float y, float z);
-void __fastcall SceneHelperSetVectorB(scene::SceneHelper* helper, void*, const Vector3* value);
-void __fastcall SceneHelperSetVectorA(scene::SceneHelper* helper, void*, const Vector3* value);
-void __fastcall SceneHelperSetVectorC(scene::SceneHelper* helper, void*, const Vector3* value);
+void __fastcall MaterialSetDiffuse(CMaterial* helper, void*, const Vector3* value);
+void __fastcall MaterialSetAmbient(CMaterial* helper, void*, const Vector3* value);
+void __fastcall MaterialSetSpecular(CMaterial* helper, void*, const Vector3* value);
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
 CEngineObject* __fastcall ScriptRefCompanion(const ScriptObjectRef* ref);
-void __fastcall ScriptObjectSetFlags(CEngineObject* object, void*, std::uint32_t bits);
-void __fastcall ScriptObjectClearFlags(CEngineObject* object, void*, std::uint32_t bits);
 void __fastcall ScriptObjectSetPosition(CMapObject* object, void*, const Vector3* point);
 int __fastcall ScriptSessionActive(const CRefCounted* session);
 int __fastcall ScriptRound(void*, void*, float value);
 void __fastcall ScriptItemRepair(CItem* item);
 CEngineObject* __fastcall ScriptUnitController(const CUnit* unit);
 int __fastcall ScriptUnitCarriedCount(const CUnit* unit);
-CEngineObject* __fastcall ScriptUnitCarriedItem(const CUnit* unit, void*, int index);
 UnitStats* __fastcall ScriptControllerStats(CUnitServer* controller);
-CEngineObject* __fastcall ScriptIteratorFirst(ObjectListIterator* iterator, void*, CBaseManager* list);
 void __fastcall ScriptWriteText(const mfc::CString* text, CStream* stream);
 
 namespace {
@@ -73,7 +69,7 @@ int __fastcall SessionActiveVerify(const CRefCounted* session) {
 }
 
 CEngineObject* __fastcall IteratorFirstVerify(ObjectListIterator* iterator, void*, CBaseManager* list) {
-    CEngineObject* result = ScriptIteratorFirst(iterator, nullptr, list);
+    CEngineObject* result = iterator->First(list);
     ei::verify::Check("script accessor 004BAA20", true, iterator->manager == list, "");
     return result;
 }
@@ -100,31 +96,33 @@ Vector3* __fastcall FromPartsVerify(Vector3* self, void*, float x, float y, floa
 
 // 00471AB0 / AD0 / AF0: MOV EAX,[ESP+4] (4), MOV EDX,[EAX] (2). The original on the field, which is
 // then put back, then ours.
-using HelperSetter = void(__fastcall*)(scene::SceneHelper*, void*, const Vector3*);
-void CheckHelperSetter(const char* name, HelperSetter original, HelperSetter ours, scene::SceneHelper* helper,
-                       const Vector3* value, Vector3 scene::SceneHelper::*field) {
-    Vector3 saved = helper->*field;
+using HelperSetter = void(__fastcall*)(CMaterial*, void*, const Vector3*);
+void CheckHelperSetter(const char* name, HelperSetter original, HelperSetter ours, CMaterial* helper,
+                       const Vector3* value, Vector4 MaterialColors::*field) {
+    // The colour's red, green and blue: its first three floats.
+    Vector3& rgb = *reinterpret_cast<Vector3*>(&(helper->colors.*field));
+    Vector3 saved = rgb;
     Vector3 input = *value;
     original(helper, nullptr, &input);
-    Vector3 expected = helper->*field;
-    helper->*field = saved;
+    Vector3 expected = rgb;
+    rgb = saved;
     ours(helper, nullptr, value);
-    ei::verify::Check(name, true, SameVector(expected, helper->*field), "");
+    ei::verify::Check(name, true, SameVector(expected, rgb), "");
 }
 HelperSetter s_setVectorB;
-void __fastcall SetVectorBVerify(scene::SceneHelper* helper, void*, const Vector3* value) {
-    CheckHelperSetter("scene helper setter 00471AB0", s_setVectorB, SceneHelperSetVectorB, helper, value,
-                      &scene::SceneHelper::vectorB);
+void __fastcall SetVectorBVerify(CMaterial* helper, void*, const Vector3* value) {
+    CheckHelperSetter("scene helper setter 00471AB0", s_setVectorB, MaterialSetDiffuse, helper, value,
+                      &MaterialColors::diffuse);
 }
 HelperSetter s_setVectorA;
-void __fastcall SetVectorAVerify(scene::SceneHelper* helper, void*, const Vector3* value) {
-    CheckHelperSetter("scene helper setter 00471AD0", s_setVectorA, SceneHelperSetVectorA, helper, value,
-                      &scene::SceneHelper::vectorA);
+void __fastcall SetVectorAVerify(CMaterial* helper, void*, const Vector3* value) {
+    CheckHelperSetter("scene helper setter 00471AD0", s_setVectorA, MaterialSetAmbient, helper, value,
+                      &MaterialColors::ambient);
 }
 HelperSetter s_setVectorC;
-void __fastcall SetVectorCVerify(scene::SceneHelper* helper, void*, const Vector3* value) {
-    CheckHelperSetter("scene helper setter 00471AF0", s_setVectorC, SceneHelperSetVectorC, helper, value,
-                      &scene::SceneHelper::vectorC);
+void __fastcall SetVectorCVerify(CMaterial* helper, void*, const Vector3* value) {
+    CheckHelperSetter("scene helper setter 00471AF0", s_setVectorC, MaterialSetSpecular, helper, value,
+                      &MaterialColors::specular);
 }
 
 // 004981A0: MOV DWORD PTR [ECX+0xE4],0 (10).
@@ -150,12 +148,14 @@ void CheckFlagSetter(const char* name, FlagSetter original, FlagSetter ours, CEn
     ei::verify::Check(name, expected, object->flags_, "flags %08X bits %08X", saved, bits);
 }
 FlagSetter s_setFlags;
+void __fastcall SetFlagBitsOurs(CEngineObject* object, void*, std::uint32_t bits) { object->SetFlagBits(bits); }
+void __fastcall ClearFlagBitsOurs(CEngineObject* object, void*, std::uint32_t bits) { object->ClearFlagBits(bits); }
 void __fastcall SetFlagsVerify(CEngineObject* object, void*, std::uint32_t bits) {
-    CheckFlagSetter("script accessor 004B9F50", s_setFlags, ScriptObjectSetFlags, object, bits);
+    CheckFlagSetter("script accessor 004B9F50", s_setFlags, SetFlagBitsOurs, object, bits);
 }
 FlagSetter s_clearFlags;
 void __fastcall ClearFlagsVerify(CEngineObject* object, void*, std::uint32_t bits) {
-    CheckFlagSetter("script accessor 004B9F60", s_clearFlags, ScriptObjectClearFlags, object, bits);
+    CheckFlagSetter("script accessor 004B9F60", s_clearFlags, ClearFlagBitsOurs, object, bits);
 }
 
 // 004B9F90: MOV EAX,[ESP+4] (4), ADD ECX,0x1C (3).
@@ -208,7 +208,7 @@ int __fastcall CarriedCountVerify(const CUnit* unit) {
 CEngineObject*(__fastcall* s_carriedItem)(const CUnit*, void*, int);
 CEngineObject* __fastcall CarriedItemVerify(const CUnit* unit, void*, int index) {
     CEngineObject* expected = s_carriedItem(unit, nullptr, index);
-    CEngineObject* actual = ScriptUnitCarriedItem(unit, nullptr, index);
+    CEngineObject* actual = unit->CarriedItem(index);
     ei::verify::Check("script accessor 004BA080", true, expected == actual, "index %d", index);
     return actual;
 }

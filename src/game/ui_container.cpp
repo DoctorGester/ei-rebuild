@@ -1,5 +1,5 @@
 // Containers (CUiContainer, ui.h): the default input handlers of their input side, which pass an
-// event on to the extra input sides and the child windows. See docs/notes/ui.md ("Area ticket A-I").
+// event on to the extra input sides and the child windows. See docs/notes/ui.md ("Container input dispatch").
 #include "ui.h"
 
 #include "ei/hook.h"

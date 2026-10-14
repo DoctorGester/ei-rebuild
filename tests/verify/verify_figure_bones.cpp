@@ -31,8 +31,8 @@ void Save(std::vector<BoneState>& states) {
         s.position = s.bone->position;
         s.rotation = s.bone->rotation;
         if (CFigureMesh* mesh = s.bone->mesh) {
-            s.meshPosition = mesh->position_;
-            s.meshRotation = mesh->rotation_;
+            s.meshPosition = mesh->localPosition_;
+            s.meshRotation = mesh->localRotation_;
             s.offsetCount = mesh->offsets_.size;
         }
     }
@@ -43,8 +43,8 @@ void Restore(const std::vector<BoneState>& states) {
         s.bone->position = s.position;
         s.bone->rotation = s.rotation;
         if (CFigureMesh* mesh = s.bone->mesh) {
-            mesh->position_ = s.meshPosition;
-            mesh->rotation_ = s.meshRotation;
+            mesh->localPosition_ = s.meshPosition;
+            mesh->localRotation_ = s.meshRotation;
         }
     }
 }

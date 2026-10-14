@@ -1,6 +1,6 @@
 // A world player (CPlayer, vtable 00743104; 00664BF0-00665D20): constructor and destructor,
-// Create / Destroy, Clear, the link and connection, the given items and the units. See player_messages.h and docs/notes/items_spells.md
-// ("Players").
+// Create / Destroy, Clear, the link and connection, the given items and the units. See player_messages.h
+// and docs/notes/objects.md ("Players").
 #include "player_messages.h"
 
 #include "item.h"

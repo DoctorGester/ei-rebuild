@@ -38,15 +38,15 @@ EI_REPLACE_METHOD(0x0051C970, CObject3DClientSpecific::RegisterPartMaterials);
 
 namespace {
 constexpr std::uint32_t kObjectShown = 0x20;    // CObject3D::flags_
-constexpr std::uint32_t kPartOwnMesh = 0x40;    // FigurePart::flags_: the part has its own mesh
+constexpr std::uint32_t kPartOwnMesh = 0x40;    // CFigureMesh::flags_: the part is drawn through its drawer
 constexpr int kClientClassId = 0x37;
 constexpr std::uintptr_t kSpecificBaseVtable = std::uintptr_t(0x0073DEFC);
 // 0078F47C: "CObject3DClientSpecific".
 const char* ClientClassName() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078F47C)); }
 
 POINT AsPoint(const long* point) { return POINT{point[0], point[1]}; }
-const RECT* PartRect(const FigurePart* part) { return &part->mesh->screenRect_; }
-FigurePart* PartAt(const AlignedPtrArray& parts, int i) { return static_cast<FigurePart*>(parts.data[i]); }
+const RECT* PartRect(const CFigureMesh* part) { return &part->drawer_->screen_; }
+CFigureMesh* PartAt(const AlignedPtrArray& parts, int i) { return static_cast<CFigureMesh*>(parts.data[i]); }
 } // namespace
 
 int CObject3DClientSpecific::BoundsContainPoint(const long* point) {
@@ -59,7 +59,7 @@ int CObject3DClientSpecific::PartsContainPoint(const long* point) {
     CObject3D* target = object;
     if (!(target->flags_ & kObjectShown)) return FALSE;
     for (int i = 0; i < target->parts.size; ++i) {
-        FigurePart* part = PartAt(target->parts, i);
+        CFigureMesh* part = PartAt(target->parts, i);
         if (!(part->flags_ & kPartOwnMesh)) continue;
         if (gameapi::PtInRect(PartRect(part), AsPoint(point))) return TRUE;
     }
@@ -71,7 +71,7 @@ int CObject3DClientSpecific::PartsIntersectRect(const tagRECT* rect) {
     CObject3D* target = object;
     if (!(target->flags_ & kObjectShown)) return FALSE;
     for (int i = 0; i < target->parts.size; ++i) {
-        FigurePart* part = PartAt(target->parts, i);
+        CFigureMesh* part = PartAt(target->parts, i);
         if (!(part->flags_ & kPartOwnMesh)) continue;
         RECT common;
         gameapi::IntersectRect(&common, PartRect(part), rect);
@@ -81,13 +81,13 @@ int CObject3DClientSpecific::PartsIntersectRect(const tagRECT* rect) {
 }
 EI_REPLACE_METHOD(0x0051C1D0, CObject3DClientSpecific::PartsIntersectRect);
 
-FigurePart* CObject3DClientSpecific::ObjectPartNamed(const char* name) { return object->FindPart(name); }
+CFigureMesh* CObject3DClientSpecific::ObjectPartNamed(const char* name) { return object->FindPart(name); }
 EI_REPLACE_METHOD(0x0051B2E0, CObject3DClientSpecific::ObjectPartNamed);
 
-FigurePart* CObject3DClientSpecific::ObjectPartOfType(int type) { return object->FindPartOfType(type); }
+CFigureMesh* CObject3DClientSpecific::ObjectPartOfType(int type) { return object->FindPartOfType(type); }
 EI_REPLACE_METHOD(0x0051B2D0, CObject3DClientSpecific::ObjectPartOfType);
 
-FigurePart* CObject3D::FindPartOfType(int type) {
+CFigureMesh* CObject3D::FindPartOfType(int type) {
     for (int i = 0; i < parts.size; ++i)
         if (PartAt(parts, i)->type_ == type) return PartAt(parts, i);
     for (int i = 0; i < pendingParts.size; ++i)

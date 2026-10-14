@@ -36,34 +36,34 @@ bool SameHeight(float a, float b) {
 
 #pragma float_control(precise, on, push)
 
-CRefObject* __fastcall CacheGet(UnitShapeCache* cache, void*, void* handleIn) {
+CRefObject* UnitShapeCache::Get(void* handleIn) {
     auto* handle = static_cast<CacheHandle*>(handleIn);
-    if (handle->cache == cache && handle->ref && !(handle->ref->flags7_ & CRefObject::kDetached)) return handle->ref;
+    if (handle->cache == this && handle->ref && !(handle->ref->flags7_ & CRefObject::kDetached)) return handle->ref;
 
-    auto count = static_cast<std::uint32_t>(cache->shapes.BucketCount());
-    CacheNode* node = cache->shapes.Bucket(handle->key % count);
+    auto count = static_cast<std::uint32_t>(shapes.BucketCount());
+    CacheNode* node = shapes.Bucket(handle->key % count);
     while (node && !SameHeight(node->key.height, handle->height)) node = node->next;
     if (node) {
         CRefObject* value = node->value.ptr;
-        handle->cache = cache;
+        handle->cache = this;
         reinterpret_cast<RefPtr*>(&handle->ref)->Assign(value);
         return value;
     }
 
-    CRefObject* created = cache->CreateShape(handle);
-    RefPtr* slot = CacheSlot(&cache->shapes, nullptr, handle);
+    CRefObject* created = CreateShape(handle);
+    RefPtr* slot = CacheSlot(&shapes, nullptr, handle);
     if (created != slot->ptr) {
         slot->Destroy();
         slot->Share(created);
     }
-    handle->cache = cache;
+    handle->cache = this;
     reinterpret_cast<RefPtr*>(&handle->ref)->Assign(created);
     return created;
 }
 
 #pragma float_control(pop)
 
-EI_REPLACE(0x005BD7F0, CacheGet);
+EI_REPLACE_METHOD(0x005BD7F0, UnitShapeCache::Get);
 
 UnitShapeCache* UnitShapeCache::Construct() {
     shapes.InitBuckets(kFirstBuckets);

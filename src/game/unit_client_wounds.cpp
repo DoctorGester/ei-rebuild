@@ -141,9 +141,7 @@ void CObject3DClientSpecific::HideWounds() {
     CEngineObject* oldTexture = woundsTexture;
     woundsTexture = nullptr;
     if (oldTexture) oldTexture->Release();
-    WoundsMaterial* oldMaterial = woundsMaterial;
-    woundsMaterial = nullptr;
-    if (oldMaterial && --oldMaterial->refCount == 0) oldMaterial->DeletingDestructor(1);
+    ClearWoundsMaterial();
 }
 EI_REPLACE_METHOD(0x0051C920, CObject3DClientSpecific::HideWounds);
 
@@ -160,20 +158,6 @@ void AssignTexture(CTexture** slot, CTexture* value) {
     *slot = value;
     if (value) ++value->refCount_;
     if (old) old->Release();
-}
-
-// 0051E570 / 0051E4F0: a counted root (refs at +4, slot 0 deletes) assigned; the old one deleted at
-// its last reference.
-int& RefsOf(WoundsMaterial* material) { return material->refCount; }
-int& RefsOf(CRenderPreset* preset) { return preset->refs_; }
-void DeleteRoot(WoundsMaterial* material) { material->DeletingDestructor(1); }
-void DeleteRoot(CRenderPreset* preset) { preset->DeleteThis(1); }
-template <typename T>
-void AssignCountedRoot(T** slot, T* value) {
-    T* old = *slot;
-    *slot = value;
-    if (value) ++RefsOf(value);
-    if (old && --RefsOf(old) == 0) DeleteRoot(old);
 }
 
 // The material's constructor, inlined by 0051C3D0: the counted root's fields, then its own.
@@ -211,15 +195,15 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         woundsTexture->flags_ &= ~kTextureLoaded;
         if (!TextureLoadOriginal(manager, nullptr, woundsTexture)) {
             AssignTexture(&woundsTexture, nullptr);
-            AssignCountedRoot(&woundsMaterial, static_cast<WoundsMaterial*>(nullptr));
+            AsCountedRef(woundsMaterial).Assign(nullptr);
             extra.FreeData();
             return 0;
         }
     }
     if (!woundsMaterial) {
-        AssignCountedRoot(&woundsMaterial, NewWoundsMaterial());
+        AsCountedRef(woundsMaterial).Assign(NewWoundsMaterial());
         CRenderHelper* helper = static_cast<CSceneRenderer*>(SceneContext())->helper_;
-        AssignCountedRoot(&woundsMaterial->preset, helper->Preset(kWoundsPreset));
+        AsCountedRef(woundsMaterial->preset).Assign(helper->Preset(kWoundsPreset));
         woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
     }

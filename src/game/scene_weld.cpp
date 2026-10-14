@@ -2,7 +2,7 @@
 // names it LinkNodes): for every mesh, positions closer than the weld distance (0073B860) to an
 // earlier one are merged, the face corners and the node's morph key points are renumbered to the
 // merged list, then the texture coordinates the same way. Names provisional; see
-// docs/notes/objects.md ("Sixth round").
+// docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "../lib/crt.h"

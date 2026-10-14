@@ -1,5 +1,5 @@
 # The switch-over with the interface windows in game-owned memory ("render new,present,cpuwindows",
-# docs/notes/renderer.md, "The interface is composed on DirectDraw surfaces"): render_present plus
+# docs/notes/renderer.md, "Interface windows and holders on game memory"): render_present plus
 # the escape menu, whose background is the screen copy (005FD3D0, written straight into the
 # window's memory from the new frame), greyed (005FE440) and shrunk for the save picture (005FD440,
 # a CPU stretch). Captures are the new frames; compare with render_present and frames_basic:

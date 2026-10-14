@@ -90,7 +90,7 @@ struct LockKey;      // unit.h
 // not declared; name them properly when calling them). The rewritten slots that are declared here
 // are registered through __fastcall hooks (rewrite guide rule 4); the others are members of another
 // name registered by address (IsInvisible for slot 21, ResetScale for 30, ...), or the shared stub
-// bodies of map_object_stub_slots.cpp. Names and evidence: docs/notes/drafts/DR-C2.md.
+// bodies of map_object_stub_slots.cpp. Names and evidence: docs/notes/map_objects.md ("Virtual slot names").
 class __declspec(novtable) CMapObject : public CObject3D {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DAA0);

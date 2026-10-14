@@ -1,6 +1,6 @@
 // CLightning's initialiser (004680D0; called by the lightning client object's setter 0067A479).
 // Plain float maths (rule 7); random words converted with x87::FromUnsigned. See
-// docs/notes/objects.md ("Sixth round").
+// docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
 
 #include "random.h"

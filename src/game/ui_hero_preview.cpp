@@ -1,5 +1,5 @@
 // The hero preview of the camp (0060F050) and the multiplayer hero screen (006159E0): 005EC300.
-// See ui.h (CUiWindow::DrawHeroPreview) and docs/notes/ui.md ("Hero preview").
+// See ui.h (CUiWindow::DrawHeroPreview) and docs/notes/ui.md ("Camp, global map, hero screens").
 //
 // Floating point follows the original's x87 code: values it stores as float go through Store,
 // values it keeps on the FPU stack stay unrounded (double), products and sums keep its operand

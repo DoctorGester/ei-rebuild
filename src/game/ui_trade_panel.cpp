@@ -1,6 +1,6 @@
 // The camp's trade panel (the level-up page, vtable 007417A8): its layout (00624F10), its lists of
-// schools and perks (00625880) and their drawing (006261A0). See docs/notes/ui.md ("Ninth pass",
-// "Tenth pass").
+// schools and perks (00625880) and their drawing (006261A0). See docs/notes/ui.md ("Camp, global map,
+// hero screens").
 #include "ui_camp.h"
 #include "party.h"
 #include "unit.h"

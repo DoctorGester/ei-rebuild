@@ -140,10 +140,10 @@ bool TappedPipeline(CLinkMesh* self, Ours ours, Original original) {
 // ---- 004F3870 ----
 
 // PUSH EBP (1), MOV EBP,ESP (2), SUB ESP,0x1C (3).
-bool(__fastcall* s_lightPart)(CLinkMesh*, void*, const stlp::string*, const FigureLights*, FigureMaterial*, int,
+bool(__fastcall* s_lightPart)(CLinkMesh*, void*, const stlp::string*, const FigureLights*, CMaterial*, int,
                               ColourArray*, ColourArray*);
 bool __fastcall LightPartVerify(CLinkMesh* self, void*, const stlp::string* name, const FigureLights* lights,
-                                FigureMaterial* material, int alpha, ColourArray* colours, ColourArray* speculars) {
+                                CMaterial* material, int alpha, ColourArray* colours, ColourArray* speculars) {
     bool result = false;
     bool expected = false;
     std::vector<std::uint32_t> ourSpeculars;

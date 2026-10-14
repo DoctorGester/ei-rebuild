@@ -1,6 +1,6 @@
 // Combat, seventh part: the controller's movement modes, idle and movement animations, paths to a
 // point, the start of a planned action and the controller's reset. See combat.h, combat_plan.h
-// and docs/notes/combat.md ("Fourth round").
+// and docs/notes/combat.md ("Update").
 //
 // Animation lists cached on the controller: +0x944 the movement animation (key +0x940), +0x960
 // the idle animation (key +0x95C; its start time +0x974).

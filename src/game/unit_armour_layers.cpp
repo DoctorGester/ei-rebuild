@@ -1,6 +1,6 @@
 // Creature statistics (U9): the armour layers of the body slots, the body's packed protection and
 // two skill values (an attribute with the quick items' bonuses, a spell school's skill). See unit.h
-// (UnitStats) and docs/notes/units.md ("Eleventh round (U9)").
+// (UnitStats) and docs/notes/units.md ("Statistics in play").
 #include "unit.h"
 
 #include "item.h"

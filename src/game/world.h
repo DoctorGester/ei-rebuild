@@ -48,7 +48,7 @@ class CCamera;   // camera.h
 class CMaterial;   // material.h
 class CStream;   // core_streams.h
 class CParticleManager;   // effects.h
-struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
+struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
 class CWorldServer;
@@ -228,7 +228,8 @@ public:
     // 13-24 are the manager context's getters (CParty has the same slots). Slots declared
     // `void Name()` keep their place in the order only (their return types are not declared; give
     // them their signature when calling them); rewritten slots stay plain members, rewrite guide
-    // rule 4. Names and evidence: docs/notes/drafts/DR-C2.md. Some names avoid free helpers of
+    // rule 4. Names and evidence: docs/notes/map_objects.md ("Virtual slot names"). Some names avoid
+    // free helpers of
     // the same name (World, ItemManager, LightManager, ...) that the members' bodies call.
     virtual void ThisWorld();             // 13: 0055EB40 returns this
     virtual CBaseManager* TimedObjectManager();   // 14: 0055EB90 (+0x48, manager48_; the client's Segment ticks its objects)
@@ -242,7 +243,7 @@ public:
     // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
     virtual CBaseManager* SpecificManager();
     virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
-    virtual class CFigureCache* FigureCache();   // 23: the figure cache (+0x5C; map_object_figures.h)
+    virtual CLinkFigureLoader* FigureLoader();   // 23 (vtable +0x5C): the figure loader (model.h)
     // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::
     // CopyItem). Not called CopyItem here: CWorldServer's plain member of that name would hide it.
     virtual CEngineObject* DuplicateItem(CEngineObject* item);

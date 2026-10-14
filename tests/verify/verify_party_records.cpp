@@ -17,7 +17,7 @@ int Count(const NamedPartyRecords* l) { return static_cast<int>(l->records.size(
 void*(__fastcall* s_find)(const NamedPartyRecords*, void*, const char*);
 void* __fastcall FindVerify(const NamedPartyRecords* self, void*, const char* name) {
     void* expected = s_find(self, nullptr, name);
-    void* actual = PartyRecordsFind(self, nullptr, name);
+    void* actual = self->Find(name);
     ei::verify::Check("PartyRecordsFind", expected, actual, "\"%s\" in %d records", name, Count(self));
     return expected;
 }
@@ -26,7 +26,7 @@ void* __fastcall FindVerify(const NamedPartyRecords* self, void*, const char* na
 void __fastcall AddVerify(NamedPartyRecords* self, void*, const char* name) {
     std::vector<char> copy(name, name + std::strlen(name) + 1);
     int before = Count(self);
-    PartyRecordsAdd(self, nullptr, name);
+    self->Add(name);
     const PartyRecord* last = self->records.end()[-1];
     bool ok = Count(self) == before + 1 && last && last->refCount == 1 && std::strcmp(NameOf(last), copy.data()) == 0;
     ei::verify::Check("PartyRecordsAdd", true, ok, "%d -> %d records", before, Count(self));
@@ -44,7 +44,7 @@ void __fastcall RemoveVerify(NamedPartyRecords* self, void*, const char* name) {
             matches.erase(matches.begin() + static_cast<std::ptrdiff_t>(i));
         }
     }
-    PartyRecordsRemove(self, nullptr, name);
+    self->Remove(name);
     bool ok = static_cast<std::size_t>(Count(self)) == expected.size() &&
               (expected.empty() || std::memcmp(self->records.begin(), expected.data(), expected.size() * sizeof(void*)) == 0);
     ei::verify::Check("PartyRecordsRemove", true, ok, "%d records left, %u expected", Count(self),

@@ -1,8 +1,8 @@
 // The interface surfaces' pixel work (CUiSurface, ui.h): copying the screen into a surface
 // (005FD3D0), a 16-bit 5:6:5 copy of a surface at a given size (005FD440, the save game's picture)
 // and greying a surface in place (005FE440, the escape menu's background). The escape menu's
-// drawing (005F5320, Rebirth-patched) runs all three when the menu opens. See docs/notes/ui.md,
-// "Surface pixels".
+// drawing (005F5320, Rebirth-patched) runs all three when the menu opens. See docs/notes/ui.md, "Item
+// descriptions, item view".
 //
 // In the switch-over ("present" with "cpuwindows") these work on the surfaces' memory (the new
 // renderer's; the holders have no DirectDraw surface then) directly (DirectPixels), without

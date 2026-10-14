@@ -20,6 +20,7 @@
 #include "lib/vecmath.h"
 
 #include <cstdint>
+#include <cstring>
 
 // ---- App ------------------------------------------------------------------------------------------
 
@@ -47,22 +48,23 @@ Vector3* __fastcall Vector3FromParts(Vector3* self, void*, float x, float y, flo
 }
 EI_REPLACE(0x00471A90, Vector3FromParts);
 
-// 00471AB0 / 00471AD0 / 00471AF0 (RET 4): the scene helper's three vectors, set from `value`
-// (SceneInfo::Load builds each from three numbers of the file with 00471A90).
-void __fastcall SceneHelperSetVectorB(scene::SceneHelper* helper, void*, const Vector3* value) {
-    helper->vectorB = *value;
+// 00471AB0 / 00471AD0 / 00471AF0 (RET 4): a scene helper's (a CMaterial's) diffuse, ambient and
+// specular red, green and blue, set from `value` (SceneInfo::Load builds each from three numbers
+// of the file with 00471A90); the alphas stay.
+void __fastcall MaterialSetDiffuse(CMaterial* helper, void*, const Vector3* value) {
+    std::memcpy(&helper->colors.diffuse, value, sizeof(Vector3));
 }
-EI_REPLACE(0x00471AB0, SceneHelperSetVectorB);
+EI_REPLACE(0x00471AB0, MaterialSetDiffuse);
 
-void __fastcall SceneHelperSetVectorA(scene::SceneHelper* helper, void*, const Vector3* value) {
-    helper->vectorA = *value;
+void __fastcall MaterialSetAmbient(CMaterial* helper, void*, const Vector3* value) {
+    std::memcpy(&helper->colors.ambient, value, sizeof(Vector3));
 }
-EI_REPLACE(0x00471AD0, SceneHelperSetVectorA);
+EI_REPLACE(0x00471AD0, MaterialSetAmbient);
 
-void __fastcall SceneHelperSetVectorC(scene::SceneHelper* helper, void*, const Vector3* value) {
-    helper->vectorC = *value;
+void __fastcall MaterialSetSpecular(CMaterial* helper, void*, const Vector3* value) {
+    std::memcpy(&helper->colors.specular, value, sizeof(Vector3));
 }
-EI_REPLACE(0x00471AF0, SceneHelperSetVectorC);
+EI_REPLACE(0x00471AF0, MaterialSetSpecular);
 
 // ---- Effects --------------------------------------------------------------------------------------
 
@@ -84,15 +86,15 @@ CEngineObject* __fastcall ScriptRefCompanion(const ScriptObjectRef* ref) {
 EI_REPLACE(0x004B2520, ScriptRefCompanion);
 
 // 004B9F50 / 004B9F60 (RET 4): bits of the object's flags set / cleared (the commands pass 0x10000).
-void __fastcall ScriptObjectSetFlags(CEngineObject* object, void*, std::uint32_t bits) {
-    object->flags_ |= bits;
+void CEngineObject::SetFlagBits(std::uint32_t bits) {
+    flags_ |= bits;
 }
-EI_REPLACE(0x004B9F50, ScriptObjectSetFlags);
+EI_REPLACE_METHOD(0x004B9F50, CEngineObject::SetFlagBits);
 
-void __fastcall ScriptObjectClearFlags(CEngineObject* object, void*, std::uint32_t bits) {
-    object->flags_ &= ~bits;
+void CEngineObject::ClearFlagBits(std::uint32_t bits) {
+    flags_ &= ~bits;
 }
-EI_REPLACE(0x004B9F60, ScriptObjectClearFlags);
+EI_REPLACE_METHOD(0x004B9F60, CEngineObject::ClearFlagBits);
 
 // 004B9F90 (RET 4): the map object's position.
 void __fastcall ScriptObjectSetPosition(CMapObject* object, void*, const Vector3* point) {
@@ -132,10 +134,10 @@ int __fastcall ScriptUnitCarriedCount(const CUnit* unit) {
 }
 EI_REPLACE(0x004BA070, ScriptUnitCarriedCount);
 
-CEngineObject* __fastcall ScriptUnitCarriedItem(const CUnit* unit, void*, int index) {
-    return unit->carried[index];
+CEngineObject* CUnit::CarriedItem(int index) const {
+    return carried[index];
 }
-EI_REPLACE(0x004BA080, ScriptUnitCarriedItem);
+EI_REPLACE_METHOD(0x004BA080, CUnit::CarriedItem);
 
 // 004BA9C0: the statistics of the unit's server half.
 UnitStats* __fastcall ScriptControllerStats(CUnitServer* controller) {
@@ -143,11 +145,8 @@ UnitStats* __fastcall ScriptControllerStats(CUnitServer* controller) {
 }
 EI_REPLACE(0x004BA9C0, ScriptControllerStats);
 
-// 004BAA20 (RET 4): the iterator set on `list`; its first object (ObjectListIterator::First).
-CEngineObject* __fastcall ScriptIteratorFirst(ObjectListIterator* iterator, void*, CBaseManager* list) {
-    return iterator->First(list);
-}
-EI_REPLACE(0x004BAA20, ScriptIteratorFirst);
+// 004BAA20 (RET 4): the iterator set on `list`; its first object.
+EI_REPLACE_METHOD(0x004BAA20, ObjectListIterator::First);
 
 // 004BC1F0 (the text in ECX, the stream in EDX): the text written with its terminator.
 void __fastcall ScriptWriteText(const mfc::CString* text, CStream* stream) {

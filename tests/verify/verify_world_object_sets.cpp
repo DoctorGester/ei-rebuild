@@ -11,8 +11,6 @@
 
 using ObjectSet = lib::AlignedArray<std::uint32_t>;
 
-void __fastcall ObjectSetSetSize(ObjectSet* self, void*, int n, int growBy);
-void __fastcall ObjectSetResize(ObjectSet* self, void*, int n, int growBy);
 void __fastcall ObjectSetRadixPass(int shift, ObjectSet* src, ObjectSet* dst);
 void __fastcall ObjectSetSortUnique(ObjectSet* self);
 void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* added, ObjectSet* gone, ObjectSet* same);
@@ -31,13 +29,13 @@ void __fastcall SetSizeVerify(ObjectSet* self, void*, int n, int growBy) {
     int kept = self->size < n ? self->size : n;
     if (kept > 32) kept = 32;
     if (kept > 0) std::memcpy(before, self->data, static_cast<std::size_t>(kept) * 4);
-    ObjectSetSetSize(self, nullptr, n, growBy);
+    self->SetSize(n, growBy);
     bool ok = self->size == n && self->capacity >= n && (n != 0 || !self->data) &&
               (kept <= 0 || std::memcmp(before, self->data, static_cast<std::size_t>(kept) * 4) == 0);
     ei::verify::Check("ObjectSet::SetSize", true, ok, "");
 }
 void __fastcall ResizeVerify(ObjectSet* self, void*, int n, int growBy) {
-    ObjectSetResize(self, nullptr, n, growBy);
+    self->SetSizeDiscardStep(n, growBy);
     ei::verify::Check("ObjectSet::Resize", true, self->size == n && self->capacity >= n && self->data != nullptr, "");
 }
 void __fastcall RadixPassVerify(int shift, ObjectSet* src, ObjectSet* dst) {

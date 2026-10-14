@@ -23,7 +23,7 @@ void* __fastcall PartyForScript(void* playerArg, mfc::CString* name) {
         *name = console::Ops(*name).Mid(split + 2, console::Length(*name) - split - 2);
     }
     if (GameMbscmp(owner, RecordList()->text10) == 0) return &player->party_;
-    return PartyRecordsFind(RecordList(), nullptr, owner);
+    return (RecordList())->Find(owner);
 }
 EI_REPLACE(0x004BAEC0, PartyForScript);
 

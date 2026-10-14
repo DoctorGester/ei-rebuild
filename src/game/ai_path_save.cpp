@@ -24,46 +24,46 @@ inline void __fastcall ExcludedSetSize(BlockPointArray* a, void*, int n, int g) 
 
 } // namespace
 
-void __fastcall LoadPath(AIPath* path, void*, CStream* stream) {
+void AIPath::LoadPath(CStream* stream) {
     int count;
     stream->Read(&count, 4);
     for (int i = 0; i < count; ++i) {
         // The original's cell has an uninitialised second dword; it is read over below.
         PathCell cell{0, 0, 0, 0};
-        AppendCell(&path->cells, nullptr, &cell);
+        AppendCell(&cells, nullptr, &cell);
     }
-    for (PathCellList::Node* position = path->cells.head; position;)
-        stream->Read(NextCell(&path->cells, nullptr, &position), 8);
-    path->LoadOrder(stream);
-    stream->Read(&path->targetX, 8);
-    stream->Read(&path->goal, 0xC);
-    stream->Read(&path->reached, 1);
-    stream->Read(&path->failed, 1);
-    stream->Read(&path->flag6E, 1);
-    stream->Read(&path->flag6F, 1);
-    BlockPointArray* excluded = &path->excludedBlocks;
+    for (PathCellList::Node* position = cells.head; position;)
+        stream->Read(NextCell(&cells, nullptr, &position), 8);
+    LoadOrder(stream);
+    stream->Read(&targetX, 8);
+    stream->Read(&goal, 0xC);
+    stream->Read(&reached, 1);
+    stream->Read(&failed, 1);
+    stream->Read(&flag6E, 1);
+    stream->Read(&flag6F, 1);
+    BlockPointArray* excluded = &excludedBlocks;
     stream->Read(&count, 4);
     ExcludedSetSize(excluded, nullptr, count, -1);
     for (int i = 0; i < excluded->size; ++i) {
         stream->Read(&excluded->data[i].x, 4);
         stream->Read(&excluded->data[i].y, 4);
     }
-    stream->Read(&path->smoothing, 4);
+    stream->Read(&smoothing, 4);
 }
 
-void __fastcall SavePath(AIPath* path, void*, CStream* stream) {
-    int count = path->cells.count;
+void AIPath::SavePath(CStream* stream) {
+    int count = cells.count;
     stream->Write(&count, 4);
-    for (PathCellList::Node* position = path->cells.head; position;)
-        stream->Write(NextCell(&path->cells, nullptr, &position), 8);
-    path->SaveOrder(stream);
-    stream->Write(&path->targetX, 8);
-    stream->Write(&path->goal, 0xC);
-    stream->Write(&path->reached, 1);
-    stream->Write(&path->failed, 1);
-    stream->Write(&path->flag6E, 1);
-    stream->Write(&path->flag6F, 1);
-    const BlockPointArray* excluded = &path->excludedBlocks;
+    for (PathCellList::Node* position = cells.head; position;)
+        stream->Write(NextCell(&cells, nullptr, &position), 8);
+    SaveOrder(stream);
+    stream->Write(&targetX, 8);
+    stream->Write(&goal, 0xC);
+    stream->Write(&reached, 1);
+    stream->Write(&failed, 1);
+    stream->Write(&flag6E, 1);
+    stream->Write(&flag6F, 1);
+    const BlockPointArray* excluded = &excludedBlocks;
     count = excluded->size;
     stream->Write(&count, 4);
     for (int i = 0; i < excluded->size; ++i) {
@@ -72,8 +72,8 @@ void __fastcall SavePath(AIPath* path, void*, CStream* stream) {
         int y = excluded->data[i].y;
         stream->Write(&y, 4);
     }
-    int smoothing = path->smoothing;
-    stream->Write(&smoothing, 4);
+    int smoothingCopy = smoothing;
+    stream->Write(&smoothingCopy, 4);
 }
 
 // ---- The order (005C8230 / 005C8370) ----------------------------------------------------------
@@ -112,7 +112,7 @@ void AIPath::SaveOrder(CStream* stream) {
     }
 }
 
-EI_REPLACE(0x005B2430, LoadPath);
-EI_REPLACE(0x005B2570, SavePath);
+EI_REPLACE_METHOD(0x005B2430, AIPath::LoadPath);
+EI_REPLACE_METHOD(0x005B2570, AIPath::SavePath);
 EI_REPLACE_METHOD(0x005C8230, AIPath::LoadOrder);
 EI_REPLACE_METHOD(0x005C8370, AIPath::SaveOrder);

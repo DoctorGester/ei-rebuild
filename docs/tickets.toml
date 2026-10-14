@@ -135,6 +135,14 @@ model = "opus"
 depends = ["R9b"]
 note = "The harness patches the CALL at 00457595, so WinMain 00456440's original runs: GetAvailableVidMem x3 and RestoreAllSurfaces stay on the stand-in. Let the rewrite run under the harness (freeze hook in app_main.cpp), then the COM stand-ins can go once Rebirth's patched originals (006462A0, 0060C870) are covered."
 
+[[ticket]]
+id = "PF3"
+title = "Create DirectDraw once at startup"
+group = "renderer"
+status = "running"
+note = "Profile 2026-10-14: under dgVoodoo every DirectDrawCreateEx builds a D3D12 device (~190 ms, with driver signature checks). Startup does it four times: GetDxVersion's two probes (~390 ms), FirstHardwareDirectDrawDriver (~195 ms) and CTextureDevice::CreateDirectDraw (the one kept). Skipping the probes (DirectX 7 is a given) and reusing the enumerated object saves ~0.6 s of the ~1.8 s to the main menu, but changes what the original does; also fixes R9b1. Waits on the user's decision (flag, native only, or standalone only). Decided (user 2026-10-14): only in native runs (EI_RENDER present, run/native) and the standalone exe; vanilla and Rebirth runs keep the original's probes."
+started = "2026-10-14"
+
 # ---------------------------------------------------------------- native interface drawing
 
 [[ticket]]
@@ -309,10 +317,11 @@ started = "2026-10-14"
 id = "N2a"
 title = "Line heights matching GDI's hinted Times New Roman (optional)"
 group = "native-ui"
-status = "queued"
+status = "done"
 size = 0.3
 depends = ["N2"]
-note = "Liberation is 1-3 px shorter than GDI's hinted Times at most sizes (16 vs 15 at 14 px, 75 vs 73 at 66 px); a per-size height / ascent table in render_text keeps line spacing as today."
+note = "Dropped 2026-10-14: the user is fine with Liberation's wrapping and heights (screenshots from ei_text_check --pictures)."
+done = "2026-10-14"
 
 # ---------------------------------------------------------------- widescreen
 
@@ -516,11 +525,13 @@ note = "0063EF60 / 0063E020 need them (ui.md section 6)."
 id = "X37"
 title = "Build warnings C4244 / C4458"
 group = "harness"
-status = "queued"
+status = "done"
 model = "sonnet"
 size = 0.2
 files = ["src/game/world_rules.cpp", "src/game/map_object_client_effects.cpp"]
 note = "C4244 at world_rules.cpp:48-49, C4458 in map_object_client_effects.cpp."
+started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "X38"
@@ -536,6 +547,17 @@ group = "harness"
 status = "done"
 note = "About one native (EI_RENDER=new,present) run in two shows the CRITICAL ERROR ... DirectX 7 message box at startup (seen by N5 on base and branch, 2026-10-14); passes on retry; looks load-related. R9b / R9c should find the failing device call. Tracked as R9b1 (renderer) since R9b."
 done = "2026-10-14"
+
+[[ticket]]
+id = "PF2"
+title = "Faster hook installation"
+group = "harness"
+status = "running"
+size = 0.5
+model = "sonnet"
+files = ["src/hook/hook.cpp"]
+note = "Profile 2026-10-14: installing ~6000 hooks costs ~300 ms per launch: ThunkEntryAt and VerifyEntry scan the whole hook list per hook (O(n^2), 130 ms), two VirtualProtect calls per hook (page-table work, ~160 ms), and one VirtualAlloc (a 64 KB granule) per trampoline. Index hooks by address, unprotect .text once, allocate trampolines from one block. Harness only, every run benefits."
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- cleanup
 
@@ -594,9 +616,9 @@ note = "Left from C9 (models.md, \"Layouts\")."
 id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
-status = "running"
+status = "queued"
 model = "sonnet"
-note = "Counts 2026-10-14: 497 __fastcall self shims, 368 constexpr game addresses; per-file At() copies already 0. Batches of about 100 shims, one area at a time."
+note = "Counts 2026-10-14: 497 __fastcall self shims, 368 constexpr game addresses; per-file At() copies already 0. Batches of about 100 shims, one area at a time. Batch 1 (2026-10-14): 63 shims converted to member functions (1,274 -> 1,211 by tools/progress.py; the ticket's 497 does not match that metric). Class A (body moved into the member) plus class B (forwarders deleted, member registered: transform math, unit_ai_*, 16 AlignedArray instances, ObjectSet). Skipped: ui_/net_ callers (text_reader Open/ReadLine/ReadToHash/Split/FindLine, ClassTemplate::SetLevels, RefPtrShareReturn), virtual-slot shims, aliases of lib/mfc templates, DrawLightning (virtual Draw clash), UnitPrototypeAt (name collision), FindFigureAnimation (F4a header), QuaternionRotate (src/lib). Left: 1,211 two-slot shims; next the ui/net callers after W2/F5. See docs/notes/cleanup-units.md. Batch 1 merged 2026-10-14: 63 shims (progress.py count 1,274 -> 1,211); skipped ui_/net_ callers until W2/F5, see cleanup-units.md 'C11 batch 1'."
 started = "2026-10-14"
 
 [[ticket]]
@@ -617,11 +639,12 @@ note = "2,377 sites; with the standalone work (changes what the verify wrappers 
 id = "F4a"
 title = "View structs into their classes (F4 follow-up)"
 group = "cleanup"
-status = "running"
+status = "done"
 depends = ["F4"]
 files = ["map_object_figures.h", "figure_mesh.h", "link_figure.h", "scene_loader.h", "material.h", "terrain.h", "terrain_sector.h", "figure_part_bounds.cpp", "renderer_lines.h"]
 note = "F4 named the gaps of views after the real classes; merge them: FigurePart -> CFigureMesh (piece158 / piece15C are materialValue_ / meshType_), FigurePieceRecord's piece -> LinkPartHeader, FigureMaterial and SceneHelper -> CMaterial, TerrainFields -> Terrain, TerrainSector -> terrain::SectorData, the two LineBatch declarations into renderer_lines.h's."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "F5a"
@@ -630,6 +653,60 @@ group = "cleanup"
 status = "queued"
 files = ["app_device_list.cpp", "lever.h", "bink_video.cpp", "sound.h", "map_spec.h", "world_update.cpp", "player_client.h"]
 note = "app_device_list.cpp's DeviceRecord is lever.h's LeverRecord (Levers.ldb; one declaration, the file and its notes say device). bink_video.cpp's SoundSystem view is CSoundManager (+0x1C Miles driver). mapspec::Waypoint::wait is the look's turning time (AILook::time), rename it. world_update.cpp's IsLocal tests CPlayerServer::possessedId_ < 0 (no pending possession), rename. CPlayerClient::sendParty_ (+0x85) vs LocalViewData::partyTaken: one name. Renames only, layout unchanged."
+
+[[ticket]]
+id = "F4b"
+title = "Drop the FigurePart alias (F4a follow-up)"
+group = "cleanup"
+status = "queued"
+size = 1
+model = "sonnet"
+depends = ["F4a", "W2", "F5"]
+files = ["map_object_figures.h", "ui_model.cpp", "player_client.cpp", "verify_ui_model.cpp"]
+note = "F4a folded FigurePart into CFigureMesh but kept 'using FigurePart = CFigureMesh' because ui_model.cpp and player_client.cpp were open in W2 / F5. Rename their uses (fields are already CFigureMesh's: localPosition_, localRotation_, worldMatrix_, bounds_, boxPivot_, drawer_->screen_) and remove the alias."
+
+[[ticket]]
+id = "F4c"
+title = "CFigureInstance into CLinkMesh (F4a follow-up)"
+group = "cleanup"
+status = "done"
+size = 2
+model = "opus"
+depends = ["F4a"]
+files = ["map_object_figures.h", "link_figure.h", "map_object_*.cpp", "object3d_*.cpp"]
+note = "CFigureInstance (map_object_figures.h) is a view of CLinkMesh (vtable 0073D790) as CObject3D +0xF0 holds it. Confirm every offset the code uses against link_figure.h, then use CLinkMesh directly; keep the slot names from becoming overrides (EI_REPLACE_METHOD on a virtual name registers a vcall thunk). Release objects should differ only in names."
+started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "F4d"
+title = "CFigureCache into CLinkFigureLoader (F4c follow-up)"
+group = "cleanup"
+status = "done"
+depends = ["F4c"]
+note = "CFigureCache (map_object_figures.h; CWorld slot 23 in world.h) is a view of CLinkFigureLoader (model.h, vtable 0073D808): slots 3 LoadFigure, 4 LoadLink, 6 Remorph. The view passes the scale as float bits (std::uint32_t) where the loader takes float s, t, u and bool fresh; check the release code of CObject3D::MakeFigure (00516DA0) and SetFigureScale (00517700) stays the same with floats (the original pushes the dwords with MOV/PUSH). The hand-made PieceNames vector in object3d_figure_setup.cpp is the loader's stlp::vector<stlp::string>. CountedRef (00519580) could become a counted-pointer template: its copies 0051E4F0 / 0051E570 hold the client half's wounds material and its helper preset (0051C3D0)."
+started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "F4e"
+title = "ShowWounds' AssignCountedRoot onto CountedRef<T>"
+group = "cleanup"
+status = "done"
+depends = ["F4d"]
+note = "unit_client_wounds.cpp (0051C3D0) keeps its own AssignCountedRoot template (inlined) for the wounds material and its preset; CountedRef<WoundsMaterial> / <CRenderPreset> (map_object_figures.h, object3d_lifetime.cpp, F4d) are the same code out of line. Either call those (release code changes from inlined to a call) or make CountedRef::Assign inline in a header that sees the counted types. party.h slot 23 is still named FigureCache (null in CParty)."
+started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "F4f"
+title = "HideWounds / client parts: wounds material drop onto CountedRef"
+group = "cleanup"
+status = "done"
+depends = ["F4e"]
+note = "unit_client_wounds.cpp HideWounds (0051C920) and object3d_client_parts.cpp (DropWoundsMaterial and three hand-written drops) release the wounds material by hand. Check in Ghidra whether the originals call 0051E570 or inline it; if they call, use CountedRef<WoundsMaterial>::Assign(nullptr) (see F4e's AsCountedRef); else a shared inline drop. Compare release code with dumpbin; run combat / units if it changes."
+started = "2026-10-14"
+done = "2026-10-14"
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
@@ -742,12 +819,25 @@ group = "port"
 status = "queued"
 note = "The connection screen Create / list draw, exchange slots 0062D100 / 0062D200. Also unreached: WinMain's second-instance, disc prompt and frame-recording branches, 0041ECC0, 00443080, CDib's catch handlers."
 
+[[ticket]]
+id = "PF1"
+title = "Script keyword matching without per-character locale calls"
+group = "port"
+status = "running"
+size = 0.5
+model = "opus"
+files = ["src/game/script_parse.cpp"]
+note = "Profile 2026-10-14 (EI_PROFILE, Superluminal): ClassifyToken (004CF600) calls the game CRT's _strnicmp for every keyword of every token; under the game's locale each character goes through LCMapStringW. That is ~55% of the first map load (390 of 720 ms, zone scripts) and ~200 ms at startup. Same results with a 256-byte fold table built from the game CRT's own tolower (rebuilt if the CRT's LC_CTYPE handle changes), used as a first-character prefilter or a full strnicmp. No behaviour change; scripts/world_load reach it."
+started = "2026-10-14"
+
 # ---------------------------------------------------------------- docs
 
 [[ticket]]
 id = "D2"
 title = "Retarget code comments that cite removed sections"
 group = "docs"
-status = "queued"
+status = "done"
 model = "sonnet"
 note = "About 150 comments citing \"Nth round\", \"pass\", old renderer section numbers, items_spells.md \"(A-H17)\"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations."
+started = "2026-10-14"
+done = "2026-10-14"

@@ -1,7 +1,6 @@
 // The battle screen's every-frame update (00638280, slot 24), its left button release (00638B30),
 // its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
-// item panel's unit (0063D2B0). See docs/notes/ui.md ("Ninth pass", "Fourteenth pass", "Fifteenth
-// pass").
+// item panel's unit (0063D2B0). See docs/notes/ui.md ("Battle screen").
 #include "item.h"
 #include "map_object.h"
 #include "map_object_figures.h"

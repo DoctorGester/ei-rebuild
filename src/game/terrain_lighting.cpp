@@ -54,11 +54,9 @@ std::uint32_t Channel(float v) { return static_cast<std::uint32_t>(x87::fistp(Ro
 
 } // namespace
 
-__declspec(naked) int TerrainFields::SunReaches(const SectorPosition*) EI_ORIGINAL(0x006C92C0)
-
-void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVertex* record, TerrainFields* terrain,
+void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVertex* record, Terrain* terrain,
                           int layer) {
-    bool shadows = layer == 0 && (terrain->flags & 0x10) != 0;
+    bool shadows = layer == 0 && (terrain->landscapeFlags & 0x10) != 0;
     float attenuation = 1.0f;
     Vector3 ambient = {terrain->ambient.x, terrain->ambient.y, terrain->ambient.z};
     Vector3 colour = record->materialColour;
@@ -76,7 +74,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
         colour.y = Max(water.materialColour.y, record->materialColour.y);
         colour.z = Max(water.materialColour.z, record->materialColour.z);
     }
-    if (shadows && terrain->SunReaches(position) == 0) {
+    if (shadows && terrain->SunReachesAtOriginal(position) == 0) {
         record->lit.x = AtMostOne(RoundToFloat(ambient.x + colour.x));
         record->lit.y = AtMostOne(RoundToFloat(ambient.y + colour.y));
         record->lit.z = AtMostOne(RoundToFloat(ambient.z + colour.z));
@@ -91,7 +89,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
     record->lit.z = Max(shaded[2], ambient.z);
 }
 
-void SectorData::LightVertex(const SectorPosition* position, SectorVertex* record, TerrainFields* terrain, int layer) {
+void SectorData::LightVertex(const SectorPosition* position, SectorVertex* record, Terrain* terrain, int layer) {
     Vector3 colour = record->lit;
     Vector3 specular = {0.0f, 0.0f, 0.0f};
     Vector3 at = *position;
@@ -143,7 +141,7 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
     }
 }
 
-void SectorData::Light(CLight* sun, TerrainFields* terrain, int skipSun, int x0, int y0, int x1, int y1) {
+void SectorData::Light(CLight* sun, Terrain* terrain, int skipSun, int x0, int y0, int x1, int y1) {
     hasSpecular = 0;
     unsigned control = gamecrt::controlfp(0, 0);
     gamecrt::controlfp(0x300, 0x300);
@@ -179,3 +177,5 @@ EI_REPLACE_METHOD(0x006C36B0, SectorData::ShadeSun);
 EI_REPLACE_METHOD(0x006C31C0, SectorData::LightVertex);
 
 } // namespace terrain
+
+__declspec(naked) int Terrain::SunReachesAtOriginal(const terrain::SectorPosition*) EI_ORIGINAL(0x006C92C0)

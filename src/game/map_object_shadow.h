@@ -17,7 +17,7 @@
 
 class CObject3D;
 class CTexture;      // texture.h
-struct FigurePart;   // map_object_figures.h
+class CFigureMesh;   // figure_mesh.h
 struct VertexPacket;    // figure_mesh.h
 struct DecalTexCoord;   // ground_decal.h
 
@@ -46,7 +46,7 @@ struct PartGroup {
     int ReleaseParts();
 
     CMaterial* material;                    // +0x00 counted
-    lib::AlignedArray<FigurePart*> parts;   // +0x04 counted
+    lib::AlignedArray<CFigureMesh*> parts;   // +0x04 counted
 };
 static_assert(sizeof(PartGroup) == 0x14);
 
@@ -126,8 +126,8 @@ public:
     int PartsIntersectRect(const tagRECT* rect);
     // Slots 16 / 17 (RET 4): 0051B2E0 the object's part named `name` (CObject3D::FindPart), 0051B2D0
     // its part of type `type` (CObject3D::FindPartOfType).
-    FigurePart* ObjectPartNamed(const char* name);
-    FigurePart* ObjectPartOfType(int type);
+    CFigureMesh* ObjectPartNamed(const char* name);
+    CFigureMesh* ObjectPartOfType(int type);
 
     // object3d_client_parts.cpp (A-U12): the part sets, lifetime and skins.
     // 0051AB00. The constructor: the engine object, the base half (vtable 0073DEFC, no object), the
@@ -147,16 +147,20 @@ public:
     // sets destroyed and deleted, every texture and material released and the arrays emptied; no
     // object, touch time and flags_ 0.
     void DestroyClient();
+    // The wounds material slot (+0xDC) cleared and the material it held released (deleted at its
+    // last reference): CountedRef<WoundsMaterial>::Assign(nullptr) as 0051AB00, 0051AEC0 and
+    // 0051C920 inline it (0051AF70 calls the copy 0051E570 instead, through AsCountedRef).
+    void ClearWoundsMaterial();
     // 0051B050 (slot 13, RET 4). `part` joins the group of its material (piece +0x158) in the set
     // of its texture (piece +0x15C), both made on first use (FindOrAddTexture, FindOrAddMaterial);
     // referenced unless already there. 0 when no set has the texture, else 1.
-    int PartAdded(FigurePart* part);
+    int PartAdded(CFigureMesh* part);
     // 0051B210 (slot 14, RET 4). The part named `name` (slot 16) leaves its group and is released.
     // Returns it, or null when there is none or no group holds it.
-    FigurePart* RemovePartNamed(const char* name);
+    CFigureMesh* RemovePartNamed(const char* name);
     // 0051B160 (slot 15, RET 4). `part` leaves its group and is released: 1, or 0 when no group
     // holds it.
-    int PartRemoved(FigurePart* part);
+    int PartRemoved(CFigureMesh* part);
     // 0051B2F0 (RET 4). The texture of kind `kind`: one of `textures`, else a new one of the client
     // world (005655D0) for a new part set, the first for the skin kinds (1, 3, 4, 6-9, 0xB,
     // 0xD-0x10), the second for any other; an existing set only has its texture's kind changed (the
@@ -255,3 +259,9 @@ struct __declspec(novtable) WoundsMaterial : CDeviceMaterial {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DF68);
 };
 static_assert(sizeof(WoundsMaterial) == 0x24);
+
+inline void CObject3DClientSpecific::ClearWoundsMaterial() {
+    WoundsMaterial* old = woundsMaterial;
+    woundsMaterial = nullptr;
+    if (old) old->Release();
+}

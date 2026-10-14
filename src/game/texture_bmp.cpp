@@ -7,7 +7,7 @@
 // In the switch-over ("present" with "cpuwindows", ticket R8) the texture has no DirectDraw
 // texture: its holder has only the new renderer's memory (NewMemoryTextureHolder), the pixels are
 // written there and the new renderer reads them. Outside the switch-over (or without memory) as
-// the original. See docs/notes/renderer.md (section 16).
+// the original. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "device.h"

@@ -19,11 +19,8 @@ CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self);
 void __fastcall TransformDestruct(CTransformObject* self);
 CTransformObject* __fastcall TransformDeletingDestructor(CTransformObject* self, void*, unsigned flags);
 CCamera* __fastcall CameraDeletingDestructor(CCamera* self, void*, unsigned flags);
-void __fastcall CameraGetRange(const CCamera* self, void*, std::uint32_t* a, std::uint32_t* b, std::uint32_t* c);
 const Vector3* __fastcall CameraAnchor(const CCamera* self);
 int __fastcall CameraCloseFile(CCamera* self);
-int __fastcall CameraOpenFile(CCamera* self, void*, const char* name);
-int __fastcall CameraRecordFrame(CCamera* self, void*, std::uint32_t time);
 int __fastcall CameraCreate(CCamera* self);
 void __fastcall CameraDestroy(CCamera* self);
 void* __fastcall CameraRecordsAllocate(int count);
@@ -135,7 +132,7 @@ void(__fastcall* s_range)(const CCamera*, void*, std::uint32_t*, std::uint32_t*,
 void __fastcall RangeVerify(const CCamera* self, void*, std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) {
     std::uint32_t ea, eb, ec;
     s_range(self, nullptr, &ea, &eb, &ec);
-    CameraGetRange(self, nullptr, a, b, c);
+    self->GetRange(a, b, c);
     ei::verify::Check("CameraGetRange", true, ea == *a && eb == *b && ec == *c, "");
 }
 
@@ -154,13 +151,13 @@ int __fastcall CloseFileVerify(CCamera* self) {
     return result;
 }
 int __fastcall OpenFileVerify(CCamera* self, void*, const char* name) {
-    int result = CameraOpenFile(self, nullptr, name);
+    int result = self->OpenFile(name);
     ei::verify::Check("CameraOpenFile", true, result == 0 || (result == 1 && (self->flags_ & 0x10)), "");
     return result;
 }
 int __fastcall RecordFrameVerify(CCamera* self, void*, std::uint32_t time) {
     bool recording = (self->flags_ & 0x10) != 0;
-    int result = CameraRecordFrame(self, nullptr, time);
+    int result = self->RecordFrame(time);
     ei::verify::Check("CameraRecordFrame", true, recording || result == 0, "");
     return result;
 }

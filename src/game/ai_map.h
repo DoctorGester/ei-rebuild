@@ -41,6 +41,8 @@ static_assert(sizeof(FootprintCell) == 0x18);
 
 // A growable array of FootprintCell with a 16-bucket hash on (x + y). Name provisional.
 struct FootprintCellSet {
+    void AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction);
+    void DiscAt(CAIMap* map, const Vector3* position, float radius);
     // 0067E4E0 (A-Z1; returns the set). The constructor as the spells' global set 007C8478 gets it
     // from its static initialiser 0067E4C0 (before the hooks; compared at start-up): an empty
     // array, `hashed` set. The buckets are not written (the global's are zero until the first
@@ -198,6 +200,12 @@ static_assert(sizeof(MotionOrder) == 0x20);
 
 // A unit's path (name and layout provisional). Its methods at 005C7xxx steer along `steps`.
 struct AIPath {
+    void LoadPath(CStream* stream);
+    void SavePath(CStream* stream);
+    void StandAndTurn(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t rate);
+    void StandAndTrack(int time, std::uint8_t* unit, std::uint32_t id, std::uint32_t from, std::uint32_t to);
+    void StandAndTurnUntil(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t a, std::uint32_t b);
+    void StandStill(std::uint8_t* unit);
     // The order in the first 0x20 bytes (MotionOrder, ai_motion.h); src/game/ai_motion.cpp.
     // 005C7D50. Stand still at (0, 0); the steps are emptied. Returns 0 (EAX, as the original).
     int Reset();
