@@ -82,7 +82,7 @@ BOOL __fastcall PeekWordVerify(CTextManager* self, void*, mfc::CString* out) {
     mfc::CString scratch(*out);
     return Both(
         "TextPeekWord", self, [&] { return s_peekWord(self, nullptr, &scratch); },
-        [&] { return TextPeekWord(self, nullptr, out); }, [&] { return SameText(scratch, *out); });
+        [&] { return self->PeekWord(out); }, [&] { return SameText(scratch, *out); });
 }
 
 // 004DF6E0: PUSH EBP; MOV EBP,ECX; PUSH ESI; MOV ESI,[EBP+0x20] (7 bytes).

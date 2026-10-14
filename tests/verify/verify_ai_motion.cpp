@@ -420,7 +420,7 @@ MotionWaypoint* __fastcall WaypointConstructVerify(MotionWaypoint* self, void*, 
     MotionWaypoint scratch;
     std::memcpy(&scratch, self, sizeof(scratch));
     MotionWaypoint* expected = s_waypointConstruct(&scratch, nullptr, xBits, yBits);
-    MotionWaypoint* result = MotionWaypointConstruct(self, nullptr, xBits, yBits);
+    MotionWaypoint* result = self->Construct(xBits, yBits);
     bool ok = expected == &scratch && result == self && std::memcmp(&scratch, self, sizeof(scratch)) == 0;
     ei::verify::Check("MotionWaypointConstruct", true, ok, "%08X %08X", xBits, yBits);
     return result;

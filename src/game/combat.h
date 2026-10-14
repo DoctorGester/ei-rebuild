@@ -228,6 +228,12 @@ struct AIEventPresence {
 // An entry of the armour spell list (CUnitServer + 0x91C; 005528F0 builds it): the item (a counted
 // reference), its countdown and whether it is still worn.
 struct ArmourSpell {
+    // combat_save.cpp (A-U7). 00545430 (thiscall on the entry, RET 4): the item's id (-1 without one)
+    // and the countdown. 005585F0 (__fastcall, plain RET): the list from a save: `count` new entries
+    // appended (no item, countdown 0; the original's `worn` byte is stack garbage, ours 0), then each
+    // entry from the head takes its item (the item manager's object of the id read, referenced) and
+    // countdown.
+    void Save(UnitStream* stream) const;
     // 00558840 (RET 4; combat_small_records.cpp, A-U12; the list's SetAt in RefreshItemSpells).
     // The record assigned: `other`'s item referenced (the old one released after), its countdown
     // and worn byte. Returns this.
@@ -251,12 +257,6 @@ class CSpell;
 bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
                                  CUnit* toUnit, const Vector3* to);
 
-// combat_save.cpp (A-U7). 00545430 (thiscall on the entry, RET 4): the item's id (-1 without one)
-// and the countdown. 005585F0 (__fastcall, plain RET): the list from a save: `count` new entries
-// appended (no item, countdown 0; the original's `worn` byte is stack garbage, ours 0), then each
-// entry from the head takes its item (the item manager's object of the id read, referenced) and
-// countdown.
-void __fastcall SaveArmourSpell(const ArmourSpell* entry, void*, UnitStream* stream);
 void __fastcall LoadArmourSpells(ArmourSpellList* list, UnitStream* stream);
 
 class CUnitServer : public CEngineObject {

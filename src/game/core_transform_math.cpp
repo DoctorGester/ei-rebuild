@@ -290,21 +290,10 @@ void CTransformObject::SetHeading(const float* dir) {
     std::memcpy(&localRotation_, r, sizeof(Quaternion));
 }
 
-namespace {
-void __fastcall WorldMatrixHook(const CTransformObject* self, void*, float* m) { self->WorldMatrix(m); }
-void __fastcall TiltTowardsHook(CTransformObject* self, void*, const Vector3* target) { self->TiltTowards(*target); }
-void __fastcall TurnTowardsHook(CTransformObject* self, void*, const Vector3* target) { self->TurnTowards(*target); }
-void __fastcall RollTowardsHook(CTransformObject* self, void*, const Vector3* dir) { self->RollTowards(*dir); }
-void __fastcall RotateHook(CTransformObject* self, void*, const Vector3* axis, float angle) { self->Rotate(*axis, angle); }
-void __fastcall TurnUpTowardsHook(CTransformObject* self, void*, const Vector3* dir, int reduced) {
-    self->TurnUpTowards(*dir, reduced);
-}
-void __fastcall SetHeadingHook(CTransformObject* self, void*, const float* dir) { self->SetHeading(dir); }
-} // namespace
-EI_REPLACE(0x00401570, WorldMatrixHook);
-EI_REPLACE(0x00401680, TiltTowardsHook);
-EI_REPLACE(0x00401940, TurnTowardsHook);
-EI_REPLACE(0x00401B50, RollTowardsHook);
-EI_REPLACE(0x00401E50, RotateHook);
-EI_REPLACE(0x00401F00, TurnUpTowardsHook);
-EI_REPLACE(0x00402220, SetHeadingHook);
+EI_REPLACE_METHOD(0x00401570, CTransformObject::WorldMatrix);
+EI_REPLACE_METHOD(0x00401680, CTransformObject::TiltTowards);
+EI_REPLACE_METHOD(0x00401940, CTransformObject::TurnTowards);
+EI_REPLACE_METHOD(0x00401B50, CTransformObject::RollTowards);
+EI_REPLACE_METHOD(0x00401E50, CTransformObject::Rotate);
+EI_REPLACE_METHOD(0x00401F00, CTransformObject::TurnUpTowards);
+EI_REPLACE_METHOD(0x00402220, CTransformObject::SetHeading);

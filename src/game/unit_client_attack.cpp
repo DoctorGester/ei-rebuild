@@ -40,11 +40,11 @@ std::uint32_t WeaponIn(const CUnitClientSpecific* self, std::uint32_t slot) {
 }
 } // namespace
 
-void __fastcall ClientGetAttackParams(CUnitClientSpecific* self, void*, AttackParams* out) {
-    CUnit* unit = self->unit;
-    UnitParams* params = ParamsOf(unit);
-    int keyed = IsTextKey(unit->id_) & 0xFF;
-    std::uint32_t weapon = WeaponIn(self, unit->activeWeapon);
+void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
+    CUnit* owner = unit;
+    UnitParams* params = ParamsOf(owner);
+    int keyed = IsTextKey(owner->id_) & 0xFF;
+    std::uint32_t weapon = WeaponIn(this, owner->activeWeapon);
     if (keyed && weapon != kNoWeapon) {
         out->damageMin = WeaponMinDamage(weapon);
         out->damageMax = WeaponMaxDamage(weapon);
@@ -64,13 +64,13 @@ void __fastcall ClientGetAttackParams(CUnitClientSpecific* self, void*, AttackPa
         out->attack = params->combat[1];
         out->defence = params->combat[3];
         out->speed = params->combat[4];
-        weapon = WeaponIn(self, unit->activeWeapon);
+        weapon = WeaponIn(this, owner->activeWeapon);
         if (weapon != kNoWeapon) {
             out->weaponType = WeaponType(weapon);
             out->damageType = WeaponDamageType(weapon);
         } else {
             out->weaponType = kTypeNoWeapon;
-            auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
+            auto* model = reinterpret_cast<const UnitModelRecord*>(owner->GetPrototypeModel());
             // The first damage type whose weight is not zero (FCOMP; TEST AH,0x40: NaN counts as
             // zero); left as it was when there is none.
             for (int i = 0; i < kDamageTypes; ++i) {
@@ -83,12 +83,12 @@ void __fastcall ClientGetAttackParams(CUnitClientSpecific* self, void*, AttackPa
         }
     }
     if (out->weaponType == kWeaponBow || out->weaponType == kWeaponCrossbow) out->defence = 0;
-    out->damageMax = ScaleDamageAt(params, nullptr, unit, out->damageMax);
-    out->damageMin = ScaleDamageAt(params, nullptr, unit, out->damageMin);
+    out->damageMax = ScaleDamageAt(params, nullptr, owner, out->damageMax);
+    out->damageMin = ScaleDamageAt(params, nullptr, owner, out->damageMin);
     out->attackSpread = params->combat[2];
     DifficultyScaleParams(out, nullptr, keyed);
 }
-EI_REPLACE(0x00538960, ClientGetAttackParams);
+EI_REPLACE_METHOD(0x00538960, CUnitClientSpecific::GetAttackParams);
 
 // 005285D0 is a byte-for-byte copy of 00523D30 (unit_vitals.cpp), reached as a method of the
 // packed parameters.

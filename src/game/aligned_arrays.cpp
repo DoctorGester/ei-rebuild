@@ -26,55 +26,39 @@ using Vectors = lib::AlignedArray<Blob<12>>;
 using Matrices = lib::AlignedArray<Blob<64>>;
 
 // ---- SetSize(n, growBy) ------------------------------------------------------------------------
-void __fastcall ShortArraySetSize(Words* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
-EI_REPLACE(0x0044FA90, ShortArraySetSize);
-void __fastcall DwordArraySetSize(Dwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
-EI_REPLACE(0x0044F540, DwordArraySetSize);
-EI_REPLACE(0x005E6810, DwordArraySetSize);   // byte-identical copy (interface)
-void __fastcall DwordArraySetSize2(Dwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
-EI_REPLACE(0x004513A0, DwordArraySetSize2);
-void __fastcall DwordArraySetSize3(Dwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
-EI_REPLACE(0x00452EB0, DwordArraySetSize3);
+EI_REPLACE_METHOD(0x0044FA90, Words::SetSize);
+EI_REPLACE_METHOD(0x0044F540, Dwords::SetSize);
+EI_REPLACE_METHOD(0x005E6810, Dwords::SetSize);   // byte-identical copy (interface)
+EI_REPLACE_METHOD(0x004513A0, Dwords::SetSize);
+EI_REPLACE_METHOD(0x00452EB0, Dwords::SetSize);
 // Byte-identical copies in the units range (A-U11).
-EI_REPLACE(0x0051EA10, DwordArraySetSize);
-EI_REPLACE(0x0051EB20, DwordArraySetSize);
-EI_REPLACE(0x0051EC30, DwordArraySetSize);
-EI_REPLACE(0x0051ED40, DwordArraySetSize);
-void __fastcall QwordArraySetSize(Qwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
-EI_REPLACE(0x00453100, QwordArraySetSize);
-void __fastcall Vector3ArraySetSize(Vectors* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
-EI_REPLACE(0x0044F1D0, Vector3ArraySetSize);
-void __fastcall Vector3ArraySetSize2(Vectors* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
-EI_REPLACE(0x00475F40, Vector3ArraySetSize2);   // the scene loader's instantiation
-void __fastcall MatrixArraySetSize(Matrices* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
-EI_REPLACE(0x0044F960, MatrixArraySetSize);
+EI_REPLACE_METHOD(0x0051EA10, Dwords::SetSize);
+EI_REPLACE_METHOD(0x0051EB20, Dwords::SetSize);
+EI_REPLACE_METHOD(0x0051EC30, Dwords::SetSize);
+EI_REPLACE_METHOD(0x0051ED40, Dwords::SetSize);
+EI_REPLACE_METHOD(0x00453100, Qwords::SetSize);
+EI_REPLACE_METHOD(0x0044F1D0, Vectors::SetSize);
+EI_REPLACE_METHOD(0x00475F40, Vectors::SetSize);   // the scene loader's instantiation
+EI_REPLACE_METHOD(0x0044F960, Matrices::SetSize);
 
 // ---- Add(value) (the new element's index) ------------------------------------------------------
-int __fastcall QwordArrayAdd(Qwords* a, void*, Blob<8> value) { return a->Add(value); }
-EI_REPLACE(0x0044FBB0, QwordArrayAdd);
-int __fastcall Vector3ArrayAdd(Vectors* a, void*, Blob<12> value) { return a->Add(value); }
-EI_REPLACE(0x0044F2E0, Vector3ArrayAdd);
+EI_REPLACE_METHOD(0x0044FBB0, Qwords::Add);
+EI_REPLACE_METHOD(0x0044F2E0, Vectors::Add);
 
 // ---- SetAtGrow(index, value) -------------------------------------------------------------------
-void __fastcall ShortArraySetAtGrow(Words* a, void*, int index, std::uint16_t value) { a->SetAtGrow(index, value); }
-EI_REPLACE(0x00452FC0, ShortArraySetAtGrow);
+EI_REPLACE_METHOD(0x00452FC0, Words::SetAtGrow);
 void __fastcall DwordArraySetAtGrowRef(Dwords* a, void*, int index, const std::uint32_t* value) {
     a->SetAtGrow(index, *value);
 }
 EI_REPLACE(0x00452C40, DwordArraySetAtGrowRef);
-void __fastcall DwordArraySetAtGrow(Dwords* a, void*, int index, std::uint32_t value) { a->SetAtGrow(index, value); }
-EI_REPLACE(0x004538D0, DwordArraySetAtGrow);
-EI_REPLACE(0x0051EE50, DwordArraySetAtGrow);   // byte-identical copy (A-U11)
-void __fastcall Vector3ArraySetAtGrow(Vectors* a, void*, int index, Blob<12> value) { a->SetAtGrow(index, value); }
-EI_REPLACE(0x00452AF0, Vector3ArraySetAtGrow);
-void __fastcall QwordArraySetAtGrow(Qwords* a, void*, int index, Blob<8> value) { a->SetAtGrow(index, value); }
-EI_REPLACE(0x00476DD0, QwordArraySetAtGrow);
+EI_REPLACE_METHOD(0x004538D0, Dwords::SetAtGrow);
+EI_REPLACE_METHOD(0x0051EE50, Dwords::SetAtGrow);   // byte-identical copy (A-U11)
+EI_REPLACE_METHOD(0x00452AF0, Vectors::SetAtGrow);
+EI_REPLACE_METHOD(0x00476DD0, Qwords::SetAtGrow);
 
 // ---- operator=(other) --------------------------------------------------------------------------
-void __fastcall QwordArrayCopy(Qwords* a, void*, const Qwords* other) { a->Copy(*other); }
-EI_REPLACE(0x00474C80, QwordArrayCopy);
-void __fastcall Vector3ArrayCopy(Vectors* a, void*, const Vectors* other) { a->Copy(*other); }
-EI_REPLACE(0x0044F410, Vector3ArrayCopy);
+EI_REPLACE_METHOD(0x00474C80, Qwords::Copy);
+EI_REPLACE_METHOD(0x0044F410, Vectors::Copy);
 
 // ---- Allocate(count) (the aligned data pointer) -------------------------------------------------
 std::uint32_t* __fastcall AllocateDwords(int count) { return Dwords::Allocate(count); }

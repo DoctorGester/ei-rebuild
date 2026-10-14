@@ -10,6 +10,8 @@ class CBaseManager;
 // vtable (kVtableAddress); no C++ constructor is declared. Non-virtual members: object.cpp.
 class CEngineObject {
 public:
+    void SetFlagBits(std::uint32_t bits);
+    void ClearFlagBits(std::uint32_t bits);
     static constexpr std::uintptr_t kVtableAddress = 0x0073B8E0;
 
     virtual ~CEngineObject();                          // 0: 00402D20 (scalar deleting destructor)

@@ -167,8 +167,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
     candidates.RemoveAll();
 }
 
-void __fastcall PlayerUpdateCombatHook(PlayerMode* self, void*, AIBrain* brain) { self->UpdateCombat(brain); }
-EI_REPLACE(0x005D4170, PlayerUpdateCombatHook);
+EI_REPLACE_METHOD(0x005D4170, PlayerMode::UpdateCombat);
 
 void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     AIObjectList nearby;
@@ -191,10 +190,7 @@ void PlayerMode::AddPartyTargets(AIBrain* brain, AIObjectList* targets) {
     nearby.RemoveAll();
 }
 
-void __fastcall PlayerAddPartyTargetsHook(PlayerMode* self, void*, AIBrain* brain, AIObjectList* targets) {
-    self->AddPartyTargets(brain, targets);
-}
-EI_REPLACE(0x005D3F50, PlayerAddPartyTargetsHook);
+EI_REPLACE_METHOD(0x005D3F50, PlayerMode::AddPartyTargets);
 
 void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
     party->RemoveAll();
@@ -224,10 +220,7 @@ void PlayerMode::CollectParty(AIBrain* brain, AIObjectList* party) {
     } while (added);
 }
 
-void __fastcall PlayerCollectPartyHook(PlayerMode* self, void*, AIBrain* brain, AIObjectList* party) {
-    self->CollectParty(brain, party);
-}
-EI_REPLACE(0x005D4600, PlayerCollectPartyHook);
+EI_REPLACE_METHOD(0x005D4600, PlayerMode::CollectParty);
 
 bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     float slack = moving ? kMovingSlack : kStandingSlack;
@@ -254,7 +247,4 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
     return true;
 }
 
-bool __fastcall PlayerStaysWithPartyHook(PlayerMode* self, void*, AIBrain* brain, bool moving) {
-    return self->StaysWithParty(brain, moving);
-}
-EI_REPLACE(0x005D4860, PlayerStaysWithPartyHook);
+EI_REPLACE_METHOD(0x005D4860, PlayerMode::StaysWithParty);

@@ -32,17 +32,13 @@ void __fastcall SceneHelperSetVectorA(scene::SceneHelper* helper, void*, const V
 void __fastcall SceneHelperSetVectorC(scene::SceneHelper* helper, void*, const Vector3* value);
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
 CEngineObject* __fastcall ScriptRefCompanion(const ScriptObjectRef* ref);
-void __fastcall ScriptObjectSetFlags(CEngineObject* object, void*, std::uint32_t bits);
-void __fastcall ScriptObjectClearFlags(CEngineObject* object, void*, std::uint32_t bits);
 void __fastcall ScriptObjectSetPosition(CMapObject* object, void*, const Vector3* point);
 int __fastcall ScriptSessionActive(const CRefCounted* session);
 int __fastcall ScriptRound(void*, void*, float value);
 void __fastcall ScriptItemRepair(CItem* item);
 CEngineObject* __fastcall ScriptUnitController(const CUnit* unit);
 int __fastcall ScriptUnitCarriedCount(const CUnit* unit);
-CEngineObject* __fastcall ScriptUnitCarriedItem(const CUnit* unit, void*, int index);
 UnitStats* __fastcall ScriptControllerStats(CUnitServer* controller);
-CEngineObject* __fastcall ScriptIteratorFirst(ObjectListIterator* iterator, void*, CBaseManager* list);
 void __fastcall ScriptWriteText(const mfc::CString* text, CStream* stream);
 
 namespace {
@@ -73,7 +69,7 @@ int __fastcall SessionActiveVerify(const CRefCounted* session) {
 }
 
 CEngineObject* __fastcall IteratorFirstVerify(ObjectListIterator* iterator, void*, CBaseManager* list) {
-    CEngineObject* result = ScriptIteratorFirst(iterator, nullptr, list);
+    CEngineObject* result = iterator->First(list);
     ei::verify::Check("script accessor 004BAA20", true, iterator->manager == list, "");
     return result;
 }
@@ -150,12 +146,14 @@ void CheckFlagSetter(const char* name, FlagSetter original, FlagSetter ours, CEn
     ei::verify::Check(name, expected, object->flags_, "flags %08X bits %08X", saved, bits);
 }
 FlagSetter s_setFlags;
+void __fastcall SetFlagBitsOurs(CEngineObject* object, void*, std::uint32_t bits) { object->SetFlagBits(bits); }
+void __fastcall ClearFlagBitsOurs(CEngineObject* object, void*, std::uint32_t bits) { object->ClearFlagBits(bits); }
 void __fastcall SetFlagsVerify(CEngineObject* object, void*, std::uint32_t bits) {
-    CheckFlagSetter("script accessor 004B9F50", s_setFlags, ScriptObjectSetFlags, object, bits);
+    CheckFlagSetter("script accessor 004B9F50", s_setFlags, SetFlagBitsOurs, object, bits);
 }
 FlagSetter s_clearFlags;
 void __fastcall ClearFlagsVerify(CEngineObject* object, void*, std::uint32_t bits) {
-    CheckFlagSetter("script accessor 004B9F60", s_clearFlags, ScriptObjectClearFlags, object, bits);
+    CheckFlagSetter("script accessor 004B9F60", s_clearFlags, ClearFlagBitsOurs, object, bits);
 }
 
 // 004B9F90: MOV EAX,[ESP+4] (4), ADD ECX,0x1C (3).
@@ -208,7 +206,7 @@ int __fastcall CarriedCountVerify(const CUnit* unit) {
 CEngineObject*(__fastcall* s_carriedItem)(const CUnit*, void*, int);
 CEngineObject* __fastcall CarriedItemVerify(const CUnit* unit, void*, int index) {
     CEngineObject* expected = s_carriedItem(unit, nullptr, index);
-    CEngineObject* actual = ScriptUnitCarriedItem(unit, nullptr, index);
+    CEngineObject* actual = unit->CarriedItem(index);
     ei::verify::Check("script accessor 004BA080", true, expected == actual, "index %d", index);
     return actual;
 }

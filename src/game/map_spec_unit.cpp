@@ -504,61 +504,61 @@ EI_REPLACE(0x0045DFB0, WaypointsWrite);
 
 // 0045D610: the record from a stream. Files before version 0x53 have no alarm level: it follows
 // from the flags (bit 0 -> 0, bit 1 -> 1, bit 2 -> 2, bit 4 -> 3, else 2). +0x30 is not stored.
-void __fastcall BehaviourRead(Behaviour* self, void*, void* stream) {
-    StreamRead(stream, &self->type, 4);
+void Behaviour::Read(void* stream) {
+    StreamRead(stream, &type, 4);
     int n;
     StreamRead(stream, &n, 4);
-    PatrolsSetSize(&self->patrols, nullptr, n, -1);
-    for (int i = 0; i < self->patrols.size; ++i) {
-        Patrol* p = &self->patrols.data[i];
+    PatrolsSetSize(&patrols, nullptr, n, -1);
+    for (int i = 0; i < patrols.size; ++i) {
+        Patrol* p = &patrols.data[i];
         StreamRead(stream, &p->position, 12);
         WaypointsReadAt(&p->waypoints, stream);
     }
-    StreamRead(stream, &self->guard, 12);
-    StreamRead(stream, &self->loop, 4);
-    StreamRead(stream, &self->flags, 4);
-    StreamRead(stream, &self->guardRadius, 4);
-    StreamRead(stream, &self->alarmKind, 4);
-    StreamRead(stream, &self->unknown_38, 4);
-    StreamRead(stream, &self->callRadius, 4);
-    StreamRead(stream, &self->alertMode, 4);
-    StreamRead(stream, &self->alarmDelay, 4);
+    StreamRead(stream, &guard, 12);
+    StreamRead(stream, &loop, 4);
+    StreamRead(stream, &this->flags, 4);
+    StreamRead(stream, &guardRadius, 4);
+    StreamRead(stream, &alarmKind, 4);
+    StreamRead(stream, &unknown_38, 4);
+    StreamRead(stream, &callRadius, 4);
+    StreamRead(stream, &alertMode, 4);
+    StreamRead(stream, &alarmDelay, 4);
     if (static_cast<std::int32_t>(static_cast<CStream*>(stream)->version_) >= 0x53) {
-        StreamRead(stream, &self->alarm, 4);
+        StreamRead(stream, &alarm, 4);
         return;
     }
-    std::uint32_t flags = self->flags;
-    self->alarm = 2;
-    if (flags & 1) self->alarm = 0;
-    else if (flags & 2) self->alarm = 1;
-    else if (flags & 4) self->alarm = 2;
-    else if (flags & 0x10) self->alarm = 3;
+    std::uint32_t oldFlags = flags;
+    alarm = 2;
+    if (oldFlags & 1) alarm = 0;
+    else if (oldFlags & 2) alarm = 1;
+    else if (oldFlags & 4) alarm = 2;
+    else if (oldFlags & 0x10) alarm = 3;
 }
-EI_REPLACE(0x0045D610, BehaviourRead);
+EI_REPLACE_METHOD(0x0045D610, Behaviour::Read);
 
 // 0045D760: the record to a stream (the same fields).
-void __fastcall BehaviourStreamWrite(Behaviour* self, void*, void* stream) {
-    StreamWrite(stream, &self->type, 4);
-    int n = self->patrols.size;
+void Behaviour::Write(void* stream) {
+    StreamWrite(stream, &type, 4);
+    int n = patrols.size;
     StreamWrite(stream, &n, 4);
-    for (int i = 0; i < self->patrols.size; ++i) {
-        Patrol* p = &self->patrols.data[i];
+    for (int i = 0; i < patrols.size; ++i) {
+        Patrol* p = &patrols.data[i];
         StreamWrite(stream, &p->position, 12);
         WaypointsWriteAt(&p->waypoints, stream);
     }
-    StreamWrite(stream, &self->guard, 12);
+    StreamWrite(stream, &guard, 12);
     std::uint32_t value;
-    for (const void* field : {static_cast<const void*>(&self->loop), static_cast<const void*>(&self->flags),
-                              static_cast<const void*>(&self->guardRadius), static_cast<const void*>(&self->alarmKind),
-                              static_cast<const void*>(&self->unknown_38), static_cast<const void*>(&self->callRadius)}) {
+    for (const void* field : {static_cast<const void*>(&loop), static_cast<const void*>(&flags),
+                              static_cast<const void*>(&guardRadius), static_cast<const void*>(&alarmKind),
+                              static_cast<const void*>(&unknown_38), static_cast<const void*>(&callRadius)}) {
         std::memcpy(&value, field, 4);
         StreamWrite(stream, &value, 4);
     }
-    StreamWrite(stream, &self->alertMode, 4);
-    value = self->alarmDelay;
+    StreamWrite(stream, &alertMode, 4);
+    value = alarmDelay;
     StreamWrite(stream, &value, 4);
-    StreamWrite(stream, &self->alarm, 4);
+    StreamWrite(stream, &alarm, 4);
 }
-EI_REPLACE(0x0045D760, BehaviourStreamWrite);
+EI_REPLACE_METHOD(0x0045D760, Behaviour::Write);
 
 } // namespace mapspec

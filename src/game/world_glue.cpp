@@ -161,7 +161,7 @@ EI_REPLACE(0x005787D0, GameStopCameraRecording);
 int __stdcall GameStartCameraRecording(const char* name) {
     CWorldClient* world = WorldClient();
     world->flags_ |= kClientRecordingCamera;
-    return CameraOpenFile(world->camera_, nullptr, name);
+    return world->camera_->OpenFile(name);
 }
 EI_REPLACE(0x005787F0, GameStartCameraRecording);
 

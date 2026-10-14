@@ -43,6 +43,8 @@ static_assert(sizeof(Patrol) == 0x20);
 
 // A unit's behaviour record (0x4C bytes; constructor 0045D5B0, destructor 0046C290).
 struct Behaviour {
+    void Read(void* stream);
+    void Write(void* stream);
     std::int32_t type;           // +0x00 (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
     mfc::CArray<Patrol> patrols;       // +0x04 (vtable 0073C37C)
     Vector3 guard;               // +0x18 the unit's position when saved
