@@ -12,6 +12,10 @@ usage: python tools/work.py start ID [--worktree P] [--branch B] [--agent A]
        python tools/work.py db              where the database is, and its schema version
        python tools/work.py serve [--port 8765]
                                             the live board on http://127.0.0.1:PORT/ (tools/work_board/)
+       python tools/work.py test ID [run_all args]
+                                            run_all's runs as one batch through the scheduler; waits,
+                                            prints run_all's lines and summary, returns its exit code
+       python tools/work.py scheduler       the machine's one test scheduler (`test` starts it)
 
 The database is build/live/work.db in the MAIN checkout (found from any worktree through
 `git rev-parse --git-common-dir`), so every checkout shares it; WORK_DB overrides the path (tests).
@@ -379,9 +383,15 @@ def main():
     p = sub.add_parser('done', help='end the assignment'); p.add_argument('id'); p.add_argument('text', nargs='*')
     sub.add_parser('db', help='the database path and row counts')
     p = sub.add_parser('serve', help='the live board on localhost'); p.add_argument('--port', type=int, default=8765)
+    p = sub.add_parser('test', help='run_all through the scheduler (tools/work_sched.py)')
+    p.add_argument('id'); p.add_argument('run_all_args', nargs=argparse.REMAINDER)
+    sub.add_parser('scheduler', help='run the batches on the game slots (started by test)')
     args = ap.parse_args()
     db = connect()
     try:
+        if args.cmd in ('test', 'scheduler'):
+            import work_sched
+            return getattr(work_sched, 'cmd_' + args.cmd)(db, args)
         return {'start': cmd_start, 'note': cmd_note, 'status': cmd_status, 'done': cmd_done, 'db': cmd_db, 'serve': cmd_serve}[args.cmd](db, args)
     finally:
         db.close()

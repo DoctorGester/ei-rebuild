@@ -613,13 +613,14 @@ done = "2026-10-14"
 id = "WB2"
 title = "Work board: test batches through one scheduler"
 group = "harness"
-status = "running"
+status = "done"
 size = 1.5
 model = "opus"
 depends = ["WB1"]
 files = ["tools/work.py", "tools/run_all.py"]
 note = "docs/notes/work-board.md 'Scheduler': work.py test <ID> [run_all args] submits a batch and waits, printing run_all's summary and exit code; one on-demand scheduler owns the 16 slots, runs batches in order with backfill, display-mode runs alone, uses run_all.run() pointed at the batch's worktree/build. Plain run_all keeps working."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "WB3"
