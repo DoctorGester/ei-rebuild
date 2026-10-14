@@ -419,6 +419,9 @@ ID3D11RenderTargetView* g_windowView = nullptr;
 int g_windowWidth = 0, g_windowHeight = 0;
 bool g_windowFailed = false;
 int g_windowPresentFailures = 0;
+// Present waits for the vertical blank (sync interval 1) unless the harness's virtual clock runs
+// the game, where a frame's length no longer depends on the display.
+bool g_waitForVsync = true;
 
 void ReleaseWindowView() {
     if (g_windowView) g_windowView->Release();
@@ -506,7 +509,7 @@ bool DrawToWindow() {
 }
 
 void PresentWindow() {
-    HRESULT hr = g_windowChain->Present(1, 0);
+    HRESULT hr = g_windowChain->Present(g_waitForVsync ? 1 : 0, 0);
     if (FAILED(hr) && g_windowPresentFailures++ < 10)
         ei::Log("render: the game window's Present failed (%08lX)", static_cast<unsigned long>(hr));
 }
@@ -672,6 +675,8 @@ bool StartPresenting() {
 }
 
 bool PresentsItself() { return g_presentsItself; }
+
+void SetWaitForVsync(bool on) { g_waitForVsync = on; }
 
 bool DrawOldTerrain() {
     EnsureConfigured();

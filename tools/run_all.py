@@ -1,7 +1,7 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth | --native] [--no-hooks]
-                               [--jobs N] [--retries N] [--verified-candidates N]
+                               [--jobs N] [--retries N] [--clock virtual|real] [--verified-candidates N]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
                    Every scenario runs on vanilla; under Rebirth only those config/rebirth_scenarios.csv
                    marks (tools/rebirth_coverage.py: the fewest that reach every function Rebirth patches
@@ -16,6 +16,9 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
   --retries N      re-run a failed scenario up to N times (default 1); fights against spawned
                    enemies are random, and the hero occasionally loses one on the original too.
                    A pass after a retry is reported as "PASS*".
+  --clock virtual|real[,trace]
+                   run every scenario on the virtual clock or on real time, whatever its own lines say
+                   (EI_HARNESS_CLOCK; tests/verify/harness_clock.h); ",trace" adds the clock trace
   --verified-candidates N
                    afterwards, list rewritten functions with at least N verify calls and no
                    mismatch in any run that are not yet in tests/verify/verified.txt
@@ -63,9 +66,11 @@ def machine_slot():
         time.sleep(0.5)
 
 
-def run(name, install, hooks):
+def run(name, install, hooks, suffix='', clock=None):
+    """One run of a scenario; `suffix` names extra runs' folders, `clock` ('virtual' or 'real')
+    overrides the scenario's clock (EI_HARNESS_CLOCK)."""
     scenario = os.path.join(ROOT, 'tests', 'scenarios', name + '.txt')
-    out = os.path.join(RUNS, f'{name}-{install}')
+    out = os.path.join(RUNS, f'{name}-{install}{suffix}')
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out, exist_ok=True)
     prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
@@ -81,6 +86,8 @@ def run(name, install, hooks):
         cmd += ['--exe', os.path.join(ROOT, 'run', 'rebirth', 'game.exe')]
     if not hooks:
         cmd.append('--no-hooks')
+    if clock:
+        env = dict(env or os.environ, EI_HARNESS_CLOCK=clock)
     with machine_slot():
         start = time.time()
         proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env)
@@ -98,13 +105,21 @@ def run(name, install, hooks):
     return result, seconds, failures, counts, notes
 
 
-def run_with_retries(name, install, hooks, retries):
-    result, seconds, failures, counts, notes = run(name, install, hooks)
+def console_of(name, install, suffix=''):
+    """The console output a run's report holds (its lines after "console output:")."""
+    path = os.path.join(RUNS, f'{name}-{install}{suffix}', 'harness_report.txt')
+    lines = open(path, encoding='cp1251', errors='replace').read().splitlines() if os.path.exists(path) else []
+    lines = lines[lines.index('console output:') + 1:] if 'console output:' in lines else []
+    return [l for l in lines if l.startswith('  ')]
+
+
+def run_with_retries(name, install, hooks, retries, clock=None):
+    result, seconds, failures, counts, notes = run(name, install, hooks, clock=clock)
     first_failures = failures
     for _ in range(retries):
         if result == 'PASS' or any(bad for _, bad in counts.values()):   # never retry away a mismatch
             break
-        result, seconds, failures, counts, notes = run(name, install, hooks)
+        result, seconds, failures, counts, notes = run(name, install, hooks, clock=clock)
         if result == 'PASS':
             result = 'PASS*'
             failures = ['first run: ' + '; '.join(first_failures[:2])]
@@ -134,6 +149,7 @@ def main():
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--jobs', type=int, default=16)
+    ap.add_argument('--clock', choices=('virtual', 'real', 'virtual,trace', 'real,trace'))
     args = ap.parse_args()
     names = args.scenarios or sorted(os.path.splitext(os.path.basename(p))[0]
                                      for p in glob.glob(os.path.join(ROOT, 'tests', 'scenarios', '*.txt')))
@@ -169,7 +185,7 @@ def main():
         return text
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        futures = {pool.submit(run_with_retries, n, i, not args.no_hooks, args.retries): (n, i) for n, i in order}
+        futures = {pool.submit(run_with_retries, n, i, not args.no_hooks, args.retries, args.clock): (n, i) for n, i in order}
         for future in concurrent.futures.as_completed(futures):
             name, install = futures[future]
             result, seconds, failures, counts, notes = future.result()

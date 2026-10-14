@@ -94,6 +94,9 @@ bool Presenting();
 bool StartPresenting();
 // StartPresenting succeeded: the new renderer shows the frames itself.
 bool PresentsItself();
+// Whether presenting onto the game window waits for the vertical blank (default on). The harness
+// turns it off under its virtual clock.
+void SetWaitForVsync(bool on);
 
 // The old Direct3D path still draws the terrain ("noterrain" off). The harness can change it.
 bool DrawOldTerrain();
