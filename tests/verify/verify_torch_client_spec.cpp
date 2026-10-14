@@ -125,7 +125,7 @@ static void __fastcall SetParticlesVerify(CTorchObjectClientSpec* self, void*, s
                                           float scale) {
     float kept[3] = {offset[0], offset[1], offset[2]};
     self->SetParticles(type, offset, scale);
-    ei::verify::Check("CTorchObjectClientSpec::SetParticles", true, self->particles_ != nullptr && self->unknown_20 == type,
+    ei::verify::Check("CTorchObjectClientSpec::SetParticles", true, self->particles_ != nullptr && self->lightKind_ == type,
                       "type %X", type);
     if (self->particles_) NearAt("CTorchObjectClientSpec::SetParticles position", self->particles_->position, self->torch_, kept);
 }

@@ -25,7 +25,7 @@ std::uintptr_t VtableOf(const void* object) {
 CSpell* __fastcall CreateSpellObjectVerify(CSpellManager* self, void*, int id) {
     CSpell* spell = self->CreateSpellObject(id);
     bool ok = spell == nullptr ||
-              (VtableOf(spell) == CSpell::kVtableAddress && (id == -1 || spell->unknown_18 == static_cast<std::uint32_t>(id)));
+              (VtableOf(spell) == CSpell::kVtableAddress && (id == -1 || spell->prototypeId_ == static_cast<std::uint32_t>(id)));
     ei::verify::Check("CSpellManager::CreateSpellObject", true, ok, "manager %p id %d -> %p", self, id, spell);
     return spell;
 }

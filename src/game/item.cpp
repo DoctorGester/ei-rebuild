@@ -19,7 +19,7 @@ bool EqualOrUnordered(float a, float b) { return !(a < b) && !(a > b); }
 } // namespace
 
 char* CItem::GetPrototype() {
-    std::uint32_t index = PrototypeIndex(unknown_18);
+    std::uint32_t index = PrototypeIndex(prototypeId_);
     switch (type_) {
     case kItemWeapon: return Weapons().At(index, kWeaponSize);
     case kItemArmor: return Armors().At(index, kArmorSize);
@@ -55,12 +55,12 @@ int __fastcall ItemRunTickHook(CItem* self) { return self->CItem::RunTick(); }
 EI_REPLACE(0x006A0070, ItemRunTickHook);
 
 int CItemWeapon::GetType() {
-    return WeaponAt(PrototypeIndex(unknown_18))->type;
+    return WeaponAt(PrototypeIndex(prototypeId_))->type;
 }
 EI_REPLACE_METHOD(0x006A07F0, CItemWeapon::GetType);
 
 void CItemWeapon::GetDamageTypes(float* out) {
-    WeaponRecord* prototype = WeaponAt(PrototypeIndex(unknown_18));
+    WeaponRecord* prototype = WeaponAt(PrototypeIndex(prototypeId_));
     if (prototype) {
         std::memcpy(out, prototype->damageTypes, 7 * sizeof(float));
         return;
@@ -99,12 +99,12 @@ BOOL __fastcall WeaponIsSameAsHook(CItemWeapon* self, void*, CItem* other) { ret
 EI_REPLACE(0x006A06C0, WeaponIsSameAsHook);
 
 int CItemArmor::GetType() {
-    return ArmorAt(PrototypeIndex(unknown_18))->type;
+    return ArmorAt(PrototypeIndex(prototypeId_))->type;
 }
 EI_REPLACE_METHOD(0x006A39E0, CItemArmor::GetType);
 
 int CItemArmor::GetTypeGroup() {
-    int type = ArmorAt(PrototypeIndex(unknown_18))->type;
+    int type = ArmorAt(PrototypeIndex(prototypeId_))->type;
     return (type == 0 || type == 1 || type == 2) ? 2 : 1;
 }
 EI_REPLACE_METHOD(0x006A31A0, CItemArmor::GetTypeGroup);

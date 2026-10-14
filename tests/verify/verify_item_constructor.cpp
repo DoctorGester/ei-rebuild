@@ -49,7 +49,7 @@ static void __fastcall InitFromRecordVerify(CItem* self, void*, const itemdb::It
     std::memcpy(bytes, before, sizeof(before));
     s_initFromRecord(self, nullptr, record);
     ei::verify::Check("CItem::InitFromRecord", true, std::memcmp(ours, bytes, sizeof(ours)) == 0, "item %08X",
-                      self->unknown_18);
+                      self->prototypeId_);
 }
 EI_VERIFY(0x006A0490, InitFromRecordVerify, 7, s_initFromRecord);
 
@@ -63,7 +63,7 @@ static void __fastcall AttachSpellVerify(CItem* self, void*, CSpell* spell) {
     if (spell) price = Field<float>(reinterpret_cast<const char*>(spell), 0x48) + price;
     self->AttachSpell(spell);
     bool same = self->spell_ == spell && Bits(self->price_) == Bits(price);
-    ei::verify::Check("CItem::AttachSpell", true, same, "item %08X spell %p", self->unknown_18, spell);
+    ei::verify::Check("CItem::AttachSpell", true, same, "item %08X spell %p", self->prototypeId_, spell);
 }
 EI_VERIFY(0x006A04D0, AttachSpellVerify, 0, s_attachSpell);
 
@@ -72,7 +72,7 @@ static void __fastcall ItemSetSpellVerify(CItem* self, void*, CSpell* spell) {
     float price = self->price_;
     self->SetSpell(spell);
     ei::verify::Check("CItem::SetSpell", true, self->spell_ == spell && Bits(self->price_) == Bits(price),
-                      "item %08X spell %p", self->unknown_18, spell);
+                      "item %08X spell %p", self->prototypeId_, spell);
 }
 EI_VERIFY(0x006A0520, ItemSetSpellVerify, 0, s_itemSetSpell);
 
@@ -209,10 +209,10 @@ static BOOL __fastcall BuildVerify(CItemConstructor* self) {
         }
         std::uint32_t index = table ? static_cast<std::uint32_t>(static_cast<int>(self->prototype_ - table->begin) / stride) : 0;
         std::uint32_t low = self->material_ ? Field<std::uint32_t>(self->material_, 0x0C) & 0xFFFF : 0;
-        ok = result == 1 && self->item_->unknown_18 == (index << 16 | low) &&
+        ok = result == 1 && self->item_->prototypeId_ == (index << 16 | low) &&
              self->item_->count_ == static_cast<std::uint32_t>(self->count_);
     }
-    ei::verify::Check("CItemConstructor::Build", true, ok, "class %X id %08X", classId, self->item_->unknown_18);
+    ei::verify::Check("CItemConstructor::Build", true, ok, "class %X id %08X", classId, self->item_->prototypeId_);
     return result;
 }
 EI_VERIFY(0x006A5D60, BuildVerify, 0, s_build);
@@ -224,7 +224,7 @@ EI_VERIFY(0x006A5D60, BuildVerify, 0, s_build);
 static void* s_createSpellFromText;
 static CSpell* __fastcall CreateSpellFromTextVerify(CSpellManager* self, void*, const char* text) {
     CSpell* spell = self->CreateSpellFromText(text);
-    bool ok = spell && (spell->unknown_18 >> 16) <
+    bool ok = spell && (spell->prototypeId_ >> 16) <
                            static_cast<std::uint32_t>((itemdb::Spells().end - itemdb::Spells().begin) / itemdb::kSpellSize);
     ei::verify::Check("CSpellManager::CreateSpellFromText", true, ok, "text %.60s", text ? text : "(null)");
     return spell;

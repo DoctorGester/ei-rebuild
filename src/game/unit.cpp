@@ -167,10 +167,10 @@ EI_REPLACE(0x0052F7F0, UnitSetStunnedHook);
 
 void CUnit::GetEquipmentIds(std::uint32_t* out) {
     for (int i = 0; i < 4; ++i) {
-        out[i] = weapons[i] ? weapons[i]->unknown_18 : 0xFFFFFFFFu;
+        out[i] = weapons[i] ? weapons[i]->prototypeId_ : 0xFFFFFFFFu;
     }
     for (int i = 0; i < 7; ++i) {
-        out[4 + i] = armor[i] ? armor[i]->unknown_18 : 0xFFFFFFFFu;
+        out[4 + i] = armor[i] ? armor[i]->prototypeId_ : 0xFFFFFFFFu;
     }
 }
 EI_REPLACE_METHOD(0x0052EC10, CUnit::GetEquipmentIds);
@@ -384,11 +384,11 @@ EI_REPLACE_METHOD(0x005302F0, CUnit::ModeSpeed);
 
 // --- Prototypes ------------------------------------------------------------------------------
 
-char* CUnit::GetPrototype() { return unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize); }
+char* CUnit::GetPrototype() { return unitdb::Prototypes().At(prototypeId_, unitdb::kPrototypeSize); }
 EI_REPLACE_METHOD(0x00530930, CUnit::GetPrototype);
 
 char* CUnit::GetPrototypeModel() {
-    char* prototype = unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize);
+    char* prototype = unitdb::Prototypes().At(prototypeId_, unitdb::kPrototypeSize);
     if (!prototype) return nullptr;
     return unitdb::Models().At(static_cast<std::uint32_t>(reinterpret_cast<const UnitPrototypeRecord*>(prototype)->modelIndex),
                                unitdb::kModelSize);

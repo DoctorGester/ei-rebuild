@@ -1189,7 +1189,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     if (password && *password) ServerSetPassword(net::GameServer(), nullptr, password);
     ServerSetPublic(net::GameServer(), nullptr, unlisted == 0);
     net::GameClient()->gameType_ = gameType;
-    net::GameServer()->unknown_25FC = value25FC;
+    net::GameServer()->masterKey_ = value25FC;
     FlowAfterServer(this, nullptr);
 }
 

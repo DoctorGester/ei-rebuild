@@ -109,7 +109,7 @@ public:
 
     std::uint8_t reading_;          // +0x04 1 reading, 0 writing (CopyFrom clears it)
     std::uint8_t ok_;               // +0x05 cleared when a read runs past the end
-    std::uint8_t unknown_6[2];
+    std::uint8_t unused_6[2];
     std::uint32_t version_;         // +0x08 format version (the save game's); 2000000000 when constructed
 };
 static_assert(offsetof(CStream, reading_) == 0x04);

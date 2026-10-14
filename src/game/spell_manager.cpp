@@ -60,7 +60,7 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
     if (id == -1) return spell;
     const auto packed = static_cast<std::uint32_t>(id);
     const std::uint32_t low = packed & 0xFFFF;
-    spell->unknown_18 = packed;
+    spell->prototypeId_ = packed;
     if (low == 0) {
         spell->InitFromPrototype(itemdb::Spells().At(packed >> 16, itemdb::kSpellSize));
         return spell;

@@ -143,7 +143,7 @@ int CMapObjectManager::GiveDefaults(CEngineObject* object) {
         ObjectSlots(object)->SetStats(&stats);
     }
     ObjectSlots(object)->ScaleEffectChanged(0);
-    object->unknown_18 = 0;
+    object->prototypeId_ = 0;
     return 1;
 }
 EI_REPLACE_METHOD(0x00513630, CMapObjectManager::GiveDefaults);

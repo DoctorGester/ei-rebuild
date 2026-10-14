@@ -37,7 +37,7 @@ CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self) {
     ei::SetVtable(self, CEngineObject::kVtableAddress);
     self->refCount_ = 0;
     self->id_ = -1;
-    self->unknown_18 = 0;
+    self->prototypeId_ = 0;
     self->type_ = 0;
     self->flags_ = 0;
     self->owner_ = nullptr;

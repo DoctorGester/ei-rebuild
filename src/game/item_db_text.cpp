@@ -124,8 +124,8 @@ BOOL CTextManager::GetString(const char* name, mfc::CString* out) {
 EI_REPLACE_METHOD(0x004E0020, CTextManager::GetString);
 
 BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
-    std::uint32_t materialIndex = MaterialIndex(item->unknown_18);
-    std::uint32_t prototypeIndex = PrototypeIndex(item->unknown_18);
+    std::uint32_t materialIndex = MaterialIndex(item->prototypeId_);
+    std::uint32_t prototypeIndex = PrototypeIndex(item->prototypeId_);
     mfc::CString recordName;   // ESP+0x10 in the original
     mfc::CString materialName; // ESP+0x14
     name->Empty();

@@ -181,7 +181,7 @@ bool SameCoder(const CoderState& a, const GameBuffer& outA, const CoderState& b,
     const BufferCursor& x = a.out;
     const BufferCursor& y = b.out;
     return SamePointer(x.p, outA.begin, y.p, outB.begin) && SamePointer(x.bytePtr, outA.begin, y.bytePtr, outB.begin) &&
-           x.acc == y.acc && x.bits == y.bits && std::memcmp(x.unknown_0D, y.unknown_0D, 3) == 0 &&
+           x.acc == y.acc && x.bits == y.bits && std::memcmp(x.unused_0D, y.unused_0D, 3) == 0 &&
            x.sink == nullptr && y.sink == nullptr && SamePointer(x.start, outA.begin, y.start, outB.begin);
 }
 

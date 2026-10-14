@@ -161,7 +161,7 @@ EI_VERIFY(0x00512B20, FindAnimationVerify, 0, s_unused);
 
 static int __fastcall GiveDefaultsVerify(CMapObjectManager* self, void*, CEngineObject* object) {
     int result = self->GiveDefaults(object);
-    ei::verify::Check("CMapObjectManager::GiveDefaults", true, result == 1 && object->unknown_18 == 0, "");
+    ei::verify::Check("CMapObjectManager::GiveDefaults", true, result == 1 && object->prototypeId_ == 0, "");
     return result;
 }
 EI_VERIFY(0x00513630, GiveDefaultsVerify, 0, s_unused);

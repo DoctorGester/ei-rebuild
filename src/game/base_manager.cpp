@@ -252,8 +252,8 @@ CBaseManager* CBaseManager::ConstructBase() {
     context_ = nullptr;
     ei::SetVtable(this, kVtableAddress);
     idHigh_ = 2000000000;
-    unknown_A0 = -1;
-    unknown_A4 = -1;
+    reservedA_ = -1;
+    reservedB_ = -1;
     lastId_ = -1;
     return this;
 }
@@ -294,8 +294,8 @@ int CBaseManager::Create() {
                SparesResize, 0x100);
     ResetTable(spareCounts_, maxSpareCountType_,
                [](SpareCountMap::Node* n) { stlp::deallocate(n, sizeof(SpareCountMap::Node)); }, SpareCountsResizeBig, 0x100);
-    unknown_A0 = 0;
-    unknown_A4 = 300;
+    reservedA_ = 0;
+    reservedB_ = 300;
     return 1;
 }
 
@@ -602,7 +602,7 @@ EI_REPLACE_METHOD(0x00404410, CBaseManager::FreeSpares);
 
 // --- Saving and loading -------------------------------------------------------------------------
 
-// The spares are freed; then `count` records {id, type, unknown_18} each create an object (slot 23).
+// The spares are freed; then `count` records {id, type, prototypeId_} each create an object (slot 23).
 void CBaseManager::Load(void* stream) {
     auto* in = static_cast<CStream*>(stream);
     FreeSpares();
@@ -614,11 +614,11 @@ void CBaseManager::Load(void* stream) {
         in->Read(&type, 4);
         in->Read(&extra, 4);
         CEngineObject* object = CreateObject(type, id);
-        object->unknown_18 = static_cast<std::uint32_t>(extra);
+        object->prototypeId_ = static_cast<std::uint32_t>(extra);
     }
 }
 
-// The object list's count, then {id, type, unknown_18} per object.
+// The object list's count, then {id, type, prototypeId_} per object.
 void CBaseManager::Save(void* stream) {
     auto* out = static_cast<CStream*>(stream);
     int count = objectList_.count;
@@ -630,7 +630,7 @@ void CBaseManager::Save(void* stream) {
         out->Write(&value, 4);
         value = object->type_;
         out->Write(&value, 4);
-        value = static_cast<int>(object->unknown_18);
+        value = static_cast<int>(object->prototypeId_);
         out->Write(&value, 4);
         node = next;
     }

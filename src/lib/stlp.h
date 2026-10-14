@@ -455,7 +455,7 @@ private:
     Node* header_ = nullptr;
     std::size_t count_ = 0;
     std::uint8_t compare_ = 0;
-    std::uint8_t unknown_09[3] = {};
+    std::uint8_t unused_09[3] = {};
 };
 
 // Hash for pointer keys: the pointer value itself.

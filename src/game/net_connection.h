@@ -27,7 +27,7 @@ struct IdPool {
     std::uint16_t* end;        // +0x04
     std::uint16_t* eos;        // +0x08
     std::uint16_t next;        // +0x0C the last id handed out new
-    std::uint16_t unknown_0E;
+    std::uint16_t unused_0E;
 
     // 00435F10. A returned id (the last one) if any, else ++next.
     std::uint16_t Allocate();
@@ -90,7 +90,7 @@ struct ReliableChunk {
 struct SentPacket {
     double time;               // +0x00 the connection's clock when sent
     std::uint16_t sequence;    // +0x08
-    std::uint16_t unknown_0A;
+    std::uint16_t unused_0A;
     SentItem* items;           // +0x0C STLport list sentinel
     ReliableChunk header;      // +0x10 the reliable chunk the packet carried
     std::uint8_t rolledBack;   // +0x114
@@ -118,7 +118,7 @@ struct HeaderNode {
 struct FreedId {
     std::uint16_t id;
     std::uint8_t type;
-    std::uint8_t unknown_3;
+    std::uint8_t unused_3;
 };
 struct FreedBatch {
     FreedBatch* next;
@@ -138,7 +138,7 @@ struct Record {
 struct AttachedId {
     std::uint16_t id;
     std::uint8_t type;
-    std::uint8_t unknown_3;
+    std::uint8_t unused_3;
 };
 
 class __declspec(novtable) Connection : public CRefObject {
@@ -224,7 +224,7 @@ public:
     void Close();
 
     std::uint16_t sendSequence_;        // +0x0008 starts at GetTickCount()
-    std::uint16_t unknown_000A;
+    std::uint16_t unused_000A;
     std::uint32_t lastReceived_;        // +0x000C sequence of the newest packet received
     std::uint32_t sequenceHigh_;        // +0x0010 0x10000: the upper bits of the received sequences
     std::int32_t* received_;            // +0x0014 vector<int>: sequences received recently
@@ -255,7 +255,7 @@ public:
     HeaderNode* incoming_;              // +0x1120 reliable chunks received ahead of their turn
     std::uint32_t ackMask_;             // +0x1124 bit k: packet ackBase_ - 1 - k acknowledged already
     std::uint16_t ackBase_;             // +0x1128 the peer's newest acknowledged sequence
-    std::uint16_t unknown_112A;
+    std::uint16_t unused_112A;
     GameBuffer reliableOut_;            // +0x112C
     GameBuffer reliableIn_;             // +0x1148
     std::uint32_t padding_1164;

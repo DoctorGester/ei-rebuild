@@ -95,3 +95,26 @@ original's vector functions are the game's `stlp::vector<Query>` instantiation a
 `_M_insert_overflow`, 00443BF0 `operator=`, 004442B0 `erase(first, last)`, 00444090 `resize`. `Ask` and `Forget` keep the inlined push_back /
 erase over `Finish()` / `EndOfStorage()`; `ui_connect_screen.cpp`'s address book and the verify wrappers follow (the constructor's wrapper copies
 raw bytes: the vector has no copy). The per-file vector struct count is 0.
+
+## F5: unknown fields of the rest (2026-10-14)
+
+The 99 `unknown` members and locals of map_spec.h, net_*, player_*, sound*, script*, app_device_list.cpp,
+bink_video.cpp, quest_records.h, base_manager.h, engine_object.h, the small headers and src/lib are named or
+`unused_XXX` (F2's method: all renamed to unused_, the verify build with `-k 0`, each error a use). Meanings the
+code alone does not show:
+- `CEngineObject` +0x18 is `prototypeId_`: the database prototype (items: index << 16 | material; spells: index
+  << 16; units: the plain index).
+- `CPlayer` takes `WorldPlayer`'s names: +0xFC `partyId_`, +0x104 `lastScreen_`, +0x108 `godMode_`, +0x110
+  `lastTick_`; `CPlayerClient` +0x84 is `localSession_` (`LocalViewData`). The login's +0x84 is the party id.
+- `CPlayerServer` +0x24 `possessedId_`: -1, or the Possession spell's target; the next party refresh sends
+  group50F8_ and resets it. world_update.cpp's `IsLocal` tests it (its name may be wrong: any player without a
+  pending possession passes).
+- `ServerSession` +0x25FC `masterKey_` (StartServer's last argument, the client queries' `extra`) and +0x2578
+  `masterToken_` (the master server's last dword, sent back); `GameInfoRecord` +0x1A..+0x23 carry them with the
+  kind and the password flag.
+- app_device_list.cpp's `DeviceRecord` is the lever table's record (`LeverRecord`, lever.h): Levers.ldb.
+- `mapspec::Waypoint` +0x10 / +0x12 are the look's wait and stop-first bit (its `wait` is the turning time);
+  `Behaviour` +0x38 `enabled` (HearAlarm); `ObjectSpec` +0x6E `side`, +0x74 `skinTexture` (chunk B008).
+- Only written, nothing reads them: `CBaseManager` `reservedA_` / `reservedB_` (0 / 300 after Create),
+  `CPlayerServer::spare_`, `CSoundManager::spare`, `Spec::spareId` (copied); chunk or archive fields read and
+  written with their record only keep the field's id: `field0A`, `field04`, `field0E`, `field2`, `field10`.
