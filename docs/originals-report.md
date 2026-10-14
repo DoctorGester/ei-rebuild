@@ -132,7 +132,7 @@ Rewritten as `UiContainerInput::OnLeftDown` (src/game/ui_container.cpp).
 ### 0x006232D0: 3 files, 3 sites, signatures differ
 Rewritten as `CHeroStatsPanel::SetHero` (src/game/ui_camp_stats.cpp).
 - `src/game/originals_ui.h:418`: `void __fastcall StatsPanelSetHeroOriginal(void* /*panel*/, void*, int /*index*/, const char* /*name*/)`
-- `src/game/ui_camp.cpp:1601`: `void __fastcall StatsPanelSetHero(CUiWindow*, void*, int, const char*)`
+- `src/game/ui_camp.cpp:1565`: `void __fastcall StatsPanelSetHero(CUiWindow*, void*, int, const char*)`
 - `src/game/ui_hero_screen_click.cpp:53`: `void __fastcall StatsSetHero(void*, void*, int, void*)`
 
 ### 0x006255A0: 2 files, 2 sites, signatures differ
@@ -155,47 +155,47 @@ Rewritten as `CUiScrollbar::SetMaximum` (src/game/ui_scroll_text.cpp).
 ### 0x006608D0: 2 files, 2 sites, signatures differ
 Rewritten as `PartyUnitRecord::AddWeapon` (src/game/party_items.cpp).
 - `src/game/originals_gameplay.h:116`: `void* __fastcall RecordAddQuickEntryOriginal(void* /*record*/, void*, void* /*item*/)`
-- `src/game/ui_camp.cpp:1225`: `void HeroRecordAdd::AddWeapon(std::uint8_t*)`
+- `src/game/ui_camp.cpp:1204`: `void HeroRecordAdd::AddWeapon(std::uint8_t*)`
 
 ### 0x00660A50: 2 files, 2 sites, signatures differ
 Rewritten as `PartyUnitRecord::RemoveWeapon` (src/game/party_items.cpp).
 - `src/game/originals_gameplay.h:118`: `void __fastcall RecordRemoveQuickEntryOriginal(void* /*record*/, void*, void* /*entry*/)`
-- `src/game/ui_camp.cpp:1129`: `void HeroRecordAt::RemoveWeapon(std::uint8_t*)`
+- `src/game/ui_camp.cpp:1111`: `void HeroRecordAt::RemoveWeapon(std::uint8_t*)`
 
 ### 0x00660AB0: 2 files, 2 sites, signatures differ
 Rewritten as `PartyUnitRecord::AddQuickItem` (src/game/party_items.cpp).
 - `src/game/originals_gameplay.h:120`: `void* __fastcall RecordAddBeltEntryOriginal(void* /*record*/, void*, void* /*item*/)`
-- `src/game/ui_camp.cpp:1226`: `void HeroRecordAdd::Add3006(std::uint8_t*)`
+- `src/game/ui_camp.cpp:1205`: `void HeroRecordAdd::Add3006(std::uint8_t*)`
 
 ### 0x00660C30: 2 files, 2 sites, signatures differ
 Rewritten as `PartyUnitRecord::RemoveQuickItem` (src/game/party_items.cpp).
 - `src/game/originals_gameplay.h:122`: `void __fastcall RecordRemoveBeltEntryOriginal(void* /*record*/, void*, void* /*entry*/)`
-- `src/game/ui_camp.cpp:1131`: `void HeroRecordAt::Remove3006(std::uint8_t*)`
+- `src/game/ui_camp.cpp:1113`: `void HeroRecordAt::Remove3006(std::uint8_t*)`
 
 ### 0x00660C90: 2 files, 2 sites, signatures differ
 Rewritten as `PartyUnitRecord::AddArmor` (src/game/party_items.cpp).
 - `src/game/originals_gameplay.h:124`: `void* __fastcall RecordAddWornEntryOriginal(void* /*record*/, void*, void* /*item*/)`
-- `src/game/ui_camp.cpp:1228`: `void* HeroRecordAdd::AddArmour(std::uint8_t*)`
+- `src/game/ui_camp.cpp:1207`: `void* HeroRecordAdd::AddArmour(std::uint8_t*)`
 
 ### 0x00660E10: 2 files, 2 sites, signatures differ
 Rewritten as `PartyUnitRecord::RemoveArmor` (src/game/party_items.cpp).
 - `src/game/originals_gameplay.h:126`: `void __fastcall RecordRemoveWornEntryOriginal(void* /*record*/, void*, void* /*entry*/)`
-- `src/game/ui_camp.cpp:1130`: `void HeroRecordAt::RemoveArmour(std::uint8_t*)`
+- `src/game/ui_camp.cpp:1112`: `void HeroRecordAt::RemoveArmour(std::uint8_t*)`
 
 ### 0x00660E70: 2 files, 2 sites, signatures differ
 Rewritten as `PartyUnitRecord::AddSpell` (src/game/party_items.cpp).
 - `src/game/originals_gameplay.h:128`: `void* __fastcall RecordAddSpellEntryOriginal(void* /*record*/, void*, void* /*item*/)`
-- `src/game/ui_camp.cpp:1227`: `void HeroRecordAdd::Add3008(std::uint8_t*)`
+- `src/game/ui_camp.cpp:1206`: `void HeroRecordAdd::Add3008(std::uint8_t*)`
 
 ### 0x00660FF0: 2 files, 2 sites, signatures differ
 Rewritten as `PartyUnitRecord::RemoveSpell` (src/game/party_items.cpp).
 - `src/game/originals_gameplay.h:130`: `void __fastcall RecordRemoveSpellEntryOriginal(void* /*record*/, void*, void* /*entry*/)`
-- `src/game/ui_camp.cpp:1132`: `void HeroRecordAt::Remove3008(std::uint8_t*)`
+- `src/game/ui_camp.cpp:1114`: `void HeroRecordAt::Remove3008(std::uint8_t*)`
 
 ### 0x00661F30: 2 files, 2 sites, signatures differ
 Rewritten as `CParty::RemoveItem` (src/game/party_items.cpp).
 - `src/game/originals_gameplay.h:138`: `void* __fastcall PartyRemoveItemOriginal(void* /*party*/, void*, void* /*item*/, int /*flag*/)`
-- `src/game/ui_camp.cpp:1232`: `void __fastcall PlayerDropItem(std::uint8_t*, void*, std::uint8_t*, int)`
+- `src/game/ui_camp.cpp:1211`: `void __fastcall PlayerDropItem(std::uint8_t*, void*, std::uint8_t*, int)`
 
 ### 0x00665440: 2 files, 2 sites, signatures differ
 Rewritten as `CPlayer::IsLeader` (src/game/player.cpp).
@@ -274,17 +274,17 @@ Rewritten as `CSpellEffect::GetDamage` (src/game/spell.cpp).
 ### 0x006841A0: 2 files, 2 sites, signatures differ
 Rewritten as `CSpellConstructor::SetManager` (src/game/spell_cast.cpp).
 - `src/game/spell_cast.cpp:453`: `void CSpellConstructor::CallSetManager(CSpellManager*)`
-- `src/game/ui_camp.cpp:807`: `void SpellConstructorAt::SetManager(void*)`
+- `src/game/ui_camp.cpp:798`: `void SpellConstructorAt::SetManager(void*)`
 
 ### 0x006841E0: 2 files, 2 sites, signatures differ
 Rewritten as `CSpellConstructor::BeginConstruct` (src/game/spell_cast.cpp).
 - `src/game/spell_cast.cpp:454`: `BOOL CSpellConstructor::CallBeginConstruct(char*)`
-- `src/game/ui_camp.cpp:808`: `BOOL SpellConstructorAt::Begin(const void*)`
+- `src/game/ui_camp.cpp:799`: `BOOL SpellConstructorAt::Begin(const void*)`
 
 ### 0x006842A0: 2 files, 2 sites, signatures differ
 Rewritten as `CSpellConstructor::AddModifier` (src/game/spell_cast.cpp).
 - `src/game/spell_cast.cpp:456`: `BOOL CSpellConstructor::CallAddModifier(char*)`
-- `src/game/ui_camp.cpp:809`: `BOOL SpellConstructorAt::AddModifier(const void*)`
+- `src/game/ui_camp.cpp:800`: `BOOL SpellConstructorAt::AddModifier(const void*)`
 
 ### 0x00689030: 4 files, 4 sites, signatures differ
 Rewritten as `CSpellManager::CreateSpellFromText` (src/game/spell_text.cpp).
@@ -297,7 +297,7 @@ Rewritten as `CSpellManager::CreateSpellFromText` (src/game/spell_text.cpp).
 Rewritten as `CSpell::Clone` (src/game/spell_cast.cpp).
 - `src/game/spell_cast.cpp:56`: `CSpell* __fastcall SpellClone(CSpell*, void*, CSpellManager*)`
 - `src/game/spell_text.cpp:49`: `CSpell* __fastcall SpellClone(CSpell*, void*, CSpellManager*)`
-- `src/game/ui_camp.cpp:829`: `std::uint8_t* SpellAt::Clone(void*)`
+- `src/game/ui_camp.cpp:820`: `std::uint8_t* SpellAt::Clone(void*)`
 
 ### 0x0068B4C0: 2 files, 2 sites, signatures differ
 Rewritten as `CSpell::CanAffect` (src/game/spell.cpp).
@@ -357,12 +357,12 @@ Rewritten as `CItem::GetPrototype` (src/game/item.cpp).
 ### 0x006A04D0: 2 files, 2 sites, signatures differ
 Rewritten as `CItem::AttachSpell` (src/game/item_constructor.cpp).
 - `src/game/item_constructor.cpp:169`: `void __fastcall CallItemAttachSpell(CItem*, void*, CSpell*)`
-- `src/game/ui_camp.cpp:852`: `void ItemAt::SetSpell(void*)`
+- `src/game/ui_camp.cpp:843`: `void ItemAt::SetSpell(void*)`
 
 ### 0x006A39E0: 4 files, 4 sites, signatures differ
 Rewritten as `CItemArmor::GetType` (src/game/item.cpp).
 - `src/game/hoover_loot.cpp:42`: `int __fastcall ArmourType(void* /*armour*/)`
-- `src/game/ui_camp.cpp:1138`: `int __fastcall ArmourType(std::uint8_t*)`
+- `src/game/ui_camp.cpp:1120`: `int __fastcall ArmourType(std::uint8_t*)`
 - `src/game/ui_container_draws.cpp:87`: `int __fastcall ArmourType(void*)`
 - `src/game/world_client_maps.cpp:726`: `int __fastcall ArmourType(void*)`
 
@@ -376,27 +376,27 @@ Rewritten as `CItem::GetCategory` (src/game/item.cpp).
 ### 0x006A5C50: 2 files, 2 sites, signatures differ
 Rewritten as `CItemConstructor::BeginCreateItem` (src/game/item_constructor.cpp).
 - `src/game/item_stock.cpp:47`: `int Constructor::BeginCreateItem(int, int)`
-- `src/game/ui_camp.cpp:819`: `BOOL ItemConstructorAt::Begin(int, int)`
+- `src/game/ui_camp.cpp:810`: `BOOL ItemConstructorAt::Begin(int, int)`
 
 ### 0x006A5CC0: 2 files, 2 sites, signatures differ
 Rewritten as `CItemConstructor::SetMaterial` (src/game/item_constructor.cpp).
 - `src/game/item_stock.cpp:48`: `int Constructor::SetMaterial(char*)`
-- `src/game/ui_camp.cpp:821`: `BOOL ItemConstructorAt::SetBlueprint(const void*)`
+- `src/game/ui_camp.cpp:812`: `BOOL ItemConstructorAt::SetBlueprint(const void*)`
 
 ### 0x006A5CD0: 2 files, 2 sites, signatures differ
 Rewritten as `CItemConstructor::SetPrototype` (src/game/item_constructor.cpp).
 - `src/game/item_stock.cpp:49`: `int Constructor::SetPrototype(char*)`
-- `src/game/ui_camp.cpp:820`: `BOOL ItemConstructorAt::SetPart(const void*)`
+- `src/game/ui_camp.cpp:811`: `BOOL ItemConstructorAt::SetPart(const void*)`
 
 ### 0x006A5CE0: 2 files, 2 sites, signatures differ
 Rewritten as `CItemConstructor::SetSpellObject` (src/game/item_constructor.cpp).
 - `src/game/item_stock.cpp:50`: `int Constructor::SetSpellObject(void*)`
-- `src/game/ui_camp.cpp:822`: `BOOL ItemConstructorAt::SetSpell(void*)`
+- `src/game/ui_camp.cpp:813`: `BOOL ItemConstructorAt::SetSpell(void*)`
 
 ### 0x006A5CF0: 2 files, 2 sites, signatures differ
 Rewritten as `CItemConstructor::EndCreateItem` (src/game/item_constructor.cpp).
 - `src/game/item_stock.cpp:51`: `CItem* Constructor::EndCreateItem()`
-- `src/game/ui_camp.cpp:823`: `std::uint8_t* ItemConstructorAt::Make()`
+- `src/game/ui_camp.cpp:814`: `std::uint8_t* ItemConstructorAt::Make()`
 
 ### 0x006AC970: 8 files, 8 sites, signatures differ
 Rewritten as `CItemManager::CreateItem` (src/game/item_constructor.cpp).
