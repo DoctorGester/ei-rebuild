@@ -22,7 +22,7 @@
 namespace scene {
 namespace {
 
-// The unit's arrays: meshes (SceneMesh) and helpers (SceneHelper); FakeUnitScene, scene_loader.h.
+// The unit's arrays: meshes (SceneMesh) and helpers (CMaterial); FakeUnitScene, scene_loader.h.
 SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return Typed<MeshArray>(unit->meshes).data[index]; }
 
 StringArg Copy(const mfc::CString& s) {
@@ -48,7 +48,7 @@ __declspec(naked) int Registry::GetInt(const char*, const char*, int) EI_ORIGINA
 __declspec(naked) void Registry::Close() EI_ORIGINAL(0x006946B0)
 
 // 00450750: the helper `index` of the unit's helper array (thiscall).
-__declspec(naked) SceneHelper* __fastcall HelperAt(VtArray*, void*, int /*index*/) EI_ORIGINAL(0x00450750)
+__declspec(naked) CMaterial* __fastcall HelperAt(VtArray*, void*, int /*index*/) EI_ORIGINAL(0x00450750)
 // 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name` (consumed).
 __declspec(naked) mfc::CString* __fastcall FindSection(mfc::CString* /*out*/, const console::CStringArray*, StringArg)
     EI_ORIGINAL(0x00447F50)
@@ -192,7 +192,7 @@ struct GroupStrings {
 
 void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& sections, GroupStrings& s, int meshIndex,
               int group, int helper, SeenMap& seen) {
-    SceneHelper* helperRecord = HelperAt(&unit->helpers, nullptr, helper);
+    CMaterial* helperRecord = HelperAt(&unit->helpers, nullptr, helper);
     alignas(mfc::CString) unsigned char found[sizeof(mfc::CString)];
     auto* foundString = reinterpret_cast<mfc::CString*>(found);
     FindSection(foundString, &sections, Copy(helperRecord->name2));
@@ -315,7 +315,7 @@ int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path,
         for (int g = 0; g < MeshAt(unit, m).groups.size; ++g) {
             groupName = MeshAt(unit, m).groups.data[g].name;
             for (int h = 0; h < unit->helpers.size; ++h) {
-                const SceneHelper& helperRecord = Typed<HelperArray>(unit->helpers).data[h];
+                const CMaterial& helperRecord = Typed<HelperArray>(unit->helpers).data[h];
                 if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(helperRecord.name)),
                                     reinterpret_cast<const unsigned char*>(static_cast<const char*>(groupName))) != 0) {
                     continue;

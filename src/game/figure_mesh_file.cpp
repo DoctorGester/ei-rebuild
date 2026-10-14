@@ -103,7 +103,7 @@ float One() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 
 } // namespace
 
-void CFigureMesh::CopyFrom(const CFigureMesh* other) {
+void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     TransformCopy(this, nullptr, other);
     name_ = other->name_;
     buffers_.corners = other->buffers_.corners;
@@ -133,7 +133,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     // The position (+0x1C) rotated by the quaternion q = (w, x, y, z):
     //   2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
     Vector3 v{q[1], q[2], q[3]};
-    auto* p = &position_;
+    auto* p = &localPosition_;
     double dot = DotUnrounded<Sum3::ZYX, double>(v, *p);
     double twice = dot + dot;
     float z = StoreFloat(static_cast<float>(v.z * twice));
@@ -197,7 +197,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
 
 #pragma float_control(pop)
 
-EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFrom);
+EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFigure);
 EI_REPLACE_METHOD(0x0059F510, CFigureMesh::SetPose);
 EI_REPLACE_METHOD(0x0059F710, CFigureMesh::SaveToFile);
 EI_REPLACE_METHOD(0x0059F8F0, CFigureMesh::LoadFromFile);

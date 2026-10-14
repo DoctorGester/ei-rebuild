@@ -5,6 +5,7 @@
 // the original's order. See docs/notes/models.md ("Figure parts").
 #include "link_figure.h"   // FigureMeshDrawer
 #include "model.h"         // CSceneRenderer
+#include "renderer_lines.h"   // LineBatch
 
 #include "lib/crt.h"
 #include "ei/hook.h"
@@ -16,27 +17,10 @@
 
 namespace {
 
-// The renderer's line batch (0x20 bytes): positions in 64-byte blocks of four points (x4, y4, z4,
-// w4), the point count at +0x14, the colour at +0x18.
-struct LineBatch {
-    int spare00;              // -1 (LineBatch in renderer_lines.h)
-    char* data;
-    int size;
-    int capacity;
-    int growBy;
-    int count;
-    std::uint32_t colour;     // 0xFFFF0000
-    int spare1C;
-};
-static_assert(sizeof(LineBatch) == 0x20);
-
 // 00455940 the owning manager's context (object.cpp; the world, an engine object). 0049B140 (RET 4)
 // appends a point.
 CEngineObject* ContextOf(FigureMeshDrawer* node) { return static_cast<CEngineObject*>(ManagerContextOf(node)); }
 __declspec(naked) void __fastcall AddPoint(LineBatch*, void*, const float*) EI_ORIGINAL(0x0049B140)
-
-// The points' block goes back to the heap through the pointer kept in front of it.
-void FreeBlock(char* data) { gamecrt::operator_delete(reinterpret_cast<void**>(data)[-1]); }
 
 constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags_
 
@@ -46,7 +30,7 @@ constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags_
 
 void __fastcall DrawPartBounds(FigureMeshDrawer* node, void*, CSceneRenderer* renderer) {
     if (!(ContextOf(node)->flags_ & kShowBounds)) return;
-    LineBatch lines{-1, nullptr, 0, 0, 0, 0, 0xFFFF0000u, 0};
+    LineBatch lines{-1, {nullptr, 0, 0, 0}, 0, 0xFFFF0000u, 0};
     const ClipBounds& bounds = node->mesh_->bounds_;
     const float* origin = &bounds.center.x;
     const float* nearExtent = &bounds.boxMin.x;
@@ -61,7 +45,7 @@ void __fastcall DrawPartBounds(FigureMeshDrawer* node, void*, CSceneRenderer* re
     static const int kOrder[16] = {3, 1, 0, 2, 6, 4, 0, 1, 5, 4, 5, 7, 6, 7, 3, 2};
     for (int index : kOrder) AddPoint(&lines, nullptr, corner[index]);
     renderer->DrawLineList(&lines);
-    if (lines.data) FreeBlock(lines.data);
+    lines.packets.FreeData();
 }
 
 #pragma float_control(pop)
@@ -74,11 +58,6 @@ EI_REPLACE(0x005A7290, DrawPartBounds);
 void __fastcall LineBatchDestruct(void* batch) {
     auto* self = static_cast<LineBatch*>(batch);
     self->spare00 = -1;
-    if (self->data) {
-        FreeBlock(self->data);
-        self->data = nullptr;
-    }
-    self->capacity = 0;
-    self->size = 0;
+    self->packets.RemoveAll();
 }
 EI_REPLACE(0x005A75D0, LineBatchDestruct);

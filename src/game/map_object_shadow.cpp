@@ -271,9 +271,9 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
 }
 
 // The squared distance of a part from the object; parts beyond 1e10 are skipped (NaN is not).
-bool PartTooFar(const FigurePart* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->position) > kFarSquared; }
+bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kFarSquared; }
 
-FigurePart* PartAt(const CObject3D* object, int i) { return static_cast<FigurePart*>(object->parts.data[i]); }
+CFigureMesh* PartAt(const CObject3D* object, int i) { return static_cast<CFigureMesh*>(object->parts.data[i]); }
 
 // The bits a part is rasterised into: unused_00 is the callee's, the rest the target surface.
 struct RasterTarget {
@@ -377,16 +377,16 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     // Project the parts' points.
     for (int i = 0; i < self->object->parts.size; ++i) {
-        FigurePart* part = PartAt(self->object, i);
+        CFigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
         if (part->flags_ & kPartHidden) continue;
-        ObjectWorldMatrix(&part->orientation, &part->position, &part->worldMatrix);
-        view = PartAt(self->object, i)->worldMatrix;
+        ObjectWorldMatrix(&part->localRotation_, &part->localPosition_, &part->worldMatrix_);
+        view = PartAt(self->object, i)->worldMatrix_;
         pipeline->PushMatrixProduct(view, kShadowStack);
         if (CEngineObject* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += reinterpret_cast<CLinkMesh*>(figure)->ProjectPart(&key, &PartAt(self->object, i)->offsets,
+            count += reinterpret_cast<CLinkMesh*>(figure)->ProjectPart(&key, &PartAt(self->object, i)->offsets_,
                                                                        TopMatrix(pipeline), PointAt(count), self->bounds);
         } else {
             count += ProjectPart(PartAt(self->object, i), nullptr, pipeline, const_cast<float*>(TopMatrix(pipeline)),
@@ -439,9 +439,9 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     count = 0;
     int keyedParts = 0;
     for (int i = 0; i < self->object->parts.size; ++i) {
-        FigurePart* part = PartAt(self->object, i);
+        CFigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
-        keyedParts |= (part->boxFlags >> 10) & 1;
+        keyedParts |= (part->bounds_.flags >> 10) & 1;
         if (part->flags_ & kPartHidden) continue;
         if (CEngineObject* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();

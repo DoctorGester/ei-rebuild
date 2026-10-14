@@ -47,7 +47,7 @@ void CParticleSource::ReleaseAllParticles() {
 }
 
 Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char* prefix) {
-    FigurePart* part = object->FindPartByPrefix(prefix);
+    CFigureMesh* part = object->FindPartByPrefix(prefix);
     if (!part) part = object->FindPartByPrefix("bd");
     if (part) {
         Vector3 point;

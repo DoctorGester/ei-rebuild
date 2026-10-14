@@ -263,7 +263,7 @@ public:
 
     void LoadRecord(int i, VtArray* meshes, VtArray* nodes);
     void SkipRecord();
-    void LoadHelper(SceneHelper* helper);
+    void LoadHelper(CMaterial* helper);
 
 private:
     void SizeRecordArrays(RecordArrays& r, const RecordHeader& h);
@@ -528,15 +528,15 @@ void Loader::SkipRecord() {
 }
 
 // A helper (0x3E-byte header, then three names).
-void Loader::LoadHelper(SceneHelper* helper) {
+void Loader::LoadHelper(CMaterial* helper) {
 #pragma pack(push, 1)
     struct HelperHeader {
-        std::uint32_t vectorA[3];    // +00
-        std::uint32_t vectorB[3];    // +0C
-        std::uint32_t vectorC[3];    // +18
-        std::uint32_t value60;       // +24
+        std::uint32_t ambient[3];    // +00 colors.ambient (r, g, b)
+        std::uint32_t diffuse[3];    // +0C colors.diffuse
+        std::uint32_t specular[3];   // +18 colors.specular
+        std::uint32_t power;         // +24 colors.power
         std::uint32_t unused_28[2];  // +28
-        std::uint32_t value2C;       // +30
+        std::uint32_t diffuseAlpha;  // +30 colors.diffuse.w
         std::uint32_t unused_34;     // +34
         std::uint16_t nameLength;    // +38
         std::uint16_t name2Length;   // +3A
@@ -548,11 +548,11 @@ void Loader::LoadHelper(SceneHelper* helper) {
     mfc::CString text;
     HelperHeader h;
     Read(file_, &h, sizeof(h));
-    std::memcpy(&helper->vectorA, h.vectorA, 12);
-    std::memcpy(&helper->vectorB, h.vectorB, 12);
-    std::memcpy(&helper->vectorC, h.vectorC, 12);
-    helper->value2C = h.value2C;
-    helper->value60 = h.value60;
+    std::memcpy(&helper->colors.ambient, h.ambient, 12);
+    std::memcpy(&helper->colors.diffuse, h.diffuse, 12);
+    std::memcpy(&helper->colors.specular, h.specular, 12);
+    std::memcpy(&helper->colors.diffuse.w, &h.diffuseAlpha, 4);
+    std::memcpy(&helper->colors.power, &h.power, 4);
     Read(file_, text.GetBufferSetLength(h.nameLength), h.nameLength);
     helper->name = static_cast<const char*>(text);
     Read(file_, text.GetBufferSetLength(h.name2Length), h.name2Length);

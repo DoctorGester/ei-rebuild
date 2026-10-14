@@ -48,7 +48,7 @@ class CCamera;   // camera.h
 class CMaterial;   // material.h
 class CStream;   // core_streams.h
 class CParticleManager;   // effects.h
-struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
+struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
 class CWorldServer;

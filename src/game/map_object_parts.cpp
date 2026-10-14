@@ -20,14 +20,14 @@ constexpr std::uint32_t kNumberMask = 0x3FC00000;
 constexpr int kNumberShift = 22;
 
 // Not rewritten, forwarder: 0050D350, the animation state forgets `part` (RET 4).
-__declspec(naked) int __fastcall AnimationRemovePart(void* /*animation*/, void*, FigurePart* /*part*/)
+__declspec(naked) int __fastcall AnimationRemovePart(void* /*animation*/, void*, CFigureMesh* /*part*/)
     EI_ORIGINAL(0x0050D350)
 
 // The first of `parts` that `matches`, or null.
 template <typename Match>
-FigurePart* FirstPart(const AlignedPtrArray& parts, Match matches) {
+CFigureMesh* FirstPart(const AlignedPtrArray& parts, Match matches) {
     for (int i = 0; i < parts.size; ++i) {
-        auto* part = static_cast<FigurePart*>(parts.data[i]);
+        auto* part = static_cast<CFigureMesh*>(parts.data[i]);
         if (matches(part)) return part;
     }
     return nullptr;
@@ -40,29 +40,29 @@ void RemoveAt(AlignedPtrArray& parts, int index) {
     --parts.size;
 }
 
-int IndexOf(const AlignedPtrArray& parts, const FigurePart* part) {
+int IndexOf(const AlignedPtrArray& parts, const CFigureMesh* part) {
     for (int i = 0; i < parts.size; ++i)
         if (parts.data[i] == part) return i;
     return -1;
 }
 } // namespace
 
-FigurePart* CObject3D::FindPartByPrefix(const char* prefix) {
+CFigureMesh* CObject3D::FindPartByPrefix(const char* prefix) {
     // The original asks for the name twice; the parts return the same string both times.
-    auto startsWith = [prefix](FigurePart* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
-    if (FigurePart* part = FirstPart(parts, startsWith)) return part;
+    auto startsWith = [prefix](CFigureMesh* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
+    if (CFigureMesh* part = FirstPart(parts, startsWith)) return part;
     return FirstPart(pendingParts, startsWith);
 }
 EI_REPLACE_METHOD(0x00516A80, CObject3D::FindPartByPrefix);
 
-FigurePart* CObject3D::FindPart(const char* partName) {
-    auto named = [partName](FigurePart* part) { return std::strcmp(part->GetName(), partName) == 0; };
-    if (FigurePart* part = FirstPart(parts, named)) return part;
+CFigureMesh* CObject3D::FindPart(const char* partName) {
+    auto named = [partName](CFigureMesh* part) { return std::strcmp(part->GetName(), partName) == 0; };
+    if (CFigureMesh* part = FirstPart(parts, named)) return part;
     return FirstPart(pendingParts, named);
 }
 EI_REPLACE_METHOD(0x005169A0, CObject3D::FindPart);
 
-int CObject3D::RemovePart(FigurePart* part) {
+int CObject3D::RemovePart(CFigureMesh* part) {
     if (attached) Specific()->OnPartRemoved(part);
     int index = IndexOf(parts, part);
     if (index >= 0) {
@@ -79,21 +79,21 @@ int CObject3D::RemovePart(FigurePart* part) {
 }
 EI_REPLACE_METHOD(0x005167E0, CObject3D::RemovePart);
 
-FigurePart* CObject3D::RemovePartNamed(const char* partName) {
-    FigurePart* part = FindPart(partName);
+CFigureMesh* CObject3D::RemovePartNamed(const char* partName) {
+    CFigureMesh* part = FindPart(partName);
     if (!part) return nullptr;
     RemovePart(part);
     return part;
 }
 EI_REPLACE_METHOD(0x005168F0, CObject3D::RemovePartNamed);
 
-float* CObject3D::PartWorldPosition(float* out, const FigurePart* part) {
+float* CObject3D::PartWorldPosition(float* out, const CFigureMesh* part) {
     float scaleX, scaleY, scaleZ;
     Specific()->GetScale(&scaleX, &scaleY, &scaleZ);
     // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
     const float w = orientation.w;
     const float ux = orientation.x, uy = orientation.y, uz = orientation.z;
-    const float vx = part->position.x, vy = part->position.y, vz = part->position.z;
+    const float vx = part->localPosition_.x, vy = part->localPosition_.y, vz = part->localPosition_.z;
     // 2(u.v) with the doubling on u, as /fp:fast spreads it over the written-out sum (an inlined
     // 2.0f * Dot regroups to (2xx + s) + s).
     float twiceDot = DotUnrounded<Sum3::ZYX>(ux * 2.0f, uy * 2.0f, uz * 2.0f, vx, vy, vz);

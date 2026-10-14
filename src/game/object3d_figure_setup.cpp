@@ -9,6 +9,7 @@
 #include "core_maths.h"
 #include "core_transform.h"
 #include "figure_mesh.h"
+#include "link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "world.h"
 
 #include "lib/crt.h"
@@ -196,16 +197,16 @@ EI_REPLACE_METHOD(0x00518100, CObject3D::UpdatePartBounds);
 
 void CObject3D::CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out) {
     // The original asks each part for its name twice; parts return the same string both times.
-    auto startsWith = [prefix](FigurePart* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
+    auto startsWith = [prefix](CFigureMesh* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
     for (int i = 0; i < parts.size; ++i) {
-        auto* part = static_cast<FigurePart*>(parts.data[i]);
+        auto* part = static_cast<CFigureMesh*>(parts.data[i]);
         if (!startsWith(part)) continue;
         int index = out->size;
         out->SetSize(index + 1, -1);   // 00519D70
         out->data[index] = part;
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        auto* part = static_cast<FigurePart*>(pendingParts.data[i]);
+        auto* part = static_cast<CFigureMesh*>(pendingParts.data[i]);
         if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined by the original
     }
 }
@@ -234,9 +235,9 @@ CEngineObject* FigureManagerOf(const CObject3D* object) {
 // 00519A10: Add (SetAtGrow at the size; RET 4).
 EI_REPLACE_METHOD(0x00519A10, AlignedPtrArray::Add);
 
-FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t arg) {
+CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t arg) {
     CEngineObject* manager = FigureManagerOf(this);
-    auto* part = static_cast<FigurePart*>(FigureManagerLoadPartOriginal(
+    auto* part = static_cast<CFigureMesh*>(FigureManagerLoadPartOriginal(
         manager, nullptr, name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
         std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached));
     if (!part) {
@@ -256,16 +257,17 @@ FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t
             stlp::string key(partName, partName + std::strlen(partName));
             StringMapFindOriginal(instance->pieces, nullptr, &node, &key);
         }
-        const auto* record = static_cast<const FigurePieceRecord*>(node);
-        part->piece158 = record->materialValue;
-        part->piece15C = record->meshType;
-        std::memcpy(&part->boxFlags, &record->boxFlags, sizeof(FootprintPart));
+        const LinkPartHeader& piece = static_cast<const LinkHeaderMap::Node*>(node)->second;
+        part->materialValue_ = piece.materialValue;
+        part->meshType_ = piece.meshType;
+        // The box and the pivot (bounds_, boxPivot_) as one FootprintPart.
+        std::memcpy(&part->bounds_, &piece.bounds, sizeof(FootprintPart));
     }
-    if (gamecrt::strnicmp(partName, "BASE", 4) == 0) part->boxFlags |= kBoxBase;
-    if (gamecrt::strnicmp(partName, "CROWN", 5) == 0) part->boxFlags |= kBoxCrown;
+    if (gamecrt::strnicmp(partName, "BASE", 4) == 0) part->bounds_.flags |= kBoxBase;
+    if (gamecrt::strnicmp(partName, "CROWN", 5) == 0) part->bounds_.flags |= kBoxCrown;
     if (gamecrt::strnicmp(partName, "EMPTY", 5) == 0) {
-        part->boxFlags |= kBoxEmptyMark;
-        part->boxFlags |= kBoxCrown;
+        part->bounds_.flags |= kBoxEmptyMark;
+        part->bounds_.flags |= kBoxCrown;
     }
     // AddPart, inlined by the original (appending with 00519A10).
     bool present = false;
@@ -277,10 +279,10 @@ FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t
         if (animation) AnimationStateAddPartOriginal(animation, nullptr, part);
         if (attached) Specific()->OnPartAdded(part);
     }
-    part->boxPivot.x = part->position.x;
-    part->boxPivot.y = part->position.y;
-    part->boxFlags |= kBoxLoaded;
-    part->boxPivot.z = part->position.z;
+    part->boxPivot_.x = part->localPosition_.x;
+    part->boxPivot_.y = part->localPosition_.y;
+    part->bounds_.flags |= kBoxLoaded;
+    part->boxPivot_.z = part->localPosition_.z;
     return part;
 }
 EI_REPLACE_METHOD(0x00517240, CObject3D::LoadPart);

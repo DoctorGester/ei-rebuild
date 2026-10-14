@@ -154,8 +154,8 @@ static int __fastcall AttachMeshVerify(CFigureAnimationState* state, void*, CEng
     if (named) {
         const auto* mesh = named->mesh;
         ok = ok && result == 1 && reinterpret_cast<const CEngineObject*>(mesh) == part &&
-             std::memcmp(&mesh->position_, &named->position, sizeof(Vector3)) == 0 &&
-             std::memcmp(&mesh->rotation_, &named->rotation, sizeof(Quaternion)) == 0;
+             std::memcmp(&mesh->localPosition_, &named->position, sizeof(Vector3)) == 0 &&
+             std::memcmp(&mesh->localRotation_, &named->rotation, sizeof(Quaternion)) == 0;
     } else {
         ok = ok && result == 0;
     }

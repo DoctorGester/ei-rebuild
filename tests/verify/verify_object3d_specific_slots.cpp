@@ -82,30 +82,30 @@ static int __fastcall PartsIntersectVerify(CObject3DClientSpecific* self, void*,
 }
 EI_VERIFY(0x0051C1D0, PartsIntersectVerify, 6, s_partsIntersect);
 
-static FigurePart*(__fastcall* s_partNamed)(CObject3DClientSpecific*, void*, const char*);
-static FigurePart* __fastcall PartNamedVerify(CObject3DClientSpecific* self, void*, const char* name) {
-    FigurePart* expected = s_partNamed(self, nullptr, name);
-    FigurePart* actual = self->ObjectPartNamed(name);
+static CFigureMesh*(__fastcall* s_partNamed)(CObject3DClientSpecific*, void*, const char*);
+static CFigureMesh* __fastcall PartNamedVerify(CObject3DClientSpecific* self, void*, const char* name) {
+    CFigureMesh* expected = s_partNamed(self, nullptr, name);
+    CFigureMesh* actual = self->ObjectPartNamed(name);
     ei::verify::Check("CObject3DClientSpecific::ObjectPartNamed", static_cast<void*>(expected), static_cast<void*>(actual),
                       "%s", name);
     return expected;
 }
 EI_VERIFY(0x0051B2E0, PartNamedVerify, 7, s_partNamed);
 
-static FigurePart*(__fastcall* s_partOfType)(CObject3DClientSpecific*, void*, int);
-static FigurePart* __fastcall PartOfTypeVerify(CObject3DClientSpecific* self, void*, int type) {
-    FigurePart* expected = s_partOfType(self, nullptr, type);
-    FigurePart* actual = self->ObjectPartOfType(type);
+static CFigureMesh*(__fastcall* s_partOfType)(CObject3DClientSpecific*, void*, int);
+static CFigureMesh* __fastcall PartOfTypeVerify(CObject3DClientSpecific* self, void*, int type) {
+    CFigureMesh* expected = s_partOfType(self, nullptr, type);
+    CFigureMesh* actual = self->ObjectPartOfType(type);
     ei::verify::Check("CObject3DClientSpecific::ObjectPartOfType", static_cast<void*>(expected), static_cast<void*>(actual),
                       "%d", type);
     return expected;
 }
 EI_VERIFY(0x0051B2D0, PartOfTypeVerify, 7, s_partOfType);
 
-static FigurePart*(__fastcall* s_findPartOfType)(CObject3D*, void*, int);
-static FigurePart* __fastcall FindPartOfTypeVerify(CObject3D* self, void*, int type) {
-    FigurePart* expected = s_findPartOfType(self, nullptr, type);
-    FigurePart* actual = self->FindPartOfType(type);
+static CFigureMesh*(__fastcall* s_findPartOfType)(CObject3D*, void*, int);
+static CFigureMesh* __fastcall FindPartOfTypeVerify(CObject3D* self, void*, int type) {
+    CFigureMesh* expected = s_findPartOfType(self, nullptr, type);
+    CFigureMesh* actual = self->FindPartOfType(type);
     ei::verify::Check("CObject3D::FindPartOfType", static_cast<void*>(expected), static_cast<void*>(actual), "%d", type);
     return expected;
 }

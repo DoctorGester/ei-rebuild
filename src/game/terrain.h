@@ -20,7 +20,7 @@ class CTexture;
 class DecalBuilder;
 
 namespace terrain {
-struct SectorData;   // terrain_sector.h: the full sector (TerrainSector names a few of its fields)
+struct SectorData;   // terrain_sector.h
 struct SectorPosition;
 struct TerrainMaterial;
 
@@ -47,34 +47,6 @@ struct LevelArrayElements {
 void CountAmbientVariants(const char* set);
 int AmbientVariants(int soundClass);
 }
-
-// A 32x32-cell block of terrain. Each sector holds two layers of 33x33 vertices (x, y, z): the
-// ground, and the water surface when the sector has water. It is terrain::SectorData
-// (terrain_sector.h), whose member names the fields not used here take.
-struct TerrainSector {
-    std::uint8_t hasSpecular;       // +0x000
-    std::uint8_t pad_001[3];
-    std::uint32_t built;            // +0x004
-    int sx, sy;                     // +0x008
-    std::uint32_t hasWater;         // +0x010
-    int hasWaterTiles;              // +0x014
-    const std::uint8_t* data;       // +0x018
-    void* owner;                    // +0x01C
-    int pages;                      // +0x020
-    int perPage;                    // +0x024
-    std::uint8_t box[0x38];         // +0x028 SectorBox
-    int clipMode;                   // +0x060
-    std::uint8_t quarters[0x144 - 0x64];   // +0x064 SectorBox[4]
-    int quarterMode[4];             // +0x144
-    float minZ;                     // +0x154
-    float maxZ;                     // +0x158
-    std::uint8_t waterMaterials[0x170 - 0x15C];   // +0x15C mfc::CArray<std::uint8_t>
-    int detail, seamBefore, seamAfter;   // +0x170
-    void* verticesVtable;           // +0x17C the CArray's
-    float* vertices;                // +0x180 2 x 33 x 33 x (x, y, z)
-};
-static_assert(offsetof(TerrainSector, clipMode) == 0x60 && offsetof(TerrainSector, detail) == 0x170);
-static_assert(offsetof(TerrainSector, vertices) == 0x180);
 
 // The area a point light reaches (006CAA70): the sectors it covers, and the first / last vertex
 // column and row inside the first / last sector.
@@ -199,6 +171,15 @@ public:
     // column / row), loading the sectors it crosses; 0 when a vertex is above the ray, 1 at the
     // ray's end or the map's edge. A sun at or below the horizon: its direction's z sign bit.
     int SunReaches(const terrain::SectorPosition* position);
+    // SunReaches through its address (006C92C0), so that its verify wrapper runs (terrain_lighting.cpp).
+    int SunReachesAtOriginal(const terrain::SectorPosition* position);
+
+    // terrain_sector.cpp:
+    // 006C53C0. The 18 floats (9 u, then 9 v) of texture `index` of `page` under `rotation`.
+    const float* TileUv(int rotation, int index, int page);
+    // 006C8D40. Texture class (sound / prints material) at (x, y): the water tile's when the
+    // point is under water, 8 outside the map.
+    int SurfaceClass(float x, float y);
 
     // The draw passes (terrain_passes.cpp), from the client's draw 00569E40.
     // 006C6230 (RET 4). The ground: drawMatrix from the local rotation and position pushed on the
@@ -229,7 +210,7 @@ public:
     // moves to the front (stamped with the frame); with `create` a missing sector is loaded (the
     // least recently used one reused when older than 240 frames, older ones freed) and the wanted
     // stages are built.
-    TerrainSector* SectorAt(int sx, int sy, std::uint32_t wanted, int create);
+    terrain::SectorData* SectorAt(int sx, int sy, std::uint32_t wanted, int create);
 
     // 006C8930. Ground height at (x, y), and water depth above it (0 when dry).
     void GroundAndWaterDepth(float x, float y, float* ground, float* depth);
@@ -267,7 +248,9 @@ public:
     void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
 
     Matrix4 drawMatrix;             // +0x054 the draw passes' matrix (rotation, position in the last column)
-    std::uint32_t landscapeFlags;   // +0x094 terrain::TerrainFields::flags
+    // +0x094 1 water waves, 2 animated tiles, 4 fade the light at the map edges, 8 ambient sounds,
+    // 0x10 sun shadows.
+    std::uint32_t landscapeFlags;
     Matrix4 worldMatrix;            // +0x098 CombineRotation (rows; position in the last row); zeroed by Reset
     lib::AlignedArray<CTexture*> pageTextures;     // +0x0D8 per texture page (SetupPages; held)
     lib::AlignedArray<CMaterial*> pageMaterials;   // +0x0E8 per texture page (constructor 00570E10; held)
@@ -291,8 +274,8 @@ public:
     lib::AlignedArray<int> textureClass;
     lib::AlignedArray<int> textureFrames;
     CMMIOResource archive;          // +0x15C the map's sector archive (006721D0)
-    float* uvTables[4];             // +0x1C8 terrain::TerrainFields
-    float* uvTablesLast[4];         // +0x1D8
+    float* uvTables[4];             // +0x1C8 per rotation, 0x48 bytes per texture of a page
+    float* uvTablesLast[4];         // +0x1D8 the same for the last two pages
     lib::AlignedArray<terrain::VertexTiles> vertexTiles;   // +0x1E8 (00570E70) BuildVertexTiles
     using SectorCache = mfc::CList<terrain::SectorData*>;
     SectorCache::Node*** sectorGrid;   // +0x1F8 [sx][sy]: the sector's cache node, or null
@@ -300,7 +283,7 @@ public:
     int frame;                      // +0x218 counted by the per-frame update
     int lightInterval;              // +0x21C frames between sun updates (006C8ED0)
     int lightCountdown;             // +0x220
-    Vector4 ambient;                // +0x224
+    Vector4 ambient;                // +0x224 the ambient light colour (r, g, b, a)
     float sunSlopeX;                // +0x234 z / x of the unit direction towards the sun
     float sunRunX;                  // +0x238 x / z
     float sunSlopeY;                // +0x23C z / y
@@ -314,13 +297,13 @@ public:
     using LightTable = stlp::hash_map<int, LandscapeLight, stlp::IntHash>;
     LightTable lights;              // +0x25C 00571050: the registered point lights by id
     int maxLightId;                 // +0x270 the highest id registered
-    Vector3 waveDirection;          // +0x274 the wave fields: terrain::TerrainFields
+    Vector3 waveDirection;          // +0x274 unit vector (006C7D70); x, y: the waves' travel
     float waveHeight;               // +0x280
-    float waveGlow;                 // +0x284
-    float wavePhase;                // +0x288
+    float waveGlow;                 // +0x284 scales the crests' specular colour
+    float wavePhase;                // +0x288 advanced by waveSpeed every frame
     float waveSpeed;                // +0x28C
-    lib::AlignedArray<float> wavePhases;   // +0x290 00570DE0
-    float sine[512];                // +0x2A0
+    lib::AlignedArray<float> wavePhases;   // +0x290 00570DE0: per water vertex (33 x 33) phase offsets (006C57E0)
+    float sine[512];                // +0x2A0 sin(i * pi / 256)
     int minDetail;                  // +0xAA0 the finest level of detail ChooseDetail gives; 0 after Reset
     int visibleRowFirst;            // +0xAA4 SetVisibleSectors
     lib::AlignedArray<int> visibleColumnFirst;   // +0xAA8 0056FD30, per visible row
