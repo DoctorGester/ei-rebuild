@@ -122,10 +122,11 @@ done = "2026-10-14"
 id = "R9b1"
 title = "GetDxVersion probe failing in native runs with several games"
 group = "renderer"
-status = "review"
+status = "done"
 model = "sonnet"
 depends = ["R9b"]
 note = "Native present runs end now and then at the 'DirectX 7 or later' message (seen before R9b too). Skipping the probe in present mode hung sound init (renderer.md R9b): find which side effect the sound code needs (DirectMusic / DDRAW.DLL) before guarding."
+done = "2026-10-14"
 
 [[ticket]]
 id = "R9b2"
@@ -140,9 +141,10 @@ note = "The harness patches the CALL at 00457595, so WinMain 00456440's original
 id = "PF3"
 title = "Create DirectDraw once at startup"
 group = "renderer"
-status = "review"
+status = "done"
 note = "Profile 2026-10-14: under dgVoodoo every DirectDrawCreateEx builds a D3D12 device (~190 ms, with driver signature checks). Startup does it four times: GetDxVersion's two probes (~390 ms), FirstHardwareDirectDrawDriver (~195 ms) and CTextureDevice::CreateDirectDraw (the one kept). Skipping the probes (DirectX 7 is a given) and reusing the enumerated object saves ~0.6 s of the ~1.8 s to the main menu, but changes what the original does; also fixes R9b1. Waits on the user's decision (flag, native only, or standalone only). Decided (user 2026-10-14): only in native runs (EI_RENDER present, run/native) and the standalone exe; vanilla and Rebirth runs keep the original's probes."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "R9c1"
@@ -696,6 +698,16 @@ files = ["docs/worker-brief.md", ".claude/agents/area-worker.md"]
 note = "Worker brief: work.py start at the beginning, note at milestones, test instead of run_all; coordinator: done at merge."
 started = "2026-10-14"
 done = "2026-10-14"
+
+[[ticket]]
+id = "WB5"
+title = "work.py test passes environment variables (EI_PROFILE, EI_PLAIN, ...) to the games"
+group = "harness"
+status = "queued"
+size = 0.3
+model = "sonnet"
+files = ["tools/work_sched.py", "tools/work.py", "tools/work_board/"]
+note = "PF3 had to use run_all directly for profile runs: the scheduler runs games with its own environment. Record the submitter's EI_* variables in the batch (new MIGRATIONS entry) and set them for that batch's games; show them on the test-runs page."
 
 # ---------------------------------------------------------------- cleanup
 
