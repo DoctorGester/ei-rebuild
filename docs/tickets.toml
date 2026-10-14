@@ -100,20 +100,22 @@ note = "R9a and R9a2 merged: the five present scenarios pass on vanilla and --na
 id = "R9b"
 title = "Guard every old-device call for a device object without a device"
 group = "renderer"
-status = "review"
+status = "done"
 model = "opus"
 depends = ["R9a"]
 note = "The 73 calling places in the old-device log (524 sites in 143 functions overall)."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "R9c"
 title = "Movies, loading screen, full screen, gamma and lost device through Present"
 group = "renderer"
-status = "queued"
+status = "running"
 model = "opus"
 depends = ["R9b"]
 note = "Movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Present under Rebirth crashes: NullDirect3DDevice7::SetTexture with surface 0x7463 from CUiMesh::Draw, plus a CBattleScreenSetup::Create verify mismatch in the same runs (seen on main 2026-10-14)."
+started = "2026-10-14"
 
 [[ticket]]
 id = "R9b1"
