@@ -20,8 +20,6 @@ T& At(void* object, int offset) {
     return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
 }
 
-constexpr int kMarks = 0x26BC;        // rows of per-cell signed marks
-constexpr int kCells = 0x269C;        // rows of 9-byte cells (the first dword holds 8 nibbles)
 constexpr int kSectorMap = 0x124;
 constexpr int kRegionMap = 0x22F8;
 constexpr std::uintptr_t kLevelHeights = 0x007912BC;   // 8 floats
@@ -49,7 +47,7 @@ __declspec(naked) void __fastcall RegionsUpdate(void*, void*, CAIMap*, int, int,
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
 std::uint32_t& CellWord(CAIMap* map, int x, int y) {
-    return *reinterpret_cast<std::uint32_t*>(At<std::uint8_t**>(map, kCells)[y] + x * 9);
+    return map->cells[y][x].passable;
 }
 
 using ObjectList = mfc::CList<void*>;
@@ -79,15 +77,15 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         int levelHeight = x87::fistp(h);
         for (int y = oy0; y <= oy1; ++y)
             for (int x = ox0; x <= ox1; ++x) {
-                std::uint8_t* row = At<std::uint8_t**>(this, kMarks)[y];
-                row[x] = CellMarkAt(this, nullptr, scratch, level, levelHeight, x, y);
+                std::int8_t* row = marks.rows[y];
+                row[x] = static_cast<std::int8_t>(CellMarkAt(this, nullptr, scratch, level, levelHeight, x, y));
             }
         int shift = level * 4;
         std::uint32_t keep = ~(0xFu << shift);
         for (int y = iy0; y <= iy1; ++y)
             for (int x = ix0; x <= ix1; ++x) {
                 CellWord(this, x, y) &= keep;
-                int mark = static_cast<std::int8_t>(At<std::uint8_t**>(this, kMarks)[y][x]);
+                int mark = marks.rows[y][x];
                 CellWord(this, x, y) |= static_cast<std::uint32_t>(mark << shift);
             }
         auto* areas = reinterpret_cast<std::uint8_t*>(this) + AreaList(level);
@@ -116,7 +114,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         CellWord(this, width - 3, y) = 0;
     }
 
-    if (!At<std::uint8_t>(this, 2)) return;
+    if (!refreshUnits) return;
     // The region blocks (8x8 cells) around the outer rectangle.
     int bx0 = ox0 / 8 - 1, by0 = oy0 / 8 - 1;
     int bx1 = ox1 / 8 + 1, by1 = oy1 / 8 + 1;
@@ -155,10 +153,6 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
 namespace {
 
-constexpr int kTerrainTypes = 0xFC;     // 0x118-byte records per terrain type (low 5 bits of the occluder word)
-constexpr int kOccluders = 0x26AC;
-constexpr int kSectorRecords = 0x138;   // 0x54-byte sector records
-constexpr int kSectorsPerRow = 0x128;
 constexpr std::uintptr_t kCostTable = 0x007912A4;    // int per occluder type: cost added by full cover
 constexpr std::uintptr_t kDampTable = 0x007912B0;    // int per occluder type: the damping exponent
 constexpr std::uintptr_t kDampScale = 0x007C2F8C;    // float
@@ -231,13 +225,13 @@ void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) 
 
 std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x, int y) {
     auto* s = static_cast<MarkState*>(scratch);
-    std::uint8_t* cell = At<std::uint8_t**>(this, kCells)[y] + x * 9;
-    std::uint32_t* occluder = &At<std::uint32_t**>(this, kOccluders)[y][x];
-    std::uint8_t* terrain = At<std::uint8_t*>(this, kTerrainTypes) + (*occluder & 0x1F) * 0x118;
-    std::uint16_t extra = *reinterpret_cast<std::uint16_t*>(cell + 6);
-    if ((*occluder & 0x100) && !(cell[6] & 0x3F)) return (At<std::uint32_t>(terrain, 0x114) >> (level * 4)) & 0xF;
+    AIMapCell* cell = &cells[y][x];
+    std::uint32_t* occluder = &occluders[y][x];
+    AITerrainType* terrain = &materials.data[*occluder & 0x1F];
+    std::uint16_t extra = *reinterpret_cast<std::uint16_t*>(&cell->flags);
+    if ((*occluder & 0x100) && !(cell->flags & 0x3F)) return (terrain->openMarks >> (level * 4)) & 0xF;
 
-    int bottom = *reinterpret_cast<std::uint16_t*>(cell + 4);
+    int bottom = cell->groundLevel;
     if (level == 0) {
         if (extra & 0x3F) bottom += extra & 0x3F;
         s->doubled = 0;
@@ -247,7 +241,7 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
         s->top = bottom + levelHeight;
         s->unknown10 = 0x7F8;
     } else {
-        int base = At<int>(terrain, 0x104);
+        int base = terrain->cost;
         int ceiling = level != 1 ? levelHeight : 0;
         s->doubled = 0;
         s->passage = 0x400;
@@ -274,8 +268,7 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     if (!(word & 0x100)) {
         if (word & 0x80) {
             // A chain of occluder records in the cell's sector (32x32 cells).
-            std::uint8_t* sector = At<std::uint8_t*>(this, kSectorRecords) +
-                                   ((y / 32) * At<int>(this, kSectorsPerRow) + x / 32) * 0x54;
+            std::uint8_t* sector = sectors + ((y / 32) * sectorsPerRow + x / 32) * 0x54;
             int index = static_cast<int>((word >> 9) & 0xFFFFF);
             do {
                 std::uint8_t* record = At<std::uint8_t*>(sector, 0x44) + index * 8;
