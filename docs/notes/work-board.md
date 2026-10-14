@@ -178,9 +178,11 @@ registers `process('scheduler')`, heartbeat every 5 s, leaves after WORK_SCHED_I
 queued. `test` starts it with CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP (breakaway from the job if
 allowed), from the main checkout's tools when main has work_sched.py, output appended to
 build/live/scheduler.log. Each 0.5 s pass: record finished games, cancel batches whose submitter pid is
-gone, start games, finish batches. Order: batches by id; within one, alone runs first, then expected
-descending (unknown = 1000 s, as run_all). A batch takes free slots up to its `--jobs`; then the next batch
-gets what is left (backfill). An alone run stops all new starts, takes the `alone` gate and gathers every
+gone, start games, finish batches. Order: batches by id; within one, expected descending (unknown =
+1000 s, as run_all), alone runs last. A batch takes every free slot (its `--jobs` is ignored, changed
+2026-10-14: workers' habitual `--jobs 4` held the machine at 4 games); then the next batch gets what is
+left (backfill). Only the earliest batch with runs left gathers for its alone runs, once its other runs
+have started, so a later batch's alone run never stops the backfill. An alone run stops all new starts, takes the `alone` gate and gathers every
 slot while ours and others' games end, then runs by itself. Slots are run_all's lock files (probing the
 gate as machine_slot does), so plain run_all and the scheduler share the 16. Two runs of one folder (two
 batches from one build) never run at once. The game thread calls `run_all.run_with_retries` with
