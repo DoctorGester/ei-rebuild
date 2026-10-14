@@ -335,6 +335,8 @@ public:
     virtual void RasteriseTriangle(void* target);
     // 9: the same for a target with a colour key (RasterTriangle::colourKey; 005A0E80).
     virtual void RasteriseKeyedTriangle(void* target);
+    // 10: decodes a DXT block image into 16-bit pixels (texture_fill.cpp).
+    virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);
 };
 inline CPixelConverter* PixelConverter() { return *reinterpret_cast<CPixelConverter**>(std::uintptr_t(0x007AF06C)); }
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"

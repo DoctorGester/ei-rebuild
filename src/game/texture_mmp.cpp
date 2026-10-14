@@ -10,6 +10,8 @@
 // See docs/notes/renderer.md (section 16).
 #include "texture.h"
 
+#include "device.h"
+
 #include "ei/hook.h"
 
 #include "lib/crt.h"
@@ -35,13 +37,6 @@ int MipmapsEnabled() { return *reinterpret_cast<const int*>(0x0079BCE0); }
 // The lock around Direct3D device calls.
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
-// COM slots.
-constexpr int kDeviceLoad = 43;            // IDirect3DDevice7::Load (+0xAC)
-constexpr int kSurfaceSetPriority = 45;    // IDirectDrawSurface7::SetPriority (+0xB4)
-template <typename... Args> long Com(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>(fn)(object, args...);
-}
 
 // 006908E0 through its game address (so its verify wrapper sees the call).
 __declspec(naked) std::uint32_t __fastcall CallMipOffset(const MmpHeader*, void*, unsigned) EI_ORIGINAL(0x006908E0)
@@ -205,12 +200,12 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
 
     uploadResult_ = CallFillSurface(staging, data, static_cast<int>(mip));
     gameapi::EnterCriticalSection(DeviceLock());
-    device->lastLoadResult_ = Com(device->d3dDevice_, kDeviceLoad, surface_->surface, static_cast<void*>(nullptr),
-                                  staging->surface, static_cast<void*>(nullptr), 0u);
+    device->lastLoadResult_ = device::D3D(device)->Load(device::Surface(surface_), nullptr, device::Surface(staging),
+                                                        nullptr, 0);
     gameapi::LeaveCriticalSection(DeviceLock());
 
     MarkLoaded(this, header);
-    Com(surface_->surface, kSurfaceSetPriority, 100u);
+    device::Surface(surface_)->SetPriority(100);
 
     extra_.SetSize(static_cast<int>(header->extraSize));
     std::memcpy(extra_.data, header + 1, header->extraSize);
