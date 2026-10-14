@@ -17,6 +17,7 @@
 #include "originals_units.h"
 #include "console.h"
 #include "item.h"
+#include "party.h"
 #include "unit.h"
 #include "map_object_figures.h"
 #include "world.h"
@@ -155,7 +156,12 @@ const char* RenameBar() { return GameText(0x00793AA4); }         // "|"
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;
 constexpr int kModeStats = 11;
-constexpr int kNameOffset = 0x30;   // a hero record's CString name
+// A multiplayer hero's name: the text 0 of its party's first member record (the original reads
+// the members' data pointer at +0x30 and takes the CString there).
+mfc::CString& MpHeroName(int index) {
+    auto* hero = reinterpret_cast<MpHeroRecord*>(MpHeroes().begin + index * kMpHeroSize);
+    return hero->Party()->members_.data->texts[0];
+}
 
 } // namespace
 
@@ -181,7 +187,7 @@ void CMpHeroScreen::FinishRename() {
     CStringTrimLeftOriginal(&typed);
     CStringTrimRightOriginal(&typed);
     if (typed.GetLength() != 0) typed = mfc::CString(RenameSeparator()) + typed;
-    auto& name = *reinterpret_cast<mfc::CString*>(MpHeroes().begin + heroIndex_ * kMpHeroSize + kNameOffset);
+    mfc::CString& name = MpHeroName(heroIndex_);
     mfc::CString title(name);
     mfc::CString base;
     int bar = CStringFindTextOriginal(&title, nullptr, RenameBar());
@@ -439,7 +445,7 @@ void CMpHeroScreen::Rename() {
     if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
     WindowSetEnabled(renameEdit_, nullptr, 1, 1);
     EditActivate(renameEdit_, nullptr, 1);
-    mfc::CString name(*reinterpret_cast<const mfc::CString*>(MpHeroes().begin + heroIndex_ * kMpHeroSize + kNameOffset));
+    mfc::CString name(MpHeroName(heroIndex_));
     int bar = CStringFindTextOriginal(&name, nullptr, RenameBar());
     if (bar < 0) {
         EditSetText(renameEdit_, nullptr, game::EmptyText());
