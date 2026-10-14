@@ -14,6 +14,7 @@
   --bg: #151a19; --panel: #1d2423; --ink: #e5ebe8; --muted: #93a19c; --line: #2e3836;
   --accent: #e08a4a; --accent-soft: #3b2a1e; --track: #2a3331; --good: #6fbf8a; --good-soft: #1f3327;
   --wait: #d6b55a; --wait-soft: #352d17; --watch: #e07a8a; --watch-soft: #3a2228; --blue: #7fa3d9; --blue-soft: #1f2a3a; --rev: #c39ad6; --rev-soft: #2f2236; color-scheme: dark }
+html { scrollbar-gutter: stable }
 body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5; margin: 0 }
 main { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 22px }
 h1 { font-family: var(--display); font-weight: 600; font-size: 28px; margin: 0; letter-spacing: .01em; text-wrap: balance }
@@ -114,6 +115,7 @@ footer, #error { color: var(--muted); font-size: 12px }
 details.panel.batch { display: block }
 details.batch > summary { list-style: none; font-size: inherit; color: inherit; display: grid; gap: 10px }
 details.batch > summary::-webkit-details-marker { display: none }
-details.batch > summary .head::before { content: 'B8'; color: var(--muted); display: inline-block; width: 1em; transition: transform .15s }
+details.batch > summary .head::before { content: ''; align-self: center; border-left: 6px solid var(--muted); border-top: 4px solid transparent; border-bottom: 4px solid transparent; transition: transform .15s }
 details.batch[open] > summary .head::before { transform: rotate(90deg) }
 details.batch > .body { display: grid; gap: 10px; margin-top: 10px; min-width: 0 }
+.bwhat { color: var(--muted); min-width: 0 }

@@ -168,11 +168,16 @@ function gamesTable(b, now) {
   return `<div class="scroll"><table class="games"><colgroup><col style="width:34%"><col style="width:16%"><col style="width:7%"><col style="width:28%"><col style="width:15%"></colgroup><thead><tr><th>Scenario</th><th>Install</th><th class="num">Slot</th><th>Time</th><th>State</th></tr></thead><tbody>` +
     games.map(g => gameRow(g)).join('') + `</tbody></table></div>`;
 }
+// What a batch is for: its ticket's title, or the worktree's folder for a batch with no ticket (main).
+function batchWhat(b) {
+  const t = data.tickets.find(t => t.id === b.ticket);
+  return `<span class="bwhat" title="${esc(b.worktree)}">${esc(t ? t.title : String(b.worktree || '').split(/[\\/]/).pop())}</span>`;
+}
 function batchPanel(b, pos) {
   // Collapsed by default: the head and progress bar show; a click opens the arguments and the games.
   const now = sinceFetch(), key = 'b-' + b.id;
   return `<details class="panel batch" data-key="${key}"${open.has(key) ? ' open' : ''}><summary><div class="head"><span class="id">#${b.id}</span><span>${esc(b.ticket || '-')}</span>` +
-    `<span class="mono" style="color:var(--muted)">${esc(b.worktree)}</span>${pos ? `<span class="pill">position ${pos}</span>` : ''}` +
+    `${batchWhat(b)}${pos ? `<span class="pill">position ${pos}</span>` : ''}` +
     `<span class="sub" style="margin-left:auto">${batchSummary(b, false)}</span></div>${progress(b)}</summary><div class="body">` +
     (b.args.length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">${esc(b.args.join(' '))}</div>` : '') +
     // The submitter's EI_* variables the games ran with (EI_PROFILE=1, EI_PLAIN=1, ...).
@@ -194,7 +199,7 @@ function runsView() {
     const games = `<span class="${b.failed ? 'bad' : 'ok'}">${b.passed}/${b.total} games passed</span>`;
     const result = b.state === 'cancelled' ? 'cancelled'
       : games + (checks ? `, <span class="bad">${checks} check${checks > 1 ? 's' : ''} failed</span>` : '');
-    return `<tr><td class="num">#${b.id}</td><td>${esc(b.ticket || '-')}</td><td class="mono">${esc(b.worktree)}</td><td class="num">${ageOf(b.finished)}</td>` +
+    return `<tr><td class="num">#${b.id}</td><td>${esc(b.ticket || '-')}</td><td>${batchWhat(b)}</td><td class="num">${ageOf(b.finished)}</td>` +
       `<td class="num">${dur(b.elapsed)}</td><td>${result}${b.exit_code && !n ? ` <span class="pill down">exit ${b.exit_code}</span>` : ''}` +
       (Object.keys(b.env || {}).length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">env: ${esc(Object.entries(b.env).map(([k, v]) => k + '=' + v).join(' '))}</div>` : '') +
       `</td><td>${fails}</td></tr>`;
@@ -203,7 +208,7 @@ function runsView() {
   out.push(`<section class="lane"><h2>History<span class="n">${r.history.length}</span></h2>` + (rows ?
     `<details class="panel batch" data-key="history"${open.has('history') ? ' open' : ''}><summary><div class="head">` +
     `<span>${r.history.length} finished batch${r.history.length > 1 ? 'es' : ''}</span>${bad ? `<span class="bad">${bad} with failures</span>` : ''}</div></summary>` +
-    `<div class="body scroll"><table><thead><tr><th class="num">Batch</th><th>Ticket</th><th>Worktree</th><th class="num">Ago</th><th class="num">Took</th><th>Result</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></details>` :
+    `<div class="body scroll"><table><thead><tr><th class="num">Batch</th><th>Ticket</th><th>What</th><th class="num">Ago</th><th class="num">Took</th><th>Result</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></details>` :
     '<p class="empty">No finished batches yet.</p>') + '</section>');
   return out.join('');
 }
