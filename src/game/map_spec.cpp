@@ -45,8 +45,6 @@ void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12Set
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
 // (007B01F4); the world object's own updates.
 __declspec(naked) void __fastcall WorldMakeObject(void* /*world*/, void*, Spec* /*spec*/) EI_ORIGINAL(0x005927C0)
-__declspec(naked) void __fastcall SelectionLock(void*) EI_ORIGINAL(0x005B8B30)
-__declspec(naked) void __fastcall SelectionUnlock(void*) EI_ORIGINAL(0x005B8B80)
 void* World() { return reinterpret_cast<void*>(0x007AFF60); }
 void* Selection() { return reinterpret_cast<void*>(0x007B00D0); }
 void* Lists() { return reinterpret_cast<void*>(0x007B01F4); }
@@ -327,7 +325,7 @@ void __fastcall ObjectSpecApply(ObjectSpec* self) {
         WorldMakeObject(World(), nullptr, &self->base);
         return;
     }
-    SelectionLock(Selection());
+    AIMapBeginRefreshOriginal(Selection());
     SectorMapRemove(AsSectorMap(Lists()), nullptr, AsEngineObject(self->base.object));
     std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x1C, &self->base.position, 12);
     std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x34, &self->base.rotation, 16);
@@ -340,7 +338,7 @@ void __fastcall ObjectSpecApply(ObjectSpec* self) {
     UnitMarkChanged(self->base.object, nullptr, 2);
     UnitMarkChanged(self->base.object, nullptr, 1);
     SectorMapAdd(AsSectorMap(Lists()), nullptr, AsEngineObject(self->base.object));
-    SelectionUnlock(Selection());
+    AIMapEndRefreshOriginal(Selection());
 }
 EI_REPLACE(0x0046AFB0, ObjectSpecApply);
 

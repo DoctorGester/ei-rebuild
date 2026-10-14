@@ -11,6 +11,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_engine.h"
+#include "originals_units.h"
 
 namespace {
 
@@ -28,7 +29,6 @@ inline void __fastcall StringInitRange(RawString* a0, void*, const char* a2, con
 inline void __fastcall StringDeallocate(char**, void*, char* a2, int a3) { StringDeallocateOriginal(a2, (std::size_t)a3); }
 void __fastcall NodeDeallocate(char* a0, int a1) { NodeDeallocateOriginal((void*)a0, (std::size_t)a1); }
 // 005AA5F0: the manager's model of a name; 005A9EF0 (RET 4): the model's animation of a name.
-__declspec(naked) void* __fastcall FindModelAt(void*, void*, const RawString*) EI_ORIGINAL(0x005AA5F0)
 __declspec(naked) void* __fastcall FindAnimation(void*, void*, const RawString*) EI_ORIGINAL(0x005A9EF0)
 // The figure: clear its animation; set an animation (RET 8: animation, name).
 __declspec(naked) int __fastcall ClearAnimation(void*) EI_ORIGINAL(0x0050D950)
@@ -50,7 +50,7 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
     if (!animation) return ClearAnimation(figure);
     RawString key;
     MakeString(key, modelName);
-    void* model = FindModelAt(manager, nullptr, &key);
+    void* model = FigureManagerFindModelOriginal(manager, nullptr, &key);
     StringDeallocate(&key.eos, nullptr, key.start, static_cast<int>(key.eos - key.start));
     if (!model) {
         DebugMessageOriginal(reinterpret_cast<const char*>(0x00790DC0), modelName);

@@ -202,8 +202,8 @@ __declspec(naked) void AIMapCalls::Move(CEngineObject*, const Vector3*) EI_ORIGI
 __declspec(naked) void AIMapCalls::FindUnitsInRadius(const Vector3*, void*, float) EI_ORIGINAL(0x004BA100)
 __declspec(naked) void AIMapCalls::Remove(CEngineObject*) EI_ORIGINAL(0x004BA0C0)
 __declspec(naked) void AIMapCalls::Add(CEngineObject*) EI_ORIGINAL(0x004BA0A0)
-__declspec(naked) bool AIMapCalls::CanLeaveCell(CEngineObject*) EI_ORIGINAL(0x005BA830)
-__declspec(naked) bool AIMapCalls::FindFreeCellNear(CEngineObject*, const Vector3*, Vector3*) EI_ORIGINAL(0x005BA9D0)
+bool AIMapCalls::CanLeaveCell(CEngineObject* object) { return AIMapCanLeaveCellOriginal(this, nullptr, static_cast<CUnit*>(object)); }
+bool AIMapCalls::FindFreeCellNear(CEngineObject* object, const Vector3* from, Vector3* out) { return FindFreeCellNearOriginal(this, nullptr, object, from, out); }
 __declspec(naked) char AIMapCalls::SetUpdates(int) EI_ORIGINAL(0x004BA090)
 AIMapCalls* TheAIMap() { return reinterpret_cast<AIMapCalls*>(WorldServer()->AIMap()); }
 
@@ -230,7 +230,7 @@ __declspec(naked) void BrainCalls::AttackTarget(CEngineObject*) EI_ORIGINAL(0x00
 __declspec(naked) void BrainCalls::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x005D7DA0)
 __declspec(naked) void BrainCalls::ResetTarget() EI_ORIGINAL(0x005D7C30)
 void BrainCalls::ClearModes() { BrainClearModesOriginal((void*)this); }
-__declspec(naked) void BrainCalls::StopAction() EI_ORIGINAL(0x005D7790)
+void BrainCalls::StopAction() { BrainStopActionOriginal(this); }
 __declspec(naked) void BrainCalls::Guard(const Vector3*, float) EI_ORIGINAL(0x005D6230)
 __declspec(naked) void BrainCalls::Sentry(const Vector3*) EI_ORIGINAL(0x005D64E0)
 void BrainCalls::AddMode(void* a0) { BrainAddModeOriginal((void*)this, nullptr, a0); }

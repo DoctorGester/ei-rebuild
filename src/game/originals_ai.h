@@ -184,3 +184,16 @@ __declspec(naked) inline void __fastcall PlayerAddPartyTargetsOriginal(void* /*m
 // width x height (not cleared) unless it already has that size.
 __declspec(naked) inline void __fastcall GridCellsResizeOriginal(void* /*cells*/, void*, int /*width*/, int /*height*/)
     EI_ORIGINAL(0x005CD3A0)
+// C3n. The AI map (CAIMap, the global 007B00D0 = world + 0x170; thiscall, through its addresses so the wrappers run): 005B8B30
+// BeginRefresh / 005B8B80 EndRefresh (plain RET: units moved meanwhile are collected / put back); 005BA830 CanLeaveCell
+// (RET 4: the unit's cell; AL). 005BA9D0 FindFreeCellNearOriginal is above.
+__declspec(naked) inline void __fastcall AIMapBeginRefreshOriginal(void* /*map*/) EI_ORIGINAL(0x005B8B30)
+__declspec(naked) inline void __fastcall AIMapEndRefreshOriginal(void* /*map*/) EI_ORIGINAL(0x005B8B80)
+__declspec(naked) inline bool __fastcall AIMapCanLeaveCellOriginal(void* /*map*/, void*, CUnit* /*unit*/) EI_ORIGINAL(0x005BA830)
+// C3n. The AI brain (AIBrain, the unit controller + 0x980; thiscall, through its addresses so the wrappers run): 005D5E90
+// LeaderOrFollowed (plain RET: the unit it follows or null); 005D7790 StopAction (plain RET); 005D7E90 SetSeen (RET 4:
+// remembers `object` as seen / the attacker).
+__declspec(naked) inline CEngineObject* __fastcall BrainLeaderOrFollowedOriginal(void* /*brain*/) EI_ORIGINAL(0x005D5E90)
+__declspec(naked) inline void __fastcall BrainStopActionOriginal(void* /*brain*/) EI_ORIGINAL(0x005D7790)
+__declspec(naked) inline void __fastcall BrainSetSeenOriginal(void* /*brain*/, void*, CEngineObject* /*object*/)
+    EI_ORIGINAL(0x005D7E90)

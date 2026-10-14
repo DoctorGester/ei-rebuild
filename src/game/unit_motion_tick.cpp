@@ -58,7 +58,6 @@ __declspec(naked) bool __fastcall MapContinuePath(void*, void*, CUnit*, void* /*
 // The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 // 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
-__declspec(naked) CUnit* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall PartyMessage(void*, void*, CUnit*, int) EI_ORIGINAL(0x0066D6E0)
 
 // --- x87 sequences ------------------------------------------------------------------------------
@@ -306,7 +305,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     CUnit* self = UnitOf(c);
     char* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
-        BrainLeader(ServerControllerOf(blocker)->brain) == self && CurrentFrame() < c->waitFrame + 2) {
+        BrainLeaderOrFollowedOriginal(ServerControllerOf(blocker)->brain) == self && CurrentFrame() < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;

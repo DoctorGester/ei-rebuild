@@ -91,7 +91,6 @@ __declspec(naked) double __cdecl CIacos(double) {
 void __fastcall BrainClearModes(void* a0, void*) { BrainClearModesOriginal(a0); }
 void* __fastcall PlayerModeConstruct(void* a0, void*) { return ModePlayerConstructOriginal(a0); }
 void __fastcall BrainAddMode(void* a0, void*, void* a2) { BrainAddModeOriginal(a0, nullptr, a2); }
-__declspec(naked) void __fastcall BrainStopAction(void*, void*) EI_ORIGINAL(0x005D7790)
 __declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E60)
 __declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brain*/, CEngineObject*) EI_ORIGINAL(0x005D3DE0)
 // Placement on the maps.
@@ -293,7 +292,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         void* memory = gamecrt::operator_new(0x24);
         static_cast<std::uint32_t*>(memory)[1] = 0;   // +4, written before the null test
         BrainAddMode(brain, nullptr, memory ? PlayerModeConstruct(memory, nullptr) : nullptr);
-        BrainStopAction(brain, nullptr);
+        BrainStopActionOriginal(brain);
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
         std::memcpy(&free, &AsUnit(unit)->position.x, sizeof(free));

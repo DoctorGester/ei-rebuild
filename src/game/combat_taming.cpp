@@ -36,7 +36,6 @@ __declspec(naked) void __fastcall PlayerTakeUnit(char*) EI_ORIGINAL(0x00665D20)
 void* __fastcall ModePlayerConstruct(void* a0) { return ModePlayerConstructOriginal(a0); }
 void __fastcall BrainAddMode(void* a0, void*, void* a2) { BrainAddModeOriginal(a0, nullptr, a2); }
 void __fastcall BrainRemoveMode(void* a0, void*, int a2) { BrainRemoveModeOriginal(a0, nullptr, a2); }
-__declspec(naked) void __fastcall BrainStopAction(void*) EI_ORIGINAL(0x005D7790)
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
@@ -116,7 +115,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         break;
     }
     tamerSide = tamer->side;
-    BrainStopAction(brain);
+    BrainStopActionOriginal(brain);
     if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {
         action2.kind = kOrderNone;
         ReferenceRelease(&action2.target);

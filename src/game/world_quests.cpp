@@ -21,6 +21,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_ai.h"
 #include "originals_world.h"
 #include "originals_core.h"
 #include "originals_engine.h"
@@ -625,8 +626,6 @@ constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 using PlacementArray = mfc::CArray<UnitPlacement>;
 
 __declspec(naked) void __fastcall PlacementsSetAtGrow(PlacementArray*, void*, int, const UnitPlacement*) EI_ORIGINAL(0x0059C510)
-// 005D5E90 (AIBrain::LeaderOrFollowed, unit_ai.h): the leader the brain follows, or null.
-__declspec(naked) CEngineObject* __fastcall BrainLeader(void* /*brain*/, void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordPtrArray*, CParty*, void*) EI_ORIGINAL(0x0058FD90)
@@ -683,7 +682,7 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
         for (int i = 0; i < list->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
             CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
-            CEngineObject* leader = BrainLeader(ControllerOf(unit)->brain, nullptr);
+            CEngineObject* leader = BrainLeaderOrFollowedOriginal(ControllerOf(unit)->brain);
             record->unknown_77C = leader ? leader->id_ : -1;
         }
     }

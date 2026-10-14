@@ -55,7 +55,6 @@ __declspec(naked) void* __fastcall UnitSpellObject(CUnit*, void*, std::uint32_t)
 __declspec(naked) char* __fastcall SpellPrototype(void*) EI_ORIGINAL(0x0068BA20)
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
 // 0x80 under a point, 005BC3E0 LineOfSight (ST0).
-__declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA830)
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
 // AIPath (ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005B2190 stand still where the unit
 // is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
@@ -384,7 +383,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         SectorMapRemove(sectors, nullptr, unit);
         unit->moveMode = 2;
         UnitUpdateSizeClass(unit);
-        if (!MapCanLeaveCell(map, nullptr, unit)) unit->moveMode = mode;
+        if (!AIMapCanLeaveCellOriginal(map, nullptr, unit)) unit->moveMode = mode;
         SectorMapAdd(sectors, nullptr, unit);
     }
     std::uint32_t flag = CellFlag80AtOriginal(map, nullptr, &unit->position);

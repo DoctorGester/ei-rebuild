@@ -3,6 +3,7 @@
 // what is left when an order ends. See combat.h, combat_plan.h and docs/notes/combat.md ("Third
 // round").
 #include "combat.h"
+#include "originals_combat.h"
 #include "combat_plan.h"
 
 #include "item.h"
@@ -121,7 +122,6 @@ __declspec(naked) void __fastcall TickMessage(void*, void*, CUnit*, int) EI_ORIG
 __declspec(naked) bool __fastcall TickFollowPath(CUnitServer*) EI_ORIGINAL(0x0054A150)
 __declspec(naked) void __fastcall TickMotion5474B0(CUnitServer*) EI_ORIGINAL(0x005474B0)
 __declspec(naked) void __fastcall TickStartAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x005494D0)
-__declspec(naked) void __fastcall TickPlaySteps(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548DE0)
 __declspec(naked) void __fastcall TickPlayEmote(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548FA0)
 __declspec(naked) bool __fastcall TickTalkTargetBusy(CUnitServer*, void*, CEngineObject*) EI_ORIGINAL(0x0054C760)
 bool __fastcall TickCheckOrder(CUnitServer* a0, void*, const UnitAction* a2) { return UnitCheckOrderOriginal((void*)a0, nullptr, (const void*)a2); }
@@ -144,7 +144,6 @@ __declspec(naked) double __fastcall UnitScaledValue(CUnit*, void*, float) EI_ORI
 // Add, sector_map.cpp), the world's timed objects (0058E5D0, world_server.cpp), the brain's
 // leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
 // unit (0066E110).
-__declspec(naked) void* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 int __fastcall MemoryIsEnemy(void* a0, void*, CUnit* a2, CEngineObject* a3) { return AiMemoryIsEnemyOriginal(a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) bool __fastcall PartySees(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066E110)
 // Rewritten elsewhere (combat*.cpp), through their game addresses: ActionDistance, CanReachTarget,
@@ -448,7 +447,7 @@ bool CUnitServer::StartQueuedOrder() {
         StepsAddStepTick(&steps, nullptr, animation, duration);
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
-        TickPlaySteps(this, nullptr, copy);
+        CtlPlayAnimationOrder(this, nullptr, copy);
         StepsDestroy(&steps);
         return true;
     }
@@ -520,7 +519,7 @@ void CUnitServer::UpdateOrders() {
         if (state != kStateChasing) return;
         if (stoodBlocked) {
             unknown_18C = 1;
-            if (!BrainLeader(brain) && unit->player) TellParty(unit, kMessageCannotDo);
+            if (!BrainLeaderOrFollowedOriginal(brain) && unit->player) TellParty(unit, kMessageCannotDo);
         }
         if (action.kind != kOrderNone && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
             DropQueuedOrder();

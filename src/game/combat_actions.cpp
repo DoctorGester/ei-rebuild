@@ -3,6 +3,7 @@
 // death and the AI's reactions to it (witnesses, hostility claims). See combat.h and
 // docs/notes/combat.md.
 #include "combat.h"
+#include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
 
@@ -199,9 +200,7 @@ UnitListNode* __fastcall UnitListNewNode(UnitList* a0, void*, UnitListNode* a2, 
 // 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
 AnimationSteps* __fastcall AnimationListConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
 AnimationSteps* __fastcall AnimationListCopy(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
-// 00548DE0. CUnitServer: plays `animation` (taken by value and destroyed).
-__declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, AnimationSteps)
-    EI_ORIGINAL(0x00548DE0)
+// 00548DE0 (CtlPlayAnimationOrder, originals_combat.h). CUnitServer: plays `animation` (taken by value and destroyed).
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
 
@@ -482,7 +481,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     if (ei::VCall<int>(ServerObjectOf(unit), kServerSlotIsDead) == 0) {
         CallTriggerItemSpells(0);
         if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
-        RememberAttacker(brain, nullptr, attacker);
+        BrainSetSeenOriginal(brain, nullptr, attacker);
         unit->flags_ |= 0x80000;
         CtlPropagateHostility(this);
         std::uint32_t direction = CallHitDirection(attacker, hitKind);
@@ -519,7 +518,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AnimationSteps copy;
     AnimationListCopy(&copy, nullptr, &animation);
     copy.extra = animation.extra;
-    ControllerPlayAnimation(this, nullptr, copy);
+    CtlPlayAnimationOrder(this, nullptr, copy);
     AIEventsDied(AIEventsOf(world), nullptr, this);
     if (char* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(player, unit))

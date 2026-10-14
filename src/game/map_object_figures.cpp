@@ -40,7 +40,6 @@ float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
 
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
-__declspec(naked) void* __fastcall FindModel(void*, void*, const stlp::string*) EI_ORIGINAL(0x005AA5F0)
 // 005AC2F0. Figure manager: builds `part` from `model` at the scale x, y, z given as float bits.
 __declspec(naked) void __fastcall BuildPart(void*, void*, FigurePart*, void*, std::uint32_t, std::uint32_t,
                                             std::uint32_t) EI_ORIGINAL(0x005AC2F0)
@@ -219,7 +218,7 @@ int CObject3D::LoadFigures() {
     void* model;
     {
         stlp::string key(name);
-        model = FindModel(manager, nullptr, &key);
+        model = FigureManagerFindModelOriginal(manager, nullptr, &key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
         BuildPart(manager, nullptr, static_cast<FigurePart*>(pendingParts.data[i]), model, Bits(scale.x),

@@ -34,9 +34,6 @@ void* LeverRecordMap() { return reinterpret_cast<void*>(0x0079C1AC); }
 // tests [005BA830 CanLeaveCell, 005BA9D0 FindFreeCellNear (unit, from, out)]; the figure's
 // animation [005179E0 (model name)]; MarkChanged [0050E9F0 (part)]; the unit's controller resync
 // [00554450, on +0x240].
-__declspec(naked) void __fastcall MapBeginRefresh(void*) EI_ORIGINAL(0x005B8B30)
-__declspec(naked) void __fastcall MapEndRefresh(void*) EI_ORIGINAL(0x005B8B80)
-__declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, void*) EI_ORIGINAL(0x005BA830)
 void __fastcall FigureAnimate(void* a0, void*, const char* a2) { ObjectSetupFigureOriginal(a0, nullptr, a2); }
 void __fastcall ControllerResync(void* a0) { ControllerRepositionOriginal(a0); }
 
@@ -82,7 +79,7 @@ void Lever::SetState(int wanted, float duration) {
     }
     CAIMap* map = world->AIMap();
     std::memcpy(&map->refreshUnits, &keepsMapFlag, 1);   // the byte as it is
-    MapBeginRefresh(map);
+    AIMapBeginRefreshOriginal(map);
     SectorMapRemove(sectors, nullptr, AsEngineObject(this));
 
     states = stateCount;
@@ -103,13 +100,13 @@ void Lever::SetState(int wanted, float duration) {
     FigureAnimate(this, nullptr, name);
     UnitMarkChanged(this, nullptr, 5);
     SectorMapAdd(sectors, nullptr, AsEngineObject(this));
-    MapEndRefresh(map);
+    AIMapEndRefreshOriginal(map);
     map->refreshUnits = true;
 
     for (auto* node = around.head; node;) {
         auto* next = node->next;
         void* unit = node->data;
-        if (!MapCanLeaveCell(map, nullptr, unit)) {
+        if (!AIMapCanLeaveCellOriginal(map, nullptr, reinterpret_cast<CUnit*>(unit))) {
             Vector3* at = &AsMapObject(unit)->position;
             Vector3 free = {at->x, at->y, at->z};
             FindFreeCellNearOriginal(map, nullptr, AsEngineObject(unit), at, &free);
