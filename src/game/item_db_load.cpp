@@ -207,7 +207,7 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);
     ar->CStringField(1, &code);
     ar->CStringField(2, &text08);
-    ar->Field(3, &unknown_0C, 4);
+    ar->Field(3, &price, 4);
     ar->Field(4, &unknown_10, 4);
     ar->Field(5, &mana, 4);
     for (int i = 0; i < 9; ++i) ar->Field(6 + i, &unknown_1C[i], 4);
@@ -226,7 +226,7 @@ EI_REPLACE_METHOD(0x00683B80, itemdb::SpellRecord::Serialize);
 void itemdb::SpellModifierRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);
     ar->Field(1, &code[0], 4);
-    ar->Field(2, &code[4], 4);
+    ar->Field(2, &price, 4);
     ar->Field(3, &kind, 4);
     ar->Field(4, &mana, 4);
     ar->Field(5, &strength, 4);

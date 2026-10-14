@@ -109,7 +109,7 @@ static void __fastcall CtorDestructVerify(CItemConstructor* self) {
 EI_VERIFY(0x006A5B20, CtorDestructVerify, 0, s_ctorDestruct);
 
 static void* s_ctorSetManager;
-static void __fastcall CtorSetManagerVerify(CItemConstructor* self, void*, CEngineObject* manager) {
+static void __fastcall CtorSetManagerVerify(CItemConstructor* self, void*, CBaseManager* manager) {
     int count = manager ? manager->refCount_ : 0;
     bool same = self->manager_ == manager;
     self->SetManager(manager);
@@ -176,7 +176,7 @@ EI_VERIFY(0x006A5CF0, EndCreateItemVerify, 0, s_endCreateItem);
 
 static void* s_ctorCancel;
 static BOOL __fastcall CtorCancelVerify(CItemConstructor* self) {
-    CEngineObject* manager = self->manager_;
+    CBaseManager* manager = self->manager_;
     BOOL result = self->Cancel();
     bool ok = result == 1 && self->manager_ == manager && !self->item_ && !self->material_ && !self->prototype_ &&
               !self->spell_;

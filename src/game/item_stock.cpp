@@ -185,12 +185,12 @@ void Output(StockList* out, CItem* item) {
 // The item's reference count.
 void AddReference(CItem* item) { ++item->refCount_; }
 
-// A prototype record: text08 its name, text10 its material class, price, unknown_4C the material
+// A prototype record: text08 its name, materialClass its material class, price, materialUnits the material
 // units it takes; record slot 0 the item kind.
 itemdb::ItemRecordHead* Record(char* p) { return reinterpret_cast<itemdb::ItemRecordHead*>(p); }
 const char* PrototypeName(char* p) { return Record(p)->text08; }
-const char* MaterialClass(char* p) { return Record(p)->text10; }
-int MaterialUnits(char* p) { return static_cast<int>(Record(p)->unknown_4C); }
+const char* MaterialClass(char* p) { return Record(p)->materialClass; }
+int MaterialUnits(char* p) { return static_cast<int>(Record(p)->materialUnits); }
 const itemdb::MaterialRecordHead* Material(const StockMaterial* e) {
     return reinterpret_cast<const itemdb::MaterialRecordHead*>(e->record);
 }
@@ -207,7 +207,7 @@ StockMaterial* DrawMaterial(char* prototype) {
     float low = Round((seventh + seventh) - fifth);
     for (StockMaterial** q = c.start; q != c.finish; ++q) {
         int chance = 10;
-        float quality = Material(*q)->quality;
+        float quality = Material(*q)->unitPrice;
         if (quality >= low && !(quality > fifth)) {
             float t = Round(((quality - seventh) / (seventh - fifth)) * 100.0f);
             std::uint32_t bits;

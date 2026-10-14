@@ -367,7 +367,7 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
             DrawSprite(highlight, pass, 350.0f, 250.0f);
         } else if (part) {
             // The grid cells the part has room for (+0x4C) beyond the materials in it.
-            int room = static_cast<int>(part->unknown_4C);
+            int room = static_cast<int>(part->materialUnits);
             int cellIndex = 0;
             bool none = true;
             for (int x = 450; x < 650; x += 100) {

@@ -1,7 +1,7 @@
 #include "item_db_text.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "resource.h"
 #include "spell.h"
 
 #include "lib/crt.h"
@@ -44,8 +44,8 @@ constexpr const char kLineEnd[] = "\r\n";
 // the archive writes the text's size to length_.
 const char* FindText(CTextManager* self, const char* key) {
     for (CTextManager::SourceNode* node = self->sources_.head->next; node != self->sources_.head; node = node->next) {
-        // CMappedResource vtable slot 5, GetFile(name, size): the file's data or null.
-        if (const char* text = ei::VCall<const char*>(node->data.source, 5, key, &self->length_)) return text;
+        // The file's data or null.
+        if (const char* text = static_cast<const char*>(node->data.source->GetFile(key, &self->length_))) return text;
     }
     return nullptr;
 }
@@ -85,7 +85,7 @@ void ReadItemText(CTextManager* self, const mfc::CString& key, mfc::CString* nam
 
 // Armor types 0-2 are worn on the upper body.
 bool IsUpperArmor(const char* armor) {
-    int type = Field<int>(armor, field::kItemType);
+    int type = reinterpret_cast<const ItemRecordHead*>(armor)->type;
     return type == 0 || type == 1 || type == 2;
 }
 
@@ -153,7 +153,8 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         KeyName(recordName, QuickItems().At(prototypeIndex, kQuickItemSize), 4);
         // A quick item whose prototype has no material (+0x10 "none") is a potion.
         char* prototype = item->GetPrototype();
-        if (prototype && gamecrt::mbsicmp(Field<const unsigned char*>(item->GetPrototype(), 0x10),
+        if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(
+                                              reinterpret_cast<const ItemRecordHead*>(item->GetPrototype())->materialClass)),
                                           reinterpret_cast<const unsigned char*>(kNoMaterial)) == 0) {
             ReadItemText(this, mfc::CString(kQuickItem) + recordName, name, description);
             kindKey = "item_potion";

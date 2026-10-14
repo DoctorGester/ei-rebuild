@@ -40,7 +40,7 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     text04 = source->text04;
     text08 = source->text08;
     type = source->type;
-    text10 = source->text10;
+    materialClass = source->materialClass;
     CopyBytes(this, source, offsetof(ItemRecordHead, unknown_14), offsetof(ItemRecordHead, list20));
     CopyBytes(this, source, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50));
     unknown_68 = source->unknown_68;
@@ -52,7 +52,7 @@ EI_REPLACE_METHOD(0x006A8F20, ItemRecordHead::Assign);
 void ItemRecordHead::ConstructHead(std::uintptr_t vtableAddress) {
     new (&text04) mfc::CString();
     new (&text08) mfc::CString();
-    new (&text10) mfc::CString();
+    new (&materialClass) mfc::CString();
     new (&list20) console::CStringArray();
     new (&list50) console::CStringArray();
     unknown_68 = 1;
@@ -115,7 +115,7 @@ MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* 
     new (&key) mfc::CString(*text(&source->key));
     new (&soundName) mfc::CString(*text(&source->soundName));
     new (&name) mfc::CString(*text(&source->name));
-    CopyBytes(this, source, offsetof(MaterialRecordHead, unknown_0C), sizeof(MaterialRecordHead));
+    CopyBytes(this, source, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
     return this;
 }
 EI_REPLACE_METHOD(0x006A9E40, MaterialRecordHead::CopyConstruct);

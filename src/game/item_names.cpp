@@ -51,10 +51,6 @@ const char* const kHumanPrefix = Text(0x007908C8);        // "unhuma"
 const char* const kNoMaterial = Text(0x007846F0);         // "none"
 const char* const kUnknownMaterial = Text(0x007963C0);    // "uq"
 
-// Record fields used here.
-constexpr int kRecordNameList = 0x20;   // CStringArray
-constexpr int kSpellFigureNumber = 0x60;
-
 // The records are read without a null check where the original reads them without one.
 const ItemRecordHead* Head(const char* record) { return reinterpret_cast<const ItemRecordHead*>(record); }
 const MaterialRecordHead* Material(const char* record) { return reinterpret_cast<const MaterialRecordHead*>(record); }
@@ -75,7 +71,7 @@ mfc::CString ModelNameOf(const RecordTable& table, int stride, const char* const
 // The first string of the prototype's list, or "" (slot 18).
 mfc::CString FirstListNameOf(const RecordTable& table, int stride, std::uint32_t id) {
     const char* prototype = table.At(PrototypeIndex(id), stride);
-    auto* list = reinterpret_cast<const console::CStringArray*>(prototype + kRecordNameList);
+    const console::CStringArray* list = &Head(prototype)->list20;
     if (prototype && list->GetSize() != 0) return mfc::CString((*list)[0]);
     return mfc::CString(game::EmptyText());   // ""
 }
@@ -174,7 +170,7 @@ EI_REPLACE(0x006A0CC0, WeaponBaseFigure);
 mfc::CString CItemQuick::FigureName() {
     mfc::CString name;
     const char* prototype = GetPrototype();
-    if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->text10)),
+    if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->materialClass)),
                                       reinterpret_cast<const unsigned char*>(kNoMaterial)) != 0) {
         const char* material = Materials().At(MaterialIndex(unknown_18), kMaterialSize);
         const char* materialName = material ? Material(material)->name : kUnknownMaterial;
@@ -209,9 +205,9 @@ EI_REPLACE_METHOD(0x006A47B0, CItemQuest::PictureName);
 
 mfc::CString CItemSpell::FigureName() {
     const auto* spell = static_cast<const CEngineObject*>(spell_);
-    const char* prototype = Spells().At(PrototypeIndex(spell->unknown_18), kSpellSize);
+    auto* prototype = reinterpret_cast<const SpellRecord*>(Spells().At(PrototypeIndex(spell->unknown_18), kSpellSize));
     mfc::CString name;
-    name.Format(kSpellFigure, Field<int>(prototype, kSpellFigureNumber));
+    name.Format(kSpellFigure, prototype->icon);
     return name;
 }
 EI_REPLACE_METHOD(0x006A5820, CItemSpell::FigureName);
@@ -245,7 +241,7 @@ mfc::CString CItemLoot::FigureName() {
             name.Format(kQuickFigure, Head(QuickItems().At(index_, kQuickItemSize))->number);
             break;
         case kRecordSpell:
-            name.Format(kPrototypeFigure, Field<int>(Spells().At(index_, kSpellSize), kSpellFigureNumber));
+            name.Format(kPrototypeFigure, reinterpret_cast<const SpellRecord*>(Spells().At(index_, kSpellSize))->icon);
             break;
         case kRecordModifier:
             name.Format(kModifierFigure, index_);

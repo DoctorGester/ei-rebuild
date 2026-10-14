@@ -26,7 +26,7 @@ struct StockPtrVector {
 // stack (0069A110), and the units left for weapons and armors (0069AE20 takes the prototype's
 // +0x4C units from it).
 struct StockMaterial {
-    char* record;       // +0x00 material record (+0x04 its class name, +0x10 its quality)
+    char* record;       // +0x00 material record (+0x04 its class name, +0x10 its unit price)
     int minCount;       // +0x04
     int maxCount;       // +0x08
     int left;           // +0x0C

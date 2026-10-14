@@ -21,7 +21,7 @@ bool SameBytes(const void* a, const void* b, std::size_t from, std::size_t to) {
 
 bool SameHead(const ItemRecordHead* a, const ItemRecordHead* b) {
     bool ok = std::strcmp(a->text04, b->text04) == 0 && std::strcmp(a->text08, b->text08) == 0 &&
-              std::strcmp(a->text10, b->text10) == 0 && a->type == b->type &&
+              std::strcmp(a->materialClass, b->materialClass) == 0 && a->type == b->type &&
               SameBytes(a, b, offsetof(ItemRecordHead, unknown_14), offsetof(ItemRecordHead, list20)) &&
               SameBytes(a, b, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50)) &&
               a->unknown_68 == b->unknown_68 && a->list20.GetSize() == b->list20.GetSize();
@@ -171,7 +171,7 @@ MaterialRecordHead* __fastcall MaterialCopyVerify(MaterialRecordHead* self, void
     MaterialRecordHead* result = self->CopyConstruct(source);
     const bool same = result == self && expected == scratch && std::strcmp(scratch->key, self->key) == 0 &&
                       std::strcmp(scratch->soundName, self->soundName) == 0 && std::strcmp(scratch->name, self->name) == 0 &&
-                      SameBytes(scratch, self, offsetof(MaterialRecordHead, unknown_0C), sizeof(MaterialRecordHead));
+                      SameBytes(scratch, self, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
     ei::verify::Check("MaterialRecordHead::CopyConstruct", true, same, "material '%s'", source->key);
     for (const char** text : {&scratch->key, &scratch->soundName, &scratch->name})
         reinterpret_cast<mfc::CString*>(text)->~CString();

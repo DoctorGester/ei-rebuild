@@ -59,7 +59,7 @@ void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t
 void AddInMaterials(CParty* list, CResourceManager* manager, CItemConstructor* maker, itemdb::ItemRecordHead* record,
                     int kind, int materials) {
     for (int j = 0; j < materials; ++j) {
-        const char* wanted = record->text10;
+        const char* wanted = record->materialClass;
         char* material = itemdb::Materials().At(static_cast<std::uint32_t>(j), itemdb::kMaterialSize);
         const char* name = reinterpret_cast<const itemdb::MaterialRecordHead*>(material)->soundName;
         if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(name), reinterpret_cast<const unsigned char*>(wanted)) != 0)

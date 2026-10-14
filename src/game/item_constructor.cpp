@@ -4,6 +4,7 @@
 // object), SetPrototype / SetMaterial / SetSpellObject, then EndCreateItem, whose Build fills the
 // item from a temporary database record: the prototype's values combined with the material's.
 #include "item.h"
+#include "spell.h"
 
 #include "console.h"
 #include "ei/hook.h"
@@ -16,6 +17,7 @@
 #include "originals_engine.h"
 #include "originals_gameplay.h"
 
+#include <bit>
 #include <cstring>
 #include <new>
 
@@ -23,10 +25,7 @@ using namespace itemdb;
 
 namespace {
 
-constexpr int kSlotRelease = 4;
 constexpr int kSlotInitFromRecord = 13;          // CItem slot 13 (+0x34)
-constexpr int kManagerSlotCreateObject = 23;     // CBaseManager slot 23 (+0x5C): (kind, key)
-constexpr int kContextSlotSpellManager = 22;     // the manager context's slot 22 (+0x58)
 
 // Item class ids (GetClassId).
 constexpr int kClassWeapon = 0x11;
@@ -47,34 +46,15 @@ constexpr std::uint32_t kDefaultChargeRate = 0x3A83126F;
 
 // --- The temporary database record ---------------------------------------------------------------
 //
-// The record classes (vtables 00744054..00744068) start with: +0x00 vtable, +0x04 / +0x08 / +0x10
-// CStrings, +0x20 and +0x50 CStringArrays, +0x68 a byte flag set to 1. Build creates one of the
-// item's kind, fills only the fields the item's slot 13 reads, and destroys it again.
-
-constexpr std::uintptr_t kRecordVtable = 0x00744060;
-constexpr std::uintptr_t kWeaponRecordVtable = 0x00744068;
-constexpr std::uintptr_t kArmorRecordVtable = 0x00744064;
-constexpr std::uintptr_t kQuickRecordVtable = 0x0074405C;
-constexpr std::uintptr_t kQuestRecordVtable = 0x00744058;
-constexpr std::uintptr_t kLootRecordVtable = 0x00744054;
-
-// Writes a field of a record that may be null (the original then faults writing near 0).
-template <typename T> void Put(char* record, int offset, T value) {
-    *reinterpret_cast<volatile T*>(reinterpret_cast<std::uintptr_t>(record) + offset) = value;
-}
+// Build creates a record of the item's kind (item_db.h), fills only the fields the item's slot 13
+// reads, and destroys it again. The prototype and material records are read without a null check
+// where the original reads them without one (a missing record faults there, as in the original).
 
 // A dword copied as a dword (mov), so float bit patterns pass unchanged.
-void CopyDword(char* record, int offset, const char* source, int sourceOffset) {
-    Put<std::uint32_t>(record, offset, Field<std::uint32_t>(source, sourceOffset));
+template <typename T> void CopyBits(T& to, const T& from) {
+    static_assert(sizeof(T) == 4);
+    std::memcpy(&to, &from, sizeof(T));
 }
-
-float F(const char* record, int offset) { return Field<float>(record, offset); }
-
-// The prototype and material records, read without a null check where the original reads them
-// without one.
-const ItemRecordHead* Head(const char* record) { return reinterpret_cast<const ItemRecordHead*>(record); }
-const WeaponRecord* Weapon(const char* record) { return reinterpret_cast<const WeaponRecord*>(record); }
-const MaterialRecordHead* Material(const char* record) { return reinterpret_cast<const MaterialRecordHead*>(record); }
 
 // A float copied with FLD / FSTP (a signalling NaN arrives quieted, as in the original).
 void FpuCopy(void* destination, const void* source) {
@@ -86,82 +66,67 @@ void FpuCopy(void* destination, const void* source) {
     }
 }
 
-// afxEmptyString's data pointer (what an empty CString points at).
-char* EmptyStringData() { return *reinterpret_cast<char* const*>(0x00796E48); }
-
-void SetVtable(char* record, std::uintptr_t vtable) { std::memcpy(record, &vtable, sizeof(vtable)); }
-
-// The base record constructor's work (inline in Build; 006A63B0 as a function).
-void ConstructRecordBase(char* record) {
-    Put(record, 0x04, EmptyStringData());
-    Put(record, 0x08, EmptyStringData());
-    Put(record, 0x10, EmptyStringData());
-    new (record + 0x20) console::CStringArray;
-    new (record + 0x50) console::CStringArray;
-    Put<std::uint8_t>(record, 0x68, 1);
-    SetVtable(record, kRecordVtable);
+// A record of kind R: the base record's construction (inline in Build; 006A63B0 as a function),
+// then the kind's vtable. Null when the allocation fails.
+template <typename R> R* NewRecordOf() {
+    auto* record = static_cast<R*>(gamecrt::operator_new(sizeof(R)));
+    if (!record) return nullptr;
+    record->ConstructHead(ItemRecordHead::kBaseVtableAddress);
+    ei::SetVtable(record, R::kVtableAddress);
+    return record;
 }
 
 // Allocates and constructs the temporary record for an item of class `classId`; null for other
 // classes (and when the allocation fails).
-char* NewRecord(int classId) {
-    char* record = nullptr;
+ItemRecordHead* NewRecord(int classId) {
     switch (classId) {
-    case kClassWeapon:
-        record = static_cast<char*>(gamecrt::operator_new(kWeaponSize));
+    case kClassWeapon: {
+        auto* record = NewRecordOf<WeaponRecord>();
         if (!record) return nullptr;
-        ConstructRecordBase(record);
-        SetVtable(record, kWeaponRecordVtable);
-        std::memset(record + 0x78, 0, 0x83 - 0x78);
-        break;
-    case kClassArmor:
-        record = static_cast<char*>(gamecrt::operator_new(kArmorSize));
-        if (!record) return nullptr;
-        ConstructRecordBase(record);
-        SetVtable(record, kArmorRecordVtable);
-        break;
-    case kClassQuick:
-    case kClassSpell:
-        record = static_cast<char*>(gamecrt::operator_new(kQuickItemSize));
-        if (!record) return nullptr;
-        ConstructRecordBase(record);
-        Put(record, 0x7C, EmptyStringData());   // a CString the record's destructor would free
-        SetVtable(record, kQuickRecordVtable);
-        std::memset(record + 0x80, 0, 0x8B - 0x80);
-        break;
-    case kClassQuest:
-        record = static_cast<char*>(gamecrt::operator_new(kLootSize));
-        if (!record) return nullptr;
-        ConstructRecordBase(record);
-        std::memset(record + 0x70, 0, 12);          // an empty STLport container (0055A3E0)
-        SetVtable(record, kQuestRecordVtable);
-        break;
-    case kClassLoot:
-        record = static_cast<char*>(gamecrt::operator_new(kQuestItemSize));
-        if (!record) return nullptr;
-        ConstructRecordBase(record);
-        SetVtable(record, kLootRecordVtable);
-        break;
-    default:
-        break;
+        std::memset(&record->unknown_70[8], 0, 0x83 - 0x78);   // +0x78..+0x82
+        return record;
     }
-    return record;
+    case kClassArmor:
+        return NewRecordOf<ArmorRecord>();
+    case kClassQuick:
+    case kClassSpell: {
+        auto* record = static_cast<QuickItemRecord*>(gamecrt::operator_new(sizeof(QuickItemRecord)));
+        if (!record) return nullptr;
+        record->ConstructHead(ItemRecordHead::kBaseVtableAddress);
+        new (&record->text7C) mfc::CString();   // a CString the record's destructor would free
+        ei::SetVtable(record, QuickItemRecord::kVtableAddress);
+        std::memset(record->attributeBonus, 0, 0x8B - 0x80);   // +0x80..+0x8A
+        return record;
+    }
+    case kClassQuest: {
+        auto* record = static_cast<QuestItemRecord*>(gamecrt::operator_new(sizeof(QuestItemRecord)));
+        if (!record) return nullptr;
+        record->ConstructHead(ItemRecordHead::kBaseVtableAddress);
+        std::memset(&record->zonesBegin, 0, 3 * sizeof(record->zonesBegin));   // an empty STLport vector (0055A3E0)
+        ei::SetVtable(record, QuestItemRecord::kVtableAddress);
+        return record;
+    }
+    case kClassLoot:
+        return NewRecordOf<LootItemRecord>();
+    default:
+        return nullptr;
+    }
 }
 
 // Destroys what every record has (the extra members of the quick, quest and loot records are
 // not destroyed: the original leaks them, though they hold nothing here) and frees it.
-void DeleteRecord(char* record) {
-    reinterpret_cast<console::CStringArray*>(record + 0x50)->~CStringArray();
-    reinterpret_cast<console::CStringArray*>(record + 0x20)->~CStringArray();
-    reinterpret_cast<mfc::CString*>(record + 0x10)->~CString();
-    reinterpret_cast<mfc::CString*>(record + 0x08)->~CString();
-    reinterpret_cast<mfc::CString*>(record + 0x04)->~CString();
+void DeleteRecord(ItemRecordHead* record) {
+    record->list50.~CStringArray();
+    record->list20.~CStringArray();
+    record->materialClass.~CString();
+    record->text08.~CString();
+    record->text04.~CString();
     gamecrt::operator_delete(record);
 }
 
 // Index of `record` in `table` (the pointer difference divided by the stride, signed).
-std::uint32_t IndexIn(const RecordTable& table, const char* record, int stride) {
-    return static_cast<std::uint32_t>(static_cast<int>(record - table.begin) / stride);
+std::uint32_t IndexIn(const RecordTable& table, const ItemRecordHead* record, int stride) {
+    return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<const char*>(record) - table.begin) / stride);
 }
 
 // Called through their game addresses so the verify wrappers see the nested calls.
@@ -178,36 +143,36 @@ __declspec(naked) CSpell* __fastcall CallCreateSpellFromText(void*, void*, const
 // --- CItem ---------------------------------------------------------------------------------------
 
 void CItem::InitFromRecord(const char* record) {
-    // +0x48 and +0x40 pass through the FPU in the original (FLD, FST, FSTP), which quiets a
-    // signalling NaN; the other fields are copied as dwords.
-    FpuCopy(&unknown_24, record + 0x48);
-    FpuCopy(&unknown_20, record + 0x48);
-    std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
-    FpuCopy(&chargeMax_, record + 0x40);
-    FpuCopy(&charge_, record + 0x40);
+    // The condition and the charge pass through the FPU in the original (FLD, FST, FSTP), which
+    // quiets a signalling NaN; the other fields are copied as dwords.
     const auto* head = reinterpret_cast<const ItemRecordHead*>(record);
-    unknown_34 = head->value38;
-    std::memcpy(&price_, record + 0x34, 4);
+    FpuCopy(&unknown_24, &head->condition);
+    FpuCopy(&unknown_20, &head->condition);
+    std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
+    FpuCopy(&chargeMax_, &head->charge);
+    FpuCopy(&charge_, &head->charge);
+    std::memcpy(&unknown_34, &head->value38, 4);
+    std::memcpy(&price_, &head->price, 4);
     unknown_3C = head->value3C;
     unknown_40 = head->value44;
 }
 EI_REPLACE_METHOD(0x006A0490, CItem::InitFromRecord);
 
 void CItem::AttachSpell(CSpell* spell) {
-    CEngineObject* previous = static_cast<CEngineObject*>(spell_);
-    if (previous) price_ = price_ - F(reinterpret_cast<const char*>(previous), 0x48);
+    auto* previous = static_cast<CSpell*>(spell_);
+    if (previous) price_ = price_ - std::bit_cast<float>(previous->price_);
     spell_ = spell;
-    if (spell) ++reinterpret_cast<CEngineObject*>(spell)->refCount_;
-    if (previous) ei::VCall<void>(previous, kSlotRelease);
-    if (spell_) price_ = F(static_cast<const char*>(spell_), 0x48) + price_;
+    if (spell) ++spell->refCount_;
+    if (previous) previous->Release();
+    if (spell_) price_ = std::bit_cast<float>(static_cast<const CSpell*>(spell_)->price_) + price_;
 }
 EI_REPLACE_METHOD(0x006A04D0, CItem::AttachSpell);
 
 void CItem::SetSpell(CSpell* spell) {
-    CEngineObject* previous = static_cast<CEngineObject*>(spell_);
+    auto* previous = static_cast<CSpell*>(spell_);
     spell_ = spell;
-    if (spell) ++reinterpret_cast<CEngineObject*>(spell)->refCount_;
-    if (previous) ei::VCall<void>(previous, kSlotRelease);
+    if (spell) ++spell->refCount_;
+    if (previous) previous->Release();
 }
 EI_REPLACE_METHOD(0x006A0520, CItem::SetSpell);
 
@@ -222,7 +187,7 @@ EI_REPLACE_METHOD(0x006A5B90, CItemConstructor::Reset);
 void CItemConstructor::Detach() {
     if (manager_) --manager_->refCount_;
     manager_ = nullptr;
-    if (item_) ei::VCall<void>(item_, kSlotRelease);
+    if (item_) item_->Release();
     item_ = nullptr;
     material_ = nullptr;
     prototype_ = nullptr;
@@ -231,8 +196,7 @@ void CItemConstructor::Detach() {
 EI_REPLACE_METHOD(0x006A5BD0, CItemConstructor::Detach);
 
 void CItemConstructor::DestructBody() {
-    std::uintptr_t vtable = 0x00744020;
-    std::memcpy(this, &vtable, sizeof(vtable));
+    ei::SetVtable(this, kVtableAddress);
     Detach();
     DestructBase();
 }
@@ -245,7 +209,7 @@ CItemConstructor* CItemConstructor::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x006A5B00, CItemConstructor::DeletingDestruct);
 
-void CItemConstructor::SetManager(CEngineObject* manager) {
+void CItemConstructor::SetManager(CBaseManager* manager) {
     if (manager_) --manager_->refCount_;
     manager_ = manager;
     if (manager) ++manager->refCount_;
@@ -253,7 +217,7 @@ void CItemConstructor::SetManager(CEngineObject* manager) {
 EI_REPLACE_METHOD(0x006A5C00, CItemConstructor::SetManager);
 
 void CItemConstructor::SetItem(CItem* item) {
-    if (item_) ei::VCall<void>(item_, kSlotRelease);
+    if (item_) item_->Release();
     item_ = item;
     if (item) ++item->refCount_;
     material_ = nullptr;
@@ -262,9 +226,9 @@ void CItemConstructor::SetItem(CItem* item) {
 EI_REPLACE_METHOD(0x006A5C20, CItemConstructor::SetItem);
 
 BOOL CItemConstructor::BeginCreateItem(int kind, int key) {
-    CItem* item = ei::VCall<CItem*>(manager_, kManagerSlotCreateObject, kind, key);
+    CItem* item = static_cast<CItem*>(manager_->CreateObject(kind, key));
     if (!item) return game::FatalError(kCantCreateItem);
-    if (item_) ei::VCall<void>(item_, kSlotRelease);
+    if (item_) item_->Release();
     item_ = item;
     ++item->refCount_;
     material_ = nullptr;
@@ -295,7 +259,7 @@ EI_REPLACE_METHOD(0x006A5CE0, CItemConstructor::SetSpellObject);
 
 CItem* CItemConstructor::EndCreateItem() {
     if (!CallBuild(this)) {
-        ei::VCall<void>(item_, kSlotRelease);
+        item_->Release();
         item_ = nullptr;
         return nullptr;
     }
@@ -310,7 +274,7 @@ CItem* CItemConstructor::EndCreateItem() {
 EI_REPLACE_METHOD(0x006A5CF0, CItemConstructor::EndCreateItem);
 
 BOOL CItemConstructor::Cancel() {
-    if (item_) ei::VCall<void>(item_, kSlotRelease);
+    if (item_) item_->Release();
     item_ = nullptr;
     spell_ = nullptr;
     material_ = nullptr;
@@ -323,73 +287,81 @@ namespace {
 
 // Build's common part: price, values and charge of the record, from the prototype alone or
 // scaled by the material.
-void FillCommon(char* record, const char* prototype, const char* material) {
+void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const MaterialRecordHead* material) {
     if (!material) {
-        CopyDword(record, 0x34, prototype, 0x34);
-        CopyDword(record, 0x38, prototype, 0x38);
-        CopyDword(record, 0x3C, prototype, 0x3C);
-        CopyDword(record, 0x40, prototype, 0x40);
-        CopyDword(record, 0x48, prototype, 0x48);
-        CopyDword(record, 0x44, prototype, 0x44);
-        CopyDword(record, 0x4C, prototype, 0x4C);
+        CopyBits(record->price, prototype->price);
+        CopyBits(record->value38, prototype->value38);
+        CopyBits(record->value3C, prototype->value3C);
+        CopyBits(record->charge, prototype->charge);
+        CopyBits(record->condition, prototype->condition);
+        CopyBits(record->value44, prototype->value44);
+        CopyBits(record->materialUnits, prototype->materialUnits);
         return;
     }
-    // Every operand is read before the arithmetic so that no partial result leaves the FPU (the
-    // original keeps them in ST0). Price: the prototype's +0x4C (an unsigned count, FILD qword)
-    // times the material's price, plus the prototype's price.
-    std::int64_t units = Head(prototype)->unknown_4C;
-    float materialPrice = Material(material)->quality, price = Head(prototype)->price;
-    Put<float>(record, 0x34, static_cast<float>(static_cast<double>(units) * materialPrice + price));
-    float value38 = F(prototype, 0x38), factor38 = F(material, 0x14);
-    Put<float>(record, 0x38, value38 * factor38);
-    CopyDword(record, 0x3C, prototype, 0x3C);
-    float charge = Head(prototype)->charge, extraCharge = Material(material)->magicPower;
-    Put<float>(record, 0x40, charge + extraCharge);
-    float value48 = Head(prototype)->value48, factor48 = F(material, 0x20);
-    Put<float>(record, 0x48, value48 * factor48);
-    Put<int>(record, 0x44, Field<int>(prototype, 0x44) + Field<int>(material, 0x1C));
-    CopyDword(record, 0x4C, prototype, 0x4C);
+    // Price: the prototype's material units (unsigned, FILD qword) times the material's unit
+    // price, plus the prototype's price.
+    double units = x87::FromUnsigned(prototype->materialUnits);
+    float unitPrice = material->unitPrice, price = prototype->price;
+    record->price = static_cast<float>(units * unitPrice + price);
+    float value38 = prototype->value38, factor38 = material->factor38;
+    record->value38 = value38 * factor38;
+    CopyBits(record->value3C, prototype->value3C);
+    float charge = prototype->charge, extraCharge = material->magicPower;
+    record->charge = charge + extraCharge;
+    float condition = prototype->condition, conditionFactor = material->conditionFactor;
+    record->condition = condition * conditionFactor;
+    record->value44 = prototype->value44 + material->magicLevel;
+    CopyBits(record->materialUnits, prototype->materialUnits);
 }
 
 // Build's per-class part; returns the prototype's index in its table.
-std::uint32_t FillClass(int classId, char* record, const char* prototype, const char* material) {
+std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHead* prototype,
+                        const MaterialRecordHead* material) {
     switch (classId) {
     case kClassWeapon: {
-        CopyDword(record, 0x8C, prototype, 0x8C);
-        float damage = Weapon(prototype)->damage, factor = F(material, 0x28);
-        Put<float>(record, 0x90, damage * factor);
-        float spread = Weapon(prototype)->damageSpread, factor2 = F(material, 0x28);
-        Put<float>(record, 0x94, spread * factor2);
+        auto* to = static_cast<WeaponRecord*>(record);
+        auto* from = static_cast<const WeaponRecord*>(prototype);
+        CopyBits(to->value8C, from->value8C);
+        float damage = from->damage, factor = material->damageFactor;
+        to->damage = damage * factor;
+        float spread = from->damageSpread, factor2 = material->damageFactor;
+        to->damageSpread = spread * factor2;
         return IndexIn(Weapons(), prototype, kWeaponSize);
     }
-    case kClassArmor:
-        Put<std::uint32_t>(record, 0x8C, Field<std::uint32_t>(prototype, 0x8C) | Material(material)->unknown_48);
-        Put<std::uint32_t>(record, 0xB0, Field<std::uint32_t>(prototype, 0xB0) | Material(material)->unknown_48);
-        // Seven protection values in two groups, each scaled by the material's factor for its
-        // type and by a group factor of the prototype (+0x6C and +0x90).
+    case kClassArmor: {
+        auto* to = static_cast<ArmorRecord*>(record);
+        auto* from = static_cast<const ArmorRecord*>(prototype);
+        to->firstFlags = from->firstFlags | material->armourFlags;
+        to->othersFlags = from->othersFlags | material->armourFlags;
+        // Seven absorption values in two rows, each scaled by the material's factor for its
+        // damage type and by the row's factor.
         for (int k = 0; k < 7; ++k) {
-            float a = F(prototype, 0x70 + 4 * k), b = F(material, 0x2C + 4 * k), c = F(prototype, 0x6C);
-            Put<float>(record, 0x70 + 4 * k, a * b * c);
-            float d = F(prototype, 0x94 + 4 * k), e = F(material, 0x2C + 4 * k), f = F(prototype, 0x90);
-            Put<float>(record, 0x94 + 4 * k, d * e * f);
+            float a = from->absorbFirst[k], b = material->absorbFactors[k], c = from->FirstFactor();
+            to->absorbFirst[k] = a * b * c;
+            float d = from->absorbOthers[k], e = material->absorbFactors[k], f = from->othersFactor;
+            to->absorbOthers[k] = d * e * f;
         }
         return IndexIn(Armors(), prototype, kArmorSize);
+    }
     case kClassQuick:
     case kClassSpell:
-        CopyDword(record, 0x70, prototype, 0x70);
+        CopyBits(static_cast<QuickItemRecord*>(record)->value70, static_cast<const QuickItemRecord*>(prototype)->value70);
         return IndexIn(QuickItems(), prototype, kQuickItemSize);
     case kClassQuest:
-        CopyDword(record, 0x6C, prototype, 0x6C);
+        CopyBits(record->category, prototype->category);
         return IndexIn(Loot(), prototype, kLootSize);
-    case kClassLoot:
-        CopyDword(record, 0x6C, prototype, 0x6C);
-        CopyDword(record, 0x70, prototype, 0x70);
+    case kClassLoot: {
+        auto* to = static_cast<LootItemRecord*>(record);
+        auto* from = static_cast<const LootItemRecord*>(prototype);
+        CopyBits(to->category, from->category);
+        CopyBits(to->recordType, from->recordType);
         // Kind 1 (a material) takes the material's index when one is given.
-        if (Field<int>(prototype, 0x6C) == 1 && material)
-            CopyDword(record, 0x74, material, 0x0C);
+        if (from->category == 1 && material)
+            CopyBits(to->index, material->number);
         else
-            CopyDword(record, 0x74, prototype, 0x74);
+            CopyBits(to->index, from->index);
         return IndexIn(QuestItems(), prototype, kQuestItemSize);
+    }
     default:
         return 0;   // not reached: the record of an unknown class is null and faulted above
     }
@@ -401,15 +373,17 @@ BOOL CItemConstructor::Build() {
     int classId = item_->GetClassId();
     if ((classId == kClassWeapon || item_->GetClassId() == kClassArmor) && !material_) return 0;
 
-    char* record = NewRecord(item_->GetClassId());
-    FillCommon(record, prototype_, material_);
-    std::uint32_t index = FillClass(item_->GetClassId(), record, prototype_, material_);
+    auto* prototype = reinterpret_cast<const ItemRecordHead*>(prototype_);
+    auto* material = reinterpret_cast<const MaterialRecordHead*>(material_);
+    ItemRecordHead* record = NewRecord(item_->GetClassId());
+    FillCommon(record, prototype, material);
+    std::uint32_t index = FillClass(item_->GetClassId(), record, prototype, material);
 
     ei::VCall<void>(item_, kSlotInitFromRecord, record);
-    if (item_->GetClassId() == kClassQuick && Field<int>(prototype_, field::kItemCategory) == kCategoryWand) {
-        void* context = *reinterpret_cast<void* const*>(reinterpret_cast<const char*>(manager_) + 0xAC);
-        void* spellManager = ei::VCall<void*>(context, kContextSlotSpellManager);
-        CSpell* spell = CallCreateSpellFromText(spellManager, nullptr, static_cast<const char*>(reinterpret_cast<const QuickItemRecord*>(prototype_)->text7C));
+    if (item_->GetClassId() == kClassQuick && static_cast<int>(prototype->category) == kCategoryWand) {
+        CSpellManager* spellManager = static_cast<CManagerContext*>(manager_->context_)->SpellManager();
+        CSpell* spell = CallCreateSpellFromText(spellManager, nullptr,
+                                                static_cast<const char*>(static_cast<const QuickItemRecord*>(prototype)->text7C));
         spell_ = spell;
         CallItemSetSpell(item_, nullptr, spell);
     } else if (spell_) {
@@ -417,8 +391,8 @@ BOOL CItemConstructor::Build() {
     }
     if (record) DeleteRecord(record);
 
-    if (material_)
-        item_->unknown_18 = (Material(material_)->unknown_0C & 0xFFFF) | index << 16;
+    if (material)
+        item_->unknown_18 = (material->number & 0xFFFF) | index << 16;
     else
         item_->unknown_18 = index << 16;
     item_->unknown_48 = static_cast<std::uint32_t>(count_);
@@ -430,7 +404,6 @@ EI_REPLACE_METHOD(0x006A5D60, CItemConstructor::Build);
 
 namespace {
 
-constexpr int kContextSlotConstructor = 16;   // the manager context's slot 16 (+0x40): the constructor
 constexpr int kKindSpellContainer = 0x3008;
 constexpr int kLootKindTable = 2;             // a loot item (class 0x15) whose +0x50 names a table
 
@@ -490,7 +463,7 @@ __declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const NameKey*) E
 __declspec(naked) char** __fastcall ArmorNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006A75E0)
 char** __fastcall QuickNameAt(void* a0, void*, const NameKey* a2) { return (char**)QuickItemMapAtOriginal(a0, nullptr, (const void*)a2); }
 char** __fastcall SpellNameAt(void* a0, void*, const NameKey* a2) { return (char**)SpellMapAtOriginal(a0, nullptr, (const void*)a2); }
-char* __fastcall ModifierNameFindOrInsert(void* a0, void*, const NamePair* a2) { return (char*)ModifierMapFindOrInsertOriginal(a0, nullptr, (const void*)a2); }
+NamePair* __fastcall ModifierNameFindOrInsert(void* a0, void*, const NamePair* a2) { return (NamePair*)ModifierMapFindOrInsertOriginal(a0, nullptr, (const void*)a2); }
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 int TableIndex(const RecordTable& table, const char* record, int stride) {
@@ -529,10 +502,9 @@ int LootTableIndex(int which, const char* name, const void* allocator) {
         void* none = nullptr;
         NamePair pair;
         PairConstruct(&pair, nullptr, &key, &none);
-        char** slot = reinterpret_cast<char**>(
-            ModifierNameFindOrInsert(reinterpret_cast<void*>(0x007C853C), nullptr, &pair) + 0xC);
+        void** slot = &ModifierNameFindOrInsert(reinterpret_cast<void*>(0x007C853C), nullptr, &pair)->record;
         StlStringDestroy(&pair.name);
-        record = *slot;
+        record = static_cast<char*>(*slot);
         StringRepDestroy(&key);
         return TableIndex(SpellModifiers(), record, kSpellModifierSize);
     }
@@ -544,8 +516,8 @@ int LootTableIndex(int which, const char* name, const void* allocator) {
 } // namespace
 
 CItem* CItemManager::CreateItem(const char* name) {
-    void* context = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(this) + 0xAC);
-    auto* constructor = ei::VCall<CItemConstructor*>(context, kContextSlotConstructor);
+    auto* context = static_cast<CManagerContext*>(context_);
+    CItemConstructor* constructor = context->ItemConstructor();
     mfc::CString extra;               // the part in brackets: "name[extra]"
     mfc::CString text(name);
     console::CStringArray parts;      // the name split at '.'
@@ -566,7 +538,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts.data[0])),
                         reinterpret_cast<const unsigned char*>(kSpellContainer)) == 0) {
         const char* spellText = extra;
-        CSpell* spell = CallCreateSpellFromText(ei::VCall<void*>(context, kContextSlotSpellManager), nullptr, spellText);
+        CSpell* spell = CallCreateSpellFromText(context->SpellManager(), nullptr, spellText);
         CItem* item = nullptr;
         if (spell) {
             char* record = FindQuickNamed(kQuickTable, nullptr, kSpellContainer);
@@ -590,16 +562,16 @@ CItem* CItemManager::CreateItem(const char* name) {
             game::FatalError(kNoPrototype, static_cast<const char*>(parts.data[0]));
         return nullptr;
     }
-    constructor->SetManager(reinterpret_cast<CEngineObject*>(this));
-    constructor->BeginCreateItem(ei::VCall<int>(prototype, 0), -1);
+    constructor->SetManager(this);
+    constructor->BeginCreateItem(RecordSlots(reinterpret_cast<ItemRecordHead*>(prototype))->Kind(), -1);
     char* material = nullptr;
     if (parts.size > 1) material = FindMaterialNamed(kMaterialTable, nullptr, parts.data[1]);
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, a number (+0x30, the count) for materials.
-    const unsigned char* type = *reinterpret_cast<const unsigned char* const*>(prototype + 4);
+    auto* type = reinterpret_cast<const unsigned char*>(static_cast<const char*>(reinterpret_cast<ItemRecordHead*>(prototype)->text04));
     if (console::Length(extra) != 0 && gamecrt::mbscmp(type, reinterpret_cast<const unsigned char*>(kMaterialType)) != 0) {
-        void* spells = ei::VCall<void*>(context, kContextSlotSpellManager);
+        CSpellManager* spells = context->SpellManager();
         if (CSpell* spell = CallCreateSpellFromText(spells, nullptr, extra)) constructor->SetSpellObject(spell);
     } else if (gamecrt::mbscmp(type, reinterpret_cast<const unsigned char*>(kMaterialType)) == 0 &&
                console::Length(extra) != 0) {
@@ -613,11 +585,10 @@ CItem* CItemManager::CreateItem(const char* name) {
         game::FatalError(kCantCreate, name);
     }
     constructor->SetManager(nullptr);
-    if (item->GetClassId() == kClassLoot && *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x4C) == kLootKindTable &&
-        parts.size > 1) {
-        int which = *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x50);
-        *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x54) =
-            LootTableIndex(which, parts.data[1], &name);
+    auto* loot = static_cast<CItemLoot*>(item);
+    if (item->GetClassId() == kClassLoot && static_cast<int>(loot->kind_) == kLootKindTable && parts.size > 1) {
+        int which = static_cast<int>(loot->recordType_);
+        loot->index_ = static_cast<std::uint32_t>(LootTableIndex(which, parts.data[1], &name));
     }
     return item;
 }

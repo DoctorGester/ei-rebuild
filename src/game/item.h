@@ -400,7 +400,7 @@ public:
     CItemConstructor* DeletingDestruct(unsigned flags);
 
     // 006A5C00. Counts a reference to `manager` (+4), dropping the previous one's (no release).
-    void SetManager(CEngineObject* manager);
+    void SetManager(CBaseManager* manager);
 
     // 006A5C20. Adopts an existing item (counted; the previous one released); records cleared.
     void SetItem(CItem* item);
@@ -432,7 +432,7 @@ public:
     // material's +0x18; without a material the prototype's values alone.
     bool MagicCapacity(float* level, float* power);
 
-    CEngineObject* manager_;  // +0x1C counted (+4) but never released
+    CBaseManager* manager_;   // +0x1C the item manager; counted (+4) but never released
     char* material_;          // +0x20 material record or null
     char* prototype_;         // +0x24 prototype record
     CItem* item_;             // +0x28 counted
@@ -454,6 +454,7 @@ public:
     virtual void MapObjectManager();               // 19
     virtual void PlayerList();                     // 20
     virtual CBaseManager* SpecificManager();       // 21: makes the figures' drawers (class 0x45; null for a party)
+    virtual CSpellManager* SpellManager();         // 22
 };
 
 // The item manager (007AFFB4; a CResourceManager with vtable 0073F25C, 0xBC bytes, as the world
