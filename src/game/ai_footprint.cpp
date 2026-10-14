@@ -15,6 +15,16 @@
 
 // --- Footprint cell sets -------------------------------------------------------------------------
 
+FootprintCellSet* FootprintCellSet::Construct() {
+    cells = nullptr;
+    growBy = 0;
+    capacity = 0;
+    count = 0;
+    hashed = true;
+    return this;
+}
+EI_REPLACE_METHOD(0x0067E4E0, FootprintCellSet::Construct);
+
 void FootprintCellSet::SetSize(int size, int grow) {
     if (grow != -1) growBy = grow;
     if (size == 0) {

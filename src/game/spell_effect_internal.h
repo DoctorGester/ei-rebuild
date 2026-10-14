@@ -117,7 +117,7 @@ __declspec(naked) inline void __fastcall FootprintDisc(void* /*set*/, void*, voi
     EI_ORIGINAL(0x005B2760)
 __declspec(naked) inline bool __fastcall AiMapStamp(void* /*aiMap*/, void*, int /*owner*/, void* /*set*/) EI_ORIGINAL(0x005B7820)
 __declspec(naked) inline bool __fastcall AiMapClear(void* /*aiMap*/, void*, void* /*set*/) EI_ORIGINAL(0x005B78F0)
-inline void* SpellFootprint() { return reinterpret_cast<void*>(0x007C8478); }
+inline void* SpellFootprint() { return reinterpret_cast<void*>(0x007C8478); }   // a FootprintCellSet (ai_map.h)
 // The later states' callees.
 __declspec(naked) inline void __fastcall ParticleSetColors(CEngineObject*, void*, float /*a*/, float /*b*/) EI_ORIGINAL(0x006792E0)
 // 005302F0 CUnit::ModeSpeed (unit.cpp); left unrounded in ST0.

@@ -228,6 +228,13 @@ void CPlayerServer::SendObject0B(const void* object, std::uint32_t value) {
     Write(&out_, payload, 8);
 }
 
+void CPlayerServer::SendValue12(std::uint32_t, std::uint32_t value) {
+    std::uint8_t payload[1 + sizeof(value)] = {};
+    std::memcpy(payload + 1, &value, sizeof(value));
+    WriteByte(&out_, 0x12);
+    Write(&out_, payload, sizeof(payload));
+}
+
 void CPlayerServer::SendText13(std::uint32_t, const char* text) {
     WriteByte(&out_, 0x13);
     WriteText(&out_, text);
@@ -484,6 +491,7 @@ EI_REPLACE_METHOD(0x0066F280, CPlayerServer::SendValue15);
 EI_REPLACE_METHOD(0x0066F2C0, CPlayerServer::SendPair18);
 EI_REPLACE_METHOD(0x0066D6A0, CPlayerServer::SendObject43);
 EI_REPLACE_METHOD(0x0066D6E0, CPlayerServer::SendObject0B);
+EI_REPLACE_METHOD(0x0066D730, CPlayerServer::SendValue12);
 EI_REPLACE_METHOD(0x0066D770, CPlayerServer::SendText13);
 EI_REPLACE_METHOD(0x0066D7B0, CPlayerServer::SendText);
 EI_REPLACE_METHOD(0x0066D230, CPlayerServer::WriteTo);

@@ -328,7 +328,7 @@ water change runs, loaded back) reaches SetWaterLevel; `camera` (Scroll Lock scr
 Facts. The two passes differ only in the page range: ground 0..pages+1, water pages+2..pages*2+3; a page's texture is
 `pageTextures[page % (pages + 2)]`, bound at the first sector that has tiles on it. They do not touch the device (matrix
 pushes, the renderer's SetTexture, DrawSectorPage), so they are ported; the sector's clip test 006BFB20 and seams 006BFB80
-(below 006C0000) are forwarders in terrain_passes.cpp. Level of detail: 0 / 1 below the squared distances 0079BD2C /
+(below 006C0000) are ported there too (A-Z1, items_spells.md). Level of detail: 0 / 1 below the squared distances 0079BD2C /
 0079BD30 from the camera to the sector's centre unless `minDetail` (+0xAA0) forbids it, else 2. The shadow ray: a
 crossing into the next sector in x skips that iteration's y step; a negative slope gives the sign of the sun's z.
 Terrain members named: `drawMatrix` +0x54, `worldMatrix` +0x98, `materials` +0x12C, `lightingSector / X / Y` +0x24C,

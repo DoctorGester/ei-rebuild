@@ -16,10 +16,6 @@
 
 using terrain::SectorData;
 
-// 006BFB20 / 006BFB80: not rewritten (the sector's part of the passes below 006C0000).
-__declspec(naked) void SectorData::ClipTest(CSceneRenderer*) EI_ORIGINAL(0x006BFB20)
-__declspec(naked) void SectorData::FindSeams() EI_ORIGINAL(0x006BFB80)
-
 namespace {
 
 constexpr float kSectorCells = 32.0f;   // 0073CA90: a sector's width in cells
@@ -34,6 +30,9 @@ float DetailFar() { return *reinterpret_cast<const float*>(0x0079BD30); }
 __declspec(naked) SectorData* __fastcall SectorAtAt(Terrain*, void*, int /*sx*/, int /*sy*/, std::uint32_t /*wanted*/,
                                                     int /*create*/) EI_ORIGINAL(0x006C8140)
 __declspec(naked) void __fastcall ChooseDetailAt(Terrain*, void*, SectorData*) EI_ORIGINAL(0x006C66E0)
+__declspec(naked) int __fastcall IsDrawnAt(const SectorData*) EI_ORIGINAL(0x006BFB00)
+__declspec(naked) void __fastcall ClipTestAt(SectorData*, void*, CSceneRenderer*) EI_ORIGINAL(0x006BFB20)
+__declspec(naked) void __fastcall FindSeamsAt(SectorData*) EI_ORIGINAL(0x006BFB80)
 __declspec(naked) int __fastcall ProjectAt(SectorData*, void*, CTransformPipeline*) EI_ORIGINAL(0x006BFC80)
 __declspec(naked) int __fastcall DrawSectorPageAt(SectorData*, void*, CSceneRenderer*, Terrain*, int /*page*/,
                                                   int /*unused*/) EI_ORIGINAL(0x006BFF40)
@@ -83,6 +82,43 @@ void DrawPass(Terrain* terrain, CSceneRenderer* renderer, int firstPage, int las
 void SectorData::SetDetail(int level) { unknown_170 = level; }
 EI_REPLACE_METHOD(0x006C1390, SectorData::SetDetail);
 
+// --- The sector's part of the passes (006BFB00-006BFC7B; A-Z1) -------------------------------------
+
+int SectorData::IsDrawn() const { return unknown_060 == 0 || unknown_060 == terrain::kCrossing ? 1 : 0; }
+EI_REPLACE_METHOD(0x006BFB00, SectorData::IsDrawn);
+
+void SectorData::ClipTest(CSceneRenderer* renderer) {
+    // The verdict as it is stored: -1 counts as outside.
+    const auto verdict = [&](const terrain::SectorBox& bounds) {
+        const int where = renderer->pipeline_->ClipTest(terrain::BoundsOf(bounds));
+        return where == -1 ? terrain::kCulled : where;
+    };
+    unknown_060 = verdict(box);
+    if (unknown_060 == terrain::kCulled) return;
+    for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
+}
+EI_REPLACE_METHOD(0x006BFB20, SectorData::ClipTest);
+
+void SectorData::FindSeams() {
+    unknown_178 = 0;
+    unknown_174 = 0;
+    // A lit neighbour drawn at the next coarser level: this sector's edge towards it is drawn with
+    // the seam triangles (terrain_draw.cpp). The lookup does not load anything (create 0).
+    const auto coarser = [&](int nx, int ny, int detail) {
+        const SectorData* neighbour = SectorAtAt(reinterpret_cast<Terrain*>(owner), nullptr, nx, ny, kLit, 0);
+        return neighbour && neighbour->unknown_170 == detail && neighbour->IsDrawn();
+    };
+    if (unknown_170 == 0) {
+        if (coarser(sx, sy - 1, 1)) unknown_174 = 1;
+        if (coarser(sx, sy + 1, 1)) unknown_178 = 1;
+    }
+    if (unknown_170 == 1) {
+        if (coarser(sx - 1, sy, 2)) unknown_174 = 1;
+        if (coarser(sx + 1, sy, 2)) unknown_178 = 1;
+    }
+}
+EI_REPLACE_METHOD(0x006BFB80, SectorData::FindSeams);
+
 void Terrain::ChooseDetail(SectorData* sector) {
     const Vector3 centre = {(static_cast<float>(sector->sx) + 0.5f) * kSectorCells,
                             (static_cast<float>(sector->sy) + 0.5f) * kSectorCells,
@@ -101,12 +137,12 @@ int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     if (!mapLoaded) return 0;
     ForVisibleSectors(this, [&](SectorData* sector) {
         ChooseDetailAt(this, nullptr, sector);
-        sector->ClipTest(renderer);
+        ClipTestAt(sector, nullptr, renderer);
         return true;
     });
     ForVisibleSectors(this, [&](SectorData* sector) {
-        if (sector->IsDrawn()) {
-            sector->FindSeams();
+        if (IsDrawnAt(sector)) {
+            FindSeamsAt(sector);
             ProjectAt(sector, nullptr, renderer->pipeline_);
         }
         return true;
@@ -114,7 +150,7 @@ int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
     for (int page = firstPage; page <= lastPage; ++page) {
         bool bound = false;
         bool drawn = ForVisibleSectors(this, [&](SectorData* sector) {
-            if (!sector->IsDrawn() || !HasTilesOn(sector, page)) return true;
+            if (!IsDrawnAt(sector) || !HasTilesOn(sector, page)) return true;
             if (!bound) {
                 renderer->SetTexture(0, pageTextures[page % (pages + 2)]);
                 bound = true;

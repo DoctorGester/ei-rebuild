@@ -1,7 +1,8 @@
 // Checks for static initialisers ported under A-E2: the debug panel's constructor (00444740,
 // src/game/string_map.cpp), the options object's (00458870, src/game/options_construct.cpp),
 // CSysInfo's translation unit (004DDCB0-004DE87C, src/game/sys_info.cpp) and the weather's noise
-// curves (004E3980, src/game/weather_noise.cpp).
+// curves (004E3980, src/game/weather_noise.cpp); and under A-Z1: the constructor of the spells'
+// footprint cell set (0067E4E0, src/game/ai_footprint.cpp).
 //
 // The originals run among the game's static initialisers, before the hooks are installed, so no
 // wrapper ever sees them. What they built is still untouched at the entry of WinMain: each check
@@ -22,9 +23,14 @@
 //     C runtime's generator with 1 (its state before the first draw of the thread), builds five
 //     curves, and puts the state back. This compares equal only while nothing draws from rand
 //     before the curves' initialiser; the check also reports whether the 640 draws account for the
-//     whole state at the entry of WinMain.
+//     whole state at the entry of WinMain;
+//   - the spells' footprint cell set (007C8478, built by 0067E4C0; nothing has cast a wall or a
+//     cloud yet): the array's four fields and the hashed byte, the only bytes the constructor
+//     writes. Ours runs on storage filled with a pattern, which every other byte must keep; the
+//     original's other bytes (the buckets) must still be the image's zeros.
 #include "verify.h"
 
+#include "../../src/game/ai_map.h"
 #include "../../src/game/options.h"
 #include "../../src/game/sys_info.h"
 #include "../../src/game/weather_noise.h"
@@ -194,5 +200,34 @@ void WeatherNoiseStartupCheck() {
                       Bits(ours[at].segments[0].cubic), atStart, afterCurves);
 }
 EI_STARTUP_CHECK(WeatherNoiseStartupCheck);
+
+// ---- The spells' footprint cell set ----------------------------------------------------------------
+
+void FootprintSetStartupCheck() {
+    constexpr std::uint8_t kPattern = 0xA5;
+    const auto* theirs = reinterpret_cast<const FootprintCellSet*>(0x007C8478);
+    alignas(4) static std::uint8_t storage[sizeof(FootprintCellSet)];
+    std::memset(storage, kPattern, sizeof(storage));
+    auto* ours = reinterpret_cast<FootprintCellSet*>(storage);
+    const FootprintCellSet* result = ours->Construct();
+
+    const bool written = theirs->cells == ours->cells && theirs->count == ours->count && theirs->capacity == ours->capacity &&
+                         theirs->growBy == ours->growBy && theirs->hashed == ours->hashed;
+    // Everything else: the pattern in ours, zeros in theirs.
+    bool untouched = true;
+    const auto* theirBytes = reinterpret_cast<const std::uint8_t*>(theirs);
+    for (std::size_t o = offsetof(FootprintCellSet, buckets); o < sizeof(FootprintCellSet); ++o) {
+        if (o == offsetof(FootprintCellSet, hashed)) continue;
+        untouched = untouched && storage[o] == kPattern && theirBytes[o] == 0;
+    }
+    // An object of zeros would not have the hashed byte set.
+    ei::verify::Check("static initialiser: footprint cell set 0067E4E0", true,
+                      result == ours && written && untouched && theirs->hashed && !theirs->cells,
+                      "theirs: cells %p count %d capacity %d growBy %d hashed %d; ours: cells %p count %d capacity %d growBy %d "
+                      "hashed %d; other bytes untouched %d",
+                      static_cast<const void*>(theirs->cells), theirs->count, theirs->capacity, theirs->growBy, theirs->hashed,
+                      static_cast<const void*>(ours->cells), ours->count, ours->capacity, ours->growBy, ours->hashed, untouched);
+}
+EI_STARTUP_CHECK(FootprintSetStartupCheck);
 
 } // namespace

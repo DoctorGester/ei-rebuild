@@ -2,7 +2,8 @@
 
 InstallHooks compares a function's whole body in memory against game.exe on disk, so code that
 another mod (Rebirth's addon.dll) patched is never replaced. Functions Ghidra has no function for
-(e.g. code only reached through a pointer table) are listed by hand in config/extra_function_sizes.csv.
+(e.g. code only reached through a pointer table) are listed by hand in config/extra_function_sizes.csv;
+a row there for a function Ghidra does have replaces Ghidra's size (a body Ghidra cut short).
 """
 import concurrent.futures as cf, csv, os, re, urllib.request
 
@@ -19,9 +20,9 @@ def main():
         addrs = [r['address'] for r in csv.DictReader(f) if r['kind'] in ('game', 'thunk')]
     with cf.ThreadPoolExecutor(6) as ex:
         rows = [r for r in ex.map(body, addrs) if r]
-    known = {a for a, _ in rows}
     with open(os.path.join(ROOT, 'config', 'extra_function_sizes.csv')) as f:
-        rows += [(int(r['address'], 16), int(r['size'])) for r in csv.DictReader(f) if int(r['address'], 16) not in known]
+        extra = {int(r['address'], 16): int(r['size']) for r in csv.DictReader(f)}
+    rows = [(a, extra.pop(a, s)) for a, s in rows] + list(extra.items())
     rows.sort()
     out = os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')
     with open(out, 'w') as f:

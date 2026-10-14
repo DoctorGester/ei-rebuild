@@ -138,6 +138,25 @@ EI_VERIFY(0x0066D6A0, Verify_0x0066D6A0, 5, s_orig_0x0066D6A0);
 EI_MESSAGE_VERIFY(0x0066D6E0, 7, "CPlayerServer::SendObject0B", (CPlayerServer* self, void*, const void* o, std::uint32_t v),
                   (self, nullptr, o, v), SendObject0B(o, v));
 EI_VERIFY(0x0066D6E0, Verify_0x0066D6E0, 7, s_orig_0x0066D6E0);
+// 0066D730 (A-Z1): SUB ESP,8; MOV EAX,[ESP+0x10] (7 bytes). As the writers above, except that the
+// payload's first byte is never written by the original (stack garbage) and is 0 in ours: after the
+// original's run that byte is set to ours, so it is not compared and the stream keeps ours.
+// CPlayerManager::SendValueToAll (the script command SendEvent; script_exec.txt) reaches it.
+static void(__fastcall* s_sendValue12)(CPlayerServer*, void*, std::uint32_t, std::uint32_t);
+static void __fastcall SendValue12Verify(CPlayerServer* self, void*, std::uint32_t unused, std::uint32_t value) {
+    MessageState before(self);
+    self->SendValue12(unused, value);
+    MessageState after(self);
+    if (after.header.data_ != before.header.data_ || after.header.capacity_ != before.header.capacity_) return;
+    before.Restore(self);
+    s_sendValue12(self, nullptr, unused, value);
+    const std::uint32_t unwritten = before.header.position_ + 1;   // after the type byte
+    if (unwritten < after.bytes.size()) self->out_.data_[unwritten] = after.bytes[unwritten];
+    MessageState again(self);
+    ei::verify::Check("CPlayerServer::SendValue12", true, again.SameAs(after), "player %p: stream size %u vs %u, value %u", self,
+                      again.header.size_, after.header.size_, value);
+}
+EI_VERIFY(0x0066D730, SendValue12Verify, 7, s_sendValue12);
 EI_MESSAGE_VERIFY(0x0066D770, 5, "CPlayerServer::SendText13", (CPlayerServer* self, void*, std::uint32_t u, const char* t),
                   (self, nullptr, u, t), SendText13(u, t));
 EI_VERIFY(0x0066D770, Verify_0x0066D770, 5, s_orig_0x0066D770);
