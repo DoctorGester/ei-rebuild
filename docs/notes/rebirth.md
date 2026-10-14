@@ -70,10 +70,11 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 ### Widescreen and rendering (3 of 4 applied)
 
-- **WideScreen** (100 sites, single player; *not started*, 2-3 weeks): with VIDEORESOLUTION wider than 4:3 the 800x600 interface layout is
-  widened: layout widths 00742B08 (800.0) and 007428AC (695.0), `ScaleRectToScreen` / `ScalePointToScreen` (005F7CA0, 005F7D20), 005F7D60,
-  `CUiRegion::SetRect` / `AddPoint`, sprite placement 005E6FA0, the camp and hero screens, the panel builders (0063C050 .. 00649910), panel
-  immediates, the console and minimap rectangles, the cursor clip. These functions are why rule 9 of the rewrite guide exists.
+- **WideScreen** (100 sites, single player; *first part implemented* (W1), W2-W4 to do: "WideScreen" below): with VIDEORESOLUTION wider
+  than 4:3 the 800x600 interface layout is widened: layout widths 00742B08 (800.0) and 007428AC (695.0), `ScaleRectToScreen` /
+  `ScalePointToScreen` (005F7CA0, 005F7D20), 005F7D60, `CUiRegion::SetRect` / `AddPoint`, sprite placement 005E6FA0, the camp and hero
+  screens, the panel builders (0063C050 .. 00649910), panel immediates, the console and minimap rectangles, the cursor clip. These functions
+  are why rule 9 of the rewrite guide exists.
 - **ObjectsDrawRadius** (the 100.0 at 0073BAB0 in 0056AFE0 becomes the setting) and **LandscapeDrawRadius** (`PUSH 100.0` in 00569E40), both
   implemented (read once; flag off: margin 0073BAB0, distance 100.0). BinkPatch: *disabled here*.
 
@@ -196,7 +197,60 @@ the patched original in Rebirth: FixLeversActivate, FixSpellSelfCasting #0, FixP
 FixProgressNames, FixSpellEffectsOverflow #1, ImproveConsole, AddNewScriptCommands (through the existing evaluator / parser wrappers;
 CalcGroup's has 7 stolen bytes); the rest ours only with state checks.
 
+### WideScreen
+
+addon computes its layout once, when it applies its patches (before WinMain), from the starter's registry settings, not from the game's
+screen: `Settings\WideScreen` (DWORD, 1 when absent) and `EvilIslands\General Settings\VIDEORESOLUTION` (`"%dx%d"`). For a mode that
+passes its checks (at least 800x600, wider than 4:3) the 4:3 part `width43 = H * 800 / 600` keeps the 800x600 layout in the middle, the
+margins `(W - width43) / 2` pixels on either side, `extra = ceil((float)(margin * 800.0 / width43))` layout units (at WinMain's 53-bit FPU
+precision). It writes `800 + extra` to 00742B08 and `695 + extra` to 007428AC, scales layout to screen with the margin added and screen to
+layout with it taken off, and moves x by a *panel offset* (addon's 100BD0A0: `-extra` or `+extra` while one of its panel builders runs,
+0 otherwise) in `CUiRegion::SetRect` / `AddPoint` and the sprites' Place; the builders and other sites use the widths and the offset to put
+the battle screen's panels at the screen's edges.
+
+**Done (W1)**, `src/game/ui_widescreen.{h,cpp}` behind `Patch::WideScreen`: the layout from the same settings (read through the game's
+own RegQueryValueExA import, so harness runs can answer them), the two widths written at hook time (an `EI_STARTUP_ACTION`, new in
+`include/ei/hook.h`: runs after the Rebirth flags are known and before the hooks are installed), the scaling 005F7CA0 / 005F7D20 /
+005F7DA0 / 005F7E00 / 005F7E30, SetRect / AddPoint (005FC9E0, 005FCA70) and `CUiMesh::PlaceBody` (005E6FA0). 005F7D60 is a dead copy
+of 005F7D20 (not rewritten). Details:
+- addon's scaling tests ECX and adds / takes off the margin only when it is nonzero; its entries 005F7D9E / 005F7DFE (in front of
+  005F7DA0 / 005F7E00, written over with its 194-byte #93) clear ECX, and its code at 005FDE94 (in 005FDE20, the text surfaces' draw)
+  calls 005F7CA0 with ECX 0. The five hooks are `__fastcall` entries (`ScaleRectToScreenEntry` etc., ui.h) that take ECX 0 as "no
+  interface": the wide scaling without the margin (with the flag off ECX 0 never comes).
+- In a Rebirth launch, until W2-W4 port the builders, addon's builders set the panel offset: the startup finds addon's variable (the
+  operand of `ADD ECX,[m32]` / `ADD EAX,[m32]` in addon's SetRect, the JMP target at 005FC9E0, inside addon.dll) and our SetRect /
+  AddPoint / Place read that one.
+- 005F7DA0 / 005F7E00 / 005F7E30 lie inside addon's #93 site, so their verify wrappers steal whole instructions of addon's code written
+  there (`EI_REBIRTH_LIVE_STOLEN`, `include/ei/rebirth.h`; the installer waives "stolen bytes end inside the site" for them, and a JMP at a
+  function start inside a larger site is re-targeted).
+- Verified side by side with addon's code in a Rebirth launch (ui_widescreen): every scaling wrapper, SetRect / AddPoint, PlaceBody x / y /
+  z at 0 mismatches, and the widths addon wrote before WinMain equal ours (verify_ui_widescreen.cpp).
+
+**Harness**: scenario lines `resolution <WxH|desktop>` and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the game's
+and addon's registry reads of these settings for the run (addon reads them with RegQueryValueExW: the harness patches advapi32's stub
+slot, as addon loads after the hook), nothing is written (`tests/verify/harness_starter.h`). Scenarios use `desktop` (3840x2160 here):
+another mode makes dgVoodoo switch the display. `python tools\run_all.py --widescreen` runs `ui_widescreen` under Rebirth with our hooks
+(`ui_widescreen-rebirth`) and with `--no-hooks` (`ui_widescreen-rebirth-nohooks`, addon's code alone) and compares the frames: menu,
+options, load, the world with the battle screen's panels, the camp; the scenario runs on the virtual clock, and frames with a `_later` twin
+are compared without what moved between the two (the hero, his portrait, the menu's creatures). 2026-10-14: every frame within the default
+tolerance (at most 0.065% of the pixels differ). Not compared: the global map (its scene is lit by the world's time, which differs between
+the two runs). The options window's slider thumbs are a few pixels wider in ours: the same with WideScreen off (not WideScreen; to look at).
+
+**W2-W4** (the remaining 87 sites; each needs its functions rewritten or the rewrite to declare the patch, and its frames compared):
+- **W2, sprite shapes and text**: the shape builders' sites (005E70E0+4F1 SetRectangle, 005E7680+60D SetGrid, 005E7D60+5FE SetFrame,
+  005E99D0+4A7 SetTriangle: x moved by the panel offset); the text extent 005F8340+8F (80 bytes) and the text surfaces' draw
+  005FDE20+74 (the ECX 0 scaling); the rectangles read from +0x98 in the console / edit / list / chat / tooltip draws (0065C2E0+23F/+264,
+  0061D780+38E/+3BE, 006567A0+257/+268, 005E3700+139/+16C, 0065E580+1FE with its 0x320 / -0x320 operands).
+- **W3, the battle screen's panel builders** (they set the panel offset; then `widescreen::SetPanelOffset` replaces addon's variable):
+  the minimap 00641F20 / 00642930 / 00642B40, the unit panels 00645210 / 006456E0 / 00645F80 / 006462A0 / 00647FB0, the weapon bar and
+  quick items 0063BAB0 / 0063BCC0 / 0063C050 / 0063C800 / 0063CAE0, the action and spell columns 0063F300 / 0063F500 / 0063E2A0 /
+  0063E4B0, the move panel 00649190 / 00649910, the clock 00648520: replaced entries, epilogue hooks and layout immediates.
+- **W4, the other screens and the input**: the camp and hero screens (0060C870 CCampPages::Create, 00613EA0 / 00615D30 CMpHeroScreen),
+  the help page 00659420+574, the global map 0062F950+1D0 and its mouse move 00630010 (+7C, +22C), the camera's mouse move 005EB210+39
+  (the last two call addon's no-margin entry 005F7DFE), the cursor's rectangles 005F5320 (+14A .. +251), the interface's creation
+  005F4990+BF and 005F4F81, 005FD237 (9 bytes), 004F1330+2A (AxisSwapMatrix, a device file).
+
 ### Remaining work
 
-WideScreen (2-3 weeks); the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
+WideScreen W2-W4 (above); the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
 layer); the multiplayer patches and EI_Plugin features (with multiplayer).

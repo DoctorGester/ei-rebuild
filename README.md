@@ -89,7 +89,10 @@ game sees those files under its `saves\` (e.g. `magic_traps.txt` and `tools/make
 Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Add
 `--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
 code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to the DLL does the same
-permanently, and a scenario can ask with `rebirthflags <names>`. Harness runs
+permanently, and a scenario can ask with `rebirthflags <names>`. A scenario's `resolution <WxH|desktop>`
+and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the starter's settings the game and
+Rebirth read for the run, without writing them (`tests/verify/harness_starter.h`; `python tools\run_all.py
+--widescreen` compares Rebirth's WideScreen with ours, `docs/notes/rebirth.md`). Harness runs
 need no clicks and leave the install alone: startup movies are skipped, the tutorial option is off,
 saves and `config\tutorial.ini` go to `build\verify\harness_saves`, every other file the game writes under
 its folder (the composed-skin cache `textures\*.mmp`, `config\keyboard.ini`, `config\addrbook.ini`,
