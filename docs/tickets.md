@@ -10,8 +10,10 @@ Generated from docs/tickets.toml by tools/tickets.py: never edit this file; read
 
 Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with the cleanup; one Opus ticket at a time.
 
-- **R9b** Guard every old-device call for a device object without a device (running since 2026-10-14; opus). The 73 calling places in the old-device log (524 sites in 143 functions overall). After: R9a.
+- **R9b** Guard every old-device call for a device object without a device (review since 2026-10-14; opus). The 73 calling places in the old-device log (524 sites in 143 functions overall). After: R9a.
 - **R9c** Movies, loading screen, full screen, gamma and lost device through Present (waiting on R9b; opus). Movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Present under Rebirth crashes: NullDirect3DDevice7::SetTexture with surface 0x7463 from CUiMesh::Draw, plus a CBattleScreenSetup::Create verify mismatch in the same runs (seen on main 2026-10-14).
+- **R9b1** GetDxVersion probe failing in native runs with several games (waiting on R9b; sonnet). Native present runs end now and then at the 'DirectX 7 or later' message (seen before R9b too). Skipping the probe in present mode hung sound init (renderer.md R9b): find which side effect the sound code needs (DirectMusic / DDRAW.DLL) before guarding.
+- **R9b2** WinMain's original in harness runs: the last old-device calls (waiting on R9b; opus). The harness patches the CALL at 00457595, so WinMain 00456440's original runs: GetAvailableVidMem x3 and RestoreAllSurfaces stay on the stand-in. Let the rewrite run under the harness (freeze hook in app_main.cpp), then the COM stand-ins can go once Rebirth's patched originals (006462A0, 0060C870) are covered.
 - **R8** Textures without DirectDraw in the switch-over (done). Both parts merged (renderer.md section 16).
 - **R9a** Device setup without DirectDraw and Present on a flip-model swap chain (done 2026-10-14). R9a and R9a2 merged: the five present scenarios pass on vanilla and --native (movie holders, video-memory pictures, the harness activates a game without DirectDraw).
 

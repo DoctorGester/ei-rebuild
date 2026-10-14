@@ -100,7 +100,7 @@ note = "R9a and R9a2 merged: the five present scenarios pass on vanilla and --na
 id = "R9b"
 title = "Guard every old-device call for a device object without a device"
 group = "renderer"
-status = "running"
+status = "review"
 model = "opus"
 depends = ["R9a"]
 note = "The 73 calling places in the old-device log (524 sites in 143 functions overall)."
@@ -114,6 +114,24 @@ status = "queued"
 model = "opus"
 depends = ["R9b"]
 note = "Movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Present under Rebirth crashes: NullDirect3DDevice7::SetTexture with surface 0x7463 from CUiMesh::Draw, plus a CBattleScreenSetup::Create verify mismatch in the same runs (seen on main 2026-10-14)."
+
+[[ticket]]
+id = "R9b1"
+title = "GetDxVersion probe failing in native runs with several games"
+group = "renderer"
+status = "queued"
+model = "sonnet"
+depends = ["R9b"]
+note = "Native present runs end now and then at the 'DirectX 7 or later' message (seen before R9b too). Skipping the probe in present mode hung sound init (renderer.md R9b): find which side effect the sound code needs (DirectMusic / DDRAW.DLL) before guarding."
+
+[[ticket]]
+id = "R9b2"
+title = "WinMain's original in harness runs: the last old-device calls"
+group = "renderer"
+status = "queued"
+model = "opus"
+depends = ["R9b"]
+note = "The harness patches the CALL at 00457595, so WinMain 00456440's original runs: GetAvailableVidMem x3 and RestoreAllSurfaces stay on the stand-in. Let the rewrite run under the harness (freeze hook in app_main.cpp), then the COM stand-ins can go once Rebirth's patched originals (006462A0, 0060C870) are covered."
 
 # ---------------------------------------------------------------- native interface drawing
 
