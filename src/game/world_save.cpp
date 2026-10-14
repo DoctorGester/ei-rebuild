@@ -129,7 +129,6 @@ void WriteCopy(WorldStream* stream, const T& value) {
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 // 00461190 (RET 4). Reads a zero-terminated string; constructs the CString at `out` and returns it.
-__declspec(naked) mfc::CString* __fastcall ReadString(WorldStream*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
 // 00595080 (RET 4). Picks the loading movie for the zone. Patched by Rebirth: original address.
 __declspec(naked) void __fastcall PickLoadingMovie(CWorldServer*, void*, const char* /*zone*/) EI_ORIGINAL(0x00595080)
 // 005DA400. Shows the loading screen at `stage` (ECX).
@@ -174,13 +173,11 @@ __declspec(naked) void __fastcall ProjectileLoad(Projectile*, void*, WorldStream
 __declspec(naked) void __fastcall ProjectileSave(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E960)
 // 0059C7A0 (RET 8). New node of the missile list (its counted pointer constructed empty).
 // 00419CD0 (RET 4). RefPtr::Assign (core_refcount.cpp).
-__declspec(naked) void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
 // 0040A3A0. CRefObject::Release.
 void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // 00429EA0 (RET 8) / 00429B50 (RET 4). New node of the counted list (+0x12E44) and the counted
 // pointer's assignment (reference added, old one released through slot 4).
 mfc::CTypedPtrList<CEngineObject>::Node* __fastcall CountedNewNode(mfc::CTypedPtrList<CEngineObject>* a0, void*, mfc::CTypedPtrList<CEngineObject>::Node* a2, mfc::CTypedPtrList<CEngineObject>::Node* a3) { return (mfc::CTypedPtrList<CEngineObject>::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
-__declspec(naked) void __fastcall CountedAssign(void* /*slot*/, void*, CEngineObject*) EI_ORIGINAL(0x00429B50)
 // Load / Save of the time wheel (+0x2838), the first command queue (+0x12874), the diplomacy
 // tables (+0x12C64) and the countdowns (+0x70).
 __declspec(naked) void __fastcall TimeWheelLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x005CAE30)
@@ -236,7 +233,7 @@ namespace {
 // Reads a string and assigns it to `target` (the temporary is destroyed at once).
 void ReadStringInto(WorldStream* stream, mfc::CString& target) {
     alignas(4) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* read = ReadString(stream, nullptr, storage);
+    mfc::CString* read = StreamReadString(stream, nullptr, storage);
     target = *read;
     read->~CString();
 }
@@ -539,7 +536,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 CEngineObject* item = ManagerFindObject(itemManager_, nullptr, id);
                 if (!item) continue;
                 auto* node = CountedNewNode(&counted_, nullptr, nullptr, counted_.head);
-                CountedAssign(&node->data, nullptr, item);
+                ReferenceAssign(reinterpret_cast<CEngineObject**>(&node->data), nullptr, item);
                 if (counted_.head) counted_.head->prev = node;
                 else counted_.tail = node;
                 counted_.head = node;
@@ -584,7 +581,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 int count = ReadValue<int>(stream);
                 for (int i = 0; i < count; ++i) {
                     alignas(4) unsigned char storage[sizeof(mfc::CString)];
-                    mfc::CString* name = ReadString(stream, nullptr, storage);
+                    mfc::CString* name = StreamReadString(stream, nullptr, storage);
                     StringArraySetAtGrow(&mobFiles_, nullptr, mobFiles_.size, name);
                     name->~CString();
                 }

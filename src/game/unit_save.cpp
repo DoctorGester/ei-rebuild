@@ -101,7 +101,6 @@ __declspec(naked) void __fastcall UnitMemoryLoad(void*, void*, UnitStream*) EI_O
 __declspec(naked) void __fastcall UnitMemorySave(void*, void*, UnitStream*) EI_ORIGINAL(0x005C79B0)
 // 00461190. Reads a zero-terminated string from the stream, one byte at a time; constructs the
 // CString at `out` and returns it.
-__declspec(naked) mfc::CString* __fastcall StreamReadString(UnitStream*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
 // 00665B50 / 00665A70. The player loses / gains the unit.
 void __fastcall PlayerRemoveUnit(void* a0, void*, CUnit* a2) { PlayerRemoveUnitOriginal(a0, nullptr, a2); }
 void __fastcall PlayerAddUnit(void* a0, void*, CUnit* a2) { PlayerAddUnitOriginal(a0, nullptr, a2); }
@@ -115,7 +114,7 @@ __declspec(naked) void __fastcall UnitParamsResetAt(void* /*params*/) EI_ORIGINA
 // Reads a string and assigns it to `target` (the original's temporary is destroyed at once).
 void ReadStringInto(UnitStream* stream, mfc::CString& target) {
     alignas(4) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* read = StreamReadString(stream, nullptr, storage);
+    mfc::CString* read = StreamReadString(reinterpret_cast<CStream*>(stream), nullptr, storage);
     target = *read;
     read->~CString();
 }

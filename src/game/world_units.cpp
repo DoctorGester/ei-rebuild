@@ -31,6 +31,7 @@
 #include "originals_world.h"
 #include "originals_effects.h"
 #include "originals_script.h"
+#include "originals_core.h"
 
 #include <cstring>
 
@@ -109,7 +110,6 @@ __declspec(naked) void __fastcall UnitSet18(CEngineObject*, void*, const char*) 
 __declspec(naked) void __fastcall UnitSetPose(CEngineObject*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0052EB10)
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
 __declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
-__declspec(naked) void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
@@ -421,7 +421,6 @@ inline void __fastcall TextAssignChars(mfc::CString* s, void*, const char* t) { 
 void __fastcall TextAssign(mfc::CString* a0, void*, const mfc::CString* a2) { CStringAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 void __fastcall TextArrayCopy(void* a0, void*, const void* a2) { StringArrayCopyOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall UnitSetSide(CEngineObject*, void*, int) EI_ORIGINAL(0x00530120)
-__declspec(naked) int __fastcall DiplomacyMaskOf(void*, void*, int) EI_ORIGINAL(0x00455660)
 void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { UnitSetHostileMaskOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 __declspec(naked) CEngineObject* __fastcall ItemsCreateItem(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 __declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) EI_ORIGINAL(0x00477B00)
@@ -595,7 +594,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
             UnitSetController(object, nullptr, nullptr);
             UnitSetSide(object, nullptr, spec->unknown_6E);
-            UnitSetDiplomacy(object, nullptr, DiplomacyMaskOf(diplomacy_, nullptr, spec->unknown_6E));
+            UnitSetDiplomacy(object, nullptr, DiplomacyHostileMask(reinterpret_cast<CDiplomacy*>(diplomacy_), nullptr, spec->unknown_6E));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
             ManagerRegisterUnit2(MapObjectManager(), nullptr, object, unitSpec->prototype);
             const mfc::CStringArray& worn = unitSpec->lists[1];

@@ -127,10 +127,6 @@ __declspec(naked) void VariableTableAt::Begin(VariableIterator*) EI_ORIGINAL(0x0
 // 0079B5D8: the network server, active unless +4 has bit 31.
 inline char* Server() { return *reinterpret_cast<char**>(0x0079B5D8); }
 bool ServerActive(char* server) { return server && !(Field<unsigned>(server, 4) & 0x80000000u); }
-struct ServerAt {
-    void Command(int kind, const char* argument);   // 0041D260 (0 zone, 2 kick, 3 ban)
-};
-__declspec(naked) void ServerAt::Command(int, const char*) EI_ORIGINAL(0x0041D260)
 
 // 007C7D68: the screen fader.
 struct FaderAt {
@@ -429,7 +425,7 @@ void __fastcall Net(CStringArray* args) {
         *reinterpret_cast<int*>(0x0079BC60) = GameAtoi((*args)[1]);
     if (Mbsicmp((*args)[0], GameText(0x00792B58)) == 0 && ServerActive(Server())) {   // zone
         mfc::CString zone((*args)[1]);
-        reinterpret_cast<ServerAt*>(Server())->Command(0, zone);
+        SessionCommand(reinterpret_cast<net::ClientSession*>(Server()), nullptr, 0, zone);
     }
 }
 EI_REPLACE(0x005DF9B0, Net);
@@ -552,7 +548,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
     mfc::CString name((*args)[0]);
     const char* text = name;
     if (text[0] == '"' && text[Length(name) - 1] == '"') name = Ops(name).Mid(1, Length(name) - 2);
-    if (ServerActive(Server())) reinterpret_cast<ServerAt*>(Server())->Command(command, name);
+    if (ServerActive(Server())) SessionCommand(reinterpret_cast<net::ClientSession*>(Server()), nullptr, command, name);
 }
 } // namespace
 

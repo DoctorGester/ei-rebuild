@@ -12,8 +12,10 @@ class CEngineObject;
 class CItem;
 class CUnit;
 class CWorldServer;
+namespace net { class ClientSession; }
 struct ObjectIdMap;
 struct WorldPlayer;
+struct CDiplomacy;
 struct Vector3;
 struct VertexPacket;
 struct DecalTexCoord;
@@ -243,3 +245,10 @@ struct WorldAlarmOriginal {
     void InvokeAlarm(int type, const Vector3* point, int raise);
 };
 __declspec(naked) inline void WorldAlarmOriginal::InvokeAlarm(int, const Vector3*, int) EI_ORIGINAL(0x00593FC0)
+// C3n. 0041D260 (rewritten as ClientSession::SendCommand; thiscall, RET 8): the client session sends a command to the
+// server (0 zone, 1 briefing, 2 kick, 3 ban).
+__declspec(naked) inline void __fastcall SessionCommand(net::ClientSession* /*session*/, void*, int /*kind*/,
+                                                       const char* /*argument*/) EI_ORIGINAL(0x0041D260)
+// C3n. 00455660 (rewritten as CDiplomacy::GetHostileMask; thiscall, RET 4): the bit mask of the players hostile to `player`.
+__declspec(naked) inline int __fastcall DiplomacyHostileMask(CDiplomacy* /*diplomacy*/, void*, int /*player*/)
+    EI_ORIGINAL(0x00455660)

@@ -83,7 +83,6 @@ __declspec(naked) void __fastcall IdsClear(IdList*) EI_ORIGINAL(0x00405500)
 // value).
 __declspec(naked) MapIterator<PositionMap>* __fastcall PositionsFind(PositionMap*, void*, MapIterator<PositionMap>* /*out*/, const int* /*key*/) EI_ORIGINAL(0x00405BB0)
 void __fastcall PositionsErase(PositionMap* a0, void*, PositionMap::Node* a2, const PositionMap* a3) { HashEraseOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3); }
-__declspec(naked) ObjectNode** __fastcall PositionAt(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)
 __declspec(naked) ObjectNode** __fastcall PositionAt2(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x004056A0)
 __declspec(naked) ObjectNode* __fastcall PositionRemoveKey(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00405350)
 // The objects table: finds into an iterator (three copies), MFC-style Lookup / SetAt, operator[],
@@ -405,7 +404,7 @@ CEngineObject* CBaseManager::CreateObject(int type, int id) {
             existing = nullptr;
             PtrListAddTail(&objectList_, nullptr, object);
             ObjectNode* tail = objectList_.tail;
-            *PositionAt(&positions_, nullptr, &chosen) = tail;
+            *HashMapAt(&positions_, nullptr, &chosen) = tail;
         }
         ObjectsSetAt(&objects_, nullptr, &chosen, &object);
         object->id_ = chosen;
@@ -416,7 +415,7 @@ CEngineObject* CBaseManager::CreateObject(int type, int id) {
         ObjectsFindIt(&objects_, nullptr, &hit, &wanted);
         if (!hit.node) {
             ObjectNode* position = AddTail(&objectList_, object);
-            *PositionAt(&positions_, nullptr, &id) = position;
+            *HashMapAt(&positions_, nullptr, &id) = position;
         }
         if (id > maxId_) maxId_ = id;
         int slotKey = id;

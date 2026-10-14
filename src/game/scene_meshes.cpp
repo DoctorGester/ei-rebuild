@@ -66,7 +66,6 @@ __declspec(naked) void __fastcall RecordsSetAtGrow(RecordArray*, void*, int, con
 
 // The index array's SetSize [0044FA90] and SetAtGrow [00452FC0], the dword array's SetSize [00452EB0].
 __declspec(naked) void __fastcall WordsSetSize(WordArray*, void*, int, int) EI_ORIGINAL(0x0044FA90)
-__declspec(naked) void __fastcall WordsSetAtGrow(WordArray*, void*, int, int) EI_ORIGINAL(0x00452FC0)
 __declspec(naked) void __fastcall DwordsSetSize(DwordArray*, void*, int, int) EI_ORIGINAL(0x00452EB0)
 // The game's qsort and the two comparators: records by vertex, position, texture as ints; pairs by
 // their two words, unsigned.

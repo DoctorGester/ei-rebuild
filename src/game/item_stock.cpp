@@ -673,7 +673,6 @@ namespace {
 
 // CStream::ReadString (00461190): a CString constructed at `out` from the bytes up to a zero; the
 // stream's Read is virtual slot 1.
-__declspec(naked) mfc::CString* __fastcall StreamReadString(void*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
 // The record lookups by name (thiscall on the tables; null when missing): armors 004AB820 on
 // 007C8718, weapons 004AB720 on 007C86F8, quick items 00613820 on 007C8738, materials 0069D290 on
 // 007C86D8; the spell and modifier maps' operator[] (004ABD00 on 007C851C, 00684B20 on 007C853C;
@@ -702,7 +701,7 @@ void ReadInt(void* stream, void* value) { static_cast<CStream*>(stream)->Read(va
 // The next string of the stream into `name` (through a temporary, as the original).
 void ReadName(void* stream, mfc::CString& name) {
     alignas(mfc::CString) unsigned char temporary[sizeof(mfc::CString)];
-    mfc::CString* read = StreamReadString(stream, nullptr, temporary);
+    mfc::CString* read = StreamReadString(static_cast<CStream*>(stream), nullptr, temporary);
     name = *read;
     read->~CString();
 }

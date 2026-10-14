@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_library.h"
+#include "originals_core.h"
 
 namespace {
 
@@ -134,7 +135,6 @@ namespace {
 // object's destructor body 00455930.
 void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3, std::uintptr_t a4) { EhVectorConstructorIterator(a0, a1, a2, (void*)a3, (void*)a4); }
 void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
-__declspec(naked) void __fastcall EngineObjectDestruct(CEngineObject*) EI_ORIGINAL(0x00455930)
 constexpr std::uintptr_t kSegmentConstruct = 0x00468900;
 constexpr std::uintptr_t kSegmentDestruct = 0x00468920;
 constexpr std::uintptr_t kEngineObjectVtable = 0x0073B8E0;
@@ -195,7 +195,7 @@ void __fastcall LightningDestruct(CLightning* self) {
     if (self->main_.points.data) gamecrt::operator_delete(reinterpret_cast<void**>(self->main_.points.data)[-1]);
     if (self->glowTexture_) ei::VCall<void>(self->glowTexture_, 4);
     if (self->texture_) ei::VCall<void>(self->texture_, 4);
-    EngineObjectDestruct(self);
+    EngineObjectDestructBase(self);
 }
 EI_REPLACE(0x00468810, LightningDestruct);
 

@@ -75,7 +75,6 @@ __declspec(naked) void __fastcall UnitSet25C(CUnit*, void*, int) EI_ORIGINAL(0x0
 __declspec(naked) void __fastcall UnitSet260(CUnit*, void*, int) EI_ORIGINAL(0x0052EAF0)
 __declspec(naked) char* __fastcall UnitPrototypeModel(CUnit*) EI_ORIGINAL(0x00530970)
 inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
-__declspec(naked) void __fastcall UnitTurnUpTowards(CUnit*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
 __declspec(naked) bool __fastcall VitalsRegenerate(void*, void*, UnitStats*, CUnit*, int /*inCombat*/) EI_ORIGINAL(0x00523740)
@@ -630,7 +629,7 @@ void CUnitServer::TickAction() {
         MotionSample(unit->motion, nullptr, context, Motion(this),
                      static_cast<float>(TickOf(context)), &turning, &position, &direction, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
-        UnitTurnUpTowards(unit, nullptr, &direction.x, 0);
+        TransformTurnUpTowards(reinterpret_cast<CTransformObject*>(unit), nullptr, &direction.x, 0);
         return;
     }
     // The action's moment has come: it is carried out and the plan cleared.
@@ -741,7 +740,6 @@ __declspec(naked) SpellEntry* __fastcall SpellNewNode(ArmourSpellList*, void*, S
     EI_ORIGINAL(0x00558B10)
 __declspec(naked) void __fastcall SpellFreeNode(ArmourSpellList*, void*, SpellEntry*) EI_ORIGINAL(0x00558B80)
 __declspec(naked) ArmourSpell* __fastcall SpellElementAssign(ArmourSpell*, void*, const ArmourSpell*) EI_ORIGINAL(0x00558840)
-__declspec(naked) void __fastcall ReferenceAssign(CEngineObject**, void*, CEngineObject*) EI_ORIGINAL(0x00429B50)
 } // namespace
 
 void CUnitServer::RefreshItemSpells() {

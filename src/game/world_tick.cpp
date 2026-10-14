@@ -238,7 +238,6 @@ namespace {
 // block starts one dword after its allocation), with their guard bits at 007AFF00.
 using IdArray = lib::AlignedArray<unsigned>;
 // 004538D0: the instantiation's SetAtGrow(index, value) (RET 8).
-__declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, unsigned) EI_ORIGINAL(0x004538D0)
 
 IdArray& RemovedIds() { return *reinterpret_cast<IdArray*>(0x007AFEF0); }   // flagged for removal
 IdArray& SleepingIds() { return *reinterpret_cast<IdArray*>(0x007AFEE0); }  // leave the update map
@@ -275,7 +274,7 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) IdArraySetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) DwordsSetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
         }
     } else {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
@@ -285,12 +284,12 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) IdArraySetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) DwordsSetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
             if (object->GetClassId() != world::kClassUnit) continue;
             if (--SleepCountdown(object) > 0) continue;
             auto* controller = reinterpret_cast<const std::uint8_t*>(static_cast<CUnit*>(object)->controller);
             if (controller[0x174] == 0 && controller[0x9B7] == 0 && controller[0xB0C] == 0)
-                IdArraySetAtGrow(&SleepingIds(), nullptr, SleepingIds().size, static_cast<unsigned>(object->id_));
+                DwordsSetAtGrow(&SleepingIds(), nullptr, SleepingIds().size, static_cast<unsigned>(object->id_));
             else
                 SleepCountdown(object) = WakeCountdown(object);
         }

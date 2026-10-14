@@ -8,7 +8,9 @@
 #include <cstddef>
 #include <cstdint>
 
+class CBaseManager;
 class CEngineObject;
+class CTransformObject;
 struct RefPtr;
 struct Quaternion;
 struct Vector3;
@@ -54,3 +56,28 @@ __declspec(naked) inline Vector3* __fastcall VectorAdd(Vector3* /*out*/, const V
     EI_ORIGINAL(0x0040CDC0)
 // C3m. 004413E0 (rewritten as ServerEntryBase::ConstructBase): the client base of a server entry (0x48 bytes).
 __declspec(naked) inline void __fastcall ServerEntryConstructBase(net::ServerEntry* /*entry*/) EI_ORIGINAL(0x004413E0)
+// C3n. 00401F00 / 00402220 (rewritten as TurnUpTowardsHook / SetHeadingHook; thiscall on the transform object, RET 8 / 4):
+// turns the object up towards a direction (`reduced` 1: by the reduced angle), sets its heading from a direction.
+__declspec(naked) inline void __fastcall TransformTurnUpTowards(CTransformObject* /*object*/, void*, const float* /*direction*/,
+                                                                int /*reduced*/) EI_ORIGINAL(0x00401F00)
+__declspec(naked) inline void __fastcall TransformSetHeading(CTransformObject* /*object*/, void*, const float* /*direction*/)
+    EI_ORIGINAL(0x00402220)
+// C3n. 00404920 / 00404960 (rewritten as ObjectListIterator::First / Next; thiscall on the 8-byte list iterator, RET 4 /
+// plain): the first object of a manager's list, then each next one (null at the end). Base of the views.
+struct ObjectIteratorOriginals {
+    CEngineObject* First(CBaseManager* list);
+    CEngineObject* Next();
+};
+__declspec(naked) inline CEngineObject* ObjectIteratorOriginals::First(CBaseManager*) EI_ORIGINAL(0x00404920)
+__declspec(naked) inline CEngineObject* ObjectIteratorOriginals::Next() EI_ORIGINAL(0x00404960)
+// C3n. 00419CD0 (rewritten as RefPtr::Assign; thiscall on the pointer slot, RET 4): the counted pointer in `slot` takes
+// `object` (its count raised, the previous object released).
+__declspec(naked) inline void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
+// C3n. 00429B50 (rewritten as ObjectHolderAssign; thiscall on the slot, RET 4): a counted object pointer takes `object`
+// (reference added, the old one released through its slot 4).
+__declspec(naked) inline void __fastcall ReferenceAssign(CEngineObject** /*slot*/, void*, CEngineObject* /*object*/)
+    EI_ORIGINAL(0x00429B50)
+// C3n. 00455930 (rewritten as CEngineObject::DestructBase; thiscall, plain RET): the engine object's destructor body.
+__declspec(naked) inline void __fastcall EngineObjectDestructBase(CEngineObject* /*object*/) EI_ORIGINAL(0x00455930)
+// C3n. 00461360 (rewritten as TextKeyFromName; fastcall on the text): the numeric key of a name in the game's texts.
+__declspec(naked) inline int __fastcall TextKeyOf(const char* /*name*/) EI_ORIGINAL(0x00461360)

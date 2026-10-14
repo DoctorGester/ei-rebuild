@@ -38,7 +38,6 @@ __declspec(naked) void __fastcall IfThenPairLoad(ScriptIfThen*, void*, ScriptStr
 __declspec(naked) void __fastcall StringLoad(mfc::CString*, ScriptStream*) EI_ORIGINAL(0x004B3D10)
 // 00461190 (__thiscall on the stream, RET 4; rewritten in core_streams.cpp, called through its
 // address): bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
-__declspec(naked) mfc::CString* __fastcall StreamReadString(ScriptStream*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
 // 004BF540 CScript::NewCommandList: a new empty command block in the +0x70 list.
 __declspec(naked) ScriptDecl* __fastcall NewCommandList(CScript*) EI_ORIGINAL(0x004BF540)
 // 004BFA50 CScript::FindBlock (rewritten below; SSCCmd::Load calls it out of line).
@@ -366,7 +365,7 @@ EI_REPLACE(0x004B6330, ScriptSubCallLoad);
 // A string: read into a temporary CString (00461190 constructs it), assigned, the temporary destroyed.
 void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
     alignas(4) unsigned char temporary[sizeof(mfc::CString)];
-    *out = *StreamReadString(stream, nullptr, temporary);
+    *out = *StreamReadString(reinterpret_cast<CStream*>(stream), nullptr, temporary);
     reinterpret_cast<mfc::CString*>(temporary)->~CString();
 }
 EI_REPLACE(0x004B3D10, ScriptStringLoad);

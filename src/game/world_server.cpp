@@ -82,11 +82,6 @@ void EraseId(ObjectIdMap& map, unsigned id) {
 
 } // namespace
 
-// ---- Player iteration (original helpers, called out of line like the original) -----------------
-
-__declspec(naked) WorldPlayer* PlayerIterator::First(CEngineObject*) EI_ORIGINAL(0x00404920)
-__declspec(naked) WorldPlayer* PlayerIterator::Next() EI_ORIGINAL(0x00404960)
-
 CWorldServer* WorldServer() { return reinterpret_cast<CWorldServer*>(0x007AFF60); }
 
 // ---- Id maps -------------------------------------------------------------------------------------

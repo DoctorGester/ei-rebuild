@@ -9,15 +9,12 @@
 #include "lib/crt.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_engine.h"
 
 namespace {
 
 // The archive's field primitives (chunk_archive.cpp), through their game addresses: a field of
 // `size` bytes (missing ones read as zero), a CString field, entering / leaving chunk `id`.
-__declspec(naked) void __fastcall ArchiveField(ChunkArchive*, void*, int /*id*/, void* /*data*/, unsigned /*size*/) EI_ORIGINAL(0x004092B0)
-__declspec(naked) void __fastcall ArchiveString(ChunkArchive*, void*, int /*id*/, mfc::CString*) EI_ORIGINAL(0x004093A0)
-__declspec(naked) bool __fastcall ArchiveEnter(ChunkArchive*, void*, int /*id*/) EI_ORIGINAL(0x004098D0)
-__declspec(naked) void __fastcall ArchiveLeave(ChunkArchive*) EI_ORIGINAL(0x00409980)
 // Not rewritten: 0052DF40 (ArchiveCStringsOriginal, originals_library.h); 0052D6A0, four dwords
 // as fields 0..3; 0052D6F0, a model's body slot as fields 0..3.
 void __fastcall ArchiveStrings(ChunkArchive* ar, void*, int id, CStringVector* strings, ChunkArchive* unused) {
@@ -28,7 +25,6 @@ __declspec(naked) void __fastcall ModelSlot(UnitModelSlot*, void*, ChunkArchive*
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
 // resizing it [0051F5B0].
-__declspec(naked) int __fastcall ArchiveCount(ChunkArchive*, void*, int /*id*/) EI_ORIGINAL(0x00409A60)
 void __fastcall StringsClear(CStringVector* a0) { CStringVectorClearOriginal((void*)a0); }
 void __fastcall StringsResize(CStringVector* a0, void*, std::uint32_t a2) { CStringVectorResizeOriginal((void*)a0, nullptr, a2); }
 

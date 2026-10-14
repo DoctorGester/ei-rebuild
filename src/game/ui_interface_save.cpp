@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -19,15 +20,13 @@ void Read(void* stream, void* to, int size) {
 }
 int Version(const void* stream) { return *reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(stream) + 8); }
 
-// 00461190 (thiscall on the stream, RET 4): reads a CString into `out` and returns it.
-__declspec(naked) mfc::CString* __fastcall ReadString(void*, void*, mfc::CString*) EI_ORIGINAL(0x00461190)
 
 // A string read into a temporary (ReadString constructs it), assigned to `field`
 // (CString::operator=, 00700AA9), then destroyed.
 void ReadInto(void* stream, mfc::CString* field) {
     alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
     auto* text = reinterpret_cast<mfc::CString*>(storage);
-    *field = *ReadString(stream, nullptr, text);
+    *field = *StreamReadString(static_cast<CStream*>(stream), nullptr, text);
     text->~CString();
 }
 

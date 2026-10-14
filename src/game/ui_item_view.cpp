@@ -9,6 +9,7 @@
 
 #include "dx_surface.h"
 #include "item.h"
+#include "random.h"
 #include "spell.h"
 
 #include "ei/hook.h"
@@ -22,6 +23,7 @@
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
+#include "originals_core.h"
 
 #include <cstdint>
 #include <cstring>
@@ -146,18 +148,6 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
         TrimModelsAt(cache);
     return object;
 }
-
-// 00419CD0: RefPtr assignment (thiscall on the item's +0x1C; counts the new object).
-struct RefSlot {
-    void Assign(void* object);
-};
-__declspec(naked) void RefSlot::Assign(void*) EI_ORIGINAL(0x00419CD0)
-
-// 004667F0: the game's ISAAC generator (007A9D40), the next word.
-struct Isaac {
-    std::uint32_t Next();
-};
-__declspec(naked) std::uint32_t Isaac::Next() EI_ORIGINAL(0x004667F0)
 
 // A new turning state with a random glow phase: word * 2 pi (as float) * 2^-32 (FILD of the
 // unsigned word; FMUL float; FMUL double; FSTP float).
@@ -353,9 +343,9 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         turn->angle = 0.0f;
         turn->speed = 0.0f;
         turn->flag = false;
-        std::uint32_t word = reinterpret_cast<Isaac*>(0x007A9D40)->Next();
+        std::uint32_t word = RandomNext(&IsaacRandom::Global());
         turn->glow = RandomPhase(word);
-        reinterpret_cast<RefSlot*>(itemBytes + 0x1C)->Assign(turn);
+        RefPtrAssign(itemBytes + 0x1C, nullptr, turn);   // the item's RefPtr slot
     }
 
     if (cell->mode == 9) {

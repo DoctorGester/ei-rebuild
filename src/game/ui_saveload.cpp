@@ -121,7 +121,6 @@ __declspec(naked) std::int32_t* __stdcall CurrentTime(std::int32_t* /*out*/) EI_
 // a zero into a new CString at `out` / into the CString `out`).
 void __fastcall StreamWriteHeader(void* a0, void*, unsigned a2, unsigned a3) { StreamWriteHeaderOriginal(a0, nullptr, a2, a3); }
 bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int a4) { return StreamReadHeaderOriginal(a0, nullptr, a2, (int)a3, a4); }
-__declspec(naked) mfc::CString* __fastcall StreamReadString(void*, void*, void* /*out*/) EI_ORIGINAL(0x00461190)
 void __fastcall StreamReadInto(void* a0, void*, mfc::CString* a2) { StreamReadCStringOriginal(a0, nullptr, (void*)a2); }
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
@@ -480,7 +479,7 @@ void CSaveLoadWindow::FillEntries() {
                 info.Read(&entry->gameTime_, 4);
                 {
                     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-                    mfc::CString* map = StreamReadString(&info.s, nullptr, storage);
+                    mfc::CString* map = StreamReadString(reinterpret_cast<CStream*>(&info.s), nullptr, storage);
                     Str(entry->map_) = *map;
                     map->~CString();
                 }

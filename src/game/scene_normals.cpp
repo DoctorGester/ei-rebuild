@@ -10,6 +10,7 @@
 #include "../lib/crt.h"
 #include "lib/vecmath.h"
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cmath>
 #include <cstdint>
@@ -19,7 +20,6 @@ namespace scene {
 namespace {
 
 __declspec(naked) void __fastcall PointsSetAtGrow(PointBuffer*, void*, int, Vector3) EI_ORIGINAL(0x00452AF0)
-__declspec(naked) void __fastcall DwordsSetAtGrow(DwordBuffer*, void*, int, std::uint32_t) EI_ORIGINAL(0x004538D0)
 // 0049AEC0: the face's normal from the mesh's positions (stored at face +0x24).
 __declspec(naked) void __fastcall FaceNormal(MeshFace*, void*, const PointBuffer* /*positions*/) EI_ORIGINAL(0x0049AEC0)
 

@@ -4,6 +4,7 @@
 // are library code). See docs/notes/app.md.
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_engine.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -29,13 +30,7 @@ struct DeviceVector {            // STLport vector<DeviceRecord>
 };
 
 namespace {
-// The chunk archive (004098D0 enter, 00409A60 count, 004092B0 field, 004093A0 string field,
-// 00409980 leave); +0x58 is its loading flag, +0x50 its chunk stack.
-__declspec(naked) bool __fastcall ArchiveEnter(void*, void*, int) EI_ORIGINAL(0x004098D0)
-__declspec(naked) int __fastcall ArchiveCount(void*, void*, int) EI_ORIGINAL(0x00409A60)
-__declspec(naked) void __fastcall ArchiveField(void*, void*, int, void*, unsigned) EI_ORIGINAL(0x004092B0)
-__declspec(naked) void __fastcall ArchiveString(void*, void*, int, mfc::CString*) EI_ORIGINAL(0x004093A0)
-__declspec(naked) void __fastcall ArchiveLeave(void*) EI_ORIGINAL(0x00409980)
+// The chunk archive (originals_engine.h): +0x58 is its loading flag, +0x50 its chunk stack.
 // STLport (library): copy (first, last, dest), resize.
 __declspec(naked) DeviceRecord* __fastcall RecordsCopy(DeviceRecord*, DeviceRecord*, DeviceRecord*, const void*, int) EI_ORIGINAL(0x00465B20)
 __declspec(naked) void __fastcall RecordsResize(DeviceVector*, void*, unsigned) EI_ORIGINAL(0x00465180)
@@ -52,7 +47,7 @@ void CopyPlain(DeviceRecord* to, const DeviceRecord* from) {
 } // namespace
 
 // 00463030: the record's fields 0 .. 7 (strings 0, 5, 6, 7).
-void __fastcall RecordArchive(DeviceRecord* self, void*, void* archive) {
+void __fastcall RecordArchive(DeviceRecord* self, void*, ChunkArchive* archive) {
     ArchiveString(archive, nullptr, 0, &self->name);
     ArchiveField(archive, nullptr, 1, self->guid, 0x10);
     ArchiveField(archive, nullptr, 2, &self->unknown_14, 4);
@@ -98,14 +93,15 @@ EI_REPLACE(0x00465BC0, RecordAssign);
 // 00465090: the list in chunk `id` of the archive, one chunk 1 per record (emptied and resized
 // to the number of chunks when loading).
 void __fastcall DeviceListArchive(void* archive, void*, int id, DeviceVector* list, int /*unused*/) {
-    if (!ArchiveEnter(archive, nullptr, id)) return;
+    ChunkArchive* ar = static_cast<ChunkArchive*>(archive);
+    if (!ArchiveEnter(ar, nullptr, id)) return;
     int n;
     if (*(static_cast<std::uint8_t*>(archive) + 0x58)) {
         DeviceRecord* end = list->end;
         DeviceRecord* kept = RecordsCopy(end, end, list->begin, list, 0);
         for (DeviceRecord* r = kept; r != list->end; ++r) RecordDestructAt(r);
         list->end = kept;
-        n = ArchiveCount(archive, nullptr, 1);
+        n = ArchiveCount(ar, nullptr, 1);
         RecordsResize(list, nullptr, static_cast<unsigned>(n));
     } else {
         n = static_cast<int>(list->end - list->begin);
@@ -114,11 +110,11 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, DeviceVector* li
         void* chunk = *reinterpret_cast<void**>(*reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(archive) + 0x50) + 4);
         *reinterpret_cast<int*>(static_cast<std::uint8_t*>(chunk) + 0x14) = i + 1;
         DeviceRecord* record = list->begin + i;
-        if (!ArchiveEnter(archive, nullptr, 1)) continue;
+        if (!ArchiveEnter(ar, nullptr, 1)) continue;
         RecordArchiveAt(record, nullptr, archive);
-        ArchiveLeave(archive);
+        ArchiveLeave(ar);
     }
-    ArchiveLeave(archive);
+    ArchiveLeave(ar);
 }
 EI_REPLACE(0x00465090, DeviceListArchive);
 

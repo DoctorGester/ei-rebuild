@@ -36,6 +36,7 @@
 #include "originals_script.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "party_records.h"
 
 #include <cstring>
 #include <new>
@@ -93,10 +94,8 @@ void __fastcall RendererSetBusy(void* a0, void*, int a2) { CursorSetShapeOrigina
 // 0057AAB0. Creates the folder `path` (ECX) and deletes the files in it.
 __declspec(naked) void __fastcall ClearSaveFolderAt(const char* /*path*/) EI_ORIGINAL(0x0057AAB0)
 // 00594180 (RET 4). CWorldServer::GetPlayer (world_server.cpp), through its address.
-// 004A8890 / 004A8880 (RET 4). The party (007AA5A0): take the records from / give them to a record
-// builder (00661050 constructs one, 006611D0 destroys it).
-__declspec(naked) void __fastcall PartyTake(void*, void*, void* /*records*/) EI_ORIGINAL(0x004A8890)
-__declspec(naked) void __fastcall PartyStore(void*, void*, void* /*records*/) EI_ORIGINAL(0x004A8880)
+// The party (007AA5A0) takes the records from / gives them to a record builder (00661050 constructs one, 006611D0
+// destroys it): PartyManagerBeginRedeploy / PartyManagerEndRedeploy.
 void* __fastcall RecordsConstruct(void* a0, void*) { return PartyRecordsConstructOriginal(a0); }
 void __fastcall RecordsDestruct(void* a0, void*) { PartyRecordsDestructOriginal(a0); }
 // 0045E850 (RET 4). CMapDatabase::FindMap: the zone record named `name`, or null.
@@ -209,15 +208,15 @@ int GameFlow::SaveGame(const char* slot) {
     ClearSaveFolderAt(slotFolder);
     if (Campaign() == 4) {
         if (WorldPlayer* player = static_cast<WorldPlayer*>(WorldGetPlayer(reinterpret_cast<void*>(0x007AFF60), nullptr, 0)))
-            PartyTake(kParty, nullptr, player->Party());
+            PartyManagerBeginRedeploy(kParty, nullptr, player->Party());
     }
     LocalRecords records;
-    PartyStore(kParty, nullptr, &records.party);
+    PartyManagerEndRedeploy(kParty, nullptr, &records.party);
     mfc::CString currentMap;    // [0x1C]
     currentMap = RecordAllod(FindZone(records.party.zone));
 
     CopyVisitedZones(slotFolder, currentFolder, zone, currentMap, &records.party.variables);
-    PartyTake(kParty, nullptr, &records.party);
+    PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
 
     bool opened;
     {
@@ -749,10 +748,8 @@ namespace {
 // The multiplayer start zones by the client session's game type (gameType_): 1..3 -> bz2mpg ..
 // bz4mpg, anything else bz1mpg.
 
-// The party manager (007AA5A0): 004A88C0 resets it, 004A8890 (RET 4) begins a redeploy of a
-// party.
+// The party manager (007AA5A0): 004A88C0 resets it, 004A8890 (originals_world.h) begins a redeploy of a party.
 __declspec(naked) void __fastcall PartyManagerReset(void*, void*) EI_ORIGINAL(0x004A88C0)
-__declspec(naked) void __fastcall PartyManagerBeginRedeploy(void*, void*, void* /*party*/) EI_ORIGINAL(0x004A8890)
 __declspec(naked) mfc::CString* __fastcall MultiplayerZoneAt(GameFlow*, void*, void* /*out*/) EI_ORIGINAL(0x0057E6B0)
 
 void* PartyManager() { return reinterpret_cast<void*>(0x007AA5A0); }
@@ -798,8 +795,6 @@ void GameFlow::BeginMultiplayerGame() {
 namespace {
 
 // 00661300 (RET 4). Party::CopyFrom. 00662AC0 (RET 4): the party sends its map transfer.
-// 0041D260 (RET 8). A session command (0 zone, 1 briefing, 2 kick, 3 ban).
-__declspec(naked) void __fastcall SessionCommand(void*, void*, int, const char*) EI_ORIGINAL(0x0041D260)
 
 constexpr int kCommandBriefing = 1;
 constexpr int kRequestDone = 3;   // the client's game state request: answered
@@ -1154,7 +1149,6 @@ __declspec(naked) void __fastcall FlowAfterServer(GameFlow*, void*) EI_ORIGINAL(
 // 00412D80 (RET 4). The game server session's constructor (game type).
 __declspec(naked) net::ServerSession* __fastcall ServerSessionConstruct(void*, void*, int) EI_ORIGINAL(0x00412D80)
 // 00419CD0 (RET 4). A session reference (0079B5DC / 0079B5D8) assigned.
-__declspec(naked) void __fastcall SessionRefAssign(void*, void*, void*) EI_ORIGINAL(0x00419CD0)
 // 00440440 (RET 8). A 16-byte network address from a host name and a port.
 __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_ORIGINAL(0x00440440)
 // 00436C60 (RET 8). A buffer takes bytes.
@@ -1178,12 +1172,12 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     {
         void* memory = net::NewRefObject(sizeof(net::ServerSession));
         net::ServerSession* server = memory ? ServerSessionConstruct(memory, nullptr, gameType) : nullptr;
-        SessionRefAssign(&net::GameServer(), nullptr, server);
+        RefPtrAssign(&net::GameServer(), nullptr, server);
     }
     {
         void* memory = net::NewRefObject(sizeof(net::ClientSession));
         net::ClientSession* client = memory ? ClientSessionNew(memory, nullptr) : nullptr;
-        SessionRefAssign(&net::GameClient(), nullptr, client);
+        RefPtrAssign(&net::GameClient(), nullptr, client);
     }
     // The local client connects to the local server with the password as its hello.
     alignas(4) std::uint8_t address[16] = {};
@@ -1210,10 +1204,10 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
 
 void GameFlow::StartClient() {
     net::NetLog() = reinterpret_cast<net::LogStream*>(kNetLogStream);
-    SessionRefAssign(&net::GameServer(), nullptr, nullptr);
+    RefPtrAssign(&net::GameServer(), nullptr, nullptr);
     void* memory = net::NewRefObject(sizeof(net::ClientSession));
     net::ClientSession* client = memory ? ClientSessionNew(memory, nullptr) : nullptr;
-    SessionRefAssign(&net::GameClient(), nullptr, client);
+    RefPtrAssign(&net::GameClient(), nullptr, client);
     FlowAfterServer(this, nullptr);
 }
 EI_REPLACE_METHOD(0x0057EA50, GameFlow::StartClient);
@@ -1305,8 +1299,6 @@ struct OutStrings {
 };
 // 004DCE90 (RET 0xC). vector<string>::_M_insert_overflow(pos, value, count).
 void __fastcall OutInsertOverflow(OutStrings* a0, void*, stlp::string* a2, const stlp::string* a3, unsigned a4) { StringVectorInsertOverflowOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3, a4); }
-// 004667F0. IsaacRandom::Next on the game's generator (007A9D40).
-__declspec(naked) std::uint32_t __fastcall RandomNext(void*, void*) EI_ORIGINAL(0x004667F0)
 
 bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
@@ -1355,7 +1347,7 @@ void __stdcall PickZones(void* outArg, int id, const char* exclude) {
             for (int i = 0; i < group.count;)
                 if (SameText(group.items[i]->first, exclude)) group.RemoveAt(i);
                 else ++i;
-        unsigned pick = RandomNext(reinterpret_cast<void*>(0x007A9D40), nullptr) % static_cast<unsigned>(group.count);
+        unsigned pick = RandomNext(reinterpret_cast<IsaacRandom*>(0x007A9D40)) % static_cast<unsigned>(group.count);
         stlp::string name(group.items[pick]->first);
         if (out->finish != out->end) {
             new (out->finish) stlp::string(name);
@@ -1550,9 +1542,9 @@ void GameFlow::StartZone(const char* zone, int mode) {
     } else {
         // The party enters the zone, then the clock is set from its "gtime".
         LocalRecords records;
-        PartyStore(kParty, nullptr, &records.party);
+        PartyManagerEndRedeploy(kParty, nullptr, &records.party);
         EnterZoneAt(&records.party);
-        PartyTake(kParty, nullptr, &records.party);
+        PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
         WorldSetTimeF(World(), nullptr,
                       HoursOfDay(VariableGet(&records.party.variables, nullptr, Text(kGTime))));
         if (zoneRecord) {
@@ -1588,7 +1580,7 @@ void GameFlow::StartNewGame() {
     folder.Format(Text(kCurrentFolder), GameFolder());
     ClearSaveFolderAt(folder);
     LocalRecords records;
-    PartyStore(kParty, nullptr, &records.party);
+    PartyManagerEndRedeploy(kParty, nullptr, &records.party);
     StartZoneAt(this, nullptr, records.party.zone, 0);
 }
 
@@ -1675,9 +1667,9 @@ void GameFlow::ProcessRequest() {
     // The zone being left is saved (single player campaigns 1 and 3, or the host in campaign 1).
     if (GameMode() == 1 && (Campaign() == 1 || Campaign() == 3) && state == kStateZone) {
         LocalRecords records;
-        PartyStore(kParty, nullptr, &records.party);
+        PartyManagerEndRedeploy(kParty, nullptr, &records.party);
         LeaveZoneAt(&records.party);
-        PartyTake(kParty, nullptr, &records.party);
+        PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
     }
     if (GameMode() == 2 && Campaign() == 1 && state == kStateZone) {
         LocalRecords records;
@@ -1830,7 +1822,7 @@ int GameFlow::LoadGame(const char* slot) {
     // The visited zones of the current map (and bz7g) come back into saves\current; every other
     // zone, and one whose file could not be copied, is marked not visited.
     LocalRecords records;
-    PartyStore(kParty, nullptr, &records.party);
+    PartyManagerEndRedeploy(kParty, nullptr, &records.party);
     mfc::CString currentMap;    // [0x1C]
     currentMap = RecordAllod(FindZone(records.party.zone));
     void* variables = &records.party.variables;
@@ -1864,7 +1856,7 @@ int GameFlow::LoadGame(const char* slot) {
         mfc::CString variable = prefix + record->name;
         VariableSet(variables, nullptr, variable, 0.0f);
     }
-    PartyTake(kParty, nullptr, &records.party);
+    PartyManagerBeginRedeploy(kParty, nullptr, &records.party);
 
     // The zone: kinds 0 and 2 come back from mission.sav, the others start afresh.
     MapRecord* zoneRecord = FindZone(records.party.zone);
@@ -2215,7 +2207,6 @@ __declspec(naked) void __fastcall RecordsPart661640(void*) EI_ORIGINAL(0x0066164
 __declspec(naked) void __fastcall RecordsVariablesDestroy(void*) EI_ORIGINAL(0x00663330)
 __declspec(naked) void __fastcall RecordsArrayDestroy(void*) EI_ORIGINAL(0x006643F0)
 __declspec(naked) void __fastcall RecordsPart664160(void*) EI_ORIGINAL(0x00664160)
-__declspec(naked) void __fastcall RecordsBaseDestroy(void*) EI_ORIGINAL(0x00455930)
 // 004616A0 (RET 4): the variables table frees one node (what the original's inlined clear does).
 __declspec(naked) void __fastcall VariablesFreeNode(NamedFloatTable*, void*, NamedFloatTable::Node*) EI_ORIGINAL(0x004616A0)
 
@@ -2229,7 +2220,7 @@ void DestroyPartyEntry(SavedPartyEntry* entry) {
     RecordsVariablesDestroy(&records->variables);
     RecordsArrayDestroy(records->array40);
     RecordsPart664160(&records->recordArrayVtable);
-    RecordsBaseDestroy(records);
+    EngineObjectDestructBase(reinterpret_cast<CEngineObject*>(records));
 }
 
 } // namespace
