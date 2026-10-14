@@ -15,7 +15,7 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    mismatch in any run that are not yet in tests/verify/verified.txt
 exit code: 0 when every run passed
 """
-import argparse, collections, concurrent.futures, contextlib, glob, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
+import argparse, collections, concurrent.futures, contextlib, glob, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
 
 import prepare_scenario
 
@@ -23,6 +23,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, 'build', 'verify')
 LAUNCH = os.path.join(BUILD, 'ei_launch.exe')
 RUNS = os.path.join(BUILD, 'runs')
+# Each run's seconds from the last suite: the longest start first, so the last games to finish are
+# short ones (alphabetical order left a 50 s run for the end).
+TIMES = os.path.join(BUILD, 'run_times.json')
 
 # Games running at once on this machine, over every checkout and every run_all (2026-10-14: three
 # workers' suites, 24 games of ~640 MB video memory each rendering without a frame limit, hung the
@@ -113,6 +116,11 @@ def main():
     if args.vanilla_only: installs = ['vanilla']
     if args.rebirth_only: installs = ['rebirth']
     jobs = [(name, install) for name in names for install in installs]
+    try:
+        times = json.load(open(TIMES))
+    except (OSError, ValueError):
+        times = {}
+    order = sorted(jobs, key=lambda j: -times.get(f'{j[0]}-{j[1]}', 1000))   # new scenarios first
 
     totals = collections.defaultdict(lambda: [0, 0])
     results = {}
@@ -131,7 +139,7 @@ def main():
         return text
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        futures = {pool.submit(run_with_retries, n, i, not args.no_hooks, args.retries): (n, i) for n, i in jobs}
+        futures = {pool.submit(run_with_retries, n, i, not args.no_hooks, args.retries): (n, i) for n, i in order}
         for future in concurrent.futures.as_completed(futures):
             name, install = futures[future]
             result, seconds, failures, counts, notes = future.result()
@@ -143,6 +151,9 @@ def main():
                 print(line(name, install, result, seconds, failures, notes))
                 sys.stdout.flush()
 
+    times.update({f'{n}-{i}': round(r[1], 1) for (n, i), r in results.items()})
+    with contextlib.suppress(OSError):
+        json.dump(times, open(TIMES, 'w'), indent=0, sort_keys=True)
     ok = all(r[0] in ('PASS', 'PASS*') for r in results.values())
     failed = [(n, i) for n, i in jobs if results[(n, i)][0] not in ('PASS', 'PASS*')]
     if failed and len(jobs) > 1:

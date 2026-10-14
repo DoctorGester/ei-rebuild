@@ -1494,7 +1494,7 @@ void RunSteps() {
             WriteReport();
             // The game can hang on the way out (Rebirth does). The quit console command calls exit(),
             // which stops our watchdog thread too, so ei_launch ends the process when it sees
-            // harness_quit and the game is still running 10 s later.
+            // harness_quit and the game is still running 3 s later.
             char marker[MAX_PATH];
             strcpy_s(marker, g_reportPath);
             if (char* slash = std::strrchr(marker, '\\')) strcpy_s(slash + 1, marker + MAX_PATH - (slash + 1), "harness_quit");
