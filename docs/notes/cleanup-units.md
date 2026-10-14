@@ -130,3 +130,42 @@ differ only in the registration thunks (EI_REPLACE_METHOD's form) and the remove
   templates (AICallArray, AIReportArray, AILookArray, PatrolPointArray, CorpseList, TextSourceList, TweenArray,
   SmoothEdgeArray, PathCellList, SearchGrid<T>, ClassTemplateVector: no member can be added); shims of virtual
   slots (rule 4: a vtable thunk cannot be registered by member pointer); shims with a void* / uint8_t* self.
+
+## C11 batch 2: shims to member functions (2026-10-14)
+
+76 more shims became members (tools/progress.py: 1,211 before, 1,135 after). Release objects differ as in batch 1 (thunk form,
+no `xor edx, edx` at the callers). The batch has fewer than the 100 asked for because the convertible pool is used up:
+of the 1,135 left, about 430 are in ui_* / net_* / widescreen / renderer / PF1a files or in the originals_*.h headers, about 190 have a `void*` self,
+and nearly all of the rest are call-throughs to originals (`XxxOriginal(a0, nullptr, a2)` in the world_*, combat_*,
+item_*, script_* helper blocks; progress.py counts them but there is no body to move), shims of virtual slots
+(`*Hook`, Delete / Ignore / Draw slots, LinkMesh, CItem*, AIMode, CUnitController) and aliases of lib / mfc templates.
+- Scripts (script.h, script_*.cpp): CScript FindArea / FindBlock / DeleteArea / NewCommandList / NewTempObject /
+  RunCommands / CreatePointLight / MovePointLight / DeletePointLight / LoadState / SaveState; ScriptIfThen Load / Run;
+  ScriptDefinition Save / BindCall; SSCCmd Load / DestroyElement; ScriptSubCall Load / DestroyElement; ScriptDecl::Save;
+  ScriptRun::Save; ScriptVars Load / AppendFrom; and the four ScriptNamedValues<T> instances (float, mfc::CString,
+  ScriptObjectRef, ScriptGroup) of Load / Save / Append / CopyConstruct / FindName (FindName is one template body
+  registered at four addresses; the others are explicit specializations declared in script.h).
+  The savegame CScript::Load / Save became LoadState / SaveState: EI_REPLACE_METHOD cannot take an overloaded name.
+- AI: CUnitLayer SetSmall / SetLarge / MergeSmall / MergeLarge; SearchGrid<T> Resize / CopyFrom / Construct (explicit
+  specializations for the element types the game uses; SearchGrid is a real struct template, unlike the aliases of
+  batch 1).
+- Figures and models: CFigureManager FindModel / LoadFigureBones / LoadFigureBounds / LoadSkeletonLinks,
+  FigureModel::FindAnimation, MeshFace::ComputeNormal, NamedTexture::Copy, CLinkFigureLoader::Construct,
+  CBaseManager::FindFigureAnimation, CMapObject::SetScriptPosition, CMaterial SetDiffuse / SetAmbient / SetSpecular,
+  CWorldClient::BuildUnitSkins.
+- Small: hash400::Table (nine registrations: ObjectsFind / Lookup / RemoveKey / SetAt, PositionAt, PositionsRemoveKey,
+  SpareCountAt), UnitPrototypeTable::At, BufferCursor::Start, Vector3 ConstructScene / Assign.
+- Skipped again, with the reason: ClassTemplate::SetLevels and RefPtrShareReturn (callers in ui_camp_create.cpp /
+  net_session_base.cpp: wait for W2 / F5); Quaternion::Rotate (defined inside namespace mapspec, a member cannot be);
+  CFigureMesh::Rasterise (figure_mesh.h would need texture.h, which pulls in windows.h and renames GetClassName);
+  CScript NewWorldScript / RunWorldScript and ScriptDefinition::AddParameter (script_parse_load.cpp already declares
+  members of those names with other parameter types, so the definitions would change a signature); Chunk
+  ReadMobChunks (MobRecords is not declared in chunk_stream.h) and FakeUnitScene::LoadScene (namespace fakeunit vs
+  scene); ChunkArchive speech fields (namespace acks); DeviceRecord (app_device_list.cpp, the lever-record rename
+  ticket); UnitModelAt / TerrainTypeAt / ObjectHolderAssign (the self is a pointer to a pointer, not a class).
+- Fixed on the way: ScriptNamedValues<T> declared Append / CopyConstruct for ScriptGroup only; the declarations now
+  take T. Parameters that hide members (C4458) were renamed (`x_`, `first`) in Vector3::ConstructScene and
+  BufferCursor::Start; a local that hid a member was renamed in script_destroy.cpp and script_exec_run.cpp.
+- Left: 1,135, almost all of them the categories listed at the top of this section. The next real gain is the ui_* / net_*
+  callers after W2 / F5 (text_reader, ClassTemplate::SetLevels, RefPtrShareReturn), then the call-through blocks as
+  their originals are ported.
