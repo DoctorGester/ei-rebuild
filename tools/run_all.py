@@ -1,8 +1,11 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
-usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only] [--no-hooks]
+usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --native] [--no-hooks]
                                [--jobs N] [--retries N] [--verified-candidates N]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
+  --native         only the install without dgVoodoo (run\\native, tools/setup_native_run.cmd), with
+                   EI_RENDER=new,present: the game has no DirectDraw or Direct3D 7 device and the new
+                   renderer presents through its own swap chain (docs/notes/renderer.md section 9)
   --jobs N         games running at once (default 16); all runs on the machine together never
                    exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei_hook.log, harness_report.txt and
@@ -23,6 +26,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, 'build', 'verify')
 LAUNCH = os.path.join(BUILD, 'ei_launch.exe')
 RUNS = os.path.join(BUILD, 'runs')
+NATIVE_EXE = os.path.join(ROOT, 'run', 'native', 'game.exe')
 
 # Games running at once on this machine, over every checkout and every run_all (2026-10-14: three
 # workers' suites, 24 games of ~640 MB video memory each rendering without a frame limit, hung the
@@ -60,8 +64,12 @@ def run(name, install, hooks):
     os.makedirs(out, exist_ok=True)
     prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
     cmd = [LAUNCH, '--harness', scenario, '--out', out]
+    env = None
     if install == 'vanilla':
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(ROOT, 'run', 'vanilla', 'game.exe')]
+    elif install == 'native':
+        cmd += ['--game', r'F:\games\EvilIslands', '--exe', NATIVE_EXE]
+        env = dict(os.environ, EI_RENDER='new,present')
     elif os.path.exists(os.path.join(ROOT, 'run', 'rebirth', 'game.exe')):
         # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
         cmd += ['--exe', os.path.join(ROOT, 'run', 'rebirth', 'game.exe')]
@@ -69,7 +77,7 @@ def run(name, install, hooks):
         cmd.append('--no-hooks')
     with machine_slot():
         start = time.time()
-        proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace')
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env)
         seconds = time.time() - start
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
@@ -102,6 +110,7 @@ def main():
     ap.add_argument('scenarios', nargs='*')
     ap.add_argument('--vanilla-only', action='store_true')
     ap.add_argument('--rebirth-only', action='store_true')
+    ap.add_argument('--native', action='store_true')
     ap.add_argument('--no-hooks', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
@@ -112,6 +121,10 @@ def main():
     installs = ['vanilla', 'rebirth']
     if args.vanilla_only: installs = ['vanilla']
     if args.rebirth_only: installs = ['rebirth']
+    if args.native:
+        installs = ['native']
+        if not os.path.exists(NATIVE_EXE):
+            sys.exit(f'{NATIVE_EXE} is missing: run tools\\setup_native_run.cmd first')
     jobs = [(name, install) for name in names for install in installs]
 
     totals = collections.defaultdict(lambda: [0, 0])
