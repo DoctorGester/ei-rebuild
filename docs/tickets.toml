@@ -952,13 +952,14 @@ done = "2026-10-14"
 id = "PF1a"
 title = "Case-fold table for the other game _strnicmp callers"
 group = "port"
-status = "review"
+status = "done"
 size = 0.3
 model = "sonnet"
 depends = ["PF1"]
 files = ["src/game/resource.cpp", "src/game/object3d_figure_setup.cpp", "src/game/net_server_players.cpp"]
 note = "PF1 follow-up: CMappedResource::FindEntry, object3d_figure_setup.cpp and net_server_players.cpp still call gamecrt::strnicmp (LCMapStringW per character). Move SameIgnoringCase / CaseFoldTable into lib/crt and use it there; measure first with EI_PROFILE, skip any caller that is not hot."
 started = "2026-10-14"
+done = "2026-10-14"
 
 # ---------------------------------------------------------------- docs
 
