@@ -69,6 +69,10 @@ struct FootprintCellSet {
     bool hashed;            // +0x50 set by Construct and by every insertion, never cleared
     std::uint8_t unknown_51[3];
 };
+static_assert(offsetof(FootprintCellSet, count) == 0x04);
+static_assert(offsetof(FootprintCellSet, capacity) == 0x08);
+static_assert(offsetof(FootprintCellSet, growBy) == 0x0C);
+static_assert(offsetof(FootprintCellSet, hashed) == 0x50);
 static_assert(sizeof(FootprintCellSet) == 0x54);
 
 // A box of an object's model that blocks the AI map (CEngineObject + 0x160, 0x38 bytes each).
@@ -891,7 +895,12 @@ public:
     int occluderWidth, occluderHeight;  // +0x26B0
     SearchGrid<std::int8_t> marks;      // +0x26B8 per-cell marks: path directions (BuildCellsTo), reach answers
 };
+static_assert(offsetof(CAIMap, batching) == 0x01 && offsetof(CAIMap, refreshUnits) == 0x02);
+static_assert(offsetof(CAIMap, dirtyMinX) == 0x04 && offsetof(CAIMap, dirtyMaxX) == 0x08);
+static_assert(offsetof(CAIMap, dirtyMinY) == 0x0C && offsetof(CAIMap, dirtyMaxY) == 0x10);
 static_assert(offsetof(CAIMap, passCosts) == 0x14);
+static_assert(offsetof(CAIMap, unknown_124) == 0x124 && offsetof(CAIMap, sectorsPerRow) == 0x128);
+static_assert(offsetof(CAIMap, waterWidth) == 0x1FC && offsetof(CAIMap, waterHeight) == 0x200);
 static_assert(offsetof(CAIMap, stepCosts) == 0x94);
 static_assert(offsetof(CAIMap, climbLarge) == 0xD4);
 static_assert(offsetof(CAIMap, climbSmall) == 0xE8);

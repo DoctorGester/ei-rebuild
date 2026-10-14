@@ -8,7 +8,7 @@ src/game/ai_join.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/ai_line_step.cpp,0,0,0,2,6,0,0,0,0,0,1
 src/game/ai_map.cpp,0,0,0,0,0,0,0,1,0,1,1
 src/game/ai_map.h,0,0,0,0,0,0,0,0,0,2,0
-src/game/ai_map_construct.cpp,23,0,0,0,5,0,0,0,0,0,0
+src/game/ai_map_construct.cpp,6,0,0,0,5,0,0,0,0,0,0
 src/game/ai_motion.cpp,0,3,4,0,0,0,0,0,0,0,6
 src/game/ai_motion.h,0,0,0,0,0,0,0,1,0,0,0
 src/game/ai_movement.cpp,0,4,0,0,0,0,0,2,0,0,3

@@ -68,23 +68,30 @@ void Zero(void* object, std::initializer_list<int> offsets) {
 
 // 005B3C30 (thiscall). Returns this.
 CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
-    At<int>(self, 4) = 10000;
-    At<int>(self, 8) = 0;
-    At<int>(self, 0xC) = 10000;
-    At<int>(self, 0x10) = 0;
-    At<std::uint32_t>(self, 0xD4) = kArrayVtable;
-    Zero(self, {0xD8, 0xE4, 0xE0, 0xDC});
-    At<std::uint32_t>(self, 0xE8) = kArrayVtable;
-    Zero(self, {0xEC, 0xF8, 0xF4, 0xF0, 0xFC, 0x108, 0x104, 0x100});
+    self->dirtyMinX = 10000;
+    self->dirtyMaxX = 0;
+    self->dirtyMinY = 10000;
+    self->dirtyMaxY = 0;
+    self->climbLarge.Construct(kArrayVtable);
+    self->climbSmall.Construct(kArrayVtable);
+    self->materials.Construct();
     Construct10C(Member(self, 0x10C), nullptr);
     Construct134(Member(self, 0x134), nullptr);
-    At<std::uint32_t>(self, 0x124) = kSectorMapVtable;
-    Zero(self, {0x148, 0x128, 0x12C, 0x130, 0x14C, 0x158, 0x154, 0x150});
-    At<std::uint8_t>(self, 0x19C) = 1;
-    Zero(self, {0x1A0, 0x1AC, 0x1A8, 0x1A4});
-    At<std::uint8_t>(self, 0x1F0) = 1;
-    At<int>(self, 0x1FC) = 1;
-    At<int>(self, 0x200) = 1;
+    self->unknown_124 = kSectorMapVtable;
+    Zero(self, {0x148, 0x12C, 0x130});
+    self->sectorsPerRow = 0;
+    self->footprint.cells = nullptr;
+    self->footprint.growBy = 0;
+    self->footprint.capacity = 0;
+    self->footprint.count = 0;
+    self->footprint.hashed = true;
+    self->bridges.cells = nullptr;
+    self->bridges.growBy = 0;
+    self->bridges.capacity = 0;
+    self->bridges.count = 0;
+    self->bridges.hashed = true;
+    self->waterWidth = 1;
+    self->waterHeight = 1;
     Construct1F4(Member(self, 0x1F4), nullptr);
     for (int list = 0x204; list <= 0x268; list += 0x14) {
         At<std::uint32_t>(self, list) = kAreaListVtable;
@@ -100,18 +107,18 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     ConstructList2598(Member(self, 0x2598), nullptr, 1, 1);
     ConstructListB(Member(self, 0x25A8), nullptr, 1, 1);
     Construct25BC(Member(self, 0x25BC), nullptr);
-    At<std::uint32_t>(self, 0x25B8) = 0;
+    self->forwardSearch.map = nullptr;
     ConstructSearch2614(Member(self, 0x2614), nullptr, 0);
     Construct2698(Member(self, 0x2698), nullptr, 1, 1);
     Construct26A8(Member(self, 0x26A8), nullptr, 1, 1);
     ConstructListB(Member(self, 0x26B8), nullptr, 1, 1);
     Construct26C8(Member(self, 0x26C8), nullptr);
-    At<std::uint8_t>(self, 0) = 0;
-    At<std::uint8_t>(self, 1) = 0;
+    self->loaded = false;
+    self->batching = false;
     ResetDirty(Member(self, 4), nullptr);
     Initialise(self, nullptr);
-    At<int>(self, 0x2694) = 0;
-    At<std::uint8_t>(self, 2) = 0;
+    self->lastFootprintOwner = 0;
+    self->refreshUnits = false;
     return self;
 }
 
@@ -140,7 +147,7 @@ void __fastcall ResetAIMap(CAIMap* self) {
     DestroyA80(Member(self, 0x1F4), nullptr);
     Destroy5C0(Member(self, 0x1A0), nullptr);
     Destroy5C0(Member(self, 0x14C), nullptr);
-    At<std::uint32_t>(self, 0x124) = kSectorMapVtable;
+    self->unknown_124 = kSectorMapVtable;
     Destroy330(Member(self, 0x134), nullptr);
     Destroy4A0(Member(self, 0x10C), nullptr);
     Destroy780(Member(self, 0xFC), nullptr);
