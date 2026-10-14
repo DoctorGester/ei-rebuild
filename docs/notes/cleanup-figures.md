@@ -165,3 +165,22 @@ original does); a local keeps the old code.
   all pass, ShowWounds 75 verify calls, 0 mismatches.
 - party.h: CParty's slot 23 renamed `FigureLoader` (CWorld's name since F4d; still null there).
 - Left: HideWounds (0051C920) and object3d_client_parts.cpp still drop the wounds material by hand (ticket F4f).
+
+## F4f: the client half's wounds material drops (2026-10-14)
+
+- Ghidra: of the client half's functions only DestroyClient (0051AF70, at 0051AF96) calls 0051E570;
+  HideWounds (0051C920), the constructor (0051AB00) and CreateClient (0051AEC0) inline the assign of null
+  (slot read, slot zeroed, count decremented, slot 0 with 1 at zero), and DestructBody (0051AD90) inlines
+  the reference's destructor (no slot write).
+- `AsCountedRef(T*&)` moved from unit_client_wounds.cpp to map_object_figures.h next to `CountedRef<T>`.
+  DestroyClient now calls `AsCountedRef(woundsMaterial).Assign(nullptr)` (the shared copy, as the original).
+  `CObject3DClientSpecific::ClearWoundsMaterial()` (map_object_shadow.h, inline after WoundsMaterial) is
+  the inlined form, through `CDeviceMaterial::Release`: HideWounds, Construct and CreateClient use it;
+  DestructBody releases the slot's material directly. object3d_client_parts.cpp's `DropWoundsMaterial` is gone.
+- Release objects compared with dumpbin: HideWounds identical. Construct, CreateClient and DestructBody now
+  inline the drop instead of calling the file-local `DropWoundsMaterial` (it was not declared inline);
+  DestroyClient calls `CountedRef<WoundsMaterial>::Assign` (slot in ECX) instead of the local drop.
+  Same behaviour in each.
+- Checked with combat, combat_more and units on both installs: all pass, 0 mismatches; per run Construct
+  784-919, CreateClient 785-920, DestroyClient 52-152, HideWounds 41-52 verify calls (DestructBody has no
+  verify calls in these three).

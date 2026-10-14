@@ -141,9 +141,7 @@ void CObject3DClientSpecific::HideWounds() {
     CEngineObject* oldTexture = woundsTexture;
     woundsTexture = nullptr;
     if (oldTexture) oldTexture->Release();
-    WoundsMaterial* oldMaterial = woundsMaterial;
-    woundsMaterial = nullptr;
-    if (oldMaterial && --oldMaterial->refCount == 0) oldMaterial->DeletingDestructor(1);
+    ClearWoundsMaterial();
 }
 EI_REPLACE_METHOD(0x0051C920, CObject3DClientSpecific::HideWounds);
 
@@ -161,11 +159,6 @@ void AssignTexture(CTexture** slot, CTexture* value) {
     if (value) ++value->refCount_;
     if (old) old->Release();
 }
-
-// The material's slot and its preset's as the counted references 0051E570 / 0051E4F0 assign
-// (CountedRef<T>::Assign, object3d_lifetime.cpp; 0051C3D0 calls them).
-template <typename T>
-inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedRef<T>*>(&slot); }
 
 // The material's constructor, inlined by 0051C3D0: the counted root's fields, then its own.
 WoundsMaterial* NewWoundsMaterial() {

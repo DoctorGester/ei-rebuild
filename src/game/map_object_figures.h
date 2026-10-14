@@ -322,6 +322,11 @@ struct CountedRef {
     T* object;
 };
 
+// A counted pointer slot viewed as the reference the game's copies of Assign take as `this`
+// (CObject3D::FigureRef for the figure; the wounds material and its preset in 0051C3D0 / 0051AF70).
+template <typename T>
+inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedRef<T>*>(&slot); }
+
 class CObject3D : public CEngineObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DDD4);

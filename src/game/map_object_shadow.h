@@ -147,6 +147,10 @@ public:
     // sets destroyed and deleted, every texture and material released and the arrays emptied; no
     // object, touch time and flags_ 0.
     void DestroyClient();
+    // The wounds material slot (+0xDC) cleared and the material it held released (deleted at its
+    // last reference): CountedRef<WoundsMaterial>::Assign(nullptr) as 0051AB00, 0051AEC0 and
+    // 0051C920 inline it (0051AF70 calls the copy 0051E570 instead, through AsCountedRef).
+    void ClearWoundsMaterial();
     // 0051B050 (slot 13, RET 4). `part` joins the group of its material (piece +0x158) in the set
     // of its texture (piece +0x15C), both made on first use (FindOrAddTexture, FindOrAddMaterial);
     // referenced unless already there. 0 when no set has the texture, else 1.
@@ -255,3 +259,9 @@ struct __declspec(novtable) WoundsMaterial : CDeviceMaterial {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DF68);
 };
 static_assert(sizeof(WoundsMaterial) == 0x24);
+
+inline void CObject3DClientSpecific::ClearWoundsMaterial() {
+    WoundsMaterial* old = woundsMaterial;
+    woundsMaterial = nullptr;
+    if (old) old->Release();
+}
