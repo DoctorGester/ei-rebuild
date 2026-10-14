@@ -158,7 +158,6 @@ __declspec(naked) int __fastcall UnitIsBehind(CUnit*, void*, CEngineObject*) EI_
 __declspec(naked) int __fastcall StatsApplyHit(UnitStats*, void*, CUnit*, void*, DamageInfo*, CEngineObject*)
     EI_ORIGINAL(0x005254B0)
 // 00524560. Recomputes the unit's server stats (hit points and the like) after a change.
-__declspec(naked) void __fastcall StatsRecompute(UnitStats*, void*, void*, CUnit*) EI_ORIGINAL(0x00524560)
 // 005911C0. The world server's experience award for a kill (`player` null in multiplayer).
 __declspec(naked) void __fastcall WorldAwardKill(void*, void*, char*, int) EI_ORIGINAL(0x005911C0)
 // 005D7E90. The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
@@ -697,7 +696,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             } else {
                 LastDamageSource(unit) = 7;
             }
-            StatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
+            UnitStatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
             unit->MarkChanged(0);
             unit->MarkChanged(4);
             if (!dead) {

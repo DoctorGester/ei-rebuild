@@ -10,6 +10,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_units.h"
+#include "unit_create.h"
 #include "originals_gameplay.h"
 
 #include <cstring>
@@ -46,7 +47,6 @@ constexpr int kCarriedGrowMax = 0x400;
 constexpr std::size_t kPrototypeSize = 0x120;
 inline char*& PrototypesBegin() { return *reinterpret_cast<char**>(0x007AF358); }
 inline char*& PrototypesEnd() { return *reinterpret_cast<char**>(0x007AF35C); }
-void* const kPrototypeTable = reinterpret_cast<void*>(0x007AF358);
 void* const kPrototypeNameMap = reinterpret_cast<void*>(0x007AF364);    // hash_map<string, record*>
 
 template <typename T>
@@ -87,9 +87,6 @@ struct RawString {
 } // namespace
 
 void* RawString::InitFrom(const char* text, void* alloc) { return ::StringInitFromChars(this, nullptr, text, alloc); }
-
-// unit_items.cpp: 00514930, the prototype table's record named `name`.
-char* __fastcall FindUnitPrototype(const void* table, void*, const char* name);
 
 namespace {
 // Not rewritten (forwarders):
@@ -257,7 +254,7 @@ void CUnit::LoadUnit(UnitStream* stream) {
     At<int>(this, kPrototypeIndex) = PrototypeIndexOf(PrototypeByName(name));
     char* second;
     if (stream->version < kVersionSecondName) {
-        second = FindUnitPrototype(kPrototypeTable, nullptr, name);
+        second = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, name);
     } else {
         ReadStringInto(stream, name);
         second = PrototypeByName(name);

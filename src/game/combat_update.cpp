@@ -78,7 +78,6 @@ inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetContro
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
 __declspec(naked) bool __fastcall VitalsRegenerate(void*, void*, UnitStats*, CUnit*, int /*inCombat*/) EI_ORIGINAL(0x00523740)
-__declspec(naked) void __fastcall StatsRecomputeAt(UnitStats*, void*, void*, CUnit*) EI_ORIGINAL(0x00524560)
 // The AI: 005C9770 the events' presence of a unit at a point (world + 0x2838; returns its record),
 // 005CB850 the perception memory's update (controller + 0xA50), 005AEA80 the alarm step
 // (ai_alarm.cpp, controller + 0xB10), 005AEA40 the alarm's reset, 005D53B0 AIBrain::Think and
@@ -242,7 +241,7 @@ int CUnitServer::UpdateServer() {
     CUnit* self = unit;
     if (self->dead == 0) {
         if (VitalsRegenerate(ServerStatsOf(self), nullptr, &stats, self, action.kind != 0 ? 1 : 0)) {
-            StatsRecomputeAt(&stats, nullptr, ServerStatsOf(unit), unit);
+            UnitStatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
             UnitMarkChanged(unit, nullptr, 0);
             UnitMarkChanged(unit, nullptr, 4);
         }

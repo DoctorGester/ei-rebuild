@@ -18,7 +18,9 @@ struct AttackParams;
 struct OrderPlan;
 struct PathCell;
 struct UnitAction;
+struct UnitPrototypeTable;
 struct UnitStats;
+struct UnitVitals;
 
 // 0050EAB0 (RET 8): the map object reads its network state (its slot 49 between the state's begin
 // / end; `delta` 0 the full state, 1 a delta) from a memory stream. Nonzero when it was read.
@@ -401,3 +403,35 @@ struct ControllerOriginals {
 };
 __declspec(naked) inline void ControllerOriginals::Idle() EI_ORIGINAL(0x00555180)
 __declspec(naked) inline void ControllerOriginals::StopQueued() EI_ORIGINAL(0x00555200)
+// C3n. 005144D0 / 00514930 (rewritten as UnitPrototypeTable::FindByName; thiscall, RET 4): the unit prototype record
+// named `name` (inserting an empty entry for an unknown name; null then). Two copies of one function.
+__declspec(naked) inline char* __fastcall UnitPrototypeFind(UnitPrototypeTable* /*table*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x005144D0)
+__declspec(naked) inline char* __fastcall UnitPrototypeFindCopy(UnitPrototypeTable* /*table*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x00514930)
+// C3n. 00523370 (rewritten as UnitVitals::Reset; plain RET): the vitals back to their defaults; returns the vitals.
+__declspec(naked) inline void* __fastcall UnitVitalsReset(UnitVitals* /*vitals*/) EI_ORIGINAL(0x00523370)
+// C3n. 00523E80 / 00523F50 (rewritten as UnitStats::HitPointCurve / ManaCurve; plain RET): the maximum hit points /
+// mana the statistics give, in ST0 (declared double).
+__declspec(naked) inline double __fastcall UnitStatsHitPointCurve(UnitStats* /*stats*/) EI_ORIGINAL(0x00523E80)
+__declspec(naked) inline double __fastcall UnitStatsManaCurve(UnitStats* /*stats*/) EI_ORIGINAL(0x00523F50)
+// C3n. 00524560 (rewritten as UnitStats::Recompute; thiscall, RET 8): the statistics' derived values for `unit`.
+__declspec(naked) inline void __fastcall UnitStatsRecompute(UnitStats* /*stats*/, void*, UnitVitals* /*vitals*/,
+                                                            CUnit* /*unit*/) EI_ORIGINAL(0x00524560)
+// C3n. 00527EB0 (rewritten as UnitStats::SpellSchoolSkill; thiscall, RET 4): the skill of a spell school, in ST0.
+__declspec(naked) inline double __fastcall UnitStatsSpellSchoolSkill(UnitStats* /*stats*/, void*, int /*school*/)
+    EI_ORIGINAL(0x00527EB0)
+// C3n. 0052F820 / 0052F8B0 (rewritten as CUnit::CanCastSpell / CanUseQuickItem; thiscall, RET 8): whether the unit can
+// cast the spell / use the quick item of a slot at `point` (0 when it can).
+__declspec(naked) inline int __fastcall UnitCanCastSpell(CUnit* /*unit*/, void*, int /*slot*/, const float* /*point*/)
+    EI_ORIGINAL(0x0052F820)
+__declspec(naked) inline int __fastcall UnitCanUseQuickItem(CUnit* /*unit*/, void*, int /*slot*/, const float* /*point*/)
+    EI_ORIGINAL(0x0052F8B0)
+// C3n. 00530120 (rewritten as CUnit::SetSide; thiscall, RET 4): the unit's side.
+__declspec(naked) inline void __fastcall UnitSetSide(CUnit* /*unit*/, void*, int /*side*/) EI_ORIGINAL(0x00530120)
+// C3n. 0052E940 (rewritten as CUnit::AddHostileMask; thiscall, RET 4): adds players to the unit's hostile mask.
+__declspec(naked) inline void __fastcall UnitAddHostileMask(CUnit* /*unit*/, void*, std::uint32_t /*mask*/)
+    EI_ORIGINAL(0x0052E940)
+// C3n. 00523960 (rewritten as UnitStats::AddScaledExperience; thiscall, RET 4): the statistics gain experience (scaled).
+__declspec(naked) inline void __fastcall UnitStatsAddExperience(UnitStats* /*stats*/, void*, float /*amount*/)
+    EI_ORIGINAL(0x00523960)

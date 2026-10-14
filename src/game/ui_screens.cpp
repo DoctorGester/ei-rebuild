@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_ui.h"
+#include "originals_units.h"
 
 namespace {
 // The game's own strings (the sound system is given the game's pointers, as the original does).
@@ -52,8 +53,6 @@ BOOL TakeScrollPos(void* bar, void*, int* position) { return ScrollbarTakePositi
 // The hero screen's equipment panels.
 
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
-__declspec(naked) double __fastcall StatsSchoolSkill(void*, void*, int) EI_ORIGINAL(0x00527EB0)
-__declspec(naked) double __fastcall StatsManaMaximum(void*) EI_ORIGINAL(0x00523F50)
 __declspec(naked) double __fastcall StatsPeriod(void*) EI_ORIGINAL(0x00523CD0)
 __declspec(naked) char* __fastcall SpellPrototype(void*) EI_ORIGINAL(0x0068BA20)
 
@@ -438,12 +437,12 @@ EI_REPLACE(0x006212A0, ItemStripLButtonDownForward);
 // --- Heroes' skills ---------------------------------------------------------------------------
 
 int HeroSchoolSkill(void* stats, int school) {
-    return x87::fistp(static_cast<float>(StatsSchoolSkill(stats, nullptr, school)));
+    return x87::fistp(static_cast<float>(UnitStatsSpellSchoolSkill(static_cast<UnitStats*>(stats), nullptr, school)));
 }
 
 int HeroManaUnits(void* stats) {
     // The maximum is stored as a float (FSTP) before the division; the quotient is not rounded.
-    float maximum = StoreFloat(static_cast<float>(StatsManaMaximum(stats)));
+    float maximum = StoreFloat(static_cast<float>(UnitStatsManaCurve(static_cast<UnitStats*>(stats))));
     return GameFtol(maximum / StatsPeriod(stats));
 }
 

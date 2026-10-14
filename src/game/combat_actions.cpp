@@ -369,7 +369,7 @@ EI_REPLACE_METHOD(0x00552C60, CUnitServer::UseItemCharge);
 
 BOOL CUnitServer::Heal(float amount) {
     if (!StatsHeal(&stats, nullptr, ServerStatsOf(unit), amount)) return 0;
-    StatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
+    UnitStatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
     unit->MarkChanged(0);
     unit->MarkChanged(4);
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" was healed")->PutChar(10)->Apply(kLogEndLine);

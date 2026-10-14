@@ -9,6 +9,8 @@
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_units.h"
+#include "unit_create.h"
 
 #include <cstring>
 
@@ -40,8 +42,6 @@ void ReleaseSlots(CUnit* unit, CEngineObject** slots, int count) {
 
 // 00514930: the unit prototype table's record named `name`; UnitPrototypeTable::FindByName in
 // unit_create.cpp, called through its address.
-__declspec(naked) char* __fastcall FindUnitPrototype(const void* /*table*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x00514930)
 
 CEngineObject* CUnit::EquipArmour(CEngineObject* item) {
     if (!item) return nullptr;
@@ -162,7 +162,7 @@ std::uintptr_t CUnit::SendEquipment() {
 EI_REPLACE_METHOD(0x00531110, CUnit::SendEquipment);
 
 std::uint32_t CUnit::SetPrototype23CByName(const char* name) {
-    char* record = FindUnitPrototype(&unitdb::Prototypes(), nullptr, name);
+    char* record = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, name);
     if (!record) {
         prototype23C = -1;
         return 0xFFFFFFFFu;

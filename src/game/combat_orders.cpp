@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -82,7 +83,6 @@ void TellParty(CUnit* unit, int message) {
 
 // Not rewritten (forwarders).
 // 00527EB0. UnitStats: the unit's skill value for spell school `school`, in ST0 (declared double).
-__declspec(naked) double __fastcall StatsSpellSkill(UnitStats*, void*, int) EI_ORIGINAL(0x00527EB0)
 // 00595020. CWorldServer: `unit` used the scroll `item` up.
 __declspec(naked) void __fastcall WorldUseScroll(void*, void*, CUnit*, CItem*) EI_ORIGINAL(0x00595020)
 
@@ -230,7 +230,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
         int needed = static_cast<int>(spell->unknown_50);
         float skill = static_cast<float>(
-            StatsSpellSkill(&self->stats, nullptr, Field<int>(spell->GetPrototype(), 0x14)));
+            UnitStatsSpellSchoolSkill(&self->stats, nullptr, Field<int>(spell->GetPrototype(), 0x14)));
         if (x87::fistp(skill) < needed) return false;
     }
     return !(self->unit->flags_ & kFlagSpellBlocked);

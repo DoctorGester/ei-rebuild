@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_ui.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -85,8 +86,6 @@ __declspec(naked) void __fastcall ViewSpellAtPoint(void*, void*, int, CUnit*, fl
 __declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, float*, int) EI_ORIGINAL(0x0066ADD0)
 // CUnit::CanCastSpell (0052F820) / CanUseQuickItem (0052F8B0) (thiscall, RET 8; rewritten),
 // CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
-__declspec(naked) int __fastcall UnitCanCastSpellAt(CUnit*, void*, int, float*) EI_ORIGINAL(0x0052F820)
-__declspec(naked) int __fastcall UnitCanUseQuickItemAt(CUnit*, void*, int, float*) EI_ORIGINAL(0x0052F8B0)
 // The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
 // actions 0063F730 (index, 0); 005E7060 (RET 4) a sprite's scale.
 void __fastcall QuickPanelSet(CUiWindow* a0, void*, int a2, int a3) { QuickPanelSetOriginal((void*)a0, nullptr, a2, a3); }
@@ -254,11 +253,11 @@ void CBattleScreenSetup::UseOnUnit(CUnit* target, char quick, int ctrl) {
         int refused;
         if (quick == 0) {
             ViewSpellOnUnit(LocalView(kWorld), nullptr, unknown_180, member, target, ctrl & 0xFF);
-            refused = UnitCanCastSpellAt(unitAt(i), nullptr, unknown_180, position);
+            refused = UnitCanCastSpell(unitAt(i), nullptr, unknown_180, position);
         } else {
             ViewQuickOnUnit(LocalView(kWorld), nullptr, unknown_180, member, target, ctrl & 0xFF);
             QuickItemsSetUnit(quickItems_, nullptr, unitAt(i));
-            refused = UnitCanUseQuickItemAt(unitAt(i), nullptr, unknown_180, position);
+            refused = UnitCanUseQuickItem(unitAt(i), nullptr, unknown_180, position);
         }
         if (refused == 0) NodPortrait(this, i);
     }
@@ -286,10 +285,10 @@ void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char
         if (quick != 0) {
             ViewQuickAtPoint(LocalView(kWorld), nullptr, unknown_180, unitAt(i), point, 0);
             QuickItemsSetUnit(quickItems_, nullptr, unitAt(i));
-            refused = UnitCanUseQuickItemAt(unitAt(i), nullptr, unknown_180, point);
+            refused = UnitCanUseQuickItem(unitAt(i), nullptr, unknown_180, point);
         } else {
             ViewSpellAtPoint(LocalView(kWorld), nullptr, unknown_180, unitAt(i), point, 0);
-            refused = UnitCanCastSpellAt(unitAt(i), nullptr, unknown_180, point);
+            refused = UnitCanCastSpell(unitAt(i), nullptr, unknown_180, point);
         }
         if (refused == 0) NodPortrait(this, i);
     }

@@ -25,7 +25,7 @@ inline void* const kLogEndLine = reinterpret_cast<void*>(0x00435000);
 
 // The unit's server object (CUnit + 0x170, a CMapObjectServer) and the stats block at its +0x20.
 inline CEngineObject* ServerObjectOf(CUnit* unit) { return unit->companion; }
-inline void* ServerStatsOf(CUnit* unit) { return &static_cast<CMapObjectServer*>(ServerObjectOf(unit))->vitals; }
+inline UnitVitals* ServerStatsOf(CUnit* unit) { return &static_cast<CMapObjectServer*>(ServerObjectOf(unit))->vitals; }
 
 // Forwarders defined in combat_actions.cpp (__fastcall with the unused EDX for __thiscall).
 // 0058E850. CWorldServer: casts `spell` from `caster` at `from` on `target` at `at`.
@@ -37,7 +37,5 @@ void __fastcall PlayerMessage(void* messages, void*, CUnit* unit, int code);
 void __fastcall AIEventsNoise(void* events, void*, CUnitServer* source, float loudness, int kind, int);
 
 // Forwarders defined in combat.cpp.
-// 00524560. Recomputes the unit's server stats (hit points and the like) after a change.
-void __fastcall StatsRecompute(UnitStats*, void*, void*, CUnit*);
 // 005D7E90. The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
 void __fastcall RememberAttacker(void*, void*, CUnit*);

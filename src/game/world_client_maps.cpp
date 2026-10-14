@@ -46,6 +46,7 @@
 #include "player_client.h"
 #include "ui_flying_hit_points.h"
 #include "unit_client_models.h"
+#include "unit_create.h"
 
 #include <windows.h>
 
@@ -705,7 +706,6 @@ struct NamePair {
     UnitPrototypeRecord* second;
 };
 NamePair* __fastcall NameMapFindOrInsert(void* a0, void*, const NamePair* a2) { return (NamePair*)NameMapInsertOriginal(a0, nullptr, (const void*)a2); }
-__declspec(naked) std::uint8_t* __fastcall FindPrototypeByName(void*, void*, const char*) EI_ORIGINAL(0x00514930)
 // CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
 // [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
@@ -766,8 +766,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         auto* manager = static_cast<CBaseManager*>(MapObjectManager());
         auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unknown_01C)));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
-        std::uint8_t* prototype = FindPrototypeByName(const_cast<RecordTable*>(&unitdb::Prototypes()), nullptr,
-                                                      record->texts[5]);
+        auto* prototype = reinterpret_cast<std::uint8_t*>(UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, record->texts[5]));
         unit->unknown_18 = static_cast<std::uint32_t>(
             prototype ? static_cast<int>(prototype - reinterpret_cast<std::uint8_t*>(unitdb::Prototypes().begin)) /
                             unitdb::kPrototypeSize

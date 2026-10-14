@@ -9,6 +9,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -44,7 +45,6 @@ __declspec(naked) std::uintptr_t __fastcall CallServerSetStats(CEngineObject*, v
     EI_ORIGINAL(0x00552F40)
 // 00522CE0 / 00523E80 / 00523E00 (unit_vitals.cpp, unit_stats_pack.cpp).
 __declspec(naked) void __fastcall CallPackStats(UnitStats*, void*, CUnit*, UnitParams*) EI_ORIGINAL(0x00522CE0)
-__declspec(naked) double __fastcall CallHitPointCurve(UnitStats*) EI_ORIGINAL(0x00523E80)
 __declspec(naked) float __stdcall CallScaleHitPoints(CUnit*, float) EI_ORIGINAL(0x00523E00)
 
 namespace {
@@ -164,7 +164,7 @@ EI_REPLACE_METHOD(0x0052F740, CUnit::PlaceUnitOnGround);
 
 void CUnit::SetFromStats(UnitStats* stats) {
     CallPackStats(stats, nullptr, this, Params());
-    float curve = static_cast<float>(CallHitPointCurve(stats));
+    float curve = static_cast<float>(UnitStatsHitPointCurve(stats));
     float limit = CallScaleHitPoints(this, curve);
     maxHitPoints = static_cast<std::int16_t>(GameFtol(limit));
     hitPoints = static_cast<std::int16_t>(GameFtol(stats->Reduce(limit)));

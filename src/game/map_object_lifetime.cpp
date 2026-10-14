@@ -107,7 +107,6 @@ __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x0055
 // 005233B0 UnitVitalsPacked::Reset, 00523370 UnitVitals::Reset, 00523550 UnitParams::Reset,
 // 00455930 CEngineObject::DestructBase, and this file's constructors and destructor bodies.
 __declspec(naked) int __fastcall ResetPackedVitals(void*) EI_ORIGINAL(0x005233B0)
-__declspec(naked) void* __fastcall ResetVitals(void*) EI_ORIGINAL(0x00523370)
 __declspec(naked) int __fastcall ResetParams(void*) EI_ORIGINAL(0x00523550)
 __declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
 __declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D70)
@@ -390,14 +389,14 @@ CMapObjectServer* CMapObjectServer::Construct() {
     StringArrayConstruct(&stringsVtable);
     SetVtable(this, kServerCompanionVtable);
     CompanionOwner(this) = nullptr;
-    ResetVitals(&vitals);
+    UnitVitalsReset(&vitals);
     return this;
 }
 EI_REPLACE_METHOD(0x00515610, CMapObjectServer::Construct);
 
 void CMapObjectServer::DestructBody() {
     SetVtable(this, kServerCompanionVtable);
-    ResetVitals(&vitals);
+    UnitVitalsReset(&vitals);
     StringArraySetSize(&stringsVtable, nullptr, 0, -1);
     CompanionOwner(this) = nullptr;
     StringArrayDestruct(&stringsVtable);

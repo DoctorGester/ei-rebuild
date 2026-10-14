@@ -132,9 +132,7 @@ std::uint8_t RoundToByte(const char* record, int offset) {
 // Not rewritten / rewritten elsewhere, through their game addresses:
 // 00523370 UnitVitals::Reset, 005233E0 UnitStats::Reset, 00523960 AddScaledExperience,
 // 00525AF0 RefillSlots, all in unit_vitals.cpp / unit_stats_pack.cpp.
-__declspec(naked) void* __fastcall ResetVitalsAt(UnitVitals*) EI_ORIGINAL(0x00523370)
 __declspec(naked) int __fastcall ResetStatsAt(UnitStats*) EI_ORIGINAL(0x005233E0)
-__declspec(naked) void __fastcall AddScaledExperienceAt(UnitStats*, void*, float) EI_ORIGINAL(0x00523960)
 __declspec(naked) void* __fastcall RefillSlotsAt(UnitStats*) EI_ORIGINAL(0x00525AF0)
 // 0051FE00. Skill database: the skill named `name` by _mbsicmp, or null. Not rewritten.
 void* FindSkill(void* database, void*, const void* name) { return SkillFindOriginal(database, nullptr, name); }
@@ -145,8 +143,6 @@ void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
 // 00524CD0. Statistics: recomputes the current values at `scale`. Not rewritten.
 __declspec(naked) void __fastcall RecomputeAt(UnitStats*, void*, std::uint32_t) EI_ORIGINAL(0x00524CD0)
 // This file's functions through their addresses, so their verify wrappers stay in the path.
-__declspec(naked) char* __fastcall FindPrototypeAt(UnitPrototypeTable*, void*, const char*) EI_ORIGINAL(0x005144D0)
-__declspec(naked) char* __fastcall FindPrototypeAt2(UnitPrototypeTable*, void*, const char*) EI_ORIGINAL(0x00514930)
 __declspec(naked) char* __fastcall FindNpcAt(NpcPrototypeTable*, void*, const char*) EI_ORIGINAL(0x005145D0)
 __declspec(naked) int __fastcall SetDefaultsAt(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*) EI_ORIGINAL(0x005134F0)
 __declspec(naked) int __fastcall BuildFromPrototypeAt(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*, const char*)
@@ -234,7 +230,7 @@ void SetCombat(UnitStats* stats, const char* prototype, const char* model) {
 void LearnNpcSkills(UnitStats* stats, const char* npcRecord) {
     stats->spentExperience = 0.0f;
     if (!npcRecord) return;
-    AddScaledExperienceAt(stats, nullptr, Read<float>(npcRecord, npc::kExperience));
+    UnitStatsAddExperience(stats, nullptr, Read<float>(npcRecord, npc::kExperience));
     for (char* const* name = Read<char* const*>(npcRecord, npc::kSkillNames);
          name != Read<char* const*>(npcRecord, npc::kSkillNames + 4); ++name) {
         void* skill = FindSkill(reinterpret_cast<void*>(kSkillDatabase), nullptr, *name);
@@ -309,7 +305,7 @@ int UnitStatsBuilder::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
 EI_REPLACE_METHOD(0x005134F0, UnitStatsBuilder::SetDefaults);
 
 int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
-    const char* prototype = FindPrototypeAt(&unitdb::PrototypeTable(), nullptr, name);
+    const char* prototype = UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name);
     if (!prototype) {
         SetDefaultsAt(this, nullptr, vitals, stats);
         return 1;
@@ -317,7 +313,7 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
     const char* model = ModelOf(prototype);
     const char* npcRecord = FindNpcAt(&unitdb::NpcTable(), nullptr, name);
     if (!vitals || !stats) return 0;
-    ResetVitalsAt(vitals);
+    UnitVitalsReset(vitals);
     ResetStatsAt(stats);
 
     // Vitals: hit points and mana at their maxima, the model's regeneration.
@@ -379,7 +375,7 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
 EI_REPLACE_METHOD(0x005136D0, UnitStatsBuilder::BuildFromPrototype);
 
 int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
-    const char* prototype = FindPrototypeAt(&unitdb::PrototypeTable(), nullptr, name);
+    const char* prototype = UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name);
     const char* model = ModelOf(prototype);   // reads the prototype before the null test
     const char* npcRecord = FindNpcAt(&unitdb::NpcTable(), nullptr, name);
     if (!prototype) return game::FatalError(reinterpret_cast<const char*>(0x0078F288), name);
@@ -438,7 +434,7 @@ EI_REPLACE(0x00513DA0, BuildNpcStats);
 
 int __stdcall PrototypeObjectClass(const char* name) {
     constexpr int kDefaultClass = 0x33;
-    const char* prototype = FindPrototypeAt(&unitdb::PrototypeTable(), nullptr, name);
+    const char* prototype = UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name);
     if (!prototype) return kDefaultClass;
     const char* model = ModelOf(prototype);
     if (!model) return kDefaultClass;
@@ -679,9 +675,9 @@ EI_REPLACE_METHOD(0x005260A0, UnitStats::CanLearn);
 int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
     UnitVitals vitals{};   // the original's stack copies start as whatever the stack held
     UnitStats stats{};
-    const char* prototype = FindPrototypeAt(&unitdb::PrototypeTable(), nullptr, name);
+    const char* prototype = UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name);
     if (!prototype) {
-        ResetVitalsAt(&vitals);
+        UnitVitalsReset(&vitals);
         if (object->GetClassId() != kClassUnit) {
             SetDefaultsAt(this, nullptr, &vitals, nullptr);
             ei::VCall<void>(object, kSlotServerData, &vitals);
@@ -714,7 +710,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         ei::VCall<void>(object, kSlotResetScale);
         SetPrototype23CAt(object, nullptr, prototype);
     }
-    char* record = FindPrototypeAt2(&unitdb::PrototypeTable(), nullptr, name);
+    char* record = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, name);
     At<int>(object, 0x18) =
         record ? static_cast<int>(record - unitdb::PrototypeTable().begin) / unitdb::kPrototypeSize : -1;
     return 1;

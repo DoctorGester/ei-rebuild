@@ -165,8 +165,6 @@ __declspec(naked) double __fastcall CallEffectValue(const CUnit*, void*, std::ui
 // 00525800 / 00525A70.
 __declspec(naked) void __fastcall CallScaleSlotMaxima(UnitStats*, void*, float) EI_ORIGINAL(0x00525A70)
 // 00524560 / 00523F50 / 00523DB0 / 005282D0.
-__declspec(naked) void __fastcall CallRecompute(UnitStats*, void*, UnitVitals*, CUnit*) EI_ORIGINAL(0x00524560)
-__declspec(naked) double __fastcall CallManaCurve(UnitStats*) EI_ORIGINAL(0x00523F50)
 __declspec(naked) double __stdcall CallHitPointEffectScale(CUnit*) EI_ORIGINAL(0x00523DB0)
 __declspec(naked) double __fastcall CallSkillLevelValueCopy(UnitStats*, void*, int) EI_ORIGINAL(0x005282D0)
 
@@ -584,7 +582,7 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, C
         stats->spentExperience = static_cast<float>(total + stats->spentExperience);
     }
     RefreshMaxima(stats, vitals, unit);
-    CallRecompute(stats, nullptr, vitals, unit);
+    UnitStatsRecompute(stats, nullptr, vitals, unit);
     return true;
 }
 
@@ -619,13 +617,13 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     volatile float maxHitPoints =
         static_cast<float>(((record ? RecordValue(record) : kZero) * kPercent + kOne) * scaled);
     vitals->maxHitPoints = ScaledAtLeastOne(unit, kHitPointEffect, maxHitPoints);
-    vitals->maxMana = static_cast<float>(CallManaCurve(this));
+    vitals->maxMana = static_cast<float>(UnitStatsManaCurve(this));
     CallScaleSlotMaxima(this, nullptr, vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     BaseScale(unit)[0] = BaseScale(unit)[0] + kPointTwo;
     FigureScale(unit)[0] = FigureScale(unit)[0] + kPointTwo;
     unit->MarkChanged(1);
-    CallRecompute(this, nullptr, vitals, unit);
+    UnitStatsRecompute(this, nullptr, vitals, unit);
     unit->MarkChanged(4);
     return true;
 }
@@ -657,7 +655,7 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
     l = lowered;
     FigureScale(unit)[1] = LessOrUnordered(kZero, l, l, kZero);
     unit->MarkChanged(1);
-    CallRecompute(this, nullptr, vitals, unit);
+    UnitStatsRecompute(this, nullptr, vitals, unit);
     unit->MarkChanged(4);
     return true;
 }
@@ -669,7 +667,7 @@ bool UnitStats::RaiseIntelligence(int amount, CUnit* unit) {
     UnitVitals* vitals = VitalsOf(server);
     stat20Base = static_cast<float>(static_cast<double>(amount) + stat20Base);
     RefreshMaxima(this, vitals, unit);
-    CallRecompute(this, nullptr, vitals, unit);
+    UnitStatsRecompute(this, nullptr, vitals, unit);
     return true;
 }
 EI_REPLACE_METHOD(0x00529400, UnitStats::RaiseIntelligence);

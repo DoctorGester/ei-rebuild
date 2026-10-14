@@ -18,6 +18,7 @@
 #include <cstring>
 #include <initializer_list>
 #include "originals_ui.h"
+#include "originals_units.h"
 
 #pragma float_control(precise, on)
 
@@ -53,8 +54,6 @@ T Read(const std::uint8_t* p, int offset) {
 }
 
 // Unit statistics (UnitStats) values left in ST0 (not rewritten here).
-__declspec(naked) double __fastcall HitPoints(const std::uint8_t*) EI_ORIGINAL(0x00523E80)
-__declspec(naked) double __fastcall ManaMaximum(const std::uint8_t*) EI_ORIGINAL(0x00523F50)
 // 00660840 (thiscall on the hero record): the weight the hero carries, in ST0.
 __declspec(naked) double __fastcall CarriedWeight(const std::uint8_t*) EI_ORIGINAL(0x00660840)
 
@@ -291,9 +290,9 @@ void CHeroStatsPanel::DrawStats() {
         rows->Row(&rect, Label(0x00793BF8), GameFtol(D(Read<float>(stats, 0x20))), -1);   // Intelligence
         Down(&rect);
         Down(&rect);
-        rows->Row(&rect, Label(0x00793BFC), GameFtol(HitPoints(stats)), -1);              // Health
+        rows->Row(&rect, Label(0x00793BFC), GameFtol(UnitStatsHitPointCurve(reinterpret_cast<UnitStats*>(stats))), -1);              // Health
         Down(&rect);
-        rows->Row(&rect, Label(0x00793C00), GameFtol(ManaMaximum(stats)), -1);            // Mana
+        rows->Row(&rect, Label(0x00793C00), GameFtol(UnitStatsManaCurve(reinterpret_cast<UnitStats*>(stats))), -1);            // Mana
         Down(&rect);
         rows->Row(&rect, Label(0x00793C04), GameFtol(D(Read<float>(stats, 0x30))), -1);   // Actions
         Down(&rect);

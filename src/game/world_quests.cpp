@@ -378,7 +378,6 @@ __declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGI
 inline void __fastcall IdArraySetSize(IdArray* a, void*, int n, int g) { DwordArraySetSizeOriginal(a, nullptr, n, g); }
 // 00553380 (RET 4). The unit controller gains experience.
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
-__declspec(naked) void __fastcall RecordGainExperience(void*, void*, float) EI_ORIGINAL(0x00523960)
 // 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
 __declspec(naked) void __fastcall StatePartyExperience(CPlayerServer*, void*, float) EI_ORIGINAL(0x0066F280)
 
@@ -437,7 +436,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         if (!unit || !ControllerOf(unit)) continue;
         ShareNode* node = cursor;
         cursor = node->next;
-        RecordGainExperience(MercRecord(p, 0).stats, nullptr, node->data.share);
+        UnitStatsAddExperience(reinterpret_cast<UnitStats*>(MercRecord(p, 0).stats), nullptr, node->data.share);
     }
     for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CPlayerServer* state = p->server;
@@ -474,7 +473,7 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
             DataGainExperience(ControllerOf(unit), nullptr, share);
             for (int j = 0; j < player->mercCount; ++j) {
                 PartyUnitRecord& record = MercRecord(player, j);
-                if (static_cast<int>(record.unknown_01C) == heroes.data[i]) RecordGainExperience(record.stats, nullptr, share);
+                if (static_cast<int>(record.unknown_01C) == heroes.data[i]) UnitStatsAddExperience(reinterpret_cast<UnitStats*>(record.stats), nullptr, share);
             }
         }
         StatePartyExperience(player->server, nullptr, share);
