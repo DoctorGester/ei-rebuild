@@ -979,12 +979,13 @@ done = "2026-10-15"
 id = "F4b"
 title = "Drop the FigurePart alias (F4a follow-up)"
 group = "cleanup"
-status = "queued"
+status = "running"
 size = 1
 model = "sonnet"
 depends = ["F4a", "W2", "F5"]
 files = ["map_object_figures.h", "ui_model.cpp", "player_client.cpp", "verify_ui_model.cpp"]
 note = "F4a folded FigurePart into CFigureMesh but kept 'using FigurePart = CFigureMesh' because ui_model.cpp and player_client.cpp were open in W2 / F5. Rename their uses (fields are already CFigureMesh's: localPosition_, localRotation_, worldMatrix_, bounds_, boxPivot_, drawer_->screen_) and remove the alias."
+started = "2026-10-15"
 
 [[ticket]]
 id = "F4c"
