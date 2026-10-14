@@ -1110,6 +1110,7 @@ struct UnitStats {
     float fixedMaxHitPoints;        // +0x6FC the maximum of units without a text key
     float pendingExperience;        // +0x700
 };
+static_assert(offsetof(UnitStats, stat20) == 0x20);
 static_assert(offsetof(UnitStats, speedBase) == 0x24);
 static_assert(offsetof(UnitStats, load) == 0x50);
 static_assert(offsetof(UnitStats, valuesB0) == 0xB0);

@@ -4,7 +4,10 @@
 // lights and sound sequences and go to state 2, the instant ones (lightning, the light strike,
 // buffs, charm) deal or apply their effect here. See docs/notes/items_spells.md.
 #include "spell_effect_internal.h"
+#include "combat.h"
 #include "game_strings.h"
+#include "unit.h"
+#include "world.h"
 
 using namespace spellfx;
 
@@ -72,7 +75,7 @@ Next StartFireball(CSpellEffect* e, const Vector3& from) {
 
     float size = PowerScaled(e, kFireballScale);
     e->CreateParticle(1, 0x2000, &from, size, 1.0f, &velocity, nullptr);
-    if (e->caster) At<int>(e->visual, 0x17C) = e->caster->id_;   // the particle's unit (no null check)
+    if (e->caster) static_cast<CEffectParticle*>(e->visual)->unitId_ = e->caster->id_;   // the particle's unit (no null check)
     e->targetPoint.z = GroundPlus(e, kWorldSlotGroundHeight, e->targetPoint, ConstPtr(kOne));
     ParticleSetTarget(e->visual, nullptr, &e->targetPoint);
     if (speed * ConstAt(kFireballNear) > distance) {
@@ -262,14 +265,14 @@ Next StartVisionFog(CSpellEffect* e) {
 // 0x18: healing. Heals the target's controller by the effect value; the sound and the light only
 // when the target is not at full health (or +0xA4 is clear).
 Next StartHealing(CSpellEffect* e) {
-    if (ClassId(e->target) != kClassUnit) return Next::Done;   // no null check
+    if (ClassId(e->target) != spellfx::kClassUnit) return Next::Done;   // no null check
     ei::VCall<void>(ControllerOf(e->target), kControllerSlotHeal, Bits(e->damage));
     CEngineObject* unit = e->target;
     float size = Power(e);
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
-    bool full = At<std::uint16_t>(e->target, 0x17E) == At<std::uint16_t>(e->target, 0x180);
+    bool full = static_cast<CUnit*>(e->target)->hitPoints == static_cast<CUnit*>(e->target)->maxHitPoints;
     if (e->unknown_A4 == 0 || !full) {
-        e->CreateSound(0, GameString(0x00795520), &At<Vector3>(e->target, kUnitPosition), &kZeroVector, kVolume, kHearing);
+        e->CreateSound(0, GameString(0x00795520), &static_cast<CUnit*>(e->target)->position, &kZeroVector, kVolume, kHearing);
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
@@ -308,7 +311,7 @@ Next StartLink(CSpellEffect* e) {
 
 // 0x1C: teleport: a particle where the caster stands and an inverted one at the target point.
 Next StartTeleport(CSpellEffect* e) {
-    const Vector3* source = e->caster ? &At<Vector3>(e->caster, kUnitPosition) : &e->position;
+    const Vector3* source = e->caster ? &static_cast<CUnit*>(e->caster)->position : &e->position;
     Vector3 point = *source;
     point.z = GroundPlus(e, kWorldSlotGridHeight, point, &point.z);
     e->CreateParticle(1, 0x2019, &point, 1.0f, 1.0f, &kZeroVector, nullptr);
@@ -327,19 +330,19 @@ Next StartTeleport(CSpellEffect* e) {
 // 0x24: charm. The target's controller is tamed by the caster until their sides (controller
 // +0x1C, +0x24C) agree; a failed attempt makes the caster complain (0x1A).
 Next StartCharm(CSpellEffect* e) {
-    if (ClassId(e->target) != kClassUnit) return Next::Leave;   // no null check
+    if (ClassId(e->target) != spellfx::kClassUnit) return Next::Leave;   // no null check
     if (!IsUnit(e->caster)) return Next::Leave;
     void* tamed = ControllerOf(e->target);
     void* tamer = ControllerOf(e->caster);
-    float skill = At<float>(tamer, 0x200) + e->damage;
-    auto side = [](void* controller) { return At<int>(At<void*>(controller, 0x1C), 0x24C); };
+    float skill = static_cast<CUnitServer*>(tamer)->stats.stat20 + e->damage;
+    auto side = [](void* controller) { return At<int>(static_cast<CUnitController*>(controller)->unit_, 0x24C); };
     while (side(tamed) != side(tamer)) {
         if (ControllerTame(tamed, nullptr, e->caster, skill) == 0) {
             if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x1A);
             return Next::Done;
         }
     }
-    e->CreateSound(0, GameString(0x00795508), &At<Vector3>(e->target, kUnitPosition), &kZeroVector, kVolume, kHearing);
+    e->CreateSound(0, GameString(0x00795508), &static_cast<CUnit*>(e->target)->position, &kZeroVector, kVolume, kHearing);
     return Next::Done;
 }
 
@@ -417,7 +420,7 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
     switch (type) {
     case 6: {
         Vector3 direction;
-        std::memcpy(&direction, reinterpret_cast<char*>(visual) + 0x180, sizeof(direction));
+        std::memcpy(&direction, &static_cast<CEffectWall*>(visual)->direction_, sizeof(direction));
         FootprintAlong(SpellFootprint(), nullptr, aiMap, &position, kHalfBits, &direction);
         break;
     }
@@ -432,7 +435,7 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
     default: return;
     }
     if (stamp) {
-        AiMapStamp(aiMap, nullptr, At<int>(world, 0x64), SpellFootprint());
+        AiMapStamp(aiMap, nullptr, reinterpret_cast<CWorld*>(world)->tick_, SpellFootprint());
         footprintStamped = 1;
     } else {
         AiMapClear(aiMap, nullptr, SpellFootprint());
@@ -443,18 +446,18 @@ EI_REPLACE_METHOD(0x0067EFC0, CSpellEffect::UpdateFootprint);
 
 void CSpellEffect::CreateArrow(const Vector3* from, CEngineObject* missileTarget, int particleType, float power,
                                const char* soundName, const Vector3* color, float range) {
-    CEngineObject* arrow = CreateObject(this, kClassArrow);
+    CEffectArrow* arrow = static_cast<CEffectArrow*>(CreateObject(this, kClassArrow));
     if (!arrow) return;
-    std::memcpy(&At<Vector3>(arrow, 0x6A4), color, 12);
-    std::memcpy(&At<float>(arrow, 0x6B0), &range, 4);
+    std::memcpy(&arrow->lightColor_, color, 12);
+    std::memcpy(&arrow->lightRange_, &range, 4);
     SetPosition(arrow, from);
     MissileSetTarget(arrow, nullptr, missileTarget->id_);
-    At<int>(arrow, 0x6B4) = particleType;
-    std::memcpy(&At<float>(arrow, 0x6B8), &power, 4);
-    At<mfc::CString>(arrow, 0x6A0) = soundName;
+    arrow->particleType_ = particleType;
+    std::memcpy(&arrow->particleSize_, &power, 4);
+    arrow->soundName_ = soundName;
     if (caster) {
-        At<std::uint8_t>(arrow, 0x154) = 1;
-        At<int>(arrow, 0x6BC) = caster->id_;
+        arrow->fromCaster_ = 1;
+        arrow->casterId_ = caster->id_;
     }
     Assign(this, &visual, arrow);
     WorldAddTimed(world, nullptr, visual);
@@ -464,12 +467,12 @@ EI_REPLACE_METHOD(0x0067F170, CSpellEffect::CreateArrow);
 CEngineObject* CSpellEffect::CreateParticle(int keep, int particleType, const Vector3* at, float size, float alpha,
                                             const Vector3* velocity, CEngineObject* attachTo) {
     int classId = (particleType == 0x2010 || particleType == 0x2014) ? kClassWall : kClassParticle;
-    CEngineObject* particle = CreateObject(this, classId);
-    At<int>(particle, 0x158) = particleType;
+    CEffectParticle* particle = static_cast<CEffectParticle*>(CreateObject(this, classId));
+    particle->type_ = particleType;
     SetPosition(particle, at);
-    std::memcpy(&At<float>(particle, 0x15C), &size, 4);
+    std::memcpy(&particle->size_, &size, 4);
     EffectSetVelocity(particle, nullptr, velocity);
-    std::memcpy(&At<float>(particle, 0x160), &alpha, 4);
+    std::memcpy(&particle->alpha_, &alpha, 4);
     if (attachTo) ParticleSetAttachedTo(particle, nullptr, attachTo->id_);
     if (keep) {
         Assign(this, &visual, particle);
@@ -484,8 +487,8 @@ EI_REPLACE_METHOD(0x0067F260, CSpellEffect::CreateParticle);
 void CSpellEffect::CreateLightning(const Vector3* from, CEngineObject* boltTarget, CEngineObject* source, float power,
                                    int flag) {
     if (!boltTarget) return;
-    Vector3 to = At<Vector3>(boltTarget, kUnitPosition);
-    HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &At<float>(boltTarget, 0x14C),
+    Vector3 to = static_cast<CUnit*>(boltTarget)->position;
+    HeightPlusProduct(world, kWorldSlotGridHeight, Bits(to.x), Bits(to.y), &static_cast<CUnit*>(boltTarget)->above.z,
                       ConstPtr(kTargetHeight), &to.z);
     CEngineObject* bolt = CreateObject(this, kClassLightning);
     LightningSetEnds(bolt, nullptr, from, &to, power * ConstAt(kBoltWidthScale));
@@ -498,14 +501,14 @@ EI_REPLACE_METHOD(0x0067F410, CSpellEffect::CreateLightning);
 
 void CSpellEffect::CreateSound(int keep, const char* name, const Vector3* at, const Vector3* velocity, float volume,
                                float hearing) {
-    CEngineObject* effect = CreateObject(this, kClassSound);
+    CEffectSound* effect = static_cast<CEffectSound*>(CreateObject(this, kClassSound));
     SetPosition(effect, at);
-    At<std::uint8_t>(effect, 0x258) = 1;
-    std::memcpy(&At<float>(effect, 0x250), &hearing, 4);
-    std::memcpy(&At<float>(effect, 0x24C), &volume, 4);
-    std::memcpy(&At<char>(effect, 0x14C), name, std::strlen(name) + 1);
+    effect->noFade_ = 1;
+    std::memcpy(&effect->radius_, &hearing, 4);
+    std::memcpy(&effect->volume_, &volume, 4);
+    std::memcpy(effect->name_, name, std::strlen(name) + 1);
     EffectSetVelocity(effect, nullptr, velocity);
-    At<int>(effect, 0x254) = keep;
+    effect->looping_ = keep;
     if (keep) Assign(this, &sound, effect);
     WorldAddTimed(world, nullptr, effect);
 }
@@ -514,12 +517,12 @@ EI_REPLACE_METHOD(0x0067F580, CSpellEffect::CreateSound);
 void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocity, const char* first,
                                        const char* pattern, int count, float volume, float hearing) {
     mfc::CString name;
-    CEngineObject* effect = CreateObject(this, kClassSoundSequence);
+    CEffectSoundSeq* effect = static_cast<CEffectSoundSeq*>(CreateObject(this, kClassSoundSequence));
     SetPosition(effect, at);
     EffectSetVelocity(effect, nullptr, velocity);
-    std::memcpy(&At<float>(effect, 0x168), &hearing, 4);
-    std::memcpy(&At<float>(effect, 0x164), &volume, 4);
-    At<std::uint8_t>(effect, 0x16C) = 1;
+    std::memcpy(&effect->radius_, &hearing, 4);
+    std::memcpy(&effect->volume_, &volume, 4);
+    effect->noFade_ = 1;
     At<mfc::CString>(effect, 0x14C) = first;
     auto& names = At<console::CStringArray>(effect, 0x150);
     if (count < 1) {
@@ -536,12 +539,12 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
 EI_REPLACE_METHOD(0x0067F660, CSpellEffect::CreateSoundSequence);
 
 void CSpellEffect::CreatePointLight(const Vector3* at, const Vector3* color, float range, const Vector3* velocity) {
-    CEngineObject* effect = CreateObject(this, kClassPointLight);
-    std::memcpy(&At<Vector3>(effect, 0x14C), color, 12);
+    CEffectPointLight* effect = static_cast<CEffectPointLight*>(CreateObject(this, kClassPointLight));
+    std::memcpy(&effect->color_, color, 12);
     SetPosition(effect, at);
-    std::memcpy(&At<float>(effect, 0x158), &range, 4);
+    std::memcpy(&effect->range_, &range, 4);
     EffectSetVelocity(effect, nullptr, velocity);
-    At<std::uint32_t>(effect, 0x160) = kPointLightFlags;
+    effect->lightFlags_ = kPointLightFlags;
     Assign(this, &light, effect);
     WorldAddTimed(world, nullptr, effect);
 }
