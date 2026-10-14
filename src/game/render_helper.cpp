@@ -8,7 +8,7 @@
 // here. See docs/notes/renderer.md (section 12).
 #include "dx_errors.h"
 #include "model.h"
-#include "processor_info.h"
+#include "sys_info.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -560,7 +560,7 @@ CTransformPipeline* __fastcall TransformPipelineConstruct(CTransformPipeline* se
 
     std::optional<stlp::string> path;   // freed by hand before a throw
     path.emplace(folder);
-    processor::Read();
+    ReadProcessorInfo();
     self->library_ = gameapi::LoadLibraryA(stlp::Plus(*path, TransformLibraryName()).data());
     DebugMessageOriginal(LibraryLoadedText());
     if (!self->library_) ThrowPipelineError(self, path, NoLibraryText());

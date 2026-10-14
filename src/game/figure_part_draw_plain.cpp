@@ -8,6 +8,7 @@
 // (its own function-local static 007C2E60, guard 007C2E70 bit 1, freed at exit by 005A7A50). Any
 // draw that is not off screen marks the mesh drawn. See docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
+#include "figure_mesh.h"          // PositionBlock
 #include "lib/containers.h"
 #include "lib/gameapi.h"
 #include "originals_ai.h"
@@ -24,10 +25,6 @@ T& At(void* object, int offset) {
     return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
 }
 
-// A block of four vertex positions (x[4], y[4], z[4], w[4]; 64 bytes).
-struct PositionBlock {
-    float v[16];
-};
 // The figure mesh's colour arrays (+0x138 / +0x148).
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 

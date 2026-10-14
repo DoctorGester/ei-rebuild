@@ -132,15 +132,6 @@ bool IsQuestVariable(const mfc::CString& name) {
     return name.GetLength() > 2 && std::strncmp(name, QuestPrefix(), 2) == 0;
 }
 
-// A memory stream on the stack with the network queue's vtable, as the original builds and
-// destroys it inline.
-struct QueueStream {
-    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
-    QueueStream() { Get()->ConstructQueueStream(); }
-    ~QueueStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return reinterpret_cast<CMemoryStream*>(bytes); }
-};
-
 } // namespace
 
 int CPlayerClient::Pump() {
@@ -748,10 +739,6 @@ namespace {
 constexpr int kClientHandlerCount = 0x100;
 
 // The client's message handlers (thiscall, RET 0) by type, as 00667230 stores them.
-struct HandlerEntry {
-    std::uint8_t type;
-    std::uintptr_t address;
-};
 constexpr HandlerEntry kClientHandlers[] = {
     {0x00, std::uintptr_t(0x00667DA0)}, {0x01, std::uintptr_t(0x00667DE0)}, {0x02, std::uintptr_t(0x00669010)},
     {0x03, std::uintptr_t(0x006690F0)}, {0x04, std::uintptr_t(0x00667C20)}, {0x05, std::uintptr_t(0x006691C0)},

@@ -13,6 +13,7 @@
 #include "originals_engine.h"    // FatalDirectX, FatalErrorOriginal, DebugMessageOriginal
 #include "originals_library.h"   // ExitGame
 #include "originals_render.h"
+#include "sys_info.h"   // ProcessorInfo
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -31,16 +32,8 @@ using device::Text;
 constexpr std::uint32_t kEflagsId = 0x00200000;    // EFLAGS.ID: can be flipped when CPUID exists
 constexpr std::uint32_t kFeatureMmx = 0x00800000;  // CPUID.1:EDX bit 23
 
-// What CPUID function 1 reported (007CAED0; renderer_base_create.cpp fills it the same way): EAX,
-// EBX and ECX as twelve bytes, a terminator, then EDX (the feature flags).
-struct ProcessorInfo {
-    std::uint32_t signature;   // 007CAED0
-    std::uint32_t brand;       // 007CAED4
-    std::uint32_t features2;   // 007CAED8
-    std::uint8_t terminator;   // 007CAEDC
-    std::uint8_t unknown_0D[3];
-    std::uint32_t features;    // 007CAEE0
-};
+// What CPUID function 1 reported (007CAED0, ProcessorInfo in sys_info.h; renderer_base_create.cpp
+// fills it the same way).
 ProcessorInfo& Processor() { return *reinterpret_cast<ProcessorInfo*>(0x007CAED0); }
 
 // Whether the processor has CPUID: the ID flag flips. As in the original it stays flipped.

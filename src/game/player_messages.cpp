@@ -277,10 +277,6 @@ namespace {
 constexpr int kServerHandlerCount = 0x100;
 
 // The server's message handlers (thiscall, RET 0) by type, as 0066C9A0 stores them.
-struct HandlerEntry {
-    std::uint8_t type;
-    std::uintptr_t address;
-};
 constexpr HandlerEntry kServerHandlers[] = {
     {0x00, std::uintptr_t(0x0066F890)}, {0x01, std::uintptr_t(0x0066FA90)}, {0x02, std::uintptr_t(0x0066FAA0)},
     {0x03, std::uintptr_t(0x00670C20)}, {0x04, std::uintptr_t(0x00670CE0)}, {0x05, std::uintptr_t(0x00670DA0)},

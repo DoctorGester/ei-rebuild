@@ -194,6 +194,16 @@ static_assert(offsetof(CMemoryStream, data_) == 0x18);
 static_assert(offsetof(CMemoryStream, size_) == 0x24);
 static_assert(sizeof(CMemoryStream) == 0x28);
 
+// A memory stream on the stack with the network queue's vtable, as the original builds and
+// destroys it inline.
+struct QueueStream {
+    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
+    QueueStream() { Get()->ConstructQueueStream(); }
+    ~QueueStream() { Get()->Destruct(); }
+    CMemoryStream* Get() { return reinterpret_cast<CMemoryStream*>(bytes); }
+};
+static_assert(sizeof(QueueStream) == 0x28 && offsetof(QueueStream, bytes) == 0);
+
 constexpr std::uintptr_t kRefObjectRootVtable = 0x0073BB68;
 constexpr std::uintptr_t kRefValueVtable = 0x0073BB58;
 // The stream vtables under the names the world_* and net_* code uses.
