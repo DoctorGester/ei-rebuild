@@ -130,7 +130,7 @@ __declspec(naked) void __fastcall AssignQuest(GlobalMapPlace*, void*, const Glob
 
 // 0046A4B0 (QuaternionRotate, map_spec.cpp; thiscall on the quaternion, RET 8): `out` = the vector
 // `v` turned by the quaternion.
-__declspec(naked) Vector3* __fastcall Rotate(const float* /*quaternion*/, void*, Vector3* /*out*/, const Vector3* /*v*/)
+__declspec(naked) Vector3* __fastcall Rotate(const Quaternion* /*quaternion*/, void*, Vector3* /*out*/, const Vector3* /*v*/)
     EI_ORIGINAL(0x0046A4B0)
 
 // Sprites (CUiMesh) beyond ui.h.
@@ -236,12 +236,12 @@ public:
     Vector3 ModelPoint(const Vector3& local) const {
         Vector3 centre = Centre();
         Vector3 turned;
-        Rotate(map_->turn_, nullptr, &turned, &local);
+        Rotate(&map_->turn_, nullptr, &turned, &local);
         Vector3 out;
         AddVectors(&out, centre, turned);
         return out;
     }
-    void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->orientation_, map_->turn_, 16); }
+    void Turn(CUiMesh* sprite) const { std::memcpy(&sprite->orientation_, &map_->turn_, 16); }
     CEngineObject* Texture(int index) const { return map_->objects_.data[index]; }
 
     // A marker of the map model: the figure at `local`, scaled, turned, white; returns the sprite.
@@ -263,7 +263,7 @@ public:
         Vector3 centre = Centre();
         Vector3 local = {0.0f, 0.0f, height};
         Vector3 turned;
-        Rotate(map_->turn_, nullptr, &turned, &local);
+        Rotate(&map_->turn_, nullptr, &turned, &local);
         Vector3 p;
         p.Construct(Store(D(centre.x) + D(turned.x)), Store(D(centre.y) + D(turned.y)),
                     Store(D(centre.z) + D(turned.z)));
@@ -343,7 +343,7 @@ void CGlobalMap::Create() {
     {
         Vector3 position;
         Screen(this)->ZonePosition(&position, current->name);
-        std::memcpy(position_, &position, 12);
+        std::memcpy(&position_, &position, 12);
     }
     const mfc::CString& allodName = *reinterpret_cast<const mfc::CString*>(&allod->name);
     LoadTexture(mfc::operator+(allodName, GameText(0x0079415C)), 3, 0);   // <allod>Map
@@ -356,15 +356,15 @@ void CGlobalMap::Create() {
         Vector3 axis = {1.0f, 0.0f, 0.0f};
         Quaternion q;
         q.SetAxisAngle(axis, Store(D(GameFloat(0x00742098)) * D(GameFloat(0x0073CCA8))));   // pi * 0.8
-        std::memcpy(turn_, &q, 16);
+        std::memcpy(&turn_, &q, 16);
     }
     MapBuilder builder(this);
 
     // The current zone: its arrow above it, its base on it, the island.
     {
-        Vector3 above = {position_[0], position_[1], Store(D(position_[2]) + D(GameFloat(0x0073CDB8)))};
+        Vector3 above = {position_.x, position_.y, Store(D(position_.z) + D(GameFloat(0x0073CDB8)))};
         builder.Marker(allod->arrow, above, 1.0f);
-        Vector3 at = {position_[0], position_[1], position_[2]};
+        Vector3 at = {position_.x, position_.y, position_.z};
         builder.Marker(allod->ball, at, Bits(0x3F4CCCCD));   // 0.8
         CUiMesh* island = AddFigure(this, allod->island);
         SetTexture(island, builder.Texture(2));
@@ -721,12 +721,15 @@ void CGlobalMap::Update() {
         Quaternion tilt;
         tilt.SetAxisAngle(side, Store(D(GameFloat(0x00742098)) * D(GameFloat(0x0073CCA8))));
         Quaternion turn = TurnProduct(spin, tilt);
-        std::memcpy(turn_, &turn, 16);
-        if (!(D(turn_[0]) >= D(GameFloat(0x0073B858)))) {   // FCOMP; TEST AH,1: below 0 or unordered
-            for (float& c : turn_) c = -c;
+        std::memcpy(&turn_, &turn, 16);
+        if (!(D(turn_.w) >= D(GameFloat(0x0073B858)))) {   // FCOMP; TEST AH,1: below 0 or unordered
+            turn_.w = -turn_.w;
+            turn_.x = -turn_.x;
+            turn_.y = -turn_.y;
+            turn_.z = -turn_.z;
         }
         CEngineObject** sprites = sceneObjects_.data;
-        Vector3 at = {position_[0], position_[1], position_[2]};
+        Vector3 at = {position_.x, position_.y, position_.z};
         SetPosition(reinterpret_cast<CUiMesh*>(sprites[1]), builder.ModelPoint(at));
         builder.Turn(reinterpret_cast<CUiMesh*>(sprites[1]));
         builder.Turn(reinterpret_cast<CUiMesh*>(sprites[2]));
@@ -759,7 +762,7 @@ void CGlobalMap::Update() {
     double time = FrameTime(this) + D(bobTime_);
     bobTime_ = Store(time);
     double bob = D(GameFloat(0x0073B86C)) - x87::fcos(time * D(GameFloat(0x0073BF34))) * D(GameFloat(0x0073BAD4));
-    Vector3 above = {position_[0], position_[1], Store(bob + D(position_[2]))};
+    Vector3 above = {position_.x, position_.y, Store(bob + D(position_.z))};
     SetPosition(reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]), builder.ModelPoint(above));
     // The layers' texture frames run at their own rates.
     SetFrameFraction(sceneObjects_.data[markerCount_ + 3], bobTime_, GameFloat(0x0073D09C));
@@ -843,10 +846,10 @@ CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     arrivals_.Count() = 0;
     arrivals_.Compare() = static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(slot));
     EmptyTree(&arrivals_);
-    turn_[0] = 1.0f;   // the identity turn
-    turn_[1] = 0.0f;
-    turn_[2] = 0.0f;
-    turn_[3] = 0.0f;
+    turn_.w = 1.0f;   // the identity turn
+    turn_.x = 0.0f;
+    turn_.y = 0.0f;
+    turn_.z = 0.0f;
     shownName_ = EmptyCString();
     vtable_ = reinterpret_cast<void**>(0x00740B3C);
     inputVtable_ = reinterpret_cast<void**>(0x00740B08);

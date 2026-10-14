@@ -40,8 +40,8 @@ float __fastcall PlaneHeight(const float* v0, const float* v1, float x, float y,
     float dz1 = v1[2] - v0[2], dz2 = v2[2] - v0[2];
     float nx = dz2 * ay - dz1 * by;
     float ny = dz1 * bx - dz2 * ax;
-    float d = -(nx * v0[0] + ny * v0[1] + det * v0[2]);
-    return -((d + nx * x + ny * y) / det);
+    float d = -DotUnrounded<Sum3::XYZ>(nx, ny, det, v0[0], v0[1], v0[2]);
+    return -(OffsetDot2DUnrounded(d, nx, ny, x, y) / det);
 }
 
 float Terrain::HeightAt(float x, float y, int layer) {

@@ -271,8 +271,8 @@ void ObjectSpec::ObjectSpecOnChunk() {
         break;
     }
     case 0xB00A: {
-        float q[4];
-        std::memcpy(&base.rotation, c.ReadQuaternion(q), sizeof(Quaternion));
+        Quaternion q;
+        std::memcpy(&base.rotation, c.ReadQuaternion(&q.w), sizeof(Quaternion));
         break;
     }
     case 0xB00C:
@@ -583,13 +583,13 @@ EI_REPLACE_METHOD(0x0046BF20, LeverSpec::LeverSpecOnChunk);
 // `out` = `v` rotated by the quaternion: (w^2 - |q|^2) v + 2w (q x v) + 2 (q . v) q.
 Vector3* __fastcall QuaternionRotate(const Quaternion* q, void*, Vector3* out, const Vector3* v) {
     float x = q->x, y = q->y, z = q->z;
-    float dot = 2.0f * (x * v->x + z * v->z + y * v->y);
+    float dot = DotUnrounded<Sum3::ZXY>(x * 2.0f, y * 2.0f, z * 2.0f, v->x, v->y, v->z);   // 2(q . v): doubling is exact
     float ax = dot * x, ay = dot * y, az = dot * z;
     float w2 = q->w + q->w;
     float bx = (y * v->z - z * v->y) * w2;
     float by = (z * v->x - x * v->z) * w2;
     float bz = (x * v->y - y * v->x) * w2;
-    float m = q->w * q->w - (z * z + y * y + x * x);
+    float m = q->w * q->w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z);
     out->x = (m * v->x + bx) + ax;
     out->y = (m * v->y + by) + ay;
     out->z = (m * v->z + bz) + az;

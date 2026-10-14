@@ -476,7 +476,9 @@ bool CreateWindowChain(HWND window, int width, int height) {
 }
 
 // The frame into the window's back buffer (made or resized to the client area first). False when
-// there is nothing to present into (no window, minimised, the swap chain failed).
+// there is nothing to present into (no window, minimised, the swap chain failed). The client area is
+// in physical pixels: the hook makes the game system DPI aware at WinMain (src/hook/hook.cpp), so
+// Windows does not stretch the window and the whole back buffer shows.
 bool DrawToWindow() {
     if (g_windowFailed || !g_colour.id) return false;
     HWND window = GameWindow();

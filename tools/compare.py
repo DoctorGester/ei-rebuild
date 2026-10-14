@@ -51,12 +51,12 @@ def main():
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         futures = {}
         for n, i, hooks, k in runs:
-            suffix = f'-{"ours" if hooks else "original"}{k}'
-            futures[pool.submit(run_all.run, n, i, hooks, suffix, args.clock)] = (n, i, hooks, k, suffix)
+            folder = f'{n}-{i}-{"ours" if hooks else "original"}{k}'
+            futures[pool.submit(run_all.run, n, i, hooks, folder, args.clock)] = (n, i, hooks, k, folder)
         for future in concurrent.futures.as_completed(futures):
-            n, i, hooks, k, suffix = futures[future]
+            n, i, hooks, k, folder = futures[future]
             result, seconds, failures, counts, notes = future.result()
-            results[(n, i, hooks, k)] = (result, seconds, failures, run_all.console_of(n, i, suffix))
+            results[(n, i, hooks, k)] = (result, seconds, failures, run_all.console_of(folder))
 
     code = 0
     summary = {}

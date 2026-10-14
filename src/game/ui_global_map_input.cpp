@@ -109,7 +109,7 @@ void CGlobalMap::OnMouseMove(int, int x, int y) {
         spin.SetAngleAxis(angle_, Vector3{0.0f, 0.0f, 1.0f});
         tilt.SetAxisAngle(Vector3{1.0f, 0.0f, 0.0f}, GameFloat(0x00742098) * GameFloat(0x0073CCA8));   // pi * 0.8
         Quaternion turn = TiltTimesSpin(tilt, spin);
-        std::memcpy(turn_, &turn, sizeof(turn));
+        std::memcpy(&turn_, &turn, sizeof(turn));
         MouseDragX() = 0;
         MouseDragY() = 0;
         return;

@@ -29,6 +29,12 @@ HookRegistrar::HookRegistrar(std::uintptr_t address, void* wrapper, const char* 
 
 static StartupCheck* g_startupChecks = nullptr;
 
+static StartupAction* g_startupActions = nullptr;
+
+StartupActionRegistrar::StartupActionRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupActions} {
+    g_startupActions = &entry;
+}
+
 StartupCheckRegistrar::StartupCheckRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupChecks} {
     g_startupChecks = &entry;
 }
@@ -225,6 +231,10 @@ int InstallHooks() {
         unsigned short cw;
         __asm fnstcw cw
         Log("FPU control word at WinMain: %04X", cw);
+    }
+    for (StartupAction* action = g_startupActions; action; action = action->next) {
+        Log("startup action %s", action->name);
+        action->run();
     }
 
     int installed = 0;

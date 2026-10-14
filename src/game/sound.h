@@ -10,6 +10,7 @@
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
+#include "../lib/vecmath.h"
 #include "registry.h"
 #include "resource_stream.h"
 
@@ -51,7 +52,7 @@ struct SoundSlot {
     std::int32_t finished;      // +0x30 set by the end-of-sample callback (006B75E0, Miles thread)
     std::int32_t flat;          // +0x34 2D: volume from baseVolume, not from the listener distance
     std::int32_t heightFade;    // +0x38 2D sounds fading out as the camera rises (30..70)
-    float position[3];          // +0x3C 3D position
+    Vector3 position;           // +0x3C 3D position
     float nearDistance;         // +0x48 full volume inside
     float farDistance;          // +0x4C silent outside
     std::int32_t handle;        // +0x50 sound handle (-1: free)
@@ -73,7 +74,7 @@ struct DeferredSound {
     float length;               // +0x20
     std::int32_t flat;          // +0x24
     std::int32_t heightFade;    // +0x28
-    float position[3];          // +0x2C
+    Vector3 position;           // +0x2C
     float nearDistance;         // +0x38
     float farDistance;          // +0x3C
     std::int32_t handle;        // +0x40 (the map key)
@@ -89,7 +90,7 @@ using SoundNameArray = mfc::CStringArray;
 struct SoundEmitter {
     std::int32_t active;        // +0x00
     SoundNameArray names;       // +0x04
-    float position[3];          // +0x18
+    Vector3 position;           // +0x18
     float innerRadius;          // +0x24
     float outerRadius;          // +0x28
     std::int32_t minInterval;   // +0x2C ms
@@ -104,7 +105,7 @@ struct SoundSequence {
     std::int32_t active;        // +0x00
     SoundNameArray names;       // +0x04
     std::int32_t handle;        // +0x18 current sound
-    float position[3];          // +0x1C
+    Vector3 position;           // +0x1C
     float nearDistance;         // +0x28
     float farDistance;          // +0x2C
     std::int32_t remaining;     // +0x30 sounds left to play (callback: sounds played)
@@ -208,8 +209,8 @@ struct CSoundManager : CEngineObject {
     mfc::CWinThread* midiThread;        // +0x244 006BBCB0's thread
     volatile std::int32_t threadsQuit;  // +0x248 set by Close; both threads end on it
     SoundSlot* slots;                   // +0x24C 15 voices (an operator new[] block: the count before them)
-    float listener[3];                  // +0x250 listener position (z: camera height)
-    float listenerAxis[3];              // +0x25C listener direction, unit length in x/y
+    Vector3 listener;                   // +0x250 listener position (z: camera height)
+    Vector3 listenerAxis;               // +0x25C listener direction, unit length in x/y
     std::int32_t nextHandle;            // +0x268
     SoundEmitter emitters[16];          // +0x26C
     std::uint32_t emitterTick;          // +0x5EC

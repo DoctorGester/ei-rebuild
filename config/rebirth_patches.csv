@@ -1,14 +1,14 @@
 patch,source,site,size,function,category,single_player,original,summary,status,variant
-WideScreen,addon,005FC9E0,5,005FC9E0+0,widescreen/rendering,yes,"push esi; (+1)mov esi, ecx; (+3)mov eax, dword ptr [esi + 4]",function replaced: JMP to addon's widescreen version,not started,
+WideScreen,addon,005FC9E0,5,005FC9E0+0,widescreen/rendering,yes,"push esi; (+1)mov esi, ecx; (+3)mov eax, dword ptr [esi + 4]",function replaced: JMP to addon's widescreen version,implemented: CUiRegion::SetRect (src/game/ui_window.cpp),
 WideScreen,addon,005E9E77,5,005E99D0+4A7,widescreen/rendering,yes,fld dword ptr [esp + 0x34]; (+4)fmul dword ptr [0x74015c],hooked: addon code (wide layout),not started,
 WideScreen,addon,005E7C8D,5,005E7680+60D,widescreen/rendering,yes,fld dword ptr [esp + 0x34]; (+4)fmul dword ptr [0x74015c],hooked: addon code (wide layout),not started,
 WideScreen,addon,005E75D1,5,005E70E0+4F1,widescreen/rendering,yes,fmul dword ptr [0x740164],hooked: addon code (wide layout),not started,
 WideScreen,addon,005E835E,5,005E7D60+5FE,widescreen/rendering,yes,fmul dword ptr [0x740164],hooked: addon code (wide layout),not started,
-WideScreen,addon,005FCA70,5,005FCA70+0,widescreen/rendering,yes,"sub esp, 0xc; (+3)push ebx; (+4)mov ebx, ecx",function replaced: JMP to addon's widescreen version,not started,
-WideScreen,addon,005E6FA0,5,005E6FA0+0,widescreen/rendering,yes,"sub esp, 0xc; (+3)fld dword ptr [esp + 0x10]",function replaced: JMP to addon's widescreen version,not started,
-WideScreen,addon,005F7CA0,5,005F7CA0+0,widescreen/rendering,yes,"push esi; (+1)mov esi, dword ptr [esp + 8]",function replaced: JMP to addon's widescreen version,not started,
-WideScreen,addon,005F7D20,5,005F7D20+0,widescreen/rendering,yes,"push esi; (+1)mov esi, dword ptr [esp + 8]",function replaced: JMP to addon's widescreen version,not started,
-WideScreen,addon,005F7D60,5,data,widescreen/rendering,yes,568b742408,data/code outside the function list overwritten,not started,
+WideScreen,addon,005FCA70,5,005FCA70+0,widescreen/rendering,yes,"sub esp, 0xc; (+3)push ebx; (+4)mov ebx, ecx",function replaced: JMP to addon's widescreen version,implemented: CUiRegion::AddPoint (src/game/ui_window.cpp),
+WideScreen,addon,005E6FA0,5,005E6FA0+0,widescreen/rendering,yes,"sub esp, 0xc; (+3)fld dword ptr [esp + 0x10]",function replaced: JMP to addon's widescreen version,implemented: CUiMesh::PlaceBody (src/game/ui_mesh_draw.cpp),
+WideScreen,addon,005F7CA0,5,005F7CA0+0,widescreen/rendering,yes,"push esi; (+1)mov esi, dword ptr [esp + 8]",function replaced: JMP to addon's widescreen version,implemented: ScaleRectToScreenEntry / CInterface3D::ScaleRectToScreen (src/game/ui_interface.cpp),
+WideScreen,addon,005F7D20,5,005F7D20+0,widescreen/rendering,yes,"push esi; (+1)mov esi, dword ptr [esp + 8]",function replaced: JMP to addon's widescreen version,implemented: ScalePointToScreenEntry / CInterface3D::ScalePointToScreen (src/game/ui_interface.cpp),
+WideScreen,addon,005F7D60,5,data,widescreen/rendering,yes,568b742408,data/code outside the function list overwritten,not needed: 005F7D60 is a copy of 005F7D20 that nothing calls,
 WideScreen,addon,0065C51F,6,0065C2E0+23F,widescreen/rendering,yes,"mov ecx, dword ptr [esi + 0x98]",hooked: addon code (wide layout),not started,
 WideScreen,addon,0065C544,6,0065C2E0+264,widescreen/rendering,yes,"mov ecx, dword ptr [esi + 0x98]",hooked: addon code (wide layout),not started,
 WideScreen,addon,0061DB0E,6,0061D780+38E,widescreen/rendering,yes,"mov ecx, dword ptr [esi + 0x98]",hooked: addon code (wide layout),not started,
@@ -48,7 +48,7 @@ WideScreen,addon,0063C880,4,0063C800+80,widescreen/rendering,yes,"(at 63C87A)mov
 WideScreen,addon,0063C894,4,0063C800+94,widescreen/rendering,yes,"(at 63C88E)mov dword ptr [esi + 0xe0], 0x2d0",operand changed (layout constant for the wide layout),not started,
 WideScreen,addon,0063C800,5,0063C800+0,widescreen/rendering,yes,push -1; (+2)push 0x72df2c,function replaced: JMP to addon's widescreen version,not started,
 WideScreen,addon,0063CA2F,5,0063C800+22F,widescreen/rendering,yes,"mov eax, esi; (+2)pop edi; (+3)pop esi; (+4)pop ebp",epilogue hooked: addon adjusts what the function built,not started,
-WideScreen,addon,007428AC,4,data,widescreen/rendering,yes,00c02d44,data/code outside the function list overwritten,not started,
+WideScreen,addon,007428AC,4,data,widescreen/rendering,yes,00c02d44,data/code outside the function list overwritten,implemented: written at hook time from the same settings (src/game/ui_widescreen.cpp),
 WideScreen,addon,0063CC13,4,0063CAE0+133,widescreen/rendering,yes,(at 63CC12)push 0x442a0000,operand changed (layout constant for the wide layout),not started,
 WideScreen,addon,0063CC07,4,0063CAE0+127,widescreen/rendering,yes,(at 63CC06)push 0x44340000,operand changed (layout constant for the wide layout),not started,
 WideScreen,addon,0063F378,5,0063F300+78,widescreen/rendering,yes,"mov dword ptr [esi + 0xd8], ebx",hooked: addon code (wide layout),not started,
@@ -61,7 +61,7 @@ WideScreen,addon,0063E4B0,5,0063E4B0+0,widescreen/rendering,yes,"sub esp, 0x20; 
 WideScreen,addon,0063E6F7,5,0063E4B0+247,widescreen/rendering,yes,"pop edi; (+1)pop esi; (+2)pop ebx; (+3)add esp, 0x20",epilogue hooked: addon adjusts what the function built,not started,
 WideScreen,addon,0063BB2B,4,0063BAB0+7B,widescreen/rendering,yes,"(at 63BB25)mov dword ptr [esi + 0xe0], 0xf0",operand changed (layout constant for the wide layout),not started,
 WideScreen,addon,0063BAFC,4,0063BAB0+4C,widescreen/rendering,yes,"(at 63BAFB)mov edi, 0x50",operand changed (layout constant for the wide layout),not started,
-WideScreen,addon,005FC9F4,8,005FC9E0+14,widescreen/rendering,yes,"(at 5FC9F3)add esp, 4; (+2)mov dword ptr [esi + 4], 0",operand changed (layout constant for the wide layout),not started,
+WideScreen,addon,005FC9F4,8,005FC9E0+14,widescreen/rendering,yes,"(at 5FC9F3)add esp, 4; (+2)mov dword ptr [esi + 4], 0",operand changed (layout constant for the wide layout),implemented: CUiRegion::SetRect (src/game/ui_window.cpp),
 WideScreen,addon,0063BF80,4,0063BCC0+2C0,widescreen/rendering,yes,(at 63BF7E)fadd dword ptr [0x741f1c],operand changed (layout constant for the wide layout),not started,
 WideScreen,addon,0063BF71,4,0063BCC0+2B1,widescreen/rendering,yes,(at 63BF6F)fadd dword ptr [0x740094],operand changed (layout constant for the wide layout),not started,
 WideScreen,addon,0063C050,5,0063C050+0,widescreen/rendering,yes,"push ebx; (+1)push esi; (+2)mov esi, dword ptr [esp + 0xc]",function replaced: JMP to addon's widescreen version,not started,
@@ -77,7 +77,7 @@ WideScreen,addon,00648520,5,00648520+0,widescreen/rendering,yes,"sub esp, 8; (+3
 WideScreen,addon,006488D7,5,00648520+3B7,widescreen/rendering,yes,ret 4,epilogue hooked: addon adjusts what the function built,not started,
 WideScreen,addon,00648531,4,00648520+11,widescreen/rendering,yes,"(at 64852B)mov dword ptr [esi + 0xd8], 0x2d0",operand changed (layout constant for the wide layout),not started,
 WideScreen,addon,00648545,4,00648520+25,widescreen/rendering,yes,"(at 64853F)mov dword ptr [esi + 0xe0], 0x320",operand changed (layout constant for the wide layout),not started,
-WideScreen,addon,00742B08,4,data,widescreen/rendering,yes,00004844,data/code outside the function list overwritten,not started,
+WideScreen,addon,00742B08,4,data,widescreen/rendering,yes,00004844,data/code outside the function list overwritten,implemented: written at hook time from the same settings (src/game/ui_widescreen.cpp),
 WideScreen,addon,005FD237,9,data,widescreen/rendering,yes,909090909090909090,data/code outside the function list overwritten,not started,
 WideScreen,addon,0063023C,4,00630010+22C,widescreen/rendering,yes,(at 63023B)call 0x5fd240,operand changed (layout constant for the wide layout),not started,
 WideScreen,addon,0062FB20,4,0062F950+1D0,widescreen/rendering,yes,(at 62FB1F)call 0x5fd240,operand changed (layout constant for the wide layout),not started,
@@ -92,7 +92,7 @@ WideScreen,addon,005F4A4F,6,005F4990+BF,widescreen/rendering,yes,fmul dword ptr 
 WideScreen,addon,005F4F81,4,data,widescreen/rendering,yes,90909090,data/code outside the function list overwritten,not started,
 WideScreen,addon,004F135A,19,004F1330+2A,widescreen/rendering,yes,"mov dword ptr [eax], ecx; (+2)mov dword ptr [eax + 0x14], 0xbf800000; (+9)mov esp, ebp; (+11)pop ebp; (+12)ret 4",hooked: addon code (wide layout),not started,
 WideScreen,addon,005FDE94,3,005FDE20+74,widescreen/rendering,yes,"mov ecx, dword ptr [edi + 4]",hooked: addon code (wide layout),not started,
-WideScreen,addon,005F7D9E,194,data,widescreen/rendering,yes,9090568b7424088b068d04808d0480c1e00599f73989068b46048d04408d04808d0480c1e00399f779048946048b46088d04808d0480c1e00599f7398946088b460c8d04408d04808d0480c1e00399f7790489460c5ec20400909090909090909090568b7424088b068d04808d0480c1e00599f73989068b46048d04408d04808d0480c1e00399f779048946045ec2040090568b7424088b068d04808d0480c1e00599f73989068b46048d04408d04808d0480c1e00399f779048946045ec2040090,data/code outside the function list overwritten,not started,
+WideScreen,addon,005F7D9E,194,data,widescreen/rendering,yes,9090568b7424088b068d04808d0480c1e00599f73989068b46048d04408d04808d0480c1e00399f779048946048b46088d04808d0480c1e00599f7398946088b460c8d04408d04808d0480c1e00399f7790489460c5ec20400909090909090909090568b7424088b068d04808d0480c1e00599f73989068b46048d04408d04808d0480c1e00399f779048946045ec2040090568b7424088b068d04808d0480c1e00599f73989068b46048d04408d04808d0480c1e00399f779048946045ec2040090,data/code outside the function list overwritten,implemented: the entries of 005F7DA0 / 005F7E00 / 005F7E30 with and without ECX (src/game/ui_interface.cpp),
 WideScreen,addon,005EB249,5,005EB210+39,widescreen/rendering,yes,call 0x5f7e00,hooked: addon code (wide layout),not started,
 WideScreen,addon,0063008C,5,00630010+7C,widescreen/rendering,yes,call 0x5f7e00,hooked: addon code (wide layout),not started,
 WideScreen,addon,0060C870,5,0060C870+0,widescreen/rendering,yes,"push ebp; (+1)mov ebp, esp; (+3)push -1",function replaced: JMP to addon's widescreen version,not started,
@@ -280,10 +280,10 @@ EiPluginNPlayers,EI_Plugin,006401D7,8,00640060+177,multiplayer,no,,bytes,inactiv
 EiPluginNPlayers,EI_Plugin,006401DF,3,00640060+17F,multiplayer,no,,bytes,inactive here; not started,nplayers>7
 EiPluginNPlayers,EI_Plugin,006401E2,4,00640060+182,multiplayer,no,,bytes,inactive here; not started,nplayers>7
 EiPluginNPlayers,EI_Plugin,00640240,4,00640060+1E0,multiplayer,no,,bytes,inactive here; not started,nplayers>7
-EiPluginPause,EI_Plugin,0066FAFE,4,data,multiplayer,no,,"JMP +0x62, NOPs",active here; not started,pause12
+EiPluginPause,EI_Plugin,0066FAFE,4,0066FAC0+3E,multiplayer,no,,"JMP +0x62, NOPs",active here; not started,pause12
 EiPluginPause,EI_Plugin,0066FB62,14,data,multiplayer,no,,bytes,active here; not started,pause12
-EiPluginPause,EI_Plugin,0066FB10,5,data,multiplayer,no,,"Pause=2 only: mov eax,[edx+0x1C]; nop",active here; not started,pause12
-EiPluginPause,EI_Plugin,0066FB2C,1,data,multiplayer,no,,JMP short,inactive here; not started,pause3
+EiPluginPause,EI_Plugin,0066FB10,5,0066FAC0+50,multiplayer,no,,"Pause=2 only: mov eax,[edx+0x1C]; nop",active here; not started,pause12
+EiPluginPause,EI_Plugin,0066FB2C,1,0066FAC0+6C,multiplayer,no,,JMP short,inactive here; not started,pause3
 EiPluginPause,EI_Plugin,005942C0,4,005942C0+0,multiplayer,no,,RET 4 at the start of CWorldServer::SetUnknown6C (rewritten),inactive here; not started,pause3
 EiPluginAutoAim,EI_Plugin,00637209,1,00637190+79,multiplayer,no,,0,inactive here; not started,always
 EiPluginAutoAim,EI_Plugin,005D45BD,1,005D4170+44D,multiplayer,no,,0,inactive here; not started,always

@@ -74,7 +74,23 @@ struct Implements {
 const Implements* FirstImplements();
 bool ImplementsAt(std::uintptr_t address, Patch p);
 
+// A rewrite's declaration that the stolen bytes of its verify wrapper are also whole instructions of
+// the code addon.dll wrote over the function, with no relative operand except a JMP / CALL rel32 at
+// the function's start (checked by hand against addon's code). The installer then lets them end
+// inside addon's site, which it otherwise refuses (a site of addon's replaced code, e.g. WideScreen's
+// 194 bytes at 005F7D9E over three functions). Declare it with EI_REBIRTH_LIVE_STOLEN.
+struct LiveStolen {
+    std::uintptr_t address;
+    const LiveStolen* next;
+    explicit LiveStolen(std::uintptr_t address);
+};
+bool LiveStolenAt(std::uintptr_t address);
+
 } // namespace ei::rebirth
+
+// EI_REBIRTH_LIVE_STOLEN(0x005F7DA0);
+#define EI_REBIRTH_LIVE_STOLEN(addr) \
+    static const ::ei::rebirth::LiveStolen EI_REBIRTH_CAT(ei_rebirth_live_stolen_, __LINE__)(addr)
 
 #define EI_REBIRTH_CAT_(a, b) a##b
 #define EI_REBIRTH_CAT(a, b) EI_REBIRTH_CAT_(a, b)

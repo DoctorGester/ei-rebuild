@@ -22,6 +22,10 @@ int HolderCount();
 const char* BlankTextureProblem(CTextureManager* manager, const CTexture* texture, int width, int height, int formatId,
                                 int holdersBefore);
 
+// Surfaces can be lent at all: false when the game has no DirectDraw device (the switch-over of
+// R9a, device.h), logged once; the originals that write memory textures then cannot run (ours only).
+bool CanLend();
+
 // The texture's holder (CTexture +0x5C), or null.
 CDXSurface* HolderOf(const void* texture);
 // The holder has the new renderer's memory and no DirectDraw surface.
