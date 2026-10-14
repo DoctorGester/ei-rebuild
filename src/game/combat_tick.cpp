@@ -383,7 +383,7 @@ bool CUnitServer::StartMove() {
         if (!found) {
             double dy = static_cast<double>(action.point.y) - unit->position.y;
             double dx = static_cast<double>(action.point.x) - unit->position.x;
-            close = LessOrUnordered(dx * dx + dy * dy, kLong);
+            close = LessOrUnordered(LengthSquared2DUnrounded(dx, dy), kLong);
         }
         if (close) arrived = true;
         else CtlReportPath(this, nullptr, &motion, found);
@@ -773,9 +773,7 @@ void CUnitServer::ApproachTarget() {
         Vector3 goal;
         std::memcpy(&goal, &action.point, sizeof(goal));
         if (state == kStateIdle) {
-            double dy = static_cast<double>(goal.y) - motion.goal.y;
-            double dx = static_cast<double>(goal.x) - motion.goal.x;
-            if (!(dx * dx + dy * dy > kNearPoint)) return;
+            if (!(DistanceSquaredXYUnrounded<double>(goal, motion.goal) > kNearPoint)) return;
         }
         if (TickPathTo(this, nullptr, &goal.x, kFarBits)) {
             double h = HalfScale();
@@ -785,7 +783,7 @@ void CUnitServer::ApproachTarget() {
             heading.z = 0.0f;
             double dx = static_cast<double>(heading.x) - goal.x;
             double dy = static_cast<double>(heading.y) - goal.y;
-            if (!(dy * dy + dx * dx > kNearPoint)) return;
+            if (!(LengthSquared2DUnrounded(dy, dx) > kNearPoint)) return;
             if (CtlCanReachTarget(this, nullptr, &action)) {
                 Vector3 saved;
                 std::memcpy(&saved, &unit->position.x, sizeof(saved));
@@ -806,9 +804,7 @@ void CUnitServer::ApproachTarget() {
     Vector3 aim;
     Slots(target)->AimPoint(&aim);
     if (!IsMoving(target)) {
-        double dy = static_cast<double>(aim.y) - unit->position.y;
-        double dx = static_cast<double>(aim.x) - unit->position.x;
-        if (!LessOrUnordered(static_cast<double>(reach) * reach, dx * dx + dy * dy) &&
+        if (!LessOrUnordered(static_cast<double>(reach) * reach, DistanceSquaredXYUnrounded<double>(aim, unit->position)) &&
             CallCanActFrom(&action, &aim.x, now)) {
             // In reach of a standing target: wait.
             if (state != kStateTurning) StandIdle(this);
@@ -902,9 +898,7 @@ void CUnitServer::ApproachTarget() {
 
     if (state == kStateIdle) {
         double close = (static_cast<double>(distance) + kOne) * kPointOne;
-        double dy = static_cast<double>(goal.y) - motion.goal.y;
-        double dx = static_cast<double>(goal.x) - motion.goal.x;
-        if (close * close > dx * dx + dy * dy) {
+        if (close * close > DistanceSquaredXYUnrounded<double>(goal, motion.goal)) {
             // Still heading close enough to it: only the patience (the path goal's z) changes.
             motion.goal.z = static_cast<float>(UnitScaledValue(unit, nullptr, distance) + kFive);
             return;
@@ -914,9 +908,7 @@ void CUnitServer::ApproachTarget() {
     CAIMap* aiMap = WorldServer()->AIMap();
     bool savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
-    double ay = static_cast<double>(unit->position.y) - goal.y;
-    double ax = static_cast<double>(unit->position.x) - goal.x;
-    if (!(ax * ax + ay * ay > kPointOne)) return;   // (sic: the path flag stays cleared)
+    if (!(DistanceSquaredXYUnrounded<double>(unit->position, goal) > kPointOne)) return;   // (sic: the path flag stays cleared)
 
     SectorMapRemove(WorldServer()->Sectors(), nullptr, chased);
     volatile float far = static_cast<float>(static_cast<double>(goal.y) * kShort);
@@ -935,7 +927,7 @@ void CUnitServer::ApproachTarget() {
     double fy = static_cast<double>(goal.y) - h * motion.targetY;
     double fx = static_cast<double>(goal.x) - headX;
     aiMap->refreshUnits = savedFlag;
-    if (LessOrUnordered(static_cast<double>(reach) * reach, fx * fx + fy * fy)) {
+    if (LessOrUnordered(static_cast<double>(reach) * reach, LengthSquared2DUnrounded(fx, fy))) {
         // The way leads elsewhere: stop, face along, and chase from here.
         AIPath* path = &motion;
         PathClear(path);
