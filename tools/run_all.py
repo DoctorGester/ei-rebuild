@@ -338,6 +338,40 @@ def save_times(seconds, build=BUILD):
         json.dump(times, open(os.path.join(build, 'run_times.json'), 'w'), indent=0, sort_keys=True)
 
 
+def timing_db():
+    """The machine-wide work database (tools/work.py, table timing) for this process's expected times and
+    their recording, or None: a run never fails because of it."""
+    try:
+        import work
+        return work.connect()
+    except (Exception, SystemExit):
+        return None
+
+
+def expected_times(jobs, root=ROOT, build=BUILD, db=None):
+    """{(scenario, install): expected seconds or None}: the machine-wide timings (work.expected_times), then the
+    build's run_times.json."""
+    fallbacks = load_times(build)
+    if db is not None:
+        try:
+            import work
+            return work.expected_times(db, root, jobs, fallbacks)
+        except Exception:
+            pass
+    return {(n, i): fallbacks.get(f'{n}-{i}') for n, i in jobs}
+
+
+def record_time(db, name, install, seconds, result, root=ROOT, batch=None):
+    """Appends a finished game's time to the machine-wide table; never raises. Crashed runs (ERROR, NO REPORT) are not times."""
+    if db is None or result in ('ERROR', 'NO REPORT'):
+        return
+    try:
+        import work
+        work.record_time(db, name, install, root, seconds, batch)
+    except Exception:
+        pass
+
+
 HEADER = f'{"scenario":<18} {"install":<8} {"result":<10} {"time":>6}  failures'
 
 
@@ -392,8 +426,9 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
 def main():
     args = parse_args()
     jobs = plan(args)
-    times = load_times()
-    order = sorted(jobs, key=lambda j: -times.get(f'{j[0]}-{j[1]}', 1000))   # new scenarios first
+    db = timing_db()
+    times = expected_times(jobs, db=db)
+    order = sorted(jobs, key=lambda j: -(times[j] if times[j] is not None else 1000))   # new scenarios first
 
     totals = collections.defaultdict(lambda: [0, 0])
     results = {}
@@ -412,6 +447,7 @@ def main():
             result, seconds, failures, counts, notes = future.result()
             with lock:
                 results[(name, install)] = (result, seconds, failures, notes)
+                record_time(db, name, install, seconds, result)
                 for fn, (calls, bad) in counts.items():
                     totals[fn][0] += calls
                     totals[fn][1] += bad
