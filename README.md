@@ -102,7 +102,8 @@ code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to
 permanently, and a scenario can ask with `rebirthflags <names>`. A scenario's `resolution <WxH|desktop>`
 and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the starter's settings the game and
 Rebirth read for the run, without writing them (`tests/verify/harness_starter.h`; `python tools\run_all.py
---widescreen` compares Rebirth's WideScreen with ours, `docs/notes/rebirth.md`). Harness runs
+--widescreen` compares Rebirth's WideScreen with ours, `docs/notes/rebirth.md`; `chat 1|0` opens and closes the
+chat line, which a single player game does not show). Harness runs
 need no clicks and leave the install alone: startup movies are skipped, the tutorial option is off,
 saves and `config\tutorial.ini` go to `build\verify\harness_saves`, every other file the game writes under
 its folder (the composed-skin cache `textures\*.mmp`, `config\keyboard.ini`, `config\addrbook.ini`,
