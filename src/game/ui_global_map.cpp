@@ -313,7 +313,7 @@ void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
 void CGlobalMap::Create() {
     autosave_ = false;
     if (*reinterpret_cast<const int*>(0x007AFE1C) != 0)
-        reinterpret_cast<CMemoryStream*>(0x007AFDF8)->Resize(0);
+        GameSaveStream()->Resize(0);
     else if (reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player->lastScreen != 5)
         autosave_ = true;   // not back from the camp
     depth_ = Bits(0x41200000);     // 10

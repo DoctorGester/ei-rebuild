@@ -6,7 +6,9 @@
 
 #include "../../src/game/core_streams.h"
 
+#include <cstdint>
 #include <cstring>
+#include <vector>
 
 // Copies a memory stream byte for byte (vtable pointer and padding included). Assigning one
 // stream to another with `=` would skip the vtable pointer, which the game stores in the object.
@@ -25,4 +27,18 @@ public:
     std::uint32_t Position() override { return 0; }
     void Clear() override {}
     void CopyFrom(CStream*) override {}
+};
+
+// A stream that records what is written (reads give nothing); `fileVersion` is the format version
+// the code under test sees.
+class RecordingStream : public FakeStream {
+public:
+    RecordingStream() = default;
+    explicit RecordingStream(int fileVersion) { version_ = static_cast<std::uint32_t>(fileVersion); }
+    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
+    void Write(const void* buffer, std::uint32_t size) override {
+        const auto* bytes = static_cast<const std::uint8_t*>(buffer);
+        written.insert(written.end(), bytes, bytes + size);
+    }
+    std::vector<std::uint8_t> written;
 };

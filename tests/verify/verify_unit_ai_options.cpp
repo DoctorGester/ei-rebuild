@@ -129,18 +129,6 @@ static void __fastcall SetSizeVerify(AIAttackOptions* self, void*, int size, int
 EI_VERIFY(0x005D9250, SetSizeVerify, 0, s_unused);
 
 namespace {
-// A stream that records what is written (reads give nothing).
-class RecordingStream : public FakeStream {
-public:
-    explicit RecordingStream(int fileVersion) { version_ = static_cast<std::uint32_t>(fileVersion); }
-    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
-    void Write(const void* buffer, std::uint32_t size) override {
-        const auto* bytes = static_cast<const std::uint8_t*>(buffer);
-        written.insert(written.end(), bytes, bytes + size);
-    }
-    std::vector<std::uint8_t> written;
-};
-
 using StreamFn = void(__fastcall*)(AIAttackOption*, void*, CStream*);
 StreamFn s_originalSave;
 } // namespace

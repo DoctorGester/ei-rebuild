@@ -15,18 +15,6 @@
 namespace {
 void* s_unused;
 
-// A stream that records what is written (reads give nothing).
-class SaveRecorder : public FakeStream {
-public:
-    explicit SaveRecorder(int fileVersion) { version_ = static_cast<std::uint32_t>(fileVersion); }
-    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
-    void Write(const void* buffer, std::uint32_t size) override {
-        const auto* bytes = static_cast<const std::uint8_t*>(buffer);
-        written.insert(written.end(), bytes, bytes + size);
-    }
-    std::vector<std::uint8_t> written;
-};
-
 AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
 
 // A loaded list of AI modes is linked both ways, holds `count` nodes, each with a referenced
@@ -50,7 +38,7 @@ bool ModesConsistent(AIBrain* brain) {
 // the real stream. (The helpers' wrappers write the same way inside both.)
 static void(__fastcall* s_brainSave)(AIBrain*, void*, CStream*);
 static void __fastcall BrainSaveVerify(AIBrain* self, void*, CStream* stream) {
-    SaveRecorder expected(stream->version_), actual(stream->version_);
+    RecordingStream expected(stream->version_), actual(stream->version_);
     s_brainSave(self, nullptr, &expected);
     self->Save(&actual);
     ei::verify::Check("AIBrain::Save", true, expected.written == actual.written, "%d bytes (original %d)",
@@ -73,7 +61,7 @@ EI_VERIFY(0x005D8310, BrainLoadVerify, 0, s_unused);
 // 005CC350 memory save: PUSH ECX; PUSH EBX; MOV EBX,ECX; PUSH EBP; PUSH ESI (6 bytes). As Save.
 static void(__fastcall* s_memorySave)(std::uint8_t*, void*, CStream*);
 static void __fastcall MemorySaveVerify(std::uint8_t* memory, void*, CStream* stream) {
-    SaveRecorder expected(stream->version_), actual(stream->version_);
+    RecordingStream expected(stream->version_), actual(stream->version_);
     s_memorySave(memory, nullptr, &expected);
     BrainOfMemory(memory)->SaveMemory(&actual);
     ei::verify::Check("AIBrain::SaveMemory", true, expected.written == actual.written, "%d bytes (original %d)",
@@ -97,7 +85,7 @@ EI_VERIFY(0x005CC1E0, MemoryLoadVerify, 0, s_unused);
 // 005D91B0 SaveLooks: SUB ESP,0x14; PUSH EBX; MOV EBX,ECX (6 bytes). As Save.
 static void(__fastcall* s_saveLooks)(const AILookArray*, CStream*);
 static void __fastcall SaveLooksVerify(const AILookArray* looks, CStream* stream) {
-    SaveRecorder expected(stream->version_), actual(stream->version_);
+    RecordingStream expected(stream->version_), actual(stream->version_);
     s_saveLooks(looks, &expected);
     SaveLooks(looks, &actual);
     ei::verify::Check("SaveLooks", true, expected.written == actual.written, "%d looks: %d bytes (original %d)", looks->size,

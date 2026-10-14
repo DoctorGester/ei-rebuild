@@ -80,9 +80,8 @@ struct ContainerInputs {
 };
 void ContainerInputs::AddInput(void* input) { ContainerAddInputOriginal(this, nullptr, input); }
 
-// The game's save stream (global object at 007AFDF8, a CMemoryStream; version at 007AFE00, a
-// game being loaded at 007AFE1C).
-CMemoryStream* GameSaveStream() { return reinterpret_cast<CMemoryStream*>(0x007AFDF8); }
+// The game's save stream's version (at 007AFE00, its object GameSaveStream is at 007AFDF8) and a
+// game being loaded (at 007AFE1C).
 int SaveVersion() { return *reinterpret_cast<const int*>(0x007AFE00); }
 bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
 

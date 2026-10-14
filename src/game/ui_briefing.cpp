@@ -24,8 +24,6 @@ namespace {
 
 // The map edge fade (a float the zone screens set while they are open).
 float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
-// The save game's stream.
-CStream* SaveGameStream() { return reinterpret_cast<CStream*>(0x007AFDF8); }
 void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* TheGame() { return reinterpret_cast<void*>(0x007AFE20); }
 
@@ -255,7 +253,7 @@ EI_REPLACE_METHOD(0x00603090, CBriefingScreen::ShowChat);
 
 void CBriefingScreen::SaveState() {
     int zero = 0;
-    SaveGameStream()->Write(&zero, 4);
+    GameSaveStream()->Write(&zero, 4);
 }
 EI_REPLACE_METHOD(0x00602490, CBriefingScreen::SaveState);
 // 0062D330: the global map's slot 40, byte-identical (one zero dword).
