@@ -126,7 +126,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
         void* controller = static_cast<CUnit*>(target)->controller;
         if (IsHostileType(SpellType(spell))) {
             BrainSetSeenOriginal(static_cast<std::uint8_t*>(controller) + 0x980, nullptr, caster);
-            DiplomacyOnAttack(diplomacy_, nullptr, caster, target, 10);
+            DiplomacyOnAttack(&diplomacy_, nullptr, caster, target, 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;
         }
@@ -230,7 +230,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
             } else {
                 int casterSide = static_cast<CUnit*>(caster)->side;
                 int bestSide = static_cast<CUnit*>(best)->side;
-                hit = (At<std::uint32_t>(diplomacy_, bestSide * 4) & (1u << (casterSide & 31))) != 0;
+                hit = (diplomacy_.allied_[bestSide] & (1u << (casterSide & 31))) != 0;
             }
         }
         if (!hit) continue;

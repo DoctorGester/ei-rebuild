@@ -520,7 +520,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
 
             TimeWheelLoad(timeWheel_, nullptr, stream);
             CommandQueueLoad(commandsA_, nullptr, stream);
-            DiplomacyRead(diplomacy_, nullptr, stream);
+            DiplomacyRead(&diplomacy_, nullptr, stream);
             stream->Read(&unknownDC_, 4);
             stream->Read(&unknownE0_, 4);
             if (stream->version_ >= kVersionCountdowns) CountdownsLoad(countdowns_, nullptr, stream);
@@ -739,7 +739,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
 
     TimeWheelSave(timeWheel_, nullptr, stream);
     CommandQueueSave(commandsA_, nullptr, stream);
-    DiplomacyWrite(diplomacy_, nullptr, stream);
+    DiplomacyWrite(&diplomacy_, nullptr, stream);
     stream->Write(&unknownDC_, 4);
     stream->Write(&unknownE0_, 4);
     CountdownsSave(countdowns_, nullptr, stream);

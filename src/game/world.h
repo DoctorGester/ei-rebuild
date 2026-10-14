@@ -14,6 +14,7 @@
 #include "core_streams.h"
 #include "engine_object.h"
 #include "ground_print.h"
+#include "object_diplomacy.h"
 #include "player_source.h"
 #include "unit_looks.h"
 #include "lib/mfc.h"
@@ -28,6 +29,7 @@ class CAIMap;       // ai_map.h
 class CPlayerServer;   // player_messages.h
 class CPlayerConnection;   // player_messages.h
 class CScript;   // script.h
+struct AIEventTable;   // unit_ai.h
 namespace netlink {
 class NetLink;   // net_link.h
 }
@@ -790,11 +792,12 @@ public:
     int gridHeight_;                      // +0x2814
     std::uint8_t unknown_2818[0x2838 - 0x2818];
     std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 the AI events (AIEventTable, unit_ai.h: time wheel, grid)
+    AIEventTable* AIEvents() { return reinterpret_cast<AIEventTable*>(timeWheel_); }
     std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
     // commandsA_ is the zone's CScript (script.h, 0x1F8 bytes): its globals_ hold the "Heroes" group.
     CScript* MainScript() { return reinterpret_cast<CScript*>(commandsA_); }
     std::uint8_t commandsB_[0x12C64 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
-    std::uint8_t diplomacy_[0x12D64 - 0x12C64]; // +0x12C64 CDiplomacy (object_diplomacy.h)
+    CDiplomacy diplomacy_;                // +0x12C64 (object_diplomacy.h)
     int unknown12D64_;                    // +0x12D64 1 or 3: SaveWorld updates the players' "gtime" first
     char* mobName_;                       // +0x12D68 CString: the zone's .mob file
     char* mapName_;                       // +0x12D6C CString: the zone's map
