@@ -306,6 +306,7 @@ int InstallHooks() {
 // Hooks are installed when WinMain starts, not when the DLL loads: Rebirth's addon applies its own
 // patches from a hook on the WinMain call, and they must be in place before we compare bytes.
 static constexpr std::uintptr_t kWinMain = 0x00456440;
+void InstallCoverage();   // cover.cpp
 static unsigned char g_winMainBytes[5];
 
 static void __stdcall OnWinMain() {
@@ -316,6 +317,7 @@ static void __stdcall OnWinMain() {
     VirtualProtect(p, 5, old, &old);
     FlushInstructionCache(GetCurrentProcess(), p, 5);
     Log("%d hook(s) installed", InstallHooks());
+    InstallCoverage();
 }
 
 __declspec(naked) static void WinMainStub() {

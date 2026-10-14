@@ -1,8 +1,11 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
-usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only] [--no-hooks]
+usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth] [--no-hooks]
                                [--jobs N] [--retries N] [--verified-candidates N]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
+                   Every scenario runs on vanilla; under Rebirth only those config/rebirth_scenarios.csv
+                   marks (tools/rebirth_coverage.py: the fewest that reach every function Rebirth patches
+                   twice) and any it does not list yet. Named scenarios and --all-rebirth run under both.
   --jobs N         games running at once (default 16); all runs on the machine together never
                    exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei_hook.log, harness_report.txt and
@@ -100,11 +103,24 @@ def run_with_retries(name, install, hooks, retries):
     return result, seconds, failures, counts, notes
 
 
+def rebirth_scenarios(names):
+    """The scenarios that also run under Rebirth: marked 1 in config/rebirth_scenarios.csv, or not in it."""
+    path = os.path.join(ROOT, 'config', 'rebirth_scenarios.csv')
+    listed = {}
+    if os.path.exists(path):
+        for line in open(path):
+            parts = line.strip().split(',')
+            if len(parts) >= 2 and parts[1] in ('0', '1'):
+                listed[parts[0]] = parts[1] == '1'
+    return {n for n in names if listed.get(n, True)}
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('scenarios', nargs='*')
     ap.add_argument('--vanilla-only', action='store_true')
     ap.add_argument('--rebirth-only', action='store_true')
+    ap.add_argument('--all-rebirth', action='store_true')
     ap.add_argument('--no-hooks', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
@@ -115,7 +131,8 @@ def main():
     installs = ['vanilla', 'rebirth']
     if args.vanilla_only: installs = ['vanilla']
     if args.rebirth_only: installs = ['rebirth']
-    jobs = [(name, install) for name in names for install in installs]
+    rebirth = set(names) if args.scenarios or args.all_rebirth or args.rebirth_only else rebirth_scenarios(names)
+    jobs = [(name, install) for name in names for install in installs if install == 'vanilla' or name in rebirth]
     try:
         times = json.load(open(TIMES))
     except (OSError, ValueError):
