@@ -100,6 +100,11 @@ MIGRATIONS = [
         info      TEXT                   -- e.g. the server's URL
     );
     """,
+    # 2 (WB5): the submitter's EI_* variables (EI_PROFILE, EI_PLAIN, ...): the batch's games run with exactly these.
+    # NULL (a batch from before): the games inherit the scheduler's environment.
+    """
+    ALTER TABLE batch ADD COLUMN env TEXT;   -- JSON object {name: value}
+    """,
 ]
 
 

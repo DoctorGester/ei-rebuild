@@ -113,10 +113,24 @@ def sets_display_mode(scenario):
         return any(re.match(r'\s*resolution\b', line) for line in f)
 
 
-def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True):
+# EI_* variables that are not settings of a game: where the build is, the machine's slots, and what ei_launch
+# sets itself. Every other EI_* variable (EI_PROFILE, EI_PLAIN, EI_RENDER, EI_COVER, ...) is read by a game.
+NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS')
+
+
+def game_environment(environ=None):
+    """The EI_* variables of environ (default: this process's) that a game reads: {name: value}."""
+    return {k: v for k, v in (os.environ if environ is None else environ).items()
+            if k.startswith('EI_') and k not in NOT_GAME_ENV}
+
+
+def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True, game_env=None):
     """One game of a scenario on an install. root: the checkout whose tests/scenarios and run/ it uses;
     build: the verify build folder (ei_launch.exe; the run folder is <build>/runs/<folder>).
-    take_slot False: the caller already holds a machine slot for it (tools/work_sched.py)."""
+    take_slot False: the caller already holds a machine slot for it (tools/work_sched.py).
+    game_env: None, the game inherits this process's environment; a dict (also {}), the game's EI_* variables
+    are exactly these (this process's other game variables are dropped), for a scheduler running other
+    submitters' batches. It goes to the subprocess only; os.environ stays as it is."""
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
     shutil.rmtree(out, ignore_errors=True)
@@ -124,11 +138,14 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
     prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
     cmd = [os.path.join(build, 'ei_launch.exe'), '--harness', scenario, '--out', out]
     env = None
+    if game_env is not None:
+        env = {k: v for k, v in os.environ.items() if k not in game_environment()}
+        env.update(game_env)
     if install == 'vanilla':
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(root, 'run', 'vanilla', 'game.exe')]
     elif install == 'native':
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(root, 'run', 'native', 'game.exe')]
-        env = dict(os.environ, EI_RENDER='new,present')
+        env = dict(os.environ if env is None else env, EI_RENDER='new,present')
     elif os.path.exists(os.path.join(root, 'run', 'rebirth', 'game.exe')):
         # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
         cmd += ['--exe', os.path.join(root, 'run', 'rebirth', 'game.exe')]
