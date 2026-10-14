@@ -81,7 +81,8 @@ struct ItemObjectCache {
     };
     Node* header;
     std::uint32_t count;
-    std::uint32_t unknown_08;
+    std::uint8_t compare;            // +0x08 the map's compare object (a byte the constructors copy)
+    std::uint8_t unknown_09[3];
     std::uint32_t limit;             // +0x0C
 };
 static_assert(sizeof(ItemObjectCache) == 0x10);
@@ -282,16 +283,12 @@ public:
     std::uint8_t unknown_198[0x1C0 - 0x198];
     int x_;                          // +0x1C0 layout position of the surface
     int y_;                          // +0x1C4
-    void* itemTextsVtable_;          // +0x1C8 CStringArray "infoitem_0" .. "infoitem_44"
-    mfc::CString* itemTexts_;        // +0x1CC
-    std::uint8_t unknown_1D0[0x1DC - 0x1D0];
-    void* skillTextsVtable_;         // +0x1DC CStringArray "infoskill_0" .. "_24"
-    mfc::CString* skillTexts_;       // +0x1E0 data of the CStringArray at +0x1DC ("infoskill_0" .. "_24")
-    std::uint8_t unknown_1E4[0x1F0 - 0x1E4];
+    mfc::CStringArray itemTexts_;    // +0x1C8 "infoitem_0" .. "infoitem_44"
+    mfc::CStringArray skillTexts_;   // +0x1DC "infoskill_0" .. "infoskill_24"
 };
 static_assert(sizeof(CItemInfoPanel) == 0x1F0);
 static_assert(offsetof(CItemInfoPanel, owner_) == 0x14C);
 static_assert(offsetof(CItemInfoPanel, items_) == 0x190);
 static_assert(offsetof(CItemInfoPanel, x_) == 0x1C0);
-static_assert(offsetof(CItemInfoPanel, itemTexts_) == 0x1CC);
-static_assert(offsetof(CItemInfoPanel, skillTexts_) == 0x1E0);
+static_assert(offsetof(CItemInfoPanel, itemTexts_) == 0x1C8);
+static_assert(offsetof(CItemInfoPanel, skillTexts_) == 0x1DC);

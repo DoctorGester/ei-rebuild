@@ -108,7 +108,7 @@ EI_REPLACE_METHOD(0x005F5FB0, CBattleScreenSetup::SetPortraitMode);
 void CBriefingScreen::SetChatActive(int mode) { chatActive_ = mode; }
 EI_REPLACE_METHOD(0x005F6B70, CBriefingScreen::SetChatActive);
 
-std::uint8_t* CCampPages::HeroAt(int index) { return heroes_[index]; }
+CUnit* CCampPages::HeroAt(int index) { return heroes_[index]; }
 EI_REPLACE_METHOD(0x005F65F0, CCampPages::HeroAt);
 
 void CUiItemStrip::SetSlots(int slots) { slots_ = slots; }

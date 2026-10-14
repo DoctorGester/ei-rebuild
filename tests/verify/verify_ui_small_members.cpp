@@ -180,8 +180,8 @@ static void __fastcall SetChatActiveVerify(CBriefingScreen* self, void*, int mod
 }
 EI_VERIFY(0x005F6B70, SetChatActiveVerify, 0, s_unused);
 
-static std::uint8_t* __fastcall CampHeroAtVerify(CCampPages* self, void*, int index) {
-    std::uint8_t* result = self->HeroAt(index);
+static CUnit* __fastcall CampHeroAtVerify(CCampPages* self, void*, int index) {
+    CUnit* result = self->HeroAt(index);
     ei::verify::Check("CCampPages::HeroAt", true, result == self->heroes_[index], "index %d", index);
     return result;
 }

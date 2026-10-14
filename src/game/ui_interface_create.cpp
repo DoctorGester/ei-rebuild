@@ -174,7 +174,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     altDown_ = false;
     doubleClick_ = false;
     rightDown_ = false;
-    unknown_81[0] = 0;
+    pollTop_ = false;
 
     // The help topics seen: "topic count" lines.
     console::CStdioFile file;
@@ -199,6 +199,6 @@ void CInterface3D::Create(CTextureDevice* device) {
     unknown_24 = 0;
     fpsTime_ = gameapi::timeGetTime();
     fpsFrames_ = 0;
-    unknown_88 = 0;
+    disconnected_ = false;
 }
 EI_REPLACE_METHOD(0x005F4990, CInterface3D::Create);

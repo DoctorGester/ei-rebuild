@@ -196,8 +196,8 @@ void CExchangeScreen::Create() {
     if (panel) {
         panel->owner_ = this;
         PartyRecordsConstructOriginal(panel->itemList_);
-        reinterpret_cast<mfc::CStringArray*>(&panel->itemTextsVtable_)->Construct();
-        reinterpret_cast<mfc::CStringArray*>(&panel->skillTextsVtable_)->Construct();
+        panel->itemTexts_.Construct();
+        panel->skillTexts_.Construct();
         SetVtables(panel, InfoPanelVtables());
     }
     descPanel_ = panel;

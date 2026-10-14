@@ -188,12 +188,12 @@ static void __fastcall ObjectivesSetupVerify(CObjectivesWindow* self, void*, con
     mfc::CString& name = *reinterpret_cast<mfc::CString*>(&self->zoneName_);
     const mfc::CString nameBefore = name;
     const int twoBefore = self->twoButtons_;
-    void* const distancesBefore = self->exitDistances_;
+    stlp::map<int, float>* const distancesBefore = self->exitDistances_;
     const int listBefore = self->listZones_;
     s_objectivesSetup(self, nullptr, zone, exitDistances, twoButtons, listZones);
     const mfc::CString expectedName = name;
     const int expectedTwo = self->twoButtons_;
-    void* const expectedDistances = self->exitDistances_;
+    stlp::map<int, float>* const expectedDistances = self->exitDistances_;
     const int expectedList = self->listZones_;
     name = nameBefore;
     self->twoButtons_ = twoBefore;

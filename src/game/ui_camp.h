@@ -7,6 +7,7 @@
 
 #include "object_tables.h"
 #include "ui.h"
+#include "ui_item_info.h"
 #include "ui_screens.h"
 
 #include "lib/mfc.h"
@@ -17,6 +18,9 @@
 #include <cstdint>
 
 class CItem;
+class CParty;
+class CUnit;
+class CHeroStatsPanel;
 
 // The camp screens' children's vtable pairs (main, input).
 struct VtablePair {
@@ -524,7 +528,6 @@ public:
     // The marker sprites: the scene objects after the arrow, the base and the island (zones,
     // then quests, then links, then the three layers).
     CUiMesh* Marker(int index) const { return SceneMesh(3 + index); }
-    CUiMesh* SceneMesh(int index) const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[index]); }
     // RefreshSelection's helper: scene objects 0..2 and those after the zone markers shown (1) or
     // hidden (0) through visible_.
     void ShowAllButZones(int visible);
@@ -729,6 +732,8 @@ public:
     // 00625510 (ui_small_members.cpp; the camp's action 00611930 reads it). Whether something was
     // bought for the hero shown (its record's bought byte, in AL).
     std::uint8_t Bought() const;
+    // Bought through 00625510, so its wrapper sees the call (the camp's action).
+    std::uint8_t CallBought();
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 
@@ -762,7 +767,7 @@ static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 // fields its page switch uses (ui_camp.cpp). Its child panels are created by Create (0060C870).
 // Pages: 0 equipment, 1 trade, 2 spell constructor, 3 its second page, 4 item constructor, 5 and 6
 // its other pages, 7 leave the camp.
-class CCampPages : public CUiWindow {
+class CCampPages : public CItemScreen {
 public:
     // 0060C870 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
     // only; ui_camp_create.cpp). Builds the camp: the server flag set; the constructor's class
@@ -882,7 +887,7 @@ public:
     // (006019A0) with the same arguments.
     void OnKeyUp(int key, int repeat, int flags);
     // 005F65F0 (slot 50, RET 4). Hero `index` of the party's heroes (heroes_[index], not checked).
-    std::uint8_t* HeroAt(int index);
+    CUnit* HeroAt(int index);
     // 0060E900 (slot 27, RET 4). The answer 0x10001 takes the shown hero's first weapon back into
     // the party's items (00661DB0 with 0, 1; the hero's entry removed, 00660A50), no weapon
     // chosen (+0x774 -1), the item strip scrolled to it (00621570) and the hero re-armed (slot 46).
@@ -924,36 +929,57 @@ public:
     // "Rune" and "Prototype". Items come from the lists' item managers, unchecked.
     void DebugFill();
 
-    std::uint8_t unknown_148[0x164 - 0x148];
-    CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
-    std::uint8_t* hoveredItem_;      // +0x168 the item under the mouse (set by Draw)
-    std::uint8_t unknown_16C[0x190 - 0x16C];
+    // The rewritten members above through their addresses, so their hooks and wrappers see the
+    // calls the original makes (ui_camp.cpp).
+    bool CallCanMakeSpell();         // 00612290
+    bool CallCanMakeItem();          // 00612600
+    int CallTakeOff(std::uint8_t* item);           // 0060FE40
+    void CallPutOn(std::uint8_t* item);            // 0060FCA0
+    void CallPutOnFromStrip(std::uint8_t* item);   // 00610920
+    void CallShowHero();             // 0060F830
+    // The camp's virtual slots the pages call (the main vtable 0074091C): 43 CanEquip (AL), 45 the
+    // party's best skill and mana in a school (00610020), 46 / 47 RefreshWeapons / RefreshStats, 51
+    // the shown hero's record (HeroRecord), 54 Price (Rebirth-patched 0060FAB0).
+    bool VirtualCanEquip(std::uint8_t* item, int mode) {
+        using Fn = bool(__thiscall*)(CCampPages*, std::uint8_t*, int);
+        return reinterpret_cast<Fn>(vtable_[43])(this, item, mode);
+    }
+    void VirtualBestPartySkill(int school, int* skill, int* mana) {
+        using Fn = void(__thiscall*)(CCampPages*, int, int*, int*);
+        reinterpret_cast<Fn>(vtable_[45])(this, school, skill, mana);
+    }
+    void VirtualRefreshWeapons() { CallVirtual(46); }
+    void VirtualRefreshStats() { CallVirtual(47); }
+    PartyUnitRecord* VirtualHeroRecord() { return ShownHero(this); }
+    int VirtualPrice(void* item, int kind) {
+        using Fn = int(__thiscall*)(CCampPages*, void*, int);
+        return reinterpret_cast<Fn>(vtable_[54])(this, item, kind);
+    }
+
     int page_;                       // +0x190
     bool fromHeroScreen_;            // +0x194 opened from the multiplayer hero screen (closes with a pending value)
     bool spellConstructor_;          // +0x195 the spell constructor's pages are offered
     bool itemConstructor_;           // +0x196 the item constructor's pages are offered
     std::uint8_t unknown_197;
     ClassTemplate* constructor_;     // +0x198 the constructor's class template ("constr.current"), or null
-    void* heroesVtable_;             // +0x19C the heroes' CArray (vtable 007402AC)
-    std::uint8_t** heroes_;          // +0x1A0 the party's heroes (its data): a unit per party record, null for other classes
-    int heroCount_;                  // +0x1A4
-    int heroCapacity_;               // +0x1A8
-    int heroGrowBy_;                 // +0x1AC
+    // +0x19C the party's heroes (CArray, vtable 007402AC): a unit per party record, null for other
+    // classes.
+    mfc::CArray<CUnit*> heroes_;
     int hero_;                       // +0x1B0 the hero shown (HeroRecord)
-    // Item lists (0x70 bytes each, 00661050): the constructors' parts and what they made.
-    void* itemParts_[3];             // +0x1B4 (the constructor's +0x3C), +0x1B8, +0x1BC
-    void* itemResults_;              // +0x1C0
-    void* itemExtra_;                // +0x1C4
-    void* spellParts_[3];            // +0x1C8 (the constructor's +0xAC), +0x1CC, +0x1D0
-    void* spellResults_;             // +0x1D4
-    CUiWindow* statsPanel_;          // +0x1D8 (vtable 00741ABC)
-    CUiWindow* helpPanel_;           // +0x1DC (vtable 007404DC; camp help texts)
+    // Item lists (parties, 0x70 bytes each): the constructors' parts and what they made.
+    CParty* itemParts_[3];           // +0x1B4 (the constructor's +0x3C), +0x1B8, +0x1BC
+    CParty* itemResults_;            // +0x1C0
+    CParty* itemExtra_;              // +0x1C4
+    CParty* spellParts_[3];          // +0x1C8 (the constructor's +0xAC), +0x1CC, +0x1D0
+    CParty* spellResults_;           // +0x1D4
+    CHeroStatsPanel* statsPanel_;    // +0x1D8 (vtable 00741ABC)
+    CItemInfoPanel* helpPanel_;      // +0x1DC (vtable 007404DC; camp help texts)
     CUiItemStrip* itemStrip_;        // +0x1E0
     CUiWindow* equipment_;           // +0x1E4 (vtable 007418E0)
     CUiWindow* equipment2_;          // +0x1E8 (vtable 00741844)
     CUiItemStrip* spellStrip_;       // +0x1EC
     CUiItemStrip* partStrip_;        // +0x1F0
-    CUiWindow* trade_;               // +0x1F4 (vtable 007417A8)
+    CTradePanel* trade_;             // +0x1F4 (vtable 007417A8)
     CUiWindow* spellConstructor1_;   // +0x1F8 (vtable 0074170C)
     CUiWindow* spellConstructor2_;   // +0x1FC (vtable 00741670)
     CUiWindow* itemConstructor1_;    // +0x200 (vtable 0074170C)
@@ -984,7 +1010,7 @@ static_assert(offsetof(CCampPages, statsPanel_) == 0x1D8);
 static_assert(offsetof(CCampPages, trade_) == 0x1F4);
 static_assert(offsetof(CCampPages, itemConstructor3_) == 0x208);
 static_assert(offsetof(CCampPages, pageTitles_) == 0x244);
-static_assert(offsetof(CCampPages, heroesVtable_) == 0x19C);
+static_assert(offsetof(CCampPages, heroes_) == 0x19C);
 static_assert(offsetof(CCampPages, priceWeights_) == 0x21C);
 static_assert(offsetof(CCampPages, noConstructor_) == 0x254);
 static_assert(sizeof(CCampPages) == 0x260);

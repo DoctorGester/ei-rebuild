@@ -14,6 +14,7 @@
 #include "item_db_text.h"
 #include "maths.h"
 #include "object_tables.h"
+#include "quest_records.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -73,34 +74,10 @@ __declspec(naked) int __cdecl GameFtol(double) {
 
 // --- Game data ----------------------------------------------------------------------------------
 
-// A zone exit as the map database keeps it (0x3C bytes; not the world's ZoneExit layout).
-struct MapExitView {
-    std::uint8_t unknown_00[4];
-    float x1, y1, x2, y2;            // +0x04 rectangle
-    std::uint8_t unknown_14[0x28 - 0x14];
-    char* target;                    // +0x28 CString ("none": leads nowhere)
-    std::uint8_t unknown_2C[0x3C - 0x2C];
-};
-static_assert(sizeof(MapExitView) == 0x3C);
-
-// A zone of the map database (MapRecord, object_tables.h), with the fields used here.
-struct ZoneView {
-    char* name;                      // +0x00 CString
-    char* allod;                     // +0x04 CString
-    std::uint8_t unknown_08[0x14 - 0x08];
-    char* picture;                   // +0x14 CString: the zone picture's texture
-    std::uint8_t unknown_18[0x20 - 0x18];
-    int width;                       // +0x20 in map cells
-    int height;                      // +0x24
-    std::uint8_t unknown_28[0x4C - 0x28];
-    MapExitView* exits;              // +0x4C CArray data
-    int exitCount;                   // +0x50
-};
-static_assert(offsetof(ZoneView, exits) == 0x4C);
-
-ZoneView* FindZone(const char* name) {
-    return reinterpret_cast<ZoneView*>(reinterpret_cast<CMapDatabase*>(0x0079BF00)->FindMap(name));
-}
+// A zone of the map database: its picture (picture2, the texture shown here), its size in map
+// cells and its exits (the deploy rectangle x1, y1, x2, y2 and the target zone, "none" when it
+// leads nowhere).
+MapRecord* FindZone(const char* name) { return reinterpret_cast<CMapDatabase*>(0x0079BF00)->FindMap(name); }
 
 CTextManager* Texts() { return *reinterpret_cast<CTextManager**>(0x007AF788); }
 struct UiTexts {
@@ -174,22 +151,18 @@ private:
     NamedFloatTable table_;
 };
 
-// An STLport vector<CString> (three pointers).
-struct StringVector {
-    mfc::CString* begin;
-    mfc::CString* end;
-    mfc::CString* capacityEnd;
-    int Size() const { return static_cast<int>(end - begin); }
-};
+using ZoneNames = stlp::vector<mfc::CString>;
+int SizeOf(const ZoneNames& v) { return static_cast<int>(v.end() - v.begin()); }
 // 0051F790 (not rewritten): vector<CString>::_M_insert_overflow(pos, x, n).
-__declspec(naked) void __fastcall InsertOverflow(StringVector*, void*, mfc::CString* /*pos*/, const mfc::CString&,
+__declspec(naked) void __fastcall InsertOverflow(ZoneNames*, void*, mfc::CString* /*pos*/, const mfc::CString&,
                                                  int /*n*/) EI_ORIGINAL(0x0051F790)
-void PushBack(StringVector* v, const mfc::CString& x) {
-    if (v->end != v->capacityEnd) {
-        new (v->end) mfc::CString(x);
-        ++v->end;
+// push_back as the original inlines it (the instantiation's own overflow).
+void PushBack(ZoneNames* v, const mfc::CString& x) {
+    if (v->Finish() != v->EndOfStorage()) {
+        new (v->Finish()) mfc::CString(x);
+        ++v->Finish();
     } else {
-        InsertOverflow(v, nullptr, v->end, x, 1);
+        InsertOverflow(v, nullptr, v->Finish(), x, 1);
     }
 }
 
@@ -214,47 +187,22 @@ void SortStrings(mfc::CString* first, mfc::CString* last) {
     }
 }
 
-// The window's exit list (CArray<ObjectiveExit> at +0x188), not rewritten.
-struct ExitArrayAt {
-    void SetSize(int size, int growBy);                    // 0064EFD0
-    void SetAtGrow(int index, const ObjectiveExit& exit);  // 0064F160
-};
-__declspec(naked) void ExitArrayAt::SetSize(int, int) EI_ORIGINAL(0x0064EFD0)
-__declspec(naked) void ExitArrayAt::SetAtGrow(int, const ObjectiveExit&) EI_ORIGINAL(0x0064F160)
+// The window's exit list (CArray<ObjectiveExit> at +0x188), not rewritten: SetSize 0064EFD0 and
+// SetAtGrow 0064F160 (thiscall).
+__declspec(naked) void __fastcall ExitsSetSize(mfc::CArray<ObjectiveExit>*, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x0064EFD0)
+__declspec(naked) void __fastcall ExitsSetAtGrow(mfc::CArray<ObjectiveExit>*, void*, int /*index*/,
+                                                 const ObjectiveExit&) EI_ORIGINAL(0x0064F160)
 
-// STLport map<int, float> (rb-tree) nodes: key +0x10, value +0x14; the header's left is begin.
-struct DistanceNode {
-    std::uint8_t unknown_00[8];
-    DistanceNode* leftmost;          // +0x08 (the header's: begin())
-    std::uint8_t unknown_0C[4];
-    int exit;                        // +0x10
-    float distance;                  // +0x14
-};
-// 0043DBE0 (not rewritten): rb-tree iterator increment (thiscall on the iterator).
+// The global map's exit distances (STLport map<int, float>); 0043DBE0 (not rewritten) is the
+// rb-tree iterator increment (thiscall on the iterator).
+using DistanceNode = stlp::map<int, float>::Node;
 void __fastcall TreeIncrement(DistanceNode** a0) { TreeIncrementOriginal((void*)a0); }
 
-// Surfaces and sprites (not rewritten).
-struct SurfaceDraw {
-    void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
-    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
-    int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
-    void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
-};
-int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
-
-struct SpriteAt {
-    // 005E99D0 (Rebirth-patched): a triangle sprite (corners (x0,y0), (x1,y1), (x2,y2) at `depth`,
-    // texels of its three corners).
-    void SetTriangle(float depth, float size, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
-                     float v0, float u1, float v1, float u2, float v2);
-    // 005E70B0: the sprite's +0x23C, left in ST0.
-    double Scale();
-};
-void SpriteAt::SetTriangle(float depth, float size, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
-                           float v0, float u1, float v1, float u2, float v2) {
-    reinterpret_cast<CUiMesh*>(this)->SetTriangle(depth, size, x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2);
+// A surface's text (005FDE20, Rebirth-patched).
+int SurfaceText(CUiSurface* surface, const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag) {
+    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
 }
-double SpriteAt::Scale() { return SpriteScaleOriginal((void*)this); }
 
 // 0065CC00 (not rewritten): the scrolling text window (a scroll bar subclass) over `rect`.
 CUiWindow* __fastcall ConstructTextLog(void* memory, void*, CInterface3D* ui, const void* font, RECT rect, float lineHeight) {
@@ -263,23 +211,14 @@ CUiWindow* __fastcall ConstructTextLog(void* memory, void*, CInterface3D* ui, co
 }
 
 // Sprite fields the builder sets directly.
-void SetSpriteTexture(CUiMesh* sprite, void* texture) {
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x280, &texture, 4);
-}
-void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) {
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0xD4, &argb, 4);
-}
-void SetSpritePlain(CUiMesh* sprite) {
-    std::uint32_t flags;
-    std::memcpy(&flags, reinterpret_cast<std::uint8_t*>(sprite) + 0x08, 4);
-    flags |= 0x100;
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x08, &flags, 4);
-}
+void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
+void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->plainColour_ = argb; }
+void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 void Turn(CUiMesh* sprite, float angle) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x34, &q, sizeof(q));
+    std::memcpy(&sprite->orientation_, &q, sizeof(q));
 }
 
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
@@ -332,16 +271,16 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     while (sceneObjects_.size > 0x15) RemoveSceneObjectAt(0x15);
     while (regions_.size > 9) RemoveRegionAt(9);
 
-    ZoneView* map = FindZone(shownZone_);
+    MapRecord* map = FindZone(shownZone_);
     if (!map) {
         interface_->SetPendingValue(0);
         return;
     }
 
     // The zone picture (scene object 3), fitted into a 300x300 square around (580, 190).
-    LoadTexture(map->picture, 3, 0);
-    float width = Store(static_cast<double>(map->width));
-    float height = Store(static_cast<double>(map->height));
+    LoadTexture(map->picture2, 3, 0);
+    float width = Store(static_cast<double>(map->sizeX));
+    float height = Store(static_cast<double>(map->sizeY));
     float larger = width < height || x87::IsNaN(width) || x87::IsNaN(height) ? height : width;
     double widthShare = D(width) / D(larger);
     float heightShare = Store(D(height) / D(larger));
@@ -359,33 +298,33 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     float nearest = Bits(kFarAway);
     nearestExit_ = -1;
     bool anyKnown = false;
-    auto* exitArray = reinterpret_cast<ExitArrayAt*>(&exitsVtable_);
-    exitArray->SetSize(0, -1);
-    for (int i = 0; i < map->exitCount; ++i) {
-        const MapExitView& source = map->exits[i];
+    mfc::CArray<ObjectiveExit>* exitArray = &Exits();
+    ExitsSetSize(exitArray, nullptr, 0, -1);
+    for (int i = 0; i < map->exits.size; ++i) {
+        const MapExit& source = map->exits.data[i];
         if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(source.target),
                              reinterpret_cast<const unsigned char*>(GameText(0x007846F0))) == 0)   // "none"
             continue;
         int index = exitCount_;
         ObjectiveExit blank = {};
-        exitArray->SetAtGrow(index, blank);
+        ExitsSetAtGrow(exitArray, nullptr, index, blank);
         ObjectiveExit* exit = &exits_[index];
         exit->exit_ = i;
-        exit->x_ = Store((D(source.x2) + D(source.x1)) * 0.5f);
-        exit->y_ = Store((D(source.y2) + D(source.y1)) * 0.5f);
+        exit->x_ = Store((D(source.deploy[2]) + D(source.deploy[0])) * 0.5f);
+        exit->y_ = Store((D(source.deploy[3]) + D(source.deploy[1])) * 0.5f);
         exit->distance_ = 0.0f;
         exit->flag_ = false;
         if (exitDistances_) {
             // The distances the global map computed (map<int, float> exit -> distance).
-            DistanceNode* header = *static_cast<DistanceNode**>(exitDistances_);
-            for (DistanceNode* node = header->leftmost; node != *static_cast<DistanceNode**>(exitDistances_);) {
-                if (node->exit == i) {
+            DistanceNode* header = exitDistances_->end();
+            for (DistanceNode* node = header->left; node != exitDistances_->end();) {
+                if (node->first == i) {
                     anyKnown = true;
-                    std::memcpy(&exit->distance_, &node->distance, 4);
+                    std::memcpy(&exit->distance_, &node->second, 4);
                     exit->flag_ = true;
-                    if (!(node->distance >= nearest)) {
+                    if (!(node->second >= nearest)) {
                         nearestExit_ = index;
-                        std::memcpy(&nearest, &node->distance, 4);
+                        std::memcpy(&nearest, &node->second, 4);
                     }
                     break;
                 }
@@ -399,8 +338,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         }
 
         // Position on the picture (world cells are 32 units).
-        float worldWidth = Store(static_cast<double>(map->width << 5));
-        float worldHeight = Store(static_cast<double>(map->height << 5));
+        float worldWidth = Store(static_cast<double>(map->sizeX << 5));
+        float worldHeight = Store(static_cast<double>(map->sizeY << 5));
         float span = worldWidth < worldHeight || x87::IsNaN(worldWidth) || x87::IsNaN(worldHeight) ? worldHeight
                                                                                                    : worldWidth;
         exit = &exits_[index];
@@ -416,10 +355,9 @@ void CObjectivesWindow::ShowZone(const char* zone) {
 
         CUiMesh* marker = AddSprite(0);
         float base = Store(D(y) + kMarkerHeight);
-        reinterpret_cast<SpriteAt*>(marker)->SetTriangle(5.0f, 100.0f, x, y, Store(D(x) - kMarkerHalfWidth), base,
-                                                         Store(D(x) + kMarkerHalfWidth), base, 240.0f, 226.0f, 227.0f,
-                                                         254.0f, 253.0f, 254.0f);
-        markerScale_ = Store(reinterpret_cast<SpriteAt*>(marker)->Scale());
+        marker->SetTriangle(5.0f, 100.0f, x, y, Store(D(x) - kMarkerHalfWidth), base, Store(D(x) + kMarkerHalfWidth),
+                            base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
+        markerScale_ = Store(SpriteScaleOriginal(marker));   // the sprite's scale (005E70B0, left in ST0)
         RECT rect;
         rect.left = GameFtol(D(x) - kExitHalf);
         rect.top = GameFtol(D(y) - kExitHalf);
@@ -452,7 +390,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     }
 
     // The quests: the player's variables "q.<zone>.<quest>" that are not 0, sorted by name.
-    auto* quests = reinterpret_cast<CStringArray*>(quests_);
+    mfc::CStringArray* quests = &Quests();
     quests->SetSize(0, -1);
     {
         mfc::CString prefix;
@@ -461,7 +399,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         auto* table = new (tableStorage) VariableTable();
         prefix.Format(GameText(0x00794140), shownZone_);   // "q.%s"
         table->Fill(prefix);
-        StringVector found = {nullptr, nullptr, nullptr};
+        ZoneNames found;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
             if (node->value == 0.0f || x87::IsNaN(node->value)) continue;
             StringSplit(node->key, &parts, '.');
@@ -469,16 +407,15 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         }
         shownQuest_ = -1;
         selectedQuest_ = 0;
-        if (found.Size() == 0) {
+        if (SizeOf(found) == 0) {
             selectedQuest_ = -1;
             LastQuest().Empty();
         } else {
-            SortStrings(found.begin, found.end);
-            for (mfc::CString* s = found.begin; s != found.end; ++s) {
+            SortStrings(found.begin(), found.end());
+            for (mfc::CString* s = found.begin(); s != found.end(); ++s) {
                 quests->SetAtGrow(quests->GetSize(), *s);
                 const char* current = listZones_ == 0 ? static_cast<const char*>(LastQuest())
-                                                      : *reinterpret_cast<char* const*>(
-                                                            reinterpret_cast<std::uint8_t*>(interface_) + 0xAC);
+                                                      : static_cast<const char*>(interface_->savedText_);
                 if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(current),
                                      reinterpret_cast<const unsigned char*>(static_cast<const char*>(*s))) == 0)
                     selectedQuest_ = quests->GetSize() - 1;
@@ -504,21 +441,19 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             if (foundText) {
                 Texts()->ReadLine(&title, 1);
                 Texts()->ReadToHash(&text, 1);
-                auto* surface = reinterpret_cast<SurfaceDraw*>(surfaces_.data[1]);
-                surface->Begin();
-                surface->Clear();
+                CUiSurface* surface = surfaces_.data[1];
+                SurfaceGetDC(surface);
+                SurfaceClearOriginal(surface);
                 RECT titleRect = {0, 5, 340, 25};
-                surface->Text(title, &titleRect, 1, 0x31B3FF, 1, 1);
+                SurfaceText(surface, title, &titleRect, 1, 0x31B3FF, 1, 1);
                 RECT textRect = {10, 25, 330, 140};
-                surface->Text(text, &textRect, 1, 0xA7D7E4, 0x11, 1);
-                surface->End();
+                SurfaceText(surface, text, &textRect, 1, 0xA7D7E4, 0x11, 1);
+                SurfaceReleaseDC(surface);
             }
         }
 
-        for (mfc::CString* s = found.begin; s != found.end; ++s) s->~CString();
-        if (found.begin)
-            stlp::deallocate(found.begin,
-                             static_cast<std::size_t>(found.capacityEnd - found.begin) * sizeof(mfc::CString));
+        for (mfc::CString* s = found.begin(); s != found.end(); ++s) s->~CString();
+        found.FreeStorage();
         table->~VariableTable();
     }
 }
@@ -538,13 +473,13 @@ __declspec(naked) void __fastcall FillQuestPlaces(CObjectivesWindow*, void*, con
 void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
 // STLport string members: default constructor [004217E0], assign [00428F10], destructor [0040C720].
 
-// The quest's experience (+0xC) and money (+0x14) rewards, from the quest database.
-void* QuestRecord(const char* name) {
+// The quest's record (its experience and money rewards), from the quest database.
+QuestRecord* FindQuestRecord(const char* name) {
     std::uint32_t key[3];
     std::uint8_t allocator = 0;
     StringInitWithAllocator(key, nullptr, &allocator);
     StringAssignSpan(key, nullptr, name, name + std::strlen(name));
-    void* record = *QuestIndexAt(QuestIndex(), nullptr, key);
+    auto* record = static_cast<QuestRecord*>(*QuestIndexAt(QuestIndex(), nullptr, key));
     StlStringDestroy(key);
     return record;
 }
@@ -565,7 +500,7 @@ void CObjectivesWindow::ShowQuest() {
     if (shownQuest_ == selectedQuest_) return;
     shownQuest_ = selectedQuest_;
     LogClear(children_.data[0]);
-    auto* quests = reinterpret_cast<CStringArray*>(quests_);
+    mfc::CStringArray* quests = &Quests();
     if (selectedQuest_ < 0 || selectedQuest_ >= quests->GetSize()) return;
     LastQuest() = (*quests)[selectedQuest_];
 
@@ -594,14 +529,14 @@ void CObjectivesWindow::ShowQuest() {
         text = colour + text;
     }
     text += GameText(0x007946F4);
-    if (void* record = QuestRecord((*quests)[selectedQuest_])) {
-        float experience = *reinterpret_cast<const float*>(static_cast<char*>(record) + 0xC);
+    if (QuestRecord* record = FindQuestRecord((*quests)[selectedQuest_])) {
+        float experience = record->exp;
         text += GameText(0x007946EC);
         if (experience > 0.0f) {   // 0073B858
             part.Format(GameText(0x007946E4), static_cast<const char*>(costExp), GameFtol(D(experience)));   // "%s %d\n"
             text += part;
         }
-        float money = *reinterpret_cast<const float*>(static_cast<char*>(record) + 0x14);
+        float money = record->money;
         if (money > 0.0f) {
             part.Format(GameText(0x007946E4), static_cast<const char*>(costMoney), GameFtol(D(money)));
             text += part;
@@ -636,15 +571,15 @@ void CObjectivesWindow::ShowQuest() {
     LogSetTextOriginal(children_.data[0], nullptr, text);
 
     // The quest's places on the zone picture: a red marker and a region each, after the exits'.
-    ZoneView* map = FindZone(shownZone_);
+    MapRecord* map = FindZone(shownZone_);
     if (!map) return;
     FillQuestPlaces(this, nullptr, (*quests)[selectedQuest_]);
     while (sceneObjects_.size > exitCount_ + 0x15) RemoveSceneObjectAt(exitCount_ + 0x15);
     while (regions_.size > exitCount_ + 9) RemoveRegionAt(exitCount_ + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
     for (unsigned i = 0; i < static_cast<unsigned>(questPlacesEnd_ - questPlacesBegin_); ++i) {
-        float worldWidth = Store(static_cast<double>(map->width << 5));
-        float worldHeight = Store(static_cast<double>(map->height << 5));
+        float worldWidth = Store(static_cast<double>(map->sizeX << 5));
+        float worldHeight = Store(static_cast<double>(map->sizeY << 5));
         float span = worldWidth < worldHeight || x87::IsNaN(worldWidth) || x87::IsNaN(worldHeight) ? worldHeight
                                                                                                    : worldWidth;
         const UiPointF& place = questPlacesBegin_[i];
@@ -657,7 +592,7 @@ void CObjectivesWindow::ShowQuest() {
         float left = Store(D(x) - kMarkerHalfWidth);
         marker->SetRectangle(5.0f, 100.0f, left, top, right, bottom, 0, 0, 0x80, 0x80);
         SetSpriteTexture(marker, objects_.data[1]);
-        std::memcpy(reinterpret_cast<std::uint8_t*>(marker) + 0x224, red, sizeof(red));
+        std::memcpy(marker->tint_, red, sizeof(red));
         CUiRegion* region = AddRegion();
         int bottomPixel = GameFtol(D(bottom));
         int rightPixel = GameFtol(D(right));
@@ -677,7 +612,7 @@ void CObjectivesWindow::Build() {
 
     mfc::CString text;
     mfc::CString key;
-    auto* objectiveTexts = reinterpret_cast<CStringArray*>(objectiveTexts_);
+    mfc::CStringArray* objectiveTexts = &ObjectiveTexts();
     for (int k = 0; k < 3; ++k) {
         key.Format(GameText(0x00794670), k);   // "obj_%d"
         Texts()->GetString(key, &text);
@@ -768,7 +703,7 @@ void CObjectivesWindow::Build() {
     if (listZones_ == 0) {
         ShowZone(zoneName_);
     } else {
-        ZoneView* allodZone = FindZone(zoneName_);
+        MapRecord* allodZone = FindZone(zoneName_);
         if (!allodZone) {
             interface_->SetPendingValue(0);
             return;
@@ -780,8 +715,8 @@ void CObjectivesWindow::Build() {
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
         table->Fill(GameText(0x00783D7C));   // "q."
-        auto* zones = reinterpret_cast<StringVector*>(&zonesBegin_);
-        const char* interfaceQuest = *reinterpret_cast<char* const*>(reinterpret_cast<std::uint8_t*>(interface_) + 0xAC);
+        ZoneNames* zones = &Zones();
+        const char* interfaceQuest = interface_->savedText_;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
             StringSplit(node->key, &parts, '.');
             if (parts.GetSize() != 3) continue;
@@ -791,14 +726,14 @@ void CObjectivesWindow::Build() {
             std::uint32_t one;
             std::memcpy(&one, &node->value, 4);
             if (one != 0x3F800000) continue;
-            ZoneView* zone = FindZone(parts[1]);
+            MapRecord* zone = FindZone(parts[1]);
             if (!zone) continue;
             if (!IsMultiplayerClient() &&
                 gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(zone->allod),
                                  reinterpret_cast<const unsigned char*>(allodZone->allod)) != 0)
                 continue;
             bool listed = false;
-            for (mfc::CString* z = zones->begin; z != zones->end; ++z)
+            for (mfc::CString* z = zones->begin(); z != zones->end(); ++z)
                 if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(zone->name),
                                     reinterpret_cast<const unsigned char*>(static_cast<const char*>(*z))) == 0) {
                     listed = true;
@@ -806,28 +741,28 @@ void CObjectivesWindow::Build() {
                 }
             if (!listed) PushBack(zones, *reinterpret_cast<const mfc::CString*>(&zone->name));
         }
-        if (zones->Size() == 0 && reinterpret_cast<const int*>(static_cast<const char*>(current))[-2] != 0)
+        if (SizeOf(*zones) == 0 && reinterpret_cast<const int*>(static_cast<const char*>(current))[-2] != 0)
             PushBack(zones, current);
-        if (zones->Size() == 0) {
+        if (SizeOf(*zones) == 0) {
             interface_->SetPendingValue(0);
             table->~VariableTable();
             return;
         }
         zoneIndex_ = 0;
-        for (int i = 0; i < zones->Size(); ++i)
+        for (int i = 0; i < SizeOf(*zones); ++i)
             if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(current)),
-                                 reinterpret_cast<const unsigned char*>(static_cast<const char*>(zones->begin[i]))) ==
+                                 reinterpret_cast<const unsigned char*>(static_cast<const char*>(zones->begin()[i]))) ==
                 0) {
                 zoneIndex_ = i;
                 break;
             }
-        if (zones->Size() > 1) {
+        if (SizeOf(*zones) > 1) {
             reinterpret_cast<CUiMesh*>(sceneObjects_.data[14])->visible_ = 1;
             reinterpret_cast<CUiMesh*>(sceneObjects_.data[15])->visible_ = 1;
             regions_.data[2]->SetTip(0x13948, 1, 0);
             regions_.data[3]->SetTip(0x13949, 1, 0);
         }
-        ShowZone(zones->begin[zoneIndex_]);
+        ShowZone(zones->begin()[zoneIndex_]);
         table->~VariableTable();
     }
     interface_->ShowHelp(0);
@@ -842,7 +777,7 @@ void CObjectivesWindow::DrawQuestList() {
     SurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
-    auto* quests = reinterpret_cast<CStringArray*>(quests_);
+    mfc::CStringArray* quests = &Quests();
     int row = firstRow_;
     int y = 13;
     for (int i = 16; i < 21 && row < quests->GetSize(); ++i, ++row, y += 24) {
@@ -886,7 +821,7 @@ const char* const kMissionTopic = reinterpret_cast<const char*>(std::uintptr_t(0
 void CObjectivesWindow::Setup(const char* zone, void* exitDistances, int twoButtons, int listZones) {
     *reinterpret_cast<mfc::CString*>(&zoneName_) = zone;
     twoButtons_ = twoButtons;
-    exitDistances_ = exitDistances;
+    exitDistances_ = static_cast<stlp::map<int, float>*>(exitDistances);
     listZones_ = listZones;
 }
 EI_REPLACE_METHOD(0x0064BE40, CObjectivesWindow::Setup);

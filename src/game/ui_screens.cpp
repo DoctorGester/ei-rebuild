@@ -516,6 +516,9 @@ void CMpHeroScreen::CallDrawHeroList() { HeroScreenDrawListOriginal(this); }
 
 char* CMpHeroScreen::Hero() { return Virtual<char*(__thiscall*)(CMpHeroScreen*)>(this, 51)(this); }
 void CMpHeroScreen::Refresh() { Virtual<void(__thiscall*)(CMpHeroScreen*)>(this, 47)(this); }
+void CMpHeroScreen::VirtualChooseFigure(const char* prototype) {
+    Virtual<void(__thiscall*)(CMpHeroScreen*, const char*)>(this, 52)(this, prototype);
+}
 
 void CMpHeroScreen::ClampHeroSelection() {
     if (heroIndex_ < 0) heroIndex_ = 0;
