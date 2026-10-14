@@ -216,6 +216,7 @@ sg_image MakeImage(int width, int height, std::vector<std::vector<std::uint8_t>>
     desc.pixel_format = SG_PIXELFORMAT_RGBA8;
     for (std::size_t i = 0; i < levels.size(); ++i) desc.data.mip_levels[i] = sg_range{levels[i].data(), levels[i].size()};
     desc.label = label;
+    CountImage(ImageUse::Texture, true);
     return sg_make_image(&desc);
 }
 
@@ -461,6 +462,7 @@ void ReadWindow(Texture& t, const void* holder, void* surface, bool keyed, std::
     d.pixel_format = SG_PIXELFORMAT_RGBA8;
     d.data.mip_levels[0] = sg_range{pixels.data(), pixels.size()};
     d.label = "ei-window-surface";
+    CountImage(ImageUse::Window, true);
     t.image = sg_make_image(&d);
     t.view = MakeTextureView(t.image);
     if (!t.view.id || sg_query_view_state(t.view) != SG_RESOURCESTATE_VALID) {

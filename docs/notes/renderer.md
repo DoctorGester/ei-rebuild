@@ -287,6 +287,20 @@ input steps wait for PeekMessageA calls recognised by return address; the rewrit
 (`new`: PlayMovie("crdtfin.bik") after a new game) and render_movie_present; 005DA400 and 005E6630 run in every new
 game; 005E5690 and 005E5640 draw only with the software cursor option, which no scenario sets.
 
+Images kept across frames (N5, `render_blit.cpp`): the cursor's composite and `render::Fill`'s 1x1 colours were an
+`sg_make_image` + view per blit and the movie frames one per frame; now they are dynamic images updated with
+`sg_update_image`. Cursor and fills share a cache of at most 64 images (one per size, several of a size when one
+frame draws different contents), each keeping a copy of its pixels: a blit with the same pixels uploads nothing, else
+a free image of that size (not blitted in this frame, not updated since the last commit; sokol allows one update per
+image and frame, and the blits are drawn at the end of the frame) is rewritten; only when every image is in use is a
+one-frame image made. A movie keeps one image per player, updated in place unless it was already blitted or updated
+in this frame (then a new one replaces it after the present). Verify build: counts per purpose in ei_hook.log
+(`render: images ...`: requested / made / updated in place, every 300 frames and at exit) and every in-place upload
+is read back from the GPU and compared with the pixels written (`render: MISMATCH` on a difference). Window surfaces
+(16-28 per scenario) and textures are re-made only when their contents change and are not touched.
+Per scenario (render_present, _cpuwindows, render_movie_present, render_titles_present; vanilla and native): cursor
+and fill images made per frame 40-135 before, 1-2 after; movie frames 17-50 made before, 1-2 after.
+
 ## 9. What is left
 
 ### R9a: the switch-over without DirectDraw (done)
