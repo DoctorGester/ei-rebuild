@@ -2,7 +2,7 @@
 # spawned enemy, all through world script commands. Each "check" must print a nonzero value; each
 # "waitfor" waits until its condition holds. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

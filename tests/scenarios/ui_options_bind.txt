@@ -3,23 +3,23 @@
 # for a key; G (free in keyboard.ini) is bound at once; then Q (weapon1's) asks first, and the
 # message box's OK (region 0) binds it. The options are cancelled, so the key table is not stored.
 reject Script error
-wait 6000
+waitmenu
 
 clickregion 3
-wait 1500
+waitwindow 10 options
 clickregion 6
-wait 500
+frames 10
 key enter
-wait 300
+frames 5
 key g
-wait 500
+frames 5
 key enter
-wait 300
+frames 5
 key q
-wait 800
+waitwindow 10 msgbox
 clickregion 0
-wait 800
+waitwindow 10 options
 clickregion 1
-wait 1500
+waitwindow 10 menu
 report
 quit

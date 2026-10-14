@@ -5,7 +5,7 @@
 # deletion. CreateParticleSource(id, x, y, z, size, name). The verify totals in the report show
 # what ran. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -21,12 +21,12 @@ console @CreateParticleSource(5,Add(GetX(GetLeader()),3),Add(GetY(GetLeader()),3
 console @CreateParticleSource(6,Sub(GetX(GetLeader()),3),Add(GetY(GetLeader()),3),GetZ(GetLeader()),1,"Antimagic")
 console @CreateParticleSource(7,Add(GetX(GetLeader()),3),Sub(GetY(GetLeader()),3),GetZ(GetLeader()),1,"SphereElectricity")
 console @CreateParticleSource(8,Sub(GetX(GetLeader()),3),Sub(GetY(GetLeader()),3),GetZ(GetLeader()),1,"Tornado")
-wait 4000
+wait 2000
 
 console @SetParticleSourceSize(1,2)
 console @CreateParticleSource(9,Add(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"Nuke")
 console @CreateParticleSource(10,Sub(GetX(GetLeader()),6),GetY(GetLeader()),GetZ(GetLeader()),1,"Mushroom")
-wait 4000
+wait 2000
 
 console @SetWind(0,1,0,0.2)
 console @DeleteParticleSource(1)
@@ -39,7 +39,7 @@ console @DeleteParticleSource(7)
 console @DeleteParticleSource(8)
 console @DeleteParticleSource(9)
 console @DeleteParticleSource(10)
-wait 1500
+wait 500
 check IsAlive(GetLeader())
 report
 quit

@@ -5,7 +5,7 @@
 # selected; the clicks are away from the HUD panels (800x600 layout). The hero must then walk
 # away from where it stood. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -15,15 +15,15 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 # exists (under load it ran 0.3 s after the HP check): wait for its block, then lift it.
 waitfor 15 IsUnitBlocked(GetLeader())
 console @BlockUnit(GetLeader(),0)
-wait 1000
+waitwindow 15 battle
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
 
 check Not(IsUnitBlocked(GetLeader()))
 move 560 260
-wait 300
+frames 3
 click 560 260
-wait 500
+frames 5
 waitfor 15 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy")),2)
 
 # A second order back towards the start.
@@ -31,9 +31,9 @@ console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
 check Not(IsUnitBlocked(GetLeader()))
 move 260 340
-wait 300
+frames 3
 click 260 340
-wait 500
+frames 5
 waitfor 15 IsGreater(DistanceUnitPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy")),2)
 check IsAlive(GetLeader())
 report

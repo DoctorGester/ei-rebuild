@@ -10,7 +10,7 @@
 # (unit, amount), GiveSkill (unit, "melee" | "archery" | ... | "science", amount), GiveItem / GiveMoney
 # (player, ...), Rest / Lie / Crawl / Stand (unit), InflictDamage (unit, amount).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -61,7 +61,7 @@ console #HP(GetLeader())
 # (After the fight: a hero that has lain down or rested does not fight on the original game either.)
 # Poses and movement modes: lie down, crawl a few steps, stand up, rest.
 console @Lie(GetLeader())
-wait 1000
+wait 500
 console @Crawl(GetLeader())
 console @MoveToPoint(GetLeader(),Add(GetX(GetLeader()),3),GetY(GetLeader()))
 # The original game does not move the hero 2 units within 15 s from here either (checked with
@@ -70,7 +70,7 @@ wait 2000
 console @Stand(GetLeader())
 wait 500
 console @Rest(GetLeader())
-wait 1000
+wait 500
 
 report
 quit

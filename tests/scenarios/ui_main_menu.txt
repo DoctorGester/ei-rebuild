@@ -5,58 +5,61 @@
 # starts. The plain message box's Create (00634790) is reached by ui_screens' quit box.
 # Region 5 (multiplayer) is in ui_screens, region 2 (exit: a movie, then quit) is never clicked.
 reject Script error
-wait 6000
+waitmenu
 
 # Options, cancelled.
 clickregion 3
-wait 1500
+waitwindow 10 options
 clickregion 1
-wait 1500
+waitwindow 10 menu
 
-# Options again, closed with OK (213..287 x 526..574): Apply (006524A0) stores the unchanged
-# settings and key table (the harness keeps the registry and keyboard.ini out of the install).
+# Options again, closed with OK (region 0; 213..287 x 526..574 in the original layout, elsewhere
+# in Rebirth's): Apply (006524A0) stores the unchanged settings and key table (the harness keeps
+# the registry and keyboard.ini out of the install).
 clickregion 3
-wait 1500
-move 250 550
-wait 200
-click 250 550
-wait 1500
+waitwindow 10 options
+moveregion 0
+frames 3
+clickregion 0
+waitwindow 10 menu
 
 # Load, cancelled.
 clickregion 1
-wait 1500
+waitwindow 10 saveload
 clickregion 1
-wait 1500
+waitwindow 10 menu
 
 # A new game: the difficulty question (OK and cancel buttons), cancelled. Its check boxes
 # (regions 2 / 3, 00633DD0) and Esc (00633EC0) first.
 clickregion 0
-wait 1500
+waitwindow 10 difficulty
 clickregion 2
-wait 300
+frames 5
 clickregion 3
-wait 300
+frames 5
 key esc
-wait 1500
+waitwindow 10 menu
 clickregion 0
-wait 1500
+waitwindow 10 difficulty
 clickregion 1
-wait 1500
+waitwindow 10 menu
 
 # The quit box (Esc on the menu): its cancel button (00634D20), then Esc on it (00634E60).
 key esc
-wait 1000
+waitwindow 10 msgbox
 clickregion 1
-wait 1000
+waitwindow 10 menu
 key esc
-wait 1000
+waitwindow 10 msgbox
 key esc
-wait 1000
+waitwindow 10 menu
 
 # The titles; a click ends them.
 clickregion 4
-wait 2500
+waitwindow 10 titles
+wait 1000
 click 400 300
-wait 3000
+waitwindow 15 menu
+wait 500
 report
 quit

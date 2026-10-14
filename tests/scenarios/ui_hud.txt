@@ -6,13 +6,13 @@
 # movie; spell, action and quick-item buttons only get mouse moves (a click there would start a
 # targeting mode that the Esc key would then cancel instead of opening the menu).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
-wait 1500
+waitwindow 15 battle
 
 # Mouse moves over every panel (each panel's move handler and the tooltips).
 move 100 560
@@ -31,23 +31,23 @@ wait 300
 
 # Weapon bar: slots 0 and 1, then back to 0.
 click 100 560
-wait 300
+frames 5
 click 140 560
-wait 300
+frames 5
 click 100 560
-wait 300
+frames 5
 
 # Top panel: page buttons 1 and 2 (back to 1), then the sling button twice.
 click 200 10
-wait 300
+frames 5
 click 230 10
-wait 300
+frames 5
 click 200 10
+frames 5
+click 400 10
+wait 1200
+click 400 10
 wait 300
-click 400 10
-wait 1200
-click 400 10
-wait 1200
 
 # Unit panel: body parts head..legs, then the sling button twice.
 click 10 115
@@ -59,43 +59,43 @@ wait 200
 click 10 205
 wait 200
 click 10 15
-wait 1200
+frames 10
 click 10 15
-wait 1200
+frames 10
 
 # Map: the two view buttons, ending on the first.
 click 790 145
-wait 300
+frames 5
 click 790 115
-wait 300
+frames 5
 # Map: the wheel zooms while the mouse is over region 0 (the sling button, 00645640): in, then out
 # past the limit; elsewhere on the map it is only taken.
 wheel 790 15 120
-wait 300
+frames 5
 wheel 790 15 -360
-wait 300
+frames 5
 wheel 700 80 120
-wait 300
+frames 5
 # Over the view no panel takes the wheel: the camera input zooms (005EB540), in and back out.
 wheel 400 300 120
-wait 300
+frames 5
 wheel 400 300 -120
-wait 300
+frames 5
 # A right click on the view: the camera input's right button (005EAD00 / 005EAD50).
 rclick 400 300
-wait 300
+frames 5
 
 # Movement panel: the inner button twice (toggles a flag and back), then a movement mode.
 click 10 590
-wait 300
+frames 5
 click 10 590
-wait 300
+frames 5
 click 48 568
-wait 300
+frames 5
 
 # Portraits: the hero (centred at x 400).
 click 400 560
-wait 300
+frames 5
 move 400 300
 wait 300
 check IsAlive(GetLeader())
@@ -103,24 +103,24 @@ check IsAlive(GetLeader())
 # Objectives (TAB in config\keyboard.ini): the zone page with its exits and quests (0064BE80,
 # 0064CC10); up and down move the quest selection; Esc closes the window.
 key tab
-wait 1000
+waitwindow 10 objectives
 key down
-wait 200
+frames 3
 key up
-wait 200
+frames 3
 key esc
-wait 800
+waitwindow 10 battle
 check IsAlive(GetLeader())
 
-# Esc menu (rectangles from menus.reg in Res\menus.res): Options, Load, Save, then Resume.
+# Esc menu (rectangles from menus.reg in Res\menus.res): Options, Load, Save, then Resume's place.
 # Options: the second option group, then Cancel (puts the settings back and closes).
 key esc
-wait 800
+waitwindow 10 escmenu
 move 395 260
 click 395 260
-wait 1000
+waitwindow 10 options
 click 175 192
-wait 300
+frames 5
 # Keys (00650E40): rows down / up, the next and previous group, a row's bar left / right.
 key down
 wait 200
@@ -136,13 +136,18 @@ key right
 wait 200
 key left
 wait 200
-click 550 550
-wait 800
-# Load window: the first list row (selects a save when harness_saves has one), then Cancel.
+# Cancel (region 1; at 550,550 in the original layout, elsewhere in Rebirth's) closes the Esc
+# menu too (0062ACC0), so it is opened again for each window.
+clickregion 1
+waitwindow 10 battle
+key esc
+waitwindow 10 escmenu
+# Load window: the first list row (selects a save when harness_saves has one), then Cancel (region 1;
+# at 600,550 in the original layout).
 click 395 187
-wait 1000
+waitwindow 10 saveload
 click 240 120
-wait 300
+frames 5
 # Keys (006548A0, 00655430): the selection down and up a row and a page.
 key down
 wait 300
@@ -152,11 +157,13 @@ key pgdn
 wait 300
 key pgup
 wait 300
-click 600 550
-wait 800
+clickregion 1
+waitwindow 10 battle
+key esc
+waitwindow 10 escmenu
 # Save window: the new save's name edited with the keys (006548A0), then closed with Esc.
 click 395 120
-wait 1000
+waitwindow 10 saveload
 key end
 wait 200
 key left
@@ -174,9 +181,9 @@ wait 300
 key up
 wait 300
 key esc
-wait 800
+frames 10
 click 392 333
-wait 800
+waitwindow 10 battle
 
 # The game runs on after the menu.
 console @GSSetVar(0,"hp0",HP(GetLeader()))

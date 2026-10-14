@@ -11,7 +11,7 @@
 # must match.
 render new,present,cpuwindows
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 # The main menu.
@@ -26,8 +26,9 @@ newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
 move 400 60
-wait 2000
+wait 1000
 freeze
 capture world
 capture world_again
@@ -36,25 +37,25 @@ samecapture world world_again
 
 # The escape menu over the greyed copy of the world; Esc closes it.
 key esc
-wait 1500
+waitwindow 10 escmenu
 move 400 20
 wait 300
 freeze
 capture escmenu
 unfreeze
 key esc
-wait 1000
+waitwindow 10 battle
 
 # The camp (screen 5); Esc returns to the game.
 screen 5
-wait 3000
+waitwindow 15 camp
 move 400 20
 wait 300
 freeze
 capture camp
 unfreeze
 key esc
-wait 2000
+waitwindow 15 battle
 check IsAlive(GetLeader())
 report
 quit

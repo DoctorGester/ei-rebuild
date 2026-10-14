@@ -5,7 +5,7 @@
 # SetWaterLevel drives the world's water level changes (TweenArray SetTarget / Tick, including the
 # removal of a finished entry). The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -37,7 +37,7 @@ waitfor 10 IsAlive(GetObjectByName("M8"))
 waitfor 10 IsAlive(GetObjectByName("M9"))
 # Let them be drawn for a while (clip tests from several view directions as the camera follows).
 console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"hx"),4),Add(GSGetVar(0,"hy"),4))
-wait 3000
+wait 2000
 
 # Water level 0: a new change towards 0 (the entry is removed once it has run its steps), then a
 # second change to the same water while one is running.

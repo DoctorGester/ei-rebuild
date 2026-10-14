@@ -6,7 +6,7 @@
 # sector map moves. Script signatures: Walk/Run/Crawl(unit), MoveToPoint(unit, x, y),
 # MoveToObject(unit, target), Follow(unit, leader). The game runs ~5.5x faster (10 ms per update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -37,21 +37,18 @@ console @UMClear(GetObjectByName("Mv3"))
 console @MoveToPoint(GetObjectByName("Mv1"),Add(GSGetVar(0,"hx"),4),Add(GSGetVar(0,"hy"),4))
 console @MoveToPoint(GetObjectByName("Mv2"),Sub(GSGetVar(0,"hx"),5),Add(GSGetVar(0,"hy"),2))
 console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),Sub(GSGetVar(0,"hy"),2))
-wait 3000
-wait 3000
-wait 3000
+wait 4000
 
 # MoveToObject: the third wolf goes to the first (5 east, 4 north of it).
 console @MoveToObject(GetObjectByName("Mv3"),GetObjectByName("Mv1"))
-wait 3000
+wait 2000
 
 # Follow in a chain: wolf 1 follows the hero, wolf 2 follows wolf 1, and the hero walks 8 north.
 console @Follow(GetObjectByName("Mv1"),GetLeader())
 console @Follow(GetObjectByName("Mv2"),GetObjectByName("Mv1"))
 console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),6))
-wait 3000
-wait 3000
-wait 3000
+# (Long enough for the walking hero's environment remark, acks 006D88E0, which comes at random.)
+wait 9000
 
 # Around an obstacle: an ogre stands on the straight line from a new wolf to its target.
 console @AddUnitToServer("MvRock","OgreTutor","MvRock",Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),4),0)
@@ -61,7 +58,7 @@ waitfor 10 IsAlive(GetObjectByName("Mv4"))
 console @UMClear(GetObjectByName("MvRock"))
 console @UMClear(GetObjectByName("Mv4"))
 console @MoveToPoint(GetObjectByName("Mv4"),Add(GSGetVar(0,"hx"),7),Sub(GSGetVar(0,"hy"),4))
-wait 3000
+wait 2000
 check IsLess(DistanceUnitPoint(GetObjectByName("MvRock"),Add(GSGetVar(0,"hx"),4),Sub(GSGetVar(0,"hy"),4)),2)
 check IsAlive(GetLeader())
 check IsAlive(GetObjectByName("Mv1"))
@@ -71,7 +68,7 @@ check IsAlive(GetObjectByName("Mv3"))
 console @Walk(GetObjectByName("Mv1"))
 console @Run(GetObjectByName("Mv2"))
 console @Crawl(GetObjectByName("Mv3"))
-wait 2000
+wait 1000
 check IsAlive(GetLeader())
 report
 quit
