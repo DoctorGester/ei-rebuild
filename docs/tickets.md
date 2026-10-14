@@ -65,6 +65,8 @@ Not started; both wait for the port. Counts are on the dashboard ("Standalone re
 ## Pending work
 
 - Republish the dashboard and remove merged worktrees.
+- T1 merged 2026-10-14 (scenarios wait on state: waitmenu / waitwindow / waitunit / frames; ~40% fewer game-seconds). Follow-ups: T2 the 8-10 s "let it run" waits in ground_prints, sandbox_map, particles, map_objects, movement (state conditions); world_client waits for the battle window before moving the mouse; ui_help's clickregion hits a window with no regions and ui_hero_delete's question never appears (both test less than their comments say); run_all keeps the first attempt's log when it retries; ui_widescreen still opens with wait 6000 (virtual clock, left to W2 / SV1). No longer reached reliably: ScriptFloats/Strings/Objects/GroupsConstruct on load, acks::PickEnvironmentSpeech, CUnitServer::EndOrder (random).
+- X36 (2026-10-14): a scenario that sets the display mode (ui_widescreen) took the surfaces of the games beside it ("Can't begin scene", untextured models); run_all now runs such a scenario with no other game on the machine. Message boxes end a run at once with text and stack (harness).
 - Cleanup C6-C10 done 2026-10-09 (combat, unit, script, world, scene and renderer files). Left from C9: map_object_shadow.cpp's raw offsets (models.md, "Layouts").
 - X32 (watch): several Rebirth runs print "game still running 10 s after the scenario quit" since 2026-10-13 (exit path; runs pass). Suspects: wrappers that now fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct).
 - X35 (fixed 2026-10-14): Windows crashed twice (NVIDIA driver hang, bugcheck 0x133) with 24 harness games at once; run_all now caps the machine at 16 (EI_HARNESS_SLOTS).
