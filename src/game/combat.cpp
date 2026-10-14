@@ -715,7 +715,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     }
     // Missed (or the stats refused the hit).
     if (attacker && attacker->GetClassId() == kClassUnit) {
-        auto* diplomacy = reinterpret_cast<CDiplomacy*>(static_cast<CWorldServer*>(ManagerContext())->diplomacy_);
+        auto* diplomacy = &static_cast<CWorldServer*>(ManagerContext())->diplomacy_;
         diplomacy->OnAttack(attacker, unit, 10);
     }
     BrainSetSeenOriginal(brain, nullptr, attacker);

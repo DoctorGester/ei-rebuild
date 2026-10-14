@@ -44,11 +44,6 @@
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
-
 using namespace flowdata;
 
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
@@ -1223,7 +1218,6 @@ EI_REPLACE_METHOD(0x0057E970, GameFlow::JoinServer);
 
 namespace {
 
-constexpr int kSlotLobbyTakeNew = 6;                      // the lobby's slot 6 (+0x18): new connections into a list
 void* const kNetLog = reinterpret_cast<void*>(0x007C56B0);   // the network log's ostream
 
 // 00598EF0. The connection list's destructor.
@@ -1249,7 +1243,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         SessionListDestruct(&joined, nullptr);
         return;
     }
-    ei::VCall<void>(lobby, kSlotLobbyTakeNew, &joined);
+    static_cast<CPlayerSource*>(lobby)->TakeNew(&joined);   // the new connections
     for (auto* node = joined.head; node;) {
         auto* next = node->next;
         netlink::NetLink* connection = node->data;
@@ -1545,7 +1539,8 @@ void GameFlow::StartZone(const char* zone, int mode) {
     CampaignMode() = mode;
     if (mode == 1) SpectatorFlag() = mode;
     WorldSetGameResultOriginal(World(), nullptr, result);
-    ClientSetPlayer(kClientWorld, nullptr, At<int>(World(), 0x5C));
+    // The server world's counted helper (+0x5C, a player source) handed to the client world.
+    ClientSetPlayer(kClientWorld, nullptr, reinterpret_cast<int>(World()->shared5C_.ptr));
     ClientWorldLocalView(kClientWorld)->partyTaken = 0;
 }
 

@@ -240,8 +240,8 @@ void CMpHeroScreen::Create() {
     auto* info = static_cast<CItemInfoPanel*>(NewPanel(sizeof(CItemInfoPanel), window.interface_, &window, ItemPanelVtables()));
     if (info) {
         PartyRecordsConstructOriginal(info->itemList_);
-        reinterpret_cast<mfc::CStringArray*>(&info->itemTextsVtable_)->Construct();
-        reinterpret_cast<mfc::CStringArray*>(&info->skillTextsVtable_)->Construct();
+        info->itemTexts_.Construct();
+        info->skillTexts_.Construct();
         SetVtables(info, InfoPanelVtables());
     }
     descPanel_ = info;
@@ -376,7 +376,7 @@ void CMpHeroScreen::Create() {
     // The edit windows: a listed hero's new name, and the new hero's name.
     {
         CUiEditField* edit = NewEditField(window.interface_, RECT{558, 110, 695, 126});
-        renameEdit_ = reinterpret_cast<std::uint8_t*>(edit);
+        renameEdit_ = edit;
         AsContainer(this)->AddChild(edit);
         edit->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
         edit->SetEnabled(0, 1);

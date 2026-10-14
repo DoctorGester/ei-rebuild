@@ -20,5 +20,5 @@ history is in git. Each fact lives in one file; others link to it by file name a
 - `standalone.md`: what still ties the code to the exe, the MFC / STLport / CRT replacement plan, the UTF-8 switch (not an area note).
 - `standalone-verification.md`: how changes are checked once there is no original to compare with (golden runs, function vectors).
 - `inventory.md` (library / dead code classification), `cleanup-tooling.md` (checks, progress counts, shared forwarder
-  headers), `cleanup-engine-base.md` / `cleanup-network.md` / `cleanup-map-objects.md` / `cleanup-units.md` / `cleanup-items.md` / `cleanup-effects.md` / `cleanup-figures.md` (how
-  those classes are declared after cleanup phase 1).
+  headers), `cleanup-engine-base.md` / `cleanup-network.md` / `cleanup-map-objects.md` / `cleanup-units.md` / `cleanup-items.md` / `cleanup-effects.md` / `cleanup-ui.md` /
+  `cleanup-world.md` / `cleanup-figures.md` (how those classes are declared after cleanup phase 1).

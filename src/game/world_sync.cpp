@@ -107,19 +107,15 @@ __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray
 inline void __fastcall PtrListDestruct(void* l, void*) { PtrListRemoveAllOriginal(l); }
 // 004E58A0 (RET 4). Writes a zone exit to a stream.
 __declspec(naked) void __fastcall ZoneExitWrite(ZoneExit*, void*, void* /*stream*/) EI_ORIGINAL(0x004E58A0)
-// The unit set SendZone fills: an STLport hash_map (0x14 bytes, constructor 005985E0, destructor
-// 005986B0), the unit added with 005593D0 and written with 00559E60. A second map of the same kind
-// (00598790 / 00598860) is built right after it and destroyed unused.
-struct UnitSets {
-    std::uint8_t units[0x14];
-    std::uint8_t second[0x14];
-};
-__declspec(naked) void __fastcall UnitSetConstruct(void*, void*) EI_ORIGINAL(0x005985E0)
-__declspec(naked) void __fastcall UnitSetDestruct(void*, void*) EI_ORIGINAL(0x005986B0)
-__declspec(naked) void __fastcall UnitSetAdd(void*, void*, CEngineObject*) EI_ORIGINAL(0x005593D0)
-__declspec(naked) void __fastcall UnitSetWrite(void*, void*, void* /*stream*/) EI_ORIGINAL(0x00559E60)
-__declspec(naked) void __fastcall SecondSetConstruct(void*, void*) EI_ORIGINAL(0x00598790)
-__declspec(naked) void __fastcall SecondSetDestruct(void*, void*) EI_ORIGINAL(0x00598860)
+// The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured
+// groups 005985E0 / 005986B0, the dressed records 00598790 / 00598860), the unit added with
+// 005593D0 and the set written with 00559E60.
+__declspec(naked) void __fastcall FiguredGroupsConstruct(void*, void*) EI_ORIGINAL(0x005985E0)
+__declspec(naked) void __fastcall FiguredGroupsDestruct(void*, void*) EI_ORIGINAL(0x005986B0)
+__declspec(naked) void __fastcall UnitSetAdd(UnitSet*, void*, CEngineObject*) EI_ORIGINAL(0x005593D0)
+__declspec(naked) void __fastcall UnitSetWrite(UnitSet*, void*, void* /*stream*/) EI_ORIGINAL(0x00559E60)
+__declspec(naked) void __fastcall DressedMapConstruct(void*, void*) EI_ORIGINAL(0x00598790)
+__declspec(naked) void __fastcall DressedMapDestruct(void*, void*) EI_ORIGINAL(0x00598860)
 
 // The function statics' lazy construction (empty arrays, destructor registered with atexit).
 void InitStatic(std::uint8_t bit, StaticPtrArray& array, AtExitFunction destructor) {
@@ -361,14 +357,14 @@ int CWorldServer::SendZone(WorldPlayer* player) {
         write(&unknownE0_, 4);
 
         // The zone's units.
-        UnitSets sets;
-        UnitSetConstruct(sets.units, nullptr);
-        SecondSetConstruct(sets.second, nullptr);
+        UnitSet units;
+        FiguredGroupsConstruct(&units.figured, nullptr);
+        DressedMapConstruct(&units.dressed, nullptr);
         for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node))
-            if (node->value->GetClassId() == world::kClassUnit) UnitSetAdd(sets.units, nullptr, node->value);
-        UnitSetWrite(sets.units, nullptr, &message);
-        SecondSetDestruct(sets.second, nullptr);
-        UnitSetDestruct(sets.units, nullptr);
+            if (node->value->GetClassId() == world::kClassUnit) UnitSetAdd(&units, nullptr, node->value);
+        UnitSetWrite(&units, nullptr, &message);
+        DressedMapDestruct(&units.dressed, nullptr);
+        FiguredGroupsDestruct(&units.figured, nullptr);
 
         result = StateSendZone(state, nullptr, &message);
         if (result != 0 && unknown_11C != 0) {

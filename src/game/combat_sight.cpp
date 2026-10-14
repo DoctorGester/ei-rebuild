@@ -7,12 +7,12 @@
 #include "item.h"
 #include "maths.h"
 #include "spell.h"
+#include "unit_ai.h"
 #include "world.h"
 
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -60,18 +60,6 @@ constexpr std::uint32_t kSpellKindStrike = 0x28;         // spell +0x18 >> 16
 constexpr std::uint32_t kSpellKindCurse = 0x29;
 constexpr int kCastKindNone = 8;
 
-// Virtual slots of map objects / units.
-constexpr int kSlotPositionAt = 0xD0 / 4;   // Vector3* (Vector3* out, int time): where it will be
-constexpr int kSlotAimPoint = 0xD4 / 4;     // Vector3* (Vector3* out)
-constexpr int kSlotIsMoving = 0xD8 / 4;     // int ()
-constexpr int kSlotIsDead = 0xDC / 4;       // int ()
-constexpr int kSlotSpeed = 0xEC / 4;        // ST0 ()
-constexpr int kWorldSurfaceHeight = 0x78 / 4;   // ST0 (x, y)
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 template <typename T>
 T Get(const void* object, int offset) {
     T value;
@@ -185,7 +173,7 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
         }
         std::memcpy(&out->point, &order->point, sizeof(out->point));
         out->point.z = static_cast<float>(
-            ei::VCall<double>(world, kWorldSurfaceHeight, out->point.x, out->point.y) + kOne);
+            static_cast<CWorld*>(world)->SurfaceHeightAt(out->point.x, out->point.y) + kOne);
         out->eyeHeight = static_cast<float>(UnitEyeHeight(unit));
         return true;
     }
@@ -237,21 +225,17 @@ bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* po
     volatile float vy = static_cast<float>(negX / side);
     volatile float vz = static_cast<float>(kZero / side);
 
-    struct Node {
-        Node* next;
-        Node* prev;
-        CEngineObject* object;
-    };
-    for (Node* node = At<Node*>(self, 0xA78); node;) {
-        CEngineObject* other = node->object;
+    // The units the brain lists as nearby (AIBrain +0xF4).
+    for (auto* node = self->Brain()->unknown_0F4.head; node;) {
+        CEngineObject* other = node->data;
         node = node->next;
         if (other == order->target) continue;
-        if (ei::VCall<int>(other, kSlotIsDead) != 0) continue;
+        if (ObjectSlots(other)->IsDead() != 0) continue;
         Vector3 scratch;
-        const float* p = ei::VCall<float*>(other, kSlotPositionAt, &scratch, time);
-        double a = static_cast<double>(p[0]) - unit->position.x;
-        double b = static_cast<double>(p[1]) - unit->position.y;
-        double c = static_cast<double>(p[2]) - unit->position.z;
+        const Vector3* p = ObjectSlots(other)->PositionAt(&scratch, time);
+        double a = static_cast<double>(p->x) - unit->position.x;
+        double b = static_cast<double>(p->y) - unit->position.y;
+        double c = static_cast<double>(p->z) - unit->position.z;
         volatile float along = static_cast<float>(c * uz + b * uy + a * ux);
         volatile float across = static_cast<float>(c * vz + b * vy + a * vx);
         if (Greater(along, kPointOne) && along < kPointNine && Greater(across, kMinusPointThree) &&
@@ -349,7 +333,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     InitSteps(&steps);
     Vector3 origin;
     std::memcpy(&origin, &unit->position.x, sizeof(origin));
-    int now = At<int>(ObjectWorld(this), 0x64);
+    int now = static_cast<CWorld*>(ObjectWorld(this))->tick_;
     void* spell = nullptr;
 
     if (order->flag18) {
@@ -392,7 +376,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis;
-    reinterpret_cast<const Quaternion*>(&At<float>(unit, 0x34))->AxisY(&axis);
+    unit->orientation.AxisY(&axis);
     volatile float facing[3] = {-axis.x, -axis.y, -axis.z};
     volatile float heading = static_cast<float>(Fpatan(facing[1], facing[0]));
     float forward, turnSpeed;
@@ -405,7 +389,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     int castDelay = 0;
 
     Vector3 aim;
-    if (order->target) ei::VCall<float*>(order->target, kSlotAimPoint, &aim);
+    if (order->target) ObjectSlots(order->target)->AimPoint(&aim);
     else std::memcpy(&aim, &order->point, sizeof(aim));
     volatile float delta[3];
     delta[0] = aim.x - origin.x;
@@ -422,7 +406,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
         outerSq = reachSq;
     } else {
         targetUnit = static_cast<CUnit*>(order->target);
-        double speed = ei::VCall<double>(targetUnit, kSlotSpeed);
+        double speed = targetUnit->MoveSpeed();
         reachSq = static_cast<float>(static_cast<double>(range) * range);
         bool inFront = false;
         if (!Greater(distanceSq, reachSq)) {
@@ -441,10 +425,10 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
         } else {
             double outer = static_cast<double>(range) + kHalf;
             outerSq = static_cast<float>(outer * outer);
-            if (ei::VCall<int>(targetUnit, kSlotIsMoving)) predict = true;
+            if (targetUnit->IsLargeUnit()) predict = true;   // slot 54 (the planner's "moving")
         }
         if ((kind == kOrderCast || kind == kOrderCastAt) && !order->flag18 &&
-            ei::VCall<int>(targetUnit, kSlotIsMoving)) {
+            targetUnit->IsLargeUnit()) {
             // A moving target of a missile spell: aim where it will be when the spell arrives.
             predict = true;
             void* missile;
@@ -479,8 +463,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     for (int tick = 0; tick < ticks; ++tick) {
         if (predict) {
             Vector3 scratch;
-            const float* p = ei::VCall<float*>(order->target, kSlotPositionAt, &scratch,
-                                               tick + castDelay + duration + now);
+            const Vector3* p = ObjectSlots(order->target)->PositionAt(&scratch, tick + castDelay + duration + now);
             std::memcpy(&aim, p, sizeof(aim));
             delta[0] = aim.x - origin.x;
             delta[1] = aim.y - origin.y;

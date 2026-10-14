@@ -3,11 +3,13 @@
 // docs/notes/world.md.
 #include "world.h"
 
+#include "base_manager.h"
 #include "core_maths.h"
+#include "map_object.h"
 #include "random.h"
+#include "world_effect.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_world.h"
@@ -20,11 +22,6 @@
 #pragma float_control(precise, on, push)
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
@@ -73,11 +70,6 @@ void __fastcall ShowBoltAt(void* glue, void*, Vector3 from, Vector3 to) {
 // 0058B6D0 / 0058D280. MarkPlayersDirty / UpdatePlayerTimes, through their addresses.
 __declspec(naked) void __fastcall MarkPlayersDirtyAt(CWorldServer*, void*, std::uint32_t) EI_ORIGINAL(0x0058B6D0)
 
-constexpr int kSlotTimedManager = 14;   // world: manager48_
-constexpr int kSlotCreate = 23;         // manager: create an object (type, id)
-constexpr int kSlotGroundHeight = 28;   // world (ST0)
-constexpr int kSlotObjectWeather = 57;  // every object (+0xE4): weather changed
-
 float Uniform(double scale) { return StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * scale)); }
 
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
@@ -103,13 +95,13 @@ void TryLightningStrike(CWorldServer* world) {
     sky.z = ground.z;
     if (AIMapLineFree(aiMap, nullptr, &ground, &sky) >= One()) return;   // NaN goes on (C0 set)
 
-    void* manager = ei::VCall<void*>(world, kSlotTimedManager);
-    auto* lightning = ei::VCall<CEngineObject*>(manager, kSlotCreate, kTypeLightning, -1);
+    CBaseManager* manager = world->TimedObjectManager();
+    CEngineObject* lightning = manager->CreateObject(kTypeLightning, -1);
     sky.x = StoreFloat(static_cast<float>(static_cast<double>(ground.x) + dx));
     sky.y = StoreFloat(static_cast<float>(static_cast<double>(ground.y) + dy));
     sky.z = ground.z;
     LightningSetPath(lightning, nullptr, &ground, &sky);
-    At<int>(lightning, 0x94) = world->tick_;
+    static_cast<CEffect*>(lightning)->startTick_ = world->tick_;
     ++lightning->refCount_;
     MarkNew(lightning, nullptr);
     world->timedObjects_.Set(static_cast<unsigned>(lightning->id_), lightning);
@@ -145,7 +137,7 @@ void ShowRainBolt(CWorldServer* world) {
     world->unknown13C_ = static_cast<std::uint32_t>(world->tick_);
     float x = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltScale() + Two()));
     float y = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltScale() + Two()));
-    float z = StoreFloat(static_cast<float>(ei::VCall<double>(world, kSlotGroundHeight, x, y) - Five()));
+    float z = StoreFloat(static_cast<float>(world->RawSurfaceHeightAt(x, y) - Five()));
     float fromX = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltSpread() + x - Two()));
     float fromY = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltSpread() + y - Two()));
     float fromZ = StoreFloat(static_cast<float>(static_cast<double>(z) + BoltHeight()));
@@ -170,7 +162,7 @@ void CWorldServer::UpdateWeather() {
     std::memcpy(&unknown88_, &factor, 4);
 
     for (auto* node = objects_.map.First(); node; node = objects_.map.After(node))
-        ei::VCall<void>(node->value, kSlotObjectWeather);
+        ObjectSlots(node->value)->UpdateMoveFactors();   // slot 57: the weather changed
     if (unknown12D64_ == kKindSinglePlayer || unknown12D64_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
 }
 

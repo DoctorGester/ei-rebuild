@@ -87,7 +87,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         // The same zone again: start over.
         QueueReset(commandsA_, nullptr);
         QueueReset(commandsB_, nullptr);
-        DiplomacyReset(diplomacy_, nullptr);
+        DiplomacyReset(&diplomacy_, nullptr);
         ClearMapObjectsAt(this, nullptr);
         ClearMissiles(this);
         EndTimedObjects(this);
@@ -120,7 +120,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
         if (!loaded) return loaded;
         if (!loadedFresh_) {
             QueueReset(commandsA_, nullptr);
-            DiplomacyReset(diplomacy_, nullptr);
+            DiplomacyReset(&diplomacy_, nullptr);
         }
         if (keepsState_) StartFreshZone(this, nullptr);
     }
@@ -233,7 +233,7 @@ void CWorldServer::TeardownZone() {
     aiMap_[2] = 0;   // CAIMap +0x172: refreshes off
     QueueReset(commandsA_, nullptr);
     QueueReset(commandsB_, nullptr);
-    DiplomacyReset(diplomacy_, nullptr);
+    DiplomacyReset(&diplomacy_, nullptr);
     ClearMapObjectsAt(this, nullptr);
 
     // The missiles' counted pointers, released inline (16-bit count, slot 0 deletes).
@@ -328,7 +328,7 @@ void CWorldServer::SendFreshObjects() {
 void CWorldServer::ResetState() {
     ResetZoneAt(this, nullptr);
     *reinterpret_cast<mfc::CString*>(&mapName_) = game::EmptyText();
-    DiplomacyReset(diplomacy_, nullptr);
+    DiplomacyReset(&diplomacy_, nullptr);
     QueueReset(commandsA_, nullptr);
     QueueReset(commandsB_, nullptr);
     AIMapReset(aiMap_, nullptr);

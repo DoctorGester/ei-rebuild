@@ -63,7 +63,7 @@ void* AllowedList(ClassTemplate* t) { return &t->allowed; }
 void* MagicList(ClassTemplate* t) { return &t->magic; }
 
 // Every item of `list` back to `to`, then the strip scrolled to the last one.
-void ReturnAll(CCampPages* camp, void* to, void* list, CUiItemStrip* strip) {
+void ReturnToStrip(CCampPages* camp, void* to, void* list, CUiItemStrip* strip) {
     CItem* last = ItemScreenReturnAllOriginal(camp, nullptr, to, list);
     ItemStripScrollToItemOriginal(strip, nullptr, last);
 }
@@ -282,8 +282,8 @@ void CCampPages::DoAction() {
     case kSpellTrade:
         reinterpret_cast<CParty*>(constructor_->spells)->SpellManager();
         StockSpells(this, PartyOf(spellParts_[2]));
-        ReturnAll(this, spellParts_[0], spellParts_[2], spellStrip_);
-        ReturnAll(this, PlayerParty(), spellParts_[1], itemStrip_);
+        ReturnToStrip(this, spellParts_[0], spellParts_[2], spellStrip_);
+        ReturnToStrip(this, PlayerParty(), spellParts_[1], itemStrip_);
         break;
     case kSpellMaker:
         if (deconstructing_) {
@@ -297,8 +297,8 @@ void CCampPages::DoAction() {
     case kItemTrade:
         reinterpret_cast<CParty*>(constructor_->items)->ItemManager();
         StockItems(this, PartyOf(itemParts_[2]));
-        ReturnAll(this, itemParts_[0], itemParts_[2], partStrip_);
-        ReturnAll(this, PlayerParty(), itemParts_[1], itemStrip_);
+        ReturnToStrip(this, itemParts_[0], itemParts_[2], partStrip_);
+        ReturnToStrip(this, PlayerParty(), itemParts_[1], itemStrip_);
         break;
     case kItemMaker:
         if (deconstructing_) {
@@ -311,7 +311,7 @@ void CCampPages::DoAction() {
         break;
     case kRepair:
         RepairAll(PartyOf(itemExtra_));
-        ReturnAll(this, PlayerParty(), itemExtra_, itemStrip_);
+        ReturnToStrip(this, PlayerParty(), itemExtra_, itemStrip_);
         break;
     default:
         break;
@@ -332,21 +332,21 @@ void CCampPages::UndoAction() {
         TradePanelSettleOriginal(trade_, nullptr, 0, 0);
         return;
     case kSpellTrade:
-        ReturnAll(this, spellParts_[0], spellParts_[1], spellStrip_);
-        ReturnAll(this, PlayerParty(), spellParts_[2], itemStrip_);
+        ReturnToStrip(this, spellParts_[0], spellParts_[1], spellStrip_);
+        ReturnToStrip(this, PlayerParty(), spellParts_[2], itemStrip_);
         break;
     case kSpellMaker:
         ReturnResults(this, PartyOf(spellResults_), spellParts_[0], spellStrip_);
         break;
     case kItemTrade:
-        ReturnAll(this, itemParts_[0], itemParts_[1], partStrip_);
-        ReturnAll(this, PlayerParty(), itemParts_[2], itemStrip_);
+        ReturnToStrip(this, itemParts_[0], itemParts_[1], partStrip_);
+        ReturnToStrip(this, PlayerParty(), itemParts_[2], itemStrip_);
         break;
     case kItemMaker:
         ReturnResults(this, PartyOf(itemResults_), itemParts_[0], partStrip_);
         break;
     case kRepair:
-        ReturnAll(this, PlayerParty(), itemExtra_, itemStrip_);
+        ReturnToStrip(this, PlayerParty(), itemExtra_, itemStrip_);
         break;
     default:
         break;

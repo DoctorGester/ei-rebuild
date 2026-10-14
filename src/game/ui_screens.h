@@ -354,6 +354,7 @@ public:
     // Called through the vtable, as the original does.
     char* Hero();                       // slot 51 (+0xCC)
     void Refresh();                     // slot 47 (+0xBC), 00618850 here
+    void VirtualChooseFigure(const char* prototype);   // slot 52 (+0xD0), ChooseFigure here
     // 00616910 (RET 4; ui_hero_screen.cpp). The local player's first record handed to the client
     // world; hero `index` (when in the list; else none, -1) copied into the local party and made
     // current; the preview rebuilt (00616E20 with 1); the hero's unit re-armed (four slots
@@ -492,7 +493,8 @@ public:
     CItemInfoPanel* descPanel_; // +0x164 the description panel
     std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
     CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
-    std::uint8_t unknown_170[0x190 - 0x170];
+    ItemObjectCache models_;    // +0x170 the item screens' model cache (00633F50 constructs it)
+    ItemObjectCache textures_;  // +0x180 and the texture cache (00633FF0)
     int mode_;                  // +0x190 9, 10, 11
     int heroIndex_;             // +0x194 selected hero
     void* heroScroll_;          // +0x198 scroll bar of the hero list
@@ -512,8 +514,8 @@ public:
     MpStringVector names_;      // +0x1D4 STLport vector<CString>
     float turn_;                // +0x1E0 the preview's turn
     int rotating_;              // +0x1E4 0, 1 or 2 while a rotate arrow is held
-    std::uint8_t* renameEdit_;  // +0x1E8 the hero list's rename edit window (+0x179: editing)
-    void* nameEdit_;            // +0x1EC the new hero's name edit window (0065C290 sets its text)
+    CUiEditField* renameEdit_;  // +0x1E8 the hero list's rename edit window (focused_ while renaming)
+    CUiEditField* nameEdit_;    // +0x1EC the new hero's name edit window (0065C290 sets its text)
     void* voiceScroll_;         // +0x1F0
     const char* text_;          // +0x1F4 CString
     MpVoiceVector voiceLists_[2];   // +0x1F8, +0x204 (voices_ points at one of them)
@@ -535,6 +537,8 @@ static_assert(offsetof(CMpHeroScreen, voiceScroll_) == 0x1F0);
 static_assert(offsetof(CMpHeroScreen, voices_) == 0x210);
 static_assert(offsetof(CMpHeroScreen, names_) == 0x1D4);
 static_assert(offsetof(CMpHeroScreen, voiceLists_) == 0x1F8);
+static_assert(offsetof(CMpHeroScreen, models_) == 0x170 && offsetof(CMpHeroScreen, textures_) == 0x180);
+static_assert(offsetof(CMpHeroScreen, defaults_) == 0x1C8 && offsetof(CMpHeroScreen, text_) == 0x1F4);
 static_assert(sizeof(CMpHeroScreen) == 0x220);
 
 // An entry of a sound set (0x2C bytes; the sets are the values of the map 007C8A6C, keyed by a
@@ -956,7 +960,7 @@ public:
     bool fromGame_;             // +0x1F4 opened in a game (pending value 0xCCCCCCCC) or the menu
     bool finished_;             // +0x1F5 the last line has gone (cleared by Build)
     std::uint8_t unknown_1F6[2];
-    int savedDisplay_;          // +0x1F8 the display's (00500960) +0x14 while the titles run
+    int savedDisplay_;          // +0x1F8 the renderer's (00500960) fog colour while the titles run
 };
 static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
 static_assert(offsetof(CCreditsScreen, lines_) == 0x1C8);

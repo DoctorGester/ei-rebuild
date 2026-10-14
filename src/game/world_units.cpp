@@ -581,7 +581,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
             UnitSetController(object, nullptr, nullptr);
             UnitSetSide(reinterpret_cast<CUnit*>(object), nullptr, spec->unknown_6E);
-            UnitSetDiplomacy(object, nullptr, DiplomacyHostileMask(reinterpret_cast<CDiplomacy*>(diplomacy_), nullptr, spec->unknown_6E));
+            UnitSetDiplomacy(object, nullptr, DiplomacyHostileMask(&diplomacy_, nullptr, spec->unknown_6E));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
             ManagerRegisterUnit2(MapObjectManager(), nullptr, object, unitSpec->prototype);
             const mfc::CStringArray& worn = unitSpec->lists[1];

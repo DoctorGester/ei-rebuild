@@ -9,6 +9,7 @@
 #include "console.h"
 #include "item_db_text.h"
 #include "maths.h"
+#include "model.h"
 #include "resource.h"
 #include "ui_screens.h"
 #include "world.h"
@@ -57,19 +58,10 @@ namespace {
 const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // Fields of an interface sprite set directly by the builders.
-void SetSpriteTexture(CUiMesh* sprite, void* texture) {
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x280, &texture, 4);
-}
-void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) {
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0xD4, &argb, 4);
-}
-// Flag 0x100 of the object flags (+0x08): drawn with the colour, untextured.
-void SetSpritePlain(CUiMesh* sprite) {
-    std::uint32_t flags;
-    std::memcpy(&flags, reinterpret_cast<std::uint8_t*>(sprite) + 0x08, 4);
-    flags |= 0x100;
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x08, &flags, 4);
-}
+void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
+void SetSpriteColour(CUiMesh* sprite, std::uint32_t argb) { sprite->plainColour_ = argb; }
+// Flag 0x100 of the object flags: drawn with the plain colour, untextured.
+void SetSpritePlain(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 
 // A region with the rectangle (left, top, right, bottom).
 CUiRegion* AddRect(CUiWindow* window, int left, int top, int right, int bottom) {
@@ -113,7 +105,7 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, angle);
-    std::memcpy(reinterpret_cast<std::uint8_t*>(model->object_) + 0x34, &turn, sizeof(turn));
+    std::memcpy(&model->object_->localRotation_, &turn, sizeof(turn));
     return model;
 }
 
@@ -266,7 +258,7 @@ void CEscMenu::Build() {
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, *reinterpret_cast<const float*>(0x007C7FB0));
-    std::memcpy(reinterpret_cast<std::uint8_t*>(model->object_) + 0x34, &turn, sizeof(turn));
+    std::memcpy(&model->object_->localRotation_, &turn, sizeof(turn));
 
     // Regions 0-4 (save, load, resume, quit, options) from the menus.reg rectangles; the
     // original goes through 0062AC90 (SetRect with a RECT by value).
@@ -297,9 +289,9 @@ constexpr std::uintptr_t kSaveLoadInputVtable = 0x00741354;
 constexpr std::uintptr_t kOptionsVtable = 0x00741FAC;
 constexpr std::uintptr_t kOptionsInputVtable = 0x00741F78;
 
-void SetVtables(void* window, std::uintptr_t main, std::uintptr_t input) {
-    std::memcpy(window, &main, 4);
-    std::memcpy(static_cast<std::uint8_t*>(window) + 0x94, &input, 4);
+void SetVtables(CUiWindow* window, std::uintptr_t main, std::uintptr_t input) {
+    window->vtable_ = reinterpret_cast<void**>(main);
+    window->inputVtable_ = reinterpret_cast<void**>(input);
 }
 
 // What the original's inlined CSaveLoadWindow constructor does. Null when allocation failed.
@@ -383,7 +375,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
 
 namespace {
 void __fastcall EscMenuLButtonDown(void* input, void*, int buttons, int x, int y) {
-    reinterpret_cast<CEscMenu*>(static_cast<std::uint8_t*>(input) - 0x94)->OnLButtonDown(buttons, x, y);
+    WindowFromInput<CEscMenu>(input)->OnLButtonDown(buttons, x, y);
 }
 } // namespace
 EI_REPLACE(0x0062AE90, EscMenuLButtonDown);
@@ -417,12 +409,8 @@ __declspec(naked) void __fastcall MenuModelCache(void*) EI_ORIGINAL(0x00633F50)
 __declspec(naked) void __fastcall MenuTextureCache(void*) EI_ORIGINAL(0x00633FF0)
 __declspec(naked) void __fastcall MenuHeroVector(void*, void*, const void*) EI_ORIGINAL(0x006342A0)
 
-template <typename T>
-void Put(void* window, int offset, T value) {
-    std::memcpy(static_cast<std::uint8_t*>(window) + offset, &value, sizeof(T));
-}
 // The empty CString's data pointer (00796E48), stored as a CString member is.
-std::uint32_t EmptyStringData() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }
+const char* EmptyStringData() { return *reinterpret_cast<const char* const*>(0x00796E48); }
 } // namespace
 
 void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
@@ -475,16 +463,16 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         Glue(0x007AFEA5)->BeforeTitles2();
         ui->PlaySound(okSound, 0);
         ClearSurfaces();
-        void* w = gamecrt::operator_new(0x1FC);
+        auto* w = static_cast<CCreditsScreen*>(gamecrt::operator_new(sizeof(CCreditsScreen)));
         if (w) {
             ConstructContainerAt(w, nullptr, ui);
-            MappedResourceConstructOriginal(static_cast<std::uint8_t*>(w) + 0x170);
+            MappedResourceConstructOriginal(w->archive_);
             char allocator = 0;
-            MenuTitlesVector(static_cast<std::uint8_t*>(w) + 0x1C8, nullptr, &allocator);
-            new (static_cast<std::uint8_t*>(w) + 0x1D4) mfc::CString(GameText(0x00794250));   // "Titles"
-            Screen8Member1D8(static_cast<std::uint8_t*>(w) + 0x1D8);
-            Put<std::uint8_t>(w, 0x1F4, 1);
-            SetVtables(w, 0x00740C3C, 0x00740C08);
+            MenuTitlesVector(&w->lines_, nullptr, &allocator);
+            new (static_cast<void*>(&w->name_)) mfc::CString(GameText(0x00794250));   // "Titles"
+            Screen8Member1D8(&w->player_);
+            w->fromGame_ = true;
+            SetVtables(&w->window, 0x00740C3C, 0x00740C08);
         }
         InterfacePushWindowOriginal(ui, nullptr, w, 0, 1);
         break;
@@ -496,21 +484,20 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
         Glue(0x007AFEA4)->SetServer(1);
         ui->PlaySound(okSound, 0);
-        void* w = gamecrt::operator_new(0x220);
+        auto* w = static_cast<CMpHeroScreen*>(gamecrt::operator_new(sizeof(CMpHeroScreen)));
         if (w) {
-            auto* bytes = static_cast<std::uint8_t*>(w);
             ConstructContainerAt(w, nullptr, ui);
-            Put<std::uint32_t>(w, 0x168, 0);
-            MenuModelCache(bytes + 0x170);
-            MenuTextureCache(bytes + 0x180);
-            SetVtables(w, 0x00740A2C, 0x007409F8);   // the item screens' base
+            w->hoveredItem_ = nullptr;
+            MenuModelCache(&w->models_);
+            MenuTextureCache(&w->textures_);
+            SetVtables(&w->window, 0x00740A2C, 0x007409F8);   // the item screens' base
             char allocators[4] = {};
-            FirstListConstruct(bytes + 0x1C8, nullptr, &allocators[1]);
-            FirstListConstruct(bytes + 0x1D4, nullptr, &allocators[0]);
-            Put<std::uint32_t>(w, 0x1F4, EmptyStringData());
-            MenuHeroVector(bytes + 0x1F8, nullptr, &allocators[2]);
-            MenuHeroVector(bytes + 0x204, nullptr, &allocators[3]);
-            SetVtables(w, 0x0074214C, 0x00742118);
+            FirstListConstruct(&w->defaults_, nullptr, &allocators[1]);
+            FirstListConstruct(&w->names_, nullptr, &allocators[0]);
+            w->text_ = EmptyStringData();
+            MenuHeroVector(&w->voiceLists_[0], nullptr, &allocators[2]);
+            MenuHeroVector(&w->voiceLists_[1], nullptr, &allocators[3]);
+            SetVtables(&w->window, 0x0074214C, 0x00742118);
         }
         InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
         break;
@@ -523,7 +510,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 
 namespace {
 void __fastcall MainMenuLButtonDown(void* input, void*, int buttons, int x, int y) {
-    reinterpret_cast<CMainMenu*>(static_cast<std::uint8_t*>(input) - 0x94)->OnLButtonDown(buttons, x, y);
+    WindowFromInput<CMainMenu>(input)->OnLButtonDown(buttons, x, y);
 }
 } // namespace
 EI_REPLACE(0x00632D70, MainMenuLButtonDown);
@@ -535,28 +522,21 @@ namespace {
 // returns the text's height), the interface's text extent (005F8340, Rebirth-patched; takes a
 // CString by value, see ui_text.cpp) and the edit field: constructor 0065C010 (RET 0x14: the
 // interface and a RECT by value), its fonts and colours 0065C1A0 (RET 0x18), its text 0065C290.
-struct BoxSurfaceAt {
-    void* Begin() { return SurfaceGetDC(this); }                                                                     // 005FDC00
-    int Text(const char* text, RECT* rect, int font, COLORREF colour, int format, int flag);   // 005FDE20
-    void End() { SurfaceReleaseDC(this); }                                                                       // 005FDC60
-};
-int BoxSurfaceAt::Text(const char* text, RECT* rect, int format, COLORREF colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
+int BoxText(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format, int flag) {
+    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);   // 005FDE20
+}
 
-struct BoxMetricsAt {
-    // The SIZE comes back through the hidden pointer, as a member function's struct result does.
-    SIZE TextExtentRaw(char* text, int font) {
-        SIZE size;
-        InterfaceTextExtentOriginal(reinterpret_cast<CInterface3D*>(this), nullptr, &size, text, font);
-        return size;
-    }
-    SIZE TextExtent(mfc::CString text, int font) {
-        char* data;
-        std::memcpy(&data, &text, sizeof(data));
-        mfc::CString empty;
-        std::memcpy(&text, &empty, sizeof(data));   // the callee releases the data
-        return TextExtentRaw(data, font);
-    }
-};
+// The extent of `text` in interface font `font`; the CString is taken by value and its data
+// handed over (the callee releases it).
+SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
+    char* data;
+    std::memcpy(&data, &text, sizeof(data));
+    mfc::CString empty;
+    std::memcpy(&text, &empty, sizeof(data));   // the callee releases the data
+    SIZE size;
+    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    return size;
+}
 
 CUiEditField* EditConstruct(void* memory, void*, CInterface3D* ui, RECT r) {
     return static_cast<CUiEditField*>(EditFieldConstructOriginal(memory, nullptr, ui, r.left, r.top, r.right, r.bottom));
@@ -565,29 +545,27 @@ void EditSetLook(CUiWindow* edit, void*, int a, int b, int font, int c, COLORREF
     EditFieldSetLookOriginal(edit, nullptr, a, b, font, c, text, caret);
 }
 void EditSetText(CUiWindow* edit, void*, const char* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
-
-BoxSurfaceAt* BoxSurface(CUiSurface* surface) { return reinterpret_cast<BoxSurfaceAt*>(surface); }
 } // namespace
 
 void CMessageBox::Build() {
     LoadTexture(GameText(0x00793380), 3, 0);   // "saveload"
     CUiSurface* surface = NewSurface(interface_, 200, 50, 600, 500);
     AddSurface(surface);
-    BoxSurface(surface)->Begin();
+    SurfaceGetDC(surface);
     int font = result_ != 0xFFFF0000u ? 2 : 1;
     // Measure the title (font 2) and the text (DT_CALCRECT | DT_WORDBREAK | DT_CENTER, 370 wide).
     RECT rect = {15, 0, 385, 200};
-    int titleHeight = BoxSurface(surface)->Text(title_, &rect, 2, 0, 0x411, 1);
+    int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
     rect = RECT{15, 0, 385, 400};
-    int textHeight = BoxSurface(surface)->Text(text_, &rect, font, 0, 0x411, 1);
+    int textHeight = BoxText(surface, text_, &rect, font, 0, 0x411, 1);
     // An edit field takes one line of the font (the extent of "A").
     if (flags_ & 4)
         textHeight =
-            reinterpret_cast<BoxMetricsAt*>(interface_)->TextExtent(mfc::CString(GameText(0x00787BA4)), font).cy;
+            TextExtent(interface_, mfc::CString(GameText(0x00787BA4)), font).cy;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 35, 385, 450};
-    BoxSurface(surface)->Text(title_, &rect, 2, 0x31B3FF, 0x11, 1);
+    BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
     if (flags_ & 4) {
         void* memory = gamecrt::operator_new(0x17C);
         edit_ = memory ? EditConstruct(memory, nullptr, interface_,
@@ -599,9 +577,9 @@ void CMessageBox::Build() {
         AddChild(edit_);
     } else {
         rect = RECT{15, top + titleHeight - 20, 385, 450};
-        BoxSurface(surface)->Text(text_, &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
+        BoxText(surface, text_, &rect, font, 0xA7D7E4, static_cast<int>(format_ | 0x10), 1);
     }
-    BoxSurface(surface)->End();
+    SurfaceReleaseDC(surface);
 
     int bottom = top + height + 0x3C;
     Shade(this, 3.0f, 200.0f, static_cast<float>(top), 600.0f, static_cast<float>(bottom));
@@ -633,40 +611,39 @@ void CDifficultyBox::Build() {
     LoadTexture(GameText(0x00793380), 3, 0);   // "saveload"
     CUiSurface* surface = NewSurface(interface_, 200, 100, 600, 500);
     AddSurface(surface);
-    BoxSurface(surface)->Begin();
+    SurfaceGetDC(surface);
     // Measure the title (font 2) and the explanation (font 1, DT_CALCRECT | DT_WORDBREAK).
     RECT rect = {15, 0, 385, 200};
-    int titleHeight = BoxSurface(surface)->Text(title_, &rect, 2, 0, 0x411, 1);
+    int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
     mfc::CString explanation;
     int textHeight = 0;
     if (reinterpret_cast<UiTexts*>(Texts())->Find(GameText(0x0079429C)) != 0) {   // "tip option_difficulty"
         Texts()->ReadToHash(&explanation, 1);
         explanation.TrimRight(GameText(0x0078DD00));   // CR LF
         rect = RECT{15, 0, 385, 300};
-        textHeight = BoxSurface(surface)->Text(explanation, &rect, 1, 0, 0x410, 1);
+        textHeight = BoxText(surface, explanation, &rect, 1, 0, 0x410, 1);
     }
     int total = textHeight + titleHeight + 0x6C;
     int top = (0x226 - total) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 0x55, 385, 450};
-    BoxSurface(surface)->Text(title_, &rect, 2, 0x31B3FF, 0x11, 1);
+    BoxText(surface, title_, &rect, 2, 0x31B3FF, 0x11, 1);
     rect = RECT{15, titleHeight + top - 7, 385, 450};
-    BoxSurface(surface)->Text(explanation, &rect, 1, 0xA7D7E4, 0x10, 1);
+    BoxText(surface, explanation, &rect, 1, 0xA7D7E4, 0x10, 1);
 
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     mfc::CString easy;
     mfc::CString hard;
     Texts()->GetString(GameText(0x0079428C), &easy);   // "difficulty_easy"
     Texts()->GetString(GameText(0x0079427C), &hard);   // "difficulty_hard"
-    auto* metrics = reinterpret_cast<BoxMetricsAt*>(interface_);
-    SIZE easySize = metrics->TextExtent(easy, 2);
-    SIZE hardSize = metrics->TextExtent(hard, 2);
+    SIZE easySize = TextExtent(interface_, easy, 2);
+    SIZE hardSize = TextExtent(interface_, hard, 2);
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
     int row = titleHeight + top + 0x1E;   // layout y of the easy row (the surface starts at 100)
     rect = RECT{0xE6 - half, row - 100, 385, 450};
-    BoxSurface(surface)->Text(easy, &rect, 2, 0xA7D7E4, 0, 1);
+    BoxText(surface, easy, &rect, 2, 0xA7D7E4, 0, 1);
     rect = RECT{0xE6 - half, row - 0x4C, 385, 450};
-    BoxSurface(surface)->Text(hard, &rect, 2, 0xA7D7E4, 0, 1);
-    BoxSurface(surface)->End();
+    BoxText(surface, hard, &rect, 2, 0xA7D7E4, 0, 1);
+    SurfaceReleaseDC(surface);
     easy_ = 0;
 
     // The check boxes (texels 0xD1..0xE6 x 0x37..0x4C); the hard one checked (its texture shifted
@@ -707,7 +684,7 @@ namespace {
 // a separator; 0062C090 (RET 0xC, ECX unused) inserts a copy of a TitleLine before a list node.
 __declspec(naked) void __fastcall TitlesRemoveCr(mfc::CString*) EI_ORIGINAL(0x004461E0)
 __declspec(naked) CUiSurface* __fastcall TitlesScrollSurface(void*, void*, CInterface3D*, RECT*) EI_ORIGINAL(0x0065ED30)
-std::uint8_t* __cdecl TitlesDisplay() { return (std::uint8_t*)DisplayObject(); }
+CSceneRenderer* __cdecl TitlesDisplay() { return static_cast<CSceneRenderer*>(DisplayObject()); }
 __declspec(naked) void __fastcall TitlesPlay(void*, void*, const char*, int) EI_ORIGINAL(0x005DBA50)
 
 struct TitlesTokenizer {
@@ -761,7 +738,7 @@ void CCreditsScreen::Build() {
             TitlesTokenizer words{0, &line, GameText(0x0078DA40)};   // " "
             TitlesTokenStart(&words);
             TitleLine record = {};
-            record.text = reinterpret_cast<const char*>(EmptyStringData());
+            record.text = EmptyStringData();
             record.style = record.text;
             {
                 mfc::CString first(words.WordOrNull());
@@ -800,10 +777,8 @@ void CCreditsScreen::Build() {
         headerSurface_->Freeze(0, 0);
     }
     if (fromGame_) Glue(0x007AFEA4)->SetServer(0);
-    std::uint32_t kept;
-    std::memcpy(&kept, TitlesDisplay() + 0x14, 4);
-    savedDisplay_ = static_cast<int>(kept);
-    Put<std::uint32_t>(TitlesDisplay(), 0x14, 0);
+    savedDisplay_ = static_cast<int>(TitlesDisplay()->fogColour_);
+    TitlesDisplay()->fogColour_ = 0;
     TitlesPlay(&player_, nullptr,
                mfc::operator+(mfc::operator+(mfc::operator+(*Glue(0x007AFEA4)->Directory(), GameText(0x00784A4C)), name),
                               GameText(0x00794018)),   // "<folder>Movies\<name>.bik"

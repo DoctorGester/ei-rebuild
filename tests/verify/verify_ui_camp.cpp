@@ -423,8 +423,8 @@ static void __fastcall CampCloseVerify(CCampPages* self, void*) {
     std::uint32_t before = sum();
     self->Close();
     std::uint32_t after = sum();
-    bool ok = !self->heroes_ && !self->itemMade_ && !self->spellMade_ && before == after;
-    ei::verify::Check("CCampPages::Close", true, ok, "heroes %p item %p spell %p, records %08X -> %08X", self->heroes_,
+    bool ok = !self->heroes_.data && !self->itemMade_ && !self->spellMade_ && before == after;
+    ei::verify::Check("CCampPages::Close", true, ok, "heroes %p item %p spell %p, records %08X -> %08X", self->heroes_.data,
                       self->itemMade_, self->spellMade_, before, after);
 }
 EI_VERIFY(0x0060E6B0, CampCloseVerify, 0, s_unused);
