@@ -40,6 +40,8 @@ Notes on the inventory:
 
 ## 2. Text
 
+**Changed 2026-10-14 (user):** the native path does not use GDI at all, for metrics or glyphs, and need not be pixel-exact. N2 loads its own font (TrueType rasteriser plus a font metric-compatible with Times New Roman) and its layout also serves the text extent, so wrapping uses the same metrics as drawing. The GDI notes below describe the original behaviour to approximate.
+
 **Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts_[0..2]` with `CFont::CreatePointFont` 0070BBE5: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the pixel height of a 75-point font. So the font size depends on resolution, and WideScreen W4 will patch 005F4990+BF.
 - The console has its own point font (`console_window_create.cpp`); the debug panel has its own too.
 - All text is GDI: no bitmap fonts, quality left at its default, so the system's ClearType / smoothing setting decides the look.
