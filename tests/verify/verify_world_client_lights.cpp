@@ -38,7 +38,7 @@ struct LightState {
         ambient = client->frameAmbient_;
         skyAmbient = client->skyAmbient_;
         sun = client->frameSun_;
-        unknown6DC = client->unknown6DC_;
+        unknown6DC = client->lightingMark_;
         lastLit = LastLitHour();
         std::memcpy(colour, display->sun_->color_, sizeof(colour));
         direction = display->sun_->direction_;
@@ -48,7 +48,7 @@ struct LightState {
         client->frameAmbient_ = ambient;
         client->skyAmbient_ = skyAmbient;
         client->frameSun_ = sun;
-        client->unknown6DC_ = unknown6DC;
+        client->lightingMark_ = unknown6DC;
         LastLitHour() = lastLit;
         std::memcpy(display->sun_->color_, colour, sizeof(colour));
         display->sun_->direction_ = direction;

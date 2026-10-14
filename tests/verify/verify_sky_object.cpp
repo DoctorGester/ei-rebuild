@@ -58,8 +58,8 @@ EI_VERIFY(0x004D9DE0, SkyLightVerify, 0, s_skyLight);
 static CSkyObject* (__fastcall* s_construct)(CSkyObject*);
 static CSkyObject* __fastcall ConstructVerify(CSkyObject* self) {
     CSkyObject* result = self->Construct();
-    const bool ok = result == self && VtableOf(self) == CSkyObject::kVtableAddress && Empty(self->unknown_1E0) &&
-                    Empty(self->unknown_210) && self->unknown_98 == 0;
+    const bool ok = result == self && VtableOf(self) == CSkyObject::kVtableAddress && Empty(self->corners_) &&
+                    Empty(self->texCoords_) && self->figureOwner_ == 0;
     ei::verify::Check("CSkyObject::Construct", true, ok, "%p", static_cast<void*>(self));
     return result;
 }

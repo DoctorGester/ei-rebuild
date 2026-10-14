@@ -77,21 +77,21 @@ public:
     const MapEffect& Effect() const { return *reinterpret_cast<const MapEffect*>(&prototypeIndex_); }
 
     std::uint8_t prototypeIndex_;   // +0x1C copy of the index byte
-    std::uint8_t unknown_1D;        // +0x1D set to 0x10
-    std::uint16_t unknown_1E;
-    std::uint32_t unknown_20;       // +0x20 prototype +0x38
-    std::uint32_t unknown_24;       // +0x24 prototype +0x2C
-    std::uint32_t unknown_28;       // +0x28 prototype +0x28
-    std::uint32_t unknown_2C;
-    std::uint32_t unknown_30;       // +0x30 prototype +0x20
-    std::uint32_t unknown_34;       // +0x34 prototype +0x24
-    std::uint32_t unknown_38;       // +0x38 prototype +0x34
+    std::uint8_t effectPower_;      // +0x1D the effect record's power, set to 0x10
+    std::uint16_t unused_1E;
+    std::uint32_t duration_;        // +0x20 prototype +0x38
+    std::uint32_t damage_;          // +0x24 prototype +0x2C (float bits)
+    std::uint32_t radius_;          // +0x28 prototype +0x28 (float bits; the area)
+    std::uint32_t unused_2C;
+    std::uint32_t speed_;           // +0x30 prototype +0x20 (float bits; missile speed)
+    std::uint32_t range_;           // +0x34 prototype +0x24 (float bits)
+    std::uint32_t targetCount_;     // +0x38 prototype +0x34
     std::uint32_t targetFlags_;     // +0x3C low 16 bits: target restrictions (see CanAffect)
-    std::uint32_t unknown_40;       // +0x40 prototype +0x18
-    std::uint32_t unknown_44;       // +0x44 prototype +0x1C
+    std::uint32_t manaCost_;        // +0x40 prototype +0x18 (float bits)
+    std::uint32_t complexity_;      // +0x44 prototype +0x1C, +1 per modifier
     std::uint32_t price_;           // +0x48 prototype +0x0C (float, copied as a dword)
-    std::uint32_t unknown_4C;       // +0x4C prototype +0x3C
-    std::uint32_t unknown_50;       // +0x50 prototype +0x44
+    std::uint32_t prototypeField14_;  // +0x4C prototype +0x3C, only loaded and saved
+    std::uint32_t skillNeeded_;     // +0x50 prototype +0x44 plus the modifiers' +0x18
     std::int8_t modifiers_[8];      // +0x54 spell modifier index + 1 each, 0 ends the list
 };
 static_assert(offsetof(CSpell, prototypeIndex_) == 0x1C);
@@ -100,12 +100,12 @@ static_assert(sizeof(CSpell) == 0x5C);
 
 // The units CSpell::CanAffect inspects (class id 0x50). Only the fields read here.
 struct SpellTargetUnit {
-    std::uint8_t unknown_00[0xA4];
+    std::uint8_t unitHead[0xA4];    // CUnit's fields before +0xA4
     const char* prototypeName;      // +0xA4 e.g. "unhuma"
-    std::uint8_t unknown_A8[0x244 - 0xA8];
+    std::uint8_t unitMiddle[0x244 - 0xA8];  // CUnit's fields +0xA8..+0x243
     std::uint32_t relationsA;       // +0x244 \ a unit regards side s as hostile when both have
     std::uint32_t relationsB;       // +0x248 / bit s set (provisional reading)
-    std::uint32_t unknown_24C;
+    std::uint32_t player;           // +0x24C CUnit::player
     std::uint32_t side;             // +0x250
 };
 static_assert(offsetof(SpellTargetUnit, side) == 0x250);
@@ -113,15 +113,15 @@ static_assert(offsetof(SpellTargetUnit, side) == 0x250);
 // The damage a hit deals, filled by the spell effects and the weapon code. 0x3C bytes.
 struct DamageInfo {
     float typeWeights[7];       // +0x00 one weight per damage type
-    std::uint32_t unknown_1C;
-    std::uint32_t unknown_20;   // +0x20 FLT_MAX for spells
+    std::uint32_t weaponValue;  // +0x1C the weapon's +0x4C (0 unarmed); not read here
+    std::uint32_t attackRoll;   // +0x20 float bits against the defence; FLT_MAX for spells
     float amount;               // +0x24
     float multiplier;           // +0x28
-    int unknown_2C;             // +0x2C 6 for spells
-    int unknown_30;             // +0x30 0/1 depending on the spell
-    float unknown_34;           // +0x34 1.0
-    std::uint8_t unknown_38;
-    std::uint8_t unknown_39[3];
+    int location;               // +0x2C the body part aimed at; 6 (all) for spells
+    int hitKind;                // +0x30 0/1 by spell; non-zero: no hit direction (OnDamaged)
+    float backstabFactor;       // +0x34 above 1.0 for a backstab, else 1.0
+    std::uint8_t calledShot;    // +0x38
+    std::uint8_t unused_39[3];
 };
 static_assert(sizeof(DamageInfo) == 0x3C);
 
@@ -226,7 +226,7 @@ struct CSpellEffect {
     void Load(CStream* stream);
     void Save(CStream* stream);
 
-    std::uint8_t unknown_00[0x08];
+    std::uint8_t header[0x08];  // +0x00 vtable and reference count (the Projectile object)
     CWorldServer* world;        // +0x08
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit
     Vector3 position;           // +0x10
@@ -236,21 +236,21 @@ struct CSpellEffect {
     int state;                  // +0x30 0 casting, 1 missile, 2 lasting, else ends
     std::uint8_t spell_[0x18];  // +0x34 the CSpell (vtable .. +0x17 of it)
     std::uint32_t spellId;      // +0x4C prototype index << 16
-    std::uint32_t unknown_50;   // +0x50 the spell's +0x1C (index byte, ...)
+    std::uint32_t effectRecord; // +0x50 the spell's +0x1C (index byte, ...), a buff copies 0x14
     int targetCount;            // +0x54
     float damage;               // +0x58
     float radius;               // +0x5C
-    std::uint32_t unknown_60;
+    std::uint32_t unused_60;
     float speed;                // +0x64 the spell's +0x30: missile speed
-    std::uint8_t unknown_68[0x90 - 0x68];
+    std::uint8_t spellTail[0x90 - 0x68];  // +0x68 the spell's +0x34..+0x5B (Spell())
     CEngineObject* visual;      // +0x90 particle source, wall, lightning or missile (counted)
     CEngineObject* sound;       // +0x94 (counted)
     CEngineObject* light;       // +0x98 (counted)
     std::uint8_t footprintStamped;  // +0x9C
-    std::uint8_t unknown_9D[3];
+    std::uint8_t unused_9D[3];
     int timer;                  // +0xA0 ticks left in the next state
-    std::uint8_t unknown_A4;    // +0xA4 copied into the buff record; healing: skip when at full health
-    std::uint8_t unknown_A5[3];
+    std::uint8_t silentEnd;     // +0xA4 copied into the buff record; healing: skip when at full health
+    std::uint8_t unused_A5[3];
 
     CSpell* Spell() { return reinterpret_cast<CSpell*>(spell_); }
 };
@@ -506,24 +506,24 @@ public:
     Vector3 localPosition_;         // +0x28 the position in the space of the mesh being lit (005A7A70)
     Quaternion localRotation_;      // +0x34 identity
     Quaternion worldRotation_;      // +0x44 identity
-    std::uint8_t unknown_54[0x94 - 0x54];
+    std::uint8_t unused_54[0x94 - 0x54];
     int kind_;                      // +0x94 1 point, 3 directional
     float color_[3];                // +0x98 r, g, b
-    std::uint8_t unknown_A4[0xC8 - 0xA4];
+    std::uint8_t unused_A4[0xC8 - 0xA4];
     Vector3 pointPosition_;         // +0xC8 SetPoint's position
     Vector3 direction_;             // +0xD4 a directional light's (the sun's) direction
     float range_;                   // +0xE0
-    float unknown_E4;               // +0xE4 1.0 from the constructor
-    float unknown_E8;               // +0xE8 1.0 from the constructor
-    std::uint8_t unknown_EC[0xFC - 0xEC];
-    std::uint32_t unknown_FC;
+    float unused_E4;               // +0xE4 1.0 from the constructor
+    float unused_E8;               // +0xE8 1.0 from the constructor
+    std::uint8_t unused_EC[0xFC - 0xEC];
+    std::uint32_t unused_FC;
     float rangeSquared_;            // +0x100
     float inverseRangeSquared_;     // +0x104
     Vector3 localDirection_;        // +0x108 direction_ in the space of the mesh being lit (005A7A70)
     float litColors_[2][4];         // +0x114
 };
 static_assert(offsetof(CLight, kind_) == 0x94 && offsetof(CLight, pointPosition_) == 0xC8 &&
-              offsetof(CLight, unknown_FC) == 0xFC && sizeof(CLight) == 0x134);
+              offsetof(CLight, unused_FC) == 0xFC && sizeof(CLight) == 0x134);
 static_assert(offsetof(CLight, color_) == 0x98);
 static_assert(offsetof(CLight, rangeSquared_) == 0x100);
 static_assert(offsetof(CLight, litColors_) == 0x114);
@@ -558,11 +558,11 @@ public:
     // 23: 0068DAD0. CBaseManager::CreateObject, then flags_ bit 7 cleared (no null check).
     CEngineObject* CreateObject(int type, int id) override;
 
-    std::uint32_t unknown_B0[4];    // +0xB0
+    std::uint32_t unused_B0[4];    // +0xB0
     CEngineObject* held_;           // +0xC0 released by the destructor
-    std::uint32_t unknown_C4[2];
-    std::uint32_t unknown_CC;       // +0xCC
-    std::uint32_t unknown_D0;       // +0xD0 1
+    std::uint32_t unused_C4[2];
+    std::uint32_t unused_CC;       // +0xCC
+    std::uint32_t unused_D0;       // +0xD0 1
     stlp::list<int> litIds_;        // +0xD4
 };
 static_assert(offsetof(CLightFactory, held_) == 0xC0 && offsetof(CLightFactory, litIds_) == 0xD4 &&

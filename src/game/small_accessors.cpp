@@ -67,11 +67,11 @@ EI_REPLACE(0x00471AF0, SceneHelperSetVectorC);
 // ---- Effects --------------------------------------------------------------------------------------
 
 // 004981A0: the particle manager's own part of its constructor (the client world's manager set-up,
-// 00561E50, calls it after the base manager's): unknown_E4 cleared.
-void __fastcall ParticleManagerClearE4(CParticleManager* manager) {
-    manager->unknown_E4 = 0;
+// 00561E50, calls it after the base manager's): quietStart cleared.
+void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager) {
+    manager->quietStart = 0;
 }
-EI_REPLACE(0x004981A0, ParticleManagerClearE4);
+EI_REPLACE(0x004981A0, ParticleManagerClearQuietStart);
 
 // ---- Script commands' accessors -------------------------------------------------------------------
 

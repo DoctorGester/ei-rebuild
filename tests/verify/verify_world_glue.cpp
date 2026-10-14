@@ -171,11 +171,11 @@ static void __stdcall SetConstructionVariableVerify(std::uint32_t value) {
 }
 EI_VERIFY(0x00578560, SetConstructionVariableVerify, 0, s_unused);
 
-static void __stdcall SetUnknownE4E8Verify(int e4, float e8) {
-    GameSetUnknownE4E8(e4, e8);
-    ei::verify::Check("GameSetUnknownE4E8", true, true, "%d %g", e4, e8);
+static void __stdcall SetWeatherVerify(int e4, float e8) {
+    GameSetWeather(e4, e8);
+    ei::verify::Check("GameSetWeather", true, true, "%d %g", e4, e8);
 }
-EI_VERIFY(0x005786A0, SetUnknownE4E8Verify, 0, s_unused);
+EI_VERIFY(0x005786A0, SetWeatherVerify, 0, s_unused);
 
 static void __stdcall PassTimeVerify(float offset) {
     GamePassTime(offset);
@@ -345,6 +345,6 @@ EI_VERIFY(0x00578D70, SetMapEdgeFadeVerify, 0, s_unused);
 static void __stdcall StartLocalSessionVerify(std::uint8_t* player) {
     GameStartLocalSession(player);
     auto* view = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView());
-    ei::verify::Check("GameStartLocalSession", true, view->unknown_84 == 1 && view->partyTaken == 0, "");
+    ei::verify::Check("GameStartLocalSession", true, view->localSession == 1 && view->partyTaken == 0, "");
 }
 EI_VERIFY(0x005793E0, StartLocalSessionVerify, 0, s_unused);

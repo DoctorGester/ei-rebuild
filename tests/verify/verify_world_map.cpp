@@ -40,11 +40,11 @@ EI_VERIFY(0x0058B250, ResetZoneVerify, 0, s_unused);
 // factor is 1.
 static void __fastcall ResetStateVerify(CWorldServer* self, void*) {
     self->ResetState();
-    bool ok = self->unknown12D64_ == 0 && self->loaded_ == 0 && self->unknown88_ == 0x3F800000u &&
+    bool ok = self->sessionKind_ == 0 && self->loaded_ == 0 && self->weatherFactor_ == 0x3F800000u &&
               self->mapName_ && self->mapName_[0] == 0 && self->startPosition_.x == 0.0f &&
               self->startPosition_.y == 0.0f && self->startPosition_.z == 0.0f;
     for (const WorldAlarm& alarm : self->alarms_) ok = ok && alarm.active == 0 && alarm.time == 0;
-    ei::verify::Check("CWorldServer::ResetState", true, ok, "kind %d", self->unknown12D64_);
+    ei::verify::Check("CWorldServer::ResetState", true, ok, "kind %d", self->sessionKind_);
 }
 EI_VERIFY(0x0058B600, ResetStateVerify, 0, s_unused);
 
@@ -55,7 +55,7 @@ static void __fastcall TeardownZoneVerify(CWorldServer* self, void*) {
     PlayerIterator it;
     bool noPlayers = it.First(self->players_) == nullptr;
     bool ok = noPlayers && !self->projectiles_.head && self->timedObjects_.map.Size() == 0 &&
-              self->unknown12D64_ == 0 && self->gameResult_ == 0;
+              self->sessionKind_ == 0 && self->gameResult_ == 0;
     ei::verify::Check("CWorldServer::TeardownZone", true, ok, "players gone %d, timed %u", noPlayers,
                       static_cast<unsigned>(self->timedObjects_.map.Size()));
 }

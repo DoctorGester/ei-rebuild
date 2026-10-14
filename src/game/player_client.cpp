@@ -486,7 +486,7 @@ int CPlayerClient::OnPathMarker() {
                 ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kPathParticles));
             pathSource = reinterpret_cast<CEngineObject*>(source);
             source->Attach(walker);
-            source->unknown_11C = value;
+            source->typeParam = value;
             if (kind == 0) source->alpha = 1.0f;
             else if (kind == 1) source->alpha = 0.0f;
             else if (kind == 2) source->alpha = 2.0f;
@@ -923,7 +923,7 @@ int CPlayerClient::OnPartyState() {
     }
     IntSetClearOriginal(PartyIdSet());
 
-    static_cast<CWorldClient*>(player->ManagerContext())->unknown6E4_ = ReadDword(&in_);
+    static_cast<CWorldClient*>(player->ManagerContext())->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);
     otherUnitIds_.SetSize(others);
     for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);

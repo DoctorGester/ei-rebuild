@@ -249,7 +249,7 @@ void HitWhileTurning(CUnitServer* c) {
             c->keepHitDirection = 1;
             StepsCopyB(&c->savedQueue, nullptr, Queue(c));
             CtlPlaySteps(c, nullptr, &steps);
-            c->unknown_021 = 1;
+            c->animationHeld = 1;
         }
     }
     StepsDestroy(&steps);
@@ -281,7 +281,7 @@ void HitWhileMoving(CUnitServer* c) {
             std::uint32_t emote;
             std::memcpy(&emote, reinterpret_cast<const char*>(&step) + 1, 4);
             StepsEmote(&fall, nullptr, emote);
-        } else if (step.unknown_01 == 0xFF) {
+        } else if (step.variant == 0xFF) {
             std::uint32_t head;
             std::memcpy(&head, &step, 4);
             StepsAddStep(&fall, nullptr, head, step.duration);
@@ -526,8 +526,8 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, &position);
     } else if (blocked == kBlockedWait) {
-        if (c->stats.movementKind == 2) c->unknown_021 = 1;   // +0x240: the stats' +0x60
-        else c->unknown_020 = 1;
+        if (c->stats.movementKind == 2) c->animationHeld = 1;   // +0x240: the stats' +0x60
+        else c->frozen = 1;
         if (UnitOf(c)->obstacle != 0) SetObstacle(c, 0);
     }
     Exhaustion(c);

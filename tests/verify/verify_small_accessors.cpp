@@ -30,7 +30,7 @@ Vector3* __fastcall Vector3FromParts(Vector3* self, void*, float x, float y, flo
 void __fastcall SceneHelperSetVectorB(scene::SceneHelper* helper, void*, const Vector3* value);
 void __fastcall SceneHelperSetVectorA(scene::SceneHelper* helper, void*, const Vector3* value);
 void __fastcall SceneHelperSetVectorC(scene::SceneHelper* helper, void*, const Vector3* value);
-void __fastcall ParticleManagerClearE4(CParticleManager* manager);
+void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
 CEngineObject* __fastcall ScriptRefCompanion(const ScriptObjectRef* ref);
 void __fastcall ScriptObjectSetFlags(CEngineObject* object, void*, std::uint32_t bits);
 void __fastcall ScriptObjectClearFlags(CEngineObject* object, void*, std::uint32_t bits);
@@ -128,14 +128,14 @@ void __fastcall SetVectorCVerify(scene::SceneHelper* helper, void*, const Vector
 }
 
 // 004981A0: MOV DWORD PTR [ECX+0xE4],0 (10).
-void(__fastcall* s_clearE4)(CParticleManager*);
-void __fastcall ClearE4Verify(CParticleManager* manager) {
-    int saved = manager->unknown_E4;
-    s_clearE4(manager);
-    int expected = manager->unknown_E4;
-    manager->unknown_E4 = saved;
-    ParticleManagerClearE4(manager);
-    ei::verify::Check("particle manager constructor tail (004981A0)", expected, manager->unknown_E4, "");
+void(__fastcall* s_clearQuietStart)(CParticleManager*);
+void __fastcall ClearQuietStartVerify(CParticleManager* manager) {
+    int saved = manager->quietStart;
+    s_clearQuietStart(manager);
+    int expected = manager->quietStart;
+    manager->quietStart = saved;
+    ParticleManagerClearQuietStart(manager);
+    ei::verify::Check("particle manager constructor tail (004981A0)", expected, manager->quietStart, "");
 }
 
 // 004B9F50 / 004B9F60: MOV EAX,[ESP+4] (4), MOV EDX,[ECX+8] (3).
@@ -232,7 +232,7 @@ EI_VERIFY(0x00471A90, FromPartsVerify, 6, s_fromParts);
 EI_VERIFY(0x00471AB0, SetVectorBVerify, 6, s_setVectorB);
 EI_VERIFY(0x00471AD0, SetVectorAVerify, 6, s_setVectorA);
 EI_VERIFY(0x00471AF0, SetVectorCVerify, 6, s_setVectorC);
-EI_VERIFY(0x004981A0, ClearE4Verify, 10, s_clearE4);
+EI_VERIFY(0x004981A0, ClearQuietStartVerify, 10, s_clearQuietStart);
 EI_VERIFY(0x004B9F50, SetFlagsVerify, 7, s_setFlags);
 EI_VERIFY(0x004B9F60, ClearFlagsVerify, 7, s_clearFlags);
 EI_VERIFY(0x004B9F90, SetPositionVerify, 7, s_setPosition);

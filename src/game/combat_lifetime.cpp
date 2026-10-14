@@ -55,8 +55,8 @@ void InitAction(UnitAction& action) {
     action.kind = 9;
     action.flag18 = 0;
     ActionClear(&action);
-    action.unknown_1C = 0;
-    action.unknown_20 = 0;
+    action.param = 0;
+    action.modifier = 0;
 }
 
 // The empty CList of counted object references the memory keeps (00556C80 with blocks of 10).
@@ -147,7 +147,7 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     animation.extra = -1;
     targetId = -1;
     startTime = start;
-    unknown_2C = 1;
+    hitLocation = 1;
     rangeSq = kNoRange;
     isCast = 0;
     notSkill = 0;

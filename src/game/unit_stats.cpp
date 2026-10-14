@@ -182,11 +182,11 @@ std::uint32_t __fastcall ResetDamageInfo(DamageInfo* info) {
     std::memset(info, 0, 0x3C);
     for (float& weight : info->typeWeights) weight = kOne;
     info->multiplier = kOne;
-    info->unknown_1C = 0;
-    info->unknown_20 = kLarge;
+    info->weaponValue = 0;
+    info->attackRoll = kLarge;
     std::memcpy(&info->amount, &kLarge, sizeof(kLarge));
-    info->unknown_2C = 6;
-    info->unknown_30 = 0;
+    info->location = 6;
+    info->hitKind = 0;
     return kLarge;
 }
 EI_REPLACE(0x00522B40, ResetDamageInfo);

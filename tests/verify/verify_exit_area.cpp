@@ -70,8 +70,8 @@ void __fastcall ExitReadVerify(ZoneExit* self, void*, CStream* stream) {
     StreamMark mine = Mark(stream);
     bool ok = std::memcmp(scratch, self, offsetof(ZoneExit, target)) == 0 &&
               std::strcmp(scratch->target, self->target) == 0 &&
-              std::memcmp(&scratch->entrance, &self->entrance, offsetof(ZoneExit, unknown_34) - offsetof(ZoneExit, entrance)) == 0 &&
-              scratch->unknown_34 == self->unknown_34 && scratch->unknown_38 == self->unknown_38 &&
+              std::memcmp(&scratch->entrance, &self->entrance, offsetof(ZoneExit, hasDeployAngle) - offsetof(ZoneExit, entrance)) == 0 &&
+              scratch->hasDeployAngle == self->hasDeployAngle && scratch->deployAngle == self->deployAngle &&
               end.position == mine.position && end.ok == mine.ok;
     ei::verify::Check("ZoneExit::Read", true, ok, "\"%s\" version %u", self->target, stream->version_);
     scratchTarget->~CString();

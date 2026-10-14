@@ -158,10 +158,10 @@ int CParticleSource::EmitCasting(Particle* p, int) {
     p->velocity.z = Store(inverse * D(z));
     ParticleElement* state = elements;
     double reach = D(*ElementFloat(state, 0x18)) * D(EI_POINT_SIX);
-    p->unknown_2C = Store(reach);
-    p->unknown_30 = Store(reach * D(type_ == 0x202A ? EI_TWENTY_SIXTH : EI_THIRTEENTH));
-    std::memcpy(&p->unknown_34, ElementFloat(state, 0x0C), sizeof(float));
-    double r = D(p->unknown_2C);
+    p->aux0 = Store(reach);
+    p->aux1 = Store(reach * D(type_ == 0x202A ? EI_TWENTY_SIXTH : EI_THIRTEENTH));
+    std::memcpy(&p->aux2, ElementFloat(state, 0x0C), sizeof(float));
+    double r = D(p->aux0);
     float ox = Store(r * D(p->velocity.x));
     float oy = Store(r * D(p->velocity.y));
     double oz = r * D(p->velocity.z);
@@ -173,7 +173,7 @@ int CParticleSource::EmitCasting(Particle* p, int) {
     p->pos.x = Store(px);
     p->pos.z = pz;
     p->size = Store((Unsigned(Next()) * EI_SCALE_0_4_HI + D(EI_POINT_SIX)) * D(*ElementFloat(state, 0x1C)) *
-                    D(p->unknown_2C));
+                    D(p->aux0));
     return 1;
 }
 EI_REPLACE_METHOD(0x004918E0, CParticleSource::EmitCasting);
@@ -200,9 +200,9 @@ int CParticleSource::UpdateCasting(Particle* p) {
     p->color = (static_cast<std::uint32_t>(fade) << 24) | 0xFFFFFF;
     if (type_ == 0x2027 && (life & 3) == 0) ++p->frame;
     double oldSize = D(p->size);
-    double reach = D(p->unknown_2C) - D(p->unknown_30);
+    double reach = D(p->aux0) - D(p->aux1);
     --p->frame;
-    p->unknown_2C = Store(reach);
+    p->aux0 = Store(reach);
     float ox = Store(reach * D(p->velocity.x));
     float oy = Store(reach * D(p->velocity.y));
     double oz = reach * D(p->velocity.z);
@@ -464,15 +464,15 @@ void PlaceRings(CParticleSource* s, int countdown) {
             angle = Store(D(angle) + D(step));
         }
     }
-    SetBits(&s->unknown_12C, 0);
+    SetBits(&s->emitState, 0);
 }
 
 // The flame phase: one flame per ring (state = the ring), then one call that only ends the phase
 // (result 0). False once the phase is over.
 bool EmitRingFlame(CParticleSource* s, Particle* p, int& result) {
-    int emitted = static_cast<int>(Bits(&s->unknown_12C));
+    int emitted = static_cast<int>(Bits(&s->emitState));
     if (emitted > s->elementCount) return false;
-    SetBits(&s->unknown_12C, static_cast<std::uint32_t>(emitted + 1));
+    SetBits(&s->emitState, static_cast<std::uint32_t>(emitted + 1));
     if (emitted == s->elementCount) {
         result = 0;
         return true;
@@ -987,8 +987,8 @@ int CParticleSource::EmitLink(Particle* p, int) {
     double reach = x87::fsqrt(D(b) * D(b) + D(a) * D(a));
     float reachRounded = Store(reach);
     double twist = reach * D(EI_LINK_TWIST);
-    p->unknown_2C = Store(x87::fcos(twist));
-    p->unknown_30 = Store(x87::fsin(twist));
+    p->aux0 = Store(x87::fcos(twist));
+    p->aux1 = Store(x87::fsin(twist));
     Vector3 start;
     start.Construct(Store(D(p->velocity.x) + D(origin.x)), Store(D(origin.y) + D(p->velocity.y)),
                     Store(D(origin.z) + D(p->velocity.z)));
@@ -1020,8 +1020,8 @@ int CParticleSource::UpdateLink(Particle* p) {
     float along = Store(travelled * D(*ElementFloat(e, 0x1C)));
     if (travelled > D(*ElementFloat(e, 0x18))) return 0;
 
-    double c = D(p->unknown_2C);
-    double s = D(p->unknown_30);
+    double c = D(p->aux0);
+    double s = D(p->aux1);
     double turnedY = D(p->velocity.y) * c + D(p->velocity.x) * s;
     double turnedX = c * D(p->velocity.x) - D(p->velocity.y) * s;
     p->velocity.x = Store(turnedX);
@@ -1113,8 +1113,8 @@ const std::int32_t* BlastAlpha() { return reinterpret_cast<const std::int32_t*>(
 // A flame's size and frame timing: the size from the fragments' radius, the frame step random.
 void BlastFlameTiming(CParticleSource* s, Particle* p) {
     double jitter = Unsigned(Next()) * EI_BLAST_SCALE_0_4 + D(EI_BLAST_POINT_EIGHT);
-    p->unknown_2C = Store(D(*ElementFloat(s->elements, 0x18)) * D(s->size) * jitter * D(EI_BLAST_FLAME_SIZE));
-    p->unknown_30 = Store(static_cast<double>(p->frame));
+    p->aux0 = Store(D(*ElementFloat(s->elements, 0x18)) * D(s->size) * jitter * D(EI_BLAST_FLAME_SIZE));
+    p->aux1 = Store(static_cast<double>(p->frame));
 }
 
 } // namespace
@@ -1240,14 +1240,14 @@ int CParticleSource::UpdateBlast(Particle* p) {
     ++p->life;
     p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
     p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
-    double flameSize = D(p->unknown_2C);
+    double flameSize = D(p->aux0);
     p->size = Store(flameSize);
     p->size = Store(flameSize * D(frame > 7 ? EI_BLAST_SWELL_LATE : EI_BLAST_SWELL_EARLY));
     float* step = ParticleFloat(p, 0x34);
-    p->unknown_30 = Store(D(p->unknown_30) + D(*step));
+    p->aux1 = Store(D(p->aux1) + D(*step));
     *step = Store(D(*step) * D(EI_BLAST_FRAME_ACCEL));
-    p->frame = x87::fistp(p->unknown_30);
-    std::memcpy(&p->unknown_2C, &p->size, sizeof(float));
+    p->frame = x87::fistp(p->aux1);
+    std::memcpy(&p->aux0, &p->size, sizeof(float));
     double drag = D(*ElementFloat(elements, 0x20)) - D(EI_BLAST_DRAG);
     p->velocity.x = Store(drag * D(p->velocity.x));
     p->velocity.y = Store(drag * D(p->velocity.y));
@@ -1549,7 +1549,7 @@ int CParticleSource::EmitShower(Particle* p, int) {
     b = Store(D(b) + D(ray.pos.y));
     c = Store(D(c) + D(ray.pos.z));
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
-    std::memcpy(&p->size, &unknown_11C, sizeof(float));
+    std::memcpy(&p->size, &typeParam, sizeof(float));
     a = Store(D(scale) * ax);
     b = Store(D(scale) * D(b));
     c = Store(D(scale) * D(c));
@@ -2168,8 +2168,8 @@ int CParticleSource::EmitTornado(Particle* p, int) {
     float high = Store(EI_FUNNEL_PI);
     float low = Store(-EI_FUNNEL_PI);
     std::uint32_t r = Next();
-    SetBits(&p->unknown_30, 0x3DCCCCCD);     // 0.1
-    p->unknown_2C = height01;
+    SetBits(&p->aux1, 0x3DCCCCCD);     // 0.1
+    p->aux0 = height01;
     float angle = Store(Unsigned(r) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low));
     double w = D(EI_P_ONE) - D(height01);
     float wRounded = Store(w);
@@ -2202,10 +2202,10 @@ EI_REPLACE_METHOD(0x00489F70, CParticleSource::EmitTornado);
 // their height (faster and faster), fade in, fade by the height, and animate.
 int CParticleSource::UpdateTornado(Particle* p) {
     if (--p->life == 0) return 0;
-    p->unknown_2C = Store(D(p->unknown_2C) + D(p->drift.z));
+    p->aux0 = Store(D(p->aux0) + D(p->drift.z));
     p->drift.z = Store(D(p->drift.z) + D(EI_FUNNEL_RISE));
-    if (p->unknown_2C > 1.0f) return 0;
-    double scaled = D(p->unknown_2C) * D(EI_FUNNEL_PI_F);
+    if (p->aux0 > 1.0f) return 0;
+    double scaled = D(p->aux0) * D(EI_FUNNEL_PI_F);
     float cx;
     double cy = FunnelCentre(this, scaled, cx);
     p->velocity.x = Store(D(p->velocity.x) + D(p->drift.x));
@@ -2217,10 +2217,10 @@ int CParticleSource::UpdateTornado(Particle* p) {
     p->pos.y = Store(x87::fcos(D(angle)) * D(radius) + D(origin.y) + cy);
     double base = D(elements[0].pos.z) + D(origin.z);
     p->pos.z = Store(base);
-    p->pos.z = Store(D(*ElementFloat(elements, 0x24)) * D(p->unknown_2C) + base);
-    if (p->life > 8) p->unknown_30 = PickIfLess(Store(D(p->unknown_30) + D(EI_FUNNEL_FADE)), 1.0f);
-    else p->unknown_30 = !(0.1f >= p->unknown_30) ? p->unknown_30 : 0.1f;
-    int a = x87::fistp(Store(x87::fsqrt(D(EI_P_ONE) - D(p->unknown_2C)) * D(p->unknown_30) * EI_FUNNEL_ALPHA));
+    p->pos.z = Store(D(*ElementFloat(elements, 0x24)) * D(p->aux0) + base);
+    if (p->life > 8) p->aux1 = PickIfLess(Store(D(p->aux1) + D(EI_FUNNEL_FADE)), 1.0f);
+    else p->aux1 = !(0.1f >= p->aux1) ? p->aux1 : 0.1f;
+    int a = x87::fistp(Store(x87::fsqrt(D(EI_P_ONE) - D(p->aux0)) * D(p->aux1) * EI_FUNNEL_ALPHA));
     p->color = (p->color & 0xFFFFFF) | (static_cast<std::uint32_t>(a) << 24);
     if (p->state != 0) {
         p->frame = (p->frame + 1) % 12;
@@ -2418,7 +2418,7 @@ int CParticleSource::EmitCylinder(Particle* p, int) {
     p->velocity.x = Store(D(a) + D(e.pos.x));
     p->velocity.y = Store(D(b) + D(e.pos.y));
     p->velocity.z = Store(c + D(e.pos.z));
-    std::memcpy(&p->unknown_2C, step, sizeof(Vector3));
+    std::memcpy(&p->aux0, step, sizeof(Vector3));
     double px = D(p->velocity.x) + D(origin.x);
     float py = Store(D(origin.y) + D(p->velocity.y));
     float pz = Store(D(origin.z) + D(p->velocity.z));
@@ -2456,7 +2456,7 @@ int CParticleSource::UpdateCylinder(Particle* p) {
     int life = --p->life;
     if (life <= 0) return 0;
     p->color = (static_cast<std::uint32_t>(CylinderAlpha()[life]) << 24) | 0xFFFFFF;
-    float* step = &p->unknown_2C;
+    float* step = &p->aux0;
     p->velocity.x = Store(D(p->velocity.x) + D(step[0]));
     p->velocity.y = Store(D(step[1]) + D(p->velocity.y));
     p->velocity.z = Store(D(step[2]) + D(p->velocity.z));
@@ -2641,9 +2641,9 @@ int CParticleSource::EmitArrowSmoke(Particle* p, int index) {
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
     SetBits(&p->size, 0x3F800000);
     float t;
-    if (index == 0 && Bits(&unknown_12C) == 0) {
+    if (index == 0 && Bits(&emitState) == 0) {
         p->size = Store(D(size) * D(EI_ARROW_HEAD));
-        SetBits(&unknown_12C, 1);
+        SetBits(&emitState, 1);
         SetBits(&t, 0);
         p->state = 2;
         p->frame = 0;
@@ -2844,9 +2844,9 @@ int CParticleSource::EmitPortal(Particle* p, int) {
     p->pos.y = Store(D(y) + D(origin.y));
     p->pos.z = Store(D(origin.z));
     SetBits(&p->size, 0);
-    p->unknown_30 = y;
+    p->aux1 = y;
     *ParticleFloat(p, 0x34) = Store((D(EI_PORTAL_TWO) - D(spread)) * D(EI_PORTAL_SHRINK));
-    p->unknown_2C = Store(x);
+    p->aux0 = Store(x);
     float spin = Store(D(radius) / D(EI_PORTAL_RADIUS) * D(EI_PORTAL_SPIN));
     if (Unsigned(Next()) * EI_P_SCALE_1 > D(spread)) {
         p->frame = static_cast<int>(Next() % 11) + 4;
@@ -3070,8 +3070,8 @@ int CParticleSource::EmitClayRing(Particle* p, int index) {
     float sx = Store(Unsigned(Next()) * EI_CLAY_SCATTER_SCALE - D(EI_CLAY_SCATTER_LOW));
     float sy = Store(Unsigned(Next()) * EI_CLAY_SCATTER_SCALE - D(EI_CLAY_SCATTER_LOW));
     float sz = Store(Unsigned(Next()) * EI_CLAY_SCATTER_SCALE - D(EI_CLAY_SCATTER_LOW));
-    p->unknown_2C = sy;
-    p->unknown_30 = sx;
+    p->aux0 = sy;
+    p->aux1 = sx;
     *ParticleFloat(p, 0x34) = sz;
     std::memcpy(&p->pos, previous, sizeof(Vector3));
     SetBits(&p->size, 0x3DCCCCCD);     // 0.1
@@ -3093,7 +3093,7 @@ int CParticleSource::UpdateClayRing(Particle* p) {
         if (++p->frame >= frameCount) return 0;
         p->frameTimer = frameDelay;
     }
-    float* scatter = &p->unknown_2C;
+    float* scatter = &p->aux0;
     for (int i = 0; i < 3; ++i) scatter[i] = Store(D(scatter[i]) * D(EI_CLAY_SLOW));
     double oldSize = D(p->size);
     double px = D(p->velocity.x) + D(scatter[0]);
@@ -3472,7 +3472,7 @@ int CParticleSource::UpdateZoneExit(Particle* p) {
     p->life = --life;
     if (life < 0) return 0;
     p->pos.z = Store(D(p->pos.z) + D(GameFloat(0x0073C52C)));
-    p->unknown_2C = Store(D(p->unknown_2C) * D(GameFloat(0x0073CD70)));
+    p->aux0 = Store(D(p->aux0) * D(GameFloat(0x0073CD70)));
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
     std::memcpy(&p->size, &p->velocity.x, sizeof(float));
     return 1;
@@ -3553,7 +3553,7 @@ int CParticleSource::UpdateFeetCloud(Particle* p) {
         p->life = life;
     }
     p->color = (static_cast<std::uint32_t>(FeetAlpha()[life]) << 24) + static_cast<std::uint32_t>(lifetime);
-    float* offset = &p->unknown_2C;
+    float* offset = &p->aux0;
     offset[0] = Store(D(p->drift.x) + D(offset[0]));
     offset[1] = Store(D(p->drift.y) + D(offset[1]));
     offset[2] = Store(D(p->drift.z) + D(offset[2]));
@@ -3627,9 +3627,9 @@ int CParticleSource::EmitSilence(Particle* p, int) {
         SetBits(&p->size, 0);
         float start = particles.count != 0 ? GameFloat(0x0073B858) : GameFloat(0x0073CF80);    // 0 / pi
         p->velocity.x = start;
-        p->unknown_2C = start;
+        p->aux0 = start;
         SetBits(&p->velocity.y, 0x3DCCCCCD);     // 0.1
-        SetBits(&p->unknown_30, 0x3DF5C28F);     // 0.12
+        SetBits(&p->aux1, 0x3DF5C28F);     // 0.12
         SetBits(ParticleFloat(p, 0x34), 0x3F800000);
         p->state = 1;
         return 1;
@@ -3710,7 +3710,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     double c = x87::fcos(D(p->velocity.x));
     p->color = 0xFFFFFFFF;
     float sn = Store(x87::fsin(D(p->velocity.x)));
-    double hu = x87::fsin(D(p->unknown_2C)) * GameDouble(0x0073CC88);    // * 0.5
+    double hu = x87::fsin(D(p->aux0)) * GameDouble(0x0073CC88);    // * 0.5
     float h = Store(hu);
     double length = x87::fsqrt(hu * D(h) + D(sn) * D(sn) + c * c);
     double ku = radius / length;
@@ -3730,7 +3730,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     p->drift.z = Store(z - D(p->pos.z));
     p->pos.z = Store(z);
     p->velocity.x = Store(D(p->velocity.y) + D(p->velocity.x));
-    p->unknown_2C = Store(D(p->unknown_30) + D(p->unknown_2C));
+    p->aux0 = Store(D(p->aux1) + D(p->aux0));
     p->size = Store((Unsigned(Next()) * GameDouble(0x0073CED8) + D(GameFloat(0x0073CD70))) * D(size) *
                     D(GameFloat(0x0073CF88)));    // (0.9 + [0, 0.2)) * size * 0.22
     return 1;
@@ -3773,7 +3773,7 @@ int CParticleSource::UpdateModifier(Particle* p) {
         if (++p->frame >= frameCount) p->frame = 12;
         p->frameTimer = frameDelay;
     }
-    float* spread = &p->unknown_2C;
+    float* spread = &p->aux0;
     double slow = D(GameFloat(0x0073CD70));    // 0.9
     for (int i = 0; i < 3; ++i) spread[i] = Store(D(spread[i]) * slow);
     double oldSize = D(p->size);
@@ -3832,31 +3832,31 @@ int CParticleSource::UpdateLightning(Particle* p) {
         if (p->frameTimer != 0) {
             if (ZeroOrNaN(p->size)) {
                 emitCount = 50;
-                std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+                std::memcpy(&p->size, &p->aux0, sizeof(float));
                 return 1;
             }
             SetBits(&p->size, 0);
             return 0;
         }
         std::memcpy(&p->pos, &elements[p->state - 1].pos, sizeof(Vector3));
-        std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+        std::memcpy(&p->size, &p->aux0, sizeof(float));
         return 1;
     }
     p->color = (static_cast<std::uint32_t>(LightningAlpha()[life]) << 22) | 0xFFFFFF;
     if (p->frameTimer != 0) {
-        double shrunk = D(p->unknown_2C) * D(GameFloat(0x0073CD70));
+        double shrunk = D(p->aux0) * D(GameFloat(0x0073CD70));
         ++p->frame;
         std::memcpy(&p->pos, &p->velocity, sizeof(Vector3));
-        std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
-        p->unknown_2C = Store(shrunk);
+        std::memcpy(&p->size, &p->aux0, sizeof(float));
+        p->aux0 = Store(shrunk);
         return 1;
     }
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
     p->pos.x = Store(D(p->drift.x) + D(p->pos.x));
     p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
-    std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+    std::memcpy(&p->size, &p->aux0, sizeof(float));
     p->pos.z = Store(D(p->drift.z) + D(p->pos.z));
-    p->unknown_2C = Store(D(p->unknown_2C) * D(GameFloat(0x0073CD70)));
+    p->aux0 = Store(D(p->aux0) * D(GameFloat(0x0073CD70)));
     double slow = D(GameFloat(0x0073CDE0));    // 0.6
     p->drift.x = Store(D(p->drift.x) * slow);
     p->drift.y = Store(D(p->drift.y) * slow);
@@ -3906,7 +3906,7 @@ int CParticleSource::EmitTeleport(Particle* p, int) {
     SetBits(&p->size, 0);
     p->pos.z = Store((Unsigned(Next()) * GameDouble(0x0073CD58) - D(GameFloat(0x0073B868))) * D(magnitude) +
                      D(p->pos.z));    // [-0.4, -0.2) * |size|
-    p->unknown_2C = Store((D(GameFloat(0x0073CDB8)) - D(spread)) * D(GameFloat(0x0073BAD4)));    // (2 - spread) / 5
+    p->aux0 = Store((D(GameFloat(0x0073CDB8)) - D(spread)) * D(GameFloat(0x0073BAD4)));    // (2 - spread) / 5
     if (Unsigned(Next()) * EI_P_SCALE_1 > D(spread)) {
         p->frame = static_cast<int>(Next() % 12) + 4;
     } else {
@@ -3946,7 +3946,7 @@ int CParticleSource::UpdateTeleport(Particle* p) {
     if (life == 1) {
         SetBits(&p->size, 0);
     } else {
-        std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+        std::memcpy(&p->size, &p->aux0, sizeof(float));
     }
     std::uint32_t a = (p->color >> 24) + static_cast<std::uint32_t>(p->state);
     if (a >= 0xFF) a = 0xFF;
@@ -4090,7 +4090,7 @@ int CParticleSource::EmitStartTrans(Particle* p, int) {
         p->drift.x = Store(D(nx) / D(ticks));
         p->drift.y = Store(D(ny) / D(ticks));
         p->drift.z = Store(D(nz) / D(ticks));
-        p->unknown_2C = Store(D(size) * D(GameFloat(0x0073C52C)));    // 0.05
+        p->aux0 = Store(D(size) * D(GameFloat(0x0073C52C)));    // 0.05
     }
     p->color = 0xFFFFFF;
     SetBits(&p->size, 0);
@@ -4124,7 +4124,7 @@ int CParticleSource::UpdateStartTrans(Particle* p) {
     p->frame = (p->frame & ~3) | ((p->frame + 1) & 3);
     p->pos.x = Store(D(p->drift.x) + D(p->pos.x));
     p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
-    std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+    std::memcpy(&p->size, &p->aux0, sizeof(float));
     p->pos.z = Store(D(p->drift.z) + D(p->pos.z));
     p->color = (static_cast<std::uint32_t>(TransAlpha()[p->life]) << 24) | 0xFFFFFF;
     return 1;
@@ -4241,9 +4241,9 @@ int CParticleSource::EmitGroundDust(Particle* p, int index) {
     p->frame = 15;
     p->velocity.y = b;
     SetBits(&p->velocity.z, 0);
-    SetBits(&p->unknown_2C, 0x3D8F5C29);     // 0.07
+    SetBits(&p->aux0, 0x3D8F5C29);     // 0.07
     p->color = static_cast<std::uint32_t>(*ElementInt(elements, 0x30));
-    SetBits(&p->unknown_30, 0x3F800000);
+    SetBits(&p->aux1, 0x3F800000);
     return 1;
 }
 EI_REPLACE_METHOD(0x00493300, CParticleSource::EmitGroundDust);
@@ -4296,7 +4296,7 @@ int CParticleSource::EmitGlow(Particle* p, int index) {
         }
     }
     if (!unit) return 0;
-    if (static_cast<double>(index) > D(unknown_11C)) return 0;
+    if (static_cast<double>(index) > D(typeParam)) return 0;
     Vector3 scratch;
     Vector3 point = *UnitPoint(unit, &scratch, index + *reinterpret_cast<const int*>(0x007AF61C));
     float* mark = ElementFloat(elements, 0x18);

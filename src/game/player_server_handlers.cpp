@@ -466,7 +466,7 @@ int CPlayerServer::OnJoined() {
     if (state_ != 2) return 0;
     state_ = 1;
     CPlayer* player = Owner();
-    player->sessionKind100_ = static_cast<CWorldServer*>(player->ManagerContext())->unknown12D64_;
+    player->sessionKind100_ = static_cast<CWorldServer*>(player->ManagerContext())->sessionKind_;
     WorldServer()->Redeploy(reinterpret_cast<WorldPlayer*>(player), &placements_, 1);
     player->dirty_ |= kJoinedFlag;
     return 1;

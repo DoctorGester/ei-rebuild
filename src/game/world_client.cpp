@@ -225,9 +225,9 @@ void CWorldClient::CreateExitMarkers() {
         const ZoneExit& exit = exits_[i];
         source->position = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
-        source->unknown_11C = (exit.y2 - exit.y1) * kOneHalf;
-        source->unknown_120 = static_cast<float>(std::cos(static_cast<double>(exit.angle)));
-        source->unknown_124 = static_cast<float>(std::sin(static_cast<double>(exit.angle)));
+        source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
+        source->turnCos = static_cast<float>(std::cos(static_cast<double>(exit.angle)));
+        source->turnSin = static_cast<float>(std::sin(static_cast<double>(exit.angle)));
         for (int tick = 0; tick < kExitWarmUpTicks; ++tick) marker->RunTick();
     }
     UpdateExitMarkers();
@@ -407,7 +407,7 @@ int CWorldClient::Segment() {
     }
     if (shared5C_.ptr) static_cast<CWorldHandle*>(shared5C_.ptr)->Pump();
     if (handle_.ptr) static_cast<CWorldHandle*>(handle_.ptr)->Pump();
-    if (void* p = unknown60_) SessionPump(p, nullptr, net::GameClient());
+    if (void* p = netSession_) SessionPump(p, nullptr, net::GameClient());
     if (WorldSession* session = Session()) {
         CPlayerConnection* view = session->localView;
         if (!paused_) PlayerTickOriginal(session);
@@ -459,9 +459,9 @@ int CWorldClient::Segment() {
         RunEffects(footprints_, EffectListErase1);
         RunEffects(scorchMarks_, EffectListErase2);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
-            unknown1C4_ -= worlddata::WorldUpdatePeriod();
-            if (unknown1C4_ <= 0) {
-                unknown1C4_ = worlddata::LightLevelsPeriod();
+            lightLevelsCountdown_ -= worlddata::WorldUpdatePeriod();
+            if (lightLevelsCountdown_ <= 0) {
+                lightLevelsCountdown_ = worlddata::LightLevelsPeriod();
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
                 CLight* sun = worlddata::SceneSun();

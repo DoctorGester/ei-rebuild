@@ -62,7 +62,7 @@ static void __fastcall UpdateUnitsVerify(CWorldServer* self, void*) {
     for (int i = 0; i < sleeping.size && !what[0]; ++i)
         if (self->updateMap_.map.Find(sleeping.data[i])) std::snprintf(what, sizeof(what), "asleep %u still awake", sleeping.data[i]);
     ei::verify::Check("CWorldServer::UpdateUnits", true, what[0] == 0, "mode %d, %d asleep, %d removed: %s",
-                      self->unknown12D64_, sleeping.size, removed.size, what);
+                      self->sessionKind_, sleeping.size, removed.size, what);
 }
 EI_VERIFY(0x0058D670, UpdateUnitsVerify, 0, s_unused);
 

@@ -146,7 +146,7 @@ void CWorldServer::TakeZoneQuestItems(void* itemArray, void* listArg) {
         if (ItemAt(items, i)->GetClassId() != kClassQuestItem) continue;
         CEngineObject* item = ItemAt(items, i);
         itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(ItemGetPrototypeOriginal(reinterpret_cast<CItem*>(item)));
-        if (unknown12D64_ == kKindSinglePlayer && !IsMultiplayerClient()) {
+        if (sessionKind_ == kKindSinglePlayer && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName_);
             if (!here && !Contains(wanted, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_))) continue;
         }
@@ -163,7 +163,7 @@ void CWorldServer::TakeZoneQuestItems(void* itemArray, void* listArg) {
 void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
     ObjectList taken;
     InitList(taken);
-    if (unknown12D64_ != kKindNetwork) {
+    if (sessionKind_ != kKindNetwork) {
         ItemArray* items = &player->Party()->items_;
         if (IsMultiplayerClient()) {
             // A client takes everything back.
@@ -203,7 +203,7 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
 void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScripts) {
     if (!player) return;
     RestorePlayerItemsAt(this, nullptr, player);
-    if (!(unknown12D64_ == kKindSinglePlayer || unknown12D64_ == kKindNoRangeTest) || unknown15C_ == 0) return;
+    if (!(sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
     CParty* party = player->Party();
     RecordArray records{RecordArrayVtable(), nullptr, 0, 0, 0};
@@ -250,12 +250,12 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     std::memcpy(&lastZ, &state->lastPosition_.z, 4);
     if (lastZ != kNoStart) {
         std::memcpy(&state->lastPosition_, &start, sizeof(start));
-        PlayerSendPosition04Original(state, nullptr, &start, startValue, unknown12D64_);
+        PlayerSendPosition04Original(state, nullptr, &start, startValue, sessionKind_);
     }
     player->lastTick = tick_;
-    if (unknown12D64_ == kKindNoRangeTest) WorldUpdateMercBriefingsOriginal(this);
+    if (sessionKind_ == kKindNoRangeTest) WorldUpdateMercBriefingsOriginal(this);
     if (runScripts) {
-        unknown160_ = 1;
+        scriptsActive_ = 1;
         for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());
     }
     records.vtable = RecordArrayVtable();

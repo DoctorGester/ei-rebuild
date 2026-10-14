@@ -144,8 +144,8 @@ void ShowHead(CUnitServer* self) {
     AnimationSteps& queue = Queue(self);
     if (queue.count == 0) return;
     const AnimationStep& head = queue.steps[0];
-    if (head.animation != 0xFF || head.unknown_01 != 0xFF)
-        UnitSetAnimation(self->unit, nullptr, head.animation, head.unknown_01, QueueTime(self), head.unknown_02);
+    if (head.animation != 0xFF || head.variant != 0xFF)
+        UnitSetAnimation(self->unit, nullptr, head.animation, head.variant, QueueTime(self), head.flags);
 }
 
 void DropEffectObject(CUnitServer* self) {
@@ -177,17 +177,17 @@ int UnitModeOf(const MoveModeState& state) { return (state.wasMode3 & 1) ? 3 : s
 // code 00544D50 is and the idle builders inline.
 void AddEmote(AnimationSteps* steps, std::uint8_t value) {
     int count = steps->count;
-    if (count == 0 || steps->steps[count - 1].unknown_01 != 0xFF) {
+    if (count == 0 || steps->steps[count - 1].variant != 0xFF) {
         AnimationStep blank{};
         blank.animation = 0xFF;
-        blank.unknown_01 = 0xFF;
-        blank.unknown_02 = 0;
+        blank.variant = 0xFF;
+        blank.flags = 0;
         blank.duration = -1;
-        blank.unknown_08 = 0;
+        blank.kind = 0;
         StepsSetAtGrow(steps, nullptr, count, &blank);
     }
     AnimationStep& last = steps->steps[steps->count - 1];
-    last.unknown_01 = value;
+    last.variant = value;
     last.duration = -1;
 }
 
@@ -371,17 +371,17 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
             int duration = CtlAnimationDuration(this, nullptr, index);
             AnimationStep blank{};
             blank.animation = 0xFF;
-            blank.unknown_01 = 0xFF;
-            blank.unknown_02 = 0;
+            blank.variant = 0xFF;
+            blank.flags = 0;
             blank.duration = -1;
-            blank.unknown_08 = 0;
+            blank.kind = 0;
             StepsSetAtGrow(steps, nullptr, steps->count, &blank);
             AnimationStep& last = steps->steps[steps->count - 1];
             last.animation = index;
             last.duration = duration;
         }
     }
-    for (int i = 0; i < steps->count; ++i) steps->steps[i].unknown_08 = 2;
+    for (int i = 0; i < steps->count; ++i) steps->steps[i].kind = 2;
 }
 EI_REPLACE_METHOD(0x005511A0, CUnitServer::BuildMoveSteps);
 
@@ -418,7 +418,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
             std::uint32_t value;
             std::memcpy(&value, reinterpret_cast<const std::uint8_t*>(&step) + 1, 4);
             StepsEmote(&steps, nullptr, value);
-        } else if (step.unknown_01 == 0xFF) {
+        } else if (step.variant == 0xFF) {
             AnimationStep blank;
             StepsAdd(&steps, nullptr, StepBlank(&blank));
             AnimationStep& last = steps.steps[steps.count - 1];
@@ -438,7 +438,7 @@ EI_REPLACE_METHOD(0x00551400, CUnitServer::NextAnimation);
 
 void CUnitServer::StartAction(char follow, char stepFlags) {
     OrderPlan& plan = Plan(this);
-    for (int i = 0; i < plan.animation.count; ++i) plan.animation.steps[i].unknown_02 = static_cast<std::uint8_t>(stepFlags);
+    for (int i = 0; i < plan.animation.count; ++i) plan.animation.steps[i].flags = static_cast<std::uint8_t>(stepFlags);
     if (state < 0 || (state > 1 && state != kStateTurning)) {
         std::uint32_t key = CtlWeaponTypeMask(this) | CtlMoveModeMask(this, nullptr, &moveMode);
         if (IdleKey(this) == key) {
@@ -480,7 +480,7 @@ void CUnitServer::UpdateSneak() {
         std::uint32_t code = running == 1 ? 0x15 : 0x14;
         if ((code <= 0x29 || code == 0x30) && code != 0xFFFFFFFFu && unit->player)
             PlayerMessage(PlayerOf(unit)->connection_, nullptr, unit, static_cast<int>(code));
-        if (action.unknown_20 != 0) action.unknown_20 = 0;
+        if (action.modifier != 0) action.modifier = 0;
         moveMode2.wasMode3 = 0;
         int mode = moveMode2.mode;
         if (mode != unit->moveMode2) {
@@ -628,7 +628,7 @@ bool CUnitServer::PathTo(const float* point, float range) {
         current.vtable = kAnimationStepsVtable;
         StepsAppend(&current, nullptr, &Queue(this));
         current.extra = QueueTime(this);
-        if (current.count != 1 || moving.count != 1 || current.steps[0].unknown_01 != moving.steps[0].unknown_01) {
+        if (current.count != 1 || moving.count != 1 || current.steps[0].variant != moving.steps[0].variant) {
             StepsAppend(&Queue(this), nullptr, &moving);
             QueueTime(this) = moving.extra;
             StepsCopyB(&Queue(this), nullptr, &moving);
@@ -764,17 +764,17 @@ void CUnitServer::ResyncWithUnit() {
     if (action.target) action.target->Release();
     action.target = nullptr;
     action.flag18 = 0;
-    action.unknown_1C = 0;
-    action.unknown_20 = 0;
+    action.param = 0;
+    action.modifier = 0;
     if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {   // the first is always true
         action2.kind = kOrderNone;
         ReferenceRelease(&action2.target);
         action2.flag18 = 0;
-        action2.unknown_1C = 0;
-        action2.unknown_20 = 0;
+        action2.param = 0;
+        action2.modifier = 0;
         action2.kind = 0;
         ReferenceSet(&action2.target, nullptr, nullptr);
-        action2.unknown_20 = 0;
+        action2.modifier = 0;
     }
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
@@ -824,15 +824,15 @@ void CUnitServer::ResetController() {
     action.kind = kOrderNone;
     releaseRef(action.target);
     action.flag18 = 0;
-    action.unknown_1C = 0;
-    action.unknown_20 = 0;
+    action.param = 0;
+    action.modifier = 0;
     action2.kind = kOrderNone;
     releaseRef(action2.target);
     action2.flag18 = 0;
-    action2.unknown_1C = 0;
-    action2.unknown_20 = 0;
-    unknown_020 = 0;
-    unknown_021 = 0;
+    action2.param = 0;
+    action2.modifier = 0;
+    frozen = 0;
+    animationHeld = 0;
     StepsSetSize(&Queue(this), nullptr, 0, -1);
     QueueTime(this) = -1;
     PathClear(Motion(this));
@@ -842,7 +842,7 @@ void CUnitServer::ResetController() {
     plan.targetId = -1;
     plan.endTime = 0;
     plan.startTime = 0;
-    plan.unknown_2C = 1;
+    plan.hitLocation = 1;
     plan.rangeSq = kNoRange;
     plan.isCast = 0;
     plan.notSkill = 0;
@@ -870,17 +870,17 @@ void CUnitServer::ResetController() {
     action.kind = 0;
     action2.kind = kOrderNone;
     nextAttackTime = 0;
-    unknown_188 = 0;
-    unknown_18C = 0;
-    unknown_18D = 0;
+    interceptTime = 0;
+    orderStopped = 0;
+    deathReported = 0;
     followsLeader = 0;
     CEngineObject* waited = followedLeader;
     followedLeader = nullptr;
     if (waited) waited->Release();
-    unknown_18E = 0;
+    searchingTarget = 0;
     BrainResetAll(&brain);
     AlarmReset(&voice);
-    unknown_918 = nullptr;
+    aiPresence = nullptr;
     moveFactors[0] = 1.0f;
     moveFactors[2] = 1.0f;
     moveFactors[3] = 1.0f;
@@ -891,14 +891,14 @@ void CUnitServer::ResetController() {
     tamerSide = -1;
     speedClass = 0xF;
     claimedHostile = 0;
-    unknown_8F4 = 0.0f;
+    sinkSpeed = 0.0f;
     MoveKey(this) = 0x666DEAD;
     StepsSetSize(&MoveSteps(this), nullptr, 0, -1);
     MoveSteps(this).extra = -1;
     IdleKey(this) = 0x666DEAD;
     StepsSetSize(&IdleSteps(this), nullptr, 0, -1);
     IdleSteps(this).extra = -1;
-    unknown_938 = 0;
+    boredTicks = 0;
     // The armour spell list (+0x91C) emptied: each element's item released (00552B80, the
     // instantiation's DestructElements), then count, free list, tail, head and blocks cleared.
     for (auto* node = armourSpells.head; node; node = node->next)

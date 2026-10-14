@@ -120,14 +120,14 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         action2.kind = kOrderNone;
         ReferenceRelease(&action2.target);
         action2.flag18 = 0;
-        action2.unknown_1C = 0;
-        action2.unknown_20 = 0;
+        action2.param = 0;
+        action2.modifier = 0;
         action2.kind = 0;
         if (action2.target) {
             ReferenceRelease(&action2.target);
             action2.target = nullptr;
         }
-        action2.unknown_20 = 0;
+        action2.modifier = 0;
     }
     return 1;
 }

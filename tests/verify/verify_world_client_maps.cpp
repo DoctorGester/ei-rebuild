@@ -862,7 +862,7 @@ EI_VERIFY(0x0056D740, MarkFootprintsVerify, 7, s_markFootprints);
 // keeps the direction and the strength. The server's wind message (0x72).
 static void __fastcall ApplyWindVerify(CWorldClient* self, void*, const Vector3* direction, float strength) {
     self->ApplyWind(direction, strength);
-    bool ok = std::memcmp(self->unknown24_, direction, 12) == 0 && std::memcmp(&self->unknown30_, &strength, 4) == 0;
+    bool ok = std::memcmp(self->windDirection_, direction, 12) == 0 && std::memcmp(&self->windStrength_, &strength, 4) == 0;
     ei::verify::Check("CWorldClient::ApplyWind", true, ok, "strength %g", strength);
 }
 EI_VERIFY(0x00564190, ApplyWindVerify, 0, s_unused);
@@ -928,7 +928,7 @@ static int __fastcall LoadZoneVerify(CWorldClient* self, void*, CStream* block) 
     const char* allod = self->zoneName_;
     bool lower = allod && *allod;
     for (const char* c = allod; lower && *c; ++c) lower = !(*c >= 'A' && *c <= 'Z');
-    const bool ok = result == 1 && grids && prints && sky && lower && self->ticksRun_ == 0 && self->unknown6E4_ == 0 &&
+    const bool ok = result == 1 && grids && prints && sky && lower && self->ticksRun_ == 0 && self->partyDanger_ == 0 &&
                     self->exitCount_ >= 0 && (self->exitCount_ == 0 || self->exits_ != nullptr);
     ei::verify::Check("CWorldClient::LoadZone", true, ok, "result %d allod %s cave %d exits %d grid %ux%u (%d %d %d %d)",
                       result, allod ? allod : "(null)", self->cave_, self->exitCount_, width, height, grids, prints, sky,

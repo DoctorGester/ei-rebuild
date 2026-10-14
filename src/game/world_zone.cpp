@@ -183,7 +183,7 @@ int CWorldServer::LoadMobFile(const char* file) {
         int loaded = LoadMapObjects(file, 0);
         if (loaded == 0) {
             LoadingMobFile() = 0;
-            unknown15C_ = 0;
+            zoneLoaded_ = 0;
             return game::FatalError(Text(kCantLoadMob), file);
         }
     }

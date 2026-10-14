@@ -326,20 +326,20 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         UnitSetPrototype23CByName(AsUnit(unit), nullptr, record->texts[6]);
         line.Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
-        if (unknown12D64_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->moveMode2;
+        if (sessionKind_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->moveMode2;
         if (placement) {
             bool flagged = IsPassableForClassOriginal(aiMap_, nullptr, 1, &AsUnit(unit)->position);
             if (flagged) UnitSetPose(unit, nullptr, placement->value20, placement->value20);
             else AsUnit(unit)->moveMode2 = static_cast<int>(placement->value20);
         }
         ControllerReposition(controller, nullptr);
-        if (unknown12D64_ == kKindSinglePlayer || unknown12D64_ == kKindNoRangeTest)
+        if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest)
             AsUnit(unit)->pendingWeapon = static_cast<int>(record->weaponIndex);
-        if (placement && unknown12D64_ != kKindNoRangeTest) AsUnit(unit)->pendingWeapon = static_cast<int>(placement->value24);
+        if (placement && sessionKind_ != kKindNoRangeTest) AsUnit(unit)->pendingWeapon = static_cast<int>(placement->value24);
     }
 
     // Followers follow their leaders.
-    if (unknown12D64_ == kKindSinglePlayer) {
+    if (sessionKind_ == kKindSinglePlayer) {
         for (int i = 0; i < records->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(records->data[i]);
             CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
@@ -655,8 +655,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             Copy(&ambient->localPosition_, &base.position, 12);
             ambient->volume_ = static_cast<float>(sound->unknown_68);
             ambient->radius_ = static_cast<float>(sound->unknown_6C);
-            ambient->unknown_168 = sound->unknown_74;
-            ambient->unknown_16C = sound->unknown_78;
+            ambient->minInterval_ = sound->unknown_74;
+            ambient->maxInterval_ = sound->unknown_78;
             return timed(ambient);
         }
         auto* plain = static_cast<CEffectSound*>(timedManager->CreateObject(kTimedSound, base.id));

@@ -382,7 +382,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         } else if (!current || AsPlayer(current)->id_ != id) {
             auto* view = reinterpret_cast<LocalViewData*>(ClientWorldLocalViewOriginal(ManagerContextOf(unit)));
             char* local = reinterpret_cast<char*>(view->player);
-            if ((AsPlayer(local)->id_ == id || view->unknown_84) && unit->player != local) {
+            if ((AsPlayer(local)->id_ == id || view->localSession) && unit->player != local) {
                 char* old = unit->player;
                 unit->player = local;
                 if (old) PlayerRemoveUnit(old, nullptr, unit);

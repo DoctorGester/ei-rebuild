@@ -317,9 +317,9 @@ void CLightning::UpdateBounds() {
     center_.x = Store(sumX * 0.5);
     center_.y = Store(static_cast<double>(sumY) * 0.5);
     center_.z = Store(static_cast<double>(sumZ) * 0.5);
-    unknown_50.x = 0.0f;
-    unknown_50.y = 0.0f;
-    unknown_50.z = 0.0f;
+    boundsSpare_.x = 0.0f;
+    boundsSpare_.y = 0.0f;
+    boundsSpare_.z = 0.0f;
     boundsMin_.x = Store(static_cast<double>(boundsMin_.x) - center_.x);
     boundsMin_.y = Store(static_cast<double>(boundsMin_.y) - center_.y);
     boundsMin_.z = Store(static_cast<double>(boundsMin_.z) - center_.z);
