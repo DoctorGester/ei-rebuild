@@ -253,7 +253,7 @@ void* __fastcall SessionDeleteVerify(DriverSession* self, void*, unsigned flags)
 
 void __fastcall OpenSessionVerify(CWorld* self) {
     self->OpenSession();
-    auto* session = static_cast<DriverSession*>(self->unknown60_);
+    auto* session = static_cast<DriverSession*>(self->netSession_);
     bool ok = session && VtableOf(session) == DriverSession::kVtableAddress && session->refs_ >= 1 &&
               (session->flags6_ & CRefObject::kCopyOnShare) && Empty(session->drivers_) && Empty(session->holders_);
     ei::verify::Check("CWorld::OpenSession", true, ok, "");

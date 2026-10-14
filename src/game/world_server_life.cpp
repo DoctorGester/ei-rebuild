@@ -53,14 +53,14 @@ int CWorldServer::Setup() {
 
     // The wind: along x, no strength yet (three dwords), then 0.4.
     const float direction[3] = {1.0f, 0.0f, 0.0f};
-    std::memcpy(unknown24_, direction, sizeof(direction));
-    unknown30_ = kWindStrength;
-    unknown12D64_ = 0;
-    unknown160_ = 0;
+    std::memcpy(windDirection_, direction, sizeof(direction));
+    windStrength_ = kWindStrength;
+    sessionKind_ = 0;
+    scriptsActive_ = 0;
     ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
-    unknownDC_ = 1;
-    unknownE0_ = 0;
-    unknown_11C = 0;
+    climate_ = 1;
+    cave_ = 0;
+    sendsStartPosition_ = 0;
     loadedFresh_ = 1;
     keepsState_ = 1;
     *reinterpret_cast<mfc::CString*>(&zoneName_) = game::EmptyText();

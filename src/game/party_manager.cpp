@@ -213,7 +213,7 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(1, &type, 4);
     ar->Field(2, &flag0C, 1);
     ar->Field(3, &flag0D, 1);
-    ar->Field(4, weights, sizeof(weights) + sizeof(unknown_34));
+    ar->Field(4, weights, sizeof(weights) + sizeof(weightsTail));
     LocalStream local;
     auto* itemsParty = reinterpret_cast<CParty*>(items);
     auto* spellsParty = reinterpret_cast<CParty*>(spells);
@@ -261,7 +261,7 @@ void NamedPartyRecords::BeginRedeploy(CParty* party) {
         CParty* target = RecordParty(record);
         FloatTableAssign(&target->variables_, nullptr, &variables);
         target->zone_ = zone;
-        target->unknown_6C = party->unknown_6C;
+        target->entrance_ = party->entrance_;
     }
     variables.Destroy();
 }
@@ -283,7 +283,7 @@ namespace {
 void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
     ar->SerializeParties(1, &manager->parties, nullptr);
     ar->SerializePartyEntries(2, &manager->entries, nullptr);
-    ar->Field(3, &manager->unknown_20, 4);
+    ar->Field(3, &manager->field3, 4);
     if (ar->EnterChunk(4)) {
         ar->SerializeClassTemplates(1, &manager->templates, nullptr);
         ar->LeaveChunk();

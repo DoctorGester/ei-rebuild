@@ -38,7 +38,7 @@ BOOL CItem::IsSameAs(CItem* other) {
     if (!EqualOrUnordered(condition_, other->condition_) || !EqualOrUnordered(conditionMax_, other->conditionMax_) ||
         !EqualOrUnordered(charge_, other->charge_) || !EqualOrUnordered(chargeMax_, other->chargeMax_) ||
         !EqualOrUnordered(weight_, other->weight_) || !EqualOrUnordered(price_, other->price_) ||
-        !EqualOrUnordered(unknown_3C, other->unknown_3C))
+        !EqualOrUnordered(value3C_, other->value3C_))
         return 0;
     if (magicLevel_ != other->magicLevel_) return 0;
     const CSpell* spell = spell_;
@@ -58,7 +58,7 @@ BOOL CItemArmor::IsSameAs(CItem* item) {
 
 BOOL CItemQuick::IsSameAs(CItem* other) {
     if (!CItem::IsSameAs(other)) return 0;
-    return static_cast<CItemQuick*>(other)->unknown_4C == unknown_4C ? 1 : 0;
+    return static_cast<CItemQuick*>(other)->actionValue_ == actionValue_ ? 1 : 0;
 }
 
 BOOL CItemQuest::IsSameAs(CItem* other) {
@@ -92,7 +92,7 @@ void CItemArmor::InitFromRecord(const ItemRecordHead* record) {
 
 void CItemQuick::InitFromRecord(const ItemRecordHead* record) {
     CItem::InitFromRecord(record);
-    unknown_4C = static_cast<const QuickItemRecord*>(record)->value70;
+    actionValue_ = static_cast<const QuickItemRecord*>(record)->value70;
 }
 
 void CItemQuest::InitFromRecord(const ItemRecordHead* record) {

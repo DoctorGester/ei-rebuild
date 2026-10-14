@@ -58,7 +58,7 @@ void CompareSteps(const char* name, CUnitServer* self, AnimationSteps* steps, in
                       UnitId(self), detail, expected, actual, scratch.count, steps->count, scratch.capacity,
                       steps->capacity, scratch.extra, steps->extra, duration ? scratchDuration : 0,
                       duration ? *duration : 0, step, a ? a->animation : 0u, b ? b->animation : 0u,
-                      a ? a->duration : 0, b ? b->duration : 0, a ? a->unknown_08 : 0, b ? b->unknown_08 : 0,
+                      a ? a->duration : 0, b ? b->duration : 0, a ? a->kind : 0, b ? b->kind : 0,
                       afterOurs.SameAs(afterOriginal) ? "" : ", random state differs");
     FreeSteps(&scratch);
 }
@@ -134,20 +134,20 @@ static bool __fastcall BuildAttackStepsVerify(CUnitServer* self, void*, OrderPla
     int refs = target ? target->refCount_ : 0;
     int ourLocation = 0;
     int originalLocation = 0;
-    int savedLocation = plan->unknown_2C;
+    int savedLocation = plan->hitLocation;
     CompareSteps(
         "CUnitServer::BuildAttackSteps", self, steps, duration,
         [&] {
             bool result = self->BuildAttackSteps(plan, steps, duration, target);
-            ourLocation = plan->unknown_2C;
+            ourLocation = plan->hitLocation;
             return result;
         },
         [&](AnimationSteps* scratch, int* scratchDuration) {
             OrderPlan copy;
             std::memcpy(&copy, plan, sizeof(copy));
-            copy.unknown_2C = savedLocation;
+            copy.hitLocation = savedLocation;
             bool result = s_attackSteps(self, nullptr, &copy, scratch, scratchDuration, target);
-            originalLocation = copy.unknown_2C;
+            originalLocation = copy.hitLocation;
             return result;
         },
         target ? target->id_ : -1);

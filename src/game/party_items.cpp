@@ -95,7 +95,7 @@ __declspec(naked) BOOL CItem::CallCopyTo(CItem*, CSpellManager*) EI_ORIGINAL(0x0
 BOOL CItemWeapon::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
     auto* weapon = static_cast<CItemWeapon*>(target);
-    std::memcpy(&weapon->unknown_4C, &unknown_4C, sizeof(CItemWeapon) - offsetof(CItemWeapon, unknown_4C));
+    std::memcpy(&weapon->actionValue_, &actionValue_, sizeof(CItemWeapon) - offsetof(CItemWeapon, actionValue_));
     return 1;
 }
 
@@ -110,7 +110,7 @@ BOOL CItemArmor::CopyTo(CItem* target, CSpellManager* spells) {
 
 BOOL CItemQuick::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
-    static_cast<CItemQuick*>(target)->unknown_4C = unknown_4C;
+    static_cast<CItemQuick*>(target)->actionValue_ = actionValue_;
     return 1;
 }
 
@@ -131,7 +131,7 @@ BOOL CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
 
 BOOL CItemSpell::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
-    static_cast<CItemSpell*>(target)->unknown_4C = unknown_4C;
+    static_cast<CItemSpell*>(target)->actionValue_ = actionValue_;
     return 1;
 }
 

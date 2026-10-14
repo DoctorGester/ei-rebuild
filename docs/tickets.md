@@ -1,111 +1,129 @@
 # Ticket queue
 
-From 2026-10-05 (user): workers own one area for about a usage session ("area tickets"), commit every
-3-5 functions with all checks green, and the coordinator merges the branch head periodically and runs
-the suite. Forwarder cleanup batches are 50. Mark a ticket taken by adding the date; remove it when merged.
+Generated from docs/tickets.toml by tools/tickets.py: never edit this file; read one ticket with `python tools/tickets.py show ID` and change tickets through the script. The ticket board shows the same data.
 
-Docs: D1 done 2026-10-05; trims 2026-10-09 (notes 0.82 -> 0.57 MB, then the per-ticket sections of C6-C10, A-H17..A-H21,
-A-I19..A-I21, A-U8, A-W9, A-X1 / A-X2, V2 / V3 folded into the area tables). D2 queued: retarget ~150 code comments that
-cite removed section names ("Nth round", "pass", renderer section numbers, items_spells.md "(A-H17)") to the file / new
-section; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations.
+- Workers own one ticket or area for about a usage session, commit small green groups (all checks green), and follow docs/worker-brief.md. The coordinator merges, runs the suite and keeps this file current.
+- Mark a ticket running with the start date when a worker takes it, done with the date when it is merged.
+- Mechanical tickets go to Sonnet; type recovery, renderer and tricky debugging to Opus. Sonnet tickets change spelling only, never a signature or grouping; the first diff of each kind is reviewed before more are sent.
 
-## Renderer (src/render, docs/notes/renderer.md)
+## Renderer (docs/notes/renderer.md)
 
-- R9a2 merged 2026-10-14: the five present scenarios pass on vanilla and --native (movie holders, video-memory pictures, the harness activates a game without DirectDraw). Present under Rebirth still crashes (not in the suite; R9c). R9b: the 73 calling places in the old-device log.
-- R8 merged (both parts; textures without DirectDraw in the switch-over, renderer.md section 16).
-- R9 (user 2026-10-14: in parallel with the cleanup; starts when C2d's device-file cleanup is merged) our own swap chain, dgVoodoo gone, renderer.md section 9, one Opus ticket at a time: R9a device setup without DirectDraw / Direct3D in the switch-over (the device object filled for the game, the fixed texture format table, the screen format from the colour depth) and `render::Present` on a flip-model swap chain on the game window, plus a run config without dgVoodoo; R9b every old-device call left guarded for a device object without a device (524 sites in 143 functions); R9c movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Then native UI drawing window by window.
+Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with the cleanup; one Opus ticket at a time.
 
-## Native interface drawing (user 2026-10-14; docs/notes/ui-native.md)
+- **R9b** Guard every old-device call for a device object without a device (ready; opus). The 73 calling places in the old-device log (524 sites in 143 functions overall). After: R9a.
+- **R9c** Movies, loading screen, full screen, gamma and lost device through Present (waiting on R9b; opus). Movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Present under Rebirth crashes: NullDirect3DDevice7::SetTexture with surface 0x7463 from CUiMesh::Draw, plus a CBattleScreenSetup::Create verify mismatch in the same runs (seen on main 2026-10-14).
+- **R8** Textures without DirectDraw in the switch-over (done). Both parts merged (renderer.md section 16).
+- **R9a** Device setup without DirectDraw and Present on a flip-model swap chain (done 2026-10-14). R9a and R9a2 merged: the five present scenarios pass on vanilla and --native (movie holders, video-memory pictures, the harness activates a game without DirectDraw).
 
-Window surfaces (CUiSurface) are drawn with GDI into DIB sections and uploaded when they change; everything else in the interface already goes through the GPU renderer. Plan: a GPU canvas per surface, commands recorded at the GDI boundary in surface pixels (after the game's and WideScreen's scaling), GDI kept only for metrics, `uiboth` comparing both paths per surface.
-- Preparation, can start now: N0 census of which primitives each window uses (gdi32 / user32 import slots, new ui_census.cpp); N1 2D canvas layer (new render_ui.cpp; a few lines in render.cpp / render_internal.h, after V3g); N2 own font loading (a TrueType rasteriser and a Times-compatible font, pending the user's OK to download), glyph atlas and DrawText-compatible layout that also serves the text extent; no GDI in src/render, and not pixel-exact with GDI (user 2026-10-14); a test tool reports line-break differences against GDI (new render_text.cpp); N3 comparison harness (`uinative` / `uiboth`, per-surface diff, UI mask captures; needs N1, harness.cpp after SV1 / W2); N4 ui_gallery scenario (after SV1); N5 cursor and per-frame images cached (render_blit.cpp).
-- Porting: P1 surface plumbing (needs N1, N3); P2 text (N2, P1, after W2); P3a menus and dialogs, P3b HUD, P3c camp / hero / trade / item info, P3d briefing / global map / help / chat (in parallel after P2); P4 console and debug panel; P5 edit / chat / connect / save-load list lines and carets (after W2); P6 global-map pick picture; P7 (optional) CPU-written textures and clouds; P8 native by default under `present`.
+## Native interface drawing (docs/notes/ui-native.md)
 
-## Area tickets (done; next candidates)
+Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src/render, own font loading (user 2026-10-14).
 
-Priority (user, 2026-10-13): finish the port; three area workers at once, refilled by code left; cleanup and V3 wait. Rebirth-patched functions get ported too (hooked in vanilla only), after the unpatched ones in each area.
+- **N0** Census of interface drawing per window and surface (running since 2026-10-14; 1 session). gdi32 / user32 import slots of game.exe and addon.dll, HDC to surface through g_memoryDcs; GDI metric calls too; uncaught drawing by DIB checksums. Report in docs/notes/ui-census.md. Files: `tests/verify/ui_census.cpp`, `src/game/ui_surface_dc.cpp`, `src/game/ui_window.cpp`.
+- **N2** Font loading, glyph atlas and DrawText-compatible layout (running since 2026-10-14; 2 sessions). stb_truetype with Liberation Serif / Mono (vendored 2026-10-14); the layout also serves the text extent. Not pixel-exact with GDI; a test tool reports line-break differences. Files: `src/render/render_text.{h,cpp}`, `third_party/stb`, `third_party/fonts`.
+- **N5** Cursor and per-frame images cached (running since 2026-10-14; sonnet, 0.5 sessions). No sg_make_image every frame. Files: `src/render/render_blit.cpp`.
+- **P7** CPU-written textures and clouds on the GPU (optional) (ready; 1.5 sessions).
+- **N1** 2D canvas layer (waiting on SV1; 2 sessions). Render targets, command queue, fill / frame / line / pixel / glyph run / copy frame / greyscale / readback, a Canvas command in the frame, 16-bit quantise. Few lines in render.cpp (SV1 edits it too). Files: `src/render/render_ui.{h,cpp}`, `src/render/render.cpp`, `src/render/render_internal.h`.
+- **N3** Comparison harness: uinative / uiboth, per-surface diff (waiting on N1, SV1, W2; 1.5 sessions). Text compared with a tolerance (own fonts). One registration line in harness.cpp after SV1 and W2 merge. Files: `tests/verify/harness_ui.cpp`, `tools/compare_frames.py`, `src/render/render_ui.cpp`.
+- **N4** ui_gallery scenario: every window family captured (waiting on SV1; 1 session). Files: `tests/scenarios/`.
+- **P1** Surface plumbing: a canvas per native surface (waiting on N1, N3; 2 sessions). Blit, Get/ReleaseDC, fills and frames, readback for PixelAt / Rgb565Copy / SwapContents, CaptureScreen and Greyscale on the GPU. First surfaces: backdrop, FPS, status.
+- **P2** Text through the glyph atlas (waiting on N2, P1, W2; 1 session). Files: `src/game/ui_text_draw.cpp`.
+- **P3a** Native menus and dialogs (waiting on P2; 1 session). Main menu, message box, difficulty, options, objectives, credits text, escape-menu backdrop and save picture.
+- **P3b** Native HUD (waiting on P2; 1 session). Unit-panel name, top panel and message log, tooltips, quick strip, clock. 006462A0 native only in vanilla until W3.
+- **P3c** Native camp, hero, trade and item info (waiting on P2; 1.5 sessions). Under Rebirth the camp / hero screens wait for W4.
+- **P3d** Native briefing, global map titles, help page, chat (waiting on P2; 1 session). Help page and global map wait for W4 under Rebirth.
+- **P4** Native console and debug panel (waiting on P1, N2; 1 session).
+- **P5** Native edit, chat, connect and save/load lines and carets (waiting on P1, W2; 1 session).
+- **P6** Global-map pick picture on the GPU (waiting on P1; 0.5 sessions). RefreshSelection 00630670: GPU copy, readback on click, exact colours; the camp's backdrop modes 3 / 4.
+- **P8** Native interface by default under present (waiting on P3a, P3b, P3c, P3d, P4, P5, P6; 1 session). Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated.
 
-- Units and combat 0x00500000-0x00560000 (units.md, combat.md, map_objects.md): A-U .. A-U11 done. A-U12 merged 2026-10-13 (3D object halves, map object slots, manager, renderer base, unit small methods, controller slots, the Rebirth-patched unit / skill database loads). Left: 30 tiny world slots 0055E1B0-0055FDC0 (A-W14).
-- World, AI, server 0x00540000-0x005E0000 (world.md, ai.md, unit_ai.md): finished 2026-10-13 (A-W .. A-W15; the Rebirth-patched loaders vanilla only; static tables checked once at hook time by EI_STARTUP_CHECK). Left: 46 functions under 5 bytes.
-- Interface 0x005E0000-0x00640000 (ui.md): A-I .. A-I21 done. A-I22 merged 2026-10-13: the range is finished (including the Rebirth-patched ones, vanilla only); 31 RET stubs under 5 bytes are left. Unchecked by any scenario: the connection screen Create / list draw, exchange slots 0062D100 / 0062D200.
-- Engine base, network, app, script runtime 0x00400000-0x004C0000 (core.md, app.md, network.md): finished 2026-10-14 (A-E1, A-E2: WinMain 00456440 vanilla only, static initialisers by start-up checks, MFC try / catch through src/lib/mfc_try.h). Left: 69 under 5 bytes. No scenario drives: WinMain's second-instance, disc prompt and frame-recording branches, 0041ECC0, 00443080, CDib's catch handlers.
-- HUD, spells, items 0x00640000-0x006C0000 (items_spells.md): finished 2026-10-13 (A-H .. A-H26, the Rebirth-patched ones vanilla only). Left: 006462A0 (unit panel draw, drives the D3D device), 0066D730 (uninitialised byte, kept original), 0067E4E0 (before the hooks), functions under 5 bytes.
-- Scripts and old renderer 0x004C0000-0x00500000 (script.md, renderer.md section 12): finished 2026-10-14 (A-S .. A-S13; the direct D3D7 / DirectDraw calls ported as they are, the interfaces stay the boundary). Left: 8 under 5 bytes.
-- CRT / MFC range 0x006C0000-0x00740000 (models.md): finished 2026-10-13 (A-X1 .. A-X6; 006C68B0, 006D0630, 006D7620 by A-H26). CDib::Read / Write by A-E2.
-- A-Z1 merged 2026-10-14: the last eight (three sector draw-pass helpers, SendValue12, FootprintCellSet by start-up check, a thunk, two string addresses read as code). **The port is complete**: every hookable game function is rewritten (99.97% of game code); 201 stubs of 1-4 bytes wait for the standalone build. function_sizes.inc is hand-patched for two sizes (gen_function_sizes.py no longer reproduces it).
-- X34 done by C6a 2026-10-14.
-- I11 (open): 0063EF60 / 0063E020 need modifier keys held during a click (harness step); ui.md section 6.
+## WideScreen (docs/notes/rebirth.md)
 
-- X28 done 2026-10-09: LoadSky's check expected GetClassId 0x44 (the factory class; CSkyObject's is 0x20); UnitTextureRecords put items[1..6] in records 1..6, the original in 2..7. Both re-enabled.
+Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `run_all --widescreen` compares with addon.
 
-- X29 done 2026-10-10: ProjectDecal 0056C750 pushed its matrices through PushMatrix (004D9B80's sum order) instead of the original's inlined push via 004D9880; both checks expected one texture coordinate per vertex, but the builder leaves the array at its reserved size with unwritten tail elements (ProjectDecal now compares the indexed vertices only). Both re-enabled.
+- **W2** Sprite shapes, text extent and text draw, control rectangles (running since 2026-10-14; opus). Sprite shape builders, text extent / text surface draw, the +0x98 rectangles of console / edit / list / chat / tooltip. After: W1.
+- **W3** Battle-screen panel builders (waiting on W2; opus). Then widescreen::SetPanelOffset replaces addon's variable.
+- **W4** Camp and hero screens, help, global map, cursor rectangles, interface creation (waiting on W3; opus). Also camera mouse moves and 004F1330.
+- **W1** Layout widths, scaling functions, harness resolution steps (done 2026-10-14). SetRect / AddPoint / sprite place; `resolution` / `widescreen` steps; run_all --widescreen within tolerance. Open: options slider thumbs a few pixels wider than the original (also with WideScreen off).
 
-## Unknown fields (user 2026-10-14: to 0, each named or unused)
+## Unknown fields
 
-tools/check_cleanup.py counts `unknown field` (members and locals named unknownXX / unknown_XXX: 727 in 97 files, 2026-10-14) and `unused field accessed` (must stay 0). Each unknown field becomes:
-- a name for what it holds, from the code that reads and writes it (a field only written and saved or sent is named by what is written);
-- or `unused_XXX` (same offset suffix, same type and size) when no code in src reads or writes it apart from construction / memset / copy of the whole object. Byte gaps that are partly used are split into named members and unused gaps. Rebirth's DLL may still read a field we call unused; the name speaks for game.exe only.
-Layout never changes (static_asserts / offsetof checks stay); renames only, so the builds, checks and suite decide. Notes go into the area's cleanup-*.md only where a meaning was found that the code alone does not show.
-- F1 world, combat, effects, spells (~180): world.h, combat.h, spell.h, effects.h, world_effect.h, sky_object.h, lightning / trap / lever / cage, particle_emitters.cpp.
-- F2 units, AI, items (~175): unit.h, unit_db.h (+ unit_db_destroy.cpp), unit_ai.h, ai_map.h, ai_*, item_db.h, item*.h/.cpp, unit_looks.h, unit_client_*, class_templates.h, party*.
-- F3 interface (~125): ui.h, ui_camp.h, ui_screens.h, ui_briefing.h and the other ui_* files.
-- F4 scene, figures, terrain, map objects, textures (~140): scene_loader.h/.cpp, map_object_figures.h, terrain_sector.h, terrain*, figure*.h/.cpp, camera.h, texture.h, map_object*.h/.cpp, link_figure.h, object_tables.h, material.h, model.h, renderer_lines.h.
-- F5 the rest (~105): map_spec.h, net_*, player_*, sound*, script*, app_*, bink_video.cpp, quest_records.h, base_manager.h, src/lib, everything else left.
+Every unknown_XXX member becomes a real name or unused_XXX (same type and offset; renames only, layout unchanged). check_cleanup counts `unknown field` (727 in 97 files on 2026-10-14) and `unused field accessed` (stays 0). Rebirth's DLL may read a field we call unused.
 
-## Vector math (planned 2026-10-09)
+- **F4** Unknown fields: scene, figures, terrain, map objects, textures (~140) (running since 2026-10-14). Files: `scene_loader.*`, `map_object_figures.h`, `terrain*`, `figure*`, `camera.h`, `texture.h`, `map_object*`, `link_figure.h`, `object_tables.h`, `material.h`, `model.h`, `renderer_lines.h`.
+- **F3** Unknown fields: interface (~125) (ready). Coordinate with W2 (ui.h) and the P tickets: renames only. Files: `ui.h`, `ui_camp.h`, `ui_screens.h`, `ui_briefing.h`, `ui_*`.
+- **F5** Unknown fields: the rest (~105) (ready). Files: `map_spec.h`, `net_*`, `player_*`, `sound*`, `script*`, `app_*`, `bink_video.cpp`, `quest_records.h`, `base_manager.h`, `src/lib`.
+- **F1** Unknown fields: world, combat, effects, spells (done 2026-10-14). 181 named or unused_XXX (with F2: 727 -> 374); notes in cleanup-world.md / cleanup-effects.md. Follow-ups: CSpellEffect and world.h's Projectile as one declaration (CSpellEffect::targetCount is really the duration); ZoneExit and MapExit as one declaration; the dead aiPresence / AIEventPresence path (005C9770 always returns 0). Files: `world.h`, `combat.h`, `spell.h`, `effects.h`, `world_effect.h`, `sky_object.h`, `lightning / trap / lever / cage`, `particle_emitters.cpp`.
+- **F2** Unknown fields: units, AI, items (done 2026-10-14). 172 named or unused_XXX (727 -> 555); meanings in cleanup-units.md. Follow-ups: CombatStats +0x60 / +0x64 / +0x8C take UnitStats' names; SetUnknown438 -> SetFightAtWill; unit_db_destroy.cpp's local skill record structs have swapped names; a Ghidra pass on the archive fields named fieldN. Files: `unit.h`, `unit_db.h`, `unit_ai.h`, `ai_map.h`, `ai_*`, `item_db.h`, `item*`, `unit_looks.h`, `unit_client_*`, `class_templates.h`, `party*`.
 
-Vector and matrix maths is mostly written out by hand: x*x + y*y (+ z*z) forms in 25 files, 164 sqrt calls, 235 raw float[3] / [4] / [9] / [16] arrays, and four separate 3-float structs (maths.h Vector3, ground_decal.h, render/render_internal.h, ui_camp.h) plus chunk_stream.h's Float4. Goal: one set of types and named operations, used everywhere, without changing results.
-Constraints: the original is MSVC6 x87 code that inlined this maths, so the order of operations decides the rounding. Every helper is __forceinline and evaluates in a fixed, documented order (x, y, z left to right); where the original uses another order, the helper is a named variant, never a silent reorder. Side-by-side checks that compare floats exactly must still pass; CheckNear tolerances are not widened to make a migration pass. The x87 __asm helpers are a separate ticket.
-- V3b merged 2026-10-14 (Opus): unrounded 2D helpers, 30 sites (369 -> 339); left: volatile sums, UpdateFollow (register allocation), unit_ai_moves:150.
-- V3 batch 3 tried on Sonnet 2026-10-14: nothing migrated (370 left). The 2D sums on `position` are mostly double (kept on the FPU stack), and the float helpers add store / load round trips at the 6 float sites. Needs unrounded 2D helper variants first: Opus.
-- V1, V2, V3 part 1, V3 part 2 done 2026-10-09 (507 -> 377). Next: vector-math.md "V3 status" (2D sums on `position`, batch 3; the members left).
+## Standalone verification (docs/notes/standalone-verification.md)
 
-## Standalone exe and UTF-8 (planned 2026-10-13; docs/notes/standalone.md)
+The SV loop comes before any standalone ticket (user 2026-10-14).
 
-First, before any S ticket: the verification loop SV1-SV5 (docs/notes/standalone-verification.md; user, 2026-10-14).
+- **SV1** Virtual game clock: runs that repeat (running since 2026-10-14; 1.5 sessions). Zone loading and the sound code's clocks on the virtual clock; every scenario passes compare.py --runs 3 on both sides.
+- **SV2** State digest and dump in the harness; golden record / compare (waiting on SV1; 1 session).
+- **SV3** Record goldens for the suite (waiting on SV2; 1 session). Vanilla, Rebirth flags on and off; saves at checkpoints.
+- **SV4** Function vector record mode and replay test exe (waiting on SV2; 2 sessions).
+- **SV5** Coverage list and scenarios for what it shows uncovered (waiting on SV3; 1 session).
 
-Not started; both wait for the port. Counts are on the dashboard ("Standalone readiness").
-- S: first standalone exe with our own layout-compatible MFC / STLport / CRT classes (6-8 tickets), data definitions and vtables (4-6), direct calls, entry and link (3-4), first boot (2-4), old renderer code (3-4). Standard-library types come after the hook build is retired.
-- U1-U5: UTF-8 inside, cp1251 assets converted when read, behind a switch in the standalone build (5-6 tickets). Saves and multiplayer need not match vanilla (user, 2026-10-13).
+## Harness and suite
 
-## Lua scripting (later, after S; user 2026-10-14; docs/notes/lua-scripting.md)
+Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
-Mission scripts run on Lua through a transpiler (assets unchanged), mods can write Lua, and saves keep running coroutines (Eris).
-- L1 script IR from the existing parser (blocks, commands, definitions, globals; Rebirth's extensions) with a text dump; every mission, quest and console form parses.
-- L2 vendor Lua (decide 5.3 + Eris or Luau + Ares) and generate the bindings from the keyword table (300 + Rebirth's 69); object references and groups as userdata.
-- L3 transpiler: blocks as resumable `block(pc, run)` functions, rule sets, For / ForIf bodies (a wait ends the body), assignments, script calls, the WorldScript.
-- L4 scheduler with ScriptTick's exact order and timing (head insertion, same-tick vs next-tick, Execute count, Sleep ticks, NaN as false).
-- L5 lockstep `luaboth`: both engines per tick, comparing variables, run positions, instances and the built-in call log; scenarios plus a mission corpus.
-- L6 saves: Eris for the whole Lua state (permanents, `__persist` by object id), old saves loaded as coroutines at their index; decide whether to keep writing the old format.
-- L7 runtime paths: quests (QFinish) and console lines through the transpiler; a cache for mission files.
-- L8 mod API: `.lua` loading, Lua names for the built-ins, waits as yields, sandbox, errors as "Script error".
-- L9 Lua by default; the old executor removed (the parser stays as the front end).
-
-## Pending work
-
-- Republish the dashboard and remove merged worktrees.
-- T1 merged 2026-10-14 (scenarios wait on state: waitmenu / waitwindow / waitunit / frames; ~40% fewer game-seconds). Follow-ups: T2 the 8-10 s "let it run" waits in ground_prints, sandbox_map, particles, map_objects, movement (state conditions); world_client waits for the battle window before moving the mouse; ui_help's clickregion hits a window with no regions and ui_hero_delete's question never appears (both test less than their comments say); run_all keeps the first attempt's log when it retries; ui_widescreen still opens with wait 6000 (virtual clock, left to W2 / SV1). No longer reached reliably: ScriptFloats/Strings/Objects/GroupsConstruct on load, acks::PickEnvironmentSpeech, CUnitServer::EndOrder (random).
-- X36 (2026-10-14): a scenario that sets the display mode (ui_widescreen) took the surfaces of the games beside it ("Can't begin scene", untextured models); run_all now runs such a scenario with no other game on the machine. Message boxes end a run at once with text and stack (harness).
-- Cleanup C6-C10 done 2026-10-09 (combat, unit, script, world, scene and renderer files). Left from C9: map_object_shadow.cpp's raw offsets (models.md, "Layouts").
-- X32 (watch): several Rebirth runs print "game still running 10 s after the scenario quit" since 2026-10-13 (exit path; runs pass). Suspects: wrappers that now fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct).
-- X35 (fixed 2026-10-14): Windows crashed twice (NVIDIA driver hang, bugcheck 0x133) with 24 harness games at once; run_all now caps the machine at 16 (EI_HARNESS_SLOTS).
-- X30 (watch): sandbox_actions (vanilla) failed once of three full runs (combat-vanilla did the same once) on 2026-10-13, `waitfor Not(IsAlive(Enemy1))` timed out, 0 mismatches; passes alone. world-vanilla did the same once on 2026-10-14 (AlarmTime check; passes alone 3 of 3).
-- X27 (low): CPlayerClient::SendLeave04 state check mismatched once (1 of 44) in an effects_bow Rebirth run that also timed out; effects_bow passes alone. Watch.
-- X22 flaky: render_present (vanilla) crashed once under 16 parallel runs, null call inside DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). Passed 3/3 alone. Watch; if it recurs, guard CopyFrameTo against a lost surface.
-- Drafts DR-C1 .. DR-C5, DR-H16 merged 2026-10-09. Open: function_sizes.inc needs a real regeneration once the Ghidra database is whole (Ghidra reported cut-short bodies, e.g. 0040D710 555 -> 60; only the handler rows from config/extra_function_sizes.csv were added by hand).
-- Done: X17 (ground decal ClipPlane / AddTriangle / AddTerrainTriangle and CHudTopPanel::Build stay in tests/verify/disabled.txt), X23, X26, D3 .. D3d (core.md, "Shared containers").
+- **T2** T1 follow-ups: remaining fixed waits and weak scenarios (ready). 8-10 s waits in ground_prints, sandbox_map, particles, map_objects, movement; world_client waits for the battle window; ui_help's clickregion hits a window with no regions; ui_hero_delete's question never appears; run_all keeps the first attempt's log on retry; ui_widescreen's wait 6000 (after SV1). No longer reached reliably: ScriptFloats/Strings/Objects/GroupsConstruct on load, acks::PickEnvironmentSpeech, CUnitServer::EndOrder. After: T1.
+- **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
+- **X37** Build warnings C4244 / C4458 (ready; sonnet, 0.2 sessions). C4244 at world_rules.cpp:48-49, C4458 in map_object_client_effects.cpp. Files: `src/game/world_rules.cpp`, `src/game/map_object_client_effects.cpp`.
+- **X32** Rebirth runs: game still running 10 s after quit (watch). Since 2026-10-13; runs pass. Suspects: wrappers that fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct). Not a dialog (message boxes are caught).
+- **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
+- **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.
+- **X22** render_present crashed once under 16 parallel runs (watch). Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface.
+- **X38** Regenerate function_sizes.inc from a whole Ghidra database (later). Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-patched for two sizes and gen_function_sizes.py no longer reproduces it.
+- **T1** Scenarios wait on state instead of fixed times (done 2026-10-14). waitmenu / waitwindow / waitunit / frames; about 40% fewer game-seconds per suite.
+- **X36** Display-mode scenarios run alone (done 2026-10-14). A `resolution` step took the other games' surfaces ("Can't begin scene", untextured models). run_all takes every slot for it; runners wait while it waits, so it no longer starves. Message boxes end a run at once with text and stack.
+- **X35** Machine-wide cap of 16 harness games (done 2026-10-14). Windows crashed twice (NVIDIA hang, bugcheck 0x133) with 24 games; EI_HARNESS_SLOTS.
 
 ## Cleanup (docs/cleanup-plan.md)
 
-Next after the port is finished and before the standalone tickets (user, 2026-10-14). Judge each ticket: the simple mechanical ones go to Sonnet workers (`model: "sonnet"`), as many as possible; type recovery and tricky debugging stay on Opus.
-Split by model (counts from tools/progress.py, 2026-10-14):
-- Sonnet, mechanical, checked by the build scripts and the suite: C3m merged 2026-10-14 (73 of 75; duplicates 313 -> 240); C6a merged (9 struct names, 74 -> 64); C3n batches 1-5 and C3o / C3p merged: duplicate forwarders 313 -> 0 (2026-10-14; keep at 0); C2s batches 1-3 merged (offset access 290 -> 69, 237 -> 25, 159 -> 39; what remains needs type decisions, Opus); C8a / C8b merged (55 + 123 shims into members); C9a merged (per-file vector/map/set structs 41 -> 21; 11 of the 21 are not containers: CellOffset, SpiralOffset, CRegionMap, FootprintCellSet, LinkFigureSet, CacheMap, TextureSet, UnitSoundSet, ObjectIdMap, PlatformSet, UnitSet); C3n the rest of those that differ where the address is already rewritten (the rewritten function's declaration decides; batches of 50); X34; `__fastcall Fn(T* self, void*)` shims into members (1,281) per file; `constexpr uintptr_t kX = 0x00...` (371) into the subsystem's named globals; per-file `At()` copies (60) replaced by the shared one (C7a).
-- Opus: C2m map object family merged 2026-10-14 (offsets 30 -> 0, VCall 30 -> 3; leftovers in cleanup-map-objects.md); C2u unit family merged (offsets 44 -> 0, VCall 22 -> 0; CUnit derives from CMapObject; leftovers in cleanup-units.md); C2i item family merged (offsets 22 -> 0, VCall 16 -> 0; cleanup-items.md); C2ui interface screens batch 1, C2e (world effects, spells), C2ui batch 1 (interface screens; hero rename field fixed) and C2w (world server / client, combat) merged (cleanup-effects.md, cleanup-ui.md, cleanup-world.md); C2ui batch 2 (rest of the interface), C2f (figures, models), C2a (AI) and C2n (network; cleanup-network.md) merged; C2sc (script, console; cleanup-script.md) and C2ms (map specs, unit stats, fake unit, class templates; cleanup-units.md) merged; C2d (device layer, old renderer; cleanup-device.md) and C2z (app + the scattered rest of the widescreen gate) merged 2026-10-14: offsets, VCall, *At views, SlotNN and containers at 0 across src, byte arithmetic 4 (src/render, R9a's) (C2z: also QueryVector as stlp::vector<Query> plus its dword, the last per-file container, and the 8 placeholder SlotNN virtuals named); hand-written vector maths to 0 (332; V3 batches per area, vector-math.md "V3 status"): V3c (unit / ai / combat), V3d (ui / camera / world) and V3e (particles, terrain, scene, figures, map objects, core; 165 -> 40) and V3f (the rest outside the renderer; 40 -> 8) merged; left V3g: SectorPosition (terrain_sector.h, render_terrain.cpp:346) and the renderer files (render_mesh rows / clip[16], render_terrain rows[16], renderer_init position[3], device_buffers xyzw[4]); verify_vecmath's unrounded-forms test should be split into two loops (1 of 24 inputs usable); C2 per class family (members instead of At<> / Field<>, VCall into virtual calls, unknown_XXX fields: 975 declared, about 360 never read); C3 addresses that differ and are not rewritten (RET n decides); V3 (the remaining sites need new unrounded helper variants; vector-math.md "V3 status"); `__asm` blocks (224) and float_control files (82); anything that turns a check red.
-- Later, with the standalone work (changes what the verify wrappers see): the 2,377 forwarders to rewritten code into direct calls.
-- WideScreen: W1 merged 2026-10-14 (layout widths, scaling functions, SetRect / AddPoint / sprite place; harness `resolution` / `widescreen` steps; `run_all --widescreen` compares with addon, all frames within tolerance). Next, one Opus ticket at a time (rebirth.md "WideScreen"): W2 sprite shape builders, text extent / text surface draw, the +0x98 rectangles of console / edit / list / chat / tooltip; W3 battle-screen panel builders (then widescreen::SetPanelOffset replaces addon's variable); W4 camp / hero screens, help page, global map and camera mouse moves, cursor rectangles, interface creation, 004F1330. Open: options slider thumbs a few pixels wider than the original (also with WideScreen off).
-- Gate for widescreen (user, 2026-10-14): queue the WideScreen Rebirth patch (docs/notes/rebirth.md, 100 sites, ~4 Opus sessions plus a wide-resolution Rebirth run config) once these reach zero: duplicate forwarders, offset access (At<>/Field<>), VCall slot calls, byte offset arithmetic, *At view structs, per-file containers.
-- Rule for Sonnet tickets: spelling only, never a signature or grouping change; skip and list what does not fit; I review the first diff of each kind before sending more.
+After the port and before the standalone exe. Mechanical tickets go to Sonnet (spelling only, never a signature or grouping change); type recovery and tricky debugging to Opus.
 
-- C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000): one declaration per class, members instead of At<>/offsets, virtual calls instead of VCall, named globals, duplicates merged; behaviour unchanged. Split per class family (C2d camera merged 2026-10-05); state and leftovers in cleanup-engine-base.md / cleanup-network.md.
-- C3: the forwarders whose declarations differ between files (docs/originals-report.md "differ" group; 261 left after C3l, 209 of them already rewritten): decide per address which declaration is right (RET n, callers, Ghidra) and keep one in originals_<area>.h; next the ui_* sites, then calling the rewritten ones directly. Batches of 50.
-- C5 C4 leftovers: UnitStream, SaveStream, FileStream, the unit_ai stream, verify_magic_trap's wrapper, the other per-file Text(0x...) helpers (docs/notes/cleanup-engine-base.md).
+- **C3** Forwarders whose declarations differ between files (ready; opus). docs/originals-report.md "differ" group (261 after C3l, 209 already rewritten): one declaration per address in originals_<area>.h (RET n, callers, Ghidra); the ui_* sites next. Batches of 50.
+- **C5** C4 leftovers: per-file streams and Text helpers (ready). UnitStream, SaveStream, FileStream, the unit_ai stream, verify_magic_trap's wrapper, the per-file Text(0x...) helpers (cleanup-engine-base.md).
+- **C9b** map_object_shadow.cpp raw offsets (ready). Left from C9 (models.md, "Layouts").
+- **C11** Shims, constexpr addresses and per-file At() copies (ready; sonnet). `__fastcall Fn(T* self, void*)` shims into members (1,281) per file; `constexpr uintptr_t kX = 0x00...` (371) into the subsystem's named globals; per-file At() copies (60) replaced by the shared one.
+- **C12** __asm blocks and float_control pragmas (later). 221 __asm blocks, 110 float_control pragmas; mostly kept for bit-exact x87 maths until the standalone build.
+- **C13** Forwarders to rewritten code into direct calls (later). 2,377 sites; with the standalone work (changes what the verify wrappers see).
+- **C2** Class families: members, virtual calls, containers, named globals (done 2026-10-14; opus). All families merged (C2m, C2u, C2i, C2ui, C2e, C2w, C2f, C2a, C2n, C2sc, C2ms, C2d, C2z): offsets, VCall, *At views, SlotNN and per-file containers at 0 across src; byte arithmetic 4 (src/render). Leftovers per family in cleanup-*.md.
+- **C3n** Duplicate forwarders to 0 (done 2026-10-14; sonnet). C3m, C3n batches 1-5, C3o / C3p: 313 -> 0. Keep at 0 (check_forwarders).
+- **V3** Hand-written vector maths to 0 (done 2026-10-14; opus). V1-V3g: 507 -> 0 (vector-math.md "V3 status"); V3g did SectorPosition, ProjectedVertex and the renderer's Matrix4s, verify_vecmath tests the unrounded forms with 24 of 24 inputs.
+
+## Standalone exe and UTF-8 (docs/notes/standalone.md)
+
+After the SV loop. Counts are on the progress dashboard ("Standalone readiness"). Saves and multiplayer need not match vanilla in the UTF-8 build (user 2026-10-13).
+
+- **S** First standalone exe (later; 20 sessions). Own layout-compatible MFC / STLport / CRT classes (6-8 tickets), data definitions and vtables (4-6), direct calls, entry and link (3-4), first boot (2-4), old renderer code (3-4). Standard-library types after the hook build is retired. After: SV5.
+- **U** UTF-8 inside, cp1251 assets converted when read (later; 5.5 sessions). U1-U5, behind a switch in the standalone build. After: S.
+
+## Lua scripting (docs/notes/lua-scripting.md)
+
+After the standalone exe (user 2026-10-14). Mission scripts run on Lua through a transpiler (assets unchanged), mods can write Lua, saves keep running coroutines (Eris).
+
+- **L1** Script IR from the existing parser (later). Blocks, commands, definitions, globals, Rebirth's extensions, with a text dump; every mission, quest and console form parses. After: S.
+- **L2** Vendor Lua and generate the bindings (later). Decide Lua 5.3 + Eris or Luau + Ares; bindings from the keyword table (300 + Rebirth's 69); object references and groups as userdata. After: L1.
+- **L3** Transpiler to resumable Lua functions (later). Blocks as block(pc, run), rule sets, For / ForIf bodies (a wait ends the body), assignments, script calls, the WorldScript. After: L2.
+- **L4** Scheduler with ScriptTick's exact order (later). Head insertion, same-tick vs next-tick, Execute count, Sleep ticks, NaN as false. After: L3.
+- **L5** Lockstep luaboth verification (later). Both engines per tick: variables, run positions, instances, the built-in call log; scenarios plus a mission corpus. After: L4.
+- **L6** Saves through Eris; old saves as coroutines (later). Permanents, __persist by object id; decide whether to keep writing the old format. After: L5.
+- **L7** Quests and console lines through the transpiler (later). QFinish's text and console lines at runtime; a cache for mission files. After: L4.
+- **L8** Mod API (later). .lua loading, Lua names for the built-ins, waits as yields, sandbox, errors as "Script error". After: L6.
+- **L9** Lua by default; old executor removed (later). The parser stays as the front end. After: L5, L6, L7, L8.
+
+## Port
+
+Finished 2026-10-14: every hookable game function is rewritten (99.97% of game code); 201 stubs of 1-4 bytes wait for the standalone build. Area history is in the area notes.
+
+- **A-I23** Interface functions no scenario checks (ready). The connection screen Create / list draw, exchange slots 0062D100 / 0062D200. Also unreached: WinMain's second-instance, disc prompt and frame-recording branches, 0041ECC0, 00443080, CDib's catch handlers.
+- **A-Z1** The last eight functions: the port is complete (done 2026-10-14). function_sizes.inc is hand-patched for two sizes.
+
+## Docs
+
+- **D2** Retarget code comments that cite removed sections (ready; sonnet). About 150 comments citing "Nth round", "pass", old renderer section numbers, items_spells.md "(A-H17)"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations.

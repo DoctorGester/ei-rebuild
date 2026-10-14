@@ -182,7 +182,7 @@ static void __fastcall AddSharedObjectVerify(CWorldServer* self, void*, int id, 
     int sourceCount = static_cast<mfc::CTypedPtrList<CEngineObject>*>(objects)->count;
     self->AddSharedObject(id, unused, value, objects);
     const SharedObject& head = list.head->data;
-    bool ok = list.count == before + 1 && head.objectId == id && head.unknown_08 == value && head.objects.size == sourceCount;
+    bool ok = list.count == before + 1 && head.objectId == id && head.money == value && head.objects.size == sourceCount;
     ei::verify::Check("CWorldServer::AddSharedObject", true, ok, "id %d player %d, %d objects, list %d -> %d", id,
                       head.player, head.objects.size, before, list.count);
 }

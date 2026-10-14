@@ -68,8 +68,7 @@ are game structures built on the shared templates, not container layouts.
 - **Provisional or awkward types:**
   - `ApplyScience` (slot 41) is declared with two ints. Its call passes the use record and the unit.
   - Slot 54 is `IsLargeUnit`, though the planner reads it as "moving".
-  - The CSpell radius and target count are read as `unknown_34` / `unknown_38`. `spell.h` belongs to the spell
-    owner and was not renamed here.
+  - The multi-target spells search units within CSpell `range_` (+0x34), up to `targetCount_` (F1 named them).
   - `CMapObject::unknown_174` is the unit's update slot.
   - The controller is reached through `reinterpret_cast` to `UnitController` / `CUnitServer`. These two
     declarations of the controller overlap and should become one.
@@ -77,3 +76,20 @@ are game structures built on the shared templates, not container layouts.
   - `FiguredUnitRecord` does not derive from `DressedUnitRecord`. Its head shares the layout, and Write is called
     on it through a cast.
   - `RecordPtrArray` is still a `uint8_t*` array.
+
+## Unknown fields (ticket F1)
+
+world.h 58 -> 0 and combat.h 39 -> 0. A gap became a name when src reads or writes it through the class
+(or through the real class behind a view struct), else `unused_XXX`; writes only in construction count as
+unused. Layout and code unchanged (the release objects compared with the previous main's: only COMDAT order).
+
+- `ZoneExit` has `MapExit`'s layout (passTimeDeploy, view, deploy angle); they could become one declaration.
+- `CWorldServer::sendsStartPosition_` (+0x11C) is never set non-zero by the game code, so SendZone's
+  start-position branch is dead.
+- `CUnitServer::aiPresence` (+0x918) holds 005C9770's result, which is `AIViewer::StepNoise` and always
+  returns 0: the presence record is never written and `AIEventPresence` is speculative.
+- `CPlayer` +0x108 is god mode (`WorldPlayer::godMode`); `CPlayerClient` +0x84 is the local session.
+- Written, never read: `CWorldClient::lightingMark_`, `CUnitServer::orderStopped` (saved too),
+  `DamageInfo::weaponValue`.
+- Methods renamed with their fields: `SetCave`, `SetClimate`, `SetWeather` (the forwarders `WorldSetCave`,
+  `WorldSetClimate`, `GameSetWeather`); the save version constant `kVersionRainBoltTick`.

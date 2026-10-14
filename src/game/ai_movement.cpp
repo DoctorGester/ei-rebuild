@@ -101,7 +101,7 @@ const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     std::uint32_t tenth = 0x3DCCCCCD;   // 0.1f
     std::memcpy(&out->forwardSpeed, &tenth, sizeof(tenth));
     std::memcpy(&out->backwardSpeed, &tenth, sizeof(tenth));
-    out->unknown_10 = 10.0f;
+    out->turnScale = 10.0f;
     out->shift = sizeClass * 4;
     const ClimbTable& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->costs = passCosts;
@@ -126,7 +126,7 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
         const AIMapCell& cell = cells[node->data.y][node->data.x];
         if (!next) {
             int cost = context.costs[(cell.passable >> (context.shift & 31)) & 0xF];
-            node->data.unknown_6 =
+            node->data.terrainBits =
                 static_cast<std::uint16_t>((cell.flags >> 7) + (cost > kExpensive ? 2 : 0));
             return;
         }
@@ -137,7 +137,7 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
         int climbCost = climb[static_cast<int>(to.groundLevel) - static_cast<int>(cell.groundLevel)];
         int speed = climbCost < 0 ? 0x200 : static_cast<int>(static_cast<unsigned>(cost) << 9) / climbCost;
         node->data.flags = static_cast<std::uint16_t>(speed);
-        node->data.unknown_6 = static_cast<std::uint16_t>((to.flags >> 7) + (contextCost > kExpensive ? 2 : 0));
+        node->data.terrainBits = static_cast<std::uint16_t>((to.flags >> 7) + (contextCost > kExpensive ? 2 : 0));
         node = next;
     }
 }

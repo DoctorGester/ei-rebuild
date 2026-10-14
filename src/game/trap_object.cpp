@@ -92,13 +92,13 @@ EI_REPLACE_METHOD(0x00529D60, CTrapObject::KeyFits);
 
 void CTrapObject::LoadTrapObject(CStream* stream) {
     LoadMapObject(stream);
-    stream->Read(&unknown_238, 4);
+    stream->Read(&savedValue_, 4);
 }
 EI_REPLACE_METHOD(0x00529D70, CTrapObject::LoadTrapObject);
 
 void CTrapObject::SaveTrapObject(CStream* stream) {
     SaveMapObject(stream);
-    std::uint32_t value = unknown_238;
+    std::uint32_t value = savedValue_;
     stream->Write(&value, 4);
 }
 EI_REPLACE_METHOD(0x00529DA0, CTrapObject::SaveTrapObject);

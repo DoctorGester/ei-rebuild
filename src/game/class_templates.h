@@ -40,15 +40,15 @@ struct ClassTemplate {
 
     void* vtable;                   // 0073D0C4 (base 0073BB68)
     std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)
-    std::int16_t unknown_06;
+    std::int16_t refsHigh;              // +0x06 the reference dword's high half (zeroed with it)
     int type;                       // +0x08 class 1..5; bit (type - 1) of the records' class masks
     std::uint8_t flag0C;            // +0x0C
     std::uint8_t flag0D;            // +0x0D
-    std::uint8_t unknown_0E[2];
+    std::uint8_t unused_0E[2];
     std::uint32_t weights[9];       // +0x10..+0x30 floats (bit patterns)
-    std::uint8_t unknown_34[4];
+    std::uint8_t weightsTail[4];        // +0x34 field 4's tenth dword (archived with weights)
     std::uint8_t flag38;            // +0x38 set by the constructor and by a quest completion (004A88E0)
-    std::uint8_t unknown_39[3];
+    std::uint8_t unused_39[3];
     // +0x3C / +0xAC the party objects (CParty, constructor 00661050), held as storage because the
     // class is abstract in its C++ declaration: ItemsParty / SpellsParty.
     std::uint8_t items[0x70];
@@ -63,7 +63,7 @@ static_assert(sizeof(ClassTemplate) == 0x28C);
 // Construct). The application's start registers it with the class registry at 0079B270 as class 1.
 ClassTemplate* __cdecl CreateClassTemplate();
 static_assert(offsetof(ClassTemplate, weights) == 0x10);
-static_assert(offsetof(ClassTemplate, unknown_34) == 0x34);
+static_assert(offsetof(ClassTemplate, weightsTail) == 0x34);
 static_assert(offsetof(ClassTemplate, flag38) == 0x38);
 static_assert(offsetof(ClassTemplate, allowed) == 0x11C);
 static_assert(offsetof(ClassTemplate, magic) == 0x1D4);

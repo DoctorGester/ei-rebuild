@@ -12,7 +12,7 @@ namespace unitverify {
 class CaptureStream : public UnitStream {
 public:
     explicit CaptureStream(const UnitStream* real) {
-        unknown_04 = 0;
+        reading = 0;
         version = real->version;
     }
     void DeletingDestructor() override {}
@@ -45,7 +45,7 @@ public:
 class ReadRecorder : public UnitStream {
 public:
     explicit ReadRecorder(UnitStream* real) : real_(real) {
-        unknown_04 = real->unknown_04;
+        reading = real->reading;
         version = real->version;
     }
     void DeletingDestructor() override { real_->DeletingDestructor(); }

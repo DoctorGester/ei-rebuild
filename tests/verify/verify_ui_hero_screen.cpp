@@ -168,7 +168,7 @@ static void __fastcall MakePreviewVerify(CMpHeroScreen* self, void*, int flag) {
     self->MakePreview(flag);
     auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
     bool ok = player->members_.size > 0;
-    void* unit = ok ? GameUnitByIdOriginal(reinterpret_cast<void*>(0x007AFEA5), nullptr, player->members_.data->unknown_01C)
+    void* unit = ok ? GameUnitByIdOriginal(reinterpret_cast<void*>(0x007AFEA5), nullptr, player->members_.data->unitId)
                     : nullptr;
     ei::verify::Check("CMpHeroScreen::MakePreview", true, ok && unit == self->previewModel_, "members %d, preview %p, unit %p",
                       player->members_.size, static_cast<void*>(self->previewModel_), unit);

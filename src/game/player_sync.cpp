@@ -296,7 +296,7 @@ int CPlayerServer::SendPartyState() {
         if (refreshPending_ != 2 && !ObjectSlots(unit)->IsDead()) {
             if (UnitServerIsFightingOriginal(unit->controller)) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
-            for (auto* node = BrainOf(unit)->unknown_0F4.head; node != nullptr;) {
+            for (auto* node = BrainOf(unit)->nearby.head; node != nullptr;) {
                 auto* other = static_cast<CUnit*>(node->data);
                 node = node->next;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
@@ -312,7 +312,7 @@ int CPlayerServer::SendPartyState() {
     ScriptGroupConstructOriginal(&shared);
     shared.vtable = scriptvtable::kRefs;
     if (IsMultiplayerClient() && player->Party()->members_.size == 1)
-        WorldServer()->CollectSharedObjects(static_cast<int>(player->Party()->members_.data[0].unknown_01C), &shared);
+        WorldServer()->CollectSharedObjects(static_cast<int>(player->Party()->members_.data[0].unitId), &shared);
     int sharedCount = shared.size;
     WriteDword(&out_, static_cast<std::uint32_t>(sharedCount));
     for (int i = 0; i < sharedCount; ++i) WriteDword(&out_, static_cast<std::uint32_t>(shared.data[i].AsUnit()->id_));
@@ -401,11 +401,11 @@ void CPlayerServer::UpdatePartyUnits() {
             party.Insert(unit);
             AIBrain* brain = BrainOf(unit);
             party.InsertAll(&brain->visible);
-            known.InsertAll(&brain->unknown_12C);
+            known.InsertAll(&brain->seenCorpses);
         }
         partyUnits_.Union(party, known);
         for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node))
-            ScriptGroupToListOriginal(&known, nullptr, &BrainOf(static_cast<CUnit*>(node->value))->unknown_12C);
+            ScriptGroupToListOriginal(&known, nullptr, &BrainOf(static_cast<CUnit*>(node->value))->seenCorpses);
     } else {
         PtrArraySetSize(&partyUnits_, nullptr, party.size, -1);
         for (int i = 0; i < party.size; ++i) {

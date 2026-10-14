@@ -46,7 +46,7 @@ Mode* NewInline() {
     auto* mode = static_cast<Mode*>(gamecrt::operator_new(sizeof(Mode)));
     if (mode) {
         mode->refs = 0;
-        mode->unknown_06 = 0;
+        mode->refsHigh = 0;
     }
     return mode;
 }
@@ -184,8 +184,8 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
         }
     }
 
-    unknown_36 = static_cast<std::int8_t>(slot);
-    unknown_37 = static_cast<std::uint8_t>((record->flags >> 3) & 1);
+    alarmSlot = static_cast<std::int8_t>(slot);
+    alwaysUpdated = static_cast<std::uint8_t>((record->flags >> 3) & 1);
     alarm = static_cast<std::int8_t>(record->alarmKind);
     alerted = 0;
     int delay = static_cast<int>(record->alarmDelay);
@@ -193,7 +193,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     reinterpret_cast<AIRef*>(&target)->Assign(nullptr);
     action = kActionNone;
     attention.Build(owner->unit);
-    if (unknown_37) WorldServer()->AddToUpdateMap(owner->unit);
+    if (alwaysUpdated) WorldServer()->AddToUpdateMap(owner->unit);
 }
 EI_REPLACE_METHOD(0x005D6630, AIBrain::ApplyBehaviour);
 
@@ -221,7 +221,7 @@ EI_REPLACE_METHOD(0x005D5940, AIBrain::HearAlarm);
 
 void AIBrain::ResetBehaviour() {
     ResetMemory();
-    int slot = unknown_36;
+    int slot = alarmSlot;
     ApplyBehaviour(&alarmRecords.data[slot], slot);
 }
 EI_REPLACE_METHOD(0x005D7C30, AIBrain::ResetBehaviour);

@@ -565,8 +565,8 @@ void CMpHeroScreen::RefreshHero() {
         auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
         stats->RestoreSlots();
         // The third argument (the height's address) is not read.
-        stats->GetFactors(&hero->unknown_724, &hero->unknown_728, static_cast<int>(reinterpret_cast<std::intptr_t>(&hero->height)));
-        reinterpret_cast<CObject3D*>(previewModel_)->SetFigureScale(&hero->unknown_724);
+        stats->GetFactors(&hero->scaleX, &hero->scaleY, static_cast<int>(reinterpret_cast<std::intptr_t>(&hero->height)));
+        reinterpret_cast<CObject3D*>(previewModel_)->SetFigureScale(&hero->scaleX);
         auto* unit = reinterpret_cast<CUnit*>(previewModel_);
         unit->SetFromStats(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(Hero())->stats));
         static_cast<CUnitController*>(unit->controller)->RefreshWounds();

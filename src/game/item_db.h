@@ -64,23 +64,23 @@ struct SpellRecord {
     mfc::CString code;
     mfc::CString text08;                // +0x08
     float price;                        // +0x0C a loot item's price when it stands for the spell (CItemLoot::GetPrice)
-    int unknown_10;                     // +0x10 1: cast without noise (0054EE10) and without slowing the caster (005536B0)
+    int castType;                       // +0x10 1: cast without noise (0054EE10) and without slowing the caster (005536B0); 0: planned as kind 2; the item info shows it
     int school;                         // +0x14
     float mana;                         // +0x18
-    std::uint32_t unknown_1C[9];        // +0x1C..+0x3C
+    std::uint32_t effectValues[9];      // +0x1C..+0x3C fields 6-14 (+0x20 power, +0x28 radius, +0x2C level, +0x38 duration; floats)
     int needsSight;                     // +0x40 needs a line of sight to its target (0054BBC0)
     int skill;                          // +0x44 the school skill it needs
     stlp::vector<int> list48;           // +0x48 (chunk 16)
     stlp::vector<int> list54;           // +0x54 (chunk 17)
     std::uint32_t icon;                 // +0x60 the number of its picture and figure ("spell%04d", "prototype%04d")
-    std::uint32_t unknown_64[5];        // +0x64..+0x74
+    std::uint32_t extraValues[5];       // +0x64..+0x74 fields 23-27 (nothing reads them)
     std::uint8_t bytes78[5];            // +0x78
-    std::uint8_t unknown_7D[3];
+    std::uint8_t unused_7D[3];
     std::uint32_t classMask;            // +0x80 bit (class - 1): the class templates that may use it (class_templates.cpp)
 };
 static_assert(offsetof(SpellRecord, code) == 0x04);
 static_assert(offsetof(SpellRecord, price) == 0x0C);
-static_assert(offsetof(SpellRecord, unknown_10) == 0x10);
+static_assert(offsetof(SpellRecord, castType) == 0x10);
 static_assert(offsetof(SpellRecord, icon) == 0x60);
 static_assert(offsetof(SpellRecord, mana) == 0x18);
 static_assert(offsetof(SpellRecord, bytes78) == 0x78);
@@ -158,7 +158,7 @@ struct ItemRecordHead {
     int type;                           // +0x0C weapon / armour class
     // +0x10 the class of material it is made of ("none": a potion, without a material).
     mfc::CString materialClass;
-    std::uint32_t unknown_14;           // +0x14
+    std::uint32_t field4;               // +0x14 archive field 4 (nothing reads it)
     int number;                         // +0x18 the number in the item's text keys and names ("item%04d")
     int variant;                        // +0x1C the model variant
     console::CStringArray list20;       // +0x20 slot 18's first name (FirstListName)
@@ -173,15 +173,15 @@ struct ItemRecordHead {
     std::uint32_t materialUnits;        // +0x4C units of material (the price; the trader stock takes them)
     console::CStringArray list50;       // +0x50
     std::uint32_t classMask;            // +0x64 bit (class - 1): the class templates that may use it
-    std::uint8_t unknown_68;            // +0x68 1 after construction
-    std::uint8_t unknown_69[3];
+    std::uint8_t field15;               // +0x68 archive field 15, 1 after construction (nothing reads it)
+    std::uint8_t unused_69[3];
     // +0x6C the category (5 wands, 8 quick items whose prototype names their spell), a quest
     // item's id, a loot item's kind; an armour's first absorption factor (float bits).
     std::uint32_t category;
 };
 static_assert(offsetof(ItemRecordHead, list20) == 0x20);
 static_assert(offsetof(ItemRecordHead, list50) == 0x50);
-static_assert(offsetof(ItemRecordHead, unknown_68) == 0x68);
+static_assert(offsetof(ItemRecordHead, field15) == 0x68);
 static_assert(offsetof(ItemRecordHead, type) == 0x0C);
 static_assert(offsetof(ItemRecordHead, materialClass) == 0x10);
 static_assert(offsetof(ItemRecordHead, number) == 0x18);
@@ -225,9 +225,10 @@ struct WeaponRecord : ItemRecordHead {
     // 0069F800 (RET 4; item_db_serialize.cpp). The head, then fields 0x15-0x1E.
     void Serialize(ChunkArchive* ar);
 
-    std::uint8_t unknown_70[0x7B - 0x70];
+    std::uint8_t field16[8];            // +0x70 archive field 0x16 (nothing reads it)
+    std::uint8_t field1B[3];            // +0x78 archive field 0x1B (nothing reads it)
     std::uint8_t skillBonus[2];         // +0x7B the wielder's weapon skill bonus (skill 0 / 1)
-    std::uint8_t unknown_7D[0x84 - 0x7D];
+    std::uint8_t unused_7D[0x84 - 0x7D];
     float attackBonus;                  // +0x84 added to the wielder's attack (WeaponStat84)
     float defenceBonus;                 // +0x88 added to the wielder's defence (WeaponStat88; 0 for types 5, 6)
     std::uint32_t reach;                // +0x8C item +0x58: the wielder's reach (float bits)
@@ -265,9 +266,11 @@ struct ArmorRecord : ItemRecordHead {
     float absorbOthers[7];              // +0x94 item absorb_[1]
     std::uint32_t othersFlags;          // +0xB0
     std::uint8_t showsWounds;           // +0xB4 0: the piece hides the wounds of the parts it covers (00536EA0)
-    std::uint8_t unknown_B5[3];
+    std::uint8_t unused_B5[3];
     std::uint32_t layer;                // +0xB8 the lower one's texture goes first (00568800, ArmorFieldB8)
-    std::uint8_t unknown_BC[kArmorSize - 0xBC];
+    std::uint8_t field19[3];            // +0xBC archive field 0x19 (nothing reads it)
+    std::uint8_t field1A[8];            // +0xBF archive field 0x1A (nothing reads it)
+    std::uint8_t unused_C7[kArmorSize - 0xC7];
 };
 static_assert(offsetof(ArmorRecord, showsWounds) == 0xB4);
 static_assert(offsetof(ArmorRecord, firstFlags) == 0x8C && offsetof(ArmorRecord, othersFactor) == 0x90);
@@ -286,10 +289,12 @@ struct QuickItemRecord : ItemRecordHead {
     void Serialize(ChunkArchive* ar);
 
     std::uint32_t value70;              // +0x70 item +0x4C
-    std::uint8_t unknown_74[0x7C - 0x74];
+    std::uint8_t field17[4];            // +0x74 archive field 0x17 (nothing reads it)
+    std::uint8_t field18[4];            // +0x78 archive field 0x18 (nothing reads it)
     mfc::CString text7C;                // +0x7C the spell text of a category 8 item (CItemConstructor::Build)
     std::uint8_t attributeBonus[3];     // +0x80 per attribute (UnitStats::AttributeWithItems)
-    std::uint8_t unknown_83[kQuickItemSize - 0x83];
+    std::uint8_t field1B[8];            // +0x83 archive field 0x1B (nothing reads it)
+    std::uint8_t unused_8B[kQuickItemSize - 0x8B];
 };
 static_assert(offsetof(QuickItemRecord, value70) == 0x70);
 static_assert(offsetof(QuickItemRecord, attributeBonus) == 0x80);
@@ -348,7 +353,7 @@ struct MaterialRecordHead {
     float magicPower;                   // +0x18 added to the prototype's charge (CItemConstructor::MagicCapacity)
     std::uint32_t magicLevel;           // +0x1C added to the prototype's +0x44
     float conditionFactor;              // +0x20 multiplies the prototype's condition
-    std::uint32_t unknown_24;           // +0x24
+    std::uint32_t field9;               // +0x24 archive field 9 (nothing reads it)
     float damageFactor;                 // +0x28 multiplies a weapon's damage and spread
     float absorbFactors[7];             // +0x2C multiply an armour's absorption per damage type (one field)
     std::uint32_t armourFlags;          // +0x48 or'ed into the flag dwords of an armour's rows

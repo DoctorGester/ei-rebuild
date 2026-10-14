@@ -1,0 +1,173 @@
+<title>Evil Islands Ticket Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@600&display=swap">
+<style>
+/* Sibling of the progress dashboard (same palette and type). Lanes by state, cards per ticket, filters on top. */
+:root {
+  --bg: #f3f4f2; --panel: #ffffff; --ink: #1d2422; --muted: #5d6a66; --line: #d9dedb;
+  --accent: #b5652a; --accent-soft: #f1dfd0; --track: #e6e9e7; --good: #3d7a52; --good-soft: #dcebe0;
+  --wait: #8a6d1f; --wait-soft: #f1e8cc; --watch: #a54a5a; --watch-soft: #f3dde1; --blue: #4a6fa5; --blue-soft: #dde6f2; --rev: #8a5aa0; --rev-soft: #ece0f1;
+  --sans: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --display: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #151a19; --panel: #1d2423; --ink: #e5ebe8; --muted: #93a19c; --line: #2e3836;
+  --accent: #e08a4a; --accent-soft: #3b2a1e; --track: #2a3331; --good: #6fbf8a; --good-soft: #1f3327;
+  --wait: #d6b55a; --wait-soft: #352d17; --watch: #e07a8a; --watch-soft: #3a2228; --blue: #7fa3d9; --blue-soft: #1f2a3a; --rev: #c39ad6; --rev-soft: #2f2236; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #151a19; --panel: #1d2423; --ink: #e5ebe8; --muted: #93a19c; --line: #2e3836;
+  --accent: #e08a4a; --accent-soft: #3b2a1e; --track: #2a3331; --good: #6fbf8a; --good-soft: #1f3327;
+  --wait: #d6b55a; --wait-soft: #352d17; --watch: #e07a8a; --watch-soft: #3a2228; --blue: #7fa3d9; --blue-soft: #1f2a3a; --rev: #c39ad6; --rev-soft: #2f2236; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5 }
+main { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 22px }
+header { display: grid; gap: 4px }
+h1 { font-family: var(--display); font-weight: 600; font-size: 28px; margin: 0; letter-spacing: .01em; text-wrap: balance }
+h2 { font-family: var(--display); font-weight: 600; font-size: 18px; margin: 0; letter-spacing: .01em; display: flex; gap: 10px; align-items: baseline }
+h2 .n { font-family: var(--mono); font-size: 13px; color: var(--muted); font-weight: 400 }
+.sub { color: var(--muted); margin: 0 }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; gap: 0; min-width: 0;
+  border-top: 3px solid var(--c, var(--line)); cursor: pointer; text-align: left; font: inherit; color: inherit }
+.stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted) }
+.stat .value { font-family: var(--mono); font-size: 24px; font-weight: 500 }
+.stat[aria-pressed="false"] { opacity: .45 }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.filters input { font: inherit; padding: 5px 10px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); color: var(--ink); min-width: 0; flex: 1 1 200px; max-width: 320px }
+.chip { font: inherit; font-size: 12px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel); color: var(--ink); cursor: pointer }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink) }
+.lane { display: grid; gap: 10px }
+.lane .hint { color: var(--muted); font-size: 12px; margin: -4px 0 0 }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px }
+.card { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c); border-radius: 6px; padding: 10px 12px 10px;
+  display: grid; gap: 6px; align-content: start; min-width: 0; scroll-margin: 24px }
+.card.flash { outline: 2px solid var(--accent); outline-offset: 2px }
+.card .top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
+.card .id { font-family: var(--mono); font-weight: 500; color: var(--c) }
+.card .grp { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
+.card .meta { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted) }
+.card .title { font-weight: 500; text-wrap: pretty }
+.card .note { font-size: 12.5px; color: var(--muted); margin: 0 }
+.card details summary { font-size: 12px; color: var(--muted); cursor: pointer; list-style: none }
+.card details summary::-webkit-details-marker { display: none }
+.card details summary::before { content: "B8  "; }
+.card details[open] summary::before { content: "BE  "; }
+.deps { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: 11px; color: var(--muted) }
+.dep { font-family: var(--mono); font-size: 11px; padding: 0 6px; border-radius: 3px; border: 0; cursor: pointer; background: var(--s); color: var(--c) }
+.files { font-family: var(--mono); font-size: 11px; color: var(--muted); overflow-wrap: anywhere }
+.s-running { --c: var(--accent); --s: var(--accent-soft) }
+.s-review { --c: var(--rev); --s: var(--rev-soft) }
+.s-ready { --c: var(--good); --s: var(--good-soft) }
+.s-waiting { --c: var(--wait); --s: var(--wait-soft) }
+.s-watch { --c: var(--watch); --s: var(--watch-soft) }
+.s-later { --c: var(--blue); --s: var(--blue-soft) }
+.s-done { --c: var(--muted); --s: var(--track) }
+.groups { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; display: grid; gap: 8px }
+.groups dl { margin: 0; display: grid; grid-template-columns: minmax(0, 200px) minmax(0, 1fr); gap: 6px 16px; font-size: 13px }
+.groups dt { font-weight: 500 }
+.groups dd { margin: 0; color: var(--muted) }
+@media (max-width: 560px) { .groups dl { grid-template-columns: minmax(0, 1fr) } .groups dd { margin-bottom: 6px } }
+.rules { margin: 0; padding-left: 18px; color: var(--muted); font-size: 13px; display: grid; gap: 2px }
+footer { color: var(--muted); font-size: 12px }
+#error { color: var(--accent) }
+.empty { color: var(--muted); font-size: 13px }
+</style>
+
+<main>
+  <header>
+    <h1>Evil Islands Ticket Board</h1>
+    <p class="sub">The rebuild's work queue, from docs/tickets.toml. Ready means every ticket it depends on is done. <span id="asof" class="mono"></span></p>
+  </header>
+  <div class="summary" id="summary"></div>
+  <div class="filters">
+    <input id="q" type="search" placeholder="Filter by id, title, note or file" aria-label="Filter tickets">
+    <div id="groupchips" class="filters"></div>
+  </div>
+  <div id="lanes" style="display:grid;gap:22px"></div>
+  <section class="groups">
+    <h2>Groups</h2>
+    <dl id="groups"></dl>
+  </section>
+  <section class="groups">
+    <h2>How the queue works</h2>
+    <ul class="rules" id="rules"></ul>
+  </section>
+  <p id="error"></p>
+  <footer>Republished from tools/tickets.py's tickets.json whenever the queue changes.</footer>
+</main>
+
+<script>
+const LANES = [
+  ['running', 'Running', 'A worker has it now.'],
+  ['review', 'Review', 'The worker is finished; the branch waits to be merged.'],
+  ['ready', 'Ready', 'Everything it depends on is done; can start in the next free slot.'],
+  ['waiting', 'Waiting', 'Queued behind unfinished tickets.'],
+  ['watch', 'Watching', 'Flaky or open problems we observe.'],
+  ['later', 'Later', 'Not before its phase.'],
+  ['done', 'Done', 'Merged or finished.']];
+const state = { q: '', group: null, lanes: new Set(['running', 'review', 'ready', 'waiting', 'watch', 'later', 'done']) };
+try { const s = JSON.parse(localStorage.getItem('ei-board') || 'null'); if (s) { state.group = s.group; state.lanes = new Set(s.lanes); } } catch (e) {}
+const save = () => { try { localStorage.setItem('ei-board', JSON.stringify({ group: state.group, lanes: [...state.lanes] })); } catch (e) {} };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const code = s => esc(s).replace(/`([^`]+)`/g, '<code class="mono">$1</code>');
+let data;
+
+function render() {
+  const byId = Object.fromEntries(data.tickets.map(t => [t.id, t]));
+  const groups = Object.fromEntries(data.groups.map(g => [g.key, g]));
+  const q = state.q.trim().toLowerCase();
+  const match = t => (!state.group || t.group === state.group) &&
+    (!q || [t.id, t.title, t.note, (t.files || []).join(' '), groups[t.group].name].join(' ').toLowerCase().includes(q));
+  document.getElementById('summary').innerHTML = LANES.map(([k, name]) =>
+    `<button class="stat s-${k}" style="--c:var(--c)" data-lane="${k}" aria-pressed="${state.lanes.has(k)}">` +
+    `<span class="label">${name}</span><span class="value">${data.tickets.filter(t => t.state === k && match(t)).length}</span></button>`).join('');
+  document.getElementById('groupchips').innerHTML = [['', 'All groups'], ...data.groups.map(g => [g.key, g.name])].map(([k, n]) =>
+    `<button class="chip" data-group="${k}" aria-pressed="${(state.group || '') === k}">${esc(n)}</button>`).join('');
+  const order = t => [t.done || '', t.started || ''];
+  document.getElementById('lanes').innerHTML = LANES.filter(([k]) => state.lanes.has(k)).map(([k, name, hint]) => {
+    let list = data.tickets.filter(t => t.state === k && match(t));
+    if (k === 'done') list = list.sort((a, b) => (b.done || '').localeCompare(a.done || ''));
+    const cards = list.map(t => {
+      const meta = [t.model, t.size ? `${t.size} sess.` : '', t.started && (k === 'running' || k === 'review') ? `since ${t.started.slice(5)}` : '', t.done ? t.done : ''].filter(Boolean).join(' \u00b7 ');
+      const deps = (t.depends || []).map(d => `<button class="dep s-${byId[d].state}" data-goto="${d}" title="${esc(byId[d].title)} (${byId[d].state})">${esc(d)}</button>`).join('');
+      const blocks = data.tickets.filter(o => (o.depends || []).includes(t.id) && o.state !== 'done')
+        .map(o => `<button class="dep s-${o.state}" data-goto="${o.id}" title="${esc(o.title)}">${esc(o.id)}</button>`).join('');
+      const long = (t.note || '').length > 160;
+      const note = t.note ? (long ? `<details><summary>${code(t.note.slice(0, 140))}&hellip;</summary><p class="note">${code(t.note)}</p></details>` : `<p class="note">${code(t.note)}</p>`) : '';
+      return `<article class="card s-${t.state}" id="t-${esc(t.id)}">
+        <div class="top"><span class="id">${esc(t.id)}</span><span class="grp">${esc(groups[t.group].name)}</span><span class="meta">${esc(meta)}</span></div>
+        <div class="title">${esc(t.title)}</div>${note}
+        ${deps ? `<div class="deps">after ${deps}</div>` : ''}
+        ${blocks ? `<div class="deps">unblocks ${blocks}</div>` : ''}
+        ${t.files ? `<div class="files">${t.files.map(esc).join(' \u00b7 ')}</div>` : ''}
+      </article>`;
+    }).join('');
+    return `<section class="lane"><h2>${name}<span class="n">${list.length}</span></h2><p class="hint">${hint}</p>` +
+      (cards ? `<div class="cards">${cards}</div>` : `<p class="empty">Nothing here with the current filter.</p>`) + `</section>`;
+  }).join('');
+  document.getElementById('groups').innerHTML = data.groups.map(g => {
+    const n = data.tickets.filter(t => t.group === g.key && t.state !== 'done').length;
+    return `<dt>${esc(g.name)} <span class="mono" style="color:var(--muted);font-weight:400">${n} open</span></dt><dd>${code(g.note || '')}${g.doc ? ` <span class="mono">${esc(g.doc)}</span>` : ''}</dd>`;
+  }).join('');
+  document.getElementById('rules').innerHTML = (data.rules || []).map(r => `<li>${code(r)}</li>`).join('');
+}
+
+document.addEventListener('click', e => {
+  const lane = e.target.closest('[data-lane]'), grp = e.target.closest('[data-group]'), go = e.target.closest('[data-goto]');
+  if (lane) { const k = lane.dataset.lane; state.lanes.has(k) ? state.lanes.delete(k) : state.lanes.add(k); save(); render(); }
+  else if (grp) { state.group = grp.dataset.group || null; save(); render(); }
+  else if (go) {
+    const t = data.tickets.find(x => x.id === go.dataset.goto);
+    if (!state.lanes.has(t.state) || (state.group && state.group !== t.group) || state.q) { state.lanes.add(t.state); state.group = null; state.q = ''; document.getElementById('q').value = ''; render(); }
+    const el = document.getElementById('t-' + t.id);
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 1600); }
+  }
+});
+document.getElementById('q').addEventListener('input', e => { state.q = e.target.value; render(); });
+
+fetch('tickets.json').then(r => r.json()).then(d => {
+  data = d;
+  document.getElementById('asof').textContent = `Queue as of ${(d.committed || d.generated || '').slice(0, 16).replace('T', ' ')}${d.commit ? ' (' + d.commit + ')' : ''}.`;
+  render();
+}).catch(err => { document.getElementById('error').textContent = 'Could not load tickets.json: ' + err; });
+</script>

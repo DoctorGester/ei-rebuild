@@ -101,7 +101,7 @@ public:
     float radius_;                      // +0x34
     Vector3 boundsMin_;                 // +0x38 relative to center_
     Vector3 boundsMax_;                 // +0x44
-    Vector3 unknown_50;                 // +0x50 cleared with the bounds
+    Vector3 boundsSpare_;               // +0x50 cleared with the bounds, never read
     LightningSegment main_;             // +0x5C
     LightningSegment branches_[6];      // +0x104
     float branchPos_[6];                // +0x4F4 where each branch leaves the main segment (0..1)

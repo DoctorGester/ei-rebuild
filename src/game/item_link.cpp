@@ -26,7 +26,7 @@ CItemLink* CItemLink::Clone() {
     auto* copy = static_cast<CItemLink*>(gamecrt::operator_new(sizeof(CItemLink)));
     if (!copy) return nullptr;
     copy->references = 0;
-    copy->unknown_06 = 0;
+    copy->refsHigh = 0;
     copy->value = value;
     copy->vtable = Vtable();
     return copy;

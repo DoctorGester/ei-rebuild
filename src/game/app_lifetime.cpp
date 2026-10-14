@@ -47,7 +47,7 @@ PartyRecord* __cdecl CreatePartyRecord() {
     auto* record = static_cast<PartyRecord*>(gamecrt::operator_new(sizeof(PartyRecord)));
     // The count's dword is cleared before the null check, as the original does.
     record->refCount = 0;
-    record->unknown_06 = 0;
+    record->refsHigh = 0;
     if (!record) return nullptr;
     record->vtable = kCountedRootVtable;
     PartyOf(record)->Construct();
@@ -61,7 +61,7 @@ EI_REPLACE(0x00457740, CreatePartyRecord);
 ClassTemplate* __cdecl CreateClassTemplate() {
     auto* created = static_cast<ClassTemplate*>(gamecrt::operator_new(sizeof(ClassTemplate)));
     created->refCount = 0;
-    created->unknown_06 = 0;
+    created->refsHigh = 0;
     if (!created) return nullptr;
     return created->Construct();
 }

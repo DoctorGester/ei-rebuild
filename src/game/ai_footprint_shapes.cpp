@@ -37,7 +37,7 @@ void AddCell(FootprintCellSet* set, int x, int y) {
     cell.kind = 3;
     cell.transparency = 3;
     cell.edge = 0;
-    cell.unknown_13 = 0;
+    cell.padding = 0;
     cell.next = -1;
 }
 

@@ -393,7 +393,7 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
         if (kept) continue;
         EffectSoundRecord added = {};
         added.kind = types[t];
-        added.unknown_04 = -1;
+        added.spareHandle = -1;
         added.handle = -1;
         added.timer = 0;
         added.present = 1;
@@ -493,8 +493,8 @@ void CMapObjectClientSpecific::ApplyLightMode(int mode) {
 EI_REPLACE_METHOD(0x00511A00, CMapObjectClientSpecific::ApplyLightMode);
 
 void CMapObjectClientSpecific::DestroyClientCompanion() {
-    unknown_20 = 0;
-    unknown_24 = 0;
+    lightStateA = 0;
+    lightStateB = 0;
     CompanionParticlesSetSizeOriginal(&particles, nullptr, 0, -1);
     if (light) DropLight(this);
     owner = nullptr;

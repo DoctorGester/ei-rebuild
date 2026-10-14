@@ -22,9 +22,9 @@ bool SameBytes(const void* a, const void* b, std::size_t from, std::size_t to) {
 bool SameHead(const ItemRecordHead* a, const ItemRecordHead* b) {
     bool ok = std::strcmp(a->text04, b->text04) == 0 && std::strcmp(a->text08, b->text08) == 0 &&
               std::strcmp(a->materialClass, b->materialClass) == 0 && a->type == b->type &&
-              SameBytes(a, b, offsetof(ItemRecordHead, unknown_14), offsetof(ItemRecordHead, list20)) &&
+              SameBytes(a, b, offsetof(ItemRecordHead, field4), offsetof(ItemRecordHead, list20)) &&
               SameBytes(a, b, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50)) &&
-              a->unknown_68 == b->unknown_68 && a->list20.GetSize() == b->list20.GetSize();
+              a->field15 == b->field15 && a->list20.GetSize() == b->list20.GetSize();
     for (int i = 0; ok && i < a->list20.GetSize(); ++i) ok = std::strcmp(a->list20[i], b->list20[i]) == 0;
     return ok;
 }

@@ -186,7 +186,7 @@ void __fastcall SegmentInitVerify(LightningSegment* self, void*, const Vector3* 
 // 00466FD0: PUSH EBP (1), MOV EBP,ESP (2), SUB ESP,0x30 (3). Only the box (+0x38..+0x50) changes.
 void(__fastcall* s_expandBounds)(CLightning*, void*, const LightningSegment*);
 void __fastcall ExpandBoundsVerify(CLightning* self, void*, const LightningSegment* segment) {
-    alignas(4) unsigned char copy[offsetof(CLightning, unknown_50)];
+    alignas(4) unsigned char copy[offsetof(CLightning, boundsSpare_)];
     std::memcpy(copy, self, sizeof(copy));
     s_expandBounds(reinterpret_cast<CLightning*>(copy), nullptr, segment);
     self->ExpandBounds(segment);

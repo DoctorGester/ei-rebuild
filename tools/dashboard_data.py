@@ -33,6 +33,8 @@ RATCHET = {
     'container_structs': 'per-file container struct',
     'vector_map_set_structs': 'per-file vector/map/set struct',
     'vector_maths': 'hand-written vector maths',
+    'unknown_fields': 'unknown field',
+    'unused_fields_accessed': 'unused field accessed',
 }
 
 

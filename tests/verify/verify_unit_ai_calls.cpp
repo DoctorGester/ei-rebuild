@@ -36,7 +36,7 @@ static void __fastcall UpdateVerify(AICallArray* self, void*, CUnit* unit, void*
         AICallRecord call = self->data[i];
         if (--call.kind >= 0) {
             expected.push_back(call);
-        } else if (call.unknown_10 == 0 && level < 900) {
+        } else if (call.hostileMask == 0 && level < 900) {
             noticedX = call.point.x;
             noticedY = call.point.y;
             level = 900;

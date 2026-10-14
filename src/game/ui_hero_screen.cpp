@@ -371,7 +371,7 @@ void CMpHeroScreen::MakePreview(int flag) {
     RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
     records.data[size] = reinterpret_cast<std::uint8_t*>(first);
     GameTakeUnitRecordsFlagOriginal(ClientGlue(), nullptr, &records, flag);
-    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, player->members_.data->unknown_01C));
+    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, player->members_.data->unitId));
     unit->SetPrototype23C(unit->GetPrototype());
     previewModel_ = reinterpret_cast<std::uint8_t*>(unit);
     if (unit) {
@@ -416,7 +416,7 @@ void CMpHeroScreen::ShowHero(int index) {
     }
     HeroScreenMakePreviewOriginal(this, nullptr, 1);
     auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
-    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, hero->unknown_01C));
+    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, hero->unitId));
     for (int slot = 0; slot < 4; ++slot) UnitRemoveWeaponOriginal(unit, nullptr, slot);
     for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) UnitAddWeaponOriginal(unit, nullptr, hero->weapons[i]);
     UnitSendEquipmentOriginal(unit);

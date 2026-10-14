@@ -140,19 +140,19 @@ void AIAttention::Build(CUnit* unit) {
             if (!spell) continue;
             int kind = SpellKindAt(this, nullptr, spell);
             if (kind == kNoKind) continue;
-            float range = std::bit_cast<float>(spell->unknown_34);
+            float range = std::bit_cast<float>(spell->range_);
             if (server->Combat().naturalWeapon == kNaturalSpellsOnly) range = server->Combat().reach;
-            std::uint32_t count = spell->unknown_38;
+            std::uint32_t count = spell->targetCount_;
             int maxCount = static_cast<int>((count < 1 ? 1 : count) - 1);
             std::uint32_t radius = 0;
             int effect = 0;
             switch (kind) {
             case 2:
-                radius = spell->unknown_28;
+                radius = spell->radius_;
                 break;
             case 3:
-                radius = spell->unknown_28;
-                effect = static_cast<int>(spell->unknown_20);
+                radius = spell->radius_;
+                effect = static_cast<int>(spell->duration_);
                 break;
             case 4:
             case 5:
@@ -160,7 +160,7 @@ void AIAttention::Build(CUnit* unit) {
                 effect = SpellType(spell);
                 break;
             case 7:
-                radius = spell->unknown_24;
+                radius = spell->damage_;
                 break;
             default:
                 break;

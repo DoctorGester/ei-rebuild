@@ -104,10 +104,10 @@ int CWorldServer::Update() {
         static_cast<CWorldHandle*>(handle)->Pump();
         AcceptPlayers(this, nullptr, shared5C_.ptr);
     }
-    if (void* pending = unknown60_) {
+    if (void* pending = netSession_) {
         net::ServerSession* server = net::GameServer();
         if (server && !(server->flags7_ & CRefCounted::kDetached)) SessionPump(pending, nullptr, server);
-        AcceptPlayers(this, nullptr, unknown60_);
+        AcceptPlayers(this, nullptr, netSession_);
     }
 
     if (!paused_) {

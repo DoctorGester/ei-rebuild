@@ -141,7 +141,7 @@ public:
     float chargeRate_;            // +0x30 0.001 by default
     std::uint32_t weight_;        // +0x34 float bits (Weight()); prototype value38
     float price_;                 // +0x38 includes the attached spell's price
-    std::uint32_t unknown_3C;     // +0x3C prototype value3C
+    std::uint32_t value3C_;     // +0x3C prototype value3C
     // +0x40 the level of spell the item can hold (the prototype's magicLevel plus the material's;
     // CItemConstructor::MagicCapacity).
     std::uint32_t magicLevel_;
@@ -180,7 +180,7 @@ struct CItemLink {
 
     void* vtable;
     std::int16_t references;        // +0x04
-    std::uint16_t unknown_06;
+    std::uint16_t refsHigh;             // +0x06 the reference dword's high half (zeroed with it)
     std::uint32_t value;            // +0x08
 };
 static_assert(sizeof(CItemLink) == 0xC);
@@ -224,7 +224,7 @@ public:
     void Load(void* stream) override;
     void Save(void* stream) override;
 
-    std::uint32_t unknown_4C;   // +0x4C 0 after construction; combat scales it (combat.cpp)
+    std::uint32_t actionValue_;         // +0x4C 0 after construction; CUnitServer::ScaledItemValue scales it by 15 / the rate, the hit takes it (DamageInfo +0x1C)
     float damage_;          // +0x50 prototype +0x90
     float damageSpread_;    // +0x54 prototype +0x94
     float reach_;           // +0x58 prototype reach: the wielder's reach
@@ -292,7 +292,7 @@ public:
     void Load(void* stream) override;
     void Save(void* stream) override;
 
-    std::uint32_t unknown_4C;
+    std::uint32_t actionValue_;         // +0x4C the record's value70 (CUnitServer::ScaledItemValue)
 };
 static_assert(sizeof(CItemQuick) == 0x50);
 
@@ -339,7 +339,7 @@ public:
     // 006A56E0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
     CItemSpell* Construct();
 
-    std::uint32_t unknown_4C;
+    std::uint32_t actionValue_;         // +0x4C left as it is by Construct; CopyTo copies it
 };
 
 // vtable 00743F5C, GetClassId 0x15.

@@ -139,7 +139,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     PartyUnitRecord* record = builder.Record();
     RecordArraySetSizeOriginal(&records, nullptr, 1, -1);
     records.data[0] = reinterpret_cast<std::uint8_t*>(record);
-    record->unknown_01C = id;   // the unit's id
+    record->unitId = id;   // the unit's id
     WorldCreateUnitsOriginal(this, nullptr, nullptr, &records, position, DefaultRotation(), nullptr);
     records.vtable = reinterpret_cast<void*>(kPtrArrayVtable);
     if (records.data) gamecrt::operator_delete(records.data);
@@ -183,7 +183,7 @@ int CWorldServer::LoadMobFile(const char* file) {
         int loaded = LoadMapObjects(file, 0);
         if (loaded == 0) {
             LoadingMobFile() = 0;
-            unknown15C_ = 0;
+            zoneLoaded_ = 0;
             return game::FatalError(Text(kCantLoadMob), file);
         }
     }

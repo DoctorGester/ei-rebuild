@@ -210,10 +210,10 @@ Next ApplyBuff(CSpellEffect* e) {
     if (!e->target) return Next::Done;
     MapEffect record;
     BuffRecordInit(&record);
-    std::memcpy(&record, &e->unknown_50, sizeof(record));
+    std::memcpy(&record, &e->effectRecord, sizeof(record));
     record.power = static_cast<std::uint8_t>(
         PowerScaledToInt(&e->damage, reinterpret_cast<const float*>(Prototype(e) + 0x2C), ConstPtr(kBuffScale)));
-    record.ending = e->unknown_A4;
+    record.ending = e->silentEnd;
     ObjectSlots(e->target)->AddEffect(&record);
     return Next::Done;
 }
@@ -274,7 +274,7 @@ Next StartHealing(CSpellEffect* e) {
     float size = Power(e);
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
     bool full = static_cast<CUnit*>(e->target)->packedVitals.hitPoints == static_cast<CUnit*>(e->target)->packedVitals.maxHitPoints;
-    if (e->unknown_A4 == 0 || !full) {
+    if (e->silentEnd == 0 || !full) {
         e->CreateSound(0, GameString(0x00795520), &static_cast<CUnit*>(e->target)->position, &kZeroVector, kVolume, kHearing);
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
         float range = PrototypeRange(e);

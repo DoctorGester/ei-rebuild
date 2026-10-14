@@ -44,7 +44,7 @@ void UnitStats::AddArmourLayer(CEngineObject* armour) {
         int part = which != 0 ? 1 : 0;
         for (int k = 0; k < 7; ++k) layer.absorb[k] = layer.absorb[k] + piece->absorb_[part][k];
         layer.state = kLayerAdded;
-        layer.unknown_00 |= static_cast<int>(piece->layerMask_[part]);
+        layer.layerMask |= static_cast<int>(piece->layerMask_[part]);
     }
 }
 EI_REPLACE_METHOD(0x005230C0, UnitStats::AddArmourLayer);

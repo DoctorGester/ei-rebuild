@@ -68,8 +68,16 @@ def undecorate(names):
     except (OSError, AttributeError):
         pass
     names = [n for n in names if n not in out]
-    for i in range(0, len(names), 200):
-        chunk = names[i:i + 200]
+    chunks, chunk, length = [], [], 0
+    for n in names:     # Windows command lines stop at 32767 characters; release maps have long template names
+        if chunk and (len(chunk) == 200 or length + len(n) > 24000):
+            chunks.append(chunk)
+            chunk, length = [], 0
+        chunk.append(n)
+        length += len(n) + 3
+    if chunk:
+        chunks.append(chunk)
+    for chunk in chunks:
         res = subprocess.run(['undname'] + chunk, capture_output=True, text=True).stdout
         for dec, und in re.findall(r'Undecoration of :- "(.*?)"\s*is :- "(.*?)"', res):
             out[dec] = und

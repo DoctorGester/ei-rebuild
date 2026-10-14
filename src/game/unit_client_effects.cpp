@@ -130,7 +130,7 @@ const itemdb::MaterialRecordHead* ArmourMaterial(const CUnitClientSpecific* self
 
 // The weapon class of the last hit (UnitParams +0x20).
 std::uint8_t HitSoundKind(CUnit* unit) {
-    std::uint16_t weapon = static_cast<std::uint16_t>(unit->Params()->unknown_20);
+    std::uint16_t weapon = static_cast<std::uint16_t>(unit->Params()->lastHitSource);
     if (weapon < kFirstPrototypeWeapon) return static_cast<std::uint8_t>(weapon);
     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(
         unitdb::Prototypes().At(weapon - kFirstPrototypeWeapon, unitdb::kPrototypeSize));
@@ -171,7 +171,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
             ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kBloodParticles[blood - 1]));
         source->position = {0.0f, 0.0f, kBloodHeight};
         source->ScaleSize(part->unknown_198 * kBloodScale);
-        source->unknown_11C = kBloodRate;
+        source->typeParam = kBloodRate;
         float alpha = amount;
         if (!(alpha >= kBloodMinAlpha)) alpha = kBloodMinAlpha;
         else if (alpha > kBloodMaxAlpha) alpha = kBloodMaxAlpha;

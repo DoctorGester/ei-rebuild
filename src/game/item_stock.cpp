@@ -51,7 +51,7 @@ struct Constructor : ItemConstructorManagerOriginal {
     int Cancel();                                   // 006A5D30
     bool MagicCapacity(float* level, float* power); // 006A6480
 
-    std::uint8_t unknown_00[0x30];
+    std::uint8_t unused_00[0x30];
     int count;                                      // +0x30 the stack size (CItemConstructor::count_)
 };
 __declspec(naked) int Constructor::Cancel() EI_ORIGINAL(0x006A5D30)
@@ -267,7 +267,7 @@ void AddSpell(ItemStock* stock, Constructor* ctor, StockList& spells) {
     for (unsigned i = 0; i < index; ++i) node = node->next;
     void* spell = node->data;
     float spellPower;   // CSpell +0x40, the prototype's +0x18 as float bits
-    std::memcpy(&spellPower, &static_cast<CSpell*>(static_cast<CEngineObject*>(spell))->unknown_40, 4);
+    std::memcpy(&spellPower, &static_cast<CSpell*>(static_cast<CEngineObject*>(spell))->manaCost_, 4);
     if (!(spellPower > power)) ctor->SetSpellObject(spell);
 }
 

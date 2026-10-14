@@ -41,8 +41,8 @@ void CMapObject::FreeArray(void* array, int) {
 EI_REPLACE_METHOD(0x0050F120, CMapObject::FreeArray);
 
 int CMapObjectClientSpecific::CreateClientCompanion() {
-    unknown_20 = 0;
-    unknown_24 = 0;
+    lightStateA = 0;
+    lightStateB = 0;
     CompanionParticlesSetSizeOriginal(&particles, nullptr, 0, -1);
     endSound = kNoSound;
     owner = nullptr;

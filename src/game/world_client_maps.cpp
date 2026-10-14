@@ -475,7 +475,7 @@ const char* CWorldClient::ExitTarget(int index) { return exits_[index].target; }
 
 void CWorldClient::RemoveUnitsOf(const RecordPtrArray* records) {
     for (int i = 0; i < records->size; ++i)
-        RemoveObject(static_cast<int>(reinterpret_cast<PartyUnitRecord*>(records->data[i])->unknown_01C));
+        RemoveObject(static_cast<int>(reinterpret_cast<PartyUnitRecord*>(records->data[i])->unitId));
 }
 
 int CWorldClient::SendFlag10(int value) {
@@ -759,7 +759,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
             }
         }
         auto* manager = static_cast<CBaseManager*>(MapObjectManager());
-        auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unknown_01C)));
+        auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unitId)));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
         auto* prototype = reinterpret_cast<std::uint8_t*>(UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, record->texts[5]));
         unit->unknown_18 = static_cast<std::uint32_t>(
@@ -778,8 +778,8 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
-        ObjectSetFigureScaleOriginal(unit, nullptr, &record->unknown_724);
-        std::memcpy(&unit->MapObject()->baseScale, &record->unknown_724, 12);
+        ObjectSetFigureScaleOriginal(unit, nullptr, &record->scaleX);
+        std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
         UnitReleaseAllItems(unit);
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
@@ -945,7 +945,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
         record->x = rotated.x + position->x;
         record->y = rotated.y + position->y;
         record->z = rotated.z + position->z;
-        std::memcpy(&record->radius, &item->unknown_10, 4);   // a dword move
+        std::memcpy(&record->radius, &item->radius, 4);   // a dword move
     }
 }
 
@@ -1251,7 +1251,7 @@ int CWorldClient::Setup() {
     CStringAssign(&texturePath_, nullptr, &path);
     CStringDestroy(&path);
     LoadLightsAt(this, nullptr, worlddata::LightsTableText());
-    unknown6DC_ = 0;
+    lightingMark_ = 0;
     sounds_ = MakeCounted<CSoundManager>(0x8C0, Construct6B6040);
 
     // The text resources: the engine object's fields (in the original's order), the table, then
@@ -1415,13 +1415,13 @@ int CWorldClient::Setup() {
         entries.finish = block + count;
         entries.eos = block + 400;
     }
-    unknown84_ = -100000;
+    unused84_ = -100000;
     cave_ = 0;
-    unknown6E4_ = 0;
+    partyDanger_ = 0;
     GridToFour(secondGrid_, GridResize2, CellsDelete2, GridAllocate2);
     GridToFour(objectGrid_, GridResize, CellsDelete, GridAllocate);
     ticksRun_ = 0;
-    unknown1C4_ = 0;
+    lightLevelsCountdown_ = 0;
     return 1;
 }
 
@@ -1658,7 +1658,7 @@ int CWorldClient::LoadZone(CStream* block) {
     mfc::CString mob;
     sounds_->SetEffectsVolume(0);
     sounds_->StopAll(1);
-    unknown6E4_ = 0;
+    partyDanger_ = 0;
 
     // The block: the tick, the map and .mob names, the exits, the cave flag, the unit looks.
     block->Read(&tick_, 4);

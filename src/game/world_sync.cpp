@@ -54,7 +54,7 @@ constexpr int kModeJoining = 2;
 constexpr int kModeLeaving = 3;
 constexpr int kModeGone = 4;
 
-constexpr int kKindSinglePlayer = 1;         // CWorldServer::unknown12D64_
+constexpr int kKindSinglePlayer = 1;         // CWorldServer::sessionKind_
 constexpr int kKindNoRangeTest = 3;
 
 // A function-static aligned pointer array of the original ({data, size, capacity, growBy}; the
@@ -184,7 +184,7 @@ namespace {
 // objects named in scripts, and every unit within hearing range of one of its units. `out` is the
 // write cursor into Collected().
 CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPlayerServer* state, CEngineObject** out) {
-    if (world->unknown12D64_ == kKindSinglePlayer && SpectatorView() == 0) {
+    if (world->sessionKind_ == kKindSinglePlayer && SpectatorView() == 0) {
         // Every map object near the camera, and the player's units anywhere; nothing else.
         for (auto* node = world->mapObjects_.map.First(); node && node->value; node = world->mapObjects_.map.After(node)) {
             CEngineObject* object = node->value;
@@ -197,8 +197,8 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
         return out;
     }
 
-    ObjectIdMap& source = world->unknown12D64_ == kKindSinglePlayer ? world->otherMapObjects_ : world->mapObjects_;
-    if (world->unknown12D64_ == kKindNoRangeTest) {
+    ObjectIdMap& source = world->sessionKind_ == kKindSinglePlayer ? world->otherMapObjects_ : world->mapObjects_;
+    if (world->sessionKind_ == kKindNoRangeTest) {
         for (auto* node = source.map.First(); node && node->value; node = source.map.After(node)) {
             CEngineObject* object = node->value;
             if (object->type_ != kTypeNoSync && !(object->flags_ & kFlagHidden)) *out++ = object;
@@ -209,7 +209,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
             if (object->type_ != kTypeNoSync && !OutOfView(PositionOf(object), state)) *out++ = object;
         }
     }
-    if (world->unknown12D64_ != kKindSinglePlayer) return out;
+    if (world->sessionKind_ != kKindSinglePlayer) return out;
 
     // The units always sent.
     int extra = state->partyUnits_.size;
@@ -268,7 +268,7 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
     InitStatic(8, Removed(), RemovedDestructor());
 
     CPlayerServer* state = player->server;
-    if (state->state_ == kModePlaying && unknown15C_ != 0) {
+    if (state->state_ == kModePlaying && zoneLoaded_ != 0) {
         std::uint32_t dirty = player->dirty;
         if (dirty & kDirtyZone) {
             int sent = SendZoneAt(this, nullptr, player);
@@ -278,10 +278,10 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
             return StateFlush(state, nullptr);
         }
         if (dirty & kDirtyWeather) {
-            int strength = x87::fistp(unknownE8_);
+            int strength = x87::fistp(weatherStrength_);
             // The original pushes EAX with the byte in AL (the rest is left from the dirty flags);
             // the callee reads the byte.
-            if (!StateSendWeather(state, nullptr, static_cast<std::uint8_t>(unknownE4_), strength)) return 0;
+            if (!StateSendWeather(state, nullptr, static_cast<std::uint8_t>(weather_), strength)) return 0;
         }
         if (player->dirty & kDirtyTime) {
             float time;
@@ -291,8 +291,8 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         }
         if (player->dirty & kDirtyWind) {
             Vector3 direction;
-            std::memcpy(&direction, unknown24_, sizeof(direction));
-            if (!StateSendWind(state, nullptr, direction, unknown30_)) return 0;
+            std::memcpy(&direction, windDirection_, sizeof(direction));
+            if (!StateSendWind(state, nullptr, direction, windStrength_)) return 0;
         }
         if (player->dirty & kDirtyCountdowns) StateSendCountdowns(state, nullptr, countdowns_);
 
@@ -315,14 +315,14 @@ int CWorldServer::SyncPlayer(WorldPlayer* player) {
         StateTimedAdded(state, nullptr, &Added());
         StateTimedRemoved(state, nullptr, &Removed());
 
-        if (unknown12D64_ == kKindSinglePlayer && IsMultiplayerClient()) {
+        if (sessionKind_ == kKindSinglePlayer && IsMultiplayerClient()) {
             int& timer = state->refreshTimer_;
             if (--timer <= 0 && state->refreshPending_ == 0) StateRefresh(state, nullptr);
         }
     }
 
     int mode = state->state_;
-    if ((mode == kModePlaying || mode == kModeJoining) && unknown15C_ != 0) StateUpdateUnits(state, nullptr);
+    if ((mode == kModePlaying || mode == kModeJoining) && zoneLoaded_ != 0) StateUpdateUnits(state, nullptr);
     mode = state->state_;
     if (mode == kModeLeaving) return 1;
     if (mode != 0 && (player->dirty & kDirtyLeave) && mode != kModeGone) StateLeave(state, nullptr);
@@ -354,7 +354,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
         int exits = exitCount_;
         write(&exits, 4);
         for (int i = 0; i < exitCount_; ++i) ZoneExitWrite(&exits_[i], nullptr, &message);
-        write(&unknownE0_, 4);
+        write(&cave_, 4);
 
         // The zone's units.
         UnitSet units;
@@ -367,7 +367,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
         FiguredGroupsDestruct(&units.figured, nullptr);
 
         result = StateSendZone(state, nullptr, &message);
-        if (result != 0 && unknown_11C != 0) {
+        if (result != 0 && sendsStartPosition_ != 0) {
             result = 1;
             if (player->units.map.Size() != 0) {
                 // The player starts at its first unit, on the ground there.
@@ -376,7 +376,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
                 Vector3 start;
                 std::memcpy(&start, at, sizeof(start));
                 start.z = static_cast<float>(RawSurfaceHeightAt(start.x, start.y));
-                result = PlayerSendPosition04Original(state, nullptr, &start, 0, unknown12D64_);
+                result = PlayerSendPosition04Original(state, nullptr, &start, 0, sessionKind_);
             }
         }
         if (result != 0) reinterpret_cast<CPlayer*>(player)->connection_->ItemsGiven(&player->items, 0);

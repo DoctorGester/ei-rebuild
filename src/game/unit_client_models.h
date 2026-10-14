@@ -46,7 +46,7 @@ struct ClientSpeech {
     int delay;                      // +0x08 ticks until it plays; negative: playing
     int sound;                      // +0x0C its sound handle (-1 none)
     std::uint8_t talking;           // +0x10 the server unit has flag 0x800000 while it plays
-    std::uint8_t unknown_11[3];
+    std::uint8_t unused_11[3];
 };
 static_assert(sizeof(ClientSpeech) == 0x14);
 
@@ -361,13 +361,13 @@ public:
     std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
     std::uint8_t arrowHidden;       // +0x75 the bow's arrow part is flagged hidden
     std::uint8_t snapHeading;       // +0x76 the next path placement turns the unit to the path at once (00535850)
-    std::uint8_t unknown_077;
+    std::uint8_t unused_077;
     float fadeIn;                   // +0x78 1 when fully shown; the drawn parts take it as alpha
     int flashCountdown;             // +0x7C the drawn parts get their colours back (0051C9F0 with 0) at 0
     int footprint;                  // +0x80 the last footprint (0056D150), -1 none
     int footprintRepeats;           // +0x84 further steps that may reuse it
     int idleSound;                  // +0x88 the idle animation's sound handle
-    int unknown_08C;                // +0x8C -1 after Create
+    int otherSound;                     // +0x8C a sound handle, -1 after Create; nothing reads it
     int speechSound;                // +0x90 the sound of the last speech that waits (-1 none)
     const SpeechRecord* lastSpeech; // +0x94 the speech played last (005380D0)
     std::uint32_t lastSpeechTime;   // +0x98 when (timeGetTime)
@@ -376,7 +376,7 @@ public:
     std::uint32_t weaponIds[4];     // +0xBC
     CEngineObject* faceTexture;     // +0xCC the face texture the blink changes (counted)
     std::uint8_t blinks;            // +0xD0
-    std::uint8_t unknown_0D1[3];
+    std::uint8_t unused_0D1[3];
     int blinkTimer;                 // +0xD4 ticks to the next blink change
     int eyesClosed;                 // +0xD8 00538ED0 sets it, 00539010 clears it
 };
