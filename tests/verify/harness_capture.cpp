@@ -323,42 +323,71 @@ State Poll(const char** detail) {
 unsigned FramesPresented() { return g_frames; }
 
 namespace {
-// Reads a BMP this file wrote (24-bit, bottom-up) into `image` (top-down rows).
-bool ReadBmp(const char* name, Image& image) {
-    char path[MAX_PATH];
-    ei::OutputPath("frames", path);
-    std::size_t used = std::strlen(path);
-    std::snprintf(path + used, MAX_PATH - used, "\\%s.bmp", name);
+// Reads a BMP into `image` (top-down rows): the 24-bit ones this file wrote, and the game's own
+// (CDib::Write: 16 or 32 bits, BI_BITFIELDS with the three masks after the header, or BI_RGB).
+bool ReadBmpFile(const char* path, Image& image, std::string* how = nullptr) {
     FILE* f = nullptr;
     if (fopen_s(&f, path, "rb") != 0 || !f) return false;
     BITMAPFILEHEADER file{};
     BITMAPINFOHEADER info{};
     bool ok = std::fread(&file, sizeof(file), 1, f) == 1 && std::fread(&info, sizeof(info), 1, f) == 1 &&
-              file.bfType == 0x4D42 && info.biBitCount == 24 && info.biCompression == BI_RGB && info.biWidth > 0 &&
-              info.biHeight > 0;
+              file.bfType == 0x4D42 && info.biWidth > 0 && info.biHeight > 0 && info.biSize >= sizeof(info) &&
+              (info.biBitCount == 16 || info.biBitCount == 24 || info.biBitCount == 32) &&
+              (info.biCompression == BI_RGB || (info.biCompression == BI_BITFIELDS && info.biBitCount != 24));
+    std::uint32_t masks[3] = {0, 0, 0};
+    if (ok && info.biCompression == BI_BITFIELDS) {
+        ok = std::fseek(f, static_cast<long>(sizeof(file) + info.biSize), SEEK_SET) == 0 && std::fread(masks, 4, 3, f) == 3;
+    } else if (info.biBitCount == 16) {
+        masks[0] = 0x7C00, masks[1] = 0x03E0, masks[2] = 0x001F;
+    } else {
+        masks[0] = 0xFF0000, masks[1] = 0xFF00, masks[2] = 0xFF;
+    }
     if (ok) {
         image.width = info.biWidth;
         image.height = info.biHeight;
-        int stride = (image.width * 3 + 3) & ~3;
+        const int bytes = info.biBitCount / 8;
+        const std::size_t stride = (static_cast<std::size_t>(image.width) * bytes + 3) & ~static_cast<std::size_t>(3);
         image.bgr.resize(static_cast<std::size_t>(image.width) * image.height * 3);
+        Channel r = MakeChannel(masks[0]), g = MakeChannel(masks[1]), b = MakeChannel(masks[2]);
         std::vector<std::uint8_t> row(stride);
         ok = std::fseek(f, static_cast<long>(file.bfOffBits), SEEK_SET) == 0;
         for (int y = image.height - 1; ok && y >= 0; --y) {
             ok = std::fread(row.data(), 1, row.size(), f) == row.size();
-            if (ok) std::memcpy(&image.bgr[static_cast<std::size_t>(y) * image.width * 3], row.data(), image.width * 3);
+            if (!ok) break;
+            std::uint8_t* out = &image.bgr[static_cast<std::size_t>(y) * image.width * 3];
+            for (int x = 0; x < image.width; ++x) {
+                if (bytes == 3) {
+                    std::memcpy(out + x * 3, &row[static_cast<std::size_t>(x) * 3], 3);
+                    continue;
+                }
+                std::uint32_t pixel = 0;
+                std::memcpy(&pixel, &row[static_cast<std::size_t>(x) * bytes], bytes);
+                out[x * 3 + 0] = Expand(pixel, b);
+                out[x * 3 + 1] = Expand(pixel, g);
+                out[x * 3 + 2] = Expand(pixel, r);
+            }
+        }
+        if (ok && how) {
+            char text[96];
+            std::snprintf(text, sizeof(text), "%dx%d, %d-bit R %08lX G %08lX B %08lX", image.width, image.height,
+                          info.biBitCount, static_cast<unsigned long>(masks[0]), static_cast<unsigned long>(masks[1]),
+                          static_cast<unsigned long>(masks[2]));
+            *how = text;
         }
     }
     std::fclose(f);
     return ok;
 }
-} // namespace
 
-bool Compare(const char* a, const char* b, int tolerance, double* differing, int* largest, const char** why) {
-    Image ia, ib;
-    if (!ReadBmp(a, ia) || !ReadBmp(b, ib)) {
-        *why = "a frame is missing or unreadable";
-        return false;
-    }
+bool ReadBmp(const char* name, Image& image) {
+    char path[MAX_PATH];
+    ei::OutputPath("frames", path);
+    std::size_t used = std::strlen(path);
+    std::snprintf(path + used, MAX_PATH - used, "\\%s.bmp", name);
+    return ReadBmpFile(path, image);
+}
+
+bool CompareImages(const Image& ia, const Image& ib, int tolerance, double* differing, int* largest, const char** why) {
     if (ia.width != ib.width || ia.height != ib.height) {
         *why = "the frames differ in size";
         return false;
@@ -378,6 +407,30 @@ bool Compare(const char* a, const char* b, int tolerance, double* differing, int
     *differing = static_cast<double>(count) / (static_cast<double>(ia.width) * ia.height);
     *largest = worst;
     return true;
+}
+} // namespace
+
+bool Compare(const char* a, const char* b, int tolerance, double* differing, int* largest, const char** why) {
+    Image ia, ib;
+    if (!ReadBmp(a, ia) || !ReadBmp(b, ib)) {
+        *why = "a frame is missing or unreadable";
+        return false;
+    }
+    return CompareImages(ia, ib, tolerance, differing, largest, why);
+}
+
+bool CompareFile(const char* path, const char* frame, int tolerance, double* differing, int* largest, std::string* how,
+                 const char** why) {
+    Image shot, captured;
+    if (!ReadBmpFile(path, shot, how)) {
+        *why = "the file is missing or unreadable";
+        return false;
+    }
+    if (!ReadBmp(frame, captured)) {
+        *why = "the frame is missing or unreadable";
+        return false;
+    }
+    return CompareImages(shot, captured, tolerance, differing, largest, why);
 }
 
 } // namespace ei::verify::capture

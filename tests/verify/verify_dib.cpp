@@ -221,6 +221,23 @@ EI_VERIFY(0x006D6AB0, AllocateBitsVerify, 6, s_allocateBits);
 CDib*(__fastcall* s_captureRect)(CDXSurface*, const RECT*);
 
 CDib* __fastcall CaptureRectVerify(CDXSurface* self, const RECT* rect) {
+    // A holder without a DirectDraw surface (the switch-over, docs/notes/renderer.md section 9;
+    // the original cannot read it): ours only, taken from the new renderer's frame (no frame: no
+    // bitmap). Checked for the rectangle's size and the screen's depth; the frame's pixels are
+    // compared by the harness's "checkshot".
+    if (!self->surface) {
+        CDib* made = CaptureSurfaceRect(self, rect);
+        if (made) {
+            const BITMAPINFOHEADER* header = made->header;
+            ei::verify::Check("CaptureSurfaceRect (the new renderer's frame)", true,
+                              header && header->biWidth == rect->right - rect->left &&
+                                  header->biHeight == rect->bottom - rect->top && header->biBitCount == self->bitsPerPixel &&
+                                  made->bits,
+                              "%ld,%ld-%ld,%ld of a %d-bit holder", rect->left, rect->top, rect->right, rect->bottom,
+                              self->bitsPerPixel);
+        }
+        return made;
+    }
     CDib* expected = s_captureRect(self, rect);
     const long expectedResult = self->result;
     CDib* actual = CaptureSurfaceRect(self, rect);

@@ -337,7 +337,7 @@ game has no DirectDraw object, display mode, primary, render target, depth buffe
 - Guarded for surfaceless holders: `device::SameSurface` (both without a surface: the same only when one holder) in
   005FDA80 (window blits: otherwise every window was skipped), the three movie players' "not the primary itself"
   checks and CUiSurface::CaptureScreen; 00504780 (restore after a lost device) returns at once; the surface capture
-  006D6D40 (the Scroll Lock screenshot, the movie recorder) gives no bitmap for a holder without a surface (logged).
+  006D6D40 (the Scroll Lock screenshot, the movie recorder) takes its bitmap from the new frame for a holder without a surface (R9c3).
 - Not touched (the stand-ins answer): app.cpp's FlipToGDISurface, app_main's GetAvailableVidMem / RestoreAllSurfaces,
   texture.cpp's video memory and largest texture, the cursor's WaitForVerticalBlank, 00504A60's gamma (no
   DDCAPS2_PRIMARYGAMMA: returns false, no ramp), the camp's antialiasing GetCaps.
@@ -529,6 +529,27 @@ standalone exe change; vanilla and Rebirth runs keep the original's probes and v
   step waits until the device is made again and a frame presented on it. Scenario render_device_lost (vanilla and
   Rebirth): at one frozen moment in the main menu, in zone1 and in the camp (textures loaded after the first loss),
   the frame before the loss and after it match (samecapture: 0 pixels over 8, largest difference 0-7).
+
+### R9c3: the Scroll Lock screenshot and the movie recorder from the new frame (done)
+
+- `surface_capture.cpp` (006D6D40, which 006D6FC0 and both users call): a holder without a DirectDraw surface (the
+  switch-over's render target and primary) gets its bitmap from `render::ReadFrame` (the last frame `EndFrame` drew,
+  before the gamma ramp and the cursor of the present) instead of none: a CDib of the rectangle's size in the holder's
+  depth with the channel masks `device::ScreenFormat` gives (16 bits 5:6:5, else X8R8G8B8: what the surface would
+  have reported), rows bottom-up, the part outside the frame black. No frame yet: no bitmap (logged once), as before.
+  The callers are unchanged, so the file names (`shot%.4d.bmp` from counter 007C7E24 for Scroll Lock; the recorder's
+  `<moviepath>shot%.4d.bmp` from 0079BC58, the movie folder defaulting to `.\capture\`), the format (CDib::Write) and the timing (the key handler's moment: the
+  frame last drawn; the recorder after each present) are the original's. The recorder wrote through a null bitmap
+  when there was none (`bitmap->Write` before its check): checked now. A holder with a surface (the old path, `new`
+  without `present`) is read as before.
+- The recorder's flag (0079BC54) is read by WinMain and the frame function and cleared on a write error; nothing in the
+  shipped game's code sets it (xrefs: two reads, one write of 0), so it is unreachable for a player.
+- Verify: 006D6D40's wrapper compared both bitmaps from the surface; for a holder without one the original cannot
+  run, so ours alone is checked (rectangle size, depth, bits present). The pixels are checked by the harness.
+- Harness: `key scrolllock` (scan 0x46), `record on|off` (sets 0079BC54), `checkshot <n> <frame> [tolerance]
+  [fraction]` (reads `shot<n>.bmp` from the saves overlay, any of the file's formats, and compares it with
+  frames\<frame>.bmp as samecapture does). Scenario `render_present_shot`: Scroll Lock in the main menu and in the
+  game at a frozen moment, then the recorder for a few frozen frames; file and frame must match.
 
 ### Before R9a (reference)
 
