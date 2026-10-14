@@ -143,6 +143,13 @@
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
 //                             <tolerance> (default 8), as tools/compare_frames.py counts
+//   checkshot [recorder] <n> <frame> [tolerance] [fraction]
+//                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
+//                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves
+//                             overlay) to exist and match frames\<frame>.bmp as
+//                             samecapture does (16 bits lose the low bits: use tolerance 8 or more)
+//   record on|off             the game's frame recorder (0079BC54: a "shotNNNN.bmp" of each presented
+//                             frame, nothing in the shipped game sets it)
 //   uicensus                  count how the interface draws into its window surfaces (GDI calls per
 //                             surface, call sites, readers, drawing no hook explains) and write
 //                             ui_census.csv with the report (ui_census.cpp; also EI_UI_CENSUS=1;
@@ -994,6 +1001,7 @@ void PostKey(const std::string& name) {
     else if (name == "end") vk = VK_END;
     else if (name == "pgup") vk = VK_PRIOR;
     else if (name == "pgdn") vk = VK_NEXT;
+    else if (name == "scrolllock") vk = VK_SCROLL;   // scan 0x46: the screenshot key (005F78C0)
     else if (name == "ctrl") vk = VK_CONTROL;   // scan 0x1D: sets CInterface3D +0x7C while down
     else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
     if (!vk) {
@@ -1900,6 +1908,38 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "checkshot") {
+            int index = -1, tolerance = 8;
+            char frame[64] = "";
+            double limit = 0.001;
+            // "recorder" first: the frame recorder's file (the movie folder ".\capture\"), not Scroll Lock's.
+            bool recorder = s.argument.compare(0, 9, "recorder ") == 0;
+            if (sscanf_s(s.argument.c_str() + (recorder ? 9 : 0), "%d %63s %d %lf", &index, frame, unsigned(sizeof(frame)),
+                         &tolerance, &limit) < 2 ||
+                index < 0) {
+                g_failures.push_back("checkshot needs [recorder] <n> <frame>");
+                continue;
+            }
+            char path[MAX_PATH];
+            std::snprintf(path, sizeof(path), "%s\\%sshot%.4d.bmp", g_savesDir, recorder ? "capture\\" : "", index);
+            double differing = 0;
+            int largest = 0;
+            std::string how;
+            const char* why = "";
+            if (!capture::CompareFile(path, frame, tolerance, &differing, &largest, &how, &why)) {
+                g_failures.push_back(std::string("checkshot ") + std::to_string(index) + " " + frame + ": " + why);
+                Log("harness: checkshot %d %s: %s (%s)", index, frame, why, path);
+                continue;
+            }
+            char text[240];
+            std::snprintf(text, sizeof(text), "checkshot %s%d %s: %sshot%.4d.bmp %s; %.3f%% of the pixels differ by more than %d (largest %d)",
+                          recorder ? "recorder " : "", index, frame, recorder ? "capture\\" : "", index, how.c_str(),
+                          100.0 * differing, tolerance, largest);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "record") {
+            *reinterpret_cast<unsigned char*>(0x0079BC54) = s.argument == "on" ? 1 : 0;
         } else if (s.verb == "oldterrain") {
             render::SetDrawOldTerrain(s.argument != "off");
         } else if (s.verb == "oldobjects") {

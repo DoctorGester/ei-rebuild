@@ -4,6 +4,7 @@
 #include "dib.h"
 
 #include "app.h"
+#include "device.h"
 #include "texture.h"
 #include "ui.h"
 
@@ -11,12 +12,14 @@
 #include "lib/crt.h"
 
 #include "../hook/log.h"
+#include "../render/render.h"
 
 #include <ddraw.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -50,19 +53,58 @@ int BytesPerPixel(int bits) {
     }
 }
 
+// A holder without a DirectDraw surface (the switch-over's render target and primary, device.h):
+// the bitmap is made from the new renderer's last frame (render::ReadFrame), in the depth and
+// channel masks the surface would have had (device::ScreenFormat), rows bottom-up, the part of the
+// rectangle outside the frame black. Null (logged) when the new renderer has no frame.
+CDib* CaptureFromFrame(const CDXSurface* self, const RECT* rect) {
+    int frameWidth = 0, frameHeight = 0;
+    std::vector<std::uint8_t> frame;
+    if (!render::ReadFrame(&frameWidth, &frameHeight, &frame)) {
+        static bool logged = false;
+        if (!logged) ei::Log("capture: the surface has no DirectDraw surface and the new renderer has no frame: no bitmap");
+        logged = true;
+        return nullptr;
+    }
+    DDPIXELFORMAT format;
+    device::ScreenFormat(self->bitsPerPixel == 16 ? 16 : 32, &format);
+    const int width = rect->right - rect->left, height = rect->bottom - rect->top;
+    auto* dib = static_cast<CDib*>(gamecrt::operator_new(sizeof(CDib)));
+    if (dib) {
+        ConstructSizedAt(dib, nullptr, width, height, self->bitsPerPixel, format.dwRBitMask, format.dwGBitMask,
+                         format.dwBBitMask);
+    }
+    std::uint8_t* out = AllocateBitsAt(dib);
+    const int pixelBytes = BytesPerPixel(self->bitsPerPixel);
+    if (!out || (pixelBytes != 2 && pixelBytes != 4) || width <= 0 || height <= 0) return dib;
+    const std::size_t rowBytes = static_cast<std::size_t>(width) * pixelBytes;
+    for (int row = height - 1; row >= 0; --row, out += rowBytes) {
+        std::memset(out, 0, rowBytes);
+        const int y = rect->top + row;
+        if (y < 0 || y >= frameHeight) continue;
+        for (int x = 0; x < width; ++x) {
+            const int fx = rect->left + x;
+            if (fx < 0 || fx >= frameWidth) continue;
+            const std::uint8_t* bgr = &frame[(static_cast<std::size_t>(y) * frameWidth + fx) * 3];
+            if (pixelBytes == 2) {
+                const std::uint16_t pixel = static_cast<std::uint16_t>(((bgr[2] >> 3) << 11) | ((bgr[1] >> 2) << 5) | (bgr[0] >> 3));
+                std::memcpy(out + x * 2, &pixel, 2);
+            } else {
+                const std::uint32_t pixel = (static_cast<std::uint32_t>(bgr[2]) << 16) | (static_cast<std::uint32_t>(bgr[1]) << 8) | bgr[0];
+                std::memcpy(out + x * 4, &pixel, 4);
+            }
+        }
+    }
+    return dib;
+}
+
 } // namespace
 
 // A failed DirectDraw call is reported and the capture goes on, as the original's.
 CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     auto* surface = static_cast<IDirectDrawSurface7*>(self->surface);
-    // A holder without a surface (the switch-over's render target, device.h): no bitmap (the
-    // screenshot key then saves nothing; reading the new renderer's frame instead is ticket R9c's).
-    if (!surface) {
-        static bool logged = false;
-        if (!logged) ei::Log("capture: the surface has no DirectDraw surface (the switch-over): no screenshot");
-        logged = true;
-        return nullptr;
-    }
+    // A holder without a surface (the switch-over's render target, device.h): the new renderer's frame.
+    if (!surface) return CaptureFromFrame(self, rect);
     DDPIXELFORMAT format;
     std::memset(&format, 0, sizeof(format));
     format.dwSize = sizeof(format);

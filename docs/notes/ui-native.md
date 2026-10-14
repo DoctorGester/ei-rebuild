@@ -203,7 +203,7 @@ Total: about 7 sessions of preparation and about 10–11 of porting, P7 included
 - The global-map pick (005FD240 on a frame drawn by `FrameStepOriginal`; zone = (pixel>>4)&0xF − 1) must stay exact. The read goes canvas → DIB in the surface's format, then the original PixelAt.
 - The escape-menu and QuickSave pictures (005FD440, written into shot.sav) only need to be within tolerance.
 - The verify wrappers that compare surface pixels need `uiboth`.
-- In-game screenshots (006D6D40) are still open under R9c.
+- In-game screenshots (006D6D40) in the switch-over come from render::ReadFrame (R9c3, renderer.md).
 
 **GDI-dependent layout.** Extent and DrawText return values must stay GDI (the metrics DC). The layout library must match GDI's line breaks exactly, or text lands on different lines; N2's corpus test is the gate. DT_VCENTER without SINGLELINE and the '&' prefix in formats without DT_NOPREFIX are easy to get wrong.
 
