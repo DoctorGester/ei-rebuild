@@ -112,8 +112,8 @@ CItemInfoPanel* NewInfoPanel(CInterface3D* ui, CUiWindow* owner) {
     auto* panel = static_cast<CItemInfoPanel*>(NewPanel(sizeof(CItemInfoPanel), ui, owner, ItemPanelVtables()));
     if (!panel) return nullptr;
     PartyRecordsConstructOriginal(panel->itemList_);
-    reinterpret_cast<mfc::CStringArray*>(&panel->itemTextsVtable_)->Construct();
-    reinterpret_cast<mfc::CStringArray*>(&panel->skillTextsVtable_)->Construct();
+    panel->itemTexts_.Construct();
+    panel->skillTexts_.Construct();
     SetVtables(panel, InfoPanelVtables());
     return panel;
 }

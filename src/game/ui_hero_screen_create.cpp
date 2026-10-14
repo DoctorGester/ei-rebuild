@@ -240,8 +240,8 @@ void CMpHeroScreen::Create() {
     auto* info = static_cast<CItemInfoPanel*>(NewPanel(sizeof(CItemInfoPanel), window.interface_, &window, ItemPanelVtables()));
     if (info) {
         PartyRecordsConstructOriginal(info->itemList_);
-        reinterpret_cast<mfc::CStringArray*>(&info->itemTextsVtable_)->Construct();
-        reinterpret_cast<mfc::CStringArray*>(&info->skillTextsVtable_)->Construct();
+        info->itemTexts_.Construct();
+        info->skillTexts_.Construct();
         SetVtables(info, InfoPanelVtables());
     }
     descPanel_ = info;

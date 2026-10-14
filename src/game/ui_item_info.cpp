@@ -15,6 +15,7 @@
 #include "item_db.h"
 #include "item_db_text.h"
 #include "spell.h"
+#include "unit.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -46,10 +47,11 @@ T Read(const void* p, int offset) {
     std::memcpy(&v, static_cast<const std::uint8_t*>(p) + offset, sizeof(T));
     return v;
 }
-// A field of a record that may be null: the original then faults reading `offset` (item_db.h).
-template <typename T>
-T At(const char* record, int offset) {
-    return Field<T>(record, offset);
+// A float the item database keeps as its bits (a dword field).
+float FloatOf(std::uint32_t bits) {
+    float v;
+    std::memcpy(&v, &bits, sizeof(v));
+    return v;
 }
 
 const itemdb::SpellRecord* AsSpell(const char* record) { return reinterpret_cast<const itemdb::SpellRecord*>(record); }
@@ -199,7 +201,7 @@ int DifferenceFtol(float a, std::uintptr_t subtrahend) {
     return result;
 }
 // value * factor * the float at `scale`, stored as float (FLD; FMUL; FMUL; FSTP).
-float ArmourValue(const char* value, const char* factor, std::uintptr_t scale) {
+float ArmourValue(const void* value, const void* factor, std::uintptr_t scale) {
     float result;
     __asm {
         mov eax, value
@@ -270,23 +272,20 @@ Texts* TextManager() { return *reinterpret_cast<Texts**>(0x007AF788); }
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
-// Items and spells (thiscall).
-struct ItemAt {
-    char* Prototype() { return ItemGetPrototypeOriginal(reinterpret_cast<CItem*>(this)); }   // 006A0110
-    int Category() { return ItemGetCategoryOriginal(reinterpret_cast<CItem*>(this)); }       // 006A4230
-    int WeaponType();                       // 006A07F0
-    void DamageTypes(float* out);           // 006A0770
-};
-__declspec(naked) int ItemAt::WeaponType() EI_ORIGINAL(0x006A07F0)
-__declspec(naked) void ItemAt::DamageTypes(float*) EI_ORIGINAL(0x006A0770)
-ItemAt* Of(CItem* item) { return reinterpret_cast<ItemAt*>(item); }
-
-struct SpellAt {
-    char* Prototype() { return SpellGetPrototypeOriginal(reinterpret_cast<CSpell*>(this)); }   // 0068BA20
-    int ModifierCount();                    // 0068BA60
-};
-__declspec(naked) int SpellAt::ModifierCount() EI_ORIGINAL(0x0068BA60)
-SpellAt* Of(void* spell) { return static_cast<SpellAt*>(spell); }
+// Items and spells through their addresses (thiscall): the prototype record (006A0110), the
+// category (006A4230), a weapon's type (006A07F0, CItemWeapon::GetType) and damage weights
+// (006A0770, CItemWeapon::GetDamageTypes, RET 4); a spell's prototype (0068BA20) and modifier
+// count (0068BA60, CSpell::GetModifierCount).
+const itemdb::ItemRecordHead* PrototypeOf(CItem* item) {
+    return reinterpret_cast<const itemdb::ItemRecordHead*>(ItemGetPrototypeOriginal(item));
+}
+int CategoryOf(CItem* item) { return ItemGetCategoryOriginal(item); }
+__declspec(naked) int __fastcall WeaponTypeOf(CItem*) EI_ORIGINAL(0x006A07F0)
+__declspec(naked) void __fastcall DamageTypesOf(CItem*, void*, float*) EI_ORIGINAL(0x006A0770)
+const itemdb::SpellRecord* SpellPrototypeOf(void* spell) {
+    return reinterpret_cast<const itemdb::SpellRecord*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)));
+}
+__declspec(naked) int __fastcall ModifierCountOf(void*) EI_ORIGINAL(0x0068BA60)
 
 // The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700
 // (PartyResetOriginal), filled by 00661DB0 (PartyAddItemOriginal).
@@ -489,7 +488,7 @@ void CItemInfoPanel::DescribeItem() {
             return;
         }
     }
-    if (kind == kQuick && Of(item)->Category() == 8) {
+    if (kind == kQuick && CategoryOf(item) == 8) {
         DescribeQuickItem();
         return;
     }
@@ -515,8 +514,8 @@ void CItemInfoPanel::DescribeItem() {
     // The material and count, unless a quick item whose prototype's +0x10 is "none"; then the price.
     bool materialLine;
     if (kind == kQuick) {
-        char* prototype = Of(item)->Prototype();
-        materialLine = !prototype || MbsICmp(static_cast<const char*>(reinterpret_cast<itemdb::ItemRecordHead*>(prototype)->text10), GameText(0x007846F0)) != 0;   // "none"
+        const itemdb::ItemRecordHead* prototype = PrototypeOf(item);
+        materialLine = !prototype || MbsICmp(static_cast<const char*>(prototype->text10), GameText(0x007846F0)) != 0;   // "none"
     } else {
         materialLine = kind != kQuest && kind != kLoot;
     }
@@ -526,13 +525,13 @@ void CItemInfoPanel::DescribeItem() {
         key += material;
         if (texts->Open(key)) texts->ReadLine(&text, 1);
         w.line.Format(GameText(0x00792F1C), static_cast<const char*>(w.T(1)), static_cast<const char*>(text),
-                      At<int>(Of(item)->Prototype(), 0x4C));   // "%s %s x %d"
+                      static_cast<int>(PrototypeOf(item)->unknown_4C));   // "%s %s x %d"
         w.Text(w.line);
         w.Down();
     }
     if (kind != kLoot) w.Number(0, FtolOf(Read<float>(item, 0x34)));   // price
 
-    if (kind == kArmor || kind == kWeapon || (kind == kQuick && Of(item)->Category() == 5)) {
+    if (kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) {
         // The charge and the carried spell's level.
         void* spell = SpellOf(item);
         int spellValue = spell ? Read<int>(spell, 0x50) : 0;
@@ -556,7 +555,7 @@ void CItemInfoPanel::DescribeItem() {
             // Damage: min-max and the first damage kind with a weight ("damage_<n>"; the text
             // keeps the material line's otherwise).
             float weights[7];
-            Of(item)->DamageTypes(weights);
+            DamageTypesOf(item, nullptr, weights);
             unsigned first = FirstDamageKind(weights);
             if (first < 7) {
                 w.line.Format(GameText(0x00792EFC), first);   // "damage_%d"
@@ -570,9 +569,9 @@ void CItemInfoPanel::DescribeItem() {
                           static_cast<const char*>(text));   // "%s %d-%d %s"
             w.Text(w.line);
             w.Down();
-            w.Number(20, At<int>(Of(item)->Prototype(), 0x6C));
+            w.Number(20, static_cast<int>(PrototypeOf(item)->category));
             w.Number(38, PackedFtol(0x006A2D40, PackedIdOf(item)));
-            if (Of(item)->WeaponType() == 5 || Of(item)->WeaponType() == 6)
+            if (WeaponTypeOf(item) == 5 || WeaponTypeOf(item) == 6)
                 w.Number(10, FtolOf(Read<float>(item, 0x58)));
             else
                 w.Number(39, PackedFtol(0x006A2D90, PackedIdOf(item)));
@@ -582,7 +581,7 @@ void CItemInfoPanel::DescribeItem() {
     if (kind == kArmor) {
         // Armour: the seven values at +0x4C against their threshold.
         float values[7];
-        std::memcpy(values, reinterpret_cast<const std::uint8_t*>(item) + 0x4C, sizeof(values));
+        std::memcpy(values, static_cast<const CItemArmor*>(item)->absorb_[0], sizeof(values));
         w.DamageLines(values, 25);
     }
 
@@ -600,12 +599,12 @@ tail:
         w.Down();
         if (kind != kWeapon) w.Down();
         void* spell;
-        if ((kind == kArmor || kind == kWeapon || (kind == kQuick && Of(item)->Category() == 5)) &&
+        if ((kind == kArmor || kind == kWeapon || (kind == kQuick && CategoryOf(item) == 5)) &&
             (spell = SpellOf(item)) != nullptr) {
             // The carried spell's name ("spell <name>").
             text = GameText(0x0078DDEC);   // "Unknown"
             mfc::CString key(GameText(0x0078DE58));   // "spell "
-            key += *reinterpret_cast<const mfc::CString*>(Of(spell)->Prototype() + 4);
+            key += SpellPrototypeOf(spell)->code;
             if (texts->Open(key)) texts->ReadLine(&text, 1);
             w.line.Format(GameText(0x00792F34), static_cast<const char*>(w.T(5)), static_cast<const char*>(text));
             w.Text(w.line);
@@ -622,7 +621,8 @@ EI_REPLACE_METHOD(0x005EE760, CItemInfoPanel::DescribeItem);
 void CItemInfoPanel::DescribeMaterial() {
     CItem* item = Item();
     Texts* texts = TextManager();
-    const char* material = itemdb::Materials().At(Read<std::uint32_t>(item, 0x54), itemdb::kMaterialSize);
+    const auto* material = reinterpret_cast<const itemdb::MaterialRecordHead*>(
+        itemdb::Materials().At(Read<std::uint32_t>(item, 0x54), itemdb::kMaterialSize));
     if (!material) return;
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
@@ -630,7 +630,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Draw()->Begin();
     w.Head(name, kindText);
     // The material's type: "mattype_<NAME>".
-    mfc::CString text = *reinterpret_cast<const mfc::CString*>(material + 4);
+    mfc::CString text = *reinterpret_cast<const mfc::CString*>(&material->soundName);
     text.MakeUpper();
     {
         mfc::CString key(GameText(0x00792F64));   // "mattype_"
@@ -642,15 +642,15 @@ void CItemInfoPanel::DescribeMaterial() {
         mfc::CString type = w.line;
         w.Joined(17, type);
     }
-    w.Number(0, FtolOf(Read<float>(material, 0x14)));
-    w.Number(2, FtolOf(Read<float>(material, 0x18)));
-    w.Number(14, Read<int>(material, 0x1C));
-    w.Number(3, FtolOf(Read<float>(material, 0x20)));
-    w.line.Format(GameText(0x00792F5C), static_cast<const char*>(w.T(15)), D(Read<float>(material, 0x28)));   // "%s %.1f"
+    w.Number(0, FtolOf(FloatOf(material->unknown_14)));
+    w.Number(2, FtolOf(material->magicPower));
+    w.Number(14, static_cast<int>(material->magicLevel));
+    w.Number(3, FtolOf(FloatOf(material->unknown_20[0])));
+    w.line.Format(GameText(0x00792F5C), static_cast<const char*>(w.T(15)), D(FloatOf(material->unknown_20[2])));   // "%s %.1f"
     w.Text(w.line);
     w.Down();
     float values[7];
-    std::memcpy(values, material + 0x2C, sizeof(values));
+    std::memcpy(values, material->unknown_2C, sizeof(values));
     w.DamageLines(values, 4);
     w.Down();
     w.Wrapped(description, 4);
@@ -681,7 +681,10 @@ void CItemInfoPanel::DescribeBlueprint() {
     w.Draw()->Begin();
     w.Head(name, kindText);
     // The material type ("mattype_<NAME>" of the record's +0x10) and the count.
-    mfc::CString text = *reinterpret_cast<const mfc::CString*>(record + 0x10);
+    const auto* head = reinterpret_cast<const itemdb::ItemRecordHead*>(record);
+    const auto* weapon = reinterpret_cast<const itemdb::WeaponRecord*>(record);
+    const auto* armor = reinterpret_cast<const itemdb::ArmorRecord*>(record);
+    mfc::CString text = head->text10;
     text.MakeUpper();
     {
         mfc::CString key(GameText(0x00792F64));   // "mattype_"
@@ -691,15 +694,13 @@ void CItemInfoPanel::DescribeBlueprint() {
     texts->GetString(text, &w.line);
     text = w.line;
     w.line.Format(GameText(0x00792F1C), static_cast<const char*>(w.T(1)), static_cast<const char*>(text),
-                  At<int>(record, 0x4C));   // "%s %s x %d"
+                  static_cast<int>(head->unknown_4C));   // "%s %s x %d"
     w.Text(w.line);
     w.Down();
-    w.Number(0, FtolOf(At<float>(record, 0x38)));
-    const itemdb::ItemRecordHead* head = reinterpret_cast<const itemdb::ItemRecordHead*>(record);
-    const itemdb::WeaponRecord* weapon = reinterpret_cast<const itemdb::WeaponRecord*>(record);
+    w.Number(0, FtolOf(FloatOf(head->value38)));
     if (sort <= 2) {
         w.Number(2, FtolOf(head->charge));
-        w.Number(14, At<int>(record, 0x44));
+        w.Number(14, static_cast<int>(head->value44));
     }
     if (sort <= 1) w.Number(3, FtolOf(head->value48));
     if (sort == 0) {
@@ -715,17 +716,17 @@ void CItemInfoPanel::DescribeBlueprint() {
                       static_cast<const char*>(text));   // "%s %d-%d %s"
         w.Text(w.line);
         w.Down();
-        w.Number(20, At<int>(record, 0x6C));
+        w.Number(20, static_cast<int>(head->category));
         w.Number(38, FtolOf(weapon->attackBonus));
         int type = head->type;
         if (type == 5 || type == 6)
-            w.Number(10, FtolOf(At<float>(record, 0x8C)));
+            w.Number(10, FtolOf(FloatOf(weapon->value8C)));
         else
             w.Number(39, FtolOf(weapon->defenceBonus));
     } else if (sort == 1) {
-        // Armour: the seven values scaled by +0x6C and 10, stored as floats.
+        // Armour: the seven values scaled by +0x6C (a float here) and 10, stored as floats.
         float values[7];
-        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(record + 0x70 + 4 * i, record + 0x6C, 0x0073BAAC);
+        for (int i = 0; i < 7; ++i) values[i] = ArmourValue(&armor->absorbFirst[i], &armor->category, 0x0073BAAC);
         w.DamageLines(values, 4);
     }
     w.Down();
@@ -750,19 +751,21 @@ void CItemInfoPanel::DescribeSpellRecord() {
     w.Number(14, record->skill);
     w.School(record->unknown_10);
     bool known = record->bytes78[3] != 0;
-    SpellLevelLine(w, known, known ? FtolOf(At<float>(spell, 0x2C)) : 0);
-    float power = At<float>(spell, 0x20);
+    // The dwords +0x20 power, +0x24, +0x28 radius, +0x2C level (floats), +0x34, +0x38 duration.
+    const std::uint32_t* values = record->unknown_1C;
+    SpellLevelLine(w, known, known ? FtolOf(FloatOf(values[4])) : 0);
+    float power = FloatOf(values[1]);
     if (!(power >= 1.0f))   // FCOMP; TEST AH,1: below 1 or unordered
         w.line.Format(GameText(0x00792F34), static_cast<const char*>(w.T(9)), static_cast<const char*>(w.T(21)));
     else
         w.line.Format(GameText(0x00792F14), static_cast<const char*>(w.T(9)), FtolOf(power));
     w.Text(w.line);
     w.Down();
-    w.line.Format(GameText(0x00792F48), static_cast<const char*>(w.T(10)), FtolOf(At<float>(spell, 0x24)),
+    w.line.Format(GameText(0x00792F48), static_cast<const char*>(w.T(10)), FtolOf(FloatOf(values[2])),
                   static_cast<const char*>(w.T(26)));   // "%s %d%s"
     w.Text(w.line);
     w.Down();
-    float radius = At<float>(spell, 0x28);
+    float radius = FloatOf(values[3]);
     if (!(radius >= 1.0f))
         w.line.Format(GameText(0x00792F34), static_cast<const char*>(w.T(11)), static_cast<const char*>(w.T(22)));
     else
@@ -770,8 +773,8 @@ void CItemInfoPanel::DescribeSpellRecord() {
                       static_cast<const char*>(w.T(26)));   // "%s %.1f%s"
     w.Text(w.line);
     w.Down();
-    DurationLine(w, At<std::uint32_t>(spell, 0x38));
-    w.Number(13, At<int>(spell, 0x34));
+    DurationLine(w, values[7]);
+    w.Number(13, static_cast<int>(values[6]));
     w.Down();
     w.Wrapped(description, 4);
     w.Draw()->End();
@@ -809,7 +812,7 @@ void CItemInfoPanel::DescribeQuickItem() {
     w.Draw()->Begin();
     w.Head(name, kindText);
     if (void* spell = SpellOf(item)) {
-        bool known = AsSpell(Of(spell)->Prototype())->bytes78[3] != 0;
+        bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
         SpellLevelLine(w, known, known ? FtolOf(Read<float>(spell, 0x24)) : 0);
         DurationLine(w, Read<std::uint32_t>(spell, 0x20));
         w.Down();
@@ -832,7 +835,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     mfc::CString title, description, kindText;
     {
         mfc::CString key(GameText(0x0078DE58));   // "spell "
-        key += *reinterpret_cast<const mfc::CString*>(Of(spell)->Prototype() + 4);
+        key += SpellPrototypeOf(spell)->code;
         if (texts->Open(key)) {
             texts->ReadLine(&title, 1);
             reinterpret_cast<CTextManager*>(texts)->ReadToHash(&description, 1);
@@ -845,8 +848,8 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Head(title, kindText);
     w.Number(7, FtolOf(Read<float>(spell, 0x40)));
     w.Number(14, Read<int>(spell, 0x50));
-    w.School(AsSpell(Of(spell)->Prototype())->unknown_10);
-    bool known = AsSpell(Of(spell)->Prototype())->bytes78[3] != 0;
+    w.School(SpellPrototypeOf(spell)->unknown_10);
+    bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
     SpellLevelLine(w, known, known ? FtolOf(Read<float>(spell, 0x24)) : 0);
     float power = Read<float>(spell, 0x30);
     if (!(power >= 1.0f))
@@ -877,11 +880,11 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Down();
     w.Down();
     w.Down();
-    if (Of(spell)->ModifierCount() > 0) {
+    if (ModifierCountOf(spell) > 0) {
         // "<infoitem_19> name, name, ...": each modifier's third text line ("modifier <code>"),
         // "?" without one.
         w.line = w.T(19);
-        for (int i = 0; i < Of(spell)->ModifierCount(); ++i) {
+        for (int i = 0; i < ModifierCountOf(spell); ++i) {
             w.line += GameText(0x0078DA40);   // " "
             text = GameText(0x00783D6C);      // "?"
             std::uint32_t index = static_cast<std::uint32_t>(Read<signed char>(spell, 0x54 + i) - 1);
@@ -1006,7 +1009,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
 void WeaponLines(Writer& w, const ItemHoverInfo* info) {
     CItem* weapon = info->weapon;
     const std::uint8_t* stats = info->stats;
-    int type = Of(weapon)->WeaponType();
+    int type = WeaponTypeOf(weapon);
     if (MbsCmp(info->text, GameText(0x00792F88)) == 0 && (type == 5 || type == 6)) {   // "defense"
         w.Wrapped(w.T(34), 2);
         w.Down();
@@ -1126,8 +1129,8 @@ void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
         w.Text(w.T(25));
         w.Down();
         float sums[7];
-        const float* layers = reinterpret_cast<const float*>(stats + 0x11C + info->part * 0xF4);
-        for (int i = 0; i < 7; ++i) sums[i] = LayerSum(layers + i);
+        const UnitStatSlot& slot = reinterpret_cast<const UnitStats*>(stats)->slots[info->part];
+        for (int i = 0; i < 7; ++i) sums[i] = LayerSum(&slot.layers[0].absorb[i]);
         for (int i = 0; i < 6; ++i) {
             w.line.Format(GameText(0x00792EFC), i);   // "damage_%d"
             texts->GetString(w.line, &text);
@@ -1247,13 +1250,13 @@ void CItemInfoPanel::Build(int x, int y) {
     AddSurface(surface);
     Texts* texts = TextManager();
     mfc::CString text, key;
-    auto* itemTexts = reinterpret_cast<console::CStringArray*>(&itemTextsVtable_);
+    mfc::CStringArray* itemTexts = &itemTexts_;
     for (int i = 0; i < 45; ++i) {
         key.Format(GameText(0x00792ED8), i);   // "infoitem_%d"
         texts->GetString(key, &text);
         itemTexts->SetAtGrow(itemTexts->GetSize(), text);
     }
-    auto* skillTexts = reinterpret_cast<console::CStringArray*>(reinterpret_cast<std::uint8_t*>(this) + 0x1DC);
+    mfc::CStringArray* skillTexts = &skillTexts_;
     for (int i = 0; i < 25; ++i) {
         key.Format(GameText(0x00792EC8), i);   // "infoskill_%d"
         texts->GetString(key, &text);

@@ -93,8 +93,8 @@ EI_REPLACE_METHOD(0x005EA850, UiInputSide::InputSideBaseDelete);
 void CItemInfoPanel::DestroyBody() {
     vtable_ = ItemInfoPanelVtable();
     inputVtable_ = ItemInfoPanelInputVtable();
-    StringArrayDestruct(&skillTextsVtable_);
-    StringArrayDestruct(&itemTextsVtable_);
+    StringArrayDestruct(&skillTexts_);
+    StringArrayDestruct(&itemTexts_);
     PartyRecordsDestructOriginal(itemList_);
     DestroyBase();
 }
