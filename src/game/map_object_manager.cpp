@@ -116,7 +116,7 @@ EI_REPLACE_METHOD(0x00512A30, CMapObjectManager::CreateMapObject);
 FigureAnimation* CMapObjectManager::FindAnimation(const mfc::CString* figure, std::uint32_t key) {
     auto* database = static_cast<AnimationDatabase*>(AsResourceManager(this)->GetFile(*figure + ".adb", nullptr));
     if (!database) {
-        DebugMessageOriginal(Text(kNoDatabaseText), static_cast<const char*>(*figure));
+        game::DebugLog(Text(kNoDatabaseText), static_cast<const char*>(*figure));
         return nullptr;
     }
     const std::uint32_t variant = key & kKeyVariantBits;

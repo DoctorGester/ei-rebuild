@@ -60,8 +60,7 @@ __declspec(naked) void* __fastcall UnitSpellObject(CUnit*, void*, std::uint32_t)
 // is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
 __declspec(naked) void __fastcall PathStandStill(void*, void*, CUnit*) EI_ORIGINAL(0x005B2190)
 __declspec(naked) Vector3* __fastcall MotionDestination(void*, void*, Vector3* /*out*/) EI_ORIGINAL(0x005C7D00)
-// UnitMotion (ai_motion.cpp): 005C6270 Clear, 005C67D0 Build, 005C7430 Sample.
-__declspec(naked) int __fastcall MotionClear(void*) EI_ORIGINAL(0x005C6270)
+// UnitMotion (ai_motion.cpp): 005C67D0 Build, 005C7430 Sample (005C6270 Clear is in originals_ai.h).
 // The controller's functions rewritten elsewhere, through their game addresses: 0054C800
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
 // ActionDistance (ST0), 0054B7C0 SpellCarrier (combat.cpp), 00552780 Shout (unit_create.cpp),
@@ -144,7 +143,7 @@ struct LocalUnitMotion {
         MotionWaypointsConstruct(&motion.waypoints);
         MotionSpeedsConstruct(&motion.stepSpeeds);
         MotionCurvesConstruct(&motion.fromX);
-        MotionClear(&motion);
+        UnitMotionClearOriginal(&motion);
         motion.speedScale = *reinterpret_cast<const float*>(0x0073EF20);
         motion.segment = -1;
         motion.baseTurnRate = std::bit_cast<float>(0x501502F9u);   // 1e10

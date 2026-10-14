@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_world.h"
 
@@ -37,11 +38,10 @@ __declspec(naked) char* __fastcall MapIndex(void*, void*, const RawString*) EI_O
 // STLport string copy constructor (RET 4) and two destructor instantiations.
 void __fastcall StringCopy(RawString* a0, void*, const RawString* a2) { StringCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 
-// The model's animation map (+0xC): find (RET 8) and operator[] (RET 4); 006721D0 the
-// animation's constructor (0x6C bytes, returns this).
+// The model's animation map (+0xC): find (RET 8) and operator[] (RET 4). The animations and
+// parts are CMMIOResources (0x6C bytes, MmioResourceConstructOriginal).
 __declspec(naked) void __fastcall AnimFind(void*, void*, Iterator*, const RawString*) EI_ORIGINAL(0x005AD520)
 __declspec(naked) char* __fastcall AnimIndex(void*, void*, const RawString*) EI_ORIGINAL(0x005ADC10)
-__declspec(naked) void* __fastcall ConstructAnimation(void*) EI_ORIGINAL(0x006721D0)
 
 // The STLport hashtable's inlined constructor: the buckets vector's end-of-storage member from an
 // allocator and a value (RET 8), lower_bound over the prime list (ECX first, EDX last; RET 8),
@@ -115,7 +115,7 @@ void* __fastcall FindModelAnimation(char* model, void*, const void* nameIn) {
     void* data = ei::VCall<void*>(part, kSlotPartRead, static_cast<const char*>(name->start), 0);
     if (data) {
         void* animation = gamecrt::operator_new(0x6C);
-        if (animation) animation = ConstructAnimation(animation);
+        if (animation) animation = MmioResourceConstructOriginal(animation);
         RawString key;
         StringCopy(&key, nullptr, name);
         void** slot = reinterpret_cast<void**>(AnimIndex(map, nullptr, &key) + 0xC);
@@ -159,7 +159,7 @@ void* __fastcall ConstructFigureModel(std::uint8_t* model) {
     *reinterpret_cast<std::uint32_t*>(table + 0x10) = 0;
     for (int i = 0; i < 3; ++i) {
         void* part = gamecrt::operator_new(0x6C);
-        reinterpret_cast<void**>(model)[i] = part ? ConstructAnimation(part) : nullptr;
+        reinterpret_cast<void**>(model)[i] = part ? MmioResourceConstructOriginal(part) : nullptr;
     }
     return model;
 }

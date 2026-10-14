@@ -64,11 +64,9 @@ StringArg Copy(const char* text) {
 
 // The registry, through its game addresses (registry.cpp; the verify wrappers stay in the path).
 struct Registry : RegistryOriginals {
-    CFileRegistry* Construct();                                                              // 00694520
 
     std::uint8_t storage[sizeof(CFileRegistry)];
 };
-__declspec(naked) CFileRegistry* Registry::Construct() EI_ORIGINAL(0x00694520)
 
 // The theme array (CArray<MusicTheme> at +0x1C): SetSize [006B59A0: size, grow by (-1 keeps it)]
 // and the element assignment [006B4D40] (MFC template instantiations; the original inlines the

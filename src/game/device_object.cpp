@@ -11,7 +11,7 @@
 #include "dx_errors.h"
 #include "engine_object.h"
 #include "model.h"               // CTransformPipeline
-#include "originals_engine.h"    // FatalDirectX, DebugMessageOriginal
+#include "originals_engine.h"    // FatalDirectX
 #include "originals_render.h"
 
 #include "ei/hook.h"
@@ -131,7 +131,7 @@ void CTextureDevice::BuildFormatTable() {
                 char text[5];
                 std::memcpy(text, &code, 4);
                 text[4] = 0;
-                DebugMessageOriginal(Text(0x0078E238), code, text);   // "Non-DXT FourCC format found: 0x%.8X = %s.\n"
+                game::DebugLog(Text(0x0078E238), code, text);   // "Non-DXT FourCC format found: 0x%.8X = %s.\n"
                 continue;
             }
             id = code;
@@ -181,7 +181,7 @@ void CTextureDevice::CreateDepthBuffer(int depthBits, int stencilBits) {
     DepthRequest(desc.ddpfPixelFormat, renderTarget_->bitsPerPixel, stencilBits);
     if (!FindDepthFormat(format)) {
         // "Can't find render-compartible z-buffer format %d:%d\n"
-        DebugMessageOriginal(Text(0x0078E200), renderTarget_->bitsPerPixel, stencilBits);
+        game::DebugLog(Text(0x0078E200), renderTarget_->bitsPerPixel, stencilBits);
         DepthRequest(desc.ddpfPixelFormat, depthBits, stencilBits);
         // "Can't find acceptable z-buffer format %d:%d.\n"
         if (!FindDepthFormat(format)) ThrowGameError(Text(0x0078E1D0), depthBits, stencilBits);

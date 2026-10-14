@@ -206,7 +206,6 @@ int __fastcall CanLeaveZone(void* glue, void*, void* records, int exit, void* se
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
 using List = stlp::list<std::uintptr_t>;
 using ListNode = List::Node;
-__declspec(naked) void __fastcall IndexListConstruct(List*, void*, const void*) EI_ORIGINAL(0x00404A70)
 void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (std::size_t)a1); }
 void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }   // the 12-byte nodes
 
@@ -395,7 +394,7 @@ void CBattleScreenSetup::Update() {
         ListConstruct411850(&units, nullptr, &allocator);
         UnitsInBox(reinterpret_cast<void*>(kWorld), nullptr, &selectionBox_, &units);
         List inside;
-        IndexListConstruct(&inside, nullptr, &allocator);
+        ListConstruct404A70Original(&inside, nullptr, &allocator);
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
                 if (party->data[i] != node->data) continue;
@@ -506,7 +505,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     ListConstruct411850(&units, nullptr, &allocator);
     UnitsInBox(world, nullptr, &selectionBox_, &units);
     List inside;
-    IndexListConstruct(&inside, nullptr, &allocator);
+    ListConstruct404A70Original(&inside, nullptr, &allocator);
     if (units.head->next != units.head) {
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {

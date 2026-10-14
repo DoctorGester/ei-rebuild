@@ -47,10 +47,9 @@ __declspec(naked) void __fastcall PlayVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x0061
 // wrappers run; plain RET).
 __declspec(naked) void __fastcall ClampHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x00618FF0)
 __declspec(naked) void __fastcall ClampVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x00619090)
-// The panels: 006232D0 (StatsPanelSetHeroOriginal), 006255A0 the trade panel's
-// (RET 8), 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
+// The panels: 006232D0 (StatsPanelSetHeroOriginal), 006255A0 the trade panel settles its deal
+// (TradePanelSettleOriginal), 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
 // container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its editing (RET 4).
-__declspec(naked) void __fastcall TradeSetHero(void*, void*, int, int) EI_ORIGINAL(0x006255A0)
 void EditSetText(void* edit, void*, const void* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
 void EditActivate(void* edit, void*, int on) { EditFieldActivateOriginal(edit, nullptr, on); }
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
@@ -171,7 +170,7 @@ void CMpHeroScreen::BackToNewHero() {
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
-    TradeSetHero(tradePanel_, nullptr, 0, 0);
+    TradePanelSettleOriginal(tradePanel_, nullptr, 0, 0);
     SetMode(this, nullptr, kModeNewHero);
     EditSetText(nameEdit_, nullptr, *reinterpret_cast<void**>(Hero()));
 }
@@ -339,7 +338,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         } else if (region == 4) {
             // Take the equipment back: the hero's first weapon, armour and spell container.
             uiorig::PlayUiSound(ui, GameText(kSoundCancel), 0);
-            TradeSetHero(tradePanel_, nullptr, 0, 0);
+            TradePanelSettleOriginal(tradePanel_, nullptr, 0, 0);
             char* hero = Hero();
             weapon_ = FirstOf(hero, 0x730);
             ShowWeapon(weaponPanel_, nullptr, weapon_);

@@ -39,13 +39,11 @@ StringArg Copy(const char* text) {
 // The registry, called through its game addresses (registry.cpp; the verify wrappers stay in the
 // path). The string getter returns a CString by value, so it is a member function here.
 struct Registry : RegistryOriginals {
-    CFileRegistry* Construct();                                                       // 00694520
     int GetInt(const char* section, const char* key, int defaultValue);              // 00694BE0
     void Close();                                                                     // 006946B0
 
     std::uint8_t storage[sizeof(CFileRegistry)];
 };
-__declspec(naked) CFileRegistry* Registry::Construct() EI_ORIGINAL(0x00694520)
 __declspec(naked) int Registry::GetInt(const char*, const char*, int) EI_ORIGINAL(0x00694BE0)
 __declspec(naked) void Registry::Close() EI_ORIGINAL(0x006946B0)
 

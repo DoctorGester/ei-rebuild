@@ -561,7 +561,7 @@ CTransformPipeline* CTransformPipeline::TransformPipelineConstruct(const char* f
     path.emplace(folder);
     ReadProcessorInfo();
     library_ = gameapi::LoadLibraryA(stlp::Plus(*path, TransformLibraryName()).data());
-    DebugMessageOriginal(LibraryLoadedText());
+    game::DebugLog(LibraryLoadedText());
     if (!library_) ThrowPipelineError(this, path, NoLibraryText());
 
     using GetTLPipeline = ITransformPipeline*(__cdecl*)();
@@ -572,7 +572,7 @@ CTransformPipeline* CTransformPipeline::TransformPipelineConstruct(const char* f
         library_ = nullptr;
         ThrowPipelineError(this, path, NoFunctionText());
     }
-    DebugMessageOriginal(AcquiringText());
+    game::DebugLog(AcquiringText());
     transform_ = getPipeline();
     return this;
 }

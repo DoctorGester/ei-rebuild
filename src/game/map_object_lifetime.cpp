@@ -75,11 +75,10 @@ __declspec(naked) void __fastcall ResetNetRecords(DeltaState*) EI_ORIGINAL(0x004
 __declspec(naked) void __fastcall DestroyNetRecord(DeltaField*) EI_ORIGINAL(0x00510340)
 // 00516080. CObject3D: releases its parts, animation and figure.
 __declspec(naked) void __fastcall ReleaseParts(CObject3D*) EI_ORIGINAL(0x00516080)
-// 004CD080 / 0052E230 / 005C6270. The unit motion's step speed array constructor, the constructor
-// of its segment part (+0x50, empty) and the motion's own constructor.
+// 004CD080 / 0052E230. The unit motion's step speed array constructor and the constructor of its
+// segment part (+0x50, empty); the motion's constructor then clears it (005C6270 UnitMotion::Clear).
 __declspec(naked) void __fastcall ConstructUnitArray(mfc::CArray<float>*) EI_ORIGINAL(0x004CD080)
 __declspec(naked) void* __fastcall ConstructUnit2CC(float*) EI_ORIGINAL(0x0052E230)
-__declspec(naked) void __fastcall ConstructUnitMemory(UnitMotion*) EI_ORIGINAL(0x005C6270)
 inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { CompanionParticlesSetSizeOriginal(a0, nullptr, a2, a3); }
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
@@ -282,7 +281,7 @@ CUnit* CUnit::Construct() {
     std::memset(&m->curveX, 0, sizeof(m->curveX));
     std::memset(&m->curveY, 0, sizeof(m->curveY));
     m->segment = -1;
-    ConstructUnitMemory(m);
+    UnitMotionClearOriginal(m);
     SetBits(m->speedScale, kTenth);
     SetBits(m->baseTurnRate, kTenth);
     unknown_49C = static_cast<std::uint32_t>(kCarriedArrayVtable);

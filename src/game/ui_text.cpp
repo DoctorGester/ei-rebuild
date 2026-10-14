@@ -21,7 +21,12 @@ namespace {
 // font `font`. It takes a CString by value and releases it; a naked forwarder cannot declare a
 // by-value CString, so the string's data pointer is handed over (TextExtent).
 struct TextMetricsAt {
-    SIZE TextExtentRaw(char* text, int font);
+    // The SIZE comes back through the hidden pointer, as a member function's struct result does.
+    SIZE TextExtentRaw(char* text, int font) {
+        SIZE size;
+        InterfaceTextExtentOriginal(reinterpret_cast<CInterface3D*>(this), nullptr, &size, text, font);
+        return size;
+    }
     // Passes `text` by value: its data goes to the callee, which releases it.
     SIZE TextExtent(mfc::CString text, int font) {
         char* data;
@@ -31,7 +36,6 @@ struct TextMetricsAt {
         return TextExtentRaw(data, font);
     }
 };
-__declspec(naked) SIZE TextMetricsAt::TextExtentRaw(char*, int) EI_ORIGINAL(0x005F8340)
 
 // 005FDE20 (Rebirth-patched): draws one line into the layout rectangle.
 struct SurfaceTextAt {

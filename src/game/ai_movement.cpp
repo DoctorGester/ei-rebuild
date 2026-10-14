@@ -30,7 +30,6 @@ void* ShapeCache() { return reinterpret_cast<void*>(0x007C2F70); }
 
 // 005B8BA0: the passability of cell (x, y) for a size class standing at `level` (a cell with
 // occluders); the cost is at out[3].
-__declspec(naked) int __fastcall CellPassability(CAIMap*, void*, std::uint32_t*, int, int, int, int) EI_ORIGINAL(0x005B8BA0)
 // Standing height of each size class (007912BC).
 const float* ClassHeights() { return reinterpret_cast<const float*>(0x007912BC); }
 
@@ -160,7 +159,7 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
         int sizeClass = unit->sizeClass;
         int level = x87::fistp(Store(static_cast<double>(ClassHeights()[sizeClass]) * heightScale));
         std::uint32_t passability[6];
-        CellPassability(this, nullptr, passability, sizeClass, level, x, y);
+        AIMapCellMarkOriginal(this, nullptr, passability, sizeClass, level, x, y);
         return static_cast<int>(passability[3]) < kExpensive;
     }
     int cost = context.costs[(cells[y][x].passable >> (context.shift & 31)) & 0xF];

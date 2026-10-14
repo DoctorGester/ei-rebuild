@@ -49,7 +49,7 @@ void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* setting
     }
 
     graphicsLibrary_ = gameapi::LoadLibraryA(workPath + "2DintMMX.dll");   // the exe's 0078E46C
-    DebugMessageOriginal(Text(kLibraryLoadedText));
+    game::DebugLog(Text(kLibraryLoadedText));
     if (!graphicsLibrary_) {
         game::FatalError(Text(kNoLibraryText));
         ExitGame(-1);
@@ -61,7 +61,7 @@ void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* setting
         game::FatalError(Text(kNoFunctionText));
         ExitGame(-1);
     }
-    DebugMessageOriginal(Text(kAcquiringText));
+    game::DebugLog(Text(kAcquiringText));
     graphicsProcessor_ = getProcessor();
     return graphicsProcessor_;
 }

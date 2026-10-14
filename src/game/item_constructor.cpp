@@ -423,12 +423,10 @@ const char* const kCantCreate = reinterpret_cast<const char*>(0x00796684);      
 // CString members used here (MFC; the original implementations).
 struct ItemText : mfc::CString {
     int Find(char c) const;               // 00700E91
-    void TrimSpaceLeft();                 // 006FE216 TrimLeft() (moves the text, memmove)
-    void TrimSpaceRight();                // 006FE11F TrimRight()
+    void TrimSpaceLeft() { CStringTrimLeftOriginal(this); }     // 006FE216 TrimLeft() (moves the text, memmove)
+    void TrimSpaceRight() { CStringTrimRightOriginal(this); }   // 006FE11F TrimRight()
 };
 int ItemText::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
-__declspec(naked) void ItemText::TrimSpaceLeft() EI_ORIGINAL(0x006FE216)
-__declspec(naked) void ItemText::TrimSpaceRight() EI_ORIGINAL(0x006FE11F)
 ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 
 // 006E80D8 atoi.

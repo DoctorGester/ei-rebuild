@@ -163,7 +163,6 @@ struct WorldCalls : WorldAlarmOriginal {
     void SetTimeSpeed(float speed);                                      // 0058EEE0
     void SetTime(float time);                                            // 0058EEA0
     void SetWaterLevel(int a, float level, int b);                       // 00593FA0
-    void AddMob(const char* name);                                       // 00595AB0
     CEngineObject* FindItem(const char* name);                           // 00594AB0
     CEngineObject* FindSpell(const char* name);                          // 00594BC0
     void CollectParty(WorldPlayer* player, void* list);                  // 00590A40
@@ -180,7 +179,6 @@ __declspec(naked) void WorldCalls::SetWind(const Vector3*, float) EI_ORIGINAL(0x
 void WorldCalls::SetTimeSpeed(float a0) { WorldSetTimeSpeedOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 void WorldCalls::SetTime(float a0) { WorldSetTimeOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 __declspec(naked) void WorldCalls::SetWaterLevel(int, float, int) EI_ORIGINAL(0x00593FA0)
-__declspec(naked) void WorldCalls::AddMob(const char*) EI_ORIGINAL(0x00595AB0)
 __declspec(naked) CEngineObject* WorldCalls::FindItem(const char*) EI_ORIGINAL(0x00594AB0)
 __declspec(naked) CEngineObject* WorldCalls::FindSpell(const char*) EI_ORIGINAL(0x00594BC0)
 __declspec(naked) void WorldCalls::CollectParty(WorldPlayer*, void*) EI_ORIGINAL(0x00590A40)
@@ -997,7 +995,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->SetWaterLevel(Round(f[0]), f[1], Round(f[2]));
             break;
         case 0xA0:   // AddMob(name)
-            TheWorld()->AddMob(Text(cmd, 0));
+            WorldLoadMobFileOriginal(WorldServer(), nullptr, Text(cmd, 0));
             break;
         case 0xA1:   // PlayCamera(name)
             static_cast<CameraCalls*>(ClientGlueObject())->Play(Text(cmd, 0), 0);

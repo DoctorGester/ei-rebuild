@@ -27,7 +27,6 @@ constexpr std::uintptr_t kLightVtable = 0x0073C788;
 constexpr std::uintptr_t kSoundVtable = 0x0073C7B8;
 constexpr int kSlotApply = 7;
 
-__declspec(naked) void __fastcall WorldMakeObject(void*, void*, Spec*) EI_ORIGINAL(0x005927C0)
 void __fastcall EffectRestart(void* a0) { ObjectMarkNewOriginal(a0); }
 // 0046D4D0 (below), through its address: the two strings are passed by value (destroyed there).
 __declspec(naked) void __fastcall EffectNotifyAt(void*, void*, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x0046D4D0)
@@ -68,7 +67,7 @@ void Notify(void* self, std::uintptr_t kind, std::uintptr_t family) {
 
 // A new world object for the record and its effect.
 void MakeEffect(EffectSpec* self) {
-    WorldMakeObject(World(), nullptr, &self->base);
+    WorldMakeObjectOriginal(World(), nullptr, &self->base);
     self->effect = ManagerFindObject(Effects(), nullptr, self->base.id);
 }
 

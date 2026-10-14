@@ -30,7 +30,12 @@ constexpr char kEscape = '\a';
 // the extent of `text` in interface font `font`. It takes a CString by value and releases it; a
 // naked forwarder cannot declare one, so the string's data pointer is handed over (as ui_text.cpp).
 struct TextMetricsAt {
-    SIZE TextExtentRaw(char* text, int font);
+    // The SIZE comes back through the hidden pointer, as a member function's struct result does.
+    SIZE TextExtentRaw(char* text, int font) {
+        SIZE size;
+        InterfaceTextExtentOriginal(reinterpret_cast<CInterface3D*>(this), nullptr, &size, text, font);
+        return size;
+    }
     SIZE TextExtent(const mfc::CString& text, int font) {
         mfc::CString copy(text);
         char* data;
@@ -40,7 +45,6 @@ struct TextMetricsAt {
         return TextExtentRaw(data, font);
     }
 };
-__declspec(naked) SIZE TextMetricsAt::TextExtentRaw(char*, int) EI_ORIGINAL(0x005F8340)
 
 // 0065E010 (RET 8): CArray::SetSize of the token array. The original calls it for a format token
 // and inlines the same template code (SetAtGrow) for a word.

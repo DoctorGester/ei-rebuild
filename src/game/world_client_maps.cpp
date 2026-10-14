@@ -1173,7 +1173,6 @@ __declspec(naked) void __fastcall TransformObjectBase(void*) EI_ORIGINAL(0x00453
 __declspec(naked) void __fastcall Construct570E10(void*) EI_ORIGINAL(0x00570E10)
 __declspec(naked) void __fastcall Construct570E40(void*) EI_ORIGINAL(0x00570E40)
 __declspec(naked) void __fastcall Construct56FD30(void*) EI_ORIGINAL(0x0056FD30)
-__declspec(naked) void __fastcall Construct6721D0(void*) EI_ORIGINAL(0x006721D0)
 __declspec(naked) void __fastcall Construct570E70(void*) EI_ORIGINAL(0x00570E70)
 __declspec(naked) void __fastcall Construct570EA0(void*, void*, int) EI_ORIGINAL(0x00570EA0)
 __declspec(naked) void __fastcall Construct571050(void*) EI_ORIGINAL(0x00571050)
@@ -1287,7 +1286,7 @@ int CWorldClient::Setup() {
         Construct570E40(&terrain->materials);
         Construct56FD30(&terrain->textureClass);
         Construct56FD30(&terrain->textureFrames);
-        Construct6721D0(&terrain->archive);
+        MmioResourceConstructOriginal(&terrain->archive);
         Construct570E70(&terrain->vertexTiles);
         Construct570EA0(&terrain->sectorCache, nullptr, 10);
         Construct571050(&terrain->lights);

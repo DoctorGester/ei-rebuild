@@ -240,7 +240,7 @@ FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t
         manager, nullptr, name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
         std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached));
     if (!part) {
-        DebugMessageOriginal(kCantLoadPart, partName, name);
+        game::DebugLog(kCantLoadPart, partName, name);
         return nullptr;
     }
     if (figure) {
@@ -296,7 +296,7 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
     if (!manager) return game::FatalError(kNoFigureManager);
     const auto* names = static_cast<const PartNameArray*>(partList);
     for (int i = 0; i < names->size; ++i) {
-        if (!Object3DLoadPartOriginal(this, nullptr, static_cast<const char*>((*names)[i]), cached, arg)) DebugMessageOriginal(kCantCreatePart, model, static_cast<const char*>((*names)[i]));
+        if (!Object3DLoadPartOriginal(this, nullptr, static_cast<const char*>((*names)[i]), cached, arg)) game::DebugLog(kCantCreatePart, model, static_cast<const char*>((*names)[i]));
     }
     return 1;
 }

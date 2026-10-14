@@ -395,8 +395,9 @@ __declspec(naked) inline CItem* __fastcall ItemScreenReturnAllOriginal(void* /*s
 __declspec(naked) inline CItem* __fastcall ItemScreenMoveItemOriginal(void* /*screen*/, void*, CItem* /*item*/, void* /*to*/,
                                                                       void* /*from*/, int /*limit*/, int /*merge*/,
                                                                       int /*turning*/) EI_ORIGINAL(0x005EE1B0)
-// 006255A0: the trade panel settles its deal (thiscall, RET 8: two flags read as bytes; EAX a result).
-__declspec(naked) inline int __fastcall TradePanelSettleOriginal(void* /*panel*/, void*, int /*a*/, int /*all*/)
+// 006255A0 (rewritten as CTradePanel::Settle): the trade panel settles its deal (thiscall, RET 8: two flags read as
+// bytes; EAX is left over, not a result).
+__declspec(naked) inline void __fastcall TradePanelSettleOriginal(void* /*panel*/, void*, int /*a*/, int /*all*/)
     EI_ORIGINAL(0x006255A0)
 // STLport containers' storage (library code): 006344C0 / 00520F60 give `count` entries of 8 / 4 bytes back to the node
 // pool (__fastcall: block, count); 00520F20 the same for 4-byte entries through an allocator proxy (thiscall, RET 8: block,
@@ -511,8 +512,6 @@ __declspec(naked) inline void __fastcall BriefingViewPresetOriginal(void* /*scre
 __declspec(naked) inline void __fastcall BriefingHideSpeakerOriginal(void* /*screen*/, void*, const char* /*name*/, int /*immediate*/,
                                                                      int /*time*/) EI_ORIGINAL(0x006062C0)
 __declspec(naked) inline void __fastcall MusicFadeInOriginal(void* /*music*/) EI_ORIGINAL(0x006B4E20)
-__declspec(naked) inline int __fastcall PlayerSendPosition04Original(void* /*server*/, void*, const Vector3* /*at*/,
-                                                                     std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066ED30)
 __declspec(naked) inline void __fastcall WorldCompleteBriefingOriginal(void* /*world*/, void*, int /*playerId*/,
                                                                       const char* /*name*/) EI_ORIGINAL(0x00592090)
 // 00607BB0 (rewritten as CBriefingScreen::ViewSpeaker; through its address so the wrapper runs; RET 0x10).

@@ -6,6 +6,7 @@
 // STLport strings are built and freed through the original's own members. See
 // docs/notes/models.md.
 #include "ei/hook.h"
+#include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>
@@ -53,7 +54,7 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
     void* model = FigureManagerFindModelOriginal(manager, nullptr, &key);
     StringDeallocate(&key.eos, nullptr, key.start, static_cast<int>(key.eos - key.start));
     if (!model) {
-        DebugMessageOriginal(reinterpret_cast<const char*>(0x00790DC0), modelName);
+        game::DebugLog(reinterpret_cast<const char*>(0x00790DC0), modelName);
         return 0;
     }
     RawString name;
@@ -61,7 +62,7 @@ int __fastcall SetFigureAnimation(void* manager, void*, void* figure, const char
     void* found = FindAnimation(model, nullptr, &name);
     NodeDeallocate(name.start, static_cast<int>(name.eos - name.start));
     if (!found) {
-        DebugMessageOriginal(reinterpret_cast<const char*>(0x00790D94), animation, modelName);
+        game::DebugLog(reinterpret_cast<const char*>(0x00790D94), animation, modelName);
         return 0;
     }
     return SetAnimation(figure, nullptr, found, animation);

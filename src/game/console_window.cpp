@@ -1,6 +1,7 @@
 // The console window's text and placement (game.exe 0x005E3E90-0x005E4170). See
 // docs/notes/console.md.
 #include "console.h"
+#include "ui.h"
 
 #include "ei/hook.h"
 #include "originals_library.h"
@@ -11,13 +12,6 @@
 namespace console {
 
 namespace {
-
-// The 3D interface (ConsoleWindow::screen_). Rebirth patches both scaling functions (UI scaling),
-// so they are called through their original addresses.
-struct ScreenAt {
-    void ScaleRectToScreen(int* rect);     // 005F7CA0 (800x600 -> pixels)
-};
-__declspec(naked) void ScreenAt::ScaleRectToScreen(int*) EI_ORIGINAL(0x005F7CA0)
 
 struct WindowAt : ConsoleWindow {
     void Show(bool shown);   // 005E3FD0: creates (or releases) the surface and redraws
@@ -40,7 +34,8 @@ void ConsoleWindow::SetRect(const int* rect) {
     screenRect_[1] = rect[1];
     screenRect_[2] = rect[2];
     screenRect_[3] = rect[3];
-    reinterpret_cast<ScreenAt*>(screen_)->ScaleRectToScreen(screenRect_);
+    // The 3D interface scales 800x600 to pixels (005F7CA0, Rebirth-patched, so through its address).
+    reinterpret_cast<const CInterface3D*>(screen_)->CallScaleRectToScreen(reinterpret_cast<RECT*>(screenRect_));
     width_ = screenRect_[2] - screenRect_[0];
     height_ = screenRect_[3] - screenRect_[1];
     if (width_ < 0x4C) width_ = 0x4C;

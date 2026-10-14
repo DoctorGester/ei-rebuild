@@ -55,9 +55,6 @@ __declspec(naked) inline int __fastcall TextsReadLineOriginal(void* /*texts*/, v
 // 004A54D0: CMemoryStream::Resize(size), makes room for `size` bytes (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall StreamResizeOriginal(void* /*stream*/, void*, std::uint32_t /*size*/)
     EI_ORIGINAL(0x004A54D0)
-// 0044C470: the game's debug message (cdecl, printf style, a bare RET; the caller's EAX comes back unchanged, and
-// bink_video.cpp masks it, so it is declared to return a value). src/lib/crt.cpp keeps its own copy.
-__declspec(naked) inline unsigned __cdecl DebugMessageOriginal(const char*, ...) EI_ORIGINAL(0x0044C470)
 // The throw info of a thrown GameError* (dx_errors.h), 00759908; thrown with CxxThrowException (originals_library.h).
 inline const void* GameErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 
@@ -147,3 +144,6 @@ __declspec(naked) inline std::uint32_t __fastcall RandomNext(IsaacRandom* /*rand
 __declspec(naked) inline CMappedResource* __fastcall MappedResourceConstructOriginal(void* /*memory*/) EI_ORIGINAL(0x00671280)
 __declspec(naked) inline int __fastcall MappedResourceFindEntryOriginal(const CMappedResource*, void*, const char* /*name*/)
     EI_ORIGINAL(0x00674850)
+// 006721D0 (rewritten as CMMIOResource::Construct; plain RET): constructs a CMMIOResource (0x6C bytes; the archives, the
+// figure models' .mod / .bon / .anm parts, the terrain's archive) in `memory` and returns it.
+__declspec(naked) inline CMappedResource* __fastcall MmioResourceConstructOriginal(void* /*memory*/) EI_ORIGINAL(0x006721D0)

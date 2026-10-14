@@ -57,6 +57,6 @@ __declspec(naked) NewHandler __cdecl set_new_handler(NewHandler) EI_ORIGINAL(0x0
 namespace game {
 
 __declspec(naked) int __cdecl FatalError(const char*, ...) EI_ORIGINAL(0x00480080)
-__declspec(naked) void __cdecl DebugLog(const char*, ...) EI_ORIGINAL(0x0044C470)
+__declspec(naked) unsigned __cdecl DebugLog(const char*, ...) EI_ORIGINAL(0x0044C470)
 
 } // namespace game

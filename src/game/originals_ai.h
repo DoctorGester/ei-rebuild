@@ -12,6 +12,7 @@ class CAIMap;
 struct CRegionMap;
 class CEngineObject;
 class CSectorMap;
+class CUnitLayer;
 class CUnit;
 struct AIAttention;
 struct AIPath;
@@ -197,3 +198,19 @@ __declspec(naked) inline CEngineObject* __fastcall BrainLeaderOrFollowedOriginal
 __declspec(naked) inline void __fastcall BrainStopActionOriginal(void* /*brain*/) EI_ORIGINAL(0x005D7790)
 __declspec(naked) inline void __fastcall BrainSetSeenOriginal(void* /*brain*/, void*, CEngineObject* /*object*/)
     EI_ORIGINAL(0x005D7E90)
+// 005B36B0 / 005B3890 (rewritten as CUnitLayer::Add / Remove; RET 0x10 / 0xC): stamps `owner`'s shape into the unit
+// occupancy layer at cell (x, y) / lifts it off. `owner` is only a key: a unit, or the water patch's packed cell key
+// (ai_water_patch.cpp). No result.
+__declspec(naked) inline void __fastcall UnitLayerAddOriginal(CUnitLayer* /*layer*/, void*, CUnit* /*owner*/,
+                                                              const void* /*shape*/, int /*x*/, int /*y*/)
+    EI_ORIGINAL(0x005B36B0)
+__declspec(naked) inline void __fastcall UnitLayerRemoveOriginal(CUnitLayer* /*layer*/, void*, CUnit* /*owner*/, int /*x*/,
+                                                                 int /*y*/) EI_ORIGINAL(0x005B3890)
+// 005B8BA0 (rewritten as CAIMap::CellMark; RET 0x14): the passability mark of cell (x, y) at `level` (scratch state
+// carried from level to level); EAX the mark.
+__declspec(naked) inline std::uint32_t __fastcall AIMapCellMarkOriginal(CAIMap*, void*, void* /*scratch*/, int /*level*/,
+                                                                        int /*levelHeight*/, int /*x*/, int /*y*/)
+    EI_ORIGINAL(0x005B8BA0)
+// 005C6270 (rewritten as UnitMotion::Clear; ECX, plain RET): empties the motion (segment -1, the three arrays' sizes 0).
+// EAX is the zero it stored, not a result.
+__declspec(naked) inline void __fastcall UnitMotionClearOriginal(void* /*motion*/) EI_ORIGINAL(0x005C6270)

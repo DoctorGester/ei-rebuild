@@ -14,16 +14,13 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_ai.h"
 #include "originals_library.h"
 
 namespace {
 
 CRefObject*& Patch() { return *reinterpret_cast<CRefObject**>(0x007C2F64); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F68); }
-
-// The unit layer's Add / Remove through their original addresses (ai_unit_layer.cpp).
-__declspec(naked) void __fastcall LayerAdd(void*, void*, int, void*, int, int) EI_ORIGINAL(0x005B36B0)
-__declspec(naked) void __fastcall LayerRemove(void*, void*, int, int, int) EI_ORIGINAL(0x005B3890)
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
@@ -67,9 +64,11 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     for (int yy = y0; yy < y1; ++yy)
         for (int xx = x0; xx < x1; ++xx)
             shape[8 + (yy - y0) * 16 + (xx - x0)] = static_cast<std::uint8_t>(waterDepth[yy][xx]);
-    void* layer = unitLayerSmall;
-    if (add) LayerAdd(layer, nullptr, key, Patch(), x0, y0);
-    else LayerRemove(layer, nullptr, key, x0, y0);
+    // The pseudo unit is only a key to the layer (ai_unit_layer.cpp).
+    auto* layer = reinterpret_cast<CUnitLayer*>(unitLayerSmall);
+    auto* owner = reinterpret_cast<CUnit*>(static_cast<std::intptr_t>(key));
+    if (add) UnitLayerAddOriginal(layer, nullptr, owner, Patch(), x0, y0);
+    else UnitLayerRemoveOriginal(layer, nullptr, owner, x0, y0);
 }
 
 #pragma float_control(pop)

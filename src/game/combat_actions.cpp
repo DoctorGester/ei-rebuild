@@ -169,8 +169,6 @@ __declspec(naked) BOOL __fastcall StatsHeal(UnitStats*, void*, void*, float) EI_
 __declspec(naked) void __fastcall WorldUseQuickItem(void*, void*, CItem*, CUnit*) EI_ORIGINAL(0x0058ECE0)
 // 00594F30. CWorldServer: an item's state changed.
 __declspec(naked) void __fastcall WorldItemChanged(void*, void*, CItem*) EI_ORIGINAL(0x00594F30)
-// 005942D0. CWorldServer: `target` meets `player` (talk / trade); AL non-zero when handled.
-__declspec(naked) int __fastcall WorldMeetUnit(void*, void*, CEngineObject*, char*) EI_ORIGINAL(0x005942D0)
 // 005935C0 (patched by Rebirth). CWorldServer::RemoveObject (world_server.cpp): removes object `id`.
 // 00665BE0. Player: an inventory item changed.
 __declspec(naked) void __fastcall PlayerItemChanged(char*, void*, CItem*) EI_ORIGINAL(0x00665BE0)
@@ -536,7 +534,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     void* world = ManagerContext();
     if (action.kind == 6 && action.source == kSkillOnTarget) {
         if (!target || target->GetClassId() != kClassUnit) return;
-        if (char* player = unit->player) WorldMeetUnit(WorldServer(), nullptr, target, player);
+        if (char* player = unit->player) WorldLootOriginal(WorldServer(), nullptr, target, reinterpret_cast<WorldPlayer*>(player));
         WorldRemoveObject(WorldServer(), nullptr, target->id_);
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kSkillNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
@@ -614,7 +612,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
             return;
         }
         char* player = unit->player;
-        if (player && (WorldMeetUnit(world, nullptr, other, player) & 0xFF)) return;
+        if (player && WorldLootOriginal(world, nullptr, other, reinterpret_cast<WorldPlayer*>(player))) return;
         if (!unit->player) return;
         message = kMessageStealFailed;
         break;

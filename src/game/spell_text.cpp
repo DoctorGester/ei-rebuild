@@ -26,8 +26,8 @@ const char* const kCantEnd = reinterpret_cast<const char*>(0x0079593C);
 // MFC CString members not in lib/mfc.h, called on existing strings.
 struct TextOps : mfc::CString {
     int Find(char c) const;                     // 00700E91 Find(TCHAR)
-    void TrimRight();                           // 006FE216 (white space)
-    void TrimLeft();                            // 006FE11F (white space)
+    void TrimLeft();                            // 006FE216 (white space)
+    void TrimRight();                           // 006FE11F (white space)
     void TrimRight(char c);                     // 006FE0DD
 };
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
@@ -53,8 +53,8 @@ int Length(const mfc::CString& s) { return console::Length(s); }
 } // namespace
 
 int TextOps::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
-__declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
-__declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)
+void TextOps::TrimLeft() { CStringTrimLeftOriginal(this); }
+void TextOps::TrimRight() { CStringTrimRightOriginal(this); }
 void TextOps::TrimRight(char a0) { CStringTrimRightCharOriginal((void*)this, nullptr, a0); }
 
 namespace {
@@ -63,19 +63,19 @@ namespace {
 void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
     int brace = Ops(text).Find('{');
     if (brace == -1) {
-        Ops(text).TrimRight();
         Ops(text).TrimLeft();
+        Ops(text).TrimRight();
         return;
     }
     mfc::CString inner = Ops(text).Right(Length(text) - brace - 1);
+    Ops(inner).TrimLeft();
     Ops(inner).TrimRight();
-    Ops(inner).TrimLeft();
     Ops(inner).TrimRight('}');
-    Ops(inner).TrimLeft();
+    Ops(inner).TrimRight();
     StringSplit(inner, &codes, ';');
     text = text.Left(brace);
-    Ops(text).TrimRight();
     Ops(text).TrimLeft();
+    Ops(text).TrimRight();
 }
 
 // The modifier record named `name` (find_or_insert with a null record).

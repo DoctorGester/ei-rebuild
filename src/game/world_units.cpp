@@ -78,9 +78,6 @@ static RawString* RawStringInit(RawString* s, void*, const char* text, void* all
 __declspec(naked) void* __fastcall NamePairBuild(void* /*out*/, void*, const RawString*, void* const* /*value*/)
     EI_ORIGINAL(0x005729D0)
 PrototypeNamePair* __fastcall NameMapInsert(void* a0, void*, const void* a2) { return static_cast<PrototypeNamePair*>(NameMapInsertOriginal(a0, nullptr, a2)); }
-// 005927C0 (RET 4). Creates the unit described by the message; returns its id. Patched by Rebirth:
-// original address.
-__declspec(naked) int __fastcall CreateObjectAt(CWorldServer*, void*, void* /*message*/) EI_ORIGINAL(0x005927C0)
 // _CIacos (006E7320): argument and result in ST0.
 __declspec(naked) double __cdecl CIacos(double) {
     __asm fld qword ptr [esp + 4]
@@ -282,7 +279,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             PlaceInLine(message, position, rotation, i);
         }
 
-        CEngineObject* unit = WorldFindUnit(this, nullptr, CreateObjectAt(this, nullptr, message));
+        CEngineObject* unit = WorldFindUnit(this, nullptr, WorldMakeObjectOriginal(this, nullptr, message));
         if (!unit) continue;
         CMapObjectVirtuals* slots = ObjectSlots(unit);
 
@@ -387,7 +384,7 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     // At the unit's position, on the ground.
     std::memcpy(&message->base.position, &static_cast<CMapObject*>(unit)->position.x, 12);
     std::memset(&message->base.position.z, 0, 4);
-    int id = CreateObjectAt(this, nullptr, message);
+    int id = WorldMakeObjectOriginal(this, nullptr, message);
     CEngineObject* effect = ObjectWithId(id);
     effect->flags_ |= kFlagsNewEffect;   // 00529D20, inlined
     MessageDestructBase(message, nullptr);

@@ -543,7 +543,12 @@ struct BoxSurfaceAt {
 int BoxSurfaceAt::Text(const char* text, RECT* rect, int format, COLORREF colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 struct BoxMetricsAt {
-    SIZE TextExtentRaw(char* text, int font);
+    // The SIZE comes back through the hidden pointer, as a member function's struct result does.
+    SIZE TextExtentRaw(char* text, int font) {
+        SIZE size;
+        InterfaceTextExtentOriginal(reinterpret_cast<CInterface3D*>(this), nullptr, &size, text, font);
+        return size;
+    }
     SIZE TextExtent(mfc::CString text, int font) {
         char* data;
         std::memcpy(&data, &text, sizeof(data));
@@ -552,7 +557,6 @@ struct BoxMetricsAt {
         return TextExtentRaw(data, font);
     }
 };
-__declspec(naked) SIZE BoxMetricsAt::TextExtentRaw(char*, int) EI_ORIGINAL(0x005F8340)
 
 CUiEditField* EditConstruct(void* memory, void*, CInterface3D* ui, RECT r) {
     return static_cast<CUiEditField*>(EditFieldConstructOriginal(memory, nullptr, ui, r.left, r.top, r.right, r.bottom));

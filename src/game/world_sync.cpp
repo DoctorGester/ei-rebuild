@@ -22,6 +22,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_gameplay.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -97,8 +98,6 @@ void __fastcall StateRefresh(CPlayerServer* a0, void*) { PlayerResendPartyOrigin
 __declspec(naked) void __fastcall StateUpdateUnits(CPlayerServer*, void*) EI_ORIGINAL(0x0066E430)
 __declspec(naked) void __fastcall StateLeave(CPlayerServer*, void*) EI_ORIGINAL(0x0066F180)
 __declspec(naked) int __fastcall StateSendZone(CPlayerServer*, void*, void* /*message*/) EI_ORIGINAL(0x0066EBD0)
-__declspec(naked) int __fastcall StateSendStart(CPlayerServer*, void*, const Vector3* /*position*/, int /*zero*/, int /*kind*/)
-    EI_ORIGINAL(0x0066ED30)
 // 0047B1F0 (RET 0xC). Compares the ids in `known` with the objects in `current`; fills `added`,
 // `kept` and `removed` (ECX known, EDX current).
 __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray* /*current*/, StaticPtrArray* /*added*/,
@@ -381,7 +380,7 @@ int CWorldServer::SendZone(WorldPlayer* player) {
                 Vector3 start;
                 std::memcpy(&start, at, sizeof(start));
                 start.z = static_cast<float>(RawSurfaceHeightAt(start.x, start.y));
-                result = StateSendStart(state, nullptr, &start, 0, unknown12D64_);
+                result = PlayerSendPosition04Original(state, nullptr, &start, 0, unknown12D64_);
             }
         }
         if (result != 0) reinterpret_cast<CPlayer*>(player)->connection_->ItemsGiven(&player->items, 0);

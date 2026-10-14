@@ -490,10 +490,9 @@ __declspec(naked) ZoneExit* __fastcall ExitArrayGetAt(const void*, void*, ZoneEx
 // 00583B50 (RET 4). ZoneExit::operator=.
 __declspec(naked) void __fastcall ZoneExitAssign(ZoneExit*, void*, const ZoneExit*) EI_ORIGINAL(0x00583B50)
 // Rewritten elsewhere, through their addresses: SetUnknownDC / SetUnknownE0 / SetGameResult
-// (world_server / world_tick), LoadMobFile (world_zone).
+// (world_server / world_tick); LoadMobFile (world_zone) is in originals_world.h.
 __declspec(naked) void __fastcall WorldSetUnknownDC(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC80)
 __declspec(naked) void __fastcall WorldSetUnknownE0(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC70)
-__declspec(naked) int __fastcall WorldLoadMobFile(CWorldServer*, void*, const char*) EI_ORIGINAL(0x00595AB0)
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
 // (00440440 builds it from the host and port, 00435010 formats it into an STLport string, 00425040
 // destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
@@ -616,7 +615,7 @@ int __stdcall StartNetworkZone(const char* zone) {
         AnnounceHost(zone);
         mfc::CString name(zone);
         mfc::CString mob = name + Text(kMobExtension);
-        WorldLoadMobFile(World(), nullptr, mob);
+        WorldLoadMobFileOriginal(World(), nullptr, mob);
     }
 
     exits.vtable = reinterpret_cast<void*>(kExitArrayBaseVtable);

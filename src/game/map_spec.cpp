@@ -44,7 +44,6 @@ void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12Set
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
 // (007B01F4); the world object's own updates.
-__declspec(naked) void __fastcall WorldMakeObject(void* /*world*/, void*, Spec* /*spec*/) EI_ORIGINAL(0x005927C0)
 void* World() { return reinterpret_cast<void*>(0x007AFF60); }
 void* Selection() { return reinterpret_cast<void*>(0x007B00D0); }
 void* Lists() { return reinterpret_cast<void*>(0x007B01F4); }
@@ -322,7 +321,7 @@ EI_REPLACE_METHOD(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
 void ObjectSpec::ObjectSpecApply() {
     void* object = base.object;
     if (!object) {
-        WorldMakeObject(World(), nullptr, &base);
+        WorldMakeObjectOriginal(World(), nullptr, &base);
         return;
     }
     AIMapBeginRefreshOriginal(Selection());
@@ -390,7 +389,7 @@ void FlameSpec::FlameSpecApply() {
         WorldRemoveObject(World(), nullptr, b.id);
         b.object = nullptr;
     }
-    WorldMakeObject(World(), nullptr, &b);
+    WorldMakeObjectOriginal(World(), nullptr, &b);
 }
 EI_REPLACE_METHOD(0x0046B310, FlameSpec::FlameSpecApply);
 

@@ -169,11 +169,8 @@ struct SurfaceDraw {
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 SurfaceDraw* Draw(CUiSurface* surface) { return reinterpret_cast<SurfaceDraw*>(surface); }
 
-// The local player's variables, copied by name prefix into a hash_map<CString, float>.
-struct TableAt {
-    void Construct();                                   // 00581790 (100 buckets)
-};
-__declspec(naked) void TableAt::Construct() EI_ORIGINAL(0x00581790)
+// The local player's variables, copied by name prefix into a hash_map<CString, float> (00581790
+// constructs it with 100 buckets).
 struct VariableIterator {
     NamedFloatTable::Node* node;
     NamedFloatTable* table;
@@ -185,7 +182,7 @@ NamedFloatTable::Node* VariableIterator::NextBucket() { return (NamedFloatTable:
 // node's key released and the node returned to the 16-byte free list, then the bucket storage.
 class VariableTable {
 public:
-    VariableTable() { reinterpret_cast<TableAt*>(&table_)->Construct(); }
+    VariableTable() { NamedTableConstructOriginal(&table_); }
     ~VariableTable() {
         std::size_t n = static_cast<std::size_t>(table_.finish - table_.buckets);
         for (std::size_t b = 0; b < n; ++b) {
@@ -210,10 +207,6 @@ private:
 };
 
 // The rest (not rewritten).
-struct GameObjects {
-    void ResetView(int a, int b);                       // 005786A0 (on 007AFEA6)
-};
-__declspec(naked) void GameObjects::ResetView(int, int) EI_ORIGINAL(0x005786A0)
 struct SaveStream {
     void Resize(int size);                              // 004A54D0 (the save stream 007AFDF8)
 };
@@ -653,7 +646,7 @@ void CGlobalMap::Create() {
     selectPending_ = 1;
     GlobalMapSelectZoneOriginal(this, nullptr, -1, 0);
     dragging_ = false;
-    reinterpret_cast<GameObjects*>(0x007AFEA6)->ResetView(0, 0);
+    GameSetWeatherOriginal(reinterpret_cast<void*>(0x007AFEA6), nullptr, 0, 0.0f);   // clear weather
     (*reinterpret_cast<SoundMixer**>(0x007AF760))->ResetMusic();
     {
         WeatherObject* weather = static_cast<WeatherObject*>(gamecrt::operator_new(0x34));

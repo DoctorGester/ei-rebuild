@@ -171,9 +171,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
 
 namespace {
 
-// 005942D0 / 005935C0 (RET 4, patched by Rebirth): called on the global server (007AFF60), not
-// on `this`.
-__declspec(naked) bool __fastcall LootAt(CWorldServer*, void*, CEngineObject*, WorldPlayer*) EI_ORIGINAL(0x005942D0)
+// 005942D0 (WorldLootOriginal, originals_world.h) is called on the global server (007AFF60), not on `this`.
 
 // STLport list<unsigned> on the game's node pool (12-byte nodes {next, prev, value}); the
 // constructor (00404A70) allocates the head node, the destructor frees the nodes (00404D10) and
@@ -239,7 +237,7 @@ void CWorldServer::LootDeadUnits() {
     IdList dead;
     while (node) {
         if (object->GetClassId() == world::kClassUnit && ei::VCall<int>(object, kSlotIsDead)) {
-            LootAt(WorldServer(), nullptr, object, local);
+            WorldLootOriginal(WorldServer(), nullptr, object, local);
             dead.PushBack(static_cast<unsigned>(object->id_));
         }
         node = objects_.map.After(node);
