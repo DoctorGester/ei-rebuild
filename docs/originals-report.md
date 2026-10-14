@@ -318,8 +318,8 @@ Rewritten as `DXSurfaceConstruct` (src/game/dx_surface.cpp).
 
 ### 0x004F16A0: 5 files, 5 sites, signatures differ
 Rewritten as `CTransformPipeline::ClipTest` (src/game/model.cpp).
-- `src/game/figure_part_draw.cpp:57`: `int __fastcall ClipTest(CTransformPipeline*, void*, const ClipBounds*)`
-- `src/game/figure_part_draw_plain.cpp:39`: `int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/)`
+- `src/game/figure_part_draw.cpp:52`: `int __fastcall ClipTest(CTransformPipeline*, void*, const ClipBounds*)`
+- `src/game/figure_part_draw_plain.cpp:36`: `int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/)`
 - `src/game/lightning_draw.cpp:34`: `int __fastcall ClipTest(void* /*view*/, void*, const void* /*bounds*/)`
 - `src/game/particle_render.cpp:54`: `int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/)`
 - `src/game/world_client_view.cpp:34`: `int MatrixDevice::Classify(const void*)`
@@ -653,13 +653,13 @@ Rewritten as `CUnitServer::StopQueued` (src/game/combat_orders.cpp).
 Rewritten as `CWorldClient::Select` (src/game/world_client_maps.cpp).
 - `src/game/originals_ui.h:324`: `void __fastcall ClientWorldControlUnitOriginal(void* /*world*/, void*, void* /*unit*/)`
 - `src/game/ui_battle_commands.cpp:57`: `void __fastcall WorldControlUnit(void*, void*, CUnit*)`
-- `src/game/ui_battle_update.cpp:170`: `void __fastcall WorldControl(void*, void*, CUnit*)`
+- `src/game/ui_battle_update.cpp:164`: `void __fastcall WorldControl(void*, void*, CUnit*)`
 
 ### 0x00566100: 3 files, 3 sites, signatures differ
 Rewritten as `CWorldClient::Deselect` (src/game/world_client_maps.cpp).
 - `src/game/originals_ui.h:547`: `void __fastcall ClientWorldSelectOriginal(void* /*world*/, void*, void* /*unit*/)`
 - `src/game/ui_battle_commands.cpp:56`: `void __fastcall WorldClearSelection(void*, void*, CUnit*)`
-- `src/game/ui_battle_update.cpp:498`: `void __fastcall WorldSelect(void*, void*, CUnit*)`
+- `src/game/ui_battle_update.cpp:492`: `void __fastcall WorldSelect(void*, void*, CUnit*)`
 
 ### 0x005699F0: 5 files, 5 sites, signatures differ
 Rewritten as `CWorldClient::LocalView` (src/game/world_client.cpp).
@@ -687,7 +687,7 @@ Rewritten as `GameLocalPlayerVariables` (src/game/world_glue.cpp).
 
 ### 0x00578BA0: 3 files, 3 sites, signatures differ
 Rewritten as `LocalPlayerData` (src/game/world_rules.cpp).
-- `src/game/ui_battle_update.cpp:214`: `std::uint8_t* __fastcall LocalPlayerData(void*)`
+- `src/game/ui_battle_update.cpp:208`: `std::uint8_t* __fastcall LocalPlayerData(void*)`
 - `src/game/ui_camp.cpp:1004`: `std::uint8_t* GameGlue::PlayerData()`
 - `src/game/ui_trade_panel.cpp:358`: `std::uint8_t* __fastcall TradePlayerData(void*)`
 
@@ -914,7 +914,7 @@ Rewritten as `InterfaceActivate` (src/game/ui_create_screen.cpp).
 ### 0x005F7350: 7 files, 8 sites, signatures differ
 Rewritten as `InterfacePushWindow` (src/game/ui_create_screen.cpp).
 - `src/game/originals_ui.h:180`: `void __fastcall InterfacePushWindowOriginal(CInterface3D*, void*, void* /*window*/, int, int)`
-- `src/game/ui_battle_update.cpp:208`: `void __fastcall PushWindow(CInterface3D*, void*, void*, int, int)`
+- `src/game/ui_battle_update.cpp:202`: `void __fastcall PushWindow(CInterface3D*, void*, void*, int, int)`
 - `src/game/ui_hero_screen_click.cpp:76`: `void __fastcall PushWindow(CInterface3D*, void*, void*, int, int)`
 - `src/game/ui_interface_frame.cpp:104`: `void InterfaceAt::Push(void*, int, int)`
 - `src/game/ui_interface_frame.cpp:227`: `void __fastcall InterfaceShowWindow(CInterface3D*, void*, void*, int, int)`
@@ -1013,12 +1013,12 @@ Rewritten as `TradeSettle` (src/game/ui_trade_panel.cpp).
 Rewritten as `CBattleScreenSetup::RefreshSelection` (src/game/ui_battle_update.cpp).
 - `src/game/originals_ui.h:295`: `void __fastcall BattleRefreshSelectionOriginal(void* /*screen*/)`
 - `src/game/ui_battle_commands.cpp:64`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
-- `src/game/ui_battle_update.cpp:201`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
+- `src/game/ui_battle_update.cpp:195`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
 
 ### 0x0063D2B0: 2 files, 2 sites, same signature, names differ
 Rewritten as `CHudQuickItems::SetUnit` (src/game/ui_battle_update.cpp).
 - `src/game/ui_battle_commands.cpp:90`: `void __fastcall QuickItemsSetUnitAt(CUiWindow*, void*, CUnit*)`
-- `src/game/ui_battle_update.cpp:159`: `void __fastcall QuickItemsSetUnit(CUiWindow*, void*, CUnit*)`
+- `src/game/ui_battle_update.cpp:153`: `void __fastcall QuickItemsSetUnit(CUiWindow*, void*, CUnit*)`
 
 ### 0x0065AFE0: 3 files, 3 sites, signatures differ
 Rewritten as `CUiScrollbar::SetMaximum` (src/game/ui_scroll_text.cpp).
@@ -1220,44 +1220,44 @@ Rewritten as `ComposeTexture` (src/game/texture_compose.cpp).
 ### 0x00694520: 5 files, 5 sites, signatures differ
 Rewritten as `CFileRegistry::Construct` (src/game/registry.cpp).
 - `src/game/menu_rects.cpp:42`: `void __fastcall RegConstruct(void*, void*)`
-- `src/game/quest_database.cpp:101`: `CFileRegistry* Registry::Construct()`
+- `src/game/quest_database.cpp:97`: `CFileRegistry* Registry::Construct()`
 - `src/game/scene_loader.cpp:626`: `void __fastcall ConstructRegistry(void*)`
-- `src/game/scene_registry.cpp:56`: `CFileRegistry* Registry::Construct()`
-- `src/game/sound_music.cpp:79`: `CFileRegistry* Registry::Construct()`
+- `src/game/scene_registry.cpp:51`: `CFileRegistry* Registry::Construct()`
+- `src/game/sound_music.cpp:75`: `CFileRegistry* Registry::Construct()`
 
 ### 0x00694540: 5 files, 5 sites, signatures differ
 Rewritten as `CFileRegistry::Destroy` (src/game/registry.cpp).
 - `src/game/menu_rects.cpp:44`: `void __fastcall RegDestruct(void*, void*)`
-- `src/game/quest_database.cpp:102`: `void Registry::Destroy()`
+- `src/game/quest_database.cpp:98`: `void Registry::Destroy()`
 - `src/game/scene_loader.cpp:627`: `void __fastcall DestroyRegistry(void*)`
-- `src/game/scene_registry.cpp:57`: `void Registry::Destroy()`
-- `src/game/sound_music.cpp:80`: `void Registry::Destroy()`
+- `src/game/scene_registry.cpp:52`: `void Registry::Destroy()`
+- `src/game/sound_music.cpp:76`: `void Registry::Destroy()`
 
 ### 0x006945A0: 2 files, 2 sites, identical
 Rewritten as `CFileRegistry::Open` (src/game/registry.cpp).
-- `src/game/scene_registry.cpp:58`: `mfc::BOOL Registry::Open(const char*)`
-- `src/game/sound_music.cpp:81`: `mfc::BOOL Registry::Open(const char*)`
+- `src/game/scene_registry.cpp:53`: `mfc::BOOL Registry::Open(const char*)`
+- `src/game/sound_music.cpp:77`: `mfc::BOOL Registry::Open(const char*)`
 
 ### 0x00694610: 2 files, 2 sites, signatures differ
 Rewritten as `CFileRegistry::Attach` (src/game/registry.cpp).
 - `src/game/menu_rects.cpp:43`: `int __fastcall RegParse(void*, void*, void*)`
-- `src/game/quest_database.cpp:103`: `mfc::BOOL Registry::Attach(const void*)`
+- `src/game/quest_database.cpp:99`: `mfc::BOOL Registry::Attach(const void*)`
 
 ### 0x00694880: 2 files, 2 sites, identical
 Rewritten as `CFileRegistry::GetSectionNames` (src/game/registry.cpp).
-- `src/game/scene_registry.cpp:59`: `mfc::BOOL Registry::GetSectionNames(console::CStringArray*)`
-- `src/game/sound_music.cpp:82`: `mfc::BOOL Registry::GetSectionNames(console::CStringArray*)`
+- `src/game/scene_registry.cpp:54`: `mfc::BOOL Registry::GetSectionNames(console::CStringArray*)`
+- `src/game/sound_music.cpp:78`: `mfc::BOOL Registry::GetSectionNames(console::CStringArray*)`
 
 ### 0x00694D20: 3 files, 3 sites, identical
 Rewritten as `CFileRegistry::GetString` (src/game/registry.cpp).
-- `src/game/quest_database.cpp:106`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
-- `src/game/scene_registry.cpp:61`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
-- `src/game/sound_music.cpp:83`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
+- `src/game/quest_database.cpp:102`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
+- `src/game/scene_registry.cpp:56`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
+- `src/game/sound_music.cpp:79`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
 
 ### 0x006958E0: 2 files, 2 sites, identical
 Rewritten as `CFileRegistry::GetStringArray` (src/game/registry.cpp).
-- `src/game/quest_database.cpp:107`: `mfc::BOOL Registry::GetStringArray(const char*, const char*, console::CStringArray*)`
-- `src/game/sound_music.cpp:84`: `mfc::BOOL Registry::GetStringArray(const char*, const char*, console::CStringArray*)`
+- `src/game/quest_database.cpp:103`: `mfc::BOOL Registry::GetStringArray(const char*, const char*, console::CStringArray*)`
+- `src/game/sound_music.cpp:80`: `mfc::BOOL Registry::GetStringArray(const char*, const char*, console::CStringArray*)`
 
 ### 0x00696090: 2 files, 2 sites, signatures differ
 Rewritten as `CIniFile::GetList` (src/game/ini_file.cpp).
@@ -1376,15 +1376,15 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x004049D0: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:435`: `void** __fastcall ListEnd4049D0Original(const void* /*list*/, void*, void** /*out*/)`
-- `src/game/ui_battle_update.cpp:227`: `ListNode** __fastcall IndexListEnd(List*, void*, ListNode**)`
+- `src/game/ui_battle_update.cpp:221`: `ListNode** __fastcall IndexListEnd(List*, void*, ListNode**)`
 
 ### 0x00404A40: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:437`: `void** __fastcall ListInsert404A40Original(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*value*/)`
-- `src/game/ui_battle_update.cpp:229`: `ListNode** __fastcall IndexListInsert(List*, void*, ListNode**, ListNode*, const int*)`
+- `src/game/ui_battle_update.cpp:223`: `ListNode** __fastcall IndexListInsert(List*, void*, ListNode**, ListNode*, const int*)`
 
 ### 0x00404A70: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:439`: `void* __fastcall ListConstruct404A70Original(void* /*list*/, void*, const void* /*alloc*/)`
-- `src/game/ui_battle_update.cpp:226`: `void __fastcall IndexListConstruct(List*, void*, const void*)`
+- `src/game/ui_battle_update.cpp:220`: `void __fastcall IndexListConstruct(List*, void*, const void*)`
 
 ### 0x00404D70: 2 files, 2 sites, same signature, names differ
 - `src/game/originals_library.h:158`: `void __fastcall StlNodeFreeOriginal(void* /*p*/, std::size_t /*bytes*/)`
@@ -1396,7 +1396,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x00411850: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:106`: `void __fastcall ListConstruct411850(void* /*list*/, void*, const void* /*alloc*/)`
-- `src/game/ui_battle_update.cpp:225`: `void __fastcall UnitListConstruct(List*, void*, const void*)`
+- `src/game/ui_battle_update.cpp:219`: `void __fastcall UnitListConstruct(List*, void*, const void*)`
 
 ### 0x00421F60: 2 files, 2 sites, same signature, names differ
 - `src/game/net_client_party.cpp:22`: `void __fastcall VectorBaseConstruct(RefVector* /*vector*/, void*, std::size_t /*n*/, const void* /*allocator*/)`
@@ -1496,7 +1496,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x004E2FA0: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:452`: `void __fastcall DwordVectorInsertOverflowOriginal(void* /*vector*/, void*, void* /*pos*/, const void* /*value*/, std::uint32_t /*count*/)`
-- `src/game/ui_battle_update.cpp:182`: `void __fastcall IdsInsertOverflow(IdVector*, void*, int*, const int*, int)`
+- `src/game/ui_battle_update.cpp:176`: `void __fastcall IdsInsertOverflow(IdVector*, void*, int*, const int*, int)`
 
 ### 0x005335E0: 2 files, 2 sites, signatures differ
 - `src/game/originals_units.h:194`: `void** __fastcall PrototypeMapAtOriginal(void* /*map*/, void*, const void* /*key*/)`
@@ -1512,16 +1512,16 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x0059D2E0: 2 files, 2 sites, same signature, names differ
 - `src/game/originals_library.h:447`: `void __fastcall RecordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, void* /*record*/)`
-- `src/game/ui_battle_update.cpp:219`: `void __fastcall RecordsSetAtGrow(void*, void*, int, void*)`
+- `src/game/ui_battle_update.cpp:213`: `void __fastcall RecordsSetAtGrow(void*, void*, int, void*)`
 
 ### 0x005EBDB0: 4 files, 4 sites, signatures differ
 - `src/game/originals_ui.h:293`: `void __fastcall PartyArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)`
 - `src/game/ui_battle_commands.cpp:49`: `void __fastcall OrderUnitsSetSize(OrderUnits*, void*, int, int)`
 - `src/game/ui_battle_setup.cpp:118`: `void __fastcall PartyArraySetSize(void* /*array*/, void*, int, int)`
-- `src/game/ui_battle_update.cpp:193`: `void __fastcall PartySetSize(UiDwordArray*, void*, int, int)`
+- `src/game/ui_battle_update.cpp:187`: `void __fastcall PartySetSize(UiDwordArray*, void*, int, int)`
 
 ### 0x005F8F10: 2 files, 2 sites, signatures differ
-- `src/game/ui_battle_update.cpp:180`: `void __fastcall IdsConstruct(IdVector*, void*, const void*)`
+- `src/game/ui_battle_update.cpp:174`: `void __fastcall IdsConstruct(IdVector*, void*, const void*)`
 - `src/game/ui_create_screen.cpp:42`: `void __fastcall Member5F8F10(void*, void*, const void*)`
 
 ### 0x0069D290: 2 files, 2 sites, identical
