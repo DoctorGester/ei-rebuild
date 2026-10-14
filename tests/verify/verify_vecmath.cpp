@@ -143,6 +143,10 @@ template <Sum3 O>
 __declspec(noinline) float TwiceDotUnroundedOf(const Vector3& a, const Vector3& b) {
     return DotUnrounded<O>(a.x * 2.0f, a.y * 2.0f, a.z * 2.0f, b.x, b.y, b.z);
 }
+// The offset added first (V3f): (d + x * x2) + y * y2.
+__declspec(noinline) float OffsetDot2DUnroundedOf(float d, const Vector3& a, const Vector3& b) {
+    return OffsetDot2DUnrounded(d, a.x, a.y, b.x, b.y);
+}
 __declspec(noinline) Vector3 RotatedAxisOf(int axis, const Quaternion& q) {
     if (axis == 0) return RotatedAxisX(q) * 2.0f;
     if (axis == 1) return RotatedAxisY(q) * 2.0f;
@@ -346,6 +350,9 @@ void TestUnrounded(Inputs& in) {
             Compare("LengthSquaredUnrounded", o, RefDot(kOrders[o], a, a), squared[o], a, b);
             Compare("DotUnrounded(2a, b)", o, R(RefDot(kOrders[o], a, b) * 2.0f), twice[o], a, b);
         }
+        // a.z * b.z as the offset: an inexact value that separates (d + xx') + yy' from d + (xx' + yy') more often.
+        float d = R(a.z * b.z);
+        Compare("OffsetDot2DUnrounded", -1, R(R(d + R(a.x * b.x)) + R(a.y * b.y)), OffsetDot2DUnroundedOf(d, a, b), a, b);
     });
 }
 

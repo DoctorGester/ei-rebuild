@@ -17,6 +17,7 @@
 #include "engine_object.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/vecmath.h"
 
 using BOOL = int;
 
@@ -226,7 +227,7 @@ struct ScriptPointLight {
     int removeWhenDone;     // +0x08 MovePointLight: remove the light when the move ends
     int moving;             // +0x0C
     int steps;              // +0x10 moves left
-    float step[3];          // +0x14 added to the position on every move
+    Vector3 step;           // +0x14 added to the position on every move
 };
 static_assert(offsetof(ScriptPointLight, moving) == 0x0C);
 static_assert(offsetof(ScriptPointLight, steps) == 0x10);
@@ -246,7 +247,7 @@ struct ScriptParticleSource {
     int deleteAfterMove;    // +0x08
     int moving;             // +0x0C
     int steps;              // +0x10 moves left
-    float step[3];          // +0x14
+    Vector3 step;           // +0x14
     int lifetime;           // +0x20 ticks left, -1 forever (the particle type's lifetime)
 };
 static_assert(sizeof(ScriptParticleSource) == 0x24);
@@ -268,7 +269,7 @@ struct ScriptFxSource {
     CEngineObject* object;  // +0x00 the current sound (CEffectSound)
     int id;                 // +0x04
     mfc::CString name;      // +0x08 the sound's name
-    float position[3];      // +0x0C
+    Vector3 position;       // +0x0C
     float volume;           // +0x18 copied to the sound's volume_
     float radius;           // +0x1C ... radius_
     int idle;               // +0x20

@@ -529,7 +529,7 @@ public:
     int turning_;                    // +0x174 -1 / +1 while a turn button is held
     float bobTime_;                  // +0x178 seconds, for the arrow's bobbing and the layers' frames
     char* allodTitle_;               // +0x17C CString
-    float position_[3];              // +0x180 the current zone on the map model
+    Vector3 position_;               // +0x180 the current zone on the map model
     GlobalMapZoneArray zones_;          // +0x18C
     mfc::CArray<GlobalMapPlace> links_; // +0x1A0
     mfc::CArray<GlobalMapPlace> quests_;   // +0x1B4
@@ -543,7 +543,7 @@ public:
     bool beyondTarget_;              // +0x1DD the search goes on through the target zone itself
     std::uint8_t unknown_1DE[2];
     stlp::map<int, float> arrivals_; // +0x1E0 target exit -> time
-    float turn_[4];                  // +0x1EC the model's orientation (a quaternion)
+    Quaternion turn_;                // +0x1EC the model's orientation (a quaternion)
     float angle_;                    // +0x1FC the model's turn about z (mod 007C8020)
     float depth_;                    // +0x200 10
     float centreX_;                  // +0x204 400 (layout)

@@ -22,7 +22,7 @@ src/game/camera_object.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/chunk_stream.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/chunk_stream.h,0,0,0,0,2,0,0,0,0,0,0
 src/game/clip.cpp,0,0,1,1,0,0,0,0,0,0,0
-src/game/combat.cpp,0,0,3,1,1,0,0,0,0,0,1
+src/game/combat.cpp,0,0,3,1,1,0,0,0,0,0,0
 src/game/combat_actions.cpp,0,0,1,1,0,0,0,0,0,0,0
 src/game/combat_orders.cpp,0,0,1,1,0,0,0,0,0,0,0
 src/game/combat_sight.cpp,0,0,3,1,4,0,0,0,0,0,0
@@ -40,7 +40,7 @@ src/game/device_buffers.h,0,0,0,0,0,0,0,0,0,0,1
 src/game/device_mesh.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/device_shadow.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0,0,0
-src/game/effects_weather.cpp,0,0,0,0,1,0,0,0,0,0,1
+src/game/effects_weather.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/engine_object.h,0,0,0,0,1,0,0,0,0,0,0
 src/game/fake_unit.cpp,0,0,0,0,5,0,0,0,0,0,0
 src/game/figure_mesh.cpp,0,0,0,4,0,0,0,0,0,0,0
@@ -64,7 +64,7 @@ src/game/map_object_companion.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/map_object_draw.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/map_object_figures.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/map_object_shadow.cpp,0,0,0,1,0,0,0,0,0,0,0
-src/game/map_spec.cpp,0,0,0,0,9,0,0,0,0,0,3
+src/game/map_spec.cpp,0,0,0,0,9,0,0,0,0,0,0
 src/game/map_spec_effect.cpp,0,0,0,0,7,0,0,0,0,0,0
 src/game/map_spec_unit.cpp,0,0,0,0,9,0,0,0,0,0,0
 src/game/menu_rects.cpp,0,0,0,0,36,0,0,0,0,0,0
@@ -95,7 +95,6 @@ src/game/net_server_trade.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/net_server_vars.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0,0,0
 src/game/net_session_tick.cpp,0,0,0,1,9,0,0,0,0,0,0
-src/game/net_state.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/object.h,0,0,0,0,1,0,0,0,0,0,0
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0
 src/game/options.cpp,0,0,4,0,126,0,0,0,0,0,0
@@ -107,10 +106,7 @@ src/game/particle_draw.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/particle_emitters.cpp,0,0,1,1,1,0,0,0,0,0,0
 src/game/particle_render.cpp,0,0,1,1,1,0,0,0,0,0,0
 src/game/particle_tick.cpp,0,0,0,1,0,0,0,0,0,0,0
-src/game/player_client.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/player_messages.cpp,0,0,1,0,0,0,0,0,0,0,0
-src/game/player_server_handlers.cpp,0,0,0,0,0,0,0,0,0,0,2
-src/game/player_sync.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/quaternion.cpp,0,0,4,1,1,0,0,0,0,0,0
 src/game/quest_database.cpp,0,0,0,0,16,0,0,0,0,0,0
 src/game/registry.cpp,0,0,1,0,1,0,0,0,0,0,0
@@ -123,9 +119,7 @@ src/game/scene_bones.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/scene_loader.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0,0,0
 src/game/scene_registry.cpp,0,0,1,0,0,0,0,0,0,0,0
-src/game/script.h,0,0,0,0,0,0,0,0,0,0,3
 src/game/script_addon.cpp,0,0,5,0,1,0,0,0,0,0,0
-src/game/script_addon_units.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/script_blocks.cpp,0,0,0,0,2,0,0,0,0,0,0
 src/game/script_copy.cpp,0,0,1,0,8,0,0,0,0,0,0
 src/game/script_destroy.cpp,0,0,0,0,10,0,0,0,0,0,0
@@ -137,19 +131,16 @@ src/game/script_parse_load.cpp,0,0,2,0,1,0,0,0,0,0,0
 src/game/script_vars.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/script_vars_append.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/sound_manager.cpp,0,0,1,1,0,0,0,0,0,0,0
-src/game/spell.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/spell_cast.cpp,0,0,2,1,2,0,0,0,0,0,0
-src/game/spell_effect.cpp,0,0,0,1,0,0,0,0,0,0,1
+src/game/spell_effect.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/spell_effect_internal.h,0,0,18,0,12,0,0,0,0,0,0
 src/game/spell_effect_update.cpp,0,0,0,0,6,0,0,0,0,0,0
-src/game/terrain.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/terrain_sector.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/terrain_sector.h,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_battle_setup.cpp,0,0,0,0,2,0,0,0,0,0,0
 src/game/ui_battle_update.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/ui_camera_keys.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/ui_camp.cpp,0,0,3,3,12,0,0,0,0,0,0
-src/game/ui_camp.h,0,0,0,0,0,0,0,0,0,0,2
 src/game/ui_console_window.cpp,0,0,0,0,3,0,0,0,0,0,0
 src/game/ui_container_draws.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/ui_global_map.cpp,0,0,2,1,6,0,0,0,0,0,0

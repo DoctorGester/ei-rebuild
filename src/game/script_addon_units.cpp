@@ -62,8 +62,8 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
     mfc::CTypedPtrList<CEngineObject> list{};
     list.vtable = reinterpret_cast<void*>(0x0073D454);
     list.blockSize = 10;
-    float point[3] = {x, y, 0.0f};
-    SectorMapFindUnitsInRadius(kSectorMap, nullptr, point, &list, radius);
+    Vector3 point = {x, y, 0.0f};
+    SectorMapFindUnitsInRadius(kSectorMap, nullptr, &point, &list, radius);
     for (auto* node = list.head; node; node = node->next) visit(node->data);
     PtrListDestruct(&list);
 }

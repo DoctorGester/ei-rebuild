@@ -107,22 +107,22 @@ static void __fastcall MouseMoveVerify(void* input, void*, int buttons, int x, i
     if (map->dragging_) {
         float angle = map->angle_;
         float turn[4];
-        std::memcpy(turn, map->turn_, sizeof(turn));
+        std::memcpy(turn, &map->turn_, sizeof(turn));
         int motionX = MouseDragX();
         int motionY = MouseDragY();
         reinterpret_cast<MouseFn>(s_mouseMove)(input, nullptr, buttons, x, y);
         float expectedAngle = map->angle_;
         float expectedTurn[4];
-        std::memcpy(expectedTurn, map->turn_, sizeof(turn));
+        std::memcpy(expectedTurn, &map->turn_, sizeof(turn));
         bool cleared = MouseDragX() == 0 && MouseDragY() == 0;
         map->angle_ = angle;
-        std::memcpy(map->turn_, turn, sizeof(turn));
+        std::memcpy(&map->turn_, turn, sizeof(turn));
         MouseDragX() = motionX;
         MouseDragY() = motionY;
         map->OnMouseMove(buttons, x, y);
         ei::verify::CheckNear("CGlobalMap::OnMouseMove angle", expectedAngle, map->angle_, "motion %d", motionX);
         for (int i = 0; i < 4; ++i)
-            ei::verify::CheckNear("CGlobalMap::OnMouseMove turn", expectedTurn[i], map->turn_[i], "component %d, motion %d",
+            ei::verify::CheckNear("CGlobalMap::OnMouseMove turn", expectedTurn[i], (&map->turn_.w)[i], "component %d, motion %d",
                                   i, motionX);
         ei::verify::Check("CGlobalMap::OnMouseMove motion", cleared, MouseDragX() == 0 && MouseDragY() == 0, "");
         return;
