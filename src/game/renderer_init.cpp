@@ -4,6 +4,7 @@
 // pipeline's viewport and depth range, the render and texture stage states, a default light and the
 // ambient colour, and creates the counted helper object at +0x24. Runs once at start-up. See
 // docs/notes/models.md ("Renderer creation").
+#include "device.h"   // the old device's calls
 #include "ei/hook.h"
 #include "render/render.h"
 #include "render/render_state.h"
@@ -94,13 +95,13 @@ IDirect3DDevice7* D3DDevice(CSceneRenderer* renderer) {
 }
 
 void SetRenderState(CSceneRenderer* renderer, D3DRENDERSTATETYPE state, std::uint32_t value) {
-    D3DDevice(renderer)->SetRenderState(state, value);
+    device::SetRenderState(D3DDevice(renderer), state, value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 // SetTextureStageState; the result goes to the device object's +8, as every call there does.
 void SetStageState(CSceneRenderer* renderer, int stage, D3DTEXTURESTAGESTATETYPE type, int value) {
     CTextureDevice* device = renderer->device_;
-    device->lastLoadResult_ = static_cast<IDirect3DDevice7*>(device->d3dDevice_)->SetTextureStageState(stage, type, value);
+    device->lastLoadResult_ = device::SetTextureStageState(static_cast<IDirect3DDevice7*>(device->d3dDevice_), stage, type, value);
     render::state::Stage(static_cast<std::uint32_t>(stage), static_cast<std::uint32_t>(type), static_cast<std::uint32_t>(value));
 }
 
@@ -308,14 +309,14 @@ void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, Ga
     // The device's capabilities, then DirectDraw's (driver and emulation, 0x17C bytes each).
     D3DDEVICEDESC7 deviceDesc;   // not cleared, as in the original
     CTextureDevice* holder = renderer->device_;
-    long result = static_cast<IDirect3DDevice7*>(holder->d3dDevice_)->GetCaps(&deviceDesc);
+    long result = device::GetCaps(static_cast<IDirect3DDevice7*>(holder->d3dDevice_), &deviceDesc);
     holder->lastLoadResult_ = result;
     if (result != 0) FatalDirectX(result, GameText(0x0078EE20));   // "Can't get device description"
     DDCAPS driverCaps = {};
     DDCAPS emulationCaps = {};
     driverCaps.dwSize = sizeof(DDCAPS);
     emulationCaps.dwSize = sizeof(DDCAPS);
-    static_cast<IDirectDraw7*>(renderer->device_->ddraw_)->GetCaps(&driverCaps, &emulationCaps);
+    device::GetCaps(static_cast<IDirectDraw7*>(renderer->device_->ddraw_), &driverCaps, &emulationCaps);
     if (!(driverCaps.ddsCaps.dwCaps & DDSCAPS_MIPMAP)) settings->mipmapping_ = 0;
 
     SetTextureStages(renderer, settings, deviceDesc);

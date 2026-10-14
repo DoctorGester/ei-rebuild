@@ -2,6 +2,7 @@
 // the function for its wide layout (docs/rebirth-patched-functions.txt), so this body is hooked in
 // the vanilla launch only; nothing in the rewritten code calls it but the screen's vtable. See
 // ui_camp.h and docs/notes/ui.md, section 3.
+#include "device.h"   // the old device's calls
 #include "ui_camp.h"
 
 #include "class_templates.h"
@@ -465,12 +466,11 @@ void CCampPages::Create() {
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
     CTextureDevice* display = RenderDeviceObject();
     D3DDEVICEDESC7 description = {};
-    long result = static_cast<IDirect3DDevice7*>(display->d3dDevice_)->GetCaps(&description);
+    long result = device::GetCaps(static_cast<IDirect3DDevice7*>(display->d3dDevice_), &description);
     display->lastLoadResult_ = result;
     if (result != 0) FatalDirectX(result, GameText(0x0078EE20));   // "Can't get device description."
     if (description.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT) {
-        static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_)
-            ->SetRenderState(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
+        device::SetRenderState(static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
         render::state::Render(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
     }
     if (records.data) gamecrt::operator_delete(records.data);
