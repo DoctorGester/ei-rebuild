@@ -16,14 +16,6 @@ int __cdecl IsSpace(int c);                                       // 006E93CE
 int __cdecl Mbscmp(const char* a, const char* b);                 // 006E848B
 double __cdecl Atof(const char* s);                               // 006E911A (result in ST0)
 
-// The game CRT's tolower (006EBA53) of every byte, for the CRT's current LC_CTYPE locale (rebuilt
-// when its locale handle or code page changes). For ClassifyToken's keyword compare.
-const int* CaseFoldTable();
-// gamecrt::strnicmp(a, b, n) == 0 (006FA1A0) with the table above, without a CRT call per byte: a
-// zero byte in either string ends the compare (equal only when both are), otherwise the bytes' folds
-// must match.
-bool SameIgnoringCase(const int* fold, const char* a, const char* b, int n);
-
 // CString members beyond lib/mfc.h, called on existing strings through this view.
 struct StringOps : mfc::CString {
     StringOps* InitN(const char* text, int length);   // 006FD4DE CString(LPCTSTR, int) on raw memory

@@ -178,10 +178,11 @@ EI_VERIFY(0x004CF470, ErrorVerify, 0, s_unused);
 
 // 004CF600: SUB ESP,8; PUSH EBX; PUSH EBP (5 bytes). Pure apart from its outputs.
 static void(__fastcall* s_classify)(const char*, int*, int*);
-// Ours compares keywords with CaseFoldTable / SameIgnoringCase instead of the game CRT's _strnicmp:
-// on the first call every pair of bytes is compared both ways (ours against the original).
+// Ours compares keywords with gamecrt::CaseFoldTable / SameIgnoringCase instead of the game CRT's
+// _strnicmp (the shared helper, also used by object3d_figure_setup.cpp): on the first call every
+// pair of bytes is compared both ways (ours against the original).
 static void CheckCaseFold() {
-    const int* fold = CaseFoldTable();
+    const int* fold = gamecrt::CaseFoldTable();
     int mismatches = 0;
     char a[2] = {}, b[2] = {};
     for (int x = 0; x < 256; ++x) {
@@ -189,7 +190,7 @@ static void CheckCaseFold() {
             a[0] = static_cast<char>(x);
             b[0] = static_cast<char>(y);
             bool expected = gamecrt::strnicmp(a, b, 2) == 0;
-            if (SameIgnoringCase(fold, a, b, 2) != expected && mismatches++ < 8)
+            if (gamecrt::SameIgnoringCase(fold, a, b, 2) != expected && mismatches++ < 8)
                 ei::verify::Check("ClassifyToken case fold", true, false, "%02X %02X: strnicmp %s", x, y, expected ? "equal" : "different");
         }
     }
