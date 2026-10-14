@@ -2554,6 +2554,11 @@ public:
     void LoadQuestPlaces(const char* name);
     // The quest places (+0x1CC) as the STLport vector they are.
     stlp::vector<UiPointF>& QuestPlaces() { return reinterpret_cast<stlp::vector<UiPointF>&>(questPlacesBegin_); }
+    // The other containers as what they are (the fields below are their parts).
+    stlp::vector<mfc::CString>& Zones() { return reinterpret_cast<stlp::vector<mfc::CString>&>(zonesBegin_); }
+    mfc::CArray<ObjectiveExit>& Exits() { return reinterpret_cast<mfc::CArray<ObjectiveExit>&>(exitsVtable_); }
+    mfc::CStringArray& Quests() { return reinterpret_cast<mfc::CStringArray&>(quests_); }
+    mfc::CStringArray& ObjectiveTexts() { return reinterpret_cast<mfc::CStringArray&>(objectiveTexts_); }
     // ui_objectives_input.cpp (A-H24).
     // 0064E990 (RET 4). Exit `index` becomes the nearest (+0x19C): its marker (sprite 21 + index)
     // 1.2 times markerScale_ and the first frame, the blink restarted; the others markerScale_ and
@@ -2584,7 +2589,7 @@ public:
     char** zonesCapacity_;           // +0x16C
     char* zoneName_;                 // +0x170 CString: the zone it was opened for
     int twoButtons_;                 // +0x174 OK on the left and a second button (else OK centred)
-    void* exitDistances_;            // +0x178 STLport map<int, float>* (exit -> distance) or null
+    stlp::map<int, float>* exitDistances_;   // +0x178 exit -> distance, or null
     int listZones_;                  // +0x17C list the zones of the zone's allod with quests
     int zoneIndex_;                  // +0x180 the zone shown
     char* shownZone_;                // +0x184 CString
