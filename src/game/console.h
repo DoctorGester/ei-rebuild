@@ -62,9 +62,14 @@ class CStdioFile {
 public:
     enum { modeRead = 0, modeWrite = 1, modeCreate = 0x1000, typeText = 0x4000 };
     CStdioFile();                                                   // 00701B79
+    // 00701BD4: opened at once; a failure throws a CFileException* (lib/mfc_try.h).
+    CStdioFile(const char* name, unsigned flags);
     ~CStdioFile();                                                  // 00701C6D
     mfc::BOOL Open(const char* name, unsigned flags, void* error);  // 00701CB0
     mfc::BOOL ReadString(mfc::CString& line);                       // 00701E93
+    // 00701E4E: a line with its line end into `buffer` (at most size - 1 characters); null at the end
+    // of the file. A read error throws a CFileException*.
+    char* ReadString(char* buffer, unsigned size);
     void WriteString(const char* text);                             // 00701E23
     void Close();                                                   // 00701FE0
     // The file as code that calls through its vtable sees it.

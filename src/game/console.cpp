@@ -32,9 +32,11 @@ void Str::TrimRight(char a0) { CStringTrimRightCharOriginal((void*)this, nullptr
 
 
 __declspec(naked) CStdioFile::CStdioFile() EI_ORIGINAL(0x00701B79)
+__declspec(naked) CStdioFile::CStdioFile(const char*, unsigned) EI_ORIGINAL(0x00701BD4)
 __declspec(naked) CStdioFile::~CStdioFile() EI_ORIGINAL(0x00701C6D)
 __declspec(naked) mfc::BOOL CStdioFile::Open(const char*, unsigned, void*) EI_ORIGINAL(0x00701CB0)
 __declspec(naked) mfc::BOOL CStdioFile::ReadString(mfc::CString&) EI_ORIGINAL(0x00701E93)
+__declspec(naked) char* CStdioFile::ReadString(char*, unsigned) EI_ORIGINAL(0x00701E4E)
 __declspec(naked) void CStdioFile::WriteString(const char*) EI_ORIGINAL(0x00701E23)
 __declspec(naked) void CStdioFile::Close() EI_ORIGINAL(0x00701FE0)
 

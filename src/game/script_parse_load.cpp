@@ -133,9 +133,6 @@ void __stdcall DestructStrings(mfc::CString* a0, int a1) { CStringElementsDestru
 __declspec(naked) void __fastcall AddDefineAt(ScriptDefineList*, const ScriptDefine*) EI_ORIGINAL(0x004D34F0)
 __declspec(naked) void __fastcall ApplyDefinesAt(mfc::CString*, const ScriptDefineList*) EI_ORIGINAL(0x004D33E0)
 
-// 004D5880: reads a text file into *text; 0 on failure.
-__declspec(naked) BOOL __fastcall ReadTextFile(const char*, mfc::CString*) EI_ORIGINAL(0x004D5880)
-
 // ---- Small helpers ------------------------------------------------------------------------------
 
 // Index of `name` in a variable name array (004D5A50/5A90/5AD0/5B10, identical copies).
