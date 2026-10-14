@@ -79,9 +79,9 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
+- **WB4** Work board: workers and coordinator switch to work.py (running since 2026-10-14; sonnet, 0.3 sessions). Worker brief: work.py start at the beginning, note at milestones, test instead of run_all; coordinator: done at merge. Files: `docs/worker-brief.md`, `.claude/agents/area-worker.md`. After: WB2, WB3.
 - **T2** T1 follow-ups: remaining fixed waits and weak scenarios (ready). 8-10 s waits in ground_prints, sandbox_map, particles, map_objects, movement; world_client waits for the battle window; ui_help's clickregion hits a window with no regions; ui_hero_delete's question never appears; run_all keeps the first attempt's log on retry; ui_widescreen's wait 6000 (after SV1). No longer reached reliably: ScriptFloats/Strings/Objects/GroupsConstruct on load, acks::PickEnvironmentSpeech, CUnitServer::EndOrder. After: T1.
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
-- **WB4** Work board: workers and coordinator switch to work.py (ready; sonnet, 0.3 sessions). Worker brief: work.py start at the beginning, note at milestones, test instead of run_all; coordinator: done at merge. Files: `docs/worker-brief.md`, `.claude/agents/area-worker.md`. After: WB2, WB3.
 - **X32** Rebirth runs: game still running 10 s after quit (watch). Since 2026-10-13; runs pass. Suspects: wrappers that fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct). Not a dialog (message boxes are caught).
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.
