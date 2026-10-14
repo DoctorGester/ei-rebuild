@@ -169,7 +169,7 @@ EI_VERIFY(0x005567E0, HasMainArmourVerify, 9, s_hasMainArmour);
 static void* s_unusedFindFigureAnimation;
 static FigureAnimation* __fastcall FindFigureAnimationVerify(CBaseManager* manager, void*, const mfc::CString& figure,
                                                              const char* name) {
-    FigureAnimation* entry = FindFigureAnimation(manager, nullptr, figure, name);
+    FigureAnimation* entry = manager->FindFigureAnimation(figure, name);
     ei::verify::Check("FindFigureAnimation", true, !entry || gamecrt::stricmp(entry->name, name) == 0,
                       "figure %s animation %s: found %s", static_cast<const char*>(figure), name,
                       entry ? entry->name : "-");

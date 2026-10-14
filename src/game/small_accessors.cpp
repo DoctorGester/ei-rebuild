@@ -40,13 +40,13 @@ EI_REPLACE(0x004BB050, DropObjectReference);
 // ---- Scene loader ---------------------------------------------------------------------------------
 
 // 00471A90 (RET 0xC): a Vector3 from its three parts (a second copy of 00401DE0); returns it.
-Vector3* __fastcall Vector3FromParts(Vector3* self, void*, float x, float y, float z) {
-    self->x = x;
-    self->y = y;
-    self->z = z;
-    return self;
+Vector3* Vector3::ConstructScene(float x_, float y_, float z_) {
+    x = x_;
+    y = y_;
+    z = z_;
+    return this;
 }
-EI_REPLACE(0x00471A90, Vector3FromParts);
+EI_REPLACE_METHOD(0x00471A90, Vector3::ConstructScene);
 
 // 00471AB0 / 00471AD0 / 00471AF0 (RET 4): a scene helper's (a CMaterial's) diffuse, ambient and
 // specular red, green and blue, set from `value` (SceneInfo::Load builds each from three numbers

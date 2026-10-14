@@ -766,6 +766,9 @@ struct ScriptNamedValues {
     void Save(ScriptStream* stream) const;
     void Append(const ScriptNamedValues<T>* other);
     ScriptNamedValues<T>* CopyConstruct(const ScriptNamedValues<T>* other);
+    // 004D5A50 / 004D5A90 / 004D5AD0 / 004D5B10 (__thiscall, RET 4; the same code once per type, the
+    // names are at +0x14 in each): the index of `name` (_mbscmp), -1 if absent.
+    int FindName(const char* name) const;
     mfc::CArray<T> values;
     mfc::CArray<mfc::CString> names;
 };
@@ -975,9 +978,6 @@ void __fastcall ScriptCmdsSetAtGrow(mfc::CArray<SSCCmd>* array, void* edx, int i
 // 004C5480 (ScriptSubCall destructor body, __thiscall): the nested command destroyed and deleted;
 // the pointer stays.
 void __fastcall ScriptSubCallDestruct(ScriptSubCall* call);
-// 004D5A50 / 004D5A90 / 004D5AD0 / 004D5B10 (__thiscall on one type's variables (name), RET 4; the
-// same code once per type, the names are at +0x14 in each): the index of `name` (_mbscmp), -1 if absent.
-int __fastcall ScriptFindVariableName(const ScriptNamedValues<float>* vars, void* edx, const char* name);
 // 004D5A10 / 004D5A30 (CArray constructors, __thiscall, plain RET, `this` returned): empty, growBy 0,
 // vtable 0073D4A8 (CArray<SSCCmd>: LoadConditions' and LoadCommands' local arrays) / 0073D430
 // (CArray<ScriptIfThen>: the if-then pairs of Load's local definition).

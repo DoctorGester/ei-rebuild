@@ -135,7 +135,7 @@ void __fastcall SubCallDestructVerify(ScriptSubCall* self) {
 using FindNameFn = int(__fastcall*)(const ScriptNamedValues<float>*, void*, const char*);
 int CheckFindName(FindNameFn original, const char* label, const ScriptNamedValues<float>* vars, const char* name) {
     int expected = original(vars, nullptr, name);
-    int actual = ScriptFindVariableName(vars, nullptr, name);
+    int actual = vars->FindName(name);
     ei::verify::Check(label, expected, actual, "\"%s\" in %d names: %d / %d", name, vars->names.size, expected, actual);
     return expected;
 }

@@ -26,7 +26,6 @@
 
 // small_accessors.cpp (no header declares the shims).
 void __fastcall DropObjectReference(CEngineObject** slot);
-Vector3* __fastcall Vector3FromParts(Vector3* self, void*, float x, float y, float z);
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
 CEngineObject* __fastcall ScriptRefCompanion(const ScriptObjectRef* ref);
 int __fastcall ScriptSessionActive(const CRefCounted* session);
@@ -84,7 +83,7 @@ Vector3*(__fastcall* s_fromParts)(Vector3*, void*, float, float, float);
 Vector3* __fastcall FromPartsVerify(Vector3* self, void*, float x, float y, float z) {
     Vector3 expected;
     Vector3* expectedResult = s_fromParts(&expected, nullptr, x, y, z);
-    Vector3* result = Vector3FromParts(self, nullptr, x, y, z);
+    Vector3* result = self->ConstructScene(x, y, z);
     bool same = expectedResult == &expected && result == self && SameVector(expected, *self);
     ei::verify::Check("Vector3 from parts (00471A90)", true, same, "%g %g %g", x, y, z);
     return result;

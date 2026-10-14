@@ -321,7 +321,24 @@ struct SearchGrid {
     T* data;
     T** rows;
     int width, height;
+
+    // ai_grids.cpp. 005CD3A0 (RET 8; the visibility marks, VisibilityGrid + 8). Reallocated to
+    // newWidth x newHeight (the cells are not kept or cleared) unless the grid already has that size.
+    void Resize(int newWidth, int newHeight);
+    // 005CD410 (RET 4) / 005C4BA0 (RET 4; A-W14: the local search's nodes, whose Recenter 005C25D0
+    // keeps the old window in such a copy). Makes the grid a copy of `source`: its size, a block and
+    // row table of its own, the cells copied.
+    void CopyFrom(const SearchGrid* source);
+    // 005BCBD0 / 005BCC50 / 005BCEE0 / 005BCF00 (RET 8). The constructor for a size; returns this.
+    SearchGrid* Construct(int newWidth, int newHeight);
 };
+template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight);
+template <> void SearchGrid<std::uint8_t>::CopyFrom(const SearchGrid* source);
+template <> void SearchGrid<SearchNode>::CopyFrom(const SearchGrid* source);
+template <> SearchGrid<std::int8_t>* SearchGrid<std::int8_t>::Construct(int newWidth, int newHeight);
+template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight);
+template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight);
+template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int newWidth, int newHeight);
 static_assert(sizeof(SearchGrid<SearchNode>) == 0x10);
 
 // The local search (0x80 bytes; CAIMap + 0x2594 forward, + 0x2614 backward, and the region map's):

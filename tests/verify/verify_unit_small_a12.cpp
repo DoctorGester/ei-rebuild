@@ -49,7 +49,6 @@ std::uint32_t __fastcall ExcessDamage(const std::uint16_t* damage, void*, const 
 std::uint16_t __fastcall MaxDamage(const std::uint16_t* damage);
 int __fastcall SchoolPrice(int from, int to);
 UnitModelRecord* __fastcall UnitModelAt(UnitModelRecord** models, void*, std::uint32_t index);
-UnitPrototypeRecord* __fastcall UnitPrototypeAt(UnitPrototypeTable* table, void*, std::uint32_t index);
 const char* __fastcall UnitClassName(CUnit*);
 int __fastcall UnitClassId(CUnit*);
 void __fastcall ControllerDestruct(CUnitController* self);
@@ -190,7 +189,7 @@ static UnitPrototypeRecord*(__fastcall* s_UnitPrototypeAt)(UnitPrototypeTable*, 
 static UnitPrototypeRecord* __fastcall UnitPrototypeAtVerify(UnitPrototypeTable* table, void*, std::uint32_t index) {
     UnitPrototypeRecord* expected = s_UnitPrototypeAt(table, nullptr, index);
     ei::verify::Check("UnitPrototypeAt", static_cast<void*>(expected),
-                      static_cast<void*>(UnitPrototypeAt(table, nullptr, index)), "%u", index);
+                      static_cast<void*>(table->At(index)), "%u", index);
     return expected;
 }
 EI_VERIFY(0x0053AD30, UnitPrototypeAtVerify, 6, s_UnitPrototypeAt);

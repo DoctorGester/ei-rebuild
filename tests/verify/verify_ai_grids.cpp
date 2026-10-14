@@ -147,6 +147,10 @@ EI_VERIFY(0x0058AAB0, FreeGridVerify, 0, s_unused);   // A-W14 (unwind funclets 
 
 namespace {
 // The original constructs a probe, ours the real grid; the probe's result must be itself.
+template <typename T>
+SearchGrid<T>* __fastcall ConstructOurs(SearchGrid<T>* grid, void*, int width, int height) {
+    return grid->Construct(width, height);
+}
 template <typename T, typename Same>
 SearchGrid<T>* CompareConstruct(const char* name, SearchGrid<T>* grid, int width, int height,
                                 SearchGrid<T>*(__fastcall* original)(SearchGrid<T>*, void*, int, int),
@@ -166,7 +170,7 @@ SearchGrid<T>* CompareConstruct(const char* name, SearchGrid<T>* grid, int width
 static SearchGrid<std::int8_t>*(__fastcall* s_constructBytes)(SearchGrid<std::int8_t>*, void*, int, int);
 static SearchGrid<std::int8_t>* __fastcall ConstructBytesVerify(SearchGrid<std::int8_t>* grid, void*, int width,
                                                                int height) {
-    return CompareConstruct("ConstructByteGrid", grid, width, height, s_constructBytes, ConstructByteGrid,
+    return CompareConstruct("ConstructByteGrid", grid, width, height, s_constructBytes, ConstructOurs<std::int8_t>,
                             Any<std::int8_t>);
 }
 EI_VERIFY(0x005BCBD0, ConstructBytesVerify, 5, s_constructBytes);
@@ -175,7 +179,7 @@ EI_VERIFY(0x005BCBD0, ConstructBytesVerify, 5, s_constructBytes);
 static SearchGrid<SearchNode>*(__fastcall* s_constructNodes)(SearchGrid<SearchNode>*, void*, int, int);
 static SearchGrid<SearchNode>* __fastcall ConstructNodesVerify(SearchGrid<SearchNode>* grid, void*, int width,
                                                               int height) {
-    return CompareConstruct("ConstructNodeGrid", grid, width, height, s_constructNodes, ConstructNodeGrid,
+    return CompareConstruct("ConstructNodeGrid", grid, width, height, s_constructNodes, ConstructOurs<SearchNode>,
                             Any<SearchNode>);
 }
 EI_VERIFY(0x005BCC50, ConstructNodesVerify, 5, s_constructNodes);
@@ -184,7 +188,7 @@ EI_VERIFY(0x005BCC50, ConstructNodesVerify, 5, s_constructNodes);
 static SearchGrid<AIMapCell>*(__fastcall* s_constructCells)(SearchGrid<AIMapCell>*, void*, int, int);
 static SearchGrid<AIMapCell>* __fastcall ConstructCellsVerify(SearchGrid<AIMapCell>* grid, void*, int width,
                                                              int height) {
-    return CompareConstruct("ConstructCellGrid", grid, width, height, s_constructCells, ConstructCellGrid, SameCell);
+    return CompareConstruct("ConstructCellGrid", grid, width, height, s_constructCells, ConstructOurs<AIMapCell>, SameCell);
 }
 EI_VERIFY(0x005BCEE0, ConstructCellsVerify, 5, s_constructCells);
 
@@ -193,7 +197,7 @@ static SearchGrid<std::uint32_t>*(__fastcall* s_constructOccluders)(SearchGrid<s
 static SearchGrid<std::uint32_t>* __fastcall ConstructOccludersVerify(SearchGrid<std::uint32_t>* grid, void*,
                                                                      int width, int height) {
     return CompareConstruct("ConstructOccluderGrid", grid, width, height, s_constructOccluders,
-                            ConstructOccluderGrid, SameOccluder);
+                            ConstructOurs<std::uint32_t>, SameOccluder);
 }
 EI_VERIFY(0x005BCF00, ConstructOccludersVerify, 5, s_constructOccluders);
 
@@ -294,7 +298,7 @@ static void __fastcall ResizeBytesVerify(SearchGrid<std::uint8_t>* grid, void*, 
     AllocateByteGrid(&probe);
     SearchGrid<std::uint8_t> probeBefore = probe;
     s_resizeBytes(&probe, nullptr, width, height);
-    ResizeByteGrid(grid, nullptr, width, height);
+    grid->Resize(width, height);
     bool same = before.width == width && before.height == height;
     bool ok = probe.width == width && probe.height == height && grid->width == width && grid->height == height &&
               RowsFit(probe) && RowsFit(*grid) && (!same || (probe.data == probeBefore.data && grid->data == before.data &&
@@ -310,7 +314,7 @@ static void(__fastcall* s_copyBytes)(SearchGrid<std::uint8_t>*, void*, const Sea
 static void __fastcall CopyBytesVerify(SearchGrid<std::uint8_t>* grid, void*, const SearchGrid<std::uint8_t>* source) {
     SearchGrid<std::uint8_t> probe{nullptr, nullptr, -1, -1};
     s_copyBytes(&probe, nullptr, source);
-    CopyByteGrid(grid, nullptr, source);
+    grid->CopyFrom(source);
     bool ok = RowsFit(probe) && RowsFit(*grid) && SameCells(probe, *grid, 1, Equal<std::uint8_t>) &&
               SameCells(*source, *grid, 1, Equal<std::uint8_t>) && grid->data != source->data;
     ei::verify::Check("CopyByteGrid", true, ok, "%d x %d", source->width, source->height);
@@ -326,7 +330,7 @@ static void(__fastcall* s_copyNodes)(SearchGrid<SearchNode>*, void*, const Searc
 static void __fastcall CopyNodesVerify(SearchGrid<SearchNode>* grid, void*, const SearchGrid<SearchNode>* source) {
     SearchGrid<SearchNode> probe{nullptr, nullptr, -1, -1};
     s_copyNodes(&probe, nullptr, source);
-    CopyNodeGrid(grid, nullptr, source);
+    grid->CopyFrom(source);
     auto sameBytes = [](const SearchNode& a, const SearchNode& b) { return std::memcmp(&a, &b, sizeof(SearchNode)) == 0; };
     bool ok = RowsFit(probe) && RowsFit(*grid) && SameCells(probe, *grid, 1, sameBytes) &&
               SameCells(*source, *grid, 1, sameBytes) && grid->data != source->data;

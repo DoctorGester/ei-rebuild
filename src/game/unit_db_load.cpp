@@ -128,7 +128,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     for (int i = 0; i < static_cast<int>(End(prototypes) - Begin(prototypes)); ++i) {
         UnitModelRecord* model = models.FindByName(Begin(prototypes)[i].modelName);
         const int index = model ? static_cast<int>(model - models.begin) : -1;
-        UnitPrototypeAt(&prototypes, nullptr, static_cast<std::uint32_t>(i))->modelIndex = index;
+        (&prototypes)->At(static_cast<std::uint32_t>(i))->modelIndex = index;
     }
     // Every model slot's level record by its name.
     for (int i = 0; i < static_cast<int>(models.end - models.begin); ++i) {

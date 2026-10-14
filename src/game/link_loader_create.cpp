@@ -30,27 +30,26 @@ constexpr std::size_t kFigureSetBuckets = 100;   // the hint the figure sets' ta
 // `folder` opened (a failure is only logged). The original also leaves bytes of its empty hash,
 // equality and compare objects in the containers' padding (stack contents, and the low byte of
 // `renderer` in the cache's); nothing reads them and they are not written here.
-CLinkFigureLoader* __fastcall LinkFigureLoaderConstruct(CLinkFigureLoader* self, void*, CTextureDevice* renderer,
-                                                        const stlp::string* folder) {
-    self->refCount_ = 0;
-    ei::SetVtable(self, 0x0073D824);
-    self->archives_ = static_cast<LinkArchiveNode*>(stlp::allocate(sizeof(LinkArchiveNode)));
-    self->archives_->next = self->archives_;
-    self->archives_->prev = self->archives_;
-    self->figureSets_.InitBuckets(kFigureSetBuckets);
-    self->renderer_ = renderer;
+CLinkFigureLoader* CLinkFigureLoader::Construct(CTextureDevice* renderer, const stlp::string* folder) {
+    refCount_ = 0;
+    ei::SetVtable(this, 0x0073D824);
+    archives_ = static_cast<LinkArchiveNode*>(stlp::allocate(sizeof(LinkArchiveNode)));
+    archives_->next = archives_;
+    archives_->prev = archives_;
+    figureSets_.InitBuckets(kFigureSetBuckets);
+    renderer_ = renderer;
     if (renderer) renderer->AddRef();
-    self->cache_.Construct();
-    ei::SetVtable(self, CLinkFigureLoader::kVtableAddress);
-    self->pipeline_ = self->renderer_->pipeline_->transform_;
+    cache_.Construct();
+    ei::SetVtable(this, CLinkFigureLoader::kVtableAddress);
+    pipeline_ = renderer_->pipeline_->transform_;
     {
         const stlp::string path = stlp::Plus(*folder, FiguresArchive());
-        AddArchiveOriginal(self, nullptr, &path);
+        AddArchiveOriginal(this, nullptr, &path);
     }
     {
         const stlp::string path = stlp::Plus(*folder, MenusArchive());
-        AddArchiveOriginal(self, nullptr, &path);
+        AddArchiveOriginal(this, nullptr, &path);
     }
-    return self;
+    return this;
 }
-EI_REPLACE(0x004F68C0, LinkFigureLoaderConstruct);
+EI_REPLACE_METHOD(0x004F68C0, CLinkFigureLoader::Construct);

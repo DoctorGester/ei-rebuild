@@ -539,6 +539,9 @@ struct VertexPacket;
 
 class __declspec(novtable) CLinkFigureLoader {
 public:
+    // 004F68C0 (link_loader_create.cpp, RET 8). Constructor: the renderer held, the cache and the figure
+    // and menu archives of `folder` opened (a failure is only logged). Returns this.
+    CLinkFigureLoader* Construct(CTextureDevice* renderer, const stlp::string* folder);
     // 0: 004F6A30 (RET 4, returns this; A-S8). Destruct; freed when flags bit 0 is set.
     virtual void* DeleteThis(unsigned flags);
     virtual int CacheSize();                    // 1: 004F6A20 (cache_'s count)

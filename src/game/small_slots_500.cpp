@@ -44,9 +44,9 @@ std::uint32_t __fastcall RendererFrameTime(CSceneRenderer* self) { return self->
 EI_REPLACE(0x00500A90, RendererFrameTime);
 
 // 00503F20 (RET 4). A vector copied (the selection marker's corners).
-void __fastcall VectorCopy(Vector3* self, void*, const Vector3* other) {
-    self->x = other->x;
-    self->y = other->y;
-    self->z = other->z;
+void Vector3::Assign(const Vector3* other) {
+    x = other->x;
+    y = other->y;
+    z = other->z;
 }
-EI_REPLACE(0x00503F20, VectorCopy);
+EI_REPLACE_METHOD(0x00503F20, Vector3::Assign);
