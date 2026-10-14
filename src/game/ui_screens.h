@@ -493,7 +493,8 @@ public:
     CItemInfoPanel* descPanel_; // +0x164 the description panel
     std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
     CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
-    std::uint8_t unknown_170[0x190 - 0x170];
+    ItemObjectCache models_;    // +0x170 the item screens' model cache (00633F50 constructs it)
+    ItemObjectCache textures_;  // +0x180 and the texture cache (00633FF0)
     int mode_;                  // +0x190 9, 10, 11
     int heroIndex_;             // +0x194 selected hero
     void* heroScroll_;          // +0x198 scroll bar of the hero list
@@ -536,6 +537,8 @@ static_assert(offsetof(CMpHeroScreen, voiceScroll_) == 0x1F0);
 static_assert(offsetof(CMpHeroScreen, voices_) == 0x210);
 static_assert(offsetof(CMpHeroScreen, names_) == 0x1D4);
 static_assert(offsetof(CMpHeroScreen, voiceLists_) == 0x1F8);
+static_assert(offsetof(CMpHeroScreen, models_) == 0x170 && offsetof(CMpHeroScreen, textures_) == 0x180);
+static_assert(offsetof(CMpHeroScreen, defaults_) == 0x1C8 && offsetof(CMpHeroScreen, text_) == 0x1F4);
 static_assert(sizeof(CMpHeroScreen) == 0x220);
 
 // An entry of a sound set (0x2C bytes; the sets are the values of the map 007C8A6C, keyed by a
@@ -957,7 +960,7 @@ public:
     bool fromGame_;             // +0x1F4 opened in a game (pending value 0xCCCCCCCC) or the menu
     bool finished_;             // +0x1F5 the last line has gone (cleared by Build)
     std::uint8_t unknown_1F6[2];
-    int savedDisplay_;          // +0x1F8 the display's (00500960) +0x14 while the titles run
+    int savedDisplay_;          // +0x1F8 the renderer's (00500960) fog colour while the titles run
 };
 static_assert(offsetof(CCreditsScreen, textSurface_) == 0x164);
 static_assert(offsetof(CCreditsScreen, lines_) == 0x1C8);
