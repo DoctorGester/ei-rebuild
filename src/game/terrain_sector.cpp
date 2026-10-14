@@ -15,6 +15,7 @@
 
 #include <cstring>
 #include "originals_library.h"
+#include "originals_world.h"
 
 #pragma float_control(precise, on)
 
@@ -498,13 +499,8 @@ void SectorData::ApplyWaterLevels() {
 // Point queries
 
 namespace {
-struct HeightOps {
-    double HeightAt(float x, float y, int layer);   // 006C8680, its ST0 result used unrounded
-};
-__declspec(naked) double HeightOps::HeightAt(float, float, int) EI_ORIGINAL(0x006C8680)
-
 double RawHeight(void* terrain, float x, float y, int layer) {
-    return static_cast<HeightOps*>(terrain)->HeightAt(x, y, layer);
+    return TerrainHeightAtOriginal(static_cast<Terrain*>(terrain), nullptr, x, y, layer);   // 006C8680, ST0 used unrounded
 }
 } // namespace
 

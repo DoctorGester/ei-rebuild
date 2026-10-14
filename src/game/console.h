@@ -24,8 +24,6 @@ inline int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(s
 
 // CString members beyond lib/mfc.h, called on existing strings through this view (no extra data).
 struct Str : mfc::CString {
-    mfc::CString Mid(int first) const;              // 006FD9B4 (006FDA6D is Right, mfc::CString::Right)
-    mfc::CString Mid(int first, int count) const;   // 006FD9D7
     void AppendChar(char c);                        // 00700D73 operator+=(TCHAR)
     void AppendText(const char* text);              // 00700D4C operator+=(LPCTSTR)
     void TrimLeft(char c);                          // 006FE1D3 TrimLeft(TCHAR)

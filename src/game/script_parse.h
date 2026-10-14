@@ -19,8 +19,6 @@ double __cdecl Atof(const char* s);                               // 006E911A (r
 // CString members beyond lib/mfc.h, called on existing strings through this view.
 struct StringOps : mfc::CString {
     StringOps* InitN(const char* text, int length);   // 006FD4DE CString(LPCTSTR, int) on raw memory
-    mfc::CString Mid(int first, int count) const;     // 006FD9D7
-    int Find(const char* sub) const;                  // 006FDBD9
     char* LockBuffer();                               // 00700E6A
     void UnlockBuffer();                              // 00700E7C
 };

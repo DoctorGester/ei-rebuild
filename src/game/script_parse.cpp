@@ -31,8 +31,6 @@ __declspec(naked) int __cdecl IsSpace(int) EI_ORIGINAL(0x006E93CE)
 int __cdecl Mbscmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
 
 StringOps* StringOps::InitN(const char* a0, int a1) { return static_cast<StringOps*>(CStringConstructCountOriginal(this, nullptr, a0, a1)); }
-__declspec(naked) mfc::CString StringOps::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
-__declspec(naked) int StringOps::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
 __declspec(naked) char* StringOps::LockBuffer() EI_ORIGINAL(0x00700E6A)
 __declspec(naked) void StringOps::UnlockBuffer() EI_ORIGINAL(0x00700E7C)
 

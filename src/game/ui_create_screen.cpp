@@ -292,8 +292,6 @@ namespace {
 // The message queue (a std::list of CStrings at +0x84; thiscall): 005F8E50 erases a node into
 // the returned iterator (RET 8).
 __declspec(naked) void __fastcall MessageListErase(void*, void*, void* /*out*/, void* /*node*/) EI_ORIGINAL(0x005F8E50)
-__declspec(naked) void __fastcall CopyCString(void*, void*, const void*) EI_ORIGINAL(0x007006E5)
-__declspec(naked) void __fastcall ConstructCString(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
 __declspec(naked) void __fastcall ConstructListHolder(void*, void*, const void*, const void*) EI_ORIGINAL(0x005FA340)
 inline void* __fastcall AllocateNodes(std::size_t a0) { return NodeAllocateOriginal(a0); }
 
@@ -317,7 +315,7 @@ void CInterface3D::ShowMessage(int force) {
         if (node == header) return;
         alignas(4) std::uint8_t storage[sizeof(mfc::CString)];
         auto* text = reinterpret_cast<mfc::CString*>(storage);
-        CopyCString(text, nullptr, node + 8);
+        CStringCopyConstructOriginal(text, nullptr, reinterpret_cast<const mfc::CString*>(node + 8));
         void* next;
         MessageListErase(self + 0x84, nullptr, &next, node);
         *reinterpret_cast<mfc::CString*>(self + 0xA4) = *text;
@@ -337,7 +335,7 @@ void CInterface3D::ShowMessage(int force) {
         auto* win = static_cast<std::uint8_t*>(memory);
         win[0x164] = 1;
         std::memcpy(&message, self + 0xA4, 4);
-        ConstructCString(win + 0x168, nullptr, message);
+        CStringConstructTextOriginal(win + 0x168, nullptr, message);
         SetDword(win, 0x16C, *reinterpret_cast<const std::uint32_t*>(0x00796E48));   // empty CString
         StringArrayConstruct(win + 0x170);
         SetDword(win, 0x184, value);
@@ -405,7 +403,7 @@ void CInterface3D::OpenHelp(int flag) {
                 std::uint8_t key[sizeof(mfc::CString)];
                 int value;
             } pair;
-            CopyCString(pair.key, nullptr, &key);
+            CStringCopyConstructOriginal(pair.key, nullptr, &key);
             pair.value = 0;
             void* inserted;
             HelpTopicsInsertOriginal(topics, nullptr, &inserted, at, &pair);
@@ -426,7 +424,7 @@ void CInterface3D::OpenHelp(int flag) {
         ConstructContainerAt(memory, nullptr, this);
         auto* win = static_cast<std::uint8_t*>(memory);
         win[0x164] = 0;
-        ConstructCString(win + 0x168, nullptr, topic);
+        CStringConstructTextOriginal(win + 0x168, nullptr, topic);
         SetDword(win, 0x16C, *reinterpret_cast<const std::uint32_t*>(0x00796E48));   // empty CString
         StringArrayConstruct(win + 0x170);
         SetDword(win, 0x184, static_cast<std::uint32_t>(seen));
@@ -475,7 +473,6 @@ void FreeNode18(void* node) {
 __declspec(naked) void __fastcall Screen9FirstMap(void*, void*, const void*, const void*) EI_ORIGINAL(0x005F9F80)
 __declspec(naked) void __fastcall Screen9SecondMap(void*) EI_ORIGINAL(0x005F98F0)
 __declspec(naked) void __fastcall Screen8Member1D8Destruct(void*) EI_ORIGINAL(0x005DB350)
-__declspec(naked) void __fastcall ConstructCStringFrom(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
 
 std::uint8_t* Bytes(void* p) { return static_cast<std::uint8_t*>(p); }
 
@@ -514,7 +511,7 @@ void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag,
     SetDword(list, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
     SetDword(header, 0, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));   // next
     SetDword(header, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));   // prev
-    ConstructCStringFrom(Bytes(self) + 0x1D4, nullptr, text);
+    CStringConstructTextOriginal(Bytes(self) + 0x1D4, nullptr, text);
     Screen8Member1D8(Bytes(self) + 0x1D8);
     SetDword(self, 0x00, 0x00740C3C);
     Bytes(self)[0x1F4] = static_cast<std::uint8_t>(flag);

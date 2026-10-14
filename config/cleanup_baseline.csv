@@ -231,7 +231,7 @@ src/game/ui_camera_input.cpp,0,0,0,0,0,0,0,0,0,0,3
 src/game/ui_camera_keys.cpp,0,0,0,1,0,0,0,0,0,0,1
 src/game/ui_camp.cpp,0,0,3,3,21,17,0,4,0,1,0
 src/game/ui_camp.h,0,0,0,0,0,0,2,0,0,2,2
-src/game/ui_console_window.cpp,0,0,0,0,3,2,0,0,0,0,0
+src/game/ui_console_window.cpp,0,0,0,0,3,1,0,0,0,0,0
 src/game/ui_container_draws.cpp,1,3,0,0,1,0,0,0,0,0,0
 src/game/ui_create_screen.cpp,0,0,0,0,0,2,0,6,0,0,0
 src/game/ui_global_map.cpp,0,0,2,1,9,5,0,7,0,0,1
@@ -311,7 +311,7 @@ src/game/world_effect_missile.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_moshka.cpp,0,0,0,0,0,0,0,0,0,0,4
 src/game/world_effect_tornado.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_visual.cpp,0,3,4,0,0,0,0,17,0,0,1
-src/game/world_game.cpp,1,1,2,0,3,1,0,0,0,1,1
+src/game/world_game.cpp,1,1,2,0,3,0,0,0,0,1,1
 src/game/world_guard.cpp,3,0,0,0,0,0,0,0,0,0,0
 src/game/world_loot.cpp,3,4,0,0,2,0,0,0,0,0,0
 src/game/world_object_sets.cpp,0,2,0,0,0,0,0,0,0,1,0

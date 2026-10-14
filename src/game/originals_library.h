@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <new>
 #include "lib/mfc.h"
 
 struct AnimationSteps;
@@ -169,12 +170,18 @@ inline void __fastcall StringArraySetAtGrowTextOriginal(void* array, void*, int 
 inline void __fastcall StringArraySetAtGrowStringOriginal(void* array, void*, int index, const mfc::CString* value) {
     static_cast<mfc::CStringArray*>(array)->SetAtGrow(index, *value);
 }
-__declspec(naked) inline void* __fastcall CStringAssignOriginal(void* /*destination*/, void*, const void* /*source*/)
-    EI_ORIGINAL(0x00700AA9)
+// C3n batch 5: the CString calls below are the lib members (src/lib/mfc.cpp holds the one forwarder per address).
+// MFC CString::operator=(const CString&) 00700AA9 (RET 4, returns this).
+inline void* __fastcall CStringAssignOriginal(void* destination, void*, const void* source) {
+    *static_cast<mfc::CString*>(destination) = *static_cast<const mfc::CString*>(source);
+    return destination;
+}
 // MFC CString::operator=(const char*) 00700AF9 (RET 4, returns this); CString::Find(char) 00700E91 (RET 4, index or
-// -1; the character is the low byte of the argument). src/lib/mfc.cpp keeps its own member for the first.
-__declspec(naked) inline void* __fastcall CStringAssignTextOriginal(void* /*destination*/, void*, const char* /*text*/)
-    EI_ORIGINAL(0x00700AF9)
+// -1; the character is the low byte of the argument).
+inline void* __fastcall CStringAssignTextOriginal(void* destination, void*, const char* text) {
+    *static_cast<mfc::CString*>(destination) = text;
+    return destination;
+}
 __declspec(naked) inline int __fastcall CStringFindCharOriginal(const void* /*string*/, void*, char /*c*/)
     EI_ORIGINAL(0x00700E91)
 // MFC CString::Find(char, start) 00700E9F (RET 8, index or -1). TrimLeft() 006FE216 and TrimRight() 006FE11F
@@ -183,8 +190,9 @@ __declspec(naked) inline int __fastcall CStringFindCharFromOriginal(const void* 
                                                                      int /*start*/) EI_ORIGINAL(0x00700E9F)
 __declspec(naked) inline void __fastcall CStringTrimLeftOriginal(void* /*string*/) EI_ORIGINAL(0x006FE216)
 // MFC CString::Find(LPCTSTR) 006FDBD9 (RET 4, index or -1).
-__declspec(naked) inline int __fastcall CStringFindTextOriginal(const void* /*string*/, void*, const char* /*text*/)
-    EI_ORIGINAL(0x006FDBD9)
+inline int __fastcall CStringFindTextOriginal(const void* string, void*, const char* text) {
+    return static_cast<const mfc::CString*>(string)->Find(text);
+}
 __declspec(naked) inline void __fastcall CStringTrimRightOriginal(void* /*string*/) EI_ORIGINAL(0x006FE11F)
 // MFC CPtrList::NewNode(prev, next) 004621A0 (RET 8, returns the node, data cleared); RemoveAll 0052CA10 (plain RET).
 __declspec(naked) inline void* __fastcall PtrListNewNodeOriginal(void* /*list*/, void*, void* /*prev*/, void* /*next*/)
@@ -206,10 +214,10 @@ __declspec(naked) inline void __fastcall ByteArraySetSizeOriginal(void* /*array*
 __declspec(naked) inline void __fastcall WordArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FEECD)
 __declspec(naked) inline void __fastcall ByteArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FF61D)
 // ostream::operator<<(long) 006FC9C6 (RET 4, returns the stream). CPlex::FreeDataChain 006FE90F (plain RET, ECX =
-// chain head). src/lib/mfc.cpp keeps its own PlexFreeDataChain.
+// chain head; mfc::PlexFreeDataChain is the forwarder).
 __declspec(naked) inline void* __fastcall OstreamPutLongOriginal(void* /*stream*/, void*, long /*value*/)
     EI_ORIGINAL(0x006FC9C6)
-__declspec(naked) inline void __fastcall PlexFreeDataChainOriginal(void* /*chain*/) EI_ORIGINAL(0x006FE90F)
+inline void __fastcall PlexFreeDataChainOriginal(void* chain) { mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(chain)); }
 
 // C3h. 00405950: __node_alloc<true,0>::allocate(bytes) (ECX = bytes, plain RET, block or null).
 __declspec(naked) inline void* __fastcall NodeAllocateOriginal(std::size_t /*bytes*/) EI_ORIGINAL(0x00405950)
@@ -462,14 +470,10 @@ __declspec(naked) inline void __fastcall CountedPtrArrayDestructOriginal(void* /
 __declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0059C890)
 // MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
 // result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
-// 006E6722 GetFilePath(out) (RET 4, EAX = out). src/lib/mfc.cpp keeps its CFileFind members.
-__declspec(naked) inline void* __fastcall CFileFindConstructOriginal(void* /*find*/) EI_ORIGINAL(0x006E6370)
-__declspec(naked) inline void __fastcall CFileFindDestructOriginal(void* /*find*/) EI_ORIGINAL(0x006E63AD)
+// 006E6722 GetFilePath(out) (RET 4, EAX = out). The constructor, destructor and FindFile are mfc::CFileFind's members.
 __declspec(naked) inline void __fastcall CFileFindCloseOriginal(void* /*find*/) EI_ORIGINAL(0x006E63E9)
 // 006E661A: CFileFind::IsDots (plain RET, EAX 0 / 1).
 __declspec(naked) inline int __fastcall CFileFindIsDotsOriginal(const void* /*find*/) EI_ORIGINAL(0x006E661A)
-__declspec(naked) inline int __fastcall CFileFindFindFileOriginal(void* /*find*/, void*, const char* /*name*/,
-                                                                  unsigned long /*flags*/) EI_ORIGINAL(0x006E6433)
 __declspec(naked) inline mfc::CString* __fastcall CFileFindPathOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)
     EI_ORIGINAL(0x006E6722)
 // 006E684B: CFileFind::GetFileName(out) (RET 4, EAX = out).
@@ -483,15 +487,20 @@ __declspec(naked) inline void __cdecl GameQsortOriginal(void* /*base*/, std::siz
 // this). 00700E17: CString::GetBufferSetLength(length) (RET 4, EAX = the buffer). src/lib/mfc.cpp keeps its CString members.
 __declspec(naked) inline void __fastcall UIntArraySetSizeOriginal(void* /*array*/, void*, int /*count*/, int /*growBy*/)
     EI_ORIGINAL(0x006FF29A)
-__declspec(naked) inline void* __fastcall CStringAppendTextOriginal(void* /*string*/, void*, const char* /*text*/)
-    EI_ORIGINAL(0x00700D4C)
-__declspec(naked) inline char* __fastcall CStringGetBufferSetLengthOriginal(void* /*string*/, void*, int /*length*/)
-    EI_ORIGINAL(0x00700E17)
-// MFC CDC (output DC at +4, attribute DC at +8): 007090C2 SetBkMode(mode) (RET 4, EAX = the previous mode), 0070BB04
-// FillSolidRect(x, y, cx, cy, colour) (RET 0x14, no result).
-__declspec(naked) inline int __fastcall DcSetBkModeOriginal(void* /*dc*/, void*, int /*mode*/) EI_ORIGINAL(0x007090C2)
-__declspec(naked) inline void __fastcall DcFillSolidRectOriginal(void* /*dc*/, void*, int /*x*/, int /*y*/, int /*cx*/,
-                                                                 int /*cy*/, std::uint32_t /*colour*/) EI_ORIGINAL(0x0070BB04)
+inline void* __fastcall CStringAppendTextOriginal(void* string, void*, const char* text) {
+    *static_cast<mfc::CString*>(string) += text;
+    return string;
+}
+inline char* __fastcall CStringGetBufferSetLengthOriginal(void* string, void*, int length) {
+    return static_cast<mfc::CString*>(string)->GetBufferSetLength(length);
+}
+// MFC CString::CString(const CString&) 007006E5 / CString::CString(const char*) 007009DE on raw memory (RET 4).
+inline void __fastcall CStringCopyConstructOriginal(void* where, void*, const mfc::CString* from) {
+    new (where) mfc::CString(*from);
+}
+inline void __fastcall CStringConstructTextOriginal(void* where, void*, const char* text) {
+    new (where) mfc::CString(text);
+}
 // STLport hash_map<CString, float> (NamedFloatTable, object_tables.h; the party's variables), thiscall on the table:
 // 004A8A50 copy constructor from `source` (RET 4, returns this), 004AA950 copy_from(`source`) (RET 4), 00461540
 // clear (plain RET), 004616A0 deletes one node (RET 4), 004614C0 begin() (RET 4: the iterator it fills; no result).

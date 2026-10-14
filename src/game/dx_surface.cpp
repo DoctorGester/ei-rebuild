@@ -51,7 +51,6 @@ void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D768); }
 // nonzero to go on.
 // The thrown error object: operator new (007005AF), its constructor (00480250, cdecl: object,
 // format, width, height) and _CxxThrowException with its throw info (originals_engine.h).
-__declspec(naked) void* __cdecl GameNew(unsigned) EI_ORIGINAL(0x007005AF)
 __declspec(naked) void* __cdecl ErrorObject(void*, const char*, int, int) EI_ORIGINAL(0x00480250)
 
 constexpr int kRelease = 2, kGetPixelFormat = 21, kGetSurfaceDesc = 22, kLock = 25, kUnlock = 32;   // IDirectDrawSurface7
@@ -111,7 +110,7 @@ bool MemoryOnly(bool client) {
 }
 
 [[noreturn]] void ThrowCreateFailed(int width, int height) {
-    void* object = GameNew(0xC);
+    void* object = gamecrt::operator_new(0xC);
     if (object) object = ErrorObject(object, Text(0x0078E89C), width, height);   // "Can't create DDSurface %d %d ..."
     CxxThrowException(&object, GameErrorThrowInfo());
     for (;;) {
@@ -543,7 +542,7 @@ CDXSurface* __fastcall DXSurfaceFromPicture(CDXSurface* holder, void*, CTextureD
     holder->bitsPerPixel = 0;
     SetHolderVtable(holder);
     if (!LoadPicture(holder, nullptr, picture, flag)) {
-        void* object = GameNew(0xC);
+        void* object = gamecrt::operator_new(0xC);
         if (object) object = ErrorObjectText(object, Text(0x0078E918));   // "Can't load picture to surface"
         CxxThrowException(&object, GameErrorThrowInfo());
     }
