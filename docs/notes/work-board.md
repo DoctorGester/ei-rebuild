@@ -119,3 +119,34 @@ with 24 concurrent `tickets.py note WB1 <token> --append`: without the lock 7 of
 one of three rounds left tickets.toml unparseable (one process's restore of `before` raced another's
 write); with it, 24 of 24 in three rounds and the file checks. The same worktree's `work.py db` opened
 E:/workspace/ei/build/live/work.db.
+
+## WB3: the live server and pages (2026-10-14)
+
+Built: `work.py serve [--port 8765]` (only the `serve` subcommand is in work.py) and tools/work_board/:
+server.py (standard library; `ThreadingHTTPServer` on 127.0.0.1 only, exclusive bind so a second one on
+the port fails, a Host-header check against DNS rebinding), index.html + app.js + board.css (the ticket
+board's tokens and light/dark), sample_db.py. Start it from any checkout: `python tools/work.py serve`,
+open http://127.0.0.1:8765/ (`#tickets` and `#runs` are the two views; the page polls /api/status every 3 s).
+Nothing is published.
+
+**Reads only.** Each request opens its own connection with `query_only` (no transaction held across
+requests); the server's one write is its heartbeat row (`process` name 'server', every 5 s, short
+transaction; the row is deleted on a clean exit). Tickets come from the main checkout's docs/tickets.toml
+through tools/tickets.py's `load()` / `derive()` (reloaded when the file's mtime changes). Last commits:
+one `git for-each-ref refs/heads` in the main checkout, reused for 10 s, so polling never forks git per
+ticket. A process counts as alive when its heartbeat is under 20 s old (the scheduler must refresh its
+`process` row at least that often).
+
+**Endpoints** (GET, JSON): `/api/status` = everything the page needs (time, processes, runs, tickets);
+`/api/tickets` (every ticket with state, `assignment` {agent, worktree, branch, started, open}, the last 3
+`notes`, `commit` {hash, time, subject} of the assigned branch, and `batch`: the ticket's latest batch with
+counts total/queued/running/done/passed/failed and up to 12 failed games); `/api/runs` (`running` and
+`queued` batches with all their `games`: scenario, install, state, slot, elapsed vs expected, result,
+failure lines; `history`: the last 40 finished or cancelled batches with duration and failed games);
+`/api/batch/<id>` (one batch with all games); `/api/processes` (scheduler and server: alive, pid,
+heartbeat_age). A game counts as passed when its result is PASS or PASS*.
+
+**Testing without WB2's data.** `python tools/work_board/sample_db.py <path>` writes a database with
+assignments, notes, a running batch with games, a queued one, finished ones with failures, and a fresh
+scheduler row (it refuses the real build/live/work.db); then `WORK_DB=<path> python tools/work.py serve`.
+Checked 2026-10-14 in the built-in browser (both views, no console errors) and with an empty database.
