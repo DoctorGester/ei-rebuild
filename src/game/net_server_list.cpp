@@ -88,8 +88,8 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
             }
             ReadBytes(&buffer, &entry->address_, 0x10);
             if (!record->Read(&buffer)) break;
-            entry->kind_ = record->unknown_1A;
-            entry->password_ = record->unknown_1B;
+            entry->kind_ = record->kind;
+            entry->password_ = record->hasPassword;
             entry->maxPlayers_ = record->maxPlayers;
             entry->players_ = record->players;
             StringRep* name = &entry->name_;

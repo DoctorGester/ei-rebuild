@@ -24,7 +24,6 @@ constexpr int kDrawerClass = 0x45;
 
 // The drawer and the mesh as the engine objects they are (reference count, Release).
 CEngineObject* AsObject(FigureMeshDrawer* drawer) { return reinterpret_cast<CEngineObject*>(drawer); }
-CEngineObject* AsObject(CFigureMesh* mesh) { return reinterpret_cast<CEngineObject*>(mesh); }
 
 } // namespace
 
@@ -34,44 +33,44 @@ CFigureMesh* CFigureMesh::ConstructBase() {
     ei::SetVtable(this, CEngineObject::kVtableAddress);
     refCount_ = 0;
     id_ = -1;
-    unknown_018 = 0;
+    prototypeId_ = 0;
     type_ = 0;
     flags_ = 0;
-    manager_ = nullptr;
-    rotation_.SetIdentity();
+    owner_ = nullptr;
+    localRotation_.SetIdentity();
     worldRotation_.SetIdentity();
     ei::SetVtable(this, CTransformObject::kVtableAddress);
-    owner_ = nullptr;
+    object_ = nullptr;
     new (&name_) mfc::CString();
     new (&directory_) mfc::CString();
     offsets_.Construct();
     colorsA_.Construct();
     colorsB_.Construct();
     std::memset(&bounds_, 0, sizeof(bounds_));
-    std::memset(unknown_1B4, 0, sizeof(unknown_1B4));
+    std::memset(&boxPivot_, 0, sizeof(boxPivot_));
     ei::SetVtable(this, kBaseVtableAddress);
     FigureMeshCreateOriginal(this);
     return this;
 }
 EI_REPLACE_METHOD(0x005AABC0, CFigureMesh::ConstructBase);
 
-int CFigureMesh::Create() {
+int CFigureMesh::CreateMesh() {
     radius_ = 0.0f;
     drawer_ = nullptr;
     flags_ = 0;
-    unknown_158 = 0;
+    materialValue_ = 0;
     meshType_ = 0;
     std::memset(&buffers_, 0, sizeof(buffers_));
     textureOffsetU_ = 0;
     textureOffsetV_ = 0;
-    unknown_0DC = 0;
+    spareDC_ = 0;
     flatColour_ = 0xFFFFFFFF;
     flatSpecular_ = 0xFFFFFFFF;
     std::memset(&bounds_, 0, sizeof(bounds_));
-    std::memset(unknown_1B4, 0, sizeof(unknown_1B4));
+    std::memset(&boxPivot_, 0, sizeof(boxPivot_));
     return 1;
 }
-EI_REPLACE_METHOD(0x0059F210, CFigureMesh::Create);
+EI_REPLACE_METHOD(0x0059F210, CFigureMesh::CreateMesh);
 
 // --- Clearing -----------------------------------------------------------------------------------
 
@@ -82,7 +81,7 @@ void CFigureMesh::Clear() {
     colorsA_.SetSize(0);
     colorsB_.SetSize(0);
     std::memset(&buffers_, 0, sizeof(buffers_));
-    unknown_158 = 0;
+    materialValue_ = 0;
     meshType_ = 0;
     if (drawer_ != nullptr) {
         drawer_->mesh_ = nullptr;
@@ -122,7 +121,7 @@ void CFigureMesh::DestructBase() {
     directory_.~CString();
     name_.~CString();
     ei::SetVtable(this, CTransformObject::kVtableAddress);
-    AsObject(this)->DestructBase();
+    CEngineObject::DestructBase();
 }
 EI_REPLACE_METHOD(0x0059F030, CFigureMesh::DestructBase);
 
@@ -177,8 +176,8 @@ EI_REPLACE_METHOD(0x0059F390, CFigureMesh::SetDrawer);
 void CFigureMesh::LoadNothing(char**, float, float, float) { flags_ |= 0x20; }
 EI_REPLACE_METHOD(0x005A2480, CFigureMesh::LoadNothing);
 
-void CFigureMesh::SetOwner(CObject3D* owner) { owner_ = owner; }
-EI_REPLACE_METHOD(0x0059F3D0, CFigureMesh::SetOwner);
+void CFigureMesh::SetObject(CObject3D* object) { object_ = object; }
+EI_REPLACE_METHOD(0x0059F3D0, CFigureMesh::SetObject);
 
 // --- The figure manager -------------------------------------------------------------------------
 

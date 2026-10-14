@@ -17,7 +17,7 @@
 // result returned), else 1.
 int __fastcall RendererSetFogColour(CSceneRenderer* renderer, void*, std::uint32_t colour) {
     IDirect3DDevice7* d3d = device::D3D(renderer->device_);
-    long hr = d3d->SetRenderState(D3DRENDERSTATE_FOGCOLOR, colour);
+    long hr = device::SetRenderState(d3d, D3DRENDERSTATE_FOGCOLOR, colour);
     render::state::Render(D3DRENDERSTATE_FOGCOLOR, colour);
     if (hr != 0) return game::FatalError(reinterpret_cast<const char*>(0x0078EE40), colour);   // "Can't set fog color 0x%X"
     return 1;
@@ -28,10 +28,10 @@ EI_REPLACE(0x00501AB0, RendererSetFogColour);
 // particle draw 00498940 passes 5, 2 for additive sources and 5, 6 to go back). A failure is
 // reported (004800E0, its result returned; DESTBLEND is then not set), else 1.
 int __fastcall RendererSetBlend(CSceneRenderer* renderer, void*, std::uint32_t source, std::uint32_t dest) {
-    long hr = device::D3D(renderer->device_)->SetRenderState(D3DRENDERSTATE_SRCBLEND, source);
+    long hr = device::SetRenderState(device::D3D(renderer->device_), D3DRENDERSTATE_SRCBLEND, source);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, source);
     if (hr != 0) return FatalDirectX(hr, reinterpret_cast<const char*>(0x0078EE88));   // "Can't set source alpha blend mode."
-    hr = device::D3D(renderer->device_)->SetRenderState(D3DRENDERSTATE_DESTBLEND, dest);
+    hr = device::SetRenderState(device::D3D(renderer->device_), D3DRENDERSTATE_DESTBLEND, dest);
     render::state::Render(D3DRENDERSTATE_DESTBLEND, dest);
     if (hr != 0) return FatalDirectX(hr, reinterpret_cast<const char*>(0x0078EE5C));   // "Can't set destination alpha blend mode."
     return 1;
@@ -47,8 +47,8 @@ int __fastcall DeviceSetMaterial(CTextureDevice* device, void*, CDeviceMaterial*
     if (material) ++material->refCount;
     if (old) old->Release();
     if (!material) {
-        device::D3D(device)->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
-        device::D3D(device)->SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+        device::SetTextureStageState(device::D3D(device), 1, D3DTSS_COLOROP, D3DTOP_DISABLE);
+        device::SetTextureStageState(device::D3D(device), 1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
         render::state::Stage(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
         render::state::Stage(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
     }

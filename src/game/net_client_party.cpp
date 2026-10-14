@@ -114,13 +114,13 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         if (spell) {
             WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->id_));
             WriteDword(stream, &scratch, static_cast<std::uint32_t>(spell->type_));
-            WriteDword(stream, &scratch, spell->unknown_18);
+            WriteDword(stream, &scratch, spell->prototypeId_);
             spell->Save(stream);
         } else {
             WriteDword(stream, &scratch, 0xFFFFFFFFu);
         }
         WriteDword(stream, &scratch, static_cast<std::uint32_t>(item->type_));
-        WriteDword(stream, &scratch, item->unknown_18);
+        WriteDword(stream, &scratch, item->prototypeId_);
         item->Save(stream);
 
         RefPtr* same = FindSameMessage(previous.begin(), previous.end(), static_cast<PartyMemberMessage*>(ref.ptr), scratch);
@@ -201,13 +201,13 @@ void __fastcall ClientApplyParty(ClientSession* self) {
             stream->Read(&type, 4u);
             stream->Read(&packedId, 4u);
             CEngineObject* spell = party->SpellManager()->CreateObject(static_cast<int>(type), id);
-            spell->unknown_18 = packedId;
+            spell->prototypeId_ = packedId;
             spell->Load(stream);
         }
         stream->Read(&type, 4u);
         stream->Read(&packedId, 4u);
         CEngineObject* item = party->ItemManager()->CreateObject(static_cast<int>(type), -1);
-        item->unknown_18 = packedId;
+        item->prototypeId_ = packedId;
         item->Load(stream);
         CEngineObject* held = item;
         if (item) ++item->refCount_;

@@ -28,8 +28,8 @@ namespace {
 
 void* NetworkLog() { return reinterpret_cast<void*>(flowdata::kNetLogStream); }
 
-// The player state's +0x24 (CPlayerServer::unknown24_): negative for the local players.
-bool IsLocal(const CPlayerServer* state) { return static_cast<int>(state->unknown24_) < 0; }
+// The player state's +0x24 (CPlayerServer::possessedId_): negative for the local players.
+bool IsLocal(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 

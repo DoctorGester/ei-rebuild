@@ -2,8 +2,7 @@
 
 // Terrain sectors (game.exe 006BF5F0-006C5410): the 32x32-cell blocks of the landscape, loaded on
 // demand from the map's resource archive (<zone>XXXYYY.sec) and turned into per-vertex records and
-// per-texture tile lists. Names are provisional. The landscape object itself (`Terrain`, terrain.h)
-// is viewed here through `TerrainFields`, which names only the fields this code uses.
+// per-texture tile lists. Names are provisional. The landscape object itself is `Terrain` (terrain.h).
 //
 // A sector has 33x33 vertices per layer (ground, and water when the sector has water) and 16x16
 // tiles of 2x2 cells. The tiles are grouped into four 8x8-tile quarters; each quarter keeps, per
@@ -99,10 +98,10 @@ static_assert(sizeof(AnimatedTile) == 0x18);
 struct SectorBox {
     std::uint32_t flags;
     Vector3 centre;
-    std::uint32_t unknown_10;
+    float radius;           // +0x10 ClipBounds::radius (BoundsOf); nothing here writes it
     Vector3 low;
     Vector3 high;
-    std::uint32_t unknown_2C[3];
+    std::uint32_t unused_2C[3];
 };
 static_assert(sizeof(SectorBox) == 0x38);
 // A box is a ClipBounds (model.h) followed by three unused dwords (asserted in terrain_sector.cpp).
@@ -112,8 +111,6 @@ inline const ClipBounds* BoundsOf(const SectorBox& box) { return reinterpret_cas
 // the view, 1 crossing its edge, 2 outside (-1 is stored as 2).
 constexpr int kCrossing = 1;
 constexpr int kCulled = 2;
-
-struct TerrainFields;
 
 // A vertex position of a sector layer (x, y, z).
 struct SectorPosition : Vector3 {};
@@ -147,7 +144,8 @@ struct TileListElements {
     static void Destruct(TileList* lists, int count);
 };
 
-// 0x394 bytes, constructed by 006BF5F0.
+// A 32x32-cell block of terrain (0x394 bytes, constructed by 006BF5F0). Each sector holds two
+// layers of 33x33 vertices (x, y, z): the ground, and the water surface when the sector has water.
 struct SectorData {
     std::uint8_t hasSpecular;           // +0x000 a specular light reached a vertex (Light clears it)
     std::uint8_t pad_001[3];
@@ -156,17 +154,19 @@ struct SectorData {
     int hasWater;                       // +0x010
     int hasWaterTiles;                  // +0x014 a second tile layer (water tiles)
     const std::uint8_t* data;           // +0x018 the .sec file after its 5-byte header
-    TerrainFields* owner;               // +0x01C
+    Terrain* owner;               // +0x01C
     int pages;                          // +0x020 owner +0x11C
     int perPage;                        // +0x024 owner +0x128
     SectorBox box;                      // +0x028
-    std::uint32_t unknown_060;
+    int clipMode;                       // +0x060 the box's clip test verdict (kCrossing, kCulled)
     SectorBox quarters[4];              // +0x064
     int quarterMode[4];                 // +0x144
     float minZ;                         // +0x154
     float maxZ;                         // +0x158
     mfc::CArray<std::uint8_t> waterMaterials;  // +0x15C
-    int unknown_170, unknown_174, unknown_178;
+    // +0x170 the level of detail (SetDetail: 0 every vertex, 1 every second column, 2 every second
+    // row too); +0x174 / +0x178 the seams towards the sectors before / after it (FindSeams).
+    int detail, seamBefore, seamAfter;
     mfc::CArray<SectorPosition> vertices;      // +0x17C
     mfc::CArray<SectorVertex, RecordElements> records;   // +0x190
     lib::AlignedArray<int> tileTextures;      // +0x1A4 per tile, ground then water tiles
@@ -178,13 +178,13 @@ struct SectorData {
     lib::AlignedArray<int> classCounts;       // +0x374 16 texture classes
     int lastUsed;                       // +0x384 owner frame of the last use
     int relightCountdown;               // +0x388 frames until the lighting is dropped (RelightTick), -1 none
-    std::uint8_t unknown_38C;
+    std::uint8_t spare38C;              // +0x38C cleared with the rest; nothing reads it
     std::uint8_t pad_38D[3];
-    int unknown_390;
+    int spare390;                       // +0x390 cleared with the rest; nothing reads it
 
     // 006C13A0. Loads sector (sx, sy) from `archive` (the owner's CMappedResource): vertex
     // positions and water tiles. Returns 1, or FatalError's result for a missing or malformed file.
-    int Load(void* archive, int sx, int sy, int pages, int perPage, const char* prefix, TerrainFields* owner);
+    int Load(void* archive, int sx, int sy, int pages, int perPage, const char* prefix, Terrain* owner);
 
     // 006C1C00. Builds the vertex records, tile lists, bounding boxes and water materials.
     void Build();
@@ -193,7 +193,7 @@ struct SectorData {
     void ApplyWaterLevels();
 
     // 006C3DD0. Builds what `wanted` asks for (2 geometry, 4 lighting); returns wanted & built.
-    std::uint32_t Ensure(std::uint32_t wanted, TerrainFields* owner);
+    std::uint32_t Ensure(std::uint32_t wanted, Terrain* owner);
 
     // 006BF5F0. The constructor body: everything empty or zero, sector (-1, -1), pages and
     // perPage -1, +0x60 2; the shared projection buffers (positions, projected, outcodes) sized for
@@ -204,31 +204,31 @@ struct SectorData {
     void DestructBody();
 
     // 006BFC80 (RET 4; the draw pass 006C6460). Projects the vertices of every quarter that is not
-    // culled (quarterMode != 2), at the level of detail unknown_170 (from 1 every second column,
+    // culled (quarterMode != 2), at the level of detail `detail` (from 1 every second column,
     // from 2 every second row too), ground then water, with `pipeline` (004F29F0) against the
     // quarter's box: the quarter's
     // mode becomes the result (2 for -1 or 2), and for 0 / 1 each of those records gets its
-    // projected position (with 1 its outcode, else 0). Returns +0x60.
+    // projected position (with 1 its outcode, else 0). Returns clipMode.
     int Project(CTransformPipeline* pipeline);
 
     // 006C3A00 (RET 0x1C; terrain_lighting.cpp). Lights the vertices x0..x1, y0..y1 (inclusive,
     // 0..32) of the water layer (where it has a material), then of the ground, with the FPU in chop
     // rounding: the sun and ambient light first (ShadeSun) unless `skipSun`, then the point lights
     // (LightVertex). Sets built bit 4; without skipSun relightCountdown becomes -1.
-    void Light(CLight* sun, TerrainFields* owner, int skipSun, int x0, int y0, int x1, int y1);
+    void Light(CLight* sun, Terrain* owner, int skipSun, int x0, int y0, int x1, int y1);
     // 006C36B0 (RET 0x14). The record's lit colour: ambient (owner +0x224) and `sun`, both dimmed
     // under water on the ground layer; where the sun's ray is blocked (shadows on, ground layer)
     // ambient + material colour, else max(sun shading, ambient).
-    void ShadeSun(CLight* sun, const SectorPosition* position, SectorVertex* record, TerrainFields* owner, int layer);
+    void ShadeSun(CLight* sun, const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
     // 006C31C0 (RET 0x10). The record's colour and specular words from its lit colour and the point
     // lights in its list (maxima per channel; flag 0x40 lights count as specular).
-    void LightVertex(const SectorPosition* position, SectorVertex* record, TerrainFields* owner, int layer);
+    void LightVertex(const SectorPosition* position, SectorVertex* record, Terrain* owner, int layer);
 
     // terrain_animation.cpp:
     // 006C3C80. Empties the records (their lights released), each per-page tile flag array and
     // tile list (the per-quarter arrays keep their sizes), then ResetFields.
     void Clear();
-    // 006C3D70. Sector (-1, -1), nothing built, no data, pages / perPage -1, +0x60 2, the rest 0.
+    // 006C3D70. Sector (-1, -1), nothing built, no data, pages / perPage -1, clipMode 2, the rest 0.
     void ResetFields();
     // 006C3E30 (RET 4, from the light countdown 006C8ED0). Starts or shortens the relight
     // countdown to `frames`.
@@ -241,20 +241,20 @@ struct SectorData {
     // only when an ISAAC draw % 1000 + 1 is within the speed) and get its texture coordinates; with
     // owner flag 1 and water, the water vertices move with the waves and the crests get a specular
     // colour.
-    void Animate(TerrainFields* owner, int frame);
+    void Animate(Terrain* owner, int frame);
 
-    // 006C1390 (RET 4; terrain_passes.cpp). The level of detail (unknown_170) the sector is drawn
+    // 006C1390 (RET 4; terrain_passes.cpp). The level of detail (`detail`) the sector is drawn
     // at: 0 every vertex, 1 every second column, 2 every second row too.
     void SetDetail(int level);
 
-    // 006BFB00 (terrain_passes.cpp). 1 when +0x60 is 0 or 1 (the last clip test did not cull the
+    // 006BFB00 (terrain_passes.cpp). 1 when clipMode is 0 or 1 (the last clip test did not cull the
     // sector), else 0.
     int IsDrawn() const;
-    // 006BFB20 (RET 4; terrain_passes.cpp). The clip test of the sector's box (+0x60: 0 inside,
+    // 006BFB20 (RET 4; terrain_passes.cpp). The clip test of the sector's box (clipMode: 0 inside,
     // 1 crossing, 2 culled; -1 counts as culled) and, unless culled, of its quarters (quarterMode)
     // with the renderer's pipeline (004F16A0).
     void ClipTest(CSceneRenderer* renderer);
-    // 006BFB80 (terrain_passes.cpp). The seams (unknown_174 / unknown_178): at detail 0 whether
+    // 006BFB80 (terrain_passes.cpp). The seams (seamBefore / seamAfter): at detail 0 whether
     // the lit sectors before / after in y are drawn at detail 1, at detail 1 whether those before /
     // after in x are drawn at detail 2.
     void FindSeams();
@@ -262,7 +262,7 @@ struct SectorData {
     // Forwarders.
     void Destruct();                    // 006BF8A0 the destructor body (terrain_landscape.cpp)
     void BuildAtOriginal();             // 006C1C00 through its address (lands on the installed hook)
-    void LightAtOriginal(CLight* sun, TerrainFields* owner, int skipSun, int x0, int y0, int x1, int y1); // 006C3A00
+    void LightAtOriginal(CLight* sun, Terrain* owner, int skipSun, int x0, int y0, int x1, int y1); // 006C3A00
 };
 static_assert(sizeof(SectorData) == 0x394);
 static_assert(offsetof(SectorData, minZ) == 0x154);
@@ -281,71 +281,13 @@ struct TerrainMaterial {
     std::uint8_t opacityByte;           // +0x18 opacity * 255
     std::uint8_t pad_19[3];
     Vector3 colour;                     // +0x1C waveColour * the file's light factor, each capped at 1
-    std::uint8_t unknown_28[4];         // not written by the map loader
+    std::uint8_t unused_28[4];          // not written by the map loader
     float priority;                     // +0x2C lowest wins where water materials meet; also scales the waves
-    float unknown_30;                   // +0x30 the file record's +0x1C
+    float warpSpeed;                    // +0x30 the file record's +0x1C (MapMaterial); nothing reads it
     float level;                        // +0x34 water level offset
 };
 static_assert(sizeof(TerrainMaterial) == 0x38);
 
-// The landscape object (vtable 0073F6A8), only the fields used here.
-struct TerrainFields {
-    std::uint8_t unknown_000[0x94];
-    std::uint32_t flags;                // +0x094 1 water waves, 2 animated tiles, 4 fade the light at the
-                                        // map edges, 8 ambient sounds, 0x10 sun shadows
-    std::uint8_t unknown_098[0x104 - 0x98];
-    int sectorsX;                       // +0x104
-    int sectorsY;                       // +0x108
-    std::uint8_t unknown_10C[0x114 - 0x10C];
-    float heightScale;                  // +0x114
-    std::uint8_t unknown_118[0x11C - 0x118];
-    int pages;                          // +0x11C
-    std::uint8_t unknown_120[0x128 - 0x120];
-    int perPage;                        // +0x128
-    TerrainMaterial* materials;         // +0x12C
-    std::uint8_t unknown_130[0x13C - 0x130];
-    int* textureClass;                  // +0x13C per texture, 0..15
-    std::uint8_t unknown_140[0x14C - 0x140];
-    int* textureFrames;                 // +0x14C per texture, frames when animated
-    std::uint8_t unknown_150[0x1C8 - 0x150];
-    float* uvTables[4];                 // +0x1C8 per rotation, 0x48 bytes per texture of a page
-    float* uvTablesLast[4];             // +0x1D8 the same for the last two pages
-    VertexTiles* vertexTiles;           // +0x1E8
-    std::uint8_t unknown_1EC[0x224 - 0x1EC];
-    Vector4 ambient;                    // +0x224 the ambient light colour (r, g, b, a)
-    std::uint8_t unknown_234[0x24C - 0x234];   // the sun's ray steps (006C92C0)
-    SectorData* lightingSector;         // +0x24C the vertex being lit, for the shadow test
-    int lightingX;                      // +0x250
-    int lightingY;                      // +0x254
-    CLight* sun;                        // +0x258
-    std::uint8_t unknown_25C[0x274 - 0x25C];
-    Vector3 waveDirection;              // +0x274 unit vector (006C7D70); x, y: the waves' travel
-    float waveHeight;                   // +0x280
-    float waveGlow;                     // +0x284 scales the crests' specular colour
-    float wavePhase;                    // +0x288 advanced by waveSpeed every frame
-    float waveSpeed;                    // +0x28C
-    lib::AlignedArray<float> wavePhases;   // +0x290 per water vertex (33 x 33): phase offsets (006C57E0)
-    float sine[512];                    // +0x2A0 sin(i * pi / 256)
-    std::uint8_t unknown_AA0[0xAEC - 0xAA0];
-    mfc::CArray<float>* waterLevels;    // +0xAEC per sector, per material
-
-    // 006C53C0. The 18 floats (9 u, then 9 v) of texture `index` of `page` under `rotation`.
-    const float* TileUv(int rotation, int index, int page);
-    // 006C8D40. Texture class (sound / prints material) at (x, y): the water tile's when the
-    // point is under water, 8 outside the map.
-    int SurfaceClass(float x, float y);
-
-    // 006C92C0 (RET 4; Terrain::SunReaches, called through its address so that its verify wrapper
-    // runs). 0 when the sun's ray from `position` (the vertex lightingX / lightingY of
-    // lightingSector) is blocked by the terrain, else nonzero; loads the sectors it crosses.
-    int SunReaches(const SectorPosition* position);
-};
-static_assert(offsetof(TerrainFields, materials) == 0x12C);
-static_assert(offsetof(TerrainFields, vertexTiles) == 0x1E8);
-static_assert(offsetof(TerrainFields, waterLevels) == 0xAEC);
-static_assert(offsetof(TerrainFields, flags) == 0x94 && offsetof(TerrainFields, ambient) == 0x224 &&
-              offsetof(TerrainFields, sun) == 0x258);
-static_assert(offsetof(TerrainFields, waveDirection) == 0x274 && offsetof(TerrainFields, wavePhases) == 0x290 &&
-              offsetof(TerrainFields, sine) == 0x2A0 && offsetof(TerrainMaterial, priority) == 0x2C);
+static_assert(offsetof(TerrainMaterial, priority) == 0x2C);
 
 } // namespace terrain

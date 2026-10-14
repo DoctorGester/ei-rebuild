@@ -503,7 +503,7 @@ int CPlayerServer::OnNewParty() {
     CParty* party = local.Get();
     party->LoadParty(&ReceivedMessages(), 1);
     if (party->members_.size != 1) return 0;
-    int* key = reinterpret_cast<int*>(&Owner()->unknownFC_);
+    int* key = reinterpret_cast<int*>(&Owner()->partyId_);
     PartyNextId(key);
     int& next = NextRecordObjectId();
     while (WorldServer()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
@@ -530,15 +530,15 @@ int CPlayerServer::OnAttack() {
     CMemoryStream& in = ReceivedMessages();
     UnitArray units{reinterpret_cast<void*>(kUnitArrayVtable), nullptr, 0, 0, 0};
     ReadUnits(in, &units);
-    int unknown = 0, how = 0, objectId = 0;
-    in.Read(&unknown, 4);
+    int ctrl = 0, how = 0, objectId = 0;
+    in.Read(&ctrl, 4);
     in.Read(&how, 4);
     in.Read(&objectId, 4);
     if (CEngineObject* object = WorldServer()->FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < units.size; ++i) {
             AIBrain* brain = ControllerOf(units[i])->Brain();
             if (AIMode* mode = brain->FindPlayerMode())
-                static_cast<PlayerMode*>(mode)->CommandAttack(brain, object, how, unknown != 0);
+                static_cast<PlayerMode*>(mode)->CommandAttack(brain, object, how, ctrl != 0);
         }
     }
     FreeArray(&units, kUnitArrayVtable);
@@ -575,7 +575,7 @@ EI_REPLACE(0x0047ADA0, IsPrintableText);
 
 int CPlayerServer::OnLogin() {
     LoginMessage login;
-    login.unknown_84 = 0;
+    login.partyId = 0;
     ReceivedMessages().Read(&login, sizeof(login));
     if (state_ != 0) return 0;
     CPlayer* player = Owner();
@@ -607,7 +607,7 @@ int CPlayerServer::OnLogin() {
         // The two strings are passed but not read.
         if (!PartyMapLoad(PartyManager(), nullptr, static_cast<int>(reinterpret_cast<std::intptr_t>(login.name)),
                           static_cast<int>(reinterpret_cast<std::intptr_t>(login.password)),
-                          reinterpret_cast<const int*>(&player->unknownFC_), party))
+                          reinterpret_cast<const int*>(&player->partyId_), party))
             return 0;
         break;
     case 4:

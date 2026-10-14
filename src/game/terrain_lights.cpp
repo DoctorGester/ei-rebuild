@@ -66,7 +66,7 @@ __declspec(naked) void __stdcall UpdateVertexLightsAt(SectorData*, CLight*, cons
     EI_ORIGINAL(0x006CAC10)
 
 SectorData* BuiltSector(Terrain* terrain, int sx, int sy, std::uint32_t wanted) {
-    return reinterpret_cast<SectorData*>(terrain->SectorAt(sx, sy, wanted, 0));
+    return terrain->SectorAt(sx, sy, wanted, 0);
 }
 
 // UpdateVertexLights for every built sector of the area.
@@ -227,13 +227,12 @@ void Terrain::LightAreaOf(CLight* light, const Vector3* delta, LightArea* area) 
 EI_REPLACE_METHOD(0x006CAA70, Terrain::LightAreaOf);
 
 void Terrain::RelightArea(const LightArea* area) {
-    auto* fields = reinterpret_cast<terrain::TerrainFields*>(this);
     for (int sy = area->firstSectorY; sy <= area->lastSectorY; ++sy) {
         for (int sx = area->firstSectorX; sx <= area->lastSectorX; ++sx) {
             SectorData* sector = BuiltSector(this, sx, sy, 4);
             if (!sector) continue;
             VertexRange range = RangeIn(area, sx, sy);
-            sector->LightAtOriginal(sun, fields, 1, range.x0, range.y0, range.x1, range.y1);
+            sector->LightAtOriginal(sun, this, 1, range.x0, range.y0, range.x1, range.y1);
         }
     }
 }

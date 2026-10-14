@@ -215,6 +215,13 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height);
 void RetireFrameImages();
 void DestroyBlits();
 
+// Counts of the images the renderer made (sg_make_image) and updated in place (sg_update_image)
+// by purpose, logged in the verify build (render_blit.cpp).
+enum class ImageUse { Cursor, Fill, Movie, Window, Texture, Count };
+void CountImage(ImageUse use, bool made);
+void CountImageRequest(ImageUse use);
+void LogImageCounts(const char* when);
+
 // The game texture `texture` (a CTexture) or a surface holder (CDXSurface, what CTexture +0x5C
 // points at) as a texture view for sampling, with its mip levels; re-read when the surface's
 // contents changed (IDirectDrawSurface7 uniqueness value; for a holder with SurfaceMemory, when that

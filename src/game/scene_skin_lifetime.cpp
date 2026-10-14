@@ -30,29 +30,29 @@ SceneSkin* SceneSkin::Construct() {
     bones = {};
     new (&name) mfc::CString();
     names.Construct();
-    unknown_3C = {};
+    spareArray = {};
     clock[0] = 0;
-    unknown_00 = 0;
+    owner = 0;
     root = nullptr;
     clock[1] = kClockUnsetHigh;
     name.Empty();
     names.SetSize(0, -1);
-    unknown_38 = 0;
-    if (unknown_3C.data) {
-        lib::FreeAligned32(unknown_3C.data);
-        unknown_3C.data = nullptr;
+    spare38 = 0;
+    if (spareArray.data) {
+        lib::FreeAligned32(spareArray.data);
+        spareArray.data = nullptr;
     }
-    unknown_3C.capacity = 0;
-    unknown_3C.size = 0;
+    spareArray.capacity = 0;
+    spareArray.size = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00508700, SceneSkin::Construct);
 
 void SceneSkin::Destruct() {
     if (DropRoot(this)) bones.SetSize(0, -1);
-    unknown_00 = 0;
+    owner = 0;
     names.SetSize(0, -1);
-    if (unknown_3C.data) lib::FreeAligned32(unknown_3C.data);
+    if (spareArray.data) lib::FreeAligned32(spareArray.data);
     names.Destruct();
     name.~CString();
     if (bones.data) lib::FreeAligned32(bones.data);
@@ -72,17 +72,17 @@ int SceneSkin::Create() {
     clock[1] = 0;
     name = reinterpret_cast<const char*>(kNoneText);
     names.SetSize(0, -1);
-    unknown_4C = 0;
+    spare4C = 0;
     return 1;
 }
 EI_REPLACE_METHOD(0x00508870, SceneSkin::Create);
 
 void SceneSkin::Clear() {
     if (DropRoot(this)) bones.SetSize(0, -1);
-    unknown_00 = 0;
+    owner = 0;
     names.SetSize(0, -1);
 }
 EI_REPLACE_METHOD(0x005088E0, SceneSkin::Clear);
 
-void SceneSkin::SetUnknown00(std::uint32_t value) { unknown_00 = value; }
-EI_REPLACE_METHOD(0x00508930, SceneSkin::SetUnknown00);
+void SceneSkin::SetOwner(std::uint32_t value) { owner = value; }
+EI_REPLACE_METHOD(0x00508930, SceneSkin::SetOwner);

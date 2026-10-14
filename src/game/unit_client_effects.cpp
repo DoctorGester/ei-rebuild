@@ -163,14 +163,14 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
 
     if (location < 0 || location > 5) return;
     const HitPart& hit = kHitParts[location];
-    auto* part = static_cast<FigurePart*>(ObjectFindPartOriginal(unit, nullptr, hit.name));
+    auto* part = static_cast<CFigureMesh*>(ObjectFindPartOriginal(unit, nullptr, hit.name));
     if (!part || !(unit->flags_ & kFiguresLoaded)) return;
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood >= 1 && blood <= 8) {
         auto* source = static_cast<CParticleSource*>(
             ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kBloodParticles[blood - 1]));
         source->position = {0.0f, 0.0f, kBloodHeight};
-        source->ScaleSize(part->unknown_198 * kBloodScale);
+        source->ScaleSize(part->bounds_.radius * kBloodScale);
         source->typeParam = kBloodRate;
         float alpha = amount;
         if (!(alpha >= kBloodMinAlpha)) alpha = kBloodMinAlpha;
@@ -182,7 +182,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     if (blood == 0 || blood > kLastDecalBlood) return;
     float smaller = SmallerExtent(unit);
     float reach = !(1.0f >= smaller) ? smaller : 1.0f;
-    volatile float sizeStored = (part->boxMax.y + part->boxMax.x) * kHalf * kDecalScale;
+    volatile float sizeStored = (part->bounds_.boxMax.y + part->bounds_.boxMax.x) * kHalf * kDecalScale;
     float size = sizeStored;
     Vector3 at;
     ObjectPartPositionOriginal(unit, nullptr, &at.x, part);
@@ -216,8 +216,8 @@ void CUnitClientSpecific::DeathEffect() {
     if (blood == 0 || blood > kLastDecalBlood) return;
     Vector3 at;
     float size;
-    if (auto* body = static_cast<FigurePart*>(ObjectFindPartOriginal(unit, nullptr, "bd"))) {
-        volatile float stored = (body->boxMax.y + body->boxMax.x) * kHalf;
+    if (auto* body = static_cast<CFigureMesh*>(ObjectFindPartOriginal(unit, nullptr, "bd"))) {
+        volatile float stored = (body->bounds_.boxMax.y + body->bounds_.boxMax.x) * kHalf;
         size = stored;
         ObjectPartPositionOriginal(unit, nullptr, &at.x, body);
     } else {

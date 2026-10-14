@@ -227,9 +227,9 @@ int __fastcall ReceiveVerify(CPlayerServer* self) {
 // Ours only (rewrites the brains' lists): +0x24 is -1 after, and the party units hold group50F8_
 // (and, when +0x24 was -1, every unit of the player).
 void __fastcall UpdatePartyUnitsVerify(CPlayerServer* self) {
-    bool all = self->unknown24_ == 0xFFFFFFFFu;
+    bool all = self->possessedId_ == 0xFFFFFFFFu;
     self->UpdatePartyUnits();
-    bool ok = self->unknown24_ == 0xFFFFFFFFu;
+    bool ok = self->possessedId_ == 0xFFFFFFFFu;
     for (int i = 0; i < self->group50F8_.size; ++i) {
         CEngineObject* object = self->group50F8_.data[i].object;
         ok = ok && (object == nullptr || self->partyUnits_.Contains(object));

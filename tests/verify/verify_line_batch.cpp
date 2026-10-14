@@ -22,9 +22,9 @@ int __fastcall AddPointVerify(LineBatch* self, void*, const float* point) {
     }
     int expected = s_addPoint(&copy, nullptr, point);
     int actual = self->AddPoint(point);
-    bool same = expected == actual && copy.unknown_00 == self->unknown_00 && copy.packets.size == self->packets.size &&
+    bool same = expected == actual && copy.spare00 == self->spare00 && copy.packets.size == self->packets.size &&
                 copy.packets.capacity == self->packets.capacity && copy.packets.growBy == self->packets.growBy &&
-                copy.count == self->count && copy.colour == self->colour && copy.unknown_1C == self->unknown_1C &&
+                copy.count == self->count && copy.colour == self->colour && copy.spare1C == self->spare1C &&
                 (copy.packets.data != nullptr) == (self->packets.data != nullptr);
     if (same && self->packets.data)
         same = std::memcmp(copy.packets.data, self->packets.data,

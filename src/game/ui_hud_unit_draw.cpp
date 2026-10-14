@@ -5,6 +5,7 @@
 // the Direct3D device itself (IDirect3DDevice7::Clear, Get / SetTextureStageState): those calls are
 // made as they are, and mirrored to the new renderer as the hero preview's are (ui_hero_preview.cpp).
 // See ui.h (CHudUnitPanel) and docs/notes/items_spells.md ("A-E2").
+#include "device.h"   // the old device's calls
 #include "ui.h"
 
 #include "map_object.h"
@@ -95,7 +96,7 @@ void ClearDepthRects(UiRenderer* renderer, RECT* rects, float z) {
     DWORD flags = D3DCLEAR_ZBUFFER;
     if ((renderer->caps_ & kStencilFormat) != 0 && renderer->stencil_ != 0) flags = D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL;
     gameapi::EnterCriticalSection(GameDeviceLock());
-    renderer->result_ = D3DDevice(renderer)->Clear(kClearedRects, reinterpret_cast<D3DRECT*>(rects), flags, 0, z, 0);
+    renderer->result_ = device::Clear(D3DDevice(renderer), kClearedRects, reinterpret_cast<D3DRECT*>(rects), flags, 0, z, 0);
     gameapi::LeaveCriticalSection(GameDeviceLock());
     render::Rect mirrored[kClearedRects];
     for (DWORD i = 0; i < kClearedRects; ++i)
@@ -172,19 +173,19 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             const float scale = RoundToFloat(One() / size);
             static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached)->figureScale = Vector3{scale, scale, scale};
             // The first page draws the model in full colour, the others at half.
-            model->SetPartsUnknownD4(bodyPart_ == 0 ? 0xFFFFFFFFu : 0xFF808080u);
-            model->SetPartsUnknownD8(0xFF000000u);
+            model->SetPartsFlatColour(bodyPart_ == 0 ? 0xFFFFFFFFu : 0xFF808080u);
+            model->SetPartsFlatSpecular(0xFF000000u);
             model->SetPartFlags(kPartHighlight);
             unit->flags_ |= kPreviewDraw;
 
             // Texture stage 0's mip filter off around the model's draw.
             DWORD mipFilter = 0;
             CTextureDevice* device = RenderDeviceObject();
-            device->lastLoadResult_ = D3DDevice(device)->GetTextureStageState(0, D3DTSS_MIPFILTER, &mipFilter);
-            device->lastLoadResult_ = D3DDevice(device)->SetTextureStageState(0, D3DTSS_MIPFILTER, D3DTFP_NONE);
+            device->lastLoadResult_ = device::GetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, &mipFilter);
+            device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, D3DTFP_NONE);
             render::state::Stage(0, D3DTSS_MIPFILTER, D3DTFP_NONE);
             ObjectSlots(unit)->DrawFigure(reinterpret_cast<void*>(static_cast<std::intptr_t>(pass)));
-            device->lastLoadResult_ = D3DDevice(device)->SetTextureStageState(0, D3DTSS_MIPFILTER, mipFilter);
+            device->lastLoadResult_ = device::SetTextureStageState(D3DDevice(device), 0, D3DTSS_MIPFILTER, mipFilter);
             render::state::Stage(0, D3DTSS_MIPFILTER, mipFilter);
 
             unit->flags_ &= ~kPreviewDraw;

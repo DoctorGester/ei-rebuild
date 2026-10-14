@@ -57,8 +57,8 @@ void CAnimationNode::Rewind() {
     clock_[1] = 0;
     CallResetPose(this);
     if (mesh_) {
-        mesh_->position_ = posePosition_;
-        mesh_->rotation_ = poseRotation_;
+        mesh_->localPosition_ = posePosition_;
+        mesh_->localRotation_ = poseRotation_;
         CFigureMesh::OffsetSpan points{pointsB_.data, pointsB_.size};
         mesh_->SetOffsets(&points);
     }
@@ -74,8 +74,8 @@ int CAnimationNode::AttachMeshes(const lib::AlignedArray<void*>* parts) {
         mesh_ = static_cast<CFigureMesh*>(parts->data[i]);
         ++mesh_->refCount_;
         if (mesh_) {
-            mesh_->position_ = posePosition_;
-            mesh_->rotation_ = poseRotation_;
+            mesh_->localPosition_ = posePosition_;
+            mesh_->localRotation_ = poseRotation_;
             CFigureMesh::OffsetSpan points{pointsB_.data, pointsB_.size};
             mesh_->SetOffsets(&points);
         }

@@ -135,7 +135,7 @@ public:
 
     std::uint8_t recording_;     // +0x08
     std::uint8_t skipNext_;      // +0x09 the next recorded message is dropped (set by OpenRecording)
-    std::uint8_t unknown_0A[2];
+    std::uint8_t unused_0A[2];
     FileStream record_;          // +0x0C
 };
 static_assert(offsetof(NetLink, recording_) == 0x08);

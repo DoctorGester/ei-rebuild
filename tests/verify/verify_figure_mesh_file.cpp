@@ -28,10 +28,10 @@ EI_VERIFY(0x0059F8F0, FigureMeshLoadVerify, 0, s_unused);
 
 // 0059F0F0: the copied descriptors and bounds equal the source's.
 static void __fastcall FigureMeshCopyVerify(CFigureMesh* self, void*, const CFigureMesh* other) {
-    self->CopyFrom(other);
+    self->CopyFigure(other);
     bool ok = self->buffers_.corners == other->buffers_.corners && self->buffers_.indexCount == other->buffers_.indexCount &&
               std::memcmp(&self->center_, &other->center_, 0x28) == 0;
-    ei::verify::Check("CFigureMesh::CopyFrom", true, ok, "");
+    ei::verify::Check("CFigureMesh::CopyFigure", true, ok, "");
 }
 EI_VERIFY(0x0059F0F0, FigureMeshCopyVerify, 0, s_unused);
 

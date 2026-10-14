@@ -69,7 +69,7 @@ are game structures built on the shared templates, not container layouts.
   - `ApplyScience` (slot 41) is declared with two ints. Its call passes the use record and the unit.
   - Slot 54 is `IsLargeUnit`, though the planner reads it as "moving".
   - The multi-target spells search units within CSpell `range_` (+0x34), up to `targetCount_` (F1 named them).
-  - `CMapObject::unknown_174` is the unit's update slot.
+  - `CMapObject::updateCountdown` (+0x174) is the unit's update slot.
   - The controller is reached through `reinterpret_cast` to `UnitController` / `CUnitServer`. These two
     declarations of the controller overlap and should become one.
 - **Structure not merged:**

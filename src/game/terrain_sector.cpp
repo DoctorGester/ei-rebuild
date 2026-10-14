@@ -89,32 +89,26 @@ int IndexInPage(int texture, int perPage, int pages) {
     return (texture - perPage * pages) % 8;
 }
 
-int ClassOf(const TerrainFields* owner, int texture) {
+int ClassOf(const Terrain* owner, int texture) {
     int cls = owner->textureClass[texture];
     if (cls >= owner->perPage * owner->pages) cls = 0xF;
     return cls;
 }
 
-bool IsAnimated(const TerrainFields* owner, int texture) {
+bool IsAnimated(const Terrain* owner, int texture) {
     return texture < owner->perPage * owner->pages && owner->textureFrames[texture] != 0;
 }
 
 } // namespace
 
 __declspec(naked) void SectorData::BuildAtOriginal() EI_ORIGINAL(0x006C1C00)
-__declspec(naked) void SectorData::LightAtOriginal(CLight*, TerrainFields*, int, int, int, int, int) EI_ORIGINAL(0x006C3A00)
-
-const float* TerrainFields::TileUv(int rotation, int index, int page) {
-    int wrapped = page % (pages + 2);
-    if (wrapped >= pages && wrapped < pages + 2) return uvTablesLast[rotation] + index * 18;
-    return uvTables[rotation] + index * 18;
-}
+__declspec(naked) void SectorData::LightAtOriginal(CLight*, Terrain*, int, int, int, int, int) EI_ORIGINAL(0x006C3A00)
 
 // ---------------------------------------------------------------------------------------------
 // Loading
 
 int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int textures, const char* prefix,
-                     TerrainFields* terrain) {
+                     Terrain* terrain) {
     Clear();
     owner = terrain;
     sx = sectorX;
@@ -182,7 +176,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
             for (int col = 0; col < 33; ++col, ++vi, src += 8, ++out) {
                 std::uint16_t h;
                 std::memcpy(&h, src + 2, 2);
-                out->z = Store(static_cast<double>(h) * owner->heightScale * HeightUnit());
+                out->z = Store(static_cast<double>(h) * owner->heightRange * HeightUnit());
                 if (layer == 0) {
                     out->x = Store(One() * Half() * static_cast<std::int8_t>(src[0]) * OffsetScale() + x);
                     out->y = Store(One() * Half() * static_cast<std::int8_t>(src[1]) * OffsetScale() + y);
@@ -267,7 +261,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
 // Counts the tiles per quarter and texture page (counts[quarter * 256 + page]), stores the tile
 // textures and rotations and the texture class counts. Returns the number of animated tiles.
 int CountTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
-    const TerrainFields* owner = s.owner;
+    const Terrain* owner = s.owner;
     int animated = 0;
     s.classCounts.SetSize(16);
     std::memset(s.classCounts.data, 0, 16 * 4);
@@ -316,7 +310,7 @@ int CountTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
 // Fills the tile lists: 9 entries per tile (3x3 vertices with texture coordinates), its edge
 // flags, and the animated tiles (random start frame).
 void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
-    TerrainFields* owner = s.owner;
+    Terrain* owner = s.owner;
     const std::uint8_t* src = tiles;
     const int* water = s.waterTiles.data;
     int animatedIndex = 0;
@@ -504,22 +498,28 @@ double RawHeight(void* terrain, float x, float y, int layer) {
 }
 } // namespace
 
-int TerrainFields::SurfaceClass(float x, float y) {
-    double unit = GameFloat(0x007441D0);
-    int ix = x87::fistp(Store(x / unit));
-    int iy = x87::fistp(Store(y / unit));
+} // namespace terrain
+
+const float* Terrain::TileUv(int rotation, int index, int page) {
+    int wrapped = page % (pages + 2);
+    if (wrapped >= pages && wrapped < pages + 2) return uvTablesLast[rotation] + index * 18;
+    return uvTables[rotation] + index * 18;
+}
+
+int Terrain::SurfaceClass(float x, float y) {
+    double unit = terrain::GameFloat(0x007441D0);
+    int ix = x87::fistp(terrain::Store(x / unit));
+    int iy = x87::fistp(terrain::Store(y / unit));
     if (ix < 0 || iy < 0 || ix >= sectorsX * 32 || iy >= sectorsY * 32) return 8;
-    auto* sector = reinterpret_cast<SectorData*>(reinterpret_cast<Terrain*>(this)->SectorAt(ix / 32, iy / 32, 2, 1));
+    terrain::SectorData* sector = SectorAt(ix / 32, iy / 32, 2, 1);
     int tile = (iy % 32) / 2 * 16 + (ix % 32) / 2;
     if (!sector) return 8;
     if (sector->hasWater && sector->waterTiles.data[tile] != -1) {
-        float water = Store(RawHeight(this, x, y, 1));
-        if (!(RawHeight(this, x, y, 0) >= water)) return textureClass[sector->tileTextures.data[tile + 0x100]];
+        float water = terrain::Store(terrain::RawHeight(this, x, y, 1));
+        if (!(terrain::RawHeight(this, x, y, 0) >= water)) return textureClass[sector->tileTextures.data[tile + 0x100]];
     }
     return textureClass[sector->tileTextures.data[tile]];
 }
-
-} // namespace terrain
 
 void Terrain::GroundAndWaterDepth(float x, float y, float* ground, float* depth) {
     float water = terrain::Store(terrain::RawHeight(this, x, y, 1));
@@ -531,7 +531,7 @@ void Terrain::GroundAndWaterDepth(float x, float y, float* ground, float* depth)
 
 namespace terrain {
 
-std::uint32_t SectorData::Ensure(std::uint32_t wanted, TerrainFields* terrain) {
+std::uint32_t SectorData::Ensure(std::uint32_t wanted, Terrain* terrain) {
     if (wanted & built) return 1;
     if (wanted >= 2 && !(built & 2)) BuildAtOriginal();
     if (wanted >= 4 && !(built & 4))
@@ -543,8 +543,8 @@ EI_REPLACE_METHOD(0x006C13A0, SectorData::Load);
 EI_REPLACE_METHOD(0x006C1C00, SectorData::Build);
 EI_REPLACE_METHOD(0x006C30E0, SectorData::ApplyWaterLevels);
 EI_REPLACE_METHOD(0x006C3DD0, SectorData::Ensure);
-EI_REPLACE_METHOD(0x006C53C0, TerrainFields::TileUv);
-EI_REPLACE_METHOD(0x006C8D40, TerrainFields::SurfaceClass);
+EI_REPLACE_METHOD(0x006C53C0, Terrain::TileUv);
+EI_REPLACE_METHOD(0x006C8D40, Terrain::SurfaceClass);
 EI_REPLACE_METHOD(0x006C8930, Terrain::GroundAndWaterDepth);
 
 // ---------------------------------------------------------------------------------------------
@@ -591,11 +591,11 @@ SectorData* SectorData::Construct() {
     for (auto& lists : tiles) lists.Construct(kTileListArrayVtable);
     animated.Construct();
     classCounts.Construct();
-    unknown_170 = 0;
+    detail = 0;
     sx = -1;
     sy = -1;
-    unknown_178 = 0;
-    unknown_174 = 0;
+    seamAfter = 0;
+    seamBefore = 0;
     hasWater = 0;
     hasWaterTiles = 0;
     data = nullptr;
@@ -605,9 +605,9 @@ SectorData* SectorData::Construct() {
     built = 0;
     lastUsed = 0;
     relightCountdown = 0;
-    unknown_060 = kCulled;
-    unknown_38C = 0;
-    unknown_390 = 0;
+    clipMode = kCulled;
+    spare38C = 0;
+    spare390 = 0;
     hasSpecular = 0;
     ProjectionInput().SetSize(kProjectionVertices);
     ProjectionOutput().SetSize(kProjectionVertices);
@@ -640,8 +640,8 @@ void SectorData::DestructBody() {
 EI_REPLACE_METHOD(0x006BF8A0, SectorData::DestructBody);
 
 int SectorData::Project(CTransformPipeline* pipeline) {
-    const int columnStep = unknown_170 >= 1 ? 2 : 1;
-    const int rowStep = unknown_170 >= 2 ? 2 : 1;
+    const int columnStep = detail >= 1 ? 2 : 1;
+    const int rowStep = detail >= 2 ? 2 : 1;
     for (int q = 0; q < 4; ++q) {
         if (quarterMode[q] == kCulled) continue;
         const int corner = ((q / 2) * kRow + q % 2) * kQuarterCells;
@@ -673,7 +673,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
                     ++out;
                 }
     }
-    return unknown_060;
+    return clipMode;
 }
 EI_REPLACE_METHOD(0x006BFC80, SectorData::Project);
 

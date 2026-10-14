@@ -56,15 +56,13 @@ W* FromInput(void* input) {
     return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - offsetof(CUiWindow, inputVtable_));
 }
 
-// IDirect3DDevice7::SetRenderState / GetRenderState through the device's vtable.
+// IDirect3DDevice7::SetRenderState / GetRenderState.
 long SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
-    using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t);
     render::state::Render(static_cast<std::uint32_t>(state), value);
-    return reinterpret_cast<Fn>(device->vtable_[20])(device, state, value);
+    return device->SetRenderState(static_cast<std::uint32_t>(state), value);
 }
 long GetRenderState(UiD3DDevice* device, int state, std::uint32_t* value) {
-    using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t*);
-    return reinterpret_cast<Fn>(device->vtable_[21])(device, state, value);
+    return device->GetRenderState(static_cast<std::uint32_t>(state), value);
 }
 
 // Scene objects of the panels (sprites, CUiMesh) are tinted through their three tint_ floats (the

@@ -3,6 +3,7 @@
 //
 // Every callee is reached through its original address (several are patched by Rebirth:
 // 0057C700, 00595480, FatalError 00480080; 004D36F0 is rewritten and has a verify wrapper).
+#include "device.h"   // the old device's calls
 #include "app.h"
 #include "dx_errors.h"
 #include "game_strings.h"
@@ -349,7 +350,7 @@ int __fastcall ShowMessageBox(const char* text, int flags) {
     HCURSOR cursor = gameapi::GetCursor();
     CTextureDevice* device = RenderDeviceObject();
     if (device && (device->flags_ & 1)) {
-        long result = static_cast<IDirectDraw7*>(device->ddraw_)->FlipToGDISurface();
+        long result = device::FlipToGDISurface(static_cast<IDirectDraw7*>(device->ddraw_));
         device->lastLoadResult_ = result;
         if (result != 0) FatalErrorCode(result, FlipFailedText());
     }

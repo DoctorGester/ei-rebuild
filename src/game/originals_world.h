@@ -200,7 +200,7 @@ __declspec(naked) inline void __fastcall ClientProjectDecalOriginal(void* /*worl
 // 0056CE40 (RET 0xC): the client world shows a number over the unit with id `id` (the value, the kind bits).
 __declspec(naked) inline void __fastcall ClientShowNumberOriginal(void* /*world*/, void*, int /*id*/, int /*value*/,
                                                                 int /*kind*/) EI_ORIGINAL(0x0056CE40)
-// A-W13. CFigureMesh::Create 0059F210 (returns 1) and Clear 0059F2B0 (figure_mesh_life.cpp), called through
+// A-W13. CFigureMesh::CreateMesh 0059F210 (returns 1) and Clear 0059F2B0 (figure_mesh_life.cpp), called through
 // their addresses by the rewritten constructor, clear and destructor bodies so that their wrappers run.
 class CFigureMesh;
 __declspec(naked) inline int __fastcall FigureMeshCreateOriginal(CFigureMesh* /*mesh*/) EI_ORIGINAL(0x0059F210)

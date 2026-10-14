@@ -67,7 +67,7 @@ BOOL CSpell::InitFromPrototype(const char* prototype) {
     prototypeField14_ = dword(0x3C);
     skillNeeded_ = dword(0x44);
     effectPower_ = 0x10;
-    prototypeIndex_ = static_cast<std::uint8_t>(unknown_18 >> 16);
+    prototypeIndex_ = static_cast<std::uint8_t>(prototypeId_ >> 16);
     damage_ = dword(0x2C);
     radius_ = dword(0x28);
     duration_ = dword(0x38);
@@ -77,7 +77,7 @@ BOOL CSpell::InitFromPrototype(const char* prototype) {
 EI_REPLACE_METHOD(0x0068B430, CSpell::InitFromPrototype);
 
 char* CSpell::GetPrototype() {
-    return Spells().At(unknown_18 >> 16, kSpellSize);
+    return Spells().At(prototypeId_ >> 16, kSpellSize);
 }
 EI_REPLACE_METHOD(0x0068BA20, CSpell::GetPrototype);
 
@@ -104,7 +104,7 @@ bool CSpell::HasCastFlagModifier() {
 EI_REPLACE_METHOD(0x0068B7C0, CSpell::HasCastFlagModifier);
 
 int CSpell::GetDamageType() {
-    switch (unknown_18 >> 16) {
+    switch (prototypeId_ >> 16) {
     case 0: case 3: case 6: case 0x28: return 3;
     case 1: case 4: case 7: case 0x29: return 5;
     case 2: case 5: case 8: return 4;
@@ -114,7 +114,7 @@ int CSpell::GetDamageType() {
 EI_REPLACE_METHOD(0x0068B700, CSpell::GetDamageType);
 
 bool CSpell::IsOffensive() {
-    switch (unknown_18 >> 16) {
+    switch (prototypeId_ >> 16) {
     case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8:
     case 0x11: case 0x13: case 0x19: case 0x1E: case 0x20: case 0x22: case 0x24: case 0x26:
         return true;

@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "core_streams.h"
 #include "core_transform.h"
+#include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_delta.h"     // DeltaState
@@ -107,7 +108,7 @@ __declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
 void InitEngineObject(CEngineObject* object) {
     object->refCount_ = 0;
     object->id_ = -1;
-    object->unknown_18 = 0;
+    object->prototypeId_ = 0;
     object->type_ = 0;
     object->flags_ = 0;
     object->owner_ = nullptr;
@@ -179,8 +180,8 @@ void CObject3D::DestructBody() {
     partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
     if (partBoxes) gamecrt::operator_delete(partBoxes);
     StringArrayDestruct(&partNameArrayVtable);
-    if (CEngineObject* current = figure) {
-        if (--current->refCount_ == 0 && current) delete current;   // slot 0 with 1
+    if (CLinkMesh* current = figure) {
+        if (--current->refCount_ == 0 && current) current->DeleteThis(1);
     }
     if (pendingParts.data) gamecrt::operator_delete(pendingParts.data[-1]);
     if (parts.data) gamecrt::operator_delete(parts.data[-1]);
@@ -213,8 +214,8 @@ CMapObject* CMapObject::Construct() {
     DeltaState* records = NetState();
     SetVtable(records, kRecordArrayVtable);
     records->fields_ = nullptr;
-    records->unknown_10 = 0;
-    records->unknown_C = 0;
+    records->fieldGrowBy_ = 0;
+    records->fieldCapacity_ = 0;
     records->fieldCount_ = 0;
     CMemoryStream* stream = &records->header_[0];
     stream->version_ = kStreamLimit;

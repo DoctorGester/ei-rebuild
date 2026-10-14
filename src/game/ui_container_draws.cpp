@@ -37,17 +37,10 @@ T GameValue(std::uintptr_t address) {
     return *reinterpret_cast<const T*>(address);
 }
 
-constexpr int kD3DClear = 10;            // IDirect3DDevice7::Clear
-constexpr int kD3DApplyStateBlock = 39;  // ApplyStateBlock
 constexpr std::uint32_t kAlphaRef = 0x18;
 constexpr std::uintptr_t kStateBlockAlpha = 0x007AEDD8;   // texture x diffuse, colour and alpha
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
 
 // The interface's device object (CInterface3D +8; its +0x54 is the IDirect3DDevice7).
 UiRenderer* DeviceOf(CUiWindow* w) { return w->interface_->renderer_; }
@@ -59,7 +52,7 @@ void ClearDepth(UiRenderer* device, unsigned long count, RECT* rects, float z) {
     unsigned long flags = (device->caps_ & 0x4000) && device->stencil_ ? 6ul : 2ul;
     if (!render::Presenting()) {
         gameapi::EnterCriticalSection(DeviceLock());
-        device->result_ = ComCall(device->device_, kD3DClear, count, rects, flags, 0ul, z, 0ul);
+        device->result_ = device->device_->Clear(count, rects, flags, 0ul, z, 0ul);
         gameapi::LeaveCriticalSection(DeviceLock());
     } else {
         device->result_ = 0;
@@ -94,7 +87,7 @@ int __fastcall UiContainerDraw(CUiWindow* self, void*, int pass) {
     if (!self->interface_->drawing_) return 1;
     UiRenderer* device = DeviceOf(self);
     std::uint32_t handle = GameValue<std::uint32_t>(kStateBlockAlpha);
-    device->result_ = ComCall(device->device_, kD3DApplyStateBlock, handle);
+    device->result_ = device->device_->ApplyStateBlock(handle);
     render::state::Block(handle);
     self->DrawBase(pass);
     CUiContainer* container = static_cast<CUiContainer*>(self);

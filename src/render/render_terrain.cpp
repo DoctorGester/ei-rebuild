@@ -48,19 +48,19 @@ void TileTriangles(std::vector<std::uint32_t>& out, std::uint32_t base, int lod,
     if (lod == 2) {
         PutTriangles(out, base, kLod2);
     } else if (lod == 1) {
-        if (seams && s->unknown_174 != 0 && (edge & 4)) PutTriangles(out, base, kLod1Edge4);
-        else if (seams && s->unknown_178 != 0 && (edge & 8)) PutTriangles(out, base, kLod1Edge8);
+        if (seams && s->seamBefore != 0 && (edge & 4)) PutTriangles(out, base, kLod1Edge4);
+        else if (seams && s->seamAfter != 0 && (edge & 8)) PutTriangles(out, base, kLod1Edge8);
         else PutTriangles(out, base, kLod1);
     } else {
-        if (seams && s->unknown_174 != 0 && (edge & 1)) PutTriangles(out, base, kLod0Edge1);
-        else if (seams && s->unknown_178 != 0 && (edge & 2)) PutTriangles(out, base, kLod0Edge2);
+        if (seams && s->seamBefore != 0 && (edge & 1)) PutTriangles(out, base, kLod0Edge1);
+        else if (seams && s->seamAfter != 0 && (edge & 2)) PutTriangles(out, base, kLod0Edge2);
         else PutTriangles(out, base, kLod0);
     }
 }
 
 // --- Game memory -------------------------------------------------------------------------------------
 
-// The landscape's page textures: TerrainFields +0xD8, an array of CTexture*, indexed
+// The landscape's page textures: Terrain::pageTextures (+0xD8), an array of CTexture*, indexed
 // page % (pages + 2) (006C6460 binds them so before each page).
 const void* PageTexture(const SectorData* s, int page) {
     const char* owner = reinterpret_cast<const char*>(s->owner);
@@ -311,7 +311,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     const Matrix4* stack = *reinterpret_cast<const Matrix4* const*>(pipeline + 0x24);
     int depth = *reinterpret_cast<const int*>(pipeline + 0x28);
     if (!stack || depth <= 0) return;
-    int lod = s->unknown_170;
+    int lod = s->detail;
     if (lod < 0 || lod > 2) return;
     if (!f.haveFog) ReadFog(f);
     int matrix = AddMatrix(stack[depth - 1]);
@@ -319,7 +319,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     bool water = page >= s->pages + 2;
     const int* entries = lod == 0 ? kLod0Entries : lod == 1 ? kLod1Entries : kLod2Entries;
     int perTile = lod == 0 ? 9 : lod == 1 ? 6 : 4;
-    bool seams = lod != 2 && (s->unknown_174 != 0 || s->unknown_178 != 0);
+    bool seams = lod != 2 && (s->seamBefore != 0 || s->seamAfter != 0);
 
     int firstIndex = static_cast<int>(f.terrainIndices.size());
     for (int quarter = 0; quarter < 4; ++quarter) {

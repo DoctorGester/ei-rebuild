@@ -53,7 +53,7 @@ bool SignClear(float v) {
 }
 
 // The sine table entry at `phase` radians: FISTP of (phase * 256 / pi) stored as a float, mod 512.
-float Sine(const TerrainFields* owner, double phase) {
+float Sine(const Terrain* owner, double phase) {
     return owner->sine[x87::fistp(RoundToFloat(phase * kSineIndex)) & 0x1FF];
 }
 
@@ -63,7 +63,7 @@ std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(Roun
 
 void SectorData::ResetFields() {
     sx = sy = -1;
-    unknown_170 = unknown_178 = unknown_174 = 0;
+    detail = seamAfter = seamBefore = 0;
     hasWater = 0;
     hasWaterTiles = 0;
     data = nullptr;
@@ -72,9 +72,9 @@ void SectorData::ResetFields() {
     built = 0;
     lastUsed = 0;
     relightCountdown = 0;
-    unknown_060 = 2;
-    unknown_38C = 0;
-    unknown_390 = 0;
+    clipMode = 2;
+    spare38C = 0;
+    spare390 = 0;
     hasSpecular = 0;
 }
 
@@ -99,8 +99,8 @@ void SectorData::RelightTick() {
     }
 }
 
-void SectorData::Animate(TerrainFields* landscape, int frame) {
-    if (frame % 3 == 0 && (landscape->flags & 2) != 0) {
+void SectorData::Animate(Terrain* landscape, int frame) {
+    if (frame % 3 == 0 && (landscape->landscapeFlags & 2) != 0) {
         for (int i = 0; i < animated.size; ++i) {
             AnimatedTile& tile = animated[i];
             if (tile.frame == 0 && tile.speed < 1000 &&
@@ -115,7 +115,7 @@ void SectorData::Animate(TerrainFields* landscape, int frame) {
             }
         }
     }
-    if (!hasWater || (landscape->flags & 1) == 0) return;
+    if (!hasWater || (landscape->landscapeFlags & 1) == 0) return;
 
     SectorPosition* positions = &vertices[kVertices];
     SectorVertex* water = &records[kVertices];
@@ -279,11 +279,10 @@ int Terrain::RunTick() {
     if ((landscapeFlags & 8) != 0) PlayAmbience();
     wavePhase = RoundToFloat(waveSpeed + wavePhase);
     ++frame;
-    auto* fields = reinterpret_cast<terrain::TerrainFields*>(this);
     for (int row = 0; row < visibleColumnFirst.size; ++row) {
         for (int column = visibleColumnFirst[row]; column <= visibleColumnLast[row]; ++column) {
-            auto* sector = reinterpret_cast<SectorData*>(SectorAt(column, visibleRowFirst + row, terrain::kLit, 0));
-            if (sector && sector->IsDrawn()) sector->Animate(fields, frame);
+            SectorData* sector = SectorAt(column, visibleRowFirst + row, terrain::kLit, 0);
+            if (sector && sector->IsDrawn()) sector->Animate(this, frame);
         }
     }
     return 1;

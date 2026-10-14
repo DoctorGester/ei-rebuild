@@ -64,7 +64,7 @@ constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x0073DFBC);
 std::uintptr_t VtableOf(const void* object) { return *static_cast<const std::uintptr_t*>(object); }
 
 // Whether a group of either part set holds `part`.
-bool Holds(const CObject3DClientSpecific* self, const FigurePart* part) {
+bool Holds(const CObject3DClientSpecific* self, const CFigureMesh* part) {
     for (const TextureParts* set : self->partSets) {
         if (!set) continue;
         for (int g = 0; g < set->groups.size; ++g)
@@ -165,14 +165,14 @@ static CMaterial* __fastcall FindOrAddMaterialVerify(CObject3DClientSpecific* se
 }
 EI_VERIFY(0x0051B470, FindOrAddMaterialVerify, 0, s_unused);
 
-static int __fastcall PartAddedVerify(CObject3DClientSpecific* self, void*, FigurePart* part) {
+static int __fastcall PartAddedVerify(CObject3DClientSpecific* self, void*, CFigureMesh* part) {
     int result = self->PartAdded(part);
     ei::verify::Check("CObject3DClientSpecific::PartAdded", true, result == 0 || Holds(self, part), "result %d", result);
     return result;
 }
 EI_VERIFY(0x0051B050, PartAddedVerify, 0, s_unused);
 
-static int __fastcall PartRemovedVerify(CObject3DClientSpecific* self, void*, FigurePart* part) {
+static int __fastcall PartRemovedVerify(CObject3DClientSpecific* self, void*, CFigureMesh* part) {
     bool held = Holds(self, part);
     int result = self->PartRemoved(part);
     ei::verify::Check("CObject3DClientSpecific::PartRemoved", held ? 1 : 0, result, "");
@@ -180,10 +180,10 @@ static int __fastcall PartRemovedVerify(CObject3DClientSpecific* self, void*, Fi
 }
 EI_VERIFY(0x0051B160, PartRemovedVerify, 0, s_unused);
 
-static FigurePart* __fastcall RemovePartNamedVerify(CObject3DClientSpecific* self, void*, const char* name) {
-    FigurePart* named = self->AsSpecific()->FindPart(name);
+static CFigureMesh* __fastcall RemovePartNamedVerify(CObject3DClientSpecific* self, void*, const char* name) {
+    CFigureMesh* named = self->AsSpecific()->FindPart(name);
     bool held = named && Holds(self, named);
-    FigurePart* result = self->RemovePartNamed(name);
+    CFigureMesh* result = self->RemovePartNamed(name);
     ei::verify::Check("CObject3DClientSpecific::RemovePartNamed", static_cast<void*>(held ? named : nullptr),
                       static_cast<void*>(result), "%s", name);
     return result;
@@ -346,7 +346,7 @@ EI_VERIFY(0x0051ACD0, BaseIgnoreVerify, 0, s_unused);
 static CObject3DSpecific* __fastcall ServerConstructVerify(CObject3DSpecific* self) {
     CObject3DSpecific* result = Object3DServerConstruct(self);
     bool ok = result == self && VtableOf(self) == kServerVtable && !self->object && self->refCount_ == 0 &&
-              self->id_ == -1 && self->flags_ == 0 && self->type_ == 0 && !self->owner_ && self->unknown_18 == 0;
+              self->id_ == -1 && self->flags_ == 0 && self->type_ == 0 && !self->owner_ && self->prototypeId_ == 0;
     ei::verify::Check("CObject3DServer::Construct", true, ok, "");
     return result;
 }

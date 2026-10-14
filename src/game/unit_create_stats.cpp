@@ -638,7 +638,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
             mapObject->SetStats(&stats);
         }
         mapObject->ScaleEffectChanged(0);
-        object->unknown_18 = 0;
+        object->prototypeId_ = 0;
         game::DebugLog(reinterpret_cast<const char*>(0x0078F22C), name, object->id_);
         return 1;
     }
@@ -664,7 +664,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         SetPrototype23CAt(object, nullptr, reinterpret_cast<const char*>(prototype));
     }
     char* record = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, name);
-    object->unknown_18 = record
+    object->prototypeId_ = record
         ? static_cast<std::uint32_t>(static_cast<int>(record - unitdb::PrototypeTable().begin) / unitdb::kPrototypeSize)
         : 0xFFFFFFFFu;
     return 1;

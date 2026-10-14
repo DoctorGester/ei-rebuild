@@ -55,7 +55,7 @@ void __fastcall ClearVerify(SectorData* self, void*) {
         for (int i = 0; i < self->tiles[q].size; ++i) empty = empty && self->tiles[q][i].data == nullptr;
     }
     ei::verify::Check("SectorData::Clear", true, empty, "arrays emptied");
-    ei::verify::Check("SectorData::Clear", true, self->sx == -1 && self->built == 0 && self->unknown_060 == 2,
+    ei::verify::Check("SectorData::Clear", true, self->sx == -1 && self->built == 0 && self->clipMode == 2,
                       "fields reset");
 }
 EI_VERIFY(0x006C3C80, ClearVerify, 0, s_clear);
@@ -97,7 +97,7 @@ EI_VERIFY(0x006C3E50, RelightTickVerify, 6, s_relightTick);
 // (frames and their 9 texture coordinates), the water vertices, the water records' specular words
 // and the random generator are kept, restored, and ours runs; all compared. The wave indices come
 // from FISTPs of rounded products: a value on a .5 edge may give a rare mismatch.
-void(__fastcall* s_animate)(SectorData*, void*, TerrainFields*, int);
+void(__fastcall* s_animate)(SectorData*, void*, Terrain*, int);
 
 struct AnimateState {
     std::vector<int> frames;
@@ -131,7 +131,7 @@ struct AnimateState {
     }
 };
 
-void __fastcall AnimateVerify(SectorData* self, void*, TerrainFields* owner, int frame) {
+void __fastcall AnimateVerify(SectorData* self, void*, Terrain* owner, int frame) {
     AnimateState before, original, ours;
     RandomState random, randomOriginal;
     before.Save(self);

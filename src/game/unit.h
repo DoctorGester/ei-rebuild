@@ -338,7 +338,7 @@ public:
     // 005307B0. Sum of +0x34 (weight) over all carried items.
     double TotalItemWeight();
 
-    // 00530930. The unit's prototype record (index unknown_18), or null.
+    // 00530930. The unit's prototype record (index prototypeId_), or null.
     char* GetPrototype();
     // 00530970. The record (0x168 bytes) the prototype's +0x08 indexes, or null.
     char* GetPrototypeModel();
@@ -493,7 +493,7 @@ public:
     // unit_save.cpp (third round).
     // 00531A80. Virtual slot 9 (Load): the map object part, the controller, the unit's name,
     // relations, player, movement fields, items by id (counted references), the carried items,
-    // and from version 0x4D the prototype names (unknown_18 / prototype23C).
+    // and from version 0x4D the prototype names (prototypeId_ / prototype23C).
     void LoadUnit(UnitStream* stream);
     // 005321C0. Virtual slot 10 (Save): the same fields in the same order (the active weapon
     // twice), items as ids (-1 for none), the prototype names as zero-terminated strings.

@@ -14,6 +14,7 @@
 #define NOMINMAX
 #include <windows.h>
 #include <ddraw.h>
+#include <d3d11.h>
 
 #include "../game/texture.h"   // CDXSurface
 
@@ -200,6 +201,32 @@ void DestroyBlits() {
 
 } // namespace detail
 
+namespace detail {
+namespace {
+long g_imageMade[static_cast<int>(ImageUse::Count)];
+long g_imageUpdated[static_cast<int>(ImageUse::Count)];
+long g_imageRequests[static_cast<int>(ImageUse::Count)];   // pictures asked for (cursor, fill, movie frames)
+} // namespace
+
+void CountImage(ImageUse use, bool made) { ++(made ? g_imageMade : g_imageUpdated)[static_cast<int>(use)]; }
+void CountImageRequest(ImageUse use) { ++g_imageRequests[static_cast<int>(use)]; }
+
+void LogImageCounts(const char* when) {
+    static const char* const names[] = {"cursor", "fill", "movie", "window surface", "texture"};
+    for (int i = 0; i < static_cast<int>(ImageUse::Count); ++i)
+        ei::Log("render: images %s, frame %u: %s: %ld requested, %ld made, %ld updated in place", when,
+                static_cast<unsigned>(FrameNumber()), names[i], g_imageRequests[i], g_imageMade[i], g_imageUpdated[i]);
+}
+
+#if defined(EI_RENDER_VALIDATION)
+namespace {
+struct ImageCountLogger {
+    ~ImageCountLogger() { LogImageCounts("at exit"); }
+} g_imageCountLogger;
+} // namespace
+#endif
+} // namespace detail
+
 namespace {
 std::vector<sg_image> g_frameImages;   // made for one frame (the cursor), destroyed at the present
 std::vector<sg_view> g_frameViews;
@@ -215,52 +242,150 @@ void RetireFrameImages() {
 } // namespace detail
 
 namespace {
+
+// RGBA8 images that are updated in place (sg_update_image) instead of made again. Sokol allows
+// one update per image and frame, and a recorded blit draws the image's contents at the end of the
+// frame (DrawPending), so an image is rewritten only when no blit of it is recorded in this frame
+// and it was not rewritten since the last commit.
+sg_image MakeDynamicImage(int w, int h, const char* label, ImageUse use) {
+    sg_image_desc desc{};
+    desc.width = w;
+    desc.height = h;
+    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+    desc.usage.dynamic_update = true;
+    desc.label = label;
+    CountImage(use, true);
+    return sg_make_image(&desc);
+}
+
+// A texture view of `image`; none (and the image destroyed) when it could not be made.
+sg_view MakeImageView(sg_image image) {
+    if (!image.id) return sg_view{};
+    sg_view view{};
+    if (sg_query_image_state(image) == SG_RESOURCESTATE_VALID) {
+        sg_view_desc vd{};
+        vd.texture.image = image;
+        view = sg_make_view(&vd);
+        if (view.id && sg_query_view_state(view) != SG_RESOURCESTATE_VALID) {
+            sg_destroy_view(view);
+            view = sg_view{};
+        }
+    }
+    if (!view.id) sg_destroy_image(image);
+    return view;
+}
+
+#if defined(EI_RENDER_VALIDATION)
+long g_uploadChecks = 0, g_uploadMismatches = 0;
+// Verify build: reads the image back from the GPU and compares it with the pixels just written
+// (what the blit's unchanged shader then draws is exactly these texels).
+void CheckUpload(sg_image image, const std::uint8_t* rgba, int w, int h, const char* what) {
+    sg_d3d11_image_info info = sg_d3d11_query_image_info(image);
+    auto* texture = static_cast<ID3D11Texture2D*>(const_cast<void*>(info.tex2d));
+    if (!texture) return;
+    ID3D11Device* device = nullptr;
+    texture->GetDevice(&device);
+    if (!device) return;
+    ID3D11DeviceContext* context = nullptr;
+    device->GetImmediateContext(&context);
+    D3D11_TEXTURE2D_DESC desc{};
+    texture->GetDesc(&desc);
+    desc.Usage = D3D11_USAGE_STAGING;
+    desc.BindFlags = 0;
+    desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    desc.MiscFlags = 0;
+    ID3D11Texture2D* staging = nullptr;
+    if (context && SUCCEEDED(device->CreateTexture2D(&desc, nullptr, &staging))) {
+        context->CopyResource(staging, texture);
+        D3D11_MAPPED_SUBRESOURCE mapped{};
+        if (SUCCEEDED(context->Map(staging, 0, D3D11_MAP_READ, 0, &mapped))) {
+            bool same = true;
+            for (int y = 0; y < h && same; ++y)
+                same = std::memcmp(static_cast<const std::uint8_t*>(mapped.pData) + static_cast<std::size_t>(y) * mapped.RowPitch,
+                                   rgba + static_cast<std::size_t>(y) * w * 4, static_cast<std::size_t>(w) * 4) == 0;
+            context->Unmap(staging, 0);
+            ++g_uploadChecks;
+            if (!same && g_uploadMismatches++ < 10)
+                ei::Log("render: MISMATCH: %s image %dx%d read back from the GPU differs from the pixels written", what, w, h);
+        }
+        staging->Release();
+    }
+    if (context) context->Release();
+    device->Release();
+    sg_reset_state_cache();
+}
+#endif
+
+void UpdateImage(sg_image image, const std::uint8_t* rgba, int w, int h, ImageUse use) {
+    sg_image_data data{};
+    data.mip_levels[0] = sg_range{rgba, static_cast<std::size_t>(w) * h * 4};
+    CountImage(use, false);
+    sg_update_image(image, &data);
+#if defined(EI_RENDER_VALIDATION)
+    CheckUpload(image, rgba, w, h, use == ImageUse::Movie ? "movie" : "cursor/fill");
+    if (g_uploadChecks % 20 == 1 && g_uploadChecks) ei::Log("render: image uploads checked back from the GPU: %ld, mismatches %ld", g_uploadChecks, g_uploadMismatches);
+#endif
+}
+
 struct Movie {
     sg_image image{};
     sg_view view{};
     int width = 0, height = 0;
+    std::uint32_t blitFrame = 0xFFFFFFFFu;      // FrameNumber() of the last blit recorded
+    std::uint32_t updatedCommit = 0xFFFFFFFFu;  // CommitNumber() of the last update
 };
 std::unordered_map<const void*, Movie> g_movies;
+std::vector<std::uint8_t> g_movieScratch;
+
+// The cursor's and the fills' small images, kept across frames: one per size, rewritten only when
+// the content differs (compared with a copy of what the image holds). Several images of one size
+// are kept when a frame draws different contents of it.
+struct CachedImage {
+    sg_image image{};
+    sg_view view{};
+    int width = 0, height = 0;
+    std::uint32_t usedFrame = 0xFFFFFFFFu;      // FrameNumber() of the last blit recorded
+    std::uint32_t updatedCommit = 0xFFFFFFFFu;  // CommitNumber() of the last update
+    std::uint64_t lastUse = 0;                  // for dropping the least recently used
+    std::vector<std::uint8_t> pixels;
+};
+std::vector<CachedImage> g_cache;
+std::uint64_t g_cacheClock = 0;
+constexpr std::size_t kCacheMax = 64;
+
 } // namespace
 
 void MovieFrame(const void* key, const std::uint8_t* rgbx, int width, int height) {
     if (!key || !rgbx || width <= 0 || height <= 0 || !Active() || !Started()) return;
     FpuGuard fpu;
-    std::vector<std::uint8_t> rgba(rgbx, rgbx + static_cast<std::size_t>(width) * height * 4);
-    for (std::size_t i = 3; i < rgba.size(); i += 4) rgba[i] = 255;
-    sg_image_desc desc{};
-    desc.width = width;
-    desc.height = height;
-    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-    desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
-    desc.label = "ei-movie-frame";
-    sg_image image = sg_make_image(&desc);
-    if (!image.id || sg_query_image_state(image) != SG_RESOURCESTATE_VALID) {
-        if (image.id) sg_destroy_image(image);
-        return;
-    }
-    sg_view_desc vd{};
-    vd.texture.image = image;
-    sg_view view = sg_make_view(&vd);
-    if (!view.id || sg_query_view_state(view) != SG_RESOURCESTATE_VALID) {
-        if (view.id) sg_destroy_view(view);
-        sg_destroy_image(image);
-        return;
-    }
+    CountImageRequest(ImageUse::Movie);
+    g_movieScratch.assign(rgbx, rgbx + static_cast<std::size_t>(width) * height * 4);
+    for (std::size_t i = 3; i < g_movieScratch.size(); i += 4) g_movieScratch[i] = 255;
     Movie& m = g_movies[key];
-    // The previous frame may still be drawn by this frame's commands: destroyed after the present.
+    if (m.image.id && m.width == width && m.height == height && m.blitFrame != FrameNumber() &&
+        m.updatedCommit != CommitNumber()) {
+        UpdateImage(m.image, g_movieScratch.data(), width, height, ImageUse::Movie);
+        m.updatedCommit = CommitNumber();
+        return;
+    }
+    sg_image image = MakeDynamicImage(width, height, "ei-movie-frame", ImageUse::Movie);
+    sg_view view = MakeImageView(image);
+    if (!view.id) return;
+    UpdateImage(image, g_movieScratch.data(), width, height, ImageUse::Movie);
+    // The previous image may still be drawn by this frame's commands: destroyed after the present.
     if (m.image.id) {
         g_frameViews.push_back(m.view);
         g_frameImages.push_back(m.image);
     }
-    m = Movie{image, view, width, height};
+    m = Movie{image, view, width, height, 0xFFFFFFFFu, CommitNumber()};
 }
 
 void MovieBlit(const void* key, const Rect& to) {
     if (!Active()) return;
     auto it = g_movies.find(key);
     if (it == g_movies.end() || !it->second.view.id) return;
-    const Movie& m = it->second;
+    Movie& m = it->second;
+    m.blitFrame = FrameNumber();
     Frame& f = CurrentFrame();
     f.blitBatches.push_back(BlitBatch{m.view, m.width, m.height, to, Rect{0, 0, m.width, m.height}});
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});
@@ -268,7 +393,7 @@ void MovieBlit(const void* key, const Rect& to) {
 
 namespace {
 // Draws `rgba` (w x h) at `to` as a blit of this frame.
-void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to);
+void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to, ImageUse use);
 } // namespace
 
 void Fill(const Rect& to, std::uint32_t colour) {
@@ -277,7 +402,7 @@ void Fill(const Rect& to, std::uint32_t colour) {
     // One texel stretched over the rectangle (D3DCOLOR is B, G, R, A in memory).
     std::vector<std::uint8_t> rgba{static_cast<std::uint8_t>(colour >> 16), static_cast<std::uint8_t>(colour >> 8),
                                    static_cast<std::uint8_t>(colour), 255};
-    CursorBlit(rgba, 1, 1, to);
+    CursorBlit(rgba, 1, 1, to, ImageUse::Fill);
 }
 
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
@@ -310,7 +435,7 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
                 o[3] = m == 0 ? 255 : 0;   // the mask is all ones where the image is black
             }
         }
-        CursorBlit(rgba, w, h, to);
+        CursorBlit(rgba, w, h, to, ImageUse::Cursor);
         return;
     }
     // Otherwise read from the image's surface (a picture holder made in the switch-over has none:
@@ -353,31 +478,71 @@ void Cursor(const void* imageHolder, const void* mask, const Rect& from, const R
     if (SUCCEEDED(hr)) dd->Unlock(nullptr);
     UnlockGameDevice();
     if (!ok) return;
-    CursorBlit(rgba, w, h, to);
+    CursorBlit(rgba, w, h, to, ImageUse::Cursor);
 }
 
 namespace {
-void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to) {
-    sg_image_desc desc{};
-    desc.width = w;
-    desc.height = h;
-    desc.pixel_format = SG_PIXELFORMAT_RGBA8;
-    desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
-    desc.label = "ei-cursor";
-    sg_image image = sg_make_image(&desc);
-    if (!image.id || sg_query_image_state(image) != SG_RESOURCESTATE_VALID) {
-        if (image.id) sg_destroy_image(image);
-        return;
+// The view of a cached image holding `rgba` (w x h), or none when every cached image is in use
+// this frame or one could not be made.
+sg_view CachedView(const std::vector<std::uint8_t>& rgba, int w, int h, ImageUse use) {
+    std::uint32_t frame = FrameNumber(), commit = CommitNumber();
+    CachedImage* sameSize = nullptr;   // the least recently used free image of this size
+    CachedImage* anySize = nullptr;    // the least recently used free image
+    for (CachedImage& c : g_cache) {
+        if (c.width == w && c.height == h && c.pixels == rgba) {   // unchanged: no upload
+            c.usedFrame = frame;
+            c.lastUse = ++g_cacheClock;
+            return c.view;
+        }
+        if (c.usedFrame == frame || c.updatedCommit == commit) continue;
+        if (c.width == w && c.height == h && (!sameSize || c.lastUse < sameSize->lastUse)) sameSize = &c;
+        if (!anySize || c.lastUse < anySize->lastUse) anySize = &c;
     }
-    sg_view_desc vd{};
-    vd.texture.image = image;
-    sg_view view = sg_make_view(&vd);
-    g_frameImages.push_back(image);
-    if (!view.id || sg_query_view_state(view) != SG_RESOURCESTATE_VALID) {
-        if (view.id) sg_destroy_view(view);
-        return;
+    CachedImage* chosen = sameSize;
+    if (!chosen && g_cache.size() < kCacheMax) {
+        g_cache.emplace_back();
+        chosen = &g_cache.back();
     }
-    g_frameViews.push_back(view);
+    if (!chosen) chosen = anySize;
+    if (!chosen) return sg_view{};
+    if (chosen->width != w || chosen->height != h || !chosen->image.id) {
+        if (chosen->view.id) sg_destroy_view(chosen->view);
+        if (chosen->image.id) sg_destroy_image(chosen->image);
+        *chosen = CachedImage{};
+        sg_image image = MakeDynamicImage(w, h, "ei-small-image", use);
+        sg_view view = MakeImageView(image);
+        if (!view.id) return sg_view{};
+        chosen->image = image;
+        chosen->view = view;
+        chosen->width = w;
+        chosen->height = h;
+    }
+    UpdateImage(chosen->image, rgba.data(), w, h, use);
+    chosen->pixels = rgba;
+    chosen->updatedCommit = commit;
+    chosen->usedFrame = frame;
+    chosen->lastUse = ++g_cacheClock;
+    return chosen->view;
+}
+
+void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect& to, ImageUse use) {
+    CountImageRequest(use);
+    sg_view view = CachedView(rgba, w, h, use);
+    if (!view.id) {
+        // Every cached image is in use this frame: an image for this frame only.
+        CountImage(use, true);
+        sg_image_desc desc{};
+        desc.width = w;
+        desc.height = h;
+        desc.pixel_format = SG_PIXELFORMAT_RGBA8;
+        desc.data.mip_levels[0] = sg_range{rgba.data(), rgba.size()};
+        desc.label = "ei-cursor-frame";
+        sg_image image = sg_make_image(&desc);
+        view = MakeImageView(image);
+        if (!view.id) return;
+        g_frameImages.push_back(image);
+        g_frameViews.push_back(view);
+    }
     Frame& f = CurrentFrame();
     f.blitBatches.push_back(BlitBatch{view, w, h, to, Rect{0, 0, w, h}});
     f.commands.push_back(Command{Command::Blit, static_cast<int>(f.blitBatches.size()) - 1});

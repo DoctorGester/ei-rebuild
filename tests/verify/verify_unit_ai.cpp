@@ -942,7 +942,7 @@ EI_VERIFY(0x005AEC80, AlarmSaveVerify, 5, s_alarmSave);
 // RaiseAlarm 00593FC0: a unit whose alarm countdown ends, the script's alarm commands).
 static void __fastcall HearAlarmVerify(AIBrain* self, void*, int slot) {
     const bool inRange = slot >= 0 && slot < self->alarmRecords.size;
-    const bool applies = inRange && (self->alarmRecords.data[slot].unknown_38 != 0 || slot == 0);
+    const bool applies = inRange && (self->alarmRecords.data[slot].enabled != 0 || slot == 0);
     const int before = self->alarmSlot;
     const AIAlarm* alarm = &self->owner->alarm;
     const int pendingBefore = alarm->pending;

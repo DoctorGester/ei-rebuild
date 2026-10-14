@@ -54,14 +54,14 @@ int __fastcall RendererRectangle(CSceneRenderer* renderer, void*, int left, int 
     if (device->stageSurfaces_[0]) {   // no texture on stage 0
         device->stageSurfaces_[0] = nullptr;
         DeviceFlushBatchAOriginal(device);   // 004E7840: draws the batched vertices
-        device->lastLoadResult_ = device::D3D(device)->SetTexture(0, nullptr);
+        device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, nullptr);
         ++device->textureChanges_;
     }
-    device::D3D(device)->SetRenderState(kZBias, 0);
+    device::SetRenderState(device::D3D(device), kZBias, 0);
     render::state::Render(kZBias, 0);
     if (render::ScreenDraw(device, v, 4, indices, 6)) {
         gameapi::EnterCriticalSection(device::Lock());
-        device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitive(
+        device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             D3DPT_TRIANGLELIST, kFvf, v, 4, const_cast<std::uint16_t*>(indices), 6, 0);
         gameapi::LeaveCriticalSection(device::Lock());
     }
@@ -76,27 +76,27 @@ int __fastcall RendererRectangle(CSceneRenderer* renderer, void*, int left, int 
     v[2].x = x1, v[2].y = y1;
     v[3].x = x1, v[3].y = y0;
     v[4].x = x0, v[4].y = y0;
-    device::D3D(device)->SetRenderState(kShadeMode, kShadeFlat);
+    device::SetRenderState(device::D3D(device), kShadeMode, kShadeFlat);
     render::state::Render(kShadeMode, kShadeFlat);
-    device::D3D(device)->SetRenderState(kZBias, 1);
+    device::SetRenderState(device::D3D(device), kZBias, 1);
     render::state::Render(kZBias, 1);
-    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kColourOp, kOpDisable);
+    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kColourOp, kOpDisable);
     render::state::Stage(0, kColourOp, kOpDisable);
-    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kAlphaOp, kOpDisable);
+    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kAlphaOp, kOpDisable);
     render::state::Stage(0, kAlphaOp, kOpDisable);
     if (render::ScreenDraw(device, v, 5, nullptr, 0)) {
         gameapi::EnterCriticalSection(device::Lock());
-        device->lastLoadResult_ = device::D3D(device)->DrawPrimitive(D3DPT_LINESTRIP, kFvf, v, 5, 0);
+        device->lastLoadResult_ = device::DrawPrimitive(device::D3D(device), D3DPT_LINESTRIP, kFvf, v, 5, 0);
         gameapi::LeaveCriticalSection(device::Lock());
     }
     Count(device, 5, 1);
-    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kColourOp, kOpModulate);
+    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kColourOp, kOpModulate);
     render::state::Stage(0, kColourOp, kOpModulate);
-    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kAlphaOp, kOpModulate);
+    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kAlphaOp, kOpModulate);
     render::state::Stage(0, kAlphaOp, kOpModulate);
-    device::D3D(device)->SetRenderState(kShadeMode, kShadeGouraud);
+    device::SetRenderState(device::D3D(device), kShadeMode, kShadeGouraud);
     render::state::Render(kShadeMode, kShadeGouraud);
-    device::D3D(device)->SetRenderState(kZBias, 0);
+    device::SetRenderState(device::D3D(device), kZBias, 0);
     render::state::Render(kZBias, 0);
     return 1;
 }

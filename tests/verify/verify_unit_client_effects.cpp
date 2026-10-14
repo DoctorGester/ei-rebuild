@@ -28,7 +28,7 @@ const char* const kHitParts[6] = {"hd", "bd", "lh2", "rh2", "ll2", "rl2"};
 int EffectSources(CUnit* unit) { return unit->Object3D()->effectSources.count; }
 
 // The original's FindPartByPrefix (00516A80) on the unit.
-FigurePart* FindPart(CUnit* unit, const char* name) { return unit->Object3D()->FindPartByPrefix(name); }
+CFigureMesh* FindPart(CUnit* unit, const char* name) { return unit->Object3D()->FindPartByPrefix(name); }
 
 constexpr int kControllerFrom = 0x1C;
 constexpr int kControllerTo = 0xDC;

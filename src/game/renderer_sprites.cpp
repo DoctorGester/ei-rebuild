@@ -378,7 +378,7 @@ int __fastcall DrawIndexed(CTextureDevice* device, void*, int primitive, int fvf
     // The new renderer (src/render) takes the draw; with the old path's objects off it is skipped.
     if (render::TlDraw(device, vertices, fvf, vertexCount, indices, indexCount, primitive)) {
         gameapi::EnterCriticalSection(device::Lock());
-        device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitive(
+        device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             static_cast<D3DPRIMITIVETYPE>(primitive), static_cast<DWORD>(fvf), vertices, static_cast<DWORD>(vertexCount),
             indices, static_cast<DWORD>(indexCount), static_cast<DWORD>(flags));
         gameapi::LeaveCriticalSection(device::Lock());
@@ -417,10 +417,10 @@ int __fastcall DrawSprites(CSceneRenderer* renderer, void*, char additive, const
     DWORD savedSource = 0;
     DWORD savedDest = 0;
     if (additive) {
-        Device(renderer)->GetRenderState(D3DRENDERSTATE_SRCBLEND, &savedSource);
-        Device(renderer)->GetRenderState(D3DRENDERSTATE_DESTBLEND, &savedDest);
-        Device(renderer)->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
-        Device(renderer)->SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
+        device::GetRenderState(Device(renderer), D3DRENDERSTATE_SRCBLEND, &savedSource);
+        device::GetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, &savedDest);
+        device::SetRenderState(Device(renderer), D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+        device::SetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
         render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
         render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
     }
@@ -441,8 +441,8 @@ int __fastcall DrawSprites(CSceneRenderer* renderer, void*, char additive, const
     }
 
     if (additive) {
-        Device(renderer)->SetRenderState(D3DRENDERSTATE_SRCBLEND, savedSource);
-        Device(renderer)->SetRenderState(D3DRENDERSTATE_DESTBLEND, savedDest);
+        device::SetRenderState(Device(renderer), D3DRENDERSTATE_SRCBLEND, savedSource);
+        device::SetRenderState(Device(renderer), D3DRENDERSTATE_DESTBLEND, savedDest);
         render::state::Render(D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(savedSource));
         render::state::Render(D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(savedDest));
     }

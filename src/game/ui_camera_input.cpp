@@ -122,14 +122,14 @@ void CCameraInput::OnKeyUp(int, int, int flags) {
         Vector3 direction = {StoreFloat(y_ * speed), StoreFloat(left * speed), 0.0f};
         camera->Pan(&direction);
         camera->SetTurnRate(0.0f);
-        camera->SetUnknownD0(Bits(ClimbSpeed() * z_));
+        camera->SetZoomTarget(Bits(ClimbSpeed() * z_));
         camera->SetTiltRate(0.0f);
         return;
     }
     Vector3 still = {0.0f, 0.0f, 0.0f};
     camera->Pan(&still);
     camera->SetTurnRate(TurnSpeed() * y_);
-    camera->SetUnknownD0(Bits(ClimbSpeed() * z_));
+    camera->SetZoomTarget(Bits(ClimbSpeed() * z_));
     camera->SetTiltRate(TiltSpeed() * x_);
 }
 

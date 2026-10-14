@@ -22,8 +22,10 @@ file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 # The verify build turns on sokol's validation layer (messages go to ei_hook.log).
 file(GLOB EI_RENDER_SOURCES CONFIGURE_DEPENDS src/render/*.cpp)
 add_library(ei_render STATIC ${EI_RENDER_SOURCES})
-target_include_directories(ei_render PRIVATE include src third_party/sokol)
+target_include_directories(ei_render PRIVATE include src third_party third_party/sokol)
 target_link_libraries(ei_render PUBLIC d3d11 dxgi)
+# Interface text (render_text.cpp): the fonts' default folder while developing; a host can change it.
+target_compile_definitions(ei_render PRIVATE EI_FONT_DIR="${CMAKE_SOURCE_DIR}/third_party/fonts")
 if(EI_VERIFY)
     target_compile_definitions(ei_render PRIVATE EI_RENDER_VALIDATION)
 endif()
@@ -46,6 +48,12 @@ endif()
 target_link_options(ei_hook PRIVATE /OPT:NOREF /MAP)
 
 add_executable(ei_launch tools/launcher/launch.cpp)
+
+# Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
+# report against GDI on the game's strings (tools/text_check; GDI only there).
+add_executable(ei_text_check tools/text_check/text_check.cpp)
+target_include_directories(ei_text_check PRIVATE src)
+target_link_libraries(ei_text_check PRIVATE ei_render gdi32 user32 shell32)
 target_compile_definitions(ei_launch PRIVATE UNICODE _UNICODE)
 
 # Functions already verified in game run without their verify wrappers; disabled ones are not hooked.

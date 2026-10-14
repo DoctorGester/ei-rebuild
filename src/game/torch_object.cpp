@@ -87,7 +87,7 @@ void CTorchObject::WriteTorchNetState() {
     MapObjectWriteNetState(reinterpret_cast<std::uint8_t*>(this));
     DeltaField* field = NetState()->BeginField(kTorchField);
     if (!field) return;
-    std::uint32_t value = spec->unknown_20;
+    std::uint32_t value = spec->lightKind_;
     field->WriteDelta(&value, 4);
     for (float v : {spec->values_[0], spec->values_[1]}) field->WriteDelta(&v, 4);
     field->WriteDelta(&spec->values_[2], 0x10);

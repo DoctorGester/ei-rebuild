@@ -118,7 +118,7 @@ int CTexture::MakeBlank(CTextureDevice* device, const MmpHeader* header, bool me
     // the channel split's first field, which 004EDAA0 never writes: it is always 0.
     ChannelLayout layout;
     layout.Split(&format_);
-    uploadResult_ = static_cast<int>((layout.unknown_00 * desc[kHeight] * desc[kWidth]) >> 3);
+    uploadResult_ = static_cast<int>((layout.bitCount * desc[kHeight] * desc[kWidth]) >> 3);
     return 1;
 }
 EI_REPLACE_METHOD(0x0068F6C0, CTexture::CreateBlank);

@@ -54,7 +54,6 @@ void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D768); }
 __declspec(naked) void* __cdecl ErrorObject(void*, const char*, int, int) EI_ORIGINAL(0x00480250)
 
 constexpr int kRelease = 2, kGetPixelFormat = 21, kGetSurfaceDesc = 22, kLock = 25, kUnlock = 32;   // IDirectDrawSurface7
-constexpr int kCreateSurface = 6, kGetDisplayMode = 12;                    // IDirectDraw7
 constexpr std::uint32_t kDescFlags = 0x1007;    // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH | DDSD_PIXELFORMAT
 constexpr std::uint32_t kPixelFormatFlag = 0x1000;   // DDSD_PIXELFORMAT
 constexpr std::uint32_t kClientMemory = 0x808;  // DDSD_LPSURFACE | DDSD_PITCH
@@ -140,7 +139,8 @@ bool ReadDisplayModeFormat(CTextureDevice* device, std::uint32_t* format) {
     if (!device->ddraw_) return false;
     std::uint32_t mode[0x1F] = {};
     mode[0] = 0x7C;
-    if (ComCall(device->ddraw_, kGetDisplayMode, static_cast<void*>(mode)) != 0 || !(mode[kFormat + 1] & kRgb))
+    if (device::GetDisplayMode(device::DDraw(device), reinterpret_cast<DDSURFACEDESC2*>(mode)) != 0 ||
+        !(mode[kFormat + 1] & kRgb))
         return false;
     std::memcpy(format, &mode[kFormat], 8 * sizeof(std::uint32_t));
     return true;
@@ -322,8 +322,8 @@ CDXSurface* __fastcall DXSurfaceConstruct(CDXSurface* holder, void*, CTextureDev
     }
     void* surface = nullptr;
     gameapi::EnterCriticalSection(DeviceLock());
-    long hr = ComCall(owner->ddraw_, kCreateSurface, static_cast<void*>(desc), static_cast<void*>(&surface),
-                      static_cast<void*>(nullptr));
+    long hr = device::CreateSurface(device::DDraw(owner), reinterpret_cast<DDSURFACEDESC2*>(desc),
+                                   reinterpret_cast<IDirectDrawSurface7**>(&surface));
     owner->lastLoadResult_ = hr;
     if (hr != 0 && client) {
         // DirectDraw refused the client memory: the surface keeps its own.
@@ -333,8 +333,8 @@ CDXSurface* __fastcall DXSurfaceConstruct(CDXSurface* holder, void*, CTextureDev
         DropClientMemory(holder, desc, kClientMemory);
         client = false;
         surface = nullptr;
-        hr = ComCall(owner->ddraw_, kCreateSurface, static_cast<void*>(desc), static_cast<void*>(&surface),
-                     static_cast<void*>(nullptr));
+        hr = device::CreateSurface(device::DDraw(owner), reinterpret_cast<DDSURFACEDESC2*>(desc),
+                                   reinterpret_cast<IDirectDrawSurface7**>(&surface));
         owner->lastLoadResult_ = hr;
     }
     gameapi::LeaveCriticalSection(DeviceLock());
@@ -457,8 +457,8 @@ int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data,
             device->lastLoadResult_ = 0;   // the memory is the surface
         } else {
             gameapi::EnterCriticalSection(DeviceLock());
-            long hr = ComCall(device->ddraw_, kCreateSurface, static_cast<void*>(desc), static_cast<void*>(&surface),
-                              static_cast<void*>(nullptr));
+            long hr = device::CreateSurface(device::DDraw(device), reinterpret_cast<DDSURFACEDESC2*>(desc),
+                                   reinterpret_cast<IDirectDrawSurface7**>(&surface));
             device->lastLoadResult_ = hr;
             if (hr != 0 && client) {
                 // DirectDraw refused the client memory: the surface keeps its own.
@@ -468,8 +468,8 @@ int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data,
                 DropClientMemory(holder, desc, kClientMemory | kPixelFormatFlag);
                 client = false;
                 surface = nullptr;
-                hr = ComCall(device->ddraw_, kCreateSurface, static_cast<void*>(desc), static_cast<void*>(&surface),
-                             static_cast<void*>(nullptr));
+                hr = device::CreateSurface(device::DDraw(device), reinterpret_cast<DDSURFACEDESC2*>(desc),
+                                   reinterpret_cast<IDirectDrawSurface7**>(&surface));
                 device->lastLoadResult_ = hr;
             }
             gameapi::LeaveCriticalSection(DeviceLock());
@@ -583,8 +583,8 @@ CDXSurface* __fastcall DXSurfaceFromDesc(CDXSurface* holder, void*, CTextureDevi
     } else {
         IDirectDrawSurface7* surface = nullptr;
         gameapi::EnterCriticalSection(DeviceLock());
-        device->lastLoadResult_ = device::DDraw(device)->CreateSurface(
-            reinterpret_cast<DDSURFACEDESC2*>(const_cast<std::uint32_t*>(desc)), &surface, nullptr);
+        device->lastLoadResult_ = device::CreateSurface(
+            device::DDraw(device), reinterpret_cast<DDSURFACEDESC2*>(const_cast<std::uint32_t*>(desc)), &surface);
         gameapi::LeaveCriticalSection(DeviceLock());
         holder->surface = device->lastLoadResult_ == 0 ? surface : nullptr;
         if (!holder->surface) ThrowCreateFailed(holder->width, holder->height);

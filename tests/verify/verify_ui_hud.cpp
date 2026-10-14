@@ -473,10 +473,8 @@ EI_VERIFY(0x0063D9D0, QuickItemsUpdateVerify, 0, s_unused);
 
 namespace {
 std::uint32_t RenderState(CUiWindow* w, int state) {
-    using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t*);
-    UiD3DDevice* device = w->interface_->renderer_->device_;
     std::uint32_t value = 0xDEADBEEF;
-    reinterpret_cast<Fn>(device->vtable_[21])(device, state, &value);
+    w->interface_->renderer_->device_->GetRenderState(static_cast<std::uint32_t>(state), &value);
     return value;
 }
 

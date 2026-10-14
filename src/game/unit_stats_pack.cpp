@@ -79,7 +79,7 @@ void* UnitVitals::Pack(UnitVitalsPacked* out) {
 EI_REPLACE_METHOD(0x00522C50, UnitVitals::Pack);
 
 int UnitVitalsPacked::Reset() {
-    unknown_00 = 0;
+    spare00 = 0;
     hitPoints = 0;
     maxHitPoints = 0;
     mana = 0;

@@ -37,7 +37,7 @@ CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self) {
     ei::SetVtable(self, CEngineObject::kVtableAddress);
     self->refCount_ = 0;
     self->id_ = -1;
-    self->unknown_18 = 0;
+    self->prototypeId_ = 0;
     self->type_ = 0;
     self->flags_ = 0;
     self->owner_ = nullptr;
@@ -77,8 +77,8 @@ CCamera* CCamera::Construct() {
     ViewStackConstruct(&viewStack_, nullptr, &alloc, 0);
     new (&fileName_) mfc::CString;   // the empty string
     keys_ = nullptr;
-    unknown_2FC = 0;
-    unknown_2F8 = 0;
+    keyGrowBy_ = 0;
+    keyCapacity_ = 0;
     keyCount_ = 0;
     ei::SetVtable(this, kVtableAddress);
     std::memcpy(&offset98_, &camera::ZeroVector(), sizeof(Vector3));
@@ -94,7 +94,7 @@ CCamera* CCamera::Construct() {
     tiltTarget_ = 0.0f;
     zoomRate_ = 0.0f;
     focus_.y = 10.0f;
-    unknownD0_ = 0;
+    zoomTarget_ = 0;
     focusHeight_ = 2.0f;
     focus_.z = 2.0f;
     std::memcpy(&viewRotation_, &camera::IdentityRotation(), sizeof(Quaternion));
@@ -266,7 +266,7 @@ int __fastcall CameraRecordFrame(CCamera* self, void*, std::uint32_t time) {
     if (!file.Open(self->fileName_, 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
     reinterpret_cast<mfc::CFileVirtuals*>(&file)->Seek(0, 2);   // Seek(0, end), through slot 10
     std::memcpy(&record.time, &time, sizeof(record.time));
-    record.unknown_04 = 0;
+    record.reserved = 0;
     std::memcpy(&record.position, &self->localPosition_, sizeof(record.position));
     std::memcpy(&record.rotation, &self->localRotation_, sizeof(record.rotation));
     CFileWrite(&file, nullptr, &record, sizeof(record));

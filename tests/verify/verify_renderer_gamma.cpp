@@ -1,6 +1,7 @@
 // Checks for the display's gamma ramp (renderer_gamma.cpp).
 #include "verify.h"
 
+#include "../../src/game/device_switchover.h"
 #include "../../src/game/model.h"
 #include "../../src/game/texture.h"
 
@@ -47,6 +48,16 @@ int RampDifference(const DDGAMMARAMP& a, const DDGAMMARAMP& b) {
 static void* s_gamma;
 static bool __fastcall SetGammaVerify(CSceneRenderer* renderer, void*, float brightness, float contrast, float gamma) {
     using Original = bool(__fastcall*)(CSceneRenderer*, void*, float, float, float);
+    if (device::WithoutDirectDraw()) {
+        // The original would ask the stand-in for the capabilities: ours only (R9b). No gamma ramp
+        // without DirectDraw: it returns false before it keeps the three values.
+        const float before[3] = {renderer->brightness_, renderer->contrast_, renderer->gamma_};
+        bool result = renderer->SetGamma(brightness, contrast, gamma);
+        const float after[3] = {renderer->brightness_, renderer->contrast_, renderer->gamma_};
+        ei::verify::Check("SetGamma", true, !result && std::memcmp(before, after, sizeof(before)) == 0,
+                          "without DirectDraw (ours only): (%g, %g, %g) result %d", brightness, contrast, gamma, result);
+        return result;
+    }
     bool expected = reinterpret_cast<Original>(s_gamma)(renderer, nullptr, brightness, contrast, gamma);
     float kept[3] = {renderer->brightness_, renderer->contrast_, renderer->gamma_};
     DDGAMMARAMP before, after;

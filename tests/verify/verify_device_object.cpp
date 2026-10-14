@@ -85,6 +85,14 @@ FormatTable Table(const CTextureDevice* device) {
 // 004E6EE0: PUSH -1 (2), PUSH 0071B8B6 (5).
 void(__fastcall* s_buildFormatTable)(CTextureDevice*);
 void __fastcall BuildFormatTableVerify(CTextureDevice* self) {
+    if (device::WithoutDirectDraw()) {   // the original would ask the stand-in: ours only (R9b)
+        self->BuildFormatTable();
+        const FormatTable table = Table(self);
+        ei::verify::Check("CTextureDevice::BuildFormatTable (004E6EE0)", true, !table.formats.empty() && !table.ids.empty(),
+                          "without DirectDraw (ours only): formats %u, ids %u", static_cast<unsigned>(table.formats.size()),
+                          static_cast<unsigned>(table.ids.size()));
+        return;
+    }
     s_buildFormatTable(self);
     const FormatTable expected = Table(self);
     self->BuildFormatTable();

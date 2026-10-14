@@ -75,14 +75,14 @@ void CCameraInput::OnKeyDown(int, int, int flags) {
         direction.y = Store(D(left) * D(speed));
         Camera()->Pan(&direction);
         Camera()->SetTurnRate(0.0f);
-        Camera()->SetUnknownD0(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
+        Camera()->SetZoomTarget(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
         Camera()->SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
     Camera()->Pan(&direction);
     Camera()->SetTurnRate(Store(D(GameFloat(0x0079BDCC)) * D(GameFloat(0x0079BDC4)) * D(y_)));
-    Camera()->SetUnknownD0(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
+    Camera()->SetZoomTarget(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
     Camera()->SetTiltRate(
         Store(D(GameFloat(0x0079BDD8)) * D(GameFloat(0x0079BDD0)) * D(x_) * D(GameFloat(0x0074023C))));
 }

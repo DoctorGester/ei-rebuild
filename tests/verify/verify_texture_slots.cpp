@@ -43,7 +43,7 @@ using Format8888Check = FormatCheck<&MmpHeader::SetFormat8888, 3>;
 
 // --- CTexture --------------------------------------------------------------------------------------
 
-bool Dropped(const CTexture* t) { return t->block_ == nullptr && t->surface_ == nullptr && t->unknown_64 == 0; }
+bool Dropped(const CTexture* t) { return t->block_ == nullptr && t->surface_ == nullptr && t->spare64_ == 0; }
 
 void __fastcall FreeBlockVerify(CTexture* self) {
     self->FreeBlock();

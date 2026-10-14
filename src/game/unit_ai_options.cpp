@@ -38,7 +38,7 @@ __declspec(naked) int __fastcall SpellKindAt(AIAttention*, void*, const CSpell*)
 __declspec(naked) double __fastcall WeightAt(const AIAttackOption*) EI_ORIGINAL(0x005CE9B0)
 __declspec(naked) void __fastcall OptionsSetSizeAt(AIAttackOptions*, void*, int, int) EI_ORIGINAL(0x005D9250)
 
-int SpellType(const CSpell* spell) { return static_cast<int>(spell->unknown_18 >> 16); }
+int SpellType(const CSpell* spell) { return static_cast<int>(spell->prototypeId_ >> 16); }
 
 } // namespace
 

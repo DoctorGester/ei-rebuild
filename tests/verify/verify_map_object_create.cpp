@@ -21,7 +21,7 @@ void* s_unusedTorch;
 const DeltaState* NetState(const void* object) {
     return reinterpret_cast<const DeltaState*>(static_cast<const std::uint8_t*>(object) + 0x1C4);
 }
-int Capacity(const DeltaState* state) { return static_cast<int>(state->unknown_C); }
+int Capacity(const DeltaState* state) { return static_cast<int>(state->fieldCapacity_); }
 
 const char* CheckState(const DeltaState* state, int fields) {
     if (state->fieldCount_ != fields) return "field count";
@@ -69,7 +69,7 @@ static int __fastcall CreateMapObjectVerify(CMapObject* object) {
     const char* problem = result != 1 ? "result" : CheckState(NetState(object), 4);
     if (!problem && object->companion) problem = "companion";
     if (!problem && (object->changeStamp != -1 || object->effects || object->effectCount)) problem = "stamp / effects";
-    if (!problem && (object->unknown_174 != 5 || object->animationSpeed != 1.0f)) problem = "+0x174 / animationSpeed";
+    if (!problem && (object->updateCountdown != 5 || object->animationSpeed != 1.0f)) problem = "+0x174 / animationSpeed";
     if (!problem && (!object->name2 || object->name2[0])) problem = "second name";
     if (!problem && (object->baseScale.x != 0.0f || object->baseScale.y != 0.0f || object->baseScale.z != 0.0f))
         problem = "base scale";

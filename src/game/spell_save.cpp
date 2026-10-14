@@ -15,7 +15,7 @@ void MapEffect::Load(CStream* stream) {
     stream->Read(&power, 1);
     stream->Read(&ticksLeft, 4);
     stream->Read(&value, 4);
-    stream->Read(&unknown_0C, 4);
+    stream->Read(&strength, 4);
 }
 EI_REPLACE_METHOD(0x00688550, MapEffect::Load);
 
@@ -24,7 +24,7 @@ void MapEffect::Save(CStream* stream) const {
     stream->Write(&power, 1);
     stream->Write(&ticksLeft, 4);
     stream->Write(&value, 4);
-    stream->Write(&unknown_0C, 4);
+    stream->Write(&strength, 4);
 }
 EI_REPLACE_METHOD(0x006885A0, MapEffect::Save);
 

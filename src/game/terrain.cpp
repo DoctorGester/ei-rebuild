@@ -1,4 +1,5 @@
 #include "terrain.h"
+#include "terrain_sector.h"   // SectorData
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -20,14 +21,14 @@ const float* Terrain::VertexAt(int ix, int iy, int layer) {
     if (lx == 0 && sx != 0) { --sx; lx = 32; }
     if (ly == 0 && sy != 0) { --sy; ly = 32; }
 
-    TerrainSector* sector = SectorAt(sx, sy, 1, 1);
+    terrain::SectorData* sector = SectorAt(sx, sy, 1, 1);
     if (!sector) return nullptr;
     int layerOffset = 0;
     if (layer) {
         if (!sector->hasWater) return nullptr;
         layerOffset = 33 * 33;
     }
-    return sector->vertices + (lx + ly * 33 + layerOffset) * 3;
+    return &sector->vertices.data[lx + ly * 33 + layerOffset].x;
 }
 
 float __fastcall PlaneHeight(const float* v0, const float* v1, float x, float y, const float* v2) {

@@ -20,6 +20,7 @@
 #include "lib/vecmath.h"
 
 #include <cstdint>
+#include <cstring>
 
 // ---- App ------------------------------------------------------------------------------------------
 
@@ -47,22 +48,23 @@ Vector3* __fastcall Vector3FromParts(Vector3* self, void*, float x, float y, flo
 }
 EI_REPLACE(0x00471A90, Vector3FromParts);
 
-// 00471AB0 / 00471AD0 / 00471AF0 (RET 4): the scene helper's three vectors, set from `value`
-// (SceneInfo::Load builds each from three numbers of the file with 00471A90).
-void __fastcall SceneHelperSetVectorB(scene::SceneHelper* helper, void*, const Vector3* value) {
-    helper->vectorB = *value;
+// 00471AB0 / 00471AD0 / 00471AF0 (RET 4): a scene helper's (a CMaterial's) diffuse, ambient and
+// specular red, green and blue, set from `value` (SceneInfo::Load builds each from three numbers
+// of the file with 00471A90); the alphas stay.
+void __fastcall MaterialSetDiffuse(CMaterial* helper, void*, const Vector3* value) {
+    std::memcpy(&helper->colors.diffuse, value, sizeof(Vector3));
 }
-EI_REPLACE(0x00471AB0, SceneHelperSetVectorB);
+EI_REPLACE(0x00471AB0, MaterialSetDiffuse);
 
-void __fastcall SceneHelperSetVectorA(scene::SceneHelper* helper, void*, const Vector3* value) {
-    helper->vectorA = *value;
+void __fastcall MaterialSetAmbient(CMaterial* helper, void*, const Vector3* value) {
+    std::memcpy(&helper->colors.ambient, value, sizeof(Vector3));
 }
-EI_REPLACE(0x00471AD0, SceneHelperSetVectorA);
+EI_REPLACE(0x00471AD0, MaterialSetAmbient);
 
-void __fastcall SceneHelperSetVectorC(scene::SceneHelper* helper, void*, const Vector3* value) {
-    helper->vectorC = *value;
+void __fastcall MaterialSetSpecular(CMaterial* helper, void*, const Vector3* value) {
+    std::memcpy(&helper->colors.specular, value, sizeof(Vector3));
 }
-EI_REPLACE(0x00471AF0, SceneHelperSetVectorC);
+EI_REPLACE(0x00471AF0, MaterialSetSpecular);
 
 // ---- Effects --------------------------------------------------------------------------------------
 

@@ -158,21 +158,21 @@ int FillIndices(const SectorData* s, int lod, int tiles, const std::uint8_t* edg
     auto* indices = Indices().data;
     int count = 0;
     int base = 0;
-    bool seams = s->unknown_174 != 0 || s->unknown_178 != 0;
+    bool seams = s->seamBefore != 0 || s->seamAfter != 0;
     if (lod == 2) {
         for (int t = 0; t < tiles; ++t, base += 4) PutTriangles(indices, count, base, kLod2);
     } else if (lod == 1) {
         for (int t = 0; t < tiles; ++t, base += 6) {
             std::uint8_t edge = seams ? edges[t] : 0;
-            if (seams && s->unknown_174 != 0 && (edge & 4)) PutTriangles(indices, count, base, kLod1Edge4);
-            else if (seams && s->unknown_178 != 0 && (edge & 8)) PutTriangles(indices, count, base, kLod1Edge8);
+            if (seams && s->seamBefore != 0 && (edge & 4)) PutTriangles(indices, count, base, kLod1Edge4);
+            else if (seams && s->seamAfter != 0 && (edge & 8)) PutTriangles(indices, count, base, kLod1Edge8);
             else PutTriangles(indices, count, base, kLod1);
         }
     } else if (lod == 0) {
         for (int t = 0; t < tiles; ++t, base += 9) {
             std::uint8_t edge = seams ? edges[t] : 0;
-            if (seams && s->unknown_174 != 0 && (edge & 1)) PutTriangles(indices, count, base, kLod0Edge1);
-            else if (seams && s->unknown_178 != 0 && (edge & 2)) PutTriangles(indices, count, base, kLod0Edge2);
+            if (seams && s->seamBefore != 0 && (edge & 1)) PutTriangles(indices, count, base, kLod0Edge1);
+            else if (seams && s->seamAfter != 0 && (edge & 2)) PutTriangles(indices, count, base, kLod0Edge2);
             else PutTriangles(indices, count, base, kLod0);
         }
     }
@@ -229,7 +229,7 @@ constexpr int kContextDraw = 12;      // (vertices, count, indices, index count)
 // 006BFF40. Returns 1, or 0 when the context fails to draw.
 int __fastcall DrawSectorPage(SectorData* s, void*, void* context, void* /*unused*/, int page, int /*unused*/) {
     void* clipper = *reinterpret_cast<void**>(*reinterpret_cast<char**>(static_cast<char*>(context) + 8) + 0xC);
-    if (s->unknown_060 == 2) return 1;
+    if (s->clipMode == 2) return 1;
     EnsureStatics();
     if (s->hasWater) ApplyWaterLevels(s);
     // The new renderer (src/render) takes the page; with "noterrain" the old path stops here. The
@@ -244,7 +244,7 @@ int __fastcall DrawSectorPage(SectorData* s, void*, void* context, void* /*unuse
         const terrain::TileList& list = s->tiles[quarter].data[page];
         int tiles = list.size / 9;
         if (tiles == 0) continue;
-        int lod = s->unknown_170;
+        int lod = s->detail;
         int vertices = VerticesPerTile(lod) * tiles;
         int indexCapacity = TrianglesPerTile(lod) * tiles * 3;
         SizeVertices(vertices * 4);
@@ -255,7 +255,7 @@ int __fastcall DrawSectorPage(SectorData* s, void*, void* context, void* /*unuse
 
         // The tile edge flags are only looked at when a neighbouring quarter is coarser.
         const std::uint8_t* edges = nullptr;
-        if (lod != 2 && (s->unknown_174 != 0 || s->unknown_178 != 0)) edges = s->tileFlags[quarter].data[page].data;
+        if (lod != 2 && (s->seamBefore != 0 || s->seamAfter != 0)) edges = s->tileFlags[quarter].data[page].data;
         int vertexCount = 0;
         int indexCount = FillIndices(s, lod, tiles, edges, vertexCount);
         if (!(indexCount > 0)) continue;

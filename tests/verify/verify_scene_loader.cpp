@@ -200,11 +200,11 @@ void CompareNode(Diff& d, int i, const void* a, const void* b) {
 // +0x64..+0x8B of a helper is a container its constructor (0068DBC0) builds on the heap; the loader
 // does not touch it, so it is left out.
 void CompareHelper(Diff& d, int i, const void* a, const void* b) {
-    CompareBytes(d, "helper", i, a, b, 0x64, {helper::kName});
-    CompareBytes(d, "helper", i, At(a, 0x8C), At(b, 0x8C), helper::kSize - 0x8C, {helper::kName2 - 0x8C, helper::kName3 - 0x8C});
-    CompareString(d, "helper name", i, At(a, helper::kName), At(b, helper::kName));
-    CompareString(d, "helper name2", i, At(a, helper::kName2), At(b, helper::kName2));
-    CompareString(d, "helper name3", i, At(a, helper::kName3), At(b, helper::kName3));
+    CompareBytes(d, "helper", i, a, b, 0x64, {offsetof(CMaterial, name)});
+    CompareBytes(d, "helper", i, At(a, 0x8C), At(b, 0x8C), sizeof(CMaterial) - 0x8C, {offsetof(CMaterial, name2) - 0x8C, offsetof(CMaterial, name3) - 0x8C});
+    CompareString(d, "helper name", i, At(a, offsetof(CMaterial, name)), At(b, offsetof(CMaterial, name)));
+    CompareString(d, "helper name2", i, At(a, offsetof(CMaterial, name2)), At(b, offsetof(CMaterial, name2)));
+    CompareString(d, "helper name3", i, At(a, offsetof(CMaterial, name3)), At(b, offsetof(CMaterial, name3)));
 }
 
 void CompareArray(Diff& d, const char* what, const VtArray& a, const VtArray& b, std::size_t elementSize,
@@ -245,7 +245,7 @@ mfc::BOOL __fastcall LoadVerify(SceneInfo* self, void*, void* file, VtArray* mes
     if (expected != actual || info.flags_ != self->flags_) d.Fail("result %d/%d flags %04X/%04X", expected, actual, info.flags_, self->flags_);
     if (!d.failed) CompareArray(d, "meshes", meshCopy, *meshes, mesh::kSize, &CompareMesh);
     if (!d.failed) CompareArray(d, "nodes", nodeCopy, *nodes, node::kSize, &CompareNode);
-    if (!d.failed) CompareArray(d, "helpers", helperCopy, *helpers, helper::kSize, &CompareHelper);
+    if (!d.failed) CompareArray(d, "helpers", helperCopy, *helpers, sizeof(CMaterial), &CompareHelper);
     ei::verify::Check("SceneInfo::Load", true, !d.failed, "%s (%u reads, %d meshes, %d helpers)", d.where, unsigned(ops.size()),
                       meshes->size, helpers->size);
 

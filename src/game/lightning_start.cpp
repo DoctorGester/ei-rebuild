@@ -158,7 +158,7 @@ CLightning* __fastcall LightningNewObject(CLightningManager*, void*, int /*type*
     SetVtable(bolt, kEngineObjectVtable);
     bolt->refCount_ = 0;
     bolt->id_ = -1;
-    bolt->unknown_18 = 0;
+    bolt->prototypeId_ = 0;
     bolt->type_ = 0;
     bolt->flags_ = 0;
     bolt->owner_ = nullptr;
