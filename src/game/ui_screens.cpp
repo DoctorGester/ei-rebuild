@@ -155,9 +155,8 @@ void CUiItemStrip::SetTab(int tab) {
     position = static_cast<float>(GameFtol(static_cast<double>(pending_) + position));
     tab_ = tab;
     for (int i = 0; i < 6; ++i) {
-        auto* object = reinterpret_cast<char*>(window.sceneObjects_.data[i + 2]);
         float shade = i == tab ? 1.0f : 0.5f;
-        auto* color = reinterpret_cast<float*>(object + 0x224);
+        float* color = window.SceneMesh(i + 2)->tint_;
         color[0] = shade;
         color[1] = shade;
         color[2] = shade;
@@ -185,7 +184,7 @@ void CUiItemStrip::SetFilter(int filter) {
     default: return;
     }
     for (int i = 2; i < 8; ++i) {
-        *reinterpret_cast<std::uint32_t*>(reinterpret_cast<char*>(window.sceneObjects_.data[i]) + 0xCC) = column;
+        std::memcpy(&window.SceneMesh(i)->uOffset_, &column, sizeof(column));
         SetRegionTip(window.regions_.data[i], nullptr, tipBase + i, 1, 0);
     }
 }
@@ -222,8 +221,9 @@ int CUiItemStrip::SpellTab(const char* item) {
     UiItemKinds* kinds = KindsOf(owner_);
     if (kinds->IsSpell(item)) {
         // A record out of range is read through null, as in the original.
-        const char* spell = itemdb::Spells().At(ItemRecord(item), itemdb::kSpellSize);
-        switch (Field<int>(spell, 0x10)) {
+        auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
+            itemdb::Spells().At(ItemRecord(item), itemdb::kSpellSize));
+        switch (spell->unknown_10) {
         case 0: return 0;
         case 1: return 1;
         case 2: return 2;
@@ -231,8 +231,9 @@ int CUiItemStrip::SpellTab(const char* item) {
         }
     }
     if (kinds->IsModifier(item)) {
-        const char* modifier = itemdb::SpellModifiers().At(ItemRecord(item), itemdb::kSpellModifierSize);
-        return (Field<int>(modifier, 0xC) > 5) + 3;
+        auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(
+            itemdb::SpellModifiers().At(ItemRecord(item), itemdb::kSpellModifierSize));
+        return (static_cast<int>(modifier->kind) > 5) + 3;
     }
     return 5;
 }
@@ -244,8 +245,9 @@ int CUiItemStrip::ArmorTab(const char* item) {
         switch (ItemSubKind(item)) {
         case 0: return 0;
         case 1: {
-            const char* armor = itemdb::Armors().At(ItemRecord(item), itemdb::kArmorSize);
-            return Field<std::uint32_t>(armor, 0xC) > 2 ? 1 : 2;
+            auto* armor = reinterpret_cast<const itemdb::ArmorRecord*>(
+                itemdb::Armors().At(ItemRecord(item), itemdb::kArmorSize));
+            return static_cast<std::uint32_t>(armor->type) > 2 ? 1 : 2;
         }
         case 2: return 3;
         default: return 5;

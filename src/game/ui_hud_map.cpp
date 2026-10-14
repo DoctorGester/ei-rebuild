@@ -9,11 +9,12 @@
 
 #include "base_manager.h"
 #include "maths.h"
+#include "player_client.h"
+#include "spell.h"
 #include "unit.h"
 #include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -60,37 +61,15 @@ constexpr std::int16_t kFrameNeutral = 1;   // other units; zone exits
 constexpr std::int16_t kFrameHostile = 2;
 constexpr std::int16_t kFrameMarked = 3;    // marked objects
 
-// The local view's lists of object ids (CWorldClient::LocalView).
-struct MapLocalView {
-    int* UnitIds() const { return Field<int*>(0x50D8); }   // units shown on the map
-    int UnitCount() const { return Field<int>(0x50DC); }
-    int* PlayerUnitIds() const { return Field<int*>(0x50E8); }   // multiplayer: the others
-    int PlayerUnitCount() const { return Field<int>(0x50EC); }
-    // The local player's side (+0x1C is the WorldPlayer, its +0x24 the side).
-    int Side() const { return *reinterpret_cast<const int*>(Field<std::uint8_t*>(0x1C) + 0x24); }
+// The local view (CWorldClient::LocalView): the ids of the units shown on the map (partyUnitIds_)
+// and, in multiplayer, of the other players' units (otherUnitIds_).
+CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
+// The local player's side: its world player's number.
+int LocalSide() { return LocalView()->Owner()->playerId_; }
 
-    template <typename T>
-    const T& Field(std::size_t offset) const {
-        return *reinterpret_cast<const T*>(reinterpret_cast<const std::uint8_t*>(this) + offset);
-    }
-};
-MapLocalView* LocalView() { return reinterpret_cast<MapLocalView*>(WorldClient()->LocalView()); }
-
-// STLport list node of the marked-object ids.
-struct IdNode {
-    IdNode* next;
-    IdNode* prev;
-    unsigned id;
-};
-// The manager at 007AF748: a CBaseManager whose +0xD4 list holds the ids of the objects the
-// minimap marks.
-struct MarkerManager : CBaseManager {
-    IdNode* Marked() const {
-        return *reinterpret_cast<IdNode* const*>(reinterpret_cast<const std::uint8_t*>(this) + 0xD4);
-    }
-};
 CBaseManager* Objects() { return *reinterpret_cast<CBaseManager* const*>(0x007AF5F8); }
-MarkerManager* Markers() { return *reinterpret_cast<MarkerManager* const*>(0x007AF748); }
+// The light factory's list of lit ids (CLightFactory::litIds_) is what the minimap marks.
+using IdNode = stlp::list<int>::Node;
 
 // Builds the mesh entries in order. Each entry is one quad block (positions), four vertex
 // records and its indices: three for a unit (one triangle), six for the other markers.
@@ -215,7 +194,7 @@ private:
 // Frame of a unit that is not in the party: hostile when both relation masks have the local
 // side's bit. The special unit 0xA2C2A counts as hostile in zone gz20g whatever its relations.
 std::int16_t UnitFrame(const CUnit* unit) {
-    int side = LocalView()->Side();
+    int side = LocalSide();
     if (unit->id_ == kSpecialUnitId) {
         alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
         mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
@@ -231,8 +210,7 @@ std::int16_t UnitFrame(const CUnit* unit) {
 // The arrow of a unit at map position (x, y) (already zoomed), pointing along the unit's
 // facing: the tip twice (vertices 0 and 1), then the two back corners.
 void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
-    const Quaternion* rotation =
-        reinterpret_cast<const Quaternion*>(reinterpret_cast<const std::uint8_t*>(unit) + 0x34);
+    const Quaternion* rotation = &unit->orientation;
     // The original computes the rotated Y axis twice and takes x from the first, y from the
     // second (the function is pure).
     Vector3 first;
@@ -284,13 +262,14 @@ __declspec(naked) int CUiMesh::Commit() EI_ORIGINAL(0x005EA150)
 void CHudMap::BuildMarkers() {
     CUiMesh* mesh = reinterpret_cast<CUiMesh*>(sceneObjects_.data[2]);
     CBaseManager* objects = Objects();
-    MapLocalView* view = LocalView();
-    int unitCount = view ? view->UnitCount() : 0;
-    MarkerManager* markers = Markers();
+    CPlayerClient* view = LocalView();
+    int unitCount = view ? view->partyUnitIds_.size : 0;
+    CLightFactory* markers = TheLightFactory();
+    const stlp::list<int>& marked = markers->litIds_;
     int markedCount = 0;
-    for (IdNode* node = markers->Marked()->next; node != markers->Marked(); node = node->next) ++markedCount;
+    for (IdNode* node = marked.First(); node != marked.End(); node = node->next) ++markedCount;
     int exitCount = WorldClient()->exitCount_;
-    int playerCount = IsMultiplayerClient() ? view->PlayerUnitCount() : 0;
+    int playerCount = IsMultiplayerClient() ? view->otherUnitIds_.size : 0;
 
     int quads = markedCount + playerCount + exitCount;   // six indices each
     mesh->SetQuadCount(quads + unitCount);
@@ -302,8 +281,8 @@ void CHudMap::BuildMarkers() {
     // The units the local view lists: an arrow, unless dead or outside the circle.
     for (int i = 0; i < unitCount; ++i) {
         out.BeginUnit();
-        auto* unit = reinterpret_cast<CUnit*>(objects->FindObject(view->UnitIds()[i]));
-        if (!unit || ei::VCall<int>(unit, 55) != 0) {   // slot 55: dead (+0x274)
+        auto* unit = reinterpret_cast<CUnit*>(objects->FindObject(view->partyUnitIds_[i]));
+        if (!unit || unit->IsDead() != 0) {
             out.Hide();
             continue;
         }
@@ -329,11 +308,11 @@ void CHudMap::BuildMarkers() {
     }
 
     // The marked objects: squares.
-    IdNode* node = markers->Marked()->next;
+    IdNode* node = marked.First();
     for (int i = 0; i < markedCount; ++i, node = node->next) {
-        if (node == markers->Marked()) break;
+        if (node == marked.End()) break;
         out.BeginQuad();
-        auto* object = reinterpret_cast<CUnit*>(markers->FindObject(node->id));
+        auto* object = reinterpret_cast<CUnit*>(markers->FindObject(node->data));
         float x, y;
         if (object && out.Place(object->position.x, object->position.y, &x, &y)) {
             out.PutSquare(x, y);
@@ -365,7 +344,7 @@ void CHudMap::BuildMarkers() {
     if (IsMultiplayerClient()) {
         for (int i = 0; i < playerCount; ++i) {
             out.BeginQuad();
-            auto* unit = reinterpret_cast<CUnit*>(objects->FindObject(view->PlayerUnitIds()[i]));
+            auto* unit = reinterpret_cast<CUnit*>(objects->FindObject(view->otherUnitIds_[i]));
             float x, y;
             if (unit && out.Place(unit->position.x, unit->position.y, &x, &y)) {
                 out.PutDiamond(x, y);
@@ -466,7 +445,7 @@ void CHudMap::UpdateView() {
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sceneObjects_.data[10]) + 0x34, &turn, sizeof(turn));
+    std::memcpy(&SceneMesh(10)->orientation_, &turn, sizeof(turn));
 
     // The view polygon in world units.
     auto* area = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);

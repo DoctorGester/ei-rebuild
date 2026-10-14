@@ -693,7 +693,7 @@ namespace {
 
 // 0052C690 (thiscall on a counted pointer, RET 4; a copy of ObjectHolderAssign): the slot takes
 // `object` with a reference and releases the one it held.
-__declspec(naked) void __fastcall CountedSlotAssign(void** slot, void*, void* object) EI_ORIGINAL(0x0052C690)
+__declspec(naked) void __fastcall CountedSlotAssign(void** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0052C690)
 
 void ReleaseObject(void* object) {
     if (object) static_cast<CEngineObject*>(object)->Release();

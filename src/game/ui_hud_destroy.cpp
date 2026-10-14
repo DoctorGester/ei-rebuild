@@ -50,8 +50,8 @@ void CHudMap::DestroyBody() {
 EI_REPLACE_METHOD(0x00635CA0, CHudMap::DestroyBody);
 
 void CHudUnitPanel::DestroyBody() {
-    StringArrayDestruct(&partLabelsVtable_);
-    StringArrayDestruct(&textsVtable_);
+    StringArrayDestruct(&partLabels_);
+    StringArrayDestruct(&texts_);
     reinterpret_cast<mfc::CString*>(&strings_[1])->~CString();
     reinterpret_cast<mfc::CString*>(&strings_[0])->~CString();
     DestroyBase();

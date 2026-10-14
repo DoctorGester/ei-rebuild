@@ -831,6 +831,16 @@ public:
         using Fn = BOOL(__thiscall*)(CUiWindow*, void*);
         return reinterpret_cast<Fn>(vtable_[20])(this, pass);
     }
+    BOOL VirtualDraw(int pass) {
+        using Fn = BOOL(__thiscall*)(CUiWindow*, int);
+        return reinterpret_cast<Fn>(vtable_[20])(this, pass);
+    }
+    // Slot 21 (+0x54): the draw a window with child windows (00600F70) gives each enabled child,
+    // with the pass.
+    void VirtualDrawChild(int pass) {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[21])(this, pass);
+    }
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
     void VirtualUpdate() { CallVirtual(24); }
@@ -1024,6 +1034,7 @@ class CHudSpellColumn;
 class CHudActionColumn;
 class CHudWeaponBar;
 class CHudPortraits;
+class CHudUnitPanel;
 
 // An MFC CDWordArray. Its SetSize is the instantiation's (0059C660, not rewritten; `growBy` -1
 // keeps the step), through UiDwordsSetSize (ui_battle_setup.cpp).
@@ -1035,7 +1046,17 @@ void __fastcall UiDwordsSetSize(UiDwordArray* array, void*, int size, int growBy
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
 struct UiD3DDevice {
-    void** vtable_;   // IDirect3DDevice7: slot 20 SetRenderState, 21 GetRenderState
+    // IDirect3DDevice7 slots 20 / 21 (stdcall).
+    long SetRenderState(std::uint32_t state, std::uint32_t value) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, std::uint32_t);
+        return reinterpret_cast<Fn>(vtable_[20])(this, state, value);
+    }
+    long GetRenderState(std::uint32_t state, std::uint32_t* value) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, std::uint32_t*);
+        return reinterpret_cast<Fn>(vtable_[21])(this, state, value);
+    }
+
+    void** vtable_;   // IDirect3DDevice7
 };
 struct UiRenderer {
     // 004E7840 / 004E7A40 (not rewritten). Flush the two batched vertex buffers.
@@ -1110,7 +1131,8 @@ public:
     CHudSpellColumn* spellColumn_;   // +0x19C
     CHudActionColumn* actionColumn_; // +0x1A0
     CHudPortraits* portraits_;       // +0x1A4
-    std::uint8_t unknown_1A8[0x220 - 0x1A8];
+    CHudUnitPanel* unitPanel_;       // +0x1A8
+    std::uint8_t unknown_1AC[0x220 - 0x1AC];
     // +0x220 the key a player's item gives (its slot 21) when it starts mode 6; SelectUnit hands
     // it to the target's AcceptsKey (map object slot 42).
     LockKey itemUseKey_;
@@ -1850,17 +1872,14 @@ public:
     float slideDirection_;           // +0x17C +1 / -1
     int bodyPart_;                   // +0x180 selected body part 0-3 (scene objects 3-6)
     int effectIcons_[6];             // +0x184 the spell pictures in the icon texture's six places
-    void* textsVtable_;              // +0x19C CStringArray
-    std::uint8_t unknown_1A0[0x1B0 - 0x1A0];
-    void* partLabelsVtable_;         // +0x1B0 CStringArray (its data:)
-    mfc::CString* partLabels_;       // +0x1B4 four: the shown names of "skull", "torso", "leg", "arm"
+    mfc::CStringArray texts_;        // +0x19C "infounit_0".."infounit_17": the info lines' labels
+    mfc::CStringArray partLabels_;   // +0x1B0 four: the shown names of "skull", "torso", "leg", "arm"
 };
+static_assert(offsetof(CHudUnitPanel, texts_) == 0x19C && offsetof(CHudUnitPanel, partLabels_) == 0x1B0);
 static_assert(offsetof(CHudUnitPanel, owner_) == 0x148 && offsetof(CHudUnitPanel, shownUnit_) == 0x14C);
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150 && offsetof(CHudUnitPanel, strings_) == 0x164);
 static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHudUnitPanel, offset_) == 0x170);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
-static_assert(offsetof(CHudUnitPanel, textsVtable_) == 0x19C);
-static_assert(offsetof(CHudUnitPanel, partLabels_) == 0x1B4);
 
 // Game clock (set up by 00648520, vtables 007425C8 / 00742594; 720..800 x 520..600).
 class CHudClock : public CUiWindow {

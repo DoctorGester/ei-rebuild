@@ -20,10 +20,6 @@
 
 namespace {
 
-template <typename T>
-T& At(void* base, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 const char* const kValuePair = Text(0x00792F08);     // "%s %d/%d"
@@ -111,11 +107,11 @@ struct Panel {
     }
 };
 
-// Whether `unit` is not in the group (+0x148: +0x16C units, +0x170 count).
-bool OutsideGroup(CHudUnitPanel* self, void* unit) {
-    char* group = reinterpret_cast<char*>(self->owner_);
-    int count = At<int>(group, 0x170);
-    void** units = At<void**>(group, 0x16C);
+// Whether `unit` is not in the group (the battle screen's party).
+bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
+    CBattleScreen* group = self->owner_;
+    int count = group->partyCount_;
+    CUnit** units = group->party_;
     for (int i = 0; i < count; ++i) {
         if (units[i] == unit) return false;
     }
@@ -127,25 +123,22 @@ bool IsEmpty(const mfc::CString& s) { return reinterpret_cast<const int*>(static
 } // namespace
 
 // 00647040. Draws the info lines of `unit`.
-void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
+void __fastcall DrawUnitInfo(CHudUnitPanel* hud, void*, CUnit* unit) {
     void* texts = *reinterpret_cast<void**>(0x007AF788);
-    auto* hud = reinterpret_cast<CHudUnitPanel*>(self);
-    auto* unitObject = reinterpret_cast<CUnit*>(unit);
-    UnitParams* params = unitObject->Params();
-    char* stats = unit + 0x330;
+    UnitParams* params = unit->Params();
     mfc::CString suffix;
     Panel panel;
     panel.surface = *hud->surfaces_.data;
-    panel.labels = At<const mfc::CString*>(self, 0x1A0);
+    panel.labels = hud->texts_.data;
     panel.rect = {5, 0x23, 0x9B, 0x32};
 
-    std::int16_t health = unitObject->packedVitals.hitPoints;
+    std::int16_t health = unit->packedVitals.hitPoints;
     panel.text.Format(kValuePair, static_cast<const char*>(panel.labels[0]), health > 0 ? static_cast<int>(health) : 0,
-                      static_cast<int>(unitObject->packedVitals.maxHitPoints));
+                      static_cast<int>(unit->packedVitals.maxHitPoints));
     panel.DrawLine();
     bool outside = OutsideGroup(hud, unit);
-    panel.text.Format(kValuePair, static_cast<const char*>(panel.labels[1]), static_cast<int>(unitObject->packedVitals.mana),
-                      static_cast<int>(unitObject->packedVitals.maxMana));
+    panel.text.Format(kValuePair, static_cast<const char*>(panel.labels[1]), static_cast<int>(unit->packedVitals.mana),
+                      static_cast<int>(unit->packedVitals.maxMana));
     panel.DrawLine();
 
     std::uint8_t moveBonus = params->movementKind;
@@ -160,12 +153,12 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     panel.DrawLine();
 
     float dayTime = static_cast<float>(WorldDayTime(reinterpret_cast<void*>(0x007AF5B8)));
-    int vision = x87::fistp(static_cast<float>(UnitParamsVisionRangeOriginal(stats, nullptr, dayTime)));
+    int vision = x87::fistp(static_cast<float>(UnitParamsVisionRangeOriginal(params, nullptr, dayTime)));
     panel.text.Format(kValueUnit, static_cast<const char*>(panel.labels[6]), vision, static_cast<const char*>(panel.labels[13]));
     panel.DrawLine();
 
     CombatInfo combat;
-    void* controller = unitObject->controller;
+    void* controller = unit->controller;
     reinterpret_cast<void(__fastcall*)(void*, void*, CombatInfo*)>((*static_cast<void***>(controller))[kCombatInfoSlot])(
         controller, nullptr, &combat);
     panel.text.Format(kValue, static_cast<const char*>(panel.labels[3]), combat.attack);
@@ -185,7 +178,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     panel.DrawLine();
 
     std::uint8_t description[0x1C];
-    UnitParameterBlock(stats, nullptr, unit + 0x17C, description, IsTextKeyOriginal(unitObject->id_));
+    UnitParameterBlock(params, nullptr, &unit->packedVitals, description, IsTextKeyOriginal(unit->id_));
     console::CStringArray lines;
     DescriptionLines(description, &lines, 1);
     panel.DrawLabelled(10, lines[0]);
@@ -193,10 +186,10 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
         if (!IsEmpty(lines[1])) panel.DrawLabelled(11, lines[1]);
         auto* prototype = static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit));
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
-        char* group = reinterpret_cast<char*>(hud->owner_);
-        if (At<int>(group, 0x170) > 0) {
-            void* leader = At<void**>(group, 0x16C)[0];
-            int difference = UnitLevel(reinterpret_cast<CUnit*>(unit)) - UnitLevel(static_cast<CUnit*>(leader));
+        CBattleScreen* group = hud->owner_;
+        if (group->partyCount_ > 0) {
+            CUnit* leader = group->party_[0];
+            int difference = UnitLevel(unit) - UnitLevel(leader);
             if (difference > kLevelDifferenceLimit) {
                 suffix.Format(kStronger, kLevelDifferenceLimit);
             } else if (difference < -kLevelDifferenceLimit) {

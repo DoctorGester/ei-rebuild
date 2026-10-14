@@ -25,11 +25,6 @@
 
 namespace {
 
-template <typename T>
-T& Field(void* base, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset);
-}
-
 constexpr std::uint32_t kFlagSelected = 0x10;
 void* const kWorld = reinterpret_cast<void*>(0x007AF5B8);
 void* const kServerWorld = reinterpret_cast<void*>(0x007AFF60);
@@ -43,13 +38,7 @@ float PortraitDelay(std::uint32_t random) {
 
 // The orders' unit list: an MFC CArray<CUnit*> on the stack (vtable 007402AC, SetSize 005EBDB0,
 // RET 8); its data is freed with operator delete.
-struct OrderUnits {
-    void* vtable;
-    CUnit** data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using OrderUnits = mfc::CArray<CUnit*>;
 // The toggle's CArray<DWORD> (vtable 0073C3D0; 00460500 SetAtGrow, RET 8).
 
 // The client world (007AF5B8, thiscall): 005699F0 the local view, 00566100 (RET 4) with 0 clears
@@ -180,7 +169,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
                 if (i >= party->size) continue;
                 PartyUnitRecord* record = &reinterpret_cast<PartyUnitRecord*>(player->mercs)[i];
                 CUnit* member = unitAt(i);
-                if (member->id_ == Field<int>(record, 0x1C))
+                if (member->id_ == static_cast<int>(record->unknown_01C))   // the record's unit id
                     record->unknown_778 = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);
             }
         }
@@ -246,7 +235,7 @@ void CBattleScreenSetup::UseOnUnit(CUnit* target, char quick, int ctrl) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         float position[3];   // the target's position, passed to the (unused) argument of the checks
-        std::memcpy(position, reinterpret_cast<std::uint8_t*>(target) + 0x1C, sizeof(position));
+        std::memcpy(position, &target->position, sizeof(position));
         int refused;
         if (quick == 0) {
             ViewSpellOnUnit(LocalView(kWorld), nullptr, pendingSlot_, member, target, ctrl & 0xFF);
@@ -272,7 +261,7 @@ void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         if (member == unit) {
             Vector3 axis;
-            reinterpret_cast<const Quaternion*>(reinterpret_cast<std::uint8_t*>(unit) + 0x34)->AxisY(&axis);
+            unit->orientation.AxisY(&axis);
             const float k = *reinterpret_cast<const volatile float*>(0x0073B850);   // 0.1
             point[0] = point[0] + -axis.x * k;
             point[1] = point[1] + -axis.y * k;

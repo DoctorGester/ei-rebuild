@@ -324,7 +324,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     CTextManager* texts = GameTexts();
     mfc::CString text;
     mfc::CString key;
-    auto* infoTexts = reinterpret_cast<mfc::CStringArray*>(&textsVtable_);
+    mfc::CStringArray* infoTexts = &texts_;
     for (int i = 0; i < kInfoTexts; ++i) {
         key.Format(GameText(kInfoTextFormat), i);
         text.Empty();
@@ -332,7 +332,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
         infoTexts->SetAtGrow(infoTexts->size, text);
     }
     // A missing label keeps the text before it.
-    auto* labels = reinterpret_cast<mfc::CStringArray*>(&partLabelsVtable_);
+    mfc::CStringArray* labels = &partLabels_;
     for (std::uintptr_t labelKey : kPartLabelKeys) {
         texts->GetString(GameText(labelKey), &text);
         labels->SetAtGrow(labels->size, text);
