@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
@@ -96,13 +97,9 @@ __declspec(naked) void SurfaceAt::ReleaseContents() EI_ORIGINAL(0x005FD120)
 void SurfaceAt::Freeze(int save) { SurfaceSwapContentsOriginal(this, nullptr, save); }
 
 struct InterfaceAt : CInterface3D {
-    void Activate(CUiWindow* window);                       // 005F71C0
     void Push(void* window, int a, int b);                  // 005F7350
-    void AfterCloseAll();                                   // 005F8C50
 };
-__declspec(naked) void InterfaceAt::Activate(CUiWindow*) EI_ORIGINAL(0x005F71C0)
 __declspec(naked) void InterfaceAt::Push(void*, int, int) EI_ORIGINAL(0x005F7350)
-__declspec(naked) void InterfaceAt::AfterCloseAll() EI_ORIGINAL(0x005F8C50)
 
 // 00634650: the message box (0x180 bytes): owner, caption and text ids, the value it leaves
 // pending, two flags.
@@ -181,12 +178,12 @@ void CInterface3D::Update() {
             if (CUiWindow* top = stackEnd_[-1]) CallSlot<void>(top, 0, 1);
             --stackEnd_;
         }
-        static_cast<InterfaceAt*>(this)->AfterCloseAll();
+        reinterpret_cast<InterfaceOriginals*>(this)->ResetInput();
         PumpMessagesOriginal();
         *reinterpret_cast<bool*>(0x00784750) = false;
     }
     if (f.queuedWindow) {
-        static_cast<InterfaceAt*>(this)->Activate(f.queuedWindow);
+        reinterpret_cast<InterfaceOriginals*>(this)->Activate(f.queuedWindow);
         f.queuedWindow = nullptr;
     }
     f.mouseX = *reinterpret_cast<int*>(0x007C7C50);
@@ -209,8 +206,6 @@ void CInterface3D::Update() {
 
 namespace {
 
-// 004DBF50 (ECX text, EDX array, separator on the stack): splits at the separator.
-__declspec(naked) void __fastcall SplitWords(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBF50)
 // 00461360 (ECX text). A number from the text (its characters' upper-case codes mixed).
 __declspec(naked) int __fastcall TextNumber(const char*) EI_ORIGINAL(0x00461360)
 // The tutorial queue (+0x84, an STLport list of CStrings): end() into `out` (005F97D0) and
@@ -242,7 +237,7 @@ void CInterface3D::OnStringEvent(const char* event) {
     mfc::CString unused;
     mfc::CString text(event);
     SplitWords(text, &words, ' ');
-    words.data[0].MakeLower();
+    words.data[0].MakeUpper();
     // Rebirth's NewStringEvents (context hook at 005F80EF): "gameover [title [text]]" plays
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
     // game_over_msg).

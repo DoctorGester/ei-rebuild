@@ -150,7 +150,6 @@ namespace {
 // The panels' units (thiscall): weapon bar 0063C180, quick items 0063D2B0 (through its address),
 // spells 0063E820 (RET 4), actions 0063F800 (RET 8).
 __declspec(naked) void __fastcall WeaponBarSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063C180)
-__declspec(naked) void __fastcall QuickItemsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063D2B0)
 __declspec(naked) void __fastcall SpellsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063E820)
 __declspec(naked) void __fastcall ActionsSetUnit(CUiWindow*, void*, CUnit*, int) EI_ORIGINAL(0x0063F800)
 // 00530930 (__fastcall on a unit): its prototype record.
@@ -209,8 +208,6 @@ __declspec(naked) std::uint8_t* __fastcall LocalPlayerData(void*) EI_ORIGINAL(0x
 int __fastcall CanLeaveZone(void* glue, void*, void* records, int exit, void* second) {
     return GameCanLeaveZoneOriginal(glue, nullptr, records, exit, second);
 }
-// 0059D2E0 (thiscall on a CArray<void*>, RET 8): SetAtGrow.
-__declspec(naked) void __fastcall RecordsSetAtGrow(void*, void*, int, void*) EI_ORIGINAL(0x0059D2E0)
 
 // STLport list<CUnit*> (00411850 constructor, RET 4) and list<int> (00404A70 constructor,
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
@@ -384,7 +381,7 @@ void CBattleScreenSetup::Update() {
         void* menu = reinterpret_cast<void*>(0x007AFEA5);
         std::uint8_t* data = LocalPlayerData(menu);
         for (int i = 0; i < At<int>(data, 0x34); ++i)
-            RecordsSetAtGrow(&records, nullptr, records.size, At<std::uint8_t*>(data, 0x30) + i * 0x784);
+            RecordArraySetAtGrowOriginal(&records, nullptr, records.size, At<std::uint8_t*>(data, 0x30) + i * 0x784);
         if (CanLeaveZone(menu, nullptr, &records, savedSelection_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? MessageBoxConstruct(memory, nullptr, interface_,

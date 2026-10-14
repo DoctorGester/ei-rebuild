@@ -6,7 +6,8 @@
 #include "quest_records.h"
 
 #include "database_file.h"
-#include "originals_engine.h"   // FatalErrorOriginal
+#include "lib/crt.h"
+#include "originals_engine.h"   // game::FatalError
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -36,7 +37,7 @@ int QuestDatabase::Load(const char* folder) {
     if (!dbfile::OpenDatabase(resource, base)) return dbfile::ReportNoDatabase(base);
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("quests.qdb", &size);
-    if (!data) return FatalErrorOriginal("Can't open quests database\n");
+    if (!data) return game::FatalError("Can't open quests database\n");
 
     LocalStream local;
     CMemoryStream* stream = &local.stream;

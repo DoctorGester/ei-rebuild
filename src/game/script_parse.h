@@ -13,7 +13,6 @@ namespace scriptparse {
 // Game CRT (locale-dependent ctype functions and the CRT's own atof).
 int __cdecl IsDigit(int c);                                       // 006E9379
 int __cdecl IsSpace(int c);                                       // 006E93CE
-int __cdecl Strncmp(const char* a, const char* b, std::size_t n); // 006E9180
 int __cdecl Mbscmp(const char* a, const char* b);                 // 006E848B
 double __cdecl Atof(const char* s);                               // 006E911A (result in ST0)
 

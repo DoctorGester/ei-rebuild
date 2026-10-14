@@ -293,7 +293,7 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
         cached = FigureManagerFindModelOriginal(manager, nullptr, &key);
     }
     *reinterpret_cast<mfc::CString*>(&name) = model;
-    if (!manager) return FatalErrorOriginal(kNoFigureManager);
+    if (!manager) return game::FatalError(kNoFigureManager);
     const auto* names = static_cast<const PartNameArray*>(partList);
     for (int i = 0; i < names->size; ++i) {
         if (!Object3DLoadPartOriginal(this, nullptr, static_cast<const char*>((*names)[i]), cached, arg)) DebugMessageOriginal(kCantCreatePart, model, static_cast<const char*>((*names)[i]));

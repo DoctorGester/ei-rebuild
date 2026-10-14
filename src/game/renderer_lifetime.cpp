@@ -11,7 +11,7 @@
 #include "link_figure.h"   // ITransformPipeline, FigureMeshDrawer, DrawFigurePart(Plain)
 #include "spell.h"         // CLight
 #include "ui.h"            // GameDeviceLock, UiTextureManager
-#include "originals_engine.h"   // FatalErrorOriginal
+#include "originals_engine.h"   // game::FatalError
 #include "originals_render.h"
 #include "originals_ui.h"       // TextureLoadOriginal, TextureFindOriginal
 
@@ -306,7 +306,7 @@ EI_REPLACE(0x00504E20, DeviceHolderAssign);
 
 int __fastcall TextureHolderEnsureLoaded(CTexture** holder) {
     CTexture* texture = *holder;
-    if (!texture) return FatalErrorOriginal(NullTextureText());
+    if (!texture) return game::FatalError(NullTextureText());
     if (texture->flags_ & kTextureIsLoaded) return 1;
     return TextureLoadOriginal(UiTextureManager(), nullptr, texture);
 }

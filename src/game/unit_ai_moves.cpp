@@ -9,6 +9,7 @@
 #include "map_object.h"
 #include "object_diplomacy.h"
 #include "originals_ai.h"
+#include "originals_units.h"
 #include "random.h"
 #include "script.h"
 #include "world.h"
@@ -215,7 +216,7 @@ void AIBrain::UpdateFollow() {
     if (leaderController->command != kOrderMove && leaderController->nextCommand != kOrderMove) {
         // The leader stands: stop near it, else walk to it when the current goal is too far off.
         if (!(static_cast<double>(distance) * distance >= nearSq)) {
-            owner->Idle();
+            reinterpret_cast<ControllerOriginals*>(owner)->Idle();
             return;
         }
         Vector3 goal;

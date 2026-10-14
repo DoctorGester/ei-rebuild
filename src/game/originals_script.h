@@ -102,3 +102,16 @@ __declspec(naked) inline void __fastcall CharVectorResizeOriginal(stlp::vector<c
 // party destroyed, the node back to the node pool.
 __declspec(naked) inline void __fastcall PartyMapDeleteNodeOriginal(void* /*map*/, void*, void* /*node*/)
     EI_ORIGINAL(0x004ABA70)
+// C3m. 004CE210 (rewritten as ScriptGroupDestroy): a script group destroyed (its commands, then the group).
+__declspec(naked) inline void __fastcall GroupDestroy(void*, void*, int) EI_ORIGINAL(0x004CE210)
+// C3m. CArray::SetSize (__thiscall (size, growBy)) of the script arrays: 004C4410 float args, 004C46F0 object args,
+// 004C49F0 group args, 004C4CE0 bindings, 004C3980 group values, 004CD770 definitions (0xC0 records), 004CDB30 areas
+// (ScriptArea); 004CC800 is ConstructElements<ScriptObjectRef> (__stdcall (first, count); zeroes).
+__declspec(naked) inline void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4CE0)
+__declspec(naked) inline void __fastcall FloatArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4410)
+__declspec(naked) inline void __fastcall ObjectArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C46F0)
+__declspec(naked) inline void __fastcall GroupArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C49F0)
+__declspec(naked) inline void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
+__declspec(naked) inline void __fastcall DefinitionsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD770)
+__declspec(naked) inline void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)
+__declspec(naked) inline void __stdcall ConstructRefs(void*, int) EI_ORIGINAL(0x004CC800)

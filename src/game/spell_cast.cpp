@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_gameplay.h"
 #include "originals_library.h"
 
 #include <cstring>
@@ -40,10 +41,6 @@ SpellModifierNode*& NodeFreeList16() { return *reinterpret_cast<SpellModifierNod
 void* const kSpellTableHolder = reinterpret_cast<void*>(0x007C8510);
 void* const kModifierTableHolder = reinterpret_cast<void*>(0x007C8530);
 
-// 0068C820 (not rewritten). The spell prototype whose code (+0x04 CString) is `code`, or null.
-__declspec(naked) char* __fastcall FindSpellByCode(void*, void*, const char*) EI_ORIGINAL(0x0068C820)
-// 0068C920 (not rewritten). The spell modifier whose code (+0x04, inline) is `code`, or null.
-__declspec(naked) char* __fastcall FindModifierByCode(void*, void*, const char*) EI_ORIGINAL(0x0068C920)
 // 0068C680 (not rewritten). STLport string reserve(n) on the container's code string.
 __declspec(naked) void __fastcall CodesReserve(char**, void*, unsigned) EI_ORIGINAL(0x0068C680)
 // 0068C560 (not rewritten). list<char*>::insert(pos, *value), the iterator stored in *out.

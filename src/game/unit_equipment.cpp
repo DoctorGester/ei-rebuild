@@ -57,7 +57,7 @@ bool Named(const mfc::CString& name) {
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
 CEngineObject* MakeWeapon(void* items, const mfc::CString& name, const char* prototype) {
     CEngineObject* weapon = CreateItemAt(items, nullptr, name);
-    if (!weapon) FatalErrorOriginal(Text(kNoWeapon), static_cast<const char*>(name), prototype);
+    if (!weapon) game::FatalError(Text(kNoWeapon), static_cast<const char*>(name), prototype);
     return weapon;
 }
 } // namespace
@@ -68,7 +68,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     void* items = ei::VCall<void*>(world, kWorldItemManager);
     UnitPrototypeRecord* prototype = FindPrototypeAt(reinterpret_cast<void*>(kTable), nullptr, name);
     if (!prototype) {
-        FatalErrorOriginal(Text(kNoPrototype), name);
+        game::FatalError(Text(kNoPrototype), name);
         return 0;
     }
     if (unit->type_ == kTypeArmed) {
@@ -76,7 +76,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
             CEngineObject* armour = CreateItemAt(items, nullptr, prototype->armourNames.begin[i]);
             if (armour) EquipArmourAt(unit, nullptr, armour);
-            else FatalErrorOriginal(Text(kNoArmour), static_cast<const char*>(prototype->armourNames.begin[i]), name);
+            else game::FatalError(Text(kNoArmour), static_cast<const char*>(prototype->armourNames.begin[i]), name);
         }
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
@@ -89,7 +89,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CEngineObject* spell = CreateSpellAt(items, nullptr, prototype->spellNames.begin[i], spellOwner);
         if (spell) AddSpellAt(unit, nullptr, spell);
-        else FatalErrorOriginal(Text(kNoSpell), static_cast<const char*>(prototype->spellNames.begin[i]), name);
+        else game::FatalError(Text(kNoSpell), static_cast<const char*>(prototype->spellNames.begin[i]), name);
     }
     return 1;
 }

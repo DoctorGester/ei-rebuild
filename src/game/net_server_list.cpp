@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_core.h"
 #include "originals_library.h"
 #include "originals_script.h"
 
@@ -22,7 +23,6 @@ __declspec(naked) void __fastcall CoderConstruct(void* /*coder*/) EI_ORIGINAL(0x
 __declspec(naked) void __fastcall CoderDecompress(void* /*coder*/, void*, GameBuffer* /*in*/, GameBuffer* /*out*/) EI_ORIGINAL(0x00430960)
 __declspec(naked) std::uint32_t __fastcall CursorEnd(BufferCursor* /*cursor*/) EI_ORIGINAL(0x0041D930)
 // The client base's server entries (0x48 bytes): base constructor, adding one to the list.
-__declspec(naked) void __fastcall ServerEntryConstructBase(ServerEntry* /*entry*/) EI_ORIGINAL(0x004413E0)
 __declspec(naked) void __fastcall ClientAddServer(void* /*client*/, void*, ServerEntry* /*entry*/) EI_ORIGINAL(0x004428A0)
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::size_t kCoderSize = 0x2828;

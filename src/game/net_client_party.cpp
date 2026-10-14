@@ -19,7 +19,6 @@ namespace {
 
 // STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
 void* __fastcall VectorGetAllocator(RefVector* a0, void*, void* a2) { return VectorGetAllocatorOriginal((const void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall VectorBaseConstruct(RefVector* /*vector*/, void*, std::size_t /*n*/, const void* /*allocator*/) EI_ORIGINAL(0x00421F60)
 __declspec(naked) RefPtr* __fastcall VectorErase(RefVector* /*vector*/, void*, RefPtr* /*first*/, RefPtr* /*last*/) EI_ORIGINAL(0x00421ED0)
 __declspec(naked) void __fastcall RefPtrConstructCopy(RefPtr* /*at*/, const RefPtr* /*from*/) EI_ORIGINAL(0x00429060)
 __declspec(naked) void __fastcall VectorInsertOverflow(RefVector* /*vector*/, void*, RefPtr* /*pos*/, const RefPtr* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00426F00)

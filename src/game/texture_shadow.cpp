@@ -13,6 +13,7 @@
 
 #include "dx_surface.h"
 #include "game_strings.h"
+#include "lib/crt.h"
 #include "originals_engine.h"
 
 #include "ei/hook.h"
@@ -94,7 +95,7 @@ CTexture* MakeShadowTexture(CTextureManager* manager, std::uint32_t keep, std::u
     if (!manager->device_->FindFormat(kFormat4444, &format)) {
         *missing = true;
         return reinterpret_cast<CTexture*>(
-            static_cast<std::uintptr_t>(FatalErrorOriginal(game::CantFindTextureFormatText(), kKind4444)));
+            static_cast<std::uintptr_t>(game::FatalError(game::CantFindTextureFormatText(), kKind4444)));
     }
     texture->format_ = format;
     texture->flags_ = (texture->flags_ & keep) | flag;

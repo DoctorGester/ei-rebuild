@@ -1711,9 +1711,9 @@ int CWorldClient::LoadZone(CStream* block) {
     mfc::CString& allod = *reinterpret_cast<mfc::CString*>(&zoneName_);
     allod = worlddata::DefaultAllodText();
     if (zone) allod = *reinterpret_cast<const mfc::CString*>(&zone->allod);
-    allod.MakeLower();
+    allod.MakeUpper();
     if (!LandscapeLoadMapOriginal(terrain, nullptr, map, allod, cave == kCave))
-        return FatalErrorOriginal(worlddata::CantLoadTerrainFormat(), static_cast<const char*>(map));
+        return game::FatalError(worlddata::CantLoadTerrainFormat(), static_cast<const char*>(map));
 
     FitGrid(objectGrid_, GridResize, terrain);
     FitGrid(secondGrid_, GridResize2, terrain);

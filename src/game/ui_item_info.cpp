@@ -253,26 +253,16 @@ struct Texts {
     BOOL Open(const char* key);                          // 004DEFC0
     BOOL NextLine();                                     // 004DF510
     BOOL ReadLine(mfc::CString* out, BOOL advance);      // 004DF8D0
-    BOOL ReadToHash(mfc::CString* out, BOOL advance);    // 004DFB80
     BOOL GetString(const char* name, mfc::CString* out); // 004E0020
     BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
 };
 BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 __declspec(naked) BOOL Texts::NextLine() EI_ORIGINAL(0x004DF510)
 BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
-__declspec(naked) BOOL Texts::ReadToHash(mfc::CString*, BOOL) EI_ORIGINAL(0x004DFB80)
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
 __declspec(naked) BOOL Texts::ItemTexts(CItem*, mfc::CString*, mfc::CString*, mfc::CString*) EI_ORIGINAL(0x004E0150)
 Texts* TextManager() { return *reinterpret_cast<Texts**>(0x007AF788); }
 
-// CString members the descriptions use beyond lib/mfc.h.
-struct StrOps {
-    void MakeUpper();                       // 00700EFE (_mbsupr; lib/mfc.h calls it MakeLower)
-    void TrimRight(const char* targets);    // 006FE08A
-};
-__declspec(naked) void StrOps::MakeUpper() EI_ORIGINAL(0x00700EFE)
-__declspec(naked) void StrOps::TrimRight(const char*) EI_ORIGINAL(0x006FE08A)
-StrOps* Ops(mfc::CString& s) { return reinterpret_cast<StrOps*>(&s); }
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
 // Items and spells (thiscall).
@@ -326,8 +316,8 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
         *list += text;
         *list += GameText(0x0078DA54);         // ", "
     }
-    Ops(above)->TrimRight(GameText(0x0078DA54));
-    Ops(below)->TrimRight(GameText(0x0078DA54));
+    above.TrimRight(GameText(0x0078DA54));
+    below.TrimRight(GameText(0x0078DA54));
     out->SetAtGrow(out->GetSize(), value);
     out->SetAtGrow(out->GetSize(), above);
     out->SetAtGrow(out->GetSize(), below);
@@ -515,7 +505,7 @@ void CItemInfoPanel::DescribeItem() {
     mfc::CString material;
     material = *reinterpret_cast<const mfc::CString*>(itemdb::Materials().At(MaterialIndex(PackedIdOf(item)), itemdb::kMaterialSize));
     ReplaceChar(&material, ' ', '_');
-    Ops(material)->MakeUpper();
+    material.MakeUpper();
     mfc::CString name, description, kindText;
     texts->ItemTexts(item, &name, &description, &kindText);
 
@@ -643,7 +633,7 @@ void CItemInfoPanel::DescribeMaterial() {
     w.Head(name, kindText);
     // The material's type: "mattype_<NAME>".
     mfc::CString text = *reinterpret_cast<const mfc::CString*>(material + 4);
-    Ops(text)->MakeUpper();
+    text.MakeUpper();
     {
         mfc::CString key(GameText(0x00792F64));   // "mattype_"
         key += text;
@@ -694,7 +684,7 @@ void CItemInfoPanel::DescribeBlueprint() {
     w.Head(name, kindText);
     // The material type ("mattype_<NAME>" of the record's +0x10) and the count.
     mfc::CString text = *reinterpret_cast<const mfc::CString*>(record + 0x10);
-    Ops(text)->MakeUpper();
+    text.MakeUpper();
     {
         mfc::CString key(GameText(0x00792F64));   // "mattype_"
         key += text;
@@ -843,7 +833,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
         key += *reinterpret_cast<const mfc::CString*>(Of(spell)->Prototype() + 4);
         if (texts->Open(key)) {
             texts->ReadLine(&title, 1);
-            texts->ReadToHash(&description, 1);
+            reinterpret_cast<CTextManager*>(texts)->ReadToHash(&description, 1);
         }
     }
     texts->GetString(GameText(0x0078DE4C), &kindText);   // "item_spell"
@@ -905,7 +895,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
             entry += GameText(0x00787B5C);   // ","
             w.line += entry;
         }
-        Ops(w.line)->TrimRight(GameText(0x00787B5C));
+        w.line.TrimRight(GameText(0x00787B5C));
         w.line += GameText(0x00783D78);   // "."
         w.Draw()->Wrapped(w.line, w.Rect(), 3, 0, kText, 0x10, 1);
     }
@@ -950,7 +940,7 @@ void AttributeLines(Writer& w, const std::uint8_t* stats, int index) {
 void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
     Texts* texts = TextManager();
     mfc::CString name = info->text;
-    Ops(name)->TrimRight(GameText(0x007856B8));   // "0"
+    name.TrimRight(GameText(0x007856B8));   // "0"
     name += GameText(0x00787C00);                 // "1"
     int group = Skills()->IndexOf(name) / 3;
     const RecordTable& levels = *reinterpret_cast<const RecordTable*>(0x007AF274);

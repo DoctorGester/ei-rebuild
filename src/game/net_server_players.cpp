@@ -8,6 +8,7 @@
 #include "net_connection.h"
 #include "core_refcount.h"
 
+#include "lib/crt.h"
 #include "ei/hook.h"
 #include "originals_library.h"
 
@@ -17,7 +18,6 @@ namespace net {
 
 namespace {
 
-__declspec(naked) int __cdecl GameStrnicmp(const char* /*a*/, const char* /*b*/, std::size_t /*n*/) EI_ORIGINAL(0x006FA1A0)
 // The banned addresses (+0x25C4, STLport list<sockaddr_in>; library): end, begin, find, insert.
 void** __fastcall BannedEnd(void* a0, void*, void** a2) { return ListEndIteratorOriginal(a0, nullptr, a2); }
 __declspec(naked) void** __fastcall BannedBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x0041FCC0)
@@ -100,7 +100,7 @@ bool ServerSession::Admit(std::uint32_t address, const std::uint8_t** password, 
 void ServerSession::SetPassword(const char* text) {
     char* stored = reinterpret_cast<char*>(password_);
     std::memset(stored, 0, kPasswordSize);
-    GameStrncpy(stored, text, kPasswordSize);
+    gamecrt::strncpy(stored, text, kPasswordSize);
 }
 EI_REPLACE_METHOD(0x0041A140, ServerSession::SetPassword);
 
@@ -110,7 +110,7 @@ void* ServerSession::FindGuestConnection(const StringRep* name) {
     const std::size_t length = static_cast<std::size_t>(name->finish - name->start);
     for (void** node = First(players_); node != players_; node = static_cast<void**>(node[0])) {
         PlayerMessage* player = PlayerAt(node);
-        if (GameStrnicmp(player->name_.start, name->start, length) != 0) continue;
+        if (gamecrt::strnicmp(player->name_.start, name->start, length) != 0) continue;
         void** bindings = static_cast<void**>(bindings_);
         void** first = First(bindings);
         for (void** binding = first; binding != bindings; binding = static_cast<void**>(binding[0])) {

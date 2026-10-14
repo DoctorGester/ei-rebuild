@@ -45,7 +45,7 @@ __declspec(naked) void __fastcall RegDestruct(void*, void*) EI_ORIGINAL(0x006945
 __declspec(naked) void __fastcall RegReadInts(void*, void*, const char*, const char*, void*) EI_ORIGINAL(0x00695410)
 // 004513A0 (RET 8). The integer array's SetSize(size, growBy).
 __declspec(naked) void __fastcall IntArraySetSize(void*, void*, int, int) EI_ORIGINAL(0x004513A0)
-// 00480080. FatalErrorOriginal(message); returns what the original returns to the caller.
+// 00480080. game::FatalError(message); returns what the original returns to the caller.
 
 // An aligned array of ints (data, size, capacity, growBy); the block pointer is kept at data[-1].
 using IntArray = lib::AlignedArray<int>;
@@ -60,7 +60,7 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     RegConstruct(reg, nullptr);
     void* file = ei::VCall<void*>(owner, kSlotOpenResource, Text(kMenusReg), 0);
     if (!file || !RegParse(reg, nullptr, file)) {
-        int result = FatalErrorOriginal(Text(file ? kCantParse : kCantOpen));
+        int result = game::FatalError(Text(file ? kCantParse : kCantOpen));
         RegDestruct(reg, nullptr);
         return result;
     }
@@ -70,7 +70,7 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
         IntArraySetSize(&values, nullptr, 0, -1);
         RegReadInts(reg, nullptr, Text(entry.section), Text(entry.name), &values);
         if (values.size != 4) {
-            int result = FatalErrorOriginal(Text(entry.error));
+            int result = game::FatalError(Text(entry.error));
             if (values.data) gamecrt::operator_delete(reinterpret_cast<void**>(values.data)[-1]);
             RegDestruct(reg, nullptr);
             return result;

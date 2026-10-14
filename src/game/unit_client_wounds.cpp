@@ -199,7 +199,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         AssignTexture(&woundsTexture, static_cast<CTexture*>(TextureFindOriginal(manager, nullptr, kWoundsTextureKind, name)));
         if (!woundsTexture) {
             AssignTexture(&woundsTexture, static_cast<CTexture*>(TextureNamedOriginal(manager, nullptr, kWoundsTextureKind, name)));
-            if (!woundsTexture) return FatalErrorOriginal(kNoWoundsTexture, object->GetClassName(), object->id_);
+            if (!woundsTexture) return game::FatalError(kNoWoundsTexture, object->GetClassName(), object->id_);
         }
     }
     AlignedBuffer extra{};

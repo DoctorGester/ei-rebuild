@@ -1,6 +1,7 @@
 #include "crt.h"
 
 #include "ei/hook.h"
+#include "game/originals_library.h"
 
 namespace gamecrt {
 
@@ -24,9 +25,8 @@ __declspec(naked) int __cdecl sscanf(const char*, const char*, ...) EI_ORIGINAL(
 __declspec(naked) char* __cdecl itoa(int, char*, int) EI_ORIGINAL(0x006E9B36)
 __declspec(naked) int __cdecl mbsicmp(const unsigned char*, const unsigned char*) EI_ORIGINAL(0x006E8767)
 __declspec(naked) int __cdecl access(const char*, int) EI_ORIGINAL(0x006EAF20)
-__declspec(naked) static int __cdecl MbscmpOriginal(const char*, const char*) EI_ORIGINAL(0x006E848B)
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) {
-    return MbscmpOriginal(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
+    return GameMbscmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
 }
 
 __declspec(naked) double __cdecl acos(double) EI_ORIGINAL(0x006E7334)

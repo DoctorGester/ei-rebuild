@@ -7,7 +7,8 @@
 #include "item_db.h"
 
 #include "database_file.h"
-#include "originals_engine.h"   // FatalErrorOriginal
+#include "lib/crt.h"
+#include "originals_engine.h"   // game::FatalError
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -71,10 +72,10 @@ int SpellDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("spells.sdb", &size);
-    if (!data) return FatalErrorOriginal("Can't open spells database\n");
+    if (!data) return game::FatalError("Can't open spells database\n");
 
     LocalStream local;
     CMemoryStream* stream = &local.stream;
@@ -106,10 +107,10 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("items.idb", &size);
-    if (!data) return FatalErrorOriginal("Can't open items database\n");
+    if (!data) return game::FatalError("Can't open items database\n");
 
     LocalStream local;
     CMemoryStream* stream = &local.stream;

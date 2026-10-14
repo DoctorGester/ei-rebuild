@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
 
@@ -147,7 +148,7 @@ int CFlyingHitPoints::Draw(CSceneRenderer* renderer) {
         targetHeight = static_cast<std::uint32_t>(renderer->device_->renderTarget_->height);
     }
     if (!object_) return 0;
-    if (!renderer->SetTexture(0, object_)) return FatalErrorOriginal(game::FlyingHitPointsTextureText());
+    if (!renderer->SetTexture(0, object_)) return game::FatalError(game::FlyingHitPointsTextureText());
 
     Node* head = points_.head;
     for (Node* node = head->next; node != head;) {

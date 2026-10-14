@@ -11,6 +11,8 @@
 
 struct AnimationSteps;
 struct RefPtr;
+namespace console { class CStringArray; }
+namespace net { struct FreedBatch; struct HistoryNode; struct RefVector; struct StringRep; }
 
 // STLport std::string destructor (frees the buffer back to the node allocator unless it is the inline one).
 __declspec(naked) inline void __fastcall StlStringDestroy(void* /*string*/) EI_ORIGINAL(0x0040C720)
@@ -55,8 +57,6 @@ __declspec(naked) inline void __fastcall StepsSetSize(AnimationSteps*, void*, in
 __declspec(naked) inline void __fastcall NodeFree12Fast(void*, int) EI_ORIGINAL(0x0056FB40)
 __declspec(naked) inline void __fastcall ConstructModelMap(void*, void*, const void*) EI_ORIGINAL(0x005FA420)
 __declspec(naked) inline int __stdcall WsGetHostName(char*, int) EI_ORIGINAL(0x006E6100)
-__declspec(naked) inline char* __cdecl GameStrncpy(char* /*to*/, const char* /*from*/, std::size_t /*n*/)
-    EI_ORIGINAL(0x006E7E80)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 __declspec(naked) inline void __cdecl ExitGame(int) EI_ORIGINAL(0x006E8DA7)
@@ -66,7 +66,6 @@ __declspec(naked) inline int __cdecl IsMbbLead(unsigned) EI_ORIGINAL(0x006E99F2)
 __declspec(naked) inline int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)
 __declspec(naked) inline double __cdecl Hypot(double /*x*/, double /*y*/) EI_ORIGINAL(0x006FD026)
 __declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
-__declspec(naked) inline void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 // The CRT's _CxxThrowException (stdcall: the address of the thrown object, its throw info). Does not return.
 __declspec(naked) inline void __stdcall CxxThrowException(void* /*object*/, const void* /*throwInfo*/)
     EI_ORIGINAL(0x006E7819)
@@ -135,7 +134,7 @@ __declspec(naked) inline double __cdecl CIpow(double, double) {
 // MFC CPtrArray::SetSize(count, growBy) (RET 8, no result): the script group / reference arrays.
 __declspec(naked) inline void __fastcall PtrArraySetSize(void* /*array*/, void*, int /*count*/, int /*growBy*/)
     EI_ORIGINAL(0x004C2050)
-// CRT _mbscmp (plain RET, EAX: <0, 0, >0). src/lib/crt.cpp keeps its own copy (lib cannot include game headers).
+// CRT _mbscmp (plain RET, EAX: <0, 0, >0); src/lib/crt.cpp includes this header for gamecrt::mbscmp.
 __declspec(naked) inline int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
 // STLport string members on the 12-byte rep (all __thiscall, EDX unused): assign [first, last) 00426A80
 // (RET 8, returns this); erase [first, last) 0040B3C0 (RET 8, returns first); assign with an allocator
@@ -154,7 +153,7 @@ __declspec(naked) inline void* __fastcall StringAssignTaggedOriginal(void* /*str
     EI_ORIGINAL(0x0042A4F0)
 __declspec(naked) inline void* __fastcall StringEndOfStorageOriginal(void* /*proxy*/, void*, const void* /*alloc*/,
                                                                      const void* /*value*/) EI_ORIGINAL(0x00425080)
-// The STLport node allocator's deallocate(p, bytes): ECX p, EDX bytes, plain RET. src/lib/stlp.cpp keeps its own copy.
+// The STLport node allocator's deallocate(p, bytes): ECX p, EDX bytes, plain RET (src/lib/stlp.cpp uses it too).
 __declspec(naked) inline void __fastcall StlNodeFreeOriginal(void* /*p*/, std::size_t /*bytes*/) EI_ORIGINAL(0x00404D70)
 // The CRT's `eh vector destructor iterator` (array, element size, count, destructor called with ECX = element, last
 // to first): __stdcall, RET 0x10, EAX not a result.
@@ -511,3 +510,46 @@ __declspec(naked) inline long __stdcall DirectInputCreateExOriginal(void* /*inst
 __declspec(naked) inline int __fastcall FontCreatePointOriginal(void* /*font*/, void*, int /*size*/, const char* /*face*/,
                                                                 void* /*dc*/) EI_ORIGINAL(0x0070BBE5)
 
+// C3m. 004DBF50 (rewritten as SplitWords; ECX text, EDX array, separator on the stack): splits at the separator.
+__declspec(naked) inline void __fastcall SplitWords(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBF50)
+// C3m. 006E9180: CRT strncmp (plain RET, EAX: <0, 0, >0).
+__declspec(naked) inline int __cdecl Strncmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006E9180)
+// C3m. 006FEE9A / 006FF5EA: the static CArray<uint16_t> / CArray<uint8_t> constructors (ECX this, plain RET).
+__declspec(naked) inline void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
+__declspec(naked) inline void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)
+// C3m. 00421F60: the counted-pointer vector's base constructor (n elements, allocator; plain RET).
+__declspec(naked) inline void __fastcall VectorBaseConstruct(net::RefVector* /*vector*/, void*, std::size_t /*n*/,
+                                                           const void* /*allocator*/) EI_ORIGINAL(0x00421F60)
+// C3m. STLport strings of the net code (the 12-byte rep): 00424E40 allocates a block of n bytes, 00427D60 string + text,
+// 00427FA0 equality, 0042AFB0 append(first, last, tag).
+__declspec(naked) inline void __fastcall StringAllocateBlock(net::StringRep* /*s*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x00424E40)
+__declspec(naked) inline net::StringRep* __fastcall StringPlusText(net::StringRep* /*out*/, const net::StringRep* /*a*/, const char* /*b*/)
+    EI_ORIGINAL(0x00427D60)
+__declspec(naked) inline bool __fastcall StringEquals(const net::StringRep* /*a*/, const net::StringRep* /*b*/) EI_ORIGINAL(0x00427FA0)
+__declspec(naked) inline void __fastcall StringAppend(net::StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/,
+                                                    void* /*tag*/) EI_ORIGINAL(0x0042AFB0)
+// C3m. The net connection's history list (STLport list of HistoryNode): 00437F30 erase(pos).
+__declspec(naked) inline net::HistoryNode** __fastcall HistoryErase(net::HistoryNode** /*list*/, void*, net::HistoryNode** /*out*/,
+                                                             net::HistoryNode* /*pos*/) EI_ORIGINAL(0x00437F30)
+// C3m. The freed-batch list (STLport list of FreedBatch): 00439000 insert(pos) of a default batch.
+__declspec(naked) inline net::FreedBatch** __fastcall FreedInsert(net::FreedBatch** /*list*/, void*, net::FreedBatch** /*out*/,
+                                                           net::FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
+
+// C3m. A CString passed by value: the caller copy-constructs it into the argument slot, the callee destroys it. Naked
+// forwarders cannot take a class by value, so the slot is a raw pointer.
+struct StringArg {
+    char* data;
+};
+// The registry's thiscall members through their game addresses (rewritten in registry.cpp as CFileRegistry::Open /
+// GetSectionNames / GetString / GetStringArray; the verify wrappers stay in the path). Base of the views of the registry.
+struct RegistryOriginals {
+    mfc::BOOL Open(const char* path);                                                              // 006945A0
+    mfc::BOOL GetSectionNames(console::CStringArray* out);                                         // 00694880
+    mfc::CString GetString(const char* section, const char* key, StringArg defaultValue);          // 00694D20
+    mfc::BOOL GetStringArray(const char* section, const char* key, console::CStringArray* out);    // 006958E0
+};
+__declspec(naked) inline mfc::BOOL RegistryOriginals::Open(const char*) EI_ORIGINAL(0x006945A0)
+__declspec(naked) inline mfc::BOOL RegistryOriginals::GetSectionNames(console::CStringArray*) EI_ORIGINAL(0x00694880)
+__declspec(naked) inline mfc::CString RegistryOriginals::GetString(const char*, const char*, StringArg) EI_ORIGINAL(0x00694D20)
+__declspec(naked) inline mfc::BOOL RegistryOriginals::GetStringArray(const char*, const char*, console::CStringArray*)
+    EI_ORIGINAL(0x006958E0)

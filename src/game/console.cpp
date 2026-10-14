@@ -23,10 +23,6 @@ __declspec(naked) mfc::CString Str::Mid(int) const EI_ORIGINAL(0x006FD9B4)
 __declspec(naked) mfc::CString Str::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
 void Str::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
 void Str::AppendText(const char* a0) { CStringAppendTextOriginal((void*)this, nullptr, a0); }
-__declspec(naked) void Str::AssignChar(char) EI_ORIGINAL(0x006FD559)
-__declspec(naked) char* Str::GetBuffer(int) EI_ORIGINAL(0x00700DA0)
-__declspec(naked) void Str::ReleaseBuffer(int) EI_ORIGINAL(0x00700DEF)
-__declspec(naked) void Str::MakeLower() EI_ORIGINAL(0x00700EFE)
 void Str::TrimLeft(char a0) { CStringTrimLeftCharOriginal((void*)this, nullptr, a0); }
 void Str::TrimRight(char a0) { CStringTrimRightCharOriginal((void*)this, nullptr, a0); }
 
@@ -217,8 +213,8 @@ void __fastcall Execute(const char* text) {
         return;
     }
 
-    Ops(command).MakeLower();
-    for (int i = 0; i < args.GetSize(); ++i) Ops(args[i]).MakeLower();
+    Ops(command).MakeUpper();
+    for (int i = 0; i < args.GetSize(); ++i) Ops(args[i]).MakeUpper();
     if (Mbscmp(command, GameText(0x0079239C)) == 0 || Mbscmp(command, GameText(0x00792394)) == 0) {   // quit, exit
         QuitGame(0);
         return;

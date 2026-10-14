@@ -39,7 +39,6 @@ __declspec(naked) void __fastcall BuildRootBoneAt(SceneSkin* /*skin*/, const Sce
 // 005068C0; BuildBone 004492F0 (scene_bones.cpp) and MakeFrameRelative 0044EB60
 // (scene_bone_frames.cpp), through their addresses.
 __declspec(naked) void __fastcall BoneDestruct(CAnimationNode*) EI_ORIGINAL(0x005068C0)
-__declspec(naked) void __fastcall BuildBoneAt(SceneSkin*, CAnimationNode*, const SceneNode*, int) EI_ORIGINAL(0x004492F0)
 __declspec(naked) void __fastcall MakeFrameRelativeAt(CAnimationNode*, CAnimationNode*, int) EI_ORIGINAL(0x0044EB60)
 // 00453730: constructs n 40-byte frame records [pointer, count].
 __declspec(naked) void __stdcall ConstructFrameRecords(void*, int) EI_ORIGINAL(0x00453730)
@@ -119,14 +118,14 @@ EI_REPLACE(0x00449030, FindRootNode);
 
 // ECX: the unit's meshes (CArray, 0x18C each; slot 7 of a mesh is its name), EDX: the nodes;
 // `frames` (its low word counts), `skin`. 1, or 0 without a root node; a first rotation key not
-// at frame 0 is a fatal error (FatalErrorOriginal's result is returned if it comes back).
+// at frame 0 is a fatal error (game::FatalError's result is returned if it comes back).
 int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames, SceneSkin* skin) {
     MeshArray& meshes = Typed<MeshArray>(*meshArray);
     NodeArray& nodes = Typed<NodeArray>(*nodeArray);
     for (int i = 0; i < nodes.size; ++i) {
         SceneNode* node = &nodes.data[i];
         const NodeRotationKey& rotationKey = node->rotationKeys.data[0];
-        if (static_cast<std::uint16_t>(rotationKey.frame) != 0) return FatalErrorOriginal(FirstKeyNotAtZeroText());
+        if (static_cast<std::uint16_t>(rotationKey.frame) != 0) return game::FatalError(FirstKeyNotAtZeroText());
         node->pivot = rotationKey.value;
         const NodePositionKey& positionKey = node->positionKeys.data[0];
         if (static_cast<std::uint16_t>(positionKey.frame) != 0) continue;
@@ -140,7 +139,7 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
     }
     int root = FindRootNodeAt(nodeArray);
     if (root == -1) {
-        FatalErrorOriginal(NoRootNodeText());
+        game::FatalError(NoRootNodeText());
         return 0;
     }
 

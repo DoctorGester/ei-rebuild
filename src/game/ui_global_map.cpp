@@ -153,12 +153,10 @@ struct TurnAt {
 __declspec(naked) Vector3* TurnAt::Rotate(Vector3*, const Vector3*) EI_ORIGINAL(0x0046A4B0)
 
 // Sprites (CUiMesh) beyond ui.h.
-struct SpriteOps {
+struct SpriteOps : SpritePositionOriginal {
     void SetScale(float scale);                         // 005E7060
-    void Position(float* x, float* y, float* depth);    // 005E7010 (its layout position)
 };
 void SpriteOps::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
-__declspec(naked) void SpriteOps::Position(float*, float*, float*) EI_ORIGINAL(0x005E7010)
 SpriteOps* Ops(CUiMesh* sprite) { return reinterpret_cast<SpriteOps*>(sprite); }
 
 // Drawing text on a surface (005FDE20 is Rebirth-patched).
@@ -171,10 +169,6 @@ int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t co
 SurfaceDraw* Draw(CUiSurface* surface) { return reinterpret_cast<SurfaceDraw*>(surface); }
 
 // The local player's variables, copied by name prefix into a hash_map<CString, float>.
-struct LocalPlayerAt {
-    void CopyVariables(const char* prefix, NamedFloatTable* out);   // 00578B70 (on 007AFEA5)
-};
-__declspec(naked) void LocalPlayerAt::CopyVariables(const char*, NamedFloatTable*) EI_ORIGINAL(0x00578B70)
 struct TableAt {
     void Construct();                                   // 00581790 (100 buckets)
 };
@@ -462,7 +456,7 @@ void CGlobalMap::Create() {
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
         variable.Format(GameText(0x00794140), zones_.data[i].name);   // "q.%s"
-        reinterpret_cast<LocalPlayerAt*>(0x007AFEA5)->CopyVariables(variable, vars.Table());
+        reinterpret_cast<LocalPlayerOriginal*>(0x007AFEA5)->CopyVariables(variable, vars.Table());
         VariableIterator it;
         reinterpret_cast<BeginAt*>(vars.Table())->Begin(&it);
         while (NamedFloatTable::Node* node = it.node) {

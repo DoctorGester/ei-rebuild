@@ -4,7 +4,8 @@
 // its address (LoadLightningNoiseOriginal). Main thread. See docs/notes/objects.md.
 #include "lightning.h"
 
-#include "originals_engine.h"   // FatalErrorOriginal
+#include "lib/crt.h"
+#include "originals_engine.h"   // game::FatalError
 #include "resource_local.h"
 #include "world_data.h"
 
@@ -31,7 +32,7 @@ int __cdecl LoadLightningNoise() {
 
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("lightning.dat", &size);
-    if (!data) return FatalErrorOriginal("Unable to open file gfx.res\\lightning.dat");
+    if (!data) return game::FatalError("Unable to open file gfx.res\\lightning.dat");
 
     local.Fill(data, size);
     CStream* stream = &local.stream;

@@ -102,7 +102,6 @@ __declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, 
 __declspec(naked) Vector3* __fastcall VectorCross(Vector3*, const Vector3*, const Vector3*) EI_ORIGINAL(0x004489D0)
 __declspec(naked) Vector3* __fastcall VectorScaleCopy(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00448A10)
 __declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00410770)
-__declspec(naked) Vector3* __fastcall VectorAdd(Vector3*, const Vector3*, const Vector3*) EI_ORIGINAL(0x0040CDC0)
 // A float copied through the FPU (FLD / FSTP), as the original copies +0x28 to +0x110.
 __declspec(naked) void __fastcall FpuCopy(const float* /*from*/, float* /*to*/) {
     __asm fld dword ptr [ecx]

@@ -50,7 +50,6 @@ struct Input {
     void KeyDown(int key, int repeat, int flags);    // 005F78C0
     void Char(int key, int repeat, int flags);       // 005F7B40
     void KeyUp(int key, int repeat, int flags);      // 005F7BE0
-    void Activate();                                 // 005F8C50
 };
 __declspec(naked) void Input::Update() EI_ORIGINAL(0x005F5AB0)
 __declspec(naked) void Input::LButtonDown(int, int, int) EI_ORIGINAL(0x005F76A0)
@@ -64,7 +63,6 @@ __declspec(naked) void Input::Wheel(int, int, int, int) EI_ORIGINAL(0x005F7880)
 __declspec(naked) void Input::KeyDown(int, int, int) EI_ORIGINAL(0x005F78C0)
 __declspec(naked) void Input::Char(int, int, int) EI_ORIGINAL(0x005F7B40)
 __declspec(naked) void Input::KeyUp(int, int, int) EI_ORIGINAL(0x005F7BE0)
-__declspec(naked) void Input::Activate() EI_ORIGINAL(0x005F8C50)
 Input* TheInput() { return reinterpret_cast<Input*>(0x007C7D50); }
 
 // The console's ostream (007C55A8).
@@ -152,7 +150,7 @@ LRESULT OnActivate(WPARAM wParam) {
     }
     renderer->SetActive(1);
     if (network) network->Resume();
-    TheInput()->Activate();
+    reinterpret_cast<InterfaceOriginals*>(TheInput())->ResetInput();
     return 1;
 }
 

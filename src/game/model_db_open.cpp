@@ -7,7 +7,8 @@
 #include "model.h"
 
 #include "database_file.h"
-#include "originals_engine.h"   // FatalErrorOriginal
+#include "lib/crt.h"
+#include "originals_engine.h"   // game::FatalError
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -83,7 +84,7 @@ int PrintsDatabase::Load(const char* folder) {
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("prints.db", &size);
-    if (!data) return FatalErrorOriginal("Can't open terrain prints database\n");
+    if (!data) return game::FatalError("Can't open terrain prints database\n");
 
     LocalStream local;
     CMemoryStream* stream = &local.stream;
@@ -114,7 +115,7 @@ int AckDatabase::Load(const char* folder) {
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("acks.db", &size);
-    if (!data) return FatalErrorOriginal("Can't open acks database\n");
+    if (!data) return game::FatalError("Can't open acks database\n");
 
     LocalStream local;
     CMemoryStream* stream = &local.stream;

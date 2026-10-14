@@ -32,7 +32,7 @@ namespace {
 // --- Forwarders ----------------------------------------------------------------------------------
 
 // The Direct3D driver list (007AEE64): 004EE4A0 enumerates, 004EE5D0 the first hardware driver
-// (FatalErrorOriginal and null when there is none); DriverAt (004EE6D0, render_helper.cpp) the
+// (game::FatalError and null when there is none); DriverAt (004EE6D0, render_helper.cpp) the
 // driver with an index.
 __declspec(naked) int __cdecl EnumerateDrivers() EI_ORIGINAL(0x004EE4A0)
 __declspec(naked) DirectDrawDriver* __cdecl FirstHardwareDriver() EI_ORIGINAL(0x004EE5D0)
@@ -274,7 +274,7 @@ void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, Ga
     EnumerateDrivers();
     DirectDrawDriver* driver = FirstHardwareDriver();
     if (!driver) {
-        FatalErrorOriginal(GameText(0x0078E534));   // "Can't find any driver with HW 3D..."
+        game::FatalError(GameText(0x0078E534));   // "Can't find any driver with HW 3D..."
         ExitGame(-1);
     }
     int index = settings->driverIndex_;

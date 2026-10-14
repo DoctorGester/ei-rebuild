@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_units.h"
 
 #include <bit>
 #include <cstring>
@@ -162,11 +163,7 @@ double EffectScale(CUnit* unit, float k);
 // 0050F690. CMapObject::EffectValue (map_object.cpp): the largest value of the effects of a type.
 __declspec(naked) double __fastcall CallEffectValue(const CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x0050F690)
 // 00525800 / 00525A70.
-__declspec(naked) bool __fastcall CallHealSlots(UnitStats*, void*, float, float) EI_ORIGINAL(0x00525800)
 __declspec(naked) void __fastcall CallScaleSlotMaxima(UnitStats*, void*, float) EI_ORIGINAL(0x00525A70)
-// 00524060 / 00524110.
-__declspec(naked) float __fastcall CallLegsFactor(UnitStats*, void*, int) EI_ORIGINAL(0x00524060)
-__declspec(naked) float __fastcall CallArmsFactor(UnitStats*, void*, int) EI_ORIGINAL(0x00524110)
 // 00524560 / 00523F50 / 00523DB0 / 005282D0.
 __declspec(naked) void __fastcall CallRecompute(UnitStats*, void*, UnitVitals*, CUnit*) EI_ORIGINAL(0x00524560)
 __declspec(naked) double __fastcall CallManaCurve(UnitStats*) EI_ORIGINAL(0x00523F50)
@@ -233,7 +230,7 @@ bool UnitVitals::Regenerate(UnitStats* stats, CUnit* unit, char inCombat) {
             if (boost > kZero) rate = static_cast<float>(boost * rate);
         }
         float scale = maxHitPoints;
-        CallHealSlots(stats, nullptr, scale, static_cast<float>(scale * rate));
+        HealSlotsAt(stats, nullptr, scale, static_cast<float>(scale * rate));
         hitPoints = static_cast<float>(stats->Reduce(maxHitPoints));
         changed = true;
     }
@@ -266,7 +263,7 @@ bool UnitStats::HealSlots(float scale, float amount) {
 EI_REPLACE_METHOD(0x00525800, UnitStats::HealSlots);
 
 BOOL UnitStats::Heal(UnitVitals* vitals, float amount) {
-    CallHealSlots(this, nullptr, vitals->maxHitPoints, amount);
+    HealSlotsAt(this, nullptr, vitals->maxHitPoints, amount);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return 1;
 }
@@ -366,7 +363,7 @@ EI_REPLACE_METHOD(0x00523F50, UnitStats::ManaCurve);
 double UnitStats::RateValue() {
     volatile float base = stat18 * kPointTwo + kTen;
     volatile float level = static_cast<float>(LevelValueOf(this, kSkillRate));   // FILD, FSTP float
-    float arms = CallArmsFactor(this, nullptr, 1);
+    float arms = ArmsFactorAt(this, nullptr, 1);
     return (level * kPercentB + kOne) * arms * base;
 }
 EI_REPLACE_METHOD(0x00524320, UnitStats::RateValue);
@@ -484,9 +481,9 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
     }
     load = static_cast<float>(unit->TotalItemWeight());
     int unusedArg = keyed ? 1 : 0;   // the original passes the text-key byte (upper bytes garbage)
-    loadFactor = unknown_060 == 1 ? CallLegsFactor(this, nullptr, unusedArg) : kOne;
+    loadFactor = unknown_060 == 1 ? LegsFactorAt(this, nullptr, unusedArg) : kOne;
     speed = speedBase * loadFactor;
-    float arms = CallArmsFactor(this, nullptr, unusedArg);
+    float arms = ArmsFactorAt(this, nullptr, unusedArg);
     armsFactor = arms;
     rateBase = keyed ? stat18 * kPointTwo + kTen : kUnkeyedRateBase;
     double value = (LevelValueOf(this, kSkillRate) * kPercentB + kOne) * arms * rateBase;

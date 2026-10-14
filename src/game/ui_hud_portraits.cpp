@@ -93,11 +93,7 @@ constexpr std::uint32_t kMarkerDepth = 0x41200000;   // 10.0f
 // The interface sprite helpers on scene objects (CUiMesh, ui.h).
 CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(object); }
 
-struct SpriteQuery {
-    // 005E7010 (not rewritten). The sprite's layout position (x, y) and depth.
-    void Position(float* x, float* y, float* depth);
-};
-__declspec(naked) void SpriteQuery::Position(float*, float*, float*) EI_ORIGINAL(0x005E7010)
+using SpriteQuery = SpritePositionOriginal;   // 005E7010: the sprite's layout position (x, y) and depth
 
 Quaternion* RotationOf(CEngineObject* object) {
     return reinterpret_cast<Quaternion*>(reinterpret_cast<std::uint8_t*>(object) + 0x34);

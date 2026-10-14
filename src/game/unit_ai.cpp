@@ -15,6 +15,7 @@
 #include "originals_core.h"
 #include "originals_ai.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 // Keep the original's order of float operations (/fp:fast would reassociate constants).
 #pragma float_control(precise, on)
@@ -56,11 +57,6 @@ GameOstream* GameOstream::Put(int c) { return static_cast<GameOstream*>(OstreamP
 GameOstream* GameOstream::Apply(void* manipulator) { return static_cast<GameOstream*>(OstreamManipulate(this, nullptr, manipulator)); }
 constexpr std::uintptr_t kFlushManipulator = 0x00435000;
 
-// The world (007AFF60): 00593FC0 raises an alarm of `kind` at `position`.
-struct AIWorld {
-    void RaiseAlarm(int kind, const Vector3* position, int unused);
-};
-__declspec(naked) void AIWorld::RaiseAlarm(int, const Vector3*, int) EI_ORIGINAL(0x00593FC0)
 
 // 0052CEC0: DestructElements of counted references (stdcall).
 __declspec(naked) void __stdcall DestructRefs(CEngineObject**, int) EI_ORIGINAL(0x0052CEC0)
@@ -90,8 +86,6 @@ const char* MotivationFormat() { return reinterpret_cast<const char*>(0x00791E20
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-__declspec(naked) void UnitController::Idle() EI_ORIGINAL(0x00555180)
-__declspec(naked) void UnitController::StopQueued() EI_ORIGINAL(0x00555200)
 __declspec(naked) void UnitController::Turn(const Vector3*, float) EI_ORIGINAL(0x005546B0)
 void UnitController::Say(int what) {
     reinterpret_cast<AIAlarm*>(reinterpret_cast<char*>(this) + 0xB10)->Raise(what);   // 005AEA60
@@ -197,7 +191,7 @@ void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
-            reinterpret_cast<AIWorld*>(kWorld)->RaiseAlarm(alarm, &owner->unit->position, 0);
+            reinterpret_cast<WorldAlarmOriginal*>(kWorld)->InvokeAlarm(alarm, &owner->unit->position, 0);
             owner->Say(kVoiceAlarm);
         }
     }
@@ -280,7 +274,7 @@ void AIBrain::Think() {
     switch (action) {
     case kActionNone:
         ReleaseRef(target);
-        owner->Idle();
+        reinterpret_cast<ControllerOriginals*>(owner)->Idle();
         return;
     case kActionWalk:
         ReleaseRef(target);
@@ -478,7 +472,7 @@ void AIBrain::UpdateMove() {
         return;
     }
     if (actionTime == kLookStarted) {
-        if (looks.data->stopFirst) o->StopQueued();
+        if (looks.data->stopFirst) reinterpret_cast<ControllerOriginals*>(o)->StopQueued();
         volatile float end = static_cast<float>(GameTime()) + looks.data->wait;     // FILD + FADD, FSTP float
         actionTime = x87::fistp(end);
         int remaining = looks.size - 1;

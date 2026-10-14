@@ -19,6 +19,9 @@ struct tagRECT;
 struct tagPOINT;
 struct Vector3;
 struct PersonTextNode;
+class CUiWindow;
+class CUnit;
+struct NamedFloatTable;
 
 __declspec(naked) inline void __fastcall BrainResetAll(void*) EI_ORIGINAL(0x005D4F70)
 __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
@@ -617,3 +620,32 @@ __declspec(naked) inline void __fastcall ShowLoadingMovieOriginal(int /*step*/) 
 __declspec(naked) inline void __fastcall SetUpCursorsOriginal(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/)
     EI_ORIGINAL(0x005DAEA0)
 __declspec(naked) inline void __fastcall CursorShutdownOriginal(void* /*cursor*/) EI_ORIGINAL(0x005E62E0)
+// C3m. 0063D2B0 (rewritten as CHudQuickItems::SetUnit; through its address so the wrapper runs): the quick item bar
+// shows a unit's items (thiscall on the window, RET 4).
+__declspec(naked) inline void __fastcall QuickItemsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063D2B0)
+
+// C3m. Thiscall members of game objects, called through these views (cast the object's pointer).
+// 00578B70 (rewritten as GameLocalPlayerVariables; the object at 007AFEA5): copies the local player's variables whose
+// names start with `prefix` into an STLport hash_map<CString, float>.
+struct LocalPlayerOriginal {
+    void CopyVariables(const char* prefix, NamedFloatTable* out);
+};
+__declspec(naked) inline void LocalPlayerOriginal::CopyVariables(const char*, NamedFloatTable*) EI_ORIGINAL(0x00578B70)
+// The interface (CInterface3D): 005F71C0 (rewritten as InterfaceActivate) makes `window` the active screen; 005F8C50
+// (rewritten as CInterface3D::ResetInput) resets the input after the screens were closed. Both thiscall, no result.
+struct InterfaceOriginals {
+    void Activate(CUiWindow* window);
+    void ResetInput();
+};
+__declspec(naked) inline void InterfaceOriginals::Activate(CUiWindow*) EI_ORIGINAL(0x005F71C0)
+__declspec(naked) inline void InterfaceOriginals::ResetInput() EI_ORIGINAL(0x005F8C50)
+// 005E7010 (rewritten as CUiMesh::GetPlacement): a sprite's layout position (x, y) and depth. Base of the views.
+struct SpritePositionOriginal {
+    void Position(float* x, float* y, float* depth);
+};
+__declspec(naked) inline void SpritePositionOriginal::Position(float*, float*, float*) EI_ORIGINAL(0x005E7010)
+// 005FE700 (rewritten as CUiWindow::Construct): the window base constructor (returns this). Base of the views.
+struct WindowConstructOriginal {
+    CUiWindow* Construct(CInterface3D* ui);
+};
+__declspec(naked) inline CUiWindow* WindowConstructOriginal::Construct(CInterface3D*) EI_ORIGINAL(0x005FE700)

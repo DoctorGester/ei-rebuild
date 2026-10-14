@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "lib/crt.h"
 #include "originals_engine.h"
 
 #include <cstring>
@@ -95,7 +96,7 @@ int CFigureManager::LoadPart(CFigureMesh* part, FigureModel* model, float s, flo
     }
     if (!data) {
         const char* directory = part->directory_;
-        return FatalErrorOriginal(game::CantOpenFigText(), directory, FigureSlots(part)->GetName());
+        return game::FatalError(game::CantOpenFigText(), directory, FigureSlots(part)->GetName());
     }
     char* cursor = static_cast<char*>(data);
     FigureSlots(part)->LoadFromMemory(&cursor, s, t, u);

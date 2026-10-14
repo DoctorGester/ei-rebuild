@@ -151,7 +151,7 @@ EI_REPLACE_METHOD(0x00513630, CMapObjectManager::GiveDefaults);
 int CMapObjectManager::PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
                                           mfc::CString* secondWeapon, mfc::CStringArray* spells) {
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(unitdb::PrototypeTable().FindByName(name));
-    if (!prototype) return FatalErrorOriginal(Text(kNoPrototypeText), name);
+    if (!prototype) return game::FatalError(Text(kNoPrototypeText), name);
     armour->SetSize(static_cast<int>(prototype->armourNames.end - prototype->armourNames.begin), -1);
     for (int i = 0; i < armour->size; ++i) armour->data[i] = prototype->armourNames.begin[i];
     spells->SetSize(static_cast<int>(prototype->spellNames.end - prototype->spellNames.begin), -1);

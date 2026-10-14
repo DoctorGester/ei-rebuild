@@ -42,11 +42,6 @@ __declspec(naked) void __fastcall Member5F9300(void*, void*, const void*) EI_ORI
 __declspec(naked) void __fastcall Member5F8F10(void*, void*, const void*) EI_ORIGINAL(0x005F8F10)
 __declspec(naked) void __fastcall Member5F9540(void*, void*, const void*) EI_ORIGINAL(0x005F9540)
 
-struct InterfaceAt {
-    void Activate(CUiWindow* window);   // 005F71C0
-};
-__declspec(naked) void InterfaceAt::Activate(CUiWindow*) EI_ORIGINAL(0x005F71C0)
-
 std::uint8_t* At(void* p, int offset) { return static_cast<std::uint8_t*>(p) + offset; }
 
 } // namespace
@@ -125,7 +120,7 @@ void CInterface3D::CreateScreen(int id) {
         screen = reinterpret_cast<void*>(static_cast<std::uintptr_t>(static_cast<unsigned>(id)));
         break;
     }
-    reinterpret_cast<InterfaceAt*>(this)->Activate(static_cast<CUiWindow*>(screen));
+    reinterpret_cast<InterfaceOriginals*>(this)->Activate(static_cast<CUiWindow*>(screen));
 }
 
 // --- 005F7350: PushWindow --------------------------------------------------------------------------
@@ -229,10 +224,8 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
 namespace {
 struct InterfaceSteps {
     void CloseAllPending();   // 005F74F0
-    void AfterCloseAll();     // 005F8C50
 };
 __declspec(naked) void InterfaceSteps::CloseAllPending() EI_ORIGINAL(0x005F74F0)
-__declspec(naked) void InterfaceSteps::AfterCloseAll() EI_ORIGINAL(0x005F8C50)
 
 void DeleteBackdrop(CUiSurface* surface) {
     if (!surface) return;
@@ -273,7 +266,7 @@ void CInterface3D::Activate(CUiWindow* window) {
         }
         --stackEnd_;
     }
-    steps->AfterCloseAll();
+    reinterpret_cast<InterfaceOriginals*>(this)->ResetInput();
     PumpMessagesOriginal();
     *reinterpret_cast<std::uint8_t*>(0x00784750) = 0;
     if (!window) {

@@ -114,13 +114,7 @@ int FindText(const char* key) { return reinterpret_cast<UiTexts*>(Texts())->Find
 mfc::CString& LastQuest() { return *reinterpret_cast<mfc::CString*>(0x007C8178); }
 
 // The local player's variables, copied by name prefix into an STLport hash_map<CString, float>.
-struct LocalPlayerAt {
-    // 00578B70 (not rewritten; the object at 007AFEA5): copies the variables whose names start
-    // with `prefix`.
-    void CopyVariables(const char* prefix, NamedFloatTable* out);
-};
-__declspec(naked) void LocalPlayerAt::CopyVariables(const char*, NamedFloatTable*) EI_ORIGINAL(0x00578B70)
-LocalPlayerAt* LocalPlayerVariables() { return reinterpret_cast<LocalPlayerAt*>(0x007AFEA5); }
+LocalPlayerOriginal* LocalPlayerVariables() { return reinterpret_cast<LocalPlayerOriginal*>(0x007AFEA5); }
 
 // 00609C10 (not rewritten): hash_map constructor with at least `buckets` buckets (the three
 // pointers are the hasher, key-equal and allocator objects, one byte each).

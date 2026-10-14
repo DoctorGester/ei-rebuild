@@ -163,8 +163,6 @@ struct ScienceRecord {
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall.
 // 00525900. UnitStats: heals the slots of `serverStats` by `amount`; returns 1.
 __declspec(naked) BOOL __fastcall StatsHeal(UnitStats*, void*, void*, float) EI_ORIGINAL(0x00525900)
-// 00525E90. UnitStats: the value of skill `skill` for the unit, in ST0 (declared double).
-__declspec(naked) double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00525E90)
 // 0067AC70. Missile: aims at the object `id` (+0x14C = 0, +0x150 = id).
 // 0058E850. CWorldServer: casts `spell` from `caster` at `from` on `target` at `at`.
 __declspec(naked) void __fastcall WorldCastSpell(void*, void*, void*, CUnit*, const float*,
@@ -224,7 +222,6 @@ __declspec(naked) void CUnitServer::CallWitnessMurder(void*, CUnit*, CUnit*) EI_
 __declspec(naked) void CUnitServer::CallPropagateHostility() EI_ORIGINAL(0x00552E00)
 __declspec(naked) std::uint32_t CUnitServer::CallHitDirection(CUnit*, int) EI_ORIGINAL(0x005518F0)
 __declspec(naked) void CUnitServer::CallUseSkill(CEngineObject*) EI_ORIGINAL(0x0054F000)
-__declspec(naked) void CUnitServer::CallIdle() EI_ORIGINAL(0x00555180)
 __declspec(naked) void CUnitServer::CallSetDead(int) EI_ORIGINAL(0x00546720)
 
 void CUnitServer::DropQueuedOrder() {
@@ -289,7 +286,7 @@ void CUnitServer::FinishAction(int location, char) {
     ActionClear(&action);
     action.unknown_1C = 0;
     action.unknown_20 = 0;
-    if (action2.kind == 9) CallIdle();
+    if (action2.kind == 9) reinterpret_cast<ControllerOriginals*>(this)->Idle();
 }
 EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
 

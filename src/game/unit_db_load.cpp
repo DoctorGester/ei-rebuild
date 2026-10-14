@@ -5,7 +5,8 @@
 #include "unit_db.h"
 
 #include "database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
-#include "originals_engine.h"    // FatalErrorOriginal
+#include "lib/crt.h"
+#include "originals_engine.h"    // game::FatalError
 #include "originals_library.h"   // FigureMapAtOriginal
 #include "originals_units.h"     // PrototypeMapAtOriginal, SkillLevelVectorResizeOriginal
 
@@ -103,10 +104,10 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("units.udb", &size);
-    if (!data) return FatalErrorOriginal("Can't open units database\n");
+    if (!data) return game::FatalError("Can't open units database\n");
 
     LocalStream local;
     CMemoryStream* stream = &local.stream;
@@ -148,10 +149,10 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
     if (!resource.Open(path))
-        return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("perks.pdb", &size);
-    if (!data) return FatalErrorOriginal("Can't open perks database\n");
+    if (!data) return game::FatalError("Can't open perks database\n");
 
     ChunkArchive ar;
     ar.ConstructLocal();

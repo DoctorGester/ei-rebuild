@@ -32,8 +32,7 @@ namespace {
 // in the path), and 006A6480: whether the prototype and material allow a spell (not for kinds
 // 0x11 / 0x12 without a material), with the level (prototype +0x44 + material +0x1C, as a float)
 // and the power limit (prototype +0x40 + material +0x18). Sets only AL.
-struct Constructor {
-    void SetManager(void* manager);                 // 006A5C00
+struct Constructor : ItemConstructorManagerOriginal {
     int BeginCreateItem(int kind, int key);         // 006A5C50
     int SetMaterial(char* material);                // 006A5CC0
     int SetPrototype(char* prototype);              // 006A5CD0
@@ -45,7 +44,6 @@ struct Constructor {
     std::uint8_t unknown_00[0x30];
     int count;                                      // +0x30 the stack size (CItemConstructor::count_)
 };
-__declspec(naked) void Constructor::SetManager(void*) EI_ORIGINAL(0x006A5C00)
 __declspec(naked) int Constructor::BeginCreateItem(int, int) EI_ORIGINAL(0x006A5C50)
 __declspec(naked) int Constructor::SetMaterial(char*) EI_ORIGINAL(0x006A5CC0)
 __declspec(naked) int Constructor::SetPrototype(char*) EI_ORIGINAL(0x006A5CD0)
@@ -57,9 +55,6 @@ static_assert(offsetof(Constructor, count) == offsetof(CItemConstructor, count_)
 
 // 006A4230: an item's category (thiscall).
 __declspec(naked) int __fastcall ItemCategory(CItem*) EI_ORIGINAL(0x006A4230)
-// 0069D380: the class-0x15 prototype table's record by name (thiscall on 007C8778, item_db.h's
-// QuestItems() table).
-__declspec(naked) char* __fastcall FindTable15Named(void*, void*, const char*) EI_ORIGINAL(0x0069D380)
 // 0069A480 (RET 4): fills the stock's spell and modifier maps from a spell table (007C8568 for
 // weapons, 007C855C for armors). 0069A780 (RET 0xC): random spells into a list of counted spell
 // pointers, from the maps, with the level per school (8 floats) and a percentage threshold.
@@ -686,7 +681,6 @@ __declspec(naked) mfc::CString* __fastcall StreamReadString(void*, void*, void* 
 char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)FindArmorOriginal(a0, nullptr, a2); }
 char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)FindWeaponOriginal(a0, nullptr, a2); }
 char* __fastcall FindQuickItemNamed(void* a0, void*, const char* a2) { return (char*)FindQuickItemOriginal(a0, nullptr, a2); }
-__declspec(naked) char* __fastcall FindMaterialNamed(void*, void*, const char*) EI_ORIGINAL(0x0069D290)
 __declspec(naked) char** __fastcall ModifierByName(void*, void*, const void* /*string*/) EI_ORIGINAL(0x00684B20)
 // push_back of the pointer vectors (thiscall, &value): 0069BD30 (the three item lists), 0069BDC0
 // (spells), 0069BDF0 (modifiers); vector<StockMaterial>::_M_insert_overflow 0069CC20 (position,
@@ -726,7 +720,7 @@ void LoadRecords(void* stream, mfc::CString& name, unsigned& count, const Record
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
-        name.MakeLower();
+        name.MakeUpper();
         char* record = find(TableObject(table), nullptr, name);
         if (record) AddUnique(list, record, &PushItemRecord);
     }
@@ -764,7 +758,7 @@ void ItemStock::LoadLists(void* stream) {
     int values[3] = {0, 0, 0};
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
-        name.MakeLower();
+        name.MakeUpper();
         StockMaterial entry;
         for (int& v : values) ReadInt(stream, &v);
         entry.record = FindMaterialNamed(TableObject(itemdb::Materials()), nullptr, name);
@@ -867,11 +861,6 @@ EI_REPLACE_METHOD(0x00699440, ItemStock::CopyMagic);
 
 namespace {
 
-// The spell and modifier records by code (thiscall on their tables; null when missing): 0068C820 on
-// 007C8510 (0x84-byte records, the code a CString at +4), 0068C920 on 007C8530 (0x24-byte records,
-// the code inline at +4).
-__declspec(naked) char* __fastcall FindSpellByCode(void*, void*, const char*) EI_ORIGINAL(0x0068C820)
-__declspec(naked) char* __fastcall FindModifierByCode(void*, void*, const char*) EI_ORIGINAL(0x0068C920)
 
 // A record's index in `table` (signed division), or -1 for null.
 int TableIndex(const char* record, const RecordTable& table, int recordSize) {

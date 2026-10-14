@@ -83,14 +83,12 @@ StringArg Copy(const char* text) {
 }
 
 // The registry, through its game addresses (registry.cpp).
-struct Registry {
+struct Registry : RegistryOriginals {
     CFileRegistry* Construct();                                                       // 00694520
     void Destroy();                                                                   // 00694540
     mfc::BOOL Attach(const void* image);                                              // 00694610
     double GetFloat(const char* section, const char* key, std::uint32_t defaultBits); // 00694C80
     int GetInt(const char* section, const char* key, int defaultValue);              // 00694B90
-    mfc::CString GetString(const char* section, const char* key, StringArg defaultValue);   // 00694D20
-    mfc::BOOL GetStringArray(const char* section, const char* key, console::CStringArray* out);  // 006958E0
 
     std::uint8_t storage[sizeof(CFileRegistry)];
 };
@@ -99,8 +97,6 @@ __declspec(naked) void Registry::Destroy() EI_ORIGINAL(0x00694540)
 __declspec(naked) mfc::BOOL Registry::Attach(const void*) EI_ORIGINAL(0x00694610)
 __declspec(naked) double Registry::GetFloat(const char*, const char*, std::uint32_t) EI_ORIGINAL(0x00694C80)
 __declspec(naked) int Registry::GetInt(const char*, const char*, int) EI_ORIGINAL(0x00694B90)
-__declspec(naked) mfc::CString Registry::GetString(const char*, const char*, StringArg) EI_ORIGINAL(0x00694D20)
-__declspec(naked) mfc::BOOL Registry::GetStringArray(const char*, const char*, console::CStringArray*) EI_ORIGINAL(0x006958E0)
 
 // STLport string members: default constructor [0041F460], assign a range [00426A80], assign a
 // C string [0041F550].

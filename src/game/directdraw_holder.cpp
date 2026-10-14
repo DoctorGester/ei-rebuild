@@ -10,7 +10,7 @@
 #include "device.h"
 
 #include "dx_errors.h"
-#include "originals_engine.h"    // FatalDirectX, FatalErrorOriginal, DebugMessageOriginal
+#include "originals_engine.h"    // FatalDirectX, game::FatalError, DebugMessageOriginal
 #include "originals_library.h"   // ExitGame
 #include "originals_render.h"
 #include "sys_info.h"   // ProcessorInfo
@@ -77,7 +77,7 @@ CDXSurface* NewHolderOf(CTextureDevice* device, IDirectDrawSurface7* surface) {
         DXSurfaceDescribeOriginal(holder);
         ++device::HolderCount();
     } else {
-        FatalErrorOriginal(Text(0x0078E73C));   // "Creating DXDDSurface from empty DDSurface!\n"
+        game::FatalError(Text(0x0078E73C));   // "Creating DXDDSurface from empty DDSurface!\n"
     }
     return holder;
 }
@@ -142,7 +142,7 @@ int __cdecl EnumerateDirectDrawDrivers() {
     drivers.ClearWith([](DirectDrawDriver* driver) { driver->~DirectDrawDriver(); });
     const HRESULT result = device::DirectDrawEnumerateExA(&DriverEnumCallback, &drivers,
                                                           DDENUM_ATTACHEDSECONDARYDEVICES | DDENUM_NONDISPLAYDEVICES);
-    if (result != 0) return FatalErrorOriginal(Text(0x0078E49C), result);   // "Can't enumerate direct draw drivers.\n"
+    if (result != 0) return game::FatalError(Text(0x0078E49C), result);   // "Can't enumerate direct draw drivers.\n"
     return 1;
 }
 EI_REPLACE(0x004EE4A0, EnumerateDirectDrawDrivers);
@@ -171,7 +171,7 @@ DirectDrawDriver* __cdecl FirstHardwareDirectDrawDriver() {
         }
     }
     if (found == drivers.End()) {
-        FatalErrorOriginal(Text(0x0078E534));   // "Can't find any driver with HW 3D.\n"
+        game::FatalError(Text(0x0078E534));   // "Can't find any driver with HW 3D.\n"
         ExitGame(-1);
     }
     return &found->data;
@@ -326,7 +326,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
         processor.features2 = static_cast<std::uint32_t>(registers[2]);
     }
     if (!(processor.features & kFeatureMmx)) {
-        FatalErrorOriginal(Text(0x0078E348));   // "MMX required in this version !!!.\n"
+        game::FatalError(Text(0x0078E348));   // "MMX required in this version !!!.\n"
         ExitGame(-1);
     }
 

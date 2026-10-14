@@ -501,9 +501,6 @@ double LevelOrZero(UnitStats* stats, int skill) {
     return record ? LevelOf(record) : kZero;
 }
 
-// 00524060 / 00524110 of unit_vitals.cpp, through their game addresses.
-__declspec(naked) float __fastcall LegsFactorAt(UnitStats*, void*, int) EI_ORIGINAL(0x00524060)
-__declspec(naked) float __fastcall ArmsFactorAt(UnitStats*, void*, int) EI_ORIGINAL(0x00524110)
 } // namespace
 
 void UnitStats::ResetToBase(float newLoad) {
@@ -556,7 +553,6 @@ namespace {
 // 005259B0 UnitStats::Reduce and 00525800 UnitStats::HealSlots of unit_stats.cpp / unit_vitals.cpp,
 // through their game addresses. Reduce leaves its result unrounded in ST0.
 __declspec(naked) double __fastcall ReduceAt(UnitStats*, void*, float) EI_ORIGINAL(0x005259B0)
-__declspec(naked) bool __fastcall HealSlotsAt(UnitStats*, void*, float, float) EI_ORIGINAL(0x00525800)
 // 0051FF00. Skill database: the index of `record` in its level records, or -1. Not rewritten.
 
 // The hit point maximum of the experience curve with skill 16 (the level byte read now).

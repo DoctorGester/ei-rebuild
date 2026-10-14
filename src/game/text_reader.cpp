@@ -18,10 +18,8 @@ int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); 
 
 // CString members not in lib/mfc.h.
 struct TextString : mfc::CString {
-    void AssignChar(char c);                    // 006FD559 operator=(TCHAR)
     void AppendChar(char c);                    // 00700D73 operator+=(TCHAR)
 };
-__declspec(naked) void TextString::AssignChar(char) EI_ORIGINAL(0x006FD559)
 void TextString::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
 TextString& Ops(mfc::CString& s) { return static_cast<TextString&>(s); }
 const TextString& Ops(const mfc::CString& s) { return static_cast<const TextString&>(s); }
@@ -288,7 +286,7 @@ BOOL __fastcall TextFindLine(CTextManager* self, void*, const char* key) {
             if (keyWords.size <= 0) return 1;
             for (;;) {
                 word = lineWords.data[i];
-                word.MakeLower();
+                word.MakeUpper();
                 if (MbsCmp(word, keyWords.data[i]) != 0) break;
                 if (++i >= keyWords.size) return 1;
             }

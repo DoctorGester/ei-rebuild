@@ -304,7 +304,7 @@ CDXSurface* __fastcall DXSurfaceConstruct(CDXSurface* holder, void*, CTextureDev
     ReadScreenFormat(device, &desc[kFormat]);
 
     if (!holder->device) {
-        if (!FatalErrorOriginal(Text(0x0078E8CC))) ThrowCreateFailed(width, height);
+        if (!game::FatalError(Text(0x0078E8CC))) ThrowCreateFailed(width, height);
         // (The original goes on with no surface and fails in GetSurfaceDesc.)
         ReadSize(holder);
         ++HolderCount();
@@ -405,7 +405,7 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const std::uint32
             source += picture->width * 4;
         }
     } else if (bits == 24) {
-        FatalErrorOriginal(Text(0x0078EA10));   // "Can't load picture to 24bit surface! ..."
+        game::FatalError(Text(0x0078EA10));   // "Can't load picture to 24bit surface! ..."
         // (The surface cleared as if it had no row padding, as the original.)
         std::memset(out, 0, (bits >> 3) * desc[kHeight] * desc[kWidth]);
     }
@@ -428,8 +428,8 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const std::uint32
 // report says stop leaves the device lock held; a 24-bit surface is reported, then cleared.
 int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data, int flag) {
     const auto* picture = static_cast<const MmpHeader*>(data);
-    if (!picture) return FatalErrorOriginal(Text(0x0078EB10));                  // "Can't load picture from NULL pointer."
-    if (picture->format != kFormat8888) return FatalErrorOriginal(Text(0x0078EAE4));   // "... from non-8888 format."
+    if (!picture) return game::FatalError(Text(0x0078EB10));                  // "Can't load picture from NULL pointer."
+    if (picture->format != kFormat8888) return game::FatalError(Text(0x0078EAE4));   // "... from non-8888 format."
     if (!holder->surface && !render::SurfaceMemoryOf(holder)) {
         std::uint32_t desc[0x1F] = {};
         desc[0] = 0x7C;
@@ -480,13 +480,13 @@ int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data,
         if (surface) described = ReadSize(holder);
         else if (client && !memoryOnly) render::FreeSurfaceMemory(holder);
         if (!described)   // "Can't create surface to load picture %d:%d:%d."
-            return FatalErrorOriginal(Text(0x0078EAB4), picture->width, picture->height, picture->bitsPerPixel);
+            return game::FatalError(Text(0x0078EAB4), picture->width, picture->height, picture->bitsPerPixel);
         holder->width = static_cast<int>(desc[kWidth]);
         holder->height = static_cast<int>(desc[kHeight]);
         holder->bitsPerPixel = static_cast<int>(desc[kBits]);
     } else if (picture->width != static_cast<std::uint32_t>(holder->width) ||
                picture->width != static_cast<std::uint32_t>(holder->height)) {
-        return FatalErrorOriginal(Text(0x0078E99C));   // "Dimentions of the DD surface are differ from ..."
+        return game::FatalError(Text(0x0078E99C));   // "Dimentions of the DD surface are differ from ..."
     }
 
     std::uint32_t desc[0x1F] = {};
@@ -501,14 +501,14 @@ int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data,
         long hr = ComCall(holder->surface, kGetPixelFormat, static_cast<void*>(format));
         holder->result = hr;
         if (hr != 0 && !FatalDirectX(hr, Text(0x0078E714)))   // "Can't get pixel format from surface."
-            return FatalErrorOriginal(Text(0x0078EA80));               // "Can't get surface pixel format to load picture."
+            return game::FatalError(Text(0x0078EA80));               // "Can't get surface pixel format to load picture."
         gameapi::EnterCriticalSection(DeviceLock());
         // DDLOCK_WAIT | DDLOCK_WRITEONLY | DDLOCK_NOSYSLOCK
         hr = ComCall(holder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), 0x821ul,
                      static_cast<void*>(nullptr));
         holder->result = hr;
         if (hr != 0 && !FatalDirectX(hr, Text(0x0078E30C)))   // "Can't lock surface."
-            return FatalErrorOriginal(Text(0x0078EA58));               // "Can't lock surface to load picture." (lock held)
+            return game::FatalError(Text(0x0078EA58));               // "Can't lock surface to load picture." (lock held)
     }
     FillPicture(holder, picture, desc, format);
     gameapi::LeaveCriticalSection(DeviceLock());
@@ -516,7 +516,7 @@ int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data,
         long hr = ComCall(holder->surface, kUnlock, static_cast<void*>(nullptr));
         holder->result = hr;
         if (hr != 0 && !FatalDirectX(hr, Text(0x0078E2F4)))   // "Can't unlock surface."
-            return FatalErrorOriginal(Text(0x0078E9E4));               // "Can't unlock surface after load picture."
+            return game::FatalError(Text(0x0078E9E4));               // "Can't unlock surface after load picture."
     }
     return 1;
 }
@@ -577,7 +577,7 @@ CDXSurface* __fastcall DXSurfaceFromDesc(CDXSurface* holder, void*, CTextureDevi
     SetHolderVtable(holder);
     bool made;
     if (!device) {
-        made = FatalErrorOriginal(Text(0x0078E8CC)) != 0;   // "... Can't create DDSurface - no DXDD."
+        made = game::FatalError(Text(0x0078E8CC)) != 0;   // "... Can't create DDSurface - no DXDD."
     } else {
         IDirectDrawSurface7* surface = nullptr;
         gameapi::EnterCriticalSection(DeviceLock());

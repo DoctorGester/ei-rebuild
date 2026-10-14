@@ -261,9 +261,6 @@ namespace {
 // 0050E840, not rewritten], the map object part of Load / Save [0050F7A0 / 0050F900, not
 // rewritten]: all through their game addresses.
 __declspec(naked) void __fastcall ConstructMapObjectAt(void*) EI_ORIGINAL(0x0050E2D0)
-__declspec(naked) void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
-__declspec(naked) int __fastcall MapObjectCreate(void*) EI_ORIGINAL(0x0050E770)
-__declspec(naked) void __fastcall MapObjectDestroy(void*) EI_ORIGINAL(0x0050E840)
 void __fastcall MapObjectLoad(void* a0, void*, UnitStream* a2) { MapObjectLoadOriginal(a0, nullptr, (void*)a2); }
 void __fastcall MapObjectSave(void* a0, void*, UnitStream* a2) { MapObjectSaveOriginal(a0, nullptr, (void*)a2); }
 // A counted reference's Save (its object's id, -1 for none) [0050E290, RET 4]; the units inside

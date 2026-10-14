@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -30,10 +31,8 @@ float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatil
 __declspec(naked) HistoryNode** __fastcall HistoryEnd(HistoryNode** /*list*/, void*, HistoryNode** /*out*/) EI_ORIGINAL(0x00437F20)
 __declspec(naked) void __fastcall HistorySplice(HistoryNode** /*list*/, void*, HistoryNode* /*pos*/, HistoryNode** /*from*/,
                                                 HistoryNode* /*node*/) EI_ORIGINAL(0x004380C0)
-__declspec(naked) HistoryNode** __fastcall HistoryEraseAt(HistoryNode** /*list*/, void*, HistoryNode** /*out*/, HistoryNode* /*pos*/) EI_ORIGINAL(0x00437F30)
 // The freed-id queue (list of vector<FreedId>): erase, insert a default element.
 __declspec(naked) FreedBatch** __fastcall FreedErase(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x004390C0)
-__declspec(naked) FreedBatch** __fastcall FreedInsert(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 // vector<uint16_t> pieces of the id pools: construct in place, insert when full; vector copy of
 // 4-byte elements (returns the end of the copy).
 __declspec(naked) void __fastcall IdConstruct(std::uint16_t* /*at*/, const void* /*value*/) EI_ORIGINAL(0x0043D7E0)
@@ -103,7 +102,7 @@ bool Connection::Tick(double dt) {
             node = node->next;
         } else {
             HistoryNode* after;
-            HistoryEraseAt(&acknowledged_, nullptr, &after, node);
+            HistoryErase(&acknowledged_, nullptr, &after, node);
             node = after;
         }
     }
