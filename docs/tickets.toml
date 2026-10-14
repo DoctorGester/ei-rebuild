@@ -587,6 +587,14 @@ files = ["map_object_figures.h", "figure_mesh.h", "link_figure.h", "scene_loader
 note = "F4 named the gaps of views after the real classes; merge them: FigurePart -> CFigureMesh (piece158 / piece15C are materialValue_ / meshType_), FigurePieceRecord's piece -> LinkPartHeader, FigureMaterial and SceneHelper -> CMaterial, TerrainFields -> Terrain, TerrainSector -> terrain::SectorData, the two LineBatch declarations into renderer_lines.h's."
 started = "2026-10-14"
 
+[[ticket]]
+id = "F5a"
+title = "Duplicate declarations F5 found (lever record, sound system view, waypoint names)"
+group = "cleanup"
+status = "queued"
+files = ["app_device_list.cpp", "lever.h", "bink_video.cpp", "sound.h", "map_spec.h", "world_update.cpp", "player_client.h"]
+note = "app_device_list.cpp's DeviceRecord is lever.h's LeverRecord (Levers.ldb; one declaration, the file and its notes say device). bink_video.cpp's SoundSystem view is CSoundManager (+0x1C Miles driver). mapspec::Waypoint::wait is the look's turning time (AILook::time), rename it. world_update.cpp's IsLocal tests CPlayerServer::possessedId_ < 0 (no pending possession), rename. CPlayerClient::sendParty_ (+0x85) vs LocalViewData::partyTaken: one name. Renames only, layout unchanged."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
