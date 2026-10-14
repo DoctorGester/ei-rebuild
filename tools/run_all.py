@@ -70,7 +70,9 @@ def machine_slot(alone=False):
     """One of the machine's MACHINE_SLOTS game slots (shared by every checkout's run_all), or all of
     them (alone): for a game that sets the display mode, which takes the surfaces of every other
     game running then (they fail with DDERR_SURFACELOST: "Can't begin scene", untextured models).
-    Games that want all the slots queue on one more lock, so two of them never split the slots."""
+    Games that want all the slots queue on one more lock, so two of them never split the slots; while
+    one holds it, no other game takes a slot (a suite's next game would take each slot as it frees,
+    and the one that wants them all waited for the end of every other suite on the machine)."""
     os.makedirs(SLOT_DIR, exist_ok=True)
     held = []
     gate = None
@@ -79,6 +81,12 @@ def machine_slot(alone=False):
             while not (gate := _lock(os.path.join(SLOT_DIR, 'alone'))):
                 time.sleep(0.5)
         while True:
+            if not alone:
+                waiting = _lock(os.path.join(SLOT_DIR, 'alone'))
+                if not waiting:   # a game that runs alone is gathering the slots
+                    time.sleep(0.5)
+                    continue
+                _unlock(waiting)
             for i in range(MACHINE_SLOTS):
                 if alone and i in [h[0] for h in held]:
                     continue
