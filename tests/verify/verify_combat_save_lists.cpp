@@ -57,7 +57,7 @@ static void(__fastcall* s_saveSpell)(const ArmourSpell*, void*, UnitStream*);
 static void __fastcall SaveArmourSpellVerify(const ArmourSpell* entry, void*, UnitStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_saveSpell(entry, nullptr, &expected);
-    SaveArmourSpell(entry, nullptr, &actual);
+    entry->Save(&actual);
     ei::verify::Check("SaveArmourSpell", true, expected.Same(actual), "countdown %d: first difference at %d",
                       entry->countdown, expected.FirstDifference(actual));
     expected.Forward(stream);

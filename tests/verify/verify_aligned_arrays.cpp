@@ -15,12 +15,7 @@ struct Blob {
 };
 using Dwords = lib::AlignedArray<std::uint32_t>;
 using Vectors = lib::AlignedArray<Blob<12>>;
-void __fastcall DwordArraySetSize(Dwords* a, void*, int n, int growBy);
-void __fastcall Vector3ArraySetSize(Vectors* a, void*, int n, int growBy);
-int __fastcall Vector3ArrayAdd(Vectors* a, void*, Blob<12> value);
 void __fastcall DwordArraySetAtGrowRef(Dwords* a, void*, int index, const std::uint32_t* value);
-void __fastcall DwordArraySetAtGrow(Dwords* a, void*, int index, std::uint32_t value);
-void __fastcall Vector3ArrayCopy(Vectors* a, void*, const Vectors* other);
 Blob<12>* __fastcall AllocateVectors(int count);
 std::uint32_t* __fastcall AllocateDwords(int count);
 void __fastcall ArrayFree1(lib::AlignedArray<std::uint8_t>* a);
@@ -28,6 +23,8 @@ void __fastcall ArrayFree1(lib::AlignedArray<std::uint8_t>* a);
 
 namespace {
 using namespace aligned;
+void __fastcall DwordSetSizeCall(Dwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
+void __fastcall VectorSetSizeCall(Vectors* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
 void* s_unused;
 
 // The arrays seen as bytes (the checks compare element bytes).
@@ -45,11 +42,11 @@ void CheckSetSize(const char* name, void(__fastcall* fn)(A*, void*, int, int), A
     ei::verify::Check(name, true, ok, "");
 }
 
-void __fastcall SetSize4Verify(Array* a, void*, int n, int growBy) { CheckSetSize<4>("DwordArraySetSize", DwordArraySetSize, a, n, growBy); }
-void __fastcall SetSize12Verify(Array* a, void*, int n, int growBy) { CheckSetSize<12>("Vector3ArraySetSize", Vector3ArraySetSize, a, n, growBy); }
+void __fastcall SetSize4Verify(Array* a, void*, int n, int growBy) { CheckSetSize<4>("DwordArraySetSize", DwordSetSizeCall, a, n, growBy); }
+void __fastcall SetSize12Verify(Array* a, void*, int n, int growBy) { CheckSetSize<12>("Vector3ArraySetSize", VectorSetSizeCall, a, n, growBy); }
 int __fastcall Add12Verify(Array* a, void*, Blob<12> value) {
     int old = a->size;
-    int index = Vector3ArrayAdd(reinterpret_cast<Vectors*>(a), nullptr, value);
+    int index = reinterpret_cast<Vectors*>(a)->Add(value);
     ei::verify::Check("Vector3ArrayAdd", true, index == old && a->size == old + 1 && std::memcmp(a->data + index * 12, &value, 12) == 0, "");
     return index;
 }
@@ -60,11 +57,11 @@ void __fastcall SetAtGrowVerify(Array* a, void*, int index, const std::uint32_t*
 }
 // A-U11: the by-value SetAtGrow copy.
 void __fastcall SetAtGrowValueVerify(Array* a, void*, int index, std::uint32_t value) {
-    DwordArraySetAtGrow(reinterpret_cast<Dwords*>(a), nullptr, index, value);
+    reinterpret_cast<Dwords*>(a)->SetAtGrow(index, value);
     ei::verify::Check("DwordArraySetAtGrow", true, a->size > index && std::memcmp(a->data + index * 4, &value, 4) == 0, "");
 }
 void __fastcall CopyVerify(Array* a, void*, const Array* other) {
-    Vector3ArrayCopy(reinterpret_cast<Vectors*>(a), nullptr, reinterpret_cast<const Vectors*>(other));
+    reinterpret_cast<Vectors*>(a)->Copy(*reinterpret_cast<const Vectors*>(other));
     ei::verify::Check("Vector3ArrayCopy", true, a->size == other->size && (a->size == 0 || std::memcmp(a->data, other->data, static_cast<std::size_t>(a->size) * 12) == 0), "");
 }
 std::uint8_t* __fastcall AllocVerify(int count) {

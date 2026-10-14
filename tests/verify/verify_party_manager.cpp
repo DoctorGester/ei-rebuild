@@ -91,7 +91,7 @@ void __fastcall BeginRedeployVerify(NamedPartyRecords* self, void*, CParty* part
 // 004A6360: ours only. `party` has the named record's zone and +0x50 (or is cleared: empty zone,
 // +0x50 zero), and text10 equals text0C.
 void __fastcall EndRedeployVerify(NamedPartyRecords* self, void*, CParty* party) {
-    auto* found = static_cast<CParty*>(PartyRecordsFind(self, nullptr, self->text0C));
+    auto* found = static_cast<CParty*>(self->Find(self->text0C));
     self->EndRedeploy(party);
     bool ok = SameText(self->text10, self->text0C);
     if (found) ok = ok && SameText(party->zone_, found->zone_) && party->money_ == found->money_;

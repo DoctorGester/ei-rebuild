@@ -26,6 +26,7 @@ struct ShapeCacheHash {
 
 class __declspec(novtable) UnitShapeCache {
 public:
+    CRefObject* Get(void* handleIn);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FD58);
 
     // A node is {next, handle, shape}: 0x18 bytes.

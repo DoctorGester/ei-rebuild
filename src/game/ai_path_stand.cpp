@@ -114,32 +114,30 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
 } // namespace
 
 // 005B1DE0 (RET 0x10).
-void __fastcall StandAndTurn(AIPath* path, void*, int time, std::uint8_t* unit, std::uint32_t direction,
-                             std::uint32_t rate) {
-    StandAt(path, &time, unit);
-    OrderSetTurn(path, nullptr, direction, rate);
+void AIPath::StandAndTurn(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t rate) {
+    StandAt(this, &time, unit);
+    OrderSetTurn(this, nullptr, direction, rate);
 }
 
 // 005B1F10 (RET 0x14).
-void __fastcall StandAndTrack(AIPath* path, void*, int time, std::uint8_t* unit, std::uint32_t id, std::uint32_t from,
-                              std::uint32_t to) {
-    StandAt(path, &time, unit);
-    OrderSetTrack(path, nullptr, id, from, to);
+void AIPath::StandAndTrack(int time, std::uint8_t* unit, std::uint32_t id, std::uint32_t from, std::uint32_t to) {
+    StandAt(this, &time, unit);
+    OrderSetTrack(this, nullptr, id, from, to);
 }
 
 // 005B2050 (RET 0x14).
-void __fastcall StandAndTurnUntil(AIPath* path, void*, int time, std::uint8_t* unit, std::uint32_t direction,
-                                  std::uint32_t a, std::uint32_t b) {
-    StandAt(path, &time, unit);
-    OrderSetTurnUntil(path, nullptr, direction, a, b);
+void AIPath::StandAndTurnUntil(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t a,
+                               std::uint32_t b) {
+    StandAt(this, &time, unit);
+    OrderSetTurnUntil(this, nullptr, direction, a, b);
 }
 
 // 005B2190 (RET 4).
-void __fastcall StandStill(AIPath* path, void*, std::uint8_t* unit) {
-    StandAt(path, &path->motionOrder.startTime, unit);
+void AIPath::StandStill(std::uint8_t* unit) {
+    StandAt(this, &motionOrder.startTime, unit);
 }
 
-EI_REPLACE(0x005B1DE0, StandAndTurn);
-EI_REPLACE(0x005B1F10, StandAndTrack);
-EI_REPLACE(0x005B2050, StandAndTurnUntil);
-EI_REPLACE(0x005B2190, StandStill);
+EI_REPLACE_METHOD(0x005B1DE0, AIPath::StandAndTurn);
+EI_REPLACE_METHOD(0x005B1F10, AIPath::StandAndTrack);
+EI_REPLACE_METHOD(0x005B2050, AIPath::StandAndTurnUntil);
+EI_REPLACE_METHOD(0x005B2190, AIPath::StandStill);

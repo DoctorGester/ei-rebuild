@@ -253,7 +253,7 @@ CParty* RecordParty(PartyRecord* record) { return reinterpret_cast<CParty*>(reco
 } // namespace
 
 void NamedPartyRecords::BeginRedeploy(CParty* party) {
-    if (auto* found = static_cast<CParty*>(PartyRecordsFind(this, nullptr, text10))) CopyParty(found, party);
+    if (auto* found = static_cast<CParty*>(this->Find(text10))) CopyParty(found, party);
     PartyVariableMap variables;
     FloatTableCopyConstructOriginal(&variables, nullptr, &party->variables_);
     mfc::CString zone(party->zone_);
@@ -268,7 +268,7 @@ void NamedPartyRecords::BeginRedeploy(CParty* party) {
 EI_REPLACE_METHOD(0x004A6050, NamedPartyRecords::BeginRedeploy);
 
 void NamedPartyRecords::EndRedeploy(CParty* party) {
-    if (auto* found = static_cast<CParty*>(PartyRecordsFind(this, nullptr, text0C))) CopyParty(party, found);
+    if (auto* found = static_cast<CParty*>(this->Find(text0C))) CopyParty(party, found);
     else party->Clear(1, 0);
     text10 = text0C;
 }

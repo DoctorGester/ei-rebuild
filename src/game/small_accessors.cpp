@@ -86,15 +86,15 @@ CEngineObject* __fastcall ScriptRefCompanion(const ScriptObjectRef* ref) {
 EI_REPLACE(0x004B2520, ScriptRefCompanion);
 
 // 004B9F50 / 004B9F60 (RET 4): bits of the object's flags set / cleared (the commands pass 0x10000).
-void __fastcall ScriptObjectSetFlags(CEngineObject* object, void*, std::uint32_t bits) {
-    object->flags_ |= bits;
+void CEngineObject::SetFlagBits(std::uint32_t bits) {
+    flags_ |= bits;
 }
-EI_REPLACE(0x004B9F50, ScriptObjectSetFlags);
+EI_REPLACE_METHOD(0x004B9F50, CEngineObject::SetFlagBits);
 
-void __fastcall ScriptObjectClearFlags(CEngineObject* object, void*, std::uint32_t bits) {
-    object->flags_ &= ~bits;
+void CEngineObject::ClearFlagBits(std::uint32_t bits) {
+    flags_ &= ~bits;
 }
-EI_REPLACE(0x004B9F60, ScriptObjectClearFlags);
+EI_REPLACE_METHOD(0x004B9F60, CEngineObject::ClearFlagBits);
 
 // 004B9F90 (RET 4): the map object's position.
 void __fastcall ScriptObjectSetPosition(CMapObject* object, void*, const Vector3* point) {
@@ -134,10 +134,10 @@ int __fastcall ScriptUnitCarriedCount(const CUnit* unit) {
 }
 EI_REPLACE(0x004BA070, ScriptUnitCarriedCount);
 
-CEngineObject* __fastcall ScriptUnitCarriedItem(const CUnit* unit, void*, int index) {
-    return unit->carried[index];
+CEngineObject* CUnit::CarriedItem(int index) const {
+    return carried[index];
 }
-EI_REPLACE(0x004BA080, ScriptUnitCarriedItem);
+EI_REPLACE_METHOD(0x004BA080, CUnit::CarriedItem);
 
 // 004BA9C0: the statistics of the unit's server half.
 UnitStats* __fastcall ScriptControllerStats(CUnitServer* controller) {
@@ -145,11 +145,8 @@ UnitStats* __fastcall ScriptControllerStats(CUnitServer* controller) {
 }
 EI_REPLACE(0x004BA9C0, ScriptControllerStats);
 
-// 004BAA20 (RET 4): the iterator set on `list`; its first object (ObjectListIterator::First).
-CEngineObject* __fastcall ScriptIteratorFirst(ObjectListIterator* iterator, void*, CBaseManager* list) {
-    return iterator->First(list);
-}
-EI_REPLACE(0x004BAA20, ScriptIteratorFirst);
+// 004BAA20 (RET 4): the iterator set on `list`; its first object.
+EI_REPLACE_METHOD(0x004BAA20, ObjectListIterator::First);
 
 // 004BC1F0 (the text in ECX, the stream in EDX): the text written with its terminator.
 void __fastcall ScriptWriteText(const mfc::CString* text, CStream* stream) {
