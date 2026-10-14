@@ -11,8 +11,8 @@ section; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrati
 
 ## Renderer (src/render, docs/notes/renderer.md)
 
-- R8 (first part merged 2026-10-05; second part taken: shadow textures, .mmp/.bmp textures without DirectDraw) Device setup and texture management (last). Includes R7's leftovers: 004EFA60 texture holders (save/load pictures, weather texture, item pictures) via the texture manager 0068F6C0..00693C60; presenting without the old Flip/BltFast.
-- R-next (parked until porting is finished, user 2026-10-09): renderer device removal (no DirectDraw / D3D7 device in the switch-over, own swap chain, renderer.md section 9), then native UI drawing window by window.
+- R8 merged (both parts; textures without DirectDraw in the switch-over, renderer.md section 16).
+- R9 (user 2026-10-14: in parallel with the cleanup; starts when C2d's device-file cleanup is merged) our own swap chain, dgVoodoo gone, renderer.md section 9, one Opus ticket at a time: R9a device setup without DirectDraw / Direct3D in the switch-over (the device object filled for the game, the fixed texture format table, the screen format from the colour depth) and `render::Present` on a flip-model swap chain on the game window, plus a run config without dgVoodoo; R9b every old-device call left guarded for a device object without a device (524 sites in 143 functions); R9c movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Then native UI drawing window by window.
 
 ## Area tickets (done; next candidates)
 
