@@ -65,7 +65,11 @@ public:
     virtual void Unknown6();
     // 7: fits `bounds` around `count` vertex packets.
     virtual void FitBounds(ClipBounds* bounds, const VertexPacket* vertices, int count);
-    virtual void Unknown8();
+    // 8: `count` points (16 bytes each: x, y, z and one more) projected with `matrix` into
+    // `projected` (x, y, z, w), a flag byte per point set when it is off screen; 2 when every point
+    // is, else 0 or 1 (the ribbon draw 00501D90).
+    virtual int ProjectPointsClipped(const Matrix4* matrix, const void* points, void* projected, std::uint8_t* flags,
+                                     int count);
     // 9: projects `blocks` blocks of four positions with `matrix` into `projected`, writing their
     // clip outcodes; the result is the caller's (on screen / crossing / outside).
     virtual int ProjectClipped(const Matrix4* matrix, const void* positions, void* projected, void* outcodes,
@@ -73,7 +77,8 @@ public:
     virtual void Unknown10();
     virtual void Unknown11();
     virtual void Unknown12();
-    virtual void Unknown13();
+    // 13: the same without clipping (the ribbon draw's mode 0).
+    virtual void ProjectPoints(const Matrix4* matrix, const void* points, void* projected, int count);
     // 14: the same without clipping (every block on screen); the result as slot 9's (the device's
     // mesh draws 004E9010 / 004E9A50 test it, CTransformPipeline::ProjectBlocks does not).
     virtual int Project(const Matrix4* matrix, const void* positions, void* projected, int blocks);
@@ -88,7 +93,12 @@ public:
     virtual void Unknown21();
     virtual void Unknown22();
     virtual void Unknown23();
-    virtual void Unknown24();
+    // 24: `count` screen-facing sprites (`points`: centre x, y, z and size each) placed with the
+    // transposed view matrix as four TL vertices each into `corners` (positions only), with an
+    // outcode byte per corner: 0 all on screen, 1 some off screen, else none (the sprite draw
+    // 00502CA0).
+    virtual int ProjectSprites(const void* transposedView, const void* points, TLVertex* corners,
+                               std::uint8_t* outcodes, int count);
     virtual void Unknown25();
     // 26: the `blocks` packets of four positions times the (transposed) matrix, as points (x, y, z, w)
     // into `out` (the decal projector 0056C750).

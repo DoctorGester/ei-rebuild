@@ -17,12 +17,6 @@ namespace {
 const mfc::CString& GameRoot() { return *reinterpret_cast<const mfc::CString*>(0x0079BC90); }
 const char* DataPath() { return *reinterpret_cast<const char* const*>(0x007AF460); }
 
-// Manager vtable slots used here (CResourceManager::GetFile / CloseFile, possibly overridden).
-void* ManagerGetFile(CTextureManager* m, const char* name) {
-    return ei::VCall<void*>(m, 19, name, static_cast<std::uint32_t*>(nullptr));
-}
-void ManagerCloseFile(CTextureManager* m, void* data) { ei::VCall<int>(m, 20, data); }
-
 // Format id for a .bmp texture, by texture kind.
 int BmpFormatFor(int type) {
     switch (type) {
@@ -61,7 +55,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
     }
 
     path = mfc::CString(texture->GetName()) + ".mmp";
-    if (void* data = ManagerGetFile(this, path)) {
+    if (void* data = GetFile(path, nullptr)) {
         auto* header = static_cast<const MmpHeader*>(data);
         if (!device_->ParseMmpHeader(data, &format) &&
             !(header->format == 0x8888 && device_->FindFormat(0x4444, &format)))
@@ -71,7 +65,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
         unsigned mip = mipLevel_;
         if (mip >= header->mipCount) mip = header->mipCount - 1;
         result = texture->CallCreateFromMmp(device_, data, mip);
-        ManagerCloseFile(this, data);
+        CloseFile(data);
         return result;
     }
 

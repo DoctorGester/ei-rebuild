@@ -148,7 +148,6 @@ src/game/quest_database.cpp,0,0,0,0,16,0,0,0,0,0,0
 src/game/refptr_copies.cpp,0,3,0,0,0,0,0,0,0,0,0
 src/game/registry.cpp,0,0,1,0,1,0,0,0,0,0,0
 src/game/renderer_init.cpp,0,0,2,0,0,0,0,0,0,0,1
-src/game/renderer_sprites.cpp,2,0,0,0,0,0,0,0,0,0,0
 src/game/renderer_strip.cpp,0,0,2,0,0,0,0,0,0,0,0
 src/game/resource.cpp,0,0,0,0,4,0,2,0,0,0,0
 src/game/resource.h,0,0,0,0,0,0,2,0,0,0,0
@@ -192,8 +191,6 @@ src/game/terrain.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/terrain_sector.cpp,0,0,0,1,0,0,0,0,0,0,1
 src/game/terrain_sector.h,0,0,0,0,0,0,0,0,0,0,7
 src/game/text_reader.cpp,0,1,0,0,0,0,0,0,0,0,0
-src/game/texture.cpp,0,2,0,0,0,0,0,0,0,0,0
-src/game/texture_mmp.cpp,0,3,0,0,0,0,0,0,0,0,0
 src/game/ui.h,0,0,0,0,0,0,0,1,0,0,2
 src/game/ui_alpha_draws.cpp,5,0,0,0,0,0,0,0,0,0,0
 src/game/ui_battle_commands.cpp,2,0,0,0,0,0,0,2,0,0,2

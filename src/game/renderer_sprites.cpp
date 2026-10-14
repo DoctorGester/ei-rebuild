@@ -1,14 +1,15 @@
 // The renderer's sprite draw (00502CA0, virtual slot 17 of the renderer at 007AF060, vtable
 // 0073D93C) with its helpers 00503680 (indexed draw), 00503710 (a radix sort pass) and 005037D0 (a
 // merge sort pass). Every point (x, y, z and a size) becomes a screen-facing quad: the sprite's
-// colour and texture rectangle go to four TL vertices, and the pipeline's transform object (slot 24)
-// places the corners and sets their outcodes. Batches of up to 511 sprites are sorted back to front
+// colour and texture rectangle go to four TL vertices, and the pipeline's transform object
+// (ProjectSprites) places the corners and sets their outcodes. Batches of up to 511 sprites are sorted back to front
 // by the first corner's z (sprites with a negative z are dropped) and drawn as two triangles each;
 // when the transform reports that some corners are off screen, every triangle goes through the
 // screen clipper (0042D910) first. Particles (004976B0) draw through it, with additive blending when
 // their source asks for it. Buffers are function-local statics (007AEF60..007AEFF8). See
 // docs/notes/models.md ("Renderer").
 #include "clip.h"
+#include "device.h"
 #include "model.h"
 #include "texture.h"
 
@@ -20,6 +21,7 @@
 #include "originals_render.h"
 #include "device_buffers.h"
 #include "lib/containers.h"
+#include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 
@@ -41,11 +43,6 @@ void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteS
 void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count);
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 // --- The arguments -------------------------------------------------------------------------------
 
@@ -90,7 +87,7 @@ __declspec(naked) void __fastcall RadixPassAt(int, SpriteSortRecord* const*, Spr
     EI_ORIGINAL(0x00503710)
 __declspec(naked) void __fastcall MergePassAt(int, SpriteSortRecord* const*, SpriteSortRecord**, int)
     EI_ORIGINAL(0x005037D0)
-__declspec(naked) int __fastcall DrawIndexedAt(char*, void*, int, int, void*, int, std::uint16_t*, int, int)
+__declspec(naked) int __fastcall DrawIndexedAt(CTextureDevice*, void*, int, int, void*, int, std::uint16_t*, int, int)
     EI_ORIGINAL(0x00503680)
 
 void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(__cdecl*)()>(address); }
@@ -138,24 +135,9 @@ TLVertex* CornerData() { return Corners().data; }
 std::uint16_t* IndexData() { return Indices().data; }
 // --- Device calls --------------------------------------------------------------------------------
 
-CSceneRenderer* Renderer(char* renderer) { return reinterpret_cast<CSceneRenderer*>(renderer); }
-void* Device(char* renderer) { return Renderer(renderer)->device_->d3dDevice_; }
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
-template <typename R, typename... Args>
-R ThisCall(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
-}
-constexpr int kSetRenderState = 20;
-constexpr int kGetRenderState = 21;
-constexpr int kDrawIndexedPrimitive = 26;
-constexpr int kSourceBlend = 0x13;
-constexpr int kDestBlend = 0x14;
-constexpr int kTriangleList = 4;
-constexpr int kFvfTlVertex = 0x1C4;
+IDirect3DDevice7* Device(CSceneRenderer* renderer) { return device::D3D(renderer->device_); }
+constexpr int kTriangleList = D3DPT_TRIANGLELIST;
+constexpr int kFvfTlVertex = 0x1C4;   // D3DFVF_TLVERTEX
 
 // --- The steps -----------------------------------------------------------------------------------
 
@@ -262,18 +244,14 @@ int SortBackToFront() {
     return Corners().size / 4;
 }
 
-// The batch's triangle list through the device holder (renderer + 0x20); with +0x158 set the
-// vertices go to the tracker (+0xAC -> +0xC, slot 35) first. False when the draw fails.
-bool Draw(char* renderer, int vertexCount, int indexCount) {
-    CTextureDevice* holder = Renderer(renderer)->device_;
+// The batch's triangle list through the device holder (the renderer's device_); with distanceFog_
+// set the vertices are fogged by the transform object first. False when the draw fails.
+bool Draw(CSceneRenderer* renderer, int vertexCount, int indexCount) {
+    CTextureDevice* holder = renderer->device_;
     TLVertex* vertices = CornerData();
     std::uint16_t* indices = IndexData();
-    if (holder->distanceFog_) {
-        void* tracker = holder->pipeline_->transform_;
-        ThisCall<void>(tracker, 35, static_cast<void*>(vertices), vertexCount);
-    }
-    return DrawIndexedAt(reinterpret_cast<char*>(holder), nullptr, kTriangleList, kFvfTlVertex, vertices, vertexCount, indices, indexCount, 0) !=
-           0;
+    if (holder->distanceFog_) holder->pipeline_->transform_->FogVertices(vertices, vertexCount);
+    return DrawIndexedAt(holder, nullptr, kTriangleList, kFvfTlVertex, vertices, vertexCount, indices, indexCount, 0) != 0;
 }
 
 void SetTriangle(std::uint16_t* tri, int a, int b, int c) {
@@ -283,7 +261,7 @@ void SetTriangle(std::uint16_t* tri, int a, int b, int c) {
 }
 
 // All corners on screen: two triangles per sprite, (0, 2, 1) and (0, 3, 2).
-bool DrawQuads(char* renderer, int sprites) {
+bool DrawQuads(CSceneRenderer* renderer, int sprites) {
     std::uint16_t* tri = IndexData();
     for (int i = 0; i < sprites * 4; i += 4, tri += 6) {
         SetTriangle(tri, i, i + 2, i + 1);
@@ -293,8 +271,8 @@ bool DrawQuads(char* renderer, int sprites) {
     return Draw(renderer, sprites * 4, sprites * 6);
 }
 
-// The render target's size (the holder's +0x18 object, +0x14 / +0x18) while there is a primary
-// surface (+0x14); the original keeps both in stack slots it never initialises, so without a
+// The render target's size (the holder's render target's width / height) while there is a primary
+// surface; the original keeps both in stack slots it never initialises, so without a
 // surface the previous batch's values (here 0 at first) are used.
 struct ScreenSize {
     std::uint32_t width = 0;
@@ -302,12 +280,12 @@ struct ScreenSize {
 };
 
 // Some corners off screen: each triangle goes through the clipper, which may append vertices.
-bool DrawClipped(char* renderer, int sprites, ScreenSize& screen) {
-    CTextureDevice* holder = Renderer(renderer)->device_;
+bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
+    CTextureDevice* holder = renderer->device_;
     if (holder->primary_) {
         CDXSurface* target = holder->renderTarget_;
-        screen.width = At<std::uint32_t>(target, 0x14);
-        screen.height = At<std::uint32_t>(target, 0x18);
+        screen.width = static_cast<std::uint32_t>(target->width);
+        screen.height = static_cast<std::uint32_t>(target->height);
     }
     float xMax = RoundToFloat(x87::FromUnsigned(screen.width));
     float yMax = RoundToFloat(x87::FromUnsigned(screen.height));
@@ -393,20 +371,17 @@ void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteS
 EI_REPLACE(0x005037D0, SpriteMergePass);
 
 // 00503680 (thiscall on the device holder, RET 0x1C). DrawIndexedPrimitive under the device's
-// critical section (007AEE78); the result goes to +8; counts vertices, triangles (indices / 3) and
-// calls (+0x16C..+0x174). Returns 1.
-int __fastcall DrawIndexed(char* holder, void*, int primitive, int fvf, void* vertices, int vertexCount,
+// critical section (007AEE78); the result goes to lastLoadResult_; counts vertices, triangles
+// (indices / 3) and calls. Returns 1.
+int __fastcall DrawIndexed(CTextureDevice* device, void*, int primitive, int fvf, void* vertices, int vertexCount,
                            std::uint16_t* indices, int indexCount, int flags) {
-    auto* device = reinterpret_cast<CTextureDevice*>(holder);
-    auto enter = *reinterpret_cast<void(__stdcall* const*)(void*)>(0x0073B1B4);
-    auto leave = *reinterpret_cast<void(__stdcall* const*)(void*)>(0x0073B230);
-    void* section = reinterpret_cast<void*>(0x007AEE78);
     // The new renderer (src/render) takes the draw; with the old path's objects off it is skipped.
-    if (render::TlDraw(holder, vertices, fvf, vertexCount, indices, indexCount, primitive)) {
-        enter(section);
-        device->lastLoadResult_ = ComCall(device->d3dDevice_, kDrawIndexedPrimitive, primitive, fvf, vertices,
-                                          vertexCount, indices, indexCount, flags);
-        leave(section);
+    if (render::TlDraw(device, vertices, fvf, vertexCount, indices, indexCount, primitive)) {
+        gameapi::EnterCriticalSection(device::Lock());
+        device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitive(
+            static_cast<D3DPRIMITIVETYPE>(primitive), static_cast<DWORD>(fvf), vertices, static_cast<DWORD>(vertexCount),
+            indices, static_cast<DWORD>(indexCount), static_cast<DWORD>(flags));
+        gameapi::LeaveCriticalSection(device::Lock());
     }
     device->vertexCount_ += vertexCount;
     device->primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
@@ -420,13 +395,14 @@ EI_REPLACE(0x00503680, DrawIndexed);
 // 00502CA0 (thiscall on the renderer, RET 0xC). Draws a sprite per point: `points` an aligned array
 // of SpritePoint, `sprites` an MFC-style array of Sprite (same count). With `additive` (only its low
 // byte counts) the blend is source alpha + one for the call (render states 0x13 / 0x14 saved and
-// restored). The view matrix is the top of the pipeline's stack at +0x24, transposed. Returns 1, or
+// restored). The view matrix is the top of the pipeline's clip stack, transposed. Returns 1, or
 // 0 when a draw fails (the blend is then left as it is).
-int __fastcall DrawSprites(char* renderer, void*, char additive, const void* pointArray, const void* spriteArray) {
+int __fastcall DrawSprites(CSceneRenderer* renderer, void*, char additive, const void* pointArray,
+                           const void* spriteArray) {
     const auto* points = static_cast<const PointArray*>(pointArray);
     const auto* sprites = static_cast<const SpriteArray*>(spriteArray);
-    CTransformPipeline* pipeline = Renderer(renderer)->pipeline_;
-    void* transform = pipeline->transform_;
+    CTransformPipeline* pipeline = renderer->pipeline_;
+    ITransformPipeline* transform = pipeline->transform_;
     EnsureStatics();
     Unused().SetSizeDiscard(0x200);
     Corners().SetSizeDiscard(0x2000);
@@ -438,15 +414,15 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
     const SpritePoint* point = points->data;
     int remaining = points->size;
     const Sprite* sprite = sprites->data;
-    std::uint32_t savedSource = 0;
-    std::uint32_t savedDest = 0;
+    DWORD savedSource = 0;
+    DWORD savedDest = 0;
     if (additive) {
-        ComCall(Device(renderer), kGetRenderState, kSourceBlend, &savedSource);
-        ComCall(Device(renderer), kGetRenderState, kDestBlend, &savedDest);
-        ComCall(Device(renderer), kSetRenderState, kSourceBlend, 5);      // D3DBLEND_SRCALPHA
-        ComCall(Device(renderer), kSetRenderState, kDestBlend, 2);        // D3DBLEND_ONE
-        render::state::Render(kSourceBlend, 5);
-        render::state::Render(kDestBlend, 2);
+        Device(renderer)->GetRenderState(D3DRENDERSTATE_SRCBLEND, &savedSource);
+        Device(renderer)->GetRenderState(D3DRENDERSTATE_DESTBLEND, &savedDest);
+        Device(renderer)->SetRenderState(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+        Device(renderer)->SetRenderState(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
+        render::state::Render(D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+        render::state::Render(D3DRENDERSTATE_DESTBLEND, D3DBLEND_ONE);
     }
 
     ScreenSize screen;
@@ -454,8 +430,7 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
         int count = FillCorners(sprite, remaining);
         Corners().SetSizeDiscard(count * 4);
         // 0: all corners on screen, 1: some off screen, else nothing to draw.
-        int visibility = ThisCall<int>(transform, 24, static_cast<const void*>(view), static_cast<const void*>(point),
-                                       static_cast<void*>(Corners().data), Outcodes().data, count);
+        int visibility = transform->ProjectSprites(view, point, Corners().data, Outcodes().data, count);
         point += count;
         int kept = SortBackToFront();
         if (visibility == 1) {
@@ -466,10 +441,10 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
     }
 
     if (additive) {
-        ComCall(Device(renderer), kSetRenderState, kSourceBlend, savedSource);
-        ComCall(Device(renderer), kSetRenderState, kDestBlend, savedDest);
-        render::state::Render(kSourceBlend, static_cast<std::uint32_t>(savedSource));
-        render::state::Render(kDestBlend, static_cast<std::uint32_t>(savedDest));
+        Device(renderer)->SetRenderState(D3DRENDERSTATE_SRCBLEND, savedSource);
+        Device(renderer)->SetRenderState(D3DRENDERSTATE_DESTBLEND, savedDest);
+        render::state::Render(D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(savedSource));
+        render::state::Render(D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(savedDest));
     }
     return 1;
 }
