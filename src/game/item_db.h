@@ -78,6 +78,9 @@ struct SpellRecord {
     std::uint32_t unknown_80;           // +0x80
 };
 static_assert(offsetof(SpellRecord, code) == 0x04);
+static_assert(offsetof(SpellRecord, unknown_10) == 0x10);
+static_assert(offsetof(SpellRecord, mana) == 0x18);
+static_assert(offsetof(SpellRecord, bytes78) == 0x78);
 static_assert(offsetof(SpellRecord, needsSight) == 0x40);
 static_assert(offsetof(SpellRecord, skill) == 0x44);
 static_assert(offsetof(SpellRecord, list48) == 0x48);
@@ -120,6 +123,7 @@ struct SpellModifierRecord {
     std::uint32_t unknown_20;           // +0x20
 };
 static_assert(offsetof(SpellModifierRecord, code) == 0x04);
+static_assert(offsetof(SpellModifierRecord, mana) == 0x10);
 static_assert(offsetof(SpellModifierRecord, strength) == 0x14);
 static_assert(offsetof(SpellModifierRecord, skill) == 0x18);
 static_assert(sizeof(SpellModifierRecord) == 0x24);
@@ -168,8 +172,11 @@ struct ItemRecordHead {
 static_assert(offsetof(ItemRecordHead, list20) == 0x20);
 static_assert(offsetof(ItemRecordHead, list50) == 0x50);
 static_assert(offsetof(ItemRecordHead, unknown_68) == 0x68);
+static_assert(offsetof(ItemRecordHead, type) == 0x0C);
+static_assert(offsetof(ItemRecordHead, text10) == 0x10);
 static_assert(offsetof(ItemRecordHead, number) == 0x18);
 static_assert(offsetof(ItemRecordHead, price) == 0x34);
+static_assert(offsetof(ItemRecordHead, charge) == 0x40);
 static_assert(offsetof(ItemRecordHead, value48) == 0x48);
 static_assert(sizeof(ItemRecordHead) == 0x70);
 
@@ -218,6 +225,9 @@ struct WeaponRecord : ItemRecordHead {
 };
 static_assert(offsetof(WeaponRecord, value8C) == 0x8C);
 static_assert(offsetof(WeaponRecord, attackBonus) == 0x84);
+static_assert(offsetof(WeaponRecord, defenceBonus) == 0x88);
+static_assert(offsetof(WeaponRecord, damage) == 0x90);
+static_assert(offsetof(WeaponRecord, damageSpread) == 0x94);
 static_assert(offsetof(WeaponRecord, damageTypes) == 0x98);
 static_assert(sizeof(WeaponRecord) == kWeaponSize);
 

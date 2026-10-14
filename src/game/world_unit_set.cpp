@@ -110,19 +110,18 @@ void UnitSet::Write(void* stream) {
         std::uint8_t* entry = third.node + 8;
         std::uint32_t key = At<std::uint16_t>(entry, 0);   // two bytes written
         Put(stream, &key, 2);
-        auto counted = [stream, entry](int offset) {
-            std::uint8_t* first = At<std::uint8_t*>(entry, offset);
-            std::uint32_t n = static_cast<std::uint32_t>((At<std::uint8_t*>(entry, offset + 4) - first) >> 2);
+        UnitSetEntryHead* head = reinterpret_cast<UnitSetEntryHead*>(entry);
+        auto counted = [stream](const stlp::vector<int>& list) {
+            std::uint32_t n = static_cast<std::uint32_t>(list.size());
             PutWord(stream, n);
-            first = At<std::uint8_t*>(entry, offset);
-            n = static_cast<std::uint32_t>((At<std::uint8_t*>(entry, offset + 4) - first) >> 2);
-            Put(stream, first, n << 2);
+            n = static_cast<std::uint32_t>(list.size());
+            Put(stream, list.begin(), n << 2);
         };
-        counted(4);
-        counted(0x10);
-        std::uint32_t flag = At<std::uint8_t>(entry, 0x1C);
+        counted(head->first);
+        counted(head->second);
+        std::uint32_t flag = head->flag;
         Put(stream, &flag, 1);
-        PutWord(stream, At<std::uint32_t>(entry, 0x20));
+        PutWord(stream, head->value);
 
         std::uint8_t* next = *reinterpret_cast<std::uint8_t**>(third.node);
         if (!next) {
@@ -159,12 +158,12 @@ std::uint32_t Count(void* vector) {
 }
 
 // A counted dword array: the count, the vector resized (new entries 0), the data.
-void GetInts(void* stream, std::uint8_t* vector) {
+void GetInts(void* stream, stlp::vector<int>& list) {
     std::uint32_t n;
     Get(stream, &n, 4);
     int zero = 0;
-    ResizeInts(vector, nullptr, n, &zero);
-    Get(stream, At<std::uint8_t*>(vector, 0), Count(vector) << 2);
+    ResizeInts(&list, nullptr, n, &zero);
+    Get(stream, list.begin(), static_cast<std::uint32_t>(list.size()) << 2);
 }
 
 } // namespace
@@ -175,10 +174,11 @@ void __fastcall ReadUnitLooks(void* stream, void* first, void* second) {
     ResizeLooks(first, nullptr, count);
     for (std::uint8_t* record = At<std::uint8_t*>(first, 0); record != At<std::uint8_t*>(first, 4); record += 0x3C) {
         Get(stream, record, 2);
-        GetInts(stream, record + 4);
-        GetInts(stream, record + 0x10);
-        Get(stream, record + 0x1C, 1);
-        Get(stream, record + 0x20, 4);
+        UnitSetEntryHead* head = reinterpret_cast<UnitSetEntryHead*>(record);
+        GetInts(stream, head->first);
+        GetInts(stream, head->second);
+        Get(stream, &head->flag, 1);
+        Get(stream, &head->value, 4);
         Get(stream, record + 0x24, 4);
         Get(stream, record + 0x28, 4);
         Get(stream, record + 0x2C, 4);
@@ -190,12 +190,13 @@ void __fastcall ReadUnitLooks(void* stream, void* first, void* second) {
     }
     Get(stream, &count, 4);
     ResizeLooks2(second, nullptr, count);
-    for (std::uint8_t* record = At<std::uint8_t*>(second, 0); record != At<std::uint8_t*>(second, 4); record += 0x24) {
-        Get(stream, record, 2);
-        GetInts(stream, record + 4);
-        GetInts(stream, record + 0x10);
-        Get(stream, record + 0x1C, 1);
-        Get(stream, record + 0x20, 4);
+    stlp::vector<UnitSetEntryHead>& looks = *static_cast<stlp::vector<UnitSetEntryHead>*>(second);
+    for (UnitSetEntryHead* record = looks.begin(); record != looks.end(); ++record) {
+        Get(stream, &record->key, 2);
+        GetInts(stream, record->first);
+        GetInts(stream, record->second);
+        Get(stream, &record->flag, 1);
+        Get(stream, &record->value, 4);
     }
 }
 

@@ -940,7 +940,10 @@ struct UnitSetEntryHead {
     std::uint8_t unknown_1D[3];
     std::uint32_t value;                  // +0x20
 };
+static_assert(offsetof(UnitSetEntryHead, first) == 0x04);
 static_assert(offsetof(UnitSetEntryHead, second) == 0x10);
+static_assert(offsetof(UnitSetEntryHead, flag) == 0x1C);
+static_assert(sizeof(UnitSetEntryHead) == 0x24);
 static_assert(offsetof(UnitSetEntryHead, value) == 0x20);
 
 // 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads

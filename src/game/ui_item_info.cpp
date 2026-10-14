@@ -50,6 +50,8 @@ T At(const char* record, int offset) {
     return Field<T>(record, offset);
 }
 
+const itemdb::SpellRecord* AsSpell(const char* record) { return reinterpret_cast<const itemdb::SpellRecord*>(record); }
+
 // The game's _ftol (006E853C): truncation of the value in ST0.
 __declspec(naked) int __cdecl GameFtol(double) {
     __asm {
@@ -520,7 +522,7 @@ void CItemInfoPanel::DescribeItem() {
     bool materialLine;
     if (kind == kQuick) {
         char* prototype = Of(item)->Prototype();
-        materialLine = !prototype || MbsICmp(At<const char*>(prototype, 0x10), GameText(0x007846F0)) != 0;   // "none"
+        materialLine = !prototype || MbsICmp(static_cast<const char*>(reinterpret_cast<itemdb::ItemRecordHead*>(prototype)->text10), GameText(0x007846F0)) != 0;   // "none"
     } else {
         materialLine = kind != kQuest && kind != kLoot;
     }
@@ -699,31 +701,33 @@ void CItemInfoPanel::DescribeBlueprint() {
     w.Text(w.line);
     w.Down();
     w.Number(0, FtolOf(At<float>(record, 0x38)));
+    const itemdb::ItemRecordHead* head = reinterpret_cast<const itemdb::ItemRecordHead*>(record);
+    const itemdb::WeaponRecord* weapon = reinterpret_cast<const itemdb::WeaponRecord*>(record);
     if (sort <= 2) {
-        w.Number(2, FtolOf(At<float>(record, 0x40)));
+        w.Number(2, FtolOf(head->charge));
         w.Number(14, At<int>(record, 0x44));
     }
-    if (sort <= 1) w.Number(3, FtolOf(At<float>(record, 0x48)));
+    if (sort <= 1) w.Number(3, FtolOf(head->value48));
     if (sort == 0) {
         // A weapon: damage (times 10), the first damage kind with a weight, and its figures.
-        unsigned first = FirstDamageKind(reinterpret_cast<const float*>(record + 0x98));
+        unsigned first = FirstDamageKind(weapon->damageTypes);
         if (first < 7) {
             w.line.Format(GameText(0x00792EFC), first);   // "damage_%d"
             texts->GetString(w.line, &text);
         }
-        int high = SumFtolScaled(At<float>(record, 0x90), At<float>(record, 0x94), 0x0073BAAC);
-        int low = ScaledFtol(At<float>(record, 0x90), 0x0073BAAC);
+        int high = SumFtolScaled(weapon->damage, weapon->damageSpread, 0x0073BAAC);
+        int low = ScaledFtol(weapon->damage, 0x0073BAAC);
         w.line.Format(GameText(0x00792EF0), static_cast<const char*>(w.T(15)), low, high,
                       static_cast<const char*>(text));   // "%s %d-%d %s"
         w.Text(w.line);
         w.Down();
         w.Number(20, At<int>(record, 0x6C));
-        w.Number(38, FtolOf(At<float>(record, 0x84)));
-        int type = At<int>(record, 0x0C);
+        w.Number(38, FtolOf(weapon->attackBonus));
+        int type = head->type;
         if (type == 5 || type == 6)
             w.Number(10, FtolOf(At<float>(record, 0x8C)));
         else
-            w.Number(39, FtolOf(At<float>(record, 0x88)));
+            w.Number(39, FtolOf(weapon->defenceBonus));
     } else if (sort == 1) {
         // Armour: the seven values scaled by +0x6C and 10, stored as floats.
         float values[7];
@@ -747,10 +751,11 @@ void CItemInfoPanel::DescribeSpellRecord() {
     Writer w(this);
     w.Draw()->Begin();
     w.Head(name, kindText);
-    w.Number(7, FtolOf(At<float>(spell, 0x18)));
-    w.Number(14, At<int>(spell, 0x44));
-    w.School(At<int>(spell, 0x10));
-    bool known = At<char>(spell, 0x7B) != 0;
+    const itemdb::SpellRecord* record = AsSpell(spell);
+    w.Number(7, FtolOf(record->mana));
+    w.Number(14, record->skill);
+    w.School(record->unknown_10);
+    bool known = record->bytes78[3] != 0;
     SpellLevelLine(w, known, known ? FtolOf(At<float>(spell, 0x2C)) : 0);
     float power = At<float>(spell, 0x20);
     if (!(power >= 1.0f))   // FCOMP; TEST AH,1: below 1 or unordered
@@ -790,8 +795,9 @@ void CItemInfoPanel::DescribeModifierRecord() {
     Writer w(this);
     w.Draw()->Begin();
     w.Head(name, kindText);
-    w.Number(7, FtolOf(At<float>(modifier, 0x10)));
-    w.Number(14, At<int>(modifier, 0x18));
+    const itemdb::SpellModifierRecord* record = reinterpret_cast<const itemdb::SpellModifierRecord*>(modifier);
+    w.Number(7, FtolOf(record->mana));
+    w.Number(14, record->skill);
     w.Down();
     w.Wrapped(description, 8);
     w.Draw()->End();
@@ -809,7 +815,7 @@ void CItemInfoPanel::DescribeQuickItem() {
     w.Draw()->Begin();
     w.Head(name, kindText);
     if (void* spell = SpellOf(item)) {
-        bool known = At<char>(Of(spell)->Prototype(), 0x7B) != 0;
+        bool known = AsSpell(Of(spell)->Prototype())->bytes78[3] != 0;
         SpellLevelLine(w, known, known ? FtolOf(Read<float>(spell, 0x24)) : 0);
         DurationLine(w, Read<std::uint32_t>(spell, 0x20));
         w.Down();
@@ -845,8 +851,8 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Head(title, kindText);
     w.Number(7, FtolOf(Read<float>(spell, 0x40)));
     w.Number(14, Read<int>(spell, 0x50));
-    w.School(At<int>(Of(spell)->Prototype(), 0x10));
-    bool known = At<char>(Of(spell)->Prototype(), 0x7B) != 0;
+    w.School(AsSpell(Of(spell)->Prototype())->unknown_10);
+    bool known = AsSpell(Of(spell)->Prototype())->bytes78[3] != 0;
     SpellLevelLine(w, known, known ? FtolOf(Read<float>(spell, 0x24)) : 0);
     float power = Read<float>(spell, 0x30);
     if (!(power >= 1.0f))

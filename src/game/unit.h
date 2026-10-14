@@ -138,6 +138,9 @@ static_assert(offsetof(PartyUnitRecord, weaponIndex) == 0x774);
 static_assert(offsetof(PartyUnitRecord, unknown_780) == 0x780);
 static_assert(sizeof(PartyUnitRecord) == 0x784);
 static_assert(offsetof(PartyUnitRecord, weapons) == 0x730);
+static_assert(offsetof(PartyUnitRecord, weaponCount) == 0x734);
+static_assert(offsetof(PartyUnitRecord, quickItemCount) == 0x744);
+static_assert(offsetof(PartyUnitRecord, armorCount) == 0x754);
 static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
 static_assert(offsetof(PartyUnitRecord, armor) == 0x750);
 static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
@@ -162,6 +165,7 @@ struct PartyRecords {
 };
 static_assert(offsetof(PartyRecords, recordArrayVtable) == 0x2C);
 static_assert(offsetof(PartyRecords, records) == 0x30);
+static_assert(offsetof(PartyRecords, count) == 0x34);
 static_assert(offsetof(PartyRecords, array40) == 0x40);
 static_assert(offsetof(PartyRecords, variables) == 0x54);
 static_assert(offsetof(PartyRecords, zone) == 0x68);
@@ -691,6 +695,7 @@ static_assert(offsetof(CUnit, effects) == 0x198);
 static_assert(offsetof(CUnit, sectorCellX) == 0x1B8);
 static_assert(offsetof(CUnit, changedParts) == 0x1DC);
 static_assert(offsetof(CUnit, controller) == 0x240);
+static_assert(offsetof(CUnit, player) == 0x24C);
 static_assert(offsetof(CUnit, side) == 0x250);
 static_assert(offsetof(CUnit, moveMode) == 0x264);
 static_assert(offsetof(CUnit, activeWeapon) == 0x26C);
@@ -854,6 +859,7 @@ struct UnitStatPair {
     float base;
     float current;
 };
+static_assert(sizeof(UnitStatPair) == 8 && offsetof(UnitStatPair, current) == 4);
 
 struct UnitStats;
 
@@ -1109,6 +1115,7 @@ struct UnitStats {
     float fixedMaxHitPoints;        // +0x6FC the maximum of units without a text key
     float pendingExperience;        // +0x700
 };
+static_assert(offsetof(UnitStats, stat20) == 0x20);
 static_assert(offsetof(UnitStats, speedBase) == 0x24);
 static_assert(offsetof(UnitStats, load) == 0x50);
 static_assert(offsetof(UnitStats, valuesB0) == 0xB0);
