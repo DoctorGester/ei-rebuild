@@ -57,3 +57,20 @@ checked with a disassembly diff for each group. The only differences are registe
 - `CSpellEffect` and world.h's `Projectile` describe the same class (0xA8 bytes, 0067E510). They should become one
   declaration.
 - The naked x87 helpers in spell_effect_internal.h still call the world's height slots 27 / 28 by number.
+
+## Unknown fields (ticket F1)
+
+spell.h 40 -> 0, effects.h 19 -> 0, lightning.h 1 -> 0, world_effect.h 8 -> 0, sky_object.h 11 -> 0,
+trap_object.h, lever.h, map_object_cage.h 1 -> 0 each, particle_emitters.cpp 2 -> 0. Same rule as in
+cleanup-world.md; code unchanged.
+
+- CSpell's parameters follow the prototype: +0x20 duration, +0x24 damage, +0x28 radius (the area made a
+  radius), +0x30 speed, +0x34 range, +0x38 target count, +0x40 mana cost, +0x44 complexity (+1 per modifier),
+  +0x4C (prototype +0x3C, only loaded and saved), +0x50 skill needed.
+- `CSpellEffect::targetCount` (+0x54) is the embedded spell's +0x20, which is the duration, so that existing
+  name is probably wrong (not changed here).
+- `CParticleManager::quietStart` (+0xE4, formerly unknown_E4; `ParticleManagerClearQuietStart`) is never set
+  non-zero in src.
+- `CSkyObject` +0x94..+0x21F are named after `CFigureMesh`, whose code runs on it.
+- `CTrapObject::savedValue_` (+0x238) is only loaded and saved; nothing sets it.
+- Constructor-only fields stay `unused_`: CLight +0xE4 / +0xE8 / +0xFC, CLightFactory +0xB0..+0xD0.

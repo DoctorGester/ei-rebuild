@@ -65,7 +65,6 @@ src/game/item_db_text.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/item_names.cpp,0,0,0,0,5,0,0,0,0,0,0,0,0
 src/game/item_stock.cpp,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0,0,0,1,0
-src/game/lever.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/lightning.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/lightning_start.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0
 src/game/link_figure.h,0,0,0,0,0,0,0,0,0,0,0,6,0
@@ -76,7 +75,6 @@ src/game/map_object.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/map_object.h,0,0,0,0,0,0,0,0,0,0,0,7,0
 src/game/map_object_animation.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/map_object_cage.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/game/map_object_cage.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/map_object_companion.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/map_object_draw.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/map_object_figures.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
@@ -128,7 +126,7 @@ src/game/particle_callbacks.cpp,0,0,1,1,6,0,0,0,0,0,0,0,0
 src/game/particle_common.h,0,0,5,0,1,0,0,0,0,0,0,0,0
 src/game/particle_create.cpp,0,0,1,1,89,0,0,0,0,0,0,0,0
 src/game/particle_draw.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/game/particle_emitters.cpp,0,0,1,1,1,0,0,0,0,0,0,2,0
+src/game/particle_emitters.cpp,0,0,1,1,1,0,0,0,0,0,0,0,0
 src/game/particle_render.cpp,0,0,1,1,1,0,0,0,0,0,0,0,0
 src/game/particle_tick.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/party.h,0,0,0,0,0,0,0,0,0,0,0,2,0
@@ -170,7 +168,6 @@ src/game/script_parse_load.cpp,0,0,2,0,1,0,0,0,0,0,0,0,0
 src/game/script_vars.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/script_vars_append.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/server_specific_manager.h,0,0,0,0,0,0,0,0,0,0,0,1,0
-src/game/sky_object.h,0,0,0,0,0,0,0,0,0,0,0,11,0
 src/game/sound.h,0,0,0,0,0,0,0,0,0,0,6,4,0
 src/game/sound_manager.cpp,0,0,1,1,0,0,0,0,0,0,0,0,0
 src/game/sound_manager_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,1,0
@@ -187,7 +184,6 @@ src/game/terrain_landscape.cpp,0,0,0,0,0,0,0,0,0,0,0,2,0
 src/game/terrain_sector.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
 src/game/terrain_sector.h,0,0,0,0,0,0,0,0,0,0,1,19,0
 src/game/texture.h,0,0,0,0,0,0,0,0,0,0,0,7,0
-src/game/trap_object.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/ui.h,0,0,0,0,0,0,0,0,0,0,0,51,0
 src/game/ui_battle_setup.cpp,0,0,0,0,2,0,0,0,0,0,0,0,0
 src/game/ui_battle_slots.cpp,0,0,0,0,0,0,0,0,0,0,0,3,0
@@ -257,7 +253,6 @@ src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5,0,0
 src/game/world_briefing.cpp,0,0,0,0,10,0,0,0,0,0,0,0,0
 src/game/world_client_draw.cpp,0,0,6,0,3,0,0,0,0,0,0,0,0
 src/game/world_client_view.cpp,0,0,0,2,0,0,0,0,0,0,0,0,0
-src/game/world_effect.h,0,0,0,0,0,0,0,0,0,0,0,8,0
 src/game/world_effect_internal.h,0,0,1,0,7,0,0,0,0,0,0,0,0
 src/game/world_effect_visual.cpp,0,0,4,0,0,0,0,0,0,0,0,0,0
 src/game/world_game.cpp,0,0,2,0,3,0,0,0,0,0,0,0,0

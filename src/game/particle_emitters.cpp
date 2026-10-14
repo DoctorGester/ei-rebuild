@@ -84,7 +84,7 @@ struct BoltPoint {
     Vector3 pos;                // +0x00 on the ground
     Vector3 fork;               // +0x0C
     Vector3 base;               // +0x18 copy of pos
-    std::uint8_t unknown_24[0xC];
+    std::uint8_t unused_24[0xC];
     int emitted;                // +0x30 point 0: particles emitted along the bolt
     int bursts;                 // +0x34 point 0
 };
@@ -241,7 +241,7 @@ struct ModifierPoint {
     Vector3 pos;                // +0x00 world position
     Vector3 start;              // +0x0C copy of pos
     Vector3 offset;             // +0x18 from the emission point
-    std::uint8_t unknown_24[0x10];
+    std::uint8_t unused_24[0x10];
     int fade;                   // +0x34 point 0: index into the alpha table 0078A774
 };
 static_assert(sizeof(ModifierPoint) == sizeof(ParticleElement));

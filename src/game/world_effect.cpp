@@ -268,18 +268,18 @@ void CEffectAmbientSound::Reset() {
     StringArraySetSize(&names_, nullptr, 0, -1);
     volume_ = 0.0f;
     radius_ = 0.0f;
-    unknown_168 = 0;
-    unknown_16C = 0;
+    minInterval_ = 0;
+    maxInterval_ = 0;
 }
 
 void CEffectAmbientSound::Start(int update) {
     if (update == 0) {
         sound_ = PlayAmbient(SoundSystem(), nullptr, &names_, &localPosition_, Bits(volume_), Bits(radius_),
-                             unknown_168, unknown_16C);
+                             minInterval_, maxInterval_);
         return;
     }
-    MoveAmbient(SoundSystem(), nullptr, sound_, &localPosition_, Bits(volume_), Bits(radius_), unknown_168,
-                unknown_16C);
+    MoveAmbient(SoundSystem(), nullptr, sound_, &localPosition_, Bits(volume_), Bits(radius_), minInterval_,
+                maxInterval_);
 }
 
 int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
@@ -297,8 +297,8 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     }
     ReadFloat16(field, nullptr, &volume_);
     ReadFloat16(field, nullptr, &radius_);
-    ReadDelta(field, nullptr, &unknown_168, 4);
-    ReadDelta(field, nullptr, &unknown_16C, 4);
+    ReadDelta(field, nullptr, &minInterval_, 4);
+    ReadDelta(field, nullptr, &maxInterval_, 4);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
     EffectSlots(this)->Start(update);
@@ -313,9 +313,9 @@ void CEffectAmbientSound::Pack(DeltaField* field) {
     for (int i = 0; i < names_.size; ++i) WriteString(field, nullptr, names_[i]);
     WriteFloat16(field, nullptr, Bits(volume_));
     WriteFloat16(field, nullptr, Bits(radius_));
-    int value = unknown_168;
+    int value = minInterval_;
     WriteDelta(field, nullptr, &value, 4);
-    value = unknown_16C;
+    value = maxInterval_;
     WriteDelta(field, nullptr, &value, 4);
 }
 
@@ -324,8 +324,8 @@ void CEffectAmbientSound::LoadState(void* stream) {
     ReadStringArray(&names_, stream);
     Read(stream, &volume_, 4);
     Read(stream, &radius_, 4);
-    Read(stream, &unknown_168, 4);
-    Read(stream, &unknown_16C, 4);
+    Read(stream, &minInterval_, 4);
+    Read(stream, &maxInterval_, 4);
 }
 
 void CEffectAmbientSound::SaveState(void* stream) {
@@ -338,8 +338,8 @@ void CEffectAmbientSound::SaveState(void* stream) {
     }
     WriteCopy(stream, &volume_);
     WriteCopy(stream, &radius_);
-    WriteCopy(stream, &unknown_168);
-    WriteCopy(stream, &unknown_16C);
+    WriteCopy(stream, &minInterval_);
+    WriteCopy(stream, &maxInterval_);
 }
 
 double CEffectAmbientSound::Radius() { return radius_; }

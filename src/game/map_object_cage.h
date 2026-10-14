@@ -19,7 +19,7 @@ struct CageInterpolator {
     // point 2 at u; edge 3-4 at t, towards point 5 at u; then between the two at w.
     void InterpolatePrism(const float** stream);
 
-    std::uint8_t unknown_00[0x5C];
+    std::uint8_t unused_00[0x5C];
     Vector3 point;      // +0x5C the result
     float t;            // +0x68
     float u;            // +0x6C

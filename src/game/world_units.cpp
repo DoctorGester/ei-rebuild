@@ -655,8 +655,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             Copy(&ambient->localPosition_, &base.position, 12);
             ambient->volume_ = static_cast<float>(sound->unknown_68);
             ambient->radius_ = static_cast<float>(sound->unknown_6C);
-            ambient->unknown_168 = sound->unknown_74;
-            ambient->unknown_16C = sound->unknown_78;
+            ambient->minInterval_ = sound->unknown_74;
+            ambient->maxInterval_ = sound->unknown_78;
             return timed(ambient);
         }
         auto* plain = static_cast<CEffectSound*>(timedManager->CreateObject(kTimedSound, base.id));
