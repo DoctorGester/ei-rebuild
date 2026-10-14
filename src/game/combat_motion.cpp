@@ -742,7 +742,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         if (BrainLeader(brain)) return;
         self = unit;
         if (!self->player) return;
-        message = isFar ? kMessagePartial : kMessageCannotDo;
+        message = far ? kMessagePartial : kMessageCannotDo;
     }
     PlayerMessage(PlayerOf(self)->connection_, nullptr, self, message);
 }
