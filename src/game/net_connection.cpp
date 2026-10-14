@@ -16,9 +16,9 @@ namespace net {
 
 namespace {
 
-using ObjectMap = TreeMap<CRefObject*, RefPtr>;
-using SentIdMap = TreeMap<std::uint32_t, RefPtr>;
-using AttachedMap = TreeMap<CRefObject*, AttachedId>;
+using ObjectMap = stlp::map<CRefObject*, RefPtr>;
+using SentIdMap = stlp::map<std::uint32_t, RefPtr>;
+using AttachedMap = stlp::map<CRefObject*, AttachedId>;
 using EntryMap = Connection::EntryMap;
 using RecordMap = Connection::RecordMap;
 
@@ -177,7 +177,7 @@ RecordMap::Node* InsertRecord(RecordMap& records, RecordMap::Node* hint, std::in
 RecordMap::Node* RecordAt(RecordMap& records, std::int32_t key) {
     RecordMap::Node* lb;
     RecordsLowerBound(&records, nullptr, &lb, &key);
-    if (lb == records.header || key < lb->key) lb = InsertRecord(records, lb, key);
+    if (lb == records.end() || key < lb->first) lb = InsertRecord(records, lb, key);
     return lb;
 }
 
@@ -292,7 +292,7 @@ EI_REPLACE_METHOD(0x00433F20, Connection::RollBack);
 void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32_t key) {
     AttachedMap::Node* lb;
     AttachedLowerBound(&attached_, nullptr, &lb, &object);
-    if (lb == attached_.header || reinterpret_cast<std::uintptr_t>(object) < reinterpret_cast<std::uintptr_t>(lb->key)) {
+    if (lb == attached_.end() || reinterpret_cast<std::uintptr_t>(object) < reinterpret_cast<std::uintptr_t>(lb->first)) {
         struct {
             CRefObject* key;
             std::uint32_t value;
@@ -303,8 +303,8 @@ void Connection::AttachRecord(CRefObject* object, std::uint32_t type, std::int32
         AttachedInsertHint(&attached_, nullptr, &inserted, hint, &pair);
         lb = inserted;
     }
-    lb->value.id = static_cast<std::uint16_t>(key);
-    lb->value.type = static_cast<std::uint8_t>(type);
+    lb->second.id = static_cast<std::uint16_t>(key);
+    lb->second.type = static_cast<std::uint8_t>(type);
 }
 EI_REPLACE_METHOD(0x004352F0, Connection::AttachRecord);
 
@@ -345,9 +345,9 @@ bool Connection::SendUpdate(int budget) {
     *count = 0;
     for (int priority = 10; priority >= 0; --priority) {
         EntryMap& map = priorities_[priority];
-        EntryMap::Node* it = map.Begin();
-        while (it != map.header) {
-            ReplicaEntry* entry = static_cast<ReplicaEntry*>(it->value.ptr);
+        EntryMap::Node* it = map.begin();
+        while (it != map.end()) {
+            ReplicaEntry* entry = static_cast<ReplicaEntry*>(it->second.ptr);
             Message* object = entry->Object();
             bool alive;
             if (object && !(object->flags7_ & CRefObject::kDetached)) {
@@ -447,15 +447,15 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
 
     if (!created) {
         // Removal.
-        if (found == records_.header) {
-            RecordAt(records_, key)->value.version = version;
+        if (found == records_.end()) {
+            RecordAt(records_, key)->second.version = version;
             return true;
         }
-        if (found->value.version >= version) {
+        if (found->second.version >= version) {
             LogLine(kSkipRemove);
             return true;
         }
-        RefPtr* slot = &found->value.object;
+        RefPtr* slot = &found->second.object;
         if (slot->ptr) {
             CRefObject* object = slot->ptr;
             AttachedErase(&attached_, nullptr, &object);
@@ -467,25 +467,25 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
             slot->Destroy();
             slot->Share(nullptr);
         }
-        found->value.version = version;
+        found->second.version = version;
         return true;
     }
 
-    if (found == records_.header) {
+    if (found == records_.end()) {
         // A new object.
         RecordMap::Node* node = RecordAt(records_, key);
         CRefObject* object = session->types_.Create(type & 0xFF);
         if (!object) return false;
-        RefPtrReset(&node->value.object, nullptr, object);
-        node->value.version = 0;
+        RefPtrReset(&node->second.object, nullptr, object);
+        node->second.version = 0;
         AttachRecord(object, type, key);
         ReadObject(object, cursor);
-        node->value.version = version;
+        node->second.version = version;
         CallHandlers(CurrentSession(), 0, type, object);
         return true;
     }
 
-    if (found->value.version >= version) {
+    if (found->second.version >= version) {
         // Older than what was applied: read it into a throwaway object to skip its bytes.
         LogLine(kSkipUpdate);
         RefPtr scratch;
@@ -495,12 +495,12 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
         return true;
     }
 
-    RefPtr* slot = &found->value.object;
+    RefPtr* slot = &found->second.object;
     if (!slot->ptr) {
         CRefObject* object = CurrentSession()->types_.Create(type & 0xFF);
         if (object) {
             RefPtrReset(slot, nullptr, object);
-            found->value.version = 0;
+            found->second.version = 0;
             AttachRecord(object, type, key);
         }
         if (object != slot->ptr) {
@@ -511,8 +511,8 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
     }
     ReadObject(slot->ptr, cursor);
     CRefObject* object = slot->ptr;
-    CallHandlers(CurrentSession(), found->value.version == 0 ? 0 : 1, type, object);
-    found->value.version = version;
+    CallHandlers(CurrentSession(), found->second.version == 0 ? 0 : 1, type, object);
+    found->second.version = version;
     return true;
 }
 EI_REPLACE_METHOD(0x00435F30, Connection::ReadRecord);
@@ -540,7 +540,7 @@ void Connection::Track(Replicated* item) {
 
     ObjectMap::Node* lb;
     ByObjectLowerBound(&byObject_, nullptr, &lb, &item->object);
-    if (lb == byObject_.header || reinterpret_cast<std::uintptr_t>(item->object) < reinterpret_cast<std::uintptr_t>(lb->key)) {
+    if (lb == byObject_.end() || reinterpret_cast<std::uintptr_t>(item->object) < reinterpret_cast<std::uintptr_t>(lb->first)) {
         RefPtr none;
         RefPtrNull(&none);
         struct {
@@ -556,7 +556,7 @@ void Connection::Track(Replicated* item) {
         if (pair.value.ptr) pair.value.ptr->Release();
         if (none.ptr) none.ptr->Release();
     }
-    CRefObject*& held = lb->value.ptr;
+    CRefObject*& held = lb->second.ptr;
     CRefObject* old = held;
     held = entry;
     if (entry) ++held->refs_;
@@ -565,7 +565,7 @@ void Connection::Track(Replicated* item) {
     EntryMap& map = priorities_[static_cast<std::int8_t>(item->priority)];
     EntryMap::Node* lb2;
     PriorityLowerBound(&map, nullptr, &lb2, &entry);
-    if (lb2 == map.header || reinterpret_cast<std::uintptr_t>(entry) < reinterpret_cast<std::uintptr_t>(lb2->key)) {
+    if (lb2 == map.end() || reinterpret_cast<std::uintptr_t>(entry) < reinterpret_cast<std::uintptr_t>(lb2->first)) {
         RefPtr none;
         RefPtrNull(&none);
         struct {
@@ -581,7 +581,7 @@ void Connection::Track(Replicated* item) {
         if (pair.value.ptr) pair.value.ptr->Release();
         if (none.ptr) none.ptr->Release();
     }
-    lb2->value.Assign(entry);
+    lb2->second.Assign(entry);
     entry->type_ = static_cast<std::uint8_t>(type);
     CRefObject* previous = entry->object_.ptr;
     entry->object_.ptr = item->object;
@@ -614,9 +614,9 @@ void Connection::CollectChanges() {
     // Merge the sorted list with byObject_ (both ordered by object pointer).
     Replicated* item = items.begin();
     Replicated* end = items.end();
-    ObjectMap::Node* header = byObject_.header;
-    ObjectMap::Node* node = byObject_.Begin();
-    auto entryAt = [](ObjectMap::Node* n) { return static_cast<ReplicaEntry*>(n->value.ptr); };
+    ObjectMap::Node* header = byObject_.end();
+    ObjectMap::Node* node = byObject_.begin();
+    auto entryAt = [](ObjectMap::Node* n) { return static_cast<ReplicaEntry*>(n->second.ptr); };
     if (item != end) {
         do {
             if (node == header) {
@@ -704,8 +704,8 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
     if (Usable(object)) {
         ObjectMap::Node* found;
         ByObjectFind(&byObject_, nullptr, &found, &object);
-        if (found != byObject_.header) {
-            auto* entry = static_cast<ReplicaEntry*>(found->value.ptr);
+        if (found != byObject_.end()) {
+            auto* entry = static_cast<ReplicaEntry*>(found->second.ptr);
             if (entry->id_ == 0) {
                 entry->id_ = idPools_[entry->type_].Allocate();
                 std::uint32_t key = (static_cast<std::uint32_t>(entry->type_) << 16) + entry->id_;
@@ -720,9 +720,9 @@ void Connection::WriteObjectRef(BufferCursor* cursor, CRefObject* object) {
         }
         AttachedMap::Node* node;
         AttachedFind(&attached_, nullptr, &node, &object);
-        if (node != attached_.header) {
-            std::uint16_t id = node->value.id;
-            std::uint8_t type = node->value.type;
+        if (node != attached_.end()) {
+            std::uint16_t id = node->second.id;
+            std::uint8_t type = node->second.type;
             cursor->PutBit(1);
             *cursor->p++ = type;
             std::memcpy(cursor->p, &id, 2);
@@ -750,12 +750,12 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
     if (sent) {
         SentIdMap::Node* node;
         BySentIdFind(&bySentId_, nullptr, &node, &key);
-        if (node == bySentId_.header) return nullptr;
-        return static_cast<ReplicaEntry*>(node->value.ptr)->object_.ptr;
+        if (node == bySentId_.end()) return nullptr;
+        return static_cast<ReplicaEntry*>(node->second.ptr)->object_.ptr;
     }
     RecordMap::Node* found;
     RecordsFind(&records_, nullptr, &found, &key);
-    if (found == records_.header) {
+    if (found == records_.end()) {
         Record* record = RecordsAt(&records_, nullptr, &key);
         CRefObject* object = CurrentSession()->types_.Create(type & 0xFF);
         if (!object) return nullptr;
@@ -767,17 +767,17 @@ CRefObject* Connection::ReadObjectRef(BufferCursor* cursor) {
         AttachRecord(object, type & 0xFF, key);
         return object;
     }
-    if (Usable(found->value.object.ptr)) return found->value.object.ptr;
+    if (Usable(found->second.object.ptr)) return found->second.object.ptr;
     std::uint32_t typeKey = type & 0xFF;
     MessageFactory factory = *FactoryAt(&CurrentSession()->types_.byType, nullptr, &typeKey);
     CRefObject* object = factory ? factory() : nullptr;
     if (!object) return nullptr;
-    RefPtr* slot = &found->value.object;
+    RefPtr* slot = &found->second.object;
     if (object != slot->ptr) {
         slot->Destroy();
         slot->Share(object);
     }
-    found->value.version = 0;
+    found->second.version = 0;
     AttachedId* attachedId = AttachedAt(&attached_, nullptr, &object);
     attachedId->id = static_cast<std::uint16_t>(key);
     attachedId->type = static_cast<std::uint8_t>(type);
@@ -956,9 +956,9 @@ EI_REPLACE_METHOD(0x00436470, Connection::ReadUpdate);
 
 void Connection::Close() {
     CurrentConnection() = this;
-    RecordMap::Node* it = records_.Begin();
-    while (it != records_.header) {
-        RefPtr* slot = &it->value.object;
+    RecordMap::Node* it = records_.begin();
+    while (it != records_.end()) {
+        RefPtr* slot = &it->second.object;
         if (CRefObject* object = slot->ptr) {
             std::uint32_t objectVtable = *reinterpret_cast<const std::uint32_t*>(object);
             SessionBase* session = CurrentSession();

@@ -118,7 +118,7 @@ src/game/net_client_handlers.cpp,0,0,0,0,2,0,0,0,0,0,0
 src/game/net_client_party.cpp,0,10,0,0,0,0,0,0,0,0,0
 src/game/net_coder.h,0,0,0,0,3,0,0,0,0,0,0
 src/game/net_connection.cpp,0,3,0,0,5,0,0,0,0,0,0
-src/game/net_connection.h,0,0,0,0,2,0,0,0,0,1,0
+src/game/net_connection.h,0,0,0,0,2,0,0,0,0,0,0
 src/game/net_connection_life.cpp,0,0,0,1,4,0,0,0,0,0,0
 src/game/net_connection_tick.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/net_delta.cpp,0,0,1,2,0,0,0,0,0,0,0

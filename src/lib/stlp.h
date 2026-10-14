@@ -430,6 +430,10 @@ public:
             n = left;
         }
     }
+    // The element count and the compare byte by reference, for owners whose constructors set them
+    // by hand (the connection's trees).
+    std::size_t& Count() { return count_; }
+    std::uint8_t& Compare() { return compare_; }
     // The first node in key order (end() when empty) and the in-order successor (0043DBE0).
     Node* begin() const { return header_->left; }
     static Node* Next(Node* n) {

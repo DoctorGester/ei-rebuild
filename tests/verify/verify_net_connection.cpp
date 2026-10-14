@@ -77,10 +77,10 @@ Message* __fastcall TypeCreateVerify(TypeRegistry* self, void*, std::uint32_t ty
 void __fastcall AttachRecordVerify(Connection* self, void*, CRefObject* object, std::uint32_t type, std::int32_t key) {
     self->AttachRecord(object, type, key);
     // Walk the tree from the root for the object (keys compare unsigned).
-    auto* node = self->attached_.header->parent;
-    while (node && node->key != object)
-        node = reinterpret_cast<std::uintptr_t>(object) < reinterpret_cast<std::uintptr_t>(node->key) ? node->left : node->right;
-    bool ok = node && node->value.id == static_cast<std::uint16_t>(key) && node->value.type == static_cast<std::uint8_t>(type);
+    auto* node = self->attached_.end()->parent;
+    while (node && node->first != object)
+        node = reinterpret_cast<std::uintptr_t>(object) < reinterpret_cast<std::uintptr_t>(node->first) ? node->left : node->right;
+    bool ok = node && node->second.id == static_cast<std::uint16_t>(key) && node->second.type == static_cast<std::uint8_t>(type);
     ei::verify::Check("Connection::AttachRecord", true, ok, "key %08X", key);
 }
 
@@ -121,11 +121,11 @@ bool __fastcall ReadRecordVerify(Connection* self, void*, BufferCursor* cursor, 
 
 // 00434110: ours only. A live object ends up tracked (byObject holds at most one more entry).
 void __fastcall TrackVerify(Connection* self, void*, Replicated* item) {
-    std::uint32_t before = self->byObject_.count;
+    std::uint32_t before = self->byObject_.size();
     CRefObject* object = item->object;
     bool live = object && !(object->flags7_ & CRefObject::kDetached);
     self->Track(item);
-    std::uint32_t after = self->byObject_.count;
+    std::uint32_t after = self->byObject_.size();
     ei::verify::Check("Connection::Track", true, live ? (after == before || after == before + 1) : after == before, "");
 }
 
@@ -135,7 +135,7 @@ void __fastcall CollectChangesVerify(Connection* self) {
     self->CollectChanges();
     auto* items = reinterpret_cast<ReplicatedVector*>(0x0079B8D0);
     ei::verify::Check("Connection::CollectChanges", true,
-                      self->byObject_.count <= static_cast<std::uint32_t>(items->size()), "");
+                      self->byObject_.size() <= static_cast<std::uint32_t>(items->size()), "");
 }
 
 // 004357C0: MOV EAX,ECX (2), MOV CL,[EAX+0xC] (3). The original on a copy of the cursor first (it
@@ -235,8 +235,8 @@ namespace {
 // 00436620: ours only (it runs handlers and releases objects); the first record is empty afterwards.
 void __fastcall CloseVerify(net::Connection* self) {
     self->Close();
-    net::Connection::RecordMap::Node* first = self->records_.Begin();
-    bool empty = first == self->records_.header || first->value.object.ptr == nullptr;
+    net::Connection::RecordMap::Node* first = self->records_.begin();
+    bool empty = first == self->records_.end() || first->second.object.ptr == nullptr;
     ei::verify::Check("Connection::Close", true, empty, "");
 }
 void* s_unusedClose;
