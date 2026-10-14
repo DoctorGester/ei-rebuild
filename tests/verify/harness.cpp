@@ -111,6 +111,7 @@
 #include "harness_capture.h"
 
 #include "../../src/hook/log.h"
+#include "ei/main_loop.h"
 #include "ei/rebirth.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/game/ui.h"
@@ -728,10 +729,19 @@ volatile DWORD g_virtualNow = 1000000;
 volatile unsigned g_callsSinceFrame = 0;
 decltype(&::timeGetTime) g_timeGetTime;
 volatile bool g_frozen = false;   // "freeze" (see HeldClock below)
+// The thread that runs WinMain's loop (set by PeekMessageHook).
+volatile DWORD g_loopThread = 0;
+
+// Whether a timeGetTime call is the main loop's: the original WinMain's by its return address, the
+// rewritten one's (src/game/app_main.cpp) by the site it names on the loop's thread.
+bool IsMainLoopTime(const void* returnAddress) {
+    if (reinterpret_cast<std::uintptr_t>(returnAddress) == kMainLoopTimeReturn) return true;
+    return ei::mainloop::g_site == ei::mainloop::Site::FrameTime && GetCurrentThreadId() == g_loopThread;
+}
 
 DWORD WINAPI VirtualTimeGetTime() {
     if (g_frozen) return g_virtualNow;
-    if (reinterpret_cast<std::uintptr_t>(_ReturnAddress()) == kMainLoopTimeReturn) {
+    if (IsMainLoopTime(_ReturnAddress())) {
         g_virtualNow += kUpdatesPerFrame * g_tickLength;
         g_callsSinceFrame = 0;
     } else if (++g_callsSinceFrame % 10000 == 0) {
@@ -1585,21 +1595,25 @@ void KeepGameWindowActive() {
 // PushWindow, closing windows) to discard the input waiting meanwhile: what it removes goes to the
 // window procedure, which ignores keys and mouse. Steps can run inside it, so input steps posted
 // there were lost (the console scenario's keys, when the battle screen opened after its waitfor);
-// they wait for one of these calls instead (identified by the return address).
+// they wait for one of these calls instead (identified by the return address; the rewritten WinMain,
+// src/game/app_main.cpp, names its two calls through ei::mainloop::g_site instead).
 constexpr std::uintptr_t kInputLoopReturns[] = {
     0x00457119,   // WinMain, before the frame
     0x00457610,   // WinMain, after the frame
     0x005DB788,   // the movie player
 };
+bool IsWinMainLoop(const void* returnAddress);
 bool IsInputLoop(const void* returnAddress) {
     for (std::uintptr_t r : kInputLoopReturns)
         if (reinterpret_cast<std::uintptr_t>(returnAddress) == r) return true;
-    return false;
+    return IsWinMainLoop(returnAddress);
 }
 
 bool IsWinMainLoop(const void* returnAddress) {
     auto r = reinterpret_cast<std::uintptr_t>(returnAddress);
-    return r == kInputLoopReturns[0] || r == kInputLoopReturns[1];
+    if (r == kInputLoopReturns[0] || r == kInputLoopReturns[1]) return true;
+    using ei::mainloop::Site;
+    return ei::mainloop::g_site == Site::PeekBeforeFrame || ei::mainloop::g_site == Site::PeekAfterFrame;
 }
 
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
@@ -1610,6 +1624,7 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
         g_inStep = true;   // console commands can pump messages themselves
         g_inputLoop = IsInputLoop(_ReturnAddress());
         g_winMainLoop = IsWinMainLoop(_ReturnAddress());
+        if (g_winMainLoop) g_loopThread = GetCurrentThreadId();
         RunSteps();
         g_inStep = false;
     }

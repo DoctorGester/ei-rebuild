@@ -46,6 +46,23 @@ __declspec(naked) inline double __cdecl fsqrt(double) {
     __asm ret
 }
 
+// e^x the way VC6 inlines exp: 2^(x log2 e) through FRNDINT / F2XM1 / FSCALE, unrounded in ST0.
+__declspec(naked) inline double __cdecl fexp(double) {
+    __asm fld qword ptr [esp + 4]
+    __asm fldl2e
+    __asm fmulp st(1), st
+    __asm fld st(0)
+    __asm frndint
+    __asm fxch st(1)
+    __asm fsub st, st(1)
+    __asm f2xm1
+    __asm fld1
+    __asm faddp st(1), st
+    __asm fscale
+    __asm fstp st(1)
+    __asm ret
+}
+
 // FPATAN: atan2(y, x), unrounded (FPATAN ignores the precision control). std::atan2 only becomes
 // FPATAN under /fp:fast; under precise semantics it calls the modern CRT.
 __declspec(naked) inline double __cdecl fpatan(double /*y*/, double /*x*/) {

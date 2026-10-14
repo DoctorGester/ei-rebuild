@@ -45,3 +45,6 @@ __declspec(naked) inline Vector3* __fastcall QuaternionAxisZ(const Quaternion* /
     EI_ORIGINAL(0x0040D6B0)
 // 0059F030: CFigure's destructor body (plain RET; CFigure's slot 0 00453470 and CSkyObject's 004D92B0 end with it).
 __declspec(naked) inline void __fastcall FigureDestructBodyOriginal(void* /*figure*/) EI_ORIGINAL(0x0059F030)
+// A-E2. 00457720 (rewritten as CEngineObject::ReleaseAndDelete; plain RET): drops one reference of a counted
+// object (the count at +4) and deletes it through slot 0 at zero.
+__declspec(naked) inline void __fastcall ReleaseCountedOriginal(void* /*object*/) EI_ORIGINAL(0x00457720)

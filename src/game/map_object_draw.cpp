@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_core.h"
 #include "originals_effects.h"
 
 #include <bit>
@@ -63,7 +64,7 @@ __declspec(naked) void __fastcall PopSceneMatrix(void*, void*, int) EI_ORIGINAL(
 // 004EB170. Device: sets the texture of stage 0.
 __declspec(naked) void __fastcall SetDeviceTexture(void*, void*, CEngineObject*) EI_ORIGINAL(0x004EB170)
 // 00457720. A temporary texture reference: released.
-__declspec(naked) void __fastcall ReleaseTemporary(void*) EI_ORIGINAL(0x00457720)
+void __fastcall ReleaseTemporary(void* object) { ReleaseCountedOriginal(object); }
 
 // The light list being collected: aligned storage of light pointers.
 using LightList = lib::AlignedArray<CEngineObject*>;

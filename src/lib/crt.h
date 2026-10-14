@@ -54,6 +54,7 @@ int __cdecl read(int fd, void* buffer, unsigned count);       // 006EB046
 int __cdecl write(int fd, const void* buffer, unsigned count);// 006EB642
 int __cdecl close(int fd);                                    // 006EAF66
 int __cdecl access(const char* path, int mode);               // 006EAF20 _access
+long __cdecl filelength(int fd);                              // 006E904C _filelength
 
 // Stream I/O (the game's FILE is opaque here).
 struct CrtFile;
@@ -63,6 +64,17 @@ int __cdecl fseek(CrtFile* file, long offset, int origin);                      
 long __cdecl ftell(CrtFile* file);                                                   // 006E97C4
 std::size_t __cdecl fread(void* to, std::size_t size, std::size_t count, CrtFile* file);          // 006E8F35
 std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file); // 006E968B
+// A stream's file descriptor (the _fileno macro: FILE::_file, +0x10).
+inline int fileno(const CrtFile* file) { return reinterpret_cast<const int*>(file)[4]; }
+
+// _splitpath (006E8BEE): the parts of a path (each buffer may be null).
+void __cdecl splitpath(const char* path, char* drive, char* dir, char* name, char* ext);
+// ceil (006E8B1F): the result in ST0.
+double __cdecl ceil(double value);
+// _set_new_handler (006E8D35): the handler operator new calls when the heap is exhausted (it returns
+// nonzero to have the allocation tried again); returns the previous one.
+using NewHandler = int(__cdecl*)(std::size_t);
+NewHandler __cdecl set_new_handler(NewHandler handler);
 
 } // namespace gamecrt
 

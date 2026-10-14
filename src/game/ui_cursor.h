@@ -44,7 +44,7 @@ public:
     CDirectInputMouse* DeletingDestruct(unsigned flags);
 
     void* vtable_;                   // +0x00
-    std::uint32_t unknown_04;        // +0x04
+    std::uint32_t references_;       // +0x04 the count of holders (WinMain keeps one in 0079BA08)
     IDirectInput7A* input_;          // +0x08 counted
     IDirectInputDevice7A* device_;   // +0x0C counted
     LONG state_[4];                  // +0x10 DIMOUSESTATE

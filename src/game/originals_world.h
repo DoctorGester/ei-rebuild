@@ -226,3 +226,10 @@ __declspec(naked) inline void __fastcall ClientArrayManagerDestructOriginal(Clie
 // deleting destructor.
 struct PlatformSet;
 __declspec(naked) inline void __fastcall PlatformSetDestructOriginal(PlatformSet* /*set*/) EI_ORIGINAL(0x00561A60)
+// A-E2: called by WinMain's main loop (app_main.cpp) and by the zone change (world_game.cpp) through their
+// addresses so that their wrappers run. 005641F0: the client world's tick (CWorldClient::Segment; EAX 0 when the
+// connection is lost). 0058DFF0: the server world's update (CWorldServer::Update; EAX 0 when it stops).
+// 0057C700 (patched by Rebirth): the game flow (007AFE20) runs its pending request (GameFlow::ProcessRequest).
+__declspec(naked) inline int __fastcall ClientSegmentOriginal(void* /*client*/) EI_ORIGINAL(0x005641F0)
+__declspec(naked) inline int __fastcall ServerUpdateOriginal(CWorldServer* /*server*/) EI_ORIGINAL(0x0058DFF0)
+__declspec(naked) inline void __fastcall FlowProcessRequestOriginal(void* /*flow*/) EI_ORIGINAL(0x0057C700)

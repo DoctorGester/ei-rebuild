@@ -33,6 +33,7 @@
 #include "originals_effects.h"
 #include "originals_engine.h"
 #include "originals_script.h"
+#include "originals_ui.h"
 
 #include <cstring>
 
@@ -132,7 +133,7 @@ __declspec(naked) mfc::CString* __fastcall ReadString(WorldStream*, void*, void*
 // 00595080 (RET 4). Picks the loading movie for the zone. Patched by Rebirth: original address.
 __declspec(naked) void __fastcall PickLoadingMovie(CWorldServer*, void*, const char* /*zone*/) EI_ORIGINAL(0x00595080)
 // 005DA400. Shows the loading screen at `stage` (ECX).
-__declspec(naked) void __fastcall ShowLoadProgress(int /*stage*/) EI_ORIGINAL(0x005DA400)
+void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovieOriginal(stage); }
 // 00665200. Empties a player before it is loaded.
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 005B8B30 / 005B8B80. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp).
