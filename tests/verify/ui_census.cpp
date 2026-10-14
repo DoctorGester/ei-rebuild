@@ -26,6 +26,7 @@
 // checksummed again; a change with no hooked drawing, write lock, blit into it or session since the
 // last frame is reported too.
 #include "ui_census.h"
+#include "slot_recorder.h"
 
 #include "../../src/game/console.h"
 #include "../../src/game/dx_surface.h"
@@ -229,10 +230,32 @@ std::string Size(int width, int height) {
     return text;
 }
 
+bool InGameVtables(std::uintptr_t vtable) { return vtable >= 0x0073B000 && vtable < 0x00800000; }
+
+// The game vtable of an object that may wear a verify check's stand-in copy of it for the length of
+// a call: verify_ui_window_slots.cpp's StandInTable (the real vtable in the entry before the table;
+// a container's children while their slots 22 / 23 / 24 are dispatched, which is when the item
+// panels, the unit panel and the HUD map draw) or slot_recorder.h's SlotRecorder (its real vtable).
+// Such a copy lives on the heap: it gave N0's census window labels like W2FBD6554 (ui-census.md).
+std::uintptr_t RealVtable(std::uintptr_t vtable) {
+    if (vtable == 0 || InGameVtables(vtable)) return vtable;
+    std::uintptr_t before = 0, slot0 = 0, realSlot0 = 0;
+    if (!SafeRead(reinterpret_cast<const void*>(vtable), &slot0, sizeof(slot0))) return vtable;
+    if (SafeRead(reinterpret_cast<const void*>(vtable - 4), &before, sizeof(before)) && InGameVtables(before) &&
+        SafeRead(reinterpret_cast<const void*>(before), &realSlot0, sizeof(realSlot0)) && realSlot0 == slot0)
+        return before;
+    auto recorded = reinterpret_cast<std::uintptr_t>(SlotRecorder::RealVtable());
+    if (InGameVtables(recorded) && SafeRead(reinterpret_cast<const void*>(recorded), &realSlot0, sizeof(realSlot0)) &&
+        realSlot0 == slot0)
+        return recorded;
+    return vtable;
+}
+
 // "W<window vtable>#<index in its surfaces>" for a window's surface.
 std::string WindowLabel(const CUiWindow* window, const CUiSurface* surface) {
     std::uintptr_t vtable = 0;
     if (!SafeRead(window, &vtable, sizeof(vtable))) return "W?";
+    vtable = RealVtable(vtable);
     CUiSurface** data = nullptr;
     int size = 0;
     SafeRead(&window->surfaces_.data, &data, sizeof(data));
@@ -1210,6 +1233,31 @@ void RefreshSurfaces(State& s) {
     }
 }
 
+// A whole-surface pixel helper ran (g_uiSurfacePixelObserver, ui_surface_pixels.cpp): CaptureScreen,
+// Rgb565Copy, Greyscale, PixelAt or SwapContents. They go through a Lock, a Blt or the new renderer's
+// memory, often on a surface made in the same frame or one no window keeps (the global map's pick
+// picture, Rgb565Copy's temporary copy), which the DirectDraw hooks cannot place; and our callers
+// call them directly, past their verify wrappers. Counted as a "read" or "write" row of the surface.
+void OnPixels(const CUiSurface* surface, const char* what, bool writes, void* const* frame) {
+    State& s = S();
+    std::lock_guard<std::mutex> hold(s.lock);
+    if (!s.installed) return;
+    std::string owner = "unowned";
+    for (const Candidate& c : Candidates(s))
+        if (c.surface == surface) {
+            owner = c.Label();
+            break;
+        }
+    SurfaceView view;
+    bool known = ReadSurface(surface, &view);
+    std::string size = known ? Size(view.width, view.height) : "?";
+    if (writes && known && view.holder) {
+        auto it = s.dibs.find(ClientBitmap(view.holder));
+        if (it != s.dibs.end()) MarkDrawn(s, it->second);
+    }
+    AddRow(s, writes ? "write" : "read", owner, size, what, Chain(s, frame), {});
+}
+
 std::string Quote(const std::string& text) {
     std::string out = "\"";
     for (char c : text) out += c == '"' ? std::string("\"\"") : std::string(1, c);
@@ -1248,6 +1296,7 @@ void Install() {
     if (self) AddCodeRanges(s, self, 'E', "ei_hook.dll");
     int count = PatchModule(s, GetModuleHandleA(nullptr));
     g_uiSurfaceOwnerObserver = &OnOwner;
+    g_uiSurfacePixelObserver = &OnPixels;
     ei::Log("census: interface drawing census on (ui_census.csv); game.exe: %d gdi32 / user32 import slots hooked", count);
 }
 

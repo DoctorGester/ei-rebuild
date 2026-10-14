@@ -29,12 +29,16 @@ WRAPPERS = {
     0x005FDC00: 'GetDC', 0x005FDC60: 'ReleaseDC', 0x005FDE20: 'DrawTextIn', 0x005FDFA0: 'DrawWrappedText',
     0x005FE370: 'Fill', 0x005FE2F0: 'Clear', 0x005FDCB0: 'FrameRect', 0x005F8340: 'TextExtent',
     0x005F7CA0: 'ScaleRect', 0x005F7E30: 'ScaleBack',
+    # the whole-surface pixel helpers (the census's g_uiSurfacePixelObserver rows)
+    0x005FD3D0: 'CaptureScreen', 0x005FD440: 'Rgb565Copy', 0x005FE440: 'Greyscale', 0x005FD240: 'PixelAt',
+    0x005FD7A0: 'SwapContents',
 }
 # ei_hook.dll functions that are plumbing, not callers (matched on the undecorated name).
 HELPER_NAMES = re.compile(r'GameDC::|SurfaceDC::|CallSlot|SurfaceDrawText|SurfaceDraw::|ui_gdi::|census::|'
                           r'SurfaceGetDC|SurfaceReleaseDC|SurfaceFill|SurfaceClear|SurfaceFrameRect|'
                           r'GameFont::|GamePen::|GameBrush::|ComCall|LockSurface|UnlockSurface|\bBlt\b|'
-                          r'Verify|RawBytes|ReadLevels|FillLevels|lambda|CreateFontA|ei::verify|std::')
+                          r'Verify|RawBytes|ReadLevels|FillLevels|lambda|CreateFontA|ei::verify|std::|'
+                          r'ObservePixels|CUiSurface::(CaptureScreen|Rgb565Copy|Greyscale|SwapContents)')
 # The verify wrappers' own pixel helpers (tests/verify): they lock and read surfaces to compare the
 # original body with ours, so their reads are not the game's, and a chain that passes one is inside a
 # verify wrapper whose bodies run more than once (its counts are high by up to 3-4x).

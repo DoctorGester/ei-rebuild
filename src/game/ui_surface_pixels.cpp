@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <intrin.h>
 
 namespace {
 
@@ -106,7 +107,17 @@ std::uint32_t Grey32(std::uint32_t pixel) {
 
 } // namespace
 
+void (*g_uiSurfacePixelObserver)(const CUiSurface* surface, const char* what, bool writes, void* const* caller) = nullptr;
+
+namespace {
+// `caller`: the observed helper's _AddressOfReturnAddress().
+void ObservePixels(const CUiSurface* surface, const char* what, bool writes, void* caller) {
+    if (g_uiSurfacePixelObserver) g_uiSurfacePixelObserver(surface, what, writes, static_cast<void* const*>(caller));
+}
+} // namespace
+
 void CUiSurface::CaptureScreen() {
+    ObservePixels(this, "CaptureScreen", true, _AddressOfReturnAddress());
     SurfaceHolder* holder = HolderOf(this);
     if (!holder) return;
     SurfaceHolder* screen = holder->device->renderTarget_;
@@ -125,6 +136,7 @@ void CUiSurface::CaptureScreen() {
 }
 
 std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
+    ObservePixels(this, "Rgb565Copy", false, _AddressOfReturnAddress());
     if (!HolderOf(this)) return nullptr;
     // A surface of the wanted size in this one's format, and this one stretched into it.
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -189,6 +201,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
 }
 
 void CUiSurface::Greyscale() {
+    ObservePixels(this, "Greyscale", true, _AddressOfReturnAddress());
     if (!HolderOf(this)) return;
     SurfaceHolder* holder = HolderOf(this);
     gameapi::EnterCriticalSection(DeviceLock());
@@ -275,6 +288,8 @@ std::uint32_t& SurfaceBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x
 } // namespace
 
 void CUiSurface::SwapContents(int restore) {
+    ObservePixels(this, restore ? "SwapContents(restore)" : "SwapContents(save)", restore != 0,
+                  _AddressOfReturnAddress());
     std::uint32_t desc[0x1F];
     if (restore) {
         if (!holder_) {
@@ -359,6 +374,7 @@ void CUiSurface::SwapContents(int restore) {
 // 005FD240 (thiscall, RET 8). The pixel at (x, y) of the surface as 0x00RRGGBB (through the
 // format converter); 0 outside the surface or without one.
 std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y) {
+    ObservePixels(self, "PixelAt", false, _AddressOfReturnAddress());
     SurfaceHolder* holder = HolderOf(self);
     if (!holder || x < 0 || y < 0) return 0;
     if (x >= self->width_ || y >= self->height_) return 0;
