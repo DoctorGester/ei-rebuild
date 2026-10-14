@@ -55,7 +55,7 @@ void FlushAndRestore(UiRenderer* renderer) {
 
 // The game's vector helpers as the original calls them (00401E00 dot, unrounded; 00448A10 /
 // 00410770 scale; 004489D0 cross; 0040CDC0 sum; results stored as float).
-double DotUnrounded(const Vector3& a, const Vector3& b) { return (D(a.z) * D(b.z) + D(a.y) * D(b.y)) + D(a.x) * D(b.x); }
+double DotCall(const Vector3& a, const Vector3& b) { return DotUnrounded<Sum3::ZYX, double>(a, b); }
 Vector3 Scale(const Vector3& v, float s) { return {Store(D(s) * D(v.x)), Store(D(s) * D(v.y)), Store(D(s) * D(v.z))}; }
 Vector3 CrossStored(const Vector3& a, const Vector3& b) {
     float z = Store(D(a.x) * D(b.y) - D(a.y) * D(b.x));
@@ -77,9 +77,9 @@ Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
     out.y = Store(((D(q.z) * D(r.x) - D(q.x) * D(r.z)) + D(q.y) * D(r.w)) + D(q.w) * D(r.y));
     out.x = Store(((D(q.y) * D(r.z) - D(q.z) * D(r.y)) + D(q.x) * D(r.w)) + D(q.w) * D(r.x));
     if (!second)
-        out.w = Store(D(q.w) * D(r.w) - ((D(q.z) * D(r.z) + D(q.y) * D(r.y)) + D(q.x) * D(r.x)));
+        out.w = Store(D(q.w) * D(r.w) - DotUnrounded<Sum3::ZYX, double>(q.x, q.y, q.z, r.x, r.y, r.z));
     else
-        out.w = Store(D(q.w) * D(r.w) - ((D(q.y) * D(r.y) + D(q.x) * D(r.x)) + D(q.z) * D(r.z)));
+        out.w = Store(D(q.w) * D(r.w) - DotUnrounded<Sum3::XYZ, double>(q.x, q.y, q.z, r.x, r.y, r.z));
     return out;
 }
 
@@ -164,9 +164,9 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     Vector3 v = {q.x, q.y, q.z};
     Vector3 origin = {0.0f, 0.0f, 0.0f};
     float ww = Store(D(q.w) * D(q.w));
-    Vector3 along = Scale(v, Store(DotUnrounded(v, origin) + DotUnrounded(v, origin)));
+    Vector3 along = Scale(v, Store(DotCall(v, origin) + DotCall(v, origin)));
     Vector3 across = Scale(CrossStored(v, origin), Store(D(q.w) + D(q.w)));
-    Vector3 rotated = Sum(Sum(Scale(origin, Store(D(ww) - DotUnrounded(v, v))), across), along);
+    Vector3 rotated = Sum(Sum(Scale(origin, Store(D(ww) - DotCall(v, v))), across), along);
     // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
     double dx = ((D(depth) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073B84C))) * D(GameFloat(0x007402C4))) *
                 D(GameFloat(0x0073BA98));

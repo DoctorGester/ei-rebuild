@@ -119,7 +119,7 @@ void SetBar(CEngineObject* object, double fraction, std::uint32_t v0, std::uint3
 // component is rounded once. The wobble target: q1 (about y) times q2 (about x).
 Quaternion TargetProduct(const Quaternion& q1, const Quaternion& q2) {
     Quaternion r;
-    r.w = Store(D(q1.w) * D(q2.w) - ((D(q2.z) * D(q1.z) + D(q1.y) * D(q2.y)) + D(q1.x) * D(q2.x)));
+    r.w = Store(D(q1.w) * D(q2.w) - DotUnrounded<Sum3::ZYX, double>(q1.x, q1.y, q1.z, q2.x, q2.y, q2.z));
     r.x = Store(((D(q2.y) * D(q1.z) - D(q1.y) * D(q2.z)) + D(q1.w) * D(q2.x)) + D(q1.x) * D(q2.w));
     r.y = Store(((D(q1.x) * D(q2.z) - D(q2.x) * D(q1.z)) + D(q1.w) * D(q2.y)) + D(q1.y) * D(q2.w));
     r.z = Store(((D(q1.y) * D(q2.x) - D(q1.x) * D(q2.y)) + D(q2.w) * D(q1.z)) + D(q2.z) * D(q1.w));
@@ -129,7 +129,7 @@ Quaternion TargetProduct(const Quaternion& q1, const Quaternion& q2) {
 // The face's rest orientation from the slot's two parts (a, b).
 Quaternion RestProduct(const Quaternion& a, const Quaternion& b) {
     Quaternion r;
-    r.w = Store(D(a.w) * D(b.w) - ((D(a.z) * D(b.z) + D(a.y) * D(b.y)) + D(a.x) * D(b.x)));
+    r.w = Store(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
     r.x = Store(((D(a.y) * D(b.z) - D(a.z) * D(b.y)) + D(a.x) * D(b.w)) + D(b.x) * D(a.w));
     r.y = Store(((D(a.z) * D(b.x) - D(a.x) * D(b.z)) + D(a.y) * D(b.w)) + D(a.w) * D(b.y));
     r.z = Store(((D(a.x) * D(b.y) - D(b.x) * D(a.y)) + D(a.z) * D(b.w)) + D(b.z) * D(a.w));
@@ -139,7 +139,7 @@ Quaternion RestProduct(const Quaternion& a, const Quaternion& b) {
 // The eased face orientation f with the wobble w applied.
 Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
     Quaternion r;
-    r.w = Store(D(f.w) * D(w.w) - ((D(f.z) * D(w.z) + D(f.y) * D(w.y)) + D(w.x) * D(f.x)));
+    r.w = Store(D(f.w) * D(w.w) - DotUnrounded<Sum3::ZYX, double>(f.x, f.y, f.z, w.x, w.y, w.z));
     r.x = Store(((D(w.z) * D(f.y) - D(f.z) * D(w.y)) + D(w.x) * D(f.w)) + D(f.x) * D(w.w));
     r.y = Store(((D(f.z) * D(w.x) - D(w.z) * D(f.x)) + D(w.y) * D(f.w)) + D(f.y) * D(w.w));
     r.z = Store(((D(w.y) * D(f.x) - D(w.x) * D(f.y)) + D(w.z) * D(f.w)) + D(f.z) * D(w.w));

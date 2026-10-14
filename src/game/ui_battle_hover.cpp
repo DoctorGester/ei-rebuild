@@ -46,7 +46,7 @@ void* const kPlayerGlue = reinterpret_cast<void*>(0x007AFEA5);
 
 // The client world (007AF5B8): the object under a screen point (x, y pair), the ground point under
 // a screen point (PickSurface), the zone exit at a point (FindExitAt, RET 8).
-__declspec(naked) BOOL __fastcall HoverFindExit(void*, void*, const float*, int*) EI_ORIGINAL(0x00567440)
+__declspec(naked) BOOL __fastcall HoverFindExit(void*, void*, const Vector3*, int*) EI_ORIGINAL(0x00567440)
 // The local player glue (007AFEA5): 00578A40 an exit's zone name (RET 4), 00578B50 the local
 // player's variable `name` (RET 4, ST0).
 // Units: 00530930 the prototype record (__fastcall), 00530150 IsHostileTo (RET 4), 0052F820
@@ -65,26 +65,22 @@ bool ZeroOrNaN(float value) {
     return (bits & 0x7FFFFFFFu) == 0 || x87::IsNaN(value);
 }
 
-struct Point3 {
-    float v[3];
-};
-
 } // namespace
 
 void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
     auto pick = [x, y]() {
-        float out[3];
-        float* p = HoverPickSurface(kClientWorld, nullptr, out, x, y);
-        return Point3{{p[0], p[1], p[2]}};
+        Vector3 out;
+        Vector3* p = HoverPickSurface(kClientWorld, nullptr, &out, x, y);
+        return Vector3{p->x, p->y, p->z};
     };
     auto objectAt = [x, y]() {
         int point[2] = {x, y};
         return HoverObjectAt(kClientWorld, nullptr, point);
     };
     auto unitPosition = [](CUnit* u) {
-        Point3 at;
-        std::memcpy(at.v, &u->position, sizeof(at.v));
+        Vector3 at;
+        std::memcpy(&at, &u->position, sizeof(at));
         return at;
     };
 
@@ -118,9 +114,9 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
 
     int shape = 0;
     if (interface_->altDown_) {
-        Point3 at = pick();
+        Vector3 at = pick();
         int exit;
-        if (!HoverFindExit(kClientWorld, nullptr, at.v, &exit)) return;
+        if (!HoverFindExit(kClientWorld, nullptr, &at, &exit)) return;
         SetCursor(kCursorExit);
         return;
     }
@@ -156,9 +152,9 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             }
             // Over a zone exit: the exit cursor unless the zone's "z.<name>" variable is 1 ("none"
             // is asked as is).
-            Point3 at = pick();
+            Vector3 at = pick();
             int exit;
-            if (!HoverFindExit(kClientWorld, nullptr, at.v, &exit)) return;
+            if (!HoverFindExit(kClientWorld, nullptr, &at, &exit)) return;
             mfc::CString name(GameExitZoneOriginal(kPlayerGlue, nullptr, exit));
             if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                                  reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
@@ -175,8 +171,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        Point3 at = unitPosition(unit);
-        if (!first || UnitCanCastSpell(first, nullptr, pendingSlot_, at.v) != 0) {
+        Vector3 at = unitPosition(unit);
+        if (!first || UnitCanCastSpell(first, nullptr, pendingSlot_, &at.x) != 0) {
             shape = kCursorCantCast;
             break;
         }
@@ -185,21 +181,21 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     }
     case 2:   // a spell on a point
     case 4: {   // a quick item on a point
-        Point3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
-        if ((ZeroOrNaN(at.v[0]) && ZeroOrNaN(at.v[1])) || !first) {
+        Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
+        if ((ZeroOrNaN(at.x) && ZeroOrNaN(at.y)) || !first) {
             shape = kCursorCantCast;
             break;
         }
-        int refused = pendingAction_ == 2 ? UnitCanCastSpell(first, nullptr, pendingSlot_, at.v)
-                                                    : UnitCanUseQuickItem(first, nullptr, pendingSlot_, at.v);
+        int refused = pendingAction_ == 2 ? UnitCanCastSpell(first, nullptr, pendingSlot_, &at.x)
+                                                    : UnitCanUseQuickItem(first, nullptr, pendingSlot_, &at.x);
         shape = refused ? kCursorCantCast : kCursorCast;
         break;
     }
     case 3: {   // a quick item on a unit (a wand not on the user itself)
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
-        Point3 at = unitPosition(unit);
-        if (!first || UnitCanUseQuickItem(first, nullptr, pendingSlot_, at.v) != 0) break;
+        Vector3 at = unitPosition(unit);
+        if (!first || UnitCanUseQuickItem(first, nullptr, pendingSlot_, &at.x) != 0) break;
         void* item = UnitQuickItem(first, nullptr, pendingSlot_);
         if (item && ItemGetCategoryOriginal(reinterpret_cast<CItem*>(item)) == kCategoryWand && unit != first) break;
         shape = kCursorCast;

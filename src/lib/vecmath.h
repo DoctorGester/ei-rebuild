@@ -342,6 +342,14 @@ __forceinline T DotUnrounded(T x, T y, T z, T x2, T y2, T z2) {
 template <Sum3 O, typename T>
 __forceinline T LengthSquaredUnrounded(T x, T y, T z) { return DotUnrounded<O, T>(x, y, z, x, y, z); }
 
+// The Vector3 forms (V3d; T explicit: LengthSquaredUnrounded<Sum3::XYZ, double>(v)). `double` gives a
+// precise region's unrounded product: a float-typed one there rounds the result on return.
+template <Sum3 O, typename T>
+__forceinline T DotUnrounded(const Vector3& a, const Vector3& b) { return DotUnrounded<O, T>(a.x, a.y, a.z, b.x, b.y, b.z); }
+
+template <Sum3 O, typename T>
+__forceinline T LengthSquaredUnrounded(const Vector3& v) { return DotUnrounded<O, T>(v.x, v.y, v.z, v.x, v.y, v.z); }
+
 // A rotated axis of a quaternion with its components unrounded in T (AxisXUnrounded: the inlined
 // copies of Quaternion::AxisX 0040D940 that keep them on the FPU).
 template <typename T>

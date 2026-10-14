@@ -59,17 +59,17 @@ float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
         float dx = point->x - p.x;
         float dy = point->y - p.y;
         // Every test is "skip when below or unordered" (FCOM + TEST AH,1), so NaN skips.
-        if (!(p.radius * p.radius >= dy * dy + dx * dx)) continue;
-        float a = point->x - p.origin[0];
-        float b = point->y - p.origin[1];
-        float c = point->z - p.origin[2];
+        if (!(p.radius * p.radius >= LengthSquared2DUnrounded(dy, dx))) continue;
+        float a = point->x - p.origin.x;
+        float b = point->y - p.origin.y;
+        float c = point->z - p.origin.z;
         // Project onto the platform plane along z, then into its (u, v) frame.
-        c = c - (p.normal[1] * b + p.normal[0] * a + p.normal[2] * c) / p.normal[2];
-        float u = StoreFloat(p.axisU[1] * b + p.axisU[0] * a + p.axisU[2] * c);
-        float v = StoreFloat(p.axisV[1] * b + p.axisV[0] * a + p.axisV[2] * c);
+        c = c - DotUnrounded<Sum3::XYZ, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
+        float u = StoreFloat(DotUnrounded<Sum3::XYZ, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
+        float v = StoreFloat(DotUnrounded<Sum3::XYZ, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
         if (!(u >= -0.5f) || !(v >= -0.5f)) continue;
         if (!(p.sizeU + 0.5f >= u) || !(p.sizeV + 0.5f >= v)) continue;
-        float z = StoreFloat(p.axisV[2] * v + p.axisU[2] * u + p.origin[2]);
+        float z = StoreFloat(p.axisV.z * v + p.axisU.z * u + p.origin.z);
         height = !(height >= z) ? z : height;
     }
     return height;
@@ -80,13 +80,13 @@ bool PlatformSet::Contains(float x, float y) {
         const Platform& p = node->data;
         float dx = x - p.x;
         float dy = y - p.y;
-        if (!(p.radius * p.radius >= dx * dx + dy * dy)) continue;
-        float a = x - p.origin[0];
-        float b = y - p.origin[1];
-        float c = -p.origin[2];
-        c = c - (p.normal[1] * b + p.normal[2] * c + p.normal[0] * a) / p.normal[2];
-        float u = StoreFloat(p.axisU[1] * b + p.axisU[2] * c + p.axisU[0] * a);
-        float v = StoreFloat(p.axisV[1] * b + p.axisV[2] * c + p.axisV[0] * a);
+        if (!(p.radius * p.radius >= LengthSquared2DUnrounded(dx, dy))) continue;
+        float a = x - p.origin.x;
+        float b = y - p.origin.y;
+        float c = -p.origin.z;
+        c = c - DotUnrounded<Sum3::ZYX, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
+        float u = StoreFloat(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
+        float v = StoreFloat(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
         if (!(u >= -0.1f) || !(v >= -0.1f)) continue;
         if (!(p.sizeU + 0.1f >= u) || !(p.sizeV + 0.1f >= v)) continue;
         return true;
@@ -100,18 +100,18 @@ void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height)
     for (PlatformNode* node = list.head; node; node = node->next) {
         const Platform& p = node->data;
         if (!(p.radius * p.radius >= DistanceSquared2D(Vector2{x, y}, Vector2{p.x, p.y}))) continue;
-        float a = x - p.origin[0];
-        float b = y - p.origin[1];
-        float c = -p.origin[2];
-        c = c - (p.normal[1] * b + p.normal[2] * c + p.normal[0] * a) / p.normal[2];
-        float u = StoreFloat(p.axisU[1] * b + p.axisU[2] * c + p.axisU[0] * a);
-        float v = StoreFloat(p.axisV[1] * b + p.axisV[2] * c + p.axisV[0] * a);
+        float a = x - p.origin.x;
+        float b = y - p.origin.y;
+        float c = -p.origin.z;
+        c = c - DotUnrounded<Sum3::ZYX, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
+        float u = StoreFloat(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
+        float v = StoreFloat(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
         if (!(u >= -0.5f) || !(v >= -0.5f)) continue;
         if (!(p.sizeU + 0.5f >= u) || !(p.sizeV + 0.5f >= v)) continue;
-        float z = p.axisV[2] * v + p.axisU[2] * u + p.origin[2];
+        float z = p.axisV.z * v + p.axisU.z * u + p.origin.z;
         if (!(z > *height)) continue;   // FCOM + TEST AH,0x41: lower, equal or NaN keeps the old one
         *height = z;
-        *normal = {p.normal[0], p.normal[1], p.normal[2]};
+        *normal = {p.normal.x, p.normal.y, p.normal.z};
     }
 }
 
@@ -138,7 +138,7 @@ CEngineObject* CWorldClient::NearestVisibleUnit(CEngineObject* unit) {
         if ((other->relationsA & (side & other->relationsB)) == 0) continue;
         float dy = other->position.y - self->position.y;
         float dx = other->position.x - self->position.x;
-        float distance = dx * dx + dy * dy;
+        float distance = LengthSquared2DUnrounded(dx, dy);
         if (!(distance >= best)) {
             best = StoreFloat(distance);
             nearest = other;
@@ -475,12 +475,12 @@ int CWorldClient::Segment() {
                         float nodeX = effect.position_.x, nodeY = effect.position_.y;
                         double dy = static_cast<double>(light->position_.y) - nodeY;
                         double dx = static_cast<double>(light->position_.x) - nodeX;
-                        double squared = dx * dx + dy * dy;
+                        double squared = LengthSquared2DUnrounded(dx, dy);
                         double radius = light->rangeSquared_;
                         if (!NaN(squared) && !NaN(radius) && squared > radius) continue;
-                        float point[3] = {nodeX, nodeY, 0.0f};
-                        point[2] = static_cast<float>(TerrainHeightAtOriginal(terrain_, nullptr, nodeX, nodeY, 0));
-                        float intensity = static_cast<float>(LightIntensityAt(light, nullptr, point));
+                        Vector3 point = {nodeX, nodeY, 0.0f};
+                        point.z = static_cast<float>(TerrainHeightAtOriginal(terrain_, nullptr, nodeX, nodeY, 0));
+                        float intensity = static_cast<float>(LightIntensityAt(light, nullptr, &point));
                         level = SelectLess(level, intensity, intensity, level);
                     }
                     float clamped = SelectLess(1.0f, level, 1.0f, level);

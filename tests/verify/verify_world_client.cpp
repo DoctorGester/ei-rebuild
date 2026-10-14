@@ -194,24 +194,24 @@ EI_VERIFY(0x005742F0, ModelMaterialRankVerify, 5, s_materialRank);
 // 0056BF30 / 0056C350: PUSH EBP; MOV EBP,ESP; SUB ESP,0x30 (6 bytes). Output only: the original
 // writes a scratch vector, ours the caller's; both leave the picking stack as they found it (the
 // slot they push is rewritten with the same matrix).
-static float*(__fastcall* s_pickGround)(CWorldClient*, void*, float*, int, int);
-static float* __fastcall PickGroundVerify(CWorldClient* self, void*, float* out, int x, int y) {
-    float expected[3];
-    s_pickGround(self, nullptr, expected, x, y);
-    float* result = self->PickGround(out, x, y);
-    ei::verify::Check("CWorldClient::PickGround", true, std::memcmp(expected, out, 12) == 0 && result == out,
-                      "(%d %d) -> %g %g %g, ours %g %g %g", x, y, expected[0], expected[1], expected[2], out[0], out[1], out[2]);
+static Vector3*(__fastcall* s_pickGround)(CWorldClient*, void*, Vector3*, int, int);
+static Vector3* __fastcall PickGroundVerify(CWorldClient* self, void*, Vector3* out, int x, int y) {
+    Vector3 expected;
+    s_pickGround(self, nullptr, &expected, x, y);
+    Vector3* result = self->PickGround(out, x, y);
+    ei::verify::Check("CWorldClient::PickGround", true, std::memcmp(&expected, out, 12) == 0 && result == out,
+                      "(%d %d) -> %g %g %g, ours %g %g %g", x, y, expected.x, expected.y, expected.z, out->x, out->y, out->z);
     return out;
 }
 EI_VERIFY(0x0056BF30, PickGroundVerify, 6, s_pickGround);
 
-static float*(__fastcall* s_pickSurface)(CWorldClient*, void*, float*, int, int);
-static float* __fastcall PickSurfaceVerify(CWorldClient* self, void*, float* out, int x, int y) {
-    float expected[3];
-    s_pickSurface(self, nullptr, expected, x, y);
-    float* result = self->PickSurface(out, x, y);
-    ei::verify::Check("CWorldClient::PickSurface", true, std::memcmp(expected, out, 12) == 0 && result == out,
-                      "(%d %d) -> %g %g %g, ours %g %g %g", x, y, expected[0], expected[1], expected[2], out[0], out[1], out[2]);
+static Vector3*(__fastcall* s_pickSurface)(CWorldClient*, void*, Vector3*, int, int);
+static Vector3* __fastcall PickSurfaceVerify(CWorldClient* self, void*, Vector3* out, int x, int y) {
+    Vector3 expected;
+    s_pickSurface(self, nullptr, &expected, x, y);
+    Vector3* result = self->PickSurface(out, x, y);
+    ei::verify::Check("CWorldClient::PickSurface", true, std::memcmp(&expected, out, 12) == 0 && result == out,
+                      "(%d %d) -> %g %g %g, ours %g %g %g", x, y, expected.x, expected.y, expected.z, out->x, out->y, out->z);
     return out;
 }
 EI_VERIFY(0x0056C350, PickSurfaceVerify, 6, s_pickSurface);

@@ -1663,7 +1663,7 @@ public:
     std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion orientation_;         // +0x34 (the HUD's face models turn with it)
     std::uint8_t unknown_044[0x54 - 0x44];
-    float placement_[16];            // +0x54 row-major 4x4: orientation and position (Draw writes it)
+    Matrix4 placement_;              // +0x54 row-major 4x4: orientation and position (Draw writes it)
     std::uint8_t unknown_094[0xCC - 0x94];
     float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
@@ -1700,10 +1700,10 @@ public:
     float unknown_230[3];            // +0x230 zero (Create)
     // A row-major 4x4 matrix applied after the placement (Draw); its diagonal elements 0, 5 and 10
     // are the scale 005E7060 sets (the same value in all three).
-    float scaleMatrix_[16];          // +0x23C
-    float& ScaleX() { return scaleMatrix_[0]; }
-    float& ScaleY() { return scaleMatrix_[5]; }
-    float& ScaleZ() { return scaleMatrix_[10]; }
+    Matrix4 scaleMatrix_;            // +0x23C
+    float& ScaleX() { return scaleMatrix_.m[0]; }
+    float& ScaleY() { return scaleMatrix_.m[5]; }
+    float& ScaleZ() { return scaleMatrix_.m[10]; }
     CEngineObject* material_;        // +0x27C the window's black material (CUiWindow +0xEC)
     CEngineObject* texture_;         // +0x280 one of the window's referenced objects (+0xF8)
 };

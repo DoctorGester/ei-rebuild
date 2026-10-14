@@ -843,7 +843,7 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
             float dx = ox - point[0];
             float dy = oy - point[1];
             float dz = pz - point[2];
-            double distance = (static_cast<double>(dz) * dz + static_cast<double>(dy) * dy) + static_cast<double>(dx) * dx;
+            double distance = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
             double limit = reach * reach;
             // FCOMPP + TEST AH,1: skipped when the limit is below (or unordered).
             bool unordered = x87::IsNaN(static_cast<float>(distance)) || x87::IsNaN(static_cast<float>(limit));
@@ -870,10 +870,10 @@ __declspec(naked) PlatformNode* __fastcall PlatformNewNode(PlatformList*, void*,
 constexpr float kSteepest = 0.8f;   // 0073CCA8: the smallest normal z of a face added
 } // namespace
 
-int PlatformSet::AddFace(const float* a, const float* b, const float* c, const float* normal, Platform** out) {
+int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out) {
     *out = nullptr;
     // FCOMP + TEST AH,1: steeper faces (and a NaN z) are left out.
-    if (x87::IsNaN(normal[2]) || normal[2] < kSteepest) return 0;
+    if (x87::IsNaN(normal->z) || normal->z < kSteepest) return 0;
     // AddHead with the instantiation's NewNode.
     PlatformNode* last = list.head;
     PlatformNode* node = PlatformNewNode(&list, nullptr, nullptr, last);
@@ -886,20 +886,20 @@ int PlatformSet::AddFace(const float* a, const float* b, const float* c, const f
     list.head = node;
     Platform* record = &node->data;
     *out = record;
-    float ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
-    float vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
-    float lengthU = std::sqrt((uz * uz + uy * uy) + ux * ux);
+    float ux = b->x - a->x, uy = b->y - a->y, uz = b->z - a->z;
+    float vx = c->x - a->x, vy = c->y - a->y, vz = c->z - a->z;
+    float lengthU = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz));
     record->sizeU = lengthU;
-    float lengthV = std::sqrt((vz * vz + vy * vy) + vx * vx);
+    float lengthV = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz));
     record->sizeV = lengthV;
-    std::memcpy(record->normal, normal, 12);
-    std::memcpy(record->origin, a, 12);
-    record->axisU[0] = ux / lengthU;
-    record->axisU[1] = uy / lengthU;
-    record->axisU[2] = uz / lengthU;
-    record->axisV[0] = vx / lengthV;
-    record->axisV[1] = vy / lengthV;
-    record->axisV[2] = vz / lengthV;
+    std::memcpy(&record->normal, normal, 12);
+    std::memcpy(&record->origin, a, 12);
+    record->axisU.x = ux / lengthU;
+    record->axisU.y = uy / lengthU;
+    record->axisU.z = uz / lengthU;
+    record->axisV.x = vx / lengthV;
+    record->axisV.y = vy / lengthV;
+    record->axisV.z = vz / lengthV;
     return 1;
 }
 
@@ -937,7 +937,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
     for (Vector3& n : normals) n = TransformColumnNormal<Sum3::ZXY>(m, n);
     for (int i = 0; i < 6; ++i) {
         Platform* record;
-        if (!AddFace(&corners[i + 1].x, &corners[i].x, &corners[i + 2].x, &normals[i].x, &record)) continue;
+        if (!AddFace(&corners[i + 1], &corners[i], &corners[i + 2], &normals[i], &record)) continue;
         record->id = id;
         Vector3 moved = pivot + offset;
         Vector3 rotated;

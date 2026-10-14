@@ -129,13 +129,13 @@ void UnitPickInput::OnLeftDown(int, int x, int y) {
             ClientWorldControlUnitOriginal(world, nullptr, unit);
             return;
         }
-        float ground[3];
-        world->PickGround(ground, x, y);
+        Vector3 ground;
+        world->PickGround(&ground, x, y);
         for (int i = 0; i < picked_.size; ++i) {
             auto* member = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, picked_.data[i]));
             if (!member) continue;
             OneUnit order(member);
-            LocalViewSendWalkOriginal(world->LocalView(), nullptr, &order.units, ground, 0);
+            LocalViewSendWalkOriginal(world->LocalView(), nullptr, &order.units, &ground.x, 0);
         }
     } else if (unit) {
         for (int i = 0; i < picked_.size; ++i) {

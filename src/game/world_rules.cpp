@@ -41,12 +41,12 @@ bool DepthLess::Less(const int* a, const int* b) {
     CEngineObject* second = registry->FindObject(static_cast<unsigned>(b[1]));
     if (!first || !second) return false;
     // The plane's normal at +0x20, its offset at +0x2C.
-    const float* normal = plane + 8;
+    const Vector3& normal = *reinterpret_cast<const Vector3*>(plane + 8);
     float offset = plane[11];
     const CMapObject* p = MapObject(first);
     const CMapObject* q = MapObject(second);
-    float da = StoreFloat(p->position.z * normal[2] + p->position.y * normal[1] + p->position.x * normal[0] + offset);
-    float db = StoreFloat(q->position.z * normal[2] + q->position.y * normal[1] + q->position.x * normal[0] + offset);
+    float da = StoreFloat(DotUnrounded<Sum3::ZYX, double>(p->position, normal) + offset);
+    float db = StoreFloat(DotUnrounded<Sum3::ZYX, double>(q->position, normal) + offset);
     // Living objects come before dead ones; within each kind, by depth. The original asks each
     // object again at every step, so the calls are repeated here in the same order.
     if ((ObjectSlots(first)->IsDead() == 0 && ObjectSlots(second)->IsDead() == 0) ||

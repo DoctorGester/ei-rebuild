@@ -132,6 +132,7 @@ All `__forceinline`, by value:
 | `RoundToFloat(double)` | volatile float store (replaces the local Store / StoreFloat / Round copies) |
 | `LengthSquared2DUnrounded<T>(x, y)`, `DistanceSquaredXYUnrounded<T>(a, b)` (V3b; precise off, nothing stored) | `x*x + y*y`; `dy = a.y - b.y`, then `dx`, `dx*dx + dy*dy`, in T (`double` where the site keeps the x87 value, `float` for float locals) |
 | `Dot2DUnrounded<T>(x, y, x2, y2)`, `DotUnrounded<Sum3, T>(x, y, z, x2, y2, z2)`, `LengthSquaredUnrounded<Sum3, T>(x, y, z)` (V3c; precise off, on the caller's scalars) | `x*x2 + y*y2`; the named grouping of the three products, in T |
+| `DotUnrounded<Sum3, T>(a, b)`, `LengthSquaredUnrounded<Sum3, T>(v)` (V3d; Vector3 forms of the above, T explicit) | the same sums on the members; `double` in a precise region (a float-typed result is rounded on return there) |
 | `AxisXUnrounded<T>(q)` (V3c; precise off; returns `AxisUnrounded<T>` {x, y, z}) | 0040D940's X axis, `(w^2 - ((y^2 + z^2) + x^2)) + 2x^2`, `2(wz + xy)`, `2(xz - wy)`, each doubling an addition |
 | `RotatedAxisY(q)` (V3c; precise) | the inlined AxisY of 00547280 / 005CA410: `2(yx - wz)`, `(w^2 - ((x^2 + z^2) + y^2)) + 2y^2`, `2(yz + wx)`, each component rounded to float |
 | `Atan2(y, x)` | `x87::fpatan` (include/ei/x87.h), unrounded double |
@@ -255,6 +256,27 @@ identical, or only stack slots / scheduling / commuted FMUL operands.
   `2 *`, doubling and negation of a fast helper's sum regroup (the same hazard the precise helpers exist for). Use the
   unrounded forms for sums that are compared, stored, passed or square-rooted, and the precise forms (rounded result)
   where the caller scales the sum and the function runs on the main thread.
+- Interface / camera / world files (ui_*, camera_*, world_* under src/game, other owners' files excluded), V3d
+  2026-10-14: 90 -> 0 in those files (tree 255 -> 165 after merging V3c). Fields: CUiMesh placement_ / scaleMatrix_
+  Matrix4, BriefingMover target / direction, CWorldServer::startPosition_ and world.h Platform's origin / axisU / axisV /
+  normal Vector3; PickGround / PickSurface / HoverPickSurface / AddFace / CCamera::Pan and the battle-command forwarders
+  take Vector3*. Sums use the V3c scalar forms or the new Vector3 forms with the original's grouping; world_client's plane
+  dots (SurfaceHeight XYZ, Contains / SurfacePlane ZYX) too, though the counter does not see them. ui_hero_panels'
+  `stored[3]` (strength / dexterity / intelligence) was reworded to `storedStats` (the counter skips stat names); nothing
+  went to the skip list. Member-wise Vector3 copies stay member-wise: a struct copy turns FLD / FSTP into MOV.
+  Release objects compared function by function against the base commit with a symbolic x87 comparison (expression trees
+  of every store, call argument, compare and return over the control-flow graph; + and * commuted; FSTP/FLD float
+  round trips kept as roundings), and the remaining diffs read by hand: values and calls the same everywhere; differences
+  are stack slots (HoverUnit shares one Vector3 slot between its two picks), scheduling (DepthLess::Less calls the pure
+  MapObject later), register choice, address operand order (BuildMarkers), renamed helpers (Normalised ->
+  NormalisedUnlessZero, ui_hero_preview's out-of-line DotUnrounded -> DotCall) and camera::D. camera::D is `inline`, not
+  `__forceinline`, and camera.cpp / camera_motion.cpp call it out of line (about 200 calls); a sum moved into a helper
+  no longer calls it, which is the same value (D only widens). Two sites needed more than spelling:
+  - ui_briefing_dialogue StartPhrases axis X: `Dot2DUnrounded(x, y, z, w) * 2.0` regrouped to xz + (xz + 2wy) (the V3c
+    lesson again). The original doubles before multiplying, (2x)z + (2y)w; `Dot2DUnrounded<double>(x * 2.0, y * 2.0, z, w)`
+    compiles to x(2z) + (2y)w, the same value (doubling is exact).
+  - world_rules DepthLess::Less is in a precise region: `DotUnrounded<Sum3::ZYX, float>` rounded the dot to float before
+    the plane offset was added; `double` keeps it on the FPU as the written-out sum did.
 
 ## 7. Risks
 

@@ -34,7 +34,7 @@ bool EqualOrUnordered(double a, double b) { return !(a < b) && !(a > b); }
 // local rotation tilts by -(90 degrees + elevation) about its own X axis. False (and nothing done)
 // for a direction shorter than 1e-9.
 bool CCamera::LookDirection(float dx, float dy, float dz) {
-    double lengthSquare = (D(dx) * dx + D(dy) * dy) + D(dz) * dz;
+    double lengthSquare = LengthSquaredUnrounded<Sum3::XYZ, double>(dx, dy, dz);
     if (!(lengthSquare > CAM_LOOK_EPSILON)) return false;
     double inv = CAM_ONE_D / x87::fsqrt(lengthSquare);
     float invRounded = Store(inv);
@@ -59,10 +59,10 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     std::memcpy(&localRotation_, &viewRotation_, sizeof(Quaternion));
     const Quaternion& q = localRotation_;
     double xx = D(q.x) * q.x;
-    double e1 = D(q.w) * q.z + D(q.x) * q.y;
+    double e1 = Dot2DUnrounded<double>(q.w, q.x, q.z, q.y);
     double e2 = D(q.x) * q.z - D(q.w) * q.y;
     Vector3 xAxis;
-    xAxis.x = Store((D(q.w) * q.w - ((D(q.y) * q.y + D(q.z) * q.z) + xx)) + (xx + xx));
+    xAxis.x = Store((D(q.w) * q.w - (LengthSquared2DUnrounded<double>(q.y, q.z) + xx)) + (xx + xx));
     xAxis.y = Store(e1 + e1);
     xAxis.z = Store(e2 + e2);
     float angle = Store(-((CAM_PI * CAM_PER_180) * CAM_NINETY + D(elevation)));
@@ -72,7 +72,7 @@ bool CCamera::LookDirection(float dx, float dy, float dz) {
     double x = ((D(t.z) * r.y - D(t.y) * r.z) + D(r.w) * t.x) + D(t.w) * r.x;
     float y = Store(((D(t.x) * r.z - D(t.z) * r.x) + D(r.w) * t.y) + D(t.w) * r.y);
     float zz = Store(((D(t.y) * r.x - D(r.y) * t.x) + D(r.w) * t.z) + D(t.w) * r.z);
-    double w = D(r.w) * t.w - ((D(r.y) * t.y + D(t.z) * r.z) + D(t.x) * r.x);
+    double w = D(r.w) * t.w - DotUnrounded<Sum3::ZYX, double>(r.x, r.y, r.z, t.x, t.y, t.z);
     t.z = zz;
     t.y = y;
     t.w = Store(w);
@@ -95,7 +95,7 @@ void CCamera::AlignToTarget() {
     float invRounded = Store(inv);
     float hx = Store(inv * zAxis.y);
     hy = Store(D(hy) * invRounded);
-    double dot = (D(xAxis.z) * hz + D(xAxis.y) * hy) + D(xAxis.x) * hx;
+    double dot = DotUnrounded<Sum3::ZYX, double>(xAxis.x, xAxis.y, xAxis.z, hx, hy, hz);
     float cosine = Store(dot);
     if (dot > D(CAM_ONE)) cosine = 1.0f;
     else if (!(D(cosine) >= D(CAM_MINUS_ONE))) cosine = -1.0f;
@@ -109,19 +109,19 @@ void CCamera::AlignToTarget() {
     float cx = Store(D(xAxis.y) * hz - D(xAxis.z) * hy);
     float cy = Store(D(xAxis.z) * hx - D(hz) * xAxis.x);
     float cz = Store(D(hy) * xAxis.x - D(xAxis.y) * hx);
-    double invC = D(CAM_ONE) / x87::fsqrt((D(cz) * cz + D(cy) * cy) + D(cx) * cx);
+    double invC = D(CAM_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(cx, cy, cz));
     Vector3 axis;
     axis.x = Store(D(cx) * invC);
     axis.y = Store(D(cy) * invC);
     axis.z = Store(D(cz) * invC);
-    double axisLength = x87::fsqrt((D(axis.z) * axis.z + D(axis.y) * axis.y) + D(axis.x) * axis.x);
+    double axisLength = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(axis));
     if (axisLength > CAM_ALIGN_EPSILON) {
         Quaternion turn;
         const Quaternion& r = *turn.SetAngleAxis(Store(D(angle) * D(CAM_TENTH)), axis);
         double x = ((D(r.y) * q.z - D(q.y) * r.z) + D(q.x) * r.w) + D(r.x) * q.w;
         float y = Store(((D(q.x) * r.z - D(r.x) * q.z) + D(q.y) * r.w) + D(r.y) * q.w);
         float z = Store(((D(q.y) * r.x - D(r.y) * q.x) + D(r.w) * q.z) + D(r.z) * q.w);
-        double w = D(r.w) * q.w - ((D(q.x) * r.x + D(r.z) * q.z) + D(r.y) * q.y);
+        double w = D(r.w) * q.w - DotUnrounded<Sum3::ZXY, double>(q.x, q.y, q.z, r.x, r.y, r.z);
         q.z = z;
         q.y = y;
         q.w = Store(w);
@@ -157,7 +157,7 @@ void CCamera::ClampAboveObjects() {
         double dx = D(cx) - p->x;
         double dy = D(cy) - p->y;
         double dz = D(cz) - p->z;
-        float outside = Store(x87::fsqrt((dz * dz + dy * dy) + dx * dx) - radius);
+        float outside = Store(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) - radius);
         double factor = CAM_ZERO;
         if (!(outside > CAM_ZERO)) factor = CAM_ONE;
         else if (!(outside > CAM_OBJECT_FADE)) factor = D(CAM_ONE) - D(outside) * D(CAM_TENTH);

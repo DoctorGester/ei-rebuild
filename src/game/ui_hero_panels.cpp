@@ -190,10 +190,10 @@ void CHeroStatsPanel::DrawStats() {
         rect = RECT{0x8C, 0x41, 0xA0, 0x50};
         double minimum = D(GameFloat(0x00741EFC));
         int values[3] = {strength, dexterity, intelligence};
-        float stored[3];
+        float storedStats[3];
         for (int i = 0; i < 3; ++i) {
             double value = static_cast<double>(values[i]);
-            stored[i] = Store(value);
+            storedStats[i] = Store(value);
             std::uint32_t colour = value > minimum ? kBright : kGrey;   // FCOMP; TEST AH,0x41
             draw->Text(GameText(0x00787BDC), &rect, 0, colour, 1, 1);  // "-"
             Down(&rect);
@@ -207,7 +207,7 @@ void CHeroStatsPanel::DrawStats() {
         rect = RECT{0xA0, 0x41, 0xB4, 0x50};
         double maximum = D(GameFloat(0x00741F00));
         for (int i = 0; i < 3; ++i) {
-            bool below = !(D(stored[i]) >= maximum);   // FCOMP; TEST AH,1 (below or unordered)
+            bool below = !(D(storedStats[i]) >= maximum);   // FCOMP; TEST AH,1 (below or unordered)
             std::uint32_t colour = below && left > 0 ? kBright : kGrey;
             draw->Text(GameText(0x00787BD8), &rect, 0, colour, 1, 1);   // "+"
             Down(&rect);

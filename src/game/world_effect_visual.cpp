@@ -75,7 +75,7 @@ Vector3& LightPosition(CLight* light) { return light->position_; }
 // The particle tick's step towards the target, in the original's x87 order: speed = |velocity|
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
 // otherwise t = speed / (dist < speed (or NaN) ? speed : dist), rounded to float.
-__declspec(naked) int __fastcall StepFraction(const Vector3* /*velocity*/, const float* /*dxdy*/, float* /*t*/) {
+__declspec(naked) int __fastcall StepFraction(const Vector3* /*velocity*/, const Vector3* /*dxdy*/, float* /*t*/) {
     __asm {
         fld dword ptr [ecx + 8]
         fld dword ptr [ecx + 4]
@@ -535,17 +535,17 @@ void CEffectParticle::SaveState(void* stream) {
 int CEffectParticle::Tick() {
     unitId_ = -1;
     if (moving_ != 0) {
-        float d[3];
-        d[0] = StoreFloat(target_.x - localPosition_.x);
-        d[1] = StoreFloat(target_.y - localPosition_.y);
-        d[2] = StoreFloat(target_.z - localPosition_.z);
+        Vector3 d;
+        d.x = StoreFloat(target_.x - localPosition_.x);
+        d.y = StoreFloat(target_.y - localPosition_.y);
+        d.z = StoreFloat(target_.z - localPosition_.z);
         float t;
-        if (StepFraction(&velocity_, d, &t) != 0) {
+        if (StepFraction(&velocity_, &d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
             float aboveGround = StoreFloat(static_cast<float>(target_.z - WorldOf(this)->RawSurfaceHeightAt(target_.x, target_.y)));
-            float stepY = StoreFloat(t * d[1]);
-            float stepZ = StoreFloat(d[2] * t);
-            float x = StoreFloat(t * d[0] + localPosition_.x);
+            float stepY = StoreFloat(t * d.y);
+            float stepZ = StoreFloat(d.z * t);
+            float x = StoreFloat(t * d.x + localPosition_.x);
             float y = StoreFloat(stepY + localPosition_.y);
             float z = StoreFloat(stepZ + localPosition_.z);
             float floor = StoreFloat(static_cast<float>(WorldOf(this)->RawSurfaceHeightAt(x, y) + aboveGround));

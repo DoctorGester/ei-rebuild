@@ -41,8 +41,8 @@ EI_VERIFY(0x0058B250, ResetZoneVerify, 0, s_unused);
 static void __fastcall ResetStateVerify(CWorldServer* self, void*) {
     self->ResetState();
     bool ok = self->unknown12D64_ == 0 && self->loaded_ == 0 && self->unknown88_ == 0x3F800000u &&
-              self->mapName_ && self->mapName_[0] == 0 && self->startPosition_[0] == 0.0f &&
-              self->startPosition_[1] == 0.0f && self->startPosition_[2] == 0.0f;
+              self->mapName_ && self->mapName_[0] == 0 && self->startPosition_.x == 0.0f &&
+              self->startPosition_.y == 0.0f && self->startPosition_.z == 0.0f;
     for (const WorldAlarm& alarm : self->alarms_) ok = ok && alarm.active == 0 && alarm.time == 0;
     ei::verify::Check("CWorldServer::ResetState", true, ok, "kind %d", self->unknown12D64_);
 }
