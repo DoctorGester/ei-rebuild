@@ -3,9 +3,9 @@
 // (rule 7). See docs/notes/objects.md ("Sixth round").
 #include "map_spec.h"
 #include "game_strings.h"
+#include "map_object.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -30,12 +30,6 @@ constexpr std::uintptr_t kAreasDeadVtable = 0x0073C698;  // the same class's vta
 constexpr std::uintptr_t kTargetsVtable = 0x0073C680;    // CArray (8-byte elements)
 constexpr std::uintptr_t kTargetsDeadVtable = 0x0073C6A4;
 
-constexpr int kSlotWorldObject = 2;
-constexpr int kSlotApply = 7;
-constexpr int kSlotWriteFields = 11;
-constexpr int kFileRead = 13;   // CFile
-constexpr int kFileWrite = 14;
-
 // MFC CStringArray (library).
 void __fastcall StringArrayAppend(mfc::CStringArray* a0, void*, const mfc::CStringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
 // MFC CArray helpers (library): SetSize of the 12-byte array, zeroing 8-byte elements.
@@ -47,11 +41,8 @@ void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12Set
 void* World() { return reinterpret_cast<void*>(0x007AFF60); }
 void* Selection() { return reinterpret_cast<void*>(0x007B00D0); }
 void* Lists() { return reinterpret_cast<void*>(0x007B01F4); }
-constexpr int kObjectSlotUpdate = 30;
 
 void SetVtable(void* p, std::uintptr_t vtable) { std::memcpy(p, &vtable, 4); }
-template <typename T>
-T& At(void* base, std::size_t offset) { return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset); }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -68,8 +59,10 @@ void ReadInto(Chunk& c, mfc::CString& field) {
 }
 bool ReadFlag(Chunk& c) { return c.ReadByte() == 1; }
 
-void FileWrite(Chunk& c, const void* data, unsigned size) { ei::VCall<void>(c.File(), kFileWrite, data, size); }
-void FileRead(Chunk& c, void* data, unsigned size) { ei::VCall<unsigned>(c.File(), kFileRead, data, size); }
+// The chunk's file (an MFC CFile) through its vtable.
+mfc::CFileVirtuals* FileOf(Chunk& c) { return static_cast<mfc::CFileVirtuals*>(c.File()); }
+void FileWrite(Chunk& c, const void* data, unsigned size) { FileOf(c)->Write(data, size); }
+void FileRead(Chunk& c, void* data, unsigned size) { FileOf(c)->Read(data, size); }
 
 void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(id, Bits(v.x), Bits(v.y), Bits(v.z)); }
 
@@ -122,9 +115,9 @@ mfc::CString* Spec::SpecTypeName(mfc::CString* out) {
 EI_REPLACE_METHOD(0x00469DB0, Spec::SpecTypeName);
 
 // 00469DE0 / 00469E00 (slots 6 and 8): slot 7.
-void Spec::SpecRemove() { ei::VCall<void>(this, kSlotApply); }
+void Spec::SpecRemove() { Record()->ApplyObject(); }
 EI_REPLACE_METHOD(0x00469DE0, Spec::SpecRemove);
-void Spec::SpecRefresh() { ei::VCall<void>(this, kSlotApply); }
+void Spec::SpecRefresh() { Record()->ApplyObject(); }
 EI_REPLACE_METHOD(0x00469E00, Spec::SpecRefresh);
 
 // 00469F20 (slot 2): the object with the record's id.
@@ -136,7 +129,7 @@ void Spec::SpecMove(float dx, float dy, float dz) {
     position.x = dx + position.x;
     position.y = dy + position.y;
     position.z = dz + position.z;
-    ei::VCall<void>(this, kSlotApply);
+    Record()->ApplyObject();
 }
 EI_REPLACE_METHOD(0x00469F40, Spec::SpecMove);
 
@@ -257,7 +250,7 @@ EI_REPLACE_METHOD(0x0046A940, ObjectSpec::ObjectSpecWriteFields);
 // 0046A920 (slot 9): the record as chunk B001.
 void ObjectSpec::ObjectSpecSave() {
     base.chunk.BeginWrite(0xB001);
-    ei::VCall<void>(this, kSlotWriteFields);
+    base.Record()->WriteFields();
     base.chunk.EndWrite();
 }
 EI_REPLACE_METHOD(0x0046A920, ObjectSpec::ObjectSpecSave);
@@ -306,7 +299,7 @@ void ObjectSpec::ObjectSpecRemove() {
         WorldRemoveObject(World(), nullptr, base.id);
         base.object = nullptr;
     }
-    ei::VCall<void>(this, kSlotApply);
+    base.Record()->ApplyObject();
 }
 EI_REPLACE_METHOD(0x0046AF70, ObjectSpec::ObjectSpecRemove);
 
@@ -319,19 +312,19 @@ EI_REPLACE_METHOD(0x0046AFA0, ObjectSpec::ObjectSpecRefresh);
 // 0046AFB0 (slot 7): makes the world object, or updates it from the record (position, rotation,
 // scale, visibility) while it is out of the editor's lists.
 void ObjectSpec::ObjectSpecApply() {
-    void* object = base.object;
-    if (!object) {
+    if (!base.object) {
         WorldMakeObjectOriginal(World(), nullptr, &base);
         return;
     }
     AIMapBeginRefreshOriginal(Selection());
     SectorMapRemove(AsSectorMap(Lists()), nullptr, AsEngineObject(base.object));
-    std::memcpy(static_cast<std::uint8_t*>(base.object) + 0x1C, &base.position, 12);
-    std::memcpy(static_cast<std::uint8_t*>(base.object) + 0x34, &base.rotation, 16);
+    auto* object = static_cast<CMapObject*>(base.object);
+    std::memcpy(&object->position, &base.position, 12);
+    std::memcpy(&object->orientation, &base.rotation, 16);
     ObjectSetFigureScaleOriginal(base.object, nullptr, &scale.x);
-    std::memcpy(static_cast<std::uint8_t*>(base.object) + 0x1AC, &scale, 12);
-    ei::VCall<void>(base.object, kObjectSlotUpdate);
-    std::uint32_t& flags = At<std::uint32_t>(base.object, 8);
+    std::memcpy(&object->baseScale, &scale, 12);
+    object->ApplyBaseScale();
+    std::uint32_t& flags = object->flags_;
     if (!visible) flags |= 8;
     else flags &= ~8u;
     UnitMarkChanged(base.object, nullptr, 2);
@@ -612,11 +605,13 @@ void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const
 
 // The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader 00481660): every
 // pair 1 but a player with itself (0), and the player names "Player-<i>". Returns this.
-std::int32_t* __fastcall DiplomacyConstruct(std::int32_t* self) {
-    auto* names = reinterpret_cast<mfc::CStringArray*>(self + 0x400);
+ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
+    mfc::CStringArray* names = &self->names;
     StringArrayConstruct(names);
-    for (int i = 0; i < 0x400; ++i) self[i] = 1;
-    for (int i = 0; i < 32; ++i) self[i * 33] = 0;
+    for (auto& row : self->relations) {
+        for (std::int32_t& relation : row) relation = 1;
+    }
+    for (int i = 0; i < 32; ++i) self->relations[i][i] = 0;
     for (int i = 0; i < 32; ++i) {
         StringArraySetAtGrow(names, nullptr, names->size, game::EmptyText());
         names->data[i].Format(Text(0x00787E44), i);   // "Player-%i"

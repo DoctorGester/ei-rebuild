@@ -8,12 +8,14 @@
 #include <cstdint>
 #include <cstring>
 
-int __fastcall DeviceDrawMesh(char* device, void*, const void* positions, int blocks, int unused5, int colourCount,
+class CTextureDevice;
+
+int __fastcall DeviceDrawMesh(CTextureDevice* device, void*, const void* positions, int blocks, int unused5, int colourCount,
                               std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
                               const void* corners, int cornerCount, int unused13, int unused14,
                               std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha,
                               int flags);
-int __fastcall DeviceDrawMesh2(char* device, void*, void* firstTexture, void* secondTexture, const void* positions,
+int __fastcall DeviceDrawMesh2(CTextureDevice* device, void*, void* firstTexture, void* secondTexture, const void* positions,
                                int blocks, int unused5, int colourCount, std::uint32_t* colours,
                                std::uint32_t* speculars, const void* uvs, int unused10, const void* corners,
                                int cornerCount, int unused13, int unused14, std::uint16_t* indices, int indexCount,
@@ -111,7 +113,7 @@ meshcapture::State& meshcapture::Tap() {
 }
 
 static void* s_mesh;
-static int __fastcall DeviceDrawMeshVerify(char* device, void*, const void* positions, int blocks, int unused5,
+static int __fastcall DeviceDrawMeshVerify(CTextureDevice* device, void*, const void* positions, int blocks, int unused5,
                                            int colourCount, std::uint32_t* colours, std::uint32_t* speculars,
                                            const void* uvs, int unused10, const void* corners, int cornerCount,
                                            int unused13, int unused14, std::uint16_t* indices, int indexCount,
@@ -132,7 +134,7 @@ static int __fastcall DeviceDrawMeshVerify(char* device, void*, const void* posi
 EI_VERIFY(0x004E9010, DeviceDrawMeshVerify, 0, s_mesh);
 
 static void* s_mesh2;
-static int __fastcall DeviceDrawMesh2Verify(char* device, void*, void* firstTexture, void* secondTexture,
+static int __fastcall DeviceDrawMesh2Verify(CTextureDevice* device, void*, void* firstTexture, void* secondTexture,
                                             const void* positions, int blocks, int unused5, int colourCount,
                                             std::uint32_t* colours, std::uint32_t* speculars, const void* uvs,
                                             int unused10, const void* corners, int cornerCount, int unused13,

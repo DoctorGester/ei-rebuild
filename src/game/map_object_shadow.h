@@ -31,6 +31,7 @@ struct AlignedRecordBuffer {
 };
 
 struct tagRECT;   // windows.h
+#include "device_material.h"   // CDeviceMaterial, MaterialStage
 #include "material.h"   // CMaterial
 #include "model.h"      // ClipBounds, CSceneRenderer (the draws' context), CTransformPipeline
 
@@ -245,42 +246,12 @@ static_assert(offsetof(CObject3DClientSpecific, woundsTexture) == 0xD8);
 static_assert(offsetof(CObject3DClientSpecific, drawnRect) == 0xC8 && offsetof(CObject3DClientSpecific, touchTime) == 0xEC);
 static_assert(offsetof(CObject3DClientSpecific, figureScale) == 0xF0 && offsetof(CObject3DClientSpecific, woundsMaterial) == 0xDC);
 
-// A texture stage of a material (0x14 bytes): copied by 0051E970 / 0051E430 (the texture gains a
-// reference), destroyed by releasing the texture (0051E3D0) and freeing the name.
-struct MaterialStage {
-    explicit MaterialStage(CEngineObject* stageTexture) : name("", ""), texture(stageTexture) {
-        if (texture) ++texture->refCount_;
-    }
-    MaterialStage(const MaterialStage& other) : unknown_00(other.unknown_00), name(other.name), texture(other.texture) {
-        if (texture) ++texture->refCount_;
-    }
-    MaterialStage& operator=(const MaterialStage&) = delete;
-    ~MaterialStage() {
-        if (texture) texture->Release();
-    }
-
-    int unknown_00 = 0;             // +0x00
-    stlp::string name;              // +0x04 (empty for the wounds stages)
-    CEngineObject* texture;         // +0x10 counted
-};
-static_assert(sizeof(MaterialStage) == 0x14);
-
-// A preset of the renderer's helper (CRenderHelper slot 5; counted, slot 0 deletes).
-class CRenderPreset;   // model.h
-
-// The material that draws a wounds texture (0x24 bytes, vtable 0073DF68 over the counted root
-// 0073C368; 0051C3D0 makes it, slot 0 0051C710 deletes it).
-struct WoundsMaterial {
+// The material that draws a wounds texture (a CDeviceMaterial, device_material.h: 0x24 bytes,
+// vtable 0073DF68 over the counted root 0073C368; 0051C3D0 makes it, slot 0 0051C710 deletes it):
+// blend 1, source 5 (D3DBLEND_SRCALPHA), destination 6 (D3DBLEND_INVSRCALPHA), the renderer
+// helper's preset 4, two stages.
+struct __declspec(novtable) WoundsMaterial : CDeviceMaterial {
     static constexpr std::uintptr_t kRootVtableAddress = std::uintptr_t(0x0073C368);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DF68);
-
-    virtual void DeletingDestructor(unsigned flags);   // 0
-    int refCount;                   // +0x04
-    std::uint8_t blend;             // +0x08 1
-    int sourceBlend;                // +0x0C 5 (D3DBLEND_SRCALPHA)
-    int destBlend;                  // +0x10 6 (D3DBLEND_INVSRCALPHA)
-    CRenderPreset* preset;          // +0x14 counted (the renderer helper's preset 4)
-    stlp::vector<MaterialStage> stages;   // +0x18
 };
-static_assert(offsetof(WoundsMaterial, preset) == 0x14 && offsetof(WoundsMaterial, stages) == 0x18 &&
-              sizeof(WoundsMaterial) == 0x24);
+static_assert(sizeof(WoundsMaterial) == 0x24);

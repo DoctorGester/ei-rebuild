@@ -11,6 +11,8 @@
 // docs/notes/renderer.md (section 16).
 #include "texture.h"
 
+#include "device.h"
+
 #include "dx_surface.h"
 #include "game_strings.h"
 #include "lib/crt.h"
@@ -31,12 +33,6 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 const char* CantLockText() { return Text(0x0078E30C); }     // "Can't lock surface.\n"
 const char* CantUnlockText() { return Text(0x0078E2F4); }   // "Can't unlock surface.\n"
 
-// COM slots: IDirectDrawSurface7 Lock / Unlock, IDirect3DDevice7 Load.
-constexpr int kLock = 25, kUnlock = 32, kDeviceLoad = 43;
-template <typename... Args>
-long Com(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
 constexpr std::uint32_t kLockWriteWait = 0x821;   // DDLOCK_WAIT | DDLOCK_WRITEONLY | DDLOCK_NOSYSLOCK
 constexpr std::uint32_t kDescBytes = 0x7C;        // DDSURFACEDESC2
 enum : int { kHeight = 2, kWidth = 3, kPitch = 4, kSurface = 9, kBits = 21 };
@@ -143,8 +139,8 @@ int CTexture::LockPixels(std::uint32_t* desc) {
         holder->result = 0;
         return ClientPixels(holder, desc) ? 1 : 0;   // (always memory: MakeBlank made it)
     }
-    long hr = Com(holder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockWriteWait,
-                  static_cast<void*>(nullptr));
+    long hr = device::Surface(holder)->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc), kLockWriteWait,
+                                            nullptr);
     holder->result = hr;
     if (hr != 0) return FatalDirectX(hr, CantLockText());
     return 1;
@@ -159,7 +155,7 @@ void CTexture::UnlockPixels() {
         holder->result = 0;
         return;
     }
-    long hr = Com(holder->surface, kUnlock, static_cast<void*>(nullptr));
+    long hr = device::Surface(holder)->Unlock(nullptr);
     holder->result = hr;
     if (hr != 0) FatalDirectX(hr, CantUnlockText());
 }
@@ -172,8 +168,8 @@ void CTexture::LoadPixelsFrom(CTextureDevice* device, const CTexture* source) {
     const CDXSurface* from = source->surface_;
     if (to->surface && from->surface) {
         gameapi::EnterCriticalSection(DeviceLock());
-        device->lastLoadResult_ = Com(device->d3dDevice_, kDeviceLoad, to->surface, static_cast<void*>(nullptr),
-                                      from->surface, static_cast<void*>(nullptr), 0u);
+        device->lastLoadResult_ = device::D3D(device)->Load(device::Surface(to), nullptr, device::Surface(from),
+                                                            nullptr, 0);
         gameapi::LeaveCriticalSection(DeviceLock());
         return;
     }

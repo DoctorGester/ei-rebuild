@@ -30,7 +30,7 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
     ar->Field(10, &damageFactor, 4);
     ar->Field(11, absorbFactors, sizeof(absorbFactors));
     ar->Field(12, &armourFlags, 4);
-    ar->Field(13, &unknown_4C, 4);
+    ar->Field(13, &classMask, 4);
 }
 EI_REPLACE_METHOD(0x0069F620, MaterialRecordHead::Serialize);
 
@@ -49,7 +49,7 @@ void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->Field(11, &magicLevel, 4);
     ar->Field(12, &condition, 4);
     ar->Field(13, &materialUnits, 4);
-    ar->Field(14, &unknown_64, 4);
+    ar->Field(14, &classMask, 4);
     ar->Field(15, &unknown_68, 1);
 }
 EI_REPLACE_METHOD(0x0069F700, ItemRecordHead::SerializeHead);

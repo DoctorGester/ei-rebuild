@@ -329,10 +329,10 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 14, 0);
         SetRenderState(renderer, 22, 1);
         SetRenderState(renderer, 29, 1);
-        renderer->unknown_158 = 0;
+        renderer->distanceFog_ = 0;
         SkyDraw(skyDome_, nullptr, SceneContext(), &camera_->localPosition_);
         Flush(renderer);
-        renderer->unknown_158 = 1;
+        renderer->distanceFog_ = 1;
         SetRenderState(renderer, 22, 2);
         SetRenderState(renderer, 29, 0);
         SetRenderState(renderer, 14, 1);
@@ -396,9 +396,9 @@ int CWorldClient::Render() {
     if (flags_ & 0x2000) {
         SetRenderState(renderer, 7, 0);
         ApplyStateBlock(renderer, StateBlockAlpha());
-        renderer->unknown_158 = 0;
+        renderer->distanceFog_ = 0;
         HitPointsDraw(numbers_, nullptr, SceneContext());
-        renderer->unknown_158 = 1;
+        renderer->distanceFog_ = 1;
         Flush(renderer);
         SetRenderState(renderer, 7, renderer->zEnable_);
     }

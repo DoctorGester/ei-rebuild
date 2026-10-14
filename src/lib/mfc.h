@@ -79,16 +79,6 @@ private:
 };
 static_assert(sizeof(CFile) == 0x10);
 
-// The virtual slots every MFC 4.2 CObject has (release build: no AssertValid / Dump), for objects
-// whose layout keeps the vtable as a plain field (the CArray / CList / CMap instantiations below,
-// CDib) when a caller deletes them through their vtable, as the original does. Declared only.
-class __declspec(novtable) CObjectVirtuals {
-public:
-    virtual const void* GetRuntimeClass() const;        // 0
-    virtual void* DeletingDestructor(unsigned flags);   // 1: the destructor, then delete with bit 0
-    virtual void Serialize(void* archive);              // 2: a CArchive*
-};
-
 // The virtual slots of MFC 4.2's CFile (vtable 00745DF4) for callers that dispatch through a
 // file's vtable (the original does; the verify build hands some loaders a proxy file). CFile above
 // calls the bodies directly. Declared only: a devirtualised call would not link. Slots declared
@@ -115,6 +105,16 @@ public:
     virtual void Abort();                                              // 17
     virtual void Flush();                                              // 18
     virtual void Close();                                              // 19: 00701403
+};
+
+// The virtual slots every MFC 4.2 CObject has (a CArray's, for example), for callers that dispatch
+// through an object's vtable as the original does (its inlined DestructElements calls slot 1 with
+// 0; a CList or a CDib is deleted through slot 1 with 1); declared only.
+class __declspec(novtable) CObjectVirtuals {
+public:
+    virtual void GetRuntimeClass();                         // 0
+    virtual void* DeletingDestructor(unsigned flags);       // 1
+    virtual void Serialize();                               // 2
 };
 
 // CFileFind (0x1C bytes).

@@ -10,6 +10,8 @@
 // (section 16).
 #include "texture.h"
 
+#include "device.h"
+
 #include "originals_library.h"
 
 #include "ei/hook.h"
@@ -21,11 +23,6 @@
 
 namespace {
 
-constexpr int kSetPriority = 45;   // IDirectDrawSurface7::SetPriority (+0xB4)
-template <typename... Args>
-long Com(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
 
 // Texture flags that make a released texture cacheable (8: loaded).
 constexpr std::uint32_t kCacheable = 0x38;
@@ -35,7 +32,7 @@ constexpr unsigned kPriorityCached = 0, kPriorityInUse = 100;
 // without a holder, or with a holder that has no DirectDraw surface.
 void SetPriority(const CTexture* texture, unsigned priority) {
     const CDXSurface* holder = texture->surface_;
-    if (holder && holder->surface) Com(holder->surface, kSetPriority, priority);
+    if (holder && holder->surface) device::Surface(holder)->SetPriority(priority);
 }
 
 } // namespace

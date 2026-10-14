@@ -1,24 +1,24 @@
-// Zone exits (world.h ZoneExit, 0x3C bytes) and the map database's zone records that hold them
-// (eight CStrings, then a CArray<ZoneExit> at +0x48): their destructors. See
+// Zone exits (object_tables.h MapExit, 0x3C bytes) and the map database's zone records that hold
+// them (MapRecord: eight CStrings, then a CArray<MapExit> at +0x48): their destructors. See
 // docs/notes/app.md.
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "game/game_flow_data.h"
+#include "game/object_tables.h"
 
 #include <cstdint>
-#include <cstring>
 
 namespace zone {
 
 namespace {
-template <typename T>
-T& At(void* base, std::size_t offset) { return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset); }
-void Destroy(void* base, std::size_t offset) { reinterpret_cast<mfc::CString*>(static_cast<std::uint8_t*>(base) + offset)->~CString(); }
+// The records keep their CStrings as the bare data pointer.
+void DestroyString(char*& text) { reinterpret_cast<mfc::CString*>(&text)->~CString(); }
 __declspec(naked) void __fastcall ExitDestructAt(void*) EI_ORIGINAL(0x00460460)
 } // namespace
 
 // 00460460: a zone exit's destructor (its CString at +0x28).
-void __fastcall ExitDestruct(void* self) { Destroy(self, 0x28); }
+void __fastcall ExitDestruct(MapExit* self) { DestroyString(self->target); }
 EI_REPLACE(0x00460460, ExitDestruct);
 
 // 004608B0: the zone exit's scalar deleting destructor.
@@ -29,20 +29,23 @@ void* __fastcall ExitDelete(void* self, void*, unsigned flags) {
 }
 EI_REPLACE(0x004608B0, ExitDelete);
 
-// 00460970: a zone record's destructor: the exits' array (vtable 0073C3F4; each exit's string
-// destroyed, the block freed), then the strings at +0x1C ... +0.
-void __fastcall ZoneRecordDestruct(void* self) {
-    void* array = static_cast<std::uint8_t*>(self) + 0x48;
-    std::uint32_t vtable = 0x0073C3F4;
-    std::memcpy(array, &vtable, 4);
-    if (std::uint8_t* data = At<std::uint8_t*>(array, 4)) {
-        for (int i = 0, n = At<int>(array, 8); i < n; ++i) Destroy(data + i * 0x3C, 0x28);
-        gamecrt::operator_delete(At<void*>(array, 4));
+// 00460970: a zone record's destructor: the exits' array (base vtable 0073C3F4; each exit's string
+// destroyed, the block freed, the fields left as they are), then the strings from +0x1C down to +0.
+void __fastcall ZoneRecordDestruct(MapRecord* self) {
+    mfc::CArray<MapExit>& exits = self->exits;
+    exits.vtable = reinterpret_cast<void*>(flowdata::kExitArrayBaseVtable);
+    if (MapExit* data = exits.data) {
+        for (int i = 0, n = exits.size; i < n; ++i) DestroyString(data[i].target);
+        gamecrt::operator_delete(exits.data);
     }
-    for (std::size_t offset = 0x1C;; offset -= 4) {
-        Destroy(self, offset);
-        if (offset == 0) break;
-    }
+    DestroyString(self->camera);
+    DestroyString(self->picture);
+    DestroyString(self->picture2);
+    DestroyString(self->figure);
+    DestroyString(self->map);
+    DestroyString(self->mob);
+    DestroyString(self->allod);
+    DestroyString(self->name);
 }
 EI_REPLACE(0x00460970, ZoneRecordDestruct);
 

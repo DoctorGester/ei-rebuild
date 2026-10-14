@@ -30,16 +30,6 @@ const char* const kCantWrite = Text(0x00795FA4);    // "Can't open file \"%s\" t
 constexpr std::uint32_t kMmpMagic = 0x504D4D;       // "MMP"
 constexpr unsigned kWriteCreate = 0x1001;           // CFile::modeCreate | modeWrite
 
-// The pixel converter (007AF06C): slot 2 converts 32-bit pixels to 16 bits [out, in, kind, count],
-// slot 7 halves a square image [out, in, new width].
-void* Converter() { return *reinterpret_cast<void**>(0x007AF06C); }
-constexpr int kConvertSlot = 2;
-constexpr int kHalveSlot = 7;
-template <typename... Args>
-void ThisCall(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    reinterpret_cast<void(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
-}
 
 // The aligned byte allocation [004ECB50].
 std::uint8_t* AllocBytes(int count) { return lib::AlignedArray<std::uint8_t>::Allocate(count); }
@@ -143,8 +133,8 @@ void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image
     std::uint16_t* converted = NewAligned<std::uint16_t>(height * width * 2);
     unsigned count = height * width;
     std::uint32_t* halved = NewAligned<std::uint32_t>(count * 4);
-    void* converter = Converter();
-    ThisCall(converter, kConvertSlot, converted, image, kind, count);
+    CPixelConverter* converter = PixelConverter();
+    converter->ConvertTo16(converted, image, kind, count);
     CFileWrite(&file, nullptr, converted, count * 2);
     std::uint32_t* source = image;
     std::uint32_t* target = halved;
@@ -152,9 +142,9 @@ void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image
         for (unsigned left = mipCount - 1; left != 0; --left) {
             width >>= 1;
             height >>= 1;
-            ThisCall(converter, kHalveSlot, target, source, width);
+            converter->Halve(target, source, width);
             count = height * width;
-            ThisCall(converter, kConvertSlot, converted, target, kind, count);
+            converter->ConvertTo16(converted, target, kind, count);
             CFileWrite(&file, nullptr, converted, count * 2);
             std::uint32_t* done = target;
             target = source;

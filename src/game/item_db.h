@@ -76,7 +76,7 @@ struct SpellRecord {
     std::uint32_t unknown_64[5];        // +0x64..+0x74
     std::uint8_t bytes78[5];            // +0x78
     std::uint8_t unknown_7D[3];
-    std::uint32_t unknown_80;           // +0x80
+    std::uint32_t classMask;            // +0x80 bit (class - 1): the class templates that may use it (class_templates.cpp)
 };
 static_assert(offsetof(SpellRecord, code) == 0x04);
 static_assert(offsetof(SpellRecord, price) == 0x0C);
@@ -87,7 +87,7 @@ static_assert(offsetof(SpellRecord, bytes78) == 0x78);
 static_assert(offsetof(SpellRecord, needsSight) == 0x40);
 static_assert(offsetof(SpellRecord, skill) == 0x44);
 static_assert(offsetof(SpellRecord, list48) == 0x48);
-static_assert(offsetof(SpellRecord, unknown_80) == 0x80);
+static_assert(offsetof(SpellRecord, classMask) == 0x80);
 static_assert(sizeof(SpellRecord) == 0x84);
 
 // The spell database's three lists of 0x34-byte records (007C8550 / 007C855C / 007C8568, chunks
@@ -124,7 +124,7 @@ struct SpellModifierRecord {
     float strength;                     // +0x14 the trader stock keeps the strongest per kind; kind 'm' scales the cost
     int skill;                          // +0x18 added to the spell's
     mfc::CString text1C;                // +0x1C
-    std::uint32_t unknown_20;           // +0x20
+    std::uint32_t classMask;            // +0x20 bit (class - 1): the class templates that may use it
 };
 static_assert(offsetof(SpellModifierRecord, code) == 0x04);
 static_assert(offsetof(SpellModifierRecord, price) == 0x08);
@@ -172,7 +172,7 @@ struct ItemRecordHead {
     float condition;                    // +0x48 item condition and maximum (times the material's conditionFactor)
     std::uint32_t materialUnits;        // +0x4C units of material (the price; the trader stock takes them)
     console::CStringArray list50;       // +0x50
-    std::uint32_t unknown_64;           // +0x64
+    std::uint32_t classMask;            // +0x64 bit (class - 1): the class templates that may use it
     std::uint8_t unknown_68;            // +0x68 1 after construction
     std::uint8_t unknown_69[3];
     // +0x6C the category (5 wands, 8 quick items whose prototype names their spell), a quest
@@ -352,7 +352,7 @@ struct MaterialRecordHead {
     float damageFactor;                 // +0x28 multiplies a weapon's damage and spread
     float absorbFactors[7];             // +0x2C multiply an armour's absorption per damage type (one field)
     std::uint32_t armourFlags;          // +0x48 or'ed into the flag dwords of an armour's rows
-    std::uint32_t unknown_4C;           // +0x4C
+    std::uint32_t classMask;            // +0x4C bit (class - 1): the class templates that may use it
 
     // 0069F620 (RET 4; item_db_serialize.cpp, A-H23). The three strings, then +0x0C..+0x4C.
     void Serialize(ChunkArchive* ar);

@@ -1021,13 +1021,24 @@ struct UnitStats {
     float modeSpeeds[4];            // +0x034
     float unknown_044;              // +0x044 -2 for text-key units
     float unknown_048;              // +0x048 the AI's peripheral sight range (005CA5A0)
-    std::uint8_t unknown_04C[4];
+    float unknown_04C;              // +0x04C cos(90 degrees) from the builders (unit_create_stats.cpp)
     float load;                     // +0x050 carried weight
     float capacity;                 // +0x054
     float loadFactor;               // +0x058 LegsFactor when +0x60 is 1, else 1
     float armsFactor;               // +0x05C
     int unknown_060;                // +0x060 1 has body slots; 2 no size classes (combat.h)
-    std::uint8_t unknown_064[0xB0 - 0x64];  // the combat values (combat.h CombatStats)
+    // +0x064..+0x0AF: the combat values (combat.h's CombatStats overlay names them too).
+    std::uint32_t unknown_064;      // +0x064 from the model (UnitModelRecord::unknown_44)
+    std::int16_t sizeClass;         // +0x068 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
+    std::int16_t unknown_06A;
+    std::int16_t sizeClass20;       // +0x06C the same for 0.2 times the size
+    std::int16_t sizeClass60;       // +0x06E and for 0.6 times the size
+    float combat[5];                // +0x070 reach, attack, attack spread, defence, speed (the prototype's)
+    float damage;                   // +0x084
+    float damageSpread;             // +0x088
+    std::uint32_t unknown_08C;      // +0x08C from the prototype (UnitPrototypeRecord::unknown_5C)
+    float damageWeights[7];         // +0x090 the natural attack's, per damage type
+    int naturalWeapon;              // +0x0AC weapon type of the natural attack (0x10: none / spells only)
     UnitStatPair valuesB0[6];       // +0x0B0
     UnitStatPair valuesE0[6];       // +0x0E0
     UnitStatSlot slots[6];          // +0x110
@@ -1045,6 +1056,8 @@ static_assert(offsetof(UnitStats, stat20Base) == 0x1C);
 static_assert(offsetof(UnitStats, stat20) == 0x20);
 static_assert(offsetof(UnitStats, speedBase) == 0x24);
 static_assert(offsetof(UnitStats, load) == 0x50);
+static_assert(offsetof(UnitStats, sizeClass) == 0x68 && offsetof(UnitStats, combat) == 0x70);
+static_assert(offsetof(UnitStats, damageWeights) == 0x90 && offsetof(UnitStats, naturalWeapon) == 0xAC);
 static_assert(offsetof(UnitStats, valuesB0) == 0xB0);
 static_assert(offsetof(UnitStats, slots) == 0x110);
 static_assert(offsetof(UnitStats, flags) == 0x6F8);

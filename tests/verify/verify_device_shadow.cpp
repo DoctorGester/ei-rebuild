@@ -7,7 +7,9 @@
 #include <cstdint>
 #include <cstring>
 
-int __fastcall DeviceDrawFlat(char* device, void*, const void* positions, const char* uvs, int blocks,
+class CTextureDevice;
+
+int __fastcall DeviceDrawFlat(CTextureDevice* device, void*, const void* positions, const char* uvs, int blocks,
                               const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
                               std::uint32_t last, float zScale);
 
@@ -40,7 +42,7 @@ static void Record(flatcapture::Call& call, const void* positions, const char* u
 }
 
 static void* s_flat;
-static int __fastcall DeviceDrawFlatVerify(char* device, void*, const void* positions, const char* uvs, int blocks,
+static int __fastcall DeviceDrawFlatVerify(CTextureDevice* device, void*, const void* positions, const char* uvs, int blocks,
                                            const std::uint16_t* indices, int indexCount, std::uint32_t colour,
                                            std::uint32_t specular, std::uint32_t last, float zScale) {
     flatcapture::Recording& recording = flatcapture::Current();

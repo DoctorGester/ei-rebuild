@@ -7,6 +7,7 @@
 // A failed call throws the game's error object (ThrowGameError, dx_errors.h); nothing of ours is
 // unwound on the way, and every such throw ends the game in WinMain.
 #include "device.h"
+#include "device_material.h"
 
 #include "dx_errors.h"
 #include "engine_object.h"
@@ -218,7 +219,7 @@ void CTextureDevice::Destruct() {
     if (d3d_) device::Direct3D(this)->Release();
 
     // The members' destructors, last to first.
-    if (material_) static_cast<CEngineObject*>(material_)->ReleaseAndDelete();
+    if (material_) material_->Release();
     spareArray_.FreeData();
     if (spareBuffer_) spareBuffer_->Release();
     spareBuffers_.Destroy();
