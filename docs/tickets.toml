@@ -581,11 +581,33 @@ note = "2,377 sites; with the standalone work (changes what the verify wrappers 
 id = "F4a"
 title = "View structs into their classes (F4 follow-up)"
 group = "cleanup"
-status = "running"
+status = "review"
 depends = ["F4"]
 files = ["map_object_figures.h", "figure_mesh.h", "link_figure.h", "scene_loader.h", "material.h", "terrain.h", "terrain_sector.h", "figure_part_bounds.cpp", "renderer_lines.h"]
 note = "F4 named the gaps of views after the real classes; merge them: FigurePart -> CFigureMesh (piece158 / piece15C are materialValue_ / meshType_), FigurePieceRecord's piece -> LinkPartHeader, FigureMaterial and SceneHelper -> CMaterial, TerrainFields -> Terrain, TerrainSector -> terrain::SectorData, the two LineBatch declarations into renderer_lines.h's."
 started = "2026-10-14"
+
+[[ticket]]
+id = "F4b"
+title = "Drop the FigurePart alias (F4a follow-up)"
+group = "cleanup"
+status = "queued"
+size = 1
+model = "sonnet"
+depends = ["F4a", "W2", "F5"]
+files = ["map_object_figures.h", "ui_model.cpp", "player_client.cpp", "verify_ui_model.cpp"]
+note = "F4a folded FigurePart into CFigureMesh but kept 'using FigurePart = CFigureMesh' because ui_model.cpp and player_client.cpp were open in W2 / F5. Rename their uses (fields are already CFigureMesh's: localPosition_, localRotation_, worldMatrix_, bounds_, boxPivot_, drawer_->screen_) and remove the alias."
+
+[[ticket]]
+id = "F4c"
+title = "CFigureInstance into CLinkMesh (F4a follow-up)"
+group = "cleanup"
+status = "queued"
+size = 2
+model = "opus"
+depends = ["F4a"]
+files = ["map_object_figures.h", "link_figure.h", "map_object_*.cpp", "object3d_*.cpp"]
+note = "CFigureInstance (map_object_figures.h) is a view of CLinkMesh (vtable 0073D790) as CObject3D +0xF0 holds it. Confirm every offset the code uses against link_figure.h, then use CLinkMesh directly; keep the slot names from becoming overrides (EI_REPLACE_METHOD on a virtual name registers a vcall thunk). Release objects should differ only in names."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
