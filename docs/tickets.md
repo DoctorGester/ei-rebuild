@@ -43,6 +43,8 @@ Constraints: the original is MSVC6 x87 code that inlined this maths, so the orde
 
 ## Standalone exe and UTF-8 (planned 2026-10-13; docs/notes/standalone.md)
 
+First, before any S ticket: the verification loop SV1-SV5 (docs/notes/standalone-verification.md; user, 2026-10-14).
+
 Not started; both wait for the port. Counts are on the dashboard ("Standalone readiness").
 - S: first standalone exe with our own layout-compatible MFC / STLport / CRT classes (6-8 tickets), data definitions and vtables (4-6), direct calls, entry and link (3-4), first boot (2-4), old renderer code (3-4). Standard-library types come after the hook build is retired.
 - U1-U5: UTF-8 inside, cp1251 assets converted when read, behind a switch in the standalone build (5-6 tickets). Saves and multiplayer need not match vanilla (user, 2026-10-13).
