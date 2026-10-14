@@ -648,6 +648,22 @@ LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWO
     return ERROR_SUCCESS;
 }
 
+// Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switches
+// it off and "restores" a value it never read (off), so a harness game left it off for every program
+// on the machine, and text in runs before and after differed (GDI's grey edges or none: the
+// widescreen comparison of two runs). Harness runs leave it alone; text draws with the desktop's.
+constexpr std::uintptr_t kSystemParametersInfoASlot = 0x0073B4C0;   // game.exe import table
+constexpr UINT kSetFontSmoothing = 0x4B;                             // SPI_SETFONTSMOOTHING
+decltype(&::SystemParametersInfoA) g_systemParametersInfo;
+
+BOOL WINAPI HarnessSystemParametersInfo(UINT action, UINT uiParam, PVOID pvParam, UINT winIni) {
+    if (action != kSetFontSmoothing) return g_systemParametersInfo(action, uiParam, pvParam, winIni);
+    static bool logged = false;
+    if (!logged) Log("harness: font smoothing left as the desktop has it (the game asked for %u)", uiParam);
+    logged = true;
+    return TRUE;
+}
+
 // The "show tutorial" option (options object 0079BC70 + 0x208, registry value ShowTutorial). With it
 // off, tutorial windows open only where the game forces them (005F86F0, 005F8A80). The harness
 // clears it every frame, since the options are reloaded when a game starts.
@@ -2051,6 +2067,7 @@ struct Harness {
         PatchSlot(kGetFileAttributesASlot, &RedirectedGetFileAttributes, g_getFileAttributes);
         PatchSlot(kSetFileAttributesASlot, &RedirectedSetFileAttributes, g_setFileAttributes);
         PatchSlot(kRegSetValueExASlot, &SkippedRegSetValue, g_regSetValue);
+        PatchSlot(kSystemParametersInfoASlot, &HarnessSystemParametersInfo, g_systemParametersInfo);
         PatchSlot(kGetPrivateProfileStringASlot, &HarnessGetProfileString, g_getProfileString);
         PatchSlot(kGetPrivateProfileSectionASlot, &RedirectedGetProfileSection, g_getProfileSection);
         PatchSlot(kGetPrivateProfileIntASlot, &RedirectedGetProfileInt, g_getProfileInt);
