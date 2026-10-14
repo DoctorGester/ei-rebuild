@@ -610,7 +610,17 @@ std::vector<TestString> SyntheticStrings() {
         "Привет, мир! Это тест переноса строк в интерфейсе игры.", "Ёжик ёлка Йод й", "\x85\x96\x97\xAB\xBB\xB9",
         "a\x07" "b\x01" "c", "end with newline\r\n", "&File &Edit &View", "tab\tafter space \t and\t\ttwo",
     };
-    for (const char* text : fixed) out.push_back({text, true});
+    for (const char* text : fixed) {
+        // The Cyrillic literals are UTF-8 in this file; the game's bytes are 1251.
+        std::string bytes = text;
+        wchar_t wide[512];
+        const int count = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text, -1, wide, 512);
+        if (count > 0) {
+            char narrow[512];
+            if (WideCharToMultiByte(1251, 0, wide, count, narrow, sizeof narrow, nullptr, nullptr) > 0) bytes = narrow;
+        }
+        out.push_back({bytes, true});
+    }
     // Random strings over an alphabet that stresses the rules.
     std::mt19937 random(1234);
     const char* pieces[] = {"a", "b", "W", "i", "l", "m", "\xDF", "\xE6", " ", " ", " ", "  ", "\t", "\n", "\r", "\r\n", "&", "&&", "word", "WWW", "iii",
@@ -659,7 +669,7 @@ const int kWidths[] = {90, 220, 420};   // in the 800 x 600 layout, scaled to th
 struct Stats {
     long long layouts = 0, layoutMismatches = 0, pixelCases = 0, pixelExact = 0, pixelMismatches = 0;
     long long reportCases = 0, breakDifferences = 0, resultDifferences = 0, extentCases = 0, extentDifferent = 0;
-    long long extentAbsSum = 0, extentWorst = 0;
+    long long extentAbsSum = 0, extentWorst = 0, extentSignedSum = 0, extentGdiSum = 0;
     std::map<std::string, std::pair<long long, long long>> breaksPerFont;   // strings, differing
     std::vector<std::string> examples;
     void Merge(const Stats& other) {
@@ -674,6 +684,8 @@ struct Stats {
         extentCases += other.extentCases;
         extentDifferent += other.extentDifferent;
         extentAbsSum += other.extentAbsSum;
+        extentSignedSum += other.extentSignedSum;
+        extentGdiSum += other.extentGdiSum;
         extentWorst = std::max(extentWorst, other.extentWorst);
         for (const auto& [key, value] : other.breaksPerFont) {
             breaksPerFont[key].first += value.first;
@@ -792,6 +804,8 @@ void Work(const std::vector<TestString>& strings, const std::vector<FontSpec>& s
                     if (gdiWidth != stbWidth) ++stats.extentDifferent;
                     const long long difference = std::abs(gdiWidth - stbWidth);
                     stats.extentAbsSum += difference;
+                    stats.extentSignedSum += stbWidth - gdiWidth;
+                    stats.extentGdiSum += gdiWidth;
                     stats.extentWorst = std::max(stats.extentWorst, difference);
                 }
             }
@@ -869,6 +883,8 @@ int RunGdi(const std::string& textsPath, const Options& options) {
                     total.resultDifferences);
         std::printf("  extents of %lld single-line strings: %lld differ, mean |difference| %.2f px, worst %lld px\n", total.extentCases,
                     total.extentDifferent, total.extentCases ? double(total.extentAbsSum) / double(total.extentCases) : 0.0, total.extentWorst);
+        std::printf("  Liberation minus GDI over all of them: %+.2f%% of the GDI width\n",
+                    total.extentGdiSum ? 100.0 * double(total.extentSignedSum) / double(total.extentGdiSum) : 0.0);
     }
     std::printf("(%.1f s, %d threads)\n", seconds, options.threads);
     return failures;
@@ -876,7 +892,7 @@ int RunGdi(const std::string& textsPath, const Options& options) {
 
 // --explain <text> <rect width> <format>: our lines with the first font, and what GDI measures for each.
 // The text is read from the wide command line; \n, \r and \t escapes give line breaks and tabs.
-int Explain(int rectWidth, unsigned format) {
+int Explain(int rectWidth, unsigned format, int fontIndex) {
     int argc = 0;
     wchar_t** wargv = CommandLineToArgvW(GetCommandLineW(), &argc);
     std::wstring wide;
@@ -890,7 +906,7 @@ int Explain(int rectWidth, unsigned format) {
     char narrow[4096] = {};
     WideCharToMultiByte(1251, 0, wide.c_str(), -1, narrow, sizeof narrow, nullptr, nullptr);
     const std::string bytes = narrow;
-    const FontSpec spec = FontSpecs()[0];
+    const FontSpec spec = FontSpecs()[static_cast<std::size_t>(fontIndex)];
     const HFONT hfont = MakeGdiFont(spec.face, PointSizeToPixels(spec.tenths), NONANTIALIASED_QUALITY);
     TextFont font(std::make_unique<GdiFont>(hfont), false);
     Dib dib(1, 1);
@@ -950,7 +966,11 @@ int Explain(int rectWidth, unsigned format) {
 } // namespace
 
 int main(int argc, char** argv) {
-    if (argc == 5 && std::string(argv[1]) == "--explain") return Explain(std::atoi(argv[3]), static_cast<unsigned>(std::strtoul(argv[4], nullptr, 0)));
+    if ((argc == 5 || argc == 6) && std::string(argv[1]) == "--explain") {
+        const int font = argc == 6 ? std::atoi(argv[5]) : 0;
+        if (font < 0 || font >= static_cast<int>(FontSpecs().size())) return 2;
+        return Explain(std::atoi(argv[3]), static_cast<unsigned>(std::strtoul(argv[4], nullptr, 0)), font);
+    }
     bool rules = false;
     Options options;
     std::string texts = "F:\\games\\EvilIslands\\Res\\texts.res";
@@ -967,7 +987,7 @@ int main(int argc, char** argv) {
         else if (arg == "--fonts" && i + 1 < argc) SetFontDirectory(argv[++i]);
         else {
             std::printf("usage: ei_text_check [--rules] [--gdi] [--report] [--texts path] [--fonts dir] [--threads N] [--pixels-every N] [--examples N] [--font K]\n"
-                        "       ei_text_check --explain <text> <rect width> <format>\n");
+                        "       ei_text_check --explain <text> <rect width> <format> [font K]\n");
             return 2;
         }
     }

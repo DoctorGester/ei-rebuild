@@ -65,6 +65,21 @@ struct FontFile {
             winAscent = ReadU16(os2 + 74);
             winDescent = ReadU16(os2 + 76);
         }
+        // Times New Roman's xAvgCharWidth (821) is the old OS/2 weighted average of 'a'..'z' and
+        // the space; Liberation's is the plain average of all glyphs (much wider). Recompute the old
+        // way, so tab stops come out as GDI's (equal for a fixed-pitch font).
+        static const int kWeights[27] = {64, 14, 27, 35, 100, 20, 14, 42, 63, 3, 6, 35, 20, 56,
+                                         56, 17, 4, 49, 56, 71, 31, 10, 18, 3, 18, 2, 166};
+        int weighted = 0;
+        bool complete = true;
+        for (int i = 0; i < 27 && complete; ++i) {
+            const int codepoint = i < 26 ? 'a' + i : ' ';
+            complete = stbtt_FindGlyphIndex(&info, codepoint) != 0;
+            int advance = 0, bearing = 0;
+            stbtt_GetCodepointHMetrics(&info, codepoint, &advance, &bearing);
+            weighted += kWeights[i] * advance;
+        }
+        if (complete) averageWidth = (weighted + 500) / 1000;
         return unitsPerEm > 0;
     }
 };
@@ -308,7 +323,8 @@ std::u32string DecodeCp1251(const char* text, int count) {
 //     drawing and for DT_CALCRECT alike. Left-aligned lines keep it (DT_CALCRECT counts it).
 // - Widths: advances summed plus the font's pair kerning (DrawText on Windows 10 goes through
 //   Uniscribe, which kerns; GetTextExtentPoint32, and so TextExtent, does not). There is no kerning
-//   pair across a tab. '&' (unless DT_NOPREFIX) is dropped and makes the next character the prefix
+//   pair across a tab, nor between a Latin and a Cyrillic run (a space after "в" is Cyrillic, so
+//   "в W" does not kern the space with the W). '&' (unless DT_NOPREFIX) is dropped and makes the next character the prefix
 //   character; "&&" draws one '&' and a trailing '&' draws nothing.
 // - Tabs: with DT_EXPANDTABS a tab moves to the next multiple of 8 average widths from the line's
 //   start; without it a tab has no width and no ink.
@@ -331,6 +347,15 @@ namespace {
 bool IsLineBreak(char32_t ch) { return ch == U'\r' || ch == U'\n'; }
 bool IsWhite(char32_t ch) { return ch == U' ' || ch == U'\t'; }
 
+// Uniscribe splits text into runs by script and kerns only within a run; characters of no script
+// (spaces, digits, punctuation) join the run before them. 1 Latin, 2 Cyrillic, 0 none.
+int Script(char32_t ch) {
+    if ((ch >= U'A' && ch <= U'Z') || (ch >= U'a' && ch <= U'z')) return 1;
+    if (ch >= 0xC0 && ch <= 0x24F && ch != 0xD7 && ch != 0xF7) return 1;
+    if (ch >= 0x400 && ch <= 0x52F) return 2;
+    return 0;
+}
+
 class LineMaker {
 public:
     LineMaker(TextFont& font, std::u32string_view text, unsigned format)
@@ -344,6 +369,7 @@ public:
     int Walk(int begin, int end, int origin, Visit&& visit, Prefix&& prefix) {
         int x = origin;
         char32_t previous = 0;   // kerning pairs stay within a tab segment
+        int run = 0;             // the script of the current run (see Script)
         // A prefix character's underline reaches the next character's (kerned) position, so it is
         // reported once that is known.
         int pending = -1, pendingX = 0, pendingAdvance = 0;
@@ -374,7 +400,9 @@ public:
                 previous = 0;   // no kerning pair across a tab
                 continue;
             }
-            if (previous) x += font_.Kerning(previous, ch);
+            const int script = Script(ch);
+            if (previous && (script == 0 || run == 0 || script == run)) x += font_.Kerning(previous, ch);
+            if (script) run = script;
             flush(x - pendingX);
             if (prefixed) {
                 pending = i;
