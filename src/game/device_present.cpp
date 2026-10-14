@@ -3,52 +3,29 @@
 // drawn): full screen flips the primary's chain, a window copies the render target to the
 // primary at the client rectangle's corner. The new renderer (src/render) ends its frame here.
 // See docs/notes/renderer.md.
+#include "device.h"
+
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 
-#include <cstdint>
-
-namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
-
-// IDirectDrawSurface7 slots.
-constexpr int kBltFast = 7;
-constexpr int kFlip = 11;
-constexpr unsigned long kBltFastWait = 0x10;   // DDBLTFAST_WAIT
-
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
-
-void* SurfaceOf(void* holder) { return At<void*>(holder, 0x10); }   // CDXSurface +0x10
-
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-
-} // namespace
-
 // 004EF610. Returns the DirectDraw result (0 when there is nothing to present).
-long __fastcall DevicePresent(char* device) {
+long __fastcall DevicePresent(CTextureDevice* device) {
     // With "present" the new renderer copies its frame into the render target here, which the old
     // present then shows.
     render::Present();
-    void* primary = SurfaceOf(At<void*>(device, 0x14));
-    void* target = At<void*>(device, 0x18);
-    void* targetSurface = SurfaceOf(target);
+    IDirectDrawSurface7* primary = device::Surface(device->primary_);
+    CDXSurface* target = device->renderTarget_;
+    IDirectDrawSurface7* targetSurface = device::Surface(target);
     if (primary == targetSurface) return 0;
-    if (At<std::uint8_t>(device, 0x20) & 1) return ComCall(primary, kFlip, targetSurface, 0ul);
-    // A window: the render target's own device object's primary (+0xC -> +0x14).
-    void* screen = SurfaceOf(At<void*>(At<void*>(target, 0xC), 0x14));
+    if (device->flags_ & 1) return primary->Flip(targetSurface, 0);
+    // A window: the render target's own device object's primary.
+    IDirectDrawSurface7* screen = device::Surface(target->device->primary_);
     if (screen == targetSurface) return 0;
-    unsigned long x = At<unsigned long>(device, 0x24), y = At<unsigned long>(device, 0x28);
-    gameapi::EnterCriticalSection(DeviceLock());
-    long result = ComCall(screen, kBltFast, x, y, targetSurface, static_cast<void*>(nullptr), kBltFastWait);
-    gameapi::LeaveCriticalSection(DeviceLock());
+    DWORD x = static_cast<DWORD>(device->screen_.left), y = static_cast<DWORD>(device->screen_.top);
+    gameapi::EnterCriticalSection(device::Lock());
+    long result = screen->BltFast(x, y, targetSurface, nullptr, DDBLTFAST_WAIT);
+    gameapi::LeaveCriticalSection(device::Lock());
     return result;
 }
 EI_REPLACE(0x004EF610, DevicePresent);

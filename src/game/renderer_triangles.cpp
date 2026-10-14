@@ -1,9 +1,13 @@
 // The renderer's triangle draw (00501BB0, virtual slot 12 of the renderer at 007AF060, vtable
 // 0073D93C; thiscall, RET 0x10): pre-transformed vertices (FVF 0x1C4) drawn as an indexed triangle
-// list with the current state, fogged first by distance when the device's +0x158 is set (the
-// transform object's slot 35). Used by the flying hit points (005E18E0). The new renderer
+// list with the current state, fogged first by distance when the device's distanceFog_ is set (the
+// transform object's FogVertices). Used by the flying hit points (005E18E0). The new renderer
 // (src/render) takes the draw; with the old path's objects off it is skipped. See
 // docs/notes/renderer.md.
+#include "clip.h"     // TLVertex
+#include "device.h"
+#include "model.h"    // CSceneRenderer, ITransformPipeline
+
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -11,45 +15,25 @@
 #include <cstdint>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
+constexpr DWORD kFvf = 0x1C4;   // D3DFVF_TLVERTEX
 }
-
-constexpr int kDrawIndexedPrimitive = 26;
-constexpr unsigned long kTriangleList = 4, kFvf = 0x1C4;
-
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
-
-template <typename R, typename... Args>
-R ThisCall(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
-}
-
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-
-} // namespace
 
 // 00501BB0. Returns 1.
-int __fastcall RendererTriangles(char* renderer, void*, void* vertices, int vertexCount, const std::uint16_t* indices,
-                                 unsigned indexCount) {
-    char* device = At<char*>(renderer, 0x20);
-    if (At<int>(device, 0x158)) ThisCall<void>(At<void*>(At<char*>(device, 0xAC), 0xC), 35, vertices, vertexCount);
+int __fastcall RendererTriangles(CSceneRenderer* renderer, void*, void* vertices, int vertexCount,
+                                 const std::uint16_t* indices, unsigned indexCount) {
+    CTextureDevice* device = renderer->device_;
+    if (device->distanceFog_) device->pipeline_->transform_->FogVertices(static_cast<TLVertex*>(vertices), vertexCount);
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), vertexCount, indices, static_cast<int>(indexCount),
-                       static_cast<int>(kTriangleList))) {
-        gameapi::EnterCriticalSection(DeviceLock());
-        At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kDrawIndexedPrimitive, kTriangleList, kFvf, vertices,
-                                      static_cast<unsigned long>(vertexCount), indices, static_cast<unsigned long>(indexCount), 0ul);
-        gameapi::LeaveCriticalSection(DeviceLock());
+                       static_cast<int>(D3DPT_TRIANGLELIST))) {
+        gameapi::EnterCriticalSection(device::Lock());
+        device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitive(
+            D3DPT_TRIANGLELIST, kFvf, vertices, static_cast<DWORD>(vertexCount), const_cast<WORD*>(indices),
+            static_cast<DWORD>(indexCount), 0);
+        gameapi::LeaveCriticalSection(device::Lock());
     }
-    At<int>(device, 0x16C) += vertexCount;
-    At<unsigned>(device, 0x170) += indexCount / 3;
-    At<int>(device, 0x174) += 1;
+    device->vertexCount_ += vertexCount;
+    device->primitiveCount_ += static_cast<int>(indexCount / 3);
+    device->drawCount_ += 1;
     return 1;
 }
 EI_REPLACE(0x00501BB0, RendererTriangles);

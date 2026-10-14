@@ -16,6 +16,7 @@ static_assert(sizeof(PixelFormat) == 32);
 struct CDXSurface;
 class CTexture;
 class CTransformPipeline;
+class CDeviceMaterial;   // device_material.h
 struct NamedTexture;   // ground_print.h
 struct Direct3DDeviceRecord;   // device.h
 struct _DDSURFACEDESC2;        // ddraw.h (DDSURFACEDESC2)
@@ -199,7 +200,7 @@ public:
     CVertexBufferHolder* spareBuffer_;                // +0x118 counted
     lib::AlignedArray<std::uint8_t> spareArray_;      // +0x11C
     CDXSurface* stageSurfaces_[8];   // +0x12C the surface holder bound to each texture stage (00501AF0, 004EBAF0)
-    void* material_;                 // +0x14C the current material (004EB170)
+    CDeviceMaterial* material_;      // +0x14C the current material (004EB170; device_material.h)
     std::uint32_t colour_;           // +0x150 the renderer's draw colour (00501CC0; mesh draw flag 4)
     std::uint8_t unknown_154[4];
     // +0x158 the draws fog their screen vertices by distance (the transform object's FogVertices)
