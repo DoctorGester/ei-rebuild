@@ -5,14 +5,22 @@
 // interfaces are never released and some failures leave a library loaded; kept as is. The
 // interface ids and class ids are the game's own (00744900 ... 00745CB0). See
 // docs/notes/app.md.
+//
+// PF3 (decided by the user 2026-10-14): in a native run (the new renderer presents, EI_RENDER
+// "present", on the system's DirectDraw: run/native) DirectX 7 is a given and nothing is probed.
+// The probe cost about half a second at startup there, and with several games on the machine it
+// failed now and then, ending the run at the "DirectX 7 or later" box (R9b1). The result is then
+// 0x800, what the probe reports on any current Windows. Vanilla and Rebirth runs (dgVoodoo's
+// DDRAW.DLL next to game.exe) probe as the original does. The standalone exe presents itself and has
+// no original to probe against: it takes the native path unconditionally.
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
+
 #include "../hook/log.h"
-#include <cstring>
-#include <cstdlib>
 
 #include <cstdint>
+#include <cstring>
 
 namespace app {
 
@@ -35,39 +43,44 @@ const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 using DirectDrawCreate = long(__stdcall*)(void*, void**, void*);
 using DirectDrawCreateEx = long(__stdcall*)(void*, void**, const void*, void*);
 
+const char* DirectDrawLibraryName() { return Text(0x00785674); }   // "DDRAW.DLL"
+
+// The folder part of a module's file name (up to and including the last backslash), or "".
+void ModuleFolder(HMODULE module, char (&folder)[MAX_PATH]) {
+    const DWORD length = gameapi::GetModuleFileNameA(module, folder, MAX_PATH);
+    char* slash = length > 0 && length < MAX_PATH ? std::strrchr(folder, '\\') : nullptr;
+    if (slash) slash[1] = 0;
+    else folder[0] = 0;
+}
+
+// The game imports the system's DirectDraw: no DDRAW.DLL (dgVoodoo) next to game.exe.
+bool SystemDirectDraw() {
+    const HMODULE ddraw = gameapi::GetModuleHandleA(DirectDrawLibraryName());
+    if (!ddraw) return false;
+    char exeFolder[MAX_PATH], ddrawFolder[MAX_PATH];
+    ModuleFolder(nullptr, exeFolder);
+    ModuleFolder(ddraw, ddrawFolder);
+    return exeFolder[0] && ddrawFolder[0] && gameapi::lstrcmpiA(exeFolder, ddrawFolder) != 0;
+}
+
+// A native run: the new renderer presents (render.h) on the system's DirectDraw.
+bool DirectXIsGiven() {
+    if (!render::Presenting() || !SystemDirectDraw()) return false;
+    ei::Log("app: native run: DirectX 7 taken as given, the version probe (0045E310) skipped");
+    return true;
+}
+
 } // namespace
 
 std::uint32_t __cdecl GetDxVersion() {
-    {   // PF3 EXPERIMENT
-        char mode[32] = {};
-        if (GetEnvironmentVariableA("EI_PF3_MODE", mode, sizeof(mode)) > 0) {
-            ei::Log("PF3 experiment: %s", mode);
-            if (std::strchr(mode, 'c')) {
-                void* music = nullptr;
-                gameapi::CoInitialize(nullptr);
-                if (gameapi::CoCreateInstance(*static_cast<const CLSID*>(Id(0x00744930)), nullptr, 1, *static_cast<const IID*>(Id(0x00744900)), &music) >= 0) {
-                    Com(music, kRelease);
-                    gameapi::CoUninitialize();
-                }
-            }
-            if (std::strchr(mode, 'd')) {
-                void* dd = nullptr;
-                FARPROC create = gameapi::GetProcAddress(gameapi::GetModuleHandleA("ddraw.dll"), Text(0x00785660));
-                if (reinterpret_cast<DirectDrawCreate>(create)(nullptr, &dd, nullptr) >= 0) Com(dd, kRelease);
-            }
-            if (std::strchr(mode, 'i')) {
-                gameapi::FreeLibrary(gameapi::LoadLibraryA(Text(0x00785604)));
-            }
-            ei::Log("PF3 experiment done");
-            return 0x700;
-        }
-    }
+    // PF3 / R9b1: nothing is probed in a native run.
+    if (DirectXIsGiven()) return 0x800;
     void* ddraw = nullptr;     // IDirectDraw
     void* ddraw2 = nullptr;
     void* surface = nullptr;   // IDirectDrawSurface
     void* surface3 = nullptr;
     void* surface4 = nullptr;
-    HMODULE ddrawLibrary = gameapi::LoadLibraryA(Text(0x00785674));   // "DDRAW.DLL"
+    HMODULE ddrawLibrary = gameapi::LoadLibraryA(DirectDrawLibraryName());
     if (!ddrawLibrary) return 0;
     FARPROC create = gameapi::GetProcAddress(ddrawLibrary, Text(0x00785660));   // "DirectDrawCreate"
     if (!create) {

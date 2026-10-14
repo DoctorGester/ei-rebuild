@@ -164,6 +164,7 @@
 
 #include <windows.h>
 #include <psapi.h>
+#include <tlhelp32.h>
 #include <intrin.h>
 
 #include <cctype>
@@ -1858,6 +1859,83 @@ void RunSteps() {
 constexpr DWORD kDefaultTimeLimitMs = 60000;
 DWORD g_budget = kDefaultTimeLimitMs;
 
+// A timed-out run: where the main thread (the process's oldest thread) is, for ei_hook.log: its
+// instruction pointer and the return addresses on its stack (words after a CALL, in any loaded
+// module), as module+offset.
+bool DescribeAddress(std::uintptr_t a, char* out, std::size_t size) {
+    HMODULE m = nullptr;
+    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                            reinterpret_cast<LPCSTR>(a), &m))
+        return false;
+    char name[MAX_PATH] = "";
+    GetModuleFileNameA(m, name, MAX_PATH);
+    const char* file = std::strrchr(name, '\\');
+    std::snprintf(out, size, "%s+%X", file ? file + 1 : name, unsigned(a - reinterpret_cast<std::uintptr_t>(m)));
+    return true;
+}
+
+bool AfterCallInstruction(std::uintptr_t a) {
+    MEMORY_BASIC_INFORMATION mbi{};
+    constexpr DWORD kExecutable = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+    if (!VirtualQuery(reinterpret_cast<const void*>(a - 7), &mbi, sizeof(mbi)) || !(mbi.Protect & kExecutable)) return false;
+    const auto* p = reinterpret_cast<const unsigned char*>(a);
+    if (p[-5] == 0xE8) return true;   // CALL rel32
+    for (int n = 2; n <= 7; ++n)
+        if (p[-n] == 0xFF && ((p[-n + 1] >> 3) & 7) == 2) return true;   // CALL r/m32
+    return false;
+}
+
+void LogMainThreadStack() {
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    if (snapshot == INVALID_HANDLE_VALUE) return;
+    DWORD mainId = 0;
+    ULONGLONG oldest = ~0ull;
+    THREADENTRY32 entry{};
+    entry.dwSize = sizeof(entry);
+    for (BOOL more = Thread32First(snapshot, &entry); more; more = Thread32Next(snapshot, &entry)) {
+        if (entry.th32OwnerProcessID != GetCurrentProcessId()) continue;
+        HANDLE t = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ThreadID);
+        if (!t) continue;
+        FILETIME created, exited, kernel, user;
+        if (GetThreadTimes(t, &created, &exited, &kernel, &user)) {
+            const ULONGLONG when = (ULONGLONG(created.dwHighDateTime) << 32) | created.dwLowDateTime;
+            if (when < oldest) {
+                oldest = when;
+                mainId = entry.th32ThreadID;
+            }
+        }
+        CloseHandle(t);
+    }
+    CloseHandle(snapshot);
+    HANDLE thread = mainId ? OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT, FALSE, mainId) : nullptr;
+    if (!thread) return;
+    std::vector<std::uintptr_t> stack(4096);
+    std::size_t words = 0;
+    CONTEXT context{};
+    context.ContextFlags = CONTEXT_CONTROL;
+    if (SuspendThread(thread) != DWORD(-1)) {
+        MEMORY_BASIC_INFORMATION mbi{};
+        if (GetThreadContext(thread, &context) && VirtualQuery(reinterpret_cast<const void*>(context.Esp), &mbi, sizeof(mbi))) {
+            const std::uintptr_t end = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
+            words = (end - context.Esp) / sizeof(std::uintptr_t);
+            if (words > stack.size()) words = stack.size();
+            std::memcpy(stack.data(), reinterpret_cast<const void*>(context.Esp), words * sizeof(std::uintptr_t));
+        }
+        ResumeThread(thread);
+    }
+    CloseHandle(thread);
+    char where[MAX_PATH + 16] = "?";
+    DescribeAddress(context.Eip, where, sizeof(where));
+    Log("harness: main thread %lu at %08X %s; return addresses on its stack:", mainId, unsigned(context.Eip), where);
+    int logged = 0;
+    for (std::size_t i = 0; i < words && logged < 48; ++i) {
+        const std::uintptr_t a = stack[i];
+        if (a < 0x10000 || !DescribeAddress(a, where, sizeof(where)) || !AfterCallInstruction(a)) continue;
+        Log("  %08X %s", unsigned(a), where);
+        ++logged;
+    }
+}
+
 DWORD WINAPI Watchdog(void*) {
     const DWORD start = GetTickCount();
     for (;;) {
@@ -1874,6 +1952,7 @@ DWORD WINAPI Watchdog(void*) {
             std::snprintf(what, sizeof(what), "scenario exceeded its %lu s time limit at step %u of %u",
                           g_budget / 1000, unsigned(g_next), unsigned(g_steps.size()));
             g_failures.push_back(what);
+            LogMainThreadStack();
             // Write the report from another thread and end the game whether or not that finishes:
             // a crashed or deadlocked main thread may hold a lock the report needs.
             if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {

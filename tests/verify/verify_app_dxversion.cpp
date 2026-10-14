@@ -1,5 +1,6 @@
 // Checks for app_dxversion.cpp: ours only (it creates DirectDraw objects and loads libraries);
-// the result must be one of the versions GetDXVersion reports.
+// the result must be one of the versions GetDXVersion reports. Every harness scenario reaches it
+// (WinMain); in a native run (PF3) ours probes nothing and answers 0x800.
 #include "verify.h"
 
 #include <cstdint>
