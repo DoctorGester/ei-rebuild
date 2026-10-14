@@ -6,7 +6,6 @@
 #include "random.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_render.h"
@@ -140,11 +139,11 @@ constexpr std::uintptr_t kSegmentDestruct = 0x00468920;
 constexpr std::uintptr_t kEngineObjectVtable = 0x0073B8E0;
 constexpr std::uintptr_t kLightningVtable = 0x0073C550;
 
-// A texture reference dropped: cleared, then released through slot 4.
+// A texture reference dropped: cleared, then released.
 void DropTexture(CEngineObject*& slot) {
     CEngineObject* old = slot;
     slot = nullptr;
-    if (old) ei::VCall<void>(old, 4);
+    if (old) old->Release();
 }
 void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtable, sizeof(vtable)); }
 } // namespace
@@ -193,8 +192,8 @@ void __fastcall LightningDestruct(CLightning* self) {
     DropTexture(self->glowTexture_);
     VectorDtorIterator(self->branches_, sizeof(LightningSegment), 6, kSegmentDestruct);
     if (self->main_.points.data) gamecrt::operator_delete(reinterpret_cast<void**>(self->main_.points.data)[-1]);
-    if (self->glowTexture_) ei::VCall<void>(self->glowTexture_, 4);
-    if (self->texture_) ei::VCall<void>(self->texture_, 4);
+    if (self->glowTexture_) self->glowTexture_->Release();
+    if (self->texture_) self->texture_->Release();
     EngineObjectDestructBase(self);
 }
 EI_REPLACE(0x00468810, LightningDestruct);

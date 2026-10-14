@@ -249,7 +249,10 @@ public:
                            tagRECT* screen);
     // 15: 00501CE0 (RET 4). Draws a line list (0049B780 with the pipeline and the device object).
     virtual void DrawLineList(void* lines);
-    virtual void Unknown16();
+    // 16 (six arguments). Draws a strip along `points` (a lightning segment's aligned points) of
+    // `width` with the bound texture: `visibility` the bounds' clip result, the texture's `length`
+    // and `offset` along it (0 and 0: untextured lengthwise), `slant` 0.25 at every call known.
+    virtual int DrawStrip(void* points, float width, int visibility, float length, float offset, float slant);
     // 17 (RET 0xC). Draws sprites facing the view with the bound texture: `points` an aligned array
     // of centres and sizes (x, y, z, size), `sprites` a CArray of their colours and texture
     // rectangles. The first argument is 0 at every call known.

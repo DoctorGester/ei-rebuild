@@ -82,9 +82,9 @@ src/game/item_constructor.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/item_names.cpp,0,0,0,0,5,0,0,0,0,0,0
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/lever_object.cpp,0,0,0,0,0,0,0,0,0,0,1
-src/game/lightning.cpp,0,0,0,1,0,0,0,1,0,0,4
-src/game/lightning_draw.cpp,0,7,0,0,0,0,0,0,0,0,1
-src/game/lightning_start.cpp,0,3,0,0,4,0,0,0,0,0,1
+src/game/lightning.cpp,0,0,0,1,0,0,0,0,0,0,4
+src/game/lightning_draw.cpp,0,0,0,0,0,0,0,0,0,0,1
+src/game/lightning_start.cpp,0,0,0,0,4,0,0,0,0,0,1
 src/game/link_figure.h,0,0,0,0,0,0,0,0,0,0,1
 src/game/magic_trap.cpp,0,0,0,0,6,0,0,0,0,0,5
 src/game/map_database.cpp,0,0,1,0,27,0,0,0,0,0,0
@@ -142,7 +142,7 @@ src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0,0,0
 src/game/options.cpp,0,0,4,0,126,0,0,0,0,0,0
 src/game/originals_library.h,0,0,13,0,3,0,0,0,0,0,0
 src/game/particle_attach.cpp,0,0,0,0,0,0,0,0,0,0,1
-src/game/particle_callbacks.cpp,0,0,1,1,6,0,0,11,0,0,18
+src/game/particle_callbacks.cpp,0,0,1,1,6,0,0,0,0,0,18
 src/game/particle_common.h,0,0,5,0,1,0,0,0,0,0,0
 src/game/particle_create.cpp,0,0,1,1,89,0,0,1,0,0,0
 src/game/particle_draw.cpp,0,0,0,1,0,0,0,0,0,0,1
