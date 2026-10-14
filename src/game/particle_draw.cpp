@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/vecmath.h"
 
 #include <cstring>
 
@@ -228,7 +229,7 @@ int CParticleManager::DrawAll(void* renderer) {
         const Vector3* p = source->WorldPosition(&scratch);
         ParticleDepth entry;
         entry.source = source;
-        entry.depth = Store(D(axis.y) * D(p->y) + D(axis.z) * D(p->z) + D(axis.x) * D(p->x));
+        entry.depth = Store(DotUnrounded<Sum3::ZYX, double>(axis, *p));
         order.SetAtGrow(order.size, entry);
         source = node ? sourceOf(node->data) : nullptr;
     }

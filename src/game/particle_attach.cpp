@@ -10,6 +10,7 @@
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "lib/vecmath.h"
 
 #include <cmath>
 
@@ -105,7 +106,7 @@ Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
         double dz = object->above.z - object->below.z;
         double dx = object->above.x - object->below.x;
         double dy = object->above.y - object->below.y;
-        *radius = static_cast<float>(std::sqrt(dy * dy + dx * dx + dz * dz) * 0.5);
+        *radius = static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)) * 0.5);
     }
     out->x = 0.0f;
     out->y = 0.0f;

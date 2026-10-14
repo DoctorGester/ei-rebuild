@@ -8,6 +8,8 @@
 #include "object_maths.h"
 #include "unit.h"
 
+#include "lib/vecmath.h"
+
 #include <concepts>
 
 #pragma float_control(precise, on)
@@ -317,7 +319,7 @@ bool FollowCarrier(CParticleSource* s) {
     smoothed.z = sz;
     const Vector3& m = s->elements[1].pos;
     float* speed = ElementFloat(s->elements, 0x20);
-    *speed = Store(x87::fsqrt(D(m.x) * D(m.x) + D(m.y) * D(m.y) + D(m.z) * D(m.z)));
+    *speed = Store(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(m)));
     if (!(D(*ElementFloat(s->elements, 0x20)) >= EI_STILL_SPEED)) SetBits(ElementFloat(s->elements, 0x20), 0);
     return true;
 }
@@ -345,11 +347,8 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
     Vector3 v;
     v.Construct(x, y, z);
     std::memcpy(&p->velocity, &v, sizeof(Vector3));
-    double vx = D(p->velocity.x);
-    double vy = D(p->velocity.y);
-    double vz = D(p->velocity.z);
     double shell = D(radius) * D(EI_SHELL);
-    double scale = shell / x87::fsqrt(vx * vx + vy * vy + vz * vz);
+    double scale = shell / x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(p->velocity));
     p->velocity.x = Store(scale * D(p->velocity.x));
     p->velocity.y = Store(scale * D(p->velocity.y));
     p->velocity.z = Store(scale * D(p->velocity.z));
@@ -364,7 +363,7 @@ int CParticleSource::EmitOrbit(Particle* p, int index) {
     double speed = D(*ElementFloat(elements, 0x20));
     if (speed > EI_STILL_SPEED) {
         const Vector3& m = elements[1].pos;
-        float t = Store(-((D(m.z) * D(p->velocity.z) + D(m.y) * D(p->velocity.y) + D(m.x) * D(p->velocity.x)) / speed));
+        float t = Store(-(DotUnrounded<Sum3::ZYX, double>(m, p->velocity) / speed));
         if (t >= 1.0f) t = 1.0f;
         if (!(t >= 0.0f)) t = 0.0f;
         Vector3 along;
@@ -934,19 +933,19 @@ template <std::floating_point T> inline float F(T) = delete;
 void SetUpLink(CParticleSource* s) {
     SetElementCount(s, 4);
     const Vector3& x = s->extent;
-    *ElementFloat(s->elements, 0x18) = Store(x87::fsqrt(D(x.x) * D(x.x) + D(x.y) * D(x.y) + D(x.z) * D(x.z)));
+    *ElementFloat(s->elements, 0x18) = Store(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(x)));
     *ElementFloat(s->elements, 0x1C) = Store(D(EI_P_ONE) / D(*ElementFloat(s->elements, 0x18)));
 
     // A side vector: (ey, -ex, 0), or (ey - ez, -ex, ex) when the extent is (nearly) vertical.
     Vector3 side;
     double zero = EI_P_ZERO;
     side.Construct(Store(D(x.y) - zero), Store(zero - D(x.x)), 0.0f);
-    double length = x87::fsqrt(D(side.z) * D(side.z) + D(side.y) * D(side.y) + D(side.x) * D(side.x));
+    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(side));
     if (!(length >= EI_LINK_DEGENERATE)) {
         float ex = x.x;
         Vector3 other;
         other.Construct(Store(D(x.y) - D(x.z)), Store(-D(ex)), ex);
-        length = x87::fsqrt(D(other.x) * D(other.x) + D(other.y) * D(other.y) + D(other.z) * D(other.z));
+        length = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(other));
         side = other;
     }
     double inverse = D(EI_P_ONE) / length;
@@ -957,13 +956,12 @@ void SetUpLink(CParticleSource* s) {
     Vector3 cross;
     cross.Construct(Store(D(side.z) * D(x.y) - D(side.y) * D(x.z)), Store(D(side.x) * D(x.z) - D(side.z) * D(x.x)),
                     Store(D(side.y) * D(x.x) - D(side.x) * D(x.y)));
-    double crossInverse =
-        D(EI_P_ONE) / x87::fsqrt(D(cross.z) * D(cross.z) + D(cross.y) * D(cross.y) + D(cross.x) * D(cross.x));
+    double crossInverse = D(EI_P_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(cross));
     cross.x = Store(crossInverse * D(cross.x));
     cross.y = Store(D(cross.y) * crossInverse);
     cross.z = Store(D(cross.z) * crossInverse);
 
-    double extentLength = x87::fsqrt(D(x.x) * D(x.x) + D(x.y) * D(x.y) + D(x.z) * D(x.z));
+    double extentLength = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(x));
     Vector3 direction;
     direction.Construct(Store(D(x.x) / extentLength), Store(D(x.y) / extentLength), Store(D(x.z) / extentLength));
     std::memcpy(ElementFloat(&s->elements[1], 0x18), &direction, sizeof(Vector3));
@@ -1143,7 +1141,7 @@ int CParticleSource::EmitBlast(Particle* p, int) {
         RandomInBallZYX(x, y, z);
         Vector3 v;
         v.Construct(x, y, z);
-        double outside = D(EI_P_ONE) - (D(v.z) * D(v.z) + D(v.y) * D(v.y) + D(v.x) * D(v.x));
+        double outside = D(EI_P_ONE) - LengthSquaredUnrounded<Sum3::ZYX, double>(v);
         float outsideRounded = Store(outside);
         double scale = D(size);
         v.x = Store(scale * D(v.x));
@@ -1755,7 +1753,7 @@ void CParticleSource::TickBag(ParticleElement* e) {
             x = Store(Range(-1.0f, 1.0f));
             y = Store(Range(-1.0f, 1.0f));
             z = Store(Range(-1.0f, 1.0f));
-            double lengthSquared = D(y) * D(y) + D(x) * D(x) + D(z) * D(z);
+            double lengthSquared = LengthSquaredUnrounded<Sum3::XYZ, double>(x, y, z);   // (y + x) + z
             if (!(lengthSquared >= D(EI_P_ONE))) break;
             if (!(--tries > 0)) break;
         }
@@ -2082,7 +2080,7 @@ int CParticleSource::UpdateStench(Particle* p) {
     p->pos.x = Store(D(p->pos.x) - D(p->velocity.x));
     p->pos.y = Store(D(p->pos.y) - D(p->velocity.y));
     p->pos.z = Store(D(p->pos.z) - D(p->velocity.z));
-    double turnedY = D(p->velocity.x) * D(p->drift.x) + D(p->velocity.y) * D(p->drift.y);
+    double turnedY = Dot2DUnrounded<double>(p->velocity.x, p->velocity.y, p->drift.x, p->drift.y);
     double turnedX = D(p->drift.y) * D(p->velocity.x) - D(p->velocity.y) * D(p->drift.x);
     p->velocity.x = Store(turnedX);
     p->velocity.y = Store(turnedY);
@@ -2272,7 +2270,7 @@ void CParticleSource::TickTornado(ParticleElement* e) {
         float ay = Store(D(sy) * D(EI_FUNNEL_BACK));
         float az = Store(D(sz) * D(EI_FUNNEL_BACK));
         Vector3 n = {ax, ay, az};
-        double length = x87::fsqrt(D(az) * D(az) + D(ay) * D(ay) + D(ax) * D(ax));
+        double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(ax, ay, az));
         if (!(length == 0.0 || x87::IsNaN(Store(length)))) {
             double inverse = D(EI_P_ONE) / length;
             n.x = Store(D(ax) * inverse);
@@ -2462,17 +2460,13 @@ int CParticleSource::UpdateCylinder(Particle* p) {
     p->velocity.x = Store(D(p->velocity.x) + D(step[0]));
     p->velocity.y = Store(D(step[1]) + D(p->velocity.y));
     p->velocity.z = Store(D(step[2]) + D(p->velocity.z));
-    double x = D(p->velocity.x);
-    double y = D(p->velocity.y);
-    double k = D(*ElementFloat(elements, 0x28)) / x87::fsqrt(x * x + y * y);
+    double k = D(*ElementFloat(elements, 0x28)) / x87::fsqrt(LengthSquared2DUnrounded<double>(p->velocity.x, p->velocity.y));
     float kx = Store(k * D(p->velocity.x));
     p->velocity.x = kx;
     double ky = k * D(p->velocity.y);
     p->velocity.y = Store(ky);
-    double s0 = D(step[0]);
-    double s1 = D(step[1]);
-    double s2 = D(step[2]);
-    float reach = Store(x87::fsqrt(s0 * s0 + s1 * s1 + s2 * s2) * D(*ElementFloat(elements, 0x24)));
+    float reach =
+        Store(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step[0], step[1], step[2])) * D(*ElementFloat(elements, 0x24)));
     step[0] = Store(ky * D(reach) * D(EI_CYL_SPARK_PULL));
     step[1] = Store(-D(kx) * D(reach) * D(EI_CYL_SPARK_PULL));
     step[2] = Store(D(step[2]) * D(EI_CYL_SPARK_PULL));
@@ -2502,7 +2496,7 @@ void CParticleSource::TickCylinder(ParticleElement* e) {
         return;
     }
     float* rotation = ElementFloat(e, 0x18);
-    float nx = Store(D(rotation[1]) * D(e->pos.y) + D(rotation[0]) * D(e->pos.x));
+    float nx = Store(Dot2DUnrounded<double>(rotation[1], rotation[0], e->pos.y, e->pos.x));
     float ny = Store(D(rotation[0]) * D(e->pos.y) - D(rotation[1]) * D(e->pos.x));
     float* rise = ElementFloat(e, 0x2C);
     float nz = Store(D(e->pos.z) + D(*rise));
@@ -3362,8 +3356,8 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
         const Quaternion& turn = carrier->orientation;
         double w = D(turn.w), x = D(turn.x), y = D(turn.y), z = D(turn.z);
         double xx = x * x;
-        double axisX = w * w - (z * z + y * y + xx) + (xx + xx);
-        float axisY = Store((x * y + z * w) * 2.0);
+        double axisX = w * w - LengthSquaredUnrounded<Sum3::ZYX>(x, y, z) + (xx + xx);
+        float axisY = Store(Dot2DUnrounded(x, z, y, w) * 2.0);   // (xy + zw) * 2
         float axisZ = Store((x * z - y * w) * 2.0);
         float scale = Store(D(carrier->radius) * D(p->velocity.x) * D(GameFloat(0x0073CE08)));    // 0.65
         float offsetY = Store(D(axisY) * D(scale));
@@ -3980,7 +3974,7 @@ void RandomInBall(float& x, float& y, float& z, double& lengthSquared) {
         x = SignedUnit();
         y = SignedUnit();
         z = Store(Range(-1.0f, 1.0f));
-        lengthSquared = D(y) * D(y) + D(z) * D(z) + D(x) * D(x);
+        lengthSquared = LengthSquaredUnrounded<Sum3::ZYX, double>(x, y, z);   // (y + z) + x
         if (!(lengthSquared >= D(EI_P_ONE))) break;
         if (!(--tries > 0)) break;
     }
