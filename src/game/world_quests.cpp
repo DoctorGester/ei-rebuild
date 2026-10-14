@@ -171,7 +171,6 @@ __declspec(naked) int __cdecl GameFtol(double) {
     }
 }
 // 006AC970 (RET 4). The item manager (007AFFB4) creates an item by name. Patched by Rebirth.
-__declspec(naked) CEngineObject* __fastcall CreateItemByName(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
 __declspec(naked) void __fastcall TempListConstruct(mfc::CTypedPtrList<void>*, void*, int /*blockSize*/) EI_ORIGINAL(0x00598EC0)
@@ -190,7 +189,7 @@ CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
     mfc::CTypedPtrList<void>* second = fromSecond ? &lists[1] : &lists[0];
     TempListConstruct(first, nullptr, 10);
     TempListConstruct(second, nullptr, 10);
-    CEngineObject* item = CreateItemByName(WorldItemManager(), nullptr, name);
+    CEngineObject* item = ItemManagerCreateItemOriginal(WorldItemManager(), nullptr, name);
     TempListDestruct(second, nullptr);
     TempListDestruct(first, nullptr);
     return item;

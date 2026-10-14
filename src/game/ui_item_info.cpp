@@ -272,13 +272,11 @@ int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_c
 
 // Items and spells (thiscall).
 struct ItemAt {
-    char* Prototype();                      // 006A0110
-    int Category();                         // 006A4230
+    char* Prototype() { return ItemGetPrototypeOriginal(reinterpret_cast<CItem*>(this)); }   // 006A0110
+    int Category() { return ItemGetCategoryOriginal(reinterpret_cast<CItem*>(this)); }       // 006A4230
     int WeaponType();                       // 006A07F0
     void DamageTypes(float* out);           // 006A0770
 };
-__declspec(naked) char* ItemAt::Prototype() EI_ORIGINAL(0x006A0110)
-__declspec(naked) int ItemAt::Category() EI_ORIGINAL(0x006A4230)
 __declspec(naked) int ItemAt::WeaponType() EI_ORIGINAL(0x006A07F0)
 __declspec(naked) void ItemAt::DamageTypes(float*) EI_ORIGINAL(0x006A0770)
 ItemAt* Of(CItem* item) { return reinterpret_cast<ItemAt*>(item); }

@@ -30,6 +30,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "originals_effects.h"
+#include "originals_gameplay.h"
 #include "originals_script.h"
 #include "originals_core.h"
 
@@ -410,7 +411,6 @@ inline void __fastcall TextAssignChars(mfc::CString* s, void*, const char* t) { 
 void __fastcall TextAssign(mfc::CString* a0, void*, const mfc::CString* a2) { CStringAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 void __fastcall TextArrayCopy(void* a0, void*, const void* a2) { StringArrayCopyOriginal(a0, nullptr, a2); }
 void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { UnitSetHostileMaskOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
-__declspec(naked) CEngineObject* __fastcall ItemsCreateItem(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 __declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) EI_ORIGINAL(0x00477B00)
 UnitPrototypeRecord** __fastcall UnitPrototypeAt(void* a0, void*, const void* a2) { return (UnitPrototypeRecord**)PrototypeMapAtOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall ObjectSetup8(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0052B3F0)
@@ -590,7 +590,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             const mfc::CStringArray& worn = unitSpec->lists[1];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
-                UnitAddQuickItemOriginal(object, nullptr, ItemsCreateItem(ItemFactory(), nullptr, name));
+                UnitAddQuickItemOriginal(object, nullptr, ItemManagerCreateItemOriginal(ItemFactory(), nullptr, name));
             }
             UnitRecordApply(unitSpec->stats, nullptr, object);
             // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.

@@ -33,28 +33,31 @@ namespace {
 // 0x11 / 0x12 without a material), with the level (prototype +0x44 + material +0x1C, as a float)
 // and the power limit (prototype +0x40 + material +0x18). Sets only AL.
 struct Constructor : ItemConstructorManagerOriginal {
-    int BeginCreateItem(int kind, int key);         // 006A5C50
-    int SetMaterial(char* material);                // 006A5CC0
-    int SetPrototype(char* prototype);              // 006A5CD0
-    int SetSpellObject(void* spell);                // 006A5CE0
-    CItem* EndCreateItem();                         // 006A5CF0
+    int BeginCreateItem(int kind, int key) {        // 006A5C50
+        return ItemConstructorBeginCreateItemOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr, kind, key);
+    }
+    int SetMaterial(char* material) {               // 006A5CC0
+        return ItemConstructorSetMaterialOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr, material);
+    }
+    int SetPrototype(char* prototype) {             // 006A5CD0
+        return ItemConstructorSetPrototypeOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr, prototype);
+    }
+    int SetSpellObject(void* spell) {               // 006A5CE0
+        return ItemConstructorSetSpellObjectOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr, static_cast<CSpell*>(spell));
+    }
+    CItem* EndCreateItem() {                        // 006A5CF0
+        return ItemConstructorEndCreateItemOriginal(reinterpret_cast<CItemConstructor*>(this));
+    }
     int Cancel();                                   // 006A5D30
     bool MagicCapacity(float* level, float* power); // 006A6480
 
     std::uint8_t unknown_00[0x30];
     int count;                                      // +0x30 the stack size (CItemConstructor::count_)
 };
-__declspec(naked) int Constructor::BeginCreateItem(int, int) EI_ORIGINAL(0x006A5C50)
-__declspec(naked) int Constructor::SetMaterial(char*) EI_ORIGINAL(0x006A5CC0)
-__declspec(naked) int Constructor::SetPrototype(char*) EI_ORIGINAL(0x006A5CD0)
-__declspec(naked) int Constructor::SetSpellObject(void*) EI_ORIGINAL(0x006A5CE0)
-__declspec(naked) CItem* Constructor::EndCreateItem() EI_ORIGINAL(0x006A5CF0)
 __declspec(naked) int Constructor::Cancel() EI_ORIGINAL(0x006A5D30)
 __declspec(naked) bool Constructor::MagicCapacity(float*, float*) EI_ORIGINAL(0x006A6480)
 static_assert(offsetof(Constructor, count) == offsetof(CItemConstructor, count_));
 
-// 006A4230: an item's category (thiscall).
-__declspec(naked) int __fastcall ItemCategory(CItem*) EI_ORIGINAL(0x006A4230)
 // 0069A480 (RET 4): fills the stock's spell and modifier maps from a spell table (007C8568 for
 // weapons, 007C855C for armors). 0069A780 (RET 0xC): random spells into a list of counted spell
 // pointers, from the maps, with the level per school (8 floats) and a percentage threshold.
@@ -337,7 +340,7 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);
-        if (item->type_ == 0x3006 && ItemCategory(item) == 8)
+        if (item->type_ == 0x3006 && ItemGetCategoryOriginal(item) == 8)
             item->unknown_48 = static_cast<std::uint32_t>(gamecrt::rand() * 30 / 0x7FFF % 30 + 20);
         Output(out, item);
         DestroySpellList(spellList);

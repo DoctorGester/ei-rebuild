@@ -167,7 +167,6 @@ std::uint32_t IndexIn(const RecordTable& table, const char* record, int stride) 
 
 // Called through their game addresses so the verify wrappers see the nested calls.
 __declspec(naked) void __fastcall CallItemSetSpell(CItem*, void*, CSpell*) EI_ORIGINAL(0x006A0520)
-__declspec(naked) void __fastcall CallItemAttachSpell(CItem*, void*, CSpell*) EI_ORIGINAL(0x006A04D0)
 __declspec(naked) BOOL __fastcall CallBuild(CItemConstructor*) EI_ORIGINAL(0x006A5D60)
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -412,7 +411,7 @@ BOOL CItemConstructor::Build() {
         spell_ = spell;
         CallItemSetSpell(item_, nullptr, spell);
     } else if (spell_) {
-        CallItemAttachSpell(item_, nullptr, spell_);
+        ItemAttachSpellOriginal(item_, nullptr, spell_);
     }
     if (record) DeleteRecord(record);
 
@@ -571,7 +570,7 @@ CItem* CItemManager::CreateItem(const char* name) {
             char* record = FindQuickNamed(kQuickTable, nullptr, kSpellContainer);
             int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
             item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
-            if (item) CallItemAttachSpell(item, nullptr, spell);
+            if (item) ItemAttachSpellOriginal(item, nullptr, spell);
         }
         return item;
     }
@@ -672,7 +671,7 @@ CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spell
     char* record = FindQuickNamed(kQuickTable, nullptr, kSpellContainer);
     int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
     CItem* item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
-    if (item) CallItemAttachSpell(item, nullptr, spell);
+    if (item) ItemAttachSpellOriginal(item, nullptr, spell);
     return item;
 }
 EI_REPLACE_METHOD(0x006AD1E0, CItemManager::CreateSpellItem);

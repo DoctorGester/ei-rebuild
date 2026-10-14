@@ -18,6 +18,7 @@
 #include "ui_camp.h"
 #include "ui_item_info.h"
 #include "originals_ui.h"
+#include "originals_gameplay.h"
 #include "unit.h"
 
 #include "ei/hook.h"
@@ -83,7 +84,6 @@ void Flush(UiRenderer* device) {
 
 // Through their original addresses, as the original calls them.
 // 006A39E0 (thiscall on an armour item): its body part type (rewritten, item.cpp).
-__declspec(naked) int __fastcall ArmourType(void*) EI_ORIGINAL(0x006A39E0)
 
 // 00602BF0 / 00632A90 share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
@@ -171,7 +171,7 @@ int __fastcall HeroEquipPanelDraw(CHeroEquipPanel* self, void*, int pass) {
     ClearDepth(DeviceOf(self), 7, slots, 1.0f);
     for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) {
         CItem* item = static_cast<CItem*>(hero->armor[i]);
-        int type = ArmourType(item);
+        int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
         ItemCell cell{item, static_cast<float>(centreX[type]), static_cast<float>(centreY[type]), 6.0f, 100.0f,
                       self->mode_};
         ItemScreenDrawItemOriginal(owner, nullptr, pass, &cell);
