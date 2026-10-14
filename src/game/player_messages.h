@@ -342,8 +342,11 @@ public:
     virtual int Receive();                  // 23: server 0066D270, client 00667A30
 
     CPlayer* player_;   // +0x1C the owner (set by CPlayer::SetConnection)
+    int state_;         // +0x20 both classes' state_ (1: logged in / joined)
 };
 static_assert(offsetof(CPlayerConnection, player_) == 0x1C);
+static_assert(offsetof(CPlayerConnection, state_) == 0x20);
+static_assert(offsetof(CPlayerServer, state_) == 0x20);
 
 // A world player (vtable 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by 0066C110).
 // player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists.
