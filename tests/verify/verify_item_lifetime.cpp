@@ -101,14 +101,14 @@ CItemSpell* __fastcall SpellCtorVerify(CItemSpell* self) {
 }
 
 int __fastcall CreateVerify(CItem* self) {
-    int result = self->CreateItem();
-    ei::verify::Check("CItem::CreateItem", true, result == 1 && self->count_ == 1 && self->spell_ == nullptr,
+    int result = self->CItem::Create();
+    ei::verify::Check("CItem::Create", true, result == 1 && self->count_ == 1 && self->spell_ == nullptr,
                       "item %p", self);
     return result;
 }
 void __fastcall DestroyVerify(CItem* self) {
-    self->DestroyItem();
-    ei::verify::Check("CItem::DestroyItem", true, self->spell_ == nullptr && self->link_ == 0, "item %p", self);
+    self->CItem::Destroy();
+    ei::verify::Check("CItem::Destroy", true, self->spell_ == nullptr && self->link_ == 0, "item %p", self);
 }
 
 // What the destructor body leaves: CEngineObject's vtable, no owner, spell or link.
@@ -159,8 +159,8 @@ EI_VERIFY(0x006A5720, DeletingVerify, 0, s_unused);
 // the factory allocates; a new item reports the kind's class and carries the kind in type_.
 namespace {
 BOOL __fastcall ManagerCreateVerify(CItemManager* self) {
-    BOOL result = ItemManagerCreate(self);
-    ei::verify::Check("ItemManagerCreate", true, result == 0 || result == 1, "manager %p -> %d", static_cast<void*>(self),
+    BOOL result = self->CItemManager::Create();
+    ei::verify::Check("CItemManager::Create", true, result == 0 || result == 1, "manager %p -> %d", static_cast<void*>(self),
                       result);
     return result;
 }
@@ -178,11 +178,11 @@ int ClassOfKind(int kind) {
 }
 
 CEngineObject* __fastcall NewObjectVerify(CBaseManager* manager, void*, int kind) {
-    CEngineObject* object = ItemNewObject(manager, nullptr, kind);
+    CEngineObject* object = static_cast<CItemManager*>(manager)->CItemManager::NewObject(kind);
     const int expectedClass = ClassOfKind(kind);
     const bool ok = expectedClass < 0 ? object == nullptr
                                       : object == nullptr || (object->type_ == kind && object->GetClassId() == expectedClass);
-    ei::verify::Check("ItemNewObject", true, ok, "kind %X object %p", kind, static_cast<void*>(object));
+    ei::verify::Check("CItemManager::NewObject", true, ok, "kind %X object %p", kind, static_cast<void*>(object));
     return object;
 }
 } // namespace

@@ -14,14 +14,6 @@ using ei::SetVtable;
 
 namespace {
 
-// The subclasses' vtables.
-std::uintptr_t WeaponVtable() { return static_cast<std::uintptr_t>(0x00743DFC); }
-std::uintptr_t ArmorVtable() { return static_cast<std::uintptr_t>(0x00743E54); }
-std::uintptr_t QuickVtable() { return static_cast<std::uintptr_t>(0x00743EAC); }
-std::uintptr_t QuestVtable() { return static_cast<std::uintptr_t>(0x00743F04); }
-std::uintptr_t LootVtable() { return static_cast<std::uintptr_t>(0x00743F5C); }
-std::uintptr_t SpellVtable() { return static_cast<std::uintptr_t>(0x00743FB4); }
-
 constexpr std::uint32_t kMinusOne = 0xBF800000;   // -1.0f, stored as a dword
 
 template <typename T>
@@ -42,13 +34,11 @@ void DropSpell(void*& spell) {
 
 } // namespace
 
-std::uintptr_t CItem::Vtable() { return static_cast<std::uintptr_t>(0x00743DA4); }
-
 CItem* CItem::Construct() {
     ClearFields();
     link_ = 0;
     spell_ = nullptr;
-    SetVtable(this, Vtable());
+    SetVtable(this, kVtableAddress);
     SetMinusOne(condition_);
     SetMinusOne(conditionMax_);
     SetMinusOne(charge_);
@@ -63,24 +53,30 @@ CItem* CItem::Construct() {
 }
 EI_REPLACE_METHOD(0x0069FCA0, CItem::Construct);
 
-int CItem::CreateItem() {
+int CItem::Create() {
     count_ = 1;
     DropSpell(spell_);
     return 1;
 }
-EI_REPLACE_METHOD(0x0069FE20, CItem::CreateItem);
 
-void CItem::DestroyItem() {
+void CItem::Destroy() {
     DropSpell(spell_);
     CRefCounted* link = Link(link_);
     link_ = 0;
     if (link != nullptr && --link->refs_ == 0) delete link;
 }
-EI_REPLACE_METHOD(0x0069FE50, CItem::DestroyItem);
+
+namespace {
+// Slots 2 and 3's entry points (rule 4).
+int __fastcall ItemCreateHook(CItem* self) { return self->CItem::Create(); }
+void __fastcall ItemDestroyHook(CItem* self) { self->CItem::Destroy(); }
+} // namespace
+EI_REPLACE(0x0069FE20, ItemCreateHook);
+EI_REPLACE(0x0069FE50, ItemDestroyHook);
 
 void CItem::DestructBody() {
-    SetVtable(this, Vtable());
-    DestroyItem();
+    SetVtable(this, kVtableAddress);
+    CItem::Destroy();
     // The members' destructors: the spell released and the link's count dropped, without clearing.
     if (spell_ != nullptr) static_cast<CEngineObject*>(spell_)->Release();
     CRefCounted* link = Link(link_);
@@ -110,7 +106,7 @@ EI_REPLACE_METHOD(0x006A5720, CItem::DeletingDestruct);
 
 CItemWeapon* CItemWeapon::Construct() {
     CItem::Construct();
-    SetVtable(this, WeaponVtable());
+    SetVtable(this, kVtableAddress);
     SetMinusOne(damage_);
     SetMinusOne(damageSpread_);
     SetMinusOne(reach_);
@@ -121,7 +117,7 @@ EI_REPLACE_METHOD(0x006A0540, CItemWeapon::Construct);
 
 CItemArmor* CItemArmor::Construct() {
     CItem::Construct();
-    SetVtable(this, ArmorVtable());
+    SetVtable(this, kVtableAddress);
     std::memset(absorb_, 0, sizeof(absorb_));
     layerMask_[1] = 0;
     layerMask_[0] = 0;
@@ -131,36 +127,35 @@ EI_REPLACE_METHOD(0x006A2F20, CItemArmor::Construct);
 
 CItemQuick* CItemQuick::Construct() {
     CItem::Construct();
-    SetVtable(this, QuickVtable());
+    SetVtable(this, kVtableAddress);
     return this;
 }
 EI_REPLACE_METHOD(0x006A3AD0, CItemQuick::Construct);
 
 CItemQuest* CItemQuest::Construct() {
     CItem::Construct();
-    SetVtable(this, QuestVtable());
+    SetVtable(this, kVtableAddress);
     return this;
 }
 EI_REPLACE_METHOD(0x006A43A0, CItemQuest::Construct);
 
 CItemLoot* CItemLoot::Construct() {
     CItem::Construct();
-    SetVtable(this, LootVtable());
+    SetVtable(this, kVtableAddress);
     return this;
 }
 EI_REPLACE_METHOD(0x006A49A0, CItemLoot::Construct);
 
 CItemSpell* CItemSpell::Construct() {
     CItem::Construct();
-    SetVtable(this, SpellVtable());
+    SetVtable(this, kVtableAddress);
     return this;
 }
 EI_REPLACE_METHOD(0x006A56E0, CItemSpell::Construct);
 
 // --- The item manager's Create and factory (A-H25) -------------------------------------------------
 
-BOOL __fastcall ItemManagerCreate(CItemManager* self) { return self->CBaseManager::Create() != 0 ? 1 : 0; }
-EI_REPLACE(0x006AC780, ItemManagerCreate);
+int CItemManager::Create() { return CBaseManager::Create() != 0 ? 1 : 0; }
 
 static_assert(sizeof(CItemWeapon) == 0x5C && sizeof(CItemArmor) == 0x8C && sizeof(CItemLoot) == 0x58);
 static_assert(sizeof(CItemQuest) == 0x50 && sizeof(CItemSpell) == 0x50);
@@ -173,7 +168,7 @@ CEngineObject* NewItem() {
 }
 } // namespace
 
-CEngineObject* __fastcall ItemNewObject(CBaseManager*, void*, int kind) {
+CEngineObject* CItemManager::NewObject(int kind) {
     CEngineObject* object;
     switch (kind) {
     case 0x3004: object = NewItem<CItemWeapon>(); break;
@@ -187,4 +182,13 @@ CEngineObject* __fastcall ItemNewObject(CBaseManager*, void*, int kind) {
     if (object != nullptr) object->type_ = kind;
     return object;
 }
-EI_REPLACE(0x006AC810, ItemNewObject);
+
+namespace {
+// Slots 2 and 14's entry points (rule 4).
+int __fastcall ItemManagerCreateHook(CItemManager* self) { return self->CItemManager::Create(); }
+CEngineObject* __fastcall ItemManagerNewObjectHook(CItemManager* self, void*, int kind) {
+    return self->CItemManager::NewObject(kind);
+}
+} // namespace
+EI_REPLACE(0x006AC780, ItemManagerCreateHook);
+EI_REPLACE(0x006AC810, ItemManagerNewObjectHook);

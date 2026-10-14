@@ -182,13 +182,12 @@ EI_REPLACE_METHOD(0x006A0520, CItem::SetSpell);
 
 // --- CItemConstructor ----------------------------------------------------------------------------
 
-BOOL CItemConstructor::Reset() {
-    Detach();
+int CItemConstructor::Create() {
+    CItemConstructor::Destroy();
     return 1;
 }
-EI_REPLACE_METHOD(0x006A5B90, CItemConstructor::Reset);
 
-void CItemConstructor::Detach() {
+void CItemConstructor::Destroy() {
     if (manager_) --manager_->refCount_;
     manager_ = nullptr;
     if (item_) item_->Release();
@@ -197,11 +196,18 @@ void CItemConstructor::Detach() {
     prototype_ = nullptr;
     spell_ = nullptr;
 }
-EI_REPLACE_METHOD(0x006A5BD0, CItemConstructor::Detach);
+
+namespace {
+// Slots 2 and 3's entry points (rule 4).
+int __fastcall ConstructorCreateHook(CItemConstructor* self) { return self->CItemConstructor::Create(); }
+void __fastcall ConstructorDestroyHook(CItemConstructor* self) { self->CItemConstructor::Destroy(); }
+} // namespace
+EI_REPLACE(0x006A5B90, ConstructorCreateHook);
+EI_REPLACE(0x006A5BD0, ConstructorDestroyHook);
 
 void CItemConstructor::DestructBody() {
     ei::SetVtable(this, kVtableAddress);
-    Detach();
+    CItemConstructor::Destroy();
     DestructBase();
 }
 EI_REPLACE_METHOD(0x006A5B20, CItemConstructor::DestructBody);

@@ -43,7 +43,7 @@ EI_VERIFY(0x006A4230, GetCategoryVerify, 9, s_getCategory);
 static BOOL(__fastcall* s_recharge)(CItem*);
 static BOOL __fastcall RechargeVerify(CItem* self) {
     std::uint32_t beforeBits = Bits(self->charge_);
-    BOOL actual = self->Recharge();
+    BOOL actual = self->CItem::RunTick();
     std::uint32_t actualCharge = Bits(self->charge_);
     std::memcpy(&self->charge_, &beforeBits, sizeof(float));
     BOOL expected = s_recharge(self);

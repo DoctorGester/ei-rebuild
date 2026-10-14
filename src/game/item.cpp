@@ -48,7 +48,7 @@ int CItem::GetCategory() {
 }
 EI_REPLACE_METHOD(0x006A4230, CItem::GetCategory);
 
-BOOL CItem::Recharge() {
+int CItem::RunTick() {
     if (EqualOrUnordered(charge_, chargeMax_)) return 0;
     if (!(chargeRate_ > kZero)) {
         std::memcpy(&charge_, &chargeMax_, sizeof(float));
@@ -58,7 +58,11 @@ BOOL CItem::Recharge() {
     if (charge_ >= chargeMax_) std::memcpy(&charge_, &chargeMax_, sizeof(float));
     return 1;
 }
-EI_REPLACE_METHOD(0x006A0070, CItem::Recharge);
+namespace {
+// Slot 6's entry point (rule 4).
+int __fastcall ItemRunTickHook(CItem* self) { return self->CItem::RunTick(); }
+} // namespace
+EI_REPLACE(0x006A0070, ItemRunTickHook);
 
 int CItemWeapon::GetType() {
     return WeaponAt(PrototypeIndex(unknown_18))->type;

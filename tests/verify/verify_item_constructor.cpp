@@ -86,16 +86,16 @@ bool Cleared(const CItemConstructor* self) {
 
 static void* s_ctorReset;
 static BOOL __fastcall CtorResetVerify(CItemConstructor* self) {
-    BOOL result = self->Reset();
-    ei::verify::Check("CItemConstructor::Reset", true, result == 1 && Cleared(self), "%p", self);
+    BOOL result = self->CItemConstructor::Create();
+    ei::verify::Check("CItemConstructor::Create", true, result == 1 && Cleared(self), "%p", self);
     return result;
 }
 EI_VERIFY(0x006A5B90, CtorResetVerify, 0, s_ctorReset);
 
 static void* s_ctorDetach;
 static void __fastcall CtorDetachVerify(CItemConstructor* self) {
-    self->Detach();
-    ei::verify::Check("CItemConstructor::Detach", true, Cleared(self), "%p", self);
+    self->CItemConstructor::Destroy();
+    ei::verify::Check("CItemConstructor::Destroy", true, Cleared(self), "%p", self);
 }
 EI_VERIFY(0x006A5BD0, CtorDetachVerify, 0, s_ctorDetach);
 
