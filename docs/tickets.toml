@@ -139,8 +139,9 @@ note = "The harness patches the CALL at 00457595, so WinMain 00456440's original
 id = "PF3"
 title = "Create DirectDraw once at startup"
 group = "renderer"
-status = "later"
-note = "Profile 2026-10-14: under dgVoodoo every DirectDrawCreateEx builds a D3D12 device (~190 ms, with driver signature checks). Startup does it four times: GetDxVersion's two probes (~390 ms), FirstHardwareDirectDrawDriver (~195 ms) and CTextureDevice::CreateDirectDraw (the one kept). Skipping the probes (DirectX 7 is a given) and reusing the enumerated object saves ~0.6 s of the ~1.8 s to the main menu, but changes what the original does; also fixes R9b1. Waits on the user's decision (flag, native only, or standalone only)."
+status = "running"
+note = "Profile 2026-10-14: under dgVoodoo every DirectDrawCreateEx builds a D3D12 device (~190 ms, with driver signature checks). Startup does it four times: GetDxVersion's two probes (~390 ms), FirstHardwareDirectDrawDriver (~195 ms) and CTextureDevice::CreateDirectDraw (the one kept). Skipping the probes (DirectX 7 is a given) and reusing the enumerated object saves ~0.6 s of the ~1.8 s to the main menu, but changes what the original does; also fixes R9b1. Waits on the user's decision (flag, native only, or standalone only). Decided (user 2026-10-14): only in native runs (EI_RENDER present, run/native) and the standalone exe; vanilla and Rebirth runs keep the original's probes."
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -551,11 +552,12 @@ done = "2026-10-14"
 id = "PF2"
 title = "Faster hook installation"
 group = "harness"
-status = "queued"
+status = "running"
 size = 0.5
 model = "sonnet"
 files = ["src/hook/hook.cpp"]
 note = "Profile 2026-10-14: installing ~6000 hooks costs ~300 ms per launch: ThunkEntryAt and VerifyEntry scan the whole hook list per hook (O(n^2), 130 ms), two VirtualProtect calls per hook (page-table work, ~160 ms), and one VirtualAlloc (a 64 KB granule) per trampoline. Index hooks by address, unprotect .text once, allocate trampolines from one block. Harness only, every run benefits."
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- cleanup
 
@@ -821,11 +823,12 @@ note = "The connection screen Create / list draw, exchange slots 0062D100 / 0062
 id = "PF1"
 title = "Script keyword matching without per-character locale calls"
 group = "port"
-status = "queued"
+status = "running"
 size = 0.5
 model = "opus"
 files = ["src/game/script_parse.cpp"]
 note = "Profile 2026-10-14 (EI_PROFILE, Superluminal): ClassifyToken (004CF600) calls the game CRT's _strnicmp for every keyword of every token; under the game's locale each character goes through LCMapStringW. That is ~55% of the first map load (390 of 720 ms, zone scripts) and ~200 ms at startup. Same results with a 256-byte fold table built from the game CRT's own tolower (rebuilt if the CRT's LC_CTYPE handle changes), used as a first-character prefilter or a full strnicmp. No behaviour change; scripts/world_load reach it."
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- docs
 
