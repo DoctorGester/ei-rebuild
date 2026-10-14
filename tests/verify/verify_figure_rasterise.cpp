@@ -4,41 +4,48 @@
 // more into the real rasteriser.
 #include "verify.h"
 
+#include "../../src/game/figure_mesh.h"
+#include "../../src/game/texture.h"
+
 #include <cstdint>
 #include <cstring>
 #include <vector>
 
-int __fastcall RasteriseFigureMesh(char* mesh, void*, void* rasteriser, const void* points, std::uint8_t* triangle);
+int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* rasteriser, const RasterTriangle::Point* points,
+                                   RasterTriangle* triangle);
 
 namespace {
-using RasteriseFn = int(__fastcall*)(char*, void*, void*, const void*, std::uint8_t*);
+using RasteriseFn = int(__fastcall*)(CFigureMesh*, void*, CPixelConverter*, const RasterTriangle::Point*, RasterTriangle*);
 RasteriseFn s_original;
 
 std::vector<std::uint8_t>* s_record;
 
-void Record(int slot, const std::uint8_t* triangle) {
+void Record(int slot, const RasterTriangle* triangle) {
+    const auto* bytes = reinterpret_cast<const std::uint8_t*>(triangle);
     s_record->push_back(static_cast<std::uint8_t>(slot));
-    s_record->insert(s_record->end(), triangle, triangle + 0x34);
+    s_record->insert(s_record->end(), bytes, bytes + sizeof(RasterTriangle));
 }
-void __fastcall Slot8(void*, void*, const std::uint8_t* triangle) { Record(8, triangle); }
-void __fastcall Slot9(void*, void*, const std::uint8_t* triangle) { Record(9, triangle); }
+void __fastcall Slot8(void*, void*, const RasterTriangle* triangle) { Record(8, triangle); }
+void __fastcall Slot9(void*, void*, const RasterTriangle* triangle) { Record(9, triangle); }
 
 void* s_vtable[10];
 struct StandIn {
     void** vtable;
 };
 
-int RunInto(RasteriseFn fn, char* mesh, const void* points, std::uint8_t* triangle, std::vector<std::uint8_t>& out) {
+int RunInto(RasteriseFn fn, CFigureMesh* mesh, const RasterTriangle::Point* points, RasterTriangle* triangle,
+            std::vector<std::uint8_t>& out) {
     s_vtable[8] = reinterpret_cast<void*>(&Slot8);
     s_vtable[9] = reinterpret_cast<void*>(&Slot9);
     StandIn standIn{s_vtable};
     s_record = &out;
-    return fn(mesh, nullptr, &standIn, points, triangle);
+    return fn(mesh, nullptr, reinterpret_cast<CPixelConverter*>(&standIn), points, triangle);
 }
 } // namespace
 
 // 005A0E80.
-static int __fastcall RasteriseVerify(char* mesh, void*, void* rasteriser, const void* points, std::uint8_t* triangle) {
+static int __fastcall RasteriseVerify(CFigureMesh* mesh, void*, CPixelConverter* rasteriser, const RasterTriangle::Point* points,
+                                      RasterTriangle* triangle) {
     std::vector<std::uint8_t> expected, actual;
     int original = RunInto(s_original, mesh, points, triangle, expected);
     int result = RunInto(&RasteriseFigureMesh, mesh, points, triangle, actual);

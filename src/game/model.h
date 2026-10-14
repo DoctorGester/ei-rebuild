@@ -412,13 +412,25 @@ struct LinkArchiveNode {
 };
 static_assert(sizeof(LinkArchiveNode) == 0x18);
 
-// A figure's own archive set (0x20 bytes, constructor 005A9A50): the .mod archive first, opened
-// with the .bon / .anm ones by 005A9EB0. Found or made by 004FAB00 (FindFigureSet).
-struct LinkFigureSet {
-    CMappedResource* model;   // +0x00 the .mod archive
-    std::uint8_t unknown_04[0x1C];
+// A figure's cached model (0x20 bytes, constructor 005A9A50, destructor 005A9C90): the mesh, bones
+// and animation archives of "<name>.mod / .bon / .anm" (0x6C-byte CMMIOResource objects; null when
+// missing), then the animations read from the last by name (005A9EF0). The figure manager
+// (CFigureManager::models_, 005AA5F0) and the link figure loader (its figure sets, 004FAB00) cache
+// them by name.
+struct FigureModel {
+    using AnimationMap = stlp::hash_map<stlp::string, CMappedResource*, stlp::StringHash>;
+
+    CMappedResource* mesh;          // +0x00 the .mod archive
+    CMappedResource* bones;         // +0x04
+    CMappedResource* animations;    // +0x08
+    AnimationMap animationCache;    // +0x0C each a CMMIOResource over the animation's data
+
+    // 005A9EB0 (RET 0xC; the link figure loader's sets, 004FAB00; figure_manager.cpp, A-W14). Opens
+    // the three archives from the images of the figure's .mod / .bon / .anm files (OpenFromMemory);
+    // a null image leaves its archive alone.
+    void Open(const void* mod, const void* bon, const void* anm);
 };
-static_assert(sizeof(LinkFigureSet) == 0x20);
+static_assert(offsetof(FigureModel, animationCache) == 0x0C && sizeof(FigureModel) == 0x20);
 
 // Loads .lnk link files and the figures they name (vtable 0073D808, 7 slots; created at startup with
 // figures.res and menus.res by 004F68C0, a Rebirth-patched function). A figure is a CLinkMesh of
@@ -480,10 +492,10 @@ public:
     // 004FAB00 (RET 4; A-S8). Figure `name`'s own archive set: the cached one, else (when an open
     // archive has "<name>.mod") a new set (005A9A50) stored under the name and loaded from the first
     // archives with "<name>.mod" / ".bon" / ".anm" (005A9EB0); null without a .mod.
-    LinkFigureSet* FindFigureSet(const stlp::string* name);
+    FigureModel* FindFigureSet(const stlp::string* name);
     // 004F9E50 (RET 0x18, AL; A-S8). Part `name` of `mesh` morphed again by s, t, u from its record
     // (the figure set's model, else "<mesh name><name>.fig" in the archives): false without one.
-    bool RemorphPart(CLinkMesh* mesh, LinkFigureSet* set, const stlp::string* name, float s, float t, float u);
+    bool RemorphPart(CLinkMesh* mesh, FigureModel* set, const stlp::string* name, float s, float t, float u);
     // 004F9FD0 / 004FA670 (RET 0x18; link_figure.cpp). The record at *cursor (moved past the
     // vertices) morphed into the part's vertex packets (CLinkMesh::SetPartVertices) and its header's
     // bounds refitted. The FIG one reads every record as FIG8 (header, bounds and vertices).
@@ -500,7 +512,7 @@ public:
     int refCount_;                    // +0x04
     ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC
     LinkArchiveNode* archives_;       // +0x0C list sentinel
-    stlp::hash_map<stlp::string, LinkFigureSet*, stlp::StringHash> figureSets_;   // +0x10 by figure name
+    stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> figureSets_;   // +0x10 by figure name
     CTextureDevice* renderer_;        // +0x24 the device object, counted; meshes take their pipeline from it
     stlp::map<stlp::string, CLinkMesh*> cache_;   // +0x28 a multimap of counted references
 };

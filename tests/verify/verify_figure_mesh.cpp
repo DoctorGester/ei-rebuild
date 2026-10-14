@@ -139,7 +139,7 @@ void CompareLoad(const char* name, LoadFn original, void (CFigureMesh::*ours)(ch
     const char* what = nullptr;
     if (theirs != *cursor) what = "cursor";
     else if (copy->flags_ != self->flags_) what = "flags";
-    else if (copy->unknown_158 != self->unknown_158 || copy->unknown_15C != self->unknown_15C) what = "header words";
+    else if (copy->unknown_158 != self->unknown_158 || copy->meshType_ != self->meshType_) what = "header words";
     else if (std::memcmp(scratch.bytes + 0x160, reinterpret_cast<unsigned char*>(self) + 0x160, 0x1B4 - 0x160) != 0) what = "bounds";
     else if (!SameArray(copy->vertices_, self->vertices_, hadNone)) what = "vertices";
     else if (!SameArray(copy->normals_, self->normals_, hadNone)) what = "records";
@@ -326,8 +326,8 @@ void __fastcall SetOffsetsVerify(CFigureMesh* self, void*, const CFigureMesh::Of
 EI_VERIFY(0x005A0B10, SetOffsetsVerify, 0, s_setOffsets);
 
 // 005A0CD0 (draws), ours only: the result and, with offsets, the shared buffer's first vertex.
-int(__fastcall* s_drawOffset)(CFigureMesh*, void*, void*, void*, void*, void*);
-int __fastcall DrawOffsetVerify(CFigureMesh* self, void*, void* owner, void* a1, void* a2, void* a3) {
+int(__fastcall* s_drawOffset)(CFigureMesh*, void*, CTransformPipeline*, const float*, float*, float*);
+int __fastcall DrawOffsetVerify(CFigureMesh* self, void*, CTransformPipeline* owner, const float* a1, float* a2, float* a3) {
     int result = self->DrawOffset(owner, a1, a2, a3);
     bool ok = result == self->buffers_.vertexCount * 4;
     const auto* moved = reinterpret_cast<const lib::AlignedArray<VertexPacket>*>(0x007C2E18);

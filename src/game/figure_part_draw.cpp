@@ -586,13 +586,13 @@ void DrawThroughDevice(Part& part) {
         result = DrawMesh2(part.device, nullptr, part.textureA->surface_, part.textureB->surface_, positions, blocks,
                            Word(b.normals), b.normalCount, Word(mesh->colorsA_.data), Word(mesh->colorsB_.data),
                            Word(b.texCoords), b.texCoordCount, Word(b.corners), b.cornerCount, Word(b.words),
-                           b.wordCount, Word(b.indices), b.indexCount, mesh->unknown_0CC, mesh->unknown_0D0, part.alpha,
+                           b.wordCount, Word(b.indices), b.indexCount, mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha,
                            part.drawFlags);
     } else {
         result = DrawMesh(reinterpret_cast<char*>(part.device), nullptr, positions, blocks, Word(b.normals),
                           b.normalCount, Word(mesh->colorsA_.data), Word(mesh->colorsB_.data), Word(b.texCoords),
                           b.texCoordCount, Word(b.corners), b.cornerCount, Word(b.words), b.wordCount, Word(b.indices),
-                          b.indexCount, mesh->unknown_0CC, mesh->unknown_0D0, part.alpha, part.drawFlags);
+                          b.indexCount, mesh->textureOffsetU_, mesh->textureOffsetV_, part.alpha, part.drawFlags);
     }
     if (!part.rect) return;
     RECT* own = &part.node->screen_;
@@ -624,8 +624,8 @@ void DrawThroughFigure(Part& part) {
         StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
     }
     mesh = part.Mesh();
-    std::uint32_t u = mesh->unknown_0CC;
-    std::uint32_t v = mesh->unknown_0D0;
+    std::uint32_t u = mesh->textureOffsetU_;
+    std::uint32_t v = mesh->textureOffsetV_;
     ColourArray* colours = &part.Colours();
     ColourArray* speculars = &part.Speculars();
     lib::AlignedArray<Vector3>* offsets = &mesh->offsets_;
@@ -686,7 +686,7 @@ int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* dev
 
     int visibility = ClipTest(device->pipeline_, nullptr, &part.Mesh()->bounds_);
     if (visibility == 2) return 1;
-    int type = static_cast<int>(part.Mesh()->unknown_15C);
+    int type = static_cast<int>(part.Mesh()->meshType_);
     if (type >= 13 && type <= 16) {
         float time;
         TickTime(&time);

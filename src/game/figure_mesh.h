@@ -4,6 +4,7 @@
 // (class ids 0x41-0x44) and their loaders (0x005A0000-0x005B0000). Names provisional; see the
 // "Figure meshes" section of docs/notes/world.md.
 
+#include "core_transform.h"
 #include "maths.h"
 #include "model.h"
 
@@ -94,6 +95,8 @@ class CFigureMesh {
 public:
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073C224);   // class 0x44, the base
     static constexpr std::uintptr_t kMeshVtableAddress = std::uintptr_t(0x0073FC48);   // class 0x43
+    static constexpr std::uintptr_t kPlainMeshVtableAddress = std::uintptr_t(0x0073C1C4);   // class 0x42
+    static constexpr std::uintptr_t kSharedMeshVtableAddress = std::uintptr_t(0x0073FBF0);   // class 0x41
 
     // 005A18E0. Reads the bounding volume (centre, box, radius) that follows the mesh header and
     // morphs it: "FIG8" files hold 8 corner versions of each value, blended trilinearly by the
@@ -144,15 +147,16 @@ public:
         int count;
     };
     void SetOffsets(const OffsetSpan* offsets);
-    // 005A0CD0: draws through `pipelineOwner` (+0xC: the transform pipeline, slot 29) with the
-    // vertices moved by offsets_ when there are any (into the shared buffer at 007C2E18). Returns
-    // the vertex count (4 per packet). RET 0x10.
-    int DrawOffset(void* pipelineOwner, void* arg1, void* arg2, void* arg3);
+    // 005A0CD0: projects the vertices flat through `pipeline`'s transform object (ProjectFlat,
+    // slot 29: `matrix`, the points out, the bounds grown) with the vertices moved by offsets_ when
+    // there are any (into the shared buffer at 007C2E18). Returns the vertex count (4 per packet).
+    // RET 0x10.
+    int DrawOffset(CTransformPipeline* pipeline, const float* matrix, float* points, float* bounds);
     // 0059F710 / 0059F8F0 (vtable slots, RET 4; figure_mesh_file.cpp): write the mesh to / read it
     // from an MFC CFile: the name (+0x120, length then characters), each array as a count and its
     // elements, a 0, then centre, box, radius and +0x158 / +0x15C.
-    void SaveToFile(void* file);
-    void LoadFromFile(void* file);
+    void SaveToFile(mfc::CFileVirtuals* file);
+    void LoadFromFile(mfc::CFileVirtuals* file);
     // 0059F0F0 (slot 18, RET 4): copies another mesh's transform (00401490), name, the shared
     // buffer descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
     void CopyFrom(const CFigureMesh* other);
@@ -199,28 +203,30 @@ public:
     CBaseManager* manager_;             // +0x014 (CEngineObject: the manager that owns it)
     std::uint32_t unknown_018;
     Vector3 position_;                  // +0x01C (CTransformObject: local position)
-    std::uint8_t unknown_028[0x34 - 0x28];
+    Vector3 worldPosition_;             // +0x028 (CTransformObject; SetPose's moved position)
     Quaternion rotation_;               // +0x034 (CTransformObject: local rotation; a bone places it, 0050C230)
     Quaternion worldRotation_;          // +0x044 (CTransformObject)
     std::uint8_t unknown_054[0x94 - 0x54];
     FigureMeshDrawer* drawer_;          // +0x094 (00501D00 draws through it)
     CObject3D* owner_;                  // +0x098 the object whose figure (+0xF0) may draw the mesh
     MeshBuffers buffers_;               // +0x09C
-    // +0x0CC / +0x0D0 passed to the draws after the buffers: the texture offset (u, v floats) an
-    // animated mesh's drawer sets per frame (FigureMeshDrawer::Animate).
-    std::uint32_t unknown_0CC;
-    std::uint32_t unknown_0D0;
+    // +0x0CC / +0x0D0 passed to the draws after the buffers: the texture offset (u, v float bits)
+    // an animated mesh's drawer sets per frame (FigureMeshDrawer::Animate).
+    std::uint32_t textureOffsetU_;
+    std::uint32_t textureOffsetV_;
     std::uint32_t flatColour_;          // +0x0D4 every colour of a flat mesh (flags_ 0x100)
     std::uint32_t flatSpecular_;        // +0x0D8 every specular of a flat mesh
     std::uint32_t unknown_0DC;          // +0x0DC cleared by Create, copied by CopyFrom
-    std::uint8_t unknown_0E0[0x120 - 0xE0];
+    // +0x0E0 the pose matrix (row-major): SetPose's rotation, its translation row (+0x110) the
+    // moved position.
+    Matrix4 poseMatrix_;
     mfc::CString name_;                 // +0x120 (the scene loader names it after its mesh)
     mfc::CString directory_;            // +0x124 where its .fig file is (005AC2F0; NewFigure empties it)
     lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
     lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
     std::uint32_t unknown_158;          // +0x158 from the file header
-    std::uint32_t unknown_15C;          // +0x15C from the file header; the mesh type (13..16: animated, 005A7A70)
+    std::uint32_t meshType_;            // +0x15C from the file header; 13..16: animated (005A7A70)
     Vector3 center_;                    // +0x160
     Vector3 boxMin_;                    // +0x16C
     Vector3 boxMax_;                    // +0x178
@@ -238,8 +244,9 @@ public:
 static_assert(offsetof(CFigureMesh, flags_) == 0x08 && offsetof(CFigureMesh, rotation_) == 0x34);
 static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
 static_assert(offsetof(CFigureMesh, drawer_) == 0x94 && offsetof(CFigureMesh, owner_) == 0x98);
-static_assert(offsetof(CFigureMesh, unknown_0CC) == 0xCC && offsetof(CFigureMesh, flatSpecular_) == 0xD8);
-static_assert(offsetof(CFigureMesh, name_) == 0x120);
+static_assert(offsetof(CFigureMesh, textureOffsetU_) == 0xCC && offsetof(CFigureMesh, flatSpecular_) == 0xD8);
+static_assert(offsetof(CFigureMesh, worldPosition_) == 0x28 && offsetof(CFigureMesh, poseMatrix_) == 0xE0);
+static_assert(offsetof(CFigureMesh, name_) == 0x120 && offsetof(CFigureMesh, meshType_) == 0x15C);
 static_assert(offsetof(CFigureMesh, colorsA_) == 0x138);
 static_assert(offsetof(CFigureMesh, unknown_158) == 0x158);
 static_assert(offsetof(CFigureMesh, center_) == 0x160);
@@ -249,6 +256,18 @@ static_assert(offsetof(CFigureMesh, vertices_) == 0x1C0);
 static_assert(offsetof(CFigureMesh, corners_) == 0x1E0);
 static_assert(offsetof(CFigureMesh, texCoords_) == 0x210);
 static_assert(sizeof(CFigureMesh) == 0x220);
+
+// A figure object (classes 0x41-0x44, CFigureMesh's layout) as callers reach its slots through the
+// vtable: CTransformObject's (0-17), then 18-21 (as CSkyObject declares them). The slot bodies
+// stay members of CFigureMesh.
+class CFigureObjectVirtuals : public CTransformObject {
+public:
+    virtual void CopyFigure() = 0;                                              // 18: 0059F0F0
+    virtual void LoadFromMemory(char** cursor, float s, float t, float u) = 0;  // 19: 005A2490 / 005A4CF0
+    virtual void LoadFig(char** cursor, float s, float t, float u) = 0;         // 20: "FIG" data
+    virtual void LoadOld(char** cursor, float s, float t, float u) = 0;         // 21: the older format
+};
+inline CFigureObjectVirtuals* FigureSlots(CFigureMesh* figure) { return reinterpret_cast<CFigureObjectVirtuals*>(figure); }
 
 // The header in front of a FIG mesh: the magic ("FIG8" = 0x38474946 morphs) and the element
 // counts, then the two dwords at +0x158 / +0x15C.

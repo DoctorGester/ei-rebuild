@@ -294,6 +294,23 @@ static_assert(offsetof(CDXSurface, surface) == 0x10);
 static_assert(offsetof(CDXSurface, bitsPerPixel) == 0x1C);
 static_assert(sizeof(CDXSurface) == 0x20);
 
+// The start of the target the pixel converter's triangle rasterisers (slots 8 / 9) read: a shadow
+// triangle's three corners, each a screen and a texture point (moved as qwords), and the colour
+// key; the surface follows (map_object_shadow.cpp fills it).
+struct RasterTriangle {
+    struct Point {
+        int x;
+        int y;
+    };
+    struct Corner {
+        Point screen;
+        Point texture;
+    };
+    Corner corners[3];
+    std::uint32_t colourKey;   // +0x30 set: the figure meshes (005A0E80) rasterise through slot 9
+};
+static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, colourKey) == 0x30);
+
 // 2DintMMX's graphics processor, the pixel converter (*007AF06C, also CTextureDevice::converter_).
 // Its code is in the DLL; only the slots the rewritten code calls are named. Never constructed here.
 class CPixelConverter {
@@ -313,6 +330,8 @@ public:
     // 8: rasterises one triangle of a shadow: `target` starts with its three corners (a screen and
     // a texture point each, pairs of ints) and goes on with the surface (004F4850, 005A0E80).
     virtual void RasteriseTriangle(void* target);
+    // 9: the same for a target with a colour key (RasterTriangle::colourKey; 005A0E80).
+    virtual void RasteriseKeyedTriangle(void* target);
 };
 inline CPixelConverter* PixelConverter() { return *reinterpret_cast<CPixelConverter**>(std::uintptr_t(0x007AF06C)); }
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"

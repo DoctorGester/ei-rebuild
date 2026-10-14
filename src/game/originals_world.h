@@ -56,7 +56,7 @@ __declspec(naked) inline CMaterial* __fastcall WorldNewMaterialOriginal(void* /*
 // 0056F360 (library: STLport vector<12-byte texture record>::resize(count, value); thiscall, RET 8, no result).
 __declspec(naked) inline void __fastcall TextureRecordsResizeOriginal(void* /*vector*/, void*, unsigned /*count*/,
                                                                       const void* /*value*/) EI_ORIGINAL(0x0056F360)
-// The figure models (LinkFigureSet, 0x20 bytes): 005A9A50 the constructor (returns this), 005A9C90 the destructor,
+// The figure models (FigureModel, 0x20 bytes): 005A9A50 the constructor (returns this), 005A9C90 the destructor,
 // 005A9EB0 (RET 0xC) loads the .mod / .bon / .anm parts (+0 / +4 / +8, slot 2) from the files' data that are not null.
 __declspec(naked) inline void* __fastcall FigureModelConstructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9A50)
 __declspec(naked) inline void __fastcall FigureModelDestructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9C90)

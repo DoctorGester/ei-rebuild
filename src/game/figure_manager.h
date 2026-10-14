@@ -4,7 +4,7 @@
 // game-side figure objects (factory 005AA8E0, figure_factory.cpp) and loads their data from its
 // archives or a cached model (figure_models.cpp; docs/notes/models.md). Name provisional.
 
-#include "core_transform.h"
+#include "figure_mesh.h"   // CFigureMesh, FigureSlots
 #include "resource_manager.h"
 
 #include "lib/stlp.h"
@@ -13,35 +13,9 @@
 #include <cstdint>
 
 struct AnimationTrack;
-class CFigureMesh;
 struct FigureBone;
 
-// A cached figure model (0x20 bytes, constructor 005A9A50): the mesh, bones and animation archives
-// of "<name>.mod / .bon / .anm" (0x6C-byte CMMIOResource objects; null when missing), then the
-// animation map.
-struct FigureModel {
-    CMappedResource* mesh;                // +0x00
-    CMappedResource* bones;               // +0x04
-    CMappedResource* animations;          // +0x08
-    std::uint8_t unknown_0C[0x20 - 0x0C]; // +0x0C hash_map<string, entry> (FindModelAnimation)
-
-    // 005A9EB0 (RET 0xC; the link figure loader's sets, 004FAB00; A-W14). Opens the three archives
-    // from the images of the figure's .mod / .bon / .anm files (OpenFromMemory); a null image
-    // leaves its archive alone.
-    void Open(const void* mod, const void* bon, const void* anm);
-};
-static_assert(sizeof(FigureModel) == 0x20);
-
-// A figure object (classes 0x41-0x44, CFigureMesh's layout) as callers reach its slots 18 / 19
-// through the vtable (as CSkyObject declares them). The slot bodies stay members of CFigureMesh.
-class CFigureObjectVirtuals : public CTransformObject {
-public:
-    virtual void CopyFigure() = 0;                                              // 18: 0059F0F0
-    virtual void LoadFromMemory(char** cursor, float s, float t, float u) = 0;  // 19: 005A2490 / 005A4CF0
-    virtual void LoadFig(char** cursor, float s, float t, float u) = 0;         // 20: "FIG" data
-    virtual void LoadOld(char** cursor, float s, float t, float u) = 0;         // 21: the older format
-};
-inline CFigureObjectVirtuals* FigureSlots(CFigureMesh* figure) { return reinterpret_cast<CFigureObjectVirtuals*>(figure); }
+// FigureModel, the cached model, is in model.h.
 
 class CFigureManager : public CResourceManager {
 public:

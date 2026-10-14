@@ -6,7 +6,6 @@
 #include "core_maths.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_core.h"
 
 #include <cstring>
@@ -14,30 +13,23 @@
 
 namespace {
 
-constexpr int kSlotFileRead = 13;    // CFile slot 13 (+0x34): Read(buffer, count)
-constexpr int kSlotFileWrite = 14;   // CFile slot 14 (+0x38): Write(buffer, count)
+// The file's slots 14 (Write) and 13 (Read).
+void Write(mfc::CFileVirtuals* file, const void* data, int size) { file->Write(data, static_cast<unsigned>(size)); }
+void Read(mfc::CFileVirtuals* file, void* data, int size) { file->Read(data, static_cast<unsigned>(size)); }
 
-// 00700E17 (RET 4). CString::GetBufferSetLength.
-char* __fastcall StringBufferSetLength(void* a0, void*, int a2) { return CStringGetBufferSetLengthOriginal(a0, nullptr, a2); }
-
-void Write(void* file, const void* data, int size) { ei::VCall<void>(file, kSlotFileWrite, data, static_cast<unsigned>(size)); }
-void Read(void* file, void* data, int size) { ei::VCall<unsigned>(file, kSlotFileRead, data, static_cast<unsigned>(size)); }
-
-void WriteCount(void* file, int count) { Write(file, &count, 4); }
-int ReadCount(void* file) {
+void WriteCount(mfc::CFileVirtuals* file, int count) { Write(file, &count, 4); }
+int ReadCount(mfc::CFileVirtuals* file) {
     int count;
     Read(file, &count, 4);
     return count;
 }
 
-char*& Name(CFigureMesh* mesh) { return *reinterpret_cast<char**>(reinterpret_cast<std::uint8_t*>(mesh) + 0x120); }
-
 } // namespace
 
-void CFigureMesh::SaveToFile(void* file) {
-    int length = reinterpret_cast<const int*>(Name(this))[-2];
+void CFigureMesh::SaveToFile(mfc::CFileVirtuals* file) {
+    int length = name_.GetLength();
     WriteCount(file, length);
-    Write(file, Name(this), length);
+    Write(file, static_cast<const char*>(name_), length);
     WriteCount(file, buffers_.vertexCount);
     Write(file, buffers_.vertices, buffers_.vertexCount * 0x40);
     WriteCount(file, buffers_.normalCount);
@@ -56,12 +48,12 @@ void CFigureMesh::SaveToFile(void* file) {
     Write(file, &boxMax_, 12);
     Write(file, &radius_, 4);
     Write(file, &unknown_158, 4);
-    Write(file, &unknown_15C, 4);
+    Write(file, &meshType_, 4);
 }
 
-void CFigureMesh::LoadFromFile(void* file) {
+void CFigureMesh::LoadFromFile(mfc::CFileVirtuals* file) {
     int length = ReadCount(file);
-    Read(file, StringBufferSetLength(reinterpret_cast<std::uint8_t*>(this) + 0x120, nullptr, length), length);
+    Read(file, name_.GetBufferSetLength(length), length);
     // The arrays the file fills (the renderer's descriptor is not updated here).
     int count = ReadCount(file);
     vertices_.SetSize(count);
@@ -87,7 +79,7 @@ void CFigureMesh::LoadFromFile(void* file) {
     Read(file, &boxMax_, 12);
     Read(file, &radius_, 4);
     Read(file, &unknown_158, 4);
-    Read(file, &unknown_15C, 4);
+    Read(file, &meshType_, 4);
 }
 
 // ---- Copy (slot 18) and pose (slot 15) ----------------------------------------------------------
@@ -96,7 +88,6 @@ namespace {
 
 // 00401490 (RET 4). The transform base's copy.
 __declspec(naked) void __fastcall TransformCopy(void*, void*, const void*) EI_ORIGINAL(0x00401490)
-void __fastcall StringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 // The original's out-of-line Vector3 helpers (all __fastcall: out in ECX, first vector in EDX).
 __declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, float) EI_ORIGINAL(0x00401DE0)
 __declspec(naked) Vector3* __fastcall VectorCross(Vector3*, const Vector3*, const Vector3*) EI_ORIGINAL(0x004489D0)
@@ -108,19 +99,13 @@ __declspec(naked) void __fastcall FpuCopy(const float* /*from*/, float* /*to*/) 
     __asm ret
 }
 
-constexpr int kSlotSetRotation = 14;   // slot 14 (+0x38): stores the quaternion at +0x44
 float One() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
-
-template <typename T>
-T& Field(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 
 } // namespace
 
 void CFigureMesh::CopyFrom(const CFigureMesh* other) {
     TransformCopy(this, nullptr, other);
-    StringAssign(reinterpret_cast<std::uint8_t*>(this) + 0x120, nullptr, reinterpret_cast<const std::uint8_t*>(other) + 0x120);
+    name_ = other->name_;
     buffers_.corners = other->buffers_.corners;
     buffers_.cornerCount = other->buffers_.cornerCount;
     buffers_.words = other->buffers_.words;
@@ -129,21 +114,22 @@ void CFigureMesh::CopyFrom(const CFigureMesh* other) {
     buffers_.indexCount = other->buffers_.indexCount;
     buffers_.texCoords = other->buffers_.texCoords;
     buffers_.texCoordCount = other->buffers_.texCoordCount;
-    unknown_0CC = 0;
-    unknown_0D0 = 0;
+    textureOffsetU_ = 0;
+    textureOffsetV_ = 0;
     unknown_0DC = other->unknown_0DC;
     center_ = other->center_;
     boxMin_ = other->boxMin_;
     boxMax_ = other->boxMax_;
     std::memcpy(&radius_, &other->radius_, 4);
     unknown_158 = other->unknown_158;
-    unknown_15C = other->unknown_15C;
+    meshType_ = other->meshType_;
 }
 
 #pragma float_control(precise, on, push)
 
 void CFigureMesh::SetPose(const float* q, const float* offset) {
-    ei::VCall<void>(this, kSlotSetRotation, q);
+    // Slot 14 stores the quaternion as the world rotation (+0x44).
+    FigureSlots(this)->CombineRotation(*reinterpret_cast<const Quaternion*>(q));
     // The position (+0x1C) rotated by the quaternion q = (w, x, y, z):
     //   2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
     Vector3 v{q[1], q[2], q[3]};
@@ -164,7 +150,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     VectorScale(&scaled, p, k);
     VectorAdd(&sum, &scaled, &turned);
     VectorAdd(&rotated, &sum, &along);
-    float* moved = &Field<float>(this, 0x28);
+    float* moved = &worldPosition_.x;
     float mx = StoreFloat(static_cast<float>(static_cast<double>(rotated.x) + offset[0]));
     float my = StoreFloat(static_cast<float>(static_cast<double>(rotated.y) + offset[1]));
     float mz = StoreFloat(static_cast<float>(static_cast<double>(rotated.z) + offset[2]));
@@ -174,7 +160,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
 
     // The rotation matrix (+0xE0, row-major 4x4) from the stored quaternion (+0x44 w, +0x48 x,
     // +0x4C y, +0x50 z); the products the original keeps on the FPU stay doubles.
-    float* m = &Field<float>(this, 0xE0);
+    float* m = poseMatrix_.m;
     for (int i = 0; i < 16; ++i) reinterpret_cast<std::uint32_t*>(m)[i] = 0;
     std::uint32_t one = 0x3F800000;
     std::memcpy(&m[15], &one, 4);
@@ -204,9 +190,9 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     m[2] = StoreFloat(static_cast<float>(static_cast<double>(xz) - wy));
     m[6] = StoreFloat(static_cast<float>(static_cast<double>(yz) + wx));
     m[10] = StoreFloat(static_cast<float>(One() - (static_cast<double>(yy) + xx)));
-    FpuCopy(&moved[0], &Field<float>(this, 0x110));
-    FpuCopy(&moved[1], &Field<float>(this, 0x114));
-    FpuCopy(&moved[2], &Field<float>(this, 0x118));
+    FpuCopy(&moved[0], &m[12]);
+    FpuCopy(&moved[1], &m[13]);
+    FpuCopy(&moved[2], &m[14]);
 }
 
 #pragma float_control(pop)

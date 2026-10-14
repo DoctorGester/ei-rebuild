@@ -223,7 +223,7 @@ int CSceneRenderer::DrawFigure(void* figure, const void* unknownA, const void* u
                                tagRECT* screen) {
     auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
-    return DrawFigurePartPlain(reinterpret_cast<char*>(mesh->drawer_), nullptr, reinterpret_cast<char*>(device_),
+    return DrawFigurePartPlain(mesh->drawer_, nullptr, device_,
                                reinterpret_cast<int>(unknownA), reinterpret_cast<int>(unknownB),
                                reinterpret_cast<int>(material), alpha, screen);
 }

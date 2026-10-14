@@ -3,14 +3,16 @@
 // stand-in; the points and colour compared; then ours once more into the real renderer.
 #include "verify.h"
 
+#include "../../src/game/link_figure.h"
+
 #include <cstdint>
 #include <cstring>
 #include <vector>
 
-void __fastcall DrawPartBounds(char* node, void*, void* renderer);
+void __fastcall DrawPartBounds(FigureMeshDrawer* node, void*, CSceneRenderer* renderer);
 
 namespace {
-using BoundsFn = void(__fastcall*)(char*, void*, void*);
+using BoundsFn = void(__fastcall*)(FigureMeshDrawer*, void*, CSceneRenderer*);
 BoundsFn s_original;
 
 struct Captured {
@@ -41,17 +43,17 @@ struct StandIn {
 };
 void* s_vtable[16];
 
-void RunInto(BoundsFn fn, char* node, Captured& out) {
+void RunInto(BoundsFn fn, FigureMeshDrawer* node, Captured& out) {
     for (void*& slot : s_vtable) slot = nullptr;
     s_vtable[15] = reinterpret_cast<void*>(&CaptureLines);
     StandIn standIn{s_vtable};
     s_capture = &out;
-    fn(node, nullptr, &standIn);
+    fn(node, nullptr, reinterpret_cast<CSceneRenderer*>(&standIn));
 }
 } // namespace
 
 // 005A7290.
-static void __fastcall DrawPartBoundsVerify(char* node, void*, void* renderer) {
+static void __fastcall DrawPartBoundsVerify(FigureMeshDrawer* node, void*, CSceneRenderer* renderer) {
     Captured expected, actual;
     RunInto(s_original, node, expected);
     RunInto(&DrawPartBounds, node, actual);

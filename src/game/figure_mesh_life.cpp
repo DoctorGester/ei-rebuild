@@ -60,10 +60,10 @@ int CFigureMesh::Create() {
     drawer_ = nullptr;
     flags_ = 0;
     unknown_158 = 0;
-    unknown_15C = 0;
+    meshType_ = 0;
     std::memset(&buffers_, 0, sizeof(buffers_));
-    unknown_0CC = 0;
-    unknown_0D0 = 0;
+    textureOffsetU_ = 0;
+    textureOffsetV_ = 0;
     unknown_0DC = 0;
     flatColour_ = 0xFFFFFFFF;
     flatSpecular_ = 0xFFFFFFFF;
@@ -83,7 +83,7 @@ void CFigureMesh::Clear() {
     colorsB_.SetSize(0);
     std::memset(&buffers_, 0, sizeof(buffers_));
     unknown_158 = 0;
-    unknown_15C = 0;
+    meshType_ = 0;
     if (drawer_ != nullptr) {
         drawer_->mesh_ = nullptr;
         AsObject(drawer_)->Release();
