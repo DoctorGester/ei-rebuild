@@ -309,10 +309,11 @@ started = "2026-10-14"
 id = "N2a"
 title = "Line heights matching GDI's hinted Times New Roman (optional)"
 group = "native-ui"
-status = "queued"
+status = "done"
 size = 0.3
 depends = ["N2"]
-note = "Liberation is 1-3 px shorter than GDI's hinted Times at most sizes (16 vs 15 at 14 px, 75 vs 73 at 66 px); a per-size height / ascent table in render_text keeps line spacing as today."
+note = "Dropped 2026-10-14: the user is fine with Liberation's wrapping and heights (screenshots from ei_text_check --pictures)."
+done = "2026-10-14"
 
 # ---------------------------------------------------------------- widescreen
 
