@@ -239,7 +239,7 @@ int CSceneRenderer::DrawFigureLit(void* figure, const void* lights, void* materi
     auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
     return DrawFigurePart(mesh->drawer_, nullptr, device_, static_cast<const FigureLights*>(lights),
-                          static_cast<FigureMaterial*>(material), alpha, screen, textureA, textureB);
+                          static_cast<CMaterial*>(material), alpha, screen, textureA, textureB);
 }
 int __fastcall RendererDrawFigureLitHook(CSceneRenderer* self, void*, void* figure, const void* lights, void* material,
                                          int alpha, tagRECT* screen, CTexture* textureA, CTexture* textureB) {

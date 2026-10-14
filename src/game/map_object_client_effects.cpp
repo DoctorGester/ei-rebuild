@@ -27,7 +27,7 @@ namespace {
 
 constexpr std::uint32_t kFlagInvisible = 0x10000;     // CEngineObject::flags_ of the object
 constexpr std::uint32_t kFlagStunned = 0x40000;
-constexpr std::uint32_t kPartTinted = 0x10;           // FigurePart::flags_
+constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 constexpr int kWarmUpTicks = 0x1E;                    // a source arriving with the object runs ahead
 constexpr float kPowerScale = 0.0625f;                // 0073D040: power / 16
 

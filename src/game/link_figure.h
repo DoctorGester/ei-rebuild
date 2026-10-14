@@ -64,7 +64,7 @@ class CTexture;         // texture.h
 // The drawer's draws (the renderer's slots 13 / 14 call them): 005A7A70 lit, with two textures
 // (figure_part_draw.cpp), and 005A7640 plain (figure_part_draw_plain.cpp). Both return 1.
 int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* device, const FigureLights* lights,
-                              FigureMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB);
+                              CMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB);
 int __fastcall DrawFigurePartPlain(FigureMeshDrawer* node, void*, CTextureDevice* device, int, int, int, int alpha,
                                    RECT* rect);
 
@@ -74,11 +74,11 @@ struct CDXSurface;   // texture.h
 // the map inserts it).
 struct LinkPartHeader {
     // +0x00 / +0x04 the second / first dword after the FIG header: the part's CFigureMesh::meshType_
-    // and materialValue_ (the figure's parts copy them, FigurePieceRecord).
+    // and materialValue_ (an object's part copies them and the box, CObject3D::LoadPart).
     std::uint32_t meshType;
     std::uint32_t materialValue;
     ClipBounds bounds;          // +0x08 fitted to the part's morphed vertices
-    Vector3 pivot;              // +0x34 the part's position when loaded (FigurePart::boxPivot)
+    Vector3 pivot;              // +0x34 the part's position when loaded (CFigureMesh::boxPivot_)
     RECT screen;                // +0x40 where the part was last drawn (empty: not drawn)
 };
 static_assert(offsetof(LinkPartHeader, screen) == 0x40);
@@ -139,7 +139,7 @@ public:
     // +0xCC / +0xD0.
     virtual bool FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
                              lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
-    virtual bool LightPart(const stlp::string* name, const FigureLights* lights, FigureMaterial* material, int alpha,
+    virtual bool LightPart(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
                            lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
     virtual int DrawPartMoved(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
                               lib::AlignedArray<std::uint32_t>* speculars, lib::AlignedArray<Vector3>* offsets,

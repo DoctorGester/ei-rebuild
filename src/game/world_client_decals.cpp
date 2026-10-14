@@ -146,7 +146,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
             auto* figure = reinterpret_cast<CLinkMesh*>(object->figure);
             if (figure) {
                 // The parts are scene nodes laid out as CObject3D's first members (position,
-                // orientation, matrix); FigurePart's declaration contradicts it (models.md, C9).
+                // orientation, matrix); CFigureMesh's declaration contradicts it (models.md, C9).
                 for (int i = 0; i < object->parts.size; ++i) {
                     auto* part = static_cast<CObject3D*>(object->parts[i]);
                     BuildNodeMatrix(part);

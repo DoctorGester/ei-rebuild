@@ -6,6 +6,7 @@
 // provisional; see docs/notes/map_objects.md ("Figures").
 
 #include "engine_object.h"
+#include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
 
@@ -25,83 +26,11 @@ struct tagRECT;           // windows.h
 // 00664490-00664710; Add 00519A10 (object3d_figure_setup.cpp).
 using AlignedPtrArray = lib::AlignedArray<void*>;
 
-struct FigurePart;
+class CFigureMesh;      // figure_mesh.h: a part of an object's figure
+// The old name of an object's figure part, still used by files other tickets have open
+// (ui_model.cpp, player_client.cpp); the type is CFigureMesh.
+using FigurePart = CFigureMesh;
 struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
-
-// A part of an object's figure (a scene node; names provisional). Only what the figure code
-// reads: its position relative to the object, the piece's offset and box in the figure. The part
-// is a CFigureMesh (figure_mesh.h); the members the figure code does not use take its names.
-struct FigurePart : CEngineObject {
-    Vector3 position;               // +0x01C relative to the object
-    Vector3 worldPosition;          // +0x028 CFigureMesh::worldPosition_
-    Quaternion orientation;         // +0x034 (CFigureMesh::rotation_)
-    Quaternion worldRotation;       // +0x044 CFigureMesh::worldRotation_
-    // +0x054 part -> object: the rotation, the position as column 3 (the draws build it,
-    // ObjectWorldMatrix in map_object_shadow.h).
-    Matrix4 worldMatrix;
-    // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
-    // rectangle (+0x20) is where the part was last drawn (the flying hit points, 005E18E0).
-    class CLinkMesh* mesh;
-    CObject3D* owner;               // +0x098 CFigureMesh::owner_
-    std::uint8_t buffers[0xCC - 0x9C];   // +0x09C CFigureMesh::buffers_ (MeshBuffers)
-    std::uint32_t textureOffsetU;   // +0x0CC CFigureMesh::textureOffsetU_
-    std::uint32_t textureOffsetV;   // +0x0D0
-    // +0x0D4 / +0x0D8 every colour / specular of a flat part (CFigureMesh::flatColour_ /
-    // flatSpecular_); set for every part of an object by 00519500 / 00519530 (the interface's
-    // model view, 006462A0).
-    std::uint32_t flatColour;
-    std::uint32_t flatSpecular;
-    std::uint32_t spareDC;          // +0x0DC CFigureMesh::spareDC_
-    Matrix4 poseMatrix;             // +0x0E0 CFigureMesh::poseMatrix_
-    const char* name;               // +0x120 CString (CFigureMesh::name_)
-    const char* directory;          // +0x124 CString (CFigureMesh::directory_)
-    lib::AlignedArray<Vector3> offsets;    // +0x128 per-vertex offsets (CFigureMesh::offsets_)
-    lib::AlignedArray<std::uint32_t> colorsA;   // +0x138 CFigureMesh::colorsA_
-    lib::AlignedArray<std::uint32_t> colorsB;   // +0x148 CFigureMesh::colorsB_
-    std::uint32_t piece158;         // +0x158 from the piece record's +0x20 (00517240; materialValue)
-    std::uint32_t piece15C;         // +0x15C from its +0x1C (meshType)
-    // +0x160..+0x188 the mesh's own bounds (CFigureMesh::center_, boxMin_, boxMax_, radius_).
-    Vector3 meshCenter;
-    Vector3 meshBoxMin;             // +0x16C
-    Vector3 meshBoxMax;             // +0x178
-    float meshRadius;               // +0x184
-    // +0x188..+0x1C0: the part's box, laid out as a FootprintPart (ai_map.h); copied whole from
-    // the piece record (FigurePieceRecord::boxFlags on).
-    std::uint32_t boxFlags;         // +0x188 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"
-    Vector3 offset;                 // +0x18C the piece's place in the figure
-    float radius;                   // +0x198 the box's radius (ClipBounds::radius; the blood's size)
-    Vector3 boxMin;                 // +0x19C
-    Vector3 boxMax;                 // +0x1A8
-    Vector3 boxPivot;               // +0x1B4 the part's position when it was loaded
-};
-static_assert(offsetof(FigurePart, position) == 0x1C);
-static_assert(offsetof(FigurePart, orientation) == 0x34 && offsetof(FigurePart, worldMatrix) == 0x54);
-static_assert(offsetof(FigurePart, flatColour) == 0xD4 && offsetof(FigurePart, poseMatrix) == 0xE0);
-static_assert(offsetof(FigurePart, colorsB) == 0x148 && offsetof(FigurePart, meshRadius) == 0x184);
-static_assert(offsetof(FigurePart, offset) == 0x18C);
-static_assert(offsetof(FigurePart, boxMin) == 0x19C);
-static_assert(offsetof(FigurePart, boxMax) == 0x1A8);
-static_assert(offsetof(FigurePart, piece158) == 0x158);
-static_assert(offsetof(FigurePart, mesh) == 0x94);
-static_assert(offsetof(FigurePart, boxFlags) == 0x188);
-static_assert(offsetof(FigurePart, boxPivot) == 0x1B4);
-
-// A node of the figure's piece map (an STLport map<string, piece> at figure + 0x14: the key at
-// +0x10, the piece from +0x1C); offsets are from the node. Only these fields reach the parts. The
-// piece is a LinkPartHeader (link_figure.h).
-struct FigurePieceRecord {
-    std::uint8_t links[0x10];       // +0x00 the tree node's colour and links
-    std::uint8_t key[0x1C - 0x10];  // +0x10 the part's name (an stlp::string)
-    std::uint32_t meshType;         // +0x1C -> part +0x15C (00517240)
-    std::uint32_t materialValue;    // +0x20 -> part +0x158
-    std::uint32_t boxFlags;         // +0x24 -> part +0x188 (0x38 bytes copied from here)
-    Vector3 offset;                 // +0x28 -> part +0x18C
-    float radius;                   // +0x34 -> part +0x198
-    Vector3 boxMin;                 // +0x38 -> part +0x19C
-    Vector3 boxMax;                 // +0x44 -> part +0x1A8
-    Vector3 pivot;                  // +0x50 -> part +0x1B4
-};
-static_assert(offsetof(FigurePieceRecord, boxMax) == 0x44);
 
 // One animation of a figure's animation database (0x58 bytes).
 struct FigureAnimation {
@@ -165,13 +94,13 @@ FigureAnimation* __fastcall FindFigureAnimation(CBaseManager* manager, void*, co
 // address), the 3D object reaches its half through CObject3D::Specific().
 class CObject3DSpecific : public CEngineObject {
 public:
-    virtual int OnPartAdded(FigurePart* part);      // 13: client 0051B050, server 0051F270 (0)
+    virtual int OnPartAdded(CFigureMesh* part);      // 13: client 0051B050, server 0051F270 (0)
     // 14: (name) client 0051B210: the part named (slot 16) taken out of the drawn part sets (+0x20,
     // +0x24) and released; returns it or null. Server 0051F290. Slots declared `void Name()` keep
     // their place in the order only (docs/notes/drafts/DR-C2.md).
-    virtual FigurePart* RemoveFromPartSets(const char* name);
-    virtual int OnPartRemoved(FigurePart* part);    // 15: client 0051B160, server 0051F280 (0)
-    virtual FigurePart* FindPart(const char* name); // 16: client 0051B2E0 (a part by name, 005169A0); server 0051F2B0 (0)
+    virtual CFigureMesh* RemoveFromPartSets(const char* name);
+    virtual int OnPartRemoved(CFigureMesh* part);    // 15: client 0051B160, server 0051F280 (0)
+    virtual CFigureMesh* FindPart(const char* name); // 16: client 0051B2E0 (a part by name, 005169A0); server 0051F2B0 (0)
     virtual void FindPartById();                    // 17: client 0051B2D0 (a part by id, 00516920)
     // 18: the figure's extra scale: client +0xF0..+0xF8 (0051AD20), server 1, 1, 1 (0051AC30).
     virtual void GetScale(float* x, float* y, float* z);
@@ -197,7 +126,6 @@ public:
 };
 
 class CObject3D;
-class CFigureMesh;           // figure_mesh.h
 
 // A bone of a figure's skeleton (class id 0x300C, made by 0050CC60 from the skeleton links; names
 // provisional). The animation state's bone list holds them, its +0x20 the root. Only the fields
@@ -392,7 +320,7 @@ public:
 
     int refCount;                   // +0x04
     std::uint8_t unused_08[0x14 - 0x08];
-    std::uint8_t pieces[0x10];      // +0x14 STLport map<string, FigurePieceRecord> (find 005197B0)
+    std::uint8_t pieces[0x10];      // +0x14 STLport map<string, LinkPartHeader> (CLinkMesh::headers_; find 005197B0)
 };
 static_assert(offsetof(CFigureInstance, pieces) == 0x14);
 
@@ -465,30 +393,30 @@ public:
     // 005164B0. Adds `part` to the parts unless it is there: referenced, told its owner, announced
     // to the animation and to the attached object (whose slot 13 result is returned). Returns 1
     // otherwise.
-    int AddPart(FigurePart* part);
+    int AddPart(CFigureMesh* part);
 
     // map_object_parts.cpp (A-U).
     // 00516A80. The first part (of the parts, then of the pending parts) whose name starts with
     // `prefix` (strstr at the name's start; case-sensitive), or null.
-    FigurePart* FindPartByPrefix(const char* prefix);
+    CFigureMesh* FindPartByPrefix(const char* prefix);
     // 005169A0. The first part (parts, then pending parts) named exactly `partName`, or null.
-    FigurePart* FindPart(const char* partName);
+    CFigureMesh* FindPart(const char* partName);
     // 00516920 (RET 4; object3d_specific_slots.cpp, A-U11). The first part (parts, then pending
     // parts) whose engine object type_ is `type`, or null.
-    FigurePart* FindPartOfType(int type);
+    CFigureMesh* FindPartOfType(int type);
     // 00516B50 (object3d_figure_setup.cpp, A-U4; RET 8). Every part (parts, then pending parts)
     // whose name starts with `prefix` (strstr at the name's start) appended to `out`.
     void CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out);
     // 005167E0. Takes `part` out of the parts (it forgets its owner, 0059F3D0) or else out of the
     // pending parts, tells the animation state (+0x98, 0050D350) and releases it. The side half
     // (+0x94, slot 15) hears of it first, found or not. Returns 1 when it was there, else 0.
-    int RemovePart(FigurePart* part);
+    int RemovePart(CFigureMesh* part);
     // 005168F0. FindPart(`partName`), removed by RemovePart. Returns the part (released; the pointer
     // may be dangling) or null.
-    FigurePart* RemovePartNamed(const char* partName);
+    CFigureMesh* RemovePartNamed(const char* partName);
     // 005188B0. `part`'s position (+0x1C) turned by the orientation (+0x34, w first), scaled by
     // the side half's GetScale and moved to the object's position. Returns `out`.
-    float* PartWorldPosition(float* out, const FigurePart* part);
+    float* PartWorldPosition(float* out, const CFigureMesh* part);
 
     // 00518CA0. The animation database (+0xA0), loaded on first use through the owner's GetFile
     // ("<name>.adb"; nothing without an owner). Null when there is none.
@@ -529,7 +457,7 @@ public:
     // +0x188) and +0x158 / +0x15C. Name prefixes "BASE" / "CROWN" / "EMPTY" add box flags 0x400 /
     // 0x90 / 0x890. A new part joins the parts (referenced; owner, animation state and side half
     // told as AddPart does); the box pivot is the part's position and flag 4 is set. Returns it.
-    FigurePart* LoadPart(const char* partName, void* model, std::uint32_t arg);
+    CFigureMesh* LoadPart(const char* partName, void* model, std::uint32_t arg);
     // 00517110 (RET 0xC). The object's figure becomes `model` (+0xA4) and each name of the
     // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
     // Without a figure manager: FatalError. Returns 1.
@@ -550,7 +478,7 @@ public:
     // 00517990. The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
     // 00564AF0 (world_client.cpp; the client's AddObject walks a platform object's boxes with it).
-    // The box (FigurePart +0x188) of part `index` of the parts followed by the pending parts.
+    // The box (CFigureMesh::bounds_) of part `index` of the parts followed by the pending parts.
     FootprintPart* PartBox(int index);
 
     // object3d_lifetime.cpp (A-U).
@@ -642,8 +570,8 @@ public:
     // size 10).
     mfc::CTypedPtrList<CEngineObject> effectSources;
     Vector3 scale;                  // +0x0C4
-    AlignedPtrArray parts;          // +0x0D0 FigurePart*
-    AlignedPtrArray pendingParts;   // +0x0E0 FigurePart*, built by LoadFigures
+    AlignedPtrArray parts;          // +0x0D0 CFigureMesh*
+    AlignedPtrArray pendingParts;   // +0x0E0 CFigureMesh*, built by LoadFigures
     CEngineObject* figure;          // +0x0F0 counted reference (slot 0 deletes)
     Vector3 defaultScale;           // +0x0F4 from 007AF1D0 (constructor, Create3D)
     int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered

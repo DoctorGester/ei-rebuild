@@ -45,7 +45,7 @@ CFigureMesh* NewPart(std::size_t size) {
     return static_cast<CFigureMesh*>(object);
 }
 
-void SetVtable(CFigureMesh* mesh, std::uintptr_t address) { mesh->vtable_ = reinterpret_cast<void*>(address); }
+void SetVtable(CFigureMesh* mesh, std::uintptr_t address) { ei::SetVtable(mesh, address); }
 
 void* Create(int classId) {
     switch (classId) {

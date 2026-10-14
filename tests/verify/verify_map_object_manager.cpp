@@ -299,37 +299,37 @@ static void __fastcall BoxSetIgnoredVerify(std::uint32_t* flags, void*, bool ign
 EI_VERIFY(0x005174E0, BoxSetIgnoredVerify, 0, s_unused);
 
 namespace {
-bool EveryPart(const CObject3D* object, bool (*test)(const FigurePart*, std::uint32_t), std::uint32_t value) {
+bool EveryPart(const CObject3D* object, bool (*test)(const CFigureMesh*, std::uint32_t), std::uint32_t value) {
     for (int i = 0; i < object->parts.size; ++i)
-        if (!test(static_cast<const FigurePart*>(object->parts[i]), value)) return false;
+        if (!test(static_cast<const CFigureMesh*>(object->parts[i]), value)) return false;
     return true;
 }
 } // namespace
 
 static void __fastcall SetPartFlagsVerify(CObject3D* self, void*, std::uint32_t mask) {
     self->SetPartFlags(mask);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t m) { return (part->flags_ & m) == m; }, mask);
+    bool ok = EveryPart(self, [](const CFigureMesh* part, std::uint32_t m) { return (part->flags_ & m) == m; }, mask);
     ei::verify::Check("CObject3D::SetPartFlags", true, ok, "%X", mask);
 }
 EI_VERIFY(0x00517910, SetPartFlagsVerify, 0, s_unused);
 
 static void __fastcall ClearPartFlagsVerify(CObject3D* self, void*, std::uint32_t mask) {
     self->ClearPartFlags(mask);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t m) { return (part->flags_ & m) == 0; }, mask);
+    bool ok = EveryPart(self, [](const CFigureMesh* part, std::uint32_t m) { return (part->flags_ & m) == 0; }, mask);
     ei::verify::Check("CObject3D::ClearPartFlags", true, ok, "%X", mask);
 }
 EI_VERIFY(0x00517950, ClearPartFlagsVerify, 0, s_unused);
 
 static void __fastcall SetPartsD4Verify(CObject3D* self, void*, std::uint32_t value) {
     self->SetPartsFlatColour(value);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t v) { return part->flatColour == v; }, value);
+    bool ok = EveryPart(self, [](const CFigureMesh* part, std::uint32_t v) { return part->flatColour_ == v; }, value);
     ei::verify::Check("CObject3D::SetPartsFlatColour", true, ok, "%X", value);
 }
 EI_VERIFY(0x00519500, SetPartsD4Verify, 0, s_unused);
 
 static void __fastcall SetPartsD8Verify(CObject3D* self, void*, std::uint32_t value) {
     self->SetPartsFlatSpecular(value);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t v) { return part->flatSpecular == v; }, value);
+    bool ok = EveryPart(self, [](const CFigureMesh* part, std::uint32_t v) { return part->flatSpecular_ == v; }, value);
     ei::verify::Check("CObject3D::SetPartsFlatSpecular", true, ok, "%X", value);
 }
 EI_VERIFY(0x00519530, SetPartsD8Verify, 0, s_unused);

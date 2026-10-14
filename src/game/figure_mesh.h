@@ -62,25 +62,10 @@ class CFigureMesh;
 
 struct FigureMeshDrawer;   // link_figure.h
 
-// The material a figure part is drawn with (005A7A70's fourth argument): its flags, the colours the
-// lights scale (CLight::SetLitColors, +0x20 / +0x40) and the vector the transform object lights with.
-// The layout is CMaterial's (material.h: the engine object, the name, then the colours from +0x20:
-// diffuse, ambient, specular, emissive); the members not used here take its names.
-struct FigureMaterial {
-    void* vtable_;                  // +0x00
-    int refCount_;                  // +0x04
-    std::uint8_t flags_;            // +0x08 0x10: the speculars are kept (draw flag 8)
-    std::uint8_t flagsHigh_[3];     // +0x09 the rest of CEngineObject::flags_
-    std::uint8_t engineObject_[0x1C - 0x0C];   // +0x0C CEngineObject's id_, type_, owner_, +0x18
-    const char* name_;              // +0x1C CString (CMaterial::name)
-    float diffuse_[4];              // +0x20 CMaterial::colors.diffuse
-    float ambient_[4];              // +0x30 colors.ambient
-    float specularColour_[3];       // +0x40 red, green, blue in 0..1 (a kept specular's colour, 004F3870)
-    float specularAlpha_;           // +0x4C colors.specular's alpha
-    std::uint32_t lightVector_[3];  // +0x50 (moved as dwords; colors.emissive)
-};
-static_assert(offsetof(FigureMaterial, flags_) == 0x08 && offsetof(FigureMaterial, lightVector_) == 0x50);
-static_assert(offsetof(FigureMaterial, specularColour_) == 0x40);
+// The material a figure part is drawn with (005A7A70's fourth argument) is a CMaterial (material.h):
+// flags_ 0x10 keeps the speculars (draw flag 8), the lights scale colors.diffuse / colors.specular
+// (CLight::SetLitColors) and the transform object lights with colors.emissive's first three dwords.
+class CMaterial;
 
 class CLight;   // spell.h
 
@@ -92,8 +77,12 @@ struct FigureLights {
 
 // The figure mesh of class 0x42 (0x220 bytes, vtable 0073C1C4); 0x43 (0073FC48) and 0x44 derive
 // from it and share its loaders. Class 0x41 (0x1E0 bytes, vtable 0073FBF0) has the same layout up
-// to +0x1E0 and its own loaders. No virtuals are declared: the vtable is a plain field.
-class CFigureMesh {
+// to +0x1E0 and its own loaders. A CTransformObject (core_transform.h: the engine object's fields,
+// the local and world position and rotation). The parts of an object's figure (CObject3D::parts)
+// are these. Its own slots 18-21 are reached through CFigureObjectVirtuals below; the slot bodies
+// are plain members registered by address, so none takes a base virtual's name (Create is
+// CreateMesh, CopyFrom CopyFigure).
+class CFigureMesh : public CTransformObject {
 public:
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073C224);   // class 0x44, the base
     static constexpr std::uintptr_t kMeshVtableAddress = std::uintptr_t(0x0073FC48);   // class 0x43
@@ -161,7 +150,7 @@ public:
     void LoadFromFile(mfc::CFileVirtuals* file);
     // 0059F0F0 (slot 18, RET 4): copies another mesh's transform (00401490), name, the shared
     // buffer descriptors (texture coordinates, corners, words, indices), +0xDC and the bounds.
-    void CopyFrom(const CFigureMesh* other);
+    void CopyFigure(const CFigureMesh* other);
     // 0059F510 (slot 15, RET 8): sets the rotation (slot 14 with `q` = w, x, y, z), rotates the
     // position (+0x1C) by it into +0x28 (+ `offset`, copied to +0x110) and rebuilds the rotation
     // matrix at +0xE0 from the stored quaternion (+0x44).
@@ -174,7 +163,7 @@ public:
     CFigureMesh* ConstructBase();
     // 0059F210 (slot 2 of every figure class; 005A6C70 / 005A6E00 jump to it). No drawer, flags,
     // buffers or bounds; white flat colours. Returns 1.
-    int Create();
+    int CreateMesh();
     // 0059F2B0 (slot 3 of vtable 0073C224): names and colour arrays emptied, the buffer descriptor
     // cleared, the drawer let go (released), no flags.
     void Clear();
@@ -194,30 +183,27 @@ public:
     // 0059F390 (RET 4). Lets the old drawer go (released) and takes `drawer` (one more reference,
     // its mesh_ set).
     void SetDrawer(FigureMeshDrawer* drawer);
-    // 0059F3D0 (RET 4).
-    void SetOwner(CObject3D* owner);
+    // 0059F3D0 (RET 4). The object whose part the mesh is (object_).
+    void SetObject(CObject3D* object);
 
-    void* vtable_;                      // +0x000
-    int refCount_;                      // +0x004 the engine object's reference count
-    std::uint32_t flags_;               // +0x008 0x20: loaded
-    int id_;                            // +0x00C (CEngineObject: -1 until a manager registers it)
-    int type_;                          // +0x010 the class id (0x41-0x44)
-    CBaseManager* manager_;             // +0x014 (CEngineObject: the manager that owns it)
-    std::uint32_t spare18_;             // +0x018 (CEngineObject's +0x18) 0 when constructed; nothing reads it
-    Vector3 position_;                  // +0x01C (CTransformObject: local position)
-    Vector3 worldPosition_;             // +0x028 (CTransformObject; SetPose's moved position)
-    Quaternion rotation_;               // +0x034 (CTransformObject: local rotation; a bone places it, 0050C230)
-    Quaternion worldRotation_;          // +0x044 (CTransformObject)
-    Matrix4 worldMatrix_;               // +0x054 part -> object (FigurePart::worldMatrix, map_object_figures.h)
+    // CEngineObject: flags_ 0x20 loaded, 0x40 drawn through drawer_ (its screen_ is where the part
+    // was last drawn), 0x80 hidden; type_ the class id (0x41-0x44). CTransformObject: localPosition_
+    // relative to the object (a bone places it, 0050C230), worldPosition_ SetPose's moved position,
+    // localRotation_ and worldRotation_.
+    // +0x054 part -> object: the rotation, the local position as column 3 (the draws build it,
+    // ObjectWorldMatrix in map_object_shadow.h).
+    Matrix4 worldMatrix_;
     FigureMeshDrawer* drawer_;          // +0x094 (00501D00 draws through it)
-    CObject3D* owner_;                  // +0x098 the object whose figure (+0xF0) may draw the mesh
+    CObject3D* object_;                 // +0x098 the object whose figure (+0xF0) may draw the mesh
     MeshBuffers buffers_;               // +0x09C
     // +0x0CC / +0x0D0 passed to the draws after the buffers: the texture offset (u, v float bits)
     // an animated mesh's drawer sets per frame (FigureMeshDrawer::Animate).
     std::uint32_t textureOffsetU_;
     std::uint32_t textureOffsetV_;
-    std::uint32_t flatColour_;          // +0x0D4 every colour of a flat mesh (flags_ 0x100)
-    std::uint32_t flatSpecular_;        // +0x0D8 every specular of a flat mesh
+    // +0x0D4 / +0x0D8 every colour / specular of a flat mesh (flags_ 0x100); set for every part of
+    // an object by CObject3D::SetPartsFlatColour / SetPartsFlatSpecular (the interface's model view).
+    std::uint32_t flatColour_;
+    std::uint32_t flatSpecular_;
     std::uint32_t spareDC_;             // +0x0DC cleared by Create, copied by CopyFrom; nothing reads it
     // +0x0E0 the pose matrix (row-major): SetPose's rotation, its translation row (+0x110) the
     // moved position.
@@ -228,15 +214,20 @@ public:
     lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
     // +0x158 from the file header (before meshType_): the material value of the scene's mesh
-    // (SceneMesh::materialValue, the number in its material group's name; scene_registry.cpp).
+    // (SceneMesh::materialValue, the number in its material group's name; scene_registry.cpp). An
+    // object's part takes both from its piece's LinkPartHeader (CObject3D::LoadPart).
     std::uint32_t materialValue_;
     std::uint32_t meshType_;            // +0x15C from the file header; 13..16: animated (005A7A70)
     Vector3 center_;                    // +0x160
     Vector3 boxMin_;                    // +0x16C
     Vector3 boxMax_;                    // +0x178
     float radius_;                      // +0x184
-    ClipBounds bounds_;                 // +0x188
-    Vector3 boxPivot_;                  // +0x1B4 cleared with the bounds (FigurePart::boxPivot)
+    // +0x188 the part's box: with boxPivot_ a FootprintPart (ai_map.h), copied whole from the
+    // piece's LinkPartHeader (CObject3D::LoadPart). Flags 4 loaded, 0x400 "BASE", 0x90 "CROWN" /
+    // "EMPTY", 0x800 "EMPTY"; the centre is the piece's place in the figure, the radius the blood's
+    // size.
+    ClipBounds bounds_;
+    Vector3 boxPivot_;                  // +0x1B4 the part's position when it was loaded; cleared with the bounds
     lib::AlignedArray<VertexPacket> vertices_;     // +0x1C0
     lib::AlignedArray<NormalPacket> normals_;    // +0x1D0
     // Class 0x41 ends here (0x1E0 bytes).
@@ -245,16 +236,16 @@ public:
     lib::AlignedArray<std::uint16_t> indices_;    // +0x200
     lib::AlignedArray<TexCoord> texCoords_;       // +0x210
 };
-static_assert(offsetof(CFigureMesh, flags_) == 0x08 && offsetof(CFigureMesh, rotation_) == 0x34);
+static_assert(offsetof(CFigureMesh, flags_) == 0x08 && offsetof(CFigureMesh, localRotation_) == 0x34);
 static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
-static_assert(offsetof(CFigureMesh, drawer_) == 0x94 && offsetof(CFigureMesh, owner_) == 0x98);
+static_assert(offsetof(CFigureMesh, drawer_) == 0x94 && offsetof(CFigureMesh, object_) == 0x98);
 static_assert(offsetof(CFigureMesh, textureOffsetU_) == 0xCC && offsetof(CFigureMesh, flatSpecular_) == 0xD8);
 static_assert(offsetof(CFigureMesh, worldPosition_) == 0x28 && offsetof(CFigureMesh, poseMatrix_) == 0xE0);
 static_assert(offsetof(CFigureMesh, name_) == 0x120 && offsetof(CFigureMesh, meshType_) == 0x15C);
 static_assert(offsetof(CFigureMesh, colorsA_) == 0x138);
 static_assert(offsetof(CFigureMesh, materialValue_) == 0x158 && offsetof(CFigureMesh, worldMatrix_) == 0x54);
 static_assert(offsetof(CFigureMesh, center_) == 0x160);
-static_assert(offsetof(CFigureMesh, radius_) == 0x184);
+static_assert(offsetof(CFigureMesh, radius_) == 0x184 && offsetof(CFigureMesh, boxPivot_) == 0x1B4);
 static_assert(offsetof(CFigureMesh, bounds_) == 0x188);
 static_assert(offsetof(CFigureMesh, vertices_) == 0x1C0);
 static_assert(offsetof(CFigureMesh, corners_) == 0x1E0);

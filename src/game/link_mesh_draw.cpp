@@ -7,6 +7,7 @@
 #include "link_figure.h"
 
 #include "core_maths.h"          // StoreFloat
+#include "material.h"            // CMaterial
 #include "originals_library.h"   // GameAtExit
 #include "originals_render.h"    // DrawMesh, DrawMesh2
 #include "originals_script.h"    // LinkHeaderMapAtOriginal
@@ -188,7 +189,7 @@ EI_REPLACE(0x004F3AD0, LinkMeshFlatColours);
 // part into `colours` (LightMesh, with the material's light vector); every specular is the alpha
 // byte in the top byte, over the material's specular colour (components times 255, truncated by
 // _ftol and OR-ed in unmasked) when the material keeps its speculars.
-bool CLinkMesh::LightPart(const stlp::string* name, const FigureLights* lights, FigureMaterial* material, int alpha,
+bool CLinkMesh::LightPart(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
                           ColourArray* colours, ColourArray* speculars) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
@@ -197,17 +198,17 @@ bool CLinkMesh::LightPart(const stlp::string* name, const FigureLights* lights, 
     speculars->SetSizeDiscard(r.normals.count * 4);
 
     std::uint32_t lightVector[3];
-    std::memcpy(lightVector, material->lightVector_, sizeof(lightVector));
+    std::memcpy(lightVector, &material->colors.emissive, sizeof(lightVector));
     pipeline_->LightMesh(vertices_.data + r.vertices.start, normals_.data + r.normals.start, colours->data,
                          words_.data + r.words.start, r.words.count, lights->data, lights->count, lightVector);
 
     const std::uint32_t alphaByte = static_cast<std::uint32_t>(alpha) & 0xFF;
     if (material->flags_ & kMaterialKeepsSpecular) {
-        std::uint32_t packed = gamecrt::Ftol(material->specularColour_[0] * kByteScale) | (alphaByte << 8);
+        std::uint32_t packed = gamecrt::Ftol(material->colors.specular.x * kByteScale) | (alphaByte << 8);
         packed <<= 8;
-        packed |= gamecrt::Ftol(material->specularColour_[1] * kByteScale);
+        packed |= gamecrt::Ftol(material->colors.specular.y * kByteScale);
         packed <<= 8;
-        packed |= gamecrt::Ftol(material->specularColour_[2] * kByteScale);
+        packed |= gamecrt::Ftol(material->colors.specular.z * kByteScale);
         Fill(*speculars, packed);
     } else {
         Fill(*speculars, alphaByte << 24);
@@ -215,7 +216,7 @@ bool CLinkMesh::LightPart(const stlp::string* name, const FigureLights* lights, 
     return true;
 }
 bool __fastcall LinkMeshLightPart(CLinkMesh* self, void*, const stlp::string* name, const FigureLights* lights,
-                                  FigureMaterial* material, int alpha, ColourArray* colours, ColourArray* speculars) {
+                                  CMaterial* material, int alpha, ColourArray* colours, ColourArray* speculars) {
     return self->CLinkMesh::LightPart(name, lights, material, alpha, colours, speculars);
 }
 EI_REPLACE(0x004F3870, LinkMeshLightPart);
