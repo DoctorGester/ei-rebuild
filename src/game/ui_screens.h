@@ -679,8 +679,8 @@ public:
     void MasterRequest();
     // 0061D1C0. Writes the client's queries to config\addrbook.ini (a chunk archive, chunk 1).
     void SaveAddressBook();
-    // 0061D780 (Rebirth-patched, this is the vanilla body, hooked in the vanilla launch only;
-    // ui_connect_list.cpp; the screen's other members call it through its address). The list
+    // 0061D780 (Rebirth-patched: WideScreen reproduced behind its flag, W2, ExtendedServerName not,
+    // so hooked in the vanilla launch only; ui_connect_list.cpp; the screen's other members call it through its address). The list
     // drawn on surface 0. With row 0 (the new game) selected its controls show: the player slider
     // and the name edit enabled (and editing), sprites 4 and 5 and their regions' tips (0x9EA4 /
     // 0x9EA5, set once: newGameTips_); otherwise they are off and the tips empty. Texts 10 and 11

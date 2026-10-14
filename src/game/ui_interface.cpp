@@ -30,6 +30,24 @@ __declspec(naked) int CInterface3D::CallScaleRectToScreen(RECT*) const EI_ORIGIN
 __declspec(naked) int CInterface3D::CallScalePointToScreen(POINT*) const EI_ORIGINAL(0x005F7D20)
 __declspec(naked) int CInterface3D::CallScalePointFromScreen(POINT*) const EI_ORIGINAL(0x005F7E00)
 
+// The same three with the interface (ECX) given: none for Rebirth's WideScreen sites (ui.h).
+namespace {
+__declspec(naked) int __fastcall ScaleRectToScreenAt(const CInterface3D*, void*, RECT*) EI_ORIGINAL(0x005F7CA0)
+__declspec(naked) int __fastcall ScalePointToScreenAt(const CInterface3D*, void*, POINT*) EI_ORIGINAL(0x005F7D20)
+__declspec(naked) int __fastcall ScalePointFromScreenAt(const CInterface3D*, void*, POINT*) EI_ORIGINAL(0x005F7E00)
+const CInterface3D* WithoutMargin(const CInterface3D* ui) { return widescreen::Active() ? nullptr : ui; }
+} // namespace
+
+int CInterface3D::CallScaleRectToScreenNoMargin(RECT* rect) const {
+    return ScaleRectToScreenAt(WithoutMargin(this), nullptr, rect);
+}
+int CInterface3D::CallScalePointToScreenNoMargin(POINT* point) const {
+    return ScalePointToScreenAt(WithoutMargin(this), nullptr, point);
+}
+int CInterface3D::CallScalePointFromScreenNoMargin(POINT* point) const {
+    return ScalePointFromScreenAt(WithoutMargin(this), nullptr, point);
+}
+
 // The scaling functions below are Rebirth's WideScreen too (ui_widescreen.h): with the flag on,
 // addon's versions. addon replaces the first two with JMPs to its code and writes the last three's
 // code over (with two entries of its own, 005F7D9E and 005F7DFE, that clear ECX first and skip

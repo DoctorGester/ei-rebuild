@@ -1,11 +1,14 @@
-// Text on the interface's surfaces as the unpatched game does it: CUiSurface's DrawText (005FDE20)
-// and the interface's text extent (005F8340). Rebirth patches both for its wide layout, so these
-// bodies are hooked in the vanilla launch only and rewritten callers reach them through their
-// forwarders (SurfaceDrawText, InterfaceTextExtentOriginal). See docs/notes/ui.md, section 3.
+// Text on the interface's surfaces: CUiSurface's DrawText (005FDE20) and the interface's text
+// extent (005F8340). Rebirth's WideScreen patches both (the rectangle scaled without the margin; the
+// extent scaled by the 4:3 part), which these reproduce behind the flag (ticket W2, ui_widescreen.h);
+// rewritten callers reach them through their forwarders (SurfaceDrawText,
+// InterfaceTextExtentOriginal). See docs/notes/ui.md, section 3.
 #include "ui.h"
 #include "ui_gdi.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_ui.h"
@@ -27,7 +30,8 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
         frame = {0, 0, rect_.right - rect_.left, rect_.bottom - rect_.top};
     } else {
         frame = *rect;
-        interface_->CallScaleRectToScreen(&frame);
+        // WideScreen (005FDE94: XOR ECX,ECX over MOV ECX,[EDI+4]): without the margin.
+        interface_->CallScaleRectToScreenNoMargin(&frame);
         frame.right += kRectSlack;
         frame.bottom += kRectSlack;
     }
@@ -49,6 +53,7 @@ int CUiSurface::DrawTextIn(const char* text, const RECT* rect, int font, COLORRE
     return extent.y;
 }
 EI_REPLACE_METHOD(0x005FDE20, CUiSurface::DrawTextIn);
+EI_REBIRTH_IMPLEMENTS(0x005FDE20, ei::rebirth::Patch::WideScreen);
 
 // --- 005F8340 ----------------------------------------------------------------------------------------------
 
@@ -60,8 +65,14 @@ SIZE* CInterface3D::TextExtent(SIZE* out, mfc::CString text, int font) {
     gameapi::GetTextExtentPoint32A(dc->hdc_, text, text.GetLength(), &size);
     dc->SelectFont(oldFont);
     gameapi::ReleaseDC(GameWindow(), dc->hdc_);
+    if (widescreen::Active()) {
+        // WideScreen (addon's 80 bytes at 005F83CF): by the 4:3 part's width and the mode's height.
+        *out = widescreen::TextExtentToLayout(size);
+        return out;
+    }
     out->cx = static_cast<int>(static_cast<unsigned>(size.cx) * kLayoutWidth) / width_;
     out->cy = static_cast<int>(static_cast<unsigned>(size.cy) * kLayoutHeight) / height_;
     return out;
 }
 EI_REPLACE_METHOD(0x005F8340, CInterface3D::TextExtent);
+EI_REBIRTH_IMPLEMENTS(0x005F8340, ei::rebirth::Patch::WideScreen);
