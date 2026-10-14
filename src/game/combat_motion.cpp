@@ -731,11 +731,11 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         PathToMotionOrder(path, nullptr, &end);
         float dy = self->position.y - goal[1];
         float dx = self->position.x - goal[0];
-        float reached = dx * dx + dy * dy;
+        float reached = LengthSquared2DUnrounded(dx, dy);
         float half = HalfCell();
         float ey = half * path->targetY - goal[1];
         float ex = half * path->targetX - goal[0];
-        float left = ex * ex + ey * ey;
+        float left = LengthSquared2DUnrounded(ex, ey);
         bool far = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
         if (self->player)
             PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, far ? 0 : 1, kFarBits);

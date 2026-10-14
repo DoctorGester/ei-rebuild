@@ -684,7 +684,7 @@ bool CUnitServer::ActionInReach() {
     const float* at = &ObjectSlots(target)->PositionAt(&where, Plan(this).endTime)->x;
     float dx = at[0] - unit->position.x;
     float dy = at[1] - unit->position.y;
-    float distanceSq = dx * dx + dy * dy;
+    float distanceSq = LengthSquared2DUnrounded(dx, dy);
     return !(distanceSq >= Plan(this).rangeSq);   // C0: closer, or unordered
 }
 EI_REPLACE_METHOD(0x00549D40, CUnitServer::ActionInReach);

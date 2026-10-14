@@ -466,7 +466,7 @@ void CUnitServer::PropagateHostility() {
         CUnit* self = unit;
         double dx = static_cast<double>(other->position.x) - self->position.x;
         double dy = static_cast<double>(other->position.y) - self->position.y;
-        float distance = static_cast<float>(dy * dy + dx * dx);
+        float distance = static_cast<float>(LengthSquared2DUnrounded(dy, dx));
         float squaredRadius = *limit;
         if (!(std::bit_cast<std::int32_t>(distance) < std::bit_cast<std::int32_t>(squaredRadius))) continue;
         std::uint32_t mine = self->relationsA;

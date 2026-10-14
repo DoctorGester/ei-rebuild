@@ -218,7 +218,7 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
     CUnit* unit = self->unit;
     double dy = static_cast<double>(unit->position.y) - point[1];
     double dx = static_cast<double>(unit->position.x) - point[0];
-    return LessOrUnordered(reach * reach, dx * dx + dy * dy);
+    return LessOrUnordered(reach * reach, LengthSquared2DUnrounded(dx, dy));
 }
 
 // A melee or skill order fails when a living unit other than the target stands between the unit
@@ -297,9 +297,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for slot 48; it is always null here.)
     }
-    double ey = static_cast<double>(sight.point.y) - unit->position.y;
-    double ex = static_cast<double>(sight.point.x) - unit->position.x;
-    if (LessOrUnordered(ex * ex + ey * ey, sight.minDistanceSq)) return true;
+    if (LessOrUnordered(DistanceSquaredXYUnrounded<double>(sight.point, unit->position), sight.minDistanceSq)) return true;
 
     Vector3 eye;
     eye.x = unit->position.x;
@@ -359,9 +357,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 
     if (order->flag18) {
         double distance = CtlActionDistance(this, nullptr, order);
-        double dy = static_cast<double>(order->point.y) - unit->position.y;
-        double dx = static_cast<double>(order->point.x) - unit->position.x;
-        if (LessOrUnordered(distance * distance, dx * dx + dy * dy)) {
+        if (LessOrUnordered(distance * distance, DistanceSquaredXYUnrounded<double>(order->point, unit->position))) {
             DestroySteps(&steps);
             return false;
         }
@@ -420,7 +416,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     delta[2] = aim.z - origin.z;
     double ox = static_cast<double>(origin.x) - aim.x;
     double oy = static_cast<double>(origin.y) - aim.y;
-    volatile float distanceSq = static_cast<float>(oy * oy + ox * ox);
+    volatile float distanceSq = static_cast<float>(LengthSquared2DUnrounded(oy, ox));
 
     volatile float reachSq;    // the order's own range, squared
     volatile float outerSq;    // how far the target may be and still be waited for

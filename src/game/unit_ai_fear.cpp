@@ -154,7 +154,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         Vector3 foe = *PositionOf(enemy);
         double dx = static_cast<double>(foe.x) - me.x;
         double dy = static_cast<double>(foe.y) - me.y;
-        if (static_cast<double>(range) * range > dx * dx + dy * dy) {
+        if (static_cast<double>(range) * range > LengthSquared2DUnrounded(dx, dy)) {
             if (brain->owner->command == kCommandWalk || brain->owner->nextCommand == kCommandWalk) return kFlee;
             Vector3 flight;
             if (FindFlightPoint(brain, self, enemy, me, foe, Round(dx), Round(dy), &flight)) {
@@ -183,7 +183,7 @@ int FearMode::Evaluate(AIBrain* brain) {
             const Vector3* me = PositionOf(brain->owner->unit);
             double oy = static_cast<double>(me->y) - other->position.y;
             double ox = static_cast<double>(me->x) - other->position.x;
-            double d2 = ox * ox + oy * oy;
+            double d2 = LengthSquared2DUnrounded(ox, oy);
             if (d2 < best) {
                 nearest = *PositionOf(other);
                 best = Round(d2);

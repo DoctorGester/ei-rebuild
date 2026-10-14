@@ -401,7 +401,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
         double dy = point.y - going.y;      // kept on the FPU stack
         double dx = point.x - going.x;
         // TEST AH,0x41: jump to a new move only when the distance is greater.
-        if (!(dx * dx + dy * dy > kArrivedSq)) {
+        if (!(LengthSquared2DUnrounded(dx, dy) > kArrivedSq)) {
             // Still going to this point: near it, the interest fades.
             const float* unit = &brain->owner->unit->position.x;
             double ux = unit[0] - point.x;

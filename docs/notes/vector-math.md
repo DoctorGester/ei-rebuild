@@ -130,6 +130,7 @@ All `__forceinline`, by value:
 | `TransformColumnW<Sum3>` | the homogeneous w of `M * (v, 1)`: grouped `m[12]*x, m[13]*y, m[14]*z`, then `+ m[15]` |
 | `Conjugate(q)` | `(w, -x, -y, -z)` |
 | `RoundToFloat(double)` | volatile float store (replaces the local Store / StoreFloat / Round copies) |
+| `LengthSquared2DUnrounded<T>(x, y)`, `DistanceSquaredXYUnrounded<T>(a, b)` (V3b; precise off, nothing stored) | `x*x + y*y`; `dy = a.y - b.y`, then `dx`, `dx*dx + dy*dy`, in T (`double` where the site keeps the x87 value, `float` for float locals) |
 | `Atan2(y, x)` | `x87::fpatan` (include/ei/x87.h), unrounded double |
 | `Acos(c)`, `Asin(s)` | the game's CRT `acos` 006E7334 / `asin` 006E83D4 (`gamecrt::`, src/lib/crt.h): the C entries of the bodies behind _CIacos 006E7320 / _CIasin 006E83C0; unrounded double |
 
@@ -207,25 +208,28 @@ identical, or only stack slots / scheduling / commuted FMUL operands.
   (world_client.cpp's plane dots), link_figure.h morph_ (coefficients, not a point), figure_mesh.h block[4][4] (indexed),
   quaternion axis forms (unit_ai_sight Prepare, combat_actions), particles. Next: the 2D distance / dot sums on `position`
   (unit_ai_*, combat_*; batch 3).
-- Batch 3 (2D sums in unit_ai_* / combat_*), tried 2026-10-14: 370 before, 370 after, no source change. Of the 71 counted
-  sites in those files about 40 are 2D. All but six are written in `double` (`double dx = static_cast<double>(a.x) - b.x`,
-  the `// kept on the FPU stack` sites such as unit_ai.cpp IsNearPath / UpdateMove, AIDistance2 which returns the unrounded
-  ST0 value, combat_tick ApproachTarget, combat_sight OutOfSightRange / PlanAction, unit_ai_moves, unit_ai_targets,
-  unit_ai_fear, unit_ai_modes, unit_ai_player): a helper rounds to float, so it is not the written expression (and on a
-  53-bit thread it would differ). The six float-typed sites are combat_motion.cpp:734 / 738 (ReportPath),
-  combat_planning.cpp:208 (FindUseSpot), :261 and :275 (TimeUntilAction), combat_update.cpp:687 (ActionInReach). Tried
-  `LengthSquared2D({dx, dy})`, `DistanceSquared2D(...)` and `DistanceSquaredXY(a, b)` on them (release objects compared
-  with dumpbin /disasm): the result is the same at 24 bits, but the precise helper adds a float store and reload
-  (FSTP / FLD) for each of dx, dy and the sum, because /fp:fast kept the float locals on the FPU stack; the surrounding
-  code also changes (stack frame size, inlining of neighbouring wrappers in TimeUntilAction). That is not "identical
-  or stack slots / scheduling / FMUL operands", so all were reverted. Unblocking needs a decision: either accept the
-  redundant store / reload pairs on main-thread code (bit-neutral at 24-bit precision), or add a non-precise
-  variant of the 2D helpers (a helper change, out of scope for a spelling-only batch). The remaining counted sites in these
-  files are 3D sums (batch 4) and quaternion axis forms.
+- Batch 3 (2D sums in unit_ai_* / combat_*), V3b 2026-10-14: 369 -> 339. The precise 2D helpers added FSTP / FLD round
+  trips at these sites (the first try changed nothing), so vecmath.h got unrounded forms compiled with precise off:
+  `LengthSquared2DUnrounded<T>(x, y)` and `DistanceSquaredXYUnrounded<T>(a, b)` (dy first, as AIDistance2 005CFE20 loads
+  them); T is deduced or `double`, so the double sites stay double and the six float sites stay float. Per site the form
+  that compiles to the same code was kept: the Vector3 form where dy, dx are computed in that order and used only in the
+  sum (AIDistance2, Score, combat_tick, combat_sight CanActFrom / PlanAction), otherwise the locals stay and
+  only the sum is the helper, with its terms in the written order (`dy*dy + dx*dx` -> `(dy, dx)`). Release objects
+  compared function by function: all identical except combat_tick ApproachTarget (the volatile `reach` loaded after the
+  sum instead of before: scheduling). Left written out: unit_ai.cpp IsNearPath's volatile `segY*segY + segX*segX` and
+  combat_sight PlanAction's volatile `delta` sum (the helper reads each volatile once: other code), unit_ai_moves
+  UpdateFollow's six sums (any helper there changes the x87 register-stack allocation of unrelated later code, the
+  `lengthSq` / side test), unit_ai_moves:150 (a double and a float term), and the sites whose other uses of the same
+  forms produced integer register or frame changes (unit_ai_targets IsUsable, combat_tick StartMove, unit_ai_player
+  UpdateCombat keep `LengthSquared2DUnrounded(dx, dy)` instead of the Vector3 form). The x87 stackifier is sensitive to
+  any inlined call: compare every function, not only the edited lines. The rest of the counted sites in these files are
+  3D sums (batch 4) and quaternion axis forms.
 
 ## 7. Risks
 
-- **/fp:fast reassociation** (above): inspect the release disassembly of one migrated site per batch.
+- **/fp:fast reassociation** (above): inspect the release disassembly of one migrated site per batch. The `...Unrounded` 2D
+  helpers are compiled without precise semantics on purpose (V3b): they regroup with the caller like written-out code, so
+  they hold only 2-term sums and replace written-out sums only where the object code stays the same.
 - **Precise files.** 82 files use `float_control(precise)`; migrating one moves its maths from `double` to `float`: same bits
   at 24 bits, which is what the bitwise wrappers see; different on 53-bit threads.
 - **53-bit threads.** Code running off the main thread (verify log "FPU precision ...") is where float helpers and the

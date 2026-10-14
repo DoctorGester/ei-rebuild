@@ -205,7 +205,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             float ey = half * path.TargetY() - spot.y;
             float ex = half * path.TargetX() - spot.x;
             float limit = *reinterpret_cast<const float*>(0x0073EF28);
-            if (!(ex * ex + ey * ey < limit * limit)) continue;
+            if (!(LengthSquared2DUnrounded(ex, ey) < limit * limit)) continue;
             if (path.Cost() >= best) continue;
             best = path.Cost();
             std::memcpy(bestSpot, &spot, sizeof(bestSpot));
@@ -258,7 +258,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         position.y = half * position.y;
         float dx = position.x - aim[0];
         float dy = position.y - aim[1];
-        if (dy * dy + dx * dx > reachSq) {
+        if (LengthSquared2DUnrounded(dy, dx) > reachSq) {
             t += 5.0f;
             continue;
         }
@@ -272,7 +272,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         }
         float sy = sight.point.y - position.y;
         float sx = sight.point.x - position.x;
-        if (!(sy * sy + sx * sx >= sight.minDistanceSq)) break;   // C0: closer (or unordered)
+        if (!(LengthSquared2DUnrounded(sy, sx) >= sight.minDistanceSq)) break;   // C0: closer (or unordered)
         Vector3 from = {position.x, position.y, position.z};
         from.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + sight.eyeHeight);
         double visible = LineOfSightOriginal(MapOf(ManagerContextOf(this)), nullptr, &from, &sight.point);

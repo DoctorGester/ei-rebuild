@@ -288,3 +288,30 @@ __forceinline float DistanceZXY(const Vector3& a, const Vector3& b) { return Dis
 __forceinline Quaternion Conjugate(const Quaternion& q) { return {q.w, -q.x, -q.y, -q.z}; }
 
 #pragma float_control(pop)
+
+// ---- Unrounded 2D forms (precise semantics off: nothing is stored) -------------------------------
+//
+// The original keeps many 2D differences and sums on the FPU stack and compares or uses the
+// unrounded ST0 value (AIDistance2 returns it). The precise helpers above round their result
+// through memory; these do not: compiled without precise semantics, an inlined body is the same
+// code as the expression written out in the caller (no FSTP / FLD of the differences or the sum).
+// T is the type the site computes in: `double` where the source keeps the x87 value
+// (static_cast<double>(a.x) - b.x), `float` where it uses float locals. Only 2-term sums (one
+// result in every order), and the caller's expression may regroup around them as /fp:fast does with
+// written-out code: use them for a sum that is compared, stored or passed on as a whole.
+#pragma float_control(precise, off, push)
+
+// x * x + y * y.
+template <typename T>
+__forceinline T LengthSquared2DUnrounded(T x, T y) { return x * x + y * y; }
+
+// dx * dx + dy * dy of dx = a.x - b.x, dy = a.y - b.y, the differences computed in T, dy first (the
+// order VC6 loads them in AIDistance2 005CFE20 and its inlined copies).
+template <typename T>
+__forceinline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
+    T dy = static_cast<T>(a.y) - b.y;
+    T dx = static_cast<T>(a.x) - b.x;
+    return dx * dx + dy * dy;
+}
+
+#pragma float_control(pop)

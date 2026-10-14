@@ -125,7 +125,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         double limit = static_cast<double>(reach) * kReachScale;
         double dy = static_cast<double>(other->position.y) - unit->position.y;
         double dx = static_cast<double>(other->position.x) - unit->position.x;
-        if (limit * limit < dx * dx + dy * dy) candidates.RemoveAt(node);
+        if (limit * limit < LengthSquared2DUnrounded(dx, dy)) candidates.RemoveAt(node);
         node = next;
     }
     PlayerAddPartyTargetsOriginal(this, nullptr, brain, &candidates);
