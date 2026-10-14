@@ -50,3 +50,68 @@ The page polls every few seconds; nothing is published.
 
 WB1 database + work.py start/note/status/done; WB2 scheduler + `work.py test`; WB3 server and pages;
 WB4 worker brief and area-worker switched to work.py, coordinator habits (start at spawn, done at merge).
+
+## WB1: the database and work.py start / note / status / done (2026-10-14)
+
+Built: tools/work.py (standard library only) and the lock in tools/tickets.py.
+
+**Where.** `build/live/work.db` in the main checkout: work.py runs `git rev-parse --path-format=absolute
+--git-common-dir` from its own checkout and takes that folder's parent, so every worktree opens the same
+file. `WORK_DB=<path>` overrides it (tests). `work.py db` prints the path, schema version and row counts.
+
+**Concurrency.** WAL journal (set by whoever creates the file; it persists), `synchronous=NORMAL`,
+`foreign_keys=ON`, a 60 s busy timeout, autocommit connections (`isolation_level=None`) and writes only
+inside `with work.transaction(db):`, which is `BEGIN IMMEDIATE ... COMMIT` (the write lock is taken at
+BEGIN, so writers queue in the busy handler instead of failing to upgrade a read lock). Keep every write
+transaction short: never hold one across a game, a subprocess or a sleep. Readers never wait.
+Tested 2026-10-14: 12 processes starting on a new file at once through the CLI (half of them from another
+worktree), then 16 writers x 150 transactions (some holding the lock 30 ms) beside 4 readers: no error,
+no lost row, integrity ok.
+
+**Schema** (version in `PRAGMA user_version`; `MIGRATIONS` in work.py is a list of SQL scripts, one per
+version, applied in order under the write lock. Later tickets append an entry (new tables, `ALTER TABLE
+... ADD COLUMN`), never edit an old one; an older work.py refuses a newer database). Times are local
+ISO 8601 with offset, to the second (`work.now()`); JSON columns hold text from `json.dumps`.
+
+    assignment(id, ticket, worktree, branch, agent, started, ended)
+        worktree: absolute path, forward slashes. ended NULL while open; a unique index allows one open
+        assignment per ticket.
+    note(id, ticket, time, author, text)
+    batch(id, ticket, worktree, build, args, state, submitted, started, finished, submitter, exit_code, summary)
+        id is the submission order. build: the verify build folder (run_all's BUILD; runs in <build>/runs).
+        args: JSON list of run_all arguments. state: queued, running, finished, cancelled.
+        submitter: pid of the waiting `work.py test` (the scheduler can cancel a batch whose submitter
+        is gone). exit_code and summary: what `work.py test` prints and returns.
+    run(id, batch, scenario, install, hooks, alone, expected, folder, state, attempt, slot, started,
+        seconds, result, failures, counts, notes)
+        One game of a batch (ON DELETE CASCADE). install: vanilla, rebirth, native, rebirth-nohooks.
+        alone: sets the display mode, runs with no other game. expected: seconds from run_times.json
+        (longest first). state: queued, running, finished, cancelled. attempt: retries so far. slot:
+        the machine slot while running. result, failures (JSON list of FAILED: lines), counts (JSON
+        {function: [calls, mismatches]}) and notes (JSON list): run_all.run()'s return values.
+    process(name, pid, started, heartbeat, info)
+        One row per long-lived process ('scheduler', 'server'): the page shows whether it is alive;
+        a second scheduler sees the first.
+
+**CLI** (identity comes from the current directory, so run it in the checkout the command is about):
+
+    work.py start ID [--worktree P] [--branch B] [--agent A] [--force]
+        Opens an assignment for this checkout (git toplevel of cwd) and its branch; agent defaults to
+        WORK_AGENT or the worktree's folder name (agent-<id>). Again from the same worktree: updates
+        branch / agent. From another worktree: ends the old one and notes "took over from ...".
+        Refuses an id neither this checkout's nor the main checkout's tickets.toml has (--force).
+    work.py note ID TEXT...  [--author A]
+        Author: WORK_AGENT, else "coordinator" in the main checkout, else this worktree's open
+        assignment's agent, else the folder name.
+    work.py status [ID]
+        Without ID: open assignments with title, agent, age, last note, last commit on the branch
+        (log -1 in the shared repository), then queued / running batches and the last 3 finished.
+        With ID: every assignment (open and ended), the last 15 notes, the last 5 batches.
+    work.py done ID [TEXT...]
+        Ends the open assignment (exit 1 if there is none); TEXT becomes a last note.
+    work.py db
+
+**tickets.py lock.** Every command but check / show / list now runs under `toml_lock()`: a one-byte
+lock on build/tickets/tickets.lock in that checkout (msvcrt, or flock elsewhere), held from reading
+tickets.toml to writing it, tickets.md and tickets.json, waiting up to 120 s. Each checkout has its own
+toml, so the lock is per checkout; the system drops it when a process dies.
