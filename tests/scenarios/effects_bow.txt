@@ -15,28 +15,28 @@ console @BlockUnit(GetLeader(),0)
 console @GodMode(0,1)
 console @GiveSkill(GetLeader(),"archery",5)
 console @GiveItem(0,"bone short bow.decayed bones")
-wait 300
+frames 5
 screen 5
-wait 3000
+waitwindow 15 camp
 campputon 3004 1
-wait 500
+frames 3
 key esc
-wait 3000
+waitwindow 15 battle
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 click 400 560
-wait 300
+frames 3
 hudstate
 # The weapon bar (80..240 x 520..600, 40 wide per slot): the bow is the second weapon. Under Rebirth
 # the click misses the bar (its layout is moved), so there the hero fights with its first weapon.
 vanilla click 140 560
-wait 500
+frames 3
 
 console @AddUnitToServer("BowWolf1","WolfTutor","BowWolf1",GetX(GetLeader()),Add(GetY(GetLeader()),3),0)
 waitfor 10 IsAlive(GetObjectByName("BowWolf1"))
 console @SetPlayer(GetObjectByName("BowWolf1"),6)
 check IsEnemy(GetObjectByName("BowWolf1"),0)
-wait 1000
+waitunit 10 BowWolf1
 check Not(IsUnitBlocked(GetLeader()))
 clickunit BowWolf1
 wait 3000

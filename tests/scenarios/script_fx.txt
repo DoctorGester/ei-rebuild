@@ -33,9 +33,9 @@ wait 1000
 
 # Escape menu, Save: OK saves into a new folder (rectangles as in ui_saveload); then load it.
 key esc
-wait 1000
+waitwindow 10 escmenu
 click 395 120
-wait 1500
+waitwindow 10 saveload
 clickregion 0
 waitline 15 Saved save1
 wait 500

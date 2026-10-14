@@ -14,38 +14,39 @@ console @BlockUnit(GetLeader(),0)
 console @GSSetVar(0,"q.gz1g.q0g",1)
 waitfor 5 IsEqual(GSGetVar(0,"q.gz1g.q0g"),1)
 
+waitwindow 15 battle
 key tab
-wait 1500
+waitwindow 10 objectives
 clickregion 4
-wait 300
+frames 5
 clickregion 3
-wait 300
+frames 5
 clickregion 2
-wait 300
+frames 5
 clickregion 1
-wait 300
+frames 5
 clickregion 9
-wait 500
+frames 5
 # Its keys (0064E5A0): the quest list keys, then OK; TAB again closes it (the objectives key), and
 # Enter closes the next one (one button: the pending value 0).
 key down
-wait 200
+frames 3
 key up
-wait 200
+frames 3
 key pgdn
-wait 200
+frames 3
 key pgup
-wait 200
+frames 3
 clickregion 0
-wait 1000
+waitwindow 10 battle
 key tab
-wait 1500
+waitwindow 10 objectives
 key tab
-wait 1000
+waitwindow 10 battle
 key tab
-wait 1500
+waitwindow 10 objectives
 key enter
-wait 1000
+frames 20
 check IsAlive(GetLeader())
 report
 quit

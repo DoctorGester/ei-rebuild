@@ -71,7 +71,7 @@ console @GSSetVar(0,"w5",HP(GetObjectByName("Wolf5")))
 console @CastSpellPoint("firewall{d2;e2}",GetX(GetObjectByName("Wolf5")),GetY(GetObjectByName("Wolf5")),Add(GetX(GetObjectByName("Wolf5")),4),GetY(GetObjectByName("Wolf5")))
 # The original game does not hurt the wolf here within 10 s either (checked with --no-hooks), so this
 # only lets the wall burn for a while.
-wait 3000
+wait 2000
 
 # An acid fog on a point (a lasting area spell: IsSpellTarget and HitUnit), eight modifiers.
 console @AddUnitToServer("Wolf6","WolfTutor","Wolf6",Add(GetX(GetLeader()),12),Add(GetY(GetLeader()),6),0)

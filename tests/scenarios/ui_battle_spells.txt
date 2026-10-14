@@ -21,11 +21,11 @@ console @GSSetVar(0,"hy",GetY(GetLeader()))
 console @GiveUnitSpell(GetLeader(),"lightning")
 console @GiveUnitSpell(GetLeader(),"firewall")
 console @GiveUnitSpell(GetLeader(),"fireball")
-wait 500
+waitwindow 15 battle
 
 # The hero's portrait: selects it and shows its spells.
 click 400 560
-wait 300
+frames 3
 check IsAlive(GetLeader())
 
 # The action column (0..40 x 270..510; button i at y 470 - 40 i .. 510 - 40 i): with the hero
@@ -48,7 +48,9 @@ waitfor 10 IsAlive(GetObjectByName("SpellWolf3"))
 console @BlockUnit(GetObjectByName("SpellWolf1"),1)
 console @BlockUnit(GetObjectByName("SpellWolf2"),1)
 console @BlockUnit(GetObjectByName("SpellWolf3"),1)
-wait 500
+waitunit 10 SpellWolf1
+waitunit 10 SpellWolf2
+waitunit 10 SpellWolf3
 
 # Each spell's button, then a wolf.
 click 780 410

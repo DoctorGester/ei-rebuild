@@ -19,8 +19,9 @@ console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
 
 # The hero's portrait (centred at x 400): the toggle keeps it selected.
+waitwindow 15 battle
 click 400 560
-wait 300
+frames 3
 check IsAlive(GetLeader())
 
 console @AddUnitToServer("CmdWolf1","WolfTutor","CmdWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
@@ -32,7 +33,9 @@ waitfor 10 IsAlive(GetObjectByName("CmdWolf3"))
 console @BlockUnit(GetObjectByName("CmdWolf1"),1)
 console @BlockUnit(GetObjectByName("CmdWolf2"),1)
 console @BlockUnit(GetObjectByName("CmdWolf3"),1)
-wait 500
+waitunit 10 CmdWolf1
+waitunit 10 CmdWolf2
+waitunit 10 CmdWolf3
 
 # A plain click on each wolf, the second with Ctrl.
 clickunit CmdWolf1
@@ -48,7 +51,7 @@ console @InflictDamage(GetObjectByName("CmdWolf1"),5000)
 console @InflictDamage(GetObjectByName("CmdWolf2"),5000)
 console @InflictDamage(GetObjectByName("CmdWolf3"),5000)
 waitfor 10 IsLess(HP(GetObjectByName("CmdWolf1")),1)
-wait 1000
+wait 500
 clickunit CmdWolf1
 wait 300
 clickunit CmdWolf2

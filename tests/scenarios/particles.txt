@@ -60,7 +60,7 @@ console @CreateParticleSource(46,Add(GetX(GetLeader()),12),GetY(GetLeader()),Get
 console @CreateParticleSource(47,Sub(GetX(GetLeader()),12),GetY(GetLeader()),GetZ(GetLeader()),1,"Silence")
 console @CreateParticleSource(48,GetX(GetLeader()),Add(GetY(GetLeader()),12),GetZ(GetLeader()),1,"CurseStars")
 console @CreateParticleSource(49,GetX(GetLeader()),Sub(GetY(GetLeader()),12),GetZ(GetLeader()),1,"Transform")
-wait 3000
+wait 2000
 
 console @DeleteParticleSource(30)
 console @DeleteParticleSource(31)
@@ -83,7 +83,7 @@ console @DeleteParticleSource(47)
 console @DeleteParticleSource(48)
 console @DeleteParticleSource(49)
 
-wait 1500
+wait 500
 check IsAlive(GetLeader())
 report
 quit

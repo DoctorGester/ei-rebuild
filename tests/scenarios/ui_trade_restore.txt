@@ -13,10 +13,10 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 # GiveUnitExp is a Rebirth script command (addon.dll); vanilla has none, so only the Rebirth run gains the experience.
 rebirth console @GiveUnitExp(GetLeader(),50000)
-wait 300
+frames 5
 
 screen 5
-wait 2500
+waitwindow 15 camp
 clickregion 5
 wait 500
 click 300 142
@@ -28,7 +28,7 @@ wait 500
 click 300 142
 wait 300
 key esc
-wait 2000
+waitwindow 15 battle
 waitfor 10 IsGreater(HP(GetLeader()),0)
 report
 quit

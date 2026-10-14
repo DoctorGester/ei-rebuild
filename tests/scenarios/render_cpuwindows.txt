@@ -23,8 +23,9 @@ newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
 move 400 60
-wait 2000
+wait 1000
 freeze
 capture world
 capture world_again
@@ -33,18 +34,18 @@ samecapture world world_again
 
 # The camp (screen 5); Esc returns to the game.
 screen 5
-wait 3000
+waitwindow 15 camp
 move 400 20
 wait 300
 freeze
 capture camp
 unfreeze
 key esc
-wait 2000
+waitwindow 15 battle
 
 # The global map (screen 4).
 screen 4
-wait 3000
+waitwindow 15 map
 move 400 20
 wait 300
 freeze

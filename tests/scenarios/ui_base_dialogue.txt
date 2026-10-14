@@ -18,7 +18,7 @@ check IsAlive(GetObjectByName("Smith"))
 console @MoveToObject(GetLeader(),GetObjectByName("Smith"))
 waitfor 20 IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Smith")),4)
 speed 55
-wait 1500
+waitunit 10 Smith
 clickunit Smith
 wait 1500
 clickregion 0

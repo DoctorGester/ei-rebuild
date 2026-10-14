@@ -19,20 +19,20 @@ check IsEqual(GetObjectID(GetObject(1889)),1889)
 console @GSSetVar(0,"lv",GetLeverState(GetObject(1889)))
 console @SwitchLeverStateEx(GetObject(1889),Sub(1,GSGetVar(0,"lv")),20)
 waitfor 10 Not(IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv")))
-wait 3000
+wait 1500
 console @EnableLever(GetObject(1889),0)
-wait 500
+wait 300
 console @EnableLever(GetObject(1889),1)
 console @SetScience(GetObject(1889),3,1,1,0,0,0)
 console @SwitchLeverState(GetObject(1889),GSGetVar(0,"lv"))
 waitfor 10 IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv"))
-wait 2000
+wait 1000
 
 # Escape menu, Save (as magic_traps.txt): OK (region 0) saves into save1.
 key esc
-wait 1000
+waitwindow 10 escmenu
 click 395 120
-wait 1500
+waitwindow 10 saveload
 clickregion 0
 waitline 10 Saved save1
 # A wolf that is not in save1 tells when the load has replaced the world.

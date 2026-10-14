@@ -9,24 +9,26 @@ waitmenu
 
 # Main menu region 5: the hero list; its region 5: a new hero (mode 10, the panel on page 10).
 clickregion 5
-wait 2000
+waitwindow 15 heroes
+frames 10
 clickregion 5
-wait 1500
+frames 10
 # Strength down, then up again; dexterity down; height up and down.
 click 150 172
-wait 600
+frames 10
 click 170 172
-wait 600
+frames 10
 click 150 187
-wait 600
+frames 10
 click 170 247
-wait 400
+frames 10
 click 150 247
-wait 400
+frames 10
 # Esc: back to the list, Esc: the main menu.
 key esc
-wait 1500
+frames 20
 key esc
-wait 3000
+waitwindow 15 menu
+wait 500
 report
 quit

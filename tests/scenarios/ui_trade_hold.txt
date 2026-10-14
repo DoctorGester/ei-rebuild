@@ -13,10 +13,10 @@ speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 rebirth console @GiveUnitExp(GetLeader(),50000)
-wait 300
+frames 5
 
 screen 5
-wait 2500
+waitwindow 15 camp
 clickregion 5
 wait 500
 ldown 300 142
@@ -24,7 +24,7 @@ wait 1500
 lup 300 142
 wait 300
 key esc
-wait 2000
+waitwindow 15 battle
 waitfor 10 IsGreater(HP(GetLeader()),0)
 report
 quit

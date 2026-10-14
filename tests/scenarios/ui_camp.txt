@@ -17,32 +17,32 @@ console @BlockUnit(GetLeader(),0)
 # CUiItemStrip::RebuildList (00621377). Regions 4-10 are pages 0-6 (0060E9E0); 0/1 the previous /
 # next hero, 2/3 turn the hero while held.
 screen 5
-wait 3000
+waitwindow 15 camp
 clickregion 5
 wait 500
 clickregion 6
-wait 500
+frames 10
 clickregion 7
-wait 500
+frames 10
 clickregion 8
-wait 500
+frames 10
 clickregion 9
-wait 500
+frames 10
 clickregion 10
-wait 500
+frames 10
 clickregion 4
-wait 500
+frames 10
 clickregion 1
-wait 300
+frames 5
 clickregion 0
-wait 300
+frames 5
 clickregion 2
-wait 300
+frames 5
 clickregion 3
-wait 300
+frames 5
 # Esc is page 7: the camp closes and the game goes on (the battle screen's Create runs again).
 key esc
-wait 3000
+waitwindow 15 battle
 waitfor 15 IsGreater(HP(GetLeader()),0)
 
 # The global map (screen 4): its Create (0062D350) and every-frame update; regions 0/1 turn it.
@@ -51,21 +51,21 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 console @GSSetVar(0,"q.gz1g.q0g",1)
 waitfor 5 IsEqual(GSGetVar(0,"q.gz1g.q0g"),1)
 screen 4
-wait 4000
+waitwindow 15 map
 clickregion 0
-wait 300
+frames 5
 clickregion 1
-wait 300
+frames 5
 moveregion 2
-wait 300
+frames 5
 # The right button turns the map by dragging (0062FF60 / 0062FFC0).
 rclick 400 300
-wait 300
+frames 5
 # Esc opens the escape menu over the map (00630580; the map's input slot 1 0062FF10), Esc closes it
 # (the map's slot 27, 0062EE30).
 key esc
-wait 1000
+waitwindow 10 escmenu
 key esc
-wait 1000
+waitwindow 10 map
 report
 quit

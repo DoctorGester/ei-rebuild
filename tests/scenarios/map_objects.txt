@@ -33,14 +33,14 @@ wait 2000
 console @MoveToPoint(GetObjectByName("Wolf1"),Add(GetX(GetLeader()),2),GetY(GetLeader()))
 waitfor 15 IsLess(GetX(GetObjectByName("Wolf1")),Sub(GSGetVar(0,"wx"),2))
 console @RotateTo(GetObjectByName("Wolf1"),GetX(GetLeader()),Add(GetY(GetLeader()),5))
-wait 1000
+wait 500
 console @SetCPFast(GetObjectByName("Wolf1"),Add(GetX(GetLeader()),4),Add(GetY(GetLeader()),2),GetZValue(Add(GetX(GetLeader()),4),Add(GetY(GetLeader()),2)))
 wait 500
 check IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Wolf1")),6)
 
 # Hidden and shown again.
 console @HideObject(GetObjectByName("Wolf1"),1)
-wait 1000
+wait 500
 console @HideObject(GetObjectByName("Wolf1"),0)
 wait 500
 
@@ -58,7 +58,7 @@ waitfor 10 Not(IsAlive(GetObjectByName("Wolf1")))
 console @AddUnitToServer("Wolf2","WolfTutor","Wolf2",Sub(GetX(GetLeader()),4),GetY(GetLeader()),0)
 waitfor 10 IsAlive(GetObjectByName("Wolf2"))
 console @RemoveUnitFromServer(GetObjectByName("Wolf2"))
-wait 1000
+wait 500
 check IsAlive(GetLeader())
 report
 quit

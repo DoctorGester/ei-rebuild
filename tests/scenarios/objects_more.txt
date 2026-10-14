@@ -22,7 +22,7 @@ waitfor 10 IsAlive(GetObjectByName("LtWolf"))
 console @GSSetVar(0,"lw",HP(GetObjectByName("LtWolf")))
 console @CastSpellUnit("lightning{e2;e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetObjectByName("LtWolf"))
 waitfor 10 IsLess(HP(GetObjectByName("LtWolf")),GSGetVar(0,"lw"))
-wait 1500
+wait 1000
 check IsAlive(GetLeader())
 report
 quit

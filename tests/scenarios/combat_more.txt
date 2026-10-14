@@ -51,8 +51,7 @@ console #HP(GetLeader())
 
 # Healing: the healing spell reaches CUnitServer slot 21 (Heal), which logs it.
 console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
-wait 2000
-expect was healed
+waitexpect 10 was healed
 console #HP(GetLeader())
 
 # The hero fights back until the archer is dead.
