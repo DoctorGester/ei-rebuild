@@ -8,12 +8,13 @@
 //   the help window, the dialogue: ui_help, ui_base_dialogue, ui_hud).
 // 005E6FA0: side by side (pure: three stores). Every screen that places a sprite (ui_camp,
 //   ui_hud, ui_screens).
-// 005FDE20: with WideScreen on (ui_widescreen*), side by side on the surface's pixels (gdi_pixels.h;
-//   it keeps no state between calls): the original draws, its pixels are recorded and the old ones put
-//   back, ours draws; the results and the pixels are compared. Otherwise ours only (what it differs in
-//   is WideScreen's scaling; reading the whole surface for every text made the camp's trade lists,
-//   which draw hundreds of texts and are redrawn by their own wrapper, take 40 s). Every text on a
-//   surface (ui_main_menu, ui_camp, ui_hud).
+// 005FDE20: side by side on the surface's pixels (gdi_pixels.h; it keeps no state between calls):
+//   the original draws, its pixels are recorded and the old ones put back, ours draws; the results
+//   and the pixels are compared. Only the rows of the text's rectangle (scaled as the draw scales it,
+//   a few rows more for the shadow) are read: reading the whole surface for every text made the camp's
+//   trade lists, which draw hundreds of texts and are redrawn by their own wrapper, take 40 s. A draw
+//   without clipping (DT_NOCLIP) reads the whole surface. Every text on a surface (ui_main_menu,
+//   ui_camp, ui_hud).
 // 005E3700: side by side: the state it leaves (the shown flag, the caret) and, with the line open,
 //   the surface's pixels (ui_surface_pixels.h). The chat overlay's constructor draws the closed line
 //   when the interface is created (every launch); the harness's "chat 1" opens it
@@ -23,10 +24,10 @@
 #include "ui_surface_pixels.h"
 
 #include "../../src/game/ui.h"
-#include "../../src/game/ui_widescreen.h"
 #include "../../src/hook/log.h"
 #include "../../src/lib/mfc.h"
 
+#include <algorithm>
 #include <cstring>
 
 namespace {
@@ -78,17 +79,25 @@ EI_VERIFY(0x005E6FA0, MeshPlaceVerify, 7, s_place);
 static int(__fastcall* s_surfaceDrawText)(CUiSurface*, void*, const char*, const RECT*, int, COLORREF, UINT, int);
 static int __fastcall SurfaceDrawTextVerify(CUiSurface* self, void*, const char* text, const RECT* rect, int font,
                                             COLORREF colour, UINT format, int shadow) {
-    if (!self->holder_ || !self->dc_ || !widescreen::Active()) {
+    if (!self->holder_ || !self->dc_) {
         RECT before = *rect;
         int result = self->DrawTextIn(text, rect, font, colour, format, shadow);
         bool ok = (self->holder_ || result == 0) && std::memcmp(&before, rect, sizeof(RECT)) == 0;
-        ei::verify::Check("CUiSurface::DrawTextIn", true, ok, "result %d (ours only)", result);
+        ei::verify::Check("CUiSurface::DrawTextIn", true, ok, "result %d (no surface or DC)", result);
         return result;
     }
     const RECT asked = *rect;
+    const int width = self->rect_.right - self->rect_.left, height = self->rect_.bottom - self->rect_.top;
+    int top = 0, bottom = height;
+    if (!(format & DT_NOCLIP) && !IsRectEmpty(rect)) {
+        RECT frame = asked;
+        self->interface_->CallScaleRectToScreenNoMargin(&frame);
+        top = (std::max)(0, static_cast<int>(frame.top) - 2);
+        bottom = (std::min)(height, static_cast<int>(frame.bottom) + 6);   // the slack, the shadow's row
+    }
     int expected = 0, actual = 0;
     ei::verify::gdi::DrawComparison c = ei::verify::gdi::CompareDraws(
-        self->dc_, self->rect_.right - self->rect_.left, self->rect_.bottom - self->rect_.top,
+        self->dc_, width, top, bottom - top,
         [&] { expected = s_surfaceDrawText(self, nullptr, text, &asked, font, colour, format, shadow); },
         [&] { actual = self->DrawTextIn(text, &asked, font, colour, format, shadow); });
     if (c.rerun)

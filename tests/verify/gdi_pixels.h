@@ -18,8 +18,8 @@ struct GdiPixels {
     std::vector<std::uint32_t> bits;
 };
 
-// Reads the DC's top left width x height pixels into *read, or writes *write there.
-inline bool CopySurfaceDC(HDC dc, int width, int height, GdiPixels* read, const GdiPixels* write) {
+// Reads the DC's width x height pixels from row `top` into *read, or writes *write there.
+inline bool CopySurfaceRows(HDC dc, int width, int top, int height, GdiPixels* read, const GdiPixels* write) {
     if (!dc || width <= 0 || height <= 0) return false;
     HDC mem = CreateCompatibleDC(dc);
     BITMAPINFO info{};
@@ -37,9 +37,9 @@ inline bool CopySurfaceDC(HDC dc, int width, int height, GdiPixels* read, const 
         std::size_t count = static_cast<std::size_t>(width) * height;
         if (write) {
             std::memcpy(pixels, write->bits.data(), count * 4);
-            ok = BitBlt(dc, 0, 0, width, height, mem, 0, 0, SRCCOPY) != 0;
+            ok = BitBlt(dc, 0, top, width, height, mem, 0, 0, SRCCOPY) != 0;
         } else {
-            ok = BitBlt(mem, 0, 0, width, height, dc, 0, 0, SRCCOPY) != 0;
+            ok = BitBlt(mem, 0, 0, width, height, dc, 0, top, SRCCOPY) != 0;
             GdiFlush();
             read->bits.assign(pixels, pixels + count);
         }
@@ -48,6 +48,11 @@ inline bool CopySurfaceDC(HDC dc, int width, int height, GdiPixels* read, const 
     if (bitmap) DeleteObject(bitmap);
     if (mem) DeleteDC(mem);
     return ok;
+}
+
+// The DC's top left width x height pixels.
+inline bool CopySurfaceDC(HDC dc, int width, int height, GdiPixels* read, const GdiPixels* write) {
+    return CopySurfaceRows(dc, width, 0, height, read, write);
 }
 
 // The pixels that differ and their bounding box (for the mismatch line); -1 if not comparable.
@@ -122,12 +127,13 @@ DrawComparison CompareDrawsWith(Copy&& copy, int width, Original&& original, Our
     return out;
 }
 
-// The same on a DC the caller holds while both draw (CUiSurface::DrawTextIn).
+// The same on a DC the caller holds while both draw, rows top .. top + height - 1 (CUiSurface::DrawTextIn:
+// the rows its rectangle covers; the differences' rows are then relative to `top`).
 template <class Original, class Ours>
-DrawComparison CompareDraws(HDC dc, int width, int height, Original&& original, Ours&& ours) {
+DrawComparison CompareDraws(HDC dc, int width, int top, int height, Original&& original, Ours&& ours) {
     return CompareDrawsWith(
-        [&](GdiPixels* read, const GdiPixels* write) { return CopySurfaceDC(dc, width, height, read, write); }, width,
-        original, ours);
+        [&](GdiPixels* read, const GdiPixels* write) { return CopySurfaceRows(dc, width, top, height, read, write); },
+        width, original, ours);
 }
 
 } // namespace ei::verify::gdi
