@@ -21,7 +21,7 @@ Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src
 
 - **N0** Census of interface drawing per window and surface (running since 2026-10-14; 1 session). gdi32 / user32 import slots of game.exe and addon.dll, HDC to surface through g_memoryDcs; GDI metric calls too; uncaught drawing by DIB checksums. Report in docs/notes/ui-census.md. Files: `tests/verify/ui_census.cpp`, `src/game/ui_surface_dc.cpp`, `src/game/ui_window.cpp`.
 - **N2** Font loading, glyph atlas and DrawText-compatible layout (running since 2026-10-14; 2 sessions). stb_truetype with Liberation Serif / Mono (vendored 2026-10-14); the layout also serves the text extent. Not pixel-exact with GDI; a test tool reports line-break differences. Files: `src/render/render_text.{h,cpp}`, `third_party/stb`, `third_party/fonts`.
-- **N5** Cursor and per-frame images cached (ready; 0.5 sessions). No sg_make_image every frame. Files: `src/render/render_blit.cpp`.
+- **N5** Cursor and per-frame images cached (running since 2026-10-14; sonnet, 0.5 sessions). No sg_make_image every frame. Files: `src/render/render_blit.cpp`.
 - **P7** CPU-written textures and clouds on the GPU (optional) (ready; 1.5 sessions).
 - **N1** 2D canvas layer (waiting on SV1; 2 sessions). Render targets, command queue, fill / frame / line / pixel / glyph run / copy frame / greyscale / readback, a Canvas command in the frame, 16-bit quantise. Few lines in render.cpp (SV1 edits it too). Files: `src/render/render_ui.{h,cpp}`, `src/render/render.cpp`, `src/render/render_internal.h`.
 - **N3** Comparison harness: uinative / uiboth, per-surface diff (waiting on N1, SV1, W2; 1.5 sessions). Text compared with a tolerance (own fonts). One registration line in harness.cpp after SV1 and W2 merge. Files: `tests/verify/harness_ui.cpp`, `tools/compare_frames.py`, `src/render/render_ui.cpp`.
@@ -51,10 +51,10 @@ Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `ru
 Every unknown_XXX member becomes a real name or unused_XXX (same type and offset; renames only, layout unchanged). check_cleanup counts `unknown field` (727 in 97 files on 2026-10-14) and `unused field accessed` (stays 0). Rebirth's DLL may read a field we call unused.
 
 - **F1** Unknown fields: world, combat, effects, spells (~180) (running since 2026-10-14). Files: `world.h`, `combat.h`, `spell.h`, `effects.h`, `world_effect.h`, `sky_object.h`, `lightning / trap / lever / cage`, `particle_emitters.cpp`.
-- **F2** Unknown fields: units, AI, items (~175) (running since 2026-10-14). Files: `unit.h`, `unit_db.h`, `unit_ai.h`, `ai_map.h`, `ai_*`, `item_db.h`, `item*`, `unit_looks.h`, `unit_client_*`, `class_templates.h`, `party*`.
 - **F3** Unknown fields: interface (~125) (ready). Coordinate with W2 (ui.h) and the P tickets: renames only. Files: `ui.h`, `ui_camp.h`, `ui_screens.h`, `ui_briefing.h`, `ui_*`.
 - **F4** Unknown fields: scene, figures, terrain, map objects, textures (~140) (ready). Files: `scene_loader.*`, `map_object_figures.h`, `terrain*`, `figure*`, `camera.h`, `texture.h`, `map_object*`, `link_figure.h`, `object_tables.h`, `material.h`, `model.h`, `renderer_lines.h`.
 - **F5** Unknown fields: the rest (~105) (ready). Files: `map_spec.h`, `net_*`, `player_*`, `sound*`, `script*`, `app_*`, `bink_video.cpp`, `quest_records.h`, `base_manager.h`, `src/lib`.
+- **F2** Unknown fields: units, AI, items (done 2026-10-14). 172 named or unused_XXX (727 -> 555); meanings in cleanup-units.md. Follow-ups: CombatStats +0x60 / +0x64 / +0x8C take UnitStats' names; SetUnknown438 -> SetFightAtWill; unit_db_destroy.cpp's local skill record structs have swapped names; a Ghidra pass on the archive fields named fieldN. Files: `unit.h`, `unit_db.h`, `unit_ai.h`, `ai_map.h`, `ai_*`, `item_db.h`, `item*`, `unit_looks.h`, `unit_client_*`, `class_templates.h`, `party*`.
 
 ## Standalone verification (docs/notes/standalone-verification.md)
 

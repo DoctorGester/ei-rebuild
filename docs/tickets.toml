@@ -169,7 +169,9 @@ files = ["tests/scenarios/"]
 id = "N5"
 title = "Cursor and per-frame images cached"
 group = "native-ui"
-status = "queued"
+status = "running"
+started = "2026-10-14"
+model = "sonnet"
 size = 0.5
 files = ["src/render/render_blit.cpp"]
 note = "No sg_make_image every frame."
@@ -319,10 +321,11 @@ files = ["world.h", "combat.h", "spell.h", "effects.h", "world_effect.h", "sky_o
 
 [[ticket]]
 id = "F2"
-title = "Unknown fields: units, AI, items (~175)"
+title = "Unknown fields: units, AI, items"
 group = "fields"
-status = "running"
-started = "2026-10-14"
+status = "done"
+done = "2026-10-14"
+note = "172 named or unused_XXX (727 -> 555); meanings in cleanup-units.md. Follow-ups: CombatStats +0x60 / +0x64 / +0x8C take UnitStats' names; SetUnknown438 -> SetFightAtWill; unit_db_destroy.cpp's local skill record structs have swapped names; a Ghidra pass on the archive fields named fieldN."
 files = ["unit.h", "unit_db.h", "unit_ai.h", "ai_map.h", "ai_*", "item_db.h", "item*", "unit_looks.h", "unit_client_*", "class_templates.h", "party*"]
 
 [[ticket]]
