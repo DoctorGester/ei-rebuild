@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
@@ -168,8 +169,6 @@ std::uint32_t IndexIn(const RecordTable& table, const char* record, int stride) 
 __declspec(naked) void __fastcall CallItemSetSpell(CItem*, void*, CSpell*) EI_ORIGINAL(0x006A0520)
 __declspec(naked) void __fastcall CallItemAttachSpell(CItem*, void*, CSpell*) EI_ORIGINAL(0x006A04D0)
 __declspec(naked) BOOL __fastcall CallBuild(CItemConstructor*) EI_ORIGINAL(0x006A5D60)
-// 00689030 CSpellManager::CreateSpellFromText (thiscall, one argument).
-__declspec(naked) CSpell* __fastcall CallCreateSpellFromText(void*, void*, const char*) EI_ORIGINAL(0x00689030)
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -409,7 +408,7 @@ BOOL CItemConstructor::Build() {
     if (item_->GetClassId() == kClassQuick && Field<int>(prototype_, field::kItemCategory) == kCategoryWand) {
         void* context = *reinterpret_cast<void* const*>(reinterpret_cast<const char*>(manager_) + 0xAC);
         void* spellManager = ei::VCall<void*>(context, kContextSlotSpellManager);
-        CSpell* spell = CallCreateSpellFromText(spellManager, nullptr, static_cast<const char*>(reinterpret_cast<const QuickItemRecord*>(prototype_)->text7C));
+        CSpell* spell = SpellManagerCreateSpellFromTextOriginal(static_cast<CSpellManager*>(spellManager), nullptr, static_cast<const char*>(reinterpret_cast<const QuickItemRecord*>(prototype_)->text7C));
         spell_ = spell;
         CallItemSetSpell(item_, nullptr, spell);
     } else if (spell_) {
@@ -566,7 +565,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts.data[0])),
                         reinterpret_cast<const unsigned char*>(kSpellContainer)) == 0) {
         const char* spellText = extra;
-        CSpell* spell = CallCreateSpellFromText(ei::VCall<void*>(context, kContextSlotSpellManager), nullptr, spellText);
+        CSpell* spell = SpellManagerCreateSpellFromTextOriginal(static_cast<CSpellManager*>(ei::VCall<void*>(context, kContextSlotSpellManager)), nullptr, spellText);
         CItem* item = nullptr;
         if (spell) {
             char* record = FindQuickNamed(kQuickTable, nullptr, kSpellContainer);
@@ -600,7 +599,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     const unsigned char* type = *reinterpret_cast<const unsigned char* const*>(prototype + 4);
     if (console::Length(extra) != 0 && gamecrt::mbscmp(type, reinterpret_cast<const unsigned char*>(kMaterialType)) != 0) {
         void* spells = ei::VCall<void*>(context, kContextSlotSpellManager);
-        if (CSpell* spell = CallCreateSpellFromText(spells, nullptr, extra)) constructor->SetSpellObject(spell);
+        if (CSpell* spell = SpellManagerCreateSpellFromTextOriginal(static_cast<CSpellManager*>(spells), nullptr, extra)) constructor->SetSpellObject(spell);
     } else if (gamecrt::mbscmp(type, reinterpret_cast<const unsigned char*>(kMaterialType)) == 0 &&
                console::Length(extra) != 0) {
         constructor->count_ = GameAtoi(extra);
@@ -668,7 +667,7 @@ EI_REBIRTH_IMPLEMENTS(0x006AC970, ei::rebirth::Patch::FixCreateItem);
 // The "spell container" record is looked up by name each time; without one the index is that of a
 // null record (kept: MakeItem then finds no prototype).
 CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spells) {
-    CSpell* spell = CallCreateSpellFromText(spells, nullptr, spellText);
+    CSpell* spell = SpellManagerCreateSpellFromTextOriginal(static_cast<CSpellManager*>(spells), nullptr, spellText);
     if (!spell) return nullptr;
     char* record = FindQuickNamed(kQuickTable, nullptr, kSpellContainer);
     int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;

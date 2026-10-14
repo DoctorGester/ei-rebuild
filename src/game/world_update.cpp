@@ -40,8 +40,7 @@ __declspec(naked) void __fastcall AcceptPlayers(CWorldServer*, void*, void* /*so
 // 00665A10. Disconnects a player (its connection and units).
 void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOriginal((void*)a0); }
 // 0066C1D0 (RET 4). The player list releases the player.
-// 00665DE0 / 0066E130. A player's update before the tick / its state's update after it.
-__declspec(naked) void __fastcall PlayerUpdate(WorldPlayer*, void*) EI_ORIGINAL(0x00665DE0)
+// 0066E130. A player's state's update after the tick.
 __declspec(naked) void __fastcall StateUpdate(void*, void*) EI_ORIGINAL(0x0066E130)
 // Script groups: constructor 004C2030 (base vtable), destructor 004C2290, assignment 004C1290,
 // union 004B2620; the global group / name / element getters by value (004C3B00, 004C2680,
@@ -113,7 +112,7 @@ int CWorldServer::Update() {
 
     if (!paused_) {
         for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
-            PlayerUpdate(player, nullptr);
+            PlayerTickOriginal(player);
         TickAt(this, nullptr, 0);
     }
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())

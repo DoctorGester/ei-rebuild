@@ -3,6 +3,7 @@
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "originals_ui.h"
 
 #include <cstring>
 
@@ -81,7 +82,7 @@ EI_REPLACE_METHOD(0x005F74E0, CInterface3D::SetPendingValue);
 
 // --- CUiSurface ------------------------------------------------------------------------------
 
-__declspec(naked) void CUiSurface::ReleaseContents() EI_ORIGINAL(0x005FD120)
+void CUiSurface::ReleaseContents() { SurfaceReleaseContentsOriginal(this); }
 
 void CUiSurface::SetRect(int left, int top, int right, int bottom) {
     rect_.left = left;

@@ -17,6 +17,7 @@
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
 #include "ei/hook.h"
+#include "originals_units.h"
 #include "originals_gameplay.h"
 #include "unit_looks.h"
 #include "originals_library.h"
@@ -80,10 +81,8 @@ __declspec(naked) void __fastcall BytesDestroy(void*) EI_ORIGINAL(0x0051E5B0)
 // CStringArray SetSize [006FE9B8], SetAtGrow of a CString [006FEBFA] and of a C string [006FEBCE].
 void __fastcall NamesSetAtGrowString(console::CStringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall NamesSetAtGrowText(console::CStringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
-// The texture cache [this +0x18C]: build a composite texture [00693180: out name, set, name, name,
-// 3, 0, 0x5551] and register it [00693F10: kind, name].
-__declspec(naked) void* __fastcall CacheBuild(void*, void*, mfc::CString*, void*, const mfc::CString*, const mfc::CString*,
-                                             int, int, int) EI_ORIGINAL(0x00693180)
+// The texture cache [this +0x18C]: build a composite texture [00693180 TextureManagerComposeOriginal: out name, set,
+// name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
 __declspec(naked) void __fastcall CacheRegister(void*, void*, int, const char*) EI_ORIGINAL(0x00693F10)
 // The second list: the unit's texture names from its prototype [00535CB0: unit in ECX, record +4 in
 // EDX; record +0x10, names, more names]; vector<string> members: constructor [0053BB80], copy into
@@ -200,7 +199,7 @@ void AddExtraWeapon(TextureSet& set, const UnitModelRecord* model, DressedUnitRe
 // The texture cache is the client world's texture manager (+0x18C).
 void Compose(CWorldClient* self, mfc::CString& out, TextureSet& set, const mfc::CString& name, int size, int kind) {
     set.size = size;
-    CacheBuild(self->textureManager_, nullptr, &out, &set, &name, &name, 3, 0, 0x5551);
+    TextureManagerComposeOriginal(self->textureManager_, nullptr, &out, &set, &name, &name, 3, 0, 0x5551);
     CacheRegister(self->textureManager_, nullptr, kind, name);
 }
 

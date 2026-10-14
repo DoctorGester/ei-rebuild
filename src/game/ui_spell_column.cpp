@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
+#include "originals_effects.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
 #include "originals_units.h"
@@ -30,7 +31,9 @@ __declspec(naked) void __fastcall AddSpellSprite(CHudSpellColumn*, void*, const 
 // 004E0150 (thiscall on the text manager, RET 0x10): an item's texts; 004E0020 (RET 8) the text of
 // a key.
 // 0068BA20 (__fastcall): a spell's prototype record (+0x10 school, +0x7B shows a number).
-__declspec(naked) std::uint8_t* __fastcall SpellPrototypeOf(void*) EI_ORIGINAL(0x0068BA20)
+std::uint8_t* SpellPrototypeOf(void* spell) {
+    return reinterpret_cast<std::uint8_t*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)));
+}
 
 void* TextManager() { return *reinterpret_cast<void* const*>(0x007AF788); }
 

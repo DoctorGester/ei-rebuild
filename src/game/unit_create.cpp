@@ -34,7 +34,6 @@ constexpr int kPtrListBlockSize = 10;
 // path: 00525AF0 UnitStats::RefillSlots in unit_vitals.cpp, 0066EA70 / 0066D6E0 the player's
 // message writers in player_messages.cpp.
 __declspec(naked) void __fastcall SendPair16At(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066EA70)
-__declspec(naked) void __fastcall SendObject0BAt(void*, void*, const void*, std::uint32_t) EI_ORIGINAL(0x0066D6E0)
 // 00665470. The player takes the items of `list`, a CPtrList. Not rewritten.
 void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, a2, a3); }
 
@@ -82,7 +81,7 @@ void CUnitServer::Shout(std::uint32_t code) {
     if (code > kLastPlainRemark && code != kExtraRemark) return;
     if (code == 0xFFFFFFFFu) return;   // already excluded above; the original tests it anyway
     if (!unit->player) return;
-    SendObject0BAt(PlayerMessages(unit->player), nullptr, unit, code);
+    PlayerSendObject0BOriginal(PlayerMessages(unit->player), nullptr, unit, code);
 }
 EI_REPLACE_METHOD(0x00552780, CUnitServer::Shout);
 

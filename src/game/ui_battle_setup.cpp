@@ -337,8 +337,6 @@ void CBattleScreenSetup::Create() {
 namespace {
 
 // 00578910 on 007AFEA5 (the menu object), every frame before the battle screen draws.
-// 00600EF0. CUiContainer::DrawContainer through its address.
-__declspec(naked) BOOL __fastcall ContainerDrawAt(CUiContainer*, void*, void*) EI_ORIGINAL(0x00600EF0)
 
 constexpr int kTargetSlotViewport = 19;   // the draw target (+0x4C): (x, y, w, h, 0x40, 1)
 constexpr int kInputSlotMouseMove = 4;    // the input side (+0x10): (buttons, x, y)
@@ -372,7 +370,7 @@ BOOL CBattleScreenSetup::Draw(void* target) {
     // Rebirth's AddNewConsoleCommands (call redirected at 006360DF): "nogui" shows or hides the
     // panels.
     if (ei::rebirth::Enabled(ei::rebirth::Patch::AddNewConsoleCommands)) console::ApplyAddonGuiVisibility(this);
-    ContainerDrawAt(this, nullptr, target);
+    ContainerDrawOriginal(this, nullptr, reinterpret_cast<int>(target));   // 00600EF0: CUiContainer::DrawContainer
     return 1;
 }
 

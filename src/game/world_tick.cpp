@@ -17,6 +17,7 @@
 #include "ei/x87.h"
 
 #include <cstring>
+#include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_script.h"
@@ -115,7 +116,7 @@ private:
 
 } // namespace
 
-__declspec(naked) int Projectile::Update() EI_ORIGINAL(0x0067E6D0)
+int Projectile::Update() { return SpellEffectUpdateOriginal(reinterpret_cast<CSpellEffect*>(this), nullptr); }
 // 0059C810. Releases the node's missile and returns the node to the free list (the last one frees
 // every block).
 __declspec(naked) void __fastcall ProjectileFreeNode(ProjectileList*, void*, ProjectileList::Node*) EI_ORIGINAL(0x0059C810)

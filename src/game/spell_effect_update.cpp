@@ -38,7 +38,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     if (static_cast<CEffectMissile*>(missile)->arrived_ == 0) return;
 
     DamageInfo hit;
-    EffectGetDamage(e, nullptr, &hit);
+    SpellEffectGetDamageOriginal(e, nullptr, &hit);
     if (IsUnit(e->target)) EffectHitUnit(e, nullptr, &hit, e->target);
     e->ReleaseVisual();
     e->ReleaseSound();

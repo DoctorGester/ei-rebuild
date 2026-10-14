@@ -140,3 +140,10 @@ __declspec(naked) inline int __fastcall ArchiveCount(ChunkArchive* /*archive*/, 
 // C3n. 004667F0 (rewritten as IsaacRandom::Next; thiscall on the generator, plain RET): the next 32-bit word. The game's
 // generator is at 007A9D40.
 __declspec(naked) inline std::uint32_t __fastcall RandomNext(IsaacRandom* /*random*/) EI_ORIGINAL(0x004667F0)
+
+// C3n batch 4. CMappedResource at its addresses (the wrappers run; Rebirth patches some): 00671280 (rewritten as
+// CMappedResource::Construct; plain RET) constructs it in `memory` and returns it; 00674850 (CMappedResource::FindEntry; RET 4)
+// the index of the entry named `name`, -1 when there is none.
+__declspec(naked) inline CMappedResource* __fastcall MappedResourceConstructOriginal(void* /*memory*/) EI_ORIGINAL(0x00671280)
+__declspec(naked) inline int __fastcall MappedResourceFindEntryOriginal(const CMappedResource*, void*, const char* /*name*/)
+    EI_ORIGINAL(0x00674850)

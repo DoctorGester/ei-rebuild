@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_units.h"
@@ -62,11 +63,10 @@ void* CampItems::Move(void* item, void* to, void* from, int a, int b, int c) {
 // Surface text (005FDE20 is Rebirth-patched).
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                  // 005FDC00
-    void Clear();                                                                   // 005FE2F0
+    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
     void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 // An item list of the camp (0x70 bytes, 00661050): the first node's item at **(+0x40), the
@@ -791,13 +791,18 @@ namespace {
 
 // The spell constructor (CSpellConstructor, not rewritten; thiscall).
 struct SpellConstructorAt {
-    void SetManager(void* manager);           // 006841A0
-    BOOL Begin(const void* spell);            // 006841E0
-    BOOL AddModifier(const void* modifier);   // 006842A0
+    void SetManager(void* manager) {   // 006841A0
+        SpellConstructorSetManagerOriginal(reinterpret_cast<CSpellConstructor*>(this), nullptr, static_cast<CSpellManager*>(manager));
+    }
+    BOOL Begin(const void* spell) {   // 006841E0
+        return SpellConstructorBeginOriginal(reinterpret_cast<CSpellConstructor*>(this), nullptr,
+                                             static_cast<char*>(const_cast<void*>(spell)));
+    }
+    BOOL AddModifier(const void* modifier) {   // 006842A0
+        return SpellConstructorAddModifierOriginal(reinterpret_cast<CSpellConstructor*>(this), nullptr,
+                                                   static_cast<char*>(const_cast<void*>(modifier)));
+    }
 };
-__declspec(naked) void SpellConstructorAt::SetManager(void*) EI_ORIGINAL(0x006841A0)
-__declspec(naked) BOOL SpellConstructorAt::Begin(const void*) EI_ORIGINAL(0x006841E0)
-__declspec(naked) BOOL SpellConstructorAt::AddModifier(const void*) EI_ORIGINAL(0x006842A0)
 
 // The item constructor (not rewritten; thiscall).
 struct ItemConstructorAt : ItemConstructorManagerOriginal {
@@ -815,9 +820,11 @@ __declspec(naked) std::uint8_t* ItemConstructorAt::Make() EI_ORIGINAL(0x006A5CF0
 
 // 0068B410 (thiscall on a spell): a copy of the spell made with `manager`.
 struct SpellAt {
-    std::uint8_t* Clone(void* manager);
+    std::uint8_t* Clone(void* manager) {
+        return reinterpret_cast<std::uint8_t*>(
+            SpellCloneOriginal(reinterpret_cast<CSpell*>(this), nullptr, static_cast<CSpellManager*>(manager)));
+    }
 };
-__declspec(naked) std::uint8_t* SpellAt::Clone(void*) EI_ORIGINAL(0x0068B410)
 
 // 0052C690: a reference-counted pointer's assignment (takes a reference, releases the old one).
 struct RefPtrAt {
@@ -1103,15 +1110,11 @@ namespace {
 // The hero record (thiscall, RET 4): 00660A50 / 00660E10 / 00660C30 / 00660FF0 take a weapon,
 // armour, a 0x3006 item or a 0x3008 item off.
 struct HeroRecordAt {
-    void RemoveWeapon(std::uint8_t* item);    // 00660A50
-    void RemoveArmour(std::uint8_t* item);    // 00660E10
-    void Remove3006(std::uint8_t* item);      // 00660C30
-    void Remove3008(std::uint8_t* item);      // 00660FF0
+    void RemoveWeapon(std::uint8_t* item) { RecordRemoveQuickEntryOriginal(this, nullptr, item); }   // 00660A50
+    void RemoveArmour(std::uint8_t* item) { RecordRemoveWornEntryOriginal(this, nullptr, item); }    // 00660E10
+    void Remove3006(std::uint8_t* item) { RecordRemoveBeltEntryOriginal(this, nullptr, item); }      // 00660C30
+    void Remove3008(std::uint8_t* item) { RecordRemoveSpellEntryOriginal(this, nullptr, item); }     // 00660FF0
 };
-__declspec(naked) void HeroRecordAt::RemoveWeapon(std::uint8_t*) EI_ORIGINAL(0x00660A50)
-__declspec(naked) void HeroRecordAt::RemoveArmour(std::uint8_t*) EI_ORIGINAL(0x00660E10)
-__declspec(naked) void HeroRecordAt::Remove3006(std::uint8_t*) EI_ORIGINAL(0x00660C30)
-__declspec(naked) void HeroRecordAt::Remove3008(std::uint8_t*) EI_ORIGINAL(0x00660FF0)
 
 // 00661DB0 (thiscall on the local player's data, RET 0xC): puts an item among the player's items.
 inline int __fastcall PlayerTakeItem(std::uint8_t* a0, void*, std::uint8_t* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, (void*)a2, a3, a4); }
@@ -1199,12 +1202,11 @@ struct HeroRecordAdd {
     void AddWeapon(std::uint8_t* item);       // 006608D0
     void Add3006(std::uint8_t* item);         // 00660AB0
     void Add3008(std::uint8_t* item);         // 00660E70
-    void* AddArmour(std::uint8_t* item);      // 00660C90
+    void* AddArmour(std::uint8_t* item) { return RecordAddWornEntryOriginal(this, nullptr, item); }   // 00660C90
 };
 __declspec(naked) void HeroRecordAdd::AddWeapon(std::uint8_t*) EI_ORIGINAL(0x006608D0)
 __declspec(naked) void HeroRecordAdd::Add3006(std::uint8_t*) EI_ORIGINAL(0x00660AB0)
 __declspec(naked) void HeroRecordAdd::Add3008(std::uint8_t*) EI_ORIGINAL(0x00660E70)
-__declspec(naked) void* HeroRecordAdd::AddArmour(std::uint8_t*) EI_ORIGINAL(0x00660C90)
 // 00530730 (thiscall on a unit, RET 4): wears armour. 00661F30 (thiscall on the player's data,
 // RET 8): takes an item out of the player's items.
 void __fastcall UnitWearArmour(std::uint8_t* a0, void*, void* a2) { UnitEquipArmourOriginal((void*)a0, nullptr, a2); }
@@ -1561,8 +1563,6 @@ struct TextTableGlue {
 };
 void* TextTableGlue::Table() { return GameFlowOriginal(); }
 void __fastcall TextLookup(void* a0, void*, mfc::CString* a2, int a3) { TextsReadLineOriginal(a0, nullptr, a2, a3); }
-// The stats panel's hero name (006232D0, RET 8; the trade panel's hero 00625860 is in originals_ui.h).
-__declspec(naked) void __fastcall StatsPanelSetHero(CUiWindow*, void*, int, const char*) EI_ORIGINAL(0x006232D0)
 } // namespace
 
 void CCampPages::Update() {
@@ -1642,7 +1642,7 @@ void CCampPages::ShowHero() {
     } else {
         name = own;
     }
-    StatsPanelSetHero(statsPanel_, nullptr, hero_, name);
+    StatsPanelSetHeroOriginal(statsPanel_, nullptr, hero_, name);
     TradePanelSelectHeroOriginal(trade_, nullptr, hero_);
 }
 EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);

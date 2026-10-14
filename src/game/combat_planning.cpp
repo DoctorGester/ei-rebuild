@@ -19,6 +19,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "originals_effects.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -52,7 +53,6 @@ void AimPointInto(CEngineObject* object, float* out) { Slots(object)->AimPoint(r
 
 inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void* __fastcall UnitSpellObject(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00531A10)
-__declspec(naked) char* __fastcall SpellPrototype(void*) EI_ORIGINAL(0x0068BA20)
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
 // 0x80 under a point, 005BC3E0 LineOfSight (ST0).
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
@@ -313,7 +313,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             } else {
                 spell = UnitSpellObject(unit, nullptr, source);
             }
-            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(SpellPrototype(spell))->unknown_10 == 0) kind = 2;
+            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)))->unknown_10 == 0) kind = 2;
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {

@@ -8,6 +8,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_engine.h"
 
@@ -46,7 +47,6 @@ void* const kSpellNameMap = reinterpret_cast<void*>(0x007C851C);
 void* const kModifierNameMap = reinterpret_cast<void*>(0x007C853C);
 
 // The constructor's entries and CSpell::Clone, called through their game addresses.
-__declspec(naked) CSpell* __fastcall SpellClone(CSpell*, void*, CSpellManager*) EI_ORIGINAL(0x0068B410)
 
 int Length(const mfc::CString& s) { return console::Length(s); }
 
@@ -112,7 +112,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     }
 
     if (!constructor->CallEndConstruct()) return reinterpret_cast<CSpell*>(game::FatalError(kCantEnd));
-    CSpell* spell = SpellClone(constructor->container_->Spell(), nullptr, this);
+    CSpell* spell = SpellCloneOriginal(constructor->container_->Spell(), nullptr, this);
     constructor->CallSetManager(nullptr);
     return spell;
 }

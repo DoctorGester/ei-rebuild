@@ -43,13 +43,11 @@ struct InterfaceAt {
     void SetConsoleRect(int* rect);     // 005F7ED0 (console window +0x14, if any: 005E3E90)
     void SetConsoleHistory(int lines);  // 005F7EF0 (005E3F90)
     void SetDebugInfoRect(int* rect);   // 005F7F10 (00444C10 on 0079B930)
-    void* TopWindow();                  // 005F7590
     void ShowFps(bool on);              // 005F5700
 };
 __declspec(naked) void InterfaceAt::SetConsoleRect(int*) EI_ORIGINAL(0x005F7ED0)
 __declspec(naked) void InterfaceAt::SetConsoleHistory(int) EI_ORIGINAL(0x005F7EF0)
 __declspec(naked) void InterfaceAt::SetDebugInfoRect(int*) EI_ORIGINAL(0x005F7F10)
-__declspec(naked) void* InterfaceAt::TopWindow() EI_ORIGINAL(0x005F7590)
 __declspec(naked) void InterfaceAt::ShowFps(bool) EI_ORIGINAL(0x005F5700)
 inline InterfaceAt* Interface() { return reinterpret_cast<InterfaceAt*>(0x007C7D50); }
 
@@ -91,11 +89,10 @@ T& Field(char* base, int offset) { return *reinterpret_cast<T*>(base + offset); 
 WorldPlayer* AsPlayer(char* player) { return reinterpret_cast<WorldPlayer*>(player); }
 
 struct PlayerStateAt {
-    void SetVariable(const char* name, float value);   // 0066EE10
+    void SetVariable(const char* name, float value) { PlayerStateSetVariableOriginal(this, nullptr, name, value); }   // 0066EE10
     void Refresh();                                    // 0066EF80
     void ResendParty();                                // 0066F450
 };
-__declspec(naked) void PlayerStateAt::SetVariable(const char*, float) EI_ORIGINAL(0x0066EE10)
 void PlayerStateAt::Refresh() { PlayerStateRefreshOriginal((void*)this); }
 void PlayerStateAt::ResendParty() { PlayerResendPartyOriginal((void*)this); }
 
@@ -375,7 +372,7 @@ void __fastcall Give(CStringArray* args) {
         return state->Refresh();
     }
     if (ArgIs(args, 1, 0x00792750)) {   // assortment
-        void* window = Interface()->TopWindow();
+        void* window = InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(Interface()));
         using OpenFn = void(__thiscall*)(void*);
         (*reinterpret_cast<OpenFn**>(window))[0x9C / 4](window);
         return;
@@ -531,7 +528,7 @@ void KickOrBan(CStringArray* args, int windowMode, int command) {
         char* server = Server();
         if (ServerActive(server)) {
             if (*(Field<char*>(Field<char*>(server, 0x25F0), 0xC) + 0x28)) {
-                void* window = Interface()->TopWindow();
+                void* window = InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(Interface()));
                 using OpenFn = void(__thiscall*)(void*, int);
                 (*reinterpret_cast<OpenFn**>(window))[0x98 / 4](window, windowMode);
             }

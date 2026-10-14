@@ -46,14 +46,6 @@ struct WindowAt : ConsoleWindow {
 __declspec(naked) void WindowAt::CallDrawInput() EI_ORIGINAL(0x005E4A10)
 WindowAt* At(ConsoleWindow* w) { return static_cast<WindowAt*>(w); }
 
-// CUiSurface: constructor over a layout rectangle (005FCDD0) and destructor body (005FD120).
-struct SurfaceAt : SurfaceDC {
-    SurfaceAt* Construct(int* ui, const int* rect, int format);
-    void ReleaseContents();
-};
-__declspec(naked) SurfaceAt* SurfaceAt::Construct(int*, const int*, int) EI_ORIGINAL(0x005FCDD0)
-__declspec(naked) void SurfaceAt::ReleaseContents() EI_ORIGINAL(0x005FD120)
-
 mfc::CString Left(const mfc::CString& s, int count) { return s.Left(count); }
 
 int Clamp(int value, int high) {
@@ -79,14 +71,16 @@ void ConsoleWindow::Show(bool shown) {
     if (shown) {
         if (!surface_) {
             void* memory = gamecrt::operator_new(0x38);
-            surface_ = memory ? static_cast<SurfaceAt*>(memory)->Construct(screen_, rect_, 4) : nullptr;
+            surface_ = memory ? SurfaceConstructOnRectOriginal(memory, nullptr, reinterpret_cast<CInterface3D*>(screen_),
+                                                                reinterpret_cast<const tagRECT*>(rect_), 4)
+                              : nullptr;
         }
         ConsoleDrawLinesOriginal(this);
         At(this)->CallDrawInput();
         return;
     }
-    if (SurfaceAt* surface = static_cast<SurfaceAt*>(surface_)) {
-        surface->ReleaseContents();
+    if (CUiSurface* surface = static_cast<CUiSurface*>(surface_)) {
+        SurfaceReleaseContentsOriginal(surface);
         gamecrt::operator_delete(surface);
     }
     surface_ = nullptr;

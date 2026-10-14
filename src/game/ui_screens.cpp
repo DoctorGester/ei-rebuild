@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_effects.h"
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "originals_units.h"
@@ -54,7 +55,6 @@ BOOL TakeScrollPos(void* bar, void*, int* position) { return ScrollbarTakePositi
 
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
 __declspec(naked) double __fastcall StatsPeriod(void*) EI_ORIGINAL(0x00523CD0)
-__declspec(naked) char* __fastcall SpellPrototype(void*) EI_ORIGINAL(0x0068BA20)
 
 void* MultiplayerClient() { return *reinterpret_cast<void**>(0x0079B5D8); }
 void* const kGame = reinterpret_cast<void*>(0x007AFE20);
@@ -75,7 +75,7 @@ void SetScrollPos(void* bar, int position) {
 
 // --- Shared ---------------------------------------------------------------------------------
 
-__declspec(naked) void UiInput::BaseLButtonDown(int, int, int) EI_ORIGINAL(0x00601110)
+void UiInput::BaseLButtonDown(int flags, int x, int y) { ContainerLeftDownOriginal(this, nullptr, flags, x, y); }
 __declspec(naked) void UiInput::BaseLButtonUp(int, int, int) EI_ORIGINAL(0x006011F0)
 __declspec(naked) void UiInput::BaseMouseMove(int, int, int) EI_ORIGINAL(0x006012D0)
 __declspec(naked) void UiInput::BaseKeyDown(int, int, int) EI_ORIGINAL(0x00601820)
@@ -449,7 +449,7 @@ int HeroManaUnits(void* stats) {
 bool HeroCanUseSpell(void* stats, char* spell) {
     bool ok = true;
     int required = *reinterpret_cast<int*>(spell + 0x50);
-    const char* prototype = SpellPrototype(spell);
+    const char* prototype = SpellGetPrototypeOriginal(reinterpret_cast<CSpell*>(spell));
     if (HeroSchoolSkill(stats, *reinterpret_cast<const int*>(prototype + 0x14)) < required) ok = false;
     float cost = *reinterpret_cast<float*>(spell + 0x40);
     int units = HeroManaUnits(stats);

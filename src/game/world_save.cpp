@@ -196,8 +196,6 @@ inline void __fastcall ScriptGroupDestruct(void* a0, void*) { ScriptGroupDestruc
 // 0066EF80 / 0066D260 (RET 4). The player state's refresh after a load and SetFlag70.
 void __fastcall PlayerStateRefresh(void* a0, void*) { PlayerStateRefreshOriginal(a0); }
 __declspec(naked) void __fastcall PlayerStateSetFlag70(void*, void*, int /*byte*/) EI_ORIGINAL(0x0066D260)
-// 0066EE10 (RET 8). CPlayerServer::SetVariable (player_messages.cpp).
-__declspec(naked) void __fastcall PlayerStateSetVariable(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE10)
 // 00460AF0 (RET 4). Named float table Get (object_tables.cpp); the value is left in ST0.
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0055FB00 (RET 4). CWorld::FindUnit.
@@ -259,7 +257,7 @@ void CWorldServer::UpdatePlayerTimes(float offset) {
         if (elapsed < 0) elapsed = 0;
         double current = VariableGet(player->variables, nullptr, name);
         float value = static_cast<float>(static_cast<double>(elapsed) * secondsPerTick_ + offset + current);
-        PlayerStateSetVariable(player->server, nullptr, name, value);
+        PlayerStateSetVariableOriginal(player->server, nullptr, name, value);
     }
 }
 

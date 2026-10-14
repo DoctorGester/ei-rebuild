@@ -39,7 +39,7 @@ Next StartLightning(CSpellEffect* e, int type, const Vector3& from) {
     Vector3 scratch;
     e->CreatePointLight(PositionOf(e->target, &scratch), &color, range, &kZeroVector);   // no null check
     DamageInfo hit;
-    EffectGetDamage(e, nullptr, &hit);
+    SpellEffectGetDamageOriginal(e, nullptr, &hit);
     if (IsUnit(e->target)) EffectHitUnit(e, nullptr, &hit, e->target);
     e->timer = 7;
     e->state = 2;
@@ -473,7 +473,7 @@ CEngineObject* CSpellEffect::CreateParticle(int keep, int particleType, const Ve
     std::memcpy(&particle->size_, &size, 4);
     EffectSetVelocity(particle, nullptr, velocity);
     std::memcpy(&particle->alpha_, &alpha, 4);
-    if (attachTo) ParticleSetAttachedTo(particle, nullptr, attachTo->id_);
+    if (attachTo) ParticleSetAttachedToOriginal(particle, nullptr, attachTo->id_);
     if (keep) {
         Assign(this, &visual, particle);
         WorldAddTimed(world, nullptr, visual);

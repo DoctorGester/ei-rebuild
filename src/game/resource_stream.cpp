@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 
 #include <cstring>
@@ -18,10 +19,6 @@ namespace {
 __declspec(naked) long __cdecl FindFirst(const char* /*path*/, void* /*findData*/) EI_ORIGINAL(0x006EB832)
 void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { gamecrt::splitpath(path, drive, dir, name, ext); }
 void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal(a0, nullptr, a2, a3); }
-
-// CMappedResource::FindEntry (resource.cpp), through its game address.
-__declspec(naked) int __fastcall FindEntryAt(const void* /*resource*/, void*, const char* /*name*/)
-    EI_ORIGINAL(0x00674850)
 
 // _finddata_t (0x118 bytes): attrib, three times, size at +0x10, name.
 struct FindData {
@@ -161,7 +158,7 @@ BOOL CResourceStream::OpenFile(const char* name, std::uint32_t* size) {
         }
     }
     if (entries_ == nullptr || names_ == nullptr) return 0;
-    int index = FindEntryAt(this, nullptr, name);
+    int index = MappedResourceFindEntryOriginal(reinterpret_cast<const CMappedResource*>(this), nullptr, name);
     if (index == -1) return 0;
     offset_ = static_cast<std::int32_t>(entries_[index].offset);
     if (gameapi::mmioSeek(static_cast<HMMIO>(archive_), offset_, SEEK_SET) == -1) {

@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_effects.h"
 #include "originals_ui.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
@@ -242,12 +243,11 @@ int PackedFtol(std::uintptr_t fn, std::uint32_t packedId) {
 // The surface's drawing (thiscall on the surface).
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
-    void Clear();                                                                   // 005FE2F0
+    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);   // 005FDE20
     int Wrapped(const char* text, RECT* rect, int maxLines, int font, std::uint32_t colour, int format, int flag);   // 005FDFA0
     void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 __declspec(naked) int SurfaceDraw::Wrapped(const char*, RECT*, int, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDFA0)
 
@@ -284,10 +284,9 @@ __declspec(naked) void ItemAt::DamageTypes(float*) EI_ORIGINAL(0x006A0770)
 ItemAt* Of(CItem* item) { return reinterpret_cast<ItemAt*>(item); }
 
 struct SpellAt {
-    char* Prototype();                      // 0068BA20
+    char* Prototype() { return SpellGetPrototypeOriginal(reinterpret_cast<CSpell*>(this)); }   // 0068BA20
     int ModifierCount();                    // 0068BA60
 };
-__declspec(naked) char* SpellAt::Prototype() EI_ORIGINAL(0x0068BA20)
 __declspec(naked) int SpellAt::ModifierCount() EI_ORIGINAL(0x0068BA60)
 SpellAt* Of(void* spell) { return static_cast<SpellAt*>(spell); }
 

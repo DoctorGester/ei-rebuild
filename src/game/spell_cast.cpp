@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_effects.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
 
@@ -53,7 +54,6 @@ __declspec(naked) BOOL __fastcall ContainerBuild(CSpellContainer*) EI_ORIGINAL(0
 __declspec(naked) int __fastcall ContainerAllows(CSpellContainer*, void*, const char*) EI_ORIGINAL(0x0068BEC0)
 __declspec(naked) BOOL __fastcall ContainerAddModifier(CSpellContainer*, void*, char*) EI_ORIGINAL(0x0068BE30)
 __declspec(naked) CSpellContainer* __fastcall ManagerNewContainer(CSpellManager*) EI_ORIGINAL(0x00688EB0)
-__declspec(naked) CSpell* __fastcall SpellClone(CSpell*, void*, CSpellManager*) EI_ORIGINAL(0x0068B410)
 
 // _ftol (006E853C) of (unsigned 64-bit value) * factor, as FILD qword; FMUL dword; CALL _ftol.
 __declspec(naked) int __cdecl ScaleTruncate(std::uint64_t, float) {
@@ -358,7 +358,7 @@ CSpell* CSpellManager::CreateSpell(char* prototype, SpellModifierNode** modifier
         ++added;
     }
     if (!constructor->CallEndConstruct()) return reinterpret_cast<CSpell*>(game::FatalError(kCantEnd));
-    CSpell* spell = SpellClone(constructor->container_->Spell(), nullptr, this);
+    CSpell* spell = SpellCloneOriginal(constructor->container_->Spell(), nullptr, this);
     constructor->CallSetManager(nullptr);
     return spell;
 }
@@ -450,7 +450,7 @@ BOOL CSpellConstructor::AddModifier(char* modifier) {
 }
 EI_REPLACE_METHOD(0x006842A0, CSpellConstructor::AddModifier);
 
-__declspec(naked) void CSpellConstructor::CallSetManager(CSpellManager*) EI_ORIGINAL(0x006841A0)
-__declspec(naked) BOOL CSpellConstructor::CallBeginConstruct(char*) EI_ORIGINAL(0x006841E0)
+void CSpellConstructor::CallSetManager(CSpellManager* manager) { SpellConstructorSetManagerOriginal(this, nullptr, manager); }
+BOOL CSpellConstructor::CallBeginConstruct(char* prototype) { return SpellConstructorBeginOriginal(this, nullptr, prototype); }
 __declspec(naked) BOOL CSpellConstructor::CallEndConstruct() EI_ORIGINAL(0x00684250)
-__declspec(naked) BOOL CSpellConstructor::CallAddModifier(char*) EI_ORIGINAL(0x006842A0)
+BOOL CSpellConstructor::CallAddModifier(char* modifier) { return SpellConstructorAddModifierOriginal(this, nullptr, modifier); }

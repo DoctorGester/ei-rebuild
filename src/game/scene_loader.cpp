@@ -624,7 +624,6 @@ void __fastcall SetSizeFigures(VtArray* a0, void*, int a2, int a3) { FigureArray
 __declspec(naked) void __fastcall SetSizeBoneLinkRecords(VtArray*, void*, int, int) EI_ORIGINAL(0x00450F20) // 0x28-byte records
 __declspec(naked) void __fastcall DestructNode(void*) EI_ORIGINAL(0x004543E0)
 __declspec(naked) void __fastcall ConstructRegistry(void*) EI_ORIGINAL(0x00694520)
-__declspec(naked) void __fastcall DestroyRegistry(void*) EI_ORIGINAL(0x00694540)
 // Reads the figure's .reg file: the texture names ({id, name}) and links ({id, value}).
 __declspec(naked) void __fastcall LoadFigureRegistry(void*, const mfc::CString*, VtArray*, VtArray*) EI_ORIGINAL(0x0044B980)
 __declspec(naked) void __fastcall LinkNodes(void*, VtArray*) EI_ORIGINAL(0x0044C4A0)
@@ -656,7 +655,7 @@ struct SceneNodes : VtArray {
 struct Registry {
     std::uint8_t bytes[0x18];   // CFileRegistry, never used
     Registry() { ConstructRegistry(bytes); }
-    ~Registry() { DestroyRegistry(bytes); }
+    ~Registry() { reinterpret_cast<RegistryOriginals*>(bytes)->Destroy(); }
 };
 struct TextureLinks : VtArray {
     TextureLinks() : VtArray{scenedata::TextureLinkArrayVtable(), nullptr, 0, 0, 0} {}

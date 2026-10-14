@@ -38,11 +38,10 @@ constexpr MenuRect kRects[] = {
     {0x00790E90, 0x00790DF8, 0x00790DD8, 0x90},   // EscMenu ExitMM
 };
 
-// The .reg reader (0x18 bytes on the stack): 00694520 constructor, 00694610 (RET 4) parse a file,
-// 00694540 destructor, 00695410 (RET 0xC) read a section's integer list.
+// The .reg reader (0x18 bytes on the stack): 00694520 constructor, 00694610 (RET 4) parse a file (RegistryOriginals::Attach),
+// 00694540 destructor (RegistryOriginals::Destroy), 00695410 (RET 0xC) read a section's integer list.
 __declspec(naked) void __fastcall RegConstruct(void*, void*) EI_ORIGINAL(0x00694520)
-__declspec(naked) int __fastcall RegParse(void*, void*, void*) EI_ORIGINAL(0x00694610)
-__declspec(naked) void __fastcall RegDestruct(void*, void*) EI_ORIGINAL(0x00694540)
+RegistryOriginals* AsRegistry(void* reg) { return static_cast<RegistryOriginals*>(reg); }
 __declspec(naked) void __fastcall RegReadInts(void*, void*, const char*, const char*, void*) EI_ORIGINAL(0x00695410)
 // 00480080. game::FatalError(message); returns what the original returns to the caller.
 
@@ -58,9 +57,9 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     alignas(4) std::uint8_t reg[0x18];
     RegConstruct(reg, nullptr);
     void* file = ei::VCall<void*>(owner, kSlotOpenResource, Text(kMenusReg), 0);
-    if (!file || !RegParse(reg, nullptr, file)) {
+    if (!file || !AsRegistry(reg)->Attach(file)) {
         int result = game::FatalError(Text(file ? kCantParse : kCantOpen));
-        RegDestruct(reg, nullptr);
+        AsRegistry(reg)->Destroy();
         return result;
     }
     IntArray values{nullptr, 0, 0, 0};
@@ -71,13 +70,13 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
         if (values.size != 4) {
             int result = game::FatalError(Text(entry.error));
             if (values.data) gamecrt::operator_delete(reinterpret_cast<void**>(values.data)[-1]);
-            RegDestruct(reg, nullptr);
+            AsRegistry(reg)->Destroy();
             return result;
         }
         setRect(rects + entry.offset, values.data[0], values.data[1], values.data[2], values.data[3]);
     }
     if (values.data) gamecrt::operator_delete(reinterpret_cast<void**>(values.data)[-1]);
-    RegDestruct(reg, nullptr);
+    AsRegistry(reg)->Destroy();
     return 1;
 }
 

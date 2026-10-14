@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
 
@@ -74,12 +75,7 @@ __declspec(naked) void __fastcall RemovePart(CUnit*, void*, CEngineObject*) EI_O
 __declspec(naked) void __fastcall SetLayerCount(SkinLayerArray*, void*, int, int) EI_ORIGINAL(0x00539580)
 // 006A3480 / 006A0AA0. The texture name of an armour / weapon by type and number, into `out`.
 __declspec(naked) void __fastcall WeaponTexture(mfc::CString*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x006A0AA0)
-// 00693180. Texture manager: composes a skin.
-__declspec(naked) void* __fastcall ComposeTexture(void*, void*, void*, SkinRequest*, mfc::CString*, mfc::CString*, int,
-                                                  int, int) EI_ORIGINAL(0x00693180)
-// Rewritten elsewhere, through their game addresses: 00674850 CMappedResource::FindEntry,
-// 006A3200 ArmorFieldB8, 006A1780 AppendWeaponModelParts.
-__declspec(naked) int __fastcall FindEntry(void*, void*, const char*) EI_ORIGINAL(0x00674850)
+// Rewritten elsewhere, through their game addresses: 006A3200 ArmorFieldB8, 006A1780 AppendWeaponModelParts.
 __declspec(naked) int __fastcall ArmourDrawOrder(std::uint32_t) EI_ORIGINAL(0x006A3200)
 __declspec(naked) void __fastcall AppendWeaponParts(std::uint32_t, stlp::vector<stlp::string>*) EI_ORIGINAL(0x006A1780)
 
@@ -122,7 +118,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         }
         CEngineObject* current = FindPart(unit, nullptr, part);
         armourPart.Format(Text(0x0078FB14), static_cast<const char*>(part), ItemHead(armour)->number);
-        if (FindEntry(*static_cast<void**>(model), nullptr, armourPart) != -1) {
+        if (MappedResourceFindEntryOriginal(static_cast<const CMappedResource*>(*static_cast<void**>(model)), nullptr, armourPart) != -1) {
             AddPart(unit, nullptr, armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) RemovePart(unit, nullptr, current);
         } else if (current) {
@@ -531,7 +527,8 @@ void* CUnitClientSpecific::ComposeSkin(int detailed, void* target) {
         SetLayerBytes(*request, bytes);
         std::memcpy(request->layers, layers.data, static_cast<std::size_t>(bytes));
         NameSkinTextures(this, detailed, *request, unitKey, prototypeKey, texture);
-        result = ComposeTexture(textureManager, nullptr, target, request, &unitKey, &prototypeKey, 3, 0, 0x5551);
+        result = reinterpret_cast<void*>(
+            TextureManagerComposeOriginal(textureManager, nullptr, target, request, &unitKey, &prototypeKey, 3, 0, 0x5551));
         request->textures.~CStringArray();
         if (request->layers) gamecrt::operator_delete(reinterpret_cast<void**>(request->layers)[-1]);
     }

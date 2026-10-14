@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_ai.h"
+#include "originals_effects.h"
 #include "originals_gameplay.h"
 #include "originals_world.h"
 #include "originals_units.h"
@@ -83,7 +84,6 @@ inline const char* GameString(std::uintptr_t address) { return reinterpret_cast<
 // The world server's timed objects: WorldAddTimed (originals_world.h).
 // Effect setters (world_effect*.cpp).
 __declspec(naked) inline void __fastcall EffectSetVelocity(CEngineObject*, void*, const Vector3*) EI_ORIGINAL(0x00675D50)
-__declspec(naked) inline void __fastcall ParticleSetAttachedTo(CEngineObject*, void*, int /*id*/) EI_ORIGINAL(0x00679280)
 __declspec(naked) inline void __fastcall ParticleSetTarget(CEngineObject*, void*, const Vector3*) EI_ORIGINAL(0x00679310)
 __declspec(naked) inline void __fastcall WallSetDirection(CEngineObject*, void*, const Vector3*) EI_ORIGINAL(0x00679C30)
 __declspec(naked) inline void __fastcall LightningSetEnds(CEngineObject*, void*, const Vector3*, const Vector3*, float /*width*/)
@@ -97,8 +97,6 @@ __declspec(naked) inline void __fastcall ShowVisibilitySetObjects(CEngineObject*
 struct BuffRecord;
 __declspec(naked) inline BuffRecord* __fastcall BuffRecordInit(BuffRecord*) EI_ORIGINAL(0x00688510)
 // The spell's own helpers (spell.cpp / spell_effect.cpp; through their addresses for the verify wrappers).
-__declspec(naked) inline char* __fastcall SpellPrototype(CSpell*) EI_ORIGINAL(0x0068BA20)
-__declspec(naked) inline BOOL __fastcall EffectGetDamage(CSpellEffect*, void*, DamageInfo*) EI_ORIGINAL(0x00683950)
 __declspec(naked) inline void __fastcall EffectHitUnit(CSpellEffect*, void*, DamageInfo*, CEngineObject*) EI_ORIGINAL(0x006835B0)
 __declspec(naked) inline int __fastcall IsAreaSpellTarget(CEngineObject*) EI_ORIGINAL(0x00681B80)
 // CPtrList constructor (block size) and destructor.
@@ -544,7 +542,7 @@ inline void Assign(CSpellEffect* e, CEngineObject** slot, CEngineObject* object)
 inline void SetPosition(CEngineObject* object, const Vector3* position) { std::memcpy(&At<Vector3>(object, 0x1C), position, 12); }
 
 // The fields of the spell prototype the casts read.
-inline const char* Prototype(CSpellEffect* e) { return SpellPrototype(e->Spell()); }
+inline const char* Prototype(CSpellEffect* e) { return SpellGetPrototypeOriginal(e->Spell()); }
 inline Vector3 PrototypeColor(CSpellEffect* e) {
     Vector3 color;
     std::memcpy(&color, Prototype(e) + 0x64, 12);
@@ -593,7 +591,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
     mfc::CTypedPtrList<CEngineObject> units;
     PtrListConstruct(&units, nullptr, kPtrListBlockSize);
     DamageInfo hit;
-    EffectGetDamage(e, nullptr, &hit);
+    SpellEffectGetDamageOriginal(e, nullptr, &hit);
     SectorMapFindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
     for (auto* node = units.head; node;) {
         CEngineObject* unit = node->data;
