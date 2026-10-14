@@ -361,7 +361,7 @@ bool CUnitServer::StartMove() {
     double lengthSq = LengthSquaredZYX(offset);
     if (LessOrUnordered(lengthSq, kArrived)) {
         action.CallReset();
-        if (action2.kind == kOrderEmpty) CallIdle();
+        if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
         bool result = CallStartQueuedOrder();
         DestroyPtrList(&lifted);
         return result;
@@ -394,7 +394,7 @@ bool CUnitServer::StartMove() {
     }
     unknown_18C = 1;
     action.CallReset();
-    if (action2.kind == kOrderEmpty) CallIdle();
+    if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
     CallStartQueuedOrder();
     DestroyPtrList(&lifted);
     return false;
@@ -497,7 +497,7 @@ bool CUnitServer::StartQueuedOrder() {
             if (TickFollowPath(this)) return true;
             TellParty(unit, kMessageStopped);
             action.CallReset();
-            if (action2.kind == kOrderEmpty) CallIdle();
+            if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
             return false;
         }
         TakeOver(this);
@@ -751,7 +751,7 @@ void CUnitServer::ExecuteOrder() {
     }
     if (stop) unknown_18C = 1;
     ClearAction(&action);
-    if (action2.kind == kOrderEmpty) CallIdle();
+    if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
 }
 EI_REPLACE_METHOD(0x0054D960, CUnitServer::ExecuteOrder);
 
@@ -797,7 +797,7 @@ void CUnitServer::ApproachTarget() {
         }
         ControllerShout(this, nullptr, action.kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
         action.CallReset();
-        if (action2.kind == kOrderEmpty) CallIdle();
+        if (action2.kind == kOrderEmpty) reinterpret_cast<ControllerOriginals*>(this)->Idle();
         unknown_18C = 1;
         return;
     }

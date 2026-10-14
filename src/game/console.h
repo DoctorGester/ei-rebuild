@@ -28,11 +28,6 @@ struct Str : mfc::CString {
     mfc::CString Mid(int first, int count) const;   // 006FD9D7
     void AppendChar(char c);                        // 00700D73 operator+=(TCHAR)
     void AppendText(const char* text);              // 00700D4C operator+=(LPCTSTR)
-    void AssignChar(char c);                        // 006FD559 operator=(TCHAR)
-    char* GetBuffer(int minLength);                 // 00700DA0
-    void ReleaseBuffer(int newLength);              // 00700DEF
-    void MakeLower();                               // 00700EFE (also mfc::CString::MakeLower;
-                                                    // it calls _mbslwr, MFC's MakeLower)
     void TrimLeft(char c);                          // 006FE1D3 TrimLeft(TCHAR)
     void TrimRight(char c);                         // 006FE0DD TrimRight(TCHAR)
 };

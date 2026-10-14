@@ -236,3 +236,10 @@ __declspec(naked) inline void __fastcall FlowProcessRequestOriginal(void* /*flow
 // C3m. 00596030 (rewritten as CWorldServer::LoadMapObjects; RET 8): loads a .mob file's objects (second argument:
 // keep their ids).
 __declspec(naked) inline int __fastcall WorldLoadMapObjects(CWorldServer*, void*, const char*, int) EI_ORIGINAL(0x00596030)
+
+// C3m. 00593FC0 (rewritten as CWorldServer::InvokeAlarm; the world, thiscall): raises an alarm of `type` at `point`.
+// Base of the views of the world.
+struct WorldAlarmOriginal {
+    void InvokeAlarm(int type, const Vector3* point, int raise);
+};
+__declspec(naked) inline void WorldAlarmOriginal::InvokeAlarm(int, const Vector3*, int) EI_ORIGINAL(0x00593FC0)

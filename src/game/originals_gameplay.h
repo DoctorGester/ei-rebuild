@@ -182,3 +182,10 @@ __declspec(naked) inline char* __fastcall FindTable15Named(void*, void*, const c
 __declspec(naked) inline mfc::CTypedPtrList<Projectile>::Node* __fastcall ProjectileNewNode(
     mfc::CTypedPtrList<Projectile>*, void*, mfc::CTypedPtrList<Projectile>::Node* /*prev*/,
     mfc::CTypedPtrList<Projectile>::Node* /*next*/) EI_ORIGINAL(0x0059C7A0)
+
+// C3m. 006A5C00 (rewritten as CItemConstructor::SetManager; thiscall): the item constructor takes its manager. Base of
+// the views of the constructor.
+struct ItemConstructorManagerOriginal {
+    void SetManager(void* manager);
+};
+__declspec(naked) inline void ItemConstructorManagerOriginal::SetManager(void*) EI_ORIGINAL(0x006A5C00)

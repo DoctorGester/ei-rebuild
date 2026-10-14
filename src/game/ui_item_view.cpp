@@ -75,11 +75,10 @@ std::uint32_t PackColour(const float* rgb) {
 }
 
 // A sprite of the interface (CUiMesh) as the model view uses it (thiscall).
-struct Sprite {
+struct Sprite : SpritePositionOriginal {
     void Place(float x, float y, float depth);   // 005E6FA0 (Rebirth-patched)
     void SetScale(float scale);                  // 005E7060 (+0x23C, +0x250, +0x264)
     double Scale();                              // 005E70B0 (+0x23C, in ST0)
-    void Position(float* x, float* y, float* depth);   // 005E7010 (layout point and depth)
     void SetRectangle(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                       int u1, int v1);           // 005E70E0 (Rebirth-patched)
     void Draw(int pass);                         // 005E6D90
@@ -87,7 +86,6 @@ struct Sprite {
 void Sprite::Place(float a0, float a1, float a2) { SpritePlaceOriginal((void*)this, nullptr, a0, a1, a2); }
 void Sprite::SetScale(float a0) { SpriteSetScaleOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 double Sprite::Scale() { return SpriteScaleOriginal((void*)this); }
-__declspec(naked) void Sprite::Position(float*, float*, float*) EI_ORIGINAL(0x005E7010)
 void Sprite::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 void Sprite::Draw(int pass) { SpriteDrawOriginal(this, nullptr, pass); }
 Sprite* AsSprite(void* p) { return static_cast<Sprite*>(p); }

@@ -152,10 +152,9 @@ __declspec(naked) int __fastcall TextKeyOf(const char*) EI_ORIGINAL(0x00461360)
 void* __cdecl Renderer() { return DisplayObject(); }
 
 // The world server.
-struct WorldCalls {
+struct WorldCalls : WorldAlarmOriginal {
     WorldPlayer* GetPlayer(int index);                                   // 00594180
     float GridHeight(float x, float y);                                  // 00594220
-    void InvokeAlarm(int type, const Vector3* point, int raise);         // 00593FC0
     void AddUnit(int key, const char* prototype, const char* name, const Vector3* point);   // 005910A0
     void RemoveObject(int id);                                           // 005935C0 (Rebirth patches it)
     void RecalcMercBriefings();                                          // 00591800
@@ -173,7 +172,6 @@ struct WorldCalls {
 };
 WorldPlayer* WorldCalls::GetPlayer(int id) { return static_cast<WorldPlayer*>(::WorldGetPlayer(this, nullptr, id)); }
 __declspec(naked) float WorldCalls::GridHeight(float, float) EI_ORIGINAL(0x00594220)
-__declspec(naked) void WorldCalls::InvokeAlarm(int, const Vector3*, int) EI_ORIGINAL(0x00593FC0)
 __declspec(naked) void WorldCalls::AddUnit(int, const char*, const char*, const Vector3*) EI_ORIGINAL(0x005910A0)
 void WorldCalls::RemoveObject(int id) { WorldRemoveObject(this, nullptr, id); }
 __declspec(naked) void WorldCalls::RecalcMercBriefings() EI_ORIGINAL(0x00591800)
@@ -291,15 +289,13 @@ __declspec(naked) PatrolLook* PatrolLook::Set(float, float, float, int) EI_ORIGI
 __declspec(naked) void __fastcall PatrolLooksSetAtGrow(AILookArray*, void*, int, PatrolLook*) EI_ORIGINAL(0x004CDCB0)
 
 // The unit's server half (CUnit::controller).
-struct ControllerCalls {
+struct ControllerCalls : ControllerOriginals {
     void PlayAnimation(const char* name);                // 00555700
     void SetMoveStyle(int style);                        // 00555270 (0 lie, 1 crawl, 2 walk, 3 run)
-    void StopQueued();                                   // 00555200
     void Reposition();                                   // 00554450
 };
 void ControllerCalls::PlayAnimation(const char* name) { ControllerPlayAnimationOriginal(this, nullptr, name); }
 __declspec(naked) void ControllerCalls::SetMoveStyle(int) EI_ORIGINAL(0x00555270)
-__declspec(naked) void ControllerCalls::StopQueued() EI_ORIGINAL(0x00555200)
 void ControllerCalls::Reposition() { ControllerRepositionOriginal((void*)this); }
 
 struct UnitCalls {
@@ -372,11 +368,9 @@ void PlayerStateCalls::PrepareRedeploy() { PlayerStateRefreshOriginal((void*)thi
 
 // Party records of a player (PartyRecordsFor) and one record.
 struct PartyRecordsCalls {
-    PartyUnitRecord* Find(int key);                      // 006621B0
     void AddUnit(const char* name, const char* prototype, const char* extra);   // 006628D0
     void RemoveUnit(int key);                            // 006620F0
 };
-__declspec(naked) PartyUnitRecord* PartyRecordsCalls::Find(int) EI_ORIGINAL(0x006621B0)
 void PartyRecordsCalls::AddUnit(const char* a0, const char* a1, const char* a2) { PartyAddMemberOriginal((void*)this, nullptr, a0, a1, a2); }
 void PartyRecordsCalls::RemoveUnit(int a0) { PartyRemoveMemberOriginal(this, nullptr, static_cast<unsigned>(a0)); }
 // 00660500: a record copies the items of `source` (with the records they belong to).
@@ -1498,8 +1492,8 @@ BOOL ScriptRun::Execute(CScript* script) {
             mfc::CString to(cmd->stringArgs.data[1]);
             auto* fromRecords = static_cast<PartyRecordsCalls*>(PartyRecordsFor(player, &from));
             auto* toRecords = static_cast<PartyRecordsCalls*>(PartyRecordsFor(player, &to));
-            PartyUnitRecord* source = fromRecords->Find(TextKeyOf(from));
-            PartyUnitRecord* target = toRecords->Find(TextKeyOf(to));
+            PartyUnitRecord* source = reinterpret_cast<PartyRecords*>(fromRecords)->Find(TextKeyOf(from));
+            PartyUnitRecord* target = reinterpret_cast<PartyRecords*>(toRecords)->Find(TextKeyOf(to));
             if (source && target) {
                 if (cmd->id == 0xD4) {
                     RecordCopyItemsFrom(target, nullptr, source, toRecords);

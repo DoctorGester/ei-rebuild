@@ -32,8 +32,7 @@ namespace {
 // in the path), and 006A6480: whether the prototype and material allow a spell (not for kinds
 // 0x11 / 0x12 without a material), with the level (prototype +0x44 + material +0x1C, as a float)
 // and the power limit (prototype +0x40 + material +0x18). Sets only AL.
-struct Constructor {
-    void SetManager(void* manager);                 // 006A5C00
+struct Constructor : ItemConstructorManagerOriginal {
     int BeginCreateItem(int kind, int key);         // 006A5C50
     int SetMaterial(char* material);                // 006A5CC0
     int SetPrototype(char* prototype);              // 006A5CD0
@@ -45,7 +44,6 @@ struct Constructor {
     std::uint8_t unknown_00[0x30];
     int count;                                      // +0x30 the stack size (CItemConstructor::count_)
 };
-__declspec(naked) void Constructor::SetManager(void*) EI_ORIGINAL(0x006A5C00)
 __declspec(naked) int Constructor::BeginCreateItem(int, int) EI_ORIGINAL(0x006A5C50)
 __declspec(naked) int Constructor::SetMaterial(char*) EI_ORIGINAL(0x006A5CC0)
 __declspec(naked) int Constructor::SetPrototype(char*) EI_ORIGINAL(0x006A5CD0)
@@ -722,7 +720,7 @@ void LoadRecords(void* stream, mfc::CString& name, unsigned& count, const Record
     ReadInt(stream, &count);
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
-        name.MakeLower();
+        name.MakeUpper();
         char* record = find(TableObject(table), nullptr, name);
         if (record) AddUnique(list, record, &PushItemRecord);
     }
@@ -760,7 +758,7 @@ void ItemStock::LoadLists(void* stream) {
     int values[3] = {0, 0, 0};
     for (unsigned i = 0; i < count; ++i) {
         ReadName(stream, name);
-        name.MakeLower();
+        name.MakeUpper();
         StockMaterial entry;
         for (int& v : values) ReadInt(stream, &v);
         entry.record = FindMaterialNamed(TableObject(itemdb::Materials()), nullptr, name);

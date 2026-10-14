@@ -13,6 +13,7 @@
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstdint>
 #include <cstring>
@@ -24,11 +25,6 @@ namespace {
 // The unit's arrays: meshes (SceneMesh) and helpers (SceneHelper); FakeUnitScene, scene_loader.h.
 SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return Typed<MeshArray>(unit->meshes).data[index]; }
 
-// A CString passed by value: the caller copy-constructs it into the argument slot, the callee
-// destroys it. Naked forwarders cannot take a class by value, so the slot is a raw pointer.
-struct StringArg {
-    char* data;
-};
 StringArg Copy(const mfc::CString& s) {
     StringArg arg;
     new (&arg) mfc::CString(s);
@@ -42,23 +38,17 @@ StringArg Copy(const char* text) {
 
 // The registry, called through its game addresses (registry.cpp; the verify wrappers stay in the
 // path). The string getter returns a CString by value, so it is a member function here.
-struct Registry {
+struct Registry : RegistryOriginals {
     CFileRegistry* Construct();                                                       // 00694520
     void Destroy();                                                                   // 00694540
-    mfc::BOOL Open(const char* path);                                                 // 006945A0
-    mfc::BOOL GetSectionNames(console::CStringArray* out);                            // 00694880
     int GetInt(const char* section, const char* key, int defaultValue);              // 00694BE0
-    mfc::CString GetString(const char* section, const char* key, StringArg defaultValue);   // 00694D20
     void Close();                                                                     // 006946B0
 
     std::uint8_t storage[sizeof(CFileRegistry)];
 };
 __declspec(naked) CFileRegistry* Registry::Construct() EI_ORIGINAL(0x00694520)
 __declspec(naked) void Registry::Destroy() EI_ORIGINAL(0x00694540)
-__declspec(naked) mfc::BOOL Registry::Open(const char*) EI_ORIGINAL(0x006945A0)
-__declspec(naked) mfc::BOOL Registry::GetSectionNames(console::CStringArray*) EI_ORIGINAL(0x00694880)
 __declspec(naked) int Registry::GetInt(const char*, const char*, int) EI_ORIGINAL(0x00694BE0)
-__declspec(naked) mfc::CString Registry::GetString(const char*, const char*, StringArg) EI_ORIGINAL(0x00694D20)
 __declspec(naked) void Registry::Close() EI_ORIGINAL(0x006946B0)
 
 // 00450750: the helper `index` of the unit's helper array (thiscall).

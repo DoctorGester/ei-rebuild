@@ -522,7 +522,6 @@ public:
     void CallPropagateHostility();
     std::uint32_t CallHitDirection(CUnit* attacker, int hitKind);
     void CallUseSkill(CEngineObject* target);
-    void CallIdle();
     void CallSetDead(int dead);
     // The queued order's reset that Idle and FinishAction share: kind 9 and cleared, then kind 0.
     void DropQueuedOrder();

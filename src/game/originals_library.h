@@ -534,3 +534,22 @@ __declspec(naked) inline net::HistoryNode** __fastcall HistoryErase(net::History
 // C3m. The freed-batch list (STLport list of FreedBatch): 00439000 insert(pos) of a default batch.
 __declspec(naked) inline net::FreedBatch** __fastcall FreedInsert(net::FreedBatch** /*list*/, void*, net::FreedBatch** /*out*/,
                                                            net::FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
+
+// C3m. A CString passed by value: the caller copy-constructs it into the argument slot, the callee destroys it. Naked
+// forwarders cannot take a class by value, so the slot is a raw pointer.
+struct StringArg {
+    char* data;
+};
+// The registry's thiscall members through their game addresses (rewritten in registry.cpp as CFileRegistry::Open /
+// GetSectionNames / GetString / GetStringArray; the verify wrappers stay in the path). Base of the views of the registry.
+struct RegistryOriginals {
+    mfc::BOOL Open(const char* path);                                                              // 006945A0
+    mfc::BOOL GetSectionNames(console::CStringArray* out);                                         // 00694880
+    mfc::CString GetString(const char* section, const char* key, StringArg defaultValue);          // 00694D20
+    mfc::BOOL GetStringArray(const char* section, const char* key, console::CStringArray* out);    // 006958E0
+};
+__declspec(naked) inline mfc::BOOL RegistryOriginals::Open(const char*) EI_ORIGINAL(0x006945A0)
+__declspec(naked) inline mfc::BOOL RegistryOriginals::GetSectionNames(console::CStringArray*) EI_ORIGINAL(0x00694880)
+__declspec(naked) inline mfc::CString RegistryOriginals::GetString(const char*, const char*, StringArg) EI_ORIGINAL(0x00694D20)
+__declspec(naked) inline mfc::BOOL RegistryOriginals::GetStringArray(const char*, const char*, console::CStringArray*)
+    EI_ORIGINAL(0x006958E0)

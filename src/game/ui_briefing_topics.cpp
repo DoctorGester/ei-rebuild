@@ -101,7 +101,7 @@ EI_REPLACE_METHOD(0x00607360, CBriefingScreen::FindTopics);
 mfc::CString* CBriefingScreen::TopicTitle(mfc::CString* out, const char* topic) {
     mfc::CString title;
     mfc::CString key(topic);
-    key.MakeLower();
+    key.MakeUpper();
     bool isConstructor;
     {
         mfc::CString start = key.Left(kConstructorPrefixLength);

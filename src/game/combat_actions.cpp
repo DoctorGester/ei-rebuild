@@ -222,7 +222,6 @@ __declspec(naked) void CUnitServer::CallWitnessMurder(void*, CUnit*, CUnit*) EI_
 __declspec(naked) void CUnitServer::CallPropagateHostility() EI_ORIGINAL(0x00552E00)
 __declspec(naked) std::uint32_t CUnitServer::CallHitDirection(CUnit*, int) EI_ORIGINAL(0x005518F0)
 __declspec(naked) void CUnitServer::CallUseSkill(CEngineObject*) EI_ORIGINAL(0x0054F000)
-__declspec(naked) void CUnitServer::CallIdle() EI_ORIGINAL(0x00555180)
 __declspec(naked) void CUnitServer::CallSetDead(int) EI_ORIGINAL(0x00546720)
 
 void CUnitServer::DropQueuedOrder() {
@@ -287,7 +286,7 @@ void CUnitServer::FinishAction(int location, char) {
     ActionClear(&action);
     action.unknown_1C = 0;
     action.unknown_20 = 0;
-    if (action2.kind == 9) CallIdle();
+    if (action2.kind == 9) reinterpret_cast<ControllerOriginals*>(this)->Idle();
 }
 EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
 

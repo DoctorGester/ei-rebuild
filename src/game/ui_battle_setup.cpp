@@ -37,7 +37,7 @@ namespace {
 // --- Not rewritten -------------------------------------------------------------------------------
 
 // The panel constructors and builders, called on the panel (all thiscall).
-struct RawPanel {
+struct RawPanel : WindowConstructOriginal {
     // Constructors (owner = the battle screen); each returns the panel.
     CUiWindow* ConstructWeaponBar(CInterface3D* ui, CUiWindow* owner);      // 0063BAB0 (Rebirth)
     CUiWindow* ConstructQuickItems(CInterface3D* ui, CUiWindow* owner);     // 0063C800 (Rebirth)
@@ -46,8 +46,6 @@ struct RawPanel {
     CUiWindow* ConstructPortraits(CInterface3D* ui, CUiWindow* owner);      // 0063FE70
     // 0065CC00: the message log (a scrolling text over `rect`, by value).
     CUiWindow* ConstructTextLog(CInterface3D* ui, void* font, RECT rect, float speed);
-    // 005FE700: the window base constructor (returns this).
-    CUiWindow* ConstructWindow(CInterface3D* ui);
     // Builders of the inline-constructed panels.
     void BuildUnitPanel(int page, std::uint8_t shown);   // 006456E0 (Rebirth)
     void BuildMap(float zoom, std::uint8_t view);        // 00641F20 (Rebirth)
@@ -67,7 +65,6 @@ CUiWindow* RawPanel::ConstructTextLog(CInterface3D* ui, void* font, RECT rect, f
     return static_cast<CUiWindow*>(ScrollTextConstructOriginal(this, nullptr, ui, static_cast<const char*>(font), rect.left,
                                                                rect.top, rect.right, rect.bottom, speed));
 }
-__declspec(naked) CUiWindow* RawPanel::ConstructWindow(CInterface3D*) EI_ORIGINAL(0x005FE700)
 __declspec(naked) void RawPanel::BuildUnitPanel(int, std::uint8_t) EI_ORIGINAL(0x006456E0)
 __declspec(naked) void RawPanel::BuildMap(float, std::uint8_t) EI_ORIGINAL(0x00641F20)
 __declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
@@ -130,7 +127,7 @@ CUiWindow* NewPlainPanel(CInterface3D* ui, std::size_t size, CUiWindow* owner, s
                          std::uintptr_t inputVtable) {
     void* memory = gamecrt::operator_new(size);
     if (!memory) return nullptr;
-    CUiWindow* panel = Raw(memory)->ConstructWindow(ui);
+    CUiWindow* panel = Raw(memory)->Construct(ui);
     std::uint8_t* p = reinterpret_cast<std::uint8_t*>(panel);
     std::memcpy(p + 0x148, &owner, 4);
     panel->vtable_ = reinterpret_cast<void**>(vtable);
@@ -238,7 +235,7 @@ void CBattleScreenSetup::Create() {
     {
         CUiWindow* panel = nullptr;
         if (void* p = gamecrt::operator_new(0x1C4)) {
-            panel = Raw(p)->ConstructWindow(interface_);
+            panel = Raw(p)->Construct(interface_);
             SetRawPointer(panel, 0x148, this);
             SetEmptyString(panel, 0x164);
             SetEmptyString(panel, 0x168);
@@ -258,7 +255,7 @@ void CBattleScreenSetup::Create() {
     {
         CUiWindow* panel = nullptr;
         if (void* p = gamecrt::operator_new(0x1B4)) {
-            panel = Raw(p)->ConstructWindow(interface_);
+            panel = Raw(p)->Construct(interface_);
             SetRawPointer(panel, 0x148, this);
             for (int offset : {0x178, 0x184, 0x180, 0x17C, 0x188, 0x194, 0x190, 0x18C})
                 SetRawPointer(panel, offset, nullptr);
@@ -292,7 +289,7 @@ void CBattleScreenSetup::Create() {
     {
         CUiWindow* panel = nullptr;
         if (void* p = gamecrt::operator_new(0x16C)) {
-            panel = Raw(p)->ConstructWindow(interface_);
+            panel = Raw(p)->Construct(interface_);
             SetRawPointer(panel, 0x148, this);
             SetEmptyString(panel, 0x164);
             SetEmptyString(panel, 0x168);

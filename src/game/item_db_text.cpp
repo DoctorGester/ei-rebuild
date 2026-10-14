@@ -72,7 +72,7 @@ const mfc::CString& StringAt(const char* record, int offset) {
 void KeyName(mfc::CString& out, const char* record, int offset) {
     out = StringAt(record, offset);
     ReplaceChar(&out, ' ', '_');
-    out.MakeLower();
+    out.MakeUpper();
 }
 
 // Looks up `key`; when found, reads the name line and the description.

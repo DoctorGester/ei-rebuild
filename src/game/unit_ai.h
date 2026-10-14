@@ -75,8 +75,6 @@ struct UnitController {
     std::uintptr_t AddHostileMask(std::uint32_t mask);
 
     // Not rewritten (forwarders).
-    void Idle();                                            // 00555180
-    void StopQueued();                                      // 00555200
     void Turn(const Vector3* direction, float time);        // 005546B0
     void Say(int what);                                     // 005AEA60 on this + 0xB10 (see Voice)
     void MoveTo(const Vector3* point, int run, int unused, float time);    // 00554740

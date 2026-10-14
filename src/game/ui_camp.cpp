@@ -3,6 +3,7 @@
 #include "ui_camp.h"
 
 #include "item_db_text.h"
+#include "spell.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -802,23 +803,19 @@ struct SpellConstructorAt {
     void SetManager(void* manager);           // 006841A0
     BOOL Begin(const void* spell);            // 006841E0
     BOOL AddModifier(const void* modifier);   // 006842A0
-    BOOL End();                               // 00684250
 };
 __declspec(naked) void SpellConstructorAt::SetManager(void*) EI_ORIGINAL(0x006841A0)
 __declspec(naked) BOOL SpellConstructorAt::Begin(const void*) EI_ORIGINAL(0x006841E0)
 __declspec(naked) BOOL SpellConstructorAt::AddModifier(const void*) EI_ORIGINAL(0x006842A0)
-__declspec(naked) BOOL SpellConstructorAt::End() EI_ORIGINAL(0x00684250)
 
 // The item constructor (not rewritten; thiscall).
-struct ItemConstructorAt {
-    void SetManager(void* manager);           // 006A5C00
+struct ItemConstructorAt : ItemConstructorManagerOriginal {
     BOOL Begin(int type, int a);              // 006A5C50
     BOOL SetPart(const void* part);           // 006A5CD0
     BOOL SetBlueprint(const void* blueprint); // 006A5CC0
     BOOL SetSpell(void* spell);               // 006A5CE0
     std::uint8_t* Make();                     // 006A5CF0
 };
-__declspec(naked) void ItemConstructorAt::SetManager(void*) EI_ORIGINAL(0x006A5C00)
 __declspec(naked) BOOL ItemConstructorAt::Begin(int, int) EI_ORIGINAL(0x006A5C50)
 __declspec(naked) BOOL ItemConstructorAt::SetPart(const void*) EI_ORIGINAL(0x006A5CD0)
 __declspec(naked) BOOL ItemConstructorAt::SetBlueprint(const void*) EI_ORIGINAL(0x006A5CC0)
@@ -897,7 +894,7 @@ bool CCampPages::CanMakeSpell() {
             return false;
         }
     }
-    if (!constructor->End()) {
+    if (!reinterpret_cast<CSpellConstructor*>(constructor)->CallEndConstruct()) {
         constructor->SetManager(nullptr);
         return false;
     }

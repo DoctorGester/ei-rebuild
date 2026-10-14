@@ -392,3 +392,12 @@ __declspec(naked) inline bool __fastcall HealSlotsAt(UnitStats*, void*, float, f
 // C3m. 00525E90 (rewritten as UnitStats::AttributeWithItems). UnitStats: the value of skill `skill` for the unit, in ST0
 // (declared double).
 __declspec(naked) inline double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00525E90)
+
+// C3m. The unit's server controller (thiscall, plain RET): 00555180 (rewritten as CUnitServer::Idle) and 00555200
+// (rewritten as CUnitServer::StopQueued). Cast the controller's pointer; the views derive from this.
+struct ControllerOriginals {
+    void Idle();
+    void StopQueued();
+};
+__declspec(naked) inline void ControllerOriginals::Idle() EI_ORIGINAL(0x00555180)
+__declspec(naked) inline void ControllerOriginals::StopQueued() EI_ORIGINAL(0x00555200)

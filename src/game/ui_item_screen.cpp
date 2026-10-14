@@ -129,17 +129,13 @@ EI_REPLACE_METHOD(0x005F2E00, CItemIconWindow::PlaceBars);
 // --- 005EDD80: the item screens' base Create ------------------------------------------------------
 
 namespace {
-struct WindowAt {
-    CUiWindow* Construct(CInterface3D* ui);   // 005FE700 (returns this)
-};
-__declspec(naked) CUiWindow* WindowAt::Construct(CInterface3D*) EI_ORIGINAL(0x005FE700)
 } // namespace
 
 void CItemScreen::CreateBase() {
     void* memory = gamecrt::operator_new(0x148);
     CUiWindow* icons = nullptr;
     if (memory) {
-        icons = static_cast<WindowAt*>(memory)->Construct(interface_);
+        icons = reinterpret_cast<WindowConstructOriginal*>(memory)->Construct(interface_);
         icons->vtable_ = reinterpret_cast<void**>(0x00740444);
         icons->inputVtable_ = reinterpret_cast<void**>(0x00740410);
     }
