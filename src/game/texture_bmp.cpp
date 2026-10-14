@@ -10,6 +10,8 @@
 // the original. See docs/notes/renderer.md (section 16).
 #include "texture.h"
 
+#include "device.h"
+
 #include "dib.h"
 #include "dx_surface.h"
 #include "originals_engine.h"
@@ -38,12 +40,6 @@ const char* CantUnlockStagingText() { return Text(0x00795B0C); }   // "...Can't 
 const char* CantLockText() { return Text(0x0078E30C); }        // "Can't lock surface.\n"
 const char* CantUnlockText() { return Text(0x0078E2F4); }      // "Can't unlock surface.\n"
 
-// COM slots: IDirectDrawSurface7 Lock / Unlock, IDirect3DDevice7 Load.
-constexpr int kLock = 25, kUnlock = 32, kDeviceLoad = 43;
-template <typename... Args>
-long Com(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
 constexpr std::uint32_t kLockWriteWait = 0x21;   // DDLOCK_WAIT | DDLOCK_WRITEONLY
 
 // DDSURFACEDESC2 (0x7C bytes) as dwords.
@@ -179,8 +175,8 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     gameapi::EnterCriticalSection(DeviceLock());
     std::memset(desc, 0, sizeof(desc));
     desc[kSize] = sizeof(desc);
-    long hr = Com(staging->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockWriteWait,
-                  static_cast<void*>(nullptr));
+    long hr = device::Surface(staging)->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc), kLockWriteWait,
+                                              nullptr);
     staging->result = hr;
     if (hr != 0 && !FatalDirectX(hr, CantLockText())) {
         game::DebugLog(CantLockStagingText());
@@ -190,7 +186,7 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
     WritePixels(reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc[kSurface])),
                 static_cast<int>(desc[kPitch]), width, height, INT_MAX, INT_MAX, colour->bits, alphaBits, layout);
     gameapi::LeaveCriticalSection(DeviceLock());
-    hr = Com(staging->surface, kUnlock, static_cast<void*>(nullptr));
+    hr = device::Surface(staging)->Unlock(nullptr);
     staging->result = hr;
     if (hr != 0 && !FatalDirectX(hr, CantUnlockText())) {
         game::DebugLog(CantUnlockStagingText());
@@ -198,8 +194,8 @@ int CTexture::LoadBmpFiles(CTextureDevice* device, const char* path, const char*
         return 0;
     }
     gameapi::EnterCriticalSection(DeviceLock());
-    device->lastLoadResult_ = Com(device->d3dDevice_, kDeviceLoad, surface_->surface, static_cast<void*>(nullptr),
-                                  staging->surface, static_cast<void*>(nullptr), 0u);
+    device->lastLoadResult_ = device::D3D(device)->Load(device::Surface(surface_), nullptr, device::Surface(staging),
+                                                        nullptr, 0);
     gameapi::LeaveCriticalSection(DeviceLock());
     flags_ |= kTextureLoaded;
     staging->Release();

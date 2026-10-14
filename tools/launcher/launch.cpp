@@ -127,8 +127,9 @@ int wmain(int argc, wchar_t** argv) {
     }
 
     // Wait for the game, then report the harness result (harness_report.txt in the output folder). The
-    // harness writes harness_quit when its scenario quits; a game still running 10 s after that is
-    // hung on exit (Rebirth does this) and is terminated, so no run needs Task Manager.
+    // harness writes harness_quit when its scenario quits, after its report; a game still running 3 s
+    // after that is hung on exit (Rebirth always is, after DestroyClassRegistry) and is terminated, so
+    // no run needs Task Manager. The vanilla game exits within 0.4 s (2.5 s at most, 16 games at once).
     std::wstring quitMarker = outDir + L"\\harness_quit";
     ULONGLONG quitSeen = 0;
     const ULONGLONG started = GetTickCount64();
@@ -154,8 +155,8 @@ int wmain(int argc, wchar_t** argv) {
         }
         if (GetFileAttributesW(quitMarker.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
         if (!quitSeen) quitSeen = GetTickCount64();
-        if (GetTickCount64() - quitSeen >= 10000) {
-            std::wprintf(L"ei_launch: game still running 10 s after the scenario quit; terminating it\n");
+        if (GetTickCount64() - quitSeen >= 3000) {
+            std::wprintf(L"ei_launch: game still running 3 s after the scenario quit; terminating it\n");
             TerminateProcess(pi.hProcess, 0);
             WaitForSingleObject(pi.hProcess, 5000);
             break;

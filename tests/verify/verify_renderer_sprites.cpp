@@ -2,6 +2,8 @@
 #include "verify.h"
 
 #include "../../src/game/clip.h"
+#include "../../src/game/model.h"
+#include "../../src/game/texture.h"
 
 #include <cstdint>
 #include <cstring>
@@ -17,9 +19,10 @@ struct SpriteSortRecord {
 void __fastcall SpriteRadixPass(int shift, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count,
                                 int ascending);
 void __fastcall SpriteMergePass(int width, SpriteSortRecord* const* src, SpriteSortRecord** dst, int count);
-int __fastcall DrawIndexed(char* holder, void*, int primitive, int fvf, void* vertices, int vertexCount,
+int __fastcall DrawIndexed(CTextureDevice* device, void*, int primitive, int fvf, void* vertices, int vertexCount,
                            std::uint16_t* indices, int indexCount, int flags);
-int __fastcall DrawSprites(char* renderer, void*, char additive, const void* pointArray, const void* spriteArray);
+int __fastcall DrawSprites(CSceneRenderer* renderer, void*, char additive, const void* pointArray,
+                           const void* spriteArray);
 
 namespace {
 struct AlignedArray {
@@ -55,14 +58,13 @@ static void __fastcall MergePassVerify(int width, SpriteSortRecord* const* src, 
 }
 EI_VERIFY(0x005037D0, MergePassVerify, 8, s_merge);
 
-// 00503680 draws: ours only; the draw call counter (+0x174) goes up by one.
+// 00503680 draws: ours only; the draw call counter goes up by one.
 static void* s_drawIndexed;
-static int __fastcall DrawIndexedVerify(char* holder, void*, int primitive, int fvf, void* vertices, int vertexCount,
-                                        std::uint16_t* indices, int indexCount, int flags) {
-    int calls = *reinterpret_cast<int*>(holder + 0x174);
-    int result = DrawIndexed(holder, nullptr, primitive, fvf, vertices, vertexCount, indices, indexCount, flags);
-    ei::verify::Check("DrawIndexed", calls + 1, *reinterpret_cast<int*>(holder + 0x174), "vertices %d indices %d",
-                      vertexCount, indexCount);
+static int __fastcall DrawIndexedVerify(CTextureDevice* device, void*, int primitive, int fvf, void* vertices,
+                                        int vertexCount, std::uint16_t* indices, int indexCount, int flags) {
+    int calls = device->drawCount_;
+    int result = DrawIndexed(device, nullptr, primitive, fvf, vertices, vertexCount, indices, indexCount, flags);
+    ei::verify::Check("DrawIndexed", calls + 1, device->drawCount_, "vertices %d indices %d", vertexCount, indexCount);
     return result;
 }
 EI_VERIFY(0x00503680, DrawIndexedVerify, 0, s_drawIndexed);
@@ -70,7 +72,7 @@ EI_VERIFY(0x00503680, DrawIndexedVerify, 0, s_drawIndexed);
 // 00502CA0 draws: ours only. The result is 0 or 1, and the last batch's corners (007AEF90) are back
 // to front: whole sprites whose first corners' z never grows and is not negative.
 static void* s_sprites;
-static int __fastcall DrawSpritesVerify(char* renderer, void*, char additive, const void* pointArray,
+static int __fastcall DrawSpritesVerify(CSceneRenderer* renderer, void*, char additive, const void* pointArray,
                                         const void* spriteArray) {
     int result = DrawSprites(renderer, nullptr, additive, pointArray, spriteArray);
     int points = static_cast<const int*>(pointArray)[1];

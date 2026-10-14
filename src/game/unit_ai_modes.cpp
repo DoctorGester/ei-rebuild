@@ -202,7 +202,7 @@ void GuardMode::Execute(AIBrain* brain) {
     direction.z = dz;
     // FCOMP 0; TEST AH,0x40: a radius equal to 0 (or unordered) leaves the direction unscaled.
     if (radius < kZero || radius > kZero) {
-        double scale = x87::fsqrt(static_cast<double>(dz * dz + dy * dy) + static_cast<double>(dx * dx)) / radius * kHalf;
+        double scale = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz)) / radius * kHalf;
         direction.x = static_cast<float>(dx * scale);
         direction.y = static_cast<float>(direction.y * scale);
         direction.z = static_cast<float>(direction.z * scale);
@@ -415,7 +415,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
             double ux = unit[0] - point.x;
             double uy = unit[1] - point.y;
             double uz = unit[2] - point.z;
-            if (!(uz * uz + uy * uy + ux * ux >= kCloseSq)) level -= 5;
+            if (!(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz) >= kCloseSq)) level -= 5;
             return;
         }
     }

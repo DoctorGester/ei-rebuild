@@ -3,15 +3,17 @@
 // from an .ini file, each played, the screen cleared through the primary surface's Blt). Every
 // callee is reached through its original address. See docs/notes/app.md.
 #include "dib.h"
+#include "texture.h"   // CTextureDevice, CDXSurface
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
+
+#include <ddraw.h>
 
 #include <cstdint>
 #include <cstring>
@@ -22,14 +24,11 @@ namespace {
 
 template <typename T>
 T& Global(std::uintptr_t address) { return *reinterpret_cast<T*>(address); }
-template <typename T>
-T& At(void* base, std::size_t offset) { return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset); }
 const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
 void* Interface() { return reinterpret_cast<void*>(0x007C7D50); }
 void* Game() { return reinterpret_cast<void*>(0x007AF060); }
 void* Screen() { return reinterpret_cast<void*>(0x007C7BD8); }
-void* Renderer() { return Global<void*>(0x007AF080); }
 bool Running() { return Global<std::uint8_t>(0x0079BC5C) != 0 && Global<std::uint8_t>(0x00784750) != 0; }
 CRITICAL_SECTION* RenderLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
@@ -61,23 +60,21 @@ __declspec(naked) void __fastcall IniDestruct(void*) EI_ORIGINAL(0x00695BE0)
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
-// Fills the renderer's rectangle (+0x24) of the primary surface with black (Blt with
+// Fills the device object's screen rectangle of the primary surface with black (Blt with
 // DDBLT_COLORFILL | DDBLT_WAIT) under the render lock (taken twice, as the original does); the
-// result goes to the renderer's +8.
+// result goes to the device's lastLoadResult_.
 void ClearScreen() {
-    void* renderer = Renderer();
+    CTextureDevice* device = RenderDeviceObject();
     gameapi::EnterCriticalSection(RenderLock());
-    void* holder = At<void*>(renderer, 0x14);
-    std::uint32_t fx[25] = {};   // DDBLTFX
-    fx[0] = 100;
-    fx[21] = 0;                  // dwFillColor
+    CDXSurface* primary = device->primary_;
+    DDBLTFX fx = {};
+    fx.dwSize = sizeof(fx);
+    fx.dwFillColor = 0;
     gameapi::EnterCriticalSection(RenderLock());
-    void* surface = At<void*>(holder, 0x10);
-    using Blt = long(__stdcall*)(void*, void*, void*, void*, unsigned long, void*);
-    long result = reinterpret_cast<Blt>((*static_cast<void***>(surface))[5])(surface, static_cast<std::uint8_t*>(renderer) + 0x24, nullptr,
-                                                                               nullptr, 0x1000400, fx);
+    auto* surface = static_cast<IDirectDrawSurface7*>(primary->surface);
+    long result = surface->Blt(&device->screen_, nullptr, nullptr, DDBLT_COLORFILL | DDBLT_WAIT, &fx);
     gameapi::LeaveCriticalSection(RenderLock());
-    At<long>(renderer, 8) = result;
+    device->lastLoadResult_ = result;
     gameapi::LeaveCriticalSection(RenderLock());
 }
 
@@ -98,7 +95,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(Screen());
     ScreenDraw(Screen());
-    if (DevicePresentOriginal(Renderer())) game::FatalError(Text(0x00784A30));   // "Can't flip render surface"
+    if (DevicePresentOriginal(RenderDeviceObject())) game::FatalError(Text(0x00784A30));   // "Can't flip render surface"
     CursorUnlockOriginal(Screen());
     if (!Global<std::uint8_t>(0x0079BC54)) return;
     char path[256];
@@ -112,20 +109,20 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     // {0, 0, width, height} of the render target's surface; without one the original passes two
     // stack words it never set.
     std::uint32_t rect[5];
-    void* renderer = Renderer();
+    CTextureDevice* device = RenderDeviceObject();
     std::uint32_t width = rect[4], height = rect[4];
-    if (At<void*>(renderer, 0x14)) {
-        void* info = At<void*>(renderer, 0x18);
-        width = At<std::uint32_t>(info, 0x14);
-        height = At<std::uint32_t>(info, 0x18);
+    if (device->primary_) {
+        CDXSurface* target = device->renderTarget_;
+        width = static_cast<std::uint32_t>(target->width);
+        height = static_cast<std::uint32_t>(target->height);
     }
     rect[0] = 0;
     rect[1] = 0;
     rect[2] = width;
     rect[3] = height;
-    CDib* bitmap = CallCaptureSurfaceRect(At<CDXSurface*>(renderer, 0x14), reinterpret_cast<const RECT*>(rect));
+    CDib* bitmap = CallCaptureSurfaceRect(device->primary_, reinterpret_cast<const RECT*>(rect));
     bitmap->Write(&file);
-    if (bitmap) ei::VCall<void>(bitmap, 1, 1);
+    if (bitmap) reinterpret_cast<mfc::CObjectVirtuals*>(bitmap)->DeletingDestructor(1);   // slot 1 Delete(1)
     file.Close();
     ++Global<std::uint32_t>(0x0079BC58);
 }

@@ -147,7 +147,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     double dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
     float radiusSq = StoreFloat(radius * radius);
     for (int tries = 9;;) {
-        if (!(dy * dy + dx * dx > radiusSq)) break;
+        if (!(LengthSquared2DUnrounded<double>(dy, dx) > radiusSq)) break;
         dx = StoreFloat(static_cast<float>((radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low));
         dy = (radius - low) * x87::FromUnsigned(random->Next()) * kUnitScale + low;
         if (--tries < 0) break;
@@ -177,7 +177,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
         double ux = self->position.x - out->x;
         double uy = self->position.y - out->y;
         double uz = self->position.z - out->z;
-        float distance = StoreFloat(static_cast<float>(std::sqrt(ux * ux + uy * uy + uz * uz)));
+        float distance = StoreFloat(static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz))));
         float range = StoreFloat(distance * kRangePerDistance + kRangeBase);
         bool found = map->FindPath(self, out, &local.path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
@@ -209,7 +209,7 @@ void AIBrain::UpdateFollow() {
                      StoreFloat(leader->position.z - self->position.z)};
     int now = WorldTick();
     float distance = StoreFloat(static_cast<float>(
-        std::sqrt(static_cast<double>(toLeader.z) * toLeader.z + toLeader.y * toLeader.y + toLeader.x * toLeader.x)));
+        std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z))));
     UnitController* leaderController = ControllerOf(leader);
     float walkTime = StoreFloat(distance * kRangePerDistance + kRangeBase);
 
@@ -223,7 +223,7 @@ void AIBrain::UpdateFollow() {
         if (!owner->GetMovePoint(&goal)) goal = *PositionOf(self);
         double gx = goal.x - leader->position.x;
         double gy = goal.y - leader->position.y;
-        if (gx * gx + gy * gy > farSq) {
+        if (LengthSquared2DUnrounded(gx, gy) > farSq) {
             owner->MoveTo(PositionOf(leader), 0, 0, walkTime);
             followTimer = 0;
         }
@@ -237,12 +237,12 @@ void AIBrain::UpdateFollow() {
     ObjectSlots(leader)->PositionAt(&soon, now + kLeaderAhead);
     double sx = self->position.x - soon.x;
     double sy = self->position.y - soon.y;
-    double soonSq = sx * sx + sy * sy;
+    double soonSq = LengthSquared2DUnrounded(sx, sy);
     if (soonSq >= static_cast<double>(distance) * distance || soonSq >= nearSq) {
         // Not coming closer: walk to that point unless already going near it.
         double fx = soon.x - goal.x;
         double fy = soon.y - goal.y;
-        if (fy * fy + fx * fx > farSq) {
+        if (LengthSquared2DUnrounded(fy, fx) > farSq) {
             owner->MoveTo(&soon, 0, 0, walkTime);
             followTimer = kFollowPause;
         }
@@ -257,7 +257,7 @@ void AIBrain::UpdateFollow() {
         ObjectSlots(leader)->PositionAt(&later, now + ahead);
         double lx = self->position.x - later.x;
         double ly = self->position.y - later.y;
-        double laterSq = lx * lx + ly * ly;
+        double laterSq = LengthSquared2DUnrounded(lx, ly);
         if (laterSq > best) return;
         if (!(laterSq >= kOnTheWaySq)) break;
         best = StoreFloat(static_cast<float>(laterSq));
@@ -278,7 +278,7 @@ void AIBrain::UpdateFollow() {
     double ux = self->position.x - leader->position.x;
     double uy = self->position.y - leader->position.y;
     double uz = self->position.z - leader->position.z;
-    if (!(side.z * uz + uy * side.y + ux * side.x >= 0.0)) {
+    if (!(DotUnrounded<Sum3::ZYX, double>(side.x, side.y, side.z, ux, uy, uz) >= 0.0)) {
         side.x = -side.x;
         side.y = -side.y;
         side.z = -side.z;
@@ -291,13 +291,13 @@ void AIBrain::UpdateFollow() {
     float targetY = StoreFloat(static_cast<float>(half * local.path.targetY));
     float offY = StoreFloat(aside.y - targetY);
     double offX = aside.x - half * local.path.targetX;
-    if (!(offX * offX + static_cast<double>(offY) * offY >= kReachedSq)) {
+    if (!(LengthSquared2DUnrounded<double>(offX, offY) >= kReachedSq)) {
         owner->MoveTo(&aside, 0, 0, kPassRange);
         followTimer = kFollowPause;
     } else {
         double px = goal.x - passing.x;
         double py = goal.y - passing.y;
-        if (px * px + py * py > kHalf) {
+        if (LengthSquared2DUnrounded(px, py) > kHalf) {
             owner->MoveTo(&passing, 0, 0, kPassTime);
             followTimer = kFollowPause;
         }
@@ -316,7 +316,7 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     double dz = from->z - to->z;
     CUnit* unit = brain->owner->unit;
     Vector3 saved = *PositionOf(unit);
-    float range = StoreFloat(static_cast<float>(2.0 * std::sqrt(dz * dz + dy * dy + dx * dx)));
+    float range = StoreFloat(static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))));
     SectorMapMove(WorldServer()->Sectors(), nullptr, unit, from);
     bool found = AIMap()->FindPath(unit, to, &local.path, range, 0.0f);
     SectorMapMove(WorldServer()->Sectors(), nullptr, unit, &saved);

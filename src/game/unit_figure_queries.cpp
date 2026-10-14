@@ -54,12 +54,16 @@ Vector3 Rotate(const Quaternion& q, const Vector3& v) {
     float ux = q.x;
     float uy = q.y;
     float uz = q.z;
-    float twiceDot = 2.0f * ((v.y * uy + v.z * uz) + v.x * ux);
+    // Precise helpers: /fp:fast regrouped an inlined unrounded dot with the `2 *` into
+    // (2xx' + d) + d with d = yy' + zz' (a second rounding, V3c); written out it had become
+    // (2yy' + 2zz') + 2xx', which is exact.
+    Vector3 u = {ux, uy, uz};
+    float twiceDot = 2.0f * DotZYX(v, u);
     Vector3 along = {twiceDot * ux, twiceDot * uy, twiceDot * uz};
     float twiceS = q.w + q.w;
     Vector3 cross = {uy * v.z - uz * v.y, uz * v.x - ux * v.z, ux * v.y - uy * v.x};
     Vector3 turn = {twiceS * cross.x, twiceS * cross.y, twiceS * cross.z};
-    float k = q.w * q.w - (ux * ux + uy * uy + uz * uz);
+    float k = q.w * q.w - LengthSquaredXYZ(u);
     return {k * v.x + turn.x + along.x, k * v.y + turn.y + along.y, k * v.z + turn.z + along.z};
 }
 } // namespace
@@ -96,7 +100,7 @@ double CUnit::BodyExtent() {
     const Vector3& corner = partBoxes[part].boxMax;
     double y = corner.y;
     double x = corner.x;
-    return extentScale * std::sqrt(y * y + x * x);
+    return extentScale * std::sqrt(LengthSquared2DUnrounded(y, x));
 }
 EI_REPLACE_METHOD(0x005304A0, CUnit::BodyExtent);
 
@@ -116,11 +120,11 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
     if (!world->IsServer()) {
         if (type_ == kUnitTypeHero) {
             if (CEngineObject* hand = ObjectFindPartOriginal(this, nullptr, kRightHand)) {
-                float at[3];
-                ObjectPartPositionOriginal(this, nullptr, at, hand);
-                out->x = at[0];
-                out->y = at[1];
-                out->z = at[2];
+                Vector3 at;
+                ObjectPartPositionOriginal(this, nullptr, &at.x, hand);
+                out->x = at.x;
+                out->y = at.y;
+                out->z = at.z;
                 return out;
             }
         } else if (!static_cast<CUnitClientSpecific*>(controller)->WeaponPoint(&local)) {

@@ -109,7 +109,7 @@ public:
 
 // The virtual slots every MFC 4.2 CObject has (a CArray's, for example), for callers that dispatch
 // through an object's vtable as the original does (its inlined DestructElements calls slot 1 with
-// 0); declared only.
+// 0; a CList or a CDib is deleted through slot 1 with 1); declared only.
 class __declspec(novtable) CObjectVirtuals {
 public:
     virtual void GetRuntimeClass();                         // 0

@@ -184,16 +184,16 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     float reach = !(1.0f >= smaller) ? smaller : 1.0f;
     volatile float sizeStored = (part->boxMax.y + part->boxMax.x) * kHalf * kDecalScale;
     float size = sizeStored;
-    float at[3];
-    ObjectPartPositionOriginal(unit, nullptr, at, part);
+    Vector3 at;
+    ObjectPartPositionOriginal(unit, nullptr, &at.x, part);
     volatile float spreadStored = reach * kSpreadUnits;
     float spread = spreadStored;
     int offset = RandomBelow(x87::fistp(spread));
-    at[0] = static_cast<float>(offset * kSpreadStep - reach + at[0]);
+    at.x = static_cast<float>(offset * kSpreadStep - reach + at.x);
     offset = RandomBelow(x87::fistp(spread));
-    at[1] = static_cast<float>(offset * kSpreadStep - reach + at[1]);
+    at.y = static_cast<float>(offset * kSpreadStep - reach + at.y);
     std::uint32_t variant = DecalVariant();
-    AddBloodDecal(WorldClient(), nullptr, at[0], at[1], size, size * kDecalLength, DecalKind(variant, blood), 1);
+    AddBloodDecal(WorldClient(), nullptr, at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 1);
 }
 EI_REPLACE_METHOD(0x00537500, CUnitClientSpecific::HitEffect);
 
@@ -214,21 +214,21 @@ void CUnitClientSpecific::DeathEffect() {
     CompanionHideLightOriginal(unit->MapObject()->companion);
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood == 0 || blood > kLastDecalBlood) return;
-    float at[3];
+    Vector3 at;
     float size;
     if (auto* body = static_cast<FigurePart*>(ObjectFindPartOriginal(unit, nullptr, "bd"))) {
         volatile float stored = (body->boxMax.y + body->boxMax.x) * kHalf;
         size = stored;
-        ObjectPartPositionOriginal(unit, nullptr, at, body);
+        ObjectPartPositionOriginal(unit, nullptr, &at.x, body);
     } else {
         volatile float stored = static_cast<float>(SmallerExtent(unit) * kDeathDecalScale);
         size = stored;
-        at[0] = unit->position.x;
-        at[1] = unit->position.y;
-        at[2] = unit->position.z;
+        at.x = unit->position.x;
+        at.y = unit->position.y;
+        at.z = unit->position.z;
     }
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
-    AddBloodDecal(WorldClient(), nullptr, at[0], at[1], size, size * kDecalLength, DecalKind(variant, blood), 0);
+    AddBloodDecal(WorldClient(), nullptr, at.x, at.y, size, size * kDecalLength, DecalKind(variant, blood), 0);
 }
 EI_REPLACE_METHOD(0x005373D0, CUnitClientSpecific::DeathEffect);
 

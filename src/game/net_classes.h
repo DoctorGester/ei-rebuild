@@ -221,13 +221,11 @@ struct Query {
 };
 static_assert(sizeof(Query) == 0x2C);
 
-// The client's queries (constructor 0041C420): an STLport vector and a dword saved with it. Kept as
-// its own layout (not stlp::vector<Query>): the extra dword follows the vector, and the connect
-// screen (ui_connect_screen.cpp) reads the three pointers by name.
-struct QueryVector {
-    Query* begin;
-    Query* end;
-    Query* eos;
+// The client's queries (constructor 0041C420): an STLport vector of queries and a dword saved with
+// it (not itself a vector). The vector's out-of-line functions are the game's instantiations of
+// stlp::vector<Query> (net_lobby.cpp forwards to them).
+struct ClientQueries {
+    stlp::vector<Query> list;    // +0x00
     std::uint32_t extra;         // +0x0C
 
     // 004414E0 (net_lobby.cpp). The queries in a chunk archive (chunk 1 of chunks 1: field 1 the
@@ -236,9 +234,9 @@ struct QueryVector {
     // 00441410 (net_lobby.cpp). The query with `address`, or the end.
     Query* QueriesFind(const NetAddress* address);
 };
-static_assert(sizeof(QueryVector) == 0x10);
+static_assert(sizeof(ClientQueries) == 0x10 && offsetof(ClientQueries, extra) == 0x0C);
 // 0041C420 (net_client.cpp). The queries' constructor: an empty vector and a zero dword. Returns self.
-QueryVector* __fastcall ClientVectorConstruct(QueryVector* self);
+ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self);
 
 // ---- The session base ---------------------------------------------------------------------------
 
@@ -613,7 +611,7 @@ public:
     // 004422D0. Sets the address asked on every refresh.
     void SetAlwaysAsk(const NetAddress* address);
     // 00442300. Takes over the queries (from the options); unlisted servers are listed as asked.
-    void SetQueries(const QueryVector* from);
+    void SetQueries(const ClientQueries* from);
     // 00442590. Asks the server at `address` directly.
     void Ask(const NetAddress* address);
     // 004427F0. Forgets the server at `address`: its query and every list entry with that address.
@@ -634,7 +632,7 @@ public:
     float retryTimer_;                  // +0x25A0 seconds to the next join request
     float retryInterval_;               // +0x25A4 doubles with every request (0.1 first)
     void* servers_;                     // +0x25A8 STLport list of counted ServerEntry
-    QueryVector queries_;               // +0x25AC servers asked directly
+    ClientQueries queries_;             // +0x25AC servers asked directly
     void* waiting_;                     // +0x25BC addresses waiting to be asked (list<NetAddress>)
     NetAddress alwaysAsk_;              // +0x25C0 asked on every refresh (ip 0: none)
     std::uint32_t nextQuery_;           // +0x25D0 the query the refresh pings next

@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "device_buffers.h"
+#include "model.h"   // CTransformPipeline, ITransformPipeline
 #include "render/render.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -22,11 +23,6 @@
 #include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 struct MeshCorner {           // 6 bytes
     std::uint16_t position;   // into the projected vertices
@@ -77,25 +73,18 @@ using devicebuffers::Outcodes;
 // The device (thiscall): the screen bounds of projected vertices (004E8900, the array and 0) or of
 // clipped TL vertices (004E86B0, the array and their outcodes); the draws with one (004EB550) or
 // two textures (004EB370): primitive, FVF, vertices, count, indices, count, flags.
-__declspec(naked) void __fastcall BoundsOfProjected(char*, void*, lib::AlignedArray<ProjectedVertex>*, int) EI_ORIGINAL(0x004E8900)
-__declspec(naked) void __fastcall BoundsOfVertices(char*, void*, lib::AlignedArray<TLVertex>*, std::uint8_t*) EI_ORIGINAL(0x004E86B0)
-CTextureDevice* DeviceObject(char* device) { return reinterpret_cast<CTextureDevice*>(device); }
-__declspec(naked) int __fastcall DrawPrimitive2(char*, void*, void*, void*, int, int, void*, int, std::uint16_t*, int,
-                                                int) EI_ORIGINAL(0x004EB370)
+__declspec(naked) void __fastcall BoundsOfProjected(CTextureDevice*, void*, lib::AlignedArray<ProjectedVertex>*, int)
+    EI_ORIGINAL(0x004E8900)
+__declspec(naked) void __fastcall BoundsOfVertices(CTextureDevice*, void*, lib::AlignedArray<TLVertex>*, std::uint8_t*)
+    EI_ORIGINAL(0x004E86B0)
+__declspec(naked) int __fastcall DrawPrimitive2(CTextureDevice*, void*, void*, void*, int, int, void*, int,
+                                                std::uint16_t*, int, int) EI_ORIGINAL(0x004EB370)
 
 TLVertex* VertexData() { return Vertices().data; }
 
-template <typename R, typename... Args>
-R ThisCall(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
-}
-
-// The top matrix of the pipeline's stack at `offset` (data; the count follows).
-const void* StackTop(char* device, int offset) {
-    char* pipeline = At<char*>(device, 0xAC);
-    return At<char*>(pipeline, offset) + (At<int>(pipeline, offset + 4) - 1) * 64;
-}
+// The pipeline's screen stack (1) and clip-space stack (2), whose top matrices project the mesh.
+constexpr int kScreenStack = 1;
+constexpr int kClipStack = 2;
 
 // FCOMP with 0.0 (0073B858) then C3: equal, or unordered.
 bool ZeroOrNaN(const float* value) {
@@ -118,9 +107,9 @@ __declspec(naked) void __fastcall AddOffset(const float* /*offset*/, const float
 
 // --- The steps -----------------------------------------------------------------------------------
 
-// Flag 4: every colour becomes the device's (+0x150), every specular the alpha byte alone.
-void OverrideColours(char* device, const MeshArgs& a) {
-    std::uint32_t colour = At<std::uint32_t>(device, 0x150);
+// Flag 4: every colour becomes the device's (colour_), every specular the alpha byte alone.
+void OverrideColours(CTextureDevice* device, const MeshArgs& a) {
+    std::uint32_t colour = device->colour_;
     std::uint32_t specular = (static_cast<std::uint32_t>(a.alpha) & 0xFF) << 24;
     int count = a.colourCount * 4;
     for (int i = 0; i < count; ++i) a.colours[i] = colour;
@@ -149,12 +138,12 @@ void FillCorners(const MeshArgs& a) {
 
 // Hands the vertices to the device's vertex-buffer batch (never available: 004E7820 returns null)
 // or draws them.
-void Submit(char* device, const Textures* textures, std::uint16_t* indices, int indexCount) {
+void Submit(CTextureDevice* device, const Textures* textures, std::uint16_t* indices, int indexCount) {
     int count = Vertices().size;
-    if (void* buffer = DeviceObject(device)->LockVertexBuffer(count)) {
+    if (void* buffer = device->LockVertexBuffer(count)) {
         std::memcpy(buffer, Vertices().data, static_cast<std::size_t>(count) * sizeof(TLVertex));
-        DeviceObject(device)->AppendBatchIndices(indices, indexCount);
-        DeviceObject(device)->batch_.vertexCount += count;
+        device->AppendBatchIndices(indices, indexCount);
+        device->batch_.vertexCount += count;
         return;
     }
     if (textures) {
@@ -165,18 +154,18 @@ void Submit(char* device, const Textures* textures, std::uint16_t* indices, int 
     }
 }
 
-void DrawOnScreen(char* device, void* transform, const MeshArgs& a, const Textures* textures) {
+void DrawOnScreen(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
     if (a.flags & 1) BoundsOfProjected(device, nullptr, &Projected(), 0);
     Vertices().SetSizeDiscard(a.cornerCount);
     FillCorners(a);
-    if (At<int>(device, 0x158)) ThisCall<void>(transform, 35, static_cast<void*>(Vertices().data), a.cornerCount);
+    if (device->distanceFog_) transform->FogVertices(Vertices().data, a.cornerCount);
     Submit(device, textures, a.indices, a.indexCount);
 }
 
 // Some vertices off screen: room for ten times the corners and indices, the corners' outcodes, the
 // transform object's clipper (slot 37) writes the clipped triangles to ClipIndices, then the
 // vertices are projected (slot 34).
-void DrawClipped(char* device, void* transform, const MeshArgs& a, const Textures* textures) {
+void DrawClipped(CTextureDevice* device, ITransformPipeline* transform, const MeshArgs& a, const Textures* textures) {
     int capacity = a.cornerCount * 10;
     Vertices().SetSizeDiscard(capacity);
     ClipIndices().SetSize(a.indexCount * 10);
@@ -186,18 +175,18 @@ void DrawClipped(char* device, void* transform, const MeshArgs& a, const Texture
 
     int vertexCount = a.cornerCount;
     int indexCount = a.indexCount;
-    ThisCall<int>(transform, 37, static_cast<void*>(Vertices().data), static_cast<void*>(CornerOutcodes().data),
-                  a.indices, static_cast<void*>(ClipIndices().data), &vertexCount, &indexCount);
+    transform->ClipTriangles(Vertices().data, CornerOutcodes().data, a.indices, ClipIndices().data, &vertexCount,
+                             &indexCount);
     if (indexCount == 0 || vertexCount == 0) return;
     Vertices().SetSize(vertexCount);       // 004EC790
     ClipIndices().SetSize(indexCount);     // 0044FA90
-    ThisCall<void>(transform, 34, static_cast<void*>(Vertices().data), Vertices().size);
-    if (At<int>(device, 0x158)) ThisCall<void>(transform, 35, static_cast<void*>(Vertices().data), Vertices().size);
+    transform->ToScreenClipped(Vertices().data, Vertices().size);
+    if (device->distanceFog_) transform->FogVertices(Vertices().data, Vertices().size);
     if (a.flags & 1) BoundsOfVertices(device, nullptr, &Vertices(), CornerOutcodes().data);
     Submit(device, textures, ClipIndices().data, ClipIndices().size);
 }
 
-void HandOver(char* device, const MeshArgs& a) {
+void HandOver(CTextureDevice* device, const MeshArgs& a) {
     render::MeshDraw m{};
     m.positions = static_cast<const float*>(a.positions);
     m.positionCount = a.blocks * 4;
@@ -211,29 +200,28 @@ void HandOver(char* device, const MeshArgs& a) {
     m.moveUv = !(ZeroOrNaN(a.uOffset) && ZeroOrNaN(a.vOffset));
     m.uOffset = *a.uOffset;
     m.vOffset = *a.vOffset;
-    // The screen stack (+0x1C): the clip-space stack (+0x24, which the clipping draws use) times the
+    // The screen stack (1): the clip-space stack (2, which the clipping draws use) times the
     // viewport mapping, so it also places meshes drawn into a part of the screen (the interface's
     // previews). Both stacks get the same pushes.
     m.screenMatrix = true;
-    m.matrix = static_cast<const float*>(StackTop(device, 0x1C));
+    m.matrix = device->pipeline_->Top(kScreenStack)->m;
     m.clipped = (a.flags & 2) != 0;
-    m.distanceFog = At<int>(device, 0x158) != 0;
+    m.distanceFog = device->distanceFog_ != 0;
     m.zScale = 1.0f;
     render::BeginMesh(device, m);
 }
 
 // Returns the transform's verdict: 2 nothing on screen, 1 clipped, 0 on screen (drawn: 1).
-int DrawMesh(char* device, const MeshArgs& a, const Textures* textures) {
-    void* transform = At<void*>(At<char*>(device, 0xAC), 0xC);
+int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures) {
+    ITransformPipeline* transform = device->pipeline_->transform_;
     Projected().SetSizeDiscard(a.blocks * 4);
     int visibility;
     if (a.flags & 2) {
         Outcodes().SetSizeDiscard(a.blocks * 4);
-        visibility = ThisCall<int>(transform, 9, StackTop(device, 0x24), a.positions,
-                                   static_cast<void*>(Projected().data), static_cast<void*>(Outcodes().data), a.blocks);
+        visibility = transform->ProjectClipped(device->pipeline_->Top(kClipStack), a.positions, Projected().data,
+                                               Outcodes().data, a.blocks);
     } else {
-        visibility = ThisCall<int>(transform, 14, StackTop(device, 0x1C), a.positions,
-                                   static_cast<void*>(Projected().data), a.blocks);
+        visibility = transform->Project(device->pipeline_->Top(kScreenStack), a.positions, Projected().data, a.blocks);
     }
     if (visibility == 2) return 2;
     if (a.flags & 4) OverrideColours(device, a);
@@ -254,7 +242,7 @@ int DrawMesh(char* device, const MeshArgs& a, const Textures* textures) {
 } // namespace
 
 // 004E9010 (thiscall on the device, RET 0x48).
-int __fastcall DeviceDrawMesh(char* device, void*, const void* positions, int blocks, int unused5, int colourCount,
+int __fastcall DeviceDrawMesh(CTextureDevice* device, void*, const void* positions, int blocks, int unused5, int colourCount,
                               std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
                               const void* corners, int cornerCount, int unused13, int unused14,
                               std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha,
@@ -267,7 +255,7 @@ int __fastcall DeviceDrawMesh(char* device, void*, const void* positions, int bl
 EI_REPLACE(0x004E9010, DeviceDrawMesh);
 
 // 004E9A50 (thiscall on the device, RET 0x50): the same with two textures for the draw (004EB370).
-int __fastcall DeviceDrawMesh2(char* device, void*, void* firstTexture, void* secondTexture, const void* positions,
+int __fastcall DeviceDrawMesh2(CTextureDevice* device, void*, void* firstTexture, void* secondTexture, const void* positions,
                                int blocks, int unused5, int colourCount, std::uint32_t* colours,
                                std::uint32_t* speculars, const void* uvs, int unused10, const void* corners,
                                int cornerCount, int unused13, int unused14, std::uint16_t* indices, int indexCount,

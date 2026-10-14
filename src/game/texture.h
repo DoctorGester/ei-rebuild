@@ -16,6 +16,7 @@ static_assert(sizeof(PixelFormat) == 32);
 struct CDXSurface;
 class CTexture;
 class CTransformPipeline;
+class CDeviceMaterial;   // device_material.h
 struct NamedTexture;   // ground_print.h
 struct Direct3DDeviceRecord;   // device.h
 struct _DDSURFACEDESC2;        // ddraw.h (DDSURFACEDESC2)
@@ -199,10 +200,12 @@ public:
     CVertexBufferHolder* spareBuffer_;                // +0x118 counted
     lib::AlignedArray<std::uint8_t> spareArray_;      // +0x11C
     CDXSurface* stageSurfaces_[8];   // +0x12C the surface holder bound to each texture stage (00501AF0, 004EBAF0)
-    void* material_;                 // +0x14C the current material (004EB170)
+    CDeviceMaterial* material_;      // +0x14C the current material (004EB170; device_material.h)
     std::uint32_t colour_;           // +0x150 the renderer's draw colour (00501CC0; mesh draw flag 4)
     std::uint8_t unknown_154[4];
-    int unknown_158;            // +0x158 cleared around the sky and hit point draws (00569E40), else 1
+    // +0x158 the draws fog their screen vertices by distance (the transform object's FogVertices)
+    // when set; cleared around the sky and hit point draws (00569E40), else 1.
+    int distanceFog_;
     RECT drawnRect_;            // +0x15C the screen rectangle of the last mesh draw (004E9010 / 004E9A50)
     // +0x16C .. +0x178: the frame's counts, cleared by the renderer's BeginScene (00503F40).
     int vertexCount_;           // +0x16C vertices drawn
@@ -216,7 +219,7 @@ static_assert(offsetof(CTextureDevice, primitiveCount_) == 0x170 && offsetof(CTe
 static_assert(offsetof(CTextureDevice, textureChanges_) == 0x178);
 static_assert(sizeof(CTextureDevice) == 0x17C);
 static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
-static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
+static_assert(offsetof(CTextureDevice, distanceFog_) == 0x158);
 static_assert(offsetof(CTextureDevice, deviceGuid_) == 0x7C && offsetof(CTextureDevice, depthFormat_) == 0x8C);
 static_assert(offsetof(CTextureDevice, window_) == 0x34 && offsetof(CTextureDevice, converterLibrary_) == 0x48);
 static_assert(offsetof(CTextureDevice, devices_) == 0xB0 && offsetof(CTextureDevice, largestFormatId_) == 0xD0);
@@ -316,7 +319,10 @@ static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, col
 class CPixelConverter {
 public:
     virtual void Unknown0();
-    virtual void Unknown1();
+    // 1: the 16-bit format slot 2 writes for `kind` (2 1:5:5:5, 1 5:5:5, 0 5:6:5; -1 none of them)
+    // and its channel masks (dx_surface.cpp, the picture copy into a surface).
+    virtual void SetChannelMasks(int kind, std::uint32_t alphaMask, std::uint32_t redMask, std::uint32_t greenMask,
+                                 std::uint32_t blueMask);
     // 2: 32-bit pixels to 16 bits; `kind` 3 4:4:4:4, 2 1:5:5:5, 0 5:6:5.
     virtual void ConvertTo16(std::uint16_t* out, const std::uint32_t* in, int kind, unsigned count);
     virtual void Unknown3();
@@ -332,6 +338,12 @@ public:
     virtual void RasteriseTriangle(void* target);
     // 9: the same for a target with a colour key (RasterTriangle::colourKey; 005A0E80).
     virtual void RasteriseKeyedTriangle(void* target);
+    // 10: decodes a DXT block image into 16-bit pixels (texture_fill.cpp).
+    virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);
+    // 11 / 12: the two passes of the shadow's blur over a 16-bit image of `width` x `height` pixels
+    // (shadow mode 2 runs both on the shadow texture's pixels; map_object_shadow.cpp).
+    virtual void BlurShadow(void* pixels, int width, int height);
+    virtual void BlurShadow2(void* pixels, int width, int height);
 };
 inline CPixelConverter* PixelConverter() { return *reinterpret_cast<CPixelConverter**>(std::uintptr_t(0x007AF06C)); }
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"

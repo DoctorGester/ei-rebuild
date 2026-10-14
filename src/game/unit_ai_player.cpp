@@ -249,7 +249,7 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
         double dy = static_cast<double>(member->position.y) - unit->position.y;
         double dz = static_cast<double>(member->position.z) - unit->position.z;
         double limit = static_cast<double>(GameLogicSettings().followMaxDist) * slack + kOne;
-        if (!(limit * limit >= dz * dz + dy * dy + dx * dx)) return false;
+        if (!(limit * limit >= LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) return false;
     }
     return true;
 }

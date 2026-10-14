@@ -28,11 +28,11 @@ void* s_unused;
 
 // ---- Streams ----------------------------------------------------------------------------------------
 
-// Laid out like the game's stream (vtable: slot 0, Read returning the bytes read, Write; then +4
+// Laid out like the game's stream (vtable: slot 0 the deleting destructor, Read returning the bytes read, Write; then +4
 // and the version at +8, which the loaders read).
 class LoadStream {
 public:
-    virtual void Slot0() {}
+    virtual void* DeletingDestruct(unsigned) { return this; }
     virtual int Read(void* buffer, unsigned size) = 0;
     virtual void Write(const void*, unsigned) {}
     explicit LoadStream(const ScriptStream* real) {

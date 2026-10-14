@@ -287,6 +287,18 @@ __forceinline float DistanceZXY(const Vector3& a, const Vector3& b) { return Dis
 // Quaternions: the products stay written out at each site (their term orders vary, V1 notes).
 __forceinline Quaternion Conjugate(const Quaternion& q) { return {q.w, -q.x, -q.y, -q.z}; }
 
+// The rotated Y axis of q as the game's inlined copies of Quaternion::AxisY compute it (00547280,
+// 005CA410): (2(yx - wz), (w^2 - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each doubling an addition,
+// each component rounded to float (they store it before negating). Precise: /fp:fast had turned
+// these ports' written-out 2(yz + wx) into (2wx + yz) + yz (a second rounding) and 005CA410's
+// -2(yx - wz) into (wz - yx) + (wz - yx) (+0 where the original's FCHS gives -0; V3c).
+__forceinline Vector3 RotatedAxisY(const Quaternion& q) {
+    float a = q.y * q.x - q.w * q.z;
+    float yy = q.y * q.y;
+    float c = q.y * q.z + q.w * q.x;
+    return {a + a, (q.w * q.w - ((q.x * q.x + q.z * q.z) + yy)) + (yy + yy), c + c};
+}
+
 #pragma float_control(pop)
 
 // ---- Unrounded 2D forms (precise semantics off: nothing is stored) -------------------------------
@@ -314,19 +326,12 @@ __forceinline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
     return dx * dx + dy * dy;
 }
 
-#pragma float_control(pop)
-
-#pragma float_control(precise, off, push)
-// V3d: the same for scalar operands and 3-term sums. The operands are converted to T first
-// (`double` reproduces the precise files' D(a) * b), nothing is stored. 3-term sums name their
-// grouping as above; inlined, the sum is the caller's written-out expression, so use them only where
-// the object code stays the same (docs/notes/vector-math.md, "V3 status").
-
-// x * x2 + y * y2: a 2D dot of scalar operands (also two quaternion component pairs).
+// x * x2 + y * y2.
 template <typename T>
 __forceinline T Dot2DUnrounded(T x, T y, T x2, T y2) { return x * x2 + y * y2; }
 
-// The grouped sum x * x2 + y * y2 + z * z2.
+// The 3-term sums on the caller's scalars (V3c), grouped as named (Sum3), in T. Like the 2D forms
+// they are the written-out expression: they replace one only where the object code stays the same.
 template <Sum3 O, typename T>
 __forceinline T DotUnrounded(T x, T y, T z, T x2, T y2, T z2) {
     if constexpr (O == Sum3::XYZ) return (x * x2 + y * y2) + z * z2;
@@ -334,15 +339,35 @@ __forceinline T DotUnrounded(T x, T y, T z, T x2, T y2, T z2) {
     else return (z * z2 + x * x2) + y * y2;
 }
 
-// The grouped sum of squares x * x + y * y + z * z.
 template <Sum3 O, typename T>
 __forceinline T LengthSquaredUnrounded(T x, T y, T z) { return DotUnrounded<O, T>(x, y, z, x, y, z); }
 
-// The Vector3 forms (T explicit: LengthSquaredUnrounded<Sum3::XYZ, double>(v)).
+// The Vector3 forms (V3d; T explicit: LengthSquaredUnrounded<Sum3::XYZ, double>(v)). `double` gives a
+// precise region's unrounded product: a float-typed one there rounds the result on return.
 template <Sum3 O, typename T>
 __forceinline T DotUnrounded(const Vector3& a, const Vector3& b) { return DotUnrounded<O, T>(a.x, a.y, a.z, b.x, b.y, b.z); }
 
 template <Sum3 O, typename T>
 __forceinline T LengthSquaredUnrounded(const Vector3& v) { return DotUnrounded<O, T>(v.x, v.y, v.z, v.x, v.y, v.z); }
+
+// A rotated axis of a quaternion with its components unrounded in T (AxisXUnrounded: the inlined
+// copies of Quaternion::AxisX 0040D940 that keep them on the FPU).
+template <typename T>
+struct AxisUnrounded {
+    T x, y, z;
+};
+
+// The X axis: (w^2 - ((y^2 + z^2) + x^2) + 2x^2, 2(wz + xy), 2(xz - wy)), each doubling an addition.
+template <typename T>
+__forceinline AxisUnrounded<T> AxisXUnrounded(const Quaternion& q) {
+    T w = q.w, x = q.x, y = q.y, z = q.z;
+    T xx = x * x;
+    T ax = (w * w - ((y * y + z * z) + xx)) + (xx + xx);
+    T ay = w * z + x * y;
+    ay = ay + ay;
+    T az = x * z - w * y;
+    az = az + az;
+    return {ax, ay, az};
+}
 
 #pragma float_control(pop)

@@ -43,7 +43,99 @@ static_assert(sizeof(MatrixStack) == 8);
 // `out` may be one of the inputs as in the original.
 void __fastcall MatrixMultiply(float* out, void*, const float* a, const float* b);
 
-class ITransformPipeline;   // link_figure.h
+struct VertexPacket;   // figure_mesh.h
+struct TLVertex;       // clip.h
+class CLight;          // spell.h
+
+// The transform object of 3DfpFPU.dll (GetTLPipeline; CTransformPipeline::transform_), as far as
+// rewritten code calls it.
+class ITransformPipeline {
+public:
+    virtual void Unknown0();
+    // 1: the viewport's size in pixels (the renderer's creation, 00500B70).
+    virtual void SetViewportSize(float width, float height);
+    // 2: the sun for the next LightMesh (its localDirection_; 005A7A70).
+    virtual void AddSun(CLight* sun);
+    // 3: the ambient colour, components in 0..1 (the renderer's colour, 00500740).
+    virtual void SetAmbient(float r, float g, float b);
+    // 4: the projection matrix, transposed (00500B70 passes a copy).
+    virtual void SetProjection(float* transposed);
+    // 5: the depth range (00500B70: the options' fog start and far clip distances).
+    virtual void SetDepthRange(float first, float second);
+    virtual void Unknown6();
+    // 7: fits `bounds` around `count` vertex packets.
+    virtual void FitBounds(ClipBounds* bounds, const VertexPacket* vertices, int count);
+    // 8: `count` points (16 bytes each: x, y, z and one more) projected with `matrix` into
+    // `projected` (x, y, z, w), a flag byte per point set when it is off screen; 2 when every point
+    // is, else 0 or 1 (the ribbon draw 00501D90).
+    virtual int ProjectPointsClipped(const Matrix4* matrix, const void* points, void* projected, std::uint8_t* flags,
+                                     int count);
+    // 9: projects `blocks` blocks of four positions with `matrix` into `projected`, writing their
+    // clip outcodes; the result is the caller's (on screen / crossing / outside).
+    virtual int ProjectClipped(const Matrix4* matrix, const void* positions, void* projected, void* outcodes,
+                               int blocks);
+    virtual void Unknown10();
+    virtual void Unknown11();
+    virtual void Unknown12();
+    // 13: the same without clipping (the ribbon draw's mode 0).
+    virtual void ProjectPoints(const Matrix4* matrix, const void* points, void* projected, int count);
+    // 14: the same without clipping (every block on screen); the result as slot 9's (the device's
+    // mesh draws 004E9010 / 004E9A50 test it, CTransformPipeline::ProjectBlocks does not).
+    virtual int Project(const Matrix4* matrix, const void* positions, void* projected, int blocks);
+    virtual void Unknown15();
+    virtual void Unknown16();
+    virtual void Unknown17();
+    // 18 / 19: the same for the terrain's vertices (006BFC80).
+    virtual int ProjectTerrainClipped(const Matrix4* matrix, const void* vertices, void* projected, void* outcodes,
+                                      int count);
+    virtual void ProjectTerrain(const Matrix4* matrix, const void* vertices, void* projected, int count);
+    virtual void Unknown20();
+    virtual void Unknown21();
+    virtual void Unknown22();
+    virtual void Unknown23();
+    // 24: `count` screen-facing sprites (`points`: centre x, y, z and size each) placed with the
+    // transposed view matrix as four TL vertices each into `corners` (positions only), with an
+    // outcode byte per corner: 0 all on screen, 1 some off screen, else none (the sprite draw
+    // 00502CA0).
+    virtual int ProjectSprites(const void* transposedView, const void* points, TLVertex* corners,
+                               std::uint8_t* outcodes, int count);
+    virtual void Unknown25();
+    // 26: the `blocks` packets of four positions times the (transposed) matrix, as points (x, y, z, w)
+    // into `out` (the decal projector 0056C750).
+    virtual void TransformPoints(const Matrix4* transposed, const VertexPacket* vertices, Vector4* out, int blocks);
+    virtual void Unknown27();
+    virtual void Unknown28();
+    // 29: the `blocks` packets projected with `matrix` into `points` (x, y per vertex), `bounds`
+    // (min x, min y, max x, max y) grown around them (a shadow's points, 004F4680).
+    virtual void ProjectFlat(const float* matrix, const VertexPacket* vertices, float* points, int blocks,
+                             float* bounds);
+    virtual void Unknown30();
+    virtual void Unknown31();
+    // 32: `count` projected vertices (x, y, z, w in the first 16 bytes) to the screen: 1 / w kept as
+    // rhw, x and y scaled to the viewport, z divided (the rain and snow draws).
+    virtual void ToScreen(TLVertex* vertices, int count);
+    virtual void Unknown33();
+    // 34: the vertices the clipper (37) left, projected to the screen as ToScreen does (the mesh,
+    // flat and strip draws after clipping).
+    virtual void ToScreenClipped(TLVertex* vertices, int count);
+    // 35: the distance fog of `count` screen vertices: the specular's alpha lowered to the fog
+    // factor of the depth (the device object's draws when its distanceFog_ is set).
+    virtual void FogVertices(TLVertex* vertices, int count);
+    virtual void Unknown36();
+    // 37: clips the triangles `indices` (`*indexCount` indices) of the `*vertexCount` vertices with
+    // their `outcodes` against the screen: the vertices it adds are appended (the callers make room
+    // for ten times the input), the triangles left written to `clippedIndices`, both counts updated.
+    virtual int ClipTriangles(TLVertex* vertices, std::uint8_t* outcodes, const std::uint16_t* indices,
+                              std::uint16_t* clippedIndices, int* vertexCount, int* indexCount);
+    virtual void Unknown38();
+    virtual void Unknown39();
+    // 40: lights a figure mesh (005A7A70): its vertex packets and normals, the colours written (one
+    // per normal), its words, the lights (their localPosition_, colours set for the material) and
+    // the material's light vector.
+    virtual void LightMesh(const void* vertices, const void* normals, std::uint32_t* colours, const void* words,
+                           int wordCount, CLight** lights, int lightCount, const std::uint32_t* vector);
+};
+
 
 // The transform pipeline of the 3D library (the scene renderer's +8, the device object's +0xAC).
 // Only the matrix stacks and the transform object are known.

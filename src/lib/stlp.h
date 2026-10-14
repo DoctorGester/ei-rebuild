@@ -44,6 +44,7 @@ public:
 
     const char* data() const { return start_; }
     std::size_t size() const { return static_cast<std::size_t>(finish_ - start_); }
+    bool empty() const { return start_ == finish_; }
     bool operator==(const string& o) const {
         return size() == o.size() && std::memcmp(start_, o.start_, size()) == 0;
     }

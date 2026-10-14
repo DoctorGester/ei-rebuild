@@ -8,8 +8,7 @@
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "camera.h"
-#include "link_figure.h"   // ITransformPipeline
-#include "model.h"         // CSceneRenderer, CTransformPipeline, CRenderHelper
+#include "model.h"         // CSceneRenderer, CTransformPipeline, ITransformPipeline, CRenderHelper
 #include "options.h"
 #include "spell.h"         // CLight, CLightFactory
 #include "texture.h"       // CTextureDevice, DirectDrawDriver

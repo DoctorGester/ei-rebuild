@@ -76,7 +76,7 @@ public:
     virtual BOOL OpenResource(const char* path, BOOL writable);       // 1: 00671730
     virtual BOOL OpenFromMemory(const void* image);                   // 2: 00671A40
     virtual void CloseResource();                                     // 3: 00671AC0
-    virtual void Slot4();                                             // 4: 00671390 (empty)
+    virtual void Flush();                                             // 4: 00671390 (empty)
     virtual void* GetFile(const char* name, std::uint32_t* size);     // 5: 00671B40
     virtual bool CloseFile(void* data);                               // 6: 00671E00
     virtual void FreeAllFiles();                                      // 7: 00672040
@@ -122,7 +122,7 @@ public:
     BOOL OpenResource(const char* path, BOOL writable) override;      // 1: 006724E0
     BOOL OpenFromMemory(const void* image) override;                  // 2: 00672520
     void CloseResource() override;                                    // 3: 006725A0
-    void Slot4() override;                                            // 4: 006725D0 (flushes file_)
+    void Flush() override;                                            // 4: 006725D0 (flushes file_)
     void* GetFile(const char* name, std::uint32_t* size) override;    // 5: 006725E0
     bool CloseFile(void* data) override;                              // 6: 00672640 (nothing to free)
     void FreeAllFiles() override;                                     // 7: 00672650 (empty)

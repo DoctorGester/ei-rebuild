@@ -20,6 +20,8 @@
 #include "../../src/game/texture.h"
 #include "../../src/lib/containers.h"
 
+#include <unknwn.h>
+
 #include <cstdint>
 #include <cstring>
 
@@ -30,7 +32,7 @@ void __fastcall SurfacePointerAssign(CDXSurface** pointer, void*, CDXSurface* va
 void __fastcall PipelinePointerAssign(CTransformPipeline** pointer, void*, CTransformPipeline* value);
 void __fastcall TexturePointerAssign(CEngineObject** pointer, void*, CEngineObject* value);
 void __fastcall EngineObjectPointerRelease(CEngineObject** pointer);
-void __fastcall ComPointerDestroy(void** pointer);
+void __fastcall ComPointerDestroy(IUnknown** pointer);
 void** __fastcall ListIteratorCopy(void** iterator, void*, void** out);
 std::uint8_t* __fastcall AllocateAlignedBytes(int bytes);
 TLVertex* __fastcall AllocateVertices(int count);
@@ -99,8 +101,8 @@ void __fastcall EngineObjectPointerReleaseVerify(CEngineObject** pointer) {
                       static_cast<void*>(*pointer), "");
 }
 
-void __fastcall ComPointerDestroyVerify(void** pointer) {
-    void* object = *pointer;
+void __fastcall ComPointerDestroyVerify(IUnknown** pointer) {
+    IUnknown* object = *pointer;
     ComPointerDestroy(pointer);
     ei::verify::Check("COM pointer destructor (004FDED0)", object, *pointer, "");
 }

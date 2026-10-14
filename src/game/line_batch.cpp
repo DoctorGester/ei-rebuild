@@ -27,7 +27,7 @@ int LineBatch::AddPoint(const float* point) {
 }
 EI_REPLACE_METHOD(0x0049B140, LineBatch::AddPoint);
 
-int LineBatch::Draw(CTransformPipeline* pipeline, char* device) {
+int LineBatch::Draw(CTransformPipeline* pipeline, CTextureDevice* device) {
     lib::AlignedArray<ProjectedPoint>& projected = LineProjected();
     projected.SetSizeDiscard(packets.size * 4);
     ByteArraySetSizeOriginal(&LineOutcodes(), nullptr, packets.size * 4, -1);

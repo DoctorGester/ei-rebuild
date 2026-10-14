@@ -385,7 +385,7 @@ void CMMIOResource::CloseResource() {
     header_ = ResHeader{};
 }
 
-void CMMIOResource::Slot4() { file_.Flush(); }
+void CMMIOResource::Flush() { file_.Flush(); }
 
 void* CMMIOResource::GetFile(const char* name, std::uint32_t* size) {
     if (!entries_ || !names_) return nullptr;
@@ -407,7 +407,7 @@ BOOL __fastcall MmioOpenFromMemoryHook(CMMIOResource* self, void*, const void* i
     return self->CMMIOResource::OpenFromMemory(image);
 }
 void __fastcall MmioCloseResourceHook(CMMIOResource* self) { self->CMMIOResource::CloseResource(); }
-void __fastcall MmioSlot4Hook(CMMIOResource* self) { self->CMMIOResource::Slot4(); }
+void __fastcall MmioFlushHook(CMMIOResource* self) { self->CMMIOResource::Flush(); }
 void* __fastcall MmioGetFileHook(CMMIOResource* self, void*, const char* name, std::uint32_t* size) {
     return self->CMMIOResource::GetFile(name, size);
 }
@@ -424,6 +424,6 @@ EI_REPLACE_METHOD(0x00675A50, CMappedFile::Flush);
 EI_REPLACE(0x006724E0, MmioOpenResourceHook);
 EI_REPLACE(0x00672520, MmioOpenFromMemoryHook);
 EI_REPLACE(0x006725A0, MmioCloseResourceHook);
-EI_REPLACE(0x006725D0, MmioSlot4Hook);
+EI_REPLACE(0x006725D0, MmioFlushHook);
 EI_REPLACE(0x006725E0, MmioGetFileHook);
 EI_REPLACE(0x00672640, MmioCloseFileHook);

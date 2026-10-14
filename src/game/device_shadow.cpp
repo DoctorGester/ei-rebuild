@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "device_buffers.h"
+#include "model.h"   // CTransformPipeline, ITransformPipeline
 #include "render/render.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -20,11 +21,6 @@
 
 namespace {
 
-template <typename T>
-T& At(void* base, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
-
 using devicebuffers::ClipIndices;
 using devicebuffers::CornerOutcodes;
 using devicebuffers::Outcodes;
@@ -34,16 +30,12 @@ using devicebuffers::Vertices;
 
 // 004F2650: the pipeline projects `blocks` blocks of positions with outcodes [positions, out,
 // outcodes, blocks, last]; 0 on screen, 1 crossing, 2 outside.
-__declspec(naked) int __fastcall ProjectBlocks(void*, void*, const void*, void*, void*, int, std::uint32_t) EI_ORIGINAL(0x004F2650)
-// The device [thiscall]: the indexed draw [004EB550: primitive, FVF, vertices, count, indices,
-// count, flags].
-CTextureDevice* DeviceObject(char* device) { return reinterpret_cast<CTextureDevice*>(device); }
+// (CTransformPipeline::ProjectBlocks, through its address.)
+__declspec(naked) int __fastcall ProjectBlocks(CTransformPipeline*, void*, const void*, void*, void*, int, std::uint32_t)
+    EI_ORIGINAL(0x004F2650)
 
-template <typename R, typename... Args>
-R ThisCall(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
-}
+// The pipeline's screen stack (1; the projection uses it or the clip stack 2, which get the same pushes).
+constexpr int kScreenStack = 1;
 
 // *z = *scale * *z (FLD scale, FMUL z, FSTP). __fastcall.
 __declspec(naked) void __fastcall ScaleZ(float* /*z*/, const float* /*scale*/) {
@@ -79,11 +71,9 @@ void Scale(int count, const float* scale) {
 }
 
 // The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
-// (the projection 004F2650 uses the clip stack +0x24 or the screen stack +0x1C, which get the same
-// pushes); each pass the indexed draw then makes hands over the device's state.
-void HandOver(char* device, const void* positions, const char* uvs, int count, const std::uint16_t* indices,
+// (kScreenStack); each pass the indexed draw then makes hands over the device's state.
+void HandOver(CTextureDevice* device, const void* positions, const char* uvs, int count, const std::uint16_t* indices,
               int indexCount, const std::uint32_t* colours, const float* zScale, bool clipped) {
-    char* pipeline = At<char*>(device, 0xAC);
     render::MeshDraw m{};
     m.positions = static_cast<const float*>(positions);
     m.positionCount = count;
@@ -94,7 +84,7 @@ void HandOver(char* device, const void* positions, const char* uvs, int count, c
     m.cornerCount = count;
     m.indices = indices;
     m.indexCount = indexCount;
-    m.matrix = At<float*>(pipeline, 0x1C) + (At<int>(pipeline, 0x20) - 1) * 16;
+    m.matrix = device->pipeline_->Top(kScreenStack)->m;
     m.screenMatrix = true;
     m.clipped = clipped;
     m.distanceFog = false;   // no fog pass (slot 35) here
@@ -102,10 +92,10 @@ void HandOver(char* device, const void* positions, const char* uvs, int count, c
     render::BeginMesh(device, m);
 }
 
-int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, const std::uint16_t* indices,
+int DrawFlat(CTextureDevice* device, const void* positions, const char* uvs, int blocks, const std::uint16_t* indices,
              int indexCount, std::uint32_t colour, std::uint32_t specular, std::uint32_t last, float zScale) {
-    void* pipeline = At<void*>(device, 0xAC);
-    void* transform = At<void*>(pipeline, 0xC);
+    CTransformPipeline* pipeline = device->pipeline_;
+    ITransformPipeline* transform = pipeline->transform_;
     int count = blocks * 4;
     std::uint32_t colours[2] = {colour, specular};
     Projected().SetSizeDiscard(count * 10);
@@ -116,7 +106,7 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
 
     if (visibility == 0) {
         // The device's vertex-buffer batch (004E7820: never available).
-        TLVertex* target = static_cast<TLVertex*>(DeviceObject(device)->LockVertexBuffer(count));
+        TLVertex* target = static_cast<TLVertex*>(device->LockVertexBuffer(count));
         if (!target) {
             Vertices().SetSizeDiscard(count);
             target = Vertices().data;
@@ -127,8 +117,8 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
             DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
             return 0;
         }
-        DeviceObject(device)->AppendBatchIndices(indices, indexCount);
-        DeviceObject(device)->batch_.vertexCount += count;
+        device->AppendBatchIndices(indices, indexCount);
+        device->batch_.vertexCount += count;
         return 0;
     }
     if (visibility == 2) return 2;
@@ -141,11 +131,11 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
     std::memcpy(CornerOutcodes().data, Outcodes().data, static_cast<std::size_t>(Outcodes().size));
     int vertexCount = count;
     int clippedIndices = indexCount;
-    ThisCall<int>(transform, 37, static_cast<void*>(Vertices().data), static_cast<void*>(CornerOutcodes().data),
-                  indices, static_cast<void*>(ClipIndices().data), &vertexCount, &clippedIndices);
+    transform->ClipTriangles(Vertices().data, CornerOutcodes().data, indices, ClipIndices().data, &vertexCount,
+                             &clippedIndices);
     Vertices().SetSize(vertexCount);
     ClipIndices().SetSize(clippedIndices);
-    ThisCall<void>(transform, 34, static_cast<void*>(Vertices().data), Vertices().size);
+    transform->ToScreenClipped(Vertices().data, Vertices().size);
     if (vertexCount == 0 || clippedIndices == 0) return 0;
     Scale(vertexCount, &zScale);
     DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, vertexCount, ClipIndices().data, clippedIndices, 0);
@@ -158,7 +148,7 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
 // `indices` / `indexCount` the triangles, `colour` and `specular` for every vertex, `last` passed
 // to the projection, `zScale` multiplies z unless it compares equal to 1. Returns 2 when nothing is
 // visible, else 0.
-int __fastcall DeviceDrawFlat(char* device, void*, const void* positions, const char* uvs, int blocks,
+int __fastcall DeviceDrawFlat(CTextureDevice* device, void*, const void* positions, const char* uvs, int blocks,
                               const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
                               std::uint32_t last, float zScale) {
     int result = DrawFlat(device, positions, uvs, blocks, indices, indexCount, colour, specular, last, zScale);

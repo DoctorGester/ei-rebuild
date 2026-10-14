@@ -5,7 +5,7 @@
 #include "core_streams.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "ei/vcall.h"   // ei::SetVtable
 #include "lib/crt.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -30,8 +30,6 @@ using IdNode = IdList::Node;
 
 // The manager's object lists (objectList_ and the spare lists) are CTypedPtrLists with this vtable.
 constexpr std::uintptr_t kObjectListVtable = 0x0073B8D4;
-// MFC's CObject slot 1: the scalar deleting destructor.
-constexpr int kListDeletingDestructor = 1;
 // Id written after the last object by SaveObjects; an object with this id is followed by a 1 byte.
 constexpr int kEndOfObjects = -0x521;
 // 00783C00: the fatal "out of ids" message ("CBaseManager::RegisterInstant ...").
@@ -590,7 +588,7 @@ void CBaseManager::FreeSpares() {
             n = next;
         }
         list->RemoveAll();
-        ei::VCall<void*>(list, kListDeletingDestructor, 1u);
+        reinterpret_cast<mfc::CObjectVirtuals*>(list)->DeletingDestructor(1u);   // its CObject slot 1
         SpareMap::Node* next = it.node->next;
         if (!next) next = SparesNextBucket(&it);
         it.node = next;

@@ -437,7 +437,7 @@ EI_VERIFY(0x0051E430, NamedTextureCopyVerify, 0, s_unused);
 
 static void __fastcall MaterialStageCopyVerify(MaterialStage* place, const MaterialStage* stage) {
     MaterialStageCopy(place, stage);
-    bool ok = !place || (place->unknown_00 == stage->unknown_00 && place->name == stage->name &&
+    bool ok = !place || (place->texCoordIndex == stage->texCoordIndex && place->name == stage->name &&
                          place->texture == stage->texture);
     ei::verify::Check("MaterialStage::Copy", true, ok, "");
 }

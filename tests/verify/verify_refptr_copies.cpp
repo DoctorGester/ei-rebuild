@@ -25,10 +25,10 @@ RefPtr* __fastcall RefPtrAssignHolder(RefPtr* self, void*, const RefPtr* other);
 RefPtr* __fastcall RefPtrAssignObject(RefPtr* self, void*, CRefObject* object);   // refptr_copies.cpp
 bool __fastcall RefIsUnique(const CRefObject* object);                            // refptr_copies.cpp
 int __fastcall RefDetachShutdown(CRefObject* object);                             // refptr_copies.cpp
-void __fastcall ObjectHolderRelease(void** self);                                 // refptr_copies.cpp
+void __fastcall ObjectHolderRelease(CEngineObject** self);                         // refptr_copies.cpp
 void __fastcall ObjectHolderDrop(CEngineObject** self);                           // refptr_copies.cpp
 void __fastcall RefCountedDrop(CRefCounted* self);                                // refptr_copies.cpp
-void __fastcall ObjectHolderAssign(void** self, void*, void* object);             // refptr_copies.cpp
+void __fastcall ObjectHolderAssign(CEngineObject** self, void*, CEngineObject* object);   // refptr_copies.cpp
 void __fastcall RefPtrClear(RefPtr* self);                                        // refptr_copies.cpp
 RefPtr* __fastcall RefPtrNull(RefPtr* self);                                      // refptr_copies.cpp
 RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);               // refptr_copies.cpp
@@ -497,11 +497,11 @@ void __fastcall RefCountedDropVerify(CRefCounted* self) {
     ei::verify::Check("RefCountedDrop", static_cast<int>(static_cast<std::int16_t>(before - 1)), static_cast<int>(self->refs_),
                       "%p", static_cast<void*>(self));
 }
-void __fastcall HolderReleaseVerify(void** self) {
+void __fastcall HolderReleaseVerify(CEngineObject** self) {
     ObjectHolderRelease(self);
     ei::verify::Check("ObjectHolderRelease", true, true, "");
 }
-void __fastcall HolderAssignVerify(void** self, void*, void* object) {
+void __fastcall HolderAssignVerify(CEngineObject** self, void*, CEngineObject* object) {
     ObjectHolderAssign(self, nullptr, object);
     ei::verify::Check("ObjectHolderAssign", true, *self == object, "");
 }

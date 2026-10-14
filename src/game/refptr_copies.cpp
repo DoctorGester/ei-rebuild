@@ -7,7 +7,6 @@
 #include <cstdint>
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 // RefPtr::Destroy (00413270): 21 more copies.
@@ -57,7 +56,7 @@ EI_REPLACE(0x00438AE0, PairDestroySecond);
 void __fastcall RefPtrRelease(RefPtr* self) {
     CRefObject* object = self->ptr;
     if (!object) return;
-    if (--object->refs_ == 0) ei::VCall<void*>(object, 0, 1);   // slot 0: deleting destructor
+    if (--object->refs_ == 0) delete object;   // slot 0 (the deleting destructor) with 1
 }
 EI_REPLACE(0x004141D0, RefPtrRelease);
 EI_REPLACE(0x00415550, RefPtrRelease);
@@ -235,8 +234,8 @@ EI_REPLACE(0x00429D90, RefDetachShutdown);
 
 // Holders of engine objects (a dword reference count at +4, released through slot 4).
 // 00421350: release (a tail call of slot 4 when set).
-void __fastcall ObjectHolderRelease(void** self) {
-    if (void* object = *self) ei::VCall<int>(object, 4);
+void __fastcall ObjectHolderRelease(CEngineObject** self) {
+    if (CEngineObject* object = *self) object->Release();
 }
 EI_REPLACE(0x00421350, ObjectHolderRelease);
 // Byte-identical copies in the units range (A-U11).
@@ -265,11 +264,11 @@ EI_REPLACE(0x00579350, ObjectHolderDrop);
 void __fastcall RefCountedDrop(CRefCounted* self) { --self->refs_; }
 EI_REPLACE(0x005576B0, RefCountedDrop);
 // 00429B50: assignment: the new object gains a reference, the old one is released.
-void __fastcall ObjectHolderAssign(void** self, void*, void* object) {
-    void* previous = *self;
+void __fastcall ObjectHolderAssign(CEngineObject** self, void*, CEngineObject* object) {
+    CEngineObject* previous = *self;
     *self = object;
-    if (object) ++*reinterpret_cast<std::int32_t*>(static_cast<std::uint8_t*>(object) + 4);
-    if (previous) ei::VCall<int>(previous, 4);
+    if (object) ++object->refCount_;
+    if (previous) previous->Release();
 }
 EI_REPLACE(0x00429B50, ObjectHolderAssign);
 // The same assignment, byte-identical, in the units range (A-U11): 00511B90 (map objects' counted slots,

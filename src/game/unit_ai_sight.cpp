@@ -76,18 +76,9 @@ void AIViewer::Prepare(CUnit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->width && cellY < map->height)
         eye.z = RoundToFloat(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
     eye.z = RoundToFloat(static_cast<double>(self->above.z) * kEyeHeightFactor + self->unknown_158 + self->center.z + eye.z);
-    const Quaternion& q = self->orientation;
-    double a = static_cast<double>(q.y) * q.x - static_cast<double>(q.w) * q.z;
-    a += a;
-    double yy = static_cast<double>(q.y) * q.y;
-    double c = static_cast<double>(q.w) * q.w - ((static_cast<double>(q.x) * q.x + static_cast<double>(q.z) * q.z) + yy) + (yy + yy);
-    float cy = RoundToFloat(c);
-    double d = static_cast<double>(q.y) * q.z + static_cast<double>(q.w) * q.x;
-    float dz = RoundToFloat(d + d);
+    Vector3 axis = RotatedAxisY(self->orientation);
     ready = 1;
-    facing.x = RoundToFloat(-a);
-    facing.y = -cy;
-    facing.z = -dz;
+    facing = -axis;
 }
 
 void __fastcall PrepareHook(AIViewer* self, void*, CUnit* unit) { self->Prepare(unit); }
@@ -186,7 +177,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
             double dz = static_cast<double>(self->position.z) - other->position.z;
             console::GameOStream& os = LogPair(self, " sees unit ", other) << " from ";
             (void)os;
-            console::EndLine(AiLog()->PutFloat(std::sqrt(dz * dz + dy * dy + dx * dx)) << "m distance");
+            console::EndLine(AiLog()->PutFloat(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))) << "m distance");
         }
     }
 }

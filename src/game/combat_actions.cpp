@@ -319,18 +319,11 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     Vector3 axisY;
     rotation->AxisY(&axisY);
     // The unit's Y axis points backwards: "front" is the negated projection on it.
-    double front = -((static_cast<double>(axisY.z) * dz + static_cast<double>(axisY.y) * dy) +
-                     static_cast<double>(axisY.x) * dx);
+    double front = -DotUnrounded<Sum3::ZYX, double>(axisY.x, axisY.y, axisY.z, dx, dy, dz);
     float frontStored = static_cast<float>(front);
     // The X axis of the rotation, kept on the FPU stack (as 0040D940 computes it, unrounded).
-    double w = rotation->w, x = rotation->x, y = rotation->y, z = rotation->z;
-    double xx = x * x;
-    double axisX = (w * w - ((y * y + z * z) + xx)) + (xx + xx);
-    double axisXy = w * z + x * y;
-    axisXy = axisXy + axisXy;
-    double axisXz = x * z - w * y;
-    axisXz = axisXz + axisXz;
-    double side = -((axisXz * dz + axisXy * dy) + axisX * dx);
+    AxisUnrounded<double> axisX = AxisXUnrounded<double>(*rotation);
+    double side = -DotUnrounded<Sum3::ZYX, double>(axisX.x, axisX.y, axisX.z, dx, dy, dz);
     float sideStored = static_cast<float>(side);
     if (LessOrUnordered(AbsBits(sideStored), AbsBits(frontStored)))
         return frontStored > kZero ? 0x800000 : 0x400000;

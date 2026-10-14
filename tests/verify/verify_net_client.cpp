@@ -20,13 +20,16 @@ namespace {
 using namespace net;
 
 // 0041C420: PUSH ECX (1), MOV DL,[ESP+3] (4).
-QueryVector*(__fastcall* s_vector)(QueryVector*);
-QueryVector* __fastcall VectorVerify(QueryVector* self) {
-    QueryVector scratch = *self;
-    QueryVector* expectedRet = s_vector(&scratch);
-    QueryVector* actualRet = ClientVectorConstruct(self);
+ClientQueries*(__fastcall* s_vector)(ClientQueries*);
+ClientQueries* __fastcall VectorVerify(ClientQueries* self) {
+    // Raw bytes: the vector has no copy (and the original's constructor overwrites them all).
+    alignas(ClientQueries) std::uint8_t storage[sizeof(ClientQueries)];
+    std::memcpy(storage, self, sizeof(storage));
+    auto* scratch = reinterpret_cast<ClientQueries*>(storage);
+    ClientQueries* expectedRet = s_vector(scratch);
+    ClientQueries* actualRet = ClientVectorConstruct(self);
     ei::verify::Check("ClientVectorConstruct", true,
-                      expectedRet == &scratch && actualRet == self && std::memcmp(&scratch, self, sizeof(scratch)) == 0, "");
+                      expectedRet == scratch && actualRet == self && std::memcmp(storage, self, sizeof(storage)) == 0, "");
     return actualRet;
 }
 

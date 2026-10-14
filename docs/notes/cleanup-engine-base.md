@@ -42,16 +42,41 @@ hook and verify wrapper.
 
 ## Left
 
-- `FreeSpares`: the spare list's own deleting destructor is `ei::VCall(list, 1, 1)` (MFC CObject slot 1; `mfc::CTypedPtrList` has no C++ virtuals). The
-  MFC `CFile` slots (3, 8, 10, 13, 14) in the chunk streams, `SaveTransform` / `LoadTransform` and the file streams stay `VCall`s (library layer).
-- `texture.cpp` still calls the manager's GetFile / CloseFile through `VCall(m, 19 / 20)`; it can call the members now.
 - `unit.h` and `object.h` disagree on the unit's names at +0x24C (`party` / `player`) and +0x250 (`player` / `side`); units ticket.
   `object_tables.cpp` `FindCommandByKey` reads the key-binding tables (0079BF70, 007857B0) by address (belongs with `key_bindings.cpp`).
-- File-local `SetVtable` copies remain in 13 files (camera_object, fake_unit, item_constructor, lightning_start, magic_trap, map_object_lifetime,
-  map_spec*, net_coder, particle_create, resource_stream, ui_layouts); `FpuCopyBits` (ReadVector3's FPU copy of a signalling NaN) stays until the x87
+- File-local `SetVtable` copies remain in 18 files (grep `void SetVtable`: ai_unit_shape, fake_unit, figure_factory, lever_object, lightning_start,
+  map_spec*, net_coder, particle_create, resource_stream, script_runtime_helpers, torch_object, ui_camp_create, ui_create_screen, ui_exchange,
+  ui_hero_screen_create, ui_layouts); `FpuCopyBits` (ReadVector3's FPU copy of a signalling NaN) stays until the x87
   cleanup.
 - Other layouts of these streams: `UnitStream` (`unit.h`), the `SaveStream` structs in `ui_battle_setup.cpp` / `ui_global_map.cpp`, the unit_ai stream,
   `verify_magic_trap`'s wrapper, the remaining per-file `Text(0x...)` helpers, `TweenArray` (`model_db.cpp`, reads and writes through `ScriptStream`),
   `hash_tables_400` / `atexit_400` raw views of the registry.
 - Duplicate forwarders: `config/forwarder_duplicates.txt` and docs/originals-report.md. 007AF738 is the terrain in this layer
   but `LightManager()` elsewhere.
+
+## C2z: the app files and the scattered rest of the gate
+
+Offset access, `VCall`, byte offset arithmetic, per-file vector struct and `SlotNN` are 0 in every file under `src/` except `src/render/`
+(4 byte arithmetic, renderer ticket). This ticket: offsets 8 -> 0, `VCall` 25 -> 0 (plus 3 from C2d's files: `effects_weather`, `dx_surface`),
+byte arithmetic 4 -> 0 (plus 3 in `app_device_list`), per-file vector struct 1 -> 0 (cleanup-network.md), `SlotNN` 7 -> 0 (the last one,
+`map_spec.h`, went with C2ms). Duplicate forwarders stay 0. Every new virtual call was checked in the release objects (dumpbin): none is
+devirtualised.
+
+- `app_frame`: the device object is `CTextureDevice` (`RenderDeviceObject()`: `primary_`, `renderTarget_` width / height, `screen_`,
+  `lastLoadResult_`); the screen clear calls `IDirectDrawSurface7::Blt` with a `DDBLTFX`; the captured `CDib` is deleted through
+  `mfc::CObjectVirtuals` slot 1 (`CDib` keeps its vtable as a field; its `Delete` is registered by address, so it is not a C++ virtual).
+- `app_registry`: prototypes and counted pointers are `CRefCounted` (`delete` = slot 0 with 1, as `core_refcount.cpp`); WinMain's COM
+  pointers are `IUnknown`. Signatures (`void*`) kept for the verify wrappers.
+- CFile slots through `mfc::CFileVirtuals` (`chunk_stream`, `core_transform`'s Save / LoadTransform, `camera_object`, which also uses
+  `ei::SetVtable` now); `FreeSpares` deletes the spare list through `mfc::CObjectVirtuals` (merged with C2d's identical declaration).
+- `refptr_copies`: `RefPtrRelease` deletes on `CRefCounted`; the object holders take `CEngineObject**` (`Release()` slot 4, `refCount_`),
+  `world_deleting_destructors.cpp` and the verify wrappers follow. `party_records`: the record's party `Create()` (slot 2) and `delete` on the
+  record as a `CRefCounted` (base vtable 0073BB68).
+- Named slots: `CPixelConverter` 1 `SetChannelMasks`, 11 / 12 `BlurShadow` / `BlurShadow2` (C2d named 10 `DecodeDxt`); `CFigureCache` 5
+  `Clear` (004F7020), 6 `ScaledFigure` (004F75E0); `CUnitController` 21 `Heal(amountBits)` returning int (the amount is pushed as bits, as the
+  original does); `CMappedResource` 4 `Flush` (hook `MmioFlushHook`); `GlobalMapWeather` 0 `NoiseOctave` / 1 `BuildStep`; `AIStream` 0
+  `DeletingDestruct` (the verify streams' overrides renamed).
+- `menu_rects` calls the owner's `CBaseManager::GetFile` (slot 19), `text_reader` the archive's `CMappedResource::GetFile` (slot 5),
+  `effects_weather` the world's `SurfaceHeightAt` (slot 30; the double result plus 0.5 rounded once, as the original adds in ST0 and stores).
+- `CParticleSource::orientation` (+0x34, the identity after Reset); the emitters read the attachment's `CObject3D::orientation`; the sound
+  manager's `emitters[index]`; `app_device_list` reads `ChunkArchive::loading_` and `Current()->occurrence`.

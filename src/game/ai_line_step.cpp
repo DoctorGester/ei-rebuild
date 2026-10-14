@@ -26,7 +26,7 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     float dx = StoreFloat(to->x - from->x);
     float dy = StoreFloat(to->y - from->y);
     double dz = static_cast<double>(to->z) - from->z;
-    double length = x87::fsqrt(dz * dz + static_cast<double>(dy) * dy + static_cast<double>(dx) * dx);
+    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
     double cell = static_cast<double>(GameFloat(kCellSize)) * GameFloat(kHalf);
     double steps = length / cell;
     float stepsF = StoreFloat(static_cast<float>(steps));

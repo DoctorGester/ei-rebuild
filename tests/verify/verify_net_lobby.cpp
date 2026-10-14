@@ -20,8 +20,8 @@ using namespace net;
 void* s_unused;
 
 // 00441410: MOV EAX,[ECX] (2), MOV EDX,[ECX+4] (3).
-Query*(__fastcall* s_find)(QueryVector*, void*, const NetAddress*);
-Query* __fastcall FindVerify(QueryVector* v, void*, const NetAddress* address) {
+Query*(__fastcall* s_find)(ClientQueries*, void*, const NetAddress*);
+Query* __fastcall FindVerify(ClientQueries* v, void*, const NetAddress* address) {
     Query* expected = s_find(v, nullptr, address);
     Query* got = v->QueriesFind(address);
     ei::verify::Check("QueriesFind", reinterpret_cast<std::uintptr_t>(expected), reinterpret_cast<std::uintptr_t>(got), "");

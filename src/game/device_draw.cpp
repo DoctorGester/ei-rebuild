@@ -1,12 +1,16 @@
 // The device's indexed draw with the current material (004EB550, thiscall on the device holder,
 // RET 0x1C): used by the mesh draws (004E9010) and the flat geometry draw (004EA4A0). Without a
-// material it is a plain DrawIndexedPrimitive. A material (+0x14C) brings its blend, a technique of
-// state blocks (one per pass) and texture stages: with one pass the stages are set and drawn once;
-// with more, the first pass sets every stage, each further pass applies its state block, sets
-// stage 0 from the next stage record and draws again, and the blend states are restored at the
-// end. 004EB370 (RET 0x24, used by 004E9A50) draws twice: with a first surface, then blended
-// (source alpha, inverse source alpha) with a second one. See docs/notes/models.md ("Material draw").
+// material it is a plain DrawIndexedPrimitive. A material (CTextureDevice::material_) brings its
+// blend, a preset of state blocks (one per pass) and texture stages: with one pass the stages are
+// set and drawn once; with more, the first pass sets every stage, each further pass applies its
+// state block, sets stage 0 from the next stage record and draws again, and the blend states are
+// restored at the end. 004EB370 (RET 0x24, used by 004E9A50) draws twice: with a first surface,
+// then blended (source alpha, inverse source alpha) with a second one. See docs/notes/models.md
+// ("Material draw").
+#include "device.h"
+#include "device_material.h"
 #include "engine_object.h"
+#include "model.h"   // CRenderPreset
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -19,80 +23,31 @@
 
 namespace {
 
-CTextureDevice* Holder(char* device) { return reinterpret_cast<CTextureDevice*>(device); }
+CDeviceMaterial* CurrentMaterial(CTextureDevice* device) { return device->material_; }
+int PassCount(const CRenderPreset* preset) { return static_cast<int>(preset->blocks_.size()); }
+CDXSurface* TextureSurface(CEngineObject* texture) { return static_cast<CTexture*>(texture)->surface_; }
 
-// A texture stage of a material (0x14 bytes).
-struct MaterialStage {
-    std::uint32_t texCoordIndex;    // +0x00 D3DTSS_TEXCOORDINDEX; above 0xFFFF a generated one
-    const char* nameBegin;          // +0x04 STLport string: the texture name
-    const char* nameEnd;            // +0x08
-    const char* nameCapacity;       // +0x0C
-    void* texture;                  // +0x10 CTexture (counted), looked up by name on first use
-};
-static_assert(sizeof(MaterialStage) == 0x14);
-
-// The passes: a state block handle each.
-struct Technique {
-    std::uint8_t unknown_00[8];
-    std::uint32_t* blocksBegin;     // +0x08 vector<state block handle>
-    std::uint32_t* blocksEnd;       // +0x0C
-    std::uint8_t unknown_10[4];
-    int stageCount;                 // +0x14 stages of the first pass
-};
-
-struct Material {
-    std::uint8_t unknown_00[8];
-    std::uint8_t blend;             // +0x08 alpha blending on
-    std::uint8_t unknown_09[3];
-    std::uint32_t sourceBlend;      // +0x0C
-    std::uint32_t destBlend;        // +0x10
-    Technique* technique;           // +0x14
-    MaterialStage* stages;          // +0x18
-};
-
-Material* CurrentMaterial(char* device) { return static_cast<Material*>(Holder(device)->material_); }
-void* Direct3D(char* device) { return Holder(device)->d3dDevice_; }
-int PassCount(const Technique* t) { return static_cast<int>(t->blocksEnd - t->blocksBegin); }
-void* TextureSurface(void* texture) { return static_cast<CTexture*>(texture)->surface_; }
-
-// IDirect3DDevice7 slots.
-constexpr int kSetRenderState = 20;
-constexpr int kGetRenderState = 21;
-constexpr int kDrawIndexedPrimitive = 26;
-constexpr int kSetTexture = 35;
-constexpr int kSetTextureStageState = 37;
-constexpr int kApplyStateBlock = 39;
-constexpr int kAlphaBlendEnable = 0x1B;
-constexpr int kSourceBlend = 0x13;
-constexpr int kDestBlend = 0x14;
-constexpr int kTexCoordIndex = 0xB;
-constexpr int kTextureTransformFlags = 0x18;
-constexpr int kCount2 = 2;
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
-void SetRenderState(char* device, int state, std::uint32_t value) {
-    ComCall(Direct3D(device), kSetRenderState, state, value);
+void SetRenderState(CTextureDevice* device, D3DRENDERSTATETYPE state, std::uint32_t value) {
+    device::D3D(device)->SetRenderState(state, value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
-// The texture manager (007AF744): finds or loads a texture by name [00693C60].
-void* TextureManager() { return *reinterpret_cast<void**>(0x007AF744); }
-__declspec(naked) void* __fastcall FindTexture(void*, void*, const char*) EI_ORIGINAL(0x00693C60)
+// The texture manager finds or loads a texture by name [00693C60, CTextureManager::FindTexture,
+// through its address].
+__declspec(naked) CTexture* __fastcall FindTexture(CTextureManager*, void*, const char*) EI_ORIGINAL(0x00693C60)
 // *slot = texture with counted references, the old one released through its slot 4 [004EBE60].
-void AssignTexture(void** slot, void* texture) {
-    auto* previous = static_cast<CEngineObject*>(*slot);
-    auto* value = static_cast<CEngineObject*>(texture);
+void AssignTexture(CEngineObject** slot, CEngineObject* value) {
+    CEngineObject* previous = *slot;
     *slot = value;
     if (value) ++value->refCount_;
     if (previous) previous->Release();
 }
 // The device [thiscall]: binds a surface to a stage [004EB300: stage, surface], binds a texture to
-// a stage [004EBAF0: stage, texture], flushes the batched vertices [004E7840].
-__declspec(naked) void __fastcall BindSurface(char*, void*, int, void*) EI_ORIGINAL(0x004EB300)
-__declspec(naked) void __fastcall BindTexture(char*, void*, int, void*) EI_ORIGINAL(0x004EBAF0)
-void __fastcall FlushBatch(char* a0) { DeviceFlushBatchAOriginal((void*)a0); }
+// a stage [004EBAF0: stage, texture], flushes the batched vertices [004E7840]; through their
+// addresses (CTextureDevice::BindSurface, BindTexture, FlushBatch).
+__declspec(naked) void __fastcall BindSurface(CTextureDevice*, void*, int, CDXSurface*) EI_ORIGINAL(0x004EB300)
+__declspec(naked) void __fastcall BindTexture(CTextureDevice*, void*, int, CTexture*) EI_ORIGINAL(0x004EBAF0)
+void FlushBatch(CTextureDevice* device) { DeviceFlushBatchAOriginal(device); }
 
 struct DrawArgs {
     int primitive;
@@ -104,93 +59,97 @@ struct DrawArgs {
     int flags;
 };
 
-// DrawIndexedPrimitive under the device lock (007AEE78), the result in +8, and the vertex,
-// triangle and call counters (+0x16C..+0x174). A mesh handed over to the new renderer (src/render,
+// DrawIndexedPrimitive under the device lock (007AEE78), the result in lastLoadResult_, and the
+// vertex, triangle and call counters. A mesh handed over to the new renderer (src/render,
 // device_mesh.cpp) gets this pass with the device's current state; the old draw is skipped when the
 // old path no longer draws meshes.
-void Draw(char* device, const DrawArgs& a, unsigned triangles) {
+void Draw(CTextureDevice* device, const DrawArgs& a, unsigned triangles) {
     if (render::MeshPass(device)) {
-        CRITICAL_SECTION* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
-        gameapi::EnterCriticalSection(lock);
-        Holder(device)->lastLoadResult_ = ComCall(Direct3D(device), kDrawIndexedPrimitive, a.primitive, a.fvf, a.vertices,
-                                                  a.vertexCount, a.indices, a.indexCount, a.flags);
-        gameapi::LeaveCriticalSection(lock);
+        gameapi::EnterCriticalSection(device::Lock());
+        device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitive(
+            static_cast<D3DPRIMITIVETYPE>(a.primitive), static_cast<DWORD>(a.fvf), a.vertices,
+            static_cast<DWORD>(a.vertexCount), const_cast<WORD*>(a.indices), a.indexCount, static_cast<DWORD>(a.flags));
+        gameapi::LeaveCriticalSection(device::Lock());
     }
-    Holder(device)->vertexCount_ += a.vertexCount;
-    Holder(device)->primitiveCount_ += static_cast<int>(triangles);
-    Holder(device)->drawCount_ += 1;
+    device->vertexCount_ += a.vertexCount;
+    device->primitiveCount_ += static_cast<int>(triangles);
+    device->drawCount_ += 1;
 }
 
-void SetTexCoordIndex(char* device, int stage, std::uint32_t index, bool flagsFirst) {
-    if (flagsFirst && index > 0xFFFF) ComCall(Direct3D(device), kSetTextureStageState, stage, kTextureTransformFlags, kCount2);
-    ComCall(Direct3D(device), kSetTextureStageState, stage, kTexCoordIndex, index);
-    if (!flagsFirst && index > 0xFFFF) ComCall(Direct3D(device), kSetTextureStageState, stage, kTextureTransformFlags, kCount2);
-    if (index > 0xFFFF) render::state::Stage(static_cast<std::uint32_t>(stage), kTextureTransformFlags, kCount2);
-    render::state::Stage(static_cast<std::uint32_t>(stage), kTexCoordIndex, index);
+// A generated coordinate index (above 0xFFFF) also sets the stage's transform flags to two
+// coordinates, before or after the index.
+void SetTexCoordIndex(CTextureDevice* device, int stage, std::uint32_t index, bool flagsFirst) {
+    if (flagsFirst && index > 0xFFFF)
+        device::D3D(device)->SetTextureStageState(static_cast<DWORD>(stage), D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
+    device::D3D(device)->SetTextureStageState(static_cast<DWORD>(stage), D3DTSS_TEXCOORDINDEX, index);
+    if (!flagsFirst && index > 0xFFFF)
+        device::D3D(device)->SetTextureStageState(static_cast<DWORD>(stage), D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
+    if (index > 0xFFFF) render::state::Stage(static_cast<std::uint32_t>(stage), D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
+    render::state::Stage(static_cast<std::uint32_t>(stage), D3DTSS_TEXCOORDINDEX, index);
 }
 
 // Single pass: the stage's texture, looked up by name on first use (an inline counted assignment);
-// a stage without one unbinds the device's texture of that stage (+0x12C) once.
-void SetSinglePassStage(char* device, int stage, MaterialStage& s) {
+// a stage without one unbinds the device's texture of that stage (stageSurfaces_) once.
+void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     if (s.texture) {
         BindSurface(device, nullptr, stage, TextureSurface(s.texture));
         return;
     }
-    if (s.nameBegin != s.nameEnd) {
-        void* texture = FindTexture(TextureManager(), nullptr, s.nameBegin);
-        void* old = s.texture;
+    if (!s.name.empty()) {
+        CTexture* texture = FindTexture(device::TextureManager(), nullptr, s.name.data());
+        CEngineObject* old = s.texture;
         s.texture = texture;
-        if (texture) ++static_cast<CTexture*>(texture)->refCount_;
-        if (old) reinterpret_cast<void(__fastcall*)(void*, void*)>((*static_cast<void***>(old))[4])(old, nullptr);
+        if (texture) ++texture->refCount_;
+        if (old) old->Release();
         BindSurface(device, nullptr, stage, s.texture ? TextureSurface(s.texture) : nullptr);
         return;
     }
-    CDXSurface*& bound = Holder(device)->stageSurfaces_[stage];
+    CDXSurface*& bound = device->stageSurfaces_[stage];
     if (bound) {
         bound = nullptr;
         FlushBatch(device);
-        Holder(device)->lastLoadResult_ = ComCall(Direct3D(device), kSetTexture, stage, static_cast<void*>(nullptr));
-        ++Holder(device)->textureChanges_;
+        device->lastLoadResult_ = device::D3D(device)->SetTexture(static_cast<DWORD>(stage), nullptr);
+        ++device->textureChanges_;
     }
 }
 
 // First of several passes: every stage of the first pass.
-void SetFirstPassStage(char* device, int stage, MaterialStage& s) {
+void SetFirstPassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     if (s.texture) {
         BindSurface(device, nullptr, stage, TextureSurface(s.texture));
-    } else if (s.nameBegin != s.nameEnd) {
-        AssignTexture(&s.texture, FindTexture(TextureManager(), nullptr, s.nameBegin));
-        BindTexture(device, nullptr, stage, s.texture);
+    } else if (!s.name.empty()) {
+        AssignTexture(&s.texture, FindTexture(device::TextureManager(), nullptr, s.name.data()));
+        BindTexture(device, nullptr, stage, static_cast<CTexture*>(s.texture));
     } else {
         BindSurface(device, nullptr, stage, nullptr);
     }
 }
 
 // A further pass: its stage record on stage 0.
-void SetLaterPassStage(char* device, MaterialStage& s) {
-    void* surface = nullptr;
+void SetLaterPassStage(CTextureDevice* device, MaterialStage& s) {
+    CDXSurface* surface = nullptr;
     if (s.texture) {
         surface = TextureSurface(s.texture);
-    } else if (s.nameBegin != s.nameEnd) {
-        AssignTexture(&s.texture, FindTexture(TextureManager(), nullptr, s.nameBegin));
+    } else if (!s.name.empty()) {
+        AssignTexture(&s.texture, FindTexture(device::TextureManager(), nullptr, s.name.data()));
         if (s.texture) surface = TextureSurface(s.texture);
     }
     BindSurface(device, nullptr, 0, surface);
 }
 
-void DrawPasses(char* device, Technique* technique, const DrawArgs& args) {
-    std::uint32_t savedBlend;
-    std::uint32_t savedSource;
-    std::uint32_t savedDest;
-    ComCall(Direct3D(device), kGetRenderState, kAlphaBlendEnable, &savedBlend);
-    ComCall(Direct3D(device), kGetRenderState, kSourceBlend, &savedSource);
-    ComCall(Direct3D(device), kGetRenderState, kDestBlend, &savedDest);
-    SetRenderState(device, kAlphaBlendEnable, 1);
-    SetRenderState(device, kSourceBlend, CurrentMaterial(device)->sourceBlend);
-    SetRenderState(device, kDestBlend, CurrentMaterial(device)->destBlend);
-    ComCall(Direct3D(device), kApplyStateBlock, technique->blocksBegin[0]);
-    render::state::Block(technique->blocksBegin[0]);
-    for (int stage = 0; stage < technique->stageCount; ++stage) {
+void DrawPasses(CTextureDevice* device, CRenderPreset* preset, const DrawArgs& args) {
+    DWORD savedBlend;
+    DWORD savedSource;
+    DWORD savedDest;
+    device::D3D(device)->GetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, &savedBlend);
+    device::D3D(device)->GetRenderState(D3DRENDERSTATE_SRCBLEND, &savedSource);
+    device::D3D(device)->GetRenderState(D3DRENDERSTATE_DESTBLEND, &savedDest);
+    SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
+    SetRenderState(device, D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(CurrentMaterial(device)->sourceBlend));
+    SetRenderState(device, D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(CurrentMaterial(device)->destBlend));
+    device::D3D(device)->ApplyStateBlock(preset->blocks_[0]);
+    render::state::Block(preset->blocks_[0]);
+    for (int stage = 0; stage < preset->stages_; ++stage) {
         MaterialStage& s = CurrentMaterial(device)->stages[stage];
         SetTexCoordIndex(device, stage, s.texCoordIndex, true);
         SetFirstPassStage(device, stage, s);
@@ -198,58 +157,58 @@ void DrawPasses(char* device, Technique* technique, const DrawArgs& args) {
     unsigned triangles = args.indexCount / 3;
     Draw(device, args, triangles);
     // The original tests the byte size rounded down to dwords: more than one block.
-    if (((reinterpret_cast<char*>(technique->blocksEnd) - reinterpret_cast<char*>(technique->blocksBegin)) & ~3) > 4) {
+    if (((reinterpret_cast<char*>(preset->blocks_.end()) - reinterpret_cast<char*>(preset->blocks_.begin())) & ~3) > 4) {
         int pass = 1;
         do {
-            ComCall(Direct3D(device), kApplyStateBlock, technique->blocksBegin[pass]);
-            render::state::Block(technique->blocksBegin[pass]);
-            MaterialStage& s = CurrentMaterial(device)->stages[technique->stageCount + pass - 1];
+            device::D3D(device)->ApplyStateBlock(preset->blocks_[pass]);
+            render::state::Block(preset->blocks_[pass]);
+            MaterialStage& s = CurrentMaterial(device)->stages[preset->stages_ + pass - 1];
             SetTexCoordIndex(device, 0, s.texCoordIndex, true);
             SetLaterPassStage(device, s);
             Draw(device, args, triangles);
             ++pass;
-        } while (pass < PassCount(technique));
+        } while (pass < PassCount(preset));
     }
-    SetRenderState(device, kAlphaBlendEnable, savedBlend);
-    SetRenderState(device, kSourceBlend, savedSource);
-    SetRenderState(device, kDestBlend, savedDest);
+    SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, savedBlend);
+    SetRenderState(device, D3DRENDERSTATE_SRCBLEND, savedSource);
+    SetRenderState(device, D3DRENDERSTATE_DESTBLEND, savedDest);
 }
 
 // Stage 0's surface, as 004EB300 binds it (inline in 004EB370): when it changes, the batched
-// vertices are flushed, the surface's DirectDraw surface (+0x10) set, and the change counted.
-void BindStage0(char* device, void* surface) {
-    if (Holder(device)->stageSurfaces_[0] == surface) return;
-    Holder(device)->stageSurfaces_[0] = static_cast<CDXSurface*>(surface);
+// vertices are flushed, the holder's DirectDraw surface set, and the change counted.
+void BindStage0(CTextureDevice* device, CDXSurface* holder) {
+    if (device->stageSurfaces_[0] == holder) return;
+    device->stageSurfaces_[0] = holder;
     FlushBatch(device);
-    void* dd = surface ? static_cast<CDXSurface*>(surface)->surface : nullptr;
-    Holder(device)->lastLoadResult_ = ComCall(Direct3D(device), kSetTexture, 0, dd);
-    ++Holder(device)->textureChanges_;
+    IDirectDrawSurface7* surface = holder ? device::Surface(holder) : nullptr;
+    device->lastLoadResult_ = device::D3D(device)->SetTexture(0, surface);
+    ++device->textureChanges_;
 }
 
 } // namespace
 
 // 004EB550. Draws indexed primitives (DrawIndexedPrimitive's arguments) with the current material.
 // Returns 1.
-int __fastcall DeviceDrawIndexed(char* device, void*, int primitive, int fvf, void* vertices, int vertexCount,
+int __fastcall DeviceDrawIndexed(CTextureDevice* device, void*, int primitive, int fvf, void* vertices, int vertexCount,
                                  const std::uint16_t* indices, unsigned indexCount, int flags) {
     DrawArgs args = {primitive, fvf, vertices, vertexCount, indices, indexCount, flags};
-    Material* material = CurrentMaterial(device);
+    CDeviceMaterial* material = CurrentMaterial(device);
     if (material) {
-        Technique* technique = material->technique;
+        CRenderPreset* preset = material->preset;
         if (material->blend) {
-            SetRenderState(device, kAlphaBlendEnable, 1);
-            SetRenderState(device, kSourceBlend, CurrentMaterial(device)->sourceBlend);
-            SetRenderState(device, kDestBlend, CurrentMaterial(device)->destBlend);
-        } else if (static_cast<unsigned>(PassCount(technique)) <= 1) {
-            SetRenderState(device, kAlphaBlendEnable, 0);
+            SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
+            SetRenderState(device, D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(CurrentMaterial(device)->sourceBlend));
+            SetRenderState(device, D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(CurrentMaterial(device)->destBlend));
+        } else if (static_cast<unsigned>(PassCount(preset)) <= 1) {
+            SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, 0);
         }
-        if (static_cast<unsigned>(PassCount(technique)) > 1) {
-            DrawPasses(device, technique, args);
+        if (static_cast<unsigned>(PassCount(preset)) > 1) {
+            DrawPasses(device, preset, args);
             return 1;
         }
-        ComCall(Direct3D(device), kApplyStateBlock, technique->blocksBegin[0]);
-        render::state::Block(technique->blocksBegin[0]);
-        for (int stage = 0; stage < technique->stageCount; ++stage) {
+        device::D3D(device)->ApplyStateBlock(preset->blocks_[0]);
+        render::state::Block(preset->blocks_[0]);
+        for (int stage = 0; stage < preset->stages_; ++stage) {
             SetTexCoordIndex(device, stage, CurrentMaterial(device)->stages[stage].texCoordIndex, false);
             SetSinglePassStage(device, stage, CurrentMaterial(device)->stages[stage]);
         }
@@ -261,18 +220,19 @@ EI_REPLACE(0x004EB550, DeviceDrawIndexed);
 
 // 004EB370. Draws the indexed primitives with `first` on stage 0, then again blended (source
 // alpha / inverse source alpha, blending on) with `second` and texture coordinates 0. Returns 1.
-int __fastcall DeviceDrawTwoTextures(char* device, void*, void* first, void* second, int primitive, int fvf, void* vertices,
-                                     int vertexCount, const std::uint16_t* indices, unsigned indexCount, int flags) {
+int __fastcall DeviceDrawTwoTextures(CTextureDevice* device, void*, CDXSurface* first, CDXSurface* second, int primitive,
+                                     int fvf, void* vertices, int vertexCount, const std::uint16_t* indices,
+                                     unsigned indexCount, int flags) {
     DrawArgs args = {primitive, fvf, vertices, vertexCount, indices, indexCount, flags};
     BindStage0(device, first);
     unsigned triangles = indexCount / 3;
     Draw(device, args, triangles);
-    SetRenderState(device, kSourceBlend, 5);
-    SetRenderState(device, kDestBlend, 6);
-    SetRenderState(device, kAlphaBlendEnable, 1);
+    SetRenderState(device, D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+    SetRenderState(device, D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
     BindStage0(device, second);
-    Holder(device)->lastLoadResult_ = ComCall(Direct3D(device), kSetTextureStageState, 0, kTexCoordIndex, 0);
-    render::state::Stage(0, kTexCoordIndex, 0);
+    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
+    render::state::Stage(0, D3DTSS_TEXCOORDINDEX, 0);
     Draw(device, args, triangles);
     return 1;
 }
