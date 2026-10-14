@@ -149,7 +149,7 @@ public:
     // 0040F5C0. Moves the focus to `p`, its height set from the terrain around it.
     void SetFocus(const Vector3* p);
     // 0040F230. Pan velocity target from a screen-space direction (x right, y up the screen).
-    void Pan(const float* direction);
+    void Pan(const Vector3* direction);
     // 0040F430. Stops panning, turning, tilting and zooming.
     void StopMotion();
     // 004107A0. Zoom by 1.05^steps, clamped to the current limits.

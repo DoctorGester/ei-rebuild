@@ -199,7 +199,7 @@ public:
     stlp::string name_;               // +0x08
     LinkHeaderMap headers_;           // +0x14
     RECT screenRect_;                 // +0x20
-    float morph_[3];                  // +0x30 the coefficients the figure was loaded with
+    float morphWeights_[3];           // +0x30 the morph coefficients (s, t, u) the figure was loaded with
     lib::AlignedArray<VertexPacket> vertices_;   // +0x3C
     lib::AlignedArray<NormalPacket> normals_;    // +0x4C
     lib::AlignedArray<TexCoord> texCoords_;      // +0x5C
@@ -213,7 +213,7 @@ public:
 static_assert(offsetof(CLinkMesh, refCount_) == 0x04);
 static_assert(offsetof(CLinkMesh, headers_) == 0x14);
 static_assert(offsetof(CLinkMesh, screenRect_) == 0x20);
-static_assert(offsetof(CLinkMesh, morph_) == 0x30);
+static_assert(offsetof(CLinkMesh, morphWeights_) == 0x30);
 static_assert(offsetof(CLinkMesh, vertices_) == 0x3C);
 static_assert(offsetof(CLinkMesh, corners_) == 0x6C);
 static_assert(offsetof(CLinkMesh, normals_) == 0x4C && offsetof(CLinkMesh, texCoords_) == 0x5C);

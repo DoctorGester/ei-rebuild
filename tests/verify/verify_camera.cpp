@@ -89,8 +89,8 @@ int __fastcall PlayStepVerify(CCamera* self, void*, float time) {
 }
 
 // 0040F230: SUB ESP,0x24 (3), PUSH ESI (1), PUSH EDI (1).
-void(__fastcall* s_pan)(CCamera*, void*, const float*);
-void __fastcall PanVerify(CCamera* self, void*, const float* direction) {
+void(__fastcall* s_pan)(CCamera*, void*, const Vector3*);
+void __fastcall PanVerify(CCamera* self, void*, const Vector3* direction) {
     Scratch<kMotion> expected(self);
     s_pan(expected.get(), nullptr, direction);
     self->Pan(direction);

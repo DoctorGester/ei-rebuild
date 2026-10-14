@@ -21,6 +21,33 @@ static std::wstring Dir(const std::wstring& path) {
     return path.substr(0, path.find_last_of(L"\\/"));
 }
 
+// The windows a game still has open when it is terminated (a dialog it waits on says why), one line
+// each: class, title and the text of its child controls.
+static void PrintOpenWindows(DWORD pid) {
+    EnumWindows([](HWND w, LPARAM p) -> BOOL {
+        DWORD owner = 0;
+        GetWindowThreadProcessId(w, &owner);
+        if (owner != static_cast<DWORD>(p) || !IsWindowVisible(w)) return TRUE;
+        wchar_t cls[64] = L"", title[256] = L"";
+        GetClassNameW(w, cls, 64);
+        GetWindowTextW(w, title, 256);
+        std::wstring text;
+        EnumChildWindows(w, [](HWND c, LPARAM t) -> BOOL {
+            wchar_t buf[512] = L"";
+            if (GetWindowTextW(c, buf, 512) > 0) {
+                auto& out = *reinterpret_cast<std::wstring*>(t);
+                if (!out.empty()) out += L" | ";
+                out += buf;
+            }
+            return TRUE;
+        }, reinterpret_cast<LPARAM>(&text));
+        for (wchar_t& ch : text)
+            if (ch == L'\r' || ch == L'\n') ch = L' ';
+        std::wprintf(L"ei_launch: open window [%s] '%s' %s\n", cls, title, text.c_str());
+        return TRUE;
+    }, static_cast<LPARAM>(pid));
+}
+
 static int Fail(const wchar_t* what) {
     std::fwprintf(stderr, L"ei_launch: %s failed (error %lu)\n", what, GetLastError());
     return 1;
@@ -140,6 +167,7 @@ int wmain(int argc, wchar_t** argv) {
         // badly that its watchdog thread cannot run.
         if (GetTickCount64() - started >= 5 * 60 * 1000) {
             std::fwprintf(stderr, L"ei_launch: game still running after 5 minutes; terminating it\n");
+            PrintOpenWindows(pi.dwProcessId);
             TerminateProcess(pi.hProcess, 3);
             WaitForSingleObject(pi.hProcess, 5000);
             break;
@@ -157,6 +185,7 @@ int wmain(int argc, wchar_t** argv) {
         if (!quitSeen) quitSeen = GetTickCount64();
         if (GetTickCount64() - quitSeen >= 3000) {
             std::wprintf(L"ei_launch: game still running 3 s after the scenario quit; terminating it\n");
+            PrintOpenWindows(pi.dwProcessId);
             TerminateProcess(pi.hProcess, 0);
             WaitForSingleObject(pi.hProcess, 5000);
             break;

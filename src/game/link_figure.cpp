@@ -88,9 +88,9 @@ CLinkMesh* CLinkMesh::Construct(CLinkFigureLoader* loader, const stlp::string* n
     new (&name_) stlp::string(*name);
     headers_.Construct();
     ei::SetVtable(this, kBaseVtableAddress);
-    morph_[0] = s;
-    morph_[1] = t;
-    morph_[2] = u;
+    morphWeights_[0] = s;
+    morphWeights_[1] = t;
+    morphWeights_[2] = u;
     vertices_.Construct();
     normals_.Construct();
     texCoords_.Construct();
@@ -327,9 +327,9 @@ constexpr int kNoRect = 2000000000;
 } // namespace
 
 void CLinkMesh::SetMorph(float s, float t, float u) {
-    morph_[0] = s;
-    morph_[1] = t;
-    morph_[2] = u;
+    morphWeights_[0] = s;
+    morphWeights_[1] = t;
+    morphWeights_[2] = u;
 }
 EI_REPLACE_METHOD(0x004F2F90, CLinkMesh::SetMorph);
 

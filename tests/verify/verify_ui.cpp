@@ -7,6 +7,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_widescreen.h"
 
 #include <cstring>
 
@@ -89,15 +90,20 @@ bool Empty(const UiPtrArray<T>& a) {
 
 // --- CInterface3D scaling: the original on a scratch copy of the output -----------------------
 
+// With Rebirth's WideScreen addon's code calls them with ECX 0 too (ui.h, the scaling hooks): the
+// interface's size is shown when there is one.
+static int Width(const CInterface3D* self) { return self ? self->width_ : 0; }
+static int Height(const CInterface3D* self) { return self ? self->height_ : 0; }
+
 // 005F7CA0 / 005F7D20: PUSH ESI; MOV ESI,[ESP+8]; MOV EAX,imm32 (10 bytes).
 static int(__fastcall* s_scaleRectTo)(const CInterface3D*, void*, RECT*);
 static int __fastcall ScaleRectToVerify(const CInterface3D* self, void*, RECT* rect) {
     RECT in = *rect, expected = *rect;
     int expectedResult = s_scaleRectTo(self, nullptr, &expected);
-    int result = self->CInterface3D::ScaleRectToScreen(rect);
+    int result = ScaleRectToScreenEntry(self, nullptr, rect);
     bool same = std::memcmp(&expected, rect, sizeof(RECT)) == 0 && result == expectedResult;
-    ei::verify::Check("CInterface3D::ScaleRectToScreen", true, same, "%dx%d (%d,%d,%d,%d)", self->width_,
-                      self->height_, in.left, in.top, in.right, in.bottom);
+    ei::verify::Check("CInterface3D::ScaleRectToScreen", true, same, "%dx%d (%d,%d,%d,%d)", Width(self),
+                      Height(self), in.left, in.top, in.right, in.bottom);
     return expectedResult;
 }
 EI_VERIFY(0x005F7CA0, ScaleRectToVerify, 10, s_scaleRectTo);
@@ -106,50 +112,58 @@ static int(__fastcall* s_scalePointTo)(const CInterface3D*, void*, POINT*);
 static int __fastcall ScalePointToVerify(const CInterface3D* self, void*, POINT* point) {
     POINT in = *point, expected = *point;
     int expectedResult = s_scalePointTo(self, nullptr, &expected);
-    int result = self->CInterface3D::ScalePointToScreen(point);
+    int result = ScalePointToScreenEntry(self, nullptr, point);
     bool same = std::memcmp(&expected, point, sizeof(POINT)) == 0 && result == expectedResult;
-    ei::verify::Check("CInterface3D::ScalePointToScreen", true, same, "%dx%d (%d,%d)", self->width_, self->height_,
+    ei::verify::Check("CInterface3D::ScalePointToScreen", true, same, "%dx%d (%d,%d)", Width(self), Height(self),
                       in.x, in.y);
     return expectedResult;
 }
 EI_VERIFY(0x005F7D20, ScalePointToVerify, 10, s_scalePointTo);
 
-// 005F7DA0, 005F7E00, 005F7E30: PUSH ESI; MOV ESI,[ESP+8]; MOV EAX,[ESI] (7 bytes).
+// 005F7DA0, 005F7E00, 005F7E30 (with Rebirth's WideScreen: addon's code written over them, which
+// the trampolines run; the stolen bytes are whole instructions of both, EI_REBIRTH_LIVE_STOLEN).
+// 005F7DA0: PUSH ESI; MOV ESI,[ESP+8]; MOV EAX,[ESI] (7 bytes; addon's: PUSH EBP; PUSH EBX; PUSH ESI;
+// MOV ESI,[ESP+0x10]). addon's entry 005F7D9E in front of it arrives with no interface (ECX 0).
+
 static int(__fastcall* s_scaleRectFrom)(const CInterface3D*, void*, RECT*);
 static int __fastcall ScaleRectFromVerify(const CInterface3D* self, void*, RECT* rect) {
     RECT in = *rect, expected = *rect;
     int expectedResult = s_scaleRectFrom(self, nullptr, &expected);
-    int result = self->CInterface3D::ScaleRectFromScreen(rect);
+    int result = ScaleRectFromScreenEntry(self, nullptr, rect);
     bool same = std::memcmp(&expected, rect, sizeof(RECT)) == 0 && result == expectedResult;
-    ei::verify::Check("CInterface3D::ScaleRectFromScreen", true, same, "%dx%d (%d,%d,%d,%d)", self->width_,
-                      self->height_, in.left, in.top, in.right, in.bottom);
+    ei::verify::Check("CInterface3D::ScaleRectFromScreen", true, same, "%dx%d (%d,%d,%d,%d)", Width(self),
+                      Height(self), in.left, in.top, in.right, in.bottom);
     return expectedResult;
 }
 EI_VERIFY(0x005F7DA0, ScaleRectFromVerify, 7, s_scaleRectFrom);
 
+// 005F7E00: PUSH ESI; MOV ESI,[ESP+8]; MOV EAX,[ESI]; LEA EAX,[EAX+EAX*4] (10 bytes; addon's: PUSH
+// ECX; PUSH ESI; MOV ESI,[ESP+0xC]; MOV EAX,[ESI]; TEST ECX,ECX). addon's entry 005F7DFE in front of
+// it (called by its patched 005EB210 and 00630010) arrives with ECX 0.
 static int(__fastcall* s_scalePointFrom)(const CInterface3D*, void*, POINT*);
 static int __fastcall ScalePointFromVerify(const CInterface3D* self, void*, POINT* point) {
     POINT in = *point, expected = *point;
     int expectedResult = s_scalePointFrom(self, nullptr, &expected);
-    int result = self->CInterface3D::ScalePointFromScreen(point);
+    int result = ScalePointFromScreenEntry(self, nullptr, point);
     bool same = std::memcmp(&expected, point, sizeof(POINT)) == 0 && result == expectedResult;
-    ei::verify::Check("CInterface3D::ScalePointFromScreen", true, same, "%dx%d (%d,%d)", self->width_, self->height_,
+    ei::verify::Check("CInterface3D::ScalePointFromScreen", true, same, "%dx%d (%d,%d)", Width(self), Height(self),
                       in.x, in.y);
     return expectedResult;
 }
-EI_VERIFY(0x005F7E00, ScalePointFromVerify, 7, s_scalePointFrom);
+EI_VERIFY(0x005F7E00, ScalePointFromVerify, 10, s_scalePointFrom);
 
 static int(__fastcall* s_scalePointFromCopy)(const CInterface3D*, void*, POINT*);
 static int __fastcall ScalePointFromCopyVerify(const CInterface3D* self, void*, POINT* point) {
     POINT in = *point, expected = *point;
     int expectedResult = s_scalePointFromCopy(self, nullptr, &expected);
-    int result = self->CInterface3D::ScalePointFromScreenCopy(point);
+    int result = ScalePointFromScreenCopyEntry(self, nullptr, point);
     bool same = std::memcmp(&expected, point, sizeof(POINT)) == 0 && result == expectedResult;
-    ei::verify::Check("CInterface3D::ScalePointFromScreenCopy", true, same, "%dx%d (%d,%d)", self->width_,
-                      self->height_, in.x, in.y);
+    ei::verify::Check("CInterface3D::ScalePointFromScreenCopy", true, same, "%dx%d (%d,%d)", Width(self),
+                      Height(self), in.x, in.y);
     return expectedResult;
 }
-EI_VERIFY(0x005F7E30, ScalePointFromCopyVerify, 7, s_scalePointFromCopy);
+// 005F7E30: PUSH ESI; MOV ESI,[ESP+8] (5 bytes; addon's: JMP 005F7E00, re-targeted in the trampoline).
+EI_VERIFY(0x005F7E30, ScalePointFromCopyVerify, 5, s_scalePointFromCopy);
 
 // 005F7590: MOV EAX,[ECX+0x34]; MOV EDX,[ECX+0x38] (6 bytes).
 static CUiWindow*(__fastcall* s_getActiveWindow)(const CInterface3D*);
@@ -256,12 +270,17 @@ static BOOL __fastcall HasActiveTipVerify(const CUiRegion* self) {
 EI_VERIFY(0x005FC660, HasActiveTipVerify, 5, s_hasActiveTip);
 
 // The rest free or allocate the vertex storage: ours only, then the fields are checked.
+// SetRect and AddPoint with Rebirth's WideScreen (ours replaces addon's in a Rebirth launch): x
+// moved by the panel offset, which a Rebirth launch shares with addon's panel builders.
+static int PanelOffset() { return widescreen::Active() ? widescreen::PanelOffset() : 0; }
+
 static void __fastcall RegionSetRectVerify(CUiRegion* self, void*, int left, int top, int right, int bottom) {
+    const int offset = PanelOffset();
     self->CUiRegion::SetRect(left, top, right, bottom);
-    bool ok = !self->points_.data && self->points_.size == 0 && self->points_.capacity == 0 && self->bounds_.left == left &&
-              self->bounds_.top == top && self->bounds_.right == right && self->bounds_.bottom == bottom &&
-              self->enabled_ && self->rectOnly_;
-    ei::verify::Check("CUiRegion::SetRect", true, ok, "(%d,%d,%d,%d)", left, top, right, bottom);
+    bool ok = !self->points_.data && self->points_.size == 0 && self->points_.capacity == 0 &&
+              self->bounds_.left == left + offset && self->bounds_.top == top && self->bounds_.right == right + offset &&
+              self->bounds_.bottom == bottom && self->enabled_ && self->rectOnly_;
+    ei::verify::Check("CUiRegion::SetRect", true, ok, "(%d,%d,%d,%d) offset %d", left, top, right, bottom, offset);
 }
 EI_VERIFY(0x005FC9E0, RegionSetRectVerify, 0, s_unused);
 
@@ -283,9 +302,11 @@ static void __fastcall AddPointVerify(CUiRegion* self, void*, int x, int y) {
     bool complete = count >= 0 && count <= kMax && (count == 0 || self->points_.data);
     if (complete && count) std::memcpy(before, self->points_.data, count * sizeof(UiPoint));
 
+    const int offset = PanelOffset();
     self->CUiRegion::AddPoint(x, y);
 
     if (!complete) return;
+    x += offset;
     RECT expected = bounds;
     if (count == 0) {
         expected = RECT{x, y, x, y};
@@ -301,7 +322,8 @@ static void __fastcall AddPointVerify(CUiRegion* self, void*, int x, int y) {
               (count == 0 || std::memcmp(self->points_.data, before, count * sizeof(UiPoint)) == 0) &&
               self->points_.data[count].x == x && self->points_.data[count].y == y &&
               self->enabled_ == (enabled || count + 1 > 2);
-    ei::verify::Check("CUiRegion::AddPoint", true, ok, "(%d,%d) count %d capacity %d", x, y, count, capacity);
+    ei::verify::Check("CUiRegion::AddPoint", true, ok, "(%d,%d) count %d capacity %d offset %d", x, y, count, capacity,
+                      offset);
 }
 EI_VERIFY(0x005FCA70, AddPointVerify, 0, s_unused);
 

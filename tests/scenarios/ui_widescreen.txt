@@ -1,0 +1,87 @@
+# Rebirth's WideScreen (src/game/ui_widescreen.h, docs/notes/rebirth.md "WideScreen"): the interface
+# at a mode wider than 4:3, frames captured for comparison with Rebirth's own.
+#   python tools\run_all.py --widescreen
+# runs it under Rebirth with our hooks and with --no-hooks (addon's code only) and compares the
+# frames (tools/compare_frames.py). The harness answers the starter's settings for the run
+# (harness_starter.h): the desktop's mode (another mode would switch the display under dgVoodoo)
+# and WideScreen on. In the vanilla install the flag is on as well (rebirthflags): our layout
+# widths and scaling run there without addon's panel builders (W2-W4), so its frames are not compared.
+# The virtual clock (deterministic) gives the menu's animations the same phase in both runs; the
+# zone's loading still depends on real time (and the menu's creatures are not quite repeatable), so
+# a frame has a "_later" twin and run_all leaves out what moved between the two (the hero, his
+# portrait, the menu's creatures). Not the global map (screen 4): its whole scene is lit by the
+# world's time, which differs between the runs.
+# Clicks go through clickregion (the game's own scaling); "move 400 20" parks the mouse at the top
+# middle, which is the same point in either layout.
+deterministic
+resolution desktop
+widescreen 1
+rebirthflags WideScreen
+reject Script error
+wait 6000
+
+# The main menu.
+move 400 20
+wait 500
+freeze
+capture menu
+unfreeze
+wait 700
+freeze
+capture menu_later
+unfreeze
+
+# The options window (main menu region 3), cancelled (its region 1).
+clickregion 3
+wait 1500
+move 400 20
+wait 300
+freeze
+capture options
+unfreeze
+clickregion 1
+wait 1500
+
+# The load window (region 1), cancelled.
+clickregion 1
+wait 1500
+move 400 20
+wait 300
+freeze
+capture load
+unfreeze
+clickregion 1
+wait 1500
+
+# The hero on zone1 with the battle screen's panels, the camera settled.
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+move 400 20
+wait 2000
+freeze
+capture world
+unfreeze
+wait 700
+freeze
+capture world_later
+unfreeze
+
+# The camp (screen 5); Esc returns to the game.
+screen 5
+wait 3000
+move 400 20
+wait 300
+freeze
+capture camp
+unfreeze
+wait 700
+freeze
+capture camp_later
+unfreeze
+key esc
+wait 2000
+report
+quit

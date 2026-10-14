@@ -27,8 +27,8 @@ struct ScratchMesh {
     alignas(16) unsigned char bytes[sizeof(CLinkMesh)];
     CLinkMesh* mesh;
     explicit ScratchMesh(const CLinkMesh* like) {
-        mesh = MeshConstructOriginal(bytes, nullptr, like->loader_, &like->name_, like->morph_[0], like->morph_[1],
-                                     like->morph_[2]);
+        mesh = MeshConstructOriginal(bytes, nullptr, like->loader_, &like->name_, like->morphWeights_[0], like->morphWeights_[1],
+                                     like->morphWeights_[2]);
     }
     ~ScratchMesh() { MeshDestructOriginal(mesh); }
 };

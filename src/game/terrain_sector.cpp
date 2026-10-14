@@ -251,14 +251,14 @@ const std::uint8_t* BuildRecords(SectorData& s) {
                     rec->materialByte = mat.opacityByte;
                     rec->materialColour = mat.colour;
                 }
-                std::memcpy(rec->position, vin, 12);
+                std::memcpy(&rec->position, vin, 12);
                 (rec - kVertices)->depth = Store(static_cast<double>(vin[2]) - vin[2 - kVertices * 3]);
             }
             std::uint32_t n;
             std::memcpy(&n, src + 4, 4);
-            rec->normal[2] = Store(x87::FromUnsigned(n >> 22) * NormalScale());
-            rec->normal[0] = Store((static_cast<double>(static_cast<int>((n >> 11) & 0x7FF)) - NormalBias()) * NormalScale());
-            rec->normal[1] = Store((static_cast<double>(static_cast<int>(n & 0x7FF)) - NormalBias()) * NormalScale());
+            rec->normal.z = Store(x87::FromUnsigned(n >> 22) * NormalScale());
+            rec->normal.x = Store((static_cast<double>(static_cast<int>((n >> 11) & 0x7FF)) - NormalBias()) * NormalScale());
+            rec->normal.y = Store((static_cast<double>(static_cast<int>(n & 0x7FF)) - NormalBias()) * NormalScale());
         }
     }
     return tiles + 0x2208;
@@ -393,15 +393,15 @@ void ComputeBounds(SectorData& s) {
     s.minZ = Store(low);
     double cz = (static_cast<double>(s.maxZ) - low) * Half() + low;
     float centreZ = Store(cz);
-    s.box.centre[0] = Store(half + x0);
-    s.box.centre[1] = Store(half + y0);
-    s.box.centre[2] = centreZ;
-    s.box.low[0] = Store(-half);
-    s.box.low[1] = Store(-half);
-    s.box.low[2] = Store(s.minZ - cz);
-    s.box.high[0] = Store(half);
-    s.box.high[1] = Store(half);
-    s.box.high[2] = Store(s.maxZ - cz);
+    s.box.centre.x = Store(half + x0);
+    s.box.centre.y = Store(half + y0);
+    s.box.centre.z = centreZ;
+    s.box.low.x = Store(-half);
+    s.box.low.y = Store(-half);
+    s.box.low.z = Store(s.minZ - cz);
+    s.box.high.x = Store(half);
+    s.box.high.y = Store(half);
+    s.box.high.z = Store(s.maxZ - cz);
     s.box.flags |= 2;
     double q = half * Half();
     double r = half * MinusHalf();
@@ -409,15 +409,15 @@ void ComputeBounds(SectorData& s) {
     for (int i = 0; i < 2; ++i) {
         float by = Store((i + Half()) * half + y0);
         for (int j = 0; j < 2; ++j, ++box) {
-            box->centre[0] = Store((j + Half()) * half + x0);
-            box->centre[1] = by;
-            box->centre[2] = centreZ;
-            box->low[0] = Store(r);
-            box->low[1] = Store(r);
-            box->low[2] = Store(s.minZ - cz);
-            box->high[0] = Store(q);
-            box->high[1] = Store(q);
-            box->high[2] = Store(s.maxZ - cz);
+            box->centre.x = Store((j + Half()) * half + x0);
+            box->centre.y = by;
+            box->centre.z = centreZ;
+            box->low.x = Store(r);
+            box->low.y = Store(r);
+            box->low.z = Store(s.minZ - cz);
+            box->high.x = Store(q);
+            box->high.y = Store(q);
+            box->high.z = Store(s.maxZ - cz);
             box->flags |= 2;
         }
     }
@@ -487,7 +487,7 @@ void SectorData::ApplyWaterLevels() {
         float* z = &vertices.data[kVertices].xyz[2];
         for (int i = 0; i < kVertices; ++i, ++rec, z += 3) {
             if (rec->waterMaterial == id) {
-                rec->position[2] = Store(level + rec->position[2]);
+                rec->position.z = Store(level + rec->position.z);
                 *z = Store(level + *z);
             }
         }
@@ -554,9 +554,7 @@ namespace {
 
 // The projection buffers every sector shares (allocated by the first constructor): positions in,
 // projected positions and outcodes out (16-byte vertices; the input's fourth float is not written).
-struct ProjectionVertex {
-    float xyzw[4];
-};
+using ProjectionVertex = Vector4;
 static_assert(sizeof(ProjectionVertex) == 16);
 using ProjectionBuffer = lib::AlignedArray<ProjectionVertex>;
 ProjectionBuffer& ProjectionInput() { return *reinterpret_cast<ProjectionBuffer*>(std::uintptr_t(0x007C88F8)); }
@@ -653,7 +651,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
                     const SectorPosition& p = vertices.data[layer * kVertices + corner + row * kRow + column];
-                    std::memcpy(in->xyzw, p.xyz, sizeof(p.xyz));
+                    std::memcpy(in, p.xyz, sizeof(p.xyz));
                     ++in;
                 }
         const int count = static_cast<int>(in - ProjectionInput().data);
@@ -670,7 +668,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
                     SectorVertex& record = records.data[layer * kVertices + corner + row * kRow + column];
-                    std::memcpy(record.projected, out->xyzw, sizeof(record.projected));
+                    std::memcpy(&record.projected, out, sizeof(record.projected));
                     record.outcode = mode == kCrossing ? *outcode++ : 0;
                     ++out;
                 }

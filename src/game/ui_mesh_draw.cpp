@@ -6,10 +6,12 @@
 #include "model.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "ui_widescreen.h"
 
 #include <cstdint>
 #include <cstring>
@@ -50,16 +52,19 @@ void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
 }
 EI_REPLACE_METHOD(0x005E7010, CUiMesh::GetPlacement);
 
-// 005E6FA0 (Rebirth replaces it with its widescreen version; the vanilla body). The layout's
-// 1 / 400 (0074015C) and 0.75 (0073C524) with the constants above.
-void CUiMesh::PlaceVanilla(float x, float y, float depth) {
+// 005E6FA0. The layout's 1 / 400 (0074015C) and 0.75 (0073C524) with the constants above. Rebirth's
+// WideScreen replaces it (addon's 10023151): x moved by the panel offset first (FIADD; 0 outside its
+// panel builders, ui_widescreen.h).
+void CUiMesh::PlaceBody(float x, float y, float depth) {
+    if (widescreen::Active()) x += static_cast<float>(widescreen::PanelOffset());
     float placedX = (x * GameFloat(0x0074015C) - GameFloat(0x0073B84C)) * GameFloat(0x00740158) * depth;
     float placedY = (y * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * GameFloat(0x00740158) * depth;
     position_.x = placedX;
     position_.y = placedY;
     std::memcpy(&position_.z, &depth, sizeof(float));
 }
-EI_REPLACE_METHOD(0x005E6FA0, CUiMesh::PlaceVanilla);
+EI_REPLACE_METHOD(0x005E6FA0, CUiMesh::PlaceBody);
+EI_REBIRTH_IMPLEMENTS(0x005E6FA0, ei::rebirth::Patch::WideScreen);
 
 // 005E6D90 (RET 4). Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds
 // the placement from the orientation and position, pushes it on the view and world stacks, then
@@ -71,20 +76,20 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     CTransformPipeline* pipeline = renderer->pipeline_;
     if (!renderer->SetTexture(0, texture_)) return game::FatalError(SetTextureFailed());
 
-    orientation_.ToMatrix(placement_);
-    placement_[3] = position_.x;
-    placement_[7] = position_.y;
-    placement_[11] = position_.z;
-    placement_[12] = 0.0f;
-    placement_[13] = 0.0f;
-    placement_[14] = 0.0f;
-    std::memcpy(&placement_[15], &kOne, sizeof(kOne));
-    float placement[16];
-    std::memcpy(placement, placement_, sizeof(placement));
-    pipeline->PushMatrix(placement, kStackView);
-    pipeline->PushMatrix(placement, kStackWorld);
-    pipeline->PushMatrix(scaleMatrix_, kStackView);
-    pipeline->PushMatrix(scaleMatrix_, kStackWorld);
+    orientation_.ToMatrix(placement_.m);
+    placement_.m[3] = position_.x;
+    placement_.m[7] = position_.y;
+    placement_.m[11] = position_.z;
+    placement_.m[12] = 0.0f;
+    placement_.m[13] = 0.0f;
+    placement_.m[14] = 0.0f;
+    std::memcpy(&placement_.m[15], &kOne, sizeof(kOne));
+    Matrix4 placement;
+    std::memcpy(&placement, &placement_, sizeof(placement));
+    pipeline->PushMatrix(placement.m, kStackView);
+    pipeline->PushMatrix(placement.m, kStackWorld);
+    pipeline->PushMatrix(scaleMatrix_.m, kStackView);
+    pipeline->PushMatrix(scaleMatrix_.m, kStackWorld);
 
     const std::uint32_t saved = renderer->colour_;
     const std::uint32_t red = ColourByte(tint_[0]);
@@ -110,11 +115,11 @@ int CUiMesh::CreateSprite() {
     FigureCreateOriginal(this);
     material_ = nullptr;
     texture_ = nullptr;
-    std::memset(scaleMatrix_, 0, sizeof(scaleMatrix_));
-    scaleMatrix_[15] = 1.0f;
-    scaleMatrix_[10] = 1.0f;
-    scaleMatrix_[5] = 1.0f;
-    scaleMatrix_[0] = 1.0f;
+    std::memset(&scaleMatrix_, 0, sizeof(scaleMatrix_));
+    scaleMatrix_.m[15] = 1.0f;
+    scaleMatrix_.m[10] = 1.0f;
+    scaleMatrix_.m[5] = 1.0f;
+    scaleMatrix_.m[0] = 1.0f;
     tint_[0] = 1.0f;
     tint_[1] = 1.0f;
     tint_[2] = 1.0f;

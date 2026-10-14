@@ -209,16 +209,16 @@ EI_VERIFY(0x005EE720, InfoPanelFirstItemVerify, 0, s_unused);
 
 static void __fastcall MeshSetScaleYVerify(CUiMesh* self, void*, std::uint32_t bits) {
     float before[16];
-    std::memcpy(before, self->scaleMatrix_, sizeof(before));
+    std::memcpy(before, &self->scaleMatrix_, sizeof(before));
     self->SetScaleYBits(bits);
     std::memcpy(&before[5], &bits, sizeof(bits));
-    ei::verify::Check("CUiMesh::SetScaleYBits", true, std::memcmp(before, self->scaleMatrix_, sizeof(before)) == 0, "");
+    ei::verify::Check("CUiMesh::SetScaleYBits", true, std::memcmp(before, &self->scaleMatrix_, sizeof(before)) == 0, "");
 }
 EI_VERIFY(0x005E7090, MeshSetScaleYVerify, 0, s_unused);
 
 static float __fastcall MeshGetScaleXVerify(const CUiMesh* self) {
     float result = self->GetScaleX();
-    ei::verify::Check("CUiMesh::GetScaleX", true, std::memcmp(&result, &self->scaleMatrix_[0], sizeof(float)) == 0, "");
+    ei::verify::Check("CUiMesh::GetScaleX", true, std::memcmp(&result, &self->scaleMatrix_.m[0], sizeof(float)) == 0, "");
     return result;
 }
 EI_VERIFY(0x005E70B0, MeshGetScaleXVerify, 0, s_unused);

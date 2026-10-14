@@ -155,7 +155,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     std::memcpy(&ry, &rotation.x, 4);
     std::memcpy(&rz, &rotation.y, 4);
     std::memcpy(&rw, &rotation.z, 4);
-    double axis = static_cast<double>(ry) * ry + static_cast<double>(rz) * rz + static_cast<double>(rw) * rw;
+    double axis = LengthSquaredUnrounded<Sum3::XYZ, double>(ry, rz, rw);
     double angle;
     if (!(axis > worlddata::AxisEpsilon())) {
         angle = worlddata::Zero();
@@ -235,7 +235,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         double dz = position->z;
         double dy = static_cast<double>(position->y) - worlddata::HeroStartY();
         double dx = static_cast<double>(position->x) - worlddata::HeroStartX();
-        double distance = dx * dx + dy * dy + dz * dz;
+        double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
         atStart = !(distance >= worlddata::HeroStartRadius2());
     }
     script = worlddata::ScriptBeginText();
@@ -495,15 +495,15 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         float level;
         std::memcpy(&level, &bits, 4);
         if (x87::IsNaN(level) || level < worlddata::CampfireHeight()) {
-            volatile float at[3];
-            at[2] = flame->offset.z + base.position.z;
-            at[1] = flame->offset.y + base.position.y;
-            at[0] = flame->offset.x + base.position.x;
+            volatile Vector3 at;
+            at.z = flame->offset.z + base.position.z;
+            at.y = flame->offset.y + base.position.y;
+            at.x = flame->offset.x + base.position.x;
             CEngineObject* spell = reinterpret_cast<CEngineObject*>(SpellManagerCreateSpellFromTextOriginal(
                 reinterpret_cast<CSpellManager*>(SpellManager()), nullptr, worlddata::CampfireText()));
             if (spell) ++spell->refCount_;
-            WorldCastSpellOriginal(this, nullptr, spell, nullptr, reinterpret_cast<const Vector3*>(const_cast<float*>(at)), nullptr,
-                                   reinterpret_cast<const Vector3*>(const_cast<float*>(at)), 0);
+            WorldCastSpellOriginal(this, nullptr, spell, nullptr, const_cast<const Vector3*>(&at), nullptr,
+                                   const_cast<const Vector3*>(&at), 0);
             if (spell) spell->Release();
         }
         base.object = object;

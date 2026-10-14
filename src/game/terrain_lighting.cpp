@@ -87,7 +87,7 @@ void SectorData::ShadeSun(CLight* sun, const SectorPosition* position, SectorVer
     // The fourth component is an uninitialised stack slot in the original; only copied through.
     float shaded[4];
     float source[4] = {colour.x, colour.y, colour.z, 0.0f};
-    ShadeDirectional(sun, nullptr, shaded, attenuation, source, record->normal);
+    ShadeDirectional(sun, nullptr, shaded, attenuation, source, &record->normal.x);
     record->lit.x = Max(shaded[0], ambient.x);
     record->lit.y = Max(shaded[1], ambient.y);
     record->lit.z = Max(shaded[2], ambient.z);
@@ -116,7 +116,7 @@ void SectorData::LightVertex(const SectorPosition* position, SectorVertex* recor
         }
         float source[4] = {record->materialColour.x, record->materialColour.y, record->materialColour.z, 1.0f};
         float shaded[4];
-        ShadePoint(light, nullptr, shaded, attenuation, source, record->normal, &direction, distance);
+        ShadePoint(light, nullptr, shaded, attenuation, source, &record->normal.x, &direction, distance);
         if (light->flags_ & 0x40) {
             specular.x = Max(specular.x, shaded[0]);
             specular.y = Max(specular.y, shaded[1]);

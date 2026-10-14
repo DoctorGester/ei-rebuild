@@ -96,9 +96,9 @@ const char* FindInArchives(const LinkArchiveNode* archives, const char* name) {
 
 // Whether `mesh`'s coefficients are close enough to (s, t, u) to share it.
 bool SameMorph(const CLinkMesh* mesh, float s, float t, float u) {
-    float ds = mesh->morph_[0] - s;
-    float dt = mesh->morph_[1] - t;
-    float du = mesh->morph_[2] - u;
+    float ds = mesh->morphWeights_[0] - s;
+    float dt = mesh->morphWeights_[1] - t;
+    float du = mesh->morphWeights_[2] - u;
     return !(ds * ds + dt * dt + du * du >= kSameMorph);
 }
 
@@ -159,7 +159,7 @@ CLinkMesh* CLinkFigureLoader::LoadFigure(const stlp::string* name, const stlp::v
     }
     for (const stlp::string* part = parts->begin(); part != parts->end(); ++part) {
         if (mesh->HasPart(part)) continue;
-        const float ms = mesh->morph_[0], mt = mesh->morph_[1], mu = mesh->morph_[2];
+        const float ms = mesh->morphWeights_[0], mt = mesh->morphWeights_[1], mu = mesh->morphWeights_[2];
         if (!set) {
             LoadArchivePartAt(this, nullptr, mesh, part, ms, mt, mu);
         } else if (const char* data = static_cast<const char*>(set->mesh->GetFile(part->data(), nullptr))) {
@@ -188,7 +188,7 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const stlp::string* name) 
         mesh->CopyName(&meshName);
         set = FindFigureSetAt(this, nullptr, &meshName);
     }
-    const float s = mesh->morph_[0], t = mesh->morph_[1], u = mesh->morph_[2];
+    const float s = mesh->morphWeights_[0], t = mesh->morphWeights_[1], u = mesh->morphWeights_[2];
     if (!set) return LoadArchivePartAt(this, nullptr, mesh, name, s, t, u) != 0;
     const char* data = static_cast<const char*>(set->mesh->GetFile(name->data(), nullptr));
     if (!data) return false;

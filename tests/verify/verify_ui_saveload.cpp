@@ -205,6 +205,10 @@ int FirstDifference(const ListState& a, const ListState& b, bool save) {
 // R8) is lent a DirectDraw texture while the original runs; its pixels are read from the memory.
 static void(__fastcall* s_fillEntries)(CSaveLoadWindow*, void*);
 static void __fastcall FillEntriesVerify(CSaveLoadWindow* self, void*) {
+    if (!memory_texture::CanLend()) {   // no DirectDraw: the original cannot write its picture texture
+        self->CSaveLoadWindow::FillEntries();
+        return;
+    }
     {
         memory_texture::LendNewTextures lend;
         s_fillEntries(self, nullptr);

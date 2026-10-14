@@ -30,8 +30,8 @@ class CUnit;
 struct BriefingMover {
     BriefingMover* next;
     BriefingMover* prev;
-    float target[3];                 // +0x08
-    float direction[3];              // +0x14 the facing at the target
+    Vector3 target;                  // +0x08
+    Vector3 direction;               // +0x14 the facing at the target
     int state;                       // +0x20 kDone, kWalking or kTurning
     CEngineObject* person;           // +0x24 the client object
     bool waited;                     // +0x28 the dialogue waits for this one

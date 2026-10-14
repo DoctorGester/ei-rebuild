@@ -341,12 +341,12 @@ void CWorldServer::ResetState() {
         alarm.x = 0.0f;
     }
     unknown12D64_ = 0;
-    startPosition_[0] = 0.0f;
+    startPosition_.x = 0.0f;
     unknown88_ = 0x3F800000;   // 1.0f
     loaded_ = 0;
-    startPosition_[1] = 0.0f;
+    startPosition_.y = 0.0f;
     unknown13C_ = 0;
-    startPosition_[2] = 0.0f;
+    startPosition_.z = 0.0f;
 }
 
 EI_REPLACE_METHOD(0x0058B600, CWorldServer::ResetState);

@@ -5,6 +5,7 @@
 // ambient colour, and creates the counted helper object at +0x24. Runs once at start-up. See
 // docs/notes/models.md ("Renderer creation").
 #include "ei/hook.h"
+#include "render/render.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "camera.h"
@@ -270,21 +271,28 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, GameOptions* settings) {
     render::state::Reset();   // a new device: nothing it has is known yet
     renderer->CreateBase(window, settings);
-    EnumerateDrivers();
-    DirectDrawDriver* driver = FirstHardwareDriver();
-    if (!driver) {
-        game::FatalError(GameText(0x0078E534));   // "Can't find any driver with HW 3D..."
-        ExitGame(-1);
-    }
-    int index = settings->driverIndex_;
-    if (index != -1) {
-        driver = DriverAt(index);
-        if (!driver) driver = FirstHardwareDriver();
+    // In the switch-over (the new renderer presents, device.h) no DirectDraw driver is listed or
+    // tried: the device object is built without one (the primary display's, should the new
+    // renderer fail to start and DirectDraw be used after all).
+    GUID* driverId = nullptr;
+    if (!render::Presenting()) {
+        EnumerateDrivers();
+        DirectDrawDriver* driver = FirstHardwareDriver();
+        if (!driver) {
+            game::FatalError(GameText(0x0078E534));   // "Can't find any driver with HW 3D..."
+            ExitGame(-1);
+        }
+        int index = settings->driverIndex_;
+        if (index != -1) {
+            driver = DriverAt(index);
+            if (!driver) driver = FirstHardwareDriver();
+        }
+        driverId = driver->guid;
     }
     void* memory = gamecrt::operator_new(0x17C);
     CTextureDevice* device = nullptr;
     if (memory) {
-        device = DeviceConstruct(memory, nullptr, window, driver->guid, settings->fullScreen_, settings->resolutionX_,
+        device = DeviceConstruct(memory, nullptr, window, driverId, settings->fullScreen_, settings->resolutionX_,
                                  settings->resolutionY_, settings->colourDepth_, 0, 1, settings->zBufferDepth_, 0);
     }
     HolderAssign(&renderer->device_, nullptr, device);

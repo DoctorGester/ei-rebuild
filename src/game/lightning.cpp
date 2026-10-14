@@ -213,8 +213,7 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     step.x = Store(static_cast<double>(to->x) - from->x);
     step.y = Store(static_cast<double>(to->y) - from->y);
     step.z = Store(static_cast<double>(to->z) - from->z);
-    double sx = step.x, sy = step.y, sz = step.z;
-    float length = Store(x87::fsqrt((sx * sx + sy * sy) + sz * sz));
+    float length = Store(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(step)));
 
     // Point count and the length the displacement axes are scaled to.
     int count;
@@ -242,8 +241,7 @@ void LightningSegment::Init(const Vector3* from, const Vector3* to) {
     up.z = upZ;
 
     for (Vector3* axis : {&side, &up}) {
-        double ax = axis->x, ay = axis->y, az = axis->z;
-        double norm = x87::fsqrt((ax * ax + ay * ay) + az * az);
+        double norm = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(*axis));
         if (norm > 0.0) {
             double factor = scale / norm;
             axis->x = Store(factor * axis->x);
@@ -329,8 +327,7 @@ void CLightning::UpdateBounds() {
     boundsMax_.y = Store(static_cast<double>(boundsMax_.y) - center_.y);
     boundsMax_.z = Store(static_cast<double>(boundsMax_.z) - center_.z);
     boundsKind_ = 3;
-    double mx = boundsMax_.x, my = boundsMax_.y, mz = boundsMax_.z;
-    radius_ = Store(x87::fsqrt((mz * mz + mx * mx) + my * my));
+    radius_ = Store(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(boundsMax_)));
 }
 EI_REPLACE_METHOD(0x00467150, CLightning::UpdateBounds);
 
@@ -416,7 +413,7 @@ void CLightning::SetEndpoints(const Vector3* from, const Vector3* to) {
             double dx = static_cast<double>(from->x) - to->x;
             double dy = static_cast<double>(from->y) - to->y;
             double dz = static_cast<double>(from->z) - to->z;
-            double reachExt = x87::fsqrt((dz * dz + dy * dy) + dx * dx) * kOffsetFactor;
+            double reachExt = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * kOffsetFactor;
             float reach = Store(reachExt);
             float low = Store(-reachExt);
             std::uint32_t r1 = Rng()->Next();

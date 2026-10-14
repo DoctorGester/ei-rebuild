@@ -38,7 +38,7 @@ const stlp::string* AsString(const RawString* s) { return reinterpret_cast<const
 
 // The positions with the offsets added (007C2E48, a lib::AlignedArray; a function-local static,
 // guard 007C2E58 bit 1, freed at exit by 005A8AE0).
-lib::AlignedArray<PositionBlock>& MovedPositions() { return *reinterpret_cast<lib::AlignedArray<PositionBlock>*>(0x007C2E48); }
+lib::AlignedArray<VertexPacket>& MovedPositions() { return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007C2E48); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E58); }
 // The ambient level the lights' colours are set with (0079BE9C, float bits), the "crown" option
 // (0079BD28), the flags an animated mesh's drawer gets (00790C0C) and the renderer (007AF060).
@@ -521,15 +521,15 @@ void Light(Part& part) {
     std::uint32_t ambient = AmbientBits();
     for (int i = 0; i < part.lights->count; ++i) {
         CLight* light = part.lights->data[i];
-        float moved[3];
-        TransformPoint(g_lastInverse, &light->position_.x, moved);
-        std::memcpy(&light->localPosition_, moved, sizeof(moved));
+        Vector3 moved;
+        TransformPoint(g_lastInverse, &light->position_.x, &moved.x);
+        std::memcpy(&light->localPosition_, &moved, sizeof(moved));
         LightForMaterial(light, nullptr, part.material, ambient);
     }
     if (CLight* sun = worlddata::SceneSun()) {
-        float moved[3];
-        TransformSun(g_lastInverse, &sun->direction_.x, moved);
-        std::memcpy(&sun->localDirection_, moved, sizeof(moved));
+        Vector3 moved;
+        TransformSun(g_lastInverse, &sun->direction_.x, &moved.x);
+        std::memcpy(&sun->localDirection_, &moved, sizeof(moved));
         LightForMaterial(sun, nullptr, part.material, ambient);
         transform->AddSun(sun);
     }
@@ -560,15 +560,15 @@ void Light(Part& part) {
 
 // The positions with the per-vertex offsets (CFigureMesh::offsets_) added, in 007C2E48.
 const void* MovedPositionsOf(CFigureMesh* mesh) {
-    lib::AlignedArray<PositionBlock>& moved = MovedPositions();
+    lib::AlignedArray<VertexPacket>& moved = MovedPositions();
     moved.SetSize(mesh->buffers_.vertexCount);
     std::memcpy(moved.data, mesh->buffers_.vertices, static_cast<std::size_t>(mesh->buffers_.vertexCount) * 64);
     for (int i = 0; i < mesh->offsets_.size; ++i) {
         const float* offset = &mesh->offsets_.data[i].x;
-        float* x = moved.data[i >> 2].v + (i & 3);
-        AddOffset(&offset[0], &x[0]);
-        AddOffset(&offset[1], &x[4]);
-        AddOffset(&offset[2], &x[8]);
+        VertexPacket& packet = moved.data[i >> 2];
+        AddOffset(&offset[0], &packet.block[0][i & 3]);
+        AddOffset(&offset[1], &packet.block[1][i & 3]);
+        AddOffset(&offset[2], &packet.block[2][i & 3]);
     }
     return moved.data;
 }
@@ -680,7 +680,7 @@ int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* dev
               owner ? reinterpret_cast<CLinkMesh*>(owner->figure) : nullptr, 0};
     if (!(Guard() & 1)) {
         Guard() |= 1;
-        MovedPositions() = lib::AlignedArray<PositionBlock>{};
+        MovedPositions() = lib::AlignedArray<VertexPacket>{};
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(kFreeMovedPositions));
     }
 

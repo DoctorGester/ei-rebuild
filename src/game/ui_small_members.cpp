@@ -124,10 +124,10 @@ EI_REPLACE_METHOD(0x00625510, CTradePanel::Bought);
 CItem* CItemInfoPanel::FirstItem() const { return itemCount_ ? items_[0] : nullptr; }
 EI_REPLACE_METHOD(0x005EE720, CItemInfoPanel::FirstItem);
 
-void CUiMesh::SetScaleYBits(std::uint32_t bits) { std::memcpy(&scaleMatrix_[5], &bits, sizeof(bits)); }
+void CUiMesh::SetScaleYBits(std::uint32_t bits) { std::memcpy(&scaleMatrix_.m[5], &bits, sizeof(bits)); }
 EI_REPLACE_METHOD(0x005E7090, CUiMesh::SetScaleYBits);
 
-float CUiMesh::GetScaleX() const { return scaleMatrix_[0]; }
+float CUiMesh::GetScaleX() const { return scaleMatrix_.m[0]; }
 EI_REPLACE_METHOD(0x005E70B0, CUiMesh::GetScaleX);
 
 // --- Member constructors and destructors -----------------------------------------------------------------

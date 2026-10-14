@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/vecmath.h"
 #include "originals_engine.h"
 #include "originals_world.h"
 
@@ -134,7 +135,7 @@ void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
     points[i].pos = {cx, cy, cz};
     points[i].base = {cx, cy, cz};
 
-    double inverse = D(EI_ONE) / x87::fsqrt(D(dir.y) * D(dir.y) + D(dir.x) * D(dir.x) + D(EI_QUARTER));
+    double inverse = D(EI_ONE) / x87::fsqrt(LengthSquared2DUnrounded<double>(dir.y, dir.x) + D(EI_QUARTER));
     dir.x = Store(inverse * D(dir.x));
     dir.y = Store(D(dir.y) * inverse);
     double halfInverse = inverse * D(EI_HALF);
@@ -333,14 +334,14 @@ void PlaceModifierPoints(CParticleSource* s) {
             x = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
             y = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
             z = Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE);
-            double dot = (D(axis.z) * z + D(axis.y) * D(y)) + D(axis.x) * D(x);
+            double dot = DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, x, y, z);
             float px = Store(D(axis.x) * dot);
             float py = Store(D(axis.y) * dot);
             double pz = dot * D(axis.z);
             x = Store(D(x) - D(px));
             y = Store(D(y) - D(py));
             z = z - pz;
-            lengthSq = (z * z + D(y) * D(y)) + D(x) * D(x);
+            lengthSq = LengthSquaredUnrounded<Sum3::ZYX, double>(x, y, z);
             if (NonZero(lengthSq)) break;
         }
         double scale = D(twice) / x87::fsqrt(lengthSq);

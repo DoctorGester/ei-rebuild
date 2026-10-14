@@ -16,6 +16,8 @@
 #include <windows.h>
 #include <ddraw.h>
 
+#include "../game/texture.h"   // CDXSurface, CTexture
+
 #include <cstring>
 #include <unordered_map>
 
@@ -470,8 +472,8 @@ void ReadWindow(Texture& t, const void* holder, void* surface, bool keyed, std::
 }
 
 void* SurfaceOf(const void* holder) {
-    // A CDXSurface: +0x10 its IDirectDrawSurface7.
-    return holder ? *reinterpret_cast<void* const*>(static_cast<const char*>(holder) + 0x10) : nullptr;
+    // A CDXSurface: its IDirectDrawSurface7.
+    return holder ? static_cast<const CDXSurface*>(holder)->surface : nullptr;
 }
 
 } // namespace
@@ -673,9 +675,9 @@ const Picture* PictureOf(const void* holder) {
 }
 
 sg_view TextureView(const void* texture) {
-    // CTexture +0x5C: the counted surface holder (CDXSurface).
+    // The texture's counted surface holder (CDXSurface).
     if (!texture) return White().view;
-    return SurfaceView(*reinterpret_cast<const void* const*>(static_cast<const char*>(texture) + 0x5C));
+    return SurfaceView(static_cast<const CTexture*>(texture)->surface_);
 }
 
 sg_view WindowSurfaceView(const void* holder, bool keyed, std::uint32_t key, int* width, int* height) {

@@ -2,10 +2,12 @@
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "originals_core.h"
 #include "originals_ui.h"
+#include "ui_widescreen.h"
 #include "originals_units.h"
 #include "originals_render.h"
 
@@ -87,8 +89,15 @@ BOOL CUiRegion::HasActiveTip() const {
 }
 EI_REPLACE_METHOD(0x005FC660, CUiRegion::HasActiveTip);
 
+// Rebirth's WideScreen replaces SetRect and AddPoint (addon's 100230F0, and 100232CC before the
+// original's body from 005FCA79): x is moved by the panel offset its panel builders set
+// (ui_widescreen.h; 0 outside them, and always 0 until those builders are ported, W2-W4).
 void CUiRegion::SetRect(int left, int top, int right, int bottom) {
     points_.RemoveAll();
+    if (widescreen::Active()) {
+        left += widescreen::PanelOffset();
+        right += widescreen::PanelOffset();
+    }
     bounds_.left = left;
     bounds_.right = right;
     bounds_.top = top;
@@ -97,6 +106,7 @@ void CUiRegion::SetRect(int left, int top, int right, int bottom) {
     rectOnly_ = true;
 }
 EI_REPLACE_METHOD(0x005FC9E0, CUiRegion::SetRect);
+EI_REBIRTH_IMPLEMENTS(0x005FC9E0, ei::rebirth::Patch::WideScreen);
 
 void CUiRegion::ClearShape() {
     points_.RemoveAll();
@@ -106,6 +116,7 @@ void CUiRegion::ClearShape() {
 EI_REPLACE_METHOD(0x005FCA40, CUiRegion::ClearShape);
 
 void CUiRegion::AddPoint(int x, int y) {
+    if (widescreen::Active()) x += widescreen::PanelOffset();
     if (points_.size == 0) {
         bounds_.left = x;
         bounds_.top = y;
@@ -125,6 +136,7 @@ void CUiRegion::AddPoint(int x, int y) {
     if (points_.size > 2) enabled_ = true;
 }
 EI_REPLACE_METHOD(0x005FCA70, CUiRegion::AddPoint);
+EI_REBIRTH_IMPLEMENTS(0x005FCA70, ei::rebirth::Patch::WideScreen);
 
 void CUiRegion::OnMouseMove(int x, int y) {
     if (!tip_) return;

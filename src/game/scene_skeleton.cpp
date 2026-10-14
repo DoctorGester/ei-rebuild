@@ -169,9 +169,9 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
         for (int i = 0; i < positions.size; ++i) {
             Vector3& p = reinterpret_cast<Vector3&>(positions.data[i]);   // the file's bits as floats
             p = p - pivot;
-            float rx = (m00 * p.x + m01 * p.y) + m02 * p.z;
-            float ry = (m11 * p.y + m10 * p.x) + m12 * p.z;
-            float rz = (m21 * p.y + m20 * p.x) + m22 * p.z;
+            float rx = DotUnrounded<Sum3::XYZ>(m00, m01, m02, p.x, p.y, p.z);
+            float ry = DotUnrounded<Sum3::XYZ>(m10, m11, m12, p.x, p.y, p.z);
+            float rz = DotUnrounded<Sum3::XYZ>(m20, m21, m22, p.x, p.y, p.z);
             p = {rx, ry, rz};
         }
         q.x = -q.x;

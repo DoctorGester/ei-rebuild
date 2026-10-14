@@ -362,6 +362,15 @@ static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
 static_assert(offsetof(CInterface3D, hudPanelsIn_) == 0x89 && offsetof(CInterface3D, hudTopPage_) == 0x90);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94 && offsetof(CInterface3D, messages_) == 0x84);
 static_assert(offsetof(CInterface3D, stackBegin_) == 0x34);
+
+// The hooks of the scaling functions 005F7CA0, 005F7D20, 005F7DA0, 005F7E00 and 005F7E30
+// (ui_interface.cpp): the CInterface3D methods, except that with Rebirth's WideScreen code addon's
+// own callers reach them with ECX 0 (no interface): then the wide scaling without the margin.
+int __fastcall ScaleRectToScreenEntry(const CInterface3D* self, void*, RECT* rect);
+int __fastcall ScalePointToScreenEntry(const CInterface3D* self, void*, POINT* point);
+int __fastcall ScaleRectFromScreenEntry(const CInterface3D* self, void*, RECT* rect);
+int __fastcall ScalePointFromScreenEntry(const CInterface3D* self, void*, POINT* point);
+int __fastcall ScalePointFromScreenCopyEntry(const CInterface3D* self, void*, POINT* point);
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
 static_assert(offsetof(CInterface3D, messageText_) == 0xA4 && offsetof(CInterface3D, savedText_) == 0xAC);
@@ -1595,7 +1604,7 @@ public:
     // ((x / z / 0.4816 + 1) * 400, y / z / 0.4816 * 400 + 300; each stored as float) and the depth
     // (z, copied).
     void GetPlacement(float* x, float* y, float* depth) const;
-    // 005E6FA0 (Rebirth-patched, not rewritten). Puts the sprite at layout point (x, y) at
+    // 005E6FA0 through its address (PlaceBody is the rewrite; Rebirth patches it). Puts the sprite at layout point (x, y) at
     // `depth` in front of the interface camera (sets the local position +0x1C).
     void Place(float x, float y, float depth);
     // 005E70E0 / 005E7D60 (Rebirth-patched, not rewritten). Make the sprite a textured
@@ -1632,11 +1641,12 @@ public:
     // other two are points relative to it in units of `scale`; the texels are floats here.
     void SetTriangleVanilla(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
                             float v0, float u1, float v1, float u2, float v2);
-    // 005E6FA0 (RET 0xC; Rebirth-patched, its widescreen version replaces it; this is the vanilla
-    // body, hooked in the vanilla launch only; ui_mesh_draw.cpp). Place: position_ =
+    // 005E6FA0 (RET 0xC; ui_mesh_draw.cpp). Place: position_ =
     // ((x * 0.0025 - 1) * 0.4816 * depth, (y * 0.0025 - 0.75) * 0.4816 * depth, depth), the
-    // constants read from 0074015C, 0073B84C, 0073C524 and 00740158; `depth` copied as bits.
-    void PlaceVanilla(float x, float y, float depth);
+    // constants read from 0074015C, 0073B84C, 0073C524 and 00740158; `depth` copied as bits. With
+    // Rebirth's WideScreen x is moved by the panel offset first (ui_widescreen.h); callers still
+    // call it through its address (SpritePlaceOriginal) while addon's other code calls it too.
+    void PlaceBody(float x, float y, float depth);
     // 005E7060 (RET 4; ui_hud_highlight.cpp). The three scale fields = `scale` (copied as bits;
     // EAX is left holding them, callers do not read it).
     void SetScale(float scale);
@@ -1663,7 +1673,7 @@ public:
     std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion orientation_;         // +0x34 (the HUD's face models turn with it)
     std::uint8_t unknown_044[0x54 - 0x44];
-    float placement_[16];            // +0x54 row-major 4x4: orientation and position (Draw writes it)
+    Matrix4 placement_;              // +0x54 row-major 4x4: orientation and position (Draw writes it)
     std::uint8_t unknown_094[0xCC - 0x94];
     float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
@@ -1700,10 +1710,10 @@ public:
     float unknown_230[3];            // +0x230 zero (Create)
     // A row-major 4x4 matrix applied after the placement (Draw); its diagonal elements 0, 5 and 10
     // are the scale 005E7060 sets (the same value in all three).
-    float scaleMatrix_[16];          // +0x23C
-    float& ScaleX() { return scaleMatrix_[0]; }
-    float& ScaleY() { return scaleMatrix_[5]; }
-    float& ScaleZ() { return scaleMatrix_[10]; }
+    Matrix4 scaleMatrix_;            // +0x23C
+    float& ScaleX() { return scaleMatrix_.m[0]; }
+    float& ScaleY() { return scaleMatrix_.m[5]; }
+    float& ScaleZ() { return scaleMatrix_.m[10]; }
     CEngineObject* material_;        // +0x27C the window's black material (CUiWindow +0xEC)
     CEngineObject* texture_;         // +0x280 one of the window's referenced objects (+0xF8)
 };

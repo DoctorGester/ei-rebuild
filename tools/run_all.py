@@ -1,8 +1,20 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
-usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only] [--no-hooks]
+usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth | --native] [--no-hooks]
                                [--jobs N] [--retries N] [--verified-candidates N]
+       python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
+                   Every scenario runs on vanilla; under Rebirth only those config/rebirth_scenarios.csv
+                   marks (tools/rebirth_coverage.py: the fewest that reach every function Rebirth patches
+                   twice) and any it does not list yet. Named scenarios and --all-rebirth run under both.
+  --native         only the install without dgVoodoo (run\\native, tools/setup_native_run.cmd), with
+                   EI_RENDER=new,present: the game has no DirectDraw or Direct3D 7 device and the new
+                   renderer presents through its own swap chain (docs/notes/renderer.md section 9)
+  --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"):
+                   the scenarios (default ui_widescreen; they set the wide mode with the harness's
+                   "resolution" / "widescreen" steps) under Rebirth twice, with our hooks
+                   (<scenario>-rebirth) and without (<scenario>-rebirth-nohooks: addon's code only),
+                   then tools/compare_frames.py on the two runs' frames
   --jobs N         games running at once (default 16); all runs on the machine together never
                    exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei_hook.log, harness_report.txt and
@@ -26,6 +38,7 @@ RUNS = os.path.join(BUILD, 'runs')
 # Each run's seconds from the last suite: the longest start first, so the last games to finish are
 # short ones (alphabetical order left a 50 s run for the end).
 TIMES = os.path.join(BUILD, 'run_times.json')
+NATIVE_EXE = os.path.join(ROOT, 'run', 'native', 'game.exe')
 
 # Games running at once on this machine, over every checkout and every run_all (2026-10-14: three
 # workers' suites, 24 games of ~640 MB video memory each rendering without a frame limit, hung the
@@ -56,15 +69,19 @@ def machine_slot():
         time.sleep(0.5)
 
 
-def run(name, install, hooks):
+def run(name, install, hooks, folder=None):
     scenario = os.path.join(ROOT, 'tests', 'scenarios', name + '.txt')
-    out = os.path.join(RUNS, f'{name}-{install}')
+    out = os.path.join(RUNS, folder or f'{name}-{install}')
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out, exist_ok=True)
     prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
     cmd = [LAUNCH, '--harness', scenario, '--out', out]
+    env = None
     if install == 'vanilla':
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(ROOT, 'run', 'vanilla', 'game.exe')]
+    elif install == 'native':
+        cmd += ['--game', r'F:\games\EvilIslands', '--exe', NATIVE_EXE]
+        env = dict(os.environ, EI_RENDER='new,present')
     elif os.path.exists(os.path.join(ROOT, 'run', 'rebirth', 'game.exe')):
         # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
         cmd += ['--exe', os.path.join(ROOT, 'run', 'rebirth', 'game.exe')]
@@ -72,7 +89,7 @@ def run(name, install, hooks):
         cmd.append('--no-hooks')
     with machine_slot():
         start = time.time()
-        proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace')
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env)
         seconds = time.time() - start
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
@@ -83,21 +100,61 @@ def run(name, install, hooks):
         m = re.match(r'(.+?)\s+(\d+) calls\s+(\d+) mismatches$', line)
         if m:
             counts[m.group(1).strip()] = (int(m.group(2)), int(m.group(3)))
-    notes = [l for l in (proc.stdout + proc.stderr).splitlines() if 'terminating' in l or 'not found' in l]
+    notes = [l for l in (proc.stdout + proc.stderr).splitlines() if 'terminating' in l or 'not found' in l or 'open window' in l]
+    notes += [l for l in report.splitlines() if l.startswith('EXIT: ')]   # a message box after quit
     return result, seconds, failures, counts, notes
 
 
-def run_with_retries(name, install, hooks, retries):
-    result, seconds, failures, counts, notes = run(name, install, hooks)
+def run_with_retries(name, install, hooks, retries, folder=None):
+    result, seconds, failures, counts, notes = run(name, install, hooks, folder)
     first_failures = failures
     for _ in range(retries):
         if result == 'PASS' or any(bad for _, bad in counts.values()):   # never retry away a mismatch
             break
-        result, seconds, failures, counts, notes = run(name, install, hooks)
+        result, seconds, failures, counts, notes = run(name, install, hooks, folder)
         if result == 'PASS':
             result = 'PASS*'
             failures = ['first run: ' + '; '.join(first_failures[:2])]
     return result, seconds, failures, counts, notes
+
+
+def compare_widescreen(name):
+    """--widescreen: each frame of <name>-rebirth against <name>-rebirth-nohooks (tools/compare_frames.py).
+    A frame <f> with a <f>_later (captured after the clocks ran on) is compared without what moved
+    between the two in either run (animations whose phase differs between runs: the hero, his
+    portrait, the global map's clouds), so that what is compared is the interface."""
+    ours, addons = (os.path.join(RUNS, f'{name}-{i}', 'frames') for i in ('rebirth', 'rebirth-nohooks'))
+    diffs = os.path.join(RUNS, f'{name}-rebirth', 'frames_diff')
+    os.makedirs(diffs, exist_ok=True)
+    frames = sorted(f[:-4] for f in os.listdir(ours) if f.endswith('.bmp')) if os.path.isdir(ours) else []
+    if not frames:
+        print('no frames to compare')
+        return False
+    ok = True
+    for frame in frames:
+        if frame.endswith('_later'):
+            continue
+        a, b = os.path.join(ours, frame + '.bmp'), os.path.join(addons, frame + '.bmp')
+        cmd = [sys.executable, os.path.join(ROOT, 'tools', 'compare_frames.py'), a, b, '--worst', '4',
+               '--diff', os.path.join(diffs, frame + '.bmp')]
+        later_a, later_b = os.path.join(ours, frame + '_later.bmp'), os.path.join(addons, frame + '_later.bmp')
+        if os.path.exists(later_a) and os.path.exists(later_b):
+            cmd += ['--exclude', a, later_a, '--exclude', b, later_b, '--exclude-grow', '8']
+        sys.stdout.flush()
+        ok = subprocess.run(cmd).returncode == 0 and ok
+    return ok
+
+
+def rebirth_scenarios(names):
+    """The scenarios that also run under Rebirth: marked 1 in config/rebirth_scenarios.csv, or not in it."""
+    path = os.path.join(ROOT, 'config', 'rebirth_scenarios.csv')
+    listed = {}
+    if os.path.exists(path):
+        for line in open(path):
+            parts = line.strip().split(',')
+            if len(parts) >= 2 and parts[1] in ('0', '1'):
+                listed[parts[0]] = parts[1] == '1'
+    return {n for n in names if listed.get(n, True)}
 
 
 def main():
@@ -105,7 +162,10 @@ def main():
     ap.add_argument('scenarios', nargs='*')
     ap.add_argument('--vanilla-only', action='store_true')
     ap.add_argument('--rebirth-only', action='store_true')
+    ap.add_argument('--all-rebirth', action='store_true')
+    ap.add_argument('--native', action='store_true')
     ap.add_argument('--no-hooks', action='store_true')
+    ap.add_argument('--widescreen', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--jobs', type=int, default=16)
@@ -115,7 +175,15 @@ def main():
     installs = ['vanilla', 'rebirth']
     if args.vanilla_only: installs = ['vanilla']
     if args.rebirth_only: installs = ['rebirth']
-    jobs = [(name, install) for name in names for install in installs]
+    if args.native:
+        installs = ['native']
+        if not os.path.exists(NATIVE_EXE):
+            sys.exit(f'{NATIVE_EXE} is missing: run tools\\setup_native_run.cmd first')
+    rebirth = set(names) if args.scenarios or args.all_rebirth or args.rebirth_only else rebirth_scenarios(names)
+    jobs = [(name, install) for name in names for install in installs if install != 'rebirth' or name in rebirth]
+    if args.widescreen:
+        names = args.scenarios or ['ui_widescreen']
+        jobs = [(name, install) for name in names for install in ('rebirth', 'rebirth-nohooks')]
     try:
         times = json.load(open(TIMES))
     except (OSError, ValueError):
@@ -139,7 +207,9 @@ def main():
         return text
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
-        futures = {pool.submit(run_with_retries, n, i, not args.no_hooks, args.retries): (n, i) for n, i in order}
+        # (--widescreen's "rebirth-nohooks": Rebirth without our hooks, in its own folder)
+        futures = {pool.submit(run_with_retries, n, i.split('-')[0], not args.no_hooks and not i.endswith('-nohooks'),
+                               args.retries, f'{n}-{i}'): (n, i) for n, i in order}
         for future in concurrent.futures.as_completed(futures):
             name, install = futures[future]
             result, seconds, failures, counts, notes = future.result()
@@ -160,11 +230,20 @@ def main():
         print('\nnot passed:')
         for n, i in failed:
             print(line(n, i, *results[(n, i)]))
+    exits = [(n, i) for n, i in jobs if any(x.startswith('EXIT: ') for x in results[(n, i)][3])]
+    if exits:
+        print(f'\n{len(exits)} run(s) showed a message box after the scenario quit (EXIT: lines; stack in ei_hook.log): '
+              + ', '.join(f'{n}-{i}' for n, i in exits))
     bad = sorted((fn, c) for fn, c in totals.items() if c[1])
     if bad:
         print('\nverify mismatches:')
         for fn, (calls, mismatches) in bad:
             print(f'  {fn}: {mismatches} of {calls}')
+    if args.widescreen:
+        for name in names:
+            print(f'\nframes of {name}: ours (rebirth) against addon\'s alone (rebirth-nohooks)')
+            sys.stdout.flush()
+            ok = compare_widescreen(name) and ok
     if args.verified_candidates:
         print(f'\nfunctions with >= {args.verified_candidates} calls and no mismatch (names; map them to addresses '
               'in tests/verify/*.cpp before adding to verified.txt):')

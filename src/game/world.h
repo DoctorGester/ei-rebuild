@@ -776,7 +776,7 @@ public:
     CFileRegistry* Messages() { return reinterpret_cast<CFileRegistry*>(messages_); }
     int unknown15C_;                      // +0x15C cleared when a .mob file fails to load
     int unknown160_;                      // +0x160 non-zero: Tick runs the first command queue
-    float startPosition_[3];              // +0x164 where joining players start (0058DAF0)
+    Vector3 startPosition_;               // +0x164 where joining players start (0058DAF0)
     std::uint8_t aiMap_[0x290 - 0x170];   // +0x170 CAIMap (ai_map.h; the global 007B00D0); extent unknown
     CAIMap* AIMap() { return reinterpret_cast<CAIMap*>(aiMap_); }
     float gridHeightScale_;               // +0x290
@@ -864,10 +864,10 @@ struct Platform {
     float x, y;                           // +0x04 centre of the bounding circle
     float z;                              // +0x0C
     float radius;                         // +0x10
-    float origin[3];                      // +0x14
-    float axisU[3];                       // +0x20 local u axis
-    float axisV[3];                       // +0x2C local v axis
-    float normal[3];                      // +0x38
+    Vector3 origin;                       // +0x14
+    Vector3 axisU;                        // +0x20 local u axis
+    Vector3 axisV;                        // +0x2C local v axis
+    Vector3 normal;                       // +0x38
     float sizeU, sizeV;                   // +0x44 extent along u and v
 };
 static_assert(sizeof(Platform) == 0x4C);
@@ -894,7 +894,7 @@ struct PlatformSet {
     // `c` and `normal` when normal.z >= 0.8: origin a, unit axes (b - a) / |b - a| and (c - a) /
     // |c - a|, the two lengths, the normal; *out = the new record (its id, centre and radius are the
     // caller's), null when the face is too steep. Returns 1 when added.
-    int AddFace(const float* a, const float* b, const float* c, const float* normal, Platform** out);
+    int AddFace(const Vector3* a, const Vector3* b, const Vector3* c, const Vector3* normal, Platform** out);
     // 00560820 (RET 0x10; called by CWorldClient::AddObject). The platform item `item` (+4
     // offset, +0x10 radius, +0x14 / +0x20 the box's corners, +0x2C pivot) of object `id` placed at
     // `position` with the rotation quaternion `rotation` (w, x, y, z): the box's corners and the six
@@ -1264,9 +1264,9 @@ public:
                        char withScripted);
     // 0056BF30 (RET 0xC). The ground point under screen pixel (x, y): inverts the current view
     // matrix and iterates on the terrain height (Terrain::HeightAt). Returns out (x, y, z).
-    float* PickGround(float* out, int x, int y);
+    Vector3* PickGround(Vector3* out, int x, int y);
     // 0056C350 (RET 0xC). Same with the client's surface height (slot 29: platforms included).
-    float* PickSurface(float* out, int x, int y);
+    Vector3* PickSurface(Vector3* out, int x, int y);
 
     // world_client_maps.cpp
     // 005647E0 (RET 4). Files an object in the client's maps: an object whose id is already in the

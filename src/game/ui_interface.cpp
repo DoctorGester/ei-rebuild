@@ -3,7 +3,9 @@
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "originals_ui.h"
+#include "ui_widescreen.h"
 
 #include <cstring>
 
@@ -28,7 +30,15 @@ __declspec(naked) int CInterface3D::CallScaleRectToScreen(RECT*) const EI_ORIGIN
 __declspec(naked) int CInterface3D::CallScalePointToScreen(POINT*) const EI_ORIGINAL(0x005F7D20)
 __declspec(naked) int CInterface3D::CallScalePointFromScreen(POINT*) const EI_ORIGINAL(0x005F7E00)
 
+// The scaling functions below are Rebirth's WideScreen too (ui_widescreen.h): with the flag on,
+// addon's versions. addon replaces the first two with JMPs to its code and writes the last three's
+// code over (with two entries of its own, 005F7D9E and 005F7DFE, that clear ECX first and skip
+// the margin; its patched mouse handlers 005EB210 and 00630010 call the second). Every one of them
+// skips the margin when called with ECX 0 (addon's code at 005FDE94 calls 005F7CA0 so): the
+// entries the hooks use, below, handle that.
+
 int CInterface3D::ScaleRectToScreen(RECT* rect) const {
+    if (widescreen::Active()) return widescreen::RectToScreen(rect, true);
     rect->left = Mul(rect->left, width_) / kLayoutWidth;
     rect->top = Mul(height_, rect->top) / kLayoutHeight;
     rect->right = Mul(rect->right, width_) / kLayoutWidth;
@@ -36,38 +46,79 @@ int CInterface3D::ScaleRectToScreen(RECT* rect) const {
     rect->bottom = bottom / kLayoutHeight;
     return DivideBy600Residue(bottom);
 }
-EI_REPLACE_METHOD(0x005F7CA0, CInterface3D::ScaleRectToScreen);
 
+// 005F7D60 is an identical copy of this function that nothing calls; addon points it at the same code
+// as this one. Not rewritten.
 int CInterface3D::ScalePointToScreen(POINT* point) const {
+    if (widescreen::Active()) return widescreen::PointToScreen(point, true);
     point->x = Mul(point->x, width_) / kLayoutWidth;
     int y = Mul(height_, point->y);
     point->y = y / kLayoutHeight;
     return DivideBy600Residue(y);
 }
-EI_REPLACE_METHOD(0x005F7D20, CInterface3D::ScalePointToScreen);
 
 int CInterface3D::ScaleRectFromScreen(RECT* rect) const {
+    if (widescreen::Active()) return widescreen::RectFromScreen(rect, true);
     rect->left = Mul(rect->left, kLayoutWidth) / width_;
     rect->top = Mul(rect->top, kLayoutHeight) / height_;
     rect->right = Mul(rect->right, kLayoutWidth) / width_;
     rect->bottom = Mul(rect->bottom, kLayoutHeight) / height_;
     return rect->bottom;
 }
-EI_REPLACE_METHOD(0x005F7DA0, CInterface3D::ScaleRectFromScreen);
 
 int CInterface3D::ScalePointFromScreen(POINT* point) const {
+    if (widescreen::Active()) return widescreen::PointFromScreen(point, true);
     point->x = Mul(point->x, kLayoutWidth) / width_;
     point->y = Mul(point->y, kLayoutHeight) / height_;
     return point->y;
 }
-EI_REPLACE_METHOD(0x005F7E00, CInterface3D::ScalePointFromScreen);
 
 int CInterface3D::ScalePointFromScreenCopy(POINT* point) const {
+    if (widescreen::Active()) return widescreen::PointFromScreen(point, true);
     point->x = Mul(point->x, kLayoutWidth) / width_;
     point->y = Mul(point->y, kLayoutHeight) / height_;
     return point->y;
 }
-EI_REPLACE_METHOD(0x005F7E30, CInterface3D::ScalePointFromScreenCopy);
+
+// The hooks: with Rebirth's code in place these are also reached with ECX 0, i.e. without an
+// interface (addon's entries 005F7D9E / 005F7DFE, its code at 005FDE94; ui_widescreen.h).
+int __fastcall ScaleRectToScreenEntry(const CInterface3D* self, void*, RECT* rect) {
+    if (!self && widescreen::Active()) return widescreen::RectToScreen(rect, false);
+    return self->CInterface3D::ScaleRectToScreen(rect);
+}
+EI_REPLACE(0x005F7CA0, ScaleRectToScreenEntry);
+EI_REBIRTH_IMPLEMENTS(0x005F7CA0, ei::rebirth::Patch::WideScreen);
+
+int __fastcall ScalePointToScreenEntry(const CInterface3D* self, void*, POINT* point) {
+    if (!self && widescreen::Active()) return widescreen::PointToScreen(point, false);
+    return self->CInterface3D::ScalePointToScreen(point);
+}
+EI_REPLACE(0x005F7D20, ScalePointToScreenEntry);
+EI_REBIRTH_IMPLEMENTS(0x005F7D20, ei::rebirth::Patch::WideScreen);
+
+int __fastcall ScalePointFromScreenCopyEntry(const CInterface3D* self, void*, POINT* point) {
+    if (!self && widescreen::Active()) return widescreen::PointFromScreen(point, false);
+    return self->CInterface3D::ScalePointFromScreenCopy(point);
+}
+EI_REPLACE(0x005F7E30, ScalePointFromScreenCopyEntry);
+EI_REBIRTH_IMPLEMENTS(0x005F7E30, ei::rebirth::Patch::WideScreen);
+EI_REBIRTH_LIVE_STOLEN(0x005F7E30);
+
+int __fastcall ScaleRectFromScreenEntry(const CInterface3D* self, void*, RECT* rect) {
+    if (!self && widescreen::Active()) return widescreen::RectFromScreen(rect, false);
+    return self->CInterface3D::ScaleRectFromScreen(rect);
+}
+EI_REPLACE(0x005F7DA0, ScaleRectFromScreenEntry);
+EI_REBIRTH_IMPLEMENTS(0x005F7DA0, ei::rebirth::Patch::WideScreen);
+EI_REBIRTH_LIVE_STOLEN(0x005F7DA0);
+
+int __fastcall ScalePointFromScreenEntry(const CInterface3D* self, void*, POINT* point) {
+    if (!self && widescreen::Active()) return widescreen::PointFromScreen(point, false);
+    return self->CInterface3D::ScalePointFromScreen(point);
+}
+EI_REPLACE(0x005F7E00, ScalePointFromScreenEntry);
+EI_REBIRTH_IMPLEMENTS(0x005F7E00, ei::rebirth::Patch::WideScreen);
+EI_REBIRTH_LIVE_STOLEN(0x005F7E00);
 
 CUiWindow* CInterface3D::GetActiveWindow() const {
     return stackBegin_ != stackEnd_ ? stackEnd_[-1] : nullptr;

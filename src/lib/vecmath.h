@@ -287,16 +287,30 @@ __forceinline float DistanceZXY(const Vector3& a, const Vector3& b) { return Dis
 // Quaternions: the products stay written out at each site (their term orders vary, V1 notes).
 __forceinline Quaternion Conjugate(const Quaternion& q) { return {q.w, -q.x, -q.y, -q.z}; }
 
-// The rotated Y axis of q as the game's inlined copies of Quaternion::AxisY compute it (00547280,
-// 005CA410): (2(yx - wz), (w^2 - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each doubling an addition,
-// each component rounded to float (they store it before negating). Precise: /fp:fast had turned
-// these ports' written-out 2(yz + wx) into (2wx + yz) + yz (a second rounding) and 005CA410's
-// -2(yx - wz) into (wz - yx) + (wz - yx) (+0 where the original's FCHS gives -0; V3c).
+// The rotated Y axis of q as Quaternion::AxisY 0040F560 and the game's inlined copies of it compute
+// it (00547280, 005CA410): (2(yx - wz), (w^2 - ((x^2 + z^2) + y^2)) + 2y^2, 2(yz + wx)), each
+// doubling an addition (FADD ST0, ST0), each component rounded to float (they store it before
+// negating), nothing stored before that. Precise: /fp:fast had turned these ports' written-out
+// 2(yz + wx) into (2wx + yz) + yz (a second rounding) and 005CA410's -2(yx - wz) into
+// (wz - yx) + (wz - yx) (+0 where the original's FCHS gives -0; V3c). No float locals: a precise
+// body rounds them through memory, which the originals do not (V3e).
 __forceinline Vector3 RotatedAxisY(const Quaternion& q) {
-    float a = q.y * q.x - q.w * q.z;
-    float yy = q.y * q.y;
-    float c = q.y * q.z + q.w * q.x;
-    return {a + a, (q.w * q.w - ((q.x * q.x + q.z * q.z) + yy)) + (yy + yy), c + c};
+    return {(q.y * q.x - q.w * q.z) * 2.0f, (q.w * q.w - ((q.x * q.x + q.z * q.z) + q.y * q.y)) + q.y * q.y * 2.0f,
+            (q.y * q.z + q.w * q.x) * 2.0f};
+}
+
+// The X and Z axes in the orders of Quaternion::AxisX 0040D940 / AxisZ 0040D6B0, each component
+// rounded to float as those store it (V3e). Precise for the same reason: inlined into /fp:fast code,
+// `(z * x + y * w) * 2` was regrouped into (2zx + yw) + yw. By reference: a precise inlined body
+// spills scalar arguments to memory.
+__forceinline Vector3 RotatedAxisX(const Quaternion& q) {
+    float xx = q.x * q.x;   // a float temporary in the original
+    return {(q.w * q.w - ((q.z * q.z + q.y * q.y) + xx)) + xx * 2.0f, (q.y * q.x + q.w * q.z) * 2.0f,
+            (q.x * q.z - q.y * q.w) * 2.0f};
+}
+__forceinline Vector3 RotatedAxisZ(const Quaternion& q) {
+    return {(q.z * q.x + q.y * q.w) * 2.0f, (q.z * q.y - q.w * q.x) * 2.0f,
+            (q.w * q.w - ((q.x * q.x + q.y * q.y) + q.z * q.z)) + q.z * q.z * 2.0f};
 }
 
 #pragma float_control(pop)
@@ -341,6 +355,22 @@ __forceinline T DotUnrounded(T x, T y, T z, T x2, T y2, T z2) {
 
 template <Sum3 O, typename T>
 __forceinline T LengthSquaredUnrounded(T x, T y, T z) { return DotUnrounded<O, T>(x, y, z, x, y, z); }
+
+// The Vector3 forms (V3d; LengthSquaredUnrounded<Sum3::XYZ, double>(v)). `double` gives a precise
+// region's unrounded product: a float-typed one there rounds the result on return. T defaults to
+// float for /fp:fast callers (V3e).
+template <Sum3 O, typename T = float>
+__forceinline T DotUnrounded(const Vector3& a, const Vector3& b) { return DotUnrounded<O, T>(a.x, a.y, a.z, b.x, b.y, b.z); }
+
+template <Sum3 O, typename T = float>
+__forceinline T LengthSquaredUnrounded(const Vector3& v) { return DotUnrounded<O, T>(v.x, v.y, v.z, v.x, v.y, v.z); }
+
+// The 4-term quaternion dot ((w * w' + z * z') + y * y') + x * x' in T (Slerp 0049ED20's order; V3e).
+template <typename T>
+__forceinline T DotWZYXUnrounded(const Quaternion& a, const Quaternion& b) {
+    return ((static_cast<T>(a.w) * b.w + static_cast<T>(a.z) * b.z) + static_cast<T>(a.y) * b.y) +
+           static_cast<T>(a.x) * b.x;
+}
 
 // A rotated axis of a quaternion with its components unrounded in T (AxisXUnrounded: the inlined
 // copies of Quaternion::AxisX 0040D940 that keep them on the FPU).

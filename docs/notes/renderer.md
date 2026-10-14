@@ -32,13 +32,19 @@ the full text is the header of `src/render/render.h`.
 | `show` / `split` | a child window over the client area shows the new frame (mouse passes through: `HTTRANSPARENT`); `split` covers the right half only |
 | `noterrain`, `noobjects`, `nointerface` | the old path stops drawing the terrain (DrawSectorPage returns after applying water levels) / the world's meshes and flat geometry (004EA4A0) / the interface's meshes and window blits |
 | `cpuwindows` / `nocpuwindows` | surface holders of 004EF7B0 (windows, software cursor, movies) and the system-memory picture holders of 004F0060 keep their pixels in memory the new renderer owns; on with `present` |
-| `present` | the switch-over: everything handed over is off in the old path, `cpuwindows` on, and at the old present (004EF610) the new frame is copied into the game's render target which the old Flip / BltFast shows; captures write the new frame as `frames\<name>.bmp` |
+| `present` | the switch-over: everything handed over is off in the old path, `cpuwindows` on; captures write the new frame as `frames\<name>.bmp`. On when the device object is built (`render::StartPresenting`, 004EDD70): the game has no DirectDraw or Direct3D 7 device and the new renderer presents through its own flip-model swap chain on the game window (section 9, R9a). Turned on later (a DirectDraw device exists): at the old present (004EF610) the new frame is copied into the game's render target which the old Flip / BltFast shows |
 
-Without `new` nothing in `src/render` runs. Harness steps `oldterrain`, `oldobjects`, `oldinterface` (on / off)
-switch the old path's parts during a run. dgVoodoo owns a flip-model DXGI swap chain on the game HWND (a second one
-fails), hence `present`'s copy and the child window of `show` / `split`, which work windowed only (under full screen
-the child's swap chain deactivates the game window, which then draws nothing and minimises). Presenting from our own
-swap chain needs dgVoodoo gone (section 9).
+Without `new` nothing in `src/render` runs. The harness step `render <spec>` adds the words of `EI_RENDER` to its
+own, so a run with `EI_RENDER=new,present` keeps the switch-over in every scenario; once the game is built without
+DirectDraw, `new,present,cpuwindows` stay on whatever a later spec says (logged). Harness steps `oldterrain`,
+`oldobjects`, `oldinterface` (on / off) switch the old path's parts during a run. Under dgVoodoo, dgVoodoo owns a
+flip-model DXGI swap chain on the game HWND (a second one fails), hence `present`'s copy into the render target there
+and the child window of `show` / `split`, which work windowed only (under full screen the child's swap chain
+deactivates the game window, which then draws nothing and minimises).
+
+Runs without dgVoodoo: `tools\setup_native_run.cmd` makes `run\native` (run\vanilla's files without DDraw.dll,
+D3DImm.dll, D3D8.dll, D3D9.dll and dgVoodoo.conf; a worktree without `run\` gets a junction to the main checkout's);
+`python tools\run_all.py --native <scenarios>` runs on it with `EI_RENDER=new,present`.
 
 ## 2. Frame structure of the game
 
@@ -283,11 +289,95 @@ game; 005E5690 and 005E5640 draw only with the software cursor option, which no 
 
 ## 9. What is left
 
-The old device still exists in the switch-over: the DirectDraw object (004EDD70), primary surface, render target and
+### R9a: the switch-over without DirectDraw (done)
+
+With `present` on when the renderer object is created (00500B70; `EI_RENDER`, or a scenario's `render` step), the
+game has no DirectDraw object, display mode, primary, render target, depth buffer, Direct3D object or device:
+- 00500B70 lists and tries no DirectDraw driver (null driver id). 004EDD70 starts the new renderer
+  (`render::StartPresenting`: the Direct3D 11 device; if that fails the DirectDraw device is built as before), loads
+  2DintMMX's converter, keeps the cooperative level's flags and screen rectangle, lists the one display mode, and
+  makes the primary and the render target two holders without a surface of the screen's width, height and bits
+  (counted like other holders; `GameTargetSize`, the screen copies and the `if (primary_) renderTarget_->width` reads
+  see the screen). No video FourCC probing.
+- 004E5E50 takes the IDirect3DDevice7 stand-in (HAL id, no depth formats, no depth buffer, no render target set),
+  sets the main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passes
+  DDSCL_FPUSETUP), builds the format table from the stand-in's fixed list (5:6:5, 1:5:5:5, 4:4:4:4, 8:8:8:8, DXT1,
+  DXT3: what dgVoodoo listed, minus DXT2/4/5), sets the viewport and records the four state blocks on it (handles
+  1..4, which `render::state::Block` knows by their addresses as before).
+- `src/game/device_null.cpp`: the two stand-ins in the device object's +0x0C / +0x54. They draw nothing; the
+  IDirect3DDevice7 one keeps the render and stage states (Direct3D 7 defaults at the start), feeds them to the mirror
+  (`render_state.h`; a read of a state the rewritten code never fed gets what the game really set), records,
+  applies, captures and deletes state blocks, answers GetCaps with fixed capabilities (8 stages, every texture
+  operation, 4096 textures, no sort-independent antialiasing) and counts SetTexture references. The IDirectDraw7 one
+  answers GetDisplayMode with the chosen mode in `device::ScreenFormat` (16 bits 5:6:5, else X8R8G8B8: what
+  dx_surface.cpp's ReadScreenFormat reads; the windows' colour keys, CUiSurface +0x34, are 0 or a COLORREF set
+  without the format, so they agree), GetCaps with 3D / texture / mipmap capabilities and no gamma or FourCC,
+  GetAvailableVidMem 256 MB (dgVoodoo's card), and refuses CreateSurface (logged: a holder made through 004EFA60 then
+  throws, as a failed DirectDraw call does). Every method logs its first call from each calling place
+  (`old device: IDirect3DDevice7::SetRenderState from game.exe 0050B22E`, or `ei_hook.dll+offset`, at most 400
+  lines): that log is R9b's list.
+- 004EF610 ends the frame (`render::Present`) and returns 0: `EndFrame` draws the frame into a flip-model swap chain
+  (FLIP_DISCARD, BGRA8, two buffers, `MakeWindowAssociation` without Alt+Enter / window changes) on the game window,
+  sized to its client area (`ResizeBuffers` when it changes), stretched over it, `Present(1, 0)` (with the vertical
+  blank). The movie players and the loading screen go through 004EF610 as before.
+- Guarded for surfaceless holders: `device::SameSurface` (both without a surface: the same only when one holder) in
+  005FDA80 (window blits: otherwise every window was skipped), the three movie players' "not the primary itself"
+  checks and CUiSurface::CaptureScreen; 00504780 (restore after a lost device) returns at once; the surface capture
+  006D6D40 (the Scroll Lock screenshot, the movie recorder) gives no bitmap for a holder without a surface (logged).
+- Not touched (the stand-ins answer): app.cpp's FlipToGDISurface, app_main's GetAvailableVidMem / RestoreAllSurfaces,
+  texture.cpp's video memory and largest texture, the cursor's WaitForVerticalBlank, 00504A60's gamma (no
+  DDCAPS2_PRIMARYGAMMA: returns false, no ramp), the camp's antialiasing GetCaps.
+
+What R9a leaves (R9c): full screen without a display mode change (the WS_POPUP window keeps the resolution's size at
+0, 0; a resolution below the desktop's shows in the corner), the gamma ramp, lost Direct3D 11 devices (DXGI errors
+are logged, nothing is recreated), the game's device re-creation on a resolution change (not exercised), Alt+Tab, the
+Scroll Lock screenshot from the new frame, the movie recorder. When R9a was written the native config had not been
+run (the worker could not run the game): Rebirth's patches (EI_Plugin) may call DirectDraw themselves, and the
+stand-ins' log is the first thing to read.
+
+### R9a2: the switch-over's scenarios run (done)
+
+R9a had never run a game. What the five `present` scenarios (render_present, render_movie_present,
+render_present_cpuwindows, render_titles_present, ui_saveload) hit, on the default suite and on `run_all --native`:
+- 00458270's screen clears with no primary surface (app_frame.cpp: nothing to fill, result 0).
+- The movie holders (bink_video.cpp `NewMovieHolder`, the players 005DB3F0 / 005DA400 / 005DBA50): 00784756 is
+  written by the game start (00456E35) from GetAvailableVidMem, and the stand-in's 256 MB clears it, so the
+  holders asked 004EFA60 for a video-memory surface, which the stand-in refused; the throw (no catch in the
+  rewrite) ended in the game's error box (hang at step 0). Without DirectDraw the holder is 004EF7B0's (only the
+  new renderer's memory); each Bink frame is copied into memory the renderer owns (`render::MovieFrame`) and
+  presented through 004EF610 -> `render::Present` on the window's swap chain.
+- Pictures loaded with the video-memory flag (004F0060, e.g. a 768x32 one at the game start) get the new
+  renderer's memory as the system-memory ones do (dx_surface.cpp).
+- The harness: windows are shown and made without activating them; dgVoodoo's exclusive cooperative level
+  activated the game window anyway, without DirectDraw nothing did, so the game's active flag (0079BC5C) and the
+  renderer's bit 0 stayed 0 and no frame was drawn ("no frame presented within 10 s"). The harness now sends one
+  WM_ACTIVATE (active) once the device object exists, only without DirectDraw (harness.cpp
+  `ActivateWithoutDirectDraw`). A player's own start is in the foreground and gets the activation from Windows.
+- Verify wrappers whose originals need DirectDraw run ours only without it: 004F0060 (its original's
+  CreateSurface is refused and it crashed), 005EC020 and 00655D40 (they write a texture lent through
+  `memory_texture::Lend`, which now refuses at once: `memory_texture::CanLend`, logged once), and through Lend's
+  refusal 005FFFB0 and 00656E10 as before.
+- The swap chain sizes itself to the client rectangle each frame; the hook makes the process system DPI aware at
+  WinMain (09ead405), so that rectangle is in physical pixels.
+
+Captures (compare_frames, tolerance 8): the new frames show the same scenes as the old path's (frames_basic,
+render_movie); the differences are what moves by itself (water, the global map's clouds, the clock, rain streaks:
+weather is not in the new frame), about 6% for after_movie against render_movie's own new frame and 20% between
+two `present` runs (vanilla / native: the water's phase). The old-device log of these runs (73 calling places,
+no refusals left) is R9b's list: state setting, state blocks, BeginScene / EndScene / Clear / SetTexture from the
+rewritten draws, the capability, display mode and memory queries, 0045715A's RestoreAllSurfaces.
+
+Still R9c's: the loading screen and the movie players still reach the present through 004EF610 (fine: it only
+ends the frame); full screen without a display mode change, gamma, lost Direct3D 11 devices, resolution changes,
+Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
+
+### Before R9a (reference)
+
+The old device existed in the switch-over: the DirectDraw object (004EDD70), primary surface, render target and
 depth buffer (004E6C30), the Direct3D device with its four state blocks and viewport (004E5E50), its texture format
 list (004E6EE0, read by FindFormat 004E7DA0 and ParseMmpHeader 004E7C40) and dgVoodoo's swap chain under them; the old
-Flip / BltFast still presents. To present from our own swap chain on the game window (dgVoodoo gone, no DirectDraw
-device at all):
+Flip / BltFast presented. The plan to present from our own swap chain on the game window (1, 2 and 4 are R9a's,
+above; 3 is R9b):
 1. Device setup in the switch-over (004EDD70, 004E5E50, 004E68A0, 004E6C30, 004EE*; 00500B70 is rewritten): no
    DirectDraw object, display mode, primary, render target, depth buffer or Direct3D device; the device object filled
    for the game (screen rectangle +0x24, the render target holder's width / height / bits at +0x18 without a surface:

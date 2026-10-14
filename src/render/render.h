@@ -21,13 +21,18 @@
 //              do the save / load screen's picture textures (off by default, on with "present");
 //              "nocpuwindows" turns it off
 //   present    the switch-over: the old path draws nothing that is handed over (implies noterrain,
-//              noobjects, nointerface, cpuwindows; movies too) and the new frame is copied into the
-//              game's render target before the old present shows it; captures write the new frame
-//              as frames\<name>.bmp. With cpuwindows the holders of 004EF7B0 / 004F0060 and the
+//              noobjects, nointerface, cpuwindows; movies too); captures write the new frame as
+//              frames\<name>.bmp. With cpuwindows the holders of 004EF7B0 / 004F0060 and the
 //              texture manager's textures then have no DirectDraw surface at all: the CPU-written,
 //              shadow and .bmp ones only that memory, the .mmp ones only the new renderer's
-//              decoded copy (TextureFromMmp)
-// Without "new" nothing here runs and the game draws exactly as before.
+//              decoded copy (TextureFromMmp). When "present" is on as the device object is built
+//              (StartPresenting) the game has no DirectDraw or Direct3D 7 device at all
+//              (device.h, ticket R9a) and the new renderer presents through its own swap chain on
+//              the game window; turned on later (a DirectDraw device exists) the new frame is
+//              copied into the game's render target before the old present shows it
+// Without "new" nothing here runs and the game draws exactly as before. The harness's "render"
+// step adds the words of EI_RENDER to its own (a run of the install without dgVoodoo sets
+// "new,present" for every scenario).
 
 #include <cstdint>
 #include <vector>
@@ -80,6 +85,15 @@ void PictureFromMmp(const void* holder, const void* data);
 // The switch-over mode ("present"): the new frame is what the old present (004EF610) shows; the
 // old path draws nothing that is handed over.
 bool Presenting();
+
+// The device object is being built (004EDD70): with "present" the new renderer starts now and from
+// here on presents through its own swap chain on the game window; the game then builds its device
+// without DirectDraw (device.h). "present", "new" and "cpuwindows" stay on whatever is configured
+// later. False (and nothing changes) without "present" or when the new renderer cannot start: the
+// game builds its DirectDraw device as before.
+bool StartPresenting();
+// StartPresenting succeeded: the new renderer shows the frames itself.
+bool PresentsItself();
 
 // The old Direct3D path still draws the terrain ("noterrain" off). The harness can change it.
 bool DrawOldTerrain();

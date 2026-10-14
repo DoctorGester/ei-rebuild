@@ -59,6 +59,20 @@ struct StartupCheckRegistrar {
     StartupCheckRegistrar(void (*run)(), const char* name);
 };
 
+// Code that runs once, in every build, right before the hooks are installed: the Rebirth flags are
+// known and other mods' patches are in place, nothing is hooked yet (the standalone build runs it
+// at startup). For data a Rebirth patch rewrites before WinMain (the widescreen layout widths).
+// Not run with EI_NO_HOOKS.
+struct StartupAction {
+    void (*run)();
+    const char* name;
+    StartupAction* next;
+};
+struct StartupActionRegistrar {
+    StartupAction entry;
+    StartupActionRegistrar(void (*run)(), const char* name);
+};
+
 // Arranges for InstallHooks() to run when game.exe's WinMain is entered (after other mods patch).
 void InstallHooksAtWinMain();
 
@@ -83,6 +97,9 @@ void InstallHooksAtWinMain();
 
 // Verification build only: run `fn` (void()) once when the hooks have been installed.
 #define EI_STARTUP_CHECK(fn) static ::ei::StartupCheckRegistrar EI_CAT(ei_startup_, __LINE__)(&fn, #fn)
+
+// Run `fn` (void()) once before the hooks are installed, in every build (StartupAction).
+#define EI_STARTUP_ACTION(fn) static ::ei::StartupActionRegistrar EI_CAT(ei_action_, __LINE__)(&fn, #fn)
 
 #define EI_CAT_(a, b) a##b
 #define EI_CAT(a, b) EI_CAT_(a, b)

@@ -19,6 +19,7 @@
 // movies' holders (004EF7B0) have no DirectDraw surface at all: nothing decodes into them and
 // BinkDDSurfaceType is not asked (OldPathDraws, SurfaceType).
 #include "bink_video.h"
+#include "device.h"   // device::SameSurface, device::WithoutDirectDraw
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -193,7 +194,7 @@ unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary) {
     RECT source{0, 0, static_cast<LONG>(header->width), static_cast<LONG>(header->height)};
     CDXSurface* holder = self->holder;
     CDXSurface* target = toPrimary ? holder->device->primary_ : holder->device->renderTarget_;
-    if (target->surface != holder->surface) {
+    if (!device::SameSurface(target, holder)) {
         if (render::Active()) render::MovieBlit(self, ToRender(self->to));
         if (OldPathDraws(holder)) Blt(target, &self->to, holder, &source);
     }
@@ -211,11 +212,14 @@ namespace {
 // 004EF7B0 in a catch block when that throws; 00784756 is 1 in the exe and never written by
 // address, so the plain off-screen surface of 004EF7B0 (system memory, the screen's format;
 // game-owned memory with "cpuwindows") is what is made. The video-memory branch is kept without the
-// catch.
+// catch. 00784756 is in fact written by the game start (00456E35, from GetAvailableVidMem): the
+// switch-over's stand-in reports 256 MB, which clears it; without DirectDraw (device.h) the
+// video-memory surface would be refused and its throw end the game, so the holder is 004EF7B0's
+// (only the new renderer's memory, ticket R9a2).
 CDXSurface* NewMovieHolder(CTextureDevice* device, int width, int height) {
     void* memory = gamecrt::operator_new(sizeof(CDXSurface));
     CDXSurface* holder = nullptr;
-    if (!VideoMemoryOff()) {
+    if (!VideoMemoryOff() && !device::WithoutDirectDraw()) {
         std::uint32_t desc[0x1F] = {};
         desc[0] = kDescSize;
         desc[1] = 7;                       // DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH
@@ -372,7 +376,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
         if (oldPath && !CopyFrameToSurface(&holder, bink, surfaceType)) break;
         RECT source{0, 0, width, height};
         CDXSurface* primary = holder->device->primary_;
-        if (primary->surface != holder->surface) {
+        if (!device::SameSurface(primary, holder)) {
             if (render::Active()) {
                 if (clearScreen) render::Fill(ToRender(screen), 0);
                 render::MovieBlit(&g_movieKey, ToRender(to));
@@ -451,7 +455,7 @@ void __fastcall ShowLoadingMovie(int progress) {
     CDXSurface* holder = movie.holder;
     RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
     CDXSurface* primary = holder->device->primary_;
-    if (primary->surface != holder->surface) {
+    if (!device::SameSurface(primary, holder)) {
         const void* key = &movie;   // the loading movie in the new renderer
         if (render::Active()) {
             if (decoded) render::MovieFrame(key, frame.data(), source.right, source.bottom);

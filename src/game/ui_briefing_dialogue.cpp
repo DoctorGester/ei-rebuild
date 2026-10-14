@@ -78,9 +78,11 @@ void CBriefingScreen::StartPhrases() {
     savedCamera_ = camera->localPosition_;
     const Quaternion& q = camera->localRotation_;
     double zz = q.z * q.z;
-    double axisZ = (q.w * q.w - ((q.x * q.x + q.y * q.y) + zz)) + (zz + zz);
+    double axisZ = (q.w * q.w - (LengthSquared2DUnrounded(q.x, q.y) + zz)) + (zz + zz);
     float axisY = StoreFloat(static_cast<float>((q.y * q.z - q.x * q.w) * 2.0));
-    float axisX = StoreFloat(static_cast<float>((q.x * q.z + q.y * q.w) * 2.0));
+    // The original doubles x and y before multiplying; here the compiler doubles z instead of x,
+    // which gives the same value (doubling is exact). Dot2D(x, y, z, w) * 2.0 would regroup the sum.
+    float axisX = StoreFloat(static_cast<float>(Dot2DUnrounded<double>(q.x * 2.0, q.y * 2.0, q.z, q.w)));
     lookAt_.x = StoreFloat(static_cast<float>(savedCamera_.x + axisX));
     lookAt_.y = StoreFloat(static_cast<float>(savedCamera_.y + axisY));
     lookAt_.z = StoreFloat(static_cast<float>(axisZ + savedCamera_.z));
@@ -161,7 +163,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
         x = facing.x;
         y = facing.y;
     }
-    double length = std::sqrt(y * y + x * x);
+    double length = std::sqrt(LengthSquared2DUnrounded(y, x));
     // FCOM with zero, TEST AH,0x40: a NaN length is left alone too.
     if (!(length == 0.0) && !x87::IsNaN(static_cast<float>(length))) {
         double inverse = 1.0 / length;
@@ -202,7 +204,7 @@ void Sink(CUnit* unit) {
 void CBriefingScreen::ViewPreset(int preset) {
     double dx = static_cast<double>(places_[kLeaderPlace].x) - places_[kPersonPlace].x;
     double dy = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
-    float apart = StoreFloat(static_cast<float>(std::sqrt(dy * dy + dx * dx)));
+    float apart = StoreFloat(static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx))));
     auto view = [this](CUnit* unit, float angle, float distance, float height) {
         BriefingViewSpeakerOriginal(this, nullptr, unit, StoreFloat(angle), StoreFloat(distance), height);
     };

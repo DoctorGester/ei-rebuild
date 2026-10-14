@@ -16,7 +16,8 @@
 
 // Four vertex positions in SoA form for the transform library: x[4], y[4], z[4] and w[4] (the
 // loaders set w to 1.0). Vertex i of a mesh is component i & 3 of packet i >> 2 (005A0CD0).
-// 0x40 bytes.
+// 0x40 bytes. Also the moved positions the part drawers build (007C2E48 / 007C2E60). `block` is
+// four rows of lanes, not a matrix (check_cleanup skips the name).
 struct VertexPacket {
     float block[4][4];
 };
@@ -36,12 +37,6 @@ struct MeshCorner {
     std::uint16_t index[3];
 };
 static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
-
-// A block of four vertex positions (x[4], y[4], z[4], w[4]; 64 bytes).
-struct PositionBlock {
-    float v[16];
-};
-static_assert(sizeof(PositionBlock) == 0x40);
 
 // What the renderer draws from (+0x9C): pointers and counts of the mesh's arrays (class 0x41 points
 // the last four into the loaded file data instead).

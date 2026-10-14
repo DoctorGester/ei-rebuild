@@ -29,6 +29,12 @@ HookRegistrar::HookRegistrar(std::uintptr_t address, void* wrapper, const char* 
 
 static StartupCheck* g_startupChecks = nullptr;
 
+static StartupAction* g_startupActions = nullptr;
+
+StartupActionRegistrar::StartupActionRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupActions} {
+    g_startupActions = &entry;
+}
+
 StartupCheckRegistrar::StartupCheckRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupChecks} {
     g_startupChecks = &entry;
 }
@@ -226,6 +232,10 @@ int InstallHooks() {
         __asm fnstcw cw
         Log("FPU control word at WinMain: %04X", cw);
     }
+    for (StartupAction* action = g_startupActions; action; action = action->next) {
+        Log("startup action %s", action->name);
+        action->run();
+    }
 
     int installed = 0;
     for (HookEntry* h = g_hooks; h; h = h->next) {
@@ -306,9 +316,15 @@ int InstallHooks() {
 // Hooks are installed when WinMain starts, not when the DLL loads: Rebirth's addon applies its own
 // patches from a hook on the WinMain call, and they must be in place before we compare bytes.
 static constexpr std::uintptr_t kWinMain = 0x00456440;
+void InstallCoverage();   // cover.cpp
 static unsigned char g_winMainBytes[5];
 
 static void __stdcall OnWinMain() {
+    // System DPI aware before the game makes its window, as the HIGHDPIAWARE compatibility flag on
+    // run/vanilla and run/rebirth already makes it. Without it, at 200% scaling Windows stretches the
+    // window while our own swap chain (`present`, run/native) sizes itself in physical pixels, so
+    // only a quarter of the frame shows.
+    SetProcessDPIAware();
     DWORD old;
     auto* p = reinterpret_cast<unsigned char*>(kWinMain);
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
@@ -316,6 +332,7 @@ static void __stdcall OnWinMain() {
     VirtualProtect(p, 5, old, &old);
     FlushInstructionCache(GetCurrentProcess(), p, 5);
     Log("%d hook(s) installed", InstallHooks());
+    InstallCoverage();
 }
 
 __declspec(naked) static void WinMainStub() {
