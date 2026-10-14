@@ -55,7 +55,7 @@ Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `ru
 
 - **W2** Sprite shapes, text extent and text draw, control rectangles (running since 2026-10-14; opus). Sprite shape builders, text extent / text surface draw, the +0x98 rectangles of console / edit / list / chat / tooltip. After: W1.
 - **W3** Battle-screen panel builders (waiting on W2; opus). Then widescreen::SetPanelOffset replaces addon's variable.
-- **W4** Camp and hero screens, help, global map, cursor rectangles, interface creation (waiting on W3; opus). Also camera mouse moves and 004F1330.
+- **W4** Camp and hero screens, help, global map, cursor rectangles, interface creation (waiting on W3; opus). Also camera mouse moves and 004F1330. Seen 2026-10-14 by the user in a vanilla --widescreen run (ui_widescreen, hero screen): the hero model drawn in vertical strips and the title as 'Càê' (Cyrillic shown in a Latin code page?). Check both under W4; if the title is not W4's, split a ticket.
 - **W1** Layout widths, scaling functions, harness resolution steps (done 2026-10-14). SetRect / AddPoint / sprite place; `resolution` / `widescreen` steps; run_all --widescreen within tolerance. Open: options slider thumbs a few pixels wider than the original (also with WideScreen off).
 
 ## Unknown fields
