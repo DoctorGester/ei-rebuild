@@ -48,7 +48,7 @@ void DetachCompanion(CMapObject* object) {
 } // namespace
 
 int CMapObject::CreateMapObject() {
-    CallCreate3D(Object3D());
+    CallCreate3D(this);
     DetachCompanion(this);
     PackedVitals()->Reset();
     unknown_178 = 1.0f;
@@ -72,7 +72,7 @@ EI_REPLACE_METHOD(0x0050E770, CMapObject::CreateMapObject);
 void CMapObject::DestroyMapObject() {
     EffectArraySetSizeOriginal(&effectsVtable, nullptr, 0, -1);
     DetachCompanion(this);
-    Object3D()->Destroy3D();
+    Destroy3D();
 }
 EI_REPLACE_METHOD(0x0050E840, CMapObject::DestroyMapObject);
 

@@ -10,10 +10,11 @@
 // (class id 0x39, vtable 0073DD6C) on the server, a CMapObjectClientSpecific (0x3A, 0073DBEC) on the
 // client; both point back at the object through their +0x1C (unit.h declares the two classes).
 //
-// Names are provisional. The virtual interface is not declared (the derived classes override
-// most slots); slots are called through ei::VCall, and the rewritten slots are plain members.
+// CMapObject derives from CObject3D (map_object_figures.h), which holds the first 0x170 bytes; the
+// virtual slots past CEngineObject's are declared here (CObject3D declares none of its own).
 
 #include "engine_object.h"
+#include "map_object_figures.h"   // CObject3D, the base
 #include "maths.h"
 
 #include "lib/mfc.h"
@@ -25,7 +26,6 @@ class CStream;              // core_streams.h
 struct DeltaState;          // net_delta.h
 class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
 struct UnitVitalsPacked;    // unit.h
-class CObject3D;            // map_object_figures.h
 
 // An active effect (0x14 bytes; CArray at +0x194, the same record as UnitEffect in unit.h).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
@@ -76,7 +76,7 @@ struct LockKey;      // unit.h
 // are registered through __fastcall hooks (rewrite guide rule 4); the others are members of another
 // name registered by address (IsInvisible for slot 21, ResetScale for 30, ...), or the shared stub
 // bodies of map_object_stub_slots.cpp. Names and evidence: docs/notes/drafts/DR-C2.md.
-class __declspec(novtable) CMapObject : public CEngineObject {
+class __declspec(novtable) CMapObject : public CObject3D {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DAA0);
 
@@ -290,8 +290,8 @@ public:
     void SaveTransformSlot(void* file);
     void LoadTransformSlot(void* file);
 
-    // The object as the CObject3D it derives from in the original (map_object_figures.h).
-    CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
+    // The object as its CObject3D base (map_object_figures.h).
+    CObject3D* Object3D() { return this; }
 
     // The packed vitals (+0x17C) and the network state (+0x1C4).
     UnitVitalsPacked* PackedVitals() { return reinterpret_cast<UnitVitalsPacked*>(packedVitals); }
@@ -306,23 +306,9 @@ public:
     std::uintptr_t MarkChanged(int part);
     int HasEffect(std::uint32_t type);
 
-    Vector3 position;               // +0x01C
-    std::uint8_t unknown_028[0x34 - 0x28];
-    Quaternion orientation;         // +0x034 a quaternion
-    std::uint8_t unknown_044[0x94 - 0x44];
-    // +0x094 the attached side object (type 0x46, taken by the 3D object's slot 19 00516D50: the
-    // figure / CObject3D side half; object3d_specific_slots.cpp, the screen pickers' slots 22 / 24).
-    CEngineObject* attached;
-    std::uint8_t unknown_098[0xA4 - 0x98];
-    char* name;                     // +0x0A4 CString (the prototype name for units)
-    std::uint8_t unknown_0A8[0xC4 - 0xA8];
-    Vector3 scale;                  // +0x0C4
-    std::uint8_t unknown_0D0[0x128 - 0xD0];
-    Vector3 pointOffset;            // +0x128 (GroundPoint)
-    float radius;                   // +0x134 (CObject3D::radius)
-    std::uint8_t unknown_138[0x144 - 0x138];
-    Vector3 extent;                 // +0x144 half the bounding box (units: box maximum - centre)
-    std::uint8_t unknown_150[0x170 - 0x150];
+    // +0x000-0x16C: CObject3D (position +0x1C, orientation +0x34, the side half `attached` +0x94,
+    // name +0xA4 (the prototype name for units), scale +0xC4, bounds centre +0x128 (GroundPoint),
+    // radius +0x134, half box `above` +0x144).
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
     int unknown_174;                // +0x174 (5 after Create)
     float unknown_178;              // +0x178 (1 after Create)
@@ -343,13 +329,7 @@ public:
     std::uint16_t changedParts;     // +0x1DC bit per part changed (MarkChanged)
     std::uint8_t unknown_1DE[0x238 - 0x1DE];   // two memory streams at +0x1E8 and +0x210
 };
-static_assert(offsetof(CMapObject, position) == 0x1C);
-static_assert(offsetof(CMapObject, orientation) == 0x34);
-static_assert(offsetof(CMapObject, attached) == 0x94);
-static_assert(offsetof(CMapObject, name) == 0xA4);
-static_assert(offsetof(CMapObject, extent) == 0x144);
-static_assert(offsetof(CMapObject, scale) == 0xC4);
-static_assert(offsetof(CMapObject, pointOffset) == 0x128);
+static_assert(sizeof(CObject3D) == 0x170);
 static_assert(offsetof(CMapObject, companion) == 0x170);
 static_assert(offsetof(CMapObject, effects) == 0x198);
 static_assert(offsetof(CMapObject, baseScale) == 0x1AC);

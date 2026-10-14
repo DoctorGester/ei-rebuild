@@ -206,9 +206,9 @@ float* CMapObject::GetPosition2(float* out) {
 EI_REPLACE_METHOD(0x0050E4D0, CMapObject::GetPosition2);
 
 float* CMapObject::GroundPoint(float* out) {
-    float x = position.x + pointOffset.x;   // each stored to a float local
-    float y = position.y + pointOffset.y;
-    float z = position.z + pointOffset.z;
+    float x = position.x + center.x;   // each stored to a float local
+    float y = position.y + center.y;
+    float z = position.z + center.z;
     double height = GroundHeight(World(), x, y);
     out[0] = x;
     out[1] = y;

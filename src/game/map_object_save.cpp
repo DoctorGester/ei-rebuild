@@ -20,6 +20,7 @@ __declspec(naked) void __fastcall MapEffectLoad(MapEffect*, void*, CStream*) EI_
 __declspec(naked) void __fastcall MapEffectSave(const MapEffect*, void*, CStream*) EI_ORIGINAL(0x006885A0)
 
 mfc::CString& AsString(char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
+mfc::CString& AsString(const char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
 
 // A string read up to its terminator (CStream::ReadString into a temporary).
 struct ReadText {

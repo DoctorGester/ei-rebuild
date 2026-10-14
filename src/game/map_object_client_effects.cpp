@@ -147,7 +147,7 @@ __declspec(naked) void __fastcall CallResetPartAlpha(CObject3DClientSpecific*) E
 __declspec(naked) void __fastcall CallClearPartTints(CObject3DClientSpecific*) EI_ORIGINAL(0x0051CD60)
 
 CObject3DClientSpecific* ClientHalf(CMapObject* owner) {
-    return static_cast<CObject3DClientSpecific*>(owner->Object3D()->attached);
+    return static_cast<CObject3DClientSpecific*>(owner->attached);
 }
 
 // Is there a record of `type` other than `index`?
@@ -188,7 +188,7 @@ const float* DefaultLightColour() { return reinterpret_cast<const float*>(0x0079
 float DefaultLightRadius() { return *reinterpret_cast<const float*>(0x0079BEBC); }
 
 CObject3DSpecific* SideHalf(CMapObject* owner) {
-    return static_cast<CObject3DSpecific*>(owner->Object3D()->attached);
+    return owner->Specific();
 }
 
 // 00511950 (rewritten below; through its game address so the wrapper sees the calls).

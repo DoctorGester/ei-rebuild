@@ -843,9 +843,9 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
             CMapObject* object = MapObjectOf(node->data);
             float pz = point[2];
-            float ox = object->position.x + object->pointOffset.x;
-            float oy = object->position.y + object->pointOffset.y;
-            double reach = Hypot(object->extent.x, object->extent.y) + radius;
+            float ox = object->position.x + object->center.x;
+            float oy = object->position.y + object->center.y;
+            double reach = Hypot(object->above.x, object->above.y) + radius;
             float dx = ox - point[0];
             float dy = oy - point[1];
             float dz = pz - point[2];

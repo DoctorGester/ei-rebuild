@@ -132,8 +132,8 @@ mfc::CString* CMapObject::SetSecondName(const char* text) {
 }
 EI_REPLACE_METHOD(0x0050F150, CMapObject::SetSecondName);
 
-void CMapObject::SaveTransformSlot(void* file) { Object3D()->Transform()->CTransformObject::SaveTransform(file); }
+void CMapObject::SaveTransformSlot(void* file) { Transform()->CTransformObject::SaveTransform(file); }
 EI_REPLACE_METHOD(0x00516350, CMapObject::SaveTransformSlot);
 
-void CMapObject::LoadTransformSlot(void* file) { Object3D()->Transform()->CTransformObject::LoadTransform(file); }
+void CMapObject::LoadTransformSlot(void* file) { Transform()->CTransformObject::LoadTransform(file); }
 EI_REPLACE_METHOD(0x00516360, CMapObject::LoadTransformSlot);
