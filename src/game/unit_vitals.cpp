@@ -5,9 +5,9 @@
 #include "unit.h"
 
 #include "object_tables.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_units.h"
 
 #include <bit>
@@ -124,18 +124,14 @@ __declspec(naked) double __cdecl IntelligenceFactor(const float* /*intelligence*
 double LevelValueOf(const UnitStats* stats, int skill) {
     std::uint8_t level = stats->skillLevels[skill];
     if (level == 0) return kZero;
-    const char* record =
-        unitdb::SkillLevels().At(static_cast<std::uint32_t>(skill * 3 - 1 + level), unitdb::kSkillLevelSize);
+    auto* record = reinterpret_cast<const SkillLevelRecord*>(
+        unitdb::SkillLevels().At(static_cast<std::uint32_t>(skill * 3 - 1 + level), unitdb::kSkillLevelSize));
     if (!record) return kZero;
-    volatile std::int64_t wide = Field<std::uint32_t>(record, 0x34);
-    return static_cast<double>(wide);
+    return record->Value();
 }
 
-// The same for a level record pointer from SkillLevelRecord.
-double RecordValue(const char* record) {
-    volatile std::int64_t wide = Field<std::uint32_t>(record, 0x34);
-    return static_cast<double>(wide);
-}
+// The same for a level record pointer from UnitStats::SkillLevelRecord.
+double RecordValue(const char* record) { return reinterpret_cast<const SkillLevelRecord*>(record)->Value(); }
 
 // The original's branch-free selects (FCOMP, the C0 bit as a mask): `a` when a < b or unordered.
 float LessOrUnordered(float a, float b, float ifLess, float otherwise) { return !(a >= b) ? ifLess : otherwise; }

@@ -2,6 +2,7 @@
 // docs/notes/units.md ("Weapon skill on the packed parameters").
 #include "item_db.h"
 #include "unit.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -10,24 +11,24 @@
 
 namespace {
 constexpr double kStatBase = 25.0;   // 0073E124
-constexpr int kWeaponSkill0Bonus = 0x7B;
-constexpr int kWeaponSkill1Bonus = 0x7C;
+constexpr int kWeaponSkill0Bonus = 0;   // WeaponRecord::skillBonus (+0x7B / +0x7C)
+constexpr int kWeaponSkill1Bonus = 1;
 
 // The level value (+0x34, unsigned) of the skill level record of skill `type` at the packed level
 // byte, or null without one. The byte is read unchecked (`type` may be negative), as the original.
-const char* LevelRecord(const UnitParams* params, int type) {
-    std::uint8_t level = reinterpret_cast<const std::uint8_t*>(params)[0xE3 + type];
+const SkillLevelRecord* LevelRecord(const UnitParams* params, int type) {
+    std::uint8_t level = params->skillLevels[type];
     if (level == 0) return nullptr;
-    return unitdb::SkillLevels().At(static_cast<std::uint32_t>(type * 3 - 1 + level), unitdb::kSkillLevelSize);
+    return reinterpret_cast<const SkillLevelRecord*>(
+        unitdb::SkillLevels().At(static_cast<std::uint32_t>(type * 3 - 1 + level), unitdb::kSkillLevelSize));
 }
-double LevelValue(const char* record) { return x87::FromUnsigned(Field<std::uint32_t>(record, 0x34)); }
 
 // The first letter of skill `skill`'s name (+0x0C leads to it): which stat counts ('s', 'd',
 // 'i'). The record is read unchecked (an empty skill table faults as in the original).
 char StatLetter(int skill) {
-    const char* record = unitdb::Skills().At(static_cast<std::uint32_t>(skill), unitdb::kSkillSize);
-    const char* const* name = Field<const char* const*>(record, 0xC);
-    return (*name)[0];
+    auto* record = reinterpret_cast<const SkillRecord*>(unitdb::Skills().At(static_cast<std::uint32_t>(skill), unitdb::kSkillSize));
+    const char* name = record->statNames.begin[0];
+    return name[0];
 }
 
 // The stat that letter names, minus 25, or false for another letter.
@@ -40,8 +41,8 @@ bool StatTerm(const UnitParams* params, char letter, double* term) {
     }
 }
 
-double WeaponByte(const char* weapon, int offset) {
-    return weapon ? static_cast<double>(Field<std::uint8_t>(weapon, offset)) : 0.0;
+double WeaponByte(const char* weapon, int skill) {
+    return weapon ? static_cast<double>(reinterpret_cast<const itemdb::WeaponRecord*>(weapon)->skillBonus[skill]) : 0.0;
 }
 } // namespace
 
@@ -49,8 +50,8 @@ double UnitParams::WeaponSkillBonus(int type, const char* weapon) {
     double term;
     if (type < 5) {
         // The level value stays on the FPU (FILD qword); the sums are taken as the original's.
-        const char* record = LevelRecord(this, type);
-        double level = record ? LevelValue(record) : 0.0;
+        const SkillLevelRecord* record = LevelRecord(this, type);
+        double level = record ? record->Value() : 0.0;
         double bonus = WeaponByte(weapon, kWeaponSkill0Bonus);
         double skill = skills[0];
         if (StatTerm(this, StatLetter(0), &term)) return level + ((term + skill) + bonus);
@@ -58,8 +59,8 @@ double UnitParams::WeaponSkillBonus(int type, const char* weapon) {
     }
     if (type == 5 || type == 6) {
         // Here the level value is stored to a float first (FSTP float).
-        const char* record = LevelRecord(this, type);
-        float level = record ? static_cast<float>(LevelValue(record)) : 0.0f;
+        const SkillLevelRecord* record = LevelRecord(this, type);
+        float level = record ? static_cast<float>(record->Value()) : 0.0f;
         double bonus = WeaponByte(weapon, kWeaponSkill1Bonus);
         double skill = skills[1];
         if (StatTerm(this, StatLetter(1), &term)) return ((term + skill) + bonus) + level;

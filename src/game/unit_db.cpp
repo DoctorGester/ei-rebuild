@@ -128,7 +128,7 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x21, &height);
     ArchiveString(ar, nullptr, 0x22, &soundFolder);
     ArchiveStrings(ar, nullptr, 0x23, &soundNames, ar);
-    ArchiveField(ar, nullptr, 0x24, unknown_2C, sizeof(unknown_2C));
+    ArchiveField(ar, nullptr, 0x24, actionSpeeds, sizeof(actionSpeeds));
     Dword(ar, 0x25, &idleSoundChance);
     Dword(ar, 0x26, &attackSoundChance);
     ArchiveField(ar, nullptr, 0x27, protection, sizeof(protection));

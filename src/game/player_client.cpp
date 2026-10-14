@@ -655,7 +655,7 @@ int CPlayerClient::OnNewObject() {
         unit->defaultScale.x = 0.0f;
         unit->defaultScale.y = modelRecord->height;
         unit->defaultScale.z = 0.0f;
-        std::memcpy(unit->actionSpeeds, modelRecord->unknown_2C, sizeof(unit->actionSpeeds));
+        std::memcpy(unit->actionSpeeds, modelRecord->actionSpeeds, sizeof(unit->actionSpeeds));
         unit->SetPrototype23CIndex(prototypeValue);
     }
     if (header.flags & kHeaderFlagHidden) created->flags_ |= kHeaderFlagHidden;

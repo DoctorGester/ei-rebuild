@@ -8,10 +8,12 @@
 #include "item_db.h"
 #include "object_tables.h"
 #include "unit.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
 #include "originals_units.h"
 
+#include <bit>
 #include <cstdint>
 
 namespace {
@@ -20,7 +22,6 @@ constexpr int kTypeNoWeapon = 8;    // AttackParams::weaponType without a weapon
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
 constexpr int kDamageTypes = 7;
-constexpr int kModelDamageWeights = 0x50;   // unit model record: seven float weights
 constexpr float kZero = 0.0f;               // 0073B858
 
 // Called through their game addresses (rewritten elsewhere) so their verify wrappers see the
@@ -31,7 +32,7 @@ __declspec(naked) double __fastcall WeaponSkillBonusAt(UnitParams*, void*, int /
 __declspec(naked) float __fastcall ScaleDamageAt(UnitParams*, void*, CUnit*, float) EI_ORIGINAL(0x005285D0)
 // 0052E0D0. Scales attack and defence by the difficulty unless `keyed`. Not rewritten.
 
-UnitParams* ParamsOf(CUnit* unit) { return reinterpret_cast<UnitParams*>(reinterpret_cast<char*>(unit) + 0x330); }
+UnitParams* ParamsOf(CUnit* unit) { return unit->Params(); }
 
 // The weapon id of the controller's slot `slot`, or none for a slot beyond 3.
 std::uint32_t WeaponIn(const CUnitClientSpecific* self, std::uint32_t slot) {
@@ -69,11 +70,11 @@ void __fastcall ClientGetAttackParams(CUnitClientSpecific* self, void*, AttackPa
             out->damageType = WeaponDamageType(weapon);
         } else {
             out->weaponType = kTypeNoWeapon;
-            const char* model = unit->GetPrototypeModel();
+            auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
             // The first damage type whose weight is not zero (FCOMP; TEST AH,0x40: NaN counts as
             // zero); left as it was when there is none.
             for (int i = 0; i < kDamageTypes; ++i) {
-                float weight = Field<float>(model, kModelDamageWeights + 4 * i);
+                float weight = std::bit_cast<float>(model->damageWeights[i]);
                 if (weight < kZero || weight > kZero) {
                     out->damageType = i;
                     break;

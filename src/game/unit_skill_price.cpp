@@ -1,7 +1,7 @@
 // What learning a skill level costs (00528050; the interface's skill pages call it). See unit.h
 // (UnitStats::SkillPrice) and docs/notes/units.md ("Sixth round"). Plain C++ float maths (rule 7).
-#include "item_db.h"   // Field
 #include "unit.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
 #include "originals_units.h"
@@ -15,7 +15,6 @@ constexpr float kTwoDigitsBelow = 4.0f; // 0073BAA0: a first digit below this ke
 constexpr float kRoundUpTo = 10.0f;     // 0073BAAC: ... unless the price is at most this
 constexpr float kTenth = 0.1f;          // 0073B850
 constexpr float kHalf = 0.5f;           // 0073B86C
-constexpr int kLevelValue = 0x30;       // skill level record: the level's worth exponent (int)
 constexpr int kKnownLevels = 0x24;      // the skill level bytes summed (+0x6D3..+0x6F6)
 
 // The game's settings (globals read at the time of the call): the worth scale and divisor of a
@@ -36,14 +35,14 @@ double Worth(int value) {
 
 int UnitStats::SkillPrice(const char* record) {
     int index = SkillRecordIndex(reinterpret_cast<const void*>(kSkillDatabase), nullptr, record);
-    double worth = Worth(Field<int>(record, kLevelValue));
+    double worth = Worth(reinterpret_cast<const ::SkillLevelRecord*>(record)->WorthExponent());
     double below;
     if (index % 3 > 0) {
         // The level below in the same skill: the record before it (read unchecked: a missing one
         // faults, as in the original).
-        const char* previous =
-            unitdb::SkillLevels().At(static_cast<std::uint32_t>(index - 1), unitdb::kSkillLevelSize);
-        below = Worth(Field<int>(previous, kLevelValue));
+        auto* previous = reinterpret_cast<const ::SkillLevelRecord*>(
+            unitdb::SkillLevels().At(static_cast<std::uint32_t>(index - 1), unitdb::kSkillLevelSize));
+        below = Worth(previous->WorthExponent());
     } else {
         below = Worth(0);
     }
