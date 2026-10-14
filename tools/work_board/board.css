@@ -33,18 +33,40 @@ header { display: grid; gap: 10px }
 .pill.down { --c: var(--watch); --s: var(--watch-soft) }
 .lane { display: grid; gap: 10px }
 .lane .hint { color: var(--muted); font-size: 12px; margin: -4px 0 0 }
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 10px }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 12px }
 @media (max-width: 480px) { .cards { grid-template-columns: minmax(0, 1fr) } }
-.card { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--c, var(--line)); border-radius: 6px; padding: 10px 12px;
-  display: grid; gap: 6px; align-content: start; min-width: 0 }
-.card .top { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap }
-.card .id { font-family: var(--mono); font-weight: 500; color: var(--c) }
-.card .meta { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--muted) }
-.card .title { font-weight: 500; text-wrap: pretty }
+.card { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--c, var(--line)); border-radius: 8px; padding: 12px 14px;
+  display: grid; gap: 8px; align-content: start; min-width: 0 }
+.card .top { display: flex; gap: 10px; align-items: baseline; min-width: 0 }
+.card .id { font-family: var(--mono); font-weight: 500; color: var(--c); flex: none }
+.card .title { font-weight: 500; font-size: 15px; line-height: 1.35; text-wrap: pretty; min-width: 0 }
+.card .tags { display: flex; gap: 6px; align-items: center; flex-wrap: wrap }
+.card .pill.st { --c2: var(--c); background: var(--s); color: var(--c) }
+.card .fresh { margin-left: auto; font-size: 12px; color: var(--muted); display: inline-flex; gap: 6px; align-items: center }
+.card .fresh::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--fc, var(--line)) }
+.card.f-live { --fc: var(--good) } .card.f-slow { --fc: var(--wait) } .card.f-quiet { --fc: var(--watch) }
+.card.f-quiet .fresh { color: var(--watch) }
+.subline { font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 0 6px; min-width: 0 }
+.subline .who { font-family: var(--mono); color: var(--ink); cursor: help }
+.subline .dot { opacity: .6 }
+.acts { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 8px }
+.act { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; font-size: 12.5px }
+.act::before { content: ""; width: 8px; height: 8px; border-radius: 50%; justify-self: center; transform: translateY(-1px) }
+.act.note::before { background: var(--blue) }
+.act.note.old::before { background: var(--line) }
+.act.commit::before { border: 2px solid var(--accent); width: 5px; height: 5px; background: var(--panel) }
+.act .what { min-width: 0; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere }
+.act.commit .what { -webkit-line-clamp: 1 }
+.act.merge .what { color: var(--muted) }
+.act .hash { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-right: 6px }
+.act .when { font-family: var(--mono); font-size: 11px; color: var(--muted); white-space: nowrap }
+.act.tests { grid-template-columns: 14px minmax(0, 1fr); }
+.act.tests::before { background: var(--good); border-radius: 2px }
+.act.tests .progress { grid-column: 2 }
+.act.tests .txt { grid-column: 2; font-size: 12px; color: var(--muted) }
 .line { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; font-size: 12.5px; align-items: baseline }
 .line .k { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted) }
 .line .v { min-width: 0; overflow-wrap: anywhere }
-.line .age { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-right: 6px }
 .s-running { --c: var(--accent); --s: var(--accent-soft) }
 .s-review { --c: var(--rev); --s: var(--rev-soft) }
 .s-ready { --c: var(--good); --s: var(--good-soft) }

@@ -10,7 +10,13 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const base = p => String(p || '').split('/').filter(Boolean).pop() || '';
 function ageOf(stamp) {
   const t = Date.parse(stamp); if (!stamp || isNaN(t)) return '';
-  return dur(Math.max(0, (Date.now() - t) / 1000));
+  return coarse(Math.max(0, (Date.now() - t) / 1000));
+}
+// Ages to the minute: "now", "8m", "1h03m", "2d".
+function coarse(s) {
+  if (s < 60) return 'now';
+  if (s < 3600) return Math.floor(s / 60) + 'm';
+  return dur(s).replace(/\d+s$/, '');
 }
 function dur(s) {
   if (s == null) return '';
@@ -43,24 +49,51 @@ function batchSummary(b) {
 
 // ---- tickets view
 
+const secsSince = stamp => { const t = Date.parse(stamp); return !stamp || isNaN(t) ? null : Math.max(0, (Date.now() - t) / 1000); };
+// agent-a58ce77c2281ac40c -> a58ce77; branches named after the worktree are not worth showing.
+const shortAgent = a => String(a || '?').replace(/^agent-/, '').slice(0, 7);
+const defaultBranch = a => a.branch === 'worktree-' + a.agent || a.branch === 'worktree-' + base(a.worktree);
+function freshness(t) {
+  const a = t.assignment, n = t.notes[0], c = t.commit, b = t.batch;
+  if (b && b.state === 'running') return { cls: 'live', text: 'testing now' };
+  // Activity since the assignment began: notes, commits on the branch, test batches.
+  const since = a ? secsSince(a.started) : null;
+  const stamps = [n && n.time, c && c.time, b && (b.finished || b.started)].map(secsSince)
+    .filter(x => x != null && (since == null || x <= since + 60));
+  if (!stamps.length) {
+    if (since == null) return { cls: 'quiet', text: '' };
+    return { cls: since < 3600 ? 'slow' : 'quiet', text: 'nothing yet' };
+  }
+  const quiet = Math.min(...stamps);
+  return { cls: quiet < 1200 ? 'live' : quiet < 3600 ? 'slow' : 'quiet', text: quiet < 60 ? 'active now' : 'active ' + coarse(quiet) + ' ago' };
+}
 function ticketCard(t) {
   const a = t.assignment, c = t.commit, n = t.notes[0], b = t.batch;
-  const who = a ? `${esc(a.agent || '?')} <span class="mono" style="color:var(--muted)">${esc(base(a.worktree))}</span>` : '';
-  const rows = [];
-  if (a) rows.push(['worker', `${who}${a.open ? '' : ' (ended)'} <span class="age">${ageOf(a.started)}</span>`]);
-  if (a && a.branch) rows.push(['branch', `<span class="mono">${esc(a.branch)}</span>`]);
-  rows.push(['note', n ? `<span class="age">${ageOf(n.time)}</span>${esc(n.text)} <span class="age">${esc(n.author || '')}</span>` : '<span style="color:var(--muted)">no note yet</span>']);
-  if (a) rows.push(['commit', c ? `<span class="age">${ageOf(c.time)}</span><span class="mono">${esc(c.hash)}</span> ${esc(c.subject)}` : '<span style="color:var(--muted)">none</span>']);
-  if (b) rows.push(['tests', `<div class="batchline">${progress(b)}<span class="txt">${batchSummary(b)}</span></div>`]);
+  const f = freshness(t);
+  const sub = [];
+  if (a) {
+    sub.push(`<span class="who" title="${esc(a.agent)}\n${esc(a.worktree)}\n${esc(a.branch || '')}">${esc(shortAgent(a.agent))}${a.open ? '' : ' (ended)'}</span>`);
+    sub.push(`on it ${ageOf(a.started)}`);
+    if (a.branch && !defaultBranch(a)) sub.push(`<span class="mono">${esc(a.branch)}</span>`);
+  }
+  if (t.group_name) sub.push(esc(t.group_name));
+  const act = [];
+  if (n) act.push(`<div class="act note"><span class="what">${esc(n.text)}</span><span class="when">${ageOf(n.time)}</span></div>`);
+  if (a && c) {
+    const merge = /^Merge /.test(c.subject || '');
+    act.push(`<div class="act commit${merge ? ' merge' : ''}" title="${esc(c.subject)}"><span class="what"><span class="hash">${esc(c.hash)}</span>${esc(c.subject)}</span><span class="when">${ageOf(c.time)}</span></div>`);
+  }
+  if (b) act.push(`<div class="act tests">${progress(b)}<span class="txt">${batchSummary(b)}</span></div>`);
   const more = t.notes.slice(1);
   const moreNotes = more.length ? details('n-' + t.id, `${more.length} earlier note${more.length > 1 ? 's' : ''}`,
-    more.map(m => `<div class="line"><span class="k">${ageOf(m.time)}</span><span class="v">${esc(m.text)} <span class="age">${esc(m.author || '')}</span></span></div>`).join('')) : '';
+    more.map(m => `<div class="act note old"><span class="what">${esc(m.text)}</span><span class="when">${ageOf(m.time)}</span></div>`).join('')) : '';
   const fails = b && b.failed ? details('f-' + t.id, `<span class="bad">${b.failed} failed game${b.failed > 1 ? 's' : ''}</span>`,
     `<ul class="failures">${b.failures.map(g => `<li>${esc(g.scenario)} (${esc(g.install)}): ${esc(g.result || '')}${g.failures[0] ? ' - ' + esc(g.failures[0]) : ''}</li>`).join('')}</ul>`) : '';
-  return `<article class="card s-${t.state}">
-    <div class="top"><span class="id">${esc(t.id)}</span><span class="meta">${esc([t.state, t.model, t.group_name].filter(Boolean).join(' · '))}</span></div>
-    <div class="title">${esc(t.title)}</div>
-    ${rows.map(([k, v]) => `<div class="line"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('')}
+  return `<article class="card s-${t.state} f-${f.cls}">
+    <div class="top"><span class="id">${esc(t.id)}</span><span class="title">${esc(t.title)}</span></div>
+    <div class="tags"><span class="pill st">${esc(t.state)}</span>${t.model ? `<span class="pill">${esc(t.model)}</span>` : ''}<span class="fresh">${esc(f.text)}</span></div>
+    ${sub.length ? `<div class="subline">${sub.join('<span class="dot">·</span>')}</div>` : ''}
+    ${act.length ? `<div class="acts">${act.join('')}</div>` : ''}
     ${moreNotes}${fails}</article>`;
 }
 
@@ -139,8 +172,10 @@ function runsView() {
 // ---- page
 
 function procs() {
+  // The scheduler starts with the first work.py test and exits when idle, so not running is normal.
   return Object.entries(data.processes).map(([name, p]) => p.alive
     ? `<span class="pill up">${name} up</span>`
+    : name === 'scheduler' ? `<span class="pill">scheduler idle</span>`
     : `<span class="pill down">${name} ${p.heartbeat_age == null ? 'never seen' : 'down ' + dur(p.heartbeat_age + sinceFetch())}</span>`).join('');
 }
 function render() {
