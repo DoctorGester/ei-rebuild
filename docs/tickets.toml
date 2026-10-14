@@ -451,11 +451,12 @@ done = "2026-10-14"
 id = "W4"
 title = "Camp and hero screens, help, global map, cursor rectangles, interface creation"
 group = "widescreen"
-status = "review"
+status = "done"
 model = "opus"
 depends = ["W3"]
 note = "Also camera mouse moves and 004F1330. Seen 2026-10-14 by the user in a vanilla --widescreen run (ui_widescreen, hero screen): the hero model drawn in vertical strips; check it under W4 (the garbled title there is expected cp1251 text, per the user). After W3 (2026-10-14): also update the ui-native.md line saying 006462A0 is native only in vanilla until W3."
 started = "2026-10-14"
+done = "2026-10-15"
 
 [[ticket]]
 id = "W2a"
