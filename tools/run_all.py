@@ -94,7 +94,8 @@ def run(name, install, hooks):
         m = re.match(r'(.+?)\s+(\d+) calls\s+(\d+) mismatches$', line)
         if m:
             counts[m.group(1).strip()] = (int(m.group(2)), int(m.group(3)))
-    notes = [l for l in (proc.stdout + proc.stderr).splitlines() if 'terminating' in l or 'not found' in l]
+    notes = [l for l in (proc.stdout + proc.stderr).splitlines() if 'terminating' in l or 'not found' in l or 'open window' in l]
+    notes += [l for l in report.splitlines() if l.startswith('EXIT: ')]   # a message box after quit
     return result, seconds, failures, counts, notes
 
 
@@ -190,6 +191,10 @@ def main():
         print('\nnot passed:')
         for n, i in failed:
             print(line(n, i, *results[(n, i)]))
+    exits = [(n, i) for n, i in jobs if any(x.startswith('EXIT: ') for x in results[(n, i)][3])]
+    if exits:
+        print(f'\n{len(exits)} run(s) showed a message box after the scenario quit (EXIT: lines; stack in ei_hook.log): '
+              + ', '.join(f'{n}-{i}' for n, i in exits))
     bad = sorted((fn, c) for fn, c in totals.items() if c[1])
     if bad:
         print('\nverify mismatches:')

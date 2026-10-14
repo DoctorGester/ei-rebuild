@@ -1185,6 +1185,69 @@ LONG WINAPI HarnessUnhandled(EXCEPTION_POINTERS* e) {
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+// A message box in a harness run is a failure nobody is there to close: the CRT's abort() ("abnormal
+// program termination", from game.exe's own CRT or Rebirth's), a pure virtual call, the game's error
+// box. user32's MessageBoxA / MessageBoxW are hot-patched (the CRT finds MessageBoxA through
+// GetProcAddress, so an import slot would miss it): the text and the stack go to ei_hook.log and
+// the run ends at once. During the run that is a failure; after "quit" the report is already
+// written, so an "EXIT:" line is added to it (run_all.py lists those runs).
+void EndRunOnMessageBox(const std::string& caption, const std::string& text) {
+    std::string what = "message box '" + caption + "': " + text;
+    for (char& ch : what) if (ch == '\r' || ch == '\n') ch = ' ';
+    Log("harness: %s", what.c_str());
+    LogModuleOf(reinterpret_cast<std::uintptr_t>(_ReturnAddress()));
+    const auto* stack = reinterpret_cast<const std::uintptr_t*>(_AddressOfReturnAddress());
+    MEMORY_BASIC_INFORMATION mbi{};
+    VirtualQuery(stack, &mbi, sizeof(mbi));
+    const auto* stackEnd = reinterpret_cast<const std::uintptr_t*>(static_cast<char*>(mbi.BaseAddress) + mbi.RegionSize);
+    for (int i = 0; i < 256 && stack + i < stackEnd; ++i) LogCodeAddress("stack", stack[i]);
+    if (g_quitting) {
+        if (FILE* f = nullptr; fopen_s(&f, g_reportPath, "a") == 0 && f) {
+            std::fprintf(f, "EXIT: %s (stack in ei_hook.log)\n", what.c_str());
+            std::fclose(f);
+        }
+        TerminateProcess(GetCurrentProcess(), 0);
+    }
+    g_failures.push_back(what + " (stack in ei_hook.log)");
+    WriteReport();
+    TerminateProcess(GetCurrentProcess(), 4);
+}
+
+int WINAPI HarnessMessageBoxA(HWND, LPCSTR text, LPCSTR caption, UINT) {
+    EndRunOnMessageBox(caption ? caption : "", text ? text : "");
+    return IDABORT;
+}
+
+std::string Narrow(LPCWSTR s) {
+    std::string out;
+    for (; s && *s; ++s) out += *s < 0x80 ? static_cast<char>(*s) : '?';
+    return out;
+}
+
+int WINAPI HarnessMessageBoxW(HWND, LPCWSTR text, LPCWSTR caption, UINT) {
+    EndRunOnMessageBox(Narrow(caption), Narrow(text));
+    return IDABORT;
+}
+
+// Hot patch: user32's exports start with "mov edi, edi" after five bytes of padding. The padding
+// becomes a JMP to the replacement and the first two bytes a short jump back to it.
+void HotPatch(const char* name, void* replacement) {
+    auto* p = reinterpret_cast<unsigned char*>(GetProcAddress(GetModuleHandleA("user32.dll"), name));
+    if (!p || p[0] != 0x8B || p[1] != 0xFF) {
+        Log("harness: cannot hot-patch %s (unexpected prologue)", name);
+        return;
+    }
+    DWORD old;
+    VirtualProtect(p - 5, 7, PAGE_EXECUTE_READWRITE, &old);
+    p[-5] = 0xE9;
+    *reinterpret_cast<std::int32_t*>(p - 4) = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(replacement) -
+                                                                        reinterpret_cast<std::uintptr_t>(p));
+    p[0] = 0xEB;
+    p[1] = 0xF9;
+    VirtualProtect(p - 5, 7, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p - 5, 7);
+}
+
 void RunSteps() {
     SetUnhandledExceptionFilter(&HarnessUnhandled);
     g_showTutorial = 0;
@@ -1721,6 +1784,8 @@ struct Harness {
         g_selfBase = reinterpret_cast<std::uintptr_t>(selfInfo.lpBaseOfDll);
         g_selfEnd = g_selfBase + selfInfo.SizeOfImage;
         AddVectoredExceptionHandler(1, &CrashLogger);
+        HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA));
+        HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW));
         // A crash must end the run: no Windows Error Reporting dialog, which freezes every thread
         // (the watchdog included) until someone closes it.
         SetErrorMode(GetErrorMode() | SEM_NOGPFAULTERRORBOX | SEM_FAILCRITICALERRORS);
