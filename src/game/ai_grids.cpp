@@ -8,6 +8,7 @@
 #include "unit_ai.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/mfc.h"
 
 #include <cstring>
@@ -171,14 +172,14 @@ LocalSearch* LocalSearch::Construct(CAIMap* owner) {
 EI_REPLACE_METHOD(0x005B3FF0, LocalSearch::Construct);
 
 CUnitLayer* CUnitLayer::Construct() {
-    listVtable = reinterpret_cast<void*>(kNodeListVtable);
-    count = 0;
-    free = nullptr;
-    tail = nullptr;
-    head = nullptr;
-    blocks = nullptr;
-    blockSize = 0x400;
-    vtable = reinterpret_cast<void*>(std::uintptr_t(0x0073FD7C));
+    nodes.vtable = reinterpret_cast<void*>(kNodeListVtable);
+    nodes.count = 0;
+    nodes.free = nullptr;
+    nodes.tail = nullptr;
+    nodes.head = nullptr;
+    nodes.blocks = nullptr;
+    nodes.blockSize = 0x400;
+    ei::SetVtable(this, kVtableAddress);
     for (UnitLayerNode*& bucket : buckets) bucket = nullptr;
     freeNodes = nullptr;
     return this;
@@ -186,13 +187,13 @@ CUnitLayer* CUnitLayer::Construct() {
 EI_REPLACE_METHOD(0x005B4110, CUnitLayer::Construct);
 
 void CUnitLayer::Destruct() {
-    listVtable = reinterpret_cast<void*>(kNodeListVtable);
-    count = 0;
-    free = nullptr;
-    tail = nullptr;
-    head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(blocks));
-    blocks = nullptr;
+    nodes.vtable = reinterpret_cast<void*>(kNodeListVtable);
+    nodes.count = 0;
+    nodes.free = nullptr;
+    nodes.tail = nullptr;
+    nodes.head = nullptr;
+    mfc::PlexFreeDataChain(nodes.blocks);
+    nodes.blocks = nullptr;
 }
 EI_REPLACE_METHOD(0x0058A8A0, CUnitLayer::Destruct);
 EI_REPLACE_METHOD(0x0058A900, CUnitLayer::Destruct);   // the other layer class's byte-identical copy

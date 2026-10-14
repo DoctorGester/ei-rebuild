@@ -482,8 +482,8 @@ void CUnitServer::DestructBody() {
     if (CEngineObject* effect = effectObject) effect->Release();
     DestroyArray(savedQueue, kServerArrayVtable);
     DestroyArray(currentPlan.animation, kServerArrayVtable);
-    motion.pointsVtable = reinterpret_cast<void*>(AIPath::kPointsVtable);
-    if (motion.points) gamecrt::operator_delete(motion.points);
+    motion.excludedBlocks.vtable = reinterpret_cast<void*>(AIPath::kExcludedBlocksVtable);
+    if (motion.excludedBlocks.data) gamecrt::operator_delete(motion.excludedBlocks.data);
     CellListDestroy(&motion.cells);
     CellListDestroy(&motion.steps);
     DestroyArray(queue, kServerArrayVtable);

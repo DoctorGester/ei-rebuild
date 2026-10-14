@@ -53,7 +53,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
     nearby.vtable = reinterpret_cast<void*>(0x0073D454);
     nearby.blockSize = 10;
     float unitHeight = unit->standingHeight;
-    SectorMapFindUnitsInRadius(reinterpret_cast<char*>(this) + 0x124, nullptr, position, &nearby, 10.0f);
+    SectorMapFindUnitsInRadius(&sectorMap, nullptr, position, &nearby, 10.0f);
 
     CUnit* blocker = nullptr;
     for (auto* node = nearby.head; node;) {

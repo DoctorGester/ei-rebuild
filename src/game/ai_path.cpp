@@ -30,7 +30,7 @@ bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, 
 }
 __declspec(naked) bool __fastcall BuildLocalPath(CAIMap*, void*, PathCellList*, int) EI_ORIGINAL(0x005B9690)
 // 005C46C0 on CAIMap + 0x22CC: smooths the start of the path; the result goes to AIPath::smoothing.
-__declspec(naked) int __fastcall SmoothPath(void*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)
+__declspec(naked) int __fastcall SmoothPath(PathSmoother*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)
     EI_ORIGINAL(0x005C46C0)
 // 005BA400 (CAIMap::SetStepSpeeds, ai_movement.cpp): the steps' speed words. Called through the
 // original address so the verify build's wrapper sees it.
@@ -350,7 +350,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
         int direction = 6 - octant;
         if (direction < 0) direction += static_cast<int>((static_cast<unsigned>(7 - direction) >> 3) * 8);
         if (direction > 7) direction -= static_cast<int>((static_cast<unsigned>(direction) >> 3) * 8);
-        path->smoothing = SmoothPath(reinterpret_cast<char*>(this) + 0x22CC, nullptr, unit, this, &pathCells,
+        path->smoothing = SmoothPath(&smoother, nullptr, unit, this, &pathCells,
                                      direction + 1, fractionBits);
         if (!found) goto done;
         AdvancePath(unit, path);

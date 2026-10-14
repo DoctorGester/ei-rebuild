@@ -15,23 +15,16 @@
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
-
-constexpr int kSectorMap = 0x124;
-constexpr int kRegionMap = 0x22F8;
 constexpr std::uintptr_t kLevelHeights = 0x007912BC;   // 8 floats
 constexpr std::uintptr_t kObjectListVtable = 0x0073D454;
 constexpr int kLevels = 8;
 
-// The per-level area lists: levels 5 and 6 use +0x218, 7 uses +0x22C, the others +0x204; each a
-// CArray of {int, int} (data +4, size +8).
+// The special areas of a standing level: levels 5 and 6 use the second list, 7 the third, the
+// others the first.
 int AreaList(int level) {
-    if (level >= 5 && level <= 6) return 0x218;
-    if (level == 7) return 0x22C;
-    return 0x204;
+    if (level >= 5 && level <= 6) return 1;
+    if (level == 7) return 2;
+    return 0;
 }
 
 // 005B8BA0 (RET 0x14, AL). The mark of cell (x, y) for a level and its height (scratch: 0x34 bytes).
@@ -41,7 +34,7 @@ __declspec(naked) void __fastcall ApplyArea(CAIMap*, void*, int, int, int, int, 
 __declspec(naked) void __fastcall RefreshSecondPass(CAIMap*, void*, int, int, int, int) EI_ORIGINAL(0x005B8710)
 // The sector map (+0x124): objects within a radius of a point into a list (RET 0xC), Remove, Add.
 // 005AFEE0 (RET 0x14). The region map updates the blocks [x0, x1] x [y0, y1].
-__declspec(naked) void __fastcall RegionsUpdate(void*, void*, CAIMap*, int, int, int, int) EI_ORIGINAL(0x005AFEE0)
+__declspec(naked) void __fastcall RegionsUpdate(CRegionMap*, void*, CAIMap*, int, int, int, int) EI_ORIGINAL(0x005AFEE0)
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
@@ -87,10 +80,10 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
                 int mark = marks.rows[y][x];
                 CellWord(this, x, y) |= static_cast<std::uint32_t>(mark << shift);
             }
-        auto* areas = reinterpret_cast<std::uint8_t*>(this) + AreaList(level);
-        for (int i = 0; i < At<int>(areas, 8); ++i) {
-            const int* entry = At<int*>(areas, 4) + i * 2;
-            ApplyArea(this, nullptr, level, entry[0], entry[1], ix0, ix1, iy0, iy1);
+        const mfc::CArray<AreaOffset>& areas = areaLists[AreaList(level)];
+        for (int i = 0; i < areas.size; ++i) {
+            const AreaOffset& entry = areas.data[i];
+            ApplyArea(this, nullptr, level, entry.dx, entry.dy, ix0, ix1, iy0, iy1);
         }
     }
     RefreshSecondPass(this, nullptr, ix0, ix1, iy0, iy1);
@@ -127,17 +120,17 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     float cy = StoreFloat(static_cast<float>(static_cast<double>(oy0 + oy1) * scale * GameFloat(0x0073B86C)));
     centre[0] = cx;
     centre[1] = cy;
-    void* sectorMap = reinterpret_cast<std::uint8_t*>(this) + kSectorMap;
-    SectorMapFindUnitsInRadius(sectorMap, nullptr, centre, &objects, radius);
+    CSectorMap* sectors = &sectorMap;
+    SectorMapFindUnitsInRadius(sectors, nullptr, centre, &objects, radius);
     for (auto* node = objects.head; node;) {
         auto* next = node->next;
-        SectorMapRemove(AsSectorMap(sectorMap), nullptr, AsEngineObject(node->data));
+        SectorMapRemove(sectors, nullptr, AsEngineObject(node->data));
         node = next;
     }
-    RegionsUpdate(reinterpret_cast<std::uint8_t*>(this) + kRegionMap, nullptr, this, bx0, bx1, by0, by1);
+    RegionsUpdate(&regionMap, nullptr, this, bx0, bx1, by0, by1);
     for (auto* node = objects.head; node;) {
         auto* next = node->next;
-        SectorMapAdd(AsSectorMap(sectorMap), nullptr, AsEngineObject(node->data));
+        SectorMapAdd(sectors, nullptr, AsEngineObject(node->data));
         node = next;
     }
     objects.vtable = reinterpret_cast<void*>(kObjectListVtable);
@@ -267,15 +260,15 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     if (!(word & 0x100)) {
         if (word & 0x80) {
             // A chain of occluder records in the cell's sector (32x32 cells).
-            std::uint8_t* sector = sectors + ((y / 32) * sectorsPerRow + x / 32) * 0x54;
+            const Sector& sector = sectorMap.sectors.data[(y / 32) * sectorMap.width + x / 32];
             int index = static_cast<int>((word >> 9) & 0xFFFFF);
             do {
-                std::uint8_t* record = At<std::uint8_t*>(sector, 0x44) + index * 8;
-                int lowest = *reinterpret_cast<std::int16_t*>(record + 2);
-                int type = static_cast<std::int8_t>(record[4]);
-                int highest = *reinterpret_cast<std::int16_t*>(record);
+                const SectorOccluder& record = sector.occluders.data[index];
+                int lowest = record.bottom;
+                int type = record.kind;
+                int highest = record.top;
                 Occlude(s, type, lowest, highest, true);
-                index = *reinterpret_cast<std::int16_t*>(record + 6);
+                index = record.next;
             } while (index >= 0);
         } else {
             int type = static_cast<int>((word >> 9) & 7);

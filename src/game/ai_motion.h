@@ -11,25 +11,8 @@
 
 // The arrays are mfc::CArray (lib/mfc.h).
 
-// The first 0x20 bytes of AIPath: what the unit is told to do. Kinds:
-//   0 stand at (x, y) facing `angle` (set by Start / Reset),
-//   1 turn to direction `arg5` (an angle) at rate `arg6` (0: the unit's own rate),
-//   2 follow the steps to the target (arg5, arg6) (SetTarget),
-//   3 track object `arg5` between times arg6 and arg7,
-//   4 turn to direction `arg5`.
-// (x, y) and targets are in half-cell units (world * 2).
-struct MotionOrder {
-    int kind;           // +0x00
-    float x, y;         // +0x04 where the order starts
-    float angle;        // +0x0C facing at the start
-    int startTime;      // +0x10 world time the order started
-    std::uint32_t arg5; // +0x14 float or object id, by kind
-    std::uint32_t arg6; // +0x18
-    std::uint32_t arg7; // +0x1C
-};
-static_assert(sizeof(MotionOrder) == 0x20);
-
-inline MotionOrder* OrderOf(AIPath* path) { return reinterpret_cast<MotionOrder*>(path); }
+// The order (MotionOrder, the first 0x20 bytes of AIPath) is in ai_map.h.
+inline MotionOrder* OrderOf(AIPath* path) { return &path->motionOrder; }
 
 // A point of the trajectory (0x1C bytes).
 struct MotionPoint {
@@ -117,5 +100,3 @@ static_assert(offsetof(UnitMotion, fromX) == 0x50);
 static_assert(offsetof(UnitMotion, curveX) == 0x78);
 static_assert(offsetof(UnitMotion, segment) == 0xA0);
 static_assert(sizeof(UnitMotion) == 0xA4);
-
-inline UnitMotion* MotionOf(CUnit* unit) { return reinterpret_cast<UnitMotion*>(reinterpret_cast<char*>(unit) + 0x27C); }

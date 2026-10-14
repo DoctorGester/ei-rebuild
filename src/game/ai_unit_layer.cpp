@@ -3,14 +3,15 @@
 #include "ai_unit_layer.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 #include <cstring>
 
 namespace {
-// 005BE7B0: CList<UnitLayerNode>::NewNode(prev, next) on CUnitLayer + 4 (data zero-filled, count + 1).
-__declspec(naked) CUnitLayer::ListNode* __fastcall NewListNode(void*, void*, CUnitLayer::ListNode*,
-                                                               CUnitLayer::ListNode*) EI_ORIGINAL(0x005BE7B0)
+using NodeList = mfc::CList<UnitLayerNode>;
+// 005BE7B0: CList<UnitLayerNode>::NewNode(prev, next) on the layer's node list (data zero-filled,
+// count + 1).
+__declspec(naked) NodeList::Node* __fastcall NewListNode(NodeList*, void*, NodeList::Node*, NodeList::Node*)
+    EI_ORIGINAL(0x005BE7B0)
 
 // A node from the free list, or a new one appended to the layer's list. The original copies an
 // uninitialised stack element into a new node's data (MFC AddTail of a default element); the
@@ -20,10 +21,11 @@ UnitLayerNode* TakeNode(CUnitLayer* layer) {
         layer->freeNodes = node->next;
         return node;
     }
-    CUnitLayer::ListNode* added = NewListNode(&layer->listVtable, nullptr, layer->tail, nullptr);
-    if (layer->tail) layer->tail->next = added;
-    else layer->head = added;
-    layer->tail = added;
+    NodeList& nodes = layer->nodes;
+    NodeList::Node* added = NewListNode(&nodes, nullptr, nodes.tail, nullptr);
+    if (nodes.tail) nodes.tail->next = added;
+    else nodes.head = added;
+    nodes.tail = added;
     return &added->data;
 }
 
@@ -52,7 +54,7 @@ void CUnitLayer::Add(CUnit* unit, const std::uint8_t* shape, int x, int y) {
             UnitLayerNode*& bucket = buckets[UnitLayerBucket(keyX, keyY)];
             node->next = bucket;
             bucket = node;
-            ei::VCall<void>(this, 1, node);
+            Merge(node);
             node = TakeNode(this);
         }
     }
@@ -88,7 +90,7 @@ void CUnitLayer::Remove(CUnit* unit, int x, int y) {
                 slot = &node->next;
                 node = node->next;
             }
-            if (found) ei::VCall<void>(this, 0, &record);
+            if (found) Set(&record);
         }
     }
 }

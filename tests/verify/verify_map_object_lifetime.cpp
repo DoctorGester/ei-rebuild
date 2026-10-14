@@ -227,7 +227,7 @@ EI_VERIFY(0x00545110, TakeStepsVerify, 8, s_takeSteps);
 // lists empty, their vtables.
 static void __fastcall DestructPathVerify(AIPath* self) {
     self->Destruct();
-    bool ok = self->pointsVtable == reinterpret_cast<void*>(AIPath::kPointsVtable) && !self->cells.head &&
+    bool ok = self->excludedBlocks.vtable == reinterpret_cast<void*>(AIPath::kExcludedBlocksVtable) && !self->cells.head &&
               self->cells.count == 0 && !self->cells.blocks && !self->steps.head && self->steps.count == 0 &&
               !self->steps.blocks && self->cells.vtable == PathCellListVtable();
     ei::verify::Check("AIPath::Destruct", true, ok, "");

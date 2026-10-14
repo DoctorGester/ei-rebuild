@@ -230,12 +230,12 @@ void AIPath::Clear() {
     failed = false;
     flag6E = false;
     flag6F = true;
-    if (points) {
-        gamecrt::operator_delete(points);
-        points = nullptr;
+    if (excludedBlocks.data) {
+        gamecrt::operator_delete(excludedBlocks.data);
+        excludedBlocks.data = nullptr;
     }
-    pointMax = 0;
-    pointCount = 0;
+    excludedBlocks.maxSize = 0;
+    excludedBlocks.size = 0;
     smoothing = 0;
 }
 EI_REPLACE_METHOD(0x005B23A0, AIPath::Clear);

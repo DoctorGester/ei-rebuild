@@ -2,6 +2,7 @@
 
 #include "engine_object.h"
 #include "maths.h"
+#include "sector_map.h"
 #include "unit.h"
 
 #include "lib/containers.h"
@@ -167,11 +168,36 @@ static_assert(sizeof(BlockCostList::Node) == 0x14);
 struct CRegionMap;
 
 
+// A block of the region map, or a cell: {x, y}. The excluded blocks of a plan (AIPath) and the
+// region map's work lists are CArray<BlockPoint> (constructor 00557230, SetSize 005B16D0).
+struct BlockPoint {
+    int x, y;
+};
+using BlockPointArray = mfc::CArray<BlockPoint>;
+
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
 // middle (negative steps down, positive up): an MFC CArray<int> of 1023 costs in 1/1024, -1 for a
 // step that cannot be taken (CAIMap::Load fills them).
 using ClimbTable = mfc::CArray<int>;
 
+
+// The first 0x20 bytes of AIPath: what the unit is told to do. Kinds:
+//   0 stand at (x, y) facing `angle` (set by Start / Reset),
+//   1 turn to direction `arg5` (an angle) at rate `arg6` (0: the unit's own rate),
+//   2 follow the steps to the target (arg5, arg6) (SetTarget),
+//   3 track object `arg5` between times arg6 and arg7,
+//   4 turn to direction `arg5`.
+// (x, y) and targets are in half-cell units (world * 2).
+struct MotionOrder {
+    int kind;           // +0x00
+    float x, y;         // +0x04 where the order starts
+    float angle;        // +0x0C facing at the start
+    int startTime;      // +0x10 world time the order started
+    std::uint32_t arg5; // +0x14 float or object id, by kind
+    std::uint32_t arg6; // +0x18
+    std::uint32_t arg7; // +0x1C
+};
+static_assert(sizeof(MotionOrder) == 0x20);
 
 // A unit's path (name and layout provisional). Its methods at 005C7xxx steer along `steps`.
 struct AIPath {
@@ -216,23 +242,24 @@ struct AIPath {
     void LoadOrder(CStream* stream);
     void SaveOrder(CStream* stream);
     // 006706A0 (player_server_handlers.cpp). An out-of-line copy of the inlined constructor: both
-    // cell lists empty (blocks of 0x80), no points (vtable kPointsVtable), then Clear. Returns this.
+    // cell lists empty (blocks of 0x80), no excluded blocks (vtable kExcludedBlocksVtable), then
+    // Clear. Returns this.
     // The destructor body is 00546100 (AIPathDestructOriginal).
     AIPath* Construct();
     // 0054EAC0 (ai_path_cells.cpp, A-W14). The constructor of a motion order (the first 0x3C bytes
     // of a path): the step list empty, blocks of 0x80; the order itself is left as it is. Returns
     // this.
     AIPath* ConstructSteps();
-    // 00546100 (combat_lifetime.cpp, A-U7). The destructor body: the points freed (vtable
+    // 00546100 (combat_lifetime.cpp, A-U7). The destructor body: the excluded blocks freed (vtable
     // 0073F07C), then both cell lists emptied with their vtable (0073EDB0).
     void Destruct();
     // 00670730 (RET 4). The search's target cell (targetX, targetY) in world units: each times
     // 0074326C * 0073B86C, z 0. Returns `out`.
     Vector3* TargetPoint(Vector3* out) const;
 
-    static constexpr std::uintptr_t kPointsVtable = std::uintptr_t(0x0073F07C);
+    static constexpr std::uintptr_t kExcludedBlocksVtable = std::uintptr_t(0x0073F07C);
 
-    std::uint8_t unknown_00[0x20];
+    MotionOrder motionOrder;    // +0x00 (ai_motion.cpp)
     PathCellList steps;         // +0x20 the next cells to walk (at most 32)
     PathCellList cells;         // +0x3C the rest of the path
     float targetX, targetY;     // +0x58 in half-cells
@@ -240,14 +267,13 @@ struct AIPath {
     bool reached;               // +0x6C no cells left
     bool failed;                // +0x6D the last search failed; search again
     bool flag6E, flag6F;        // +0x6E, +0x6F
-    void* pointsVtable;         // +0x70 CArray of points (vtable 0073F07C; 00557230 / 00557250)
-    void* points;               // +0x74
-    int pointCount;             // +0x78
-    int pointMax;               // +0x7C
-    int pointGrowBy;            // +0x80
+    // +0x70 the blocks the long-range plan avoids (PlanLongPath adds the region it failed in;
+    // vtable 0073F07C, constructor 00557230, destructor 00557250).
+    BlockPointArray excludedBlocks;
     int smoothing;              // +0x84 from 005C46C0 (how much longer the path is than the way)
 };
 static_assert(offsetof(AIPath, steps) == 0x20);
+static_assert(offsetof(AIPath, excludedBlocks) == 0x70);
 static_assert(offsetof(AIPath, cells) == 0x3C);
 static_assert(offsetof(AIPath, goal) == 0x60);
 static_assert(offsetof(AIPath, smoothing) == 0x84);
@@ -633,6 +659,66 @@ struct PathSmoother {
 };
 static_assert(sizeof(PathSmoother) == 0x2C);
 
+// A 4x4-cell block of one unit's levels (0x1C bytes).
+struct UnitLayerNode {
+    UnitLayerNode* next;        // next in the bucket, or in the free list
+    int key;                    // (block y << 16) + block x, blocks of 4 cells
+    std::int8_t levels[16];     // rows of 4
+    CUnit* owner;               // +0x18
+};
+static_assert(sizeof(UnitLayerNode) == 0x1C);
+
+// The unit occupancy layers at CAIMap + 0x27C (small units) and + 0x12A4 (large units): every unit
+// on the map is stamped as a 20x20-cell block of levels (its UnitShape, 16x16, at the unit's cell
+// offset within a 4-cell block), stored as 4x4-cell nodes in a 1024-bucket hash keyed by block.
+// Methods in ai_unit_layer.cpp and ai_grids.cpp. Names provisional.
+//
+// Two slots: 0 Set (the block's levels replace the map's) and 1 Merge (the map keeps the larger
+// level), _purecall in the base vtable 0073FD7C. The small-unit layer (vtable 0073FD74) writes
+// AIMapCell::level (unsigned maximum), the large-unit one (vtable 0073FD6C) the signed bytes of
+// CAIMap::waterDepth; their bodies are the __fastcall functions in ai_unit_layer.h, registered by
+// address. The game builds the layers (the AI map's constructor stores the vtables), so the class
+// is novtable and the slots are only declared.
+class __declspec(novtable) CUnitLayer {
+public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FD7C);
+    static constexpr std::uintptr_t kSmallVtableAddress = std::uintptr_t(0x0073FD74);
+    static constexpr std::uintptr_t kLargeVtableAddress = std::uintptr_t(0x0073FD6C);
+    static constexpr std::uintptr_t kNodeListVtable = std::uintptr_t(0x0073F9F8);
+
+    virtual void Set(const UnitLayerNode* block);     // 0: small 005B39D0, large 005B3B20
+    virtual void Merge(const UnitLayerNode* block);   // 1: small 005B3A70, large 005B3B90
+
+    // 005B36B0. Stamps `unit`'s shape (16x16 levels at shape + 8) with its top-left cell at
+    // (x, y): one node per non-empty 4x4 block, each announced through Merge.
+    void Add(CUnit* unit, const std::uint8_t* shape, int x, int y);
+    // 005B3890. Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
+    // block it had, Set gets the block with the other units' levels merged (maximum).
+    void Remove(CUnit* unit, int x, int y);
+    // 005B4110 (the base constructor; ai_grids.cpp). The empty node list (blocks of 0x400), the
+    // base vtable 0073FD7C, no buckets, no free nodes. `map` is the owner's to set. Returns this.
+    CUnitLayer* Construct();
+    // 0058A8A0 / 0058A900 (the two layer classes' destructors, reached by the AI map's unwinding
+    // only; ai_grids.cpp). The node list emptied and its blocks freed.
+    void Destruct();
+
+    // +0x04 the storage of every node ever allocated (vtable kNodeListVtable, NewNode 005BE7B0).
+    mfc::CList<UnitLayerNode> nodes;
+    UnitLayerNode* buckets[1024];   // +0x20 by (key x * 17 + key y) & 0x3FF
+    UnitLayerNode* freeNodes;       // +0x1020 unused nodes
+    CAIMap* map;                    // +0x1024
+};
+static_assert(offsetof(CUnitLayer, nodes) == 0x04);
+static_assert(offsetof(CUnitLayer, buckets) == 0x20);
+static_assert(offsetof(CUnitLayer, freeNodes) == 0x1020);
+static_assert(sizeof(CUnitLayer) == 0x1028);
+
+// A level's special area (CAIMap::areaLists, ClearUnmarkedArea): the offset {dx, dy} of the cell
+// whose mark decides.
+struct AreaOffset {
+    int dx, dy;
+};
+
 struct AIEventTable;   // unit_ai.h
 
 // The navigation grid of the current map, loaded by CAIMap::Load (005B43C0, patched by Rebirth).
@@ -664,7 +750,7 @@ public:
     AIEventTable* Events() { return reinterpret_cast<AIEventTable*>(this + 1); }
 
     // The sector map embedded at +0x124 (sector_map.h).
-    CSectorMap* SectorMap() { return reinterpret_cast<CSectorMap*>(&unknown_124); }
+    CSectorMap* SectorMap() { return &sectorMap; }
     // script_runtime_helpers.cpp (A-S4): the sector map (+0x124) as the script runtime calls it.
     // 004BA090 (RET 4). refreshUnits = the low byte of `on`; returns the old byte (AL).
     std::uint8_t SetRefreshUnits(int on);
@@ -868,19 +954,18 @@ public:
     lib::AlignedArray<AITerrainType> materials;     // +0x0FC the terrain types (16 after Load)
     std::uint8_t bridgeHeights[0x14];   // +0x10C hash_map<int, uint16> keyed (short)x << 16 | (short)y
     float heightScale;                  // +0x120 world z to AI height units
-    std::uint32_t unknown_124;          // +0x124 the sector map (CSectorMap) starts here
-    int sectorsPerRow;                  // +0x128
-    std::uint8_t unknown_12C[0x138 - 0x12C];
-    std::uint8_t* sectors;              // +0x138 0x54-byte sector records (see LineOfSight)
-    std::uint8_t unknown_13C[0x14C - 0x13C];
+    CSectorMap sectorMap;               // +0x124 (vtable 0073F9DC)
     FootprintCellSet footprint;         // +0x14C scratch for MarkFootprint
     FootprintCellSet bridges;           // +0x1A0
     std::int8_t* waterBlock;            // +0x1F4 the water depths' grid (WaterGrid) from here
     std::int8_t** waterDepth;           // +0x1F8 rows of per-cell water depth
     int waterWidth, waterHeight;        // +0x1FC
-    std::uint8_t unknown_204[0x27C - 0x204];
-    std::uint8_t unitLayerSmall[0x12A4 - 0x27C];    // +0x27C unit occupancy (005B36B0 / 005B3890)
-    std::uint8_t unitLayerLarge[0x22CC - 0x12A4];   // +0x12A4
+    // +0x204 the standing levels' special areas (ClearUnmarkedArea): RefreshArea reads the first
+    // list for levels 0..4, the second for 5 and 6, the third for 7 (the other three are not read
+    // there). CArray<{int, int}> (vtable 0073F9E0), filled by FillAreaLists (005B4150).
+    mfc::CArray<AreaOffset> areaLists[6];
+    CUnitLayer unitLayerSmall;          // +0x27C unit occupancy (005B36B0 / 005B3890)
+    CUnitLayer unitLayerLarge;          // +0x12A4
     PathSmoother smoother;                          // +0x22CC
     CRegionMap regionMap;                           // +0x22F8
     LocalSearch forwardSearch;                      // +0x2594
@@ -899,7 +984,8 @@ static_assert(offsetof(CAIMap, batching) == 0x01 && offsetof(CAIMap, refreshUnit
 static_assert(offsetof(CAIMap, dirtyMinX) == 0x04 && offsetof(CAIMap, dirtyMaxX) == 0x08);
 static_assert(offsetof(CAIMap, dirtyMinY) == 0x0C && offsetof(CAIMap, dirtyMaxY) == 0x10);
 static_assert(offsetof(CAIMap, passCosts) == 0x14);
-static_assert(offsetof(CAIMap, unknown_124) == 0x124 && offsetof(CAIMap, sectorsPerRow) == 0x128);
+static_assert(offsetof(CAIMap, sectorMap) == 0x124);
+static_assert(offsetof(CAIMap, areaLists) == 0x204);
 static_assert(offsetof(CAIMap, waterWidth) == 0x1FC && offsetof(CAIMap, waterHeight) == 0x200);
 static_assert(offsetof(CAIMap, stepCosts) == 0x94);
 static_assert(offsetof(CAIMap, climbLarge) == 0xD4);
@@ -912,7 +998,7 @@ static_assert(offsetof(CAIMap, heightScale) == 0x120);
 static_assert(offsetof(CAIMap, footprint) == 0x14C);
 static_assert(offsetof(CAIMap, bridges) == 0x1A0);
 static_assert(offsetof(CAIMap, waterDepth) == 0x1F8);
-static_assert(offsetof(CAIMap, unitLayerLarge) == 0x12A4);
+static_assert(offsetof(CAIMap, unitLayerSmall) == 0x27C && offsetof(CAIMap, unitLayerLarge) == 0x12A4);
 static_assert(offsetof(CAIMap, regionMap) == 0x22F8);
 static_assert(offsetof(CAIMap, smoother) == 0x22CC);
 static_assert(offsetof(CAIMap, forwardSearch) == 0x2594);

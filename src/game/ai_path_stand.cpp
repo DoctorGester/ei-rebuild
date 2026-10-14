@@ -4,7 +4,7 @@
 // emptied, and the order starts at the unit's position facing the direction its orientation
 // quaternion (+0x34) gives, negated (computed on the FPU in the original's order). Then the
 // variants add a turn (005C7C00), a tracked object (005C7C20) or a turn with an end (005C7C40);
-// 005B2190 starts at the path's own time (+0x10). See ai_map.h (AIPath) and docs/notes/ai.md.
+// 005B2190 starts at the order's own start time. See ai_map.h (AIPath) and docs/notes/ai.md.
 #include "ai_map.h"
 #include "core_maths.h"
 #include "map_object.h"
@@ -72,8 +72,8 @@ __declspec(naked) void __fastcall FacingFromQuaternion(const float* /*q*/, float
     }
 }
 
-// 005B16D0 (RET 8): the excluded regions' CArray::SetSize.
-inline void __fastcall ExcludedSetSize(void* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
+// 005B16D0 (RET 8): the excluded blocks' CArray::SetSize.
+inline void __fastcall ExcludedSetSize(BlockPointArray* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 // The order's follow-ups through their original addresses (ai_motion.cpp), the arguments as the
 // caller's dwords.
 __declspec(naked) void __fastcall OrderSetTurn(AIPath*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x005C7C00)
@@ -96,7 +96,7 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
     path->failed = false;
     path->flag6E = false;
     path->flag6F = true;
-    ExcludedSetSize(reinterpret_cast<std::uint8_t*>(path) + 0x70, nullptr, 0, -1);
+    ExcludedSetSize(&path->excludedBlocks, nullptr, 0, -1);
     path->smoothing = 0;
     path->reached = true;
     double scale = static_cast<double>(GameFloat(0x0073B84C)) /
@@ -136,7 +136,7 @@ void __fastcall StandAndTurnUntil(AIPath* path, void*, int time, std::uint8_t* u
 
 // 005B2190 (RET 4).
 void __fastcall StandStill(AIPath* path, void*, std::uint8_t* unit) {
-    StandAt(path, reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(path) + 0x10), unit);
+    StandAt(path, &path->motionOrder.startTime, unit);
 }
 
 EI_REPLACE(0x005B1DE0, StandAndTurn);

@@ -101,11 +101,11 @@ struct LocalPath {
     LocalPath() {
         CellListConstruct(&Path()->steps);
         CellListConstruct(&Path()->cells);
-        PointArrayConstruct(&Path()->pointsVtable);
+        PointArrayConstruct(&Path()->excludedBlocks);
         PathClear(bytes);
     }
     ~LocalPath() {
-        PointArrayDestroy(&Path()->pointsVtable);
+        PointArrayDestroy(&Path()->excludedBlocks);
         CellListDestroy(&Path()->cells);
         CellListDestroy(&Path()->steps);
     }

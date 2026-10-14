@@ -1,7 +1,16 @@
 #pragma once
 
-#include "ai_map.h"
+// The AI map embeds the sector map (+0x124), so ai_map.h includes this header first and the AI
+// map's declaration comes last, for the files that include only this one.
+#include "engine_object.h"
+#include "maths.h"
+
 #include "lib/mfc.h"
+
+#include <cstddef>
+#include <cstdint>
+
+class CAIMap;
 
 // The world split into 32x32-cell sectors, each listing the objects and units inside it. Used to
 // find what is near a point and to keep the AI map's footprints in sync. Names provisional.
@@ -135,3 +144,5 @@ public:
 };
 static_assert(offsetof(CSectorMap, sectors) == 0x10);
 static_assert(offsetof(CSectorMap, aiMap) == 0x24);
+
+#include "ai_map.h"

@@ -311,7 +311,7 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
         if (IsDead(unit)) return true;
         void* shape = UnitShape(unit->standingHeight);
         if (!shape) return true;
-        auto* layer = reinterpret_cast<CUnitLayer*>(IsLarge(unit) ? unitLayerLarge : unitLayerSmall);
+        CUnitLayer* layer = IsLarge(unit) ? &unitLayerLarge : &unitLayerSmall;
         if (remove) UnitLayerRemoveOriginal(layer, nullptr, unit, cellX - 8, cellY - 8);
         else UnitLayerAddOriginal(layer, nullptr, unit, shape, cellX - 8, cellY - 8);
         return true;
