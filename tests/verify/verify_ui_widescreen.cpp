@@ -4,7 +4,9 @@
 // verify_ui_text_draw.cpp): side by side with addon's code in a Rebirth launch, the panel offset
 // shared with addon's panel builders. This file checks the layout itself: in a Rebirth launch where
 // addon applied the patch, the two layout widths it wrote before WinMain (what our startup found
-// there) must be the ones we compute from the same settings. Scenario: ui_widescreen (Rebirth).
+// there) must be the ones we compute from the same settings, and so must the two floats it wrote
+// into the code (W4): the font scale at 005F4F81 and the axis swap's x scale, the operand of its
+// MOV DWORD PTR [EAX],imm32 at 004F135A. Scenario: every Rebirth launch (all wide here).
 #include "verify.h"
 
 #include "../../src/game/ui_widescreen.h"
@@ -33,6 +35,12 @@ void WideScreenLayoutCheck() {
     ei::verify::Check("WideScreen panel right (007428AC)", Bits(widescreen::FoundPanelRight()),
                       Bits(Read(std::uintptr_t(0x007428AC))), "%dx%d extra %d: addon %g", layout.width, layout.height,
                       layout.extra, double(widescreen::FoundPanelRight()));
+    ei::verify::Check("WideScreen font scale (005F4F81)", Bits(Read(std::uintptr_t(0x005F4F81))), Bits(layout.fontScale),
+                      "%dx%d: addon %g, ours %g", layout.width, layout.height, double(Read(std::uintptr_t(0x005F4F81))),
+                      double(layout.fontScale));
+    ei::verify::Check("WideScreen axis scale (004F135C)", Bits(Read(std::uintptr_t(0x004F135C))), Bits(layout.axisScale),
+                      "%dx%d: addon %g, ours %g", layout.width, layout.height, double(Read(std::uintptr_t(0x004F135C))),
+                      double(layout.axisScale));
 }
 EI_STARTUP_CHECK(WideScreenLayoutCheck);
 

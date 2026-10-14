@@ -13,7 +13,7 @@
 // (arrival exit, time), found_ and the flags must agree. A call with results already present runs
 // ours only. Reached by a click on a zone or link of the map (0062F950); no scenario clicks one.
 //
-// OnLeftDown (0062F950, input slot 2; Rebirth-patched: the vanilla launch only): ours only (it
+// OnLeftDown (0062F950, input slot 2; Rebirth-patched: hooked in both launches): ours only (it
 // plays sounds, asks the server for the camp or a zone, or opens the objectives window). Read
 // back: nothing while dragging; the turn buttons (regions 0 / 1) set turning_ to -1 / +1 and
 // nothing else changes it. Scenario: ui_camp opens the map; whether it presses the left button

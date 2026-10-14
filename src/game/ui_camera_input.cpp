@@ -6,8 +6,10 @@
 #include "camera.h"
 #include "ui.h"
 #include "ui_cursor.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
@@ -164,7 +166,8 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
         POINT point{x, y};
         POINT drag{MouseDragX(), MouseDragY()};
         interface_->CallScalePointFromScreen(&point);
-        interface_->CallScalePointFromScreen(&drag);
+        // Rebirth's WideScreen scales the drag without the margin (005EB249: addon's entry 005F7DFE).
+        interface_->CallScalePointFromScreenNoMargin(&drag);
         float across = static_cast<float>(drag.x) * PerWidth();
         float along = StoreFloat(static_cast<float>(drag.y) * PerHeight());
         if (!ModifierHeld(interface_)) {
@@ -262,5 +265,6 @@ EI_REPLACE(0x005EB090, CameraInputKeyUp);
 EI_REPLACE(0x005EAD00, CameraInputRightDown);
 EI_REPLACE(0x005EAD50, CameraInputRightUp);
 EI_REPLACE(0x005EB210, CameraInputMouseMove);
+EI_REBIRTH_IMPLEMENTS(0x005EB210, ei::rebirth::Patch::WideScreen);
 EI_REPLACE(0x005EB580, CameraInputDeactivate);
 EI_REPLACE(0x005EB540, CameraInputWheel);

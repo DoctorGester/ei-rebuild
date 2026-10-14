@@ -471,8 +471,8 @@ public:
     void OnRightDown(int buttons, int x, int y);
     void OnRightUp(int buttons, int x, int y);
     void OnDeactivate();
-    // 00630010 (input slot 4, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in the
-    // vanilla launch only). The mouse moved. While dragging: the drag motion (007C7C60, printed
+    // 00630010 (input slot 4, RET 0xC; Rebirth-patched; reproducing WideScreen, so hooked in both
+    // launches: the drag scaled without the margin, the pick picture's x without it). The mouse moved. While dragging: the drag motion (007C7C60, printed
     // to the stream 007C5760) turns the map: angle_ += dx / 300 (layout units), taken mod
     // 007C8020, and turn_ = the tilt (pi * 0.8 about x) times the spin about z; the motion is
     // cleared. Otherwise the zone or link under the mouse is selected (a link's region 3..; or,
@@ -482,8 +482,8 @@ public:
     // it; a zone in state 0 or nothing hides the tip. A new name plays
     // "buttons\globalmap\zone.wav". Regions past the links do nothing.
     void OnMouseMove(int buttons, int x, int y);
-    // 0062F950 (input slot 2, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in the
-    // vanilla launch only; ui_global_map_paths.cpp). The left button pressed (nothing while
+    // 0062F950 (input slot 2, RET 0xC; Rebirth-patched; ui_global_map_paths.cpp, reproducing
+    // WideScreen, so hooked in both launches: the pick picture's x without the margin). The left button pressed (nothing while
     // dragging). Regions 0 / 1, the turn buttons: turning_ -1 / +1 and
     // "buttons\globalmap\move.wav". Region 2, the camp (unless noCamp_ is 1):
     // "buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions

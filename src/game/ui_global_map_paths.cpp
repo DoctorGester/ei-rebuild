@@ -9,9 +9,11 @@
 #include "originals_ui.h"
 #include "ui.h"
 #include "ui_screens.h"
+#include "ui_widescreen.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -167,8 +169,9 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         interface_->PlaySound(OkSound(), 0);
         link = region - kFirstLinkRegion;
     } else {
-        // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i.
-        const std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2, y / 2);
+        // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
+        // WideScreen takes the margin off its x (0062FB20: addon's code at 005FD237).
+        const std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= zoneCount_ || zones_.data[index].state == 0) return;
         interface_->PlaySound(OkSound(), 0);
@@ -198,3 +201,4 @@ void __fastcall GlobalMapLeftDown(void* input, void*, int buttons, int x, int y)
 }
 } // namespace
 EI_REPLACE(0x0062F950, GlobalMapLeftDown);
+EI_REBIRTH_IMPLEMENTS(0x0062F950, ei::rebirth::Patch::WideScreen);

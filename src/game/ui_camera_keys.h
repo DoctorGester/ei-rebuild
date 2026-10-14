@@ -33,8 +33,8 @@ public:
     // 005EAD50 (slot 6, RET 0xC). Released: turning_ cleared, the camera stops turning, tilting
     // and panning, the motion cleared, the cursor let go and put back at the mouse position; used.
     void OnRightUp(int buttons, int x, int y);
-    // 005EB210 (slot 4, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in the vanilla
-    // launch only; ui_camera_input.cpp). The mouse moved. While turning: the drag motion (007C7C60,
+    // 005EB210 (slot 4, RET 0xC; Rebirth-patched; ui_camera_input.cpp, reproducing WideScreen, so
+    // hooked in both launches: the drag scaled without the margin). The mouse moved. While turning: the drag motion (007C7C60,
     // in layout units) turns the camera at 0079BDC8 * 0079BDC4 * 0079BD64 * (dx / 400) * 10 and
     // tilts it at 0079BDD4 * 0079BDD0 * 0079BD68 * (dy / 300) * 500 (not tilting when it is at rest
     // and |dy| <= |dx|), or with Ctrl / Alt pans it along (dx / 400, dy / 300) at 0079BDBC *

@@ -72,6 +72,13 @@ Layout Compute() {
     layout.margin = (w - layout.width43) / 2;
     volatile float units = static_cast<float>(layout.margin * 800.0 / layout.width43);
     layout.extra = static_cast<int>(std::ceil(static_cast<double>(units)));
+    // FILD width43; FIDIV width; FSTP dword (10024954) and FILD width; FMUL 0.0075; FIDIV height;
+    // FSTP dword (10024902).
+    volatile double ratio = static_cast<double>(layout.width43) / static_cast<double>(w);
+    layout.axisScale = static_cast<float>(ratio);
+    volatile double perHeight = static_cast<double>(w) * 0.0075;
+    perHeight = perHeight / static_cast<double>(h);
+    layout.fontScale = static_cast<float>(perHeight);
     layout.active = true;
     return layout;
 }
@@ -229,6 +236,12 @@ SIZE TextExtentToLayout(SIZE pixels) {
     const Layout& l = Get();
     return SIZE{MulDiv64(pixels.cx, kLayoutWidth, l.width43), MulDiv64(pixels.cy, kLayoutHeight, l.height)};
 }
+
+float AxisScale() { return Active() ? Get().axisScale : 1.0f; }
+
+float FontScale() { return Active() ? Get().fontScale : *reinterpret_cast<const volatile float*>(std::uintptr_t(0x0073D09C)); }
+
+int PickShift() { return Active() ? Get().margin / 2 : 0; }
 
 // addon's apply function: 0x320 + extra written at 0065E7C3, -0x320 - extra at 0065E7CA.
 int LayoutRight() { return kLayoutWidth + Get().extra; }

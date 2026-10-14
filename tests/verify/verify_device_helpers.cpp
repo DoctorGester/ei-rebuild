@@ -1,7 +1,7 @@
 // Checks for device_helpers.cpp (A-S11). Main thread.
 //  - Side by side (pure): the batch's vertex buffer lock 004E7820 (every mesh draw: any scene with
 //    a figure or a shadow) and the axis swap matrix 004F1330 (the renderer's creation, every start;
-//    vanilla launch only).
+//    in a Rebirth launch against addon's code: WideScreen's x scale).
 //  - Ours only (they move reference counts, allocate or free): the surface holder's release
 //    004E6BA0 and the counted pointers' assignments 004EBE30 / 004EBE60 / 004EBE80 (texture loads
 //    and material stages: any zone load), the aligned allocations 004ECB50 / 004ECB70 and the
