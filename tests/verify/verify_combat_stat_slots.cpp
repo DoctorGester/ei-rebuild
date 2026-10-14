@@ -180,7 +180,7 @@ static void __fastcall ForgetClaimsVerify(CUnitServer* self) {
     const AICallArray& calls = self->brain.calls;
     int masked = 0;
     for (int i = 0; i < calls.size; ++i)
-        if (calls.data[i].unknown_10 != 0) ++masked;
+        if (calls.data[i].hostileMask != 0) ++masked;
     ei::verify::Check("CUnitServer::ForgetClaims", true, self->claimedHostile == 0 && masked == 0,
                       "unit %d: claims %08X, %d masked calls of %d", UnitId(self), self->claimedHostile, masked,
                       calls.size);

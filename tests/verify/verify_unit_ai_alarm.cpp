@@ -47,7 +47,7 @@ static void __fastcall ApplyBehaviourVerify(AIBrain* self, void*, const AIAlarmR
     std::vector<int> types;
     for (auto* node = self->modes.head; node; node = node->next) types.push_back(node->data->GetType());
     bool ok = types == ExpectedTypes(record) && self->current == nullptr && self->action == AIBrain::kActionNone &&
-              self->target == nullptr && self->alarmCountdown >= 1 && self->alerted == 0 && self->unknown_36 == slot;
+              self->target == nullptr && self->alarmCountdown >= 1 && self->alerted == 0 && self->alarmSlot == slot;
     if (ok && record->type == 2) {
         auto* patrol = reinterpret_cast<PatrolMode*>(self->FindMode(kModePatrol));
         int perPass = record->patrols.size;

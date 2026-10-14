@@ -18,7 +18,7 @@ void* s_unused;
 class SaveRecorder : public AIStream {
 public:
     explicit SaveRecorder(int fileVersion) {
-        unknown_04 = 0;
+        reading = 0;
         version = fileVersion;
     }
     void* DeletingDestruct(unsigned) override { return this; }

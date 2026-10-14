@@ -164,7 +164,7 @@ bool ResetTarget(Call* call) {
     CEngineObject* unit = ObjectArg(call, 0);
     if (!unit || !IsUnit(unit)) return InvalidArguments("ResetTarget");
     AIBrain* brain = ServerOf(unit)->Brain();
-    int index = brain->unknown_36;
+    int index = brain->alarmSlot;
     brain->ResetMemory();
     if (index >= brain->alarmRecords.size) return Report("ResetTarget", "Failed to reset unit %d", unit->id_);
     brain->ApplyBehaviour(&brain->alarmRecords.data[index], index);

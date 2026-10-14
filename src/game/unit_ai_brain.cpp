@@ -57,7 +57,7 @@ Mode* NewMode(void* vtable) {
     auto* mode = static_cast<Mode*>(gamecrt::operator_new(sizeof(Mode)));
     if (mode) {
         mode->refs = 0;
-        mode->unknown_06 = 0;
+        mode->refsHigh = 0;
         mode->vtable = vtable;
     }
     return mode;
@@ -138,8 +138,8 @@ EI_REPLACE_METHOD(0x005D6140, AIBrain::RemoveModesOfType);
 void AIBrain::ClearModes() {
     ReleaseAllModes(modes);
     DropCurrent(current);
-    unknown_44 = kNearPointCleared;
-    unknown_48 = kNearPointCleared;
+    nearX = kNearPointCleared;
+    nearY = kNearPointCleared;
     decay = 1.0f;
 }
 EI_REPLACE_METHOD(0x005D4DF0, AIBrain::ClearModes);
@@ -147,8 +147,8 @@ EI_REPLACE_METHOD(0x005D4DF0, AIBrain::ClearModes);
 void AIBrain::Reset() {
     ReleaseAllModes(modes);
     DropCurrent(current);
-    unknown_44 = kNearPointCleared;
-    unknown_48 = kNearPointCleared;
+    nearX = kNearPointCleared;
+    nearY = kNearPointCleared;
     decay = 1.0f;
     action = kActionNone;
     ResetMemory();
@@ -168,8 +168,8 @@ EI_REPLACE_METHOD(0x005D4E80, AIBrain::Reset);
 void AIBrain::Init() {
     ReleaseAllModes(modes);
     DropCurrent(current);
-    unknown_44 = kNearPointCleared;
-    unknown_48 = kNearPointCleared;
+    nearX = kNearPointCleared;
+    nearY = kNearPointCleared;
     decay = 1.0f;
     action = kActionNone;
     ResetMemory();
@@ -181,14 +181,14 @@ void AIBrain::Init() {
     alerted = 0;
     alarm = 0;
     alarmCountdown = 1;
-    unknown_36 = 0;
+    alarmSlot = 0;
     actionTime = kNoTime;
     seesEnemy = 0;
     AlarmRecordsSetSizeOriginal(&alarmRecords, nullptr, 0, -1);
     callRadius = InitialCallRadius();
     position = Vector3{0.0f, 0.0f, 0.0f};
     alertMode = 0;
-    unknown_37 = 0;
+    alwaysUpdated = 0;
     standCooldown = 0;
     followTimer = 0;
     previousPosition = Vector3{0.0f, 0.0f, 0.0f};
@@ -196,9 +196,9 @@ void AIBrain::Init() {
 EI_REPLACE_METHOD(0x005D4F70, AIBrain::Init);
 
 void AIBrain::ResetMemory() {
-    ReleaseAllObjects(unknown_0F4);
+    ReleaseAllObjects(nearby);
     ReleaseAllObjects(visible);
-    ReleaseAllObjects(unknown_12C);
+    ReleaseAllObjects(seenCorpses);
     ReleaseAllObjects(corpses);
     noticedX = 0.0f;
     noticedY = 0.0f;
@@ -382,9 +382,9 @@ EI_REPLACE(0x005CBBE0, NoticeHook);
 void AIBrain::Forget(CEngineObject* object) {
     AIRef held{nullptr};
     held.Assign(object);
-    RemoveAllOf(unknown_0F4, held.object);
+    RemoveAllOf(nearby, held.object);
     RemoveAllOf(visible, held.object);
-    RemoveAllOf(unknown_12C, held.object);
+    RemoveAllOf(seenCorpses, held.object);
     RemoveAllOf(corpses, held.object);
     for (int i = 0; i < reports.size; ++i) {
         if (reports.data[i].object == object) ReportsRemoveAtAt(&reports, nullptr, i--, 1);
@@ -443,11 +443,11 @@ void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory
     for (int i = 0; i < calls->size; ++i) {
         AICallRecord& call = calls->data[i];
         if (--call.kind >= 0) continue;
-        if (call.unknown_10 != 0) {
+        if (call.hostileMask != 0) {
             console::GameOStream* log = &(*AiLog() << "Unit ");
             log = static_cast<console::GameOStream*>(OstreamPutLongOriginal(log, nullptr, unit->id_));
             console::EndLine(*log << " hear delayed sound: " << call.text);
-            ControllerAddHostileMaskOriginal(unit->controller, nullptr, static_cast<std::uint32_t>(call.unknown_10));
+            ControllerAddHostileMaskOriginal(unit->controller, nullptr, static_cast<std::uint32_t>(call.hostileMask));
         } else if (brain->noticedLevel < 900) {
             // The inlined Notice of level 900: logged when the level rises by more than 100 or the
             // point is more than sqrt(10) away (TEST AH,0x41: NaN is near).
@@ -610,9 +610,9 @@ void AssignCurrent(AIMode*& current, AIMode* mode) {
 void AIBrain::Load(AIStream* stream) {
     ReleaseAllModes(modes);
     AssignCurrent(current, nullptr);
-    unknown_44 = kNearPointCleared;
+    nearX = kNearPointCleared;
     decay = 1.0f;
-    unknown_48 = kNearPointCleared;
+    nearY = kNearPointCleared;
     int value;
     stream->Read(&value, 4);
     action = value;
@@ -622,8 +622,8 @@ void AIBrain::Load(AIStream* stream) {
     reinterpret_cast<AIRef*>(&target)->Load(stream, WorldServer());
     reinterpret_cast<AIRef*>(&seen)->Load(stream, WorldServer());
     stream->Read(&callRadius, 4);
-    stream->Read(&unknown_44, 4);
-    stream->Read(&unknown_48, 4);
+    stream->Read(&nearX, 4);
+    stream->Read(&nearY, 4);
     stream->Read(&decay, 4);
     stream->Read(&previousPosition, 12);
     stream->Read(&position, 12);
@@ -658,7 +658,7 @@ void AIBrain::Load(AIStream* stream) {
     LogicSettings& settings = GameLogicSettings();
     if (!(callRadius < settings.callForHelpRadiusDefault) && !(callRadius > settings.callForHelpRadiusDefault))
         std::memcpy(&callRadius, &settings.callForHelpRadius, 4);
-    stream->Read(&unknown_37, 1);
+    stream->Read(&alwaysUpdated, 1);
     if (stream->version < 0x4B) return;
     attention.healWeight = 0.0f;
     AttackOptionsLoadOriginal(&attention.weapons, stream);
@@ -667,7 +667,7 @@ void AIBrain::Load(AIStream* stream) {
         stream->Read(&attention.healWeight, 4);
     }
     if (stream->version < 0x71) return;
-    stream->Read(&unknown_36, 1);
+    stream->Read(&alarmSlot, 1);
 }
 EI_REPLACE_METHOD(0x005D8310, AIBrain::Load);
 
@@ -679,8 +679,8 @@ void AIBrain::Save(AIStream* stream) {
     reinterpret_cast<AIRef*>(&target)->Save(stream);
     reinterpret_cast<AIRef*>(&seen)->Save(stream);
     WriteCopy(stream, callRadius);
-    WriteCopy(stream, unknown_44);
-    WriteCopy(stream, unknown_48);
+    WriteCopy(stream, nearX);
+    WriteCopy(stream, nearY);
     WriteCopy(stream, decay);
     stream->Write(&previousPosition, 12);
     stream->Write(&position, 12);
@@ -704,12 +704,12 @@ void AIBrain::Save(AIStream* stream) {
     WriteCopy(stream, alarmRecords.size);
     for (int i = 0; i < alarmRecords.size; ++i) AlarmRecordWriteOriginal(&alarmRecords.data[i], nullptr, stream);
     WriteCopy(stream, alarmCountdown);
-    WriteCopy(stream, unknown_37);
+    WriteCopy(stream, alwaysUpdated);
     WriteCopy(stream, attention.weapons.size);
     for (int i = 0; i < attention.weapons.size; ++i) AttackOptionSaveOriginal(&attention.weapons.data[i], nullptr, stream);
     WriteCopy(stream, attention.spells.size);
     for (int i = 0; i < attention.spells.size; ++i) AttackOptionSaveOriginal(&attention.spells.data[i], nullptr, stream);
     WriteCopy(stream, attention.healWeight);
-    WriteCopy(stream, unknown_36);
+    WriteCopy(stream, alarmSlot);
 }
 EI_REPLACE_METHOD(0x005D8860, AIBrain::Save);

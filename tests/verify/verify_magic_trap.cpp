@@ -180,7 +180,7 @@ using unitverify::CaptureStream;
 class ReadRecorder : public UnitStream {
 public:
     explicit ReadRecorder(UnitStream* real) : real_(real) {
-        unknown_04 = real->unknown_04;
+        reading = real->reading;
         version = real->version;
     }
     void DeletingDestructor() override { real_->DeletingDestructor(); }

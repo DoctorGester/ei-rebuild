@@ -68,8 +68,18 @@ def undecorate(names):
     except (OSError, AttributeError):
         pass
     names = [n for n in names if n not in out]
-    for i in range(0, len(names), 200):
-        chunk = names[i:i + 200]
+    # At most 200 names and 24000 characters per command line (the limit is 32767; long STL names
+    # made 200 of them too long in a release build).
+    chunks, chunk, length = [], [], 0
+    for name in names:
+        if chunk and (len(chunk) == 200 or length + len(name) + 3 > 24000):
+            chunks.append(chunk)
+            chunk, length = [], 0
+        chunk.append(name)
+        length += len(name) + 3
+    if chunk:
+        chunks.append(chunk)
+    for chunk in chunks:
         res = subprocess.run(['undname'] + chunk, capture_output=True, text=True).stdout
         for dec, und in re.findall(r'Undecoration of :- "(.*?)"\s*is :- "(.*?)"', res):
             out[dec] = und

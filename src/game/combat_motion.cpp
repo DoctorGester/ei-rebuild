@@ -276,10 +276,10 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, &back, now)) UnitPathSpeeds(self->unit);
     // Standing 0 (005467B0 inlined; CUnit +0x278).
     CWorldServer* world = ContextOf(self);
-    if (self->unit->unknown_278 != 0) {
+    if (self->unit->obstacle != 0) {
         CSectorMap* sectors = world->Sectors();
         SectorMapRemove(sectors, nullptr, self->unit);
-        self->unit->unknown_278 = 0;
+        self->unit->obstacle = 0;
         SectorMapAdd(sectors, nullptr, self->unit);
         UnitMarkChanged(self->unit, nullptr, 7);
     }
@@ -461,10 +461,10 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     }
     UnitPathSpeeds(unit);
     CWorldServer* world = ContextOf(this);
-    if (unit->unknown_278 == 0) return;
+    if (unit->obstacle == 0) return;
     CSectorMap* sectors = world->Sectors();
     SectorMapRemove(sectors, nullptr, unit);
-    unit->unknown_278 = 0;
+    unit->obstacle = 0;
     SectorMapAdd(sectors, nullptr, unit);
     UnitMarkChanged(unit, nullptr, 7);
 }
@@ -594,13 +594,13 @@ bool CUnitServer::PathTo(const float* point, float range) {
     motionChanged = 0;
     stoodBlocked = 0;
     PathClear(Motion(this));
-    std::uint32_t keep = unit->unknown_43C;
+    std::uint32_t keep = unit->altPassCosts;
     CWorldServer* world = ContextOf(this);
     Motion(this)->flag6E = unit->player ? 0 : 1;   // +0xAA
-    std::uint32_t before = unit->unknown_43C;
-    unit->unknown_43C = keep;
+    std::uint32_t before = unit->altPassCosts;
+    unit->altPassCosts = keep;
     bool found = MapFindPath(world->AIMap(), nullptr, unit, point, Motion(this), range, 0.0f);
-    unit->unknown_43C = before;
+    unit->altPassCosts = before;
     if (!found) {
         // +0xA9, read as a byte: the original compares it with 1.
         std::uint8_t blocked = reinterpret_cast<const std::uint8_t&>(Motion(this)->failed);

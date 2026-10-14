@@ -152,8 +152,8 @@ static void __fastcall HeroRefreshVerify(CMpHeroScreen* self) {
     if (!self->previewModel_) return;
     auto* hero = reinterpret_cast<PartyUnitRecord*>(self->Hero());
     auto* figure = reinterpret_cast<CObject3D*>(self->previewModel_);
-    ei::verify::Check("CMpHeroScreen::RefreshHero", 0, std::memcmp(&figure->scale, &hero->unknown_724, 12),
-                      "scale %g / %g", static_cast<double>(figure->scale.x), static_cast<double>(hero->unknown_724));
+    ei::verify::Check("CMpHeroScreen::RefreshHero", 0, std::memcmp(&figure->scale, &hero->scaleX, 12),
+                      "scale %g / %g", static_cast<double>(figure->scale.x), static_cast<double>(hero->scaleX));
 }
 EI_VERIFY(0x00618850, HeroRefreshVerify, 0, s_unused);
 

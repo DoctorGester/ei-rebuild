@@ -100,13 +100,13 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         UnitSetPlayer(unit, nullptr, tamerPlayer);
         auto* mode = static_cast<AIMode*>(gamecrt::operator_new(0x24));
         mode->refs = 0;   // written before the test, as the original does (one dword)
-        mode->unknown_06 = 0;
+        mode->refsHigh = 0;
         if (mode) {
             ModePlayerConstruct(mode);
             ei::SetVtable(mode, std::uintptr_t(0x0073F0C4));   // the player mode's vtable
         }
         BrainAddMode(&brain, nullptr, mode);
-        ClearReferenceList<false>(Brain()->unknown_12C);
+        ClearReferenceList<false>(Brain()->seenCorpses);
         ClearReferenceList<true>(Brain()->corpses);
         Stage(this) = 3;
         break;

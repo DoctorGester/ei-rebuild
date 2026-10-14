@@ -157,10 +157,10 @@ void SetSlots(UnitStats* stats, const Model* model) {
         const auto* level = reinterpret_cast<const UnitLevelRecord*>(
             levels.At(static_cast<std::uint32_t>(entry.levelIndex), kSkillLevelRecordSize));
         slot.type = level->slotType;
-        CopyDword(slot.unknown_EC, entry.share);
+        CopyDword(slot.share, entry.share);
         CopyDword(slot.factor, entry.factor);
         slot.vitalMask = level->vitalMask;
-        slot.layers[0].unknown_00 = 0;
+        slot.layers[0].layerMask = 0;
         slot.layers[0].state = 0;
         slot.layers[1].state = 0;
         slot.layers[2].state = 0;
@@ -229,7 +229,7 @@ int UnitStatsBuilder::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     SetBits(stats->speedBase, kDefaultSpeed);
     SetBits(stats->rateBase, kOne);
     SetBits(stats->capacity, 0);
-    stats->unknown_060 = 0;
+    stats->movementKind = 0;
     for (int i = 0; i < 6; ++i) {
         SetBits(stats->valuesB0[i].base, kHundred);
         SetBits(stats->valuesB0[i].current, kHundred);
@@ -243,10 +243,10 @@ int UnitStatsBuilder::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
         SetBits(slot.current, kHundred);
         SetBits(slot.maximum, kHundred);
         for (UnitStatLayer& layer : slot.layers) {
-            layer.unknown_00 = 0;
+            layer.layerMask = 0;
             layer.state = 0;
-            layer.unknown_40 = 0;
-            layer.unknown_44 = 0;
+            layer.spareA = 0;
+            layer.spareB = 0;
             std::memset(layer.absorb, 0, sizeof(layer.absorb));
         }
     }
@@ -293,18 +293,18 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
         SetBits(stats->rateBase, kRate15);
         CopyDword(stats->speedBase, prototype->speed);
     }
-    CopyDword(stats->unknown_08C, prototype->unknown_5C);
+    CopyDword(stats->prototypeField12, prototype->field12);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
         CopyDword(stats->valuesB0[i].base, prototype->valuesB0[i]);
         CopyDword(stats->valuesE0[i].base, prototype->valuesE0[i]);
     }
-    stats->unknown_044 = HalfAngleCosine(model);
-    CopyDword(stats->unknown_048, prototype->unknown_94);
-    stats->unknown_04C = RightAngleCosine();
-    CopyDword(stats->unknown_060, model->unknown_14);
+    stats->sightCone = HalfAngleCosine(model);
+    CopyDword(stats->peripheralRange, prototype->peripheralRange);
+    stats->sideCone = RightAngleCosine();
+    CopyDword(stats->movementKind, model->movementKind);
     SetAttributesAndSkills(stats, prototype, npc);
-    CopyDword(stats->unknown_064, model->unknown_44);
+    CopyDword(stats->modelField8, model->field8);
     stats->sizeClass = static_cast<std::int16_t>(model->sizeClass);
     auto small = static_cast<std::int16_t>(model->sizeClassSmall);
     stats->sizeClass20 = small;
@@ -353,18 +353,18 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
         SetBits(stats->rateBase, kRate15);
         SetBits(stats->rate, kRate15);
     }
-    CopyDword(stats->unknown_08C, prototype->unknown_5C);
+    CopyDword(stats->prototypeField12, prototype->field12);
     std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
         FpuCopy2(&stats->valuesB0[i].base, &stats->valuesB0[i].current, &prototype->valuesB0[i]);
         FpuCopy2(&stats->valuesE0[i].base, &stats->valuesE0[i].current, &prototype->valuesE0[i]);
     }
-    stats->unknown_044 = HalfAngleCosine(model);
-    CopyDword(stats->unknown_048, prototype->unknown_94);
-    stats->unknown_04C = RightAngleCosine();
-    CopyDword(stats->unknown_060, model->unknown_14);
+    stats->sightCone = HalfAngleCosine(model);
+    CopyDword(stats->peripheralRange, prototype->peripheralRange);
+    stats->sideCone = RightAngleCosine();
+    CopyDword(stats->movementKind, model->movementKind);
     SetAttributesAndSkills(stats, prototype, npc);
-    CopyDword(stats->unknown_064, model->unknown_44);
+    CopyDword(stats->modelField8, model->field8);
     stats->sizeClass = static_cast<std::int16_t>(model->sizeClass);
     auto small = static_cast<std::int16_t>(model->sizeClassSmall);
     stats->sizeClass20 = small;
@@ -462,7 +462,7 @@ void UnitStats::ResetToBase(float newLoad) {
     valuesB0[1].current = static_cast<float>(bonus + valuesB0[1].current);
     stat10 = static_cast<float>(LevelOrZero(this, kSkillStat10) + stat10);
     stat18 = static_cast<float>(LevelOrZero(this, kSkillStat18) + stat18);
-    std::memcpy(&unknown_044, &kMinusTwo, 4);
+    std::memcpy(&sightCone, &kMinusTwo, 4);
     stat20 = static_cast<float>(LevelOrZero(this, kSkillStat20) + stat20);
 
     // The slot maxima from the hit point curve; current values clamped to them.
@@ -470,10 +470,10 @@ void UnitStats::ResetToBase(float newLoad) {
     float hitPoints = static_cast<float>(
         curve * (static_cast<double>(stat10) / Global(0x007C5454) * Global(0x007C5458)));
     float perShare = static_cast<float>(
-        (LevelOrZero(this, kSkillHitPoints) * kPercent + kOneF) * hitPoints / slots[1].unknown_EC);
+        (LevelOrZero(this, kSkillHitPoints) * kPercent + kOneF) * hitPoints / slots[1].share);
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 0) continue;
-        float maximum = static_cast<float>(static_cast<double>(perShare) * slot.unknown_EC);
+        float maximum = static_cast<float>(static_cast<double>(perShare) * slot.share);
         slot.maximum = maximum;
         std::uint32_t current = std::bit_cast<std::uint32_t>(slot.current);
         std::uint32_t chosen = !(maximum >= slot.current) ? std::bit_cast<std::uint32_t>(maximum) : current;
@@ -597,13 +597,13 @@ BOOL UnitStats::CanLearn(const void* database, const char* recordBytes) {
     if (!(stat10 >= record->RequiredStat(0))) return 0;   // NaN fails too
     if (!(stat18 >= record->RequiredStat(1))) return 0;
     if (!(stat20 >= record->RequiredStat(2))) return 0;
-    if (NamesRequirement(record->unknown_14)) {
+    if (NamesRequirement(record->requiredSkillName)) {
         int skill = record->RequiredSkill();
         if (skill == 0x7FFFFFFF) return 0;
         if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
     }
-    if (NamesRequirement(record->unknown_0C)) {
-        int required = SkillRecordIndexByName(database, nullptr, record->unknown_0C);
+    if (NamesRequirement(record->requiredLevelName)) {
+        int required = SkillRecordIndexByName(database, nullptr, record->requiredLevelName);
         if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }
     // No level of the same skill id may be known in another skill.
@@ -612,7 +612,7 @@ BOOL UnitStats::CanLearn(const void* database, const char* recordBytes) {
         std::uint8_t level = skillLevels[k];
         if (level == 0) continue;
         const ::SkillLevelRecord* known = LevelRecordAt(static_cast<std::uint32_t>(3 * k + level - 1));
-        if (!known || known->unknown_10 != record->unknown_10) continue;
+        if (!known || known->exclusionGroup != record->exclusionGroup) continue;
         if (SkillRecordIndex(database, nullptr, known) / 3 != group) return 0;
     }
     int own = SkillRecordIndexByName(database, nullptr, record->name);
@@ -645,8 +645,8 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
     const Model* model = ModelOf(prototype);
     if (object->GetClassId() == kClassUnit) {
         BuildFromPrototypeAt(this, nullptr, &vitals, &stats, name);
-        stats.unknown_000 |= 1;
-        vitals.unknown_00 |= 1;
+        stats.builtFlags |= 1;
+        vitals.builtFlags |= 1;
         SetServerDataAt(object, nullptr, &vitals);
         mapObject->SetStats(&stats);
         // The figure stands lower by the model's height.

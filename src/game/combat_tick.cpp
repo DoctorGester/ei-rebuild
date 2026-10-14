@@ -104,7 +104,7 @@ int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
 // The world time of an object's world (00455950).
 int WorldTick(const void* object) { return static_cast<CWorld*>(ObjectWorld(object))->tick_; }
 // The prototype's height offset (UnitPrototypeRecord +0x24).
-float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->unknown_24); }
+float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->height); }
 // The messages of a unit's player (CPlayer::connection_).
 void* PlayerMessages(char* player) { return reinterpret_cast<CPlayer*>(player)->connection_; }
 
@@ -362,7 +362,7 @@ bool CUnitServer::StartMove() {
     // Plan the way with the units near the goal lifted off the sector map.
     CtlLiftNearby(this, nullptr, &lifted, &action.point.x, action.source != 0);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
-    unit->unknown_43C = CellFlag80AtOriginal(map, nullptr, &unit->position);
+    unit->altPassCosts = CellFlag80AtOriginal(map, nullptr, &unit->position);
     bool found = TickPathTo(this, nullptr, &action.point.x, std::bit_cast<std::uint32_t>(action.point.z));
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
@@ -758,7 +758,7 @@ double HalfScale() { return static_cast<double>(kOne) * kHalf; }
 
 void CUnitServer::ApproachTarget() {
     int now = WorldTick(this);
-    unit->unknown_43C = 1;
+    unit->altPassCosts = 1;
     CEngineObject* target = action.target;
 
     if (action.flag18 || !target) {

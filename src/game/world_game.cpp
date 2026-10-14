@@ -757,7 +757,7 @@ mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
 
 void GameFlow::BeginMultiplayerGame() {
     PartyManagerReset(PartyManager(), nullptr);
-    if (GlobalParty()->count == 1) GlobalParty()->records->unknown_01C = kMultiplayerHeroId;
+    if (GlobalParty()->count == 1) GlobalParty()->records->unitId = kMultiplayerHeroId;
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
         mfc::CString* zone = MultiplayerZoneAt(this, nullptr, storage);

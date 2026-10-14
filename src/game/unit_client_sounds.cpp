@@ -162,11 +162,11 @@ constexpr int kMaxFootPart = 9;
 
 // The client world's local view (CWorldClient::LocalView) and its player; only the field read here.
 struct LocalViewPlayer {
-    std::uint8_t unknown_000[0x100];
+    std::uint8_t unused_000[0x100];
     int mode;                       // +0x100 3: attacks play no sounds
 };
 struct LocalView {
-    std::uint8_t unknown_00[0x1C];
+    std::uint8_t unused_00[0x1C];
     LocalViewPlayer* player;        // +0x1C
 };
 

@@ -48,7 +48,7 @@ std::uint64_t Digest(const SpellRecord* r) {
     Mix(d, &r->price, offsetof(SpellRecord, list48) - offsetof(SpellRecord, price));
     Mix(d, r->list48);
     Mix(d, r->list54);
-    Mix(d, &r->icon, offsetof(SpellRecord, unknown_7D) - offsetof(SpellRecord, icon));
+    Mix(d, &r->icon, offsetof(SpellRecord, unused_7D) - offsetof(SpellRecord, icon));
     Mix(d, &r->classMask, 4);
     return d;
 }

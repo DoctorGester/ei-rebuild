@@ -29,7 +29,7 @@ void* const kMouseRootVtable = reinterpret_cast<void*>(0x0073C368);
 
 PartyRecord* __cdecl CreateRecordVerify() {
     PartyRecord* record = CreatePartyRecord();
-    bool good = record && record->vtable == kPartyRecordVtable && record->refCount == 0 && record->unknown_06 == 0 &&
+    bool good = record && record->vtable == kPartyRecordVtable && record->refCount == 0 && record->refsHigh == 0 &&
                 record->name.GetLength() == 0;
     ei::verify::Check("CreatePartyRecord", true, good, "%p", static_cast<void*>(record));
     return record;
@@ -38,7 +38,7 @@ PartyRecord* __cdecl CreateRecordVerify() {
 ClassTemplate* __cdecl CreateTemplateVerify() {
     ClassTemplate* created = CreateClassTemplate();
     bool good = created && created->vtable == reinterpret_cast<void*>(ClassTemplate::kVtableAddress) &&
-                created->refCount == 0 && created->unknown_06 == 0 && created->type == -1 && created->flag38 == 1;
+                created->refCount == 0 && created->refsHigh == 0 && created->type == -1 && created->flag38 == 1;
     ei::verify::Check("CreateClassTemplate", true, good, "%p", static_cast<void*>(created));
     return created;
 }

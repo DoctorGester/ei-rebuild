@@ -42,7 +42,7 @@ public:
     // the nodes and the buckets freed.
     void Destruct();
 
-    std::uint32_t unknown_04;       // +0x04
+    std::uint32_t unused_04;       // +0x04
     Map shapes;                     // +0x08
 };
 static_assert(sizeof(UnitShapeCache::Map::Node) == 0x18);

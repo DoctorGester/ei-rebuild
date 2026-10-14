@@ -369,7 +369,7 @@ void CCampPages::Create() {
     void* objects = ObjectManagerNow();
     const int count = player->members_.size;
     for (int i = 0; i < count; ++i) {
-        player->members_.data[i].unknown_01C += kRecordBias;
+        player->members_.data[i].unitId += kRecordBias;
         if (PrototypeClass(objects, nullptr, player->members_.data[i].texts[5]) != kHeroClass) continue;
         PartyUnitRecord* record = &player->members_.data[i];
         int size = records.size;
@@ -382,7 +382,7 @@ void CCampPages::Create() {
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
         if (PrototypeClass(objects, nullptr, player->members_.data[i].texts[5]) != kHeroClass) continue;
-        auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(UiClientGlue(), nullptr, player->members_.data[i].unknown_01C));
+        auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(UiClientGlue(), nullptr, player->members_.data[i].unitId));
         heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kIdleAnimation)) {
@@ -404,7 +404,7 @@ void CCampPages::Create() {
         for (int piece = 0; piece < static_cast<int>(record->armorCount); ++piece)
             heroStats->AddArmourLayer(record->armor[piece]);
     }
-    for (int i = 0; i < count; ++i) player->members_.data[i].unknown_01C -= kRecordBias;
+    for (int i = 0; i < count; ++i) player->members_.data[i].unitId -= kRecordBias;
 
     hero_ = -1;
     using NextHeroFn = void(__thiscall*)(CCampPages*);

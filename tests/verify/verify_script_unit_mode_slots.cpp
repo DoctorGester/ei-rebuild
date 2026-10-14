@@ -60,14 +60,14 @@ SuspectionMode* __fastcall SuspectionCloneVerify(const SuspectionMode* self) {
 AggressionMode*(__fastcall* s_aggressionClone)(const AggressionMode*);
 AggressionMode* __fastcall AggressionCloneVerify(const AggressionMode* self) {
     return CloneVerify("AggressionClone", s_aggressionClone, &AggressionMode::AggressionClone, self, self->enemy,
-                       offsetof(AggressionMode, unknown_0D), offsetof(AggressionMode, enemyPart));
+                       offsetof(AggressionMode, unused_0D), offsetof(AggressionMode, enemyPart));
 }
 void* s_unusedCorpseWatcherClone;
 CorpseWatcherMode* __fastcall CorpseWatcherCloneVerify(const CorpseWatcherMode* self) {
     CorpseWatcherMode* result = self->CorpseWatcherClone();
     ei::verify::Check("CorpseWatcherClone", true,
                       result && result->vtable == aimode::kCorpseWatcherVtable && result->refs == 0 &&
-                          result->unknown_06 == 0,
+                          result->refsHigh == 0,
                       "mode %p", static_cast<const void*>(self));
     return result;
 }

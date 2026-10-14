@@ -107,7 +107,7 @@ EI_REPLACE_METHOD(0x00530150, CUnit::IsHostileTo);
 // --- Simple state setters --------------------------------------------------------------------
 
 std::uintptr_t CUnit::SetUnknown438(int value) {
-    unknown_438 = value;
+    fightAtWill = value;
     return MarkChanged(13);
 }
 EI_REPLACE_METHOD(0x0052E9B0, CUnit::SetUnknown438);

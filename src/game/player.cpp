@@ -221,7 +221,7 @@ EI_REPLACE_METHOD(0x006651D0, CPlayer::ForgetKnownObjects);
 BOOL CPlayer::IsLeader(const CEngineObject* unit) {
     const PartyMemberArray& members = Party()->members_;
     if (members.size == 0 || unit == nullptr) return 0;
-    return static_cast<std::uint32_t>(unit->id_) == members.data[0].unknown_01C;
+    return static_cast<std::uint32_t>(unit->id_) == members.data[0].unitId;
 }
 EI_REPLACE_METHOD(0x00665440, CPlayer::IsLeader);
 

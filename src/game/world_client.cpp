@@ -240,7 +240,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
     for (int i = 0; i < records->size; ++i) {
         std::uint8_t* record = (*records)[i];
         CEngineObject* found =
-            WorldFindUnit(this, nullptr, static_cast<int>(reinterpret_cast<PartyUnitRecord*>(record)->unknown_01C));
+            WorldFindUnit(this, nullptr, static_cast<int>(reinterpret_cast<PartyUnitRecord*>(record)->unitId));
         if (!found || ObjectSlots(found)->IsDead() != 0) continue;
         ++living;
         int index = 0;
@@ -264,7 +264,7 @@ void CWorldClient::SummonBird() {
     }
     TimedSlots(owned1B0_)->Reset();
     auto* leader = reinterpret_cast<CPlayer*>(session_)->Party()->members_.data;
-    static_cast<CEffectMoshka*>(owned1B0_)->Follow(static_cast<int>(leader->unknown_01C));
+    static_cast<CEffectMoshka*>(owned1B0_)->Follow(static_cast<int>(leader->unitId));
 }
 
 void CWorldClient::OnQuestVariable(const char* variable, float value) {

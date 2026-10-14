@@ -37,7 +37,7 @@ public:
     virtual void Read(void* buffer, unsigned size) = 0;          // 1
     virtual void Write(const void* buffer, unsigned size) = 0;   // 2
 
-    int unknown_04;
+    int reading;                        // +0x04 CStream::reading_ (its low byte)
     int version;            // +0x08
 };
 
@@ -61,7 +61,7 @@ struct AIOrder {
     CEngineObject* object;          // +0x08 counted
     Vector3 point;                  // +0x0C left uninitialised by the AI's orders
     std::uint8_t flag;              // +0x18
-    std::uint8_t unknown_19[3];
+    std::uint8_t unused_19[3];
 };
 static_assert(sizeof(AIOrder) == 0x1C);
 
@@ -71,7 +71,7 @@ struct AILook {
     float time;                     // +0x04 turning time
     float wait;                     // +0x08 wait afterwards (game ticks)
     std::uint8_t stopFirst;         // +0x0C
-    std::uint8_t unknown_0D[3];
+    std::uint8_t unused_0D[3];
 
     // 004BA1A0 (RET 0x10; script_unit_modes.cpp; UMPatrolLook's entry): angle, wait, turning time, stop
     // first (low byte). The arguments come in a different order from the fields: the second goes to
@@ -153,7 +153,7 @@ public:
 struct AIMode {
     void* vtable;
     std::int16_t refs;              // +0x04 (INC word / 0040A3A0)
-    std::int16_t unknown_06;
+    std::int16_t refsHigh;              // +0x06 the reference dword's high half (zeroed with it)
 
     AIModeVirtuals* Virtuals() { return reinterpret_cast<AIModeVirtuals*>(this); }
     int Evaluate(AIBrain* brain);   // through the vtable
@@ -424,7 +424,7 @@ struct AggressionMode : AIMode {
 
     CEngineObject* enemy;           // +0x08
     std::uint8_t fixed;             // +0x0C enemy set by the script (no searching)
-    std::uint8_t unknown_0D[3];
+    std::uint8_t unused_0D[3];
     int enemyPart;                  // +0x10 -1: the whole unit
     CEngineObject* chosen;          // +0x14 the enemy chosen this tick
 };
@@ -490,7 +490,7 @@ struct FearMode : AIMode {
     Vector3 shelter;                // +0x10 the last place with a kind 3 occluder (x = -1313: unset)
     Vector3 fleePoint;              // +0x1C a checked flight point (z 1.0 while pending, else 0)
     std::uint8_t flag;              // +0x28
-    std::uint8_t unknown_29[3];
+    std::uint8_t unused_29[3];
 };
 static_assert(sizeof(FearMode) == 0x2C);
 static_assert(offsetof(FearMode, flag) == 0x28);
@@ -581,7 +581,7 @@ struct PlayerMode : AIMode {
     Vector3 point;                  // +0x10 (z: 1.0 while walking there in state 2)
     int state;                      // +0x1C
     std::uint8_t run;               // +0x20
-    std::uint8_t unknown_21[3];
+    std::uint8_t unused_21[3];
 };
 static_assert(sizeof(PlayerMode) == 0x24);
 
@@ -619,7 +619,7 @@ float* __fastcall CopyPoint2(float* out, const float* point);
 struct AICallRecord {
     Vector3 point;                  // +0x00
     int kind;                       // +0x0C
-    int unknown_10;                 // +0x10 0 when added
+    int hostileMask;                    // +0x10 sides the hearer turns hostile to (0 for a plain call)
     char* text;                     // +0x14 CString
 
     // 00558D00 (unit_ai_brain.cpp). The element destructor: frees the text (CString::~CString).
@@ -808,7 +808,7 @@ struct AIViewer {
     int cellX;                      // +0x20 AI map cell of the eye
     int cellY;                      // +0x24
     std::uint8_t ready;             // +0x28 Prepare has run
-    std::uint8_t unknown_29[3];
+    std::uint8_t unused_29[3];
 };
 static_assert(offsetof(AIViewer, facing) == 0x14);
 
@@ -824,9 +824,9 @@ static_assert(offsetof(AIViewer, ready) == 0x28);
 // the free list at 007C53F0 (chained through `next`).
 struct AIEvent {
     float x, y;                     // +0x00 where; its cell is (x / 8, y / 8) rounded
-    std::uint32_t unknown_08[2];    // +0x08 (saved)
+    std::uint32_t origin[2];            // +0x08 x and y again (005C9630 sets them; saved)
     int expiry;                     // +0x10 the tick it goes; wheel slot (expiry - 1) & 0x3FF
-    std::uint32_t unknown_14[2];    // +0x14 (saved)
+    std::uint32_t payload[2];           // +0x14 saved and loaded; left to the creator's caller
     int sourceId;                   // +0x1C the unit that made it
     int side;                       // +0x20 its low 4 bits: the side list it is filed in
     AIEvent* next;                  // +0x24 the cell's list for the side; the free list's link
@@ -1136,13 +1136,13 @@ struct AIBrain {
     CEngineObject* seen;            // +0x030
     std::uint8_t alerted;           // +0x034
     std::int8_t alarm;              // +0x035 alarm kind raised when the countdown ends
-    std::int8_t unknown_36;         // +0x036 the world alarm slot of the applied record (ApplyBehaviour)
-    std::uint8_t unknown_37;        // +0x037 always updated (the record's flag bit 3)
+    std::int8_t alarmSlot;         // +0x036 the world alarm slot of the applied record (ApplyBehaviour)
+    std::uint8_t alwaysUpdated;         // +0x037 the world keeps the unit in its update map (the record's flag bit 3)
     float callRadius;               // +0x038 allies within it hear a call for help (10.0 from 0073FED8 at Init)
     int alertMode;                  // +0x03C
     int alarmCountdown;             // +0x040
-    float unknown_44;               // +0x044 near point (Guard); 100000 when cleared
-    float unknown_48;
+    float nearX;               // +0x044 near point (Guard); 100000 when cleared
+    float nearY;                        // +0x048 near point y (SetPositions); 100000 when cleared
     float decay;                    // +0x04C alertness decay factor
     Vector3 previousPosition;       // +0x050
     Vector3 position;               // +0x05C
@@ -1159,14 +1159,14 @@ struct AIBrain {
     int noticedLevel;               // +0x0E8
     int noticedKind;                // +0x0EC
     int nearbyCountdown;            // +0x0F0 updates until the nearby units are listed again (005CA1D0)
-    mfc::CTypedPtrList<CEngineObject> unknown_0F4;  // +0x0F4 (elements are counted references)
+    mfc::CTypedPtrList<CEngineObject> nearby;// +0x0F4 the units in the sight cells around (counted references)
     mfc::CTypedPtrList<CEngineObject> visible;  // +0x110 units in sight
-    mfc::CTypedPtrList<CEngineObject> unknown_12C;  // +0x12C (elements are counted references)
+    mfc::CTypedPtrList<CEngineObject> seenCorpses;// +0x12C corpses seen (counted references)
     mfc::CTypedPtrList<CEngineObject> corpses;  // +0x148 (elements are counted references)
     AIReportArray reports;                      // +0x164 objects reported to the alarm code
     AICallArray calls;                          // +0x178 calls heard (005CBBA0)
     std::uint8_t seesEnemy;         // +0x18C
-    std::uint8_t unknown_18D[3];
+    std::uint8_t unused_18D[3];
 };
 static_assert(offsetof(AIBrain, looks) == 0x14);
 static_assert(offsetof(AIBrain, actionTime) == 0x28);
@@ -1178,8 +1178,8 @@ static_assert(offsetof(AIBrain, modes) == 0x70);
 static_assert(offsetof(AIBrain, current) == 0x8C);
 static_assert(offsetof(AIBrain, alarmRecords) == 0x90);
 static_assert(offsetof(AIBrain, memory) == 0xD0);
-static_assert(offsetof(AIBrain, unknown_0F4) == 0xF4);
-static_assert(offsetof(AIBrain, unknown_12C) == 0x12C);
+static_assert(offsetof(AIBrain, nearby) == 0xF4);
+static_assert(offsetof(AIBrain, seenCorpses) == 0x12C);
 static_assert(offsetof(AIBrain, calls) == 0x178);
 static_assert(offsetof(AIBrain, noticedX) == 0xE0);
 static_assert(offsetof(AIBrain, visible) == 0x110);
@@ -1193,31 +1193,31 @@ static_assert(offsetof(AIBrain, attention) == 0xA4);
 // fields the brain reads. The same object as combat.h's CUnitServer, which lays out all of it
 // (0xB20 bytes); declared after the brain it embeds.
 struct UnitController {
-    std::uint8_t unknown_000[0x1C];
+    std::uint8_t unused_000[0x1C];
     CUnit* unit;                    // +0x01C
-    std::uint8_t unknown_020[0x164 - 0x20];
+    std::uint8_t unused_020[0x164 - 0x20];
     int state;                      // +0x164 5: the brain does nothing
-    std::uint8_t unknown_168[0x174 - 0x168];
+    std::uint8_t unused_168[0x174 - 0x168];
     std::uint8_t busy;              // +0x174 set by modes that keep the unit occupied
-    std::uint8_t unknown_175[0x18C - 0x175];
+    std::uint8_t unused_175[0x18C - 0x175];
     std::uint8_t inCombat;          // +0x18C
-    std::uint8_t unknown_18D[0x190 - 0x18D];
+    std::uint8_t unused_18D[0x190 - 0x18D];
     int command;                    // +0x190 the controller's current command (1/2 move, 3 attack, ...)
-    std::uint8_t unknown_194[4];
+    std::uint8_t unused_194[4];
     CEngineObject* commandTarget;   // +0x198
-    std::uint8_t unknown_19C[0x1B4 - 0x19C];
+    std::uint8_t unused_19C[0x1B4 - 0x19C];
     int nextCommand;                // +0x1B4 the queued command
-    std::uint8_t unknown_1B8[4];
+    std::uint8_t unused_1B8[4];
     CEngineObject* nextTarget;      // +0x1BC
-    std::uint8_t unknown_1C0[0x1E0 - 0x1C0];
+    std::uint8_t unused_1C0[0x1E0 - 0x1C0];
     UnitStats stats;                // +0x1E0
     std::uint16_t protection[8];    // +0x8E4 what an attack's damage words are measured against (00522AE0)
-    std::uint8_t unknown_8F4[4];
+    std::uint8_t unused_8F4[4];
     float moveFactors[4];           // +0x8F8 (CUnitServer::moveFactors)
-    std::uint8_t unknown_908[0x978 - 0x908];
+    std::uint8_t unused_908[0x978 - 0x908];
     // +0x978 called with the unit when its current action (an animation) has finished, or null.
     void(__fastcall* actionDone)(CUnit* unit);
-    std::uint8_t unknown_97C[4];
+    std::uint8_t unused_97C[4];
     AIBrain brain;                  // +0x980
     AIAlarm alarm;                  // +0xB10 the voice (ai_alarm.h)
 

@@ -186,7 +186,7 @@ const char* HitLocationName(int location) {
 
 // CUnit + 0x350 (UnitParams +0x20): what last damaged the unit: a weapon type, 0x10 + the
 // attacking creature's +0x18 (its prototype index), or 7 (elemental or no attacker).
-std::int16_t& LastDamageSource(CUnit* unit) { return unit->Params()->unknown_20; }
+std::int16_t& LastDamageSource(CUnit* unit) { return unit->Params()->lastHitSource; }
 } // namespace
 
 float CUnitServer::AttackRange() {
@@ -224,8 +224,8 @@ int CUnitServer::ScaledItemValue(const CItem* item) {
     if (!item) return 0;
     double factor = Combat().unknown_30;    // stays on the FPU stack
     if (factor < kZero || factor > kZero) factor = kFifteen / factor;
-    // +0x4C of the item's kind (CItemWeapon::unknown_4C and the others' at the same place).
-    float value = static_cast<float>(Unsigned(static_cast<const CItemWeapon*>(item)->unknown_4C) * factor);
+    // +0x4C of the item's kind (CItemWeapon::actionValue_ and the others' at the same place).
+    float value = static_cast<float>(Unsigned(static_cast<const CItemWeapon*>(item)->actionValue_) * factor);
     return x87::fistp(value);
 }
 EI_REPLACE_METHOD(0x0054B760, CUnitServer::ScaledItemValue);
@@ -424,7 +424,7 @@ bool CUnitServer::CanReachTarget(const UnitAction* order) {
         CItemWeapon* weapon = ActiveWeapon(unit);
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
-    float offset = std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(other->GetPrototype())->unknown_24);
+    float offset = std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(other->GetPrototype())->height);
     double height = static_cast<double>(offset) + other->position.z;
     return LessOrUnordered(height, kOnePointFive);
 }
@@ -588,7 +588,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     if (keyed && self->activeWeapon < 4) weapon = static_cast<CItemWeapon*>(self->weapons[self->activeWeapon]);
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
-        out->unknown_1C = weapon->unknown_4C;
+        out->unknown_1C = weapon->actionValue_;
         int sides = GameFtol(kFive);
         int drawn = gamecrt::rand();
         int face = ((drawn * sides) / 0x7FFF) % sides;
@@ -703,11 +703,11 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
                     if (IsMultiplayerClient() & 0xFF) {
-                        WorldAwardExperienceOriginal(world, nullptr, nullptr, static_cast<int>(prototype->unknown_54));
+                        WorldAwardExperienceOriginal(world, nullptr, nullptr, static_cast<int>(prototype->experienceValue));
                         return 1;
                     }
                     char* killer = source->player;
-                    WorldAwardExperienceOriginal(world, nullptr, reinterpret_cast<WorldPlayer*>(killer), static_cast<int>(prototype->unknown_54));
+                    WorldAwardExperienceOriginal(world, nullptr, reinterpret_cast<WorldPlayer*>(killer), static_cast<int>(prototype->experienceValue));
                 }
             }
             return 1;
@@ -743,7 +743,7 @@ void CUnitServer::UpdateSizeClasses() {
     }
     float load = static_cast<float>(UnitLoad(unit));
     const auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
-    double size = UnitSize(unit) * std::bit_cast<float>(model->unknown_120);
+    double size = UnitSize(unit) * std::bit_cast<float>(model->sizeScale);
     if (unit->type_ == kUnitTypeHero) {
         float uncapped = static_cast<float>(size);
         size = LessOrUnordered(kHeroSizeCap, uncapped) ? kHeroSizeCap : uncapped;
@@ -782,7 +782,7 @@ void CUnitServer::UpdateMoveFactors() {
     }
     if (state == 5 && (action.kind == 4 || action.kind == 5)) {
         void* spell = SpellOfSource(action.source);
-        if (spell && reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype())->unknown_10 != 1)
+        if (spell && reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype())->castType != 1)
             moveFactors[2] = kCastingFactor2 * moveFactors[2];
     }
     if (state != 0) {

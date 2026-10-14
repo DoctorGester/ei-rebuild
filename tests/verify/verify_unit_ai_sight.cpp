@@ -48,17 +48,17 @@ EI_VERIFY(0x005CA410, PrepareVerify, 5, s_prepare);
 static void __fastcall RefreshVerify(AIViewer* self, void*, CUnit* unit, std::uint8_t* memory) {
     AIBrain* brain = BrainOfMemory(memory);
     int countdown = brain->nearbyCountdown;
-    int count = brain->unknown_0F4.count;
+    int count = brain->nearby.count;
     self->Refresh(unit, brain);
     bool ok;
     if (countdown - 1 > 0) {
-        ok = brain->nearbyCountdown == countdown - 1 && brain->unknown_0F4.count == count;
+        ok = brain->nearbyCountdown == countdown - 1 && brain->nearby.count == count;
     } else {
         ok = brain->nearbyCountdown >= 8 && brain->nearbyCountdown <= 11 && (unit->flags_ & 0x80000) != 0 &&
-             Distinct(brain->unknown_0F4) && !brain->unknown_0F4.Find(unit);
+             Distinct(brain->nearby) && !brain->nearby.Find(unit);
     }
     ei::verify::Check("AIViewer::Refresh", true, ok, "unit %p countdown %d -> %d, %d nearby", unit, countdown, brain->nearbyCountdown,
-                      brain->unknown_0F4.count);
+                      brain->nearby.count);
 }
 EI_VERIFY(0x005CA1D0, RefreshVerify, 0, s_unused);
 

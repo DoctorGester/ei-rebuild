@@ -150,8 +150,8 @@ void CHudMovePanel::ToggleFlag() {
         CUnit* unit = owner_->party_[i];
         if (!(unit->flags_ & 0x10)) continue;
         if (common == -1)
-            common = unit->unknown_438;
-        else if (common != unit->unknown_438)
+            common = unit->fightAtWill;
+        else if (common != unit->fightAtWill)
             common = -2;
     }
     int value = owner_->partyCount_ > 0 && common == 1 ? 0 : 1;
@@ -307,9 +307,9 @@ void CHudTopPanel::ShowItems() {
     mfc::CString& text = *reinterpret_cast<mfc::CString*>(&pageTexts_[1]);
     text.Empty();
     auto* party = reinterpret_cast<CParty*>(LocalPlayerData());
-    if (static_cast<int>(party->unknown_50) > 0) {
+    if (static_cast<int>(party->money_) > 0) {
         TextsGetString(texts, nullptr, "format_money", &format);
-        line.Format(format, static_cast<int>(party->unknown_50));
+        line.Format(format, static_cast<int>(party->money_));
         text += line;
         text += kNewLine;
     }

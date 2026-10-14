@@ -183,9 +183,9 @@ AIBrain* AIBrain::Construct() {
     // The perception memory (inlined): two sight caches, four object lists, reports and calls.
     std::memcpy(memory, &kEmptySightCache, sizeof(kEmptySightCache));
     sightCells = kEmptySightCache;
-    InitObjectList(unknown_0F4);
+    InitObjectList(nearby);
     InitObjectList(visible);
-    InitObjectList(unknown_12C);
+    InitObjectList(seenCorpses);
     InitObjectList(corpses);
     reports = {};
     reports.vtable = kReportsVtable;
@@ -211,9 +211,9 @@ void AIBrain::DestructMemory() {
         gamecrt::operator_delete(reports.data);
     }
     DestroyObjectList(corpses);
-    DestroyObjectList(unknown_12C);
+    DestroyObjectList(seenCorpses);
     DestroyObjectList(visible);
-    DestroyObjectList(unknown_0F4);
+    DestroyObjectList(nearby);
 }
 
 namespace {

@@ -83,3 +83,26 @@ Left:
 - `SceneHelper` / `CFigureMesh` declare no virtuals; `ClassTemplate` does not derive from CRefCounted (the delete
   goes through a reinterpret_cast); party_manager.cpp still reinterpret_casts the template parties.
 - The effect spec's world object class is not known (CTransformObject / CEngineObject fields used).
+
+## F2: unknown fields of the units, AI and items files (2026-10-14)
+
+Every `unknown_XXX` member of unit.h, unit_db.h (+ unit_db_destroy.cpp), unit_ai.h, ai_map.h, item_db.h,
+unit_looks.h, item.h, unit_client_models.h, class_templates.h, unit_client_sounds.cpp, party*.h, item_stock.cpp,
+item_db_text.h, ai_shape_cache.h, ai_refresh.cpp and unit_ai.cpp (172) is named or `unused_XXX`. Method: all of
+them renamed to unused_ and the verify build run with `-k 0`; each compile error is a use, named from its code.
+- Meanings worth knowing: CUnit +0x438 `fightAtWill` (the move panel's flag; PlayerMode attacks only at 1; the
+  party record keeps it at +0x780, SetUnknown438 / 0052E9B0 sets it); +0x278 `obstacle` (sector map, slot 54);
+  +0x43C `altPassCosts` (set from the cell's flag 0x80 before a path search). UnitStats +0x60 `movementKind`
+  (model field 5; 2 = on the water), +0x44 `sightCone`, +0x48 `peripheralRange` (prototype field 0x18). The
+  prototype's +0x24 (field 0x23) is the unit's `height` (panel view, reach checks); +0x54 `experienceValue`.
+  AIBrain +0xF4 `nearby`, +0x12C `seenCorpses`, +0x36 `alarmSlot`, +0x37 `alwaysUpdated`, +0x44/+0x48
+  `nearX`/`nearY`. Stream +0x04 is CStream::reading_ (`reading`).
+- Archive fields nothing reads keep the archive's field number as their name (`field4`, `field1F`, ...), the
+  item records' partly used byte gaps are split the same way (WeaponRecord `field16` / `field1B`, ArmorRecord
+  `field19` / `field1A`, QuickItemRecord `field17` / `field18` / `field1B`).
+- `refsHigh` is the high word of the reference dword the original zeroes with the count (AIMode, CItemLink,
+  ClassTemplate, PartyRecord). `spare*`, `sideCone`, `lightStateA/B`, `otherSound`, `spareHandle`, `zeroed`
+  are only ever written (zero / -1).
+- unit_db_destroy.cpp's local `SkillLevelRecord` (0x18) / `SkillRecord` (0x44) are unit_db.h's SkillRecord /
+  SkillLevelRecord (the names are swapped there; the layouts and the destructor order are right).
+- AIEvent's creator 005C9630 has no callers in the Ghidra database (+0x08 is x, y again; +0x14 only saved).

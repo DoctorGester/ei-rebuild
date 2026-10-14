@@ -26,11 +26,11 @@ struct DressedUnitRecord {
     void Write(CStream* stream);
 
     std::uint16_t prototype;        // +0x00
-    std::uint16_t unknown_02;
+    std::uint16_t unused_02;
     UnitIdList items;               // +0x04
     UnitIdList extraWeapons;        // +0x10 weapon index << 16 | material index
     std::int8_t extraWeapon;        // +0x1C
-    std::uint8_t unknown_1D[3];
+    std::uint8_t unused_1D[3];
     int modelNumber;                // +0x20 -1: the textures are named after the prototype
 };
 static_assert(offsetof(DressedUnitRecord, extraWeapons) == 0x10);
@@ -40,12 +40,12 @@ static_assert(sizeof(DressedUnitRecord) == 0x24);
 // ids, the figure's morph coefficients and the texture names (none: from the prototype, 00535CB0).
 struct FiguredUnitRecord {
     std::uint16_t prototype;        // +0x00
-    std::uint16_t unknown_02;
+    std::uint16_t unused_02;
     UnitIdList armourIds;           // +0x04
     UnitIdList weaponIds;           // +0x10
-    std::uint8_t unknown_1C;        // +0x1C (DressedUnitRecord::extraWeapon's place)
-    std::uint8_t unknown_1D[3];
-    std::uint32_t unknown_20;       // +0x20 (DressedUnitRecord::modelNumber's place)
+    std::uint8_t extraWeapon;        // +0x1C (DressedUnitRecord::extraWeapon's place)
+    std::uint8_t unused_1D[3];
+    std::uint32_t modelNumber;       // +0x20 (DressedUnitRecord::modelNumber's place)
     float morphS;                   // +0x24 the figure's morph coefficients (LoadFigure's s, t, u)
     float morphT;
     float morphU;

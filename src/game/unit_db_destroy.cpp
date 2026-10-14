@@ -164,24 +164,26 @@ void DestroyStringVector(CStringVector* v) {
     StringVectorFree(v);
 }
 
-// A skill level record of the skill database (0x18 bytes).
+// A skill level record of the skill database (0x18 bytes). The layout is unit_db.h's SkillRecord
+// (the table at +0x00, 007AF268); this file's two record names are the other way round.
 struct SkillLevelRecord {
     mfc::CString name;          // +0x00
-    mfc::CString unknown_04;
-    std::uint32_t unknown_08;
-    CStringVector unknown_0C;
+    mfc::CString field1;
+    std::uint32_t field2;
+    CStringVector statNames;
 };
 static_assert(sizeof(SkillLevelRecord) == 0x18);
 
-// A skill record of the skill database (0x44 bytes): four CStrings among plain fields.
+// A skill record of the skill database (0x44 bytes): four CStrings among plain fields (unit_db.h's
+// SkillLevelRecord, the table at +0x0C).
 struct SkillRecord {
-    mfc::CString name;          // +0x00
-    mfc::CString unknown_04;
-    std::uint32_t unknown_08;
-    mfc::CString unknown_0C;
-    std::uint32_t unknown_10;
-    mfc::CString unknown_14;
-    std::uint8_t unknown_18[0x2C];
+    mfc::CString field0;        // +0x00
+    mfc::CString name;          // +0x04
+    std::uint32_t field2;
+    mfc::CString requiredLevelName;
+    std::uint32_t exclusionGroup;
+    mfc::CString requiredSkillName;
+    std::uint8_t unused_18[0x2C];
 };
 static_assert(sizeof(SkillRecord) == 0x44);
 
@@ -243,16 +245,16 @@ void __fastcall DestroyNpcTable(RecordTable* self) {
 void __fastcall DestroySkillDatabase(SkillDatabase* self) {
     for (char *p = self->skills.begin(), *end = self->skills.end(); p != end; p += sizeof(SkillRecord)) {
         auto* record = reinterpret_cast<SkillRecord*>(p);
-        DestroyString(&record->unknown_14);
-        DestroyString(&record->unknown_0C);
-        DestroyString(&record->unknown_04);
+        DestroyString(&record->requiredSkillName);
+        DestroyString(&record->requiredLevelName);
         DestroyString(&record->name);
+        DestroyString(&record->field0);
     }
     FreeStorage(&self->skills, sizeof(SkillRecord));
     for (char *p = self->levels.begin(), *end = self->levels.end(); p != end; p += sizeof(SkillLevelRecord)) {
         auto* record = reinterpret_cast<SkillLevelRecord*>(p);
-        DestroyStringVector(&record->unknown_0C);
-        DestroyString(&record->unknown_04);
+        DestroyStringVector(&record->statNames);
+        DestroyString(&record->field1);
         DestroyString(&record->name);
     }
     FreeStorage(&self->levels, sizeof(SkillLevelRecord));
@@ -284,9 +286,9 @@ void __fastcall DestroyModelRecord(UnitModelRecord* record) {
     DestroyStringsAndFree(&record->soundNames);
     DestroyString(&record->soundFolder);
     DestroyString(&record->hitMaterial);
-    DestroyStringsAndFree(&record->unknown_F8);
-    DestroyStringsAndFree(&record->unknown_EC);
-    DestroyString(&record->unknown_E8);
+    DestroyStringsAndFree(&record->field20);
+    DestroyStringsAndFree(&record->field1F);
+    DestroyString(&record->figureName);
     VectorDestructor(record->slots, sizeof(UnitModelSlot), 6, kModelSlotDestructor);
     DestroyString(&record->name);
 }
@@ -298,7 +300,7 @@ void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record) {
     DestroyString(&record->weaponName);
     DestroyStringsAndFree(&record->armourNames);
     DestroyStringsAndFree(&record->spellNames);
-    DestroyStringsAndFree(&record->unknown_E8);
+    DestroyStringsAndFree(&record->lootItems);
     DestroyString(&record->soundFolder);
     DestroyString(&record->modelName);
     DestroyString(&record->name);

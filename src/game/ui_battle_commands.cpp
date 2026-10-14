@@ -169,8 +169,8 @@ void CBattleScreenSetup::ToggleMember(int index) {
                 if (i >= party->size) continue;
                 PartyUnitRecord* record = &reinterpret_cast<PartyUnitRecord*>(player->mercs)[i];
                 CUnit* member = unitAt(i);
-                if (member->id_ == static_cast<int>(record->unknown_01C))   // the record's unit id
-                    record->unknown_778 = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);
+                if (member->id_ == static_cast<int>(record->unitId))   // the record's unit id
+                    record->selected = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);
             }
         }
     }

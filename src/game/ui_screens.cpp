@@ -223,7 +223,7 @@ int CUiItemStrip::SpellTab(const char* item) {
         // A record out of range is read through null, as in the original.
         auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
             itemdb::Spells().At(ItemRecord(item), itemdb::kSpellSize));
-        switch (spell->unknown_10) {
+        switch (spell->castType) {
         case 0: return 0;
         case 1: return 1;
         case 2: return 2;

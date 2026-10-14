@@ -140,7 +140,7 @@ void __fastcall NotifyUnitChangedVerify(CPlayerClient* self, void*, CUnit* unit)
     bool ok = true;
     if (login) {
         CParty* party = self->Owner()->Party();
-        const bool leader = party->members_.size == 1 && static_cast<int>(party->members_.data[0].unknown_01C) == unit->id_;
+        const bool leader = party->members_.size == 1 && static_cast<int>(party->members_.data[0].unitId) == unit->id_;
         ok = leader ? login->id_ == (unit->player ? unit->id_ : -1) && login->version_ == versionBefore + 1
                     : login->id_ == idBefore && login->version_ == versionBefore;
     }

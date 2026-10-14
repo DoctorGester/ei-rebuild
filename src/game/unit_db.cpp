@@ -62,7 +62,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 9, &hitPoints);
     Dword(ar, 10, &mana);
     Dword(ar, 11, &protectionScale);
-    Dword(ar, 12, &unknown_5C);
+    Dword(ar, 12, &field12);
     Dword(ar, 13, &speed);
     Dword(ar, 14, &combat[0]);
     Dword(ar, 15, &combat[1]);
@@ -74,12 +74,12 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x15, &skillLevel);
     Dword(ar, 0x16, &attributes01);
     Dword(ar, 0x17, &attribute2);
-    Dword(ar, 0x18, &unknown_94);
+    Dword(ar, 0x18, &peripheralRange);
     ArchiveField(ar, nullptr, 0x19, valuesB0, sizeof(valuesB0));
     ArchiveField(ar, nullptr, 0x1A, valuesE0, sizeof(valuesE0));
     if (ArchiveEnter(ar, nullptr, 0x1B)) {
         Dword(ar, 0, &gold.chance);
-        Dword(ar, 1, &gold.unknown_04);
+        Dword(ar, 1, &gold.field1);
         Dword(ar, 2, &gold.minimum);
         Dword(ar, 3, &gold.maximum);
         ArchiveLeave(ar);
@@ -88,13 +88,13 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
         FourDwords(&secondGold, nullptr, ar);
         ArchiveLeave(ar);
     }
-    ArchiveStrings(ar, nullptr, 0x1D, &unknown_E8, ar);
+    ArchiveStrings(ar, nullptr, 0x1D, &lootItems, ar);
     ArchiveField(ar, nullptr, 0x1E, skills3to5, sizeof(skills3to5));
     ArchiveStrings(ar, nullptr, 0x1F, &spellNames, ar);
     ArchiveStrings(ar, nullptr, 0x20, &armourNames, ar);
     ArchiveString(ar, nullptr, 0x21, &weaponName);
-    Dword(ar, 0x22, &unknown_20);
-    Dword(ar, 0x23, &unknown_24);
+    Dword(ar, 0x22, &panelViewSize);
+    Dword(ar, 0x23, &height);
     Dword(ar, 0x24, &combat[2]);
     Dword(ar, 0x25, &viewDistance);
     Dword(ar, 0x26, &viewHeight);
@@ -102,7 +102,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x28, &shake);
     Dword(ar, 0x29, &level);
     ArchiveString(ar, nullptr, 0x2A, &secondWeaponName);
-    Dword(ar, 0x2B, &unknown_54);
+    Dword(ar, 0x2B, &experienceValue);
 }
 EI_REPLACE_METHOD(0x0052D740, UnitPrototypeRecord::Serialize);
 
@@ -111,11 +111,11 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 1, &objectClass);
     Dword(ar, 2, &hitPointRegen);
     Dword(ar, 3, &manaRegen);
-    Dword(ar, 4, &unknown_10);
-    Dword(ar, 5, &unknown_14);
+    Dword(ar, 4, &field4);
+    Dword(ar, 5, &movementKind);
     Dword(ar, 6, &angle);
     ArchiveField(ar, nullptr, 7, modeSpeeds, sizeof(modeSpeeds));
-    Dword(ar, 8, &unknown_44);
+    Dword(ar, 8, &field8);
     Dword(ar, 9, &sizeClass);
     Dword(ar, 10, &sizeClassSmall);
     ArchiveField(ar, nullptr, 11, damageWeights, sizeof(damageWeights));
@@ -125,9 +125,9 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
             ArchiveLeave(ar);
         }
     }
-    ArchiveString(ar, nullptr, 0x1E, &unknown_E8);
-    ArchiveStrings(ar, nullptr, 0x1F, &unknown_EC, ar);
-    ArchiveStrings(ar, nullptr, 0x20, &unknown_F8, ar);
+    ArchiveString(ar, nullptr, 0x1E, &figureName);
+    ArchiveStrings(ar, nullptr, 0x1F, &field1F, ar);
+    ArchiveStrings(ar, nullptr, 0x20, &field20, ar);
     Dword(ar, 0x21, &height);
     ArchiveString(ar, nullptr, 0x22, &soundFolder);
     ArchiveStrings(ar, nullptr, 0x23, &soundNames, ar);
@@ -136,12 +136,12 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x26, &attackSoundChance);
     ArchiveField(ar, nullptr, 0x27, protection, sizeof(protection));
     Dword(ar, 0x28, &bloodKind);
-    Dword(ar, 0x29, &unknown_114);
+    Dword(ar, 0x29, &castEffect);
     Dword(ar, 0x2A, &footprintKind);
     Dword(ar, 0x2B, &footPart);
     ArchiveString(ar, nullptr, 0x2C, &hitMaterial);
     ArchiveField(ar, nullptr, 0x2D, &swapFeet, 1);
-    Dword(ar, 0x2E, &unknown_120);
+    Dword(ar, 0x2E, &sizeScale);
     Dword(ar, 0x2F, &eyeLeft);
     Dword(ar, 0x30, &eyeBottom);
     Dword(ar, 0x31, &eyeWidth);
@@ -151,7 +151,7 @@ EI_REPLACE_METHOD(0x0052DC70, UnitModelRecord::Serialize);
 
 void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     ArchiveString(ar, nullptr, 0, &name);
-    Dword(ar, 1, &unknown_04);
+    Dword(ar, 1, &field1);
     Dword(ar, 2, &experience);
     Dword(ar, 3, &stats[0]);
     Dword(ar, 4, &stats[1]);
@@ -164,7 +164,7 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     InlineStrings(ar, 11, &startSpells);
     Dword(ar, 12, &experienceFloor);
     Dword(ar, 13, &startMoney);
-    ArchiveField(ar, nullptr, 14, &unknown_5C, 1);
+    ArchiveField(ar, nullptr, 14, &voiced, 1);
 }
 EI_REPLACE_METHOD(0x0052DA60, UnitNpcRecord::Serialize);
 
@@ -276,21 +276,21 @@ bool SameName(const mfc::CString& name, const char* other) {
 
 void SkillRecord::Serialize(ChunkArchive* ar) {
     ArchiveString(ar, nullptr, 0, &name);
-    ArchiveString(ar, nullptr, 1, &unknown_04);
-    Dword(ar, 2, &unknown_08);
+    ArchiveString(ar, nullptr, 1, &field1);
+    Dword(ar, 2, &field2);
     InlineStrings(ar, 10, &statNames);
 }
 EI_REPLACE_METHOD(0x0051F3A0, SkillRecord::Serialize);
 
 void SkillLevelRecord::Serialize(ChunkArchive* ar) {
-    ArchiveString(ar, nullptr, 0, &unknown_00);
+    ArchiveString(ar, nullptr, 0, &field0);
     ArchiveString(ar, nullptr, 1, &name);
-    Dword(ar, 2, &unknown_08);
-    ArchiveString(ar, nullptr, 10, &unknown_0C);
-    ArchiveString(ar, nullptr, 11, &unknown_14);
+    Dword(ar, 2, &field2);
+    ArchiveString(ar, nullptr, 10, &requiredLevelName);
+    ArchiveString(ar, nullptr, 11, &requiredSkillName);
     for (int i = 0; i < kSkillLevelValues; ++i) Dword(ar, kFirstValueField + i, &values[i]);
     ArchiveField(ar, nullptr, 0x16, &learnable, 1);
-    Dword(ar, 0x17, &unknown_10);
+    Dword(ar, 0x17, &exclusionGroup);
 }
 EI_REPLACE_METHOD(0x0051F480, SkillLevelRecord::Serialize);
 

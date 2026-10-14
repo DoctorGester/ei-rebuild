@@ -309,7 +309,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
             if (changed != 0 && (1u << (i & 31)) != 0) UnitMarkChanged(object, nullptr, i);
 
         if (object->GetClassId() == world::kClassUnit &&
-            reinterpret_cast<UnitController*>(static_cast<CUnit*>(object)->controller)->Brain()->unknown_37 == 0)
+            reinterpret_cast<UnitController*>(static_cast<CUnit*>(object)->controller)->Brain()->alwaysUpdated == 0)
             continue;   // a unit whose controller does not ask for updates (its brain's +0x37)
         AddToUpdateMap(object);
     }
@@ -553,7 +553,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     auto* record = static_cast<CItemLink*>(gamecrt::operator_new(sizeof(CItemLink)));
                     // The count's whole dword is cleared, before the null test.
                     record->references = 0;
-                    record->unknown_06 = 0;
+                    record->refsHigh = 0;
                     if (record) record->vtable = CItemLink::Vtable();
                     record->value = value;
                     CItemLink* old = LinkOf(object);

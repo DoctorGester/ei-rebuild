@@ -105,7 +105,7 @@ T* NewMode() {
     auto* mode = static_cast<T*>(gamecrt::operator_new(sizeof(T)));
     if (!mode) return nullptr;
     mode->refs = 0;
-    mode->unknown_06 = 0;
+    mode->refsHigh = 0;
     return mode;
 }
 

@@ -210,7 +210,7 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
             if (!unit->player) {
                 AIBrain* brain = reinterpret_cast<UnitController*>(unit->controller)->Brain();
                 BrainHearAlarm(brain, nullptr, index);
-                if (brain->unknown_37) AddToUpdateMap(object);   // reacting to the alarm
+                if (brain->alwaysUpdated) AddToUpdateMap(object);   // reacting to the alarm
             }
         }
         node = objects.After(node);
