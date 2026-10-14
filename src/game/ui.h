@@ -835,6 +835,8 @@ public:
     // the blank item panel 00741B58, 00741A1C, the trade panel 007417A8 and the stats panel
     // 00741ABC; RET 0xC; ui_small_members.cpp). Nothing under the point: `topic` 0, null.
     void* NoItemAt(int x, int y, int* topic);
+    // Scene object `index` as the interface sprite it is.
+    CUiMesh* SceneMesh(int index) const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[index]); }
 
     void** inputVtable_;                      // +0x94 secondary vtable (input handlers)
     CInterface3D* interface_;                 // +0x98

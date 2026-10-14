@@ -48,12 +48,12 @@ static void __fastcall CampCreateVerify(CCampPages* self) {
                       self->spellConstructor_, self->itemConstructor_, self->page_);
 
     auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
-    bool heroes = self->heroCount_ == player->members_.size;
+    bool heroes = self->heroes_.size == player->members_.size;
     for (int i = 0; heroes && i < player->members_.size && i < kIdsKept; ++i)
         heroes = player->members_.data[i].unknown_01C == ids[i];
     ei::verify::Check("CCampPages::Create heroes", true,
-                      heroes && self->hero_ >= 0 && self->hero_ < self->heroCount_ && self->heroes_[self->hero_] != nullptr,
-                      "heroes %d party %d shown %d", self->heroCount_, player->members_.size, self->hero_);
+                      heroes && self->hero_ >= 0 && self->hero_ < self->heroes_.size && self->heroes_[self->hero_] != nullptr,
+                      "heroes %d party %d shown %d", self->heroes_.size, player->members_.size, self->hero_);
 
     if (self->constructor_)
         ei::verify::Check("CCampPages::Create stock", 0, static_cast<int>(self->constructor_->flag38), "");

@@ -76,7 +76,7 @@ public:
     virtual void TimedObjectManager();         // 14: 0065F530 (null)
     virtual void FigureManager();              // 15: 0065F4C0 (null)
     virtual CItemConstructor* ItemConstructor();   // 16: 0065F540 (itemConstructor_)
-    virtual void SpellConstructor();           // 17: 0065F550 (spellConstructor_)
+    virtual CSpellConstructor* SpellConstructor();   // 17: 0065F550 (spellConstructor_)
     virtual CResourceManager* ItemManager();   // 18: itemManager_
     virtual void MapObjectManager();           // 19: 0065F4D0 (null)
     virtual void PlayerList();                 // 20: 0065F4E0 (null)

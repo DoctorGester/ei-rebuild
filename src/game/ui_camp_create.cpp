@@ -176,8 +176,8 @@ void CCampPages::Create() {
         spellConstructor_ = constructor_->flag0D != 0;
         itemConstructor_ = constructor_->flag0C != 0;
         for (int i = 0; i < kPriceWeights; ++i) priceWeights_[i] = constructor_->weights[i];
-        spellParts_[0] = constructor_->spells;
-        itemParts_[0] = constructor_->items;
+        spellParts_[0] = reinterpret_cast<CParty*>(constructor_->spells);
+        itemParts_[0] = reinterpret_cast<CParty*>(constructor_->items);
     }
     noConstructor_ = PlayerSwitch(GameText(0x007936AC));                      // "i.noconstr"
     if (PlayerSwitch(GameText(0x00793698))) spellConstructor_ = false;        // "i.offspellconstr"
@@ -378,13 +378,12 @@ void CCampPages::Create() {
     }
     GameTakeUnitRecordsFlagOriginal(UiClientGlue(), nullptr, &records, 1);
 
-    auto& heroes = *reinterpret_cast<mfc::CArray<std::uint8_t*>*>(&heroesVtable_);
-    heroes.SetSize(count);
+    heroes_.SetSize(count);
     for (int i = 0; i < count; ++i) heroes_[i] = nullptr;
     for (int i = 0; i < count; ++i) {
         if (PrototypeClass(objects, nullptr, player->members_.data[i].texts[5]) != kHeroClass) continue;
         auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(UiClientGlue(), nullptr, player->members_.data[i].unknown_01C));
-        heroes_[i] = reinterpret_cast<std::uint8_t*>(unit);
+        heroes_[i] = unit;
         // The idle animation from a random frame (up to 50 back).
         if (FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kIdleAnimation)) {
             std::uint32_t random = IsaacRandom::Global().Next();

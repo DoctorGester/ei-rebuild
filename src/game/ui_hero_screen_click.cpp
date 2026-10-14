@@ -128,9 +128,9 @@ void* BuildCamp(CInterface3D* ui, const int* flags) {
     At<std::uint32_t>(camp, 0x19C) = 0x007402AC;
     At<int>(camp, 0x1A0) = 0;
     auto* pages = reinterpret_cast<CCampPages*>(camp);
-    pages->heroGrowBy_ = 0;
-    pages->heroCapacity_ = 0;
-    pages->heroCount_ = 0;
+    pages->heroes_.growBy = 0;
+    pages->heroes_.maxSize = 0;
+    pages->heroes_.size = 0;
     StringArrayConstruct(camp + 0x240);
     At<std::uint32_t>(camp, 0) = 0x0074091C;
     At<std::uint32_t>(camp, 0x94) = 0x007408E8;

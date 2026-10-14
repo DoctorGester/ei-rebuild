@@ -81,7 +81,8 @@ struct ItemObjectCache {
     };
     Node* header;
     std::uint32_t count;
-    std::uint32_t unknown_08;
+    std::uint8_t compare;            // +0x08 the map's compare object (a byte the constructors copy)
+    std::uint8_t unknown_09[3];
     std::uint32_t limit;             // +0x0C
 };
 static_assert(sizeof(ItemObjectCache) == 0x10);
