@@ -204,7 +204,7 @@ void HandOver(CTextureDevice* device, const MeshArgs& a) {
     // viewport mapping, so it also places meshes drawn into a part of the screen (the interface's
     // previews). Both stacks get the same pushes.
     m.screenMatrix = true;
-    m.matrix = device->pipeline_->Top(kScreenStack)->m;
+    m.matrix = device->pipeline_->Top(kScreenStack);
     m.clipped = (a.flags & 2) != 0;
     m.distanceFog = device->distanceFog_ != 0;
     m.zScale = 1.0f;

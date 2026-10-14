@@ -172,20 +172,20 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
 
     // Each vertex is 8 bytes: x and y displacement (signed bytes), height (u16), packed normal.
     const std::uint8_t* src = data;
-    float* out = vertices.data->xyz;
+    SectorPosition* out = vertices.data;
     for (int layer = 0; layer < (hasWater ? 2 : 1); ++layer) {
         double x0 = static_cast<double>(sx) * One() * SectorCells();
         double y = static_cast<double>(sy) * One() * SectorCells();
         int vi = 0;
         for (int row = 0; row < 33; ++row) {
             double x = x0;
-            for (int col = 0; col < 33; ++col, ++vi, src += 8, out += 3) {
+            for (int col = 0; col < 33; ++col, ++vi, src += 8, ++out) {
                 std::uint16_t h;
                 std::memcpy(&h, src + 2, 2);
-                out[2] = Store(static_cast<double>(h) * owner->heightScale * HeightUnit());
+                out->z = Store(static_cast<double>(h) * owner->heightScale * HeightUnit());
                 if (layer == 0) {
-                    out[0] = Store(One() * Half() * static_cast<std::int8_t>(src[0]) * OffsetScale() + x);
-                    out[1] = Store(One() * Half() * static_cast<std::int8_t>(src[1]) * OffsetScale() + y);
+                    out->x = Store(One() * Half() * static_cast<std::int8_t>(src[0]) * OffsetScale() + x);
+                    out->y = Store(One() * Half() * static_cast<std::int8_t>(src[1]) * OffsetScale() + y);
                 } else {
                     // The water material of the vertex: the lowest priority among its tiles'.
                     const VertexTiles& around = owner->vertexTiles[vi];
@@ -196,14 +196,14 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
                         if (m == -1 || !(owner->materials[c].priority >= owner->materials[m].priority)) m = c;
                     }
                     if (m == -1) {
-                        out[0] = Store(x);
-                        std::memset(out + 2, 0, 4);
-                        out[1] = Store(y);
+                        out->x = Store(x);
+                        std::memset(&out->z, 0, 4);
+                        out->y = Store(y);
                     } else if (owner->materials[m].kind != 4) {
-                        out[0] = Store(x);
-                        out[1] = Store(y);
+                        out->x = Store(x);
+                        out->y = Store(y);
                     } else {
-                        std::memcpy(out, vertices.data[vi].xyz, 8);
+                        std::memcpy(out, &vertices.data[vi].x, 8);
                     }
                 }
                 x += One();
@@ -225,15 +225,15 @@ const std::uint8_t* BuildRecords(SectorData& s) {
     const std::uint8_t* tiles = s.data;
     const std::uint8_t* src = s.data;
     SectorVertex* rec = s.records.data;
-    const float* vin = s.vertices.data->xyz;
+    const SectorPosition* vin = s.vertices.data;
     std::memcpy(&s.minZ, "\xca\xf2\x49\x71", 4);    // 1e30
     s.maxZ = 0.0f;
     for (int layer = 0; layer < (s.hasWater ? 2 : 1); ++layer) {
         if (layer == 1) tiles += 0x2208;
-        for (int vi = 0; vi < kVertices; ++vi, ++rec, vin += 3, src += 8) {
+        for (int vi = 0; vi < kVertices; ++vi, ++rec, ++vin, src += 8) {
             // Branch-free selects on the FCOMP status (C0): the minimum keeps its value when it is
             // below z or unordered, the maximum when z is below it or unordered.
-            float z = vin[2];
+            float z = vin->z;
             if (!(s.minZ < z) && !x87::IsNaN(s.minZ) && !x87::IsNaN(z)) s.minZ = z;
             if (!(z < s.maxZ) && !x87::IsNaN(z) && !x87::IsNaN(s.maxZ)) s.maxZ = z;
 
@@ -252,7 +252,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
                     rec->materialColour = mat.colour;
                 }
                 std::memcpy(&rec->position, vin, 12);
-                (rec - kVertices)->depth = Store(static_cast<double>(vin[2]) - vin[2 - kVertices * 3]);
+                (rec - kVertices)->depth = Store(static_cast<double>(vin->z) - (vin - kVertices)->z);
             }
             std::uint32_t n;
             std::memcpy(&n, src + 4, 4);
@@ -484,7 +484,7 @@ void SectorData::ApplyWaterLevels() {
         unsigned id = waterMaterials.data[k];
         double level = levels.data[id];
         SectorVertex* rec = records.data + kVertices;
-        float* z = &vertices.data[kVertices].xyz[2];
+        float* z = &vertices.data[kVertices].z;
         for (int i = 0; i < kVertices; ++i, ++rec, z += 3) {
             if (rec->waterMaterial == id) {
                 rec->position.z = Store(level + rec->position.z);
@@ -651,7 +651,7 @@ int SectorData::Project(CTransformPipeline* pipeline) {
             for (int row = 0; row <= kQuarterCells; row += rowStep)
                 for (int column = 0; column <= kQuarterCells; column += columnStep) {
                     const SectorPosition& p = vertices.data[layer * kVertices + corner + row * kRow + column];
-                    std::memcpy(in, p.xyz, sizeof(p.xyz));
+                    std::memcpy(in, &p, sizeof(Vector3));
                     ++in;
                 }
         const int count = static_cast<int>(in - ProjectionInput().data);

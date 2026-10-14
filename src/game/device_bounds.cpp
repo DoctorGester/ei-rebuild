@@ -72,7 +72,7 @@ int __fastcall DeviceBoundsOfProjected(CTextureDevice* device, void*,
         for (int k = i; k < i + kBlock; ++k) {
             if (outcodes && outcodes[k] != 0) continue;
             const devicebuffers::ProjectedVertex& position = positions->data[k];
-            bounds.Include(position.xyzw[0], position.xyzw[1]);
+            bounds.Include(position.x, position.y);
         }
     }
     return bounds.Store(device);

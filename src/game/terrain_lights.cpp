@@ -148,7 +148,7 @@ void __stdcall UpdateVertexLights(SectorData* sector, CLight* light, const Vecto
         const SectorPosition* vertex = &sector->vertices.data[y * kRow + range.x0];
         SectorVertex* record = &sector->records.data[y * kRow + range.x0];
         for (int x = range.x0; x <= range.x1; ++x, ++vertex, ++record) {
-            Vector3 offset = Vector3{vertex->xyz[0], vertex->xyz[1], vertex->xyz[2]} - *position;
+            Vector3 offset = Vector3{vertex->x, vertex->y, vertex->z} - *position;
             LightRef* head = record->lights;
             LightRef* found = head;
             while (found && found->light != light) found = found->next;

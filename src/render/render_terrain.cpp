@@ -101,7 +101,7 @@ float4 ps_main(vs_out i) : SV_Target0 {
 )";
 
 struct Params {
-    float rows[16];
+    Matrix4 matrix;
     float fog[4];
     float flags[4];
 };
@@ -273,7 +273,7 @@ void DrawTerrainBatch(const Frame& f, const TerrainBatch& batch) {
     b.samplers[0] = LinearSampler();
     sg_apply_bindings(&b);
     Params params{};
-    std::memcpy(params.rows, f.matrices[static_cast<std::size_t>(batch.matrix)].m, sizeof(params.rows));
+    params.matrix = f.matrices[static_cast<std::size_t>(batch.matrix)];
     params.fog[0] = static_cast<float>((f.fogColour >> 16) & 0xFF) / 255.0f;
     params.fog[1] = static_cast<float>((f.fogColour >> 8) & 0xFF) / 255.0f;
     params.fog[2] = static_cast<float>(f.fogColour & 0xFF) / 255.0f;
@@ -308,13 +308,13 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
     // pushed by 006C6230 / 006C6330 on top of the view).
     const char* pipeline = *reinterpret_cast<char* const*>(static_cast<const char*>(renderer) + 8);
     if (!pipeline) return;
-    const float* stack = *reinterpret_cast<float* const*>(pipeline + 0x24);
+    const Matrix4* stack = *reinterpret_cast<const Matrix4* const*>(pipeline + 0x24);
     int depth = *reinterpret_cast<const int*>(pipeline + 0x28);
     if (!stack || depth <= 0) return;
     int lod = s->unknown_170;
     if (lod < 0 || lod > 2) return;
     if (!f.haveFog) ReadFog(f);
-    int matrix = AddMatrix(stack + (depth - 1) * 16);
+    int matrix = AddMatrix(stack[depth - 1]);
     const void* texture = PageTexture(s, page);
     bool water = page >= s->pages + 2;
     const int* entries = lod == 0 ? kLod0Entries : lod == 1 ? kLod1Entries : kLod2Entries;
@@ -343,12 +343,12 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
                     ok = false;
                     break;
                 }
-                const float* position = s->vertices.data[index].xyz;
+                const Vector3& position = s->vertices.data[index];
                 const auto* record = reinterpret_cast<const std::uint8_t*>(e.vertex);
                 TerrainVertex v{};
-                v.position.x = position[0];
-                v.position.y = position[1];
-                v.position.z = position[2];
+                v.position.x = position.x;
+                v.position.y = position.y;
+                v.position.z = position.z;
                 std::memcpy(&v.colour, record + 0x11, 4);
                 std::memcpy(&v.specular, record + 0x15, 4);
                 v.u = e.u;

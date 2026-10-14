@@ -574,7 +574,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
-    std::uint8_t lit = IsLit(LightManager(), nullptr, &object->position.x);
+    std::uint8_t lit = IsLit(LightManager(), nullptr, &object->position);
     DeviceDrawFlatOriginal(RenderDevice(), nullptr, vertices.data, texCoords.data, vertices.size, indices.data, indices.size,
                            colour,
                            static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,

@@ -9,15 +9,14 @@
 #include "clip.h"
 
 #include "lib/containers.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 
 namespace devicebuffers {
 
 // A projected position: x, y, z, rhw (16 bytes).
-struct ProjectedVertex {
-    float xyzw[4];
-};
+struct ProjectedVertex : Vector4 {};
 static_assert(sizeof(ProjectedVertex) == 16);
 
 inline lib::AlignedArray<TLVertex>& Vertices() { return *reinterpret_cast<lib::AlignedArray<TLVertex>*>(0x007AEE00); }

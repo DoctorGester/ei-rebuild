@@ -73,7 +73,7 @@ __declspec(naked) void* __fastcall NewKeepingEdx(std::uint32_t /*size*/, std::ui
     }
 }
 // 0068D0A0: a light's colour and position; 005007C0: the renderer adds a light.
-__declspec(naked) void __fastcall LightSet(CLight*, void*, const float* /*colour*/, const float* /*position*/)
+__declspec(naked) void __fastcall LightSet(CLight*, void*, const float* /*colour*/, const Vector3* /*position*/)
     EI_ORIGINAL(0x0068D0A0)
 __declspec(naked) void __fastcall RendererAddLight(CSceneRenderer*, void*, CLight*) EI_ORIGINAL(0x005007C0)
 // 004FCA60: the 0x118-byte helper object (device, flag).
@@ -240,8 +240,8 @@ void SetRenderStates(CSceneRenderer* renderer, const GameOptions* settings) {
 void AddDefaultLight(CSceneRenderer* renderer) {
     auto* light = static_cast<CLight*>(TheLightFactory()->CreateObject(0x2E, -1));
     float colour[3] = {1.0f, 1.0f, 1.0f};
-    float position[3] = {5.0f, 5.0f, -8.0f};
-    LightSet(light, nullptr, colour, position);
+    Vector3 position = {5.0f, 5.0f, -8.0f};
+    LightSet(light, nullptr, colour, &position);
     const std::uint32_t range = 0x49742400, rangeSquared = 0x5368D4A5, inverseRangeSquared = 0x2B8CBCCC;
     std::memcpy(&light->range_, &range, 4);
     std::memcpy(&light->rangeSquared_, &rangeSquared, 4);

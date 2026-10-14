@@ -116,9 +116,7 @@ constexpr int kCulled = 2;
 struct TerrainFields;
 
 // A vertex position of a sector layer (x, y, z).
-struct SectorPosition {
-    float xyz[3];
-};
+struct SectorPosition : Vector3 {};
 static_assert(sizeof(SectorPosition) == 12);
 
 // The construct / destroy helpers of the sector's CArray instantiations (mfc::CArray's Elements

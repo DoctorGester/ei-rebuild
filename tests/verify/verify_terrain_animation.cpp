@@ -153,10 +153,10 @@ void __fastcall AnimateVerify(SectorData* self, void*, TerrainFields* owner, int
     }
     int positions = 0, speculars = 0, first = -1;
     for (std::size_t i = 0; i < original.water.size(); ++i) {
-        bool same = true;
-        for (int k = 0; k < 3; ++k) {
-            same = same && ei::verify::NearlyEqual(original.water[i].xyz[k], ours.water[i].xyz[k], 4, 1e-5f);
-        }
+        const Vector3& o = original.water[i];
+        const Vector3& u = ours.water[i];
+        bool same = ei::verify::NearlyEqual(o.x, u.x, 4, 1e-5f) && ei::verify::NearlyEqual(o.y, u.y, 4, 1e-5f) &&
+                    ei::verify::NearlyEqual(o.z, u.z, 4, 1e-5f);
         if (!same && positions++ == 0) first = static_cast<int>(i);
         if (original.specular[i] != ours.specular[i]) ++speculars;
     }
