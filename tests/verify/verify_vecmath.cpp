@@ -350,7 +350,14 @@ void TestUnrounded(Inputs& in) {
             Compare("LengthSquaredUnrounded", o, RefDot(kOrders[o], a, a), squared[o], a, b);
             Compare("DotUnrounded(2a, b)", o, R(RefDot(kOrders[o], a, b) * 2.0f), twice[o], a, b);
         }
-        // a.z * b.z as the offset: an inexact value that separates (d + xx') + yy' from d + (xx' + yy') more often.
+    });
+    // The offset first (V3f), on inputs where (d + xx') + yy' and d + (xx' + yy') differ; a.z * b.z as d.
+    auto separatesOffset = [](const Vector3& a, const Vector3& b) {
+        float d = R(a.z * b.z), x = R(a.x * b.x), y = R(a.y * b.y);
+        float first = R(R(d + x) + y), last = R(d + R(x + y));
+        return std::memcmp(&first, &last, 4) != 0;
+    };
+    ForSeparatingInputs("OffsetDot2DUnrounded", in, separatesOffset, [](const Vector3& a, const Vector3& b) {
         float d = R(a.z * b.z);
         Compare("OffsetDot2DUnrounded", -1, R(R(d + R(a.x * b.x)) + R(a.y * b.y)), OffsetDot2DUnroundedOf(d, a, b), a, b);
     });
