@@ -326,7 +326,7 @@ static void __fastcall MapMouseDownVerify(void* input, void*, int buttons, int x
 }
 EI_VERIFY(0x00645060, MapMouseDownVerify, 0, s_unused);
 
-// 00645210 (A-H26; Rebirth-patched, so hooked in the vanilla launch only): the map's button
+// 00645210 (A-H26; Rebirth-patched for WideScreen, reproduced behind the flag, W3): the map's button
 // release. It plays sounds and moves the camera, so ours only; the wrapper works out from the
 // state before the call what the original's branches leave. ui_hud reaches the first branch (a
 // view button let go: its two clicks on the view buttons); no scenario clicks the sling button,

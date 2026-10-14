@@ -1,7 +1,7 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth | --native] [--no-hooks]
-                               [--jobs N] [--retries N] [--verified-candidates N]
+                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--verified-candidates N]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
                    Every scenario runs on vanilla; under Rebirth only those config/rebirth_scenarios.csv
@@ -11,8 +11,9 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    EI_RENDER=new,present: the game has no DirectDraw or Direct3D 7 device and the new
                    renderer presents through its own swap chain (docs/notes/renderer.md section 9)
   --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"):
-                   the scenarios (default ui_widescreen and ui_widescreen_more; they set the wide mode with the harness's
-                   "resolution" / "widescreen" steps) under Rebirth twice, with our hooks
+                   the scenarios (default ui_widescreen, ui_widescreen_more and ui_widescreen_hud; they
+                   set the wide mode with the harness's "resolution" / "widescreen" steps) under Rebirth
+                   twice, with our hooks
                    (<scenario>-rebirth) and without (<scenario>-rebirth-nohooks: addon's code only),
                    then tools/compare_frames.py on the two runs' frames
   --jobs N         games running at once (default 16); all runs on the machine together never
@@ -22,17 +23,24 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
   --retries N      re-run a failed scenario up to N times (default 1); fights against spawned
                    enemies are random, and the hero occasionally loses one on the original too.
                    A pass after a retry is reported as "PASS*".
+  --clock virtual|real[,clocktrace][,randtrace]
+                   run every scenario on the virtual clock or on real time, whatever its own lines say
+                   (EI_HARNESS_CLOCK; tests/verify/harness_clock.h), with the clock or random trace
   --verified-candidates N
                    afterwards, list rewritten functions with at least N verify calls and no
                    mismatch in any run that are not yet in tests/verify/verified.txt
 exit code: 0 when every run passed
+
+A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
+game's watchdog ends it at the limit, ei_launch 20 s later if the watchdog could not (tools/launcher/launch.cpp).
+A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scenarios/watchdog_*.txt check this).
 """
-import argparse, collections, concurrent.futures, contextlib, glob, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
+import argparse, functools, collections, concurrent.futures, contextlib, glob, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
 
 import prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more']   # --widescreen without scenario names
+WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud']   # --widescreen without scenario names
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
 # Runs go to <BUILD>/runs. <BUILD>/run_times.json keeps each run's seconds from the last suite: the
 # longest start first, so the last games to finish are short ones (alphabetical order left a 50 s run
@@ -113,10 +121,84 @@ def sets_display_mode(scenario):
         return any(re.match(r'\s*resolution\b', line) for line in f)
 
 
-def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True):
+# EI_* variables that are not settings of a game: where the build is, the machine's slots, and what ei_launch
+# sets itself. Every other EI_* variable (EI_PROFILE, EI_PLAIN, EI_RENDER, EI_COVER, ...) is read by a game.
+NOT_GAME_ENV = ('EI_BUILD_DIR', 'EI_HARNESS_SLOTS', 'EI_OUT_DIR', 'EI_HARNESS')
+
+
+def game_environment(environ=None):
+    """The EI_* variables of environ (default: this process's) that a game reads: {name: value}."""
+    return {k: v for k, v in (os.environ if environ is None else environ).items()
+            if k.startswith('EI_') and k not in NOT_GAME_ENV}
+
+
+# A game window that had the foreground (Windows hands it to another game when the one in front
+# closes) and lost it to a starting game is minimised by dgVoodoo, which takes its surfaces and,
+# when that comes twice, its exclusive mode: the run ends on the game's "surface memory is gone"
+# box (harness.cpp, RestoreAfterMinimise). That is the machine, not the code: such a run is run again.
+MINIMISED = 'harness: the game window was minimised'
+MINIMISED_RERUNS = 2
+
+# A run past its time limit. ei_launch exits with TIMEOUT_EXIT when it had to end the game itself and
+# UNKILLABLE_EXIT when the game stayed alive after TerminateProcess (a thread stuck in a driver call); the
+# game's own watchdog writes this failure into the report.
+TIMEOUT_EXIT = 4
+UNKILLABLE_EXIT = 5
+LIMIT_MARGIN_S = 20          # ei_launch's margin past the scenario's limit (launch.cpp kTimeoutMarginMs)
+IN_GAME_TIMEOUT = 'scenario exceeded its'
+EXPECT_PREFIX = '# expect:'
+
+
+def scenario_limit(scenario):
+    """The scenario's time limit in seconds: its last "timeout <seconds>" line, default 60 (harness.cpp)."""
+    limit = 60
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                m = re.match(r'\s*timeout\s+(\d+)', text)
+                if m:
+                    limit = int(m.group(1))
+    return limit
+
+
+def expected_result(scenario):
+    """The result a scenario's line "# expect: <RESULT>" says it ends with (watchdog_*.txt: TIMEOUT), else None."""
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                if text.startswith(EXPECT_PREFIX):
+                    return text[len(EXPECT_PREFIX):].strip()
+    return None
+
+
+def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None):
     """One game of a scenario on an install. root: the checkout whose tests/scenarios and run/ it uses;
     build: the verify build folder (ei_launch.exe; the run folder is <build>/runs/<folder>).
-    take_slot False: the caller already holds a machine slot for it (tools/work_sched.py)."""
+    take_slot False: the caller already holds a machine slot for it (tools/work_sched.py).
+    clock overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',clocktrace',
+    ',randtrace').
+    game_env: None, the game inherits this process's environment; a dict (also {}), the game's EI_* variables
+    are exactly these (this process's other game variables are dropped), for a scheduler running other
+    submitters' batches. It goes to the subprocess only; os.environ stays as it is.
+    A run that fails after dgVoodoo minimised its window is run again (MINIMISED)."""
+    for attempt in range(MINIMISED_RERUNS + 1):
+        result, seconds, failures, counts, notes = run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env)
+        if result == 'PASS' or attempt == MINIMISED_RERUNS or not minimised(build, folder or f'{name}-{install}'):
+            break
+        print(f'  {folder or name + "-" + install}: {result} after dgVoodoo minimised the window; running it again',
+              flush=True)
+    return result, seconds, failures, counts, notes
+
+
+def minimised(build, folder):
+    path = os.path.join(build, 'runs', folder, 'ei_hook.log')
+    with contextlib.suppress(OSError):
+        with open(path, encoding='cp1251', errors='replace') as f:
+            return any(MINIMISED in line for line in f)
+    return False
+
+
+def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env):
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
     shutil.rmtree(out, ignore_errors=True)
@@ -124,19 +206,30 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
     prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
     cmd = [os.path.join(build, 'ei_launch.exe'), '--harness', scenario, '--out', out]
     env = None
+    if game_env is not None:
+        env = {k: v for k, v in os.environ.items() if k not in game_environment()}
+        env.update(game_env)
     if install == 'vanilla':
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(root, 'run', 'vanilla', 'game.exe')]
     elif install == 'native':
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(root, 'run', 'native', 'game.exe')]
-        env = dict(os.environ, EI_RENDER='new,present')
+        env = dict(os.environ if env is None else env, EI_RENDER='new,present')
     elif os.path.exists(os.path.join(root, 'run', 'rebirth', 'game.exe')):
         # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
         cmd += ['--exe', os.path.join(root, 'run', 'rebirth', 'game.exe')]
     if not hooks:
         cmd.append('--no-hooks')
+    if clock:
+        env = dict(os.environ if env is None else env, EI_HARNESS_CLOCK=clock)
     with machine_slot(alone=sets_display_mode(scenario)) if take_slot else contextlib.nullcontext():
         start = time.time()
-        proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env)
+        # ei_launch ends a game at the limit plus its margin; this is for ei_launch itself (its job object
+        # takes the game down with it).
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env,
+                                  timeout=scenario_limit(scenario) + LIMIT_MARGIN_S + 90)
+        except subprocess.TimeoutExpired as e:
+            proc = subprocess.CompletedProcess(cmd, TIMEOUT_EXIT, '', f'ei_launch did not end in time; terminating it ({e})')
         seconds = time.time() - start
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
@@ -147,9 +240,30 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
         m = re.match(r'(.+?)\s+(\d+) calls\s+(\d+) mismatches$', line)
         if m:
             counts[m.group(1).strip()] = (int(m.group(2)), int(m.group(3)))
-    notes = [l for l in (proc.stdout + proc.stderr).splitlines() if 'terminating' in l or 'not found' in l or 'open window' in l]
+    notes = [l for l in (proc.stdout + proc.stderr).splitlines()
+             if 'terminating' in l or 'not found' in l or 'open window' in l or 'still alive' in l]
+    if proc.returncode in (TIMEOUT_EXIT, UNKILLABLE_EXIT) or any(f.startswith(IN_GAME_TIMEOUT) for f in failures):
+        result = 'TIMEOUT'
+        if not failures:
+            failures = [f'scenario exceeded its {scenario_limit(scenario)} s time limit; ei_launch ended the game'
+                        + ('' if proc.returncode != UNKILLABLE_EXIT else ' (it did not die: a thread is stuck in the kernel)')]
+        if proc.returncode == UNKILLABLE_EXIT:
+            failures.append('the game process is still alive after TerminateProcess')
+    expected = expected_result(scenario)
+    if expected and result == expected and proc.returncode != UNKILLABLE_EXIT:
+        result = 'PASS'
+        failures = []
+        notes.append(f'ended as the scenario expects ({expected})')
     notes += [l for l in report.splitlines() if l.startswith('EXIT: ')]   # a message box after quit
     return result, seconds, failures, counts, notes
+
+
+def console_of(folder, build=BUILD):
+    """The console output a run's report holds (its lines after "console output:")."""
+    path = os.path.join(build, 'runs', folder, 'harness_report.txt')
+    lines = open(path, encoding='cp1251', errors='replace').read().splitlines() if os.path.exists(path) else []
+    lines = lines[lines.index('console output:') + 1:] if 'console output:' in lines else []
+    return [l for l in lines if l.startswith('  ')]
 
 
 def run_with_retries(name, install, hooks, retries, folder=None, runner=run):
@@ -232,6 +346,7 @@ def parse_args(argv=None):
     ap.add_argument('--widescreen', action='store_true')
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
+    ap.add_argument('--clock')
     ap.add_argument('--jobs', type=int, default=16)
     return ap.parse_args(argv)
 
@@ -276,6 +391,40 @@ def save_times(seconds, build=BUILD):
     times.update({k: round(v, 1) for k, v in seconds.items()})
     with contextlib.suppress(OSError):
         json.dump(times, open(os.path.join(build, 'run_times.json'), 'w'), indent=0, sort_keys=True)
+
+
+def timing_db():
+    """The machine-wide work database (tools/work.py, table timing) for this process's expected times and
+    their recording, or None: a run never fails because of it."""
+    try:
+        import work
+        return work.connect()
+    except (Exception, SystemExit):
+        return None
+
+
+def expected_times(jobs, root=ROOT, build=BUILD, db=None):
+    """{(scenario, install): expected seconds or None}: the machine-wide timings (work.expected_times), then the
+    build's run_times.json."""
+    fallbacks = load_times(build)
+    if db is not None:
+        try:
+            import work
+            return work.expected_times(db, root, jobs, fallbacks)
+        except Exception:
+            pass
+    return {(n, i): fallbacks.get(f'{n}-{i}') for n, i in jobs}
+
+
+def record_time(db, name, install, seconds, result, root=ROOT, batch=None):
+    """Appends a finished game's time to the machine-wide table; never raises. Crashed and timed-out runs (ERROR, NO REPORT, TIMEOUT) are not times."""
+    if db is None or result in ('ERROR', 'NO REPORT', 'TIMEOUT'):
+        return
+    try:
+        import work
+        work.record_time(db, name, install, root, seconds, batch)
+    except Exception:
+        pass
 
 
 HEADER = f'{"scenario":<18} {"install":<8} {"result":<10} {"time":>6}  failures'
@@ -332,8 +481,9 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
 def main():
     args = parse_args()
     jobs = plan(args)
-    times = load_times()
-    order = sorted(jobs, key=lambda j: -times.get(f'{j[0]}-{j[1]}', 1000))   # new scenarios first
+    db = timing_db()
+    times = expected_times(jobs, db=db)
+    order = sorted(jobs, key=lambda j: -(times[j] if times[j] is not None else 1000))   # new scenarios first
 
     totals = collections.defaultdict(lambda: [0, 0])
     results = {}
@@ -344,13 +494,15 @@ def main():
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         # (--widescreen's "rebirth-nohooks": Rebirth without our hooks, in its own folder)
-        futures = {pool.submit(run_with_retries, n, i.split('-')[0], uses_hooks(i, args), args.retries, f'{n}-{i}'): (n, i)
+        futures = {pool.submit(run_with_retries, n, i.split('-')[0], uses_hooks(i, args), args.retries, f'{n}-{i}',
+                               functools.partial(run, clock=args.clock)): (n, i)
                    for n, i in order}
         for future in concurrent.futures.as_completed(futures):
             name, install = futures[future]
             result, seconds, failures, counts, notes = future.result()
             with lock:
                 results[(name, install)] = (result, seconds, failures, notes)
+                record_time(db, name, install, seconds, result)
                 for fn, (calls, bad) in counts.items():
                     totals[fn][0] += calls
                     totals[fn][1] += bad

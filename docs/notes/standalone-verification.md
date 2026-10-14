@@ -1,4 +1,4 @@
-# Verifying the standalone exe (planned 2026-10-14, nothing started)
+# Verifying the standalone exe (planned 2026-10-14; SV1 done)
 
 The hook build checks a rewrite by running the original next to it (verify wrappers) and by comparing
 whole runs (the harness suite). A standalone exe has no original to call, so the checks it runs have to be
@@ -15,12 +15,13 @@ must cover what the wrappers covered.
 
 ## 2. Golden runs: whole-game behaviour recorded from the original
 
-- **Repeatable runs first.** The harness has a `deterministic` mode (virtual clock, fixed seeds;
-  tests/verify/harness.cpp), but it is marked experimental: zone loading still reads real time, and
-  main-thread sound code driven by the wall clock (ambient emitters, music timing, random start positions)
-  draws from the shared random generator (open-questions.md), so no scenario uses it. Fix both (those
-  clocks on the virtual clock, or sound off in deterministic runs), then make each scenario repeat
-  exactly: `tools/compare.py --runs 3` on the original and on ours.
+- **Repeatable runs first** (SV1, done). Harness runs use the virtual clock by default
+  (tests/verify/harness_clock.h): only the main loop moves it (five world updates a frame), the main
+  thread's sleeps and timed waits take no real time, other threads read it plus the real time since the
+  last move (the new-game load waited on the music stream thread, which waits for the fader), sample
+  ends are fired from the main loop on virtual time, the date and seeds are fixed, and the harness's
+  steps run once a frame. `tools/compare.py --runs 3` on the vanilla suite: most scenarios repeat on
+  both sides and match; the rest are in open-questions.md ("Harness runs that do not repeat").
 - **What a golden holds**, per scenario, recorded with `--no-hooks` (the original exe alone):
   - the console output (as compare.py compares it today);
   - a state digest every N world ticks: a hash over every map object's position, vitals, effects, AI mode
@@ -59,7 +60,7 @@ counts. New scenarios target that list before the hook build is retired.
 
 | Ticket | Work | Size |
 |---|---|---|
-| SV1 | Deterministic runs that repeat: zone loading and the sound code's clocks on the virtual clock; every scenario passes `compare.py --runs 3` on both sides | 1-2 |
+| SV1 | Deterministic runs that repeat: zone loading and the sound code's clocks on the virtual clock; every scenario passes `compare.py --runs 3` on both sides. Done 2026-10-14: virtual clock by default; what does not repeat yet is in open-questions.md | 1-2 |
 | SV2 | State digest and dump in the harness; golden record / compare commands; tests/golden layout | 1 |
 | SV3 | Record goldens for the suite (vanilla, Rebirth flags on and off); saves at checkpoints | 1 |
 | SV4 | Function vector record mode and the replay test exe, for the families listed in section 3 | 2 |

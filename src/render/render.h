@@ -96,6 +96,9 @@ bool Presenting();
 bool StartPresenting();
 // StartPresenting succeeded: the new renderer shows the frames itself.
 bool PresentsItself();
+// Whether presenting onto the game window waits for the vertical blank (default on). The harness
+// turns it off under its virtual clock.
+void SetWaitForVsync(bool on);
 
 // The old Direct3D path still draws the terrain ("noterrain" off). The harness can change it.
 bool DrawOldTerrain();
@@ -245,9 +248,18 @@ struct WindowPresentInfo {
     int rampChecks = 0, rampPoints = 0, rampDiffering = 0;
     bool rampCheckPending = false;
     bool rampIdentity = true;   // the ramp in use is the identity
-    bool failed = false;   // no swap chain, or the device was lost
+    bool failed = false;   // no swap chain, or the device was lost and could not be made again
+    int deviceLosses = 0;       // Direct3D 11 devices lost (or LoseDevice) ...
+    int deviceRecoveries = 0;   // ... and made again with everything on them
+    std::uint32_t presentsAtRecovery = 0;   // `presents` when the last new device was made
 };
 WindowPresentInfo WindowPresents();
+// Acts as if the Direct3D 11 device were lost at the next present (the harness's "losedevice"):
+// the swap chain's Present is not called but reported DXGI_ERROR_DEVICE_REMOVED (without a swap
+// chain of the game window's, the loss is taken at the end of the frame). Then, as for a real loss,
+// the device, sokol, the swap chain and every image are made again and textures uploaded again
+// from what they were decoded from.
+void LoseDevice();
 // Where the frame shows in the game window's client area: the frame's size and its rectangle there
 // (aspect kept, centred; the rest black). False when the new renderer does not present itself.
 bool FrameInWindow(int* frameWidth, int* frameHeight, Rect* placed);

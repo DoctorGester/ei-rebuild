@@ -1,0 +1,107 @@
+# Rebirth's WideScreen, part three (ticket W3; docs/notes/rebirth.md "WideScreen"): the battle
+# screen's panels used, for comparison with Rebirth's own frames:
+#   python tools\run_all.py --widescreen
+# runs this with ui_widescreen and ui_widescreen_more under Rebirth with our hooks and with
+# --no-hooks (addon's code only) and compares the frames. Same settings as part one (the desktop's
+# mode, WideScreen on, the virtual clock); a frame with a "_later" twin is compared without what
+# moved between the two.
+# The panels' builders set the panel offset (the map, the quick items, the spell column and the
+# clock at the screen's right edge; the unit panel, the weapon bar, the action column and the
+# movement panel at its left) and move their layout constants. On screen here: a weapon slot
+# clicked (0063C050), the unit panel's info page (its draw 006462A0, many texts), a movement
+# mode (00649910), a click on the map (00645210: the camera looks at that point), both side panels
+# slid out and back in (their layouts and updates 00642930 / 00642B40 / 00645F80 / 00647FB0).
+# Coordinates: the harness's 800 x 600 points spread over the whole screen; at the desktop's
+# 3840 x 2160 a point x is at layout x * 4/3 - 133.3 (the 4:3 part, 2880 pixels, in the middle; the
+# panels move by 134 layout units). Each step names the layout point it aims at.
+deterministic
+resolution desktop
+widescreen 1
+rebirthflags WideScreen
+reject Script error
+wait 6000
+
+# The hero on zone1, the camera settled.
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+move 400 20
+wait 2000
+
+# The weapon bar's first slot (layout -34, 560: the bar from 80 - 134; the hero has one weapon, a
+# click on an empty slot walks him there) and the unit panel's info page (its third body part
+# button, layout -124, 175).
+click 75 560
+frames 5
+click 7 175
+frames 5
+move 400 20
+wait 1000
+freeze
+capture panels
+unfreeze
+wait 700
+freeze
+capture panels_later
+unfreeze
+
+# A movement mode (layout -86, 568: a sector about the corner (-134, 600)); the hero's new stance
+# moves the camera, which settles before the capture.
+click 35 568
+frames 5
+move 400 20
+wait 2500
+freeze
+capture movemode
+unfreeze
+wait 700
+freeze
+capture movemode_later
+unfreeze
+
+# A click on the round map left of its centre (layout 800, 60: the map from 615 + 134): the camera
+# stops following the hero and looks at that point of the world.
+click 700 60
+frames 5
+move 400 20
+wait 1500
+freeze
+capture mapclick
+unfreeze
+wait 700
+freeze
+capture mapclick_later
+unfreeze
+
+# Both side panels slid out (the map's sling button at layout 924, 15; the unit panel's at -124,
+# 15), then back in.
+click 793 15
+frames 3
+click 7 15
+frames 3
+move 400 20
+wait 1500
+freeze
+capture slid
+unfreeze
+wait 700
+freeze
+capture slid_later
+unfreeze
+click 793 15
+frames 3
+click 7 15
+frames 3
+move 400 20
+wait 1500
+freeze
+capture back
+unfreeze
+wait 700
+freeze
+capture back_later
+unfreeze
+report
+quit

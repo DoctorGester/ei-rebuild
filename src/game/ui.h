@@ -1212,15 +1212,17 @@ public:
     // 0063C050 (Rebirth-patched; rewritten callers go through this forwarder). Highlights slot
     // `index` (or not).
     void Highlight(int index, int on);
-    // The vanilla bodies of the bar's Rebirth-patched functions (ui_hud_build.cpp; hooked in the
-    // vanilla launch only, the battle screen and SetUnit reach them through their forwarders).
+    // The bodies of the bar's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the bar
+    // at the screen's left edge; the battle screen and SetUnit reach them through their forwarders).
     // 0063BAB0 (RET 8). Constructor: the window base, the labels, the vtables, the rectangle
-    // (80, 520, 240, 600), four 40-wide regions with empty tips, no sprites, nothing selected, no
-    // unit, and the labels "infoitem_15", "_20", "_10", "_5". Returns this.
+    // (80, 520, 240, 600), four 40-wide regions with empty tips (WideScreen: everything from
+    // 80 - shift, the regions still up to x 240, so more of them), no sprites, nothing selected,
+    // no unit, and the labels "infoitem_15", "_20", "_10", "_5". Returns this.
     CHudWeaponBar* Construct(CInterface3D* ui, CBattleScreen* owner);
     // 0063C050 (RET 8). Slot `index` (0 .. count_ - 1) highlighted: its sprite at (100 + 40 *
     // index, 540) depth 12, scale 0.65, colour 0xFF282828, its region from y 495; or not: at y 560,
-    // scale 1.2 ^ count_ and depth 24 times that, colour 0xFF000000, the region from y 520.
+    // scale 1.2 ^ count_ and depth 24 times that, colour 0xFF000000, the region from y 520
+    // (WideScreen: with the left panels' offset).
     void HighlightVanilla(int index, int on);
     // 0063BCC0 (RET 8). The next slot's sprite: `image` copied into the bar's texture (42 x 128,
     // at column count_ / 2, row count_ % 2), the model `model` turned to face the screen, or a
@@ -1297,9 +1299,9 @@ public:
         return items[index];
     }
 
-    // The vanilla bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; hooked in the
-    // vanilla launch only). 0063C800 (RET 8): the constructor: the window base, the entries array,
-    // the labels, the vtables, the rectangle (520, 500, 720, 600), four 50 x 50 regions along the
+    // The bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the
+    // panel at the screen's right edge). 0063C800 (RET 8): the constructor: the window base, the
+    // entries array, the labels, the vtables, the rectangle (520, 500, 720, 600), four 50 x 50 regions along the
     // bottom row from the right (x 670 .. 520) and four along the top row, with empty tips and no
     // items, nothing selected, no unit, and the labels "infoitem_7" .. "_13", "_21", "_22", "_26"
     // .. "_28". Returns this.
@@ -1379,8 +1381,8 @@ public:
     void HighlightAt(int index, int on);   // through the original's address
     // 0063E7C0 (ui_hud_highlight.cpp). Every button unhighlighted, then selected_ = -1.
     void ClearHighlights();
-    // The vanilla bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; hooked in
-    // the vanilla launch only). 0063E2A0 (RET 8): the constructor: the window base, the labels,
+    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the
+    // column at the screen's right edge). 0063E2A0 (RET 8): the constructor: the window base, the labels,
     // the vtables, the rectangle (760, 190, 800, 510), no sprites or regions, nothing selected, no
     // unit, and the labels "infoitem_7", "_18", "_8" .. "_13", "_21", "_22", "_26" .. "_28".
     // Returns this.
@@ -1436,8 +1438,8 @@ public:
     void HighlightAt(int index, int on);   // through the original's address
     // 0063F7A0 (ui_hud_highlight.cpp). As CHudSpellColumn::ClearHighlights.
     void ClearHighlights();
-    // The vanilla bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; hooked in
-    // the vanilla launch only). 0063F300 (RET 8): the constructor: the window base, the actions
+    // The bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; WideScreen reproduced behind its flag, W3: the
+    // column at the screen's left edge). 0063F300 (RET 8): the constructor: the window base, the actions
     // array, the labels, the vtables, the rectangle (0, 250, 40, 510), six 40 x 40 regions from
     // the bottom (y 470) up with empty tips, no sprites or actions, nothing selected, no unit, and
     // the label "infoitem_16". Returns this.
@@ -1756,7 +1758,8 @@ void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growB
 class CHudMap : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00645060: the view buttons
-    // 00645210 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch only).
+    // 00645210 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3: the map's centre at
+    // 700 + shift).
     // The button released over the map that took it. A held view button is let go (view_ 0, both
     // buttons dim; nothing else). Otherwise by region: 0 the sling (direction turned, the slide
     // starts), 1 / 2 a point of the map (the layout point's offset from (700, 80) over halfSide_,
@@ -1781,21 +1784,21 @@ public:
     // 00635C80 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CHudMap* HudMapDelete(unsigned flags);
-    // 00642930 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, this is the vanilla body,
-    // hooked in the vanilla launch only; our callers go through CallLayout). Places the panel's
+    // 00642930 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3; our callers go
+    // through CallLayout). Places the panel's
     // parts (scene objects 0-4 and 6-11), its text surface and the regions after the first at the
     // current slide offset.
     void LayoutVanilla();
     void CallLayout();                             // through 00642930
-    // 00642B40 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, the vanilla body).
+    // 00642B40 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3).
     // The zoom grows (view 1, up to zoomMax_) or shrinks (view 2, down to 1) by 2.5 times a
     // second; UpdateView and BuildMarkers; a running slide advances (0.3 s for the whole way,
     // eased), the panel is laid out and the sling button (scene object 5) turned and placed for
     // the direction; the interface's "map shown" flag (+0x8B) follows the direction; the "camera
     // north" time (unknown_1B0) counts down, scene object 11 tinted 1 while it runs and 0.5 after.
     void UpdateVanilla();
-    // 00641F20 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched, the vanilla body, hooked in the
-    // vanilla launch only; the battle screen's build calls it through the address). Sets the new
+    // 00641F20 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3: the panel at the
+    // screen's right edge; the battle screen's build calls it through the address). Sets the new
     // panel up: the world's extent and the map's picture from the local player's zone record (32
     // by 32 and "battle00" without one), the zoom (`zoom` up to zoomMax_), the slide at its far
     // end when `slid`, the seven regions, the twelve sprites, the one-pixel surface at the centre
@@ -1864,23 +1867,24 @@ public:
     // 00635CE0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
     CHudUnitPanel* HudUnitPanelDelete(unsigned flags);
-    // 00645F80 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, this is the vanilla body,
-    // hooked in the vanilla launch only; our callers go through CallLayout). Places the panel's
+    // 00645F80 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3; our callers go
+    // through CallLayout). Places the panel's
     // parts (scene objects 0, 1, 3-7, 9-13, the six body parts' pairs 14-25 at the places of the
     // tables 00742434 / 0074244C, the six effect pictures 26-31), its text surface and the
     // regions after the first at the current slide offset.
     void LayoutVanilla();
     void CallLayout();                             // through 00645F80
-    // 00647FB0 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, the vanilla body).
+    // 00647FB0 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3).
     // A running slide advances (as the map's), the panel is laid out and the sling button (scene
     // object 2) turned and placed for the direction; a dead hover unit is forgotten; the
     // interface's "unit panel shown" flag (+0x89) follows the direction and its +0x8C is the
     // selected body part.
     void UpdateVanilla();
-    // 006456E0 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched: the vanilla body, hooked in the
-    // vanilla launch only; the battle screen calls it through its address). `slid` (the
+    // 006456E0 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3, the panel at the
+    // screen's left edge; the battle screen calls it through its address). `slid` (the
     // interface's +0x89) starts the panel at the far end of its slide: offset 180, slide 1,
-    // direction +1 (else 0, 0, -1). Rectangle (0, 0)-(185, 225); regions: 0 the sling button, 1-4 the body part buttons
+    // direction +1 (else 0, 0, -1). Rectangle (0, 0)-(185, 225) and sliding_ 1 (WideScreen:
+    // (-133, 0)-(52, 225) and 0, addon's constants); regions: 0 the sling button, 1-4 the body part buttons
     // (tips 0x2774..0x2778), 5 the whole panel; scene objects 0 / 1 plain backgrounds, 2 the sling
     // button, 3-6 the part buttons (the selected one tinted 1, the others 0.5), 7 the frame, 8 a
     // strip of cells and 9 the "more effects" mark (both hidden), 10-13 the health and mana bars,
@@ -1889,8 +1893,8 @@ public:
     // texts "infounit_0".."infounit_17" and the labels "hl_skull", "hl_torso", "hl_leg", "hl_arm"
     // appended to the two string arrays; no effect pictures (-1).
     void SetupVanilla(int bodyPart, std::uint8_t slid);
-    // 006462A0 (slot 20, RET 4; ui_hud_unit_draw.cpp, A-E2; Rebirth replaces the whole function
-    // with its wide-layout version: this is the vanilla body, hooked in the vanilla launch only).
+    // 006462A0 (slot 20, RET 4; ui_hud_unit_draw.cpp, A-E2; Rebirth-patched, WideScreen reproduced behind its flag, W3: the
+    // panel offset until the base draw, the model's x and the depth rectangles moved).
     // The panel's draw: the background (scene object 0), then for the hover unit, else the selected
     // one, while the panel is not slid away: its model in the panel (not on the info page 2), the
     // device's depth buffer set to 0 around the panel's area for the draw and back to 1 after it,
@@ -1941,8 +1945,8 @@ public:
     // exits, no zone list) opened on top.
     void OpenObjectives();
     void CallOpenObjectives();                     // through 00648F10 (its verify wrapper)
-    // 00648520 (RET 4; ui_hud_setup.cpp, A-H26; Rebirth-patched: the vanilla body, hooked in the
-    // vanilla launch only; the battle screen calls it through its address). The clock's rectangle
+    // 00648520 (RET 4; ui_hud_setup.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3, the clock at the
+    // screen's right edge; the battle screen calls it through its address). The clock's rectangle
     // (720, 520)-(800, 600); scene objects: 0 the face (a disc of radius 65 about the layout's
     // corner (800, 600)), 1 the hand (a triangle), 2-5 four "in25arrow" sprites (placed by
     // Update), 6 and 7 two more discs (radius 32 and 80); regions 0-2: the three sectors of pi / 6
@@ -1976,14 +1980,14 @@ public:
     void CallToggleFlag();                         // through 00649810 (its verify wrapper)
     // 00649910 (Rebirth-patched: through its address). Highlights mode `mode` (-1/-2: none).
     void ShowMode(int mode);
-    // 00649910 (RET 4; ui_hud.cpp, A-H26; the vanilla body, hooked in the vanilla launch only).
+    // 00649910 (RET 4; ui_hud.cpp, A-H26; WideScreen reproduced behind its flag, W3: with the left panels' offset).
     // mode_ = `mode`; the marker (scene object 0) shows for a mode of 0 or more; the four mode
     // buttons (scene objects 1-4) are tinted 1 for the mode and 0.7 for the others, and the marker
     // is turned about -z by (2 mode + 1) pi / 16 and placed on the circle of radius 73 about
     // (0, 600) at depth 8.
     void ShowModeVanilla(int mode);
-    // 00649190 (slot 18, the panel's Create; ui_hud_setup.cpp, A-H26; Rebirth-patched: the vanilla
-    // body, hooked in the vanilla launch only). The rectangle (0, 520)-(80, 600); region 0 the
+    // 00649190 (slot 18, the panel's Create; ui_hud_setup.cpp, A-H26; Rebirth-patched: WideScreen reproduced behind its flag, W3,
+    // the panel at the screen's left edge). The rectangle (0, 520)-(80, 600); region 0 the
     // quarter disc of radius 34 about the layout's corner (0, 600), regions 1-4 the four sectors
     // of pi / 8 between radius 35 and 80 (tips 0x2904..0x2908); scene objects: 0 the marker (a
     // triangle), 1-4 the four sectors as triangles from the corner (tint 0.7), 5 the middle disc

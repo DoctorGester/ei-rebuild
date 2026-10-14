@@ -32,6 +32,9 @@ ID3D11RenderTargetView* g_view = nullptr;
 int g_chainWidth = 0, g_chainHeight = 0;
 bool g_failed = false;        // no swap chain could be made, or the device is gone: nothing is shown
 int g_presentFailures = 0;
+// Present waits for the vertical blank (sync interval 1) unless the harness's virtual clock runs
+// the game, where a frame's length no longer depends on the display.
+bool g_waitForVsync = true;
 bool g_recreated = false;     // the swap chain was made again once after a failed resize
 
 sg_shader g_shader{};
@@ -41,8 +44,18 @@ sg_pipeline g_pipeline{};
 // identity until the game sets one.
 sg_image g_rampImage{};
 sg_view g_rampView{};
-std::uint8_t g_ramp[256 * 4];
-bool g_rampDirty = true;      // to be uploaded before the next present
+struct Ramp {
+    std::uint8_t entries[256 * 4];
+    Ramp() {
+        for (int i = 0; i < 256; ++i) {
+            entries[i * 4 + 0] = entries[i * 4 + 1] = entries[i * 4 + 2] = static_cast<std::uint8_t>(i);
+            entries[i * 4 + 3] = 255;
+        }
+    }
+};
+Ramp g_rampTable;   // (kept across devices: the game sets it once, a new device gets it again)
+std::uint8_t (&g_ramp)[256 * 4] = g_rampTable.entries;
+bool g_rampDirty = true;     // to be uploaded before the next present
 bool g_rampIdentity = true;
 bool g_checkRamp = false;     // verify build: compare the next presented frame with the ramp applied
 WindowPresentInfo g_info;
@@ -104,10 +117,6 @@ bool CreatePipeline() {
     g_pipeline = sg_make_pipeline(&p);
     if (sg_query_pipeline_state(g_pipeline) != SG_RESOURCESTATE_VALID) return false;
 
-    for (int i = 0; i < 256; ++i) {
-        g_ramp[i * 4 + 0] = g_ramp[i * 4 + 1] = g_ramp[i * 4 + 2] = static_cast<std::uint8_t>(i);
-        g_ramp[i * 4 + 3] = 255;
-    }
     sg_image_desc image{};
     image.width = 256;
     image.height = 1;
@@ -184,14 +193,14 @@ bool CreateChain(HWND window, int width, int height) {
     return true;
 }
 
-// The device is gone (removed, reset, hung): every sokol resource with it. Nothing is shown from
-// now on (captures still read the frame target until sokol fails too); making the device and every
-// texture again is not done.
+// The device is gone (removed, reset, hung): every sokol resource with it. Nothing more is drawn
+// into the swap chain; at the end of the frame the device, the swap chain and every image are made
+// again (render.cpp, RecreateDevice).
 void DeviceLost(const char* where, HRESULT hr) {
     HRESULT reason = D3DDevice()->GetDeviceRemovedReason();
-    ei::Log("render: the Direct3D 11 device was lost (%s: %08lX, reason %08lX); the game window shows nothing more",
-            where, static_cast<unsigned long>(hr), static_cast<unsigned long>(reason));
-    g_failed = true;
+    ei::Log("render: the Direct3D 11 device was lost (%s: %08lX, reason %08lX)", where, static_cast<unsigned long>(hr),
+            static_cast<unsigned long>(reason));
+    ReportDeviceLost();
 }
 
 bool IsDeviceLost(HRESULT hr) {
@@ -324,7 +333,7 @@ void CheckRamp(int width, int height) {
 namespace detail {
 
 bool DrawToWindow() {
-    if (g_failed) return false;
+    if (g_failed || DeviceIsLost()) return false;
     int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
     Rect placed{};
     if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
@@ -366,7 +375,9 @@ void PresentWindow() {
 #if defined(EI_RENDER_VALIDATION)
     if (g_checkRamp && g_chain) CheckRamp(g_chainWidth, g_chainHeight);
 #endif
-    HRESULT hr = g_chain->Present(1, 0);
+    // A loss asked for by the harness (render::LoseDevice) stands in for the Present that would
+    // have reported it.
+    HRESULT hr = TakeSimulatedLoss() ? DXGI_ERROR_DEVICE_REMOVED : g_chain->Present(g_waitForVsync ? 1 : 0, 0);
     if (IsDeviceLost(hr)) {
         DeviceLost("Present", hr);
         return;
@@ -377,7 +388,25 @@ void PresentWindow() {
         ei::Log("render: the game window's Present failed (%08lX)", static_cast<unsigned long>(hr));
 }
 
+void DropWindow() {
+    ReleaseChain();
+    if (g_rampView.id) sg_destroy_view(g_rampView);
+    if (g_rampImage.id) sg_destroy_image(g_rampImage);
+    if (g_pipeline.id) sg_destroy_pipeline(g_pipeline);
+    if (g_shader.id) sg_destroy_shader(g_shader);
+    g_rampView = sg_view{};
+    g_rampImage = sg_image{};
+    g_pipeline = sg_pipeline{};
+    g_shader = sg_shader{};
+    g_rampDirty = true;   // the ramp the game set goes to the new device's lookup texture
+    g_failed = false;
+    g_recreated = false;
+    g_info.presentsAtRecovery = g_info.presents;
+}
+
 } // namespace detail
+
+void SetWaitForVsync(bool on) { g_waitForVsync = on; }
 
 void SetGammaRamp(const std::uint16_t* red, const std::uint16_t* green, const std::uint16_t* blue) {
     // The ramp's full scale is the game's 65280 (255 * 256: 00504A60 multiplies by it); entries are
@@ -406,6 +435,7 @@ WindowPresentInfo WindowPresents() {
     info.rampCheckPending = g_checkRamp;
     info.rampIdentity = g_rampIdentity;
     info.failed = g_failed;
+    DeviceLossCounts(&info.deviceLosses, &info.deviceRecoveries);
     return info;
 }
 

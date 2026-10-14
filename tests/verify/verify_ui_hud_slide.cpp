@@ -1,6 +1,7 @@
 // Checks for ui_hud_slide.cpp (A-H26): the map's and the unit panel's layouts (00642930, 00645F80)
-// and per-frame updates (00642B40, 00647FB0). All four are Rebirth-patched, so they are hooked in
-// the vanilla launch only.
+// and per-frame updates (00642B40, 00647FB0). All four are Rebirth-patched for WideScreen, which the rewrites
+// reproduce behind the flag (W3): in a Rebirth launch (every one is wide: the starter's settings
+// here) they are hooked too and the side-by-side runs compare with addon's code.
 // - The layouts run side by side: they write the sprites' positions, the first surface's rectangle
 //   and the regions' offsets, all from the slide offset; the original runs first, what it wrote is
 //   recorded and put back, then ours. Reached when the battle screen is built (the panels' setups

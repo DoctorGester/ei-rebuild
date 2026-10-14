@@ -4,7 +4,9 @@
 // cannot be compared. What it must leave: 1 in EAX; the shown unit's position and orientation as
 // they were (put back from the copies taken before the model was placed in the panel), the
 // "interface draws it" flag 0x800 clear, its figure's extra scale back at 1 when the model was
-// drawn; texture stage 0's mip filter as it was.
+// drawn; texture stage 0's mip filter as it was; the panel offset 0 (WideScreen, W3: the draw
+// sets it and clears it before the base draw). Rebirth-patched for WideScreen, which the rewrite
+// reproduces behind the flag: hooked in a Rebirth launch too (every one is wide here).
 #include "verify.h"
 
 #include "../../src/game/device.h"
@@ -12,6 +14,7 @@
 #include "../../src/game/map_object_shadow.h"
 #include "../../src/game/texture.h"
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_widescreen.h"
 #include "../../src/game/unit.h"
 
 #include <d3d.h>
@@ -58,10 +61,12 @@ BOOL __fastcall UnitPanelDrawVerify(CHudUnitPanel* self, void*, int pass) {
         }
     }
     const DWORD filterAfter = MipFilter();
-    const bool ok = result == 1 && kept && scaleBack && flagClear && filter == filterAfter;
+    const bool ok = result == 1 && kept && scaleBack && flagClear && filter == filterAfter && widescreen::PanelOffset() == 0;
     ei::verify::Check("CHudUnitPanel::DrawVanilla", true, ok,
-                      "result %d, unit %p page %d: transform kept %d, scale back %d, flag clear %d, mip filter %lu -> %lu",
-                      result, static_cast<void*>(unit), self->bodyPart_, kept, scaleBack, flagClear, filter, filterAfter);
+                      "result %d, unit %p page %d: transform kept %d, scale back %d, flag clear %d, mip filter %lu -> %lu, "
+                      "panel offset %d",
+                      result, static_cast<void*>(unit), self->bodyPart_, kept, scaleBack, flagClear, filter, filterAfter,
+                      widescreen::PanelOffset());
     return result;
 }
 EI_VERIFY(0x006462A0, UnitPanelDrawVerify, 0, s_unused);

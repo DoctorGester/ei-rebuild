@@ -241,8 +241,8 @@ SetTriangle: x moved by the panel offset; SetRectangle / SetFrame add it twice t
 005F8340+8F (pixels to layout units: `cx * 800 / width43`, `cy * 600 / height`; `widescreen::TextExtentToLayout`), the text surfaces'
 draw 005FDE20+74 and the +0x98 rectangles of the edit field 0065C2E0, the save / load list 006567A0, the chat line 005E3700 and the
 tooltip 0065E580 (scaled with ECX 0: `CInterface3D::CallScale*NoMargin`, ui.h; the tooltip's right edge at `800 + extra`,
-`widescreen::LayoutRight`). Each declares `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`. Not reproduced: 0061D780 (the connect list) also
-holds ExtendedServerName (+0x27C), so it keeps addon's code in a Rebirth launch (its WideScreen change is in our rewrite all the same).
+`widescreen::LayoutRight`). Each declares `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`. 0061D780 (the connect list) was left to addon's code
+at first (it also holds ExtendedServerName); W2a below reproduced both.
 Verified against addon's code in a Rebirth launch (`ui_widescreen_more`, a second widescreen scenario: the multiplayer hero screen's name
 field, tooltips at both screen edges, the console, the Esc menu's Save window): the shapes, the text extent, the tooltip at 0 mismatches;
 the text draw, the edit field, the list and the chat line compare the surface's pixels side by side (`tests/verify/gdi_pixels.h`,
@@ -255,6 +255,18 @@ copy of the screen with the animated hero in it.
 2026-10-14: both scenarios' frames within the default tolerance (ui_widescreen at most 0.064%, options; ui_widescreen_more at most
 0.040%, the Save window; the menu's swaying trees once reached 0.135%), and the W2 wrappers at 0 mismatches (TextExtent 1354 calls, DrawTextIn 3238, SetRectangle 853, the tooltip
 19221, the edit field 8, the list 2, the chat line 3).
+**Done (W2a)**: the connect list 0061D780 (`ui_connect_list.cpp`) reproduces ExtendedServerName next to WideScreen and declares both, so a Rebirth
+launch hooks it. addon's changes in it (live bytes of the sites, addon's replacement functions disassembled from addon.dll): row right edge 265 -> 278
+(0061D9FC), the line under the titles ends at 283 instead of 270 (0061DB23), the selection frame at x 244.75 instead of 239 (0061DBEF), the ping
+column at 233 instead of 220 (0061DD40); the three `CUiSurface::DrawText` calls at 0061DC7F (the new game row), 0061DC9E (a server's name) and
+0061E009 (the details' "name: <server>") go through addon's wrappers: the text copied through a 90-byte buffer (strcpy_s there; ours cuts a longer
+one instead of reaching the CRT's invalid parameter handler) and drawn with DT_END_ELLIPSIS | DT_MODIFYSTRING added to the format; the server's name
+(0061DC9E) in a copy of the rectangle whose right edge is 140; the details' name through `DrawWrappedText` (up to 3 lines) with the rectangle's
+top and bottom moved down by `24 * (lines - 1)` before the screen's own row step. The other ExtendedServerName sites are in Create 0061B2C0
+(not rewritten for Rebirth yet). The verify wrapper compares side by side (the surface's pixels, the sprites 2-9, the tips flag, the text colour)
+with the original (vanilla launch) or addon's code (Rebirth launch) in ui_mp_host, where no server answers: the wrapper appends three synthetic
+servers (short, too long for the column and for the details, password, the states and game types) for a moment and compares each one selected
+(425 / 415 calls at 0 mismatches, vanilla / Rebirth).
 Font smoothing is a desktop setting: the titles / credits screen switches it off and "restores" a value it never read, so a harness
 game left it off for the whole machine and other runs turned it back; the two runs compared then drew text with and without GDI's
 grey edges (every text failed). The harness no longer passes the game's SPI_SETFONTSMOOTHING on, and creates the game's fonts
@@ -264,11 +276,38 @@ Display: a scenario with a `resolution` step runs alone on the machine (run_all,
 running beside it (DDERR_SURFACELOST; the widescreen game itself got it too when it ran beside others). While such a game gathers the
 slots, no other game takes one (else it waited for every other suite on the machine to end).
 
-**W3-W4** (each needs its functions rewritten or the rewrite to declare the patch, and its frames compared):
-- **W3, the battle screen's panel builders** (they set the panel offset; then `widescreen::SetPanelOffset` replaces addon's variable):
-  the minimap 00641F20 / 00642930 / 00642B40, the unit panels 00645210 / 006456E0 / 00645F80 / 006462A0 / 00647FB0, the weapon bar and
-  quick items 0063BAB0 / 0063BCC0 / 0063C050 / 0063C800 / 0063CAE0, the action and spell columns 0063F300 / 0063F500 / 0063E2A0 /
-  0063E4B0, the move panel 00649190 / 00649910, the clock 00648520: replaced entries, epilogue hooks and layout immediates.
+**Done (W3)**: the battle screen's panel builders, each with `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`: the map 00641F20 (setup) /
+00642930 (layout) / 00642B40 (update) / 00645210 (mouse up), the unit panel 006456E0 / 00645F80 / 006462A0 (draw) / 00647FB0, the
+weapon bar 0063BAB0 / 0063BCC0 / 0063C050, the quick items 0063C800 / 0063CAE0, the spell column 0063E2A0 / 0063E4B0, the action
+column 0063F300 / 0063F500, the movement panel 00649190 / 00649910 and the clock 00648520 (ui_hud_slide.cpp, ui_hud_build.cpp,
+ui_hud_setup.cpp, ui_hud_unit_draw.cpp, ui_hud.cpp). addon's handlers (10023068..100234A8) set its panel offset at a builder's entry
+(`-extra` for the left panels, `+extra` for the right ones) and 0 at every return; ours call `widescreen::EnterLeftPanel` /
+`EnterRightPanel` / `LeavePanel` at the same points, and its operands become `widescreen::EdgeShift()` (extra while Active, else 0)
+added to or taken off the layout constants. As with addon a builder called inside another one leaves 0 behind (the layouts inside
+the setups, ShowMode inside the movement panel's setup, Highlight inside AddWeapon); the mid-function handlers are kept where they
+are: the unit panel's setup sets it at +39 (after the SEH frame), the action column's constructor at +78 (after the vtables), the map's
+layout clears it at +1D9 (before the regions' offsets), the unit panel's draw at +87D (before the window's base draw). Details:
+- The unit panel's setup writes addon's own rectangle (-133, 0)-(52, 225) and `sliding_` 0 (the original: (0, 0)-(185, 225), 1),
+  whatever the margin.
+- The weapon bar's constructor starts its regions at 80 - extra but still loops while x < 240 (addon changed `MOV EDI,0x50` only):
+  at 3840 x 2160 (extra 134) eight regions, tips on the first four. AddWeapon's two FADDs read addon's floats written over SetRect's
+  dead code at 005FC9F4 / 005FC9F8 (80 - extra, 120 - extra; its SetRect site W1).
+- The unit panel's draw scales its three depth-clear rectangles without the margin (XOR ECX,ECX: `CallScaleRectToScreenNoMargin`)
+  and puts the model at layout x 100 - extra - slide offset; the map's click takes the centre at 700 + extra (two operands).
+- The panel offset's storage: in a Rebirth launch it stays addon's variable (found at hook time, W1). Our builders are its only
+  writers in a launch with our hooks (nothing else in addon writes it), but the verify build's side-by-side wrappers run addon's
+  builders, whose handlers write addon's variable, and our callees (SetRect, AddPoint, Place, the shapes) must read what they set.
+Verified: in a Rebirth launch (every one wide here) the side-by-side wrappers compare ours with addon's code (the four setups,
+the two layouts, the unit panel's update, Highlight, ShowMode); the ours-only wrappers check the wide rectangles and region count
+(the constructors) and the panel offset at 0 after the builders and the draw. Frames: `ui_widescreen_hud` (a third widescreen
+scenario: a weapon slot highlighted, the unit panel's info page, a movement mode, a click on the map, both side panels slid out and
+back) and the battle screen in the other two, compared by `run_all --widescreen`. 2026-10-14: every frame of the three scenarios
+within the default tolerance (ui_widescreen_hud at most 0.008%, the slid panels, about 95% of each frame compared), the W3 wrappers
+at 0 mismatches (e.g. ShowMode 3520 calls, Highlight, the setups and layouts). Note: the work board's scheduler runs summaries with
+the run_all it imported when it started, so `work.py test --widescreen` without names compares only the scenarios that copy knows;
+name them (or compare with `run_all.compare_widescreen`).
+
+**W4** (each needs its functions rewritten or the rewrite to declare the patch, and its frames compared):
 - **W4, the other screens and the input**: the camp and hero screens (0060C870 CCampPages::Create, 00613EA0 / 00615D30 CMpHeroScreen),
   the help page 00659420+574, the global map 0062F950+1D0 and its mouse move 00630010 (+7C, +22C), the camera's mouse move 005EB210+39
   (the last two call addon's no-margin entry 005F7DFE: `CInterface3D::CallScalePointFromScreenNoMargin` since W2), the cursor's

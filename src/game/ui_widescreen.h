@@ -19,9 +19,12 @@
 // by the panel offset), the text extent 005F8340 (TextExtentToLayout), and the places addon scales
 // without the margin (ECX 0: the text surfaces' draw 005FDE20, the edit field 0065C2E0, the
 // connection list 0061D780, the save / load list 006567A0, the chat line 005E3700 and the tooltip
-// 0065E580 with its right edge LayoutRight; CInterface3D::CallScale*NoMargin, ui.h). The panel
-// builders that set the panel offset, the camp and hero screens, minimap and cursor rectangles are
-// W3-W4 (docs/notes/rebirth.md).
+// 0065E580 with its right edge LayoutRight; CInterface3D::CallScale*NoMargin, ui.h). Ticket W3:
+// the battle screen's panel builders (the map, the unit panel, the weapon bar, the quick items,
+// the action and spell columns, the clock, the movement panel: ui_hud_*.cpp) set the panel offset
+// (EnterLeftPanel / EnterRightPanel / LeavePanel) and move their layout constants by EdgeShift.
+// The camp and hero screens, the global map's and the cursor's rectangles are W4
+// (docs/notes/rebirth.md).
 //
 // With the flag off, or a mode addon would refuse, everything is the original's.
 
@@ -44,11 +47,27 @@ const Layout& Get();
 inline bool Active() { return Get().active; }
 
 // addon's panel offset (100BD0A0): added to the x of every region rectangle and point and every
-// sprite placed while one of the panel builders runs (they set it to -extra or +extra and back to
-// 0; W2-W4). 0 outside them. In a Rebirth launch, until the builders are ported, addon's own builders
-// set it: the hook-time startup finds addon's variable and every user here reads that one.
+// sprite placed or shaped while one of the battle screen's panel builders runs (they set it to
+// -extra or +extra and back to 0: EnterLeftPanel / EnterRightPanel / LeavePanel). 0 outside them.
+// Our builders are its only writers in a launch with our hooks (addon's code wrote it nowhere else).
+// In a Rebirth launch the storage is still addon's variable (found at hook time): the verify
+// build's side-by-side runs of addon's builders set that one, and our callees then read what they
+// set.
 int PanelOffset();
 void SetPanelOffset(int offset);
+
+// The layout units the battle screen's panels move by to reach the screen's edges: extra while
+// Active(), else 0. addon adds it to (right edge) or takes it off (left edge) the builders' layout
+// constants (its operands at the W3 sites).
+int EdgeShift();
+
+// addon's handlers at a panel builder's entry: the panel offset -EdgeShift() for a panel at the
+// screen's left edge, +EdgeShift() at its right; and at its exit (every return), 0 again, also
+// when the builder ran inside another one (the outer one then goes on with 0, as with addon).
+// Nothing while not Active() (addon installs them only then).
+void EnterLeftPanel();
+void EnterRightPanel();
+void LeavePanel();
 
 // The scaling with the wide layout (addon's replacements; only while Active()). Each returns what
 // addon's code leaves in EAX: the last coordinate stored (y, or the bottom of a rectangle).
