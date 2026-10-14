@@ -178,9 +178,9 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
         if (before != self->PackedVitals()->hitPoints || first == 1) ObjectSlots(self)->RefreshWounds();
     }
     if (DeltaField* field = state->BeginField(1)) {
-        float scale[3];   // the figure scale (00517700)
-        field->ReadDelta(scale, 0xC);
-        ObjectSetFigureScaleOriginal(object, nullptr, scale);
+        Vector3 scale;   // the figure scale (00517700)
+        field->ReadDelta(&scale, 0xC);
+        ObjectSetFigureScaleOriginal(object, nullptr, &scale.x);
         complete &= SnapshotConsumed();
         field->EndField();
     }
@@ -191,11 +191,11 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
             self->flags_ |= 8;
         else
             self->flags_ &= ~8u;
-        float position[3];
-        field->ReadDelta(position, 0xC);
+        Vector3 position;
+        field->ReadDelta(&position, 0xC);
         field->ReadDelta(&self->orientation, 0x10);
         CWorld* world = WorldOf(object);
-        world->MoveObject(self, position);
+        world->MoveObject(self, &position.x);
         ObjectSlots(self)->PlaceOnGround(self->position.z);
         complete &= SnapshotConsumed();
         field->EndField();

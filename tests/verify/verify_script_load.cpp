@@ -490,7 +490,7 @@ void __fastcall FxSourceLoadVerify(ScriptFxSource* self, void*, ScriptStream* st
     ReplayStream replay(stream, record);
     self->ScriptFxSourceLoad(replay.AsScript());
     bool same = scratch.object == self->object && scratch.id == self->id && SameString(scratch.name, self->name) &&
-                std::memcmp(scratch.position, self->position, sizeof(ScriptFxSource) - offsetof(ScriptFxSource, position)) == 0;
+                std::memcmp(&scratch.position, &self->position, sizeof(ScriptFxSource) - offsetof(ScriptFxSource, position)) == 0;
     char what[96];
     std::snprintf(what, sizeof(what), "source %d vs %d, \"%.32s\"", scratch.id, self->id,
                   static_cast<const char*>(self->name));

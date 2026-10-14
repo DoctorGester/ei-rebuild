@@ -130,12 +130,12 @@ struct ListenerState {
     float listener[6];
     std::int32_t volumes[2];
     void Save(const CSoundManager* m) {
-        std::memcpy(listener, m->listener, sizeof(listener));
+        std::memcpy(listener, &m->listener, sizeof(listener));
         volumes[0] = m->effectsVolume;
         volumes[1] = m->speechVolume;
     }
     void Restore(CSoundManager* m) const {
-        std::memcpy(m->listener, listener, sizeof(listener));
+        std::memcpy(&m->listener, listener, sizeof(listener));
         m->effectsVolume = volumes[0];
         m->speechVolume = volumes[1];
     }
@@ -197,8 +197,8 @@ static void __fastcall UpdatePositionalVerify(CSoundManager* self, void*, SoundS
     std::int32_t expected[2] = {scratch.volume, scratch.pan};
     std::int32_t actual[2] = {slot->volume, slot->pan};
     std::uint32_t pos[3], lis[3];
-    std::memcpy(pos, slot->position, 12);
-    std::memcpy(lis, self->listener, 12);
+    std::memcpy(pos, &slot->position, 12);
+    std::memcpy(lis, &self->listener, 12);
     ei::verify::Check("CSoundManager::UpdatePositional", expected, actual,
                       "pos %08X %08X %08X listener %08X %08X %08X volume %d/%d pan %d/%d", pos[0], pos[1], pos[2],
                       lis[0], lis[1], lis[2], expected[0], actual[0], expected[1], actual[1]);
@@ -471,7 +471,7 @@ static int __fastcall AddEmitterVerify(CSoundManager* self, void*, const SoundNa
     bool ok = true;
     if (r >= 0) {
         const SoundEmitter& e = self->emitters[r];
-        ok = r < 16 && e.active == 1 && e.names.size == names->size && std::memcmp(e.position, position, 12) == 0 &&
+        ok = r < 16 && e.active == 1 && e.names.size == names->size && std::memcmp(&e.position, position, 12) == 0 &&
              e.minInterval == minInterval && e.maxInterval == maxInterval;
     } else {
         ok = r == -1;
@@ -743,14 +743,14 @@ static int __fastcall Play3DVerify(CSoundManager* self, void*, const char* name,
             if (s.handle != handle) continue;
             where = "voice";
             ok = s.flat == 0 && s.heightFade == 0 && s.looping == loop && s.speech == speech && s.priority == priority &&
-                 std::memcmp(s.position, where3, sizeof(where3)) == 0 && std::memcmp(&s.nearDistance, &nearDist, 4) == 0 &&
+                 std::memcmp(&s.position, where3, sizeof(where3)) == 0 && std::memcmp(&s.nearDistance, &nearDist, 4) == 0 &&
                  std::memcmp(&s.farDistance, &farDist, 4) == 0 && s.volume >= 0 && s.volume <= 0x7F;
         }
         if (!ok && loop != 0) {
             const DeferredNode* node = self->deferred.Find(handle);
             where = "deferred";
             ok = node && node->value->handle == handle && node->value->flat == 0 &&
-                 std::memcmp(node->value->position, where3, sizeof(where3)) == 0;
+                 std::memcmp(&node->value->position, where3, sizeof(where3)) == 0;
         }
     }
     ei::verify::Check("CSoundManager::Play3D", true, ok, "\"%s\" loop %d -> %d (%s)", name, loop, handle, where);

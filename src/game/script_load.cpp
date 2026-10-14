@@ -483,7 +483,7 @@ void __fastcall ScriptParticlesLoad(RawList* list, ScriptStream* stream) {
         stream->Read(&source->deleteAfterMove, 4);
         stream->Read(&source->moving, 4);
         stream->Read(&source->steps, 4);
-        stream->Read(source->step, 0xC);
+        stream->Read(&source->step, 0xC);
         stream->Read(&source->lifetime, 4);
     }
 }
