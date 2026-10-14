@@ -142,6 +142,9 @@ GameBuffer* __fastcall GrowingBufferDeletingDestructor(GameBuffer* self, void*, 
 // Bits are collected in `acc`; a byte is reserved at `bytePtr` when a field starts in a new
 // byte and stored there once more than 8 bits are pending (exactly 8 stay pending).
 struct BufferCursor {
+    // 00430FC0 (misc_400.cpp). Starts the cursor at `first` (no byte reserved, no pending bits; the
+    // accumulator is left alone; the two other arguments are unused). Returns 0.
+    std::uint32_t Start(std::uint8_t* first, std::uint32_t, std::uint32_t);
     std::uint8_t* p;           // +0x00 next byte
     std::uint8_t* bytePtr;     // +0x04 the reserved byte the pending bits go to
     std::uint32_t acc;         // +0x08 pending bits

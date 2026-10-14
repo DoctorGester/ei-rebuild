@@ -116,31 +116,31 @@ void Destroy(Table* t, FreeNode freeNode) {
 // --- CBaseManager's id tables --------------------------------------------------------------------
 
 // 00404E80: the objects table's SetAt (key -> object).
-void __fastcall ObjectsSetAt(Table* t, void*, const std::int32_t* key, const std::uint32_t* value) {
-    FindOrInsert(t, key, ObjectsResize, ObjectsNewNode)->value = *value;
+void Table::ObjectsSetAt(const std::int32_t* key, const std::uint32_t* value) {
+    FindOrInsert(this, key, ObjectsResize, ObjectsNewNode)->value = *value;
 }
 // 00404F20: the objects table's RemoveKey (returns the object or null).
-std::uint32_t __fastcall ObjectsRemoveKey(Table* t, void*, const std::uint32_t* key) { return RemoveKey(t, key, ObjectsErase); }
+std::uint32_t Table::ObjectsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key, ObjectsErase); }
 // 00404F80: the objects table's Lookup: 1 with *value set, or 0.
-int __fastcall ObjectsLookup(Table* t, void*, const std::uint32_t* key, std::uint32_t* value) {
-    Node* node = Find(t, *key);
+int Table::ObjectsLookup(const std::uint32_t* key, std::uint32_t* value) {
+    Node* node = Find(this, *key);
     if (!node) return 0;
     *value = node->value;
     return 1;
 }
 // 00405350: RemoveKey of the id -> list position table (+0x50; also the client world's pending table).
-std::uint32_t __fastcall PositionsRemoveKey(Table* t, void*, const std::uint32_t* key) { return RemoveKey(t, key, PositionsErase); }
+std::uint32_t Table::PositionsRemoveKey(const std::uint32_t* key) { return RemoveKey(this, key, PositionsErase); }
 // 00406950: the objects table's find: the value's address, or null.
-std::uint32_t* __fastcall ObjectsFind(Table* t, void*, const std::uint32_t* key) {
-    Node* node = Find(t, *key);
+std::uint32_t* Table::ObjectsFind(const std::uint32_t* key) {
+    Node* node = Find(this, *key);
     return node ? &node->value : nullptr;
 }
 // 00406A10 / 00406AA0: operator[] of the position table (+0x50) and of the spare counts (+0x80).
-std::uint32_t* __fastcall PositionAt(Table* t, void*, const std::int32_t* key) {
-    return &FindOrInsert(t, key, PositionsResize, PositionsNewNode)->value;
+std::uint32_t* Table::PositionAt(const std::int32_t* key) {
+    return &FindOrInsert(this, key, PositionsResize, PositionsNewNode)->value;
 }
-std::uint32_t* __fastcall SpareCountAt(Table* t, void*, const std::int32_t* key) {
-    return &FindOrInsert(t, key, SpareCountsResize, SpareCountsNewNode)->value;
+std::uint32_t* Table::SpareCountAt(const std::int32_t* key) {
+    return &FindOrInsert(this, key, SpareCountsResize, SpareCountsNewNode)->value;
 }
 
 // --- The registries ------------------------------------------------------------------------------
@@ -180,16 +180,16 @@ void __fastcall TypeRegistryDestruct(net::TypeRegistry* registry) {
 
 } // namespace hash400
 
-EI_REPLACE(0x00404E80, hash400::ObjectsSetAt);
-EI_REPLACE(0x00404F20, hash400::ObjectsRemoveKey);
-EI_REPLACE(0x00404F80, hash400::ObjectsLookup);
-EI_REPLACE(0x00405350, hash400::PositionsRemoveKey);
-EI_REPLACE(0x00406950, hash400::ObjectsFind);
+EI_REPLACE_METHOD(0x00404E80, hash400::Table::ObjectsSetAt);
+EI_REPLACE_METHOD(0x00404F20, hash400::Table::ObjectsRemoveKey);
+EI_REPLACE_METHOD(0x00404F80, hash400::Table::ObjectsLookup);
+EI_REPLACE_METHOD(0x00405350, hash400::Table::PositionsRemoveKey);
+EI_REPLACE_METHOD(0x00406950, hash400::Table::ObjectsFind);
 // Byte-identical copies in the world range (A-W12).
-EI_REPLACE(0x00599A80, hash400::ObjectsRemoveKey);
-EI_REPLACE(0x00599AE0, hash400::ObjectsFind);
-EI_REPLACE(0x00406A10, hash400::PositionAt);
-EI_REPLACE(0x00406AA0, hash400::SpareCountAt);
+EI_REPLACE_METHOD(0x00599A80, hash400::Table::ObjectsRemoveKey);
+EI_REPLACE_METHOD(0x00599AE0, hash400::Table::ObjectsFind);
+EI_REPLACE_METHOD(0x00406A10, hash400::Table::PositionAt);
+EI_REPLACE_METHOD(0x00406AA0, hash400::Table::SpareCountAt);
 EI_REPLACE(0x00408EA0, hash400::ClassRegistryConstruct);
 EI_REPLACE(0x00408D60, hash400::ClassRegistryDestruct);
 EI_REPLACE(0x004368F0, hash400::TypeRegistryDestruct);

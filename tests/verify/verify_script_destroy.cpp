@@ -279,7 +279,7 @@ void* __fastcall GroupDestroyVerify(void* self, void*, int flags) {
 // copy's command (the array storage) as ours deletes the real one.
 void*(__fastcall* s_subCallDestroy)(ScriptSubCall*, void*, int);
 void* __fastcall SubCallDestroyVerify(ScriptSubCall* self, void*, int flags) {
-    if (g_inOriginal || (flags & 1)) return ScriptSubCallElementDestroy(self, nullptr, flags);
+    if (g_inOriginal || (flags & 1)) return self->DestroyElement(flags);
     Counters counters;
     if (self->cmd) counters.Cmd(*self->cmd);
     std::vector<int> t0 = counters.Read();
@@ -297,7 +297,7 @@ void* __fastcall SubCallDestroyVerify(ScriptSubCall* self, void*, int flags) {
     void* originalResult = s_subCallDestroy(&copy, nullptr, 0);
     --g_inOriginal;
     std::vector<int> t2 = counters.Read();
-    void* result = ScriptSubCallElementDestroy(self, nullptr, 0);
+    void* result = self->DestroyElement(0);
     int checked = 0;
     int badCounters = counters.CheckAfterOurs(t0, t1, t2, &checked);
     int wrongWord = FirstWrongWord(copyBefore, &copy, realBefore, self);
@@ -359,11 +359,11 @@ void* __fastcall WorldBlockDestroyVerify(void* self, void*, int flags) {
 // 004BF620: ours only (PUSH ESI; MOV ESI,ECX; CALL). The body is the command destructor 004BF640,
 // whose own wrapper compares it with the original; here the return value and the reference counts.
 void* __fastcall CmdElementDestroyVerify(SSCCmd* self, void*, int flags) {
-    if (flags & 1) return ScriptCmdElementDestroy(self, nullptr, flags);
+    if (flags & 1) return self->DestroyElement(flags);
     Counters counters;
     counters.Cmd(*self);
     std::vector<int> t0 = counters.Read();
-    void* result = ScriptCmdElementDestroy(self, nullptr, 0);
+    void* result = self->DestroyElement(0);
     int checked = 0;
     int badCounters = counters.CheckDrops(t0, &checked);
     ei::verify::Check("ScriptCmdElementDestroy", true, badCounters == 0 && result == static_cast<void*>(self),
@@ -390,7 +390,7 @@ void __fastcall AppendFromVerify(ScriptVars* self, void*, const ScriptVars* othe
         expected[i] = mine[i]->size + theirs[i]->size;
         expected[i + 1] = mine[i]->size + theirs[i + 1]->size;
     }
-    ScriptVarsAppendFrom(self, nullptr, other);
+    self->AppendFrom(other);
     int wrong = -1;
     for (int i = 0; i < 8 && wrong < 0; ++i)
         if (mine[i]->size != expected[i]) wrong = i;

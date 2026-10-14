@@ -15,11 +15,14 @@ struct FigureAnimation;   // map_object_figures.h
 class CUnit;
 struct UnitStats;
 struct UnitVitals;
+struct UnitPrototypeRecord;   // unit_db.h
 
 // The unit prototype table (global 007AF358): an STLport vector of 0x120-byte records (item_db.h's
 // RecordTable reads its begin / end) followed by a hash_map<string, record*> from prototype names
 // to records at +0x0C.
 struct UnitPrototypeTable {
+    // 0053AD30 (unit_stat_small.cpp, RET 4). Prototype `index`, or null past the end.
+    UnitPrototypeRecord* At(std::uint32_t index);
     using NameIndex = stlp::hash_map<stlp::string, char*, stlp::StringHash>;
 
     // 00514930 (and its copy 005144D0). The record named `name`: operator[] on the name index,

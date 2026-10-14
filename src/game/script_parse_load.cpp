@@ -28,7 +28,6 @@ using namespace scriptparse;
 // ---- Forwarders ---------------------------------------------------------------------------------
 
 __declspec(naked) int __cdecl CScript::Error(CScript*, int, int, const char*, ...) EI_ORIGINAL(0x004CF470)
-__declspec(naked) ScriptDecl* CScript::NewCommandList() EI_ORIGINAL(0x004BF540)
 __declspec(naked) mfc::CArray<SSCCmd>* CScript::NewWorldScript() EI_ORIGINAL(0x004BF900)
 __declspec(naked) void CScript::RunWorldScript(mfc::CArray<SSCCmd>*) EI_ORIGINAL(0x004BCC60)
 __declspec(naked) void SSCCmd::Clear() EI_ORIGINAL(0x004B5F70)

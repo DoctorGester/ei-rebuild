@@ -32,7 +32,7 @@ Table* Second(Table* t) { return reinterpret_cast<Table*>(reinterpret_cast<std::
 void __fastcall SetAtVerify(Table* t, void*, const std::int32_t* key, const std::uint32_t* value) {
     std::int32_t k = *key;
     std::uint32_t v = *value;
-    hash400::ObjectsSetAt(t, nullptr, key, value);
+    t->ObjectsSetAt(key, value);
     std::uint32_t* slot = Slot(t, static_cast<std::uint32_t>(k));
     ei::verify::Check("ObjectsSetAt", true, slot && *slot == v && t->maxKey >= k, "key %d", k);
 }
@@ -40,7 +40,7 @@ std::uint32_t __fastcall RemoveKeyVerify(Table* t, void*, const std::uint32_t* k
     std::uint32_t k = *key;
     std::uint32_t* before = Slot(t, k);
     std::uint32_t expected = before ? *before : 0;
-    std::uint32_t result = hash400::ObjectsRemoveKey(t, nullptr, key);
+    std::uint32_t result = t->ObjectsRemoveKey(key);
     ei::verify::Check("ObjectsRemoveKey", true, result == expected && !Slot(t, k), "key %u", k);
     return result;
 }
@@ -48,7 +48,7 @@ std::uint32_t __fastcall PositionsRemoveKeyVerify(Table* t, void*, const std::ui
     std::uint32_t k = *key;
     std::uint32_t* before = Slot(t, k);
     std::uint32_t expected = before ? *before : 0;
-    std::uint32_t result = hash400::PositionsRemoveKey(t, nullptr, key);
+    std::uint32_t result = t->PositionsRemoveKey(key);
     ei::verify::Check("PositionsRemoveKey", true, result == expected && !Slot(t, k), "key %u", k);
     return result;
 }
@@ -57,7 +57,7 @@ int(__fastcall* s_lookup)(Table*, void*, const std::uint32_t*, std::uint32_t*);
 int __fastcall LookupVerify(Table* t, void*, const std::uint32_t* key, std::uint32_t* value) {
     std::uint32_t expectedValue = *value, actualValue = *value;
     int expected = s_lookup(t, nullptr, key, &expectedValue);
-    int actual = hash400::ObjectsLookup(t, nullptr, key, &actualValue);
+    int actual = t->ObjectsLookup(key, &actualValue);
     ei::verify::Check("ObjectsLookup", true, expected == actual && expectedValue == actualValue, "key %u", *key);
     *value = actualValue;
     return actual;
@@ -65,7 +65,7 @@ int __fastcall LookupVerify(Table* t, void*, const std::uint32_t* key, std::uint
 std::uint32_t*(__fastcall* s_find)(Table*, void*, const std::uint32_t*);
 std::uint32_t* __fastcall FindVerify(Table* t, void*, const std::uint32_t* key) {
     std::uint32_t* expected = s_find(t, nullptr, key);
-    std::uint32_t* actual = hash400::ObjectsFind(t, nullptr, key);
+    std::uint32_t* actual = t->ObjectsFind(key);
     ei::verify::Check("ObjectsFind", expected, actual, "key %u", *key);
     return actual;
 }
@@ -73,19 +73,19 @@ std::uint32_t* __fastcall FindVerify(Table* t, void*, const std::uint32_t* key) 
 std::uint32_t*(__fastcall* s_findCopy)(Table*, void*, const std::uint32_t*);
 std::uint32_t* __fastcall FindCopyVerify(Table* t, void*, const std::uint32_t* key) {
     std::uint32_t* expected = s_findCopy(t, nullptr, key);
-    std::uint32_t* actual = hash400::ObjectsFind(t, nullptr, key);
+    std::uint32_t* actual = t->ObjectsFind(key);
     ei::verify::Check("ObjectsFind@00599AE0", expected, actual, "key %u", *key);
     return actual;
 }
 std::uint32_t* __fastcall PositionAtVerify(Table* t, void*, const std::int32_t* key) {
     std::int32_t k = *key;
-    std::uint32_t* result = hash400::PositionAt(t, nullptr, key);
+    std::uint32_t* result = t->PositionAt(key);
     ei::verify::Check("PositionAt", true, result == Slot(t, static_cast<std::uint32_t>(k)) && t->maxKey >= k, "key %d", k);
     return result;
 }
 std::uint32_t* __fastcall SpareCountAtVerify(Table* t, void*, const std::int32_t* key) {
     std::int32_t k = *key;
-    std::uint32_t* result = hash400::SpareCountAt(t, nullptr, key);
+    std::uint32_t* result = t->SpareCountAt(key);
     ei::verify::Check("SpareCountAt", true, result == Slot(t, static_cast<std::uint32_t>(k)) && t->maxKey >= k, "key %d", k);
     return result;
 }

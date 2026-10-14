@@ -98,18 +98,23 @@ void __fastcall ScriptSubCallDestruct(ScriptSubCall* call) {
 }
 EI_REPLACE(0x004C5480, ScriptSubCallDestruct);
 
-int __fastcall ScriptFindVariableName(const ScriptNamedValues<float>* vars, void*, const char* name) {
-    for (int i = 0; i < vars->names.size; ++i) {
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(vars->names.data[i])),
+template <typename T>
+int ScriptNamedValues<T>::FindName(const char* name) const {
+    for (int i = 0; i < names.size; ++i) {
+        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(names.data[i])),
                             reinterpret_cast<const unsigned char*>(name)) == 0)
             return i;
     }
     return -1;
 }
-EI_REPLACE(0x004D5A50, ScriptFindVariableName);
-EI_REPLACE(0x004D5A90, ScriptFindVariableName);
-EI_REPLACE(0x004D5AD0, ScriptFindVariableName);
-EI_REPLACE(0x004D5B10, ScriptFindVariableName);
+template int ScriptNamedValues<float>::FindName(const char*) const;
+template int ScriptNamedValues<mfc::CString>::FindName(const char*) const;
+template int ScriptNamedValues<ScriptObjectRef>::FindName(const char*) const;
+template int ScriptNamedValues<ScriptGroup>::FindName(const char*) const;
+EI_REPLACE_METHOD(0x004D5A50, ScriptNamedValues<float>::FindName);
+EI_REPLACE_METHOD(0x004D5A90, ScriptNamedValues<mfc::CString>::FindName);
+EI_REPLACE_METHOD(0x004D5AD0, ScriptNamedValues<ScriptObjectRef>::FindName);
+EI_REPLACE_METHOD(0x004D5B10, ScriptNamedValues<ScriptGroup>::FindName);
 
 mfc::CArray<SSCCmd>* __fastcall ScriptCmdArrayConstruct(mfc::CArray<SSCCmd>* array) {
     array->data = nullptr;

@@ -1169,6 +1169,7 @@ inline MatrixDevice* TheMatrixDevice() { return *reinterpret_cast<MatrixDevice**
 // The drawing side (vtable 0073F41C).
 class CWorldClient : public CWorld {
 public:
+    void BuildUnitSkins(const void* othersVector, const void* dressedVector);
     // 005641F0, vtable slot 6 (world_client.cpp). The client's tick ("Segment"): autosave event
     // and sound volumes on frame 10, the terrain, sound and session updates, the objects and units,
     // effect lists, the lights' grey levels, the map state every 32 ticks. Returns 1; 0 when the

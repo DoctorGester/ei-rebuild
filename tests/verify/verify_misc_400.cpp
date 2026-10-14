@@ -15,7 +15,6 @@
 namespace misc400 {
 CBaseManager* __fastcall ManagerConstruct(CBaseManager* self);
 void __fastcall ManagerDestruct(CBaseManager* self);
-std::uint32_t __fastcall CursorStart(BufferCursor* self, void*, std::uint8_t* p, std::uint32_t, std::uint32_t);
 void __fastcall ClearPointee(void** self);
 CEngineObject* __fastcall ManagerNewObject(CBaseManager* self, void*, int type);
 const char* __fastcall ManagerClassName(const CBaseManager* self);
@@ -46,7 +45,7 @@ std::uint32_t(__fastcall* s_cursorStart)(BufferCursor*, void*, std::uint8_t*, st
 std::uint32_t __fastcall CursorStartVerify(BufferCursor* self, void*, std::uint8_t* p, std::uint32_t a, std::uint32_t b) {
     BufferCursor expected = *self;
     std::uint32_t expectedResult = s_cursorStart(&expected, nullptr, p, a, b);
-    std::uint32_t result = misc400::CursorStart(self, nullptr, p, a, b);
+    std::uint32_t result = self->Start(p, a, b);
     ei::verify::Check("CursorStart", true, result == expectedResult && std::memcmp(&expected, self, sizeof(expected)) == 0, "");
     return result;
 }

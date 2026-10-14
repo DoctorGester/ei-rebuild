@@ -84,67 +84,66 @@ EI_REPLACE(0x0058AAB0, FreeAnyGrid);   // A-W14: only the world server's unwind 
 void __fastcall AllocateEventGrid(SearchGrid<AIEventCell>* grid) { AllocateGrid(*grid); }
 EI_REPLACE(0x005CD4B0, AllocateEventGrid);
 
-void __fastcall ResizeByteGrid(SearchGrid<std::uint8_t>* grid, void*, int width, int height) {
-    if (grid->width == width && grid->height == height) return;
-    FreeGrid(*grid);
-    grid->width = width;
-    grid->height = height;
-    AllocateGrid(*grid);
+template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight) {
+    if (width == newWidth && height == newHeight) return;
+    FreeGrid(*this);
+    width = newWidth;
+    height = newHeight;
+    AllocateGrid(*this);
 }
-EI_REPLACE(0x005CD3A0, ResizeByteGrid);
+EI_REPLACE_METHOD(0x005CD3A0, SearchGrid<std::uint8_t>::Resize);
 
-void __fastcall CopyByteGrid(SearchGrid<std::uint8_t>* grid, void*, const SearchGrid<std::uint8_t>* source) {
-    grid->height = source->height;
-    grid->width = source->width;
-    AllocateGrid(*grid);
-    int count = grid->width * grid->height;
-    if (count > 0) std::memcpy(grid->data, source->data, static_cast<std::size_t>(count));
+template <> void SearchGrid<std::uint8_t>::CopyFrom(const SearchGrid* source) {
+    height = source->height;
+    width = source->width;
+    AllocateGrid(*this);
+    int count = width * height;
+    if (count > 0) std::memcpy(data, source->data, static_cast<std::size_t>(count));
 }
-EI_REPLACE(0x005CD410, CopyByteGrid);
+EI_REPLACE_METHOD(0x005CD410, SearchGrid<std::uint8_t>::CopyFrom);
 
-void __fastcall CopyNodeGrid(SearchGrid<SearchNode>* grid, void*, const SearchGrid<SearchNode>* source) {
-    grid->height = source->height;
-    grid->width = source->width;
-    AllocateGrid(*grid);
-    int count = grid->width * grid->height;
-    if (count > 0) std::memcpy(grid->data, source->data, static_cast<std::size_t>(count) * sizeof(SearchNode));
+template <> void SearchGrid<SearchNode>::CopyFrom(const SearchGrid* source) {
+    height = source->height;
+    width = source->width;
+    AllocateGrid(*this);
+    int count = width * height;
+    if (count > 0) std::memcpy(data, source->data, static_cast<std::size_t>(count) * sizeof(SearchNode));
 }
-EI_REPLACE(0x005C4BA0, CopyNodeGrid);
+EI_REPLACE_METHOD(0x005C4BA0, SearchGrid<SearchNode>::CopyFrom);
 
 // ---- Constructors ---------------------------------------------------------------------------------
 
-SearchGrid<std::int8_t>* __fastcall ConstructByteGrid(SearchGrid<std::int8_t>* grid, void*, int width, int height) {
-    grid->width = width;
-    grid->height = height;
-    AllocateGrid(*grid);
-    return grid;
+template <> SearchGrid<std::int8_t>* SearchGrid<std::int8_t>::Construct(int newWidth, int newHeight) {
+    width = newWidth;
+    height = newHeight;
+    AllocateGrid(*this);
+    return this;
 }
-EI_REPLACE(0x005BCBD0, ConstructByteGrid);
+EI_REPLACE_METHOD(0x005BCBD0, SearchGrid<std::int8_t>::Construct);
 
-SearchGrid<SearchNode>* __fastcall ConstructNodeGrid(SearchGrid<SearchNode>* grid, void*, int width, int height) {
-    grid->width = width;
-    grid->height = height;
-    AllocateGrid(*grid);
-    return grid;
+template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight) {
+    width = newWidth;
+    height = newHeight;
+    AllocateGrid(*this);
+    return this;
 }
-EI_REPLACE(0x005BCC50, ConstructNodeGrid);
+EI_REPLACE_METHOD(0x005BCC50, SearchGrid<SearchNode>::Construct);
 
-SearchGrid<AIMapCell>* __fastcall ConstructCellGrid(SearchGrid<AIMapCell>* grid, void*, int width, int height) {
-    grid->height = height;
-    grid->width = width;
-    AllocateCellGrid(grid);
-    return grid;
+template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight) {
+    height = newHeight;
+    width = newWidth;
+    AllocateCellGrid(this);
+    return this;
 }
-EI_REPLACE(0x005BCEE0, ConstructCellGrid);
+EI_REPLACE_METHOD(0x005BCEE0, SearchGrid<AIMapCell>::Construct);
 
-SearchGrid<std::uint32_t>* __fastcall ConstructOccluderGrid(SearchGrid<std::uint32_t>* grid, void*, int width,
-                                                           int height) {
-    grid->height = height;
-    grid->width = width;
-    AllocateOccluderGrid(grid);
-    return grid;
+template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int newWidth, int newHeight) {
+    height = newHeight;
+    width = newWidth;
+    AllocateOccluderGrid(this);
+    return this;
 }
-EI_REPLACE(0x005BCF00, ConstructOccluderGrid);
+EI_REPLACE_METHOD(0x005BCF00, SearchGrid<std::uint32_t>::Construct);
 
 void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid) {
     grid->width = 1;

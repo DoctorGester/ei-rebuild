@@ -9,6 +9,8 @@
 
 using BOOL = int;
 
+struct FigureAnimation;   // map_object_figures.h
+
 // Base of every engine manager (textures, figures, objects, lightning, ...): creates objects by
 // type, registers them by id, saves and loads the registered ones, and keeps the objects released
 // to it as spares of their type for reuse. Name from the game's own error strings
@@ -16,6 +18,10 @@ using BOOL = int;
 // and 14 are _purecall there). base_manager.cpp, base_manager_core.cpp.
 class CBaseManager : public CEngineObject {
 public:
+    // 00512F60 (combat_order_setters.cpp, RET 8). The animation `name` (case-insensitive) in the
+    // database "<figure>.adb" of this manager (the world's map object manager), or null; a missing
+    // database is reported to the debug log.
+    FigureAnimation* FindFigureAnimation(const mfc::CString& figure, const char* name);
     static constexpr std::uintptr_t kVtableAddress = 0x0073B870;
 
     using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;

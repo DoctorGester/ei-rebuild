@@ -40,7 +40,7 @@ void __fastcall FloatsVerify(ScriptNamedValues<float>* self, void*, const Script
     std::vector<std::string> names = Names(other->names);
     std::vector<std::uint32_t> bits(static_cast<std::size_t>(names.size()));
     if (!bits.empty()) std::memcpy(bits.data(), other->values.data, bits.size() * 4);
-    ScriptFloatsAppend(self, nullptr, other);
+    self->Append(other);
     bool ok = SameShape(self, old, values, names);
     for (std::size_t i = 0; ok && i < bits.size(); ++i) {
         std::uint32_t got;
@@ -55,7 +55,7 @@ void __fastcall StringsVerify(ScriptNamedValues<mfc::CString>* self, void*, cons
     std::vector<std::string> names = Names(other->names);
     std::vector<std::string> strings;
     for (std::size_t i = 0; i < names.size(); ++i) strings.emplace_back(static_cast<const char*>(other->values.data[i]));
-    ScriptStringsAppend(self, nullptr, other);
+    self->Append(other);
     bool ok = SameShape(self, old, values, names);
     for (std::size_t i = 0; ok && i < strings.size(); ++i) ok = strings[i] == static_cast<const char*>(self->values.data[old + i]);
     ei::verify::Check("ScriptStringsAppend", true, ok, "%d + %d values", old, values);
@@ -66,7 +66,7 @@ void __fastcall ObjectsVerify(ScriptNamedValues<ScriptObjectRef>* self, void*, c
     std::vector<std::string> names = Names(other->names);
     std::vector<CEngineObject*> objects;
     for (std::size_t i = 0; i < names.size(); ++i) objects.push_back(other->values.data[i].object);
-    ScriptObjectsAppend(self, nullptr, other);
+    self->Append(other);
     bool ok = SameShape(self, old, values, names);
     for (std::size_t i = 0; ok && i < objects.size(); ++i) ok = objects[i] == self->values.data[old + i].object;
     ei::verify::Check("ScriptObjectsAppend", true, ok, "%d + %d values", old, values);
@@ -82,7 +82,7 @@ void __fastcall GroupsVerify(ScriptNamedValues<ScriptGroup>* self, void*, const 
         for (int k = 0; k < g.size; ++k) members.push_back(g.data[k].object);
         groups.push_back(members);
     }
-    ScriptGroupsAppend(self, nullptr, other);
+    self->Append(other);
     bool ok = SameShape(self, old, values, names);
     for (std::size_t i = 0; ok && i < groups.size(); ++i) {
         const ScriptGroup& g = self->values.data[old + i];

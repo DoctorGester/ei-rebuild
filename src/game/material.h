@@ -36,6 +36,9 @@ static_assert(sizeof(MaterialEntry) == 0x10);
 // also the material a figure part is drawn with (005A7A70). Names provisional.
 class CMaterial : public CEngineObject {
 public:
+    void SetDiffuse(const Vector3* value);
+    void SetAmbient(const Vector3* value);
+    void SetSpecular(const Vector3* value);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743BB4);
 
     // 0068DBC0. The constructor: an engine object with empty names, alpha 1 and an empty deque

@@ -56,42 +56,40 @@ void CopyName(mfc::CArray<mfc::CString>* names, int to, const mfc::CArray<mfc::C
 
 } // namespace
 
-void __fastcall ScriptFloatsAppend(ScriptNamedValues<float>* self, void*, const ScriptNamedValues<float>* other) {
-    int old = self->values.size;
-    InlineSetSize(Raw(&self->values), other->values.size + old, kFloats);
-    NamesSetSizeOriginal(&self->names, nullptr, other->names.size + old, -1);
+template <> void ScriptNamedValues<float>::Append(const ScriptNamedValues<float>* other) {
+    int old = values.size;
+    InlineSetSize(Raw(&values), other->values.size + old, kFloats);
+    NamesSetSizeOriginal(&names, nullptr, other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
-        CopyName(&self->names, old + i, &other->names, i);
-        CopyFloat(&self->values.data[old + i], &other->values.data[i]);
+        CopyName(&names, old + i, &other->names, i);
+        CopyFloat(&values.data[old + i], &other->values.data[i]);
     }
 }
-EI_REPLACE(0x004C2B70, ScriptFloatsAppend);
+EI_REPLACE_METHOD(0x004C2B70, ScriptNamedValues<float>::Append);
 
-void __fastcall ScriptStringsAppend(ScriptNamedValues<mfc::CString>* self, void*,
-                                    const ScriptNamedValues<mfc::CString>* other) {
-    int old = self->values.size;
-    InlineSetSize(Raw(&self->values), other->values.size + old, kStrings);
-    NamesSetSizeOriginal(&self->names, nullptr, other->names.size + old, -1);
+template <> void ScriptNamedValues<mfc::CString>::Append(const ScriptNamedValues<mfc::CString>* other) {
+    int old = values.size;
+    InlineSetSize(Raw(&values), other->values.size + old, kStrings);
+    NamesSetSizeOriginal(&names, nullptr, other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
-        CopyName(&self->names, old + i, &other->names, i);
+        CopyName(&names, old + i, &other->names, i);
         TempString value;
         StringAt(&other->values, nullptr, &value, i);
-        self->values.data[old + i] = value.Get();
+        values.data[old + i] = value.Get();
     }
 }
-EI_REPLACE(0x004C2FE0, ScriptStringsAppend);
+EI_REPLACE_METHOD(0x004C2FE0, ScriptNamedValues<mfc::CString>::Append);
 
 // The new slot drops its (null) object, then takes the other's object with a reference of its own.
-void __fastcall ScriptObjectsAppend(ScriptNamedValues<ScriptObjectRef>* self, void*,
-                                    const ScriptNamedValues<ScriptObjectRef>* other) {
-    int old = self->values.size;
-    InlineSetSize(Raw(&self->values), other->values.size + old, kRefs);
-    NamesSetSizeOriginal(&self->names, nullptr, other->names.size + old, -1);
+template <> void ScriptNamedValues<ScriptObjectRef>::Append(const ScriptNamedValues<ScriptObjectRef>* other) {
+    int old = values.size;
+    InlineSetSize(Raw(&values), other->values.size + old, kRefs);
+    NamesSetSizeOriginal(&names, nullptr, other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
-        CopyName(&self->names, old + i, &other->names, i);
+        CopyName(&names, old + i, &other->names, i);
         ScriptObjectRef value;
         RefAt(&other->values, nullptr, &value, i);
-        ScriptObjectRef* slot = &self->values.data[old + i];
+        ScriptObjectRef* slot = &values.data[old + i];
         Release(slot->object);
         slot->object = nullptr;
         slot->object = value.object;
@@ -99,19 +97,18 @@ void __fastcall ScriptObjectsAppend(ScriptNamedValues<ScriptObjectRef>* self, vo
         Release(value.object);
     }
 }
-EI_REPLACE(0x004C3450, ScriptObjectsAppend);
+EI_REPLACE_METHOD(0x004C3450, ScriptNamedValues<ScriptObjectRef>::Append);
 
 // The new group is sized to the other's and each member reference copied in place.
-void __fastcall ScriptGroupsAppend(ScriptNamedValues<ScriptGroup>* self, void*,
-                                   const ScriptNamedValues<ScriptGroup>* other) {
-    int old = self->values.size;
-    InlineSetSize(Raw(&self->values), other->values.size + old, kGroups);
-    NamesSetSizeOriginal(&self->names, nullptr, other->names.size + old, -1);
+template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<ScriptGroup>* other) {
+    int old = values.size;
+    InlineSetSize(Raw(&values), other->values.size + old, kGroups);
+    NamesSetSizeOriginal(&names, nullptr, other->names.size + old, -1);
     for (int i = 0; i < other->names.size; ++i) {
-        CopyName(&self->names, old + i, &other->names, i);
+        CopyName(&names, old + i, &other->names, i);
         ScriptGroup copy;
         GroupAt(&other->values, nullptr, &copy, i);
-        ScriptGroup* group = &self->values.data[old + i];
+        ScriptGroup* group = &values.data[old + i];
         GroupSetSize(group, nullptr, copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
@@ -128,7 +125,7 @@ void __fastcall ScriptGroupsAppend(ScriptNamedValues<ScriptGroup>* self, void*,
         }
     }
 }
-EI_REPLACE(0x004C3DC0, ScriptGroupsAppend);
+EI_REPLACE_METHOD(0x004C3DC0, ScriptNamedValues<ScriptGroup>::Append);
 
 // ---- Emptying a variable set ---------------------------------------------------------------------
 
@@ -209,10 +206,10 @@ __declspec(naked) void __fastcall GroupsAppendAt(void*, void*, const void*) EI_O
 } // namespace
 
 // ScriptVars::AppendFrom (the loader's GlobalVars): floats, strings, objects, groups in that order.
-void __fastcall ScriptVarsAppendFrom(ScriptVars* vars, void*, const ScriptVars* other) {
-    FloatsAppendAt(&vars->floats, nullptr, &other->floats);
-    StringsAppendAt(&vars->strings, nullptr, &other->strings);
-    ObjectsAppendAt(&vars->objects, nullptr, &other->objects);
-    GroupsAppendAt(&vars->groups, nullptr, &other->groups);
+void ScriptVars::AppendFrom(const ScriptVars* other) {
+    FloatsAppendAt(&floats, nullptr, &other->floats);
+    StringsAppendAt(&strings, nullptr, &other->strings);
+    ObjectsAppendAt(&objects, nullptr, &other->objects);
+    GroupsAppendAt(&groups, nullptr, &other->groups);
 }
-EI_REPLACE(0x004B3900, ScriptVarsAppendFrom);
+EI_REPLACE_METHOD(0x004B3900, ScriptVars::AppendFrom);

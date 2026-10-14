@@ -12,6 +12,13 @@ namespace hash400 {
 
 // STLport hashtable (0x14 bytes); the id tables add the highest key inserted.
 struct Table {
+    void ObjectsSetAt(const std::int32_t* key, const std::uint32_t* value);
+    std::uint32_t ObjectsRemoveKey(const std::uint32_t* key);
+    int ObjectsLookup(const std::uint32_t* key, std::uint32_t* value);
+    std::uint32_t PositionsRemoveKey(const std::uint32_t* key);
+    std::uint32_t* ObjectsFind(const std::uint32_t* key);
+    std::uint32_t* PositionAt(const std::int32_t* key);
+    std::uint32_t* SpareCountAt(const std::int32_t* key);
     std::uint8_t functors[4];   // +0x00 hasher / key_equal / select1st (empty)
     void** buckets;             // +0x04
     void** bucketsEnd;          // +0x08
@@ -28,13 +35,6 @@ Table* AsTable(Map* map) {
     return reinterpret_cast<Table*>(map);
 }
 
-void __fastcall ObjectsSetAt(Table* t, void*, const std::int32_t* key, const std::uint32_t* value);
-std::uint32_t __fastcall ObjectsRemoveKey(Table* t, void*, const std::uint32_t* key);
-int __fastcall ObjectsLookup(Table* t, void*, const std::uint32_t* key, std::uint32_t* value);
-std::uint32_t __fastcall PositionsRemoveKey(Table* t, void*, const std::uint32_t* key);
-std::uint32_t* __fastcall ObjectsFind(Table* t, void*, const std::uint32_t* key);
-std::uint32_t* __fastcall PositionAt(Table* t, void*, const std::int32_t* key);
-std::uint32_t* __fastcall SpareCountAt(Table* t, void*, const std::int32_t* key);
 void* __fastcall ClassRegistryConstruct(ChunkArchive::ClassRegistry* registry);
 void __fastcall ClassRegistryDestruct(ChunkArchive::ClassRegistry* registry);
 void __fastcall TypeRegistryDestruct(net::TypeRegistry* registry);

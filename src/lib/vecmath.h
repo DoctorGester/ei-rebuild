@@ -42,6 +42,11 @@ static_assert(sizeof(Vector2) == 8);
 struct Vector3 {
     float x, y, z;
 
+    // 00471A90 (RET 0xC; game/small_accessors.cpp). A second copy of Construct (scene loader); returns this.
+    Vector3* ConstructScene(float x_, float y_, float z_);
+    // 00503F20 (RET 4; game/small_slots_500.cpp). The three parts copied from `other`.
+    void Assign(const Vector3* other);
+
     // 00401DE0. The constructor Vector3(x, y, z) in the original: callers use the returned `this`.
     Vector3* Construct(float x_, float y_, float z_);
     float Length() const;                           // 00401E20 (maths.cpp), XYZ, FSQRT

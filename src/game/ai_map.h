@@ -321,7 +321,24 @@ struct SearchGrid {
     T* data;
     T** rows;
     int width, height;
+
+    // ai_grids.cpp. 005CD3A0 (RET 8; the visibility marks, VisibilityGrid + 8). Reallocated to
+    // newWidth x newHeight (the cells are not kept or cleared) unless the grid already has that size.
+    void Resize(int newWidth, int newHeight);
+    // 005CD410 (RET 4) / 005C4BA0 (RET 4; A-W14: the local search's nodes, whose Recenter 005C25D0
+    // keeps the old window in such a copy). Makes the grid a copy of `source`: its size, a block and
+    // row table of its own, the cells copied.
+    void CopyFrom(const SearchGrid* source);
+    // 005BCBD0 / 005BCC50 / 005BCEE0 / 005BCF00 (RET 8). The constructor for a size; returns this.
+    SearchGrid* Construct(int newWidth, int newHeight);
 };
+template <> void SearchGrid<std::uint8_t>::Resize(int newWidth, int newHeight);
+template <> void SearchGrid<std::uint8_t>::CopyFrom(const SearchGrid* source);
+template <> void SearchGrid<SearchNode>::CopyFrom(const SearchGrid* source);
+template <> SearchGrid<std::int8_t>* SearchGrid<std::int8_t>::Construct(int newWidth, int newHeight);
+template <> SearchGrid<SearchNode>* SearchGrid<SearchNode>::Construct(int newWidth, int newHeight);
+template <> SearchGrid<AIMapCell>* SearchGrid<AIMapCell>::Construct(int newWidth, int newHeight);
+template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int newWidth, int newHeight);
 static_assert(sizeof(SearchGrid<SearchNode>) == 0x10);
 
 // The local search (0x80 bytes; CAIMap + 0x2594 forward, + 0x2614 backward, and the region map's):
@@ -681,11 +698,19 @@ static_assert(sizeof(UnitLayerNode) == 0x1C);
 // Two slots: 0 Set (the block's levels replace the map's) and 1 Merge (the map keeps the larger
 // level), _purecall in the base vtable 0073FD7C. The small-unit layer (vtable 0073FD74) writes
 // AIMapCell::level (unsigned maximum), the large-unit one (vtable 0073FD6C) the signed bytes of
-// CAIMap::waterDepth; their bodies are the __fastcall functions in ai_unit_layer.h, registered by
+// CAIMap::waterDepth; their bodies are the SetSmall / MergeSmall / SetLarge / MergeLarge members below, registered by
 // address. The game builds the layers (the AI map's constructor stores the vtables), so the class
 // is novtable and the slots are only declared.
 class __declspec(novtable) CUnitLayer {
 public:
+    // The bodies of the derived layers' slots 0 (Set: the block's levels replace the map's) and 1 (Merge:
+    // the map keeps the larger level), registered by address (ai_unit_layer.cpp). The small-unit layer
+    // (vtable 0073FD74) writes AIMapCell::level (unsigned maximum), the large-unit one (vtable 0073FD6C)
+    // the signed bytes of CAIMap::waterDepth.
+    void SetSmall(const UnitLayerNode* block);     // 005B39D0
+    void MergeSmall(const UnitLayerNode* block);   // 005B3A70
+    void SetLarge(const UnitLayerNode* block);     // 005B3B20
+    void MergeLarge(const UnitLayerNode* block);   // 005B3B90
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FD7C);
     static constexpr std::uintptr_t kSmallVtableAddress = std::uintptr_t(0x0073FD74);
     static constexpr std::uintptr_t kLargeVtableAddress = std::uintptr_t(0x0073FD6C);

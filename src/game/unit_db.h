@@ -279,9 +279,8 @@ static_assert(offsetof(UnitDatabase, levels) == 0x60);
 static_assert(sizeof(UnitDatabase) == 0x80);
 
 // unit_stat_small.cpp (A-U12). 00539280 (thiscall on the model table's vector, RET 4) / 0053AD30
-// (thiscall on the prototype table, RET 4): record `index`, or null past the end.
+// (UnitPrototypeTable::At; thiscall on the prototype table, RET 4): record `index`, or null past the end.
 UnitModelRecord* __fastcall UnitModelAt(UnitModelRecord** models, void*, std::uint32_t index);
-UnitPrototypeRecord* __fastcall UnitPrototypeAt(UnitPrototypeTable* table, void*, std::uint32_t index);
 
 // The skill (perk) database (global 007AF268; loaded from "perks.pdb" at startup by 00520220,
 // Rebirth-patched): the skills, then the skill level records (three per skill: levels 1..3).
