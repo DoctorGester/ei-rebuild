@@ -198,7 +198,7 @@ void CEffectMoshka::Update(float now) {
                            StoreFloat(target.z - birdAt.z)};
         float dx = target.x - birdAt.x;
         float dy = target.y - birdAt.y;
-        if (!(dy * dy + dx * dx >= kNearSquared)) {   // close (or NaN): start circling from here
+        if (!(LengthSquared2DUnrounded(dy, dx) >= kNearSquared)) {   // close (or NaN): start circling from here
             double heading = std::atan2(-toFollowed.x, static_cast<double>(toFollowed.y));
             state_ = kCircling;
             timer_ = kCirclingFrames;
@@ -208,7 +208,7 @@ void CEffectMoshka::Update(float now) {
         // Approach the point 1.5 to the side of the followed object, 3.2 above it.
         float sideX = toFollowed.y;
         float sideY = StoreFloat(-toFollowed.x);
-        float scale = kCircleRadius / std::sqrt(sideY * sideY + sideX * sideX);
+        float scale = kCircleRadius / std::sqrt(LengthSquared2DUnrounded(sideY, sideX));
         target.x = StoreFloat(target.x + StoreFloat(scale * sideX));
         target.y = StoreFloat(target.y + StoreFloat(scale * sideY));
         target.z = StoreFloat(kCircleHeight + target.z);
@@ -220,12 +220,12 @@ void CEffectMoshka::Update(float now) {
     float floor = StoreFloat(WorldClient()->platforms_.SurfaceHeight(&ground, static_cast<float>(raw)) + kClearance);
     float z = !(target.z >= floor) ? floor : target.z;
     Vector3 move{StoreFloat(target.x - birdAt.x), StoreFloat(target.y - birdAt.y), StoreFloat(z - birdAt.z)};
-    float distance = StoreFloat(std::sqrt(move.z * move.z + move.y * move.y + move.x * move.x));
+    float distance = StoreFloat(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
     if (!SameOrNaN(distance, 0.0f)) {
         float gx = birdAt.x - followed.x;
         float gy = birdAt.y - followed.y;
         float gz = birdAt.z - followed.z;
-        double range = std::sqrt(std::sqrt(gz * gz + gy * gy + gx * gx));
+        double range = std::sqrt(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(gx, gy, gz)));
         double speed = (range * kSpeedFactor + kSpeedBase) * frames;
         if (distance > speed) {
             double scale = speed / distance;

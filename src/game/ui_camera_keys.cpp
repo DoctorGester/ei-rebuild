@@ -66,21 +66,21 @@ void CCameraInput::OnKeyDown(int, int, int flags) {
         break;
     }
     if (!handled_) return;
-    float direction[3] = {0.0f, 0.0f, 0.0f};
+    Vector3 direction = {0.0f, 0.0f, 0.0f};
     if (!ModifierHeld(interface_)) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.
         float left = -x_;
         float speed = Store(D(GameFloat(0x0079BDC0)) * D(GameFloat(0x0079BDB8)));
-        direction[0] = Store(D(y_) * D(speed));
-        direction[1] = Store(D(left) * D(speed));
-        Camera()->Pan(direction);
+        direction.x = Store(D(y_) * D(speed));
+        direction.y = Store(D(left) * D(speed));
+        Camera()->Pan(&direction);
         Camera()->SetTurnRate(0.0f);
         Camera()->SetUnknownD0(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
         Camera()->SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
-    Camera()->Pan(direction);
+    Camera()->Pan(&direction);
     Camera()->SetTurnRate(Store(D(GameFloat(0x0079BDCC)) * D(GameFloat(0x0079BDC4)) * D(y_)));
     Camera()->SetUnknownD0(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
     Camera()->SetTiltRate(

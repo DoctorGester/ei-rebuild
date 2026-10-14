@@ -169,7 +169,7 @@ const float* PositionOf(CEngineObject* object) { return &MapObject(object)->posi
 bool OutOfView(const float* point, const CPlayerServer* state) {
     double dx = static_cast<double>(point[0]) - state->lastPosition_.x;
     double dy = static_cast<double>(point[1]) - state->lastPosition_.y;
-    double distance = dy * dy + dx * dx;
+    double distance = LengthSquared2DUnrounded(dy, dx);
     double range = static_cast<double>(ViewRange()) * ViewRange();
     return distance >= range;
 }
@@ -251,7 +251,7 @@ CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, C
         const Vector3* position = TimedSlots(object)->Position(&state->partyUnits_);
         double dx = static_cast<double>(position->x) - state->lastPosition_.x;
         double dy = static_cast<double>(position->y) - state->lastPosition_.y;
-        float distance = StoreFloat(static_cast<float>(dy * dy + dx * dx));
+        float distance = StoreFloat(static_cast<float>(LengthSquared2DUnrounded(dy, dx)));
         float reach = StoreFloat(static_cast<float>(TimedSlots(object)->Radius()));
         double reach2 = TimedSlots(object)->Radius() * reach;
         if (reach2 > distance) *out++ = object;

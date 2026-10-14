@@ -315,3 +315,34 @@ __forceinline T DistanceSquaredXYUnrounded(const Vector3& a, const Vector3& b) {
 }
 
 #pragma float_control(pop)
+
+#pragma float_control(precise, off, push)
+// V3d: the same for scalar operands and 3-term sums. The operands are converted to T first
+// (`double` reproduces the precise files' D(a) * b), nothing is stored. 3-term sums name their
+// grouping as above; inlined, the sum is the caller's written-out expression, so use them only where
+// the object code stays the same (docs/notes/vector-math.md, "V3 status").
+
+// x * x2 + y * y2: a 2D dot of scalar operands (also two quaternion component pairs).
+template <typename T>
+__forceinline T Dot2DUnrounded(T x, T y, T x2, T y2) { return x * x2 + y * y2; }
+
+// The grouped sum x * x2 + y * y2 + z * z2.
+template <Sum3 O, typename T>
+__forceinline T DotUnrounded(T x, T y, T z, T x2, T y2, T z2) {
+    if constexpr (O == Sum3::XYZ) return (x * x2 + y * y2) + z * z2;
+    else if constexpr (O == Sum3::ZYX) return (z * z2 + y * y2) + x * x2;
+    else return (z * z2 + x * x2) + y * y2;
+}
+
+// The grouped sum of squares x * x + y * y + z * z.
+template <Sum3 O, typename T>
+__forceinline T LengthSquaredUnrounded(T x, T y, T z) { return DotUnrounded<O, T>(x, y, z, x, y, z); }
+
+// The Vector3 forms (T explicit: LengthSquaredUnrounded<Sum3::XYZ, double>(v)).
+template <Sum3 O, typename T>
+__forceinline T DotUnrounded(const Vector3& a, const Vector3& b) { return DotUnrounded<O, T>(a.x, a.y, a.z, b.x, b.y, b.z); }
+
+template <Sum3 O, typename T>
+__forceinline T LengthSquaredUnrounded(const Vector3& v) { return DotUnrounded<O, T>(v.x, v.y, v.z, v.x, v.y, v.z); }
+
+#pragma float_control(pop)

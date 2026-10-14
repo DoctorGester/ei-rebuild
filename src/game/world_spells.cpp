@@ -194,7 +194,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
                 double dz = static_cast<double>(to->z) - static_cast<CUnit*>(unit)->position.z;
                 double dy = static_cast<double>(to->y) - static_cast<CUnit*>(unit)->position.y;
                 double dx = static_cast<double>(to->x) - static_cast<CUnit*>(unit)->position.x;
-                double distance = dx * dx + dy * dy + dz * dz;
+                double distance = LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz);
                 float bestDistance;
                 std::memcpy(&bestDistance, &bestBits, 4);
                 if (!(distance >= bestDistance)) {

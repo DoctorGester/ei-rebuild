@@ -35,7 +35,7 @@ __declspec(naked) inline CUnit* __fastcall HoverObjectAt(void*, void*, const int
 __declspec(naked) inline CUnit* __fastcall WorldUnitAtPointOriginal(void* /*world*/, void*, int* /*point*/)
     EI_ORIGINAL(0x00565E40)
 __declspec(naked) inline void __fastcall ClientSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
-__declspec(naked) inline float* __fastcall HoverPickSurface(void*, void*, float*, int, int) EI_ORIGINAL(0x0056C350)
+__declspec(naked) inline Vector3* __fastcall HoverPickSurface(void*, void*, Vector3*, int, int) EI_ORIGINAL(0x0056C350)
 __declspec(naked) inline void __fastcall CountedRelease(void*, void*, int) EI_ORIGINAL(0x00575510)
 // 00512030 (library: STLport list<id>::erase(iterator), the client's selection list +0x7BC; thiscall, RET 8: the result
 // slot, the node).
