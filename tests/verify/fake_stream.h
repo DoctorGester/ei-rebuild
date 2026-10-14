@@ -17,7 +17,7 @@ public:
     FakeStream() {
         reading_ = 0;
         ok_ = 1;
-        unknown_6[0] = unknown_6[1] = 0;
+        unused_6[0] = unused_6[1] = 0;
         version_ = 2000000000;
     }
     void Seek(std::uint32_t) override {}

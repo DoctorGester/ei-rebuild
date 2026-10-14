@@ -16,6 +16,7 @@
 // Every game function is called through its address, so hooks and verify wrappers on the callees
 // keep running. Rebirth patches the original (NivalRegistry), so this body runs in the vanilla
 // launch only. See docs/notes/app.md ("WinMain").
+#include "device.h"   // the old device's calls
 #include "app.h"
 #include "app_helpers.h"
 #include "camera.h"
@@ -452,15 +453,15 @@ DWORD CreateRenderer() {
     DDSCAPS2 caps = {};
     DWORD total = 0, free = 0;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY;
-    static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_)->GetAvailableVidMem(&caps, &total, &free);
+    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_), &caps, &total, &free);
     DWORD other = free;
     caps.dwCaps = DDSCAPS_TEXTURE;
-    static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_)->GetAvailableVidMem(&caps, &total, &free);
+    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_), &caps, &total, &free);
     LittleTextureMemory() = free <= kLittleMemory;
     if (free < other) other -= free;
     LittleOtherMemory() = other <= kLittleMemory;
     caps.dwCaps = DDSCAPS_VIDEOMEMORY | DDSCAPS_NONLOCALVIDMEM;
-    static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_)->GetAvailableVidMem(&caps, &total, &free);
+    device::GetAvailableVidMem(static_cast<IDirectDraw7*>(RenderDeviceObject()->ddraw_), &caps, &total, &free);
     LittleNonLocalMemory() = free <= kLittleMemory;
     DeviceNamed() = options->driverIndex_ != 0;
     RendererSetGammaAt(static_cast<CSceneRenderer*>(SceneContext()), nullptr, options->brightness_, options->contrast_, options->gamma_);
@@ -548,7 +549,7 @@ void TakeActivationChange() {
         if (static_cast<CSceneRenderer*>(SceneContext())->flags_ & 2) {
             CTextureDevice* device = RenderDeviceObject();
             gameapi::EnterCriticalSection(DeviceLock());
-            device->lastLoadResult_ = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
+            device->lastLoadResult_ = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
             gameapi::LeaveCriticalSection(DeviceLock());
         }
         static_cast<CSceneRenderer*>(DisplayObject())->flags_ |= 1;

@@ -103,9 +103,9 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->loop = 1;
     self->flags = 0;
     self->guardRadius = 10.0f;
-    self->unknown_30 = -1.0f;
+    self->field0A = -1.0f;
     self->alarmKind = 0;
-    self->unknown_38 = 0;
+    self->enabled = 0;
     self->alertMode = 0;
     self->callRadius = *reinterpret_cast<const std::uint32_t*>(0x0073C378);
     self->alarmDelay = 75;
@@ -192,9 +192,9 @@ void __fastcall WaypointChunkOnChunk(TargetChunk* self) {
     Chunk& c = self->chunk;
     switch (c.id_) {
     case 0xBBBE0001: ReadVector(c, static_cast<Waypoint*>(self->target)->position); break;
-    case 0xBBBE0002: w->unknown_10 = static_cast<std::int16_t>(c.ReadInt()); break;
+    case 0xBBBE0002: w->lookWait = static_cast<std::int16_t>(c.ReadInt()); break;
     case 0xBBBE0003: static_cast<Waypoint*>(self->target)->wait = c.ReadFloat(); break;
-    case 0xBBBE0004: static_cast<Waypoint*>(self->target)->unknown_12 = c.ReadByte(); break;
+    case 0xBBBE0004: static_cast<Waypoint*>(self->target)->stopFirst = c.ReadByte(); break;
     default: break;
     }
 }
@@ -234,14 +234,14 @@ void __fastcall BehaviourChunkOnChunk(TargetChunk* self) {
     case 0xBBBC0004: b->guardRadius = c.ReadFloat(); break;
     case 0xBBBC0005: ReadVector(c, b->guard); break;
     case 0xBBBC0006: b->alarmKind = c.ReadByte(); break;
-    case 0xBBBC0007: b->unknown_38 = c.ReadByte(); break;
+    case 0xBBBC0007: b->enabled = c.ReadByte(); break;
     case 0xBBBC0008:
         if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 1) b->alarm = 1;
         break;
     case 0xBBBC0009:
         if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 2) b->alarm = 2;
         break;
-    case 0xBBBC000A: b->unknown_30 = c.ReadFloat(); break;
+    case 0xBBBC000A: b->field0A = c.ReadFloat(); break;
     case 0xBBBC000B: b->alertMode = c.ReadByte(); break;
     case 0xBBBC000C: {
         float f = c.ReadFloat();
@@ -282,9 +282,9 @@ void __fastcall BehaviourWrite(TargetChunk* self) {
     c.WriteByte(0xBBBC000D, static_cast<std::uint8_t>((b->flags >> 3) & 1));
     c.WriteInt(0xBBBC0003, b->type);
     c.WriteFloat(0xBBBC0004, Bits(b->guardRadius));
-    c.WriteFloat(0xBBBC000A, Bits(b->unknown_30));
+    c.WriteFloat(0xBBBC000A, Bits(b->field0A));
     WriteVector(c, 0xBBBC0005, b->guard);
-    c.WriteByte(0xBBBC0007, static_cast<std::uint8_t>(b->unknown_38));
+    c.WriteByte(0xBBBC0007, static_cast<std::uint8_t>(b->enabled));
     c.WriteByte(0xBBBC0006, static_cast<std::uint8_t>(b->alarmKind));
     TargetChunk patrolChunk;
     patrolChunk.chunk.Construct(nullptr);
@@ -304,9 +304,9 @@ void __fastcall BehaviourWrite(TargetChunk* self) {
             waypointChunk.target = w;
             waypointChunk.chunk.BeginWrite(0xBBBE0000);
             WriteVector(waypointChunk.chunk, 0xBBBE0001, w->position);
-            waypointChunk.chunk.WriteInt(0xBBBE0002, w->unknown_10);
+            waypointChunk.chunk.WriteInt(0xBBBE0002, w->lookWait);
             waypointChunk.chunk.WriteFloat(0xBBBE0003, Bits(w->wait));
-            waypointChunk.chunk.WriteByte(0xBBBE0004, static_cast<std::uint8_t>(w->unknown_12));
+            waypointChunk.chunk.WriteByte(0xBBBE0004, static_cast<std::uint8_t>(w->stopFirst));
             waypointChunk.chunk.EndWrite();
         }
         patrolChunk.chunk.EndWrite();
@@ -325,12 +325,12 @@ UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
     VectorConstruct(self->behaviour, sizeof(Behaviour), 5, kBehaviourConstruct, kBehaviourDestruct);
     new (&self->prototype) mfc::CString();
     for (mfc::CStringArray& list : self->lists) list.Construct();
-    self->unknown_320 = 0;
+    self->field0A = 0;
     SetVtable(self, kUnitVtable);
     self->object.base.kind = 5;
     self->prototype = reinterpret_cast<const char*>(0x007846F0);   // "none"
     self->behaviours = 0;
-    self->behaviour[0].unknown_38 = 1;
+    self->behaviour[0].enabled = 1;
     std::memset(self->stats, 0, sizeof(self->stats));
     return self;
 }
@@ -390,7 +390,7 @@ EI_REPLACE(0x0046C4D0, UnitSpecApply);
 void __fastcall UnitSpecSave(UnitSpec* self) {
     Chunk& c = self->object.base.chunk;
     c.BeginWrite(0xBBBB0000);
-    c.WriteByte(0xBBBB000A, static_cast<std::uint8_t>(self->unknown_320));
+    c.WriteByte(0xBBBB000A, static_cast<std::uint8_t>(self->field0A));
     c.WriteString(0xBBBB0002, self->prototype);
     for (int i = 4; i >= 0; --i) c.WriteStringArray(0xBBBB0005 + i, &self->lists[i]);
     c.WriteBlob(0xBBBB0004, self->stats, sizeof(self->stats));
@@ -421,7 +421,7 @@ void __fastcall UnitSpecOnChunk(UnitSpec* self) {
     case 0xBBBB0007:
     case 0xBBBB0008:
     case 0xBBBB0009: c.ReadStringArray(&self->lists[c.id_ - 0xBBBB0005]); break;
-    case 0xBBBB000A: self->unknown_320 = c.ReadByte(); break;
+    case 0xBBBB000A: self->field0A = c.ReadByte(); break;
     case 0xBBBC0000: {
         TargetChunk reader;
         reader.chunk.Construct(nullptr);
@@ -516,10 +516,10 @@ void Behaviour::Read(void* stream) {
     }
     StreamRead(stream, &guard, 12);
     StreamRead(stream, &loop, 4);
-    StreamRead(stream, &this->flags, 4);
+    StreamRead(stream, &flags, 4);
     StreamRead(stream, &guardRadius, 4);
     StreamRead(stream, &alarmKind, 4);
-    StreamRead(stream, &unknown_38, 4);
+    StreamRead(stream, &enabled, 4);
     StreamRead(stream, &callRadius, 4);
     StreamRead(stream, &alertMode, 4);
     StreamRead(stream, &alarmDelay, 4);
@@ -550,7 +550,7 @@ void Behaviour::Write(void* stream) {
     std::uint32_t value;
     for (const void* field : {static_cast<const void*>(&loop), static_cast<const void*>(&flags),
                               static_cast<const void*>(&guardRadius), static_cast<const void*>(&alarmKind),
-                              static_cast<const void*>(&unknown_38), static_cast<const void*>(&callRadius)}) {
+                              static_cast<const void*>(&enabled), static_cast<const void*>(&callRadius)}) {
         std::memcpy(&value, field, 4);
         StreamWrite(stream, &value, 4);
     }

@@ -400,9 +400,9 @@ BOOL CItemConstructor::Build() {
     if (record) DeleteRecord(record);
 
     if (material)
-        item_->unknown_18 = (material->number & 0xFFFF) | index << 16;
+        item_->prototypeId_ = (material->number & 0xFFFF) | index << 16;
     else
-        item_->unknown_18 = index << 16;
+        item_->prototypeId_ = index << 16;
     item_->count_ = static_cast<std::uint32_t>(count_);
     return 1;
 }

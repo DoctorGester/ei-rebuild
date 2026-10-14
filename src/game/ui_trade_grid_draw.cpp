@@ -22,7 +22,6 @@ namespace {
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
 
-constexpr int kD3DClear = 10;               // IDirect3DDevice7::Clear
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
@@ -38,17 +37,12 @@ struct SurfaceText {
 };
 int SurfaceText::Draw(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
-
 // IDirect3DDevice7::Clear of the depth buffer (and the stencil when the device has one) over
 // `rect` to `z`, result in the renderer's +8; handed to the new renderer too.
 void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
     unsigned long flags = (renderer->caps_ & 0x4000) && renderer->stencil_ ? 6ul : 2ul;
     gameapi::EnterCriticalSection(DeviceLock());
-    renderer->result_ = ComCall(renderer->device_, kD3DClear, 1ul, rect, flags, 0ul, z, 0ul);
+    renderer->result_ = renderer->device_->Clear(1ul, rect, flags, 0ul, z, 0ul);
     gameapi::LeaveCriticalSection(DeviceLock());
     render::Rect nr{rect->left, rect->top, rect->right, rect->bottom};
     render::ClearDepth(z, &nr, 1);

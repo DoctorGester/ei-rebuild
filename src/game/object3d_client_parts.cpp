@@ -68,7 +68,7 @@ T* NewZeroed() {
 
 // `part` taken out of the group that holds it (the tail moved down) and released: true, or false
 // when no group of either set holds it (slots 14 / 15 share the loop).
-bool RemoveFromGroups(CObject3DClientSpecific* self, FigurePart* part) {
+bool RemoveFromGroups(CObject3DClientSpecific* self, CFigureMesh* part) {
     for (int k = 0; k < 2; ++k) {
         TextureParts* set = self->partSets[k];
         if (!set) continue;
@@ -304,9 +304,9 @@ CMaterial* CObject3DClientSpecific::FindOrAddMaterial(int textureKind, int mater
 }
 EI_REPLACE_METHOD(0x0051B470, CObject3DClientSpecific::FindOrAddMaterial);
 
-int CObject3DClientSpecific::PartAdded(FigurePart* part) {
-    int materialKind = static_cast<int>(part->piece158);
-    int textureKind = static_cast<int>(part->piece15C);
+int CObject3DClientSpecific::PartAdded(CFigureMesh* part) {
+    int materialKind = static_cast<int>(part->materialValue_);
+    int textureKind = static_cast<int>(part->meshType_);
     bool known = false;
     for (int i = 0; i < textures.size; ++i) {
         if (textures[i]->type_ != textureKind) continue;
@@ -335,11 +335,11 @@ int CObject3DClientSpecific::PartAdded(FigurePart* part) {
 }
 EI_REPLACE_METHOD(0x0051B050, CObject3DClientSpecific::PartAdded);
 
-int CObject3DClientSpecific::PartRemoved(FigurePart* part) { return RemoveFromGroups(this, part) ? 1 : 0; }
+int CObject3DClientSpecific::PartRemoved(CFigureMesh* part) { return RemoveFromGroups(this, part) ? 1 : 0; }
 EI_REPLACE_METHOD(0x0051B160, CObject3DClientSpecific::PartRemoved);
 
-FigurePart* CObject3DClientSpecific::RemovePartNamed(const char* name) {
-    FigurePart* part = AsSpecific()->FindPart(name);
+CFigureMesh* CObject3DClientSpecific::RemovePartNamed(const char* name) {
+    CFigureMesh* part = AsSpecific()->FindPart(name);
     if (!part) return nullptr;
     return RemoveFromGroups(this, part) ? part : nullptr;
 }

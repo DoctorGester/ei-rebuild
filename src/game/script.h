@@ -199,7 +199,7 @@ using ScriptPos = ScriptTokenList::Node*;
 // A named area for IsInArea (AddRectToArea / AddRoundToArea): one element of the area's array.
 struct ScriptAreaPart {
     std::uint8_t isRect;
-    std::uint8_t unknown_01[3];
+    std::uint8_t unused_01[3];
     float x;        // rectangle: x1, y1, x2, y2; circle: centre x, y and radius squared
     float y;
     float x2OrRadiusSquared;
@@ -976,7 +976,7 @@ struct QuestTable {
     // find_or_insert 004CE110 on a {name, null} pair) leaves a null entry for a missing name.
     void* Find(const char* name);
 
-    std::uint8_t unknown_00[0x0C];
+    std::uint8_t unused_00[0x0C];
     Map byName;             // +0x0C
 };
 static_assert(offsetof(QuestTable, byName) == 0x0C);

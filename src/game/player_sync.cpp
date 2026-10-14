@@ -52,7 +52,7 @@ const char* TextNoHandler() { return reinterpret_cast<const char*>(0x00794EDC); 
 const char* TextHandlerFailed() { return reinterpret_cast<const char*>(0x00794EA4); }
 const char* TextUnknownType() { return reinterpret_cast<const char*>(0x00794E7C); }
 
-constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::unknown24_
+constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::possessedId_
 
 // The brain embedded in a unit's controller (CUnitServer + 0x980).
 AIBrain* BrainOf(CUnit* unit) { return &static_cast<CUnitServer*>(unit->controller)->brain; }
@@ -163,7 +163,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         auto* object = static_cast<CMapObject*>(*next++);
         bool isUnit = object->GetClassId() == world::kClassUnit;
         std::uint32_t header[4] = {static_cast<std::uint32_t>(object->id_), static_cast<std::uint32_t>(object->type_),
-                                   object->unknown_18, object->flags_};
+                                   object->prototypeId_, object->flags_};
         WriteByte(&out_, kMessageObjectAdded);
         out_.Write(header, sizeof(header));
         Vector3 scale;
@@ -288,7 +288,7 @@ int CPlayerServer::SendPartyState() {
     int count = partyUnits_.size;
     WriteByte(&out_, kMessagePartyState);
     WriteByte(&out_, static_cast<CWorldServer*>(player->ManagerContext())->paused_ != 0 ? 1 : 0);
-    WriteDword(&out_, unknown24_);
+    WriteDword(&out_, possessedId_);
     WriteDword(&out_, static_cast<std::uint32_t>(count));
     std::uint32_t playerBit = 1u << (player->playerId_ & 31);
     for (int i = 0; i < count; ++i) {
@@ -395,7 +395,7 @@ void CPlayerServer::UpdatePartyUnits() {
     party.vtable = scriptvtable::kRefs;
     GroupAssignOriginal(&party, nullptr, &group50F8_);
     CPlayer::ObjectMap& units = Owner()->units_;
-    if (unknown24_ == kNoPartyCopy) {
+    if (possessedId_ == kNoPartyCopy) {
         for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
             auto* unit = static_cast<CUnit*>(node->value);
             party.Insert(unit);
@@ -415,7 +415,7 @@ void CPlayerServer::UpdatePartyUnits() {
             partyUnits_.data[i].Construct(copy);
             copy.Reset();
         }
-        unknown24_ = kNoPartyCopy;
+        possessedId_ = kNoPartyCopy;
     }
     party.vtable = scriptvtable::kRefsBase;
     if (party.data != nullptr) {

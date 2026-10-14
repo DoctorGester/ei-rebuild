@@ -77,7 +77,7 @@ long ComCall(void* object, int slot, Args... args) {
 // The sound system (the global at 007AF784; also the loading screen's owner): +0x1C the Miles
 // driver handle.
 struct SoundSystem {
-    std::uint8_t unknown_00[0x1C];
+    std::uint8_t unused_00[0x1C];
     int milesDriver;            // +0x1C
 };
 
@@ -85,9 +85,9 @@ struct SoundSystem {
 struct LoadingMovie {
     CDXSurface* holder;         // 007C551C
     RECT screen;                // 007C5520
-    std::uint8_t unknown_14[0x30 - 0x14];
+    std::uint8_t unused_14[0x30 - 0x14];
     char off;                   // 007C554C
-    std::uint8_t unknown_31[3];
+    std::uint8_t unused_31[3];
     BinkHeader* bink;           // 007C5550
     unsigned surfaceType;       // 007C5554
 };

@@ -48,7 +48,7 @@ class CCamera;   // camera.h
 class CMaterial;   // material.h
 class CStream;   // core_streams.h
 class CParticleManager;   // effects.h
-struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
+struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
 class CWorldServer;
@@ -106,7 +106,7 @@ struct WorldPlayer {
     // on joining (AcceptNewPlayers); 1: the flow applies the server's variables by stamp.
     std::uint32_t sessionKind;
     int lastScreen;                      // +0x104 the interface screen it comes from (5: the camp)
-    // +0x108 the script's GodMode(player, on) (CPlayer::unknown_108; the combat code tests it).
+    // +0x108 the script's GodMode(player, on) (CPlayer::godMode_; the combat code tests it).
     // Saved with the world (one byte).
     std::uint8_t godMode;
     std::uint8_t unused_109[0x10C - 0x109];

@@ -279,7 +279,7 @@ __declspec(naked) void __fastcall CountedAddTail(void*, void*, CEngineObject*) E
 CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
     // The original also builds and frees two empty CPtrLists (vtable 0073B8D4) here, unused.
     auto* source = static_cast<CItem*>(item);
-    std::uint32_t packed = source->unknown_18;
+    std::uint32_t packed = source->prototypeId_;
     int type = source->type_;
     CEngineObject* factory = ItemFactory();
     CEngineObject* copy = FactoryMakeItem(factory, nullptr, type, static_cast<int>(packed >> 16),

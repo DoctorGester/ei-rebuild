@@ -88,3 +88,48 @@ reads it"; gaps of view structs take the real class's member names.
 - `ChannelLayout` +0x00 `bitCount` is read by the texture upload's size but never written, so that size is
   always 0 (the original's behaviour, kept).
 
+
+## F4a: view structs folded into their classes (2026-10-14)
+
+Each layout now has one declaration:
+- `FigurePart` (map_object_figures.h) is `CFigureMesh`, and `CFigureMesh` now derives from `CTransformObject`
+  (CEngineObject +0x00..0x1B, local/world position and rotation +0x1C..0x53). Its own slot bodies have new names
+  so none of them overrides a base virtual (EI_REPLACE_METHOD would then register a vcall thunk): slot 2 is
+  `CreateMesh` (0059F210), slot 18 `CopyFigure` (0059F0F0), and 0059F3D0 is `SetObject`. The CObject3D pointer at
+  +0x98 is `object_`. The +0x94 drawer is `FigureMeshDrawer`, not CLinkMesh, though both have the screen RECT at
+  +0x20. Box fields +0x160..0x1B3 are `bounds_` (ClipBounds) and +0x1B4 is `boxPivot_`. `using FigurePart =
+  CFigureMesh` stays only for ui_model.cpp, player_client.cpp and verify_ui_model.cpp (W2 / F5 had them open).
+- `FigurePieceRecord` is `LinkHeaderMap::Node`, whose `second` is `LinkPartHeader` (node 0x6C bytes, header at
+  +0x1C, bounds +0x24, pivot +0x50, the same offsets the record used).
+- `FigureMaterial` and `SceneHelper` are `CMaterial`. Ghidra: 00454E40 builds 0x27-dword elements with
+  `CMaterial::Construct` (0068DBC0). The helper colour setters are `MaterialSetDiffuse / Ambient / Specular`.
+- `TerrainFields` is `Terrain`, `TerrainSector` is `terrain::SectorData`, and the bounds file's local `LineBatch`
+  is renderer_lines.h's. `TileUv` and `SurfaceClass` are now `Terrain` members.
+- ui_flying_hit_points.cpp got a one-line rename (`part->drawer_->screen_`) although it is W2's area.
+
+Release objects were compared with dumpbin (function by function, hook numbers and names normalized). Eleven
+objects differ, all in names, commuted FADD operands, instruction scheduling, a helper that is now inlined
+(`AsObject`, `FreeBlock`), or unreferenced inline COMDATs (`ei::SetVtable`, an `AlignedArray::operator[]`).
+
+## F4c: CFigureInstance folded into CLinkMesh (2026-10-14)
+
+`CFigureInstance` (map_object_figures.h) was a view of the figure a CObject3D holds at +0xF0. Every offset it used
+matches CLinkMesh (link_figure.h, vtable 0073D790): refCount +0x04 (`refCount_`), the piece map +0x14 (`headers_`),
+slot 0 the deleting destructor (`DeleteThis`). Its slot 4 `HasPiece` is CLinkMesh slot 4 `LoadPart` (004F30D0):
+Ghidra shows 00517240 calling `[vtable+0x10]` on the figure, which loads the piece through the loader (004F7480)
+unless the mesh has it; the local in CObject3D::LoadPart is now `loaded`. The view is gone:
+- `CObject3D::figure` is `CLinkMesh*`; `CountedRef` (00519580 and its copies) holds a `CLinkMesh*` and releases it
+  through `DeleteThis(1)`. CObject3D's destructor body and Create3D do the same.
+- `CFigureCache` slots 3, 4 and 6 return (and slot 6 takes) `CLinkMesh*`. The cache itself is still a view of
+  CLinkFigureLoader (model.h): its scale arguments are float bits (see F4d).
+- map_object_shadow.cpp lost its two `reinterpret_cast<CLinkMesh*>(figure)`. figure_part_draw.cpp:681 still casts
+  `owner->figure` to the type it already has (left alone: not this ticket's file).
+No CLinkMesh virtual is replaced, so no slot name became an override.
+
+Release objects of the six files that touch the figure were compared with dumpbin (function by function, hook
+numbers and names normalized): identical. The first try reread `figure` after the slot 4 call in LoadPart (as the
+original does); a local keeps the old code.
+- map_object_client_effects.cpp: five locals `owner` (CompanionOwner(this)) renamed `mapObject`; since F4a they
+  hid CMapObjectCompanion::owner (C4458 warnings on main). Release object identical.
+- figure_mesh_life.cpp: `unknown_18` -> `prototypeId_` (main did not build: F4's rename met F4a's ConstructBase).
+- Follow-up F4d: CFigureCache into CLinkFigureLoader (float arguments to check), PieceNames, CountedRef as a template.

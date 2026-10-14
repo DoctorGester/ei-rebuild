@@ -56,9 +56,9 @@ void ServerSession::AnnounceToMaster() {
     stlp::string::Reserve(description, 8);
 
     name.Assign(name_.start, name_.finish);
-    info.unknown_1B = password_[0] != 0;
-    info.unknown_1C = unknown_25FC;
-    info.unknown_1A = static_cast<std::uint8_t>(kind_);
+    info.hasPassword = password_[0] != 0;
+    info.masterKey = masterKey_;
+    info.kind = static_cast<std::uint8_t>(kind_);
     const char* empty = game::EmptyText();
     description.Assign(empty, empty + std::strlen(empty));
     CRefObject* map = map_.ptr;
@@ -71,7 +71,7 @@ void ServerSession::AnnounceToMaster() {
     }
     info.players = static_cast<std::uint8_t>(ClientCount());
     info.maxPlayers = static_cast<std::uint8_t>(maxPlayers_);
-    info.unknown_20 = unknown_2578;
+    info.masterToken = masterToken_;
     info.magic = kSessionMagic;
     info.Write(&buffer);
     socket_.SendTo(&masterAddress_, &buffer);
@@ -87,8 +87,8 @@ EI_REPLACE_METHOD(0x0041AA10, ServerSession::AnnounceToMaster);
 // +0x2578 (the next announcement sends it back). The first dword is consumed either way.
 void ServerSession::OnMaster(const NetAddress* from, BufferCursor* cursor) {
     if (std::memcmp(from, &masterAddress_, sizeof(NetAddress)) != 0) return;
-    if (TakeDword(cursor) != unknown_25FC) return;
-    unknown_2578 = TakeDword(cursor);
+    if (TakeDword(cursor) != masterKey_) return;
+    masterToken_ = TakeDword(cursor);
 }
 namespace {
 void __fastcall ServerOnMasterHook(ServerSession* self, void*, const NetAddress* from, BufferCursor* cursor) {

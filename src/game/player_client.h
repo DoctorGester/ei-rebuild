@@ -260,9 +260,9 @@ public:
     lib::AlignedArray<Handler> handlers_;
     BitStream in_;                  // +0x34 the server's messages being run
     BitStream out_;                 // +0x5C requests for the server
-    std::uint8_t unknown_84;
+    std::uint8_t localSession_;     // +0x84 a local session (LocalViewData::localSession): the game-state message only presses Enter
     std::uint8_t sendParty_;        // +0x85 the login sends the party first
-    std::uint8_t unknown_86[2];
+    std::uint8_t unused_86[2];
     CoderState compressor_;         // +0x88 for the requests sent
     CoderState decompressor_;       // +0x28B0 for the messages received
     // +0x50D8 the ids of the party's units (message 0x60; Clear frees it; the HUD's map and the client world's NearestVisibleUnit read them)

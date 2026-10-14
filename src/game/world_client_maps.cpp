@@ -762,7 +762,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unitId)));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
         auto* prototype = reinterpret_cast<std::uint8_t*>(UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, record->texts[5]));
-        unit->unknown_18 = static_cast<std::uint32_t>(
+        unit->prototypeId_ = static_cast<std::uint32_t>(
             prototype ? static_cast<int>(prototype - reinterpret_cast<std::uint8_t*>(unitdb::Prototypes().begin)) /
                             unitdb::kPrototypeSize
                       : -1);
@@ -1261,7 +1261,7 @@ int CWorldClient::Setup() {
         ei::SetVtable(texts, CEngineObject::kVtableAddress);
         texts->refCount_ = 0;
         texts->id_ = -1;
-        texts->unknown_18 = 0;
+        texts->prototypeId_ = 0;
         texts->type_ = 0;
         texts->flags_ = 0;
         texts->owner_ = nullptr;
@@ -1492,7 +1492,7 @@ int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream) {
             old->Release();
         }
         CEngineObject* object = manager->CreateObject(type, id);
-        object->unknown_18 = extra;
+        object->prototypeId_ = extra;
         object->Load(stream);
         ++object->refCount_;
     }
@@ -1540,7 +1540,7 @@ void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* str
         stream->Write(&id, 4);
         int type = object->type_;
         stream->Write(&type, 4);
-        std::uint32_t extra = object->unknown_18;
+        std::uint32_t extra = object->prototypeId_;
         stream->Write(&extra, 4);
         object->Save(stream);
     }

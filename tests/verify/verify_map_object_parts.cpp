@@ -34,7 +34,7 @@ void* s_unused;
 
 std::uintptr_t Address(const void* p) { return reinterpret_cast<std::uintptr_t>(p); }
 
-int IndexIn(const AlignedPtrArray& parts, const FigurePart* part) {
+int IndexIn(const AlignedPtrArray& parts, const CFigureMesh* part) {
     for (int i = 0; i < parts.size; ++i)
         if (parts.data[i] == part) return i;
     return -1;
@@ -47,7 +47,7 @@ struct RemovalCheck {
     int size = 0;
     void* next = nullptr;
 
-    void Before(const CObject3D* object, const FigurePart* part) {
+    void Before(const CObject3D* object, const CFigureMesh* part) {
         list = &object->parts;
         index = IndexIn(object->parts, part);
         if (index < 0) {
@@ -66,10 +66,10 @@ struct RemovalCheck {
 } // namespace
 
 // 00516A80: PUSH EBX; PUSH EBP; PUSH ESI; MOV EBP,[ESP+0x10] (7 bytes).
-static FigurePart*(__fastcall* s_findPartByPrefix)(CObject3D*, void*, const char*);
-static FigurePart* __fastcall FindPartByPrefixVerify(CObject3D* self, void*, const char* prefix) {
-    FigurePart* expected = s_findPartByPrefix(self, nullptr, prefix);
-    FigurePart* actual = self->FindPartByPrefix(prefix);
+static CFigureMesh*(__fastcall* s_findPartByPrefix)(CObject3D*, void*, const char*);
+static CFigureMesh* __fastcall FindPartByPrefixVerify(CObject3D* self, void*, const char* prefix) {
+    CFigureMesh* expected = s_findPartByPrefix(self, nullptr, prefix);
+    CFigureMesh* actual = self->FindPartByPrefix(prefix);
     ei::verify::Check("CObject3D::FindPartByPrefix", Address(expected), Address(actual), "object %d '%s'", self->id_,
                       prefix ? prefix : "");
     return actual;
@@ -77,10 +77,10 @@ static FigurePart* __fastcall FindPartByPrefixVerify(CObject3D* self, void*, con
 EI_VERIFY(0x00516A80, FindPartByPrefixVerify, 7, s_findPartByPrefix);
 
 // 005169A0: PUSH EBX; MOV EBX,[ESP+8] (5 bytes).
-static FigurePart*(__fastcall* s_findPart)(CObject3D*, void*, const char*);
-static FigurePart* __fastcall FindPartVerify(CObject3D* self, void*, const char* name) {
-    FigurePart* expected = s_findPart(self, nullptr, name);
-    FigurePart* actual = self->FindPart(name);
+static CFigureMesh*(__fastcall* s_findPart)(CObject3D*, void*, const char*);
+static CFigureMesh* __fastcall FindPartVerify(CObject3D* self, void*, const char* name) {
+    CFigureMesh* expected = s_findPart(self, nullptr, name);
+    CFigureMesh* actual = self->FindPart(name);
     ei::verify::Check("CObject3D::FindPart", Address(expected), Address(actual), "object %d '%s'", self->id_,
                       name ? name : "");
     return actual;
@@ -88,7 +88,7 @@ static FigurePart* __fastcall FindPartVerify(CObject3D* self, void*, const char*
 EI_VERIFY(0x005169A0, FindPartVerify, 5, s_findPart);
 
 // 005167E0. Ours only (releases the part).
-static int __fastcall RemovePartVerify(CObject3D* self, void*, FigurePart* part) {
+static int __fastcall RemovePartVerify(CObject3D* self, void*, CFigureMesh* part) {
     RemovalCheck check;
     check.Before(self, part);
     int result = self->RemovePart(part);
@@ -99,11 +99,11 @@ static int __fastcall RemovePartVerify(CObject3D* self, void*, FigurePart* part)
 EI_VERIFY(0x005167E0, RemovePartVerify, 0, s_unused);
 
 // 005168F0. Ours only (releases the part).
-static FigurePart* __fastcall RemovePartNamedVerify(CObject3D* self, void*, const char* name) {
-    FigurePart* found = self->FindPart(name);
+static CFigureMesh* __fastcall RemovePartNamedVerify(CObject3D* self, void*, const char* name) {
+    CFigureMesh* found = self->FindPart(name);
     RemovalCheck check;
     check.Before(self, found);
-    FigurePart* result = self->RemovePartNamed(name);
+    CFigureMesh* result = self->RemovePartNamed(name);
     bool ok = result == found && (!found || check.After(1));
     ei::verify::Check("CObject3D::RemovePartNamed", true, ok, "object %d '%s'", self->id_, name ? name : "");
     return result;
@@ -111,8 +111,8 @@ static FigurePart* __fastcall RemovePartNamedVerify(CObject3D* self, void*, cons
 EI_VERIFY(0x005168F0, RemovePartNamedVerify, 0, s_unused);
 
 // 005188B0: SUB ESP,0x60; PUSH ESI; LEA EDX,[ESP+0xC] (8 bytes).
-static float*(__fastcall* s_partWorldPosition)(CObject3D*, void*, float*, const FigurePart*);
-static float* __fastcall PartWorldPositionVerify(CObject3D* self, void*, float* out, const FigurePart* part) {
+static float*(__fastcall* s_partWorldPosition)(CObject3D*, void*, float*, const CFigureMesh*);
+static float* __fastcall PartWorldPositionVerify(CObject3D* self, void*, float* out, const CFigureMesh* part) {
     float expected[3];
     s_partWorldPosition(self, nullptr, expected, part);
     float* result = self->PartWorldPosition(out, part);

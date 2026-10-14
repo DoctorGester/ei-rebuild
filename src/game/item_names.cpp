@@ -95,24 +95,24 @@ mfc::CString PictureNameOf(const RecordTable& table, int stride, const char* con
 
 // --- Weapons and armors ---------------------------------------------------------------------------
 
-mfc::CString CItemWeapon::ModelName() { return ModelNameOf(Weapons(), kWeaponSize, kWeaponCodes, unknown_18); }
+mfc::CString CItemWeapon::ModelName() { return ModelNameOf(Weapons(), kWeaponSize, kWeaponCodes, prototypeId_); }
 
-mfc::CString CItemWeapon::FirstListName() { return FirstListNameOf(Weapons(), kWeaponSize, unknown_18); }
+mfc::CString CItemWeapon::FirstListName() { return FirstListNameOf(Weapons(), kWeaponSize, prototypeId_); }
 
 mfc::CString CItemWeapon::FigureName() { return HumanFigureName(this); }
 
 mfc::CString CItemWeapon::PictureName() {
-    return PictureNameOf(Weapons(), kWeaponSize, kWeaponCodes, kWeaponPicture, unknown_18);
+    return PictureNameOf(Weapons(), kWeaponSize, kWeaponCodes, kWeaponPicture, prototypeId_);
 }
 
-mfc::CString CItemArmor::ModelName() { return ModelNameOf(Armors(), kArmorSize, kArmorCodes, unknown_18); }
+mfc::CString CItemArmor::ModelName() { return ModelNameOf(Armors(), kArmorSize, kArmorCodes, prototypeId_); }
 
-mfc::CString CItemArmor::FirstListName() { return FirstListNameOf(Armors(), kArmorSize, unknown_18); }
+mfc::CString CItemArmor::FirstListName() { return FirstListNameOf(Armors(), kArmorSize, prototypeId_); }
 
 mfc::CString CItemArmor::FigureName() { return HumanFigureName(this); }
 
 mfc::CString CItemArmor::PictureName() {
-    return PictureNameOf(Armors(), kArmorSize, kArmorCodes, kArmorPicture, unknown_18);
+    return PictureNameOf(Armors(), kArmorSize, kArmorCodes, kArmorPicture, prototypeId_);
 }
 
 // 006A0CC0. The original formats the number into a 4-byte buffer just before the name buffer; a
@@ -158,7 +158,7 @@ mfc::CString CItemQuick::FigureName() {
     const char* prototype = GetPrototype();
     if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->materialClass)),
                                       reinterpret_cast<const unsigned char*>(kNoMaterial)) != 0) {
-        const char* material = Materials().At(MaterialIndex(unknown_18), kMaterialSize);
+        const char* material = Materials().At(MaterialIndex(prototypeId_), kMaterialSize);
         const char* materialName = material ? Material(material)->name : kUnknownMaterial;
         name.Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);
         return name;
@@ -186,7 +186,7 @@ mfc::CString CItemQuest::PictureName() {
 }
 
 mfc::CString CItemSpell::FigureName() {
-    const SpellRecord* prototype = SpellAt(PrototypeIndex(spell_->unknown_18));
+    const SpellRecord* prototype = SpellAt(PrototypeIndex(spell_->prototypeId_));
     mfc::CString name;
     name.Format(kSpellFigure, prototype->icon);
     return name;

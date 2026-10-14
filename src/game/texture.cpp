@@ -143,7 +143,7 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
     default: mipLevel_ = 3; break;
     }
     D3DDEVICEDESC7 desc;
-    long result = device::D3D(device_)->GetCaps(&desc);
+    long result = device::GetCaps(device::D3D(device_), &desc);
     device_->lastLoadResult_ = result;
     if (result != 0 && app::FatalErrorCode(result, CantGetDeviceDescriptionText()) == 0)
         limitTo512_ = 1;
@@ -153,7 +153,7 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
     std::memset(&caps, 0, sizeof(caps));
     caps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_LOCALVIDMEM;   // 0x10001000
     DWORD total = 0, available = 0;
-    device::DDraw(device_)->GetAvailableVidMem(&caps, &total, &available);
+    device::GetAvailableVidMem(device::DDraw(device_), &caps, &total, &available);
     videoMemoryTenth_ = total / 10;
 }
 EI_REPLACE_METHOD(0x006913A0, CTextureManager::SetDevice);

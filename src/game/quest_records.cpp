@@ -60,7 +60,7 @@ void SerializeRecords(ChunkArchive* ar, int id, stlp::vector<Record>* records, v
 void QuestRecord::Serialize(ChunkArchive* ar) {
     ar->StringField(0, &name);
     ar->Field(1, &exp, 4);
-    ar->Field(2, &unknown_10, 4);
+    ar->Field(2, &field2, 4);
     ar->Field(3, &zone, 4);
     ar->StringField(4, &text);
     ar->Field(5, &money, 4);
@@ -91,7 +91,7 @@ void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
     ArchiveCStringsOriginal(ar, nullptr, 3, &lists[0], ar);
     ar->StringField(4, &text);
     for (int i = 1; i < 6; ++i) InlineStrings(ar, 4 + i, &lists[i]);
-    ar->Field(10, &unknown_68, 4);
+    ar->Field(10, &field10, 4);
 }
 EI_REPLACE_METHOD(0x006AD900, QuestBriefingRecord::Serialize);
 

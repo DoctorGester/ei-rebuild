@@ -19,7 +19,6 @@
 namespace {
 
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
-constexpr int kD3DClear = 10;                    // IDirect3DDevice7::Clear
 constexpr std::uint32_t kClearZBuffer = 2;       // D3DCLEAR_ZBUFFER
 constexpr std::uint32_t kClearStencil = 4;       // D3DCLEAR_STENCIL
 constexpr std::uint32_t kCapsStencil = 0x4000;
@@ -47,11 +46,8 @@ struct SurfaceText {
 void ClearDepth(UiRenderer* renderer, RECT* rect, float z) {
     std::uint32_t flags = (renderer->caps_ & kCapsStencil) && renderer->stencil_ ? kClearZBuffer | kClearStencil
                                                                                     : kClearZBuffer;
-    using ClearFn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, RECT*, std::uint32_t, std::uint32_t, float,
-                                     std::uint32_t);
     gameapi::EnterCriticalSection(DeviceLock());
-    renderer->result_ = reinterpret_cast<ClearFn>(renderer->device_->vtable_[kD3DClear])(renderer->device_, rect ? 1 : 0, rect,
-                                                                                        flags, 0, z, 0);
+    renderer->result_ = renderer->device_->Clear(rect ? 1 : 0, rect, flags, 0, z, 0);
     gameapi::LeaveCriticalSection(DeviceLock());
     if (!rect) {
         render::ClearDepth(z, nullptr, 0);

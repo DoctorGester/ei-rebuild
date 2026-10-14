@@ -36,7 +36,7 @@ constexpr float kPulseFull = 30.0f;                   // 0073BAF0
 constexpr float kPulseScale = 0.06666667f;            // 0073DF6C, 1/15
 constexpr float kHalf = 0.5f;                         // 0073B86C
 constexpr float kPulseBase = 0.2f;                    // 0073BAD4
-constexpr std::uint32_t kPartTinted = 0x10;           // FigurePart::flags_
+constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 
 // 00535850 (unit_client_path.cpp, rewritten; through its game address so its wrapper sees the
 // call; RET 8). Places the unit on its path at `time`, turning by `rate`.

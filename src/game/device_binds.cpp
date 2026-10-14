@@ -58,7 +58,7 @@ int CTextureDevice::BindSurface(int stage, CDXSurface* holder) {
     if (stageSurfaces_[stage] == holder) return 1;
     stageSurfaces_[stage] = holder;
     FlushBatch();
-    lastLoadResult_ = device::D3D(this)->SetTexture(static_cast<DWORD>(stage), holder ? device::Surface(holder) : nullptr);
+    lastLoadResult_ = device::SetTexture(device::D3D(this), static_cast<DWORD>(stage), holder ? device::Surface(holder) : nullptr);
     ++textureChanges_;
     return 1;
 }

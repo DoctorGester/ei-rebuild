@@ -128,7 +128,7 @@ void SysInfoStartupCheck() {
 
     const bool object = result == ours && std::memcmp(theirs, ours, sizeof(void*)) == 0 && theirs->refCount_ == ours->refCount_ &&
                         theirs->flags_ == ours->flags_ && theirs->id_ == ours->id_ && theirs->type_ == ours->type_ &&
-                        theirs->owner_ == ours->owner_ && theirs->unknown_18 == ours->unknown_18;
+                        theirs->owner_ == ours->owner_ && theirs->prototypeId_ == ours->prototypeId_;
     const bool texts = std::strcmp(theirs->computerName_, ours->computerName_) == 0 &&
                        std::strcmp(theirs->userName_, ours->userName_) == 0 &&
                        std::strcmp(theirs->systemName_, ours->systemName_) == 0 &&

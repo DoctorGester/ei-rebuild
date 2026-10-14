@@ -15,6 +15,7 @@
 #include <dxgi1_2.h>
 #include <float.h>
 
+#include "../game/device_switchover.h"   // device::WithoutDirectDraw, SwitchOverRenderState
 #include "../game/texture.h"   // CTextureDevice, CDXSurface
 
 #include <cstdio>
@@ -585,7 +586,12 @@ void* OldDevice() {
 } // namespace
 
 // IDirect3DDevice7::GetRenderState (slot 21).
+// Without DirectDraw the switch-over device's states (device_switchover.h).
 void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int count) {
+    if (device::WithoutDirectDraw()) {
+        for (int i = 0; i < count; ++i) values[i] = device::SwitchOverRenderState(states[i]);
+        return;
+    }
     void* d3d = OldDevice();
     for (int i = 0; i < count; ++i) values[i] = 0;
     if (!d3d) return;
@@ -602,6 +608,11 @@ void OldRenderStates(const std::uint32_t* states, std::uint32_t* values, int cou
 
 // IDirect3DDevice7::GetTextureStageState (slot 36).
 void OldStageStates(int stage, const std::uint32_t* states, std::uint32_t* values, int count) {
+    if (device::WithoutDirectDraw()) {
+        for (int i = 0; i < count; ++i)
+            values[i] = device::SwitchOverStageState(static_cast<std::uint32_t>(stage), states[i]);
+        return;
+    }
     void* d3d = OldDevice();
     for (int i = 0; i < count; ++i) values[i] = 0;
     if (!d3d) return;

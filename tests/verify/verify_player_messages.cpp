@@ -247,7 +247,7 @@ int(__fastcall* s_serverId)(CPlayerServer*);
 bool Cleared(const CPlayerServer* self) {
     return self->state_ == 0 && self->sentObjects_.size == 0 && self->sentTimed_.size == 0 && self->out_.size_ == 0 &&
            self->group50F8_.size == 0 && self->partyUnits_.size == 0 && self->placements_.size == 0 &&
-           self->unknown_44 == -1 && self->unknown24_ == 0xFFFFFFFFu && self->refreshPending_ == 0 &&
+           self->spare_ == -1 && self->possessedId_ == 0xFFFFFFFFu && self->refreshPending_ == 0 &&
            self->flag70_ == 0 && self->refreshTimer_ >= 900 && self->refreshTimer_ <= 1800;
 }
 } // namespace

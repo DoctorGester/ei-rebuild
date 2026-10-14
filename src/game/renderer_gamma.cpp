@@ -3,6 +3,7 @@
 // through IDirectDrawGammaControl. Called by WinMain (00456440) at start-up and with zeros at exit,
 // and by the options screen (00650B6E, 00650CAB, 006510BA) when a value changes; no caller reads the
 // result. See docs/notes/renderer.md.
+#include "device.h"   // the old device's calls
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, CDXSurface
 
@@ -59,7 +60,7 @@ bool CSceneRenderer::SetGamma(float brightness, float contrast, float gamma) {
     DDCAPS driverCaps{}, emulatedCaps{};
     driverCaps.dwSize = sizeof(DDCAPS);
     emulatedCaps.dwSize = sizeof(DDCAPS);
-    static_cast<IDirectDraw7*>(device->ddraw_)->GetCaps(&driverCaps, &emulatedCaps);
+    device::GetCaps(static_cast<IDirectDraw7*>(device->ddraw_), &driverCaps, &emulatedCaps);
     if (!(driverCaps.dwCaps2 & DDCAPS2_PRIMARYGAMMA)) return false;
     DWORD flags = (driverCaps.dwCaps2 & DDCAPS2_CANCALIBRATEGAMMA) ? DDSGR_CALIBRATE : 0;
 

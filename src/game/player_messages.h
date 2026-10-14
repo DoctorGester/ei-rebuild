@@ -260,7 +260,9 @@ public:
     std::uint8_t engineObject_[0x1C - 0x04];
     CPlayer* player_;               // +0x1C the world player
     int state_;                     // +0x20
-    std::uint32_t unknown24_;       // +0x24 sent with message 0x60
+    // +0x24 -1, or the unit a Possession spell took (its id): the next party refresh (0066E130) then
+    // sends group50F8_ (the target and what it sees) and sets it back to -1. Sent with message 0x60.
+    std::uint32_t possessedId_;
     // 0066C9A0 (slot 2; player_messages.cpp). The outgoing messages emptied, both sent-object
     // arrays released and freed, state 0, the last position 0 and +0x44 -1, both unit groups
     // emptied, +0x24 -1, no refresh pending, +0x70 0, the placements emptied (0059C3D0), both
@@ -272,10 +274,10 @@ public:
     using Handler = int(__fastcall*)(CPlayerServer*, void*);
     lib::AlignedArray<Handler> handlers_;
     Vector3 lastPosition_;          // +0x38 sent with 0x04 / 0x0F
-    int unknown_44;                 // +0x44 -1 after Create
+    int spare_;                     // +0x44 -1 after Create; nothing reads it
     BitStream out_;                 // +0x48 messages to the client (CMemoryStream)
     std::uint8_t flag70_;           // +0x70 OnLeaderDied collects the party when set, redeploys it when clear
-    std::uint8_t unknown_71[3];
+    std::uint8_t unused_71[3];
     // +0x74 the unit placements (an MFC CArray; SetSize 0059C3D0, ConstructElements 004CEE20).
     mfc::CArray<UnitPlacement> placements_;
     CoderState compressor_;         // +0x88 for the messages sent (Flush)
@@ -304,7 +306,7 @@ struct LoginMessage {
     int version;                    // +0x00 0x64
     char name[0x40];                // +0x04
     char password[0x40];            // +0x44
-    std::uint32_t unknown_84;       // +0x84 cleared before the read
+    std::uint32_t partyId;          // +0x84 the client player's partyId_ (cleared before the read)
 };
 static_assert(sizeof(LoginMessage) == 0x88);
 
@@ -439,12 +441,12 @@ public:
     int maxTimedId_;                            // +0x6C
     alignas(4) std::uint8_t party_[0x70];       // +0x70 an embedded CParty; slot 18 its item manager
     mfc::CTypedPtrList<CEngineObject> items_;   // +0xE0 items given to the player (counted; CPtrList)
-    std::uint32_t unknownFC_;                   // +0xFC sent with the client's login (00667680)
+    std::uint32_t partyId_;                     // +0xFC the key of the party in the party manager (PartyNextId); sent with the client's login (00667680)
     int sessionKind100_;                        // +0x100 3: the client runs 00538DB0 on the controllers of new units (00667EC0)
-    std::uint32_t unknown_104;                  // +0x104
-    std::uint8_t unknown_108;                   // +0x108
+    std::uint32_t lastScreen_;                  // +0x104 the session kind before the last game-state message (5: the camp)
+    std::uint8_t godMode_;                      // +0x108 the script's GodMode(player, on); the combat code tests it
     int logTraffic_;                            // +0x10C logs the size of every flush
-    int unknown_110;                            // +0x110 -1 after Create
+    int lastTick_;                              // +0x110 -1 after Create; the world tick last saved or restored for the player
     mfc::CTypedPtrList<void> objects_;          // +0x114 ids of items recharging (vtable 00743138)
     int dirty_;                                 // +0x130 state to send (bits the server's state messages clear); -1 after 006651D0
 };
@@ -454,7 +456,7 @@ static_assert(offsetof(CPlayer, maxUnitId_) == 0x54);
 static_assert(offsetof(CPlayer, maxTimedId_) == 0x6C);
 static_assert(offsetof(CPlayer, party_) == 0x70);
 static_assert(offsetof(CPlayer, items_) == 0xE0);
-static_assert(offsetof(CPlayer, unknown_108) == 0x108);
+static_assert(offsetof(CPlayer, godMode_) == 0x108);
 static_assert(offsetof(CPlayer, logTraffic_) == 0x10C);
 static_assert(offsetof(CPlayer, objects_) == 0x114);
 static_assert(sizeof(CPlayer) == 0x134);

@@ -17,6 +17,7 @@
 // not move; the movie players hide it anyway. The cursor's holders made in the switch-over have no
 // DirectDraw surface at all (ticket R7): the old path's draws need one (OldPathDraws).
 #include "ui_cursor.h"
+#include "device.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -31,7 +32,6 @@ namespace {
 
 constexpr unsigned long kBltWaitAsync = 0x1000200;   // DDBLT_WAIT | DDBLT_ASYNC
 constexpr int kBlt = 5;                              // IDirectDrawSurface7::Blt
-constexpr int kWaitForVerticalBlank = 22;            // IDirectDraw7::WaitForVerticalBlank
 constexpr DWORD kThreadPeriod = 41;                  // ms between the thread's redraws
 
 template <typename... Args>
@@ -65,7 +65,7 @@ RECT Local(const RECT& r) { return RECT{0, 0, Width(r), Height(r)}; }
 // device lock.
 void WaitForVerticalBlank(CCursor* self) {
     gameapi::EnterCriticalSection(DeviceLock());
-    ComCall(self->device_->ddraw_, kWaitForVerticalBlank, 1ul, static_cast<void*>(nullptr));
+    device::WaitForVerticalBlank(device::DDraw(self->device_), DDWAITVB_BLOCKBEGIN, nullptr);
     gameapi::LeaveCriticalSection(DeviceLock());
 }
 

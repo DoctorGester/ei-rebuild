@@ -296,7 +296,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
             // The unit's six dwords at +0x4B0 come from its prototype's model record (+0x2C). A
             // prototype or model out of range is read through null, as in the original.
             auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(
-                unitdb::Prototypes().At(object->unknown_18, unitdb::kPrototypeSize));
+                unitdb::Prototypes().At(object->prototypeId_, unitdb::kPrototypeSize));
             auto* model = reinterpret_cast<const UnitModelRecord*>(
                 unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
             std::memcpy(static_cast<CUnit*>(object)->actionSpeeds, model->actionSpeeds, 24);
@@ -478,7 +478,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 int type = ReadValue<int>(stream);
                 std::uint32_t value18 = ReadValue<std::uint32_t>(stream);
                 CEngineObject* object = static_cast<CBaseManager*>(manager40_)->CreateObject(type, id);   // slot 23
-                object->unknown_18 = value18;
+                object->prototypeId_ = value18;
             }
             manager48_->Load(stream);
             manager4C_->Load(stream);
@@ -713,7 +713,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
         CEngineObject* object = node->value;
         WriteCopy(stream, object->id_);
         WriteCopy(stream, object->type_);
-        WriteCopy(stream, object->unknown_18);
+        WriteCopy(stream, object->prototypeId_);
     }
     WriteCopy(stream, -1);
     manager48_->Save(stream);

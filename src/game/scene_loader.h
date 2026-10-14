@@ -12,6 +12,7 @@
 //   format, read and dropped), then the helpers (0x3E header each).
 
 #include "engine_object.h"
+#include "material.h"
 
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
@@ -321,50 +322,8 @@ inline const Vector3& ZeroVector() { return *reinterpret_cast<const Vector3*>(st
 // 0078441C: "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
 inline const char* NonNullPivotText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078441C)); }
 
-// Helper (element of the caller's +0x56C array, 0x9C bytes).
-namespace helper {
-constexpr std::size_t kSize = 0x9C;
-constexpr std::size_t kName = 0x1C;        // CString
-constexpr std::size_t kVectorB = 0x20;     // 3 dwords (file +0x0C)
-constexpr std::size_t kValue2C = 0x2C;     // file +0x30
-constexpr std::size_t kVectorA = 0x30;     // 3 dwords (file +0x00)
-constexpr std::size_t kVectorC = 0x40;     // 3 dwords (file +0x18)
-constexpr std::size_t kValue60 = 0x60;     // file +0x24
-constexpr std::size_t kName2 = 0x8C;       // CString
-constexpr std::size_t kName3 = 0x94;       // CString
-} // namespace helper
-
-using HelperArray = mfc::CArray<struct SceneHelper, mfc::RawElements<struct SceneHelper>>;
-
-// A helper (helper:: offsets; 0x9C bytes): three names and the file's vectors, kept as bits. It is
-// a CMaterial (material.h; the gaps take its member names): vectorB is colors.diffuse (value2C its
-// alpha), vectorA colors.ambient, vectorC colors.specular and value60 colors.power.
-struct SceneHelper {
-    std::uint8_t engineObject[0x1C];    // +0x00 the CEngineObject part
-    mfc::CString name;                  // +0x1C
-    Vector3 vectorB;                    // +0x20 (file +0x0C) colors.diffuse
-    std::uint32_t value2C;              // +0x2C (file +0x30) colors.diffuse.w
-    Vector3 vectorA;                    // +0x30 (file +0x00) colors.ambient
-    std::uint32_t ambientAlpha;         // +0x3C colors.ambient.w
-    Vector3 vectorC;                    // +0x40 (file +0x18) colors.specular
-    std::uint32_t specularAlpha;        // +0x4C colors.specular.w
-    std::uint32_t emissive[4];          // +0x50 colors.emissive
-    std::uint32_t value60;              // +0x60 (file +0x24) colors.power
-    std::uint8_t entries[0x8C - 0x64];  // +0x64 CMaterial::entries (an stlp::deque)
-    mfc::CString name2;                 // +0x8C
-    std::uint32_t spare90;              // +0x90 CMaterial::spare90
-    mfc::CString name3;                 // +0x94
-    std::uint32_t spare98;              // +0x98 CMaterial::spare98
-};
-static_assert(offsetof(SceneHelper, name) == helper::kName);
-static_assert(offsetof(SceneHelper, vectorB) == helper::kVectorB);
-static_assert(offsetof(SceneHelper, value2C) == helper::kValue2C);
-static_assert(offsetof(SceneHelper, vectorA) == helper::kVectorA);
-static_assert(offsetof(SceneHelper, vectorC) == helper::kVectorC);
-static_assert(offsetof(SceneHelper, value60) == helper::kValue60);
-static_assert(offsetof(SceneHelper, name2) == helper::kName2);
-static_assert(offsetof(SceneHelper, name3) == helper::kName3);
-static_assert(sizeof(SceneHelper) == helper::kSize);
+// The helpers (+0x56C) are materials (material.h).
+using HelperArray = mfc::CArray<CMaterial, mfc::RawElements<CMaterial>>;
 
 // The fake unit (CFakeUnit, vtable 0073BFE8) as LoadFakeUnitScene fills it: a CObject3D
 // (map_object_figures.h) up to +0x4E0, then the skin and the scene's arrays.
@@ -374,7 +333,7 @@ struct FakeUnitScene {
     VtArray figures;                    // +0x530 CFigureMesh records (0x220, constructed by 00453240)
     VtArray meshes;                     // +0x544 SceneMesh records
     VtArray boneLinks;                  // +0x558 per figure a CArray of NodeFrame records (0x14 each)
-    VtArray helpers;                    // +0x56C SceneHelper records
+    VtArray helpers;                    // +0x56C CMaterial records (HelperArray)
 
     CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
 };

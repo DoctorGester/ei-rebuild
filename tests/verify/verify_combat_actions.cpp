@@ -147,7 +147,7 @@ static void __fastcall ItemSpellsVerify(CUnitServer* self, void*, char onHit) {
         auto* item = static_cast<CItem*>(self->unit->armor[slot]);
         bool fires = onHit != 0;
         if (item && item->spell_ &&
-            (static_cast<const CSpell*>(item->spell_)->unknown_18 & 0xFFFF0000u) == 0x180000u)
+            (static_cast<const CSpell*>(item->spell_)->prototypeId_ & 0xFFFF0000u) == 0x180000u)
             fires = onHit == 0;
         charges[slot] = ExpectCharge(item, fires);
     }

@@ -273,7 +273,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) continue;
         float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost > item->charge_) continue;
-        bool fires = (spell->unknown_18 & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
+        bool fires = (spell->prototypeId_ & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
         if (!fires) continue;
         CtlUseItemCharge(this, nullptr, item, cost);
         CUnit* self = unit;

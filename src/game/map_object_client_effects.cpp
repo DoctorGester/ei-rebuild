@@ -27,7 +27,7 @@ namespace {
 
 constexpr std::uint32_t kFlagInvisible = 0x10000;     // CEngineObject::flags_ of the object
 constexpr std::uint32_t kFlagStunned = 0x40000;
-constexpr std::uint32_t kPartTinted = 0x10;           // FigurePart::flags_
+constexpr std::uint32_t kPartTinted = 0x10;           // CFigureMesh::flags_
 constexpr int kWarmUpTicks = 0x1E;                    // a source arriving with the object runs ahead
 constexpr float kPowerScale = 0.0625f;                // 0073D040: power / 16
 
@@ -233,14 +233,14 @@ void CMapObjectClientSpecific::OnEffectsChanged(bool first) {
 EI_REPLACE_METHOD(0x005117D0, CMapObjectClientSpecific::OnEffectsChanged);
 
 void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
-    CMapObject* owner = CompanionOwner(this);
+    CMapObject* mapObject = CompanionOwner(this);
     // The effects, those of the merging types once each with the highest power.
     MapEffect* wanted = nullptr;
     int wantedCount = 0;
-    if (owner->effectCount > 0) {
-        wanted = static_cast<MapEffect*>(gamecrt::operator_new(owner->effectCount * sizeof(MapEffect)));
-        for (int i = 0; i < owner->effectCount; ++i) {
-            const MapEffect& effect = owner->effects[i];
+    if (mapObject->effectCount > 0) {
+        wanted = static_cast<MapEffect*>(gamecrt::operator_new(mapObject->effectCount * sizeof(MapEffect)));
+        for (int i = 0; i < mapObject->effectCount; ++i) {
+            const MapEffect& effect = mapObject->effects[i];
             bool merged = false;
             if (MergesParticles(effect.type)) {
                 for (int j = 0; j < wantedCount; ++j) {
@@ -251,7 +251,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
                 }
             }
             if (!merged) std::memcpy(&wanted[wantedCount++], &effect, sizeof(MapEffect));
-            owner = CompanionOwner(this);
+            mapObject = CompanionOwner(this);
         }
     }
 
@@ -368,16 +368,16 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
 EI_REPLACE_METHOD(0x00510B80, CMapObjectClientSpecific::UpdateEffectParticles);
 
 void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
-    CMapObject* owner = CompanionOwner(this);
+    CMapObject* mapObject = CompanionOwner(this);
     // The effect types, once each.
     std::uint8_t types[256];
     int typeCount = 0;
-    for (int i = 0; i < owner->effectCount; ++i) {
-        std::uint8_t type = owner->effects[i].type;
+    for (int i = 0; i < mapObject->effectCount; ++i) {
+        std::uint8_t type = mapObject->effects[i].type;
         bool known = false;
         for (int j = 0; j < typeCount && !known; ++j) known = types[j] == type;
         if (!known) types[typeCount++] = type;
-        owner = CompanionOwner(this);
+        mapObject = CompanionOwner(this);
     }
 
     for (int i = 0; i < sounds.size; ++i) sounds.data[i].present = 0;
@@ -437,8 +437,8 @@ void CMapObjectClientSpecific::HideLight() {
     if (!light || (light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
     light->flags_ |= kLightHidden;
     RemoveLight(LightManager(), nullptr, light);
-    CMapObject* owner = CompanionOwner(this);
-    if (owner && SideHalf(owner)) SideHalf(owner)->SetLit(0);
+    CMapObject* mapObject = CompanionOwner(this);
+    if (mapObject && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(0);
 }
 EI_REPLACE_METHOD(0x005119B0, CMapObjectClientSpecific::HideLight);
 
@@ -446,8 +446,8 @@ void CMapObjectClientSpecific::ShowLight() {
     if (!light || !(light->flags_ & kLightHidden) || (light->flags_ & kLightHeld)) return;
     light->flags_ &= ~kLightHidden;
     LightManagerAddOriginal(LightManager(), nullptr, light);
-    CMapObject* owner = CompanionOwner(this);
-    if (owner && owner->GetClassId() == kUnitClassId && SideHalf(owner)) SideHalf(owner)->SetLit(1);
+    CMapObject* mapObject = CompanionOwner(this);
+    if (mapObject && mapObject->GetClassId() == kUnitClassId && SideHalf(mapObject)) SideHalf(mapObject)->SetLit(1);
 }
 EI_REPLACE_METHOD(0x00511950, CMapObjectClientSpecific::ShowLight);
 
@@ -456,11 +456,11 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
     CountedRefStoreOriginal(&light, nullptr, TheLightFactory()->CreateObject(kPointLight, -1));
     float rgb[3] = {colour[0], colour[1], colour[2]};
     SetLightColorPosition(light, nullptr, rgb, rgb);
-    CMapObject* owner = CompanionOwner(this);
+    CMapObject* mapObject = CompanionOwner(this);
     auto* point = static_cast<CLight*>(light);
-    point->position_.x = owner->position.x;
-    point->position_.y = owner->position.y;
-    point->position_.z = kLightHeight + owner->position.z;
+    point->position_.x = mapObject->position.x;
+    point->position_.y = mapObject->position.y;
+    point->position_.z = kLightHeight + mapObject->position.z;
     point->range_ = radius;
     double squared = static_cast<double>(radius) * radius;
     point->rangeSquared_ = static_cast<float>(squared);

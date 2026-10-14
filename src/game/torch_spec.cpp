@@ -20,7 +20,7 @@ const float* DefaultColour() { return reinterpret_cast<const float*>(0x007AF2D0)
 
 int CTorchObjectSpec::CreateSpec() {
     torch_ = nullptr;
-    unknown_20 = 0;
+    lightKind_ = 0;
     name_.Empty();
     values_[1] = kDefaultValue2C;
     values_[0] = kDefaultValue;
@@ -38,7 +38,7 @@ void CTorchObjectSpec::DestroySpec() {
 EI_REPLACE_METHOD(0x0052C680, CTorchObjectSpec::DestroySpec);
 
 void CTorchObjectSpec::LoadSpec(CStream* stream) {
-    stream->Read(&unknown_20, 4);
+    stream->Read(&lightKind_, 4);
     StreamReadCStringOriginal(stream, nullptr, &name_);
     stream->Read(&values_[0], 4);
     stream->Read(&values_[1], 4);
@@ -49,7 +49,7 @@ void CTorchObjectSpec::LoadSpec(CStream* stream) {
 EI_REPLACE_METHOD(0x0052C490, CTorchObjectSpec::LoadSpec);
 
 void CTorchObjectSpec::SaveSpec(CStream* stream) {
-    stream->Write(&unknown_20, 4);
+    stream->Write(&lightKind_, 4);
     const char* name = name_;
     stream->Write(name, static_cast<std::uint32_t>(std::strlen(name) + 1));
     std::uint32_t value;
@@ -64,7 +64,7 @@ void CTorchObjectSpec::SaveSpec(CStream* stream) {
 EI_REPLACE_METHOD(0x0052C500, CTorchObjectSpec::SaveSpec);
 
 void CTorchObjectSpec::SetLight(std::uint32_t kind, const float* colour, float value) {
-    unknown_20 = kind;
+    lightKind_ = kind;
     std::memcpy(colours_[0], colour, sizeof(colours_[0]));
     values_[0] = value;
 }
@@ -83,7 +83,7 @@ EI_REPLACE_METHOD(0x0052C600, CTorchObjectSpec::SetName);
 void CTorchObjectSpec::ReadNetState(DeltaField* field) {
     std::uint32_t kind;
     field->ReadDelta(&kind, 4);
-    unknown_20 = kind;
+    lightKind_ = kind;
     field->ReadDelta(&values_[0], 4);
     field->ReadDelta(&values_[1], 4);
     field->ReadDelta(&values_[2], 0x10);
@@ -96,7 +96,7 @@ void CTorchObjectSpec::ReadNetState(DeltaField* field) {
         read->~CString();
     }
     CTorchObjectSpecSlots* slots = TorchSpecSlots(this);
-    slots->SetLightSlot(unknown_20, colours_[0], values_[0]);
+    slots->SetLightSlot(lightKind_, colours_[0], values_[0]);
     slots->SetFlameSlot(colours_[1], values_[1], &values_[2]);
     slots->SetNameSlot(name_);
     slots->ShowEffectsSlot();

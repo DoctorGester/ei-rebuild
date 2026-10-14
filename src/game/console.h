@@ -206,7 +206,7 @@ public:
     bool ctrl_;                      // +0x78 Ctrl held (set by key down 0x11)
     bool shift_;                     // +0x79 Shift held (0x10): the selection grows
     bool shown_;                     // +0x7A
-    std::uint8_t unknown_7B;
+    std::uint8_t unused_7B;
 };
 static_assert(offsetof(ConsoleWindow, lines_) == 0x58 && offsetof(ConsoleWindow, shown_) == 0x7A);
 static_assert(offsetof(ConsoleWindow, commands_) == 0x0C && offsetof(ConsoleWindow, input_) == 0x24 &&

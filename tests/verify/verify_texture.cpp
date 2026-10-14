@@ -2,6 +2,7 @@
 // and check that a texture reported as loaded has its pixel format filled in.
 #include "verify.h"
 
+#include "../../src/game/device_switchover.h"
 #include "../../src/game/texture.h"
 
 #include <cstring>
@@ -77,6 +78,16 @@ EI_VERIFY(0x00694300, BufferSetSizeVerify, 5, s_bufferSetSize);
 // MOV EAX,[ESP+4] (4); SUB ESP,0x104 (6).
 static void(__fastcall* s_setDevice)(CTextureManager*, void*, CTextureDevice*);
 static void __fastcall SetDeviceVerify(CTextureManager* self, void*, CTextureDevice* device) {
+    if (device::WithoutDirectDraw()) {
+        // The original would ask the stand-in for the capabilities and memory: ours only (R9b), with
+        // the switch-over device's 4096 textures and 256 MB.
+        self->SetDevice(device);
+        ei::verify::Check("CTextureManager::SetDevice", true,
+                          self->device_ == device && (!device || self->videoMemoryTenth_ == (256u << 20) / 10),
+                          "without DirectDraw (ours only): mip %u limit %d memory %u",
+                          static_cast<unsigned>(self->mipLevel_), self->limitTo512_, self->videoMemoryTenth_);
+        return;
+    }
     CTextureDevice* old = self->device_;
     const std::uint16_t mip = self->mipLevel_;
     const int limit = self->limitTo512_;

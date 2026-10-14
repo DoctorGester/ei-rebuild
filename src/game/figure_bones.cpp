@@ -44,8 +44,8 @@ void FigureBone::Place(const Vector3* origin) {
         position -= *origin;
     }
     if (mesh) {
-        mesh->position_ = position;
-        mesh->rotation_ = rotation;
+        mesh->localPosition_ = position;
+        mesh->localRotation_ = rotation;
         // The pose's morphed vertices ({data, count} at +0x68; read even without a pose, as the
         // original does).
         CFigureMesh::OffsetSpan vertices{pose->vertices.data, pose->vertices.size};

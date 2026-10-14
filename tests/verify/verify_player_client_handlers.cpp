@@ -103,9 +103,9 @@ int __fastcall OnGameStateVerify(CPlayerClient* self) {
     CPlayer* player = self->Owner();
     const int before = player->sessionKind100_;
     const int state = static_cast<int>(PendingDword(self));
-    const bool keyOnly = self->unknown_84 != 0;
+    const bool keyOnly = self->localSession_ != 0;
     const int result = CheckHandler("CPlayerClient::OnGameState", self, 8, false, [&] { return self->OnGameState(); });
-    const bool ok = player->unknown_104 == static_cast<std::uint32_t>(before) &&
+    const bool ok = player->lastScreen_ == static_cast<std::uint32_t>(before) &&
                     player->sessionKind100_ == (keyOnly ? before : state);
     ei::verify::Check("CPlayerClient::OnGameState state", true, ok, "client %p: state %d (was %d), stored %d", self, state,
                       before, player->sessionKind100_);

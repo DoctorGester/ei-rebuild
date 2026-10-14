@@ -28,7 +28,7 @@ int PassCount(const CRenderPreset* preset) { return static_cast<int>(preset->blo
 CDXSurface* TextureSurface(CEngineObject* texture) { return static_cast<CTexture*>(texture)->surface_; }
 
 void SetRenderState(CTextureDevice* device, D3DRENDERSTATETYPE state, std::uint32_t value) {
-    device::D3D(device)->SetRenderState(state, value);
+    device::SetRenderState(device::D3D(device), state, value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
@@ -66,7 +66,7 @@ struct DrawArgs {
 void Draw(CTextureDevice* device, const DrawArgs& a, unsigned triangles) {
     if (render::MeshPass(device)) {
         gameapi::EnterCriticalSection(device::Lock());
-        device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitive(
+        device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             static_cast<D3DPRIMITIVETYPE>(a.primitive), static_cast<DWORD>(a.fvf), a.vertices,
             static_cast<DWORD>(a.vertexCount), const_cast<WORD*>(a.indices), a.indexCount, static_cast<DWORD>(a.flags));
         gameapi::LeaveCriticalSection(device::Lock());
@@ -80,10 +80,10 @@ void Draw(CTextureDevice* device, const DrawArgs& a, unsigned triangles) {
 // coordinates, before or after the index.
 void SetTexCoordIndex(CTextureDevice* device, int stage, std::uint32_t index, bool flagsFirst) {
     if (flagsFirst && index > 0xFFFF)
-        device::D3D(device)->SetTextureStageState(static_cast<DWORD>(stage), D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
-    device::D3D(device)->SetTextureStageState(static_cast<DWORD>(stage), D3DTSS_TEXCOORDINDEX, index);
+        device::SetTextureStageState(device::D3D(device), static_cast<DWORD>(stage), D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
+    device::SetTextureStageState(device::D3D(device), static_cast<DWORD>(stage), D3DTSS_TEXCOORDINDEX, index);
     if (!flagsFirst && index > 0xFFFF)
-        device::D3D(device)->SetTextureStageState(static_cast<DWORD>(stage), D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
+        device::SetTextureStageState(device::D3D(device), static_cast<DWORD>(stage), D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
     if (index > 0xFFFF) render::state::Stage(static_cast<std::uint32_t>(stage), D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_COUNT2);
     render::state::Stage(static_cast<std::uint32_t>(stage), D3DTSS_TEXCOORDINDEX, index);
 }
@@ -108,7 +108,7 @@ void SetSinglePassStage(CTextureDevice* device, int stage, MaterialStage& s) {
     if (bound) {
         bound = nullptr;
         FlushBatch(device);
-        device->lastLoadResult_ = device::D3D(device)->SetTexture(static_cast<DWORD>(stage), nullptr);
+        device->lastLoadResult_ = device::SetTexture(device::D3D(device), static_cast<DWORD>(stage), nullptr);
         ++device->textureChanges_;
     }
 }
@@ -141,13 +141,13 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, const DrawArgs& a
     DWORD savedBlend;
     DWORD savedSource;
     DWORD savedDest;
-    device::D3D(device)->GetRenderState(D3DRENDERSTATE_ALPHABLENDENABLE, &savedBlend);
-    device::D3D(device)->GetRenderState(D3DRENDERSTATE_SRCBLEND, &savedSource);
-    device::D3D(device)->GetRenderState(D3DRENDERSTATE_DESTBLEND, &savedDest);
+    device::GetRenderState(device::D3D(device), D3DRENDERSTATE_ALPHABLENDENABLE, &savedBlend);
+    device::GetRenderState(device::D3D(device), D3DRENDERSTATE_SRCBLEND, &savedSource);
+    device::GetRenderState(device::D3D(device), D3DRENDERSTATE_DESTBLEND, &savedDest);
     SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
     SetRenderState(device, D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(CurrentMaterial(device)->sourceBlend));
     SetRenderState(device, D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(CurrentMaterial(device)->destBlend));
-    device::D3D(device)->ApplyStateBlock(preset->blocks_[0]);
+    device::ApplyStateBlock(device::D3D(device), preset->blocks_[0]);
     render::state::Block(preset->blocks_[0]);
     for (int stage = 0; stage < preset->stages_; ++stage) {
         MaterialStage& s = CurrentMaterial(device)->stages[stage];
@@ -160,7 +160,7 @@ void DrawPasses(CTextureDevice* device, CRenderPreset* preset, const DrawArgs& a
     if (((reinterpret_cast<char*>(preset->blocks_.end()) - reinterpret_cast<char*>(preset->blocks_.begin())) & ~3) > 4) {
         int pass = 1;
         do {
-            device::D3D(device)->ApplyStateBlock(preset->blocks_[pass]);
+            device::ApplyStateBlock(device::D3D(device), preset->blocks_[pass]);
             render::state::Block(preset->blocks_[pass]);
             MaterialStage& s = CurrentMaterial(device)->stages[preset->stages_ + pass - 1];
             SetTexCoordIndex(device, 0, s.texCoordIndex, true);
@@ -181,7 +181,7 @@ void BindStage0(CTextureDevice* device, CDXSurface* holder) {
     device->stageSurfaces_[0] = holder;
     FlushBatch(device);
     IDirectDrawSurface7* surface = holder ? device::Surface(holder) : nullptr;
-    device->lastLoadResult_ = device::D3D(device)->SetTexture(0, surface);
+    device->lastLoadResult_ = device::SetTexture(device::D3D(device), 0, surface);
     ++device->textureChanges_;
 }
 
@@ -206,7 +206,7 @@ int __fastcall DeviceDrawIndexed(CTextureDevice* device, void*, int primitive, i
             DrawPasses(device, preset, args);
             return 1;
         }
-        device::D3D(device)->ApplyStateBlock(preset->blocks_[0]);
+        device::ApplyStateBlock(device::D3D(device), preset->blocks_[0]);
         render::state::Block(preset->blocks_[0]);
         for (int stage = 0; stage < preset->stages_; ++stage) {
             SetTexCoordIndex(device, stage, CurrentMaterial(device)->stages[stage].texCoordIndex, false);
@@ -231,7 +231,7 @@ int __fastcall DeviceDrawTwoTextures(CTextureDevice* device, void*, CDXSurface* 
     SetRenderState(device, D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA);
     SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
     BindStage0(device, second);
-    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
+    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, D3DTSS_TEXCOORDINDEX, 0);
     render::state::Stage(0, D3DTSS_TEXCOORDINDEX, 0);
     Draw(device, args, triangles);
     return 1;

@@ -62,28 +62,28 @@ EI_REPLACE(0x00401340, BufferRead);
 // 00401000: writes the record: +0x1C, +0x20, the two strings, the bytes +0x18, +0x19, +0x1B,
 // +0x1A, then +0x24.
 void GameInfoRecord::Write(GameBuffer* buffer) const {
-    Put(buffer, &unknown_1C, 4);
-    Put(buffer, &unknown_20, 4);
+    Put(buffer, &masterKey, 4);
+    Put(buffer, &masterToken, 4);
     BufferWriteString(buffer, nullptr, &name);
     BufferWriteString(buffer, nullptr, &description);
     Put(buffer, &players, 1);
     Put(buffer, &maxPlayers, 1);
-    Put(buffer, &unknown_1B, 1);
-    Put(buffer, &unknown_1A, 1);
+    Put(buffer, &hasPassword, 1);
+    Put(buffer, &kind, 1);
     Put(buffer, &magic, 4);
 }
 
 // 00401170: reads the record in the same order (strings of at most 0x100 bytes), replaces control
 // characters in both strings with '|'; returns 1 unless the buffer ran short (error bit 3).
 int GameInfoRecord::Read(GameBuffer* buffer) {
-    BufferRead(buffer, nullptr, &unknown_1C, 4);
-    BufferRead(buffer, nullptr, &unknown_20, 4);
+    BufferRead(buffer, nullptr, &masterKey, 4);
+    BufferRead(buffer, nullptr, &masterToken, 4);
     BufferReadString(buffer, nullptr, &name, 0x100);
     BufferReadString(buffer, nullptr, &description, 0x100);
     BufferRead(buffer, nullptr, &players, 1);
     BufferRead(buffer, nullptr, &maxPlayers, 1);
-    BufferRead(buffer, nullptr, &unknown_1B, 1);
-    BufferRead(buffer, nullptr, &unknown_1A, 1);
+    BufferRead(buffer, nullptr, &hasPassword, 1);
+    BufferRead(buffer, nullptr, &kind, 1);
     BufferRead(buffer, nullptr, &magic, 4);
     Sanitize(&name);
     Sanitize(&description);

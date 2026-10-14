@@ -110,7 +110,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         mfc::CString part(plain);
         if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(part)),
                             reinterpret_cast<const unsigned char*>(kHair)) == 0) {
-            const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18),
+            const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->prototypeId_),
                                                              unitdb::kPrototypeSize);
             int hair = Prototype(prototype)->hair;
             if (hair == -1) continue;
@@ -169,7 +169,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
         if (!plain[0]) break;
         mfc::CString part(plain);
         if (CompareNames(part, kHair) == 0) {
-            const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18),
+            const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->prototypeId_),
                                                              unitdb::kPrototypeSize);
             int hair = Prototype(prototype)->hair;
             if (hair == -1) continue;
@@ -383,7 +383,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
     SetLayerCount(out, nullptr, 0, -1);
     // The original inlines SetSize(8) here; the array is empty, so it allocates 8 fresh layers.
     SetLayerCount(out, nullptr, kDetailedLayers, -1);
-    out->data[0].id = static_cast<std::uint32_t>(unit->unknown_18);
+    out->data[0].id = static_cast<std::uint32_t>(unit->prototypeId_);
     out->data[0].kind = kLayerSkin;
     out->data[0].slot = -1;
     for (int k = 0; k < 7; ++k) {
@@ -468,7 +468,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     int id = unit->id_;
     if (!detailed) {
         unitKey.Format(Text(0x0078FB44), id);                    // "mo%ds"
-        prototypeKey.Format(Text(0x0078FB3C), unit->unknown_18);  // "prot%ds"
+        prototypeKey.Format(Text(0x0078FB3C), unit->prototypeId_);  // "prot%ds"
         request.flags = kFlagSimple;
         if (self->armourIds[0] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[0]);
         std::uint32_t hand = unit->activeWeapon;
@@ -480,9 +480,9 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         return;
     }
     unitKey.Format(Text(0x0078FB7C), id);                    // "mo%dp"
-    prototypeKey.Format(Text(0x0078FB74), unit->unknown_18);  // "prot%dp"
+    prototypeKey.Format(Text(0x0078FB74), unit->prototypeId_);  // "prot%dp"
     request.flags = kFlagDetailed;
-    const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18), unitdb::kPrototypeSize);
+    const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->prototypeId_), unitdb::kPrototypeSize);
     if (prototype)
         texture.Format(Text(0x0078FB64), unit->name, Prototype(prototype)->skin);   // "%sskin_%.2d.mmp"
     else

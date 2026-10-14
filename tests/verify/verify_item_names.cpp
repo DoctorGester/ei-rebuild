@@ -10,7 +10,7 @@ namespace {
 template <typename Item>
 void CompareNames(const char* name, Item* item, const mfc::CString& expected, const mfc::CString& actual) {
     bool same = std::strcmp(expected, actual) == 0;
-    ei::verify::Check(name, true, same, "kind %X id %08X: \"%.40s\" vs \"%.40s\"", item->type_, item->unknown_18,
+    ei::verify::Check(name, true, same, "kind %X id %08X: \"%.40s\" vs \"%.40s\"", item->type_, item->prototypeId_,
                       static_cast<const char*>(expected), static_cast<const char*>(actual));
 }
 } // namespace

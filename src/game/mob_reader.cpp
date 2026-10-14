@@ -206,7 +206,7 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
             auto* trap = reinterpret_cast<TrapSpec*>(spec);
             trap->diplomacy = 0;
             trap->origin = spec->position;
-            const std::int32_t* row = diplomacy->relations[trap->object.unknown_6E];
+            const std::int32_t* row = diplomacy->relations[trap->object.side];
             for (int c = 0; c < 32; ++c)
                 trap->diplomacy |= static_cast<std::uint32_t>(row[c] == kRelationHostile) << c;
         }

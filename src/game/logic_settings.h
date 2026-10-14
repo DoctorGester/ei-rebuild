@@ -13,7 +13,7 @@ struct LogicSettings {
     void Load(const char* path);
 
     bool loaded;                        // +0x00 never set by Load
-    std::uint8_t unknown_01[3];
+    std::uint8_t unused_01[3];
     // [Logic]
     float guardStayTime;                // +0x04
     float sentryStayTime;               // +0x08

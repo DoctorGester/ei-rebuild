@@ -10,7 +10,7 @@ namespace {
 constexpr std::uint32_t kBoxIgnored = 0x800;   // FootprintPart::flags: the part's box is left out
 constexpr float kFirstFrame = 0.0f;
 
-FigurePart* PartAt(const CObject3D* object, int index) { return static_cast<FigurePart*>(object->parts[index]); }
+CFigureMesh* PartAt(const CObject3D* object, int index) { return static_cast<CFigureMesh*>(object->parts[index]); }
 } // namespace
 
 CObject3D* CObject3D::DeleteObject3D(unsigned flags) {
@@ -54,12 +54,12 @@ void CObject3D::ClearPartFlags(std::uint32_t mask) {
 EI_REPLACE_METHOD(0x00517950, CObject3D::ClearPartFlags);
 
 void CObject3D::SetPartsFlatColour(std::uint32_t value) {
-    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatColour = value;
+    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatColour_ = value;
 }
 EI_REPLACE_METHOD(0x00519500, CObject3D::SetPartsFlatColour);
 
 void CObject3D::SetPartsFlatSpecular(std::uint32_t value) {
-    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatSpecular = value;
+    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatSpecular_ = value;
 }
 EI_REPLACE_METHOD(0x00519530, CObject3D::SetPartsFlatSpecular);
 

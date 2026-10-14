@@ -48,9 +48,8 @@ void DeleteSector(SectorData* sector) {
 
 } // namespace
 
-TerrainSector* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
+SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
     if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
-    auto* fields = reinterpret_cast<terrain::TerrainFields*>(this);
     SectorCache::Node* node = sectorGrid[sx][sy];
     if (node) {
         SectorData* sector = node->data;
@@ -60,8 +59,8 @@ TerrainSector* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int creat
             sectorCache.AddHead(sector);
             sectorGrid[sx][sy] = sectorCache.head;
         }
-        if (create) sector->Ensure(wanted, fields);
-        return (sector->built & wanted) ? reinterpret_cast<TerrainSector*>(sector) : nullptr;
+        if (create) sector->Ensure(wanted, this);
+        return (sector->built & wanted) ? sector : nullptr;
     }
     if (!create) return nullptr;
 
@@ -82,12 +81,12 @@ TerrainSector* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int creat
             if (old) DeleteSector(old);
         }
     }
-    if (sector->Load(&archive, sx, sy, pages, perPage, textF8, fields)) {
+    if (sector->Load(&archive, sx, sy, pages, perPage, textF8, this)) {
         sector->lastUsed = frame;
         sectorCache.AddHead(sector);
         sectorGrid[sx][sy] = sectorCache.head;
-        sector->Ensure(wanted, fields);
-        return (sector->built & wanted) ? reinterpret_cast<TerrainSector*>(sector) : nullptr;
+        sector->Ensure(wanted, this);
+        return (sector->built & wanted) ? sector : nullptr;
     }
     if (sector) DeleteSector(sector);
     return nullptr;
