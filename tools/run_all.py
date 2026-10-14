@@ -1,7 +1,7 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
 usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth | --native] [--no-hooks]
-                               [--jobs N] [--retries N] [--clock virtual|real[,trace]] [--verified-candidates N]
+                               [--jobs N] [--retries N] [--clock virtual|real[,...]] [--verified-candidates N]
        python tools/run_all.py --widescreen [scenario names...]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
                    Every scenario runs on vanilla; under Rebirth only those config/rebirth_scenarios.csv
@@ -22,9 +22,9 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
   --retries N      re-run a failed scenario up to N times (default 1); fights against spawned
                    enemies are random, and the hero occasionally loses one on the original too.
                    A pass after a retry is reported as "PASS*".
-  --clock virtual|real[,trace]
+  --clock virtual|real[,clocktrace][,randtrace]
                    run every scenario on the virtual clock or on real time, whatever its own lines say
-                   (EI_HARNESS_CLOCK; tests/verify/harness_clock.h); ",trace" adds the clock trace
+                   (EI_HARNESS_CLOCK; tests/verify/harness_clock.h), with the clock or random trace
   --verified-candidates N
                    afterwards, list rewritten functions with at least N verify calls and no
                    mismatch in any run that are not yet in tests/verify/verified.txt
@@ -74,7 +74,7 @@ def machine_slot():
 
 def run(name, install, hooks, folder=None, clock=None):
     """One run of a scenario in build\\verify\\runs\\<folder> (default <name>-<install>); `clock`
-    overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',trace')."""
+    overrides the scenario's clock (EI_HARNESS_CLOCK: 'virtual' or 'real', ',clocktrace', ',randtrace')."""
     scenario = os.path.join(ROOT, 'tests', 'scenarios', name + '.txt')
     out = os.path.join(RUNS, folder or f'{name}-{install}')
     shutil.rmtree(out, ignore_errors=True)
@@ -184,7 +184,7 @@ def main():
     ap.add_argument('--verified-candidates', type=int, default=0)
     ap.add_argument('--retries', type=int, default=1)
     ap.add_argument('--jobs', type=int, default=16)
-    ap.add_argument('--clock', choices=('virtual', 'real', 'virtual,trace', 'real,trace'))
+    ap.add_argument('--clock')
     args = ap.parse_args()
     names = args.scenarios or sorted(os.path.splitext(os.path.basename(p))[0]
                                      for p in glob.glob(os.path.join(ROOT, 'tests', 'scenarios', '*.txt')))

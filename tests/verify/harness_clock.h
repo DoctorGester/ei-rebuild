@@ -5,7 +5,7 @@
 //
 // Virtual clock ("deterministic"): timeGetTime and GetTickCount (game.exe's imports) return a
 // counter that only the main thread moves: the main loop's frame-time read (004571DC, or the
-// rewritten loop's, ei/main_loop.h) adds four world updates, and a Sleep(n) or a timed wait that
+// rewritten loop's, ei/main_loop.h) adds five world updates (the most one pass runs), and a Sleep(n) or a timed wait that
 // times out on the main thread adds n and returns at once. Other threads (the cursor thread, the
 // sound threads) read the counter and never move it; their own sleeps and waits stay real.
 // GetLocalTime / GetSystemTime return a fixed date, and the ISAAC seeding (0049F660) a fixed
@@ -45,5 +45,14 @@ DWORD Now();
 void InstallTrace();
 void DumpTrace(const char* why);
 bool Tracing();
+
+// Random trace ("randtrace", for finding where two runs part): every draw from the game's ISAAC
+// generators (004667F0, the original's or ours) to randtrace.txt in the output folder, one line
+// each: the frame (`*frames`), the caller and the value. Install after the hooks (it replaces
+// 004667F0's first bytes).
+void InstallRandomTrace(const unsigned* frames);
+void FlushRandomTrace();
+// A line in the random trace ("<frame> note: ..."), when it is on.
+void RandomNote(const char* format, ...);
 
 } // namespace ei::verify::clock

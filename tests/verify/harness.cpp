@@ -241,7 +241,8 @@ std::size_t g_next = 0;
 
 // When a wait ends: after `ms` on the harness's clock (virtual time in deterministic mode), or at a
 // real-time safety limit, so that a game which stops drawing frames (the virtual clock stands
-// still) still fails the wait instead of the whole run's time limit: twice the wait plus 5 s.
+// still) still fails the wait instead of the whole run's time limit: four times the wait plus 10 s
+// (a busy machine draws slowly, and the virtual clock is then slower than real time).
 struct Deadline {
     DWORD start = 0, at = 0;           // harness clock
     DWORD realStart = 0, realAt = 0;   // GetTickCount
@@ -249,7 +250,7 @@ struct Deadline {
         start = clock::Now();
         at = start + ms;
         realStart = GetTickCount();
-        realAt = realStart + (clock::Virtual() ? 2 * ms + 5000 : ms);
+        realAt = realStart + (clock::Virtual() ? 4 * ms + 10000 : ms);
     }
     bool Passed() const {
         return static_cast<LONG>(clock::Now() - at) >= 0 || static_cast<LONG>(GetTickCount() - realAt) >= 0;
@@ -670,10 +671,76 @@ LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWO
 int& g_showTutorial = *reinterpret_cast<int*>(0x0079BE78);
 
 // Game speed. The main loop runs one world update per 0078FF34 milliseconds of real time (55 by
-// default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms> every
-// frame, since loading a zone resets it. 0 = leave it to the game.
+// default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms>: the
+// game's own writes (the battle clock's set-up 00648520, CBattleScreenSetup::Close 00635E60 on
+// leaving a screen such as the camp) are undone at once by a write watchpoint (HoldTickLength), and
+// every frame sets it again. 0 = leave it to the game.
+// At once, not at the next frame: those can run inside the main loop's client loop, after the loop
+// has tested its backlog against
+// the held 10 and before it subtracts the new 55, and the unsigned backlog (10..54) wraps to about
+// 4.29e9: the loop then runs some 78 million client updates (minutes). Real-time runs mostly got away
+// with it by timing; on the virtual clock ui_camp_deals, ui_trade_hold, effects_bow, ... hung every
+// time.
 unsigned& g_tickLength = *reinterpret_cast<unsigned*>(0x0078FF34);
 unsigned g_heldTickLength = 0;
+
+// The watchpoint: debug register 0 on the main thread, set from a helper thread while the main
+// thread is suspended (a thread cannot reliably set its own debug registers), and a vectored
+// handler that puts the held length back after each write and logs each new writer once.
+LONG CALLBACK TickLengthWritten(EXCEPTION_POINTERS* info) {
+    if (info->ExceptionRecord->ExceptionCode != EXCEPTION_SINGLE_STEP || !(info->ContextRecord->Dr6 & 1))
+        return EXCEPTION_CONTINUE_SEARCH;
+    info->ContextRecord->Dr6 = 0;
+    const unsigned written = g_tickLength;
+    if (g_heldTickLength && written != g_heldTickLength) {
+        g_tickLength = g_heldTickLength;
+        static std::vector<DWORD> logged;
+        const DWORD at = info->ContextRecord->Eip;
+        if (std::find(logged.begin(), logged.end(), at) == logged.end()) {
+            logged.push_back(at);
+            const bool ours = at >= g_selfBase && at < g_selfEnd;
+            Log("harness: speed: the game set the update length to %u (before %s%X); held at %u", written,
+                ours ? "ei_hook+" : "", unsigned(ours ? at - g_selfBase : at), g_heldTickLength);
+        }
+    }
+    return EXCEPTION_CONTINUE_EXECUTION;
+}
+
+DWORD WINAPI SetTickLengthWatchpoint(LPVOID mainThread) {
+    HANDLE thread = static_cast<HANDLE>(mainThread);
+    if (SuspendThread(thread) == static_cast<DWORD>(-1)) return 1;
+    CONTEXT context{};
+    context.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+    BOOL ok = GetThreadContext(thread, &context);
+    if (ok) {
+        context.Dr0 = reinterpret_cast<DWORD>(&g_tickLength);
+        constexpr DWORD kLocal0 = 1, kWrite0 = 1u << 16, kFourBytes0 = 3u << 18;
+        context.Dr7 = (context.Dr7 & ~0xF0003u) | kLocal0 | kWrite0 | kFourBytes0;
+        ok = SetThreadContext(thread, &context);
+    }
+    ResumeThread(thread);
+    return ok ? 0 : 1;
+}
+
+void HoldTickLength() {
+    static bool installed = false;
+    g_tickLength = g_heldTickLength;
+    if (installed) return;
+    installed = true;
+    AddVectoredExceptionHandler(1, &TickLengthWritten);
+    HANDLE self = nullptr;
+    DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &self,
+                    THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_SET_CONTEXT, FALSE, 0);
+    DWORD code = 1;
+    if (HANDLE helper = CreateThread(nullptr, 0, &SetTickLengthWatchpoint, self, 0, nullptr)) {
+        ::WaitForSingleObject(helper, INFINITE);
+        GetExitCodeThread(helper, &code);
+        CloseHandle(helper);
+    }
+    if (self) CloseHandle(self);
+    Log(code == 0 ? "harness: speed: update length held by a write watchpoint"
+                  : "harness: speed: no watchpoint (the length is held once a frame)");
+}
 
 // Startup movies: config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik), read with
 // GetPrivateProfileStringA. Harness runs read the "movies" keys as empty, so nothing plays.
@@ -755,6 +822,7 @@ BOOL WINAPI RedirectedSetFileAttributes(LPCSTR name, DWORD attributes) {
 }
 
 void WriteReport() {
+    clock::FlushRandomTrace();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
     unsigned long mismatches = 0;
@@ -779,13 +847,15 @@ void WriteReport() {
 }
 
 // Deterministic mode (a "deterministic" line anywhere in the scenario): the virtual clock
-// (harness_clock.h; every frame of the main loop runs exactly four world updates, the main thread's
+// (harness_clock.h; every frame of the main loop runs exactly five world updates, the main thread's
 // sleeps and timed waits take no real time), a fixed date and fixed random seeds, so two runs of the
 // same scenario take the same course, and a run with and without hooks (tools/compare.py) must print
 // the same console output. The harness's waits count virtual time too.
 bool g_deterministic = false;
 // "clocktrace": log the game's clock reads and waits (harness_clock.h).
 bool g_clockTrace = false;
+// "randtrace": log every random draw (harness_clock.h), installed at the first message loop pass.
+bool g_randomTrace = false;
 constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;   // game.exe import table
 constexpr std::uintptr_t kGetSystemTimeSlot = 0x0073B228;
 decltype(&::GetLocalTime) g_getLocalTime;
@@ -1522,6 +1592,7 @@ void RunSteps() {
             return;
         }
         Log("harness: %s %s", s.verb.c_str(), s.argument.c_str());
+        clock::RandomNote("step %s %s", s.verb.c_str(), s.argument.c_str());
         if (s.verb == "wait") {
             g_waitUntil.Set(std::strtoul(s.argument.c_str(), nullptr, 10));
         } else if (s.verb == "frames") {
@@ -1648,6 +1719,7 @@ void RunSteps() {
             return;
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
+            if (g_heldTickLength) HoldTickLength();
         } else if (s.verb == "waitline" || s.verb == "waitexpect") {
             char* rest = nullptr;
             unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
@@ -1869,13 +1941,17 @@ bool IsWinMainLoop(const void* returnAddress) {
 
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
     SetMainThread();
+    if (g_randomTrace) clock::InstallRandomTrace(&g_frames);
     TraceFpu("in the message loop");
     KeepGameWindowActive();
     // A frame has been drawn: the original's after-frame call (00457610) or the rewritten loop's.
-    if (reinterpret_cast<std::uintptr_t>(_ReturnAddress()) == kInputLoopReturns[1] ||
-        ei::mainloop::g_site == ei::mainloop::Site::PeekAfterFrame)
-        ++g_frames;
-    if (g_running && !g_inStep) {
+    const bool afterFrame = reinterpret_cast<std::uintptr_t>(_ReturnAddress()) == kInputLoopReturns[1] ||
+                            ei::mainloop::g_site == ei::mainloop::Site::PeekAfterFrame;
+    if (afterFrame) ++g_frames;
+    // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
+    // depends on the real messages it gets (Miles' 50 ms WM_TIMER, WM_PAINT), and a step that
+    // follows a console command's output would otherwise run in this frame or the next.
+    if (g_running && !g_inStep && (afterFrame || !clock::Virtual())) {
         g_inStep = true;   // console commands can pump messages themselves
         g_inputLoop = IsInputLoop(_ReturnAddress());
         g_winMainLoop = IsWinMainLoop(_ReturnAddress());
@@ -1897,6 +1973,11 @@ bool LoadScenario(const char* path) {
         text = text.substr(start);
         std::size_t space = text.find(' ');
         g_steps.push_back({text.substr(0, space), space == std::string::npos ? "" : text.substr(space + 1)});
+        if (g_steps.back().verb == "randtrace") {
+            g_randomTrace = true;
+            g_steps.pop_back();
+            continue;
+        }
         if (g_steps.back().verb == "deterministic" || g_steps.back().verb == "clocktrace") {
             (g_steps.back().verb == "deterministic" ? g_deterministic : g_clockTrace) = true;
             g_steps.pop_back();
@@ -1954,7 +2035,8 @@ struct Harness {
         GetEnvironmentVariableA("EI_HARNESS_CLOCK", clockMode, sizeof(clockMode));
         if (std::strstr(clockMode, "virtual")) g_deterministic = true;
         if (std::strstr(clockMode, "real")) g_deterministic = false;
-        if (std::strstr(clockMode, "trace")) g_clockTrace = true;
+        if (std::strstr(clockMode, "clocktrace")) g_clockTrace = true;
+        if (std::strstr(clockMode, "randtrace")) g_randomTrace = true;
         if (report) {
             std::fputs("RESULT: RUNNING\n", report);
             std::fclose(report);

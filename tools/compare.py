@@ -1,18 +1,20 @@
-"""Runs harness scenarios on the original code and on ours, and compares what the game printed.
+r"""Runs harness scenarios on the original code and on ours, and compares what the game printed.
 
 On the virtual clock (tests/verify/harness_clock.h) a scenario takes the same course every time, so
 any difference in the console output is a behaviour difference. Use it for code whose verify
 wrappers can only check plausibility (functions that run once per call: AI ticks, TakeHit, loaders).
 
 usage: python tools/compare.py [scenario names or paths...] [--rebirth | --both] [--runs N] [--jobs N]
-                               [--clock virtual|real]
+                               [--clock virtual|real[,clocktrace][,randtrace]]
   scenarios  names in tests/scenarios (default: all); with --rebirth and no names, those that
              config/rebirth_scenarios.csv runs under Rebirth
   --rebirth  run under Rebirth instead of the vanilla install; --both: vanilla, then Rebirth
   --runs N   run each side N times (default 1); with N > 1 it also checks each side repeats itself
   --jobs N   games at once (default 4; run_all.py's machine-wide slots apply)
-  --clock    override the scenarios' clock (default: as each scenario says)
-Each run writes to build\\verify\\runs\\<scenario>-<install>-<original|ours><n>.
+  --clock    override the scenarios' clock (default: as each scenario says); randtrace writes every
+             random draw to randtrace.txt in each run's folder (find where two runs part)
+Each run writes to build\verify\runs\<scenario>-<install>-<original|ours><n>. A scenario's verdict
+is printed as soon as its runs are done.
 exit code: 0 every scenario repeats and matches, 1 otherwise, 2 a run produced no report
 """
 import argparse, concurrent.futures, difflib, glob, os, sys, time
@@ -30,6 +32,32 @@ def diff(a, b, name_a, name_b, limit=12):
     return ['    ' + l for l in shown]
 
 
+def verdict(n, i, results, runs):
+    """(verdict, detail lines, exit code) of one scenario in one install."""
+    lines, verdicts, consoles, code = [], [], {}, 0
+    for hooks in (False, True):
+        side = 'ours' if hooks else 'original'
+        outs = [results[(n, i, hooks, k)] for k in range(1, runs + 1)]
+        if any(r[0] == 'NO REPORT' for r in outs):
+            verdicts.append(f'{side}: no report')
+            code = 2
+            continue
+        consoles[side] = outs[0][3]
+        bad = [k for k in range(2, runs + 1) if outs[k - 1][3] != outs[0][3]]
+        lines.append(f'  {side}: {" ".join(r[0] for r in outs)}; {len(outs[0][3])} console lines; '
+                     f'{max(r[1] for r in outs):.0f}s at most')
+        for r in outs:
+            lines += [f'    {r[0]}: {f}' for f in r[2][:2]]
+        if bad:
+            verdicts.append(f'{side} does not repeat')
+            lines += diff(outs[0][3], outs[bad[0] - 1][3], f'{side} run 1', f'{side} run {bad[0]}')
+    if len(consoles) == 2 and consoles['original'] != consoles['ours']:
+        verdicts.append('ours differs from the original')
+        lines += diff(consoles['original'], consoles['ours'], 'original', 'ours')
+    text = '; '.join(verdicts) or ('REPEATS, SAME' if runs > 1 else 'SAME')
+    return text, lines, max(code, 1 if verdicts else 0)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('scenarios', nargs='*')
@@ -37,7 +65,7 @@ def main():
     ap.add_argument('--both', action='store_true')
     ap.add_argument('--runs', type=int, default=1)
     ap.add_argument('--jobs', type=int, default=4)
-    ap.add_argument('--clock', choices=('virtual', 'real'))
+    ap.add_argument('--clock')
     args = ap.parse_args()
     names = [os.path.splitext(os.path.basename(s))[0] for s in args.scenarios] or sorted(
         os.path.splitext(os.path.basename(p))[0] for p in glob.glob(os.path.join(ROOT, 'tests', 'scenarios', '*.txt')))
@@ -48,6 +76,9 @@ def main():
 
     started = time.time()
     results = {}
+    pending = {case: 2 * args.runs for case in cases}
+    code = 0
+    good = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         futures = {}
         for n, i, hooks, k in runs:
@@ -57,41 +88,17 @@ def main():
             n, i, hooks, k, folder = futures[future]
             result, seconds, failures, counts, notes = future.result()
             results[(n, i, hooks, k)] = (result, seconds, failures, run_all.console_of(folder))
-
-    code = 0
-    summary = {}
-    for n, i in cases:
-        lines = []
-        verdicts = []
-        consoles = {}
-        for hooks in (False, True):
-            side = 'ours' if hooks else 'original'
-            outs = [results[(n, i, hooks, k)] for k in range(1, args.runs + 1)]
-            if any(r[0] == 'NO REPORT' for r in outs):
-                verdicts.append(f'{side}: no report')
-                code = max(code, 2)
+            pending[(n, i)] -= 1
+            if pending[(n, i)]:
                 continue
-            consoles[side] = outs[0][3]
-            bad = [k for k in range(2, args.runs + 1) if outs[k - 1][3] != outs[0][3]]
-            results_text = ' '.join(r[0] for r in outs)
-            lines.append(f'  {side}: {results_text}; {len(outs[0][3])} console lines; '
-                         f'{max(r[1] for r in outs):.0f}s at most')
-            if bad:
-                verdicts.append(f'{side} does not repeat')
-                lines += diff(outs[0][3], outs[bad[0] - 1][3], f'{side} run 1', f'{side} run {bad[0]}')
-        if len(consoles) == 2 and consoles['original'] != consoles['ours']:
-            verdicts.append('ours differs from the original')
-            lines += diff(consoles['original'], consoles['ours'], 'original', 'ours')
-        verdict = '; '.join(verdicts) or ('REPEATS, SAME' if args.runs > 1 else 'SAME')
-        if verdicts:
-            code = max(code, 1)
-        summary[(n, i)] = verdict
-        print(f'{n:<26} {i:<8} {verdict}')
-        if verdicts:
-            for l in lines:
-                print(l)
-        sys.stdout.flush()
-    good = sum(1 for v in summary.values() if v in ('REPEATS, SAME', 'SAME'))
+            text, lines, case_code = verdict(n, i, results, args.runs)
+            code = max(code, case_code)
+            good += case_code == 0
+            print(f'{n:<26} {i:<8} {text}')
+            if case_code:
+                for l in lines:
+                    print(l)
+            sys.stdout.flush()
     print(f'\n{good} of {len(cases)} scenario runs repeat and match ({len(runs)} games in {time.time() - started:.0f}s)')
     return code
 

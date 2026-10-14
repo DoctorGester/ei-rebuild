@@ -3,6 +3,7 @@
 
 #include "../../src/hook/log.h"
 #include "ei/main_loop.h"
+#include "../../src/game/random.h"
 
 #include <windows.h>
 #include <intrin.h>
@@ -11,6 +12,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <tuple>
@@ -85,7 +87,8 @@ const void* CallerOf(const void* returnAddress) { return t_tracedCaller ? t_trac
 // ---- Virtual clock -------------------------------------------------------------------------------
 
 constexpr std::uintptr_t kMainLoopTimeReturn = 0x004571E2;   // after the main loop's timeGetTime call
-constexpr unsigned kUpdatesPerFrame = 4;                     // the main loop runs at most 5 per pass
+// As many as the main loop runs in one pass (kLongestPassTicks, app_main.cpp): fewer frames to draw.
+constexpr unsigned kUpdatesPerFrame = 5;
 
 bool g_virtual = false;
 volatile bool g_frozen = false;
@@ -132,9 +135,157 @@ DWORD OtherThreadsNow() {
     return static_cast<DWORD>(seen);
 }
 
+// ---- Sound ends on the virtual clock -------------------------------------------------------------
+// The game learns that a voice's sample has ended from Miles' end-of-sample callback (006B75E0, on
+// Miles' timer thread: the slot's `finished`), and that feeds game state: a unit talks (server flag
+// kFlagTalking, unit_client_speech.cpp) until its speech sample ends, scripts wait on that (zone1's
+// intro), and FindPlaying frees voices. Played in real time, that made runs part. On the virtual
+// clock the harness keeps the callback from Miles and calls it itself, from the main loop's frame
+// time, once the sample's length (Miles' own ms position and loop count at the start) has passed
+// on the virtual clock. Stopped samples (PauseAll) keep what was left until resumed.
+constexpr std::uintptr_t kAilRegisterEosCallbackSlot = 0x0073B75C;
+constexpr std::uintptr_t kAilSetSampleMsPositionSlot = 0x0073B768;
+constexpr std::uintptr_t kAilStartSampleSlot = 0x0073B76C;
+constexpr std::uintptr_t kAilSetSampleLoopCountSlot = 0x0073B778;
+constexpr std::uintptr_t kAilResumeSampleSlot = 0x0073B780;
+constexpr std::uintptr_t kAilStopSampleSlot = 0x0073B784;
+constexpr std::uintptr_t kAilEndSampleSlot = 0x0073B7D8;
+using EosCallback = void(__stdcall*)(void*);
+using RegisterEosFn = EosCallback(__stdcall*)(void*, EosCallback);
+using SampleFn = void(__stdcall*)(void*);
+using SampleIntFn = void(__stdcall*)(void*, int);
+using MsPositionFn = void(__stdcall*)(void*, long*, long*);
+RegisterEosFn g_ailRegisterEos;
+SampleIntFn g_ailSetSampleMsPosition, g_ailSetSampleLoopCount;
+SampleFn g_ailStartSample, g_ailResumeSample, g_ailStopSample, g_ailEndSample;
+MsPositionFn g_ailSampleMsPosition;
+
+struct Voice {
+    void* sample;
+    EosCallback callback = nullptr;
+    int loops = 1;            // 0: forever
+    bool running = false;     // started, its end not yet called
+    bool stopped = false;     // stopped while running: `left` is what remains
+    DWORD end = 0;            // virtual time of its end (running, finite)
+    DWORD left = 0;
+    bool forever = false;
+};
+std::vector<Voice> g_voices;   // in the order they first appeared (the order ends are called in)
+CRITICAL_SECTION g_voiceLock;
+
+Voice& VoiceOf(void* sample) {
+    for (Voice& v : g_voices)
+        if (v.sample == sample) return v;
+    g_voices.push_back(Voice{sample});
+    return g_voices.back();
+}
+
+// The milliseconds the sample still plays from its current position, by Miles.
+DWORD Remaining(const Voice& v, bool* forever) {
+    long total = 0, current = 0;
+    if (g_ailSampleMsPosition) g_ailSampleMsPosition(v.sample, &total, &current);
+    *forever = v.loops == 0;
+    long rest = total > current ? total - current : 0;
+    if (v.loops > 1) rest += total * (v.loops - 1);
+    return static_cast<DWORD>(rest);
+}
+
+void StartTimer(Voice& v) {
+    v.running = true;
+    v.stopped = false;
+    v.end = g_now + Remaining(v, &v.forever);
+    RandomNote("sound start at %lu: end %lu%s loops %d", g_now, v.end, v.forever ? " forever" : "", v.loops);
+}
+
+EosCallback __stdcall HeldRegisterEos(void* sample, EosCallback callback) {
+    EnterCriticalSection(&g_voiceLock);
+    Voice& v = VoiceOf(sample);
+    EosCallback previous = v.callback;
+    v.callback = callback;
+    LeaveCriticalSection(&g_voiceLock);
+    g_ailRegisterEos(sample, nullptr);
+    return previous;
+}
+void __stdcall TimedSetLoopCount(void* sample, int count) {
+    g_ailSetSampleLoopCount(sample, count);
+    EnterCriticalSection(&g_voiceLock);
+    VoiceOf(sample).loops = count;
+    LeaveCriticalSection(&g_voiceLock);
+}
+void __stdcall TimedStartSample(void* sample) {
+    g_ailStartSample(sample);
+    EnterCriticalSection(&g_voiceLock);
+    StartTimer(VoiceOf(sample));
+    LeaveCriticalSection(&g_voiceLock);
+}
+void __stdcall TimedSetMsPosition(void* sample, int ms) {
+    g_ailSetSampleMsPosition(sample, ms);
+    EnterCriticalSection(&g_voiceLock);
+    Voice& v = VoiceOf(sample);
+    if (v.running && !v.stopped) StartTimer(v);
+    LeaveCriticalSection(&g_voiceLock);
+}
+void __stdcall TimedStopSample(void* sample) {
+    g_ailStopSample(sample);
+    EnterCriticalSection(&g_voiceLock);
+    Voice& v = VoiceOf(sample);
+    if (v.running && !v.stopped) {
+        v.stopped = true;
+        v.left = static_cast<LONG>(v.end - g_now) > 0 ? v.end - g_now : 0;
+    }
+    LeaveCriticalSection(&g_voiceLock);
+}
+void __stdcall TimedResumeSample(void* sample) {
+    g_ailResumeSample(sample);
+    EnterCriticalSection(&g_voiceLock);
+    Voice& v = VoiceOf(sample);
+    if (v.running && v.stopped) {
+        v.stopped = false;
+        v.end = g_now + v.left;
+    }
+    LeaveCriticalSection(&g_voiceLock);
+}
+void __stdcall TimedEndSample(void* sample) {
+    g_ailEndSample(sample);
+    EnterCriticalSection(&g_voiceLock);
+    VoiceOf(sample).running = false;
+    LeaveCriticalSection(&g_voiceLock);
+}
+
+// The ends due on the virtual clock (called after each frame's advance).
+void CallSampleEnds() {
+    std::vector<std::pair<EosCallback, void*>> due;
+    EnterCriticalSection(&g_voiceLock);
+    for (Voice& v : g_voices) {
+        if (!v.running || v.stopped || v.forever || static_cast<LONG>(g_now - v.end) < 0) continue;
+        v.running = false;
+        RandomNote("sound end at %lu", g_now);
+        if (v.callback) due.push_back({v.callback, v.sample});
+    }
+    LeaveCriticalSection(&g_voiceLock);
+    for (auto& [callback, sample] : due) callback(sample);
+}
+
+void InstallSampleTimers() {
+    InitializeCriticalSection(&g_voiceLock);
+    if (HMODULE mss = GetModuleHandleA("mss32.dll"))
+        g_ailSampleMsPosition = reinterpret_cast<MsPositionFn>(GetProcAddress(mss, "_AIL_sample_ms_position@12"));
+    if (!g_ailSampleMsPosition) Log("harness: no _AIL_sample_ms_position in mss32.dll: sounds end at once");
+    PatchSlot(kAilRegisterEosCallbackSlot, &HeldRegisterEos, g_ailRegisterEos);
+    PatchSlot(kAilSetSampleMsPositionSlot, &TimedSetMsPosition, g_ailSetSampleMsPosition);
+    PatchSlot(kAilStartSampleSlot, &TimedStartSample, g_ailStartSample);
+    PatchSlot(kAilSetSampleLoopCountSlot, &TimedSetLoopCount, g_ailSetSampleLoopCount);
+    PatchSlot(kAilResumeSampleSlot, &TimedResumeSample, g_ailResumeSample);
+    PatchSlot(kAilStopSampleSlot, &TimedStopSample, g_ailStopSample);
+    PatchSlot(kAilEndSampleSlot, &TimedEndSample, g_ailEndSample);
+}
+
 DWORD WINAPI VirtualTimeGetTime() {
     if (!OnMainThread()) return OtherThreadsNow();
-    if (IsMainLoopTime(CallerOf(_ReturnAddress()))) Advance(kUpdatesPerFrame * *g_tickLength);
+    if (IsMainLoopTime(CallerOf(_ReturnAddress()))) {
+        Advance(kUpdatesPerFrame * *g_tickLength);
+        CallSampleEnds();
+    }
     return g_now;
 }
 DWORD WINAPI VirtualGetTickCount() { return OnMainThread() ? g_now : OtherThreadsNow(); }
@@ -451,6 +602,7 @@ void InstallVirtual(const unsigned* tickLength) {
     PatchSlot(kGetTickCountSlot, &VirtualGetTickCount, g_getTickCount);
     PatchSlot(kSleepSlot, &VirtualSleep, g_sleep);
     PatchSlot(kWaitForSingleObjectSlot, &VirtualWaitForSingleObject, g_waitForSingleObject);
+    InstallSampleTimers();
 }
 
 bool Virtual() { return g_virtual; }
@@ -504,8 +656,7 @@ void DumpTrace(const char* why) {
         e.dumped = calls;
     }
     std::sort(lines.begin(), lines.end(), [](const Line& a, const Line& b) { return a.delta > b.delta; });
-    Log("clocktrace: --- %s (virtual %lu, real %lu): %u call sites busy", why, g_now, GetTickCount(), unsigned(lines.size()));
-    int shown = 0;
+    Log("clocktrace: --- %s (virtual %lu, real %lu): %u call sites busy", why, g_now, GetTickCount(), unsigned(lines.size()));    int shown = 0;
     for (const Line& line : lines) {
         if (++shown > 24) break;
         char where[MAX_PATH + 16], who[32];
@@ -514,6 +665,113 @@ void DumpTrace(const char* why) {
         Log("clocktrace: %8lu %-24s from %-28s on %s (total %lu, %llu ms asked)", line.delta, kFnNames[line.entry.fn],
             where, who, line.entry.count, line.entry.ms);
     }
+}
+
+// ---- Random trace ----------------------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kIsaacNext = 0x004667F0;
+const unsigned* g_traceFrames = nullptr;
+FILE* g_randomFile = nullptr;
+unsigned g_randomFrame = ~0u;
+std::uintptr_t g_selfBase = 0, g_selfEnd = 0;
+CRITICAL_SECTION g_randomLock;
+
+// One draw: "<frame> [(other thread) ][ei_hook+]<caller> <value>[ <what>]".
+void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what) {
+    const bool ours = caller >= g_selfBase && caller < g_selfEnd;
+    EnterCriticalSection(&g_randomLock);
+    const unsigned frame = *g_traceFrames;
+    if (frame != g_randomFrame) {
+        std::fflush(g_randomFile);
+        g_randomFrame = frame;
+    }
+    std::fprintf(g_randomFile, "%u %s%s%X %08X%s\n", frame, OnMainThread() ? "" : "(other thread) ", ours ? "ei_hook+" : "",
+                 unsigned(ours ? caller - g_selfBase : caller), value, what);
+    LeaveCriticalSection(&g_randomLock);
+}
+
+std::uint32_t __fastcall TracedNext(IsaacRandom* self, void*) {
+    // IsaacRandom::Next (random.cpp), which jumps here too.
+    if (self->count_-- == 0) {
+        self->Refill();
+        self->count_ = 255;
+    }
+    const std::uint32_t value = self->results_[self->count_];
+    WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), value,
+              self == &IsaacRandom::Global() ? "" : " (another generator)");
+    return value;
+}
+
+// The game's CRT rand() (006E77F7; per thread: _getptd 006F00D1, holdrand at +0x14), which
+// gamecrt::rand jumps to.
+constexpr std::uintptr_t kCrtRand = 0x006E77F7;
+constexpr std::uintptr_t kCrtThreadData = 0x006F00D1;
+constexpr int kHoldRand = 0x14;
+int __cdecl TracedRand() {
+    auto* data = reinterpret_cast<std::uint8_t*(__cdecl*)()>(kCrtThreadData)();
+    auto& hold = *reinterpret_cast<std::uint32_t*>(data + kHoldRand);
+    hold = hold * 0x343FDu + 0x269EC3u;
+    const int value = static_cast<int>((hold >> 16) & 0x7FFF);
+    WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), static_cast<std::uint32_t>(value), " rand()");
+    return value;
+}
+
+void JumpFrom(std::uintptr_t entry, const void* to) {
+    auto* p = reinterpret_cast<unsigned char*>(entry);
+    DWORD old;
+    VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);
+    p[0] = 0xE9;
+    const auto relative = static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(to) - (entry + 5));
+    std::memcpy(p + 1, &relative, 4);
+    VirtualProtect(p, 5, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), p, 5);
+}
+
+} // namespace
+
+void RandomNote(const char* format, ...) {
+    if (!g_randomFile) return;
+    EnterCriticalSection(&g_randomLock);
+    std::fprintf(g_randomFile, "%u note: ", *g_traceFrames);
+    va_list args;
+    va_start(args, format);
+    std::vfprintf(g_randomFile, format, args);
+    va_end(args);
+    std::fputc('\n', g_randomFile);
+    LeaveCriticalSection(&g_randomLock);
+}
+
+void InstallRandomTrace(const unsigned* frames) {
+    if (g_randomFile) return;
+    FindMainThreadOnce();
+    char path[MAX_PATH];
+    ei::OutputPath("randtrace.txt", path);
+    if (fopen_s(&g_randomFile, path, "w") != 0 || !g_randomFile) return;
+    std::setvbuf(g_randomFile, nullptr, _IOFBF, 1 << 20);
+    InitializeCriticalSection(&g_randomLock);
+    g_traceFrames = frames;
+    HMODULE self = nullptr;
+    GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                       reinterpret_cast<LPCSTR>(&TracedNext), &self);
+    MODULEINFO info{};
+    GetModuleInformation(GetCurrentProcess(), self, &info, sizeof(info));
+    g_selfBase = reinterpret_cast<std::uintptr_t>(info.lpBaseOfDll);
+    g_selfEnd = g_selfBase + info.SizeOfImage;
+    // The original's entry and ours (the rewritten callers call ours directly), and rand().
+    auto ours = &IsaacRandom::Next;
+    JumpFrom(kIsaacNext, reinterpret_cast<const void*>(&TracedNext));
+    JumpFrom(*reinterpret_cast<std::uintptr_t*>(&ours), reinterpret_cast<const void*>(&TracedNext));
+    JumpFrom(kCrtRand, reinterpret_cast<const void*>(&TracedRand));
+    Log("harness: random trace to %s", path);
+}
+
+void FlushRandomTrace() {
+    if (!g_randomFile) return;
+    EnterCriticalSection(&g_randomLock);
+    std::fflush(g_randomFile);
+    LeaveCriticalSection(&g_randomLock);
 }
 
 } // namespace ei::verify::clock
