@@ -53,6 +53,10 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
   surface" (DDERR_SURFACELOST). Seen only in ours, on the last run of a scenario (it lives longest).
   run_all.run runs such a run again, up to twice. A cure would keep harness games from ever taking
   the foreground (dgVoodoo's own activation at SetCooperativeLevel gives it to them).
+- **Start-up hangs on a busy machine.** With many games on the machine (other workers' suites), some
+  runs on either side and either clock hang before the main menu until the 60 s limit: the main
+  thread is in DirectSound's device open inside Miles' waveOutOpen (mss32 -> DSOUND, stack at the
+  timeout). Environmental; run_all's retry usually passes them.
 - Rebirth (`compare.py --rebirth --runs 3`, the 19 scenarios config/rebirth_scenarios.csv runs there):
   18 repeat and match; rebirth_flags as above. Three runs were run again after the minimise and passed.
 
