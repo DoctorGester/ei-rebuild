@@ -23,10 +23,10 @@
 #include "text_reader.h"
 #include "net_link.h"
 #include "object_tables.h"
+#include "texture.h"
 #include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -36,21 +36,13 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 
+#include <ddraw.h>
+
 #include <cstdint>
 #include <cstring>
 #include <new>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
-
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
 
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
@@ -87,8 +79,6 @@ constexpr unsigned kOpenWrite = 0x1001;              // CFile::modeCreate | mode
 constexpr std::uint32_t kClosed = 0x100002;          // pending value after saving
 constexpr int kVisibleRows = 16;
 
-constexpr int kLock = 25, kUnlock = 32;              // IDirectDrawSurface7
-constexpr int kSlotMatchesMask = 14;                 // CFileFind::MatchesMask
 
 // --- Callees not rewritten (thiscall declared __fastcall with the unused EDX) --------------------
 
@@ -138,26 +128,26 @@ __declspec(naked) void __fastcall EntriesSortLoop(SaveEntry*, SaveEntry*, void* 
     EI_ORIGINAL(0x00657DF0)
 __declspec(naked) void __fastcall EntriesFinalSort(SaveEntry*, SaveEntry*, int /*order*/) EI_ORIGINAL(0x00657F10)
 
-// CFileFind members beyond lib/mfc.h, called on existing objects through this view.
-struct FileFindOps : mfc::CFileFind {
-    BOOL Next() { return CFileFindNext(this); }   // 006E6653 FindNextFile
-    BOOL IsDots() const;               // 006E661A
-    mfc::CString FilePath() const;     // 006E6722 GetFilePath
-    mfc::CString FileName() const;     // 006E684B GetFileName
-    void Close() { CFileFindCloseOriginal(this); }   // 006E63E9
-    // MatchesMask(FILE_ATTRIBUTE_DIRECTORY), through the vtable as the original calls it.
-    BOOL IsDirectory() const { return ei::VCall<BOOL>(this, kSlotMatchesMask, 0x10ul); }
-};
-BOOL FileFindOps::IsDots() const { return CFileFindIsDotsOriginal(this); }
-__declspec(naked) mfc::CString FileFindOps::FilePath() const EI_ORIGINAL(0x006E6722)
-mfc::CString FileFindOps::FileName() const {
+// CFileFind members beyond lib/mfc.h: FindNextFile (006E6653), IsDots (006E661A), Close
+// (006E63E9), and MatchesMask(FILE_ATTRIBUTE_DIRECTORY) through the vtable (slot 14) as the
+// original calls it.
+BOOL FindNext(mfc::CFileFind& find) { return CFileFindNext(&find); }
+BOOL IsDots(const mfc::CFileFind& find) { return CFileFindIsDotsOriginal(&find); }
+void CloseFind(mfc::CFileFind& find) { CFileFindCloseOriginal(&find); }
+BOOL IsDirectory(const mfc::CFileFind& find) {
+    return reinterpret_cast<const mfc::CFileFindVirtuals*>(&find)->MatchesMask(0x10ul);
+}
+// GetFilePath (006E6722) and GetFileName (006E684B): the CString they construct at the slot,
+// copied out and destroyed.
+mfc::CString FindResult(mfc::CString* (__fastcall* get)(const void*, void*, mfc::CString*), const mfc::CFileFind& find) {
     alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
-    mfc::CString* name = CFileFindNameOriginal(this, nullptr, reinterpret_cast<mfc::CString*>(slot));
-    mfc::CString result(*name);
-    name->~CString();
+    mfc::CString* text = get(&find, nullptr, reinterpret_cast<mfc::CString*>(slot));
+    mfc::CString result(*text);
+    text->~CString();
     return result;
 }
-FileFindOps& Ops(mfc::CFileFind& find) { return static_cast<FileFindOps&>(find); }
+mfc::CString FilePath(const mfc::CFileFind& find) { return FindResult(CFileFindPathOriginal, find); }
+mfc::CString FileName(const mfc::CFileFind& find) { return FindResult(CFileFindNameOriginal, find); }
 
 // A file stream local as the original builds and tears it down inline (net_link.h).
 struct LocalFileStream {
@@ -196,11 +186,7 @@ struct LocalEntry {
     LocalEntry& operator=(const LocalEntry&) = delete;
 };
 
-char* HolderOf(CEngineObject* texture) { return At<char*>(texture, 0x5C); }   // CTexture::surface_
-
-// The picture sprite (scene object 3, a CUiMesh): +0x220 shown, +0x280 its texture.
-void ShowSprite(CEngineObject* sprite, int shown) { At<int>(sprite, 0x220) = shown; }
-void SetSpriteTexture(CEngineObject* sprite, CEngineObject* texture) { At<CEngineObject*>(sprite, 0x280) = texture; }
+CDXSurface* HolderOf(CEngineObject* texture) { return static_cast<CTexture*>(texture)->surface_; }
 
 // The pixels of a picture texture for one fill or read. In the switch-over with game-owned memory
 // they are that memory (no DirectDraw); otherwise the surface is locked with flags 0 as the
@@ -208,15 +194,15 @@ void SetSpriteTexture(CEngineObject* sprite, CEngineObject* texture) { At<CEngin
 // block into the game-owned memory, when there is some, before the Unlock.
 class PicturePixels {
 public:
-    explicit PicturePixels(char* holder) : holder_(holder) { desc_[0] = 0x7C; }
+    explicit PicturePixels(CDXSurface* holder) : holder_(holder) { desc_[0] = 0x7C; }
 
     // False when the Lock failed and the report said stop.
     bool Begin() {
         direct_ = DirectPixels(holder_, desc_);
         if (direct_) return true;
-        long hr = ComCall(At<void*>(holder_, 0x10), kLock, static_cast<void*>(nullptr), static_cast<void*>(desc_), 0ul,
-                          static_cast<void*>(nullptr));
-        At<long>(holder_, 8) = hr;
+        long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)
+                      ->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc_), 0, nullptr);
+        holder_->result = hr;
         return hr == 0 || FatalDirectX(hr, Text(kCantLock)) != 0;
     }
     std::uint8_t* Bits() const { return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc_[9])); }
@@ -229,19 +215,19 @@ public:
     }
     void End() {
         if (direct_) return;
-        long hr = ComCall(At<void*>(holder_, 0x10), kUnlock, static_cast<void*>(nullptr));
-        At<long>(holder_, 8) = hr;
+        long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)->Unlock(nullptr);
+        holder_->result = hr;
         if (hr != 0) FatalDirectX(hr, Text(kCantUnlock));
     }
 
 private:
-    char* holder_;
+    CDXSurface* holder_;
     std::uint32_t desc_[0x1F] = {};
     bool direct_ = false;
 };
 
 // The escape menu's 256x192 5:6:5 copy of the screen (interface +0x5C), or null.
-const void* SavePicture(CInterface3D* ui) { return At<const void*>(ui, 0x5C); }
+const void* SavePicture(CInterface3D* ui) { return ui->block5C_; }
 
 // The entry vector (+0x164) as the STLport helpers take it.
 void* EntryVector(CSaveLoadWindow* w) { return &w->entriesBegin_; }
@@ -262,17 +248,18 @@ __declspec(naked) void CSaveLoadWindow::CallLoadSelected() EI_ORIGINAL(0x00655A1
 
 void CSaveLoadWindow::GivePictureMemory(CEngineObject* texture) {
     if (!texture || !render::CpuWindows()) return;
-    char* holder = HolderOf(texture);
+    CDXSurface* holder = HolderOf(texture);
     if (!holder) return;
-    // The surface's size (004EFA60 put it in +0x14 / +0x18) and the texture's pixel format
-    // (CTexture +0x3C, the device's format for the texture's format id).
-    AttachTextureMemory(holder, At<int>(holder, 0x14), At<int>(holder, 0x18), &At<std::uint32_t>(texture, 0x3C));
+    // The surface's size (004EFA60 put it there) and the texture's pixel format (the device's
+    // format for the texture's format id).
+    AttachTextureMemory(holder, holder->width, holder->height,
+                        reinterpret_cast<const std::uint32_t*>(&static_cast<CTexture*>(texture)->format_));
 }
 
 // --- 00656E10 ------------------------------------------------------------------------------------
 
 void CSaveLoadWindow::ShowPicture() {
-    ShowSprite(sceneObjects_.data[3], 0);
+    SceneMesh(3)->visible_ = 0;
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entriesBegin_ + selected;
@@ -280,8 +267,8 @@ void CSaveLoadWindow::ShowPicture() {
     if (isSave_ && selected == 0) {
         // The new save: the game's picture.
         if (!dialog_) return;
-        ShowSprite(sceneObjects_.data[3], 1);
-        SetSpriteTexture(sceneObjects_.data[3], dialog_);
+        SceneMesh(3)->visible_ = 1;
+        SceneMesh(3)->texture_ = dialog_;
         return;
     }
     mfc::CString folder;
@@ -293,7 +280,7 @@ void CSaveLoadWindow::ShowPicture() {
         found = find.FindFile(path, 0);
     }
     if (!found) return;
-    char* holder = HolderOf(objects_.data[1]);
+    CDXSurface* holder = HolderOf(objects_.data[1]);
     gameapi::EnterCriticalSection(DeviceLock());
     PicturePixels pixels(holder);
     if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
@@ -307,8 +294,8 @@ void CSaveLoadWindow::ShowPicture() {
     pixels.Mirror();
     gameapi::LeaveCriticalSection(DeviceLock());
     pixels.End();
-    ShowSprite(sceneObjects_.data[3], 1);
-    SetSpriteTexture(sceneObjects_.data[3], objects_.data[1]);
+    SceneMesh(3)->visible_ = 1;
+    SceneMesh(3)->texture_ = objects_.data[1];
 }
 EI_REPLACE_METHOD(0x00656E10, CSaveLoadWindow::ShowPicture);
 
@@ -410,7 +397,7 @@ void CSaveLoadWindow::SaveGame() {
 
     // shot.sav: the game's picture.
     if (dialog_) {
-        char* holder = HolderOf(dialog_);
+        CDXSurface* holder = HolderOf(dialog_);
         gameapi::EnterCriticalSection(DeviceLock());
         PicturePixels pixels(holder);
         if (!pixels.Begin()) {
@@ -444,9 +431,9 @@ void CSaveLoadWindow::FillEntries() {
     int found = 0;       // the last FindNextFile result (the sort's comparison object below)
     BOOL more = find.FindFile(pattern, 0);
     while (more) {
-        found = Ops(find).Next();
+        found = FindNext(find);
         more = found;
-        if (Ops(find).IsDots() || !Ops(find).IsDirectory()) continue;
+        if (IsDots(find) || !IsDirectory(find)) continue;
         LocalEntry fresh;
         if (entriesEnd_ != entriesCapacity_) {
             EntryConstruct(entriesEnd_, &fresh.e);
@@ -455,11 +442,11 @@ void CSaveLoadWindow::FillEntries() {
             EntriesInsertOverflow(EntryVector(this), nullptr, entriesEnd_, &fresh.e, 1);
         }
         SaveEntry* entry = entriesEnd_ - 1;
-        Str(entry->folder_) = Ops(find).FileName();
+        Str(entry->folder_) = FileName(find);
         mfc::CFileFind infoFind;
         BOOL hasInfo;
         {
-            mfc::CString folderPath = Ops(find).FilePath();
+            mfc::CString folderPath = FilePath(find);
             mfc::CString path = folderPath + Text(kInfoInFolder);
             hasInfo = infoFind.FindFile(path, 0);
         }
@@ -467,9 +454,9 @@ void CSaveLoadWindow::FillEntries() {
             entry->broken_ = true;
             Str(entry->title_) = Text(kBrokenTitle);
         } else {
-            Ops(infoFind).Next();
+            FindNext(infoFind);
             LocalFileStream info;
-            info.Open(Ops(infoFind).FilePath(), 0, 1);
+            info.Open(FilePath(infoFind), 0, 1);
             if (StreamReadHeader(&info.s, nullptr, kInfoMagic, kInfoVersion, 1)) {
                 info.Read(&entry->gameTime_, 4);
                 {
@@ -491,13 +478,13 @@ void CSaveLoadWindow::FillEntries() {
             if (console::Length(Str(entry->title_)) == 0) EntryMakeTitle(entry, nullptr, 1);
             entry->broken_ = false;
         }
-        Ops(infoFind).Close();
+        CloseFind(infoFind);
         if (console::Length(Str(entry->folder_)) > 4) {
             int number = GameAtoi(console::Ops(Str(entry->folder_)).Mid(4));
             if (!(highest > number)) highest = number;
         }
     }
-    Ops(find).Close();
+    CloseFind(find);
     SaveEntry* first = entriesBegin_;
     SaveEntry* end = entriesEnd_;
     if (first != end) {
@@ -532,8 +519,8 @@ void CSaveLoadWindow::FillEntries() {
             Str(entry->zone_) = *zone;
             zone->~CString();
         }
-        if (std::uint8_t* record = MapDatabaseFind(kMapDatabase, nullptr, entry->zone_))
-            Str(entry->map_) = At<mfc::CString>(record, 4);
+        if (auto* record = reinterpret_cast<MapRecord*>(MapDatabaseFind(kMapDatabase, nullptr, entry->zone_)))
+            Str(entry->map_) = Str(record->allod);
         EntryMakeTitle(entry, nullptr, 1);
         entry->broken_ = false;
 
@@ -546,7 +533,7 @@ void CSaveLoadWindow::FillEntries() {
             ++shot->refCount_;
             RemoveObjectAt(objects_.size - 1);
             GivePictureMemory(dialog_);
-            char* holder = HolderOf(dialog_);
+            CDXSurface* holder = HolderOf(dialog_);
             gameapi::EnterCriticalSection(DeviceLock());
             PicturePixels pixels(holder);
             // A failed Lock whose report says stop leaves with the device lock held and the scroll
@@ -749,10 +736,10 @@ void CSaveLoadWindow::DeleteSave() {
     mfc::CFileFind find;
     BOOL more = find.FindFile(folder + kEveryFile, 0);
     while (more) {
-        more = Ops(find).Next();
-        gameapi::DeleteFileA(Ops(find).FilePath());
+        more = FindNext(find);
+        gameapi::DeleteFileA(FilePath(find));
     }
-    Ops(find).Close();
+    CloseFind(find);
     gameapi::RemoveDirectoryA(folder);
     CallFillEntries();
     int count = EntryCount();

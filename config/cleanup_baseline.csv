@@ -256,7 +256,7 @@ src/game/ui_menus.cpp,0,0,0,2,0,0,0,1,0,0,0
 src/game/ui_mesh_build.cpp,10,0,3,1,15,0,0,0,0,0,1
 src/game/ui_mesh_draw.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_objectives.cpp,0,0,1,1,1,2,0,10,0,1,0
-src/game/ui_saveload.cpp,12,1,0,0,13,0,0,0,0,0,0
+src/game/ui_saveload.cpp,0,0,0,0,13,0,0,0,0,0,0
 src/game/ui_screens.cpp,3,0,1,0,1,0,0,1,0,0,0
 src/game/ui_screens.h,0,0,0,0,0,0,0,2,0,3,0
 src/game/ui_scroll_text.cpp,0,0,0,0,3,1,0,0,0,0,0
