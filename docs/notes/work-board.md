@@ -252,3 +252,13 @@ work.py from a branch that has not merged main refuses a newer schema ("merge ma
 
 Tested: tools/test_work_sched.py (lookup fallbacks, git revs on a temporary repository, rows from the scheduler, the
 class's and the process's exit on new code with queued runs left queued).
+
+## WB7: a batch with unusable arguments fails visibly (2026-10-15)
+
+`batch_args()` returning None used to leave the batch's runs queued forever (an old run_all without `--clock`
+could not parse a newer batch's arguments). Now the scheduler logs it, cancels the batch's queued runs, and
+`finish()` ends the batch `finished` with exit code 2 and a summary `batch #N FAILED: run_all does not take these
+arguments (<run_all's own argparse error>): <args>`; the board shows it and the waiting `work.py test` prints it
+and exits 2. `work_sched.parse_batch_args` captures argparse's stderr. Submission already refused bad arguments:
+`cmd_test` runs `run_all.parse_args(argv)` before queuing (argparse prints the error, exit 2).
+Tested: tools/test_work_sched.py `test_unparseable_arguments_fail_the_batch`.

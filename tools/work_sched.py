@@ -25,7 +25,7 @@ collides:
 Every database write is a short transaction in the scheduler's main loop; games run in threads.
 docs/notes/work-board.md, 'Scheduler' and 'WB2'.
 """
-import collections, ctypes, datetime, hashlib, io, json, os, queue, subprocess, sys, threading, time, traceback
+import collections, contextlib, ctypes, datetime, hashlib, io, json, os, queue, subprocess, sys, threading, time, traceback
 
 import run_all
 import work
@@ -115,6 +115,21 @@ def submit(db, ticket, worktree, build, argv, runs, submitter=None, env=None):
                        [(batch, r['scenario'], r['install'], int(r['hooks']), int(r['alone']), r['expected'], r['folder'])
                         for r in runs])
     return batch
+
+
+def parse_batch_args(text):
+    """run_all's parse of a stored argument list; ValueError with run_all's own message when it will not."""
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(err):
+            return run_all.parse_args(json.loads(text))
+    except SystemExit:
+        lines = [l for l in err.getvalue().splitlines() if l.strip()]
+        raise ValueError(lines[-1] if lines else 'run_all.parse_args exited')
+
+
+def unusable_text(text, error):
+    return f'run_all does not take these arguments ({error or "unparseable"}): {text}'
 
 
 def cancel(db, batch):
@@ -227,6 +242,7 @@ class Scheduler:
         self.games = {}            # run id -> {batch, slots, folder, alone, thread}
         self.events = queue.Queue()
         self.args = {}             # batch id -> parsed run_all arguments (None: unusable)
+        self.arg_errors = {}       # batch id -> why run_all did not take them
         self.last_check = 0.0
 
     # one pass of the main loop; True while there is work (batches or games)
@@ -246,9 +262,9 @@ class Scheduler:
     def batch_args(self, batch):
         if batch['id'] not in self.args:
             try:
-                self.args[batch['id']] = run_all.parse_args(json.loads(batch['args']))
-            except (SystemExit, ValueError):
-                self.args[batch['id']] = None
+                self.args[batch['id']], self.arg_errors[batch['id']] = parse_batch_args(batch['args']), None
+            except ValueError as e:
+                self.args[batch['id']], self.arg_errors[batch['id']] = None, str(e)
         return self.args[batch['id']]
 
     def heartbeat(self):
@@ -323,7 +339,13 @@ class Scheduler:
         for b in batches:
             args = self.batch_args(b)
             runs = sorted(queued[b['id']], key=order_key)
-            if args is None or not runs:
+            if args is None:
+                if runs:                                     # never startable: finish_batches fails it
+                    self.log(f'batch #{b["id"]}: arguments not usable: {self.arg_errors[b["id"]]}')
+                    with work.transaction(self.db):
+                        self.db.execute("UPDATE run SET state = 'cancelled' WHERE batch = ? AND state = 'queued'", (b['id'],))
+                continue
+            if not runs:
                 continue
             plain = [r for r in runs if not r['alone']]
             for r in plain:
@@ -389,7 +411,7 @@ class Scheduler:
             done = sum(r['state'] == 'finished' for r in runs)
             text, code = f'\nbatch #{b["id"]} cancelled: {done} of {len(runs)} runs finished\nSOME RUNS FAILED\n', 1
         elif args is None:
-            text, code = f'\nbatch #{b["id"]}: run_all does not take these arguments: {b["args"]}\n', 2
+            text, code = f'\nbatch #{b["id"]} FAILED: {unusable_text(b["args"], self.arg_errors.get(b["id"]))}\n', 2
         else:
             jobs = [(r['scenario'], r['install']) for r in runs]
             results = {(r['scenario'], r['install']): (r['result'], r['seconds'], json.loads(r['failures']), json.loads(r['notes']))
@@ -413,6 +435,7 @@ class Scheduler:
             self.db.execute("UPDATE batch SET state = CASE state WHEN 'cancelled' THEN 'cancelled' ELSE 'finished' END, "
                             "finished = ?, exit_code = ?, summary = ? WHERE id = ?", (work.now(), code, text, b['id']))
         self.args.pop(b['id'], None)
+        self.arg_errors.pop(b['id'], None)
         self.log(f'batch #{b["id"]}: done, exit {code}')
 
     def wait_games(self):

@@ -107,6 +107,27 @@ class SchedTest(unittest.TestCase):
             self.assertEqual((self.batch(x)['state'], self.batch(x)['exit_code']), ('finished', 0))
             self.assertIn('ALL PASS', self.batch(x)['summary'])
 
+    def test_unparseable_arguments_fail_the_batch(self):
+        fake = Fake(default=0.2)
+        bad = self.submit(['a1', 'a2'], argv=['--clock'])          # run_all: --clock needs a value
+        good = self.submit(['b1'], build='b2')
+        self.drive(self.sched(fake))
+        b = self.batch(bad)
+        self.assertEqual((b['state'], b['exit_code']), ('finished', 2))
+        self.assertIn('FAILED', b['summary'])
+        self.assertIn('--clock', b['summary'])
+        self.assertIn('expected one argument', b['summary'])      # run_all's own error
+        self.assertEqual({r['state'] for r in self.runs(bad).values()}, {'cancelled'})
+        self.assertEqual(fake.starts(bad), [], 'a batch with unusable arguments started a game')
+        self.assertEqual((self.batch(good)['state'], self.batch(good)['exit_code']), ('finished', 0))
+        # the waiting `work.py test` prints the summary and returns the code
+        import io, contextlib
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = work_sched.wait(self.db, bad, self.root, f'{self.root}/b')
+        self.assertEqual(code, 2)
+        self.assertIn('expected one argument', out.getvalue())
+
     def test_jobs_ignored(self):
         fake = Fake(default=0.3)
         self.submit(['a1', 'a2', 'a3', 'a4'], argv=['--jobs', '2'])
