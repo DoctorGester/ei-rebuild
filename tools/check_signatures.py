@@ -51,8 +51,23 @@ def original_pops(data, md, address, size):
 
 
 def undecorate(names):
+    """Decorated name -> undecorated, as undname prints it. dbghelp's UnDecorateSymbolName (in
+    process, ~0.2 s for the whole map) does almost all; it writes "UNKNOWN" for a deduced `auto`
+    (STL lambdas), so those few go to undname (one process per 200 names took ~5 s for all)."""
     out = {}
-    names = list(names)
+    try:
+        import ctypes
+        undecorate_one = ctypes.WinDLL('dbghelp').UnDecorateSymbolName
+        undecorate_one.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint32, ctypes.c_uint32]
+        buf = ctypes.create_string_buffer(8192)
+        for name in names:
+            if undecorate_one(name.encode('latin-1'), buf, len(buf), 0):
+                und = buf.value.decode('latin-1')
+                if 'UNKNOWN' not in und:
+                    out[name] = und
+    except (OSError, AttributeError):
+        pass
+    names = [n for n in names if n not in out]
     for i in range(0, len(names), 200):
         chunk = names[i:i + 200]
         res = subprocess.run(['undname'] + chunk, capture_output=True, text=True).stdout
@@ -161,10 +176,27 @@ def registrations():
     return regs
 
 
+_suffixes = {}
+
+
+def _by_suffix(by_name):
+    """For one declarations() result: each "B::C" and "C" of a qualified "A::B::C" -> the full names
+    ending in "::" + it (what a search of every name with endswith found, once per registration)."""
+    index = _suffixes.get(id(by_name))
+    if index is None:
+        index = {}
+        for n in by_name:
+            parts = n.split('::')
+            for i in range(1, len(parts)):
+                index.setdefault('::'.join(parts[i:]), []).append(n)
+        _suffixes[id(by_name)] = index
+    return index
+
+
 def candidates_for(by_name, name, kind, rel, key):
     """The declarations a registration of `name` in file `rel` refers to; `key` maps a signature to
     the property being checked, and same-file declarations break ties when candidates disagree."""
-    candidates = by_name.get(name) or [c for n, cs in by_name.items() if n.endswith('::' + name) for c in cs]
+    candidates = by_name.get(name) or [c for n in _by_suffix(by_name).get(name, ()) for c in by_name[n]]
     obj = os.path.splitext(os.path.basename(rel))[0].lower() + '.cpp.obj'
     same_file = [c for c in candidates if c[1].endswith(obj)]
     if kind == 'verify':
