@@ -57,85 +57,85 @@ EI_REPLACE_METHOD(0x0065C140, CUiEditField::DestroyBody);
 // --- Deleting destructors (slot 0) ----------------------------------------------------------------
 
 // 0065AFA0 / 0065BC90: the scroll bar (00742C18) and the slider (00742CBC).
-CUiScrollbar* __fastcall ScrollbarDelete(CUiScrollbar* self, void*, unsigned flags) {
-    self->DestroyBody();
-    return FreeIfAsked(self, flags);
+CUiScrollbar* CUiScrollbar::ScrollbarDelete(unsigned flags) {
+    DestroyBody();
+    return FreeIfAsked(this, flags);
 }
-EI_REPLACE(0x0065AFA0, ScrollbarDelete);
-EI_REPLACE(0x0065BC90, ScrollbarDelete);
+EI_REPLACE_METHOD(0x0065AFA0, CUiScrollbar::ScrollbarDelete);
+EI_REPLACE_METHOD(0x0065BC90, CUiScrollbar::ScrollbarDelete);
 
 // 0065BDF0: the spin (00742D5C).
-CUiSpin* __fastcall SpinDelete(CUiSpin* self, void*, unsigned flags) {
-    self->DestroyBody();
-    return FreeIfAsked(self, flags);
+CUiSpin* CUiSpin::SpinDelete(unsigned flags) {
+    DestroyBody();
+    return FreeIfAsked(this, flags);
 }
-EI_REPLACE(0x0065BDF0, SpinDelete);
+EI_REPLACE_METHOD(0x0065BDF0, CUiSpin::SpinDelete);
 
 // 0065C120: the edit field (00742DF4).
-CUiEditField* __fastcall EditFieldDelete(CUiEditField* self, void*, unsigned flags) {
-    self->DestroyBody();
-    return FreeIfAsked(self, flags);
+CUiEditField* CUiEditField::EditFieldDelete(unsigned flags) {
+    DestroyBody();
+    return FreeIfAsked(this, flags);
 }
-EI_REPLACE(0x0065C120, EditFieldDelete);
+EI_REPLACE_METHOD(0x0065C120, CUiEditField::EditFieldDelete);
 
 // 0065CE00: the scrolling text (00742E9C).
-CUiScrollText* __fastcall ScrollTextDelete(CUiScrollText* self, void*, unsigned flags) {
-    self->DestroyBody();
-    return FreeIfAsked(self, flags);
+CUiScrollText* CUiScrollText::ScrollTextDelete(unsigned flags) {
+    DestroyBody();
+    return FreeIfAsked(this, flags);
 }
-EI_REPLACE(0x0065CE00, ScrollTextDelete);
+EI_REPLACE_METHOD(0x0065CE00, CUiScrollText::ScrollTextDelete);
 
 // 0065E4D0: a region's tooltip (00742F64).
-CUiTooltip* __fastcall TooltipDelete(CUiTooltip* self, void*, unsigned flags) {
-    self->DestroyBody();
-    return FreeIfAsked(self, flags);
+CUiTooltip* CUiTooltip::TooltipDelete(unsigned flags) {
+    DestroyBody();
+    return FreeIfAsked(this, flags);
 }
-EI_REPLACE(0x0065E4D0, TooltipDelete);
+EI_REPLACE_METHOD(0x0065E4D0, CUiTooltip::TooltipDelete);
 
 // The input sides' slot 0 (SUB ECX,0x94; JMP to the window's): 0065CB70 the scroll bar's, 0065CB80
 // the slider's, 0065CB90 the spin's, 0065CBA0 the edit field's, 0065E2B0 the scrolling text's,
 // 0065EAC0 the tooltip's.
 void* __fastcall ScrollbarInputDelete(void* input, void*, unsigned flags) {
-    return ScrollbarDelete(WindowFromInput<CUiScrollbar>(input), nullptr, flags);
+    return WindowFromInput<CUiScrollbar>(input)->ScrollbarDelete(flags);
 }
 EI_REPLACE(0x0065CB70, ScrollbarInputDelete);
 EI_REPLACE(0x0065CB80, ScrollbarInputDelete);
 void* __fastcall SpinInputDelete(void* input, void*, unsigned flags) {
-    return SpinDelete(WindowFromInput<CUiSpin>(input), nullptr, flags);
+    return WindowFromInput<CUiSpin>(input)->SpinDelete(flags);
 }
 EI_REPLACE(0x0065CB90, SpinInputDelete);
 void* __fastcall EditFieldInputDelete(void* input, void*, unsigned flags) {
-    return EditFieldDelete(WindowFromInput<CUiEditField>(input), nullptr, flags);
+    return WindowFromInput<CUiEditField>(input)->EditFieldDelete(flags);
 }
 EI_REPLACE(0x0065CBA0, EditFieldInputDelete);
 void* __fastcall ScrollTextInputDelete(void* input, void*, unsigned flags) {
-    return ScrollTextDelete(WindowFromInput<CUiScrollText>(input), nullptr, flags);
+    return WindowFromInput<CUiScrollText>(input)->ScrollTextDelete(flags);
 }
 EI_REPLACE(0x0065E2B0, ScrollTextInputDelete);
 void* __fastcall TooltipInputDelete(void* input, void*, unsigned flags) {
-    return TooltipDelete(WindowFromInput<CUiTooltip>(input), nullptr, flags);
+    return WindowFromInput<CUiTooltip>(input)->TooltipDelete(flags);
 }
 EI_REPLACE(0x0065EAC0, TooltipInputDelete);
 
 // --- The scrolling text's tokens ------------------------------------------------------------------
 
 // 0065D8A0: the base token (00742F24; its body inlined: the base vtable written).
-UiTextToken* __fastcall TextTokenDelete(UiTextToken* self, void*, unsigned flags) {
-    self->vtable_ = reinterpret_cast<void*>(kTokenVtable);
-    return FreeIfAsked(self, flags);
+UiTextToken* UiTextToken::TextTokenDelete(unsigned flags) {
+    vtable_ = reinterpret_cast<void*>(kTokenVtable);
+    return FreeIfAsked(this, flags);
 }
-EI_REPLACE(0x0065D8A0, TextTokenDelete);
+EI_REPLACE_METHOD(0x0065D8A0, UiTextToken::TextTokenDelete);
 
 // 0065D8C0: the format token (00742F28).
-UiTextToken* __fastcall FormatTokenDelete(UiTextToken* self, void*, unsigned flags) {
-    self->DestroyBase();
-    return FreeIfAsked(self, flags);
+UiTextToken* UiTextToken::FormatTokenDelete(unsigned flags) {
+    DestroyBase();
+    return FreeIfAsked(this, flags);
 }
-EI_REPLACE(0x0065D8C0, FormatTokenDelete);
+EI_REPLACE_METHOD(0x0065D8C0, UiTextToken::FormatTokenDelete);
 
 // 0065D8F0: the word (00742F20).
-UiWordToken* __fastcall WordTokenDelete(UiWordToken* self, void*, unsigned flags) {
-    self->DestroyWord();
-    return FreeIfAsked(self, flags);
+UiWordToken* UiWordToken::WordTokenDelete(unsigned flags) {
+    DestroyWord();
+    return FreeIfAsked(this, flags);
 }
-EI_REPLACE(0x0065D8F0, WordTokenDelete);
+EI_REPLACE_METHOD(0x0065D8F0, UiWordToken::WordTokenDelete);

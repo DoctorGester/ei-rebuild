@@ -875,6 +875,9 @@ struct CUiTooltip : CUiWindow {
     CUiTooltip* Construct(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra);
     // 0065E4F0 (ui_tooltip.cpp). Destructor body: the lines (006FE958), then the window's.
     void DestroyBody();
+    // 0065E4D0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set. Returns this.
+    CUiTooltip* TooltipDelete(unsigned flags);
     // 0065E540 (RET 4; ui_tooltip.cpp). A non-empty `text` replaces the lines and they are drawn
     // (the size is not measured again); null or empty: nothing.
     void SetText(const char* text);
@@ -2086,6 +2089,9 @@ public:
     // 0065AFC0 (and the slider's 0065BCB0; ui_control_delete.cpp, A-H20). Destructor body: the
     // scroll bar's vtables, then the window's (005FE930).
     void DestroyBody();
+    // 0065AFA0 (the slider's 0065BC90; RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor:
+    // DestroyBody, then the memory freed when bit 0 of `flags` is set. Returns this.
+    CUiScrollbar* ScrollbarDelete(unsigned flags);
 
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
@@ -2148,6 +2154,11 @@ struct UiTextToken {
     // 0065D8E0 / 0065D960 (ui_scroll_text.cpp): the destructor body of a format token and of the
     // base: the base vtable 00742F24 back.
     void DestroyBase();
+    // 0065D8A0 / 0065D8C0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructors of the base
+    // token (its body inlined: the base vtable written) and of a format token (DestroyBase), then the
+    // memory freed when bit 0 of `flags` is set. Return this.
+    UiTextToken* TextTokenDelete(unsigned flags);
+    UiTextToken* FormatTokenDelete(unsigned flags);
 
     void* vtable_;
     int type_;                       // +0x04 1 format, 2 word
@@ -2163,6 +2174,9 @@ static_assert(sizeof(UiFormatToken) == 0x14);
 struct UiWordToken : UiTextToken {
     // 0065D910 (ui_scroll_text.cpp): the destructor body: the text released, the base vtable back.
     void DestroyWord();
+    // 0065D8F0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyWord, then the
+    // memory freed when bit 0 of `flags` is set. Returns this.
+    UiWordToken* WordTokenDelete(unsigned flags);
 
     char* text_;                     // +0x08 CString
     int width_;                      // +0x0C its width in the token's font (005F8340)
@@ -2190,6 +2204,9 @@ public:
     // 0065CE20 (ui_scroll_text.cpp). Destructor body: the tokens deleted (slot 0), the lines
     // freed, both arrays' storage freed, then the scroll bar's (its vtables and the window's).
     void DestroyBody();
+    // 0065CE00 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set. Returns this.
+    CUiScrollText* ScrollTextDelete(unsigned flags);
     // 0065CF30 (RET 4; ui_scroll_text.cpp). Appends `text`: scrolled to the end first, then kept
     // that far from the end (the position plus the growth of the maximum).
     void AddText(const char* text);
@@ -2264,6 +2281,9 @@ public:
     // 0065BE10 (ui_control_delete.cpp, A-H20). Destructor body: the spin's vtables, the texts
     // (006FE958), then the window's.
     void DestroyBody();
+    // 0065BDF0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set. Returns this.
+    CUiSpin* SpinDelete(unsigned flags);
     // 0065BFD0 (input side slot 2, RET 0xC; ui_spin.cpp, A-H25). A click: the message box's OK
     // sound and the next value (SetValue: back to the first past the last text).
     void OnLButtonDown(int flags, int x, int y);
@@ -2754,6 +2774,9 @@ public:
     // 0065C140 (ui_control_delete.cpp, A-H20). Destructor body: the field's vtables, the text
     // released, then the window's.
     void DestroyBody();
+    // 0065C120 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set. Returns this.
+    CUiEditField* EditFieldDelete(unsigned flags);
     // 0065C930 (input side slot 10, RET 0xC; ui_edit_field.cpp, A-H19). While focused and
     // without Ctrl held, a character other than Backspace, Tab, Enter and Esc whose class (digit 1,
     // letter or space 2, '.' or ':' 8, other 4) is allowed: the first one starts editing from an

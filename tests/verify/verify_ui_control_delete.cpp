@@ -11,19 +11,11 @@
 
 #include <cstdint>
 
-CUiScrollbar* __fastcall ScrollbarDelete(CUiScrollbar* self, void*, unsigned flags);
-CUiSpin* __fastcall SpinDelete(CUiSpin* self, void*, unsigned flags);
-CUiEditField* __fastcall EditFieldDelete(CUiEditField* self, void*, unsigned flags);
-CUiScrollText* __fastcall ScrollTextDelete(CUiScrollText* self, void*, unsigned flags);
 void* __fastcall ScrollbarInputDelete(void* input, void*, unsigned flags);
 void* __fastcall SpinInputDelete(void* input, void*, unsigned flags);
 void* __fastcall EditFieldInputDelete(void* input, void*, unsigned flags);
 void* __fastcall ScrollTextInputDelete(void* input, void*, unsigned flags);
-CUiTooltip* __fastcall TooltipDelete(CUiTooltip* self, void*, unsigned flags);
 void* __fastcall TooltipInputDelete(void* input, void*, unsigned flags);
-UiTextToken* __fastcall TextTokenDelete(UiTextToken* self, void*, unsigned flags);
-UiTextToken* __fastcall FormatTokenDelete(UiTextToken* self, void*, unsigned flags);
-UiWordToken* __fastcall WordTokenDelete(UiWordToken* self, void*, unsigned flags);
 
 namespace {
 void* s_unused;
@@ -75,7 +67,7 @@ EI_VERIFY(0x0065D910, WordDestroyVerify, 0, s_unused);
 
 #define EI_DELETE_VERIFY(addr, Wrapper, Fn, T)                                       \
     static void* __fastcall Wrapper(T* self, void*, unsigned flags) {                 \
-        void* result = Fn(self, nullptr, flags);                                     \
+        void* result = self->Fn(flags);                                              \
         CheckDeleted(#Fn, self, result, flags);                                      \
         return result;                                                               \
     }                                                                                \
