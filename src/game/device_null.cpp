@@ -104,7 +104,13 @@ const DDPIXELFORMAT kTextureFormats[] = {
     RgbFormat(DDPF_RGB | DDPF_ALPHAPIXELS, 16, 0x0F00, 0x00F0, 0x000F, 0xF000),             // 4:4:4:4
     RgbFormat(DDPF_RGB | DDPF_ALPHAPIXELS, 32, 0xFF0000, 0xFF00, 0xFF, 0xFF000000u),        // 8:8:8:8
     FourCCFormat(MAKEFOURCC('D', 'X', 'T', '1')),
+    FourCCFormat(MAKEFOURCC('D', 'X', 'T', '2')),
     FourCCFormat(MAKEFOURCC('D', 'X', 'T', '3')),
+    FourCCFormat(MAKEFOURCC('D', 'X', 'T', '4')),
+    // Rebirth's battle screen texture (battle00, 1536x1536) and footprints are DXT5: without it
+    // ParseMmpHeader finds no format, LoadTexture fails (Rebirth's DisableExitOnCrashReport goes
+    // on), the battle screen misses a texture and its sprites bind garbage (ticket R9c).
+    FourCCFormat(MAKEFOURCC('D', 'X', 'T', '5')),
 };
 
 // The capabilities the game reads: the texture stages (CRenderHelper's presets, the renderer's
