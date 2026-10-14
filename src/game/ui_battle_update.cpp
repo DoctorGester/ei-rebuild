@@ -200,7 +200,6 @@ void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const ch
 // The game menu object 007AFEA5: 00578BA0 the local player's data (its +0x30 / +0x34 unit
 // records, 0x784 bytes each), 00578A20 (RET 0xC) whether the saved zone exit can be taken now
 // (the records, the exit, a second array it fills).
-__declspec(naked) std::uint8_t* __fastcall LocalPlayerData(void*) EI_ORIGINAL(0x00578BA0)
 int __fastcall CanLeaveZone(void* glue, void*, void* records, int exit, void* second) {
     return GameCanLeaveZoneOriginal(glue, nullptr, records, exit, second);
 }
@@ -371,7 +370,7 @@ void CBattleScreenSetup::Update() {
         PtrArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
         PtrArray second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
         void* menu = reinterpret_cast<void*>(0x007AFEA5);
-        PartyRecords* data = reinterpret_cast<PartyRecords*>(LocalPlayerData(menu));
+        PartyRecords* data = reinterpret_cast<PartyRecords*>(GameLocalPlayerDataOriginal(menu));
         for (int i = 0; i < data->count; ++i)
             RecordArraySetAtGrowOriginal(&records, nullptr, records.size, data->records + i * 0x784);
         if (CanLeaveZone(menu, nullptr, &records, savedSelection_, &second)) {

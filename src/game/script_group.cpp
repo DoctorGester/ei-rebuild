@@ -4,6 +4,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstdint>
 
@@ -13,7 +14,7 @@ namespace {
 struct ObjectRegistry {
     CEngineObject* FindObject(int id);   // 00593AA0
 };
-__declspec(naked) CEngineObject* ObjectRegistry::FindObject(int) EI_ORIGINAL(0x00593AA0)
+CEngineObject* ObjectRegistry::FindObject(int id) { return WorldFindObjectOriginal(this, nullptr, static_cast<unsigned>(id)); }
 ObjectRegistry* Registry() { return reinterpret_cast<ObjectRegistry*>(0x007AFF60); }
 
 // The game's CRT.

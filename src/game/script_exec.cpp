@@ -168,13 +168,13 @@ struct WorldCalls : WorldAlarmOriginal {
     void CollectParty(WorldPlayer* player, void* list);                  // 00590A40
     void Redeploy(WorldPlayer* player, void* list, int flag);            // 00590700
     void AwardKill(WorldPlayer* player, std::uint32_t exp);              // 005911C0 (the amount as float bits)
-    void CastSpell(CEngineObject* spell, int a, const Vector3* from, CEngineObject* target, const void* to, int b);  // 0058E850
+    void CastSpell(CEngineObject* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target, const Vector3* to, int extra);  // 0058E850
 };
 WorldPlayer* WorldCalls::GetPlayer(int id) { return static_cast<WorldPlayer*>(::WorldGetPlayer(this, nullptr, id)); }
 __declspec(naked) float WorldCalls::GridHeight(float, float) EI_ORIGINAL(0x00594220)
 __declspec(naked) void WorldCalls::AddUnit(int, const char*, const char*, const Vector3*) EI_ORIGINAL(0x005910A0)
 void WorldCalls::RemoveObject(int id) { WorldRemoveObject(this, nullptr, id); }
-__declspec(naked) void WorldCalls::RecalcMercBriefings() EI_ORIGINAL(0x00591800)
+void WorldCalls::RecalcMercBriefings() { WorldUpdateMercBriefingsOriginal(this); }
 __declspec(naked) void WorldCalls::SetWind(const Vector3*, float) EI_ORIGINAL(0x0058EE20)
 void WorldCalls::SetTimeSpeed(float a0) { WorldSetTimeSpeedOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 void WorldCalls::SetTime(float a0) { WorldSetTimeOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
@@ -184,8 +184,8 @@ __declspec(naked) CEngineObject* WorldCalls::FindItem(const char*) EI_ORIGINAL(0
 __declspec(naked) CEngineObject* WorldCalls::FindSpell(const char*) EI_ORIGINAL(0x00594BC0)
 __declspec(naked) void WorldCalls::CollectParty(WorldPlayer*, void*) EI_ORIGINAL(0x00590A40)
 __declspec(naked) void WorldCalls::Redeploy(WorldPlayer*, void*, int) EI_ORIGINAL(0x00590700)
-__declspec(naked) void WorldCalls::AwardKill(WorldPlayer*, std::uint32_t) EI_ORIGINAL(0x005911C0)
-__declspec(naked) void WorldCalls::CastSpell(CEngineObject*, int, const Vector3*, CEngineObject*, const void*, int) EI_ORIGINAL(0x0058E850)
+void WorldCalls::AwardKill(WorldPlayer* player, std::uint32_t exp) { WorldAwardExperienceOriginal(this, nullptr, player, exp); }
+void WorldCalls::CastSpell(CEngineObject* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target, const Vector3* to, int extra) { WorldCastSpellOriginal(this, nullptr, spell, caster, from, target, to, extra); }
 WorldCalls* TheWorld() { return reinterpret_cast<WorldCalls*>(WorldServer()); }
 
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.

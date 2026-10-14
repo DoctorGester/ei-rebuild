@@ -20,6 +20,7 @@
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_world.h"
 #include "lib/mfc.h"
 #include "originals_units.h"
 
@@ -151,9 +152,6 @@ EI_REPLACE(0x0052A920, FindTrapVictims);
 namespace {
 // The object's world [00455950]; the world server (007AFF60) casts `spell` from `caster` at
 // `from` on `target` at `at` [0058E850 (spell, caster, from, target, at, 0), RET 0x18].
-__declspec(naked) void __fastcall WorldCastSpell(void*, void*, void* /*spell*/, void* /*caster*/, const float* /*from*/,
-                                                 CEngineObject* /*target*/, const float* /*at*/, int)
-    EI_ORIGINAL(0x0058E850)
 constexpr std::uint32_t kSpellAtUnits = 0x10000000;  // spell +0x3C (targetFlags_): cast at the units
 constexpr float kFar = 1e30f;                        // 0073E73C, a squared distance
 } // namespace
@@ -170,7 +168,8 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         for (int i = 0; i < points.count; ++i) {
             const float* point = points.points + 2 * i;
             float at[3] = {point[0], point[1], 0.0f};
-            WorldCastSpell(WorldServer(), nullptr, spell, nullptr, from, nullptr, at, 0);
+            WorldCastSpellOriginal(WorldServer(), nullptr, spell, nullptr, reinterpret_cast<const Vector3*>(from), nullptr,
+                                   reinterpret_cast<const Vector3*>(at), 0);
         }
     } else {
         if (singleTarget != 0) {
@@ -191,7 +190,8 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         for (UnitList::Node* node = units->head; node;) {
             UnitList::Node* next = node->next;
             CEngineObject* unit = node->data;
-            WorldCastSpell(WorldServer(), nullptr, spell, nullptr, from, unit, &AsMapObject(unit)->position.x, 0);
+            WorldCastSpellOriginal(WorldServer(), nullptr, spell, nullptr, reinterpret_cast<const Vector3*>(from), unit,
+                                   &AsMapObject(unit)->position, 0);
             node = next;
         }
     }

@@ -61,7 +61,6 @@ struct DebugDisplayAt {
     void ManagersOff();         // 00569AA0
     void WorldDataOn();         // 00569B10
     void WorldDataOff();        // 00569B20
-    char* LocalClient();        // 005699F0 (its +0x1C: the local player in a network game)
 };
 __declspec(naked) void DebugDisplayAt::FpsOn() EI_ORIGINAL(0x00569A10)
 __declspec(naked) void DebugDisplayAt::FpsOff() EI_ORIGINAL(0x00569A20)
@@ -71,7 +70,6 @@ __declspec(naked) void DebugDisplayAt::ManagersOn() EI_ORIGINAL(0x00569A90)
 __declspec(naked) void DebugDisplayAt::ManagersOff() EI_ORIGINAL(0x00569AA0)
 __declspec(naked) void DebugDisplayAt::WorldDataOn() EI_ORIGINAL(0x00569B10)
 __declspec(naked) void DebugDisplayAt::WorldDataOff() EI_ORIGINAL(0x00569B20)
-__declspec(naked) char* DebugDisplayAt::LocalClient() EI_ORIGINAL(0x005699F0)
 inline DebugDisplayAt* DebugDisplay() { return reinterpret_cast<DebugDisplayAt*>(0x007AF5B8); }
 
 // 007AFF60: the world.
@@ -261,7 +259,7 @@ void __fastcall ListVar(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine(GameText(0x007926A4));   // usage
     char* player;
     if (IsNetworkClientOriginal())
-        player = Field<char*>(DebugDisplay()->LocalClient(), 0x1C);
+        player = Field<char*>(reinterpret_cast<char*>(ClientWorldLocalViewOriginal(DebugDisplay())), 0x1C);
     else
         player = World()->GetPlayer(GameAtoi((*args)[0]));
     if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
@@ -408,7 +406,7 @@ void __fastcall Net(CStringArray* args) {
     }
     if (Mbsicmp((*args)[0], GameText(0x00792B68)) == 0) {   // client
         mfc::CString value((*args)[1]);
-        char* client = Field<char*>(DebugDisplay()->LocalClient(), 0x1C);
+        char* client = Field<char*>(reinterpret_cast<char*>(ClientWorldLocalViewOriginal(DebugDisplay())), 0x1C);
         Field<int>(client, 0x10C) = GameAtoi(value);
     }
     if (Mbsicmp((*args)[0], GameText(0x00792450)) == 0) {   // server

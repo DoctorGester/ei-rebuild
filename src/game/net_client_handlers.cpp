@@ -77,12 +77,10 @@ inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetO
 __declspec(naked) void __fastcall UiPlayersChanged(void* /*table*/, void*, int /*added*/) EI_ORIGINAL(0x005F82D0)
 __declspec(naked) void __fastcall UiChatLine(void* /*table*/, void*, const char* /*text*/, std::uint32_t /*number*/) EI_ORIGINAL(0x005F82F0)
 __declspec(naked) void __fastcall UiTradeDone(void* /*table*/, void*, void* /*partyB*/, void* /*partyA*/, void* /*partyC*/) EI_ORIGINAL(0x005F8310)
-__declspec(naked) void __fastcall FlowZoneOffered(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x0057FF40)
 __declspec(naked) void __fastcall FlowZoneWithdrawn(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x00580040)
 inline void FlowVariablesChanged(void* flow) { FlowUpdateFromServerOriginal(flow); }
 __declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
-__declspec(naked) void __fastcall FlowLoadMap(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x005810A0)
 // Message members.
 __declspec(naked) void __fastcall RefVectorConstruct(RefVector* /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x0041FFF0)
 
@@ -322,7 +320,7 @@ void __fastcall ClientOnInfoGone(ClientSession* self, Message*) { ClearRef(&self
 // The zones offered on +0x25F8, passed to the game flow.
 void __fastcall ClientOnZone(ClientSession* self, ZoneMessage* message) {   // 0041E790
     AppendCounted(&self->zones_, ZonesEnd, ZonesInsert, message);
-    FlowZoneOffered(Flow(), nullptr, message->text_.start);
+    FlowMarkBriefingOriginal(Flow(), nullptr, message->text_.start);
 }
 void __fastcall ClientOnZoneGone(ClientSession* self, ZoneMessage* message) {   // 0041E850
     RemoveCounted(&self->zones_, ZonesErase, message);
@@ -334,7 +332,7 @@ void __fastcall ClientOnMap(ClientSession* self, MapMessage* message) {   // 004
     auto* server = GameServer();
     if (server && !(server->flags7_ & CRefObject::kDetached)) return;
     FlowLoadZoneQuests(Flow(), nullptr, message->text_.start);
-    FlowLoadMap(Flow(), nullptr, message->text_.start);
+    FlowRegisterQuestsOriginal(Flow(), nullptr, message->text_.start);
 }
 void __fastcall ClientOnMapGone(ClientSession* self, Message*) { ClearRef(&self->map_); }   // 0041E960
 // The script variables on +0x25FC; the flow is told of every change.

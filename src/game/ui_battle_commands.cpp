@@ -52,7 +52,7 @@ struct OrderUnits {
 
 // The client world (007AF5B8, thiscall): 005699F0 the local view, 00566100 (RET 4) with 0 clears
 // the selection, 00566030 (RET 4) controls a unit.
-__declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
+inline std::uint8_t* LocalView(void* client) { return ClientWorldLocalViewOriginal(client); }
 // The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10;
 // LocalViewSendAttackOriginal), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 __declspec(naked) void __fastcall ViewOrderDead(void*, void*, OrderUnits*, CUnit*, int) EI_ORIGINAL(0x0066AB80)

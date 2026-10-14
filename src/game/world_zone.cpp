@@ -59,11 +59,8 @@ constexpr int kSlotFileClose = 19;    // MFC CFile slot 19 (+0x4C): Close
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 
-// 0058EF20 (RET 0x20). Creates the units described by `records` (pointers to 0x784-byte unit
+// 0058EF20 (RET 0x20): WorldCreateUnitsOriginal creates the units described by `records` (pointers to 0x784-byte unit
 // records) around `position` with `rotation`; ids come from the records (+0x1C).
-__declspec(naked) void __fastcall ServerCreateUnits(CWorldServer*, void*, int /*zero*/, RecordPtrArray* /*records*/,
-                                                    const Vector3* /*position*/, Quaternion /*rotation*/,
-                                                    int /*placements*/) EI_ORIGINAL(0x0058EF20)
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: always the original address.
 // 00595BA0 (RET 8). The full path of a map file: `name` as is when it has a drive, else under the
 // game folder; constructs a CString into `out` and returns it. Patched by Rebirth.
@@ -149,7 +146,7 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     RecordArraySetSizeOriginal(&records, nullptr, 1, -1);
     records.data[0] = record;
     At<unsigned>(records.data[0], 0x1C) = id;
-    ServerCreateUnits(this, nullptr, 0, &records, position, DefaultRotation(), 0);
+    WorldCreateUnitsOriginal(this, nullptr, nullptr, &records, position, DefaultRotation(), nullptr);
     records.vtable = reinterpret_cast<void*>(kPtrArrayVtable);
     if (records.data) gamecrt::operator_delete(records.data);
     builder.Destruct();

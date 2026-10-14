@@ -164,9 +164,6 @@ struct ScienceRecord {
 // 00525900. UnitStats: heals the slots of `serverStats` by `amount`; returns 1.
 __declspec(naked) BOOL __fastcall StatsHeal(UnitStats*, void*, void*, float) EI_ORIGINAL(0x00525900)
 // 0067AC70. Missile: aims at the object `id` (+0x14C = 0, +0x150 = id).
-// 0058E850. CWorldServer: casts `spell` from `caster` at `from` on `target` at `at`.
-__declspec(naked) void __fastcall WorldCastSpell(void*, void*, void*, CUnit*, const float*,
-                                                 CEngineObject*, const void*, int) EI_ORIGINAL(0x0058E850)
 // 0058ECE0. CWorldServer: applies the quick item `item` (a potion) to `unit`.
 __declspec(naked) void __fastcall WorldUseQuickItem(void*, void*, CItem*, CUnit*) EI_ORIGINAL(0x0058ECE0)
 // 00594F30. CWorldServer: an item's state changed.
@@ -323,8 +320,8 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     CtlUseItemCharge(this, nullptr, weapon, cost);
     CUnit* self = unit;
     Vector3 point;
-    const void* at = ei::VCall<const Vector3*>(target, kUnitSlotAimPoint, &point);
-    WorldCastSpell(WorldServer(), nullptr, spell, self, &self->position.x, target, at, 0);
+    const Vector3* at = ei::VCall<const Vector3*>(target, kUnitSlotAimPoint, &point);
+    WorldCastSpellOriginal(WorldServer(), nullptr, spell, self, &self->position, target, at, 0);
 }
 EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
 
@@ -341,7 +338,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!fires) continue;
         CtlUseItemCharge(this, nullptr, item, cost);
         CUnit* self = unit;
-        WorldCastSpell(WorldServer(), nullptr, spell, self, &self->position.x, self, &self->position.x, 0);
+        WorldCastSpellOriginal(WorldServer(), nullptr, spell, self, &self->position, self, &self->position, 0);
     }
 }
 EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);

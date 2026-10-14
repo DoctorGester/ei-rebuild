@@ -17,6 +17,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_world.h"
 #include "originals_gameplay.h"
 
 #include <cstdint>
@@ -232,7 +233,6 @@ __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) E
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
 void __fastcall PlayerRemoveUnit(void* a0, void*, void* a2) { PlayerRemoveUnitOriginal(a0, nullptr, a2); }
 void __fastcall PlayerAddUnit(void* a0, void*, void* a2) { PlayerAddUnitOriginal(a0, nullptr, a2); }
-__declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
 void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 
 constexpr float kStatEpsilon = 1e-4f;            // 0073CD44
@@ -380,7 +380,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
                 if (unit->controller) unit->Controller()->PlayerChanged(nullptr);
             }
         } else if (!current || AsPlayer(current)->id_ != id) {
-            auto* view = reinterpret_cast<LocalViewData*>(LocalView(ManagerContextOf(unit)));
+            auto* view = reinterpret_cast<LocalViewData*>(ClientWorldLocalViewOriginal(ManagerContextOf(unit)));
             char* local = reinterpret_cast<char*>(view->player);
             if ((AsPlayer(local)->id_ == id || view->unknown_84) && unit->player != local) {
                 char* old = unit->player;

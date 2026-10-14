@@ -355,7 +355,7 @@ namespace {
 __declspec(naked) void __fastcall RecordsInsertOverflow(TradeRecords*, void*, TradeRecord* /*pos*/, const TradeRecord*,
                                                         int /*n*/) EI_ORIGINAL(0x0062A0B0)
 __declspec(naked) void __fastcall FillRecord(CTradePanel*) EI_ORIGINAL(0x00626F10)
-__declspec(naked) std::uint8_t* __fastcall TradePlayerData(void*) EI_ORIGINAL(0x00578BA0)
+inline std::uint8_t* TradePlayerData(void* glue) { return GameLocalPlayerDataOriginal(glue); }
 // CStringArray::SetAtGrow (thiscall, RET 8).
 void __fastcall TitlesSetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 

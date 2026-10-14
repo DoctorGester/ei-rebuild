@@ -33,7 +33,6 @@ __declspec(naked) void __fastcall RefClear(void* /*ref*/) EI_ORIGINAL(0x00421360
 __declspec(naked) void __fastcall List25ACPushBack(void* /*list*/, void*, const void* /*ref*/) EI_ORIGINAL(0x004207C0)
 
 // The world (0x7AFE20) and the text table (0x7C7D50), the map registry (0x7C87D4).
-__declspec(naked) void __fastcall WorldLoadMap(void* /*world*/, void*, const char* /*name*/) EI_ORIGINAL(0x005810A0)
 inline void** __fastcall MapRegistryFind(void* a0, void*, const StringRep* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, (const void*)a2); }
 // The game flow at 0x7AFE20 (world_briefing.cpp, world_game.cpp): unloading the quest texts,
 // picking the zones that follow, loading a zone's quests.
@@ -113,7 +112,7 @@ void ServerSession::SetMap(const StringRep* name) {
     if (name != &mapName_) StringAssign(&mapName_, nullptr, name->start, name->finish, mapMessage);
 
     void* world = reinterpret_cast<void*>(kWorld);
-    WorldLoadMap(world, nullptr, name->start);
+    FlowRegisterQuestsOriginal(world, nullptr, name->start);
     WorldPrepareMap(world, nullptr, name->start);
     std::uint32_t title = 0, text = 0;   // CStrings
     void* titleOut = WorldMapTitle(world, nullptr, &title);

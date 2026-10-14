@@ -11,6 +11,7 @@
 #include "lib/crt.h"
 #include "originals_core.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstring>
 
@@ -182,13 +183,8 @@ void __fastcall ClientDescribeHook(ClientSession* self, void*, RefPtr* out) { se
 EI_REPLACE(0x0041D420, ClientDescribeHook);
 
 
-namespace {
-// 0057F280: GameFlow::BeginMultiplayerGame (world_game.cpp).
-__declspec(naked) void __fastcall FlowBeginMultiplayerGame(void* /*flow*/) EI_ORIGINAL(0x0057F280)
-} // namespace
-
 // 0041D410 (slot 15): the game flow (007AFE20) begins the multiplayer game.
-void ClientSession::OnJoined() { FlowBeginMultiplayerGame(reinterpret_cast<void*>(0x007AFE20)); }
+void ClientSession::OnJoined() { FlowBeginMultiplayerGameOriginal(reinterpret_cast<void*>(0x007AFE20)); }
 namespace {
 void __fastcall ClientBeginGameHook(ClientSession* self) { self->ClientSession::OnJoined(); }
 } // namespace

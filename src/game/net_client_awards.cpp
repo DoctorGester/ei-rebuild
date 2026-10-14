@@ -30,7 +30,6 @@ __declspec(naked) void __fastcall ClientBaseTick(ClientBase* /*self*/, void*, do
 __declspec(naked) void** __fastcall TimersErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x004246E0)
 
 // The world (0x7AFF60) and its players (outside this range).
-__declspec(naked) void __fastcall AwardExperience(void* /*world*/, void*, void* /*player*/, std::uint32_t /*amount bits*/) EI_ORIGINAL(0x005911C0)
 void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal(a0, nullptr, (void*)a2, a3); }
 void __fastcall PlayerRemoveItem(void* player, void*, int index) { PlayerRemoveItemOriginal(player, nullptr, index); }
 __declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
@@ -98,7 +97,7 @@ void ClientSession::ApplyAwards() {
         case 0: {
             std::uint32_t bits;
             std::memcpy(&bits, &award->value_, 4);
-            AwardExperience(World(), nullptr, nullptr, bits);
+            WorldAwardExperienceOriginal(World(), nullptr, nullptr, bits);
             break;
         }
         case 1: {

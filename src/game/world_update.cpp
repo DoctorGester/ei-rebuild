@@ -33,8 +33,6 @@ bool IsLocal(const CPlayerServer* state) { return static_cast<int>(state->unknow
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
-__declspec(naked) void __fastcall WakeUnitsAroundAt(CWorldServer*, void*, const void* /*position*/, float /*radius*/)
-    EI_ORIGINAL(0x0058D3D0)
 __declspec(naked) int __fastcall SyncPlayerAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x0058B750)
 // 0058DAF0 (RET 4). Accepts the players a pending connection object holds.
 __declspec(naked) void __fastcall AcceptPlayers(CWorldServer*, void*, void* /*source*/) EI_ORIGINAL(0x0058DAF0)
@@ -82,7 +80,7 @@ void WakeAroundUnits(CWorldServer* world, WorldPlayer* player) {
         float minimum = controller->stats.valuesB0[2].current;
         float range = !(perception >= minimum) ? minimum : perception;   // the branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * worlddata::HearingScale() + worlddata::WakeMargin());
-        WakeUnitsAroundAt(world, nullptr, &unit->position, radius);
+        WorldWakeUnits(world, nullptr, &unit->position, radius);
     }
 }
 

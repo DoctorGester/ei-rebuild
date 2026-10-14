@@ -225,7 +225,6 @@ __declspec(naked) int __cdecl StartFirstMapAt() EI_ORIGINAL(0x00456140)
 __declspec(naked) void __fastcall GuardPlayerDataAt(void* /*glue*/, void*, char /*plain*/) EI_ORIGINAL(0x005790E0)
 // The game flow (007AFE20): 0057F390 a new client session, 00581660 both sessions closed.
 __declspec(naked) void __fastcall FlowRecreateClientSessionAt(GameFlow*) EI_ORIGINAL(0x0057F390)
-__declspec(naked) void __fastcall FlowCloseSessionsAt(GameFlow*) EI_ORIGINAL(0x00581660)
 // The messages: 00457970 (ECX message, EDX wParam, RET 4) to the interface's input, 00457D40 the
 // window procedure.
 __declspec(naked) LRESULT __fastcall DispatchInputAt(UINT, WPARAM, LPARAM) EI_ORIGINAL(0x00457970)
@@ -644,7 +643,7 @@ bool RunPass() {
     CWorldClient* client = Client();
     if (ClientLocalPlayerIdleAt(client)) {
         if (IsNetworkClientOriginal()) FlowRecreateClientSessionAt(TheGameFlow());
-        else FlowCloseSessionsAt(TheGameFlow());
+        else FlowCloseSessionsOriginal(TheGameFlow());
     }
     if (elapsed > 0x80000000u) elapsed = 0;
     NetworkTimers();

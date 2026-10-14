@@ -82,7 +82,7 @@ struct SessionAt {
 };
 bool SessionAt::IsMultiplayerClient() { return IsNetworkClientOriginal(); }
 void SessionAt::Disconnect() { GameDisconnectOriginal(this); }
-__declspec(naked) void SessionAt::LeaveGame() EI_ORIGINAL(0x00581660)
+void SessionAt::LeaveGame() { FlowCloseSessionsOriginal(this); }
 SessionAt* Session() { return reinterpret_cast<SessionAt*>(0x007AFE20); }
 
 struct GameStateAt {

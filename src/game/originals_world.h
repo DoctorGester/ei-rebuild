@@ -4,6 +4,7 @@
 // jump to game.exe). Types are forward declared; include the class headers where members are used.
 
 #include "ei/hook.h"
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,6 +14,7 @@ class CItem;
 class CUnit;
 class CWorldServer;
 namespace net { class ClientSession; }
+namespace mfc { class CString; }
 struct ObjectIdMap;
 struct WorldPlayer;
 struct CDiplomacy;
@@ -252,3 +254,45 @@ __declspec(naked) inline void __fastcall SessionCommand(net::ClientSession* /*se
 // C3n. 00455660 (rewritten as CDiplomacy::GetHostileMask; thiscall, RET 4): the bit mask of the players hostile to `player`.
 __declspec(naked) inline int __fastcall DiplomacyHostileMask(CDiplomacy* /*diplomacy*/, void*, int /*player*/)
     EI_ORIGINAL(0x00455660)
+
+// C3n batch 3. The client world (007AF5B8) and the game: 005699F0 (rewritten as CWorldClient::LocalView; plain RET) the
+// client world's local view (a LocalViewData, world.h); 00578BA0 (rewritten as LocalPlayerData, world_rules.cpp; plain RET)
+// the game glue (007AFEA5) gives the local player's data (the unit records at +0x30 / +0x34). Through their addresses so
+// the wrappers run.
+__declspec(naked) inline std::uint8_t* __fastcall ClientWorldLocalViewOriginal(void* /*client*/) EI_ORIGINAL(0x005699F0)
+__declspec(naked) inline std::uint8_t* __fastcall GameLocalPlayerDataOriginal(void* /*glue*/) EI_ORIGINAL(0x00578BA0)
+// The game flow (007AFE20; GameFlow, world_game.cpp / world_briefing.cpp), through its addresses so the wrappers run:
+// 0057F190 UpdateMultiplayerVariable, 0057F280 BeginMultiplayerGame, 00581660 CloseSessions (plain RET, no result);
+// 0057FF40 MarkBriefing and 005810A0 RegisterQuests (thiscall, RET 4: a zone folder / name); 0057FDE0 BriefingVariableInto
+// (stdcall, RET 8: the CString it constructs into `out` from the briefing's name; returns `out`).
+__declspec(naked) inline void __fastcall FlowUpdateMultiplayerVariableOriginal(void* /*flow*/) EI_ORIGINAL(0x0057F190)
+__declspec(naked) inline void __fastcall FlowBeginMultiplayerGameOriginal(void* /*flow*/) EI_ORIGINAL(0x0057F280)
+__declspec(naked) inline void __fastcall FlowCloseSessionsOriginal(void* /*flow*/) EI_ORIGINAL(0x00581660)
+__declspec(naked) inline void __fastcall FlowMarkBriefingOriginal(void* /*flow*/, void*, const char* /*zone*/)
+    EI_ORIGINAL(0x0057FF40)
+__declspec(naked) inline void __fastcall FlowRegisterQuestsOriginal(void* /*flow*/, void*, const char* /*zone*/)
+    EI_ORIGINAL(0x005810A0)
+__declspec(naked) inline mfc::CString* __stdcall BriefingVariableIntoOriginal(mfc::CString* /*out*/, const char* /*briefing*/)
+    EI_ORIGINAL(0x0057FDE0)
+// The server world (007AFF60; CWorldServer, world_*.cpp), thiscall, through its addresses so the wrappers run:
+// 0058D3D0 WakeUnitsAround (RET 8: position, radius); 0058DC90 SetGameResult (RET 4); 0058E520 AddTimedObject (RET 4);
+// 0058E850 CastSpell (RET 0x18: spell, caster, from, target, to, extra); 0058EF20 CreateUnits (RET 0x20: player, records,
+// position, rotation by value, placements); 005911C0 AwardExperience (RET 8: player, the amount as float bits);
+// 00591800 UpdateMercBriefings (plain RET); 00593AA0 FindObject (RET 4: an id; the object or null).
+__declspec(naked) inline void __fastcall WorldWakeUnits(void* /*world*/, void*, const Vector3* /*position*/, float /*radius*/)
+    EI_ORIGINAL(0x0058D3D0)
+__declspec(naked) inline void __fastcall WorldSetGameResultOriginal(void* /*world*/, void*, int /*result*/)
+    EI_ORIGINAL(0x0058DC90)
+__declspec(naked) inline void __fastcall WorldAddTimed(void* /*world*/, void*, CEngineObject* /*object*/) EI_ORIGINAL(0x0058E520)
+__declspec(naked) inline void __fastcall WorldCastSpellOriginal(void* /*world*/, void*, const void* /*spell*/,
+                                                                CEngineObject* /*caster*/, const Vector3* /*from*/,
+                                                                CEngineObject* /*target*/, const Vector3* /*to*/, int /*extra*/)
+    EI_ORIGINAL(0x0058E850)
+__declspec(naked) inline void __fastcall WorldCreateUnitsOriginal(void* /*world*/, void*, void* /*player*/, void* /*records*/,
+                                                                  const Vector3* /*position*/, Quaternion /*rotation*/,
+                                                                  void* /*placements*/) EI_ORIGINAL(0x0058EF20)
+__declspec(naked) inline void __fastcall WorldAwardExperienceOriginal(void* /*world*/, void*, WorldPlayer* /*player*/,
+                                                                      std::uint32_t /*amount bits*/) EI_ORIGINAL(0x005911C0)
+__declspec(naked) inline void __fastcall WorldUpdateMercBriefingsOriginal(void* /*world*/) EI_ORIGINAL(0x00591800)
+__declspec(naked) inline CEngineObject* __fastcall WorldFindObjectOriginal(void* /*world*/, void*, unsigned /*id*/)
+    EI_ORIGINAL(0x00593AA0)

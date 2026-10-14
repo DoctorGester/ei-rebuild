@@ -13,6 +13,7 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "originals_world.h"
 #include "lib/crt.h"
 
 #include "ei/hook.h"
@@ -157,8 +158,7 @@ __declspec(naked) double __fastcall UnitLoad(CUnit*) EI_ORIGINAL(0x005304A0)
 __declspec(naked) int __fastcall StatsApplyHit(UnitStats*, void*, CUnit*, void*, DamageInfo*, CEngineObject*)
     EI_ORIGINAL(0x005254B0)
 // 00524560. Recomputes the unit's server stats (hit points and the like) after a change.
-// 005911C0. The world server's experience award for a kill (`player` null in multiplayer).
-__declspec(naked) void __fastcall WorldAwardKill(void*, void*, char*, int) EI_ORIGINAL(0x005911C0)
+// 005911C0 (WorldAwardExperienceOriginal). The world server's experience award for a kill (`player` null in multiplayer).
 // 005D7E90. The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
 __declspec(naked) void __fastcall RememberAttacker(void*, void*, CUnit*) EI_ORIGINAL(0x005D7E90)
 
@@ -703,11 +703,11 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
                     if (IsMultiplayerClient() & 0xFF) {
-                        WorldAwardKill(world, nullptr, nullptr, static_cast<int>(prototype->unknown_54));
+                        WorldAwardExperienceOriginal(world, nullptr, nullptr, static_cast<int>(prototype->unknown_54));
                         return 1;
                     }
                     char* killer = source->player;
-                    WorldAwardKill(world, nullptr, killer, static_cast<int>(prototype->unknown_54));
+                    WorldAwardExperienceOriginal(world, nullptr, reinterpret_cast<WorldPlayer*>(killer), static_cast<int>(prototype->unknown_54));
                 }
             }
             return 1;
