@@ -332,7 +332,7 @@ into the code):
   zt4:1, zt7:0, zt10:0, zt10:1, zt18:0 by `+extra` (both of the `#rectangle` line's x values; addon's 10023702 changes the locals
   before the first AddSprite); `TutorialFrameShift`.
 - Not reproduced in a Rebirth launch: 00613EA0 also holds EI_Plugin's fixes (+D15, +E7B), so the installer keeps addon's code there
-  (as 0061D780 under W2); ours runs in a vanilla launch with the flag.
+  (as 0061D780 did until W2a); ours runs in a vanilla launch with the flag. Follow-up W4a.
 Verified: side by side in a Rebirth launch, against addon's code, the help page (with addon's handler), the axis swap, the
 camera's and the global map's mouse moves; ours only, the camp's and the hero screen's sprites (the curtains' rectangles, tint and
 visibility), the mode's curtains, the map's left button and the backdrop; the startup check compares addon's two floats (005F4F81,
@@ -352,5 +352,5 @@ texture filtering (Rebirth's other settings), not in placement.
 
 ### Remaining work
 
-WideScreen's leftovers (00613EA0 and 0061D780 under Rebirth, above); the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
+WideScreen's leftover (00613EA0 under Rebirth: W4a, above); the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
 layer); the multiplayer patches and EI_Plugin features (with multiplayer).
