@@ -1,0 +1,672 @@
+# The ticket queue. tools/tickets.py checks it, writes docs/tickets.md (read that) and the board's data.
+#
+# Per ticket:
+#   id, title, group (a [[group]] key), status:
+#     running   a worker has it (started = date)
+#     queued    to do; the board shows it "ready" when every depends is done, else "waiting"
+#     later     not before its phase (the group's note says when)
+#     watch     a flaky or open problem we only observe
+#     done      merged or finished (done = date)
+#   optional: size (sessions), model (opus / sonnet), depends (ids), files, doc, started, done, note.
+# Keep notes to what a worker or the user needs; history goes into the area notes.
+
+[queue]
+rules = [
+  "Workers own one ticket or area for about a usage session, commit small green groups (all checks green), and follow docs/worker-brief.md. The coordinator merges, runs the suite and keeps this file current.",
+  "Mark a ticket running with the start date when a worker takes it, done with the date when it is merged.",
+  "Mechanical tickets go to Sonnet; type recovery, renderer and tricky debugging to Opus. Sonnet tickets change spelling only, never a signature or grouping; the first diff of each kind is reviewed before more are sent.",
+]
+
+[[group]]
+key = "renderer"
+name = "Renderer"
+doc = "docs/notes/renderer.md"
+note = "Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with the cleanup; one Opus ticket at a time."
+
+[[group]]
+key = "native-ui"
+name = "Native interface drawing"
+doc = "docs/notes/ui-native.md"
+note = "Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src/render, own font loading (user 2026-10-14)."
+
+[[group]]
+key = "widescreen"
+name = "WideScreen"
+doc = "docs/notes/rebirth.md"
+note = "Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `run_all --widescreen` compares with addon."
+
+[[group]]
+key = "fields"
+name = "Unknown fields"
+note = "Every unknown_XXX member becomes a real name or unused_XXX (same type and offset; renames only, layout unchanged). check_cleanup counts `unknown field` (727 in 97 files on 2026-10-14) and `unused field accessed` (stays 0). Rebirth's DLL may read a field we call unused."
+
+[[group]]
+key = "verification"
+name = "Standalone verification"
+doc = "docs/notes/standalone-verification.md"
+note = "The SV loop comes before any standalone ticket (user 2026-10-14)."
+
+[[group]]
+key = "harness"
+name = "Harness and suite"
+note = "Scenarios, run_all and the tools around them; X tickets are problems seen in runs."
+
+[[group]]
+key = "cleanup"
+name = "Cleanup"
+doc = "docs/cleanup-plan.md"
+note = "After the port and before the standalone exe. Mechanical tickets go to Sonnet (spelling only, never a signature or grouping change); type recovery and tricky debugging to Opus."
+
+[[group]]
+key = "standalone"
+name = "Standalone exe and UTF-8"
+doc = "docs/notes/standalone.md"
+note = "After the SV loop. Counts are on the progress dashboard (\"Standalone readiness\"). Saves and multiplayer need not match vanilla in the UTF-8 build (user 2026-10-13)."
+
+[[group]]
+key = "lua"
+name = "Lua scripting"
+doc = "docs/notes/lua-scripting.md"
+note = "After the standalone exe (user 2026-10-14). Mission scripts run on Lua through a transpiler (assets unchanged), mods can write Lua, saves keep running coroutines (Eris)."
+
+[[group]]
+key = "port"
+name = "Port"
+note = "Finished 2026-10-14: every hookable game function is rewritten (99.97% of game code); 201 stubs of 1-4 bytes wait for the standalone build. Area history is in the area notes."
+
+[[group]]
+key = "docs"
+name = "Docs"
+note = ""
+
+# ---------------------------------------------------------------- renderer
+
+[[ticket]]
+id = "R8"
+title = "Textures without DirectDraw in the switch-over"
+group = "renderer"
+status = "done"
+note = "Both parts merged (renderer.md section 16)."
+
+[[ticket]]
+id = "R9a"
+title = "Device setup without DirectDraw and Present on a flip-model swap chain"
+group = "renderer"
+status = "done"
+done = "2026-10-14"
+note = "R9a and R9a2 merged: the five present scenarios pass on vanilla and --native (movie holders, video-memory pictures, the harness activates a game without DirectDraw)."
+
+[[ticket]]
+id = "R9b"
+title = "Guard every old-device call for a device object without a device"
+group = "renderer"
+status = "queued"
+model = "opus"
+depends = ["R9a"]
+note = "The 73 calling places in the old-device log (524 sites in 143 functions overall)."
+
+[[ticket]]
+id = "R9c"
+title = "Movies, loading screen, full screen, gamma and lost device through Present"
+group = "renderer"
+status = "queued"
+model = "opus"
+depends = ["R9b"]
+note = "Movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Present under Rebirth crashes: NullDirect3DDevice7::SetTexture with surface 0x7463 from CUiMesh::Draw, plus a CBattleScreenSetup::Create verify mismatch in the same runs (seen on main 2026-10-14)."
+
+# ---------------------------------------------------------------- native interface drawing
+
+[[ticket]]
+id = "N0"
+title = "Census of interface drawing per window and surface"
+group = "native-ui"
+status = "running"
+started = "2026-10-14"
+size = 1
+files = ["tests/verify/ui_census.cpp", "src/game/ui_surface_dc.cpp", "src/game/ui_window.cpp"]
+note = "gdi32 / user32 import slots of game.exe and addon.dll, HDC to surface through g_memoryDcs; GDI metric calls too; uncaught drawing by DIB checksums. Report in docs/notes/ui-census.md."
+
+[[ticket]]
+id = "N1"
+title = "2D canvas layer"
+group = "native-ui"
+status = "queued"
+size = 2
+files = ["src/render/render_ui.{h,cpp}", "src/render/render.cpp", "src/render/render_internal.h"]
+depends = ["SV1"]
+note = "Render targets, command queue, fill / frame / line / pixel / glyph run / copy frame / greyscale / readback, a Canvas command in the frame, 16-bit quantise. Few lines in render.cpp (SV1 edits it too)."
+
+[[ticket]]
+id = "N2"
+title = "Font loading, glyph atlas and DrawText-compatible layout"
+group = "native-ui"
+status = "running"
+started = "2026-10-14"
+size = 2
+files = ["src/render/render_text.{h,cpp}", "third_party/stb", "third_party/fonts"]
+note = "stb_truetype with Liberation Serif / Mono (vendored 2026-10-14); the layout also serves the text extent. Not pixel-exact with GDI; a test tool reports line-break differences."
+
+[[ticket]]
+id = "N3"
+title = "Comparison harness: uinative / uiboth, per-surface diff"
+group = "native-ui"
+status = "queued"
+size = 1.5
+depends = ["N1", "SV1", "W2"]
+files = ["tests/verify/harness_ui.cpp", "tools/compare_frames.py", "src/render/render_ui.cpp"]
+note = "Text compared with a tolerance (own fonts). One registration line in harness.cpp after SV1 and W2 merge."
+
+[[ticket]]
+id = "N4"
+title = "ui_gallery scenario: every window family captured"
+group = "native-ui"
+status = "queued"
+size = 1
+depends = ["SV1"]
+files = ["tests/scenarios/"]
+
+[[ticket]]
+id = "N5"
+title = "Cursor and per-frame images cached"
+group = "native-ui"
+status = "queued"
+size = 0.5
+files = ["src/render/render_blit.cpp"]
+note = "No sg_make_image every frame."
+
+[[ticket]]
+id = "P1"
+title = "Surface plumbing: a canvas per native surface"
+group = "native-ui"
+status = "queued"
+size = 2
+depends = ["N1", "N3"]
+note = "Blit, Get/ReleaseDC, fills and frames, readback for PixelAt / Rgb565Copy / SwapContents, CaptureScreen and Greyscale on the GPU. First surfaces: backdrop, FPS, status."
+
+[[ticket]]
+id = "P2"
+title = "Text through the glyph atlas"
+group = "native-ui"
+status = "queued"
+size = 1
+depends = ["N2", "P1", "W2"]
+files = ["src/game/ui_text_draw.cpp"]
+
+[[ticket]]
+id = "P3a"
+title = "Native menus and dialogs"
+group = "native-ui"
+status = "queued"
+size = 1
+depends = ["P2"]
+note = "Main menu, message box, difficulty, options, objectives, credits text, escape-menu backdrop and save picture."
+
+[[ticket]]
+id = "P3b"
+title = "Native HUD"
+group = "native-ui"
+status = "queued"
+size = 1
+depends = ["P2"]
+note = "Unit-panel name, top panel and message log, tooltips, quick strip, clock. 006462A0 native only in vanilla until W3."
+
+[[ticket]]
+id = "P3c"
+title = "Native camp, hero, trade and item info"
+group = "native-ui"
+status = "queued"
+size = 1.5
+depends = ["P2"]
+note = "Under Rebirth the camp / hero screens wait for W4."
+
+[[ticket]]
+id = "P3d"
+title = "Native briefing, global map titles, help page, chat"
+group = "native-ui"
+status = "queued"
+size = 1
+depends = ["P2"]
+note = "Help page and global map wait for W4 under Rebirth."
+
+[[ticket]]
+id = "P4"
+title = "Native console and debug panel"
+group = "native-ui"
+status = "queued"
+size = 1
+depends = ["P1", "N2"]
+
+[[ticket]]
+id = "P5"
+title = "Native edit, chat, connect and save/load lines and carets"
+group = "native-ui"
+status = "queued"
+size = 1
+depends = ["P1", "W2"]
+
+[[ticket]]
+id = "P6"
+title = "Global-map pick picture on the GPU"
+group = "native-ui"
+status = "queued"
+size = 0.5
+depends = ["P1"]
+note = "RefreshSelection 00630670: GPU copy, readback on click, exact colours; the camp's backdrop modes 3 / 4."
+
+[[ticket]]
+id = "P7"
+title = "CPU-written textures and clouds on the GPU (optional)"
+group = "native-ui"
+status = "queued"
+size = 1.5
+
+[[ticket]]
+id = "P8"
+title = "Native interface by default under present"
+group = "native-ui"
+status = "queued"
+size = 1
+depends = ["P3a", "P3b", "P3c", "P3d", "P4", "P5", "P6"]
+note = "Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated."
+
+# ---------------------------------------------------------------- widescreen
+
+[[ticket]]
+id = "W1"
+title = "Layout widths, scaling functions, harness resolution steps"
+group = "widescreen"
+status = "done"
+done = "2026-10-14"
+note = "SetRect / AddPoint / sprite place; `resolution` / `widescreen` steps; run_all --widescreen within tolerance. Open: options slider thumbs a few pixels wider than the original (also with WideScreen off)."
+
+[[ticket]]
+id = "W2"
+title = "Sprite shapes, text extent and text draw, control rectangles"
+group = "widescreen"
+status = "running"
+started = "2026-10-14"
+model = "opus"
+depends = ["W1"]
+note = "Sprite shape builders, text extent / text surface draw, the +0x98 rectangles of console / edit / list / chat / tooltip."
+
+[[ticket]]
+id = "W3"
+title = "Battle-screen panel builders"
+group = "widescreen"
+status = "queued"
+model = "opus"
+depends = ["W2"]
+note = "Then widescreen::SetPanelOffset replaces addon's variable."
+
+[[ticket]]
+id = "W4"
+title = "Camp and hero screens, help, global map, cursor rectangles, interface creation"
+group = "widescreen"
+status = "queued"
+model = "opus"
+depends = ["W3"]
+note = "Also camera mouse moves and 004F1330."
+
+# ---------------------------------------------------------------- unknown fields
+
+[[ticket]]
+id = "F1"
+title = "Unknown fields: world, combat, effects, spells (~180)"
+group = "fields"
+status = "running"
+started = "2026-10-14"
+files = ["world.h", "combat.h", "spell.h", "effects.h", "world_effect.h", "sky_object.h", "lightning / trap / lever / cage", "particle_emitters.cpp"]
+
+[[ticket]]
+id = "F2"
+title = "Unknown fields: units, AI, items (~175)"
+group = "fields"
+status = "running"
+started = "2026-10-14"
+files = ["unit.h", "unit_db.h", "unit_ai.h", "ai_map.h", "ai_*", "item_db.h", "item*", "unit_looks.h", "unit_client_*", "class_templates.h", "party*"]
+
+[[ticket]]
+id = "F3"
+title = "Unknown fields: interface (~125)"
+group = "fields"
+status = "queued"
+files = ["ui.h", "ui_camp.h", "ui_screens.h", "ui_briefing.h", "ui_*"]
+note = "Coordinate with W2 (ui.h) and the P tickets: renames only."
+
+[[ticket]]
+id = "F4"
+title = "Unknown fields: scene, figures, terrain, map objects, textures (~140)"
+group = "fields"
+status = "queued"
+files = ["scene_loader.*", "map_object_figures.h", "terrain*", "figure*", "camera.h", "texture.h", "map_object*", "link_figure.h", "object_tables.h", "material.h", "model.h", "renderer_lines.h"]
+
+[[ticket]]
+id = "F5"
+title = "Unknown fields: the rest (~105)"
+group = "fields"
+status = "queued"
+files = ["map_spec.h", "net_*", "player_*", "sound*", "script*", "app_*", "bink_video.cpp", "quest_records.h", "base_manager.h", "src/lib"]
+
+# ---------------------------------------------------------------- standalone verification
+
+[[ticket]]
+id = "SV1"
+title = "Virtual game clock: runs that repeat"
+group = "verification"
+status = "running"
+started = "2026-10-14"
+size = 1.5
+note = "Zone loading and the sound code's clocks on the virtual clock; every scenario passes compare.py --runs 3 on both sides."
+
+[[ticket]]
+id = "SV2"
+title = "State digest and dump in the harness; golden record / compare"
+group = "verification"
+status = "queued"
+size = 1
+depends = ["SV1"]
+
+[[ticket]]
+id = "SV3"
+title = "Record goldens for the suite"
+group = "verification"
+status = "queued"
+size = 1
+depends = ["SV2"]
+note = "Vanilla, Rebirth flags on and off; saves at checkpoints."
+
+[[ticket]]
+id = "SV4"
+title = "Function vector record mode and replay test exe"
+group = "verification"
+status = "queued"
+size = 2
+depends = ["SV2"]
+
+[[ticket]]
+id = "SV5"
+title = "Coverage list and scenarios for what it shows uncovered"
+group = "verification"
+status = "queued"
+size = 1
+depends = ["SV3"]
+
+# ---------------------------------------------------------------- harness and suite
+
+[[ticket]]
+id = "T1"
+title = "Scenarios wait on state instead of fixed times"
+group = "harness"
+status = "done"
+done = "2026-10-14"
+note = "waitmenu / waitwindow / waitunit / frames; about 40% fewer game-seconds per suite."
+
+[[ticket]]
+id = "T2"
+title = "T1 follow-ups: remaining fixed waits and weak scenarios"
+group = "harness"
+status = "queued"
+depends = ["T1"]
+note = "8-10 s waits in ground_prints, sandbox_map, particles, map_objects, movement; world_client waits for the battle window; ui_help's clickregion hits a window with no regions; ui_hero_delete's question never appears; run_all keeps the first attempt's log on retry; ui_widescreen's wait 6000 (after SV1). No longer reached reliably: ScriptFloats/Strings/Objects/GroupsConstruct on load, acks::PickEnvironmentSpeech, CUnitServer::EndOrder."
+
+[[ticket]]
+id = "X36"
+title = "Display-mode scenarios run alone"
+group = "harness"
+status = "done"
+done = "2026-10-14"
+note = "A `resolution` step took the other games' surfaces (\"Can't begin scene\", untextured models). run_all takes every slot for it; runners wait while it waits, so it no longer starves. Message boxes end a run at once with text and stack."
+
+[[ticket]]
+id = "X35"
+title = "Machine-wide cap of 16 harness games"
+group = "harness"
+status = "done"
+done = "2026-10-14"
+note = "Windows crashed twice (NVIDIA hang, bugcheck 0x133) with 24 games; EI_HARNESS_SLOTS."
+
+[[ticket]]
+id = "X32"
+title = "Rebirth runs: game still running 10 s after quit"
+group = "harness"
+status = "watch"
+note = "Since 2026-10-13; runs pass. Suspects: wrappers that fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct). Not a dialog (message boxes are caught)."
+
+[[ticket]]
+id = "X30"
+title = "sandbox_actions / combat / world vanilla time out once in a while"
+group = "harness"
+status = "watch"
+note = "waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it."
+
+[[ticket]]
+id = "X27"
+title = "CPlayerClient::SendLeave04 state check mismatched once"
+group = "harness"
+status = "watch"
+note = "1 of 44 effects_bow Rebirth runs, which also timed out."
+
+[[ticket]]
+id = "X22"
+title = "render_present crashed once under 16 parallel runs"
+group = "harness"
+status = "watch"
+note = "Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface."
+
+[[ticket]]
+id = "I11"
+title = "Harness step for clicks with modifier keys held"
+group = "harness"
+status = "queued"
+note = "0063EF60 / 0063E020 need them (ui.md section 6)."
+
+[[ticket]]
+id = "X37"
+title = "Build warnings C4244 / C4458"
+group = "harness"
+status = "queued"
+model = "sonnet"
+size = 0.2
+files = ["src/game/world_rules.cpp", "src/game/map_object_client_effects.cpp"]
+note = "C4244 at world_rules.cpp:48-49, C4458 in map_object_client_effects.cpp."
+
+[[ticket]]
+id = "X38"
+title = "Regenerate function_sizes.inc from a whole Ghidra database"
+group = "harness"
+status = "later"
+note = "Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-patched for two sizes and gen_function_sizes.py no longer reproduces it."
+
+# ---------------------------------------------------------------- cleanup
+
+[[ticket]]
+id = "C2"
+title = "Class families: members, virtual calls, containers, named globals"
+group = "cleanup"
+status = "done"
+done = "2026-10-14"
+model = "opus"
+note = "All families merged (C2m, C2u, C2i, C2ui, C2e, C2w, C2f, C2a, C2n, C2sc, C2ms, C2d, C2z): offsets, VCall, *At views, SlotNN and per-file containers at 0 across src; byte arithmetic 4 (src/render). Leftovers per family in cleanup-*.md."
+
+[[ticket]]
+id = "C3n"
+title = "Duplicate forwarders to 0"
+group = "cleanup"
+status = "done"
+done = "2026-10-14"
+model = "sonnet"
+note = "C3m, C3n batches 1-5, C3o / C3p: 313 -> 0. Keep at 0 (check_forwarders)."
+
+[[ticket]]
+id = "V3"
+title = "Hand-written vector maths to 0"
+group = "cleanup"
+status = "done"
+done = "2026-10-14"
+model = "opus"
+note = "V1-V3g: 507 -> 0 (vector-math.md \"V3 status\"); V3g did SectorPosition, ProjectedVertex and the renderer's Matrix4s, verify_vecmath tests the unrounded forms with 24 of 24 inputs."
+
+[[ticket]]
+id = "C3"
+title = "Forwarders whose declarations differ between files"
+group = "cleanup"
+status = "queued"
+model = "opus"
+note = "docs/originals-report.md \"differ\" group (261 after C3l, 209 already rewritten): one declaration per address in originals_<area>.h (RET n, callers, Ghidra); the ui_* sites next. Batches of 50."
+
+[[ticket]]
+id = "C5"
+title = "C4 leftovers: per-file streams and Text helpers"
+group = "cleanup"
+status = "queued"
+note = "UnitStream, SaveStream, FileStream, the unit_ai stream, verify_magic_trap's wrapper, the per-file Text(0x...) helpers (cleanup-engine-base.md)."
+
+[[ticket]]
+id = "C9b"
+title = "map_object_shadow.cpp raw offsets"
+group = "cleanup"
+status = "queued"
+note = "Left from C9 (models.md, \"Layouts\")."
+
+[[ticket]]
+id = "C11"
+title = "Shims, constexpr addresses and per-file At() copies"
+group = "cleanup"
+status = "queued"
+model = "sonnet"
+note = "`__fastcall Fn(T* self, void*)` shims into members (1,281) per file; `constexpr uintptr_t kX = 0x00...` (371) into the subsystem's named globals; per-file At() copies (60) replaced by the shared one."
+
+[[ticket]]
+id = "C12"
+title = "__asm blocks and float_control pragmas"
+group = "cleanup"
+status = "later"
+note = "221 __asm blocks, 110 float_control pragmas; mostly kept for bit-exact x87 maths until the standalone build."
+
+[[ticket]]
+id = "C13"
+title = "Forwarders to rewritten code into direct calls"
+group = "cleanup"
+status = "later"
+note = "2,377 sites; with the standalone work (changes what the verify wrappers see)."
+
+# ---------------------------------------------------------------- standalone and UTF-8
+
+[[ticket]]
+id = "S"
+title = "First standalone exe"
+group = "standalone"
+status = "later"
+depends = ["SV5"]
+size = 20
+note = "Own layout-compatible MFC / STLport / CRT classes (6-8 tickets), data definitions and vtables (4-6), direct calls, entry and link (3-4), first boot (2-4), old renderer code (3-4). Standard-library types after the hook build is retired."
+
+[[ticket]]
+id = "U"
+title = "UTF-8 inside, cp1251 assets converted when read"
+group = "standalone"
+status = "later"
+depends = ["S"]
+size = 5.5
+note = "U1-U5, behind a switch in the standalone build."
+
+# ---------------------------------------------------------------- Lua
+
+[[ticket]]
+id = "L1"
+title = "Script IR from the existing parser"
+group = "lua"
+status = "later"
+depends = ["S"]
+note = "Blocks, commands, definitions, globals, Rebirth's extensions, with a text dump; every mission, quest and console form parses."
+
+[[ticket]]
+id = "L2"
+title = "Vendor Lua and generate the bindings"
+group = "lua"
+status = "later"
+depends = ["L1"]
+note = "Decide Lua 5.3 + Eris or Luau + Ares; bindings from the keyword table (300 + Rebirth's 69); object references and groups as userdata."
+
+[[ticket]]
+id = "L3"
+title = "Transpiler to resumable Lua functions"
+group = "lua"
+status = "later"
+depends = ["L2"]
+note = "Blocks as block(pc, run), rule sets, For / ForIf bodies (a wait ends the body), assignments, script calls, the WorldScript."
+
+[[ticket]]
+id = "L4"
+title = "Scheduler with ScriptTick's exact order"
+group = "lua"
+status = "later"
+depends = ["L3"]
+note = "Head insertion, same-tick vs next-tick, Execute count, Sleep ticks, NaN as false."
+
+[[ticket]]
+id = "L5"
+title = "Lockstep luaboth verification"
+group = "lua"
+status = "later"
+depends = ["L4"]
+note = "Both engines per tick: variables, run positions, instances, the built-in call log; scenarios plus a mission corpus."
+
+[[ticket]]
+id = "L6"
+title = "Saves through Eris; old saves as coroutines"
+group = "lua"
+status = "later"
+depends = ["L5"]
+note = "Permanents, __persist by object id; decide whether to keep writing the old format."
+
+[[ticket]]
+id = "L7"
+title = "Quests and console lines through the transpiler"
+group = "lua"
+status = "later"
+depends = ["L4"]
+note = "QFinish's text and console lines at runtime; a cache for mission files."
+
+[[ticket]]
+id = "L8"
+title = "Mod API"
+group = "lua"
+status = "later"
+depends = ["L6"]
+note = ".lua loading, Lua names for the built-ins, waits as yields, sandbox, errors as \"Script error\"."
+
+[[ticket]]
+id = "L9"
+title = "Lua by default; old executor removed"
+group = "lua"
+status = "later"
+depends = ["L5", "L6", "L7", "L8"]
+note = "The parser stays as the front end."
+
+# ---------------------------------------------------------------- port
+
+[[ticket]]
+id = "A-Z1"
+title = "The last eight functions: the port is complete"
+group = "port"
+status = "done"
+done = "2026-10-14"
+note = "function_sizes.inc is hand-patched for two sizes."
+
+[[ticket]]
+id = "A-I23"
+title = "Interface functions no scenario checks"
+group = "port"
+status = "queued"
+note = "The connection screen Create / list draw, exchange slots 0062D100 / 0062D200. Also unreached: WinMain's second-instance, disc prompt and frame-recording branches, 0041ECC0, 00443080, CDib's catch handlers."
+
+# ---------------------------------------------------------------- docs
+
+[[ticket]]
+id = "D2"
+title = "Retarget code comments that cite removed sections"
+group = "docs"
+status = "queued"
+model = "sonnet"
+note = "About 150 comments citing \"Nth round\", \"pass\", old renderer section numbers, items_spells.md \"(A-H17)\"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations."
