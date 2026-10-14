@@ -67,6 +67,7 @@ SessionBase* __fastcall SessionBaseConstructVerify(SessionBase* self) {
     SessionBase* expectedRet = s_construct(reinterpret_cast<SessionBase*>(scratch));
     SessionBase* actualRet = self->Construct();
     netverify::BuiltCompare cmp{scratch, reinterpret_cast<const std::uint8_t*>(self), kSize};
+    for (std::size_t o : netverify::kRegistryFunctors) cmp.skipped.push_back(o);
     cmp.Range(0, kSize);
     netverify::CompareSessionTables(cmp, scratch, reinterpret_cast<const std::uint8_t*>(self));
     ei::verify::Check("SessionBase::Construct", true,

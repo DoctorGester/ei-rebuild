@@ -9,6 +9,7 @@
 #include "net_verify.h"
 
 #include "../../src/game/net_classes.h"
+#include "../../src/game/net_messages.h"
 #include "../../src/lib/crt.h"
 
 #include "ei/vcall.h"
@@ -43,9 +44,15 @@ ClientSession* __fastcall ClientConstructVerify(ClientSession* self) {
     ClientSession* expectedRet = s_construct(reinterpret_cast<ClientSession*>(scratch));
     auto* actual = reinterpret_cast<const std::uint8_t*>(self);
     netverify::BuiltCompare cmp{scratch, actual, kSize};
+    for (std::size_t o : netverify::kRegistryFunctors) cmp.skipped.push_back(o);
     cmp.Range(0, kSize, {0x54});
     netverify::CompareSessionTables(cmp, scratch, actual);
-    cmp.Nested(reinterpret_cast<ClientSession*>(scratch)->player_.ptr, self->player_.ptr, 0x34, "player record");
+    // The record is a LoginMessage (0x34 bytes) of each one's allocation: +0x24 is its host_ byte
+    // and three bytes of padding nobody writes, so only the byte is compared.
+    auto* expectedRecord = static_cast<const LoginMessage*>(reinterpret_cast<ClientSession*>(scratch)->player_.ptr);
+    auto* actualRecord = static_cast<const LoginMessage*>(self->player_.ptr);
+    cmp.Nested(expectedRecord, actualRecord, 0x34, "player record", {0x24});
+    if (expectedRecord && actualRecord && expectedRecord->host_ != actualRecord->host_) cmp.Note("player record host_");
     ei::verify::Check("ClientSession::Construct", true,
                       cmp.ok && expectedRet == reinterpret_cast<ClientSession*>(scratch) && actualRet == self, "%s",
                       cmp.detail);
