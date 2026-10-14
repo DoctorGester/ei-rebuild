@@ -11,14 +11,14 @@ void* s_unused;
 }
 
 // 0059F710.
-static void __fastcall FigureMeshSaveVerify(CFigureMesh* self, void*, void* file) {
+static void __fastcall FigureMeshSaveVerify(CFigureMesh* self, void*, mfc::CFileVirtuals* file) {
     self->SaveToFile(file);
     ei::verify::Check("CFigureMesh::SaveToFile", true, true, "%d vertex packets", self->buffers_.vertexCount);
 }
 EI_VERIFY(0x0059F710, FigureMeshSaveVerify, 0, s_unused);
 
 // 0059F8F0: the arrays' sizes are not negative.
-static void __fastcall FigureMeshLoadVerify(CFigureMesh* self, void*, void* file) {
+static void __fastcall FigureMeshLoadVerify(CFigureMesh* self, void*, mfc::CFileVirtuals* file) {
     self->LoadFromFile(file);
     bool ok = self->vertices_.size >= 0 && self->normals_.size >= 0 && self->corners_.size >= 0 &&
               self->indices_.size >= 0;

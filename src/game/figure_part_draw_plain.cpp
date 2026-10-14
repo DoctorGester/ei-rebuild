@@ -9,6 +9,7 @@
 // draw that is not off screen marks the mesh drawn. See docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
 #include "figure_mesh.h"          // PositionBlock
+#include "link_figure.h"          // FigureMeshDrawer
 #include "lib/containers.h"
 #include "lib/gameapi.h"
 #include "originals_ai.h"
@@ -20,11 +21,6 @@
 #include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 // The figure mesh's colour arrays (+0x138 / +0x148).
 using ColourArray = lib::AlignedArray<std::uint32_t>;
@@ -78,64 +74,71 @@ const void* MovedPositionsOf(CFigureMesh* mesh) {
     return moved.data;
 }
 
+std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
+
+// The flags an animated mesh's drawer gets (00790C0C).
+std::uint32_t AnimatedDrawerFlags() { return *reinterpret_cast<const std::uint32_t*>(0x00790C0C); }
+
 } // namespace
 
-// 005A7640 (thiscall on the part's node, RET 0x18). Arguments 2-4 are not read; `alpha` goes to
+// 005A7640 (thiscall on the part's drawer, RET 0x18). Arguments 2-4 are not read; `alpha` goes to
 // the device draw, `rect` (optional) receives the screen rectangle (empty when off screen).
 // Returns 1.
-int __fastcall DrawFigurePartPlain(char* node, void*, char* device, int, int, int, int alpha, RECT* rect) {
-    auto* textureDevice = reinterpret_cast<CTextureDevice*>(device);
-    auto mesh = [node] { return At<CFigureMesh*>(node, 0x1C); };
-    if (mesh()->flags_ & 0x80) return 1;
+int __fastcall DrawFigurePartPlain(FigureMeshDrawer* node, void*, CTextureDevice* device, int, int, int, int alpha,
+                                   RECT* rect) {
+    if (node->mesh_->flags_ & 0x80) return 1;
     if (!(Guard() & 1)) {
         Guard() |= 1;
         MovedPositions() = lib::AlignedArray<PositionBlock>{};
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005A7A50));
     }
     int drawFlags = 0;
-    mesh()->flags_ &= ~0x40u;
-    int visibility = ClipTest(textureDevice->pipeline_, nullptr, &mesh()->bounds_);
+    node->mesh_->flags_ &= ~0x40u;
+    int visibility = ClipTest(device->pipeline_, nullptr, &node->mesh_->bounds_);
     if (visibility == 2) return 1;
-    int type = At<int>(mesh(), 0x15C);
+    int type = static_cast<int>(node->mesh_->meshType_);
     if (type >= 13 && type <= 16) {
         float time;
         TickTime(&time);
-        At<std::uint32_t>(node, 8) |= *reinterpret_cast<const std::uint32_t*>(0x00790C0C);
+        node->flags_ |= AnimatedDrawerFlags();
         std::uint32_t bits;
         std::memcpy(&bits, &time, 4);
-        AnimateOriginal(node, nullptr, bits);
+        AnimateOriginal(reinterpret_cast<char*>(node), nullptr, bits);
     }
 
-    std::uint32_t meshFlags = mesh()->flags_;
+    std::uint32_t meshFlags = node->mesh_->flags_;
     if (meshFlags & 0x100) {
-        Fill(mesh()->colorsA_, mesh()->flatColour_);
-        Fill(mesh()->colorsB_, mesh()->flatSpecular_);
+        Fill(node->mesh_->colorsA_, node->mesh_->flatColour_);
+        Fill(node->mesh_->colorsB_, node->mesh_->flatSpecular_);
     } else if (!(meshFlags & 0x10)) {
         drawFlags = 4;
     }
     if (visibility == 1) drawFlags |= 2;
     if (rect) drawFlags |= 1;
 
-    const void* positions = mesh()->buffers_.vertices;
-    int blocks = mesh()->buffers_.vertexCount;
-    if (mesh()->offsets_.size != 0) positions = MovedPositionsOf(mesh());
-    CFigureMesh* m = mesh();
-    auto field = [m](int offset) { return At<std::uint32_t>(m, offset); };
-    int result = DrawMesh(device, nullptr, positions, blocks, field(0xA4), static_cast<int>(field(0xA8)), field(0x138),
-                          field(0x148), field(0xAC), field(0xB0), field(0xB4), field(0xB8), field(0xBC), field(0xC0),
-                          field(0xC4), field(0xC8), field(0xCC), field(0xD0), alpha, drawFlags);
+    const void* positions = node->mesh_->buffers_.vertices;
+    int blocks = node->mesh_->buffers_.vertexCount;
+    if (node->mesh_->offsets_.size != 0) positions = MovedPositionsOf(node->mesh_);
+    CFigureMesh* m = node->mesh_;
+    const MeshBuffers& b = m->buffers_;
+    int result = DrawMesh(reinterpret_cast<char*>(device), nullptr, positions, blocks, Word(b.normals), b.normalCount,
+                          Word(m->colorsA_.data), Word(m->colorsB_.data), Word(b.texCoords),
+                          static_cast<std::uint32_t>(b.texCoordCount), Word(b.corners),
+                          static_cast<std::uint32_t>(b.cornerCount), Word(b.words), static_cast<std::uint32_t>(b.wordCount),
+                          Word(b.indices), static_cast<std::uint32_t>(b.indexCount), m->textureOffsetU_,
+                          m->textureOffsetV_, alpha, drawFlags);
     if (rect) {
-        RECT* own = &At<RECT>(node, 0x20);
+        RECT* own = &node->screen_;
         if (result == 2) {
             gameapi::SetRectEmpty(own);
             gameapi::SetRectEmpty(rect);
         } else {
-            gameapi::CopyRect(own, &textureDevice->drawnRect_);
+            gameapi::CopyRect(own, &device->drawnRect_);
             *rect = *own;
         }
     }
-    if (result != 2) mesh()->flags_ |= 0x40;
-    FinishDraw(node, nullptr, reinterpret_cast<void*>(0x007AF060));
+    if (result != 2) node->mesh_->flags_ |= 0x40;
+    FinishDraw(reinterpret_cast<char*>(node), nullptr, reinterpret_cast<void*>(0x007AF060));
     return 1;
 }
 EI_REPLACE(0x005A7640, DrawFigurePartPlain);

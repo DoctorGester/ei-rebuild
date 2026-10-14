@@ -27,14 +27,14 @@ void(__fastcall* s_animate)(FigureMeshDrawer*, void*, float);
 
 void __fastcall AnimateVerify(FigureMeshDrawer* self, void*, float time) {
     CFigureMesh* mesh = self->mesh_;
-    const std::uint32_t u = mesh->unknown_0CC, v = mesh->unknown_0D0;
+    const std::uint32_t u = mesh->textureOffsetU_, v = mesh->textureOffsetV_;
     s_animate(self, nullptr, time);
-    const std::uint32_t expectedU = mesh->unknown_0CC, expectedV = mesh->unknown_0D0;
-    mesh->unknown_0CC = u;
-    mesh->unknown_0D0 = v;
+    const std::uint32_t expectedU = mesh->textureOffsetU_, expectedV = mesh->textureOffsetV_;
+    mesh->textureOffsetU_ = u;
+    mesh->textureOffsetV_ = v;
     self->Animate(time);
-    ei::verify::Check("FigureMeshDrawer::Animate", true, mesh->unknown_0CC == expectedU && mesh->unknown_0D0 == expectedV,
-                      "type %u time %g", mesh->unknown_15C, static_cast<double>(time));
+    ei::verify::Check("FigureMeshDrawer::Animate", true, mesh->textureOffsetU_ == expectedU && mesh->textureOffsetV_ == expectedV,
+                      "type %u time %g", mesh->meshType_, static_cast<double>(time));
 }
 
 void* s_unused;

@@ -5,22 +5,20 @@
 
 #include "core_maths.h"
 
+#include "link_figure.h"   // ITransformPipeline
+
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_render.h"
 
 #include <cstring>
 
 namespace {
 
-// 00500960: the display object (007AF060); +8 -> +0xC is the 3D library's transform pipeline.
-void* __cdecl Display() { return DisplayObject(); }
-
-// Slot 7 of the transform pipeline (in 3DfpFPU.dll): fits `bounds` to the vertices.
+// Slot 7 of the scene renderer's (00500960, the global at 007AF060) transform object (in
+// 3DfpFPU.dll): fits `bounds` to the vertices.
 void FitBounds(ClipBounds* bounds, VertexPacket* vertices, int count) {
-    char* display = static_cast<char*>(Display());
-    void* pipeline = *reinterpret_cast<void**>(*reinterpret_cast<char**>(display + 8) + 0xC);
-    ei::VCall<void>(pipeline, 7, bounds, vertices, count);
+    auto* renderer = static_cast<CSceneRenderer*>(DisplayObject());
+    renderer->pipeline_->transform_->FitBounds(bounds, vertices, count);
 }
 
 template <typename T>
@@ -356,7 +354,7 @@ void CFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     std::memcpy(&header, *cursor, sizeof(header));
     *cursor += sizeof(header);
     unknown_158 = Read<std::uint32_t>(*cursor);
-    unknown_15C = Read<std::uint32_t>(*cursor);
+    meshType_ = Read<std::uint32_t>(*cursor);
     // 005A18E0 through its address (the verify build checks it there).
     reinterpret_cast<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
         this, nullptr, cursor, s, t, u, header.magic);
@@ -401,7 +399,7 @@ void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     std::memcpy(&header, *cursor, sizeof(header));
     *cursor += sizeof(header);
     unknown_158 = Read<std::uint32_t>(*cursor);
-    unknown_15C = Read<std::uint32_t>(*cursor);
+    meshType_ = Read<std::uint32_t>(*cursor);
     reinterpret_cast<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
         this, nullptr, cursor, s, t, u, header.magic);
 
@@ -456,7 +454,7 @@ int ReadCount(char** cursor) {
 // records' second colour array is set to opaque black).
 void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, bool shared) {
     mesh->unknown_158 = Read<std::uint32_t>(*cursor);
-    mesh->unknown_15C = Read<std::uint32_t>(*cursor);
+    mesh->meshType_ = Read<std::uint32_t>(*cursor);
     if (shared)
         MorphOldBounds(mesh->bounds_, reinterpret_cast<const float*>(*cursor), s, t, u, CornerKept, CornerPerOp);
     else
@@ -574,8 +572,8 @@ void Extend(float& max, float& min, float v) {
 
 void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
     // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
-    double far = LengthSquaredXYZ(position_);
-    if (far > FarLimit()) return;
+    double distance = LengthSquaredXYZ(position_);
+    if (distance > FarLimit()) return;
 
     Matrix4 m = {};
     ObjectMatrix(this, nullptr, m.m);
@@ -670,7 +668,7 @@ void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
 }
 EI_REPLACE_METHOD(0x005A0B10, CFigureMesh::SetOffsets);
 
-int CFigureMesh::DrawOffset(void* pipelineOwner, void* arg1, void* arg2, void* arg3) {
+int CFigureMesh::DrawOffset(CTransformPipeline* pipeline, const float* matrix, float* points, float* bounds) {
     void* vertices = buffers_.vertices;
     if (offsets_.size != 0) {
         const VertexPacket* source = static_cast<const VertexPacket*>(buffers_.vertices);
@@ -717,8 +715,8 @@ int CFigureMesh::DrawOffset(void* pipelineOwner, void* arg1, void* arg2, void* a
         }
         vertices = moved.data;
     }
-    void* pipeline = *reinterpret_cast<void**>(static_cast<char*>(pipelineOwner) + 0xC);
-    ei::VCall<void>(pipeline, 29, arg1, vertices, arg2, buffers_.vertexCount, arg3);
+    pipeline->transform_->ProjectFlat(matrix, static_cast<const VertexPacket*>(vertices), points, buffers_.vertexCount,
+                                      bounds);
     return buffers_.vertexCount << 2;
 }
 EI_REPLACE_METHOD(0x005A0CD0, CFigureMesh::DrawOffset);

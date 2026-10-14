@@ -65,7 +65,8 @@ class CTexture;         // texture.h
 // (figure_part_draw.cpp), and 005A7640 plain (figure_part_draw_plain.cpp). Both return 1.
 int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* device, const FigureLights* lights,
                               FigureMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB);
-int __fastcall DrawFigurePartPlain(char* node, void*, char* device, int, int, int, int alpha, RECT* rect);
+int __fastcall DrawFigurePartPlain(FigureMeshDrawer* node, void*, CTextureDevice* device, int, int, int, int alpha,
+                                   RECT* rect);
 
 struct CDXSurface;   // texture.h
 struct TLVertex;     // clip.h

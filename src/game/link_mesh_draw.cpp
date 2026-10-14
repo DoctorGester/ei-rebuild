@@ -39,20 +39,8 @@ lib::AlignedArray<VertexPacket>& MovedPackets() {
     return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007AEED0);
 }
 
-// A screen or texture point of the shadow's rasteriser (moved as one qword).
-struct PixelPair {
-    int x;
-    int y;
-};
-// What the rasteriser reads at the start of its target: a triangle's corners.
-struct RasterTriangle {
-    struct Corner {
-        PixelPair screen;
-        PixelPair texture;
-    };
-    Corner corners[3];
-};
-static_assert(sizeof(PixelPair) == 8 && sizeof(RasterTriangle) == 0x30);
+// A screen or texture point of the shadow's rasteriser (moved as one qword; texture.h).
+using PixelPair = RasterTriangle::Point;
 
 // A part's texture coordinates in 0..255 (007AEEB8; a local static of 004F4850: bit 0 of 007AEEC8
 // says it is constructed, and the exit handler 004F4B30, left in the exe, frees its block).

@@ -752,7 +752,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     for (int i = 0; i < meshes->size; ++i) {
         figureArray.data[i].name_ = meshArray.data[i].GetName();
         figureArray.data[i].unknown_158 = static_cast<std::uint32_t>(meshArray.data[i].materialValue);
-        figureArray.data[i].unknown_15C = static_cast<std::uint32_t>(meshArray.data[i].materialType);
+        figureArray.data[i].meshType_ = static_cast<std::uint32_t>(meshArray.data[i].materialType);
     }
 
     if (!BuildSkeleton(meshes, &s.nodes, static_cast<int>(s.infoDword - 1), &u->skin))

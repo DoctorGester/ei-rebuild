@@ -40,7 +40,7 @@ bool BuffersClear(const CFigureMesh* mesh) {
 bool Cleared(const CFigureMesh* mesh) {
     return mesh->name_.GetLength() == 0 && mesh->directory_.GetLength() == 0 && Empty(mesh->offsets_) &&
            Empty(mesh->colorsA_) && Empty(mesh->colorsB_) && BuffersClear(mesh) && mesh->unknown_158 == 0 &&
-           mesh->unknown_15C == 0 && mesh->drawer_ == nullptr && mesh->flags_ == 0;
+           mesh->meshType_ == 0 && mesh->drawer_ == nullptr && mesh->flags_ == 0;
 }
 
 int(__fastcall* s_create)(CFigureMesh*);

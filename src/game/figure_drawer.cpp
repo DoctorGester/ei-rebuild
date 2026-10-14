@@ -28,24 +28,24 @@ CEngineObject* AsObject(FigureMeshDrawer* drawer) { return reinterpret_cast<CEng
 
 void FigureMeshDrawer::Animate(float time) {
     CFigureMesh* mesh = mesh_;
-    const std::uint32_t type = mesh->unknown_15C;
+    const std::uint32_t type = mesh->meshType_;
     if (type == kTwoRows) {
         int frame = static_cast<int>(gamecrt::Ftol(time) & 7);
         if (frame < 4) {
-            mesh->unknown_0CC = Bits(static_cast<float>(frame) * 0.25f);
-            mesh_->unknown_0D0 = 0;
+            mesh->textureOffsetU_ = Bits(static_cast<float>(frame) * 0.25f);
+            mesh_->textureOffsetV_ = 0;
         } else {
-            mesh->unknown_0CC = Bits(static_cast<float>(frame - 4) * 0.25f);
-            mesh_->unknown_0D0 = Bits(0.5f);
+            mesh->textureOffsetU_ = Bits(static_cast<float>(frame - 4) * 0.25f);
+            mesh_->textureOffsetV_ = Bits(0.5f);
         }
     } else if (type == kSheet4x4) {
         int frame = static_cast<int>(gamecrt::Ftol(time) & 15);
-        mesh->unknown_0CC = Bits(static_cast<float>(frame % 4) * 0.25f);
-        mesh_->unknown_0D0 = Bits(1.0f - static_cast<float>(frame / 4) * 0.25f);
+        mesh->textureOffsetU_ = Bits(static_cast<float>(frame % 4) * 0.25f);
+        mesh_->textureOffsetV_ = Bits(1.0f - static_cast<float>(frame / 4) * 0.25f);
     } else if (type == kSheet8x4) {
         int frame = static_cast<int>(gamecrt::Ftol(time) & 31);
-        mesh->unknown_0CC = Bits(static_cast<float>(frame % 8) * 0.125f);
-        mesh_->unknown_0D0 = Bits(1.0f - static_cast<float>(frame / 8) * 0.25f);
+        mesh->textureOffsetU_ = Bits(static_cast<float>(frame % 8) * 0.125f);
+        mesh_->textureOffsetV_ = Bits(1.0f - static_cast<float>(frame / 8) * 0.25f);
     }
 }
 EI_REPLACE_METHOD(0x005A7160, FigureMeshDrawer::Animate);
