@@ -27,6 +27,7 @@
 #include "originals_ui.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
+#include "originals_units.h"
 
 #pragma float_control(precise, on)
 
@@ -331,12 +332,8 @@ EI_REPLACE(0x005F13A0, ItemDamageLists);
 namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }
 
-// 0051FE80 (thiscall on the skill database 007AF268): the index of the level record named `name`.
-struct SkillDatabase {
-    int IndexOf(const char* name);
-};
-__declspec(naked) int SkillDatabase::IndexOf(const char*) EI_ORIGINAL(0x0051FE80)
-SkillDatabase* Skills() { return reinterpret_cast<SkillDatabase*>(0x007AF268); }
+// The skill database (007AF268), for SkillIndexOfOriginal (0051FE80): the index of the level record named `name`.
+const void* Skills() { return reinterpret_cast<const void*>(0x007AF268); }
 
 // The spell and modifier record tables the spell book reads (UiRecordTable, ui.h).
 const UiRecordTable* SpellRecords() { return reinterpret_cast<const UiRecordTable*>(0x007C8510); }
@@ -950,7 +947,7 @@ void PerkLines(Writer& w, const ItemHoverInfo* info, mfc::CString& title) {
     mfc::CString name = info->text;
     name.TrimRight(GameText(0x007856B8));   // "0"
     name += GameText(0x00787C00);                 // "1"
-    int group = Skills()->IndexOf(name) / 3;
+    int group = SkillIndexOfOriginal(Skills(), nullptr, name) / 3;
     const RecordTable& levels = *reinterpret_cast<const RecordTable*>(0x007AF274);
     for (int i = 0; i < 3; ++i) {
         std::uint32_t index = static_cast<std::uint32_t>(group * 3 + i);

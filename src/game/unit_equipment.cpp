@@ -22,7 +22,6 @@ constexpr int kTypeArmed = 0x32;            // CEngineObject::type_ of the units
 constexpr int kManagerWorld = 0xAC;         // the manager's map object context (the world)
 constexpr int kWorldItemManager = 0x48 / 4; // world slot 18: the item manager
 constexpr int kWorldSpellOwner = 0x58 / 4;  // world slot 22: passed on to the spell factory
-constexpr std::uintptr_t kTable = 0x007AF358;
 
 // The game's texts: "none" (a weapon name that gives no weapon) and the FatalError formats.
 constexpr std::uintptr_t kNone = 0x007846F0;
@@ -38,7 +37,6 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 // item manager's item by name (item_constructor.cpp); 00480080 FatalError (app.cpp); CUnit's
 // EquipArmour / AddWeapon / AddSpell (unit_items.cpp, unit.cpp). 006AD1E0, the item manager's
 // spell by name (with world slot 22), is not rewritten.
-__declspec(naked) UnitPrototypeRecord* __fastcall FindPrototypeAt(void*, void*, const char*) EI_ORIGINAL(0x005144D0)
 __declspec(naked) CEngineObject* __fastcall CreateItemAt(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 CEngineObject* __fastcall CreateSpellAt(void* a0, void*, const char* a2, void* a3) { return (CEngineObject*)FactoryCreateSpellOriginal(a0, nullptr, a2, a3); }
 CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
@@ -66,7 +64,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     CEngineObject* world = *reinterpret_cast<CEngineObject**>(reinterpret_cast<char*>(this) + kManagerWorld);
     void* spellOwner = ei::VCall<void*>(world, kWorldSpellOwner);
     void* items = ei::VCall<void*>(world, kWorldItemManager);
-    UnitPrototypeRecord* prototype = FindPrototypeAt(reinterpret_cast<void*>(kTable), nullptr, name);
+    auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name));
     if (!prototype) {
         game::FatalError(Text(kNoPrototype), name);
         return 0;

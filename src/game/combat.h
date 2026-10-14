@@ -516,10 +516,8 @@ public:
     void CallDeliverAttack(CEngineObject* target, DamageInfo* hit);
     void CallTriggerWeaponSpell(CEngineObject* target);
     void CallTriggerItemSpells(char onHit);
-    void CallUseItemCharge(CItem* item, float cost);
     void CallOnDamaged(CUnit* attacker, int hitKind);
     void CallWitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer);
-    void CallPropagateHostility();
     std::uint32_t CallHitDirection(CUnit* attacker, int hitKind);
     void CallUseSkill(CEngineObject* target);
     void CallSetDead(int dead);
@@ -562,7 +560,6 @@ public:
     // The same through the game's addresses (for the verify build's wrappers).
     bool CallCanActFrom(const UnitAction* order, const float* point, int time);
     bool CallPlanAction(const UnitAction* order, struct OrderPlan* plan);
-    bool CallFindSightTarget(const UnitAction* order, struct SightTarget* out);
 
     // combat_steps.cpp (third round): the animation steps of an order. The unit's animation
     // entries are looked up by a key of weapon, movement and action bits (CUnit 005301B0).
@@ -585,10 +582,7 @@ public:
     bool BuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CEngineObject* target);
     // The same through the game's addresses.
     bool CallBuildAttackSteps(struct OrderPlan* plan, struct AnimationSteps* steps, int* duration, CEngineObject* target);
-    void CallBuildOrderSteps(struct AnimationSteps* steps, int* duration, int kind, std::uint32_t source);
     void CallBuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
-    bool CallBuildTransition(struct AnimationSteps* steps, const MoveModeState* from, const MoveModeState* to);
-    int CallAnimationDuration(std::uint32_t index);
     int CallAnimationMoment(std::uint32_t index);
 
     // combat_tick.cpp (third round): the per-tick order machine.
@@ -622,7 +616,6 @@ public:
     void CallContinueAction();
     void CallTakeQueuedOrder();
     void CallSetUnitMoveMode2(int mode);
-    bool CallCanPlanAction(const UnitAction* order);
 
     // combat_update.cpp (fourth round): the update and the animation queue.
     // 00552300. Virtual slot 6, once per world update. A living unit regenerates, tells the AI
@@ -795,7 +788,6 @@ public:
     // (HitDirection's bits): `dying` adds the death bits, `fall` (lying down) stops the steps with
     // +8 = 2 and may pick a side at random. Only the low bytes of `dying` and `fall` count.
     void BuildDeathAnimation(struct AnimationSteps* steps, std::uint32_t direction, int dying, int fall);
-    void CallBuildDeathAnimation(void* steps, std::uint32_t direction, int dying, int fall);
 
     CUnit* unit;                    // +0x01C
     std::uint8_t unknown_020;       // +0x020 cleared on death

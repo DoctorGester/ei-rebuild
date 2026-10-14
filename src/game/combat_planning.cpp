@@ -67,11 +67,7 @@ __declspec(naked) int __fastcall MotionClear(void*) EI_ORIGINAL(0x005C6270)
 // CanReachTarget, 0054C6B0 CanPlanAction, 0054BCB0 FindSightTarget (combat_sight.cpp), 0054C070
 // ActionDistance (ST0), 0054B7C0 SpellCarrier (combat.cpp), 00552780 Shout (unit_create.cpp),
 // 005468D0 LiftNearby, 0054EB30 ReportPath (combat_motion.cpp), and this file's functions.
-__declspec(naked) bool __fastcall CtlCanPlanAction(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054C6B0)
-__declspec(naked) bool __fastcall CtlFindSightTarget(CUnitServer*, void*, const UnitAction*, SightTarget*)
-    EI_ORIGINAL(0x0054BCB0)
 __declspec(naked) CItem* __fastcall CtlSpellCarrier(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x0054B7C0)
-__declspec(naked) void __fastcall CtlShout(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x00552780)
 __declspec(naked) bool __fastcall CtlFindUseSpot(CUnitServer*, void*, UnitAction*, void*) EI_ORIGINAL(0x0054DF50)
 __declspec(naked) double __fastcall CtlTimeUntilAction(CUnitServer*, void*, const UnitAction*, void*)
     EI_ORIGINAL(0x0054E250)
@@ -363,11 +359,11 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         }
         PathMessage(unit, route.bytes(), &point.x, kind, ok ? 0 : 1, best);
         if (ok) {
-            CtlShout(this, nullptr, shout);
+            ControllerShout(this, nullptr, shout);
             return true;
         }
     }
-    CtlShout(this, nullptr, order->kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
+    ControllerShout(this, nullptr, order->kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
     return ok;
 }
 EI_REPLACE_METHOD(0x0054E600, CUnitServer::PlanOrderRoute);

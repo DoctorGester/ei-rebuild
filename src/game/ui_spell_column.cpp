@@ -7,6 +7,7 @@
 #include "lib/mfc.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -22,7 +23,6 @@ template <typename T> T Get(const void* base, int offset) {
 }
 
 // 005319A0 (thiscall on a unit, RET 4): the unit's spell `index` (0..7) or null.
-__declspec(naked) CEngineObject* __fastcall SpellAt(CUnit*, void*, unsigned) EI_ORIGINAL(0x005319A0)
 // 0063E4B0 (thiscall, RET 8; Rebirth-patched): the next spell's sprite (model `model`, picture
 // `image`), counted in +0x14C.
 __declspec(naked) void __fastcall AddSpellSprite(CHudSpellColumn*, void*, const char* /*model*/, const char* /*image*/)
@@ -56,7 +56,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
     if (!unit_) return;
 
     for (unsigned i = 0; i < 8; ++i) {
-        CEngineObject* spell = SpellAt(unit_, nullptr, i);
+        CEngineObject* spell = UnitSpell(unit_, nullptr, i);
         if (!spell) continue;
         {
             ReturnedString image;

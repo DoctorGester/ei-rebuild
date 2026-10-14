@@ -27,7 +27,6 @@ constexpr int kStatTaming = 2;
 // Forwarders (thiscall as __fastcall with the unused EDX).
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
-__declspec(naked) void __fastcall UnitSetSide(CUnit*, void*, int) EI_ORIGINAL(0x00530120)
 __declspec(naked) void __fastcall UnitSetRelationsB(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x00530180)
 inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
 // 00665D20 the player: prepares to take a unit in (no arguments).

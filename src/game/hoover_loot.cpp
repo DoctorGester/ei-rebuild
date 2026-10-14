@@ -35,14 +35,9 @@ using PtrListNode = PtrList::Node;
 inline PtrListNode* __fastcall NewNode(PtrList* l, void*, PtrListNode* prev, PtrListNode* next) { return static_cast<PtrListNode*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
 __declspec(naked) void* __fastcall CreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
-__declspec(naked) void* __fastcall UnitQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) void __fastcall UnitRemoveQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x005311E0)
-__declspec(naked) void __fastcall UnitRemoveCarried(void* /*unit*/, void*, int) EI_ORIGINAL(0x005313B0)
 void* __fastcall UnitArmour(void* a0, void*, int a2) { return (void*)UnitWornItemOriginal((const void*)a0, nullptr, a2); }
 __declspec(naked) int __fastcall ArmourType(void* /*armour*/) EI_ORIGINAL(0x006A39E0)
-__declspec(naked) void __fastcall UnitUnequipArmour(void* /*unit*/, void*, int) EI_ORIGINAL(0x00530840)
-__declspec(naked) void* __fastcall UnitWeapon(void* /*unit*/, void*, int) EI_ORIGINAL(0x005318B0)
-__declspec(naked) void __fastcall UnitRemoveWeapon(void* /*unit*/, void*, int) EI_ORIGINAL(0x005310D0)
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
@@ -91,6 +86,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
     if (At<std::uint32_t>(unit, 8) & 0x100000) return 0;
     void* manager = ei::VCall<void*>(world, 18);
     char* prototype = UnitPrototype(unit);
+    auto* cunit = reinterpret_cast<CUnit*>(unit);
     *gold = 0;
     if (prototype) {
         auto names = [&] { return At<const char**>(prototype, 0xE8); };
@@ -110,25 +106,25 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
         if (*gold < 0) *gold = 0;
     }
     for (int slot = 0; slot < 4; ++slot) {
-        if (void* item = UnitQuickItem(unit, nullptr, slot)) Append(drops, item);
+        if (void* item = UnitQuickItem(cunit, nullptr, slot)) Append(drops, item);
         UnitRemoveQuickItem(unit, nullptr, slot);
     }
     for (int i = 0; i < At<int>(unit, 0x4A4); ++i) {
         if (void* item = At<void**>(unit, 0x4A0)[i]) Append(drops, item);
     }
-    while (At<int>(unit, 0x4A4) != 0) UnitRemoveCarried(unit, nullptr, 0);
+    while (At<int>(unit, 0x4A4) != 0) UnitRemoveCarried(cunit, nullptr, 0);
     if (keyed) {
         for (int slot = 0; slot < 7; ++slot) {
             void* armour = UnitArmour(unit, nullptr, slot);
             if (!armour) continue;
             Append(drops, armour);
-            UnitUnequipArmour(unit, nullptr, ArmourType(armour));
+            UnitUnequipArmour(cunit, nullptr, ArmourType(armour));
         }
         for (int slot = 0; slot < 4; ++slot) {
-            void* weapon = UnitWeapon(unit, nullptr, slot);
+            void* weapon = UnitWeapon(cunit, nullptr, slot);
             if (!weapon) continue;
             Append(drops, weapon);
-            UnitRemoveWeapon(unit, nullptr, slot);
+            UnitRemoveWeaponOriginal(cunit, nullptr, slot);
         }
     }
     At<std::uint32_t>(unit, 8) |= 0x100000;

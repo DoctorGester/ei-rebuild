@@ -300,20 +300,14 @@ void ControllerCalls::Reposition() { ControllerRepositionOriginal((void*)this); 
 
 struct UnitCalls {
     void SetHostileMask(std::uint32_t mask);             // 0052E970
-    void SetSide(int side);                              // 00530120
-    void AddHostileMask(std::uint32_t mask);             // 0052E940
     void SetController(WorldPlayer* player);             // 005300D0
     void GiveQuestItem(CEngineObject* item);             // 00531220
-    void RemoveQuestItem(int index);                     // 005313B0
     void AddSpell(CEngineObject* spell);                 // 00531820
     void MarkChanged(int what);                          // 0050E9F0
 };
 void UnitCalls::SetHostileMask(std::uint32_t a0) { UnitSetHostileMaskOriginal((void*)this, nullptr, a0); }
-__declspec(naked) void UnitCalls::SetSide(int) EI_ORIGINAL(0x00530120)
-__declspec(naked) void UnitCalls::AddHostileMask(std::uint32_t) EI_ORIGINAL(0x0052E940)
 void UnitCalls::SetController(WorldPlayer* player) { UnitSetControllerOriginal(this, nullptr, player); }
 __declspec(naked) void UnitCalls::GiveQuestItem(CEngineObject*) EI_ORIGINAL(0x00531220)
-__declspec(naked) void UnitCalls::RemoveQuestItem(int) EI_ORIGINAL(0x005313B0)
 __declspec(naked) void UnitCalls::AddSpell(CEngineObject*) EI_ORIGINAL(0x00531820)
 void UnitCalls::MarkChanged(int what) { UnitMarkChanged(this, nullptr, what); }
 UnitCalls* UnitOf(CEngineObject* unit) { return reinterpret_cast<UnitCalls*>(unit); }
@@ -1099,7 +1093,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             CEngineObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != kClassUnit) break;
             UnitOf(unit)->SetHostileMask(DiplomacyHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy()), nullptr, Ftol(f[0])));
-            UnitOf(unit)->SetSide(Ftol(f[0]));
+            UnitSetSide(static_cast<CUnit*>(unit), nullptr, Ftol(f[0]));
             break;
         }
         case 0x38: {   // SetEnemy(unit, player): adds the player to the hostile mask (+0x244)
@@ -1107,7 +1101,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!unit || unit->GetClassId() != kClassUnit) break;
             int player = Ftol(f[0]);
             std::uint32_t mask = (1u << (player & 31)) | static_cast<CUnit*>(unit)->relationsA;
-            UnitOf(unit)->AddHostileMask(mask);
+            UnitAddHostileMask(static_cast<CUnit*>(unit), nullptr, mask);
             break;
         }
         case 0x35: {   // KillUnit(object)
@@ -1152,7 +1146,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             for (int i = 0; i < count; ++i) {
                 auto* item = static_cast<CItemQuest*>(static_cast<CUnit*>(unit)->carried[i]);
                 if (static_cast<int>(item->unknown_4C) == id) {
-                    UnitOf(unit)->RemoveQuestItem(i);
+                    UnitRemoveCarried(static_cast<CUnit*>(unit), nullptr, i);
                     break;
                 }
             }

@@ -7,7 +7,6 @@
 // --- Forwarders (not rewritten) ----------------------------------------------------------------
 
 void __fastcall UnitSetHostileMask(CUnit* a0, void*, std::uint32_t a2) { UnitSetHostileMaskOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall UnitAddHostileMask(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x0052E940)
 
 // --- CHoover ------------------------------------------------------------------------------------
 

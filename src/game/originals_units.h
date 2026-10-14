@@ -9,6 +9,7 @@
 #include <cstdint>
 
 class CEngineObject;
+class CItem;
 class CUnit;
 class CUnitServer;
 class CWorldServer;
@@ -16,9 +17,13 @@ struct AnimationStep;
 struct AnimationSteps;
 struct AttackParams;
 struct OrderPlan;
+struct MoveModeState;
 struct PathCell;
+struct SightTarget;
 struct UnitAction;
+struct UnitPrototypeTable;
 struct UnitStats;
+struct UnitVitals;
 
 // 0050EAB0 (RET 8): the map object reads its network state (its slot 49 between the state's begin
 // / end; `delta` 0 the full state, 1 a delta) from a memory stream. Nonzero when it was read.
@@ -263,7 +268,7 @@ __declspec(naked) inline void __fastcall ClientDestructBodyOriginal(CUnitClientS
 // A-I7. 005310D0 (rewritten as CUnit::RemoveWeapon): clears weapon slot `slot` (RET 4; EAX not read by these callers).
 // 00531110 (rewritten as CUnit::SendEquipment): sends the unit's equipment (plain RET). Through their address so the
 // wrappers run.
-__declspec(naked) inline void __fastcall UnitRemoveWeaponOriginal(void* /*unit*/, void*, int /*slot*/) EI_ORIGINAL(0x005310D0)
+__declspec(naked) inline void __fastcall UnitRemoveWeaponOriginal(CUnit* /*unit*/, void*, int /*slot*/) EI_ORIGINAL(0x005310D0)
 __declspec(naked) inline void __fastcall UnitSendEquipmentOriginal(void* /*unit*/) EI_ORIGINAL(0x00531110)
 // 0051FE00: the skill database (007AF268) finds the skill level named `name` by _mbsicmp (thiscall, RET 4), or null.
 // 00526450 (rewritten as UnitStats::LearnSkill; through its address so the wrapper runs; RET 8).
@@ -401,3 +406,95 @@ struct ControllerOriginals {
 };
 __declspec(naked) inline void ControllerOriginals::Idle() EI_ORIGINAL(0x00555180)
 __declspec(naked) inline void ControllerOriginals::StopQueued() EI_ORIGINAL(0x00555200)
+// C3n. 005144D0 / 00514930 (rewritten as UnitPrototypeTable::FindByName; thiscall, RET 4): the unit prototype record
+// named `name` (inserting an empty entry for an unknown name; null then). Two copies of one function.
+__declspec(naked) inline char* __fastcall UnitPrototypeFind(UnitPrototypeTable* /*table*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x005144D0)
+__declspec(naked) inline char* __fastcall UnitPrototypeFindCopy(UnitPrototypeTable* /*table*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x00514930)
+// C3n. 00523370 (rewritten as UnitVitals::Reset; plain RET): the vitals back to their defaults; returns the vitals.
+__declspec(naked) inline void* __fastcall UnitVitalsReset(UnitVitals* /*vitals*/) EI_ORIGINAL(0x00523370)
+// C3n. 00523E80 / 00523F50 (rewritten as UnitStats::HitPointCurve / ManaCurve; plain RET): the maximum hit points /
+// mana the statistics give, in ST0 (declared double).
+__declspec(naked) inline double __fastcall UnitStatsHitPointCurve(UnitStats* /*stats*/) EI_ORIGINAL(0x00523E80)
+__declspec(naked) inline double __fastcall UnitStatsManaCurve(UnitStats* /*stats*/) EI_ORIGINAL(0x00523F50)
+// C3n. 00524560 (rewritten as UnitStats::Recompute; thiscall, RET 8): the statistics' derived values for `unit`.
+__declspec(naked) inline void __fastcall UnitStatsRecompute(UnitStats* /*stats*/, void*, UnitVitals* /*vitals*/,
+                                                            CUnit* /*unit*/) EI_ORIGINAL(0x00524560)
+// C3n. 00527EB0 (rewritten as UnitStats::SpellSchoolSkill; thiscall, RET 4): the skill of a spell school, in ST0.
+__declspec(naked) inline double __fastcall UnitStatsSpellSchoolSkill(UnitStats* /*stats*/, void*, int /*school*/)
+    EI_ORIGINAL(0x00527EB0)
+// C3n. 0052F820 / 0052F8B0 (rewritten as CUnit::CanCastSpell / CanUseQuickItem; thiscall, RET 8): whether the unit can
+// cast the spell / use the quick item of a slot at `point` (0 when it can).
+__declspec(naked) inline int __fastcall UnitCanCastSpell(CUnit* /*unit*/, void*, int /*slot*/, const float* /*point*/)
+    EI_ORIGINAL(0x0052F820)
+__declspec(naked) inline int __fastcall UnitCanUseQuickItem(CUnit* /*unit*/, void*, int /*slot*/, const float* /*point*/)
+    EI_ORIGINAL(0x0052F8B0)
+// C3n. 00530120 (rewritten as CUnit::SetSide; thiscall, RET 4): the unit's side.
+__declspec(naked) inline void __fastcall UnitSetSide(CUnit* /*unit*/, void*, int /*side*/) EI_ORIGINAL(0x00530120)
+// C3n. 0052E940 (rewritten as CUnit::AddHostileMask; thiscall, RET 4): adds players to the unit's hostile mask.
+__declspec(naked) inline void __fastcall UnitAddHostileMask(CUnit* /*unit*/, void*, std::uint32_t /*mask*/)
+    EI_ORIGINAL(0x0052E940)
+// C3n. 00523960 (rewritten as UnitStats::AddScaledExperience; thiscall, RET 4): the statistics gain experience (scaled).
+__declspec(naked) inline void __fastcall UnitStatsAddExperience(UnitStats* /*stats*/, void*, float /*amount*/)
+    EI_ORIGINAL(0x00523960)
+// C3n. 005302F0 (rewritten as CUnit::ModeSpeed; plain RET): the speed (or height) of the unit's movement mode, in ST0.
+__declspec(naked) inline double __fastcall UnitModeSpeed(CUnit* /*unit*/) EI_ORIGINAL(0x005302F0)
+// C3n. 00530840 (rewritten as CUnit::UnequipArmour; thiscall, RET 4): the unit takes off the armour of a type.
+__declspec(naked) inline void __fastcall UnitUnequipArmour(CUnit* /*unit*/, void*, int /*type*/) EI_ORIGINAL(0x00530840)
+// C3n. 005308D0 (rewritten as CUnit::SetPrototype23CByName; thiscall, RET 4): sets the unit's second prototype by name.
+__declspec(naked) inline void __fastcall UnitSetPrototype23CByName(CUnit* /*unit*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x005308D0)
+// C3n. 00530970 (rewritten as CUnit::GetPrototypeModel; plain RET): the unit's model record (a UnitModelRecord).
+__declspec(naked) inline char* __fastcall UnitPrototypeModel(CUnit* /*unit*/) EI_ORIGINAL(0x00530970)
+// C3n. 00530A60 (rewritten as CUnit::IsBehind; thiscall, RET 4): whether the unit stands behind `target` (AL).
+__declspec(naked) inline int __fastcall UnitIsBehind(CUnit* /*unit*/, void*, CEngineObject* /*target*/) EI_ORIGINAL(0x00530A60)
+// C3n. 005313B0 (rewritten as CUnit::RemoveCarried; thiscall, RET 4): drops the carried item at an index.
+__declspec(naked) inline void __fastcall UnitRemoveCarried(CUnit* /*unit*/, void*, int /*index*/) EI_ORIGINAL(0x005313B0)
+// C3n. 005315B0 (rewritten as CUnit::ReleaseAllItems; plain RET): the unit lets go of all its items.
+__declspec(naked) inline void __fastcall UnitReleaseAllItems(CUnit* /*unit*/) EI_ORIGINAL(0x005315B0)
+// C3n. 005318B0 / 00531920 / 005319A0 (rewritten as CUnit::GetWeapon / GetQuickItem / GetSpell; thiscall, RET 4): the item
+// or spell the unit holds in a slot (null when empty).
+__declspec(naked) inline CEngineObject* __fastcall UnitWeapon(CUnit* /*unit*/, void*, std::uint32_t /*slot*/)
+    EI_ORIGINAL(0x005318B0)
+__declspec(naked) inline CEngineObject* __fastcall UnitQuickItem(CUnit* /*unit*/, void*, std::uint32_t /*slot*/)
+    EI_ORIGINAL(0x00531920)
+__declspec(naked) inline CEngineObject* __fastcall UnitSpell(CUnit* /*unit*/, void*, std::uint32_t /*slot*/)
+    EI_ORIGINAL(0x005319A0)
+// C3n. 00532D40 (rewritten as CUnit::Level; plain RET): the unit's level.
+__declspec(naked) inline int __fastcall UnitLevel(CUnit* /*unit*/) EI_ORIGINAL(0x00532D40)
+// C3n. 00546C40 (rewritten as CUnitServer::PlaySteps; thiscall, RET 4): the controller plays an animation-step list.
+__declspec(naked) inline void __fastcall CtlPlaySteps(CUnitServer* /*controller*/, void*, const AnimationSteps* /*steps*/)
+    EI_ORIGINAL(0x00546C40)
+// C3n. 0054BCB0 / 0054C6B0 (rewritten as CUnitServer::FindSightTarget / CanPlanAction; thiscall, RET 8 / RET 4): the
+// controller finds the target an order sights / whether it can plan the order (AL).
+__declspec(naked) inline bool __fastcall CtlFindSightTarget(CUnitServer* /*controller*/, void*, const UnitAction* /*order*/,
+                                                            SightTarget* /*out*/) EI_ORIGINAL(0x0054BCB0)
+__declspec(naked) inline bool __fastcall CtlCanPlanAction(CUnitServer* /*controller*/, void*, const UnitAction* /*order*/)
+    EI_ORIGINAL(0x0054C6B0)
+// C3n. 00550100 (rewritten as CUnitServer::BuildOrderSteps; thiscall, RET 0x10): the animation steps of an order.
+__declspec(naked) inline void __fastcall CtlBuildOrderSteps(CUnitServer* /*controller*/, void*, AnimationSteps* /*steps*/,
+                                                            int* /*duration*/, int /*kind*/, std::uint32_t /*source*/)
+    EI_ORIGINAL(0x00550100)
+// C3n. 00550A80 (rewritten as CUnitServer::BuildDeathAnimation; thiscall, RET 0x10): the death (or fall) animation.
+__declspec(naked) inline void __fastcall CtlBuildDeathAnimation(CUnitServer* /*controller*/, void*, AnimationSteps* /*steps*/,
+                                                                std::uint32_t /*direction*/, int /*dying*/, int /*fall*/)
+    EI_ORIGINAL(0x00550A80)
+// C3n. 005516D0 (rewritten as CUnitServer::BuildTransition; thiscall, RET 0xC): the steps from one move mode to another (AL).
+__declspec(naked) inline bool __fastcall CtlBuildTransition(CUnitServer* /*controller*/, void*, AnimationSteps* /*steps*/,
+                                                            const MoveModeState* /*from*/, const MoveModeState* /*to*/)
+    EI_ORIGINAL(0x005516D0)
+// C3n. 00551A40 (rewritten as CUnitServer::AnimationDuration; thiscall, RET 4): the ticks of the unit's animation `index`.
+__declspec(naked) inline int __fastcall CtlAnimationDuration(CUnitServer* /*controller*/, void*, std::uint32_t /*index*/)
+    EI_ORIGINAL(0x00551A40)
+// C3n. 00551AE0 (rewritten as CUnitServer::TryTame; thiscall, RET 8): the controller's unit tries to be tamed by `tamer`.
+__declspec(naked) inline int __fastcall ControllerTame(CUnitServer* /*controller*/, void*, CUnit* /*tamer*/, float /*skill*/)
+    EI_ORIGINAL(0x00551AE0)
+// C3n. 00552780 (rewritten as CUnitServer::Shout; thiscall, RET 4): the unit shouts / remarks (a code).
+__declspec(naked) inline void __fastcall ControllerShout(CUnitServer* /*controller*/, void*, std::uint32_t /*code*/)
+    EI_ORIGINAL(0x00552780)
+// C3n. 00552C60 (rewritten as CUnitServer::UseItemCharge; thiscall, RET 8): the item spends `cost` of its charge.
+__declspec(naked) inline void __fastcall CtlUseItemCharge(CUnitServer* /*controller*/, void*, CItem* /*item*/, float /*cost*/)
+    EI_ORIGINAL(0x00552C60)
+// C3n. 00552E00 (rewritten as CUnitServer::PropagateHostility; plain RET): the unit's hostility spreads to its allies.
+__declspec(naked) inline void __fastcall CtlPropagateHostility(CUnitServer* /*controller*/) EI_ORIGINAL(0x00552E00)

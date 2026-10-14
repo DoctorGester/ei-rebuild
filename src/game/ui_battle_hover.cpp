@@ -60,9 +60,6 @@ __declspec(naked) BOOL __fastcall HoverFindExit(void*, void*, const float*, int*
 // CanCastSpell(index, point) and 0052F8B0 CanUseQuickItem(index, point) (RET 8; 0 = can),
 // 00531920 the quick item (RET 4); 006A4230 an item's category.
 static std::uint8_t* HoverPrototype(CUnit* unit) { return static_cast<std::uint8_t*>(::UnitPrototypeOf(unit)); }
-__declspec(naked) int __fastcall HoverCanCast(CUnit*, void*, int, const float*) EI_ORIGINAL(0x0052F820)
-__declspec(naked) int __fastcall HoverCanUseQuick(CUnit*, void*, int, const float*) EI_ORIGINAL(0x0052F8B0)
-__declspec(naked) void* __fastcall HoverQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) int __fastcall HoverItemCategory(void*) EI_ORIGINAL(0x006A4230)
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel block `block`.
 void __fastcall HoverShowPanelUnit(void* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal(a0, nullptr, (void*)a2, a3); }
@@ -180,7 +177,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             break;
         }
         Point3 at = unitPosition(unit);
-        if (!first || HoverCanCast(first, nullptr, pendingSlot_, at.v) != 0) {
+        if (!first || UnitCanCastSpell(first, nullptr, pendingSlot_, at.v) != 0) {
             shape = kCursorCantCast;
             break;
         }
@@ -194,8 +191,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        int refused = pendingAction_ == 2 ? HoverCanCast(first, nullptr, pendingSlot_, at.v)
-                                                    : HoverCanUseQuick(first, nullptr, pendingSlot_, at.v);
+        int refused = pendingAction_ == 2 ? UnitCanCastSpell(first, nullptr, pendingSlot_, at.v)
+                                                    : UnitCanUseQuickItem(first, nullptr, pendingSlot_, at.v);
         shape = refused ? kCursorCantCast : kCursorCast;
         break;
     }
@@ -203,8 +200,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
         Point3 at = unitPosition(unit);
-        if (!first || HoverCanUseQuick(first, nullptr, pendingSlot_, at.v) != 0) break;
-        void* item = HoverQuickItem(first, nullptr, pendingSlot_);
+        if (!first || UnitCanUseQuickItem(first, nullptr, pendingSlot_, at.v) != 0) break;
+        void* item = UnitQuickItem(first, nullptr, pendingSlot_);
         if (item && HoverItemCategory(item) == kCategoryWand && unit != first) break;
         shape = kCursorCast;
         break;

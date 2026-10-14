@@ -73,12 +73,10 @@ constexpr int kRemarkBored = 0x29;
 // speeds, 00401F00 CTransformObject::TurnUpTowards. (005301A0 "has a player" is inlined.)
 __declspec(naked) void __fastcall UnitSet25C(CUnit*, void*, int) EI_ORIGINAL(0x0052EAD0)
 __declspec(naked) void __fastcall UnitSet260(CUnit*, void*, int) EI_ORIGINAL(0x0052EAF0)
-__declspec(naked) char* __fastcall UnitPrototypeModel(CUnit*) EI_ORIGINAL(0x00530970)
 inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
 __declspec(naked) bool __fastcall VitalsRegenerate(void*, void*, UnitStats*, CUnit*, int /*inCombat*/) EI_ORIGINAL(0x00523740)
-__declspec(naked) void __fastcall StatsRecomputeAt(UnitStats*, void*, void*, CUnit*) EI_ORIGINAL(0x00524560)
 // The AI: 005C9770 the events' presence of a unit at a point (world + 0x2838; returns its record),
 // 005CB850 the perception memory's update (controller + 0xA50), 005AEA80 the alarm step
 // (ai_alarm.cpp, controller + 0xB10), 005AEA40 the alarm's reset, 005D53B0 AIBrain::Think and
@@ -105,11 +103,7 @@ __declspec(naked) void __fastcall ParticleAttach(CEngineObject*, void*, int) EI_
 // ones not rewritten: 00548700 plan a path to a point.
 __declspec(naked) void __fastcall CtlUpdateOrders(CUnitServer*) EI_ORIGINAL(0x0054B390)
 __declspec(naked) void __fastcall CtlMovementTick(CUnitServer*) EI_ORIGINAL(0x00547890)
-__declspec(naked) void __fastcall CtlPropagateHostility(CUnitServer*) EI_ORIGINAL(0x00552E00)
 __declspec(naked) void __fastcall CtlFinishAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x00549EC0)
-__declspec(naked) void __fastcall CtlUseItemCharge(CUnitServer*, void*, CItem*, float) EI_ORIGINAL(0x00552C60)
-__declspec(naked) void __fastcall CtlDeathAnimation(CUnitServer*, void*, AnimationSteps*, std::uint32_t, int, int)
-    EI_ORIGINAL(0x00550A80)
 __declspec(naked) void* __fastcall CtlSpellOfSource(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x0054B880)
 // The functions of this file, through their game addresses (for the verify build's wrappers).
 __declspec(naked) void __fastcall CtlUpdateState(CUnitServer*) EI_ORIGINAL(0x005499F0)
@@ -119,7 +113,6 @@ __declspec(naked) bool __fastcall CtlActionInReach(CUnitServer*) EI_ORIGINAL(0x0
 __declspec(naked) bool __fastcall CtlPopFinishedSteps(CUnitServer*) EI_ORIGINAL(0x00546B40)
 __declspec(naked) void __fastcall CtlPlayHitReaction(CUnitServer*) EI_ORIGINAL(0x00547100)
 __declspec(naked) void __fastcall CtlTickAction(CUnitServer*) EI_ORIGINAL(0x00549160)
-__declspec(naked) void __fastcall CtlPlaySteps(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00546C40)
 // Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same
 // code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
 // SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
@@ -242,7 +235,7 @@ int CUnitServer::UpdateServer() {
     CUnit* self = unit;
     if (self->dead == 0) {
         if (VitalsRegenerate(ServerStatsOf(self), nullptr, &stats, self, action.kind != 0 ? 1 : 0)) {
-            StatsRecomputeAt(&stats, nullptr, ServerStatsOf(unit), unit);
+            UnitStatsRecompute(&stats, nullptr, ServerStatsOf(unit), unit);
             UnitMarkChanged(unit, nullptr, 0);
             UnitMarkChanged(unit, nullptr, 4);
         }
@@ -525,7 +518,7 @@ EI_REPLACE_METHOD(0x00547280, CUnitServer::StandStill);
 void CUnitServer::PlayHitReaction() {
     LocalSteps reaction;
     if (moveMode.mode == 0 && state == kStateIdle) return;
-    CtlDeathAnimation(this, nullptr, &reaction.steps, hitDirection, 0, 0);
+    CtlBuildDeathAnimation(this, nullptr, &reaction.steps, hitDirection, 0, 0);
     int duration = TotalDuration(reaction.steps);
     if (action.kind == kOrderAttack && state == kStateTurning &&
         TickOf(ObjectWorld(this)) + duration > nextAttackTime)
@@ -732,7 +725,6 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 // (NewNode / FreeNode of the spell list), 00558840 (its element's assignment), 00429B50 (a
 // reference's assignment).
 __declspec(naked) void __fastcall UnitCollectItems(CUnit*, void*, ItemList*, ItemList*) EI_ORIGINAL(0x005316F0)
-__declspec(naked) CEngineObject* __fastcall UnitWeapon(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x005318B0)
 __declspec(naked) void __fastcall ItemListFreeNode(ItemList*, void*, ItemList::Node*) EI_ORIGINAL(0x00558C00)
 void __fastcall ItemListBDestroy(ItemList* a0) { ItemListRemoveAllOriginal((void*)a0); }
 inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }

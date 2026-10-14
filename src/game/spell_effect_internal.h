@@ -107,8 +107,6 @@ inline void* __fastcall PtrListConstruct(void* a0, void*, int a2) { return PtrLi
 inline void __fastcall PtrListDestruct(void* a0) { PtrListDestruct4C96F0Original(a0); }
 // The unit controller (+0x240): 00552780 says remark `what`; 00551AE0 tries to be tamed by `tamer`
 // with skill `skill` (0 when it failed).
-__declspec(naked) inline void __fastcall ControllerShout(void*, void*, int /*what*/) EI_ORIGINAL(0x00552780)
-__declspec(naked) inline int __fastcall ControllerTame(void*, void*, CEngineObject* /*tamer*/, float /*skill*/) EI_ORIGINAL(0x00551AE0)
 // Footprints of the walls and clouds in the global cell set 007C8478 (thiscall on the set): along a
 // direction (005B2A00) or a disc (005B2760); then stamped into / cleared from the AI map (ai_footprint.cpp).
 __declspec(naked) inline void __fastcall FootprintAlong(void* /*set*/, void*, void* /*aiMap*/, const Vector3*, float /*width*/, const Vector3*)
@@ -121,7 +119,6 @@ inline void* SpellFootprint() { return reinterpret_cast<void*>(0x007C8478); }   
 // The later states' callees.
 __declspec(naked) inline void __fastcall ParticleSetColors(CEngineObject*, void*, float /*a*/, float /*b*/) EI_ORIGINAL(0x006792E0)
 // 005302F0 CUnit::ModeSpeed (unit.cpp); left unrounded in ST0.
-__declspec(naked) inline double __fastcall UnitModeSpeed(CEngineObject*) EI_ORIGINAL(0x005302F0)
 __declspec(naked) inline void __fastcall EffectHitUnitsInRadius(CSpellEffect*) EI_ORIGINAL(0x00683600)
 __declspec(naked) inline void __fastcall EffectHitUnitsAlong(CSpellEffect*, void*, const Vector3*) EI_ORIGINAL(0x00683730)
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source` at `at`.

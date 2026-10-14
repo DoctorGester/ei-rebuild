@@ -14,6 +14,7 @@
 #include "originals_ui.h"
 #include "acks_db.h"
 #include "world_glue.h"
+#include "originals_units.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -97,10 +98,6 @@ __declspec(naked) void PlayerStateAt::SetVariable(const char*, float) EI_ORIGINA
 void PlayerStateAt::Refresh() { PlayerStateRefreshOriginal((void*)this); }
 void PlayerStateAt::ResendParty() { PlayerResendPartyOriginal((void*)this); }
 
-struct UnitStatsAt {
-    void AddExperience(float amount);   // 00523960
-};
-__declspec(naked) void UnitStatsAt::AddExperience(float) EI_ORIGINAL(0x00523960)
 
 // The global variables' hash table: a node is {next, name, value}.
 struct VariableNode {
@@ -377,7 +374,7 @@ void __fastcall Give(CStringArray* args) {
         // Rounded to float once, as the original stores it (volatile: /fp:fast would keep a double).
         volatile float share = static_cast<float>(GameAtof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
-            reinterpret_cast<UnitStatsAt*>(Field<char*>(player, 0xA0) + i * 0x784 + 0x20)->AddExperience(share);
+            UnitStatsAddExperience(reinterpret_cast<UnitStats*>(Field<char*>(player, 0xA0) + i * 0x784 + 0x20), nullptr, share);
         return state->Refresh();
     }
     if (ArgIs(args, 1, 0x00792750)) {   // assortment

@@ -717,7 +717,6 @@ __declspec(naked) void __fastcall ViewOrderTarget(CPlayerClient*, void*, CUnit*,
 __declspec(naked) void __fastcall ViewOrderFollow(CPlayerClient*, void*, CUnit*, CUnit*) EI_ORIGINAL(0x0066AFE0)
 // CUnit::GetQuickItem, CItem::GetCategory and the sprite's SetScale, through their addresses
 // (the camera's SetTarget too: CameraSetTargetOriginal).
-__declspec(naked) void* __fastcall UnitQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) int __fastcall ItemCategory(void*) EI_ORIGINAL(0x006A4230)
 void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scaleBits) {
     SpriteSetScaleOriginal(sprite, nullptr, scaleBits);

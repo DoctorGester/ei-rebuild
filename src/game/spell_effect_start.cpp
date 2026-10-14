@@ -289,7 +289,7 @@ Next StartLink(CSpellEffect* e) {
     bool free = ei::VCall<int>(e->target, kSlotBusyA) == 0 && ei::VCall<int>(e->caster, kSlotBusyA) == 0 &&
                 ei::VCall<int>(e->target, kSlotBusyB) == 0 && e->target != e->caster;
     if (!free) {
-        if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x18);
+        if (IsUnit(e->caster)) ControllerShout(static_cast<CUnitServer*>(ControllerOf(e->caster)), nullptr, 0x18);
         return Next::Done;
     }
     Vector3 scratch;
@@ -337,8 +337,8 @@ Next StartCharm(CSpellEffect* e) {
     float skill = static_cast<CUnitServer*>(tamer)->stats.stat20 + e->damage;
     auto side = [](void* controller) { return At<int>(static_cast<CUnitController*>(controller)->unit_, 0x24C); };
     while (side(tamed) != side(tamer)) {
-        if (ControllerTame(tamed, nullptr, e->caster, skill) == 0) {
-            if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x1A);
+        if (ControllerTame(static_cast<CUnitServer*>(tamed), nullptr, reinterpret_cast<CUnit*>(e->caster), skill) == 0) {
+            if (IsUnit(e->caster)) ControllerShout(static_cast<CUnitServer*>(ControllerOf(e->caster)), nullptr, 0x1A);
             return Next::Done;
         }
     }

@@ -46,7 +46,7 @@ src/game/combat_update.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/console.cpp,0,0,0,0,54,3,0,0,0,0,0
 src/game/console.h,0,0,0,0,3,0,0,0,0,1,0
 src/game/console_addon.cpp,0,0,0,0,0,1,0,1,0,0,0
-src/game/console_commands.cpp,13,0,0,0,34,8,0,1,0,0,0
+src/game/console_commands.cpp,13,0,0,0,34,7,0,1,0,0,0
 src/game/console_window.cpp,0,0,0,0,0,2,0,0,0,0,0
 src/game/core_maths.cpp,0,0,0,2,0,0,0,0,0,0,7
 src/game/core_streams.h,0,0,0,0,4,0,0,0,0,0,0
@@ -293,7 +293,7 @@ src/game/unit_create.cpp,1,4,0,0,1,0,0,0,0,0,0
 src/game/unit_create_stats.cpp,14,5,3,1,19,0,0,1,0,0,1
 src/game/unit_db.h,0,0,0,0,0,0,0,0,0,1,0
 src/game/unit_db_destroy.cpp,0,0,0,0,1,0,0,0,0,1,0
-src/game/unit_equipment.cpp,0,2,0,0,6,0,0,0,0,0,0
+src/game/unit_equipment.cpp,0,2,0,0,5,0,0,0,0,0,0
 src/game/unit_figure_queries.cpp,0,0,0,0,0,0,0,0,0,0,4
 src/game/unit_hits.cpp,7,0,0,1,4,0,0,0,0,0,2
 src/game/unit_items.cpp,1,4,0,0,0,0,0,0,0,0,0

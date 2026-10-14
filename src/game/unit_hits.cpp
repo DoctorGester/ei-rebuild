@@ -14,6 +14,7 @@
 
 #include <cstring>
 #include "originals_library.h"
+#include "originals_units.h"
 
 #pragma float_control(precise, on)
 
@@ -86,7 +87,6 @@ void* const kEndLine = reinterpret_cast<void*>(0x00435000);
 } // namespace
 
 // CUnitServer 00552780: says remark `code` to the party; CUnitServer::Shout in unit_create.cpp.
-__declspec(naked) void __fastcall ControllerRemark(CEngineObject*, void*, int) EI_ORIGINAL(0x00552780)
 // 00532AC0, CUnit::DropBrokenEquipment: after a hit on the statistics. unit_create.cpp.
 __declspec(naked) void __fastcall UnitAfterHit(CUnit*) EI_ORIGINAL(0x00532AC0)
 // Called through their game addresses (rewritten here) so their verify wrappers see the calls.
@@ -98,7 +98,7 @@ __declspec(naked) int __fastcall CallDamageSlot(UnitStats*, void*, CUnit*, UnitV
 namespace {
 void Remark(CUnit* unit, int code) {
     CEngineObject* controller = unit->controller;
-    if (controller->GetClassId() == kClassUnitServer) ControllerRemark(controller, nullptr, code);
+    if (controller->GetClassId() == kClassUnitServer) ControllerShout(reinterpret_cast<CUnitServer*>(controller), nullptr, code);
 }
 } // namespace
 

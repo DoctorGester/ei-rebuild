@@ -15,6 +15,7 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_ui.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -53,13 +54,10 @@ __declspec(naked) void __fastcall ChosenSetAtGrow(UiDwordArray*, void*, int, std
 // The client world (007AF5B8, thiscall): 005699F0 the local view, 00566100 (RET 4) with 0 clears
 // the selection, 00566030 (RET 4) controls a unit.
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
-__declspec(naked) void __fastcall WorldClearSelection(void*, void*, CUnit*) EI_ORIGINAL(0x00566100)
-__declspec(naked) void __fastcall WorldControlUnit(void*, void*, CUnit*) EI_ORIGINAL(0x00566030)
 // The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10;
 // LocalViewSendAttackOriginal), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 __declspec(naked) void __fastcall ViewOrderDead(void*, void*, OrderUnits*, CUnit*, int) EI_ORIGINAL(0x0066AB80)
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
-__declspec(naked) int __fastcall UnitLevelAt(CUnit*) EI_ORIGINAL(0x00532D40)
 // 00637DC0 (thiscall; rewritten): the selection's refresh, through its address.
 __declspec(naked) void __fastcall RefreshSelectionAt(CBattleScreenSetup*) EI_ORIGINAL(0x00637DC0)
 
@@ -85,8 +83,6 @@ __declspec(naked) void __fastcall ViewSpellAtPoint(void*, void*, int, CUnit*, fl
 __declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, float*, int) EI_ORIGINAL(0x0066ADD0)
 // CUnit::CanCastSpell (0052F820) / CanUseQuickItem (0052F8B0) (thiscall, RET 8; rewritten),
 // CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
-__declspec(naked) int __fastcall UnitCanCastSpellAt(CUnit*, void*, int, float*) EI_ORIGINAL(0x0052F820)
-__declspec(naked) int __fastcall UnitCanUseQuickItemAt(CUnit*, void*, int, float*) EI_ORIGINAL(0x0052F8B0)
 // The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
 // actions 0063F730 (index, 0); 005E7060 (RET 4) a sprite's scale.
 void __fastcall QuickPanelSet(CUiWindow* a0, void*, int a2, int a3) { QuickPanelSetOriginal((void*)a0, nullptr, a2, a3); }
@@ -154,7 +150,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
             if (chosen.data[i] != 0) chosen.data[i] = 0;
         chosen.data[index] = 1;
     }
-    WorldClearSelection(kWorld, nullptr, nullptr);
+    ClientWorldSelectOriginal(kWorld, nullptr, nullptr);
 
     for (int i = 0; i < party->size; ++i) {
         auto* portraits = static_cast<CHudPortraits*>(portraits_);
@@ -171,7 +167,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
         portraits->slots_[i].restB_ = *rest;
         CUnit* member = unitAt(i);
         if (member && chosen.data[i] != 0) {
-            WorldControlUnit(kWorld, nullptr, member);
+            ClientWorldControlUnitOriginal(kWorld, nullptr, member);
             if (index == i) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 0, 0);
         }
     }
@@ -212,8 +208,8 @@ void CBattleScreenSetup::AttackUnit(CUnit* target, int ctrl) {
         HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
         slot.wobbleTime_ = PortraitDelay(UiRandom().Next());
         static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 1;
-        int targetLevel = UnitLevelAt(target);
-        int memberLevel = UnitLevelAt(unitAt(i));
+        int targetLevel = UnitLevel(target);
+        int memberLevel = UnitLevel(unitAt(i));
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
     }
     if (units.size != 0) LocalViewSendAttackOriginal(LocalView(kWorld), nullptr, &units, target, kind, ctrl & 0xFF);
@@ -254,11 +250,11 @@ void CBattleScreenSetup::UseOnUnit(CUnit* target, char quick, int ctrl) {
         int refused;
         if (quick == 0) {
             ViewSpellOnUnit(LocalView(kWorld), nullptr, unknown_180, member, target, ctrl & 0xFF);
-            refused = UnitCanCastSpellAt(unitAt(i), nullptr, unknown_180, position);
+            refused = UnitCanCastSpell(unitAt(i), nullptr, unknown_180, position);
         } else {
             ViewQuickOnUnit(LocalView(kWorld), nullptr, unknown_180, member, target, ctrl & 0xFF);
             QuickItemsSetUnit(quickItems_, nullptr, unitAt(i));
-            refused = UnitCanUseQuickItemAt(unitAt(i), nullptr, unknown_180, position);
+            refused = UnitCanUseQuickItem(unitAt(i), nullptr, unknown_180, position);
         }
         if (refused == 0) NodPortrait(this, i);
     }
@@ -286,10 +282,10 @@ void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char
         if (quick != 0) {
             ViewQuickAtPoint(LocalView(kWorld), nullptr, unknown_180, unitAt(i), point, 0);
             QuickItemsSetUnit(quickItems_, nullptr, unitAt(i));
-            refused = UnitCanUseQuickItemAt(unitAt(i), nullptr, unknown_180, point);
+            refused = UnitCanUseQuickItem(unitAt(i), nullptr, unknown_180, point);
         } else {
             ViewSpellAtPoint(LocalView(kWorld), nullptr, unknown_180, unitAt(i), point, 0);
-            refused = UnitCanCastSpellAt(unitAt(i), nullptr, unknown_180, point);
+            refused = UnitCanCastSpell(unitAt(i), nullptr, unknown_180, point);
         }
         if (refused == 0) NodPortrait(this, i);
     }

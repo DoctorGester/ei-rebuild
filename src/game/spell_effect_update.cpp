@@ -48,7 +48,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     std::memcpy(&e->targetPoint, &static_cast<CUnit*>(target)->position, 12);
     Vector3 at;
     std::memcpy(&at, &static_cast<CUnit*>(target)->position, 12);
-    at.z = static_cast<float>(UnitModeSpeed(target));
+    at.z = static_cast<float>(UnitModeSpeed(static_cast<CUnit*>(target)));
     at.z = GroundPlus(e, kWorldSlotGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, kSplashScale);
     e->CreateParticle(0, particleType, &kZeroVector, size, 1.0f, &kZeroVector, e->target);
@@ -338,7 +338,7 @@ void Link(CSpellEffect* e) {
         e->CreateSound(0, GameString(0x007957D0), &e->position, &kZeroVector, kVolume, kHearing);
     } else {
         e->CreateSound(0, GameString(0x007957D0), &e->position, &kZeroVector, kVolume, kHearing);
-        if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x19);
+        if (IsUnit(e->caster)) ControllerShout(static_cast<CUnitServer*>(ControllerOf(e->caster)), nullptr, 0x19);
     }
     e->state = 3;
 }
@@ -359,7 +359,7 @@ void Teleport(CSpellEffect* e) {
     CEngineObject* caster = e->caster;
     At<std::uint32_t>(&e->targetPoint, 8) = At<std::uint32_t>(caster, 0x24);
     if (!AiMapPassableWithoutSelf(e->world + 0x170, nullptr, caster, &e->targetPoint)) {
-        if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x10);
+        if (IsUnit(e->caster)) ControllerShout(static_cast<CUnitServer*>(ControllerOf(e->caster)), nullptr, 0x10);
         return;
     }
     SectorMapMove(e->world + 0x170 + 0x124, nullptr, e->caster, &e->targetPoint);

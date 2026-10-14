@@ -16,6 +16,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_ai.h"
+#include "originals_units.h"
 
 #pragma float_control(precise, on)
 #pragma warning(disable : 4740) // naked forwarders
@@ -632,14 +633,13 @@ EI_REPLACE_METHOD(0x005D36F0, FearMode::Save);
 
 // --- Player --------------------------------------------------------------------------------------
 
-__declspec(naked) void UnitController::Shout(int) EI_ORIGINAL(0x00552780)
 
 void PlayerMode::Execute(AIBrain* brain) {
     CUnit* unit = brain->owner->unit;
     // The player controls this unit directly (player + 0x20, +0x5120 == 2).
     bool direct = false;
     if (unit->player) direct = *reinterpret_cast<const int*>(*reinterpret_cast<char* const*>(unit->player + 0x20) + 0x5120) == 2;
-    if (brain->seen && unit->unknown_438 != 1) brain->owner->Shout(0x20);
+    if (brain->seen && unit->unknown_438 != 1) ControllerShout(reinterpret_cast<CUnitServer*>(brain->owner), nullptr, 0x20);
 
     switch (state) {
     case kStateFollow: {
@@ -697,7 +697,7 @@ void PlayerMode::Execute(AIBrain* brain) {
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
             } else if (!direct && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
-                brain->owner->Shout(0x21);
+                ControllerShout(reinterpret_cast<CUnitServer*>(brain->owner), nullptr, 0x21);
                 std::memset(&point.z, 0, 4);
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
