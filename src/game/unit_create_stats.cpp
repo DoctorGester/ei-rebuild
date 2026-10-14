@@ -12,7 +12,6 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_units.h"
 
@@ -23,60 +22,11 @@
 #pragma float_control(precise, on)
 
 namespace {
-template <typename T>
-T& At(void* base, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
-template <typename T>
-T Read(const char* record, int offset) {
-    return Field<T>(record, offset);   // faults on a null record like the original
-}
-
-// Prototype records (0x120 bytes, 007AF358): fields used here.
-namespace proto {
-constexpr int kModelIndex = 0x08;       // index of the model record
-constexpr int kScale = 0x14;            // three floats
-constexpr int kHitPoints = 0x48;
-constexpr int kMana = 0x4C;
-constexpr int kProtectionScale = 0x58;  // multiplies the model's protection values
-constexpr int kStats8C = 0x5C;          // -> stats +0x8C
-constexpr int kSpeed = 0x60;            // -> stats speedBase
-constexpr int kCombat = 0x64;           // five floats -> stats +0x70..+0x80
-constexpr int kNaturalWeapon = 0x78;    // -> stats +0xAC
-constexpr int kDamage = 0x80;           // -> stats +0x84
-constexpr int kDamageSpread = 0x84;     // -> stats +0x88
-constexpr int kSkillLevel = 0x88;       // every skill byte starts here (rounded)
-constexpr int kAttribute01 = 0x8C;      // attributes 0 and 1
-constexpr int kAttribute2 = 0x90;       // attribute 2
-constexpr int kStats48 = 0x94;          // -> stats +0x48
-constexpr int kValuesB0 = 0x98;         // six floats
-constexpr int kValuesE0 = 0xB0;         // six floats
-constexpr int kSkills3to5 = 0xF4;       // three floats -> skill bytes 3..5 (truncated)
-} // namespace proto
-
-// Model records (0x168 bytes, 007AF398).
-namespace model {
-constexpr int kHitPointRegen = 0x08;
-constexpr int kManaRegen = 0x0C;
-constexpr int kStats60 = 0x14;          // -> stats +0x60
-constexpr int kAngle = 0x18;            // degrees; cos(angle / 2) -> stats +0x44
-constexpr int kModeSpeeds = 0x1C;       // four dwords -> stats +0x34
-constexpr int kStats64 = 0x44;
-constexpr int kSizeClass = 0x48;        // short -> stats +0x68
-constexpr int kSizeClassSmall = 0x4C;   // short -> stats +0x6C and +0x6E
-constexpr int kDamageWeights = 0x50;    // seven dwords -> stats +0x90
-constexpr int kProtection = 0x6C;       // seven floats
-constexpr int kSlots = 0x8C;            // six {level record index, share, factor} of 0x10
-constexpr int kHeight = 0x104;          // the object stands this much lower (00513B60)
-} // namespace model
-
-// NPC records (007AF378).
-namespace npc {
-constexpr int kExperience = 0x08;
-constexpr int kStats = 0x0C;            // three floats: stat10, stat18, stat20
-constexpr int kAttributesAndSkills = 0x18;   // 3 attribute and 8 skill bytes
-constexpr int kSkillNames = 0x24;       // vector of skill names (begin, end)
-} // namespace npc
+// The records (unit_db.h): prototypes (007AF358), models (007AF398), NPCs (007AF378) and the
+// models' level records (007AF3B8).
+using Prototype = UnitPrototypeRecord;
+using Model = UnitModelRecord;
+using Npc = UnitNpcRecord;
 
 constexpr int kSkillLevelRecordSize = 0x44;   // 007AF3B8
 constexpr std::uintptr_t kSkillDatabase = 0x007AF268;
@@ -100,9 +50,12 @@ volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_ninety = 90.0;
 
-void SetBits(void* base, int offset, std::uint32_t bits) { At<std::uint32_t>(base, offset) = bits; }
-void CopyDword(void* to, int toOffset, const char* from, int fromOffset) {
-    At<std::uint32_t>(to, toOffset) = Read<std::uint32_t>(from, fromOffset);
+// The original stores these as dwords (bit patterns), not through the FPU.
+void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, sizeof(field)); }
+template <typename To, typename From>
+void CopyDword(To& to, const From& from) {
+    static_assert(sizeof(To) == 4 && sizeof(From) == 4);
+    std::memcpy(&to, &from, 4);
 }
 
 // FLD [src]; FST [a]; FSTP [b]: a float copied through the FPU to two places.
@@ -126,9 +79,7 @@ __declspec(naked) int __cdecl GameFtol(double) {
     }
 }
 
-std::uint8_t RoundToByte(const char* record, int offset) {
-    return static_cast<std::uint8_t>(x87::fistp(Read<float>(record, offset)));
-}
+std::uint8_t RoundToByte(float value) { return static_cast<std::uint8_t>(x87::fistp(value)); }
 
 // Not rewritten / rewritten elsewhere, through their game addresses:
 // 00523370 UnitVitals::Reset, 005233E0 UnitStats::Reset, 00523960 AddScaledExperience,
@@ -150,21 +101,23 @@ __declspec(naked) int __fastcall BuildFromPrototypeAt(UnitStatsBuilder*, void*, 
 __declspec(naked) std::uintptr_t __fastcall SetServerDataAt(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0050F050)
 __declspec(naked) std::uint32_t __fastcall SetPrototype23CAt(CEngineObject*, void*, const char*) EI_ORIGINAL(0x005308A0)
 
-// Object slots used by ApplyPrototype.
-constexpr int kSlotResetScale = 0x78 / 4;       // 30
-constexpr int kSlotScaleEffect = 0x84 / 4;      // 33
-constexpr int kSlotServerStats = 0x8C / 4;      // 35
-constexpr int kSlotServerData = 0x90 / 4;       // 36
+// The records by name (null when there is none).
+const Prototype* FindPrototype(const char* name) {
+    return reinterpret_cast<const Prototype*>(UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name));
+}
+const Npc* FindNpc(const char* name) { return reinterpret_cast<const Npc*>(FindNpcAt(&unitdb::NpcTable(), nullptr, name)); }
 
-const char* ModelOf(const char* prototype) {
-    return unitdb::Models().At(Read<std::uint32_t>(prototype, proto::kModelIndex), unitdb::kModelSize);
+// The prototype's model; its index is read even from a null prototype (the original faults there).
+const Model* ModelOf(const Prototype* prototype) {
+    auto index = static_cast<std::uint32_t>(static_cast<const volatile Prototype*>(prototype)->modelIndex);
+    return reinterpret_cast<const Model*>(unitdb::Models().At(index, unitdb::kModelSize));
 }
 
 // --- The statistics both builders fill the same way ---------------------------------------
 
 // cos(angle / 2) with the angle in degrees, stored to a float.
-float HalfAngleCosine(const char* model) {
-    double half = static_cast<double>(Read<float>(model, model::kAngle)) * kHalf;
+float HalfAngleCosine(const Model* model) {
+    double half = static_cast<double>(model->angle) * kHalf;
     double perDegree = g_pi * g_perDegree;
     return static_cast<float>(x87::fcos(half * perDegree));
 }
@@ -175,37 +128,38 @@ float RightAngleCosine() {
 }
 
 // Attribute and skill bytes: from the NPC record, or rounded from the prototype.
-void SetAttributesAndSkills(UnitStats* stats, const char* prototype, const char* npcRecord) {
-    if (npcRecord) {
-        std::memcpy(stats->attributes, npcRecord + npc::kAttributesAndSkills, 3 + 8);
+void SetAttributesAndSkills(UnitStats* stats, const Prototype* prototype, const Npc* npc) {
+    if (npc) {
+        static_assert(offsetof(Npc, skills) - offsetof(Npc, attributes) == 3);
+        std::memcpy(stats->attributes, npc->attributes, 3 + 8);   // the attributes and the skills
         return;
     }
-    for (int i = 0; i < 3; ++i) stats->attributes[i] = RoundToByte(prototype, proto::kSkillLevel);
-    for (int i = 0; i < 8; ++i) stats->skills[i] = RoundToByte(prototype, proto::kSkillLevel);
-    stats->attributes[0] = RoundToByte(prototype, proto::kAttribute01);
-    stats->attributes[1] = RoundToByte(prototype, proto::kAttribute01);
-    stats->attributes[2] = RoundToByte(prototype, proto::kAttribute2);
-    for (int i = 0; i < 3; ++i)
-        stats->skills[3 + i] = static_cast<std::uint8_t>(GameFtol(Read<float>(prototype, proto::kSkills3to5 + 4 * i)));
+    for (int i = 0; i < 3; ++i) stats->attributes[i] = RoundToByte(prototype->skillLevel);
+    for (int i = 0; i < 8; ++i) stats->skills[i] = RoundToByte(prototype->skillLevel);
+    stats->attributes[0] = RoundToByte(prototype->attributes01);
+    stats->attributes[1] = RoundToByte(prototype->attributes01);
+    stats->attributes[2] = RoundToByte(prototype->attribute2);
+    for (int i = 0; i < 3; ++i) stats->skills[3 + i] = static_cast<std::uint8_t>(GameFtol(prototype->skills3to5[i]));
 }
 
 // The body slots from the model: a slot with a share is working, with its type and vital mask
 // from its level record (007AF3B8) and no layers; the others unused.
-void SetSlots(UnitStats* stats, const char* model) {
+void SetSlots(UnitStats* stats, const Model* model) {
     const RecordTable& levels = *reinterpret_cast<const RecordTable*>(0x007AF3B8);
     for (int i = 0; i < 6; ++i) {
-        const char* entry = model + model::kSlots + 0x10 * i;
+        const UnitModelSlot& entry = model->slots[i];
         UnitStatSlot& slot = stats->slots[i];
-        float share = Read<float>(entry, 4);
+        float share = entry.share;
         if (!(share < 0.0f || share > 0.0f)) {   // zero (or NaN)
             slot.kind = 0;
             continue;
         }
-        const char* level = levels.At(Read<std::uint32_t>(entry, 0), kSkillLevelRecordSize);
-        slot.type = Read<int>(level, 4);
-        std::memcpy(&slot.unknown_EC, entry + 4, 4);
-        std::memcpy(&slot.factor, entry + 8, 4);
-        slot.vitalMask = Read<std::uint32_t>(level, 0x40);
+        const auto* level = reinterpret_cast<const UnitLevelRecord*>(
+            levels.At(static_cast<std::uint32_t>(entry.levelIndex), kSkillLevelRecordSize));
+        slot.type = level->slotType;
+        CopyDword(slot.unknown_EC, entry.share);
+        CopyDword(slot.factor, entry.factor);
+        slot.vitalMask = level->vitalMask;
         slot.layers[0].unknown_00 = 0;
         slot.layers[0].state = 0;
         slot.layers[1].state = 0;
@@ -215,29 +169,27 @@ void SetSlots(UnitStats* stats, const char* model) {
 }
 
 // The combat values and damage weights.
-void SetCombat(UnitStats* stats, const char* prototype, const char* model) {
-    for (int i = 0; i < 5; ++i) CopyDword(stats, 0x70 + 4 * i, prototype, proto::kCombat + 4 * i);
-    CopyDword(stats, 0x84, prototype, proto::kDamage);
-    CopyDword(stats, 0x88, prototype, proto::kDamageSpread);
-    std::memcpy(reinterpret_cast<char*>(stats) + 0x90, model + model::kDamageWeights, 7 * 4);
-    CopyDword(stats, 0xAC, prototype, proto::kNaturalWeapon);
+void SetCombat(UnitStats* stats, const Prototype* prototype, const Model* model) {
+    for (int i = 0; i < 5; ++i) CopyDword(stats->combat[i], prototype->combat[i]);
+    CopyDword(stats->damage, prototype->damage);
+    CopyDword(stats->damageSpread, prototype->damageSpread);
+    static_assert(sizeof(stats->damageWeights) == sizeof(model->damageWeights));
+    std::memcpy(stats->damageWeights, model->damageWeights, sizeof(stats->damageWeights));
+    CopyDword(stats->naturalWeapon, prototype->naturalWeapon);
 }
 
 // Experience and the skills an NPC knows; the spent experience then equals it.
-void LearnNpcSkills(UnitStats* stats, const char* npcRecord) {
+void LearnNpcSkills(UnitStats* stats, const Npc* npc) {
     stats->spentExperience = 0.0f;
-    if (!npcRecord) return;
-    UnitStatsAddExperience(stats, nullptr, Read<float>(npcRecord, npc::kExperience));
-    for (char* const* name = Read<char* const*>(npcRecord, npc::kSkillNames);
-         name != Read<char* const*>(npcRecord, npc::kSkillNames + 4); ++name) {
-        void* skill = FindSkill(reinterpret_cast<void*>(kSkillDatabase), nullptr, *name);
+    if (!npc) return;
+    UnitStatsAddExperience(stats, nullptr, npc->experience);
+    for (const mfc::CString* name = npc->skillNames.begin(); name != npc->skillNames.end(); ++name) {
+        void* skill = FindSkill(reinterpret_cast<void*>(kSkillDatabase), nullptr, static_cast<const char*>(*name));
         if (skill) LearnSkillAt(stats, nullptr, reinterpret_cast<void*>(kSkillDatabase), skill);
     }
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
 }
 
-static_assert(offsetof(UnitStats, unknown_044) == 0x44);
-float* StatField(UnitStats* stats, int offset) { return &At<float>(stats, offset); }
 } // namespace
 
 // --- Name lookups -----------------------------------------------------------------------------
@@ -256,40 +208,40 @@ EI_REPLACE_METHOD(0x005145D0, NpcPrototypeTable::FindByName);
 
 int UnitStatsBuilder::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
     if (!stats) {
-        SetBits(vitals, 0x08, kThousand);
-        SetBits(vitals, 0x0C, kThousand);
-        SetBits(vitals, 0x10, kTen);
-        SetBits(vitals, 0x14, kThousand);
-        SetBits(vitals, 0x18, kThousand);
-        SetBits(vitals, 0x1C, kTen);
-        for (int i = 0; i < 7; ++i) {
-            SetBits(vitals, 0x24 + 8 * i, kHundred);
-            SetBits(vitals, 0x20 + 8 * i, kHundred);
+        SetBits(vitals->hitPoints, kThousand);
+        SetBits(vitals->maxHitPoints, kThousand);
+        SetBits(vitals->hitPointRegen, kTen);
+        SetBits(vitals->mana, kThousand);
+        SetBits(vitals->maxMana, kThousand);
+        SetBits(vitals->manaRegen, kTen);
+        for (UnitStatPair& protection : vitals->protection) {
+            SetBits(protection.current, kHundred);
+            SetBits(protection.base, kHundred);
         }
         return 1;
     }
-    SetBits(stats, 0x04, 0);
-    SetBits(stats, 0x0C, kDefaultStat);
-    SetBits(stats, 0x14, kDefaultStat);
-    SetBits(stats, 0x1C, kDefaultStat);
-    for (int i = 0; i < 4; ++i) SetBits(stats, 0x34 + 4 * i, kDefaultModeSpeed);
-    SetBits(stats, 0x08, 0);
-    SetBits(stats, 0x24, kDefaultSpeed);
-    SetBits(stats, 0x2C, kOne);
-    SetBits(stats, 0x54, 0);
-    SetBits(stats, 0x60, 0);
+    SetBits(stats->experience, 0);
+    SetBits(stats->stat10Base, kDefaultStat);
+    SetBits(stats->stat18Base, kDefaultStat);
+    SetBits(stats->stat20Base, kDefaultStat);
+    for (float& modeSpeed : stats->modeSpeeds) SetBits(modeSpeed, kDefaultModeSpeed);
+    SetBits(stats->spentExperience, 0);
+    SetBits(stats->speedBase, kDefaultSpeed);
+    SetBits(stats->rateBase, kOne);
+    SetBits(stats->capacity, 0);
+    stats->unknown_060 = 0;
     for (int i = 0; i < 6; ++i) {
-        SetBits(stats, 0xB0 + 8 * i, kHundred);
-        SetBits(stats, 0xB4 + 8 * i, kHundred);
-        SetBits(stats, 0xE0 + 8 * i, kHundred);
-        SetBits(stats, 0xE4 + 8 * i, kHundred);
+        SetBits(stats->valuesB0[i].base, kHundred);
+        SetBits(stats->valuesB0[i].current, kHundred);
+        SetBits(stats->valuesE0[i].base, kHundred);
+        SetBits(stats->valuesE0[i].current, kHundred);
     }
     for (UnitStatSlot& slot : stats->slots) {
         slot.type = 1;
         slot.vitalMask = 0;
         slot.kind = kSlotWorking;
-        SetBits(&slot.current, 0, kHundred);
-        SetBits(&slot.maximum, 0, kHundred);
+        SetBits(slot.current, kHundred);
+        SetBits(slot.maximum, kHundred);
         for (UnitStatLayer& layer : slot.layers) {
             layer.unknown_00 = 0;
             layer.state = 0;
@@ -303,126 +255,123 @@ int UnitStatsBuilder::SetDefaults(UnitVitals* vitals, UnitStats* stats) {
 EI_REPLACE_METHOD(0x005134F0, UnitStatsBuilder::SetDefaults);
 
 int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, const char* name) {
-    const char* prototype = UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name);
+    const Prototype* prototype = FindPrototype(name);
     if (!prototype) {
         SetDefaultsAt(this, nullptr, vitals, stats);
         return 1;
     }
-    const char* model = ModelOf(prototype);
-    const char* npcRecord = FindNpcAt(&unitdb::NpcTable(), nullptr, name);
+    const Model* model = ModelOf(prototype);
+    const Npc* npc = FindNpc(name);
     if (!vitals || !stats) return 0;
     UnitVitalsReset(vitals);
     UnitStatsResetOriginal(stats);
 
     // Vitals: hit points and mana at their maxima, the model's regeneration.
-    FpuCopy2(&vitals->maxHitPoints, &vitals->hitPoints, reinterpret_cast<const float*>(prototype + proto::kHitPoints));
-    CopyDword(vitals, 0x10, model, model::kHitPointRegen);
-    FpuCopy2(&vitals->maxMana, &vitals->mana, reinterpret_cast<const float*>(prototype + proto::kMana));
-    CopyDword(vitals, 0x1C, model, model::kManaRegen);
+    FpuCopy2(&vitals->maxHitPoints, &vitals->hitPoints, &prototype->hitPoints);
+    CopyDword(vitals->hitPointRegen, model->hitPointRegen);
+    FpuCopy2(&vitals->maxMana, &vitals->mana, &prototype->mana);
+    CopyDword(vitals->manaRegen, model->manaRegen);
     std::memcpy(&stats->fixedMaxHitPoints, &vitals->maxHitPoints, 4);
 
     // The three stats, speed and rate.
-    if (npcRecord) {
-        FpuCopy2(&stats->stat10Base, &stats->stat10, reinterpret_cast<const float*>(npcRecord + npc::kStats));
-        FpuCopy2(&stats->stat18Base, &stats->stat18, reinterpret_cast<const float*>(npcRecord + npc::kStats + 4));
-        FpuCopy2(&stats->stat20Base, &stats->stat20, reinterpret_cast<const float*>(npcRecord + npc::kStats + 8));
+    if (npc) {
+        FpuCopy2(&stats->stat10Base, &stats->stat10, &npc->stats[0]);
+        FpuCopy2(&stats->stat18Base, &stats->stat18, &npc->stats[1]);
+        FpuCopy2(&stats->stat20Base, &stats->stat20, &npc->stats[2]);
         float rate = static_cast<float>(static_cast<double>(stats->stat18) * kHalf);
-        CopyDword(stats, 0x24, prototype, proto::kSpeed);
+        CopyDword(stats->speedBase, prototype->speed);
         stats->rateBase = rate;
     } else {
-        float strength = static_cast<float>(static_cast<double>(Read<float>(prototype, proto::kHitPoints)) * kThird);
+        float strength = static_cast<float>(static_cast<double>(prototype->hitPoints) * kThird);
         stats->stat10Base = strength;
         stats->stat10 = strength;
-        float dexterity = static_cast<float>(static_cast<double>(Read<float>(prototype, proto::kMana)) * kThird);
+        float dexterity = static_cast<float>(static_cast<double>(prototype->mana) * kThird);
         stats->stat18Base = dexterity;
         stats->stat18 = dexterity;
-        SetBits(stats, 0x1C, kStat25);
-        SetBits(stats, 0x20, kStat25);
-        SetBits(stats, 0x2C, kRate15);
-        CopyDword(stats, 0x24, prototype, proto::kSpeed);
+        SetBits(stats->stat20Base, kStat25);
+        SetBits(stats->stat20, kStat25);
+        SetBits(stats->rateBase, kRate15);
+        CopyDword(stats->speedBase, prototype->speed);
     }
-    CopyDword(stats, 0x8C, prototype, proto::kStats8C);
-    std::memcpy(stats->modeSpeeds, model + model::kModeSpeeds, sizeof(stats->modeSpeeds));
+    CopyDword(stats->unknown_08C, prototype->unknown_5C);
+    std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
-        CopyDword(stats, 0xB0 + 8 * i, prototype, proto::kValuesB0 + 4 * i);
-        CopyDword(stats, 0xE0 + 8 * i, prototype, proto::kValuesE0 + 4 * i);
+        CopyDword(stats->valuesB0[i].base, prototype->valuesB0[i]);
+        CopyDword(stats->valuesE0[i].base, prototype->valuesE0[i]);
     }
     stats->unknown_044 = HalfAngleCosine(model);
-    CopyDword(stats, 0x48, prototype, proto::kStats48);
-    *StatField(stats, 0x4C) = RightAngleCosine();
-    CopyDword(stats, 0x60, model, model::kStats60);
-    SetAttributesAndSkills(stats, prototype, npcRecord);
-    CopyDword(stats, 0x64, model, model::kStats64);
-    At<std::uint16_t>(stats, 0x68) = Read<std::uint16_t>(model, model::kSizeClass);
-    std::uint16_t small = Read<std::uint16_t>(model, model::kSizeClassSmall);
-    At<std::uint16_t>(stats, 0x6C) = small;
-    At<std::uint16_t>(stats, 0x6E) = small;
+    CopyDword(stats->unknown_048, prototype->unknown_94);
+    stats->unknown_04C = RightAngleCosine();
+    CopyDword(stats->unknown_060, model->unknown_14);
+    SetAttributesAndSkills(stats, prototype, npc);
+    CopyDword(stats->unknown_064, model->unknown_44);
+    stats->sizeClass = static_cast<std::int16_t>(model->sizeClass);
+    auto small = static_cast<std::int16_t>(model->sizeClassSmall);
+    stats->sizeClass20 = small;
+    stats->sizeClass60 = small;
 
     // Protection: the model's values scaled by the prototype.
     for (int i = 0; i < 7; ++i) {
-        float value = static_cast<float>(static_cast<double>(Read<float>(model, model::kProtection + 4 * i)) *
-                                         Read<float>(prototype, proto::kProtectionScale));
+        float value = static_cast<float>(static_cast<double>(model->protection[i]) * prototype->protectionScale);
         vitals->protection[i].base = value;
         vitals->protection[i].current = value;
     }
     SetSlots(stats, model);
     SetCombat(stats, prototype, model);
-    LearnNpcSkills(stats, npcRecord);
+    LearnNpcSkills(stats, npc);
     return 1;
 }
 EI_REPLACE_METHOD(0x005136D0, UnitStatsBuilder::BuildFromPrototype);
 
 int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
-    const char* prototype = UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name);
-    const char* model = ModelOf(prototype);   // reads the prototype before the null test
-    const char* npcRecord = FindNpcAt(&unitdb::NpcTable(), nullptr, name);
+    const Prototype* prototype = FindPrototype(name);
+    const Model* model = ModelOf(prototype);   // reads the prototype before the null test
+    const Npc* npc = FindNpc(name);
     if (!prototype) return game::FatalError(reinterpret_cast<const char*>(0x0078F288), name);
-    if (!npcRecord) game::DebugLog(reinterpret_cast<const char*>(0x0078F258), name);
+    if (!npc) game::DebugLog(reinterpret_cast<const char*>(0x0078F258), name);
     UnitStatsResetOriginal(stats);
 
-    const float* speed = reinterpret_cast<const float*>(prototype + proto::kSpeed);
-    if (npcRecord) {
-        FpuCopy2(&stats->stat10Base, &stats->stat10, reinterpret_cast<const float*>(npcRecord + npc::kStats));
-        FpuCopy2(&stats->stat18Base, &stats->stat18, reinterpret_cast<const float*>(npcRecord + npc::kStats + 4));
-        FpuCopy2(&stats->stat20Base, &stats->stat20, reinterpret_cast<const float*>(npcRecord + npc::kStats + 8));
+    const float* speed = &prototype->speed;
+    if (npc) {
+        FpuCopy2(&stats->stat10Base, &stats->stat10, &npc->stats[0]);
+        FpuCopy2(&stats->stat18Base, &stats->stat18, &npc->stats[1]);
+        FpuCopy2(&stats->stat20Base, &stats->stat20, &npc->stats[2]);
         FpuCopy2(&stats->speedBase, &stats->speed, speed);
         float rate = static_cast<float>(static_cast<double>(stats->stat18) * kHalf);
         stats->rateBase = rate;
         stats->rate = rate;
     } else {
-        float strength = static_cast<float>(static_cast<double>(Read<float>(prototype, proto::kHitPoints)) * kThird);
+        float strength = static_cast<float>(static_cast<double>(prototype->hitPoints) * kThird);
         stats->stat10Base = strength;
         stats->stat10 = strength;
-        float dexterity = static_cast<float>(static_cast<double>(Read<float>(prototype, proto::kMana)) * kThird);
+        float dexterity = static_cast<float>(static_cast<double>(prototype->mana) * kThird);
         stats->stat18Base = dexterity;
         stats->stat18 = dexterity;
-        SetBits(stats, 0x1C, kStat25);
-        SetBits(stats, 0x20, kStat25);
+        SetBits(stats->stat20Base, kStat25);
+        SetBits(stats->stat20, kStat25);
         FpuCopy2(&stats->speedBase, &stats->speed, speed);
-        SetBits(stats, 0x2C, kRate15);
-        SetBits(stats, 0x30, kRate15);
+        SetBits(stats->rateBase, kRate15);
+        SetBits(stats->rate, kRate15);
     }
-    CopyDword(stats, 0x8C, prototype, proto::kStats8C);
-    std::memcpy(stats->modeSpeeds, model + model::kModeSpeeds, sizeof(stats->modeSpeeds));
+    CopyDword(stats->unknown_08C, prototype->unknown_5C);
+    std::memcpy(stats->modeSpeeds, model->modeSpeeds, sizeof(stats->modeSpeeds));
     for (int i = 0; i < 6; ++i) {
-        FpuCopy2(&stats->valuesB0[i].base, &stats->valuesB0[i].current,
-                 reinterpret_cast<const float*>(prototype + proto::kValuesB0 + 4 * i));
-        FpuCopy2(&stats->valuesE0[i].base, &stats->valuesE0[i].current,
-                 reinterpret_cast<const float*>(prototype + proto::kValuesE0 + 4 * i));
+        FpuCopy2(&stats->valuesB0[i].base, &stats->valuesB0[i].current, &prototype->valuesB0[i]);
+        FpuCopy2(&stats->valuesE0[i].base, &stats->valuesE0[i].current, &prototype->valuesE0[i]);
     }
     stats->unknown_044 = HalfAngleCosine(model);
-    CopyDword(stats, 0x48, prototype, proto::kStats48);
-    *StatField(stats, 0x4C) = RightAngleCosine();
-    CopyDword(stats, 0x60, model, model::kStats60);
-    SetAttributesAndSkills(stats, prototype, npcRecord);
-    CopyDword(stats, 0x64, model, model::kStats64);
-    At<std::uint16_t>(stats, 0x68) = Read<std::uint16_t>(model, model::kSizeClass);
-    std::uint16_t small = Read<std::uint16_t>(model, model::kSizeClassSmall);
-    At<std::uint16_t>(stats, 0x6C) = small;
-    At<std::uint16_t>(stats, 0x6E) = small;
+    CopyDword(stats->unknown_048, prototype->unknown_94);
+    stats->unknown_04C = RightAngleCosine();
+    CopyDword(stats->unknown_060, model->unknown_14);
+    SetAttributesAndSkills(stats, prototype, npc);
+    CopyDword(stats->unknown_064, model->unknown_44);
+    stats->sizeClass = static_cast<std::int16_t>(model->sizeClass);
+    auto small = static_cast<std::int16_t>(model->sizeClassSmall);
+    stats->sizeClass20 = small;
+    stats->sizeClass60 = small;
     SetSlots(stats, model);
     SetCombat(stats, prototype, model);
-    LearnNpcSkills(stats, npcRecord);
+    LearnNpcSkills(stats, npc);
     UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
     UnitStatsRefillSlotsOriginal(stats);
     UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
@@ -432,11 +381,11 @@ EI_REPLACE(0x00513DA0, BuildNpcStats);
 
 int __stdcall PrototypeObjectClass(const char* name) {
     constexpr int kDefaultClass = 0x33;
-    const char* prototype = UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name);
+    const Prototype* prototype = FindPrototype(name);
     if (!prototype) return kDefaultClass;
-    const char* model = ModelOf(prototype);
+    const Model* model = ModelOf(prototype);
     if (!model) return kDefaultClass;
-    return Read<int>(model, 4);
+    return model->objectClass;
 }
 EI_REPLACE(0x00513240, PrototypeObjectClass);
 
@@ -563,7 +512,7 @@ void UnitStats::LearnSkill(const void* database, const void* record) {
     int index = SkillRecordIndex(database, nullptr, record);
     int skill = index / 3;
     int level = index % 3;
-    std::uint8_t& known = reinterpret_cast<std::uint8_t*>(this)[0x6D3 + skill];   // unchecked, as the original
+    std::uint8_t& known = skillLevels[skill];   // unchecked, as the original
     if (known != 0 && level <= known - 1) return;
     known = static_cast<std::uint8_t>(level + 1);
     float newMaximum = CurveHitPoints(this);
@@ -584,7 +533,7 @@ __declspec(naked) double __fastcall SkillWithBonusAt(UnitStats*, void*, std::uin
 
 // The level value of skill `index` stored to a float (FILD qword, FSTP float); 0 without one.
 float LevelAsFloat(const UnitStats* stats, int index) {
-    std::uint8_t level = reinterpret_cast<const std::uint8_t*>(stats)[0x6D3 + index];   // unchecked
+    std::uint8_t level = stats->skillLevels[index];   // unchecked
     if (level == 0) return kZero;
     const char* record =
         unitdb::SkillLevels().At(static_cast<std::uint32_t>(index * 3 - 1 + level), unitdb::kSkillLevelSize);
@@ -592,11 +541,12 @@ float LevelAsFloat(const UnitStats* stats, int index) {
     return static_cast<float>(LevelOf(record));
 }
 
-// The bonus byte (+0x7B for skill 0, +0x7C for skill 1) of the unit's weapon in hand, or 0.
-float WeaponBonus(CUnit* unit, int offset) {
+// The skill bonus byte (skill 0 or 1) of the unit's weapon in hand, or 0.
+float WeaponBonus(CUnit* unit, int skill) {
     CEngineObject* weapon = unit->GetWeapon(unit->activeWeapon);
     if (!weapon) return kZero;
-    return static_cast<float>(static_cast<int>(Read<std::uint8_t>(static_cast<CItem*>(weapon)->GetPrototype(), offset)));
+    const auto* record = reinterpret_cast<const itemdb::WeaponRecord*>(static_cast<CItem*>(weapon)->GetPrototype());
+    return static_cast<float>(static_cast<int>(record->skillBonus[skill]));
 }
 } // namespace
 
@@ -605,10 +555,11 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
         int skill = type >= 5 ? 1 : 0;
         float level = LevelAsFloat(this, type);
         if (!(IsTextKey(unit->id_) & 0xFF)) return static_cast<double>(static_cast<int>(skills[skill])) + level;
-        float weapon = WeaponBonus(unit, 0x7B + skill);
+        float weapon = WeaponBonus(unit, skill);
         float value = static_cast<float>(static_cast<int>(skills[skill]));
-        const char* record = unitdb::Skills().At(static_cast<std::uint32_t>(skill), kSkillRecordSize);
-        char stat = **Read<const char* const*>(record, 0xC);   // the skill's name
+        const auto* record = reinterpret_cast<const SkillRecord*>(
+            unitdb::Skills().At(static_cast<std::uint32_t>(skill), kSkillRecordSize));
+        char stat = static_cast<const char*>(record->statNames.begin()[0])[0];   // its first stat's letter
         double base;
         if (stat == 's') base = static_cast<double>(stat10) - kStatBase;
         else if (stat == 'i') base = static_cast<double>(stat20) - kStatBase;
@@ -618,7 +569,7 @@ double UnitStats::WeaponSkillBonus(int type, CUnit* unit) {
     }
     if (type == 8) {
         if (!(IsTextKey(unit->id_) & 0xFF)) return static_cast<double>(static_cast<int>(skills[0]));
-        float weapon = WeaponBonus(unit, 0x7B);
+        float weapon = WeaponBonus(unit, 0);
         return SkillWithBonusAt(this, nullptr, 0) + weapon;
     }
     return kZero;
@@ -630,41 +581,42 @@ namespace {
 int __fastcall SkillRecordIndexByName(const void* a0, void*, const char* a2) { return SkillIndexOfOriginal(a0, nullptr, a2); }
 
 // A CString field of a record: is it set, and not "none"?
-bool NamesRequirement(const char* record, int offset) {
-    const char* text = Read<const char*>(record, offset);
-    if (reinterpret_cast<const int*>(text)[-2] == 0) return false;   // its length
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(text),
+bool NamesRequirement(const mfc::CString& text) {
+    if (text.GetLength() == 0) return false;
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(text)),
                            reinterpret_cast<const unsigned char*>(0x007846F0)) != 0;   // "none"
+}
+const ::SkillLevelRecord* LevelRecordAt(std::uint32_t index) {
+    return reinterpret_cast<const ::SkillLevelRecord*>(unitdb::SkillLevels().At(index, unitdb::kSkillLevelSize));
 }
 } // namespace
 
-BOOL UnitStats::CanLearn(const void* database, const char* record) {
-    const auto* bytes = reinterpret_cast<const std::uint8_t*>(this);
-    if (!Read<std::uint8_t>(record, 0x40)) return 0;
-    if (!(stat10 >= Read<float>(record, 0x24))) return 0;   // NaN fails too
-    if (!(stat18 >= Read<float>(record, 0x28))) return 0;
-    if (!(stat20 >= Read<float>(record, 0x2C))) return 0;
-    if (NamesRequirement(record, 0x14)) {
-        int attribute = Read<int>(record, 0x18);
-        if (attribute == 0x7FFFFFFF) return 0;
-        if (static_cast<std::uint32_t>(bytes[0x6CB + attribute]) < Read<std::uint32_t>(record, 0x20)) return 0;
+BOOL UnitStats::CanLearn(const void* database, const char* recordBytes) {
+    const auto* record = reinterpret_cast<const ::SkillLevelRecord*>(recordBytes);
+    if (!record->learnable) return 0;
+    if (!(stat10 >= record->RequiredStat(0))) return 0;   // NaN fails too
+    if (!(stat18 >= record->RequiredStat(1))) return 0;
+    if (!(stat20 >= record->RequiredStat(2))) return 0;
+    if (NamesRequirement(record->unknown_14)) {
+        int skill = record->RequiredSkill();
+        if (skill == 0x7FFFFFFF) return 0;
+        if (static_cast<std::uint32_t>(skills[skill]) < record->RequiredSkillValue()) return 0;   // unchecked
     }
-    if (NamesRequirement(record, 0x0C)) {
-        int required = SkillRecordIndexByName(database, nullptr, Read<const char*>(record, 0x0C));
-        if (bytes[0x6D3 + required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
+    if (NamesRequirement(record->unknown_0C)) {
+        int required = SkillRecordIndexByName(database, nullptr, record->unknown_0C);
+        if (skillLevels[required / 3] != static_cast<std::uint32_t>(required % 3 + 1)) return 0;
     }
     // No level of the same skill id may be known in another skill.
     int group = SkillRecordIndex(database, nullptr, record) / 3;
     for (int k = 0; k < 26; ++k) {
-        std::uint8_t level = bytes[0x6D3 + k];
+        std::uint8_t level = skillLevels[k];
         if (level == 0) continue;
-        const char* known =
-            unitdb::SkillLevels().At(static_cast<std::uint32_t>(3 * k + level - 1), unitdb::kSkillLevelSize);
-        if (!known || Read<int>(known, 0x10) != Read<int>(record, 0x10)) continue;
+        const ::SkillLevelRecord* known = LevelRecordAt(static_cast<std::uint32_t>(3 * k + level - 1));
+        if (!known || known->unknown_10 != record->unknown_10) continue;
         if (SkillRecordIndex(database, nullptr, known) / 3 != group) return 0;
     }
-    int own = SkillRecordIndexByName(database, nullptr, Read<const char*>(record, 0x04));
-    return own % 3 > static_cast<int>(bytes[0x6D3 + own / 3]) - 1 ? 1 : 0;
+    int own = SkillRecordIndexByName(database, nullptr, record->name);
+    return own % 3 > static_cast<int>(skillLevels[own / 3]) - 1 ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x005260A0, UnitStats::CanLearn);
 
@@ -673,44 +625,48 @@ EI_REPLACE_METHOD(0x005260A0, UnitStats::CanLearn);
 int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
     UnitVitals vitals{};   // the original's stack copies start as whatever the stack held
     UnitStats stats{};
-    const char* prototype = UnitPrototypeFind(&unitdb::PrototypeTable(), nullptr, name);
+    auto* mapObject = static_cast<CMapObject*>(object);
+    const Prototype* prototype = FindPrototype(name);
     if (!prototype) {
         UnitVitalsReset(&vitals);
         if (object->GetClassId() != kClassUnit) {
             SetDefaultsAt(this, nullptr, &vitals, nullptr);
-            ei::VCall<void>(object, kSlotServerData, &vitals);
+            mapObject->SetServerData(&vitals);
         } else {
             UnitStatsResetOriginal(&stats);
             SetDefaultsAt(this, nullptr, &vitals, &stats);
-            ei::VCall<void>(object, kSlotServerStats, &stats);
+            mapObject->SetStats(&stats);
         }
-        ei::VCall<void>(object, kSlotScaleEffect, 0);
-        At<int>(object, 0x18) = 0;
+        mapObject->ScaleEffectChanged(0);
+        object->unknown_18 = 0;
         game::DebugLog(reinterpret_cast<const char*>(0x0078F22C), name, object->id_);
         return 1;
     }
-    const char* model = ModelOf(prototype);
+    const Model* model = ModelOf(prototype);
     if (object->GetClassId() == kClassUnit) {
         BuildFromPrototypeAt(this, nullptr, &vitals, &stats, name);
         stats.unknown_000 |= 1;
         vitals.unknown_00 |= 1;
         SetServerDataAt(object, nullptr, &vitals);
-        ei::VCall<void>(object, kSlotServerStats, &stats);
+        mapObject->SetStats(&stats);
         // The figure stands lower by the model's height.
-        float lift = static_cast<float>(-static_cast<double>(Read<float>(model, model::kHeight)));
-        SetBits(object, 0xF4, 0);
-        static_cast<CObject3D*>(object)->defaultScale.y = lift;
-        SetBits(object, 0xFC, 0);
+        float lift = static_cast<float>(-static_cast<double>(model->height));
+        CObject3D* figure = static_cast<CObject3D*>(object);
+        SetBits(figure->defaultScale.x, 0);
+        figure->defaultScale.y = lift;
+        SetBits(figure->defaultScale.z, 0);
         float scale[3];
-        std::memcpy(scale, prototype + proto::kScale, sizeof(scale));
+        static_assert(sizeof(scale) == sizeof(prototype->scale));
+        std::memcpy(scale, &prototype->scale, sizeof(scale));
         ObjectSetFigureScaleOriginal(object, nullptr, scale);
-        std::memcpy(&reinterpret_cast<CMapObject*>(object)->baseScale, scale, sizeof(scale));
-        ei::VCall<void>(object, kSlotResetScale);
-        SetPrototype23CAt(object, nullptr, prototype);
+        std::memcpy(&mapObject->baseScale, scale, sizeof(scale));
+        mapObject->ApplyBaseScale();
+        SetPrototype23CAt(object, nullptr, reinterpret_cast<const char*>(prototype));
     }
     char* record = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, name);
-    At<int>(object, 0x18) =
-        record ? static_cast<int>(record - unitdb::PrototypeTable().begin) / unitdb::kPrototypeSize : -1;
+    object->unknown_18 = record
+        ? static_cast<std::uint32_t>(static_cast<int>(record - unitdb::PrototypeTable().begin) / unitdb::kPrototypeSize)
+        : 0xFFFFFFFFu;
     return 1;
 }
 EI_REPLACE_METHOD(0x00513B60, UnitStatsBuilder::ApplyPrototype);

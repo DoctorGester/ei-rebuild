@@ -187,8 +187,8 @@ void UnitLevelRecord::Serialize(ChunkArchive* ar) {
     ArchiveString(ar, nullptr, 0, &name);
     ArchiveField(ar, nullptr, 1, valuesA, sizeof(valuesA));
     ArchiveField(ar, nullptr, 2, valuesB, sizeof(valuesB));
-    Dword(ar, 3, &unknown_40);
-    Dword(ar, 4, &unknown_04);
+    Dword(ar, 3, &vitalMask);
+    Dword(ar, 4, &slotType);
 }
 EI_REPLACE_METHOD(0x0052DEE0, UnitLevelRecord::Serialize);
 
@@ -289,7 +289,7 @@ void SkillLevelRecord::Serialize(ChunkArchive* ar) {
     ArchiveString(ar, nullptr, 10, &unknown_0C);
     ArchiveString(ar, nullptr, 11, &unknown_14);
     for (int i = 0; i < kSkillLevelValues; ++i) Dword(ar, kFirstValueField + i, &values[i]);
-    ArchiveField(ar, nullptr, 0x16, &unknown_40, 1);
+    ArchiveField(ar, nullptr, 0x16, &learnable, 1);
     Dword(ar, 0x17, &unknown_10);
 }
 EI_REPLACE_METHOD(0x0051F480, SkillLevelRecord::Serialize);

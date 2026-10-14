@@ -248,7 +248,7 @@ src/game/unit_client_effects.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_client_path.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_client_sounds.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_create.cpp,0,0,0,0,1,0,0,0,0,0,0
-src/game/unit_create_stats.cpp,12,5,3,1,19,0,0,1,0,0,1
+src/game/unit_create_stats.cpp,0,0,3,1,19,0,0,0,0,0,1
 src/game/unit_db_destroy.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/unit_equipment.cpp,0,0,0,0,5,0,0,0,0,0,0
 src/game/unit_figure_queries.cpp,0,0,0,0,0,0,0,0,0,0,4
@@ -256,11 +256,10 @@ src/game/unit_hits.cpp,0,0,0,1,4,0,0,0,0,0,2
 src/game/unit_motion_tick.cpp,0,0,8,0,1,0,0,0,0,0,0
 src/game/unit_record.cpp,0,0,2,0,0,0,0,0,0,0,0
 src/game/unit_skill_price.cpp,0,0,0,0,4,0,0,0,0,0,0
-src/game/unit_skins.cpp,0,0,0,0,0,0,0,0,0,1,0
 src/game/unit_stats.cpp,0,0,0,1,0,0,0,0,0,0,0
-src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,2,0,0,0
+src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,0,0,0,0
 src/game/unit_update.cpp,0,0,1,1,1,0,0,0,0,0,0
-src/game/unit_vitals.cpp,0,0,4,1,24,0,0,4,0,0,0
+src/game/unit_vitals.cpp,0,0,4,1,24,0,0,0,0,0,0
 src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5
 src/game/weather_draw.cpp,10,0,0,0,0,0,0,1,0,0,0
 src/game/world.h,0,0,0,0,0,0,0,0,0,3,5

@@ -12,6 +12,7 @@
 #include "lib/stlp.h"
 #include "unit_create.h"   // UnitPrototypeTable, NpcPrototypeTable
 
+#include <bit>
 #include <cstddef>
 #include <cstdint>
 
@@ -73,9 +74,9 @@ struct UnitPrototypeRecord {
     std::uint32_t hitSoundKind;     // +0x7C 0x27 (low byte) the weapon class of its hits: the hit sound class (CUnitClientSpecific::HitEffect)
     float damage;                   // +0x80 0x13
     float damageSpread;             // +0x84 0x14
-    std::uint32_t skillLevel;       // +0x88 0x15
-    std::uint32_t attributes01;     // +0x8C 0x16
-    std::uint32_t attribute2;       // +0x90 0x17
+    float skillLevel;               // +0x88 0x15 every skill and attribute byte starts here (rounded)
+    float attributes01;             // +0x8C 0x16 attributes 0 and 1
+    float attribute2;               // +0x90 0x17 attribute 2
     std::uint32_t unknown_94;       // 0x18 (-> statistics +0x48)
     float valuesB0[6];              // +0x98 0x19
     float valuesE0[6];              // +0xB0 0x1A
@@ -213,10 +214,10 @@ struct UnitLevelRecord {
     void Serialize(ChunkArchive* ar);
 
     mfc::CString name;              // +0x00 field 0
-    std::uint32_t unknown_04;       // +0x04 4
+    int slotType;                   // +0x04 4 the type a model's body slot of this level gets (UnitStatSlot::type)
     std::uint32_t valuesA[7];       // +0x08 1
     std::uint32_t valuesB[7];       // +0x24 2
-    std::uint32_t unknown_40;       // +0x40 3
+    std::uint32_t vitalMask;        // +0x40 3 the slot's vital mask (UnitStatSlot::vitalMask)
 };
 static_assert(offsetof(UnitLevelRecord, valuesB) == 0x24 && sizeof(UnitLevelRecord) == 0x44);
 
@@ -311,9 +312,17 @@ struct SkillLevelRecord {
     mfc::CString unknown_0C;        // +0x0C 10
     std::uint32_t unknown_10;       // +0x10 0x17
     mfc::CString unknown_14;        // +0x14 11
-    std::uint32_t values[10];       // +0x18 12..21 (values[6], +0x30: its worth exponent; values[7], +0x34: the level's value)
-    std::uint8_t unknown_40;        // +0x40 22 (one byte)
+    // +0x18 12..21: [0] the skill byte it requires (an index of UnitStats::skills, named by +0x14)
+    // and [2] its least value, [3..5] the least strength, dexterity and intelligence (floats),
+    // [6] (+0x30) its worth exponent, [7] (+0x34) the level's value.
+    std::uint32_t values[10];
+    std::uint8_t learnable;         // +0x40 22 (one byte; UnitStats::CanLearn)
     std::uint8_t unknown_41[3];
+
+    int RequiredSkill() const { return static_cast<int>(values[0]); }
+    std::uint32_t RequiredSkillValue() const { return values[2]; }
+    // stat 0 strength, 1 dexterity, 2 intelligence.
+    float RequiredStat(int stat) const { return std::bit_cast<float>(values[3 + stat]); }
 
     // The level's value (values[7], unsigned), loaded as the original's FILD of a zero-extended
     // qword (exact).

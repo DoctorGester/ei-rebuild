@@ -151,26 +151,26 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
     UnitStatSlot& slot = slots[hit->unknown_2C];
     if (slot.kind < 2) return 0;
     for (int type = 0; type < kDamageTypes; ++type) {
-        volatile float damage = hit->typeWeights[type] * hit->amount;
-        if (!(damage > kZero)) continue;
+        volatile float typeDamage = hit->typeWeights[type] * hit->amount;
+        if (!(typeDamage > kZero)) continue;
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
-            damage = damage - hit->multiplier * slot.layers[layer].absorb[type];
-            CallWearArmour(unit, hit->unknown_2C, layer, Max0(damage));
-            if (!(damage > kZero)) break;
+            typeDamage = typeDamage - hit->multiplier * slot.layers[layer].absorb[type];
+            CallWearArmour(unit, hit->unknown_2C, layer, Max0(typeDamage));
+            if (!(typeDamage > kZero)) break;
         }
         if (weapon) {
-            float passed = Max0(damage);
+            float passed = Max0(typeDamage);
             CallWearItem(weapon, unit, hit->typeWeights[type] * hit->amount - passed, kRemarkWeaponBroken,
                          kRemarkWeaponWorn);
         }
-        if (!(damage > kZero)) continue;
+        if (!(typeDamage > kZero)) continue;
         damaged = 1;
-        if (hit->unknown_34 > kOne) damage = damage * hit->unknown_34;
-        double current = slot.current - damage;   // compared unrounded below
+        if (hit->unknown_34 > kOne) typeDamage = typeDamage * hit->unknown_34;
+        double current = slot.current - typeDamage;   // compared unrounded below
         slot.current = static_cast<float>(current);
         // Severed by a full hit on a vital damage type, or below -5 times its maximum (or NaN).
-        bool severed = (damage >= slot.maximum && (slot.vitalMask & (1u << type)) != 0) ||
+        bool severed = (typeDamage >= slot.maximum && (slot.vitalMask & (1u << type)) != 0) ||
                        !(current >= slot.maximum * kOverkill);
         if (severed) {
             if (slot.kind > 1) {
@@ -185,7 +185,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         HitLog()->Put(kTypeNames[type]);
         UnitLogStream* log = HitLog()->Put(kPassedDamage);
         *reinterpret_cast<int*>(reinterpret_cast<char*>(log) + 4) = 1;
-        log->Put(static_cast<double>(damage));
+        log->Put(static_cast<double>(typeDamage));
         if (slot.kind == 1) {
             HitLog()->Put(kCrippled);
         } else if (slot.kind == 2) {
@@ -209,9 +209,9 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
                                     : reinterpret_cast<const float*>(0x007C54A0)[*reinterpret_cast<const int*>(0x0079BEC0)];
     volatile float total = kZero;
     for (int type = 0; type < kDamageTypes; ++type) {
-        volatile float damage = copy.amount * copy.typeWeights[type] -
-                                copy.multiplier * vitals->protection[type].current * difficulty;
-        float passed = Max0(damage);
+        volatile float typeDamage = copy.amount * copy.typeWeights[type] -
+                                    copy.multiplier * vitals->protection[type].current * difficulty;
+        float passed = Max0(typeDamage);
         total = passed + total;
         copy.typeWeights[type] = passed / copy.amount;
         if (weapon) {

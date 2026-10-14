@@ -111,14 +111,14 @@ const std::uint8_t kAllocator = 0;
 
 // --- The dressed units ---------------------------------------------------------------------------
 
-// The set handed to the texture cache (0x28 bytes): the texture records as raw bytes (an aligned
-// array), the texture file names, the composite's size.
-struct TextureSet {
+// What the texture cache composes a skin from (0x28 bytes): the texture records as raw bytes
+// (an aligned array), the texture file names, the composite's size.
+struct SkinComposition {
     lib::AlignedArray<char> bytes;
     console::CStringArray names;
     int size;
 };
-static_assert(sizeof(TextureSet) == 0x28 && offsetof(TextureSet, size) == 0x24);
+static_assert(sizeof(SkinComposition) == 0x28 && offsetof(SkinComposition, size) == 0x24);
 
 // The vector 005683D0 fills: 12-byte texture records (copied into the set as bytes): a kind (0x32
 // the body, 0x3005 an armour piece, 0x3004 a weapon), the item id and the item record's type.
@@ -131,7 +131,7 @@ static_assert(sizeof(TextureRecord) == 12);
 using RecordList = stlp::vector<TextureRecord>;
 
 // The texture records copied into the set's byte array (SetSize inlined: kept contents, 0 frees).
-void CopyRecords(TextureSet& set, const RecordList& list) {
+void CopyRecords(SkinComposition& set, const RecordList& list) {
     int size = static_cast<int>(list.size()) * static_cast<int>(sizeof(TextureRecord));
     set.bytes.SetSize(size);
     std::memcpy(set.bytes.data, list.begin(), static_cast<std::size_t>(size));
@@ -148,7 +148,7 @@ void AppendName(const UnitModelRecord* model, const mfc::CString& name, char* bu
     AppendText(buffer, Text(0x0078FB4C));   // ".mmp"
 }
 
-void AddItem(TextureSet& set, const UnitModelRecord* model, std::uint32_t id) {
+void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t id) {
     char buffer[0x100];
     {
         mfc::CString name;
@@ -159,7 +159,7 @@ void AddItem(TextureSet& set, const UnitModelRecord* model, std::uint32_t id) {
 }
 
 // The weapons (items 1 and 2): the one whose armour layer (+0xB8) is lower first when both exist.
-void AddWeapons(TextureSet& set, const UnitModelRecord* model, const std::uint32_t* items) {
+void AddWeapons(SkinComposition& set, const UnitModelRecord* model, const std::uint32_t* items) {
     if (items[1] != kNone && items[2] != kNone) {
         const itemdb::ArmorRecord* second = Armour(items[2] >> 16);
         const itemdb::ArmorRecord* first = Armour(items[1] >> 16);
@@ -178,7 +178,7 @@ void AddWeapons(TextureSet& set, const UnitModelRecord* model, const std::uint32
 
 // The extra weapon picked by the record's index byte (+0x1C) in its list (+0x10): weapon and
 // material records named together.
-void AddExtraWeapon(TextureSet& set, const UnitModelRecord* model, DressedUnitRecord* record) {
+void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedUnitRecord* record) {
     const std::uint32_t* list = record->extraWeapons.Start();
     int count = static_cast<int>(record->extraWeapons.Finish() - list);
     int index = record->extraWeapon;
@@ -197,7 +197,7 @@ void AddExtraWeapon(TextureSet& set, const UnitModelRecord* model, DressedUnitRe
 }
 
 // The texture cache is the client world's texture manager (+0x18C).
-void Compose(CWorldClient* self, mfc::CString& out, TextureSet& set, const mfc::CString& name, int size, int kind) {
+void Compose(CWorldClient* self, mfc::CString& out, SkinComposition& set, const mfc::CString& name, int size, int kind) {
     set.size = size;
     TextureManagerComposeOriginal(self->textureManager_, nullptr, &out, &set, &name, &name, 3, 0, 0x5551);
     CacheRegister(self->textureManager_, nullptr, kind, name);
@@ -209,8 +209,8 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     alignas(4) char listStorage[sizeof(RecordList)];
     RecordListConstruct(listStorage, nullptr, &kAllocator);
     RecordList& list = *reinterpret_cast<RecordList*>(listStorage);
-    alignas(4) char setStorage[sizeof(TextureSet)];
-    TextureSet& set = *reinterpret_cast<TextureSet*>(setStorage);
+    alignas(4) char setStorage[sizeof(SkinComposition)];
+    SkinComposition& set = *reinterpret_cast<SkinComposition*>(setStorage);
     BytesConstruct(&set);
     new (&set.names) console::CStringArray;
 
