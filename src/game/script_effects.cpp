@@ -58,17 +58,17 @@ void DropEffect(CEngineObject** slot) {
 // One body for each element type: the effect object dropped (DropEffect).
 
 // 004B17F0
-void __fastcall ScriptPointLightDestruct(ScriptPointLight* light) { DropEffect(&light->object); }
+void ScriptPointLight::ScriptPointLightDestruct() { DropEffect(&object); }
 // 004B1820
-void __fastcall ScriptLightningDestruct(ScriptLightning* bolt) { DropEffect(&bolt->object); }
+void ScriptLightning::ScriptLightningDestruct() { DropEffect(&object); }
 // 004B1850
-void __fastcall ScriptParticleSourceDestruct(ScriptParticleSource* source) { DropEffect(&source->object); }
+void ScriptParticleSource::ScriptParticleSourceDestruct() { DropEffect(&object); }
 // 004B1880 (the name is the caller's to destroy)
-void __fastcall ScriptFxSourceDropSound(ScriptFxSource* source) { DropEffect(&source->object); }
+void ScriptFxSource::ScriptFxSourceDropSound() { DropEffect(&object); }
 // 004BD540: the FX source's destructor body (the sound dropped, then the name).
-void __fastcall ScriptFxSourceDestruct(ScriptFxSource* source) {
-    DropEffect(&source->object);
-    source->name.~CString();
+void ScriptFxSource::ScriptFxSourceDestruct() {
+    DropEffect(&object);
+    name.~CString();
 }
 
 // 004CD690: DestructElements<ScriptLightning>.
@@ -79,7 +79,7 @@ void __stdcall ScriptLightningElementsDestruct(ScriptLightning* first, int count
 // ---- Commands -----------------------------------------------------------------------------------------
 
 // 004BD260: CreateFX(x, y, z, volume, radius, name), a sound played once.
-void __fastcall ScriptCreateFx(CScript*, void*, const SSCCmd* cmd) {
+void CScript::ScriptCreateFx(const SSCCmd* cmd) {
     auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
     const float* f = cmd->floatArgs.data;
     sound->localPosition_ = {f[0], f[1], f[2]};
@@ -97,12 +97,12 @@ void __fastcall ScriptCreateFx(CScript*, void*, const SSCCmd* cmd) {
 // is written below except, for CreateFXSource, spread, the delays and the countdown: the tick
 // (004BF000) counts such a source down and replaces its sound at zero, so a zero countdown would
 // replace the sound on every tick; INT_MAX keeps the sound, as a positive residue does.
-void __fastcall ScriptCreateFxSource(CScript* script, void*, const SSCCmd* cmd) {
+void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data;
     int id = static_cast<int>(std::lrint(f[0]));
-    if (id < 0) id = script->nextFxId_--;
+    if (id < 0) id = nextFxId_--;
 
-    mfc::CList<ScriptFxSource>& list = script->fxSources_;
+    mfc::CList<ScriptFxSource>& list = fxSources_;
     ScriptFxSource* source = nullptr;
     for (auto* node = list.head; node; node = node->next) {
         if (node->data.id == id) {
@@ -154,8 +154,8 @@ void __fastcall ScriptCreateFxSource(CScript* script, void*, const SSCCmd* cmd) 
 
 // 004BCFF0: CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
 // next automatic one; others are truncated. The bolt is always added, even when the id exists.
-void __fastcall ScriptCreateLightning(CScript* script, void*, const SSCCmd* cmd) {
-    mfc::CList<ScriptLightning>& list = script->lightning_;
+void CScript::ScriptCreateLightning(const SSCCmd* cmd) {
+    mfc::CList<ScriptLightning>& list = lightning_;
     auto* node = static_cast<mfc::CList<ScriptLightning>::Node*>(
         ScriptLightningListNewNodeOriginal(&list, nullptr, list.tail, nullptr));
     node->data.object = nullptr;
@@ -165,7 +165,7 @@ void __fastcall ScriptCreateLightning(CScript* script, void*, const SSCCmd* cmd)
     list.tail = node;
 
     const float* f = cmd->floatArgs.data;
-    if (!(f[0] >= 0.0f)) node->data.id = script->nextParticleId_--;
+    if (!(f[0] >= 0.0f)) node->data.id = nextParticleId_--;
     else node->data.id = static_cast<int>(f[0]);
 
     auto* bolt = static_cast<CEffectLightning*>(EffectManager()->CreateObject(kClassLightning, -1));
@@ -179,7 +179,7 @@ void __fastcall ScriptCreateLightning(CScript* script, void*, const SSCCmd* cmd)
 
 // 004BD9A0: CreateParticleSource(id, x, y, z, size, type name). Unknown type names make nothing. A
 // negative id takes the next automatic one; an existing source with the id gets the new effect.
-void __fastcall ScriptCreateParticleSource(CScript* script, void*, const SSCCmd* cmd) {
+void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     mfc::CString name(cmd->stringArgs.data[0]);
     const ScriptParticleType* type = nullptr;
     for (int i = 0; i < kScriptParticleTypeCount; ++i) {
@@ -194,9 +194,9 @@ void __fastcall ScriptCreateParticleSource(CScript* script, void*, const SSCCmd*
 
     const float* f = cmd->floatArgs.data;
     int id = static_cast<int>(std::lrint(f[0]));
-    if (id < 0) id = script->nextParticleId_--;
+    if (id < 0) id = nextParticleId_--;
 
-    mfc::CList<ScriptParticleSource>& list = script->particles_;
+    mfc::CList<ScriptParticleSource>& list = particles_;
     ScriptParticleSource* source = nullptr;
     for (auto* node = list.head; node; node = node->next) {
         if (node->data.id == id) {
@@ -235,11 +235,11 @@ void __fastcall ScriptCreateParticleSource(CScript* script, void*, const SSCCmd*
 
 // 004BDBB0: MoveParticleSource(id, x, y, z, steps, delete when done). The source moves towards the
 // point in `steps` equal steps (one per tick); nothing when no source has the id.
-void __fastcall ScriptMoveParticleSource(CScript* script, void*, const SSCCmd* cmd) {
+void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
     const float* f = cmd->floatArgs.data;
     int id = static_cast<int>(std::lrint(f[0]));
     ScriptParticleSource* source = nullptr;
-    for (auto* node = script->particles_.head; node; node = node->next) {
+    for (auto* node = particles_.head; node; node = node->next) {
         if (node->data.id == id) {
             source = &node->data;
             break;
@@ -259,91 +259,91 @@ void __fastcall ScriptMoveParticleSource(CScript* script, void*, const SSCCmd* c
 // ---- Saving ---------------------------------------------------------------------------------------
 
 // 004B1940
-void __fastcall ScriptPointLightSave(const ScriptPointLight* light, void*, ScriptStream* stream) {
-    WriteInt(stream, ObjectId(light->object));
-    WriteInt(stream, light->id);
-    WriteInt(stream, light->removeWhenDone);
-    WriteInt(stream, light->moving);
-    WriteInt(stream, light->steps);
-    stream->Write(light->step, 12);
+void ScriptPointLight::ScriptPointLightSave(ScriptStream* stream) const {
+    WriteInt(stream, ObjectId(object));
+    WriteInt(stream, id);
+    WriteInt(stream, removeWhenDone);
+    WriteInt(stream, moving);
+    WriteInt(stream, steps);
+    stream->Write(step, 12);
 }
 
 // 004B1A80
-void __fastcall ScriptParticleSourceSave(const ScriptParticleSource* source, void*, ScriptStream* stream) {
-    WriteInt(stream, ObjectId(source->object));
-    WriteInt(stream, source->id);
-    WriteInt(stream, source->deleteAfterMove);
-    WriteInt(stream, source->moving);
-    WriteInt(stream, source->steps);
-    stream->Write(source->step, 12);
-    WriteInt(stream, source->lifetime);
+void ScriptParticleSource::ScriptParticleSourceSave(ScriptStream* stream) const {
+    WriteInt(stream, ObjectId(object));
+    WriteInt(stream, id);
+    WriteInt(stream, deleteAfterMove);
+    WriteInt(stream, moving);
+    WriteInt(stream, steps);
+    stream->Write(step, 12);
+    WriteInt(stream, lifetime);
 }
 
 // 004B1C50
-void __fastcall ScriptFxSourceSave(const ScriptFxSource* source, void*, ScriptStream* stream) {
-    WriteInt(stream, ObjectId(source->object));
-    WriteInt(stream, source->id);
-    const char* name = source->name;
-    stream->Write(name, static_cast<std::uint32_t>(Length(name) + 1));
-    stream->Write(source->position, 12);
-    stream->Write(&source->volume, 4);
-    stream->Write(&source->radius, 4);
-    WriteInt(stream, source->idle);
-    stream->Write(&source->spread, 4);
-    WriteInt(stream, source->minDelay);
-    WriteInt(stream, source->maxDelay);
-    WriteInt(stream, source->countdown);
+void ScriptFxSource::ScriptFxSourceSave(ScriptStream* stream) const {
+    WriteInt(stream, ObjectId(object));
+    WriteInt(stream, id);
+    const char* text = name;
+    stream->Write(text, static_cast<std::uint32_t>(Length(text) + 1));
+    stream->Write(position, 12);
+    stream->Write(&volume, 4);
+    stream->Write(&radius, 4);
+    WriteInt(stream, idle);
+    stream->Write(&spread, 4);
+    WriteInt(stream, minDelay);
+    WriteInt(stream, maxDelay);
+    WriteInt(stream, countdown);
 }
 
 // 004B1DB0
-void __fastcall ScriptLightningSave(const ScriptLightning* bolt, void*, ScriptStream* stream) {
-    WriteInt(stream, ObjectId(bolt->object));
-    WriteInt(stream, bolt->id);
+void ScriptLightning::ScriptLightningSave(ScriptStream* stream) const {
+    WriteInt(stream, ObjectId(object));
+    WriteInt(stream, id);
 }
 
 // ---- Loading --------------------------------------------------------------------------------------
 
 // 004B18B0
-void __fastcall ScriptPointLightLoad(ScriptPointLight* light, void*, ScriptStream* stream) {
-    light->object = ReadObject(stream);
-    stream->Read(&light->id, 4);
-    stream->Read(&light->removeWhenDone, 4);
-    stream->Read(&light->moving, 4);
-    stream->Read(&light->steps, 4);
-    stream->Read(light->step, 12);
+void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
+    object = ReadObject(stream);
+    stream->Read(&id, 4);
+    stream->Read(&removeWhenDone, 4);
+    stream->Read(&moving, 4);
+    stream->Read(&steps, 4);
+    stream->Read(step, 12);
 }
 
 // 004B1B40
-void __fastcall ScriptFxSourceLoad(ScriptFxSource* source, void*, ScriptStream* stream) {
-    source->object = ReadObject(stream);
-    stream->Read(&source->id, 4);
-    alignas(4) unsigned char name[sizeof(mfc::CString)];
-    source->name = *stream->ReadString(name);
-    reinterpret_cast<mfc::CString*>(name)->~CString();
-    stream->Read(source->position, 12);
-    stream->Read(&source->volume, 4);
-    stream->Read(&source->radius, 4);
-    stream->Read(&source->idle, 4);
-    stream->Read(&source->spread, 4);
-    stream->Read(&source->minDelay, 4);
-    stream->Read(&source->maxDelay, 4);
-    stream->Read(&source->countdown, 4);
+void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
+    object = ReadObject(stream);
+    stream->Read(&id, 4);
+    alignas(4) unsigned char nameStorage[sizeof(mfc::CString)];
+    name = *stream->ReadString(nameStorage);
+    reinterpret_cast<mfc::CString*>(nameStorage)->~CString();
+    stream->Read(position, 12);
+    stream->Read(&volume, 4);
+    stream->Read(&radius, 4);
+    stream->Read(&idle, 4);
+    stream->Read(&spread, 4);
+    stream->Read(&minDelay, 4);
+    stream->Read(&maxDelay, 4);
+    stream->Read(&countdown, 4);
 }
 
-EI_REPLACE(0x004B1940, ScriptPointLightSave);
-EI_REPLACE(0x004B1A80, ScriptParticleSourceSave);
-EI_REPLACE(0x004B1C50, ScriptFxSourceSave);
-EI_REPLACE(0x004B1DB0, ScriptLightningSave);
-EI_REPLACE(0x004B18B0, ScriptPointLightLoad);
-EI_REPLACE(0x004B1B40, ScriptFxSourceLoad);
-EI_REPLACE(0x004B17F0, ScriptPointLightDestruct);
-EI_REPLACE(0x004B1820, ScriptLightningDestruct);
-EI_REPLACE(0x004B1850, ScriptParticleSourceDestruct);
-EI_REPLACE(0x004B1880, ScriptFxSourceDropSound);
-EI_REPLACE(0x004BD260, ScriptCreateFx);
-EI_REPLACE(0x004BD310, ScriptCreateFxSource);
-EI_REPLACE(0x004BCFF0, ScriptCreateLightning);
-EI_REPLACE(0x004BD540, ScriptFxSourceDestruct);
-EI_REPLACE(0x004BD9A0, ScriptCreateParticleSource);
-EI_REPLACE(0x004BDBB0, ScriptMoveParticleSource);
+EI_REPLACE_METHOD(0x004B1940, ScriptPointLight::ScriptPointLightSave);
+EI_REPLACE_METHOD(0x004B1A80, ScriptParticleSource::ScriptParticleSourceSave);
+EI_REPLACE_METHOD(0x004B1C50, ScriptFxSource::ScriptFxSourceSave);
+EI_REPLACE_METHOD(0x004B1DB0, ScriptLightning::ScriptLightningSave);
+EI_REPLACE_METHOD(0x004B18B0, ScriptPointLight::ScriptPointLightLoad);
+EI_REPLACE_METHOD(0x004B1B40, ScriptFxSource::ScriptFxSourceLoad);
+EI_REPLACE_METHOD(0x004B17F0, ScriptPointLight::ScriptPointLightDestruct);
+EI_REPLACE_METHOD(0x004B1820, ScriptLightning::ScriptLightningDestruct);
+EI_REPLACE_METHOD(0x004B1850, ScriptParticleSource::ScriptParticleSourceDestruct);
+EI_REPLACE_METHOD(0x004B1880, ScriptFxSource::ScriptFxSourceDropSound);
+EI_REPLACE_METHOD(0x004BD260, CScript::ScriptCreateFx);
+EI_REPLACE_METHOD(0x004BD310, CScript::ScriptCreateFxSource);
+EI_REPLACE_METHOD(0x004BCFF0, CScript::ScriptCreateLightning);
+EI_REPLACE_METHOD(0x004BD540, ScriptFxSource::ScriptFxSourceDestruct);
+EI_REPLACE_METHOD(0x004BD9A0, CScript::ScriptCreateParticleSource);
+EI_REPLACE_METHOD(0x004BDBB0, CScript::ScriptMoveParticleSource);
 EI_REPLACE(0x004CD690, ScriptLightningElementsDestruct);

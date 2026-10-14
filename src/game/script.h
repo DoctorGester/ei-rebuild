@@ -212,6 +212,15 @@ static_assert(sizeof(ScriptAreaPart) == 0x14);
 
 // A point light slot (CScript::pointLights_, 256 slots).
 struct ScriptPointLight {
+    // 004B17F0 (script_effects.cpp). The effect object leaves the world's timed objects and is released;
+    // the slot is cleared.
+    void ScriptPointLightDestruct();
+    // 004B1940 / 004B18B0 (RET 4; script_effects.cpp). The element as the savegame holds it: the effect
+    // object's id (-1: none), then the fields in order; Load reads it back (the object is looked up in the
+    // world's effect manager, 007AFFA8, and referenced).
+    void ScriptPointLightSave(ScriptStream* stream) const;
+    void ScriptPointLightLoad(ScriptStream* stream);
+
     CEngineObject* object;  // +0x00 the light (CEffectPointLight), null when the slot is free
     int id;                 // +0x04
     int removeWhenDone;     // +0x08 MovePointLight: remove the light when the move ends
@@ -226,6 +235,12 @@ static_assert(sizeof(ScriptPointLight) == 0x20);
 
 // A particle source (CScript::particles_; CreateParticleSource / MoveParticleSource).
 struct ScriptParticleSource {
+    // 004B1850 (script_effects.cpp). The effect object leaves the world's timed objects and is released;
+    // the slot is cleared.
+    void ScriptParticleSourceDestruct();
+    // 004B1A80 (RET 4; script_effects.cpp). Saved as the savegame holds it (as the point light's).
+    void ScriptParticleSourceSave(ScriptStream* stream) const;
+
     CEngineObject* object;  // +0x00 the source (CEffectParticle)
     int id;                 // +0x04
     int deleteAfterMove;    // +0x08
@@ -239,6 +254,17 @@ static_assert(sizeof(ScriptParticleSource) == 0x24);
 // A sound source (CScript::fxSources_; CreateFXSource / CreateRandomizedFXSource). The tick
 // replaces the sound of a source whose `idle` is 0 when its countdown runs out.
 struct ScriptFxSource {
+    // 004B1880 (script_effects.cpp). The sound leaves the world's timed objects and is released; the slot
+    // is cleared (the name is the caller's to destroy).
+    void ScriptFxSourceDropSound();
+    // 004BD540 (script_effects.cpp). The element's destructor body: the sound dropped as above, then the
+    // name destroyed.
+    void ScriptFxSourceDestruct();
+    // 004B1C50 / 004B1B40 (RET 4; script_effects.cpp). Saved as the savegame holds it (the name with its
+    // terminator); Load reads it back.
+    void ScriptFxSourceSave(ScriptStream* stream) const;
+    void ScriptFxSourceLoad(ScriptStream* stream);
+
     CEngineObject* object;  // +0x00 the current sound (CEffectSound)
     int id;                 // +0x04
     mfc::CString name;      // +0x08 the sound's name
@@ -255,6 +281,12 @@ static_assert(sizeof(ScriptFxSource) == 0x34);
 
 // A lightning bolt (CScript::lightning_; CreateLightning).
 struct ScriptLightning {
+    // 004B1820 (script_effects.cpp). The effect object leaves the world's timed objects and is released;
+    // the slot is cleared.
+    void ScriptLightningDestruct();
+    // 004B1DB0 (RET 4; script_effects.cpp). Saved as the savegame holds it (as the point light's).
+    void ScriptLightningSave(ScriptStream* stream) const;
+
     CEngineObject* object;  // +0x00 the bolt (CEffectLightning)
     int id;                 // +0x04
 };
@@ -296,6 +328,32 @@ public:
     CScript* Construct();
     // 00456360 (RET 4). The error text (copy-constructed at `out`), code and line; returns out.
     ScriptErrorInfo* GetError(ScriptErrorInfo* out);
+
+    // ---- Effect commands (script_effects.cpp), called by Execute with the command (RET 4) ----------
+    // 004BD260. CreateFX(x, y, z, volume, radius, name): a new sound object (class 0x48, not looping)
+    // added to the world's timed objects; the script keeps nothing.
+    void ScriptCreateFx(const SSCCmd* cmd);
+    // 004BD310 (A-E1). CreateFXSource(id, x, y, z, volume, radius, name) and CreateRandomizedFXSource
+    // (the same, then min delay, max delay, spread): the id (FISTP; negative: nextFxId_) finds an
+    // existing source, whose sound is dropped, or a new one at the tail; position, volume, radius and
+    // name from the command. CreateFXSource (command 0x16) makes the sound (class 0x48) at once and
+    // clears idle; the other keeps no sound, takes the delays and the spread, countdown 0, idle 1.
+    // For a new id CreateFXSource leaves spread, the delays and the countdown as stack residue in the
+    // original; here they are 0, 0, 0 and INT_MAX (docs/notes/script.md).
+    void ScriptCreateFxSource(const SSCCmd* cmd);
+    // 004BCFF0. CreateLightning(id, from xyz, to xyz, width): a new bolt (class 0x4D) appended to
+    // lightning_ (a negative or NaN id takes nextParticleId_, others are truncated; existing ids are
+    // not looked up).
+    void ScriptCreateLightning(const SSCCmd* cmd);
+    // 004BD9A0. CreateParticleSource(id, x, y, z, size, type name): the type looked up by name
+    // (case-insensitive) in ScriptParticleTypes(), nothing for an unknown one; the id (FISTP; negative:
+    // nextParticleId_) finds an existing source, whose effect is dropped, or a new one at the tail; a new
+    // CEffectParticle (class 0x4A) with the type, position and size; the source not moving, the type's
+    // lifetime.
+    void ScriptCreateParticleSource(const SSCCmd* cmd);
+    // 004BDBB0. MoveParticleSource(id, x, y, z, steps, delete when done): the source with the id (FISTP)
+    // starts moving; step = (point - position) / steps.
+    void ScriptMoveParticleSource(const SSCCmd* cmd);
 
     // ---- Loader and parser (script_parse.cpp, script_parse_load.cpp) ----------------------------
     // Every Load* function returns 1 on success; on failure it returns what Error returned (0).
@@ -850,53 +908,8 @@ ScriptSubCall* __fastcall ScriptSubCallCopyAt(const mfc::CArray<ScriptSubCall>* 
                                               ScriptSubCall* out, int index);                          // 004CCAA0
 
 // ---- Script effects (script_effects.cpp) ----------------------------------------------------------
-// __thiscall on the element, registered as free functions; callers keep going through the
-// original addresses.
-// 004B1940 / 004B1A80 / 004B1C50 / 004B1DB0. A point light / particle source / FX source /
-// lightning bolt as the savegame holds it: the effect object's id (-1: none), then the fields in
-// order (an FX source's name with its terminator).
-void __fastcall ScriptPointLightSave(const ScriptPointLight* light, void* edx, ScriptStream* stream);
-void __fastcall ScriptParticleSourceSave(const ScriptParticleSource* source, void* edx, ScriptStream* stream);
-void __fastcall ScriptFxSourceSave(const ScriptFxSource* source, void* edx, ScriptStream* stream);
-void __fastcall ScriptLightningSave(const ScriptLightning* bolt, void* edx, ScriptStream* stream);
-// 004B18B0 / 004B1B40. Read what the savers wrote; the object is looked up in the world's effect
-// manager (007AFFA8) and referenced.
-void __fastcall ScriptPointLightLoad(ScriptPointLight* light, void* edx, ScriptStream* stream);
-void __fastcall ScriptFxSourceLoad(ScriptFxSource* source, void* edx, ScriptStream* stream);
-// 004B17F0 / 004B1820 / 004B1850 / 004B1880 (__thiscall). The element's effect object leaves the
-// world's timed objects and is released; the slot is cleared (an FX source's name stays).
-void __fastcall ScriptPointLightDestruct(ScriptPointLight* light);
-void __fastcall ScriptLightningDestruct(ScriptLightning* bolt);
-void __fastcall ScriptParticleSourceDestruct(ScriptParticleSource* source);
-void __fastcall ScriptFxSourceDropSound(ScriptFxSource* source);
-// Commands (__thiscall on the script with the command, as Execute calls them).
-// 004BD260. CreateFX(x, y, z, volume, radius, name): a new sound object (class 0x48, not looping)
-// added to the world's timed objects; the script keeps nothing.
-void __fastcall ScriptCreateFx(CScript* script, void* edx, const SSCCmd* cmd);
-// 004BD310 (A-E1). CreateFXSource(id, x, y, z, volume, radius, name) and CreateRandomizedFXSource
-// (the same, then min delay, max delay, spread): the id (FISTP; negative: nextFxId_) finds an
-// existing source, whose sound is dropped, or a new one at the tail; position, volume, radius and
-// name from the command. CreateFXSource (command 0x16) makes the sound (class 0x48) at once and
-// clears idle; the other keeps no sound, takes the delays and the spread, countdown 0, idle 1.
-// For a new id CreateFXSource leaves spread, the delays and the countdown as stack residue in the
-// original; here they are 0, 0, 0 and INT_MAX (docs/notes/script.md).
-void __fastcall ScriptCreateFxSource(CScript* script, void* edx, const SSCCmd* cmd);
-// 004BCFF0. CreateLightning(id, from xyz, to xyz, width): a new bolt (class 0x4D) appended to
-// lightning_ (a negative or NaN id takes nextParticleId_, others are truncated; existing ids are
-// not looked up).
-void __fastcall ScriptCreateLightning(CScript* script, void* edx, const SSCCmd* cmd);
-// 004BD540 (__thiscall). The FX source element's destructor body: the sound dropped as above, then
-// the name destroyed.
-void __fastcall ScriptFxSourceDestruct(ScriptFxSource* source);
-// 004BD9A0. CreateParticleSource(id, x, y, z, size, type name): the type looked up by name
-// (case-insensitive) in ScriptParticleTypes(), nothing for an unknown one; the id (FISTP; negative:
-// nextParticleId_) finds an existing source, whose effect is dropped, or a new one at the tail; a new
-// CEffectParticle (class 0x4A) with the type, position and size; the source not moving, the type's
-// lifetime.
-void __fastcall ScriptCreateParticleSource(CScript* script, void* edx, const SSCCmd* cmd);
-// 004BDBB0. MoveParticleSource(id, x, y, z, steps, delete when done): the source with the id (FISTP)
-// starts moving; step = (point - position) / steps.
-void __fastcall ScriptMoveParticleSource(CScript* script, void* edx, const SSCCmd* cmd);
+// The savers / loaders / destructors of the effect elements are members of the element structs above,
+// the commands members of CScript; all registered at the original addresses.
 
 // ---- Variable array constructors and destructors (script_arrays.cpp) -----------------------------
 // __thiscall, registered as free functions; callers keep going through the original addresses.

@@ -474,7 +474,7 @@ void __fastcall PointLightLoadVerify(ScriptPointLight* self, void*, ScriptStream
     RecordStream record(stream);
     s_pointLight(&scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    ScriptPointLightLoad(self, nullptr, replay.AsScript());
+    self->ScriptPointLightLoad(replay.AsScript());
     char what[64];
     std::snprintf(what, sizeof(what), "light %d vs %d", scratch.id, self->id);
     Report("ScriptPointLightLoad", std::memcmp(&scratch, self, sizeof(scratch)) == 0, replay, record, what);
@@ -488,7 +488,7 @@ void __fastcall FxSourceLoadVerify(ScriptFxSource* self, void*, ScriptStream* st
     RecordStream record(stream);
     s_fxSource(&scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    ScriptFxSourceLoad(self, nullptr, replay.AsScript());
+    self->ScriptFxSourceLoad(replay.AsScript());
     bool same = scratch.object == self->object && scratch.id == self->id && SameString(scratch.name, self->name) &&
                 std::memcmp(scratch.position, self->position, sizeof(ScriptFxSource) - offsetof(ScriptFxSource, position)) == 0;
     char what[96];

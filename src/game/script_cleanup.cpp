@@ -104,7 +104,7 @@ void __fastcall ScriptResetZone(CScript* script) {
     }
     if (lights.size) std::memset(lights.data, 0, static_cast<unsigned>(lights.size) * sizeof(ScriptPointLight));
 
-    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { ScriptFxSourceDestruct(source); });
+    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { source->ScriptFxSourceDestruct(); });
     RemoveAll(script->particles_, [](ScriptParticleSource* source) {
         if (CEngineObject* object = source->object) {
             WorldServer()->RemoveTimedObject(object->id_);
@@ -112,7 +112,7 @@ void __fastcall ScriptResetZone(CScript* script) {
         }
         source->object = nullptr;
     });
-    RemoveAll(script->lightning_, [](ScriptLightning* bolt) { ScriptLightningDestruct(bolt); });
+    RemoveAll(script->lightning_, [](ScriptLightning* bolt) { bolt->ScriptLightningDestruct(); });
 
     script->globals_.ResetValues();
     for (auto* node = script->worldBlocks_.head; node;) {

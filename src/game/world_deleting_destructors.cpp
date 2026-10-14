@@ -42,7 +42,7 @@ RefPtr* __fastcall RefPtrDestroyDelete(RefPtr* self, void*, unsigned flags) {
 EI_REPLACE(0x00560590, RefPtrDestroyDelete);
 
 ScriptPointLight* __fastcall ScriptPointLightDelete(ScriptPointLight* self, void*, unsigned flags) {
-    return DestroyAndFree(self, flags, [](ScriptPointLight* light) { ScriptPointLightDestruct(light); });
+    return DestroyAndFree(self, flags, [](ScriptPointLight* light) { light->ScriptPointLightDestruct(); });
 }
 EI_REPLACE(0x0059DD70, ScriptPointLightDelete);
 
