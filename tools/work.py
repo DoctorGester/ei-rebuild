@@ -23,7 +23,7 @@ SQLite in WAL mode: readers never wait, writers take short BEGIN IMMEDIATE trans
 each other through the busy timeout. docs/tickets.toml stays what a ticket is; this keeps what is
 happening now. Schema and commands: docs/notes/work-board.md.
 """
-import argparse, contextlib, datetime, os, sqlite3, subprocess, sys
+import argparse, contextlib, datetime, os, re, sqlite3, statistics, subprocess, sys, time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUSY_MS = 60000          # a writer waits this long for another's transaction before giving up
@@ -104,6 +104,21 @@ MIGRATIONS = [
     # NULL (a batch from before): the games inherit the scheduler's environment.
     """
     ALTER TABLE batch ADD COLUMN env TEXT;   -- JSON object {name: value}
+    """,
+    # 3 (WB6): how long each finished game took, machine-wide (every build, every worktree, scheduler and plain run_all).
+    # scenario_rev: the commit that last changed tests/scenarios/<scenario>.txt in the run's checkout ('<hash>+dirty' when the
+    # file had uncommitted edits, '' outside a repository), so a changed scenario starts without its old estimates.
+    """
+    CREATE TABLE timing (
+        id           INTEGER PRIMARY KEY,
+        scenario     TEXT NOT NULL,
+        install      TEXT NOT NULL,         -- vanilla, rebirth, native, rebirth-nohooks
+        scenario_rev TEXT NOT NULL DEFAULT '',
+        seconds      REAL NOT NULL,
+        time         TEXT NOT NULL,
+        batch        INTEGER                -- the scheduler's batch; NULL for a plain run_all
+    );
+    CREATE INDEX timing_lookup ON timing(scenario, install, scenario_rev, id);
     """,
 ]
 
@@ -195,6 +210,85 @@ def migrate(db):
                     db.execute(statement)
                     statement = ''
         db.execute(f'PRAGMA user_version = {len(MIGRATIONS)}')
+
+
+# ---- expected run times (WB6)
+
+TIMING_RECENT = 5        # the median of this many latest rows is a run's expected time
+_revs = {}               # checkout -> (time, {scenario: rev})
+
+
+def scenario_revs(root, max_age=30.0):
+    """{scenario: rev} for the checkout's tests/scenarios/*.txt: the newest commit that changed the file (what
+    `git log -1 --format=%H -- <file>` says), with '+dirty' appended while it has uncommitted edits. One git
+    log walk for all of them (stopped once every file has its commit), reused for max_age seconds."""
+    root = norm(root)
+    cached = _revs.get(root)
+    if cached and time.time() - cached[0] < max_age:
+        return cached[1]
+    revs = {}
+    folder = os.path.join(root, 'tests', 'scenarios')
+    try:
+        want = {f[:-4] for f in os.listdir(folder) if f.endswith('.txt')}
+        proc = subprocess.Popen(['git', '-c', 'core.quotepath=off', 'log', '--name-only', '--format=%x01%H', '--',
+                                 'tests/scenarios'], cwd=root, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                text=True, encoding='utf-8', errors='replace')
+        try:
+            commit = ''
+            for line in proc.stdout:
+                line = line.rstrip('\n')
+                if line.startswith('\x01'):
+                    commit = line[1:]
+                    continue
+                m = re.fullmatch(r'tests/scenarios/(.+)\.txt', line)
+                if m and m.group(1) not in revs:
+                    revs[m.group(1)] = commit
+                    if want <= revs.keys():
+                        break
+        finally:
+            proc.kill()
+            proc.stdout.close()
+            proc.wait()
+        status = subprocess.run(['git', '-c', 'core.quotepath=off', 'status', '--porcelain', '--untracked-files=all', '--',
+                                 'tests/scenarios'], cwd=root, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        for line in status.stdout.splitlines() if status.returncode == 0 else []:
+            m = re.fullmatch(r'.. "?tests/scenarios/(.+)\.txt"?', line.rstrip())
+            if m:
+                revs[m.group(1)] = revs.get(m.group(1), '') + '+dirty'
+    except OSError:
+        pass
+    _revs[root] = (time.time(), revs)
+    return revs
+
+
+def expected_seconds(db, scenario, install, rev, fallback=None):
+    """A run's expected time: the median of the last TIMING_RECENT rows for (scenario, install, rev); else of the
+    last rows for (scenario, install) at any rev; else fallback (the build's run_times.json entry, or None).
+    An uncommitted scenario ('+dirty' rev) skips the first step: its edits are not what earlier rows timed."""
+    if rev and not rev.endswith('+dirty'):
+        rows = db.execute('SELECT seconds FROM timing WHERE scenario = ? AND install = ? AND scenario_rev = ? ORDER BY id DESC LIMIT ?',
+                          (scenario, install, rev, TIMING_RECENT)).fetchall()
+        if rows:
+            return statistics.median(r[0] for r in rows)
+    rows = db.execute('SELECT seconds FROM timing WHERE scenario = ? AND install = ? ORDER BY id DESC LIMIT ?',
+                      (scenario, install, TIMING_RECENT)).fetchall()
+    return statistics.median(r[0] for r in rows) if rows else fallback
+
+
+def expected_times(db, root, jobs, fallbacks=None):
+    """{(scenario, install): expected seconds or None} for jobs [(scenario, install)] run from checkout root;
+    fallbacks: {'<scenario>-<install>': seconds} (run_times.json)."""
+    revs = scenario_revs(root)
+    fallbacks = fallbacks or {}
+    return {(n, i): expected_seconds(db, n, i, revs.get(n, ''), fallbacks.get(f'{n}-{i}')) for n, i in jobs}
+
+
+def record_time(db, scenario, install, root, seconds, batch=None):
+    """Appends a finished game's time to the timing table (a short transaction)."""
+    rev = scenario_revs(root).get(scenario, '')
+    with transaction(db):
+        db.execute('INSERT INTO timing (scenario, install, scenario_rev, seconds, time, batch) VALUES (?, ?, ?, ?, ?, ?)',
+                   (scenario, install, rev, round(seconds, 1), now(), batch))
 
 
 # ---- tickets.toml (titles; whether an id exists)

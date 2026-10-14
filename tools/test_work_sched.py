@@ -70,8 +70,8 @@ class SchedTest(unittest.TestCase):
     def tearDown(self):
         self.db.close()
 
-    def sched(self, fake, count=4):
-        s = work_sched.Scheduler(self.db, runner=fake, slots=work_sched.SlotPool(count, self.slots))
+    def sched(self, fake, count=4, code=None):
+        s = work_sched.Scheduler(self.db, runner=fake, slots=work_sched.SlotPool(count, self.slots), code=code or [])
         s.last_check = time.time() + 3600     # no submitter checks unless a test asks
         return s
 
@@ -249,6 +249,123 @@ class SchedTest(unittest.TestCase):
         got = run_all.game_environment({'EI_PLAIN': '1', 'EI_PROFILE': '1', 'EI_BUILD_DIR': 'x', 'EI_HARNESS_SLOTS': '4',
                                         'EI_OUT_DIR': 'o', 'EI_HARNESS': 'h', 'PATH': 'p', 'WORK_DB': 'd'})
         self.assertEqual(got, {'EI_PLAIN': '1', 'EI_PROFILE': '1'})
+
+    # ---- WB6: machine-wide expected run times
+
+    def add_timing(self, scenario, install, rev, *seconds):
+        for sec in seconds:
+            self.db.execute("INSERT INTO timing (scenario, install, scenario_rev, seconds, time) VALUES (?, ?, ?, ?, '2026-10-14T00:00:00+02:00')",
+                            (scenario, install, rev, sec))
+
+    def test_expected_seconds_fallbacks(self):
+        e = lambda *a, **k: work.expected_seconds(self.db, *a, **k)
+        self.assertIsNone(e('s', 'vanilla', 'r1'))
+        self.assertEqual(e('s', 'vanilla', 'r1', fallback=42), 42)                      # run_times.json
+        self.add_timing('s', 'vanilla', 'old', 100, 100, 100)
+        self.assertEqual(e('s', 'vanilla', 'r1', fallback=42), 100)                     # other rev beats run_times.json
+        self.assertEqual(e('s', 'rebirth', 'r1', fallback=42), 42)                      # other install does not
+        self.add_timing('s', 'vanilla', 'r1', 10, 12)
+        self.assertEqual(e('s', 'vanilla', 'r1', fallback=42), 11)                      # this rev only, median
+        self.add_timing('s', 'vanilla', 'r1', 50, 14, 16, 18, 20)                       # the last 5 count: 50 14 16 18 20
+        self.assertEqual(e('s', 'vanilla', 'r1'), 18)
+        self.assertEqual(e('s', 'vanilla', 'r1+dirty'), 18)                             # uncommitted: any rev, last 5 overall
+        self.assertEqual(e('s', 'vanilla', 'r2'), 18)                                   # a changed scenario: latest rows at any rev
+        self.add_timing('s', 'vanilla', 'r2', 3)
+        self.assertEqual(e('s', 'vanilla', 'r2'), 3)                                    # ...until it has its own
+        self.assertEqual(e('s', 'vanilla', 'r1'), 18)
+        self.assertEqual(e('s', 'vanilla', 'r2+dirty'), 16)                             # any rev: 14 16 18 20 3
+        times = work.expected_times(self.db, self.tmp, [('s', 'vanilla'), ('t', 'vanilla')], {'t-vanilla': 7})
+        self.assertEqual(times[('t', 'vanilla')], 7)       # not a repository: rev '' -> any rev -> run_times.json
+        self.assertEqual(times[('s', 'vanilla')], 16)
+
+    def test_scenario_revs_follow_the_last_commit(self):
+        repo = os.path.join(self.tmp, 'repo')
+        os.makedirs(os.path.join(repo, 'tests', 'scenarios'))
+        env = dict(os.environ, GIT_AUTHOR_NAME='t', GIT_AUTHOR_EMAIL='t@t', GIT_COMMITTER_NAME='t', GIT_COMMITTER_EMAIL='t@t')
+        git = lambda *a: subprocess.run(['git', *a], cwd=repo, env=env, capture_output=True, text=True, check=True).stdout.strip()
+        write = lambda n, text: open(os.path.join(repo, 'tests', 'scenarios', n + '.txt'), 'w').write(text)
+        git('init', '-q')
+        write('a', '1'), write('b', '1')
+        git('add', '.'), git('commit', '-qm', 'a, b')
+        write('b', '2')
+        git('commit', '-qam', 'b')
+        write('c', '1')
+        git('add', '.'), git('commit', '-qm', 'c')
+        revs = work.scenario_revs(repo, max_age=0)
+        for n in 'abc':
+            self.assertEqual(revs[n], git('log', '-1', '--format=%H', '--', f'tests/scenarios/{n}.txt'), n)
+        self.assertEqual(len({revs[n] for n in 'abc'}), 3)
+        write('a', '2')                                                        # uncommitted edit
+        write('d', '1')                                                        # not even added
+        revs2 = work.scenario_revs(repo, max_age=0)
+        self.assertEqual((revs2['a'], revs2['b']), (revs['a'] + '+dirty', revs['b']))
+        self.assertEqual(revs2['d'], '+dirty')
+        self.assertEqual(work.scenario_revs(self.tmp, max_age=0), {})          # not a repository
+
+    def test_scheduler_records_and_uses_timings(self):
+        fake = Fake({'p': .05, 'f': .05, 'e': .05}, results={'f': ['FAIL'], 'e': ['ERROR']})
+        a = self.submit(['p', 'f', 'e'], argv=['--retries', '0'])
+        self.drive(self.sched(fake))
+        rows = self.db.execute('SELECT scenario, install, scenario_rev, seconds, batch FROM timing ORDER BY id').fetchall()
+        self.assertEqual(sorted(r['scenario'] for r in rows), ['f', 'p'])    # a run that errored is no time
+        self.assertTrue(all(r['batch'] == a and r['install'] == 'vanilla' and r['scenario_rev'] == '' and r['seconds'] >= 0 for r in rows))
+        self.assertEqual(work.expected_times(self.db, self.tmp, [('p', 'vanilla')])[('p', 'vanilla')],
+                         self.db.execute("SELECT seconds FROM timing WHERE scenario = 'p'").fetchone()[0])
+
+    # ---- WB6: leaving for new scheduler code
+
+    def test_restart_on_new_code(self):
+        code = os.path.join(self.tmp, 'sched_code.py')
+        open(code, 'w').write('one')
+        fake = Fake(default=0.4)
+        a = self.submit(['a1', 'a2', 'a3', 'a4'])
+        s = self.sched(fake, count=2, code=[code])
+        s.last_check = 0
+        s.tick()                                          # a1, a2 start
+        self.assertEqual(len(s.games), 2)
+        s.last_check = 0
+        s.tick()
+        self.assertFalse(s.stale, 'unchanged code made it leave')
+        self.assertFalse(s.should_restart())
+        open(code, 'w').write('two')
+        s.last_check = 0
+        s.tick()
+        self.assertTrue(s.stale)
+        self.assertFalse(s.should_restart(), 'left with games running')
+        end = time.time() + 20
+        while not s.should_restart():
+            s.tick()
+            self.assertLess(time.time(), end)
+            time.sleep(0.02)
+        self.assertEqual(len(fake.spans), 2, 'a game started after the code changed')
+        states = sorted(r['state'] for r in self.runs(a).values())
+        self.assertEqual(states, ['finished', 'finished', 'queued', 'queued'], 'queued runs must stay queued')
+        self.assertEqual(self.batch(a)['state'], 'running')
+        # the next scheduler (new code) takes the batch on
+        self.drive(self.sched(fake, count=2))
+        self.assertEqual((self.batch(a)['state'], self.batch(a)['exit_code']), ('finished', 0))
+
+    def test_missing_code_file_is_not_a_change(self):
+        s = self.sched(Fake(), code=[os.path.join(self.tmp, 'nope.py')])
+        s.last_check = 0
+        s.tick()
+        self.assertFalse(s.stale)
+
+    def test_scheduler_process_leaves_on_new_code(self):
+        code = os.path.join(self.tmp, 'code.py')
+        open(code, 'w').write('one')
+        env = dict(os.environ, WORK_DB=os.path.join(self.tmp, 'work.db'), WORK_SCHED_CODE=code)
+        cmd = [sys.executable, os.path.join(work.ROOT, 'tools', 'work.py'), 'scheduler']
+        proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, text=True)
+        end = time.time() + 10
+        while not self.db.execute("SELECT 1 FROM process WHERE name = 'scheduler'").fetchone():
+            self.assertLess(time.time(), end)
+            time.sleep(0.05)
+        open(code, 'w').write('two')
+        self.assertEqual(proc.wait(timeout=30), 0)
+        self.assertIn('new scheduler code', proc.stdout.read())
+        proc.stdout.close()
+        self.assertIsNone(self.db.execute("SELECT 1 FROM process WHERE name = 'scheduler'").fetchone())
 
     def test_one_scheduler_and_idle_exit(self):
         env = dict(os.environ, WORK_DB=os.path.join(self.tmp, 'work.db'), WORK_SCHED_IDLE='1.5')
