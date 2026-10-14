@@ -484,11 +484,12 @@ note = "From W2a (2026-10-14): the connect list draw now reproduces ExtendedServ
 id = "W4a"
 title = "Hero screen 00613EA0 under Rebirth: EiPluginFixes with WideScreen"
 group = "widescreen"
-status = "queued"
+status = "running"
 size = 0.5
 model = "sonnet"
 depends = ["W4"]
 note = "W4 added WideScreen's curtains to CMpHeroScreen::Create (00613EA0) but a Rebirth launch skips the hook: the function also holds EI_Plugin's EiPluginFixes at +D15 (00614BB5, cmp word [ecx+4],0x6566; jne; jmp) and +E7B (00614D1B, jmp; NOPs), not reproduced. Reproduce both behind their flag (EI_REBIRTH_IMPLEMENTS both), then compare in a Rebirth launch (ui_widescreen_more's new hero, ui_widescreen_screens' hero list) with run_all --widescreen."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- unknown fields
 
