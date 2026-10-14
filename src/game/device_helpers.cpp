@@ -8,6 +8,8 @@
 #include "model.h"           // CTransformPipeline
 #include "texture.h"
 
+#include <unknwn.h>
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/containers.h"
@@ -88,11 +90,10 @@ EI_REPLACE(0x004D9E70, EngineObjectPointerRelease);
 
 // 004FDED0 (byte-identical to 00458540): a COM pointer's destructor (IUnknown::Release, slot 2).
 // Unwind funclets of the state block manager's constructor only.
-void __fastcall ComPointerDestroy(void** pointer) {
-    void* object = *pointer;
+void __fastcall ComPointerDestroy(IUnknown** pointer) {
+    IUnknown* object = *pointer;
     if (!object) return;
-    using Release = unsigned long(__stdcall*)(void*);
-    reinterpret_cast<Release>((*static_cast<void***>(object))[2])(object);
+    object->Release();
 }
 EI_REPLACE(0x004FDED0, ComPointerDestroy);
 

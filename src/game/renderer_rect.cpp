@@ -5,6 +5,7 @@
 // interface's fades (005E69C0). The new renderer (src/render) takes both draws; with "nointerface"
 // the old path skips them. See docs/notes/renderer.md.
 #include "ei/hook.h"
+#include "device.h"
 #include "model.h"
 #include "texture.h"
 #include "lib/gameapi.h"
@@ -16,27 +17,12 @@
 
 namespace {
 
-// IDirect3DDevice7 slots and the states this draw touches.
-constexpr int kSetRenderState = 20;
-constexpr int kDrawPrimitive = 25;
-constexpr int kDrawIndexedPrimitive = 26;
-constexpr int kSetTexture = 35;
-constexpr int kSetTextureStageState = 37;
-constexpr unsigned long kShadeMode = 9, kZBias = 0x2F;
-constexpr unsigned long kColourOp = 1, kAlphaOp = 4;
-constexpr unsigned long kOpDisable = 1, kOpModulate = 4;
-constexpr unsigned long kShadeFlat = 1, kShadeGouraud = 2;
-constexpr unsigned long kTriangleList = 4, kLineStrip = 3, kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
-
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
-}
-
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-
-// 004E7840 (thiscall on the device object): draws the batched vertices.
-void __fastcall FlushBatch(char* a0) { DeviceFlushBatchAOriginal((void*)a0); }
+// The states this draw touches.
+constexpr D3DRENDERSTATETYPE kShadeMode = D3DRENDERSTATE_SHADEMODE, kZBias = D3DRENDERSTATE_ZBIAS;
+constexpr D3DTEXTURESTAGESTATETYPE kColourOp = D3DTSS_COLOROP, kAlphaOp = D3DTSS_ALPHAOP;
+constexpr DWORD kOpDisable = D3DTOP_DISABLE, kOpModulate = D3DTOP_MODULATE;
+constexpr DWORD kShadeFlat = D3DSHADE_FLAT, kShadeGouraud = D3DSHADE_GOURAUD;
+constexpr DWORD kFvf = 0xC4;   // XYZRHW | DIFFUSE | SPECULAR
 
 void Count(CTextureDevice* device, int vertices, int primitives) {
     device->vertexCount_ += vertices;
@@ -47,10 +33,10 @@ void Count(CTextureDevice* device, int vertices, int primitives) {
 } // namespace
 
 // 005041F0. Returns 0 when the rectangle is inverted (right < left or bottom < top), else 1.
-int __fastcall RendererRectangle(char* renderer, void*, int left, int top, int right, int bottom, char alpha,
+int __fastcall RendererRectangle(CSceneRenderer* renderer, void*, int left, int top, int right, int bottom, char alpha,
                                  char outline) {
     if (right < left || bottom < top) return 0;
-    CTextureDevice* device = reinterpret_cast<CSceneRenderer*>(renderer)->device_;
+    CTextureDevice* device = renderer->device_;
     std::uint32_t colour = static_cast<std::uint32_t>(static_cast<std::uint8_t>(alpha)) << 24;
     // With the outline the fill stays a pixel inside it.
     float inset = outline ? 1.0f : 0.0f;
@@ -67,17 +53,17 @@ int __fastcall RendererRectangle(char* renderer, void*, int left, int top, int r
 
     if (device->stageSurfaces_[0]) {   // no texture on stage 0
         device->stageSurfaces_[0] = nullptr;
-        FlushBatch(reinterpret_cast<char*>(device));
-        device->lastLoadResult_ = ComCall(device->d3dDevice_, kSetTexture, 0ul, static_cast<void*>(nullptr));
+        DeviceFlushBatchAOriginal(device);   // 004E7840: draws the batched vertices
+        device->lastLoadResult_ = device::D3D(device)->SetTexture(0, nullptr);
         ++device->textureChanges_;
     }
-    ComCall(device->d3dDevice_, kSetRenderState, kZBias, 0ul);
-    render::state::Render(kZBias, 0ul);
+    device::D3D(device)->SetRenderState(kZBias, 0);
+    render::state::Render(kZBias, 0);
     if (render::ScreenDraw(device, v, 4, indices, 6)) {
-        gameapi::EnterCriticalSection(DeviceLock());
-        device->lastLoadResult_ = ComCall(device->d3dDevice_, kDrawIndexedPrimitive, kTriangleList, kFvf,
-                                      static_cast<void*>(v), 4ul, indices, 6ul, 0ul);
-        gameapi::LeaveCriticalSection(DeviceLock());
+        gameapi::EnterCriticalSection(device::Lock());
+        device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitive(
+            D3DPT_TRIANGLELIST, kFvf, v, 4, const_cast<std::uint16_t*>(indices), 6, 0);
+        gameapi::LeaveCriticalSection(device::Lock());
     }
     Count(device, 4, 2);
     if (!outline) return 1;
@@ -90,28 +76,28 @@ int __fastcall RendererRectangle(char* renderer, void*, int left, int top, int r
     v[2].x = x1, v[2].y = y1;
     v[3].x = x1, v[3].y = y0;
     v[4].x = x0, v[4].y = y0;
-    ComCall(device->d3dDevice_, kSetRenderState, kShadeMode, kShadeFlat);
+    device::D3D(device)->SetRenderState(kShadeMode, kShadeFlat);
     render::state::Render(kShadeMode, kShadeFlat);
-    ComCall(device->d3dDevice_, kSetRenderState, kZBias, 1ul);
-    render::state::Render(kZBias, 1ul);
-    device->lastLoadResult_ = ComCall(device->d3dDevice_, kSetTextureStageState, 0ul, kColourOp, kOpDisable);
+    device::D3D(device)->SetRenderState(kZBias, 1);
+    render::state::Render(kZBias, 1);
+    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kColourOp, kOpDisable);
     render::state::Stage(0, kColourOp, kOpDisable);
-    device->lastLoadResult_ = ComCall(device->d3dDevice_, kSetTextureStageState, 0ul, kAlphaOp, kOpDisable);
+    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kAlphaOp, kOpDisable);
     render::state::Stage(0, kAlphaOp, kOpDisable);
     if (render::ScreenDraw(device, v, 5, nullptr, 0)) {
-        gameapi::EnterCriticalSection(DeviceLock());
-        device->lastLoadResult_ = ComCall(device->d3dDevice_, kDrawPrimitive, kLineStrip, kFvf, static_cast<void*>(v), 5ul, 0ul);
-        gameapi::LeaveCriticalSection(DeviceLock());
+        gameapi::EnterCriticalSection(device::Lock());
+        device->lastLoadResult_ = device::D3D(device)->DrawPrimitive(D3DPT_LINESTRIP, kFvf, v, 5, 0);
+        gameapi::LeaveCriticalSection(device::Lock());
     }
     Count(device, 5, 1);
-    device->lastLoadResult_ = ComCall(device->d3dDevice_, kSetTextureStageState, 0ul, kColourOp, kOpModulate);
+    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kColourOp, kOpModulate);
     render::state::Stage(0, kColourOp, kOpModulate);
-    device->lastLoadResult_ = ComCall(device->d3dDevice_, kSetTextureStageState, 0ul, kAlphaOp, kOpModulate);
+    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kAlphaOp, kOpModulate);
     render::state::Stage(0, kAlphaOp, kOpModulate);
-    ComCall(device->d3dDevice_, kSetRenderState, kShadeMode, kShadeGouraud);
+    device::D3D(device)->SetRenderState(kShadeMode, kShadeGouraud);
     render::state::Render(kShadeMode, kShadeGouraud);
-    ComCall(device->d3dDevice_, kSetRenderState, kZBias, 0ul);
-    render::state::Render(kZBias, 0ul);
+    device::D3D(device)->SetRenderState(kZBias, 0);
+    render::state::Render(kZBias, 0);
     return 1;
 }
 EI_REPLACE(0x005041F0, RendererRectangle);

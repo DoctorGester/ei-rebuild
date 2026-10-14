@@ -41,15 +41,6 @@ constexpr std::uint32_t kPixelFormatFourCC = 0x4;   // DDPIXELFORMAT flags (Pixe
 // texture kinds): 5:6:5, 5:5:5, 1:5:5:5, 4:4:4:4, 8:8:8:8.
 constexpr int kKind565 = 0x1E, kKind555 = 0x1F, kKind1555 = 0x20, kKind4444 = 0x21, kKind8888 = 0x22;
 
-// 2DintMMX's graphics processor (CTextureDevice::converter_), slot 10: decodes a DXT block image
-// (thiscall: target, source, mode, width, height).
-constexpr int kConverterDecode = 10;
-void ConverterDecode(void* converter, void* target, const void* source, int mode, std::uint32_t width,
-                     std::uint32_t height) {
-    using Fn = void(__fastcall*)(void*, void*, void*, const void*, int, std::uint32_t, std::uint32_t);
-    reinterpret_cast<Fn>((*static_cast<void***>(converter))[kConverterDecode])(converter, nullptr, target, source,
-                                                                               mode, width, height);
-}
 
 // The level loop the three fills share: from `mip` while the file has levels, lock the surface,
 // `write(target, source, width, height)` (returning the bytes it counts), unlock it, step the
@@ -174,11 +165,11 @@ EI_REPLACE_METHOD(0x00690B30, CTexture::ConvertToSurface);
 
 // The device's converter decodes each level into 16-bit pixels.
 int CTexture::UnpackToSurface(CDXSurface* surface, const MmpHeader* header, int mip, int kind) {
-    void* converter = surface->device->converter_;
+    auto* converter = static_cast<CPixelConverter*>(surface->device->converter_);
     return FillLevels(surface, header, mip, UnpackCantLockText(), UnpackCantUnlockText(),
                       [converter, kind](void* target, const std::uint8_t* source, std::uint32_t width,
                                         std::uint32_t height) {
-                          ConverterDecode(converter, target, source, kind, width, height);
+                          converter->DecodeDxt(target, source, kind, width, height);
                           return static_cast<int>(((height * width) << 4) >> 3);
                       });
 }

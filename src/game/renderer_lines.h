@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CSceneRenderer;       // model.h
+class CTextureDevice;       // texture.h
 class CTransformPipeline;   // model.h
 
 // A pre-transformed vertex (FVF 0xC4: XYZRHW | DIFFUSE | SPECULAR).
@@ -66,7 +68,7 @@ struct LineBatch {
     // 0049B780 (RET 8). Projects the packets with the top of the pipeline's clip stack (the
     // transform object's ProjectClipped into the work arrays below) and, when everything is on
     // screen (result 0), draws the strip in the list's colour (DeviceDrawLineStrip). Returns 1.
-    int Draw(CTransformPipeline* pipeline, char* device);
+    int Draw(CTransformPipeline* pipeline, CTextureDevice* device);
 };
 static_assert(offsetof(LineBatch, count) == 0x14 && sizeof(LineBatch) == 0x20);
 
@@ -81,6 +83,6 @@ inline lib::AlignedArray<ProjectedPoint>& LineProjected() {
 inline mfc::CArray<std::uint8_t>& LineOutcodes() { return *reinterpret_cast<mfc::CArray<std::uint8_t>*>(0x007A9CC8); }
 
 // 005045D0 (thiscall on the renderer, RET 8).
-int __fastcall RendererPolyline(char* renderer, void*, const ScreenPoints* points, std::uint32_t colour);
+int __fastcall RendererPolyline(CSceneRenderer* renderer, void*, const ScreenPoints* points, std::uint32_t colour);
 // 0049B4B0 (fastcall: the device object, the points; the colour on the stack, RET 4).
-long __fastcall DeviceDrawLineStrip(char* device, const ProjectedPoints* points, std::uint32_t colour);
+long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoints* points, std::uint32_t colour);

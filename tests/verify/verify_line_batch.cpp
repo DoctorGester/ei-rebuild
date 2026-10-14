@@ -34,7 +34,7 @@ int __fastcall AddPointVerify(LineBatch* self, void*, const float* point) {
     return actual;
 }
 
-int __fastcall DrawVerify(LineBatch* self, void*, CTransformPipeline* pipeline, char* device) {
+int __fastcall DrawVerify(LineBatch* self, void*, CTransformPipeline* pipeline, CTextureDevice* device) {
     int result = self->Draw(pipeline, device);
     ei::verify::Check("LineBatch::Draw", true,
                       result == 1 && LineProjected().size == self->packets.size * 4 &&

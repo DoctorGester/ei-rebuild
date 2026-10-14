@@ -10,8 +10,10 @@
 // See docs/notes/renderer.md (section 16).
 #include "texture.h"
 
+#include "device.h"
+
 #include "ei/hook.h"
-#include "ei/vcall.h"
+
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -35,13 +37,6 @@ int MipmapsEnabled() { return *reinterpret_cast<const int*>(0x0079BCE0); }
 // The lock around Direct3D device calls.
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
-// COM slots.
-constexpr int kDeviceLoad = 43;            // IDirect3DDevice7::Load (+0xAC)
-constexpr int kSurfaceSetPriority = 45;    // IDirectDrawSurface7::SetPriority (+0xB4)
-template <typename... Args> long Com(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>(fn)(object, args...);
-}
 
 // 006908E0 through its game address (so its verify wrapper sees the call).
 __declspec(naked) std::uint32_t __fastcall CallMipOffset(const MmpHeader*, void*, unsigned) EI_ORIGINAL(0x006908E0)
@@ -52,10 +47,6 @@ CDXSurface* NewSurface(CTextureDevice* device, const std::uint32_t* desc) {
     return memory ? static_cast<CDXSurface*>(DXSurfaceFromDescOriginal(memory, nullptr, device, desc)) : nullptr;
 }
 
-// Drops a reference; the last one deletes the surface (slot 0, the deleting destructor).
-void ReleaseSurface(CDXSurface* surface) {
-    if (--surface->refCount == 0) ei::VCall<void*>(surface, 0, 1u);
-}
 
 // DDSURFACEDESC2 (0x7C bytes) as dwords.
 enum DescIndex { kSize = 0, kFlags = 1, kHeight = 2, kWidth = 3, kMipCount = 6, kPixelFormat = 18, kCaps = 26,
@@ -179,7 +170,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
         CDXSurface* previous = surface_;
         surface_ = decoded;
         ++decoded->refCount;
-        if (previous) ReleaseSurface(previous);
+        if (previous) previous->Release();
         uploadResult_ = static_cast<int>(header->FilledBytes(format_, mip, levels));
         MarkLoaded(this, header);
         extra_.SetSize(static_cast<int>(header->extraSize));
@@ -205,21 +196,21 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     CDXSurface* previous = surface_;
     surface_ = surface;
     if (surface) ++surface->refCount;
-    if (previous) ReleaseSurface(previous);   // 004E6BA0
+    if (previous) previous->Release();   // 004E6BA0
 
     uploadResult_ = CallFillSurface(staging, data, static_cast<int>(mip));
     gameapi::EnterCriticalSection(DeviceLock());
-    device->lastLoadResult_ = Com(device->d3dDevice_, kDeviceLoad, surface_->surface, static_cast<void*>(nullptr),
-                                  staging->surface, static_cast<void*>(nullptr), 0u);
+    device->lastLoadResult_ = device::D3D(device)->Load(device::Surface(surface_), nullptr, device::Surface(staging),
+                                                        nullptr, 0);
     gameapi::LeaveCriticalSection(DeviceLock());
 
     MarkLoaded(this, header);
-    Com(surface_->surface, kSurfaceSetPriority, 100u);
+    device::Surface(surface_)->SetPriority(100);
 
     extra_.SetSize(static_cast<int>(header->extraSize));
     std::memcpy(extra_.data, header + 1, header->extraSize);
 
-    if (staging) ReleaseSurface(staging);
+    if (staging) staging->Release();
     // The new renderer (src/render) decodes the same levels from the file data.
     if (render::Active() && surface_) render::TextureFromMmp(surface_, data, mip, levels);
     return 1;
@@ -243,7 +234,7 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
         return 1;
     }
     path.Format(Text(0x00795F44), name, Text(0x0078FB4C));   // "%s%s", ".mmp"
-    void* data = ei::VCall<void*>(this, 19, static_cast<const char*>(path), static_cast<std::uint32_t*>(nullptr));
+    void* data = GetFile(path, nullptr);
     if (!data) {
         out->SetSizeDiscard(0);
         return 0;
@@ -251,7 +242,7 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     const auto* fileHeader = static_cast<const MmpHeader*>(data);
     out->SetSizeDiscard(static_cast<int>(fileHeader->extraSize));
     if (fileHeader->extraSize) std::memcpy(out->data, fileHeader + 1, fileHeader->extraSize);
-    ei::VCall<int>(this, 20, data);
+    CloseFile(data);
     return 1;
 }
 EI_REPLACE_METHOD(0x006928C0, CTextureManager::LoadMmpExtra);

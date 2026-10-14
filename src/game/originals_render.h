@@ -144,7 +144,7 @@ __declspec(naked) inline void __fastcall BuildBoneAt(scene::SceneSkin*, CAnimati
 // C3n. 004EB550 (rewritten as DeviceDrawIndexed; thiscall on the device, RET 0x1C): draws indexed primitives with the
 // current material (primitive type, FVF, vertices, vertex count, 16-bit indices, index count, flags); returns 1.
 // 004F16A0 (rewritten as CTransformPipeline::ClipTest; RET 4): 2 = the bounds are outside the view, 1 = crossing it.
-__declspec(naked) inline int __fastcall DrawPrimitive(char* /*device*/, void*, int /*primitive*/, int /*fvf*/,
+__declspec(naked) inline int __fastcall DrawPrimitive(CTextureDevice* /*device*/, void*, int /*primitive*/, int /*fvf*/,
                                                       void* /*vertices*/, int /*vertexCount*/,
                                                       const std::uint16_t* /*indices*/, int /*indexCount*/, int /*flags*/)
     EI_ORIGINAL(0x004EB550)

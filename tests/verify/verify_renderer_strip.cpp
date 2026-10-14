@@ -2,6 +2,8 @@
 #include "verify.h"
 
 #include "../../src/game/clip.h"
+#include "../../src/game/model.h"
+#include "../../src/game/texture.h"
 
 #include <cstdint>
 #include <cstring>
@@ -16,10 +18,10 @@ struct AlignedArray {
 } // namespace
 
 float* __fastcall StripDirection(float* out, int index, int mode, const void* points);
-int __fastcall DrawTlTriangles(char* holder, void*, TLVertex* vertices, int vertexCount, std::uint16_t* indices,
-                               int indexCount);
-int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width, int mode, float uLength, float vStart,
-                          float vSize);
+int __fastcall DrawTlTriangles(CTextureDevice* device, void*, TLVertex* vertices, int vertexCount,
+                               std::uint16_t* indices, int indexCount);
+int __fastcall DrawRibbon(CSceneRenderer* renderer, void*, const int* points, float width, int mode, float uLength,
+                          float vStart, float vSize);
 
 // 00502B90: MOV EAX,ECX; PUSH ESI; MOV ECX,[ESP+8] (7 bytes). Pure: both directions compared.
 static float*(__fastcall* s_direction)(float*, int, int, const void*);
@@ -51,22 +53,22 @@ static void __fastcall EmitSectionVerify(const TLVertex* src, const float* direc
 }
 EI_VERIFY(0x00502AC0, EmitSectionVerify, 5, s_section);
 
-// 00502A20 draws: ours only; the draw call counter (+0x174) goes up by one.
+// 00502A20 draws: ours only; the draw call counter goes up by one.
 static void* s_drawTl;
-static int __fastcall DrawTlTrianglesVerify(char* holder, void*, TLVertex* vertices, int vertexCount,
+static int __fastcall DrawTlTrianglesVerify(CTextureDevice* device, void*, TLVertex* vertices, int vertexCount,
                                             std::uint16_t* indices, int indexCount) {
-    int calls = *reinterpret_cast<int*>(holder + 0x174);
-    int result = DrawTlTriangles(holder, nullptr, vertices, vertexCount, indices, indexCount);
-    ei::verify::Check("DrawTlTriangles", calls + 1, *reinterpret_cast<int*>(holder + 0x174), "vertices %d indices %d",
-                      vertexCount, indexCount);
+    int calls = device->drawCount_;
+    int result = DrawTlTriangles(device, nullptr, vertices, vertexCount, indices, indexCount);
+    ei::verify::Check("DrawTlTriangles", calls + 1, device->drawCount_, "vertices %d indices %d", vertexCount,
+                      indexCount);
     return result;
 }
 EI_VERIFY(0x00502A20, DrawTlTrianglesVerify, 0, s_drawTl);
 
 // 00501D90 draws: ours only; the result is 0 or 1 and the index list (007AF030) holds whole quads.
 static void* s_ribbon;
-static int __fastcall DrawRibbonVerify(char* renderer, void*, const int* points, float width, int mode, float uLength,
-                                       float vStart, float vSize) {
+static int __fastcall DrawRibbonVerify(CSceneRenderer* renderer, void*, const int* points, float width, int mode,
+                                       float uLength, float vStart, float vSize) {
     int result = DrawRibbon(renderer, nullptr, points, width, mode, uLength, vStart, vSize);
     int indices = reinterpret_cast<const AlignedArray*>(0x007AF030)->size;
     bool ok = (result == 0 || result == 1) && indices % 6 == 0;
