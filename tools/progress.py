@@ -35,7 +35,7 @@ def main():
         for f in files:
             if f.endswith('.cpp'):
                 text = open(os.path.join(dirpath, f), encoding='utf-8').read()
-                replaced |= {int(a, 16) for a in re.findall(r'EI_REPLACE(?:_METHOD)?\(0x([0-9A-Fa-f]+)', text)}
+                replaced |= {int(a, 16) for a in re.findall(r'(?:EI_REPLACE(?:_METHOD)?|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)', text)}
     verified = set()
     for line in open(os.path.join(ROOT, 'tests', 'verify', 'verified.txt')):
         m = re.match(r'([0-9A-Fa-f]{8})\b', line)
