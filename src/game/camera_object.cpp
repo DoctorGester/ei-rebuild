@@ -7,7 +7,7 @@
 #include "core_streams.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "ei/vcall.h"   // ei::SetVtable
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -23,21 +23,18 @@ namespace {
 
 using camera::Store;
 
-void SetVtable(void* object, std::uintptr_t v) { std::memcpy(object, &v, 4); }
-
 // The default pitch (degrees as radians: pi / 180 * 45) and the default field of view
 // (pi * 2/7), computed at run time as the original does.
 float DefaultPitch() { return Store((CAM_PI * CAM_PER_180) * CAM_FORTY_FIVE); }
 float DefaultAngle() { return Store(CAM_PI * CAM_TWO_SEVENTHS); }
 
-constexpr int kSlotFileSeek = 10;   // mfc::CFile: Seek(offset, from)
 
 } // namespace
 
 // 0040CB20: the engine object's constructor body (inlined in most classes): vtable 0073B8E0,
 // id -1, everything else zero.
 CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self) {
-    SetVtable(self, CEngineObject::kVtableAddress);
+    ei::SetVtable(self, CEngineObject::kVtableAddress);
     self->refCount_ = 0;
     self->id_ = -1;
     self->unknown_18 = 0;
@@ -50,7 +47,7 @@ EI_REPLACE(0x0040CB20, EngineObjectConstruct);
 
 // 0040CB70: CTransformObject's destructor body; 0040CB50 its deleting destructor (slot 0).
 void __fastcall TransformDestruct(CTransformObject* self) {
-    SetVtable(self, CTransformObject::kVtableAddress);
+    ei::SetVtable(self, CTransformObject::kVtableAddress);
     self->DestructBase();
 }
 EI_REPLACE(0x0040CB70, TransformDestruct);
@@ -68,7 +65,7 @@ CCamera* CCamera::Construct() {
     EngineObjectConstruct(this);
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
-    SetVtable(this, CTransformObject::kVtableAddress);
+    ei::SetVtable(this, CTransformObject::kVtableAddress);
     viewRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     std::uint8_t alloc = 0;
     ShakeListConstruct(&shakes_, nullptr, &alloc);
@@ -83,7 +80,7 @@ CCamera* CCamera::Construct() {
     unknown_2FC = 0;
     unknown_2F8 = 0;
     keyCount_ = 0;
-    SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, kVtableAddress);
     std::memcpy(&offset98_, &camera::ZeroVector(), sizeof(Vector3));
     std::memcpy(&offsetA4_, &camera::ZeroVector(), sizeof(Vector3));
     panResponse_ = 2.0f / 15.0f;
@@ -112,7 +109,7 @@ EI_REPLACE_METHOD(0x0040C8B0, CCamera::Construct);
 // 0040CE60: the destructor body: no target, the camera path keys and file name freed, the view
 // stack and shake list destroyed, then the transform base.
 void CCamera::Destruct() {
-    SetVtable(this, kVtableAddress);
+    ei::SetVtable(this, kVtableAddress);
     targetId_ = -1;
     if (keys_) gamecrt::operator_delete(reinterpret_cast<void**>(keys_)[-1]);   // block start kept before the keys
     fileName_.~CString();
@@ -131,7 +128,7 @@ void CCamera::Destruct() {
     shakes_->next = shakes_;
     shakes_->prev = shakes_;
     ShakeNodeFree(shakes_, 1);
-    SetVtable(this, CTransformObject::kVtableAddress);
+    ei::SetVtable(this, CTransformObject::kVtableAddress);
     DestructBase();
 }
 EI_REPLACE_METHOD(0x0040CE60, CCamera::Destruct);
@@ -267,7 +264,7 @@ int __fastcall CameraRecordFrame(CCamera* self, void*, std::uint32_t time) {
     mfc::CFile file;
     if (!(self->flags_ & CCamera::kRecording)) return 0;
     if (!file.Open(self->fileName_, 0x2001, nullptr)) return 0;   // modeNoTruncate | modeWrite
-    ei::VCall<int>(&file, kSlotFileSeek, 0, 2);   // Seek(0, end)
+    reinterpret_cast<mfc::CFileVirtuals*>(&file)->Seek(0, 2);   // Seek(0, end), through slot 10
     std::memcpy(&record.time, &time, sizeof(record.time));
     record.unknown_04 = 0;
     std::memcpy(&record.position, &self->localPosition_, sizeof(record.position));

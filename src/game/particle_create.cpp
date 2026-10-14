@@ -814,7 +814,7 @@ void BuildFrames(CParticleSource* s) {
 // released; unit sizes, a 1000 emission spacing, 10000 frame delay, a one-frame grid.
 void CParticleSource::Reset() {
     std::memset(&position, 0, sizeof(Vector3));
-    std::memcpy(reinterpret_cast<std::uint8_t*>(this) + 0x34, IdentityRotation(), 16);
+    std::memcpy(&orientation, IdentityRotation(), sizeof(orientation));
     attachedTo = nullptr;
     emitChance = 0;
     emitCount = 0;

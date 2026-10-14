@@ -20,7 +20,6 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "render/render.h"
 #include "originals_effects.h"
@@ -450,8 +449,9 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         }
     }
     if (ShadowMode() == 2) {
-        ei::VCall<void>(device, 0x2C / 4, target.bits, kTextureSize, kTextureSize);
-        ei::VCall<void>(device, 0x30 / 4, target.bits, kTextureSize, kTextureSize);
+        auto* converter = static_cast<CPixelConverter*>(device);
+        converter->BlurShadow(target.bits, kTextureSize, kTextureSize);
+        converter->BlurShadow2(target.bits, kTextureSize, kTextureSize);
     }
     std::memcpy(description.bits, pixels.data(), pixels.size());
     UnlockSurface(surface);

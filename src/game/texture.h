@@ -319,7 +319,10 @@ static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, col
 class CPixelConverter {
 public:
     virtual void Unknown0();
-    virtual void Unknown1();
+    // 1: the 16-bit format slot 2 writes for `kind` (2 1:5:5:5, 1 5:5:5, 0 5:6:5; -1 none of them)
+    // and its channel masks (dx_surface.cpp, the picture copy into a surface).
+    virtual void SetChannelMasks(int kind, std::uint32_t alphaMask, std::uint32_t redMask, std::uint32_t greenMask,
+                                 std::uint32_t blueMask);
     // 2: 32-bit pixels to 16 bits; `kind` 3 4:4:4:4, 2 1:5:5:5, 0 5:6:5.
     virtual void ConvertTo16(std::uint16_t* out, const std::uint32_t* in, int kind, unsigned count);
     virtual void Unknown3();
@@ -337,6 +340,10 @@ public:
     virtual void RasteriseKeyedTriangle(void* target);
     // 10: decodes a DXT block image into 16-bit pixels (texture_fill.cpp).
     virtual void DecodeDxt(void* target, const void* source, int mode, std::uint32_t width, std::uint32_t height);
+    // 11 / 12: the two passes of the shadow's blur over a 16-bit image of `width` x `height` pixels
+    // (shadow mode 2 runs both on the shadow texture's pixels; map_object_shadow.cpp).
+    virtual void BlurShadow(void* pixels, int width, int height);
+    virtual void BlurShadow2(void* pixels, int width, int height);
 };
 inline CPixelConverter* PixelConverter() { return *reinterpret_cast<CPixelConverter**>(std::uintptr_t(0x007AF06C)); }
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"

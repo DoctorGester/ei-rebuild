@@ -21,7 +21,7 @@ public:
         unknown_04 = 0;
         version = fileVersion;
     }
-    void Slot0() override {}
+    void* DeletingDestruct(unsigned) override { return this; }
     void Read(void*, unsigned) override {}
     void Write(const void* buffer, unsigned size) override {
         const auto* bytes = static_cast<const std::uint8_t*>(buffer);

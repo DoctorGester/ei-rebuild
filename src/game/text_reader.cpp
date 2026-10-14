@@ -5,8 +5,9 @@
 // reproduces each variant by its call pattern.
 #include "text_reader.h"
 
+#include "resource.h"
+
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 
@@ -116,8 +117,8 @@ BOOL __fastcall TextOpen(CTextManager* self, void*, const char* key) {
     }
     const char* text = nullptr;
     for (CTextManager::SourceNode* node = self->sources_.head->next; node != self->sources_.head; node = node->next) {
-        // CMappedResource vtable slot 5, GetFile(name, size): the file's data or null.
-        text = ei::VCall<const char*>(node->data.source, 5, key, &self->length_);
+        // The archive's GetFile (slot 5): the file's data or null.
+        text = static_cast<const char*>(node->data.source->GetFile(key, &self->length_));
         if (text) break;
     }
     self->cursor_ = text;

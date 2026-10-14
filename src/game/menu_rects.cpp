@@ -1,7 +1,8 @@
 // 005ACE80: the main menu's and the escape menu's button rectangles from "menus.reg" (each entry
 // four integers; a missing or malformed one is a fatal error). See docs/notes/world.md.
+#include "base_manager.h"
+
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -17,7 +18,6 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 constexpr std::uintptr_t kMenusReg = 0x00791020;       // "menus.reg"
 constexpr std::uintptr_t kCantOpen = 0x00790FE4;       // "Can't open file "menus.reg" with the main/esc menu rects\n"
 constexpr std::uintptr_t kCantParse = 0x00790FA4;      // "Can't open "menus.reg" as .reg with ...\n"
-constexpr int kSlotOpenResource = 19;                  // the owner's slot 19 (+0x4C): open a resource file
 
 // The entries in the order the original reads them: section, name, error, offset of the RECT.
 struct MenuRect {
@@ -55,7 +55,8 @@ SetRectFn ImportSetRect() { return *reinterpret_cast<SetRectFn const*>(0x0073B47
 int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     alignas(4) std::uint8_t reg[0x18];
     AsRegistry(reg)->Construct();
-    void* file = ei::VCall<void*>(owner, kSlotOpenResource, Text(kMenusReg), 0);
+    // The owning manager's GetFile (slot 19): the resource file's data.
+    void* file = static_cast<CBaseManager*>(owner)->GetFile(Text(kMenusReg), nullptr);
     if (!file || !AsRegistry(reg)->Attach(file)) {
         int result = game::FatalError(Text(file ? kCantParse : kCantOpen));
         AsRegistry(reg)->Destroy();

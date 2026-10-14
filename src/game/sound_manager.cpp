@@ -446,7 +446,7 @@ EI_REPLACE_METHOD(0x006B94A0, CSoundManager::StopSound);
 namespace {
 // Emitter `index` as the original addresses it: index 16 is accepted (one past the array).
 SoundEmitter* EmitterAt(CSoundManager* m, int index) {
-    return reinterpret_cast<SoundEmitter*>(reinterpret_cast<std::uint8_t*>(m) + 0x26C + index * 0x38);
+    return m->emitters + index;
 }
 } // namespace
 

@@ -4,7 +4,7 @@
 
 #include "core_maths.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "lib/mfc.h"
 
 #include <cmath>
 #include <cstring>
@@ -12,10 +12,6 @@
 namespace {
 // The engine's zero vector (0079B5C8, set up by a static initialiser), copied as dwords.
 const void* ZeroVector() { return reinterpret_cast<const void*>(0x0079B5C8); }
-
-// MFC CFile virtual slots.
-constexpr int kFileRead = 13;
-constexpr int kFileWrite = 14;
 } // namespace
 
 CTransformObject* CTransformObject::ConstructBase() {
@@ -81,13 +77,17 @@ void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
 }
 
 void CTransformObject::SaveTransform(void* file) {
-    ei::VCall<void>(file, kFileWrite, static_cast<void*>(&localPosition_), 12u);
-    ei::VCall<void>(file, kFileWrite, static_cast<void*>(&localRotation_), 16u);
+    // An MFC CFile, written through its vtable (slot 14).
+    auto* out = static_cast<mfc::CFileVirtuals*>(file);
+    out->Write(&localPosition_, 12u);
+    out->Write(&localRotation_, 16u);
 }
 
 void CTransformObject::LoadTransform(void* file) {
-    ei::VCall<void>(file, kFileRead, static_cast<void*>(&localPosition_), 12u);
-    ei::VCall<void>(file, kFileRead, static_cast<void*>(&localRotation_), 16u);
+    // An MFC CFile, read through its vtable (slot 13).
+    auto* in = static_cast<mfc::CFileVirtuals*>(file);
+    in->Read(&localPosition_, 12u);
+    in->Read(&localRotation_, 16u);
 }
 
 namespace {

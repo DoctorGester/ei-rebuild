@@ -391,8 +391,13 @@ static_assert(sizeof(GlobalMapPlace) == 0x18 && offsetof(GlobalMapPlace, positio
 // The global map's weather (vtable 007420D4, 0x34 bytes; 00499F10 draws it into the map's texture).
 class __declspec(novtable) GlobalMapWeather {
 public:
-    virtual void Slot0() = 0;                                   // 0: 0049A090
-    virtual void Slot1() = 0;                                   // 1: 0049A220
+    // 0: 0049A090 (RET 4). One 32 x 32 octave of value noise (three random words seed it) into the
+    // object's +0x14 table, then smoothed into 1024 bytes at `out`.
+    virtual void NoiseOctave(std::uint8_t* out) = 0;
+    // 1: 0049A220 (RET 8). One step of building the weather image: steps 1-4 make an octave
+    // (slot 0) into the tables at +0x18 (+0x400 each), steps 7-14 blend the four octaves into 32
+    // rows of 256 bytes of `image` each.
+    virtual void BuildStep(std::uint8_t* image, int step) = 0;
     virtual GlobalMapWeather* DeletingDestruct(int flags) = 0;  // 2: 0062EDA0 (00499E90, then delete)
 };
 

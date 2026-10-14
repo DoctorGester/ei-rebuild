@@ -9,7 +9,6 @@
 #include "unit.h"
 #include "world.h"
 
-#include "ei/vcall.h"
 
 using namespace spellfx;
 
@@ -268,9 +267,9 @@ Next StartVisionFog(CSpellEffect* e) {
 // when the target is not at full health (or +0xA4 is clear).
 Next StartHealing(CSpellEffect* e) {
     if (e->target->GetClassId() != spellfx::kClassUnit) return Next::Done;   // no null check
-    // Controller slot 21, Heal(float): the original pushes the amount's bits (MOV/PUSH), which a
-    // float argument would load and store through the FPU, so the call stays by slot.
-    ei::VCall<void>(ControllerOf(e->target), 21, Bits(e->damage));
+    // Controller slot 21, Heal: the original pushes the amount's bits (MOV/PUSH), which a float
+    // argument would load and store through the FPU, so the slot takes the bits.
+    static_cast<CUnit*>(e->target)->Controller()->Heal(Bits(e->damage));
     CEngineObject* unit = e->target;
     float size = Power(e);
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);

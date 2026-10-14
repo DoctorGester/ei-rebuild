@@ -57,10 +57,8 @@ void RegisterInline(ClientSession* client, int channel, std::uintptr_t handler) 
 } // namespace
 
 // 0041C420: the queries' constructor (an empty vector and a zero dword). Returns this.
-QueryVector* __fastcall ClientVectorConstruct(QueryVector* self) {
-    self->begin = nullptr;
-    self->end = nullptr;
-    self->eos = nullptr;
+ClientQueries* __fastcall ClientVectorConstruct(ClientQueries* self) {
+    new (&self->list) stlp::vector<Query>();
     self->extra = 0;
     return self;
 }

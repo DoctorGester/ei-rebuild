@@ -7,7 +7,6 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_units.h"
 #include "originals_library.h"
@@ -31,10 +30,6 @@ constexpr std::uint32_t kFloatMax = 0x7F7FFFFF;      // FLT_MAX / -FLT_MAX: the 
 constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
 constexpr float kNearSquared = 1e9f;                 // 0073DE58: parts farther away are skipped
 constexpr float kHalf = 0.5f;                        // 0073B86C
-
-// The figure cache's (CFigureCache, the world's slot 23) slot 6 builds a figure at a scale (slot 5
-// is not known, so the slot stays a VCall).
-constexpr int kCacheScaledFigure = 0x18 / 4;
 
 std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
 float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
@@ -176,8 +171,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
     std::memcpy(&scale, newScale, sizeof(scale));
     if (CEngineObject* current = figure) {
         CFigureCache* cache = static_cast<CWorld*>(ManagerContext())->FigureCache();
-        auto* rebuilt = ei::VCall<CEngineObject*>(cache, kCacheScaledFigure, current, Bits(scale.x), Bits(scale.y),
-                                                  Bits(scale.z));
+        CEngineObject* rebuilt = cache->ScaledFigure(current, Bits(scale.x), Bits(scale.y), Bits(scale.z));
         FigureRef().Assign(rebuilt);   // 00519580
         for (int i = 0; i < parts.size; ++i) {
             auto* part = static_cast<FigurePart*>(parts.data[i]);

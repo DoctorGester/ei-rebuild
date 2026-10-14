@@ -33,7 +33,7 @@ using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
 // version of the file being read.
 class AIStream {
 public:
-    virtual void Slot0() = 0;
+    virtual void* DeletingDestruct(unsigned flags) = 0;         // 0: CStream's (00417400)
     virtual void Read(void* buffer, unsigned size) = 0;          // 1
     virtual void Write(const void* buffer, unsigned size) = 0;   // 2
 

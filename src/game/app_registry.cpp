@@ -2,9 +2,12 @@
 // WinMain): a prototype made by the factory gives the vtable; vtable -> id in the STLport
 // hash_map at +0, id -> factory in the one at +0x14 (the same scheme as the network's
 // TypeRegistry::Register, 0042A890). See docs/notes/app.md.
+#include "core_refcount.h"
+
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_library.h"
+
+#include <unknwn.h>
 
 #include <cstdint>
 #include <cstring>
@@ -58,32 +61,29 @@ Node* FindOrInsert(Table& t, std::uint32_t key, Resize resize, NewNode newNode) 
 } // namespace
 
 void __fastcall TypeRegistryRegister(void* self, void*, std::uint32_t id, void* (__cdecl* factory)()) {
-    auto* prototype = static_cast<std::uint8_t*>(factory());
-    if (prototype) ++*reinterpret_cast<std::int16_t*>(prototype + 4);
+    auto* prototype = static_cast<CRefCounted*>(factory());
+    if (prototype) ++prototype->refs_;
     std::uint32_t vtable;
     std::memcpy(&vtable, prototype, 4);
     auto* tables = static_cast<Table*>(self);
     FindOrInsert(tables[0], vtable, ByVtableResize, ByVtableNewNode)->value = id;
     FindOrInsert(tables[1], id, ByIdResize, ByIdNewNode)->value = reinterpret_cast<std::uint32_t>(factory);
-    if (prototype && --*reinterpret_cast<std::int16_t*>(prototype + 4) == 0) ei::VCall<void*>(prototype, 0, 1);
+    if (prototype && --prototype->refs_ == 0) delete prototype;   // slot 0 with 1
 }
 EI_REPLACE(0x00458570, TypeRegistryRegister);
 
 // 00458540 / 00458550 / 004586E0: destructors of WinMain's locals, reached only when an exception
 // unwinds it: two COM pointers (Release) and a counted object (deleted at its last reference).
 void __fastcall ComPointerRelease(void** self) {
-    if (void* object = *self) {
-        using Release = unsigned long(__stdcall*)(void*);
-        reinterpret_cast<Release>((*static_cast<void***>(object))[2])(object);
-    }
+    if (void* object = *self) static_cast<IUnknown*>(object)->Release();
 }
 EI_REPLACE(0x00458540, ComPointerRelease);
 void __fastcall ComPointerRelease2(void** self) { ComPointerRelease(self); }
 EI_REPLACE(0x00458550, ComPointerRelease2);
 void __fastcall CountedPointerRelease(void** self) {
-    auto* object = static_cast<std::uint8_t*>(*self);
+    auto* object = static_cast<CRefCounted*>(*self);
     if (!object) return;
-    if (--*reinterpret_cast<std::int16_t*>(object + 4) == 0 && object) ei::VCall<void*>(object, 0, 1);
+    if (--object->refs_ == 0) delete object;   // slot 0 with 1 (the original tests the pointer again)
 }
 EI_REPLACE(0x004586E0, CountedPointerRelease);
 EI_REPLACE(0x00545B80, CountedPointerRelease);   // byte-identical copy (A-U11)
