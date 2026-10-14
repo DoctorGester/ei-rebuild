@@ -53,17 +53,20 @@ __declspec(naked) Node** __fastcall WaitingErase(void* /*list*/, void*, Node** /
 __declspec(naked) Node** __fastcall JoinsErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x00443730)
 __declspec(naked) Node** __fastcall JoinsInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const PendingJoin* /*value*/) EI_ORIGINAL(0x00443800)
 __declspec(naked) void __fastcall QueryConstructAt(Query* /*p*/) EI_ORIGINAL(0x00443E30)
-__declspec(naked) void __fastcall QueriesInsertOverflow(QueryVector*, void*, Query* /*pos*/, const Query* /*value*/, unsigned /*n*/) EI_ORIGINAL(0x004439C0)
+// The game's stlp::vector<Query> instantiation: 004439C0 _M_insert_overflow(pos, x, n), 00443BF0
+// operator=, 004442B0 erase(first, last), 00444090 resize(n).
+using QueryList = stlp::vector<Query>;
+__declspec(naked) void __fastcall QueriesInsertOverflow(QueryList*, void*, Query* /*pos*/, const Query* /*value*/, unsigned /*n*/) EI_ORIGINAL(0x004439C0)
 __declspec(naked) Query* __fastcall QueriesCopy(Query* /*first*/, Query* /*last*/, Query* /*dest*/, const void* /*unused*/, int /*unused*/) EI_ORIGINAL(0x00443FF0)
-__declspec(naked) QueryVector* __fastcall QueriesAssign(QueryVector*, void*, const QueryVector* /*from*/) EI_ORIGINAL(0x00443BF0)
-__declspec(naked) Query* __fastcall QueriesErase(QueryVector*, void*, Query* /*first*/, Query* /*last*/) EI_ORIGINAL(0x004442B0)
-__declspec(naked) void __fastcall QueriesResize(QueryVector*, void*, unsigned /*n*/) EI_ORIGINAL(0x00444090)
+__declspec(naked) QueryList* __fastcall QueriesAssign(QueryList*, void*, const QueryList* /*from*/) EI_ORIGINAL(0x00443BF0)
+__declspec(naked) Query* __fastcall QueriesErase(QueryList*, void*, Query* /*first*/, Query* /*last*/) EI_ORIGINAL(0x004442B0)
+__declspec(naked) void __fastcall QueriesResize(QueryList*, void*, unsigned /*n*/) EI_ORIGINAL(0x00444090)
 // The query's own functions, through their addresses (rewritten below).
 __declspec(naked) Query* __fastcall QueryConstructDefaultAt(Query*) EI_ORIGINAL(0x00443770)
 __declspec(naked) Query* __fastcall QueryDeleteAt(Query*, void*, unsigned /*flags*/) EI_ORIGINAL(0x00443E90)
 __declspec(naked) RefPtr* __fastcall HolderInitAt(RefPtr*, CRefObject*) EI_ORIGINAL(0x00443E20)
 __declspec(naked) std::int32_t __fastcall BufferLengthAt(GameBuffer*) EI_ORIGINAL(0x00441640)
-__declspec(naked) Query* __fastcall QueriesFindAt(QueryVector*, void*, const NetAddress*) EI_ORIGINAL(0x00441410)
+__declspec(naked) Query* __fastcall QueriesFindAt(ClientQueries*, void*, const NetAddress*) EI_ORIGINAL(0x00441410)
 __declspec(naked) void __fastcall ClientSendPingAt(ClientBase*, void*, const NetAddress*) EI_ORIGINAL(0x00441660)
 __declspec(naked) void __fastcall ClientSendJoinAt(ClientBase*, void*, const NetAddress*, const GameBuffer*) EI_ORIGINAL(0x00441740)
 __declspec(naked) void __fastcall ServerSendInfoAt(ServerBase*, void*, const NetAddress*, std::uint32_t) EI_ORIGINAL(0x00442C60)
@@ -106,9 +109,9 @@ Node* FindServer(ClientBase* self, const NetAddress* address) {
     return node;
 }
 // The query with `address`, or the end.
-Query* FindQuery(QueryVector& v, const NetAddress* address) {
-    Query* q = v.begin;
-    while (q != v.end && !SameAddress(&q->address, address)) ++q;
+Query* FindQuery(ClientQueries& v, const NetAddress* address) {
+    Query* q = v.list.begin();
+    while (q != v.list.end() && !SameAddress(&q->address, address)) ++q;
     return q;
 }
 
@@ -170,8 +173,8 @@ ServerEntryBase* ServerEntryBase::ConstructBase() {
 EI_REPLACE_METHOD(0x004413E0, ServerEntryBase::ConstructBase);
 
 // 00441410: the query with `address`, or the end.
-Query* QueryVector::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
-EI_REPLACE_METHOD(0x00441410, QueryVector::QueriesFind);
+Query* ClientQueries::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
+EI_REPLACE_METHOD(0x00441410, ClientQueries::QueriesFind);
 
 // 00441640: a buffer's length (its highest position brought up to date first).
 std::int32_t __fastcall BufferLength(GameBuffer* b) {
@@ -333,15 +336,15 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
     e->address_ = *from;
     e->foreign_ = echo != magic_;
     bool local = DriverIsLocalAt(&socket_, nullptr, from);
-    QueryVector& v = queries_;
-    Query* end = v.end;
+    ClientQueries& v = queries_;
+    Query* end = v.list.end();
     Query* query = QueriesFindAt(&v, nullptr, from);
     if (local) {
         e->state_ = query != end ? ServerEntry::kAsked : ServerEntry::kLocal;
         e->timeout_ = GameFloat(0x0073BF98);
     } else if (query != end) {
         e->state_ = ServerEntry::kAsked;
-        auto count = static_cast<std::uint32_t>(v.end - v.begin);
+        auto count = static_cast<std::uint32_t>(v.list.size());
         e->timeout_ = static_cast<float>(x87::FromUnsigned(count) * GameFloat(0x0073B86C) + GameFloat(0x0073BF98));   // FILD qword
     } else {
         if (node == Sentinel(servers_)) {
@@ -363,7 +366,7 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
             slot.Share(entry.ptr);
         }
         Query* q = FindQuery(v, from);
-        if (q != v.end) {
+        if (q != v.list.end()) {
             BufferCursor c;
             c.Reset(nullptr, 0, 0);
             c.sink = nullptr;
@@ -427,9 +430,9 @@ void ClientBase::Refresh() {
     }
     std::uint32_t& index = nextQuery_;
     ++index;
-    QueryVector& v = queries_;
-    if (index >= static_cast<std::uint32_t>(v.end - v.begin)) index = 0;
-    if (index < static_cast<std::uint32_t>(v.end - v.begin)) ClientSendPingAt(this, nullptr, &v.begin[index].address);
+    QueryList& v = queries_.list;
+    if (index >= static_cast<std::uint32_t>(v.size())) index = 0;
+    if (index < static_cast<std::uint32_t>(v.size())) ClientSendPingAt(this, nullptr, &v[index].address);
     if (alwaysAsk_.ip != 0) {
         Node* pos;
         WaitingEnd(&waiting_, nullptr, &pos);
@@ -444,13 +447,13 @@ EI_REPLACE_METHOD(0x004422D0, ClientBase::SetAlwaysAsk);
 
 // Each server not yet listed is listed with an entry read from its saved reply (or an empty
 // entry), as asked.
-void ClientBase::SetQueries(const QueryVector* from) {
-    QueryVector& v = queries_;
-    QueriesAssign(&v, nullptr, from);
-    v.extra = from->extra;
-    if (v.end == v.begin) return;
-    for (unsigned i = 0; i < static_cast<unsigned>(v.end - v.begin); ++i) {
-        Query* q = v.begin + i;
+void ClientBase::SetQueries(const ClientQueries* from) {
+    QueryList& v = queries_.list;
+    QueriesAssign(&v, nullptr, &from->list);
+    queries_.extra = from->extra;
+    if (v.end() == v.begin()) return;
+    for (unsigned i = 0; i < static_cast<unsigned>(v.size()); ++i) {
+        Query* q = v.begin() + i;
         if (FindServer(this, &q->address) != Sentinel(servers_)) continue;
         RefPtr entry{nullptr};
         GameBuffer& r = q->reply;
@@ -489,18 +492,19 @@ EI_REPLACE_METHOD(0x00442300, ClientBase::SetQueries);
 // A new query is added and pinged (3, the session time); the server is listed (an empty entry) or
 // marked as asked.
 void ClientBase::Ask(const NetAddress* address) {
-    QueryVector& v = queries_;
-    if (FindQuery(v, address) == v.end) {
-        if (v.end != v.eos) {
-            QueryConstructAt(v.end);
-            ++v.end;
+    QueryList& v = queries_.list;
+    if (FindQuery(queries_, address) == v.end()) {
+        // push_back of a default query, inlined.
+        if (v.end() != v.EndOfStorage()) {
+            QueryConstructAt(v.end());
+            ++v.Finish();
         } else {
             Query temporary;
             QueryConstructDefaultAt(&temporary);
-            QueriesInsertOverflow(&v, nullptr, v.end, &temporary, 1);
+            QueriesInsertOverflow(&v, nullptr, v.end(), &temporary, 1);
             GrowingBufferDestruct(&temporary.reply);
         }
-        (v.end - 1)->address = *address;
+        v.back().address = *address;
         GameBuffer b;
         GrowingBufferConstruct(&b);
         std::uint8_t kind = 3;
@@ -534,12 +538,13 @@ void ClientBase::Ask(const NetAddress* address) {
 EI_REPLACE_METHOD(0x00442590, ClientBase::Ask);
 
 void ClientBase::Forget(const NetAddress* address) {
-    QueryVector& v = queries_;
-    Query* q = FindQuery(v, address);
-    if (q != v.end) {
-        if (q + 1 != v.end) QueriesCopy(q + 1, v.end, q, address, 0);
-        --v.end;
-        QueryDeleteAt(v.end, nullptr, 0);
+    QueryList& v = queries_.list;
+    Query* q = FindQuery(queries_, address);
+    if (q != v.end()) {
+        // erase(q), inlined: the tail copied down, the last query destroyed.
+        if (q + 1 != v.end()) QueriesCopy(q + 1, v.end(), q, address, 0);
+        --v.Finish();
+        QueryDeleteAt(v.end(), nullptr, 0);
     }
     Node* node = Sentinel(servers_)->next;
     while (node != Sentinel(servers_)) {
@@ -613,8 +618,8 @@ void ClientBase::Tick(double dt) {
             e->timeout_ = static_cast<float>(static_cast<double>(e->timeout_) - dt);
             e = EntryOf(node);
             if (!(e->timeout_ > 0.0f)) {
-                QueryVector& v = queries_;
-                if (v.begin == v.end || FindQuery(v, &e->address_) == v.end) {
+                ClientQueries& v = queries_;
+                if (v.list.begin() == v.list.end() || FindQuery(v, &e->address_) == v.list.end()) {
                     Node* out;
                     ServersErase(&servers_, nullptr, &out, node);
                     node = out;
@@ -835,20 +840,20 @@ EI_REPLACE(0x00443590, ServerBaseTickHook);
 
 // 004414E0: the queries in a chunk archive (chunk 1 of chunks 1: field 1 the address, 2 the
 // reply's length, 3 the reply), then field 2 the extra dword.
-void QueryVector::Serialize(ChunkArchive* archive) {
+void ClientQueries::Serialize(ChunkArchive* archive) {
     if (archive->EnterChunk(1)) {
         bool loading = archive->loading_ != 0;
         int n;
         if (loading) {
-            QueriesErase(this, nullptr, begin, end);
+            QueriesErase(&list, nullptr, list.begin(), list.end());
             n = archive->CountChunks(1);
-            QueriesResize(this, nullptr, static_cast<unsigned>(n));
+            QueriesResize(&list, nullptr, static_cast<unsigned>(n));
         } else {
-            n = static_cast<int>(end - begin);
+            n = static_cast<int>(list.size());
         }
         for (int i = 0; i < n; ++i) {
             archive->Current()->occurrence = i + 1;
-            Query* q = begin + i;
+            Query* q = list.begin() + i;
             if (!archive->EnterChunk(1)) continue;
             archive->Field(1, &q->address, 0x10);
             std::uint32_t length;
@@ -869,6 +874,6 @@ void QueryVector::Serialize(ChunkArchive* archive) {
     }
     archive->Field(2, &extra, 4);
 }
-EI_REPLACE_METHOD(0x004414E0, QueryVector::Serialize);
+EI_REPLACE_METHOD(0x004414E0, ClientQueries::Serialize);
 
 } // namespace net

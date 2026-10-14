@@ -151,15 +151,16 @@ struct LocalFileStream {
 // The queries Create reads from the address book: an empty vector, its replies and storage
 // released at the end (inline in the original; the node allocator's deallocate, 00404D70).
 struct LocalQueries {
-    LocalQueries() : queries{nullptr, nullptr, nullptr, 0} {}
+    LocalQueries() { queries.extra = 0; }
     ~LocalQueries() {
-        for (net::Query* query = queries.begin; query != queries.end; ++query) query->reply.DestructGrowing();
-        if (queries.begin)
-            StlNodeFreeOriginal(queries.begin, static_cast<std::size_t>(queries.eos - queries.begin) * sizeof(net::Query));
+        stlp::vector<net::Query>& list = queries.list;
+        for (net::Query* query = list.begin(); query != list.end(); ++query) query->reply.DestructGrowing();
+        if (list.begin())
+            StlNodeFreeOriginal(list.begin(), static_cast<std::size_t>(list.EndOfStorage() - list.begin()) * sizeof(net::Query));
     }
     LocalQueries(const LocalQueries&) = delete;
     LocalQueries& operator=(const LocalQueries&) = delete;
-    net::QueryVector queries;
+    net::ClientQueries queries;
 };
 
 // Create's layout (0061B2C0).
@@ -593,7 +594,7 @@ void CMpConnectScreen::SaveAddressBook() {
     if (!file.stream.Open(GameDataPath() + AddressBookFile(), netlink::FileStream::kOpenWrite, 0)) return;
     ChunkArchive& archive = local.archive;
     archive.Open(&file.stream, 0, 1);
-    net::QueryVector* queries = &net::GameClient()->queries_;
+    net::ClientQueries* queries = &net::GameClient()->queries_;
     if (archive.EnterChunk(1)) {
         queries->Serialize(&archive);
         archive.LeaveChunk();
