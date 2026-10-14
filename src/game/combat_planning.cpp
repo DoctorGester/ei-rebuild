@@ -47,7 +47,7 @@ constexpr int kShoutCannotDo = 0x0E;
 
 // The map objects' virtual slots (map_object.h): 53 AimPoint, 48 EyePoint, 44 UseSpots, 60 Radius.
 CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
-void AimPointInto(CEngineObject* object, float* out) { Slots(object)->AimPoint(reinterpret_cast<Vector3*>(out)); }
+void AimPointInto(CEngineObject* object, Vector3* out) { Slots(object)->AimPoint(out); }
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
@@ -188,7 +188,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
         LocalPath path;
         int best = kNoSpot;
         Vector3 spot;
-        float bestSpot[3] = {0.0f, 0.0f, 0.0f};
+        Vector3 bestSpot = {0.0f, 0.0f, 0.0f};
         CAIMap* map = MapOf(world);
         for (int i = 0; i < spots.size; ++i) {
             std::memcpy(&spot, spots.data[i], sizeof(spot));
@@ -202,14 +202,14 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             if (!(LengthSquared2DUnrounded(ex, ey) < limit * limit)) continue;
             if (path.Cost() >= best) continue;
             best = path.Cost();
-            std::memcpy(bestSpot, &spot, sizeof(bestSpot));
+            std::memcpy(&bestSpot, &spot, sizeof(bestSpot));
             if (out) PathToMotionOrder(path.bytes, nullptr, out);
         }
         if (best == kNoSpot) {
             result = false;
         } else {
             order->flag18 = 1;
-            std::memcpy(&order->point, bestSpot, sizeof(bestSpot));
+            std::memcpy(&order->point, &bestSpot, sizeof(bestSpot));
         }
     }
     spots.vtable = reinterpret_cast<void*>(0x0073C120);
@@ -228,12 +228,12 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     MotionBuild(&simulated.motion, nullptr, motionOrder);
     SightTarget sight;
     bool canSee = CtlFindSightTarget(this, nullptr, order, &sight);
-    float previous[3] = {0.0f, 0.0f, -1000.0f};
-    float aim[3] = {0.0f, 0.0f, -1000.0f};
+    Vector3 previous = {0.0f, 0.0f, -1000.0f};
+    Vector3 aim = {0.0f, 0.0f, -1000.0f};
     double distance = CtlActionDistance(this, nullptr, order);
     float reachSq = static_cast<float>(distance * distance);
-    if (!order->target) std::memcpy(aim, &order->point, sizeof(aim));
-    else AimPointInto(order->target, aim);
+    if (!order->target) std::memcpy(&aim, &order->point, sizeof(aim));
+    else AimPointInto(order->target, &aim);
     float t = 0.0f;
     for (;;) {
         float time = static_cast<float>(pathOrder->startTime) + t;
@@ -245,13 +245,13 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         int cellY;
         MotionSample(&simulated.motion, nullptr, nullptr, motionOrder, time, &turning, &position, &direction, &speed, &cellX,
                      &cellY);
-        if (position.x == previous[0] && position.y == previous[1] && position.z == previous[2]) break;
-        std::memcpy(previous, &position, sizeof(previous));
+        if (position.x == previous.x && position.y == previous.y && position.z == previous.z) break;
+        std::memcpy(&previous, &position, sizeof(previous));
         float half = HalfCell();
         position.x = half * position.x;
         position.y = half * position.y;
-        float dx = position.x - aim[0];
-        float dy = position.y - aim[1];
+        float dx = position.x - aim.x;
+        float dy = position.y - aim.y;
         if (LengthSquared2DUnrounded(dy, dx) > reachSq) {
             t += 5.0f;
             continue;
@@ -286,7 +286,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     LocalMotionOrder route;
     Vector3 point;
     if (!order->target) std::memcpy(&point, &order->point, sizeof(point));
-    else AimPointInto(order->target, &point.x);
+    else AimPointInto(order->target, &point);
     bool ok;
     if (!CtlFindUseSpot(this, nullptr, order, route.bytes())) {
         PathMessage(unit, route.bytes(), &point.x, 3, 1, kFar);
