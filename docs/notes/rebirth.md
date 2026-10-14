@@ -241,8 +241,8 @@ SetTriangle: x moved by the panel offset; SetRectangle / SetFrame add it twice t
 005F8340+8F (pixels to layout units: `cx * 800 / width43`, `cy * 600 / height`; `widescreen::TextExtentToLayout`), the text surfaces'
 draw 005FDE20+74 and the +0x98 rectangles of the edit field 0065C2E0, the save / load list 006567A0, the chat line 005E3700 and the
 tooltip 0065E580 (scaled with ECX 0: `CInterface3D::CallScale*NoMargin`, ui.h; the tooltip's right edge at `800 + extra`,
-`widescreen::LayoutRight`). Each declares `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`. Not reproduced: 0061D780 (the connect list) also
-holds ExtendedServerName (+0x27C), so it keeps addon's code in a Rebirth launch (its WideScreen change is in our rewrite all the same).
+`widescreen::LayoutRight`). Each declares `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`. 0061D780 (the connect list) was left to addon's code
+at first (it also holds ExtendedServerName); W2a below reproduced both.
 Verified against addon's code in a Rebirth launch (`ui_widescreen_more`, a second widescreen scenario: the multiplayer hero screen's name
 field, tooltips at both screen edges, the console, the Esc menu's Save window): the shapes, the text extent, the tooltip at 0 mismatches;
 the text draw, the edit field, the list and the chat line compare the surface's pixels side by side (`tests/verify/gdi_pixels.h`,
@@ -255,6 +255,18 @@ copy of the screen with the animated hero in it.
 2026-10-14: both scenarios' frames within the default tolerance (ui_widescreen at most 0.064%, options; ui_widescreen_more at most
 0.040%, the Save window; the menu's swaying trees once reached 0.135%), and the W2 wrappers at 0 mismatches (TextExtent 1354 calls, DrawTextIn 3238, SetRectangle 853, the tooltip
 19221, the edit field 8, the list 2, the chat line 3).
+**Done (W2a)**: the connect list 0061D780 (`ui_connect_list.cpp`) reproduces ExtendedServerName next to WideScreen and declares both, so a Rebirth
+launch hooks it. addon's changes in it (live bytes of the sites, addon's replacement functions disassembled from addon.dll): row right edge 265 -> 278
+(0061D9FC), the line under the titles ends at 283 instead of 270 (0061DB23), the selection frame at x 244.75 instead of 239 (0061DBEF), the ping
+column at 233 instead of 220 (0061DD40); the three `CUiSurface::DrawText` calls at 0061DC7F (the new game row), 0061DC9E (a server's name) and
+0061E009 (the details' "name: <server>") go through addon's wrappers: the text copied through a 90-byte buffer (strcpy_s there; ours cuts a longer
+one instead of reaching the CRT's invalid parameter handler) and drawn with DT_END_ELLIPSIS | DT_MODIFYSTRING added to the format; the server's name
+(0061DC9E) in a copy of the rectangle whose right edge is 140; the details' name through `DrawWrappedText` (up to 3 lines) with the rectangle's
+top and bottom moved down by `24 * (lines - 1)` before the screen's own row step. The other ExtendedServerName sites are in Create 0061B2C0
+(not rewritten for Rebirth yet). The verify wrapper compares side by side (the surface's pixels, the sprites 2-9, the tips flag, the text colour)
+with the original (vanilla launch) or addon's code (Rebirth launch) in ui_mp_host, where no server answers: the wrapper appends three synthetic
+servers (short, too long for the column and for the details, password, the states and game types) for a moment and compares each one selected
+(425 / 415 calls at 0 mismatches, vanilla / Rebirth).
 Font smoothing is a desktop setting: the titles / credits screen switches it off and "restores" a value it never read, so a harness
 game left it off for the whole machine and other runs turned it back; the two runs compared then drew text with and without GDI's
 grey edges (every text failed). The harness no longer passes the game's SPI_SETFONTSMOOTHING on, and creates the game's fonts

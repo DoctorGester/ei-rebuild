@@ -63,6 +63,12 @@ function does; this file keeps what is not visible in the code.
   growing buffers, socket, state; 00440C60 / 00440D40 / 00440DE0). UDP driver 004407F0-00440BE0 and
   address parse / format 00440440 / 00440690; session rate 12500 local / 2500 otherwise (00783E34 / 38,
   clamp 500..50000, send interval from 0073BF48). Winsock is called through the game's import thunks.
+- Game port: one UDP port, 8888 (int 00783E30), for the server session's socket (00412D80 opens it through
+  004409A0 and ignores a failed bind: the session then has no socket), the local client's join of 127.0.0.1
+  (StartServer 0057E740) and the lobby's pings. A second game on the machine therefore joins the first
+  one's server and loses it when that game quits (the "disconnect" box, N0c); harness games each get a
+  port of their own (`tests/verify/harness_net.h`). Our `Open`, `ClientBase::RemoveClient` and the frame's
+  disconnect box log a line to ei_hook.log (diagnostics only).
 - Lobby: client base 004413E0-00442AD0 (server list, direct queries, join request / retry, ping /
   info / accepted / refused, FlushBits 00442570), server base 00442C60-00443590 (pings answered,
   joins accepted / refused, pending joins aged), the 0x2C-byte query 00443770-00444270. The master's

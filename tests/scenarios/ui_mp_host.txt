@@ -8,7 +8,10 @@
 # On the base screen (briefing) of the network client the player list (CChatWindow) is shown, and
 # Enter opens the chat line (CChatOverlay, 005E36C0; its typed line 005E3700): typed, edited,
 # sent (the server's SayMessage handler adds the line, the client's LineMessage handler shows it,
-# 005E2A30); Backspace with the line closed clears the lines. Nothing reaches another machine.
+# 005E2A30); Backspace with the line closed clears the lines. Nothing reaches another machine, and the
+# harness gives each game its own UDP port (tests/verify/harness_net.h): with the shared 8888, a game
+# run beside another joined that one's server and showed the "disconnect" box when it quit (N0c). At the
+# end the briefing must still be on top.
 reject Script error
 waitmenu
 clickregion 5
@@ -72,5 +75,7 @@ key enterchar
 wait 1500
 key backspace
 frames 5
+wait 2000
+waitwindow 3 briefing
 report
 quit

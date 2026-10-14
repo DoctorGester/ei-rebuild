@@ -31,6 +31,10 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    afterwards, list rewritten functions with at least N verify calls and no
                    mismatch in any run that are not yet in tests/verify/verified.txt
 exit code: 0 when every run passed
+
+A run that outlives the scenario's time limit ("timeout <seconds>", default 60 s) is reported as TIMEOUT: the
+game's watchdog ends it at the limit, ei_launch 20 s later if the watchdog could not (tools/launcher/launch.cpp).
+A scenario with a line "# expect: TIMEOUT" passes when it times out (tests/scenarios/watchdog_*.txt check this).
 """
 import argparse, functools, collections, concurrent.futures, contextlib, glob, json, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
 
@@ -136,6 +140,37 @@ def game_environment(environ=None):
 MINIMISED = 'harness: the game window was minimised'
 MINIMISED_RERUNS = 2
 
+# A run past its time limit. ei_launch exits with TIMEOUT_EXIT when it had to end the game itself and
+# UNKILLABLE_EXIT when the game stayed alive after TerminateProcess (a thread stuck in a driver call); the
+# game's own watchdog writes this failure into the report.
+TIMEOUT_EXIT = 4
+UNKILLABLE_EXIT = 5
+LIMIT_MARGIN_S = 20          # ei_launch's margin past the scenario's limit (launch.cpp kTimeoutMarginMs)
+IN_GAME_TIMEOUT = 'scenario exceeded its'
+EXPECT_PREFIX = '# expect:'
+
+
+def scenario_limit(scenario):
+    """The scenario's time limit in seconds: its last "timeout <seconds>" line, default 60 (harness.cpp)."""
+    limit = 60
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                m = re.match(r'\s*timeout\s+(\d+)', text)
+                if m:
+                    limit = int(m.group(1))
+    return limit
+
+
+def expected_result(scenario):
+    """The result a scenario's line "# expect: <RESULT>" says it ends with (watchdog_*.txt: TIMEOUT), else None."""
+    with contextlib.suppress(OSError):
+        with open(scenario, encoding='utf-8', errors='replace') as f:
+            for text in f:
+                if text.startswith(EXPECT_PREFIX):
+                    return text[len(EXPECT_PREFIX):].strip()
+    return None
+
 
 def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=True, clock=None, game_env=None):
     """One game of a scenario on an install. root: the checkout whose tests/scenarios and run/ it uses;
@@ -189,7 +224,13 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
         env = dict(os.environ if env is None else env, EI_HARNESS_CLOCK=clock)
     with machine_slot(alone=sets_display_mode(scenario)) if take_slot else contextlib.nullcontext():
         start = time.time()
-        proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env)
+        # ei_launch ends a game at the limit plus its margin; this is for ei_launch itself (its job object
+        # takes the game down with it).
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env,
+                                  timeout=scenario_limit(scenario) + LIMIT_MARGIN_S + 90)
+        except subprocess.TimeoutExpired as e:
+            proc = subprocess.CompletedProcess(cmd, TIMEOUT_EXIT, '', f'ei_launch did not end in time; terminating it ({e})')
         seconds = time.time() - start
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
@@ -200,7 +241,20 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
         m = re.match(r'(.+?)\s+(\d+) calls\s+(\d+) mismatches$', line)
         if m:
             counts[m.group(1).strip()] = (int(m.group(2)), int(m.group(3)))
-    notes = [l for l in (proc.stdout + proc.stderr).splitlines() if 'terminating' in l or 'not found' in l or 'open window' in l]
+    notes = [l for l in (proc.stdout + proc.stderr).splitlines()
+             if 'terminating' in l or 'not found' in l or 'open window' in l or 'still alive' in l]
+    if proc.returncode in (TIMEOUT_EXIT, UNKILLABLE_EXIT) or any(f.startswith(IN_GAME_TIMEOUT) for f in failures):
+        result = 'TIMEOUT'
+        if not failures:
+            failures = [f'scenario exceeded its {scenario_limit(scenario)} s time limit; ei_launch ended the game'
+                        + ('' if proc.returncode != UNKILLABLE_EXIT else ' (it did not die: a thread is stuck in the kernel)')]
+        if proc.returncode == UNKILLABLE_EXIT:
+            failures.append('the game process is still alive after TerminateProcess')
+    expected = expected_result(scenario)
+    if expected and result == expected and proc.returncode != UNKILLABLE_EXIT:
+        result = 'PASS'
+        failures = []
+        notes.append(f'ended as the scenario expects ({expected})')
     notes += [l for l in report.splitlines() if l.startswith('EXIT: ')]   # a message box after quit
     return result, seconds, failures, counts, notes
 
@@ -364,8 +418,8 @@ def expected_times(jobs, root=ROOT, build=BUILD, db=None):
 
 
 def record_time(db, name, install, seconds, result, root=ROOT, batch=None):
-    """Appends a finished game's time to the machine-wide table; never raises. Crashed runs (ERROR, NO REPORT) are not times."""
-    if db is None or result in ('ERROR', 'NO REPORT'):
+    """Appends a finished game's time to the machine-wide table; never raises. Crashed and timed-out runs (ERROR, NO REPORT, TIMEOUT) are not times."""
+    if db is None or result in ('ERROR', 'NO REPORT', 'TIMEOUT'):
         return
     try:
         import work

@@ -1,9 +1,10 @@
 // Checks for the multiplayer connection screen, its master request box and the address list's
 // vector members (ui_connect_screen.cpp). Multiplayer only: the screen opens from the multiplayer
-// hero screen's Continue with a hero, which no scenario does, so none of these is reached. All
-// ours only (they open windows, write config\addrbook.ini, talk to the network or reallocate the
-// list); the checks are invariants of the result.
+// hero screen's Continue with a hero (ui_mp_host does: the list draw 0061D780 is reached and compared
+// side by side; the rest is not reached). The others are ours only (they open windows, write
+// config\addrbook.ini, talk to the network or reallocate the list); the checks are invariants of the result.
 #include "verify.h"
+#include "ui_surface_pixels.h"
 
 #include "../../src/game/net_classes.h"
 #include "../../src/game/ui.h"
@@ -207,27 +208,116 @@ static void __fastcall MasterBoxUpdateVerify(CMasterRequestBox* self) {
 }
 EI_VERIFY(0x0061E4E0, MasterBoxUpdateVerify, 0, s_unused);
 
-// 0061D780 CMpConnectScreen::DrawListVanilla (Rebirth-patched: the vanilla launch only): ours only
-// (it draws). Read back: the new game's sprites (4, 5) and its tips' flag follow row 0 being
-// selected, the game type tabs (6-9) too when the list has it; the selection frame (2) shows when
-// the selected row is one of the 15 drawn. Not reached (see above).
-static void __fastcall DrawListVerify(CMpConnectScreen* self) {
-    self->DrawListVanilla();
-    auto visible = [self](int index) { return reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[index])->visible_ != 0; };
-    const unsigned rows = static_cast<unsigned>(self->entries_.size());
-    const unsigned selected = static_cast<unsigned>(self->selected_);
-    const unsigned top = static_cast<unsigned>(self->scrollTop_);
-    const bool newGame = self->selected_ == 0;
-    const bool drawn = selected < rows && selected >= top && selected - top < static_cast<unsigned>(CMpConnectScreen::kRows);
-    bool tabs = true;
-    for (int i = 6; i < 10; ++i) tabs = tabs && visible(i) == (newGame && rows > 0);
-    ei::verify::Check("CMpConnectScreen::DrawListVanilla", true,
-                      visible(4) == newGame && visible(5) == newGame && self->newGameTips_ == newGame && tabs &&
-                          visible(2) == drawn,
-                      "selected %d of %u top %u: new game %d %d tips %d tabs %d frame %d", self->selected_, rows, top,
-                      visible(4) ? 1 : 0, visible(5) ? 1 : 0, self->newGameTips_ ? 1 : 0, tabs ? 1 : 0, visible(2) ? 1 : 0);
+// 0061D780 CMpConnectScreen::DrawListVanilla (Rebirth-patched: WideScreen and ExtendedServerName are
+// reproduced, so in a Rebirth launch this compares with addon's code, in the vanilla launch with the
+// original): side by side on the real screen. What the function writes besides the picture (the
+// sprites 2-9: visible, place; the new game's tips flag; the text colour 00793AD8) is put back
+// before each run, recorded after the original and compared after ours; the surface's pixels too
+// (ui_surface_pixels.h). Scenario: ui_mp_host (the list with the new game's row, its keys and sort
+// columns). No server answers there, so three servers are appended for a moment (a short name,
+// names too long for their column and for the details' line, a password, the states, the game
+// types), each one selected in turn, and removed again before the real state is compared last.
+static void(__fastcall* s_drawList)(CMpConnectScreen*);
+namespace {
+void CompareList(CMpConnectScreen* self, const char* what) {
+    constexpr int kFirst = 2, kEnd = 10;
+    struct SpriteState {
+        int visible;
+        Vector3 position;
+    };
+    auto sprite = [self](int index) { return reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[index]); };
+    std::uint32_t& colour = *reinterpret_cast<std::uint32_t*>(0x00793AD8);
+    const std::uint32_t colourBefore = colour;
+    const bool tips = self->newGameTips_;
+    SpriteState before[kEnd - kFirst], expected[kEnd - kFirst];
+    for (int i = kFirst; i < kEnd; ++i) before[i - kFirst] = {sprite(i)->visible_, sprite(i)->position_};
+    bool expectedTips = tips;
+    std::uint32_t expectedColour = colourBefore;
+    auto restore = [&] {
+        self->newGameTips_ = tips;
+        colour = colourBefore;
+        for (int i = kFirst; i < kEnd; ++i) {
+            sprite(i)->visible_ = before[i - kFirst].visible;
+            sprite(i)->position_ = before[i - kFirst].position;
+        }
+    };
+    CUiSurface* surface = self->surfaces_.size > 0 ? self->surfaces_.data[0] : nullptr;
+    ei::verify::gdi::DrawComparison c = ei::verify::gdi::CompareSurfaceDraws(
+        surface,
+        [&] {
+            restore();
+            s_drawList(self);
+            expectedTips = self->newGameTips_;
+            expectedColour = colour;
+            for (int i = kFirst; i < kEnd; ++i) expected[i - kFirst] = {sprite(i)->visible_, sprite(i)->position_};
+        },
+        [&] {
+            restore();
+            self->DrawListVanilla();
+        });
+    int mismatches = 0;
+    for (int i = kFirst; i < kEnd; ++i) {
+        const SpriteState& e = expected[i - kFirst];
+        const CUiMesh* mesh = sprite(i);
+        if (mesh->visible_ != e.visible || !ei::verify::NearlyEqual<float>(mesh->position_.x, e.position.x, 4, 1e-5f) ||
+            !ei::verify::NearlyEqual<float>(mesh->position_.y, e.position.y, 4, 1e-5f) ||
+            !ei::verify::NearlyEqual<float>(mesh->position_.z, e.position.z, 4, 1e-5f))
+            ++mismatches;
+    }
+    const bool ok = mismatches == 0 && self->newGameTips_ == expectedTips && colour == expectedColour && c.diff.count == 0 && c.compared && !c.unstable;
+    ei::verify::Check("CMpConnectScreen::DrawListVanilla", true, ok,
+                      "%s: selected %d of %u top %d: %d sprites differ, tips %d / %d, colour %06X / %06X; %d pixels differ in "
+                      "%d,%d-%d,%d%s",
+                      what, self->selected_, static_cast<unsigned>(self->entries_.size()), self->scrollTop_, mismatches,
+                      expectedTips ? 1 : 0, self->newGameTips_ ? 1 : 0, expectedColour, colour, c.diff.count, c.diff.left,
+                      c.diff.top, c.diff.right, c.diff.bottom, ei::verify::gdi::Unread(c));
 }
-EI_VERIFY(0x0061D780, DrawListVerify, 0, s_unused);
+
+struct SyntheticServer {
+    const char* name;
+    const char* description;
+    int players, maxPlayers, ping, gameType, state;
+    bool password;
+};
+const SyntheticServer kServers[] = {
+    {"Short", "Map", 1, 6, 35, 0, 0, false},
+    {"A server whose name is far too long for its column on the list", "A map title that is long enough to wrap over lines", 3, 8,
+     120, 2, 1, true},
+    {"A very very very very very very very long server name of eighty-odd characters!!", "Second", 6, 6, 9999, 4, 2, false},
+};
+} // namespace
+
+static void __fastcall DrawListVerify(CMpConnectScreen* self) {
+    if (self->surfaces_.size > 0 && self->entries_.size() > 0 && self->entries_.size() < 5) {
+        const int selected = self->selected_;
+        const int scrollTop = self->scrollTop_;
+        const std::size_t kept = self->entries_.size();
+        for (const SyntheticServer& server : kServers) {
+            MpAddressesPushDefault(&self->entries_);
+            MpAddressEntry& entry = self->entries_[self->entries_.size() - 1];
+            entry.name = server.name;
+            entry.description = server.description;
+            entry.players = server.players;
+            entry.maxPlayers = server.maxPlayers;
+            entry.ping = server.ping;
+            entry.gameType = server.gameType;
+            entry.state = server.state;
+            entry.password = server.password;
+        }
+        self->scrollTop_ = 0;
+        for (std::size_t i = kept; i < self->entries_.size(); ++i) {
+            self->selected_ = static_cast<int>(i);
+            CompareList(self, "server selected");
+        }
+        self->selected_ = 0;
+        CompareList(self, "servers listed, new game selected");
+        MpAddressesErase(&self->entries_, nullptr, &self->entries_[kept], self->entries_.end());
+        self->selected_ = selected;
+        self->scrollTop_ = scrollTop;
+    }
+    CompareList(self, "list");
+}
+EI_VERIFY(0x0061D780, DrawListVerify, 7, s_drawList);
 
 // 0061B2C0 CMpConnectScreen::Create (Rebirth-patched: the vanilla launch only): ours only (it
 // loads textures and a model, makes children and starts the network client). Read back, as the

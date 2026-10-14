@@ -1,0 +1,5 @@
+# Time limit, main thread blocked for good: the game's watchdog thread ends the game 10 s after its start (the steps start about 2 s in, more under load)
+# and the run is reported as TIMEOUT, which this scenario expects (tools/run_all.py). SV1d.
+# expect: TIMEOUT
+timeout 10
+hang main

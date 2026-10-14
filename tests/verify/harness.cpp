@@ -79,7 +79,13 @@
 //   check <expression>        print the script expression through the console ("#<expression>")
 //                             and require a nonzero result (waits up to 3 s for the output)
 //   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
-//                             fails and the game is closed
+//                             fails and the game is closed (the watchdog thread; if that cannot run,
+//                             ei_launch reads this line too and ends the game 20 s later)
+//   hang main|dump|all        TEST ONLY, for the time limit's own checks (tests/scenarios/watchdog_*.txt,
+//                             "# expect: TIMEOUT"): block the main thread for good; "dump" also blocks
+//                             the thread that logs the main thread's stack (a main thread that cannot
+//                             be suspended does that), "all" stops the watchdog thread as well, so only
+//                             ei_launch can end the game
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   waitexpect <seconds> <text>  like expect, but waits up to <seconds> for <text> to appear (for
 //                             output that follows posted keys, which a busy machine handles later)
@@ -138,6 +144,13 @@
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
 //                             <tolerance> (default 8), as tools/compare_frames.py counts
+//   checkshot [recorder] <n> <frame> [tolerance] [fraction]
+//                             require shot<n>.bmp (the game's Scroll Lock screenshot, or with
+//                             "recorder" the frame recorder's capture\shot<n>.bmp; in the saves
+//                             overlay) to exist and match frames\<frame>.bmp as
+//                             samecapture does (16 bits lose the low bits: use tolerance 8 or more)
+//   record on|off             the game's frame recorder (0079BC54: a "shotNNNN.bmp" of each presented
+//                             frame, nothing in the shipped game sets it)
 //   uicensus                  count how the interface draws into its window surfaces (GDI calls per
 //                             surface, call sites, readers, drawing no hook explains) and write
 //                             ui_census.csv with the report (ui_census.cpp; also EI_UI_CENSUS=1;
@@ -151,13 +164,15 @@
 // Harness runs are hands-off and leave the install alone: no startup movies, the tutorial option
 // off, saves and config\tutorial.ini kept in harness_saves next to the DLL, every other write under
 // the game's root (the composed-skin cache textures\*.mmp, config\keyboard.ini, ...) going to a
-// copy-on-write overlay there too, no registry writes.
+// copy-on-write overlay there too, no registry writes, and a UDP port of its own for the multiplayer
+// sessions instead of 8888 (harness_net.h).
 // A watchdog fails and ends a run that stops making progress (e.g. a message box), and ei_launch
 // ends a game that hangs after "quit".
 #include "verify.h"
 #include "harness_capture.h"
 #include "harness_clock.h"
 #include "harness_starter.h"
+#include "harness_net.h"
 #include "ui_census.h"
 
 #include "../../src/hook/log.h"
@@ -293,6 +308,8 @@ struct Deadline {
 };
 Deadline g_waitUntil;   // "wait"
 volatile bool g_quitting = false;
+volatile bool g_watchdogStopped = false;   // "hang all": the in-game watchdog does nothing
+volatile bool g_stackDumpHangs = false;    // "hang dump": the thread that logs the main thread's stack never returns
 bool g_running = false;
 bool g_inStep = false;
 char g_reportPath[MAX_PATH];
@@ -985,6 +1002,7 @@ void PostKey(const std::string& name) {
     else if (name == "end") vk = VK_END;
     else if (name == "pgup") vk = VK_PRIOR;
     else if (name == "pgdn") vk = VK_NEXT;
+    else if (name == "scrolllock") vk = VK_SCROLL;   // scan 0x46: the screenshot key (005F78C0)
     else if (name == "ctrl") vk = VK_CONTROL;   // scan 0x1D: sets CInterface3D +0x7C while down
     else if (name.size() >= 2 && name[0] == 'f') vk = VK_F1 + std::atoi(name.c_str() + 1) - 1;
     if (!vk) {
@@ -1895,6 +1913,38 @@ void RunSteps() {
             Log("harness: %s", text);
             g_capturedFrames.push_back(text);
             if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "checkshot") {
+            int index = -1, tolerance = 8;
+            char frame[64] = "";
+            double limit = 0.001;
+            // "recorder" first: the frame recorder's file (the movie folder ".\capture\"), not Scroll Lock's.
+            bool recorder = s.argument.compare(0, 9, "recorder ") == 0;
+            if (sscanf_s(s.argument.c_str() + (recorder ? 9 : 0), "%d %63s %d %lf", &index, frame, unsigned(sizeof(frame)),
+                         &tolerance, &limit) < 2 ||
+                index < 0) {
+                g_failures.push_back("checkshot needs [recorder] <n> <frame>");
+                continue;
+            }
+            char path[MAX_PATH];
+            std::snprintf(path, sizeof(path), "%s\\%sshot%.4d.bmp", g_savesDir, recorder ? "capture\\" : "", index);
+            double differing = 0;
+            int largest = 0;
+            std::string how;
+            const char* why = "";
+            if (!capture::CompareFile(path, frame, tolerance, &differing, &largest, &how, &why)) {
+                g_failures.push_back(std::string("checkshot ") + std::to_string(index) + " " + frame + ": " + why);
+                Log("harness: checkshot %d %s: %s (%s)", index, frame, why, path);
+                continue;
+            }
+            char text[240];
+            std::snprintf(text, sizeof(text), "checkshot %s%d %s: %sshot%.4d.bmp %s; %.3f%% of the pixels differ by more than %d (largest %d)",
+                          recorder ? "recorder " : "", index, frame, recorder ? "capture\\" : "", index, how.c_str(),
+                          100.0 * differing, tolerance, largest);
+            Log("harness: %s", text);
+            g_capturedFrames.push_back(text);
+            if (differing > limit) g_failures.push_back(text);
+        } else if (s.verb == "record") {
+            *reinterpret_cast<unsigned char*>(0x0079BC54) = s.argument == "on" ? 1 : 0;
         } else if (s.verb == "oldterrain") {
             render::SetDrawOldTerrain(s.argument != "off");
         } else if (s.verb == "oldobjects") {
@@ -1925,6 +1975,11 @@ void RunSteps() {
         } else if (s.verb == "focus" || s.verb == "windowsize") {
             std::string error = s.verb == "focus" ? FocusStep(s.argument) : WindowSizeStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
+        } else if (s.verb == "hang") {
+            g_stackDumpHangs = s.argument == "dump" || s.argument == "all";
+            g_watchdogStopped = s.argument == "all";
+            Log("harness: hang %s (a test of the time limit): the main thread blocks for good", s.argument.c_str());
+            Sleep(INFINITE);
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
             clock::Freeze(s.verb == "freeze");
         } else if (s.verb == "reject") {
@@ -2033,10 +2088,27 @@ void LogMainThreadStack() {
     }
 }
 
+// The stack dump runs on a thread of its own and the watchdog waits 2 s for it: suspending the main
+// thread and reading its context waits until the thread is actually suspended, which a thread stuck
+// in a driver call (DirectSound's device open inside Miles' waveOutOpen under load) never is. The
+// watchdog itself must reach TerminateProcess whatever the main thread is doing (SV1d).
+void LogMainThreadStackBounded() {
+    HANDLE dump = CreateThread(nullptr, 0, [](void*) -> DWORD {
+        if (g_stackDumpHangs) Sleep(INFINITE);
+        LogMainThreadStack();
+        return 0;
+    }, nullptr, 0, nullptr);
+    if (!dump) return;
+    if (WaitForSingleObject(dump, 2000) == WAIT_TIMEOUT)
+        Log("harness: the main thread's stack could not be read in 2 s (it cannot be suspended)");
+    CloseHandle(dump);
+}
+
 DWORD WINAPI Watchdog(void*) {
     const DWORD start = GetTickCount();
     for (;;) {
         Sleep(250);
+        if (g_watchdogStopped) Sleep(INFINITE);
         if (g_quitting) {
             Sleep(5000);
             Log("harness: the game did not exit 5 s after quit; terminating it");
@@ -2049,7 +2121,7 @@ DWORD WINAPI Watchdog(void*) {
             std::snprintf(what, sizeof(what), "scenario exceeded its %lu s time limit at step %u of %u",
                           g_budget / 1000, unsigned(g_next), unsigned(g_steps.size()));
             g_failures.push_back(what);
-            LogMainThreadStack();
+            LogMainThreadStackBounded();
             // Write the report from another thread and end the game whether or not that finishes:
             // a crashed or deadlocked main thread may hold a lock the report needs.
             if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
@@ -2381,6 +2453,7 @@ struct Harness {
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
         ei::verify::starter::Install();
+        net_port::Install();   // a UDP port of its own (harness_net.h)
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);

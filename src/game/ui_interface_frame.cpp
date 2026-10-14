@@ -16,6 +16,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_core.h"
+#include "../hook/log.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -111,6 +112,8 @@ void CInterface3D::Update() {
     mouseY_ = *reinterpret_cast<int*>(0x007C7C54);
     if (disconnected_ && IsNetworkClientOriginal() && net::GameClient()->joinState_ != 2) {
         disconnected_ = false;
+        ei::Log("interface: the network client is not joined (state %u): the disconnect box",   // not the game's (N0c)
+                static_cast<unsigned>(net::GameClient()->joinState_));
         void* memory = gamecrt::operator_new(0x180);
         void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, this, reinterpret_cast<const char*>(0x0079242C),
                                                          reinterpret_cast<const char*>(0x00793074), 0x990000, 1, 1)

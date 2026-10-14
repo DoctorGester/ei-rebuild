@@ -161,19 +161,22 @@ done = "2026-10-14"
 id = "R9c2"
 title = "Software cursor moving between frames (movies, loading) without DirectDraw"
 group = "renderer"
-status = "queued"
+status = "running"
 model = "opus"
 depends = ["R9c"]
 note = "The cursor thread 005E5690 draws nothing in present mode; the cursor is drawn in each frame and hidden during movies and loading. Moving it between frames needs a present from the cursor thread (thread-safe sokol use or a separate overlay) or a hardware cursor (renderer.md section 9, R9c)."
+started = "2026-10-15"
 
 [[ticket]]
 id = "R9c3"
 title = "Scroll Lock screenshot and movie recorder from the new frame"
 group = "renderer"
-status = "queued"
+status = "done"
 model = "sonnet"
 depends = ["R9c"]
 note = "006D6D40 gives no bitmap for a holder without a surface (logged since R9a); take the picture from render::ReadFrame instead (renderer.md section 9)."
+started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "R9c4"
@@ -395,20 +398,22 @@ done = "2026-10-14"
 id = "N0c"
 title = "ui_mp_host under Rebirth: disconnect box after the chat line"
 group = "native-ui"
-status = "running"
+status = "done"
 size = 0.5
 files = ["tests/scenarios/ui_mp_host.txt"]
 note = "Under Rebirth a 'disconnect' message box (disconnect_msg) sometimes appears on the briefing about a second after the chat line is sent in ui_mp_host; the scenario still passes. Find whether EI_Plugin.asi / Rebirth's net patches or our client/server cause it (vanilla never shows it)."
 started = "2026-10-14"
+done = "2026-10-15"
 
 [[ticket]]
 id = "N0d"
 title = "Census call chains: stale return addresses"
 group = "native-ui"
-status = "queued"
+status = "running"
 size = 0.25
 files = ["tests/verify/ui_census.cpp"]
 note = "Chain() scans the stack for return-address-like values, so the pixel helpers' rows sometimes name stale callers (Rebirth's greyscale marked [in verify], SwapContents 'by' Connection::SendUpdate / CastSpell with zero counts). Walk only from the helper's own return address with real frames, or mark the helpers noinline (N0a, ui-census.md Readers)."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- widescreen
 
@@ -450,18 +455,29 @@ status = "running"
 model = "opus"
 depends = ["W3"]
 note = "Also camera mouse moves and 004F1330. Seen 2026-10-14 by the user in a vanilla --widescreen run (ui_widescreen, hero screen): the hero model drawn in vertical strips; check it under W4 (the garbled title there is expected cp1251 text, per the user). After W3 (2026-10-14): also update the ui-native.md line saying 006462A0 is native only in vanilla until W3."
-started = "2026-10-15"
+started = "2026-10-14"
 
 [[ticket]]
 id = "W2a"
 title = "Connect list 0061D780 under Rebirth: ExtendedServerName with WideScreen"
 group = "widescreen"
-status = "running"
+status = "done"
 size = 0.5
 model = "sonnet"
 depends = ["W2"]
 note = "W2 rewrote its WideScreen caret (+0x38E/+0x3BE) but the Rebirth launch skips the hook: the function also holds ExtendedServerName (+0x27C, not reproduced). Reproduce that site too (EI_REBIRTH_IMPLEMENTS both), then compare in a Rebirth launch (net_lobby's connect list)."
 started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "W2b"
+title = "Connect screen Create 0061B2C0: addon's ExtendedServerName sites"
+group = "widescreen"
+status = "queued"
+size = 0.3
+model = "sonnet"
+files = ["src/game/ui_connect_screen.cpp", "config/rebirth_patches.csv"]
+note = "From W2a (2026-10-14): the connect list draw now reproduces ExtendedServerName, but Create 0061B2C0 still carries addon's sites (field sizes, 0061BB51 and neighbours) plus the 0061B5CE float. Same approach as W2a: read addon's live bytes, gate on Patch::ExtendedServerName, compare in ui_mp_host under Rebirth."
 
 [[ticket]]
 id = "W4a"
@@ -536,9 +552,10 @@ done = "2026-10-14"
 id = "SV2"
 title = "State digest and dump in the harness; golden record / compare"
 group = "verification"
-status = "queued"
+status = "running"
 size = 1
 depends = ["SV1"]
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV3"
@@ -784,22 +801,36 @@ note = "From SV1: a game that got the foreground and lost it to a starting game 
 id = "SV1d"
 title = "A stalled game outlived its scenario limit and ei_launch"
 group = "harness"
-status = "running"
+status = "done"
 size = 0.3
 model = "sonnet"
 files = ["tests/verify/harness.cpp"]
 note = "From SV1: a sandbox_map-vanilla game stalled at 23:20 on 2026-10-14 and was not ended by the 80 s scenario limit or ei_launch; killed by hand 25 min later. Three older games (from 15:45 and 19:05) also survived Stop-Process. Find which state the watchdog misses; ei_launch should end the game when the limit plus a margin passes. Related: start-up hangs under load in DirectSound's device open inside Miles' waveOutOpen (both sides, either clock)."
 started = "2026-10-14"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV1e"
 title = "Native runs fail at start-up with 'DirectX 7 or higher required' on the real clock"
 group = "harness"
-status = "queued"
+status = "done"
 size = 0.2
 model = "sonnet"
 files = ["tools/run_all.py"]
-note = "From SV1: 51 of 77 real-clock native runs failed at 0 s with that box. PF3 (native skips the GetDxVersion probe) may already cover it: check on current main first, close if so."
+note = "Checked 2026-10-15 on main c93af795 + SV1d: run_all --native --clock real, 8 scenarios (smoke console camera items movement models particles levers), 4 at once: all PASS, none at the DirectX box. PF3 (native skips the GetDxVersion probe) covers it; no change needed."
+done = "2026-10-15"
+
+[[ticket]]
+id = "WB7"
+title = "Scheduler: a batch whose arguments it cannot parse fails visibly instead of waiting"
+group = "harness"
+status = "done"
+size = 0.15
+model = "sonnet"
+files = ["tools/work_sched.py"]
+note = "Seen 2026-10-15: the scheduler started before SV1 merged had an old run_all without --clock, so batch_args() returned None for SV1a's and SV1d's batches and they sat queued 18 min with no message while later batches ran. A batch whose args do not parse should finish as failed with the parse error in its summary (shown on the board), not be skipped forever. WB6's restart-on-new-code makes this rarer, not impossible."
+started = "2026-10-15"
+done = "2026-10-15"
 
 # ---------------------------------------------------------------- cleanup
 
@@ -844,8 +875,9 @@ done = "2026-10-14"
 id = "C5"
 title = "C4 leftovers: per-file streams and Text helpers"
 group = "cleanup"
-status = "queued"
+status = "running"
 note = "UnitStream, SaveStream, FileStream, the unit_ai stream, verify_magic_trap's wrapper, the per-file Text(0x...) helpers (cleanup-engine-base.md)."
+started = "2026-10-15"
 
 [[ticket]]
 id = "C9b"

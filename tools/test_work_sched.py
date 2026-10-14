@@ -107,6 +107,53 @@ class SchedTest(unittest.TestCase):
             self.assertEqual((self.batch(x)['state'], self.batch(x)['exit_code']), ('finished', 0))
             self.assertIn('ALL PASS', self.batch(x)['summary'])
 
+    def test_unparseable_arguments_fail_the_batch(self):
+        fake = Fake(default=0.2)
+        bad = self.submit(['a1', 'a2'], argv=['--clock'])          # run_all: --clock needs a value
+        good = self.submit(['b1'], build='b2')
+        self.drive(self.sched(fake))
+        b = self.batch(bad)
+        self.assertEqual((b['state'], b['exit_code']), ('finished', 2))
+        self.assertIn('FAILED', b['summary'])
+        self.assertIn('--clock', b['summary'])
+        self.assertIn('expected one argument', b['summary'])      # run_all's own error
+        self.assertEqual({r['state'] for r in self.runs(bad).values()}, {'cancelled'})
+        self.assertEqual(fake.starts(bad), [], 'a batch with unusable arguments started a game')
+        self.assertEqual((self.batch(good)['state'], self.batch(good)['exit_code']), ('finished', 0))
+        # the waiting `work.py test` prints the summary and returns the code
+        import io, contextlib
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = work_sched.wait(self.db, bad, self.root, f'{self.root}/b')
+        self.assertEqual(code, 2)
+        self.assertIn('expected one argument', out.getvalue())
+
+    def test_slow_summary_does_not_hold_the_loop(self):
+        # a batch's post-game checks (--widescreen frame comparisons) take minutes: the next batch's
+        # games start meanwhile and the scheduler keeps ticking
+        fake = Fake(default=0.2)
+        slow = self.submit(['a1'])
+        later = self.submit([f'b{i}' for i in range(1, 10)], build='b2')   # three waves on 4 slots
+        summary = run_all.summary
+        def slow_summary(jobs, *a, **k):
+            if jobs == [('a1', 'vanilla')]:
+                time.sleep(1.5)
+            return summary(jobs, *a, **k)
+        run_all.summary = slow_summary
+        try:
+            s = self.sched(fake)
+            ticks, end = 0, time.time() + 30
+            while s.tick():
+                ticks += 1
+                self.assertLess(time.time(), end, 'scheduler did not finish')
+                time.sleep(0.02)
+        finally:
+            run_all.summary = summary
+        self.assertLess(max(fake.starts(later)), min(fake.starts(slow)) + 1.2, 'the next batch waited for a summary')
+        self.assertGreater(ticks, 30, 'the main loop stood still during the summary')
+        self.assertEqual((self.batch(slow)['state'], self.batch(slow)['exit_code']), ('finished', 0))
+        self.assertIn('ALL PASS', self.batch(slow)['summary'])
+
     def test_jobs_ignored(self):
         fake = Fake(default=0.3)
         self.submit(['a1', 'a2', 'a3', 'a4'], argv=['--jobs', '2'])
