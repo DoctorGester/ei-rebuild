@@ -27,7 +27,7 @@ void ResetSet(FootprintCellSet* set) {
 // and `next` it never writes (stack garbage): ours writes 0 and -1; nothing reads them, as the
 // cells are in no bucket.
 void AddCell(FootprintCellSet* set, int x, int y) {
-    int index = set->count;
+    int index = set->cells.size;
     set->SetSize(index + 1, -1);
     FootprintCell& cell = set->cells[index];
     cell.x = x;

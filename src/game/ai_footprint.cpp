@@ -17,58 +17,13 @@
 // --- Footprint cell sets -------------------------------------------------------------------------
 
 FootprintCellSet* FootprintCellSet::Construct() {
-    cells = nullptr;
-    growBy = 0;
-    capacity = 0;
-    count = 0;
+    cells.Construct();
     hashed = true;
     return this;
 }
 EI_REPLACE_METHOD(0x0067E4E0, FootprintCellSet::Construct);
 
-void FootprintCellSet::SetSize(int size, int grow) {
-    if (grow != -1) growBy = grow;
-    if (size == 0) {
-        if (cells) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(cells)[-1]);
-            cells = nullptr;
-        }
-        capacity = 0;
-        count = 0;
-        return;
-    }
-    // 32-byte aligned storage; the raw block is kept just before it.
-    auto allocate = [](int n) {
-        auto raw = reinterpret_cast<std::uintptr_t>(gamecrt::operator_new(n * sizeof(FootprintCell) + 0x24));
-        auto* aligned = reinterpret_cast<FootprintCell*>((raw + 0x23) & ~std::uintptr_t{0x1F});
-        reinterpret_cast<std::uintptr_t*>(aligned)[-1] = raw;
-        return aligned;
-    };
-    if (!cells) {
-        cells = allocate(size);
-        capacity = size;
-        count = size;
-        return;
-    }
-    if (size <= capacity) {
-        count = size;
-        return;
-    }
-    int step = growBy;
-    if (step == 0) {
-        step = count / 8;
-        if (step < 4) step = 4;
-        else if (step > 0x400) step = 0x400;
-    }
-    int newCapacity = capacity + step;
-    if (!(size < newCapacity)) newCapacity = size;
-    FootprintCell* grown = allocate(newCapacity);
-    std::memcpy(grown, cells, count * sizeof(FootprintCell));
-    gamecrt::operator_delete(reinterpret_cast<void**>(cells)[-1]);
-    cells = grown;
-    count = size;
-    capacity = newCapacity;
-}
+void FootprintCellSet::SetSize(int size, int grow) { cells.SetSize(size, grow); }
 EI_REPLACE_METHOD(0x005BD350, FootprintCellSet::SetSize);
 
 namespace {
@@ -81,11 +36,11 @@ FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
 
 void AppendCell(FootprintCellSet* set, const FootprintCell& cell) {
     int bucket = (cell.x + cell.y) & 15;
-    int index = set->count;
+    int index = set->cells.size;
     set->SetSize(index + 1, -1);
     set->cells[index] = cell;
-    set->cells[set->count - 1].next = set->buckets[bucket];
-    set->buckets[bucket] = set->count - 1;
+    set->cells[set->cells.size - 1].next = set->buckets[bucket];
+    set->buckets[bucket] = set->cells.size - 1;
 }
 } // namespace
 
@@ -118,7 +73,7 @@ void FootprintCellSet::GetBounds(int* bounds) const {
     bounds[2] = 100000;
     bounds[3] = 0;
     bounds[1] = 0;
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < cells.size; ++i) {
         int x = cells[i].x, y = cells[i].y;
         if (!(bounds[0] < x)) bounds[0] = x;
         if (!(bounds[2] < y)) bounds[2] = y;
@@ -340,10 +295,10 @@ EI_REPLACE_METHOD(0x005B6A80, CAIMap::MarkFootprint);
 
 bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     if (remove) {
-        for (int i = 0; i < set->count; ++i) ClearOccluder(&set->cells[i]);
+        for (int i = 0; i < set->cells.size; ++i) ClearOccluder(&set->cells[i]);
         return true;
     }
-    for (int i = 0; i < set->count; ++i) {
+    for (int i = 0; i < set->cells.size; ++i) {
         if (!AddOccluder(&set->cells[i])) {
             for (int j = 0; j < i; ++j) ClearOccluder(&set->cells[j]);
             return false;

@@ -211,8 +211,8 @@ void FootprintSetStartupCheck() {
     auto* ours = reinterpret_cast<FootprintCellSet*>(storage);
     const FootprintCellSet* result = ours->Construct();
 
-    const bool written = theirs->cells == ours->cells && theirs->count == ours->count && theirs->capacity == ours->capacity &&
-                         theirs->growBy == ours->growBy && theirs->hashed == ours->hashed;
+    const bool written = theirs->cells.data == ours->cells.data && theirs->cells.size == ours->cells.size && theirs->cells.capacity == ours->cells.capacity &&
+                         theirs->cells.growBy == ours->cells.growBy && theirs->hashed == ours->hashed;
     // Everything else: the pattern in ours, zeros in theirs.
     bool untouched = true;
     const auto* theirBytes = reinterpret_cast<const std::uint8_t*>(theirs);
@@ -222,11 +222,11 @@ void FootprintSetStartupCheck() {
     }
     // An object of zeros would not have the hashed byte set.
     ei::verify::Check("static initialiser: footprint cell set 0067E4E0", true,
-                      result == ours && written && untouched && theirs->hashed && !theirs->cells,
+                      result == ours && written && untouched && theirs->hashed && !theirs->cells.data,
                       "theirs: cells %p count %d capacity %d growBy %d hashed %d; ours: cells %p count %d capacity %d growBy %d "
                       "hashed %d; other bytes untouched %d",
-                      static_cast<const void*>(theirs->cells), theirs->count, theirs->capacity, theirs->growBy, theirs->hashed,
-                      static_cast<const void*>(ours->cells), ours->count, ours->capacity, ours->growBy, ours->hashed, untouched);
+                      static_cast<const void*>(theirs->cells.data), theirs->cells.size, theirs->cells.capacity, theirs->cells.growBy, theirs->hashed,
+                      static_cast<const void*>(ours->cells.data), ours->cells.size, ours->cells.capacity, ours->cells.growBy, ours->hashed, untouched);
 }
 EI_STARTUP_CHECK(FootprintSetStartupCheck);
 

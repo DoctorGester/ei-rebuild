@@ -62,17 +62,14 @@ struct FootprintCellSet {
     // 005B2F40. Bounding box of the cells: {minX, maxX, minY, maxY}; {100000, 0, 100000, 0} if empty.
     void GetBounds(int* bounds) const;
 
-    FootprintCell* cells;   // +0x00
-    int count;              // +0x04
-    int capacity;           // +0x08
-    int growBy;             // +0x0C 0 = an eighth of the size, clamped to 4..1024
+    // +0x00 the cells, chained per bucket through FootprintCell::next. The engine's aligned array
+    // (SetSize above is its out-of-line copy).
+    lib::AlignedArray<FootprintCell> cells;
     int buckets[16];        // +0x10 first index per (x + y) & 15, -1 when empty
     bool hashed;            // +0x50 set by Construct and by every insertion, never cleared
     std::uint8_t unknown_51[3];
 };
-static_assert(offsetof(FootprintCellSet, count) == 0x04);
-static_assert(offsetof(FootprintCellSet, capacity) == 0x08);
-static_assert(offsetof(FootprintCellSet, growBy) == 0x0C);
+static_assert(offsetof(FootprintCellSet, buckets) == 0x10);
 static_assert(offsetof(FootprintCellSet, hashed) == 0x50);
 static_assert(sizeof(FootprintCellSet) == 0x54);
 

@@ -80,15 +80,9 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     sectors.height = 0;
     sectors.added = 0;
     sectors.width = 0;
-    self->footprint.cells = nullptr;
-    self->footprint.growBy = 0;
-    self->footprint.capacity = 0;
-    self->footprint.count = 0;
+    self->footprint.cells.Construct();
     self->footprint.hashed = true;
-    self->bridges.cells = nullptr;
-    self->bridges.growBy = 0;
-    self->bridges.capacity = 0;
-    self->bridges.count = 0;
+    self->bridges.cells.Construct();
     self->bridges.hashed = true;
     self->waterWidth = 1;
     self->waterHeight = 1;
