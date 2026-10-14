@@ -152,10 +152,9 @@ CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(o
 // "Bodypart \"%s\" for object \"%s\" not found\n"
 const char* PartNotFoundFormat() { return reinterpret_cast<const char*>(0x0079189C); }
 
-// Unit and object virtuals used by MarkFootprint (names provisional).
-int IsDead(CEngineObject* unit) { return ei::VCall<int>(unit, 0xDC / 4); }
-int IsLarge(CEngineObject* unit) { return ei::VCall<int>(unit, 0xD8 / 4); }
-bool AffectsUnits(CEngineObject* object) { return ei::VCall<bool>(object, 0xAC / 4); }
+// A CStringArray (MFC: vtable, CString data, size, capacity, grow-by), as the server companion and the
+// 3D object lay theirs out by hand (unit.h, map_object_figures.h).
+using NameArray = mfc::CArray<mfc::CString>;
 
 void ResetCellSet(FootprintCellSet* set) {
     set->SetSize(0, -1);
@@ -178,12 +177,15 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     matrix[12] = 0.0f;
     matrix[15] = 1.0f;
 
-    // Part names: the figure's list if it has one, else the object's own (CStringArray, size at +8).
-    char* names = reinterpret_cast<char*>(mapObject->companion) + 0x80;
-    if (*reinterpret_cast<int*>(names + 8) == 0) names = reinterpret_cast<char*>(&mapObject->partNameArrayVtable);
+    // Part names: the server companion's string array (+0x80) if it has any, else the object's own.
+    // The AI map lives on the server, so the companion is a CMapObjectServer (the client one is 0x58
+    // bytes).
+    auto* server = static_cast<CMapObjectServer*>(mapObject->companion);
+    const NameArray* names = reinterpret_cast<const NameArray*>(&server->stringsVtable);
+    if (names->size == 0) names = reinterpret_cast<const NameArray*>(&mapObject->partNameArrayVtable);
 
     bool hasBridge = false;
-    for (int n = 0; n < *reinterpret_cast<int*>(names + 8); ++n) {
+    for (int n = 0; n < names->size; ++n) {
         char* name;
         int index = ObjectFindPartIndexOriginal(object, nullptr, *StringArrayGetAt(names, nullptr, &name, n));
         DestroyString(&name);
@@ -308,10 +310,10 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
 
     if (object->GetClassId() == kClassUnit) {
         auto* unit = static_cast<CUnit*>(object);
-        if (IsDead(unit)) return true;
+        if (unit->IsDead()) return true;
         void* shape = UnitShape(unit->standingHeight);
         if (!shape) return true;
-        CUnitLayer* layer = IsLarge(unit) ? &unitLayerLarge : &unitLayerSmall;
+        CUnitLayer* layer = unit->IsLargeUnit() ? &unitLayerLarge : &unitLayerSmall;
         if (remove) UnitLayerRemoveOriginal(layer, nullptr, unit, cellX - 8, cellY - 8);
         else UnitLayerAddOriginal(layer, nullptr, unit, shape, cellX - 8, cellY - 8);
         return true;
@@ -329,7 +331,7 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
     int maxY = a[3] > b[3] ? a[3] : b[3];
 
     bool savedRefreshUnits = refreshUnits;
-    refreshUnits = savedRefreshUnits && AffectsUnits(object);
+    refreshUnits = savedRefreshUnits && MapObject(object)->KeepsMapFlag();
     QueueRefresh(minX - 3, maxX + 3, minY - 3, maxY + 3);
     refreshUnits = savedRefreshUnits;
     return fits;

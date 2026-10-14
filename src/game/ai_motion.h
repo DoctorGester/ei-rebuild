@@ -6,6 +6,8 @@
 
 #include "ai_map.h"
 
+class CWorld;   // world.h
+
 #include <cstddef>
 #include <cstdint>
 
@@ -50,8 +52,8 @@ struct UnitMotion {
     // 005C7430. Samples the motion of `order` at world time `time`: position (x, y) in half-cells,
     // direction (x, y, 0), speed (0.1 if unchanged) and the path cell reached (-1 if none).
     // `turning` is set while the unit only turns. Returns false when the order is complete.
-    // `world` resolves object ids for tracking orders (its slot 0xA0/4).
-    bool Sample(void* world, MotionOrder* order, float time, bool* turning, float* position, float* direction,
+    // `world` resolves object ids for tracking orders (its ObjectWithId).
+    bool Sample(CWorld* world, MotionOrder* order, float time, bool* turning, float* position, float* direction,
                 float* speed, int* cellX, int* cellY);
     // 005C6FC0. Sample for a path order; `time` is relative to the order's start.
     bool SamplePath(float time, bool* turning, float* position, float* direction, float* speed, int* cellX,

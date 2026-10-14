@@ -2,9 +2,9 @@
 // the steps a unit is about to walk.
 #include "ai_map.h"
 
+#include "ai_shape_cache.h"
 #include "core_refcount.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -16,17 +16,12 @@ namespace {
 // The sector map through its original address (rewritten in sector_map.cpp), so the verify build's
 // wrapper sees the call.
 
-// A handle into the cache of unit occupancy shapes (the global at 007C2F70), keyed by standing
-// height rounded to 0.1. 16x16 signed levels start at shape + 8.
-struct ShapeHandle {
-    void* cache;
-    CRefObject* ref;
-    std::uint32_t key;
-    float height;
-};
+// A handle into the cache of unit occupancy shapes (UnitShapes(), ai_shape_cache.h), keyed by
+// standing height rounded to 0.1. 16x16 signed levels start at shape + 8.
+using ShapeHandle = ShapeCacheHandle;
 __declspec(naked) ShapeHandle* __fastcall ShapeHandleInit(ShapeHandle*, void*) EI_ORIGINAL(0x005BCCB0)
-__declspec(naked) const std::int8_t* __fastcall ShapeCacheGet(void*, void*, ShapeHandle*) EI_ORIGINAL(0x005BD7F0)
-void* ShapeCache() { return reinterpret_cast<void*>(0x007C2F70); }
+__declspec(naked) const std::int8_t* __fastcall ShapeCacheGet(UnitShapeCache*, void*, ShapeHandle*)
+    EI_ORIGINAL(0x005BD7F0)
 
 // 005B8BA0: the passability of cell (x, y) for a size class standing at `level` (a cell with
 // occluders); the cost is at out[3].
@@ -64,7 +59,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         double dy = static_cast<double>(position->y) - other->position.y;
         double dx = static_cast<double>(position->x) - other->position.x;
         if (dx * dx + dy * dy >= reach * reach) continue;
-        if (ei::VCall<int>(other, 0xDC / 4) != 0) continue;
+        if (other->IsDead() != 0) continue;
 
         int unitX = CellOf(unit->position.x);
         int unitY = CellOf(unit->position.y);
@@ -80,9 +75,9 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
             int tenths = x87::fistp(Store(static_cast<double>(otherHeight) * 10.0f + 1.0f));
             handle.height = Store(static_cast<double>(tenths) * 0.1f);
             std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
-            shape = ShapeCacheGet(ShapeCache(), nullptr, &handle);
+            shape = ShapeCacheGet(UnitShapes(), nullptr, &handle);
             if (CRefObject* ref = handle.ref) {
-                if (--ref->refs_ == 0) ei::VCall<void>(ref, 0, 1);
+                if (--ref->refs_ == 0) delete ref;
             }
         }
 
@@ -262,30 +257,26 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
 EI_REPLACE_METHOD(0x005BC970, CAIMap::MarkVisibleCells);
 
 namespace {
-// The shape cache: an STLport hash_map<ShapeHandle, RefPtr> at 007C2F78 owned by the cache object
-// at 007C2F70 (its slot 0 creates the shape for a handle). Node: {next, handle (0x10), value}.
-struct ShapeCacheIterator {
-    void* node;
-    void* map;
-};
-void* ShapeMap() { return reinterpret_cast<void*>(0x007C2F78); }
-__declspec(naked) ShapeCacheIterator* __fastcall ShapeMapFind(void*, void*, ShapeCacheIterator*, const ShapeHandle*)
+// The shape cache's map (UnitShapes()->shapes, 007C2F78): an STLport hash_map<ShapeHandle, RefPtr>,
+// called through the game's own instantiation. Node: {next, handle (0x10), value}.
+using ShapeMap = UnitShapeCache::Map;
+using ShapeCacheIterator = ShapeMap::Iterator;
+using ShapePair = ShapeMap::Pair;   // pair<const ShapeHandle, RefPtr> (0x14 bytes)
+static_assert(sizeof(ShapePair) == 0x14);
+__declspec(naked) ShapeCacheIterator* __fastcall ShapeMapFind(ShapeMap*, void*, ShapeCacheIterator*, const ShapeHandle*)
     EI_ORIGINAL(0x005BE320)
-__declspec(naked) ShapeCacheIterator* __fastcall ShapeIteratorInit(ShapeCacheIterator*, void*, void*, void*)
-    EI_ORIGINAL(0x005BE450)
-// pair<const ShapeHandle, RefPtr> (0x14 bytes): construct from a handle and a RefPtr, destroy.
-struct ShapePair {
-    std::uint32_t bytes[5];
-};
+__declspec(naked) ShapeCacheIterator* __fastcall ShapeIteratorInit(ShapeCacheIterator*, void*, ShapeMap::Node*,
+                                                                    const ShapeMap*) EI_ORIGINAL(0x005BE450)
+// The pair: construct from a handle and a RefPtr, destroy.
 __declspec(naked) ShapePair* __fastcall ShapePairInit(ShapePair*, void*, const ShapeHandle*, const RefPtr*)
     EI_ORIGINAL(0x005BE370)
 __declspec(naked) void __fastcall ShapePairDestroy(ShapePair*, void*) EI_ORIGINAL(0x005BE280)
-// hash_map insert_unique_noresize-style lookup or insert; returns &node->handle (value at + 0x10).
-__declspec(naked) char* __fastcall ShapeMapInsert(void*, void*, const ShapePair*) EI_ORIGINAL(0x005BE730)
+// hash_map insert_unique_noresize-style lookup or insert; returns the node's pair.
+__declspec(naked) ShapePair* __fastcall ShapeMapInsert(ShapeMap*, void*, const ShapePair*) EI_ORIGINAL(0x005BE730)
 
 void ReleaseHandle(ShapeHandle* handle) {
     if (CRefObject* ref = handle->ref) {
-        if (--ref->refs_ == 0 && ref) ei::VCall<void>(ref, 0, 1);
+        if (--ref->refs_ == 0) delete ref;     // delete tests ref again, as the original does
     }
 }
 } // namespace
@@ -302,26 +293,27 @@ void* CAIMap::UnitShape(float standingHeight) {
 
     CRefObject* shape;
     ShapeCacheIterator found, end;
-    ShapeMapFind(ShapeMap(), nullptr, &found, &handle);
-    ShapeIteratorInit(&end, nullptr, nullptr, ShapeMap());
+    ShapeMap* map = &UnitShapes()->shapes;
+    ShapeMapFind(map, nullptr, &found, &handle);
+    ShapeIteratorInit(&end, nullptr, nullptr, map);
     if (found.node != end.node) {
-        shape = *reinterpret_cast<CRefObject**>(static_cast<char*>(found.node) + 0x14);
-        handle.cache = ShapeCache();
+        shape = found.node->value.ptr;
+        handle.cache = UnitShapes();
         reinterpret_cast<RefPtr*>(&handle.ref)->Assign(shape);
     } else {
         // Not cached yet: create it and store it under the handle.
-        shape = ei::VCall<CRefObject*>(ShapeCache(), 0, &handle);
+        shape = UnitShapes()->CreateShape(&handle);
         RefPtr none = {nullptr};
         ShapePair pair;
         ShapePairInit(&pair, nullptr, &handle, &none);
-        RefPtr* slot = reinterpret_cast<RefPtr*>(ShapeMapInsert(ShapeMap(), nullptr, &pair) + 0x10);
+        RefPtr* slot = &ShapeMapInsert(map, nullptr, &pair)->value;
         ShapePairDestroy(&pair, nullptr);
         none.Destroy();
         if (shape != slot->ptr) {
             slot->Destroy();
             slot->Share(shape);
         }
-        handle.cache = ShapeCache();
+        handle.cache = UnitShapes();
         reinterpret_cast<RefPtr*>(&handle.ref)->Assign(shape);
     }
     ReleaseHandle(&handle);

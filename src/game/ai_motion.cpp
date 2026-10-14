@@ -8,10 +8,11 @@
 #include "core_streams.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "map_object.h"
+#include "world.h"
 
 #include <cstring>
 
@@ -273,7 +274,7 @@ int UnitMotion::Clear() {
 }
 EI_REPLACE_METHOD(0x005C6270, UnitMotion::Clear);
 
-bool UnitMotion::Sample(void* world, MotionOrder* order, float time, bool* turning, float* position,
+bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* turning, float* position,
                         float* direction, float* speedOut, int* cellX, int* cellY) {
     *cellX = -1;
     *cellY = -1;
@@ -301,16 +302,16 @@ bool UnitMotion::Sample(void* world, MotionOrder* order, float time, bool* turni
     case 2:
         return SamplePath(Store(time - start), turning, position, direction, speedOut, cellX, cellY);
     case 3: {
-        void* object = ei::VCall<void*>(world, 0xA0 / 4, static_cast<int>(order->arg5));
+        auto* object = static_cast<CMapObject*>(world->ObjectWithId(static_cast<int>(order->arg5)));
         if (!object) {
             FaceAngle(order->angle, direction);
             return true;
         }
         int from = static_cast<int>(order->arg6);
-        float buffer[3];
-        const float* where;
-        if (static_cast<double>(from) >= time) where = ei::VCall<const float*>(object, 0xD0 / 4, buffer, from);
-        else where = ei::VCall<const float*>(object, 0xD4 / 4, buffer);
+        Vector3 buffer;
+        const Vector3* where;
+        if (static_cast<double>(from) >= time) where = object->PositionAt(&buffer, from);
+        else where = object->AimPoint(&buffer);
         float target[3];
         std::memcpy(target, where, sizeof(target));
         float tx = Store(kHalfCellScale * target[0]);
