@@ -65,6 +65,53 @@ Notes on the inventory:
 - **Draw command.** Glyph quads drawn in "against black" mode: colour × coverage, and opaque wherever coverage > 0. This reproduces the keyed CPU look.
 - **Validation (offline, exact).** For a corpus of all game strings × 3 fonts × 800x600 / 1024x768 / 1280x720 / 1920x1080 / 3840x2160, compare the atlas composition on the CPU against GDI DrawText into a DIB. Require the same line breaks and identical pixels, except where glyphs overhang.
 
+### N2 done (2026-10-14): `src/render/render_text.{h,cpp}` and `tools/text_check`
+
+**What exists** (namespace `render::text`, no GDI and no game code):
+- `Font`: the small font interface (vertical metrics, glyph advance and box, pair kerning, 8-bit coverage). `LoadFont(path, pixels)` implements it with stb_truetype 1.26 (`STB_TRUETYPE_IMPLEMENTATION` in render_text.cpp only). Em scale = pixels / unitsPerEm, which matches GDI's negative lfHeight. Ascent and descent come from OS/2 usWinAscent / usWinDescent. The average width is the old OS/2 weighted 'a'..'z' + space average, because Liberation's xAvgCharWidth is much wider than Times New Roman's, which would put tab stops in the wrong place.
+- Font files: `FontFileForFace` maps "Courier New" to LiberationMono-Regular.ttf and every other face to LiberationSerif-Regular.ttf. `FontDirectory()` is the one place that decides where they live: `SetFontDirectory`, or by default `EI_FONT_DIR` (third_party/fonts, a compile definition on ei_render). A standalone exe or a DLL loading fonts from next to itself calls `SetFontDirectory` once. `PointSizeToPixels(tenths, dpi)` = dpi·tenths/720, as `CreatePointFont`.
+- `GlyphAtlas`: one per font, pixel size and smoothing state. It uses shelf packing with 1 px padding and grows by doubling its height; `Generation()` changes when it grows. Smoothing off thresholds coverage at one half.
+- `TextFont`: font + atlas + cached advances and kerning. `GetTextFont(face, pixels, smoothing)` is the process-wide cache and is not thread-safe.
+- `DecodeCp1251` (checked against MultiByteToWideChar: 0 of 256 bytes differ). There are no DBCS lead bytes; the game is 1251 only.
+- `Layout(font, text, rect, format, out)`: DrawTextA-compatible for 0, DT_CENTER, DT_RIGHT, 4, DT_WORDBREAK, DT_EXPANDTABS, DT_NOCLIP, DT_NOPREFIX and DT_CALCRECT. It gives the return value, the CALCRECT rectangle, the lines, the glyph quads (atlas x/y/size, screen x/y), the underline rectangles and the clip rectangle. `TextExtent` is GetTextExtentPoint32: advances summed, no kerning, no prefix or tab handling.
+- `ComposeAgainstBlack(font, layout, colour, pixels, ...)`: the CPU reference of the keyed look. Each pixel gets colour × coverage over black with alpha 0xFF wherever the coverage is non-zero, and underlines are full coverage.
+
+**DrawTextA rules measured on Windows 10** (the code's rules comment and the tool's 156 hand-measured cases hold them all):
+- **Kerning.** DrawText goes through Uniscribe and applies the font's pair kerning, also with prefixes. GetTextExtentPoint32 does not kern. This corrects "DrawText applies no kerning" above. There is no kerning pair across a tab, expanded or not. Uniscribe also does not kern across a change of script: spaces, digits and punctuation join the run before them, so "в W" does not kern the space with the W, while "a W" does. This shows from about 30 px up, where the space–W pair rounds to −1.
+- **Word wrap.**
+  - Every space and tab is a word of its own.
+  - A word that overflows the rectangle (width > rect width) ends the line before it.
+  - When it is the line's first word, it is a line on its own, even if a CR/LF follows; that break then makes an empty line.
+  - Left and centre skip one white character at the next line's start; right does not.
+  - Right and centre drop one trailing white character at a wrap (for CALCRECT too); left keeps it.
+- **Breaks.** CR+LF and LF+CR count as one break; CR CR is two. A trailing break adds an empty line. Empty text returns 1.
+- **Tabs.** Without DT_EXPANDTABS a tab has zero width and no ink. With it, stops are 8·tmAveCharWidth apart, measured from the line's own start.
+- **Centre.** x = left + floor((rect width − width) / 2).
+- **Early stop.** After a line, y += line height. Drawing stops when y > bottom (unless NOCLIP / CALCRECT). If it stopped early and the text ends with CR/LF, one more line height is added to the return value.
+- **CALCRECT.** right = left + widest line, bottom = top + lines·height. With DT_WORDBREAK and a widest line wider than the rectangle, DrawText lays out again at that width, and the second layout's lines are the answer.
+- **Prefixes.** "&&" draws '&', and a trailing '&' draws nothing. The last prefix character of a tab segment is underlined: 1 px at top + ascent + 1, from the character to the next character's kerned position. A prefixed expanded tab is underlined from the pen to its stop, one pixel higher. A prefixed non-expanded tab removes the segment's underline.
+
+**Exactness test** (`ei_text_check --gdi`). It compares our layout and composition, fed GDI's own advances and kerning through a GDI-backed `Font` in the tool, against DrawTextA.
+- **Corpus.** 12101 unique strings from texts.res plus 1044 synthetic ones, run across 16 fonts: 5 resolutions × 3 interface fonts, plus the console. Each string × font is laid out in 8 formats × 3 widths, so the return value and CALCRECT rectangle are checked for 5,047,680 layouts. Of these, 471 differ (0.009%).
+- **Pixels.** Non-antialiased, every 50th game string and every synthetic one, each at 3 rectangle heights: 2,060,563 cases, of which 2,059,035 are exact and 1,528 differ.
+- **Font 0 (800x600, 13 px).** 315,480 layouts with 18 differing; 62,184 pixel cases with 40 differing.
+- **What still differs.** Every remaining difference is a synthetic string with '&'; the game's texts contain none. Every game string is exact in every font, format and width. One quirk is not modelled: an overflowing first word that holds a prefix and ends in '&' / "&&" sometimes keeps the following space on its line.
+- **Debugging tool.** `--explain <text> <width> <format> [font]` prints both layouts and an ASCII diff of the two drawings. It reads the text from the wide command line and accepts \r, \n and \t.
+- **Control characters.** The tool's GDI font takes their widths from DrawText (Uniscribe), not from GetTextExtentPoint32. The stb font gives them zero width.
+
+**Liberation versus GDI** (`ei_text_check --report`, game strings only; information, not a gate):
+- **Height, ascent and average width.** Average width now matches on all 16 fonts. Height and ascent match at 800x600 font0 (13 px) and 1024x768 font0. Elsewhere GDI's hinted Times New Roman is 1–3 px taller (for example 16 vs 15 at 14 px, and 75 vs 73 at 66 px). The console is 15 vs 14.
+- **Line breaks.** 4,646,784 layouts, of which 268,495 (5.8%) break differently and 3,237,347 have a different height. Most of those height differences are just the line height. At font 0, where heights agree, 27,951 of 290,424 layouts (9.6%) break differently.
+- **Extents.** Of 148,752 single-line extents, 110,834 differ, with a mean |difference| of 5.9 px and a worst of 174 px. Overall Liberation is +0.67% wider (+1.5% at 13 px). GDI uses hinted advances, while stb_truetype scales unhinted ones.
+- **What P2 should take from this.** Wrapping through our own metrics everywhere (extent and DrawText alike) keeps text consistent with itself, but about one string in ten wraps at a different word than today's GDI at 800x600.
+
+**For P2 and later:**
+- **The key test.** The CPU path keys on the composed colour, not on coverage. A near-black composed pixel (for example the 0x080808 shadow at low coverage) is keyed out or quantised in 16-bit mode, so the GPU path should use "composed colour != key" rather than "coverage > 0" when it must match the CPU look.
+- **The shadow** (0x080808 at +1,+1) is drawn first and can land over non-black pixels of the second pass; composite both passes in order.
+- **Quads.** `TextLayout::quads` are in rectangle pixels and still need clipping to `TextLayout::clip`, unless `clipped` is false.
+- **Atlas.** It can grow during a layout, so upload after `Layout` and check `Generation()`.
+- **Pre-existing build-check failure, not N2.** `build.cmd release` fails in check_returns on the release map, on main too: dbghelp leaves 619 names to undname, mostly from libcpmt:vector_algorithms.obj. The 200-name chunks then exceed the command-line limit (53,117 characters; WinError 206). The verify map passes.
+
 ## 3. Architecture proposal
 
 **Model: a GPU canvas per surface.** Surfaces are retained images: they are drawn when something changes and blitted every frame. They are also incremental (drawing without a Clear adds to what is there), and some are redrawn every frame (the unit-panel name in 006462A0, tooltips). So the GPU equivalent is a render target per holder, not a per-frame draw list.
