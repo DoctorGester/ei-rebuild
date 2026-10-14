@@ -258,6 +258,17 @@ void __fastcall DestructDirectDrawVerify(CTextureDevice* self) {
     ei::verify::Check("CTextureDevice::DestructDirectDraw (004EE330)", true, left, "flags %X", self->flags_);
 }
 
+// The switch-over's primary and render target (device.h): two holders without a surface, of the
+// screen's size and colour depth.
+bool ScreenHolders(const CTextureDevice* self, int width, int height, int bitsPerPixel) {
+    for (const CDXSurface* holder : {self->primary_, self->renderTarget_}) {
+        if (!holder || holder->surface || holder->refCount != 1 || holder->device != self || holder->width != width ||
+            holder->height != height || holder->bitsPerPixel != bitsPerPixel)
+            return false;
+    }
+    return self->primary_ != self->renderTarget_ && !self->videoFourCC_ && !self->overlayFourCC_;
+}
+
 CTextureDevice* __fastcall ConstructDirectDrawVerify(CTextureDevice* self, void*, HWND window, GUID* driver, int fullScreen,
                                                      int width, int height, int bitsPerPixel, int refreshRate,
                                                      unsigned backBuffers, int for3D) {
@@ -269,7 +280,7 @@ CTextureDevice* __fastcall ConstructDirectDrawVerify(CTextureDevice* self, void*
                        self->converterLibrary_ && !self->clipper_ && self->primary_ && self->renderTarget_ &&
                        std::memcmp(&self->screen_, &screen, sizeof(RECT)) == 0 &&
                        self->flags_ == static_cast<std::uint32_t>(fullScreen ? (DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE) : DDSCL_NORMAL) &&
-                       !self->modes_.Empty();
+                       !self->modes_.Empty() && (!device::WithoutDirectDraw() || ScreenHolders(self, width, height, bitsPerPixel));
     ei::verify::Check("CTextureDevice::ConstructDirectDraw (004EDD70)", true, built, "%d x %d, %d bits, full screen %d", width,
                       height, bitsPerPixel, fullScreen);
     return result;

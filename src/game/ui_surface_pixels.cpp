@@ -10,6 +10,7 @@
 // CPU.
 #include "ui.h"
 
+#include "device.h"   // device::SameSurface
 #include "dx_surface.h"
 #include "texture.h"
 
@@ -109,7 +110,7 @@ void CUiSurface::CaptureScreen() {
     SurfaceHolder* holder = HolderOf(this);
     if (!holder) return;
     SurfaceHolder* screen = holder->device->renderTarget_;
-    if (screen->surface == holder->surface) return;
+    if (device::SameSurface(screen, holder)) return;
     // In the switch-over the old render target does not hold the frame being drawn: no copy from it
     // (and a holder made in the switch-over has no DirectDraw surface to copy into).
     if (!render::Presenting() && holder->surface) {

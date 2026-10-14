@@ -6,6 +6,7 @@
 // (docs/notes/renderer.md). A-U11.
 #include "model.h"         // CSceneRenderer, CTransformPipeline
 #include "texture.h"       // CTextureDevice, CTexture, CDXSurface
+#include "device.h"        // device::WithoutDirectDraw
 
 #include "figure_mesh.h"   // CFigureMesh
 #include "link_figure.h"   // ITransformPipeline, FigureMeshDrawer, DrawFigurePart(Plain)
@@ -257,6 +258,9 @@ EI_REPLACE_METHOD(0x00504A40, CSceneRenderer::GetGamma);
 // (not reproducible; ours passes 0). A full-screen device always has one.
 bool CSceneRenderer::RestoreSurfaces() {
     if (!device_) return false;
+    // The switch-over (device.h) has no DirectDraw surfaces to lose, nor a display mode to set
+    // again (a lost Direct3D 11 device is ticket R9c's).
+    if (device::WithoutDirectDraw()) return true;
     if (device_->flags_ & 1) {
         RECT screen = device_->screen_;
         DeviceSetCooperativeLevelOriginal(device_, nullptr, 1, &screen);

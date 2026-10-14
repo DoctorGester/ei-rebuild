@@ -19,6 +19,7 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "render/render.h"
 
 #include <intrin.h>
 
@@ -79,6 +80,23 @@ CDXSurface* NewHolderOf(CTextureDevice* device, IDirectDrawSurface7* surface) {
     } else {
         game::FatalError(Text(0x0078E73C));   // "Creating DXDDSurface from empty DDSurface!\n"
     }
+    return holder;
+}
+
+// The switch-over's holder of the screen (the primary or the render target; device.h): no surface,
+// the screen's size and colour depth, counted like a holder of a surface.
+CDXSurface* NewScreenHolder(CTextureDevice* device, int width, int height, int bitsPerPixel) {
+    auto* holder = static_cast<CDXSurface*>(gamecrt::operator_new(sizeof(CDXSurface)));
+    if (!holder) return nullptr;
+    holder->refCount = 0;
+    holder->result = 0;
+    holder->device = device;
+    holder->surface = nullptr;
+    holder->width = width;
+    holder->height = height;
+    holder->bitsPerPixel = bitsPerPixel;
+    ei::SetVtable(holder, 0x0073D774);
+    ++device::HolderCount();
     return holder;
 }
 
@@ -340,6 +358,24 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     if (!getProcessor) ThrowGameError(Text(0x0078E390));
     game::DebugLog(Text(0x0078E3F4));   // "Acquiring graphics processor from graphics library.\n"
     converter_ = getProcessor();
+
+    // The switch-over (device.h): the new renderer presents; no DirectDraw object, display mode or
+    // surfaces. The stand-in takes the cooperative level (the flags and the screen rectangle are
+    // kept) and lists the one display mode; the primary and the render target are holders without
+    // a surface; no video formats.
+    if (render::StartPresenting()) {
+        ddraw_ = device::StartWithoutDirectDraw(width, height, bitsPerPixel);
+        driver_ = driver;
+        modes_.ClearWith([](DDSURFACEDESC2*) {});
+        device::DDraw(this)->EnumDisplayModes(0, nullptr, &modes_, &DisplayModeCallback);
+        DeviceSetCooperativeLevelOriginal(this, nullptr, fullScreen, &screen);
+        device::AssignHolder(primary_, NewScreenHolder(this, width, height, bitsPerPixel));
+        device::AssignHolder(renderTarget_, NewScreenHolder(this, width, height, bitsPerPixel));
+        overlayFourCC_ = 0;
+        videoFourCC_ = 0;
+        overlayStretch_ = false;
+        return this;
+    }
 
     DeviceCreateDirectDrawOriginal(this, nullptr, driver);
     DeviceSetCooperativeLevelOriginal(this, nullptr, fullScreen, &screen);
