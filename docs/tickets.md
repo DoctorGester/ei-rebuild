@@ -25,8 +25,8 @@ Priority (user, 2026-10-13): finish the port; three area workers at once, refill
 - HUD, spells, items 0x00640000-0x006C0000 (items_spells.md): finished 2026-10-13 (A-H .. A-H26, the Rebirth-patched ones vanilla only). Left: 006462A0 (unit panel draw, drives the D3D device), 0066D730 (uninitialised byte, kept original), 0067E4E0 (before the hooks), functions under 5 bytes.
 - Scripts and old renderer 0x004C0000-0x00500000 (script.md, renderer.md section 12): finished 2026-10-14 (A-S .. A-S13; the direct D3D7 / DirectDraw calls ported as they are, the interfaces stay the boundary). Left: 8 under 5 bytes.
 - CRT / MFC range 0x006C0000-0x00740000 (models.md): finished 2026-10-13 (A-X1 .. A-X6; 006C68B0, 006D0630, 006D7620 by A-H26). CDib::Read / Write by A-E2.
-- A-Z1 (taken 2026-10-14): the last eight hookable functions without a replacement (00646C25, 00656464, 0066D730, 0067E4E0, 00695BE0, 006BFB00, 006BFB20, 006BFB80): port or classify each. Port at 99.6% (5,960 of 6,203; 201 under 5 bytes cannot be hooked).
-- X34 (cleanup, simple): CPUID globals 007CAED0 declared twice, processor_info.h (A-S12) and sys_info.h (A-E2); keep one.
+- A-Z1 merged 2026-10-14: the last eight (three sector draw-pass helpers, SendValue12, FootprintCellSet by start-up check, a thunk, two string addresses read as code). **The port is complete**: every hookable game function is rewritten (99.97% of game code); 201 stubs of 1-4 bytes wait for the standalone build. function_sizes.inc is hand-patched for two sizes (gen_function_sizes.py no longer reproduces it).
+- X34 done by C6a 2026-10-14.
 - I11 (open): 0063EF60 / 0063E020 need modifier keys held during a click (harness step); ui.md section 6.
 
 - X28 done 2026-10-09: LoadSky's check expected GetClassId 0x44 (the factory class; CSkyObject's is 0x20); UnitTextureRecords put items[1..6] in records 1..6, the original in 2..7. Both re-enabled.
@@ -51,6 +51,7 @@ Not started; both wait for the port. Counts are on the dashboard ("Standalone re
 - Republish the dashboard and remove merged worktrees.
 - Cleanup C6-C10 done 2026-10-09 (combat, unit, script, world, scene and renderer files). Left from C9: map_object_shadow.cpp's raw offsets (models.md, "Layouts").
 - X32 (watch): several Rebirth runs print "game still running 10 s after the scenario quit" since 2026-10-13 (exit path; runs pass). Suspects: wrappers that now fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct).
+- X35 (fixed 2026-10-14): Windows crashed twice (NVIDIA driver hang, bugcheck 0x133) with 24 harness games at once; run_all now caps the machine at 16 (EI_HARNESS_SLOTS).
 - X30 (watch): sandbox_actions (vanilla) failed once of three full runs (combat-vanilla did the same once) on 2026-10-13, `waitfor Not(IsAlive(Enemy1))` timed out, 0 mismatches; passes alone. world-vanilla did the same once on 2026-10-14 (AlarmTime check; passes alone 3 of 3).
 - X27 (low): CPlayerClient::SendLeave04 state check mismatched once (1 of 44) in an effects_bow Rebirth run that also timed out; effects_bow passes alone. Watch.
 - X22 flaky: render_present (vanilla) crashed once under 16 parallel runs, null call inside DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). Passed 3/3 alone. Watch; if it recurs, guard CopyFrameTo against a lost surface.
@@ -61,7 +62,7 @@ Not started; both wait for the port. Counts are on the dashboard ("Standalone re
 
 Next after the port is finished and before the standalone tickets (user, 2026-10-14). Judge each ticket: the simple mechanical ones go to Sonnet workers (`model: "sonnet"`), as many as possible; type recovery and tricky debugging stay on Opus.
 Split by model (counts from tools/progress.py, 2026-10-14):
-- Sonnet, mechanical, checked by the build scripts and the suite: C3m the 75 duplicate forwarders that agree (taken); C3n the 238 that differ where the address is already rewritten (the rewritten function's declaration decides; batches of 50); X34; struct names defined in several files (73) where the definitions are identical; `__fastcall Fn(T* self, void*)` shims into members (1,281) per file; `constexpr uintptr_t kX = 0x00...` (371) into the subsystem's named globals; per-file `At()` copies (60) replaced by the shared one.
+- Sonnet, mechanical, checked by the build scripts and the suite: C3m merged 2026-10-14 (73 of 75; duplicates 313 -> 240); C6a merged (9 struct names, 74 -> 64); C3n the ~238 that differ where the address is already rewritten (the rewritten function's declaration decides; batches of 50); X34; `__fastcall Fn(T* self, void*)` shims into members (1,281) per file; `constexpr uintptr_t kX = 0x00...` (371) into the subsystem's named globals; per-file `At()` copies (60) replaced by the shared one (C7a).
 - Opus: C2 per class family (members instead of At<> / Field<> (981), VCall (328) into virtual calls, unknown_XXX fields (2,522)); C3 addresses that differ and are not rewritten (RET n decides); V3 (the remaining sites need new unrounded helper variants; vector-math.md "V3 status"); `__asm` blocks (224) and float_control files (82); anything that turns a check red.
 - Later, with the standalone work (changes what the verify wrappers see): the 2,377 forwarders to rewritten code into direct calls.
 - Rule for Sonnet tickets: spelling only, never a signature or grouping change; skip and list what does not fit; I review the first diff of each kind before sending more.
