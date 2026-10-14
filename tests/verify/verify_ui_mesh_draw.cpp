@@ -17,7 +17,7 @@ void* s_unused;
 
 bool PlacementOk(const CUiMesh* self) {
     float expected[16];
-    std::memcpy(expected, self->placement_, sizeof(expected));
+    std::memcpy(expected, &self->placement_, sizeof(expected));
     QuaternionToMatrixOriginal(&self->orientation_, nullptr, expected);
     expected[3] = self->position_.x;
     expected[7] = self->position_.y;
@@ -26,7 +26,7 @@ bool PlacementOk(const CUiMesh* self) {
     expected[13] = 0.0f;
     expected[14] = 0.0f;
     expected[15] = 1.0f;
-    return std::memcmp(expected, self->placement_, sizeof(expected)) == 0;
+    return std::memcmp(expected, &self->placement_, sizeof(expected)) == 0;
 }
 } // namespace
 
@@ -48,7 +48,7 @@ EI_VERIFY(0x005E6D90, SpriteDrawVerify, 0, s_unused);
 // fields it sets. Every scenario (every sprite a window adds).
 static int __fastcall SpriteCreateVerify(CUiMesh* self) {
     const int result = self->CreateSprite();
-    const float* m = self->scaleMatrix_;
+    const float* m = self->scaleMatrix_.m;
     bool identity = true;
     for (int i = 0; i < 16; ++i) identity = identity && m[i] == ((i % 5 == 0) ? 1.0f : 0.0f);
     const Quaternion& q = *reinterpret_cast<const Quaternion*>(0x007C7CD8);

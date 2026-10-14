@@ -43,8 +43,8 @@ static void __fastcall MovePersonVerify(CBriefingScreen* self, void*, CUnit* uni
     bool ok = node->person == reinterpret_cast<CEngineObject*>(unit) && node->state == BriefingMover::kWalking &&
               node->waited == waited && node->time == 0.0f;
     ei::verify::Check(name, true, ok, "new mover state %d", node->state);
-    ei::verify::Check(name, x, node->target[0], "target x");
-    ei::verify::Check(name, y, node->target[1], "target y");
+    ei::verify::Check(name, x, node->target.x, "target x");
+    ei::verify::Check(name, y, node->target.y, "target y");
 }
 EI_VERIFY(0x006089D0, MovePersonVerify, 0, s_unused);
 
