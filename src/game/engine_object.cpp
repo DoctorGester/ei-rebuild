@@ -13,7 +13,7 @@
 void CEngineObject::CopyFrom(const CEngineObject& other) {
     flags_ = other.flags_;
     type_ = other.type_;
-    unknown_18 = other.unknown_18;
+    prototypeId_ = other.prototypeId_;
 }
 
 // 00455980 (slot 4). When the last reference goes, the owning manager releases the object (its
@@ -69,7 +69,7 @@ EI_REPLACE_METHOD(0x00455930, CEngineObject::DestructBase);
 void CEngineObject::ClearFields() {
     refCount_ = 0;
     id_ = -1;
-    unknown_18 = 0;
+    prototypeId_ = 0;
     type_ = 0;
     flags_ = 0;
     owner_ = nullptr;

@@ -34,7 +34,7 @@ static void __fastcall ClearModifiersVerify(CSpell* self) {
     std::memcpy(self->modifiers_, before, 8);
     s_clearModifiers(self);
     ei::verify::Check("CSpell::ClearModifiers", true, std::memcmp(ours, self->modifiers_, 8) == 0, "spell %08X",
-                      self->unknown_18);
+                      self->prototypeId_);
 }
 EI_VERIFY(0x0068B350, ClearModifiersVerify, 5, s_clearModifiers);
 
@@ -50,7 +50,7 @@ static void __fastcall CopyToVerify(CSpell* self, void*, CSpell* target) {
     std::memcpy(bytes, before, sizeof(before));
     s_copyTo(self, nullptr, target);
     ei::verify::Check("CSpell::CopyTo", true, std::memcmp(ours, bytes, sizeof(ours)) == 0, "spell %08X",
-                      self->unknown_18);
+                      self->prototypeId_);
 }
 EI_VERIFY(0x0068B370, CopyToVerify, 5, s_copyTo);
 
@@ -63,11 +63,11 @@ static CSpell* __fastcall CloneVerify(CSpell* self, void*, CSpellManager* manage
     if (same) {
         std::int8_t modifiers[8];
         ExpectedModifiers(self, modifiers);
-        same = spell->unknown_18 == self->unknown_18 &&
+        same = spell->prototypeId_ == self->prototypeId_ &&
                std::memcmp(&spell->prototypeIndex_, &self->prototypeIndex_, 0x54 - 0x1C) == 0 &&
                std::memcmp(spell->modifiers_, modifiers, 8) == 0;
     }
-    ei::verify::Check("CSpell::Clone", true, same, "spell %08X -> %p", self->unknown_18, spell);
+    ei::verify::Check("CSpell::Clone", true, same, "spell %08X -> %p", self->prototypeId_, spell);
     return spell;
 }
 EI_VERIFY(0x0068B410, CloneVerify, 0, s_clone);
@@ -141,7 +141,7 @@ static BOOL __fastcall BuildVerify(CSpellContainer* self) {
     bool same = expected == actual && std::memcmp(ours, bytes, sizeof(ours)) == 0 && count == oursCount &&
                 std::memcmp(oursCodes, self->codes_, count < kCodes ? count : kCodes) == 0;
     const CSpell* spell = self->Spell();
-    ei::verify::Check("CSpellContainer::Build", true, same, "spell %08X modifiers %d (ours %d)", spell->unknown_18,
+    ei::verify::Check("CSpellContainer::Build", true, same, "spell %08X modifiers %d (ours %d)", spell->prototypeId_,
                       count, oursCount);
     return expected;
 }
@@ -165,7 +165,7 @@ static CSpell* __fastcall CreateSpellVerify(CSpellManager* self, void*, char* pr
     CSpell* spell = self->CreateSpell(prototype, modifiers);
     const RecordTable& spells = itemdb::Spells();
     std::uint32_t index = static_cast<std::uint32_t>(static_cast<int>(prototype - spells.begin) / itemdb::kSpellSize);
-    bool ok = spell && (spell->unknown_18 >> 16) == (index & 0xFF);
+    bool ok = spell && (spell->prototypeId_ >> 16) == (index & 0xFF);
     ei::verify::Check("CSpellManager::CreateSpell", true, ok, "prototype %p spell %p", prototype, spell);
     return spell;
 }

@@ -94,7 +94,7 @@ float DifficultyAttackFactor() {
 // The unit's server object (CUnit + 0x170): its mana.
 float ServerMana(const CUnit* unit) { return static_cast<const CMapObjectServer*>(unit->companion)->vitals.mana; }
 
-std::uint8_t PlayerMode108(const char* player) { return reinterpret_cast<const CPlayer*>(player)->unknown_108; }
+std::uint8_t PlayerGodMode(const char* player) { return reinterpret_cast<const CPlayer*>(player)->godMode_; }
 
 // The map objects' virtual slots (map_object.h) and the server controller's (CUnitServerVirtuals).
 float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
@@ -316,7 +316,7 @@ bool CUnitServer::IsFighting() {
             spell = unit->GetSpellObject(action.source);
         }
         if (spell) {
-            std::uint32_t type = static_cast<CSpell*>(spell)->unknown_18 >> 16;
+            std::uint32_t type = static_cast<CSpell*>(spell)->prototypeId_ >> 16;
             if (type <= 8) return true;
             // Rebirth's FixPlaingBattleMusicFromAntimagic: JMP over the 0x1A test.
             if (type == 0x1A && !ei::rebirth::Enabled(ei::rebirth::Patch::FixPlaingBattleMusicFromAntimagic))
@@ -488,15 +488,15 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         FpuCopy(&out->damageMin, &weapon->damage_);
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
         out->weaponType = weapon->GetType();
-        out->damageType = WeaponDamageType(weapon->unknown_18);
+        out->damageType = WeaponDamageType(weapon->prototypeId_);
         FpuCopy(&out->speed, &weapon->weight_);
-        float base = WeaponStat84(weapon->unknown_18);
+        float base = WeaponStat84(weapon->prototypeId_);
         double bonus = StatsWeaponSkillBonus(&stats, nullptr, out->weaponType, self);
         out->attack = GameFtol(bonus + base);
-        base = WeaponStat88(weapon->unknown_18);
+        base = WeaponStat88(weapon->prototypeId_);
         bonus = StatsWeaponSkillBonus(&stats, nullptr, out->weaponType, self);
         out->defence = GameFtol(bonus + base);
-        out->damageType = WeaponDamageType(weapon->unknown_18);
+        out->damageType = WeaponDamageType(weapon->prototypeId_);
     } else {
         std::memcpy(&out->damageMin, &Combat().damage, sizeof(float));
         out->damageMax = Combat().damageSpread + Combat().damage;
@@ -505,7 +505,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         std::memcpy(&out->speed, &Combat().speed, sizeof(float));
         if (weapon) {
             out->weaponType = weapon->GetType();
-            out->damageType = WeaponDamageType(weapon->unknown_18);
+            out->damageType = WeaponDamageType(weapon->prototypeId_);
         } else {
             out->weaponType = Combat().naturalWeapon;
             const auto* model = reinterpret_cast<const UnitModelRecord*>(self->GetPrototypeModel());
@@ -617,7 +617,7 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     out->hitKind = 0;
     if (backstab) out->backstabFactor = static_cast<float>(stats.Value6E9Arg(static_cast<int>(reinterpret_cast<std::uintptr_t>(self))));
     else out->backstabFactor = kOne;
-    if (self->player && PlayerMode108(self->player) >= 2) ResetDamageInfo(out);
+    if (self->player && PlayerGodMode(self->player) >= 2) ResetDamageInfo(out);
     out->calledShot = static_cast<std::uint8_t>(calledShot);
     return 1;
 }
@@ -670,7 +670,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
 
     char* player = unit->player;
     if (player) {
-        if (PlayerMode108(player) != 0) return 0;
+        if (PlayerGodMode(player) != 0) return 0;
         if (source && source->player && player != source->player) return 0;
     }
 
@@ -685,7 +685,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         if (StatsApplyHit(&stats, nullptr, unit, ServerStatsOf(unit), hit, weapon)) {
             if (attacker && !(HasElementalDamage(hit) & 0xFF)) {
                 if (attacker->type_ != kUnitTypeHero) {
-                    LastDamageSource(unit) = static_cast<std::int16_t>(attacker->unknown_18 + 0x10);
+                    LastDamageSource(unit) = static_cast<std::int16_t>(attacker->prototypeId_ + 0x10);
                 } else {
                     auto* controller = reinterpret_cast<CUnitServer*>(attacker->controller);
                     CItemWeapon* own = ActiveWeapon(controller->unit);

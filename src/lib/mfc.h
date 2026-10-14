@@ -222,9 +222,9 @@ public:
     CFile* File() const { return file_; }
 
 private:
-    std::uint8_t unknown_00[0x14];
+    std::uint8_t unused_00[0x14];
     unsigned mode_;                 // +0x14
-    std::uint8_t unknown_18[8];
+    std::uint8_t unused_18[8];
     CFile* file_;                   // +0x20
 };
 
@@ -584,7 +584,7 @@ using CTypedPtrList = CList<T*>;
 
 // CWinThread (AfxBeginThread's result, 007022A0); only m_hThread is named.
 struct CWinThread {
-    std::uint8_t unknown00[0x28];
+    std::uint8_t unused_00[0x28];
     void* thread;   // +0x28 m_hThread
 };
 

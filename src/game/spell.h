@@ -14,7 +14,7 @@ class CStream;              // core_streams.h
 class CWorldServer;         // world.h
 struct MapEffect;           // map_object.h
 
-// A spell instance (vtable 00743A94). unknown_18 of CEngineObject is the packed id: spell
+// A spell instance (vtable 00743A94). prototypeId_ of CEngineObject is the packed id: spell
 // prototype index << 16.
 class CSpell : public CEngineObject {
 public:

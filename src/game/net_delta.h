@@ -137,15 +137,15 @@ static_assert(sizeof(DeltaField) == 0xA0);
 
 // The fields of one object.
 struct DeltaState {
-    std::uint32_t unknown_0;
+    std::uint32_t unused_0;
     DeltaField* fields_;     // +0x04
     int fieldCount_;         // +0x08
-    std::uint32_t unknown_C;
-    std::uint32_t unknown_10;
+    int fieldCapacity_;      // +0x0C (the fields are an MFC CArray: vtable, data, size, capacity, grow-by)
+    int fieldGrowBy_;        // +0x10
     std::uint16_t sentMask_; // +0x14
     std::uint16_t lastMask_; // +0x16
     std::uint16_t mask_;     // +0x18 fields to write / read
-    std::uint16_t unknown_1A;
+    std::uint16_t unused_1A;
     BitStream* reader_;      // +0x1C
     int mode_;               // +0x20 0 write all, 1 write delta, 2/3 read (against snapshot 0/1), 4 idle
     BitStream header_[2];    // +0x24, +0x4C

@@ -47,7 +47,7 @@ CPlayer* CPlayer::Construct() {
     maxTimedId_ = 0;
     Party()->Construct();
     InitList(items_, kItemListVtable);
-    unknownFC_ = 0;
+    partyId_ = 0;
     InitList(objects_, kRechargeListVtable);
     ei::SetVtable(this, kVtableAddress);
     connection_ = nullptr;
@@ -59,14 +59,14 @@ CPlayer* CPlayer::Construct() {
     Party()->Create();
     dirty_ = 0;
     playerId_ = -1;
-    unknown_108 = 0;
+    godMode_ = 0;
     if (link_ != nullptr) link_->Disconnect();
     // (The original lets RefPtr::Assign(null) release the link, which is null here.)
     link_ = nullptr;
     SetConnection(nullptr);
-    unknown_110 = -1;
+    lastTick_ = -1;
     sessionKind100_ = 0;
-    unknown_104 = 0;
+    lastScreen_ = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00664BF0, CPlayer::Construct);
@@ -124,7 +124,7 @@ void CPlayer::DestroyPlayer() {
     Party()->Create();
     dirty_ = 0;
     playerId_ = -1;
-    unknown_108 = 0;
+    godMode_ = 0;
     if (link_ != nullptr) link_->Disconnect();
     netlink::NetLink* link = link_;
     link_ = nullptr;
@@ -133,10 +133,10 @@ void CPlayer::DestroyPlayer() {
         connection_->player_ = nullptr;
         connection_->Release();
     }
-    unknown_110 = -1;
+    lastTick_ = -1;
     connection_ = nullptr;
     sessionKind100_ = 0;
-    unknown_104 = 0;
+    lastScreen_ = 0;
 }
 EI_REPLACE_METHOD(0x006650E0, CPlayer::DestroyPlayer);
 EI_REPLACE_METHOD(0x00665380, CPlayer::DestroyPlayer);

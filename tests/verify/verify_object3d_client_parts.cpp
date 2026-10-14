@@ -346,7 +346,7 @@ EI_VERIFY(0x0051ACD0, BaseIgnoreVerify, 0, s_unused);
 static CObject3DSpecific* __fastcall ServerConstructVerify(CObject3DSpecific* self) {
     CObject3DSpecific* result = Object3DServerConstruct(self);
     bool ok = result == self && VtableOf(self) == kServerVtable && !self->object && self->refCount_ == 0 &&
-              self->id_ == -1 && self->flags_ == 0 && self->type_ == 0 && !self->owner_ && self->unknown_18 == 0;
+              self->id_ == -1 && self->flags_ == 0 && self->type_ == 0 && !self->owner_ && self->prototypeId_ == 0;
     ei::verify::Check("CObject3DServer::Construct", true, ok, "");
     return result;
 }

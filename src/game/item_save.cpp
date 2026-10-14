@@ -24,7 +24,7 @@ std::uint32_t StreamSlot(CStream* stream) { return static_cast<std::uint32_t>(re
 
 void CItem::Load(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    stream->Read(&unknown_18, kDword);
+    stream->Read(&prototypeId_, kDword);
     stream->Read(&condition_, kDword);
     stream->Read(&conditionMax_, kDword);
     stream->Read(&charge_, kDword);
@@ -47,7 +47,7 @@ void CItem::Load(void* data) {
 
 void CItem::Save(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    stream->Write(&unknown_18, kDword);
+    stream->Write(&prototypeId_, kDword);
     stream->Write(&condition_, kDword);
     stream->Write(&conditionMax_, kDword);
     stream->Write(&charge_, kDword);

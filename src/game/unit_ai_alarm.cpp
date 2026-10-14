@@ -88,8 +88,8 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
             double dy = static_cast<double>(waypoint.position.y) - from.y;
             if (!ZeroOrNaN(dx) || !ZeroOrNaN(dy)) angle = Round(std::atan2(dy, dx));
             AILook look;
-            look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.unknown_10), waypoint.wait,
-                                       waypoint.unknown_12 & 1);
+            look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.lookWait), waypoint.wait,
+                                       waypoint.stopFirst & 1);
             last->looks.SetAtGrow(last->looks.size, look);
         }
     }
@@ -214,7 +214,7 @@ void AIBrain::HearAlarm(int slot) {
     constexpr int kAlarmHeard = 7;   // the remark level ("to Alarm!")
     if (slot < 0 || slot >= alarmRecords.size) return;
     const AIAlarmRecord* record = &alarmRecords.data[slot];
-    if (record->unknown_38 != 0 || slot == 0) ApplyBehaviour(record, slot);
+    if (record->enabled != 0 || slot == 0) ApplyBehaviour(record, slot);
     owner->Say(kAlarmHeard);
 }
 EI_REPLACE_METHOD(0x005D5940, AIBrain::HearAlarm);

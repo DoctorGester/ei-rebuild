@@ -506,7 +506,7 @@ void CUnitServer::UpdateSneak() {
         motionChanged = 1;
         return;
     }
-    int allowed = unit->player ? PlayerOf(unit)->unknown_108 : 1;
+    int allowed = unit->player ? PlayerOf(unit)->godMode_ : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
     if (allowed == 0 && !(ServerVitals(unit).mana > 0.0f)) return;   // the breath (vitals +0x14)
     if (!MapCheapCell(world->AIMap(), nullptr, unit)) return;

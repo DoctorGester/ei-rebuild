@@ -34,7 +34,7 @@ ItemUse* CItemQuest::GetUse(ItemUse* out) {
 
 BOOL CItem::IsSameAs(CItem* other) {
     if (other == this) return 1;
-    if (type_ != other->type_ || unknown_18 != other->unknown_18) return 0;
+    if (type_ != other->type_ || prototypeId_ != other->prototypeId_) return 0;
     if (!EqualOrUnordered(condition_, other->condition_) || !EqualOrUnordered(conditionMax_, other->conditionMax_) ||
         !EqualOrUnordered(charge_, other->charge_) || !EqualOrUnordered(chargeMax_, other->chargeMax_) ||
         !EqualOrUnordered(weight_, other->weight_) || !EqualOrUnordered(price_, other->price_) ||
@@ -44,7 +44,7 @@ BOOL CItem::IsSameAs(CItem* other) {
     const CSpell* spell = spell_;
     const CSpell* otherSpell = other->spell_;
     if (spell == nullptr || otherSpell == nullptr) return spell == otherSpell ? 1 : 0;
-    if (spell->unknown_18 != otherSpell->unknown_18) return 0;
+    if (spell->prototypeId_ != otherSpell->prototypeId_) return 0;
     return std::memcmp(spell->modifiers_, otherSpell->modifiers_, sizeof(spell->modifiers_)) == 0 ? 1 : 0;
 }
 

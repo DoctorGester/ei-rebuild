@@ -21,7 +21,7 @@ void* s_unusedTorch;
 const DeltaState* NetState(const void* object) {
     return reinterpret_cast<const DeltaState*>(static_cast<const std::uint8_t*>(object) + 0x1C4);
 }
-int Capacity(const DeltaState* state) { return static_cast<int>(state->unknown_C); }
+int Capacity(const DeltaState* state) { return static_cast<int>(state->fieldCapacity_); }
 
 const char* CheckState(const DeltaState* state, int fields) {
     if (state->fieldCount_ != fields) return "field count";

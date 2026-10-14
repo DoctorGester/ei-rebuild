@@ -107,7 +107,7 @@ __declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
 void InitEngineObject(CEngineObject* object) {
     object->refCount_ = 0;
     object->id_ = -1;
-    object->unknown_18 = 0;
+    object->prototypeId_ = 0;
     object->type_ = 0;
     object->flags_ = 0;
     object->owner_ = nullptr;
@@ -213,8 +213,8 @@ CMapObject* CMapObject::Construct() {
     DeltaState* records = NetState();
     SetVtable(records, kRecordArrayVtable);
     records->fields_ = nullptr;
-    records->unknown_10 = 0;
-    records->unknown_C = 0;
+    records->fieldGrowBy_ = 0;
+    records->fieldCapacity_ = 0;
     records->fieldCount_ = 0;
     CMemoryStream* stream = &records->header_[0];
     stream->version_ = kStreamLimit;

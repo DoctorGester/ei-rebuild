@@ -23,7 +23,7 @@ static char*(__fastcall* s_getPrototype)(CItem*);
 static char* __fastcall GetPrototypeVerify(CItem* self) {
     char* expected = s_getPrototype(self);
     ei::verify::Check("CItem::GetPrototype", expected, self->GetPrototype(), "kind %X id %08X", self->type_,
-                      self->unknown_18);
+                      self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x006A0110, GetPrototypeVerify, 9, s_getPrototype);
@@ -33,7 +33,7 @@ static int(__fastcall* s_getCategory)(CItem*);
 static int __fastcall GetCategoryVerify(CItem* self) {
     int expected = s_getCategory(self);
     ei::verify::Check("CItem::GetCategory", expected, self->GetCategory(), "kind %X id %08X", self->type_,
-                      self->unknown_18);
+                      self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x006A4230, GetCategoryVerify, 9, s_getCategory);
@@ -61,7 +61,7 @@ EI_VERIFY(0x006A0070, RechargeVerify, 6, s_recharge);
 static int(__fastcall* s_weaponGetType)(CItemWeapon*);
 static int __fastcall WeaponGetTypeVerify(CItemWeapon* self) {
     int expected = s_weaponGetType(self);
-    ei::verify::Check("CItemWeapon::GetType", expected, self->GetType(), "id %08X", self->unknown_18);
+    ei::verify::Check("CItemWeapon::GetType", expected, self->GetType(), "id %08X", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x006A07F0, WeaponGetTypeVerify, 7, s_weaponGetType);
@@ -74,7 +74,7 @@ static void __fastcall GetDamageTypesVerify(CItemWeapon* self, void*, float* out
     s_getDamageTypes(self, nullptr, expected);
     self->GetDamageTypes(out);
     ei::verify::Check("CItemWeapon::GetDamageTypes", true, std::memcmp(expected, out, sizeof(expected)) == 0,
-                      "id %08X", self->unknown_18);
+                      "id %08X", self->prototypeId_);
 }
 EI_VERIFY(0x006A0770, GetDamageTypesVerify, 5, s_getDamageTypes);
 
@@ -100,8 +100,8 @@ EI_VERIFY(0x006A2DE0, RollDamageVerify, 9, s_rollDamage);
 static BOOL(__fastcall* s_isSameAs)(CItemWeapon*, void*, CItemWeapon*);
 static BOOL __fastcall IsSameAsVerify(CItemWeapon* self, void*, CItemWeapon* other) {
     BOOL expected = s_isSameAs(self, nullptr, other);
-    ei::verify::Check("CItemWeapon::IsSameAs", expected, self->CItemWeapon::IsSameAs(other), "id %08X vs %08X", self->unknown_18,
-                      other->unknown_18);
+    ei::verify::Check("CItemWeapon::IsSameAs", expected, self->CItemWeapon::IsSameAs(other), "id %08X vs %08X", self->prototypeId_,
+                      other->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x006A06C0, IsSameAsVerify, 6, s_isSameAs);
@@ -112,7 +112,7 @@ EI_VERIFY(0x006A06C0, IsSameAsVerify, 6, s_isSameAs);
 static int(__fastcall* s_armorGetType)(CItemArmor*);
 static int __fastcall ArmorGetTypeVerify(CItemArmor* self) {
     int expected = s_armorGetType(self);
-    ei::verify::Check("CItemArmor::GetType", expected, self->GetType(), "id %08X", self->unknown_18);
+    ei::verify::Check("CItemArmor::GetType", expected, self->GetType(), "id %08X", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x006A39E0, ArmorGetTypeVerify, 6, s_armorGetType);
@@ -120,7 +120,7 @@ EI_VERIFY(0x006A39E0, ArmorGetTypeVerify, 6, s_armorGetType);
 static int(__fastcall* s_armorGroup)(CItemArmor*);
 static int __fastcall ArmorGroupVerify(CItemArmor* self) {
     int expected = s_armorGroup(self);
-    ei::verify::Check("CItemArmor::GetTypeGroup", expected, self->GetTypeGroup(), "id %08X", self->unknown_18);
+    ei::verify::Check("CItemArmor::GetTypeGroup", expected, self->GetTypeGroup(), "id %08X", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x006A31A0, ArmorGroupVerify, 6, s_armorGroup);

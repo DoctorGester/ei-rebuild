@@ -39,7 +39,7 @@ std::uint32_t Bits(const void* p) {
 Snapshot Take(const QuestRecord* r) {
     Snapshot s{};
     s.values[0] = Bits(&r->exp);
-    s.values[1] = r->unknown_10;
+    s.values[1] = r->field2;
     s.values[2] = Bits(&r->money);
     s.values[3] = static_cast<std::uint32_t>(r->zone);
     s.values[4] = static_cast<std::uint32_t>(r->order);
@@ -55,7 +55,7 @@ Snapshot Take(const QuestBriefingRecord* r) {
     Snapshot s{};
     s.values[0] = Bits(&r->exp);
     s.values[1] = Bits(&r->money);
-    s.values[2] = r->unknown_68;
+    s.values[2] = r->field10;
     s.digest = 0xCBF29CE484222325ull;
     Mix(s.digest, r->name.data(), r->name.size());
     Mix(s.digest, r->text.data(), r->text.size());

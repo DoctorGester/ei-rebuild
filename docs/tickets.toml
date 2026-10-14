@@ -361,7 +361,7 @@ files = ["scene_loader.*", "map_object_figures.h", "terrain*", "figure*", "camer
 id = "F5"
 title = "Unknown fields: the rest (~105)"
 group = "fields"
-status = "running"
+status = "review"
 files = ["map_spec.h", "net_*", "player_*", "sound*", "script*", "app_*", "bink_video.cpp", "quest_records.h", "base_manager.h", "src/lib"]
 started = "2026-10-14"
 

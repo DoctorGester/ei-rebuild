@@ -144,7 +144,7 @@ void CSpell::CopyTo(CSpell* target) {
         if (modifiers_[i] == 0) break;
         target->modifiers_[i] = modifiers_[i];
     }
-    target->unknown_18 = unknown_18;
+    target->prototypeId_ = prototypeId_;
 }
 EI_REPLACE_METHOD(0x0068B370, CSpell::CopyTo);
 
@@ -225,7 +225,7 @@ BOOL CSpellContainer::Build() {
     spell->radius_ = DwordAt(proto, 0x28);
     spell->duration_ = DwordAt(proto, 0x38);
     spell->skillNeeded_ = DwordAt(proto, 0x44);
-    spell->unknown_18 = static_cast<std::uint32_t>(index & 0xFF) << 16;
+    spell->prototypeId_ = static_cast<std::uint32_t>(index & 0xFF) << 16;
 
     if (codes_ != codesEnd_) {
         *codes_ = 0;

@@ -95,7 +95,7 @@ static BOOL __fastcall GetItemTextsVerify(CTextManager* self, void*, CItem* item
     bool same = expected == actual && sameName && sameDescription && sameKind && sameState;
     ei::verify::Check("CTextManager::GetItemTexts", true, same,
                       "kind %X id %08X: result %d/%d name %d description %d kind %d state %d; description '%.60s' vs '%.60s'",
-                      item->type_, item->unknown_18, expected, actual, sameName, sameDescription, sameKind, sameState,
+                      item->type_, item->prototypeId_, expected, actual, sameName, sameDescription, sameKind, sameState,
                       static_cast<const char*>(scratchDescription), static_cast<const char*>(*description));
     return expected;
 }
@@ -112,7 +112,7 @@ static BOOL __fastcall FormatItemNameVerify(CTextManager* self, void*, CItem* it
     BOOL actual = self->FormatItemName(item, out);
     bool same = expected == actual && SameText(scratch, *out) && SameState(after, Save(self));
     ei::verify::Check("CTextManager::FormatItemName", true, same, "kind %X id %08X count %u: '%.60s' vs '%.60s'",
-                      item->type_, item->unknown_18, item->count_, static_cast<const char*>(scratch),
+                      item->type_, item->prototypeId_, item->count_, static_cast<const char*>(scratch),
                       static_cast<const char*>(*out));
     return expected;
 }

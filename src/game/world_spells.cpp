@@ -61,7 +61,7 @@ __declspec(naked) void __fastcall MissileInit(Projectile*, void*, CWorldServer*,
 // 005D7E90 (BrainSetSeenOriginal, RET 4). The target's AI brain is attacked by `caster`.
 // 00455680 (RET 0xC). CDiplomacy: `a` attacked `b` (strength).
 
-int SpellType(const void* spell) { return static_cast<int>(static_cast<const CSpell*>(spell)->unknown_18 >> 16); }
+int SpellType(const void* spell) { return static_cast<int>(static_cast<const CSpell*>(spell)->prototypeId_ >> 16); }
 
 // Whether the spell type turns the target against the caster (the original's switch at
 // 0058E7DC: 0x13, 0x19, 0x1E, 0x20, 0x22, 0x26).

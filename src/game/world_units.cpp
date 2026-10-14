@@ -245,14 +245,14 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         message->prototype = record->texts[5];
         object.texture = record->texts[2];
         message->behaviour[0].type = 4;
-        message->behaviour[0].unknown_38 = 1;
+        message->behaviour[0].enabled = 1;
         message->behaviour[0].flags = 0;
         base.kind = 5;
         std::memcpy(&object.scale, &record->scaleX, 12);
         object.visible = 1;
-        object.unknown_6E = 0;
+        object.side = 0;
         object.parentIname = record->texts[3];
-        object.unknown_74 = record->texts[4];
+        object.skinTexture = record->texts[4];
         StringArraySetSize(&object.parts, nullptr, 0, -1);
         const char* prototypeName = record->texts[5];
         int type = PrototypeClass(MapObjectManager(), nullptr, prototypeName);
@@ -452,7 +452,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     };
     auto companionTexts = [spec](CMapObjectServer* companion) {
         TextAssign(&companion->name78, nullptr, &spec->parentIname);
-        TextAssign(&companion->name7C, nullptr, &spec->unknown_74);
+        TextAssign(&companion->name7C, nullptr, &spec->skinTexture);
         TextArrayCopy(&companion->stringsVtable, nullptr, &spec->parts);
     };
     auto race = [spec](CMapObject* object) {
@@ -580,8 +580,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (type == 5) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
             UnitSetController(object, nullptr, nullptr);
-            UnitSetSide(reinterpret_cast<CUnit*>(object), nullptr, spec->unknown_6E);
-            UnitSetDiplomacy(object, nullptr, DiplomacyHostileMask(&diplomacy_, nullptr, spec->unknown_6E));
+            UnitSetSide(reinterpret_cast<CUnit*>(object), nullptr, spec->side);
+            UnitSetDiplomacy(object, nullptr, DiplomacyHostileMask(&diplomacy_, nullptr, spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
             ManagerRegisterUnit2(MapObjectManager(), nullptr, object, unitSpec->prototype);
             const mfc::CStringArray& worn = unitSpec->lists[1];
@@ -649,14 +649,14 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     case 3: {   // a sound
         if (!loadedFresh_) return -1;
         auto* sound = reinterpret_cast<mapspec::SoundSpec*>(message);
-        if (sound->unknown_84) {
+        if (sound->ambient) {
             auto* ambient = static_cast<CEffectAmbientSound*>(timedManager->CreateObject(kTimedAmbientSound, base.id));
             TextArrayCopy(&ambient->names_, nullptr, &sound->sounds);
             Copy(&ambient->localPosition_, &base.position, 12);
-            ambient->volume_ = static_cast<float>(sound->unknown_68);
-            ambient->radius_ = static_cast<float>(sound->unknown_6C);
-            ambient->minInterval_ = sound->unknown_74;
-            ambient->maxInterval_ = sound->unknown_78;
+            ambient->volume_ = static_cast<float>(sound->volume);
+            ambient->radius_ = static_cast<float>(sound->radius);
+            ambient->minInterval_ = sound->minInterval;
+            ambient->maxInterval_ = sound->maxInterval;
             return timed(ambient);
         }
         auto* plain = static_cast<CEffectSound*>(timedManager->CreateObject(kTimedSound, base.id));
@@ -668,8 +668,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             std::memcpy(plain->name_, wave, std::strlen(wave) + 1);
         }
         Copy(&plain->localPosition_, &base.position, 12);
-        plain->volume_ = static_cast<float>(sound->unknown_68);
-        plain->radius_ = static_cast<float>(sound->unknown_6C);
+        plain->volume_ = static_cast<float>(sound->volume);
+        plain->radius_ = static_cast<float>(sound->radius);
         return timed(plain);
     }
     case 2: {   // a light

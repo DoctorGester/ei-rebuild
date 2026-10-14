@@ -687,7 +687,7 @@ void CUnitServer::TickItemSpells() {
         auto* spell = static_cast<CSpell*>(item->spell_);
         float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
-        if ((spell->unknown_18 & 0xFFFF0000u) == 0x180000) {
+        if ((spell->prototypeId_ & 0xFFFF0000u) == 0x180000) {
             // A healing spell: only one a tick, and only when the unit is hurt.
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;
