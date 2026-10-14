@@ -595,9 +595,9 @@ note = "Left from C9 (models.md, \"Layouts\")."
 id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
-status = "running"
+status = "review"
 model = "sonnet"
-note = "Counts 2026-10-14: 497 __fastcall self shims, 368 constexpr game addresses; per-file At() copies already 0. Batches of about 100 shims, one area at a time."
+note = "Counts 2026-10-14: 497 __fastcall self shims, 368 constexpr game addresses; per-file At() copies already 0. Batches of about 100 shims, one area at a time. Batch 1 (2026-10-14): 63 shims converted to member functions (1,274 -> 1,211 by tools/progress.py; the ticket's 497 does not match that metric). Class A (body moved into the member) plus class B (forwarders deleted, member registered: transform math, unit_ai_*, 16 AlignedArray instances, ObjectSet). Skipped: ui_/net_ callers (text_reader Open/ReadLine/ReadToHash/Split/FindLine, ClassTemplate::SetLevels, RefPtrShareReturn), virtual-slot shims, aliases of lib/mfc templates, DrawLightning (virtual Draw clash), UnitPrototypeAt (name collision), FindFigureAnimation (F4a header), QuaternionRotate (src/lib). Left: 1,211 two-slot shims; next the ui/net callers after W2/F5. See docs/notes/cleanup-units.md."
 started = "2026-10-14"
 
 [[ticket]]
