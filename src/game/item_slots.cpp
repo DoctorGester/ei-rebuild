@@ -29,7 +29,7 @@ const Record* RecordOf(const char* record) { return reinterpret_cast<const Recor
 // --- Slot 21 -----------------------------------------------------------------------------------
 
 ItemUse* CItemQuest::GetUse(ItemUse* out) {
-    *out = ItemUse{8, unknown_4C, 0};
+    *out = ItemUse{8, questItemId_, 0};
     return out;
 }
 EI_REPLACE_METHOD(0x006A43C0, CItemQuest::GetUse);
@@ -39,12 +39,12 @@ EI_REPLACE_METHOD(0x006A43C0, CItemQuest::GetUse);
 BOOL CItem::IsSameAs(CItem* other) {
     if (other == this) return 1;
     if (type_ != other->type_ || unknown_18 != other->unknown_18) return 0;
-    if (!EqualOrUnordered(unknown_20, other->unknown_20) || !EqualOrUnordered(unknown_24, other->unknown_24) ||
+    if (!EqualOrUnordered(condition_, other->condition_) || !EqualOrUnordered(conditionMax_, other->conditionMax_) ||
         !EqualOrUnordered(charge_, other->charge_) || !EqualOrUnordered(chargeMax_, other->chargeMax_) ||
-        !EqualOrUnordered(unknown_34, other->unknown_34) || !EqualOrUnordered(price_, other->price_) ||
+        !EqualOrUnordered(weight_, other->weight_) || !EqualOrUnordered(price_, other->price_) ||
         !EqualOrUnordered(unknown_3C, other->unknown_3C))
         return 0;
-    if (unknown_40 != other->unknown_40) return 0;
+    if (magicLevel_ != other->magicLevel_) return 0;
     auto* spell = static_cast<const CSpell*>(spell_);
     auto* otherSpell = static_cast<const CSpell*>(other->spell_);
     if (spell == nullptr || otherSpell == nullptr) return spell == otherSpell ? 1 : 0;
@@ -69,7 +69,7 @@ EI_REPLACE_METHOD(0x006A3C20, CItemQuick::IsSameAs);
 
 BOOL CItemQuest::IsSameAs(CItemQuest* other) {
     if (!CItem::IsSameAs(other)) return 0;
-    return other->unknown_4C == unknown_4C ? 1 : 0;
+    return other->questItemId_ == questItemId_ ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x006A4510, CItemQuest::IsSameAs);
 
@@ -85,7 +85,7 @@ EI_REPLACE_METHOD(0x006A4B00, CItemLoot::IsSameAs);
 void CItemWeapon::InitFromRecord(const char* record) {
     CItem::InitFromRecord(record);
     auto* r = RecordOf<WeaponRecord>(record);
-    std::memcpy(&unknown_58, &r->value8C, 4);
+    std::memcpy(&reach_, &r->reach, 4);
     std::memcpy(&damage_, &r->damage, 4);
     std::memcpy(&damageSpread_, &r->damageSpread, 4);
 }
@@ -107,7 +107,7 @@ EI_REPLACE_METHOD(0x006A3BE0, CItemQuick::InitFromRecord);
 
 void CItemQuest::InitFromRecord(const char* record) {
     CItem::InitFromRecord(record);
-    unknown_4C = RecordOf<ItemRecordHead>(record)->category;
+    questItemId_ = RecordOf<ItemRecordHead>(record)->category;
 }
 EI_REPLACE_METHOD(0x006A44D0, CItemQuest::InitFromRecord);
 

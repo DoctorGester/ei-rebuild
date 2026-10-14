@@ -191,7 +191,7 @@ std::int16_t& LastDamageSource(CUnit* unit) { return unit->Params()->unknown_20;
 
 float CUnitServer::AttackRange() {
     CItemWeapon* weapon = ActiveWeapon(unit);
-    if (weapon) return weapon->unknown_58;
+    if (weapon) return weapon->reach_;
     return Combat().reach;
 }
 EI_REPLACE_METHOD(0x0054B620, CUnitServer::AttackRange);
@@ -401,12 +401,12 @@ float CUnitServer::ActionDistance(const UnitAction* order) {
         float floor = kMeleeFloor;
         if (other->player && unit->player) floor = kMeleeFloorParty;
         CItemWeapon* weapon = ActiveWeapon(unit);
-        float range = weapon ? weapon->unknown_58 : Combat().reach;
+        float range = weapon ? weapon->reach_ : Combat().reach;
         float reach = LessOrUnordered(range, floor) ? floor : range;
         return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + reach);
     }
     CItemWeapon* weapon = ActiveWeapon(unit);
-    float range = weapon ? weapon->unknown_58 : Combat().reach;
+    float range = weapon ? weapon->reach_ : Combat().reach;
     float own = Radius(unit);
     return static_cast<float>((Radius(target) + static_cast<double>(own)) + range);
 }
@@ -489,7 +489,7 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
         out->damageMax = weapon->damageSpread_ + weapon->damage_;
         out->weaponType = weapon->GetType();
         out->damageType = WeaponDamageType(weapon->unknown_18);
-        FpuCopy(&out->speed, &weapon->unknown_34);
+        FpuCopy(&out->speed, &weapon->weight_);
         float base = WeaponStat84(weapon->unknown_18);
         double bonus = StatsWeaponSkillBonus(&stats, nullptr, out->weaponType, self);
         out->attack = GameFtol(bonus + base);

@@ -51,9 +51,9 @@ struct PotionCount {
     CItem* item;
     std::uint32_t count;
     PotionCount(CUnit* user, int slot)
-        : item(static_cast<CItem*>(user->GetQuickItem(static_cast<std::uint32_t>(slot)))), count(item ? item->unknown_48 : 0) {}
+        : item(static_cast<CItem*>(user->GetQuickItem(static_cast<std::uint32_t>(slot)))), count(item ? item->count_ : 0) {}
     void Restore() const {
-        if (item) item->unknown_48 = count;
+        if (item) item->count_ = count;
     }
 };
 

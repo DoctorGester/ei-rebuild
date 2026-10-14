@@ -112,7 +112,7 @@ static BOOL __fastcall FormatItemNameVerify(CTextManager* self, void*, CItem* it
     BOOL actual = self->FormatItemName(item, out);
     bool same = expected == actual && SameText(scratch, *out) && SameState(after, Save(self));
     ei::verify::Check("CTextManager::FormatItemName", true, same, "kind %X id %08X count %u: '%.60s' vs '%.60s'",
-                      item->type_, item->unknown_18, item->unknown_48, static_cast<const char*>(scratch),
+                      item->type_, item->unknown_18, item->count_, static_cast<const char*>(scratch),
                       static_cast<const char*>(*out));
     return expected;
 }

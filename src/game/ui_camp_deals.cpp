@@ -54,7 +54,7 @@ int ItemCount(const CParty* party) { return party->items_.size; }
 std::uint32_t PrototypeIndex(const CEngineObject* object) { return object->unknown_18 >> 16; }
 // An item record (+0x1C) marked as made by a constructor (+0x10).
 bool MadeByConstructor(const CItem* item) {
-    auto* record = reinterpret_cast<const std::uint8_t*>(item->unknown_1C);
+    auto* record = reinterpret_cast<const std::uint8_t*>(item->link_);
     return record && record[0x10];
 }
 

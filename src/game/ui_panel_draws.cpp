@@ -118,7 +118,7 @@ BOOL CRepairGrid::Draw(int pass) {
         ItemCell cell{item, static_cast<float>(x) + 250.0f, static_cast<float>(y) + 150.0f,
                       static_cast<float>(scale) * 6.0f, 100.0f, mode_};
         DrawItem(owner_, pass, &cell);
-        int pieces = static_cast<int>(item->unknown_48);   // the stack's count
+        int pieces = static_cast<int>(item->count_);   // the stack's count
         if (pieces > 1) {
             text.Format(NumberFormat(), pieces);
             RECT r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};

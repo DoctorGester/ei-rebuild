@@ -233,7 +233,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
         if (!item) continue;
         ++item->refCount_;
         if (item->GetClassId() == kClassQuestItem)
-            PlayerEraseQuestItem(player, nullptr, static_cast<int>(static_cast<CItemQuest*>(item)->unknown_4C));
+            PlayerEraseQuestItem(player, nullptr, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_));
         item->Release();
     }
 
@@ -561,7 +561,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         CEngineObject* entry = AddToRecord(party, record, item, RecordAddQuick);
         ItemSourceRef* ref = NewItemRecord(false);
         ref->itemId = static_cast<std::uint32_t>(entry->id_);
-        RefPtrAssign(&static_cast<CItem*>(item)->unknown_1C, nullptr, ref);
+        RefPtrAssign(&static_cast<CItem*>(item)->link_, nullptr, ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
         CEngineObject* item = UnitWornItem(unit, nullptr, slot);
@@ -569,13 +569,13 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         CEngineObject* entry = AddToRecord(party, record, item, RecordAddWorn);
         ItemSourceRef* ref = NewItemRecord(true);
         ref->itemId = static_cast<std::uint32_t>(entry->id_);
-        RefPtrAssign(&static_cast<CItem*>(item)->unknown_1C, nullptr, ref);
+        RefPtrAssign(&static_cast<CItem*>(item)->link_, nullptr, ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = static_cast<CItem*>(UnitQuickItem(static_cast<CUnit*>(unit), nullptr, slot));
-        if (!item || static_cast<int>(item->unknown_48) <= 0) continue;
+        if (!item || static_cast<int>(item->count_) <= 0) continue;
         CItem* entry = PartyCopy(party, item);
-        entry->unknown_48 = item->unknown_48;   // before the null test
+        entry->count_ = item->count_;   // before the null test
         if (entry) ++entry->refCount_;
         CEngineObject* added = RecordAddBelt(record, nullptr, entry);
         if (entry) entry->Release();
@@ -583,8 +583,8 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         ref->itemId = static_cast<std::uint32_t>(added->id_);
         // The counted pointer's assignment, inlined (16-bit count at +4).
         auto* link = reinterpret_cast<CItemLink*>(ref);
-        CItemLink* old = reinterpret_cast<CItemLink*>(static_cast<std::uintptr_t>(item->unknown_1C));
-        item->unknown_1C = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(link));
+        CItemLink* old = reinterpret_cast<CItemLink*>(static_cast<std::uintptr_t>(item->link_));
+        item->link_ = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(link));
         if (link) ++link->references;
         if (old) RefRelease(old, nullptr);
     }
@@ -649,12 +649,12 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
         if (CEngineObject* item = UnitWornItem(unit, nullptr, slot)) AddToRecord(party, record, item, RecordAddWorn);
     for (int slot = 0; slot < kBeltSlots; ++slot) {
         auto* item = static_cast<CItem*>(UnitQuickItem(static_cast<CUnit*>(unit), nullptr, slot));
-        if (!item || static_cast<int>(item->unknown_48) <= 0) continue;
+        if (!item || static_cast<int>(item->count_) <= 0) continue;
         CItem* entry = PartyCopy(party, item);
-        std::uint32_t amount = item->unknown_48;
+        std::uint32_t amount = item->count_;
         std::uint32_t maximum;
         std::memcpy(&maximum, &entry->chargeMax_, sizeof(maximum));   // before the null test
-        entry->unknown_48 = amount;
+        entry->count_ = amount;
         std::memcpy(&entry->charge_, &maximum, sizeof(maximum));
         if (entry) ++entry->refCount_;
         RecordAddBelt(record, nullptr, entry);

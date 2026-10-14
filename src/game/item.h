@@ -100,29 +100,35 @@ public:
 
     // 006A0520. Attaches `spell` (counted; the previous one released); the price is left alone.
     void SetSpell(CSpell* spell);
-    // The condition back to its maximum (+0x20 = +0x24; the camp's repairs).
-    void Repair() { unknown_20 = unknown_24; }
-    // The item's weight (+0x34; PartyUnitRecord::CarriedWeight adds them up).
+    // The condition back to its maximum (the camp's repairs).
+    void Repair() { condition_ = conditionMax_; }
+    // The item's weight (PartyUnitRecord::CarriedWeight adds them up).
     float Weight() const {
         float weight;
-        std::memcpy(&weight, &unknown_34, sizeof(weight));
+        std::memcpy(&weight, &weight_, sizeof(weight));
         return weight;
     }
 
-    std::uint32_t unknown_1C;
-    std::uint32_t unknown_20;     // +0x20 both set from prototype +0x48
-    std::uint32_t unknown_24;
+    // +0x1C a counted link record (a RefPtr slot): the world server's CItemLink (the id the
+    // world's save keeps per item), the party record's ItemSourceRef, the HUD's ItemTurn.
+    std::uint32_t link_;
+    // +0x20 / +0x24 the condition and its maximum (float bits; both from the prototype's
+    // condition): at 0 or below (rounded) the item is broken.
+    std::uint32_t condition_;
+    std::uint32_t conditionMax_;
     float charge_;                // +0x28
     float chargeMax_;             // +0x2C prototype +0x40
     float chargeRate_;            // +0x30 0.001 by default
-    std::uint32_t unknown_34;     // +0x34 the weight's bits (a float: Weight())
+    std::uint32_t weight_;        // +0x34 float bits (Weight()); prototype value38
     float price_;                 // +0x38 includes the attached spell's price
-    std::uint32_t unknown_3C;
-    std::uint32_t unknown_40;
+    std::uint32_t unknown_3C;     // +0x3C prototype value3C
+    // +0x40 the level of spell the item can hold (the prototype's magicLevel plus the material's;
+    // CItemConstructor::MagicCapacity).
+    std::uint32_t magicLevel_;
     void* spell_;                 // +0x44 CSpell carried by the item (scrolls, wands)
-    std::uint32_t unknown_48;
+    std::uint32_t count_;         // +0x48 the stack's count
 };
-// The counted record an item's +0x1C (CItem::unknown_1C, a RefPtr slot) points at when the world
+// The counted record an item's link_ (a RefPtr slot) points at when the world
 // server builds a unit's items from its party record (0058EF20): a reference value (constructor
 // 00419720 then vtable 0073FA88, or 0058FBB0) holding the id of the record's item.
 struct ItemSourceRef {
@@ -131,11 +137,13 @@ struct ItemSourceRef {
     std::uint32_t itemId;         // +0x08 the source item's id_ (its +0x0C)
 };
 static_assert(sizeof(ItemSourceRef) == 0xC);
-static_assert(offsetof(CItem, charge_) == 0x28);
+static_assert(offsetof(CItem, link_) == 0x1C && offsetof(CItem, condition_) == 0x20);
+static_assert(offsetof(CItem, charge_) == 0x28 && offsetof(CItem, weight_) == 0x34);
+static_assert(offsetof(CItem, magicLevel_) == 0x40 && offsetof(CItem, count_) == 0x48);
 static_assert(offsetof(CItem, spell_) == 0x44);
 static_assert(sizeof(CItem) == 0x4C);
 
-// The record an item's link (CItem::unknown_1C) points at as the world server makes it (0xC
+// The record an item's link (CItem::link_) points at as the world server makes it (0xC
 // bytes, vtable 0073FA88): a counted value with a 16-bit count and the dword the world's save keeps
 // per item (world_save.cpp, world_units.cpp, world_quests.cpp).
 struct CItemLink {
@@ -201,12 +209,12 @@ public:
     void LoadItem(CStream* stream);
     void SaveItem(CStream* stream);
 
-    std::uint32_t unknown_4C;
+    std::uint32_t unknown_4C;   // +0x4C 0 after construction; combat scales it (combat.cpp)
     float damage_;          // +0x50 prototype +0x90
     float damageSpread_;    // +0x54 prototype +0x94
-    float unknown_58;       // +0x58 prototype +0x8C
+    float reach_;           // +0x58 prototype reach: the wielder's reach
 };
-static_assert(offsetof(CItemWeapon, damage_) == 0x50);
+static_assert(offsetof(CItemWeapon, damage_) == 0x50 && offsetof(CItemWeapon, reach_) == 0x58);
 
 // vtable 00743E54, GetClassId 0x12.
 class CItemArmor : public CItem {
@@ -285,12 +293,15 @@ public:
     // 006A4570 / 006A4590 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C.
     void LoadItem(CStream* stream);
     void SaveItem(CStream* stream);
-    // 006A43C0 (RET 4; slot 21; item_slots.cpp, A-H25). Fills `out` with (8, +0x4C, 0) and
+    // 006A43C0 (RET 4; slot 21; item_slots.cpp, A-H25). Fills `out` with (8, the id, 0) and
     // returns it; the other classes share 004623C0, which writes three zeros.
     ItemUse* GetUse(ItemUse* out);
 
-    std::uint32_t unknown_4C;
+    // +0x4C the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
+    // player's quest items, the zone's wanted list.
+    std::uint32_t questItemId_;
 };
+static_assert(offsetof(CItemQuest, questItemId_) == 0x4C);
 
 // vtable 00743FB4, GetClassId 0x16: a scroll (spell container).
 class CItemSpell : public CItem {

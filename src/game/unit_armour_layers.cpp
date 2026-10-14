@@ -54,7 +54,7 @@ void UnitStats::RebuildArmourLayers(CUnit* unit) {
     for (int i = 0; i < kArmourSlots; ++i) {
         CEngineObject* piece = unit->armor[i];   // 00530830
         if (!piece) continue;
-        float condition = std::bit_cast<float>(static_cast<CItem*>(piece)->unknown_20);
+        float condition = std::bit_cast<float>(static_cast<CItem*>(piece)->condition_);
         if (std::lrint(condition) > 0) AddArmourLayer(piece);   // FISTP: to nearest
     }
 }

@@ -94,7 +94,7 @@ BOOL CItemWeapon::IsSameAs(CItemWeapon* other) {
     if (other->unknown_4C != unknown_4C) return 0;
     if (!EqualOrUnordered(other->damage_, damage_)) return 0;
     if (!EqualOrUnordered(other->damageSpread_, damageSpread_)) return 0;
-    if (!EqualOrUnordered(other->unknown_58, unknown_58)) return 0;
+    if (!EqualOrUnordered(other->reach_, reach_)) return 0;
     return 1;
 }
 EI_REPLACE_METHOD(0x006A06C0, CItemWeapon::IsSameAs);

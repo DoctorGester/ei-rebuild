@@ -50,9 +50,9 @@ T* ConstructBoth(const char* name, T*(__fastcall* original)(T*), T* self) {
 bool BuiltItem(const CItem* item) {
     const std::uint32_t minusOne = 0xBF800000;
     bool ok = item->refCount_ == 0 && item->flags_ == 0 && item->id_ == -1 && item->type_ == 0 &&
-              item->owner_ == nullptr && item->unknown_18 == 0 && item->unknown_1C == 0 && item->spell_ == nullptr &&
-              item->unknown_48 == 1;
-    const std::uint32_t* fields[] = {&item->unknown_20, &item->unknown_24, &item->unknown_34, &item->unknown_3C};
+              item->owner_ == nullptr && item->unknown_18 == 0 && item->link_ == 0 && item->spell_ == nullptr &&
+              item->count_ == 1;
+    const std::uint32_t* fields[] = {&item->condition_, &item->conditionMax_, &item->weight_, &item->unknown_3C};
     for (const std::uint32_t* f : fields) ok = ok && *f == minusOne;
     ok = ok && Bits(&item->charge_) == minusOne && Bits(&item->chargeMax_) == minusOne &&
          Bits(&item->chargeRate_) == minusOne && Bits(&item->price_) == minusOne;
@@ -70,7 +70,7 @@ CItemArmor* __fastcall ArmorCtorVerify(CItemArmor* self) {
 CItemWeapon* __fastcall WeaponCtorVerify(CItemWeapon* self) {
     CItemWeapon* result = self->Construct();
     bool extra = self->unknown_4C == 0 && Bits(&self->damage_) == 0xBF800000 &&
-                 Bits(&self->damageSpread_) == 0xBF800000 && Bits(&self->unknown_58) == 0xBF800000;
+                 Bits(&self->damageSpread_) == 0xBF800000 && Bits(&self->reach_) == 0xBF800000;
     ei::verify::Check("CItemWeapon::Construct", true,
                       result == self && VtableOf(self) == 0x00743DFC && BuiltItem(self) && extra, "object %p", self);
     return result;
@@ -102,19 +102,19 @@ CItemSpell* __fastcall SpellCtorVerify(CItemSpell* self) {
 
 int __fastcall CreateVerify(CItem* self) {
     int result = self->CreateItem();
-    ei::verify::Check("CItem::CreateItem", true, result == 1 && self->unknown_48 == 1 && self->spell_ == nullptr,
+    ei::verify::Check("CItem::CreateItem", true, result == 1 && self->count_ == 1 && self->spell_ == nullptr,
                       "item %p", self);
     return result;
 }
 void __fastcall DestroyVerify(CItem* self) {
     self->DestroyItem();
-    ei::verify::Check("CItem::DestroyItem", true, self->spell_ == nullptr && self->unknown_1C == 0, "item %p", self);
+    ei::verify::Check("CItem::DestroyItem", true, self->spell_ == nullptr && self->link_ == 0, "item %p", self);
 }
 
 // What the destructor body leaves: CEngineObject's vtable, no owner, spell or link.
 bool Destructed(const CItem* item) {
     return VtableOf(item) == CEngineObject::kVtableAddress && item->owner_ == nullptr && item->spell_ == nullptr &&
-           item->unknown_1C == 0;
+           item->link_ == 0;
 }
 void __fastcall DestructVerify(CItem* self) {
     self->DestructBody();

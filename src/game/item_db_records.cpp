@@ -61,7 +61,7 @@ void ItemRecordHead::ConstructHead(std::uintptr_t vtableAddress) {
 
 void WeaponRecord::CopyOwn(const WeaponRecord* source) {
     CopyBytes(this, source, offsetof(WeaponRecord, category), 0x83);
-    CopyBytes(this, source, offsetof(WeaponRecord, value8C), sizeof(WeaponRecord));
+    CopyBytes(this, source, offsetof(WeaponRecord, reach), sizeof(WeaponRecord));
 }
 
 WeaponRecord* WeaponRecord::AssignWeapon(const WeaponRecord* source) {

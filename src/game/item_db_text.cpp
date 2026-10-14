@@ -252,9 +252,9 @@ BOOL CTextManager::FormatItemName(CItem* item, mfc::CString* out) {
     mfc::CString format;   // first the description, then the format text
     mfc::CString kind;
     if (!GetItemTexts(item, &name, &format, &kind)) return 0;
-    if (static_cast<int>(item->unknown_48) > 1) {
+    if (static_cast<int>(item->count_) > 1) {
         GetString("format_item2", &format);
-        out->Format(format, static_cast<const char*>(kind), static_cast<const char*>(name), item->unknown_48);
+        out->Format(format, static_cast<const char*>(kind), static_cast<const char*>(name), item->count_);
     } else {
         GetString("format_item1", &format);
         out->Format(format, static_cast<const char*>(kind), static_cast<const char*>(name));

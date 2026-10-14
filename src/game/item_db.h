@@ -168,7 +168,7 @@ struct ItemRecordHead {
     float value38;
     std::uint32_t value3C;              // +0x3C item +0x3C
     float charge;                       // +0x40 item charge and maximum
-    std::uint32_t value44;              // +0x44 item +0x40 (plus the material's magicLevel)
+    std::uint32_t magicLevel;           // +0x44 item +0x40 (plus the material's magicLevel)
     float condition;                    // +0x48 item condition and maximum (times the material's conditionFactor)
     std::uint32_t materialUnits;        // +0x4C units of material (the price; the trader stock takes them)
     console::CStringArray list50;       // +0x50
@@ -230,12 +230,12 @@ struct WeaponRecord : ItemRecordHead {
     std::uint8_t unknown_7D[0x84 - 0x7D];
     float attackBonus;                  // +0x84 added to the wielder's attack (WeaponStat84)
     float defenceBonus;                 // +0x88 added to the wielder's defence (WeaponStat88; 0 for types 5, 6)
-    std::uint32_t value8C;              // +0x8C item +0x58; the wielder's reach (float bits)
+    std::uint32_t reach;                // +0x8C item +0x58: the wielder's reach (float bits)
     float damage;                       // +0x90 minimum damage (times the material's damageFactor)
     float damageSpread;                 // +0x94 maximum damage = damage + spread
     float damageTypes[7];               // +0x98 weight of each damage type
 };
-static_assert(offsetof(WeaponRecord, value8C) == 0x8C);
+static_assert(offsetof(WeaponRecord, reach) == 0x8C);
 static_assert(offsetof(WeaponRecord, attackBonus) == 0x84);
 static_assert(offsetof(WeaponRecord, defenceBonus) == 0x88);
 static_assert(offsetof(WeaponRecord, damage) == 0x90);

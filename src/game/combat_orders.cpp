@@ -248,7 +248,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
             item->GetCategory() == kCategoryScroll) {
             void* world = ManagerContext();
             auto* scroll = static_cast<CItem*>(unit->GetQuickItem(slot));
-            if (!scroll || !scroll->unknown_48) return;
+            if (!scroll || !scroll->count_) return;
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
             WorldCastSpellOriginal(world, nullptr, carrier->spell_, unit, &unit->position, nullptr, reinterpret_cast<const Vector3*>(point), 0);
@@ -282,7 +282,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
         if (carrier && carrier->GetCategory() == kCategoryScroll) {
             void* world = ManagerContext();
             auto* scroll = static_cast<CItem*>(unit->GetQuickItem(source & ~kQuickItemSource));
-            if (!scroll || !scroll->unknown_48) return;
+            if (!scroll || !scroll->count_) return;
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;
             WorldCastSpellOriginal(world, nullptr, spellCarrier->spell_, unit, &unit->position, target,

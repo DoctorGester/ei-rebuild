@@ -46,7 +46,7 @@ void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->Field(8, &value38, 4);
     ar->Field(9, &value3C, 4);
     ar->Field(10, &charge, 4);
-    ar->Field(11, &value44, 4);
+    ar->Field(11, &magicLevel, 4);
     ar->Field(12, &condition, 4);
     ar->Field(13, &materialUnits, 4);
     ar->Field(14, &unknown_64, 4);
@@ -58,7 +58,7 @@ void WeaponRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
     ar->Field(0x15, &category, 4);
     ar->Field(0x16, &unknown_70[0], 8);
-    ar->Field(0x17, &value8C, 4);
+    ar->Field(0x17, &reach, 4);
     ar->Field(0x18, &damage, 4);
     ar->Field(0x19, &damageSpread, 4);
     ar->Field(0x1A, damageTypes, sizeof(damageTypes));

@@ -295,11 +295,11 @@ void CHudTopPanel::ShowItems() {
         for (auto* entry = merged.head; entry && !same; entry = entry->next)
             if (entry->data->IsSameAsSlot(item)) same = entry->data;
         if (same) {
-            same->unknown_48 += item->unknown_48;
+            same->count_ += item->count_;
             continue;
         }
         CItem* copy = WorldCopyItemOriginal(WorldClient(), nullptr, item);
-        copy->unknown_48 = item->unknown_48;
+        copy->count_ = item->count_;
         ++copy->refCount_;
         merged.AddTail(copy);
     }

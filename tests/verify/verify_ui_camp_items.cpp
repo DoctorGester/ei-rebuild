@@ -93,7 +93,7 @@ static CItem* __fastcall MoveItemVerify(CItemScreen* self, void*, CItem* item, C
         match = item->IsSameAsSlot(static_cast<CItem*>(to->items_.data[i])) != 0;
     bool whole = static_cast<std::uint8_t>(merge) != 0 && self->interface_->shiftDown_ != 0;
     // A stack of more than one stays in `from` (one fewer) unless the whole of it moves.
-    bool stays = !whole && static_cast<int>(item->unknown_48) > 1;
+    bool stays = !whole && static_cast<int>(item->count_) > 1;
     CItem* moved = self->CItemScreen::MoveItem(item, to, from, limit, merge, turning);
     bool ok;
     if (searched && !match) {

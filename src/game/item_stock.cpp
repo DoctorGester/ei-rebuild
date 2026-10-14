@@ -338,7 +338,7 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
         ctor->SetManager(nullptr);
         AddReference(item);
         if (item->type_ == 0x3006 && ItemCategory(item) == 8)
-            item->unknown_48 = static_cast<std::uint32_t>(gamecrt::rand() * 30 / 0x7FFF % 30 + 20);
+            item->count_ = static_cast<std::uint32_t>(gamecrt::rand() * 30 / 0x7FFF % 30 + 20);
         Output(out, item);
         DestroySpellList(spellList);
     }
@@ -419,7 +419,7 @@ void GenerateInstructions(ItemStock* stock, const StockPtrVector& source, const 
         ctor->SetManager(nullptr);
         std::intptr_t offset = reinterpret_cast<std::intptr_t>(*p) - reinterpret_cast<std::intptr_t>(table.begin);
         static_cast<CItemLoot*>(item)->index_ = static_cast<std::uint32_t>(static_cast<int>(offset) / recordSize);
-        item->unknown_48 = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
+        item->count_ = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
         AddReference(item);
         Output(out, item);
     }
@@ -900,7 +900,7 @@ void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, S
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         static_cast<CItemLoot*>(item)->index_ = static_cast<std::uint32_t>(indexOf(*p));
-        item->unknown_48 = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
+        item->count_ = static_cast<std::uint32_t>(RandomCount(minCount, maxCount));
         AddReference(item);
         Output(out, item);
     }

@@ -268,7 +268,7 @@ bool NeedsClearWay(CUnitServer* self, const UnitAction* order) {
     CItemWeapon* weapon = ActiveWeapon(self->unit);
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return false;
     weapon = ActiveWeapon(self->unit);
-    float reach = weapon ? weapon->unknown_58 : self->Combat().reach;
+    float reach = weapon ? weapon->reach_ : self->Combat().reach;
     return LessOrUnordered(reach, kMeleeReach);
 }
 } // namespace

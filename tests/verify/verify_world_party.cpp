@@ -136,8 +136,8 @@ EI_VERIFY(0x00590700, RedeployVerify, 0, s_unused);
 // A-W13. 00595020 UseItemUp: ours only (it changes the counts). Checked: the item's count is one
 // lower. A unit casting from a scroll (combat_orders.cpp); no scenario reaches it.
 static void __fastcall UseItemUpVerify(CWorldServer* self, void*, CUnit* unit, CItem* item) {
-    std::uint32_t before = item->unknown_48;
+    std::uint32_t before = item->count_;
     self->UseItemUp(unit, item);
-    ei::verify::Check("CWorldServer::UseItemUp", before - 1, item->unknown_48, "item %d", item->id_);
+    ei::verify::Check("CWorldServer::UseItemUp", before - 1, item->count_, "item %d", item->id_);
 }
 EI_VERIFY(0x00595020, UseItemUpVerify, 0, s_unused);

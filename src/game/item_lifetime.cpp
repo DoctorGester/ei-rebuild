@@ -46,25 +46,25 @@ std::uintptr_t CItem::Vtable() { return static_cast<std::uintptr_t>(0x00743DA4);
 
 CItem* CItem::Construct() {
     ClearFields();
-    unknown_1C = 0;
+    link_ = 0;
     spell_ = nullptr;
     SetVtable(this, Vtable());
-    SetMinusOne(unknown_20);
-    SetMinusOne(unknown_24);
+    SetMinusOne(condition_);
+    SetMinusOne(conditionMax_);
     SetMinusOne(charge_);
     SetMinusOne(chargeMax_);
     SetMinusOne(chargeRate_);
-    SetMinusOne(unknown_34);
+    SetMinusOne(weight_);
     SetMinusOne(price_);
     SetMinusOne(unknown_3C);
-    unknown_48 = 1;
+    count_ = 1;
     DropSpell(spell_);
     return this;
 }
 EI_REPLACE_METHOD(0x0069FCA0, CItem::Construct);
 
 int CItem::CreateItem() {
-    unknown_48 = 1;
+    count_ = 1;
     DropSpell(spell_);
     return 1;
 }
@@ -72,8 +72,8 @@ EI_REPLACE_METHOD(0x0069FE20, CItem::CreateItem);
 
 void CItem::DestroyItem() {
     DropSpell(spell_);
-    CRefCounted* link = Link(unknown_1C);
-    unknown_1C = 0;
+    CRefCounted* link = Link(link_);
+    link_ = 0;
     if (link != nullptr && --link->refs_ == 0) delete link;
 }
 EI_REPLACE_METHOD(0x0069FE50, CItem::DestroyItem);
@@ -83,7 +83,7 @@ void CItem::DestructBody() {
     DestroyItem();
     // The members' destructors: the spell released and the link's count dropped, without clearing.
     if (spell_ != nullptr) static_cast<CEngineObject*>(spell_)->Release();
-    CRefCounted* link = Link(unknown_1C);
+    CRefCounted* link = Link(link_);
     if (link != nullptr && --link->refs_ == 0) delete link;
     DestructBase();
 }
@@ -113,7 +113,7 @@ CItemWeapon* CItemWeapon::Construct() {
     SetVtable(this, WeaponVtable());
     SetMinusOne(damage_);
     SetMinusOne(damageSpread_);
-    SetMinusOne(unknown_58);
+    SetMinusOne(reach_);
     unknown_4C = 0;
     return this;
 }

@@ -49,7 +49,7 @@ void AddCounted(CParty* list, CItem* item) {
 void AddNamed(CParty* list, const char* name, std::uint32_t index, std::uint32_t count) {
     auto* item = static_cast<CItemLoot*>(ItemManagerCreateItemOriginal(list->ItemManager(), nullptr, name));
     item->index_ = index;
-    item->unknown_48 = count;
+    item->count_ = count;
     AddCounted(list, item);
 }
 
@@ -126,7 +126,7 @@ void CCampPages::DebugFill() {
             name += Dot();
             name += names.data[i];
             auto* item = static_cast<CItem*>(ItemManagerCreateItemOriginal(items->ItemManager(), nullptr, name));
-            item->unknown_48 = kMaterialCount;
+            item->count_ = kMaterialCount;
             AddCounted(items, item);
         }
     }

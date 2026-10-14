@@ -210,7 +210,7 @@ static BOOL __fastcall BuildVerify(CItemConstructor* self) {
         std::uint32_t index = table ? static_cast<std::uint32_t>(static_cast<int>(self->prototype_ - table->begin) / stride) : 0;
         std::uint32_t low = self->material_ ? Field<std::uint32_t>(self->material_, 0x0C) & 0xFFFF : 0;
         ok = result == 1 && self->item_->unknown_18 == (index << 16 | low) &&
-             self->item_->unknown_48 == static_cast<std::uint32_t>(self->count_);
+             self->item_->count_ == static_cast<std::uint32_t>(self->count_);
     }
     ei::verify::Check("CItemConstructor::Build", true, ok, "class %X id %08X", classId, self->item_->unknown_18);
     return result;

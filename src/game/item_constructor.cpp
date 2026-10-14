@@ -146,15 +146,15 @@ void CItem::InitFromRecord(const char* record) {
     // The condition and the charge pass through the FPU in the original (FLD, FST, FSTP), which
     // quiets a signalling NaN; the other fields are copied as dwords.
     const auto* head = reinterpret_cast<const ItemRecordHead*>(record);
-    FpuCopy(&unknown_24, &head->condition);
-    FpuCopy(&unknown_20, &head->condition);
+    FpuCopy(&conditionMax_, &head->condition);
+    FpuCopy(&condition_, &head->condition);
     std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
     FpuCopy(&chargeMax_, &head->charge);
     FpuCopy(&charge_, &head->charge);
-    std::memcpy(&unknown_34, &head->value38, 4);
+    std::memcpy(&weight_, &head->value38, 4);
     std::memcpy(&price_, &head->price, 4);
     unknown_3C = head->value3C;
-    unknown_40 = head->value44;
+    magicLevel_ = head->magicLevel;
 }
 EI_REPLACE_METHOD(0x006A0490, CItem::InitFromRecord);
 
@@ -294,7 +294,7 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
         CopyBits(record->value3C, prototype->value3C);
         CopyBits(record->charge, prototype->charge);
         CopyBits(record->condition, prototype->condition);
-        CopyBits(record->value44, prototype->value44);
+        CopyBits(record->magicLevel, prototype->magicLevel);
         CopyBits(record->materialUnits, prototype->materialUnits);
         return;
     }
@@ -310,7 +310,7 @@ void FillCommon(ItemRecordHead* record, const ItemRecordHead* prototype, const M
     record->charge = charge + extraCharge;
     float condition = prototype->condition, conditionFactor = material->conditionFactor;
     record->condition = condition * conditionFactor;
-    record->value44 = prototype->value44 + material->magicLevel;
+    record->magicLevel = prototype->magicLevel + material->magicLevel;
     CopyBits(record->materialUnits, prototype->materialUnits);
 }
 
@@ -321,7 +321,7 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
     case kClassWeapon: {
         auto* to = static_cast<WeaponRecord*>(record);
         auto* from = static_cast<const WeaponRecord*>(prototype);
-        CopyBits(to->value8C, from->value8C);
+        CopyBits(to->reach, from->reach);
         float damage = from->damage, factor = material->damageFactor;
         to->damage = damage * factor;
         float spread = from->damageSpread, factor2 = material->damageFactor;
@@ -395,7 +395,7 @@ BOOL CItemConstructor::Build() {
         item_->unknown_18 = (material->number & 0xFFFF) | index << 16;
     else
         item_->unknown_18 = index << 16;
-    item_->unknown_48 = static_cast<std::uint32_t>(count_);
+    item_->count_ = static_cast<std::uint32_t>(count_);
     return 1;
 }
 EI_REPLACE_METHOD(0x006A5D60, CItemConstructor::Build);
@@ -687,10 +687,10 @@ bool CItemConstructor::MagicCapacity(float* level, float* power) {
     auto* prototype = reinterpret_cast<const ItemRecordHead*>(prototype_);
     auto* material = reinterpret_cast<const MaterialRecordHead*>(material_);
     if (material) {
-        *level = static_cast<float>(x87::FromUnsigned(prototype->value44 + material->magicLevel));
+        *level = static_cast<float>(x87::FromUnsigned(prototype->magicLevel + material->magicLevel));
         *power = prototype->charge + material->magicPower;
     } else {
-        *level = static_cast<float>(x87::FromUnsigned(prototype->value44));
+        *level = static_cast<float>(x87::FromUnsigned(prototype->magicLevel));
         *power = prototype->charge;
     }
     return true;

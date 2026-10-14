@@ -41,7 +41,7 @@ void ReleaseSlots(CUnit* unit, CEngineObject** slots, int count) {
 
 CEngineObject* CUnit::EquipArmour(CEngineObject* item) {
     if (!item) return nullptr;
-    if (x87::fistp(std::bit_cast<float>(static_cast<const CItem*>(item)->unknown_20)) <= 0) return nullptr;   // broken
+    if (x87::fistp(std::bit_cast<float>(static_cast<const CItem*>(item)->condition_)) <= 0) return nullptr;   // broken
     CEngineObject* previous = armor[ArmourType(item)];
     armor[ArmourType(item)] = item;
     ++item->refCount_;

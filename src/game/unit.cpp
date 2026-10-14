@@ -216,7 +216,7 @@ CEngineObject* CUnit::GetQuickItem(std::uint32_t slot) {
         PartyUnitRecord* record = RecordsOf(player)->Find(id_);
         if (!record || slot >= record->quickItemCount) return nullptr;
         CEngineObject* item = record->quickItems[slot];
-        if (!item || static_cast<int>(static_cast<CItem*>(item)->unknown_48) < 1) return nullptr;   // its count
+        if (!item || static_cast<int>(static_cast<CItem*>(item)->count_) < 1) return nullptr;   // its count
         return item;
     }
     return slot < 4 ? quickItems[slot] : nullptr;

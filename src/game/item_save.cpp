@@ -24,12 +24,12 @@ std::uint32_t StreamSlot(CStream* stream) { return static_cast<std::uint32_t>(re
 
 void CItem::LoadItem(CStream* stream) {
     stream->Read(&unknown_18, kDword);
-    stream->Read(&unknown_20, kDword);
-    stream->Read(&unknown_24, kDword);
+    stream->Read(&condition_, kDword);
+    stream->Read(&conditionMax_, kDword);
     stream->Read(&charge_, kDword);
     stream->Read(&chargeMax_, kDword);
     stream->Read(&chargeRate_, kDword);
-    stream->Read(&unknown_34, kDword);
+    stream->Read(&weight_, kDword);
     stream->Read(&price_, kDword);
     stream->Read(&unknown_3C, kDword);
     CSpellManager* spells = static_cast<CWorld*>(ManagerContext())->SpellManager();
@@ -40,25 +40,25 @@ void CItem::LoadItem(CStream* stream) {
     spell_ = spell;
     if (spell != nullptr) ++spell->refCount_;
     if (previous != nullptr) previous->Release();
-    stream->Read(&unknown_48, kDword);
-    stream->Read(&unknown_40, kDword);
+    stream->Read(&count_, kDword);
+    stream->Read(&magicLevel_, kDword);
 }
 EI_REPLACE_METHOD(0x006A0270, CItem::LoadItem);
 
 void CItem::SaveItem(CStream* stream) {
     stream->Write(&unknown_18, kDword);
-    stream->Write(&unknown_20, kDword);
-    stream->Write(&unknown_24, kDword);
+    stream->Write(&condition_, kDword);
+    stream->Write(&conditionMax_, kDword);
     stream->Write(&charge_, kDword);
     stream->Write(&chargeMax_, kDword);
     stream->Write(&chargeRate_, kDword);
-    stream->Write(&unknown_34, kDword);
+    stream->Write(&weight_, kDword);
     stream->Write(&price_, kDword);
     stream->Write(&unknown_3C, kDword);
     std::int32_t spellId = spell_ != nullptr ? static_cast<CEngineObject*>(spell_)->id_ : -1;
     stream->Write(&spellId, kDword);
-    stream->Write(&unknown_48, kDword);
-    stream->Write(&unknown_40, kDword);
+    stream->Write(&count_, kDword);
+    stream->Write(&magicLevel_, kDword);
 }
 EI_REPLACE_METHOD(0x006A0360, CItem::SaveItem);
 
@@ -67,7 +67,7 @@ void CItemWeapon::LoadItem(CStream* stream) {
     stream->Read(&unknown_4C, kDword);
     stream->Read(&damage_, kDword);
     stream->Read(&damageSpread_, kDword);
-    stream->Read(&unknown_58, kDword);
+    stream->Read(&reach_, kDword);
 }
 EI_REPLACE_METHOD(0x006A2E60, CItemWeapon::LoadItem);
 
@@ -76,7 +76,7 @@ void CItemWeapon::SaveItem(CStream* stream) {
     stream->Write(&unknown_4C, kDword);
     stream->Write(&damage_, kDword);
     stream->Write(&damageSpread_, kDword);
-    stream->Write(&unknown_58, kDword);
+    stream->Write(&reach_, kDword);
 }
 EI_REPLACE_METHOD(0x006A2EB0, CItemWeapon::SaveItem);
 
@@ -108,13 +108,13 @@ EI_REPLACE_METHOD(0x006A3CA0, CItemQuick::SaveItem);
 
 void CItemQuest::LoadItem(CStream* stream) {
     CItem::LoadItem(stream);
-    stream->Read(&unknown_4C, kDword);
+    stream->Read(&questItemId_, kDword);
 }
 EI_REPLACE_METHOD(0x006A4570, CItemQuest::LoadItem);
 
 void CItemQuest::SaveItem(CStream* stream) {
     CItem::SaveItem(stream);
-    stream->Write(&unknown_4C, kDword);
+    stream->Write(&questItemId_, kDword);
 }
 EI_REPLACE_METHOD(0x006A4590, CItemQuest::SaveItem);
 

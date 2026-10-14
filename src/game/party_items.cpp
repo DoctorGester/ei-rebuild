@@ -75,7 +75,7 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
     target->Destroy();
     target->unknown_18 = unknown_18;
     // +0x20..+0x40 copied as dwords.
-    std::memcpy(&target->unknown_20, &unknown_20, offsetof(CItem, spell_) - offsetof(CItem, unknown_20));
+    std::memcpy(&target->condition_, &condition_, offsetof(CItem, spell_) - offsetof(CItem, condition_));
     auto* previous = static_cast<CEngineObject*>(target->spell_);
     if (spell_) {
         CSpell* spell = static_cast<CSpell*>(spell_)->Clone(spells);
@@ -85,7 +85,7 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
         target->spell_ = nullptr;
     }
     if (previous) previous->Release();
-    target->unknown_48 = 1;
+    target->count_ = 1;
     return 1;
 }
 EI_REPLACE_METHOD(0x0069FFC0, CItem::CopyTo);
@@ -120,7 +120,7 @@ EI_REPLACE_METHOD(0x006A3C50, CItemQuick::CopyTo);
 
 BOOL CItemQuest::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
-    static_cast<CItemQuest*>(target)->unknown_4C = unknown_4C;
+    static_cast<CItemQuest*>(target)->questItemId_ = questItemId_;
     return 1;
 }
 EI_REPLACE_METHOD(0x006A4540, CItemQuest::CopyTo);
@@ -154,17 +154,17 @@ EI_REPLACE_METHOD(0x0055E940, CParty::MakeCopyOf);
 
 CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     if (!item) return nullptr;
-    int count = ByteFlag(keepCount) ? static_cast<int>(item->unknown_48) : 1;
+    int count = ByteFlag(keepCount) ? static_cast<int>(item->count_) : 1;
     if (ByteFlag(merge)) {
         for (int i = 0; i < items_.size; ++i) {
             auto* existing = static_cast<CItem*>(items_.data[i]);
             if (!existing->IsSameAsSlot(item)) continue;
-            existing->unknown_48 += static_cast<std::uint32_t>(count);
+            existing->count_ += static_cast<std::uint32_t>(count);
             return existing;
         }
     }
     CItem* copy = CopyItem(item);
-    copy->unknown_48 = static_cast<std::uint32_t>(count);
+    copy->count_ = static_cast<std::uint32_t>(count);
     Append(items_, copy);
     ++copy->refCount_;
     return copy;
@@ -175,8 +175,8 @@ CItem* CParty::RemoveItem(CItem* item, int all) {
     for (int i = 0; i < items_.size; ++i) {
         if (items_.data[i] != item) continue;
         auto* entry = static_cast<CItem*>(items_.data[i]);
-        if (static_cast<int>(entry->unknown_48) > 1 && !ByteFlag(all)) {
-            --entry->unknown_48;
+        if (static_cast<int>(entry->count_) > 1 && !ByteFlag(all)) {
+            --entry->count_;
             return entry;
         }
         entry->Release();
