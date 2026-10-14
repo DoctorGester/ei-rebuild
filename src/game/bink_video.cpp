@@ -19,6 +19,7 @@
 // movies' holders (004EF7B0) have no DirectDraw surface at all: nothing decodes into them and
 // BinkDDSurfaceType is not asked (OldPathDraws, SurfaceType).
 #include "bink_video.h"
+#include "device.h"   // device::SameSurface
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -193,7 +194,7 @@ unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary) {
     RECT source{0, 0, static_cast<LONG>(header->width), static_cast<LONG>(header->height)};
     CDXSurface* holder = self->holder;
     CDXSurface* target = toPrimary ? holder->device->primary_ : holder->device->renderTarget_;
-    if (target->surface != holder->surface) {
+    if (!device::SameSurface(target, holder)) {
         if (render::Active()) render::MovieBlit(self, ToRender(self->to));
         if (OldPathDraws(holder)) Blt(target, &self->to, holder, &source);
     }
@@ -372,7 +373,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
         if (oldPath && !CopyFrameToSurface(&holder, bink, surfaceType)) break;
         RECT source{0, 0, width, height};
         CDXSurface* primary = holder->device->primary_;
-        if (primary->surface != holder->surface) {
+        if (!device::SameSurface(primary, holder)) {
             if (render::Active()) {
                 if (clearScreen) render::Fill(ToRender(screen), 0);
                 render::MovieBlit(&g_movieKey, ToRender(to));
@@ -451,7 +452,7 @@ void __fastcall ShowLoadingMovie(int progress) {
     CDXSurface* holder = movie.holder;
     RECT source{0, 0, static_cast<LONG>(bink->width), static_cast<LONG>(bink->height)};
     CDXSurface* primary = holder->device->primary_;
-    if (primary->surface != holder->surface) {
+    if (!device::SameSurface(primary, holder)) {
         const void* key = &movie;   // the loading movie in the new renderer
         if (render::Active()) {
             if (decoded) render::MovieFrame(key, frame.data(), source.right, source.bottom);

@@ -122,10 +122,13 @@ CTextureDevice* __fastcall ConstructVerify(CTextureDevice* self, void*, HWND win
                                            int stencilBits) {
     CTextureDevice* result = self->Construct(window, driver, fullScreen, width, height, bitsPerPixel, refreshRate, backBuffers,
                                              depthBits, stencilBits);
-    bool built = result == self && VtableOf(self) == reinterpret_cast<void*>(0x0073D760) && self->d3d_ && self->d3dDevice_ &&
-                 self->depth_ && self->depth2_ && !self->pipeline_ && !self->material_ && self->zEnable_ == 1 &&
-                 self->colour_ == 0xFF000000 && self->lastLoadResult_ == 0 && !self->devices_.Empty() &&
-                 !self->depthFormats_.Empty() && !self->textureFormats_.Empty() && self->formats_.Size() != 0 &&
+    // In the switch-over (device.h) no Direct3D object, device list, depth formats or depth surfaces.
+    const bool direct3D = !device::WithoutDirectDraw();
+    const bool made = direct3D ? self->d3d_ && self->depth_ && self->depth2_ && !self->devices_.Empty() && !self->depthFormats_.Empty()
+                               : !self->d3d_ && !self->depth_ && !self->depth2_ && self->devices_.Empty() && self->depthFormats_.Empty();
+    bool built = result == self && VtableOf(self) == reinterpret_cast<void*>(0x0073D760) && made && self->d3dDevice_ &&
+                 !self->pipeline_ && !self->material_ && self->zEnable_ == 1 && self->colour_ == 0xFF000000 &&
+                 self->lastLoadResult_ == 0 && !self->textureFormats_.Empty() && self->formats_.Size() != 0 &&
                  self->batch_.used.Empty() && !self->batch_.buffer && !self->batch_.indices.data && self->batch2_.used.Empty() &&
                  !self->batch2_.buffer && !self->batch2_.indices.data && self->spareBuffers_.Empty() && !self->spareBuffer_ &&
                  !self->spareArray_.data && std::memcmp(&self->deviceGuid_, &device::IidHalDevice(), sizeof(GUID)) == 0;
@@ -133,8 +136,8 @@ CTextureDevice* __fastcall ConstructVerify(CTextureDevice* self, void*, HWND win
     // The four state blocks of stage 0's operations were recorded.
     const auto* blocks = reinterpret_cast<const std::uint32_t*>(0x007AEDD0);
     for (int i = 0; i < 4; ++i) built = built && blocks[i] != 0;
-    ei::verify::Check("CTextureDevice::Construct (004E5E50)", true, built, "%d x %d, %d bits, depth %d, stencil %d", width, height,
-                      bitsPerPixel, depthBits, stencilBits);
+    ei::verify::Check("CTextureDevice::Construct (004E5E50)", true, built, "%d x %d, %d bits, depth %d, stencil %d%s", width,
+                      height, bitsPerPixel, depthBits, stencilBits, direct3D ? "" : " (without Direct3D)");
     return result;
 }
 

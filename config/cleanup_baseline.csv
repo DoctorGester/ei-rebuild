@@ -272,10 +272,7 @@ src/game/world_units.cpp,0,0,4,2,1,0,0,0,0,0,3
 src/game/world_update.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/world_weather.cpp,0,0,0,2,3,0,0,0,0,0,0
 src/game/world_zone.cpp,0,0,0,0,6,0,0,0,0,0,0
-src/render/render.cpp,0,0,0,0,0,0,0,1,0,0,0
-src/render/render_blit.cpp,0,0,0,0,0,0,0,1,0,0,0
 src/render/render_game.h,0,0,0,0,4,0,0,0,0,0,0
 src/render/render_mesh.cpp,0,0,0,0,0,0,0,0,0,0,4
 src/render/render_state.cpp,0,0,0,0,4,0,0,0,0,0,0
 src/render/render_terrain.cpp,0,0,0,0,0,0,0,0,0,0,1
-src/render/render_textures.cpp,0,0,0,0,0,0,0,2,0,0,0

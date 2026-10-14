@@ -12,8 +12,9 @@
 // 004EF610. Returns the DirectDraw result (0 when there is nothing to present).
 long __fastcall DevicePresent(CTextureDevice* device) {
     // With "present" the new renderer copies its frame into the render target here, which the old
-    // present then shows.
+    // present then shows; without DirectDraw (device.h) it has shown the frame itself.
     render::Present();
+    if (device::WithoutDirectDraw()) return 0;
     IDirectDrawSurface7* primary = device::Surface(device->primary_);
     CDXSurface* target = device->renderTarget_;
     IDirectDrawSurface7* targetSurface = device::Surface(target);

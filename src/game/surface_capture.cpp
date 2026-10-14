@@ -10,6 +10,8 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 
+#include "../hook/log.h"
+
 #include <ddraw.h>
 
 #include <cstddef>
@@ -53,6 +55,14 @@ int BytesPerPixel(int bits) {
 // A failed DirectDraw call is reported and the capture goes on, as the original's.
 CDib* __fastcall CaptureSurfaceRect(CDXSurface* self, const RECT* rect) {
     auto* surface = static_cast<IDirectDrawSurface7*>(self->surface);
+    // A holder without a surface (the switch-over's render target, device.h): no bitmap (the
+    // screenshot key then saves nothing; reading the new renderer's frame instead is ticket R9c's).
+    if (!surface) {
+        static bool logged = false;
+        if (!logged) ei::Log("capture: the surface has no DirectDraw surface (the switch-over): no screenshot");
+        logged = true;
+        return nullptr;
+    }
     DDPIXELFORMAT format;
     std::memset(&format, 0, sizeof(format));
     format.dwSize = sizeof(format);
