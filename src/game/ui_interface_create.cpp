@@ -163,11 +163,11 @@ void CInterface3D::Create(CTextureDevice* device) {
     mouseY_ = 0;
     auto* fade = static_cast<CScreenFade*>(gamecrt::operator_new(sizeof(CScreenFade)));
     fade_ = fade ? fade->Construct() : nullptr;
-    unknown_89[0] = 0;
-    unknown_89[1] = 0;
-    unknown_89[2] = 0;
-    unknown_8C = 0;
-    unknown_90 = 0;
+    hudPanelsIn_[0] = 0;
+    hudPanelsIn_[1] = 0;
+    hudPanelsIn_[2] = 0;
+    hudBodyPart_ = 0;
+    hudTopPage_ = 0;
     fastGame_ = 0;
     ctrlDown_ = false;
     shiftDown_ = 0;

@@ -85,7 +85,7 @@ CUiRegion* AddRect(CUiWindow* window, const RECT& r) {
 
 void ShowFrom(CUiWindow* window, int first, std::uint32_t shown) {
     for (int i = first; i < window->sceneObjects_.size; ++i)
-        std::memcpy(reinterpret_cast<std::uint8_t*>(window->sceneObjects_.data[i]) + 0x220, &shown, 4);
+        window->SceneMesh(i)->visible_ = static_cast<int>(shown);
 }
 
 constexpr std::uint32_t kBright = 0xA7D7E4;
@@ -250,12 +250,12 @@ void CHeroStatsPanel::DrawStats() {
             void* inner = Read<void*>(unit, 0x240);
             using InfoFn = void(__thiscall*)(void*, WeaponInfo*);
             reinterpret_cast<InfoFn>((*static_cast<void***>(inner))[50])(inner, &info);
-            line.Format(GameText(0x00792F80), texts_[0]);   // "     %s"
+            line.Format(GameText(0x00792F80), static_cast<const char*>(texts_[0]));   // "     %s"
             draw->Text(line, &rect, 0, kBright, 0, 1);
             line.Format(GameText(0x0078EEEC), info.value18);   // "%d"
             draw->Text(line, &rect, 0, kBright, 2, 1);
             Down(&rect);
-            line.Format(GameText(0x00792F80), texts_[1]);
+            line.Format(GameText(0x00792F80), static_cast<const char*>(texts_[1]));
             draw->Text(line, &rect, 0, kBright, 0, 1);
             line.Format(GameText(0x0078EEEC), info.value1C);
             draw->Text(line, &rect, 0, kBright, 2, 1);
@@ -264,7 +264,7 @@ void CHeroStatsPanel::DrawStats() {
                 line.Format(GameText(0x00792EFC), info.damageKind);   // "damage_%d"
                 texts->GetString(line, &text);
             }
-            line.Format(GameText(0x00793D94), texts_[2], static_cast<const char*>(text));   // "     %s %s"
+            line.Format(GameText(0x00793D94), static_cast<const char*>(texts_[2]), static_cast<const char*>(text));   // "     %s %s"
             draw->Text(line, &rect, 0, kBright, 0, 1);
             int high = GameFtol(D(info.damageMax));
             int low = GameFtol(D(info.damageMin));
@@ -332,15 +332,7 @@ void SpriteBuild::Framed(float a0, float a1, float a2, float a3, float a4, float
 void SpriteBuild::Cells(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9, int a10, int a11) { UiMeshCellsOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11); }
 SpriteBuild* Builder(CUiMesh* sprite) { return reinterpret_cast<SpriteBuild*>(sprite); }
 
-void SetSpriteField(CUiMesh* sprite, int offset, std::uint32_t value) {
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + offset, &value, 4);
-}
-void SetPlainFlag(CUiMesh* sprite) {
-    std::uint32_t flags;
-    std::memcpy(&flags, reinterpret_cast<std::uint8_t*>(sprite) + 0x08, 4);
-    flags |= 0x100;
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x08, &flags, 4);
-}
+void SetPlainFlag(CUiMesh* sprite) { sprite->flags_ |= 0x100; }
 
 // The 4 x 4 cell grid over 200..600 x 100..500 shared by the trade and repair grids (006270A0,
 // 006279E0 inline it): a picture (textures 0-3 by quarter) and a frame per cell, a region per
@@ -361,11 +353,11 @@ void BuildCellGrid(CUiWindow* window) {
             CUiMesh* picture = window->AddSprite(0);
             picture->SetRectangle(pictureDepth, 100.0f, static_cast<float>(left), static_cast<float>(top),
                                   static_cast<float>(right), static_cast<float>(bottom), u, v, u + 100, v + 100);
-            SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(texture));
+            picture->texture_ = texture;
             CUiMesh* frame = window->AddSprite(0);
             Builder(frame)->Framed(depth, 100.0f, static_cast<float>(left), static_cast<float>(top),
                                    static_cast<float>(right), static_cast<float>(bottom), 15.0f, u, v, u + 100, v + 100);
-            SetSpriteField(frame, 0x280, reinterpret_cast<std::uint32_t>(texture));
+            frame->texture_ = texture;
             AddRect(window, RECT{left, top, right, bottom});
             u = 0x9C - u;
         }
@@ -389,9 +381,9 @@ void CHeroEquipPanel::Build(bool body) {
         CUiMesh* frame = AddSprite(0);
         Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
         SetPlainFlag(frame);
-        SetSpriteField(frame, 0xD4, 0xFF8B8B37);
-        SetSpriteField(frame, 0x280, 0);
-        SetSpriteField(frame, 0x220, 0);
+        frame->plainColour_ = 0xFF8B8B37;
+        frame->texture_ = nullptr;
+        frame->visible_ = 0;
     }
     // The slots' frames: four on the left half, four on the right, each half with its strip.
     float cell = GameFloat(0x0073BAB0);   // 100
@@ -417,7 +409,7 @@ void CHeroEquipPanel::Build(bool body) {
             CUiMesh* picture = AddSprite(0);
             picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
                                   0x1C, 0xE4, 0xE4);
-            SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(objects_.data[i + 1]));
+            picture->texture_ = objects_.data[i + 1];
         }
     }
     selected_ = -1;
@@ -449,7 +441,7 @@ void CHeroStatsPanel::Build() {
     // The texts the panel draws (CStringArray at +0x15C).
     CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
     mfc::CString text;
-    auto* array = reinterpret_cast<console::CStringArray*>(reinterpret_cast<std::uint8_t*>(this) + 0x15C);
+    mfc::CStringArray* array = &texts_;
     for (std::uintptr_t key : {0x00793D80u, 0x00793D74u, 0x00793D68u, 0x00793D5Cu, 0x00793D50u, 0x00793D40u, 0x00793D30u,
                                0x00793D20u}) {   // infounit_3 4 9 14 17, lmp_points_left, lmp_pers_tall, magic_skills
         texts->GetString(GameText(key), &text);
@@ -547,10 +539,10 @@ void CHeroQuickStrip::Build(bool top) {
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, y_, x + 100, y_ + 100});
     CUiMesh* frame = AddSprite(0);
     Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
-    SetSpriteField(frame, 0xD4, 0xFF8B8B37);
+    frame->plainColour_ = 0xFF8B8B37;
     SetPlainFlag(frame);
-    SetSpriteField(frame, 0x280, 0);
-    SetSpriteField(frame, 0x220, 0);
+    frame->texture_ = nullptr;
+    frame->visible_ = 0;
     Builder(AddSprite(0))->Cells(16.0f, 100.0f, 0.0f, static_cast<float>(y_), 800.0f, static_cast<float>(y_ + 100), 0xE,
                                  0x8E, 0x72, 0xF2, 8, 1);
     selected_ = -1;
@@ -575,14 +567,14 @@ void AddMakerPictures(CConstructorPage* page) {
         CUiMesh* picture = page->AddSprite(0);
         picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
                               0xE4, 0xE4);
-        SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(page->objects_.data[i]));
+        picture->texture_ = page->objects_.data[i];
     }
     CUiMesh* frame = page->AddSprite(0);
     Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
-    SetSpriteField(frame, 0xD4, 0x96FFFFFF);
+    frame->plainColour_ = 0x96FFFFFF;
     SetPlainFlag(frame);
-    SetSpriteField(frame, 0x280, 0);
-    SetSpriteField(frame, 0x220, 0);
+    frame->texture_ = nullptr;
+    frame->visible_ = 0;
 }
 } // namespace
 
@@ -605,7 +597,7 @@ void CConstructorPage::BuildSpellMaker(void* slots) {
     pulse_ = 0.0f;
     // The cost line's texts: "infoitem_35", "infoitem_36" (CStringArray at +0x158).
     CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
-    auto* array = reinterpret_cast<console::CStringArray*>(reinterpret_cast<std::uint8_t*>(this) + 0x158);
+    mfc::CStringArray* array = &static_cast<CSpellMakerPage*>(this)->texts_;
     mfc::CString text;
     for (int key : {0x23, 0x24}) {
         text.Format(GameText(0x00792ED8), key);   // "infoitem_%d"

@@ -752,14 +752,14 @@ public:
     TradeRecords records_;           // +0x190 one per party member
     int heldRegion_;                 // +0x19C the school / science row held after a purchase (-1 after Build)
     float holdTime_;                 // +0x1A0 from -0.5 s (0 after Build)
-    void* textsVtable_;              // +0x1A4 CStringArray: the titles
-    char** texts_;                   // +0x1A8
+    mfc::CStringArray texts_;        // +0x1A4 the titles
 };
 static_assert(offsetof(CTradePanel, owner_) == 0x14C);
 static_assert(offsetof(CTradePanel, learnable_) == 0x15C);
 static_assert(offsetof(CTradePanel, science_) == 0x180);
 static_assert(offsetof(CTradePanel, experience_) == 0x18C);
-static_assert(offsetof(CTradePanel, texts_) == 0x1A8);
+static_assert(offsetof(CTradePanel, texts_) == 0x1A4);
+static_assert(sizeof(CTradePanel) == 0x1B8);
 static_assert(offsetof(CTradePanel, records_) == 0x190);
 static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 
@@ -1081,16 +1081,14 @@ public:
     int heroIndex_;                  // +0x150 passed to the owner's slot 50
     char* title_;                    // +0x154 CString
     int page_;                       // +0x158
-    void* textsVtable_;              // +0x15C CStringArray
-    char** texts_;                   // +0x160 its data: weapon labels, the points texts, ...
-    std::uint8_t unknown_164[0x170 - 0x164];
+    mfc::CStringArray texts_;        // +0x15C weapon labels, the points texts, ...
     int points_;                     // +0x170 skill points left (page 10); SetHero puts the height * 100 here
     int heldRegion_;                 // +0x174 the -/+ button held on page 10 (-1 none)
     float holdTime_;                 // +0x178 seconds it has been held (from -0.5)
 };
 static_assert(offsetof(CHeroStatsPanel, owner_) == 0x14C);
 static_assert(offsetof(CHeroStatsPanel, page_) == 0x158);
-static_assert(offsetof(CHeroStatsPanel, texts_) == 0x160);
+static_assert(offsetof(CHeroStatsPanel, texts_) == 0x15C);
 static_assert(offsetof(CHeroStatsPanel, points_) == 0x170);
 static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 
@@ -1246,10 +1244,7 @@ public:
     // memory freed when bit 0 of `flags` is set; returns this.
     CSpellMakerPage* SpellMakerDelete(unsigned flags);
 
-    void* textsVtable_;              // +0x158
-    const char** texts_;             // +0x15C CString data
-    int textCount_;                  // +0x160
-    std::uint8_t unknown_164[0x16C - 0x164];
+    mfc::CStringArray texts_;        // +0x158
 };
-static_assert(offsetof(CSpellMakerPage, texts_) == 0x15C);
+static_assert(offsetof(CSpellMakerPage, texts_) == 0x158);
 static_assert(sizeof(CSpellMakerPage) == 0x16C);

@@ -33,14 +33,13 @@ void ReadInto(void* stream, mfc::CString* field) {
 } // namespace
 
 void CInterface3D::LoadState(void* stream) {
-    auto* self = reinterpret_cast<std::uint8_t*>(this);
-    Read(stream, self + 0x89, 1);
-    Read(stream, self + 0x8A, 1);
-    Read(stream, self + 0x8B, 1);
-    Read(stream, self + 0x8C, 4);
-    Read(stream, self + 0x90, 4);
+    Read(stream, &hudPanelsIn_[0], 1);
+    Read(stream, &hudPanelsIn_[1], 1);
+    Read(stream, &hudPanelsIn_[2], 1);
+    Read(stream, &hudBodyPart_, 4);
+    Read(stream, &hudTopPage_, 4);
     if (Version(stream) < 0x47) return;
-    Read(stream, self + 0x94, 4);
+    Read(stream, &fastGame_, 4);
     if (Version(stream) < 0x56) return;
     // An obsolete list: each name and value read and dropped (the last name is kept until the
     // end, as the original's local CString).
@@ -52,10 +51,10 @@ void CInterface3D::LoadState(void* stream) {
         int value;
         Read(stream, &value, 4);
     }
-    ReadInto(stream, reinterpret_cast<mfc::CString*>(self + 0xA4));
+    ReadInto(stream, &messageText_);
     if (Version(stream) >= 0x5D) {
-        Read(stream, self + 0xA8, 4);
-        if (Version(stream) >= 0x5F) ReadInto(stream, reinterpret_cast<mfc::CString*>(self + 0xAC));
+        Read(stream, &messageFlag_, 4);
+        if (Version(stream) >= 0x5F) ReadInto(stream, &savedText_);
     }
 }
 
@@ -109,10 +108,10 @@ EI_REPLACE(0x005F8420, InterfaceLoadState);
 // --- 005F85C0: the saved state written -----------------------------------------------------------
 
 void CInterface3D::SaveState(CStream* stream) {
-    for (std::uint8_t flag : unknown_89) stream->Write(&flag, 1);
-    int value = unknown_8C;
+    for (std::uint8_t flag : hudPanelsIn_) stream->Write(&flag, 1);
+    int value = hudBodyPart_;
     stream->Write(&value, 4);
-    value = unknown_90;
+    value = hudTopPage_;
     stream->Write(&value, 4);
     value = fastGame_;
     stream->Write(&value, 4);

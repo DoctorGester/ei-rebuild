@@ -135,8 +135,8 @@ UnitPanelState CaptureUnitPanel(CHudUnitPanel* w) {
     s.offset = w->offset_;
     s.slide = w->slide_;
     s.hover = w->hoverUnit_;
-    s.shown = w->interface_->unknown_89[0];
-    s.part = w->interface_->unknown_8C;
+    s.shown = w->interface_->hudPanelsIn_[0];
+    s.part = w->interface_->hudBodyPart_;
     return s;
 }
 
@@ -146,8 +146,8 @@ void RestoreUnitPanel(CHudUnitPanel* w, const UnitPanelState& s) {
     w->offset_ = s.offset;
     w->slide_ = s.slide;
     w->hoverUnit_ = s.hover;
-    w->interface_->unknown_89[0] = s.shown;
-    w->interface_->unknown_8C = s.part;
+    w->interface_->hudPanelsIn_[0] = s.shown;
+    w->interface_->hudBodyPart_ = s.part;
 }
 
 // 00647FB0: SUB ESP,0x1C (3), PUSH ESI (1), MOV ESI,ECX (2).
@@ -215,7 +215,7 @@ void __fastcall MapUpdateVerify(CHudMap* self) {
     } else {
         ok = self->sliding_ == 0 && self->offset_ == offset && self->slide_ == slide;
     }
-    ok = ok && self->interface_->unknown_89[2] == (self->slideDirection_ > 0.0f ? 1 : 0);
+    ok = ok && self->interface_->hudPanelsIn_[2] == (self->slideDirection_ > 0.0f ? 1 : 0);
     ei::verify::Check("CHudMap::Update", true, ok, "sliding %d -> %d, slide %g -> %g, offset %d -> %d, direction %g",
                       sliding, self->sliding_, static_cast<double>(slide), static_cast<double>(self->slide_), offset,
                       self->offset_, static_cast<double>(self->slideDirection_));

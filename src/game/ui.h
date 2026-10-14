@@ -320,10 +320,12 @@ public:
     std::uint8_t unknown_82[0x84 - 0x82];
     stlp::list<mfc::CString> messages_;   // +0x84 queued message texts (ShowMessage takes the first)
     bool disconnected_;              // +0x88 a network client lost the server (the frame shows a message)
-    // +0x89..+0x97: the state saved with a game (LoadState), cleared by ResetSavedState.
-    std::uint8_t unknown_89[3];
-    int unknown_8C;
-    int unknown_90;
+    // +0x89..+0x97: the state saved with a game (LoadState), cleared by ResetSavedState. The HUD
+    // panels keep theirs here every frame: in (or coming in) for the unit panel, the top panel and
+    // the map, the unit panel's body part and the top panel's page.
+    std::uint8_t hudPanelsIn_[3];    // +0x89 [0] the unit panel, [1] the top panel, [2] the map
+    int hudBodyPart_;                // +0x8C CHudUnitPanel::bodyPart_
+    int hudTopPage_;                 // +0x90 CHudTopPanel::page_
     int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
     // +0x98 help topics seen: topic name -> times (or the page the help window was closed on; see ui_help_window.cpp) (config\tutorial.ini, "name count" lines; read
     // by Create 005F4990, written by Shutdown, counted by OpenHelp 005F86F0).
@@ -357,6 +359,8 @@ public:
 };
 static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
 static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
+static_assert(offsetof(CInterface3D, hudPanelsIn_) == 0x89 && offsetof(CInterface3D, hudTopPage_) == 0x90);
+static_assert(offsetof(CInterface3D, fastGame_) == 0x94 && offsetof(CInterface3D, messages_) == 0x84);
 static_assert(offsetof(CInterface3D, stackBegin_) == 0x34);
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
@@ -367,7 +371,7 @@ static_assert(offsetof(CInterface3D, drawing_) == 0x30);
 static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
 static_assert(offsetof(CInterface3D, rightDown_) == 0x80 && offsetof(CInterface3D, pollTop_) == 0x81 &&
               offsetof(CInterface3D, disconnected_) == 0x88);
-static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
+static_assert(offsetof(CInterface3D, hudBodyPart_) == 0x8C);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
 static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
 static_assert(offsetof(CInterface3D, statusSurface_) == 0x64);
@@ -1818,7 +1822,7 @@ public:
     // where up to six pictures are kept: effectIcons_). Scene object 9 shows when there are more.
     void ShowEffects(CUnit* unit);
     // 00635D00 (ui_hud_destroy.cpp; slot 0 00635CE0 calls it). Destructor body: the part labels,
-    // textsVtable_'s array, the two strings (+0x168 first), then the window base's (005FE930).
+    // texts_, the two strings (+0x168 first), then the window base's (005FE930).
     void DestroyBody();
     // 00635CE0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.

@@ -164,7 +164,7 @@ void CHudMap::UpdateVanilla() {
         else
             PlaceSling(sceneObjects_.data[5], -SlingTurn(), 850.0f);
     }
-    interface_->unknown_89[2] = slideDirection_ > 0.0f ? 1 : 0;
+    interface_->hudPanelsIn_[2] = slideDirection_ > 0.0f ? 1 : 0;
 
     // The "camera north" button (scene object 11) is lit while its time runs.
     if (unknown_1B0 > 0.0f) unknown_1B0 = RoundToFloat(unknown_1B0 - WindowFrameTimeOriginal(this));
@@ -215,8 +215,8 @@ void CHudUnitPanel::UpdateVanilla() {
             PlaceSling(sceneObjects_.data[2], -SlingTurn(), 87.0f);
     }
     if (hoverUnit_ && ObjectSlots(hoverUnit_)->IsDead() != 0) hoverUnit_ = nullptr;
-    interface_->unknown_89[0] = slideDirection_ > 0.0f ? 1 : 0;
-    interface_->unknown_8C = bodyPart_;
+    interface_->hudPanelsIn_[0] = slideDirection_ > 0.0f ? 1 : 0;
+    interface_->hudBodyPart_ = bodyPart_;
 }
 EI_REPLACE_METHOD(0x00647FB0, CHudUnitPanel::UpdateVanilla);
 

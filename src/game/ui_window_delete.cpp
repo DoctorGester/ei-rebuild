@@ -117,13 +117,13 @@ void CUiItemStrip::DestroyForwarding() {
 EI_REPLACE_METHOD(0x0060E2B0, CUiItemStrip::DestroyForwarding);
 
 void CSpellMakerPage::DestroyBody() {
-    StringArrayDestruct(&textsVtable_);
+    StringArrayDestruct(&texts_);
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x0060E600, CSpellMakerPage::DestroyBody);
 
 void CHeroStatsPanel::DestroyBody() {
-    StringArrayDestruct(&textsVtable_);
+    StringArrayDestruct(&texts_);
     CStringDestroy(&title_);
     DestroyBase();
 }

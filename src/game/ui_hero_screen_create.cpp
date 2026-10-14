@@ -252,7 +252,7 @@ void CMpHeroScreen::Create() {
     auto* stats = reinterpret_cast<CHeroStatsPanel*>(NewPanel(sizeof(CHeroStatsPanel), window.interface_, &window, ItemPanelVtables()));
     if (stats) {
         new (&stats->title_) mfc::CString;
-        reinterpret_cast<mfc::CStringArray*>(&stats->textsVtable_)->Construct();
+        stats->texts_.Construct();
         SetVtables(stats, StatsPanelVtables());
     }
     statsPanel_ = stats;
@@ -281,7 +281,7 @@ void CMpHeroScreen::Create() {
         trade->schools_ = {};
         trade->science_ = {};
         trade->records_ = {};
-        reinterpret_cast<mfc::CStringArray*>(&trade->textsVtable_)->Construct();
+        trade->texts_.Construct();
         SetVtables(trade, TradePanelVtables());
     }
     tradePanel_ = trade;

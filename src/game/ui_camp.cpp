@@ -890,7 +890,7 @@ void DestroyRows(TradeRows& rows) {
 
 void __fastcall TradePanelDestroy(CUiWindow* window) {
     auto* self = static_cast<CTradePanel*>(window);
-    StringArrayDestruct(&self->textsVtable_);
+    StringArrayDestruct(&self->texts_);
     FreeBlock3C(self->records_.begin, static_cast<int>(self->records_.capacity - self->records_.begin));
     DestroyRows(self->science_);
     DestroyRows(self->schools_);

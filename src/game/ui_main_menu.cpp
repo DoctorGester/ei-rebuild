@@ -77,11 +77,11 @@ double RandomScaled(double scale) { return x87::FromUnsigned(Random().Next()) * 
 // --- 005F51F0: the interface's saved state cleared ----------------------------------------------
 
 void CInterface3D::ResetSavedState() {
-    unknown_89[0] = 0;
-    unknown_89[1] = 0;
-    unknown_89[2] = 0;
-    unknown_8C = 0;
-    unknown_90 = 0;
+    hudPanelsIn_[0] = 0;
+    hudPanelsIn_[1] = 0;
+    hudPanelsIn_[2] = 0;
+    hudBodyPart_ = 0;
+    hudTopPage_ = 0;
     fastGame_ = 0;
 }
 EI_REPLACE_METHOD(0x005F51F0, CInterface3D::ResetSavedState);
