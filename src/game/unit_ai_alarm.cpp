@@ -46,7 +46,7 @@ Mode* NewInline() {
     auto* mode = static_cast<Mode*>(gamecrt::operator_new(sizeof(Mode)));
     if (mode) {
         mode->refs = 0;
-        mode->unknown_06 = 0;
+        mode->refsHigh = 0;
     }
     return mode;
 }
@@ -88,8 +88,8 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
             double dy = static_cast<double>(waypoint.position.y) - from.y;
             if (!ZeroOrNaN(dx) || !ZeroOrNaN(dy)) angle = Round(std::atan2(dy, dx));
             AILook look;
-            look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.unknown_10), waypoint.wait,
-                                       waypoint.unknown_12 & 1);
+            look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.lookWait), waypoint.wait,
+                                       waypoint.stopFirst & 1);
             last->looks.SetAtGrow(last->looks.size, look);
         }
     }
@@ -184,8 +184,8 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
         }
     }
 
-    unknown_36 = static_cast<std::int8_t>(slot);
-    unknown_37 = static_cast<std::uint8_t>((record->flags >> 3) & 1);
+    alarmSlot = static_cast<std::int8_t>(slot);
+    alwaysUpdated = static_cast<std::uint8_t>((record->flags >> 3) & 1);
     alarm = static_cast<std::int8_t>(record->alarmKind);
     alerted = 0;
     int delay = static_cast<int>(record->alarmDelay);
@@ -193,7 +193,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     reinterpret_cast<AIRef*>(&target)->Assign(nullptr);
     action = kActionNone;
     attention.Build(owner->unit);
-    if (unknown_37) WorldServer()->AddToUpdateMap(owner->unit);
+    if (alwaysUpdated) WorldServer()->AddToUpdateMap(owner->unit);
 }
 EI_REPLACE_METHOD(0x005D6630, AIBrain::ApplyBehaviour);
 
@@ -214,14 +214,14 @@ void AIBrain::HearAlarm(int slot) {
     constexpr int kAlarmHeard = 7;   // the remark level ("to Alarm!")
     if (slot < 0 || slot >= alarmRecords.size) return;
     const AIAlarmRecord* record = &alarmRecords.data[slot];
-    if (record->unknown_38 != 0 || slot == 0) ApplyBehaviour(record, slot);
+    if (record->enabled != 0 || slot == 0) ApplyBehaviour(record, slot);
     owner->Say(kAlarmHeard);
 }
 EI_REPLACE_METHOD(0x005D5940, AIBrain::HearAlarm);
 
 void AIBrain::ResetBehaviour() {
     ResetMemory();
-    int slot = unknown_36;
+    int slot = alarmSlot;
     ApplyBehaviour(&alarmRecords.data[slot], slot);
 }
 EI_REPLACE_METHOD(0x005D7C30, AIBrain::ResetBehaviour);

@@ -139,7 +139,7 @@ void CompareLoad(const char* name, LoadFn original, void (CFigureMesh::*ours)(ch
     const char* what = nullptr;
     if (theirs != *cursor) what = "cursor";
     else if (copy->flags_ != self->flags_) what = "flags";
-    else if (copy->unknown_158 != self->unknown_158 || copy->meshType_ != self->meshType_) what = "header words";
+    else if (copy->materialValue_ != self->materialValue_ || copy->meshType_ != self->meshType_) what = "header words";
     else if (std::memcmp(scratch.bytes + 0x160, reinterpret_cast<unsigned char*>(self) + 0x160, 0x1B4 - 0x160) != 0) what = "bounds";
     else if (!SameArray(copy->vertices_, self->vertices_, hadNone)) what = "vertices";
     else if (!SameArray(copy->normals_, self->normals_, hadNone)) what = "records";

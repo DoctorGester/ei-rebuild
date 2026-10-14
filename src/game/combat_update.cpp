@@ -1,6 +1,6 @@
 // Combat, sixth part: the controller's update (CUnitServer slot 6, called once per world update for
 // every creature on the server) and the animation queue and order states it drives. See combat.h,
-// combat_plan.h and docs/notes/combat.md ("Fourth round").
+// combat_plan.h and docs/notes/combat.md ("Update").
 //
 // The controller's animation queue is the AnimationSteps at +0x24 (steps +0x28, count +0x2C) with
 // the game time its first step started at +0x38; a hit reaction saves it to +0x148 (its time to
@@ -78,7 +78,7 @@ inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetContro
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
 __declspec(naked) bool __fastcall VitalsRegenerate(void*, void*, UnitStats*, CUnit*, int /*inCombat*/) EI_ORIGINAL(0x00523740)
-// The AI: 005C9770 the events' presence of a unit at a point (world + 0x2838; returns its record),
+// The AI: 005C9770 AIViewer::StepNoise (world + 0x2838; the step noise, returns 0; unit_ai_hearing),
 // 005CB850 the perception memory's update (controller + 0xA50), 005AEA80 the alarm step
 // (ai_alarm.cpp, controller + 0xB10), 005AEA40 the alarm's reset, 005D53B0 AIBrain::Think and
 // 005D4E80 its reset on death (unit_ai.cpp, controller + 0x980).
@@ -156,10 +156,10 @@ void SwitchWeaponIfWanted(CUnit* unit) {
 void SetStandingFlag(CUnitServer* self, int standing) {
     void* world = ManagerContextOf(self);
     CUnit* unit = self->unit;
-    if (static_cast<int>(unit->unknown_278) == standing) return;
+    if (static_cast<int>(unit->obstacle) == standing) return;
     CSectorMap* sectors = static_cast<CWorldServer*>(world)->Sectors();
     SectorMapRemove(sectors, nullptr, unit);
-    self->unit->unknown_278 = static_cast<std::uint32_t>(standing);
+    self->unit->obstacle = static_cast<std::uint32_t>(standing);
     SectorMapAdd(sectors, nullptr, self->unit);
     UnitMarkChanged(self->unit, nullptr, 7);
 }
@@ -170,8 +170,8 @@ void EmptyAction(UnitAction* order) {
     if (order->target) order->target->Release();
     order->target = nullptr;
     order->flag18 = 0;
-    order->unknown_1C = 0;
-    order->unknown_20 = 0;
+    order->param = 0;
+    order->modifier = 0;
 }
 
 // An animation list on the stack (00557B60 with the derived vtable; 00557E70 at the end).
@@ -236,9 +236,9 @@ int CUnitServer::UpdateServer() {
             UnitMarkChanged(unit, nullptr, 0);
             UnitMarkChanged(unit, nullptr, 4);
         }
-        // The AI events learn where the unit is every (speedClass + 1) updates.
+        // Every (speedClass + 1) updates the unit's step noise (005C9770 returns 0: no record).
         if ((static_cast<std::uint32_t>(WorldServer()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
-            AIEventPresence*& presence = unknown_918;
+            AIEventPresence*& presence = aiPresence;
             if (presence) {
                 presence->x = unit->position.x;
                 presence->y = unit->position.y;
@@ -250,7 +250,7 @@ int CUnitServer::UpdateServer() {
             // A party unit: its perception memory, and now and then a bored remark.
             MemoryUpdate(Brain()->memory, nullptr, this, unit->levels4C8);
             UnitMarkChanged(unit, nullptr, 0xC);
-            int& bored = unknown_938;
+            int& bored = boredTicks;
             ++bored;
             if (bored > kBoredTicks && IsaacRandom::Global().Next() % kBoredChance == 0) {
                 char* player = unit->player;
@@ -283,14 +283,14 @@ int CUnitServer::UpdateServer() {
     // over, the death is reported and the orders are dropped.
     void* world = ManagerContextOf(this);
     if (self->position.z > 0.0f) {
-        float& sinking = unknown_8F4;
+        float& sinking = sinkSpeed;
         sinking += SinkAcceleration();
         self->position.z = self->position.z - sinking;
         float z = unit->position.z;
         unit->position.z = !(z <= 0.0f) ? z : 0.0f;   // FCOMP 0, z: z kept above 0 and when NaN
         UnitMarkChanged(unit, nullptr, 2);
     }
-    std::uint8_t& reported = unknown_18D;
+    std::uint8_t& reported = deathReported;
     if (reported == 0 && Queue(this).count == 0) {
         reported = 1;
         WorldUnitDied(world, nullptr, unit);
@@ -313,18 +313,18 @@ EI_REPLACE_METHOD(0x00552300, CUnitServer::UpdateServer);
 // --- The state of the unit's animation --------------------------------------------------------
 
 void CUnitServer::UpdateState() {
-    unknown_021 = 0;
-    unknown_020 = 0;
+    animationHeld = 0;
+    frozen = 0;
     if (state == kStateActing && !CtlActionInReach(this)) TickOrderDone(this, nullptr, 0);
     if (unit->flags_ & kFlagFrozen) {
-        unknown_020 = 1;
+        frozen = 1;
         hitDirection = 0xFFFFFFFFu;
         return;
     }
     if (keepHitDirection != 0) {
         // A hit reaction plays: when it is over, the saved queue comes back.
         if (Queue(this).count != 0) {
-            unknown_021 = 1;
+            animationHeld = 1;
             hitDirection = 0xFFFFFFFFu;
             return;
         }
@@ -379,7 +379,7 @@ EI_REPLACE_METHOD(0x005499F0, CUnitServer::UpdateState);
 // --- The animation queue ---------------------------------------------------------------------
 
 void CUnitServer::AdvanceAnimation() {
-    if (unknown_020 != 0) {
+    if (frozen != 0) {
         // Frozen: everything waits one more update.
         UnitSet260(unit, nullptr, 1);
         UnitSet25C(unit, nullptr, 1);
@@ -391,7 +391,7 @@ void CUnitServer::AdvanceAnimation() {
         ++unit->animationStart;
         return;
     }
-    bool held = unknown_021 != 0;
+    bool held = animationHeld != 0;
     if (held) {
         PathShiftTime(Motion(this), nullptr, 1);
         ++SavedQueueTime(this);
@@ -405,14 +405,14 @@ void CUnitServer::AdvanceAnimation() {
             return;
         }
         const AnimationStep& head = queue.steps[0];
-        if (head.animation != 0xFF || head.unknown_01 != 0xFF)
-            UnitSetAnimation(unit, nullptr, head.animation, head.unknown_01, QueueTime(this), head.unknown_02);
+        if (head.animation != 0xFF || head.variant != 0xFF)
+            UnitSetAnimation(unit, nullptr, head.animation, head.variant, QueueTime(this), head.flags);
     }
     if (queue.count == 0) {
         UnitSet25C(unit, nullptr, 0);
         return;
     }
-    int kind = queue.steps[0].unknown_08;
+    int kind = queue.steps[0].kind;
     if (kind == 1) {
         ++QueueTime(this);
         if (queue.count != 0) --queue.steps[0].duration;
@@ -431,12 +431,12 @@ bool CUnitServer::PopFinishedSteps() {
         int end = QueueTime(this) + duration;
         if (end > now) break;
         popped = true;
-        if (queue.count > 1 && steps[1].animation == 0xFF && steps[1].unknown_01 == 0xFF) {
+        if (queue.count > 1 && steps[1].animation == 0xFF && steps[1].variant == 0xFF) {
             // The pause after it goes on with this step's animation, and lasts as long more.
             steps[1].animation = steps[0].animation;
-            queue.steps[1].unknown_01 = queue.steps[0].unknown_01;
+            queue.steps[1].variant = queue.steps[0].variant;
             queue.steps[1].duration += steps[0].duration;
-            if (queue.steps[1].unknown_08 == 1) {
+            if (queue.steps[1].kind == 1) {
                 int late = now - QueueTime(this) - steps[0].duration;
                 if (late > steps[0].duration) late = steps[0].duration;
                 if (late > 0) QueueTime(this) += late;
@@ -455,8 +455,8 @@ EI_REPLACE_METHOD(0x00546B40, CUnitServer::PopFinishedSteps);
 void CUnitServer::ShowCurrentStep() {
     if (queue.count == 0) return;
     const AnimationStep& head = queue.steps[0];
-    if (head.animation != 0xFF || head.unknown_01 != 0xFF)
-        UnitSetAnimation(unit, nullptr, head.animation, head.unknown_01, QueueTime(this), head.unknown_02);
+    if (head.animation != 0xFF || head.variant != 0xFF)
+        UnitSetAnimation(unit, nullptr, head.animation, head.variant, QueueTime(this), head.flags);
 }
 EI_REPLACE_METHOD(0x00546C10, CUnitServer::ShowCurrentStep);
 
@@ -471,8 +471,8 @@ void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     CtlPopFinishedSteps(this);
     if (queue.count == 0) return;
     const AnimationStep& head = queue.steps[0];
-    if (head.animation != 0xFF || head.unknown_01 != 0xFF)
-        UnitSetAnimation(unit, nullptr, head.animation, head.unknown_01, QueueTime(this), head.unknown_02);
+    if (head.animation != 0xFF || head.variant != 0xFF)
+        UnitSetAnimation(unit, nullptr, head.animation, head.variant, QueueTime(this), head.flags);
 }
 EI_REPLACE_METHOD(0x00546C40, CUnitServer::PlaySteps);
 
@@ -522,7 +522,7 @@ void CUnitServer::PlayHitReaction() {
     StartQueueIfUnset(this);
     CtlPopFinishedSteps(this);
     CtlShowCurrentStep(this);
-    unknown_021 = 1;
+    animationHeld = 1;
 }
 EI_REPLACE_METHOD(0x00547100, CUnitServer::PlayHitReaction);
 
@@ -539,7 +539,7 @@ void CUnitServer::EndOrder(char abort) {
             if (Queue(this).count == 2) {
                 PlanCopy rest(Plan(this).animation);
                 AnimationStep* steps = rest.steps.steps;
-                if (steps[1].unknown_08 == 1) {
+                if (steps[1].kind == 1) {
                     rest.steps.extra = now - steps[0].duration;
                     steps[0].duration += steps[2].duration;
                     StepsSetSize(&rest.steps, nullptr, 1, -1);
@@ -548,7 +548,7 @@ void CUnitServer::EndOrder(char abort) {
             } else if (Queue(this).count == 3) {
                 PlanCopy rest(Plan(this).animation);
                 AnimationStep* steps = rest.steps.steps;
-                if (steps[1].unknown_08 == 1) {
+                if (steps[1].kind == 1) {
                     steps[0].duration += steps[2].duration;
                     rest.steps.extra = QueueTime(this);
                     StepsSetSize(&rest.steps, nullptr, 1, -1);
@@ -582,7 +582,7 @@ void CUnitServer::TickAction() {
         StartQueueIfUnset(this);
         CtlPopFinishedSteps(this);
         CtlShowCurrentStep(this);
-        if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(UnitPrototypeModel(unit))->unknown_114 != 0) {
+        if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(UnitPrototypeModel(unit))->castEffect != 0) {
             // The world's timed object manager (+0x48) creates the effect.
             auto* objects = static_cast<CBaseManager*>(WorldServer()->manager48_);
             CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);
@@ -615,13 +615,13 @@ void CUnitServer::TickAction() {
         return;
     }
     // The action's moment has come: it is carried out and the plan cleared.
-    CtlFinishAction(this, nullptr, plan.unknown_2C, plan.notSkill);
+    CtlFinishAction(this, nullptr, plan.hitLocation, plan.notSkill);
     StepsSetSize(&plan.animation, nullptr, 0, -1);
     plan.animation.extra = -1;
     plan.targetId = -1;
     plan.endTime = 0;
     plan.startTime = 0;
-    plan.unknown_2C = 1;
+    plan.hitLocation = 1;
     plan.rangeSq = kNoRange;
     plan.isCast = 0;
     plan.notSkill = 0;
@@ -685,17 +685,17 @@ void CUnitServer::TickItemSpells() {
         auto* item = static_cast<CItem*>(current->item);
         if (!item) continue;
         auto* spell = static_cast<CSpell*>(item->spell_);
-        float cost = std::bit_cast<float>(spell->unknown_40);
+        float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
-        if ((spell->unknown_18 & 0xFFFF0000u) == 0x180000) {
+        if ((spell->prototypeId_ & 0xFFFF0000u) == 0x180000) {
             // A healing spell: only one a tick, and only when the unit is hurt.
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;
         }
-        CtlUseItemCharge(this, nullptr, item, std::bit_cast<float>(spell->unknown_40));
+        CtlUseItemCharge(this, nullptr, item, std::bit_cast<float>(spell->manaCost_));
         CUnit* self = unit;
         WorldCastSpellOriginal(world, nullptr, spell, self, &self->position, self, &self->position, 1);
-        int countdown = static_cast<int>(spell->unknown_20) - 3;
+        int countdown = static_cast<int>(spell->duration_) - 3;
         current->countdown = countdown;
         if (countdown <= 0) current->countdown = 8;
     }

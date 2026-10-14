@@ -45,8 +45,8 @@ bool DepthLess::Less(const int* a, const int* b) {
     float offset = plane[11];
     const CMapObject* p = MapObject(first);
     const CMapObject* q = MapObject(second);
-    float da = StoreFloat(DotUnrounded<Sum3::ZYX, double>(p->position, normal) + offset);
-    float db = StoreFloat(DotUnrounded<Sum3::ZYX, double>(q->position, normal) + offset);
+    float da = StoreFloat(static_cast<float>(DotUnrounded<Sum3::ZYX, double>(p->position, normal) + offset));
+    float db = StoreFloat(static_cast<float>(DotUnrounded<Sum3::ZYX, double>(q->position, normal) + offset));
     // Living objects come before dead ones; within each kind, by depth. The original asks each
     // object again at every step, so the calls are repeated here in the same order.
     if ((ObjectSlots(first)->IsDead() == 0 && ObjectSlots(second)->IsDead() == 0) ||

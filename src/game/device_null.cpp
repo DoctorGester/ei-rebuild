@@ -4,9 +4,12 @@
 // draw nothing. What the game reads back stays consistent: the device keeps the render and texture
 // stage states set on it (fed to the new renderer's mirror as well, render_state.h), records state
 // blocks and applies them, and answers the capability, display mode and video memory queries with
-// fixed values (the old device's under dgVoodoo where the game's logic depends on them). Every
-// method logs its first call from each calling place ("old device: ..."): those callers are what
-// ticket R9b guards before the stand-ins go.
+// fixed values (the old device's under dgVoodoo where the game's logic depends on them). The state
+// itself is the switch-over device's (SwitchOverDevice below); the rewritten code reaches it without
+// the stand-ins through device::SetRenderState and the other calls of device.h (ticket R9b), which
+// call the real interface when there is one. Every stand-in method logs its first call from each
+// calling place ("old device: ..."; tools/old_device_calls.py lists them by function): what is left
+// there is the code of game.exe not rewritten yet.
 #include "device.h"
 
 #include "render/render_state.h"
@@ -171,13 +174,18 @@ DDCAPS DirectDrawCaps() {
     return c;
 }
 
-// ---- The IDirect3DDevice7 stand-in ----------------------------------------------------------------
+// ---- The switch-over device's state -------------------------------------------------------------
+//
+// What a Direct3D 7 device and its DirectDraw object would keep, without either: the render and
+// texture stage states, the state blocks, the bound textures, the scene bracket, the viewport and the
+// display mode. The rewritten code reaches it through device::SetRenderState and the other calls
+// below (ticket R9b); the stand-ins (code of game.exe not rewritten yet) through their methods.
 
 constexpr int kRenderStates = 256;
 constexpr int kStages = 8;
 constexpr int kStageStates = 32;
 
-class NullDirect3DDevice7 final : public IDirect3DDevice7 {
+class SwitchOverDevice {
 public:
     // A new device's states (the Direct3D 7 defaults), no blocks, no textures.
     void Reset() {
@@ -227,6 +235,218 @@ public:
         viewport_ = D3DVIEWPORT7{};
     }
 
+    HRESULT BeginScene() {
+        if (inScene_) return D3DERR_SCENE_IN_SCENE;
+        inScene_ = true;
+        return D3D_OK;
+    }
+    HRESULT EndScene() {
+        if (!inScene_) return D3DERR_SCENE_NOT_IN_SCENE;
+        inScene_ = false;
+        return D3D_OK;
+    }
+    void SetViewport(const D3DVIEWPORT7& viewport) { viewport_ = viewport; }
+    const D3DVIEWPORT7& Viewport() const { return viewport_; }
+
+    void SetRenderState(DWORD state, DWORD value) { SetState(Entry{false, 0, state, value}); }
+    DWORD RenderState(DWORD state) const { return state < kRenderStates ? render_[state] : 0; }
+    void SetStageState(DWORD stage, DWORD state, DWORD value) { SetState(Entry{true, stage, state, value}); }
+    DWORD StageState(DWORD stage, DWORD state) const {
+        return stage < kStages && state < kStageStates ? stage_[stage][state] : 0;
+    }
+
+    HRESULT BeginStateBlock() {
+        blocks_.push_back(Block{});
+        recording_ = &blocks_.back();
+        return D3D_OK;
+    }
+    HRESULT EndStateBlock(LPDWORD handle) {
+        if (!recording_) return D3DERR_NOTINBEGINSTATEBLOCK;
+        recording_->handle = NextHandle();
+        if (handle) *handle = recording_->handle;
+        recording_ = nullptr;
+        return D3D_OK;
+    }
+    HRESULT ApplyStateBlock(DWORD handle) {
+        const Block* block = Find(handle);
+        if (!block) return D3DERR_INVALIDSTATEBLOCK;
+        const std::vector<Entry> entries = block->entries;   // (an apply while recording is recorded)
+        for (const Entry& e : entries) SetState(e);
+        return D3D_OK;
+    }
+    HRESULT CaptureStateBlock(DWORD handle) {
+        Block* block = Find(handle);
+        if (!block) return D3DERR_INVALIDSTATEBLOCK;
+        for (Entry& e : block->entries) e.value = Current(e);
+        return D3D_OK;
+    }
+    HRESULT DeleteStateBlock(DWORD handle) {
+        for (auto it = blocks_.begin(); it != blocks_.end(); ++it) {
+            if (it->handle != handle || &*it == recording_) continue;
+            blocks_.erase(it);
+            return D3D_OK;
+        }
+        return D3DERR_INVALIDSTATEBLOCK;
+    }
+    // Every state (D3DSBT_ALL and the two halves alike), as it is now.
+    HRESULT CreateStateBlock(LPDWORD handle) {
+        Block block;
+        for (DWORD s = 0; s < kRenderStates; ++s) block.entries.push_back(Entry{false, 0, s, render_[s]});
+        for (DWORD stage = 0; stage < kStages; ++stage)
+            for (DWORD s = 1; s < kStageStates; ++s) block.entries.push_back(Entry{true, stage, s, stage_[stage][s]});
+        block.handle = NextHandle();
+        if (handle) *handle = block.handle;
+        blocks_.push_back(std::move(block));
+        if (recording_) recording_ = &blocks_[blocks_.size() - 2];
+        return D3D_OK;
+    }
+
+    HRESULT GetTexture(DWORD stage, LPDIRECTDRAWSURFACE7* texture) {
+        if (!texture) return DDERR_INVALIDPARAMS;
+        *texture = stage < kStages ? textures_[stage] : nullptr;
+        if (*texture) (*texture)->AddRef();
+        return D3D_OK;
+    }
+    HRESULT SetTexture(DWORD stage, LPDIRECTDRAWSURFACE7 texture) {
+        if (stage >= kStages) return DDERR_INVALIDPARAMS;
+        if (texture) texture->AddRef();
+        if (textures_[stage]) textures_[stage]->Release();
+        textures_[stage] = texture;
+        return D3D_OK;
+    }
+
+    // The one display mode: the screen's.
+    void SetMode(int width, int height, int bitsPerPixel) {
+        width_ = width;
+        height_ = height;
+        bits_ = bitsPerPixel;
+    }
+    DDSURFACEDESC2 Mode() const {
+        DDSURFACEDESC2 mode{};
+        mode.dwSize = sizeof(mode);
+        mode.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH | DDSD_PIXELFORMAT | DDSD_REFRESHRATE;
+        mode.dwWidth = static_cast<DWORD>(width_);
+        mode.dwHeight = static_cast<DWORD>(height_);
+        mode.lPitch = width_ * (bits_ == 16 ? 2 : 4);
+        mode.dwRefreshRate = kRefreshRate;
+        device::ScreenFormat(bits_, &mode.ddpfPixelFormat);
+        return mode;
+    }
+
+private:
+    // One state set: a render state, or a texture stage's state.
+    struct Entry {
+        bool stageState;
+        DWORD stage, state, value;
+    };
+    struct Block {
+        DWORD handle = 0;
+        std::vector<Entry> entries;
+    };
+
+    // While a block is recorded the states go into it (not to the device, as Direct3D does).
+    // Otherwise they are kept, and those of the two stages the new renderer draws with go to its
+    // mirror too (render_state.h; the game code feeds it the same values where it is rewritten).
+    void SetState(const Entry& e) {
+        if (recording_) {
+            for (Entry& r : recording_->entries) {
+                if (r.stageState == e.stageState && r.stage == e.stage && r.state == e.state) {
+                    r.value = e.value;
+                    return;
+                }
+            }
+            recording_->entries.push_back(e);
+            return;
+        }
+        if (!e.stageState) {
+            if (e.state >= kRenderStates) return;
+            render_[e.state] = e.value;
+            render::state::Render(e.state, e.value);
+            return;
+        }
+        if (e.stage >= kStages || e.state >= kStageStates) return;
+        stage_[e.stage][e.state] = e.value;
+        render::state::Stage(e.stage, e.state, e.value);
+    }
+    DWORD Current(const Entry& e) const { return e.stageState ? StageState(e.stage, e.state) : RenderState(e.state); }
+    Block* Find(DWORD handle) {
+        for (Block& b : blocks_)
+            if (b.handle == handle && handle != 0) return &b;
+        return nullptr;
+    }
+    // Block handles go on counting over the whole run (never 0, never reused).
+    DWORD NextHandle() { return ++lastHandle_; }
+
+    DWORD render_[kRenderStates];
+    DWORD stage_[kStages][kStageStates];
+    IDirectDrawSurface7* textures_[kStages] = {};
+    std::vector<Block> blocks_;
+    Block* recording_ = nullptr;
+    DWORD lastHandle_ = 0;
+    bool inScene_ = false;
+    D3DVIEWPORT7 viewport_{};
+    int width_ = 0, height_ = 0, bits_ = 32;
+};
+
+SwitchOverDevice g_switchOver;
+
+// The display modes' enumeration: the one mode.
+HRESULT EnumMode(LPVOID context, LPDDENUMMODESCALLBACK2 callback) {
+    DDSURFACEDESC2 mode = g_switchOver.Mode();
+    if (callback) callback(&mode, context);
+    return DD_OK;
+}
+
+// The texture formats' enumeration: the fixed table.
+HRESULT EnumFormats(LPD3DENUMPIXELFORMATSCALLBACK callback, LPVOID context) {
+    int count = 0;
+    const DDPIXELFORMAT* formats = device::SwitchOverTextureFormats(&count);
+    for (int i = 0; i < count && callback; ++i) {
+        DDPIXELFORMAT copy = formats[i];
+        if (callback(&copy, context) != D3DENUMRET_OK) break;
+    }
+    return D3D_OK;
+}
+
+HRESULT FillDeviceCaps(LPD3DDEVICEDESC7 desc) {
+    if (!desc) return DDERR_INVALIDPARAMS;
+    *desc = DeviceCaps();
+    return D3D_OK;
+}
+
+HRESULT FillDirectDrawCaps(LPDDCAPS driver, LPDDCAPS emulated) {
+    if (driver) *driver = DirectDrawCaps();
+    if (emulated) {
+        *emulated = DDCAPS{};
+        emulated->dwSize = sizeof(DDCAPS);
+    }
+    return DD_OK;
+}
+
+// No surfaces in the switch-over: the holders that need pixels have the new renderer's memory.
+// The first ten refusals are logged.
+HRESULT RefuseSurface(const DDSURFACEDESC2* desc, LPDIRECTDRAWSURFACE7* out) {
+    static int refused = 0;
+    if (out) *out = nullptr;
+    if (refused++ < 10)
+        ei::Log("old device: a %lux%lu surface (caps %08lX) refused: the switch-over has no DirectDraw",
+                desc ? desc->dwWidth : 0ul, desc ? desc->dwHeight : 0ul, desc ? desc->ddsCaps.dwCaps : 0ul);
+    return DDERR_UNSUPPORTED;
+}
+
+HRESULT VideoMemory(LPDWORD total, LPDWORD free) {
+    if (total) *total = kVideoMemory;
+    if (free) *free = kVideoMemory;
+    return DD_OK;
+}
+
+// ---- The IDirect3DDevice7 stand-in ----------------------------------------------------------------
+//
+// For the code of game.exe that is not rewritten yet: each method logs its first call from each
+// calling place and answers from the switch-over device's state.
+
+class NullDirect3DDevice7 final : public IDirect3DDevice7 {
+public:
     // IUnknown. One object for the whole run: references are not counted.
     STDMETHOD(QueryInterface)(REFIID, LPVOID* out) override {
         EI_NOTE_D3D("QueryInterface", 0);
@@ -238,31 +458,19 @@ public:
 
     STDMETHOD(GetCaps)(LPD3DDEVICEDESC7 desc) override {
         EI_NOTE_D3D("GetCaps", 3);
-        if (!desc) return DDERR_INVALIDPARAMS;
-        *desc = DeviceCaps();
-        return D3D_OK;
+        return FillDeviceCaps(desc);
     }
     STDMETHOD(EnumTextureFormats)(LPD3DENUMPIXELFORMATSCALLBACK callback, LPVOID context) override {
         EI_NOTE_D3D("EnumTextureFormats", 4);
-        int count = 0;
-        const DDPIXELFORMAT* formats = device::SwitchOverTextureFormats(&count);
-        for (int i = 0; i < count && callback; ++i) {
-            DDPIXELFORMAT copy = formats[i];
-            if (callback(&copy, context) != D3DENUMRET_OK) break;
-        }
-        return D3D_OK;
+        return EnumFormats(callback, context);
     }
     STDMETHOD(BeginScene)() override {
         EI_NOTE_D3D("BeginScene", 5);
-        if (inScene_) return D3DERR_SCENE_IN_SCENE;
-        inScene_ = true;
-        return D3D_OK;
+        return g_switchOver.BeginScene();
     }
     STDMETHOD(EndScene)() override {
         EI_NOTE_D3D("EndScene", 6);
-        if (!inScene_) return D3DERR_SCENE_NOT_IN_SCENE;
-        inScene_ = false;
-        return D3D_OK;
+        return g_switchOver.EndScene();
     }
     STDMETHOD(GetDirect3D)(LPDIRECT3D7* out) override {
         EI_NOTE_D3D("GetDirect3D", 7);
@@ -293,7 +501,7 @@ public:
     }
     STDMETHOD(SetViewport)(LPD3DVIEWPORT7 viewport) override {
         EI_NOTE_D3D("SetViewport", 13);
-        if (viewport) viewport_ = *viewport;
+        if (viewport) g_switchOver.SetViewport(*viewport);
         return D3D_OK;
     }
     STDMETHOD(MultiplyTransform)(D3DTRANSFORMSTATETYPE, LPD3DMATRIX) override {
@@ -302,7 +510,7 @@ public:
     }
     STDMETHOD(GetViewport)(LPD3DVIEWPORT7 viewport) override {
         EI_NOTE_D3D("GetViewport", 15);
-        if (viewport) *viewport = viewport_;
+        if (viewport) *viewport = g_switchOver.Viewport();
         return D3D_OK;
     }
     STDMETHOD(SetMaterial)(LPD3DMATERIAL7) override {
@@ -325,28 +533,22 @@ public:
     }
     STDMETHOD(SetRenderState)(D3DRENDERSTATETYPE state, DWORD value) override {
         EI_NOTE_D3D("SetRenderState", 20);
-        SetState(Entry{false, 0, static_cast<DWORD>(state), value});
+        g_switchOver.SetRenderState(static_cast<DWORD>(state), value);
         return D3D_OK;
     }
     STDMETHOD(GetRenderState)(D3DRENDERSTATETYPE state, LPDWORD value) override {
         EI_NOTE_D3D("GetRenderState", 21);
         if (!value) return DDERR_INVALIDPARAMS;
-        *value = static_cast<DWORD>(state) < kRenderStates ? render_[state] : 0;
+        *value = g_switchOver.RenderState(static_cast<DWORD>(state));
         return D3D_OK;
     }
     STDMETHOD(BeginStateBlock)() override {
         EI_NOTE_D3D("BeginStateBlock", 22);
-        blocks_.push_back(Block{});
-        recording_ = &blocks_.back();
-        return D3D_OK;
+        return g_switchOver.BeginStateBlock();
     }
     STDMETHOD(EndStateBlock)(LPDWORD handle) override {
         EI_NOTE_D3D("EndStateBlock", 23);
-        if (!recording_) return D3DERR_NOTINBEGINSTATEBLOCK;
-        recording_->handle = NextHandle();
-        if (handle) *handle = recording_->handle;
-        recording_ = nullptr;
-        return D3D_OK;
+        return g_switchOver.EndStateBlock(handle);
     }
     STDMETHOD(PreLoad)(LPDIRECTDRAWSURFACE7) override {
         EI_NOTE_D3D("PreLoad", 24);
@@ -394,28 +596,21 @@ public:
     }
     STDMETHOD(GetTexture)(DWORD stage, LPDIRECTDRAWSURFACE7* texture) override {
         EI_NOTE_D3D("GetTexture", 34);
-        if (!texture) return DDERR_INVALIDPARAMS;
-        *texture = stage < kStages ? textures_[stage] : nullptr;
-        if (*texture) (*texture)->AddRef();
-        return D3D_OK;
+        return g_switchOver.GetTexture(stage, texture);
     }
     STDMETHOD(SetTexture)(DWORD stage, LPDIRECTDRAWSURFACE7 texture) override {
         EI_NOTE_D3D("SetTexture", 35);
-        if (stage >= kStages) return DDERR_INVALIDPARAMS;
-        if (texture) texture->AddRef();
-        if (textures_[stage]) textures_[stage]->Release();
-        textures_[stage] = texture;
-        return D3D_OK;
+        return g_switchOver.SetTexture(stage, texture);
     }
     STDMETHOD(GetTextureStageState)(DWORD stage, D3DTEXTURESTAGESTATETYPE state, LPDWORD value) override {
         EI_NOTE_D3D("GetTextureStageState", 36);
         if (!value) return DDERR_INVALIDPARAMS;
-        *value = stage < kStages && static_cast<DWORD>(state) < kStageStates ? stage_[stage][state] : 0;
+        *value = g_switchOver.StageState(stage, static_cast<DWORD>(state));
         return D3D_OK;
     }
     STDMETHOD(SetTextureStageState)(DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value) override {
         EI_NOTE_D3D("SetTextureStageState", 37);
-        SetState(Entry{true, stage, static_cast<DWORD>(state), value});
+        g_switchOver.SetStageState(stage, static_cast<DWORD>(state), value);
         return D3D_OK;
     }
     STDMETHOD(ValidateDevice)(LPDWORD passes) override {
@@ -425,40 +620,19 @@ public:
     }
     STDMETHOD(ApplyStateBlock)(DWORD handle) override {
         EI_NOTE_D3D("ApplyStateBlock", 39);
-        const Block* block = Find(handle);
-        if (!block) return D3DERR_INVALIDSTATEBLOCK;
-        const std::vector<Entry> entries = block->entries;   // (an apply while recording is recorded)
-        for (const Entry& e : entries) SetState(e);
-        return D3D_OK;
+        return g_switchOver.ApplyStateBlock(handle);
     }
     STDMETHOD(CaptureStateBlock)(DWORD handle) override {
         EI_NOTE_D3D("CaptureStateBlock", 40);
-        Block* block = Find(handle);
-        if (!block) return D3DERR_INVALIDSTATEBLOCK;
-        for (Entry& e : block->entries) e.value = Current(e);
-        return D3D_OK;
+        return g_switchOver.CaptureStateBlock(handle);
     }
     STDMETHOD(DeleteStateBlock)(DWORD handle) override {
         EI_NOTE_D3D("DeleteStateBlock", 41);
-        for (auto it = blocks_.begin(); it != blocks_.end(); ++it) {
-            if (it->handle != handle || &*it == recording_) continue;
-            blocks_.erase(it);
-            return D3D_OK;
-        }
-        return D3DERR_INVALIDSTATEBLOCK;
+        return g_switchOver.DeleteStateBlock(handle);
     }
-    // Every state (D3DSBT_ALL and the two halves alike), as it is now.
     STDMETHOD(CreateStateBlock)(D3DSTATEBLOCKTYPE, LPDWORD handle) override {
         EI_NOTE_D3D("CreateStateBlock", 42);
-        Block block;
-        for (DWORD s = 0; s < kRenderStates; ++s) block.entries.push_back(Entry{false, 0, s, render_[s]});
-        for (DWORD stage = 0; stage < kStages; ++stage)
-            for (DWORD s = 1; s < kStageStates; ++s) block.entries.push_back(Entry{true, stage, s, stage_[stage][s]});
-        block.handle = NextHandle();
-        if (handle) *handle = block.handle;
-        blocks_.push_back(std::move(block));
-        if (recording_) recording_ = &blocks_[blocks_.size() - 2];
-        return D3D_OK;
+        return g_switchOver.CreateStateBlock(handle);
     }
     STDMETHOD(Load)(LPDIRECTDRAWSURFACE7, LPPOINT, LPDIRECTDRAWSURFACE7, LPRECT, DWORD) override {
         EI_NOTE_D3D("Load", 43);
@@ -488,74 +662,12 @@ public:
         if (info) std::memset(info, 0, size);
         return S_FALSE;
     }
-
-private:
-    // One state set: a render state, or a texture stage's state.
-    struct Entry {
-        bool stageState;
-        DWORD stage, state, value;
-    };
-    struct Block {
-        DWORD handle = 0;
-        std::vector<Entry> entries;
-    };
-
-    // While a block is recorded the states go into it (not to the device, as Direct3D does).
-    // Otherwise they are kept, and those of the two stages the new renderer draws with go to its
-    // mirror too (render_state.h; the game code feeds it the same values where it is rewritten).
-    void SetState(const Entry& e) {
-        if (recording_) {
-            for (Entry& r : recording_->entries) {
-                if (r.stageState == e.stageState && r.stage == e.stage && r.state == e.state) {
-                    r.value = e.value;
-                    return;
-                }
-            }
-            recording_->entries.push_back(e);
-            return;
-        }
-        if (!e.stageState) {
-            if (e.state >= kRenderStates) return;
-            render_[e.state] = e.value;
-            render::state::Render(e.state, e.value);
-            return;
-        }
-        if (e.stage >= kStages || e.state >= kStageStates) return;
-        stage_[e.stage][e.state] = e.value;
-        render::state::Stage(e.stage, e.state, e.value);
-    }
-    DWORD Current(const Entry& e) const {
-        if (!e.stageState) return e.state < kRenderStates ? render_[e.state] : 0;
-        return e.stage < kStages && e.state < kStageStates ? stage_[e.stage][e.state] : 0;
-    }
-    Block* Find(DWORD handle) {
-        for (Block& b : blocks_)
-            if (b.handle == handle && handle != 0) return &b;
-        return nullptr;
-    }
-    // Block handles go on counting over the whole run (never 0, never reused).
-    DWORD NextHandle() { return ++lastHandle_; }
-
-    DWORD render_[kRenderStates];
-    DWORD stage_[kStages][kStageStates];
-    IDirectDrawSurface7* textures_[kStages] = {};
-    std::vector<Block> blocks_;
-    Block* recording_ = nullptr;
-    DWORD lastHandle_ = 0;
-    bool inScene_ = false;
-    D3DVIEWPORT7 viewport_{};
 };
 
 // ---- The IDirectDraw7 stand-in --------------------------------------------------------------------
 
 class NullDirectDraw7 final : public IDirectDraw7 {
 public:
-    void SetMode(int width, int height, int bitsPerPixel) {
-        width_ = width;
-        height_ = height;
-        bits_ = bitsPerPixel;
-    }
-
     STDMETHOD(QueryInterface)(REFIID, LPVOID* out) override {
         EI_NOTE_DD("QueryInterface", 0);
         if (out) *out = nullptr;
@@ -581,23 +693,16 @@ public:
     // No surfaces in the switch-over: the holders that need pixels have the new renderer's memory.
     STDMETHOD(CreateSurface)(LPDDSURFACEDESC2 desc, LPDIRECTDRAWSURFACE7* out, IUnknown*) override {
         EI_NOTE_DD("CreateSurface", 6);
-        if (out) *out = nullptr;
-        if (refused_++ < 10)
-            ei::Log("old device: a %lux%lu surface (caps %08lX) refused: the switch-over has no DirectDraw",
-                    desc ? desc->dwWidth : 0ul, desc ? desc->dwHeight : 0ul, desc ? desc->ddsCaps.dwCaps : 0ul);
-        return DDERR_UNSUPPORTED;
+        return RefuseSurface(desc, out);
     }
     STDMETHOD(DuplicateSurface)(LPDIRECTDRAWSURFACE7, LPDIRECTDRAWSURFACE7* out) override {
         EI_NOTE_DD("DuplicateSurface", 7);
         if (out) *out = nullptr;
         return DDERR_UNSUPPORTED;
     }
-    // The one display mode: the screen's.
     STDMETHOD(EnumDisplayModes)(DWORD, LPDDSURFACEDESC2, LPVOID context, LPDDENUMMODESCALLBACK2 callback) override {
         EI_NOTE_DD("EnumDisplayModes", 8);
-        DDSURFACEDESC2 mode = Mode();
-        if (callback) callback(&mode, context);
-        return DD_OK;
+        return EnumMode(context, callback);
     }
     STDMETHOD(EnumSurfaces)(DWORD, LPDDSURFACEDESC2, LPVOID, LPDDENUMSURFACESCALLBACK7) override {
         EI_NOTE_DD("EnumSurfaces", 9);
@@ -609,17 +714,12 @@ public:
     }
     STDMETHOD(GetCaps)(LPDDCAPS driver, LPDDCAPS emulated) override {
         EI_NOTE_DD("GetCaps", 11);
-        if (driver) *driver = DirectDrawCaps();
-        if (emulated) {
-            *emulated = DDCAPS{};
-            emulated->dwSize = sizeof(DDCAPS);
-        }
-        return DD_OK;
+        return FillDirectDrawCaps(driver, emulated);
     }
     STDMETHOD(GetDisplayMode)(LPDDSURFACEDESC2 desc) override {
         EI_NOTE_DD("GetDisplayMode", 12);
         if (!desc) return DDERR_INVALIDPARAMS;
-        *desc = Mode();
+        *desc = g_switchOver.Mode();
         return DD_OK;
     }
     STDMETHOD(GetFourCCCodes)(LPDWORD count, LPDWORD) override {
@@ -669,9 +769,7 @@ public:
     }
     STDMETHOD(GetAvailableVidMem)(LPDDSCAPS2, LPDWORD total, LPDWORD free) override {
         EI_NOTE_DD("GetAvailableVidMem", 23);
-        if (total) *total = kVideoMemory;
-        if (free) *free = kVideoMemory;
-        return DD_OK;
+        return VideoMemory(total, free);
     }
     STDMETHOD(GetSurfaceFromDC)(HDC, LPDIRECTDRAWSURFACE7* out) override {
         EI_NOTE_DD("GetSurfaceFromDC", 24);
@@ -699,22 +797,6 @@ public:
         EI_NOTE_DD("EvaluateMode", 29);
         return DDERR_UNSUPPORTED;
     }
-
-private:
-    DDSURFACEDESC2 Mode() const {
-        DDSURFACEDESC2 mode{};
-        mode.dwSize = sizeof(mode);
-        mode.dwFlags = DDSD_WIDTH | DDSD_HEIGHT | DDSD_PITCH | DDSD_PIXELFORMAT | DDSD_REFRESHRATE;
-        mode.dwWidth = static_cast<DWORD>(width_);
-        mode.dwHeight = static_cast<DWORD>(height_);
-        mode.lPitch = width_ * (bits_ == 16 ? 2 : 4);
-        mode.dwRefreshRate = kRefreshRate;
-        device::ScreenFormat(bits_, &mode.ddpfPixelFormat);
-        return mode;
-    }
-
-    int width_ = 0, height_ = 0, bits_ = 32;
-    int refused_ = 0;
 };
 
 NullDirect3DDevice7 g_device;
@@ -729,14 +811,14 @@ bool WithoutDirectDraw() { return g_withoutDirectDraw; }
 
 IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel) {
     g_withoutDirectDraw = true;
-    g_directDraw.SetMode(width, height, bitsPerPixel);
+    g_switchOver.SetMode(width, height, bitsPerPixel);
     ei::Log("device: built without DirectDraw or Direct3D (%dx%d, %d bits); the new renderer presents", width, height,
             bitsPerPixel);
     return &g_directDraw;
 }
 
 IDirect3DDevice7* NullDirect3DDevice() {
-    g_device.Reset();
+    g_switchOver.Reset();
     return &g_device;
 }
 
@@ -748,6 +830,119 @@ void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format) {
 const DDPIXELFORMAT* SwitchOverTextureFormats(int* count) {
     *count = static_cast<int>(sizeof(kTextureFormats) / sizeof(kTextureFormats[0]));
     return kTextureFormats;
+}
+
+std::uint32_t SwitchOverRenderState(std::uint32_t state) { return g_switchOver.RenderState(state); }
+std::uint32_t SwitchOverStageState(std::uint32_t stage, std::uint32_t state) {
+    return g_switchOver.StageState(stage, state);
+}
+
+// ---- The rewritten code's device calls (ticket R9b) ----------------------------------------------
+//
+// The switch-over's state answers when the interface given is the device object's stand-in (or
+// none); any other interface is called (the real device, or a verify wrapper's recording device).
+
+namespace {
+bool NoDevice(const IDirect3DDevice7* d3d) { return g_withoutDirectDraw && (!d3d || d3d == &g_device); }
+bool NoDirectDraw(const IDirectDraw7* ddraw) { return g_withoutDirectDraw && (!ddraw || ddraw == &g_directDraw); }
+} // namespace
+
+HRESULT GetCaps(IDirect3DDevice7* d3d, D3DDEVICEDESC7* desc) {
+    return NoDevice(d3d) ? FillDeviceCaps(desc) : d3d->GetCaps(desc);
+}
+HRESULT EnumTextureFormats(IDirect3DDevice7* d3d, LPD3DENUMPIXELFORMATSCALLBACK callback, void* context) {
+    return NoDevice(d3d) ? EnumFormats(callback, context) : d3d->EnumTextureFormats(callback, context);
+}
+HRESULT BeginScene(IDirect3DDevice7* d3d) { return NoDevice(d3d) ? g_switchOver.BeginScene() : d3d->BeginScene(); }
+HRESULT EndScene(IDirect3DDevice7* d3d) { return NoDevice(d3d) ? g_switchOver.EndScene() : d3d->EndScene(); }
+HRESULT Clear(IDirect3DDevice7* d3d, DWORD count, D3DRECT* rects, DWORD flags, D3DCOLOR colour, D3DVALUE z,
+              DWORD stencil) {
+    return NoDevice(d3d) ? D3D_OK : d3d->Clear(count, rects, flags, colour, z, stencil);
+}
+HRESULT SetViewport(IDirect3DDevice7* d3d, D3DVIEWPORT7* viewport) {
+    if (!NoDevice(d3d)) return d3d->SetViewport(viewport);
+    if (viewport) g_switchOver.SetViewport(*viewport);
+    return D3D_OK;
+}
+HRESULT SetRenderTarget(IDirect3DDevice7* d3d, IDirectDrawSurface7* target, DWORD flags) {
+    return NoDevice(d3d) ? D3D_OK : d3d->SetRenderTarget(target, flags);
+}
+HRESULT SetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD value) {
+    if (!NoDevice(d3d)) return d3d->SetRenderState(state, value);
+    g_switchOver.SetRenderState(static_cast<DWORD>(state), value);
+    return D3D_OK;
+}
+HRESULT GetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD* value) {
+    if (!NoDevice(d3d)) return d3d->GetRenderState(state, value);
+    if (!value) return DDERR_INVALIDPARAMS;
+    *value = g_switchOver.RenderState(static_cast<DWORD>(state));
+    return D3D_OK;
+}
+HRESULT SetTextureStageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value) {
+    if (!NoDevice(d3d)) return d3d->SetTextureStageState(stage, state, value);
+    g_switchOver.SetStageState(stage, static_cast<DWORD>(state), value);
+    return D3D_OK;
+}
+HRESULT GetTextureStageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD* value) {
+    if (!NoDevice(d3d)) return d3d->GetTextureStageState(stage, state, value);
+    if (!value) return DDERR_INVALIDPARAMS;
+    *value = g_switchOver.StageState(stage, static_cast<DWORD>(state));
+    return D3D_OK;
+}
+HRESULT BeginStateBlock(IDirect3DDevice7* d3d) {
+    return NoDevice(d3d) ? g_switchOver.BeginStateBlock() : d3d->BeginStateBlock();
+}
+HRESULT EndStateBlock(IDirect3DDevice7* d3d, DWORD* handle) {
+    return NoDevice(d3d) ? g_switchOver.EndStateBlock(handle) : d3d->EndStateBlock(handle);
+}
+HRESULT ApplyStateBlock(IDirect3DDevice7* d3d, DWORD handle) {
+    return NoDevice(d3d) ? g_switchOver.ApplyStateBlock(handle) : d3d->ApplyStateBlock(handle);
+}
+HRESULT DeleteStateBlock(IDirect3DDevice7* d3d, DWORD handle) {
+    return NoDevice(d3d) ? g_switchOver.DeleteStateBlock(handle) : d3d->DeleteStateBlock(handle);
+}
+HRESULT SetTexture(IDirect3DDevice7* d3d, DWORD stage, IDirectDrawSurface7* texture) {
+    return NoDevice(d3d) ? g_switchOver.SetTexture(stage, texture) : d3d->SetTexture(stage, texture);
+}
+HRESULT DrawPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, void* vertices, DWORD count,
+                      DWORD flags) {
+    return NoDevice(d3d) ? D3D_OK : d3d->DrawPrimitive(type, fvf, vertices, count, flags);
+}
+HRESULT DrawIndexedPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, void* vertices, DWORD count,
+                             WORD* indices, DWORD indexCount, DWORD flags) {
+    return NoDevice(d3d) ? D3D_OK : d3d->DrawIndexedPrimitive(type, fvf, vertices, count, indices, indexCount, flags);
+}
+
+HRESULT GetCaps(IDirectDraw7* ddraw, DDCAPS* driver, DDCAPS* emulated) {
+    return NoDirectDraw(ddraw) ? FillDirectDrawCaps(driver, emulated) : ddraw->GetCaps(driver, emulated);
+}
+HRESULT CreateSurface(IDirectDraw7* ddraw, DDSURFACEDESC2* desc, IDirectDrawSurface7** surface) {
+    return NoDirectDraw(ddraw) ? RefuseSurface(desc, surface) : ddraw->CreateSurface(desc, surface, nullptr);
+}
+HRESULT GetDisplayMode(IDirectDraw7* ddraw, DDSURFACEDESC2* desc) {
+    if (!NoDirectDraw(ddraw)) return ddraw->GetDisplayMode(desc);
+    if (!desc) return DDERR_INVALIDPARAMS;
+    *desc = g_switchOver.Mode();
+    return DD_OK;
+}
+HRESULT EnumDisplayModes(IDirectDraw7* ddraw, DWORD flags, DDSURFACEDESC2* filter, void* context,
+                         LPDDENUMMODESCALLBACK2 callback) {
+    return NoDirectDraw(ddraw) ? EnumMode(context, callback) : ddraw->EnumDisplayModes(flags, filter, context, callback);
+}
+HRESULT SetDisplayMode(IDirectDraw7* ddraw, DWORD width, DWORD height, DWORD bits, DWORD refreshRate, DWORD flags) {
+    return NoDirectDraw(ddraw) ? DD_OK : ddraw->SetDisplayMode(width, height, bits, refreshRate, flags);
+}
+HRESULT RestoreDisplayMode(IDirectDraw7* ddraw) { return NoDirectDraw(ddraw) ? DD_OK : ddraw->RestoreDisplayMode(); }
+HRESULT SetCooperativeLevel(IDirectDraw7* ddraw, HWND window, DWORD flags) {
+    return NoDirectDraw(ddraw) ? DD_OK : ddraw->SetCooperativeLevel(window, flags);
+}
+HRESULT GetAvailableVidMem(IDirectDraw7* ddraw, DDSCAPS2* caps, DWORD* total, DWORD* free) {
+    return NoDirectDraw(ddraw) ? VideoMemory(total, free) : ddraw->GetAvailableVidMem(caps, total, free);
+}
+HRESULT RestoreAllSurfaces(IDirectDraw7* ddraw) { return NoDirectDraw(ddraw) ? DD_OK : ddraw->RestoreAllSurfaces(); }
+HRESULT FlipToGDISurface(IDirectDraw7* ddraw) { return NoDirectDraw(ddraw) ? DD_OK : ddraw->FlipToGDISurface(); }
+HRESULT WaitForVerticalBlank(IDirectDraw7* ddraw, DWORD flags, HANDLE event) {
+    return NoDirectDraw(ddraw) ? DD_OK : ddraw->WaitForVerticalBlank(flags, event);
 }
 
 } // namespace device

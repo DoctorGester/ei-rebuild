@@ -36,8 +36,8 @@ bool ItemsCleared(const PartyUnitRecord& r) {
 }
 
 bool Defaults(const PartyUnitRecord& record) {
-    return record.unknown_770 == 2 && record.weaponIndex == 0 && record.unknown_778 == 0 && record.unknown_77C == -1 &&
-           record.unknown_780 == 1;
+    return record.moveMode2 == 2 && record.weaponIndex == 0 && record.selected == 0 && record.leaderId == -1 &&
+           record.fightAtWill == 1;
 }
 
 int FirstDifference(const void* a, const void* b, std::size_t size) {
@@ -260,7 +260,7 @@ void __fastcall PartyDestroyVerify(CParty* self) {
 void __fastcall PartyClearVerify(CParty* self, void*, int clearVariables, int keepSpells) {
     std::size_t variables = self->variables_.Size();
     self->Clear(clearVariables, keepSpells);
-    bool ok = ArraysEmpty(self) && self->zone_.GetLength() == 0 && self->unknown_50 == 0 && self->unknown_6C == 0 &&
+    bool ok = ArraysEmpty(self) && self->zone_.GetLength() == 0 && self->money_ == 0 && self->entrance_ == 0 &&
               self->variables_.Size() == (clearVariables != 0 ? 0 : variables);
     ei::verify::Check("CParty::Clear", true, ok, "party %p (%d, %d)", self, clearVariables, keepSpells);
 }

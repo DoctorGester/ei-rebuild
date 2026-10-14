@@ -47,7 +47,7 @@ static void __fastcall FinishCastVerify(CUnitServer* self) {
             item->spell_) {
             carrier = item;
             expected = Bits(item->charge_);
-            float cost = std::bit_cast<float>(static_cast<const CSpell*>(item->spell_)->unknown_40);
+            float cost = std::bit_cast<float>(static_cast<const CSpell*>(item->spell_)->manaCost_);
             if (!(cost > item->charge_)) expected = ChargeAfter(item->charge_, cost);
         }
     }
@@ -66,8 +66,8 @@ static void __fastcall OrderTurnVerify(CUnitServer* self, void*, const float* di
     std::memcpy(point, direction, sizeof(point));
     self->OrderTurn(direction, time);
     const UnitAction& now = self->action2;
-    bool ok = now.kind == 2 && !now.target && !now.flag18 && !now.unknown_20 &&
-              static_cast<std::uint32_t>(now.unknown_1C) == time && std::memcmp(&now.point, &point, sizeof(point)) == 0;
+    bool ok = now.kind == 2 && !now.target && !now.flag18 && !now.modifier &&
+              static_cast<std::uint32_t>(now.param) == time && std::memcmp(&now.point, &point, sizeof(point)) == 0;
     ei::verify::Check("CUnitServer::OrderTurn", true, ok, "unit %d: queued kind %d", UnitId(self), now.kind);
 }
 EI_VERIFY(0x005546B0, OrderTurnVerify, 0, s_unusedOrderTurn);
@@ -86,10 +86,10 @@ static void __fastcall OrderMoveVerify(CUnitServer* self, void*, const float* po
     const UnitAction& now = self->action2;
     bool ok = turns || (now.kind == 1 && !now.target && std::memcmp(&now.point, input, 8) == 0 &&
                         Bits(now.point.z) == z && now.source == (static_cast<std::uint8_t>(walk) != 0 ? 1u : 0u) &&
-                        now.unknown_20 == static_cast<std::uint8_t>(run) &&
-                        (now.unknown_1C == 0 || now.unknown_1C == 1));
+                        now.modifier == static_cast<std::uint8_t>(run) &&
+                        (now.param == 0 || now.param == 1));
     ei::verify::Check("CUnitServer::OrderMove", true, ok, "unit %d: queued kind %d source %u +1C %d", UnitId(self),
-                      now.kind, now.source, now.unknown_1C);
+                      now.kind, now.source, now.param);
 }
 EI_VERIFY(0x00554740, OrderMoveVerify, 0, s_unusedOrderMove);
 
@@ -140,7 +140,7 @@ static void __fastcall StopQueuedVerify(CUnitServer* self) {
     self->StopQueued();
     const UnitAction& now = self->action2;
     bool ok = ignored ? SameOrder(before, now)
-                      : now.kind == 11 && !now.target && !now.flag18 && !now.unknown_1C && !now.unknown_20;
+                      : now.kind == 11 && !now.target && !now.flag18 && !now.param && !now.modifier;
     ei::verify::Check("CUnitServer::StopQueued", true, ok, "unit %d: queued kind %d", UnitId(self), now.kind);
 }
 EI_VERIFY(0x00555200, StopQueuedVerify, 0, s_unusedStopQueued);

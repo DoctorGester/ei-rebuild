@@ -162,11 +162,11 @@ constexpr int kMaxFootPart = 9;
 
 // The client world's local view (CWorldClient::LocalView) and its player; only the field read here.
 struct LocalViewPlayer {
-    std::uint8_t unknown_000[0x100];
+    std::uint8_t unused_000[0x100];
     int mode;                       // +0x100 3: attacks play no sounds
 };
 struct LocalView {
-    std::uint8_t unknown_00[0x1C];
+    std::uint8_t unused_00[0x1C];
     LocalViewPlayer* player;        // +0x1C
 };
 
@@ -259,7 +259,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (!PassedFrame(frame, lastAnimationTime, now)) continue;
         if (!unit->HasEffect(kEffectSilence)) {
             auto* world = static_cast<CWorldClient*>(ManagerContext());
-            int ground = reinterpret_cast<terrain::TerrainFields*>(world->terrain_)->SurfaceClass(position.x, position.y);
+            int ground = world->terrain_->SurfaceClass(position.x, position.y);
             CallFootstepSound(this, nullptr, ground, &sound);
         }
         if (unit->moveMode == 0) break;
@@ -280,7 +280,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (model->swapFeet) left = left == 0;
         char partName[16];
         gamecrt::sprintf(partName, left ? "ll%d" : "rl%d", part);
-        FigurePart* foot = unit->Object3D()->FindPartByPrefix(partName);
+        CFigureMesh* foot = unit->Object3D()->FindPartByPrefix(partName);
         if (!foot) break;
         Vector3 footAt;
         unit->Object3D()->PartWorldPosition(&footAt.x, foot);
@@ -295,8 +295,8 @@ void CUnitClientSpecific::PlayStepSounds() {
         volatile float angle = static_cast<float>(kPi - std::acos(static_cast<double>(clamped)));
         float turn = angle;
         if (!(facing.x >= 0.0f)) turn = -turn;   // NaN too
-        float sizeY = foot->boxMax.y;
-        float sizeX = foot->boxMax.x;
+        float sizeY = foot->bounds_.boxMax.y;
+        float sizeX = foot->bounds_.boxMax.x;
         int shown = AllFootprintsShown() || (unit->flags_ & kFlagPrintsShown) ? 1 : 0;
         // The prototype's +0xB0 (valuesE0[0]) is the footprint scale (read unchecked: a unit without a
         // prototype faults here in the original too).

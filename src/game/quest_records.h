@@ -23,7 +23,7 @@ struct QuestRecord {
 
     stlp::string name;              // +0x00
     float exp;                      // +0x0C
-    std::uint32_t unknown_10;       // +0x10 (0 when loaded from the quests)
+    std::uint32_t field2;           // +0x10 archive field 2 (0 when loaded from the quests); nothing else reads it
     float money;                    // +0x14
     int zone;                       // +0x18 the zone index
     int order;                      // +0x1C
@@ -45,7 +45,7 @@ struct QuestBriefingRecord {
     float money;                    // +0x10
     CStringVector lists[6];         // +0x14 give items, remove items, give quests, complete quests, available zones, complete zones
     stlp::string text;              // +0x5C
-    std::uint32_t unknown_68;       // +0x68 (0 when loaded from the quests)
+    std::uint32_t field10;          // +0x68 archive field 10 (0 when loaded from the quests); nothing else reads it
 };
 static_assert(offsetof(QuestBriefingRecord, lists) == 0x14);
 static_assert(offsetof(QuestBriefingRecord, text) == 0x5C);

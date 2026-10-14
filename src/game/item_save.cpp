@@ -24,7 +24,7 @@ std::uint32_t StreamSlot(CStream* stream) { return static_cast<std::uint32_t>(re
 
 void CItem::Load(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    stream->Read(&unknown_18, kDword);
+    stream->Read(&prototypeId_, kDword);
     stream->Read(&condition_, kDword);
     stream->Read(&conditionMax_, kDword);
     stream->Read(&charge_, kDword);
@@ -32,7 +32,7 @@ void CItem::Load(void* data) {
     stream->Read(&chargeRate_, kDword);
     stream->Read(&weight_, kDword);
     stream->Read(&price_, kDword);
-    stream->Read(&unknown_3C, kDword);
+    stream->Read(&value3C_, kDword);
     CSpellManager* spells = static_cast<CWorld*>(ManagerContext())->SpellManager();
     std::uint32_t id = StreamSlot(stream);
     stream->Read(&id, kDword);
@@ -47,7 +47,7 @@ void CItem::Load(void* data) {
 
 void CItem::Save(void* data) {
     auto* stream = static_cast<CStream*>(data);
-    stream->Write(&unknown_18, kDword);
+    stream->Write(&prototypeId_, kDword);
     stream->Write(&condition_, kDword);
     stream->Write(&conditionMax_, kDword);
     stream->Write(&charge_, kDword);
@@ -55,7 +55,7 @@ void CItem::Save(void* data) {
     stream->Write(&chargeRate_, kDword);
     stream->Write(&weight_, kDword);
     stream->Write(&price_, kDword);
-    stream->Write(&unknown_3C, kDword);
+    stream->Write(&value3C_, kDword);
     std::int32_t spellId = spell_ != nullptr ? spell_->id_ : -1;
     stream->Write(&spellId, kDword);
     stream->Write(&count_, kDword);
@@ -65,7 +65,7 @@ void CItem::Save(void* data) {
 void CItemWeapon::Load(void* data) {
     auto* stream = static_cast<CStream*>(data);
     CItem::Load(stream);
-    stream->Read(&unknown_4C, kDword);
+    stream->Read(&actionValue_, kDword);
     stream->Read(&damage_, kDword);
     stream->Read(&damageSpread_, kDword);
     stream->Read(&reach_, kDword);
@@ -74,7 +74,7 @@ void CItemWeapon::Load(void* data) {
 void CItemWeapon::Save(void* data) {
     auto* stream = static_cast<CStream*>(data);
     CItem::Save(stream);
-    stream->Write(&unknown_4C, kDword);
+    stream->Write(&actionValue_, kDword);
     stream->Write(&damage_, kDword);
     stream->Write(&damageSpread_, kDword);
     stream->Write(&reach_, kDword);
@@ -97,13 +97,13 @@ void CItemArmor::Save(void* data) {
 void CItemQuick::Load(void* data) {
     auto* stream = static_cast<CStream*>(data);
     CItem::Load(stream);
-    stream->Read(&unknown_4C, kDword);
+    stream->Read(&actionValue_, kDword);
 }
 
 void CItemQuick::Save(void* data) {
     auto* stream = static_cast<CStream*>(data);
     CItem::Save(stream);
-    stream->Write(&unknown_4C, kDword);
+    stream->Write(&actionValue_, kDword);
 }
 
 void CItemQuest::Load(void* data) {

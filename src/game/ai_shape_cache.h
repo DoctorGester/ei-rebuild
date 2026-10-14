@@ -26,6 +26,7 @@ struct ShapeCacheHash {
 
 class __declspec(novtable) UnitShapeCache {
 public:
+    CRefObject* Get(void* handleIn);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FD58);
 
     // A node is {next, handle, shape}: 0x18 bytes.
@@ -42,7 +43,7 @@ public:
     // the nodes and the buckets freed.
     void Destruct();
 
-    std::uint32_t unknown_04;       // +0x04
+    std::uint32_t unused_04;       // +0x04
     Map shapes;                     // +0x08
 };
 static_assert(sizeof(UnitShapeCache::Map::Node) == 0x18);

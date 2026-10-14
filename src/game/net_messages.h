@@ -53,7 +53,7 @@ public:
     StringRep name_;             // +0x0C the player's name
     StringRep text_;             // +0x18
     std::uint8_t host_;          // +0x24 asks to host (honoured with a local client)
-    std::uint8_t unknown_25[3];
+    std::uint8_t unused_25[3];
     std::uint32_t state_;        // +0x28 4 when made; the player record's state
     std::int32_t id_;            // +0x2C -1 when made; the player record's id
     RefPtr binding_;             // +0x30 the server's binding for this login (not sent)
@@ -174,13 +174,13 @@ public:
     RefVector members_;              // +0x0C the party members (PartyMemberMessage)
     std::uint32_t money_;            // +0x18 the offered party's money (CParty::Money)
     std::uint8_t accepted_;          // +0x1C the partner's offer is accepted
-    std::uint8_t unknown_1D[3];
+    std::uint8_t unused_1D[3];
     std::uint32_t acceptedRevision_; // +0x20 the partner's revision accepted
     std::uint32_t revision_;         // +0x24 1 when made
     RefPtr player_;                  // +0x28 the offering player's record
     RefPtr partner_;                 // +0x2C the partner's record
     std::uint8_t trading_;           // +0x30 in a trade (server side; not sent)
-    std::uint8_t unknown_31[3];
+    std::uint8_t unused_31[3];
 };
 static_assert(offsetof(PartyMessage, money_) == 0x18);
 static_assert(offsetof(PartyMessage, accepted_) == 0x1C);
@@ -227,7 +227,7 @@ public:
     StringRep text_;             // +0x18
     std::uint32_t state_;        // +0x24 1 when made (from the login)
     std::uint8_t host_;          // +0x28 the hosting player
-    std::uint8_t unknown_29[3];
+    std::uint8_t unused_29[3];
     std::int32_t id_;            // +0x2C -1 when made (from the login)
     std::int32_t serial_;        // +0x30 from the counter at 0079B60C (not sent)
     std::int32_t number_;        // +0x34 the lowest number free when joining (not sent)
@@ -368,7 +368,7 @@ public:
     void Destruct();                            // 00416640
 
     std::uint16_t chunkCount_;   // +0x0C
-    std::uint16_t unknown_0E;
+    std::uint16_t unused_0E;
     std::int32_t size_;          // +0x10 bytes
     StringRep name_;             // +0x14
     RefVector chunks_;           // +0x20 the chunk messages (not sent)
@@ -395,7 +395,7 @@ public:
     RefPtr file_;                        // +0x0C the file message
     std::uint16_t index_;                // +0x10
     std::uint8_t data_[kDataSize];       // +0x12
-    std::uint8_t unknown_52[2];
+    std::uint8_t unused_52[2];
 };
 static_assert(offsetof(FileChunkMessage, index_) == 0x10);
 static_assert(offsetof(FileChunkMessage, data_) == 0x12);
@@ -443,7 +443,7 @@ public:
     RefPtr offer_;               // +0x14 PartyMessage
     RefPtr partnerOffer_;        // +0x18 PartyMessage
     std::uint8_t done_;          // +0x1C both sides accepted
-    std::uint8_t unknown_1D[3];
+    std::uint8_t unused_1D[3];
     std::uint32_t revision_;         // +0x20 the first offer's revision traded
     std::uint32_t partnerRevision_;  // +0x24 the second's
 };

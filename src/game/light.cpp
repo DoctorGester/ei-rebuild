@@ -39,10 +39,10 @@ CLight* CLight::Construct() {
     localRotation_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
     worldRotation_.SetIdentity();
     ei::SetVtable(this, kVtableAddress);
-    std::memset(&kind_, 0, offsetof(CLight, unknown_FC) - offsetof(CLight, kind_));
-    unknown_FC = 0;
-    unknown_E8 = 1.0f;
-    unknown_E4 = 1.0f;
+    std::memset(&kind_, 0, offsetof(CLight, unused_FC) - offsetof(CLight, kind_));
+    unused_FC = 0;
+    unused_E8 = 1.0f;
+    unused_E4 = 1.0f;
     // FSQRT of the double FLT_MAX (00743B48); the main thread's 24-bit precision rounds the root to
     // a float, and its square from there (2^128 - 2^105, one below FLT_MAX).
     const float root = RoundToFloat(std::sqrt(static_cast<double>(FLT_MAX)));
@@ -149,14 +149,14 @@ EI_REPLACE(0x0068CFB0, LightClassId);
 CLightFactory* CLightFactory::Construct() {
     ConstructBase();
     held_ = nullptr;
-    unknown_CC = 0;
+    unused_CC = 0;
     auto* sentinel = static_cast<stlp::list<int>::Node*>(stlp::allocate(sizeof(stlp::list<int>::Node)));
     sentinel->next = sentinel;
     sentinel->prev = sentinel;
     litIds_.head = sentinel;
-    std::memset(unknown_B0, 0, sizeof(unknown_B0));
+    std::memset(unused_B0, 0, sizeof(unused_B0));
     ei::SetVtable(this, kVtableAddress);
-    unknown_D0 = 1;
+    unused_D0 = 1;
     return this;
 }
 EI_REPLACE_METHOD(0x0068D850, CLightFactory::Construct);
@@ -165,7 +165,7 @@ void CLightFactory::Destruct() {
     ei::SetVtable(this, kVtableAddress);
     litIds_.ClearWith([](int*) {});
     stlp::deallocate(litIds_.head, sizeof(stlp::list<int>::Node));
-    unknown_CC = 0;
+    unused_CC = 0;
     if (held_) held_->Release();
     DestructBody();
 }

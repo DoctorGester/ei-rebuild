@@ -236,15 +236,13 @@ CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int botto
     return static_cast<CUiSurface*>(memory)->Construct(ui, left, top, right, bottom, 5, 1);
 }
 
-// Direct3D render states through the device's vtable (slot 20 Set, 21 Get).
+// Direct3D render states (Set fed to the renderer's mirror).
 void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
-    using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t);
-    reinterpret_cast<Fn>(device->vtable_[20])(device, state, value);
+    device->SetRenderState(static_cast<std::uint32_t>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 void GetRenderState(UiD3DDevice* device, int state, std::uint32_t* value) {
-    using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t*);
-    reinterpret_cast<Fn>(device->vtable_[21])(device, state, value);
+    device->GetRenderState(static_cast<std::uint32_t>(state), value);
 }
 
 // Layout constants (zone picture centre and size on the right half of the window).

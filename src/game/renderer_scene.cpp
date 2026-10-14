@@ -2,6 +2,7 @@
 // BeginScene (00503F40) with the frame statistics, slot 5 EndScene (005040A0) with the debug panel's
 // FPS and counts, slot 21 DrawTexture (00504860). The main loop (00458010) brackets each frame's
 // drawing with slots 4 and 5. The old Direct3D 7 path, kept as it is (docs/notes/renderer.md).
+#include "device.h"   // the old device's calls
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // CTextureDevice, CTexture
 
@@ -42,10 +43,10 @@ long Locked(CTextureDevice* device, Call call) {
 }
 
 long DeviceBeginScene(CTextureDevice* device) {
-    return Locked(device, [](IDirect3DDevice7* d3d) { return d3d->BeginScene(); });
+    return Locked(device, [](IDirect3DDevice7* d3d) { return device::BeginScene(d3d); });
 }
 long DeviceEndScene(CTextureDevice* device) {
-    return Locked(device, [](IDirect3DDevice7* d3d) { return d3d->EndScene(); });
+    return Locked(device, [](IDirect3DDevice7* d3d) { return device::EndScene(d3d); });
 }
 
 } // namespace
@@ -123,7 +124,7 @@ int CSceneRenderer::DrawTexture(CTexture* texture, float x, float y, float scale
     SetTexture(0, texture);
     CTextureDevice* device = device_;
     Locked(device, [&](IDirect3DDevice7* d3d) {
-        return d3d->DrawPrimitive(D3DPT_TRIANGLESTRIP, kTlVertexFormat, strip, 4, 0);
+        return device::DrawPrimitive(d3d, D3DPT_TRIANGLESTRIP, kTlVertexFormat, strip, 4, 0);
     });
     device->vertexCount_ += 4;
     device->primitiveCount_ += 1;

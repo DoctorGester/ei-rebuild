@@ -72,11 +72,11 @@ EI_VERIFY(0x005499F0, UpdateStateVerify, 0, s_unused);
 // 00546F30: ours only. The unit shows the queue's first step's kind (+0x25C), 1 when frozen, and
 // +0x260 tells whether a hit reaction holds the unit.
 static void __fastcall AdvanceAnimationVerify(CUnitServer* self) {
-    bool frozen = self->unknown_020 != 0;
-    bool held = self->unknown_021 != 0;
+    bool frozen = self->frozen != 0;
+    bool held = self->animationHeld != 0;
     self->AdvanceAnimation();
     const AnimationSteps& queue = Queue(self);
-    int kind = frozen ? 1 : (queue.count ? queue.steps[0].unknown_08 : 0);
+    int kind = frozen ? 1 : (queue.count ? queue.steps[0].kind : 0);
     bool ok = self->unit->motionMode == kind && self->unit->pathTimeShift == ((frozen || held) ? 1 : 0);
     ei::verify::Check("CUnitServer::AdvanceAnimation", true, ok, "unit %d, +25C %d (expected %d), +260 %d", UnitId(self),
                       self->unit->motionMode, kind, self->unit->pathTimeShift);
@@ -107,7 +107,7 @@ EI_VERIFY(0x00546B40, PopFinishedStepsVerify, 5, s_pop);
 static void __fastcall ShowCurrentStepVerify(CUnitServer* self) {
     self->ShowCurrentStep();
     const AnimationSteps& queue = Queue(self);
-    bool shown = queue.count && (queue.steps[0].animation != 0xFF || queue.steps[0].unknown_01 != 0xFF);
+    bool shown = queue.count && (queue.steps[0].animation != 0xFF || queue.steps[0].variant != 0xFF);
     bool ok = !shown || (static_cast<std::uint8_t>(self->unit->animationEntry) == queue.steps[0].animation &&
                          self->unit->animationStart == queue.extra);
     ei::verify::Check("CUnitServer::ShowCurrentStep", true, ok, "unit %d", UnitId(self));
@@ -152,7 +152,7 @@ static void __fastcall PlayHitReactionVerify(CUnitServer* self) {
     std::uint8_t reacting = self->keepHitDirection;
     self->PlayHitReaction();
     bool started = !reacting && self->keepHitDirection;
-    ei::verify::Check("CUnitServer::PlayHitReaction", true, !started || self->unknown_021 == 1, "unit %d", UnitId(self));
+    ei::verify::Check("CUnitServer::PlayHitReaction", true, !started || self->animationHeld == 1, "unit %d", UnitId(self));
 }
 EI_VERIFY(0x00547100, PlayHitReactionVerify, 0, s_unused);
 

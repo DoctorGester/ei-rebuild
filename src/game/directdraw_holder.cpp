@@ -121,7 +121,7 @@ std::uint32_t FirstVideoFormat(CTextureDevice* device, std::uint32_t caps) {
         desc.ddpfPixelFormat.dwFlags = DDPF_FOURCC;
         desc.ddpfPixelFormat.dwFourCC = fourCC;
         gameapi::EnterCriticalSection(device::Lock());
-        device->lastLoadResult_ = device::DDraw(device)->CreateSurface(&desc, &surface, nullptr);
+        device->lastLoadResult_ = device::CreateSurface(device::DDraw(device), &desc, &surface);
         gameapi::LeaveCriticalSection(device::Lock());
         if (surface) surface->Release();
         if (device->lastLoadResult_ == 0) return desc.ddpfPixelFormat.dwFourCC;
@@ -203,13 +203,13 @@ void CTextureDevice::CreateDirectDraw(GUID* driver) {
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E5CC));   // "Can't create IDirectDraw# object.\n"
     driver_ = driver;
     modes_.ClearWith([](DDSURFACEDESC2*) {});
-    lastLoadResult_ = device::DDraw(this)->EnumDisplayModes(0, nullptr, &modes_, &DisplayModeCallback);
+    lastLoadResult_ = device::EnumDisplayModes(device::DDraw(this), 0, nullptr, &modes_, &DisplayModeCallback);
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E5AC));   // "Can't enumerate display modes.\n"
 }
 EI_REPLACE_METHOD(0x004EEA90, CTextureDevice::CreateDirectDraw);
 
 void CTextureDevice::SetDisplayMode(int width, int height, int bitsPerPixel, int refreshRate) {
-    lastLoadResult_ = device::DDraw(this)->SetDisplayMode(
+    lastLoadResult_ = device::SetDisplayMode(device::DDraw(this), 
         static_cast<DWORD>(width), static_cast<DWORD>(height), static_cast<DWORD>(bitsPerPixel),
         static_cast<DWORD>(refreshRate), 0);
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E3D8));   // "Can't set display mode.\n"
@@ -218,7 +218,7 @@ EI_REPLACE_METHOD(0x004EEBC0, CTextureDevice::SetDisplayMode);
 
 void CTextureDevice::RestoreDisplayMode() {
     if (!(flags_ & DDSCL_FULLSCREEN)) return;
-    lastLoadResult_ = device::DDraw(this)->RestoreDisplayMode();
+    lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E47C));   // "Can't restore display mode.\n"
 }
 EI_REPLACE_METHOD(0x004EEC60, CTextureDevice::RestoreDisplayMode);
@@ -227,7 +227,7 @@ void CTextureDevice::SetCooperativeLevel(int fullScreen, const RECT* screen) {
     // "CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n"
     if (!window_) ThrowGameError(Text(0x0078E638));
     flags_ = fullScreen ? (DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE) : DDSCL_NORMAL;
-    lastLoadResult_ = device::DDraw(this)->SetCooperativeLevel(window_, flags_ | DDSCL_FPUSETUP | DDSCL_MULTITHREADED);
+    lastLoadResult_ = device::SetCooperativeLevel(device::DDraw(this), window_, flags_ | DDSCL_FPUSETUP | DDSCL_MULTITHREADED);
     // "pDD->SetCooperativeLevel: DDSCL_FPUSETUP | dwCooperativeLevelFlags.\n"
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E5F0));
     if (screen) screen_ = *screen;
@@ -301,7 +301,7 @@ EI_REPLACE_METHOD(0x004EEE30, CTextureDevice::CreateSurfaces);
 void CTextureDevice::DestructDirectDraw() {
     ei::SetVtable(this, 0x0073D770);
     if (flags_ & DDSCL_FULLSCREEN) {
-        lastLoadResult_ = device::DDraw(this)->RestoreDisplayMode();
+        lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
         if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E47C));   // "Can't restore display mode.\n"
     }
     if (converterLibrary_) gameapi::FreeLibrary(converterLibrary_);
@@ -367,7 +367,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
         ddraw_ = device::StartWithoutDirectDraw(width, height, bitsPerPixel);
         driver_ = driver;
         modes_.ClearWith([](DDSURFACEDESC2*) {});
-        device::DDraw(this)->EnumDisplayModes(0, nullptr, &modes_, &DisplayModeCallback);
+        device::EnumDisplayModes(device::DDraw(this), 0, nullptr, &modes_, &DisplayModeCallback);
         DeviceSetCooperativeLevelOriginal(this, nullptr, fullScreen, &screen);
         device::AssignHolder(primary_, NewScreenHolder(this, width, height, bitsPerPixel));
         device::AssignHolder(renderTarget_, NewScreenHolder(this, width, height, bitsPerPixel));
@@ -380,7 +380,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     DeviceCreateDirectDrawOriginal(this, nullptr, driver);
     DeviceSetCooperativeLevelOriginal(this, nullptr, fullScreen, &screen);
     if (fullScreen) {
-        lastLoadResult_ = device::DDraw(this)->SetDisplayMode(
+        lastLoadResult_ = device::SetDisplayMode(device::DDraw(this), 
             static_cast<DWORD>(width), static_cast<DWORD>(height), static_cast<DWORD>(bitsPerPixel),
             static_cast<DWORD>(refreshRate), 0);
         if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E3D8));   // "Can't set display mode.\n"
@@ -391,7 +391,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     // four-character-code formats) and one an overlay can have (when it has such overlays).
     DDCAPS caps = {};
     caps.dwSize = sizeof(caps);
-    device::DDraw(this)->GetCaps(&caps, nullptr);
+    device::GetCaps(device::DDraw(this), &caps, nullptr);
     overlayFourCC_ = 0;
     videoFourCC_ = 0;
     if (caps.dwCaps & DDCAPS_BLTFOURCC) videoFourCC_ = FirstVideoFormat(this, DDSCAPS_VIDEOMEMORY);

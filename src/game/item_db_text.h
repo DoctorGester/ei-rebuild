@@ -34,6 +34,9 @@ static_assert(sizeof(TextSourceList::Node) == 0x18);
 
 class CTextManager {
 public:
+    // 004DF770. The first word at the cursor (leading spaces and line ends skipped; it ends at a
+    // space, tab, CR or LF) into `out`; the cursor does not move. 0 when the cursor is at the end.
+    BOOL PeekWord(mfc::CString* out);
     using SourceNode = TextSourceList::Node;
 
     // 004E0000. Whether `p` is at or past the end of the current text (signed compare).
@@ -78,7 +81,7 @@ public:
     void Destruct();
     CTextManager* DeletingDestruct(unsigned flags);
 
-    std::uint8_t unknown_00[0x1C];
+    std::uint8_t unused_00[0x1C];
     TextSourceList sources_;   // +0x1C
     const char* cursor_;    // +0x20 read position in the current text
     const char* text_;      // +0x24 start of the current text (null: none)

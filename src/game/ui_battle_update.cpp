@@ -1,7 +1,6 @@
 // The battle screen's every-frame update (00638280, slot 24), its left button release (00638B30),
 // its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
-// item panel's unit (0063D2B0). See docs/notes/ui.md ("Ninth pass", "Fourteenth pass", "Fifteenth
-// pass").
+// item panel's unit (0063D2B0). See docs/notes/ui.md ("Battle screen").
 #include "item.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -160,8 +159,8 @@ static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
 // The unit panel's model view for the unit it now shows, copied from the prototype as dwords: the
 // size from `first`'s (+0x20), the height from the shown unit's (+0x24; the same unit).
 void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
-    std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->unknown_20, 4);
-    std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->unknown_24, 4);
+    std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->panelViewSize, 4);
+    std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
 void __fastcall ShowPanelUnit(CBattleScreenSetup* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, a3); }

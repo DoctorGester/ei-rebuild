@@ -53,7 +53,7 @@ struct LoginRequest {
     int version;
     char name[64];
     char password[64];
-    std::uint32_t value;   // the player's +0xFC
+    std::uint32_t partyId; // the player's partyId_ (+0xFC)
 };
 static_assert(sizeof(LoginRequest) == 0x88);
 
@@ -148,7 +148,7 @@ int CPlayerClient::Pump() {
         login.version = kLoginVersion;
         std::memcpy(login.name, TextLoginName(), std::strlen(TextLoginName()) + 1);
         std::memcpy(login.password, TextLoginPassword(), std::strlen(TextLoginPassword()) + 1);
-        login.value = Owner()->unknownFC_;
+        login.partyId = Owner()->partyId_;
         WriteByte(&out_, kRequestLogin);
         out_.Write(&login, sizeof(login));
         state_ = kStateLoggedIn;
@@ -486,7 +486,7 @@ int CPlayerClient::OnPathMarker() {
                 ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kPathParticles));
             pathSource = reinterpret_cast<CEngineObject*>(source);
             source->Attach(walker);
-            source->unknown_11C = value;
+            source->typeParam = value;
             if (kind == 0) source->alpha = 1.0f;
             else if (kind == 1) source->alpha = 0.0f;
             else if (kind == 2) source->alpha = 2.0f;
@@ -554,7 +554,7 @@ constexpr int kSessionClient = 3;
 struct NewObjectHeader {
     int id;
     int type;
-    std::uint32_t prototype;   // the object's unknown_18
+    std::uint32_t prototype;   // the object's prototypeId_
     std::uint32_t flags;
 };
 
@@ -642,7 +642,7 @@ int CPlayerClient::OnNewObject() {
     auto* figure = static_cast<CObject3D*>(created);
     *reinterpret_cast<mfc::CString*>(&object->name) = model;
     bool isUnit = created->GetClassId() == kClassUnitObject;
-    created->unknown_18 = header.prototype;
+    created->prototypeId_ = header.prototype;
     figure->SetFigureScale(&scale.x);
     std::memcpy(&object->baseScale, &scale, sizeof(scale));
     ObjectSlots(created)->ApplyBaseScale();
@@ -674,7 +674,7 @@ int CPlayerClient::OnNewObject() {
     if (Same(model, TextGoblin())) {
         RemovePartNamed(figure, TextAxePart());
         RemovePartNamed(figure, TextSwordPart());
-        bool pike = static_cast<int>(PrototypeRecord(created->unknown_18)->naturalWeapon) == kWeaponPike;
+        bool pike = static_cast<int>(PrototypeRecord(created->prototypeId_)->naturalWeapon) == kWeaponPike;
         RemovePartNamed(figure, pike ? TextPikePart() : TextSlingPart());
     }
     if (Same(model, TextWisp())) {
@@ -763,7 +763,7 @@ BOOL CPlayerClient::CreateClient() {
     partyUnitIds_.SetSize(0, -1);
     in_.Resize(0);
     out_.Resize(0);
-    unknown_84 = 0;
+    localSession_ = 0;
     sendParty_ = 0;
     compressor_.Reset();
     decompressor_.Reset();
@@ -780,7 +780,7 @@ void CPlayerClient::Clear() {
     partyUnitIds_.RemoveAll();
     in_.Resize(0);
     out_.Resize(0);
-    unknown_84 = 0;
+    localSession_ = 0;
     sendParty_ = 0;
     compressor_.Reset();
     decompressor_.Reset();
@@ -923,7 +923,7 @@ int CPlayerClient::OnPartyState() {
     }
     IntSetClearOriginal(PartyIdSet());
 
-    static_cast<CWorldClient*>(player->ManagerContext())->unknown6E4_ = ReadDword(&in_);
+    static_cast<CWorldClient*>(player->ManagerContext())->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);
     otherUnitIds_.SetSize(others);
     for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);

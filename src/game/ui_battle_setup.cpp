@@ -1,6 +1,5 @@
 // The battle screen's Create (slot 25 of 00740764, 00635250): the HUD panels as children, the
-// screen's saved state, the "pers" text table. See docs/notes/ui.md ("Camp, global map and battle
-// screen setup").
+// screen's saved state, the "pers" text table. See docs/notes/ui.md ("Battle screen").
 //
 // Several panel builders are Rebirth-patched (widescreen); every panel constructor and builder is
 // called through its original address.

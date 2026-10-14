@@ -31,7 +31,7 @@ struct UnitStream {
     virtual int Read(void* buffer, unsigned size) = 0;          // 1: nonzero when read
     virtual void Write(const void* buffer, unsigned size) = 0;   // 2
 
-    int unknown_04;
+    int reading;                        // +0x04 CStream::reading_ (its low byte)
     int version;            // +0x08
 };
 
@@ -97,10 +97,10 @@ struct PartyUnitRecord {
     void Save(CStream* stream);
 
     mfc::CString texts[7];          // +0x000 names (empty when constructed)
-    std::uint32_t unknown_01C;      // +0x01C saved and loaded
+    std::uint32_t unitId;               // +0x01C the unit's id (saved and loaded)
     std::uint8_t stats[0x724 - 0x20];   // +0x20 the unit's statistics (UnitStats)
-    float unknown_724;              // +0x724 0.8 when constructed
-    float unknown_728;              // +0x728 0.2 when constructed
+    float scaleX;                       // +0x724 the figure's scale: x (0.8 when constructed) ...
+    float scaleY;                       // +0x728 ... y (0.2 when constructed); height is z
     float height;                   // +0x72C the hero's height (1.0 when constructed; the hero screen shows it * 100)
     CEngineObject** weapons;        // +0x730
     std::uint32_t weaponCount;      // +0x734
@@ -118,18 +118,18 @@ struct PartyUnitRecord {
     std::uint32_t spellCount;       // +0x764
     int spellCapacity;              // +0x768
     int spellGrowBy;                // +0x76C
-    int unknown_770;                // +0x770 2 when constructed
+    int moveMode2;                      // +0x770 the unit's moveMode2 (2 when constructed)
     std::uint32_t weaponIndex;      // +0x774 the weapon shown in the camp (0 when constructed)
-    std::uint8_t unknown_778;       // +0x778 0 when constructed
-    std::uint8_t unknown_779[3];
-    int unknown_77C;                // +0x77C -1 when constructed
-    int unknown_780;                // +0x780 1 when constructed
+    std::uint8_t selected;              // +0x778 the unit is selected (flags_ bit 4; 0 when constructed)
+    std::uint8_t unused_779[3];
+    int leaderId;                       // +0x77C the unit it follows (-1 none, when constructed)
+    int fightAtWill;                    // +0x780 the unit's fightAtWill (1 when constructed)
 };
 static_assert(offsetof(PartyUnitRecord, stats) == 0x20);
-static_assert(offsetof(PartyUnitRecord, unknown_724) == 0x724);
+static_assert(offsetof(PartyUnitRecord, scaleX) == 0x724);
 static_assert(offsetof(PartyUnitRecord, height) == 0x72C);
 static_assert(offsetof(PartyUnitRecord, weaponIndex) == 0x774);
-static_assert(offsetof(PartyUnitRecord, unknown_780) == 0x780);
+static_assert(offsetof(PartyUnitRecord, fightAtWill) == 0x780);
 static_assert(sizeof(PartyUnitRecord) == 0x784);
 static_assert(offsetof(PartyUnitRecord, weapons) == 0x730);
 static_assert(offsetof(PartyUnitRecord, weaponCount) == 0x734);
@@ -145,13 +145,13 @@ struct PartyRecords {
     // 006621B0. The record of the unit with id `unitId`, or null (not rewritten).
     PartyUnitRecord* Find(int unitId);
 
-    std::uint8_t unknown_00[0x2C];
+    std::uint8_t unused_00[0x2C];
     // +0x2C an MFC CArray of the unit records (its vtable here, records / count its data / size;
     // 00664160 destroys it).
     void* recordArrayVtable;         // +0x2C
     PartyUnitRecord* records;        // +0x30
     int count;                       // +0x34
-    std::uint8_t unknown_38[0x40 - 0x38];
+    std::uint8_t unused_38[0x40 - 0x38];
     std::uint8_t array40[0x54 - 0x40];   // +0x40 an array (006643F0 destroys it)
     NamedFloatTable variables;       // +0x54 the party's variables ("zs.<zone>" visited, quests)
     char* zone;                      // +0x68 CString: the zone the party is in
@@ -171,7 +171,7 @@ struct UnitBodyPart {
     int state;                      // +0x00
     std::int16_t durability;        // +0x04
     std::uint16_t maxDurability;    // +0x06
-    std::uint8_t unknown_08[0x1C - 0x08];
+    std::uint8_t unused_08[0x1C - 0x08];
 };
 static_assert(sizeof(UnitBodyPart) == 0x1C);
 
@@ -186,7 +186,8 @@ class CUnit;
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
 // unit_client_models.h) for party units on the client; their abstract base has vtable 0073EDBC.
 // Slots declared `void Name()` keep their place in the order only (their real arguments are not
-// declared; give them their signature when calling them; docs/notes/drafts/DR-C2.md). The
+// declared; give them their signature when calling them; docs/notes/map_objects.md ("Virtual slot
+// names")). The
 // controller classes do not derive from this declaration (their rewritten slots are registered by
 // address); CUnit::Controller() reaches it. unit_ai.h's UnitController names fields of the same
 // objects.
@@ -267,6 +268,7 @@ static_assert(offsetof(CUnitController, unit_) == 0x1C);
 // unit's own slots 62-76 are not declared (CFakeUnit, 0073BFE8, shares the rewritten ones).
 class __declspec(novtable) CUnit : public CMapObject {
 public:
+    CEngineObject* CarriedItem(int index) const;
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073EA8C);
 
     // 0050E930. Called when the unit leaves the sector map; not rewritten (sector_map.cpp).
@@ -338,7 +340,7 @@ public:
     // 005307B0. Sum of +0x34 (weight) over all carried items.
     double TotalItemWeight();
 
-    // 00530930. The unit's prototype record (index unknown_18), or null.
+    // 00530930. The unit's prototype record (index prototypeId_), or null.
     char* GetPrototype();
     // 00530970. The record (0x168 bytes) the prototype's +0x08 indexes, or null.
     char* GetPrototypeModel();
@@ -482,7 +484,7 @@ public:
     // reset (0047FB70) and +0x438 = 1.
     void Reset();
 
-    // unit_create.cpp (fourth round).
+    // unit_create.cpp.
     // 00532AC0. After a hit: armour pieces and weapons whose condition (+0x20) rounds to 0 or
     // less leave their slots (armour: the controller's slot 27 with the type; weapons: message
     // 0x16 to the player, the slots above move down, the controller's slot 25 with -1 at the
@@ -490,10 +492,10 @@ public:
     // a player keep everything.
     void DropBrokenEquipment();
 
-    // unit_save.cpp (third round).
+    // unit_save.cpp.
     // 00531A80. Virtual slot 9 (Load): the map object part, the controller, the unit's name,
     // relations, player, movement fields, items by id (counted references), the carried items,
-    // and from version 0x4D the prototype names (unknown_18 / prototype23C).
+    // and from version 0x4D the prototype names (prototypeId_ / prototype23C).
     void LoadUnit(UnitStream* stream);
     // 005321C0. Virtual slot 10 (Save): the same fields in the same order (the active weapon
     // twice), items as ids (-1 for none), the prototype names as zero-terminated strings.
@@ -576,7 +578,7 @@ public:
 
     CUnitController* Controller() const { return static_cast<CUnitController*>(controller); }
     // The parameter block at +0x330 (the fields below repeat parts of it).
-    UnitParams* Params() { return reinterpret_cast<UnitParams*>(unknown_330); }
+    UnitParams* Params() { return reinterpret_cast<UnitParams*>(paramsHead); }
     // The unit as the map object it is (map_object.h).
     CMapObject* MapObject() { return this; }
     UnitMotion* Motion() { return reinterpret_cast<UnitMotion*>(motion); }
@@ -594,7 +596,7 @@ public:
     std::int8_t animationEntry;
     std::int8_t secondEntry;
     std::int8_t actionSound;        // +0x256 a hero's action sound (CUnitClientSpecific's sounds)
-    std::uint8_t unknown_257;
+    std::uint8_t unused_257;
     int animationStart;             // +0x258 the world tick the animation started at (+1 per paused tick)
     int motionMode;                 // +0x25C 0 plays, 1 paused (the start moves on), 2 scaled
     int pathTimeShift;              // +0x260 1: the client shifts its motion path's time each update
@@ -603,27 +605,27 @@ public:
     std::uint32_t activeWeapon;     // +0x26C slot of the weapon in use
     int pendingWeapon;              // +0x270 the weapon slot to take up (-1 none; TakeUpWeapon / ShowWeapon)
     int dead;                       // +0x274 (virtual slot 55 returns it; CUnitServer::SetDead)
-    std::uint32_t unknown_278;      // +0x278 ("large unit": slot 54 returns it)
+    std::uint32_t obstacle;             // +0x278 the unit blocks others on the sector map (slot 54 returns it)
     std::uint8_t motion[0xA4];      // +0x27C the unit's UnitMotion (ai_motion.h): Motion()
     float heightOffset;             // +0x320 height above the water surface (PlaceOnGround)
     int sizeClass;                  // +0x324 selects the 4-bit passability field in each AI map cell
     float unitRadius;               // +0x328 virtual slot 60 (Radius); 0.75 after Reset
     float standingHeight;           // +0x32C; deeper water or higher ground than (2 - height) * 16 blocks it
-    std::uint8_t unknown_330[0x33E - 0x330];
+    std::uint8_t paramsHead[0x33E - 0x330];// +0x330 the UnitParams block (Params()) starts here
     std::uint8_t attackRate;        // +0x33E (25 / value: see UnitParamsPeriod)
     std::uint8_t movementKind;      // +0x33F 2: moves on the water surface
     std::uint8_t modeSpeeds[4];     // +0x340 speed bytes of movement modes 3 (and 2's backward), 2, 1, 0
     std::uint8_t baseSpeed;         // +0x344
-    std::uint8_t unknown_345[0x374 - 0x345];
+    std::uint8_t paramsMiddle[0x374 - 0x345];// +0x345 more of the UnitParams block
     UnitBodyPart bodyParts[6];      // +0x374 as the unit panel shows them (00647B70)
-    std::uint8_t unknown_41C[0x438 - 0x41C];
-    int unknown_438;                // +0x438
-    std::uint32_t unknown_43C;
+    std::uint8_t paramsTail[0x438 - 0x41C];// +0x41C the end of the UnitParams block
+    int fightAtWill;                    // +0x438 1: a party unit attacks on its own (the move panel's flag; PlayerMode::UpdateCombat), 0 not
+    std::uint32_t altPassCosts;         // +0x43C set: path searches use the AI map's alternative cost table
     CEngineObject* weapons[4];      // +0x440
     CEngineObject* quickItems[4];   // +0x450
     CEngineObject* spells[8];       // +0x460
     CEngineObject* armor[7];        // +0x480
-    std::uint32_t unknown_49C;
+    std::uint32_t carriedVtable;        // +0x49C the vtable of the carried items' CArray
     CEngineObject** carried;        // +0x4A0 CArray of further items
     int carriedCount;               // +0x4A4
     int carriedCapacity;            // +0x4A8
@@ -640,7 +642,7 @@ static_assert(offsetof(CUnit, activeWeapon) == 0x26C);
 static_assert(offsetof(CUnit, sizeClass) == 0x324);
 static_assert(offsetof(CUnit, standingHeight) == 0x32C);
 static_assert(offsetof(CUnit, modeSpeeds) == 0x340);
-static_assert(offsetof(CUnit, unknown_438) == 0x438);
+static_assert(offsetof(CUnit, fightAtWill) == 0x438);
 static_assert(offsetof(CUnit, weapons) == 0x440);
 static_assert(offsetof(CUnit, armor) == 0x480);
 static_assert(offsetof(CUnit, carried) == 0x4A0);
@@ -651,10 +653,10 @@ static_assert(offsetof(CUnit, scriptName) == 0x238);
 static_assert(offsetof(CUnit, animationEntry) == 0x254);
 static_assert(offsetof(CUnit, pendingWeapon) == 0x270);
 static_assert(offsetof(CUnit, unitRadius) == 0x328);
-static_assert(offsetof(CUnit, unknown_278) == 0x278);
+static_assert(offsetof(CUnit, obstacle) == 0x278);
 static_assert(offsetof(CUnit, motion) == 0x27C);
-static_assert(offsetof(CUnit, unknown_330) == 0x330);
-static_assert(offsetof(CUnit, unknown_43C) == 0x43C);
+static_assert(offsetof(CUnit, paramsHead) == 0x330);
+static_assert(offsetof(CUnit, altPassCosts) == 0x43C);
 static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
 static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC) in 00512730
 
@@ -664,7 +666,7 @@ constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
 struct UnitParamsSlot {
     int type;                       // +0x00
     std::uint8_t vitalMask;         // +0x04
-    std::uint8_t unknown_05;
+    std::uint8_t unused_05;
     std::int16_t protection[7];     // +0x06 the three layers' absorb values summed, per damage type
     int kind;                       // +0x14
     std::int16_t current;           // +0x18
@@ -686,7 +688,7 @@ struct UnitParams {
     // type 8 skill 0 + +0x7B (+ the stat - 25); other types 0. Returned in ST0 unrounded.
     double WeaponSkillBonus(int type, const char* weapon);
 
-    std::uint8_t unknown_00[4];
+    std::uint8_t unused_00[4];
     int experience;                 // +0x04
     int unspentExperience;          // +0x08 experience + pending - spent
     std::uint8_t stat10;            // +0x0C
@@ -701,11 +703,11 @@ struct UnitParams {
     std::uint8_t damage;            // +0x1D (truncated)
     std::uint8_t damageSpread;      // +0x1E (truncated)
     std::uint8_t naturalWeapon;     // +0x1F
-    std::int16_t unknown_20;        // +0x20 7 after Reset
+    std::int16_t lastHitSource;         // +0x20 what last damaged the unit (7 after Reset; combat.cpp)
     std::uint8_t valuesB0[6];       // +0x22 UnitStats::valuesB0[i].current ([0] / [1]: the sight range by night / the
                                     //       percentage of it by day, VisionRange)
     std::uint8_t valuesE0[6];       // +0x28 UnitStats::valuesE0[i].current
-    std::uint8_t unknown_2E[2];
+    std::uint8_t unused_2E[2];
     UnitParamsSlot slots[6];        // +0x30
     std::uint8_t attributes[3];     // +0xD8
     std::uint8_t skills[8];         // +0xDB
@@ -747,22 +749,22 @@ inline const int* ArmourCoverage() { return reinterpret_cast<const int*>(0x0073E
 // One of the three protection layers of a body slot (0x48 bytes): what each of the seven damage
 // types loses to it.
 struct UnitStatLayer {
-    // 005236A0. Zeroes it but unknown_20. Returns 0 (EAX).
+    // 005236A0. Zeroes it but spareAbsorb. Returns 0 (EAX).
     int Reset();
 
-    int unknown_00;
+    int layerMask;                      // +0x00 the layer mask bits of the pieces added (AddArmourLayer)
     float absorb[7];                // +0x04 per damage type
-    float unknown_20[7];            // +0x20
+    float spareAbsorb[7];               // +0x20 zeroed by ClearOuterLayers only; nothing reads it
     int state;                      // +0x3C > 1: the layer is there
-    int unknown_40;
-    int unknown_44;
+    int spareA;                         // +0x40 zeroed by the builders; nothing reads it
+    int spareB;                         // +0x44 zeroed by the builders; nothing reads it
 };
 static_assert(sizeof(UnitStatLayer) == 0x48);
 
 // One of the six body slots of UnitStats (0xF4 bytes; 0 head, 1 body, 2/3 hands, 4/5 legs, as
 // the hit locations). Names provisional.
 struct UnitStatSlot {
-    // 00523600. Type 4, the rest 0 but the layers' unknown_20, unknown_EC and factor. Returns 0
+    // 00523600. Type 4, the rest 0 but the layers' spareAbsorb, share and factor. Returns 0
     // (EAX).
     int Reset();
 
@@ -772,7 +774,7 @@ struct UnitStatSlot {
     int kind;                       // +0xE0 0 unused, 1 severed, 2 disabled, 3 working (> 1: counts)
     float current;                  // +0xE4 its hit points
     float maximum;                  // +0xE8
-    float unknown_EC;
+    float share;                        // +0xEC the model slot's share of the hit points
     float factor;                   // +0xF0 its share of the unit's hit points
 };
 static_assert(sizeof(UnitStatSlot) == 0xF4);
@@ -804,7 +806,7 @@ struct UnitVitals {
     // (EAX).
     void* Pack(UnitVitalsPacked* out);
 
-    int unknown_00;
+    int builtFlags;                     // +0x00 bit 0 set when built from the prototype
     int regenTicks;                 // +0x04 counts 1..15
     float hitPoints;                // +0x08
     float maxHitPoints;             // +0x0C
@@ -1005,7 +1007,7 @@ struct UnitStats {
     // intelligence - 25. Unrounded (ST0).
     double SpellSchoolSkill(int school);
 
-    std::uint32_t unknown_000;
+    std::uint32_t builtFlags;           // +0x000 bit 0 set when built from the prototype
     float experience;               // +0x004
     float spentExperience;          // +0x008
     float stat10Base;               // +0x00C
@@ -1019,24 +1021,24 @@ struct UnitStats {
     float rateBase;                 // +0x02C 15, or dexterity * 0.2 + 10 for text-key units
     float rate;                     // +0x030 at least 1
     float modeSpeeds[4];            // +0x034
-    float unknown_044;              // +0x044 -2 for text-key units
-    float unknown_048;              // +0x048 the AI's peripheral sight range (005CA5A0)
-    float unknown_04C;              // +0x04C cos(90 degrees) from the builders (unit_create_stats.cpp)
+    float sightCone;                    // +0x044 cosine of half the sight angle (-2 for text-key units: all around)
+    float peripheralRange;              // +0x048 the AI's peripheral sight range (005CA5A0)
+    float sideCone;                     // +0x04C cos(90 degrees) from the builders; nothing reads it
     float load;                     // +0x050 carried weight
     float capacity;                 // +0x054
     float loadFactor;               // +0x058 LegsFactor when +0x60 is 1, else 1
     float armsFactor;               // +0x05C
-    int unknown_060;                // +0x060 1 has body slots; 2 no size classes (combat.h)
+    int movementKind;                   // +0x060 the model's: 1 legs (load factor), 2 on the water (no size classes)
     // +0x064..+0x0AF: the combat values (combat.h's CombatStats overlay names them too).
-    std::uint32_t unknown_064;      // +0x064 from the model (UnitModelRecord::unknown_44)
+    std::uint32_t modelField8;      // +0x064 from the model (UnitModelRecord::field8)
     std::int16_t sizeClass;         // +0x068 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
-    std::int16_t unknown_06A;
+    std::int16_t unused_06A;
     std::int16_t sizeClass20;       // +0x06C the same for 0.2 times the size
     std::int16_t sizeClass60;       // +0x06E and for 0.6 times the size
     float combat[5];                // +0x070 reach, attack, attack spread, defence, speed (the prototype's)
     float damage;                   // +0x084
     float damageSpread;             // +0x088
-    std::uint32_t unknown_08C;      // +0x08C from the prototype (UnitPrototypeRecord::unknown_5C)
+    std::uint32_t prototypeField12;      // +0x08C from the prototype (UnitPrototypeRecord::field12)
     float damageWeights[7];         // +0x090 the natural attack's, per damage type
     int naturalWeapon;              // +0x0AC weapon type of the natural attack (0x10: none / spells only)
     UnitStatPair valuesB0[6];       // +0x0B0
@@ -1180,18 +1182,18 @@ struct EffectParticle {
     int power;                  // +0x04 the effect's power byte
     CParticleSource* source;    // +0x08 counted; null when the effect has no lasting source
     std::uint8_t present;       // +0x0C set while the effect list is compared
-    std::uint8_t unknown_0D[3];
+    std::uint8_t unused_0D[3];
 };
 static_assert(sizeof(EffectParticle) == 0x10);
 
 // One looping effect sound record (CArray at +0x3C, 0x14 bytes).
 struct EffectSoundRecord {
     int kind;                   // +0x00 the effect type
-    int unknown_04;             // -1
+    int spareHandle;                    // +0x04 -1 when made; nothing reads it
     int handle;                 // +0x08 feeble mind's sound sequence, -1 none
     std::uint32_t timer;        // +0x0C ticks to the next stench sound
     std::uint8_t present;       // +0x10 set while the effect list is compared
-    std::uint8_t unknown_11[3];
+    std::uint8_t unused_11[3];
 };
 static_assert(sizeof(EffectSoundRecord) == 0x14);
 
@@ -1275,8 +1277,8 @@ public:
     // The owner (+0x1C) as the unit it is where the client reads hit points.
     CUnit* Unit() const { return static_cast<CUnit*>(owner); }
 
-    std::uint32_t unknown_20;   // +0x20 cleared by Create and Destroy
-    std::uint32_t unknown_24;
+    std::uint32_t lightStateA;          // +0x20 cleared by Construct, Create and Destroy; nothing reads it
+    std::uint32_t lightStateB;          // +0x24 the same
     EffectParticleArray particles;  // +0x28 the effect particles (SetSize 005121B0)
     EffectSoundArray sounds;        // +0x3C the looping effect sounds (SetSize 00512330)
     CEngineObject* light;           // +0x50 counted

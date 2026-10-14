@@ -48,9 +48,8 @@ void DeleteSector(SectorData* sector) {
 
 } // namespace
 
-TerrainSector* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
+SectorData* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
     if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
-    auto* fields = reinterpret_cast<terrain::TerrainFields*>(this);
     SectorCache::Node* node = sectorGrid[sx][sy];
     if (node) {
         SectorData* sector = node->data;
@@ -60,8 +59,8 @@ TerrainSector* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int creat
             sectorCache.AddHead(sector);
             sectorGrid[sx][sy] = sectorCache.head;
         }
-        if (create) sector->Ensure(wanted, fields);
-        return (sector->built & wanted) ? reinterpret_cast<TerrainSector*>(sector) : nullptr;
+        if (create) sector->Ensure(wanted, this);
+        return (sector->built & wanted) ? sector : nullptr;
     }
     if (!create) return nullptr;
 
@@ -82,12 +81,12 @@ TerrainSector* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int creat
             if (old) DeleteSector(old);
         }
     }
-    if (sector->Load(&archive, sx, sy, pages, perPage, textF8, fields)) {
+    if (sector->Load(&archive, sx, sy, pages, perPage, textF8, this)) {
         sector->lastUsed = frame;
         sectorCache.AddHead(sector);
         sectorGrid[sx][sy] = sectorCache.head;
-        sector->Ensure(wanted, fields);
-        return (sector->built & wanted) ? reinterpret_cast<TerrainSector*>(sector) : nullptr;
+        sector->Ensure(wanted, this);
+        return (sector->built & wanted) ? sector : nullptr;
     }
     if (sector) DeleteSector(sector);
     return nullptr;
@@ -409,8 +408,8 @@ struct MapMaterial {
     float opacity;
     float light;                    // +0x14 scales the colour
     float priority;                 // +0x18
-    float unknown_1C;
-    std::uint8_t unknown_20[0xC];   // not read
+    float warpSpeed;                // +0x1C (the name modding notes give it); copied, nothing reads it
+    std::uint8_t unused_20[0xC];    // not read
 };
 static_assert(sizeof(MapMaterial) == 0x2C);
 
@@ -522,7 +521,7 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
         material.colour.y = CappedAtOne(RoundToFloat(static_cast<double>(material.waveColour.y) * source.light));
         material.colour.z = CappedAtOne(RoundToFloat(static_cast<double>(source.light) * material.waveColour.z));
         material.priority = source.priority;
-        material.unknown_30 = source.unknown_1C;
+        material.warpSpeed = source.warpSpeed;
         material.level = 0.0f;
     }
 

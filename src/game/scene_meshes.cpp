@@ -4,7 +4,7 @@
 // its index in that table (+0x128, words); and the distinct (merged vertex, position) pairs, sorted
 // and padded to a multiple of four, go to +0x118 (two words each). The sets are MFC CMaps with the
 // game's hash functions; the sorts are the game's qsort with the original comparators. Names
-// provisional; see docs/notes/objects.md ("Fifth round").
+// provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "../lib/containers.h"

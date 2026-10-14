@@ -339,11 +339,11 @@ void CMpHeroScreen::Create() {
         };
         if (isModel(GameText(0x007908C8))) {   // "unhuma"
             label.Format(GameText(0x00792F14), static_cast<const char*>(male), static_cast<int>(maleVoices.size()) + 1);   // "%s %d"
-            AddFigure(maleVoices, men, prototype, label, creature()->unknown_5C != 0);
+            AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);
         }
         if (isModel(GameText(0x00792EA4))) {   // "unhufe"
             label.Format(GameText(0x00792F14), static_cast<const char*>(female), static_cast<int>(femaleVoices.size()) + 1);
-            AddFigure(femaleVoices, women, prototype, label, creature()->unknown_5C != 0);
+            AddFigure(femaleVoices, women, prototype, label, creature()->voiced != 0);
         }
     }
     // Both lists by name, the women's from the end.

@@ -28,8 +28,8 @@ namespace {
 
 void* NetworkLog() { return reinterpret_cast<void*>(flowdata::kNetLogStream); }
 
-// The player state's +0x24 (CPlayerServer::unknown24_): negative for the local players.
-bool IsLocal(const CPlayerServer* state) { return static_cast<int>(state->unknown24_) < 0; }
+// The player state's +0x24 (CPlayerServer::possessedId_): negative for the local players.
+bool IsLocal(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
@@ -104,10 +104,10 @@ int CWorldServer::Update() {
         static_cast<CWorldHandle*>(handle)->Pump();
         AcceptPlayers(this, nullptr, shared5C_.ptr);
     }
-    if (void* pending = unknown60_) {
+    if (void* pending = netSession_) {
         net::ServerSession* server = net::GameServer();
         if (server && !(server->flags7_ & CRefCounted::kDetached)) SessionPump(pending, nullptr, server);
-        AcceptPlayers(this, nullptr, unknown60_);
+        AcceptPlayers(this, nullptr, netSession_);
     }
 
     if (!paused_) {

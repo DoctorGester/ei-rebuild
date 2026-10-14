@@ -33,20 +33,20 @@ class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
 struct MapEffect {
     std::uint8_t type;              // +0x00
     std::uint8_t power;             // +0x01
-    std::uint8_t unknown_02[2];
+    std::uint8_t unused_02[2];
     int ticksLeft;                  // +0x04 counted down once per world update; removed at 0
     std::uint32_t value;            // +0x08 a float (EffectValue) or a sound handle
-    std::uint32_t unknown_0C;
+    std::uint32_t strength;         // +0x0C a float (saved; Rebirth compares it, map_object.cpp)
     std::uint8_t ending;            // +0x10 the client plays no end sound when set
-    std::uint8_t unknown_11[3];
+    std::uint8_t unused_11[3];
 
-    // 00688510 (spell_lifetime.cpp): type, power, ticksLeft, value and ending cleared (unknown_0C
+    // 00688510 (spell_lifetime.cpp): type, power, ticksLeft, value and ending cleared (strength
     // not). Returns this.
     MapEffect* Construct();
     // 00688530 (spell_lifetime.cpp, A-H25; the server object's update). One tick less; whether
     // any are left (0 / 1).
     int Tick();
-    // 00688550 / 006885A0 (spell_save.cpp; RET 4): type, power, ticksLeft, value and unknown_0C,
+    // 00688550 / 006885A0 (spell_save.cpp; RET 4): type, power, ticksLeft, value and strength,
     // read or written one by one (`ending` is not saved).
     void Load(CStream* stream);
     void Save(CStream* stream) const;
@@ -59,8 +59,8 @@ struct UnitVitalsPacked {
     // 005233B0. Zeroes it. Returns 0 (EAX).
     int Reset();
 
-    std::uint8_t unknown_00;
-    std::uint8_t unknown_01;
+    std::uint8_t spare00;           // +0x00 0 after Reset; nothing reads it
+    std::uint8_t unused_01;
     std::int16_t hitPoints;         // +0x02
     std::int16_t maxHitPoints;      // +0x04
     std::uint16_t mana;             // +0x06 (read unsigned)
@@ -90,7 +90,7 @@ struct LockKey;      // unit.h
 // not declared; name them properly when calling them). The rewritten slots that are declared here
 // are registered through __fastcall hooks (rewrite guide rule 4); the others are members of another
 // name registered by address (IsInvisible for slot 21, ResetScale for 30, ...), or the shared stub
-// bodies of map_object_stub_slots.cpp. Names and evidence: docs/notes/drafts/DR-C2.md.
+// bodies of map_object_stub_slots.cpp. Names and evidence: docs/notes/map_objects.md ("Virtual slot names").
 class __declspec(novtable) CMapObject : public CObject3D {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DAA0);
@@ -331,7 +331,9 @@ public:
     // name +0xA4 (the prototype name for units), scale +0xC4, bounds centre +0x128 (GroundPoint),
     // radius +0x134, half box `above` +0x144).
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
-    int unknown_174;                // +0x174 (5 after Create)
+    // +0x174 world updates until the object's effects are next looked at (5 after Create; the
+    // server world's update map sets it, world_units.cpp / world_server.cpp).
+    int updateCountdown;
     float animationSpeed;           // +0x178 the animation's speed factor (CUnit::animationSpeed; 1 after Create)
     UnitVitalsPacked packedVitals;  // +0x17C hit points +0x17E, maximum +0x180, mana +0x182, maximum +0x184
     void* effectsVtable;            // +0x194 \ CArray<MapEffect> (vtable 0073DBA0; SetSize 0050FE70)
@@ -348,7 +350,7 @@ public:
     // and two memory streams at +0x1E8 / +0x210); NetState(). Its mask is changedParts.
     std::uint8_t netState[0x1DC - 0x1C4];
     std::uint16_t changedParts;     // +0x1DC bit per part changed (MarkChanged)
-    std::uint8_t unknown_1DE[0x238 - 0x1DE];   // two memory streams at +0x1E8 and +0x210
+    std::uint8_t unused_1DE[0x238 - 0x1DE];    // two memory streams at +0x1E8 and +0x210
 };
 static_assert(sizeof(CObject3D) == 0x170);
 static_assert(offsetof(CMapObject, companion) == 0x170);

@@ -259,7 +259,8 @@ function render(data) {
     ['Byte-offset arithmetic', 'byte_arithmetic'], ['Raw game addresses', 'raw_addresses'],
     ['Placeholder virtuals (SlotNN)', 'slot_placeholders'], ['*At view structs', 'at_views'],
     ['Per-file Array / List containers', 'container_structs'], ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
-    ['Hand-written vector maths', 'vector_maths'], ['Forwarder sites', 'forwarder_sites'],
+    ['Hand-written vector maths', 'vector_maths'], ['Unknown fields (unknown_XXX)', 'unknown_fields'],
+    ['Forwarder sites', 'forwarder_sites'],
     ['Functions forwarded from several files', 'forwarded_from_several_files'],
     ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control']];
   const peakRows = (group, rows) => rows.map(([name, key]) => {
@@ -310,6 +311,8 @@ function render(data) {
                   { name: 'Per-file containers (all kinds)', color: good, get: p => p.cleanup.container_structs == null && p.cleanup.vector_map_set_structs == null ? null : (p.cleanup.container_structs || 0) + (p.cleanup.vector_map_set_structs || 0) },
                   { name: '*At view structs', color: muted, get: p => p.cleanup.at_views }],
       { title: 'Cleanup: types', note: 'Vector maths outside vecmath.h, unnamed virtuals and per-file container layouts.' }),
+    lineChart(h, [{ name: 'Unknown fields', color: accent, get: p => p.cleanup.unknown_fields }],
+      { title: 'Cleanup: unknown fields', note: 'Members still named unknown_XXX; each becomes a real name or unused_XXX (tickets F1-F5).' }),
     lineChart(h, [{ name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
                   { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
       { title: 'Cleanup: x87', note: 'Inline assembly and precision pragmas, mostly kept for bit-exact x87 maths until the standalone build.' }),

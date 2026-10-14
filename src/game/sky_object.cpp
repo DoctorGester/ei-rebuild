@@ -36,21 +36,21 @@ int CSkyObject::GetClassId() { return kClassId; }
 
 CSkyObject* CSkyObject::Construct() {
     ConstructBase();
-    unknown_98 = 0;
+    figureOwner_ = 0;
     new (&name_) mfc::CString();
-    new (&unknown_124) mfc::CString();
-    unknown_128.Construct();
+    new (&directory_) mfc::CString();
+    offsets_.Construct();
     diffuse_.Construct();
     specular_.Construct();
-    std::memset(unknown_188, 0, sizeof(unknown_188));
+    std::memset(bounds_, 0, sizeof(bounds_));
     ei::SetVtable(this, kFigureVtableAddress);
     Create();
     vertices_.Construct();
     normals_.Construct();
-    unknown_1E0.Construct();
-    unknown_1F0.Construct();
-    unknown_200.Construct();
-    unknown_210.Construct();
+    corners_.Construct();
+    words_.Construct();
+    indices_.Construct();
+    texCoords_.Construct();
     distances_.Construct();
     ei::SetVtable(this, kVtableAddress);
     Create();
@@ -60,10 +60,10 @@ EI_REPLACE_METHOD(0x004D9110, CSkyObject::Construct);
 
 void CSkyObject::Destruct() {
     distances_.FreeData();
-    unknown_210.FreeData();
-    unknown_200.FreeData();
-    unknown_1F0.FreeData();
-    unknown_1E0.FreeData();
+    texCoords_.FreeData();
+    indices_.FreeData();
+    words_.FreeData();
+    corners_.FreeData();
     normals_.FreeData();
     vertices_.FreeData();
     FigureDestructBodyOriginal(this);

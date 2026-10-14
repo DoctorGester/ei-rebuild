@@ -35,7 +35,7 @@ import argparse, collections, concurrent.futures, contextlib, glob, json, msvcrt
 import prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUILD = os.path.join(ROOT, 'build', 'verify')
+BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
 LAUNCH = os.path.join(BUILD, 'ei_launch.exe')
 RUNS = os.path.join(BUILD, 'runs')
 # Each run's seconds from the last suite: the longest start first, so the last games to finish are
@@ -51,25 +51,66 @@ MACHINE_SLOTS = int(os.environ.get('EI_HARNESS_SLOTS', '16'))
 SLOT_DIR = os.path.join(tempfile.gettempdir(), 'ei_harness_slots')
 
 
+def _lock(path):
+    """Takes the one-byte lock on path without waiting; the open file, or None if another holds it."""
+    f = open(path, 'a+b')
+    try:
+        msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        return f
+    except OSError:
+        f.close()
+        return None
+
+
+def _unlock(f):
+    f.seek(0)
+    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+    f.close()
+
+
 @contextlib.contextmanager
-def machine_slot():
+def machine_slot(alone=False):
+    """One of the machine's MACHINE_SLOTS game slots (shared by every checkout's run_all), or all of
+    them (alone): for a game that sets the display mode, which takes the surfaces of every other
+    game running then (they fail with DDERR_SURFACELOST: "Can't begin scene", untextured models).
+    Games that want all the slots queue on one more lock, so two of them never split the slots."""
     os.makedirs(SLOT_DIR, exist_ok=True)
-    while True:
-        for i in range(MACHINE_SLOTS):
-            f = open(os.path.join(SLOT_DIR, f'slot{i:02}'), 'a+b')
-            try:
-                msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
-            except OSError:
-                f.close()
-                continue
-            try:
-                yield
-            finally:
-                f.seek(0)
-                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
-                f.close()
-            return
-        time.sleep(0.5)
+    held = []
+    gate = None
+    try:
+        if alone:
+            while not (gate := _lock(os.path.join(SLOT_DIR, 'alone'))):
+                time.sleep(0.5)
+        else:
+            # A game waiting for all the slots holds the gate; others take no new slot meanwhile,
+            # or freed slots go to them first and it starves (35 minutes once with four suites).
+            while not (probe := _lock(os.path.join(SLOT_DIR, 'alone'))):
+                time.sleep(0.5)
+            _unlock(probe)
+        while True:
+            for i in range(MACHINE_SLOTS):
+                if alone and i in [h[0] for h in held]:
+                    continue
+                f = _lock(os.path.join(SLOT_DIR, f'slot{i:02}'))
+                if f:
+                    held.append((i, f))
+                    if not alone:
+                        break
+            if len(held) == (MACHINE_SLOTS if alone else 1):
+                break
+            time.sleep(0.5)
+        yield
+    finally:
+        for _, f in held:
+            _unlock(f)
+        if gate:
+            _unlock(gate)
+
+
+def sets_display_mode(scenario):
+    """Whether a scenario sets the display mode (a `resolution` step): it runs with no other game."""
+    with open(scenario, encoding='cp1251', errors='replace') as f:
+        return any(re.match(r'\s*resolution\b', line) for line in f)
 
 
 # A game window that had the foreground (Windows hands it to another game when the one in front
@@ -121,7 +162,7 @@ def run_once(name, install, hooks, folder=None, clock=None):
         cmd.append('--no-hooks')
     if clock:
         env = dict(env or os.environ, EI_HARNESS_CLOCK=clock)
-    with machine_slot():
+    with machine_slot(alone=sets_display_mode(scenario)):
         start = time.time()
         proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env)
         seconds = time.time() - start

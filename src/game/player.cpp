@@ -1,6 +1,6 @@
 // A world player (CPlayer, vtable 00743104; 00664BF0-00665D20): constructor and destructor,
-// Create / Destroy, Clear, the link and connection, the given items and the units. See player_messages.h and docs/notes/items_spells.md
-// ("Players").
+// Create / Destroy, Clear, the link and connection, the given items and the units. See player_messages.h
+// and docs/notes/objects.md ("Players").
 #include "player_messages.h"
 
 #include "item.h"
@@ -47,7 +47,7 @@ CPlayer* CPlayer::Construct() {
     maxTimedId_ = 0;
     Party()->Construct();
     InitList(items_, kItemListVtable);
-    unknownFC_ = 0;
+    partyId_ = 0;
     InitList(objects_, kRechargeListVtable);
     ei::SetVtable(this, kVtableAddress);
     connection_ = nullptr;
@@ -59,14 +59,14 @@ CPlayer* CPlayer::Construct() {
     Party()->Create();
     dirty_ = 0;
     playerId_ = -1;
-    unknown_108 = 0;
+    godMode_ = 0;
     if (link_ != nullptr) link_->Disconnect();
     // (The original lets RefPtr::Assign(null) release the link, which is null here.)
     link_ = nullptr;
     SetConnection(nullptr);
-    unknown_110 = -1;
+    lastTick_ = -1;
     sessionKind100_ = 0;
-    unknown_104 = 0;
+    lastScreen_ = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00664BF0, CPlayer::Construct);
@@ -124,7 +124,7 @@ void CPlayer::DestroyPlayer() {
     Party()->Create();
     dirty_ = 0;
     playerId_ = -1;
-    unknown_108 = 0;
+    godMode_ = 0;
     if (link_ != nullptr) link_->Disconnect();
     netlink::NetLink* link = link_;
     link_ = nullptr;
@@ -133,10 +133,10 @@ void CPlayer::DestroyPlayer() {
         connection_->player_ = nullptr;
         connection_->Release();
     }
-    unknown_110 = -1;
+    lastTick_ = -1;
     connection_ = nullptr;
     sessionKind100_ = 0;
-    unknown_104 = 0;
+    lastScreen_ = 0;
 }
 EI_REPLACE_METHOD(0x006650E0, CPlayer::DestroyPlayer);
 EI_REPLACE_METHOD(0x00665380, CPlayer::DestroyPlayer);
@@ -221,7 +221,7 @@ EI_REPLACE_METHOD(0x006651D0, CPlayer::ForgetKnownObjects);
 BOOL CPlayer::IsLeader(const CEngineObject* unit) {
     const PartyMemberArray& members = Party()->members_;
     if (members.size == 0 || unit == nullptr) return 0;
-    return static_cast<std::uint32_t>(unit->id_) == members.data[0].unknown_01C;
+    return static_cast<std::uint32_t>(unit->id_) == members.data[0].unitId;
 }
 EI_REPLACE_METHOD(0x00665440, CPlayer::IsLeader);
 

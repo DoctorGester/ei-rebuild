@@ -78,7 +78,7 @@ void CWorldServer::UpdateMercBriefings() {
 
             bool inParty = false;
             for (int i = 0; i < player->mercCount; ++i) {
-                if (MercRecord(player, i).unknown_01C == key) {
+                if (MercRecord(player, i).unitId == key) {
                     inParty = true;
                     break;
                 }
@@ -285,7 +285,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     mfc::CString script;
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     CommandQueueAdd(commandsA_, nullptr, &script, 1);
-    if (unknown12D64_ == kKindNoRangeTest)
+    if (sessionKind_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());
 }
 
@@ -392,7 +392,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     ShareList list{reinterpret_cast<void*>(worlddata::kShareListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
     auto soloUnit = [&](WorldPlayer* p) -> CEngineObject* {
         if (!p->server || p->mercCount != 1) return nullptr;
-        return WorldFindUnit(world, nullptr, static_cast<int>(MercRecord(p, 0).unknown_01C));
+        return WorldFindUnit(world, nullptr, static_cast<int>(MercRecord(p, 0).unitId));
     };
 
     float total = 0.0f;
@@ -468,7 +468,7 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
             DataGainExperience(ControllerOf(unit), nullptr, share);
             for (int j = 0; j < player->mercCount; ++j) {
                 PartyUnitRecord& record = MercRecord(player, j);
-                if (static_cast<int>(record.unknown_01C) == heroes.data[i]) UnitStatsAddExperience(reinterpret_cast<UnitStats*>(record.stats), nullptr, share);
+                if (static_cast<int>(record.unitId) == heroes.data[i]) UnitStatsAddExperience(reinterpret_cast<UnitStats*>(record.stats), nullptr, share);
             }
         }
         StatePartyExperience(player->server, nullptr, share);
@@ -605,7 +605,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
     for (int i = 0; i < player->mercCount; ++i) RecordArraySetAtGrow(&list, nullptr, list.size, &MercRecord(player, i));
     for (int i = 0; i < list.size; ++i) {
         auto* record = reinterpret_cast<PartyUnitRecord*>(list.data[i]);
-        CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
+        CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
         if (!unit || ObjectSlots(unit)->IsDead() != 0) continue;
         SyncRecord(party, record, unit);
     }
@@ -659,11 +659,11 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
     for (int slot = 0; slot < kSpellSlots; ++slot)
         if (CEngineObject* spell = UnitSpell(static_cast<CUnit*>(unit), nullptr, slot)) AddToRecord(party, record, spell, RecordAddSpell);
     ControllerStoreStats(controller, nullptr, record->stats);
-    if (world->unknown12D64_ == 1) {
-        record->unknown_770 = unit->moveMode2;
+    if (world->sessionKind_ == 1) {
+        record->moveMode2 = unit->moveMode2;
         record->weaponIndex = unit->activeWeapon;
     }
-    record->unknown_780 = unit->unknown_438;
+    record->fightAtWill = unit->fightAtWill;
     RecordStatsFinish(record->stats, nullptr);
 }
 
@@ -673,18 +673,18 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
     auto* list = static_cast<RecordPtrArray*>(recordsArg);
     auto* party = static_cast<CParty*>(partyRecords);
     auto* placements = static_cast<PlacementArray*>(placementsArg);
-    if (unknown12D64_ == 1) {
+    if (sessionKind_ == 1) {
         // Each record remembers whom its unit follows (-1: nobody).
         for (int i = 0; i < list->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
-            CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
+            CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
             CEngineObject* leader = BrainLeaderOrFollowedOriginal(&ControllerOf(unit)->brain);
-            record->unknown_77C = leader ? leader->id_ : -1;
+            record->leaderId = leader ? leader->id_ : -1;
         }
     }
     for (int i = 0; i < list->size; ++i) {
         auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
-        CEngineObject* found = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
+        CEngineObject* found = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
         if (!found) continue;
         auto* unit = static_cast<CUnit*>(found);
         if (placements) {
@@ -704,18 +704,18 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
 
 void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     if (!player) return;
-    if (unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
-    if (unknown12D64_ != kKindNetwork) {
+    if (sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
+    if (sessionKind_ != kKindNetwork) {
         StorePlayerItemsOriginal(this, nullptr, player, PartyOf(player));
         StateBeforeZoneChange(player->server, nullptr);
     }
-    if (!(unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) || unknown15C_ == 0) return;
+    if (!(sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
     RecordPtrArray list{reinterpret_cast<void*>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
     // Records whose unit is gone (or dead, outside a network client game) are dropped (the
     // inlined CArray::RemoveAt).
     for (int i = 0; i < player->mercCount; ++i) {
-        CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(MercRecord(player, i).unknown_01C));
+        CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(MercRecord(player, i).unitId));
         if (unit && (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient())) continue;
         int following = player->mercCount - i - 1;
         UnitRecordDestruct(&MercRecord(player, i), nullptr);

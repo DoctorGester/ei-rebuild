@@ -235,7 +235,7 @@ void SetupFireworks(CParticleSource* s) {
         SetElementDword(s, i, 0x30, 0);
     }
     SetCallbacks(s, 0x0048A8F0, 0x0048ADA0, 0x0048AEC0);
-    SetBits(&s->unknown_150, 1);
+    SetBits(&s->additiveBlend, 1);
 }
 
 // Tornado (0x200A) and CurseHolder (0x2050): six rings stacked 2.4 apart.
@@ -334,7 +334,7 @@ void SetupFalling(CParticleSource* s) {
 
 // ClayRing (0x2018): ten points on a circle around the source's (reset) position.
 void SetupClayRing(CParticleSource* s) {
-    SetBits(&s->unknown_150, 1);
+    SetBits(&s->additiveBlend, 1);
     s->emitCount = 80;
     s->lifetime = 15;
     s->frameDelay = 2;
@@ -399,7 +399,7 @@ void SetupPortal(CParticleSource* s) {
     s->frameDelay = 3;
     SetCallbacks(s, 0x00494470, 0x00494770, 0x00494930);
     SetElementCount(s, 1);
-    SetBits(&s->unknown_150, 1);
+    SetBits(&s->additiveBlend, 1);
 }
 
 // Casting circles (0x203F, 0x2040): two elements with a countdown of 100.
@@ -415,7 +415,7 @@ void SetupCastingCircle(CParticleSource* s) {
 
 // FeetCloud1/2 (0x204A blue, 0x204B red): two elements, one per foot.
 void SetupFeetCloud(CParticleSource* s) {
-    SetBits(&s->unknown_150, 1);
+    SetBits(&s->additiveBlend, 1);
     s->emitCount = 8;
     s->flags_ |= 3;
     s->maxParticles = 300;
@@ -480,7 +480,7 @@ const char* SetupType(CParticleSource* s) {
         return "Vulkan";
     case 0x2006:        // Healing
         s->flags_ |= 2;
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         s->emitCount = 0x7FFFFFFF;
         s->lifetime = 8;
         s->frameDelay = 1;
@@ -540,7 +540,7 @@ const char* SetupType(CParticleSource* s) {
         s->frameDelay = 1;
         s->size = 0.3f;
         s->growth = 1.03f;
-        SetBits(&s->unknown_12C, 0);
+        SetBits(&s->emitState, 0);
         SetCallbacks(s, 0x0048CBA0, 0x0048CED0, 0);
         return type == 0x204E ? "RikArrowSmoke" : "FireArrowSmoke";
     case 0x2012:
@@ -577,7 +577,7 @@ const char* SetupType(CParticleSource* s) {
         return "Link";
     case 0x2015: case 0x2016: case 0x2017: case 0x201A:   // protection spheres, AntiMagic
         s->flags_ |= 2;
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         s->emitChance = 90;
         s->emitCount = 1;
         s->lifetime = type == 0x201A ? 4 : 15;
@@ -625,7 +625,7 @@ const char* SetupType(CParticleSource* s) {
         s->emitCount = 6;
         s->frameDelay = 1;
         s->attachPoint = 2;
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         return "Casting4";
     case 0x202B: case 0x202C: case 0x202D: case 0x202E:
         s->flags_ |= 3;
@@ -665,7 +665,7 @@ const char* SetupType(CParticleSource* s) {
         s->frameDelay = 1;
         s->size = 1.0f;
         SetCallbacks(s, 0x004923B0, 0x00492B80, 0x00492CC0);
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         return "TendriLight";
     case 0x2034: case 0x2035: case 0x2036: case 0x2037:
         SetupFalling(s);
@@ -674,7 +674,7 @@ const char* SetupType(CParticleSource* s) {
         s->emitCount = 10;
         s->maxParticles = 600;
         s->alpha = 5.0f;
-        s->unknown_11C = 5.0f;
+        s->typeParam = 5.0f;
         s->flags_ |= 0x21;
         SetCallbacks(s, 0x00492D30, 0x00492F40, 0x00492FB0);
         return "ZoneExit";
@@ -711,7 +711,7 @@ const char* SetupType(CParticleSource* s) {
         s->lifetime = 15;
         return type == 0x2041 ? "FireArrowSmoke" : "AcidRay";
     case 0x2043:        // Sparks
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 7;
         s->emitCount = 10;
@@ -720,7 +720,7 @@ const char* SetupType(CParticleSource* s) {
         return "Casting6";
     case 0x2044: case 0x2045: case 0x2046: case 0x204C:
         s->flags_ |= 0x13;
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         s->attachPoint = 2;
         s->emitCount = 3;
         SetCallbacks(s, 0x00494E00, 0x00494F30, 0x004950A0);
@@ -730,14 +730,14 @@ const char* SetupType(CParticleSource* s) {
         else s->lifetime = 3;
         return "Stun";
     case 0x2047:
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 7;
         s->emitCount = 2;
         SetCallbacks(s, 0x004950B0, 0x00495120, 0x00495310);
         return "Stun";
     case 0x2048:
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 7;
         s->emitCount = 4;
@@ -745,7 +745,7 @@ const char* SetupType(CParticleSource* s) {
         SetCallbacks(s, 0x00495320, 0x004955D0, 0x004957D0);
         return "Stun";
     case 0x2049:        // FeebleMind
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 1;
         s->emitCount = 5;
@@ -756,7 +756,7 @@ const char* SetupType(CParticleSource* s) {
         SetupFeetCloud(s);
         return "VisionFog";
     case 0x204D:
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 0;
         s->emitCount = 1;
@@ -764,7 +764,7 @@ const char* SetupType(CParticleSource* s) {
         SetCallbacks(s, 0x00495FB0, 0x004961B0, 0x00496260);
         return "Stun";
     case 0x204F:
-        SetBits(&s->unknown_150, 1);
+        SetBits(&s->additiveBlend, 1);
         s->flags_ |= 0x13;
         s->attachPoint = 7;
         s->emitCount = 8;
@@ -831,7 +831,7 @@ void CParticleSource::Reset() {
     updateFn = nullptr;
     elementFn = nullptr;
     SetBits(&windStrength, 0);
-    SetBits(&unknown_150, 0);
+    SetBits(&additiveBlend, 0);
     if (elements) {
         gamecrt::operator_delete(reinterpret_cast<void**>(elements)[-1]);
         elements = nullptr;
@@ -839,18 +839,18 @@ void CParticleSource::Reset() {
     elementCapacity = 0;
     elementCount = 0;
     alpha = 1.0f;
-    unknown_11C = 1.0f;
+    typeParam = 1.0f;
     size = 1.0f;
     baseSize = 1.0f;
     std::memset(&spreadMin, 0, sizeof(Vector3));
     std::memset(&spreadMax, 0, sizeof(Vector3));
-    SetBits(&unknown_12C, 0);
+    SetBits(&emitState, 0);
     SetBits(&height, 0);
     SetBits(&growth, 0);
     attachPoint = 0;
     hiddenTicks = 0;
-    SetBits(&unknown_120, 0);
-    SetBits(&unknown_124, 0);
+    SetBits(&turnCos, 0);
+    SetBits(&turnSin, 0);
     emitSpacing = 1000.0f;
 }
 EI_REPLACE_METHOD(0x004847E0, CParticleSource::Reset);

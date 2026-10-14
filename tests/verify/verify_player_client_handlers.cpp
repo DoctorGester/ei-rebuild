@@ -103,9 +103,9 @@ int __fastcall OnGameStateVerify(CPlayerClient* self) {
     CPlayer* player = self->Owner();
     const int before = player->sessionKind100_;
     const int state = static_cast<int>(PendingDword(self));
-    const bool keyOnly = self->unknown_84 != 0;
+    const bool keyOnly = self->localSession_ != 0;
     const int result = CheckHandler("CPlayerClient::OnGameState", self, 8, false, [&] { return self->OnGameState(); });
-    const bool ok = player->unknown_104 == static_cast<std::uint32_t>(before) &&
+    const bool ok = player->lastScreen_ == static_cast<std::uint32_t>(before) &&
                     player->sessionKind100_ == (keyOnly ? before : state);
     ei::verify::Check("CPlayerClient::OnGameState state", true, ok, "client %p: state %d (was %d), stored %d", self, state,
                       before, player->sessionKind100_);
@@ -140,7 +140,7 @@ void __fastcall NotifyUnitChangedVerify(CPlayerClient* self, void*, CUnit* unit)
     bool ok = true;
     if (login) {
         CParty* party = self->Owner()->Party();
-        const bool leader = party->members_.size == 1 && static_cast<int>(party->members_.data[0].unknown_01C) == unit->id_;
+        const bool leader = party->members_.size == 1 && static_cast<int>(party->members_.data[0].unitId) == unit->id_;
         ok = leader ? login->id_ == (unit->player ? unit->id_ : -1) && login->version_ == versionBefore + 1
                     : login->id_ == idBefore && login->version_ == versionBefore;
     }

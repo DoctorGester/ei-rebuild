@@ -3,7 +3,7 @@
 // How the client dresses a unit: the figure parts of the armour it wears and the composed skin
 // texture of party units. CUnitClientSpecific is the client-side controller of a party unit
 // (GetClassName "CUnitClientSpecific", class id 0x3D, vtable 0073ECD8); names provisional. See
-// docs/notes/units.md ("Fourth round").
+// docs/notes/units.md ("Creation, databases, save").
 
 #include "console.h"
 #include "engine_object.h"
@@ -46,20 +46,20 @@ struct ClientSpeech {
     int delay;                      // +0x08 ticks until it plays; negative: playing
     int sound;                      // +0x0C its sound handle (-1 none)
     std::uint8_t talking;           // +0x10 the server unit has flag 0x800000 while it plays
-    std::uint8_t unknown_11[3];
+    std::uint8_t unused_11[3];
 };
 static_assert(sizeof(ClientSpeech) == 0x14);
 
 // What the speech queue's filters compare (slot 51 builds one for each walk; unit_client_speech.cpp).
 struct SpeechFilter {
+    // 00537F60. Does a speech of the filter's kind replace `queued`? (EAX 1 / 0; RET 4.)
+    int Replaced(const ClientSpeech* queued) const;
+    // 00537FD0. Has `queued`'s sound ended (it had one)? A talking speech then clears the server
+    // unit's flag 0x800000 (the filter's unit id). AL; RET 4.
+    bool Finished(const ClientSpeech* queued) const;
     int unitId;                     // +0x00 SpeechFinished: the unit whose talking flag ends
     int kind;                       // +0x04 SpeechReplaced: the new speech's kind
 };
-// 00537F60. Does a speech of the filter's kind replace `queued`? (EAX 1 / 0; RET 4.)
-int __fastcall SpeechReplaced(const SpeechFilter* filter, void* unused, const ClientSpeech* queued);
-// 00537FD0. Has `queued`'s sound ended (it had one)? A talking speech then clears the server
-// unit's flag 0x800000 (the filter's unit id). AL; RET 4.
-bool __fastcall SpeechFinished(const SpeechFilter* filter, void* unused, const ClientSpeech* queued);
 
 struct ClientSpeechNode {
     ClientSpeechNode* next;
@@ -99,8 +99,20 @@ struct SkinRequest {
 static_assert(offsetof(SkinRequest, textures) == 0x10);
 static_assert(offsetof(SkinRequest, flags) == 0x24);
 
+struct AttackParams;   // combat.h
+
 class CUnitClientSpecific : public CEngineObject {
 public:
+    // 00538960 (unit_client_attack.cpp). Virtual slot 50 (thiscall, RET 4; registered as a free
+    // function, rewrite-guide rule 4): the attack figures the interface shows for a party unit. A
+    // text-key unit with a weapon in hand (weaponIds[activeWeapon]) takes damage, type, damage type
+    // and speed from the weapon and attack / defence from the weapon's +0x84 / +0x88 plus
+    // UnitParams::WeaponSkillBonus (truncated); otherwise they come from the packed parameters
+    // (CUnit + 0x330), with the weapon's type and damage type, or type 8 and the model's first
+    // weighted damage type. Bows and crossbows have no defence; the damage is scaled by the unit's
+    // effects (005285D0, max first), the attack spread is the parameters' byte, and 0052E0D0 scales
+    // attack and defence by the difficulty for units without a text key.
+    void GetAttackParams(AttackParams* out);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073ECD8);
     // The controller base class's vtable (the destructor body ends with it) and the list +0x58's.
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073EDBC);
@@ -361,13 +373,13 @@ public:
     std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
     std::uint8_t arrowHidden;       // +0x75 the bow's arrow part is flagged hidden
     std::uint8_t snapHeading;       // +0x76 the next path placement turns the unit to the path at once (00535850)
-    std::uint8_t unknown_077;
+    std::uint8_t unused_077;
     float fadeIn;                   // +0x78 1 when fully shown; the drawn parts take it as alpha
     int flashCountdown;             // +0x7C the drawn parts get their colours back (0051C9F0 with 0) at 0
     int footprint;                  // +0x80 the last footprint (0056D150), -1 none
     int footprintRepeats;           // +0x84 further steps that may reuse it
     int idleSound;                  // +0x88 the idle animation's sound handle
-    int unknown_08C;                // +0x8C -1 after Create
+    int otherSound;                     // +0x8C a sound handle, -1 after Create; nothing reads it
     int speechSound;                // +0x90 the sound of the last speech that waits (-1 none)
     const SpeechRecord* lastSpeech; // +0x94 the speech played last (005380D0)
     std::uint32_t lastSpeechTime;   // +0x98 when (timeGetTime)
@@ -376,7 +388,7 @@ public:
     std::uint32_t weaponIds[4];     // +0xBC
     CEngineObject* faceTexture;     // +0xCC the face texture the blink changes (counted)
     std::uint8_t blinks;            // +0xD0
-    std::uint8_t unknown_0D1[3];
+    std::uint8_t unused_0D1[3];
     int blinkTimer;                 // +0xD4 ticks to the next blink change
     int eyesClosed;                 // +0xD8 00538ED0 sets it, 00539010 clears it
 };
@@ -394,19 +406,6 @@ static_assert(offsetof(CUnitClientSpecific, weaponIds) == 0xBC);
 static_assert(offsetof(CUnitClientSpecific, blinks) == 0xD0);
 static_assert(offsetof(CUnitClientSpecific, eyesClosed) == 0xD8);
 static_assert(sizeof(CUnitClientSpecific) == 0xDC);
-
-struct AttackParams;   // combat.h
-
-// 00538960 (unit_client_attack.cpp). Virtual slot 50 (thiscall, RET 4; registered as a free
-// function, rewrite-guide rule 4): the attack figures the interface shows for a party unit. A
-// text-key unit with a weapon in hand (weaponIds[activeWeapon]) takes damage, type, damage type
-// and speed from the weapon and attack / defence from the weapon's +0x84 / +0x88 plus
-// UnitParams::WeaponSkillBonus (truncated); otherwise they come from the packed parameters
-// (CUnit + 0x330), with the weapon's type and damage type, or type 8 and the model's first
-// weighted damage type. Bows and crossbows have no defence; the damage is scaled by the unit's
-// effects (005285D0, max first), the attack spread is the parameters' byte, and 0052E0D0 scales
-// attack and defence by the difficulty for units without a text key.
-void __fastcall ClientGetAttackParams(CUnitClientSpecific* self, void* unused, AttackParams* out);
 
 // 00535CB0 (__fastcall). The figure part names a unit of prototype `prototype` shows with the
 // armour pieces `armourIds` (appended to `names`: "<part>.armor<number>", the hair as

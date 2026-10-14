@@ -493,7 +493,7 @@ __declspec(naked) int CameraCalls::Play(const char*, int) EI_ORIGINAL(0x00578820
 using PtrList = mfc::CList<void*>;
 struct PartySlot {
     int unitId;
-    std::uint8_t unknown_04[36];
+    std::uint8_t unused_04[36];
 };
 using PartyArray = mfc::CArray<PartySlot>;
 __declspec(naked) PartyArray* __fastcall PartySlotsConstruct(PartyArray*) EI_ORIGINAL(0x004BB000)
@@ -649,7 +649,7 @@ void RedeployParty(const SSCCmd* cmd) {
     PartyManagerEndRedeploy(ThePartyManager(), nullptr, party);
     // One slot and one party unit: the slot gets the unit's id.
     const PartyMemberArray& members = player->Party()->members_;
-    if (slots.size == 1 && members.size == 1) slots.data[0].unitId = static_cast<int>(members.data[0].unknown_01C);
+    if (slots.size == 1 && members.size == 1) slots.data[0].unitId = static_cast<int>(members.data[0].unitId);
     state->PrepareRedeploy();
     player->server->lastPosition_.z = -1313.0f;
     TheWorld()->Redeploy(player, &slots, 0);
@@ -940,7 +940,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         case 0x97: {   // GodMode(player, on): player +0x108
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) player->unknown108 = static_cast<std::uint8_t>(Ftol(f[1]));
+            if (player) player->godMode = static_cast<std::uint8_t>(Ftol(f[1]));
             break;
         }
         case 0x37: {   // SetDiplomacy(a, b, value): > 0 allied (0), 0 or NaN neutral (1), < 0 enemies (2)

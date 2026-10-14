@@ -1,6 +1,6 @@
 // The party manager's save and load (004A8560 / 004A8310) and the archive chunks they write: the
 // parties by key (004ACEC0), the entries (004AD0C0), the class templates (004ACDC0) and the named
-// records (004A64B0). See party_manager.h and docs/notes/script.md ("A-S9").
+// records (004A64B0). See party_manager.h and docs/notes/script.md ("Leftovers").
 #include "party_manager.h"
 
 #include "chunk_archive.h"
@@ -213,7 +213,7 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     ar->Field(1, &type, 4);
     ar->Field(2, &flag0C, 1);
     ar->Field(3, &flag0D, 1);
-    ar->Field(4, weights, sizeof(weights) + sizeof(unknown_34));
+    ar->Field(4, weights, sizeof(weights) + sizeof(weightsTail));
     LocalStream local;
     auto* itemsParty = reinterpret_cast<CParty*>(items);
     auto* spellsParty = reinterpret_cast<CParty*>(spells);
@@ -253,7 +253,7 @@ CParty* RecordParty(PartyRecord* record) { return reinterpret_cast<CParty*>(reco
 } // namespace
 
 void NamedPartyRecords::BeginRedeploy(CParty* party) {
-    if (auto* found = static_cast<CParty*>(PartyRecordsFind(this, nullptr, text10))) CopyParty(found, party);
+    if (auto* found = static_cast<CParty*>(this->Find(text10))) CopyParty(found, party);
     PartyVariableMap variables;
     FloatTableCopyConstructOriginal(&variables, nullptr, &party->variables_);
     mfc::CString zone(party->zone_);
@@ -261,14 +261,14 @@ void NamedPartyRecords::BeginRedeploy(CParty* party) {
         CParty* target = RecordParty(record);
         FloatTableAssign(&target->variables_, nullptr, &variables);
         target->zone_ = zone;
-        target->unknown_6C = party->unknown_6C;
+        target->entrance_ = party->entrance_;
     }
     variables.Destroy();
 }
 EI_REPLACE_METHOD(0x004A6050, NamedPartyRecords::BeginRedeploy);
 
 void NamedPartyRecords::EndRedeploy(CParty* party) {
-    if (auto* found = static_cast<CParty*>(PartyRecordsFind(this, nullptr, text0C))) CopyParty(party, found);
+    if (auto* found = static_cast<CParty*>(this->Find(text0C))) CopyParty(party, found);
     else party->Clear(1, 0);
     text10 = text0C;
 }
@@ -283,7 +283,7 @@ namespace {
 void ArchiveManager(PartyManager* manager, ChunkArchive* ar) {
     ar->SerializeParties(1, &manager->parties, nullptr);
     ar->SerializePartyEntries(2, &manager->entries, nullptr);
-    ar->Field(3, &manager->unknown_20, 4);
+    ar->Field(3, &manager->field3, 4);
     if (ar->EnterChunk(4)) {
         ar->SerializeClassTemplates(1, &manager->templates, nullptr);
         ar->LeaveChunk();

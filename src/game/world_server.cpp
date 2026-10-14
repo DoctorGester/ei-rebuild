@@ -145,20 +145,20 @@ void CWorldServer::MarkPlayersDirty(std::uint32_t mask) {
         player->dirty |= mask;
 }
 
-void CWorldServer::SetUnknownE0(int value) { unknownE0_ = value; }
+void CWorldServer::SetCave(int value) { cave_ = value; }
 
-void CWorldServer::SetUnknownDC(int value) {
-    if (unknownE4_ != 0) {
-        unknownE4_ = 0;
-        unknownE8_ = 20.0f;
+void CWorldServer::SetClimate(int value) {
+    if (weather_ != 0) {
+        weather_ = 0;
+        weatherStrength_ = 20.0f;
         MarkPlayersDirty(2);
     }
-    unknownDC_ = value;
+    climate_ = value;
 }
 
-void CWorldServer::SetUnknownE4E8(int e4, float e8) {
-    unknownE4_ = e4;
-    unknownE8_ = e8;
+void CWorldServer::SetWeather(int weather, float strength) {
+    weather_ = weather;
+    weatherStrength_ = strength;
     MarkPlayersDirty(2);
 }
 
@@ -192,7 +192,7 @@ void CWorldServer::RemoveTimedObject(unsigned id) {
 
 void CWorldServer::AddToUpdateMap(CEngineObject* unit) {
     // The unit's update slot.
-    ObjectSlots(unit)->unknown_174 = ((reinterpret_cast<int>(unit) >> 5) & 0xF) + 0x80;
+    ObjectSlots(unit)->updateCountdown = ((reinterpret_cast<int>(unit) >> 5) & 0xF) + 0x80;
     unsigned id = static_cast<unsigned>(unit->id_);
     updateMap_.Set(id, unit);
 }
@@ -298,9 +298,9 @@ EI_REPLACE_METHOD(0x00591740, CWorldServer::CountLivingMercs);
 EI_REPLACE_METHOD(0x005949D0, CWorldServer::IsObjectShared);
 EI_REPLACE_METHOD(0x00594A30, CWorldServer::CollectSharedObjects);
 EI_REPLACE_METHOD(0x0058B6D0, CWorldServer::MarkPlayersDirty);
-EI_REPLACE_METHOD(0x0058CC70, CWorldServer::SetUnknownE0);
-EI_REPLACE_METHOD(0x0058CC80, CWorldServer::SetUnknownDC);
-EI_REPLACE_METHOD(0x0058EE00, CWorldServer::SetUnknownE4E8);
+EI_REPLACE_METHOD(0x0058CC70, CWorldServer::SetCave);
+EI_REPLACE_METHOD(0x0058CC80, CWorldServer::SetClimate);
+EI_REPLACE_METHOD(0x0058EE00, CWorldServer::SetWeather);
 EI_REPLACE_METHOD(0x005942C0, CWorld::SetPaused);
 EI_REPLACE_METHOD(0x00566350, CWorld::SetPaused);   // byte-identical copy (the client's, message 0x60; A-W12)
 EI_REPLACE_METHOD(0x0058E4C0, CWorldServer::GetZoneExit);

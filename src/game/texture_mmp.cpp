@@ -7,7 +7,7 @@
 // (NewDecodedTextureHolder, dx_surface.cpp); no staging surface, fill (0068FA10), Load or priority.
 // The byte size the texture cache counts is what the fill would have returned
 // (MmpHeader::FilledBytes). A format the new renderer does not decode keeps its DirectDraw texture.
-// See docs/notes/renderer.md (section 16).
+// See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "device.h"

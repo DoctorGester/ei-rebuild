@@ -1,7 +1,7 @@
 // The battle screen's party commands: the member toggle (006379E0), the attack on a unit
 // (00637190), the order on a dead unit (006373A0), a unit's speech event (006366F0, slot 32) and
 // the pending spell or quick item used on a unit or a point (00637500, 00637750).
-// See docs/notes/ui.md ("Sixteenth pass", "Seventeenth pass").
+// See docs/notes/ui.md ("Battle screen").
 #include "maths.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -169,8 +169,8 @@ void CBattleScreenSetup::ToggleMember(int index) {
                 if (i >= party->size) continue;
                 PartyUnitRecord* record = &reinterpret_cast<PartyUnitRecord*>(player->mercs)[i];
                 CUnit* member = unitAt(i);
-                if (member->id_ == static_cast<int>(record->unknown_01C))   // the record's unit id
-                    record->unknown_778 = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);
+                if (member->id_ == static_cast<int>(record->unitId))   // the record's unit id
+                    record->selected = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);
             }
         }
     }

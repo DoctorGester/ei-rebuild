@@ -67,8 +67,8 @@ bool InReach(const CObject3D* object, const CLight* light) {
     return reach * reach >= distanceSquared;   // NaN does not reach
 }
 
-bool PartTooFar(const FigurePart* part) {
-    return LengthSquaredUnrounded<Sum3::XYZ, double>(part->position) > kNearSquared;
+bool PartTooFar(const CFigureMesh* part) {
+    return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kNearSquared;
 }
 
 // The end of a draw: the iterator's reference to the light list and the light list itself.
@@ -142,7 +142,7 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
     std::uint8_t lit = 0xFF;
     if (!(object->flags_ & kObjectUnlit)) {
         Terrain* terrain = static_cast<CWorldClient*>(ManagerContext())->terrain_;
-        lit = IsLit(terrain, nullptr, &at.x);   // AL as it is
+        lit = IsLit(terrain, nullptr, &at);   // AL as it is
     }
 
     // The parts of both sets.
@@ -164,12 +164,12 @@ int CObject3DClientSpecific::Draw(CSceneRenderer* context, void* dirty) {
         set = partSets[k];
         for (int g = 0; g < set->groups.size; ++g) {
             for (int p = 0; p < set->groups[g]->parts.size; ++p) {
-                FigurePart* part = set->groups[g]->parts[p];
+                CFigureMesh* part = set->groups[g]->parts[p];
                 if (PartTooFar(part)) continue;
                 if (!(object->flags_ & kObjectStatic)) part->flags_ &= ~kPartMoving;
                 bool pushed = !(part->flags_ & kPartMoving);
-                ObjectWorldMatrix(&part->orientation, &part->position, &part->worldMatrix);
-                m = part->worldMatrix;
+                ObjectWorldMatrix(&part->localRotation_, &part->localPosition_, &part->worldMatrix_);
+                m = part->worldMatrix_;
                 pipeline->PushMatrix(m.m, kStackView);
                 pipeline->PushMatrix(m.m, kStackWorld);
                 if (pushed) pipeline->PushMatrixProduct(m, kStackObject);

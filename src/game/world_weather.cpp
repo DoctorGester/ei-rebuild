@@ -44,8 +44,8 @@ float One() { return GameFloat(0x0073B84C); }               // 1
 
 constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
-constexpr int kStormy = 3;                  // unknownDC_: storms with lightning strikes
-constexpr int kRaining = 1;                 // unknownE4_
+constexpr int kStormy = 3;                  // climate_: storms with lightning strikes
+constexpr int kRaining = 1;                 // weather_
 constexpr int kTypeLightning = 0x65;
 constexpr std::uint32_t kDirtyWeather = 2;
 constexpr std::uint32_t kRainLight = 0x41A00000;   // 20.0f
@@ -111,30 +111,30 @@ void TryLightningStrike(CWorldServer* world) {
 // otherwise.
 void UpdateRain(CWorldServer* world) {
     if (--WeatherDelay() > 0) return;
-    if (world->unknownE4_ == 0) {
+    if (world->weather_ == 0) {
         if (Random().Next() % 101 != 0) return;
         WeatherDelay() = 10;
-        if (world->unknownDC_ == 1) {
-            world->unknownE4_ = 1;
-            std::memcpy(&world->unknownE8_, &kRainLight, 4);
+        if (world->climate_ == 1) {
+            world->weather_ = 1;
+            std::memcpy(&world->weatherStrength_, &kRainLight, 4);
         } else {
-            world->unknownE4_ = 2;
-            std::memcpy(&world->unknownE8_, &kRainHeavy, 4);
+            world->weather_ = 2;
+            std::memcpy(&world->weatherStrength_, &kRainHeavy, 4);
         }
     } else {
         if (Random().Next() % 31 != 0) return;
         WeatherDelay() = 10;
-        int previous = world->unknownDC_;
-        world->unknownE4_ = 0;
-        if (previous == 1) std::memcpy(&world->unknownE8_, &kRainLight, 4);
-        else std::memcpy(&world->unknownE8_, &kRainHeavy, 4);
+        int previous = world->climate_;
+        world->weather_ = 0;
+        if (previous == 1) std::memcpy(&world->weatherStrength_, &kRainLight, 4);
+        else std::memcpy(&world->weatherStrength_, &kRainHeavy, 4);
     }
     MarkPlayersDirtyAt(world, nullptr, kDirtyWeather);
 }
 
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.
 void ShowRainBolt(CWorldServer* world) {
-    world->unknown13C_ = static_cast<std::uint32_t>(world->tick_);
+    world->lastRainBoltTick_ = static_cast<std::uint32_t>(world->tick_);
     float x = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltScale() + Two()));
     float y = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltScale() + Two()));
     float z = StoreFloat(static_cast<float>(world->RawSurfaceHeightAt(x, y) - Five()));
@@ -150,20 +150,20 @@ void ShowRainBolt(CWorldServer* world) {
 
 void CWorldServer::UpdateWeather() {
     float day = StoreFloat(static_cast<float>(WorldDayTime(this, nullptr)));
-    std::memcpy(&unknown84_, &day, 4);
-    if (unknown12D64_ == kKindSinglePlayer) {
-        if (unknownDC_ != 0) {
-            if (unknownDC_ == kStormy) TryLightningStrike(this);
+    std::memcpy(&nightLevel_, &day, 4);
+    if (sessionKind_ == kKindSinglePlayer) {
+        if (climate_ != 0) {
+            if (climate_ == kStormy) TryLightningStrike(this);
             else UpdateRain(this);
         }
-        if (unknownE4_ == kRaining && tick_ > static_cast<int>(unknown13C_) + 20) ShowRainBolt(this);
+        if (weather_ == kRaining && tick_ > static_cast<int>(lastRainBoltTick_) + 20) ShowRainBolt(this);
     }
-    std::uint32_t factor = unknownE4_ == 0 ? kDayFactorDry : kDayFactorRain;
-    std::memcpy(&unknown88_, &factor, 4);
+    std::uint32_t factor = weather_ == 0 ? kDayFactorDry : kDayFactorRain;
+    std::memcpy(&weatherFactor_, &factor, 4);
 
     for (auto* node = objects_.map.First(); node; node = objects_.map.After(node))
         ObjectSlots(node->value)->UpdateMoveFactors();   // slot 57: the weather changed
-    if (unknown12D64_ == kKindSinglePlayer || unknown12D64_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
+    if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
 }
 
 // ---- ShowBolt ---------------------------------------------------------------------------------

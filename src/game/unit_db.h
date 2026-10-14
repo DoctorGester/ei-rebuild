@@ -39,7 +39,7 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings);
 // `maximum`, dropped when a percent roll is within `chance`.
 struct UnitGoldRoll {
     float chance;                   // +0x00 percent
-    std::uint32_t unknown_04;
+    std::uint32_t field1;               // +0x04 field 1 (nothing reads it)
     float minimum;                  // +0x08
     float maximum;                  // +0x0C
 };
@@ -55,19 +55,19 @@ struct UnitPrototypeRecord {
     int skin;                       // +0x0C 3
     int hair;                       // +0x10 4 (-1: none)
     Vector3 scale;                  // +0x14 5, 6, 7
-    std::uint32_t unknown_20;       // 0x22
-    std::uint32_t unknown_24;       // 0x23
+    std::uint32_t panelViewSize;        // +0x20 0x22 the unit panel's model view size
+    std::uint32_t height;               // +0x24 0x23 (float bits) its height: the panel view, reach and small-unit checks
     float viewDistance;             // +0x28 0x25 how far before the unit a dialogue's camera may stand (00607BB0)
     float viewHeight;               // +0x2C 0x26 the height of its eyes for a dialogue's camera (00607BB0)
     float shake;                    // +0x30 0x28 the camera shake of its steps and attacks
     mfc::CString soundFolder;       // +0x34 8 (when set, the action sounds come from here, not the model's)
-    std::uint8_t unknown_38[0x10];  // not serialised
+    std::uint8_t unused_38[0x10];  // not serialised
     float hitPoints;                // +0x48 9
     float mana;                     // +0x4C 10
     std::uint32_t level;            // +0x50 0x29 (CUnit::Level of a unit without a text key)
-    std::uint32_t unknown_54;       // 0x2B
+    std::uint32_t experienceValue;      // +0x54 0x2B the experience its death awards
     float protectionScale;          // +0x58 11
-    std::uint32_t unknown_5C;       // 12 (-> statistics +0x8C)
+    std::uint32_t field12;              // +0x5C 12 (-> statistics +0x8C; nothing reads it)
     float speed;                    // +0x60 13
     float combat[5];                // +0x64 14, 15, 0x24, 16, 17
     std::uint32_t naturalWeapon;    // +0x78 0x12
@@ -77,12 +77,12 @@ struct UnitPrototypeRecord {
     float skillLevel;               // +0x88 0x15 every skill and attribute byte starts here (rounded)
     float attributes01;             // +0x8C 0x16 attributes 0 and 1
     float attribute2;               // +0x90 0x17 attribute 2
-    std::uint32_t unknown_94;       // 0x18 (-> statistics +0x48)
+    std::uint32_t peripheralRange;      // +0x94 0x18 its peripheral sight range (-> statistics +0x48)
     float valuesB0[6];              // +0x98 0x19
     float valuesE0[6];              // +0xB0 0x1A
     UnitGoldRoll gold;              // +0xC8 chunk 0x1B, fields 0..3 (the loot, hoover_loot.cpp)
     UnitGoldRoll secondGold;        // +0xD8 chunk 0x1C (0052D6A0: fields 0..3)
-    CStringVector unknown_E8;       // 0x1D
+    CStringVector lootItems;            // +0xE8 0x1D item names its loot draws from (hoover_loot.cpp)
     float skills3to5[3];            // +0xF4 0x1E
     // The starting equipment 005141F0 gives a new unit (unit_equipment.cpp): spells for every
     // unit; armour pieces and two weapons (item names, may be empty) for units of type 0x32.
@@ -96,7 +96,7 @@ static_assert(offsetof(UnitPrototypeRecord, hitPoints) == 0x48);
 static_assert(offsetof(UnitPrototypeRecord, naturalWeapon) == 0x78);
 static_assert(offsetof(UnitPrototypeRecord, valuesB0) == 0x98);
 static_assert(offsetof(UnitPrototypeRecord, gold) == 0xC8);
-static_assert(offsetof(UnitPrototypeRecord, unknown_E8) == 0xE8);
+static_assert(offsetof(UnitPrototypeRecord, lootItems) == 0xE8);
 static_assert(offsetof(UnitPrototypeRecord, spellNames) == 0x100);
 static_assert(offsetof(UnitPrototypeRecord, armourNames) == 0x10C);
 static_assert(offsetof(UnitPrototypeRecord, weaponName) == 0x118);
@@ -110,26 +110,26 @@ struct UnitNpcRecord {
     void Serialize(ChunkArchive* ar);
 
     mfc::CString name;              // +0x00 field 0 (the prototype's name)
-    std::uint32_t unknown_04;       // 1
+    std::uint32_t field1;               // +0x04 1 (nothing reads it)
     float experience;               // +0x08 2
     float stats[3];                 // +0x0C 3, 4, 5 (strength, dexterity, intelligence)
     std::uint8_t attributes[3];     // +0x18 6 (three bytes)
     std::uint8_t skills[8];         // +0x1B 7 (eight bytes)
-    std::uint8_t unknown_23;        // not serialised
+    std::uint8_t unused_23;        // not serialised
     CStringVector skillNames;       // +0x24 8 (the skill level records it learns)
     CStringVector startWeapons;     // +0x30 9: item names a multiplayer hero starts with (006625B0)
     CStringVector startQuickItems;  // +0x3C 10: its quick items
     CStringVector startSpells;      // +0x48 11: its spells
     float experienceFloor;          // +0x54 12: its starting experience (006625B0), which it keeps when it dies in a network game (0066F4C0)
     int startMoney;                 // +0x58 13: money its party starts with (006625B0)
-    std::uint8_t unknown_5C;        // 14 (one byte)
-    std::uint8_t unknown_5D[3];
+    std::uint8_t voiced;                // +0x5C 14 (one byte): the multiplayer hero screen offers it as a voice
+    std::uint8_t unused_5D[3];
 };
 static_assert(offsetof(UnitNpcRecord, attributes) == 0x18);
 static_assert(offsetof(UnitNpcRecord, skills) == 0x1B);
 static_assert(offsetof(UnitNpcRecord, skillNames) == 0x24);
 static_assert(offsetof(UnitNpcRecord, experienceFloor) == 0x54);
-static_assert(offsetof(UnitNpcRecord, unknown_5C) == 0x5C);
+static_assert(offsetof(UnitNpcRecord, voiced) == 0x5C);
 static_assert(sizeof(UnitNpcRecord) == 0x60);
 
 // One of a model's six body slots (0x10 bytes; 0052D6F0 serialises it as fields 0..3 of chunk
@@ -155,31 +155,31 @@ struct UnitModelRecord {
     int objectClass;                // +0x04 1 (00513240)
     float hitPointRegen;            // +0x08 2
     float manaRegen;                // +0x0C 3
-    std::uint32_t unknown_10;       // 4
-    std::uint32_t unknown_14;       // 5 (-> statistics +0x60)
+    std::uint32_t field4;               // +0x10 4 (nothing reads it)
+    std::uint32_t movementKind;         // +0x14 5 (-> statistics +0x60, UnitStats::movementKind)
     float angle;                    // +0x18 6 (degrees)
     std::uint32_t modeSpeeds[4];    // +0x1C 7
     std::uint32_t actionSpeeds[6];  // +0x2C 0x24 (float bits; copied to CUnit::actionSpeeds)
-    std::uint32_t unknown_44;       // 8 (-> statistics +0x64)
+    std::uint32_t field8;               // +0x44 8 (-> statistics +0x64; nothing reads it)
     std::uint32_t sizeClass;        // +0x48 9
     std::uint32_t sizeClassSmall;   // +0x4C 10
     std::uint32_t damageWeights[7]; // +0x50 11
     float protection[7];            // +0x6C 0x27
     UnitModelSlot slots[6];         // +0x88 chunks 0x0C..0x11
-    mfc::CString unknown_E8;        // 0x1E
-    CStringVector unknown_EC;       // 0x1F
-    CStringVector unknown_F8;       // 0x20
+    mfc::CString figureName;            // +0xE8 0x1E the figure and skin file prefix ("%sskin_%.2d.mmp")
+    CStringVector field1F;              // +0xEC 0x1F (nothing reads it)
+    CStringVector field20;              // +0xF8 0x20 (nothing reads it)
     float height;                   // +0x104 0x21 (the object stands this much lower)
     std::uint32_t bloodKind;        // +0x108 0x28 1..4 blood (particles 0x200F / 0x2031..0x2033 and a decal), 5..8 particles only
     int footprintKind;              // +0x10C 0x2A the footprint texture (-1: none; 0056D150)
     std::uint32_t footPart;         // +0x110 0x2B the foot parts "ll<n>" / "rl<n>" (1..8)
-    std::uint32_t unknown_114;      // 0x29
+    std::uint32_t castEffect;           // +0x114 0x29 nonzero: its casts show an effect (combat_update.cpp)
     mfc::CString hitMaterial;       // +0x118 0x2C the material its hit sounds use ("stone", "leather", ...)
     std::uint8_t swapFeet;          // +0x11C 0x2D (one byte) the first step is the right foot
-    std::uint8_t unknown_11D[3];
-    std::uint32_t unknown_120;      // 0x2E
+    std::uint8_t unused_11D[3];
+    std::uint32_t sizeScale;            // +0x120 0x2E (float bits) multiplies the unit's size for its size classes
     mfc::CString soundFolder;       // +0x124 0x22 (the step / attack / idle sounds: "<folder>\idle\<n>.wav" ...)
-    std::uint8_t unknown_128[0x10]; // not serialised
+    std::uint8_t unused_128[0x10]; // not serialised
     CStringVector soundNames;       // +0x138 0x23 (0053A8E0 counts the .wav files of each)
     // +0x144 the number of sound files of each soundNames entry (an STLport vector<int>; counted
     // at startup, 0053A8E0; not serialised).
@@ -199,7 +199,7 @@ struct UnitModelRecord {
 };
 static_assert(offsetof(UnitModelRecord, damageWeights) == 0x50);
 static_assert(offsetof(UnitModelRecord, slots) == 0x88);
-static_assert(offsetof(UnitModelRecord, unknown_E8) == 0xE8);
+static_assert(offsetof(UnitModelRecord, figureName) == 0xE8);
 static_assert(offsetof(UnitModelRecord, height) == 0x104);
 static_assert(offsetof(UnitModelRecord, soundFolder) == 0x124);
 static_assert(offsetof(UnitModelRecord, idleSoundChance) == 0x150);
@@ -293,8 +293,8 @@ struct SkillRecord {
     void Serialize(ChunkArchive* ar);
 
     mfc::CString name;              // +0x00 field 0
-    mfc::CString unknown_04;        // +0x04 1
-    std::uint32_t unknown_08;       // +0x08 2
+    mfc::CString field1;                // +0x04 1 (nothing reads it)
+    std::uint32_t field2;               // +0x08 2 (nothing reads it)
     // +0x0C chunk 10: the stats it counts; the first one's first letter picks the stat ('s'
     // strength, 'd' dexterity, 'i' intelligence; UnitStats::SkillWithBonus).
     CStringVector statNames;
@@ -306,18 +306,18 @@ struct SkillLevelRecord {
     // 0051F480 (RET 4). Fields 0, 1, 2, 10, 11, 12..22 and 0x17.
     void Serialize(ChunkArchive* ar);
 
-    mfc::CString unknown_00;        // +0x00 field 0
+    mfc::CString field0;                // +0x00 field 0 (nothing reads it)
     mfc::CString name;              // +0x04 1 (the lookups compare it, _mbsicmp)
-    std::uint32_t unknown_08;       // +0x08 2
-    mfc::CString unknown_0C;        // +0x0C 10
-    std::uint32_t unknown_10;       // +0x10 0x17
-    mfc::CString unknown_14;        // +0x14 11
+    std::uint32_t field2;               // +0x08 2 (nothing reads it)
+    mfc::CString requiredLevelName;     // +0x0C 10 the level record it requires ("none")
+    std::uint32_t exclusionGroup;       // +0x10 0x17 levels of one group exclude each other across skills (CanLearn)
+    mfc::CString requiredSkillName;     // +0x14 11 names the skill byte it requires ("none")
     // +0x18 12..21: [0] the skill byte it requires (an index of UnitStats::skills, named by +0x14)
     // and [2] its least value, [3..5] the least strength, dexterity and intelligence (floats),
     // [6] (+0x30) its worth exponent, [7] (+0x34) the level's value.
     std::uint32_t values[10];
     std::uint8_t learnable;         // +0x40 22 (one byte; UnitStats::CanLearn)
-    std::uint8_t unknown_41[3];
+    std::uint8_t unused_41[3];
 
     int RequiredSkill() const { return static_cast<int>(values[0]); }
     std::uint32_t RequiredSkillValue() const { return values[2]; }

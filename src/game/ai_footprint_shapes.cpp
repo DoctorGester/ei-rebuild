@@ -37,7 +37,7 @@ void AddCell(FootprintCellSet* set, int x, int y) {
     cell.kind = 3;
     cell.transparency = 3;
     cell.edge = 0;
-    cell.unknown_13 = 0;
+    cell.padding = 0;
     cell.next = -1;
 }
 
@@ -65,8 +65,7 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
 #pragma float_control(precise, on, push)
 
 // 005B2A00 (thiscall on the set, RET 0x10).
-void __fastcall FootprintAlongDirection(FootprintCellSet* set, void*, CAIMap* map, const Vector3* position, float width,
-                                        const Vector3* direction) {
+void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction) {
     double scale = static_cast<double>(GameFloat(kOne)) /
                    (static_cast<double>(GameFloat(kCellSize)) * static_cast<double>(GameFloat(kHalf)));
     float cx = StoreFloat(static_cast<float>(scale * position->x));
@@ -84,7 +83,7 @@ void __fastcall FootprintAlongDirection(FootprintCellSet* set, void*, CAIMap* ma
     nx = StoreFloat(static_cast<float>(nx / divisor));
     ny = StoreFloat(static_cast<float>(ny / divisor));
 
-    ResetSet(set);
+    ResetSet(this);
     Bounds b = SquareAround(map, cx, cy, r);
     for (int y = b.y0; y <= b.y1; ++y)
         for (int x = b.x0; x <= b.x1; ++x) {
@@ -92,12 +91,12 @@ void __fastcall FootprintAlongDirection(FootprintCellSet* set, void*, CAIMap* ma
             double fx = cx - static_cast<double>(x);
             if (!(LengthSquared2DUnrounded<double>(fy, fx) < r2)) continue;
             if (!(Dot2DUnrounded<double>(fy, fx, ny, nx) < static_cast<double>(GameFloat(kOne)))) continue;
-            AddCell(set, x, y);
+            AddCell(this, x, y);
         }
 }
 
 // 005B2760 (thiscall on the set, RET 0xC).
-void __fastcall FootprintDiscAt(FootprintCellSet* set, void*, CAIMap* map, const Vector3* position, float radius) {
+void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius) {
     double scale = static_cast<double>(GameFloat(kOne)) /
                    (static_cast<double>(GameFloat(kCellSize)) * static_cast<double>(GameFloat(kHalf)));
     float cx = StoreFloat(static_cast<float>(scale * position->x));
@@ -106,7 +105,7 @@ void __fastcall FootprintDiscAt(FootprintCellSet* set, void*, CAIMap* map, const
     float r = StoreFloat(static_cast<float>(reach));
     float r2 = StoreFloat(static_cast<float>(reach * r));
 
-    ResetSet(set);
+    ResetSet(this);
     Bounds b = SquareAround(map, cx, cy, r);
     for (int y = b.y0; y <= b.y1; ++y)
         for (int x = b.x0; x <= b.x1; ++x) {
@@ -114,11 +113,11 @@ void __fastcall FootprintDiscAt(FootprintCellSet* set, void*, CAIMap* map, const
             float fy2 = StoreFloat(static_cast<float>(fy * fy));
             double fx = cx - static_cast<double>(x);
             if (!(fx * fx + fy2 < r2)) continue;
-            AddCell(set, x, y);
+            AddCell(this, x, y);
         }
 }
 
 #pragma float_control(pop)
 
-EI_REPLACE(0x005B2A00, FootprintAlongDirection);
-EI_REPLACE(0x005B2760, FootprintDiscAt);
+EI_REPLACE_METHOD(0x005B2A00, FootprintCellSet::AlongDirection);
+EI_REPLACE_METHOD(0x005B2760, FootprintCellSet::DiscAt);

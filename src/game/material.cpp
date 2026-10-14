@@ -24,9 +24,9 @@ void ResetFields(CMaterial* m) {
     m->name = game::NoneText();
     m->colors.diffuse.w = 1.0f;
     m->name2 = game::NoneText();
-    m->unknown_90 = 0;
+    m->spare90 = 0;
     m->name3 = game::NoneText();
-    m->unknown_98 = 0;
+    m->spare98 = 0;
 }
 
 } // namespace

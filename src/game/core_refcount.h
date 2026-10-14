@@ -42,6 +42,9 @@ static_assert(sizeof(CRefObject) == 8);
 
 // An owning pointer to a CRefObject (one dword).
 struct RefPtr {
+    RefPtr* FromRawCounted(CRefObject* object);
+    RefPtr* AssignHolder(const RefPtr* other);
+    RefPtr* AssignObject(CRefObject* object);
     CRefObject* ptr;
 
     // 00419CD0. Points at `object` (adding a reference) and releases the previous one.

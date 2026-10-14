@@ -50,8 +50,8 @@ bool Cleared(const CPlayer* p) {
 // What DestroyPlayer leaves.
 bool Destroyed(const CPlayer* p) {
     return Cleared(p) && p->link_ == nullptr && p->connection_ == nullptr && p->playerId_ == -1 &&
-           p->unknown_110 == -1 && p->dirty_ == 0 && p->unknown_108 == 0 && p->sessionKind100_ == 0 &&
-           p->unknown_104 == 0;
+           p->lastTick_ == -1 && p->dirty_ == 0 && p->godMode_ == 0 && p->sessionKind100_ == 0 &&
+           p->lastScreen_ == 0;
 }
 } // namespace
 
@@ -87,7 +87,7 @@ static CPlayer* __fastcall PlayerConstructVerify(CPlayer* self) {
     bool ok = result == self && VtableOf(self) == CPlayer::kVtableAddress && Destroyed(self) &&
               self->knownObjects_.BucketCount() >= 100 && self->units_.BucketCount() >= 100 &&
               self->knownTimed_.BucketCount() >= 100 && self->items_.blockSize == 10 &&
-              self->objects_.blockSize == 10 && self->logTraffic_ == 0 && self->unknownFC_ == 0 &&
+              self->objects_.blockSize == 10 && self->logTraffic_ == 0 && self->partyId_ == 0 &&
               self->Party()->itemManager_ != nullptr;
     ei::verify::Check("CPlayer::Construct", true, ok, "player %p: units %u known %u/%u", self,
                       static_cast<unsigned>(self->units_.Size()), static_cast<unsigned>(self->knownObjects_.Size()),

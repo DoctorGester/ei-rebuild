@@ -24,10 +24,11 @@ struct UnitAction {
     CEngineObject* target;      // +0x08 (referenced)
     Vector3 point;              // +0x0C target point
     std::uint8_t flag18;        // +0x18
-    std::uint8_t unknown_19[3];
-    int unknown_1C;
-    std::uint8_t unknown_20;
-    std::uint8_t unknown_21[3];
+    std::uint8_t unused_19[3];
+    int param;                  // +0x1C by kind: a skill's spot (6), a wait's time, an emote's animation,
+                                //       the studied item's id
+    std::uint8_t modifier;      // +0x20 run (move orders) or a called shot (attacks)
+    std::uint8_t unused_21[3];
 
     // 00545F70 (combat_server_slots.cpp): kind 9, no target, flag18 0; the rest untouched. Returns
     // this.
@@ -55,11 +56,11 @@ static_assert(sizeof(UnitAction) == 0x24);
 // so the original's steps carry a stack byte there; ours carry 0.
 struct AnimationStep {
     std::uint8_t animation;     // +0x00 index of the unit's animation entry (0xFF: a pause)
-    std::uint8_t unknown_01;    // +0x01 0xFF
-    std::uint8_t unknown_02;    // +0x02 0
-    std::uint8_t unknown_03;    // +0x03 not initialised by the original
+    std::uint8_t variant;       // +0x01 the emote / animation variant (0xFF: none; UnitSetAnimation)
+    std::uint8_t flags;         // +0x02 UnitSetAnimation's flags (StartAction's stepFlags)
+    std::uint8_t padding;       // +0x03 not initialised by the original
     int duration;               // +0x04 game ticks
-    int unknown_08;             // +0x08
+    int kind;                   // +0x08 1 holds the queue time, 2 lying (a fall); passed to the unit (UnitSet25C)
 
     // 00550A60 (combat_server_slots.cpp): the blank step above. Returns this.
     AnimationStep* Construct();
@@ -115,17 +116,17 @@ struct OrderPlan {
     int targetId;               // +0x20 -1: none
     float rangeSq;              // +0x24 squared distance the target may move away
     std::uint8_t isCast;        // +0x28
-    std::uint8_t unknown_29[3];
-    int unknown_2C;             // +0x2C 1
+    std::uint8_t unused_29[3];
+    int hitLocation;            // +0x2C the body location the attack aims at (1 by default)
     std::uint8_t notSkill;      // +0x30 order source != 6
-    std::uint8_t unknown_31[3];
+    std::uint8_t unused_31[3];
     int castKind;               // +0x34 8; for a cast: 1 (spell kind 0x28), 0 (0x29) or the
                                 //       spell prototype's +0x14
     Vector3 direction;          // +0x38 from the unit to the target
 
     // combat_lifetime.cpp. 00545110 (RET 0x20). The plan takes `steps` (passed by value and freed
     // here) starting at `start` for `duration` ticks: emptied first (extra and targetId -1, rangeSq
-    // 1e38, unknown_2C 1, castKind 8, the flags 0, endTime start + duration), then the steps copied
+    // 1e38, hitLocation 1, castKind 8, the flags 0, endTime start + duration), then the steps copied
     // (12 bytes each) and their extra taken; isCast is cleared twice.
     void TakeSteps(AnimationSteps steps, int start, int duration);
 };
@@ -133,7 +134,7 @@ static_assert(offsetof(OrderPlan, startTime) == 0x18);
 static_assert(offsetof(OrderPlan, direction) == 0x38);
 
 // 00544FD0 (combat_step_lists.cpp, A-U5). The plan emptied: the steps freed (operator delete;
-// count and capacity 0), extra / targetId -1, the times 0, unknown_2C 1, rangeSq 1e38, isCast /
+// count and capacity 0), extra / targetId -1, the times 0, hitLocation 1, rangeSq 1e38, isCast /
 // notSkill 0, castKind 8.
 void __fastcall OrderPlanReset(OrderPlan* plan);
 static_assert(sizeof(OrderPlan) == 0x44);
@@ -151,7 +152,7 @@ struct MoveModeState {
     int mode;                   // +0x00 0..2 (3 is stored as 2 with `wasMode3`)
     std::uint8_t flag4;         // +0x04 read by 005500A0 for mode 2
     std::uint8_t wasMode3;      // +0x05
-    std::uint8_t unknown_6[2];
+    std::uint8_t unused_6[2];
 };
 static_assert(sizeof(MoveModeState) == 8);
 
@@ -176,15 +177,15 @@ static_assert(sizeof(AttackParams) == 0x20);
 // The combat values at the start of UnitStats (unit.h leaves them unnamed): an overlay of its
 // first 0x110 bytes. Offsets are relative to UnitStats (CUnitServer + 0x1E0).
 struct CombatStats {
-    std::uint8_t unknown_00[4];
-    float unknown_04;           // +0x04 log-scaled into the level (00556760)
-    std::uint8_t unknown_08[0x30 - 0x08];
-    float unknown_30;           // +0x30 its ratio 15 / value scales item values (0054B760)
-    std::uint8_t unknown_34[0x60 - 0x34];
-    int unknown_60;             // +0x60 2: no size classes (00552FB0)
-    std::uint8_t unknown_64[4];
+    std::uint8_t unused_00[4];
+    float experience;           // +0x04 log-scaled into the level (00556760)
+    std::uint8_t attributeStats[0x30 - 0x08];  // UnitStats: spent experience, the attributes, speed, rate base
+    float rate;                 // +0x30 the attack rate; 15 / rate scales item values and attack times (0054B760)
+    std::uint8_t movementStats[0x60 - 0x34];   // UnitStats: mode speeds, sight, load and the load factors
+    int bodyKind;               // +0x60 1 has body slots; 2 no size classes (00552FB0)
+    std::uint8_t unused_64[4];
     std::int16_t sizeClass;     // +0x68 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
-    std::int16_t unknown_6A;
+    std::int16_t unused_6A;
     std::int16_t sizeClass20;   // +0x6C the same for 0.2 times the size
     std::int16_t sizeClass60;   // +0x6E and for 0.6 times the size
     float reach;                // +0x70 attack range without a weapon
@@ -194,20 +195,20 @@ struct CombatStats {
     float speed;                // +0x80
     float damage;               // +0x84
     float damageSpread;         // +0x88
-    float unknown_8C;           // +0x8C
+    float attackCategory;       // +0x8C the natural attack's or the weapon's category (attack times, values)
     float damageWeights[7];     // +0x90 natural attack, per damage type
     int naturalWeapon;          // +0xAC weapon type of the natural attack (0x10: none / spells only)
-    std::uint8_t unknown_B0[0xBC - 0xB0];
-    float unknown_BC;           // +0xBC scales the world's +0x84 factor in the movement factors
-    std::uint8_t unknown_C0[0xFC - 0xC0];
+    std::uint8_t nightSight[0xBC - 0xB0];      // UnitStats::valuesB0[0] (sight by night) and [1].base
+    float daySightPercent;      // +0xBC UnitStats::valuesB0[1].current; scales the world's night level in the movement factors
+    std::uint8_t statValues[0xFC - 0xC0];      // UnitStats::valuesB0[2..5], valuesE0[0..3]
     float noise;                // +0xFC how loud the unit's attacks are (scaled by 2 for a hit,
                                 //       1.5 for a skill use, passed to 005C98C0 with kind 0x1A)
-    std::uint8_t unknown_100[0x110 - 0x100];
+    std::uint8_t statValuesTail[0x110 - 0x100];  // UnitStats::valuesE0[4..5]
 };
 static_assert(offsetof(CombatStats, noise) == 0xFC);
 static_assert(offsetof(CombatStats, sizeClass) == 0x68);
 static_assert(offsetof(CombatStats, reach) == 0x70);
-static_assert(offsetof(CombatStats, unknown_BC) == 0xBC);
+static_assert(offsetof(CombatStats, daySightPercent) == 0xBC);
 static_assert(offsetof(CombatStats, damageWeights) == 0x90);
 static_assert(offsetof(CombatStats, naturalWeapon) == 0xAC);
 static_assert(sizeof(CombatStats) == 0x110);
@@ -215,10 +216,11 @@ static_assert(sizeof(CombatStats) == 0x110);
 class CItem;
 struct AIBrain;   // unit_ai.h
 
-// The AI events' record of a unit's presence (005C9770 returns it; CUnitServer + 0x918). Only the
-// fields the controller's update writes.
+// What CUnitServer + 0x918 was read as: a record of the unit's presence with the AI events. It holds
+// 005C9770's result, which is AIViewer::StepNoise (unit_ai.h) and always returns 0, so no record
+// is ever written; the layout is speculative. Only the fields the controller's update would write.
 struct AIEventPresence {
-    std::uint8_t unknown_00[8];
+    std::uint8_t unused_00[8];
     float x;                    // +0x08 where the unit was when the record was last refreshed
     float y;                    // +0x0C
 };
@@ -226,6 +228,12 @@ struct AIEventPresence {
 // An entry of the armour spell list (CUnitServer + 0x91C; 005528F0 builds it): the item (a counted
 // reference), its countdown and whether it is still worn.
 struct ArmourSpell {
+    // combat_save.cpp (A-U7). 00545430 (thiscall on the entry, RET 4): the item's id (-1 without one)
+    // and the countdown. 005585F0 (__fastcall, plain RET): the list from a save: `count` new entries
+    // appended (no item, countdown 0; the original's `worn` byte is stack garbage, ours 0), then each
+    // entry from the head takes its item (the item manager's object of the id read, referenced) and
+    // countdown.
+    void Save(UnitStream* stream) const;
     // 00558840 (RET 4; combat_small_records.cpp, A-U12; the list's SetAt in RefreshItemSpells).
     // The record assigned: `other`'s item referenced (the old one released after), its countdown
     // and worn byte. Returns this.
@@ -234,7 +242,7 @@ struct ArmourSpell {
     CEngineObject* item;
     int countdown;
     std::uint8_t worn;
-    std::uint8_t unknown_9[3];
+    std::uint8_t unused_9[3];
 };
 static_assert(sizeof(ArmourSpell) == 0xC);
 using ArmourSpellList = mfc::CList<ArmourSpell>;
@@ -249,12 +257,6 @@ class CSpell;
 bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
                                  CUnit* toUnit, const Vector3* to);
 
-// combat_save.cpp (A-U7). 00545430 (thiscall on the entry, RET 4): the item's id (-1 without one)
-// and the countdown. 005585F0 (__fastcall, plain RET): the list from a save: `count` new entries
-// appended (no item, countdown 0; the original's `worn` byte is stack garbage, ours 0), then each
-// entry from the head takes its item (the item manager's object of the id read, referenced) and
-// countdown.
-void __fastcall SaveArmourSpell(const ArmourSpell* entry, void*, UnitStream* stream);
 void __fastcall LoadArmourSpells(ArmourSpellList* list, UnitStream* stream);
 
 class CUnitServer : public CEngineObject {
@@ -527,7 +529,7 @@ public:
 
     void CallFinishCast();
 
-    // combat_save.cpp (third round).
+    // combat_save.cpp.
     // 00555D10. Virtual slot 9 (Load): the controller's state (animation lists, the motion and
     // plan objects, both orders, the stats copy, movement factors, the brain, the voice, the
     // effect object and the attackers list), version dependent from 0x44 on.
@@ -535,7 +537,7 @@ public:
     // 005561C0. Virtual slot 10 (Save): the same in the same order, at the current version.
     void SaveServer(UnitStream* stream);
 
-    // combat_sight.cpp (third round): can an order be carried out from here, and when.
+    // combat_sight.cpp: can an order be carried out from here, and when.
     // 0054BCB0. What a cast (kinds 4, 5) or an order on a unit must see: false for a point order
     // with flag18, a missing spell, a spell whose prototype +0x40 is 0, or (other kinds) a target
     // that is not a unit. Callers test AL.
@@ -562,7 +564,7 @@ public:
     bool CallCanActFrom(const UnitAction* order, const float* point, int time);
     bool CallPlanAction(const UnitAction* order, struct OrderPlan* plan);
 
-    // combat_steps.cpp (third round): the animation steps of an order. The unit's animation
+    // combat_steps.cpp: the animation steps of an order. The unit's animation
     // entries are looked up by a key of weapon, movement and action bits (CUnit 005301B0).
     // 00551A40 / 00551A90. The duration / the moment of the action of animation entry `index`, in
     // ticks: the entry's +0x20 / +0x40 divided by the unit's speed factor for it (005327D0),
@@ -586,7 +588,7 @@ public:
     void CallBuildCastSteps(struct AnimationSteps* steps, int* duration, int kind, int value);
     int CallAnimationMoment(std::uint32_t index);
 
-    // combat_tick.cpp (third round): the per-tick order machine.
+    // combat_tick.cpp: the per-tick order machine.
     // 0054B390. Every tick: takes over the queued order, else follows the path and continues the
     // current order (ContinueAction for actions; a finished move or animation lets the queue on).
     void UpdateOrders();
@@ -618,7 +620,7 @@ public:
     void CallTakeQueuedOrder();
     void CallSetUnitMoveMode2(int mode);
 
-    // combat_update.cpp (fourth round): the update and the animation queue.
+    // combat_update.cpp: the update and the animation queue.
     // 00552300. Virtual slot 6, once per world update. A living unit regenerates, tells the AI
     // events where it is, ticks its item spells, party units their memory and boredom, then the
     // alarm, the brain and hostility; the orders (when not frozen, reacting to a hit or acting),
@@ -664,7 +666,7 @@ public:
     // countdown runs out and the item's charge covers it (type 0x18: one a tick, when hurt).
     void TickItemSpells();
 
-    // combat_motion.cpp (fourth round): movement modes, idle and movement animations, paths.
+    // combat_motion.cpp: movement modes, idle and movement animations, paths.
     // 00549D00. False while an attack turns (state 2) and `ticks` from now would pass the next
     // attack's time (+0x184). Callers test AL.
     bool CanReactFor(int ticks);
@@ -730,7 +732,7 @@ public:
     // entries keep their countdown, new ones start at 0, entries of items no longer worn go.
     void RefreshItemSpells();
 
-    // combat_planning.cpp (fourth round): the way to an order's target.
+    // combat_planning.cpp: the way to an order's target.
     // 0054DF50. For a use order on a target (kind 6, source 0): the reachable spot the target
     // offers (its slot 44, for the unit's size) whose path is cheapest becomes the order's point
     // (flag18 set), its path into `motionOrder` (if given); false when no spot can be reached.
@@ -789,9 +791,9 @@ public:
     void BuildDeathAnimation(struct AnimationSteps* steps, std::uint32_t direction, int dying, int fall);
 
     CUnit* unit;                    // +0x01C
-    std::uint8_t unknown_020;       // +0x020 cleared on death
-    std::uint8_t unknown_021;       // +0x021 cleared on death
-    std::uint8_t unknown_022[2];
+    std::uint8_t frozen;            // +0x020 the unit is frozen: the animation and the orders wait (UpdateState)
+    std::uint8_t animationHeld;     // +0x021 a hit reaction plays (or no size classes): the times shift
+    std::uint8_t unused_022[2];
     AnimationSteps queue;           // +0x024 the animation queue (extra, +0x38: when its first step started, -1 until then)
     AIPath motion;                  // +0x03C
     OrderPlan currentPlan;          // +0x0C4 the plan of the current order (0054CA40 fills it)
@@ -811,29 +813,30 @@ public:
     CEngineObject* effectObject;    // +0x17C (referenced) removed from the world on death
     int actingCheckTime;            // +0x180 world tick + 10 when acting starts (StartAction), -1 reset
     int nextAttackTime;             // +0x184 world tick of the next attack
-    int unknown_188;                // +0x188 saved and loaded
-    std::uint8_t unknown_18C;       // +0x18C saved and loaded
-    std::uint8_t unknown_18D;       // +0x18D
-    std::uint8_t unknown_18E;       // +0x18E TargetBusy counts a search under way when set (or in state 5)
-    std::uint8_t unknown_18F;
+    int interceptTime;              // +0x188 the tick a chase aims at (the target's position then); saved
+    std::uint8_t orderStopped;      // +0x18C set when a move order ends, cleared when one starts; saved, never read
+    std::uint8_t deathReported;     // +0x18D the death was reported to the world (the dead unit's update)
+    std::uint8_t searchingTarget;   // +0x18E TargetBusy counts a search under way when set (or in state 5)
+    std::uint8_t unused_18F;
     UnitAction action;              // +0x190
     UnitAction action2;             // +0x1B4
     std::uint8_t followsLeader;     // +0x1D8 the chase follows `followedLeader`'s target (combat_tick.cpp)
-    std::uint8_t unknown_1D9[3];
+    std::uint8_t unused_1D9[3];
     CEngineObject* followedLeader;  // +0x1DC (referenced) the party unit whose attack this one joins
     UnitStats stats;                // +0x1E0 (0x704 bytes; its +0x6F8 dword gets bit 0x10 on a hit)
     std::int16_t protection[8];     // +0x8E4 [0] the defence value (00553450), [1..7] the body's protection
                                     //        per damage type (UnitStats::PackBodyProtection)
-    float unknown_8F4;              // +0x8F4
+    float sinkSpeed;                // +0x8F4 a dead unit's body sinks this much a tick (accelerating)
     float moveFactors[4];           // +0x8F8
     int tameStage;                  // +0x908 0..3 (TryTame)
     int ownSide;                    // +0x90C the unit's own side while tamed (TryTame)
     int tamerSide;                  // +0x910 the tamer's side (TryTame)
     int speedClass;                 // +0x914
-    AIEventPresence* unknown_918;   // +0x918 the unit's presence record with the AI events (UpdateServer);
+    AIEventPresence* aiPresence;    // +0x918 005C9770's (StepNoise's) result, always 0 (UpdateServer);
                                     //        cleared by the reset and Load
     ArmourSpellList armourSpells;   // +0x91C periodic spells of the worn items (vtable 0073F010, blocks of 10)
-    int unknown_938;                // +0x938 cleared when an order starts and by the move style /
+    int boredTicks;                 // +0x938 a party unit's updates since its last order (a bored remark past a
+                                    //        limit); cleared when an order starts and by the move style /
                                     //        wanted weapon setters
     int waitFrame;                  // +0x93C a frame number; the movement tick waits for a party member
                                     //        it blocks while the frame is below this + 2
@@ -862,10 +865,10 @@ public:
 static_assert(offsetof(CUnitServer, unit) == 0x1C);
 static_assert(offsetof(CUnitServer, pendingHit) == 0x108);
 static_assert(offsetof(CUnitServer, currentPlan) == 0xC4);
-static_assert(offsetof(CUnitServer, unknown_938) == 0x938);
+static_assert(offsetof(CUnitServer, boredTicks) == 0x938);
 static_assert(offsetof(CUnitServer, motionChanged) == 0x146);
 static_assert(offsetof(CUnitServer, nextAttackTime) == 0x184);
-static_assert(offsetof(CUnitServer, unknown_18E) == 0x18E);
+static_assert(offsetof(CUnitServer, searchingTarget) == 0x18E);
 static_assert(offsetof(CUnitServer, tameStage) == 0x908);
 static_assert(offsetof(CUnitServer, protection) == 0x8E4);
 static_assert(offsetof(CUnitServer, followedLeader) == 0x1DC);
@@ -877,7 +880,7 @@ static_assert(offsetof(CUnitServer, stats) == 0x1E0);
 static_assert(offsetof(CUnitServer, state) == 0x164);
 static_assert(offsetof(CUnitServer, moveFactors) == 0x8F8);
 static_assert(offsetof(CUnitServer, speedClass) == 0x914);
-static_assert(offsetof(CUnitServer, unknown_020) == 0x20);
+static_assert(offsetof(CUnitServer, frozen) == 0x20);
 static_assert(offsetof(CUnitServer, keepHitDirection) == 0x144);
 static_assert(offsetof(CUnitServer, hitDirection) == 0x160);
 static_assert(offsetof(CUnitServer, effectObject) == 0x17C);
@@ -890,13 +893,13 @@ static_assert(offsetof(CUnitServer, movingAnimation) == 0x147);
 static_assert(offsetof(CUnitServer, savedQueue) == 0x148);
 static_assert(offsetof(CUnitServer, sneakWait) == 0x178);
 static_assert(offsetof(CUnitServer, actingCheckTime) == 0x180);
-static_assert(offsetof(CUnitServer, unknown_188) == 0x188);
-static_assert(offsetof(CUnitServer, unknown_18C) == 0x18C);
+static_assert(offsetof(CUnitServer, interceptTime) == 0x188);
+static_assert(offsetof(CUnitServer, orderStopped) == 0x18C);
 static_assert(offsetof(CUnitServer, followsLeader) == 0x1D8);
-static_assert(offsetof(CUnitServer, unknown_8F4) == 0x8F4);
+static_assert(offsetof(CUnitServer, sinkSpeed) == 0x8F4);
 static_assert(offsetof(CUnitServer, ownSide) == 0x90C);
 static_assert(offsetof(CUnitServer, tamerSide) == 0x910);
-static_assert(offsetof(CUnitServer, unknown_918) == 0x918);
+static_assert(offsetof(CUnitServer, aiPresence) == 0x918);
 static_assert(offsetof(CUnitServer, armourSpells) == 0x91C);
 static_assert(offsetof(CUnitServer, waitFrame) == 0x93C);
 static_assert(offsetof(CUnitServer, moveAnimationKey) == 0x940);

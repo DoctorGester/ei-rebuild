@@ -1,6 +1,6 @@
 // The item database's name-indexed tables read from an archive stream: quick items, quest items and
 // loot (006A6E50 / 006A7110 / 006A73B0, from the database's load 006A67A0). See item_db.h
-// (itemdb::IndexedRecordTable) and docs/notes/items_spells.md (A-H17).
+// (itemdb::IndexedRecordTable) and docs/notes/items_spells.md ("Databases and naming").
 #include "item_db.h"
 
 #include "chunk_archive.h"
@@ -209,9 +209,9 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(1, &code);
     ar->CStringField(2, &text08);
     ar->Field(3, &price, 4);
-    ar->Field(4, &unknown_10, 4);
+    ar->Field(4, &castType, 4);
     ar->Field(5, &mana, 4);
-    for (int i = 0; i < 9; ++i) ar->Field(6 + i, &unknown_1C[i], 4);
+    for (int i = 0; i < 9; ++i) ar->Field(6 + i, &effectValues[i], 4);
     ar->Field(15, &needsSight, 4);
     IntVectorFieldAt(ar, nullptr, 16, &list48, ar);
     IntVectorFieldAt(ar, nullptr, 17, &list54, ar);
@@ -220,7 +220,7 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(20, bytes78, 5);
     ar->Field(21, &skill, 4);
     ar->Field(22, &classMask, 4);
-    for (int i = 0; i < 5; ++i) ar->Field(23 + i, &unknown_64[i], 4);
+    for (int i = 0; i < 5; ++i) ar->Field(23 + i, &extraValues[i], 4);
 }
 EI_REPLACE_METHOD(0x00683B80, itemdb::SpellRecord::Serialize);
 

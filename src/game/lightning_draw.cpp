@@ -1,7 +1,7 @@
 // Drawing a lightning bolt (00467AD0, CLightning's renderer virtual; called by DrawAll) and its
 // glow (00467590): the segments as textured strips through the render device (slot 16), then a
 // glow of eight sprites (slot 17) at one or both ends, sized by the bolt's length and animated by
-// the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Sixth round").
+// the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
 
 #include "core_maths.h"
@@ -68,7 +68,7 @@ float RandomOffset() {
 
 // 00467590. `position` the glow's centre, `size` its radius; the frame argument the caller computes is not
 // used (the frame comes from the position and the world's counter).
-void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const Vector3* position, int /*frame: not used*/, float size) {
+void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size) {
     if (!(GlowGuards() & 1)) {
         GlowGuards() |= 1;
         SpriteArrayConstruct(&Sprites());
@@ -83,7 +83,7 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
         p.size = 0;
         GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x004679F0));
     }
-    auto** holder = reinterpret_cast<void**>(&self->glowTexture_);
+    auto** holder = reinterpret_cast<void**>(&glowTexture_);
     EnsureTextureLoaded(holder);
     if (!static_cast<CSceneRenderer*>(device)->SetTexture(0, *holder)) return;
 
@@ -106,7 +106,7 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
     if (length > 0.0f || length < 0.0f) towards /= length;
     float scaled = position->x * GameFloat(0x0073C518);   // 15
     int shift = x87::fistp(scaled);
-    int frame = (static_cast<CWorld*>(ObjectWorld(self))->tick_ + shift) % 15;
+    int frame = (static_cast<CWorld*>(ObjectWorld(this))->tick_ + shift) % 15;
     for (int j = 0; j < 8; ++j) {
         float t = static_cast<float>(j) * GameFloat(0x0073C520);   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
@@ -122,7 +122,7 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
     }
     static_cast<CSceneRenderer*>(device)->DrawSprites(0, &GlowPoints(), &Sprites());
 }
-EI_REPLACE(0x00467590, DrawLightningGlow);
+EI_REPLACE_METHOD(0x00467590, CLightning::DrawGlow);
 
 // 00467AD0. 0 when the texture cannot be set; 1 otherwise (also when the bolt is not visible).
 int __fastcall DrawLightning(CLightning* self, void*, void* device) {

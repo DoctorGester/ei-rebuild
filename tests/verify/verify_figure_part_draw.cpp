@@ -7,11 +7,11 @@
 
 struct FigureMeshDrawer;
 struct FigureLights;
-struct FigureMaterial;
+class CMaterial;
 class CTextureDevice;
 class CTexture;
 int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* device, const FigureLights* lights,
-                              FigureMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB);
+                              CMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB);
 
 namespace {
 __declspec(naked) int __fastcall ClipTestAt(void*, void*, const void*) {
@@ -32,7 +32,7 @@ static int __fastcall DrawFigurePartVerify(char* node, void*, char* device, cons
     bool hidden = (Flags(mesh) & 0x80) != 0;
     int visibility = hidden ? 2 : ClipTestAt(*reinterpret_cast<void**>(device + 0xAC), nullptr, mesh + 0x188);
     int result = DrawFigurePart(reinterpret_cast<FigureMeshDrawer*>(node), nullptr, reinterpret_cast<CTextureDevice*>(device),
-                                static_cast<const FigureLights*>(lights), reinterpret_cast<FigureMaterial*>(material), alpha,
+                                static_cast<const FigureLights*>(lights), reinterpret_cast<CMaterial*>(material), alpha,
                                 rect, reinterpret_cast<CTexture*>(textureA), reinterpret_cast<CTexture*>(textureB));
     std::uint32_t flags = Flags(MeshOf(node));
     bool ok = result == 1;

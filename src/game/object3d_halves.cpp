@@ -138,7 +138,7 @@ EI_REPLACE(0x0051ACD0, SpecificBaseIgnore);
 // 0051F240. The constructor (the engine object's fields inline): no object. Returns the half.
 CObject3DSpecific* __fastcall Object3DServerConstruct(CObject3DSpecific* self) {
     self->ClearFields();
-    self->unknown_18 = 0;
+    self->prototypeId_ = 0;
     self->object = nullptr;
     ei::SetVtable(self, kServerVtable);
     return self;

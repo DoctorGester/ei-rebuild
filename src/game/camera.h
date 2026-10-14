@@ -43,7 +43,7 @@ static_assert(sizeof(CameraViewRecord) == 0x18);
 
 // The camera settings object (camera +0x94). Only the fields the camera code reads.
 struct CameraSettings {
-    std::uint8_t unknown_000[0xFC];
+    std::uint8_t unused_000[0xFC];
     float clearance;            // +0xFC  height kept above objects under the camera
     float maxRaise;             // +0x100
     float startFocusZ;          // +0x104 the focus' start height (Init)
@@ -54,7 +54,7 @@ struct CameraSettings {
     CameraLimits alternate;     // +0x124 (camera flag 0x200)
     float altPitchMin;          // +0x134 degrees
     float altPitchMax;          // +0x138
-    std::uint8_t unknown_13C[0x178 - 0x13C];
+    std::uint8_t unused_13C[0x178 - 0x13C];
     CameraViewRecord views[4];  // +0x178
     float pitchMin;             // +0x1D8 degrees
     float pitchMax;             // +0x1DC
@@ -89,7 +89,7 @@ static_assert(sizeof(CameraShake) == 0x18);
 // being recorded (the dword at +4 is never written by the recorder: stack bytes there, zero here).
 struct CameraKey {
     float time;             // +0x00
-    std::uint32_t unknown_04;
+    std::uint32_t reserved; // +0x04 0 here (see above)
     Vector3 position;       // +0x08
     Quaternion rotation;    // +0x14
 };
@@ -129,6 +129,11 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vec
 // inside a circle, 0x200 the alternate limits.
 class CCamera : public CTransformObject {
 public:
+    void GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const;
+    // camera_object.cpp. 0040E910 (RET 4): starts recording into ".\camera\" + `name` (1 when the file
+    // can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
+    int OpenFile(const char* name);
+    int RecordFrame(std::uint32_t time);
     static constexpr std::uintptr_t kVtableAddress = 0x0073B9E0;
 
     static constexpr std::uint32_t kFollowing = 0x8;
@@ -205,14 +210,14 @@ public:
     void SetTurnRate(float rate);
     void SetTiltRate(float rate);
     // 0040F420.
-    void SetUnknownD0(std::uint32_t value);
+    void SetZoomTarget(std::uint32_t value);
 
     // 0040D3B0 / 0040D420. Follows the object with this id (-1: none); starting to follow resets
     // the two offset vectors to the zero vector.
     void SetTarget(const CEngineObject* target);
     void SetTargetId(int id);
 
-    std::uint8_t unknown_54[0x94 - 0x54];
+    std::uint8_t unused_54[0x94 - 0x54];
     CameraSettings* settings_;  // +0x94
     Vector3 offset98_;          // +0x98 pan velocity
     Vector3 offsetA4_;          // +0xA4 pan velocity target
@@ -224,9 +229,9 @@ public:
     float tiltTarget_;          // +0xC4
     float tiltResponse_;        // +0xC8
     float zoomRate_;            // +0xCC
-    std::uint32_t unknownD0_;   // +0xD0 zoom rate target (float)
+    std::uint32_t zoomTarget_;  // +0xD0 the zoom rate target (float bits; SetZoomTarget)
     float zoomResponse_;        // +0xD4
-    std::uint8_t unknown_D8[0xE0 - 0xD8];
+    std::uint8_t unused_D8[0xE0 - 0xD8];
     Vector3 focus_;             // +0xE0 the point looked at
     float focusHeight_;         // +0xEC above the ground
     float distance_;            // +0xF0
@@ -238,7 +243,7 @@ public:
     int targetId_;              // +0x11C
     CameraView views_[8];       // +0x120
     ViewStack viewStack_;       // +0x1E0
-    std::uint8_t unknown_208[0x2E0 - 0x208];
+    std::uint8_t unused_208[0x2E0 - 0x208];
     float nearDistance_;        // +0x2E0 (renderer_init reads the three as zNear / zFar / fov)
     float farDistance_;         // +0x2E4
     float fieldOfView_;         // +0x2E8
@@ -255,8 +260,8 @@ public:
 
     CameraKey* keys_;           // +0x2F0 (the block start is kept in the dword before the keys)
     int keyCount_;              // +0x2F4
-    std::uint32_t unknown_2F8;  // +0x2F8 the keys' capacity
-    std::uint32_t unknown_2FC;  // +0x2FC the keys' grow step (0: an eighth of the size, 4..1024)
+    std::uint32_t keyCapacity_; // +0x2F8 the keys' capacity
+    std::uint32_t keyGrowBy_;   // +0x2FC the keys' grow step (0: an eighth of the size, 4..1024)
     float timeOffset_;          // +0x300
     int keyIndex_;              // +0x304
 };
@@ -264,7 +269,7 @@ static_assert(offsetof(CCamera, settings_) == 0x94);
 static_assert(offsetof(CCamera, offset98_) == 0x98);
 static_assert(offsetof(CCamera, turnRate_) == 0xB4);
 static_assert(offsetof(CCamera, tiltTarget_) == 0xC4);
-static_assert(offsetof(CCamera, unknownD0_) == 0xD0);
+static_assert(offsetof(CCamera, zoomTarget_) == 0xD0);
 static_assert(offsetof(CCamera, focus_) == 0xE0);
 static_assert(offsetof(CCamera, viewRotation_) == 0xF4);
 static_assert(offsetof(CCamera, shakes_) == 0x108);
@@ -347,7 +352,4 @@ inline const char* EmptyStringData() { return *reinterpret_cast<const char* cons
 
 } // namespace camera
 
-// camera_object.cpp. 0040E910 (RET 4): starts recording into ".\camera\" + `name` (1 when the file
-// can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
-int __fastcall CameraOpenFile(CCamera* self, void*, const char* name);
 int __fastcall CameraCloseFile(CCamera* self);

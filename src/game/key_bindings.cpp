@@ -28,7 +28,7 @@ static_assert(sizeof(Command) == 0x48);
 struct KeyName {
     int code;
     const char* name;
-    std::uint8_t unknown_08[8];
+    std::uint8_t unused_08[8];
 };
 static_assert(sizeof(KeyName) == 0x10);
 

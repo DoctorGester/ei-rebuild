@@ -1,5 +1,5 @@
 // CUnitServer's Load and Save slots (vtable 0073EF38 slots 9 and 10). See combat.h and
-// docs/notes/combat.md ("Third round").
+// docs/notes/combat.md ("Rewritten").
 #include "combat.h"
 
 #include "map_object.h"
@@ -79,8 +79,8 @@ void LoadOrder(UnitStream* stream, UnitAction* order) {
     stream->Read(&order->source, 4);
     CountedRefLoad(&order->target, nullptr, stream, WorldServer());
     stream->Read(&order->point, 0xC);
-    stream->Read(&order->unknown_1C, 4);
-    stream->Read(&order->unknown_20, 1);
+    stream->Read(&order->param, 4);
+    stream->Read(&order->modifier, 1);
     if (stream->version >= kVersionPlanDirection) stream->Read(&order->flag18, 1);
 }
 
@@ -89,8 +89,8 @@ void SaveOrder(UnitStream* stream, UnitAction* order) {
     stream->Write(&order->source, 4);
     CountedRefSave(&order->target, nullptr, stream);
     stream->Write(&order->point, 0xC);
-    WriteCopy(stream, order->unknown_1C);
-    WriteCopy(stream, order->unknown_20);
+    WriteCopy(stream, order->param);
+    WriteCopy(stream, order->modifier);
     WriteCopy(stream, order->flag18);
 }
 
@@ -99,7 +99,7 @@ void LoadPlanFields(UnitStream* stream, OrderPlan* plan) {
     stream->Read(&plan->startTime, 4);
     stream->Read(&plan->endTime, 4);
     stream->Read(&plan->targetId, 4);
-    stream->Read(&plan->unknown_2C, 4);
+    stream->Read(&plan->hitLocation, 4);
     stream->Read(&plan->rangeSq, 4);
     stream->Read(&plan->isCast, 1);
     stream->Read(&plan->notSkill, 1);
@@ -111,7 +111,7 @@ void SavePlanFields(UnitStream* stream, OrderPlan* plan) {
     WriteCopy(stream, plan->startTime);
     WriteCopy(stream, plan->endTime);
     WriteCopy(stream, plan->targetId);
-    stream->Write(&plan->unknown_2C, 4);
+    stream->Write(&plan->hitLocation, 4);
     stream->Write(&plan->rangeSq, 4);   // the float's bits
     WriteCopy(stream, plan->isCast);
     WriteCopy(stream, plan->notSkill);
@@ -141,11 +141,11 @@ void __fastcall SaveStepList(const AnimationSteps* steps, UnitStream* stream) {
 }
 EI_REPLACE(0x00558420, SaveStepList);
 
-void __fastcall SaveArmourSpell(const ArmourSpell* entry, void*, UnitStream* stream) {
-    WriteCopy(stream, IdOrNone(entry->item));
-    WriteCopy(stream, entry->countdown);
+void ArmourSpell::Save(UnitStream* stream) const {
+    WriteCopy(stream, IdOrNone(item));
+    WriteCopy(stream, countdown);
 }
-EI_REPLACE(0x00545430, SaveArmourSpell);
+EI_REPLACE_METHOD(0x00545430, ArmourSpell::Save);
 
 void __fastcall LoadArmourSpells(ArmourSpellList* list, UnitStream* stream) {
     int count = 0;
@@ -179,9 +179,9 @@ __declspec(naked) void __fastcall CallLoadArmourSpells(ArmourSpellList*, UnitStr
 } // namespace
 
 void CUnitServer::LoadServer(UnitStream* stream) {
-    unknown_918 = nullptr;
-    stream->Read(&unknown_020, 1);
-    stream->Read(&unknown_021, 1);
+    aiPresence = nullptr;
+    stream->Read(&frozen, 1);
+    stream->Read(&animationHeld, 1);
     CallLoadStepList(&queue, stream);
     stream->Read(&queue.extra, 4);
     MotionLoad(&motion, nullptr, stream);
@@ -198,7 +198,7 @@ void CUnitServer::LoadServer(UnitStream* stream) {
     stream->Read(&moveMode, 8);
     stream->Read(&moveMode2, 8);
     stream->Read(&nextAttackTime, 4);
-    stream->Read(&unknown_188, 4);
+    stream->Read(&interceptTime, 4);
     stream->Read(&sneakWait, 4);
     LoadOrder(stream, &action);
     LoadOrder(stream, &action2);
@@ -213,9 +213,9 @@ void CUnitServer::LoadServer(UnitStream* stream) {
     stream->Read(&claimedHostile, 4);
     BrainLoad(&brain, nullptr, stream);
     VoiceLoad(&voice, nullptr, stream);
-    stream->Read(&unknown_18C, 1);
-    stream->Read(&unknown_18D, 1);
-    stream->Read(&unknown_8F4, 4);
+    stream->Read(&orderStopped, 1);
+    stream->Read(&deathReported, 1);
+    stream->Read(&sinkSpeed, 4);
 
     // The context's (the world's) slot 14: the timed objects.
     void* effects = static_cast<CWorld*>(ManagerContext())->TimedObjectManager();
@@ -231,11 +231,11 @@ void CUnitServer::LoadServer(UnitStream* stream) {
     int unused;
     stream->Read(&unused, 4);
     if (stream->version < kVersion18E) return;
-    stream->Read(&unknown_18E, 1);
+    stream->Read(&searchingTarget, 1);
     if (stream->version < kVersion8E4) return;
     stream->Read(protection, 0x10);
     if (stream->version < kVersion938) return;
-    stream->Read(&unknown_938, 4);
+    stream->Read(&boredTicks, 4);
     if (stream->version < kVersionPendingHit) return;
     stream->Read(&pendingHit, 0x3C);
     if (stream->version < kVersion93C) return;
@@ -244,8 +244,8 @@ void CUnitServer::LoadServer(UnitStream* stream) {
 EI_REPLACE_METHOD(0x00555D10, CUnitServer::LoadServer);
 
 void CUnitServer::SaveServer(UnitStream* stream) {
-    WriteCopy(stream, unknown_020);
-    WriteCopy(stream, unknown_021);
+    WriteCopy(stream, frozen);
+    WriteCopy(stream, animationHeld);
     SaveStepList(&queue, stream);
     WriteCopy(stream, queue.extra);
     MotionSave(&motion, nullptr, stream);
@@ -262,7 +262,7 @@ void CUnitServer::SaveServer(UnitStream* stream) {
     stream->Write(&moveMode, 8);
     stream->Write(&moveMode2, 8);
     WriteCopy(stream, nextAttackTime);
-    WriteCopy(stream, unknown_188);
+    WriteCopy(stream, interceptTime);
     WriteCopy(stream, sneakWait);
     SaveOrder(stream, &action);
     SaveOrder(stream, &action2);
@@ -275,23 +275,23 @@ void CUnitServer::SaveServer(UnitStream* stream) {
     WriteCopy(stream, claimedHostile);
     BrainSave(&brain, nullptr, stream);
     VoiceSave(&voice, nullptr, stream);
-    WriteCopy(stream, unknown_18C);
-    WriteCopy(stream, unknown_18D);
-    stream->Write(&unknown_8F4, 4);   // the float's bits
+    WriteCopy(stream, orderStopped);
+    WriteCopy(stream, deathReported);
+    stream->Write(&sinkSpeed, 4);   // the float's bits
     WriteCopy(stream, IdOrNone(effectObject));
     WriteCopy(stream, armourSpells.count);
     for (auto* node = armourSpells.head; node;) {
         auto* current = node;
         node = node->next;
-        SaveArmourSpell(&current->data, nullptr, stream);
+        current->data.Save(stream);
     }
     WriteCopy(stream, followsLeader);
     WriteCopy(stream, IdOrNone(followedLeader));
     WriteCopy(stream, actingCheckTime);
     WriteCopy(stream, kSavedConstant);
-    WriteCopy(stream, unknown_18E);
+    WriteCopy(stream, searchingTarget);
     stream->Write(protection, 0x10);
-    WriteCopy(stream, unknown_938);
+    WriteCopy(stream, boredTicks);
     stream->Write(&pendingHit, 0x3C);
     WriteCopy(stream, waitFrame);
 }

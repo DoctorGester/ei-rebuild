@@ -135,7 +135,7 @@ std::uint32_t FrameNumber();
 std::uint32_t CommitNumber();
 
 // Index of `m` in the frame's matrices (added when it differs from the last one).
-int AddMatrix(const float* m);
+int AddMatrix(const Matrix4& m);
 // The frame's fog (FOGENABLE / FOGCOLOR of the old device), read once per frame.
 void ReadFog(Frame& f);
 // Render states / stage 0..1 texture stage states of the old device (GetRenderState /
@@ -214,6 +214,13 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height);
 // Destroys the images made for one frame (the cursor), after its commit.
 void RetireFrameImages();
 void DestroyBlits();
+
+// Counts of the images the renderer made (sg_make_image) and updated in place (sg_update_image)
+// by purpose, logged in the verify build (render_blit.cpp).
+enum class ImageUse { Cursor, Fill, Movie, Window, Texture, Count };
+void CountImage(ImageUse use, bool made);
+void CountImageRequest(ImageUse use);
+void LogImageCounts(const char* when);
 
 // The game texture `texture` (a CTexture) or a surface holder (CDXSurface, what CTexture +0x5C
 // points at) as a texture view for sampling, with its mip levels; re-read when the surface's

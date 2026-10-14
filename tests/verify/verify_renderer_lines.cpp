@@ -30,12 +30,12 @@ bool Counted(const Counters& before, const Counters& after, int count) {
 
 std::uint32_t RenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state) {
     DWORD value = 0;
-    d3d->GetRenderState(state, &value);
+    device::GetRenderState(d3d, state, &value);
     return value;
 }
 std::uint32_t StageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state) {
     DWORD value = 0;
-    d3d->GetTextureStageState(stage, state, &value);
+    device::GetTextureStageState(d3d, stage, state, &value);
     return value;
 }
 bool StageModulates(IDirect3DDevice7* d3d) {

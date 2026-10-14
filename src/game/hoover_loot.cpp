@@ -4,7 +4,7 @@
 // when a percent roll is within the chance), the quick items and carried items, and for units with
 // a text key also the armour and weapons, all taken off the unit and put on the drop list. A unit
 // is looted once (flag 0x100000). Plain float maths for the amounts (rule 7). See
-// docs/notes/objects.md ("Sixth round").
+// docs/notes/objects.md ("Rewritten").
 #include "random.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -85,7 +85,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
     char* prototype = UnitPrototype(unit);
     *gold = 0;
     if (prototype) {
-        const CStringVector& itemNames = reinterpret_cast<const UnitPrototypeRecord*>(prototype)->unknown_E8;
+        const CStringVector& itemNames = reinterpret_cast<const UnitPrototypeRecord*>(prototype)->lootItems;
         auto names = [&] { return reinterpret_cast<const char* const*>(itemNames.begin()); };
         auto bytes = [&] { return reinterpret_cast<std::intptr_t>(itemNames.end()) - reinterpret_cast<std::intptr_t>(itemNames.begin()); };
         auto count = [&] { return static_cast<std::uint32_t>(bytes() >> 2); };

@@ -27,7 +27,7 @@ struct CVertexBufferHolder {
     void* vtable;
     int refCount;               // +0x04
     long result;                // +0x08 the last Direct3D result
-    std::uint8_t unknown_0C[0x10];
+    std::uint8_t unused_0C[0x10];
     void* buffer;               // +0x1C IDirect3DVertexBuffer7*
 
     // Drops a reference; the deleting destructor (vtable slot 0, with 1) at zero.
@@ -171,7 +171,7 @@ public:
     std::uint32_t videoFourCC_;     // +0x3C the YUV format an off-screen video-memory surface can have (0: none)
     std::uint32_t overlayFourCC_;   // +0x40 the YUV format an overlay can have (0: none)
     bool overlayStretch_;       // +0x44 DDCAPS_OVERLAYSTRETCH
-    std::uint8_t unknown_45[3];
+    std::uint8_t unused_45[3];
     HMODULE converterLibrary_;  // +0x48 2DintMMX.dll
     void* converter_;           // +0x4C 2DintMMX's graphics processor (pixel conversions)
     void* d3d_;                 // +0x50 IDirect3D7*
@@ -179,7 +179,7 @@ public:
     CDXSurface* depth_;         // +0x58 the depth surface's holder (restored with the primary, 00504780)
     CDXSurface* depth2_;        // +0x5C a second depth surface like it (not attached)
     std::uint32_t zEnable_;     // +0x60 the z-buffer setting render state 7 goes back to (00569E40)
-    std::uint8_t unknown_64[0x7C - 0x64];
+    std::uint8_t unused_64[0x7C - 0x64];
     GUID deviceGuid_;           // +0x7C the Direct3D device's GUID
     // +0x8C the depth buffer's format (a DDPIXELFORMAT). The frame clear (00501A40) clears the
     // stencil too when its flags (words[1]) have DDPF_STENCILBUFFER and its stencil bits
@@ -202,7 +202,7 @@ public:
     CDXSurface* stageSurfaces_[8];   // +0x12C the surface holder bound to each texture stage (00501AF0, 004EBAF0)
     CDeviceMaterial* material_;      // +0x14C the current material (004EB170; device_material.h)
     std::uint32_t colour_;           // +0x150 the renderer's draw colour (00501CC0; mesh draw flag 4)
-    std::uint8_t unknown_154[4];
+    std::uint8_t unused_154[4];
     // +0x158 the draws fog their screen vertices by distance (the transform object's FogVertices)
     // when set; cleared around the sky and hit point draws (00569E40), else 1.
     int distanceFog_;
@@ -398,7 +398,9 @@ static_assert(sizeof(MmpHeader) == 0x4C);
 
 // A DDPIXELFORMAT's channels as mask, bit count and shift (0x34 bytes); pixel_formats.cpp.
 struct ChannelLayout {
-    std::uint32_t unknown_00;                         // zeroed, never written
+    // +0x00 the bits per pixel the texture upload counts with (texture_blank.cpp); Split zeroes it
+    // and never writes it, so it is always 0.
+    std::uint32_t bitCount;
     std::uint32_t alphaMask, alphaBits, alphaShift;   // +0x04
     std::uint32_t redMask, redBits, redShift;         // +0x10
     std::uint32_t greenMask, greenBits, greenShift;   // +0x1C
@@ -495,7 +497,7 @@ public:
     CDXSurface* surface_;       // +0x5C the texture surface (counted)
     std::uint8_t* block_;       // +0x60 an aligned block (raw pointer before the data), freed when a
                                 // surface is made (0068F6C0, 0068F860) and by 00690FA0
-    std::uint32_t unknown_64;   // +0x64 cleared by the constructor, slot 2 and slot 3
+    std::uint32_t spare64_;     // +0x64 cleared by the constructor, slot 2 and slot 3; nothing reads it
 };
 static_assert(offsetof(CTexture, extra_) == 0x2C);
 static_assert(offsetof(CTexture, format_) == 0x3C);
@@ -624,7 +626,7 @@ public:
     CTexture* shadowRenderSurface_;   // +0xE0 the shadows' render surface (00692140; counted)
     CTextureDevice* device_;    // +0xE4
     std::uint16_t mipLevel_;    // +0xE8 first mip level to load (texture quality setting)
-    std::uint16_t unknown_EA;
+    std::uint16_t unused_EA;
     int limitTo512_;            // +0xEC nonzero: textures are loaded at most 511 pixels wide and high
 };
 static_assert(offsetof(CTextureManager, cache_) == 0xBC);

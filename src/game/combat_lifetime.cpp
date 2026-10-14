@@ -55,8 +55,8 @@ void InitAction(UnitAction& action) {
     action.kind = 9;
     action.flag18 = 0;
     ActionClear(&action);
-    action.unknown_1C = 0;
-    action.unknown_20 = 0;
+    action.param = 0;
+    action.modifier = 0;
 }
 
 // The empty CList of counted object references the memory keeps (00556C80 with blocks of 10).
@@ -94,7 +94,7 @@ CUnitServer* CUnitServer::Construct() {
     // CEngineObject's constructor (inlined).
     refCount_ = 0;
     id_ = -1;
-    unknown_18 = 0;
+    prototypeId_ = 0;
     type_ = 0;
     flags_ = 0;
     owner_ = nullptr;
@@ -147,7 +147,7 @@ void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {
     animation.extra = -1;
     targetId = -1;
     startTime = start;
-    unknown_2C = 1;
+    hitLocation = 1;
     rangeSq = kNoRange;
     isCast = 0;
     notSkill = 0;
@@ -183,9 +183,9 @@ AIBrain* AIBrain::Construct() {
     // The perception memory (inlined): two sight caches, four object lists, reports and calls.
     std::memcpy(memory, &kEmptySightCache, sizeof(kEmptySightCache));
     sightCells = kEmptySightCache;
-    InitObjectList(unknown_0F4);
+    InitObjectList(nearby);
     InitObjectList(visible);
-    InitObjectList(unknown_12C);
+    InitObjectList(seenCorpses);
     InitObjectList(corpses);
     reports = {};
     reports.vtable = kReportsVtable;
@@ -211,9 +211,9 @@ void AIBrain::DestructMemory() {
         gamecrt::operator_delete(reports.data);
     }
     DestroyObjectList(corpses);
-    DestroyObjectList(unknown_12C);
+    DestroyObjectList(seenCorpses);
     DestroyObjectList(visible);
-    DestroyObjectList(unknown_0F4);
+    DestroyObjectList(nearby);
 }
 
 namespace {

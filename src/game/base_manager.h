@@ -31,7 +31,7 @@ public:
     void Destroy() override;
     // 9: 004046E0. Frees the spares and creates the objects listed in the stream.
     void Load(void* stream) override;
-    // 10: 00404760. Writes {id, type, unknown_18} of every registered object.
+    // 10: 00404760. Writes {id, type, prototypeId_} of every registered object.
     void Save(void* stream) override;
 
     // 13: 004031B0. Keeps the context and creates (slot 2); a failed create clears the context
@@ -99,8 +99,8 @@ public:
     int maxSpareCountType_;         // +0x94 highest key of spareCounts_
     int idLow_;                     // +0x98 automatic ids come from [idLow_, idHigh_)
     int idHigh_;                    // +0x9C 2000000000
-    int unknown_A0;                 // +0xA0 -1 when constructed, 0 after Create; not read here
-    int unknown_A4;                 // +0xA4 -1 when constructed, 300 after Create; not read here
+    int reservedA_;                 // +0xA0 -1 when constructed, 0 after Create; nothing reads it
+    int reservedB_;                 // +0xA4 -1 when constructed, 300 after Create; nothing reads it
     int lastId_;                    // +0xA8 id most recently registered (-1 when constructed)
     void* context_;                 // +0xAC set by Init / SetContext (the world for its managers)
 };

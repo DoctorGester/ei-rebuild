@@ -1,5 +1,5 @@
 // Where an attack lands when the body part it aims at is gone (00525B20). See unit.h
-// (UnitStats::PickLocation) and docs/notes/units.md ("Eighth round (U6)").
+// (UnitStats::PickLocation) and docs/notes/units.md ("Statistics in play").
 #include "random.h"
 #include "unit.h"
 

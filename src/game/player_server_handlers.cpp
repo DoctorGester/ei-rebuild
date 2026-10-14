@@ -76,7 +76,7 @@ void CPlayerServer::OnLeaderDied() {
     if (!IsMultiplayerClient()) {
         std::uint8_t type = kMessageGameOver;
         out_.Write(&type, 1);
-        CUnit* hero = FindUnit(static_cast<int>(party->members_.data[0].unknown_01C));
+        CUnit* hero = FindUnit(static_cast<int>(party->members_.data[0].unitId));
         if (hero) SendObject0B(hero, kLeaderDiedValue);
         return;
     }
@@ -88,7 +88,7 @@ void CPlayerServer::OnLeaderDied() {
     if (party->members_.size == 1) {
         int lost = static_cast<int>(std::lrint(StoreFloat(static_cast<float>(party->Money()) * MoneyPenalty())));
         party->Money() -= lost;
-        oldId = static_cast<int>(party->members_.data[0].unknown_01C);
+        oldId = static_cast<int>(party->members_.data[0].unitId);
         CUnit* hero = FindUnit(oldId);
         if (hero) SendObject0B(hero, kLeaderDiedValue);
         newId = oldId;
@@ -104,7 +104,7 @@ void CPlayerServer::OnLeaderDied() {
     }
     if (party->members_.size == 1) {
         PartyUnitRecord& record = party->members_.data[0];
-        record.unknown_01C = static_cast<std::uint32_t>(newId);
+        record.unitId = static_cast<std::uint32_t>(newId);
         auto* stats = reinterpret_cast<UnitStats*>(record.stats);
         stats->RestoreSlots();
         float experience = StoreFloat(stats->pendingExperience + stats->experience);
@@ -124,8 +124,8 @@ void CPlayerServer::OnLeaderDied() {
     CUnit* revived = FindUnit(newId);
     CUnit* dead = FindUnit(oldId);
     if (!revived || !dead) return;
-    mfc::CTypedPtrList<CEngineObject>& known = ControllerOf(revived)->Brain()->unknown_12C;
-    for (auto* node = ControllerOf(dead)->Brain()->unknown_12C.head; node;) {
+    mfc::CTypedPtrList<CEngineObject>& known = ControllerOf(revived)->Brain()->seenCorpses;
+    for (auto* node = ControllerOf(dead)->Brain()->seenCorpses.head; node;) {
         CEngineObject* object = node->data;
         node = node->next;
         if (object && object->GetClassId() == kClassUnit && !known.Find(object)) AddCounted(known, object);
@@ -399,7 +399,7 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
     CParty* party = player->Party();
     int campaign = CampaignMode();
     if (campaign == 1 || campaign == 3) {
-        CUnit* leader = FindUnit(static_cast<int>(party->members_.data[0].unknown_01C));
+        CUnit* leader = FindUnit(static_cast<int>(party->members_.data[0].unitId));
         if (leader == nullptr || ObjectSlots(leader)->IsDead() != 0) {
             reinterpret_cast<CPlayerConnection*>(this)->LeaderDied();
             if (!IsMultiplayerClient()) return;
@@ -411,13 +411,13 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
         flag70_ = 0;
     }
     state_ = 3;
-    party->unknown_6C = static_cast<std::uint32_t>(entrance);
+    party->entrance_ = static_cast<std::uint32_t>(entrance);
     party->zone_ = zone;
     int mode = GameMode();
     if (mode == 1) {
         PartyManagerBeginRedeploy(PartyManager(), nullptr, party);
     } else if (mode == 2) {
-        if (party->members_.size == 1) party->members_.data[0].unknown_01C = kLoneHeroRecordId;
+        if (party->members_.size == 1) party->members_.data[0].unitId = kLoneHeroRecordId;
         SendParty();
     }
     std::uint8_t type = kMessageZone;
@@ -466,7 +466,7 @@ int CPlayerServer::OnJoined() {
     if (state_ != 2) return 0;
     state_ = 1;
     CPlayer* player = Owner();
-    player->sessionKind100_ = static_cast<CWorldServer*>(player->ManagerContext())->unknown12D64_;
+    player->sessionKind100_ = static_cast<CWorldServer*>(player->ManagerContext())->sessionKind_;
     WorldServer()->Redeploy(reinterpret_cast<WorldPlayer*>(player), &placements_, 1);
     player->dirty_ |= kJoinedFlag;
     return 1;
@@ -503,11 +503,11 @@ int CPlayerServer::OnNewParty() {
     CParty* party = local.Get();
     party->LoadParty(&ReceivedMessages(), 1);
     if (party->members_.size != 1) return 0;
-    int* key = reinterpret_cast<int*>(&Owner()->unknownFC_);
+    int* key = reinterpret_cast<int*>(&Owner()->partyId_);
     PartyNextId(key);
     int& next = NextRecordObjectId();
     while (WorldServer()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
-    party->members_.data[0].unknown_01C = static_cast<std::uint32_t>(next);
+    party->members_.data[0].unitId = static_cast<std::uint32_t>(next);
     ++next;
     PartyMapStore(PartyManager(), nullptr, key, party);
     return 1;
@@ -530,15 +530,15 @@ int CPlayerServer::OnAttack() {
     CMemoryStream& in = ReceivedMessages();
     UnitArray units{reinterpret_cast<void*>(kUnitArrayVtable), nullptr, 0, 0, 0};
     ReadUnits(in, &units);
-    int unknown = 0, how = 0, objectId = 0;
-    in.Read(&unknown, 4);
+    int ctrl = 0, how = 0, objectId = 0;
+    in.Read(&ctrl, 4);
     in.Read(&how, 4);
     in.Read(&objectId, 4);
     if (CEngineObject* object = WorldServer()->FindObject(static_cast<unsigned>(objectId))) {
         for (int i = 0; i < units.size; ++i) {
             AIBrain* brain = ControllerOf(units[i])->Brain();
             if (AIMode* mode = brain->FindPlayerMode())
-                static_cast<PlayerMode*>(mode)->CommandAttack(brain, object, how, unknown != 0);
+                static_cast<PlayerMode*>(mode)->CommandAttack(brain, object, how, ctrl != 0);
         }
     }
     FreeArray(&units, kUnitArrayVtable);
@@ -575,7 +575,7 @@ EI_REPLACE(0x0047ADA0, IsPrintableText);
 
 int CPlayerServer::OnLogin() {
     LoginMessage login;
-    login.unknown_84 = 0;
+    login.partyId = 0;
     ReceivedMessages().Read(&login, sizeof(login));
     if (state_ != 0) return 0;
     CPlayer* player = Owner();
@@ -607,7 +607,7 @@ int CPlayerServer::OnLogin() {
         // The two strings are passed but not read.
         if (!PartyMapLoad(PartyManager(), nullptr, static_cast<int>(reinterpret_cast<std::intptr_t>(login.name)),
                           static_cast<int>(reinterpret_cast<std::intptr_t>(login.password)),
-                          reinterpret_cast<const int*>(&player->unknownFC_), party))
+                          reinterpret_cast<const int*>(&player->partyId_), party))
             return 0;
         break;
     case 4:

@@ -70,7 +70,7 @@ EI_VERIFY(0x006CA260, SetVisibleSectorsVerify, 6, s_setVisible);
 // scenario reaches it. Checked: a returned sector is (sx, sy) and is the grid's entry; every 64th
 // call the whole cache: as many nodes as its count, each the grid's entry for its sector, linked
 // both ways, the frame stamps not increasing towards the tail.
-TerrainSector*(__fastcall* s_sectorAt)(Terrain*, void*, int, int, std::uint32_t, int);
+terrain::SectorData*(__fastcall* s_sectorAt)(Terrain*, void*, int, int, std::uint32_t, int);
 
 void CheckSectorCache(Terrain* self) {
     int nodes = 0;
@@ -89,11 +89,11 @@ void CheckSectorCache(Terrain* self) {
                       ordered);
 }
 
-TerrainSector* __fastcall SectorAtVerify(Terrain* self, void*, int sx, int sy, std::uint32_t wanted, int create) {
+terrain::SectorData* __fastcall SectorAtVerify(Terrain* self, void*, int sx, int sy, std::uint32_t wanted, int create) {
     static unsigned calls;
-    TerrainSector* result = self->SectorAt(sx, sy, wanted, create);
+    terrain::SectorData* result = self->SectorAt(sx, sy, wanted, create);
     if (result) {
-        auto* sector = reinterpret_cast<terrain::SectorData*>(result);
+        terrain::SectorData* sector = result;
         Terrain::SectorCache::Node* node = self->sectorGrid[sx][sy];
         ei::verify::Check("Terrain::SectorAt", true,
                           sector->sx == sx && sector->sy == sy && node && node->data == sector && (sector->built & wanted),

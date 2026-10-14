@@ -5,6 +5,7 @@
 // through their COM interfaces as the original does: they are the boundary the new renderer sits
 // behind (docs/notes/renderer.md, sections 10 and 12).
 
+#include "device_switchover.h"   // device::WithoutDirectDraw
 #include "texture.h"
 
 #include <d3d.h>
@@ -78,8 +79,6 @@ inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) {
 // values, refuse to make surfaces, and log every method once per calling place ("old device: ...")
 // so that the remaining callers can be guarded and the stand-ins removed (ticket R9b).
 
-// The device object was built without DirectDraw (decided once, when it is built).
-bool WithoutDirectDraw();
 // The device object is being built without DirectDraw for a `width` x `height` screen of
 // `bitsPerPixel` (16 or 32): from now on WithoutDirectDraw() is true. Returns the IDirectDraw7
 // stand-in.
@@ -91,5 +90,52 @@ void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format);
 // The texture formats of the switch-over device (in place of IDirect3DDevice7::EnumTextureFormats):
 // 5:6:5, 1:5:5:5, 4:4:4:4, 8:8:8:8, DXT1 and DXT3, as the old device listed them.
 const DDPIXELFORMAT* SwitchOverTextureFormats(int* count);
+
+// ---- The rewritten code's calls into the old device (ticket R9b) ----
+//
+// Each is the IDirect3DDevice7 / IDirectDraw7 method of the same name on the interface given (the
+// device object's +0x54 / +0x0C), as the original calls it. Without DirectDraw (WithoutDirectDraw),
+// when the interface is the device object's stand-in (or null), it is not used and the call has the
+// same result without a device (any other interface, such as a verify wrapper's recording device,
+// is called as before): the render and
+// texture stage states, state blocks, bound textures, viewport and scene bracket are kept in the
+// switch-over device's state (the states also go to the new renderer's mirror, render_state.h), the
+// capability, display mode, texture format and video memory queries answer the fixed values, and
+// the draws, clears, mode and cooperative level changes and surface restores do nothing (D3D_OK /
+// DD_OK: the new renderer draws from the hand-over and presents on its own swap chain).
+HRESULT GetCaps(IDirect3DDevice7* d3d, D3DDEVICEDESC7* desc);
+HRESULT EnumTextureFormats(IDirect3DDevice7* d3d, LPD3DENUMPIXELFORMATSCALLBACK callback, void* context);
+HRESULT BeginScene(IDirect3DDevice7* d3d);
+HRESULT EndScene(IDirect3DDevice7* d3d);
+HRESULT Clear(IDirect3DDevice7* d3d, DWORD count, D3DRECT* rects, DWORD flags, D3DCOLOR colour, D3DVALUE z,
+              DWORD stencil);
+HRESULT SetViewport(IDirect3DDevice7* d3d, D3DVIEWPORT7* viewport);
+HRESULT SetRenderTarget(IDirect3DDevice7* d3d, IDirectDrawSurface7* target, DWORD flags);
+HRESULT SetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD value);
+HRESULT GetRenderState(IDirect3DDevice7* d3d, D3DRENDERSTATETYPE state, DWORD* value);
+HRESULT SetTextureStageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD value);
+HRESULT GetTextureStageState(IDirect3DDevice7* d3d, DWORD stage, D3DTEXTURESTAGESTATETYPE state, DWORD* value);
+HRESULT BeginStateBlock(IDirect3DDevice7* d3d);
+HRESULT EndStateBlock(IDirect3DDevice7* d3d, DWORD* handle);
+HRESULT ApplyStateBlock(IDirect3DDevice7* d3d, DWORD handle);
+HRESULT DeleteStateBlock(IDirect3DDevice7* d3d, DWORD handle);
+HRESULT SetTexture(IDirect3DDevice7* d3d, DWORD stage, IDirectDrawSurface7* texture);
+HRESULT DrawPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, void* vertices, DWORD count,
+                      DWORD flags);
+HRESULT DrawIndexedPrimitive(IDirect3DDevice7* d3d, D3DPRIMITIVETYPE type, DWORD fvf, void* vertices, DWORD count,
+                             WORD* indices, DWORD indexCount, DWORD flags);
+HRESULT GetCaps(IDirectDraw7* ddraw, DDCAPS* driver, DDCAPS* emulated);
+// (Without DirectDraw refused: DDERR_UNSUPPORTED, no surface, logged.)
+HRESULT CreateSurface(IDirectDraw7* ddraw, DDSURFACEDESC2* desc, IDirectDrawSurface7** surface);
+HRESULT GetDisplayMode(IDirectDraw7* ddraw, DDSURFACEDESC2* desc);
+HRESULT EnumDisplayModes(IDirectDraw7* ddraw, DWORD flags, DDSURFACEDESC2* filter, void* context,
+                         LPDDENUMMODESCALLBACK2 callback);
+HRESULT SetDisplayMode(IDirectDraw7* ddraw, DWORD width, DWORD height, DWORD bits, DWORD refreshRate, DWORD flags);
+HRESULT RestoreDisplayMode(IDirectDraw7* ddraw);
+HRESULT SetCooperativeLevel(IDirectDraw7* ddraw, HWND window, DWORD flags);
+HRESULT GetAvailableVidMem(IDirectDraw7* ddraw, DDSCAPS2* caps, DWORD* total, DWORD* free);
+HRESULT RestoreAllSurfaces(IDirectDraw7* ddraw);
+HRESULT FlipToGDISurface(IDirectDraw7* ddraw);
+HRESULT WaitForVerticalBlank(IDirectDraw7* ddraw, DWORD flags, HANDLE event);
 
 } // namespace device

@@ -1,5 +1,6 @@
 // The camp's page switch (0060E9E0) and the camp panels' layout code (see docs/notes/ui.md, "Camp,
-// global map and battle screen setup").
+// global map, hero screens").
+#include "device.h"   // the old device's calls
 #include "ui_camp.h"
 
 #include "item_db.h"
@@ -827,7 +828,7 @@ constexpr std::uint32_t kRecordBias = 100000000;
 
 void CCampPages::Close() {
     SetServerFlagOriginal(0);   // 00578D10 (on the game glue 007AFEA4)
-    static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_)->SetRenderState(D3DRENDERSTATE_ANTIALIAS, 0);
+    device::SetRenderState(static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, 0);
     render::state::Render(D3DRENDERSTATE_ANTIALIAS, 0);
     // The local player's unit records, as the record array the client glue takes (005789E0; a
     // CArray of record pointers, vtable 0073FAA4, SetSize 005719B0), their keys raised meanwhile.
@@ -835,13 +836,13 @@ void CCampPages::Close() {
     auto* player = reinterpret_cast<CParty*>(GameLocalPlayerDataOriginal(UiClientGlue()));
     for (int i = 0; i < player->members_.size; ++i) {
         PartyUnitRecord* record = &player->members_.data[i];
-        record->unknown_01C += kRecordBias;
+        record->unitId += kRecordBias;
         int index = records.size;
         RecordArraySetSizeOriginal(&records, nullptr, index + 1, -1);
         records.data[index] = reinterpret_cast<std::uint8_t*>(&player->members_.data[i]);
     }
     GameTakeUnitRecordsOriginal(UiClientGlue(), nullptr, &records);
-    for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unknown_01C -= kRecordBias;
+    for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unitId -= kRecordBias;
 
     // The heroes array emptied (the CArray's SetSize(0) without elements to destroy).
     if (heroes_.data) {

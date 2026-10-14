@@ -169,7 +169,7 @@ int CSceneRenderer::ClearFrame() {
     DWORD flags = D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER;
     if ((device->depthFormat_.words[1] & DDPF_STENCILBUFFER) && device->depthFormat_.words[4] != 0) flags |= D3DCLEAR_STENCIL;
     gameapi::EnterCriticalSection(GameDeviceLock());
-    device->lastLoadResult_ = D3DDevice(device)->Clear(0, nullptr, flags, colour, 1.0f, 0);
+    device->lastLoadResult_ = device::Clear(D3DDevice(device), 0, nullptr, flags, colour, 1.0f, 0);
     gameapi::LeaveCriticalSection(GameDeviceLock());
     return 1;
 }
@@ -188,7 +188,7 @@ int CSceneRenderer::SetTexture(int stage, void* texture) {
         if (!bound) return 1;
         bound = nullptr;
         DeviceFlushBatchAOriginal(device);
-        device->lastLoadResult_ = D3DDevice(device)->SetTexture(static_cast<DWORD>(stage), nullptr);
+        device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), nullptr);
         ++device->textureChanges_;
         return 1;
     }
@@ -196,7 +196,7 @@ int CSceneRenderer::SetTexture(int stage, void* texture) {
     if (bound == surface) return 1;
     bound = surface;
     DeviceFlushBatchAOriginal(device);
-    device->lastLoadResult_ = D3DDevice(device)->SetTexture(static_cast<DWORD>(stage), surface ? Surface(surface) : nullptr);
+    device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), surface ? Surface(surface) : nullptr);
     ++device->textureChanges_;
     return 1;
 }
@@ -239,7 +239,7 @@ int CSceneRenderer::DrawFigureLit(void* figure, const void* lights, void* materi
     auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
     return DrawFigurePart(mesh->drawer_, nullptr, device_, static_cast<const FigureLights*>(lights),
-                          static_cast<FigureMaterial*>(material), alpha, screen, textureA, textureB);
+                          static_cast<CMaterial*>(material), alpha, screen, textureA, textureB);
 }
 int __fastcall RendererDrawFigureLitHook(CSceneRenderer* self, void*, void* figure, const void* lights, void* material,
                                          int alpha, tagRECT* screen, CTexture* textureA, CTexture* textureB) {
@@ -275,7 +275,7 @@ bool CSceneRenderer::RestoreSurfaces() {
     }
     CTextureDevice* device = device_;
     gameapi::EnterCriticalSection(GameDeviceLock());
-    device->lastLoadResult_ = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
+    device->lastLoadResult_ = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
     gameapi::LeaveCriticalSection(GameDeviceLock());
     Surface(device_->primary_)->Restore();
     Surface(device_->renderTarget_)->Restore();

@@ -32,7 +32,7 @@ void __fastcall ResetZoneObjectsVerify(CWorldClient* self) {
 
 void __fastcall CloseSessionVerify(CWorld* self) {
     self->CloseSession();
-    ei::verify::Check("CWorld::CloseSession", true, self->unknown60_ == nullptr, "");
+    ei::verify::Check("CWorld::CloseSession", true, self->netSession_ == nullptr, "");
 }
 
 // After a reconnect the local player holds a link (null only when the link could not be made) and
@@ -45,7 +45,7 @@ void CheckReconnected(const char* name, CWorldClient* self) {
 void __fastcall SetPlayerVerify(CWorldClient* self, void*, std::uint8_t* player) {
     self->SetPlayer(player);
     CheckReconnected("CWorldClient::SetPlayer", self);
-    ei::verify::Check("CWorldClient::SetPlayer session", true, self->unknown60_ == nullptr, "");
+    ei::verify::Check("CWorldClient::SetPlayer session", true, self->netSession_ == nullptr, "");
 }
 
 void __fastcall PlayRecordingVerify(CWorldClient* self, void*, const char* path) {

@@ -162,7 +162,7 @@ void CWorldServer::Tick(char force) {
         ProjectileFreeNode(&projectiles_, nullptr, current);
     }
 
-    if (unknown160_ != 0 || force) ScriptsRun(MainScript());
+    if (scriptsActive_ != 0 || force) ScriptsRun(MainScript());
     ScriptsRun(reinterpret_cast<CScript*>(commandsB_));
     ServerUpdateUnits(this, nullptr);
 }
@@ -210,7 +210,7 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
             if (!unit->player) {
                 AIBrain* brain = reinterpret_cast<UnitController*>(unit->controller)->Brain();
                 BrainHearAlarm(brain, nullptr, index);
-                if (brain->unknown_37) AddToUpdateMap(object);   // reacting to the alarm
+                if (brain->alwaysUpdated) AddToUpdateMap(object);   // reacting to the alarm
             }
         }
         node = objects.After(node);
@@ -223,7 +223,7 @@ void CWorldServer::SetGameResult(int result) {
     gameResult_ = result;
     if (result == 2 || result == 3) {
         ServerReplace60(this, nullptr);
-        static_cast<CPlayerSource*>(unknown60_)->Query();   // the new session's slot 4 (result unused)
+        static_cast<CPlayerSource*>(netSession_)->Query();   // the new session's slot 4 (result unused)
     }
 }
 
@@ -264,7 +264,7 @@ void CWorldServer::UpdateUnits() {
     SleepingIds().RemoveAll();
 
     // The walk stops at the end or at an entry without an object.
-    if (unknown12D64_ != 1) {
+    if (sessionKind_ != 1) {
         // Every map object runs (no sleeping).
         auto& objects = mapObjects_.map;
         for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
@@ -312,7 +312,7 @@ void CWorldServer::TickSleepingEffects() {
     mapObjects_.map.ForEach([this](auto* node) {
         auto* object = static_cast<CMapObject*>(node->value);
         if ((object->flags_ & 1) || object->refCount_ == 0 || object->effectCount == 0) return;
-        if (object->unknown_174 > 0 || !object->companion) return;
+        if (object->updateCountdown > 0 || !object->companion) return;
         bool expired = false;
         for (int i = 0; i < object->effectCount; ++i) {
             if (--object->effects[i].ticksLeft <= 0) expired = true;

@@ -58,7 +58,7 @@ bool SameCoder(const CoderState& a, const CoderState& b) {
     const BufferCursor& x = a.out;
     const BufferCursor& y = b.out;
     return SamePointer(x.p, x.start, y.p, y.start) && SamePointer(x.bytePtr, x.start, y.bytePtr, y.start) && x.acc == y.acc &&
-           x.bits == y.bits && std::memcmp(x.unknown_0D, y.unknown_0D, 3) == 0 && x.sink == y.sink;
+           x.bits == y.bits && std::memcmp(x.unused_0D, y.unused_0D, 3) == 0 && x.sink == y.sink;
 }
 
 using CodeFn = void(__fastcall*)(BitStream*, void*, CoderState*, BitStream*);

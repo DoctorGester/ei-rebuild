@@ -9,10 +9,6 @@
 #include <cstring>
 #include <vector>
 
-void __fastcall FootprintAlongDirection(FootprintCellSet* set, void*, CAIMap* map, const Vector3* position, float width,
-                                        const Vector3* direction);
-void __fastcall FootprintDiscAt(FootprintCellSet* set, void*, CAIMap* map, const Vector3* position, float radius);
-
 namespace {
 using AlongFn = void(__fastcall*)(FootprintCellSet*, void*, CAIMap*, const Vector3*, float, const Vector3*);
 using DiscFn = void(__fastcall*)(FootprintCellSet*, void*, CAIMap*, const Vector3*, float);
@@ -29,7 +25,7 @@ Snapshot Take(const FootprintCellSet* set) {
     Snapshot s;
     for (int i = 0; i < set->cells.size; ++i) {
         FootprintCell c = set->cells[i];
-        c.unknown_13 = 0;
+        c.padding = 0;
         c.next = 0;
         s.cells.push_back(c);
     }
@@ -50,7 +46,7 @@ static void __fastcall FootprintAlongVerify(FootprintCellSet* set, void*, CAIMap
                                             float width, const Vector3* direction) {
     s_originalAlong(set, nullptr, map, position, width, direction);
     Snapshot expected = Take(set);
-    FootprintAlongDirection(set, nullptr, map, position, width, direction);
+    set->AlongDirection(map, position, width, direction);
     Snapshot actual = Take(set);
     ei::verify::Check("FootprintAlongDirection", true, Same(expected, actual), "%d cells (original %d)",
                       static_cast<int>(actual.cells.size()), static_cast<int>(expected.cells.size()));
@@ -62,7 +58,7 @@ static void __fastcall FootprintDiscVerify(FootprintCellSet* set, void*, CAIMap*
                                            float radius) {
     s_originalDisc(set, nullptr, map, position, radius);
     Snapshot expected = Take(set);
-    FootprintDiscAt(set, nullptr, map, position, radius);
+    set->DiscAt(map, position, radius);
     Snapshot actual = Take(set);
     ei::verify::Check("FootprintDiscAt", true, Same(expected, actual), "%d cells (original %d)",
                       static_cast<int>(actual.cells.size()), static_cast<int>(expected.cells.size()));

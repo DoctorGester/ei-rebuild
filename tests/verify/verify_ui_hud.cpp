@@ -441,8 +441,8 @@ static void __fastcall MovePanelUpdateVerify(CHudMovePanel* self, void*) {
             CUnit* unit = self->owner_->party_[i];
             if (!(unit->flags_ & 0x10)) continue;
             if (flag == -1)
-                flag = unit->unknown_438;
-            else if (flag != unit->unknown_438)
+                flag = unit->fightAtWill;
+            else if (flag != unit->fightAtWill)
                 flag = -2;
         }
         shown = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
@@ -473,10 +473,8 @@ EI_VERIFY(0x0063D9D0, QuickItemsUpdateVerify, 0, s_unused);
 
 namespace {
 std::uint32_t RenderState(CUiWindow* w, int state) {
-    using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t*);
-    UiD3DDevice* device = w->interface_->renderer_->device_;
     std::uint32_t value = 0xDEADBEEF;
-    reinterpret_cast<Fn>(device->vtable_[21])(device, state, &value);
+    w->interface_->renderer_->device_->GetRenderState(static_cast<std::uint32_t>(state), &value);
     return value;
 }
 

@@ -83,7 +83,7 @@ ItemRecordHead* NewRecord(int classId) {
     case kClassWeapon: {
         auto* record = NewRecordOf<WeaponRecord>();
         if (!record) return nullptr;
-        std::memset(&record->unknown_70[8], 0, 0x83 - 0x78);   // +0x78..+0x82
+        std::memset(record->field1B, 0, 0x83 - 0x78);   // +0x78..+0x82
         return record;
     }
     case kClassArmor:
@@ -149,7 +149,7 @@ void CItem::InitFromRecord(const ItemRecordHead* head) {
     FpuCopy(&charge_, &head->charge);
     std::memcpy(&weight_, &head->value38, 4);
     std::memcpy(&price_, &head->price, 4);
-    unknown_3C = head->value3C;
+    value3C_ = head->value3C;
     magicLevel_ = head->magicLevel;
 }
 namespace {
@@ -400,9 +400,9 @@ BOOL CItemConstructor::Build() {
     if (record) DeleteRecord(record);
 
     if (material)
-        item_->unknown_18 = (material->number & 0xFFFF) | index << 16;
+        item_->prototypeId_ = (material->number & 0xFFFF) | index << 16;
     else
-        item_->unknown_18 = index << 16;
+        item_->prototypeId_ = index << 16;
     item_->count_ = static_cast<std::uint32_t>(count_);
     return 1;
 }

@@ -250,12 +250,12 @@ int CParticleManager::DrawAll(void* renderer) {
         if (s->flags_ & 0x40) continue;
         if (AttachedToHiddenUnit(s)) continue;
         int blend;
-        std::memcpy(&blend, &s->unknown_150, sizeof(blend));
+        std::memcpy(&blend, &s->additiveBlend, sizeof(blend));
         if (blend == 1 && !additive) {
             SetRenderState(renderer, 5, 2);
             additive = true;
         }
-        std::memcpy(&blend, &s->unknown_150, sizeof(blend));
+        std::memcpy(&blend, &s->additiveBlend, sizeof(blend));
         if (blend == 0 && additive) {
             SetRenderState(renderer, 5, 6);
             additive = false;

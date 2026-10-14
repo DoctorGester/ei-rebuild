@@ -11,15 +11,13 @@
 #include <cstdint>
 
 namespace {
+// The device's render state (without DirectDraw the switch-over device's, ui_d3d_device.cpp).
 std::uint32_t RenderState(void* d3d, std::uint32_t state) {
     std::uint32_t value = 0;
-    using Fn = long(__stdcall*)(void*, std::uint32_t, std::uint32_t*);
-    reinterpret_cast<Fn>((*static_cast<void***>(d3d))[21])(d3d, state, &value);
+    static_cast<UiD3DDevice*>(d3d)->GetRenderState(state, &value);
     return value;
 }
-void* WindowDevice(CUiWindow* w) {
-    return *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(w->interface_->renderer_) + 0x54);
-}
+void* WindowDevice(CUiWindow* w) { return w->interface_->renderer_->device_; }
 } // namespace
 
 int __fastcall RendererSetFogColour(CSceneRenderer* renderer, void*, std::uint32_t colour);

@@ -9,6 +9,7 @@
 #include "core_maths.h"
 #include "core_transform.h"
 #include "figure_mesh.h"
+#include "link_figure.h"   // LinkHeaderMap: the figure's pieces
 #include "world.h"
 
 #include "lib/crt.h"
@@ -196,16 +197,16 @@ EI_REPLACE_METHOD(0x00518100, CObject3D::UpdatePartBounds);
 
 void CObject3D::CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out) {
     // The original asks each part for its name twice; parts return the same string both times.
-    auto startsWith = [prefix](FigurePart* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
+    auto startsWith = [prefix](CFigureMesh* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
     for (int i = 0; i < parts.size; ++i) {
-        auto* part = static_cast<FigurePart*>(parts.data[i]);
+        auto* part = static_cast<CFigureMesh*>(parts.data[i]);
         if (!startsWith(part)) continue;
         int index = out->size;
         out->SetSize(index + 1, -1);   // 00519D70
         out->data[index] = part;
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        auto* part = static_cast<FigurePart*>(pendingParts.data[i]);
+        auto* part = static_cast<CFigureMesh*>(pendingParts.data[i]);
         if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined by the original
     }
 }
@@ -234,38 +235,39 @@ CEngineObject* FigureManagerOf(const CObject3D* object) {
 // 00519A10: Add (SetAtGrow at the size; RET 4).
 EI_REPLACE_METHOD(0x00519A10, AlignedPtrArray::Add);
 
-FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t arg) {
+CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t arg) {
     CEngineObject* manager = FigureManagerOf(this);
-    auto* part = static_cast<FigurePart*>(FigureManagerLoadPartOriginal(
+    auto* part = static_cast<CFigureMesh*>(FigureManagerLoadPartOriginal(
         manager, nullptr, name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
         std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached));
     if (!part) {
         game::DebugLog(kCantLoadPart, partName, name);
         return nullptr;
     }
-    if (figure) {
-        auto* instance = static_cast<CFigureInstance*>(static_cast<void*>(figure));
-        bool known;
+    if (CLinkMesh* current = figure) {
+        // The figure gets the piece (its slot 4 loads it unless it has it).
+        bool loaded;
         {
             stlp::string key(partName, partName + std::strlen(partName));
-            known = instance->HasPiece(&key);
+            loaded = current->LoadPart(&key);
         }
-        if (!known) return nullptr;   // the part is kept, unreleased (as the original)
+        if (!loaded) return nullptr;   // the part is kept, unreleased (as the original)
         void* node;
         {
             stlp::string key(partName, partName + std::strlen(partName));
-            StringMapFindOriginal(instance->pieces, nullptr, &node, &key);
+            StringMapFindOriginal(&current->headers_, nullptr, &node, &key);
         }
-        const auto* record = static_cast<const FigurePieceRecord*>(node);
-        part->piece158 = record->unknown_20;
-        part->piece15C = record->unknown_1C;
-        std::memcpy(&part->boxFlags, &record->boxFlags, sizeof(FootprintPart));
+        const LinkPartHeader& piece = static_cast<const LinkHeaderMap::Node*>(node)->second;
+        part->materialValue_ = piece.materialValue;
+        part->meshType_ = piece.meshType;
+        // The box and the pivot (bounds_, boxPivot_) as one FootprintPart.
+        std::memcpy(&part->bounds_, &piece.bounds, sizeof(FootprintPart));
     }
-    if (gamecrt::strnicmp(partName, "BASE", 4) == 0) part->boxFlags |= kBoxBase;
-    if (gamecrt::strnicmp(partName, "CROWN", 5) == 0) part->boxFlags |= kBoxCrown;
+    if (gamecrt::strnicmp(partName, "BASE", 4) == 0) part->bounds_.flags |= kBoxBase;
+    if (gamecrt::strnicmp(partName, "CROWN", 5) == 0) part->bounds_.flags |= kBoxCrown;
     if (gamecrt::strnicmp(partName, "EMPTY", 5) == 0) {
-        part->boxFlags |= kBoxEmptyMark;
-        part->boxFlags |= kBoxCrown;
+        part->bounds_.flags |= kBoxEmptyMark;
+        part->bounds_.flags |= kBoxCrown;
     }
     // AddPart, inlined by the original (appending with 00519A10).
     bool present = false;
@@ -277,10 +279,10 @@ FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t
         if (animation) AnimationStateAddPartOriginal(animation, nullptr, part);
         if (attached) Specific()->OnPartAdded(part);
     }
-    part->boxPivot.x = part->position.x;
-    part->boxPivot.y = part->position.y;
-    part->boxFlags |= kBoxLoaded;
-    part->boxPivot.z = part->position.z;
+    part->boxPivot_.x = part->localPosition_.x;
+    part->boxPivot_.y = part->localPosition_.y;
+    part->bounds_.flags |= kBoxLoaded;
+    part->boxPivot_.z = part->localPosition_.z;
     return part;
 }
 EI_REPLACE_METHOD(0x00517240, CObject3D::LoadPart);
@@ -309,41 +311,33 @@ constexpr int kClassUnit50 = 0x50;
 constexpr int kClassUnit54 = 0x54;
 constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
-// An STLport vector<string> of the piece names, as the cache's slot 3 reads it (the original
-// builds it with 005195B0 / 004DDBA0 and assigns each name).
-struct PieceNames {
-    stlp::string* begin;
-    stlp::string* end;
-    stlp::string* endOfStorage;
-};
-
-PieceNames MakePieceNames(const PartNameArray* names) {
-    PieceNames out{};
+// The piece names as the loader's slot 3 (LoadFigure) reads them, into an empty vector (the original
+// sizes it with 005195B0 / 004DDBA0 and assigns each name).
+void FillPieceNames(stlp::vector<stlp::string>& pieces, const PartNameArray* names) {
     int count = names->size;
     if (count > 0) {
-        out.begin = static_cast<stlp::string*>(stlp::allocate(static_cast<std::size_t>(count) * sizeof(stlp::string)));
+        auto* start = static_cast<stlp::string*>(stlp::allocate(static_cast<std::size_t>(count) * sizeof(stlp::string)));
+        pieces.Start() = start;
         for (int i = 0; i < count; ++i) {
             const char* text = static_cast<const char*>((*names)[i]);
-            new (&out.begin[i]) stlp::string(text, text + std::strlen(text));
+            new (&start[i]) stlp::string(text, text + std::strlen(text));
         }
-        out.end = out.begin + count;
-        out.endOfStorage = out.end;
+        pieces.Finish() = start + count;
+        pieces.EndOfStorage() = pieces.Finish();
     }
-    return out;
 }
 
-void FreePieceNames(PieceNames& names) {
-    for (stlp::string* s = names.begin; s != names.end; ++s) s->~string();
-    if (names.begin)
-        stlp::deallocate(names.begin, static_cast<std::size_t>(names.endOfStorage - names.begin) * sizeof(stlp::string));
+void FreePieceNames(stlp::vector<stlp::string>& pieces) {
+    for (stlp::string& piece : pieces) piece.~string();
+    pieces.FreeStorage();
 }
 
 // 00517110 (LoadParts, above), through its address so its wrapper runs.
 __declspec(naked) int __fastcall LoadPartsAt(CObject3D*, void*, const char*, const void*, std::uint32_t)
     EI_ORIGINAL(0x00517110)
 
-CFigureCache* FigureCacheOf(const CObject3D* object) {
-    return static_cast<CWorld*>(object->ManagerContext())->FigureCache();
+CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
+    return static_cast<CWorld*>(object->ManagerContext())->FigureLoader();
 }
 } // namespace
 
@@ -358,22 +352,19 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
     if (names->size == 0 && animation) {
         AnimationStatePartNamesOriginal(animation, nullptr, partList);
         stlp::string key(model, model + std::strlen(model));
-        CFigureInstance* made = FigureCacheOf(this)->BuildWholeFigure(
-            &key, std::bit_cast<std::uint32_t>(scale.x), std::bit_cast<std::uint32_t>(scale.y),
-            std::bit_cast<std::uint32_t>(scale.z), 0);
-        FigureRef().Assign(static_cast<CEngineObject*>(static_cast<void*>(made)));
+        CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
+        FigureRef().Assign(made);
     } else {
-        PieceNames pieces = MakePieceNames(names);
+        stlp::vector<stlp::string> pieces;
+        FillPieceNames(pieces, names);
         {
             stlp::string key(model, model + std::strlen(model));
-            CFigureInstance* made = FigureCacheOf(this)->BuildFigure(
-                &key, &pieces, std::bit_cast<std::uint32_t>(scale.x), std::bit_cast<std::uint32_t>(scale.y),
-                std::bit_cast<std::uint32_t>(scale.z), 0);
-            auto* old = static_cast<CFigureInstance*>(static_cast<void*>(figure));
-            figure = static_cast<CEngineObject*>(static_cast<void*>(made));
-            if (made) ++made->refCount;
+            CLinkMesh* made = FigureLoaderOf(this)->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z, false);
+            CLinkMesh* old = figure;
+            figure = made;
+            if (made) ++made->refCount_;
             // 00457720: the old figure loses a reference and is deleted at the last one.
-            if (old && --old->refCount == 0) old->DeletingDestructor(1);
+            if (old && --old->refCount_ == 0) old->DeleteThis(1);
         }
         FreePieceNames(pieces);
     }

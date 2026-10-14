@@ -902,6 +902,9 @@ public:
     UiPtrArray<CUiRegion> regions_;           // +0x128
     UiPtrArray<CUiModel> models_;             // +0x138
 };
+// The verify build's interface census (tests/verify/ui_census.cpp) is told which window owns each
+// surface: AddSurface (`added`), RemoveSurfaceAt, ClearSurfaces and the destructor. Null otherwise.
+extern void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurface* surface, bool added);
 static_assert(offsetof(CUiWindow, inputVtable_) == 0x94);
 static_assert(offsetof(CUiWindow, interface_) == 0x98);
 static_assert(offsetof(CUiWindow, inputHandled_) == 0x9C);
@@ -1066,30 +1069,16 @@ constexpr std::uintptr_t kUnitPtrArrayVtable = std::uintptr_t(0x007402AC);
 void __fastcall UiDwordsSetSize(UiDwordArray* array, void*, int size, int growBy);
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
+// The IDirect3DDevice7 as the interface code calls it: each method is the interface's of the same
+// name through device.h's calls (ui_d3d_device.cpp), so that in the switch-over without DirectDraw
+// it has its result without a device (ticket R9b).
 struct UiD3DDevice {
-    // IDirect3DDevice7 slots 20 / 21 (stdcall).
-    // Slot 10: Clear(count, rects, flags, colour, z, stencil).
-    long Clear(DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil) {
-        using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, void*, DWORD, DWORD, float, DWORD);
-        return reinterpret_cast<Fn>(vtable_[10])(this, count, rects, flags, colour, z, stencil);
-    }
-    // Slots 36 / 37: Get / SetTextureStageState(stage, type, value).
-    long GetTextureStageState(DWORD stage, DWORD type, std::uint32_t* value) {
-        using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, DWORD, std::uint32_t*);
-        return reinterpret_cast<Fn>(vtable_[36])(this, stage, type, value);
-    }
-    long SetTextureStageState(DWORD stage, DWORD type, DWORD value) {
-        using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, DWORD, DWORD);
-        return reinterpret_cast<Fn>(vtable_[37])(this, stage, type, value);
-    }
-    long SetRenderState(std::uint32_t state, std::uint32_t value) {
-        using Fn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, std::uint32_t);
-        return reinterpret_cast<Fn>(vtable_[20])(this, state, value);
-    }
-    long GetRenderState(std::uint32_t state, std::uint32_t* value) {
-        using Fn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, std::uint32_t*);
-        return reinterpret_cast<Fn>(vtable_[21])(this, state, value);
-    }
+    long Clear(DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil);
+    long GetTextureStageState(DWORD stage, DWORD type, std::uint32_t* value);
+    long SetTextureStageState(DWORD stage, DWORD type, DWORD value);
+    long SetRenderState(std::uint32_t state, std::uint32_t value);
+    long GetRenderState(std::uint32_t state, std::uint32_t* value);
+    long ApplyStateBlock(std::uint32_t handle);
 
     void** vtable_;   // IDirect3DDevice7
 };

@@ -23,7 +23,7 @@ static void __fastcall ClaimHostilityVerify(CUnitServer* self, void*, CUnit* cla
     self->ClaimHostility(claimant, mask);
     const AICallArray& calls = CallsOf(self);
     bool added = calls.size == before + 1 && calls.data[before].kind == 0x1E &&
-                 static_cast<std::uint32_t>(calls.data[before].unknown_10) == mask;
+                 static_cast<std::uint32_t>(calls.data[before].hostileMask) == mask;
     ei::verify::Check("CUnitServer::ClaimHostility", true, added && (self->claimedHostile & mask) == mask,
                       "unit %d mask %08X: calls %d -> %d, claims %08X", UnitId(self), mask, before, calls.size,
                       self->claimedHostile);

@@ -18,7 +18,7 @@ struct AIMapCell {
     std::uint16_t groundLevel;  // +4 terrain height in AI height units; blocks lines of sight
     std::uint8_t flags;         // +6 bits 0-5: height of what stands on the ground; 0x40: the
                                 //    cell is under a bridge (surface height in CAIMap::bridgeHeights)
-    std::uint8_t unknown_7;
+    std::uint8_t unused_7;
     std::uint8_t level;         // +8 compared with the unit's standing level
 };
 #pragma pack(pop)
@@ -34,13 +34,15 @@ struct FootprintCell {
     std::int8_t kind;           // +0x10 occluder kind (part flags bits 3-5; 4 = bridge once applied)
     std::int8_t transparency;   // +0x11 index into the transparency table (part flags bits 6-9)
     std::uint8_t edge;          // +0x12 lies on the outline of one of the part's faces
-    std::uint8_t unknown_13;    // padding (left uninitialised by the original)
+    std::uint8_t padding;               // +0x13 zeroed by AddCell; the original leaves it uninitialised
     int next;                   // +0x14 next index in the same hash bucket, -1 ends
 };
 static_assert(sizeof(FootprintCell) == 0x18);
 
 // A growable array of FootprintCell with a 16-bucket hash on (x + y). Name provisional.
 struct FootprintCellSet {
+    void AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction);
+    void DiscAt(CAIMap* map, const Vector3* position, float radius);
     // 0067E4E0 (A-Z1; returns the set). The constructor as the spells' global set 007C8478 gets it
     // from its static initialiser 0067E4C0 (before the hooks; compared at start-up): an empty
     // array, `hashed` set. The buckets are not written (the global's are zero until the first
@@ -67,7 +69,7 @@ struct FootprintCellSet {
     lib::AlignedArray<FootprintCell> cells;
     int buckets[16];        // +0x10 first index per (x + y) & 15, -1 when empty
     bool hashed;            // +0x50 set by Construct and by every insertion, never cleared
-    std::uint8_t unknown_51[3];
+    std::uint8_t unused_51[3];
 };
 static_assert(offsetof(FootprintCellSet, buckets) == 0x10);
 static_assert(offsetof(FootprintCellSet, hashed) == 0x50);
@@ -77,7 +79,7 @@ static_assert(sizeof(FootprintCellSet) == 0x54);
 struct FootprintPart {
     std::uint32_t flags;    // bits 3-5 kind, 6-9 transparency, 0x400 bridge, 0x800 ignored
     Vector3 offset;         // +0x04
-    std::uint32_t unknown_10;
+    std::uint32_t radius;               // +0x10 float bits: the occluder record's radius (world_client_maps.cpp)
     Vector3 boxMin;         // +0x14
     Vector3 boxMax;         // +0x20
     Vector3 pivot;          // +0x2C
@@ -90,7 +92,7 @@ struct PassCostContext {
     const int* climb;       // middle of the climb table of the size class
     int shift;              // size class * 4: the nibble in AIMapCell::passable
     float backwardSpeed;    // +0x0C 0.1, or the unit's (CostContextFor)
-    float unknown_10;       // 10
+    float turnScale;                    // +0x10 10: scales the turn cost of a path step
     float forwardSpeed;     // +0x14 0.1, or the unit's
 };
 static_assert(sizeof(PassCostContext) == 0x18);
@@ -116,7 +118,7 @@ struct DeltaField;   // net_delta.h
 struct PathCell {
     std::int16_t x, y;
     std::uint16_t flags;        // 0x200 on a path that is a single cell
-    std::uint16_t unknown_6;
+    std::uint16_t terrainBits;          // +0x06 bit 0 the cell's flags bit 7, bit 1 a costly cell (path state bits 4-5)
 
     // 005C5CC0 (RET 8). The neighbour in direction 1..8 (1 = y - 1, then clockwise towards -x: 2 =
     // (-1, -1), 3 = (-1, 0), 4 = (-1, +1), 5 = (0, +1), 6 = (+1, +1), 7 = (+1, 0), 8 = (+1, -1)) into
@@ -198,6 +200,12 @@ static_assert(sizeof(MotionOrder) == 0x20);
 
 // A unit's path (name and layout provisional). Its methods at 005C7xxx steer along `steps`.
 struct AIPath {
+    void LoadPath(CStream* stream);
+    void SavePath(CStream* stream);
+    void StandAndTurn(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t rate);
+    void StandAndTrack(int time, std::uint8_t* unit, std::uint32_t id, std::uint32_t from, std::uint32_t to);
+    void StandAndTurnUntil(int time, std::uint8_t* unit, std::uint32_t direction, std::uint32_t a, std::uint32_t b);
+    void StandStill(std::uint8_t* unit);
     // The order in the first 0x20 bytes (MotionOrder, ai_motion.h); src/game/ai_motion.cpp.
     // 005C7D50. Stand still at (0, 0); the steps are emptied. Returns 0 (EAX, as the original).
     int Reset();
@@ -302,7 +310,7 @@ struct SearchNode {
     bool usable;                // +0x10 false on the window's border and outside a rectangle
     bool settled;               // +0x11 expanded, or the start
     std::int8_t direction;      // +0x12 1..8: the way back to the cell it was reached from; 0 none
-    std::uint8_t unknown_13;
+    std::uint8_t unused_13;
 };
 static_assert(sizeof(SearchNode) == 0x14);
 
@@ -383,7 +391,7 @@ struct LocalSearch {
 
     bool active;                        // +0x00
     bool levelsSaved;                   // +0x01 the window's cell levels are in `levels`
-    std::uint8_t unknown_02[2];
+    std::uint8_t unused_02[2];
     SearchGrid<SearchNode> nodes;       // +0x04 34 x 34
     SearchGrid<std::uint8_t> levels;    // +0x14 saved cell levels (005C33F0 / 005C3530)
     CAIMap* map;                        // +0x24
@@ -401,7 +409,7 @@ struct LocalSearch {
     int sizeClass;                      // +0x78
     bool backward;                      // +0x7C searching from the target (prices steps reversed)
     std::uint8_t level;                 // +0x7D standing level
-    std::uint8_t unknown_7E[2];
+    std::uint8_t unused_7E[2];
 };
 static_assert(offsetof(LocalSearch, map) == 0x24);
 static_assert(offsetof(LocalSearch, settledList) == 0x3C);
@@ -423,7 +431,7 @@ struct BlockRecord {
     std::int16_t x, y;          // +0x0C block coordinates
     int backDirection;          // +0x10 1..8: the way back to the block it was reached from; 0 none
     bool settled;               // +0x14
-    std::uint8_t unknown_15[3];
+    std::uint8_t unused_15[3];
 };
 static_assert(sizeof(BlockRecord) == 24);
 
@@ -450,10 +458,10 @@ struct BlockSearch {
     BlockRecord* open[8];               // +0x1C
     BlockRecord* best;                  // +0x3C
     int bestCost;                       // +0x40 cost of the record being expanded
-    std::uint8_t unknown_44[4];
+    std::uint8_t unused_44[4];
     bool fromTarget;                    // +0x48
     bool active;                        // +0x49
-    std::uint8_t unknown_4A[2];
+    std::uint8_t unused_4A[2];
 };
 static_assert(offsetof(BlockSearch, map) == 0x10);
 static_assert(offsetof(BlockSearch, open) == 0x1C);
@@ -616,7 +624,7 @@ struct SmoothPool {
     void SetSize(int size, int growBy);
 
     mfc::CArray<SmoothNode> nodes;
-    int unknown_14;                     // set to 0 by each pass, not read
+    int zeroed;                     // set to 0 by each pass, not read
     SmoothNode* next;                   // the next free node
 };
 static_assert(sizeof(SmoothPool) == 0x1C);
@@ -648,7 +656,7 @@ struct PathSmoother {
     void Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to);
 
     std::uint8_t level;             // +0x00 standing level
-    std::uint8_t unknown_01[3];
+    std::uint8_t unused_01[3];
     int sizeClass;                  // +0x04
     CAIMap* map;                    // +0x08
     int x, y;                       // +0x0C the current cell
@@ -869,7 +877,7 @@ public:
     // middle (EAX, as the original).
     const int* CostContext(int sizeClass, struct PassCostContext* out);
     // 005B9580 (RET 8). CostContext for `unit`: its size class, its movement speeds (0052F920) in
-    // +0x14 / +0x0C, and the alternative cost table when CUnit::unknown_43C is set.
+    // +0x14 / +0x0C, and the alternative cost table when CUnit::altPassCosts is set.
     void CostContextFor(CUnit* unit, struct PassCostContext* out);
     // 005BA5A0. Is the cell under `unit` passable for it at a cost below 12000? (A cell with a
     // kind-3 occluder is evaluated at the size class's level through 005B8BA0.) Only AL is set
@@ -940,11 +948,11 @@ public:
     bool loaded;                        // +0x000 set by Load
     bool batching;                      // +0x001 refreshes collect into the dirty rectangle
     bool refreshUnits;                  // +0x002 a refresh also re-registers the units around it
-    std::uint8_t unknown_003;
+    std::uint8_t unused_003;
     int dirtyMinX, dirtyMaxX;           // +0x004
     int dirtyMinY, dirtyMaxY;           // +0x00C
     int passCosts[16];                  // +0x014 cost per passability nibble (1/1024)
-    int passCostsAlt[16];               // +0x054 the same for units with CUnit::unknown_43C set
+    int passCostsAlt[16];               // +0x054 the same for units with CUnit::altPassCosts set
     int stepCosts[16];                  // +0x094 step speeds per nibble (SetStepSpeeds)
     ClimbTable climbLarge;              // +0x0D4 size classes other than 0: no step steeper than 40 degrees
     ClimbTable climbSmall;              // +0x0E8 size class 0: up to 60 degrees, every step at the flat cost

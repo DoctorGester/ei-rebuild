@@ -1,6 +1,6 @@
 // Creature statistics (U9): the armour layers of the body slots, the body's packed protection and
 // two skill values (an attribute with the quick items' bonuses, a spell school's skill). See unit.h
-// (UnitStats) and docs/notes/units.md ("Eleventh round (U9)").
+// (UnitStats) and docs/notes/units.md ("Statistics in play").
 #include "unit.h"
 
 #include "item.h"
@@ -44,7 +44,7 @@ void UnitStats::AddArmourLayer(CEngineObject* armour) {
         int part = which != 0 ? 1 : 0;
         for (int k = 0; k < 7; ++k) layer.absorb[k] = layer.absorb[k] + piece->absorb_[part][k];
         layer.state = kLayerAdded;
-        layer.unknown_00 |= static_cast<int>(piece->layerMask_[part]);
+        layer.layerMask |= static_cast<int>(piece->layerMask_[part]);
     }
 }
 EI_REPLACE_METHOD(0x005230C0, UnitStats::AddArmourLayer);

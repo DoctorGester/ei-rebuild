@@ -97,7 +97,7 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     ServerLoadList(this);
     std::memset(&announceTimer_, 0, sizeof(announceTimer_));
     public_ = 0;
-    unknown_2578 = 0;
+    masterToken_ = 0;
     std::memset(password_, 0, sizeof(password_));
     return this;
 }

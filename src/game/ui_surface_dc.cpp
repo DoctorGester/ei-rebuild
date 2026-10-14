@@ -3,7 +3,7 @@
 // renderer's "cpuwindows" option a surface whose pixels are in the new renderer's memory
 // (dx_surface.cpp, a DIB section) is drawn through a memory DC on it instead of DirectDraw's GetDC:
 // the GDI drawing lands in the same memory without DirectDraw (in the switch-over the holder has no
-// DirectDraw surface at all). See docs/notes/renderer.md ("Interface windows", section 14).
+// DirectDraw surface at all). See docs/notes/renderer.md ("Interface windows", section 6).
 #include "dx_surface.h"
 
 #include "device.h"
@@ -33,6 +33,9 @@ void* CdcFromHandle(HDC dc) { return CdcFromHandleOriginal(dc); }
 std::unordered_map<HDC, HGDIOBJ> g_memoryDcs;
 
 } // namespace
+
+// The verify build's interface census (tests/verify/ui_census.cpp): a memory DC 005FDC00 gave out.
+bool IsSurfaceMemoryDc(HDC dc) { return g_memoryDcs.count(dc) != 0; }
 
 // 005FDC00. The surface's CDC (a temporary MFC wrapper), or null without a surface or when getting
 // the DC failed and the report said stop (the device lock then stays held, as in the original).

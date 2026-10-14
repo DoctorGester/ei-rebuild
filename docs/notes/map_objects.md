@@ -44,8 +44,8 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
   `map_object_draw.cpp` (lights within range + 10, matrix stacks, part sets +0x20 / +0x24).
 - **Figures**: layouts in `map_object_figures.h`; LoadFigures reads the model named at +0xA4
   through the figure manager (ManagerContext slot 15, 005AA5F0); SetFigureScale rebuilds the figure
-  only when the scale changes (ManagerContext slots 23 / 6); the piece map at figure + 0x14 is an
-  STLport map<string, piece> (find 005197B0).
+  only when the scale changes (ManagerContext slots 23 / 6); the figure (+0xF0) is a CLinkMesh
+  (link_figure.h) and its piece map is `headers_` (+0x14, map<string, LinkPartHeader>; find 005197B0).
 - The side half at +0x94 (`CObject3DSpecific`: client 0x37 vtable 0073DE90, server 0x38 0073DFBC) is declared as an interface;
   slot 18 GetScale gives the client's +0xF0..+0xF8 or 1, 1, 1 on the server. Scenarios reaching the part code: units, unit_create, combat
   (weapon / armour models), spells_cast, effects (EffectPoint, particle callbacks).
@@ -220,8 +220,8 @@ torches answer 1; SendFreshObjects moves the objects answering 0 out of the map-
 (levers: byte +0x260; a plain click uses an object only when 38 IsUsable is set and 39 is 0), 43 `KeepsMapFlag` (levers:
 byte +0x261); CMapObjectCompanion 14 `Unused14`; CUnitController 15 / 17 `Unused*`, 36 `HasOtherArmour` (server: armour
 slots 3..6, client: any weapon model; they differ); CWorld 37 / 38 `ClientManager194` / `ClientManager198` (not
-identified), 39 `Unused39`; CObject3DSpecific 25 `Unused25`. CLinkMesh's slot 4, declared `HasPiece`, is LoadPart
-(004F30D0 -> 004F7480). Placeholders still left (16): engine_object.h, map_spec.h, resource.h, ui_camp.h, unit_ai.h
+identified), 39 `Unused39`; CObject3DSpecific 25 `Unused25`. CLinkMesh's slot 4 (once declared `HasPiece` on a
+view) is LoadPart (004F30D0 -> 004F7480); CObject3D::LoadPart calls it (F4c). Placeholders still left (16): engine_object.h, map_spec.h, resource.h, ui_camp.h, unit_ai.h
 (`AIStream::Slot0` is CStream's deleting destructor).
 
 ## A-U12 (the range's leftovers, 0x00500000-0x00520000)

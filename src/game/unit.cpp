@@ -42,7 +42,7 @@ float HeroTransitionSpeed() { return *reinterpret_cast<const float*>(0x007C542C)
 float ItemWeight(const CEngineObject* item) { return static_cast<const CItem*>(item)->Weight(); }
 
 // A spell's mana cost (CSpell +0x40, a float kept as a dword).
-float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->unknown_40); }
+float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
 
 PartyRecords* RecordsOf(char* player) { return reinterpret_cast<PartyRecords*>(player + 0x70); }
 
@@ -107,7 +107,7 @@ EI_REPLACE_METHOD(0x00530150, CUnit::IsHostileTo);
 // --- Simple state setters --------------------------------------------------------------------
 
 std::uintptr_t CUnit::SetUnknown438(int value) {
-    unknown_438 = value;
+    fightAtWill = value;
     return MarkChanged(13);
 }
 EI_REPLACE_METHOD(0x0052E9B0, CUnit::SetUnknown438);
@@ -167,10 +167,10 @@ EI_REPLACE(0x0052F7F0, UnitSetStunnedHook);
 
 void CUnit::GetEquipmentIds(std::uint32_t* out) {
     for (int i = 0; i < 4; ++i) {
-        out[i] = weapons[i] ? weapons[i]->unknown_18 : 0xFFFFFFFFu;
+        out[i] = weapons[i] ? weapons[i]->prototypeId_ : 0xFFFFFFFFu;
     }
     for (int i = 0; i < 7; ++i) {
-        out[4 + i] = armor[i] ? armor[i]->unknown_18 : 0xFFFFFFFFu;
+        out[4 + i] = armor[i] ? armor[i]->prototypeId_ : 0xFFFFFFFFu;
     }
 }
 EI_REPLACE_METHOD(0x0052EC10, CUnit::GetEquipmentIds);
@@ -384,11 +384,11 @@ EI_REPLACE_METHOD(0x005302F0, CUnit::ModeSpeed);
 
 // --- Prototypes ------------------------------------------------------------------------------
 
-char* CUnit::GetPrototype() { return unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize); }
+char* CUnit::GetPrototype() { return unitdb::Prototypes().At(prototypeId_, unitdb::kPrototypeSize); }
 EI_REPLACE_METHOD(0x00530930, CUnit::GetPrototype);
 
 char* CUnit::GetPrototypeModel() {
-    char* prototype = unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize);
+    char* prototype = unitdb::Prototypes().At(prototypeId_, unitdb::kPrototypeSize);
     if (!prototype) return nullptr;
     return unitdb::Models().At(static_cast<std::uint32_t>(reinterpret_cast<const UnitPrototypeRecord*>(prototype)->modelIndex),
                                unitdb::kModelSize);

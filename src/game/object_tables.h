@@ -22,7 +22,7 @@ BOOL __fastcall IsTextKey(int id);
 // One "#allod" entry of map.txt (0x2C bytes). Only the name is used here.
 struct AllodRecord {
     char* name;   // CString
-    std::uint8_t unknown_4[0x2C - 4];
+    std::uint8_t unused_4[0x2C - 4];
 };
 static_assert(sizeof(AllodRecord) == 0x2C);
 
@@ -36,7 +36,7 @@ struct MapExit {
     int targetExit;         // +0x2C the target zone's exit the party arrives at
     float view;             // +0x30
     bool hasDeployAngle;    // +0x34
-    std::uint8_t unknown_35[3];
+    std::uint8_t unused_35[3];
     float deployAngle;      // +0x38
 };
 static_assert(offsetof(MapExit, target) == 0x28);
@@ -55,15 +55,15 @@ struct MapRecord {
     int sizeX;              // +0x20 "#maps" first line: the zone's size (times 32: the HUD map's world extent)
     int sizeY;              // +0x24
     int kind;               // +0x28 0 game, 1 edge, 2 brief (2: the zone has a script folder, 00596350)
-    int setting2C;          // +0x2C CWorldServer::SetUnknownDC when the zone starts
-    int setting30;          // +0x30 CWorldServer::SetUnknownE0
+    int setting2C;          // +0x2C CWorldServer::SetClimate when the zone starts
+    int setting30;          // +0x30 CWorldServer::SetCave
     bool restricted;        // +0x34 "#restrict x y radius": the camera stays in that circle
-    std::uint8_t unknown_35[3];
+    std::uint8_t unused_35[3];
     float restrictX;        // +0x38
     float restrictY;        // +0x3C
     float restrictRadius;   // +0x40
     bool cage;              // +0x44 "#cage": a base where the party does not walk to the people
-    std::uint8_t unknown_45[3];
+    std::uint8_t unused_45[3];
     mfc::CArray<MapExit> exits;   // +0x48
 };
 static_assert(offsetof(MapRecord, kind) == 0x28);

@@ -161,14 +161,14 @@ void CUnitServer::DropQueuedOrder() {
     if (action2.target) action2.target->Release();
     action2.target = nullptr;
     action2.flag18 = 0;
-    action2.unknown_1C = 0;
-    action2.unknown_20 = 0;
+    action2.param = 0;
+    action2.modifier = 0;
     action2.kind = 0;
     if (action2.target) {
         action2.target->Release();
         action2.target = nullptr;
     }
-    action2.unknown_20 = 0;
+    action2.modifier = 0;
 }
 
 void CUnitServer::FinishAction(int location, char) {
@@ -206,8 +206,8 @@ void CUnitServer::FinishAction(int location, char) {
         if (action.target) action.target->Release();
         action.target = nullptr;
         action.flag18 = 0;
-        action.unknown_1C = 0;
-        action.unknown_20 = 0;
+        action.param = 0;
+        action.modifier = 0;
         if (action2.kind == 9 && action.kind != 0) DropQueuedOrder();
         return;
     }
@@ -215,8 +215,8 @@ void CUnitServer::FinishAction(int location, char) {
         return;
     }
     ActionClear(&action);
-    action.unknown_1C = 0;
-    action.unknown_20 = 0;
+    action.param = 0;
+    action.modifier = 0;
     if (action2.kind == 9) reinterpret_cast<ControllerOriginals*>(this)->Idle();
 }
 EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
@@ -241,7 +241,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
         ObjectSlots(target)->ReceiveHit(hit, unit, unit);
     }
     CallTriggerWeaponSpell(target);
-    if (std::bit_cast<std::uint32_t>(hit->unknown_34) == kOneBits) {
+    if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kHitNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
     }
@@ -254,7 +254,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     if (!weapon) return;
     auto* spell = static_cast<CSpell*>(weapon->spell_);
     if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) return;
-    float cost = std::bit_cast<float>(spell->unknown_40);
+    float cost = std::bit_cast<float>(spell->manaCost_);
     if (cost > weapon->charge_) return;
     CtlUseItemCharge(this, nullptr, weapon, cost);
     CUnit* self = unit;
@@ -271,9 +271,9 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!item) continue;
         auto* spell = static_cast<CSpell*>(item->spell_);
         if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) continue;
-        float cost = std::bit_cast<float>(spell->unknown_40);
+        float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost > item->charge_) continue;
-        bool fires = (spell->unknown_18 & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
+        bool fires = (spell->prototypeId_ & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
         if (!fires) continue;
         CtlUseItemCharge(this, nullptr, item, cost);
         CUnit* self = unit;
@@ -382,7 +382,7 @@ void CUnitServer::PropagateHostility() {
     *limit = static_cast<float>(radius * radius);
     CDiplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;
-    UnitListNode* node = reinterpret_cast<UnitList*>(&brain.unknown_0F4)->head;
+    UnitListNode* node = reinterpret_cast<UnitList*>(&brain.nearby)->head;
     while (node) {
         CUnit* other = node->data;
         node = node->next;
@@ -434,8 +434,8 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();
             CUnitServer* theirs = ControllerOf(attacker);
-            CallWitnessMurder(&brain.unknown_0F4, unit, attacker);
-            CallWitnessMurder(&theirs->brain.unknown_0F4, attacker, attacker);
+            CallWitnessMurder(&brain.nearby, unit, attacker);
+            CallWitnessMurder(&theirs->brain.nearby, attacker, attacker);
         }
     }
     MapObjectClearEffectsOriginal(unit);
@@ -447,8 +447,8 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     animation.vtable = kAnimationStepsVtable;
     std::uint32_t direction = CallHitDirection(attacker, hitKind);
     CtlBuildDeathAnimation(this, nullptr, &animation, direction, 1, 0);
-    unknown_021 = 0;
-    unknown_020 = 0;
+    animationHeld = 0;
+    frozen = 0;
     AnimationSteps copy;
     AnimationListCopy(&copy, nullptr, &animation);
     copy.extra = animation.extra;
@@ -506,7 +506,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 0: {
         ItemUse record = {1, 0, 0};
         auto* items = static_cast<CBaseManager*>(static_cast<CWorld*>(world)->ItemFactory());
-        CEngineObject* studied = items->FindObject(action.unknown_1C);
+        CEngineObject* studied = items->FindObject(action.param);
         record = {1, 0, 0};
         if (studied) {
             ItemUse scratch;

@@ -87,6 +87,6 @@ the unordered case the same way. Remaining differences only at 64-bit precision 
 - 64-bit precision control is not reproduced (the game runs at 24 bits).
 - Not rewritten: the dead 3DS readers. The procedural texture class 0049A090 / 0049A220 is the
   global map's clouds (rewritten, script.md); 0049BEA0 and its helpers are dead.
-- A-E1: 004981A0, the manager's own part of its constructor (unknown_E4 cleared), is
-  `ParticleManagerClearE4` in small_accessors.cpp; side by side. world_client_maps.cpp reaches it through its
+- A-E1: 004981A0, the manager's own part of its constructor (quietStart cleared), is
+  `ParticleManagerClearQuietStart` in small_accessors.cpp; side by side. world_client_maps.cpp reaches it through its
   forwarder when the client world sets its managers up.

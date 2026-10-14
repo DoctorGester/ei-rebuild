@@ -1,6 +1,6 @@
 // Combat, eighth part: planning an order's way (PlanOrder), the spot a use order goes to, the time
 // along a path until an action can be carried out, and a party unit's move. See combat.h,
-// combat_plan.h and docs/notes/combat.md ("Fourth round").
+// combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 //
 // These build paths on the stack: an AIPath (0x88 bytes: the motion order, the step and cell lists
 // at +0x20 / +0x3C, a point array at +0x70) and the motion order a path turns into (0x3C bytes:
@@ -312,7 +312,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             } else {
                 spell = UnitSpellObject(unit, nullptr, source);
             }
-            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)))->unknown_10 == 0) kind = 2;
+            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(SpellGetPrototypeOriginal(static_cast<CSpell*>(spell)))->castType == 0) kind = 2;
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
@@ -340,10 +340,10 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             }
             void* world = ManagerContextOf(this);
             path.Path()->flag6E = unit->player == nullptr;
-            std::uint32_t saved43C = unit->unknown_43C;
-            unit->unknown_43C = 1;
+            std::uint32_t saved43C = unit->altPassCosts;
+            unit->altPassCosts = 1;
             bool found = MapFindPath(MapOf(world), nullptr, unit, &point, path.bytes, kFar, 0.0f);
-            unit->unknown_43C = saved43C;
+            unit->altPassCosts = saved43C;
             if (!found) PathStandStill(path.bytes, nullptr, unit);
             if (target) {
                 SectorMapAdd(ServerSectors(), nullptr, target);
@@ -388,10 +388,10 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
     std::uint32_t flag = CellFlag80AtOriginal(map, nullptr, &unit->position);
     void* world2 = ManagerContextOf(this);
     path.Path()->flag6E = unit->player == nullptr;
-    std::uint32_t saved43C = unit->unknown_43C;
-    unit->unknown_43C = flag & 0xFF;
+    std::uint32_t saved43C = unit->altPassCosts;
+    unit->altPassCosts = flag & 0xFF;
     bool found = MapFindPath(MapOf(world2), nullptr, unit, point, path.bytes, range, 0.0f);
-    unit->unknown_43C = saved43C;
+    unit->altPassCosts = saved43C;
     if (running) {
         SectorMapRemove(sectors, nullptr, unit);
         unit->moveMode = mode;

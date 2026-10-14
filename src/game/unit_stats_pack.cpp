@@ -42,11 +42,11 @@ std::uint8_t ScaledByte(float value, float scale, float divisor) {
 }
 
 void ResetLayerExceptUnknown20(UnitStatLayer& layer) {
-    layer.unknown_00 = 0;
+    layer.layerMask = 0;
     for (float& a : layer.absorb) a = kZero;
     layer.state = 0;
-    layer.unknown_40 = 0;
-    layer.unknown_44 = 0;
+    layer.spareA = 0;
+    layer.spareB = 0;
 }
 } // namespace
 
@@ -79,7 +79,7 @@ void* UnitVitals::Pack(UnitVitalsPacked* out) {
 EI_REPLACE_METHOD(0x00522C50, UnitVitals::Pack);
 
 int UnitVitalsPacked::Reset() {
-    unknown_00 = 0;
+    spare00 = 0;
     hitPoints = 0;
     maxHitPoints = 0;
     mana = 0;
@@ -93,7 +93,7 @@ EI_REPLACE_METHOD(0x005233B0, UnitVitalsPacked::Reset);
 
 int UnitParams::Reset() {
     std::memset(this, 0, sizeof(UnitParams));
-    unknown_20 = kResetParams20;
+    lastHitSource = kResetParams20;
     for (UnitParamsSlot& slot : slots) slot.type = kResetSlotType;
     return 0;
 }
@@ -110,7 +110,7 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->baseSpeed = ScaledByte(speed, kSpeedScale, kOne);
     params->rate = static_cast<std::uint8_t>(RoundStored(rate));
     params->capacity = static_cast<std::int16_t>(RoundStored(capacity));
-    params->movementKind = static_cast<std::uint8_t>(unknown_060);
+    params->movementKind = static_cast<std::uint8_t>(movementKind);
     for (int i = 0; i < 5; ++i) params->combat[i] = static_cast<std::uint8_t>(RoundStored(combat[i]));
     params->damage = static_cast<std::uint8_t>(GameFtol(damage));         // truncated
     params->damageSpread = static_cast<std::uint8_t>(GameFtol(damageSpread));
@@ -197,9 +197,9 @@ int UnitStats::ClearOuterLayers() {
     for (UnitStatSlot& slot : slots) {
         for (int i = 1; i < 3; ++i) {
             UnitStatLayer& layer = slot.layers[i];
-            layer.unknown_00 = 0;
+            layer.layerMask = 0;
             for (float& a : layer.absorb) a = kZero;
-            for (float& u : layer.unknown_20) u = kZero;
+            for (float& u : layer.spareAbsorb) u = kZero;
         }
     }
     return 0;

@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "core_streams.h"
 #include "core_transform.h"
+#include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_delta.h"     // DeltaState
@@ -107,7 +108,7 @@ __declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
 void InitEngineObject(CEngineObject* object) {
     object->refCount_ = 0;
     object->id_ = -1;
-    object->unknown_18 = 0;
+    object->prototypeId_ = 0;
     object->type_ = 0;
     object->flags_ = 0;
     object->owner_ = nullptr;
@@ -179,8 +180,8 @@ void CObject3D::DestructBody() {
     partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
     if (partBoxes) gamecrt::operator_delete(partBoxes);
     StringArrayDestruct(&partNameArrayVtable);
-    if (CEngineObject* current = figure) {
-        if (--current->refCount_ == 0 && current) delete current;   // slot 0 with 1
+    if (CLinkMesh* current = figure) {
+        if (--current->refCount_ == 0 && current) current->DeleteThis(1);
     }
     if (pendingParts.data) gamecrt::operator_delete(pendingParts.data[-1]);
     if (parts.data) gamecrt::operator_delete(parts.data[-1]);
@@ -213,8 +214,8 @@ CMapObject* CMapObject::Construct() {
     DeltaState* records = NetState();
     SetVtable(records, kRecordArrayVtable);
     records->fields_ = nullptr;
-    records->unknown_10 = 0;
-    records->unknown_C = 0;
+    records->fieldGrowBy_ = 0;
+    records->fieldCapacity_ = 0;
     records->fieldCount_ = 0;
     CMemoryStream* stream = &records->header_[0];
     stream->version_ = kStreamLimit;
@@ -284,7 +285,7 @@ CUnit* CUnit::Construct() {
     UnitMotionClearOriginal(m);
     SetBits(m->speedScale, kTenth);
     SetBits(m->baseTurnRate, kTenth);
-    unknown_49C = static_cast<std::uint32_t>(kCarriedArrayVtable);
+    carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);
     carried = nullptr;
     carriedGrowBy = 0;
     carriedCapacity = 0;
@@ -323,7 +324,7 @@ void CUnit::Reset() {
     moveMode2 = 2;
     pendingWeapon = -1;
     dead = 0;
-    unknown_278 = 0;
+    obstacle = 0;
     activeWeapon = 0xFFFFFFFFu;
     UnitParamsResetOriginal(Params());
     std::memset(weapons, 0, sizeof(weapons));
@@ -336,9 +337,9 @@ void CUnit::Reset() {
     }
     carriedCapacity = 0;
     carriedCount = 0;
-    unknown_43C = 0;
+    altPassCosts = 0;
     ResetNetRecords(MapObject()->NetState());
-    unknown_438 = 1;
+    fightAtWill = 1;
 }
 EI_REPLACE_METHOD(0x0052E5B0, CUnit::Reset);
 
@@ -350,7 +351,7 @@ void CUnit::DestructBody() {
     reinterpret_cast<const Slot*>(CUnit::kVtableAddress)[5](this);
     MapObjectDestroy(this);
     ResetUnitAt(this);
-    unknown_49C = static_cast<std::uint32_t>(kCarriedArrayVtable);
+    carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);
     if (carried) gamecrt::operator_delete(carried);
     UnitMotion* m = Motion();
     DestroyArray(m->stepSpeeds, kMotionSpeedsEndVtable);
@@ -414,16 +415,16 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     sounds.size = 0;
     light = nullptr;
     SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
-    unknown_20 = 0;
-    unknown_24 = 0;
+    lightStateA = 0;
+    lightStateB = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00510450, CMapObjectClientSpecific::Construct);
 
 void CMapObjectClientSpecific::DestructBody() {
     SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
-    unknown_20 = 0;
-    unknown_24 = 0;
+    lightStateA = 0;
+    lightStateB = 0;
     SetParticleCount(&particles, nullptr, 0, -1);
     if (light) {
         light->flags_ &= ~0x200u;

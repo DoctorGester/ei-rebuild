@@ -1,6 +1,6 @@
 // Combat, third part: whether an order can be carried out from where the unit stands (reach, units
 // in the way, line of sight) and the planner that finds the moment it can. See combat.h,
-// combat_plan.h and docs/notes/combat.md ("Third round").
+// combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "combat_plan.h"
 
@@ -225,7 +225,7 @@ bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* po
     volatile float vz = static_cast<float>(kZero / side);
 
     // The units the brain lists as nearby (AIBrain +0xF4).
-    for (auto* node = self->Brain()->unknown_0F4.head; node;) {
+    for (auto* node = self->Brain()->nearby.head; node;) {
         CEngineObject* other = node->data;
         node = node->next;
         if (other == order->target) continue;
@@ -344,7 +344,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     }
 
     StepsSetSize(&plan->animation, nullptr, 0, -1);
-    plan->unknown_2C = 1;
+    plan->hitLocation = 1;
     plan->animation.extra = -1;
     plan->targetId = -1;
     plan->rangeSq = std::bit_cast<float>(kFarBits);

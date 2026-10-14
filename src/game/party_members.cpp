@@ -80,13 +80,13 @@ EI_REPLACE_METHOD(0x00660500, PartyUnitRecord::CopyItemsFrom);
 
 PartyUnitRecord* PartyUnitRecord::Assign(const PartyUnitRecord* source) {
     for (int i = 0; i < 7; ++i) texts[i] = source->texts[i];
-    unknown_01C = source->unknown_01C;
+    unitId = source->unitId;
     std::memcpy(stats, source->stats, sizeof(stats));
     // +0x724..+0x780 member by member (the padding after +0x778 is not copied).
-    std::memcpy(&unknown_724, &source->unknown_724, offsetof(PartyUnitRecord, unknown_778) - offsetof(PartyUnitRecord, unknown_724));
-    unknown_778 = source->unknown_778;
-    unknown_77C = source->unknown_77C;
-    unknown_780 = source->unknown_780;
+    std::memcpy(&scaleX, &source->scaleX, offsetof(PartyUnitRecord, selected) - offsetof(PartyUnitRecord, scaleX));
+    selected = source->selected;
+    leaderId = source->leaderId;
+    fightAtWill = source->fightAtWill;
     return this;
 }
 EI_REPLACE_METHOD(0x00664950, PartyUnitRecord::Assign);
@@ -113,7 +113,7 @@ PartyUnitRecord* CParty::AddMember(const char* name, const char* prototype, cons
 
     PartyUnitRecord* record = &members_.data[members_.size - 1];
     record->texts[1] = name;
-    record->unknown_01C = *name == '\0' ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));
+    record->unitId = *name == '\0' ? 0xFFFFFFFFu : static_cast<std::uint32_t>(TextKeyFromName(name));
     record->texts[5] = prototype;
     record->texts[0] = extra;
     FillFromPrototype(record);
@@ -125,10 +125,10 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(unitdb::PrototypeTable().FindByName(record->texts[5]));
     auto* model = reinterpret_cast<UnitModelRecord*>(
         unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
-    record->texts[2] = model->unknown_E8;
+    record->texts[2] = model->figureName;
     BuildNpcStats(reinterpret_cast<UnitStats*>(record->stats), record->texts[5]);
-    record->unknown_728 = prototype->scale.y;
-    record->unknown_724 = prototype->scale.x;
+    record->scaleY = prototype->scale.y;
+    record->scaleX = prototype->scale.x;
     record->height = prototype->scale.z;
 
     // What 005143E0 copies out of the prototype: armour names, the two weapon names, spell names.
@@ -210,7 +210,7 @@ EI_REPLACE_METHOD(0x00663A70, AlignedPtrArray::RemoveRange);
 BOOL CParty::RemoveMember(int key) {
     for (int i = 0; i < members_.size; ++i) {
         PartyUnitRecord* record = &members_.data[i];
-        if (static_cast<int>(record->unknown_01C) != key) continue;
+        if (static_cast<int>(record->unitId) != key) continue;
         record->Destruct();
         int after = members_.size - i - 1;
         if (after != 0) std::memmove(record, record + 1, static_cast<std::size_t>(after) * sizeof(PartyUnitRecord));

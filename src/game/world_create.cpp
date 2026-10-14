@@ -1,6 +1,6 @@
 // 0055EE40: the world's managers created (the server's and the client's world both call it, and
-// it is a virtual slot of their base, vtable entry 0073F194). See docs/notes/combat.md ("Fourth
-// round"), the 0055C000-00560000 managers.
+// it is a virtual slot of their base, vtable entry 0073F194). See docs/notes/combat.md ("Rewritten"),
+// the 0055C000-00560000 managers.
 //
 // The world's paths are taken from the command line globals; every manager is made, referenced
 // and attached to the world (its slot 13 with the world, or slot 2); a 0x0C-byte helper goes into
@@ -67,9 +67,9 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->tick_ = 0;
     // The wind: along x, no strength.
     const float direction[3] = {1.0f, 0.0f, 0.0f};
-    std::memcpy(world->unknown24_, direction, sizeof(direction));
+    std::memcpy(world->windDirection_, direction, sizeof(direction));
     world->updateCount_ = 0;
-    world->unknown30_ = 0;
+    world->windStrength_ = 0;
 
     world->players_ = Make(sizeof(CBaseManager), ManagerConstructBaseOriginal, worlddata::kPlayerListVtable);
     Attach(world->players_, world);
@@ -108,7 +108,7 @@ CWorld* CWorld::ConstructBase() {
     ClearFields();
     figureLoader_ = nullptr;
     shared5C_.ptr = nullptr;
-    unknown60_ = nullptr;
+    netSession_ = nullptr;
     reinterpret_cast<mfc::CArray<int>*>(countdowns_)->Construct(kCountdownsVtable);
     ei::SetVtable(this, kBaseVtableAddress);
     players_ = nullptr;

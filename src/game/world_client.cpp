@@ -149,7 +149,7 @@ CEngineObject* CWorldClient::NearestVisibleUnit(CEngineObject* unit) {
 
 FootprintPart* CObject3D::PartBox(int index) {
     void* part = index < parts.size ? parts.data[index] : pendingParts.data[index - parts.size];
-    return reinterpret_cast<FootprintPart*>(&static_cast<FigurePart*>(part)->boxFlags);
+    return reinterpret_cast<FootprintPart*>(&static_cast<CFigureMesh*>(part)->bounds_);
 }
 
 std::uint8_t* CWorldClient::LocalView() {
@@ -225,9 +225,9 @@ void CWorldClient::CreateExitMarkers() {
         const ZoneExit& exit = exits_[i];
         source->position = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
-        source->unknown_11C = (exit.y2 - exit.y1) * kOneHalf;
-        source->unknown_120 = static_cast<float>(std::cos(static_cast<double>(exit.angle)));
-        source->unknown_124 = static_cast<float>(std::sin(static_cast<double>(exit.angle)));
+        source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
+        source->turnCos = static_cast<float>(std::cos(static_cast<double>(exit.angle)));
+        source->turnSin = static_cast<float>(std::sin(static_cast<double>(exit.angle)));
         for (int tick = 0; tick < kExitWarmUpTicks; ++tick) marker->RunTick();
     }
     UpdateExitMarkers();
@@ -240,7 +240,7 @@ BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPt
     for (int i = 0; i < records->size; ++i) {
         std::uint8_t* record = (*records)[i];
         CEngineObject* found =
-            WorldFindUnit(this, nullptr, static_cast<int>(reinterpret_cast<PartyUnitRecord*>(record)->unknown_01C));
+            WorldFindUnit(this, nullptr, static_cast<int>(reinterpret_cast<PartyUnitRecord*>(record)->unitId));
         if (!found || ObjectSlots(found)->IsDead() != 0) continue;
         ++living;
         int index = 0;
@@ -264,7 +264,7 @@ void CWorldClient::SummonBird() {
     }
     TimedSlots(owned1B0_)->Reset();
     auto* leader = reinterpret_cast<CPlayer*>(session_)->Party()->members_.data;
-    static_cast<CEffectMoshka*>(owned1B0_)->Follow(static_cast<int>(leader->unknown_01C));
+    static_cast<CEffectMoshka*>(owned1B0_)->Follow(static_cast<int>(leader->unitId));
 }
 
 void CWorldClient::OnQuestVariable(const char* variable, float value) {
@@ -407,7 +407,7 @@ int CWorldClient::Segment() {
     }
     if (shared5C_.ptr) static_cast<CWorldHandle*>(shared5C_.ptr)->Pump();
     if (handle_.ptr) static_cast<CWorldHandle*>(handle_.ptr)->Pump();
-    if (void* p = unknown60_) SessionPump(p, nullptr, net::GameClient());
+    if (void* p = netSession_) SessionPump(p, nullptr, net::GameClient());
     if (WorldSession* session = Session()) {
         CPlayerConnection* view = session->localView;
         if (!paused_) PlayerTickOriginal(session);
@@ -459,9 +459,9 @@ int CWorldClient::Segment() {
         RunEffects(footprints_, EffectListErase1);
         RunEffects(scorchMarks_, EffectListErase2);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
-            unknown1C4_ -= worlddata::WorldUpdatePeriod();
-            if (unknown1C4_ <= 0) {
-                unknown1C4_ = worlddata::LightLevelsPeriod();
+            lightLevelsCountdown_ -= worlddata::WorldUpdatePeriod();
+            if (lightLevelsCountdown_ <= 0) {
+                lightLevelsCountdown_ = worlddata::LightLevelsPeriod();
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
                 CLight* sun = worlddata::SceneSun();

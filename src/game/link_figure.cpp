@@ -172,8 +172,8 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, c
                                     float u) {
     LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
     FigHeader fig = Read<FigHeader>(cursor);
-    header->unknown_04 = Read<std::uint32_t>(cursor);
-    header->unknown_00 = Read<std::uint32_t>(cursor);
+    header->materialValue = Read<std::uint32_t>(cursor);
+    header->meshType = Read<std::uint32_t>(cursor);
     // The morphed bounds (8 or 1 versions) are not used here.
     *cursor += fig.magic == kFig8Magic ? 0x140 : 0x28;
 
@@ -211,8 +211,8 @@ EI_REPLACE_METHOD(0x004F7F00, CLinkFigureLoader::LoadFigPart);
 void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t,
                                     float u) {
     LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
-    header->unknown_04 = Read<std::uint32_t>(cursor);
-    header->unknown_00 = Read<std::uint32_t>(cursor);
+    header->materialValue = Read<std::uint32_t>(cursor);
+    header->meshType = Read<std::uint32_t>(cursor);
     *cursor += 0xF0;   // the morphed bounds
     int count = Read<int>(cursor);
 

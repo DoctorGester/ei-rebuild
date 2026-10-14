@@ -51,8 +51,8 @@ struct ClientTexts;
 // The server world's (007AFF60).
 // 00578560 (RET 4). Player 0's connection, when there is one, sends "constr.current" = `value`.
 void __stdcall GameSetConstructionVariable(std::uint32_t value);
-// 005786A0 (RET 8). CWorldServer::SetUnknownE4E8.
-void __stdcall GameSetUnknownE4E8(int e4, float e8);
+// 005786A0 (RET 8). CWorldServer::SetWeather.
+void __stdcall GameSetWeather(int weather, float strength);
 // 005786E0. The server world's time of day in hours (fmod(tick * secondsPerTick + base, 24)), in ST0.
 double GameServerTimeOfDay();
 // 00578700 (RET 4). The players' times move on by `offset` (CWorldServer::UpdatePlayerTimes)

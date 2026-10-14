@@ -39,7 +39,7 @@ bool BuffersClear(const CFigureMesh* mesh) {
 // What Clear leaves.
 bool Cleared(const CFigureMesh* mesh) {
     return mesh->name_.GetLength() == 0 && mesh->directory_.GetLength() == 0 && Empty(mesh->offsets_) &&
-           Empty(mesh->colorsA_) && Empty(mesh->colorsB_) && BuffersClear(mesh) && mesh->unknown_158 == 0 &&
+           Empty(mesh->colorsA_) && Empty(mesh->colorsB_) && BuffersClear(mesh) && mesh->materialValue_ == 0 &&
            mesh->meshType_ == 0 && mesh->drawer_ == nullptr && mesh->flags_ == 0;
 }
 
@@ -59,9 +59,9 @@ int __fastcall CreateVerify(CFigureMesh* self) {
     alignas(16) unsigned char scratch[kBaseSize];
     std::memcpy(scratch, self, kBaseSize);
     int expected = s_create(reinterpret_cast<CFigureMesh*>(scratch));
-    int actual = self->Create();
+    int actual = self->CreateMesh();
     int diff = BaseDifference(self, scratch);
-    ei::verify::Check("CFigureMesh::Create", true, expected == actual && diff < 0, "%d vs %d, +0x%X", expected, actual,
+    ei::verify::Check("CFigureMesh::CreateMesh", true, expected == actual && diff < 0, "%d vs %d, +0x%X", expected, actual,
                       diff);
     return expected;
 }
@@ -98,7 +98,7 @@ void __fastcall ClearSharedMeshVerify(CFigureMesh* self) {
 }
 
 // What the destructor bodies leave: the engine object's vtable and no manager.
-bool Destructed(const CFigureMesh* mesh) { return VtableOf(mesh) == kEngineObjectVtable && mesh->manager_ == nullptr; }
+bool Destructed(const CFigureMesh* mesh) { return VtableOf(mesh) == kEngineObjectVtable && mesh->owner_ == nullptr; }
 
 void __fastcall DestructBaseVerify(CFigureMesh* self) {
     self->DestructBase();
@@ -142,8 +142,8 @@ void __fastcall SetDrawerVerify(CFigureMesh* self, void*, FigureMeshDrawer* draw
 }
 
 void __fastcall SetOwnerVerify(CFigureMesh* self, void*, CObject3D* owner) {
-    self->SetOwner(owner);
-    ei::verify::Check("CFigureMesh::SetOwner", true, self->owner_ == owner, "mesh %p", self);
+    self->SetObject(owner);
+    ei::verify::Check("CFigureMesh::SetObject", true, self->object_ == owner, "mesh %p", self);
 }
 
 // 005A2480 (A-W14; MOV EAX,[ECX+8]; OR AL,0x20: 5 bytes), the base's slot 19. Differential on the

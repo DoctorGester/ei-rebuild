@@ -1,7 +1,7 @@
 // The options' defaults (00458DA0; called by 00455BA0 before the registry is read): the subkey
 // names, the video mode (640 x 480, 16 bits), the camera, shadows and lights, the paths ("." and
 // ".\res\"), the map and stream names and the master server ("a3master.nival.com"). See
-// docs/notes/objects.md ("Sixth round").
+// docs/notes/objects.md ("Rewritten").
 #include "options.h"
 
 #include "ei/hook.h"

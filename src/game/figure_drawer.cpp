@@ -91,7 +91,7 @@ EI_REPLACE_METHOD(0x005A70A0, FigureMeshDrawer::DeletingDestructBase);
 
 int FigureMeshDrawer::Create() {   // 005A70E0
     flags_ = 0;
-    unknown_30 = Vector3{1.0f, 1.0f, 1.0f};
+    spare30_ = Vector3{1.0f, 1.0f, 1.0f};
     return 1;
 }
 EI_REPLACE_METHOD(0x005A70E0, FigureMeshDrawer::Create);

@@ -1,5 +1,5 @@
 // CUnit's Load and Save slots (vtable 0073EA8C slots 9 and 10). See unit.h and
-// docs/notes/units.md ("Third round").
+// docs/notes/units.md ("Creation, databases, save").
 #include "unit.h"
 
 #include "ai_motion.h"
@@ -177,7 +177,7 @@ void CUnit::LoadUnit(UnitStream* stream) {
     stream->Read(&activeWeapon, 4);
     stream->Read(&pendingWeapon, 4);
     stream->Read(&dead, 4);
-    stream->Read(&unknown_278, 4);
+    stream->Read(&obstacle, 4);
     Motion()->LoadState(AsStream(stream));
     stream->Read(&heightOffset, 4);
     stream->Read(&sizeClass, 4);
@@ -201,12 +201,12 @@ void CUnit::LoadUnit(UnitStream* stream) {
     stream->Read(&standingHeight, 4);
 
     if (stream->version < kVersionField438) return;
-    stream->Read(&unknown_438, 4);
+    stream->Read(&fightAtWill, 4);
     if (stream->version < kVersionPrototypeNames) return;
 
     mfc::CString prototypeName;
     ReadStringInto(stream, prototypeName);
-    unknown_18 = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
+    prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
     char* second;
     if (stream->version < kVersionSecondName) {
         second = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, prototypeName);
@@ -235,7 +235,7 @@ void CUnit::SaveUnit(UnitStream* stream) {
     WriteCopy(stream, activeWeapon);
     WriteCopy(stream, pendingWeapon);
     WriteCopy(stream, dead);
-    WriteCopy(stream, unknown_278);
+    WriteCopy(stream, obstacle);
     Motion()->SaveState(AsStream(stream));
     WriteCopy(stream, heightOffset);
     WriteCopy(stream, sizeClass);
@@ -251,11 +251,11 @@ void CUnit::SaveUnit(UnitStream* stream) {
     WriteCopy(stream, carriedCount);
     WriteItemIds(stream, carried, carriedCount);
     WriteCopy(stream, standingHeight);
-    stream->Write(&unknown_438, 4);
+    stream->Write(&fightAtWill, 4);
 
     // The prototype's name (the record's first field is a CString; a record out of range is
     // copied from address 0, as the original does), then the second prototype's or "".
-    mfc::CString prototypeName(*reinterpret_cast<const mfc::CString*>(PrototypeAt(unknown_18)));
+    mfc::CString prototypeName(*reinterpret_cast<const mfc::CString*>(PrototypeAt(prototypeId_)));
     WriteString(stream, prototypeName);
     const char* second = PrototypeAt(static_cast<std::uint32_t>(prototype23C));
     if (second) prototypeName = *reinterpret_cast<const mfc::CString*>(second);

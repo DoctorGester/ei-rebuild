@@ -40,7 +40,7 @@ ChargeExpectation ExpectCharge(CItem* item, bool fires) {
     e.expected = Bits(item->charge_);
     auto* spell = static_cast<const CSpell*>(item->spell_);
     if (!fires || !spell || !(spell->targetFlags_ & 0x10000)) return e;
-    float cost = std::bit_cast<float>(spell->unknown_40);
+    float cost = std::bit_cast<float>(spell->manaCost_);
     if (cost > item->charge_) return e;
     e.expected = ChargeAfter(item->charge_, cost);
     return e;
@@ -147,7 +147,7 @@ static void __fastcall ItemSpellsVerify(CUnitServer* self, void*, char onHit) {
         auto* item = static_cast<CItem*>(self->unit->armor[slot]);
         bool fires = onHit != 0;
         if (item && item->spell_ &&
-            (static_cast<const CSpell*>(item->spell_)->unknown_18 & 0xFFFF0000u) == 0x180000u)
+            (static_cast<const CSpell*>(item->spell_)->prototypeId_ & 0xFFFF0000u) == 0x180000u)
             fires = onHit == 0;
         charges[slot] = ExpectCharge(item, fires);
     }
@@ -268,7 +268,7 @@ static void __fastcall IdleVerify(CUnitServer* self) {
     self->Idle();
     bool ok = untouched ? std::memcmp(&before, &self->action2, sizeof(before)) == 0
                         : self->action2.kind == 0 && !self->action2.target && !self->action2.flag18 &&
-                              !self->action2.unknown_1C && !self->action2.unknown_20;
+                              !self->action2.param && !self->action2.modifier;
     ei::verify::Check("CUnitServer::Idle", true, ok, "unit %d: order %d, queued %d -> %d", UnitId(self),
                       self->action.kind, before.kind, self->action2.kind);
 }

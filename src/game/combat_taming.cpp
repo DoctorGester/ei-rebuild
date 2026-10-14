@@ -2,7 +2,7 @@
 // the roll moves the creature a stage along: 1 no longer hostile to the tamer's side, 2 on the
 // tamer's side (its own side kept at +0x90C), 3 in the tamer's party with a "tamed" AI mode; a
 // failed attempt (or one on a creature with a player) undoes the taming when it was the tamer's
-// side doing it, and counts as an attack. See docs/notes/combat.md ("Fourth round").
+// side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "map_object.h"
 #include "unit_ai.h"
@@ -100,13 +100,13 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         UnitSetPlayer(unit, nullptr, tamerPlayer);
         auto* mode = static_cast<AIMode*>(gamecrt::operator_new(0x24));
         mode->refs = 0;   // written before the test, as the original does (one dword)
-        mode->unknown_06 = 0;
+        mode->refsHigh = 0;
         if (mode) {
             ModePlayerConstruct(mode);
             ei::SetVtable(mode, std::uintptr_t(0x0073F0C4));   // the player mode's vtable
         }
         BrainAddMode(&brain, nullptr, mode);
-        ClearReferenceList<false>(Brain()->unknown_12C);
+        ClearReferenceList<false>(Brain()->seenCorpses);
         ClearReferenceList<true>(Brain()->corpses);
         Stage(this) = 3;
         break;
@@ -120,14 +120,14 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         action2.kind = kOrderNone;
         ReferenceRelease(&action2.target);
         action2.flag18 = 0;
-        action2.unknown_1C = 0;
-        action2.unknown_20 = 0;
+        action2.param = 0;
+        action2.modifier = 0;
         action2.kind = 0;
         if (action2.target) {
             ReferenceRelease(&action2.target);
             action2.target = nullptr;
         }
-        action2.unknown_20 = 0;
+        action2.modifier = 0;
     }
     return 1;
 }

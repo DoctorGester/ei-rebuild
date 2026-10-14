@@ -8,7 +8,7 @@
 // describes that memory, the copy is a CPU copy of its rows, and the new renderer reads the shadow
 // texture's memory when a draw binds it (004EA4A0 through 0051CE60). Outside the switch-over they
 // are the original's DirectDraw textures and the copy is the device's Load. See
-// docs/notes/renderer.md (section 16).
+// docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "device.h"

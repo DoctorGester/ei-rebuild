@@ -175,8 +175,8 @@ void __fastcall D0Verify(CCamera* self, void*, std::uint32_t value) {
     CameraCopy expected;
     std::memcpy(expected.bytes, self, sizeof(expected.bytes));
     s_d0(expected.bytes, nullptr, value);
-    self->SetUnknownD0(value);
-    ei::verify::Check("CCamera::SetUnknownD0", true, SameCamera(self, expected), "%08X", value);
+    self->SetZoomTarget(value);
+    ei::verify::Check("CCamera::SetZoomTarget", true, SameCamera(self, expected), "%08X", value);
 }
 
 // 0040D3B0: MOV EAX,[ESP+4] (4), TEST EAX,EAX (2).

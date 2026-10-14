@@ -1,4 +1,4 @@
-# The objectives window (A-H17, docs/notes/items_spells.md): TAB opens it for zone1 with the quest
+# The objectives window (A-H17, docs/notes/ui.md, section 8): TAB opens it for zone1 with the quest
 # q0g held ("#quest q0g" is in map.txt), so ShowQuest fills the quest's places (0064EA80, the
 # map.txt branch). Its clicks (0064E330): the first quest row (4), the zone arrows (2 / 3; only
 # one zone is listed, so nothing), cancel (1; one button, so nothing), the first exit (9: the

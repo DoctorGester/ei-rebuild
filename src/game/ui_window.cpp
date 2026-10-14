@@ -272,15 +272,19 @@ EI_REPLACE_METHOD(0x005FF1E0, CUiWindow::ClearObjects);
 
 // Returns `surface` (the original leaves its argument in EAX; the titles' Create 0062B7D0 freezes
 // the surface through the result).
+void (*g_uiSurfaceOwnerObserver)(const CUiWindow* window, const CUiSurface* surface, bool added) = nullptr;
+
 CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
     if (!surface) return nullptr;
     surfaces_.Add(surface);
+    if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, true);
     return surface;
 }
 EI_REPLACE_METHOD(0x005FFA90, CUiWindow::AddSurface);
 
 void CUiWindow::RemoveSurfaceAt(int index) {
     if (CUiSurface* surface = surfaces_.data[index]) {
+        if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
         surface->ReleaseContents();
         gamecrt::operator_delete(surface);
     }
@@ -291,6 +295,7 @@ EI_REPLACE_METHOD(0x005FFBF0, CUiWindow::RemoveSurfaceAt);
 void CUiWindow::ClearSurfaces() {
     for (int i = 0; i < surfaces_.size; ++i) {
         if (CUiSurface* surface = surfaces_.data[i]) {
+            if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
             surface->ReleaseContents();
             gamecrt::operator_delete(surface);
         }
@@ -569,6 +574,7 @@ void CUiWindow::DestroyBase() {
     sceneObjects_.SetSize(0, -1);
     for (int i = 0; i < surfaces_.size; ++i) {
         if (CUiSurface* surface = surfaces_.data[i]) {
+            if (g_uiSurfaceOwnerObserver) g_uiSurfaceOwnerObserver(this, surface, false);
             surface->ReleaseContents();
             gamecrt::operator_delete(surface);
         }

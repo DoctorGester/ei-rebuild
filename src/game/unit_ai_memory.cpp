@@ -126,7 +126,7 @@ void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
     if (IsDead(object)) {
         console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
         console::EndLine(PutLong(os, other->id_));
-        AddCountedTail(&unknown_12C, nullptr, object);
+        AddCountedTail(&seenCorpses, nullptr, object);
         if (Allied(self->side, other->side)) AddCountedTail(&corpses, nullptr, object);
     } else {
         visible.AddHead(object);
@@ -140,7 +140,7 @@ void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
 void AIBrain::SeeCorpse(CUnit* self, CEngineObject* corpse) {
     console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
     console::EndLine(PutLong(os, corpse->id_));
-    AddCountedTail(&unknown_12C, nullptr, corpse);
+    AddCountedTail(&seenCorpses, nullptr, corpse);
     if (Allied(self->side, static_cast<CUnit*>(corpse)->side)) AddCountedTail(&corpses, nullptr, corpse);
 }
 
@@ -173,7 +173,7 @@ void AIBrain::MeasureExposure(UnitController* self, float* out) {
     CUnit* unit = self->unit;
     Vector3 eye;
     static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(unit))->EyePoint(&eye);
-    for (auto* node = unknown_0F4.head; node; node = node->next) {
+    for (auto* node = nearby.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;
         UnitController* theirs = ControllerOf(other);

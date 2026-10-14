@@ -26,7 +26,7 @@ int __fastcall RendererTriangles(CSceneRenderer* renderer, void*, void* vertices
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), vertexCount, indices, static_cast<int>(indexCount),
                        static_cast<int>(D3DPT_TRIANGLELIST))) {
         gameapi::EnterCriticalSection(device::Lock());
-        device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitive(
+        device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
             D3DPT_TRIANGLELIST, kFvf, vertices, static_cast<DWORD>(vertexCount), const_cast<WORD*>(indices),
             static_cast<DWORD>(indexCount), 0);
         gameapi::LeaveCriticalSection(device::Lock());

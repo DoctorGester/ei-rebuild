@@ -381,7 +381,7 @@ EI_VERIFY(0x005302F0, ModeSpeedVerify, 11, s_modeSpeed);
 static char*(__fastcall* s_prototype)(CUnit*);
 static char* __fastcall PrototypeVerify(CUnit* self) {
     char* expected = s_prototype(self);
-    ei::verify::Check("CUnit::GetPrototype", expected, self->GetPrototype(), "index %u", self->unknown_18);
+    ei::verify::Check("CUnit::GetPrototype", expected, self->GetPrototype(), "index %u", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x00530930, PrototypeVerify, 10, s_prototype);
@@ -389,7 +389,7 @@ EI_VERIFY(0x00530930, PrototypeVerify, 10, s_prototype);
 static char*(__fastcall* s_prototypeModel)(CUnit*);
 static char* __fastcall PrototypeModelVerify(CUnit* self) {
     char* expected = s_prototypeModel(self);
-    ei::verify::Check("CUnit::GetPrototypeModel", expected, self->GetPrototypeModel(), "index %u", self->unknown_18);
+    ei::verify::Check("CUnit::GetPrototypeModel", expected, self->GetPrototypeModel(), "index %u", self->prototypeId_);
     return expected;
 }
 EI_VERIFY(0x00530970, PrototypeModelVerify, 10, s_prototypeModel);

@@ -62,11 +62,11 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
     if (SignSet(slopeX) || SignSet(slopeY)) return static_cast<int>(Bits(sun->direction_.z) & 0x80000000u);
 
     const int length = stepY > stepX ? stepY : stepX;
-    float rayHeight = position->xyz[2];
+    float rayHeight = position->z;
     int error = 0;
     for (int steps = 0; steps < length; ++steps) {
         // The original compares the two floats' bits as unsigned integers.
-        if (Bits(vertex->xyz[2]) > Bits(rayHeight)) return 0;
+        if (Bits(vertex->z) > Bits(rayHeight)) return 0;
         bool crossed = false;
         if (error <= 2 * stepX - stepY) {
             rayHeight = RoundToFloat(rayHeight + slopeX);
@@ -102,7 +102,7 @@ int Terrain::SunReaches(const terrain::SectorPosition* position) {
             }
         }
         if (crossed) {
-            auto* next = reinterpret_cast<terrain::SectorData*>(SectorAt(sx, sy, kLoaded, 1));
+            auto* next = SectorAt(sx, sy, kLoaded, 1);
             if (!next) return 1;
             vertex = next->vertices.data + (row * kRow + column);
         }

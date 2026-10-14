@@ -33,7 +33,7 @@ static void* __fastcall CreateFigureObjectVerify(void* self, void*, int classId)
     } else {
         ok = object && static_cast<CEngineObject*>(object)->type_ == classId &&
              (!ExpectedVtable(classId) ||
-              reinterpret_cast<std::uintptr_t>(static_cast<CFigureMesh*>(object)->vtable_) == ExpectedVtable(classId));
+              *reinterpret_cast<const std::uintptr_t*>(object) == ExpectedVtable(classId));
     }
     ei::verify::Check("CreateFigureObject", true, ok, "class %x -> %p", classId, object);
     return object;

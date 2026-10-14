@@ -32,10 +32,10 @@ void ReleaseAll(const AlignedPtrArray& list) {
 
 // The values the constructor and destructor set (twice in the constructor, around ClearItems).
 void SetDefaults(PartyUnitRecord& record) {
-    record.unknown_770 = 2;
+    record.moveMode2 = 2;
     record.weaponIndex = 0;
-    record.unknown_778 = 0;
-    record.unknown_77C = -1;
+    record.selected = 0;
+    record.leaderId = -1;
 }
 
 
@@ -52,13 +52,13 @@ PartyUnitRecord* PartyUnitRecord::Construct() {
         list.capacity = 0;
         list.size = 0;
     }
-    unknown_724 = 0.8f;
-    unknown_728 = 0.2f;
+    scaleX = 0.8f;
+    scaleY = 0.2f;
     height = 1.0f;
     SetDefaults(*this);
     ClearItems();
     SetDefaults(*this);
-    unknown_780 = 1;
+    fightAtWill = 1;
     return this;
 }
 EI_REPLACE_METHOD(0x0065F5F0, PartyUnitRecord::Construct);
@@ -66,7 +66,7 @@ EI_REPLACE_METHOD(0x0065F5F0, PartyUnitRecord::Construct);
 void PartyUnitRecord::Destruct() {
     ClearItems();
     SetDefaults(*this);
-    unknown_780 = 1;
+    fightAtWill = 1;
     FreeStorage(ItemList(spells));
     FreeStorage(ItemList(armor));
     FreeStorage(ItemList(quickItems));
@@ -288,7 +288,7 @@ void CParty::Clear(int clearVariables, int keepSpells) {
     members_.SetSize(0, -1);
     if (clearVariables != 0) variables_.Clear();   // each name destroyed, its node back to the allocator
     zone_ = game::EmptyText();
-    unknown_6C = 0;
-    unknown_50 = 0;
+    entrance_ = 0;
+    money_ = 0;
 }
 EI_REPLACE_METHOD(0x00661700, CParty::Clear);

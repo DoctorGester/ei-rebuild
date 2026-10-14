@@ -236,7 +236,7 @@ void CVisibilityFog::ComputeBounds() {
     float x = Load(boundsMax.x);
     float y = Load(boundsMax.y);
     float z = Load(boundsMax.z);
-    unknown_48 = {0.0f, 0.0f, 0.0f};
+    boundsSpare = {0.0f, 0.0f, 0.0f};
     radius = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z)));
     boundsKind = 3;
     boundsValid = 1;

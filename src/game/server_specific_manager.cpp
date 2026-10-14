@@ -78,7 +78,7 @@ CEngineObject* CServerSpecificManager::NewObject(int type) {
         ei::SetVtable(spec, CEngineObject::kVtableAddress);
         spec->refCount_ = 0;
         spec->id_ = -1;
-        spec->unknown_18 = 0;
+        spec->prototypeId_ = 0;
         spec->type_ = 0;
         spec->flags_ = 0;
         spec->owner_ = nullptr;

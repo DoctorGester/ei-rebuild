@@ -55,7 +55,7 @@ void __fastcall ClearVerify(SectorData* self, void*) {
         for (int i = 0; i < self->tiles[q].size; ++i) empty = empty && self->tiles[q][i].data == nullptr;
     }
     ei::verify::Check("SectorData::Clear", true, empty, "arrays emptied");
-    ei::verify::Check("SectorData::Clear", true, self->sx == -1 && self->built == 0 && self->unknown_060 == 2,
+    ei::verify::Check("SectorData::Clear", true, self->sx == -1 && self->built == 0 && self->clipMode == 2,
                       "fields reset");
 }
 EI_VERIFY(0x006C3C80, ClearVerify, 0, s_clear);
@@ -97,7 +97,7 @@ EI_VERIFY(0x006C3E50, RelightTickVerify, 6, s_relightTick);
 // (frames and their 9 texture coordinates), the water vertices, the water records' specular words
 // and the random generator are kept, restored, and ours runs; all compared. The wave indices come
 // from FISTPs of rounded products: a value on a .5 edge may give a rare mismatch.
-void(__fastcall* s_animate)(SectorData*, void*, TerrainFields*, int);
+void(__fastcall* s_animate)(SectorData*, void*, Terrain*, int);
 
 struct AnimateState {
     std::vector<int> frames;
@@ -131,7 +131,7 @@ struct AnimateState {
     }
 };
 
-void __fastcall AnimateVerify(SectorData* self, void*, TerrainFields* owner, int frame) {
+void __fastcall AnimateVerify(SectorData* self, void*, Terrain* owner, int frame) {
     AnimateState before, original, ours;
     RandomState random, randomOriginal;
     before.Save(self);
@@ -153,10 +153,10 @@ void __fastcall AnimateVerify(SectorData* self, void*, TerrainFields* owner, int
     }
     int positions = 0, speculars = 0, first = -1;
     for (std::size_t i = 0; i < original.water.size(); ++i) {
-        bool same = true;
-        for (int k = 0; k < 3; ++k) {
-            same = same && ei::verify::NearlyEqual(original.water[i].xyz[k], ours.water[i].xyz[k], 4, 1e-5f);
-        }
+        const Vector3& o = original.water[i];
+        const Vector3& u = ours.water[i];
+        bool same = ei::verify::NearlyEqual(o.x, u.x, 4, 1e-5f) && ei::verify::NearlyEqual(o.y, u.y, 4, 1e-5f) &&
+                    ei::verify::NearlyEqual(o.z, u.z, 4, 1e-5f);
         if (!same && positions++ == 0) first = static_cast<int>(i);
         if (original.specular[i] != ours.specular[i]) ++speculars;
     }

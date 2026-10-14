@@ -43,9 +43,9 @@ public:
     bool Slot29True();   // 00529AE0 (slot 29): AL = 1
     int Slot38One();     // 00529AF0 (slot 38): 1
 
-    std::uint32_t unknown_238;   // +0x238 saved and loaded; nothing sets it here
+    std::uint32_t savedValue_;   // +0x238 only loaded and saved; nothing sets it (not even the constructor)
 };
-static_assert(offsetof(CTrapObject, unknown_238) == 0x238);
+static_assert(offsetof(CTrapObject, savedValue_) == 0x238);
 static_assert(sizeof(CTrapObject) == 0x23C);
 
 // 00529B00 / 00529B10 (slots 11 / 12): "CTrapObject" (0078F724) and 0x55. 00529F50 / 00529F60:

@@ -48,7 +48,7 @@ class CCamera;   // camera.h
 class CMaterial;   // material.h
 class CStream;   // core_streams.h
 class CParticleManager;   // effects.h
-struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
+struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
 class CHoover;   // object.h
 class CWorldServer;
@@ -80,32 +80,36 @@ struct PartyRecords;   // unit.h
 
 // A player (one per human or AI side). Fields named only as far as used here.
 struct WorldPlayer {
-    std::uint8_t unknown_000[0x1C];
+    std::uint8_t engineObject[0x1C];     // CPlayer's engine object fields (vtable, count, id, ...)
     netlink::NetLink* link;              // +0x01C the link to the player's client (CPlayer::link_), or null
     CPlayerServer* server;               // +0x020 the player's connection (player_messages.h), or null
 
     int id;                              // +0x024 player number (0 = the local player)
     ObjectIdMap objects;                 // +0x028 its objects by id (the briefing screen walks it)
     ObjectIdMap units;                   // +0x040 its units by id (CPlayer::units_ / maxUnitId_)
-    std::uint8_t unknown_058[0x70 - 0x58];
+    std::uint8_t knownTimed[0x70 - 0x58]; // CPlayer::knownTimed_ / maxTimedId_ (read through CPlayer)
     // +0x070 the player's party (a CParty, party.h, 0x70 bytes to +0xE0: Party()); mercs,
     // mercCount and variables below are its members_ and variables_ seen from here. Loaded and
     // saved by 006618C0 / 00661C10 (world_save.cpp).
     std::uint8_t party[0xA0 - 0x70];
     std::uint8_t* mercs;                 // +0x0A0 0x784-byte records, unit id at +0x1C
     int mercCount;                       // +0x0A4
-    std::uint8_t unknown_0A8[0xC4 - 0xA8];
+    std::uint8_t partyItems[0xC4 - 0xA8]; // the party's members_ tail, items_ and money (through Party())
     std::uint8_t variables[0xD8 - 0xC4]; // +0x0C4 named float variables ("gtime", quest flags)
-    std::uint8_t unknown_0D8[0xE0 - 0xD8];
+    std::uint8_t partyZone[0xE0 - 0xD8];  // the party's zone_ and +0x6C (through Party())
     // +0x0E0 an item list (CPtrList); the HUD top panel's page 1 lists it (0064A7A0).
     mfc::CTypedPtrList<CEngineObject> items;
-    std::uint32_t unknownFC;             // +0x0FC saved with the world (SaveWorld / LoadSave)
+    // +0x0FC the key the party is stored under in the party manager (a fresh one from PartyNextId
+    // for a new party; the client's login sends it); saved with the world.
+    std::uint32_t partyId;
     // +0x100 saved with the world; CPlayer::sessionKind100_: set from the server world's +0x12D64
     // on joining (AcceptNewPlayers); 1: the flow applies the server's variables by stamp.
-    std::uint32_t unknown100;
+    std::uint32_t sessionKind;
     int lastScreen;                      // +0x104 the interface screen it comes from (5: the camp)
-    std::uint8_t unknown108;             // +0x108 saved with the world (one byte)
-    std::uint8_t unknown_109[0x10C - 0x109];
+    // +0x108 the script's GodMode(player, on) (CPlayer::godMode_; the combat code tests it).
+    // Saved with the world (one byte).
+    std::uint8_t godMode;
+    std::uint8_t unused_109[0x10C - 0x109];
     int logTraffic;                      // +0x10C logs the size of every flush (the console's "net")
     int lastTick;                        // +0x110
     mfc::CList<std::uint32_t> ids;       // +0x114 saved with the world from version 0x55 (AddTail 0059CC60)
@@ -117,8 +121,8 @@ struct WorldPlayer {
 };
 static_assert(offsetof(WorldPlayer, link) == 0x1C);
 static_assert(offsetof(WorldPlayer, party) == 0x70);
-static_assert(offsetof(WorldPlayer, unknownFC) == 0xFC);
-static_assert(offsetof(WorldPlayer, unknown108) == 0x108);
+static_assert(offsetof(WorldPlayer, partyId) == 0xFC);
+static_assert(offsetof(WorldPlayer, godMode) == 0x108);
 static_assert(offsetof(WorldPlayer, logTraffic) == 0x10C);
 static_assert(offsetof(WorldPlayer, lastTick) == 0x110);
 static_assert(offsetof(WorldPlayer, ids) == 0x114);
@@ -132,14 +136,15 @@ static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
 
 // What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
 struct LocalViewData {
-    std::uint8_t unknown_00[0x1C];
+    std::uint8_t engineObject[0x1C];     // the CPlayerClient's engine object fields
     WorldPlayer* player;                 // +0x1C
-    std::uint8_t unknown_20[0x84 - 0x20];
-    std::uint8_t unknown_84;             // +0x84 set: a unit's network owner becomes the local player
-                                         //       whatever its id (UnitReadNetState)
+    std::uint8_t clientState[0x84 - 0x20]; // the CPlayerClient's state, handlers and streams
+    // +0x84 a local session (GameStartLocalSession sets it): a unit's network owner becomes the local
+    // player whatever its id (UnitReadNetState), and the game-state message only presses Enter.
+    std::uint8_t localSession;
     std::uint8_t partyTaken;             // +0x85 the flow sets it once the local player took the requested party, clears it for a new zone
 };
-static_assert(offsetof(LocalViewData, unknown_84) == 0x84);
+static_assert(offsetof(LocalViewData, localSession) == 0x84);
 static_assert(offsetof(LocalViewData, partyTaken) == 0x85);
 static_assert(offsetof(WorldPlayer, dirty) == 0x130);
 
@@ -175,15 +180,16 @@ static_assert(sizeof(ObjectMapIterator) == 12);
 
 // A zone exit as the world server keeps it (0x3C bytes); the client keeps the same records.
 struct ZoneExit {
-    std::uint32_t unknown_00[5];          // +0x00 (saved as five dwords)
+    // The record is the map database's MapExit (object_tables.h) as the world keeps it.
+    std::uint32_t passTimeDeploy[5];      // +0x00 MapExit's passTime and deploy rectangle (saved as five dwords)
     float x1, y1, x2, y2;                 // +0x14 rectangle
     float angle;                          // +0x24 rotation about the rectangle's centre (radians)
     char* target;                         // +0x28 CString: target zone ("" = none)
     int entrance;                         // +0x2C entrance number in the target zone
-    int unknown_30;                       // +0x30
-    std::uint8_t unknown_34;              // +0x34 saved from version 0x68
-    std::uint8_t unknown_35[3];
-    int unknown_38;                       // +0x38 saved from version 0x68
+    int view;                             // +0x30 MapExit::view (float bits)
+    std::uint8_t hasDeployAngle;          // +0x34 saved from version 0x68
+    std::uint8_t unused_35[3];
+    int deployAngle;                      // +0x38 float bits; saved from version 0x68
 
     // 004E59F0 (exit_area.cpp). Whether (x, y) lies inside the exit area (rotated by `angle` about
     // the rectangle's centre when it is not 0).
@@ -198,7 +204,7 @@ struct ZoneExit {
 };
 static_assert(sizeof(ZoneExit) == 0x3C);
 static_assert(offsetof(ZoneExit, target) == 0x28);
-static_assert(offsetof(ZoneExit, unknown_38) == 0x38);
+static_assert(offsetof(ZoneExit, deployAngle) == 0x38);
 
 // MFC CArray<ZoneExit> (CWorldServer + 0xEC; the map database's zone records hold one at +0x48).
 // Its SetSize is the instantiation's own: ZoneExitsSetSizeOriginal (00573080, originals_world.h;
@@ -222,7 +228,8 @@ public:
     // 13-24 are the manager context's getters (CParty has the same slots). Slots declared
     // `void Name()` keep their place in the order only (their return types are not declared; give
     // them their signature when calling them); rewritten slots stay plain members, rewrite guide
-    // rule 4. Names and evidence: docs/notes/drafts/DR-C2.md. Some names avoid free helpers of
+    // rule 4. Names and evidence: docs/notes/map_objects.md ("Virtual slot names"). Some names avoid
+    // free helpers of
     // the same name (World, ItemManager, LightManager, ...) that the members' bodies call.
     virtual void ThisWorld();             // 13: 0055EB40 returns this
     virtual CBaseManager* TimedObjectManager();   // 14: 0055EB90 (+0x48, manager48_; the client's Segment ticks its objects)
@@ -236,7 +243,7 @@ public:
     // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
     virtual CBaseManager* SpecificManager();
     virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
-    virtual class CFigureCache* FigureCache();   // 23: the figure cache (+0x5C; map_object_figures.h)
+    virtual CLinkFigureLoader* FigureLoader();   // 23 (vtable +0x5C): the figure loader (model.h)
     // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::
     // CopyItem). Not called CopyItem here: CWorldServer's plain member of that name would hide it.
     virtual CEngineObject* DuplicateItem(CEngineObject* item);
@@ -315,8 +322,8 @@ public:
 
     float timeBase_;                   // +0x1C
     float secondsPerTick_;                // +0x20
-    std::uint8_t unknown24_[12];          // +0x24 wind direction (three floats); saved and loaded as they are
-    std::uint32_t unknown30_;             // +0x30 wind strength (float bits, 0..1); saved and loaded
+    std::uint8_t windDirection_[12];      // +0x24 three floats; saved and loaded as they are
+    std::uint32_t windStrength_;          // +0x30 float bits, 0..1; saved and loaded
     CLinkFigureLoader* figureLoader_;     // +0x34 counted (the client's from SetUpGraphics; slot 23 returns it)
     CEngineObject* players_;              // +0x38 player list (vtable slot 20 returns it)
     CEngineObject* manager3C_;            // +0x3C (slot 15)
@@ -329,14 +336,14 @@ public:
     CEngineObject* manager58_;            // +0x58 (slot 16)
     // +0x5C a counted helper (0xC bytes, vtable 0073F240) WorldCreateManagers shares in.
     RefPtr shared5C_;
-    void* unknown60_;                     // +0x60 the network session (a counted pointer; OpenSession)
+    void* netSession_;                    // +0x60 the network session (a counted pointer; OpenSession)
     int tick_;                            // +0x64 game time in ticks
     int updateCount_;                     // +0x068 world updates run (the server's Update)
     // +0x06C paused: the server's Update skips the players and the tick while it is set; the
     // client's Segment skips its own ticks, and the client copies the server's flag from message
     // 0x60 (00566350), telling the HUD.
     std::uint8_t paused_;
-    std::uint8_t unknown_06D[0x70 - 0x6D];
+    std::uint8_t unused_06D[0x70 - 0x6D];
     std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D43E0 sets it up, 006D44E0 ticks it; a CArray)
 };
 static_assert(offsetof(CWorld, shared5C_) == 0x5C);
@@ -347,18 +354,18 @@ static_assert(offsetof(CWorld, shared5C_) == 0x5C);
 int __fastcall WorldCreateManagers(CWorld* world);
 static_assert(offsetof(CWorld, updateCount_) == 0x68);
 static_assert(offsetof(CWorld, paused_) == 0x6C);
-static_assert(offsetof(CWorld, unknown24_) == 0x24);
+static_assert(offsetof(CWorld, windDirection_) == 0x24);
 static_assert(offsetof(CWorld, manager40_) == 0x40);
 static_assert(offsetof(CWorld, itemManager_) == 0x54);
 static_assert(offsetof(CWorld, players_) == 0x38);
-static_assert(offsetof(CWorld, unknown60_) == 0x60);
+static_assert(offsetof(CWorld, netSession_) == 0x60);
 static_assert(offsetof(CWorld, tick_) == 0x64);
 
 // One of the five alarms InvokeAlarm raises (CWorldServer + 0x8C, 16 bytes each; the script's
 // IsAlarm / AlarmTime / AlarmPosX / AlarmPosY read them).
 struct WorldAlarm {
     std::uint8_t active;                  // +0x00
-    std::uint8_t unknown_01[3];
+    std::uint8_t unused_01[3];
     int time;                             // +0x04 tick it was raised
     float x, y;                           // +0x08
 };
@@ -402,7 +409,7 @@ struct SharedObject {
 
     int objectId;
     int player;
-    std::uint32_t unknown_08;
+    std::uint32_t money;                    // +0x08 gold the loot adds to the finder's party
     mfc::CArray<CEngineObject*> objects;    // +0x0C
 
     void CopyFrom(const SharedObject* from);  // 0059B510 (RET 4)
@@ -448,10 +455,11 @@ public:
     // 0058EE20 (world_time.cpp; script and .mob weather). SetWind with the strength clamped to
     // 0..1 (NaN: 0), then the players marked dirty (8).
     void ChangeWind(const Vector3* direction, float strength);
-    // 0058CC70 / 0058CC80 / 0058EE00. Setters (weather and similar map settings).
-    void SetUnknownE0(int value);
-    void SetUnknownDC(int value);
-    void SetUnknownE4E8(int e4, float e8);
+    // 0058CC70 / 0058CC80 / 0058EE00. Setters of cave_, climate_ (any weather stops first) and
+    // weather_ / weatherStrength_ (the players marked dirty).
+    void SetCave(int value);
+    void SetClimate(int value);
+    void SetWeather(int weather, float strength);
     // 0058E4C0. Target zone and entrance of exit `index`; FALSE when out of range.
     BOOL GetZoneExit(int index, mfc::CString* target, int* entrance);
     // 0058E520. Registers an object that lives for a limited time (spells, effects): stamps the
@@ -742,40 +750,46 @@ public:
     // zone's units) and, for a new game, where it starts. 0 when the player state refused it.
     int SendZone(WorldPlayer* player);
 
-    std::uint32_t unknown84_;             // +0x084 the day-time value (0058CCD0)
-    std::uint32_t unknown88_;             // +0x088
+    // +0x084 WorldDayTime's value (0058CCD0; float bits): the script's IsNight reads it, the units'
+    // movement factors scale by it.
+    std::uint32_t nightLevel_;
+    std::uint32_t weatherFactor_;         // +0x088 float bits: 1 dry, 0.9 in rain or snow (the units' fourth movement factor)
     WorldAlarm alarms_[5];                // +0x08C
-    int unknownDC_;                       // +0x0DC
-    int unknownE0_;                       // +0x0E0
-    int unknownE4_;                       // +0x0E4
-    float unknownE8_;                     // +0x0E8
+    // +0x0DC the zone's weather kind (its record's setting2C): 3 storms with lightning strikes,
+    // 1 light rain, other non-zero values heavier weather; 0 none. Single-player only.
+    int climate_;
+    int cave_;                            // +0x0E0 the zone is a cave (its record's setting30; sent with the zone)
+    int weather_;                         // +0x0E4 0 clear, 1 rain, 2 snow (the script's SetWeather)
+    float weatherStrength_;               // +0x0E8 sent with the weather
     void* exitsVtable_;                   // +0x0EC CArray<ZoneExit> (ZoneExitArray) from here
     ZoneExit* exits_;                     // +0x0F0
     int exitCount_;                       // +0x0F4
     int exitCapacity_;                    // +0x0F8
     int exitGrowBy_;                      // +0x0FC
     std::uint8_t loaded_;                 // +0x100 0 while LoadSave runs
-    std::uint8_t unknown_101[0x104 - 0x101];
+    std::uint8_t unused_101[0x104 - 0x101];
     ObjectIdMap updateMap_;               // +0x104
-    std::uint8_t unknown_11C;
+    // +0x11C set: SendZone also sends the player its start (at its first unit). Cleared by the
+    // reset; nothing in the game sets it.
+    std::uint8_t sendsStartPosition_;
     // +0x11D / +0x11E (LoadMap, world_map.cpp: LoadedFresh / KeepsState): CreateObject (005927C0)
     // makes objects answering map object slot 29 (IsSynchronised), sounds, lights and particle
     // sources only with loadedFresh_ set, the other map objects only with keepsState_ set; a refused
     // object is released.
     std::uint8_t loadedFresh_;            // +0x11D the zone is not loaded from a save
     std::uint8_t keepsState_;             // +0x11E
-    std::uint8_t unknown_11F;
+    std::uint8_t unused_11F;
     char* zoneName_;                      // +0x120 CString: the zone's map database name
     mfc::CStringArray mobFiles_;           // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
-    std::uint32_t unknown13C_;            // +0x13C saved and loaded
+    std::uint32_t lastRainBoltTick_;      // +0x13C the tick of the last bolt in the rain (one per 20 ticks); saved
     CHoover* hoover_;                     // +0x140 a CHoover (object.h), counted; made by Setup, deleted by Teardown
     // +0x144 a CFileRegistry (registry.h; closed by 0058B0E7) with the server's messages: the
     // login handler (0066F890) reads "SrvErrMsg" / "WrongClientVersion" from it.
     std::uint8_t messages_[0x15C - 0x144];
     CFileRegistry* Messages() { return reinterpret_cast<CFileRegistry*>(messages_); }
-    int unknown15C_;                      // +0x15C cleared when a .mob file fails to load
-    int unknown160_;                      // +0x160 non-zero: Tick runs the first command queue
+    int zoneLoaded_;                      // +0x15C set by LoadMap, cleared by the teardown and a .mob file that fails to load
+    int scriptsActive_;                   // +0x160 non-zero: Tick runs the zone's script (set by Redeploy)
     Vector3 startPosition_;               // +0x164 where joining players start (0058DAF0)
     std::uint8_t aiMap_[0x290 - 0x170];   // +0x170 CAIMap (ai_map.h; the global 007B00D0); extent unknown
     CAIMap* AIMap() { return reinterpret_cast<CAIMap*>(aiMap_); }
@@ -788,11 +802,11 @@ public:
     // +0x2804 a world tick: an idle unit standing in a kind-3 occluder replans while its motion order
     // started before it (the movement tick 00547890). Part of the sector map or not: unknown.
     int occluderReplanTime_;
-    std::uint8_t unknown_2808[0x280C - 0x2808];
+    std::uint8_t unused_2808[0x280C - 0x2808];
     std::uint8_t** gridRows_;             // +0x280C rows of 9-byte cells, height (u16) at +4
     int gridWidth_;                       // +0x2810
     int gridHeight_;                      // +0x2814
-    std::uint8_t unknown_2818[0x2838 - 0x2818];
+    std::uint8_t unused_2818[0x2838 - 0x2818];
     std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 the AI events (AIEventTable, unit_ai.h: time wheel, grid)
     AIEventTable* AIEvents() { return reinterpret_cast<AIEventTable*>(timeWheel_); }
     std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
@@ -800,7 +814,9 @@ public:
     CScript* MainScript() { return reinterpret_cast<CScript*>(commandsA_); }
     std::uint8_t commandsB_[0x12C64 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
     CDiplomacy diplomacy_;                // +0x12C64 (object_diplomacy.h)
-    int unknown12D64_;                    // +0x12D64 1 or 3: SaveWorld updates the players' "gtime" first
+    // +0x12D64 the session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld
+    // updates the players' "gtime" first. Joining players take it (WorldPlayer::sessionKind).
+    int sessionKind_;
     char* mobName_;                       // +0x12D68 CString: the zone's .mob file
     char* mapName_;                       // +0x12D6C CString: the zone's map
     ObjectIdMap objects_;                 // +0x12D70 every world object by id
@@ -818,26 +834,26 @@ public:
     SharedObjectList sharedObjects_;      // +0x12E60 (world_save.cpp; AddSharedObject, IsObjectShared)
 };
 static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
-static_assert(offsetof(CWorldServer, unknown84_) == 0x84);
+static_assert(offsetof(CWorldServer, nightLevel_) == 0x84);
 static_assert(offsetof(CWorldServer, loaded_) == 0x100);
 static_assert(offsetof(CWorldServer, zoneName_) == 0x120);
 static_assert(offsetof(CWorldServer, hoover_) == 0x140);
 static_assert(offsetof(CWorldServer, loadedFresh_) == 0x11D);
 static_assert(offsetof(CWorldServer, keepsState_) == 0x11E);
-static_assert(offsetof(CWorldServer, unknown13C_) == 0x13C);
+static_assert(offsetof(CWorldServer, lastRainBoltTick_) == 0x13C);
 static_assert(offsetof(CWorldServer, aiMap_) == 0x170);
 static_assert(offsetof(CWorldServer, diplomacy_) == 0x12C64);
-static_assert(offsetof(CWorldServer, unknown12D64_) == 0x12D64);
+static_assert(offsetof(CWorldServer, sessionKind_) == 0x12D64);
 static_assert(offsetof(CWorldServer, mapName_) == 0x12D6C);
 static_assert(offsetof(CWorldServer, sentObjects_) == 0x12D88);
 static_assert(offsetof(CWorldServer, zoneHeader_) == 0x12E00);
 static_assert(offsetof(CWorldServer, otherMapObjects_) == 0x12DB8);
 static_assert(offsetof(CWorldServer, namedObjects_) == 0x12DD0);
 static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
-static_assert(offsetof(CWorldServer, unknownDC_) == 0xDC);
+static_assert(offsetof(CWorldServer, climate_) == 0xDC);
 static_assert(offsetof(CWorldServer, exits_) == 0xF0);
 static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
-static_assert(offsetof(CWorldServer, unknown160_) == 0x160);
+static_assert(offsetof(CWorldServer, scriptsActive_) == 0x160);
 static_assert(offsetof(CWorldServer, sectorMap_) == 0x294);
 static_assert(offsetof(CWorldServer, aiLayer_) == 0x2468);
 static_assert(offsetof(CWorldServer, occluderReplanTime_) == 0x2804);
@@ -853,7 +869,7 @@ static_assert(offsetof(CWorldServer, timedObjects_) == 0x12DE8);
 static_assert(offsetof(CWorldServer, sharedObjects_) == 0x12E60);
 static_assert(offsetof(CWorldServer, exitsVtable_) == 0xEC);
 static_assert(offsetof(CWorldServer, mobFiles_) == 0x124);
-static_assert(offsetof(CWorldServer, unknown15C_) == 0x15C);
+static_assert(offsetof(CWorldServer, zoneLoaded_) == 0x15C);
 static_assert(offsetof(CWorldServer, mapObjects_) == 0x12DA0);
 static_assert(offsetof(CWorldServer, counted_) == 0x12E44);
 
@@ -1042,7 +1058,7 @@ static_assert(sizeof(CClientHandle) == 8);
 
 // A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
 struct ScreenEntry {
-    std::uint32_t unknown_00;
+    std::uint32_t unused_00;
     unsigned objectId;                    // +0x04 the object, in the map object manager
     std::int32_t rect[4];                 // +0x08 RECT on the screen
 };
@@ -1070,11 +1086,11 @@ static_assert(sizeof(ScreenHits) == 12);
 
 // A marker entry MarkWithinRadius walks (an STLport list's element: node + 8).
 struct RadiusMarker {
-    std::uint8_t unknown_00[5];
+    std::uint8_t unused_00[5];
     std::uint8_t marked;                  // +0x05 set when within the radius
-    std::uint8_t unknown_06[2];
+    std::uint8_t unused_06[2];
     float x, y;                           // +0x08
-    std::uint8_t unknown_10[0x8C - 0x10];
+    std::uint8_t unused_10[0x8C - 0x10];
     float radius;                         // +0x8C scaled by the functor's scale
 };
 static_assert(offsetof(RadiusMarker, radius) == 0x8C);
@@ -1082,11 +1098,11 @@ static_assert(offsetof(RadiusMarker, radius) == 0x8C);
 // The client's local session (CWorldClient + 0x20C, made by 0066C180), as far as the maps read it:
 // the local CPlayer (player_messages.h; its Tick 00665DE0 and Disconnect 00665A10 run on it).
 struct WorldSession : CEngineObject {
-    std::uint8_t unknown_1C[4];
+    std::uint8_t link[4];                 // CPlayer::link_
     // +0x20 the local view: the player's connection (CPlayer::connection_), a CPlayerClient.
     class CPlayerConnection* localView;
     class CPlayerClient* LocalClient() const { return reinterpret_cast<class CPlayerClient*>(localView); }
-    std::uint8_t unknown_24[0x100 - 0x24];
+    std::uint8_t playerFields[0x100 - 0x24]; // CPlayer's id, object maps, party, items and party id
     int gameKind;                         // +0x100 1 / 3: kinds of multiplayer session
 };
 static_assert(offsetof(WorldSession, localView) == 0x20);
@@ -1131,13 +1147,13 @@ static_assert(sizeof(ClientArrayManager) == 0xD0);
 
 // The render device (the global pointer at 007AF068): three stacks of 4x4 float matrices.
 struct MatrixDevice {
-    std::uint8_t unknown_00[0x14];
+    std::uint8_t pipelineHeader[0x14];  // the pipeline's vtable, count, transform and library (CTransformPipeline)
     float* pickStack;      // +0x14 used by the cursor picking
     int pickDepth;         // +0x18
-    std::uint8_t unknown_1C[0x24 - 0x1C];
+    std::uint8_t stack1[0x24 - 0x1C];      // stack 1
     float* objectStack;    // +0x24 object -> world, pushed while testing an object
     int objectDepth;       // +0x28
-    std::uint8_t unknown_2C[0x5C - 0x2C];
+    std::uint8_t stacks3to8[0x5C - 0x2C];  // stacks 3..8
     float* viewStack;      // +0x5C the view matrices
     int viewDepth;         // +0x60
 
@@ -1470,12 +1486,12 @@ public:
     // The local session (+0x20C) as the maps read it.
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }
 
-    int unknown84_;                       // +0x084 -100000 after Setup
+    int unused84_;                       // +0x084 -100000 after Setup
     std::uint32_t debugFlags_;            // +0x088 the debug display's switches (bits 0-3: ShowFps ...)
     void* exitsVtable_;                   // +0x08C CArray<ZoneExit> (ZoneExitArray) from here
     ZoneExit* exits_;                     // +0x090
     int exitCount_;                       // +0x094
-    std::uint8_t unknown_098[0xA0 - 0x98];
+    std::uint8_t exitArrayTail[0xA0 - 0x98]; // the exit array's capacity and grow-by (read through the CArray)
     // +0x0A0 counted objects (MFC CArray; its own SetSize 00570000 releases the dropped ones).
     mfc::CArray<CEngineObject*> countedA0_;
     SectorList heroes_;                   // +0x0B4 heroes with a text-key id (counted)
@@ -1488,14 +1504,14 @@ public:
     stlp::list<ScreenEntry> screenEntries_;   // +0x0F0 the window rectangles of the frame
     ScreenHits hits_;                     // +0x0F4 the entries under the point (PickAt)
     ScreenEntry* hitCursor_;              // +0x100 PickAt's walk, left on the entry it returns
-    std::uint8_t unknown_104[0x108 - 0x104];
+    std::uint8_t unused_104[0x108 - 0x104];
     stlp::hash_map<unsigned, void*, stlp::IntHash> lineLists_;   // +0x108 line lists by key (DrawLineLists)
-    std::uint8_t unknown_11C[0x120 - 0x11C];
+    std::uint8_t unused_11C[0x120 - 0x11C];
     SectorGrid objectGrid_;               // +0x120 the objects by sector (slot 41 moves them)
     // +0x138 ObjectsInRange's cell range and its walk's cursor.
     std::uint32_t rangeFirstX_, rangeFirstY_, rangeLastX_, rangeLastY_, rangeX_, rangeY_;
     SectorGrid secondGrid_;               // +0x150 (slot 42 moves objects in it)
-    std::uint8_t unknown_168[0x180 - 0x168];
+    std::uint8_t unused_168[0x180 - 0x168];
     Terrain* terrain_;                    // +0x180 counted
     // +0x184 CString: the zone's allod in lower case ("gipath" after Setup; the zone load takes it from
     // the map database's record of the local player's zone, "gipat" without one). It names the
@@ -1518,16 +1534,16 @@ public:
     stlp::list<BloodPrint> bloodPrints_;
     stlp::list<Footprint> footprints_;
     stlp::list<GroundPrint> scorchMarks_;
-    int unknown1C4_;                      // +0x1C4 0 after Setup
+    int lightLevelsCountdown_;            // +0x1C4 time left before the blood prints are lit again (Segment); 0 after Setup
     RefPtr handle_;                       // +0x1C8 (vtable 0073F628)
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
     ClientTexts* texts_;                  // +0x1D0 the text resources (counted)
     PlatformSet platforms_;               // +0x1D4
     std::uint8_t* session_;               // +0x20C local session; its +0x20 is the local view
     CCamera* camera_;                     // +0x210 the view camera (DrawPass, Render)
-    std::uint8_t unknown_214[0x224 - 0x214];
+    std::uint8_t unused_214[0x224 - 0x214];
     char* texturePath_;                   // +0x224 CString: <data path>textures\ (Setup)
-    std::uint8_t unknown_228[0x22C - 0x228];
+    std::uint8_t unused_228[0x22C - 0x228];
     // +0x22C / +0x3AC / +0x52C the light colours by hour (0..23; r, g, b, 1) from the lights table's
     // [sunlight], [ambient] and [sky] sections (LoadLights).
     LightColour sunlight_[24];
@@ -1540,12 +1556,12 @@ public:
     LightColour frameAmbient_;
     LightColour skyAmbient_;
     LightColour frameSun_;
-    int unknown6DC_;                      // +0x6DC 0 after Setup, 0x80 once UpdateLighting runs outside a cave
+    int lightingMark_;                    // +0x6DC 0 after Setup, 0x80 once UpdateLighting runs outside a cave; never read
     // +0x6E0 1: a cave zone (the map's flag: LightsCave.ini, the sky "Sky01", light fixed at hour 0;
     // EnvironmentFlags 0x400 instead of 0x200).
     int cave_;
-    int unknown6E4_;                      // +0x6E4 0 after Setup; the party state's danger (0x60: 2 fighting)
-    std::uint8_t unknown_6E8[0x6EC - 0x6E8];
+    int partyDanger_;                     // +0x6E4 0 after Setup; the party state's danger (message 0x60: 2 fighting)
+    std::uint8_t unused_6E8[0x6EC - 0x6E8];
     int ticksRun_;                        // +0x6EC Segment's count; AddObject fades units in (slot 43) when >= 1
     float tickFraction_;                  // +0x6F0 added to the tick for the units' time (network client)
     // +0x6F4 the rain / snow layer. CRainSnow is abstract here like every engine object, so the
@@ -1556,10 +1572,10 @@ public:
     const CRainSnow* RainSnow() const { return reinterpret_cast<const CRainSnow*>(rainSnow_); }
     stlp::list<void*> list7BC_;           // +0x7BC (nodes of 0xC bytes; pool free 00498C40)
     int worldValue_;                      // +0x7C0 -1; message 0x12 sets it (SetWorldValue); the exe never reads it
-    std::uint8_t unknown_7C4[0x7D0 - 0x7C4];
+    std::uint8_t unused_7C4[0x7D0 - 0x7C4];
     void* cursor_;                        // +0x7D0 HCURSOR wincurs\Df0000.cur
 };
-static_assert(offsetof(CWorldClient, unknown84_) == 0x84);
+static_assert(offsetof(CWorldClient, unused84_) == 0x84);
 static_assert(offsetof(CWorldClient, countedA0_) == 0xA0);
 static_assert(offsetof(CWorldClient, heroes_) == 0xB4);
 static_assert(offsetof(CWorldClient, objects_) == 0xB8);
@@ -1580,7 +1596,7 @@ static_assert(offsetof(CWorldClient, handle_) == 0x1C8);
 static_assert(offsetof(CWorldClient, sounds_) == 0x1CC);
 static_assert(offsetof(CWorldClient, texts_) == 0x1D0);
 static_assert(offsetof(CWorldClient, texturePath_) == 0x224);
-static_assert(offsetof(CWorldClient, unknown6DC_) == 0x6DC);
+static_assert(offsetof(CWorldClient, lightingMark_) == 0x6DC);
 static_assert(offsetof(CWorldClient, frameAmbient_) == 0x6AC && offsetof(CWorldClient, frameSun_) == 0x6CC);
 static_assert(offsetof(CWorldClient, ticksRun_) == 0x6EC);
 static_assert(offsetof(CWorldClient, rainSnow_) == 0x6F4);

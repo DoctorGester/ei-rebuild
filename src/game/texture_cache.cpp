@@ -6,8 +6,7 @@
 //
 // In the switch-over ("present" with "cpuwindows", ticket R8) a texture's holder may have no
 // DirectDraw surface at all (the .mmp textures, the CPU-written and the shadow textures): the
-// priority is then left out. The originals do not check the surface. See docs/notes/renderer.md
-// (section 16).
+// priority is then left out. The originals do not check the surface. See docs/notes/renderer.md (section 7).
 #include "texture.h"
 
 #include "device.h"

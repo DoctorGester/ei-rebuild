@@ -4,7 +4,7 @@
 // the zero vector 0079B9B0), the mesh named like a node moved into the node's frame, the bones built
 // from the root node (00449240), then each node's frame array (+0xF8, 40-byte records) sized to the
 // frame count with the pivot and rotation in its first record. Plain float maths (rule 7). Names
-// provisional; see docs/notes/objects.md ("Sixth round").
+// provisional; see docs/notes/objects.md ("Rewritten").
 #include "scene_loader.h"
 
 #include "figure.h"
@@ -190,8 +190,8 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
             NodeFrame* first = records.data;
             first->pivot = node->pivot;
             first->rotation = node->rotation;
-            node->unknown_010 = 0;
-            node->unknown_014 = 0;
+            node->spare010 = 0;
+            node->spare014 = 0;
         }
     }
     return 1;

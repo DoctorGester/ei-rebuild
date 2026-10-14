@@ -71,7 +71,7 @@ public:
 
     // Slots 13-24: the manager context's getters, as CWorld's (world.h); a party has only the item
     // and spell ones. Slots declared `void Name()` keep their place in the order only (their
-    // return types are not declared; docs/notes/drafts/DR-C2.md).
+    // return types are not declared; docs/notes/map_objects.md ("Virtual slot names")).
     virtual void ThisWorld();                  // 13: 0065F4B0 (null)
     virtual void TimedObjectManager();         // 14: 0065F530 (null)
     virtual void FigureManager();              // 15: 0065F4C0 (null)
@@ -82,7 +82,7 @@ public:
     virtual void PlayerList();                 // 20: 0065F4E0 (null)
     virtual void SpecificManager();            // 21: 0065F4F0 (null)
     virtual CSpellManager* SpellManager();     // 22: spellManager_
-    virtual void FigureCache();                // 23: 0065F500 (null)
+    virtual void FigureLoader();               // 23: 0065F500 (null)
     // 24: 0055E940. A new item made like `item` (the item factory, slot 18) and given its values
     // (its slot 15 with the spell manager, slot 22).
     virtual CItem* CopyItem(CItem* item);
@@ -186,7 +186,7 @@ public:
     // (without the Clear). Returns this.
     CParty* CopyConstruct(CParty* source);
     // The money (+0x50; the camp's deals and the trade read it).
-    int& Money() { return reinterpret_cast<int&>(unknown_50); }
+    int& Money() { return reinterpret_cast<int&>(money_); }
 
     CResourceManager* itemManager_;         // +0x1C (CItemManager's vtable; slot 18 returns it)
     CItemConstructor* itemConstructor_;     // +0x20 (slot 16)
@@ -194,14 +194,14 @@ public:
     CSpellConstructor* spellConstructor_;   // +0x28 (slot 17)
     PartyMemberArray members_;              // +0x2C
     AlignedPtrArray items_;                 // +0x40 CItem*
-    std::uint32_t unknown_50;               // +0x50 cleared by Clear (the party's money)
+    std::uint32_t money_;               // +0x50 the party's money (Money(); cleared by Clear, saved masked)
     PartyVariableMap variables_;            // +0x54
     mfc::CString zone_;                     // +0x68 the zone name ("gz1g" after a new game)
-    std::uint32_t unknown_6C;               // +0x6C cleared by Clear
+    std::uint32_t entrance_;            // +0x6C the zone exit the party arrives by (cleared by Clear)
 };
 static_assert(offsetof(CParty, itemManager_) == 0x1C);
-static_assert(offsetof(CParty, unknown_50) == 0x50);
-static_assert(offsetof(CParty, unknown_6C) == 0x6C);
+static_assert(offsetof(CParty, money_) == 0x50);
+static_assert(offsetof(CParty, entrance_) == 0x6C);
 static_assert(offsetof(CParty, members_) == 0x2C);
 static_assert(offsetof(CParty, items_) == 0x40);
 static_assert(offsetof(CParty, variables_) == 0x54);

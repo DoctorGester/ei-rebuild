@@ -66,12 +66,8 @@ rewritten address kept its hook and verify wrapper. The conventions are the ones
 - CUnit (`unit.h`) repeats the 0x000-0x238 layout instead of deriving from CMapObject.
 - The effect array (+0x194) is still five raw fields (`effectsVtable` ... `effectGrowBy`) instead of an `mfc::CArray`,
   with about 58 uses outside the family.
-- `CMapObject::unknown_174` (5 after Create) has no known reader.
-- Other unknown fields:
-  - `MapEffect` +0x02 / +0x0C / +0x11;
-  - FigurePart and FigurePieceRecord gaps in `map_object_figures.h`;
-  - the shadow's raster structs;
-  - `MaterialStage::unknown_00`.
+- `CMapObject::updateCountdown` (+0x174, 5 after Create): world updates until the effects are next looked at (F4).
+- Other unknown fields: `MaterialStage::unknown_00` (F4 named or marked unused the rest; cleanup-figures.md).
 - `CompanionOwner()` is still used by `map_object_client_effects.cpp`, whose locals cache the owner between calls.
 - `ShowHit` (slot 16) and the server's `TakeHit` (slot 20, past the declared slots) are not overrides.
 - These stay free functions registered at several addresses: the shared stub bodies in `map_object_stub_slots.cpp` and

@@ -43,7 +43,7 @@ bool Removed(const std::vector<void*>& before, void** data, int count, void* rem
 
 // The values CopyTo gives a target.
 bool SameValues(const CItem* a, const CItem* b) {
-    return a->type_ == b->type_ && a->unknown_18 == b->unknown_18 &&
+    return a->type_ == b->type_ && a->prototypeId_ == b->prototypeId_ &&
            std::memcmp(&a->condition_, &b->condition_, offsetof(CItem, spell_) - offsetof(CItem, condition_)) == 0;
 }
 } // namespace
@@ -271,8 +271,8 @@ EI_VERIFY(0x00660840, CarriedWeightVerify, 6, s_carriedWeight);
 // the HUD's item lists (`newgame`).
 static CItem* __fastcall MakeCopyOfVerify(CParty* self, void*, CItem* item) {
     CItem* copy = self->MakeCopyOf(item);
-    bool ok = copy && copy->type_ == item->type_ && copy->unknown_18 == item->unknown_18;
-    ei::verify::Check("CParty::MakeCopyOf", true, ok, "kind %d id %08x", item->type_, item->unknown_18);
+    bool ok = copy && copy->type_ == item->type_ && copy->prototypeId_ == item->prototypeId_;
+    ei::verify::Check("CParty::MakeCopyOf", true, ok, "kind %d id %08x", item->type_, item->prototypeId_);
     return copy;
 }
 EI_VERIFY(0x0055E940, MakeCopyOfVerify, 0, s_unused);

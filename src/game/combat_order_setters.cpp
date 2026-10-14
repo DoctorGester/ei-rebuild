@@ -27,7 +27,7 @@ constexpr int kOrderEmote = 8;
 constexpr int kStateStopped = 6;        // CUnitServer::state after StopAction
 constexpr int kStyleWalk = 2;
 constexpr int kStyleRun = 3;
-// CEngineObject::unknown_18 (+0x18, not type_) of a unit that cannot be tamed (0x32, the value type_
+// CEngineObject::prototypeId_ (+0x18, not type_) of a unit that cannot be tamed (0x32, the value type_
 // has for heroes; the original compares +0x18).
 constexpr std::uint32_t kUntameable = 0x32;
 constexpr int kMessageMoveStyle = 9;    // CPlayerServer::SendObject0B code
@@ -58,9 +58,9 @@ void QueueUse(CUnitServer* self, CEngineObject* target, std::uint32_t source, in
     order.Reset();
     order.kind = kOrderUse;
     order.Retarget(target);
-    order.unknown_20 = static_cast<std::uint8_t>(run);
+    order.modifier = static_cast<std::uint8_t>(run);
     order.source = source;
-    order.unknown_1C = spot;
+    order.param = spot;
     if (!self->PlanOrder(&order, shout)) order.Reset();
 }
 } // namespace
@@ -82,18 +82,18 @@ bool CUnitServer::FitsMoveMode(int mode) {
 EI_REPLACE_METHOD(0x0054A5A0, CUnitServer::FitsMoveMode);
 
 void CUnitServer::SetMoveStyle(int style) {
-    unknown_938 = 0;
+    boredTicks = 0;
     unit->moveMode2 = style;
     if (FitsMoveMode(style)) {
         if (style == kStyleRun && stats.MovementState(1) != 0) return;
         if (unit->player) PlayerConnection(unit)->SendObject0B(unit, kMessageMoveStyle);
     }
-    if (style != kStyleWalk && style != kStyleRun) action.unknown_20 = 0;
+    if (style != kStyleWalk && style != kStyleRun) action.modifier = 0;
 }
 EI_REPLACE_METHOD(0x00555270, CUnitServer::SetMoveStyle);
 
 void CUnitServer::SetWantedWeapon(int slot) {
-    unknown_938 = 0;
+    boredTicks = 0;
     unit->pendingWeapon = slot;
 }
 EI_REPLACE_METHOD(0x005552E0, CUnitServer::SetWantedWeapon);
@@ -107,7 +107,7 @@ EI_REPLACE_METHOD(0x005553B0, CUnitServer::OrderSteal);
 void CUnitServer::OrderTame(CEngineObject* target, int run) {
     if (!target || ObjectSlots(target)->IsDead() != 0 || target == unit) return;
     auto* other = static_cast<CUnit*>(target);
-    if (other->player == unit->player || other->unknown_18 == kUntameable) return;
+    if (other->player == unit->player || other->prototypeId_ == kUntameable) return;
     QueueUse(this, target, kSourceTame, 0, run, kShoutTame);
 }
 EI_REPLACE_METHOD(0x00555480, CUnitServer::OrderTame);
@@ -127,13 +127,13 @@ EI_REPLACE_METHOD(0x00555630, CUnitServer::OrderSearchBody);
 bool CUnitServer::TargetBusy(CEngineObject* target) {
     if (target->flags_ & kFlagShared) return !WorldServer()->IsObjectShared(target->id_, unit->id_);
     AIBrain* ai = &brain;
-    for (auto* node = ai->unknown_0F4.head; node; node = node->next) {
+    for (auto* node = ai->nearby.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
         if (!other || ObjectSlots(other)->IsDead() != 0) continue;
         auto* controller = reinterpret_cast<CUnitServer*>(other->controller);
         const UnitAction& order = controller->action;
         if (order.kind == kOrderUse && order.source == kSourceSearchBody && order.target == target &&
-            (controller->state == kStateActing || controller->unknown_18E))
+            (controller->state == kStateActing || controller->searchingTarget))
             return true;
     }
     return false;
@@ -152,8 +152,8 @@ void CUnitServer::PlayAnimation(const char* name) {
     // The entry's index byte is read as a dword together with the three bytes after it.
     int index;
     std::memcpy(&index, &entry->index, sizeof(index));
-    action2.unknown_1C = index;
-    action2.unknown_20 = 0;
+    action2.param = index;
+    action2.modifier = 0;
     action2.kind = (entry->key & kEmoteKeyBit) ? kOrderEmote : kOrderAnimation;
 }
 EI_REPLACE_METHOD(0x00555700, CUnitServer::PlayAnimation);

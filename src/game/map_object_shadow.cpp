@@ -271,13 +271,13 @@ void LightDirection(const Vector3& sum, Vector3* direction) {
 }
 
 // The squared distance of a part from the object; parts beyond 1e10 are skipped (NaN is not).
-bool PartTooFar(const FigurePart* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->position) > kFarSquared; }
+bool PartTooFar(const CFigureMesh* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->localPosition_) > kFarSquared; }
 
-FigurePart* PartAt(const CObject3D* object, int i) { return static_cast<FigurePart*>(object->parts.data[i]); }
+CFigureMesh* PartAt(const CObject3D* object, int i) { return static_cast<CFigureMesh*>(object->parts.data[i]); }
 
-// The bits a part is rasterised into: unknown_00 is the callee's, the rest the target surface.
+// The bits a part is rasterised into: unused_00 is the callee's, the rest the target surface.
 struct RasterTarget {
-    std::uint8_t unknown_00[0x30];
+    std::uint8_t unused_00[0x30];
     std::uint32_t colourKey;   // +0x30
     void* bits;                // +0x34
     int width;                 // +0x38 0x200
@@ -286,18 +286,28 @@ struct RasterTarget {
 static_assert(sizeof(RasterTarget) == 0x40);
 
 // The surface description the lock fills (only the pitch and the bits are read).
-struct SurfaceDescription {   // DDSURFACEDESC2
-    std::uint8_t unknown_00[0x10];
+struct SurfaceDescription {   // DDSURFACEDESC2 (the members not read take its names)
+    std::uint32_t size;        // +0x00 dwSize
+    std::uint32_t flags;       // +0x04 dwFlags
+    std::uint32_t height;      // +0x08 dwHeight
+    std::uint32_t width;       // +0x0C dwWidth
     int pitch;                 // +0x10
-    std::uint8_t unknown_14[0x24 - 0x14];
+    std::uint32_t backBufferCount;   // +0x14 dwBackBufferCount
+    std::uint32_t mipMapCount; // +0x18 dwMipMapCount
+    std::uint32_t alphaBitDepth;     // +0x1C dwAlphaBitDepth
+    std::uint32_t reserved;    // +0x20 dwReserved
     void* bits;                // +0x24
-    std::uint8_t unknown_28[0x54 - 0x28];
+    std::uint32_t colourKeys[8];     // +0x28 ddckCKDestOverlay, ddckCKDestBlt, ddckCKSrcOverlay, ddckCKSrcBlt
+    std::uint32_t formatSize;  // +0x48 ddpfPixelFormat.dwSize
+    std::uint32_t formatFlags; // +0x4C ddpfPixelFormat.dwFlags
+    std::uint32_t fourCC;      // +0x50 ddpfPixelFormat.dwFourCC
     int bitsPerPixel;          // +0x54 ddpfPixelFormat.dwRGBBitCount
     std::uint32_t redMask;     // +0x58
     std::uint32_t greenMask;   // +0x5C
     std::uint32_t blueMask;    // +0x60
     std::uint32_t alphaMask;   // +0x64
-    std::uint8_t unknown_68[0x7C - 0x68];
+    std::uint32_t caps[4];     // +0x68 ddsCaps
+    std::uint32_t textureStage;   // +0x78 dwTextureStage
 };
 static_assert(sizeof(SurfaceDescription) == 0x7C);
 
@@ -367,17 +377,17 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
 
     // Project the parts' points.
     for (int i = 0; i < self->object->parts.size; ++i) {
-        FigurePart* part = PartAt(self->object, i);
+        CFigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
         if (part->flags_ & kPartHidden) continue;
-        ObjectWorldMatrix(&part->orientation, &part->position, &part->worldMatrix);
-        view = PartAt(self->object, i)->worldMatrix;
+        ObjectWorldMatrix(&part->localRotation_, &part->localPosition_, &part->worldMatrix_);
+        view = PartAt(self->object, i)->worldMatrix_;
         pipeline->PushMatrixProduct(view, kShadowStack);
-        if (CEngineObject* figure = self->object->figure) {
+        if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += reinterpret_cast<CLinkMesh*>(figure)->ProjectPart(&key, &PartAt(self->object, i)->offsets,
-                                                                       TopMatrix(pipeline), PointAt(count), self->bounds);
+            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), PointAt(count),
+                                         self->bounds);
         } else {
             count += ProjectPart(PartAt(self->object, i), nullptr, pipeline, const_cast<float*>(TopMatrix(pipeline)),
                                  PointAt(count), self->bounds);
@@ -429,14 +439,14 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     count = 0;
     int keyedParts = 0;
     for (int i = 0; i < self->object->parts.size; ++i) {
-        FigurePart* part = PartAt(self->object, i);
+        CFigureMesh* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
-        keyedParts |= (part->boxFlags >> 10) & 1;
+        keyedParts |= (part->bounds_.flags >> 10) & 1;
         if (part->flags_ & kPartHidden) continue;
-        if (CEngineObject* figure = self->object->figure) {
+        if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += reinterpret_cast<CLinkMesh*>(figure)->RasterisePart(&key, PixelAt(count), &target);
+            count += figure->RasterisePart(&key, PixelAt(count), &target);
         } else {
             count += RasterisePart(part, nullptr, device, PixelAt(count), &target);
         }
@@ -574,7 +584,7 @@ int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
-    std::uint8_t lit = IsLit(LightManager(), nullptr, &object->position.x);
+    std::uint8_t lit = IsLit(LightManager(), nullptr, &object->position);
     DeviceDrawFlatOriginal(RenderDevice(), nullptr, vertices.data, texCoords.data, vertices.size, indices.data, indices.size,
                            colour,
                            static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,

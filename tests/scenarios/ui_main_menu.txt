@@ -1,4 +1,5 @@
-# The main menu's buttons (docs/notes/ui.md, "Twelfth pass"): the click handler (00632D70) opens
+# The main menu's buttons (docs/notes/ui.md, "Main menu, dialogs, escape menu, credits"): the click
+# handler (00632D70) opens
 # the options window (region 3), the load window (region 1), the new game's difficulty question
 # (region 0, a message box with its own Create 006337B0) and the titles (region 4); each is closed
 # with its cancel button (region 1 of the window on top) or a click (the options also once with OK). Nothing is loaded and no game
@@ -54,10 +55,11 @@ waitwindow 10 msgbox
 key esc
 waitwindow 10 menu
 
-# The titles; a click ends them.
+# The titles; a click ends them. (Kept at about the old 2.5 s: three of six loaded suite runs had
+# the vanilla game stop on "Can't begin scene" (surface memory gone) here with 1 s.)
 clickregion 4
 waitwindow 10 titles
-wait 1000
+wait 2000
 click 400 300
 waitwindow 15 menu
 wait 500

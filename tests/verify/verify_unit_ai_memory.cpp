@@ -86,15 +86,15 @@ EI_VERIFY(0x005CB670, NearestEnemyVerify, 6, s_nearestEnemy);
 static void __fastcall ForceSeeVerify(std::uint8_t* memory, void*, CUnit* self, CEngineObject* object) {
     AIBrain* brain = BrainOfMemory(memory);
     bool wasVisible = brain->visible.Find(object) != nullptr;
-    int visible = brain->visible.count, seen = brain->unknown_12C.count, corpses = brain->corpses.count;
+    int visible = brain->visible.count, seen = brain->seenCorpses.count, corpses = brain->corpses.count;
     brain->ForceSee(self, object);
-    int dv = brain->visible.count - visible, ds = brain->unknown_12C.count - seen, dc = brain->corpses.count - corpses;
+    int dv = brain->visible.count - visible, ds = brain->seenCorpses.count - seen, dc = brain->corpses.count - corpses;
     bool ok;
     if (wasVisible) {
         ok = dv == 0 && ds == 0 && dc == 0;
     } else {
         ok = (dv == 0 && ds == 0 && dc == 0) || (dv == 1 && ds == 0 && dc == 0 && brain->visible.head->data == object) ||
-             (dv == 0 && ds == 1 && dc <= 1 && brain->unknown_12C.tail->data == object && (dc == 0 || brain->corpses.tail->data == object));
+             (dv == 0 && ds == 1 && dc <= 1 && brain->seenCorpses.tail->data == object && (dc == 0 || brain->corpses.tail->data == object));
     }
     ei::verify::Check("AIBrain::ForceSee", true, ok, "unit %p object %p: %d %d %d", self, object, dv, ds, dc);
 }
@@ -104,10 +104,10 @@ EI_VERIFY(0x005CBC80, ForceSeeVerify, 0, s_unused);
 // and at the corpses' tail when that list grew.
 static void __fastcall SeeCorpseVerify(std::uint8_t* memory, void*, CUnit* self, CEngineObject* corpse) {
     AIBrain* brain = BrainOfMemory(memory);
-    int seen = brain->unknown_12C.count, corpses = brain->corpses.count;
+    int seen = brain->seenCorpses.count, corpses = brain->corpses.count;
     brain->SeeCorpse(self, corpse);
     int dc = brain->corpses.count - corpses;
-    bool ok = brain->unknown_12C.count == seen + 1 && brain->unknown_12C.tail->data == corpse &&
+    bool ok = brain->seenCorpses.count == seen + 1 && brain->seenCorpses.tail->data == corpse &&
               (dc == 0 || (dc == 1 && brain->corpses.tail->data == corpse));
     ei::verify::Check("AIBrain::SeeCorpse", true, ok, "unit %p corpse %p", self, corpse);
 }

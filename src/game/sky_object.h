@@ -53,32 +53,33 @@ public:
     void Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused);
 
     Matrix4 matrix_;                              // +0x54 world matrix (CSky::Draw builds it)
-    std::uint8_t unknown_94[4];
-    std::uint32_t unknown_98;                     // +0x98 0 when constructed
-    std::uint8_t unknown_9C[0x120 - 0x9C];
+    // From here the figure mesh's fields (figure_mesh.h, CFigureMesh), which the figure code reads.
+    std::uint8_t drawer_[4];                      // +0x94 CFigureMesh::drawer_
+    std::uint32_t figureOwner_;                   // +0x98 CFigureMesh::owner_; 0 when constructed
+    std::uint8_t meshFields_[0x120 - 0x9C];       // +0x9C CFigureMesh::buffers_ .. the pose matrix
     mfc::CString name_;                           // +0x120 (CFigure's slot 7)
-    mfc::CString unknown_124;                     // +0x124
-    lib::AlignedArray<std::uint32_t> unknown_128;   // +0x128
+    mfc::CString directory_;                      // +0x124 CFigureMesh::directory_ (LoadSky empties it)
+    lib::AlignedArray<std::uint32_t> offsets_;      // +0x128 CFigureMesh::offsets_
     lib::AlignedArray<std::uint32_t> diffuse_;      // +0x138 a colour per vertex
     lib::AlignedArray<std::uint32_t> specular_;     // +0x148 a colour per vertex
-    std::uint8_t unknown_158[0x188 - 0x158];
-    std::uint8_t unknown_188[0x38];                 // +0x188 cleared when constructed
+    std::uint8_t meshHeader_[0x188 - 0x158];        // +0x158 CFigureMesh: the header dwords, centre, box, radius
+    std::uint8_t bounds_[0x38];                     // +0x188 CFigureMesh::bounds_; cleared when constructed
     lib::AlignedArray<VertexPacket> vertices_;      // +0x1C0 four vertices per packet (x, y, z, w rows)
     lib::AlignedArray<VertexPacket> normals_;       // +0x1D0
-    lib::AlignedArray<std::uint32_t> unknown_1E0;   // +0x1E0
-    lib::AlignedArray<std::uint32_t> unknown_1F0;   // +0x1F0
-    lib::AlignedArray<std::uint32_t> unknown_200;   // +0x200
-    lib::AlignedArray<std::uint32_t> unknown_210;   // +0x210
+    lib::AlignedArray<std::uint32_t> corners_;      // +0x1E0 CFigureMesh::corners_
+    lib::AlignedArray<std::uint32_t> words_;        // +0x1F0 CFigureMesh::words_
+    lib::AlignedArray<std::uint32_t> indices_;      // +0x200 CFigureMesh::indices_
+    lib::AlignedArray<std::uint32_t> texCoords_;    // +0x210 CFigureMesh::texCoords_
     lib::AlignedArray<float> distances_;            // +0x220 haze per vertex
 };
 static_assert(offsetof(CSkyObject, matrix_) == 0x54);
-static_assert(offsetof(CSkyObject, unknown_98) == 0x98);
+static_assert(offsetof(CSkyObject, figureOwner_) == 0x98);
 static_assert(offsetof(CSkyObject, name_) == 0x120);
 static_assert(offsetof(CSkyObject, diffuse_) == 0x138);
 static_assert(offsetof(CSkyObject, specular_) == 0x148);
-static_assert(offsetof(CSkyObject, unknown_188) == 0x188);
+static_assert(offsetof(CSkyObject, bounds_) == 0x188);
 static_assert(offsetof(CSkyObject, vertices_) == 0x1C0);
-static_assert(offsetof(CSkyObject, unknown_1F0) == 0x1F0);
+static_assert(offsetof(CSkyObject, words_) == 0x1F0);
 static_assert(offsetof(CSkyObject, distances_) == 0x220);
 static_assert(sizeof(CSkyObject) == 0x230);
 

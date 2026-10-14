@@ -78,7 +78,7 @@ MapShot Take(const Terrain* t, int result) {
         shot.materials.push_back(m.opacityByte);
         AddVector(shot.materials, m.colour);
         shot.materials.push_back(Bits(m.priority));
-        shot.materials.push_back(Bits(m.unknown_30));
+        shot.materials.push_back(Bits(m.warpSpeed));
         shot.materials.push_back(Bits(m.level));
     }
     shot.classes.assign(t->textureClass.data, t->textureClass.data + t->textureClass.size);

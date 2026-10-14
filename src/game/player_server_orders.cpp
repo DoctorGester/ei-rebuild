@@ -1,6 +1,6 @@
 // CPlayerServer: the last client messages (A-H23): leave, the game state request, pause, casts,
 // weapon and movement style, follow and two small ones. See player_messages.h and
-// docs/notes/objects.md ("Server" table).
+// docs/notes/objects.md ("Players").
 #include "player_messages.h"
 
 #include "combat.h"
@@ -93,7 +93,7 @@ int CPlayerServer::OnPause() {
     net::ServerSession* server = net::GameServer();
     if (IsMultiplayerClient() && server && !(server->flags7_ & CRefCounted::kDetached) && pause) {
         const int leader = server->LeaderId();
-        if (static_cast<int>(Owner()->Party()->members_.data[0].unknown_01C) != leader) return 1;
+        if (static_cast<int>(Owner()->Party()->members_.data[0].unitId) != leader) return 1;
         auto* record = static_cast<net::LoginMessage*>(server->FindPlayer(leader));
         if (record && !(record->flags7_ & CRefCounted::kDetached)) server->AnnounceText(kTextPause, record->name_.start, nullptr);
     }

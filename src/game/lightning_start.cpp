@@ -1,6 +1,6 @@
 // CLightning's initialiser (004680D0; called by the lightning client object's setter 0067A479).
 // Plain float maths (rule 7); random words converted with x87::FromUnsigned. See
-// docs/notes/objects.md ("Sixth round").
+// docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
 
 #include "random.h"
@@ -158,7 +158,7 @@ CLightning* __fastcall LightningNewObject(CLightningManager*, void*, int /*type*
     SetVtable(bolt, kEngineObjectVtable);
     bolt->refCount_ = 0;
     bolt->id_ = -1;
-    bolt->unknown_18 = 0;
+    bolt->prototypeId_ = 0;
     bolt->type_ = 0;
     bolt->flags_ = 0;
     bolt->owner_ = nullptr;

@@ -42,6 +42,8 @@ clickunit BowWolf1
 wait 3000
 clickunit BowWolf1
 waitfor 20 Not(IsAlive(GetObjectByName("BowWolf1")))
+# A click on the body: the hero searches it (OrderSearchBody, Loot).
+clickunit BowWolf1
 wait 1000
 check IsAlive(GetLeader())
 report

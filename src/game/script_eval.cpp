@@ -573,7 +573,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         *result = static_cast<float>(static_cast<ClientGlue*>(ClientGlueObject())->IsCameraPlaying());
         return;
     case 0xAA:   // IsNight (the world's day-time value, copied as a float)
-        CopyFloat(result, reinterpret_cast<const float*>(&WorldServer()->unknown84_));
+        CopyFloat(result, reinterpret_cast<const float*>(&WorldServer()->nightLevel_));
         return;
     case 0xB5:   // GetWorldTime
         *result = WorldTimeOfDay();
@@ -677,7 +677,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
             const PartyMemberArray& members = player->Party()->members_;
             int index = x87::fistp(floatArgs.data[1]);
             if (index >= 0 && index < members.size)
-                o = WorldFindUnit(WorldServer(), nullptr, static_cast<int>(members.data[index].unknown_01C));
+                o = WorldFindUnit(WorldServer(), nullptr, static_cast<int>(members.data[index].unitId));
         }
         Store(*result, o);
         return;
@@ -706,7 +706,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
             unitId = 0x3B9AF5CE;
             WorldPlayer* player = WorldServer()->GetPlayer(0);
             if (player && player->Party()->members_.size > 0)
-                unitId = static_cast<int>(player->Party()->members_.data[0].unknown_01C);
+                unitId = static_cast<int>(player->Party()->members_.data[0].unitId);
         }
         Store(*result, WorldServer()->FindObject(unitId));
         return;

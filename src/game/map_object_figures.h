@@ -6,6 +6,7 @@
 // provisional; see docs/notes/map_objects.md ("Figures").
 
 #include "engine_object.h"
+#include "figure_mesh.h"            // CFigureMesh (an object's figure parts)
 #include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
 
@@ -16,6 +17,7 @@
 #include <cstdint>
 
 class CObject3D;
+class CLinkMesh;          // link_figure.h: an object's figure (+0xF0)
 class CTransformObject;   // core_transform.h
 struct tagRECT;           // windows.h
 
@@ -25,76 +27,24 @@ struct tagRECT;           // windows.h
 // 00664490-00664710; Add 00519A10 (object3d_figure_setup.cpp).
 using AlignedPtrArray = lib::AlignedArray<void*>;
 
-struct FigurePart;
+class CFigureMesh;      // figure_mesh.h: a part of an object's figure
+// The old name of an object's figure part, still used by files other tickets have open
+// (ui_model.cpp, player_client.cpp); the type is CFigureMesh.
+using FigurePart = CFigureMesh;
 struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
-
-// A part of an object's figure (a scene node; names provisional). Only what the figure code
-// reads: its position relative to the object, the piece's offset and box in the figure.
-struct FigurePart : CEngineObject {
-    Vector3 position;               // +0x01C relative to the object
-    std::uint8_t unknown_028[0x34 - 0x28];
-    Quaternion orientation;         // +0x034 (CFigureMesh::rotation_)
-    std::uint8_t unknown_044[0x54 - 0x44];
-    // +0x054 part -> object: the rotation, the position as column 3 (the draws build it,
-    // ObjectWorldMatrix in map_object_shadow.h).
-    Matrix4 worldMatrix;
-    // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
-    // rectangle (+0x20) is where the part was last drawn (the flying hit points, 005E18E0).
-    class CLinkMesh* mesh;
-    std::uint8_t unknown_098[0xD4 - 0x98];
-    std::uint32_t unknown_0D4;      // +0x0D4 \ set for every part of an object by 00519500 / 00519530
-    std::uint32_t unknown_0D8;      // +0x0D8 / (the interface's model view, 006462A0)
-    std::uint8_t unknown_0DC[0x128 - 0xDC];
-    lib::AlignedArray<Vector3> offsets;    // +0x128 per-vertex offsets (CFigureMesh::offsets_)
-    std::uint8_t unknown_138[0x158 - 0x138];
-    std::uint32_t piece158;         // +0x158 from the piece record's +0x20 (00517240)
-    std::uint32_t piece15C;         // +0x15C from its +0x1C
-    std::uint8_t unknown_160[0x188 - 0x160];
-    // +0x188..+0x1C0: the part's box, laid out as a FootprintPart (ai_map.h); copied whole from
-    // the piece record (FigurePieceRecord::boxFlags on).
-    std::uint32_t boxFlags;         // +0x188 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"
-    Vector3 offset;                 // +0x18C the piece's place in the figure
-    float unknown_198;              // +0x198
-    Vector3 boxMin;                 // +0x19C
-    Vector3 boxMax;                 // +0x1A8
-    Vector3 boxPivot;               // +0x1B4 the part's position when it was loaded
-};
-static_assert(offsetof(FigurePart, position) == 0x1C);
-static_assert(offsetof(FigurePart, orientation) == 0x34 && offsetof(FigurePart, worldMatrix) == 0x54);
-static_assert(offsetof(FigurePart, unknown_0D4) == 0xD4);
-static_assert(offsetof(FigurePart, offset) == 0x18C);
-static_assert(offsetof(FigurePart, boxMin) == 0x19C);
-static_assert(offsetof(FigurePart, boxMax) == 0x1A8);
-static_assert(offsetof(FigurePart, piece158) == 0x158);
-static_assert(offsetof(FigurePart, mesh) == 0x94);
-static_assert(offsetof(FigurePart, boxFlags) == 0x188);
-static_assert(offsetof(FigurePart, boxPivot) == 0x1B4);
-
-// A node of the figure's piece map (an STLport map<string, piece> at figure + 0x14: the key at
-// +0x10, the piece from +0x1C); offsets are from the node. Only these fields reach the parts.
-struct FigurePieceRecord {
-    std::uint8_t unknown_00[0x1C];
-    std::uint32_t unknown_1C;       // +0x1C -> part +0x15C (00517240)
-    std::uint32_t unknown_20;       // +0x20 -> part +0x158
-    std::uint32_t boxFlags;         // +0x24 -> part +0x188 (0x38 bytes copied from here)
-    Vector3 offset;                 // +0x28 -> part +0x18C
-    float unknown_34;               // +0x34 -> part +0x198
-    Vector3 boxMin;                 // +0x38 -> part +0x19C
-    Vector3 boxMax;                 // +0x44 -> part +0x1A8
-    Vector3 pivot;                  // +0x50 -> part +0x1B4
-};
-static_assert(offsetof(FigurePieceRecord, boxMax) == 0x44);
 
 // One animation of a figure's animation database (0x58 bytes).
 struct FigureAnimation {
     char name[0x10];                // +0x00 (the figure manager's 005ACCF0 takes the entry as its name)
     std::uint8_t index;             // +0x10 its index in the database (a unit keeps it at +0x254 / +0x255)
-    std::uint8_t unknown_11[3];
+    std::uint8_t unused_11[3];
     std::uint32_t key;              // +0x14 animation key bits (docs/notes/combat.md): kind 0x3C0000, number 0x3FC00000
     std::uint32_t flags;            // +0x18 bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
     std::uint32_t chance;           // +0x1C percent (005190C0 drops entries below a random percent)
     std::uint32_t frameCount;       // +0x20 the animation's length in frames
-    std::uint8_t unknown_24[0x28 - 0x24];
+    // +0x24 the distance one play of the animation moves the unit (0: the speed comes from the
+    // unit instead; ClientPlaceOnPath, unit_client_path.cpp).
+    float stride;
     std::uint32_t arrowFrom;        // +0x28
     std::uint32_t arrowTo;          // +0x2C
     std::uint32_t stepFrames[4];    // +0x30 the footsteps' frames + 1 (0 ends the list)
@@ -109,9 +59,9 @@ static_assert(sizeof(FigureAnimation) == 0x58);
 // A figure's animation database: the data of "<figure name>.adb" as the object's manager
 // returns it (CBaseManager::GetFile), kept at CObject3D + 0xA0.
 struct AnimationDatabase {
-    std::uint8_t unknown_00[4];
+    std::uint8_t unused_00[4];
     std::uint32_t count;            // +0x04 animations
-    std::uint8_t unknown_08[0x20 - 0x08];
+    std::uint8_t unused_08[0x20 - 0x08];
     float start;                    // +0x20 \ the animation time factor maps t to
     float length;                   // +0x24 | (start + (end - start) * t) / length
     float end;                      // +0x28 /
@@ -145,13 +95,13 @@ FigureAnimation* __fastcall FindFigureAnimation(CBaseManager* manager, void*, co
 // address), the 3D object reaches its half through CObject3D::Specific().
 class CObject3DSpecific : public CEngineObject {
 public:
-    virtual int OnPartAdded(FigurePart* part);      // 13: client 0051B050, server 0051F270 (0)
+    virtual int OnPartAdded(CFigureMesh* part);      // 13: client 0051B050, server 0051F270 (0)
     // 14: (name) client 0051B210: the part named (slot 16) taken out of the drawn part sets (+0x20,
     // +0x24) and released; returns it or null. Server 0051F290. Slots declared `void Name()` keep
-    // their place in the order only (docs/notes/drafts/DR-C2.md).
-    virtual FigurePart* RemoveFromPartSets(const char* name);
-    virtual int OnPartRemoved(FigurePart* part);    // 15: client 0051B160, server 0051F280 (0)
-    virtual FigurePart* FindPart(const char* name); // 16: client 0051B2E0 (a part by name, 005169A0); server 0051F2B0 (0)
+    // their place in the order only (docs/notes/map_objects.md ("Virtual slot names")).
+    virtual CFigureMesh* RemoveFromPartSets(const char* name);
+    virtual int OnPartRemoved(CFigureMesh* part);    // 15: client 0051B160, server 0051F280 (0)
+    virtual CFigureMesh* FindPart(const char* name); // 16: client 0051B2E0 (a part by name, 005169A0); server 0051F2B0 (0)
     virtual void FindPartById();                    // 17: client 0051B2D0 (a part by id, 00516920)
     // 18: the figure's extra scale: client +0xF0..+0xF8 (0051AD20), server 1, 1, 1 (0051AC30).
     virtual void GetScale(float* x, float* y, float* z);
@@ -177,7 +127,6 @@ public:
 };
 
 class CObject3D;
-class CFigureMesh;           // figure_mesh.h
 
 // A bone of a figure's skeleton (class id 0x300C, made by 0050CC60 from the skeleton links; names
 // provisional). The animation state's bone list holds them, its +0x20 the root. Only the fields
@@ -360,52 +309,23 @@ static_assert(offsetof(CFigureAnimationState, morphS) == 0x68);
 static_assert(offsetof(CFigureAnimationState, changed) == 0x74);
 static_assert(sizeof(CFigureAnimationState) == 0x78);
 
-// The figure an object holds at +0xF0 (counted; slot 0 deletes): a CLinkMesh (link_figure.h,
-// vtable 0073D790), seen from CObject3D::LoadPart. Slots 1-3 keep their place only.
-class CFigureInstance {
-public:
-    virtual void DeletingDestructor(unsigned flags);   // 0
-    virtual void UpdateScreenRect();   // 1: 004F45E0
-    virtual void HasPart();            // 2: 004F3040 (name)
-    virtual void CollectPartNames();   // 3: 004F2FB0 (out)
-    virtual bool HasPiece(const void* name);   // 4: the piece map (+0x14) holds `name` (an stlp::string)
-
-    int refCount;                   // +0x04
-    std::uint8_t unknown_08[0x14 - 0x08];
-    std::uint8_t pieces[0x10];      // +0x14 STLport map<string, FigurePieceRecord> (find 005197B0)
-};
-static_assert(offsetof(CFigureInstance, pieces) == 0x14);
-
-// The figure cache (the world's slot 23): builds the figures objects hold at +0xF0; the
-// CLinkFigureLoader (model.h, vtable 0073D808) as the 3D object calls it, the scale passed as
-// float bits. Slots 0-2 keep their place only.
-class CFigureCache {
-public:
-    virtual void DeleteThis();   // 0: 004F6A30 (flags)
-    virtual void CacheSize();    // 1: 004F6A20
-    virtual void CacheBytes();   // 2: 004FAAA0
-    // 3: the figure of model `name` (an stlp::string) made of the pieces `pieceNames` (an STLport
-    // vector<string>), at the scale; referenced by the caller.
-    virtual CFigureInstance* BuildFigure(const void* name, const void* pieceNames, std::uint32_t x, std::uint32_t y,
-                                         std::uint32_t z, int flag);
-    // 4: the whole figure of model `name` at the scale.
-    virtual CFigureInstance* BuildWholeFigure(const void* name, std::uint32_t x, std::uint32_t y, std::uint32_t z,
-                                              int flag);
-    virtual void Clear();   // 5: 004F7020 (every cached figure released, the cache emptied)
-    // 6: 004F75E0. `figure` (one this cache built) at the scale (raw float bits): with fewer than 3
-    // references its pieces are rebuilt in place and it is returned (null for null), otherwise a new
-    // whole figure of its model is built through slot 4.
-    virtual CEngineObject* ScaledFigure(CEngineObject* figure, std::uint32_t x, std::uint32_t y, std::uint32_t z);
-};
-
-// A counted reference: the pointer slot is the `this` of 00519580.
+// A counted reference: the pointer slot is the `this` of 00519580 (the 3D object's figure, a
+// CLinkMesh) and of its byte-identical copies 0051E570 (the client half's wounds material) and
+// 0051E4F0 (that material's helper preset), both called by 0051C3D0. T's count is at +0x04 and its
+// slot 0 deletes it; object3d_lifetime.cpp defines Assign for those three types.
+template <typename T>
 struct CountedRef {
-    // 00519580 (object3d_lifetime.cpp). object = `value`: the new object gains a reference, the
-    // old one loses one and is deleted (its slot 0 with 1) when that was the last.
-    void Assign(CEngineObject* value);
+    // object = `value`: the new one gains a reference, the old one loses one and is deleted (its
+    // slot 0 with 1) when that was the last.
+    void Assign(T* value);
 
-    CEngineObject* object;
+    T* object;
 };
+
+// A counted pointer slot viewed as the reference the game's copies of Assign take as `this`
+// (CObject3D::FigureRef for the figure; the wounds material and its preset in 0051C3D0 / 0051AF70).
+template <typename T>
+inline CountedRef<T>& AsCountedRef(T*& slot) { return *reinterpret_cast<CountedRef<T>*>(&slot); }
 
 class CObject3D : public CEngineObject {
 public:
@@ -445,30 +365,30 @@ public:
     // 005164B0. Adds `part` to the parts unless it is there: referenced, told its owner, announced
     // to the animation and to the attached object (whose slot 13 result is returned). Returns 1
     // otherwise.
-    int AddPart(FigurePart* part);
+    int AddPart(CFigureMesh* part);
 
     // map_object_parts.cpp (A-U).
     // 00516A80. The first part (of the parts, then of the pending parts) whose name starts with
     // `prefix` (strstr at the name's start; case-sensitive), or null.
-    FigurePart* FindPartByPrefix(const char* prefix);
+    CFigureMesh* FindPartByPrefix(const char* prefix);
     // 005169A0. The first part (parts, then pending parts) named exactly `partName`, or null.
-    FigurePart* FindPart(const char* partName);
+    CFigureMesh* FindPart(const char* partName);
     // 00516920 (RET 4; object3d_specific_slots.cpp, A-U11). The first part (parts, then pending
     // parts) whose engine object type_ is `type`, or null.
-    FigurePart* FindPartOfType(int type);
+    CFigureMesh* FindPartOfType(int type);
     // 00516B50 (object3d_figure_setup.cpp, A-U4; RET 8). Every part (parts, then pending parts)
     // whose name starts with `prefix` (strstr at the name's start) appended to `out`.
     void CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out);
     // 005167E0. Takes `part` out of the parts (it forgets its owner, 0059F3D0) or else out of the
     // pending parts, tells the animation state (+0x98, 0050D350) and releases it. The side half
     // (+0x94, slot 15) hears of it first, found or not. Returns 1 when it was there, else 0.
-    int RemovePart(FigurePart* part);
+    int RemovePart(CFigureMesh* part);
     // 005168F0. FindPart(`partName`), removed by RemovePart. Returns the part (released; the pointer
     // may be dangling) or null.
-    FigurePart* RemovePartNamed(const char* partName);
+    CFigureMesh* RemovePartNamed(const char* partName);
     // 005188B0. `part`'s position (+0x1C) turned by the orientation (+0x34, w first), scaled by
     // the side half's GetScale and moved to the object's position. Returns `out`.
-    float* PartWorldPosition(float* out, const FigurePart* part);
+    float* PartWorldPosition(float* out, const CFigureMesh* part);
 
     // 00518CA0. The animation database (+0xA0), loaded on first use through the owner's GetFile
     // ("<name>.adb"; nothing without an owner). Null when there is none.
@@ -509,7 +429,7 @@ public:
     // +0x188) and +0x158 / +0x15C. Name prefixes "BASE" / "CROWN" / "EMPTY" add box flags 0x400 /
     // 0x90 / 0x890. A new part joins the parts (referenced; owner, animation state and side half
     // told as AddPart does); the box pivot is the part's position and flag 4 is set. Returns it.
-    FigurePart* LoadPart(const char* partName, void* model, std::uint32_t arg);
+    CFigureMesh* LoadPart(const char* partName, void* model, std::uint32_t arg);
     // 00517110 (RET 0xC). The object's figure becomes `model` (+0xA4) and each name of the
     // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
     // Without a figure manager: FatalError. Returns 1.
@@ -530,7 +450,7 @@ public:
     // 00517990. The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
     // 00564AF0 (world_client.cpp; the client's AddObject walks a platform object's boxes with it).
-    // The box (FigurePart +0x188) of part `index` of the parts followed by the pending parts.
+    // The box (CFigureMesh::bounds_) of part `index` of the parts followed by the pending parts.
     FootprintPart* PartBox(int index);
 
     // object3d_lifetime.cpp (A-U).
@@ -581,9 +501,9 @@ public:
     // 00517910 / 00517950 (RET 4). Every part's flags_ gains / loses the bits of `mask`.
     void SetPartFlags(std::uint32_t mask);
     void ClearPartFlags(std::uint32_t mask);
-    // 00519500 / 00519530 (RET 4). Every part's +0xD4 / +0xD8 becomes `value`.
-    void SetPartsUnknownD4(std::uint32_t value);
-    void SetPartsUnknownD8(std::uint32_t value);
+    // 00519500 / 00519530 (RET 4). Every part's flatColour / flatSpecular becomes `value`.
+    void SetPartsFlatColour(std::uint32_t value);
+    void SetPartsFlatSpecular(std::uint32_t value);
     // 005187D0 (RET 4). `state` (or null) replaces the animation state: the old one loses its
     // owner and is released, the new one gains a reference and this owner.
     void SetAnimationState(CFigureAnimationState* state);
@@ -603,7 +523,7 @@ public:
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
     // The figure (+0xF0) as the counted reference 00519580 assigns.
-    CountedRef& FigureRef() { return *reinterpret_cast<CountedRef*>(&figure); }
+    CountedRef<CLinkMesh>& FigureRef() { return *reinterpret_cast<CountedRef<CLinkMesh>*>(&figure); }
     // The object as the CTransformObject it starts with (core_transform.h).
     CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
     const CTransformObject* Transform() const { return reinterpret_cast<const CTransformObject*>(this); }
@@ -615,31 +535,34 @@ public:
     Matrix4 worldMatrix;            // +0x054 object -> world: the rotation, the position as column 3
     CEngineObject* attached;        // +0x094 the object slot 19 accepts (type 0x46)
     CFigureAnimationState* animation;   // +0x098 the figure's animation state
-    std::uint32_t unknown_09C;      // +0x09C cleared by Create3D / Destroy3D
+    std::uint32_t spare09C;         // +0x09C cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // +0x0A0 loaded on first use (00518CA0)
     const char* name;               // +0x0A4 CString: the figure's name
     // +0x0A8 the particle sources attached to the object (MFC CPtrList, vtable 0073DE4C, block
     // size 10).
     mfc::CTypedPtrList<CEngineObject> effectSources;
     Vector3 scale;                  // +0x0C4
-    AlignedPtrArray parts;          // +0x0D0 FigurePart*
-    AlignedPtrArray pendingParts;   // +0x0E0 FigurePart*, built by LoadFigures
-    CEngineObject* figure;          // +0x0F0 counted reference (slot 0 deletes)
+    AlignedPtrArray parts;          // +0x0D0 CFigureMesh*
+    AlignedPtrArray pendingParts;   // +0x0E0 CFigureMesh*, built by LoadFigures
+    // +0x0F0 the figure (counted; slot 0 deletes), made by the figure cache: the parts' piece
+    // headers (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
+    CLinkMesh* figure;
     Vector3 defaultScale;           // +0x0F4 from 007AF1D0 (constructor, Create3D)
     int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered
     void* partNameArrayVtable;      // +0x110 \ CStringArray of the part names
     char** partNames;               // +0x114 the figure's part names (00517990), in the order of
     int partNameCount;              // +0x118 the part boxes (CUnit::partBoxes, +0x160)
-    std::uint8_t unknown_11C[0x124 - 0x11C];
+    int partNameCapacity;           // +0x11C | (the CStringArray's)
+    int partNameGrowBy;             // +0x120 /
     std::uint32_t boundsFlags;      // +0x124 1 and 2: the bounds are valid
     Vector3 center;                 // +0x128
     float radius;                   // +0x134
     Vector3 below;                  // +0x138 box minimum - centre
     Vector3 above;                  // +0x144 box maximum - centre
-    std::uint8_t unknown_150[0x158 - 0x150];   // cleared with the bounds
+    std::uint8_t unused_150[0x158 - 0x150];    // cleared with the bounds
     // +0x158 cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a
     // unit's eye height (005CA410).
-    float unknown_158;
+    float eyeHeight;
     void* partBoxArrayVtable;       // +0x15C \ CArray of the part boxes (vtable 0073DE40)
     FootprintPart* partBoxes;       // +0x160 | (ai_map.h)
     int partBoxCount;               // +0x164 |
@@ -665,5 +588,5 @@ static_assert(offsetof(CObject3D, center) == 0x128);
 static_assert(offsetof(CObject3D, radius) == 0x134);
 static_assert(offsetof(CObject3D, below) == 0x138);
 static_assert(offsetof(CObject3D, above) == 0x144);
-static_assert(offsetof(CObject3D, unknown_158) == 0x158);
+static_assert(offsetof(CObject3D, eyeHeight) == 0x158);
 static_assert(sizeof(CObject3D) == 0x170);

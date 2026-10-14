@@ -1,6 +1,6 @@
 // Combat, fourth part: the animation steps of an order (which animation of the unit plays, for how
-// long, and when the action happens). See combat.h, combat_plan.h and docs/notes/combat.md
-// ("Third round").
+// long, and when the action happens). See combat.h, combat_plan.h and docs/notes/combat.md ("Order
+// lifecycle").
 #include "combat.h"
 #include "combat_plan.h"
 
@@ -108,7 +108,7 @@ bool HasRangedWeapon(CUnit* unit) {
 AnimationStep BlankStep() {
     AnimationStep step{};
     step.animation = 0xFF;
-    step.unknown_01 = 0xFF;
+    step.variant = 0xFF;
     step.duration = -1;
     return step;
 }
@@ -233,7 +233,7 @@ bool CUnitServer::BuildTransition(AnimationSteps* steps, const MoveModeState* fr
     int last = steps->count;
     StepsSetSize(steps, nullptr, last + 1, -1);
     AnimationStep step = BlankStep();
-    step.unknown_08 = 0;
+    step.kind = 0;
     steps->steps[last] = step;
     AnimationStep& added = steps->steps[steps->count - 1];
     added.animation = index;
@@ -363,7 +363,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     }
 
     AnimationStep blank = BlankStep();
-    if (Combat().unknown_60 == kNoSizeClasses) {
+    if (Combat().bodyKind == kNoSizeClasses) {
         // A pause for the extra time, then the animation; the action at its moment.
         *duration = EntryTicks(unit, index, 0x40);
         int pause = value - EntryTicks(unit, index, 0x20);
@@ -401,7 +401,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
     third.animation = 0xFF;
     third.duration = rest;
     StepsSetField8(steps, nullptr, 0);
-    steps->steps[1].unknown_08 = 1;
+    steps->steps[1].kind = 1;
     *duration = *duration + pause;
 }
 EI_REPLACE_METHOD(0x00550620, CUnitServer::BuildCastSteps);
@@ -447,7 +447,7 @@ double RandomHeight(double to, float from, float low, float high) {
 
 bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CEngineObject* target) {
     if (target->GetClassId() != kClassUnit) {
-        plan->unknown_2C = 1;
+        plan->hitLocation = 1;
         CtlBuildOrderSteps(this, nullptr, steps, duration, kOrderAttack, kKeyNoTarget);
         return true;
     }
@@ -566,7 +566,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
         }
         key = static_cast<double>(span) - kReachSlack > distance ? kKeyNonHeroLow : kKeyNonHeroHigh;
     }
-    plan->unknown_2C = location;
+    plan->hitLocation = location;
     if (order.target) order.target->Release();
     order.target = nullptr;
 
@@ -644,13 +644,13 @@ void CUnitServer::BuildDeathAnimation(AnimationSteps* steps, std::uint32_t direc
         int last = steps->count;
         StepsSetSize(steps, nullptr, last + 1, -1);
         AnimationStep step = BlankStep();
-        step.unknown_08 = 0;
+        step.kind = 0;
         steps->steps[last] = step;
         AnimationStep& added = steps->steps[steps->count - 1];
         added.animation = Get<std::uint8_t>(animation, 0x10);
         added.duration = duration;
     }
     if (isFall)
-        for (int i = 0; i < steps->count; ++i) steps->steps[i].unknown_08 = kStepLying;
+        for (int i = 0; i < steps->count; ++i) steps->steps[i].kind = kStepLying;
 }
 EI_REPLACE_METHOD(0x00550A80, CUnitServer::BuildDeathAnimation);

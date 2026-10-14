@@ -55,13 +55,11 @@ std::uint32_t Argb(const int* entry) {
     return c;
 }
 
-// IDirect3DDevice7::SetRenderState (slot 20; stdcall, the interface first), recorded for the
-// frame capture.
+// IDirect3DDevice7::SetRenderState, recorded for the frame capture.
 constexpr int kShadeMode = 9;          // D3DRENDERSTATE_SHADEMODE: 1 flat, 2 Gouraud
 constexpr int kDitherEnable = 0x1A;    // D3DRENDERSTATE_DITHERENABLE
 void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
-    using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t);
-    reinterpret_cast<Fn>(device->vtable_[20])(device, state, value);
+    device->SetRenderState(static_cast<std::uint32_t>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 

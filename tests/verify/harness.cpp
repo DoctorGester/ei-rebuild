@@ -120,6 +120,10 @@
 //                             require frames <a> and <b> to match: at most <fraction> (default
 //                             0.001) of the pixels may have a channel differing by more than
 //                             <tolerance> (default 8), as tools/compare_frames.py counts
+//   uicensus                  count how the interface draws into its window surfaces (GDI calls per
+//                             surface, call sites, readers, drawing no hook explains) and write
+//                             ui_census.csv with the report (ui_census.cpp; also EI_UI_CENSUS=1;
+//                             wants "render new,cpuwindows")
 //   # comment
 //
 // Everything the console prints is captured into the report. The report ends with "RESULT: PASS"
@@ -136,6 +140,7 @@
 #include "harness_capture.h"
 #include "harness_clock.h"
 #include "harness_starter.h"
+#include "ui_census.h"
 
 #include "../../src/hook/log.h"
 #include "ei/main_loop.h"
@@ -784,6 +789,7 @@ BOOL WINAPI RedirectedSetFileAttributes(LPCSTR name, DWORD attributes) {
 
 void WriteReport() {
     clock::FlushRandomTrace();
+    if (census::Enabled()) census::Write();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
     unsigned long mismatches = 0;
@@ -1956,7 +1962,10 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
     // A frame has been drawn: the original's after-frame call (00457610) or the rewritten loop's.
     const bool afterFrame = reinterpret_cast<std::uintptr_t>(_ReturnAddress()) == kInputLoopReturns[1] ||
                             ei::mainloop::g_site == ei::mainloop::Site::PeekAfterFrame;
-    if (afterFrame) ++g_frames;
+    if (afterFrame) {
+        ++g_frames;
+        if (census::Enabled()) census::Frame();
+    }
     // On the virtual clock the steps run once a frame, after it: how often the game peeks besides
     // depends on the real messages it gets (Miles' 50 ms WM_TIMER, WM_PAINT), and a step that
     // follows a console command's output would otherwise run in this frame or the next.
@@ -2002,6 +2011,11 @@ bool LoadScenario(const char* path) {
             continue;
         }
         if (ei::verify::starter::ParseStep(g_steps.back().verb, g_steps.back().argument)) {
+            g_steps.pop_back();
+            continue;
+        }
+        if (g_steps.back().verb == "uicensus") {
+            census::Enable();
             g_steps.pop_back();
             continue;
         }
@@ -2087,6 +2101,7 @@ struct Harness {
         // switched the display mode, and the game's window mode never got past the menu. See open-questions.
         // A scenario's "resolution" / "widescreen" (or EI_RESOLUTION / EI_WIDESCREEN): harness_starter.cpp.
         ei::verify::starter::Install();
+        if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
         PatchSlot(kAilStartupSlot, &TracedAilStartup, g_ailStartup);

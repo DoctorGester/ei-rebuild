@@ -7,8 +7,8 @@
 //   half; flags 0.
 // - AddEffectSource (00518A00) / RemoveEffectSource (00518AE0): the source is in the list exactly
 //   once afterwards / not at all, the count one higher / lower when it changed.
-// - CountedRef::Assign (00519580): the slot holds the value, which gained a reference unless it
-//   was the old one.
+// - CountedRef<T>::Assign (00519580 the figure; copies 0051E570 the wounds material, 0051E4F0 its
+//   preset): the slot holds the value, which gained a reference unless it was the old one.
 // Reached by: Create / Destroy of every map object (CMapObject 0050E770 / 0050E840: every
 // scenario's zone load, spawns and removals: unit_create, units); the effect sources by particle
 // sources attached to units and objects (004849F0: spells_cast, effects, particles, combat's
@@ -16,6 +16,9 @@
 #include "verify.h"
 
 #include "../../src/game/map_object_figures.h"
+#include "../../src/game/link_figure.h"
+#include "../../src/game/map_object_shadow.h"
+#include "../../src/game/model.h"
 
 #include <cstring>
 
@@ -83,13 +86,20 @@ static void __fastcall RemoveEffectSourceVerify(CObject3D* self, void*, CEngineO
 }
 EI_VERIFY(0x00518AE0, RemoveEffectSourceVerify, 0, s_unusedRemove);
 
-static void __fastcall CountedRefAssignVerify(CountedRef* self, void*, CEngineObject* value) {
+namespace {
+int CountOf(const CLinkMesh* figure) { return figure->refCount_; }
+int CountOf(const WoundsMaterial* material) { return material->refCount; }
+int CountOf(const CRenderPreset* preset) { return preset->refs_; }
+} // namespace
+
+template <typename T>
+static void __fastcall CountedRefAssignVerify(CountedRef<T>* self, void*, T* value) {
     bool same = self->object == value;
-    int references = value ? value->refCount_ : 0;
+    int references = value ? CountOf(value) : 0;
     self->Assign(value);
-    bool ok = self->object == value && (!value || same || value->refCount_ == references + 1);
+    bool ok = self->object == value && (!value || same || CountOf(value) == references + 1);
     ei::verify::Check("CountedRef::Assign", true, ok, "value %p", static_cast<void*>(value));
 }
-EI_VERIFY(0x00519580, CountedRefAssignVerify, 0, s_unusedAssign);
-EI_VERIFY(0x0051E4F0, CountedRefAssignVerify, 0, s_unusedAssign);   // byte-identical copies (A-U11)
-EI_VERIFY(0x0051E570, CountedRefAssignVerify, 0, s_unusedAssign);
+EI_VERIFY(0x00519580, CountedRefAssignVerify<CLinkMesh>, 0, s_unusedAssign);
+EI_VERIFY(0x0051E570, CountedRefAssignVerify<WoundsMaterial>, 0, s_unusedAssign);   // byte-identical copies (A-U11)
+EI_VERIFY(0x0051E4F0, CountedRefAssignVerify<CRenderPreset>, 0, s_unusedAssign);

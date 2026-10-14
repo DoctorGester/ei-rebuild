@@ -27,7 +27,7 @@ std::uint32_t Bits(float f) {
 class CaptureStream : public AIStream {
 public:
     explicit CaptureStream(const AIStream* real) {
-        unknown_04 = 0;
+        reading = 0;
         version = real ? real->version : 0;
     }
     void* DeletingDestruct(unsigned) override { return this; }
@@ -52,7 +52,7 @@ public:
 class RecordStream : public AIStream {
 public:
     explicit RecordStream(AIStream* real) : real_(real) {
-        unknown_04 = 0;
+        reading = 0;
         version = real->version;
     }
     void* DeletingDestruct(unsigned) override { return this; }
@@ -71,7 +71,7 @@ private:
 class ReplayStream : public AIStream {
 public:
     ReplayStream(const AIStream* real, const std::vector<unsigned char>& bytes) : bytes_(bytes) {
-        unknown_04 = 0;
+        reading = 0;
         version = real->version;
     }
     void* DeletingDestruct(unsigned) override { return this; }
@@ -395,7 +395,7 @@ static FearMode* __fastcall FearCloneVerify(FearMode* self) {
     FearMode* expected = s_fearClone(self);
     FearMode* clone = self->Clone();
     bool ok = expected && clone && clone != self && clone->vtable == expected->vtable && clone->refs == expected->refs &&
-              clone->unknown_06 == expected->unknown_06 &&
+              clone->refsHigh == expected->refsHigh &&
               std::memcmp(&clone->distance, &expected->distance, offsetof(FearMode, flag) - offsetof(FearMode, distance)) == 0 &&
               clone->flag == expected->flag;
     ei::verify::Check("FearMode::Clone", true, ok, "mode %p", self);
@@ -942,12 +942,12 @@ EI_VERIFY(0x005AEC80, AlarmSaveVerify, 5, s_alarmSave);
 // RaiseAlarm 00593FC0: a unit whose alarm countdown ends, the script's alarm commands).
 static void __fastcall HearAlarmVerify(AIBrain* self, void*, int slot) {
     const bool inRange = slot >= 0 && slot < self->alarmRecords.size;
-    const bool applies = inRange && (self->alarmRecords.data[slot].unknown_38 != 0 || slot == 0);
-    const int before = self->unknown_36;
+    const bool applies = inRange && (self->alarmRecords.data[slot].enabled != 0 || slot == 0);
+    const int before = self->alarmSlot;
     const AIAlarm* alarm = &self->owner->alarm;
     const int pendingBefore = alarm->pending;
     self->HearAlarm(slot);
-    bool ok = applies ? self->unknown_36 == static_cast<std::int8_t>(slot) : self->unknown_36 == before;
+    bool ok = applies ? self->alarmSlot == static_cast<std::int8_t>(slot) : self->alarmSlot == before;
     ok = ok && (inRange ? alarm->pending >= 7 : alarm->pending == pendingBefore);
     ei::verify::Check("AIBrain::HearAlarm", true, ok, "brain %p slot %d of %d", self, slot, self->alarmRecords.size);
 }
@@ -956,8 +956,8 @@ EI_VERIFY(0x005D5940, HearAlarmVerify, 0, s_unused);
 // 005D7C30 AIBrain::ResetBehaviour: ours only; the applied slot stays, nothing is noticed any
 // more. Reached only by the script's ResetTarget command; no scenario is known to run it.
 static void __fastcall ResetBehaviourVerify(AIBrain* self) {
-    const int before = self->unknown_36;
+    const int before = self->alarmSlot;
     self->ResetBehaviour();
-    ei::verify::Check("AIBrain::ResetBehaviour", true, self->unknown_36 == before, "brain %p slot %d", self, before);
+    ei::verify::Check("AIBrain::ResetBehaviour", true, self->alarmSlot == before, "brain %p slot %d", self, before);
 }
 EI_VERIFY(0x005D7C30, ResetBehaviourVerify, 0, s_unused);

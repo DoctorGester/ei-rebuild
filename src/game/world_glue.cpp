@@ -109,8 +109,8 @@ void __stdcall GameSetConstructionVariable(std::uint32_t value) {
 }
 EI_REPLACE(0x00578560, GameSetConstructionVariable);
 
-void __stdcall GameSetUnknownE4E8(int e4, float e8) { WorldServer()->SetUnknownE4E8(e4, e8); }
-EI_REPLACE(0x005786A0, GameSetUnknownE4E8);
+void __stdcall GameSetWeather(int weather, float strength) { WorldServer()->SetWeather(weather, strength); }
+EI_REPLACE(0x005786A0, GameSetWeather);
 
 double GameServerTimeOfDay() {
     CWorldServer* world = WorldServer();
@@ -161,7 +161,7 @@ EI_REPLACE(0x005787D0, GameStopCameraRecording);
 int __stdcall GameStartCameraRecording(const char* name) {
     CWorldClient* world = WorldClient();
     world->flags_ |= kClientRecordingCamera;
-    return CameraOpenFile(world->camera_, nullptr, name);
+    return world->camera_->OpenFile(name);
 }
 EI_REPLACE(0x005787F0, GameStartCameraRecording);
 
@@ -274,7 +274,7 @@ void __stdcall GameStartLocalSession(std::uint8_t* player) {
     WorldServer()->TeardownZone();
     CWorldClient* world = WorldClient();
     world->SetPlayer(player);
-    reinterpret_cast<LocalViewData*>(world->LocalView())->unknown_84 = 1;
+    reinterpret_cast<LocalViewData*>(world->LocalView())->localSession = 1;
     reinterpret_cast<LocalViewData*>(world->LocalView())->partyTaken = 0;
 }
 EI_REPLACE(0x005793E0, GameStartLocalSession);

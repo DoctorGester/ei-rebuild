@@ -33,7 +33,7 @@ std::uint64_t HeadDigest(const ItemRecordHead* r) {
     MixText(d, r->text08);
     MixText(d, r->materialClass);
     Mix(d, &r->type, 4);
-    Mix(d, &r->unknown_14, 12);
+    Mix(d, &r->field4, 12);
     Mix(d, &r->price, offsetof(ItemRecordHead, list50) - offsetof(ItemRecordHead, price));
     Mix(d, &r->classMask, 5);
     return d;

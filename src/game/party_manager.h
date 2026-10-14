@@ -3,7 +3,7 @@
 // The party manager (the object at 007AA5A0): the parties stored by key (the players' parties
 // between zones), a list of entries, the named party records and the class templates, saved with
 // the game through a chunk archive (004A8560) and loaded back (004A8310). Names provisional; see
-// docs/notes/script.md ("A-S9") and docs/notes/world.md ("Party records and class templates").
+// docs/notes/script.md ("Leftovers") and docs/notes/world.md ("Party records and class templates").
 
 #include "class_templates.h"
 #include "party_records.h"
@@ -42,7 +42,7 @@ using PartyMap = stlp::hash_map<int, PartyInPlace, stlp::IntHash>;
 struct PartyManager {
     PartyMap parties;                           // +0x00 (004A8790 / 004A8800 load and store)
     stlp::vector<PartyManagerEntry> entries;    // +0x14
-    int unknown_20;                             // +0x20 field 3 of the archive
+    int field3;                         // +0x20 field 3 of the archive (nothing reads it)
     NamedPartyRecords records;                  // +0x24
     ClassTemplateVector templates;              // +0x38
 
@@ -57,13 +57,13 @@ struct PartyManager {
     // every party of the map (the map's own node deleter) and the bucket array.
     void Destruct();
     // 004A5870 (A-E1; app_lifetime.cpp). The constructor: an empty party map of 193 buckets (the
-    // prime after 100), no entries, no records with two empty strings, no templates; unknown_20 is
+    // prime after 100), no entries, no records with two empty strings, no templates; field3 is
     // left as it is. It runs from the static initialiser 004A56D0 on the manager at 007AA5A0,
     // before the hooks are installed, so the hook on it never fires. Returns this.
     PartyManager* Construct();
 };
 static_assert(offsetof(PartyManager, entries) == 0x14);
-static_assert(offsetof(PartyManager, unknown_20) == 0x20);
+static_assert(offsetof(PartyManager, field3) == 0x20);
 static_assert(offsetof(PartyManager, records) == 0x24);
 static_assert(offsetof(PartyManager, templates) == 0x38);
 

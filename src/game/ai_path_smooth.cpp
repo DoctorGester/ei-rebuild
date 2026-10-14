@@ -72,7 +72,7 @@ void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, Smooth
     if (pass < 0) return;
     int climb = costs.climb[static_cast<int>(b.groundLevel) - static_cast<int>(a.groundLevel)];
     if (climb < 0) return;
-    int cost = (((climb * pass) >> 10) * step->factor >> 10) + from->cost + TurnCost(step->turn, costs.unknown_10);
+    int cost = (((climb * pass) >> 10) * step->factor >> 10) + from->cost + TurnCost(step->turn, costs.turnScale);
     if (cost >= to->cost) return;
     to->cost = cost;
     to->node->direction = step->direction;
@@ -112,7 +112,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
     for (;;) {
         SmoothState first[kStates], second[kStates];
         pool.SetSize((path->count + 5) * 10, -1);
-        pool.unknown_14 = 0;
+        pool.zeroed = 0;
         for (SmoothState& s : first) s = SmoothState{0, nullptr};
         // The first cell: a state per direction it is left in.
         pool.next = pool.nodes.data;
@@ -136,7 +136,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
             int turn = CdqAbs(d - startDirection);
             if (turn > 4) turn = 8 - turn;
             int turns = turn - 1 < 0 ? 0 : turn - 1;
-            state.cost = TurnCost(turns, costs.unknown_10) + cost;
+            state.cost = TurnCost(turns, costs.turnScale) + cost;
         }
         // Along the path: each cell's states from the previous one's, through the table of the
         // previous and the next step's directions.
@@ -174,7 +174,7 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         previousBest = best;
         // Rebuild the cells from the tail back along the chain. The original gives them second
         // dwords from two stack slots it never writes; ours keep the old tail's.
-        std::uint16_t staleFlags = path->tail->data.flags, staleWord = path->tail->data.unknown_6;
+        std::uint16_t staleFlags = path->tail->data.flags, staleWord = path->tail->data.terrainBits;
         path->RemoveAll();
         PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), staleFlags, staleWord};
         path->AddHead(tail);

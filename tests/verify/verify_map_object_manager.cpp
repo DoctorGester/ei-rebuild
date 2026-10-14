@@ -17,7 +17,7 @@
 //   DeltaField::Destruct (00510340): objects and arrows dropped.
 // - CObject3D: DeleteObject3D (00515D50): none known (map objects have their own slot 0).
 //   SetSpecific (005161A0): none known (its caller 00455BA0 is not reached by a rewritten
-//   path). SetPartFlags / ClearPartFlags / SetPartsUnknownD4 / D8 (00517910, 00517950, 00519500,
+//   path). SetPartFlags / ClearPartFlags / SetPartsFlatColour / D8 (00517910, 00517950, 00519500,
 //   00519530): the interface's model views; the client's new objects. SetAnimationState
 //   (005187D0): every object made. PlayAnimation / PlayAnimationSecond / AttachPartMesh /
 //   RestartPose (005187B0, 00518840, 00518820, 00518860): interface models, party units, arrows,
@@ -161,7 +161,7 @@ EI_VERIFY(0x00512B20, FindAnimationVerify, 0, s_unused);
 
 static int __fastcall GiveDefaultsVerify(CMapObjectManager* self, void*, CEngineObject* object) {
     int result = self->GiveDefaults(object);
-    ei::verify::Check("CMapObjectManager::GiveDefaults", true, result == 1 && object->unknown_18 == 0, "");
+    ei::verify::Check("CMapObjectManager::GiveDefaults", true, result == 1 && object->prototypeId_ == 0, "");
     return result;
 }
 EI_VERIFY(0x00513630, GiveDefaultsVerify, 0, s_unused);
@@ -299,38 +299,38 @@ static void __fastcall BoxSetIgnoredVerify(std::uint32_t* flags, void*, bool ign
 EI_VERIFY(0x005174E0, BoxSetIgnoredVerify, 0, s_unused);
 
 namespace {
-bool EveryPart(const CObject3D* object, bool (*test)(const FigurePart*, std::uint32_t), std::uint32_t value) {
+bool EveryPart(const CObject3D* object, bool (*test)(const CFigureMesh*, std::uint32_t), std::uint32_t value) {
     for (int i = 0; i < object->parts.size; ++i)
-        if (!test(static_cast<const FigurePart*>(object->parts[i]), value)) return false;
+        if (!test(static_cast<const CFigureMesh*>(object->parts[i]), value)) return false;
     return true;
 }
 } // namespace
 
 static void __fastcall SetPartFlagsVerify(CObject3D* self, void*, std::uint32_t mask) {
     self->SetPartFlags(mask);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t m) { return (part->flags_ & m) == m; }, mask);
+    bool ok = EveryPart(self, [](const CFigureMesh* part, std::uint32_t m) { return (part->flags_ & m) == m; }, mask);
     ei::verify::Check("CObject3D::SetPartFlags", true, ok, "%X", mask);
 }
 EI_VERIFY(0x00517910, SetPartFlagsVerify, 0, s_unused);
 
 static void __fastcall ClearPartFlagsVerify(CObject3D* self, void*, std::uint32_t mask) {
     self->ClearPartFlags(mask);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t m) { return (part->flags_ & m) == 0; }, mask);
+    bool ok = EveryPart(self, [](const CFigureMesh* part, std::uint32_t m) { return (part->flags_ & m) == 0; }, mask);
     ei::verify::Check("CObject3D::ClearPartFlags", true, ok, "%X", mask);
 }
 EI_VERIFY(0x00517950, ClearPartFlagsVerify, 0, s_unused);
 
 static void __fastcall SetPartsD4Verify(CObject3D* self, void*, std::uint32_t value) {
-    self->SetPartsUnknownD4(value);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t v) { return part->unknown_0D4 == v; }, value);
-    ei::verify::Check("CObject3D::SetPartsUnknownD4", true, ok, "%X", value);
+    self->SetPartsFlatColour(value);
+    bool ok = EveryPart(self, [](const CFigureMesh* part, std::uint32_t v) { return part->flatColour_ == v; }, value);
+    ei::verify::Check("CObject3D::SetPartsFlatColour", true, ok, "%X", value);
 }
 EI_VERIFY(0x00519500, SetPartsD4Verify, 0, s_unused);
 
 static void __fastcall SetPartsD8Verify(CObject3D* self, void*, std::uint32_t value) {
-    self->SetPartsUnknownD8(value);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t v) { return part->unknown_0D8 == v; }, value);
-    ei::verify::Check("CObject3D::SetPartsUnknownD8", true, ok, "%X", value);
+    self->SetPartsFlatSpecular(value);
+    bool ok = EveryPart(self, [](const CFigureMesh* part, std::uint32_t v) { return part->flatSpecular_ == v; }, value);
+    ei::verify::Check("CObject3D::SetPartsFlatSpecular", true, ok, "%X", value);
 }
 EI_VERIFY(0x00519530, SetPartsD8Verify, 0, s_unused);
 

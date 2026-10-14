@@ -245,21 +245,21 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         message->prototype = record->texts[5];
         object.texture = record->texts[2];
         message->behaviour[0].type = 4;
-        message->behaviour[0].unknown_38 = 1;
+        message->behaviour[0].enabled = 1;
         message->behaviour[0].flags = 0;
         base.kind = 5;
-        std::memcpy(&object.scale, &record->unknown_724, 12);
+        std::memcpy(&object.scale, &record->scaleX, 12);
         object.visible = 1;
-        object.unknown_6E = 0;
+        object.side = 0;
         object.parentIname = record->texts[3];
-        object.unknown_74 = record->texts[4];
+        object.skinTexture = record->texts[4];
         StringArraySetSize(&object.parts, nullptr, 0, -1);
         const char* prototypeName = record->texts[5];
         int type = PrototypeClass(MapObjectManager(), nullptr, prototypeName);
         object.parentId = type;   // +0x50: the object's type
         if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
 
-        int id = static_cast<int>(record->unknown_01C);
+        int id = static_cast<int>(record->unitId);
         base.id = id;
         if (ObjectWithId(id)) WorldRemoveObject(this, nullptr, base.id);
 
@@ -300,7 +300,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
 
         UnitSetController(unit, nullptr, player);
         slots->SetScriptName(record->texts[0]);
-        UnitSet780(unit, nullptr, static_cast<std::uint32_t>(record->unknown_780));
+        UnitSet780(unit, nullptr, static_cast<std::uint32_t>(record->fightAtWill));
         UnitRefreshStats(unit, nullptr);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
         UnitReleaseAllItems(AsUnit(unit));
@@ -326,30 +326,30 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         UnitSetPrototype23CByName(AsUnit(unit), nullptr, record->texts[6]);
         line.Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
-        if (unknown12D64_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->unknown_770;
+        if (sessionKind_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->moveMode2;
         if (placement) {
             bool flagged = IsPassableForClassOriginal(aiMap_, nullptr, 1, &AsUnit(unit)->position);
             if (flagged) UnitSetPose(unit, nullptr, placement->value20, placement->value20);
             else AsUnit(unit)->moveMode2 = static_cast<int>(placement->value20);
         }
         ControllerReposition(controller, nullptr);
-        if (unknown12D64_ == kKindSinglePlayer || unknown12D64_ == kKindNoRangeTest)
+        if (sessionKind_ == kKindSinglePlayer || sessionKind_ == kKindNoRangeTest)
             AsUnit(unit)->pendingWeapon = static_cast<int>(record->weaponIndex);
-        if (placement && unknown12D64_ != kKindNoRangeTest) AsUnit(unit)->pendingWeapon = static_cast<int>(placement->value24);
+        if (placement && sessionKind_ != kKindNoRangeTest) AsUnit(unit)->pendingWeapon = static_cast<int>(placement->value24);
     }
 
     // Followers follow their leaders.
-    if (unknown12D64_ == kKindSinglePlayer) {
+    if (sessionKind_ == kKindSinglePlayer) {
         for (int i = 0; i < records->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(records->data[i]);
-            CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
+            CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
             if (!unit) continue;
             CEngineObject* controller = AsUnit(unit)->controller;
-            if (record->unknown_77C <= 0) continue;
+            if (record->leaderId <= 0) continue;
             void* brain = &static_cast<CUnitServer*>(controller)->brain;
             void* follow = BrainFindFollowMode(brain, nullptr);
             if (!follow) continue;
-            FollowModeSetLeader(follow, nullptr, brain, WorldFindUnit(this, nullptr, record->unknown_77C));
+            FollowModeSetLeader(follow, nullptr, brain, WorldFindUnit(this, nullptr, record->leaderId));
         }
     }
 
@@ -452,7 +452,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     };
     auto companionTexts = [spec](CMapObjectServer* companion) {
         TextAssign(&companion->name78, nullptr, &spec->parentIname);
-        TextAssign(&companion->name7C, nullptr, &spec->unknown_74);
+        TextAssign(&companion->name7C, nullptr, &spec->skinTexture);
         TextArrayCopy(&companion->stringsVtable, nullptr, &spec->parts);
     };
     auto race = [spec](CMapObject* object) {
@@ -528,7 +528,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         objects_.Set(static_cast<unsigned>(id), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        object->unknown_174 = UpdateCountdown(object);
+        object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
         int result = object->id_;
@@ -549,7 +549,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        object->unknown_174 = UpdateCountdown(object);
+        object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
         if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
@@ -580,8 +580,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (type == 5) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
             UnitSetController(object, nullptr, nullptr);
-            UnitSetSide(reinterpret_cast<CUnit*>(object), nullptr, spec->unknown_6E);
-            UnitSetDiplomacy(object, nullptr, DiplomacyHostileMask(&diplomacy_, nullptr, spec->unknown_6E));
+            UnitSetSide(reinterpret_cast<CUnit*>(object), nullptr, spec->side);
+            UnitSetDiplomacy(object, nullptr, DiplomacyHostileMask(&diplomacy_, nullptr, spec->side));
             ManagerRegisterUnit(MapObjectManager(), nullptr, object, unitSpec->prototype);
             ManagerRegisterUnit2(MapObjectManager(), nullptr, object, unitSpec->prototype);
             const mfc::CStringArray& worn = unitSpec->lists[1];
@@ -640,7 +640,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         int result = object->id_;
         if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
         if (type >= 8 && type <= 9) {
-            object->unknown_174 = UpdateCountdown(object);
+            object->updateCountdown = UpdateCountdown(object);
             updateMap_.Set(static_cast<unsigned>(object->id_), object);
         }
         if (*object->name2 != 0) namedObjects_.Set(static_cast<unsigned>(object->id_), object);
@@ -649,14 +649,14 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
     case 3: {   // a sound
         if (!loadedFresh_) return -1;
         auto* sound = reinterpret_cast<mapspec::SoundSpec*>(message);
-        if (sound->unknown_84) {
+        if (sound->ambient) {
             auto* ambient = static_cast<CEffectAmbientSound*>(timedManager->CreateObject(kTimedAmbientSound, base.id));
             TextArrayCopy(&ambient->names_, nullptr, &sound->sounds);
             Copy(&ambient->localPosition_, &base.position, 12);
-            ambient->volume_ = static_cast<float>(sound->unknown_68);
-            ambient->radius_ = static_cast<float>(sound->unknown_6C);
-            ambient->unknown_168 = sound->unknown_74;
-            ambient->unknown_16C = sound->unknown_78;
+            ambient->volume_ = static_cast<float>(sound->volume);
+            ambient->radius_ = static_cast<float>(sound->radius);
+            ambient->minInterval_ = sound->minInterval;
+            ambient->maxInterval_ = sound->maxInterval;
             return timed(ambient);
         }
         auto* plain = static_cast<CEffectSound*>(timedManager->CreateObject(kTimedSound, base.id));
@@ -668,8 +668,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             std::memcpy(plain->name_, wave, std::strlen(wave) + 1);
         }
         Copy(&plain->localPosition_, &base.position, 12);
-        plain->volume_ = static_cast<float>(sound->unknown_68);
-        plain->radius_ = static_cast<float>(sound->unknown_6C);
+        plain->volume_ = static_cast<float>(sound->volume);
+        plain->radius_ = static_cast<float>(sound->radius);
         return timed(plain);
     }
     case 2: {   // a light

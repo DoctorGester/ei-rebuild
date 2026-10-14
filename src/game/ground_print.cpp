@@ -18,7 +18,7 @@
 #include "originals_render.h"    // DeviceDrawFlatOriginal
 #include "originals_ui.h"        // TextureNamedOriginal, TextureLoadOriginal
 #include "originals_world.h"     // ClientProjectDecalOriginal
-#include "terrain_sector.h"      // TerrainFields::SurfaceClass
+#include "terrain.h"             // Terrain::SurfaceClass
 #include "texture.h"
 #include "world.h"
 
@@ -97,7 +97,7 @@ int RandomQuarter() { return gamecrt::rand() * 4 / 0x7FFF % 4; }
 // The prints.db entry for the ground at (x, y), or null.
 template <typename Record>
 const Record* EntryAt(const stlp::vector<Record>& table, CWorldClient* world, float x, float y) {
-    auto surface = static_cast<std::uint32_t>(reinterpret_cast<terrain::TerrainFields*>(world->terrain_)->SurfaceClass(x, y));
+    auto surface = static_cast<std::uint32_t>(world->terrain_->SurfaceClass(x, y));
     return surface < table.size() ? &table[surface] : nullptr;
 }
 
@@ -144,7 +144,7 @@ GroundPrint* GroundPrint::ConstructScorch(float x, float y, float halfWidth, flo
     halfLength_ = halfLength;
     ei::SetVtable(this, kVtableAddress);
     Vector3 point{x, y, 0.0f};
-    lit_ = IsLit(camera::TheTerrain(), nullptr, &point.x);
+    lit_ = IsLit(camera::TheTerrain(), nullptr, &point);
     int quarter = RandomQuarter();
     uvScale_ = {kHalf, kHalf};
     uvOffset_.x = static_cast<float>(quarter & 1) * kHalf;
@@ -287,7 +287,7 @@ Footprint* Footprint::Construct(float x, float y, float halfWidth, float halfLen
     ei::SetVtable(this, kVtableAddress);
     halfLength_ = halfLength;
     Vector3 point{x, y, 0.0f};
-    lit_ = IsLit(camera::TheTerrain(), nullptr, &point.x);
+    lit_ = IsLit(camera::TheTerrain(), nullptr, &point);
     // The tile's parts are below 2^16: converted as ints.
     int index = static_cast<int>(tile & 0xFFFF);
     uvOffset_.x = static_cast<float>(index & 7) * kEighth + static_cast<float>(static_cast<int>(tile >> 16)) * kSixteenth;
@@ -328,7 +328,7 @@ BloodPrint* BloodPrint::Construct(float x, float y, float halfSize, float fullSi
     halfWidth_ = halfSize;
     halfLength_ = halfSize;
     Vector3 point{x, y, 0.0f};
-    lit_ = IsLit(camera::TheTerrain(), nullptr, &point.x);
+    lit_ = IsLit(camera::TheTerrain(), nullptr, &point);
     int index = static_cast<int>(tile & 0xFFFF);
     int high = static_cast<int>(tile >> 16);
     uvOffset_.x = static_cast<float>(index & 1) * kQuarter + static_cast<float>(high & 1) * kHalf;

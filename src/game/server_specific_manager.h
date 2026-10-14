@@ -72,7 +72,7 @@ public:
     void ReadNetState(DeltaField* field);
 
     CMapObject* torch_;         // +0x1C the torch it belongs to (set by the torch's attach, 0052C2C0); null when constructed
-    std::uint32_t unknown_20;   // +0x20
+    std::uint32_t lightKind_;   // +0x20 the light's kind (SetLight; saved and sent)
     mfc::CString name_;         // +0x24
     float values_[6];           // +0x28 Create: 1, 10, 1, 1, 1, 1
     float colours_[2][3];       // +0x40 Create: both 007AF2D0..D8
