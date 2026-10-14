@@ -57,8 +57,6 @@ __declspec(naked) inline void __fastcall StepsSetSize(AnimationSteps*, void*, in
 __declspec(naked) inline void __fastcall NodeFree12Fast(void*, int) EI_ORIGINAL(0x0056FB40)
 __declspec(naked) inline void __fastcall ConstructModelMap(void*, void*, const void*) EI_ORIGINAL(0x005FA420)
 __declspec(naked) inline int __stdcall WsGetHostName(char*, int) EI_ORIGINAL(0x006E6100)
-__declspec(naked) inline char* __cdecl GameStrncpy(char* /*to*/, const char* /*from*/, std::size_t /*n*/)
-    EI_ORIGINAL(0x006E7E80)
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 __declspec(naked) inline void __cdecl ExitGame(int) EI_ORIGINAL(0x006E8DA7)
@@ -68,7 +66,6 @@ __declspec(naked) inline int __cdecl IsMbbLead(unsigned) EI_ORIGINAL(0x006E99F2)
 __declspec(naked) inline int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)
 __declspec(naked) inline double __cdecl Hypot(double /*x*/, double /*y*/) EI_ORIGINAL(0x006FD026)
 __declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
-__declspec(naked) inline void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
 // The CRT's _CxxThrowException (stdcall: the address of the thrown object, its throw info). Does not return.
 __declspec(naked) inline void __stdcall CxxThrowException(void* /*object*/, const void* /*throwInfo*/)
     EI_ORIGINAL(0x006E7819)
@@ -137,7 +134,7 @@ __declspec(naked) inline double __cdecl CIpow(double, double) {
 // MFC CPtrArray::SetSize(count, growBy) (RET 8, no result): the script group / reference arrays.
 __declspec(naked) inline void __fastcall PtrArraySetSize(void* /*array*/, void*, int /*count*/, int /*growBy*/)
     EI_ORIGINAL(0x004C2050)
-// CRT _mbscmp (plain RET, EAX: <0, 0, >0). src/lib/crt.cpp keeps its own copy (lib cannot include game headers).
+// CRT _mbscmp (plain RET, EAX: <0, 0, >0); src/lib/crt.cpp includes this header for gamecrt::mbscmp.
 __declspec(naked) inline int __cdecl GameMbscmp(const char*, const char*) EI_ORIGINAL(0x006E848B)
 // STLport string members on the 12-byte rep (all __thiscall, EDX unused): assign [first, last) 00426A80
 // (RET 8, returns this); erase [first, last) 0040B3C0 (RET 8, returns first); assign with an allocator
@@ -156,7 +153,7 @@ __declspec(naked) inline void* __fastcall StringAssignTaggedOriginal(void* /*str
     EI_ORIGINAL(0x0042A4F0)
 __declspec(naked) inline void* __fastcall StringEndOfStorageOriginal(void* /*proxy*/, void*, const void* /*alloc*/,
                                                                      const void* /*value*/) EI_ORIGINAL(0x00425080)
-// The STLport node allocator's deallocate(p, bytes): ECX p, EDX bytes, plain RET. src/lib/stlp.cpp keeps its own copy.
+// The STLport node allocator's deallocate(p, bytes): ECX p, EDX bytes, plain RET (src/lib/stlp.cpp uses it too).
 __declspec(naked) inline void __fastcall StlNodeFreeOriginal(void* /*p*/, std::size_t /*bytes*/) EI_ORIGINAL(0x00404D70)
 // The CRT's `eh vector destructor iterator` (array, element size, count, destructor called with ECX = element, last
 // to first): __stdcall, RET 0x10, EAX not a result.

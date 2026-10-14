@@ -35,8 +35,6 @@ namespace scriptaddon {
 
 namespace {
 
-// 00596030 (RET 8): loads a .mob file's objects (second argument: keep their ids).
-__declspec(naked) int __fastcall WorldLoadMapObjects(CWorldServer*, void*, const char*, int) EI_ORIGINAL(0x00596030)
 // 00566330 on the client world: the pause request through the client's session.
 __declspec(naked) void __fastcall ClientPause(CWorldClient*, void*, int) EI_ORIGINAL(0x00566330)
 // The camera script player (the client glue object, not read): start (005787F0) and stop

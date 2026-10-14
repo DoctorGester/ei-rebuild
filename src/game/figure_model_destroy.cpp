@@ -4,6 +4,7 @@
 // node's pair destroyed, the node returned to the STLport node allocator), each part released
 // (slot 3) and deleted (slot 0 with 1), then the map's own destructor runs inline: a second
 // clear (empty by then) and the buckets freed. See docs/notes/models.md.
+#include "lib/crt.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_library.h"
@@ -115,7 +116,7 @@ void __fastcall DestroyFigureManager(char* manager) {
     while (node) {
         if (void* model = node->value) {
             FigureModelDestructOriginal(model);
-            GameDelete(model);
+            gamecrt::operator_delete(model);
         }
         if (node->next) {
             node = node->next;

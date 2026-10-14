@@ -19,6 +19,8 @@ struct tagRECT;
 struct tagPOINT;
 struct Vector3;
 struct PersonTextNode;
+class CUiWindow;
+class CUnit;
 
 __declspec(naked) inline void __fastcall BrainResetAll(void*) EI_ORIGINAL(0x005D4F70)
 __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
@@ -617,3 +619,6 @@ __declspec(naked) inline void __fastcall ShowLoadingMovieOriginal(int /*step*/) 
 __declspec(naked) inline void __fastcall SetUpCursorsOriginal(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/)
     EI_ORIGINAL(0x005DAEA0)
 __declspec(naked) inline void __fastcall CursorShutdownOriginal(void* /*cursor*/) EI_ORIGINAL(0x005E62E0)
+// C3m. 0063D2B0 (rewritten as CHudQuickItems::SetUnit; through its address so the wrapper runs): the quick item bar
+// shows a unit's items (thiscall on the window, RET 4).
+__declspec(naked) inline void __fastcall QuickItemsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063D2B0)

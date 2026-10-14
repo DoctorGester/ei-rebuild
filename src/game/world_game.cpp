@@ -1192,7 +1192,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
         GameBuffer hello;
         GrowingBufferConstruct(&hello);
         char secret[kPasswordSize] = {};
-        if (password) GameStrncpy(secret, password, kPasswordSize);
+        if (password) gamecrt::strncpy(secret, password, kPasswordSize);
         BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));
         ClientConnect(net::GameClient(), nullptr, address, &hello);
         GrowingBufferDestruct(&hello);
@@ -1222,7 +1222,7 @@ void GameFlow::JoinServer(const net::NetAddress* address, const char* password) 
     GameBuffer hello;
     GrowingBufferConstruct(&hello);
     char secret[kPasswordSize] = {};
-    if (password) GameStrncpy(secret, password, kPasswordSize);
+    if (password) gamecrt::strncpy(secret, password, kPasswordSize);
     BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));
     ClientConnect(net::GameClient(), nullptr, const_cast<net::NetAddress*>(address), &hello);
     GrowingBufferDestruct(&hello);

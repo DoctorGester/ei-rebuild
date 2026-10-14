@@ -21,8 +21,6 @@ namespace console::commands {
 
 namespace {
 
-__declspec(naked) int __cdecl Atoi(const char*) EI_ORIGINAL(0x006E80D8)
-__declspec(naked) double __cdecl Atof(const char*) EI_ORIGINAL(0x006E911A)
 
 int Mbscmp(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
@@ -207,7 +205,7 @@ EI_REPLACE(0x005DDBE0, ConsolePos);
 // 005DDF80: history <lines>.
 void __fastcall History(CStringArray* args) {
     if (args->GetSize() == 0) return PrintLine(GameText(0x0079256C));   // "Invalid parameters"
-    Interface()->SetConsoleHistory(Atoi((*args)[0]));
+    Interface()->SetConsoleHistory(GameAtoi((*args)[0]));
 }
 EI_REPLACE(0x005DDF80, History);
 
@@ -276,7 +274,7 @@ void __fastcall ListVar(CStringArray* args) {
     if (IsNetworkClientOriginal())
         player = Field<char*>(DebugDisplay()->LocalClient(), 0x1C);
     else
-        player = World()->GetPlayer(Atoi((*args)[0]));
+        player = World()->GetPlayer(GameAtoi((*args)[0]));
     if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
 
     mfc::CString line;
@@ -306,7 +304,7 @@ EI_REPLACE(0x005DEA00, ListVar);
 // 005DEC90: loadvar <player> <file>: sets the variables of each "name value" line.
 void __fastcall LoadVar(CStringArray* args) {
     if (args->GetSize() < 2) return PrintLine(GameText(0x007926E4));   // usage
-    char* player = World()->GetPlayer(Atoi((*args)[0]));
+    char* player = World()->GetPlayer(GameAtoi((*args)[0]));
     if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
     auto* state = Field<PlayerStateAt*>(player, 0x20);
     if (!state) return PrintLine(GameText(0x00792690));
@@ -322,7 +320,7 @@ void __fastcall LoadVar(CStringArray* args) {
         StringSplit(line, &parts, ' ');
         if (parts.GetSize() > 1) {
             const char* name = parts[0];
-            float value = static_cast<float>(Atof(parts[1]));
+            float value = static_cast<float>(GameAtof(parts[1]));
             state->SetVariable(name, value);
         }
     }
@@ -369,19 +367,19 @@ void __fastcall Give(CStringArray* args) {
         PrintLine(GameText(0x00792784));   // "give [NPlayer] money [NMoney]"
         return PrintLine(GameText(0x00792768));
     }
-    char* player = World()->GetPlayer(Atoi((*args)[0]));
+    char* player = World()->GetPlayer(GameAtoi((*args)[0]));
     if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
     auto* state = Field<PlayerStateAt*>(player, 0x20);
     if (!state) return PrintLine(GameText(0x00792690));
     if (ArgIs(args, 1, 0x00792760) && args->GetSize() > 2) {   // money
-        int amount = Atoi((*args)[2]);
+        int amount = GameAtoi((*args)[2]);
         Field<int>(player, 0xC0) += amount;
         return state->Refresh();
     }
     if (ArgIs(args, 1, 0x0079275C) && args->GetSize() > 2) {   // exp
         int count = Field<int>(player, 0xA4);
         // Rounded to float once, as the original stores it (volatile: /fp:fast would keep a double).
-        volatile float share = static_cast<float>(Atof((*args)[2]) / count);
+        volatile float share = static_cast<float>(GameAtof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
             reinterpret_cast<UnitStatsAt*>(Field<char*>(player, 0xA0) + i * 0x784 + 0x20)->AddExperience(share);
         return state->Refresh();
@@ -407,7 +405,7 @@ EI_REPLACE(0x005DF5B0, LootAll);
 void __fastcall FadeOut(CStringArray* args) {
     if (args->GetSize() <= 0) return PrintLine(GameText(0x00792B40));   // "FADEOUT nMillSec"
     FaderAt* fader = *reinterpret_cast<FaderAt**>(0x007C7D68);
-    fader->FadeOut(Atoi((*args)[0]));
+    fader->FadeOut(GameAtoi((*args)[0]));
     PrintLine(GameText(0x00792B54));   // "Ok"
 }
 EI_REPLACE(0x005DF8E0, FadeOut);
@@ -422,13 +420,13 @@ void __fastcall Net(CStringArray* args) {
     if (Mbsicmp((*args)[0], GameText(0x00792B68)) == 0) {   // client
         mfc::CString value((*args)[1]);
         char* client = Field<char*>(DebugDisplay()->LocalClient(), 0x1C);
-        Field<int>(client, 0x10C) = Atoi(value);
+        Field<int>(client, 0x10C) = GameAtoi(value);
     }
     if (Mbsicmp((*args)[0], GameText(0x00792450)) == 0) {   // server
-        if (char* player = World()->GetPlayer(0)) Field<int>(player, 0x10C) = Atoi((*args)[1]);
+        if (char* player = World()->GetPlayer(0)) Field<int>(player, 0x10C) = GameAtoi((*args)[1]);
     }
     if (Mbsicmp((*args)[0], GameText(0x00792B60)) == 0)     // time
-        *reinterpret_cast<int*>(0x0079BC60) = Atoi((*args)[1]);
+        *reinterpret_cast<int*>(0x0079BC60) = GameAtoi((*args)[1]);
     if (Mbsicmp((*args)[0], GameText(0x00792B58)) == 0 && ServerActive(Server())) {   // zone
         mfc::CString zone((*args)[1]);
         reinterpret_cast<ServerAt*>(Server())->Command(0, zone);
@@ -495,7 +493,7 @@ void __fastcall Days(CStringArray* args) {
         }
         return true;
     };
-    auto number = [&](int i, int first, int count) { return Atoi(Ops((*args)[i]).Mid(first, count)); };
+    auto number = [&](int i, int first, int count) { return GameAtoi(Ops((*args)[i]).Mid(first, count)); };
     if (args->GetSize() >= 2 && Length((*args)[0]) >= 8 && Length((*args)[1]) >= 8 && digits(0) && digits(1)) {
         int year = number(0, 4, 4);
         if (year >= 1900) {
@@ -578,7 +576,7 @@ namespace {
 // rate / localrate: bytes per second, clamped to 500..100000.
 void SetRate(CStringArray* args, int* rate, std::uintptr_t usage) {
     if (args->GetSize() != 1) return PrintLine(GameText(usage));
-    int value = Atoi((*args)[0]);
+    int value = GameAtoi((*args)[0]);
     if (value < 500) value = 500;
     else if (value > 100000) value = 100000;
     *rate = value;

@@ -37,7 +37,6 @@ __declspec(naked) void __fastcall TimedMapClear(void*, void*) EI_ORIGINAL(0x0059
 void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // Rewritten elsewhere, through their addresses: ClearMapObjects / LoadMapObjects (world_zone).
 __declspec(naked) void __fastcall ClearMapObjectsAt(CWorldServer*, void*) EI_ORIGINAL(0x00596C60)
-__declspec(naked) int __fastcall LoadMapObjectsAt(CWorldServer*, void*, const char*, int) EI_ORIGINAL(0x00596030)
 // 0058B250. ResetZone (rewritten below), through its address.
 __declspec(naked) void __fastcall ResetZoneAt(CWorldServer*, void*) EI_ORIGINAL(0x0058B250)
 // 005951A0. A fresh zone's start (players placed, scripts started).
@@ -117,7 +116,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
 
     if (keepsState_ || loadedFresh_) {
         *reinterpret_cast<mfc::CString*>(&mobName_) = mob;
-        int loaded = LoadMapObjectsAt(this, nullptr, mob, loadedFresh_ == 0);
+        int loaded = WorldLoadMapObjects(this, nullptr, mob, loadedFresh_ == 0);
         if (!loaded) return loaded;
         if (!loadedFresh_) {
             QueueReset(commandsA_, nullptr);

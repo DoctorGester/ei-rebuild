@@ -3,6 +3,7 @@
 // mesh's clip box is drawn as lines through the renderer (slot 15): the corners are the box origin
 // (mesh +0x18C) plus, per axis, either the near (+0x19C..) or the far (+0x1A8..) extent; eight
 // edges, two points each, in the original's order. See docs/notes/models.md ("Figure parts").
+#include "lib/crt.h"
 #include "ei/hook.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -35,7 +36,7 @@ static inline char* ManagerContextAt(void* object) { return static_cast<char*>(M
 __declspec(naked) void __fastcall AddPoint(LineBatch*, void*, const float*) EI_ORIGINAL(0x0049B140)
 
 // The points' block goes back to the heap through the pointer kept in front of it.
-void FreeBlock(char* data) { GameDelete(reinterpret_cast<void**>(data)[-1]); }
+void FreeBlock(char* data) { gamecrt::operator_delete(reinterpret_cast<void**>(data)[-1]); }
 
 constexpr std::uint32_t kShowBounds = 0x4000;
 constexpr int kSlotDrawLines = 15;

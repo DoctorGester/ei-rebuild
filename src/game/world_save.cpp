@@ -173,8 +173,6 @@ void __fastcall MarkNew(CEngineObject* a0, void*) { ObjectMarkNewOriginal((void*
 __declspec(naked) void __fastcall ProjectileLoad(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E7D0)
 __declspec(naked) void __fastcall ProjectileSave(Projectile*, void*, WorldStream*) EI_ORIGINAL(0x0067E960)
 // 0059C7A0 (RET 8). New node of the missile list (its counted pointer constructed empty).
-__declspec(naked) ProjectileList::Node* __fastcall ProjectileNewNode(ProjectileList*, void*, ProjectileList::Node* /*prev*/,
-                                                                   ProjectileList::Node* /*next*/) EI_ORIGINAL(0x0059C7A0)
 // 00419CD0 (RET 4). RefPtr::Assign (core_refcount.cpp).
 __declspec(naked) void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x00419CD0)
 // 0040A3A0. CRefObject::Release.

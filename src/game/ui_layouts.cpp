@@ -709,7 +709,6 @@ __declspec(naked) CUiSurface* __fastcall TitlesPlainSurface(void*, void*, CInter
     EI_ORIGINAL(0x005FCDD0)
 std::uint8_t* __cdecl TitlesDisplay() { return (std::uint8_t*)DisplayObject(); }
 __declspec(naked) void __fastcall TitlesPlay(void*, void*, const char*, int) EI_ORIGINAL(0x005DBA50)
-__declspec(naked) double __cdecl TitlesAtof(const char*) EI_ORIGINAL(0x006E911A)
 
 struct TitlesTokenizer {
     int position;                    // -1 at the end
@@ -771,7 +770,7 @@ void CCreditsScreen::Build() {
                                 0;   // "#scroll"
             }
             TitlesTokenNext(&words);
-            record.speed = static_cast<float>(TitlesAtof(words.word));
+            record.speed = static_cast<float>(GameAtof(words.word));
             TitlesTokenNext(&words);
             *LineString(&record.style) = words.WordOrNull();
             TitlesTokenNext(&words);

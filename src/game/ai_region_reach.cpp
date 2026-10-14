@@ -97,8 +97,8 @@ __declspec(naked) void __fastcall RebuildTable(BlockSearch*, void*, CRegionMap*,
 template <typename T>
 void Fit(SearchGrid<T>& grid, int width, int height, void (__fastcall* allocate)(void*)) {
     if (grid.width == width && grid.height == height) return;
-    GameDelete(grid.data);
-    GameDelete(grid.rows);
+    gamecrt::operator_delete(grid.data);
+    gamecrt::operator_delete(grid.rows);
     grid.width = width;
     grid.height = height;
     allocate(&grid);
@@ -178,7 +178,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
         GameAtExit(BlocksDestructor());
     }
     if (blocks.data) {
-        GameDelete(blocks.data);
+        gamecrt::operator_delete(blocks.data);
         blocks.data = nullptr;
     }
     blocks.maxSize = 0;
@@ -608,8 +608,8 @@ void CRegionMap::Attach(CAIMap* map) {
         // The region grid's allocation is inlined here: u16 per block, rows of `width`.
         SearchGrid<std::uint16_t>& grid = regions[c];
         if (grid.width == width && grid.height == height) continue;
-        GameDelete(grid.data);
-        GameDelete(grid.rows);
+        gamecrt::operator_delete(grid.data);
+        gamecrt::operator_delete(grid.rows);
         grid.width = width;
         grid.height = height;
         auto* data = static_cast<std::uint16_t*>(gamecrt::operator_new(static_cast<std::size_t>(height * width * 2)));
@@ -697,7 +697,7 @@ void CRegionMap::FloodRegionFrom(int sizeClass, void* frontierIn, void* nextIn, 
     for (;;) {
         // The inlined RemoveAll of the next frontier.
         if (next->data) {
-            GameDelete(next->data);
+            gamecrt::operator_delete(next->data);
             next->data = nullptr;
         }
         next->maxSize = 0;

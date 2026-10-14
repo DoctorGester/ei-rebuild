@@ -87,7 +87,6 @@ __declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, fl
 // CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
 __declspec(naked) int __fastcall UnitCanCastSpellAt(CUnit*, void*, int, float*) EI_ORIGINAL(0x0052F820)
 __declspec(naked) int __fastcall UnitCanUseQuickItemAt(CUnit*, void*, int, float*) EI_ORIGINAL(0x0052F8B0)
-__declspec(naked) void __fastcall QuickItemsSetUnitAt(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063D2B0)
 // The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
 // actions 0063F730 (index, 0); 005E7060 (RET 4) a sprite's scale.
 void __fastcall QuickPanelSet(CUiWindow* a0, void*, int a2, int a3) { QuickPanelSetOriginal((void*)a0, nullptr, a2, a3); }
@@ -258,7 +257,7 @@ void CBattleScreenSetup::UseOnUnit(CUnit* target, char quick, int ctrl) {
             refused = UnitCanCastSpellAt(unitAt(i), nullptr, unknown_180, position);
         } else {
             ViewQuickOnUnit(LocalView(kWorld), nullptr, unknown_180, member, target, ctrl & 0xFF);
-            QuickItemsSetUnitAt(quickItems_, nullptr, unitAt(i));
+            QuickItemsSetUnit(quickItems_, nullptr, unitAt(i));
             refused = UnitCanUseQuickItemAt(unitAt(i), nullptr, unknown_180, position);
         }
         if (refused == 0) NodPortrait(this, i);
@@ -286,7 +285,7 @@ void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char
         int refused;
         if (quick != 0) {
             ViewQuickAtPoint(LocalView(kWorld), nullptr, unknown_180, unitAt(i), point, 0);
-            QuickItemsSetUnitAt(quickItems_, nullptr, unitAt(i));
+            QuickItemsSetUnit(quickItems_, nullptr, unitAt(i));
             refused = UnitCanUseQuickItemAt(unitAt(i), nullptr, unknown_180, point);
         } else {
             ViewSpellAtPoint(LocalView(kWorld), nullptr, unknown_180, unitAt(i), point, 0);

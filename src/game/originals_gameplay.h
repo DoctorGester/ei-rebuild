@@ -177,3 +177,8 @@ __declspec(naked) inline char* __fastcall FindModifierByCode(void*, void*, const
 // (thiscall on 007C8778, item_db.h's QuestItems() table). RET 4; null when missing.
 __declspec(naked) inline char* __fastcall FindMaterialNamed(void*, void*, const char*) EI_ORIGINAL(0x0069D290)
 __declspec(naked) inline char* __fastcall FindTable15Named(void*, void*, const char*) EI_ORIGINAL(0x0069D380)
+// C3m. 0059C7A0 (the world server's missile list, an MFC CTypedPtrList of counted Projectile pointers): NewNode(prev,
+// next), a node taken from the free list or carved from a new block.
+__declspec(naked) inline mfc::CTypedPtrList<Projectile>::Node* __fastcall ProjectileNewNode(
+    mfc::CTypedPtrList<Projectile>*, void*, mfc::CTypedPtrList<Projectile>::Node* /*prev*/,
+    mfc::CTypedPtrList<Projectile>::Node* /*next*/) EI_ORIGINAL(0x0059C7A0)

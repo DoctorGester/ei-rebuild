@@ -156,7 +156,6 @@ namespace {
 // The panels' units (thiscall): weapon bar 0063C180, quick items 0063D2B0 (through its address),
 // spells 0063E820 (RET 4), actions 0063F800 (RET 8).
 __declspec(naked) void __fastcall WeaponBarSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063C180)
-__declspec(naked) void __fastcall QuickItemsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063D2B0)
 __declspec(naked) void __fastcall SpellsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063E820)
 __declspec(naked) void __fastcall ActionsSetUnit(CUiWindow*, void*, CUnit*, int) EI_ORIGINAL(0x0063F800)
 // 00530930 (__fastcall on a unit): its prototype record.

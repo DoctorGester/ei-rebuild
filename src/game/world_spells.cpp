@@ -64,8 +64,6 @@ __declspec(naked) void __fastcall MissileInit(Projectile*, void*, CWorldServer*,
                                               CEngineObject* /*target*/, const Vector3* /*to*/, int)
     EI_ORIGINAL(0x0067ECB0)
 __declspec(naked) int __fastcall MissileUpdate(Projectile*, void*) EI_ORIGINAL(0x0067E6D0)
-__declspec(naked) ProjectileList::Node* __fastcall ProjectileNewNode(ProjectileList*, void*, ProjectileList::Node*,
-                                                                   ProjectileList::Node*) EI_ORIGINAL(0x0059C7A0)
 // 005D7E90 (RET 4). The target's AI brain is attacked by `caster`.
 __declspec(naked) void __fastcall BrainAttackedBy(void*, void*, CEngineObject*) EI_ORIGINAL(0x005D7E90)
 // 00455680 (RET 0xC). CDiplomacy: `a` attacked `b` (strength).
