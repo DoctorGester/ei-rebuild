@@ -24,9 +24,9 @@ Rewritten as `CUnitServer::PlayAnimationOrder` (src/game/combat_motion.cpp).
 ### 0x005699F0: 5 files, 5 sites, signatures differ
 Rewritten as `CWorldClient::LocalView` (src/game/world_client.cpp).
 - `src/game/app.cpp:202`: `std::uint8_t* __fastcall ClientLocalView(void*)`
-- `src/game/console_commands.cpp:74`: `char* DebugDisplayAt::LocalClient()`
+- `src/game/console_commands.cpp:76`: `char* DebugDisplayAt::LocalClient()`
 - `src/game/net_state.cpp:235`: `std::uint8_t* __fastcall LocalView(void*)`
-- `src/game/ui_battle_commands.cpp:56`: `std::uint8_t* __fastcall LocalView(void*)`
+- `src/game/ui_battle_commands.cpp:58`: `std::uint8_t* __fastcall LocalView(void*)`
 - `src/game/world_game.cpp:1464`: `LocalViewData* __fastcall ClientWorldLocalView(void*)`
 
 ### 0x005786A0: 3 files, 3 sites, signatures differ
@@ -88,7 +88,7 @@ Rewritten as `CWorldServer::SetGameResult` (src/game/world_tick.cpp).
 ### 0x0058E520: 3 files, 3 sites, signatures differ
 Rewritten as `CWorldServer::AddTimedObject` (src/game/world_server.cpp).
 - `src/game/combat_update.cpp:92`: `void __fastcall WorldAddTimed(void*, void*, CEngineObject*)`
-- `src/game/script_exec_helpers.cpp:35`: `void World::AddTimedObject(void*)`
+- `src/game/script_exec_helpers.cpp:31`: `void World::AddTimedObject(void*)`
 - `src/game/spell_effect_internal.h:84`: `void __fastcall WorldAddTimed(void* /*world*/, void*, CEngineObject*)`
 
 ### 0x0058E850: 4 files, 4 sites, signatures differ
@@ -173,7 +173,7 @@ Rewritten as `CAIMap::EndRefresh` (src/game/ai_footprint.cpp).
 ### 0x005B8BA0: 2 files, 2 sites, signatures differ
 Rewritten as `CAIMap::CellMark` (src/game/ai_refresh.cpp).
 - `src/game/ai_movement.cpp:33`: `int __fastcall CellPassability(CAIMap*, void*, std::uint32_t*, int, int, int, int)`
-- `src/game/ai_refresh.cpp:40`: `std::uint8_t __fastcall CellMarkAt(CAIMap*, void*, void* /*scratch*/, int, int, int, int)`
+- `src/game/ai_refresh.cpp:38`: `std::uint8_t __fastcall CellMarkAt(CAIMap*, void*, void* /*scratch*/, int, int, int, int)`
 
 ### 0x005BA830: 5 files, 5 sites, signatures differ
 Rewritten as `CAIMap::CanLeaveCell` (src/game/ai_map.cpp).
@@ -254,7 +254,7 @@ Rewritten as `CInterface3D::CloseAll` (src/game/ui_interface_input.cpp).
 ### 0x005F7590: 2 files, 2 sites, signatures differ
 Rewritten as `CInterface3D::GetActiveWindow` (src/game/ui_interface.cpp).
 - `src/game/app_frame.cpp:36`: `int __fastcall InterfaceActiveWindow(void*)`
-- `src/game/console_commands.cpp:50`: `void* InterfaceAt::TopWindow()`
+- `src/game/console_commands.cpp:52`: `void* InterfaceAt::TopWindow()`
 
 ### 0x005F7CA0: 2 files, 2 sites, signatures differ
 Rewritten as `CInterface3D::ScaleRectToScreen` (src/game/ui_interface.cpp).
@@ -325,7 +325,7 @@ Rewritten as `TradeSettle` (src/game/ui_trade_panel.cpp).
 ### 0x00637DC0: 3 files, 3 sites, signatures differ
 Rewritten as `CBattleScreenSetup::RefreshSelection` (src/game/ui_battle_update.cpp).
 - `src/game/originals_ui.h:300`: `void __fastcall BattleRefreshSelectionOriginal(void* /*screen*/)`
-- `src/game/ui_battle_commands.cpp:62`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
+- `src/game/ui_battle_commands.cpp:64`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
 - `src/game/ui_battle_update.cpp:193`: `void __fastcall RefreshSelectionAt(CBattleScreenSetup*)`
 
 ### 0x0065AFE0: 3 files, 3 sites, signatures differ
@@ -404,7 +404,7 @@ Rewritten as `CPlayerServer::SendPosition04` (src/game/player_messages.cpp).
 
 ### 0x0066EE10: 4 files, 4 sites, signatures differ
 Rewritten as `CPlayerServer::SetVariable` (src/game/player_messages.cpp).
-- `src/game/console_commands.cpp:97`: `void PlayerStateAt::SetVariable(const char*, float)`
+- `src/game/console_commands.cpp:100`: `void PlayerStateAt::SetVariable(const char*, float)`
 - `src/game/script_exec.cpp:356`: `void PlayerStateCalls::SetVar(const char*, float)`
 - `src/game/world_quests.cpp:39`: `void __fastcall StateSetVariable(CPlayerServer*, void*, const char*, float)`
 - `src/game/world_save.cpp:202`: `void __fastcall PlayerStateSetVariable(void*, void*, const char*, float)`
@@ -470,7 +470,7 @@ Rewritten as `CSpellConstructor::AddModifier` (src/game/spell_cast.cpp).
 
 ### 0x00689030: 4 files, 4 sites, signatures differ
 Rewritten as `CSpellManager::CreateSpellFromText` (src/game/spell_text.cpp).
-- `src/game/item_constructor.cpp:166`: `CSpell* __fastcall CallCreateSpellFromText(void*, void*, const char*)`
+- `src/game/item_constructor.cpp:172`: `CSpell* __fastcall CallCreateSpellFromText(void*, void*, const char*)`
 - `src/game/magic_trap.cpp:205`: `void* __fastcall CreateSpellFromText(void* /*manager*/, void*, const char*)`
 - `src/game/script_exec.cpp:456`: `CEngineObject* SpellManagerCalls::CreateSpellFromText(const char*)`
 - `src/game/world_units.cpp:412`: `CEngineObject* __fastcall SpellsFromText(void*, void*, const char*)`
@@ -538,12 +538,12 @@ Rewritten as `CItem::GetPrototype` (src/game/item.cpp).
 
 ### 0x006A04D0: 2 files, 2 sites, signatures differ
 Rewritten as `CItem::AttachSpell` (src/game/item_constructor.cpp).
-- `src/game/item_constructor.cpp:163`: `void __fastcall CallItemAttachSpell(CItem*, void*, CSpell*)`
+- `src/game/item_constructor.cpp:169`: `void __fastcall CallItemAttachSpell(CItem*, void*, CSpell*)`
 - `src/game/ui_camp.cpp:852`: `void ItemAt::SetSpell(void*)`
 
 ### 0x006A39E0: 4 files, 4 sites, signatures differ
 Rewritten as `CItemArmor::GetType` (src/game/item.cpp).
-- `src/game/hoover_loot.cpp:40`: `int __fastcall ArmourType(void* /*armour*/)`
+- `src/game/hoover_loot.cpp:42`: `int __fastcall ArmourType(void* /*armour*/)`
 - `src/game/ui_camp.cpp:1138`: `int __fastcall ArmourType(std::uint8_t*)`
 - `src/game/ui_container_draws.cpp:86`: `int __fastcall ArmourType(void*)`
 - `src/game/world_client_maps.cpp:726`: `int __fastcall ArmourType(void*)`
@@ -582,7 +582,7 @@ Rewritten as `CItemConstructor::EndCreateItem` (src/game/item_constructor.cpp).
 
 ### 0x006AC970: 8 files, 8 sites, signatures differ
 Rewritten as `CItemManager::CreateItem` (src/game/item_constructor.cpp).
-- `src/game/hoover_loot.cpp:37`: `void* __fastcall CreateItem(void* /*manager*/, void*, const char* /*name*/)`
+- `src/game/hoover_loot.cpp:39`: `void* __fastcall CreateItem(void* /*manager*/, void*, const char* /*name*/)`
 - `src/game/net_client_awards.cpp:36`: `CEngineObject* __fastcall ManagerCreateItem(void* /*manager*/, void*, const char* /*name*/)`
 - `src/game/originals_gameplay.h:32`: `CEngineObject* __fastcall ItemManagerCreateItemOriginal(void* /*manager*/, void*, const char* /*name*/)`
 - `src/game/unit_equipment.cpp:40`: `CEngineObject* __fastcall CreateItemAt(void*, void*, const char*)`
@@ -654,10 +654,10 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x00460500: 2 files, 2 sites, signatures differ
 - `src/game/originals_library.h:446`: `void __fastcall DwordArraySetAtGrowOriginal(void* /*array*/, void*, int /*index*/, std::uint32_t /*value*/)`
-- `src/game/ui_battle_commands.cpp:52`: `void __fastcall ChosenSetAtGrow(UiDwordArray*, void*, int, std::uint32_t)`
+- `src/game/ui_battle_commands.cpp:54`: `void __fastcall ChosenSetAtGrow(UiDwordArray*, void*, int, std::uint32_t)`
 
 ### 0x004614C0: 2 files, 2 sites, same signature, names differ
-- `src/game/console_commands.cpp:117`: `void VariableTableAt::Begin(VariableIterator*)`
+- `src/game/console_commands.cpp:120`: `void VariableTableAt::Begin(VariableIterator*)`
 - `src/game/ui_global_map.cpp:185`: `void BeginAt::Begin(VariableIterator*)`
 
 ### 0x00461540: 4 files, 5 sites, signatures differ
@@ -682,7 +682,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x005EBDB0: 4 files, 4 sites, signatures differ
 - `src/game/originals_ui.h:298`: `void __fastcall PartyArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)`
-- `src/game/ui_battle_commands.cpp:50`: `void __fastcall OrderUnitsSetSize(OrderUnits*, void*, int, int)`
+- `src/game/ui_battle_commands.cpp:52`: `void __fastcall OrderUnitsSetSize(OrderUnits*, void*, int, int)`
 - `src/game/ui_battle_setup.cpp:113`: `void __fastcall PartyArraySetSize(void* /*array*/, void*, int, int)`
 - `src/game/ui_battle_update.cpp:185`: `void __fastcall PartySetSize(UiDwordArray*, void*, int, int)`
 
@@ -734,13 +734,13 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x006FE11F: 4 files, 4 sites, signatures differ
 - `src/game/ini_file.cpp:140`: `void TextOps::TrimLeft()`
-- `src/game/item_constructor.cpp:443`: `void ItemText::TrimSpaceRight()`
+- `src/game/item_constructor.cpp:450`: `void ItemText::TrimSpaceRight()`
 - `src/game/originals_library.h:188`: `void __fastcall CStringTrimRightOriginal(void* /*string*/)`
 - `src/game/spell_text.cpp:57`: `void TextOps::TrimLeft()`
 
 ### 0x006FE216: 4 files, 4 sites, signatures differ
 - `src/game/ini_file.cpp:139`: `void TextOps::TrimRight()`
-- `src/game/item_constructor.cpp:442`: `void ItemText::TrimSpaceLeft()`
+- `src/game/item_constructor.cpp:449`: `void ItemText::TrimSpaceLeft()`
 - `src/game/originals_library.h:184`: `void __fastcall CStringTrimLeftOriginal(void* /*string*/)`
 - `src/game/spell_text.cpp:56`: `void TextOps::TrimRight()`
 
