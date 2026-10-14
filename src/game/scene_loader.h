@@ -73,30 +73,9 @@ using BlockBuffer = lib::AlignedArray<Block64>;
 using DwordBuffer = lib::AlignedArray<std::uint32_t>;
 
 // MFC CMap<DWORD, DWORD, DWORD, DWORD> (0x1C bytes) and its association (0x10 bytes).
-struct MapAssoc {
-    MapAssoc* next;
-    std::uint32_t hash;
-    std::uint32_t key;
-    std::uint32_t value;
-};
-
-struct DwordMap {
-    std::uintptr_t vtable;    // +00 0073C818
-    MapAssoc** table;         // +04
-    std::uint32_t hashSize;   // +08 17
-    int count;                // +0C
-    MapAssoc* freeList;       // +10
-    mfc::CPlex* blocks;       // +14
-    int blockSize;            // +18 10
-
-    // 00477340. The association of `key` (null if none); `hash` receives its bucket.
-    MapAssoc* GetAssocAt(const std::uint32_t& key, std::uint32_t& hash) const;
-    // 00476050. operator[]: the value of `key`, inserted (0) when missing.
-    std::uint32_t& At(const std::uint32_t& key);
-    // 00476140. The destructor.
-    void Destruct();
-};
-static_assert(sizeof(DwordMap) == 0x1C);
+using DwordMap = mfc::CMap<std::uint32_t, std::uint32_t>;   // vtable 0073C818, hashSize 17, blockSize 10
+using MapAssoc = DwordMap::Assoc;
+static_assert(sizeof(DwordMap) == 0x1C && sizeof(MapAssoc) == 0x10);
 
 // One face of a record (0x1C): three position indices, three texture-coordinate indices, one more
 // dword the loader does not use.

@@ -102,6 +102,13 @@ using NodeRecordArray = mfc::CArray<SceneNode, OriginalElements<SceneNode, Const
 using MapRecordArray = mfc::CArray<DwordMap, OriginalElements<DwordMap, ConstructMaps>>;
 
 // Out-of-line members of the instantiations the loader reaches (the template with the original's address).
+// The CMap<DWORD, DWORD> members: 00477340 GetAssocAt (the association of `key`, null if none; `hash`
+// receives its bucket), 00476050 operator[] (the value of `key`, inserted as 0 when missing), 00476140
+// the destructor.
+__declspec(naked) MapAssoc* __fastcall MapGetAssocAt(const DwordMap*, void*, const std::uint32_t&, std::uint32_t&) EI_ORIGINAL(0x00477340)
+__declspec(naked) std::uint32_t& __fastcall MapAt(DwordMap*, void*, const std::uint32_t&) EI_ORIGINAL(0x00476050)
+__declspec(naked) void __fastcall MapDestruct(DwordMap*) EI_ORIGINAL(0x00476140)
+
 using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> (vtable 0073C800)
 __declspec(naked) void __fastcall IndexSetAtGrow(IndexArray*, void*, int, const std::uint32_t&) EI_ORIGINAL(0x004773F0)
 __declspec(naked) int __fastcall IndexAdd(IndexArray*, void*, const std::uint32_t&) EI_ORIGINAL(0x00476640)
@@ -111,9 +118,6 @@ __declspec(naked) void __fastcall AssignGroup(FaceGroup*, void*, const FaceGroup
 
 } // namespace
 
-__declspec(naked) MapAssoc* DwordMap::GetAssocAt(const std::uint32_t&, std::uint32_t&) const EI_ORIGINAL(0x00477340)
-__declspec(naked) std::uint32_t& DwordMap::At(const std::uint32_t&) EI_ORIGINAL(0x00476050)
-__declspec(naked) void DwordMap::Destruct() EI_ORIGINAL(0x00476140)
 
 void NodeMorphKeyElements::Construct(NodeMorphKey* keys, int count) { ConstructNodeMorphKeys(keys, count); }
 void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) { DestructNodeMorphKeys(keys, count); }
@@ -152,16 +156,6 @@ void __fastcall SetSizeDwordArray(mfc::CArray<std::uint32_t>* a0, void*, int a2,
 
 // --- Inlined MFC templates -----------------------------------------------------------------------
 
-// CMap::RemoveAll, inlined (the keys and values need no destructor).
-void RemoveAll(DwordMap& map) {
-    gamecrt::operator_delete(map.table);
-    map.table = nullptr;
-    map.count = 0;
-    map.freeList = nullptr;
-    mfc::PlexFreeDataChain(map.blocks);
-    map.blocks = nullptr;
-}
-
 // An empty array of the instantiation with `vtable`.
 template <typename Records>
 void InitArray(Records& a, void* vtable) {
@@ -170,7 +164,7 @@ void InitArray(Records& a, void* vtable) {
 }
 
 void InitMap(DwordMap& map) {
-    map.vtable = scenedata::DwordMapVtable();
+    map.vtable = reinterpret_cast<void*>(scenedata::DwordMapVtable());
     map.table = nullptr;
     map.hashSize = 17;
     map.count = 0;
@@ -237,7 +231,7 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
     std::uint32_t texture = r.texCoords.size ? face->texture[corner] : 0;
     std::uint32_t key = face->position[corner] << 16 | texture;
     std::uint32_t hash;
-    MapAssoc* assoc = m.seen.GetAssocAt(key, hash);
+    MapAssoc* assoc = MapGetAssocAt(&m.seen, nullptr, key, hash);
     if (!assoc || assoc->value == 0) {
         const std::uint32_t* point = r.Point(face->position[corner]);
         std::uint32_t x = FpuCopyBits(&point[0]);
@@ -256,11 +250,11 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
             m.texCoords.Add(UvBits{{u, v}});
             IndexAdd(&m.sources, nullptr, face->position[corner]);
         }
-        m.index.At(key) = static_cast<std::uint32_t>(m.positions.size - 1);
-        m.seen.At(key) = 1;
+        MapAt(&m.index, nullptr, key) = static_cast<std::uint32_t>(m.positions.size - 1);
+        MapAt(&m.seen, nullptr, key) = 1;
     }
-    meshFace->vertex[corner] = m.index.At(key);
-    meshFace->vertex2[corner] = m.index.At(key);
+    meshFace->vertex[corner] = MapAt(&m.index, nullptr, key);
+    meshFace->vertex2[corner] = MapAt(&m.index, nullptr, key);
 }
 
 class Loader {
@@ -401,7 +395,7 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     m.maps.SetSize(r.groups.size);
 
     for (int g = 0; g < r.groups.size; ++g) {
-        RemoveAll(m.seen);
+        m.seen.RemoveAll();
         FaceGroup* group = r.Group(g);
         for (int j = 0; j < group->faces.size; ++j) {
             std::uint32_t faceIndex = r.Group(g)->faces.data[j];
@@ -439,8 +433,8 @@ void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
     m.positions.FreeData();
     IndexDestruct(&m.sources);
     DestroyMapArray(&m.maps);
-    m.index.Destruct();
-    m.seen.Destruct();
+    MapDestruct(&m.index);
+    MapDestruct(&m.seen);
 }
 
 // Record i: node i and mesh i.
