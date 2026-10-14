@@ -59,6 +59,11 @@ Not started; both wait for the port. Counts are on the dashboard ("Standalone re
 ## Cleanup (docs/cleanup-plan.md)
 
 Next after the port is finished and before the standalone tickets (user, 2026-10-14). Judge each ticket: the simple mechanical ones go to Sonnet workers (`model: "sonnet"`), as many as possible; type recovery and tricky debugging stay on Opus.
+Split by model (counts from tools/progress.py, 2026-10-14):
+- Sonnet, mechanical, checked by the build scripts and the suite: C3m the 75 duplicate forwarders that agree (taken); C3n the 238 that differ where the address is already rewritten (the rewritten function's declaration decides; batches of 50); V3 batches with existing helpers only (batch 3 taken); X34; struct names defined in several files (73) where the definitions are identical; `__fastcall Fn(T* self, void*)` shims into members (1,281) per file; `constexpr uintptr_t kX = 0x00...` (371) into the subsystem's named globals; per-file `At()` copies (60) replaced by the shared one.
+- Opus: C2 per class family (members instead of At<> / Field<> (981), VCall (328) into virtual calls, unknown_XXX fields (2,522)); C3 addresses that differ and are not rewritten (RET n decides); V3 sites Sonnet skipped (a new named order); `__asm` blocks (224) and float_control files (82); anything that turns a check red.
+- Later, with the standalone work (changes what the verify wrappers see): the 2,377 forwarders to rewritten code into direct calls.
+- Rule for Sonnet tickets: spelling only, never a signature or grouping change; skip and list what does not fit; I review the first diff of each kind before sending more.
 
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000): one declaration per class, members instead of At<>/offsets, virtual calls instead of VCall, named globals, duplicates merged; behaviour unchanged. Split per class family (C2d camera merged 2026-10-05); state and leftovers in cleanup-engine-base.md / cleanup-network.md.
 - C3: the forwarders whose declarations differ between files (docs/originals-report.md "differ" group; 261 left after C3l, 209 of them already rewritten): decide per address which declaration is right (RET n, callers, Ghidra) and keep one in originals_<area>.h; next the ui_* sites, then calling the rewritten ones directly. Batches of 50.
