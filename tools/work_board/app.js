@@ -33,8 +33,8 @@ function progress(b) {
   return `<div class="progress" title="${b.passed} passed, ${b.failed} failed, ${b.running} running, ${b.queued} queued">` +
     `<i class="p" style="width:${w(b.passed)}"></i><i class="f" style="width:${w(b.failed)}"></i><i class="r" style="width:${w(b.running)}"></i></div>`;
 }
-function batchSummary(b) {
-  const parts = [`#${b.id}`, esc(b.state)];
+function batchSummary(b, withId = true) {
+  const parts = withId ? [`#${b.id}`, esc(b.state)] : [esc(b.state)];
   if (b.total) parts.push(`${b.done}/${b.total} games`);
   if (b.running) parts.push(`${b.running} running`);
   if (b.queued && b.state !== 'queued') parts.push(`${b.queued} queued`);
@@ -123,30 +123,41 @@ function ticketsView() {
 
 // ---- test runs view
 
-function gameRow(g, now) {
-  const elapsed = g.state === 'running' ? (g.elapsed || 0) + now : g.elapsed;
-  let bar = '';
-  if (g.expected && elapsed != null) {
-    const pct = Math.min(100, 100 * elapsed / g.expected);
-    const live = g.state === 'running' ? ` data-t="${Math.round(fetchedAt - (g.elapsed || 0) * 1000)}" data-exp="${g.expected}"` : '';
-    bar = `<span class="gamebar"><i class="${elapsed > g.expected ? 'over' : ''}"${live} style="width:${pct.toFixed(0)}%"></i></span>`;
+// Queued games show only what they are expected to take; running ones count up against it.
+function gameRow(g) {
+  const muted = t => `<span class="muted">${t}</span>`;
+  const exp = g.expected ? dur(g.expected) : '';
+  let slot = g.slot ?? '', time = '';
+  if (g.state === 'queued') {
+    slot = muted('–');
+    time = exp ? muted('about ' + exp) : '';
+  } else if (g.state === 'running') {
+    const live = g.expected ? ` data-t="${Math.round(fetchedAt - (g.elapsed || 0) * 1000)}" data-exp="${g.expected}"` : '';
+    const pct = g.expected ? Math.min(100, 100 * (g.elapsed || 0) / g.expected) : 0;
+    time = (g.expected ? `<span class="gamebar"><i${live} style="width:${pct.toFixed(0)}%"></i></span>` : '') +
+      `<span class="mono">${fromFetch(g.elapsed || 0)}</span>` + (exp ? muted(' of ' + exp) : '');
+  } else if (g.elapsed != null) {
+    const over = g.expected && g.elapsed > 1.5 * g.expected;
+    time = `<span class="mono${over ? ' bad' : ''}">${dur(g.elapsed)}</span>` + (over ? muted(' expected ' + exp) : '');
   }
-  const result = g.state === 'finished' ? `<span class="${/^PASS/.test(g.result || '') ? 'ok' : 'bad'}">${esc(g.result || '')}</span>` : esc(g.state);
-  return `<tr><td>${esc(g.scenario)}${g.alone ? ' <span class="pill">alone</span>' : ''}${g.attempt ? ` <span class="pill">retry ${g.attempt}</span>` : ''}</td><td>${esc(g.install)}</td>` +
-    `<td class="num">${g.slot ?? ''}</td><td>${bar}<span class="mono">${g.state === 'running' ? fromFetch(g.elapsed || 0) : elapsed != null ? dur(elapsed) : ''}${g.expected ? ' / ' + dur(g.expected) : ''}</span></td><td>${result}</td></tr>` +
+  const result = g.state === 'finished' ? `<span class="${/^PASS/.test(g.result || '') ? 'ok' : 'bad'}">${esc(g.result || '')}</span>`
+    : g.state === 'running' ? `<span class="run">running</span>` : muted(esc(g.state));
+  const alone = g.alone ? ' <span class="pill" title="Sets the display mode, so it runs with no other game">alone</span>' : '';
+  return `<tr class="g-${g.state}"><td>${esc(g.scenario)}${alone}${g.attempt ? ` <span class="pill">retry ${g.attempt}</span>` : ''}</td><td>${esc(g.install)}</td>` +
+    `<td class="num">${slot}</td><td>${time}</td><td>${result}</td></tr>` +
     (g.failures.length ? `<tr><td colspan="5"><ul class="failures">${g.failures.slice(0, 6).map(f => `<li>${esc(f)}</li>`).join('')}</ul></td></tr>` : '');
 }
 function gamesTable(b, now) {
   const order = { running: 0, queued: 1, finished: 2, cancelled: 3 };
   const games = [...b.games].sort((x, y) => order[x.state] - order[y.state]);
-  return `<div class="scroll"><table><thead><tr><th>Scenario</th><th>Install</th><th class="num">Slot</th><th>Elapsed / expected</th><th>State</th></tr></thead><tbody>` +
-    games.map(g => gameRow(g, now)).join('') + `</tbody></table></div>`;
+  return `<div class="scroll"><table class="games"><colgroup><col style="width:34%"><col style="width:16%"><col style="width:7%"><col style="width:28%"><col style="width:15%"></colgroup><thead><tr><th>Scenario</th><th>Install</th><th class="num">Slot</th><th>Time</th><th>State</th></tr></thead><tbody>` +
+    games.map(g => gameRow(g)).join('') + `</tbody></table></div>`;
 }
 function batchPanel(b, pos) {
   const now = sinceFetch();
   return `<section class="panel"><div class="head"><span class="id">#${b.id}</span><span>${esc(b.ticket || '-')}</span>` +
     `<span class="mono" style="color:var(--muted)">${esc(b.worktree)}</span>${pos ? `<span class="pill">position ${pos}</span>` : ''}` +
-    `<span class="sub" style="margin-left:auto">${batchSummary(b)}</span></div>${progress(b)}` +
+    `<span class="sub" style="margin-left:auto">${batchSummary(b, false)}</span></div>${progress(b)}` +
     (b.args.length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">${esc(b.args.join(' '))}</div>` : '') +
     (b.games.length ? gamesTable(b, now) : '') + `</section>`;
 }
