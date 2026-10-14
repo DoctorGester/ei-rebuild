@@ -171,12 +171,13 @@ files = ["tests/scenarios/"]
 id = "N5"
 title = "Cursor and per-frame images cached"
 group = "native-ui"
-status = "running"
+status = "done"
 started = "2026-10-14"
 model = "sonnet"
 size = 0.5
 files = ["src/render/render_blit.cpp"]
-note = "No sg_make_image every frame."
+note = "No sg_make_image every frame. Merged 2026-10-14: cursor / fill share a cache of up to 64 dynamic images updated in place (one update per image per frame), each movie one image; creations per scenario 40-135 -> 1-2, verify build reads uploads back (0 mismatches). Captures are taken before the software cursor, so no capture shows it."
+done = "2026-10-14"
 
 [[ticket]]
 id = "P1"
@@ -360,8 +361,9 @@ files = ["scene_loader.*", "map_object_figures.h", "terrain*", "figure*", "camer
 id = "F5"
 title = "Unknown fields: the rest (~105)"
 group = "fields"
-status = "queued"
+status = "running"
 files = ["map_spec.h", "net_*", "player_*", "sound*", "script*", "app_*", "bink_video.cpp", "quest_records.h", "base_manager.h", "src/lib"]
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- standalone verification
 
@@ -492,6 +494,13 @@ title = "Regenerate function_sizes.inc from a whole Ghidra database"
 group = "harness"
 status = "later"
 note = "Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-patched for two sizes and gen_function_sizes.py no longer reproduces it."
+
+[[ticket]]
+id = "X39"
+title = "Native runs: DirectX 7 critical error box at startup"
+group = "harness"
+status = "watch"
+note = "About one native (EI_RENDER=new,present) run in two shows the CRITICAL ERROR ... DirectX 7 message box at startup (seen by N5 on base and branch, 2026-10-14); passes on retry; looks load-related. R9b / R9c should find the failing device call."
 
 # ---------------------------------------------------------------- cleanup
 
