@@ -168,6 +168,7 @@ struct ItemRecordHead {
 static_assert(offsetof(ItemRecordHead, list20) == 0x20);
 static_assert(offsetof(ItemRecordHead, list50) == 0x50);
 static_assert(offsetof(ItemRecordHead, unknown_68) == 0x68);
+static_assert(offsetof(ItemRecordHead, type) == 0x0C);
 static_assert(offsetof(ItemRecordHead, number) == 0x18);
 static_assert(offsetof(ItemRecordHead, price) == 0x34);
 static_assert(offsetof(ItemRecordHead, value48) == 0x48);
@@ -218,6 +219,9 @@ struct WeaponRecord : ItemRecordHead {
 };
 static_assert(offsetof(WeaponRecord, value8C) == 0x8C);
 static_assert(offsetof(WeaponRecord, attackBonus) == 0x84);
+static_assert(offsetof(WeaponRecord, defenceBonus) == 0x88);
+static_assert(offsetof(WeaponRecord, damage) == 0x90);
+static_assert(offsetof(WeaponRecord, damageSpread) == 0x94);
 static_assert(offsetof(WeaponRecord, damageTypes) == 0x98);
 static_assert(sizeof(WeaponRecord) == kWeaponSize);
 

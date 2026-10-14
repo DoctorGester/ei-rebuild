@@ -16,6 +16,16 @@ constexpr float kZero = 0.0f;   // 0073B858
 
 // FCOMP; TEST AH,0x40: ZF set when equal or unordered (a NaN compares "equal").
 bool EqualOrUnordered(float a, float b) { return !(a < b) && !(a > b); }
+
+// The records of the item database, typed (null when the index is out of range).
+WeaponRecord* WeaponAt(std::uint32_t index) { return reinterpret_cast<WeaponRecord*>(Weapons().At(index, kWeaponSize)); }
+ArmorRecord* ArmorAt(std::uint32_t index) { return reinterpret_cast<ArmorRecord*>(Armors().At(index, kArmorSize)); }
+QuickItemRecord* QuickItemAt(std::uint32_t index) {
+    return reinterpret_cast<QuickItemRecord*>(QuickItems().At(index, kQuickItemSize));
+}
+MaterialRecordHead* MaterialAt(std::uint32_t index) {
+    return reinterpret_cast<MaterialRecordHead*>(Materials().At(index, kMaterialSize));
+}
 } // namespace
 
 char* CItem::GetPrototype() {
@@ -51,14 +61,14 @@ BOOL CItem::Recharge() {
 EI_REPLACE_METHOD(0x006A0070, CItem::Recharge);
 
 int CItemWeapon::GetType() {
-    return Field<int>(Weapons().At(PrototypeIndex(unknown_18), kWeaponSize), field::kItemType);
+    return WeaponAt(PrototypeIndex(unknown_18))->type;
 }
 EI_REPLACE_METHOD(0x006A07F0, CItemWeapon::GetType);
 
 void CItemWeapon::GetDamageTypes(float* out) {
-    char* prototype = Weapons().At(PrototypeIndex(unknown_18), kWeaponSize);
+    WeaponRecord* prototype = WeaponAt(PrototypeIndex(unknown_18));
     if (prototype) {
-        std::memcpy(out, prototype + field::kWeaponDamageTypes, 7 * sizeof(float));
+        std::memcpy(out, prototype->damageTypes, 7 * sizeof(float));
         return;
     }
     std::memset(out, 0, 7 * sizeof(float));
@@ -90,12 +100,12 @@ BOOL CItemWeapon::IsSameAs(CItemWeapon* other) {
 EI_REPLACE_METHOD(0x006A06C0, CItemWeapon::IsSameAs);
 
 int CItemArmor::GetType() {
-    return Field<int>(Armors().At(PrototypeIndex(unknown_18), kArmorSize), field::kItemType);
+    return ArmorAt(PrototypeIndex(unknown_18))->type;
 }
 EI_REPLACE_METHOD(0x006A39E0, CItemArmor::GetType);
 
 int CItemArmor::GetTypeGroup() {
-    int type = Field<int>(Armors().At(PrototypeIndex(unknown_18), kArmorSize), field::kItemType);
+    int type = ArmorAt(PrototypeIndex(unknown_18))->type;
     return (type == 0 || type == 1 || type == 2) ? 2 : 1;
 }
 EI_REPLACE_METHOD(0x006A31A0, CItemArmor::GetTypeGroup);
@@ -103,14 +113,14 @@ EI_REPLACE_METHOD(0x006A31A0, CItemArmor::GetTypeGroup);
 float CItemLoot::GetPrice() {
     switch (kind_) {
     case 0: return price_;
-    case 1: return Field<float>(Materials().At(index_, kMaterialSize), field::kMaterialPrice);
+    case 1: return MaterialAt(index_)->quality;
     case 2: break;
     default: return -1.0f;   // 0073B854
     }
     switch (recordType_) {
-    case 0: return Field<float>(Weapons().At(index_, kWeaponSize), field::kItemPrice);
-    case 1: return Field<float>(Armors().At(index_, kArmorSize), field::kItemPrice);
-    case 2: return Field<float>(QuickItems().At(index_, kQuickItemSize), field::kItemPrice);
+    case 0: return WeaponAt(index_)->price;
+    case 1: return ArmorAt(index_)->price;
+    case 2: return QuickItemAt(index_)->price;
     case 3: return Field<float>(Spells().At(index_, kSpellSize), field::kSpellPrice);
     case 4: return Field<float>(SpellModifiers().At(index_, kSpellModifierSize), field::kModifierPrice);
     default: return -1.0f;
@@ -119,51 +129,51 @@ float CItemLoot::GetPrice() {
 EI_REPLACE_METHOD(0x006A5470, CItemLoot::GetPrice);
 
 namespace {
-char* WeaponOf(std::uint32_t packedId) { return Weapons().At(PrototypeIndex(packedId), kWeaponSize); }
+WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }
 char* MaterialOf(std::uint32_t packedId) { return Materials().At(MaterialIndex(packedId), kMaterialSize); }
 } // namespace
 
 int __fastcall WeaponType(std::uint32_t packedId) {
-    return Field<int>(WeaponOf(packedId), field::kItemType);
+    return WeaponOf(packedId)->type;
 }
 EI_REPLACE(0x006A2B80, WeaponType);
 
 float __fastcall WeaponMinDamage(std::uint32_t packedId) {
-    char* weapon = WeaponOf(packedId);
-    return Field<float>(weapon, field::kWeaponDamage) * Field<float>(MaterialOf(packedId), field::kMaterialDamage);
+    WeaponRecord* weapon = WeaponOf(packedId);
+    return weapon->damage * Field<float>(MaterialOf(packedId), field::kMaterialDamage);
 }
 EI_REPLACE(0x006A2A50, WeaponMinDamage);
 
 float __fastcall WeaponMaxDamage(std::uint32_t packedId) {
-    char* weapon = WeaponOf(packedId);
-    return (Field<float>(weapon, field::kWeaponDamageSpread) + Field<float>(weapon, field::kWeaponDamage)) *
+    WeaponRecord* weapon = WeaponOf(packedId);
+    return (weapon->damageSpread + weapon->damage) *
            Field<float>(MaterialOf(packedId), field::kMaterialDamage);
 }
 EI_REPLACE(0x006A2AE0, WeaponMaxDamage);
 
 float __fastcall WeaponAttack(std::uint32_t packedId) {
-    char* weapon = WeaponOf(packedId);
+    char* weapon = reinterpret_cast<char*>(WeaponOf(packedId));
     return Field<float>(weapon, field::kWeaponAttack) * Field<float>(MaterialOf(packedId), field::kMaterialAttack);
 }
 EI_REPLACE(0x006A2BD0, WeaponAttack);
 
 int __fastcall WeaponDamageType(std::uint32_t packedId) {
-    char* weapon = WeaponOf(packedId);
+    WeaponRecord* weapon = WeaponOf(packedId);
     for (int i = 0; i < 7; ++i) {
         // FCOMP; TEST AH,0x40; JZ: stop at the first weight not equal (and not NaN) to zero.
-        if (!EqualOrUnordered(Field<float>(weapon, field::kWeaponDamageTypes + 4 * i), kZero)) return i;
+        if (!EqualOrUnordered(weapon->damageTypes[i], kZero)) return i;
     }
     return 6;
 }
 EI_REPLACE(0x006A2C60, WeaponDamageType);
 
 float __fastcall WeaponStat84(std::uint32_t packedId) {
-    return Field<float>(WeaponOf(packedId), field::kWeapon84);
+    return WeaponOf(packedId)->attackBonus;
 }
 EI_REPLACE(0x006A2D40, WeaponStat84);
 
 float __fastcall WeaponStat88(std::uint32_t packedId) {
-    return Field<float>(WeaponOf(packedId), field::kWeapon88);
+    return WeaponOf(packedId)->defenceBonus;
 }
 EI_REPLACE(0x006A2D90, WeaponStat88);
 
