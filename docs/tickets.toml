@@ -673,18 +673,20 @@ done = "2026-10-14"
 id = "F4e"
 title = "ShowWounds' AssignCountedRoot onto CountedRef<T>"
 group = "cleanup"
-status = "review"
+status = "done"
 depends = ["F4d"]
 note = "unit_client_wounds.cpp (0051C3D0) keeps its own AssignCountedRoot template (inlined) for the wounds material and its preset; CountedRef<WoundsMaterial> / <CRenderPreset> (map_object_figures.h, object3d_lifetime.cpp, F4d) are the same code out of line. Either call those (release code changes from inlined to a call) or make CountedRef::Assign inline in a header that sees the counted types. party.h slot 23 is still named FigureCache (null in CParty)."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "F4f"
 title = "HideWounds / client parts: wounds material drop onto CountedRef"
 group = "cleanup"
-status = "queued"
+status = "running"
 depends = ["F4e"]
 note = "unit_client_wounds.cpp HideWounds (0051C920) and object3d_client_parts.cpp (DropWoundsMaterial and three hand-written drops) release the wounds material by hand. Check in Ghidra whether the originals call 0051E570 or inline it; if they call, use CountedRef<WoundsMaterial>::Assign(nullptr) (see F4e's AsCountedRef); else a shared inline drop. Compare release code with dumpbin; run combat / units if it changes."
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
