@@ -12,6 +12,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_effects.h"
+#include "originals_units.h"
 
 #include <cstring>
 
@@ -41,7 +42,6 @@ __declspec(naked) BOOL __fastcall TickEffect(MapEffect*) EI_ORIGINAL(0x00688530)
 // returns 1.
 __declspec(naked) BOOL __fastcall ApplyHit(void* /*stats*/, void*, const void* /*hit*/) EI_ORIGINAL(0x00524FE0)
 // 0050F5B0 (map_object.cpp), through its game address.
-__declspec(naked) std::uintptr_t __fastcall ClearEffectsAt(CMapObject*) EI_ORIGINAL(0x0050F5B0)
 
 // The sound system (global 007AF784) and the light manager (007AF738); thiscall.
 void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
@@ -121,7 +121,7 @@ BOOL CMapObjectServer::TakeHit(const void* hit) {
     if (!ApplyHit(reinterpret_cast<char*>(this) + 0x20, nullptr, hit)) return 0;
     OwnerOf(this)->MarkChanged(0);
     if (ei::VCall<BOOL>(this, 17)) {   // IsDead
-        ClearEffectsAt(OwnerOf(this));
+        MapObjectClearEffectsOriginal(OwnerOf(this));
         OwnerOf(this)->flags_ |= kFlagDestroyed;
     }
     return 1;

@@ -10,6 +10,7 @@
 
 class CEngineObject;
 class CItem;
+class CMapObject;
 class CUnit;
 class CUnitServer;
 class CWorldServer;
@@ -498,3 +499,23 @@ __declspec(naked) inline void __fastcall CtlUseItemCharge(CUnitServer* /*control
     EI_ORIGINAL(0x00552C60)
 // C3n. 00552E00 (rewritten as CUnitServer::PropagateHostility; plain RET): the unit's hostility spreads to its allies.
 __declspec(naked) inline void __fastcall CtlPropagateHostility(CUnitServer* /*controller*/) EI_ORIGINAL(0x00552E00)
+
+// C3o. Map object / unit statistics originals whose copies differed in their return type.
+// 0050E2D0 (rewritten as CMapObject::Construct; thiscall, plain RET): the map object base constructor; returns this.
+__declspec(naked) inline CMapObject* __fastcall MapObjectConstructOriginal(void* /*object*/) EI_ORIGINAL(0x0050E2D0)
+// 0050F5B0 (rewritten as CMapObject::ClearEffects; plain RET): removes every effect; EAX is what its last call (slot 27)
+// leaves. No game caller reads it.
+__declspec(naked) inline std::uintptr_t __fastcall MapObjectClearEffectsOriginal(void* /*object*/) EI_ORIGINAL(0x0050F5B0)
+// 00517700 (rewritten as CObject3D::SetFigureScale; RET 4): sets the scale (+0xC4) and rebuilds the figure when it
+// changed; EAX as the original leaves it (00532AB0 CUnit::ResetUnitScale returns it).
+__declspec(naked) inline std::uintptr_t __fastcall ObjectSetFigureScaleOriginal(void* /*object*/, void*, const float* /*scale*/)
+    EI_ORIGINAL(0x00517700)
+// 005233E0 / 00523550 (rewritten as UnitStats::Reset / UnitParams::Reset; plain RET): back to the defaults; EAX 0.
+__declspec(naked) inline int __fastcall UnitStatsResetOriginal(void* /*stats*/) EI_ORIGINAL(0x005233E0)
+__declspec(naked) inline int __fastcall UnitParamsResetOriginal(void* /*params*/) EI_ORIGINAL(0x00523550)
+// 00524CD0 (rewritten as UnitStats::ResetToBase; RET 4): the current values from the bases, with the load (a float).
+__declspec(naked) inline void __fastcall UnitStatsResetToBaseOriginal(void* /*stats*/, void*, float /*load*/)
+    EI_ORIGINAL(0x00524CD0)
+// 00525AF0 (rewritten as UnitStats::RefillSlots; plain RET): every slot of kind 2 or more back to its maximum; EAX the
+// end of the slot array.
+__declspec(naked) inline void* __fastcall UnitStatsRefillSlotsOriginal(void* /*stats*/) EI_ORIGINAL(0x00525AF0)

@@ -17,6 +17,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "originals_units.h"
 
 namespace {
 
@@ -27,7 +28,6 @@ const mfc::CString& StrAt(const std::uint8_t* address) { return *reinterpret_cas
 // The hero's statistics (UnitStats at the hero record + 0x20): 00524CD0 resets them to the base
 // values (thiscall, RET 4), 005260A0 whether a skill record can be learned (RET 8), 00528050 a
 // skill record's price (RET 4); 00527FF0 (__fastcall) the price of a school from one level to the next.
-__declspec(naked) void __fastcall ResetStats(std::uint8_t* /*stats*/, void*, int) EI_ORIGINAL(0x00524CD0)
 __declspec(naked) int __fastcall CanLearn(std::uint8_t* /*stats*/, void*, void* /*database*/, std::uint8_t* /*record*/)
     EI_ORIGINAL(0x005260A0)
 __declspec(naked) int __fastcall SkillPrice(std::uint8_t* /*stats*/, void*, std::uint8_t* /*record*/) EI_ORIGINAL(0x00528050)
@@ -147,7 +147,7 @@ void CTradePanel::BuildLists() {
     using HeroFn = std::uint8_t*(__thiscall*)(CUiWindow*);
     using RefreshFn = void(__thiscall*)(CUiWindow*);
     std::uint8_t* stats = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_) + 0x20;
-    ResetStats(stats, nullptr, 0);
+    UnitStatsResetToBaseOriginal(stats, nullptr, 0.0f);
     reinterpret_cast<RefreshFn>(owner_->vtable_[47])(owner_);
     void* table = reinterpret_cast<TextGlue*>(0x007AFEA4)->Table();
     Clear(&perks_);

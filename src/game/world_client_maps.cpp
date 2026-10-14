@@ -715,7 +715,6 @@ int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringA
 void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSetAnimationsOriginal(a0, nullptr, a2, a3); }
 void __fastcall Unit518860(void* a0) { Object3DRestartAnimationOriginal(a0); }
 void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
-__declspec(naked) void __fastcall UnitSetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
 void __fastcall UnitAddWeapon(void* a0, void*, void* a2) { UnitAddWeaponOriginal(a0, nullptr, a2); }
 void __fastcall UnitEquipArmour(void* a0, void*, void* a2) { UnitEquipArmourOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall UnitAddQuickItem(void*, void*, void*) EI_ORIGINAL(0x00531180)
@@ -781,7 +780,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
-        UnitSetPosition(unit, nullptr, &record->unknown_724);
+        ObjectSetFigureScaleOriginal(unit, nullptr, &record->unknown_724);
         std::memcpy(&unit->MapObject()->baseScale, &record->unknown_724, 12);
         slots->ApplyBaseScale();
         UnitReleaseAllItems(unit);

@@ -197,7 +197,6 @@ __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CU
     EI_ORIGINAL(0x005CBE90)
 // 005C1010 / 005C0DF0. CSectorMap::Remove / Add (sector_map.cpp) on the world's sector map (+0x294).
 // 0050F5B0. Map object base: drops all effects (+0x198), marks the object changed.
-__declspec(naked) void __fastcall UnitClearEffects(CUnit*) EI_ORIGINAL(0x0050F5B0)
 // 0052CDB0. CList::NewNode(prev, next) of the brain's unit lists.
 UnitListNode* __fastcall UnitListNewNode(UnitList* a0, void*, UnitListNode* a2, UnitListNode* a3) { return (UnitListNode*)ListNewNode52CDB0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 // 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
@@ -509,7 +508,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             CallWitnessMurder(theirs->brain + kBrainNearby, attacker, attacker);
         }
     }
-    UnitClearEffects(unit);
+    MapObjectClearEffectsOriginal(unit);
     CallSetDead(1);
     GameLog()->Put("Unit ")->Put(static_cast<long>(unit->id_))->Put(" damaged to death")->PutChar(10)->Apply(kLogEndLine);
 

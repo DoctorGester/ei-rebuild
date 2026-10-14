@@ -47,7 +47,6 @@ void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12Set
 __declspec(naked) void __fastcall WorldMakeObject(void* /*world*/, void*, Spec* /*spec*/) EI_ORIGINAL(0x005927C0)
 __declspec(naked) void __fastcall SelectionLock(void*) EI_ORIGINAL(0x005B8B30)
 __declspec(naked) void __fastcall SelectionUnlock(void*) EI_ORIGINAL(0x005B8B80)
-__declspec(naked) void __fastcall ObjectSetScale(void* /*object*/, void*, const float* /*scale*/) EI_ORIGINAL(0x00517700)
 void* World() { return reinterpret_cast<void*>(0x007AFF60); }
 void* Selection() { return reinterpret_cast<void*>(0x007B00D0); }
 void* Lists() { return reinterpret_cast<void*>(0x007B01F4); }
@@ -332,7 +331,7 @@ void __fastcall ObjectSpecApply(ObjectSpec* self) {
     SectorMapRemove(AsSectorMap(Lists()), nullptr, AsEngineObject(self->base.object));
     std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x1C, &self->base.position, 12);
     std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x34, &self->base.rotation, 16);
-    ObjectSetScale(self->base.object, nullptr, &self->scale.x);
+    ObjectSetFigureScaleOriginal(self->base.object, nullptr, &self->scale.x);
     std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x1AC, &self->scale, 12);
     ei::VCall<void>(self->base.object, kObjectSlotUpdate);
     std::uint32_t& flags = At<std::uint32_t>(self->base.object, 8);

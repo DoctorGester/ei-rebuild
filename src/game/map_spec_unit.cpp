@@ -64,7 +64,6 @@ __declspec(naked) Waypoint* __fastcall WaypointAt(const Array<Waypoint>*, void*,
 __declspec(naked) void __fastcall WorldMakeObject(void*, void*, Spec*) EI_ORIGINAL(0x005927C0)
 __declspec(naked) void __fastcall ListsMoveObject(void*, void*, void* /*object*/, const Vector3*) EI_ORIGINAL(0x005C11D0)
 __declspec(naked) void __fastcall SelectionTurnObject(void*, void*, void* /*object*/, const Quaternion*) EI_ORIGINAL(0x005BC180)
-__declspec(naked) void __fastcall ObjectSetScale(void*, void*, const float*) EI_ORIGINAL(0x00517700)
 void __fastcall UnitResetMotion(void* a0) { ControllerRepositionOriginal(a0); }
 // The behaviour writer, through its address (rewritten below).
 __declspec(naked) void __fastcall BehaviourWriteAt(TargetChunk*) EI_ORIGINAL(0x0046C900)
@@ -382,7 +381,7 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
     ListsMoveObject(reinterpret_cast<void*>(0x007B01F4), nullptr, b.object, &b.position);
     SelectionTurnObject(reinterpret_cast<void*>(0x007B00D0), nullptr, b.object, &b.rotation);
     std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x34, &b.rotation, 16);
-    ObjectSetScale(b.object, nullptr, &self->object.scale.x);
+    ObjectSetFigureScaleOriginal(b.object, nullptr, &self->object.scale.x);
     std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1AC, &self->object.scale, 12);
     ei::VCall<void>(b.object, kObjectSlotUpdate);
     std::uint32_t& flags = At<std::uint32_t>(b.object, 8);

@@ -132,8 +132,6 @@ std::uint8_t RoundToByte(const char* record, int offset) {
 // Not rewritten / rewritten elsewhere, through their game addresses:
 // 00523370 UnitVitals::Reset, 005233E0 UnitStats::Reset, 00523960 AddScaledExperience,
 // 00525AF0 RefillSlots, all in unit_vitals.cpp / unit_stats_pack.cpp.
-__declspec(naked) int __fastcall ResetStatsAt(UnitStats*) EI_ORIGINAL(0x005233E0)
-__declspec(naked) void* __fastcall RefillSlotsAt(UnitStats*) EI_ORIGINAL(0x00525AF0)
 // 0051FE00. Skill database: the skill named `name` by _mbsicmp, or null. Not rewritten.
 void* FindSkill(void* database, void*, const void* name) { return SkillFindOriginal(database, nullptr, name); }
 // 00526450. Statistics: learns `skill` of the skill database. Not rewritten.
@@ -141,7 +139,6 @@ void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
     StatsLearnSkillOriginal(stats, nullptr, database, record);
 }
 // 00524CD0. Statistics: recomputes the current values at `scale`. Not rewritten.
-__declspec(naked) void __fastcall RecomputeAt(UnitStats*, void*, std::uint32_t) EI_ORIGINAL(0x00524CD0)
 // This file's functions through their addresses, so their verify wrappers stay in the path.
 __declspec(naked) char* __fastcall FindNpcAt(NpcPrototypeTable*, void*, const char*) EI_ORIGINAL(0x005145D0)
 __declspec(naked) int __fastcall SetDefaultsAt(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*) EI_ORIGINAL(0x005134F0)
@@ -150,7 +147,6 @@ __declspec(naked) int __fastcall BuildFromPrototypeAt(UnitStatsBuilder*, void*, 
 // 0050F050 CMapObject::SetServerData, 00517700 CObject3D::SetFigureScale, 005308A0
 // CUnit::SetPrototype23C, rewritten elsewhere.
 __declspec(naked) std::uintptr_t __fastcall SetServerDataAt(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0050F050)
-__declspec(naked) std::uintptr_t __fastcall SetFigureScaleAt(CEngineObject*, void*, const float*) EI_ORIGINAL(0x00517700)
 __declspec(naked) std::uint32_t __fastcall SetPrototype23CAt(CEngineObject*, void*, const char*) EI_ORIGINAL(0x005308A0)
 
 // Object slots used by ApplyPrototype.
@@ -314,7 +310,7 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
     const char* npcRecord = FindNpcAt(&unitdb::NpcTable(), nullptr, name);
     if (!vitals || !stats) return 0;
     UnitVitalsReset(vitals);
-    ResetStatsAt(stats);
+    UnitStatsResetOriginal(stats);
 
     // Vitals: hit points and mana at their maxima, the model's regeneration.
     FpuCopy2(&vitals->maxHitPoints, &vitals->hitPoints, reinterpret_cast<const float*>(prototype + proto::kHitPoints));
@@ -380,7 +376,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     const char* npcRecord = FindNpcAt(&unitdb::NpcTable(), nullptr, name);
     if (!prototype) return game::FatalError(reinterpret_cast<const char*>(0x0078F288), name);
     if (!npcRecord) game::DebugLog(reinterpret_cast<const char*>(0x0078F258), name);
-    ResetStatsAt(stats);
+    UnitStatsResetOriginal(stats);
 
     const float* speed = reinterpret_cast<const float*>(prototype + proto::kSpeed);
     if (npcRecord) {
@@ -425,9 +421,9 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
     SetSlots(stats, model);
     SetCombat(stats, prototype, model);
     LearnNpcSkills(stats, npcRecord);
-    RecomputeAt(stats, nullptr, kOne);
-    RefillSlotsAt(stats);
-    RecomputeAt(stats, nullptr, kOne);
+    UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
+    UnitStatsRefillSlotsOriginal(stats);
+    UnitStatsResetToBaseOriginal(stats, nullptr, 1.0f);
     return 1;
 }
 EI_REPLACE(0x00513DA0, BuildNpcStats);
@@ -682,7 +678,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
             SetDefaultsAt(this, nullptr, &vitals, nullptr);
             ei::VCall<void>(object, kSlotServerData, &vitals);
         } else {
-            ResetStatsAt(&stats);
+            UnitStatsResetOriginal(&stats);
             SetDefaultsAt(this, nullptr, &vitals, &stats);
             ei::VCall<void>(object, kSlotServerStats, &stats);
         }
@@ -705,7 +701,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         SetBits(object, 0xFC, 0);
         float scale[3];
         std::memcpy(scale, prototype + proto::kScale, sizeof(scale));
-        SetFigureScaleAt(object, nullptr, scale);
+        ObjectSetFigureScaleOriginal(object, nullptr, scale);
         std::memcpy(&reinterpret_cast<CMapObject*>(object)->baseScale, scale, sizeof(scale));
         ei::VCall<void>(object, kSlotResetScale);
         SetPrototype23CAt(object, nullptr, prototype);

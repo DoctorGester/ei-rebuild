@@ -150,7 +150,6 @@ namespace {
 
 // The object's position setter [00517700], its world [00455950], the effect array's
 // CArray::SetSize [0050FE70, on +0x194 (size, grow by)].
-__declspec(naked) void __fastcall SetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
 void __fastcall EffectsSetSize(void* a0, void*, int a2, int a3) { EffectArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
 // A companion (+0x170) as its virtual interface.
@@ -178,9 +177,9 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
         if (before != self->PackedVitals()->hitPoints || first == 1) ObjectSlots(self)->RefreshWounds();
     }
     if (DeltaField* field = state->BeginField(1)) {
-        float position[3];
-        field->ReadDelta(position, 0xC);
-        SetPosition(object, nullptr, position);
+        float scale[3];   // the figure scale (00517700)
+        field->ReadDelta(scale, 0xC);
+        ObjectSetFigureScaleOriginal(object, nullptr, scale);
         complete &= SnapshotConsumed();
         field->EndField();
     }

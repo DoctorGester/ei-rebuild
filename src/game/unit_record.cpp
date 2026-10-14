@@ -34,7 +34,7 @@ struct Slots {
     void* RefillSlots();                                   // 00525AF0
 };
 __declspec(naked) void Slots::SetSlotMaxima(std::uint32_t) EI_ORIGINAL(0x00525A00)
-__declspec(naked) void* Slots::RefillSlots() EI_ORIGINAL(0x00525AF0)
+void* Slots::RefillSlots() { return UnitStatsRefillSlotsOriginal(this); }
 
 // The item and spell factory (global pointer at 007AFFB4).
 struct Factory {

@@ -16,6 +16,7 @@
 
 #include <cstring>
 #include "originals_gameplay.h"
+#include "originals_units.h"
 
 namespace {
 constexpr int kPartStats = 4;          // MarkChanged parts
@@ -38,7 +39,6 @@ constexpr int kPtrListBlockSize = 10;
 // Called through their game addresses, being rewritten elsewhere, so their verify wrappers stay in the
 // path: 00525AF0 UnitStats::RefillSlots in unit_vitals.cpp, 0066EA70 / 0066D6E0 the player's
 // message writers in player_messages.cpp.
-__declspec(naked) void* __fastcall RefillSlotsAt(UnitStats*) EI_ORIGINAL(0x00525AF0)
 __declspec(naked) void __fastcall SendPair16At(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066EA70)
 __declspec(naked) void __fastcall SendObject0BAt(void*, void*, const void*, std::uint32_t) EI_ORIGINAL(0x0066D6E0)
 // 00665470. The player takes the items of `list`, a CPtrList. Not rewritten.
@@ -72,7 +72,7 @@ std::uintptr_t CUnitServer::SetStats(const UnitStats* source) {
     std::memcpy(&stats, source, sizeof(UnitStats));
     unit->MarkChanged(kPartStats);
     ei::VCall<int>(this, kServerStatsSlot, 0);
-    RefillSlotsAt(&stats);
+    UnitStatsRefillSlotsOriginal(&stats);
     ei::VCall<int>(this, kServerStatsSlot, 0);
     // The companion's vitals (UnitVitals at +0x20): hit points and mana at their maxima.
     char* vitals = reinterpret_cast<char*>(reinterpret_cast<CMapObject*>(unit)->companion);

@@ -871,7 +871,6 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
 namespace {
 
 // 00525AF0. UnitStats::RefillSlots (unit_vitals.cpp), on the controller's stats (+0x1E0).
-__declspec(naked) void __fastcall StatsRefillSlots(UnitStats*, void*) EI_ORIGINAL(0x00525AF0)
 
 } // namespace
 
@@ -880,7 +879,7 @@ void CWorldServer::PrepareSave() {
         CEngineObject* unit = node->value;
         if (unit->GetClassId() != world::kClassUnit || ObjectSlots(unit)->IsDead()) continue;   // slot 55
         CEngineObject* controller = static_cast<CUnit*>(unit)->controller;
-        StatsRefillSlots(&reinterpret_cast<UnitController*>(controller)->stats, nullptr);
+        UnitStatsRefillSlotsOriginal(&reinterpret_cast<UnitController*>(controller)->stats);
         static_cast<CUnitController*>(controller)->RefreshVitals(0);   // slot 19 (+0x4C)
     }
 }
