@@ -3,7 +3,8 @@
 usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only] [--no-hooks]
                                [--jobs N] [--retries N] [--verified-candidates N]
   scenario names   e.g. combat items (default: every tests/scenarios/*.txt)
-  --jobs N         games running at once (default 16). Each run writes to its own folder,
+  --jobs N         games running at once (default 16); all runs on the machine together never
+                   exceed EI_HARNESS_SLOTS (default 16) games, whatever --jobs says. Each run writes to its own folder,
                    build\\verify\\runs\\<scenario>-<install> (ei_hook.log, harness_report.txt and
                    harness_saves, emptied first, so every run starts without saves or texture cache).
   --retries N      re-run a failed scenario up to N times (default 1); fights against spawned
@@ -14,7 +15,7 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    mismatch in any run that are not yet in tests/verify/verified.txt
 exit code: 0 when every run passed
 """
-import argparse, collections, concurrent.futures, glob, os, re, shutil, subprocess, sys, threading, time
+import argparse, collections, concurrent.futures, contextlib, glob, msvcrt, os, re, shutil, subprocess, sys, tempfile, threading, time
 
 import prepare_scenario
 
@@ -22,6 +23,34 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BUILD = os.path.join(ROOT, 'build', 'verify')
 LAUNCH = os.path.join(BUILD, 'ei_launch.exe')
 RUNS = os.path.join(BUILD, 'runs')
+
+# Games running at once on this machine, over every checkout and every run_all (2026-10-14: three
+# workers' suites, 24 games of ~640 MB video memory each rendering without a frame limit, hung the
+# NVIDIA driver until Windows crashed twice). A slot is a byte lock on a file in the temp folder;
+# Windows drops it when the process ends, so a killed run never leaves a slot taken.
+MACHINE_SLOTS = int(os.environ.get('EI_HARNESS_SLOTS', '16'))
+SLOT_DIR = os.path.join(tempfile.gettempdir(), 'ei_harness_slots')
+
+
+@contextlib.contextmanager
+def machine_slot():
+    os.makedirs(SLOT_DIR, exist_ok=True)
+    while True:
+        for i in range(MACHINE_SLOTS):
+            f = open(os.path.join(SLOT_DIR, f'slot{i:02}'), 'a+b')
+            try:
+                msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            except OSError:
+                f.close()
+                continue
+            try:
+                yield
+            finally:
+                f.seek(0)
+                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+                f.close()
+            return
+        time.sleep(0.5)
 
 
 def run(name, install, hooks):
@@ -38,9 +67,10 @@ def run(name, install, hooks):
         cmd += ['--exe', os.path.join(ROOT, 'run', 'rebirth', 'game.exe')]
     if not hooks:
         cmd.append('--no-hooks')
-    start = time.time()
-    proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace')
-    seconds = time.time() - start
+    with machine_slot():
+        start = time.time()
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace')
+        seconds = time.time() - start
     path = os.path.join(out, 'harness_report.txt')
     report = open(path, encoding='cp1251', errors='replace').read() if os.path.exists(path) else ''
     result = next((l[8:] for l in report.splitlines() if l.startswith('RESULT: ')), 'NO REPORT')
