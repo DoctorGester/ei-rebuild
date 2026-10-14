@@ -312,7 +312,9 @@ void GameFlow::RegisterQuests(const char* folder) {
         registered = TextsOpenSection(texts, nullptr, path) != 0;
     }
     if (!registered) return;
-    QuestTableLoad(reinterpret_cast<void*>(0x007C87A8), nullptr, *reinterpret_cast<void**>(static_cast<std::uint8_t*>(texts) + 0x20));
+    // The quest table reads from the texts' cursor (the section just opened).
+    QuestTableLoad(reinterpret_cast<void*>(0x007C87A8), nullptr,
+                   const_cast<char*>(static_cast<CTextManager*>(texts)->cursor_));
     {
         mfc::CString base(folder);
         mfc::CString path = base + Text(kMapList);

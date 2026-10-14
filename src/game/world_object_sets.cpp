@@ -5,9 +5,9 @@
 // The arrays are the original's aligned pointer arrays ({data, size, capacity, growBy}, blocks
 // from 0047B940) and their two SetSize variants. See docs/notes/world.md.
 #include "core_streams.h"
+#include "engine_object.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/containers.h"
 #include "lib/crt.h"
 
@@ -21,6 +21,9 @@ using ObjectSet = lib::AlignedArray<std::uint32_t>;
 static_assert(sizeof(ObjectSet) == 0x10);
 
 namespace {
+
+// The objects behind the words (world objects: CEngineObject).
+CEngineObject* ObjectOf(std::uint32_t word) { return reinterpret_cast<CEngineObject*>(word); }
 
 // The sort's scratch array (a function static at 007A9738, guard bit 1 of 007A9748, freed at exit
 // by 0047B1D0).
@@ -116,23 +119,23 @@ void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* a
         if (old < now) {
             gone->data[goneCount++] = old;
             ++s;
-            ei::VCall<void>(reinterpret_cast<void*>(old), 4);
+            ObjectOf(old)->Release();
             --sentLeft;
         } else {
             added->data[addedCount++] = now;
             ++c;
-            ++*reinterpret_cast<int*>(now + 4);
+            ++ObjectOf(now)->refCount_;
             --currentLeft;
         }
     }
     if (changed || sentLeft != 0 || currentLeft != 0) {
         for (; sentLeft != 0; --sentLeft) {
             gone->data[goneCount++] = *s++;
-            ei::VCall<void>(reinterpret_cast<void*>(s[-1]), 4);
+            ObjectOf(s[-1])->Release();
         }
         for (; currentLeft != 0; --currentLeft) {
             added->data[addedCount++] = *c++;
-            ++*reinterpret_cast<int*>(c[-1] + 4);
+            ++ObjectOf(c[-1])->refCount_;
         }
         ObjectSetSetSize(sent, nullptr, current->size, -1);
         if (current->size != 0) std::memcpy(sent->data, current->data, static_cast<std::size_t>(current->size) * 4);
