@@ -140,15 +140,14 @@ __declspec(naked) void __fastcall EntriesFinalSort(SaveEntry*, SaveEntry*, int /
 
 // CFileFind members beyond lib/mfc.h, called on existing objects through this view.
 struct FileFindOps : mfc::CFileFind {
-    BOOL Next();                       // 006E6653 FindNextFile
+    BOOL Next() { return CFileFindNext(this); }   // 006E6653 FindNextFile
     BOOL IsDots() const;               // 006E661A
     mfc::CString FilePath() const;     // 006E6722 GetFilePath
     mfc::CString FileName() const;     // 006E684B GetFileName
-    void Close();                      // 006E63E9
+    void Close() { CFileFindCloseOriginal(this); }   // 006E63E9
     // MatchesMask(FILE_ATTRIBUTE_DIRECTORY), through the vtable as the original calls it.
     BOOL IsDirectory() const { return ei::VCall<BOOL>(this, kSlotMatchesMask, 0x10ul); }
 };
-__declspec(naked) BOOL FileFindOps::Next() EI_ORIGINAL(0x006E6653)
 BOOL FileFindOps::IsDots() const { return CFileFindIsDotsOriginal(this); }
 __declspec(naked) mfc::CString FileFindOps::FilePath() const EI_ORIGINAL(0x006E6722)
 mfc::CString FileFindOps::FileName() const {
@@ -158,7 +157,6 @@ mfc::CString FileFindOps::FileName() const {
     name->~CString();
     return result;
 }
-__declspec(naked) void FileFindOps::Close() EI_ORIGINAL(0x006E63E9)
 FileFindOps& Ops(mfc::CFileFind& find) { return static_cast<FileFindOps&>(find); }
 
 // A file stream local as the original builds and tears it down inline (net_link.h).

@@ -143,7 +143,6 @@ __declspec(naked) void* __fastcall SharedObjectDestruct(void*, void*, unsigned) 
 __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI_ORIGINAL(0x0059DD90)
 // 0059C890 (__stdcall). Releases a range of counted object pointers (slot 4).
 void __stdcall CountedRangeRelease(void* a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
-__declspec(naked) void __fastcall CountdownsClear(void*, void*) EI_ORIGINAL(0x006D43E0)
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
 // 0059D6D0. The other id maps' clear.
 __declspec(naked) void __fastcall IdMapClear(void*, void*) EI_ORIGINAL(0x0059D6D0)
@@ -163,7 +162,7 @@ void CWorldServer::ResetZone() {
     for (auto* node = shared.head; node; node = node->next) SharedObjectDestruct(&node->data, nullptr, 0);
     shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
-    CountdownsClear(countdowns_, nullptr);
+    TweenArrayRemoveAllOriginal(countdowns_);
     ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
     QueueReset(commandsA_, nullptr);
     QueueReset(commandsB_, nullptr);

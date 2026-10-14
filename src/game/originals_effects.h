@@ -13,6 +13,8 @@ class CSpell;
 class CSpellConstructor;
 class CSpellManager;
 struct CSpellEffect;
+struct CMusicSystem;
+struct CSoundManager;
 struct DamageInfo;
 struct Vector3;
 
@@ -21,6 +23,15 @@ inline void* ParticleManagerObject() { return *reinterpret_cast<void* const*>(0x
 __declspec(naked) inline void* __fastcall ParticleCreateSourceOriginal(void* /*manager*/, void*, int /*type*/)
     EI_ORIGINAL(0x00498400)
 __declspec(naked) inline void __fastcall SoundStop(void* /*manager*/, void*, int /*sound*/) EI_ORIGINAL(0x006B94A0)
+// C3n batch 5. The sound manager (*007AF784; CSoundManager, thiscall; RET 4): 006B7740 SetEffectsVolume, 006B78A0 SetSpeechVolume,
+// 006B7A00 SetMusicVolume. 006B4F70 (CMusicSystem::Stop, the music system at *007AF760): the current music stops.
+__declspec(naked) inline void __fastcall SoundManagerSetEffectsVolumeOriginal(CSoundManager* /*manager*/, void*, int /*volume*/)
+    EI_ORIGINAL(0x006B7740)
+__declspec(naked) inline void __fastcall SoundManagerSetSpeechVolumeOriginal(CSoundManager* /*manager*/, void*, int /*volume*/)
+    EI_ORIGINAL(0x006B78A0)
+__declspec(naked) inline void __fastcall SoundManagerSetMusicVolumeOriginal(CSoundManager* /*manager*/, void*, int /*volume*/)
+    EI_ORIGINAL(0x006B7A00)
+__declspec(naked) inline void __fastcall MusicSystemStopOriginal(CMusicSystem* /*music*/) EI_ORIGINAL(0x006B4F70)
 __declspec(naked) inline void __fastcall RemoveLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA720)
 // 006CA5D0: the light manager (*007AF738) adds a light (RET 4, no result).
 __declspec(naked) inline void __fastcall LightManagerAddOriginal(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA5D0)

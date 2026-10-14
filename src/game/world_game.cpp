@@ -1399,12 +1399,6 @@ namespace {
 
 // MFC CFileFind (0x1C bytes) members, and the Win32 calls through game.exe's import slots (harness
 // runs redirect those to harness_saves).
-void __fastcall FinderConstruct(void* a0, void*) { CFileFindConstructOriginal(a0); }
-void __fastcall FinderDestruct(void* a0, void*) { CFileFindDestructOriginal(a0); }
-int __fastcall FinderFindFile(void* a0, void*, const char* a2, unsigned long a3) { return CFileFindFindFileOriginal(a0, nullptr, a2, a3); }
-int __fastcall FinderNext(void* a0, void*) { return CFileFindNext((mfc::CFileFind*)a0); }
-mfc::CString* __fastcall FinderPath(void* a0, void*, void* a2) { return CFileFindPathOriginal(a0, nullptr, (mfc::CString*)a2); }
-void __fastcall FinderClose(void* a0, void*) { CFileFindCloseOriginal(a0); }
 using CreateDirectoryFn = BOOL(__stdcall*)(const char*, void*);
 using DeleteFileFn = BOOL(__stdcall*)(const char*);
 CreateDirectoryFn ImportCreateDirectory() { return *reinterpret_cast<CreateDirectoryFn const*>(0x0073B1B8); }
@@ -1414,23 +1408,21 @@ DeleteFileFn ImportDeleteFile() { return *reinterpret_cast<DeleteFileFn const*>(
 
 void __fastcall ClearSaveFolder(const char* path) {
     ImportCreateDirectory()(path, nullptr);
-    alignas(4) std::uint8_t finder[0x1C];
-    FinderConstruct(finder, nullptr);
+    mfc::CFileFind finder;
     int found;
     {
         mfc::CString folder(path);
         mfc::CString pattern = folder + Text(kAllFiles);
-        found = FinderFindFile(finder, nullptr, pattern, 0);
+        found = finder.FindFile(pattern, 0);
     }
     while (found) {
-        found = FinderNext(finder, nullptr);
+        found = CFileFindNext(&finder);
         alignas(mfc::CString) std::uint8_t name[sizeof(mfc::CString)];
-        mfc::CString* file = FinderPath(finder, nullptr, name);
+        mfc::CString* file = CFileFindPathOriginal(&finder, nullptr, reinterpret_cast<mfc::CString*>(name));
         ImportDeleteFile()(*file);
         file->~CString();
     }
-    FinderClose(finder, nullptr);
-    FinderDestruct(finder, nullptr);
+    CFileFindCloseOriginal(&finder);
 }
 
 bool __fastcall NameInList(const char* const* list, const char* name) {
@@ -1974,12 +1966,6 @@ void __fastcall VariableSetBits(void* a0, void*, const char* a2, std::uint32_t a
 // The flow's methods, through their addresses.
 inline void __fastcall FlowLoadZoneQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 __declspec(naked) void __fastcall FlowVariableChanged(void*, void*, const void*) EI_ORIGINAL(0x00580840)
-// CString members.
-struct TextOpsAt : mfc::CString {
-    int Find(const char* text) const;      // 006FDBD9
-};
-__declspec(naked) int TextOpsAt::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
-const TextOpsAt& Ops(const mfc::CString& s) { return static_cast<const TextOpsAt&>(s); }
 // The vector of changed variables (STLport vector<node*>): its allocator tag constructor
 // (00584720), insert overflow (00587700: position, value, count) and storage release (00584A90:
 // ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a
@@ -2105,8 +2091,8 @@ void GameFlow::UpdateFromServer() {
                                     reinterpret_cast<const unsigned char*>(Text(kQuestVariablePrefix))) == 0;
         }
         if (!quest) continue;
-        mfc::CString rest = Ops(name).Right(console::Length(name) - 2);
-        int dot = Ops(rest).Find(Text(kDot));
+        mfc::CString rest = name.Right(console::Length(name) - 2);
+        int dot = rest.Find(Text(kDot));
         if (dot > 0) {
             mfc::CString folder = rest.Left(dot);
             FlowRegisterQuestsOriginal(this, nullptr, folder);

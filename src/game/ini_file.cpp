@@ -29,7 +29,6 @@ constexpr char kListSeparator = ',';
 struct TextOps : mfc::CString {
     int Find(char c) const;                     // 00700E91 Find(TCHAR)
     int Find(char c, int start) const;          // 00700E9F Find(TCHAR, int)
-    mfc::CString Mid(int first, int count) const; // 006FD9D7
     void TrimRight();                           // 006FE216
     void TrimLeft();                            // 006FE11F
     void AppendChar(char c);                    // 00700D73 operator+=(TCHAR)
@@ -135,7 +134,6 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
 
 int TextOps::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
 int TextOps::Find(char c, int start) const { return CStringFindCharFromOriginal(this, nullptr, c, start); }
-__declspec(naked) mfc::CString TextOps::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
 __declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)
 void TextOps::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }

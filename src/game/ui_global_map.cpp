@@ -23,6 +23,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_engine.h"
+#include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 
@@ -218,9 +219,8 @@ struct SaveStream {
 };
 void SaveStream::Resize(int a2) { StreamResizeOriginal((void*)this, nullptr, (std::uint32_t)a2); }
 struct SoundMixer {
-    void ResetMusic();                                  // 006B4F70 (the object at *007AF760)
+    void ResetMusic() { MusicSystemStopOriginal(reinterpret_cast<CMusicSystem*>(this)); }   // 006B4F70 (the object at *007AF760)
 };
-__declspec(naked) void SoundMixer::ResetMusic() EI_ORIGINAL(0x006B4F70)
 struct WeatherObject {
     void Construct(int size);                           // 00499DC0
     void Start();                                       // 00499EE0

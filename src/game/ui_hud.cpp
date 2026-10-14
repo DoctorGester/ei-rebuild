@@ -24,6 +24,7 @@
 #include "world.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_gameplay.h"
 #include "originals_world.h"
 
 #include <cmath>
@@ -717,7 +718,6 @@ __declspec(naked) void __fastcall ViewOrderTarget(CPlayerClient*, void*, CUnit*,
 __declspec(naked) void __fastcall ViewOrderFollow(CPlayerClient*, void*, CUnit*, CUnit*) EI_ORIGINAL(0x0066AFE0)
 // CUnit::GetQuickItem, CItem::GetCategory and the sprite's SetScale, through their addresses
 // (the camera's SetTarget too: CameraSetTargetOriginal).
-__declspec(naked) int __fastcall ItemCategory(void*) EI_ORIGINAL(0x006A4230)
 void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scaleBits) {
     SpriteSetScaleOriginal(sprite, nullptr, scaleBits);
 }
@@ -900,7 +900,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 3: {   // a quick item on a unit
         if (!unit || unitDead(unit) || !first) return;
         void* item = UnitQuickItem(first, nullptr, pendingSlot_);
-        if (item && ItemCategory(item) == kCategoryWand && unit != first) return;
+        if (item && ItemGetCategoryOriginal(reinterpret_cast<CItem*>(item)) == kCategoryWand && unit != first) return;
         ScreenCastOn(this, nullptr, unit, 1, 0);
         return;
     }

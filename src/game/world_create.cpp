@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_core.h"
+#include "originals_world.h"
 #include "originals_library.h"
 
 namespace {
@@ -35,7 +36,6 @@ __declspec(naked) void* __fastcall Manager6A5AB0(void*) EI_ORIGINAL(0x006A5AB0)
 __declspec(naked) void* __fastcall ResourceManagerConstruct(void*) EI_ORIGINAL(0x00674D90)
 // 0049F150 IsaacRandom::Init (random.cpp); 006D43E0 the world's +0x70 set up.
 __declspec(naked) void __fastcall RandomInit(IsaacRandom*) EI_ORIGINAL(0x0049F150)
-__declspec(naked) void __fastcall Setup70(void*) EI_ORIGINAL(0x006D43E0)
 
 using Construct = void* (__fastcall*)(void*);
 
@@ -99,7 +99,7 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     }
     world->shared5C_.ShareAssign(helper);
     RandomInit(&IsaacRandom::Global());
-    Setup70(world->countdowns_);
+    TweenArrayRemoveAllOriginal(world->countdowns_);
     return 1;
 }
 EI_REPLACE(0x0055EE40, WorldCreateManagers);

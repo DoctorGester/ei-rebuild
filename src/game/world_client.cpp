@@ -340,9 +340,6 @@ namespace {
 
 // Callees, through their addresses (thiscall as fastcall).
 // 005F8070: InterfaceStringEventOriginal (originals_ui.h).
-__declspec(naked) void __fastcall SoundSetVolumeA(CSoundManager*, void*, int) EI_ORIGINAL(0x006B7740)
-__declspec(naked) void __fastcall SoundSetVolumeB(CSoundManager*, void*, int) EI_ORIGINAL(0x006B78A0)
-__declspec(naked) void __fastcall SoundSetVolumeC(CSoundManager*, void*, int) EI_ORIGINAL(0x006B7A00)
 __declspec(naked) void __fastcall SoundTick(CSoundManager*) EI_ORIGINAL(0x006B9B10)
 // 00665A10 CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOriginal(session); }
@@ -354,7 +351,6 @@ __declspec(naked) void __fastcall EffectListErase1(void*, void*, void** /*out*/,
 __declspec(naked) void __fastcall EffectListErase2(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x005725B0)
 // 0068D730 CLight::GetIntensityAt (spell.h), unrounded in ST0.
 __declspec(naked) double __fastcall LightIntensityAt(CLight*, void*, const void*) EI_ORIGINAL(0x0068D730)
-__declspec(naked) double __fastcall TerrainHeightAt(Terrain*, void*, float, float, int) EI_ORIGINAL(0x006C8680)
 __declspec(naked) void __fastcall MapTick(CTextureManager*) EI_ORIGINAL(0x00694020)
 
 bool NaN(double v) {
@@ -397,9 +393,9 @@ int CWorldClient::Segment() {
     int frames = ++ticksRun_;
     if (frames == 10) {
         InterfaceStringEventOriginal(worlddata::InterfaceManager(), nullptr, worlddata::AutosaveEventText());
-        SoundSetVolumeA(sounds_, nullptr, worlddata::VolumeSettingA());
-        SoundSetVolumeB(sounds_, nullptr, worlddata::VolumeSettingB());
-        SoundSetVolumeC(sounds_, nullptr, worlddata::MovieVolumeSetting());
+        SoundManagerSetEffectsVolumeOriginal(sounds_, nullptr, worlddata::VolumeSettingA());
+        SoundManagerSetSpeechVolumeOriginal(sounds_, nullptr, worlddata::VolumeSettingB());
+        SoundManagerSetMusicVolumeOriginal(sounds_, nullptr, worlddata::MovieVolumeSetting());
     } else if (frames == 90 || (frames < 90 && worlddata::FightState() == 2)) {
         music_->holding = 0;
     }
@@ -483,7 +479,7 @@ int CWorldClient::Segment() {
                         double radius = light->rangeSquared_;
                         if (!NaN(squared) && !NaN(radius) && squared > radius) continue;
                         float point[3] = {nodeX, nodeY, 0.0f};
-                        point[2] = static_cast<float>(TerrainHeightAt(terrain_, nullptr, nodeX, nodeY, 0));
+                        point[2] = static_cast<float>(TerrainHeightAtOriginal(terrain_, nullptr, nodeX, nodeY, 0));
                         float intensity = static_cast<float>(LightIntensityAt(light, nullptr, point));
                         level = SelectLess(level, intensity, intensity, level);
                     }

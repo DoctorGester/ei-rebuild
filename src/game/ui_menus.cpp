@@ -6,6 +6,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_render.h"
+#include "originals_effects.h"
 
 #include <cstdint>
 #include "originals_ui.h"
@@ -43,13 +44,16 @@ double Ease(float slide) {
 // The sound system (global pointer at 007AF784) and the display settings object (007AF060), as
 // the options window's cancel puts their settings back.
 struct UiSoundSystem {
-    void SetVolumeA(int value);   // 006B7740
-    void SetVolumeB(int value);   // 006B7A00
-    void SetVolumeC(int value);   // 006B78A0
+    void SetVolumeA(int value) {   // 006B7740
+        SoundManagerSetEffectsVolumeOriginal(reinterpret_cast<CSoundManager*>(this), nullptr, value);
+    }
+    void SetVolumeB(int value) {   // 006B7A00
+        SoundManagerSetMusicVolumeOriginal(reinterpret_cast<CSoundManager*>(this), nullptr, value);
+    }
+    void SetVolumeC(int value) {   // 006B78A0
+        SoundManagerSetSpeechVolumeOriginal(reinterpret_cast<CSoundManager*>(this), nullptr, value);
+    }
 };
-__declspec(naked) void UiSoundSystem::SetVolumeA(int) EI_ORIGINAL(0x006B7740)
-__declspec(naked) void UiSoundSystem::SetVolumeB(int) EI_ORIGINAL(0x006B7A00)
-__declspec(naked) void UiSoundSystem::SetVolumeC(int) EI_ORIGINAL(0x006B78A0)
 
 struct UiDisplaySettings {
     void** vtable_;   // slot 22: applies three values (gamma and two more)

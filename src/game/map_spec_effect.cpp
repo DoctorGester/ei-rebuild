@@ -28,7 +28,6 @@ constexpr std::uintptr_t kSoundVtable = 0x0073C7B8;
 constexpr int kSlotApply = 7;
 
 __declspec(naked) void __fastcall WorldMakeObject(void*, void*, Spec*) EI_ORIGINAL(0x005927C0)
-__declspec(naked) double __fastcall TerrainHeight(void*, void*, float /*x*/, float /*y*/, int /*zero*/) EI_ORIGINAL(0x006C8680)
 void __fastcall EffectRestart(void* a0) { ObjectMarkNewOriginal(a0); }
 // 0046D4D0 (below), through its address: the two strings are passed by value (destroyed there).
 __declspec(naked) void __fastcall EffectNotifyAt(void*, void*, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x0046D4D0)
@@ -127,7 +126,7 @@ void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
     p.x = dx + p.x;
     p.y = dy + p.y;
     p.z = dz + p.z;
-    double ground = TerrainHeight(*reinterpret_cast<void**>(0x007AF738), nullptr, p.x, p.y, 0);
+    double ground = TerrainHeightAtOriginal(*reinterpret_cast<Terrain**>(0x007AF738), nullptr, p.x, p.y, 0);
     if (ground > p.z) p.z = static_cast<float>(ground);
     ei::VCall<void>(this, kSlotApply);
 }

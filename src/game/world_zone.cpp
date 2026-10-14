@@ -73,8 +73,6 @@ void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // 0059DDB0 (RET 4). Destructor of a counted pointer (releases through slot 4; flags & 1 frees it).
 __declspec(naked) void* __fastcall CountedPtrDestroy(void** /*slot*/, void*, unsigned /*flags*/)
     EI_ORIGINAL(0x0059DDB0)
-// 006D43E0. Clears the countdown array (CWorldServer + 0x70): frees it, size and capacity 0.
-__declspec(naked) void __fastcall CountdownsClear(void*, void*) EI_ORIGINAL(0x006D43E0)
 // 00530930. CUnit::GetPrototype: the unit's prototype record (its name first).
 static char** UnitPrototype(CEngineObject* object, void*) { return static_cast<char**>(::UnitPrototypeOf(object)); }
 
@@ -229,7 +227,7 @@ void CWorldServer::ClearMapObjects() {
         CountedPtrDestroy(reinterpret_cast<void**>(&node->data), nullptr, 0);
     counted_.RemoveAll();
 
-    CountdownsClear(countdowns_, nullptr);
+    TweenArrayRemoveAllOriginal(countdowns_);
 
     pending.vtable = ObjectPtrListVtable();
     pending.RemoveAll();   // 00570470 (the list destructor's body)

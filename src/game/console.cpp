@@ -19,8 +19,6 @@ namespace console {
 
 // ---- Library forwarders -------------------------------------------------------------------------
 
-__declspec(naked) mfc::CString Str::Mid(int) const EI_ORIGINAL(0x006FD9B4)
-__declspec(naked) mfc::CString Str::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
 void Str::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
 void Str::AppendText(const char* a0) { CStringAppendTextOriginal((void*)this, nullptr, a0); }
 void Str::TrimLeft(char a0) { CStringTrimLeftCharOriginal((void*)this, nullptr, a0); }

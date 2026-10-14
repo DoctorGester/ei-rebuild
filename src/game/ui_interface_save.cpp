@@ -62,7 +62,6 @@ void CInterface3D::LoadState(void* stream) {
 // --- 005F8C90: the multiplayer messages' texts -------------------------------------------------
 
 namespace {
-__declspec(naked) void __fastcall CStringCopyConstruct(void*, void*, const mfc::CString*) EI_ORIGINAL(0x007006E5)
 // The text table (007AF788; thiscall): a key's text into `out` (004E0020, RET 8).
 
 const std::uintptr_t kMessageKeys[13] = {
@@ -91,7 +90,7 @@ void* CInterface3D::MessageText(void* out, int id, int value) {
         text.Format(key, value);
     else
         text = key;
-    CStringCopyConstruct(out, nullptr, &text);
+    CStringCopyConstructOriginal(out, nullptr, &text);
     return out;
 }
 

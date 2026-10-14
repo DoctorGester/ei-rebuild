@@ -69,7 +69,6 @@ __declspec(naked) void __fastcall ItemArraySetSize(ItemArray*, void*, int, int) 
 // 005719B0 (RET 8). The record array's SetSize(size, growBy).
 inline void __fastcall RecordArraySetSize(RecordArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 // 006A0110 (CItem::GetPrototype). A quest item's description: the names of the zones it belongs to.
-__declspec(naked) itemdb::QuestItemRecord* __fastcall QuestItemInfo(CEngineObject*, void*) EI_ORIGINAL(0x006A0110)
 // 00665470 (RET 8). Puts a list of items into the player's inventory.
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0045E850 (RET 4). The map database's zone record by name.
@@ -148,7 +147,7 @@ void CWorldServer::TakeZoneQuestItems(void* itemArray, void* listArg) {
     for (int i = 0; i < items->size; ++i) {
         if (ItemAt(items, i)->GetClassId() != kClassQuestItem) continue;
         CEngineObject* item = ItemAt(items, i);
-        itemdb::QuestItemRecord* info = QuestItemInfo(item, nullptr);
+        itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(ItemGetPrototypeOriginal(reinterpret_cast<CItem*>(item)));
         if (unknown12D64_ == kKindSinglePlayer && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName_);
             if (!here && !Contains(wanted, static_cast<int>(static_cast<CItemQuest*>(item)->unknown_4C))) continue;
@@ -301,7 +300,6 @@ CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
 namespace {
 
 // 006AC970 (RET 4, patched by Rebirth). The item manager makes an item by name.
-__declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 // 006AD1E0 (RET 8). The item manager makes a spell by name (with world slot 22).
 CEngineObject* __fastcall ManagerCreateSpell(void* a0, void*, const char* a2, void* a3) { return (CEngineObject*)FactoryCreateSpellOriginal(a0, nullptr, a2, a3); }
 
@@ -311,7 +309,7 @@ CEngineObject* ItemManager() { return WorldServer()->itemManager_; }
 } // namespace
 
 // As in CopyItem, the original also builds and frees two empty CPtrLists around the call.
-CEngineObject* CWorldServer::CreateItemNamed(const char* name) { return ManagerCreateItem(ItemManager(), nullptr, name); }
+CEngineObject* CWorldServer::CreateItemNamed(const char* name) { return ItemManagerCreateItemOriginal(ItemManager(), nullptr, name); }
 
 CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
     CEngineObject* manager = ItemManager();   // read before slot 22, as in the original

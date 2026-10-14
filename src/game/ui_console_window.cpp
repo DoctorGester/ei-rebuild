@@ -178,11 +178,7 @@ namespace {
 constexpr int kHistoryDepth = 30;
 constexpr std::uintptr_t kNewLine = 0x00784340;   // "\n"
 
-struct TextAt : mfc::CString {
-    mfc::CString Mid(int first) const;    // 006FD9B4
-};
-__declspec(naked) mfc::CString TextAt::Mid(int) const EI_ORIGINAL(0x006FD9B4)
-mfc::CString MidOf(const mfc::CString& s, int first) { return static_cast<const TextAt&>(s).Mid(first); }
+mfc::CString MidOf(const mfc::CString& s, int first) { return s.Mid(first); }
 // 006FD56E (stdcall). operator+(const CString&, TCHAR).
 // 006FED03. CStringArray::InsertAt(index, const CString&, count).
 __declspec(naked) void __fastcall InsertString(CStringArray*, void*, int, const mfc::CString*, int) EI_ORIGINAL(0x006FED03)
@@ -313,7 +309,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
             }
         } else if (letter == 'v') {
             mfc::CString clip(ClipboardText().c_str());
-            int cut = static_cast<const TextAt&>(clip).FindOneOf("\r\n");
+            int cut = clip.FindOneOf("\r\n");
             if (cut >= 0) clip = Left(clip, cut);
             mfc::CString rest = MidOf(input_, high);
             mfc::CString head = Left(input_, low);

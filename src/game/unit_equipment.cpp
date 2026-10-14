@@ -35,7 +35,6 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 // item manager's item by name (item_constructor.cpp); 00480080 FatalError (app.cpp); CUnit's
 // EquipArmour / AddWeapon / AddSpell (unit_items.cpp, unit.cpp). 006AD1E0, the item manager's
 // spell by name (with world slot 22), is not rewritten.
-__declspec(naked) CEngineObject* __fastcall CreateItemAt(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 CEngineObject* __fastcall CreateSpellAt(void* a0, void*, const char* a2, void* a3) { return (CEngineObject*)FactoryCreateSpellOriginal(a0, nullptr, a2, a3); }
 CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
 int __fastcall AddWeaponAt(CUnit* a0, void*, CEngineObject* a2) { return UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
@@ -51,7 +50,7 @@ bool Named(const mfc::CString& name) {
 
 // The weapon named `name`; a FatalError message when it cannot be made (null is returned then).
 CEngineObject* MakeWeapon(void* items, const mfc::CString& name, const char* prototype) {
-    CEngineObject* weapon = CreateItemAt(items, nullptr, name);
+    CEngineObject* weapon = ItemManagerCreateItemOriginal(items, nullptr, name);
     if (!weapon) game::FatalError(Text(kNoWeapon), static_cast<const char*>(name), prototype);
     return weapon;
 }
@@ -69,7 +68,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     if (unit->type_ == kTypeArmed) {
         // The loop bounds are read again on every pass, as in the original.
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
-            CEngineObject* armour = CreateItemAt(items, nullptr, prototype->armourNames.begin[i]);
+            CEngineObject* armour = ItemManagerCreateItemOriginal(items, nullptr, prototype->armourNames.begin[i]);
             if (armour) EquipArmourAt(unit, nullptr, armour);
             else game::FatalError(Text(kNoArmour), static_cast<const char*>(prototype->armourNames.begin[i]), name);
         }

@@ -38,10 +38,11 @@ void* Slots::RefillSlots() { return UnitStatsRefillSlotsOriginal(this); }
 
 // The item and spell factory (global pointer at 007AFFB4).
 struct Factory {
-    void* CreateItem(std::uint32_t id);                         // 006AC970
+    void* CreateItem(std::uint32_t id) {                        // 006AC970
+        return ItemManagerCreateItemOriginal(this, nullptr, reinterpret_cast<const char*>(id));
+    }
     void* CreateSpell(std::uint32_t id, std::uint32_t owner);   // 006AD1E0
 };
-__declspec(naked) void* Factory::CreateItem(std::uint32_t) EI_ORIGINAL(0x006AC970)
 void* Factory::CreateSpell(std::uint32_t a0, std::uint32_t a1) { return FactoryCreateSpellOriginal((void*)this, nullptr, (const char*)a0, (void*)a1); }
 Factory* TheFactory() { return *reinterpret_cast<Factory**>(0x007AFFB4); }
 std::uint32_t SpellOwner() { return *reinterpret_cast<const std::uint32_t*>(0x007AFFAC); }

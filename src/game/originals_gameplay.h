@@ -10,6 +10,10 @@
 #include "lib/mfc.h"
 
 class CEngineObject;
+class CItem;
+class CItemArmor;
+class CItemConstructor;
+class CSpell;
 struct Projectile;
 struct WorldPlayer;
 
@@ -201,3 +205,23 @@ __declspec(naked) inline void __fastcall PlayerStateSetVariableOriginal(void* /*
                                                                         float /*value*/) EI_ORIGINAL(0x0066EE10)
 __declspec(naked) inline void __fastcall PlayerStateSetVariableMaxOriginal(void* /*state*/, void*, const char* /*name*/,
                                                                            float /*value*/) EI_ORIGINAL(0x0066EE80)
+
+// C3n batch 5. Items at their addresses (thiscall; the verify wrappers run). 006A0110 (rewritten as CItem::GetPrototype) the item's
+// prototype record; 006A04D0 (CItem::AttachSpell; RET 4) puts a spell into the item; 006A39E0 (CItemArmor::GetType) the armor
+// type; 006A4230 (CItem::GetCategory) the item's category.
+__declspec(naked) inline char* __fastcall ItemGetPrototypeOriginal(CItem* /*item*/) EI_ORIGINAL(0x006A0110)
+__declspec(naked) inline void __fastcall ItemAttachSpellOriginal(CItem* /*item*/, void*, CSpell* /*spell*/) EI_ORIGINAL(0x006A04D0)
+__declspec(naked) inline int __fastcall ArmorGetTypeOriginal(CItemArmor* /*armor*/) EI_ORIGINAL(0x006A39E0)
+__declspec(naked) inline int __fastcall ItemGetCategoryOriginal(CItem* /*item*/) EI_ORIGINAL(0x006A4230)
+// The item constructor (CItemConstructor; thiscall): 006A5C50 BeginCreateItem(kind, key) (RET 8), 006A5CC0 SetMaterial (RET 4),
+// 006A5CD0 SetPrototype (RET 4), 006A5CE0 SetSpellObject (RET 4), 006A5CF0 EndCreateItem (the finished item, or null).
+__declspec(naked) inline int __fastcall ItemConstructorBeginCreateItemOriginal(CItemConstructor* /*constructor*/, void*, int /*kind*/,
+                                                                              int /*key*/) EI_ORIGINAL(0x006A5C50)
+__declspec(naked) inline int __fastcall ItemConstructorSetMaterialOriginal(CItemConstructor* /*constructor*/, void*,
+                                                                          char* /*material*/) EI_ORIGINAL(0x006A5CC0)
+__declspec(naked) inline int __fastcall ItemConstructorSetPrototypeOriginal(CItemConstructor* /*constructor*/, void*,
+                                                                           char* /*prototype*/) EI_ORIGINAL(0x006A5CD0)
+__declspec(naked) inline int __fastcall ItemConstructorSetSpellObjectOriginal(CItemConstructor* /*constructor*/, void*,
+                                                                             CSpell* /*spell*/) EI_ORIGINAL(0x006A5CE0)
+__declspec(naked) inline CItem* __fastcall ItemConstructorEndCreateItemOriginal(CItemConstructor* /*constructor*/)
+    EI_ORIGINAL(0x006A5CF0)

@@ -723,7 +723,6 @@ void __fastcall Figure51C970(void* a0) { FigureLoadTexturesOriginal(a0); }
 void __fastcall FigureSwapTexture(void* a0, void*, const char* a2, const char* a3) {
     FigureSwapTextureOriginal(a0, nullptr, a2, a3);
 }
-__declspec(naked) int __fastcall ArmourType(void*) EI_ORIGINAL(0x006A39E0)
 
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
@@ -789,7 +788,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
             CEngineObject* armour = record->armor[j];
-            if (allArmour || ArmourType(armour) != 0) UnitEquipArmour(unit, nullptr, armour);
+            if (allArmour || ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)) != 0) UnitEquipArmour(unit, nullptr, armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
             UnitAddQuickItemOriginal(unit, nullptr, record->quickItems[j]);

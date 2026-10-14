@@ -14,6 +14,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 #include "originals_units.h"
 
 #include <cstdint>
@@ -36,10 +37,8 @@ using PtrListNode = PtrList::Node;
 // and weapons (with the same effects).
 inline PtrListNode* __fastcall NewNode(PtrList* l, void*, PtrListNode* prev, PtrListNode* next) { return static_cast<PtrListNode*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
-__declspec(naked) void* __fastcall CreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
 __declspec(naked) void __fastcall UnitRemoveQuickItem(void* /*unit*/, void*, int) EI_ORIGINAL(0x005311E0)
 void* __fastcall UnitArmour(void* a0, void*, int a2) { return (void*)UnitWornItemOriginal((const void*)a0, nullptr, a2); }
-__declspec(naked) int __fastcall ArmourType(void* /*armour*/) EI_ORIGINAL(0x006A39E0)
 
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
@@ -97,7 +96,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
         auto count = [&] { return static_cast<std::uint32_t>(bytes() >> 2); };
         if (bytes() & ~std::intptr_t{3}) {
             for (std::uint32_t i = 0; i < count(); ++i) {
-                void* item = CreateItem(manager, nullptr, names()[i]);
+                void* item = ItemManagerCreateItemOriginal(manager, nullptr, names()[i]);
                 if (!item) continue;
                 Append(drops, item);
                 AppendShared(items, item);
@@ -120,7 +119,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
             void* armour = UnitArmour(unit, nullptr, slot);
             if (!armour) continue;
             Append(drops, armour);
-            UnitUnequipArmour(cunit, nullptr, ArmourType(armour));
+            UnitUnequipArmour(cunit, nullptr, ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)));
         }
         for (int slot = 0; slot < 4; ++slot) {
             void* weapon = UnitWeapon(cunit, nullptr, slot);

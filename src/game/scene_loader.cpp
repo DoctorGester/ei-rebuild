@@ -599,12 +599,6 @@ EI_REPLACE_METHOD(0x00471B10, SceneInfo::Load);
 
 namespace {
 
-// CString members used only here, called on existing strings through this view (no extra data).
-struct Text : mfc::CString {
-    int Find(const char* sub) const;      // 006FDBD9
-};
-__declspec(naked) int Text::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
-const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
 int Length(const mfc::CString& s) { return s.GetLength(); }
 
 // The figure meshes are engine objects (class 0x42; CFigureMesh keeps its vtable as a field): slot
@@ -742,11 +736,11 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     }
 
     // The figure's registry file.
-    int ext = Ops(s.path).Find(scenedata::SceneExtText());
+    int ext = s.path.Find(scenedata::SceneExtText());
     if (ext != -1) {
         if (!registryName) {
-            if (Ops(s.path).Find(scenedata::ScenesDirText()) == 0) {
-                s.path = scenedata::IniDirText() + Ops(s.path).Right(Length(s.path) - 7);
+            if (s.path.Find(scenedata::ScenesDirText()) == 0) {
+                s.path = scenedata::IniDirText() + s.path.Right(Length(s.path) - 7);
                 --ext;
             }
             s.path = s.path.Left(ext) + scenedata::RegExtText();
@@ -816,7 +810,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     for (int t = 0; t < s.textureNames.size; ++t) {
         void* owner = u->Object3D()->attached;
         SceneTexture* texture = FindTexture(owner, nullptr, s.textureNames.Id(t));
-        bool bmp = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Ops(s.textureNames.Name(t)).Right(4))),
+        bool bmp = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s.textureNames.Name(t).Right(4))),
                                     reinterpret_cast<const unsigned char*>(scenedata::BmpExtText())) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);

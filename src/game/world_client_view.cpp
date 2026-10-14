@@ -17,6 +17,7 @@
 #include "originals_render.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 // Every float expression here must keep the original's association: (a + b) + c.
 #pragma float_control(precise, on, push)
@@ -46,7 +47,6 @@ void MatrixMultiply(float* out, const float* a, const float* b) { MatrixMultiply
 __declspec(naked) bool __fastcall ShadowInView(CObject3DClientSpecific*) EI_ORIGINAL(0x0051E300)
 
 // Terrain::HeightAt (006C8680) declared double: the original adds the unrounded ST0.
-__declspec(naked) double __fastcall TerrainHeightAt(Terrain*, void*, float, float, int) EI_ORIGINAL(0x006C8680)
 
 // The frame's draw lists: STLport vector<CEngineObject*> globals 0x10 apart (0056AFE0 clears them).
 using ObjectVector = stlp::vector<CEngineObject*>;
@@ -313,7 +313,7 @@ float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Heig
 
 float* CWorldClient::PickGround(float* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
-        return TerrainHeightAt(terrain_, nullptr, px, py, 0);
+        return TerrainHeightAtOriginal(terrain_, nullptr, px, py, 0);
     });
 }
 

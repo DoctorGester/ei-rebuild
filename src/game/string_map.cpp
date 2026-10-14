@@ -169,8 +169,8 @@ namespace {
 // The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
 // surface's constructor and destructor body, the DC's non-virtual members, the red-black tree's
 // increment (library).
-void __fastcall DcFillSolidRect(ui_gdi::GameDC* a0, void*, int a2, int a3, int a4, int a5, COLORREF a6) { DcFillSolidRectOriginal(a0, nullptr, a2, a3, a4, a5, a6); }
-int __fastcall DcSetBkMode(ui_gdi::GameDC* a0, void*, int a2) { return DcSetBkModeOriginal(a0, nullptr, a2); }
+void __fastcall DcFillSolidRect(ui_gdi::GameDC* a0, void*, int a2, int a3, int a4, int a5, COLORREF a6) { a0->FillSolidRect(a2, a3, a4, a5, a6); }
+int __fastcall DcSetBkMode(ui_gdi::GameDC* a0, void*, int a2) { return a0->SetBkMode(a2); }
 void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal(a0); }
 __declspec(naked) void __fastcall PanelRedrawAt(void*) EI_ORIGINAL(0x00444D00)
 __declspec(naked) void __fastcall PanelShowAt(void*, void*, std::uint8_t) EI_ORIGINAL(0x00444F50)

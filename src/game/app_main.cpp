@@ -36,6 +36,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "originals_core.h"
+#include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
@@ -198,9 +199,6 @@ __declspec(naked) int __fastcall SoundOpenAt(CSoundManager*, void*, HWND, int /*
 __declspec(naked) int __fastcall SoundSetPathAt(CSoundManager*, void*, const char* /*folder*/, const char* /*registry*/) EI_ORIGINAL(0x006BAE20)
 __declspec(naked) void __fastcall SoundClearWaveSourcesAt(CSoundManager*) EI_ORIGINAL(0x006B7060)
 __declspec(naked) int __fastcall SoundAddWaveSourceAt(CSoundManager*, void*, const char* /*path*/) EI_ORIGINAL(0x006B7AB0)
-__declspec(naked) void __fastcall SoundSetEffectsVolumeAt(CSoundManager*, void*, int) EI_ORIGINAL(0x006B7740)
-__declspec(naked) void __fastcall SoundSetSpeechVolumeAt(CSoundManager*, void*, int) EI_ORIGINAL(0x006B78A0)
-__declspec(naked) void __fastcall SoundSetMusicVolumeAt(CSoundManager*, void*, int) EI_ORIGINAL(0x006B7A00)
 // 005DA3C0: the loading screen's movie closed.
 __declspec(naked) void __cdecl CloseLoadingMovieAt() EI_ORIGINAL(0x005DA3C0)
 // The databases read from the resources folder (RET 4; the others are in originals_world.h).
@@ -493,9 +491,9 @@ std::uintptr_t OpenSound() {
         mfc::CString speech = discFolder + GameText(0x0078483C);
         SoundAddWaveSourceAt(Sound(), nullptr, speech);
     }
-    SoundSetEffectsVolumeAt(Sound(), nullptr, options->audioSfx_);
-    SoundSetSpeechVolumeAt(Sound(), nullptr, options->audioSpeech_);
-    SoundSetMusicVolumeAt(Sound(), nullptr, options->audioStreaming_);
+    SoundManagerSetEffectsVolumeOriginal(Sound(), nullptr, options->audioSfx_);
+    SoundManagerSetSpeechVolumeOriginal(Sound(), nullptr, options->audioSpeech_);
+    SoundManagerSetMusicVolumeOriginal(Sound(), nullptr, options->audioStreaming_);
     Sound()->panDirect = options->reverseStereo_ != 0;
     return reinterpret_cast<std::uintptr_t>(static_cast<const char*>(discFolder));
 }

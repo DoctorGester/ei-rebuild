@@ -806,17 +806,25 @@ struct SpellConstructorAt {
 
 // The item constructor (not rewritten; thiscall).
 struct ItemConstructorAt : ItemConstructorManagerOriginal {
-    BOOL Begin(int type, int a);              // 006A5C50
-    BOOL SetPart(const void* part);           // 006A5CD0
-    BOOL SetBlueprint(const void* blueprint); // 006A5CC0
-    BOOL SetSpell(void* spell);               // 006A5CE0
-    std::uint8_t* Make();                     // 006A5CF0
+    BOOL Begin(int type, int a) {   // 006A5C50
+        return ItemConstructorBeginCreateItemOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr, type, a);
+    }
+    BOOL SetPart(const void* part) {   // 006A5CD0
+        return ItemConstructorSetPrototypeOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr,
+                                                   static_cast<char*>(const_cast<void*>(part)));
+    }
+    BOOL SetBlueprint(const void* blueprint) {   // 006A5CC0
+        return ItemConstructorSetMaterialOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr,
+                                                  static_cast<char*>(const_cast<void*>(blueprint)));
+    }
+    BOOL SetSpell(void* spell) {   // 006A5CE0
+        return ItemConstructorSetSpellObjectOriginal(reinterpret_cast<CItemConstructor*>(this), nullptr,
+                                                     static_cast<CSpell*>(spell));
+    }
+    std::uint8_t* Make() {   // 006A5CF0
+        return reinterpret_cast<std::uint8_t*>(ItemConstructorEndCreateItemOriginal(reinterpret_cast<CItemConstructor*>(this)));
+    }
 };
-__declspec(naked) BOOL ItemConstructorAt::Begin(int, int) EI_ORIGINAL(0x006A5C50)
-__declspec(naked) BOOL ItemConstructorAt::SetPart(const void*) EI_ORIGINAL(0x006A5CD0)
-__declspec(naked) BOOL ItemConstructorAt::SetBlueprint(const void*) EI_ORIGINAL(0x006A5CC0)
-__declspec(naked) BOOL ItemConstructorAt::SetSpell(void*) EI_ORIGINAL(0x006A5CE0)
-__declspec(naked) std::uint8_t* ItemConstructorAt::Make() EI_ORIGINAL(0x006A5CF0)
 
 // 0068B410 (thiscall on a spell): a copy of the spell made with `manager`.
 struct SpellAt {
@@ -845,9 +853,8 @@ struct ItemFactoryAt {
 };
 std::uint8_t* ItemFactoryAt::MakeItem(int a0, int a1, int a2, int a3) { return (std::uint8_t*)FactoryMakeItemOriginal((void*)this, nullptr, a0, a1, a2, a3); }
 struct ItemAt {
-    void SetSpell(void* spell);
+    void SetSpell(void* spell) { ItemAttachSpellOriginal(reinterpret_cast<CItem*>(this), nullptr, static_cast<CSpell*>(spell)); }   // 006A04D0
 };
-__declspec(naked) void ItemAt::SetSpell(void*) EI_ORIGINAL(0x006A04D0)
 
 // The slot list's own helpers (virtual slots 16 / 17 / 18 / 22 of the 00661050 lists): the item
 // constructor, the spell constructor, the item factory and the manager they work for.
@@ -1118,9 +1125,8 @@ struct HeroRecordAt {
 
 // 00661DB0 (thiscall on the local player's data, RET 0xC): puts an item among the player's items.
 inline int __fastcall PlayerTakeItem(std::uint8_t* a0, void*, std::uint8_t* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, (void*)a2, a3, a4); }
-// 006A39E0 (thiscall on an armour item): its body part type. 00530840 (thiscall on a unit, RET
+// 006A39E0 (ArmorGetTypeOriginal): an armour item's body part type. 00530840 (thiscall on a unit, RET
 // 4): takes off the armour of that type.
-__declspec(naked) int __fastcall ArmourType(std::uint8_t*) EI_ORIGINAL(0x006A39E0)
 // 005232B0 / 005230C0 (thiscall on the hero's statistics, record + 0x20): clears the outer
 // layers / adds one (RET 4).
 __declspec(naked) void __fastcall StatsClearOuterLayers(std::uint8_t*) EI_ORIGINAL(0x005232B0)
@@ -1161,7 +1167,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     }
     case 0x3005: {
         if (heroes_[hero_]) {
-            int type = ArmourType(item);
+            int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
             UnitUnequipArmour(reinterpret_cast<CUnit*>(heroes_[hero_]), nullptr, type);
             using IntFn = void(__thiscall*)(void*, int);
             using VoidFn = void(__thiscall*)(void*);
@@ -1234,9 +1240,9 @@ void CCampPages::PutOn(std::uint8_t* item) {
         }
         break;
     case 0x3005: {
-        int type = ArmourType(item);
+        int type = ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(item));
         for (int i = 0; i < CampField<int>(hero, 0x754); ++i) {
-            if (ArmourType(CampField<std::uint8_t**>(hero, 0x750)[i]) == type)
+            if (ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(CampField<std::uint8_t**>(hero, 0x750)[i])) == type)
                 reinterpret_cast<TakeOffAt*>(this)->TakeOff(CampField<std::uint8_t**>(hero, 0x750)[i]);
         }
         if (heroes_[hero_]) {

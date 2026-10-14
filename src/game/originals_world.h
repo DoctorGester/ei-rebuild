@@ -13,6 +13,7 @@ class CEngineObject;
 class CItem;
 class CUnit;
 class CWorldServer;
+class Terrain;
 namespace net { class ClientSession; }
 namespace mfc { class CString; }
 struct ObjectIdMap;
@@ -296,3 +297,10 @@ __declspec(naked) inline void __fastcall WorldAwardExperienceOriginal(void* /*wo
 __declspec(naked) inline void __fastcall WorldUpdateMercBriefingsOriginal(void* /*world*/) EI_ORIGINAL(0x00591800)
 __declspec(naked) inline CEngineObject* __fastcall WorldFindObjectOriginal(void* /*world*/, void*, unsigned /*id*/)
     EI_ORIGINAL(0x00593AA0)
+
+// C3n batch 5. 006C8680 (rewritten as Terrain::HeightAt; thiscall, RET 0xC): the ground height at (x, y) on `layer`, in ST0 and used
+// unrounded. 006D43E0 (TweenArray::RemoveAll, an mfc::CArray of tween entries; plain RET): frees the array, size and capacity 0
+// (the world countdown list at +0x70 is one).
+__declspec(naked) inline double __fastcall TerrainHeightAtOriginal(Terrain* /*terrain*/, void*, float /*x*/, float /*y*/,
+                                                                  int /*layer*/) EI_ORIGINAL(0x006C8680)
+__declspec(naked) inline void __fastcall TweenArrayRemoveAllOriginal(void* /*tweens*/) EI_ORIGINAL(0x006D43E0)

@@ -18,6 +18,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_engine.h"
+#include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_render.h"
@@ -700,7 +701,6 @@ namespace {
 // format) a plain one; 00500960 returns the display object; 005DBA50 (the player, RET 8) starts a
 // movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
 // a separator; 0062C090 (RET 0xC, ECX unused) inserts a copy of a TitleLine before a list node.
-__declspec(naked) void __fastcall TitlesStopMusic(void*) EI_ORIGINAL(0x006B4F70)
 __declspec(naked) void __fastcall TitlesRemoveCr(mfc::CString*) EI_ORIGINAL(0x004461E0)
 __declspec(naked) CUiSurface* __fastcall TitlesScrollSurface(void*, void*, CInterface3D*, RECT*) EI_ORIGINAL(0x0065ED30)
 std::uint8_t* __cdecl TitlesDisplay() { return (std::uint8_t*)DisplayObject(); }
@@ -726,7 +726,7 @@ void CCreditsScreen::Build() {
     const mfc::CString& name = *reinterpret_cast<const mfc::CString*>(&name_);
     if (!fromGame_) {
         LoadingStepOriginal(*reinterpret_cast<void**>(0x007AF784), nullptr, 1);
-        TitlesStopMusic(*reinterpret_cast<void**>(0x007AF760));
+        MusicSystemStopOriginal(*reinterpret_cast<CMusicSystem**>(0x007AF760));
     }
     CursorShowOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, 0);
     PlayMoviesOriginal(mfc::operator+(name, GameText(0x00794040)), 1, 0, 0, 0);   // "<name>fin"
