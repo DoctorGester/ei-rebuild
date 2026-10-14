@@ -6,12 +6,15 @@
 
 #include "spell.h"
 
+#include "combat.h"
 #include "console.h"
 #include "lib/mfc.h"
+#include "map_object.h"
+#include "unit.h"
+#include "world.h"
 #include "world_effect.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_effects.h"
 #include "originals_gameplay.h"
@@ -36,20 +39,9 @@ constexpr int kClassShowVisibility = 0x5E;
 constexpr int kClassSoundSequence = 99;
 constexpr int kClassUnit = 0x50;
 
-constexpr int kSlotRelease = 4;
-constexpr int kSlotClassId = 12;
-constexpr int kSlotPosition = 48;       // Vector3* (Vector3* scratch)
-constexpr int kSlotApplyBuff = 45;      // units: (BuffRecord*)
-constexpr int kSlotBusyA = 54;          // units: nonzero refuses a link
-constexpr int kSlotBusyB = 55;
-constexpr int kWorldSlotFactory = 14;   // world server: the object factory (+0x48)
-constexpr int kFactorySlotCreate = 23;  // (class id, key -1)
+// The world's height slots the x87 helpers below call through (27 the grid height, 28 the ground).
 constexpr int kWorldSlotGridHeight = 27;
 constexpr int kWorldSlotGroundHeight = 28;
-constexpr int kControllerSlotHeal = 21; // unit controller (+0x240): (float amount)
-
-constexpr int kUnitController = 0x240;
-constexpr int kUnitPosition = 0x1C;
 
 constexpr std::uint32_t kPointLightFlags = 0x840;
 constexpr int kPtrListBlockSize = 10;
@@ -93,9 +85,8 @@ __declspec(naked) inline void __fastcall LightningSetFlag(CEngineObject*, void*,
 // 0067AC70 (not rewritten): the missile's target object id.
 // 0067C640: CEffectShowVisibility's two object ids (+0x14C, +0x150).
 __declspec(naked) inline void __fastcall ShowVisibilitySetObjects(CEngineObject*, void*, int, int) EI_ORIGINAL(0x0067C640)
-// 00688510: the buff record's constructor (fastcall; returns it).
-struct BuffRecord;
-__declspec(naked) inline BuffRecord* __fastcall BuffRecordInit(BuffRecord*) EI_ORIGINAL(0x00688510)
+// 00688510: MapEffect::Construct (spell_lifetime.cpp), through its address (fastcall; returns it).
+__declspec(naked) inline MapEffect* __fastcall BuffRecordInit(MapEffect*) EI_ORIGINAL(0x00688510)
 // The spell's own helpers (spell.cpp / spell_effect.cpp; through their addresses for the verify wrappers).
 __declspec(naked) inline void __fastcall EffectHitUnit(CSpellEffect*, void*, DamageInfo*, CEngineObject*) EI_ORIGINAL(0x006835B0)
 __declspec(naked) inline int __fastcall IsAreaSpellTarget(CEngineObject*) EI_ORIGINAL(0x00681B80)
@@ -513,20 +504,15 @@ inline std::uint32_t Bits(const float& f) {
     return u;
 }
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
+inline bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kClassUnit; }
+// Where the object sees from (slot 48) into `scratch`.
+inline Vector3* PositionOf(CEngineObject* object, Vector3* scratch) { return ObjectSlots(object)->EyePoint(scratch); }
+// A unit's server half (CUnit::controller).
+inline CUnitServer* ControllerOf(CEngineObject* unit) { return static_cast<CUnitServer*>(static_cast<CUnit*>(unit)->controller); }
 
-inline int ClassId(const CEngineObject* object) { return ei::VCall<int>(object, kSlotClassId); }
-inline bool IsUnit(const CEngineObject* object) { return object && ClassId(object) == kClassUnit; }
-inline void Release(CEngineObject* object) { ei::VCall<void>(object, kSlotRelease); }
-inline Vector3* PositionOf(CEngineObject* object, Vector3* scratch) { return ei::VCall<Vector3*>(object, kSlotPosition, scratch); }
-inline void* ControllerOf(CEngineObject* unit) { return At<void*>(unit, kUnitController); }
-
+// A new object of class `classId` from the world's timed object manager (key -1).
 inline CEngineObject* CreateObject(CSpellEffect* e, int classId) {
-    void* factory = ei::VCall<void*>(e->world, kWorldSlotFactory);
-    return ei::VCall<CEngineObject*>(factory, kFactorySlotCreate, classId, -1);
+    return e->world->TimedObjectManager()->CreateObject(classId, -1);
 }
 
 // The counted-pointer assignment the helpers repeat: the old object leaves the world's timed
@@ -536,10 +522,12 @@ inline void Assign(CSpellEffect* e, CEngineObject** slot, CEngineObject* object)
     CEngineObject* old = *slot;
     *slot = object;
     if (object) ++object->refCount_;
-    if (old) Release(old);
+    if (old) old->Release();
 }
 
-inline void SetPosition(CEngineObject* object, const Vector3* position) { std::memcpy(&At<Vector3>(object, 0x1C), position, 12); }
+inline void SetPosition(CEngineObject* object, const Vector3* position) {
+    std::memcpy(&static_cast<CTransformObject*>(object)->localPosition_, position, 12);
+}
 
 // The fields of the spell prototype the casts read.
 inline const char* Prototype(CSpellEffect* e) { return SpellGetPrototypeOriginal(e->Spell()); }
@@ -592,7 +580,7 @@ inline void HitAreaTargets(CSpellEffect* e) {
     PtrListConstruct(&units, nullptr, kPtrListBlockSize);
     DamageInfo hit;
     SpellEffectGetDamageOriginal(e, nullptr, &hit);
-    SectorMapFindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
+    SectorMapFindUnitsInRadius(e->world->Sectors(), nullptr, &e->position, &units, e->radius);
     for (auto* node = units.head; node;) {
         CEngineObject* unit = node->data;
         node = node->next;
@@ -617,20 +605,6 @@ inline void PrototypeLight(CSpellEffect* e, const Vector3* at, float range, cons
     Vector3 color = PrototypeColor(e);
     e->CreatePointLight(at, &color, range, velocity);
 }
-
-// The record a buff spell hands to its unit (slot 45): the spell's bytes +0x1C..+0x2F with the
-// strength byte replaced and the effect's +0xA4 flag.
-struct BuffRecord {
-    std::uint8_t index;
-    std::uint8_t strength;
-    std::uint16_t unknown_02;
-    int duration;
-    float effect;
-    float radius;
-    std::uint8_t flag;
-    std::uint8_t unknown_11[3];
-};
-static_assert(sizeof(BuffRecord) == 0x14);
 
 enum class Next { Done, Set, Leave };   // state 3; state set by the case; leave the state alone
 

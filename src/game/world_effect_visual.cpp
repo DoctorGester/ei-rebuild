@@ -15,8 +15,8 @@ namespace {
 // The light manager (*007AF738), thiscall.
 void __fastcall MoveLight(void* a0, void*, CEngineObject* a2, const Vector3* a3) { LightMoveOriginal(a0, nullptr, a2, (const float*)a3); }
 // 00511B90 / 0056F1A0: reference-counted pointer assignment (ECX = the pointer).
-void __fastcall AssignLight(CEngineObject** a0, void*, void* a2) { CountedRefStoreOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall AssignSource(void** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
+void __fastcall AssignLight(CLight** a0, void*, void* a2) { CountedRefStoreOriginal((void*)a0, nullptr, a2); }
+__declspec(naked) void __fastcall AssignSource(CParticleSource** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
 
 // CParticleSource (effects.cpp, through the game addresses).
 inline void* __fastcall CreateSource(void* manager, void*, int type) { return ParticleCreateSourceOriginal(manager, nullptr, type); }
@@ -69,9 +69,8 @@ __declspec(naked) void __fastcall SetLightRange(CEngineObject* /*light*/, std::u
     }
 }
 
-// The light's flags (+0x08).
-std::uint32_t& LightFlags(CEngineObject* light) { return light->flags_; }
-Vector3& LightPosition(CEngineObject* light) { return *reinterpret_cast<Vector3*>(reinterpret_cast<char*>(light) + 0x1C); }
+std::uint32_t& LightFlags(CLight* light) { return light->flags_; }
+Vector3& LightPosition(CLight* light) { return light->position_; }
 
 // The particle tick's step towards the target, in the original's x87 order: speed = |velocity|
 // ((x*x + y*y) + z*z), dist = sqrt(dy*dy + dx*dx); nothing when dist is not above 0 (or NaN);
@@ -202,9 +201,9 @@ void CEffectPointLight::Reset() {
     ClearBase(this);
     if (light_ != nullptr) {
         RemoveLight(LightManager(), nullptr, light_);
-        CEngineObject* old = light_;
+        CLight* old = light_;
         light_ = nullptr;
-        if (old != nullptr) effect::Release(old);
+        if (old != nullptr) old->Release();
     }
     color_ = Vector3{0.0f, 0.0f, 0.0f};
     range_ = 0.0f;
@@ -236,7 +235,7 @@ int CEffectPointLight::Tick() {
 
 void CEffectPointLight::Start(int update) {
     if (update == 0) {
-        void* created = ei::VCall<void*>(LightFactory(), 23, 0x31, -1);
+        CEngineObject* created = LightFactory()->CreateObject(0x31, -1);
         AssignLight(&light_, nullptr, created);
         Vector3 position;
         CopyThroughFpu(&position.x, &localPosition_.x);
@@ -252,13 +251,12 @@ void CEffectPointLight::Start(int update) {
         LightManagerAddOriginal(LightManager(), nullptr, light_);
         if (moving_ != 0) LightFlags(light_) |= 0x100;
     } else {
-        auto* light = reinterpret_cast<char*>(light_);
-        CopyThroughFpu(reinterpret_cast<float*>(light + 0x98), &color_.x);
-        CopyThroughFpu(reinterpret_cast<float*>(light + 0x9C), &color_.y);
-        CopyThroughFpu(reinterpret_cast<float*>(light + 0xA0), &color_.z);
+        CopyThroughFpu(&light_->color_[0], &color_.x);
+        CopyThroughFpu(&light_->color_[1], &color_.y);
+        CopyThroughFpu(&light_->color_[2], &color_.z);
         float range = FromBits(Bits(range_) & 0x7FFFFFFFu);
         float shownRange;
-        std::memcpy(&shownRange, light + 0xE0, 4);
+        std::memcpy(&shownRange, &light_->range_, 4);
         float change = FromBits(Bits(StoreFloat(shownRange - range)) & 0x7FFFFFFFu);
         if (!(change >= ConstAt(kRangeEpsilon))) {
             // The range is (nearly) the same: move the light.
@@ -293,7 +291,7 @@ int CEffectPointLight::Unpack(int update, DeltaField* field) {
     moving_ = IsMoving(velocity_);
     if (!SnapshotReadToEnd()) return 0;
     localPosition_ = position;
-    CallStart(this, update);
+    EffectSlots(this)->Start(update);
     return 1;
 }
 
@@ -332,9 +330,9 @@ void CEffectParticle::Reset() {
     ClearBase(this);
     if (source_ != nullptr) {
         StopSource(source_);
-        void* old = source_;
+        CParticleSource* old = source_;
         source_ = nullptr;
-        if (old != nullptr) effect::Release(old);
+        if (old != nullptr) old->AsObject()->Release();
     }
     size_ = 1.0f;
     alpha_ = 1.0f;
@@ -347,7 +345,7 @@ void CEffectParticle::Reset() {
 
 Vector3* CEffectParticle::Position(void* group) {
     if (attachedTo_ == -1) return &localPosition_;
-    auto* object = static_cast<CEngineObject*>(ObjectById(effect::ManagerContext(this), attachedTo_));
+    CEngineObject* object = ContextWorld(this)->ObjectWithId(attachedTo_);
     if (object == nullptr) return &localPosition_;
     if (GroupContains(static_cast<const ScriptGroup*>(group), nullptr, object) == 0) {
         // Not in the group: far away.
@@ -356,7 +354,7 @@ Vector3* CEffectParticle::Position(void* group) {
         worldPosition_.z = 0.0f;
         return &worldPosition_;
     }
-    const Vector3& at = *reinterpret_cast<const Vector3*>(reinterpret_cast<const char*>(object) + 0x1C);
+    const Vector3& at = static_cast<CTransformObject*>(object)->localPosition_;
     float x = localPosition_.x + at.x;
     float y = at.y + localPosition_.y;
     float z = at.z + localPosition_.z;
@@ -369,9 +367,9 @@ Vector3* CEffectParticle::Position(void* group) {
 void CEffectParticle::Start(int update) {
     if (update == 0 && source_ != nullptr) {
         StopSource(source_);
-        void* old = source_;
+        CParticleSource* old = source_;
         source_ = nullptr;
-        if (old != nullptr) effect::Release(old);
+        if (old != nullptr) old->AsObject()->Release();
     }
     ParticleSpawnAt(this);
 }
@@ -390,7 +388,7 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
     ReadFloat16(field, nullptr, &param164_);
     moving_ = IsMoving(velocity_);
     // Only a plain particle effect checks the snapshot here (the wall checks after its own field).
-    if (ClassId(this) == 0x4A && !SnapshotReadToEnd()) return 0;
+    if (GetClassId() == 0x4A && !SnapshotReadToEnd()) return 0;
     if (unitId_ != -1) {
         void* unit = FindUnit(ObjectWorld(this), nullptr, unitId_);
         if (unit != nullptr) {
@@ -399,38 +397,38 @@ int CEffectParticle::Unpack(int update, DeltaField* field) {
         }
     }
     localPosition_ = position;
-    CallStart(this, update);
+    EffectSlots(this)->Start(update);
     return 1;
 }
 
 void CEffectParticle::Spawn() {
     if (source_ != nullptr) {
         // Already running: follow the effect.
-        std::memcpy(reinterpret_cast<char*>(source_) + 0x1C, &localPosition_, sizeof(Vector3));
+        std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
         float baseSize;
-        std::memcpy(&baseSize, static_cast<char*>(source_) + 0x128, 4);
+        std::memcpy(&baseSize, &source_->baseSize, 4);
         ScaleSource(source_, nullptr, StoreFloat(size_ / baseSize));
-        CopyThroughFpu(reinterpret_cast<float*>(static_cast<char*>(source_) + 0x118), &alpha_);
-        CopyThroughFpu(reinterpret_cast<float*>(static_cast<char*>(source_) + 0x11C), &param164_);
+        CopyThroughFpu(&source_->alpha, &alpha_);
+        CopyThroughFpu(&source_->unknown_11C, &param164_);
         ParticleAttachAt(this);
         return;
     }
 
     AssignSource(&source_, nullptr, CreateSource(ParticleManager(), nullptr, type_));
-    std::memcpy(static_cast<char*>(source_) + 0x1C, &localPosition_, sizeof(Vector3));
+    std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
     float baseSize;
-    std::memcpy(&baseSize, static_cast<char*>(source_) + 0x128, 4);
+    std::memcpy(&baseSize, &source_->baseSize, 4);
     ScaleSource(source_, nullptr, StoreFloat(size_ / baseSize));
     AttachSource(source_, nullptr, nullptr);
-    CopyThroughFpu(reinterpret_cast<float*>(static_cast<char*>(source_) + 0x118), &alpha_);
-    CopyThroughFpu(reinterpret_cast<float*>(static_cast<char*>(source_) + 0x11C), &param164_);
+    CopyThroughFpu(&source_->alpha, &alpha_);
+    CopyThroughFpu(&source_->unknown_11C, &param164_);
     ParticleAttachAt(this);
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).
     int age = GameTick() - startTick_;
     if (!IsOneShotType(type_) && age >= 30) age = 30;
     if (age > 1) {
-        for (int left = age - 1; left != 0; --left) ei::VCall<int>(source_, 6);
+        for (int left = age - 1; left != 0; --left) source_->AsObject()->RunTick();
     }
 
     if (type_ == 0x2002) {
@@ -491,7 +489,7 @@ void CEffectParticle::Attach() {
     // Nothing to do when the source already follows that object, or follows none and none is set.
     // Without a source the original goes on and reads through the null pointer.
     if (source_ != nullptr) {
-        auto* followed = *reinterpret_cast<CEngineObject**>(static_cast<char*>(source_) + 0x94);
+        auto* followed = static_cast<CEngineObject*>(source_->attachedTo);
         if (followed != nullptr) {
             if (followed->id_ == attachedTo_) return;
         } else if (attachedTo_ == -1) {
@@ -500,9 +498,9 @@ void CEffectParticle::Attach() {
     }
     void* object = FindObject(ObjectManager(), nullptr, attachedTo_);
     Vector3 saved;
-    std::memcpy(&saved, static_cast<char*>(source_) + 0x1C, sizeof(Vector3));
+    std::memcpy(&saved, &source_->position, sizeof(Vector3));
     AttachSource(source_, nullptr, object);
-    if (object == nullptr) std::memcpy(static_cast<char*>(source_) + 0x1C, &saved, sizeof(Vector3));
+    if (object == nullptr) std::memcpy(&source_->position, &saved, sizeof(Vector3));
 }
 
 void CEffectParticle::LoadState(void* stream) {
@@ -544,23 +542,23 @@ int CEffectParticle::Tick() {
         float t;
         if (StepFraction(&velocity_, d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
-            float aboveGround = StoreFloat(static_cast<float>(target_.z - GroundHeight(ObjectWorld(this), target_.x, target_.y)));
+            float aboveGround = StoreFloat(static_cast<float>(target_.z - WorldOf(this)->RawSurfaceHeightAt(target_.x, target_.y)));
             float stepY = StoreFloat(t * d[1]);
             float stepZ = StoreFloat(d[2] * t);
             float x = StoreFloat(t * d[0] + localPosition_.x);
             float y = StoreFloat(stepY + localPosition_.y);
             float z = StoreFloat(stepZ + localPosition_.z);
-            float floor = StoreFloat(static_cast<float>(GroundHeight(ObjectWorld(this), x, y) + aboveGround));
+            float floor = StoreFloat(static_cast<float>(WorldOf(this)->RawSurfaceHeightAt(x, y) + aboveGround));
             std::uint32_t zBits = !(z >= floor) ? Bits(floor) : Bits(z);
             localPosition_.x = x;
             localPosition_.y = y;
             std::memcpy(&localPosition_.z, &zBits, 4);
-            if (source_ != nullptr) std::memcpy(static_cast<char*>(source_) + 0x1C, &localPosition_, sizeof(Vector3));
+            if (source_ != nullptr) std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
         }
     }
     if (!IsOneShotType(type_)) return 1;
     int lifetime = type_ == 0x2019 ? 0x78 : 0x3C;
-    int now = *reinterpret_cast<const int*>(static_cast<const char*>(ObjectWorld(this)) + 0x64);
+    int now = WorldOf(this)->tick_;
     return now > startTick_ + lifetime ? 0 : 1;
 }
 
@@ -575,9 +573,9 @@ void CEffectWall::Reset() {
     changeStamp_ = -1;
     if (source_ != nullptr) {
         StopSource(source_);
-        void* old = source_;
+        CParticleSource* old = source_;
         source_ = nullptr;
-        if (old != nullptr) effect::Release(old);
+        if (old != nullptr) old->AsObject()->Release();
     }
     size_ = 1.0f;
     alpha_ = 1.0f;
@@ -598,7 +596,7 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
     if (ParticleUnpackAt(this, nullptr, update, field) == 0) return 0;
     ReadFloat16x3(field, nullptr, &direction_);
     if (!SnapshotReadToEnd()) return 0;
-    if (source_ != nullptr) std::memcpy(static_cast<char*>(source_) + 0x130, &direction_, sizeof(Vector3));
+    if (source_ != nullptr) std::memcpy(&source_->extent, &direction_, sizeof(Vector3));
     if (update == 0 && type_ == 0x2010) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
         std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(kScorchAlpha)));
@@ -649,20 +647,20 @@ void CEffectLightning::Reset() {
     toObject_ = -1;
     fromObject_ = -1;
     to_ = Vector3{0.0f, 0.0f, 0.0f};
-    CEngineObject* old = bolt_;
+    CLightning* old = bolt_;
     bolt_ = nullptr;
-    if (old != nullptr) effect::Release(old);
+    if (old != nullptr) old->Release();
     flag_ = 0;
 }
 
 void CEffectLightning::UpdateEnds() {
-    auto* target = static_cast<CEngineObject*>(ObjectById(ObjectWorld(this), toObject_));
+    CEngineObject* target = WorldOf(this)->ObjectWithId(toObject_);
     if (target != nullptr) {
-        std::memcpy(&to_, reinterpret_cast<char*>(target) + 0x1C, sizeof(Vector3));
+        std::memcpy(&to_, &static_cast<CTransformObject*>(target)->localPosition_, sizeof(Vector3));
         to_.z = to_.z + ConstAt(kOne);
     }
-    auto* source = static_cast<CEngineObject*>(ObjectById(ObjectWorld(this), fromObject_));
-    if (source != nullptr && ClassId(source) == 0x50 && IsClientSide(effect::ManagerContext(this)) == 0) {
+    CEngineObject* source = WorldOf(this)->ObjectWithId(fromObject_);
+    if (source != nullptr && source->GetClassId() == 0x50 && ContextWorld(this)->IsServer() == 0) {
         Vector3 point;
         std::memcpy(&from_, UnitEffectPoint(source, nullptr, &point), sizeof(Vector3));
     }
@@ -670,11 +668,11 @@ void CEffectLightning::UpdateEnds() {
 
 void CEffectLightning::Start(int update) {
     if (update != 0) return;
-    auto* created = ei::VCall<CEngineObject*>(BoltFactory(), 23, 0, -1);
-    CEngineObject* old = bolt_;
+    auto* created = static_cast<CLightning*>(BoltFactory()->CreateObject(0, -1));
+    CLightning* old = bolt_;
     bolt_ = created;
     if (created != nullptr) ++created->refCount_;
-    if (old != nullptr) effect::Release(old);
+    if (old != nullptr) old->Release();
     UpdateEnds();
     StartBolt(bolt_, nullptr, &from_, &to_, Bits(width_), flag_);
 }
@@ -691,7 +689,7 @@ int CEffectLightning::Unpack(int update, DeltaField* field) {
     if (!SnapshotReadToEnd()) return 0;
     UpdateEnds();
     localPosition_ = position;
-    CallStart(this, update);
+    EffectSlots(this)->Start(update);
     return 1;
 }
 

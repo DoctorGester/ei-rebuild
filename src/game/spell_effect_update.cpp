@@ -3,7 +3,9 @@
 // 0067EE00-0067EE80. See docs/notes/items_spells.md.
 #include "spell_effect_internal.h"
 #include "combat.h"
+#include "player_messages.h"
 #include "unit.h"
+#include "unit_ai.h"
 
 using namespace spellfx;
 
@@ -22,8 +24,8 @@ void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
-// The ScriptGroup a player reveals to: its +0x20 record + 0x50F8.
-void* RevealGroup(void* player) { return At<char*>(player, 0x20) + 0x50F8; }
+// A player's server connection (CPlayer::connection_ on the server is a CPlayerServer).
+CPlayerServer* ServerOf(CPlayer* player) { return reinterpret_cast<CPlayerServer*>(player->connection_); }
 
 // --- State 1 -------------------------------------------------------------------------------------
 
@@ -99,7 +101,7 @@ void FireballFlight(CSpellEffect* e) {
         Vector3 color = PrototypeColor(e);
         e->CreatePointLight(&at, &color, range * ConstAt(kRiseScale), &velocity);
         if (IsUnit(e->caster)) {
-            AiNoise(e->world + 0x2838, nullptr, ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(kNoiseKind)),
+            AiNoise(e->world->timeWheel_, nullptr, ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(kNoiseKind)),
                     &e->targetPoint);
         }
         e->timer = 0x23;
@@ -243,13 +245,13 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
     if (ticks >= 0) {
         float wake = e->radius + ConstAt(kWakeMargin);
         WorldWakeUnits(e->world, nullptr, &e->position, wake);
-        SectorMapFindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
+        SectorMapFindUnitsInRadius(e->world->Sectors(), nullptr, &e->position, &units, e->radius);
         for (auto* node = units.head; node;) {
             CEngineObject* unit = node->data;
             node = node->next;
             int duration = e->targetCount;
             int level = FrightLevel(&e->timer, &duration);
-            AiMemoryNotice(static_cast<char*>(ControllerOf(unit)) + 0xA50, nullptr, &e->position, level, -1);
+            AiMemoryNotice(ControllerOf(unit)->Brain()->memory, nullptr, &e->position, level, -1);
         }
         return;
     }
@@ -266,10 +268,10 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
 // 10 a closing particle and sound. Ends with the timer or without a caster.
 void Clairvoyance(CSpellEffect* e, UnitList& units) {
     if (IsUnit(e->caster)) {
-        void* player = static_cast<CUnit*>(e->caster)->player;
+        auto* player = reinterpret_cast<CPlayer*>(static_cast<CUnit*>(e->caster)->player);
         if (player) {
-            void* group = RevealGroup(player);
-            SectorMapFindUnitsInRadius(e->world + 0x170 + 0x124, nullptr, &e->position, &units, e->radius);
+            ScriptGroup* group = &ServerOf(player)->group50F8_;
+            SectorMapFindUnitsInRadius(e->world->Sectors(), nullptr, &e->position, &units, e->radius);
             for (auto* node = units.head; node;) {
                 CEngineObject* unit = node->data;
                 node = node->next;
@@ -295,17 +297,16 @@ void Possession(CSpellEffect* e) {
         e->state = 3;
         return;
     }
-    void* player = static_cast<CUnit*>(e->caster)->player;
-    if (player && ClassId(e->target) == spellfx::kClassUnit) {   // no null check on the target
+    auto* player = reinterpret_cast<CPlayer*>(static_cast<CUnit*>(e->caster)->player);
+    if (player && e->target->GetClassId() == spellfx::kClassUnit) {   // no null check on the target
         CEngineObject* target = e->target;
-        char* controller = static_cast<char*>(ControllerOf(target));
-        void* group = RevealGroup(player);
+        CUnitServer* server = ControllerOf(target);
+        ScriptGroup* group = &ServerOf(player)->group50F8_;
         GroupInsert(group, nullptr, target);
-        GroupInsertAll(group, nullptr, controller + 0xA90);
-        GroupInsertAll(group, nullptr, controller + 0xAAC);
-        At<int>(At<void*>(player, 0x20), 0x24) = target->id_;
+        GroupInsertAll(group, nullptr, &server->Brain()->visible);
+        GroupInsertAll(group, nullptr, &server->Brain()->unknown_12C);
+        ServerOf(player)->unknown24_ = target->id_;
         target->flags_ |= 0x2000000;
-        CUnitServer* server = reinterpret_cast<CUnitServer*>(controller);
         float sight = server->moveFactors[3] * server->stats.valuesB0[0].current;
         float floor = server->stats.valuesB0[2].current;
         float reach = !(sight >= floor) ? floor : sight;
@@ -322,15 +323,15 @@ void Possession(CSpellEffect* e) {
 void VisionFog(CSpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
-    if (ticks < 0 || !e->target || ei::VCall<int>(e->target, kSlotBusyB) != 0) e->state = 3;
+    if (ticks < 0 || !e->target || ObjectSlots(e->target)->IsDead() != 0) e->state = 3;
 }
 
 // 0x1B: the link lasts while both units are free; it ends with a sound (and a complaint from the
 // caster when a unit got busy).
 void Link(CSpellEffect* e) {
-    bool free = e->target && e->caster && ei::VCall<int>(e->target, kSlotBusyA) == 0 &&
-                ei::VCall<int>(e->caster, kSlotBusyA) == 0 && ei::VCall<int>(e->target, kSlotBusyB) == 0 &&
-                ei::VCall<int>(e->caster, kSlotBusyB) == 0;
+    bool free = e->target && e->caster && ObjectSlots(e->target)->IsLargeUnit() == 0 &&
+                ObjectSlots(e->caster)->IsLargeUnit() == 0 && ObjectSlots(e->target)->IsDead() == 0 &&
+                ObjectSlots(e->caster)->IsDead() == 0;
     if (free) {
         int ticks = e->timer - 1;
         e->timer = ticks;
@@ -338,7 +339,7 @@ void Link(CSpellEffect* e) {
         e->CreateSound(0, GameString(0x007957D0), &e->position, &kZeroVector, kVolume, kHearing);
     } else {
         e->CreateSound(0, GameString(0x007957D0), &e->position, &kZeroVector, kVolume, kHearing);
-        if (IsUnit(e->caster)) ControllerShout(static_cast<CUnitServer*>(ControllerOf(e->caster)), nullptr, 0x19);
+        if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x19);
     }
     e->state = 3;
 }
@@ -349,7 +350,7 @@ void Link(CSpellEffect* e) {
 void Teleport(CSpellEffect* e) {
     int ticks = e->timer;
     e->timer = ticks - 1;
-    if (ticks < 0 || !e->caster || ei::VCall<int>(e->caster, kSlotBusyB) != 0) {
+    if (ticks < 0 || !e->caster || ObjectSlots(e->caster)->IsDead() != 0) {
         e->state = 3;
         return;
     }
@@ -357,19 +358,19 @@ void Teleport(CSpellEffect* e) {
     if (arrival < 1) arrival = 1;
     if (e->timer != arrival) return;
     CEngineObject* caster = e->caster;
-    At<std::uint32_t>(&e->targetPoint, 8) = At<std::uint32_t>(caster, 0x24);
-    if (!AiMapPassableWithoutSelf(e->world + 0x170, nullptr, caster, &e->targetPoint)) {
-        if (IsUnit(e->caster)) ControllerShout(static_cast<CUnitServer*>(ControllerOf(e->caster)), nullptr, 0x10);
+    std::memcpy(&e->targetPoint.z, &static_cast<CTransformObject*>(caster)->localPosition_.z, 4);
+    if (!AiMapPassableWithoutSelf(e->world->AIMap(), nullptr, caster, &e->targetPoint)) {
+        if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x10);
         return;
     }
-    SectorMapMove(e->world + 0x170 + 0x124, nullptr, e->caster, &e->targetPoint);
+    SectorMapMove(e->world->Sectors(), nullptr, e->caster, &e->targetPoint);
     e->ReleaseVisual();
     e->ReleaseSound();
     if (!IsUnit(e->caster)) return;
-    BuffRecord record;
+    MapEffect record;
     BuffRecordInit(&record);
     std::memcpy(&record, &e->unknown_50, sizeof(record));
-    ei::VCall<void>(e->caster, kSlotApplyBuff, &record);
+    ObjectSlots(e->caster)->AddEffect(&record);
     ControllerReposition(ControllerOf(e->caster));
     RiseLight(e);
 }

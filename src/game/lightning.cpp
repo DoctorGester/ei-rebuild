@@ -442,16 +442,14 @@ EI_REPLACE_METHOD(0x00467E10, CLightning::SetEndpoints);
 // --- CLightningManager --------------------------------------------------------------------------
 
 int CLightningManager::DrawAll(void* device) {
-    using Node = mfc::CTypedPtrList<CLightning>::Node;
-    // The manager's object list (MFC CPtrList at CBaseManager +0x34; its head at +0x38).
-    Node* node;
-    std::memcpy(&node, reinterpret_cast<const char*>(this) + 0x38, sizeof(node));
+    // The manager's object list (the bolts, in registration order).
+    ObjectList::Node* node = objectList_.head;
     while (node) {
-        Node* current = node;
+        ObjectList::Node* current = node;
         node = node->next;
-        current->data->Draw(device);
+        static_cast<CLightning*>(current->data)->Draw(device);
     }
-    for (Node* n = newBolts_.head; n; n = n->next) {
+    for (auto* n = newBolts_.head; n; n = n->next) {
         if (n->data) n->data->Release();
     }
     newBolts_.RemoveAll();

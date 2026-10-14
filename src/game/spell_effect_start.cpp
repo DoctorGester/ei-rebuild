@@ -9,6 +9,8 @@
 #include "unit.h"
 #include "world.h"
 
+#include "ei/vcall.h"
+
 using namespace spellfx;
 
 namespace {
@@ -207,13 +209,13 @@ Next StartPoisonCloud(CSpellEffect* e) {
 // with the strength trunc(power x 16); the effect itself ends.
 Next ApplyBuff(CSpellEffect* e) {
     if (!e->target) return Next::Done;
-    BuffRecord record;
+    MapEffect record;
     BuffRecordInit(&record);
     std::memcpy(&record, &e->unknown_50, sizeof(record));
-    record.strength = static_cast<std::uint8_t>(
+    record.power = static_cast<std::uint8_t>(
         PowerScaledToInt(&e->damage, reinterpret_cast<const float*>(Prototype(e) + 0x2C), ConstPtr(kBuffScale)));
-    record.flag = e->unknown_A4;
-    ei::VCall<void>(e->target, kSlotApplyBuff, &record);
+    record.ending = e->unknown_A4;
+    ObjectSlots(e->target)->AddEffect(&record);
     return Next::Done;
 }
 
@@ -265,8 +267,10 @@ Next StartVisionFog(CSpellEffect* e) {
 // 0x18: healing. Heals the target's controller by the effect value; the sound and the light only
 // when the target is not at full health (or +0xA4 is clear).
 Next StartHealing(CSpellEffect* e) {
-    if (ClassId(e->target) != spellfx::kClassUnit) return Next::Done;   // no null check
-    ei::VCall<void>(ControllerOf(e->target), kControllerSlotHeal, Bits(e->damage));
+    if (e->target->GetClassId() != spellfx::kClassUnit) return Next::Done;   // no null check
+    // Controller slot 21, Heal(float): the original pushes the amount's bits (MOV/PUSH), which a
+    // float argument would load and store through the FPU, so the call stays by slot.
+    ei::VCall<void>(ControllerOf(e->target), 21, Bits(e->damage));
     CEngineObject* unit = e->target;
     float size = Power(e);
     e->CreateParticle(0, 0x2006, &kZeroVector, size, 1.0f, &kZeroVector, unit);
@@ -286,10 +290,10 @@ Next StartHealing(CSpellEffect* e) {
 // 0x1B: link between two different units that are both free; otherwise the caster complains (0x18).
 Next StartLink(CSpellEffect* e) {
     if (!IsUnit(e->target) || !IsUnit(e->caster)) return Next::Done;
-    bool free = ei::VCall<int>(e->target, kSlotBusyA) == 0 && ei::VCall<int>(e->caster, kSlotBusyA) == 0 &&
-                ei::VCall<int>(e->target, kSlotBusyB) == 0 && e->target != e->caster;
+    bool free = ObjectSlots(e->target)->IsLargeUnit() == 0 && ObjectSlots(e->caster)->IsLargeUnit() == 0 &&
+                ObjectSlots(e->target)->IsDead() == 0 && e->target != e->caster;
     if (!free) {
-        if (IsUnit(e->caster)) ControllerShout(static_cast<CUnitServer*>(ControllerOf(e->caster)), nullptr, 0x18);
+        if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x18);
         return Next::Done;
     }
     Vector3 scratch;
@@ -330,15 +334,15 @@ Next StartTeleport(CSpellEffect* e) {
 // 0x24: charm. The target's controller is tamed by the caster until their sides (controller
 // +0x1C, +0x24C) agree; a failed attempt makes the caster complain (0x1A).
 Next StartCharm(CSpellEffect* e) {
-    if (ClassId(e->target) != spellfx::kClassUnit) return Next::Leave;   // no null check
+    if (e->target->GetClassId() != spellfx::kClassUnit) return Next::Leave;   // no null check
     if (!IsUnit(e->caster)) return Next::Leave;
-    void* tamed = ControllerOf(e->target);
-    void* tamer = ControllerOf(e->caster);
-    float skill = static_cast<CUnitServer*>(tamer)->stats.stat20 + e->damage;
-    auto side = [](void* controller) { return At<int>(static_cast<CUnitController*>(controller)->unit_, 0x24C); };
+    CUnitServer* tamed = ControllerOf(e->target);
+    CUnitServer* tamer = ControllerOf(e->caster);
+    float skill = tamer->stats.stat20 + e->damage;
+    auto side = [](CUnitServer* controller) { return controller->unit->player; };
     while (side(tamed) != side(tamer)) {
-        if (ControllerTame(static_cast<CUnitServer*>(tamed), nullptr, reinterpret_cast<CUnit*>(e->caster), skill) == 0) {
-            if (IsUnit(e->caster)) ControllerShout(static_cast<CUnitServer*>(ControllerOf(e->caster)), nullptr, 0x1A);
+        if (ControllerTame(tamed, nullptr, reinterpret_cast<CUnit*>(e->caster), skill) == 0) {
+            if (IsUnit(e->caster)) ControllerShout(ControllerOf(e->caster), nullptr, 0x1A);
             return Next::Done;
         }
     }
@@ -416,7 +420,7 @@ EI_REPLACE_METHOD(0x0067EF40, CSpellEffect::SetVisual);
 
 void CSpellEffect::UpdateFootprint(int type, int stamp) {
     if (!visual) return;
-    void* aiMap = world + 0x170;
+    CAIMap* aiMap = world->AIMap();
     switch (type) {
     case 6: {
         Vector3 direction;
@@ -435,7 +439,7 @@ void CSpellEffect::UpdateFootprint(int type, int stamp) {
     default: return;
     }
     if (stamp) {
-        AiMapStamp(aiMap, nullptr, reinterpret_cast<CWorld*>(world)->tick_, SpellFootprint());
+        AiMapStamp(aiMap, nullptr, world->tick_, SpellFootprint());
         footprintStamped = 1;
     } else {
         AiMapClear(aiMap, nullptr, SpellFootprint());
@@ -523,8 +527,8 @@ void CSpellEffect::CreateSoundSequence(const Vector3* at, const Vector3* velocit
     std::memcpy(&effect->radius_, &hearing, 4);
     std::memcpy(&effect->volume_, &volume, 4);
     effect->noFade_ = 1;
-    At<mfc::CString>(effect, 0x14C) = first;
-    auto& names = At<console::CStringArray>(effect, 0x150);
+    effect->name_ = first;
+    auto& names = effect->names_;
     if (count < 1) {
         names.SetAtGrow(names.size, pattern);
     } else {

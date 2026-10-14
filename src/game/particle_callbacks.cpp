@@ -4,7 +4,9 @@
 #include "particle_common.h"
 
 #include "core_maths.h"
+#include "map_object_figures.h"
 #include "object_maths.h"
+#include "unit.h"
 
 #pragma float_control(precise, on)
 
@@ -139,7 +141,7 @@ int CParticleSource::EmitCasting(Particle* p, int) {
     int pick = static_cast<int>(Next() % span);
     if (pick > 0) {
         const ParticleElement& swirl = elements[(pick - 1) % lifetime];
-        const float* toward = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&swirl) + 0x18);
+        const float* toward = &swirl.value[3];
         x = Store(D(x) + D(toward[0]));
         y = Store(D(y) + D(toward[1]));
         double zu = D(z) + D(toward[2]);
@@ -503,7 +505,7 @@ void PlaceRingSpark(CParticleSource* s, Particle* p, const ParticleElement& ring
 
 float RingRadius(const ParticleElement& ring) {
     float r;
-    std::memcpy(&r, reinterpret_cast<const std::uint8_t*>(&ring) + 0x0C, sizeof(float));
+    std::memcpy(&r, &ring.value[0], sizeof(float));
     return r;
 }
 
@@ -1652,7 +1654,7 @@ int CParticleSource::EmitBag(Particle* p, int index) {
         return 1;
     }
     const ParticleElement& ball = elements[Next() % 80];
-    int age = *reinterpret_cast<const std::int32_t*>(reinterpret_cast<const std::uint8_t*>(&ball) + 0x30);
+    int age = *reinterpret_cast<const std::int32_t*>(&ball.value[9]);
     p->color = BagRgb(age);
     int life = ball.ticks + 1;
     if (life > 5) life = 5;
@@ -1660,7 +1662,7 @@ int CParticleSource::EmitBag(Particle* p, int index) {
     p->frame = 4;
     p->state = -1;
     double u = Unsigned(Next()) * EI_P_SCALE_1 - D(EI_P_ONE);
-    const float* step = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&ball) + 0x0C);
+    const float* step = &ball.value[0];
     float ax = Store(u * D(step[0]));
     float ay = Store(u * D(step[1]));
     double az = u * D(step[2]);
@@ -2402,7 +2404,7 @@ int CParticleSource::EmitCylinder(Particle* p, int) {
     if (life > 14) life = 14;
     p->life = life;
     if (life < 0) return 0;
-    const float* step = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&e) + 0x0C);
+    const float* step = &e.value[0];
     auto isZero = [](float f) { return f == 0.0f || x87::IsNaN(f); };
     if (isZero(step[0]) && isZero(step[1])) return 0;
     p->frame = 1;
@@ -3056,7 +3058,7 @@ int CParticleSource::EmitClayRing(Particle* p, int index) {
     double t = Unsigned(Next()) * EI_P_SCALE_1;
     p->life = 5;
     const ParticleElement& e = elements[j];
-    const float* previous = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&e) + 0x0C);
+    const float* previous = &e.value[0];
     double u = D(EI_P_ONE) - t;
     float a = Store(u * D(previous[0]));
     float b = Store(u * D(previous[1]));
@@ -3175,7 +3177,7 @@ int CParticleSource::EmitFalling(Particle* p, int) {
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
     p->size = Store(Unsigned(Next()) * EI_FALL_SIZE_SCALE + D(EI_FALL_SIZE_BASE));
     const ParticleElement& gust = elements[Next() % static_cast<std::uint32_t>(elementCount)];
-    const float* g = reinterpret_cast<const float*>(reinterpret_cast<const std::uint8_t*>(&gust) + 0x0C);
+    const float* g = &gust.value[0];
     float reach = Store(D(g[0]) * D(EI_FALL_HALF));
     int spread = GameFtol(EI_FALL_PI * EI_FALL_PER_DEGREE * EI_FALL_TEN);
     float turn = Store(static_cast<double>(spread) * D(g[1]));
@@ -3352,14 +3354,14 @@ int CParticleSource::UpdateRegeneration(Particle* p) {
     Vector3 target;
     std::memcpy(&target, &origin, sizeof(Vector3));
     if (attachedTo) {
-        const auto* carrier = static_cast<const std::uint8_t*>(attachedTo);
-        auto field = [carrier](int offset) { return D(*reinterpret_cast<const float*>(carrier + offset)); };
-        double w = field(0x34), x = field(0x38), y = field(0x3C), z = field(0x40);
+        const auto* carrier = static_cast<const CObject3D*>(attachedTo);
+        const Quaternion& turn = carrier->orientation;
+        double w = D(turn.w), x = D(turn.x), y = D(turn.y), z = D(turn.z);
         double xx = x * x;
         double axisX = w * w - (z * z + y * y + xx) + (xx + xx);
         float axisY = Store((x * y + z * w) * 2.0);
         float axisZ = Store((x * z - y * w) * 2.0);
-        float scale = Store(field(0x134) * D(p->velocity.x) * D(GameFloat(0x0073CE08)));    // 0.65
+        float scale = Store(D(carrier->radius) * D(p->velocity.x) * D(GameFloat(0x0073CE08)));    // 0.65
         float offsetY = Store(D(axisY) * D(scale));
         float offsetZ = Store(D(axisZ) * D(scale));
         target.x = Store(axisX * D(scale) + D(target.x));
@@ -3599,8 +3601,8 @@ void CParticleSource::TickFeetCloud(ParticleElement* e) {
             FigurePartPosition(unit, &at, part);
             e->pos = at;
         } else {
-            const float* place = reinterpret_cast<const float*>(static_cast<const std::uint8_t*>(unit) + 0x1C);
-            float raise = *reinterpret_cast<const float*>(static_cast<const std::uint8_t*>(unit) + 0x14C);
+            const float* place = &static_cast<const CObject3D*>(unit)->position.x;
+            float raise = static_cast<const CObject3D*>(unit)->above.z;
             std::memcpy(&e->pos, place, 2 * sizeof(float));
             e->pos.z = Store(D(place[2]) + D(raise));
         }
@@ -3701,7 +3703,7 @@ int CParticleSource::UpdateSilence(Particle* p) {
     double radius;
     float* kept = ParticleFloat(p, 0x34);
     if (attachedTo) {
-        radius = D(*reinterpret_cast<const float*>(static_cast<const std::uint8_t*>(attachedTo) + 0x134)) *
+        radius = D(static_cast<const CObject3D*>(attachedTo)->radius) *
                  D(GameFloat(0x0073B86C));
         *kept = Store(radius);
     } else {
@@ -4378,7 +4380,7 @@ int CParticleSource::EmitStun(Particle* p, int) {
         Attach(nullptr);
         return 0;
     }
-    if (*reinterpret_cast<const int*>(static_cast<const std::uint8_t*>(unit) + 0x264) == 3) {
+    if (static_cast<const CUnit*>(unit)->moveMode == 3) {
         emitCount = 4;
         p->life = 5;
     } else {

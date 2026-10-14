@@ -285,6 +285,9 @@ public:
     // The world position of `object`'s first part named `prefix...`, else of its "bd" part, else
     // its position raised by the bounds' upper z extent. Returns `out` (`this` is not used).
     Vector3* PartPoint(Vector3* out, CObject3D* object, const char* prefix);   // 00484B40
+    // The source as the engine object it is (its first 0x1C bytes; slots 0-12 are CEngineObject's).
+    CEngineObject* AsObject() { return reinterpret_cast<CEngineObject*>(this); }
+
     // Every particle back to the pool, emission off (flags 0 and 2), detached.
     void StopAndClear();                            // 00485380
     // The loop Clear and StopAndClear share: every particle unlinked and returned to the pool.

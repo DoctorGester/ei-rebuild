@@ -2,11 +2,12 @@
 // missiles, 00682650 lasting effects) call every tick to deliver a spell's damage.
 #include "spell.h"
 
+#include "map_object.h"
 #include "sector_map.h"
 #include "unit.h"
+#include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/mfc.h"
 
@@ -17,7 +18,6 @@
 #pragma float_control(precise, on)
 
 namespace {
-constexpr int kSlotUnitHit = 31;            // CUnit +0x7C: (DamageInfo*, attacker, caster)
 constexpr float kTargetThreshold = 0.5f;    // 0073B86C
 constexpr float kWallHalfWidth = 1.0f;      // 0073B84C
 void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
@@ -27,9 +27,7 @@ using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
 // 005C0BD0 CSectorMap::FindUnitsInRadius (rewritten in sector_map.cpp; through its address so its
 // verify wrapper sees the call).
-CSectorMap* SectorMapOf(const CSpellEffect* effect) {
-    return reinterpret_cast<CSectorMap*>(effect->world + 0x170 + 0x124);
-}
+CSectorMap* SectorMapOf(const CSpellEffect* effect) { return effect->world->Sectors(); }
 
 void InitList(UnitList& list) {
     list.vtable = kPtrListVtable;
@@ -59,7 +57,7 @@ bool AcceptsAreaSpells(CEngineObject* object) {
 void Deliver(CSpellEffect* effect, DamageInfo* hit, CEngineObject* unit) {
     if (effect->caster && !SpellCanAffectOriginal(effect->Spell(), nullptr, effect->caster, unit)) return;
     CEngineObject* attacker = (effect->flags & 1) ? nullptr : effect->caster;
-    ei::VCall<int>(unit, kSlotUnitHit, hit, attacker, effect->caster);
+    ObjectSlots(unit)->ReceiveHit(hit, attacker, effect->caster);
 }
 } // namespace
 

@@ -5,10 +5,11 @@
 #include "lightning.h"
 
 #include "core_maths.h"
+#include "model.h"
 #include "random.h"
+#include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 
@@ -20,13 +21,6 @@
 #include "originals_render.h"
 
 namespace {
-
-// The render device's slots used here: 11 SetTexture(stage, texture) (0: failed), 16 a strip
-// along points (points, width, visibility, texture length, texture offset, 0.25), 17 sprites
-// (0, points, sprite records).
-constexpr int kSetTexture = 11;
-constexpr int kDrawStrip = 16;
-constexpr int kDrawSprites = 17;
 
 // 00500970: makes sure the texture in `holder` is loaded.
 void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
@@ -91,7 +85,7 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
     }
     auto** holder = reinterpret_cast<void**>(&self->glowTexture_);
     EnsureTextureLoaded(holder);
-    if (!ei::VCall<int>(device, kSetTexture, 0, *holder)) return;
+    if (!static_cast<CSceneRenderer*>(device)->SetTexture(0, *holder)) return;
 
     // The 15 frames of the 4 x 4 glow texture: (u0, v0, u1, v1).
     float frames[15][4];
@@ -112,7 +106,7 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
     if (length > 0.0f || length < 0.0f) towards /= length;
     float scaled = position->x * GameFloat(0x0073C518);   // 15
     int shift = x87::fistp(scaled);
-    int frame = (static_cast<int*>(ObjectWorld(self))[0x64 / 4] + shift) % 15;
+    int frame = (static_cast<CWorld*>(ObjectWorld(self))->tick_ + shift) % 15;
     for (int j = 0; j < 8; ++j) {
         float t = static_cast<float>(j) * GameFloat(0x0073C520);   // 1/8
         Vector3 along{towards.x * t * size, towards.y * t * size, towards.z * t * size};
@@ -126,7 +120,7 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
         s.rect = frames[frame % 15];
         frame += 2;
     }
-    ei::VCall<int>(device, kDrawSprites, 0, &GlowPoints(), &Sprites());
+    static_cast<CSceneRenderer*>(device)->DrawSprites(0, &GlowPoints(), &Sprites());
 }
 EI_REPLACE(0x00467590, DrawLightningGlow);
 
@@ -134,23 +128,24 @@ EI_REPLACE(0x00467590, DrawLightningGlow);
 int __fastcall DrawLightning(CLightning* self, void*, void* device) {
     auto** holder = reinterpret_cast<void**>(&self->texture_);
     EnsureTextureLoaded(holder);
-    if (!ei::VCall<int>(device, kSetTexture, 0, *holder)) return 0;
-    int visibility = ClipTest(static_cast<CTransformPipeline**>(device)[2], nullptr, reinterpret_cast<const ClipBounds*>(&self->boundsKind_));
+    auto* renderer = static_cast<CSceneRenderer*>(device);
+    if (!renderer->SetTexture(0, *holder)) return 0;
+    int visibility = ClipTest(renderer->pipeline_, nullptr, reinterpret_cast<const ClipBounds*>(&self->boundsKind_));
     if (visibility == 2) return 1;
     const float zero = GameFloat(0x0073B858);
     if (self->power_ >= zero) self->Animate();
     const float slant = GameFloat(0x0073C3B0);   // 0.25
     if (!(self->power_ >= zero)) {   // negative (or NaN): untextured lengthwise
-        ei::VCall<int>(device, kDrawStrip, &self->main_.points, self->main_.width, visibility, 0.0f, 0.0f, slant);
-        for (LightningSegment& b : self->branches_) ei::VCall<int>(device, kDrawStrip, &b.points, b.width, visibility, 0.0f, 0.0f, slant);
+        renderer->DrawStrip(&self->main_.points, self->main_.width, visibility, 0.0f, 0.0f, slant);
+        for (LightningSegment& b : self->branches_) renderer->DrawStrip(&b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
         float span = LengthZXY(self->main_.step) * static_cast<float>(self->main_.points.size) * GameFloat(0x0073C4FC);   // 0.6
-        ei::VCall<int>(device, kDrawStrip, &self->main_.points, self->main_.width, visibility, span, offset, slant);
+        renderer->DrawStrip(&self->main_.points, self->main_.width, visibility, span, offset, slant);
         for (LightningSegment& b : self->branches_) {
             offset = RandomOffset();
             span = LengthZXY(b.step) * static_cast<float>(b.points.size) * GameFloat(0x0073C4FC);
-            ei::VCall<int>(device, kDrawStrip, &b.points, b.width, visibility, span, offset, slant);
+            renderer->DrawStrip(&b.points, b.width, visibility, span, offset, slant);
         }
     }
 

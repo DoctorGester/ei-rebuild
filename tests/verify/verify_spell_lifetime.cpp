@@ -106,7 +106,7 @@ EI_VERIFY(0x0067E5B0, CastDeleteVerify, 0, s_unused);
 // while a cast is alive (005935C0).
 namespace {
 
-void __fastcall CastInitVerify(CSpellEffect* self, void*, char* world, CSpell* spell, CEngineObject* caster,
+void __fastcall CastInitVerify(CSpellEffect* self, void*, CWorldServer* world, CSpell* spell, CEngineObject* caster,
                                const Vector3* position, CEngineObject* target, const Vector3* targetPoint, int flagA4) {
     bool newCaster = caster != self->caster;
     // The caster's count is only predictable when the target slot does not hold or take it.
