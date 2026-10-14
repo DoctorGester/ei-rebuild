@@ -159,6 +159,7 @@ standalone build still needs source for them (vanilla behaviour):
 
 Not ported because every caller is rewritten; dead once the hooks go (the standalone build drops them):
 script area (A-S5) 004C17F0 (SSCCmd::Execute), 004DEBC0 (TextSourceList::Find, from GetItemTexts), 004D0AF0 (LoadFunction), 004D3650 / 004D3670 / 004D6310
-(CScript::Load's #define pair and list), 004D5880 (LoadFile's CStdioFile read; our LoadFile forwards to it),
-004C17E0 (a counted-pointer release, 0069AC20 and unwind funclets). The static `CSysInfo` object 004DDCB0-004DE8B0
-is built by the static initialiser table before the hooks and needs the standalone build's own startup.
+(CScript::Load's #define pair and list),
+004C17E0 (a counted-pointer release, 0069AC20 and unwind funclets). 004D5880 (LoadFile's CStdioFile read) and the
+static `CSysInfo` object's code 004DDCB0-004DE8B0 are ported (A-E2); the object is still built by the static
+initialiser table before the hooks and needs the standalone build's own startup.

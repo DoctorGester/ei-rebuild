@@ -30,7 +30,8 @@ from the rel32 each frame (005E65F0 when the byte is not a CALL) and calls it in
 the game's draw (EndScene) and the interface draw, before the cursor blit (005E54A0), the flip
 (004EF610) and the lock's release (005E6610). The original body behind the hook's entry jump stays
 untouched so the harness can still find the call. The camera-freeze skip (`CALL 0040FB30` at 00457595)
-and the `PeekMessageA` return addresses (00457119 / 00457610) are in WinMain (00456440).
+and the `PeekMessageA` return addresses (00457119 / 00457610) are in WinMain (00456440); the rewritten
+WinMain keeps both working (A-E2 below).
 
 ## Kept and skipped
 
@@ -38,10 +39,10 @@ and the `PeekMessageA` return addresses (00457119 / 00457610) are in WinMain (00
   `FrameStep`'s movie capture passes two uninitialised stack words as the capture rectangle's size when there
   is no render target; the lever table's destructor indexes the free lists with (0 - 1) >> 3 for a
   zero-sized record block with a non-null pointer.
-- Rebirth-patched, not rewritten: 00456440 (WinMain: NivalRegistry, the harness keys on its return
-  addresses), 00443080, 00463390, 00468A00.
-- Static initialisers (run before the hooks): 00444740 (debug panel), 00458870 (GameOptions), 0045E820,
-  004632A0 (lever table constructor).
+- Rebirth-patched: 00456440 (WinMain), 00443080, 00463390, 00468A00 are ported with the vanilla body and
+  hooked in the vanilla launch only (A-E1, A-E2).
+- Static initialisers (run before the hooks): 0045E820, 004632A0 (lever table constructor); 00444740 (debug
+  panel) and 00458870 (GameOptions) are ported and compared at WinMain's entry (A-E2).
 - Dead: 00442F00, the animation exporter's writer and six unreferenced functions.
 - The fake unit scene loader (00471A90-004775F0, slot 62 of CFakeUnit via 00446BA0 -> 00446C10 ->
   00471B10) and 00477B00 (applies a unit record to a new unit, from 005927C0) are in `objects.md`.
@@ -91,9 +92,60 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
 - Rebirth-patched functions ported by A-E1 (vanilla behaviour, vanilla launch only): 00468A00 the lightning
   noise table's load (objects.md), 00463390 the lever table's load (units.md), 0040ECD0 the camera's path
   file load (core.md); and the network 0041AA10, 0041ACA0, 0041B1C0 (network.md).
-- Not ported in 0x00400000-0x004C0000 after A-E1: the Rebirth-patched 0041ECC0, 00443080 and 00456440
+- Not ported in 0x00400000-0x004C0000 after A-E1 (all but the last ported by A-E2, below): the Rebirth-patched 0041ECC0, 00443080 and 00456440
   (the application's start-up, 4832 bytes); the static initialisers 00444740 and 00458870 (they run
   before the hooks install); 004560D0 (the message box: it flips the DirectDraw surface to GDI); and 69
   functions under five bytes. 0049F7B1 is listed as a
   function but is the tail of `IsaacRandom::Seed` (0049F660, random.cpp) after its catch block (A-S11 gave it a
   `compiler` row in config/library.csv, so it is no longer counted).
+
+## A-E2: WinMain, the static initialisers, the last Rebirth-patched functions, MFC TRY / CATCH
+
+- **WinMain 00456440** (`app_main.cpp`, `app::GameMain`). It can be hooked: the hook DLL installs its hooks
+  from a stub at WinMain's first instruction (hook.cpp), so a replacement of 00456440 itself takes effect when
+  the stub jumps back. Rebirth patches the body (NivalRegistry, CommandLine, SavesPath, the CD check), so the
+  rewrite runs in the vanilla launch only. Every callee is called through its address, so their hooks and
+  wrappers keep running. Ours only (`verify_app_main.cpp`: no window at entry, the mouse object released at the
+  end); every vanilla scenario runs on it from start to exit.
+- The harness told the loop's calls apart by return address (the two `PeekMessageA` calls that take posted
+  input, the frame's `timeGetTime`). The rewrite names the call it makes in `ei::mainloop::g_site`
+  (`include/ei/main_loop.h`), which the harness accepts beside the addresses, and makes the frame's last
+  camera update through the current target of the original `CALL` at 00457595 (the harness redirects it to
+  hold the camera during "freeze"); the original body stays behind the entry jump.
+- Start-up order: sysmsg.txt (three lines, built-in fallback), DirectX 7, the two class factories, the command
+  line ("-moviepath_", "-nocam", .cam / .scr / .mob / .mpr, "-benchmark_", "-devicetarget_"), the window class
+  (a running game is brought forward and this one exits), the registry root and options, the new handler, the
+  worlds and the camera (field of view pi * 2 / 7), free disk space (300 MB warning) and the disc's label, the
+  mouse object, the saves / mp / textures folders, the window, the renderer and the video memory flags
+  (00784753-00784756), the sound, the intro movies, the databases, the cursors, the interface, the map list,
+  the first map.
+- The loop: the time since the last pass (at most 5 ticks; 1000 / fps while frames are recorded) is added to the
+  server's and the client's backlog (0079BC64 / 0079BC68; the client's scaled by the client speed 00784758,
+  dropped above 0x4000000). The server runs whole ticks; the client runs one while it has a tick and either
+  server updates wait or its view is not in mode 2, and moves the camera a tick each time. Then the game
+  flow's request, the tick fraction, the next client speed from balance = waiting updates - fraction
+  (e^(balance / 10) when negative, 1 up to 1, else sqrt(balance) * 0.1 + 1 - 0.1; kept within 0.1 .. 10), the
+  camera for the real time of the pass, the camera file's record / playback, the interface and a frame.
+- Kept: a message that waits before the first pass goes to the interface's input or to the window procedure by
+  the top byte of a reused stack slot (the disc folder's text pointer with sound, the free non-local video
+  memory without); `SetUpCursors`' last argument has only its low byte set; "res\speech.res" is built twice.
+- 00455A30 (`app::OutOfMemory`): the operator new handler WinMain installs ("Memory depleted", returns 0).
+  Ghidra has no function there (config/extra_function_sizes.csv). Ours only, not reached.
+- Static initialisers (they run before the hooks, so each port is compared at WinMain's entry with what the
+  original built: `verify_static_initialisers.cpp`): the debug panel 00444740, the options 00458870
+  (`options_construct.cpp`; the layout is named in options.h), `CSysInfo`'s unit 004DDCB0-004DE87C
+  (`sys_info.cpp`) and the weather's noise curves 004E3980 (`weather_noise.cpp`: rebuilt from `rand` seeded
+  with 1, bit for bit).
+- 004560D0 `ShowMessageBox` (full screen: DirectDraw flips to the GDI surface first; the cursor is put back).
+  Ours only. 006462A0, the unit panel's draw: items_spells.md.
+- **MFC TRY / CATCH** (`src/lib/mfc_try.h`): the game's MFC throws C++ exceptions (a `CException*`), and a
+  TRY block is an `AFX_EXCEPTION_LINK` (007020F1; its destructor is AfxTryCleanup 0070212F) around a
+  try / catch. A rewrite writes exactly that: `mfc::ExceptionLink` and a C++ handler for a global class with
+  the game's name (`CException`, `CFileException`); this compiler's frame handler matches what the game's
+  _CxxThrowException raises by the decorated type name, and the game's frames in between unwind through their
+  own handlers. Ported with it: 004D5880 (the script loader's text file reader, `script_text_file.cpp`),
+  `CDib::Read` 006D5910 / `Write` 006D5AC0 (`dib_file.cpp`). No scenario reaches them; a start-up check
+  (`verify_mfc_try.cpp`) drives them side by side with the originals: a missing text file (the throw from the
+  game's CStdioFile constructor is caught, the TRY chain is as before), a text file with a line longer than
+  the 0x800 buffer, bitmaps of 16 / 24 / 32 bits written and read back, 8 bit files with a colour table. The
+  CDib handlers (a message box) are not driven. 004F0B90 can be ported the same way.

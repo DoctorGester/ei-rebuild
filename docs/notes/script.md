@@ -231,8 +231,8 @@ rewritten but only reached in multiplayer. Dead (config/dead_code.csv): the ques
 004D4E80 / 004D5310, 004D38B0 / 004D38F0 / 004D5EC0 / 004D65B0; 004B3A70 has no callers. Library: 237 functions, the `CArray`
 / `CList` instantiations of the script types between 004C1290 and 004CEE80 (vtables 0073D110-0073D4C0) and the quest table's
 hash_map members (004CE110, 004CE460, 004CEF00, 004CF0F0, 004CF160). Called only by rewritten originals (dead in the
-standalone build): 004DEBC0, 004C17F0, 004D0AF0, 004D3650 / 004D3670 / 004D6310, 004D5880 (LoadFile's CStdioFile TRY / CATCH:
-our code cannot catch the game's C++ exceptions), 004C17E0.
+standalone build): 004DEBC0, 004C17F0, 004D0AF0, 004D3650 / 004D3670 / 004D6310, 004C17E0. 004D5880 (LoadFile's CStdioFile TRY / CATCH) is ported (A-E2: our
+code does catch the game's C++ exceptions, app.md "MFC TRY / CATCH").
 
 gz2g's scripts (zone2.mob chunk 0xACCEECCB, decoded as 004D8E10 does: the first dword seeds the MSVC rand LCG, `x = x *
 0x343FD + 0x269EC3`, each byte XORed with `x >> 16`) start every magic trap armed and disarm them from triggers
@@ -348,7 +348,7 @@ Classification of 0x004A0000-0x00500000: library.csv holds the STLport / MFC mem
 004F4CD0-004F6850 / 004FAE40-004FC6A0, the party manager's containers 004A90F0-004AFAC0 including the weapon / armour lookups
 004AB720 / 004AB820, EH-only helpers); dead_code.csv the dumper's writer 004D41C0 and the 3DS loader's helpers
 004A1E60-004A47D0. Not game logic here: the device layer 004E5E50-004F0B00 and state blocks 004FCA60-004FDB50 (renderer
-work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalone build).
+work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310; ported by A-E2).
 
 ### Next candidates in this range
 
@@ -358,7 +358,7 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalo
   library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth); the debug line lists 0049B140 / 0049B780.
 - A-S10 did the particle manager (particles.md), the ISAAC seed 0049F660 / 0049F4B0 (core.md), 004DC390, the unit modes'
   slots, GameError, CRainSnow Clear / Start, the zone exit's stream form, CVisibilityFog's slots. Classified: 0049F820 /
-  0049F840 / 0049F870 / 004E3B20 / 004E3AD0 are static initialisers (before the hooks; 004E3980 is only theirs); 0049F890
+  0049F840 / 0049F870 / 004E3B20 / 004E3AD0 are static initialisers (before the hooks; 004E3980 is only theirs: ported by A-E2); 0049F890
   (keyframe track) is reached only from 00448720, which only calls itself (dead); STLport / MFC rows for the party
   manager's containers 004B0A90-004B1590, the script CArrays 004B5ED0 / 004BD120 / 004BDB80 / 004BE250-004BE430, 004A39C0.
   Only reachable from rewritten callers (left unported): 004824B0 / 00483D40 (LoadMobFile's record map), 004B3200 (from
@@ -429,15 +429,19 @@ game code among them (39): 18 rewritten, 21 left.
   Rewritten: what can run after the hooks install: Create's shell 004DDF05 (it calls the collector 004DDF28
   and returns 1), the empty Destroy 004DDF1D, the class name / id slots 004DE890 / 004DE8A0, the destructor
   004DDE75, its deleting form 004DE8B0 and the exit handler 004DDD60. Side by side: the two pure slots; the
-  rest ours only (`verify_sys_info.cpp`); the exit handler runs on every exit. Not rewritten, because a static
-  initialiser runs them before the hooks install: the initialisers 004DDCB0, 004DDCBA (it stores 2 * pi at
+  rest ours only (`verify_sys_info.cpp`); the exit handler runs on every exit. A static initialiser runs the
+  rest before the hooks install (ported by A-E2 and compared at WinMain's entry with what the original built,
+  `verify_static_initialisers.cpp`): the initialisers 004DDCB0, 004DDCBA (it stores 2 * pi at
   007AB8F0), 004DDCCD, 004DDCD7, 004DDCEE, 004DDCF8, 004DDD0F, 004DDD19, 004DDD30 (constructs the global and
   registers 004DDD60), 004DDD3F, 004DDD4E, 004DE855, 004DE87C, the constructor 004DDD6F, the collector 004DDF28
   (1887 bytes: registry and version queries into the five texts) and its helpers 004DE687, 004DE6C2, 004DE6F3,
-  004DE789. They are standalone build material.
-- 004E3980 (the weather's noise tables filled from `rand`): only a static initialiser calls it; not rewritten.
-- 004D5880 (from 004D36F0: a text file read through `CStdioFile` inside an MFC TRY / CATCH): not rewritten;
-  the MFC exception link frames (`AFX_EXCEPTION_LINK`, `AfxTryCleanup`) need the game's own unwinding.
+  004DE789.
+- 004E3980 (the weather's noise tables filled from `rand`; `weather_noise.cpp`): only a static initialiser calls
+  it; the tables are rebuilt from `rand` seeded with 1 at WinMain's entry and match bit for bit (A-E2).
+- 004D5880 (from 004D36F0: a text file read through `CStdioFile` inside an MFC TRY / CATCH(CFileException);
+  `script_text_file.cpp`, A-E2): the text is emptied, the file opened by the throwing constructor (text mode,
+  share deny write), lines of up to 0x7FF characters appended, the file closed; a caught exception gives 0.
+  Side by side at start-up (app.md "MFC TRY / CATCH"); no scenario loads a script text file.
 - The visibility fog's manager (`vis_fog_manager.cpp`; `ClientArrayManager` in world.h is `CVisFogManager`,
   vtable 0073F554: the "VisionFog" texture at +0xB0 and a CList of counted fogs at +0xB4). 004E2290 (slot 14)
   makes a `CVisibilityFog`: engine object fields, +0x1C..+0x53 zero, a cell map of 193 buckets (resize(100));

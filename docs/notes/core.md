@@ -290,8 +290,9 @@ to which template:
 
 - Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) stay original and are reached through forwarders;
   the standalone build replaces them (`cleanup-plan.md`, phase 2).
-- Static initialisers and `WinMain` (00456440) cannot run through the hook; 004632A0 (lever table constructor), 00444740
-  (debug panel), 00458870 (GameOptions) and 0045E820 are examples.
+- Static initialisers run before the hooks install (004632A0 the lever table constructor, 0045E820): a port of one is
+  compared at WinMain's entry instead (start-up checks; 00444740, 00458870 and others, app.md "A-E2"). `WinMain`
+  (00456440) itself can be hooked and is ported (app.md).
 
 ## A-E1: text helpers and the object id map
 
@@ -323,5 +324,5 @@ to which template:
   the lever table at 0079C1A0: no records, an index of 193 buckets) and `PartyManager::Construct` (004A5870,
   the party manager at 007AA5A0: a party map of 193 buckets, no entries, records or templates, two empty
   strings; +0x20 is not written). The unused functor bytes the originals copy from uninitialised stack bytes
-  are not written. Ours-only wrappers in verify_static_constructors.cpp. Not ported: 00444740 (the debug
-  info panel at 0079B930, an interface class) and 00458870.
+  are not written. Ours-only wrappers in verify_static_constructors.cpp. 00444740 (the debug
+  info panel at 0079B930) and 00458870 were ported by A-E2 (app.md).

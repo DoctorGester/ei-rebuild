@@ -381,8 +381,8 @@ counts, one-shot counts compared, the grid and the levels checked empty; `extraP
 to it) and the flags are put back between the runs; a map the original does not load is not loaded again. Cost: the page
 textures load twice per zone in the verify build. Scenario: every one that enters a zone.
 
-Stay forwarded: `CDib::Read` 006D5910 / `Write` 006D5AC0 (MFC TRY / CATCH
-frames around the file calls, catching the game's MFC exceptions: as 004F0B90). Dead (config/dead_code.csv): 006C67E0,
+`CDib::Read` 006D5910 / `Write` 006D5AC0 (MFC TRY / CATCH frames around the file calls) are ported
+(`dib_file.cpp`, A-E2; side by side at start-up: app.md "MFC TRY / CATCH"; 004F0B90 has the same frames). Dead (config/dead_code.csv): 006C67E0,
 006C42A0, 006C4310 (a third draw pass reached only from the dead 006CC8D0). 50 rows in config/library.csv ("A-X6 review"): the landscape's CArray /
 aligned array element helpers and the prints / acks records' and databases' compiler-generated members. With these the
 range has no other unported game code.

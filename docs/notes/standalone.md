@@ -19,9 +19,10 @@ on 2026-10-13; ticket counts are estimates.
 | The exe's allocator | 781 `gamecrt::operator_new` / `operator_delete` uses | plain new / delete |
 | Old renderer code | 100 functions, 43 KB in 0x4C0000-0x500000 | ported as is, or the parked device removal (renderer.md section 9) |
 
-Also needed: WinMain and the static initialisers (they run before the hooks, so they are unchecked
-today), resources, and the functions kept original on purpose (MFC TRY / CATCH frames 004F0B90,
-006D5910, 006D5AC0; 0066D730's uninitialised byte).
+Also needed: the remaining static initialisers (they run before the hooks; a port is compared at
+WinMain's entry by a start-up check, as A-E2's are), resources, and the functions kept original on purpose
+(0066D730's uninitialised byte). WinMain and the MFC TRY / CATCH functions 006D5910, 006D5AC0, 004D5880 are
+ported (app.md "A-E2"); the standalone build still needs its own exception link for them.
 
 ## 2. Runtime: MFC, STLport, CRT
 

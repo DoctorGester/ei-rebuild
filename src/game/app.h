@@ -1,7 +1,7 @@
 #pragma once
 
-// Application helpers around WinMain (00456440, patched by Rebirth and not rewritten): the window
-// procedure, the input message dispatcher, the message pump and the start of the first map.
+// WinMain (00456440, app_main.cpp) and the application helpers around it: the window procedure,
+// the input message dispatcher, the message pump and the start of the first map.
 // Names are provisional; see docs/notes/objects.md ("Fourth round").
 
 #include <windows.h>

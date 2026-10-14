@@ -142,8 +142,8 @@ the game code yet"). The verify build reads every fed state back and logs disagr
 has Y": a writer not converted) and draws the device's value. States the
 game never sets (ZFUNC, TEXTUREFACTOR, ADDRESSU / V, stage 1 off) start with the device's initial values.
 **Documented exception:** stage 0's mip filter, which the unit panel's draw 006462A0 turns off around the unit's
-picture (Rebirth replaces that whole function, so it cannot feed the mirror until rewritten with that patch): the
-device's value is drawn in the verify build, the mirror's (linear mips) in the release build.
+picture: the vanilla body is ported and feeds the mirror (A-E2), but Rebirth replaces that whole function, so
+in a Rebirth launch the device's value is drawn in the verify build, the mirror's (linear mips) in the release build.
 
 Rewritten state setters (all feed the mirror): 00501C60 (renderer slot 10, `device_states.cpp`: SRCBLEND then
 DESTBLEND, failure through 004800E0; its known caller is the particle draw 00498940; differential on the real device);
