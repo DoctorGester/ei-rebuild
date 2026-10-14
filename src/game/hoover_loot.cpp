@@ -8,9 +8,9 @@
 #include "random.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
@@ -23,11 +23,6 @@
 #include "lib/mfc.h"
 
 namespace {
-
-template <typename T>
-T& At(const void* base, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(const_cast<void*>(base)) + offset);
-}
 
 // MFC CPtrList (mfc::CTypedPtrList layout).
 using PtrList = mfc::CTypedPtrList<void>;
@@ -63,9 +58,9 @@ void AppendShared(PtrList* list, void* object) {
 // One gold roll of the prototype: the amount (the minimum rounded, or a random value between the
 // minimum and a larger maximum, truncated), kept when the percent roll (CRT rand) is within the
 // chance.
-void RollGold(const char* prototype, std::size_t chance, std::size_t minimum, int* gold) {
-    float low = At<float>(prototype, minimum);
-    float high = At<float>(prototype, minimum + 4);
+void RollGold(const UnitGoldRoll& roll, int* gold) {
+    float low = roll.minimum;
+    float high = roll.maximum;
     int amount = x87::fistp(low);
     if (high > low) {
         double random = x87::FromUnsigned(Rng()->Next());
@@ -74,7 +69,7 @@ void RollGold(const char* prototype, std::size_t chance, std::size_t minimum, in
         amount = static_cast<int>(static_cast<double>(high - low) * random * scale + low);
     }
     int percent = gamecrt::rand() * 100 / 0x7FFF % 100 + 1;
-    if (!(static_cast<float>(percent) > At<float>(prototype, chance))) *gold += amount;
+    if (!(static_cast<float>(percent) > roll.chance)) *gold += amount;
 }
 
 } // namespace
@@ -86,7 +81,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
     auto* cunit = reinterpret_cast<CUnit*>(unit);
     bool keyed = IsTextKeyOriginal(cunit->id_) & 0xFF;
     if (cunit->flags_ & 0x100000) return 0;
-    void* manager = ei::VCall<void*>(world, 18);
+    void* manager = static_cast<CWorld*>(world)->ItemFactory();
     char* prototype = UnitPrototype(unit);
     *gold = 0;
     if (prototype) {
@@ -102,8 +97,9 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
                 AppendShared(items, item);
             }
         }
-        RollGold(prototype, 0xC8, 0xD0, gold);
-        RollGold(prototype, 0xD8, 0xE0, gold);
+        const auto* record = reinterpret_cast<const UnitPrototypeRecord*>(prototype);
+        RollGold(record->gold, gold);
+        RollGold(record->secondGold, gold);
         if (*gold < 0) *gold = 0;
     }
     for (int slot = 0; slot < 4; ++slot) {

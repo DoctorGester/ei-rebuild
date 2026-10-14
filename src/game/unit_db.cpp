@@ -20,7 +20,7 @@ namespace {
 void __fastcall ArchiveStrings(ChunkArchive* ar, void*, int id, CStringVector* strings, ChunkArchive* unused) {
     ArchiveCStringsOriginal(ar, nullptr, id, strings, unused);
 }
-__declspec(naked) void __fastcall FourDwords(std::uint32_t*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6A0)
+__declspec(naked) void __fastcall FourDwords(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6A0)
 __declspec(naked) void __fastcall ModelSlot(UnitModelSlot*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6F0)
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
@@ -78,11 +78,14 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     ArchiveField(ar, nullptr, 0x19, valuesB0, sizeof(valuesB0));
     ArchiveField(ar, nullptr, 0x1A, valuesE0, sizeof(valuesE0));
     if (ArchiveEnter(ar, nullptr, 0x1B)) {
-        for (int i = 0; i < 4; ++i) Dword(ar, i, &unknown_C8[i]);
+        Dword(ar, 0, &gold.chance);
+        Dword(ar, 1, &gold.unknown_04);
+        Dword(ar, 2, &gold.minimum);
+        Dword(ar, 3, &gold.maximum);
         ArchiveLeave(ar);
     }
     if (ArchiveEnter(ar, nullptr, 0x1C)) {
-        FourDwords(unknown_D8, nullptr, ar);
+        FourDwords(&secondGold, nullptr, ar);
         ArchiveLeave(ar);
     }
     ArchiveStrings(ar, nullptr, 0x1D, &unknown_E8, ar);

@@ -5,9 +5,12 @@
 #include <cstdint>
 #include <cstring>
 
+namespace scene {
+struct FakeUnitScene;
+} // namespace scene
 namespace fakeunit {
-void* __fastcall FakeUnitConstruct(std::uint8_t* self);
-void __fastcall FakeUnitDestroy(std::uint8_t* self);
+void* __fastcall FakeUnitConstruct(scene::FakeUnitScene* self);
+void __fastcall FakeUnitDestroy(scene::FakeUnitScene* self);
 } // namespace fakeunit
 
 namespace {
@@ -23,7 +26,7 @@ bool EmptyArray(const std::uint8_t* p, std::size_t o, std::uint32_t vtable) {
 }
 
 void* __fastcall ConstructVerify(std::uint8_t* self) {
-    void* result = fakeunit::FakeUnitConstruct(self);
+    void* result = fakeunit::FakeUnitConstruct(reinterpret_cast<scene::FakeUnitScene*>(self));
     bool ok = result == self && Dword(self, 0) == 0x0073BFE8 && EmptyArray(self, 0x530, 0x0073C108) &&
               EmptyArray(self, 0x544, 0x0073C0FC) && EmptyArray(self, 0x558, 0x0073C0F0) && EmptyArray(self, 0x56C, 0x0073C0E4);
     ei::verify::Check("FakeUnitConstruct", true, ok, "");
@@ -31,7 +34,7 @@ void* __fastcall ConstructVerify(std::uint8_t* self) {
 }
 
 void __fastcall DestroyVerify(std::uint8_t* self) {
-    fakeunit::FakeUnitDestroy(self);
+    fakeunit::FakeUnitDestroy(reinterpret_cast<scene::FakeUnitScene*>(self));
     bool ok = Dword(self, 0x534) == 0 && Dword(self, 0x538) == 0 && Dword(self, 0x53C) == 0;
     ei::verify::Check("FakeUnitDestroy", true, ok, "");
 }

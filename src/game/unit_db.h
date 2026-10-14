@@ -34,6 +34,16 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings);
 
 // A unit prototype (0x120 bytes, table 007AF358). Fields whose meaning is known are named after
 // what the statistics builders (unit_create_stats.cpp) make of them.
+// One gold roll of a prototype's loot (hoover_loot.cpp): an amount between `minimum` and
+// `maximum`, dropped when a percent roll is within `chance`.
+struct UnitGoldRoll {
+    float chance;                   // +0x00 percent
+    std::uint32_t unknown_04;
+    float minimum;                  // +0x08
+    float maximum;                  // +0x0C
+};
+static_assert(sizeof(UnitGoldRoll) == 0x10);
+
 struct UnitPrototypeRecord {
     // 0052D740 (RET 4). Reads (archive loading) or writes the record's fields.
     void Serialize(ChunkArchive* ar);
@@ -69,8 +79,8 @@ struct UnitPrototypeRecord {
     std::uint32_t unknown_94;       // 0x18 (-> statistics +0x48)
     float valuesB0[6];              // +0x98 0x19
     float valuesE0[6];              // +0xB0 0x1A
-    std::uint32_t unknown_C8[4];    // chunk 0x1B, fields 0..3
-    std::uint32_t unknown_D8[4];    // chunk 0x1C (0052D6A0: fields 0..3)
+    UnitGoldRoll gold;              // +0xC8 chunk 0x1B, fields 0..3 (the loot, hoover_loot.cpp)
+    UnitGoldRoll secondGold;        // +0xD8 chunk 0x1C (0052D6A0: fields 0..3)
     CStringVector unknown_E8;       // 0x1D
     float skills3to5[3];            // +0xF4 0x1E
     // The starting equipment 005141F0 gives a new unit (unit_equipment.cpp): spells for every
@@ -84,6 +94,7 @@ static_assert(offsetof(UnitPrototypeRecord, soundFolder) == 0x34);
 static_assert(offsetof(UnitPrototypeRecord, hitPoints) == 0x48);
 static_assert(offsetof(UnitPrototypeRecord, naturalWeapon) == 0x78);
 static_assert(offsetof(UnitPrototypeRecord, valuesB0) == 0x98);
+static_assert(offsetof(UnitPrototypeRecord, gold) == 0xC8);
 static_assert(offsetof(UnitPrototypeRecord, unknown_E8) == 0xE8);
 static_assert(offsetof(UnitPrototypeRecord, spellNames) == 0x100);
 static_assert(offsetof(UnitPrototypeRecord, armourNames) == 0x10C);

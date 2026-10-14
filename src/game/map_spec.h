@@ -71,8 +71,11 @@ struct TargetRecord {
 };
 using TargetArray = mfc::CArray<TargetRecord>;
 
+class SpecRecord;
+
 // The base record (vtable 0073C5C4, 0x4C bytes). Its code is in map_spec.cpp; the slot versions are
 // plain members (the record structs have no C++ virtuals), registered at the original addresses.
+// Calls through the vtable go through Record() (SpecRecord below).
 struct Spec {
     // 00469CA0. Constructor; returns this.
     Spec* SpecConstruct();
@@ -90,6 +93,9 @@ struct Spec {
     void* SpecWorldObject();
     // 00469F40 (slot 5, RET 0xC). Moves the record, then slot 7.
     void SpecMove(float dx, float dy, float dz);
+
+    // The record seen through its vtable.
+    SpecRecord* Record() { return reinterpret_cast<SpecRecord*>(this); }
 
     Chunk chunk;                 // +0x00
     std::int32_t id;             // +0x18 the object's id (-1)
@@ -229,12 +235,12 @@ struct LeverSpec {
 };
 static_assert(sizeof(LeverSpec) == 0xA4);
 
-// The record's vtable from slot 2 on (see the top of this file), for calls through it; only the
-// deleting destructor is called this way so far.
+// The record's vtable from slot 2 on (see the top of this file), for calls through it (the deleting
+// destructor, slot 7 from the slots that end with it, slot 11 from Save).
 class __declspec(novtable) SpecRecord : public Chunk {
 public:
     virtual void* WorldObject();                // 2
-    virtual void Slot3();                       // 3 (empty)
+    virtual void Nothing();                     // 3 (empty)
     virtual void TypeNameSlot();                // 4 (CString by value; not called through here)
     virtual void MoveSlot();                    // 5
     virtual void RemoveObject();                // 6

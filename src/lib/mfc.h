@@ -105,6 +105,16 @@ public:
     virtual void Close();                                              // 19: 00701403
 };
 
+// The virtual slots every MFC 4.2 CObject has (a CArray's, for example), for callers that dispatch
+// through an object's vtable as the original does (its inlined DestructElements calls slot 1 with
+// 0); declared only.
+class __declspec(novtable) CObjectVirtuals {
+public:
+    virtual void GetRuntimeClass();                         // 0
+    virtual void* DeletingDestructor(unsigned flags);       // 1
+    virtual void Serialize();                               // 2
+};
+
 // CFileFind (0x1C bytes).
 class CFileFind {
 public:
