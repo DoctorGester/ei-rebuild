@@ -24,8 +24,8 @@ Rewritten as `GameSetUnknownE4E8` (src/game/world_glue.cpp).
 ### 0x005927C0: 5 files, 5 sites, signatures differ
 Rewritten as `CWorldServer::CreateObject` (src/game/world_units.cpp).
 - `src/game/map_spec.cpp:47`: `void __fastcall WorldMakeObject(void* /*world*/, void*, Spec* /*spec*/)`
-- `src/game/map_spec_effect.cpp:34`: `void __fastcall WorldMakeObject(void*, void*, Spec*)`
-- `src/game/map_spec_unit.cpp:64`: `void __fastcall WorldMakeObject(void*, void*, Spec*)`
+- `src/game/map_spec_effect.cpp:30`: `void __fastcall WorldMakeObject(void*, void*, Spec*)`
+- `src/game/map_spec_unit.cpp:58`: `void __fastcall WorldMakeObject(void*, void*, Spec*)`
 - `src/game/originals_world.h:69`: `void __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)`
 - `src/game/world_units.cpp:82`: `int __fastcall CreateObjectAt(CWorldServer*, void*, void* /*message*/)`
 
@@ -56,7 +56,7 @@ Rewritten as `CAIMap::CellMark` (src/game/ai_refresh.cpp).
 
 ### 0x005C11D0: 2 files, 2 sites, signatures differ
 Rewritten as `CSectorMap::Move` (src/game/sector_map.cpp).
-- `src/game/map_spec_unit.cpp:65`: `void __fastcall ListsMoveObject(void*, void*, void* /*object*/, const Vector3*)`
+- `src/game/map_spec_unit.cpp:59`: `void __fastcall ListsMoveObject(void*, void*, void* /*object*/, const Vector3*)`
 - `src/game/originals_ai.h:59`: `bool __fastcall SectorMapMove(void* /*sectors*/, void*, CEngineObject*, const Vector3*)`
 
 ### 0x005C6270: 2 files, 2 sites, signatures differ
@@ -222,7 +222,7 @@ Rewritten as `CSoundManager::Play3D` (src/game/sound_manager.cpp).
 
 ### 0x006C8680: 4 files, 4 sites, signatures differ
 Rewritten as `Terrain::HeightAt` (src/game/terrain.cpp).
-- `src/game/map_spec_effect.cpp:35`: `double __fastcall TerrainHeight(void*, void*, float /*x*/, float /*y*/, int /*zero*/)`
+- `src/game/map_spec_effect.cpp:31`: `double __fastcall TerrainHeight(void*, void*, float /*x*/, float /*y*/, int /*zero*/)`
 - `src/game/terrain_sector.cpp:504`: `double HeightOps::HeightAt(float, float, int)`
 - `src/game/world_client.cpp:357`: `double __fastcall TerrainHeightAt(Terrain*, void*, float, float, int)`
 - `src/game/world_client_view.cpp:49`: `double __fastcall TerrainHeightAt(Terrain*, void*, float, float, int)`
