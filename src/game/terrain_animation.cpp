@@ -167,16 +167,16 @@ void SectorData::Animate(TerrainFields* landscape, int frame) {
                 double lift = s * amplitude;
                 if (kind == 4) {
                     if (!SignClear(record.depth)) {
-                        position.xyz[0] = static_cast<float>(lift + record.position[0]);
-                        position.xyz[1] = static_cast<float>(lift + record.position[1]);
+                        position.xyz[0] = static_cast<float>(lift + record.position.x);
+                        position.xyz[1] = static_cast<float>(lift + record.position.y);
                     }
                 } else {
-                    position.xyz[2] = static_cast<float>(lift * kRiseScale + record.position[2]);
+                    position.xyz[2] = static_cast<float>(lift * kRiseScale + record.position.z);
                     float time = RoundToFloat((GameTicks() + GameTickFraction()) * kTimeScale);
                     float sineX = Sine(landscape, column * kQuarterTurn + time);
-                    position.xyz[0] = sineX * amplitude * kCircleScale + record.position[0];
+                    position.xyz[0] = sineX * amplitude * kCircleScale + record.position.x;
                     float sineY = Sine(landscape, row * kQuarterTurn + time);
-                    position.xyz[1] = sineY * amplitude * kCircleScale + record.position[1];
+                    position.xyz[1] = sineY * amplitude * kCircleScale + record.position.y;
                 }
             }
             along = RoundToFloat(along + stepX);

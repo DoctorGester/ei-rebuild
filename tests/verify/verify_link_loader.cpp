@@ -24,7 +24,7 @@ bool Cached(const CLinkFigureLoader* loader, const stlp::string* name, const CLi
 
 bool MorphIs(const CLinkMesh* mesh, float s, float t, float u) {
     const float want[3] = {s, t, u};
-    return std::memcmp(mesh->morph_, want, sizeof(want)) == 0;
+    return std::memcmp(mesh->morphWeights_, want, sizeof(want)) == 0;
 }
 
 } // namespace

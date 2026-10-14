@@ -36,7 +36,7 @@ const char* ConstructedDiff(const CLinkMesh* expected, const CLinkMesh* actual) 
     if (expected->refCount_ != actual->refCount_) return "refCount";
     if (!(expected->name_ == actual->name_)) return "name";
     for (int k = 0; k < 3; ++k)
-        if (!SameFloatBits(expected->morph_[k], actual->morph_[k])) return "morph";
+        if (!SameFloatBits(expected->morphWeights_[k], actual->morphWeights_[k])) return "morph";
     if (!EmptyArray(actual->vertices_) || !EmptyArray(actual->normals_) || !EmptyArray(actual->texCoords_) ||
         !EmptyArray(actual->corners_) || !EmptyArray(actual->words_) || !EmptyArray(actual->indices_))
         return "arrays";

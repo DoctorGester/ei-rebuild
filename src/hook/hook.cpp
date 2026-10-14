@@ -320,6 +320,11 @@ void InstallCoverage();   // cover.cpp
 static unsigned char g_winMainBytes[5];
 
 static void __stdcall OnWinMain() {
+    // System DPI aware before the game makes its window, as the HIGHDPIAWARE compatibility flag on
+    // run/vanilla and run/rebirth already makes it. Without it, at 200% scaling Windows stretches the
+    // window while our own swap chain (`present`, run/native) sizes itself in physical pixels, so
+    // only a quarter of the frame shows.
+    SetProcessDPIAware();
     DWORD old;
     auto* p = reinterpret_cast<unsigned char*>(kWinMain);
     VirtualProtect(p, 5, PAGE_EXECUTE_READWRITE, &old);

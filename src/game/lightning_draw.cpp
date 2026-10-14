@@ -155,7 +155,7 @@ int __fastcall DrawLightning(CLightning* self, void*, void* device) {
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
     int frameCounter = static_cast<int*>(ObjectWorld(self))[0x64 / 4];
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
-    float size = std::sqrt(dz * dz + dy * dy + dx * dx) * GameFloat(0x0073C528);   // 0.11
+    float size = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C528);   // 0.11
     int phase = (frameCounter / 2) % 15;
     if (self->power_ > zero) {
         // Clamped to [0.5, 1.2] with the original's selects (NaN keeps the size).

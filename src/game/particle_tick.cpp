@@ -16,6 +16,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/vecmath.h"
 
 #include <cstring>
 
@@ -59,16 +60,10 @@ using UpdateFn = int(__fastcall*)(CParticleSource*, void*, Particle*);
 using ElementFn = void(__fastcall*)(CParticleSource*, void*, ParticleElement*);
 
 // sqrt((x*x + y*y) + z*z), all on the FPU.
-double LengthDouble(const Vector3& v) {
-    double x = v.x, y = v.y, z = v.z;
-    return x87::fsqrt(x * x + y * y + z * z);
-}
+double LengthDouble(const Vector3& v) { return x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(v)); }
 
 // sqrt((y*y + z*z) + x*x): the order the original uses after rebuilding a degenerate side.
-double LengthYZX(const Vector3& v) {
-    double x = v.x, y = v.y, z = v.z;
-    return x87::fsqrt(y * y + z * z + x * x);
-}
+double LengthYZX(const Vector3& v) { return x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v)); }
 
 // v *= 1 / length, the reciprocal kept on the FPU.
 void Normalize(Vector3& v, double length) {

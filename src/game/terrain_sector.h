@@ -57,14 +57,14 @@ void __stdcall FreeLightRef(LightRef* ref);
 #pragma pack(push, 1)
 // Per-vertex record, 0x54 bytes (odd offsets: the original packs it).
 struct SectorVertex {
-    float projected[4];                 // +0x00 screen position (Project 006BFC80)
+    Vector4 projected;                  // +0x00 screen position (Project 006BFC80)
     std::uint8_t outcode;               // +0x10 clip flags when the quarter crosses the view, else 0
     std::uint32_t colour;               // +0x11 A (materialByte) R G B, the lighting stage (006C31C0)
     std::uint32_t specular;             // +0x15 edge fade << 24, then the specular lights' R G B
-    float position[3];                  // +0x19 water layer: the vertex position
+    Vector3 position;                   // +0x19 water layer: the vertex position
     std::uint16_t waterMaterial;        // +0x25 water layer: material index, 0xFFFF none
     float depth;                        // +0x27 ground layer: water z - ground z
-    float normal[3];                    // +0x2B
+    Vector3 normal;                     // +0x2B
     Vector3 lit;                        // +0x37 ambient and sun light (006C36B0)
     Vector3 materialColour;             // +0x43 water material +0x1C..+0x24
     std::uint8_t materialByte;          // +0x4F water material +0x18, 0xFF none
@@ -98,10 +98,10 @@ static_assert(sizeof(AnimatedTile) == 0x18);
 // A bounding box: flags (bit 1 valid), centre, then the low and high corner offsets.
 struct SectorBox {
     std::uint32_t flags;
-    float centre[3];
+    Vector3 centre;
     std::uint32_t unknown_10;
-    float low[3];
-    float high[3];
+    Vector3 low;
+    Vector3 high;
     std::uint32_t unknown_2C[3];
 };
 static_assert(sizeof(SectorBox) == 0x38);

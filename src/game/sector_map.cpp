@@ -315,7 +315,7 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
             CEngineObject* unit = node->data;
             node = node->next;
             float dx = PosX(unit) - px, dy = PosY(unit) - py;
-            if (!(dy * dy + dx * dx >= radiusSquared)) result->AddHead(unit);
+            if (!(LengthSquared2DUnrounded(dy, dx) >= radiusSquared)) result->AddHead(unit);
         }
     }
 }

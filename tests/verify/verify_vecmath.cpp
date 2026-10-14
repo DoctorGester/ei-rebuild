@@ -133,6 +133,22 @@ __declspec(noinline) Vector3 LerpOf(const Vector3& a, const Vector3& b, float t)
 __declspec(noinline) float LerpWeightedOf(float a, float b, float t) { return LerpWeighted(a, b, t) * 2.0f; }
 __declspec(noinline) float Distance2DOf(const Vector2& a, const Vector2& b) { return Distance2D(a, b) + 1.0f; }
 
+// The unrounded forms (V3e), alone (the caller's arithmetic may regroup around them: not tested),
+// and twice a dot with the doubling on one operand, (2a) . b, as the V3e sites write 2 (a . b).
+template <Sum3 O>
+__declspec(noinline) float DotUnroundedOf(const Vector3& a, const Vector3& b) { return DotUnrounded<O>(a, b); }
+template <Sum3 O>
+__declspec(noinline) float LengthSquaredUnroundedOf(const Vector3& v) { return LengthSquaredUnrounded<O>(v.x, v.y, v.z); }
+template <Sum3 O>
+__declspec(noinline) float TwiceDotUnroundedOf(const Vector3& a, const Vector3& b) {
+    return DotUnrounded<O>(a.x * 2.0f, a.y * 2.0f, a.z * 2.0f, b.x, b.y, b.z);
+}
+__declspec(noinline) Vector3 RotatedAxisOf(int axis, const Quaternion& q) {
+    if (axis == 0) return RotatedAxisX(q) * 2.0f;
+    if (axis == 1) return RotatedAxisY(q) * 2.0f;
+    return RotatedAxisZ(q) * 2.0f;
+}
+
 // ---- Inputs ----
 
 // A small LCG (deterministic, seeded through a volatile so nothing is folded at compile time).
@@ -314,6 +330,45 @@ void TestTwoTermHelpers(Inputs& in) {
     }
 }
 
+void TestUnrounded(Inputs& in) {
+    auto separates = [](const Vector3& a, const Vector3& b) {
+        return Distinct(RefDot(Sum3::XYZ, a, b), RefDot(Sum3::ZYX, a, b), RefDot(Sum3::ZXY, a, b)) &&
+               Distinct(RefDot(Sum3::XYZ, a, a), RefDot(Sum3::ZYX, a, a), RefDot(Sum3::ZXY, a, a));
+    };
+    ForSeparatingInputs("unrounded forms", in, separates, [](const Vector3& a, const Vector3& b) {
+        float dot[3] = {DotUnroundedOf<Sum3::XYZ>(a, b), DotUnroundedOf<Sum3::ZYX>(a, b), DotUnroundedOf<Sum3::ZXY>(a, b)};
+        float squared[3] = {LengthSquaredUnroundedOf<Sum3::XYZ>(a), LengthSquaredUnroundedOf<Sum3::ZYX>(a),
+                            LengthSquaredUnroundedOf<Sum3::ZXY>(a)};
+        float twice[3] = {TwiceDotUnroundedOf<Sum3::XYZ>(a, b), TwiceDotUnroundedOf<Sum3::ZYX>(a, b),
+                          TwiceDotUnroundedOf<Sum3::ZXY>(a, b)};
+        for (int o = 0; o < 3; ++o) {
+            Compare("DotUnrounded", o, RefDot(kOrders[o], a, b), dot[o], a, b);
+            Compare("LengthSquaredUnrounded", o, RefDot(kOrders[o], a, a), squared[o], a, b);
+            Compare("DotUnrounded(2a, b)", o, R(RefDot(kOrders[o], a, b) * 2.0f), twice[o], a, b);
+        }
+    });
+}
+
+// The rotated axes against AxisX / AxisY / AxisZ's orders, one rounded operation at a time.
+void TestRotatedAxes(Inputs& in) {
+    for (int i = 0; i < kInputs; ++i) {
+        Quaternion q;
+        q.w = in.Next();
+        q.x = in.Next();
+        q.y = in.Next();
+        q.z = in.Next();
+        float w = q.w, x = q.x, y = q.y, z = q.z;
+        float ww = R(w * w), xx = R(x * x), yy = R(y * y), zz = R(z * z);
+        Vector3 axes[3] = {
+            {R(R(ww - R(R(zz + yy) + xx)) + R(xx * 2.0f)), R(R(R(y * x) + R(w * z)) * 2.0f), R(R(R(x * z) - R(y * w)) * 2.0f)},
+            {R(R(R(x * y) - R(w * z)) * 2.0f), R(R(ww - R(R(xx + zz) + yy)) + R(yy * 2.0f)), R(R(R(y * z) + R(x * w)) * 2.0f)},
+            {R(R(R(z * x) + R(y * w)) * 2.0f), R(R(R(z * y) - R(w * x)) * 2.0f), R(R(ww - R(R(xx + yy) + zz)) + R(zz * 2.0f))}};
+        const char* names[3] = {"RotatedAxisX * 2", "RotatedAxisY * 2", "RotatedAxisZ * 2"};
+        for (int axis = 0; axis < 3; ++axis)
+            Compare(names[axis], -1, axes[axis] * 2.0f, RotatedAxisOf(axis, q), Vector3{x, y, z}, Vector3{w, 0.0f, 0.0f});
+    }
+}
+
 struct SelfTest {
     SelfTest() {
         unsigned int saved = 0;
@@ -325,6 +380,8 @@ struct SelfTest {
         TestLengths(in);
         TestTransforms(in);
         TestTwoTermHelpers(in);
+        TestUnrounded(in);
+        TestRotatedAxes(in);
         __control87_2(saved, _MCW_PC, &now, nullptr);
         ei::Log("vecmath self-test: %d checks, %d mismatches; %d helper(s) without enough separating inputs; the "
                 "unprotected /fp:fast copy of DotZYX * 2 + 1 differed from its written grouping %d of %d times",

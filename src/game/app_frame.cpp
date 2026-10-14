@@ -62,7 +62,8 @@ mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, c
 
 // Fills the device object's screen rectangle of the primary surface with black (Blt with
 // DDBLT_COLORFILL | DDBLT_WAIT) under the render lock (taken twice, as the original does); the
-// result goes to the device's lastLoadResult_.
+// result goes to the device's lastLoadResult_. Without DirectDraw (`present`, renderer.md section 9)
+// the primary is a holder without a surface: nothing to fill, the result is 0.
 void ClearScreen() {
     CTextureDevice* device = RenderDeviceObject();
     gameapi::EnterCriticalSection(RenderLock());
@@ -72,7 +73,7 @@ void ClearScreen() {
     fx.dwFillColor = 0;
     gameapi::EnterCriticalSection(RenderLock());
     auto* surface = static_cast<IDirectDrawSurface7*>(primary->surface);
-    long result = surface->Blt(&device->screen_, nullptr, nullptr, DDBLT_COLORFILL | DDBLT_WAIT, &fx);
+    long result = surface ? surface->Blt(&device->screen_, nullptr, nullptr, DDBLT_COLORFILL | DDBLT_WAIT, &fx) : 0;
     gameapi::LeaveCriticalSection(RenderLock());
     device->lastLoadResult_ = result;
     gameapi::LeaveCriticalSection(RenderLock());
