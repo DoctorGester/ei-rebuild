@@ -31,7 +31,6 @@ constexpr int kDrawSprites = 17;
 // 00500970: makes sure the texture in `holder` is loaded.
 void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
 // 004F16A0: the visibility of a bounds record for the device's view (+8): 2 is outside.
-__declspec(naked) int __fastcall ClipTest(void* /*view*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 // 00455950: the world an engine object belongs to (its frame counter at +0x64).
 // 00467590 (below), through its address.
 __declspec(naked) void __fastcall DrawGlowAt(CLightning*, void*, void* /*device*/, const Vector3*, int, float) EI_ORIGINAL(0x00467590)
@@ -136,7 +135,7 @@ int __fastcall DrawLightning(CLightning* self, void*, void* device) {
     auto** holder = reinterpret_cast<void**>(&self->texture_);
     EnsureTextureLoaded(holder);
     if (!ei::VCall<int>(device, kSetTexture, 0, *holder)) return 0;
-    int visibility = ClipTest(static_cast<void**>(device)[2], nullptr, &self->boundsKind_);
+    int visibility = ClipTest(static_cast<CTransformPipeline**>(device)[2], nullptr, reinterpret_cast<const ClipBounds*>(&self->boundsKind_));
     if (visibility == 2) return 1;
     const float zero = GameFloat(0x0073B858);
     if (self->power_ >= zero) self->Animate();

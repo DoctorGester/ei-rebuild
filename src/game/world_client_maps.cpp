@@ -281,7 +281,6 @@ __declspec(naked) void __fastcall PlatformRemoveAt(PlatformList*, void*, Platfor
 
 // The id map +0xD8 (hash_map<unsigned, DynamicNode*>, then the highest key): operator[]
 // [00406A10], erase(iterator) [00405720], clear [00406E80].
-__declspec(naked) void** __fastcall IdMapAt(PendingMap*, void*, const int*) EI_ORIGINAL(0x00406A10)
 void __fastcall IdMapErase(PendingMap* map, void*, const PendingMap::Node* node, const PendingMap* owner) {
     HashEraseOriginal(map, nullptr, const_cast<PendingMap::Node*>(node), owner);
 }
@@ -336,7 +335,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
         kept.tail = node;
         DynamicNode* tail = kept.tail;
         int key = object->id_;
-        *IdMapAt(&dynamicNodes_, nullptr, &key) = tail;
+        *HashMapAt(&dynamicNodes_, nullptr, &key) = tail;
     }
     int kind = object->GetClassId();
     if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
@@ -416,7 +415,7 @@ bool CWorldClient::QueueSynchronised(CEngineObject* object) {
     kept.tail = node;
     DynamicNode* tail = kept.tail;
     int key = object->id_;
-    *IdMapAt(&dynamicNodes_, nullptr, &key) = tail;
+    *HashMapAt(&dynamicNodes_, nullptr, &key) = tail;
     return true;
 }
 

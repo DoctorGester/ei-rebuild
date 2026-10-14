@@ -33,7 +33,6 @@ lib::AlignedArray<PositionBlock>& MovedPositions() { return *reinterpret_cast<li
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E70); }
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
-__declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 // 005A7160: the node's animation at a time (float bits). 005A7290: after the draw (the renderer).
 // 004E9010: the device's mesh draw (device_mesh.cpp).
 
@@ -93,7 +92,7 @@ int __fastcall DrawFigurePartPlain(char* node, void*, char* device, int, int, in
     }
     int drawFlags = 0;
     At<std::uint32_t>(mesh(), 8) &= ~0x40u;
-    int visibility = ClipTest(At<void*>(device, 0xAC), nullptr, mesh() + 0x188);
+    int visibility = ClipTest(At<CTransformPipeline*>(device, 0xAC), nullptr, reinterpret_cast<const ClipBounds*>(mesh() + 0x188));
     if (visibility == 2) return 1;
     int type = At<int>(mesh(), 0x15C);
     if (type >= 13 && type <= 16) {

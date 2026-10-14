@@ -51,7 +51,6 @@ void __fastcall StepsEmote(AnimationSteps* a0, void*, std::uint32_t a2) { StepsE
 void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3) { StepsAddStepOriginal((void*)a0, nullptr, (int)a2, a3); }
 // CUnit: 00530240 its animation entry for a key (combat_steps.cpp), 0050E9F0 MarkChanged
 // (unit.cpp), 0052E9D0 the path speeds, 00402220 face a direction.
-__declspec(naked) void __fastcall FaceDirection(CUnit*, void*, const float*) EI_ORIGINAL(0x00402220)
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add, 005C11D0 Move (patched by Rebirth).
 // The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005B81B0
 // CanStandAtFromHere, 005B7BB0 BlockingUnitAt, 005BBDB0 HasKind3OccluderAt, 005BB350 FindPath,
@@ -526,7 +525,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     }
     if (!replan && canStand && SectorMapMove(world->Sectors(), nullptr, UnitOf(c), &position)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
-        FaceDirection(UnitOf(c), nullptr, &direction.x);
+        TransformSetHeading(reinterpret_cast<CTransformObject*>(UnitOf(c)), nullptr, &direction.x);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, &position);

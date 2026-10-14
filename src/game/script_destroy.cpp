@@ -53,7 +53,6 @@ __declspec(naked) void __fastcall FloatArrayDestruct(void*) EI_ORIGINAL(0x004C29
 void __fastcall GroupBody(void* a0) { ScriptGroupBodyDestructOriginal(a0); }
 __declspec(naked) void __fastcall FxSourceBody(void*) EI_ORIGINAL(0x004BD540)
 __declspec(naked) void __fastcall WorldBlockBody(void*) EI_ORIGINAL(0x004BF7E0)
-__declspec(naked) void __fastcall CmdDestructAt(void*) EI_ORIGINAL(0x004BF640)
 
 template <typename T>
 void SetBaseVtable(mfc::CArray<T>* a, std::uintptr_t vtable) {
@@ -161,7 +160,7 @@ EI_REPLACE(0x004CE210, ScriptGroupDestroy);
 // A nested call: its command destroyed and deleted.
 void* __fastcall ScriptSubCallElementDestroy(ScriptSubCall* call, void*, int flags) {
     if (SSCCmd* cmd = call->cmd) {
-        CmdDestructAt(cmd);
+        cmd->Destruct();
         gamecrt::operator_delete(cmd);
     }
     return Finish(call, flags);
@@ -192,7 +191,7 @@ void* __fastcall ScriptWorldBlockDestroy(void* block, void*, int flags) {
 EI_REPLACE(0x004CE2D0, ScriptWorldBlockDestroy);
 
 void* __fastcall ScriptCmdElementDestroy(SSCCmd* cmd, void*, int flags) {
-    CmdDestructAt(cmd);
+    cmd->Destruct();
     return Finish(cmd, flags);
 }
 EI_REPLACE(0x004BF620, ScriptCmdElementDestroy);

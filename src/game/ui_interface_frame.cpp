@@ -15,6 +15,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "originals_core.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -207,7 +208,6 @@ void CInterface3D::Update() {
 namespace {
 
 // 00461360 (ECX text). A number from the text (its characters' upper-case codes mixed).
-__declspec(naked) int __fastcall TextNumber(const char*) EI_ORIGINAL(0x00461360)
 // The tutorial queue (+0x84, an STLport list of CStrings): end() into `out` (005F97D0) and
 // insert(position, value) returning the new node into `out` (005F97E0).
 __declspec(naked) void __fastcall QueueEnd(void*, void*, void** /*out*/) EI_ORIGINAL(0x005F97D0)
@@ -257,7 +257,7 @@ void CInterface3D::OnStringEvent(const char* event) {
     if (Compare(words.data[0], 0x007930E8) == 0 || Compare(words.data[0], 0x007930DC) == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
         if (words.size < 2) return;
-        int number = words.size > 2 ? TextNumber(words.data[2]) : 0;
+        int number = words.size > 2 ? TextKeyOf(words.data[2]) : 0;
         int kind = Compare(words.data[0], 0x007930DC) != 0 ? 0x2A : 0x2B;
         if (stackBegin_ != stackEnd_)
             ei::VCall<void>(top(), kSlotSay, number, kind, static_cast<const char*>(words.data[1]));

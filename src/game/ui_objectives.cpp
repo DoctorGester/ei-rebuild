@@ -534,10 +534,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
 namespace {
 
 // The text reader's line steps (text_reader.cpp; called through their addresses).
-__declspec(naked) BOOL __fastcall ReaderNextContentLine(CTextManager*) EI_ORIGINAL(0x004DF510)
 __declspec(naked) BOOL __fastcall ReaderNextLine(CTextManager*, void*, int) EI_ORIGINAL(0x004DF030)
-__declspec(naked) int __fastcall ReaderSplit(CTextManager*, void*, CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
-__declspec(naked) BOOL __fastcall ReaderClose(CTextManager*) EI_ORIGINAL(0x004DF020)
 // The quest log (the window's first child) [thiscall]: clear [0065D450], set the text
 // [0065CFE0, LogSetTextOriginal].
 __declspec(naked) void __fastcall LogClear(CUiWindow*) EI_ORIGINAL(0x0065D450)

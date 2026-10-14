@@ -67,8 +67,6 @@ ScriptObjectRef* TempObjectsRemoveTail(mfc::CList<ScriptObjectRef>* list, Script
     return static_cast<ScriptObjectRef*>(TempObjectsRemoveTailOriginal(list, nullptr, out));
 }
 // ScriptVars constructor / destructor and the value arrays' Copy.
-__declspec(naked) void __fastcall VarsConstruct(ScriptVars*) EI_ORIGINAL(0x004C00D0)
-__declspec(naked) void __fastcall VarsDestruct(ScriptVars*) EI_ORIGINAL(0x004BE090)
 __declspec(naked) void __fastcall FloatsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C1A80)
 // ScriptRun's operator=.
 __declspec(naked) void __fastcall RunAssign(ScriptRun*, void*, const ScriptRun*) EI_ORIGINAL(0x004CB570)
@@ -81,7 +79,6 @@ RunList::Node* RunListNewNode(RunList* list, RunList::Node* prev, RunList::Node*
     return static_cast<RunList::Node*>(ScriptRunListNewNodeOriginal(list, nullptr, prev, next));
 }
 // ScriptVars::operator= (all eight arrays).
-__declspec(naked) void __fastcall VarsAssign(ScriptVars*, void*, const ScriptVars*) EI_ORIGINAL(0x004CBAE0)
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
 CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()->manager48_); }

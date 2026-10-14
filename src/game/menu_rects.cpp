@@ -6,6 +6,7 @@
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 
 #include <cstdint>
 
@@ -43,8 +44,6 @@ __declspec(naked) void __fastcall RegConstruct(void*, void*) EI_ORIGINAL(0x00694
 __declspec(naked) int __fastcall RegParse(void*, void*, void*) EI_ORIGINAL(0x00694610)
 __declspec(naked) void __fastcall RegDestruct(void*, void*) EI_ORIGINAL(0x00694540)
 __declspec(naked) void __fastcall RegReadInts(void*, void*, const char*, const char*, void*) EI_ORIGINAL(0x00695410)
-// 004513A0 (RET 8). The integer array's SetSize(size, growBy).
-__declspec(naked) void __fastcall IntArraySetSize(void*, void*, int, int) EI_ORIGINAL(0x004513A0)
 // 00480080. game::FatalError(message); returns what the original returns to the caller.
 
 // An aligned array of ints (data, size, capacity, growBy); the block pointer is kept at data[-1].
@@ -67,7 +66,7 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     IntArray values{nullptr, 0, 0, 0};
     SetRectFn setRect = ImportSetRect();
     for (const MenuRect& entry : kRects) {
-        IntArraySetSize(&values, nullptr, 0, -1);
+        DwordsSetSize(reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values), nullptr, 0, -1);
         RegReadInts(reg, nullptr, Text(entry.section), Text(entry.name), &values);
         if (values.size != 4) {
             int result = game::FatalError(Text(entry.error));

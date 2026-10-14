@@ -51,7 +51,6 @@ float TickFraction() { return *reinterpret_cast<const volatile float*>(0x007AFCA
 constexpr int kReserve = 0x1000;
 
 void __fastcall ConstructSpriteArray(ParticleSpriteArray* a0) { SpriteArrayConstructOriginal((void*)a0); }
-__declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
 void __fastcall EnsureTextureLoaded(void** a0) { TextureEnsureLoadedOriginal((void*)a0); }
 // The game's _ftol (006E853C): truncation.
 __declspec(naked) int __cdecl GameFtol(double) {
@@ -128,8 +127,8 @@ EI_REPLACE_METHOD(0x00497D50, ParticleSpriteArray::SetSize);
 // and drawn; 0 when the texture cannot be bound.
 int CParticleSource::Draw(void* renderer) {
     if (particles.count == 0) return 1;
-    void* pipeline = static_cast<void**>(renderer)[2];
-    if (ClipTest(pipeline, nullptr, &boundsFlags) == 2) {
+    CTransformPipeline* pipeline = static_cast<CTransformPipeline**>(renderer)[2];
+    if (ClipTest(pipeline, nullptr, reinterpret_cast<const ClipBounds*>(&boundsFlags)) == 2) {
         ++hiddenTicks;
         return 1;
     }

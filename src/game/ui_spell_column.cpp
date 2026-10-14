@@ -6,6 +6,7 @@
 #include "ei/x87.h"
 #include "lib/mfc.h"
 #include "originals_engine.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -28,8 +29,6 @@ __declspec(naked) void __fastcall AddSpellSprite(CHudSpellColumn*, void*, const 
     EI_ORIGINAL(0x0063E4B0)
 // 004E0150 (thiscall on the text manager, RET 0x10): an item's texts; 004E0020 (RET 8) the text of
 // a key.
-__declspec(naked) BOOL __fastcall SpellTexts(void*, void*, CEngineObject*, mfc::CString*, mfc::CString*, mfc::CString*)
-    EI_ORIGINAL(0x004E0150)
 // 0068BA20 (__fastcall): a spell's prototype record (+0x10 school, +0x7B shows a number).
 __declspec(naked) std::uint8_t* __fastcall SpellPrototypeOf(void*) EI_ORIGINAL(0x0068BA20)
 
@@ -66,7 +65,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             SpellName(spell, 20, &model);
             AddSpellSprite(this, nullptr, model.data, image.data);
         }
-        SpellTexts(TextManager(), nullptr, spell, &tip, &description, &description);
+        TextManagerItemTexts(static_cast<CTextManager*>(TextManager()), nullptr, spell, &tip, &description, &description);
 
         // The spell's numbers below its name: one line per label of the panel's table (+0x15C).
         std::uint8_t* data = Get<std::uint8_t*>(spell, 0x44);

@@ -19,6 +19,7 @@
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_world.h"
+#include "originals_ui.h"
 
 #include <cstring>
 #include <new>
@@ -40,7 +41,6 @@ constexpr std::uintptr_t kDot = 0x00783D78;               // "."
 // current line into words.
 void* BriefingTexts() { return *reinterpret_cast<void**>(0x007AF788); }
 __declspec(naked) int __fastcall TextsFindTag(void*, void*, const char*) EI_ORIGINAL(0x004DF030)
-__declspec(naked) int __fastcall TextsReadWords(void*, void*, console::CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
 
 // 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
 inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
@@ -76,7 +76,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     // The first "#show" line whose second word is not "Hero" names the speaker.
     console::CStringArray words;
     while (TextsFindTag(texts, nullptr, Text(kShowTag))) {
-        TextsReadWords(texts, nullptr, &words, 1);
+        ReaderSplit(static_cast<CTextManager*>(texts), nullptr, &words, 1);
         if (words.GetSize() >= 2 &&
             gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(words[1])),
                              reinterpret_cast<const unsigned char*>(Text(kHero))) != 0)

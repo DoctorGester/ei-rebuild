@@ -257,10 +257,12 @@ struct Texts {
     BOOL ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind);   // 004E0150
 };
 BOOL Texts::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-__declspec(naked) BOOL Texts::NextLine() EI_ORIGINAL(0x004DF510)
+BOOL Texts::NextLine() { return ReaderNextContentLine(reinterpret_cast<CTextManager*>(this)); }
 BOOL Texts::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
 BOOL Texts::GetString(const char* key, mfc::CString* out) { return ::TextsGetString(this, nullptr, key, out); }
-__declspec(naked) BOOL Texts::ItemTexts(CItem*, mfc::CString*, mfc::CString*, mfc::CString*) EI_ORIGINAL(0x004E0150)
+BOOL Texts::ItemTexts(CItem* item, mfc::CString* name, mfc::CString* description, mfc::CString* kind) {
+    return TextManagerItemTexts(reinterpret_cast<CTextManager*>(this), nullptr, item, name, description, kind);
+}
 Texts* TextManager() { return *reinterpret_cast<Texts**>(0x007AF788); }
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }

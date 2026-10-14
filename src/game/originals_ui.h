@@ -9,10 +9,12 @@
 #include <cstdint>
 
 class CEngineObject;
+class CTextManager;
 class CInterface3D;
 class CItem;
 class CUiSurface;
 namespace mfc { class CString; }
+namespace console { class CStringArray; }
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
 struct tagRECT;
@@ -649,3 +651,15 @@ struct WindowConstructOriginal {
     CUiWindow* Construct(CInterface3D* ui);
 };
 __declspec(naked) inline CUiWindow* WindowConstructOriginal::Construct(CInterface3D*) EI_ORIGINAL(0x005FE700)
+
+// C3n. The text manager's reader (007AF788; thiscall, text_reader.cpp), called through the addresses: 004DF020 (rewritten
+// as TextClose) closes the open text; 004DF510 (TextNextLine) moves to the next content line, 0 at the end; 004DFCB0
+// (TextSplit; RET 8) splits the current line into words (`advance` 1: moves on to the next line afterwards); 004E0150
+// (CTextManager::GetItemTexts; RET 0x10) gives the name, description and kind texts of an item or a spell.
+__declspec(naked) inline int __fastcall ReaderClose(CTextManager*) EI_ORIGINAL(0x004DF020)
+__declspec(naked) inline int __fastcall ReaderNextContentLine(CTextManager*) EI_ORIGINAL(0x004DF510)
+__declspec(naked) inline int __fastcall ReaderSplit(CTextManager*, void*, console::CStringArray* /*words*/, int /*advance*/)
+    EI_ORIGINAL(0x004DFCB0)
+__declspec(naked) inline int __fastcall TextManagerItemTexts(CTextManager*, void*, CEngineObject* /*item*/,
+                                                             mfc::CString* /*name*/, mfc::CString* /*description*/,
+                                                             mfc::CString* /*kind*/) EI_ORIGINAL(0x004E0150)

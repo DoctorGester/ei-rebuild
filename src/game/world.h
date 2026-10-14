@@ -18,6 +18,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "maths.h"
+#include "originals_core.h"
 
 using BOOL = int;
 
@@ -139,12 +140,14 @@ static_assert(offsetof(WorldPlayer, dirty) == 0x130);
 
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds
 // it; its MFC list head is at +0x38 and each node's data (+8) is a WorldPlayer.
-struct PlayerIterator {
+struct PlayerIterator : ObjectIteratorOriginals {
     CEngineObject* list = nullptr;
     void* next = nullptr;
 
-    WorldPlayer* First(CEngineObject* players);   // 00404920
-    WorldPlayer* Next();                          // 00404960
+    WorldPlayer* First(CEngineObject* players) {   // 00404920
+        return reinterpret_cast<WorldPlayer*>(ObjectIteratorOriginals::First(static_cast<CBaseManager*>(players)));
+    }
+    WorldPlayer* Next() { return reinterpret_cast<WorldPlayer*>(ObjectIteratorOriginals::Next()); }   // 00404960
     // The original inlines this: drop the list's count without releasing it.
     ~PlayerIterator() {
         if (list) --list->refCount_;

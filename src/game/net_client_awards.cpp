@@ -13,6 +13,7 @@
 #include "originals_gameplay.h"
 #include "originals_world.h"
 #include "originals_library.h"
+#include "originals_core.h"
 
 #include <cstring>
 
@@ -36,7 +37,6 @@ __declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void* /*manager*/,
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.
 ObjectList::Node* __fastcall CountedNewNode(ObjectList* a0, void*, ObjectList::Node* a2, ObjectList::Node* a3) { return (ObjectList::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
-__declspec(naked) void __fastcall CountedAssign(CEngineObject** /*slot*/, void*, CEngineObject*) EI_ORIGINAL(0x00429B50)
 __declspec(naked) void __fastcall CountedRemoveAll(ObjectList*) EI_ORIGINAL(0x00429E50)
 inline void __fastcall PtrListRemoveAll(ObjectList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
 
@@ -116,7 +116,7 @@ void ClientSession::ApplyAwards() {
             void* manager = ei::VCall<void*>(player + kPlayerParty, kSlotFactory);
             CEngineObject* item = ManagerCreateItem(manager, nullptr, name);
             ObjectList::Node* added = CountedNewNode(&items, nullptr, items.tail, nullptr);
-            CountedAssign(&added->data, nullptr, item);
+            ReferenceAssign(&added->data, nullptr, item);
             if (items.tail) items.tail->next = added;
             else items.head = added;
             items.tail = added;

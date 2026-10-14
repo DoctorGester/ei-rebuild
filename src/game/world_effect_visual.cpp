@@ -28,7 +28,6 @@ __declspec(naked) void __fastcall AddScorch(void*, void*, std::uint32_t /*x*/, s
 // 004113A0 (camera.cpp): a camera shake from an event at `at`.
 __declspec(naked) void __fastcall ShakeCamera(void* /*camera*/, void*, const Vector3* /*at*/, std::uint32_t /*strength*/, std::uint32_t /*duration*/, std::uint32_t /*decay*/) EI_ORIGINAL(0x004113A0)
 // The global ISAAC generator (007A9D40): 004667F0 Next, 0049EE70 Refill.
-__declspec(naked) std::uint32_t __fastcall RandomNext(void* /*random*/) EI_ORIGINAL(0x004667F0)
 __declspec(naked) void __fastcall RandomRefill(void* /*random*/) EI_ORIGINAL(0x0049EE70)
 void* TheRandom() { return reinterpret_cast<void*>(0x007A9D40); }
 
@@ -351,7 +350,7 @@ Vector3* CEffectParticle::Position(void* group) {
     if (attachedTo_ == -1) return &localPosition_;
     auto* object = static_cast<CEngineObject*>(ObjectById(effect::ManagerContext(this), attachedTo_));
     if (object == nullptr) return &localPosition_;
-    if (GroupContains(group, nullptr, object) == 0) {
+    if (GroupContains(static_cast<const ScriptGroup*>(group), nullptr, object) == 0) {
         // Not in the group: far away.
         worldPosition_.x = FromBits(0xC9742400u);   // -1e6
         worldPosition_.y = FromBits(0xC9742400u);
@@ -438,7 +437,7 @@ void CEffectParticle::Spawn() {
     if (type_ == 0x2002) {
         std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(kScorchAlpha)));
         std::uint32_t radius = Bits(param164_);
-        float angle = RandomAngle(RandomNext(TheRandom()));
+        float angle = RandomAngle(RandomNext(static_cast<IsaacRandom*>(TheRandom())));
         AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), radius, radius, Bits(angle), alpha);
     }
     if (type_ == 0x2030) {

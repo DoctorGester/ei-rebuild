@@ -22,6 +22,7 @@
 #include <cstring>
 #include "originals_gameplay.h"
 #include "originals_library.h"
+#include "originals_script.h"
 
 // The arrival maths keeps the original's operation order: no reassociation in this file.
 #pragma float_control(precise, on, push)
@@ -78,8 +79,6 @@ const MapRecord* FindZone(const char* name) {
 __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)
 // 0066ED30 (RET 0xC). Sends the player state its start position.
 __declspec(naked) void __fastcall StateSendStart(CPlayerServer*, void*, const Vector3*, std::uint32_t, int) EI_ORIGINAL(0x0066ED30)
-// 004BF000. Runs the script command queue once.
-__declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
 // Rewritten here and elsewhere, reached through their addresses.
 __declspec(naked) void __fastcall TakeZoneQuestItemsAt(CWorldServer*, void*, ItemArray*, ObjectList*) EI_ORIGINAL(0x005901E0)
 __declspec(naked) void __fastcall RestorePlayerItemsAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x00590460)
@@ -262,7 +261,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     if (unknown12D64_ == kKindNoRangeTest) UpdateMercBriefingsAt(this, nullptr);
     if (runScripts) {
         unknown160_ = 1;
-        for (int i = 0; i < 5; ++i) CommandQueueRun(commandsA_, nullptr);
+        for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());
     }
     records.vtable = RecordArrayVtable();
     if (records.data) gamecrt::operator_delete(records.data);

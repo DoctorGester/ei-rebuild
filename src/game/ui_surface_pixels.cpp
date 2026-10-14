@@ -271,8 +271,6 @@ void CUiSurface::Greyscale() {
 
 namespace {
 
-// 004EF7B0 (thiscall, RET 0xC): a surface holder's constructor (device, width, height).
-__declspec(naked) SurfaceHolder* __fastcall ConstructHolder(void*, void*, void*, int, int) EI_ORIGINAL(0x004EF7B0)
 // 004E6BA0 (thiscall): drops a holder reference.
 void ReleaseHolder(SurfaceHolder* holder) { reinterpret_cast<CDXSurface*>(holder)->Release(); }
 
@@ -303,7 +301,7 @@ void CUiSurface::SwapContents(int restore) {
                 int width, height;
                 std::memcpy(&width, self + 0x14, 4);
                 std::memcpy(&height, self + 0x18, 4);
-                made = ConstructHolder(memory, nullptr, device, width, height);
+                made = reinterpret_cast<SurfaceHolder*>(DXSurfaceConstructOriginal(memory, nullptr, device, width, height));
             }
             SurfaceHolder* previous = *holderAt();
             *holderAt() = made;

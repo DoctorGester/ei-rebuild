@@ -29,8 +29,6 @@ namespace {
 // direction [00402220], its animation speed factor [005327D0 (animation)]; the orientation's
 // facing axis [0040F560 on the quaternion (out)].
 inline double __fastcall UnitGroundHeight(void* a0, void*, float a2, float a3) { return UnitGroundHeightOriginal((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall UnitTurnTowards(void*, void*, const float*, int) EI_ORIGINAL(0x00401F00)
-__declspec(naked) void __fastcall UnitFaceDirection(void*, void*, const float*) EI_ORIGINAL(0x00402220)
 __declspec(naked) double __fastcall UnitAnimationSpeed(void*, void*, const void*) EI_ORIGINAL(0x005327D0)
 Vector3* __fastcall FacingAxis(const Quaternion* q, void*, Vector3* out) { return QuaternionAxisY(q, nullptr, out); }
 
@@ -77,10 +75,10 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     static_cast<CWorld*>(ObjectWorld(controller))->MoveObject(unit, &position.x);   // the world's slot 41
     if (self->snapHeading) {
         self->snapHeading = 0;
-        UnitTurnTowards(unit, nullptr, &direction.x, 0);
+        TransformTurnUpTowards(reinterpret_cast<CTransformObject*>(unit), nullptr, &direction.x, 0);
     }
     if (unit->flags_ & 0x10000000) {
-        UnitTurnTowards(unit, nullptr, &direction.x, 1);
+        TransformTurnUpTowards(reinterpret_cast<CTransformObject*>(unit), nullptr, &direction.x, 1);
     } else if (!x87::IsNaN(rate) && rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
         Vector3 axis;
         FacingAxis(&unit->orientation, nullptr, &axis);
@@ -104,7 +102,7 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
         direction.x = static_cast<float>(std::cos(heading));
         direction.y = static_cast<float>(std::sin(heading));
         direction.z = 0.0f;
-        UnitFaceDirection(unit, nullptr, &direction.x);
+        TransformSetHeading(reinterpret_cast<CTransformObject*>(unit), nullptr, &direction.x);
     }
 
     // The animation the figure plays (its animation state, CObject3D +0x98).

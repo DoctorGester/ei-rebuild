@@ -37,6 +37,7 @@
 #include "originals_world.h"
 #include "originals_render.h"
 #include "originals_ai.h"
+#include "originals_core.h"
 
 #include <cstdint>
 #include <cstring>
@@ -146,7 +147,6 @@ __declspec(naked) void __fastcall QuestObjective(int, const mfc::CString*, float
 // The party records of `player` for a "party name" string (ECX player, EDX string).
 __declspec(naked) void* __fastcall PartyRecordsFor(WorldPlayer*, mfc::CString*) EI_ORIGINAL(0x004BAEC0)
 // Object id of a name (ECX = name).
-__declspec(naked) int __fastcall TextKeyOf(const char*) EI_ORIGINAL(0x00461360)
 // 005DB3F0: plays a movie file (ECX path, EDX 0, five flags).
 // 00500960: the renderer (returns the object whose 004BA120 sets the background colour).
 void* __cdecl Renderer() { return DisplayObject(); }
@@ -378,12 +378,8 @@ __declspec(naked) void __fastcall RecordCopyItemsFrom(PartyUnitRecord*, void*, P
 
 // The party manager.
 struct PartyManagerCalls {
-    void BeginRedeploy(void* players);                   // 004A8890
-    void EndRedeploy(void* players);                     // 004A8880
     void QuestCompleted();                               // 004A88E0
 };
-__declspec(naked) void PartyManagerCalls::BeginRedeploy(void*) EI_ORIGINAL(0x004A8890)
-__declspec(naked) void PartyManagerCalls::EndRedeploy(void*) EI_ORIGINAL(0x004A8880)
 __declspec(naked) void PartyManagerCalls::QuestCompleted() EI_ORIGINAL(0x004A88E0)
 PartyManagerCalls* ThePartyManager() { return reinterpret_cast<PartyManagerCalls*>(GamePartyManager()); }
 
@@ -400,10 +396,8 @@ void PartyRemoveItem(CParty* party, CEngineObject* item, int a) { PartyRemoveIte
 
 struct DiplomacyCalls {
     void SetRelation(int a, int b, int relation, int both);   // 004554E0
-    std::uint32_t GetHostileMask(int player);                 // 00455660
 };
 __declspec(naked) void DiplomacyCalls::SetRelation(int, int, int, int) EI_ORIGINAL(0x004554E0)
-__declspec(naked) std::uint32_t DiplomacyCalls::GetHostileMask(int) EI_ORIGINAL(0x00455660)
 DiplomacyCalls* TheDiplomacy() { return reinterpret_cast<DiplomacyCalls*>(GameDiplomacy()); }
 
 // The game flow: multiplayer state and quest checks.
@@ -512,14 +506,10 @@ struct PartySlot {
 using PartyArray = mfc::CArray<PartySlot>;
 __declspec(naked) PartyArray* __fastcall PartySlotsConstruct(PartyArray*) EI_ORIGINAL(0x004BB000)
 __declspec(naked) void __fastcall PartySlotsDestruct(PartyArray*) EI_ORIGINAL(0x004BB020)
-struct ObjectIterator {   // ObjectListIterator through the original addresses
-    CEngineObject* First(CBaseManager* list);            // 00404920
-    CEngineObject* Next();                               // 00404960
+struct ObjectIterator : ObjectIteratorOriginals {   // ObjectListIterator through the original addresses
     CBaseManager* list;
     void* node;
 };
-__declspec(naked) CEngineObject* ObjectIterator::First(CBaseManager*) EI_ORIGINAL(0x00404920)
-__declspec(naked) CEngineObject* ObjectIterator::Next() EI_ORIGINAL(0x00404960)
 
 // Damage description for KillUnit (vtable +0x7C; 0x34 bytes used, the original reserves 0x4C).
 __declspec(naked) void __fastcall ResetDamageInfoAt(void*) EI_ORIGINAL(0x00522B40)
@@ -663,8 +653,8 @@ void RedeployParty(const SSCCmd* cmd) {
     PartySlotsConstruct(&slots);
     TheWorld()->CollectParty(player, &slots);
     void* party = player->Party();
-    ThePartyManager()->BeginRedeploy(party);
-    ThePartyManager()->EndRedeploy(party);
+    PartyManagerBeginRedeploy(ThePartyManager(), nullptr, party);
+    PartyManagerEndRedeploy(ThePartyManager(), nullptr, party);
     // One slot and one party unit: the slot gets the unit's id.
     const PartyMemberArray& members = player->Party()->members_;
     if (slots.size == 1 && members.size == 1) slots.data[0].unitId = static_cast<int>(members.data[0].unknown_01C);
@@ -1108,7 +1098,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x36: {   // SetPlayer(unit, player)
             CEngineObject* unit = Arg(cmd, 0);
             if (!unit || unit->GetClassId() != kClassUnit) break;
-            UnitOf(unit)->SetHostileMask(TheDiplomacy()->GetHostileMask(Ftol(f[0])));
+            UnitOf(unit)->SetHostileMask(DiplomacyHostileMask(reinterpret_cast<CDiplomacy*>(TheDiplomacy()), nullptr, Ftol(f[0])));
             UnitOf(unit)->SetSide(Ftol(f[0]));
             break;
         }

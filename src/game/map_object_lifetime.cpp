@@ -109,7 +109,6 @@ __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x0055
 __declspec(naked) int __fastcall ResetPackedVitals(void*) EI_ORIGINAL(0x005233B0)
 __declspec(naked) void* __fastcall ResetVitals(void*) EI_ORIGINAL(0x00523370)
 __declspec(naked) int __fastcall ResetParams(void*) EI_ORIGINAL(0x00523550)
-__declspec(naked) void __fastcall DestructBaseAt(void*) EI_ORIGINAL(0x00455930)
 __declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
 __declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D70)
 __declspec(naked) CMapObject* __fastcall ConstructMapObjectAt(void*) EI_ORIGINAL(0x0050E2D0)
@@ -207,7 +206,7 @@ void CObject3D::DestructBody() {
     effectSources.blocks = nullptr;
     DestroyString(&name);
     SetVtable(this, CTransformObject::kVtableAddress);
-    DestructBaseAt(this);
+    EngineObjectDestructBase(this);
 }
 EI_REPLACE_METHOD(0x00515D70, CObject3D::DestructBody);
 
@@ -406,7 +405,7 @@ void CMapObjectServer::DestructBody() {
     name78.~CString();
     SetVtable(this, kCompanionBaseVtable);
     CompanionOwner(this) = nullptr;
-    DestructBaseAt(this);
+    EngineObjectDestructBase(this);
 }
 EI_REPLACE_METHOD(0x00515720, CMapObjectServer::DestructBody);
 
@@ -462,7 +461,7 @@ void CMapObjectClientSpecific::DestructBody() {
     }
     SetVtable(this, kCompanionBaseVtable);
     object = nullptr;
-    DestructBaseAt(this);
+    EngineObjectDestructBase(this);
 }
 EI_REPLACE_METHOD(0x00510560, CMapObjectClientSpecific::DestructBody);
 
@@ -501,6 +500,6 @@ void CUnitServer::DestructBody() {
     DestroyArray(queue, kServerArrayVtable);
     SetVtable(this, kControllerVtable);
     unit = nullptr;
-    DestructBaseAt(this);
+    EngineObjectDestructBase(this);
 }
 EI_REPLACE_METHOD(0x00546230, CUnitServer::DestructBody);

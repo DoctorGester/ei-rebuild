@@ -19,6 +19,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_world.h"
+#include "originals_script.h"
 
 namespace {
 
@@ -40,8 +41,6 @@ __declspec(naked) void __fastcall ServerReplace60(CWorldServer*, void*) EI_ORIGI
 __declspec(naked) void __fastcall TimeWheelAdvance(void*, void*, int /*tick*/) EI_ORIGINAL(0x005C9530)
 // 006D44E0. Counts every countdown (+0x70) down; true (AL) when one was still running.
 __declspec(naked) bool __fastcall CountdownsTick(void*, void*) EI_ORIGINAL(0x006D44E0)
-// 004BF000. Runs a script command queue (+0x12874 / +0x12A6C).
-__declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
 // 005D5940. An AI brain (unit controller + 0x980) hears alarm `index`.
 void __fastcall BrainHearAlarm(void* brain, void*, int index) { static_cast<AIBrain*>(brain)->HearAlarm(index); }
 // The game's atexit (006E727B).
@@ -166,8 +165,8 @@ void CWorldServer::Tick(char force) {
         ProjectileFreeNode(&projectiles_, nullptr, current);
     }
 
-    if (unknown160_ != 0 || force) CommandQueueRun(commandsA_, nullptr);
-    CommandQueueRun(commandsB_, nullptr);
+    if (unknown160_ != 0 || force) ScriptsRun(MainScript());
+    ScriptsRun(reinterpret_cast<CScript*>(commandsB_));
     ServerUpdateUnits(this, nullptr);
 }
 
@@ -238,7 +237,6 @@ namespace {
 // block starts one dword after its allocation), with their guard bits at 007AFF00.
 using IdArray = lib::AlignedArray<unsigned>;
 // 004538D0: the instantiation's SetAtGrow(index, value) (RET 8).
-__declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, unsigned) EI_ORIGINAL(0x004538D0)
 
 IdArray& RemovedIds() { return *reinterpret_cast<IdArray*>(0x007AFEF0); }   // flagged for removal
 IdArray& SleepingIds() { return *reinterpret_cast<IdArray*>(0x007AFEE0); }  // leave the update map
@@ -275,7 +273,7 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) IdArraySetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) DwordsSetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
         }
     } else {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
@@ -285,12 +283,12 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
             CEngineObject* object = node->value;
             object->RunTick();
-            if (object->flags_ & 1) IdArraySetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) DwordsSetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
             if (object->GetClassId() != world::kClassUnit) continue;
             if (--SleepCountdown(object) > 0) continue;
             auto* controller = reinterpret_cast<const std::uint8_t*>(static_cast<CUnit*>(object)->controller);
             if (controller[0x174] == 0 && controller[0x9B7] == 0 && controller[0xB0C] == 0)
-                IdArraySetAtGrow(&SleepingIds(), nullptr, SleepingIds().size, static_cast<unsigned>(object->id_));
+                DwordsSetAtGrow(&SleepingIds(), nullptr, SleepingIds().size, static_cast<unsigned>(object->id_));
             else
                 SleepCountdown(object) = WakeCountdown(object);
         }

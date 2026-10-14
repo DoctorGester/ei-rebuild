@@ -31,7 +31,9 @@ constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;
 } // namespace
 
 // The render device (MatrixDevice, world.h).
-__declspec(naked) int MatrixDevice::Classify(const void*) EI_ORIGINAL(0x004F16A0)
+int MatrixDevice::Classify(const void* bounds) {
+    return ClipTest(reinterpret_cast<CTransformPipeline*>(this), nullptr, static_cast<const ClipBounds*>(bounds));
+}
 
 namespace {
 

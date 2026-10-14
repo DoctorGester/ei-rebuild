@@ -28,6 +28,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 #include "originals_gameplay.h"
+#include "originals_script.h"
 
 #include <bit>
 #include <cstdint>
@@ -73,7 +74,6 @@ __declspec(naked) bool __fastcall MapCheapCell(void*, void*, CUnit*) EI_ORIGINAL
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add (returns AL),
 // 005C0BD0 FindUnitsInRadius.
 // 004B3330 ScriptGroup::Contains (script_group.cpp).
-__declspec(naked) int __fastcall GroupContains(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B3330)
 // The motion (+0x3C, an AIPath; ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005C7B00 Start,
 // 005B1F10 follow a target, 005B2050 turn to a direction, 005B22C0 the path's end point.
 __declspec(naked) void __fastcall PathFollow(void*, void*, int /*now*/, CUnit*, int /*targetId*/, int /*until*/,
@@ -681,7 +681,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
             UnitList::Node* current = node;
             node = node->next;
             CEngineObject* other = current->data;
-            if (GroupContains(group, nullptr, other) == 0) {
+            if (GroupContains(reinterpret_cast<const ScriptGroup*>(group), nullptr, other) == 0) {
                 SectorMapRemove(sectors, nullptr, other);
                 continue;
             }
@@ -742,7 +742,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         if (BrainLeader(brain)) return;
         self = unit;
         if (!self->player) return;
-        message = far ? kMessagePartial : kMessageCannotDo;
+        message = isFar ? kMessagePartial : kMessageCannotDo;
     }
     PlayerMessage(PlayerOf(self)->connection_, nullptr, self, message);
 }

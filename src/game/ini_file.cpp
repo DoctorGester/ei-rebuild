@@ -49,7 +49,6 @@ void SetSizeWords(mfc::CArray<std::uint16_t>* a, int n) { WordArraySetSizeOrigin
 void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { UIntArraySetSizeOriginal(a, nullptr, n, -1); }     // 006FF29A
 
 // 004513A0: SetSize of an aligned int array (CArray<int> with the aligned allocator).
-__declspec(naked) void __fastcall AlignedIntSetSize(DwordArray*, void*, int, int) EI_ORIGINAL(0x004513A0)
 
 // The class's own entries, called through their game addresses (so their verify wrappers see the
 // nested calls).
@@ -91,7 +90,7 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray& temp) {
     console::CStringArray codes;
     if (!CallGetList(ini, nullptr, section, key, &codes, kListSeparator)) return 0;
-    AlignedIntSetSize(&temp, nullptr, codes.GetSize(), -1);
+    DwordsSetSize(&temp, nullptr, codes.GetSize(), -1);
     for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
     return 1;
 }

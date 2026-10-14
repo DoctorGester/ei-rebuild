@@ -33,7 +33,6 @@ namespace {
 constexpr int kMercSlots = 10;
 
 // 00461360. The text key (object id) of a name (object_tables.cpp), ECX = name.
-__declspec(naked) unsigned __fastcall TextKey(const char*) EI_ORIGINAL(0x00461360)
 // 00460AF0 (RET 4). Named float table Get; the value is left in ST0.
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0066EE10 (RET 8). CPlayerServer::SetVariable (player_messages.cpp).
@@ -64,7 +63,7 @@ void CWorldServer::UpdateMercBriefings() {
         for (int slot = 1; slot <= kMercSlots; ++slot) {
             mfc::CString merc;
             merc.Format(worlddata::MercNameFormat(), slot);
-            unsigned key = TextKey(merc);
+            unsigned key = TextKeyOf(merc);
             bool briefedHere = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(zoneName_),
                                                 reinterpret_cast<const unsigned char*>(worlddata::MercZoneName(slot - 1))) == 0;
             Briefing b;
@@ -183,9 +182,8 @@ inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::C
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 void __fastcall PlayerEraseQuestItem(WorldPlayer* a0, void*, int a2) { PlayerEraseQuestItemOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StateSetVariableMax(CPlayerServer*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
-// 004D23A0 (RET 8) / 004BF000. The first command queue: add a line, run once.
+// 004D23A0 (RET 8). The first command queue: add a line (ScriptsRun runs it once).
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
 
 // The item named `name`, with the original's unused temporary lists around the creation (built
 // in the order `firstAt`, then the other).
@@ -292,7 +290,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     CommandQueueAdd(commandsA_, nullptr, &script, 1);
     if (unknown12D64_ == kKindNoRangeTest)
-        for (int i = 0; i < 5; ++i) CommandQueueRun(commandsA_, nullptr);
+        for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());
 }
 
 // ---- ApplyMercBriefing ------------------------------------------------------------------------
@@ -327,7 +325,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
     for (int slot = 1; slot <= kMercSlots; ++slot) {
         MercNames v;
         v.merc.Format(worlddata::MercNameFormat(), slot);
-        unsigned key = TextKey(v.merc);
+        unsigned key = TextKeyOf(v.merc);
         v.n8.Format(worlddata::MercVariableN8Format(), static_cast<const char*>(v.merc), slot);
         v.n1.Format(worlddata::MercVariableN1Format(), static_cast<const char*>(v.merc), slot);
         v.n2.Format(worlddata::MercVariableN2Format(), static_cast<const char*>(v.merc), slot);
@@ -525,7 +523,6 @@ __declspec(naked) CEngineObject* __fastcall UnitSpell(CEngineObject*, void*, int
 // 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
 __declspec(naked) void __fastcall ControllerStoreStats(CUnitServer*, void*, void*) EI_ORIGINAL(0x00553360)
 __declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
-__declspec(naked) void __fastcall RefPtrAssign(void*, void*, void*) EI_ORIGINAL(0x00419CD0)
 void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 
 // The party's copy of an item (CParty slot 24; the record entry's source).

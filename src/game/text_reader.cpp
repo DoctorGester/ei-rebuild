@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_library.h"
+#include "originals_ui.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -32,7 +33,6 @@ __declspec(naked) BOOL __fastcall IsPastEndCall(CTextManager*, void*, const char
 __declspec(naked) int __fastcall CharCodeCall(const char*) EI_ORIGINAL(0x004DF4E0)
 __declspec(naked) BOOL __fastcall PeekWordCall(CTextManager*, void*, mfc::CString*) EI_ORIGINAL(0x004DF770)
 __declspec(naked) BOOL __fastcall SkipLineCall(CTextManager*) EI_ORIGINAL(0x004DF6E0)
-__declspec(naked) BOOL __fastcall SplitCall(CTextManager*, void*, console::CStringArray*, BOOL) EI_ORIGINAL(0x004DFCB0)
 
 const char* const kComment = reinterpret_cast<const char*>(0x0078DCF8);   // "##"
 const char* const kHeader = reinterpret_cast<const char*>(0x0078DCFC);    // "#"
@@ -280,7 +280,7 @@ BOOL __fastcall TextFindLine(CTextManager* self, void*, const char* key) {
         return 0;
     }
     // Several words: the line whose first words, lower-cased, are the key's words.
-    while (SplitCall(self, nullptr, &lineWords, 0)) {
+    while (ReaderSplit(self, nullptr, &lineWords, 0)) {
         if (lineWords.size >= keyWords.size) {
             int i = 0;
             if (keyWords.size <= 0) return 1;

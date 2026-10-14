@@ -8,6 +8,7 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "originals_engine.h"
+#include "originals_ui.h"
 
 #include <cstring>
 
@@ -25,8 +26,10 @@ struct TextReader {
 };
 mfc::BOOL TextReader::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
 __declspec(naked) mfc::BOOL TextReader::NextLine(int) EI_ORIGINAL(0x004DF030)
-__declspec(naked) int TextReader::Split(console::CStringArray*, int) EI_ORIGINAL(0x004DFCB0)
-__declspec(naked) mfc::BOOL TextReader::Close() EI_ORIGINAL(0x004DF020)
+int TextReader::Split(console::CStringArray* words, int flag) {
+    return ReaderSplit(reinterpret_cast<CTextManager*>(this), nullptr, words, flag);
+}
+mfc::BOOL TextReader::Close() { return ReaderClose(reinterpret_cast<CTextManager*>(this)); }
 TextReader* TheTextReader() { return *reinterpret_cast<TextReader**>(0x007AF788); }
 
 // Element constructors / destructors of the record arrays (not rewritten).

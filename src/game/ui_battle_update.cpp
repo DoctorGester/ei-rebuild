@@ -38,9 +38,6 @@ __declspec(naked) void __fastcall EntriesSetSize(void*, void*, int /*size*/, int
 // player. 00665440 (thiscall on the player, RET 4): whether `unit` is the player's own.
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x00578BC0)
 __declspec(naked) int __fastcall PlayerOwns(std::uint8_t*, void*, CUnit*) EI_ORIGINAL(0x00665440)
-// 004E0150 (thiscall on the text manager [007AF788], RET 0x10): an item's texts.
-__declspec(naked) BOOL __fastcall ItemTexts(void*, void*, CEngineObject*, mfc::CString*, mfc::CString*, mfc::CString*)
-    EI_ORIGINAL(0x004E0150)
 // 005E7060 (thiscall on a sprite, RET 4): its scale.
 void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { SpriteSetScaleOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 // 005E6FA0 (Rebirth-patched): places a sprite.
@@ -135,7 +132,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, false);
         // The original passes the same CString for the second and third texts.
-        ItemTexts(*reinterpret_cast<void**>(0x007AF788), nullptr, item, &tip, &unused, &unused);
+        TextManagerItemTexts(*reinterpret_cast<CTextManager**>(0x007AF788), nullptr, item, &tip, &unused, &unused);
         regions_.data[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;

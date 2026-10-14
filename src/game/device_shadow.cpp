@@ -38,7 +38,6 @@ __declspec(naked) int __fastcall ProjectBlocks(void*, void*, const void*, void*,
 // The device [thiscall]: the indexed draw [004EB550: primitive, FVF, vertices, count, indices,
 // count, flags].
 CTextureDevice* DeviceObject(char* device) { return reinterpret_cast<CTextureDevice*>(device); }
-__declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, const void*, int, int) EI_ORIGINAL(0x004EB550)
 
 template <typename R, typename... Args>
 R ThisCall(void* object, int slot, Args... args) {

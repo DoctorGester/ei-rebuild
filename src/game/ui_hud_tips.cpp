@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_library.h"
+#include "originals_ui.h"
 
 namespace {
 
@@ -30,9 +31,6 @@ template <typename T> T Get(const void* base, int offset) {
 CTextManager* Texts() { return *reinterpret_cast<CTextManager* const*>(0x007AF788); }
 
 // 004DEFC0 (thiscall on the text manager, RET 4): makes the text `key` current; non-zero when found.
-// 004E0150 (thiscall on the text manager, RET 0x10): an item's name, description and kind.
-__declspec(naked) BOOL __fastcall ItemTexts(CTextManager*, void*, CEngineObject*, mfc::CString*, mfc::CString*,
-                                            mfc::CString*) EI_ORIGINAL(0x004E0150)
 // 0063BCC0 (thiscall, RET 8; Rebirth-patched): the weapon bar's next slot (model `model`, picture
 // `image`), counted in +0x14C.
 __declspec(naked) void __fastcall AddWeaponSprite(CHudWeaponBar*, void*, const char* /*model*/, const char* /*image*/)
@@ -83,7 +81,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             ItemName(weapon, 20, &model);
             AddWeaponSprite(this, nullptr, model.data, image.data);
         }
-        ItemTexts(Texts(), nullptr, weapon, &tip, &description, &line);
+        TextManagerItemTexts(Texts(), nullptr, weapon, &tip, &description, &line);
         tip += GameText(0x00784340);   // "\n"
 
         // The damage type: the first of the seven weights that is not zero (a NaN counts as zero).
@@ -133,7 +131,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
     mfc::CString line;
     text->Empty();
     // (The original passes one CString as the description and the kind.)
-    ItemTexts(Texts(), nullptr, item, text, &line, &line);
+    TextManagerItemTexts(Texts(), nullptr, item, text, &line, &line);
     auto* data = static_cast<std::uint8_t*>(item->spell_);
     if (!data) return;
     const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);

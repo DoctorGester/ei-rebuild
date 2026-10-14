@@ -901,7 +901,6 @@ namespace {
 
 // Not rewritten (forwarders): the engine object's base constructor (vtable 0073B8E0, id -1, the
 // rest zero) and its base destructor body.
-__declspec(naked) void __fastcall EngineObjectDestructBase(void* /*object*/) EI_ORIGINAL(0x00455930)
 
 constexpr std::uintptr_t kTransformObjectVtable = 0x0073BA38;
 constexpr std::uintptr_t kParticleSourceVtable = 0x0073CFD0;
@@ -968,7 +967,7 @@ void CParticleSource::Destruct() {
     particles.blocks = nullptr;
     if (elements) gamecrt::operator_delete(reinterpret_cast<void**>(elements)[-1]);
     SetVtableAt(this, kTransformObjectVtable);
-    EngineObjectDestructBase(this);
+    EngineObjectDestructBase(reinterpret_cast<CEngineObject*>(this));
 }
 EI_REPLACE_METHOD(0x00498310, CParticleSource::Destruct);
 

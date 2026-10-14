@@ -91,11 +91,9 @@ struct SaveStream {
     }
     void Seek(int position);                    // 004A5490
     void Resize(int size);                      // 004A54D0
-    mfc::CString* ReadString(void* out);        // 00461190 (constructs a CString at out)
 };
 void SaveStream::Seek(int a0) { StreamSeekOriginal((void*)this, nullptr, (std::uint32_t)a0); }
 void SaveStream::Resize(int a2) { StreamResizeOriginal((void*)this, nullptr, (std::uint32_t)a2); }
-__declspec(naked) mfc::CString* SaveStream::ReadString(void*) EI_ORIGINAL(0x00461190)
 SaveStream* GameSaveStream() { return reinterpret_cast<SaveStream*>(0x007AFDF8); }
 int SaveVersion() { return *reinterpret_cast<const int*>(0x007AFE00); }
 bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
@@ -171,7 +169,7 @@ void CBattleScreenSetup::Create() {
             int unused;
             stream->Read(&unused, 4);
             alignas(4) std::uint8_t raw[sizeof(mfc::CString)];
-            mfc::CString* text = stream->ReadString(raw);
+            mfc::CString* text = StreamReadString(reinterpret_cast<CStream*>(stream), nullptr, raw);
             savedText = *text;
             text->~CString();
         }

@@ -46,7 +46,7 @@ src/game/combat_update.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/console.cpp,0,0,0,0,54,3,0,0,0,0,0
 src/game/console.h,0,0,0,0,3,0,0,0,0,1,0
 src/game/console_addon.cpp,0,0,0,0,0,1,0,1,0,0,0
-src/game/console_commands.cpp,13,0,0,0,34,9,0,1,0,0,0
+src/game/console_commands.cpp,13,0,0,0,34,8,0,1,0,0,0
 src/game/console_window.cpp,0,0,0,0,0,2,0,0,0,0,0
 src/game/core_maths.cpp,0,0,0,2,0,0,0,0,0,0,7
 src/game/core_streams.h,0,0,0,0,4,0,0,0,0,0,0

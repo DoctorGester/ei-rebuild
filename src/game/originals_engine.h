@@ -127,3 +127,16 @@ class ChunkArchive;
 __declspec(naked) inline void __fastcall LeverRecordsArchiveOriginal(ChunkArchive* /*archive*/, void*, int /*id*/,
                                                                     void* /*records*/, std::uint32_t /*unused*/)
     EI_ORIGINAL(0x00465090)
+// C3n. The chunk archive's field primitives (rewritten in chunk_archive.cpp; thiscall on the archive): 004092B0 a field of
+// `size` bytes (missing ones read as zero), 004093A0 a CString field, 004098D0 enter chunk `id` (false when missing),
+// 00409980 leave the chunk, 00409A60 count the fields `id` of the current chunk.
+__declspec(naked) inline void __fastcall ArchiveField(ChunkArchive* /*archive*/, void*, int /*id*/, void* /*data*/,
+                                                      unsigned /*size*/) EI_ORIGINAL(0x004092B0)
+__declspec(naked) inline void __fastcall ArchiveString(ChunkArchive* /*archive*/, void*, int /*id*/, mfc::CString*)
+    EI_ORIGINAL(0x004093A0)
+__declspec(naked) inline bool __fastcall ArchiveEnter(ChunkArchive* /*archive*/, void*, int /*id*/) EI_ORIGINAL(0x004098D0)
+__declspec(naked) inline void __fastcall ArchiveLeave(ChunkArchive* /*archive*/) EI_ORIGINAL(0x00409980)
+__declspec(naked) inline int __fastcall ArchiveCount(ChunkArchive* /*archive*/, void*, int /*id*/) EI_ORIGINAL(0x00409A60)
+// C3n. 004667F0 (rewritten as IsaacRandom::Next; thiscall on the generator, plain RET): the next 32-bit word. The game's
+// generator is at 007A9D40.
+__declspec(naked) inline std::uint32_t __fastcall RandomNext(IsaacRandom* /*random*/) EI_ORIGINAL(0x004667F0)

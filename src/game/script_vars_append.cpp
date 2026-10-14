@@ -29,7 +29,6 @@ ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) { ret
 ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal(a0, nullptr, a2, a3); }
 // Rewritten script helpers, called through their addresses.
 void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall RefReset(ScriptObjectRef*) EI_ORIGINAL(0x004B24B0)
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
 __declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)
 
