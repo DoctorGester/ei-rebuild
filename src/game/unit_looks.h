@@ -11,12 +11,20 @@
 #include <cstddef>
 #include <cstdint>
 
+class CStream;   // core_streams.h
+
 using UnitIdList = stlp::vector<std::uint32_t>;
 
 // A dressed unit of the zone (the second list read, 0x24 bytes): its prototype, the item ids
 // (armour type << 16 | material; 0xFFFFFFFF for none: [0] the helmet's row, [1] / [2] the weapons,
-// [3..6] the armour) and the extra weapons, one of which (`extraWeapon`) is shown.
+// [3..6] the armour) and the extra weapons, one of which (`extraWeapon`) is shown. The server's
+// unit set (world.h, UnitSet) holds the same records; its figured records start with this head.
 struct DressedUnitRecord {
+    // 00558FA0 (RET 4; world_unit_set.cpp, A-U7). Writes the prototype (2 bytes), each id list's
+    // count and dwords (the data written even when empty), the byte and the dword through
+    // `stream`'s slot 2 (also called on a FiguredUnitRecord's head).
+    void Write(CStream* stream);
+
     std::uint16_t prototype;        // +0x00
     std::uint16_t unknown_02;
     UnitIdList items;               // +0x04
@@ -35,7 +43,9 @@ struct FiguredUnitRecord {
     std::uint16_t unknown_02;
     UnitIdList armourIds;           // +0x04
     UnitIdList weaponIds;           // +0x10
-    std::uint8_t unknown_1C[8];
+    std::uint8_t unknown_1C;        // +0x1C (DressedUnitRecord::extraWeapon's place)
+    std::uint8_t unknown_1D[3];
+    std::uint32_t unknown_20;       // +0x20 (DressedUnitRecord::modelNumber's place)
     float morphS;                   // +0x24 the figure's morph coefficients (LoadFigure's s, t, u)
     float morphT;
     float morphU;

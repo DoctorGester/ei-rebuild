@@ -313,7 +313,6 @@ src/game/world_server.cpp,0,6,0,0,0,0,0,2,0,0,0
 src/game/world_spells.cpp,4,3,0,2,1,0,0,2,0,0,1
 src/game/world_sync.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_tick.cpp,0,1,0,0,3,0,0,0,0,0,0
-src/game/world_unit_set.cpp,16,2,0,0,0,0,0,1,0,0,0
 src/game/world_units.cpp,0,0,4,2,1,0,0,0,0,0,3
 src/game/world_update.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/world_weather.cpp,1,4,0,2,3,0,0,0,0,0,0
