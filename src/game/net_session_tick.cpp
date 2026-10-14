@@ -252,30 +252,30 @@ EI_REPLACE(0x00437340, OnMasterHook);     // slot 10, kind -1
 
 // ---- Byte buffer writes and small socket helpers ---------------------------------------------------
 
+// 00436C30: copies `size` bytes to the write position and moves it on (no room check); returns
+// the buffer.
+GameBuffer* GameBuffer::BufferWriteRaw(const void* from, unsigned size) {
+    std::memcpy(cur, from, size);
+    cur += size;
+    return this;
+}
+EI_REPLACE_METHOD(0x00436C30, GameBuffer::BufferWriteRaw);
+
+// 00436C60: writes `size` bytes: in place (marking the buffer written) when they fit before `end`,
+// otherwise through slot 4. Returns `size` or what slot 4 left.
+unsigned GameBuffer::BufferWrite(const void* from, unsigned size) {
+    if (cur + size > end) return static_cast<unsigned>(WriteMore(from, size));
+    flags |= 1;
+    std::memcpy(cur, from, size);
+    cur += size;
+    return size;
+}
+EI_REPLACE_METHOD(0x00436C60, GameBuffer::BufferWrite);
+
 namespace net {
 
 namespace {
 } // namespace
-
-// 00436C30: copies `size` bytes to the write position and moves it on (no room check); returns
-// the buffer.
-GameBuffer* __fastcall BufferWriteRaw(GameBuffer* buffer, void*, const void* from, unsigned size) {
-    std::memcpy(buffer->cur, from, size);
-    buffer->cur += size;
-    return buffer;
-}
-EI_REPLACE(0x00436C30, BufferWriteRaw);
-
-// 00436C60: writes `size` bytes: in place (marking the buffer written) when they fit before `end`,
-// otherwise through slot 4. Returns `size` or what slot 4 left.
-unsigned __fastcall BufferWrite(GameBuffer* buffer, void*, const void* from, unsigned size) {
-    if (buffer->cur + size > buffer->end) return static_cast<unsigned>(buffer->WriteMore(from, size));
-    buffer->flags |= 1;
-    std::memcpy(buffer->cur, from, size);
-    buffer->cur += size;
-    return size;
-}
-EI_REPLACE(0x00436C60, BufferWrite);
 
 bool SessionBase::Send(const NetAddress* address, GameBuffer* buffer) { return socket_.SendTo(address, buffer); }
 EI_REPLACE_METHOD(0x00436F60, SessionBase::Send);
@@ -342,10 +342,10 @@ void SessionBase::Destruct() {
         auto* buffer = reinterpret_cast<GameBuffer*>(storage);
         GrowingBufferConstruct(buffer);
         std::uint8_t kind = 1;
-        BufferWrite(buffer, nullptr, &kind, 1);
+        buffer->BufferWrite(&kind, 1);
         if (buffer->cur + 4 <= buffer->end) {
             buffer->flags |= 1;
-            BufferWriteRaw(buffer, nullptr, &id, 4);
+            buffer->BufferWriteRaw(&id, 4);
         } else {
             buffer->WriteMore(&id, 4u);
         }

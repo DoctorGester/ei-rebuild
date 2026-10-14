@@ -170,8 +170,8 @@ ServerEntryBase* ServerEntryBase::ConstructBase() {
 EI_REPLACE_METHOD(0x004413E0, ServerEntryBase::ConstructBase);
 
 // 00441410: the query with `address`, or the end.
-Query* __fastcall QueriesFind(QueryVector* v, void*, const NetAddress* address) { return FindQuery(*v, address); }
-EI_REPLACE(0x00441410, QueriesFind);
+Query* QueryVector::QueriesFind(const NetAddress* address) { return FindQuery(*this, address); }
+EI_REPLACE_METHOD(0x00441410, QueryVector::QueriesFind);
 
 // 00441640: a buffer's length (its highest position brought up to date first).
 std::int32_t __fastcall BufferLength(GameBuffer* b) {
@@ -194,18 +194,18 @@ Query* __fastcall QueryConstruct(Query* self) {
 EI_REPLACE(0x00443770, QueryConstruct);
 void __fastcall QueryDestruct(Query* self) { GrowingBufferDestruct(&self->reply); }
 EI_REPLACE(0x00443790, QueryDestruct);
-Query* __fastcall QueryDelete(Query* self, void*, unsigned flags) {
-    GrowingBufferDestruct(&self->reply);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+Query* Query::QueryDelete(unsigned flags) {
+    GrowingBufferDestruct(&reply);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x00443E90, QueryDelete);
-Query* __fastcall QueryCopy(Query* self, void*, const Query* from) {
-    self->address = from->address;
-    GameBufferCopy(&self->reply, nullptr, &from->reply);
-    return self;
+EI_REPLACE_METHOD(0x00443E90, Query::QueryDelete);
+Query* Query::QueryCopy(const Query* from) {
+    address = from->address;
+    GameBufferCopy(&reply, nullptr, &from->reply);
+    return this;
 }
-EI_REPLACE(0x00444270, QueryCopy);
+EI_REPLACE_METHOD(0x00444270, Query::QueryCopy);
 
 // 00443E20 / 00443760: the temporary counted pointer handed to the list insert (set from a raw
 // pointer without a reference; cleared when unwinding).
@@ -504,9 +504,9 @@ void ClientBase::Ask(const NetAddress* address) {
         GameBuffer b;
         GrowingBufferConstruct(&b);
         std::uint8_t kind = 3;
-        BufferWrite(&b, nullptr, &kind, 1);
+        b.BufferWrite(&kind, 1);
         float time = static_cast<float>(time_);
-        BufferWrite(&b, nullptr, &time, 4);
+        b.BufferWrite(&time, 4);
         Send(address, &b);
         GrowingBufferDestruct(&b);
     }
@@ -657,13 +657,13 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
         std::uint8_t kind = 5;
         if (b.cur + 1 <= b.end) {
             b.flags |= 1;
-            BufferWriteRaw(&b, nullptr, &kind, 1);
+            b.BufferWriteRaw(&kind, 1);
         } else {
             buffer->WriteMore(&kind, 1u);
         }
         if (b.cur + 4 <= b.end) {
             b.flags |= 1;
-            BufferWriteRaw(&b, nullptr, &echo, 4);
+            b.BufferWriteRaw(&echo, 4);
         } else {
             buffer->WriteMore(&echo, 4u);
         }
@@ -736,8 +736,8 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
     GameBuffer b;
     GrowingBufferConstruct(&b);
     std::uint8_t kind = 6;
-    BufferWrite(&b, nullptr, &kind, 1);
-    BufferWrite(&b, nullptr, &id, 4);
+    b.BufferWrite(&kind, 1);
+    b.BufferWrite(&id, 4);
     self->Send(to, &b);
     GrowingBufferDestruct(&b);
 }
@@ -803,9 +803,9 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     GameBuffer b;
     GrowingBufferConstruct(&b);
     std::uint8_t kind = 7;
-    BufferWrite(&b, nullptr, &kind, 1);
-    BufferWrite(&b, nullptr, &id, 4);
-    BufferWrite(&b, nullptr, &reason, 1);
+    b.BufferWrite(&kind, 1);
+    b.BufferWrite(&id, 4);
+    b.BufferWrite(&reason, 1);
     Send(from, &b);
     GrowingBufferDestruct(&b);
 }

@@ -91,6 +91,12 @@ public:
     // 00580EE0 (RET 4; buffered_file.cpp). Before `size` bytes are written in place: flags bit 0
     // set, room made (slot 1) when the block ends before them. Returns the cursor.
     std::uint8_t* BeginWrite(std::int32_t size);
+    // 00436C30 (net_session_tick.cpp). Copies `size` bytes to the write position and moves it on (no
+    // room check). Returns this.
+    GameBuffer* BufferWriteRaw(const void* from, unsigned size);
+    // 00436C60 (RET 8; net_session_tick.cpp). Writes `size` bytes: in place (flags bit 0 set) when
+    // they fit before `end`, otherwise through slot 4. Returns `size` or what slot 4 left.
+    unsigned BufferWrite(const void* from, unsigned size);
 
     std::uint8_t* begin;       // +0x04
     std::uint8_t* cur;         // +0x08

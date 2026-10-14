@@ -197,6 +197,12 @@ static_assert(sizeof(ServerEntry) == 0x48);
 // A server the client asks directly (0x2C bytes; constructor 00443770): its address and the reply
 // last seen.
 struct Query {
+    // 00443E90 (slot 0, the deleting destructor; net_lobby.cpp). The reply buffer destroyed, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    Query* QueryDelete(unsigned flags);
+    // 00444270 (RET 4; net_lobby.cpp). Copy constructor: the address and the reply buffer copied.
+    // Returns this.
+    Query* QueryCopy(const Query* from);
     NetAddress address;
     GameBuffer reply;            // +0x10
 };
@@ -212,6 +218,8 @@ struct QueryVector {
     // 004414E0 (net_lobby.cpp). The queries in a chunk archive (chunk 1 of chunks 1: field 1 the
     // address, 2 the reply's length, 3 the reply), then field 2 the extra dword.
     void Serialize(ChunkArchive* archive);
+    // 00441410 (net_lobby.cpp). The query with `address`, or the end.
+    Query* QueriesFind(const NetAddress* address);
 };
 static_assert(sizeof(QueryVector) == 0x10);
 // 0041C420 (net_client.cpp). The queries' constructor: an empty vector and a zero dword. Returns self.
@@ -705,7 +713,5 @@ GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void* edx, void* to, un
 unsigned __fastcall BufferRead(GameBuffer* buffer, void* edx, void* to, unsigned size);         // 00401340
 // net_session_tick.cpp.
 void __fastcall BufferUpdateHigh(GameBuffer* buffer);                                          // 00419CC0
-GameBuffer* __fastcall BufferWriteRaw(GameBuffer* buffer, void* edx, const void* from, unsigned size);   // 00436C30
-unsigned __fastcall BufferWrite(GameBuffer* buffer, void* edx, const void* from, unsigned size);         // 00436C60
 
 } // namespace net

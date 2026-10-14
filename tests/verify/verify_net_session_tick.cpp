@@ -66,7 +66,7 @@ GameBuffer*(__fastcall* s_writeRaw)(GameBuffer*, void*, const void*, unsigned);
 GameBuffer* __fastcall WriteRawVerify(GameBuffer* buffer, void*, const void* from, unsigned size) {
     GameBuffer copy = *buffer;
     s_writeRaw(&copy, nullptr, from, size);
-    GameBuffer* result = BufferWriteRaw(buffer, nullptr, from, size);
+    GameBuffer* result = buffer->BufferWriteRaw(from, size);
     ei::verify::Check("BufferWriteRaw", true, result == buffer && std::memcmp(&copy, buffer, sizeof(copy)) == 0, "");
     return result;
 }
@@ -74,10 +74,10 @@ GameBuffer* __fastcall WriteRawVerify(GameBuffer* buffer, void*, const void* fro
 // 00436C60: MOV EAX,[ESP+8] (4), MOV EDX,ECX (2). In-place writes as above; slot 4 writes: ours.
 unsigned(__fastcall* s_write)(GameBuffer*, void*, const void*, unsigned);
 unsigned __fastcall WriteVerify(GameBuffer* buffer, void*, const void* from, unsigned size) {
-    if (buffer->cur + size > buffer->end) return BufferWrite(buffer, nullptr, from, size);
+    if (buffer->cur + size > buffer->end) return buffer->BufferWrite(from, size);
     GameBuffer copy = *buffer;
     unsigned expected = s_write(&copy, nullptr, from, size);
-    unsigned actual = BufferWrite(buffer, nullptr, from, size);
+    unsigned actual = buffer->BufferWrite(from, size);
     ei::verify::Check("BufferWrite", true, expected == actual && std::memcmp(&copy, buffer, sizeof(copy)) == 0, "");
     return actual;
 }
