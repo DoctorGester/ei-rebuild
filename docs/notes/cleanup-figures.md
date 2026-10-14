@@ -129,3 +129,7 @@ No CLinkMesh virtual is replaced, so no slot name became an override.
 Release objects of the six files that touch the figure were compared with dumpbin (function by function, hook
 numbers and names normalized): identical. The first try reread `figure` after the slot 4 call in LoadPart (as the
 original does); a local keeps the old code.
+- map_object_client_effects.cpp: five locals `owner` (CompanionOwner(this)) renamed `mapObject`; since F4a they
+  hid CMapObjectCompanion::owner (C4458 warnings on main). Release object identical.
+- figure_mesh_life.cpp: `unknown_18` -> `prototypeId_` (main did not build: F4's rename met F4a's ConstructBase).
+- Follow-up F4d: CFigureCache into CLinkFigureLoader (float arguments to check), PieceNames, CountedRef as a template.
