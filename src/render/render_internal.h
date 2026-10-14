@@ -168,6 +168,16 @@ bool FrameSize(int* width, int* height);
 // nothing to present into: no window, minimised, the swap chain or device failed), then Present.
 bool DrawToWindow();
 void PresentWindow();
+// The game window's swap chain and everything the window module made on the device, released
+// (before sg_shutdown: the device is lost); the next DrawToWindow makes them on the new device.
+void DropWindow();
+// A lost device (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG, a driver error) was seen: everything is
+// made again at the end of the frame (render.cpp). DeviceIsLost: seen and not made again yet.
+void ReportDeviceLost();
+bool DeviceIsLost();
+// render::LoseDevice was called and not taken yet: true once, then false.
+bool TakeSimulatedLoss();
+void DeviceLossCounts(int* losses, int* recoveries);
 
 // A vertex or index buffer filled with sg_append_buffer, so that a frame can be drawn in several
 // passes (a copy of the frame taken in its middle, CopyFrameTo); replaced by a larger one when an
@@ -227,6 +237,9 @@ void DrawClearDepth(const ClearBatch& clear, int width, int height);
 // Destroys the images made for one frame (the cursor), after its commit.
 void RetireFrameImages();
 void DestroyBlits();
+// DestroyBlits, and every image kept across frames (movies, the cursor's and fills' cache): the
+// device is lost.
+void DropBlits();
 
 // Counts of the images the renderer made (sg_make_image) and updated in place (sg_update_image)
 // by purpose, logged in the verify build (render_blit.cpp).
@@ -270,6 +283,11 @@ sg_sampler StageSampler(const StageState& stage);
 // long time dropped.
 void RetireTextures();
 void DestroyTextures();
+// The device is lost: every texture image destroyed (before sg_shutdown). Textures decoded for a
+// holder with nothing to read again (the switch-over's .mmp textures) keep what they were decoded
+// from and are made again at their next use; `kept` of them, with `keptBytes` of sources. The rest
+// is read again from its surface or memory.
+void DropTextures(std::size_t* kept, std::size_t* keptBytes);
 
 // The game's device lock (007AEE78), held around DirectDraw calls on the game's surfaces.
 void LockGameDevice();
