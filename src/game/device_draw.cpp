@@ -7,6 +7,7 @@
 // end. 004EB370 (RET 0x24, used by 004E9A50) draws twice: with a first surface, then blended
 // (source alpha, inverse source alpha) with a second one. See docs/notes/models.md ("Material draw").
 #include "engine_object.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -18,10 +19,7 @@
 
 namespace {
 
-template <typename T>
-T& At(void* base, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
+CTextureDevice* Holder(char* device) { return reinterpret_cast<CTextureDevice*>(device); }
 
 // A texture stage of a material (0x14 bytes).
 struct MaterialStage {
@@ -52,10 +50,10 @@ struct Material {
     MaterialStage* stages;          // +0x18
 };
 
-Material* CurrentMaterial(char* device) { return At<Material*>(device, 0x14C); }
-void* Direct3D(char* device) { return At<void*>(device, 0x54); }
+Material* CurrentMaterial(char* device) { return static_cast<Material*>(Holder(device)->material_); }
+void* Direct3D(char* device) { return Holder(device)->d3dDevice_; }
 int PassCount(const Technique* t) { return static_cast<int>(t->blocksEnd - t->blocksBegin); }
-void* TextureSurface(void* texture) { return At<void*>(texture, 0x5C); }
+void* TextureSurface(void* texture) { return static_cast<CTexture*>(texture)->surface_; }
 
 // IDirect3DDevice7 slots.
 constexpr int kSetRenderState = 20;
@@ -114,13 +112,13 @@ void Draw(char* device, const DrawArgs& a, unsigned triangles) {
     if (render::MeshPass(device)) {
         CRITICAL_SECTION* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
         gameapi::EnterCriticalSection(lock);
-        At<long>(device, 8) = ComCall(Direct3D(device), kDrawIndexedPrimitive, a.primitive, a.fvf, a.vertices,
-                                      a.vertexCount, a.indices, a.indexCount, a.flags);
+        Holder(device)->lastLoadResult_ = ComCall(Direct3D(device), kDrawIndexedPrimitive, a.primitive, a.fvf, a.vertices,
+                                                  a.vertexCount, a.indices, a.indexCount, a.flags);
         gameapi::LeaveCriticalSection(lock);
     }
-    At<int>(device, 0x16C) += a.vertexCount;
-    At<unsigned>(device, 0x170) += triangles;
-    At<int>(device, 0x174) += 1;
+    Holder(device)->vertexCount_ += a.vertexCount;
+    Holder(device)->primitiveCount_ += static_cast<int>(triangles);
+    Holder(device)->drawCount_ += 1;
 }
 
 void SetTexCoordIndex(char* device, int stage, std::uint32_t index, bool flagsFirst) {
@@ -142,17 +140,17 @@ void SetSinglePassStage(char* device, int stage, MaterialStage& s) {
         void* texture = FindTexture(TextureManager(), nullptr, s.nameBegin);
         void* old = s.texture;
         s.texture = texture;
-        if (texture) ++At<int>(texture, 4);
+        if (texture) ++static_cast<CTexture*>(texture)->refCount_;
         if (old) reinterpret_cast<void(__fastcall*)(void*, void*)>((*static_cast<void***>(old))[4])(old, nullptr);
         BindSurface(device, nullptr, stage, s.texture ? TextureSurface(s.texture) : nullptr);
         return;
     }
-    void*& bound = At<void*>(device, 0x12C + stage * 4);
+    CDXSurface*& bound = Holder(device)->stageSurfaces_[stage];
     if (bound) {
         bound = nullptr;
         FlushBatch(device);
-        At<long>(device, 8) = ComCall(Direct3D(device), kSetTexture, stage, static_cast<void*>(nullptr));
-        ++At<int>(device, 0x178);
+        Holder(device)->lastLoadResult_ = ComCall(Direct3D(device), kSetTexture, stage, static_cast<void*>(nullptr));
+        ++Holder(device)->textureChanges_;
     }
 }
 
@@ -220,12 +218,12 @@ void DrawPasses(char* device, Technique* technique, const DrawArgs& args) {
 // Stage 0's surface, as 004EB300 binds it (inline in 004EB370): when it changes, the batched
 // vertices are flushed, the surface's DirectDraw surface (+0x10) set, and the change counted.
 void BindStage0(char* device, void* surface) {
-    if (At<void*>(device, 0x12C) == surface) return;
-    At<void*>(device, 0x12C) = surface;
+    if (Holder(device)->stageSurfaces_[0] == surface) return;
+    Holder(device)->stageSurfaces_[0] = static_cast<CDXSurface*>(surface);
     FlushBatch(device);
-    void* dd = surface ? At<void*>(surface, 0x10) : nullptr;
-    At<long>(device, 8) = ComCall(Direct3D(device), kSetTexture, 0, dd);
-    ++At<int>(device, 0x178);
+    void* dd = surface ? static_cast<CDXSurface*>(surface)->surface : nullptr;
+    Holder(device)->lastLoadResult_ = ComCall(Direct3D(device), kSetTexture, 0, dd);
+    ++Holder(device)->textureChanges_;
 }
 
 } // namespace
@@ -273,7 +271,7 @@ int __fastcall DeviceDrawTwoTextures(char* device, void*, void* first, void* sec
     SetRenderState(device, kDestBlend, 6);
     SetRenderState(device, kAlphaBlendEnable, 1);
     BindStage0(device, second);
-    At<long>(device, 8) = ComCall(Direct3D(device), kSetTextureStageState, 0, kTexCoordIndex, 0);
+    Holder(device)->lastLoadResult_ = ComCall(Direct3D(device), kSetTextureStageState, 0, kTexCoordIndex, 0);
     render::state::Stage(0, kTexCoordIndex, 0);
     Draw(device, args, triangles);
     return 1;
