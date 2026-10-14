@@ -109,17 +109,17 @@ template <typename T> void Empty(mfc::CArray<T>& array) {
 }
 
 bool SameBuffers(CRainSnow* expected, CRainSnow* actual) {
-    if (expected->work038.size != actual->work038.size || expected->work070.size != actual->work070.size ||
-        expected->bytes05C.size != actual->bytes05C.size || expected->words080.size != actual->words080.size ||
-        expected->work094.size != actual->work094.size)
+    if (expected->positions.size != actual->positions.size || expected->vertices.size != actual->vertices.size ||
+        expected->frames.size != actual->frames.size || expected->indices.size != actual->indices.size ||
+        expected->offsets.size != actual->offsets.size)
         return false;
-    if (std::memcmp(expected->work094.data, actual->work094.data, static_cast<std::size_t>(actual->work094.size) * 4) != 0)
+    if (std::memcmp(expected->offsets.data, actual->offsets.data, static_cast<std::size_t>(actual->offsets.size) * 4) != 0)
         return false;
-    if (std::memcmp(expected->words080.data, actual->words080.data, static_cast<std::size_t>(actual->words080.size) * 2) != 0)
+    if (std::memcmp(expected->indices.data, actual->indices.data, static_cast<std::size_t>(actual->indices.size) * 2) != 0)
         return false;
-    const auto* theirs = reinterpret_cast<const TLVertex*>(expected->work070.data);
-    const auto* ours = reinterpret_cast<const TLVertex*>(actual->work070.data);
-    for (int i = 0; i < actual->work070.size; ++i) {
+    const auto* theirs = reinterpret_cast<const TLVertex*>(expected->vertices.data);
+    const auto* ours = reinterpret_cast<const TLVertex*>(actual->vertices.data);
+    for (int i = 0; i < actual->vertices.size; ++i) {
         if (std::memcmp(&theirs[i].color, &ours[i].color, sizeof(TLVertex) - offsetof(TLVertex, color)) != 0) return false;
     }
     return true;
@@ -131,20 +131,20 @@ void __fastcall PrepareBuffersVerify(CRainSnow* self) {
     RainCopy expected;
     std::memcpy(expected.bytes, self, sizeof(expected.bytes));
     CRainSnow* copy = expected.get();
-    Empty(copy->work038);
-    Empty(copy->bytes05C);
-    Empty(copy->work070);
-    Empty(copy->words080);
-    Empty(copy->work094);
+    Empty(copy->positions);
+    Empty(copy->frames);
+    Empty(copy->vertices);
+    Empty(copy->indices);
+    Empty(copy->offsets);
     s_prepare(copy);
     self->CRainSnow::PrepareBuffers();
     ei::verify::Check("CRainSnow::PrepareBuffers (004E3C20)", true, SameBuffers(copy, self), "%d vertices, %d offsets",
-                      self->work070.size, self->work094.size);
-    lib::FreeAligned32(copy->work038.data);
-    lib::FreeAligned32(copy->work070.data);
-    lib::FreeAligned32(copy->work094.data);
-    gamecrt::operator_delete(copy->bytes05C.data);
-    gamecrt::operator_delete(copy->words080.data);
+                      self->vertices.size, self->offsets.size);
+    lib::FreeAligned32(copy->positions.data);
+    lib::FreeAligned32(copy->vertices.data);
+    lib::FreeAligned32(copy->offsets.data);
+    gamecrt::operator_delete(copy->frames.data);
+    gamecrt::operator_delete(copy->indices.data);
 }
 
 } // namespace

@@ -1,6 +1,7 @@
 // The visibility fog's draw (004E1EB0: its cells as sprites through the scene renderer) and the
 // rain / snow layer's work arrays (004E3C20). A-S12; see docs/notes/renderer.md (section 12).
 #include "effects.h"
+#include "figure_mesh.h"   // VertexPacket
 
 #include "clip.h"         // TLVertex
 #include "core_maths.h"   // StoreFloat
@@ -91,19 +92,6 @@ constexpr int kDrops = 0x8000;            // drops (flakes) at most; each is a t
 constexpr int kDropVertices = kDrops * 3;
 constexpr int kRings = 40;                // the offsets below: 40, -40, 39, -39, ..., 1, -1, 0
 
-// The work arrays' elements (effects.h keeps them as bytes): a drop's 64-byte record, the
-// triangles' pre-transformed vertices and a list of offsets.
-struct DropRecord {
-    std::uint8_t bytes[0x40];
-};
-lib::AlignedArray<DropRecord>& Drops(CRainSnow* self) {
-    return reinterpret_cast<lib::AlignedArray<DropRecord>&>(self->work038);
-}
-lib::AlignedArray<TLVertex>& DropVertices(CRainSnow* self) {
-    return reinterpret_cast<lib::AlignedArray<TLVertex>&>(self->work070);
-}
-lib::AlignedArray<int>& RingOffsets(CRainSnow* self) { return reinterpret_cast<lib::AlignedArray<int>&>(self->work094); }
-
 // A drop's triangle on the 4 x 4 "RainSnow" texture's first tile: the three corners inside the
 // tile (u from the left, v from the top of the tile, which is the texture's bottom row upwards).
 struct Corner {
@@ -115,12 +103,10 @@ constexpr float kTile = 0.25f;   // 0073C3B0
 } // namespace
 
 void CRainSnow::PrepareBuffers() {
-    Drops(this).SetSize(kDrops);
-    lib::AlignedArray<TLVertex>& vertices = DropVertices(this);
+    positions.SetSize(kDrops);
     vertices.SetSize(kDropVertices);
-    ByteArraySetSizeOriginal(&bytes05C, nullptr, kDrops, -1);
+    ByteArraySetSizeOriginal(&frames, nullptr, kDrops, -1);
 
-    lib::AlignedArray<int>& offsets = RingOffsets(this);
     offsets.SetSize(2 * kRings + 1);
     for (int i = 0; i < kRings; ++i) {
         offsets[2 * i] = kRings - i;
@@ -138,7 +124,7 @@ void CRainSnow::PrepareBuffers() {
         vertex.v = 1.0f - (1.0f - corner.v) * kTile;
     }
 
-    WordArraySetSizeOriginal(&words080, nullptr, kDropVertices, -1);
-    for (int i = 0; i < words080.size; ++i) words080.data[i] = static_cast<std::uint16_t>(i);
+    WordArraySetSizeOriginal(&indices, nullptr, kDropVertices, -1);
+    for (int i = 0; i < indices.size; ++i) indices.data[i] = static_cast<std::uint16_t>(i);
 }
 EI_REPLACE_METHOD(0x004E3C20, CRainSnow::PrepareBuffers);
