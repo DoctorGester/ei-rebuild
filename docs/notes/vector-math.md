@@ -207,6 +207,21 @@ identical, or only stack slots / scheduling / commuted FMUL operands.
   (world_client.cpp's plane dots), link_figure.h morph_ (coefficients, not a point), figure_mesh.h block[4][4] (indexed),
   quaternion axis forms (unit_ai_sight Prepare, combat_actions), particles. Next: the 2D distance / dot sums on `position`
   (unit_ai_*, combat_*; batch 3).
+- Batch 3 (2D sums in unit_ai_* / combat_*), tried 2026-10-14: 370 before, 370 after, no source change. Of the 71 counted
+  sites in those files about 40 are 2D. All but six are written in `double` (`double dx = static_cast<double>(a.x) - b.x`,
+  the `// kept on the FPU stack` sites such as unit_ai.cpp IsNearPath / UpdateMove, AIDistance2 which returns the unrounded
+  ST0 value, combat_tick ApproachTarget, combat_sight OutOfSightRange / PlanAction, unit_ai_moves, unit_ai_targets,
+  unit_ai_fear, unit_ai_modes, unit_ai_player): a helper rounds to float, so it is not the written expression (and on a
+  53-bit thread it would differ). The six float-typed sites are combat_motion.cpp:734 / 738 (ReportPath),
+  combat_planning.cpp:208 (FindUseSpot), :261 and :275 (TimeUntilAction), combat_update.cpp:687 (ActionInReach). Tried
+  `LengthSquared2D({dx, dy})`, `DistanceSquared2D(...)` and `DistanceSquaredXY(a, b)` on them (release objects compared
+  with dumpbin /disasm): the result is the same at 24 bits, but the precise helper adds a float store and reload
+  (FSTP / FLD) for each of dx, dy and the sum, because /fp:fast kept the float locals on the FPU stack; the surrounding
+  code also changes (stack frame size, inlining of neighbouring wrappers in TimeUntilAction). That is not "identical
+  or stack slots / scheduling / FMUL operands", so all were reverted. Unblocking needs a decision: either accept the
+  redundant store / reload pairs on main-thread code (bit-neutral at 24-bit precision), or add a non-precise
+  variant of the 2D helpers (a helper change, out of scope for a spelling-only batch). The remaining counted sites in these
+  files are 3D sums (batch 4) and quaternion axis forms.
 
 ## 7. Risks
 
