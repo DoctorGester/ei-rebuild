@@ -7,6 +7,8 @@
 // ends are transparent (colour 0x00FFFFFF). Used for lightning bolts and similar strips. Buffers are
 // function-local statics (007AF000..007AF05C). See docs/notes/models.md ("Renderer").
 #include "clip.h"
+#include "model.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "render/render_state.h"
@@ -20,11 +22,6 @@
 #include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 // --- The statics ---------------------------------------------------------------------------------
 
@@ -66,7 +63,7 @@ void EnsureStatics() {
 
 // --- Device calls --------------------------------------------------------------------------------
 
-void* Device(void* renderer) { return At<void*>(At<char*>(renderer, 0x20), 0x54); }
+void* Device(void* renderer) { return reinterpret_cast<CSceneRenderer*>(renderer)->device_->d3dDevice_; }
 template <typename... Args>
 long ComCall(void* object, int slot, Args... args) {
     return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
@@ -304,8 +301,9 @@ EI_REPLACE(0x00502AC0, EmitSection);
 // Returns 1.
 int __fastcall DrawTlTriangles(char* holder, void*, TLVertex* vertices, int vertexCount, std::uint16_t* indices,
                                int indexCount) {
-    if (At<int>(holder, 0x158)) {
-        void* tracker = At<void*>(At<char*>(holder, 0xAC), 0xC);
+    auto* device = reinterpret_cast<CTextureDevice*>(holder);
+    if (device->unknown_158) {
+        void* tracker = device->pipeline_->transform_;
         ThisCall<void>(tracker, 35, vertices, vertexCount);
     }
     auto enter = *reinterpret_cast<void(__stdcall* const*)(void*)>(0x0073B1B4);
@@ -315,13 +313,13 @@ int __fastcall DrawTlTriangles(char* holder, void*, TLVertex* vertices, int vert
     // objects off it is skipped.
     if (render::TlDraw(holder, vertices, kFvfTlVertex, vertexCount, indices, indexCount, kTriangleList)) {
         enter(section);
-        At<long>(holder, 8) = ComCall(At<void*>(holder, 0x54), kDrawIndexedPrimitive, kTriangleList, kFvfTlVertex, vertices,
-                                      vertexCount, indices, indexCount, 0);
+        device->lastLoadResult_ = ComCall(device->d3dDevice_, kDrawIndexedPrimitive, kTriangleList, kFvfTlVertex, vertices,
+                                          vertexCount, indices, indexCount, 0);
         leave(section);
     }
-    At<int>(holder, 0x16C) += vertexCount;
-    At<std::uint32_t>(holder, 0x170) += static_cast<std::uint32_t>(indexCount) / 3;
-    At<int>(holder, 0x174) += 1;
+    device->vertexCount_ += vertexCount;
+    device->primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
+    device->drawCount_ += 1;
     return 1;
 }
 EI_REPLACE(0x00502A20, DrawTlTriangles);
@@ -333,8 +331,9 @@ EI_REPLACE(0x00502A20, DrawTlTriangles);
 // Returns the draw's result (1 when nothing is drawn).
 int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width, int mode, float uLength, float vStart,
                           float vSize) {
-    char* pipeline = At<char*>(renderer, 8);
-    void* transform = At<void*>(pipeline, 0xC);
+    auto* scene = reinterpret_cast<CSceneRenderer*>(renderer);
+    CTransformPipeline* pipeline = scene->pipeline_;
+    void* transform = pipeline->transform_;
     EnsureStatics();
 
     int n = points[1];
@@ -363,10 +362,10 @@ int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width,
 
     int clipped = mode;
     if (mode == 0) {
-        const float* matrix = reinterpret_cast<const float*>(At<char*>(pipeline, 0x1C) + (At<int>(pipeline, 0x20) - 1) * 64);
+        const float* matrix = reinterpret_cast<const float*>(pipeline->Top(1));
         ThisCall<void>(transform, 13, matrix, reinterpret_cast<const void*>(points[0]), Projected().data, points[1]);
     } else {
-        const float* matrix = reinterpret_cast<const float*>(At<char*>(pipeline, 0x24) + (At<int>(pipeline, 0x28) - 1) * 64);
+        const float* matrix = reinterpret_cast<const float*>(pipeline->Top(CTransformPipeline::kClipStack));
         clipped = ThisCall<int>(transform, 8, matrix, reinterpret_cast<const void*>(points[0]), Projected().data,
                                 Clipped().data, points[1]);
         if (clipped == 2) return 1;
@@ -429,7 +428,7 @@ int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width,
     ComCall(Device(renderer), kSetRenderState, 0x14, 2);
     render::state::Render(0x13, 5);
     render::state::Render(0x14, 2);
-    int result = DrawTlTriangles(At<char*>(renderer, 0x20), nullptr, reinterpret_cast<TLVertex*>(Ribbon().data),
+    int result = DrawTlTriangles(reinterpret_cast<char*>(scene->device_), nullptr, reinterpret_cast<TLVertex*>(Ribbon().data),
                                  Ribbon().size, reinterpret_cast<std::uint16_t*>(Indices().data), Indices().size);
     ComCall(Device(renderer), kSetRenderState, 0x13, savedSource);
     ComCall(Device(renderer), kSetRenderState, 0x14, savedDest);
