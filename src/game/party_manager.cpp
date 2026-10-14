@@ -1,6 +1,6 @@
 // The party manager's save and load (004A8560 / 004A8310) and the archive chunks they write: the
 // parties by key (004ACEC0), the entries (004AD0C0), the class templates (004ACDC0) and the named
-// records (004A64B0). See party_manager.h and docs/notes/script.md ("A-S9").
+// records (004A64B0). See party_manager.h and docs/notes/script.md ("Leftovers").
 #include "party_manager.h"
 
 #include "chunk_archive.h"

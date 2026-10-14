@@ -1,7 +1,7 @@
 #pragma once
 
-// The remaining interface screens of 00600000-00660000 (see docs/notes/ui.md, "Camp, global map
-// and battle screen setup"): the battle screen's Create, the global map, the camp's pages and
+// The remaining interface screens of 00600000-00660000 (see docs/notes/ui.md, "Camp, global map, hero
+// screens"): the battle screen's Create, the global map, the camp's pages and
 // the hero panels, the credits. Names provisional. The classes here describe only the fields
 // the rewritten code uses; the objects are created by original code (sizes asserted where known).
 

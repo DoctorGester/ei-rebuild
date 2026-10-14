@@ -1,5 +1,5 @@
 // The hero panels shared by the camp and the multiplayer hero screen: the statistics column
-// (006233C0, 00623880). See docs/notes/ui.md ("Camp, global map and battle screen setup").
+// (006233C0, 00623880). See docs/notes/ui.md ("Camp, global map, hero screens").
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the

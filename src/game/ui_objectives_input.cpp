@@ -1,6 +1,6 @@
 // The objectives window's clicks and its quest places (A-H17). The window's Build, quest list and
 // zone / quest display are in ui_objectives.cpp. See ui.h (CObjectivesWindow) and
-// docs/notes/items_spells.md (A-H17).
+// docs/notes/ui.md ("Objectives, save/load, options").
 #include "ui.h"
 
 #include "console.h"

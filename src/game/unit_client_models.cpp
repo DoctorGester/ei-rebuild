@@ -1,5 +1,5 @@
 // How the client dresses a unit: armour figure parts and the composed skin texture. See
-// unit_client_models.h and docs/notes/units.md ("Fourth round").
+// unit_client_models.h and docs/notes/units.md ("Creation, databases, save").
 #include "unit_client_models.h"
 
 #include "item_db.h"

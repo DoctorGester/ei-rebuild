@@ -1,5 +1,5 @@
 # frames_basic with the interface windows' surfaces in game-owned memory ("render new,cpuwindows",
-# docs/notes/renderer.md, "The interface is composed on DirectDraw surfaces"). Both frames are
+# docs/notes/renderer.md, "Interface windows and holders on game memory"). Both frames are
 # written (old <name>.bmp, new <name>.new.bmp); the windows must look the same in both and as in a
 # plain frames_basic run:
 #   python tools\compare_frames.py <run>\frames\camp.new.bmp <run>\frames\camp.bmp

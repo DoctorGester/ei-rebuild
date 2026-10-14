@@ -1,4 +1,4 @@
-# The battle screen's party commands (docs/notes/ui.md, "Sixteenth pass"). A click on the hero's
+# The battle screen's party commands (docs/notes/ui.md, "Battle screen"). A click on the hero's
 # portrait goes through SelectUnit (00638EF0) to the member toggle (006379E0), which makes the
 # hero speak (slot 32, 006366F0). Then three wolves stand blocked next to the blocked hero (it
 # stays where the camera put it) and "clickunit" clicks each where the game's picking finds it: a

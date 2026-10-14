@@ -98,7 +98,7 @@ public:
     virtual int OnPartAdded(CFigureMesh* part);      // 13: client 0051B050, server 0051F270 (0)
     // 14: (name) client 0051B210: the part named (slot 16) taken out of the drawn part sets (+0x20,
     // +0x24) and released; returns it or null. Server 0051F290. Slots declared `void Name()` keep
-    // their place in the order only (docs/notes/drafts/DR-C2.md).
+    // their place in the order only (docs/notes/map_objects.md ("Virtual slot names")).
     virtual CFigureMesh* RemoveFromPartSets(const char* name);
     virtual int OnPartRemoved(CFigureMesh* part);    // 15: client 0051B160, server 0051F280 (0)
     virtual CFigureMesh* FindPart(const char* name); // 16: client 0051B2E0 (a part by name, 005169A0); server 0051F2B0 (0)

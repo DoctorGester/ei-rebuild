@@ -1,7 +1,7 @@
 // The zone file's effect records: particle sources (vtable 0073C758, kind 4), lights (0073C788,
 // kind 2) and sounds (0073C7B8, kind 3) on their base 0073C728 (map_spec.h). They keep the world
 // object they made at +0x1C and its effect at +0x4C, are kept above the terrain when moved, and
-// save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Sixth round").
+// save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
 #include "map_spec.h"
 #include "core_transform.h"
 #include "world_effect.h"

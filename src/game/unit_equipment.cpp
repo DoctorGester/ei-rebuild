@@ -1,6 +1,5 @@
 // A new unit's starting equipment from its prototype (005141F0; the world adds zone units with it
-// after ApplyPrototype). See unit_create.h (CMapObjectManager) and docs/notes/units.md ("Sixth
-// round").
+// after ApplyPrototype). See unit_create.h (CMapObjectManager) and docs/notes/units.md ("Rewritten").
 #include "unit_create.h"
 
 #include "engine_object.h"

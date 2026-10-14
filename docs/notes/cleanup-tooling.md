@@ -37,7 +37,7 @@ baseline numbers in the plan used narrower patterns for a few of these, so do no
 `gen_originals.py` reads the same sources: every address with an `EI_ORIGINAL` forwarder in more than one file, with file, line and declared
 signature (comments and `__declspec(naked)` removed), tagged by how far the files agree and sorted into already rewritten (a direct call
 replaces the forwarders), library code, and not yet ported. "Rewritten" means an `EI_REPLACE(0x...)` / `EI_REPLACE_METHOD(0x...)` with a
-literal address (the macro-built registrations in `ui_hud.cpp` are not seen).
+literal address, or a `UI_INPUT_HANDLER` / `UI_WHEEL_HANDLER` (`ui_hud.cpp`, which register through `EI_REPLACE` inside the macro); `progress.py` counts those too.
 
 ## Shared forwarder headers (cleanup ticket C3)
 

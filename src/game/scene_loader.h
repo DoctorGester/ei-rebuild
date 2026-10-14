@@ -3,7 +3,7 @@
 // The scene file loader of CFakeUnit (00471B10): reads a binary .sc* scene (meshes with their
 // vertex animation, the node hierarchy, helpers) into the arrays of the figure being built.
 // Called by 00446C10 (`LoadFakeUnitScene`, the CFakeUnit slot 62 loader) with the opened CFile.
-// Names are provisional; see docs/notes/objects.md ("Scene loader").
+// Names are provisional; see docs/notes/objects.md ("Facts").
 //
 // File layout (all integers little endian, no padding):
 //   header (0x14): u32 version (0x1468FCCA: records carry an extra normal list), u32 record count,

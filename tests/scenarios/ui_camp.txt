@@ -1,5 +1,5 @@
-# Camp, global map and the battle screen's Create (docs/notes/ui.md, "Camp, global map and
-# battle screen setup"). The camp and the global map are asked for with the harness's "screen"
+# Camp, global map and the battle screen's Create (docs/notes/ui.md, "Camp, global map, hero screens").
+# The camp and the global map are asked for with the harness's "screen"
 # step, as the global map's buttons ask the server for them (a zone exit is not needed).
 reject Script error
 waitmenu

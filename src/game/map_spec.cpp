@@ -1,6 +1,6 @@
 // The zone file's object records: the base record, objects, flames, magic traps and levers
 // (map_spec.h), and the quaternion rotation the editor uses (0046A4B0). Plain float maths
-// (rule 7). See docs/notes/objects.md ("Sixth round").
+// (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "map_spec.h"
 #include "game_strings.h"
 #include "map_object.h"

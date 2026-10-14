@@ -151,6 +151,6 @@ static_assert(sizeof(MagicTrapRecord) == 0x44);
 // radius of {x, y, 0} into a CPtrList of its own (vtable 0073D454, blocks of 10) and appends to
 // `out` (AddTail inlined) each one alive (slot 55 returns 0) whose side (+0x250) has its bit in
 // `sides`; a unit in two circles is appended twice. `context` is the trap's map object context
-// (the world). See docs/notes/units.md ("Sixth round").
+// (the world). See docs/notes/units.md ("Magic traps").
 void __fastcall FindTrapVictims(void* context, const TrapArea* area, std::uint32_t sides,
                                 mfc::CTypedPtrList<CEngineObject>* out);

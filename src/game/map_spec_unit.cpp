@@ -1,7 +1,7 @@
 // The zone file's unit records (vtable 0073C6E0, kind 5; map_spec.h) with their five behaviour
 // records (0x4C bytes: patrols of waypoints and the guard settings), the small chunk classes that
 // read and write those (vtables 0073C710 waypoint, 0073C718 patrol, 0073C720 behaviour) and the
-// patrol array's copy. See docs/notes/objects.md ("Sixth round").
+// patrol array's copy. See docs/notes/objects.md ("Rewritten").
 #include "map_spec.h"
 #include "core_streams.h"
 #include "unit.h"

@@ -2,7 +2,7 @@
 // is kept just before the data and freed through it), as instantiated around the animation and
 // figure loaders (0044F1B0-00454A30): {data, size, capacity, growBy}. One template per operation;
 // each instantiation is registered under its own name with its element size. The growth step is
-// MFC's (growBy, else size / 8 clamped to 4 .. 1024). See docs/notes/objects.md ("Sixth round").
+// MFC's (growBy, else size / 8 clamped to 4 .. 1024). See docs/notes/objects.md ("Rewritten").
 #include "ei/hook.h"
 #include "lib/containers.h"
 #include "lib/crt.h"

@@ -1,4 +1,4 @@
-# The containers' default input handlers (ui_container.cpp; docs/notes/ui.md, "Area ticket A-I").
+# The containers' default input handlers (ui_container.cpp; docs/notes/ui.md, "Container input dispatch").
 # The main menu (input vtable 00740654) keeps the container's handlers for the right button
 # (006013B0 / 00601490), the double clicks (00601570 / 00601650), the character and key-up events
 # (006018E0 / 006019A0) and the wheel (00601730); its key-down handler (00633540) calls 00601820

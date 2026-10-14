@@ -1,7 +1,7 @@
 // The battle HUD panels' state displays: the unit panel's bars and numbers (006477E0, 00647B70),
 // the movement panel's flag button (00649810) and the top panel's pages and layout (0064A320,
-// 00649E20). See ui.h ("Battle screen and its HUD panels") and docs/notes/items_spells.md
-// ("Area ticket A-H").
+// 00649E20). See ui.h ("Battle screen and its HUD panels") and docs/notes/items_spells.md ("Party item
+// lists").
 #include "ui.h"
 
 #include "item.h"

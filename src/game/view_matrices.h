@@ -2,7 +2,7 @@
 
 // View and light matrices of the 3D transform library side (004F0EF0-004F1698) and two small
 // helpers in 004E5660-004E5729. Matrices are row-major 4x4 float arrays (translation in column 3).
-// Names provisional; see docs/notes/script.md ("A-S5").
+// Names provisional; see docs/notes/script.md ("Leftovers").
 
 #include "maths.h"
 

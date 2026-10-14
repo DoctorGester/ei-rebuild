@@ -24,6 +24,8 @@ REPORT = os.path.join(ROOT, 'docs', 'originals-report.md')
 # the previous forwarder (which has no ';' of its own).
 _BOUNDARY = re.compile(r'[;{}]|' + srcscan.ORIGINAL.pattern + r'|^[ \t]*#[^\n]*(?:\\\n[^\n]*)*', re.M)
 _REPLACE = re.compile(r'\bEI_REPLACE(?:_METHOD)?\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*,\s*&?([^)]*?)\s*\)')
+# ui_hud.cpp's input shims register through EI_REPLACE inside the macro: (address, class, method).
+_UI_HANDLER = re.compile(r'\bUI_(?:INPUT|WHEEL)_HANDLER\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*,\s*(\w+)\s*,\s*(\w+)\s*\)')
 
 STATES = [  # (state, heading, what to do with the duplicates)
     ('rewritten', 'Already rewritten',
@@ -80,6 +82,8 @@ def classify(sources):
     for s in sources:
         for m in _REPLACE.finditer(s.code):
             rewritten[int(m.group(1), 16)].append((s.path, m.group(2)))
+        for m in _UI_HANDLER.finditer(s.code):
+            rewritten[int(m.group(1), 16)].append((s.path, m.group(2) + '_' + m.group(3)))
     library = {int(r['address'], 16) for r in read_csv_addresses('library.csv')}
     library |= {int(r['address'], 16) for r in read_csv_addresses('functions.csv') if r['kind'] == 'lib'}
 

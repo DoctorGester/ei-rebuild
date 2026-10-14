@@ -1,6 +1,6 @@
 // The battle screen's mouse-over (00639EF0): the unit under the mouse in the unit panel and the
 // cursor shape for what a click would do. See ui.h (CBattleScreen::HoverUnit) and docs/notes/ui.md
-// ("Tenth pass").
+// ("Battle screen").
 #include "ui.h"
 
 #include "unit.h"

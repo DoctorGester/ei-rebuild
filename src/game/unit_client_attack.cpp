@@ -1,6 +1,5 @@
 // The client's attack figures of a party unit (CUnitClientSpecific slot 50, 00538960) and the copy
-// of the damage scale it uses (005285D0). See unit_client_models.h and docs/notes/units.md ("Sixth
-// round").
+// of the damage scale it uses (005285D0). See unit_client_models.h and docs/notes/units.md ("Rewritten").
 #include "unit_client_models.h"
 
 #include "combat.h"   // AttackParams
