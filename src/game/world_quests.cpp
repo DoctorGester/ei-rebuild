@@ -285,7 +285,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     mfc::CString script;
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     CommandQueueAdd(commandsA_, nullptr, &script, 1);
-    if (unknown12D64_ == kKindNoRangeTest)
+    if (sessionKind_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());
 }
 
@@ -659,7 +659,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
     for (int slot = 0; slot < kSpellSlots; ++slot)
         if (CEngineObject* spell = UnitSpell(static_cast<CUnit*>(unit), nullptr, slot)) AddToRecord(party, record, spell, RecordAddSpell);
     ControllerStoreStats(controller, nullptr, record->stats);
-    if (world->unknown12D64_ == 1) {
+    if (world->sessionKind_ == 1) {
         record->unknown_770 = unit->moveMode2;
         record->weaponIndex = unit->activeWeapon;
     }
@@ -673,7 +673,7 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
     auto* list = static_cast<RecordPtrArray*>(recordsArg);
     auto* party = static_cast<CParty*>(partyRecords);
     auto* placements = static_cast<PlacementArray*>(placementsArg);
-    if (unknown12D64_ == 1) {
+    if (sessionKind_ == 1) {
         // Each record remembers whom its unit follows (-1: nobody).
         for (int i = 0; i < list->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
@@ -704,12 +704,12 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
 
 void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     if (!player) return;
-    if (unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
-    if (unknown12D64_ != kKindNetwork) {
+    if (sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
+    if (sessionKind_ != kKindNetwork) {
         StorePlayerItemsOriginal(this, nullptr, player, PartyOf(player));
         StateBeforeZoneChange(player->server, nullptr);
     }
-    if (!(unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) || unknown15C_ == 0) return;
+    if (!(sessionKind_ == 1 || sessionKind_ == kKindNoRangeTest) || zoneLoaded_ == 0) return;
 
     RecordPtrArray list{reinterpret_cast<void*>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
     // Records whose unit is gone (or dead, outside a network client game) are dropped (the

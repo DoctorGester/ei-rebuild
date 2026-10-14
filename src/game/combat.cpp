@@ -222,7 +222,7 @@ EI_REPLACE_METHOD(0x0054B6C0, CUnitServer::AttacksFromRange);
 
 int CUnitServer::ScaledItemValue(const CItem* item) {
     if (!item) return 0;
-    double factor = Combat().unknown_30;    // stays on the FPU stack
+    double factor = Combat().rate;    // stays on the FPU stack
     if (factor < kZero || factor > kZero) factor = kFifteen / factor;
     // +0x4C of the item's kind (CItemWeapon::unknown_4C and the others' at the same place).
     float value = static_cast<float>(Unsigned(static_cast<const CItemWeapon*>(item)->unknown_4C) * factor);
@@ -231,12 +231,12 @@ int CUnitServer::ScaledItemValue(const CItem* item) {
 EI_REPLACE_METHOD(0x0054B760, CUnitServer::ScaledItemValue);
 
 int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
-    float factor = Combat().unknown_30;
+    float factor = Combat().rate;
     if (factor < kZero || factor > kZero) factor = kFifteen / factor;
     if (kind != 3) return 0;
     int value;
     if (item) value = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype())->category);
-    else value = GameFtol(Combat().unknown_8C);
+    else value = GameFtol(Combat().attackCategory);
     float scaled = static_cast<float>(static_cast<double>(value) * factor);
     return x87::fistp(scaled);
 }
@@ -453,7 +453,7 @@ std::uint32_t CUnitServer::MoveModeMask(const MoveModeState* mode) {
 EI_REPLACE_METHOD(0x005500A0, CUnitServer::MoveModeMask);
 
 int CUnitServer::Level() {
-    float experience = Combat().unknown_04;
+    float experience = Combat().experience;
     float base = Global7C5488();
     float step = Global7C548C();
     float ratio;
@@ -736,7 +736,7 @@ std::int16_t SizeClassOf(double size, float load) {
 
 void CUnitServer::UpdateSizeClasses() {
     CombatStats& combat = Combat();
-    if (combat.unknown_60 == 2) {
+    if (combat.bodyKind == 2) {
         combat.sizeClass20 = 0;
         combat.sizeClass = 0;
         return;
@@ -756,14 +756,14 @@ EI_REPLACE_METHOD(0x00552FB0, CUnitServer::UpdateSizeClasses);
 
 void CUnitServer::UpdateMoveFactors() {
     const auto* world = static_cast<const CWorldServer*>(ManagerContext());
-    double factor = std::bit_cast<float>(world->unknown84_);
-    double scaled = (factor * Combat().unknown_BC) * kWorldFactorScale;
+    double factor = std::bit_cast<float>(world->nightLevel_);
+    double scaled = (factor * Combat().daySightPercent) * kWorldFactorScale;
     moveFactors[0] = kOne;
     moveFactors[2] = kOne;
     moveFactors[1] = kOne;
     double sum = scaled + (kOne - factor);
     moveFactors[3] = static_cast<float>(sum);
-    moveFactors[3] = static_cast<float>(std::bit_cast<float>(world->unknown88_) * sum);
+    moveFactors[3] = static_cast<float>(std::bit_cast<float>(world->weatherFactor_) * sum);
     if (unit->moveMode == 0) {
         moveFactors[2] = kMode0Factor2;
         moveFactors[3] = kMode0Factor3 * moveFactors[3];

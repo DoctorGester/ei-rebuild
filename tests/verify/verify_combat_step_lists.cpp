@@ -97,7 +97,7 @@ static void* s_unusedPlanReset;
 static void __fastcall PlanResetVerify(OrderPlan* plan) {
     OrderPlanReset(plan);
     bool ok = !plan->animation.steps && plan->animation.count == 0 && plan->animation.extra == -1 &&
-              plan->targetId == -1 && plan->castKind == 8 && plan->unknown_2C == 1;
+              plan->targetId == -1 && plan->castKind == 8 && plan->hitLocation == 1;
     ei::verify::Check("OrderPlanReset", true, ok, "count %d target %d", plan->animation.count, plan->targetId);
 }
 EI_VERIFY(0x00544FD0, PlanResetVerify, 0, s_unusedPlanReset);

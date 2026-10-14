@@ -1251,7 +1251,7 @@ int CWorldClient::Setup() {
     CStringAssign(&texturePath_, nullptr, &path);
     CStringDestroy(&path);
     LoadLightsAt(this, nullptr, worlddata::LightsTableText());
-    unknown6DC_ = 0;
+    lightingMark_ = 0;
     sounds_ = MakeCounted<CSoundManager>(0x8C0, Construct6B6040);
 
     // The text resources: the engine object's fields (in the original's order), the table, then
@@ -1415,13 +1415,13 @@ int CWorldClient::Setup() {
         entries.finish = block + count;
         entries.eos = block + 400;
     }
-    unknown84_ = -100000;
+    unused84_ = -100000;
     cave_ = 0;
-    unknown6E4_ = 0;
+    partyDanger_ = 0;
     GridToFour(secondGrid_, GridResize2, CellsDelete2, GridAllocate2);
     GridToFour(objectGrid_, GridResize, CellsDelete, GridAllocate);
     ticksRun_ = 0;
-    unknown1C4_ = 0;
+    lightLevelsCountdown_ = 0;
     return 1;
 }
 
@@ -1658,7 +1658,7 @@ int CWorldClient::LoadZone(CStream* block) {
     mfc::CString mob;
     sounds_->SetEffectsVolume(0);
     sounds_->StopAll(1);
-    unknown6E4_ = 0;
+    partyDanger_ = 0;
 
     // The block: the tick, the map and .mob names, the exits, the cave flag, the unit looks.
     block->Read(&tick_, 4);

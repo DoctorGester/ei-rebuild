@@ -268,7 +268,7 @@ static void __fastcall IdleVerify(CUnitServer* self) {
     self->Idle();
     bool ok = untouched ? std::memcmp(&before, &self->action2, sizeof(before)) == 0
                         : self->action2.kind == 0 && !self->action2.target && !self->action2.flag18 &&
-                              !self->action2.unknown_1C && !self->action2.unknown_20;
+                              !self->action2.param && !self->action2.modifier;
     ei::verify::Check("CUnitServer::Idle", true, ok, "unit %d: order %d, queued %d -> %d", UnitId(self),
                       self->action.kind, before.kind, self->action2.kind);
 }

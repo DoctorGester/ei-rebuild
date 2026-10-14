@@ -167,7 +167,7 @@ int CWorldClient::UpdateLighting() {
     const float hour = stored;
     const int index = GameFtol(now);
     transform->SetDepthRange(FogStart(hour), FarClipDistance());
-    unknown6DC_ = 0x80;
+    lightingMark_ = 0x80;
     if (LastLitHour() > hour) LastLitHour() = -1.0f;
 
     const double elevation = SunElevation(hour) * (kPi * kPerDegree);

@@ -58,9 +58,9 @@ void QueueUse(CUnitServer* self, CEngineObject* target, std::uint32_t source, in
     order.Reset();
     order.kind = kOrderUse;
     order.Retarget(target);
-    order.unknown_20 = static_cast<std::uint8_t>(run);
+    order.modifier = static_cast<std::uint8_t>(run);
     order.source = source;
-    order.unknown_1C = spot;
+    order.param = spot;
     if (!self->PlanOrder(&order, shout)) order.Reset();
 }
 } // namespace
@@ -82,18 +82,18 @@ bool CUnitServer::FitsMoveMode(int mode) {
 EI_REPLACE_METHOD(0x0054A5A0, CUnitServer::FitsMoveMode);
 
 void CUnitServer::SetMoveStyle(int style) {
-    unknown_938 = 0;
+    boredTicks = 0;
     unit->moveMode2 = style;
     if (FitsMoveMode(style)) {
         if (style == kStyleRun && stats.MovementState(1) != 0) return;
         if (unit->player) PlayerConnection(unit)->SendObject0B(unit, kMessageMoveStyle);
     }
-    if (style != kStyleWalk && style != kStyleRun) action.unknown_20 = 0;
+    if (style != kStyleWalk && style != kStyleRun) action.modifier = 0;
 }
 EI_REPLACE_METHOD(0x00555270, CUnitServer::SetMoveStyle);
 
 void CUnitServer::SetWantedWeapon(int slot) {
-    unknown_938 = 0;
+    boredTicks = 0;
     unit->pendingWeapon = slot;
 }
 EI_REPLACE_METHOD(0x005552E0, CUnitServer::SetWantedWeapon);
@@ -133,7 +133,7 @@ bool CUnitServer::TargetBusy(CEngineObject* target) {
         auto* controller = reinterpret_cast<CUnitServer*>(other->controller);
         const UnitAction& order = controller->action;
         if (order.kind == kOrderUse && order.source == kSourceSearchBody && order.target == target &&
-            (controller->state == kStateActing || controller->unknown_18E))
+            (controller->state == kStateActing || controller->searchingTarget))
             return true;
     }
     return false;
@@ -152,8 +152,8 @@ void CUnitServer::PlayAnimation(const char* name) {
     // The entry's index byte is read as a dword together with the three bytes after it.
     int index;
     std::memcpy(&index, &entry->index, sizeof(index));
-    action2.unknown_1C = index;
-    action2.unknown_20 = 0;
+    action2.param = index;
+    action2.modifier = 0;
     action2.kind = (entry->key & kEmoteKeyBit) ? kOrderEmote : kOrderAnimation;
 }
 EI_REPLACE_METHOD(0x00555700, CUnitServer::PlayAnimation);

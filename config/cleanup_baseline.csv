@@ -29,7 +29,6 @@ src/game/chunk_stream.h,0,0,0,0,2,0,0,0,0,0,0,0,0
 src/game/class_templates.h,0,0,0,0,0,0,0,0,0,0,0,4,0
 src/game/clip.cpp,0,0,1,1,0,0,0,0,0,0,0,0,0
 src/game/combat.cpp,0,0,3,1,1,0,0,0,0,0,1,0,0
-src/game/combat.h,0,0,0,0,0,0,0,0,0,0,0,39,0
 src/game/combat_actions.cpp,0,0,1,1,0,0,0,0,0,0,0,0,0
 src/game/combat_orders.cpp,0,0,1,1,0,0,0,0,0,0,0,0,0
 src/game/combat_sight.cpp,0,0,3,1,4,0,0,0,0,0,0,0,0
@@ -258,7 +257,6 @@ src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,0,0,0,0,0,0
 src/game/unit_update.cpp,0,0,1,1,1,0,0,0,0,0,0,0,0
 src/game/unit_vitals.cpp,0,0,4,1,24,0,0,0,0,0,0,0,0
 src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5,0,0
-src/game/world.h,0,0,0,0,0,0,0,0,0,0,0,58,0
 src/game/world_briefing.cpp,0,0,0,0,10,0,0,0,0,0,0,0,0
 src/game/world_client_draw.cpp,0,0,6,0,3,0,0,0,0,0,0,0,0
 src/game/world_client_view.cpp,0,0,0,2,0,0,0,0,0,0,0,0,0

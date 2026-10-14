@@ -484,10 +484,10 @@ __declspec(naked) void __fastcall ExitArrayConstruct(void*, void*) EI_ORIGINAL(0
 __declspec(naked) ZoneExit* __fastcall ExitArrayGetAt(const void*, void*, ZoneExit* /*out*/, int) EI_ORIGINAL(0x00584EA0)
 // 00583B50 (RET 4). ZoneExit::operator=.
 __declspec(naked) void __fastcall ZoneExitAssign(ZoneExit*, void*, const ZoneExit*) EI_ORIGINAL(0x00583B50)
-// Rewritten elsewhere, through their addresses: SetUnknownDC / SetUnknownE0 / SetGameResult
+// Rewritten elsewhere, through their addresses: SetClimate / SetCave / SetGameResult
 // (world_server / world_tick); LoadMobFile (world_zone) is in originals_world.h.
-__declspec(naked) void __fastcall WorldSetUnknownDC(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC80)
-__declspec(naked) void __fastcall WorldSetUnknownE0(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC70)
+__declspec(naked) void __fastcall WorldSetClimate(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC80)
+__declspec(naked) void __fastcall WorldSetCave(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC70)
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
 // (00440440 builds it from the host and port, 00435010 formats it into an STLport string, 00425040
 // destroys that), the server's host record (0x24 bytes: 004186E0, two strings 0041F460, vtable
@@ -600,8 +600,8 @@ int __stdcall StartNetworkZone(const char* zone) {
     for (int i = 0; i < exits.size; ++i)
         *reinterpret_cast<mfc::CString*>(&exits.data[i].target) = Text(kNetworkExitTarget);
     SetZoneExitsAt(World(), nullptr, &exits);
-    WorldSetUnknownDC(World(), nullptr, zoneRecord->setting2C);
-    WorldSetUnknownE0(World(), nullptr, zoneRecord->setting30);
+    WorldSetClimate(World(), nullptr, zoneRecord->setting2C);
+    WorldSetCave(World(), nullptr, zoneRecord->setting30);
     CampaignMode() = 1;
     WorldSetGameResultOriginal(World(), nullptr, kGameResultNetwork);
     SpectatorFlag() = 1;
@@ -1250,7 +1250,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         WorldPlayer* player = PlayersAdd(players_, nullptr);
         PlayerAttach(player, nullptr, connection);
         player->dirty = 0xFFFFFFFFu;
-        player->unknown100 = unknown12D64_;
+        player->sessionKind = sessionKind_;
         std::memcpy(&player->server->lastPosition_, &startPosition_, 12);
         int id = player->id;
         void* log = OstreamPutLong(OstreamPutString(kNetLog, nullptr, Text(kAcceptedPlayer)), nullptr, id);
@@ -1518,7 +1518,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
         result = kResultMainMenu;
         // Rebirth's AllowScriptsInMainMenu (a JMP at 0057C69F to a stub): the first script command
         // queue runs in the menu too.
-        if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) World()->unknown160_ = 1;
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::AllowScriptsInMainMenu)) World()->scriptsActive_ = 1;
     } else if (mode == kModeEndOfGame) {
         result = kResultPlaying;
     } else {
@@ -1530,8 +1530,8 @@ void GameFlow::StartZone(const char* zone, int mode) {
         WorldSetTimeF(World(), nullptr,
                       HoursOfDay(VariableGet(&records.party.variables, nullptr, Text(kGTime))));
         if (zoneRecord) {
-            WorldSetUnknownDC(World(), nullptr, zoneRecord->setting2C);
-            WorldSetUnknownE0(World(), nullptr, zoneRecord->setting30);
+            WorldSetClimate(World(), nullptr, zoneRecord->setting2C);
+            WorldSetCave(World(), nullptr, zoneRecord->setting30);
         }
         result = kResultPlaying;
     }
@@ -2090,7 +2090,7 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The server's variables, by stamp.
-    if (ClientWorldLocalView(clientWorld)->player->unknown100 == 1) {
+    if (ClientWorldLocalView(clientWorld)->player->sessionKind == 1) {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
         NodeVector changed;

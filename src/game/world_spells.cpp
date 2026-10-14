@@ -130,7 +130,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
 void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target,
                              const Vector3* to, int extra) {
     if (!spell) return;
-    if (unknown12D64_ != kKindSinglePlayer && caster) return;
+    if (sessionKind_ != kKindSinglePlayer && caster) return;
     int type = SpellType(spell);
     if (type == 0x15 || type == 0x1B || type == 0x24) return;
     std::uint32_t flags = static_cast<const CSpell*>(spell)->targetFlags_;

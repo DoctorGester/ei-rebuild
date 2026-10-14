@@ -161,14 +161,14 @@ void CUnitServer::DropQueuedOrder() {
     if (action2.target) action2.target->Release();
     action2.target = nullptr;
     action2.flag18 = 0;
-    action2.unknown_1C = 0;
-    action2.unknown_20 = 0;
+    action2.param = 0;
+    action2.modifier = 0;
     action2.kind = 0;
     if (action2.target) {
         action2.target->Release();
         action2.target = nullptr;
     }
-    action2.unknown_20 = 0;
+    action2.modifier = 0;
 }
 
 void CUnitServer::FinishAction(int location, char) {
@@ -206,8 +206,8 @@ void CUnitServer::FinishAction(int location, char) {
         if (action.target) action.target->Release();
         action.target = nullptr;
         action.flag18 = 0;
-        action.unknown_1C = 0;
-        action.unknown_20 = 0;
+        action.param = 0;
+        action.modifier = 0;
         if (action2.kind == 9 && action.kind != 0) DropQueuedOrder();
         return;
     }
@@ -215,8 +215,8 @@ void CUnitServer::FinishAction(int location, char) {
         return;
     }
     ActionClear(&action);
-    action.unknown_1C = 0;
-    action.unknown_20 = 0;
+    action.param = 0;
+    action.modifier = 0;
     if (action2.kind == 9) reinterpret_cast<ControllerOriginals*>(this)->Idle();
 }
 EI_REPLACE_METHOD(0x00549EC0, CUnitServer::FinishAction);
@@ -447,8 +447,8 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     animation.vtable = kAnimationStepsVtable;
     std::uint32_t direction = CallHitDirection(attacker, hitKind);
     CtlBuildDeathAnimation(this, nullptr, &animation, direction, 1, 0);
-    unknown_021 = 0;
-    unknown_020 = 0;
+    animationHeld = 0;
+    frozen = 0;
     AnimationSteps copy;
     AnimationListCopy(&copy, nullptr, &animation);
     copy.extra = animation.extra;
@@ -506,7 +506,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 0: {
         ItemUse record = {1, 0, 0};
         auto* items = static_cast<CBaseManager*>(static_cast<CWorld*>(world)->ItemFactory());
-        CEngineObject* studied = items->FindObject(action.unknown_1C);
+        CEngineObject* studied = items->FindObject(action.param);
         record = {1, 0, 0};
         if (studied) {
             ItemUse scratch;

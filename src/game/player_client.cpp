@@ -923,7 +923,7 @@ int CPlayerClient::OnPartyState() {
     }
     IntSetClearOriginal(PartyIdSet());
 
-    static_cast<CWorldClient*>(player->ManagerContext())->unknown6E4_ = ReadDword(&in_);
+    static_cast<CWorldClient*>(player->ManagerContext())->partyDanger_ = ReadDword(&in_);
     int others = ReadDword(&in_);
     otherUnitIds_.SetSize(others);
     for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);

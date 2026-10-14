@@ -104,9 +104,9 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
         player->dirty = 0xFFFFFFFFu;
     if (it.list) --it.list->refCount_;
-    unknown15C_ = 1;
-    unknownE4_ = 0;
-    unknownE8_ = 0.0f;
+    zoneLoaded_ = 1;
+    weather_ = 0;
+    weatherStrength_ = 0.0f;
     it.list = nullptr;
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty |= 2;
     if (it.list) {
@@ -223,7 +223,7 @@ void CWorldServer::TeardownZone() {
     }
     if (it.list) --it.list->refCount_;
     it.list = nullptr;
-    unknown15C_ = 0;
+    zoneLoaded_ = 0;
 
     SharedObjectList& shared = sharedObjects_;
     for (auto* node = shared.head; node; node = node->next)
@@ -247,7 +247,7 @@ void CWorldServer::TeardownZone() {
     EndTimedObjects(this);
     CloseSession();
     gameResult_ = 0;
-    unknown12D64_ = 0;
+    sessionKind_ = 0;
 }
 
 // ---- SendFreshObjects -------------------------------------------------------------------------
@@ -332,20 +332,20 @@ void CWorldServer::ResetState() {
     QueueReset(commandsA_, nullptr);
     QueueReset(commandsB_, nullptr);
     AIMapReset(aiMap_, nullptr);
-    unknown15C_ = 0;
-    unknown84_ = 0;
+    zoneLoaded_ = 0;
+    nightLevel_ = 0;
     for (WorldAlarm& alarm : alarms_) {
         alarm.active = 0;
         alarm.time = 0;
         alarm.y = 0.0f;
         alarm.x = 0.0f;
     }
-    unknown12D64_ = 0;
+    sessionKind_ = 0;
     startPosition_.x = 0.0f;
-    unknown88_ = 0x3F800000;   // 1.0f
+    weatherFactor_ = 0x3F800000;   // 1.0f
     loaded_ = 0;
     startPosition_.y = 0.0f;
-    unknown13C_ = 0;
+    lastRainBoltTick_ = 0;
     startPosition_.z = 0.0f;
 }
 

@@ -206,7 +206,7 @@ static int(__fastcall* s_level)(CUnitServer*);
 static int __fastcall LevelVerify(CUnitServer* self) {
     int expected = s_level(self);
     ei::verify::Check("CUnitServer::Level", expected, self->Level(), "unit %d experience %g", UnitId(self),
-                      self->Combat().unknown_04);
+                      self->Combat().experience);
     return expected;
 }
 EI_VERIFY(0x00556760, LevelVerify, 6, s_level);

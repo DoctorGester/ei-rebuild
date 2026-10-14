@@ -407,7 +407,7 @@ int CWorldClient::Segment() {
     }
     if (shared5C_.ptr) static_cast<CWorldHandle*>(shared5C_.ptr)->Pump();
     if (handle_.ptr) static_cast<CWorldHandle*>(handle_.ptr)->Pump();
-    if (void* p = unknown60_) SessionPump(p, nullptr, net::GameClient());
+    if (void* p = netSession_) SessionPump(p, nullptr, net::GameClient());
     if (WorldSession* session = Session()) {
         CPlayerConnection* view = session->localView;
         if (!paused_) PlayerTickOriginal(session);
@@ -459,9 +459,9 @@ int CWorldClient::Segment() {
         RunEffects(footprints_, EffectListErase1);
         RunEffects(scorchMarks_, EffectListErase2);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
-            unknown1C4_ -= worlddata::WorldUpdatePeriod();
-            if (unknown1C4_ <= 0) {
-                unknown1C4_ = worlddata::LightLevelsPeriod();
+            lightLevelsCountdown_ -= worlddata::WorldUpdatePeriod();
+            if (lightLevelsCountdown_ <= 0) {
+                lightLevelsCountdown_ = worlddata::LightLevelsPeriod();
                 // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
                 CLight* sun = worlddata::SceneSun();

@@ -344,7 +344,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     }
 
     StepsSetSize(&plan->animation, nullptr, 0, -1);
-    plan->unknown_2C = 1;
+    plan->hitLocation = 1;
     plan->animation.extra = -1;
     plan->targetId = -1;
     plan->rangeSq = std::bit_cast<float>(kFarBits);

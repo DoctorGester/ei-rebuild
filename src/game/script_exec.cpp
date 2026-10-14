@@ -940,7 +940,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         case 0x97: {   // GodMode(player, on): player +0x108
             WorldPlayer* player = TheWorld()->GetPlayer(Ftol(f[0]));
-            if (player) player->unknown108 = static_cast<std::uint8_t>(Ftol(f[1]));
+            if (player) player->godMode = static_cast<std::uint8_t>(Ftol(f[1]));
             break;
         }
         case 0x37: {   // SetDiplomacy(a, b, value): > 0 allied (0), 0 or NaN neutral (1), < 0 enemies (2)

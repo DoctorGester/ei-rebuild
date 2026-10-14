@@ -55,8 +55,8 @@ inline void FreeSteps(AnimationSteps* steps) {
 // Steps compared without byte 3, which the original never initialises (00550A60).
 inline int StepsDifference(const AnimationStep* a, const AnimationStep* b, int count) {
     for (int i = 0; i < count; ++i) {
-        if (a[i].animation != b[i].animation || a[i].unknown_01 != b[i].unknown_01 ||
-            a[i].unknown_02 != b[i].unknown_02 || a[i].duration != b[i].duration || a[i].unknown_08 != b[i].unknown_08)
+        if (a[i].animation != b[i].animation || a[i].variant != b[i].variant ||
+            a[i].flags != b[i].flags || a[i].duration != b[i].duration || a[i].kind != b[i].kind)
             return i;
     }
     return -1;
