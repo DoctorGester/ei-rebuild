@@ -1540,7 +1540,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
     WorldSetGameResultOriginal(World(), nullptr, result);
     // The server world's counted helper (+0x5C, a player source) handed to the client world.
     ClientSetPlayer(kClientWorld, nullptr, reinterpret_cast<int>(World()->shared5C_.ptr));
-    ClientWorldLocalView(kClientWorld)->partyTaken = 0;
+    ClientWorldLocalView(kClientWorld)->sendParty = 0;
 }
 
 // ---- New game (0057BD10) ------------------------------------------------------------------------
@@ -1669,7 +1669,7 @@ void GameFlow::ProcessRequest() {
         break;
     case kStateLoad:
         ClientSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
-        ClientWorldLocalView(clientWorld)->partyTaken = 0;
+        ClientWorldLocalView(clientWorld)->sendParty = 0;
         WorldSetGameResultOriginal(World(), nullptr, 1);
         ClientSegmentAt(clientWorld);
         ServerUpdateAt(World());
@@ -1708,7 +1708,7 @@ void GameFlow::ProcessRequest() {
                 StartZoneAt(this, nullptr, game::Text(kMainMenu), 2);
             }
         }
-        ClientWorldLocalView(clientWorld)->partyTaken = 1;
+        ClientWorldLocalView(clientWorld)->sendParty = 1;
         break;
     }
     case kStateNetworkZone: {
@@ -1716,7 +1716,7 @@ void GameFlow::ProcessRequest() {
         WorldPlayer* player = ClientWorldLocalView(clientWorld)->player;
         PlayerTakeParty(player, nullptr, RequestParty());
         ClientSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
-        ClientWorldLocalView(clientWorld)->partyTaken = 1;
+        ClientWorldLocalView(clientWorld)->sendParty = 1;
         break;
     }
     default:

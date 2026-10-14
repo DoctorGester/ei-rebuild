@@ -112,8 +112,8 @@ code alone does not show:
 - `ServerSession` +0x25FC `masterKey_` (StartServer's last argument, the client queries' `extra`) and +0x2578
   `masterToken_` (the master server's last dword, sent back); `GameInfoRecord` +0x1A..+0x23 carry them with the
   kind and the password flag.
-- app_device_list.cpp's `DeviceRecord` is the lever table's record (`LeverRecord`, lever.h): Levers.ldb.
-- `mapspec::Waypoint` +0x10 / +0x12 are the look's wait and stop-first bit (its `wait` is the turning time);
+- app_device_list.cpp's `DeviceRecord` is the lever table's record (`LeverRecord`, lever.h): Levers.ldb. F5a: one declaration now (CString members), app_device_list.cpp uses LeverRecord.
+- `mapspec::Waypoint` +0x10 / +0x12 are the look's wait and stop-first bit (its turning time is `time`, as AILook::time; was `wait`, F5a);
   `Behaviour` +0x38 `enabled` (HearAlarm); `ObjectSpec` +0x6E `side`, +0x74 `skinTexture` (chunk B008).
 - Only written, nothing reads them: `CBaseManager` `reservedA_` / `reservedB_` (0 / 300 after Create),
   `CPlayerServer::spare_`, `CSoundManager::spare`, `Spec::spareId` (copied); chunk or archive fields read and
