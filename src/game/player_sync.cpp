@@ -96,15 +96,6 @@ void Forget(CPlayer::ObjectMap& map, int id) {
 
 int WorldUpdateCount(CPlayer* player) { return static_cast<CWorldServer*>(player->ManagerContext())->updateCount_; }
 
-// A memory stream on the stack with the network queue's vtable, as the original builds and
-// destroys it inline.
-struct QueueStream {
-    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
-    QueueStream() { Get()->ConstructQueueStream(); }
-    ~QueueStream() { Get()->Destruct(); }
-    CMemoryStream* Get() { return reinterpret_cast<CMemoryStream*>(bytes); }
-};
-
 // SendItemsGiven (A-H10).
 constexpr std::uint8_t kMessageItemStates = 0x05;
 constexpr std::uint8_t kMessageItemsGiven = 0x06;

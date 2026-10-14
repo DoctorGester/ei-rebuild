@@ -25,6 +25,8 @@ struct ProcessorInfo {
     std::uint8_t unknown_0D[3];
     std::uint32_t features;    // 007CAEE0
 };
+static_assert(offsetof(ProcessorInfo, terminator) == 0x0C && offsetof(ProcessorInfo, features) == 0x10 &&
+              sizeof(ProcessorInfo) == 0x14);
 inline constexpr std::uint32_t kProcessorMmx = 0x00800000;   // CPUID.1:EDX bit 23
 inline constexpr std::uint32_t kProcessorSse = 0x02000000;   // CPUID.1:EDX bit 25
 inline ProcessorInfo* TheProcessorInfo() { return reinterpret_cast<ProcessorInfo*>(0x007CAED0); }

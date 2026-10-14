@@ -45,13 +45,6 @@ __declspec(naked) void __cdecl CopyFloat(float* /*to*/, const float* /*from*/) {
     }
 }
 
-// A CString returned by value into raw storage; destroyed at the end of the scope.
-struct TempString {
-    void* data;
-    mfc::CString& Get() { return *reinterpret_cast<mfc::CString*>(this); }
-    ~TempString() { Get().~CString(); }
-};
-
 void Release(CEngineObject* object) {
     if (object) object->Release();
 }

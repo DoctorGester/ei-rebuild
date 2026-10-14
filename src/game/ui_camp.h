@@ -18,6 +18,13 @@
 
 class CItem;
 
+// The camp screens' children's vtable pairs (main, input).
+struct VtablePair {
+    void** main;
+    void** input;
+};
+static_assert(sizeof(VtablePair) == 8 && offsetof(VtablePair, input) == 4);
+
 // (UiDwordArray, the MFC CArray<DWORD>-like array, is in ui.h.)
 
 // --- Battle screen --------------------------------------------------------------------------

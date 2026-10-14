@@ -28,11 +28,6 @@
 
 namespace {
 
-// A block of four vertex positions (x[4], y[4], z[4], w[4]; 64 bytes).
-struct PositionBlock {
-    float v[16];
-};
-
 // STLport string (start, finish, end of storage), handled through the original members.
 struct RawString {
     char* start;

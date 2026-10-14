@@ -212,6 +212,17 @@ static_assert(offsetof(ChunkArchive, loading_) == 0x58);
 static_assert(offsetof(ChunkArchive, objects_) == 0x5C);
 static_assert(offsetof(ChunkArchive, saved_) == 0x70);
 static_assert(sizeof(ChunkArchive) == 0x74);
+
+// An archive built and destroyed inline (ConstructLocal / DestructLocal), as the savers and the
+// address book do on their stacks.
+struct LocalArchive {
+    LocalArchive() { archive.ConstructLocal(); }
+    ~LocalArchive() { archive.DestructLocal(); }
+    LocalArchive(const LocalArchive&) = delete;
+    LocalArchive& operator=(const LocalArchive&) = delete;
+    ChunkArchive archive;
+};
+static_assert(sizeof(LocalArchive) == 0x74 && offsetof(LocalArchive, archive) == 0);
 static_assert(sizeof(ChunkArchive::ClassRegistry) == 0x28);
 
 // Whole chunks of a stream (the archive's top-level chunks).

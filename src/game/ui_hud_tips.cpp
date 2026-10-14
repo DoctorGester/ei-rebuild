@@ -44,12 +44,6 @@ __declspec(naked) void __fastcall AddActionButton(CHudActionColumn*, void*, cons
 // 0059C660 (thiscall, RET 8): CDWordArray::SetSize (`growBy` -1 keeps the step).
 inline void __fastcall DwordArraySetSize(void* a, void*, int n, int g) { DwordArraySetSizeOriginal(a, nullptr, n, g); }
 
-// A CString an item's virtual method returns (by hidden pointer); released when it goes.
-struct ReturnedString {
-    char* data = nullptr;
-    mfc::CString* Slot() { return reinterpret_cast<mfc::CString*>(&data); }
-    ~ReturnedString() { Slot()->~CString(); }
-};
 // The item's slot 19 (the picture's name) and 20 (the model's name).
 void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
     using Fn = mfc::CString*(__thiscall*)(CEngineObject*, mfc::CString*);

@@ -30,6 +30,14 @@ class NetLink;  // net_link.h
 // 32-byte boundary (0047B940), size, capacity, grow-by.
 using PlayerObjectArray = lib::AlignedArray<CEngineObject*>;
 
+// One row of the server's and the client's handler tables (player_messages.cpp, player_client.cpp):
+// a message type and the address of its thiscall handler.
+struct HandlerEntry {
+    std::uint8_t type;
+    std::uintptr_t address;
+};
+static_assert(sizeof(HandlerEntry) == 8 && offsetof(HandlerEntry, address) == 4);
+
 // A unit placement (0x28 bytes; built by 004CEE20): the unit's id, position, rotation and two
 // values (CWorldServer::StoreParty stores the unit's +0x268 / +0x26C, CreateUnits restores them).
 struct UnitPlacement {

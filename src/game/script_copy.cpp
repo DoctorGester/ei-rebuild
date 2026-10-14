@@ -167,13 +167,6 @@ void InitArray(mfc::CArray<T>* a, std::uintptr_t vtable) {
     a->vtable = reinterpret_cast<void*>(vtable);
 }
 
-// A CString returned by value into raw storage; destroyed at the end of the scope.
-struct TempString {
-    void* data;
-    mfc::CString& Get() { return *reinterpret_cast<mfc::CString*>(this); }
-    ~TempString() { Get().~CString(); }
-};
-
 // A string array constructed empty, resized with 004C2510, each element assigned from a GetAt copy.
 void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::CString>* from) {
     InitArray(to, kStringsVtable);

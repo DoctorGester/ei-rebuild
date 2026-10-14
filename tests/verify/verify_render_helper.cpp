@@ -31,7 +31,7 @@
 #include "verify.h"
 
 #include "../../src/game/model.h"
-#include "../../src/game/processor_info.h"
+#include "../../src/game/sys_info.h"
 #include "../../src/game/texture.h"
 #include "../../src/lib/containers.h"
 #include "../../src/lib/gameapi.h"
@@ -463,21 +463,21 @@ void* __fastcall TlLibraryDeleteVerify(void* self, void*, unsigned flags) {
 // stacks (empty, each with its own block) and the processor's globals (without the APIC id of the
 // core that happened to run CPUID).
 CTransformPipeline*(__fastcall* s_pipelineConstruct)(CTransformPipeline*, void*, const char*);
-processor::Info ComparableProcessor() {
-    processor::Info info = processor::Global();
+ProcessorInfo ComparableProcessor() {
+    ProcessorInfo info = *TheProcessorInfo();
     info.brand &= 0x00FFFFFFu;
     return info;
 }
 CTransformPipeline* __fastcall PipelineConstructVerify(CTransformPipeline* self, void*, const char* folder) {
     alignas(4) unsigned char scratch[sizeof(CTransformPipeline)];
     auto* theirs = reinterpret_cast<CTransformPipeline*>(scratch);
-    const processor::Info before = processor::Global();
+    const ProcessorInfo before = *TheProcessorInfo();
     s_pipelineConstruct(theirs, nullptr, folder);
-    const processor::Info expected = ComparableProcessor();
-    processor::Global() = before;
+    const ProcessorInfo expected = ComparableProcessor();
+    *TheProcessorInfo() = before;
 
     CTransformPipeline* result = TransformPipelineConstruct(self, nullptr, folder);
-    const processor::Info actual = ComparableProcessor();
+    const ProcessorInfo actual = ComparableProcessor();
     bool same = result == self && self->vtable_ == theirs->vtable_ && self->refs_ == theirs->refs_ &&
                 std::memcmp(self->unknown_08, theirs->unknown_08, sizeof(self->unknown_08)) == 0 &&
                 self->transform_ == theirs->transform_ && self->library_ == theirs->library_ &&

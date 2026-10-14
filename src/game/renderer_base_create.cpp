@@ -4,7 +4,7 @@
 #include "model.h"
 
 #include "options.h"
-#include "processor_info.h"
+#include "sys_info.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -42,8 +42,8 @@ void* CSceneRenderer::CreateBase(void* /*window*/, options::GameOptions* setting
     if (pipeline) ++pipeline->refs_;
     if (old) old->Release();
 
-    processor::Read();
-    if (!(processor::Global().features & processor::kFeatureMmx)) {
+    ReadProcessorInfo();
+    if (!(TheProcessorInfo()->features & kProcessorMmx)) {
         FatalErrorOriginal(Text(kNoMmxText));
         ExitGame(-1);
     }

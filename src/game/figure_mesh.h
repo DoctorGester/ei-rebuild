@@ -36,6 +36,12 @@ struct MeshCorner {
 };
 static_assert(sizeof(NormalPacket) == 0x40 && sizeof(TexCoord) == 8 && sizeof(MeshCorner) == 6);
 
+// A block of four vertex positions (x[4], y[4], z[4], w[4]; 64 bytes).
+struct PositionBlock {
+    float v[16];
+};
+static_assert(sizeof(PositionBlock) == 0x40);
+
 // What the renderer draws from (+0x9C): pointers and counts of the mesh's arrays (class 0x41 points
 // the last four into the loaded file data instead).
 struct MeshBuffers {

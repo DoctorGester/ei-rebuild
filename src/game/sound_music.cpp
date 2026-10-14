@@ -55,10 +55,6 @@ void WaitAndEndAfter(CSoundManager* snd) {
 
 // ---- Theme loading (006B4710) ----
 
-// A CString passed by value: copy-constructed into the argument slot, destroyed by the callee.
-struct StringArg {
-    char* data;
-};
 StringArg Copy(const char* text) {
     StringArg arg;
     new (&arg) mfc::CString(text);

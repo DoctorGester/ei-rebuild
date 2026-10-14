@@ -35,12 +35,6 @@ __declspec(naked) std::uint8_t* __fastcall SpellPrototypeOf(void*) EI_ORIGINAL(0
 
 void* TextManager() { return *reinterpret_cast<void* const*>(0x007AF788); }
 
-// A CString a spell's virtual method returns (by hidden pointer); released when it goes.
-struct ReturnedString {
-    char* data = nullptr;
-    mfc::CString* Slot() { return reinterpret_cast<mfc::CString*>(&data); }
-    ~ReturnedString() { Slot()->~CString(); }
-};
 // The spell's slot 19 (the picture's name) and 20 (the model's name).
 void SpellName(CEngineObject* spell, int slot, ReturnedString* out) {
     using Fn = mfc::CString*(__thiscall*)(CEngineObject*, mfc::CString*);
