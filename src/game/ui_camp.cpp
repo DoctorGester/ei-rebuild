@@ -62,11 +62,10 @@ void* CampItems::Move(void* item, void* to, void* from, int a, int b, int c) {
 // Surface text (005FDE20 is Rebirth-patched).
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                  // 005FDC00
-    void Clear();                                                                   // 005FE2F0
+    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20
     void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 // An item list of the camp (0x70 bytes, 00661050): the first node's item at **(+0x40), the
@@ -1597,8 +1596,6 @@ struct TextTableGlue {
 };
 void* TextTableGlue::Table() { return GameFlowOriginal(); }
 void __fastcall TextLookup(void* a0, void*, mfc::CString* a2, int a3) { TextsReadLineOriginal(a0, nullptr, a2, a3); }
-// The stats panel's hero name (006232D0, RET 8; the trade panel's hero 00625860 is in originals_ui.h).
-__declspec(naked) void __fastcall StatsPanelSetHero(CUiWindow*, void*, int, const char*) EI_ORIGINAL(0x006232D0)
 } // namespace
 
 void CCampPages::Update() {
@@ -1685,7 +1682,7 @@ void CCampPages::ShowHero() {
     } else {
         name = own;
     }
-    StatsPanelSetHero(statsPanel_, nullptr, hero_, name);
+    StatsPanelSetHeroOriginal(statsPanel_, nullptr, hero_, name);
     TradePanelSelectHeroOriginal(trade_, nullptr, hero_);
 }
 EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);

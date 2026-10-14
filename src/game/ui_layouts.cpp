@@ -704,8 +704,6 @@ namespace {
 __declspec(naked) void __fastcall TitlesStopMusic(void*) EI_ORIGINAL(0x006B4F70)
 __declspec(naked) void __fastcall TitlesRemoveCr(mfc::CString*) EI_ORIGINAL(0x004461E0)
 __declspec(naked) CUiSurface* __fastcall TitlesScrollSurface(void*, void*, CInterface3D*, RECT*) EI_ORIGINAL(0x0065ED30)
-__declspec(naked) CUiSurface* __fastcall TitlesPlainSurface(void*, void*, CInterface3D*, RECT*, int)
-    EI_ORIGINAL(0x005FCDD0)
 std::uint8_t* __cdecl TitlesDisplay() { return (std::uint8_t*)DisplayObject(); }
 __declspec(naked) void __fastcall TitlesPlay(void*, void*, const char*, int) EI_ORIGINAL(0x005DBA50)
 
@@ -795,7 +793,7 @@ void CCreditsScreen::Build() {
     {
         void* memory = gamecrt::operator_new(0x38);
         RECT rect = {10, 0x6E, 0x316, 0x8C};
-        headerSurface_ = window.AddSurface(memory ? TitlesPlainSurface(memory, nullptr, ui, &rect, 5) : nullptr);
+        headerSurface_ = window.AddSurface(memory ? SurfaceConstructOnRectOriginal(memory, nullptr, ui, &rect, 5) : nullptr);
         headerSurface_->Freeze(0, 0);
     }
     if (fromGame_) Glue(0x007AFEA4)->SetServer(0);

@@ -236,11 +236,10 @@ void __fastcall TreeIncrement(DistanceNode** a0) { TreeIncrementOriginal((void*)
 // Surfaces and sprites (not rewritten).
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
-    void Clear();                                                                   // 005FE2F0
+    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
     void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 struct SpriteAt {
@@ -256,11 +255,6 @@ void SpriteAt::SetTriangle(float depth, float size, float x0, float y0, float x1
     reinterpret_cast<CUiMesh*>(this)->SetTriangle(depth, size, x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2);
 }
 double SpriteAt::Scale() { return SpriteScaleOriginal((void*)this); }
-
-struct ScrollbarAt {
-    void SetRange(int maximum);      // 0065AFE0
-};
-__declspec(naked) void ScrollbarAt::SetRange(int) EI_ORIGINAL(0x0065AFE0)
 
 // 0065CC00 (not rewritten): the scrolling text window (a scroll bar subclass) over `rect`.
 CUiWindow* __fastcall ConstructTextLog(void* memory, void*, CInterface3D* ui, const void* font, RECT rect, float lineHeight) {
@@ -492,7 +486,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             LastQuest() = (*quests)[selectedQuest_];
         }
         int rows = quests->GetSize();
-        reinterpret_cast<ScrollbarAt*>(bar_)->SetRange(rows > 5 ? rows - 5 : 0);
+        ScrollbarSetRangeOriginal(bar_, nullptr, rows > 5 ? rows - 5 : 0);
         bar_->CallSetPosition(0);
         firstRow_ = 0;
         CallRefreshQuests();

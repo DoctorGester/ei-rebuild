@@ -33,7 +33,6 @@ void* Renderer() { return Global<void*>(0x007AF080); }
 bool Running() { return Global<std::uint8_t>(0x0079BC5C) != 0 && Global<std::uint8_t>(0x00784750) != 0; }
 CRITICAL_SECTION* RenderLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
-__declspec(naked) int __fastcall InterfaceActiveWindow(void*) EI_ORIGINAL(0x005F7590)
 __declspec(naked) int __fastcall GameStep(void*) EI_ORIGINAL(0x00503F40)
 __declspec(naked) void __fastcall InterfaceUpdate(void*) EI_ORIGINAL(0x005F5220)
 __declspec(naked) void __fastcall GameDraw(void*) EI_ORIGINAL(0x005040A0)
@@ -89,7 +88,7 @@ void ClearScreen() {
 // no window of the interface is active).
 void __fastcall FrameStep(bool draw, bool cursor) {
     if (!Running()) return;
-    if (!InterfaceActiveWindow(Interface())) {
+    if (!InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(Interface()))) {
         gameapi::Sleep(50);
         return;
     }

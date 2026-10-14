@@ -108,8 +108,6 @@ CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, con
 // constructed at `out`, returned).
 __declspec(naked) mfc::CString* __fastcall PlayerZone(void*, void*, void* /*out*/) EI_ORIGINAL(0x00578A90)
 // 0045E850 (RET 4): CMapDatabase::FindMap, the zone record (+4 its map) named `name`, or null.
-// 0065AFE0 (RET 4): the scroll bar's range (0..maximum).
-__declspec(naked) void __fastcall ScrollbarSetRange(CUiScrollbar*, void*, int /*maximum*/) EI_ORIGINAL(0x0065AFE0)
 // 006FE508: CTime::GetCurrentTime (time(), returned through `out`).
 __declspec(naked) std::int32_t* __stdcall CurrentTime(std::int32_t* /*out*/) EI_ORIGINAL(0x006FE508)
 // 006E80D8: atoi.
@@ -566,10 +564,10 @@ void CSaveLoadWindow::FillEntries() {
     if (static_cast<unsigned>(EntryCount()) > static_cast<unsigned>(kVisibleRows)) {
         int position;
         scrollbar_->TakePosition(&position);
-        ScrollbarSetRange(scrollbar_, nullptr, EntryCount() - kVisibleRows);
+        ScrollbarSetRangeOriginal(scrollbar_, nullptr, EntryCount() - kVisibleRows);
         scrollbar_->CallSetPosition(position);
     } else {
-        ScrollbarSetRange(scrollbar_, nullptr, 0);
+        ScrollbarSetRangeOriginal(scrollbar_, nullptr, 0);
     }
     firstVisible_ = 0;
 }

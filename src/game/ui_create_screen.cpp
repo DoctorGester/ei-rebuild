@@ -39,7 +39,6 @@ __declspec(naked) void __fastcall Member5FAF80(void*) EI_ORIGINAL(0x005FAF80)
 // STLport containers taking an allocator (by address; empty).
 __declspec(naked) void __fastcall Member5F90E0(void*, void*, const void*) EI_ORIGINAL(0x005F90E0)
 __declspec(naked) void __fastcall Member5F9300(void*, void*, const void*) EI_ORIGINAL(0x005F9300)
-__declspec(naked) void __fastcall Member5F8F10(void*, void*, const void*) EI_ORIGINAL(0x005F8F10)
 __declspec(naked) void __fastcall Member5F9540(void*, void*, const void*) EI_ORIGINAL(0x005F9540)
 
 std::uint8_t* At(void* p, int offset) { return static_cast<std::uint8_t*>(p) + offset; }
@@ -87,7 +86,7 @@ void CInterface3D::CreateScreen(int id) {
         SetDword(screen, 0x248, EmptyString());
         Member5F8F30(At(screen, 0x26C));
         Member5F9300(At(screen, 0x278), nullptr, &allocators[1]);
-        Member5F8F10(At(screen, 0x284), nullptr, &allocators[2]);
+        IdVectorConstructOriginal(At(screen, 0x284), nullptr, &allocators[2]);
         Member5F9540(At(screen, 0x294), nullptr, &allocators[3]);
         SetDword(screen, 0x00, 0x007405AC);
         SetDword(screen, 0x94, 0x00740578);
@@ -222,11 +221,6 @@ void CInterface3D::PushWindow(CUiWindow* window, int a, int b) {
 // --- 005F71C0: Activate ----------------------------------------------------------------------------
 
 namespace {
-struct InterfaceSteps {
-    void CloseAllPending();   // 005F74F0
-};
-__declspec(naked) void InterfaceSteps::CloseAllPending() EI_ORIGINAL(0x005F74F0)
-
 void DeleteBackdrop(CUiSurface* surface) {
     if (!surface) return;
     surface->ReleaseContents();
@@ -236,10 +230,9 @@ void DeleteBackdrop(CUiSurface* surface) {
 
 void CInterface3D::Activate(CUiWindow* window) {
     auto* self = reinterpret_cast<std::uint8_t*>(this);
-    auto* steps = reinterpret_cast<InterfaceSteps*>(this);
     if (self[0x44] != 0) {
         self[0x44] = 0;
-        steps->CloseAllPending();
+        InterfaceCloseAllOriginal(this);
     }
     Cursor()->SetShape(3);
     CUiSurface* backdrop;

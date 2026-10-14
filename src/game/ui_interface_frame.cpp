@@ -91,10 +91,8 @@ struct GameStateAt {
 void GameStateAt::SetServerFlag(bool f) { SetServerFlagOriginal(f); }
 
 struct SurfaceAt {
-    void ReleaseContents();          // 005FD120
     void Freeze(int save);           // 005FD7A0 saves the surface's contents
 };
-__declspec(naked) void SurfaceAt::ReleaseContents() EI_ORIGINAL(0x005FD120)
 void SurfaceAt::Freeze(int save) { SurfaceSwapContentsOriginal(this, nullptr, save); }
 
 // 00634650: the message box (0x180 bytes): owner, caption and text ids, the value it leaves
@@ -108,7 +106,7 @@ void* MessageBoxAt::Construct(CInterface3D* a2, const char* a3, const char* a4, 
 
 void ReleaseBackdrop(void* surface) {
     if (!surface) return;
-    static_cast<SurfaceAt*>(surface)->ReleaseContents();
+    SurfaceReleaseContentsOriginal(static_cast<CUiSurface*>(surface));
     gamecrt::operator_delete(surface);
 }
 

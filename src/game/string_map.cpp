@@ -169,9 +169,6 @@ namespace {
 // The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
 // surface's constructor and destructor body, the DC's non-virtual members, the red-black tree's
 // increment (library).
-__declspec(naked) void __fastcall InterfaceSetPanelRect(CInterface3D*, void*, RECT*) EI_ORIGINAL(0x005F7DA0)
-__declspec(naked) CUiSurface* __fastcall PanelConstruct(void*, void*, CInterface3D* /*ui*/, RECT*, int) EI_ORIGINAL(0x005FCDD0)
-__declspec(naked) void __fastcall PanelDestruct(CUiSurface*) EI_ORIGINAL(0x005FD120)
 void __fastcall DcFillSolidRect(ui_gdi::GameDC* a0, void*, int a2, int a3, int a4, int a5, COLORREF a6) { DcFillSolidRectOriginal(a0, nullptr, a2, a3, a4, a5, a6); }
 int __fastcall DcSetBkMode(ui_gdi::GameDC* a0, void*, int a2) { return DcSetBkModeOriginal(a0, nullptr, a2); }
 void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal(a0); }
@@ -213,7 +210,7 @@ EI_REPLACE(0x00444A70, PanelInit);
 void __fastcall PanelRelease(void* self) {
     CDebugPanel* panel = Panel(self);
     if (CUiSurface* surface = panel->surface_) {
-        PanelDestruct(surface);
+        SurfaceReleaseContentsOriginal(surface);
         gamecrt::operator_delete(surface);
     }
     panel->surface_ = nullptr;
@@ -242,7 +239,7 @@ void __fastcall PanelSetRect(void* self, void*, const RECT* rect) {
     asked.bottom = asked.top + dy;
     RECT& shown = panel->shown_;
     shown = asked;
-    InterfaceSetPanelRect(panel->ui_, nullptr, &shown);
+    InterfaceScaleRectFromScreenOriginal(panel->ui_, nullptr, &shown);
     if (panel->visible_) {
         PanelShowAt(self, nullptr, 0);
         PanelShowAt(self, nullptr, 1);
@@ -308,14 +305,14 @@ void __fastcall PanelShow(void* self, void*, std::uint8_t show) {
     if (show) {
         if (!panel->surface_) {
             void* memory = gamecrt::operator_new(0x38);
-            panel->surface_ = memory ? PanelConstruct(memory, nullptr, panel->ui_, &panel->shown_, 5) : nullptr;
+            panel->surface_ = memory ? SurfaceConstructOnRectOriginal(memory, nullptr, panel->ui_, &panel->shown_, 5) : nullptr;
         }
         panel->lastDraw_ = gameapi::timeGetTime();
         PanelRedrawAt(self);
         return;
     }
     if (CUiSurface* surface = panel->surface_) {
-        PanelDestruct(surface);
+        SurfaceReleaseContentsOriginal(surface);
         gamecrt::operator_delete(surface);
     }
     panel->surface_ = nullptr;

@@ -59,8 +59,6 @@ inline std::uint8_t* LocalView(void* client) { return ClientWorldLocalViewOrigin
 // LocalViewSendAttackOriginal), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 __declspec(naked) void __fastcall ViewOrderDead(void*, void*, OrderUnits*, CUnit*, int) EI_ORIGINAL(0x0066AB80)
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
-// 00637DC0 (thiscall; rewritten): the selection's refresh, through its address.
-__declspec(naked) void __fastcall RefreshSelectionAt(CBattleScreenSetup*) EI_ORIGINAL(0x00637DC0)
 
 // Speech: 006D8430 (__fastcall: unit, event) and 006D8A40 (__fastcall: unit, text, flag; RET 4)
 // pick a phrase record (its +0x1C the phrase's name) or return null.
@@ -187,7 +185,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
             }
         }
     }
-    RefreshSelectionAt(this);
+    BattleRefreshSelectionOriginal(this);
     if (chosen.data) gamecrt::operator_delete(chosen.data);
 }
 EI_REPLACE_METHOD(0x006379E0, CBattleScreenSetup::ToggleMember);

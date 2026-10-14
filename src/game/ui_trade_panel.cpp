@@ -57,11 +57,10 @@ __declspec(naked) void __fastcall FormatPriceAt(CTradePanel*, void*, int, mfc::C
 
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
-    void Clear();                                                                   // 005FE2F0
+    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int a, std::uint32_t colour, int format, int b);   // 005FDE20 (Rebirth)
     void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 constexpr std::uintptr_t kSkillDatabase = 0x007AF268;   // its records: vector at +0xC (0x44 bytes each)

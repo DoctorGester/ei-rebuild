@@ -16,10 +16,8 @@ namespace {
 // so they are called through their original addresses.
 struct ScreenAt {
     void ScaleRectToScreen(int* rect);     // 005F7CA0 (800x600 -> pixels)
-    void ScaleRectFromScreen(int* rect);   // 005F7DA0 (pixels -> 800x600)
 };
 __declspec(naked) void ScreenAt::ScaleRectToScreen(int*) EI_ORIGINAL(0x005F7CA0)
-__declspec(naked) void ScreenAt::ScaleRectFromScreen(int*) EI_ORIGINAL(0x005F7DA0)
 
 struct WindowAt : ConsoleWindow {
     void Show(bool shown);   // 005E3FD0: creates (or releases) the surface and redraws
@@ -56,7 +54,8 @@ void ConsoleWindow::SetRect(const int* rect) {
     rect_[1] = screenRect_[1];
     rect_[2] = screenRect_[2];
     rect_[3] = screenRect_[3];
-    reinterpret_cast<ScreenAt*>(screen_)->ScaleRectFromScreen(rect_);
+    InterfaceScaleRectFromScreenOriginal(reinterpret_cast<CInterface3D*>(screen_), nullptr,
+                                         reinterpret_cast<tagRECT*>(rect_));
     if (shown_) {
         At(this)->Show(false);
         At(this)->Show(true);

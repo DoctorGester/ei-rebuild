@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "render/render_state.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 
@@ -44,7 +45,6 @@ void Flush(CUiWindow* w) {
 
 // Through their original addresses (rewritten or not), as the original calls them.
 __declspec(naked) void __fastcall UpdateRegionTips(CUiWindow*, void*, int) EI_ORIGINAL(0x005FEBF0)
-__declspec(naked) int __fastcall ContainerDraw(CUiWindow*, void*, int) EI_ORIGINAL(0x00600EF0)
 
 } // namespace
 
@@ -74,7 +74,7 @@ int __fastcall WindowDrawBlended(CUiWindow* self, void*, int pass) {
     SetState(self, kSourceBlend, 5);
     SetState(self, kDestBlend, 6);
     SetState(self, kAlphaRef, 1);
-    ContainerDraw(self, nullptr, pass);
+    ContainerDrawOriginal(self, nullptr, pass);
     return 1;
 }
 EI_REPLACE(0x0062EFC0, WindowDrawBlended);
@@ -84,7 +84,7 @@ int __fastcall WindowDrawAlphaRef(CUiWindow* self, void*, int pass) {
     Flush(self);
     std::uint32_t savedRef = GetState(self, kAlphaRef);
     SetState(self, kAlphaRef, 1);
-    ContainerDraw(self, nullptr, pass);
+    ContainerDrawOriginal(self, nullptr, pass);
     Flush(self);
     SetState(self, kAlphaRef, savedRef);
     return 1;

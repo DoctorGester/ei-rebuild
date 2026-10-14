@@ -34,11 +34,10 @@ float StoreFloat(float value) {
 // Rebirth-patched).
 struct StripSurface {
     void* GetDC() { return SurfaceGetDC(this); }
-    void Clear();
+    void Clear() { SurfaceClearOriginal(this); }
     int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);
     void ReleaseDC() { SurfaceReleaseDC(this); }
 };
-__declspec(naked) void StripSurface::Clear() EI_ORIGINAL(0x005FE2F0)
 int StripSurface::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
 // The owner's virtual slots 43 (whether the strip's mode takes the item; AL) and 54 (a number

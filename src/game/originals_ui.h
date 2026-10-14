@@ -679,3 +679,22 @@ __declspec(naked) inline int __fastcall TextManagerItemTexts(CTextManager*, void
 // `key`; a null key finds the next "#..." header. 1 when found, else 0 (the cursor at the end).
 __declspec(naked) inline int __fastcall TextFindLineOriginal(void* /*texts*/, void*, const char* /*key*/)
     EI_ORIGINAL(0x004DF030)
+
+// C3n batch 4. 005F7590 (rewritten as CInterface3D::GetActiveWindow; plain RET): the interface's top window, null with none.
+// 005F7DA0 (CInterface3D::ScaleRectFromScreen; RET 4): the pixel rectangle back to 800x600 layout coordinates (returns the
+// new bottom). Rebirth patches both: through their addresses.
+__declspec(naked) inline CUiWindow* __fastcall InterfaceActiveWindowOriginal(CInterface3D* /*interface*/) EI_ORIGINAL(0x005F7590)
+__declspec(naked) inline int __fastcall InterfaceScaleRectFromScreenOriginal(const CInterface3D* /*interface*/, void*,
+                                                                              tagRECT* /*rect*/) EI_ORIGINAL(0x005F7DA0)
+// 005FD120 (rewritten as UiSurfaceRelease; plain RET): the CUiSurface's destructor body (releases its DC and surface).
+__declspec(naked) inline void __fastcall SurfaceReleaseContentsOriginal(CUiSurface* /*surface*/) EI_ORIGINAL(0x005FD120)
+// 00600EF0 (rewritten as UiContainerDraw; RET 4): CUiContainer's draw of its children for pass `pass`. Returns 1.
+__declspec(naked) inline int __fastcall ContainerDrawOriginal(CUiWindow* /*container*/, void*, int /*pass*/)
+    EI_ORIGINAL(0x00600EF0)
+// 00601110 (rewritten as UiContainerInput::OnLeftDown; RET 0xC): the container's input side (window + 0x94) handles the
+// left button going down.
+__declspec(naked) inline void __fastcall ContainerLeftDownOriginal(void* /*input*/, void*, int /*buttons*/, int /*x*/, int /*y*/)
+    EI_ORIGINAL(0x00601110)
+// 005F8F10: the constructor of CBattleScreenSetup's vector<int> instantiations from an allocator (thiscall, RET 4; no result).
+__declspec(naked) inline void __fastcall IdVectorConstructOriginal(void* /*vector*/, void*, const void* /*allocator*/)
+    EI_ORIGINAL(0x005F8F10)

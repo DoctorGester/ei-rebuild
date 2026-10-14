@@ -169,7 +169,6 @@ constexpr std::uintptr_t kWorld = 0x007AF5B8;
 // (RET 4), 004E2A20 / 005F9880 the destructors of the two instantiations.
 using IdVector = CBattleScreenSetup::IdVector;
 using PartyIds = CBattleScreenSetup::PartyIds;
-__declspec(naked) void __fastcall IdsConstruct(IdVector*, void*, const void*) EI_ORIGINAL(0x005F8F10)
 __declspec(naked) void __fastcall IdConstruct(int*, const int*) EI_ORIGINAL(0x0064B620)
 __declspec(naked) void __fastcall IdsIntroSort(int*, int*, const int*, int) EI_ORIGINAL(0x0060B1E0)
 __declspec(naked) void __fastcall IdsFinalSort(int*, int*) EI_ORIGINAL(0x0064B750)
@@ -188,7 +187,6 @@ __declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AE
 // 0040D420 (thiscall on the camera 0079B2A8, RET 4): follows the unit with an id. 00637DC0
 // (thiscall on the battle screen): the selection's refresh.
 __declspec(naked) void __fastcall CameraFollow(void*, void*, int) EI_ORIGINAL(0x0040D420)
-__declspec(naked) void __fastcall RefreshSelectionAt(CBattleScreenSetup*) EI_ORIGINAL(0x00637DC0)
 
 // 006010E0 (thiscall): the children's update. 005F8A80 (thiscall on the interface, RET 4): the
 // next queued message. 005F7350 (RET 0xC): opens a window on top. 00634650 (RET 0x18): the
@@ -254,8 +252,8 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
     ListNode** players = reinterpret_cast<ListNode**>(&session->players_);
     PartyIds ids;
     std::uint8_t allocators[2] = {};
-    IdsConstruct(&ids.withUnit, nullptr, &allocators[0]);
-    IdsConstruct(&ids.without, nullptr, &allocators[1]);
+    IdVectorConstructOriginal(&ids.withUnit, nullptr, &allocators[0]);
+    IdVectorConstructOriginal(&ids.without, nullptr, &allocators[1]);
     ids.camera = -1;
     for (ListNode* node = (*players)->next; node != *players; node = node->next) {
         net::PlayerMessage* player = reinterpret_cast<net::PlayerMessage*>(node->data);
@@ -305,7 +303,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
         if (screen->unknown_210 != ids.camera) {
             CameraFollow(reinterpret_cast<void*>(0x0079B2A8), nullptr, ids.camera);
-            RefreshSelectionAt(screen);
+            BattleRefreshSelectionOriginal(screen);
         }
         IdsAssign(&screen->partyWithUnit_, nullptr, &ids.withUnit);
         screen->unknown_210 = ids.camera;
@@ -553,7 +551,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
             reinterpret_cast<EventFn>(vtable_[0x80 / 4])(this, id, 0, 0);
         }
     }
-    RefreshSelectionAt(this);
+    BattleRefreshSelectionOriginal(this);
     unknown_1C1 = false;
     FreeListNodes(&inside);
     if (inside.head) NodeFree(inside.head, 0xC);

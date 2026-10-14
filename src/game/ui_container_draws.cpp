@@ -82,7 +82,6 @@ void Flush(UiRenderer* device) {
 }
 
 // Through their original addresses, as the original calls them.
-__declspec(naked) int __fastcall ContainerDrawAt(CUiWindow*, void*, int) EI_ORIGINAL(0x00600EF0)
 // 006A39E0 (thiscall on an armour item): its body part type (rewritten, item.cpp).
 __declspec(naked) int __fastcall ArmourType(void*) EI_ORIGINAL(0x006A39E0)
 
@@ -92,7 +91,7 @@ int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
     if (mouseMove)
         ei::VCall<void>(self->InputSide(), 4, 0, GameValue<int>(0x007C7C50), GameValue<int>(0x007C7C54));
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
-    return ContainerDrawAt(self, nullptr, pass);
+    return ContainerDrawOriginal(self, nullptr, pass);
 }
 
 } // namespace

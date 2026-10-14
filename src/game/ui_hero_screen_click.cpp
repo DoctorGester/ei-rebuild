@@ -47,20 +47,18 @@ __declspec(naked) void __fastcall PlayVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x0061
 // wrappers run; plain RET).
 __declspec(naked) void __fastcall ClampHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x00618FF0)
 __declspec(naked) void __fastcall ClampVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x00619090)
-// The panels: 006232D0 the statistics' hero (index, name; RET 8), 006255A0 the trade panel's
+// The panels: 006232D0 (StatsPanelSetHeroOriginal), 006255A0 the trade panel's
 // (RET 8), 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
 // container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its editing (RET 4).
-__declspec(naked) void __fastcall StatsSetHero(void*, void*, int, void*) EI_ORIGINAL(0x006232D0)
 __declspec(naked) void __fastcall TradeSetHero(void*, void*, int, int) EI_ORIGINAL(0x006255A0)
 void EditSetText(void* edit, void*, const void* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
 void EditActivate(void* edit, void*, int on) { EditFieldActivateOriginal(edit, nullptr, on); }
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }   // 005FDC00
-    void Clear();   // 005FE2F0
+    void Clear() { SurfaceClearOriginal(this); }   // 005FE2F0
     void End() { SurfaceReleaseDC(this); }     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 __declspec(naked) void __fastcall SurfaceFreeze(void*, void*, int, int) EI_ORIGINAL(0x005FD760)
 // 006002A0 (RET 8): a window's enabled flag (CUiWindow::SetEnabled, through its address).
 
@@ -169,7 +167,7 @@ void CMpHeroScreen::CloseRenameEdit() {
 
 void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(window.interface_, GameText(kSoundCancel), 0);
-    StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
+    StatsPanelSetHeroOriginal(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
@@ -310,7 +308,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             stats->stat20 = 25.0f;
             hero->height = 0.7f;
             EditSetText(nameEdit_, nullptr, game::EmptyText());
-            StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
+            StatsPanelSetHeroOriginal(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
             Refresh();
             return;
         }
@@ -374,7 +372,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // A new hero.
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
         VirtualAt<StoreFn>(this, 52)(this, *defaults_);
-        StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
+        StatsPanelSetHeroOriginal(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
@@ -605,7 +603,7 @@ void CMpHeroScreen::CreateHero() {
     spellContainer_ = static_cast<int>(hero->spellCount) > 0 ? reinterpret_cast<char*>(hero->spells[0]) : nullptr;
     ShowContainer(spellPanel_, nullptr, spellContainer_);
     hero->texts[0] = name;
-    StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(static_cast<const char*>(name)));
+    StatsPanelSetHeroOriginal(statsPanel_, nullptr, 0, const_cast<char*>(static_cast<const char*>(name)));
     Refresh();
     SetMode(this, nullptr, kModeStats);
 }

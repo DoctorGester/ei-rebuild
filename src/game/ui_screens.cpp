@@ -75,7 +75,7 @@ void SetScrollPos(void* bar, int position) {
 
 // --- Shared ---------------------------------------------------------------------------------
 
-__declspec(naked) void UiInput::BaseLButtonDown(int, int, int) EI_ORIGINAL(0x00601110)
+void UiInput::BaseLButtonDown(int flags, int x, int y) { ContainerLeftDownOriginal(this, nullptr, flags, x, y); }
 __declspec(naked) void UiInput::BaseLButtonUp(int, int, int) EI_ORIGINAL(0x006011F0)
 __declspec(naked) void UiInput::BaseMouseMove(int, int, int) EI_ORIGINAL(0x006012D0)
 __declspec(naked) void UiInput::BaseKeyDown(int, int, int) EI_ORIGINAL(0x00601820)

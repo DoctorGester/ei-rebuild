@@ -242,12 +242,11 @@ int PackedFtol(std::uintptr_t fn, std::uint32_t packedId) {
 // The surface's drawing (thiscall on the surface).
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
-    void Clear();                                                                   // 005FE2F0
+    void Clear() { SurfaceClearOriginal(this); }                                                                   // 005FE2F0
     int Text(const char* text, RECT* rect, int font, std::uint32_t colour, int format, int flag);   // 005FDE20
     int Wrapped(const char* text, RECT* rect, int maxLines, int font, std::uint32_t colour, int format, int flag);   // 005FDFA0
     void End() { SurfaceReleaseDC(this); }                                                                     // 005FDC60
 };
-__declspec(naked) void SurfaceDraw::Clear() EI_ORIGINAL(0x005FE2F0)
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 __declspec(naked) int SurfaceDraw::Wrapped(const char*, RECT*, int, int, std::uint32_t, int, int) EI_ORIGINAL(0x005FDFA0)
 
