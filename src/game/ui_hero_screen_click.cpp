@@ -2,6 +2,7 @@
 // See docs/notes/ui.md, section 5.
 #include "ui_screens.h"
 #include "game_strings.h"
+#include "ui_camp.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -129,9 +130,10 @@ void* BuildCamp(CInterface3D* ui, const int* flags) {
     camp[0x194] = 1;   // opened from the hero screen
     At<std::uint32_t>(camp, 0x19C) = 0x007402AC;
     At<int>(camp, 0x1A0) = 0;
-    At<int>(camp, 0x1AC) = 0;
-    At<int>(camp, 0x1A8) = 0;
-    At<int>(camp, 0x1A4) = 0;
+    auto* pages = reinterpret_cast<CCampPages*>(camp);
+    pages->heroGrowBy_ = 0;
+    pages->heroCapacity_ = 0;
+    pages->heroCount_ = 0;
     StringArrayConstruct(camp + 0x240);
     At<std::uint32_t>(camp, 0) = 0x0074091C;
     At<std::uint32_t>(camp, 0x94) = 0x007408E8;
@@ -299,9 +301,15 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             // Back to the defaults: the attributes 25, +0x72C 0.7.
             uiorig::PlayUiSound(ui, GameText(kSoundCancel), 0);
             VirtualAt<StoreFn>(this, 52)(this, *defaults_);
-            char* hero = Hero();
-            for (int offset = 0x2C; offset <= 0x40; offset += 4) At<float>(hero, offset) = 25.0f;
-            At<float>(hero, 0x72C) = 0.7f;
+            auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+            auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
+            stats->stat10Base = 25.0f;
+            stats->stat10 = 25.0f;
+            stats->stat18Base = 25.0f;
+            stats->stat18 = 25.0f;
+            stats->stat20Base = 25.0f;
+            stats->stat20 = 25.0f;
+            hero->height = 0.7f;
             EditSetText(nameEdit_, nullptr, game::EmptyText());
             StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
             Refresh();
