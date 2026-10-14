@@ -223,7 +223,7 @@ src/game/ui_camp.cpp,0,0,3,3,12,0,0,0,0,0,0
 src/game/ui_camp.h,0,0,0,0,0,0,2,0,0,0,2
 src/game/ui_console_window.cpp,0,0,0,0,3,0,0,0,0,0,0
 src/game/ui_container_draws.cpp,0,0,0,0,1,0,0,0,0,0,0
-src/game/ui_global_map.cpp,0,0,2,1,9,0,0,0,0,0,1
+src/game/ui_global_map.cpp,0,0,2,1,6,0,0,0,0,0,1
 src/game/ui_hero_panels.cpp,0,0,1,1,1,0,0,0,0,0,1
 src/game/ui_hero_preview.cpp,0,0,0,1,0,0,0,0,0,0,3
 src/game/ui_hero_screen_click.cpp,0,0,0,0,3,0,0,0,0,0,0

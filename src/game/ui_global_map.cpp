@@ -801,48 +801,50 @@ EI_REPLACE(0x0062F050, GlobalMapUpdate);
 // --- 005F67A0: the constructor --------------------------------------------------------------------
 
 namespace {
-// The STLport containers' constructors (thiscall): 005FA0C0 (compare, allocator; RET 8) at
-// +0x1D0, 005FA100 (allocator; RET 4: the tree header node) and 005FA0E0 (empties it) at +0x1E0.
+// The STLport containers' constructors (thiscall): 005FA0C0 (compare, allocator; RET 8) on the
+// way vector's end of storage, 005FA100 (allocator; RET 4: the tree header node) and 005FA0E0
+// (empties it) on the arrivals tree.
 __declspec(naked) void __fastcall ConstructPair(void*, void*, const void*, const void*) EI_ORIGINAL(0x005FA0C0)
 __declspec(naked) void __fastcall ConstructTree(void*, void*, const void*) EI_ORIGINAL(0x005FA100)
 __declspec(naked) void __fastcall EmptyTree(void*) EI_ORIGINAL(0x005FA0E0)
 
-void PutDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
-std::uint32_t EmptyCString() { return *reinterpret_cast<const std::uint32_t*>(0x00796E48); }
+char* EmptyCString() { return *reinterpret_cast<char* const*>(0x00796E48); }
+
+// A CArray's constructor body, inlined by the original: the instantiation's vtable, then the
+// storage, grow step, capacity and size cleared in that order.
+template <typename Array>
+void EmptyArray(Array* array, std::uintptr_t vtable) {
+    array->vtable = reinterpret_cast<void*>(vtable);
+    array->data = nullptr;
+    array->growBy = 0;
+    array->maxSize = 0;
+    array->size = 0;
+}
 } // namespace
 
 CGlobalMap* CGlobalMap::Construct(CInterface3D* ui) {
     ConstructContainerAt(this, nullptr, ui);
-    PutDword(this, 0x17C, EmptyCString());
-    // Three CArrays: zones, links, quests.
-    const std::uint32_t vtables[3] = {0x00740BFC, 0x00740BF0, 0x00740BE4};
-    for (int i = 0; i < 3; ++i) {
-        int at = 0x18C + i * 0x14;
-        PutDword(this, at, vtables[i]);
-        PutDword(this, at + 4, 0);
-        PutDword(this, at + 0x10, 0);
-        PutDword(this, at + 0xC, 0);
-        PutDword(this, at + 8, 0);
-    }
-    PutDword(this, 0x1C8, 0);
-    PutDword(this, 0x1CC, 0);
+    allodTitle_ = EmptyCString();
+    EmptyArray(&zones_, 0x00740BFC);
+    EmptyArray(&links_, 0x00740BF0);
+    EmptyArray(&quests_, 0x00740BE4);
+    path_.Start() = nullptr;
+    path_.Finish() = nullptr;
     // The empty compare / allocator objects are passed by address: the original passes the
     // argument slot (holding `ui`) and a zeroed local; the tree keeps the slot's first byte.
     CInterface3D* slot = ui;
     std::uint32_t zero = 0;
-    auto* self = reinterpret_cast<std::uint8_t*>(this);
-    ConstructPair(self + 0x1D0, nullptr, &slot, &zero);
-    PutDword(this, 0x1D8, EmptyCString());
-    std::uint8_t* tree = self + 0x1E0;
-    ConstructTree(tree, nullptr, &slot);
-    PutDword(tree, 4, 0);
-    tree[8] = static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(slot));
-    EmptyTree(tree);
-    PutDword(this, 0x1EC, 0x3F800000);   // the identity turn
-    PutDword(this, 0x1F0, 0);
-    PutDword(this, 0x1F4, 0);
-    PutDword(this, 0x1F8, 0);
-    PutDword(this, 0x274, EmptyCString());
+    ConstructPair(&path_.EndOfStorage(), nullptr, &slot, &zero);
+    target_ = EmptyCString();
+    ConstructTree(&arrivals_, nullptr, &slot);
+    arrivals_.Count() = 0;
+    arrivals_.Compare() = static_cast<std::uint8_t>(reinterpret_cast<std::uintptr_t>(slot));
+    EmptyTree(&arrivals_);
+    turn_[0] = 1.0f;   // the identity turn
+    turn_[1] = 0.0f;
+    turn_[2] = 0.0f;
+    turn_[3] = 0.0f;
+    shownName_ = EmptyCString();
     vtable_ = reinterpret_cast<void**>(0x00740B3C);
     inputVtable_ = reinterpret_cast<void**>(0x00740B08);
     return this;
@@ -864,47 +866,30 @@ __declspec(naked) void __fastcall DestroyZone(void*) EI_ORIGINAL(0x005FBD30)
 // 00600BA0: the container base's destructor body.
 
 // A CArray's destructor: its vtable back, each entry destroyed, the storage freed.
-void DestroyArray(std::uint8_t* array, std::uint32_t vtable, int entrySize, void(__fastcall* destroy)(void*)) {
-    PutDword(array, 0, vtable);
-    std::uint8_t* data;
-    std::memcpy(&data, array + 4, 4);
-    if (!data) return;
-    int size;
-    std::memcpy(&size, array + 8, 4);
-    for (int i = 0; i < size; ++i) destroy(data + i * entrySize);
-    gamecrt::operator_delete(data);
+template <typename Array>
+void DestroyArray(Array* array, std::uintptr_t vtable, void(__fastcall* destroy)(void*)) {
+    array->vtable = reinterpret_cast<void*>(vtable);
+    if (!array->data) return;
+    int size = array->size;
+    for (int i = 0; i < size; ++i) destroy(&array->data[i]);
+    gamecrt::operator_delete(array->data);
 }
 } // namespace
 
 void __fastcall GlobalMapDestroy(CGlobalMap* self) {
-    auto* bytes = reinterpret_cast<std::uint8_t*>(self);
-    CStringDestroy(bytes + 0x274);
-    std::uint8_t* tree = bytes + 0x1E0;
-    std::uint32_t count;
-    std::memcpy(&count, tree + 4, 4);
-    if (count != 0) {
-        std::uint8_t* header;
-        std::memcpy(&header, tree, 4);
-        void* root;
-        std::memcpy(&root, header + 4, 4);
-        TreeErase(tree, nullptr, root);
-        std::memcpy(&header, tree, 4);
-        PutDword(header, 8, reinterpret_cast<std::uintptr_t>(header));   // leftmost
-        PutDword(header, 4, 0);                                          // root
-        PutDword(header, 0xC, reinterpret_cast<std::uintptr_t>(header)); // rightmost
-        PutDword(tree, 4, 0);
+    CStringDestroy(&self->shownName_);
+    stlp::map<int, float>& tree = self->arrivals_;
+    if (tree.size() != 0) {
+        TreeErase(&tree, nullptr, tree.end()->parent);
+        tree.ResetToEmpty();   // leftmost, root, rightmost, count
     }
-    TreeDestruct(tree);
-    CStringDestroy(bytes + 0x1D8);
-    std::uint8_t* begin;
-    std::uint8_t* capacity;
-    std::memcpy(&begin, bytes + 0x1C8, 4);
-    std::memcpy(&capacity, bytes + 0x1D0, 4);
-    FreeBlock8(begin, static_cast<int>(capacity - begin) >> 3);
-    DestroyArray(bytes + 0x1B4, 0x00740BE4, 0x18, DestroyQuest);
-    DestroyArray(bytes + 0x1A0, 0x00740BF0, 0x18, DestroyLink);
-    DestroyArray(bytes + 0x18C, 0x00740BFC, 0x10, DestroyZone);
-    CStringDestroy(bytes + 0x17C);
+    TreeDestruct(&tree);
+    CStringDestroy(&self->target_);
+    FreeBlock8(self->path_.Start(), static_cast<int>(self->path_.EndOfStorage() - self->path_.Start()));
+    DestroyArray(&self->quests_, 0x00740BE4, DestroyQuest);
+    DestroyArray(&self->links_, 0x00740BF0, DestroyLink);
+    DestroyArray(&self->zones_, 0x00740BFC, DestroyZone);
+    CStringDestroy(&self->allodTitle_);
     DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F6920, GlobalMapDestroy);
