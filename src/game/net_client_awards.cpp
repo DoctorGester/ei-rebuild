@@ -82,9 +82,8 @@ void ClientSession::ApplyAwards() {
     ClientSession* self = this;
     CPlayer* player = LocalPlayer();
     if (!player) return;
-    for (void** node = static_cast<void**>(static_cast<void**>(self->awards_)[0]); node != self->awards_;
-         node = static_cast<void**>(node[0])) {
-        auto* award = static_cast<AwardMessage*>(node[2]);
+    for (RefNode* node = static_cast<RefNode*>(self->awards_)->next; node != self->awards_; node = node->next) {
+        auto* award = static_cast<AwardMessage*>(node->data.ptr);
         const char* name = award->text_.start;
         switch (award->kind_) {
         case 0: {
@@ -147,20 +146,21 @@ void ClientSession::ApplyAwards() {
     }
 
     // The list emptied inline: each award released, each node back to the 16-byte pool list.
-    for (void** node = static_cast<void**>(static_cast<void**>(self->awards_)[0]); node != self->awards_;) {
-        void** current = node;
-        node = static_cast<void**>(node[0]);
-        if (auto* award = static_cast<CRefObject*>(current[2])) {
+    auto* sentinel = static_cast<RefNode*>(self->awards_);
+    for (RefNode* node = sentinel->next; node != self->awards_;) {
+        RefNode* current = node;
+        node = node->next;
+        if (CRefObject* award = current->data.ptr) {
             --award->refs_;
             if (award->refs_ == 0) delete award;
         }
         if (current) {
-            current[0] = NodeFreeList();
+            current->next = static_cast<RefNode*>(NodeFreeList());
             NodeFreeList() = current;
         }
     }
-    static_cast<void**>(self->awards_)[0] = self->awards_;
-    static_cast<void**>(self->awards_)[1] = self->awards_;
+    static_cast<RefNode*>(self->awards_)->next = static_cast<RefNode*>(self->awards_);
+    static_cast<RefNode*>(self->awards_)->prev = static_cast<RefNode*>(self->awards_);
 }
 EI_REPLACE_METHOD(0x0041CD80, ClientSession::ApplyAwards);
 
@@ -171,14 +171,14 @@ void ClientSession::Tick(double dt) {
     ClientSession* self = this;
     ClientBaseTick(self, nullptr, dt);
     void* timers = &self->timers_;
-    void** sentinel = static_cast<void**>(self->timers_);
-    void** node = static_cast<void**>(sentinel[0]);
+    auto* sentinel = static_cast<TimedNode*>(self->timers_);
+    TimedNode* node = sentinel->next;
     if (node != sentinel) {
         const float step = static_cast<float>(dt);
         do {
-            void** current = node;
-            node = static_cast<void**>(node[0]);
-            float& seconds = *reinterpret_cast<float*>(&current[2]);
+            TimedNode* current = node;
+            node = node->next;
+            float& seconds = current->data.seconds;
             const double left = static_cast<double>(seconds) - step;
             seconds = static_cast<float>(left);
             if (!(left >= GameFloat(0x0073B858))) {
@@ -187,8 +187,8 @@ void ClientSession::Tick(double dt) {
             }
         } while (node != self->timers_);
     }
-    void** awards = static_cast<void**>(self->awards_);
-    if (awards[0] == awards || GameMode() != 3) return;
+    auto* awards = static_cast<RefNode*>(self->awards_);
+    if (awards->next == awards || GameMode() != 3) return;
     CPlayer* player = LocalPlayer();
     if (!player || player->connection_->state_ != 1 || !Unknown7B00BC()) return;
     ApplyAwards();

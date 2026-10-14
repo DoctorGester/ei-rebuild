@@ -25,10 +25,12 @@
 
 #include "core_refcount.h"
 #include "net_coder.h"
+#include "lib/crt.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 class CParty;   // party.h
 class ChunkArchive;
@@ -37,6 +39,16 @@ namespace net {
 
 class Connection;   // net_connection.h
 class Message;
+
+// The memory of a message (or another reference-counted object) as the game's code allocates it
+// inline: operator new, then the reference count dword cleared before the null check.
+template <typename T>
+T* NewMessageMemory() {
+    auto* p = static_cast<std::uint8_t*>(gamecrt::operator_new(sizeof(T)));
+    const std::uint32_t zero = 0;
+    std::memcpy(p + 4, &zero, 4);
+    return reinterpret_cast<T*>(p);
+}
 
 // An STLport string as the message classes embed it: start, finish, end of storage. (A raw layout:
 // the game's own string functions construct and free it.)
@@ -209,7 +221,9 @@ struct Query {
 };
 static_assert(sizeof(Query) == 0x2C);
 
-// The client's queries (constructor 0041C420): an STLport vector and a dword saved with it.
+// The client's queries (constructor 0041C420): an STLport vector and a dword saved with it. Kept as
+// its own layout (not stlp::vector<Query>): the extra dword follows the vector, and the connect
+// screen (ui_connect_screen.cpp) reads the three pointers by name.
 struct QueryVector {
     Query* begin;
     Query* end;
@@ -278,6 +292,21 @@ struct SocketDriver {
     bool Receive(NetAddress* from, GameBuffer* buffer);
 };
 static_assert(sizeof(SocketDriver) == 0x10);
+
+// The sessions' lists of counted messages (STLport list<RefPtr>: the value at +8).
+using RefNode = stlp::list<RefPtr>::Node;
+
+// The value of the timed lists (the client's timers, the server's awards and finished trades): the
+// seconds left (a float; the code that queues an entry stores a constant's bits) and a counted object.
+struct TimedEntry {
+    union {
+        float seconds;
+        std::uint32_t secondsBits;
+    };
+    RefPtr object;
+};
+static_assert(sizeof(TimedEntry) == 8);
+using TimedNode = stlp::list<TimedEntry>::Node;
 
 // A node of the clients list (STLport list<RefPtr<Connection>>).
 struct ClientNode {

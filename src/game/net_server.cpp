@@ -105,9 +105,12 @@ EI_REPLACE_METHOD(0x00412D80, ServerSession::Construct);
 
 namespace {
 
-// A list node's value (STLport list<T*>: next, prev, value at +8; some lists keep it at +0xC).
-template <typename T = Message, std::size_t Offset = 8>
-T* ValueOf(void* node) { return *reinterpret_cast<T**>(static_cast<std::uint8_t*>(node) + Offset); }
+// A list node's message: lists of counted messages (RefNode), and the timed lists (TimedNode:
+// {seconds, object}).
+template <typename T = Message>
+T* ValueOf(void* node) { return static_cast<T*>(static_cast<RefNode*>(node)->data.ptr); }
+template <typename T>
+T* TimedValueOf(void* node) { return static_cast<T*>(static_cast<TimedNode*>(node)->data.object.ptr); }
 void* Head(void* list) { return *static_cast<void**>(list); }
 void* Next(void* node) { return *static_cast<void**>(node); }
 
@@ -160,7 +163,7 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
     if (CRefObject* object = hostInfo_.ptr) PushReplicated(*out, object, 2);
     if (CRefObject* object = map_.ptr) PushReplicated(*out, object, 2);
     for (void* n = Next(Head(&awards_)); n != Head(&awards_); n = Next(n)) {
-        auto* award = ValueOf<AwardMessage, 0xC>(n);
+        auto* award = TimedValueOf<AwardMessage>(n);
         if (award->connection_.ptr == CurrentConnection()) PushReplicated(*out, award, 2);
     }
     for (void* n = Next(Head(&offers_)); n != Head(&offers_); n = Next(n)) {
@@ -182,7 +185,7 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
     for (void* n = Next(Head(&finishedTrades_)); n != Head(&finishedTrades_); n = Next(n)) {
-        auto* trade = ValueOf<TradeMessage, 0xC>(n);
+        auto* trade = TimedValueOf<TradeMessage>(n);
         if (trade->player_.ptr == record || trade->partner_.ptr == record) PushReplicatedInline(*out, trade, 2);
     }
 }

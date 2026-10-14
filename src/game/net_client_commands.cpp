@@ -39,12 +39,6 @@ constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 
 const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
-// A timers list entry.
-struct TimedEntry {
-    std::uint32_t seconds;   // float
-    RefPtr object;
-};
-
 // RefPtr::Destroy as the callers inline it (the release is not null-checked after the shutdown,
 // and done inline: one reference less, deleted at zero).
 void DestroyInline(RefPtr* p) {
@@ -89,7 +83,7 @@ void ClientSession::AddTimed(CRefObject* object, std::uint32_t seconds) {
     RefPtr raw;
     RefPtrFromRaw(&raw, object);
     TimedEntry entry;
-    entry.seconds = seconds;
+    entry.secondsBits = seconds;
     entry.object.Share(raw.ptr);
     void* timers = &self->timers_;
     void* end;
@@ -123,7 +117,7 @@ void ClientSession::SendCommand(int kind, const char* text) {
     RefPtr raw;
     RefPtrFromRaw(&raw, command);
     TimedEntry entry;
-    entry.seconds = kCommandLifetime;
+    entry.secondsBits = kCommandLifetime;
     RefPtrCopyConstruct(&entry.object, nullptr, &raw);
     TimersPushBack(&self->timers_, nullptr, &entry);
     entry.object.Destroy();

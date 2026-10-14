@@ -86,20 +86,26 @@ struct ReliableChunk {
     std::uint8_t Size() const { return bytes[2]; }
 };
 
-// A node of the send history (history_ / acknowledged_): when a packet went out and what it carried.
+// A packet in the send history: when it went out and what it carried.
+struct SentPacket {
+    double time;               // +0x00 the connection's clock when sent
+    std::uint16_t sequence;    // +0x08
+    std::uint16_t unknown_0A;
+    SentItem* items;           // +0x0C STLport list sentinel
+    ReliableChunk header;      // +0x10 the reliable chunk the packet carried
+    std::uint8_t rolledBack;   // +0x114
+};
+static_assert(offsetof(SentPacket, items) == 0x0C);
+static_assert(offsetof(SentPacket, rolledBack) == 0x114);
+
+// A node of the send history (history_ / acknowledged_: STLport list<SentPacket>).
 struct HistoryNode {
     HistoryNode* next;
     HistoryNode* prev;
-    double time;               // +0x08 the connection's clock when sent
-    std::uint16_t sequence;    // +0x10
-    std::uint16_t unknown_12;
-    SentItem* items;           // +0x14 STLport list sentinel
-    ReliableChunk header;      // +0x18 the reliable chunk the packet carried
-    std::uint8_t rolledBack;   // +0x11C
+    SentPacket data;           // +0x08
 };
-static_assert(offsetof(HistoryNode, time) == 0x08);
-static_assert(offsetof(HistoryNode, items) == 0x14);
-static_assert(offsetof(HistoryNode, rolledBack) == 0x11C);
+static_assert(offsetof(HistoryNode, data) == 0x08);
+static_assert(offsetof(HistoryNode, data) + offsetof(SentPacket, rolledBack) == 0x11C);
 
 // A node of the chunk lists (headers_: waiting to be sent; incoming_: received out of order).
 struct HeaderNode {
@@ -178,9 +184,9 @@ public:
     // from the reliable stream when none is waiting, else the oldest waiting one moves to the front.
     void QueueHeader(int budget);
     // 00433F20. A packet was lost: entries it sent unreliably are marked unsent again and its
-    // reliable chunk goes back to the front of the queue (once). `historyData` is the history
-    // node's data (the node + 8, as the list iterators hand it over).
-    void RollBack(std::uint8_t* historyData);
+    // reliable chunk goes back to the front of the queue (once). `packet` is a history node's data
+    // (the node + 8, as the list iterators hand it over).
+    void RollBack(SentPacket* packet);
     // 004346D0. Brings the tracked entries up to date: the session's slot 13 lists what this
     // connection should have (sorted by object); new objects get an entry (Track), entries whose
     // object is no longer listed are dropped (never sent) or marked gone (sent).
@@ -194,7 +200,7 @@ public:
     // 00433FA0 (net_connection_tick.cpp). A packet arrived: the round-trip averages take its age;
     // reliable changes it carried count as delivered, removals it carried end their entries (the
     // id goes to the newest freed-id batch).
-    void Delivered(std::uint8_t* historyData);
+    void Delivered(SentPacket* packet);
     // 00433B10. 1 when the peer has been silent for longer than three average round trips (or a
     // value is NaN), else 0.
     int Silent() const;

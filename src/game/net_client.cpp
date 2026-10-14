@@ -165,11 +165,10 @@ EI_REPLACE_METHOD(0x0041BC40, ClientSession::Construct);
 void ClientSession::CollectReplicated(ReplicatedVector** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);
-    auto head = [](void* list) { return *static_cast<void**>(list); };
-    auto next = [](void* node) { return *static_cast<void**>(node); };
-    auto value = [](void* node, std::size_t at) { return *reinterpret_cast<void**>(static_cast<std::uint8_t*>(node) + at); };
-    for (void* n = next(head(&self->timers_)); n != head(&self->timers_); n = next(n)) PushReplicated(*out, value(n, 0xC), 1);
-    for (void* n = next(head(&self->fileRequests_)); n != head(&self->fileRequests_); n = next(n)) PushReplicated(*out, value(n, 8), 1);
+    auto* timers = static_cast<TimedNode*>(self->timers_);
+    for (TimedNode* n = timers->next; n != self->timers_; n = n->next) PushReplicated(*out, n->data.object.ptr, 1);
+    auto* requests = static_cast<RefNode*>(self->fileRequests_);
+    for (RefNode* n = requests->next; n != self->fileRequests_; n = n->next) PushReplicated(*out, n->data.ptr, 1);
     if (void* group = self->party_.ptr) {
         PushReplicatedInline(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {

@@ -245,8 +245,7 @@ __declspec(naked) void __fastcall HeaderListCopy(HeaderNode** /*to*/, void*, Hea
 
 // 00433060 (slot 3).
 Connection* Connection::Clone() {
-    auto* copy = static_cast<Connection*>(gamecrt::operator_new(sizeof(Connection)));
-    Put32(copy, 4, 0);
+    auto* copy = NewMessageMemory<Connection>();
     if (!copy) return nullptr;
     ei::SetVtable(copy, kRefValueVtable);
     copy->sendSequence_ = sendSequence_;
@@ -320,8 +319,7 @@ void ReleaseEntryObject(ReplicaEntry* e) {
 
 // 004343C0 (entry slot 3): a copy of the entry sharing the object (one more reference).
 ReplicaEntry* ReplicaEntry::Clone() {
-    auto* copy = static_cast<ReplicaEntry*>(gamecrt::operator_new(sizeof(ReplicaEntry)));
-    Put32(copy, 4, 0);
+    auto* copy = NewMessageMemory<ReplicaEntry>();
     if (!copy) return nullptr;
     ei::SetVtable(copy, kRefValueVtable);
     copy->version_ = version_;

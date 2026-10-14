@@ -125,14 +125,11 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
 
     RefPtr shared;
     shared.Share(award);
-    struct {
-        std::uint32_t delay;
-        RefPtr award;
-    } entry;
-    entry.delay = kAwardDelay;
-    RefPtrCopyConstruct(&entry.award, nullptr, &shared);
+    TimedEntry entry;
+    entry.secondsBits = kAwardDelay;
+    RefPtrCopyConstruct(&entry.object, nullptr, &shared);
     AwardsPushBack(&awards_, nullptr, &entry);
-    entry.award.Destroy();
+    entry.object.Destroy();
     DestroyInline(&shared);
     StringBufferFree(&text);
 }
