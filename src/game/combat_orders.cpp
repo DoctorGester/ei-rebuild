@@ -121,14 +121,14 @@ void CUnitServer::FinishCast() {
         std::memcpy(&at, ObjectSlots(action.target)->AimPoint(&point), sizeof(at));
     }
     if (carrier) {
-        float cost = std::bit_cast<float>(spell->unknown_40);
+        float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost > carrier->charge_) {
             action.source = kNoSource;
             return;
         }
         CtlUseItemCharge(this, nullptr, carrier, cost);
     } else if (unit->player) {     // 005301A0
-        float cost = std::bit_cast<float>(spell->unknown_40);
+        float cost = std::bit_cast<float>(spell->manaCost_);
         char* server = reinterpret_cast<char*>(ServerObjectOf(unit));
         double needed = static_cast<double>(stats.Period20()) * cost;
         float maximum;
@@ -237,7 +237,7 @@ bool MayCast(CUnitServer* self, std::uint32_t source) {
         spell = static_cast<CSpell*>(self->unit->GetSpellObject(source));
     }
     if (spell && self->unit->player && !(source & kQuickItemSource)) {
-        int needed = static_cast<int>(spell->unknown_50);
+        int needed = static_cast<int>(spell->skillNeeded_);
         float skill = static_cast<float>(
             UnitStatsSpellSchoolSkill(&self->stats, nullptr, SpellPrototype(spell)->school));
         if (x87::fistp(skill) < needed) return false;

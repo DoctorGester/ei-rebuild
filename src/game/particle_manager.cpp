@@ -9,7 +9,7 @@
 
 namespace {
 
-// The source types that start without emitting while unknown_E4 is set.
+// The source types that start without emitting while quietStart is set.
 constexpr int kStoppedTypeA = 0x2001;
 constexpr int kStoppedTypeB = 0x2003;
 constexpr int kStoppedTypeC = 0x2004;
@@ -26,7 +26,7 @@ void EndWalk(ObjectListIterator& it) {
 
 // 00497FC0 (slot 2).
 int CParticleManager::Create() {
-    unknown_E4 = 0;
+    quietStart = 0;
     return CBaseManager::Create() != 0 ? 1 : 0;
 }
 
@@ -40,7 +40,7 @@ void CParticleManager::Destroy() {
     maxHeldId_ = 0;
     while (freeParticles.count != 0) gamecrt::operator_delete(freeParticles.RemoveHead());
     CBaseManager::Destroy();
-    unknown_E4 = 0;
+    quietStart = 0;
 }
 
 // 00498400.
@@ -51,7 +51,7 @@ CParticleSource* CParticleManager::CreateSource(int type) {
     if (id > maxHeldId_) maxHeldId_ = id;
     CParticleSource* source = AsSource(object);
     held_[id] = source;
-    if (unknown_E4 != 0) {
+    if (quietStart != 0) {
         int kind = object->type_;
         if (kind == kStoppedTypeA || kind == kStoppedTypeC || kind == kStoppedTypeB) source->StopEmitting();
     }

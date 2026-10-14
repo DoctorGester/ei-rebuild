@@ -179,9 +179,9 @@ static_assert(sizeof(AttackParams) == 0x20);
 struct CombatStats {
     std::uint8_t unused_00[4];
     float experience;           // +0x04 log-scaled into the level (00556760)
-    std::uint8_t unused_08[0x30 - 0x08];   // UnitStats: spent experience, the attributes, speed, rate base
+    std::uint8_t attributeStats[0x30 - 0x08];  // UnitStats: spent experience, the attributes, speed, rate base
     float rate;                 // +0x30 the attack rate; 15 / rate scales item values and attack times (0054B760)
-    std::uint8_t unused_34[0x60 - 0x34];   // UnitStats: mode speeds, sight, load and the load factors
+    std::uint8_t movementStats[0x60 - 0x34];   // UnitStats: mode speeds, sight, load and the load factors
     int bodyKind;               // +0x60 1 has body slots; 2 no size classes (00552FB0)
     std::uint8_t unused_64[4];
     std::int16_t sizeClass;     // +0x68 1..4 by size, 5/6 when loaded above 0.85, 7 above 1.5
@@ -198,12 +198,12 @@ struct CombatStats {
     float attackCategory;       // +0x8C the natural attack's or the weapon's category (attack times, values)
     float damageWeights[7];     // +0x90 natural attack, per damage type
     int naturalWeapon;          // +0xAC weapon type of the natural attack (0x10: none / spells only)
-    std::uint8_t unused_B0[0xBC - 0xB0];   // UnitStats::valuesB0[0] (sight by night) and [1].base
+    std::uint8_t nightSight[0xBC - 0xB0];      // UnitStats::valuesB0[0] (sight by night) and [1].base
     float daySightPercent;      // +0xBC UnitStats::valuesB0[1].current; scales the world's night level in the movement factors
-    std::uint8_t unused_C0[0xFC - 0xC0];   // UnitStats::valuesB0[2..5], valuesE0[0..3]
+    std::uint8_t statValues[0xFC - 0xC0];      // UnitStats::valuesB0[2..5], valuesE0[0..3]
     float noise;                // +0xFC how loud the unit's attacks are (scaled by 2 for a hit,
                                 //       1.5 for a skill use, passed to 005C98C0 with kind 0x1A)
-    std::uint8_t unused_100[0x110 - 0x100];
+    std::uint8_t statValuesTail[0x110 - 0x100];  // UnitStats::valuesE0[4..5]
 };
 static_assert(offsetof(CombatStats, noise) == 0xFC);
 static_assert(offsetof(CombatStats, sizeClass) == 0x68);
@@ -216,8 +216,9 @@ static_assert(sizeof(CombatStats) == 0x110);
 class CItem;
 struct AIBrain;   // unit_ai.h
 
-// The AI events' record of a unit's presence (005C9770 returns it; CUnitServer + 0x918). Only the
-// fields the controller's update writes.
+// What CUnitServer + 0x918 was read as: a record of the unit's presence with the AI events. It holds
+// 005C9770's result, which is AIViewer::StepNoise (unit_ai.h) and always returns 0, so no record
+// is ever written; the layout is speculative. Only the fields the controller's update would write.
 struct AIEventPresence {
     std::uint8_t unused_00[8];
     float x;                    // +0x08 where the unit was when the record was last refreshed
@@ -831,7 +832,7 @@ public:
     int ownSide;                    // +0x90C the unit's own side while tamed (TryTame)
     int tamerSide;                  // +0x910 the tamer's side (TryTame)
     int speedClass;                 // +0x914
-    AIEventPresence* aiPresence;    // +0x918 the unit's presence record with the AI events (UpdateServer);
+    AIEventPresence* aiPresence;    // +0x918 005C9770's (StepNoise's) result, always 0 (UpdateServer);
                                     //        cleared by the reset and Load
     ArmourSpellList armourSpells;   // +0x91C periodic spells of the worn items (vtable 0073F010, blocks of 10)
     int boredTicks;                 // +0x938 a party unit's updates since its last order (a bored remark past a

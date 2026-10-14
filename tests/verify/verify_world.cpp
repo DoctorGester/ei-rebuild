@@ -429,7 +429,7 @@ static void __fastcall CreateExitMarkersVerify(CWorldClient* self) {
              ei::verify::NearlyEqual(source->position.x, (exit.x2 + exit.x1) * 0.5f, 4, 1e-6f) &&
              ei::verify::NearlyEqual(source->position.y, (exit.y2 + exit.y1) * 0.5f, 4, 1e-6f) &&
              ei::verify::NearlyEqual(source->alpha, (exit.x2 - exit.x1) * 0.5f, 4, 1e-6f) &&
-             ei::verify::NearlyEqual(source->unknown_11C, (exit.y2 - exit.y1) * 0.5f, 4, 1e-6f);
+             ei::verify::NearlyEqual(source->typeParam, (exit.y2 - exit.y1) * 0.5f, 4, 1e-6f);
     }
     ei::verify::Check("CWorldClient::CreateExitMarkers", true, ok, "%d exits, %d markers", self->exitCount_,
                       self->countedA0_.GetSize());

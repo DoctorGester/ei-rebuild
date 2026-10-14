@@ -148,7 +148,7 @@ EI_REPLACE(0x00525720, WearArmour);
 int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon) {
     bool keyed = (IsTextKey(unit->id_) & 0xFF) != 0;
     int damaged = 0;
-    UnitStatSlot& slot = slots[hit->unknown_2C];
+    UnitStatSlot& slot = slots[hit->location];
     if (slot.kind < 2) return 0;
     for (int type = 0; type < kDamageTypes; ++type) {
         volatile float typeDamage = hit->typeWeights[type] * hit->amount;
@@ -156,7 +156,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
             typeDamage = typeDamage - hit->multiplier * slot.layers[layer].absorb[type];
-            CallWearArmour(unit, hit->unknown_2C, layer, Max0(typeDamage));
+            CallWearArmour(unit, hit->location, layer, Max0(typeDamage));
             if (!(typeDamage > kZero)) break;
         }
         if (weapon) {
@@ -166,7 +166,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         }
         if (!(typeDamage > kZero)) continue;
         damaged = 1;
-        if (hit->unknown_34 > kOne) typeDamage = typeDamage * hit->unknown_34;
+        if (hit->backstabFactor > kOne) typeDamage = typeDamage * hit->backstabFactor;
         double current = slot.current - typeDamage;   // compared unrounded below
         slot.current = static_cast<float>(current);
         // Severed by a full hit on a vital damage type, or below -5 times its maximum (or NaN).
@@ -193,15 +193,15 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
         }
         HitLog()->PutChar('\n')->Apply(kEndLine);
     }
-    if (std::memcmp(&hit->unknown_34, &kOneBits, sizeof(float)) != 0) flags |= 1;
+    if (std::memcmp(&hit->backstabFactor, &kOneBits, sizeof(float)) != 0) flags |= 1;
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
     return damaged;
 }
 EI_REPLACE_METHOD(0x00525070, UnitStats::DamageSlot);
 
 int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, CEngineObject* weapon) {
-    if (hit->unknown_2C >= kLocations) return 0;
-    if (hit->unknown_2C == 0) flags |= 2;
+    if (hit->location >= kLocations) return 0;
+    if (hit->location == 0) flags |= 2;
     if (hit->typeWeights[5] < kZero || hit->typeWeights[5] > kZero) flags |= 4;
     DamageInfo copy = *hit;
     if (!(copy.amount < kZero || copy.amount > kZero)) return 0;
@@ -220,7 +220,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
         }
     }
     if (!(total > kZero)) return 0;
-    if (copy.unknown_2C != kAllLocations) {
+    if (copy.location != kAllLocations) {
         int result = CallDamageSlot(this, nullptr, unit, vitals, &copy, weapon);
         UnitAfterHit(unit);
         return result;
@@ -234,7 +234,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     int damaged = 0;
     for (int i = 0; i < 6; ++i) {
         copy.multiplier = slots[i].maximum * hit->multiplier * share / hit->amount;
-        copy.unknown_2C = i;
+        copy.location = i;
         copy.amount = share * slots[i].maximum;
         int result = CallDamageSlot(this, nullptr, unit, vitals, &copy, weapon);
         damaged = (result != 0 || damaged != 0) ? 1 : 0;

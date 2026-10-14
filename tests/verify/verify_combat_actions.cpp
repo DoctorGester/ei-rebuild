@@ -40,7 +40,7 @@ ChargeExpectation ExpectCharge(CItem* item, bool fires) {
     e.expected = Bits(item->charge_);
     auto* spell = static_cast<const CSpell*>(item->spell_);
     if (!fires || !spell || !(spell->targetFlags_ & 0x10000)) return e;
-    float cost = std::bit_cast<float>(spell->unknown_40);
+    float cost = std::bit_cast<float>(spell->manaCost_);
     if (cost > item->charge_) return e;
     e.expected = ChargeAfter(item->charge_, cost);
     return e;

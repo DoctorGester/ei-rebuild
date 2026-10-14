@@ -241,7 +241,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
         ObjectSlots(target)->ReceiveHit(hit, unit, unit);
     }
     CallTriggerWeaponSpell(target);
-    if (std::bit_cast<std::uint32_t>(hit->unknown_34) == kOneBits) {
+    if (std::bit_cast<std::uint32_t>(hit->backstabFactor) == kOneBits) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kHitNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
     }
@@ -254,7 +254,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     if (!weapon) return;
     auto* spell = static_cast<CSpell*>(weapon->spell_);
     if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) return;
-    float cost = std::bit_cast<float>(spell->unknown_40);
+    float cost = std::bit_cast<float>(spell->manaCost_);
     if (cost > weapon->charge_) return;
     CtlUseItemCharge(this, nullptr, weapon, cost);
     CUnit* self = unit;
@@ -271,7 +271,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!item) continue;
         auto* spell = static_cast<CSpell*>(item->spell_);
         if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) continue;
-        float cost = std::bit_cast<float>(spell->unknown_40);
+        float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost > item->charge_) continue;
         bool fires = (spell->unknown_18 & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
         if (!fires) continue;

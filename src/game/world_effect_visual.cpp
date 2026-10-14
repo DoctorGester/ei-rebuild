@@ -409,7 +409,7 @@ void CEffectParticle::Spawn() {
         std::memcpy(&baseSize, &source_->baseSize, 4);
         ScaleSource(source_, nullptr, StoreFloat(size_ / baseSize));
         CopyThroughFpu(&source_->alpha, &alpha_);
-        CopyThroughFpu(&source_->unknown_11C, &param164_);
+        CopyThroughFpu(&source_->typeParam, &param164_);
         ParticleAttachAt(this);
         return;
     }
@@ -421,7 +421,7 @@ void CEffectParticle::Spawn() {
     ScaleSource(source_, nullptr, StoreFloat(size_ / baseSize));
     AttachSource(source_, nullptr, nullptr);
     CopyThroughFpu(&source_->alpha, &alpha_);
-    CopyThroughFpu(&source_->unknown_11C, &param164_);
+    CopyThroughFpu(&source_->typeParam, &param164_);
     ParticleAttachAt(this);
 
     // Catch up with the ticks since the effect began (at most 30 for lasting types).

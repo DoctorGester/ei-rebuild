@@ -225,9 +225,9 @@ void CWorldClient::CreateExitMarkers() {
         const ZoneExit& exit = exits_[i];
         source->position = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
         source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
-        source->unknown_11C = (exit.y2 - exit.y1) * kOneHalf;
-        source->unknown_120 = static_cast<float>(std::cos(static_cast<double>(exit.angle)));
-        source->unknown_124 = static_cast<float>(std::sin(static_cast<double>(exit.angle)));
+        source->typeParam = (exit.y2 - exit.y1) * kOneHalf;
+        source->turnCos = static_cast<float>(std::cos(static_cast<double>(exit.angle)));
+        source->turnSin = static_cast<float>(std::sin(static_cast<double>(exit.angle)));
         for (int tick = 0; tick < kExitWarmUpTicks; ++tick) marker->RunTick();
     }
     UpdateExitMarkers();

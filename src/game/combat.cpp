@@ -126,9 +126,9 @@ void FpuCopy(void* dst, const void* src) {
 
 // A CSpell's dword fields that hold floats: +0x24 (prototype +0x2C, the damage), +0x34 (+0x24,
 // the range) and +0x40 (+0x18, the mana cost).
-float SpellDamage(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->unknown_24); }
-float SpellRange(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->unknown_34); }
-float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->unknown_40); }
+float SpellDamage(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->damage_); }
+float SpellRange(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->range_); }
+float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
 
 // The game's _ftol (006E853C): truncation; out-of-range values keep the low 32 bits of the
 // 64-bit result (unlike the modern CRT's conversion).
@@ -560,21 +560,21 @@ EI_REPLACE_METHOD(0x00555BD0, CUnitServer::AttackRoll);
 BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
     float roll = kHitMark;
     if (!(HasElementalDamage(hit) & 0xFF)) {
-        if (NoBackstab()) hit->unknown_34 = kOne;
+        if (NoBackstab()) hit->backstabFactor = kOne;
         if (attacker) {
-            bool backstab = hit->unknown_34 > kOne;
+            bool backstab = hit->backstabFactor > kOne;
             roll = AttackRoll(reinterpret_cast<CUnitServer*>(attacker->controller), backstab);
         }
-        if (hit->unknown_38) {
-            if (hit->unknown_2C == 0) roll = MaxZero(roll - kCalledShotHead);
-            else if (hit->unknown_2C != 1) roll = MaxZero(roll - kTen);
+        if (hit->calledShot) {
+            if (hit->location == 0) roll = MaxZero(roll - kCalledShotHead);
+            else if (hit->location != 1) roll = MaxZero(roll - kTen);
         }
     }
     AttackParams mine;
     AttackParamsOf(this, &mine);
-    if (hit->unknown_34 > kOne) mine.defence = 0;
+    if (hit->backstabFactor > kOne) mine.defence = 0;
     float result = static_cast<double>(mine.defence) > roll ? kMissMark : kHitMark;
-    std::memcpy(&hit->unknown_20, &result, sizeof(result));
+    std::memcpy(&hit->attackRoll, &result, sizeof(result));
     return result > kZero ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x00553DF0, CUnitServer::ResolveHit);
@@ -588,20 +588,20 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
     if (keyed && self->activeWeapon < 4) weapon = static_cast<CItemWeapon*>(self->weapons[self->activeWeapon]);
     if (weapon) {
         weapon->GetDamageTypes(out->typeWeights);
-        out->unknown_1C = weapon->unknown_4C;
+        out->weaponValue = weapon->unknown_4C;
         int sides = GameFtol(kFive);
         int drawn = gamecrt::rand();
         int face = ((drawn * sides) / 0x7FFF) % sides;
         int value = face + face + 2;
         float roll = static_cast<float>(static_cast<double>(value) - (static_cast<double>(kFive) + kOne));
-        std::memcpy(&out->unknown_20, &roll, sizeof(roll));
+        std::memcpy(&out->attackRoll, &roll, sizeof(roll));
         out->amount = static_cast<float>(weapon->RollDamage());   // FSTP float, as the original
     } else {
         std::memcpy(out->typeWeights, Combat().damageWeights, sizeof(out->typeWeights));
-        out->unknown_1C = 0;
+        out->weaponValue = 0;
         double factor = keyed ? kOne : DifficultyAttackFactor();
         float roll = static_cast<float>(factor * Combat().attack);
-        std::memcpy(&out->unknown_20, &roll, sizeof(roll));
+        std::memcpy(&out->attackRoll, &roll, sizeof(roll));
         double extra = kZero;
         float spread = Combat().damageSpread;
         if (spread < kZero || spread > kZero) {
@@ -613,12 +613,12 @@ BOOL CUnitServer::BuildAttackHit(DamageInfo* out, int backstab, int location, ch
         out->amount = static_cast<float>(extra + Combat().damage);
     }
     out->amount = StatsScaleDamage(&stats, nullptr, self, out->amount);
-    out->unknown_2C = location;
-    out->unknown_30 = 0;
-    if (backstab) out->unknown_34 = static_cast<float>(stats.Value6E9Arg(static_cast<int>(reinterpret_cast<std::uintptr_t>(self))));
-    else out->unknown_34 = kOne;
+    out->location = location;
+    out->hitKind = 0;
+    if (backstab) out->backstabFactor = static_cast<float>(stats.Value6E9Arg(static_cast<int>(reinterpret_cast<std::uintptr_t>(self))));
+    else out->backstabFactor = kOne;
     if (self->player && PlayerMode108(self->player) >= 2) ResetDamageInfo(out);
-    out->unknown_38 = static_cast<std::uint8_t>(calledShot);
+    out->calledShot = static_cast<std::uint8_t>(calledShot);
     return 1;
 }
 EI_REPLACE_METHOD(0x0054F630, CUnitServer::BuildAttackHit);
@@ -640,7 +640,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     int dead = IsDead(unit);
     bool hadPlayer = unit->player != nullptr;
     // |+0x20| below FLT_MAX (or NaN): not resolved yet.
-    if (LessOrUnordered(std::bit_cast<float>(hit->unknown_20 & 0x7FFFFFFFu), kHitMark)) ResolveHit(hit, attacker);
+    if (LessOrUnordered(std::bit_cast<float>(hit->attackRoll & 0x7FFFFFFFu), kHitMark)) ResolveHit(hit, attacker);
     if (!dead) {
         static_cast<CWorldServer*>(world)->AddToUpdateMap(unit);
         if (attacker) {
@@ -651,20 +651,20 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         }
         GameOstream* log = GameLog()->Put(" skill=");
         log->SetField4();
-        log = log->Put(static_cast<double>(std::bit_cast<float>(hit->unknown_20)));
+        log = log->Put(static_cast<double>(std::bit_cast<float>(hit->attackRoll)));
         float amount = hit->amount;
         log = log->Put(" damage=");
         log->SetField4();
         log->Put(static_cast<double>(amount));
-        if (hit->unknown_34 > kOne) {
-            float power = hit->unknown_34;
+        if (hit->backstabFactor > kOne) {
+            float power = hit->backstabFactor;
             log = GameLog()->Put(" backstab with power=");
             log->SetField4();
             log->Put(static_cast<double>(power));
         }
-        if (hit->unknown_38) GameLog()->Put(" called shot");
+        if (hit->calledShot) GameLog()->Put(" called shot");
         GameLog()->Put(" destHL=");
-        GameLog()->Put(HitLocationName(hit->unknown_2C));
+        GameLog()->Put(HitLocationName(hit->location));
         GameLog()->PutChar(10)->Apply(kLogEndLine);
     }
 
@@ -676,8 +676,8 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
 
     AttackParams mine;
     AttackParamsOf(this, &mine);
-    if (hit->unknown_34 > kOne) mine.defence = 0;
-    if (!(static_cast<double>(mine.defence) > std::bit_cast<float>(hit->unknown_20))) {
+    if (hit->backstabFactor > kOne) mine.defence = 0;
+    if (!(static_cast<double>(mine.defence) > std::bit_cast<float>(hit->attackRoll))) {
         stats.flags |= 0x10;
         unit->MarkChanged(4);
         CallTriggerItemSpells(1);
@@ -699,7 +699,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             unit->MarkChanged(0);
             unit->MarkChanged(4);
             if (!dead) {
-                CallOnDamaged(attacker, hit->unknown_30);
+                CallOnDamaged(attacker, hit->hitKind);
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
                     if (IsMultiplayerClient() & 0xFF) {

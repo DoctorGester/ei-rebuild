@@ -42,7 +42,7 @@ float HeroTransitionSpeed() { return *reinterpret_cast<const float*>(0x007C542C)
 float ItemWeight(const CEngineObject* item) { return static_cast<const CItem*>(item)->Weight(); }
 
 // A spell's mana cost (CSpell +0x40, a float kept as a dword).
-float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->unknown_40); }
+float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->manaCost_); }
 
 PartyRecords* RecordsOf(char* player) { return reinterpret_cast<PartyRecords*>(player + 0x70); }
 

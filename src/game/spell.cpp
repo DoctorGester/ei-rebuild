@@ -36,15 +36,15 @@ bool Regards(const SpellTargetUnit* a, const SpellTargetUnit* b) {
 } // namespace
 
 BOOL CSpell::Clear() {
-    unknown_30 = 0;
-    unknown_34 = 0;
-    unknown_38 = 0;
+    speed_ = 0;
+    range_ = 0;
+    targetCount_ = 0;
     targetFlags_ = 0;
-    unknown_40 = 0;
-    unknown_44 = 0;
+    manaCost_ = 0;
+    complexity_ = 0;
     price_ = 0;
-    unknown_4C = 0;
-    unknown_50 = 1;
+    prototypeField14_ = 0;
+    skillNeeded_ = 1;
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
 }
@@ -52,25 +52,25 @@ EI_REPLACE_METHOD(0x0068B320, CSpell::Clear);
 
 BOOL CSpell::InitFromPrototype(const char* prototype) {
     auto dword = [prototype](int offset) { return *reinterpret_cast<const std::uint32_t*>(prototype + offset); };
-    unknown_30 = dword(0x20);
-    unknown_34 = dword(0x24);
+    speed_ = dword(0x20);
+    range_ = dword(0x24);
     std::uint32_t kind = dword(0x30);
     if (kind == 0x75) {            // 'u'
         targetFlags_ = 0x10000000;
     } else if (kind == 0x74) {     // 't'
         targetFlags_ = 0x20000000;
     }
-    unknown_38 = dword(0x34);
-    unknown_40 = dword(0x18);
-    unknown_44 = dword(0x1C);
+    targetCount_ = dword(0x34);
+    manaCost_ = dword(0x18);
+    complexity_ = dword(0x1C);
     price_ = dword(field::kSpellPrice);
-    unknown_4C = dword(0x3C);
-    unknown_50 = dword(0x44);
-    unknown_1D = 0x10;
+    prototypeField14_ = dword(0x3C);
+    skillNeeded_ = dword(0x44);
+    effectPower_ = 0x10;
     prototypeIndex_ = static_cast<std::uint8_t>(unknown_18 >> 16);
-    unknown_24 = dword(0x2C);
-    unknown_28 = dword(0x28);
-    unknown_20 = dword(0x38);
+    damage_ = dword(0x2C);
+    radius_ = dword(0x28);
+    duration_ = dword(0x38);
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return 1;
 }
@@ -152,25 +152,25 @@ EI_REPLACE_METHOD(0x0068B4C0, CSpell::CanAffect);
 
 BOOL CSpellEffect::GetDamage(DamageInfo* out) {
     std::memset(out, 0, sizeof(*out));
-    out->unknown_2C = 6;
+    out->location = 6;
     out->multiplier = kOne;
-    out->unknown_20 = kFltMaxBits;
-    out->unknown_34 = kOne;
-    out->unknown_38 = 0;
+    out->attackRoll = kFltMaxBits;
+    out->backstabFactor = kOne;
+    out->calledShot = 0;
 
     switch (spellId >> 16) {
     case 0: case 3: case 0x28:
-        out->typeWeights[3] = kOne; out->amount = damage; out->unknown_30 = 0; break;
+        out->typeWeights[3] = kOne; out->amount = damage; out->hitKind = 0; break;
     case 1: case 4: case 0x29:
-        out->typeWeights[5] = kOne; out->amount = damage; out->unknown_30 = 0; break;
+        out->typeWeights[5] = kOne; out->amount = damage; out->hitKind = 0; break;
     case 2:
-        out->typeWeights[4] = kOne; out->amount = damage; out->unknown_30 = 0; break;
+        out->typeWeights[4] = kOne; out->amount = damage; out->hitKind = 0; break;
     case 5: case 8:
-        out->typeWeights[4] = kOne; out->amount = damage; out->unknown_30 = 1; break;
+        out->typeWeights[4] = kOne; out->amount = damage; out->hitKind = 1; break;
     case 6: case 0x27:
-        out->typeWeights[3] = kOne; out->amount = damage; out->unknown_30 = 1; break;
+        out->typeWeights[3] = kOne; out->amount = damage; out->hitKind = 1; break;
     case 7:
-        out->typeWeights[5] = kOne; out->amount = damage; out->unknown_30 = 1; break;
+        out->typeWeights[5] = kOne; out->amount = damage; out->hitKind = 1; break;
     default:
         break;
     }

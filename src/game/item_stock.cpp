@@ -267,7 +267,7 @@ void AddSpell(ItemStock* stock, Constructor* ctor, StockList& spells) {
     for (unsigned i = 0; i < index; ++i) node = node->next;
     void* spell = node->data;
     float spellPower;   // CSpell +0x40, the prototype's +0x18 as float bits
-    std::memcpy(&spellPower, &static_cast<CSpell*>(static_cast<CEngineObject*>(spell))->unknown_40, 4);
+    std::memcpy(&spellPower, &static_cast<CSpell*>(static_cast<CEngineObject*>(spell))->manaCost_, 4);
     if (!(spellPower > power)) ctor->SetSpellObject(spell);
 }
 

@@ -124,19 +124,19 @@ int __fastcall LightIdVerify(CLight* self) {
 CLightFactory* __fastcall ManagerConstructVerify(CLightFactory* self) {
     CLightFactory* result = self->Construct();
     bool ok = result == self && VtableOf(self) == CLightFactory::kVtableAddress && self->litIds_.Empty() &&
-              self->held_ == nullptr && self->unknown_CC == 0 && self->unknown_D0 == 1 && self->unknown_B0[0] == 0 &&
-              self->unknown_B0[3] == 0;
+              self->held_ == nullptr && self->unused_CC == 0 && self->unused_D0 == 1 && self->unused_B0[0] == 0 &&
+              self->unused_B0[3] == 0;
     ei::verify::Check("CLightFactory::Construct", true, ok, "manager %p", self);
     return result;
 }
 void __fastcall ManagerDestructVerify(CLightFactory* self) {
     self->Destruct();
-    ei::verify::Check("CLightFactory::Destruct", true, VtableOf(self) == CEngineObject::kVtableAddress && self->unknown_CC == 0,
+    ei::verify::Check("CLightFactory::Destruct", true, VtableOf(self) == CEngineObject::kVtableAddress && self->unused_CC == 0,
                       "manager %p", self);
 }
 CLightFactory* __fastcall ManagerDeleteVerify(CLightFactory* self, void*, unsigned flags) {
     CLightFactory* result = self->DeletingDestruct(flags & ~1u);
-    ei::verify::Check("CLightFactory::DeletingDestruct", true, result == self && self->unknown_CC == 0, "manager %p", self);
+    ei::verify::Check("CLightFactory::DeletingDestruct", true, result == self && self->unused_CC == 0, "manager %p", self);
     if (flags & 1) gamecrt::operator_delete(self);
     return result;
 }

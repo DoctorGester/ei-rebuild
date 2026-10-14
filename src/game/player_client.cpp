@@ -486,7 +486,7 @@ int CPlayerClient::OnPathMarker() {
                 ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kPathParticles));
             pathSource = reinterpret_cast<CEngineObject*>(source);
             source->Attach(walker);
-            source->unknown_11C = value;
+            source->typeParam = value;
             if (kind == 0) source->alpha = 1.0f;
             else if (kind == 1) source->alpha = 0.0f;
             else if (kind == 2) source->alpha = 2.0f;

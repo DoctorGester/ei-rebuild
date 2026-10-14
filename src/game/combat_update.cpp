@@ -78,7 +78,7 @@ inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetContro
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
 __declspec(naked) bool __fastcall VitalsRegenerate(void*, void*, UnitStats*, CUnit*, int /*inCombat*/) EI_ORIGINAL(0x00523740)
-// The AI: 005C9770 the events' presence of a unit at a point (world + 0x2838; returns its record),
+// The AI: 005C9770 AIViewer::StepNoise (world + 0x2838; the step noise, returns 0; unit_ai_hearing),
 // 005CB850 the perception memory's update (controller + 0xA50), 005AEA80 the alarm step
 // (ai_alarm.cpp, controller + 0xB10), 005AEA40 the alarm's reset, 005D53B0 AIBrain::Think and
 // 005D4E80 its reset on death (unit_ai.cpp, controller + 0x980).
@@ -236,7 +236,7 @@ int CUnitServer::UpdateServer() {
             UnitMarkChanged(unit, nullptr, 0);
             UnitMarkChanged(unit, nullptr, 4);
         }
-        // The AI events learn where the unit is every (speedClass + 1) updates.
+        // Every (speedClass + 1) updates the unit's step noise (005C9770 returns 0: no record).
         if ((static_cast<std::uint32_t>(WorldServer()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
             AIEventPresence*& presence = aiPresence;
             if (presence) {
@@ -685,17 +685,17 @@ void CUnitServer::TickItemSpells() {
         auto* item = static_cast<CItem*>(current->item);
         if (!item) continue;
         auto* spell = static_cast<CSpell*>(item->spell_);
-        float cost = std::bit_cast<float>(spell->unknown_40);
+        float cost = std::bit_cast<float>(spell->manaCost_);
         if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
         if ((spell->unknown_18 & 0xFFFF0000u) == 0x180000) {
             // A healing spell: only one a tick, and only when the unit is hurt.
             if (healed || unit->packedVitals.hitPoints == unit->packedVitals.maxHitPoints) continue;
             healed = true;
         }
-        CtlUseItemCharge(this, nullptr, item, std::bit_cast<float>(spell->unknown_40));
+        CtlUseItemCharge(this, nullptr, item, std::bit_cast<float>(spell->manaCost_));
         CUnit* self = unit;
         WorldCastSpellOriginal(world, nullptr, spell, self, &self->position, self, &self->position, 1);
-        int countdown = static_cast<int>(spell->unknown_20) - 3;
+        int countdown = static_cast<int>(spell->duration_) - 3;
         current->countdown = countdown;
         if (countdown <= 0) current->countdown = 8;
     }

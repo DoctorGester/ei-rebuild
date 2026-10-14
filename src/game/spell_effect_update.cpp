@@ -369,7 +369,7 @@ void Teleport(CSpellEffect* e) {
     if (!IsUnit(e->caster)) return;
     MapEffect record;
     BuffRecordInit(&record);
-    std::memcpy(&record, &e->unknown_50, sizeof(record));
+    std::memcpy(&record, &e->effectRecord, sizeof(record));
     ObjectSlots(e->caster)->AddEffect(&record);
     ControllerReposition(ControllerOf(e->caster));
     RiseLight(e);

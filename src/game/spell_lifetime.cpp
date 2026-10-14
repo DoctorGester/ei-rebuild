@@ -41,15 +41,15 @@ CSpell* CSpell::Construct() {
     ClearFields();
     Effect().Construct();
     SetVtable(this, kVtableAddress);
-    unknown_30 = 0;
-    unknown_34 = 0;
-    unknown_38 = 0;
+    speed_ = 0;
+    range_ = 0;
+    targetCount_ = 0;
     targetFlags_ = 0;
-    unknown_40 = 0;
-    unknown_44 = 0;
+    manaCost_ = 0;
+    complexity_ = 0;
     price_ = 0;
-    unknown_4C = 0;
-    unknown_50 = 1;
+    prototypeField14_ = 0;
+    skillNeeded_ = 1;
     std::memset(modifiers_, 0, sizeof(modifiers_));
     return this;
 }
@@ -83,7 +83,7 @@ CSpellEffect* CSpellEffect::Construct() {
     timer = 0;
     world = nullptr;
     flags = 0;
-    unknown_A4 = 0;
+    silentEnd = 0;
     footprintStamped = 0;
     return this;
 }
@@ -139,7 +139,7 @@ void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CEngineObject* ne
     AssignCounted(target, newTarget);
     targetPoint = *newTargetPoint;
     state = 0;
-    unknown_A4 = flagA4;
+    silentEnd = flagA4;
 }
 EI_REPLACE_METHOD(0x0067ECB0, CSpellEffect::Init);
 

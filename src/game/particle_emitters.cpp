@@ -159,14 +159,14 @@ int EmitAlongBolt(CParticleSource* s, Particle* p, BoltPoint* points) {
     p->state = index + 1;
     std::memcpy(&p->pos, &points[index].pos, sizeof(Vector3));
     std::memset(&p->size, 0, sizeof(float));
-    p->unknown_2C = std::bit_cast<float>(0x3DCCCCCDu);     // 0.1
+    p->aux0 = std::bit_cast<float>(0x3DCCCCCDu);     // 0.1
     ++points[0].emitted;
     if (p->frameTimer == 0) return 1;
     std::uint32_t roll = GlobalRandom().Next();
-    p->unknown_2C = Store((Unsigned(roll) * EI_SCALE_0_9 + D(EI_HALF)) * D(s->size) * D(EI_POINT_TWO));
+    p->aux0 = Store((Unsigned(roll) * EI_SCALE_0_9 + D(EI_HALF)) * D(s->size) * D(EI_POINT_TWO));
     p->frame = static_cast<int>((GlobalRandom().Next() & 3) + 12);
-    if (index == 0) p->unknown_2C = Store(D(s->size) * D(EI_POINT_FOUR));
-    std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+    if (index == 0) p->aux0 = Store(D(s->size) * D(EI_POINT_FOUR));
+    std::memcpy(&p->size, &p->aux0, sizeof(float));
     return 1;
 }
 
@@ -204,7 +204,7 @@ int EmitBurst(CParticleSource* s, Particle* p, BoltPoint* points) {
     p->frameTimer = 0;
     p->life = x87::fistp(Store(D(EI_NINE) - D(spread) * D(EI_THREE)));
     double roll = Unsigned(GlobalRandom().Next()) * EI_SCALE_0_04 + D(EI_TENTH);
-    p->unknown_2C = Store(roll * (D(EI_TWO) - D(spread)) * D(s->size));
+    p->aux0 = Store(roll * (D(EI_TWO) - D(spread)) * D(s->size));
     return 1;
 }
 
@@ -213,7 +213,7 @@ int EmitSpark(CParticleSource* s, Particle* p) {
     std::uint32_t count = static_cast<std::uint32_t>(s->elementCount);
     std::uint32_t index = GlobalRandom().Next() % count;
     p->frame = 1;
-    p->unknown_2C = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_0_01 * D(EI_THREE) + D(EI_SPARK_SIZE));
+    p->aux0 = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_0_01 * D(EI_THREE) + D(EI_SPARK_SIZE));
     p->life = 6;
     p->frameTimer = 1;
     double u = Unsigned(GlobalRandom().Next()) * EI_SCALE_1;
@@ -448,9 +448,9 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
     float jx = Store(Unsigned(rc) * EI_SCALE_0_08 - D(EI_JITTER));
     float jy = Store(Unsigned(rb) * EI_SCALE_0_08 - D(EI_JITTER));
     float jz = Store(Unsigned(ra) * EI_SCALE_0_08 - D(EI_JITTER));
-    std::memcpy(&p->unknown_2C, &jx, sizeof(float));
-    std::memcpy(&p->unknown_30, &jy, sizeof(float));
-    std::memcpy(&p->unknown_34, &jz, sizeof(float));
+    std::memcpy(&p->aux0, &jx, sizeof(float));
+    std::memcpy(&p->aux1, &jy, sizeof(float));
+    std::memcpy(&p->aux2, &jz, sizeof(float));
     std::memcpy(&p->pos, &reinterpret_cast<ModifierPoint*>(elements)[pick].start, sizeof(Vector3));
     SetBits(&p->size, 0x3D75C28F);   // 0.06
     return 1;
@@ -509,7 +509,7 @@ double Signed(std::uint32_t roll) { return Unsigned(roll) * EI_SCALE_2 - D(EI_ON
 // random point of an ellipse around the source (axes +0x118 * +0x120 and +0x124 * +0x11C) on the
 // ground, red-tinted when +0x130 is set, rising by an amount that is larger near the centre.
 int CParticleSource::EmitZoneExit(Particle* p, int) {
-    int count = x87::fistp(Store(D(alpha) * D(unknown_11C)));
+    int count = x87::fistp(Store(D(alpha) * D(typeParam)));
     if (count > 40) count = 40;
     emitCount = count;
     p->color = NonZero(extent.x) ? 0x00FF6060u : 0x00FFFFFFu;
@@ -520,8 +520,8 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
     float a = Store(Signed(GlobalRandom().Next()));
     double b = Signed(GlobalRandom().Next());
     float falloff = Store((D(EI_ZONE_EXIT_SPREAD) - D(a) * D(a)) - b * b);
-    float x = Store((D(a) * D(alpha) * D(unknown_120) + D(origin.x)) - b * D(unknown_124) * D(unknown_11C));
-    float y = Store((D(unknown_124) * D(alpha) * D(a) + b * D(unknown_120) * D(unknown_11C)) + D(origin.y));
+    float x = Store((D(a) * D(alpha) * D(turnCos) + D(origin.x)) - b * D(turnSin) * D(typeParam));
+    float y = Store((D(turnSin) * D(alpha) * D(a) + b * D(turnCos) * D(typeParam)) + D(origin.y));
     double ground = SurfaceHeightRaw(TerrainOwner(), nullptr, x, y);
     p->pos.x = x;
     p->pos.y = y;
@@ -560,11 +560,11 @@ int CParticleSource::UpdateGroundDust(Particle* p) {
     float onPlane = Store(D(plane[3]) - along * D(plane[8]) + D(EI_TENTH));
     float ground = Store(lifted);
     p->pos.z = SelectLess(ground, onPlane, onPlane, ground);
-    std::memcpy(&p->size, &p->unknown_2C, sizeof(float));
+    std::memcpy(&p->size, &p->aux0, sizeof(float));
     p->velocity.x = Store(D(p->velocity.x) * D(EI_DUST_GROWTH));
     p->velocity.y = Store(D(p->velocity.y) * D(EI_DUST_GROWTH));
     p->velocity.z = Store(D(p->velocity.z) * D(EI_DUST_GROWTH));
-    p->unknown_2C = Store(D(p->unknown_30) * D(p->unknown_2C));
+    p->aux0 = Store(D(p->aux1) * D(p->aux0));
     return 1;
 }
 EI_REPLACE_METHOD(0x004933F0, CParticleSource::UpdateGroundDust);
@@ -596,12 +596,12 @@ int CParticleSource::UpdatePortal(Particle* p) {
     }
     if (p->life == 0) return 0;
     double c = p->velocity.x, s = p->velocity.y;
-    double nx = D(p->unknown_30) * s + c * D(p->unknown_2C);
+    double nx = D(p->aux1) * s + c * D(p->aux0);
     int timer = p->frameTimer - 1;
-    double ny = D(p->unknown_30) * c - D(p->unknown_2C) * s;
+    double ny = D(p->aux1) * c - D(p->aux0) * s;
     float nyRounded = Store(ny);
-    p->unknown_2C = Store(nx);
-    p->unknown_30 = Store(ny);
+    p->aux0 = Store(nx);
+    p->aux1 = Store(ny);
     p->pos.x = Store(nx + D(origin.x));
     p->pos.y = Store(D(nyRounded) + D(origin.y));
     double rise = D(size) * D(p->velocity.z);
@@ -620,7 +620,7 @@ int CParticleSource::UpdatePortal(Particle* p) {
         p->color = 0x00FFFFFF;
         return 1;
     }
-    std::memcpy(&p->size, &p->unknown_34, sizeof(float));
+    std::memcpy(&p->size, &p->aux2, sizeof(float));
     float fade = Store((D(EI_EIGHT) - climb) * (D(EI_TWO_HUNDRED) / D(EI_EIGHT)));
     int opacity = (x87::fistp(fade) + 0x37) >> 2;
     if (opacity >= 0x40) opacity = 0x40;
@@ -679,7 +679,7 @@ int CParticleSource::EmitFeebleMind(Particle* p, int) {
     p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
     float grow = Store((Unsigned(GlobalRandom().Next()) * EI_SCALE_0_2 + D(EI_POINT_NINE)) * D(size) *
                        D(EI_FEEBLE_SIZE));
-    std::memcpy(&p->unknown_34, &grow, sizeof(float));
+    std::memcpy(&p->aux2, &grow, sizeof(float));
     return 1;
 }
 EI_REPLACE_METHOD(0x004957E0, CParticleSource::EmitFeebleMind);
@@ -716,9 +716,9 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
     p->drift.x = Store(sx * D(size));
     p->drift.y = Store(D(sy) * D(size));
     p->drift.z = Store(D(sz) * D(size));
-    std::memset(&p->unknown_2C, 0, sizeof(float));
-    std::memset(&p->unknown_30, 0, sizeof(float));
-    std::memset(&p->unknown_34, 0, sizeof(float));
+    std::memset(&p->aux0, 0, sizeof(float));
+    std::memset(&p->aux1, 0, sizeof(float));
+    std::memset(&p->aux2, 0, sizeof(float));
     SetBits(&p->velocity.y, 0x3F800000);
     p->life = 10;
     p->velocity.x = Store(D(size) * D(e.value[3]) * D(EI_POINT_FOUR));

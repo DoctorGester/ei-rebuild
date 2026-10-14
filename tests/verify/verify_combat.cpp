@@ -414,7 +414,7 @@ static BOOL __fastcall PrepareAttackVerify(CUnitServer* self, void*, CEngineObje
     int diff = FirstDifference(&self->pendingHit, &ourHit, sizeof(ourHit));
     ei::verify::Check("CUnitServer::PrepareAttack", true, expected == actual && diff < 0 && original.SameAs(ours),
                       "unit %d location %d: hit differs at byte %d (backstab x%g vs x%g), random state %s",
-                      UnitId(self), location, diff, self->pendingHit.unknown_34, ourHit.unknown_34,
+                      UnitId(self), location, diff, self->pendingHit.backstabFactor, ourHit.backstabFactor,
                       original.SameAs(ours) ? "same" : "differs");
     return expected;
 }
@@ -425,10 +425,10 @@ EI_VERIFY(0x0054F580, PrepareAttackVerify, 5, s_prepareAttack);
 // applied (result 1) bit 0x10 of the stats dword at +0x6F8 is set.
 static void* s_unusedTakeHit;
 static BOOL __fastcall TakeHitVerify(CUnitServer* self, void*, DamageInfo* hit, CUnit* attacker, CUnit* source) {
-    std::uint32_t before = hit->unknown_20;
+    std::uint32_t before = hit->attackRoll;
     bool unresolved = (before & 0x7FFFFFFFu) < 0x7F7FFFFFu;
     BOOL result = self->TakeHit(hit, attacker, source);
-    std::uint32_t after = hit->unknown_20;
+    std::uint32_t after = hit->attackRoll;
     std::uint32_t statsFlags;
     std::memcpy(&statsFlags, reinterpret_cast<const char*>(&self->stats) + 0x6F8, sizeof(statsFlags));
     bool resolved = !unresolved || after == 0x7F7FFFFFu || after == 0xFF7FFFFFu;

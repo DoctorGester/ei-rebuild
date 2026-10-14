@@ -80,23 +80,23 @@ struct PartyRecords;   // unit.h
 
 // A player (one per human or AI side). Fields named only as far as used here.
 struct WorldPlayer {
-    std::uint8_t unused_000[0x1C];       // CPlayer's engine object fields (vtable, count, id, ...)
+    std::uint8_t engineObject[0x1C];     // CPlayer's engine object fields (vtable, count, id, ...)
     netlink::NetLink* link;              // +0x01C the link to the player's client (CPlayer::link_), or null
     CPlayerServer* server;               // +0x020 the player's connection (player_messages.h), or null
 
     int id;                              // +0x024 player number (0 = the local player)
     ObjectIdMap objects;                 // +0x028 its objects by id (the briefing screen walks it)
     ObjectIdMap units;                   // +0x040 its units by id (CPlayer::units_ / maxUnitId_)
-    std::uint8_t unused_058[0x70 - 0x58]; // CPlayer::knownTimed_ / maxTimedId_ (read through CPlayer)
+    std::uint8_t knownTimed[0x70 - 0x58]; // CPlayer::knownTimed_ / maxTimedId_ (read through CPlayer)
     // +0x070 the player's party (a CParty, party.h, 0x70 bytes to +0xE0: Party()); mercs,
     // mercCount and variables below are its members_ and variables_ seen from here. Loaded and
     // saved by 006618C0 / 00661C10 (world_save.cpp).
     std::uint8_t party[0xA0 - 0x70];
     std::uint8_t* mercs;                 // +0x0A0 0x784-byte records, unit id at +0x1C
     int mercCount;                       // +0x0A4
-    std::uint8_t unused_0A8[0xC4 - 0xA8]; // the party's members_ tail, items_ and money (through Party())
+    std::uint8_t partyItems[0xC4 - 0xA8]; // the party's members_ tail, items_ and money (through Party())
     std::uint8_t variables[0xD8 - 0xC4]; // +0x0C4 named float variables ("gtime", quest flags)
-    std::uint8_t unused_0D8[0xE0 - 0xD8]; // the party's zone_ and +0x6C (through Party())
+    std::uint8_t partyZone[0xE0 - 0xD8];  // the party's zone_ and +0x6C (through Party())
     // +0x0E0 an item list (CPtrList); the HUD top panel's page 1 lists it (0064A7A0).
     mfc::CTypedPtrList<CEngineObject> items;
     // +0x0FC the key the party is stored under in the party manager (a fresh one from PartyNextId
@@ -136,9 +136,9 @@ static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
 
 // What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
 struct LocalViewData {
-    std::uint8_t unused_00[0x1C];        // the CPlayerClient's engine object fields
+    std::uint8_t engineObject[0x1C];     // the CPlayerClient's engine object fields
     WorldPlayer* player;                 // +0x1C
-    std::uint8_t unused_20[0x84 - 0x20]; // the CPlayerClient's state, handlers and streams
+    std::uint8_t clientState[0x84 - 0x20]; // the CPlayerClient's state, handlers and streams
     // +0x84 a local session (GameStartLocalSession sets it): a unit's network owner becomes the local
     // player whatever its id (UnitReadNetState), and the game-state message only presses Enter.
     std::uint8_t localSession;
@@ -1097,11 +1097,11 @@ static_assert(offsetof(RadiusMarker, radius) == 0x8C);
 // The client's local session (CWorldClient + 0x20C, made by 0066C180), as far as the maps read it:
 // the local CPlayer (player_messages.h; its Tick 00665DE0 and Disconnect 00665A10 run on it).
 struct WorldSession : CEngineObject {
-    std::uint8_t unused_1C[4];            // CPlayer::link_
+    std::uint8_t link[4];                 // CPlayer::link_
     // +0x20 the local view: the player's connection (CPlayer::connection_), a CPlayerClient.
     class CPlayerConnection* localView;
     class CPlayerClient* LocalClient() const { return reinterpret_cast<class CPlayerClient*>(localView); }
-    std::uint8_t unused_24[0x100 - 0x24]; // CPlayer's id, object maps, party, items and party id
+    std::uint8_t playerFields[0x100 - 0x24]; // CPlayer's id, object maps, party, items and party id
     int gameKind;                         // +0x100 1 / 3: kinds of multiplayer session
 };
 static_assert(offsetof(WorldSession, localView) == 0x20);
@@ -1146,13 +1146,13 @@ static_assert(sizeof(ClientArrayManager) == 0xD0);
 
 // The render device (the global pointer at 007AF068): three stacks of 4x4 float matrices.
 struct MatrixDevice {
-    std::uint8_t unused_00[0x14];  // the pipeline's vtable, count, transform and library (CTransformPipeline)
+    std::uint8_t pipelineHeader[0x14];  // the pipeline's vtable, count, transform and library (CTransformPipeline)
     float* pickStack;      // +0x14 used by the cursor picking
     int pickDepth;         // +0x18
-    std::uint8_t unused_1C[0x24 - 0x1C];   // stack 1
+    std::uint8_t stack1[0x24 - 0x1C];      // stack 1
     float* objectStack;    // +0x24 object -> world, pushed while testing an object
     int objectDepth;       // +0x28
-    std::uint8_t unused_2C[0x5C - 0x2C];   // stacks 3..8
+    std::uint8_t stacks3to8[0x5C - 0x2C];  // stacks 3..8
     float* viewStack;      // +0x5C the view matrices
     int viewDepth;         // +0x60
 
@@ -1490,7 +1490,7 @@ public:
     void* exitsVtable_;                   // +0x08C CArray<ZoneExit> (ZoneExitArray) from here
     ZoneExit* exits_;                     // +0x090
     int exitCount_;                       // +0x094
-    std::uint8_t unused_098[0xA0 - 0x98]; // the exit array's capacity and grow-by (read through the CArray)
+    std::uint8_t exitArrayTail[0xA0 - 0x98]; // the exit array's capacity and grow-by (read through the CArray)
     // +0x0A0 counted objects (MFC CArray; its own SetSize 00570000 releases the dropped ones).
     mfc::CArray<CEngineObject*> countedA0_;
     SectorList heroes_;                   // +0x0B4 heroes with a text-key id (counted)

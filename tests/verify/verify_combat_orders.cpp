@@ -47,7 +47,7 @@ static void __fastcall FinishCastVerify(CUnitServer* self) {
             item->spell_) {
             carrier = item;
             expected = Bits(item->charge_);
-            float cost = std::bit_cast<float>(static_cast<const CSpell*>(item->spell_)->unknown_40);
+            float cost = std::bit_cast<float>(static_cast<const CSpell*>(item->spell_)->manaCost_);
             if (!(cost > item->charge_)) expected = ChargeAfter(item->charge_, cost);
         }
     }

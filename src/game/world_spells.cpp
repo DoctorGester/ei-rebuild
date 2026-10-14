@@ -134,7 +134,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     int type = SpellType(spell);
     if (type == 0x15 || type == 0x1B || type == 0x24) return;
     std::uint32_t flags = static_cast<const CSpell*>(spell)->targetFlags_;
-    int targets = static_cast<int>(AsSpell(spell)->unknown_38);
+    int targets = static_cast<int>(AsSpell(spell)->targetCount_);
     if (!(flags & 0xFFFF) && targets <= 1) {
         CreateMissileAt(this, nullptr, spell, caster, *from, target, to, extra);
         return;
@@ -159,7 +159,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     }
     Vector3 center;
     std::memcpy(&center, caster ? &static_cast<CUnit*>(caster)->position : from, sizeof(center));
-    float radius = std::bit_cast<float>(AsSpell(spell)->unknown_34);
+    float radius = std::bit_cast<float>(AsSpell(spell)->range_);
     SectorMapFindUnitsInRadius(sectorMap_, nullptr, &center, &units, radius);
     if (target && target->GetClassId() == world::kClassUnit) {
         UnitList::Node* found = nullptr;

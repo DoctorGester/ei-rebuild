@@ -46,7 +46,6 @@ src/game/device_buffers.h,0,0,0,0,0,0,0,0,0,0,1,0,0
 src/game/device_mesh.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/device_shadow.cpp,0,0,1,0,0,0,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0,0,0,0,0
-src/game/effects.h,0,0,0,0,0,0,0,0,0,0,0,19,0
 src/game/effects_weather.cpp,0,0,0,0,1,0,0,0,0,0,1,0,0
 src/game/engine_object.h,0,0,0,0,1,0,0,0,0,0,0,1,0
 src/game/fake_unit.cpp,0,0,0,0,5,0,0,0,0,0,0,0,0
@@ -68,7 +67,6 @@ src/game/item_stock.cpp,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0,0,0,1,0
 src/game/lever.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/lightning.cpp,0,0,0,1,0,0,0,0,0,0,0,0,0
-src/game/lightning.h,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/lightning_start.cpp,0,0,0,0,4,0,0,0,0,0,0,0,0
 src/game/link_figure.h,0,0,0,0,0,0,0,0,0,0,0,6,0
 src/game/logic_settings.h,0,0,0,0,0,0,0,0,0,0,0,1,0
@@ -177,7 +175,6 @@ src/game/sound.h,0,0,0,0,0,0,0,0,0,0,6,4,0
 src/game/sound_manager.cpp,0,0,1,1,0,0,0,0,0,0,0,0,0
 src/game/sound_manager_lifetime.cpp,0,0,0,0,0,0,0,0,0,0,0,1,0
 src/game/spell.cpp,0,0,0,0,0,0,0,0,0,0,1,0,0
-src/game/spell.h,0,0,0,0,0,0,0,0,0,0,0,40,0
 src/game/spell_cast.cpp,0,0,2,1,2,0,0,0,0,0,0,0,0
 src/game/spell_effect.cpp,0,0,0,1,0,0,0,0,0,0,1,0,0
 src/game/spell_effect_internal.h,0,0,18,0,12,0,0,0,0,0,0,0,0

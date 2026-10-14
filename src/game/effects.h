@@ -37,9 +37,9 @@ struct Particle {
     Vector3 prevPos;            // +0x10
     float prevSize;             // +0x1C
     Vector3 velocity;           // +0x20 smoke: initial offset; spheres: orbit offset
-    float unknown_2C;           // +0x2C
-    float unknown_30;           // +0x30
-    int unknown_34;             // +0x34
+    float aux0;                 // +0x2C \ per-type scratch the emitter and update callbacks
+    float aux1;                 // +0x30 | share (angles, speeds, growth; aux2 often holds
+    int aux2;                   // +0x34 / float bits)
     Vector3 drift;              // +0x38 smoke: rise in z; debris: speed; spheres: x = size factor
     int frame;                  // +0x44 texture frame
     int prevFrame;              // +0x48
@@ -74,10 +74,10 @@ class CParticleManager : public CBaseManager {
 public:
     using HeldMap = stlp::hash_map<int, CParticleSource*, stlp::IntHash>;
 
-    // 2: 00497FC0. unknown_E4 cleared, then CBaseManager::Create; returns 1 / 0.
+    // 2: 00497FC0. quietStart cleared, then CBaseManager::Create; returns 1 / 0.
     int Create() override;
     // 3: 00497FE0. Releases the held sources, empties `held_`, deletes the pooled particles, then
-    // CBaseManager::Destroy; unknown_E4 cleared.
+    // CBaseManager::Destroy; quietStart cleared.
     void Destroy() override;
 
     Particle* AcquireParticle();                    // 00498870: from the pool, else new (0x64 bytes)
@@ -85,7 +85,7 @@ public:
     // particle_draw.cpp: draws every source back to front; 0 when a source failed to draw.
     int DrawAll(void* renderer);                    // 00498940
     // 00498400 (RET 4). A new source of `type` (CreateObject(type, -1)), referenced and held under
-    // its id; with unknown_E4 set, types 0x2001 / 0x2003 / 0x2004 start without emitting.
+    // its id; with quietStart set, types 0x2001 / 0x2003 / 0x2004 start without emitting.
     CParticleSource* CreateSource(int type);
     // 00498480 (RET 4). Every source's tick (slot 6; with `paused` only the ones with flag 8); a
     // held source whose tick returned 0 is released and leaves `held_`. Returns 0.
@@ -97,7 +97,7 @@ public:
     mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0
     HeldMap held_;                                  // +0x0CC id -> source holding a reference
     int maxHeldId_;                                 // +0x0E0 highest key of held_
-    int unknown_E4;                                 // +0x0E4 0 after Create; see CreateSource
+    int quietStart;                                 // +0x0E4 see CreateSource; never set non-zero in src
 };
 static_assert(offsetof(CParticleManager, freeParticles) == 0xB0);
 static_assert(offsetof(CParticleManager, held_) == 0xCC);
@@ -299,11 +299,11 @@ public:
     int id_;                        // +0x00C
     int type_;                      // +0x010 0x2000.. (see the name table at 0078B120)
     void* owner_;                   // +0x014
-    std::uint32_t unknown_018;
+    std::uint32_t unused_018;
     Vector3 position;               // +0x01C local position
-    std::uint8_t unknown_028[0x34 - 0x28];
+    std::uint8_t unused_028[0x34 - 0x28];
     Quaternion orientation;         // +0x034 the identity after Reset (the transform's local rotation)
-    std::uint8_t unknown_044[0x94 - 0x44];
+    std::uint8_t unused_044[0x94 - 0x44];
     void* attachedTo;               // +0x094
     Vector3 origin;                 // +0x098 world emission point
     Vector3 motion;                 // +0x0A4 movement since the last tick
@@ -321,21 +321,21 @@ public:
     int lifetime;                   // +0x0EC
     Vector3 spreadMin;              // +0x0F0
     Vector3 spreadMax;              // +0x0FC
-    float unknown_108;
+    float unused_108;
     float size;                     // +0x10C
     float height;                   // +0x110
     float growth;                   // +0x114
     float alpha;                    // +0x118
-    float unknown_11C;
-    float unknown_120;
-    float unknown_124;
+    float typeParam;                // +0x11C per type: rate, count or size (1.0 after Reset)
+    float turnCos;                  // +0x120 \ cos / sin of the emitter's turn (a zone exit's
+    float turnSin;                  // +0x124 / angle)
     float baseSize;                 // +0x128
-    float unknown_12C;
+    float emitState;                // +0x12C int bits: emitted count or a one-shot flag, per type
     Vector3 extent;                 // +0x130
     int attachPoint;                // +0x13C
     Vector3 windDirection;          // +0x140 copied from the world every tick
     float windStrength;             // +0x14C
-    float unknown_150;
+    float additiveBlend;            // +0x150 int bits: 1 draws with additive blending
     ParticleElement* elements;      // +0x154
     int elementCount;               // +0x158
     int elementCapacity;            // +0x15C (elements is an MFC-style array: data, size, max, grow by)
@@ -344,10 +344,10 @@ public:
     Vector3 boundsMax;              // +0x170
     std::uint32_t boundsFlags;      // +0x17C bit 1 set by the tick
     Vector3 boundsCenter;           // +0x180
-    std::uint32_t unknown_18C;
+    std::uint32_t unused_18C;
     Vector3 boundsLow;              // +0x190 boundsMin - boundsCenter
     Vector3 boundsHigh;             // +0x19C boundsMax - boundsCenter
-    std::uint8_t unknown_1A8[0x1B4 - 0x1A8];
+    std::uint8_t unused_1A8[0x1B4 - 0x1A8];
     mfc::CTypedPtrList<Particle> particles;     // +0x1B4
     int frameBase;                  // +0x1D0 address of the frame UV rectangles (16 bytes each, 32-byte aligned)
     int frameRectCount;             // +0x1D4 (an MFC-style array: data, size, max, grow by)
@@ -481,7 +481,7 @@ struct FogCell {
     float alpha;                    // +0x10
     std::uint8_t visible;           // +0x14
     std::int8_t frame;              // +0x15 0..14, picks the texture tile
-    std::uint8_t unknown_16[2];
+    std::uint8_t unused_16[2];
 };
 static_assert(sizeof(FogCell) == 0x18);
 
@@ -537,16 +537,16 @@ public:
 
     void* vtable_;                  // +0x00
     int refCount_;                  // +0x04
-    std::uint8_t unknown_08[0x1C - 0x08];
+    std::uint8_t unused_08[0x1C - 0x08];
     int boundsKind;                 // +0x1C 3 once computed
     Vector3 center;                 // +0x20
     float radius;                   // +0x2C
     Vector3 boundsMin;              // +0x30 relative to center
     Vector3 boundsMax;              // +0x3C
-    Vector3 unknown_48;             // +0x48 zeroed with the bounds
+    Vector3 boundsSpare;            // +0x48 zeroed with the bounds, never read
     CellMap cells;                  // +0x54
     std::uint8_t boundsValid;       // +0x68
-    std::uint8_t unknown_69[3];
+    std::uint8_t unused_69[3];
 };
 static_assert(offsetof(CVisibilityFog, cells) == 0x54);
 // The fog object's slots 2 / 3 (004E23D0: ClearCells, returns 1; 004E2440: ClearCells) and 11 / 12
