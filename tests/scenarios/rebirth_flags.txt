@@ -14,7 +14,7 @@
 # install: the flags follow addon.dll and the wrappers compare with the patched originals.
 rebirthflags FixLeversActivate FixSpellSelfCasting FixMoveObject FixPlaingBattleMusicFromAntimagic FixRepairPrice FixProgressNames FixSpellEffectsOverflow AllowScriptArgsInLoops FixRemoveMapObject FixCreateItem AllowScriptsInMainMenu FixAddMapObject AddNewConsoleCommands ImproveConsole NewStringEvents AutoExec PersistentGlobalVars AddNewScriptCommands ObjectsDrawRadius LandscapeDrawRadius
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -153,28 +153,28 @@ console @GiveUnitArmor(GetLeader(),"UniqueGipatHadagan Helm.Iron",0) GiveUnitArm
 console @KillUnit(GetObjectByName("RWolf"))
 wait 1000
 console @Loot(GetPlayer(GetLeader()),GetObjectByName("RWolf"))
-wait 500
+frames 5
 check IsAlive(GetLeader())
 
 # Items by name: a weapon with a material, one with a spell in brackets, a scroll.
 console @GiveItem(0,"Axe.steel")
 console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")
 console @GiveItem(0,"spell container[strength{d2}]")
-wait 500
+frames 5
 
 # The camp (screen 5): the trade and repair pages price every item through slot 54.
 screen 5
-wait 2000
+waitwindow 15 camp
 clickregion 5
 wait 500
 clickregion 9
-wait 500
+frames 10
 clickregion 10
-wait 500
+frames 10
 clickregion 4
-wait 500
+frames 10
 key esc
-wait 2000
+waitwindow 15 battle
 waitfor 15 IsGreater(HP(GetLeader()),0)
 check IsAlive(GetLeader())
 report

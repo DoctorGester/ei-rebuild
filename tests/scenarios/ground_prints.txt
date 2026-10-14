@@ -5,7 +5,7 @@
 # Save slots) and loaded back (their Load slots). Blood and footprints tick and draw every frame.
 # The game runs ~5.5x faster.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -28,15 +28,15 @@ wait 3000
 
 # Escape menu, Save (as levers.txt): OK (region 0) saves into save1; then loaded back.
 key esc
-wait 1000
+waitwindow 10 escmenu
 click 395 120
-wait 1500
+waitwindow 10 saveload
 clickregion 0
 waitline 10 Saved save1
 console @AddUnitToServer("PrintMarker","WolfTutor","PrintMarker",Add(GetX(GetLeader()),8),GetY(GetLeader()),0)
 waitfor 5 IsAlive(GetObjectByName("PrintMarker"))
 load save1
 waitfor 15 Mul(Not(IsAlive(GetObjectByName("PrintMarker"))),IsGreater(HP(GetLeader()),0))
-wait 2000
+wait 1000
 report
 quit

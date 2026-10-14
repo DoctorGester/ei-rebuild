@@ -11,7 +11,7 @@
 # out too strong for the starting hero, WolfGreyF1 is the next candidate; OgreTutor (80) is much
 # stronger.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 # Combat messages go to a console stream that is filtered out by default; show them all.
 console filter all on

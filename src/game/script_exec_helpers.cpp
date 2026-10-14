@@ -93,7 +93,7 @@ void LightStep(ScriptPointLight* light, const float* target, const float* positi
     float dy;
     float dz;
     float inverse;
-    float* destination = light->step;
+    float* destination = &light->step.x;
     int* steps = &light->steps;
     __asm {
         mov eax, target
@@ -207,9 +207,9 @@ void __fastcall ScriptCreatePointLight(CScript* script, void*, const SSCCmd* cmd
     std::memcpy(&object->range_, &f[4], 4);   // radius
     TheWorld()->AddTimedObject(object);
     slot = &Lights(script)[i];
-    slot->step[0] = 0.0f;
-    slot->step[1] = 0.0f;
-    slot->step[2] = 0.0f;
+    slot->step.x = 0.0f;
+    slot->step.y = 0.0f;
+    slot->step.z = 0.0f;
     slot->steps = 0;
 }
 EI_REPLACE(0x004BD6A0, ScriptCreatePointLight);

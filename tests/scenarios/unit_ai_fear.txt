@@ -2,7 +2,7 @@
 # wolf runs from it (FearMode::Evaluate 3000 while it sees an enemy, FearMode::Execute, ApplyAttack
 # when it fights back). Every zone1 unit with the standard Guard / Sentry set evaluates Fear too.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

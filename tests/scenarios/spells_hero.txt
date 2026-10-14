@@ -17,7 +17,7 @@
 # block and lift it. Or() is a Rebirth addon function (vanilla: "Parameter of type float
 # expected"), so the checks use plain comparisons.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -30,19 +30,19 @@ console @GiveSkill(GetLeader(),"sense",5)
 console @GiveSkill(GetLeader(),"astral",5)
 console @GiveIntelligence(GetLeader(),60)
 console @GiveItem(0,"spell container[vision_fog]")
-wait 300
+frames 5
 console @GiveItem(0,"spell container[arrow{e2}]")
-wait 300
+frames 5
 
 # The camp's magic page: both containers on the hero.
 screen 5
-wait 3000
+waitwindow 15 camp
 clickregion 5
 wait 500
 campputon 3008 2
-wait 500
+frames 3
 key esc
-wait 3000
+waitwindow 15 battle
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
@@ -50,7 +50,7 @@ console @GSSetVar(0,"hy",GetY(GetLeader()))
 
 # The hero's portrait: selects it and shows its spells.
 click 400 560
-wait 300
+frames 3
 hudstate
 
 # Wolves at +3 like ui_quick_items (at +4 they were not drawn: +x is down-screen, +y right).

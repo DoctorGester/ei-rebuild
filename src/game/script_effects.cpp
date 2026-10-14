@@ -124,9 +124,9 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     }
 
     source->id = id;
-    source->position[0] = f[1];
-    source->position[1] = f[2];
-    source->position[2] = f[3];
+    source->position.x = f[1];
+    source->position.y = f[2];
+    source->position.z = f[3];
     std::memcpy(&source->volume, &f[4], 4);
     std::memcpy(&source->radius, &f[5], 4);
     source->name = cmd->stringArgs.data[0];
@@ -142,7 +142,7 @@ void CScript::ScriptCreateFxSource(const SSCCmd* cmd) {
     }
     auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
     source->object = sound;
-    sound->localPosition_ = {source->position[0], source->position[1], source->position[2]};
+    sound->localPosition_ = {source->position.x, source->position.y, source->position.z};
     std::memcpy(&sound->volume_, &source->volume, 4);
     std::memcpy(&sound->radius_, &source->radius, 4);
     const char* name = source->name;
@@ -229,7 +229,7 @@ void CScript::ScriptCreateParticleSource(const SSCCmd* cmd) {
     source->deleteAfterMove = 0;
     source->moving = 0;
     source->steps = 0;
-    source->step[0] = source->step[1] = source->step[2] = 0.0f;
+    source->step.x = source->step.y = source->step.z = 0.0f;
     source->lifetime = lifetime;
 }
 
@@ -251,9 +251,9 @@ void CScript::ScriptMoveParticleSource(const SSCCmd* cmd) {
     source->steps = static_cast<int>(std::lrint(f[4]));
     const Vector3& at = static_cast<CEffectParticle*>(source->object)->localPosition_;
     float inverse = 1.0f / static_cast<float>(source->steps);
-    source->step[0] = (f[1] - at.x) * inverse;
-    source->step[1] = (f[2] - at.y) * inverse;
-    source->step[2] = (f[3] - at.z) * inverse;
+    source->step.x = (f[1] - at.x) * inverse;
+    source->step.y = (f[2] - at.y) * inverse;
+    source->step.z = (f[3] - at.z) * inverse;
 }
 
 // ---- Saving ---------------------------------------------------------------------------------------
@@ -265,7 +265,7 @@ void ScriptPointLight::ScriptPointLightSave(ScriptStream* stream) const {
     WriteInt(stream, removeWhenDone);
     WriteInt(stream, moving);
     WriteInt(stream, steps);
-    stream->Write(step, 12);
+    stream->Write(&step, 12);
 }
 
 // 004B1A80
@@ -275,7 +275,7 @@ void ScriptParticleSource::ScriptParticleSourceSave(ScriptStream* stream) const 
     WriteInt(stream, deleteAfterMove);
     WriteInt(stream, moving);
     WriteInt(stream, steps);
-    stream->Write(step, 12);
+    stream->Write(&step, 12);
     WriteInt(stream, lifetime);
 }
 
@@ -285,7 +285,7 @@ void ScriptFxSource::ScriptFxSourceSave(ScriptStream* stream) const {
     WriteInt(stream, id);
     const char* text = name;
     stream->Write(text, static_cast<std::uint32_t>(Length(text) + 1));
-    stream->Write(position, 12);
+    stream->Write(&position, 12);
     stream->Write(&volume, 4);
     stream->Write(&radius, 4);
     WriteInt(stream, idle);
@@ -310,7 +310,7 @@ void ScriptPointLight::ScriptPointLightLoad(ScriptStream* stream) {
     stream->Read(&removeWhenDone, 4);
     stream->Read(&moving, 4);
     stream->Read(&steps, 4);
-    stream->Read(step, 12);
+    stream->Read(&step, 12);
 }
 
 // 004B1B40
@@ -320,7 +320,7 @@ void ScriptFxSource::ScriptFxSourceLoad(ScriptStream* stream) {
     alignas(4) unsigned char nameStorage[sizeof(mfc::CString)];
     name = *stream->ReadString(nameStorage);
     reinterpret_cast<mfc::CString*>(nameStorage)->~CString();
-    stream->Read(position, 12);
+    stream->Read(&position, 12);
     stream->Read(&volume, 4);
     stream->Read(&radius, 4);
     stream->Read(&idle, 4);

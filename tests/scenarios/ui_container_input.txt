@@ -6,56 +6,57 @@
 # and the escape menu keep the wheel, character and key-up handlers too; the battle screen keeps the
 # right button's. The point (10, 10) is off the main menu's buttons; 'x' is no key of these menus.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 
 # Main menu.
 move 10 10
-wait 200
+frames 5
 rclick 10 10
-wait 300
+frames 5
 dblclick 10 10
-wait 300
+frames 5
 rdblclick 10 10
-wait 300
+frames 5
 wheel 10 10 120
-wait 300
+frames 5
 key x
-wait 500
+frames 5
 # Esc on the menu asks to quit (00633540); Esc on the box answers 0x10002 (00632940).
 key esc
-wait 1000
+waitwindow 10 msgbox
 key esc
-wait 1000
+waitwindow 10 menu
 
 # The options window over it, then cancelled (region 1).
 clickregion 3
-wait 1500
+waitwindow 10 options
 key x
-wait 300
+frames 5
 wheel 400 300 -120
-wait 300
+frames 5
 clickregion 1
-wait 1500
+waitwindow 10 menu
 
 # A game: a right click and a double click on the battle screen, then keys and the wheel on the escape menu.
 newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
 rclick 400 300
-wait 500
+frames 5
 # A double click on the view: the battle screen's own handler (00638AD0) starts a press there.
 dblclick 400 300
-wait 500
+frames 5
 key esc
-wait 1000
+waitwindow 10 escmenu
 key x
-wait 300
+frames 5
 wheel 400 300 120
-wait 300
+frames 5
 key esc
-wait 1000
+waitwindow 10 battle
 check IsAlive(GetLeader())
 report
 quit

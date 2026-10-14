@@ -139,7 +139,7 @@ double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b) {
     double dx = a->x - b->x;
     double dy = a->y - b->y;
     double dz = a->z - b->z;
-    return dz * dz + dy * dy + dx * dx;
+    return LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
 }
 
 AIPath* AIPath::Construct() {
@@ -382,7 +382,7 @@ void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<V
         const Vector3* at = PositionOf(units->data[i]);
         float dx = Rounded(static_cast<double>(at->x) - centreX);
         float dy = Rounded(static_cast<double>(at->y) - centreY);
-        double length = std::sqrt(static_cast<double>(dx) * dx + static_cast<double>(dy) * dy);
+        double length = std::sqrt(LengthSquared2DUnrounded<double>(dx, dy));
         if (length > 0.0) {   // the original skips zero and NaN (FCOM; TEST AH,0x40)
             double inverse = 1.0 / length;
             dx = Rounded(dx * inverse);

@@ -3,54 +3,56 @@
 # to the list and the main menu. The hero is never created (that writes <n>.mp files) and nothing
 # touches the network. Regions are clicked by number (the harness finds them on the top window).
 reject Script error
-wait 6000
+waitmenu
 
 # Main menu region 5: Multiplayer -> the hero list (mode 9).
 clickregion 5
-wait 2000
+waitwindow 15 heroes
+wait 1000
 # Regions 2/3 rotate the preview while held (the button-up handler 006177D0 stops it).
 clickregion 2
-wait 300
+frames 5
 clickregion 3
-wait 300
+frames 5
 # Region 5: a new hero (mode 10, the preview's turn reset).
 clickregion 5
-wait 1500
+frames 10
 # Voice rows (regions 9..19): the hero takes the voice's file and it plays.
 clickregion 9
-wait 800
+frames 5
 clickregion 10
-wait 800
+frames 5
 clickregion 2
-wait 300
+frames 5
 # The two figure strips (top: the defaults, bottom: the names; 00629DB0): a figure in each.
 click 250 50
-wait 500
+frames 5
 click 250 550
-wait 500
+frames 5
 # Region 4: the attributes back to their defaults.
 clickregion 4
-wait 500
+frames 5
 # The voice keys (00618A10, mode 10): Down / PgDn / Up move the voice, each played.
 key down
-wait 500
+frames 5
 key pgdn
-wait 500
+frames 5
 key up
-wait 500
+frames 5
 # Region 0: back to the list (mode 9); a new hero again and Esc back (00618A10); PgUp / PgDn on the
 # list; Esc leaves for the main menu.
 clickregion 0
-wait 1500
+wait 1000
 clickregion 5
-wait 1500
+frames 10
 key esc
-wait 1500
+frames 20
 key pgdn
-wait 300
+frames 5
 key pgup
-wait 300
+frames 5
 key esc
-wait 3000
+waitwindow 15 menu
+wait 500
 report
 quit

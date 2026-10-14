@@ -48,25 +48,60 @@ MACHINE_SLOTS = int(os.environ.get('EI_HARNESS_SLOTS', '16'))
 SLOT_DIR = os.path.join(tempfile.gettempdir(), 'ei_harness_slots')
 
 
+def _lock(path):
+    """Takes the one-byte lock on path without waiting; the open file, or None if another holds it."""
+    f = open(path, 'a+b')
+    try:
+        msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        return f
+    except OSError:
+        f.close()
+        return None
+
+
+def _unlock(f):
+    f.seek(0)
+    msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+    f.close()
+
+
 @contextlib.contextmanager
-def machine_slot():
+def machine_slot(alone=False):
+    """One of the machine's MACHINE_SLOTS game slots (shared by every checkout's run_all), or all of
+    them (alone): for a game that sets the display mode, which takes the surfaces of every other
+    game running then (they fail with DDERR_SURFACELOST: "Can't begin scene", untextured models).
+    Games that want all the slots queue on one more lock, so two of them never split the slots."""
     os.makedirs(SLOT_DIR, exist_ok=True)
-    while True:
-        for i in range(MACHINE_SLOTS):
-            f = open(os.path.join(SLOT_DIR, f'slot{i:02}'), 'a+b')
-            try:
-                msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
-            except OSError:
-                f.close()
-                continue
-            try:
-                yield
-            finally:
-                f.seek(0)
-                msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
-                f.close()
-            return
-        time.sleep(0.5)
+    held = []
+    gate = None
+    try:
+        if alone:
+            while not (gate := _lock(os.path.join(SLOT_DIR, 'alone'))):
+                time.sleep(0.5)
+        while True:
+            for i in range(MACHINE_SLOTS):
+                if alone and i in [h[0] for h in held]:
+                    continue
+                f = _lock(os.path.join(SLOT_DIR, f'slot{i:02}'))
+                if f:
+                    held.append((i, f))
+                    if not alone:
+                        break
+            if len(held) == (MACHINE_SLOTS if alone else 1):
+                break
+            time.sleep(0.5)
+        yield
+    finally:
+        for _, f in held:
+            _unlock(f)
+        if gate:
+            _unlock(gate)
+
+
+def sets_display_mode(scenario):
+    """Whether a scenario sets the display mode (a `resolution` step): it runs with no other game."""
+    with open(scenario, encoding='cp1251', errors='replace') as f:
+        return any(re.match(r'\s*resolution\b', line) for line in f)
 
 
 def run(name, install, hooks, folder=None):
@@ -87,7 +122,7 @@ def run(name, install, hooks, folder=None):
         cmd += ['--exe', os.path.join(ROOT, 'run', 'rebirth', 'game.exe')]
     if not hooks:
         cmd.append('--no-hooks')
-    with machine_slot():
+    with machine_slot(alone=sets_display_mode(scenario)):
         start = time.time()
         proc = subprocess.run(cmd, capture_output=True, text=True, encoding='cp1251', errors='replace', env=env)
         seconds = time.time() - start

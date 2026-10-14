@@ -155,9 +155,9 @@ void RespawnFxSources(CScript* script) {
         auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
         fx.object = sound;
         float yOffset = FxOffset(fx.spread, IsaacRandom::Global().Next());
-        float x = FxOffsetPlus(fx.spread, IsaacRandom::Global().Next(), fx.position[0]);
-        float y = yOffset + fx.position[1];
-        float z = fx.position[2];
+        float x = FxOffsetPlus(fx.spread, IsaacRandom::Global().Next(), fx.position.x);
+        float y = yOffset + fx.position.y;
+        float z = fx.position.z;
         sound->localPosition_.x = x;
         sound->localPosition_.y = y;
         sound->localPosition_.z = z;
@@ -189,9 +189,9 @@ void UpdatePointLights(CScript* script) {
         }
         light = &lights.data[i];
         Vector3& position = static_cast<CEffectPointLight*>(light->object)->localPosition_;
-        position.x = position.x + light->step[0];
-        position.y = position.y + light->step[1];
-        position.z = position.z + light->step[2];
+        position.x = position.x + light->step.x;
+        position.y = position.y + light->step.y;
+        position.z = position.z + light->step.z;
         EffectMoved(lights.data[i].object);
     }
 }
@@ -211,9 +211,9 @@ void UpdateParticleSources(CScript* script) {
             source.steps = count - 1;
             if (count > 0) {
                 Vector3& position = static_cast<CEffectParticle*>(source.object)->localPosition_;
-                position.x = source.step[0] + position.x;
-                position.y = source.step[1] + position.y;
-                position.z = source.step[2] + position.z;
+                position.x = source.step.x + position.x;
+                position.y = source.step.y + position.y;
+                position.z = source.step.z + position.z;
                 EffectMoved(source.object);
             } else {
                 source.moving = 0;

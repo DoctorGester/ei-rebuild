@@ -2,7 +2,7 @@
 # the "@"/"#"/"$" script lines and the command handlers, with their console output. Each "expect"
 # looks at the output since the previous one. The filter mask starts at 0 and ends there
 # ("filter none"); other settings only affect the display or network games.
-wait 6000
+waitmenu
 
 # In the menu, before the cheat word: only the public commands (console, lastfps, exec, kick, ban,
 # fps, rate, localrate) exist; the others are unknown.

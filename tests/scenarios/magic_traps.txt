@@ -13,7 +13,7 @@
 # 0052B070 for every trap); loading save1 removes the map objects (DestructBody 00529F90 through
 # the deleting destructor) and reads the traps back (Construct, LoadTrap 0052ADC0).
 # prepare: make_trap_mob.py
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -32,9 +32,9 @@ wait 2000
 
 # Escape menu, Save (as ui_saveload.txt): OK (region 0) saves into save1.
 key esc
-wait 1000
+waitwindow 10 escmenu
 click 395 120
-wait 1500
+waitwindow 10 saveload
 clickregion 0
 waitline 10 Saved save1
 # A wolf that is not in save1 tells when the load has replaced the world.

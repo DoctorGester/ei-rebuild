@@ -110,8 +110,8 @@ mfc::CString* CWorldClient::AmbienceTimeOfDay(mfc::CString* out) {
 
 void Terrain::PlayAmbience() {
     CSoundManager* sounds = sound::Manager();
-    Vector3 listener = {sounds->listener[0], sounds->listener[1], sounds->listener[2]};
-    Vector3 axis = {sounds->listenerAxis[0], sounds->listenerAxis[1], sounds->listenerAxis[2]};
+    Vector3 listener = {sounds->listener.x, sounds->listener.y, sounds->listener.z};
+    Vector3 axis = {sounds->listenerAxis.x, sounds->listenerAxis.y, sounds->listenerAxis.z};
     int centreX = SectorOf(listener.x);
     int centreY = SectorOf(listener.y);
     float radius = RoundToFloat(CellSize() * kRadiusCells);

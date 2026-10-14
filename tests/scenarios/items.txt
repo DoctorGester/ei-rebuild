@@ -4,7 +4,7 @@
 # each item kind: weapon (plain and with a spell), quick item (potion), spell container (rune),
 # quest item. The item strings are ones the game's own maps use.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -20,23 +20,23 @@ console #GetMoney(0)
 
 # Weapons: plain, another material, and one carrying a spell.
 console @GiveItem(0,"Axe.steel")
-wait 1000
+frames 5
 console @GiveItem(0,"battle axe.meteoric")
-wait 1000
+frames 5
 console @GiveItem(0,"stone battle axe.malachite[firewall{d2;e2}]")
-wait 1000
+frames 5
 
 # A potion (quick item without material) and a rune (spell container).
 console @GiveItem(0,"potion 1")
-wait 1000
+frames 5
 console @GiveItem(0,"rune.e2")
-wait 1000
+frames 5
 
 # Quest items.
 console @GiveQuestItem(0,"SackofGold")
-wait 1000
+frames 5
 console @GiveQuestItem(0,"Palantir")
-wait 1000
+wait 500
 
 # Still alive and the money unchanged by the items.
 check IsAlive(GetLeader())

@@ -604,8 +604,8 @@ int CPlayerClient::OnNewObject() {
     mfc::CString secondName;
     NewObjectHeader header;
     in_.Read(&header, sizeof(header));
-    float scale[3];
-    in_.Read(scale, sizeof(scale));
+    Vector3 scale;
+    in_.Read(&scale, sizeof(scale));
     {
         TextBuffer text;
         in_.ReadString(text.bytes);
@@ -643,8 +643,8 @@ int CPlayerClient::OnNewObject() {
     *reinterpret_cast<mfc::CString*>(&object->name) = model;
     bool isUnit = created->GetClassId() == kClassUnitObject;
     created->unknown_18 = header.prototype;
-    figure->SetFigureScale(scale);
-    std::memcpy(&object->baseScale, scale, sizeof(scale));
+    figure->SetFigureScale(&scale.x);
+    std::memcpy(&object->baseScale, &scale, sizeof(scale));
     ObjectSlots(created)->ApplyBaseScale();
     *reinterpret_cast<mfc::CString*>(&object->name2) = static_cast<const char*>(secondName);   // 0050F150
     if (isUnit) {

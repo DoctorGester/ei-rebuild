@@ -4,7 +4,7 @@
 # alarms with InvokeAlarm (alarm slots, the AI units hearing it) and checks that the tick count
 # (AlarmTime stores it) moves on. The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

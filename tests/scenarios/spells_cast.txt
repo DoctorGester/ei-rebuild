@@ -4,7 +4,7 @@
 # the game's maps use (inv_lit, acid_column, litnwall, clairvoyence, vision_fog). Script casts have
 # no caster, so vision fog ends at once (it needs a caster and a target).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10

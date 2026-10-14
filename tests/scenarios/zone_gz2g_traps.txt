@@ -13,7 +13,7 @@
 # placed while MTF4 is disarmed (ticket X10: before, the first waitfor poll raced that update and
 # timed out whenever a world update came first).
 # No quest state: gz2g's scripts read Rune, Tr1Act/Tr2Act, WitchKey and q.gz2g.q6g, all unset (0).
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
