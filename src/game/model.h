@@ -68,6 +68,11 @@ public:
     int ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks, const ClipBounds* bounds);
     // 004F29F0 (RET 0x14, A-S8). The same for terrain vertices (slots 18 / 19), both with stack 2.
     int ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count, const ClipBounds* bounds);
+    // 004F0B90 (RET 4; render_helper.cpp; the renderer base's creation 00500540 news it with the game's
+    // work folder). Constructor: the counted base, the 16 matrix stacks, the processor's CPUID
+    // function 1 into the globals, then 3DfpFPU.dll loaded from `folder` and its GetTLPipeline()'s
+    // transform object taken. No library, or no such function in it: throws. Returns this.
+    CTransformPipeline* TransformPipelineConstruct(const char* folder);
     // The push the draw code inlines (the terrain passes 006C6230 / 006C6330; also the world draw
     // 00569E40 and the decal projector 0056C750, which keep their own copies): as PushMatrix, but
     // the new top is computed by MatrixMultiply (004D9880), whose elements sum in another order.
@@ -182,6 +187,13 @@ public:
     virtual bool PresetStates(CRenderPreset* preset, stlp::vector<RenderPresetRecord::State>* out);
     // 7: 004FDD80 (RET 8). Slot 6 for preset `index`; false beyond the nine or for a null one.
     virtual bool BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out);
+
+    // 004FCA60 (RET 8; render_helper.cpp). Constructor: takes the device and its capabilities, then
+    // records the nine built-in presets (`flag`'s low byte: one texture stage each). Returns this.
+    CRenderHelper* RenderHelperConstruct(IDirect3DDevice7* device, std::uint32_t flag);
+    // 004FCE90 (RET 8, AL; render_helper.cpp). The state list of built-in preset `index` into
+    // `states` (emptied first); false beyond the nine. Presets 0 and 8 have no states.
+    bool RenderHelperBuiltInStateList(stlp::vector<RenderPresetRecord::State>* states, unsigned index);
 
     int refs_;   // +0x04
     IDirect3DDevice7* device_;          // +0x08 counted (AddRef / Release)

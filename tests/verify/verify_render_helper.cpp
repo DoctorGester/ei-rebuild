@@ -47,7 +47,6 @@
 bool __fastcall RenderHelperPresetStates(CRenderHelper* self, void*, CRenderPreset* preset,
                                          stlp::vector<RenderPresetRecord::State>* out);
 MatrixStack* __fastcall MatrixStackConstruct(MatrixStack* self);
-CTransformPipeline* __fastcall TransformPipelineConstruct(CTransformPipeline* self, void*, const char* folder);
 void __fastcall TransformPipelineDestruct(CTransformPipeline* self);
 void __fastcall RenderHelperReleasePreset(CRenderHelper* self, void*, CRenderPreset* preset);
 void* __fastcall RenderHelperPresetBlock(CRenderHelper* self, void*, CRenderPreset* preset);
@@ -61,13 +60,10 @@ void* __fastcall DeviceDelete(void* self, void*, unsigned flags);
 void* __fastcall DirectDrawHolderDelete(void* self, void*, unsigned flags);
 void* __fastcall RenderHelperDelete(void* self, void*, unsigned flags);
 void* __fastcall TlLibraryDelete(void* self, void*, unsigned flags);
-bool __fastcall RenderHelperBuiltInStateList(CRenderHelper*, void*, stlp::vector<RenderPresetRecord::State>* states,
-                                             unsigned index);
 CRenderPreset* __fastcall RenderHelperRecord(CRenderHelper* self, void*,
                                              const stlp::vector<RenderPresetRecord::State>* states, int index,
                                              bool singleStage);
 void __fastcall RenderHelperReleaseBlock(CRenderHelper* self, void*, CRenderPreset* preset);
-CRenderHelper* __fastcall RenderHelperConstruct(CRenderHelper* self, void*, IDirect3DDevice7* device, std::uint32_t flag);
 void __fastcall RenderHelperDestruct(CRenderHelper* self);
 
 namespace {
@@ -113,7 +109,7 @@ bool __fastcall StateListVerify(CRenderHelper* self, void*, StateVector* states,
     if (s_original) return s_stateList(self, nullptr, states, index);
     StateVector expected;
     bool expectedResult = s_stateList(self, nullptr, &expected, index);
-    bool result = RenderHelperBuiltInStateList(self, nullptr, states, index);
+    bool result = self->RenderHelperBuiltInStateList(states, index);
     ei::verify::Check("CRenderHelper built-in states (004FCE90)", true,
                       expectedResult == result && SameStates(expected, *states), "preset %u: %d, %u states", index,
                       result ? 1 : 0, static_cast<unsigned>(states->size()));
@@ -306,7 +302,7 @@ void CompareOnFakeDevice(const D3DDEVICEDESC7& caps, std::uint32_t flag, const c
     std::vector<DeviceCall> expected = std::move(fake.calls);
     fake.calls.clear();
     fake.blocks = 0;
-    RenderHelperConstruct(ours, nullptr, device, flag);
+    ours->RenderHelperConstruct(device, flag);
     if (!SameCalls(expected, fake.calls)) note("constructor calls");
     if (const char* differ = HelpersDiffer(theirs, ours)) note(differ);
 
@@ -348,7 +344,7 @@ void CompareOnFakeDevice(const D3DDEVICEDESC7& caps, std::uint32_t flag, const c
 
 CRenderHelper* __fastcall ConstructVerify(CRenderHelper* self, void*, IDirect3DDevice7* device, std::uint32_t flag) {
     if (s_original) return s_construct(self, nullptr, device, flag);
-    CRenderHelper* result = RenderHelperConstruct(self, nullptr, device, flag);
+    CRenderHelper* result = self->RenderHelperConstruct(device, flag);
     bool good = result == self && self->device_ == device && self->presets_.size() == CRenderHelper::kPresetCount &&
                 self->records_.Size() == CRenderHelper::kPresetCount;
     for (unsigned i = 0; good && i < CRenderHelper::kPresetCount; ++i) {
@@ -476,7 +472,7 @@ CTransformPipeline* __fastcall PipelineConstructVerify(CTransformPipeline* self,
     const ProcessorInfo expected = ComparableProcessor();
     *TheProcessorInfo() = before;
 
-    CTransformPipeline* result = TransformPipelineConstruct(self, nullptr, folder);
+    CTransformPipeline* result = self->TransformPipelineConstruct(folder);
     const ProcessorInfo actual = ComparableProcessor();
     bool same = result == self && self->vtable_ == theirs->vtable_ && self->refs_ == theirs->refs_ &&
                 std::memcmp(self->unknown_08, theirs->unknown_08, sizeof(self->unknown_08)) == 0 &&
