@@ -9,6 +9,7 @@
 // (no scenario presses it). DrawLines runs whenever the battle screen's message log is drawn
 // (ui_hud). The edit field's keys need a message box with an edit field (none yet).
 #include "verify.h"
+#include "ui_surface_pixels.h"
 
 #include "../../src/game/ui.h"
 
@@ -345,19 +346,31 @@ static void __fastcall EditSetFocusedVerify(CUiEditField* self, void*, bool focu
 }
 EI_VERIFY(0x0065C2D0, EditSetFocusedVerify, 10, s_editSetFocused);
 
-// 0065C2E0 (A-H26; hooked in the vanilla launch only): MOV EAX,FS:[0] (6 bytes). Side by side on
-// the real field: both clear the surface and draw the same text and caret, so the second run
-// leaves what the first drew; the caret (clamped by the function, uninitialised when the
-// constructor draws) is put back in between and compared. The pixels are not compared. Scenarios:
-// the screens with an edit field build and fill it (ui_hero_screen's name field, net_lobby).
+// 0065C2E0 (A-H26; Rebirth's WideScreen reproduced, so in a Rebirth launch against addon's code):
+// MOV EAX,FS:[0] (6 bytes). Side by side on the real field: the caret (clamped by the function,
+// uninitialised when the constructor draws) is put back before each run and compared, and the
+// surface's pixels are compared (ui_surface_pixels.h: read and put back through its DC between the
+// runs). Scenarios: the screens with an edit field build and fill it (ui_hero_screen's and
+// ui_widescreen_more's name field, net_lobby).
 static void(__fastcall* s_editDraw)(CUiEditField*);
 static void __fastcall EditDrawVerify(CUiEditField* self) {
     const int before = self->caret_;
-    s_editDraw(self);
-    const int expected = self->caret_;
-    self->caret_ = before;
-    self->CUiEditField::DrawContentsVanilla();
-    ei::verify::Check("CUiEditField::DrawContents", expected, self->caret_, "caret %d length %d", before,
-                      self->Text().GetLength());
+    int expected = before;
+    CUiSurface* surface = self->surfaces_.size > 0 ? self->surfaces_.data[0] : nullptr;
+    ei::verify::gdi::DrawComparison c = ei::verify::gdi::CompareSurfaceDraws(
+        surface,
+        [&] {
+            self->caret_ = before;
+            s_editDraw(self);
+            expected = self->caret_;
+        },
+        [&] {
+            self->caret_ = before;
+            self->CUiEditField::DrawContentsVanilla();
+        });
+    ei::verify::Check("CUiEditField::DrawContents", true, expected == self->caret_ && c.diff.count == 0,
+                      "caret %d -> %d / %d, length %d; %d pixels differ in %d,%d-%d,%d%s", before, expected, self->caret_,
+                      self->Text().GetLength(), c.diff.count, c.diff.left, c.diff.top, c.diff.right, c.diff.bottom,
+                      ei::verify::gdi::Unread(c));
 }
 EI_VERIFY(0x0065C2E0, EditDrawVerify, 6, s_editDraw);

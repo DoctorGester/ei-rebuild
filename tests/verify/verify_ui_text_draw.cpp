@@ -1,24 +1,31 @@
-// Checks for the vanilla bodies of four functions Rebirth patches (A-I22): the surface's DrawText
-// (005FDE20), the interface's text extent (005F8340), the chat overlay's typed line (005E3700) and
-// a sprite's Place (005E6FA0). The installer skips them when Rebirth's patches are in memory, so
-// these wrappers run in the vanilla launch only.
+// Checks for four functions Rebirth patches (A-I22): the surface's DrawText (005FDE20), the
+// interface's text extent (005F8340), the chat overlay's typed line (005E3700) and a sprite's Place
+// (005E6FA0). All four reproduce Rebirth's WideScreen behind its flag (W1, W2; ui_widescreen.h), so
+// they are hooked in the vanilla launch and, with the flag following addon.dll, in a Rebirth launch,
+// where the side-by-side wrappers compare ours with addon's patched code (ui_widescreen).
 //
 // 005F8340: side by side (it only measures). Every wrapped or measured text reaches it (tooltips,
 //   the help window, the dialogue: ui_help, ui_base_dialogue, ui_hud).
 // 005E6FA0: side by side (pure: three stores). Every screen that places a sprite (ui_camp,
 //   ui_hud, ui_screens).
-// 005FDE20: ours only (it draws). Every text on a surface (ui_main_menu, ui_camp, ui_hud).
-// 005E3700: ours only (it draws). The chat overlay's constructor draws the closed line when the
-//   interface is created (every launch); the open line is a multiplayer client's, no scenario.
+// 005FDE20: side by side on the surface's pixels (gdi_pixels.h; it keeps no state between calls):
+//   the original draws, its pixels are recorded and the old ones put back, ours draws; the results
+//   and the pixels are compared. Every text on a surface (ui_main_menu, ui_camp, ui_hud).
+// 005E3700: side by side: the state it leaves (the shown flag, the caret) and, with the line open,
+//   the surface's pixels (ui_surface_pixels.h). The chat overlay's constructor draws the closed line
+//   when the interface is created (every launch); the harness's "chat 1" opens it
+//   (ui_widescreen_more; a single player game does not show the overlay, so only this compares it).
 #include "verify.h"
+#include "gdi_pixels.h"
+#include "ui_surface_pixels.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/hook/log.h"
 #include "../../src/lib/mfc.h"
 
 #include <cstring>
 
 namespace {
-void* s_unused;
 
 // A CString object holding `data` without taking a reference (the by-value argument handed over).
 void Adopt(mfc::CString* to, char* data) { std::memcpy(static_cast<void*>(to), &data, sizeof(data)); }
@@ -63,22 +70,66 @@ static void __fastcall MeshPlaceVerify(CUiMesh* self, void*, float x, float y, f
 }
 EI_VERIFY(0x005E6FA0, MeshPlaceVerify, 7, s_place);
 
+// SUB ESP,0x38; PUSH EDI; MOV EDI,ECX (3 + 1 + 2 bytes).
+static int(__fastcall* s_surfaceDrawText)(CUiSurface*, void*, const char*, const RECT*, int, COLORREF, UINT, int);
 static int __fastcall SurfaceDrawTextVerify(CUiSurface* self, void*, const char* text, const RECT* rect, int font,
                                             COLORREF colour, UINT format, int shadow) {
-    RECT before = *rect;
-    int result = self->DrawTextIn(text, rect, font, colour, format, shadow);
-    bool ok = (self->holder_ || result == 0) && std::memcmp(&before, rect, sizeof(RECT)) == 0;
-    ei::verify::Check("CUiSurface::DrawTextIn", true, ok, "result %d", result);
-    return result;
+    if (!self->holder_ || !self->dc_) {
+        RECT before = *rect;
+        int result = self->DrawTextIn(text, rect, font, colour, format, shadow);
+        bool ok = (self->holder_ || result == 0) && std::memcmp(&before, rect, sizeof(RECT)) == 0;
+        ei::verify::Check("CUiSurface::DrawTextIn", true, ok, "result %d (no surface or DC)", result);
+        return result;
+    }
+    const RECT asked = *rect;
+    int expected = 0, actual = 0;
+    ei::verify::gdi::DrawComparison c = ei::verify::gdi::CompareDraws(
+        self->dc_, self->rect_.right - self->rect_.left, self->rect_.bottom - self->rect_.top,
+        [&] { expected = s_surfaceDrawText(self, nullptr, text, &asked, font, colour, format, shadow); },
+        [&] { actual = self->DrawTextIn(text, &asked, font, colour, format, shadow); });
+    if (c.rerun)
+        ei::Log("verify CUiSurface::DrawTextIn: '%.60s' %d pixels differed in %d,%d-%d,%d; the original's redraws %s after %d "
+                "tries; rerun: %d differ",
+                text ? text : "", c.first.count, c.first.left, c.first.top, c.first.right, c.first.bottom,
+                c.settle.settled ? "settled" : "did not settle", c.settle.tries, c.diff.count);
+    ei::verify::Check("CUiSurface::DrawTextIn", true, expected == actual && c.diff.count == 0,
+                      "'%.60s' (%ld,%ld)-(%ld,%ld) format %u: height %d/%d, %d pixels differ in %d,%d-%d,%d%s", text ? text : "",
+                      asked.left, asked.top, asked.right, asked.bottom, format, expected, actual, c.diff.count, c.diff.left,
+                      c.diff.top, c.diff.right, c.diff.bottom,
+                      !c.compared ? " (pixels not read)" : c.unstable ? " (original unstable, pixels not compared)" : "");
+    return expected;
 }
-EI_VERIFY(0x005FDE20, SurfaceDrawTextVerify, 0, s_unused);
+EI_VERIFY(0x005FDE20, SurfaceDrawTextVerify, 6, s_surfaceDrawText);
 
+// MOV EAX,FS:[0] (6 bytes).
+static void(__fastcall* s_chatDrawTyped)(CChatOverlay*);
 static void __fastcall ChatDrawTypedVerify(CChatOverlay* self) {
-    self->DrawTyped();
-    const CUiSurface* surface = self->surfaces_.data[0];
-    bool ok = surface->Shown() == self->chatOpen_ &&
-              (!self->chatOpen_ ||
-               (surface->dc_ == nullptr && self->caret_ >= 0 && self->caret_ <= self->typed_.GetLength()));
-    ei::verify::Check("CChatOverlay::DrawTyped", true, ok, "open %d caret %d", self->chatOpen_, self->caret_);
+    CUiSurface* surface = self->surfaces_.data[0];
+    const int caret = self->caret_;
+    int expectedCaret = caret;
+    bool expectedShown = false;
+    auto original = [&] {
+        self->caret_ = caret;
+        s_chatDrawTyped(self);
+        expectedCaret = self->caret_;
+        expectedShown = surface->Shown();
+    };
+    auto ours = [&] {
+        self->caret_ = caret;
+        self->DrawTyped();
+    };
+    ei::verify::gdi::DrawComparison c;
+    if (self->chatOpen_) {
+        c = ei::verify::gdi::CompareSurfaceDraws(surface, original, ours);
+    } else {
+        original();
+        ours();
+        c.compared = true;
+    }
+    bool ok = surface->Shown() == expectedShown && self->caret_ == expectedCaret && surface->Shown() == self->chatOpen_ &&
+              (!self->chatOpen_ || surface->dc_ == nullptr) && c.diff.count == 0;
+    ei::verify::Check("CChatOverlay::DrawTyped", true, ok, "open %d caret %d -> %d / %d; %d pixels differ in %d,%d-%d,%d%s",
+                      self->chatOpen_, caret, expectedCaret, self->caret_, c.diff.count, c.diff.left, c.diff.top,
+                      c.diff.right, c.diff.bottom, ei::verify::gdi::Unread(c));
 }
-EI_VERIFY(0x005E3700, ChatDrawTypedVerify, 0, s_unused);
+EI_VERIFY(0x005E3700, ChatDrawTypedVerify, 6, s_chatDrawTyped);
