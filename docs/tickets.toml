@@ -120,11 +120,11 @@ note = "Movies and the loading screen through Present, full screen / resize, gam
 id = "N0"
 title = "Census of interface drawing per window and surface"
 group = "native-ui"
-status = "running"
+status = "review"
 started = "2026-10-14"
 size = 1
 files = ["tests/verify/ui_census.cpp", "src/game/ui_surface_dc.cpp", "src/game/ui_window.cpp"]
-note = "gdi32 / user32 import slots of game.exe and addon.dll, HDC to surface through g_memoryDcs; GDI metric calls too; uncaught drawing by DIB checksums. Report in docs/notes/ui-census.md."
+note = "gdi32 / user32 import slots of game.exe and addon.dll, HDC to surface through g_memoryDcs; GDI metric calls too; uncaught drawing by DIB checksums. Report in docs/notes/ui-census.md. Result 2026-10-14 (docs/notes/ui-census.md): no uncaught drawing; addon.dll makes no GDI calls; primitives are fill / FrameRect (tooltip) / lines / SetPixel (HUD map) / DrawText / RichEdit; six every-frame surfaces; SwapContents on every window show and hide; run with EI_UI_CENSUS=1 EI_RENDER=new,cpuwindows, merge with tools/ui_census_report.py --summary."
 
 [[ticket]]
 id = "N1"
@@ -270,6 +270,15 @@ status = "queued"
 size = 1
 depends = ["P3a", "P3b", "P3c", "P3d", "P4", "P5", "P6"]
 note = "Drop the DIB and memcmp for native surfaces; renderer.md section 6 and ui.md updated."
+
+[[ticket]]
+id = "N0a"
+title = "Census coverage: help page, chat, connect list, escape-menu capture, save picture, global-map pick"
+group = "native-ui"
+status = "queued"
+size = 0.5
+files = ["tests/scenarios/", "tests/verify/ui_census.cpp"]
+note = "N0's suite did not reach the help page 00659420, chat line / window, connect list 0061D780, escape-menu CaptureScreen + greyscale, save picture 005FD440, global-map pick PixelAt, FPS surface, debug panel drawing. Add scenarios (or N4 gallery steps) and rerun the census (docs/notes/ui-census.md). Also explain the four Rebirth-only owners with heap vtables (2FBD....) in ui_trade_hold before P3c keys on vtables under Rebirth."
 
 # ---------------------------------------------------------------- widescreen
 
