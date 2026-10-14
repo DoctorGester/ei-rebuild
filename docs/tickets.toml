@@ -150,11 +150,12 @@ done = "2026-10-14"
 id = "R9c1"
 title = "Lost Direct3D 11 device: make the device, swap chain and textures again"
 group = "renderer"
-status = "running"
+status = "done"
 model = "opus"
 depends = ["R9c"]
 note = "R9c logs a removed / reset / hung device (GetDeviceRemovedReason) and stops presenting; nothing is recreated. Recreate sokol's device and every image, reupload textures from the decoded copies (renderer.md section 9, R9c)."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "R9c2"
@@ -189,6 +190,14 @@ title = "render_scene / render_terrain fail samecapture in native runs"
 group = "renderer"
 status = "queued"
 note = "Seen by PF3 on its base and branch (2026-10-14): run_all --native, samecapture world world_again differs on ~2.9% of the pixels (largest 60-74) in both scenarios, every run; vanilla/rebirth pass. Probably something that moves by itself in the new frame (water phase, weather) between the two captures; decide whether the scenario's tolerance or the renderer is wrong."
+
+[[ticket]]
+id = "R9c5"
+title = "Lost device test through a real removal"
+group = "renderer"
+status = "queued"
+depends = ["R9c1"]
+note = "R9c1 tests the recreation with render::LoseDevice (Present reported DXGI_ERROR_DEVICE_REMOVED without a real removal). A real one without a driver reset: a test-only device made through D3D11On12CreateDevice whose ID3D12Device5::RemoveDevice removes it (Windows 10 1809+, no install); check the swap chain works with an 11on12 device first (renderer.md section 9, R9c1)."
 
 # ---------------------------------------------------------------- native interface drawing
 

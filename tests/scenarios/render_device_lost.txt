@@ -1,0 +1,59 @@
+# R9c1: a lost Direct3D 11 device in the switch-over (docs/notes/renderer.md, section 9). "losedevice"
+# makes the new renderer act as if the swap chain's Present had returned DXGI_ERROR_DEVICE_REMOVED
+# (a real removal needs a driver reset or tools that are not installed): it releases the device,
+# sokol and everything made on them, makes a new device, and the next frames make the frame target,
+# the game window's swap chain, the window surfaces (from the game's memory) and the .mmp textures
+# (from the file levels kept for them) again. At one frozen moment the frame before the loss and the
+# frame after it must match, in the main menu (window surfaces, the cursor) and in the world
+# (terrain, figures, objects, the interface's textures); then the game goes on to the camp, whose
+# textures are loaded on the new device, and the device is lost once more there.
+render new,present
+reject Script error
+waitmenu
+waitpresent 10
+console thingamabob
+
+# The main menu.
+move 400 20
+wait 500
+freeze
+capture menu
+losedevice 10
+waitpresent 10
+capture menu_again
+unfreeze
+samecapture menu menu_again
+
+# The hero on zone1, unblocked and standing still, the camera settled on him.
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 10 battle
+move 400 60
+wait 1000
+freeze
+capture world
+losedevice 10
+waitpresent 10
+capture world_again
+unfreeze
+samecapture world world_again
+
+# The camp (screen 5), loaded on the new device, and a loss there; Esc returns to the game.
+screen 5
+waitwindow 15 camp
+move 400 20
+wait 300
+freeze
+capture camp
+losedevice 10
+waitpresent 10
+capture camp_again
+unfreeze
+samecapture camp camp_again
+key esc
+waitwindow 15 battle
+waitpresent 10
+report
+quit

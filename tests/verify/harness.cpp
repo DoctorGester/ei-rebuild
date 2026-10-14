@@ -121,6 +121,11 @@
 //                             checked a presented frame against a gamma ramp that is not the
 //                             identity (one to one only; fails on a difference). Fails after
 //                             <seconds> or when the swap chain failed
+//   losedevice [seconds]      the new renderer acts as if its Direct3D 11 device were lost at the
+//                             next present (render::LoseDevice) and makes the device, the swap
+//                             chain and every image again; waits (default 10 s) until it has, and
+//                             presenting on the game window, until a frame is presented on the new
+//                             device. Fails on a timeout or when the new renderer gave up
 //   render <spec>             the new renderer for this run (src/render/render.h; the format of
 //                             EI_RENDER, e.g. "new" or "new,split"). Read before the game starts.
 //                             With it, "capture" also writes frames\<name>.new.bmp
@@ -336,6 +341,10 @@ bool g_waitPresentGamma = false;
 std::uint32_t g_waitPresentFrom = 0;
 Deadline g_waitPresentDeadline;
 int g_rampChecksSeen = 0;
+// A pending "losedevice" (R9c1): the new devices made when it started, its deadline.
+bool g_waitingNewDevice = false;
+int g_newDeviceFrom = 0;
+DWORD g_newDeviceDeadline = 0;
 // A pending "waitwindow": the window's vtables (either of a window's two), its name, when it
 // started and gives up, and the frame from which it has been ready (kNotReady: not ready now).
 constexpr unsigned kNotReady = ~0u;
@@ -1589,6 +1598,26 @@ void RunSteps() {
             return;
         }
     }
+    if (g_waitingNewDevice) {
+        render::WindowPresentInfo now = render::WindowPresents();
+        // Made again, and (presenting on the game window) a frame presented on the new device.
+        bool presented = !render::PresentsItself() || now.presents > now.presentsAtRecovery;
+        if (now.deviceRecoveries > g_newDeviceFrom && presented && !now.failed) {
+            Log("harness: losedevice: a new Direct3D 11 device (%d lost, %d made again)%s", now.deviceLosses,
+                now.deviceRecoveries, render::PresentsItself() ? " presents on the game window" : "");
+            g_waitingNewDevice = false;
+        } else if (now.failed || !render::Active() || Now() >= g_newDeviceDeadline) {
+            char what[200];
+            std::snprintf(what, sizeof(what), "losedevice: %s (%d lost, %d made again, %u presented since)",
+                          now.failed || !render::Active() ? "the new renderer failed" : "timed out", now.deviceLosses,
+                          now.deviceRecoveries, now.presents - now.presentsAtRecovery);
+            Log("harness: %s", what);
+            g_failures.push_back(what);
+            g_waitingNewDevice = false;
+        } else {
+            return;
+        }
+    }
     if (g_waitingWindow) {
         // Ready on two frames in a row, and done in an input loop pass (input steps follow).
         if (!WindowReady(g_waitWindowVtables)) g_waitWindowReadyFrom = kNotReady;
@@ -1875,6 +1904,18 @@ void RunSteps() {
             g_waitPresentGamma = std::strcmp(what, "gamma") == 0;
             g_waitPresentDeadline.Set(static_cast<DWORD>(seconds) * 1000);
             g_waitingPresent = true;
+            return;
+        } else if (s.verb == "losedevice") {
+            int seconds = 10;
+            sscanf_s(s.argument.c_str(), "%d", &seconds);
+            if (!render::Active()) {
+                g_failures.push_back("losedevice: the new renderer is not on");
+                continue;
+            }
+            g_newDeviceFrom = render::WindowPresents().deviceRecoveries;
+            render::LoseDevice();
+            g_newDeviceDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
+            g_waitingNewDevice = true;
             return;
         } else if (s.verb == "focus" || s.verb == "windowsize") {
             std::string error = s.verb == "focus" ? FocusStep(s.argument) : WindowSizeStep(s.argument);

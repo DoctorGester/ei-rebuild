@@ -25,6 +25,19 @@ namespace render::detail {
 
 namespace {
 
+// What an owned texture (below) was decoded from: the .mmp file's levels as the file has them (as
+// compressed as the file: about what DirectDraw's managed texture kept in system memory), or the
+// RGBA8 level of TexturePixels. A new Direct3D 11 device (the old one was lost) gets the texture
+// decoded again from it.
+struct TextureSource {
+    enum Kind : std::uint8_t { None, Mmp, Rgba } kind = None;
+    std::vector<std::uint8_t> header;   // Mmp: the file's header
+    std::vector<std::uint8_t> bytes;    // Mmp: the file's bytes from `firstOffset` on; Rgba: the pixels
+    std::uint32_t firstOffset = 0;      // Mmp: where `bytes` start after the header
+    unsigned mip = 0, levels = 0;       // Mmp: the levels decoded
+    int width = 0, height = 0;          // Rgba
+};
+
 struct Texture {
     const void* surface = nullptr;   // the IDirectDrawSurface7 it was read from
     sg_image image{};
@@ -37,6 +50,7 @@ struct Texture {
     int width = 0, height = 0;
     bool owned = false;              // decoded for a holder with no DirectDraw surface and no memory (the
                                      // switch-over's .mmp textures): the only copy, kept until the holder goes
+    TextureSource source;            // owned: what it was decoded from, to make it again on a new device
 };
 
 std::unordered_map<const void*, Texture> g_textures;   // by surface holder: textures with mip levels
@@ -478,6 +492,8 @@ void* SurfaceOf(const void* holder) {
     return holder ? static_cast<const CDXSurface*>(holder)->surface : nullptr;
 }
 
+void Remake(Texture& t);
+
 } // namespace
 
 sg_view SurfaceView(const void* holder) {
@@ -487,6 +503,13 @@ sg_view SurfaceView(const void* holder) {
     if (!surface && memory == g_memory.end()) {
         // Nothing to read: what was decoded for the holder (its .mmp file), if anything.
         auto decoded = holder ? g_textures.find(holder) : g_textures.end();
+        if (decoded != g_textures.end() && !decoded->second.view.id && decoded->second.owned &&
+            decoded->second.checkedFrame != frame) {
+            // Lost with the old device (DropTextures): made again from what it was decoded from,
+            // tried once a frame.
+            decoded->second.checkedFrame = frame;
+            Remake(decoded->second);
+        }
         if (decoded == g_textures.end() || !decoded->second.view.id) return White().view;
         decoded->second.usedFrame = frame;
         return decoded->second.view;
@@ -521,10 +544,10 @@ sg_view SurfaceView(const void* holder) {
 // The entry of `holder` from decoded levels, keyed by the holder. With a DirectDraw surface it
 // stands for the surface as it is now and is read from the surface again only when something writes
 // to it later (its uniqueness value changes); without one (the switch-over's .mmp textures) it is
-// the texture until the holder goes (HolderGone). Not for a holder with memory of the renderer's:
-// that memory is what the texture shows.
+// the texture until the holder goes (HolderGone), and `source` is kept to make it again on a new
+// device. Not for a holder with memory of the renderer's: that memory is what the texture shows.
 bool StoreDecoded(const void* holder, int width, int height, std::vector<std::vector<std::uint8_t>> levels,
-                  const char* label) {
+                  const char* label, TextureSource source) {
     if (!holder || g_memory.count(holder)) return false;
     void* surface = SurfaceOf(holder);
     Texture& t = g_textures[holder];
@@ -539,6 +562,7 @@ bool StoreDecoded(const void* holder, int width, int height, std::vector<std::ve
     t.surface = surface;
     t.checkedFrame = FrameNumber();
     t.owned = !surface;
+    t.source = t.owned ? std::move(source) : TextureSource{};
     DWORD now = 0;
     if (surface) Changed(t, static_cast<IDirectDrawSurface7*>(surface), &now, false);
     t.uniqueness = now;
@@ -564,9 +588,16 @@ bool TextureFromPixels(const void* holder, const void* pixels, int width, int he
             o[3] = Expand(pixel, a, 255);
         }
     }
+    TextureSource source;
+    if (!SurfaceOf(holder)) {   // the only copy (StoreDecoded): kept for a new device
+        source.kind = TextureSource::Rgba;
+        source.bytes = rgba;
+        source.width = width;
+        source.height = height;
+    }
     std::vector<std::vector<std::uint8_t>> levels;
     levels.push_back(std::move(rgba));
-    return StoreDecoded(holder, width, height, std::move(levels), "ei-cpu-texture");
+    return StoreDecoded(holder, width, height, std::move(levels), "ei-cpu-texture", std::move(source));
 }
 
 namespace {
@@ -615,6 +646,44 @@ bool DecodeMmpLevel(const MmpFile& h, const std::uint8_t* pixels, int width, int
     return true;
 }
 
+// The bytes a level of `width` x `height` takes in the file.
+std::uint32_t MmpLevelBytes(const MmpFile& h, int width, int height) {
+    if ((h.format & 0xFFFFFF) == 0x545844) {   // "DXT": 8 bytes a 4x4 block for DXT1, else 16
+        auto blocks = static_cast<std::uint32_t>((width + 3) / 4) * static_cast<std::uint32_t>((height + 3) / 4);
+        return blocks * ((h.format >> 24) == '1' ? 8u : 16u);
+    }
+    return static_cast<std::uint32_t>(width) * static_cast<std::uint32_t>(height) * (h.bitsPerPixel / 8);
+}
+
+// The levels from `mip` on (`levels` of them, at least one) as RGBA8. `pixels` holds the file's bytes
+// after the header from offset `pixelsOffset` on; the bytes the decoded levels take go to `*first`
+// .. `*end`.
+bool DecodeMmp(const MmpFile& h, const std::uint8_t* pixels, std::uint32_t pixelsOffset, unsigned mip, unsigned levels,
+               int* width, int* height, std::vector<std::vector<std::uint8_t>>& decoded, std::uint32_t* first,
+               std::uint32_t* end) {
+    *width = *height = 0;
+    *first = 0xFFFFFFFFu;
+    *end = 0;
+    for (unsigned m = mip; m < mip + (levels ? levels : 1) && m < h.mipCount && decoded.size() < SG_MAX_MIPMAPS; ++m) {
+        int w = static_cast<int>(h.width >> (m & 31)), hh = static_cast<int>(h.height >> (m & 31));
+        if (w < 1) w = 1;
+        if (hh < 1) hh = 1;
+        std::uint32_t offset = MipOffset(h, m);
+        if (offset < pixelsOffset) break;
+        std::vector<std::uint8_t> level;
+        if (!DecodeMmpLevel(h, pixels + (offset - pixelsOffset), w, hh, level)) break;
+        if (m == mip) {
+            *width = w;
+            *height = hh;
+        }
+        decoded.push_back(std::move(level));
+        std::uint32_t levelEnd = offset + MmpLevelBytes(h, w, hh);
+        if (offset < *first) *first = offset;
+        if (levelEnd > *end) *end = levelEnd;
+    }
+    return !decoded.empty() && *width > 0 && *height > 0;
+}
+
 int g_mmpFailures = 0;
 
 } // namespace
@@ -629,26 +698,53 @@ bool TextureFromMmpData(const void* holder, const void* data, unsigned mip, unsi
     }
     std::vector<std::vector<std::uint8_t>> decoded;
     int width = 0, height = 0;
-    for (unsigned m = mip; m < mip + (levels ? levels : 1) && m < h.mipCount && decoded.size() < SG_MAX_MIPMAPS; ++m) {
-        int w = static_cast<int>(h.width >> (m & 31)), hh = static_cast<int>(h.height >> (m & 31));
-        if (w < 1) w = 1;
-        if (hh < 1) hh = 1;
-        if (m == mip) {
-            width = w;
-            height = hh;
-        }
-        std::vector<std::uint8_t> level;
-        if (!DecodeMmpLevel(h, base + MipOffset(h, m), w, hh, level)) break;
-        decoded.push_back(std::move(level));
-    }
-    if (decoded.empty() || width <= 0 || height <= 0) {
+    std::uint32_t first = 0, end = 0;
+    if (!DecodeMmp(h, base, 0, mip, levels, &width, &height, decoded, &first, &end)) {
         if (g_mmpFailures++ < 10)
             ei::Log("render: .mmp format %08X (%u bits) not decoded; the texture is read from its surface",
                     static_cast<unsigned>(h.format), static_cast<unsigned>(h.bitsPerPixel));
         return false;
     }
-    return StoreDecoded(holder, width, height, std::move(decoded), "ei-mmp-texture");
+    TextureSource source;
+    if (!SurfaceOf(holder)) {   // the only copy (StoreDecoded): the file's levels kept for a new device
+        source.kind = TextureSource::Mmp;
+        source.header.assign(static_cast<const std::uint8_t*>(data), base);
+        source.bytes.assign(base + first, base + end);
+        source.firstOffset = first;
+        source.mip = mip;
+        source.levels = levels;
+    }
+    return StoreDecoded(holder, width, height, std::move(decoded), "ei-mmp-texture", std::move(source));
 }
+
+namespace {
+
+// An owned texture's image made again from its source (on a new device).
+void Remake(Texture& t) {
+    const TextureSource& s = t.source;
+    std::vector<std::vector<std::uint8_t>> levels;
+    int width = 0, height = 0;
+    if (s.kind == TextureSource::Mmp && s.header.size() == sizeof(MmpFile)) {
+        MmpFile h{};
+        std::memcpy(&h, s.header.data(), sizeof(h));
+        std::uint32_t first = 0, end = 0;
+        if (!DecodeMmp(h, s.bytes.data(), s.firstOffset, s.mip, s.levels, &width, &height, levels, &first, &end)) return;
+    } else if (s.kind == TextureSource::Rgba) {
+        width = s.width;
+        height = s.height;
+        levels.push_back(s.bytes);
+    } else {
+        return;
+    }
+    t.image = MakeImage(width, height, std::move(levels), "ei-texture-again");
+    t.view = MakeTextureView(t.image);
+    if (!t.view.id) {
+        if (t.image.id) sg_destroy_image(t.image);
+        t.image = sg_image{};
+    }
+}
+
+} // namespace
 
 namespace {
 std::unordered_map<const void*, Picture> g_pictures;   // by surface holder
@@ -805,6 +901,31 @@ void DestroyTextures() {
     g_linear = sg_sampler{};
     for (auto& s : g_samplers) sg_destroy_sampler(s.second);
     g_samplers.clear();
+}
+
+void DropTextures(std::size_t* kept, std::size_t* keptBytes) {
+    *kept = *keptBytes = 0;
+    // The owned textures stay without their images (made again from their sources at their next
+    // use); everything else is read again from its surface or memory when it is next drawn.
+    std::unordered_map<const void*, Texture> owned;
+    for (auto& entry : g_textures) {
+        Texture& t = entry.second;
+        if (!t.owned || t.source.kind == TextureSource::None) continue;
+        if (t.image.id) {
+            sg_destroy_view(t.view);
+            sg_destroy_image(t.image);
+        }
+        t.image = sg_image{};
+        t.view = sg_view{};
+        t.checkedFrame = 0xFFFFFFFFu;
+        ++*kept;
+        *keptBytes += t.source.bytes.size();
+        owned.emplace(entry.first, std::move(t));
+    }
+    DestroyTextures();
+    g_textures = std::move(owned);
+    g_snapshots.clear();
+    g_textureSnapshots.clear();
 }
 
 } // namespace render::detail
