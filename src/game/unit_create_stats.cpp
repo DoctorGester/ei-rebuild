@@ -655,11 +655,11 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         SetBits(figure->defaultScale.x, 0);
         figure->defaultScale.y = lift;
         SetBits(figure->defaultScale.z, 0);
-        float scale[3];
+        Vector3 scale;
         static_assert(sizeof(scale) == sizeof(prototype->scale));
-        std::memcpy(scale, &prototype->scale, sizeof(scale));
-        ObjectSetFigureScaleOriginal(object, nullptr, scale);
-        std::memcpy(&mapObject->baseScale, scale, sizeof(scale));
+        std::memcpy(&scale, &prototype->scale, sizeof(scale));
+        ObjectSetFigureScaleOriginal(object, nullptr, &scale.x);
+        std::memcpy(&mapObject->baseScale, &scale, sizeof(scale));
         mapObject->ApplyBaseScale();
         SetPrototype23CAt(object, nullptr, reinterpret_cast<const char*>(prototype));
     }

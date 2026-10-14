@@ -100,7 +100,7 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
             diffuse_.data[i] = (r << 8 | g) << 8 | b;
             continue;
         }
-        float cosine = SumOfProductsUnrounded<Sum3::ZYX>(x, y, z, direction[0], direction[1], direction[2]);
+        float cosine = DotUnrounded<Sum3::ZYX>(x, y, z, direction[0], direction[1], direction[2]);
         if (!(cosine >= 0.0f)) cosine = 0.0f;
         const float strength = cosine * cosine;
         std::uint32_t specular = Truncate(distance * kColourScale);

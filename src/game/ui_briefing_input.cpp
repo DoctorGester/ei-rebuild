@@ -90,9 +90,9 @@ bool IsPerson(CEngineObject* object) { return object && static_cast<CMapObjectVi
 
 // The leader walks (or runs) to the ground point under the screen point (x, y), unless blocked.
 static void WalkLeaderTo(CBriefingScreen* screen, int x, int y, int run) {
-    float picked[3];
-    float* p = HoverPickSurface(ClientWorld(), nullptr, picked, x, y);
-    Vector3 point{p[0], p[1], p[2]};
+    Vector3 picked;
+    Vector3* p = HoverPickSurface(ClientWorld(), nullptr, &picked, x, y);
+    Vector3 point{p->x, p->y, p->z};
     if (!screen->leader_) return;
     CUnit* unit = ServerUnit(screen->leader_->id_);
     if (!unit || (unit->flags_ & kUnitBlocked)) return;
@@ -191,11 +191,11 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         label->Freeze(1, 0);
         return;
     }
-    float picked[3];
-    float* p = HoverPickSurface(ClientWorld(), nullptr, picked, x, y);
-    float ground[3] = {p[0], p[1], p[2]};
+    Vector3 picked;
+    Vector3* p = HoverPickSurface(ClientWorld(), nullptr, &picked, x, y);
+    Vector3 ground{p->x, p->y, p->z};
     int exit = 0;
-    if (!TheClientWorld()->FindExitAt(ground, &exit)) return;
+    if (!TheClientWorld()->FindExitAt(&ground.x, &exit)) return;
     mfc::CString zone(GameExitZoneOriginal(ClientGlue(), nullptr, exit_));
     if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
                          reinterpret_cast<const unsigned char*>(NoZone())) == 0)

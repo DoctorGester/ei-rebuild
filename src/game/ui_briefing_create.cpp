@@ -99,9 +99,9 @@ CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(Server
 UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
 
 // A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
-Vector3 Normalised(const float* v) {
-    Vector3 out{v[0], v[1], v[2]};
-    float length = std::sqrt(out.x * out.x + out.y * out.y + out.z * out.z);
+Vector3 NormalisedUnlessZero(const Vector3& v) {
+    Vector3 out{v.x, v.y, v.z};
+    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out));
     if (length == 0.0f || x87::IsNaN(length)) return out;
     float inverse = 1.0f / length;
     out.x = StoreFloat(out.x * inverse);
@@ -122,9 +122,9 @@ void PlaceMover(BriefingMover* node) {
     CUnit* unit = ServerUnit(node->person->id_);
     if (!unit) return;
     UnitController* controller = ControllerOf(unit);
-    Vector3 target{node->target[0], node->target[1], node->target[2]};
+    Vector3 target{node->target.x, node->target.y, node->target.z};
     SectorMapMove(SectorMap(), nullptr, unit, &target);
-    Vector3 facing = Normalised(node->direction);
+    Vector3 facing = NormalisedUnlessZero(node->direction);
     reinterpret_cast<CTransformObject*>(unit)->SetHeading(&facing.x);
     reinterpret_cast<CTransformObject*>(node->person)->SetHeading(&facing.x);
     ControllerRepositionOriginal(controller);
@@ -133,13 +133,13 @@ void PlaceMover(BriefingMover* node) {
 // A walking mover near its target starts turning (its server unit turns over a second).
 void StepWalking(BriefingMover* node) {
     const CUnit* person = reinterpret_cast<const CUnit*>(node->person);
-    float dy = node->target[1] - person->position.y;
-    float dx = node->target[0] - person->position.x;
-    if (dx * dx + dy * dy >= kCloseEnough) return;
+    float dy = node->target.y - person->position.y;
+    float dx = node->target.x - person->position.x;
+    if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
     node->state = BriefingMover::kTurning;
     CUnit* unit = ServerUnit(node->person->id_);
     if (!unit) return;
-    Vector3 facing = Normalised(node->direction);
+    Vector3 facing = NormalisedUnlessZero(node->direction);
     ControllerOf(unit)->Brain()->TurnTowards(&facing, 1.0f);
 }
 
@@ -150,10 +150,10 @@ void StepTurning(BriefingMover* node) {
     person->orientation.AxisY(&axis);
     float facingX = StoreFloat(-axis.x);
     float facingY = -axis.y;
-    Vector3 direction = Normalised(node->direction);
+    Vector3 direction = NormalisedUnlessZero(node->direction);
     float dy = direction.y - facingY;
     float dx = direction.x - facingX;
-    if (dx * dx + dy * dy >= kCloseEnough) return;
+    if (LengthSquared2DUnrounded(dx, dy) >= kCloseEnough) return;
     node->state = BriefingMover::kDone;
 }
 

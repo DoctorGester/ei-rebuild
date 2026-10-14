@@ -66,7 +66,7 @@ int Compare(const char* a, const char* b) {
 // A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
 Vector3 Normalised(float x, float y, float z) {
     Vector3 out{x, y, z};
-    float length = std::sqrt(x * x + z * z + y * y);
+    float length = std::sqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z));
     if (length == 0.0f || x87::IsNaN(length)) return out;
     float inverse = 1.0f / length;
     out.x = StoreFloat(x * inverse);
@@ -98,12 +98,12 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     if (serverUnit->flags_ & kUnitBlocked) return;
     // list::push_front of the mover (node pool 0x30; its padding bytes are left as allocated).
     auto* node = static_cast<BriefingMover*>(stlp::allocate(sizeof(BriefingMover)));
-    node->target[0] = target.x;
-    node->target[1] = target.y;
-    node->target[2] = target.z;
-    node->direction[0] = dx;
-    node->direction[1] = dy;
-    node->direction[2] = dz;
+    node->target.x = target.x;
+    node->target.y = target.y;
+    node->target.z = target.z;
+    node->direction.x = dx;
+    node->direction.y = dy;
+    node->direction.z = dz;
     node->state = BriefingMover::kWalking;
     node->person = unit;
     node->waited = waited;

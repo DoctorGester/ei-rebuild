@@ -72,7 +72,7 @@ Vector3 Difference(const Vector3& a, const Vector3& b) { return Vector3{a.x - b.
 
 // Normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
 void Normalise(Vector3* v) {
-    float length = std::sqrt(v->x * v->x + v->y * v->y + v->z * v->z);
+    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v));
     if (length == 0.0f || x87::IsNaN(length)) return;
     float inverse = 1.0f / length;
     v->x = inverse * v->x;
@@ -93,8 +93,8 @@ void DropMover(BriefingMover* movers, const CUnit* person, Vector3* place, Vecto
     for (BriefingMover* node = movers->next; node != movers; node = node->next) {
         if (node->person != reinterpret_cast<const CEngineObject*>(person)) continue;
         if (!node->waited) {
-            *place = Vector3{node->target[0], node->target[1], node->target[2]};
-            *direction = Vector3{node->direction[0], node->direction[1], node->direction[2]};
+            *place = Vector3{node->target.x, node->target.y, node->target.z};
+            *direction = Vector3{node->direction.x, node->direction.y, node->direction.z};
         }
         EraseMover(node);
         return;

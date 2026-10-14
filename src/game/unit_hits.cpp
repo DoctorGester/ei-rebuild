@@ -263,7 +263,7 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     volatile float dx = t->position.x - position.x;
     volatile float dy = t->position.y - position.y;
     volatile float dz = t->position.z - position.z;
-    double length = x87::fsqrt(dz * dz + dy * dy + dx * dx);
+    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
     if (length > kZero) {
         dx = static_cast<float>(dx / length);
         dy = static_cast<float>(dy / length);
@@ -294,7 +294,7 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     volatile float y = static_cast<float>(cc + cc + rest);
     double z = a * b + c * d;
     z = z + z;
-    double facing = (z * dz + y * dy) + x * dx;
+    double facing = DotUnrounded<Sum3::ZYX, double>(x, y, z, dx, dy, dz);
     return !(facing >= kHalfBack) ? 1 : 0;
 }
 EI_REPLACE_METHOD(0x00530A60, CUnit::IsBehind);

@@ -209,9 +209,9 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
             const Vector3 &p0 = corner[k], &p1 = corner[k + 1], &p2 = corner[k + 2];
             float ax = p0.x - p1.x, ay = p0.y - p1.y, az = p0.z - p1.z;
             float bx = p2.x - p1.x, by = p2.y - p1.y, bz = p2.z - p1.z;
-            double la = x87::fsqrt(ay * ay + ax * ax);
+            double la = x87::fsqrt(LengthSquared2DUnrounded(ay, ax));
             int stepsA = x87::fistp(static_cast<float>((la + la) * 1.5f)) + 2;
-            double lb = x87::fsqrt(by * by + bx * bx);
+            double lb = x87::fsqrt(LengthSquared2DUnrounded(by, bx));
             int stepsB = x87::fistp(static_cast<float>((lb + lb) * 1.5f)) + 2;
             float countA = static_cast<float>(stepsA);
             float dax = ax / countA, day = ay / countA, daz = az / countA;

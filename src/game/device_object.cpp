@@ -19,6 +19,8 @@
 #include "ei/vcall.h"
 #include "lib/crt.h"
 
+#include <float.h>
+
 #include <cstdint>
 #include <cstring>
 
@@ -71,6 +73,53 @@ void DepthRequest(DDPIXELFORMAT& format, int depthBits, int stencilBits) {
     format.dwFlags = stencilBits ? (DDPF_ZBUFFER | DDPF_STENCILBUFFER) : DDPF_ZBUFFER;
     format.dwZBufferBitDepth = static_cast<DWORD>(depthBits);
     format.dwStencilBitDepth = static_cast<DWORD>(stencilBits);
+}
+
+// The four state blocks of texture stage 0 (kStageBlocks) recorded on the device.
+void RecordStageBlocks(CTextureDevice* device) {
+    for (const StageBlock& block : kStageBlocks) {
+        IDirect3DDevice7* d3d = device::D3D(device);
+        device->lastLoadResult_ = d3d->BeginStateBlock();
+        if (device->lastLoadResult_ != 0 && !FatalDirectX(device->lastLoadResult_, Text(0x0078E034)))   // "Can't begin state block.\n"
+            ThrowGameError(Text(0x0078E034));
+        d3d->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+        d3d->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+        d3d->SetTextureStageState(0, D3DTSS_COLORARG2, block.colourArg2);
+        d3d->SetTextureStageState(0, D3DTSS_ALPHAARG1, block.alphaArg1);
+        d3d->SetTextureStageState(0, D3DTSS_ALPHAOP, block.alphaOp);
+        d3d->SetTextureStageState(0, D3DTSS_ALPHAARG2, block.alphaArg2);
+        device->lastLoadResult_ = d3d->EndStateBlock(block.handle);
+        if (device->lastLoadResult_ != 0 && !FatalDirectX(device->lastLoadResult_, Text(0x0078E01C)))   // "Can't end state block.\n"
+            ThrowGameError(Text(0x0078E01C));
+    }
+}
+
+// The rest of the constructor in the switch-over (device.h): no Direct3D object, device list,
+// depth formats, depth buffer or render target; the IDirect3DDevice7 stand-in in their place (with
+// the HAL device's id). The texture formats come from the stand-in's fixed table, the state blocks
+// are recorded on it (their handles tokens the new renderer's mirror knows), the viewport is the
+// screen's.
+void ConstructWithoutDirect3D(CTextureDevice* device) {
+    device->d3dDevice_ = device::NullDirect3DDevice();
+    device->deviceGuid_ = device::IidHalDevice();
+    device->zEnable_ = D3DZB_TRUE;
+    // Direct3D 7 makes its device with the calling thread's x87 precision at 24 bits (the game sets
+    // DDSCL_FPUSETUP), and the game's arithmetic runs with it from then on.
+    unsigned int x87 = 0;
+    __control87_2(_PC_24, _MCW_PC, &x87, nullptr);
+    DeviceBuildFormatTableOriginal(device);
+    const RECT& screen = device->screen_;
+    D3DVIEWPORT7 viewport;
+    viewport.dwX = static_cast<DWORD>(screen.left);
+    viewport.dwY = static_cast<DWORD>(screen.top);
+    viewport.dwWidth = static_cast<DWORD>(screen.right - screen.left);
+    viewport.dwHeight = static_cast<DWORD>(screen.bottom - screen.top);
+    viewport.dvMinZ = 0.0f;
+    viewport.dvMaxZ = 1.0f;
+    device::D3D(device)->SetViewport(&viewport);
+    for (CDXSurface*& holder : device->stageSurfaces_) holder = nullptr;
+    RecordStageBlocks(device);
+    device->colour_ = 0xFF000000;
 }
 
 // One of the batches' lists emptied: each buffer released.
@@ -264,7 +313,12 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     d3dDevice_ = nullptr;
     d3d_ = nullptr;
 
-    lastLoadResult_ = device::DDraw(this)->QueryInterface(device::IidDirect3D7(), &d3d_);
+    if (device::WithoutDirectDraw()) {
+        ConstructWithoutDirect3D(this);
+        return this;
+    }
+
+    lastLoadResult_ =device::DDraw(this)->QueryInterface(device::IidDirect3D7(), &d3d_);
     if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E170));   // "Can't create D3D object.\n"
     // (The callback by its address, as the original passes it: its verify wrapper stays in the path.)
     lastLoadResult_ = device::Direct3D(this)->EnumDevices(reinterpret_cast<LPD3DENUMDEVICESCALLBACK7>(0x004ED820), &devices_);
@@ -316,22 +370,7 @@ CTextureDevice* CTextureDevice::Construct(HWND window, GUID* driver, int fullScr
     lastLoadResult_ = device::D3D(this)->SetViewport(&viewport);
     if (lastLoadResult_ != 0) FatalDirectX(lastLoadResult_, Text(0x0078E050));   // "Can't set viewport.\n"
     for (CDXSurface*& holder : stageSurfaces_) holder = nullptr;
-
-    for (const StageBlock& block : kStageBlocks) {
-        IDirect3DDevice7* d3d = device::D3D(this);
-        lastLoadResult_ = d3d->BeginStateBlock();
-        if (lastLoadResult_ != 0 && !FatalDirectX(lastLoadResult_, Text(0x0078E034)))   // "Can't begin state block.\n"
-            ThrowGameError(Text(0x0078E034));
-        d3d->SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
-        d3d->SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
-        d3d->SetTextureStageState(0, D3DTSS_COLORARG2, block.colourArg2);
-        d3d->SetTextureStageState(0, D3DTSS_ALPHAARG1, block.alphaArg1);
-        d3d->SetTextureStageState(0, D3DTSS_ALPHAOP, block.alphaOp);
-        d3d->SetTextureStageState(0, D3DTSS_ALPHAARG2, block.alphaArg2);
-        lastLoadResult_ = d3d->EndStateBlock(block.handle);
-        if (lastLoadResult_ != 0 && !FatalDirectX(lastLoadResult_, Text(0x0078E01C)))   // "Can't end state block.\n"
-            ThrowGameError(Text(0x0078E01C));
-    }
+    RecordStageBlocks(this);
     colour_ = 0xFF000000;
     return this;
 }

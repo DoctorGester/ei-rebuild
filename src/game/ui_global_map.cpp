@@ -680,7 +680,7 @@ Quaternion TurnProduct(const Quaternion& a, const Quaternion& b) {
     float z = Store(((D(b.x) * D(a.y) - D(a.x) * D(b.y)) + D(b.z) * D(a.w)) + D(a.z) * D(b.w));
     float y = Store(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(b.y) * D(a.w)) + D(b.w) * D(a.y));
     float x = Store(((D(a.z) * D(b.y) - D(b.z) * D(a.y)) + D(b.x) * D(a.w)) + D(a.x) * D(b.w));
-    float w = Store(D(b.w) * D(a.w) - ((D(a.z) * D(b.z) + D(b.y) * D(a.y)) + D(b.x) * D(a.x)));
+    float w = Store(D(b.w) * D(a.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
     r.w = w;
     r.x = x;
     r.y = y;

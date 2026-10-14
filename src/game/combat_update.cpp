@@ -496,15 +496,7 @@ void CUnitServer::StandStill() {
     PathClear(Motion(this));
     int now = TickOf(ObjectWorld(this));
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
-    const Quaternion& q = unit->orientation;
-    float qw = q.w, qx = q.x, qy = q.y, qz = q.z;
-    float a = qx * qy - qw * qz;
-    a = a + a;
-    float yy = qy * qy;
-    float b = (qw * qw - (qx * qx + qz * qz + yy)) + (yy + yy);
-    float c = qz * qy + qw * qx;
-    c = c + c;
-    Vector3 direction = {-a, -b, -c};
+    Vector3 direction = -RotatedAxisY(unit->orientation);
     if (AIPathStartOriginal(MotionPath(), nullptr, &unit->position, &direction, now)) UnitPathSpeeds(unit);
     SetStandingFlag(this, 0);
 }

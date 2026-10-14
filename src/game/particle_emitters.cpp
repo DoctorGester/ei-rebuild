@@ -334,7 +334,7 @@ void PlaceModifierPoints(CParticleSource* s) {
             x = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
             y = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
             z = Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE);
-            double dot = SumOfProductsUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, x, y, z);
+            double dot = DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, x, y, z);
             float px = Store(D(axis.x) * dot);
             float py = Store(D(axis.y) * dot);
             double pz = dot * D(axis.z);

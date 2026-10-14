@@ -13,6 +13,8 @@
 #include <cstdint>
 #include <vector>
 
+class CTextureDevice;   // game/texture.h
+
 namespace render::detail {
 
 // The game's transform pipeline matrices are Matrix4 (src/lib/vecmath.h): row-major, out =
@@ -149,7 +151,7 @@ void PassDone();
 // Inside the world view's draw (render::BeginWorld .. EndWorld).
 bool InWorld();
 // The device object (007AF080) and its render target's size.
-char* DeviceObject();
+CTextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
 // sokol is set up (creates the device on first use); false when the sidecar is off or failed.
 bool Started();

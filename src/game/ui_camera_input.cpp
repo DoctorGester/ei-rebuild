@@ -119,15 +119,15 @@ void CCameraInput::OnKeyUp(int, int, int flags) {
     if (!ModifierHeld(interface_)) {
         float left = StoreFloat(-x_);
         float speed = StoreFloat(PanSpeed());
-        float direction[3] = {StoreFloat(y_ * speed), StoreFloat(left * speed), 0.0f};
-        camera->Pan(direction);
+        Vector3 direction = {StoreFloat(y_ * speed), StoreFloat(left * speed), 0.0f};
+        camera->Pan(&direction);
         camera->SetTurnRate(0.0f);
         camera->SetUnknownD0(Bits(ClimbSpeed() * z_));
         camera->SetTiltRate(0.0f);
         return;
     }
-    float still[3] = {0.0f, 0.0f, 0.0f};
-    camera->Pan(still);
+    Vector3 still = {0.0f, 0.0f, 0.0f};
+    camera->Pan(&still);
     camera->SetTurnRate(TurnSpeed() * y_);
     camera->SetUnknownD0(Bits(ClimbSpeed() * z_));
     camera->SetTiltRate(TiltSpeed() * x_);
@@ -149,8 +149,8 @@ void CCameraInput::OnRightUp(int, int, int) {
     CCamera* camera = camera::TheCamera();
     camera->SetTurnRate(0.0f);
     camera->SetTiltRate(0.0f);
-    float still[3] = {0.0f, 0.0f, 0.0f};
-    camera->Pan(still);
+    Vector3 still = {0.0f, 0.0f, 0.0f};
+    camera->Pan(&still);
     int x = MouseScreenX();
     int y = MouseScreenY();
     LetCursorGo();
@@ -180,7 +180,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
         } else {
             float speed = StoreFloat(DragPanSpeed());
             Vector3 direction{StoreFloat(across * speed), StoreFloat(along * speed), 0.0f};
-            camera->Pan(&direction.x);
+            camera->Pan(&direction);
         }
         MouseDragY() = 0;
         MouseDragX() = 0;
@@ -217,7 +217,7 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
             direction.y = StoreFloat(left + direction.y);
         }
         GameCursor()->SetShape(EdgeCursor(edges));
-        camera->Pan(&direction.x);
+        camera->Pan(&direction);
         if (edges) handled_ = true;
     }
     pressLayout_ = POINT{x, y};

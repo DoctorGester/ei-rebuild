@@ -751,9 +751,9 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     // Slot 55 (+0xDC, IsDead): non-zero for a dead unit.
     auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
-        float out[3];
-        float* p = HoverPickSurface(WorldClient(), nullptr, out, x, y);
-        return Vector3{p[0], p[1], p[2]};
+        Vector3 out;
+        Vector3* p = HoverPickSurface(WorldClient(), nullptr, &out, x, y);
+        return Vector3{p->x, p->y, p->z};
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
@@ -1052,14 +1052,14 @@ namespace {
 // The local player glue (ClientGlueObject(), 007AFEA5, thiscall): 00578A00 the zone exit at a
 // point (RET 8; jumps to the client world's 00567440), 00578A40 an exit's zone name (RET 4;
 // GameExitZoneOriginal).
-__declspec(naked) int __fastcall GlueExitAt(void*, void*, const float*, int*) EI_ORIGINAL(0x00578A00)
+__declspec(naked) int __fastcall GlueExitAt(void*, void*, const Vector3*, int*) EI_ORIGINAL(0x00578A00)
 // The CArray<CUnit*> the order takes (vtable kUnitPtrArrayVtable; SetSize 005EBDB0,
 // PartyArraySetSizeOriginal).
 using OrderUnits = mfc::CArray<CUnit*>;
 // The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there
 // (LocalViewSendWalkOriginal), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
 // CPlayerClient::SendGoTo, through its address).
-__declspec(naked) void __fastcall ViewOrderMoveAlt(CPlayerClient*, void*, OrderUnits*, const float*, int) EI_ORIGINAL(0x0066A720)
+__declspec(naked) void __fastcall ViewOrderMoveAlt(CPlayerClient*, void*, OrderUnits*, const Vector3*, int) EI_ORIGINAL(0x0066A720)
 // 0073B84C: the constant 1.0f the zone variable is compared with.
 float GameOne() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 
@@ -1067,7 +1067,7 @@ float GameOne() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 
 void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     // The original passes the address of its own argument slots as the point.
-    float point[3] = {x, y, z};
+    Vector3 point = {x, y, z};
     int selected = 0;
     for (int i = 0; i < partyCount_; ++i) {
         CUnit* member = party_[i];
@@ -1079,7 +1079,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     exitPending_ = 0;
     int exit;
     void* glue = ClientGlueObject();
-    if (GlueExitAt(glue, nullptr, point, &exit) && selected > 0) {
+    if (GlueExitAt(glue, nullptr, &point, &exit) && selected > 0) {
         mfc::CString name(GameExitZoneOriginal(glue, nullptr, exit));
         if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                              reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
@@ -1107,9 +1107,9 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     if (units.size != 0) {
         CPlayerClient* view = LocalView();
         if (static_cast<std::uint8_t>(mode) != 0)
-            ViewOrderMoveAlt(view, nullptr, &units, point, ctrl & 0xFF);
+            ViewOrderMoveAlt(view, nullptr, &units, &point, ctrl & 0xFF);
         else
-            LocalViewSendWalkOriginal(view, nullptr, &units, point, ctrl & 0xFF);
+            LocalViewSendWalkOriginal(view, nullptr, &units, &point.x, ctrl & 0xFF);
     }
     units.vtable = reinterpret_cast<void*>(kUnitPtrArrayVtable);
     units.FreeData();

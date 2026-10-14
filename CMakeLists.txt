@@ -29,6 +29,7 @@ if(EI_VERIFY)
 endif()
 
 add_library(ei_hook SHARED
+    src/hook/cover.cpp
     src/hook/dllmain.cpp
     src/hook/hook.cpp
     src/hook/paths.cpp

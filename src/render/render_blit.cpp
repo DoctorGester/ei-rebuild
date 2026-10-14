@@ -15,6 +15,8 @@
 #include <windows.h>
 #include <ddraw.h>
 
+#include "../game/texture.h"   // CDXSurface
+
 #include <cstring>
 #include <unordered_map>
 #include <vector>
@@ -280,16 +282,16 @@ void Fill(const Rect& to, std::uint32_t colour) {
 
 void Cursor(const void* imageHolder, const void* mask, const Rect& from, const Rect& to) {
     if (!imageHolder || !mask || !Active() || !Started()) return;
-    auto* dd = *reinterpret_cast<IDirectDrawSurface7* const*>(static_cast<const char*>(imageHolder) + 0x10);
+    const auto* holder = static_cast<const CDXSurface*>(imageHolder);
+    auto* dd = static_cast<IDirectDrawSurface7*>(holder->surface);
     int w = from.right - from.left, h = from.bottom - from.top;
     if (w <= 0 || h <= 0 || w > 256 || h > 256) return;
     FpuGuard fpu;
     std::vector<std::uint8_t> rgba(static_cast<std::size_t>(w) * h * 4, 0);
     // The image loaded from its picture (004EFC60, render::PictureFromMmp): the colours from the
-    // file, the mask (the holder's width, +0x14, in its pixel size, +0x1C) from the game's memory.
-    const char* holder = static_cast<const char*>(imageHolder);
-    int maskWidth = *reinterpret_cast<const int*>(holder + 0x14);
-    int maskBytes = *reinterpret_cast<const int*>(holder + 0x1C) / 8;
+    // file, the mask (the holder's width, in its pixel size) from the game's memory.
+    int maskWidth = holder->width;
+    int maskBytes = holder->bitsPerPixel / 8;
     if (const Picture* picture = PictureOf(imageHolder);
         picture && picture->width == maskWidth && (maskBytes == 2 || maskBytes == 4) && from.left >= 0 && from.top >= 0 &&
         from.right <= picture->width && from.bottom <= picture->height) {

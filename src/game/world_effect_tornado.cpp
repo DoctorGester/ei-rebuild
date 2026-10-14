@@ -103,7 +103,7 @@ void CEffectTornado::Launch(const Vector3* from, const Vector3* to) {
     double speed = x87::FromUnsigned(IsaacRandom::Global().Next()) * kRandomScale * kSpeedRange + kSpeedMin;
     Vector3 way{StoreFloat(to->x - from->x), StoreFloat(to->y - from->y), StoreFloat(to->z - from->z)};
     framesLeft_ = 0;
-    double length = std::sqrt(way.z * way.z + way.y * way.y + way.x * way.x);
+    double length = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(way));
     if (length > 0.0) {
         double scale = speed / length;
         way.x = StoreFloat(static_cast<float>(way.x * scale));

@@ -57,4 +57,39 @@ inline void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
     if (old) old->Release();
 }
 
+// Whether two holders stand for the same surface (the original compares their DirectDraw surfaces:
+// a window's holder and the render target's, a movie's and the primary's). Holders without a
+// surface (the switch-over's) are the same only when they are one holder.
+inline bool SameSurface(const CDXSurface* a, const CDXSurface* b) {
+    return a == b || (a->surface && a->surface == b->surface);
+}
+
+// ---- The switch-over device (device_null.cpp; ticket R9a, docs/notes/renderer.md section 9) ----
+//
+// With the new renderer presenting ("present") the device object is built without DirectDraw and
+// Direct3D: no DirectDraw object, display mode, primary, render target or depth surface and no
+// Direct3D device; the new renderer presents through its own swap chain on the game window. The
+// object is filled for the game: the screen rectangle, holders without a surface for the primary
+// and the render target (the screen's width, height and bits), 2DintMMX's converter, the texture
+// formats from a fixed table, the four state blocks as tokens. In place of the IDirectDraw7 and
+// IDirect3DDevice7 pointers it holds two stand-ins that draw nothing: they keep the render and
+// texture stage states the game sets (and feed them to the new renderer's mirror, render_state.h),
+// record and apply state blocks, answer the capability, display mode and memory queries with fixed
+// values, refuse to make surfaces, and log every method once per calling place ("old device: ...")
+// so that the remaining callers can be guarded and the stand-ins removed (ticket R9b).
+
+// The device object was built without DirectDraw (decided once, when it is built).
+bool WithoutDirectDraw();
+// The device object is being built without DirectDraw for a `width` x `height` screen of
+// `bitsPerPixel` (16 or 32): from now on WithoutDirectDraw() is true. Returns the IDirectDraw7
+// stand-in.
+IDirectDraw7* StartWithoutDirectDraw(int width, int height, int bitsPerPixel);
+// The IDirect3DDevice7 stand-in, its states back at a new device's.
+IDirect3DDevice7* NullDirect3DDevice();
+// The screen's pixel format for a colour depth: 16 bits 5:6:5, otherwise X8R8G8B8.
+void ScreenFormat(int bitsPerPixel, DDPIXELFORMAT* format);
+// The texture formats of the switch-over device (in place of IDirect3DDevice7::EnumTextureFormats):
+// 5:6:5, 1:5:5:5, 4:4:4:4, 8:8:8:8, DXT1 and DXT3, as the old device listed them.
+const DDPIXELFORMAT* SwitchOverTextureFormats(int* count);
+
 } // namespace device

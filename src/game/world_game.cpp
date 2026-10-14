@@ -381,12 +381,12 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         else if (ticks <= 0) return result;
         // The centre of the exit's deploy rectangle.
         const MapExit* exit = zoneRecord->exits.data + entrance;
-        float point[3];
-        point[0] = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * GameFloat(kHalf));
-        point[1] = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * GameFloat(kHalf));
-        point[2] = 0.0f;
+        Vector3 point;
+        point.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * GameFloat(kHalf));
+        point.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * GameFloat(kHalf));
+        point.z = 0.0f;
         for (int i = ticks; i != 0; --i) {
-            WorldWakeUnits(World(), nullptr, reinterpret_cast<const Vector3*>(point), kCatchUpRadius);
+            WorldWakeUnits(World(), nullptr, &point, kCatchUpRadius);
             TickAt(World(), nullptr, 1);
         }
     }
@@ -1251,7 +1251,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         PlayerAttach(player, nullptr, connection);
         player->dirty = 0xFFFFFFFFu;
         player->unknown100 = unknown12D64_;
-        std::memcpy(&player->server->lastPosition_, startPosition_, 12);
+        std::memcpy(&player->server->lastPosition_, &startPosition_, 12);
         int id = player->id;
         void* log = OstreamPutLong(OstreamPutString(kNetLog, nullptr, Text(kAcceptedPlayer)), nullptr, id);
         OstreamManipulate(OstreamPutChar(log, nullptr, '\n'), nullptr, kFlush);

@@ -214,8 +214,7 @@ bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* po
     volatile float dx = point[0] - unit->position.x;
     volatile float dy = point[1] - unit->position.y;
     volatile float dz = point[2] - unit->position.z;
-    double lengthSq = static_cast<double>(dz) * dz + static_cast<double>(dy) * dy;
-    lengthSq = lengthSq + static_cast<double>(dx) * dx;
+    double lengthSq = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
     volatile float ux = static_cast<float>(dx / lengthSq);
     volatile float uy = static_cast<float>(dy / lengthSq);
     volatile float uz = static_cast<float>(dz / lengthSq);
@@ -377,8 +376,8 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis;
     unit->orientation.AxisY(&axis);
-    volatile float facing[3] = {-axis.x, -axis.y, -axis.z};
-    volatile float heading = static_cast<float>(Fpatan(facing[1], facing[0]));
+    volatile Vector3 facing = {-axis.x, -axis.y, -axis.z};
+    volatile float heading = static_cast<float>(Fpatan(facing.y, facing.x));
     float forward, turnSpeed;
     unit->GetMoveSpeeds(&forward, &turnSpeed);
     volatile float halfTurn = kPi / turnSpeed;
@@ -391,10 +390,10 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     Vector3 aim;
     if (order->target) ObjectSlots(order->target)->AimPoint(&aim);
     else std::memcpy(&aim, &order->point, sizeof(aim));
-    volatile float delta[3];
-    delta[0] = aim.x - origin.x;
-    delta[1] = aim.y - origin.y;
-    delta[2] = aim.z - origin.z;
+    volatile Vector3 delta;
+    delta.x = aim.x - origin.x;
+    delta.y = aim.y - origin.y;
+    delta.z = aim.z - origin.z;
     double ox = static_cast<double>(origin.x) - aim.x;
     double oy = static_cast<double>(origin.y) - aim.y;
     volatile float distanceSq = static_cast<float>(LengthSquared2DUnrounded(oy, ox));
@@ -410,8 +409,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
         reachSq = static_cast<float>(static_cast<double>(range) * range);
         bool inFront = false;
         if (!Greater(distanceSq, reachSq)) {
-            double dot = static_cast<double>(delta[2]) * facing[2] + static_cast<double>(facing[1]) * delta[1];
-            dot = dot + static_cast<double>(facing[0]) * delta[0];
+            double dot = DotUnrounded<Sum3::ZYX, double>(delta.x, delta.y, delta.z, facing.x, facing.y, facing.z);
             double cone = x87::fsqrt(distanceSq) * kFrontCosine;
             inFront = LessOrUnordered(cone, dot);
         }
@@ -465,11 +463,11 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
             Vector3 scratch;
             const Vector3* p = ObjectSlots(order->target)->PositionAt(&scratch, tick + castDelay + duration + now);
             std::memcpy(&aim, p, sizeof(aim));
-            delta[0] = aim.x - origin.x;
-            delta[1] = aim.y - origin.y;
-            delta[2] = aim.z - origin.z;
+            delta.x = aim.x - origin.x;
+            delta.y = aim.y - origin.y;
+            delta.z = aim.z - origin.z;
         }
-        double squared = static_cast<double>(delta[1]) * delta[1] + static_cast<double>(delta[0]) * delta[0];
+        double squared = LengthSquared2DUnrounded<double>(delta.y, delta.x);
         volatile float stored = static_cast<float>(squared);
         bool tryHere = true;
         if (Greater(squared, reach)) {
@@ -483,12 +481,12 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
             }
         }
         if (tryHere) {
-            bool facingIt = (ZeroOrUnordered(delta[0]) && ZeroOrUnordered(delta[1])) ||
+            bool facingIt = (ZeroOrUnordered(delta.x) && ZeroOrUnordered(delta.y)) ||
                             (targetUnit && targetUnit->id_ == unit->id_);
             float turnSeen = 0.0f;
             int turnTicks = -1;
             if (!facingIt) {
-                volatile float turn = static_cast<float>(Fpatan(delta[1], delta[0]) - heading);
+                volatile float turn = static_cast<float>(Fpatan(delta.y, delta.x) - heading);
                 turn = std::bit_cast<float>(Bits(turn) & 0x7FFFFFFFu);
                 turnSeen = turn;
                 double angle = turn;
@@ -513,9 +511,9 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
                 for (int i = 0; i < steps.count; ++i) plan->animation.steps[i] = steps.steps[i];
                 plan->animation.extra = steps.extra;
                 plan->notSkill = order->source != kSkillSource;
-                plan->direction.x = delta[0];
-                plan->direction.y = delta[1];
-                plan->direction.z = delta[2];
+                plan->direction.x = delta.x;
+                plan->direction.y = delta.y;
+                plan->direction.z = delta.z;
                 if (order->kind == kOrderCast || order->kind == kOrderCastAt) FillCastKind(plan, spell);
                 DestroySteps(&steps);
                 return true;

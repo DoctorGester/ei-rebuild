@@ -248,7 +248,7 @@ void CTransformObject::Rotate(const Vector3& axis, float angle) {
     double x = ((D(q.z) * r.y - D(q.y) * r.z) + D(q.w) * r.x) + D(r.w) * q.x;
     float y = Store(((D(q.x) * r.z - D(q.z) * r.x) + D(r.w) * q.y) + D(q.w) * r.y);
     float z = Store(((D(q.y) * r.x - D(r.y) * q.x) + D(r.w) * q.z) + D(q.w) * r.z);
-    double w = D(r.w) * q.w - SumOfProductsUnrounded<Sum3::ZYX, double>(r.x, r.y, r.z, q.x, q.y, q.z);
+    double w = D(r.w) * q.w - DotUnrounded<Sum3::ZYX, double>(r.x, r.y, r.z, q.x, q.y, q.z);
     q.y = y;
     q.z = z;
     q.w = Store(w);

@@ -89,7 +89,7 @@ void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
     float nx = Store(((cy * qz - cz * qy) + cx * qw) + cw * qx);
     float ny = Store(((cz * qx - cx * qz) + cw * qy) + cy * qw);
     float nz = Store(((cx * qy - cy * qx) + cw * qz) + cz * qw);
-    float nw = Store(cw * qw - SumOfProductsUnrounded<Sum3::ZYX>(cx, cy, cz, qx, qy, qz));
+    float nw = Store(cw * qw - DotUnrounded<Sum3::ZYX>(cx, cy, cz, qx, qy, qz));
     y = ny;
     z = nz;
     w = nw;
@@ -106,7 +106,7 @@ Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a,
     double nz = ((cx * ay - cy * ax) + cz * aw) + cw * az;
     double ny = ((cz * ax - cx * az) + cw * ay) + cy * aw;
     double nx = ((cy * az - cz * ay) + cw * ax) + cx * aw;
-    double nw = cw * aw - SumOfProductsUnrounded<Sum3::XYZ>(cx, cy, cz, ax, ay, az);
+    double nw = cw * aw - DotUnrounded<Sum3::XYZ>(cx, cy, cz, ax, ay, az);
     out->w = Store(nw);
     out->x = Store(nx);
     out->y = Store(ny);

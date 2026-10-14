@@ -53,7 +53,7 @@ void Quaternion::PreMultiply(const Quaternion& r) {
     float nx = ((z * r.y - r.z * y) + r.w * x) + r.x * w;
     float ny = ((r.z * x - r.x * z) + r.w * y) + w * r.y;
     float nz = ((r.x * y - r.y * x) + z * r.w) + r.z * w;
-    float nw = r.w * w - SumOfProductsUnrounded<Sum3::ZXY>(r.x, r.y, r.z, x, y, z);
+    float nw = r.w * w - DotUnrounded<Sum3::ZXY>(r.x, r.y, r.z, x, y, z);
     w = nw;
     x = nx;
     y = ny;

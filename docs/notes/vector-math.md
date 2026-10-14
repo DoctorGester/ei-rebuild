@@ -131,10 +131,12 @@ All `__forceinline`, by value:
 | `Conjugate(q)` | `(w, -x, -y, -z)` |
 | `RoundToFloat(double)` | volatile float store (replaces the local Store / StoreFloat / Round copies) |
 | `LengthSquared2DUnrounded<T>(x, y)`, `DistanceSquaredXYUnrounded<T>(a, b)` (V3b; precise off, nothing stored) | `x*x + y*y`; `dy = a.y - b.y`, then `dx`, `dx*dx + dy*dy`, in T (`double` where the site keeps the x87 value, `float` for float locals) |
-| `Dot2DUnrounded<T>(ax, ay, bx, by)` (V3e; precise off) | `ax*bx + ay*by` |
-| `SumOfProductsUnrounded<Sum3, T>(x, y, z, x', y', z')`, `LengthSquaredUnrounded<Sum3, T>(x, y, z)` / `(v)`, `DotUnrounded<Sum3, T>(a, b)` (V3e; precise off) | the named grouping of the three products, in T (deduced, or `double` where the site computes in double) |
+| `Dot2DUnrounded<T>(x, y, x2, y2)`, `DotUnrounded<Sum3, T>(x, y, z, x2, y2, z2)`, `LengthSquaredUnrounded<Sum3, T>(x, y, z)` (V3c; precise off, on the caller's scalars) | `x*x2 + y*y2`; the named grouping of the three products, in T |
+| `DotUnrounded<Sum3, T>(a, b)`, `LengthSquaredUnrounded<Sum3, T>(v)` (V3d; Vector3 forms of the above; T defaults to float since V3e) | the same sums on the members; `double` in a precise region (a float-typed result is rounded on return there) |
+| `AxisXUnrounded<T>(q)` (V3c; precise off; returns `AxisUnrounded<T>` {x, y, z}) | 0040D940's X axis, `(w^2 - ((y^2 + z^2) + x^2)) + 2x^2`, `2(wz + xy)`, `2(xz - wy)`, each doubling an addition |
+| `RotatedAxisY(q)` (V3c; precise; no intermediate stores since V3e) | AxisY 0040F560 and its inlined copies 00547280 / 005CA410: `2(yx - wz)`, `(w^2 - ((x^2 + z^2) + y^2)) + 2y^2`, `2(yz + wx)`, each component rounded to float |
 | `DotWZYXUnrounded<T>(a, b)` (V3e; precise off) | quaternion dot `((w*w' + z*z') + y*y') + x*x'` (Slerp 0049ED20) |
-| `RotatedAxisX / Y / Z(q)` (V3e; precise) | Quaternion::AxisX / Y / Z's orders (0040D940 / 0040F560 / 0040D6B0), each component rounded to float |
+| `RotatedAxisX / Z(q)` (V3e; precise) | Quaternion::AxisX 0040D940 / AxisZ 0040D6B0's orders, each component rounded to float |
 | `Atan2(y, x)` | `x87::fpatan` (include/ei/x87.h), unrounded double |
 | `Acos(c)`, `Asin(s)` | the game's CRT `acos` 006E7334 / `asin` 006E83D4 (`gamecrt::`, src/lib/crt.h): the C entries of the bodies behind _CIacos 006E7320 / _CIasin 006E83C0; unrounded double |
 
@@ -228,16 +230,68 @@ identical, or only stack slots / scheduling / commuted FMUL operands.
   UpdateCombat keep `LengthSquared2DUnrounded(dx, dy)` instead of the Vector3 form). The x87 stackifier is sensitive to
   any inlined call: compare every function, not only the edited lines. The rest of the counted sites in these files are
   3D sums (batch 4) and quaternion axis forms.
+- Unit / AI / combat files (unit_*, ai_*, combat_* under src/game), V3c 2026-10-14: 77 -> 0 in those files (tree 332
+  -> 255). New forms in vecmath.h (table above): `Dot2DUnrounded`, `DotUnrounded<Sum3, T>`, `LengthSquaredUnrounded<Sum3,
+  T>` on scalars (most sites keep differences in double locals or volatile floats, so a Vector3 form would change the
+  code), `AxisXUnrounded<T>` and the precise `RotatedAxisY`. float[3] locals / members became Vector3 (ai_motion target,
+  combat_planning bestSpot / previous / aim with `AimPointInto(Vector3*)`, combat_sight's volatile facing / delta,
+  unit_ai AttackOrder::point, unit_client_animation / _effects / _sounds, unit_create_stats scale, unit_figure_queries
+  EffectPoint); forwarders taking `float*` (ObjectPartPositionOriginal, PartWorldPosition, ObjectSetFigureScaleOriginal,
+  CWorld::MoveObject) get `&v.x`. Every match was vector maths; nothing went to the counter's skip list.
+  Release objects compared function by function (dumpbin, all 114 files): 91 files identical; in the other 23 the
+  differences are stack slots, register choice, load order, commuted FADD / FMUL operands, compare operand order (same
+  NaN branch), exact float -> double conversions spilled as qwords (unit_ai_fear Evaluate, combat_sight PlanAction), and
+  volatiles read once instead of twice (combat_sight SomeoneInTheWay / PlanAction, unit_ai IsNearPath, unit_ai_modes
+  GuardMode::Execute, unit_hits IsBehind): same operations, same groupings, same bits. Each was read by hand.
+  Three sites needed more than spelling, all quaternion forms in /fp:fast code:
+  - unit_figure_queries Rotate: an inlined unrounded dot followed by the caller's `2.0f *` became (2xx' + d) + d with d =
+    yy' + zz' (a second rounding; written out it had been (2yy' + 2zz') + 2xx', exact). It uses the precise `DotZYX` /
+    `LengthSquaredXYZ` (`2 * round(dot)`, the same bits at 24 bits).
+  - combat_update StandStill (00547280) and unit_ai_sight Prepare (005CA410): the previous ports' written-out 2(yz + wx)
+    had already become (2wx + yz) + yz under /fp:fast, a second rounding the game does not make (it adds, FADD ST0,ST0,
+    then stores), and Prepare's -2(yx - wz) had become (wz - yx) + (wz - yx), +0 where the game's FCHS gives -0. Both now
+    use the precise `RotatedAxisY` and negate: the game's operations (rounding stores at 24 bits only). This changes
+    those two functions' z component in rare last-bit cases and the sign of a zero x, towards the original. Prepare's
+    wrapper compares with the original (CheckNear on the facing, every scenario with AI units); StandStill's checks
+    ours only.
+  Lesson: a precise-off helper is the written-out expression only while the caller does nothing more with its result;
+  `2 *`, doubling and negation of a fast helper's sum regroup (the same hazard the precise helpers exist for). Use the
+  unrounded forms for sums that are compared, stored, passed or square-rooted, and the precise forms (rounded result)
+  where the caller scales the sum and the function runs on the main thread.
+- Interface / camera / world files (ui_*, camera_*, world_* under src/game, other owners' files excluded), V3d
+  2026-10-14: 90 -> 0 in those files (tree 255 -> 165 after merging V3c). Fields: CUiMesh placement_ / scaleMatrix_
+  Matrix4, BriefingMover target / direction, CWorldServer::startPosition_ and world.h Platform's origin / axisU / axisV /
+  normal Vector3; PickGround / PickSurface / HoverPickSurface / AddFace / CCamera::Pan and the battle-command forwarders
+  take Vector3*. Sums use the V3c scalar forms or the new Vector3 forms with the original's grouping; world_client's plane
+  dots (SurfaceHeight XYZ, Contains / SurfacePlane ZYX) too, though the counter does not see them. ui_hero_panels'
+  `stored[3]` (strength / dexterity / intelligence) was reworded to `storedStats` (the counter skips stat names); nothing
+  went to the skip list. Member-wise Vector3 copies stay member-wise: a struct copy turns FLD / FSTP into MOV.
+  Release objects compared function by function against the base commit with a symbolic x87 comparison (expression trees
+  of every store, call argument, compare and return over the control-flow graph; + and * commuted; FSTP/FLD float
+  round trips kept as roundings), and the remaining diffs read by hand: values and calls the same everywhere; differences
+  are stack slots (HoverUnit shares one Vector3 slot between its two picks), scheduling (DepthLess::Less calls the pure
+  MapObject later), register choice, address operand order (BuildMarkers), renamed helpers (Normalised ->
+  NormalisedUnlessZero, ui_hero_preview's out-of-line DotUnrounded -> DotCall) and camera::D. camera::D is `inline`, not
+  `__forceinline`, and camera.cpp / camera_motion.cpp call it out of line (about 200 calls); a sum moved into a helper
+  no longer calls it, which is the same value (D only widens). Two sites needed more than spelling:
+  - ui_briefing_dialogue StartPhrases axis X: `Dot2DUnrounded(x, y, z, w) * 2.0` regrouped to xz + (xz + 2wy) (the V3c
+    lesson again). The original doubles before multiplying, (2x)z + (2y)w; `Dot2DUnrounded<double>(x * 2.0, y * 2.0, z, w)`
+    compiles to x(2z) + (2y)w, the same value (doubling is exact).
+  - world_rules DepthLess::Less is in a precise region: `DotUnrounded<Sum3::ZYX, float>` rounded the dot to float before
+    the plane offset was added; `double` keeps it on the FPU as the written-out sum did.
 - Batch V3e 2026-10-14 (particle, terrain, scene, figure, map object, lightning, magic, sound, face, ground, link,
-  sector, sky, lever, quaternion, maths and core_* files in src/game): 126 -> 1 counted sites in these files, 332 -> 207
-  in the tree. Helpers added to vecmath.h (table in section 5): the unrounded 3-term forms in a named grouping
-  (`SumOfProductsUnrounded`, `LengthSquaredUnrounded`, `DotUnrounded`), `Dot2DUnrounded`, `DotWZYXUnrounded`, compiled
-  with precise off like V3b's 2D forms, and the precise `RotatedAxisX / Y / Z`. Why both kinds: precise helpers inlined
+  sector, sky, lever, quaternion, maths and core_* files in src/game): 126 -> 1 counted sites in these files (tree 332
+  -> 207 on its own; 40 after merging V3c / V3d). Helpers: the same unrounded forms as V3c / V3d (written in
+  parallel as SumOfProductsUnrounded and merged into V3c's `DotUnrounded` names; the Vector3 forms' T now defaults to
+  float), `DotWZYXUnrounded`, and the precise `RotatedAxisX / Z` beside V3c's `RotatedAxisY`. AxisY uses that one, which lost its float
+  locals: a precise body rounds them through memory, and 0040F560, 00547280 and 005CA410 keep `yx - wz`, `y^2` and
+  `yz + wx` on the FPU until the FADD ST0, ST0 (CUnitServer::StandStill and AIViewer::Prepare lose three FSTP / FLD
+  pairs each and are otherwise the same code; nothing changes at 24 bits). Why both kinds: precise helpers inlined
   into /fp:fast code spill scalar or reference-to-float arguments, round a float cast of the result, and push other
   inlining out of line (StoreFloat, fabs became calls in UpdateWorld); the unrounded forms compile to the written-out
   code. But a precise-off body is regrouped with the caller's arithmetic: `2.0f * Dot(...)` became `(2xx' + s) + s`
   (two roundings where the original has one). Sites that double a dot therefore double the operands, `(2u) . v`
-  (`SumOfProductsUnrounded<Sum3::ZXY>(ux * 2.0f, ...)`; what /fp:fast makes of the written-out sum, and exact at 24
+  (`DotUnrounded<Sum3::ZXY>(ux * 2.0f, ...)`; what /fp:fast makes of the written-out sum, and exact at 24
   bits): Transform::UpdateWorld, CObject3D::PartWorldPosition. The quaternion axis forms use the precise
   `RotatedAxis*`, which take the quaternion by reference and store floats. A two-term sum's operands commute exactly, so
   `(y + x) + z` is XYZ and `(y + z) + x` is ZYX; there are only the three groupings. Each function changed was compared

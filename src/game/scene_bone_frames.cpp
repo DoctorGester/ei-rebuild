@@ -80,9 +80,9 @@ void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, 
             float m20 = xz - yw, m21 = yz + xw, m22 = one - (xx + yy);
             Vector3& offset = bone->position_;
             Vector3 dd = offset;
-            offset.x = SumOfProductsUnrounded<Sum3::ZXY>(m00, m01, m02, dd.x, dd.y, dd.z);
-            offset.y = SumOfProductsUnrounded<Sum3::ZXY>(m10, m11, m12, dd.x, dd.y, dd.z);
-            offset.z = SumOfProductsUnrounded<Sum3::ZXY>(m20, m21, m22, dd.x, dd.y, dd.z);
+            offset.x = DotUnrounded<Sum3::ZXY>(m00, m01, m02, dd.x, dd.y, dd.z);
+            offset.y = DotUnrounded<Sum3::ZXY>(m10, m11, m12, dd.x, dd.y, dd.z);
+            offset.z = DotUnrounded<Sum3::ZXY>(m20, m21, m22, dd.x, dd.y, dd.z);
 
             Vector3& rest = bone->restPosition_;
             rest.x = rest.x - origin.x;

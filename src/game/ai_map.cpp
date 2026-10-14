@@ -311,7 +311,7 @@ constexpr float kMinVisibility = 0.0001f;
 float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
     float dx = to->x - from->x, dy = to->y - from->y;
     float dz = to->z - from->z;
-    float length = static_cast<float>(x87::fsqrt(dz * dz + dy * dy + dx * dx) / (1.0f * 0.5f));   // half-cells
+    float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) / (1.0f * 0.5f));   // half-cells
     if (length == 0.0f || x87::IsNaN(length)) return 1.0f;   // FCOM sets "equal" for NaN too
     float inverse = 1.0f / length;
     int steps = x87::fistp(length);

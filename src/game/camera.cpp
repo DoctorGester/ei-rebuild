@@ -210,18 +210,18 @@ int CCamera::PlaybackStep(float time) {
 }
 EI_REPLACE_METHOD(0x0040EFB0, CCamera::PlaybackStep);
 
-void CCamera::Pan(const float* direction) {
+void CCamera::Pan(const Vector3* direction) {
     Vector3 right;
     localRotation_.AxisX(&right);
     const Quaternion& r = localRotation_;
     Vector3 up;
-    up.z = Store((D(r.w) * r.x + D(r.y) * r.z) * 2.0);
-    up.y = Store((D(r.w) * r.w - ((D(r.x) * r.x + D(r.z) * r.z) + D(r.y) * r.y)) + D(r.y) * r.y * 2.0);
+    up.z = Store(Dot2DUnrounded<double>(r.w, r.y, r.x, r.z) * 2.0);
+    up.y = Store((D(r.w) * r.w - LengthSquaredUnrounded<Sum3::ZXY, double>(r.x, r.y, r.z)) + D(r.y) * r.y * 2.0);
     up.x = Store((D(r.y) * r.x - D(r.w) * r.z) * 2.0);
-    double k1 = (1.0 / x87::fsqrt(D(right.y) * right.y + D(right.x) * right.x)) * direction[0];
+    double k1 = (1.0 / x87::fsqrt(LengthSquared2DUnrounded<double>(right.y, right.x))) * direction->x;
     right.x = Store(k1 * right.x);
     double rightY = k1 * right.y;
-    double k2 = (1.0 / x87::fsqrt(D(up.y) * up.y + D(up.x) * up.x)) * direction[1];
+    double k2 = (1.0 / x87::fsqrt(LengthSquared2DUnrounded<double>(up.y, up.x))) * direction->y;
     up.x = Store(k2 * up.x);
     double upY = k2 * up.y;
     offsetA4_.x = Store(D(up.x) + right.x);
@@ -292,14 +292,14 @@ void CCamera::ApplyView() {
     std::memcpy(&localRotation_, &viewRotation_, sizeof(Quaternion));
     const Quaternion s = localRotation_;
     Vector3 axis;
-    axis.x = Store((D(s.w) * s.w - ((D(s.z) * s.z + D(s.y) * s.y) + D(s.x) * s.x)) + D(s.x) * s.x * 2.0);
-    axis.y = Store((D(s.x) * s.y + D(s.z) * s.w) * 2.0);
+    axis.x = Store((D(s.w) * s.w - LengthSquaredUnrounded<Sum3::ZYX, double>(s.x, s.y, s.z)) + D(s.x) * s.x * 2.0);
+    axis.y = Store(Dot2DUnrounded<double>(s.x, s.z, s.y, s.w) * 2.0);
     axis.z = Store((D(s.x) * s.z - D(s.y) * s.w) * 2.0);
     Quaternion q;
     q.SetAngleAxis(Store(-(CAM_RIGHT_ANGLE + angle)), axis);
     float y = Store(((D(q.z) * s.x - D(s.z) * q.x) + D(s.w) * q.y) + D(s.y) * q.w);
     float z = Store(((D(q.x) * s.y - D(s.x) * q.y) + D(s.w) * q.z) + D(s.z) * q.w);
-    float w = Store(D(s.w) * q.w - ((D(s.x) * q.x + D(q.z) * s.z) + D(q.y) * s.y));
+    float w = Store(D(s.w) * q.w - DotUnrounded<Sum3::ZXY, double>(s.x, s.y, s.z, q.x, q.y, q.z));
     float x = Store(((D(s.z) * q.y - D(q.z) * s.y) + D(s.w) * q.x) + D(s.x) * q.w);
     localRotation_.y = y;
     localRotation_.z = z;
@@ -374,7 +374,7 @@ void CCamera::Update(float dt) {
     }
     if (snap) std::memcpy(&velocity, &wanted, sizeof(Vector3));
 
-    if ((D(velocity.x) * velocity.x + D(velocity.y) * velocity.y) + D(velocity.z) * velocity.z > 0.0) {
+    if (LengthSquaredUnrounded<Sum3::XYZ, double>(velocity) > 0.0) {
         const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
         double scale = (D(distance_) - limits.min) / ((D(limits.max) - limits.min) * kPanZoomSpan) + kTrackGain;
         double moveX = D(dt) * velocity.x;
@@ -391,7 +391,7 @@ void CCamera::Update(float dt) {
         if (flags_ & kBounded) {
             double bx = D(focus_.x) - boundsCenter_.x;
             double by = D(focus_.y) - boundsCenter_.y;
-            double d2 = by * by + bx * bx;
+            double d2 = LengthSquared2DUnrounded(by, bx);
             double radius = boundsRadius_;
             if (d2 > radius * radius) {
                 double inv = 1.0 / x87::fsqrt(d2);
@@ -434,7 +434,7 @@ void CCamera::Update(float dt) {
         float x = Store(((D(r.z) * q.y - D(r.y) * q.z) + D(q.w) * r.x) + D(r.w) * q.x);
         float y = Store(((D(r.x) * q.z - D(r.z) * q.x) + D(q.w) * r.y) + D(r.w) * q.y);
         float z = Store(((D(r.y) * q.x - D(q.y) * r.x) + D(r.z) * q.w) + D(r.w) * q.z);
-        float w = Store(D(q.w) * r.w - ((D(q.y) * r.y + D(r.z) * q.z) + D(r.x) * q.x));
+        float w = Store(D(q.w) * r.w - DotUnrounded<Sum3::ZYX, double>(q.x, q.y, q.z, r.x, r.y, r.z));
         viewRotation_.z = z;
         viewRotation_.y = y;
         viewRotation_.w = w;
@@ -530,7 +530,7 @@ void CCamera::ViewsToSettings(CameraSettings* settings) {
         CopyFloat(&r.distance, &v.distance);
         CopyFloat(&r.pitch, &v.pitch);
         const Quaternion& q = v.rotation;
-        double sum = (D(q.z) * q.z + D(q.x) * q.x) + D(q.y) * q.y;
+        double sum = LengthSquaredUnrounded<Sum3::ZXY, double>(q.x, q.y, q.z);
         float sumF = Store(sum);
         if (sum > kAxisTiny) {
             double angle = CIacos(q.w);

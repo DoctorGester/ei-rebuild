@@ -564,10 +564,11 @@ bool SameRecord(const char* name, const Platform* theirs, const Platform* mine) 
 } // namespace
 
 // 00560650: MOV EAX,[ESP+0x14]; SUB ESP,0x64 (7 bytes).
-using AddFaceFn = int(__fastcall*)(PlatformSet*, void*, const float*, const float*, const float*, const float*, Platform**);
+using AddFaceFn = int(__fastcall*)(PlatformSet*, void*, const Vector3*, const Vector3*, const Vector3*, const Vector3*,
+                                   Platform**);
 static AddFaceFn s_addFace;
-static int __fastcall AddFaceVerify(PlatformSet* set, void*, const float* a, const float* b, const float* c,
-                                    const float* normal, Platform** out) {
+static int __fastcall AddFaceVerify(PlatformSet* set, void*, const Vector3* a, const Vector3* b, const Vector3* c,
+                                    const Vector3* normal, Platform** out) {
     int result = s_addFace(set, nullptr, a, b, c, normal, out);
     Platform* theirs = *out;
     ScratchPlatforms scratch(set);
@@ -580,8 +581,8 @@ static int __fastcall AddFaceVerify(PlatformSet* set, void*, const float* a, con
         const float* y = reinterpret_cast<const float*>(mine);
         for (int i = 5; i < 19; ++i) ok = ok && NearFloat(x[i], y[i], 1e-5f);
     }
-    ei::verify::Check("PlatformSet::AddFace", true, ok, "normal (%g, %g, %g), result %d vs %d", normal[0], normal[1],
-                      normal[2], result, mineResult);
+    ei::verify::Check("PlatformSet::AddFace", true, ok, "normal (%g, %g, %g), result %d vs %d", normal->x, normal->y,
+                      normal->z, result, mineResult);
     return result;
 }
 EI_VERIFY(0x00560650, AddFaceVerify, 7, s_addFace);

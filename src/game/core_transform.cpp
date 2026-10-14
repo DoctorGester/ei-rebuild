@@ -37,7 +37,7 @@ CTransformObject* CTransformObject::CopyTransform(const CTransformObject& other)
 
 void CTransformObject::CombineRotation(const Quaternion& g) {
     const Quaternion& f = localRotation_;
-    float w = f.w * g.w - SumOfProductsUnrounded<Sum3::XYZ>(f.x, f.y, f.z, g.x, g.y, g.z);
+    float w = f.w * g.w - DotUnrounded<Sum3::XYZ>(f.x, f.y, f.z, g.x, g.y, g.z);
     float x = ((f.z * g.y - f.y * g.z) + f.x * g.w) + f.w * g.x;
     float y = ((f.x * g.z - f.z * g.x) + f.y * g.w) + f.w * g.y;
     float z = ((f.y * g.x - f.x * g.y) + f.z * g.w) + f.w * g.z;
@@ -57,7 +57,7 @@ void CTransformObject::UpdateWorld(const Quaternion& q, const Vector3& p) {
     CombineRotation(q);
     const float ux = q.x, uy = q.y, uz = q.z;
     const Vector3& l = localPosition_;
-#define EI_DOT2 SumOfProductsUnrounded<Sum3::ZXY>(ux * 2.0f, uy * 2.0f, uz * 2.0f, l.x, l.y, l.z)
+#define EI_DOT2 DotUnrounded<Sum3::ZXY>(ux * 2.0f, uy * 2.0f, uz * 2.0f, l.x, l.y, l.z)
     Vector3 along = {StoreFloat(EI_DOT2 * ux), StoreFloat(uy * EI_DOT2), StoreFloat(uz * EI_DOT2)};
 #undef EI_DOT2
     Vector3 cross = {StoreFloat(uy * l.z - uz * l.y), StoreFloat(uz * l.x - ux * l.z),

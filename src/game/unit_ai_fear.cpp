@@ -120,7 +120,7 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     double ex = static_cast<double>(dest.x) - end.x;
     double ey = static_cast<double>(dest.y) - end.y;
     double ez = static_cast<double>(dest.z) - end.z;
-    if (!(ez * ez + ey * ey + ex * ex < kOne)) return false;
+    if (!(LengthSquaredUnrounded<Sum3::ZYX>(ex, ey, ez) < kOne)) return false;
     *out = dest;
     return true;
 }
@@ -137,8 +137,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         float x = Round(static_cast<double>(me->x) - at->x);
         float y = Round(static_cast<double>(me->y) - at->y);
         float z = Round(static_cast<double>(me->z) - at->z);
-        float reach = Round(std::sqrt(static_cast<double>(x) * x + static_cast<double>(z) * z +
-                                      static_cast<double>(y) * y) * kSeenScale);
+        float reach = Round(std::sqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(x, y, z)) * kSeenScale);
         // The larger of the two; an unordered pair takes the new one.
         if (!(distance >= reach)) distance = reach;
     }
@@ -242,7 +241,7 @@ void FearMode::Execute(AIBrain* brain) {
             double vy = static_cast<double>(from.y) - here->y;
             double vz = static_cast<double>(from.z) - here->z;
             Vector3 step{Round(vx), Round(vy), Round(vz)};
-            float length = Round(std::sqrt(vx * vx + vy * vy + vz * vz));
+            float length = Round(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(vx, vy, vz)));
             float limit = Round(static_cast<double>(distance) * kSpreadScale);
             // The smaller of the two; an unordered pair keeps the old spread.
             float width = (spread < limit || x87::IsNaN(spread) || x87::IsNaN(limit)) ? spread : limit;

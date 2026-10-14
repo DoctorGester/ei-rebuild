@@ -58,7 +58,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         double reach = static_cast<double>(other->standingHeight) + unitHeight;
         double dy = static_cast<double>(position->y) - other->position.y;
         double dx = static_cast<double>(position->x) - other->position.x;
-        if (dx * dx + dy * dy >= reach * reach) continue;
+        if (LengthSquared2DUnrounded(dx, dy) >= reach * reach) continue;
         if (other->IsDead() != 0) continue;
 
         int unitX = CellOf(unit->position.x);
@@ -238,11 +238,10 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
             float dx = Store(static_cast<double>(cell.x) - eye->x);
             float dy = Store(static_cast<double>(cell.y) - eye->y);
             float dz = Store(-static_cast<double>(eye->z));
-            float distance = Store(x87::fsqrt(static_cast<double>(dy) * dy + static_cast<double>(dx) * dx));
+            float distance = Store(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
             if (radius < distance || x87::IsNaN(radius) || x87::IsNaN(distance)) continue;
             if (!anyDirection) {
-                double dot = static_cast<double>(dz) * look->z + static_cast<double>(dy) * look->y;
-                dot = dot + static_cast<double>(dx) * look->x;
+                double dot = DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, look->x, look->y, look->z);
                 if (static_cast<double>(distance) * cosLimit > dot) continue;
             }
             if (!noLineOfSight) {

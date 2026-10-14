@@ -96,7 +96,7 @@ float* CObject3D::PartWorldPosition(float* out, const FigurePart* part) {
     const float vx = part->position.x, vy = part->position.y, vz = part->position.z;
     // 2(u.v) with the doubling on u, as /fp:fast spreads it over the written-out sum (an inlined
     // 2.0f * Dot regroups to (2xx + s) + s).
-    float twiceDot = SumOfProductsUnrounded<Sum3::ZYX>(ux * 2.0f, uy * 2.0f, uz * 2.0f, vx, vy, vz);
+    float twiceDot = DotUnrounded<Sum3::ZYX>(ux * 2.0f, uy * 2.0f, uz * 2.0f, vx, vy, vz);
     float twiceW = w + w;
     float crossX = uy * vz - uz * vy;
     float crossY = uz * vx - vz * ux;

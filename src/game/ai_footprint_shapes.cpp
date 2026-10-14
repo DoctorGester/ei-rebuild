@@ -72,14 +72,14 @@ void __fastcall FootprintAlongDirection(FootprintCellSet* set, void*, CAIMap* ma
     float cx = StoreFloat(static_cast<float>(scale * position->x));
     float cy = StoreFloat(static_cast<float>(scale * position->y));
     double dx = direction->x, dy = direction->y, dz = direction->z;
-    double length = x87::fsqrt(dx * dx + dy * dy + dz * dz);
+    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz));
     double reach = length * scale + static_cast<double>(GameFloat(kOne));
     float r = StoreFloat(static_cast<float>(reach));
     float r2 = StoreFloat(static_cast<float>(reach * r));
     // The side normal (-dy, dx), divided by its length times the scaled width plus one.
     float nx = -direction->y;
     float ny = direction->x;
-    double side = x87::fsqrt(static_cast<double>(ny) * ny + static_cast<double>(nx) * nx);
+    double side = x87::fsqrt(LengthSquared2DUnrounded<double>(ny, nx));
     double divisor = side * (scale * width + static_cast<double>(GameFloat(kOne)));
     nx = StoreFloat(static_cast<float>(nx / divisor));
     ny = StoreFloat(static_cast<float>(ny / divisor));
@@ -90,8 +90,8 @@ void __fastcall FootprintAlongDirection(FootprintCellSet* set, void*, CAIMap* ma
         for (int x = b.x0; x <= b.x1; ++x) {
             float fy = StoreFloat(static_cast<float>(cy - static_cast<double>(y)));
             double fx = cx - static_cast<double>(x);
-            if (!(static_cast<double>(fy) * fy + fx * fx < r2)) continue;
-            if (!(static_cast<double>(fy) * ny + fx * nx < static_cast<double>(GameFloat(kOne)))) continue;
+            if (!(LengthSquared2DUnrounded<double>(fy, fx) < r2)) continue;
+            if (!(Dot2DUnrounded<double>(fy, fx, ny, nx) < static_cast<double>(GameFloat(kOne)))) continue;
             AddCell(set, x, y);
         }
 }

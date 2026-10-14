@@ -49,7 +49,7 @@ void __fastcall UiSurfaceBlit(CUiSurface* surface) {
 
     IDirectDrawSurface7* targetSurface = device::Surface(holder->device->renderTarget_);
     IDirectDrawSurface7* sourceSurface = device::Surface(holder);
-    if (targetSurface == sourceSurface) return;
+    if (device::SameSurface(holder->device->renderTarget_, holder)) return;
 
     if (render::Active()) {
         render::Rect destination{clipped.left, clipped.top, clipped.right, clipped.bottom};

@@ -230,7 +230,7 @@ __forceinline float NonNegative(float v) { return !(v >= 0.0f) ? 0.0f : v; }
 
 // 0056BF30 / 0056C350 share everything but the height function (which returns ST0 unrounded).
 template <typename Height>
-float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Height height) {
+Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, Height height) {
     MatrixDevice* device = Device();
     if (device->viewDepth == 0) {
         std::memcpy(out, NoPickPoint(), 12);
@@ -303,21 +303,21 @@ float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Heig
         }
     }
     if (device->pickDepth != 0) --device->pickDepth;
-    out[0] = outX;
-    std::memcpy(&out[1], &outY, 4);
-    std::memcpy(&out[2], &pz, 4);
+    out->x = outX;
+    std::memcpy(&out->y, &outY, 4);
+    std::memcpy(&out->z, &pz, 4);
     return out;
 }
 
 } // namespace
 
-float* CWorldClient::PickGround(float* out, int x, int y) {
+Vector3* CWorldClient::PickGround(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
         return TerrainHeightAtOriginal(terrain_, nullptr, px, py, 0);
     });
 }
 
-float* CWorldClient::PickSurface(float* out, int x, int y) {
+Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
         return GroundHeightAt(px, py);
     });

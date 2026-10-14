@@ -12,8 +12,10 @@
 #include <windows.h>
 #include <d3d11.h>
 #include <ddraw.h>
-#include <dxgi.h>
+#include <dxgi1_2.h>
 #include <float.h>
+
+#include "../game/texture.h"   // CTextureDevice, CDXSurface
 
 #include <cstdio>
 #include <cstdlib>
@@ -39,6 +41,7 @@ bool g_oldObjects = true;
 bool g_oldInterface = true;
 bool g_inWorld = false;
 bool g_failed = false;   // device or pipelines could not be created: the sidecar stays off
+bool g_presentsItself = false;   // StartPresenting succeeded: the game has no DirectDraw device
 
 void ParseSpec(const char* spec) {
     g_active = g_show = g_split = g_present = g_cpuWindows = false;
@@ -79,6 +82,14 @@ void ParseSpec(const char* spec) {
         g_show = g_split = g_present = g_cpuWindows = false;
         g_oldTerrain = g_oldObjects = g_oldInterface = true;
     }
+    if (g_presentsItself && !(g_active && g_present && g_cpuWindows)) {
+        // The game was built without DirectDraw (StartPresenting): only the new renderer can draw.
+        ei::Log("render: '%s' asks for the old path, but the game has no DirectDraw device: 'new,present' stays on",
+                spec ? spec : "");
+        g_active = g_present = g_cpuWindows = true;
+        g_show = g_split = false;
+        g_oldTerrain = g_oldObjects = g_oldInterface = false;
+    }
     g_configured = true;
     if (g_active)
         ei::Log("render: new renderer on (%s%s%s%s%s)", g_present ? "presenting" : g_show ? (g_split ? "split view" : "shown") : "off-screen",
@@ -86,11 +97,16 @@ void ParseSpec(const char* spec) {
                 g_oldInterface ? "" : ", old interface off", g_cpuWindows ? ", windows in game memory" : "");
 }
 
-void EnsureConfigured() {
-    if (g_configured) return;
+// EI_RENDER, or "".
+std::string EnvironmentSpec() {
     char spec[256];
     DWORD n = GetEnvironmentVariableA("EI_RENDER", spec, sizeof(spec));
-    ParseSpec(n > 0 && n < sizeof(spec) ? spec : "");
+    return n > 0 && n < sizeof(spec) ? std::string(spec) : std::string();
+}
+
+void EnsureConfigured() {
+    if (g_configured) return;
+    ParseSpec(EnvironmentSpec().c_str());
 }
 
 // --- Game memory -----------------------------------------------------------------------------------
@@ -326,11 +342,36 @@ bool CreateView(int width, int height) {
     if (factory) factory->Release();
     if (adapter) adapter->Release();
     if (dxgiDevice) dxgiDevice->Release();
-    ok = ok && CreateSwapView() && CreateShowPipeline();
+    ok = ok && CreateSwapView() && (g_blitPipeline.id || CreateShowPipeline());
     if (!ok) return false;
     g_viewWidth = width;
     g_viewHeight = height;
     return true;
+}
+
+// Draws the frame's `source` part (texture coordinates: left, top, right, bottom) over the whole
+// of `view` (`width` x `height`, BGRA8).
+void DrawFrameInto(ID3D11RenderTargetView* view, int width, int height, const float source[4]) {
+    sg_pass pass{};
+    pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
+    pass.swapchain.width = width;
+    pass.swapchain.height = height;
+    pass.swapchain.sample_count = 1;
+    pass.swapchain.color_format = SG_PIXELFORMAT_BGRA8;
+    pass.swapchain.depth_format = SG_PIXELFORMAT_NONE;
+    pass.swapchain.d3d11.render_view = view;
+    pass.label = "ei-show";
+    sg_begin_pass(&pass);
+    sg_apply_pipeline(g_blitPipeline);
+    sg_bindings b{};
+    b.views[0] = g_colourTexture;
+    b.samplers[0] = LinearSampler();
+    sg_apply_bindings(&b);
+    float uniforms[4] = {source[0], source[1], source[2], source[3]};
+    sg_range range{uniforms, sizeof(uniforms)};
+    sg_apply_uniforms(0, &range);
+    sg_draw(0, 3, 1);
+    sg_end_pass();
 }
 
 // Shows the frame in the child window: the whole client area, or its right half for "split" (the
@@ -362,27 +403,112 @@ void ShowFrame() {
         g_viewHeight = clientHeight;
     }
     SetWindowPos(g_view, HWND_TOP, x, 0, width, clientHeight, SWP_NOACTIVATE);
+    const float source[4] = {g_split ? 0.5f : 0.0f, 0.0f, 1.0f, 1.0f};
+    DrawFrameInto(g_swapView, width, clientHeight, source);
+}
 
-    sg_pass pass{};
-    pass.action.colors[0].load_action = SG_LOADACTION_DONTCARE;
-    pass.swapchain.width = width;
-    pass.swapchain.height = clientHeight;
-    pass.swapchain.sample_count = 1;
-    pass.swapchain.color_format = SG_PIXELFORMAT_BGRA8;
-    pass.swapchain.depth_format = SG_PIXELFORMAT_NONE;
-    pass.swapchain.d3d11.render_view = g_swapView;
-    pass.label = "ei-show";
-    sg_begin_pass(&pass);
-    sg_apply_pipeline(g_blitPipeline);
-    sg_bindings b{};
-    b.views[0] = g_colourTexture;
-    b.samplers[0] = LinearSampler();
-    sg_apply_bindings(&b);
-    float source[4] = {g_split ? 0.5f : 0.0f, 0.0f, 1.0f, 1.0f};
-    sg_range range{source, sizeof(source)};
-    sg_apply_uniforms(0, &range);
-    sg_draw(0, 3, 1);
-    sg_end_pass();
+// --- The game window's swap chain (the switch-over without DirectDraw) ------------------------------------
+
+// A flip-model swap chain on the game window (no DirectDraw or Direct3D 7 has touched it), its back
+// buffer the window's client size; the frame is drawn into it stretched (one to one when the
+// sizes agree) and presented with the vertical blank (no faster than the screen shows frames).
+// The window keeps its size and style: the full-screen mode change, the gamma ramp and lost
+// devices are ticket R9c's (docs/notes/renderer.md, section 9).
+IDXGISwapChain1* g_windowChain = nullptr;
+ID3D11RenderTargetView* g_windowView = nullptr;
+int g_windowWidth = 0, g_windowHeight = 0;
+bool g_windowFailed = false;
+int g_windowPresentFailures = 0;
+
+void ReleaseWindowView() {
+    if (g_windowView) g_windowView->Release();
+    g_windowView = nullptr;
+}
+
+bool CreateWindowView() {
+    ID3D11Texture2D* buffer = nullptr;
+    if (FAILED(g_windowChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&buffer)))) return false;
+    HRESULT hr = g_device->CreateRenderTargetView(buffer, nullptr, &g_windowView);
+    buffer->Release();
+    return SUCCEEDED(hr);
+}
+
+bool CreateWindowChain(HWND window, int width, int height) {
+    IDXGIDevice* dxgiDevice = nullptr;
+    IDXGIAdapter* adapter = nullptr;
+    IDXGIFactory2* factory = nullptr;
+    bool ok = SUCCEEDED(g_device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice))) &&
+              SUCCEEDED(dxgiDevice->GetAdapter(&adapter)) &&
+              SUCCEEDED(adapter->GetParent(__uuidof(IDXGIFactory2), reinterpret_cast<void**>(&factory)));
+    if (ok) {
+        DXGI_SWAP_CHAIN_DESC1 sd{};
+        sd.Width = static_cast<UINT>(width);
+        sd.Height = static_cast<UINT>(height);
+        sd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+        sd.SampleDesc.Count = 1;
+        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+        sd.BufferCount = 2;
+        sd.Scaling = DXGI_SCALING_STRETCH;
+        sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+        sd.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
+        HRESULT hr = factory->CreateSwapChainForHwnd(g_device, window, &sd, nullptr, nullptr, &g_windowChain);
+        if (FAILED(hr)) {
+            ei::Log("render: CreateSwapChainForHwnd failed (%08lX)", static_cast<unsigned long>(hr));
+            g_windowChain = nullptr;
+            ok = false;
+        }
+        // The game handles Alt+Enter and its window itself.
+        if (ok) factory->MakeWindowAssociation(window, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
+    }
+    if (factory) factory->Release();
+    if (adapter) adapter->Release();
+    if (dxgiDevice) dxgiDevice->Release();
+    if (!ok) return false;
+    if (!CreateWindowView()) return false;
+    if (!g_blitPipeline.id && !CreateShowPipeline()) return false;
+    g_windowWidth = width;
+    g_windowHeight = height;
+    ei::Log("render: presenting on the game window through a flip-model swap chain (%dx%d)", width, height);
+    return true;
+}
+
+// The frame into the window's back buffer (made or resized to the client area first). False when
+// there is nothing to present into (no window, minimised, the swap chain failed).
+bool DrawToWindow() {
+    if (g_windowFailed || !g_colour.id) return false;
+    HWND window = GameWindow();
+    RECT client{};
+    if (!window || !GetClientRect(window, &client)) return false;
+    int width = client.right - client.left, height = client.bottom - client.top;
+    if (width <= 0 || height <= 0) return false;
+    if (!g_windowChain) {
+        if (!CreateWindowChain(window, width, height)) {
+            ei::Log("render: cannot present on the game window; nothing is shown (captures still work)");
+            g_windowFailed = true;
+            return false;
+        }
+    }
+    if (width != g_windowWidth || height != g_windowHeight) {
+        ReleaseWindowView();
+        sg_reset_state_cache();
+        if (FAILED(g_windowChain->ResizeBuffers(0, static_cast<UINT>(width), static_cast<UINT>(height), DXGI_FORMAT_UNKNOWN, 0)) ||
+            !CreateWindowView()) {
+            ei::Log("render: cannot resize the game window's swap chain to %dx%d", width, height);
+            g_windowFailed = true;
+            return false;
+        }
+        g_windowWidth = width;
+        g_windowHeight = height;
+    }
+    const float whole[4] = {0.0f, 0.0f, 1.0f, 1.0f};
+    DrawFrameInto(g_windowView, width, height, whole);
+    return true;
+}
+
+void PresentWindow() {
+    HRESULT hr = g_windowChain->Present(1, 0);
+    if (FAILED(hr) && g_windowPresentFailures++ < 10)
+        ei::Log("render: the game window's Present failed (%08lX)", static_cast<unsigned long>(hr));
 }
 
 // --- The frame -----------------------------------------------------------------------------------------
@@ -425,16 +551,16 @@ std::uint32_t FrameNumber() { return g_frameNumber; }
 std::uint32_t CommitNumber() { return g_commits; }
 bool Started() { return EnsureStarted(); }
 
-char* DeviceObject() { return *reinterpret_cast<char**>(game::Where().deviceObject); }
+CTextureDevice* DeviceObject() { return *reinterpret_cast<CTextureDevice**>(game::Where().deviceObject); }
 
-// The size of the game's render target (the device object's +0x18, a CDXSurface: +0x14 width,
-// +0x18 height).
+// The size of the game's render target (in the switch-over a holder without a surface that still
+// has the screen's size).
 bool GameTargetSize(int* width, int* height) {
-    char* device = DeviceObject();
-    char* target = device ? *reinterpret_cast<char**>(device + 0x18) : nullptr;
+    CTextureDevice* device = DeviceObject();
+    const CDXSurface* target = device ? device->renderTarget_ : nullptr;
     if (!target) return false;
-    *width = *reinterpret_cast<int*>(target + 0x14);
-    *height = *reinterpret_cast<int*>(target + 0x18);
+    *width = target->width;
+    *height = target->height;
     return *width > 0 && *height > 0 && *width <= 16384 && *height <= 16384;
 }
 
@@ -451,10 +577,10 @@ void LockGameDevice() { EnterCriticalSection(reinterpret_cast<CRITICAL_SECTION*>
 void UnlockGameDevice() { LeaveCriticalSection(reinterpret_cast<CRITICAL_SECTION*>(game::Where().deviceLock)); }
 
 namespace {
-// The game's IDirect3DDevice7 (the device object's +0x54).
+// The game's IDirect3DDevice7 (in the switch-over the device object's stand-in, device.h).
 void* OldDevice() {
-    char* device = DeviceObject();
-    return device ? *reinterpret_cast<void**>(device + 0x54) : nullptr;
+    CTextureDevice* device = DeviceObject();
+    return device ? device->d3dDevice_ : nullptr;
 }
 } // namespace
 
@@ -511,7 +637,13 @@ Addresses& Where() {
 }
 } // namespace game
 
-void Configure(const char* spec) { ParseSpec(spec); }
+// The step's words, then EI_RENDER's.
+void Configure(const char* spec) {
+    std::string combined = spec ? spec : "";
+    std::string environment = EnvironmentSpec();
+    if (!environment.empty()) combined += (combined.empty() ? "" : ",") + environment;
+    ParseSpec(combined.c_str());
+}
 
 bool Active() {
     EnsureConfigured();
@@ -527,6 +659,19 @@ bool Presenting() {
     EnsureConfigured();
     return g_present && Active();
 }
+
+bool StartPresenting() {
+    if (g_presentsItself) return true;
+    if (!Presenting() || !EnsureStarted()) return false;
+    g_presentsItself = true;
+    // No DirectDraw surfaces for the windows either.
+    if (!g_cpuWindows) ei::Log("render: 'nocpuwindows' needs DirectDraw: the windows' pixels stay in game memory");
+    g_cpuWindows = true;
+    ei::Log("render: the switch-over without DirectDraw: the new renderer presents the frames itself");
+    return true;
+}
+
+bool PresentsItself() { return g_presentsItself; }
 
 bool DrawOldTerrain() {
     EnsureConfigured();
@@ -692,7 +837,7 @@ struct ChannelPack {
 
 bool CopyFrameTo(const void* holder, const Rect& source) {
     if (!holder || !Active() || !EnsureStarted()) return false;
-    auto* dd = *reinterpret_cast<IDirectDrawSurface7* const*>(static_cast<const char*>(holder) + 0x10);
+    auto* dd = static_cast<IDirectDrawSurface7*>(static_cast<const CDXSurface*>(holder)->surface);
     // In the switch-over a surface with memory of the renderer's is written there directly (no
     // DirectDraw); a holder made in the switch-over has nothing else.
     const SurfaceMemory* memory = SurfaceMemoryOf(holder);
@@ -777,15 +922,18 @@ void EndFrame() {
     FpuGuard fpu;
     if (!DrawPending()) return;
     ShowFrame();
+    // "present" without DirectDraw: onto the game window through the new renderer's swap chain.
+    bool toWindow = g_presentsItself && DrawToWindow();
     sg_commit();
     ++g_commits;
     if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(0, 0);
+    if (toWindow) PresentWindow();
     g_haveFrame = true;
-    // "present": into the game's render target (the device object's +0x18), which the old present
-    // then flips or copies to the screen.
-    if (g_present) {
-        char* device = DeviceObject();
-        const void* target = device ? *reinterpret_cast<void* const*>(device + 0x18) : nullptr;
+    // "present" turned on after the DirectDraw device was made: into the game's render target,
+    // which the old present then flips or copies to the screen.
+    if (g_present && !g_presentsItself) {
+        CTextureDevice* device = DeviceObject();
+        const CDXSurface* target = device ? device->renderTarget_ : nullptr;
         if (target && !CopyFrameTo(target, Rect{0, 0, g_width, g_height}) && g_presentFailures++ < 10)
             ei::Log("render: cannot copy the frame into the game's render target");
     }

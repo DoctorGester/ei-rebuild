@@ -141,7 +141,7 @@ template <Sum3 O>
 __declspec(noinline) float LengthSquaredUnroundedOf(const Vector3& v) { return LengthSquaredUnrounded<O>(v.x, v.y, v.z); }
 template <Sum3 O>
 __declspec(noinline) float TwiceDotUnroundedOf(const Vector3& a, const Vector3& b) {
-    return SumOfProductsUnrounded<O>(a.x * 2.0f, a.y * 2.0f, a.z * 2.0f, b.x, b.y, b.z);
+    return DotUnrounded<O>(a.x * 2.0f, a.y * 2.0f, a.z * 2.0f, b.x, b.y, b.z);
 }
 __declspec(noinline) Vector3 RotatedAxisOf(int axis, const Quaternion& q) {
     if (axis == 0) return RotatedAxisX(q) * 2.0f;
@@ -344,7 +344,7 @@ void TestUnrounded(Inputs& in) {
         for (int o = 0; o < 3; ++o) {
             Compare("DotUnrounded", o, RefDot(kOrders[o], a, b), dot[o], a, b);
             Compare("LengthSquaredUnrounded", o, RefDot(kOrders[o], a, a), squared[o], a, b);
-            Compare("SumOfProductsUnrounded(2a, b)", o, R(RefDot(kOrders[o], a, b) * 2.0f), twice[o], a, b);
+            Compare("DotUnrounded(2a, b)", o, R(RefDot(kOrders[o], a, b) * 2.0f), twice[o], a, b);
         }
     });
 }
