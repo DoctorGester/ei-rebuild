@@ -58,7 +58,7 @@ AIMode* NewFear(std::uint8_t flag) {
 
 AIMode* NewCorpseWatcher() {
     auto* mode = NewCounted<CorpseWatcherMode>();
-    return mode ? ScriptCorpseWatcherModeConstruct(mode) : nullptr;
+    return mode ? mode->ScriptCorpseWatcherModeConstruct() : nullptr;
 }
 
 // Patrol points from the record's patrols: each start on its half-cell's middle (z 0) and its
@@ -88,8 +88,8 @@ void AddPatrolPoints(PatrolMode* mode, const AIAlarmRecord* record) {
             double dy = static_cast<double>(waypoint.position.y) - from.y;
             if (!ZeroOrNaN(dx) || !ZeroOrNaN(dy)) angle = Round(std::atan2(dy, dx));
             AILook look;
-            ScriptAILookConstruct(&look, nullptr, angle, static_cast<float>(waypoint.unknown_10), waypoint.wait,
-                                  waypoint.unknown_12 & 1);
+            look.ScriptAILookConstruct(angle, static_cast<float>(waypoint.unknown_10), waypoint.wait,
+                                       waypoint.unknown_12 & 1);
             last->looks.SetAtGrow(last->looks.size, look);
         }
     }
@@ -127,19 +127,19 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
     switch (record->type) {
     case kGuard: {
         auto* mode = NewCounted<GuardMode>();
-        AddMode(mode ? ScriptGuardModeConstruct(mode, nullptr, &record->guard, record->guardRadius, kNoWander) : nullptr);
+        AddMode(mode ? mode->ScriptGuardModeConstruct(&record->guard, record->guardRadius, kNoWander) : nullptr);
         break;
     }
     case kGuardAlarm: {
         const WorldAlarm& alarmAt = WorldServer()->alarms_[slot];
         Vector3 point{alarmAt.x, alarmAt.y, 0.0f};
         auto* mode = NewCounted<GuardMode>();
-        AddMode(mode ? ScriptGuardModeConstruct(mode, nullptr, &point, record->guardRadius, kNoWander) : nullptr);
+        AddMode(mode ? mode->ScriptGuardModeConstruct(&point, record->guardRadius, kNoWander) : nullptr);
         break;
     }
     case kSentry: {
         auto* mode = NewInline<SentryMode>();
-        AddMode(mode ? ScriptSentryModeConstruct(mode, nullptr, &record->guard) : nullptr);
+        AddMode(mode ? mode->ScriptSentryModeConstruct(&record->guard) : nullptr);
         break;
     }
     case kParty: {
@@ -163,14 +163,14 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
             AIMode* fight;
             if (reaction == kFight) {
                 auto* mode = NewCounted<AggressionMode>();
-                fight = mode ? ScriptAggressionModeConstruct(mode) : nullptr;
+                fight = mode ? mode->ScriptAggressionModeConstruct() : nullptr;
             } else {
                 auto* mode = NewCounted<AggressionMode>();
-                fight = mode ? ScriptRevengeModeConstruct(mode, nullptr, 1) : nullptr;
+                fight = mode ? mode->ScriptRevengeModeConstruct(1) : nullptr;
             }
             AddMode(fight);
             auto* suspection = NewCounted<SuspectionMode>();
-            AddMode(suspection ? ScriptSuspectionModeConstruct(suspection) : nullptr);
+            AddMode(suspection ? suspection->ScriptSuspectionModeConstruct() : nullptr);
             AddMode(NewCorpseWatcher());
             AddMode(NewFear(0));
         }

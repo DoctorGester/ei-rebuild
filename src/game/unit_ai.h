@@ -138,6 +138,11 @@ struct AILook {
     float wait;                     // +0x08 wait afterwards (game ticks)
     std::uint8_t stopFirst;         // +0x0C
     std::uint8_t unknown_0D[3];
+
+    // 004BA1A0 (RET 0x10; script_unit_modes.cpp; UMPatrolLook's entry): angle, wait, turning time, stop
+    // first (low byte). The arguments come in a different order from the fields: the second goes to
+    // +0x08, the third to +0x04. Returns this.
+    AILook* ScriptAILookConstruct(float newAngle, float newWait, float newTime, int newStopFirst);
 };
 static_assert(sizeof(AILook) == 0x10);
 
@@ -225,6 +230,21 @@ struct AIMode {
     void OnObjectDeleted(CEngineObject* object);
     // 0040A3A0 (CRefObject::Release): drops a reference, deleting the mode at zero.
     void Release();
+
+    // Shared slot implementations of the script-made modes (script_unit_modes.cpp).
+    // 004BA320 / 004BA330 / 004BA440 / 004BA6A0 / 004BA700 / 004BA9B0. Destructor body of the plain
+    // modes: the root vtable.
+    void DestructToRoot();
+    // 004BA340 (abstract base 0073D15C) / 004BA680 (0073D22C), slot 0 (RET 4). DestructToRoot, then
+    // operator delete when `flags` bit 0 is set; returns this.
+    AIMode* DeletingDestructBase(int flags);
+    // Slot 8 (GetType): 004BA410 Sentry 2, 004BA580 Follow 10, 004BA6D0 Suspection 3, 004BA860
+    // Aggression 4, 004BA980 CorpseWatcher 5.
+    int SentryType();
+    int FollowType();
+    int SuspectionType();
+    int AggressionType();
+    int CorpseWatcherType();
 };
 static_assert(sizeof(AIMode) == 8);
 
@@ -287,6 +307,15 @@ struct GuardMode : AIMode {
     // 005D0EB0 / 005D0F00 (slots 11 / 12).
     void Load(AIStream* stream);
     void Save(AIStream* stream);
+    // 004BA1C0 (RET 0xC; script_unit_modes.cpp). Constructor after operator new: the vtable, then Set.
+    GuardMode* ScriptGuardModeConstruct(const Vector3* newPoint, float newRadius, float newWander);
+    // The script-made modes' own slots (script_unit_modes.cpp). Clone (slot 3): a new mode (operator new,
+    // refs and flags 0) with the fields copied (floats as dwords); null when the allocation fails.
+    // Reset (slot 2, OnShutdown): back to what the constructor sets (EAX not set). Slot 0: the root
+    // vtable, then operator delete when `flags` bit 0 is set; returns this.
+    GuardMode* GuardClone() const;               // 004BA250
+    void GuardReset();                           // 004BA2D0
+    GuardMode* GuardDeletingDestruct(int flags); // 004BA300
 
     Vector3 point;                  // +0x08
     float radius;                   // +0x14
@@ -371,6 +400,12 @@ struct SentryMode : AIMode {
     // 005D1DA0 / 005D1DC0 (slots 11 / 12).
     void Load(AIStream* stream);
     void Save(AIStream* stream);
+    // 004BA360 (RET 4; script_unit_modes.cpp). Constructor after operator new: the vtable, then Set.
+    SentryMode* ScriptSentryModeConstruct(const Vector3* newPoint);
+    // Slots 3 / 2 / 0 as for GuardMode (script_unit_modes.cpp).
+    SentryMode* SentryClone() const;                 // 004BA3B0
+    void SentryReset();                              // 004BA3F0
+    SentryMode* SentryDeletingDestruct(int flags);   // 004BA420
 
     Vector3 point;                  // +0x08
 };
@@ -385,6 +420,14 @@ struct FollowMode : AIMode {
     // 005D1E60 / 005D1E80 (slots 11 / 12). Loads / saves the leader's reference.
     void Load(AIStream* stream);
     void Save(AIStream* stream);
+    // 004BA450 (RET 4; script_unit_modes.cpp). Constructor after operator new: the leader is referenced.
+    FollowMode* ScriptFollowModeConstruct(CEngineObject* newLeader);
+    // Slots 3 / 2 / 0 (script_unit_modes.cpp). Clone and Reset reference / drop the leader. FollowDestruct:
+    // the leader released and dropped, the root vtable.
+    FollowMode* FollowClone() const;                 // 004BA4A0
+    void FollowReset();                              // 004BA510
+    FollowMode* FollowDeletingDestruct(int flags);   // 004BA590
+    void FollowDestruct();                           // 004BA5B0
 
     CEngineObject* leader;          // +0x08
 };
@@ -404,6 +447,12 @@ struct SuspectionMode : AIMode {
     // 005D2330 / 005D2360 (slots 11 / 12).
     void Load(AIStream* stream);
     void Save(AIStream* stream);
+    // 004BA610 (script_unit_modes.cpp). Constructor after operator new: the vtable only.
+    SuspectionMode* ScriptSuspectionModeConstruct();
+    // Slots 3 / 2 / 0 as for GuardMode (script_unit_modes.cpp).
+    SuspectionMode* SuspectionClone() const;                 // 004BA630
+    void SuspectionReset();                                  // 004BA6B0
+    SuspectionMode* SuspectionDeletingDestruct(int flags);   // 004BA6E0
 
     Vector3 point;                  // +0x08
     int level;                      // +0x14
@@ -425,6 +474,19 @@ struct AggressionMode : AIMode {
     // 005D2770 / 005D27A0 (slots 11 / 12). The enemy's reference and `fixed`.
     void Load(AIStream* stream);
     void Save(AIStream* stream);
+    // 004BA710 (script_unit_modes.cpp). Constructor after operator new: no enemy, the whole unit as the
+    // part to hit, enemy not fixed. 004BA830 (RET 4; UMRevenge): the same with `fixed` from the argument's
+    // low byte.
+    AggressionMode* ScriptAggressionModeConstruct();
+    AggressionMode* ScriptRevengeModeConstruct(int newFixed);
+    // Slots 3 / 2 / 10 / 0 (script_unit_modes.cpp). Clone references the enemy and copies `chosen`
+    // without a reference. AggressionObjectDeleted (RET 4): the enemy released and dropped when it is
+    // `object`. AggressionDestruct: the enemy released, the root vtable.
+    AggressionMode* AggressionClone() const;                 // 004BA730
+    void AggressionReset();                                  // 004BA7C0
+    void AggressionObjectDeleted(CEngineObject* object);     // 004BA870
+    AggressionMode* AggressionDeletingDestruct(int flags);   // 004BA8A0
+    void AggressionDestruct();                               // 004BA8C0
 
     CEngineObject* enemy;           // +0x08
     std::uint8_t fixed;             // +0x0C enemy set by the script (no searching)
@@ -439,6 +501,12 @@ struct CorpseWatcherMode : AIMode {
     // 005D27D0 (slot 4). Takes one seen corpse off the brain's list and notes it as noticed
     // (level 800, kind -3). Never takes charge (-1000).
     int Evaluate(AIBrain* brain);
+    // 004BA920 (script_unit_modes.cpp). Constructor after operator new: the vtable only.
+    CorpseWatcherMode* ScriptCorpseWatcherModeConstruct();
+    // Slots 3 / 2 / 0 as for GuardMode (script_unit_modes.cpp).
+    CorpseWatcherMode* CorpseWatcherClone() const;                 // 004BA930
+    void CorpseWatcherReset();                                     // 004BA950
+    CorpseWatcherMode* CorpseWatcherDeletingDestruct(int flags);   // 004BA990
 };
 
 // Fear (vtable 0073FF8C, 0x2C bytes): run from an enemy.
@@ -1189,61 +1257,6 @@ static_assert(offsetof(AIBrain, attention) == 0xA4);
 
 inline AIBrain* UnitController::Brain() { return reinterpret_cast<AIBrain*>(brain); }
 
-// The mode constructors the script's UM* commands call after operator new (script_unit_modes.cpp;
-// __thiscall, each returns the mode). 004BA1C0 Guard (point, radius, wander: GuardMode::Set),
-// 004BA360 Sentry (SentryMode::Set), 004BA450 Follow (the leader referenced), 004BA610 Suspection,
-// 004BA710 Aggression (no enemy, part -1), 004BA830 Revenge (Aggression, `fixed` from the argument),
-// 004BA920 CorpseWatcher; 004BA1A0 a patrol point's look entry.
-GuardMode* __fastcall ScriptGuardModeConstruct(GuardMode* mode, void* edx, const Vector3* point, float radius, float wander);
-SentryMode* __fastcall ScriptSentryModeConstruct(SentryMode* mode, void* edx, const Vector3* point);
-FollowMode* __fastcall ScriptFollowModeConstruct(FollowMode* mode, void* edx, CEngineObject* leader);
-SuspectionMode* __fastcall ScriptSuspectionModeConstruct(SuspectionMode* mode);
-AggressionMode* __fastcall ScriptAggressionModeConstruct(AggressionMode* mode);
-AggressionMode* __fastcall ScriptRevengeModeConstruct(AggressionMode* mode, void* edx, int fixed);
-CorpseWatcherMode* __fastcall ScriptCorpseWatcherModeConstruct(CorpseWatcherMode* mode);
-AILook* __fastcall ScriptAILookConstruct(AILook* look, void* edx, float angle, float wait, float time, int stopFirst);
-
-// The script-made modes' own slots, 004BA250-004BA9B0 (script_unit_modes.cpp). Clone (slot 3): a
-// new mode (operator new, refs and flags 0) with the fields copied (Follow / Aggression reference
-// their leader / enemy; Aggression's `chosen` is copied without one); null when the allocation
-// fails. Reset (slot 2, OnShutdown): the references dropped and the fields back to what the
-// constructor sets (EAX not set). Destruct: the references dropped, the root vtable. Slot 0:
-// Destruct, then operator delete when `flags` bit 0 is set; returns the mode. The plain modes'
-// destructor bodies only store the root vtable (aimode::DestructToRoot). Slots of 3 bytes (RET 4,
-// MOV AL,1, XOR EAX,EAX ...) cannot be hooked: 004BA220 / 004BA230 / 004BA240 / 004BA2B0 / 004BA2C0
-// / 004BA2F0 / 004BA620 / 004BA970.
-namespace aimode {
-// 004BA320 / 004BA330 / 004BA440 / 004BA6A0 / 004BA700 / 004BA9B0: the root vtable.
-void __fastcall DestructToRoot(AIMode* mode);
-// 004BA340 (abstract base 0073D15C) / 004BA680 (0073D22C), slot 0 (RET 4).
-AIMode* __fastcall DeletingDestructBase(AIMode* mode, void*, int flags);
-// Slot 8 (GetType): 004BA410 Sentry 2, 004BA580 Follow 10, 004BA6D0 Suspection 3, 004BA860
-// Aggression 4, 004BA980 CorpseWatcher 5.
-int __fastcall SentryType(AIMode* mode);
-int __fastcall FollowType(AIMode* mode);
-int __fastcall SuspectionType(AIMode* mode);
-int __fastcall AggressionType(AIMode* mode);
-int __fastcall CorpseWatcherType(AIMode* mode);
-} // namespace aimode
-GuardMode* __fastcall GuardClone(const GuardMode* mode);                                // 004BA250
-void __fastcall GuardReset(GuardMode* mode);                                            // 004BA2D0
-GuardMode* __fastcall GuardDeletingDestruct(GuardMode* mode, void*, int flags);         // 004BA300
-SentryMode* __fastcall SentryClone(const SentryMode* mode);                             // 004BA3B0
-void __fastcall SentryReset(SentryMode* mode);                                          // 004BA3F0
-SentryMode* __fastcall SentryDeletingDestruct(SentryMode* mode, void*, int flags);      // 004BA420
-FollowMode* __fastcall FollowClone(const FollowMode* mode);                             // 004BA4A0
-void __fastcall FollowReset(FollowMode* mode);                                          // 004BA510
-FollowMode* __fastcall FollowDeletingDestruct(FollowMode* mode, void*, int flags);      // 004BA590
-void __fastcall FollowDestruct(FollowMode* mode);                                       // 004BA5B0
-SuspectionMode* __fastcall SuspectionClone(const SuspectionMode* mode);                 // 004BA630
-void __fastcall SuspectionReset(SuspectionMode* mode);                                  // 004BA6B0
-SuspectionMode* __fastcall SuspectionDeletingDestruct(SuspectionMode* mode, void*, int flags);   // 004BA6E0
-AggressionMode* __fastcall AggressionClone(const AggressionMode* mode);                 // 004BA730
-void __fastcall AggressionReset(AggressionMode* mode);                                  // 004BA7C0
-// 004BA870 (slot 10, RET 4): the enemy is released and dropped when it is `object`.
-void __fastcall AggressionObjectDeleted(AggressionMode* mode, void*, CEngineObject* object);
-AggressionMode* __fastcall AggressionDeletingDestruct(AggressionMode* mode, void*, int flags);   // 004BA8A0
-void __fastcall AggressionDestruct(AggressionMode* mode);                               // 004BA8C0
-CorpseWatcherMode* __fastcall CorpseWatcherClone(const CorpseWatcherMode* mode);        // 004BA930
-void __fastcall CorpseWatcherReset(CorpseWatcherMode* mode);                            // 004BA950
-CorpseWatcherMode* __fastcall CorpseWatcherDeletingDestruct(CorpseWatcherMode* mode, void*, int flags);  // 004BA990
+// The script-made modes' constructors and slots (004BA1A0-004BA9B0) are members of the mode structs
+// above (script_unit_modes.cpp). Slots of 3 bytes (RET 4, MOV AL,1, XOR EAX,EAX ...) cannot be
+// hooked: 004BA220 / 004BA230 / 004BA240 / 004BA2B0 / 004BA2C0 / 004BA2F0 / 004BA620 / 004BA970.

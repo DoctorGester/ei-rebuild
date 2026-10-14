@@ -25,7 +25,7 @@ GuardMode* __fastcall GuardVerify(GuardMode* self, void*, const Vector3* point, 
     GuardMode scratch;
     std::memcpy(&scratch, self, sizeof(scratch));
     GuardMode* expected = s_guard(&scratch, nullptr, point, radius, wander);
-    GuardMode* result = ScriptGuardModeConstruct(self, nullptr, point, radius, wander);
+    GuardMode* result = self->ScriptGuardModeConstruct(point, radius, wander);
     Report("ScriptGuardModeConstruct", scratch, self, expected, result, &scratch);
     return result;
 }
@@ -36,7 +36,7 @@ SentryMode* __fastcall SentryVerify(SentryMode* self, void*, const Vector3* poin
     SentryMode scratch;
     std::memcpy(&scratch, self, sizeof(scratch));
     SentryMode* expected = s_sentry(&scratch, nullptr, point);
-    SentryMode* result = ScriptSentryModeConstruct(self, nullptr, point);
+    SentryMode* result = self->ScriptSentryModeConstruct(point);
     Report("ScriptSentryModeConstruct", scratch, self, expected, result, &scratch);
     return result;
 }
@@ -50,7 +50,7 @@ FollowMode* __fastcall FollowVerify(FollowMode* self, void*, CEngineObject* lead
     FollowMode* expected = s_follow(&scratch, nullptr, leader);
     bool counted = !leader || leader->refCount_ == references + 1;
     if (leader) --leader->refCount_;
-    FollowMode* result = ScriptFollowModeConstruct(self, nullptr, leader);
+    FollowMode* result = self->ScriptFollowModeConstruct(leader);
     counted = counted && (!leader || leader->refCount_ == references + 1);
     ei::verify::Check("ScriptFollowModeConstruct", true,
                       counted && std::memcmp(&scratch, self, sizeof(scratch)) == 0 && expected == &scratch &&
@@ -62,26 +62,26 @@ FollowMode* __fastcall FollowVerify(FollowMode* self, void*, CEngineObject* lead
 // 004BA610 / 004BA920: MOV EAX,ECX; MOV [EAX],imm32 (8 bytes). 004BA710: MOV EAX,ECX; XOR ECX,ECX;
 // MOV [EAX+8],ECX (7 bytes).
 template <typename T>
-T* ConstructVerify(const char* name, T*(__fastcall* original)(T*), T*(__fastcall* ours)(T*), T* self) {
+T* ConstructVerify(const char* name, T*(__fastcall* original)(T*), T*(T::*ours)(), T* self) {
     T scratch;
     std::memcpy(&scratch, self, sizeof(scratch));
     T* expected = original(&scratch);
-    T* result = ours(self);
+    T* result = (self->*ours)();
     Report(name, scratch, self, expected, result, &scratch);
     return result;
 }
 SuspectionMode*(__fastcall* s_suspection)(SuspectionMode*);
 SuspectionMode* __fastcall SuspectionVerify(SuspectionMode* self) {
-    return ConstructVerify("ScriptSuspectionModeConstruct", s_suspection, &ScriptSuspectionModeConstruct, self);
+    return ConstructVerify("ScriptSuspectionModeConstruct", s_suspection, &SuspectionMode::ScriptSuspectionModeConstruct, self);
 }
 AggressionMode*(__fastcall* s_aggression)(AggressionMode*);
 AggressionMode* __fastcall AggressionVerify(AggressionMode* self) {
-    return ConstructVerify("ScriptAggressionModeConstruct", s_aggression, &ScriptAggressionModeConstruct, self);
+    return ConstructVerify("ScriptAggressionModeConstruct", s_aggression, &AggressionMode::ScriptAggressionModeConstruct, self);
 }
 CorpseWatcherMode*(__fastcall* s_corpseWatcher)(CorpseWatcherMode*);
 CorpseWatcherMode* __fastcall CorpseWatcherVerify(CorpseWatcherMode* self) {
-    return ConstructVerify("ScriptCorpseWatcherModeConstruct", s_corpseWatcher, &ScriptCorpseWatcherModeConstruct,
-                           self);
+    return ConstructVerify("ScriptCorpseWatcherModeConstruct", s_corpseWatcher,
+                           &CorpseWatcherMode::ScriptCorpseWatcherModeConstruct, self);
 }
 
 // 004BA830: as 004BA710 (7 bytes).
@@ -90,7 +90,7 @@ AggressionMode* __fastcall RevengeVerify(AggressionMode* self, void*, int fixed)
     AggressionMode scratch;
     std::memcpy(&scratch, self, sizeof(scratch));
     AggressionMode* expected = s_revenge(&scratch, nullptr, fixed);
-    AggressionMode* result = ScriptRevengeModeConstruct(self, nullptr, fixed);
+    AggressionMode* result = self->ScriptRevengeModeConstruct(fixed);
     Report("ScriptRevengeModeConstruct", scratch, self, expected, result, &scratch);
     return result;
 }
@@ -101,7 +101,7 @@ AILook* __fastcall LookVerify(AILook* self, void*, float angle, float wait, floa
     AILook scratch;
     std::memcpy(&scratch, self, sizeof(scratch));
     AILook* expected = s_look(&scratch, nullptr, angle, wait, time, stopFirst);
-    AILook* result = ScriptAILookConstruct(self, nullptr, angle, wait, time, stopFirst);
+    AILook* result = self->ScriptAILookConstruct(angle, wait, time, stopFirst);
     Report("ScriptAILookConstruct", scratch, self, expected, result, &scratch);
     return result;
 }
