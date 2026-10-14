@@ -7,6 +7,7 @@
 // drawn; texture stage 0's mip filter as it was.
 #include "verify.h"
 
+#include "../../src/game/device.h"
 #include "../../src/game/map_object_figures.h"
 #include "../../src/game/map_object_shadow.h"
 #include "../../src/game/texture.h"
@@ -24,7 +25,7 @@ DWORD MipFilter() {
     DWORD value = 0;
     CTextureDevice* device = RenderDeviceObject();
     if (device && device->d3dDevice_)
-        static_cast<IDirect3DDevice7*>(device->d3dDevice_)->GetTextureStageState(0, D3DTSS_MIPFILTER, &value);
+        device::GetTextureStageState(device::D3D(device), 0, D3DTSS_MIPFILTER, &value);
     return value;
 }
 
