@@ -2,6 +2,8 @@
 # then report and quit. Exercises zone loading, AI map refresh, footprints, path search, line of
 # sight, lighting, scripts, and the save the game writes when a new game starts.
 # The zone1 intro runs on real time (~37 s), so this scenario needs more than the default 60 s.
+# On the virtual clock it took 72-81 s against 17 s on real time (SV1f), so real time for now.
+realtime
 timeout 80
 waitmenu
 console thingamabob
