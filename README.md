@@ -128,7 +128,11 @@ its folder (the composed-skin cache `textures\*.mmp`, `config\keyboard.ini`, `co
 `mp\*.mp`, ...) goes to a copy-on-write overlay there (reads prefer the overlay copy), settings are not written to the
 registry, and a game that hangs on exit (Rebirth) is ended 3 s after the scenario quits. When the game crashes,
 the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions. A run that exceeds its time
-limit logs where the main thread waits (instruction pointer and return addresses, as module+offset).
+limit logs where the main thread waits (instruction pointer and return addresses, as module+offset). No game outlives its limit:
+the watchdog thread in the game ends it at the scenario's `timeout` (60 s unless the scenario says more); if that
+thread cannot run, `ei_launch` ends the game 20 s later (and the game runs in a job object that dies with
+`ei_launch`, children included). `run_all` reports both as `TIMEOUT`; `ei_launch` exits 4 (or 5 when Windows could not
+end the process: a thread stuck in a driver call). `tests\scenarios\watchdog_*.txt` check this (`# expect: TIMEOUT`).
 
     harness.cmd tests\scenarios\sandbox_actions.txt
 

@@ -11,9 +11,16 @@
 // functions: a baseline run of the original code.
 // --rebirth turns Rebirth patch flags on in the rewritten code (EI_REBIRTH; include/ei/rebirth.h):
 // "all", or patch names separated by commas, each optionally =0/=1.
+//
+// A run with --harness ends whatever state the game is in: the harness's watchdog thread ends it at the
+// scenario's "timeout" (60 s unless the scenario says otherwise); if that thread cannot run, ei_launch ends
+// it kTimeoutMargin later. The game runs in a job object that is killed with ei_launch, so it (and any
+// process it started) never outlives ei_launch. Exit codes of a run: 0 passed, 1 failed, 2 no report /
+// not started, 3 and 4 below.
 #include <windows.h>
 
 #include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <string>
 
@@ -46,6 +53,57 @@ static void PrintOpenWindows(DWORD pid) {
         std::wprintf(L"ei_launch: open window [%s] '%s' %s\n", cls, title, text.c_str());
         return TRUE;
     }, static_cast<LPARAM>(pid));
+}
+
+// ei_launch's exit codes besides 0 (passed), 1 (failed) and 2 (no report): the run took longer than its limit
+// plus the margin and the game had to be ended from outside (run_all.py reports it as TIMEOUT); the game
+// could not be ended at all (a thread stuck in a driver call keeps a terminated process alive).
+constexpr int kExitTimeout = 4;
+constexpr int kExitUnkillable = 5;
+
+// How long past the scenario's own time limit ei_launch waits for the game's watchdog before ending the game.
+constexpr ULONGLONG kTimeoutMarginMs = 20000;
+constexpr ULONGLONG kDefaultTimeLimitMs = 60000;
+
+// The scenario's "timeout <seconds>" line (the last one counts, as in the harness), else the default.
+static ULONGLONG ScenarioTimeLimitMs(const wchar_t* scenario) {
+    ULONGLONG limit = kDefaultTimeLimitMs;
+    FILE* f = nullptr;
+    if (_wfopen_s(&f, scenario, L"r") != 0 || !f) return limit;
+    char line[1024];
+    while (std::fgets(line, sizeof(line), f)) {
+        const char* p = line + std::strspn(line, " \t");
+        if (std::strncmp(p, "timeout", 7) == 0 && (p[7] == ' ' || p[7] == '\t'))
+            limit = 1000ull * std::strtoul(p + 8, nullptr, 10);
+    }
+    std::fclose(f);
+    return limit;
+}
+
+// PrintOpenWindows on a thread of its own: it must not be able to hold ei_launch back, whatever the game does.
+static void PrintOpenWindowsBounded(DWORD pid) {
+    HANDLE t = CreateThread(nullptr, 0, [](void* p) -> DWORD {
+        PrintOpenWindows(static_cast<DWORD>(reinterpret_cast<ULONG_PTR>(p)));
+        return 0;
+    }, reinterpret_cast<void*>(static_cast<ULONG_PTR>(pid)), 0, nullptr);
+    if (!t) return;
+    WaitForSingleObject(t, 2000);
+    CloseHandle(t);
+}
+
+// Ends the game and everything it started. A process whose thread is stuck inside a driver (kernel
+// APCs off) stays alive after TerminateProcess; it is tried again for 15 s and then given up on.
+// True when the process is gone.
+static bool EndGame(HANDLE process, HANDLE job, DWORD pid, UINT code) {
+    PrintOpenWindowsBounded(pid);
+    for (int attempt = 0; attempt < 3; ++attempt) {
+        TerminateProcess(process, code);
+        if (job) TerminateJobObject(job, code);
+        if (WaitForSingleObject(process, 5000) == WAIT_OBJECT_0) return true;
+    }
+    std::fwprintf(stderr, L"ei_launch: the game (pid %lu) is still alive 15 s after TerminateProcess; "
+                          L"a thread of it is stuck in the kernel (a driver call) and Windows cannot end it yet\n", pid);
+    return false;
 }
 
 static int Fail(const wchar_t* what) {
@@ -119,6 +177,21 @@ int wmain(int argc, wchar_t** argv) {
                         gameDir.c_str(), &si, &pi))
         return Fail(L"CreateProcess");
 
+    // A run that waits for the game puts it in a job that dies with ei_launch (also when ei_launch is
+    // killed): no game outlives its launcher. A launch without --wait leaves the game running.
+    HANDLE job = nullptr;
+    if (!harness.empty() || wait) {
+        job = CreateJobObjectW(nullptr, nullptr);
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+        limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        if (!job || !SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits)) ||
+            !AssignProcessToJobObject(job, pi.hProcess)) {
+            std::fwprintf(stderr, L"ei_launch: warning: the game could not be put in a job object (error %lu)\n", GetLastError());
+            if (job) CloseHandle(job);
+            job = nullptr;
+        }
+    }
+
     // Load the DLL with a remote LoadLibraryW call. ei_launch is 32-bit like the game, so
     // kernel32's address is the same in both processes.
     std::size_t bytes = (dll.size() + 1) * sizeof(wchar_t);
@@ -134,7 +207,12 @@ int wmain(int argc, wchar_t** argv) {
         TerminateProcess(pi.hProcess, 1);
         return Fail(L"CreateRemoteThread");
     }
-    WaitForSingleObject(thread, INFINITE);
+    if (WaitForSingleObject(thread, 60000) != WAIT_OBJECT_0) {
+        // The DLL's start-up hangs inside the game (the game is still suspended): end it, do not wait for ever.
+        std::fwprintf(stderr, L"ei_launch: loading %s did not finish in 60 s; terminating the game\n", dll.c_str());
+        TerminateProcess(pi.hProcess, 3);
+        return kExitTimeout;
+    }
     DWORD module = 0;
     GetExitCodeThread(thread, &module);
     CloseHandle(thread);
@@ -160,16 +238,25 @@ int wmain(int argc, wchar_t** argv) {
     std::wstring quitMarker = outDir + L"\\harness_quit";
     ULONGLONG quitSeen = 0;
     const ULONGLONG started = GetTickCount64();
+    ULONGLONG limit = kDefaultTimeLimitMs;
+    if (!harness.empty()) {
+        wchar_t scenario[MAX_PATH];
+        GetFullPathNameW(harness.c_str(), MAX_PATH, scenario, nullptr);
+        limit = ScenarioTimeLimitMs(scenario);
+    }
+    bool timedOut = false;
+    bool unkillable = false;
     std::wstring reportFile = outDir + L"\\harness_report.txt";
     while (WaitForSingleObject(pi.hProcess, 500) == WAIT_TIMEOUT) {
         if (harness.empty()) continue;
-        // Backstop for the harness's own time limit (default 60 s), e.g. if the game is hung so
-        // badly that its watchdog thread cannot run.
-        if (GetTickCount64() - started >= 5 * 60 * 1000) {
-            std::fwprintf(stderr, L"ei_launch: game still running after 5 minutes; terminating it\n");
-            PrintOpenWindows(pi.dwProcessId);
-            TerminateProcess(pi.hProcess, 3);
-            WaitForSingleObject(pi.hProcess, 5000);
+        // Backstop for the harness's own time limit (the scenario's "timeout", default 60 s): the game's
+        // watchdog thread ends the game at the limit; if it has not, because the game is hung so badly
+        // that it cannot run, the limit plus a margin has passed and the game is ended from here.
+        if (GetTickCount64() - started >= limit + kTimeoutMarginMs) {
+            std::fwprintf(stderr, L"ei_launch: TIMEOUT: the game is still running %llu s after its start (the scenario's "
+                                  L"time limit is %llu s); terminating it\n", (GetTickCount64() - started) / 1000, limit / 1000);
+            timedOut = true;
+            unkillable = !EndGame(pi.hProcess, job, pi.dwProcessId, 3);
             break;
         }
         // The harness writes its report as soon as it loads; none after 30 s means it never started
@@ -177,17 +264,14 @@ int wmain(int argc, wchar_t** argv) {
         if (GetTickCount64() - started >= 30000 &&
             GetFileAttributesW(reportFile.c_str()) == INVALID_FILE_ATTRIBUTES) {
             std::fwprintf(stderr, L"ei_launch: the harness did not start in the game; terminating it\n");
-            TerminateProcess(pi.hProcess, 2);
-            WaitForSingleObject(pi.hProcess, 5000);
+            unkillable = !EndGame(pi.hProcess, job, pi.dwProcessId, 2);
             break;
         }
         if (GetFileAttributesW(quitMarker.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
         if (!quitSeen) quitSeen = GetTickCount64();
         if (GetTickCount64() - quitSeen >= 3000) {
             std::wprintf(L"ei_launch: game still running 3 s after the scenario quit; terminating it\n");
-            PrintOpenWindows(pi.dwProcessId);
-            TerminateProcess(pi.hProcess, 0);
-            WaitForSingleObject(pi.hProcess, 5000);
+            unkillable = !EndGame(pi.hProcess, job, pi.dwProcessId, 0);
             break;
         }
     }
@@ -195,6 +279,7 @@ int wmain(int argc, wchar_t** argv) {
     DWORD code = 0;
     GetExitCodeProcess(pi.hProcess, &code);
     CloseHandle(pi.hProcess);
+    if (job) CloseHandle(job);   // ends whatever the game left running
     if (harness.empty()) return static_cast<int>(code);
     std::wstring reportPath = outDir + L"\\harness_report.txt";
     FILE* report = nullptr;
@@ -209,5 +294,6 @@ int wmain(int argc, wchar_t** argv) {
         if (std::strncmp(line, "RESULT: PASS", 12) == 0) pass = true;
     }
     std::fclose(report);
+    if (timedOut) return unkillable ? kExitUnkillable : kExitTimeout;
     return pass ? 0 : 1;
 }

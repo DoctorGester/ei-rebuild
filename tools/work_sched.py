@@ -291,7 +291,7 @@ class Scheduler:
                 self.db.execute("UPDATE run SET state = 'finished', seconds = ?, result = ?, failures = ?, counts = ?, notes = ? "
                                 "WHERE id = ?", (seconds, result, json.dumps(failures),
                                                  json.dumps({fn: list(c) for fn, c in counts.items()}), json.dumps(notes), run_id))
-            if result not in ('ERROR', 'NO REPORT'):
+            if result not in ('ERROR', 'NO REPORT', 'TIMEOUT'):
                 try:
                     work.record_time(self.db, game['scenario'], game['install'], game['root'], seconds, game['batch'])
                 except Exception:
