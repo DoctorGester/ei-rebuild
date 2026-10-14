@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 #include "originals_render.h"
 
 #pragma warning(disable : 4740) // naked forwarders
@@ -40,8 +41,6 @@ void ThisCall(void* object, int slot, Args... args) {
     reinterpret_cast<void(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
 }
 
-// CFile::Write [0070133F] (not in lib/mfc.h).
-__declspec(naked) void __fastcall FileWrite(mfc::CFile*, void*, const void*, unsigned) EI_ORIGINAL(0x0070133F)
 // The aligned byte allocation [004ECB50].
 std::uint8_t* AllocBytes(int count) { return lib::AlignedArray<std::uint8_t>::Allocate(count); }
 const char* const kCantFindLayer = Text(0x00795F74);    // "Can't find texture \"%s\" for layer composition.\n"
@@ -146,7 +145,7 @@ void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image
     std::uint32_t* halved = NewAligned<std::uint32_t>(count * 4);
     void* converter = Converter();
     ThisCall(converter, kConvertSlot, converted, image, kind, count);
-    FileWrite(&file, nullptr, converted, count * 2);
+    CFileWrite(&file, nullptr, converted, count * 2);
     std::uint32_t* source = image;
     std::uint32_t* target = halved;
     if (mipCount > 1) {
@@ -156,7 +155,7 @@ void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image
             ThisCall(converter, kHalveSlot, target, source, width);
             count = height * width;
             ThisCall(converter, kConvertSlot, converted, target, kind, count);
-            FileWrite(&file, nullptr, converted, count * 2);
+            CFileWrite(&file, nullptr, converted, count * 2);
             std::uint32_t* done = target;
             target = source;
             source = done;
@@ -240,8 +239,8 @@ int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const Ski
     header.extraSize = static_cast<std::uint32_t>(request->layerBytes);
     int kind = ConversionKind(format);
     if (!file.Open(path, kWriteCreate, nullptr)) return game::FatalError(kCantWrite, static_cast<const char*>(path));
-    FileWrite(&file, nullptr, &header, sizeof(MmpHeader));
-    if (header.extraSize != 0) FileWrite(&file, nullptr, request->layers, header.extraSize);
+    CFileWrite(&file, nullptr, &header, sizeof(MmpHeader));
+    if (header.extraSize != 0) CFileWrite(&file, nullptr, request->layers, header.extraSize);
     WriteLevels(file, header, image, kind, mipCount);
     return 1;
 }

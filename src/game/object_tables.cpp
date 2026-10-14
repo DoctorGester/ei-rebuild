@@ -7,6 +7,7 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "originals_library.h"
 
 #include <cstring>
 #include <new>
@@ -84,7 +85,6 @@ __declspec(naked) void __fastcall TableClearAt(NamedFloatTable*) EI_ORIGINAL(0x0
 __declspec(naked) float* __fastcall TableIndex(NamedFloatTable*, void*, const mfc::CString*) EI_ORIGINAL(0x004613C0)
 __declspec(naked) void __fastcall TableDeleteNode(NamedFloatTable*, void*, NamedFloatTable::Node*) EI_ORIGINAL(0x004616A0)
 void TableClear(NamedFloatTable* table) { TableClearAt(table); }
-__declspec(naked) int __cdecl Strncmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006E9180)
 
 std::uint32_t BucketCount(const NamedFloatTable* table) {
     return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<std::uintptr_t>(table->finish) -

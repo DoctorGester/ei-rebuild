@@ -45,11 +45,7 @@ __declspec(naked) void __fastcall FxSourceDestroy(void*, void*, int) EI_ORIGINAL
 __declspec(naked) void __fastcall ParticleDestroy(void*, void*, int) EI_ORIGINAL(0x004CE270)
 __declspec(naked) void __stdcall LightningElementsDestruct(void*, int) EI_ORIGINAL(0x004CD690)
 // CArray::SetSize (__thiscall (size, growBy)): areas, definitions; a temporary group.
-__declspec(naked) void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)
-__declspec(naked) void __fastcall DefinitionsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD770)
 void __fastcall GroupSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
-// 004C3980: the group values' SetSize (the definition reset).
-__declspec(naked) void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
 // Rewritten, called through their addresses (their verify wrappers run).
 __declspec(naked) void __fastcall RefReset(void*) EI_ORIGINAL(0x004B24B0)
 __declspec(naked) void __fastcall RefAssign(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B24D0)

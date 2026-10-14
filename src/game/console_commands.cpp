@@ -123,8 +123,6 @@ __declspec(naked) void VariableTableAt::Begin(VariableIterator*) EI_ORIGINAL(0x0
 
 // 004DBE40: splits `text` at `separator` into `out`.
 
-// 005DC620 (Rebirth patches it): runs a console line.
-__declspec(naked) void __fastcall ExecuteAt(const char*) EI_ORIGINAL(0x005DC620)
 
 // 0057F440 (with the game 007AFE20 in ECX): a network game is running.
 

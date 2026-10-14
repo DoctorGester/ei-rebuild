@@ -87,8 +87,6 @@ __declspec(naked) void __fastcall ReleaseParts(CObject3D*) EI_ORIGINAL(0x0051608
 __declspec(naked) void __fastcall ConstructUnitArray(mfc::CArray<float>*) EI_ORIGINAL(0x004CD080)
 __declspec(naked) void* __fastcall ConstructUnit2CC(float*) EI_ORIGINAL(0x0052E230)
 __declspec(naked) void __fastcall ConstructUnitMemory(UnitMotion*) EI_ORIGINAL(0x005C6270)
-// 0050E840. CMapObject's Destroy (slot 3), called directly.
-__declspec(naked) void __fastcall MapObjectDestroy(void*) EI_ORIGINAL(0x0050E840)
 inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { CompanionParticlesSetSizeOriginal(a0, nullptr, a2, a3); }
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
@@ -115,7 +113,6 @@ __declspec(naked) void __fastcall DestructBaseAt(void*) EI_ORIGINAL(0x00455930)
 __declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
 __declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D70)
 __declspec(naked) CMapObject* __fastcall ConstructMapObjectAt(void*) EI_ORIGINAL(0x0050E2D0)
-__declspec(naked) void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
 __declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
 
 // The engine object fields every constructor here sets (the base constructor inlined).

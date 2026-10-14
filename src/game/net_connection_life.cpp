@@ -50,7 +50,6 @@ __declspec(naked) void __fastcall AttachedEmpty(AttachedMap* /*tree*/) EI_ORIGIN
 __declspec(naked) void __fastcall HeaderListConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439CE0)
 __declspec(naked) void __fastcall IncomingProxyConstruct(HeaderNode** /*list*/, void*, const void* /*alloc*/, const void* /*value*/) EI_ORIGINAL(0x0043A980)
 inline void* __fastcall NodeAllocate(std::size_t a0) { return NodeAllocateOriginal(a0); }
-__declspec(naked) FreedBatch** __fastcall FreedPushDefault(FreedBatch** /*list*/, void*, FreedBatch** /*out*/, FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 
 // Reset's container teardown.
 __declspec(naked) void __fastcall ListDeleteAll(HeaderNode** /*list*/) EI_ORIGINAL(0x00439D40)
@@ -160,8 +159,8 @@ Connection* Connection::Construct(std::uint32_t id) {
     lastReceived_ = 0;
     sequenceHigh_ = 0x10000;
     FreedBatch* out;
-    FreedPushDefault(&freedIds_, nullptr, &out, freedIds_);
-    FreedPushDefault(&freedIds_, nullptr, &out, freedIds_);
+    FreedInsert(&freedIds_, nullptr, &out, freedIds_);
+    FreedInsert(&freedIds_, nullptr, &out, freedIds_);
     id_ = id;
     Put32(&clock_, 0, 0);
     freedTimer_ = 0.0f;

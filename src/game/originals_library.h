@@ -11,6 +11,8 @@
 
 struct AnimationSteps;
 struct RefPtr;
+namespace console { class CStringArray; }
+namespace net { struct FreedBatch; struct HistoryNode; struct RefVector; struct StringRep; }
 
 // STLport std::string destructor (frees the buffer back to the node allocator unless it is the inline one).
 __declspec(naked) inline void __fastcall StlStringDestroy(void* /*string*/) EI_ORIGINAL(0x0040C720)
@@ -511,3 +513,27 @@ __declspec(naked) inline long __stdcall DirectInputCreateExOriginal(void* /*inst
 __declspec(naked) inline int __fastcall FontCreatePointOriginal(void* /*font*/, void*, int /*size*/, const char* /*face*/,
                                                                 void* /*dc*/) EI_ORIGINAL(0x0070BBE5)
 
+// C3m. 004DBF50 (rewritten as SplitWords; ECX text, EDX array, separator on the stack): splits at the separator.
+__declspec(naked) inline void __fastcall SplitWords(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBF50)
+// C3m. 006E9180: CRT strncmp (plain RET, EAX: <0, 0, >0).
+__declspec(naked) inline int __cdecl Strncmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006E9180)
+// C3m. 006FEE9A / 006FF5EA: the static CArray<uint16_t> / CArray<uint8_t> constructors (ECX this, plain RET).
+__declspec(naked) inline void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
+__declspec(naked) inline void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)
+// C3m. 00421F60: the counted-pointer vector's base constructor (n elements, allocator; plain RET).
+__declspec(naked) inline void __fastcall VectorBaseConstruct(net::RefVector* /*vector*/, void*, std::size_t /*n*/,
+                                                           const void* /*allocator*/) EI_ORIGINAL(0x00421F60)
+// C3m. STLport strings of the net code (the 12-byte rep): 00424E40 allocates a block of n bytes, 00427D60 string + text,
+// 00427FA0 equality, 0042AFB0 append(first, last, tag).
+__declspec(naked) inline void __fastcall StringAllocateBlock(net::StringRep* /*s*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x00424E40)
+__declspec(naked) inline net::StringRep* __fastcall StringPlusText(net::StringRep* /*out*/, const net::StringRep* /*a*/, const char* /*b*/)
+    EI_ORIGINAL(0x00427D60)
+__declspec(naked) inline bool __fastcall StringEquals(const net::StringRep* /*a*/, const net::StringRep* /*b*/) EI_ORIGINAL(0x00427FA0)
+__declspec(naked) inline void __fastcall StringAppend(net::StringRep* /*s*/, void*, const char* /*first*/, const char* /*last*/,
+                                                    void* /*tag*/) EI_ORIGINAL(0x0042AFB0)
+// C3m. The net connection's history list (STLport list of HistoryNode): 00437F30 erase(pos).
+__declspec(naked) inline net::HistoryNode** __fastcall HistoryErase(net::HistoryNode** /*list*/, void*, net::HistoryNode** /*out*/,
+                                                             net::HistoryNode* /*pos*/) EI_ORIGINAL(0x00437F30)
+// C3m. The freed-batch list (STLport list of FreedBatch): 00439000 insert(pos) of a default batch.
+__declspec(naked) inline net::FreedBatch** __fastcall FreedInsert(net::FreedBatch** /*list*/, void*, net::FreedBatch** /*out*/,
+                                                           net::FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)

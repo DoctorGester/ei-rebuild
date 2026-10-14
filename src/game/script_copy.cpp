@@ -17,10 +17,6 @@
 namespace {
 
 // CArray members: SetSize (int, growBy) and Copy (const CArray&), __thiscall.
-__declspec(naked) void __fastcall ArgFloatsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4410)
-__declspec(naked) void __fastcall ArgObjectsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C46F0)
-__declspec(naked) void __fastcall ArgGroupsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C49F0)
-__declspec(naked) void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4CE0)
 inline void __fastcall RefsCopy(void* a0, void*, const void* a2) { GroupAssignOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall SubCallsCopy(void*, void*, const void*) EI_ORIGINAL(0x004C6D10)
 // CString::operator=(const CString&) on raw slots.
@@ -84,10 +80,10 @@ EI_REPLACE(0x004CB570, ScriptRunAssign);
 
 SSCCmd* __fastcall ScriptCmdAssign(SSCCmd* self, void*, const SSCCmd* other) {
     self->id = other->id;
-    CopyFloats(&self->floatArgs, &other->floatArgs, ArgFloatsSetSize);
+    CopyFloats(&self->floatArgs, &other->floatArgs, FloatArgsSetSize);
     StringsCopyOriginal(&self->stringArgs, nullptr, &other->stringArgs);
-    CopyPlain(&self->objectArgs, &other->objectArgs, ArgObjectsSetSize);
-    CopyPlain(&self->groupArgs, &other->groupArgs, ArgGroupsSetSize);
+    CopyPlain(&self->objectArgs, &other->objectArgs, ObjectArgsSetSize);
+    CopyPlain(&self->groupArgs, &other->groupArgs, GroupArgsSetSize);
     CopyPlain(&self->localBindings, &other->localBindings, BindingsSetSize);
     CopyPlain(&self->globalBindings, &other->globalBindings, BindingsSetSize);
     SubCallsCopy(&self->subCalls, nullptr, &other->subCalls);   // nested commands deep-copied
@@ -137,8 +133,6 @@ constexpr std::uintptr_t kArgFloatsVtable = 0x0073D490;    // SSCCmd floats (bas
 constexpr std::uintptr_t kArgObjectsVtable = 0x0073D484;   // SSCCmd objects (base 0073D3F4)
 constexpr std::uintptr_t kArgGroupsVtable = 0x0073D478;    // SSCCmd groups
 
-__declspec(naked) void __fastcall NamesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
-__declspec(naked) void __fastcall GroupsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
 void __fastcall RefsSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
 // GetAt by value: CString (004C2680), a referenced ScriptObjectRef (004C21E0), a ScriptGroup copy
 // (004C3B00); __thiscall (out, index), returning out.
@@ -177,7 +171,7 @@ struct TempString {
 // A string array constructed empty, resized with 004C2510, each element assigned from a GetAt copy.
 void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::CString>* from) {
     InitArray(to, kStringsVtable);
-    NamesSetSize(to, nullptr, from->size, -1);
+    NamesSetSizeOriginal(to, nullptr, from->size, -1);
     for (int i = 0; i < from->size; ++i) {
         TempString s;
         StringAt(from, nullptr, &s, i);
@@ -189,12 +183,12 @@ void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::
 void CopyConstructCmd(SSCCmd* to, const SSCCmd* from) {
     to->id = from->id;
     InitArray(&to->floatArgs, kArgFloatsVtable);
-    CopyFloats(&to->floatArgs, &from->floatArgs, ArgFloatsSetSize);
+    CopyFloats(&to->floatArgs, &from->floatArgs, FloatArgsSetSize);
     CopyConstructStrings(&to->stringArgs, &from->stringArgs);
     InitArray(&to->objectArgs, kArgObjectsVtable);
-    CopyPlain(&to->objectArgs, &from->objectArgs, ArgObjectsSetSize);
+    CopyPlain(&to->objectArgs, &from->objectArgs, ObjectArgsSetSize);
     InitArray(&to->groupArgs, kArgGroupsVtable);
-    CopyPlain(&to->groupArgs, &from->groupArgs, ArgGroupsSetSize);
+    CopyPlain(&to->groupArgs, &from->groupArgs, GroupArgsSetSize);
     BindingsCopyConstruct(&to->localBindings, nullptr, &from->localBindings);
     BindingsCopyConstruct(&to->globalBindings, nullptr, &from->globalBindings);
     SubCallsCopyConstruct(&to->subCalls, nullptr, &from->subCalls);
@@ -281,7 +275,7 @@ EI_REPLACE(0x004CBDB0, ScriptObjectsCopyConstruct);
 ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsCopyConstruct(ScriptNamedValues<ScriptGroup>* self, void*,
                                                                      const ScriptNamedValues<ScriptGroup>* other) {
     InitArray(&self->values, kGroupsVtable);
-    GroupsSetSize(&self->values, nullptr, other->values.size, -1);
+    GroupValuesSetSize(&self->values, nullptr, other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptGroup copy;
         GroupAt(&other->values, nullptr, &copy, i);
@@ -327,7 +321,7 @@ ScriptVars* __fastcall ScriptVarsCopyConstruct(ScriptVars* self, void*, const Sc
     NamesCopyConstructAt(&self->objectNames, nullptr, &other->objectNames);
 
     InitArray(&self->groups, kGroupsVtable);
-    GroupsSetSize(&self->groups, nullptr, other->groups.size, -1);
+    GroupValuesSetSize(&self->groups, nullptr, other->groups.size, -1);
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
         GroupAt(&other->groups, nullptr, &copy, i);

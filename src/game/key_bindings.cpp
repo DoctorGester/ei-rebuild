@@ -42,8 +42,6 @@ const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
 // 00700C05: operator+(CString, LPCTSTR).
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
-// 004DBF50 (ECX text, EDX array, separator on the stack): splits at the separator.
-__declspec(naked) void __fastcall SplitWords(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBF50)
 
 // Opens the bindings file with `flags`; the path is a temporary CString, as in the original.
 bool OpenFile(console::CStdioFile& file, unsigned flags) {

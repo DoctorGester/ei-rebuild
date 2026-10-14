@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_core.h"
 #include "originals_library.h"
 
 #include <cstring>
@@ -27,12 +28,10 @@ __declspec(naked) void** __fastcall TimersEnd(void* /*list*/, void*, void** /*ou
 __declspec(naked) void** __fastcall TimersInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*entry*/) EI_ORIGINAL(0x00426230)
 __declspec(naked) void __fastcall TimersPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x004246C0)
 void __fastcall StringAllocProxy(char** a0, void*, const void* a2, char* const* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, (const void*)a3); }
-__declspec(naked) void __fastcall StringAllocateBlock(StringRep* /*s*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x00424E40)
 inline void __fastcall StringReserve(StringRep* a0, void*, const void* a2, std::size_t a3) { StringReserveOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall StringAppendTag(StringRep* a0, void*, const char* a2, const char* a3, const void* a4) { StringAppendRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
-__declspec(naked) void __fastcall ServerEntryConstructBase(ServerEntry* /*entry*/) EI_ORIGINAL(0x004413E0)
 
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f

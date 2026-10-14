@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_library.h"
 #include "originals_ui.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
@@ -209,8 +210,6 @@ void CInterface3D::Update() {
 
 namespace {
 
-// 004DBF50 (ECX text, EDX array, separator on the stack): splits at the separator.
-__declspec(naked) void __fastcall SplitWords(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBF50)
 // 00461360 (ECX text). A number from the text (its characters' upper-case codes mixed).
 __declspec(naked) int __fastcall TextNumber(const char*) EI_ORIGINAL(0x00461360)
 // The tutorial queue (+0x84, an STLport list of CStrings): end() into `out` (005F97D0) and

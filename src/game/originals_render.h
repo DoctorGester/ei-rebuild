@@ -10,6 +10,7 @@
 #include <cstdint>
 
 class CAnimationNode;   // figure.h
+namespace scene { struct SceneNode; struct SceneSkin; }
 
 __declspec(naked) inline char* __fastcall AllocVertices(int) EI_ORIGINAL(0x004E5710)
 __declspec(naked) inline int __fastcall DrawMesh(char*, void*, const void*, int, std::uint32_t, int, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, int, int)
@@ -133,3 +134,7 @@ __declspec(naked) inline void __fastcall DeviceBuildFormatTableOriginal(void* /*
 __declspec(naked) inline void __fastcall DeviceCreateDepthBufferOriginal(void* /*device*/, void*, int /*depthBits*/,
                                                                          int /*stencilBits*/) EI_ORIGINAL(0x004E6C30)
 __declspec(naked) inline int __fastcall DXSurfaceDescribeOriginal(void* /*holder*/) EI_ORIGINAL(0x004EFEA0)
+// C3m. 004492F0 (rewritten as BuildBone; through its own address, so the verify wrapper sees the children too):
+// a scene node's bone and, recursively, its children.
+__declspec(naked) inline void __fastcall BuildBoneAt(scene::SceneSkin*, CAnimationNode*, const scene::SceneNode*, int)
+    EI_ORIGINAL(0x004492F0)

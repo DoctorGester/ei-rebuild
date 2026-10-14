@@ -103,7 +103,6 @@ __declspec(naked) void __fastcall NamesSetSize(void*, void*, int, int) EI_ORIGIN
 __declspec(naked) void __fastcall CmdsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD2B0)
 void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
 void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
-__declspec(naked) void __fastcall GroupDestroy(void*, void*, int) EI_ORIGINAL(0x004CE210)
 __declspec(naked) void __fastcall DefinitionDestruct(void*) EI_ORIGINAL(0x004BE9D0)
 __declspec(naked) void __fastcall VarsDestruct(void*) EI_ORIGINAL(0x004BE090)
 __declspec(naked) void __fastcall VarsConstruct(void*) EI_ORIGINAL(0x004C00D0)

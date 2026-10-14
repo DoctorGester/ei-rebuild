@@ -33,16 +33,9 @@ T& Field(void* object, std::size_t offset) {
 // CList<ScriptDecl>::NewNode (__thiscall (prev, next)); the element is constructed (vtable 0073D3DC).
 ScriptListNode* __fastcall NewBlockNode(ScriptList* a0, void*, ScriptListNode* a2, ScriptListNode* a3) { return (ScriptListNode*)ScriptBlockListNewNodeOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
 // CArray<ScriptArea>::SetSize (__thiscall (size, growBy)); CArray<ScriptAreaPart>::Copy.
-__declspec(naked) void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)
 __declspec(naked) void __fastcall PartsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CE2F0)
-// ConstructElements<ScriptObjectRef> (__stdcall (first, count); zeroes).
-__declspec(naked) void __stdcall ConstructRefs(void*, int) EI_ORIGINAL(0x004CC800)
 // SetSize of SSCCmd's arrays (__thiscall (size, growBy)): strings, object pointers, group pointers,
 // bindings (both arrays), nested calls (dropped elements delete their command).
-__declspec(naked) void __fastcall StringArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
-__declspec(naked) void __fastcall ObjectArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C46F0)
-__declspec(naked) void __fastcall GroupArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C49F0)
-__declspec(naked) void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4CE0)
 void __fastcall SubCallsSetSize(void* a0, void*, int a2, int a3) { SubCallArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
 constexpr std::uintptr_t kCommandsVtable = 0x0073D3DC;  // CArray<SSCCmd> (the temporary ScriptDecl)
@@ -135,7 +128,7 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd) {
     }
     cmd->floatArgs.maxSize = 0;
     cmd->floatArgs.size = 0;
-    StringArgsSetSize(&cmd->stringArgs, nullptr, 0, -1);
+    NamesSetSizeOriginal(&cmd->stringArgs, nullptr, 0, -1);
     ObjectArgsSetSize(&cmd->objectArgs, nullptr, 0, -1);
     GroupArgsSetSize(&cmd->groupArgs, nullptr, 0, -1);
     BindingsSetSize(&cmd->localBindings, nullptr, 0, -1);

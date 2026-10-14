@@ -12,6 +12,7 @@ class CEngineObject;
 struct RefPtr;
 struct Quaternion;
 struct Vector3;
+namespace net { class ServerEntry; }
 
 __declspec(naked) inline double __fastcall DotRaw(const Vector3* /*a*/, const Vector3* /*b*/) EI_ORIGINAL(0x00401E00)
 __declspec(naked) inline double __fastcall LengthRaw(const Vector3* /*v*/) EI_ORIGINAL(0x00401E20)
@@ -48,3 +49,8 @@ __declspec(naked) inline void __fastcall FigureDestructBodyOriginal(void* /*figu
 // A-E2. 00457720 (rewritten as CEngineObject::ReleaseAndDelete; plain RET): drops one reference of a counted
 // object (the count at +4) and deletes it through slot 0 at zero.
 __declspec(naked) inline void __fastcall ReleaseCountedOriginal(void* /*object*/) EI_ORIGINAL(0x00457720)
+// C3m. 0040CDC0 (rewritten as AddVectors): out = a + b, each component one rounded add (ECX out; returns out).
+__declspec(naked) inline Vector3* __fastcall VectorAdd(Vector3* /*out*/, const Vector3* /*a*/, const Vector3* /*b*/)
+    EI_ORIGINAL(0x0040CDC0)
+// C3m. 004413E0 (rewritten as ServerEntryBase::ConstructBase): the client base of a server entry (0x48 bytes).
+__declspec(naked) inline void __fastcall ServerEntryConstructBase(net::ServerEntry* /*entry*/) EI_ORIGINAL(0x004413E0)

@@ -25,7 +25,6 @@ using RecordMap = Connection::RecordMap;
 // Lists: insert a default element before `pos`, erase, begin, splice. Iterators are node pointers
 // passed by value.
 __declspec(naked) HistoryNode** __fastcall HistoryInsert(HistoryNode** /*list*/, void*, HistoryNode** /*out*/, HistoryNode* /*pos*/) EI_ORIGINAL(0x004397E0)
-__declspec(naked) HistoryNode** __fastcall HistoryErase(HistoryNode** /*list*/, void*, HistoryNode** /*out*/, HistoryNode* /*pos*/) EI_ORIGINAL(0x00437F30)
 __declspec(naked) SentItem** __fastcall ItemsInsert(SentItem** /*list*/, void*, SentItem** /*out*/, SentItem* /*pos*/) EI_ORIGINAL(0x00438F60)
 __declspec(naked) HeaderNode** __fastcall HeadersInsert(HeaderNode** /*list*/, void*, HeaderNode** /*out*/, HeaderNode* /*pos*/) EI_ORIGINAL(0x00439C80)
 __declspec(naked) HeaderNode** __fastcall HeadersInsertCopy(HeaderNode** /*list*/, void*, HeaderNode** /*out*/, HeaderNode* /*pos*/,

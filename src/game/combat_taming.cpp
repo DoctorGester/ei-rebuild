@@ -25,8 +25,6 @@ constexpr int kOrderNone = 9;
 constexpr int kStatTaming = 2;
 
 // Forwarders (thiscall as __fastcall with the unused EDX).
-// 00525E90 UnitStats: a skill's value (combat_actions.cpp uses it too).
-__declspec(naked) double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00525E90)
 // 00455680 CDiplomacy::OnAttack (object_diplomacy.cpp; world + 0x12C64).
 // CUnit (unit.cpp): 00530120 SetSide, 00530180 SetRelationsB, 005300D0 SetPlayer.
 __declspec(naked) void __fastcall UnitSetSide(CUnit*, void*, int) EI_ORIGINAL(0x00530120)

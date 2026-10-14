@@ -454,8 +454,6 @@ char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char
 char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)FindArmorOriginal(a0, nullptr, a2); }
 char* __fastcall FindQuickNamed(void* a0, void*, const char* a2) { return (char*)FindQuickItemOriginal(a0, nullptr, a2); }
 __declspec(naked) char* __fastcall FindTable14Named(void*, void*, const char*) EI_ORIGINAL(0x006AD580)
-__declspec(naked) char* __fastcall FindTable15Named(void*, void*, const char*) EI_ORIGINAL(0x0069D380)
-__declspec(naked) char* __fastcall FindMaterialNamed(void*, void*, const char*) EI_ORIGINAL(0x0069D290)
 void* const kWeaponTable = reinterpret_cast<void*>(0x007C86F8);
 void* const kArmorTable = reinterpret_cast<void*>(0x007C8718);
 void* const kQuickTable = reinterpret_cast<void*>(0x007C8738);

@@ -39,7 +39,6 @@ __declspec(naked) void __fastcall BuildRootBoneAt(SceneSkin* /*skin*/, const Sce
 // 005068C0; BuildBone 004492F0 (scene_bones.cpp) and MakeFrameRelative 0044EB60
 // (scene_bone_frames.cpp), through their addresses.
 __declspec(naked) void __fastcall BoneDestruct(CAnimationNode*) EI_ORIGINAL(0x005068C0)
-__declspec(naked) void __fastcall BuildBoneAt(SceneSkin*, CAnimationNode*, const SceneNode*, int) EI_ORIGINAL(0x004492F0)
 __declspec(naked) void __fastcall MakeFrameRelativeAt(CAnimationNode*, CAnimationNode*, int) EI_ORIGINAL(0x0044EB60)
 // 00453730: constructs n 40-byte frame records [pointer, count].
 __declspec(naked) void __stdcall ConstructFrameRecords(void*, int) EI_ORIGINAL(0x00453730)

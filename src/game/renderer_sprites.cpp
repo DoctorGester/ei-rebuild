@@ -73,8 +73,6 @@ lib::AlignedArray<SpriteSortRecord*>& Order() { return *reinterpret_cast<lib::Al
 lib::AlignedArray<SpriteSortRecord*>& Spare() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFB8); }
 std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8); }
 
-__declspec(naked) void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)
-__declspec(naked) void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
 inline void __fastcall ByteArraySetSize(mfc::CArray<std::uint8_t>* a, void*, int n, int g) { ByteArraySetSizeOriginal(a, nullptr, n, g); }
 inline void __fastcall WordArraySetSize(mfc::CArray<std::uint16_t>* a, void*, int n, int g) { WordArraySetSizeOriginal(a, nullptr, n, g); }
 // The aligned arrays' SetSize instantiations (thiscall: size, growth or -1): 32-byte elements keeping

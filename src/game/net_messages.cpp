@@ -25,14 +25,12 @@ namespace net {
 namespace {
 
 // --- STLport (library) ---------------------------------------------------------------------------
-__declspec(naked) void __fastcall StringAllocateBlock(StringRep* /*s*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x00424E40)
 void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
 // vector<RefPtr> of the file message: copy of the elements sharing them, deallocate.
 __declspec(naked) RefPtr* __fastcall SharedRefsCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042AE90)
 __declspec(naked) void __fastcall FileRefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004251B0)
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
 void* __fastcall RefsGetAllocator(const RefVector* a0, void*, void* a2) { return VectorGetAllocatorOriginal((const void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall RefsBaseConstruct(RefVector* /*vector*/, void*, std::size_t /*n*/, const void* /*alloc*/) EI_ORIGINAL(0x00421F60)
 __declspec(naked) void __fastcall RefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00425210)
 __declspec(naked) void __fastcall RefsResize(RefVector* /*vector*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x004200C0)
 // Counted pointer element destructors (deleting destructors called with 0).
@@ -1010,7 +1008,7 @@ PartyMessage* PartyMessage::Clone() {   // 004176A0
     CloneHeader(p, this);
     std::uint8_t allocator = 0;
     const void* copy = RefsGetAllocator(&members_, nullptr, &allocator);
-    RefsBaseConstruct(&p->members_, nullptr, static_cast<std::size_t>(members_.finish - members_.start), copy);
+    VectorBaseConstruct(&p->members_, nullptr, static_cast<std::size_t>(members_.finish - members_.start), copy);
     p->members_.finish = UninitializedCopy(members_.start, members_.finish, p->members_.start, 0);
     p->partyValue_ = partyValue_;
     p->accepted_ = accepted_;

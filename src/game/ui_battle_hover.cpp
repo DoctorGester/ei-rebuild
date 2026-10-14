@@ -56,7 +56,6 @@ void* const kPlayerGlue = reinterpret_cast<void*>(0x007AFEA5);
 __declspec(naked) BOOL __fastcall HoverFindExit(void*, void*, const float*, int*) EI_ORIGINAL(0x00567440)
 // The local player glue (007AFEA5): 00578A40 an exit's zone name (RET 4), 00578B50 the local
 // player's variable `name` (RET 4, ST0).
-__declspec(naked) const char* __fastcall HoverExitZone(void*, void*, int) EI_ORIGINAL(0x00578A40)
 // Units: 00530930 the prototype record (__fastcall), 00530150 IsHostileTo (RET 4), 0052F820
 // CanCastSpell(index, point) and 0052F8B0 CanUseQuickItem(index, point) (RET 8; 0 = can),
 // 00531920 the quick item (RET 4); 006A4230 an item's category.
@@ -165,7 +164,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             Point3 at = pick();
             int exit;
             if (!HoverFindExit(kClientWorld, nullptr, at.v, &exit)) return;
-            mfc::CString name(HoverExitZone(kPlayerGlue, nullptr, exit));
+            mfc::CString name(GameExitZoneOriginal(kPlayerGlue, nullptr, exit));
             if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
                                  reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
                 name = mfc::CString(reinterpret_cast<const char*>(0x007900E8)) + name;     // "z."

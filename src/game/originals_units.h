@@ -18,6 +18,7 @@ struct AttackParams;
 struct OrderPlan;
 struct PathCell;
 struct UnitAction;
+struct UnitStats;
 
 // 0050EAB0 (RET 8): the map object reads its network state (its slot 49 between the state's begin
 // / end; `delta` 0 the full state, 1 a delta) from a memory stream. Nonzero when it was read.
@@ -375,3 +376,19 @@ struct DeltaField;        // net_delta.h
 // applies it through the spec's slots 16, 17, 18, 13 and 15.
 __declspec(naked) inline void __fastcall TorchSpecReadNetOriginal(CTorchObjectSpec* /*spec*/, void*, DeltaField* /*field*/)
     EI_ORIGINAL(0x0052C390)
+// C3m. 0050E660 (rewritten as CMapObject::DestructBody): the map object's destructor body.
+__declspec(naked) inline void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E660)
+// C3m. 0050E770 (rewritten as CMapObject::CreateMapObject): CMapObject's virtual slot 2 (Create): back to a blank map
+// object. Returns 1.
+__declspec(naked) inline int __fastcall MapObjectCreate(void*) EI_ORIGINAL(0x0050E770)
+// C3m. 0050E840 (rewritten as CMapObject::DestroyMapObject): CMapObject's Destroy (slot 3), called directly.
+__declspec(naked) inline void __fastcall MapObjectDestroy(void*) EI_ORIGINAL(0x0050E840)
+// C3m. 00524060 / 00524110 (rewritten as UnitStats::LegsFactor / ArmsFactor; through their game addresses): the
+// legs' and arms' factor for a body part index (ST0).
+__declspec(naked) inline float __fastcall LegsFactorAt(UnitStats*, void*, int) EI_ORIGINAL(0x00524060)
+__declspec(naked) inline float __fastcall ArmsFactorAt(UnitStats*, void*, int) EI_ORIGINAL(0x00524110)
+// C3m. 00525800 (rewritten as UnitStats::HealSlots; through its address so the wrapper runs).
+__declspec(naked) inline bool __fastcall HealSlotsAt(UnitStats*, void*, float, float) EI_ORIGINAL(0x00525800)
+// C3m. 00525E90 (rewritten as UnitStats::AttributeWithItems). UnitStats: the value of skill `skill` for the unit, in ST0
+// (declared double).
+__declspec(naked) inline double __fastcall StatsSkillValue(UnitStats*, void*, int, CUnit*) EI_ORIGINAL(0x00525E90)

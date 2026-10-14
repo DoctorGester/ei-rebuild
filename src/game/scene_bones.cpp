@@ -13,6 +13,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "ei/hook.h"
+#include "originals_core.h"
 #include "originals_library.h"
 #include "originals_render.h"
 
@@ -43,9 +44,6 @@ __declspec(naked) void __fastcall ChildrenSetSize(lib::AlignedArray<CAnimationNo
 // a + b [0040CDC0]. Each component is one rounded operation.
 __declspec(naked) Vector3* __fastcall VectorSubtract(Vector3*, const Vector3* /*b*/, const Vector3* /*a*/) EI_ORIGINAL(0x0044A230)
 __declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, std::uint32_t /*t*/) EI_ORIGINAL(0x00448A10)
-__declspec(naked) Vector3* __fastcall VectorAdd(Vector3*, const Vector3*, const Vector3*) EI_ORIGINAL(0x0040CDC0)
-// Through its own address, so the verify wrapper sees the children too.
-__declspec(naked) void __fastcall BuildBoneAt(SceneSkin*, CAnimationNode*, const SceneNode*, int) EI_ORIGINAL(0x004492F0)
 
 // --- x87 -----------------------------------------------------------------------------------------
 

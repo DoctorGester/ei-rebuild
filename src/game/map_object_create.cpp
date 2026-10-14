@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "originals_units.h"
 
 #include <cstdint>
 
@@ -31,8 +32,6 @@ DeltaState* NetState(void* object) {
 }
 
 // Not rewritten (forwarders):
-// 0050E770. CMapObject's virtual slot 2 (Create): back to a blank map object. Returns 1.
-__declspec(naked) int __fastcall MapObjectCreate(void*) EI_ORIGINAL(0x0050E770)
 // 0050FA30. CArray<DeltaField>::SetSize (growBy -1 keeps the step). Both functions below inline it;
 // the inlined copies do exactly what it does.
 inline void NetFieldsSetSize(DeltaState* state, void*, int size, int growBy) { NetFieldsSetSizeOriginal(state, nullptr, size, growBy); }

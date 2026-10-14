@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_library.h"
+#include "originals_script.h"
 
 #include <cstdint>
 
@@ -100,11 +101,7 @@ EI_REPLACE_METHOD(0x004B3940, ScriptVars::RemoveDeletedObjects);
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
 namespace {
-// CArray template members (out of line), __thiscall (size, growBy) / (index, element).
-__declspec(naked) void __fastcall FloatValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2880)
-__declspec(naked) void __fastcall NamesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C2510)
 void __fastcall RefsSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
 __declspec(naked) void __fastcall NamesSetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x004CE5F0)
 // 00700B9F operator+(const CString&, const CString&): constructs the result in `out`.
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
@@ -125,7 +122,7 @@ BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mf
         if (FindName(vars.floatNames, text) >= 0) {
             result = 0;
         } else {
-            FloatValuesSetSize(&vars.floats, nullptr, vars.floats.size + 1, -1);
+            FloatsSetSize(&vars.floats, nullptr, vars.floats.size + 1, -1);
             mfc::CString temp(text);
             NamesSetAtGrow(&vars.floatNames, nullptr, vars.floatNames.size, &temp);
             result = 1;
@@ -136,7 +133,7 @@ BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mf
         if (FindName(vars.stringNames, text) >= 0) {
             result = 0;
         } else {
-            NamesSetSize(&vars.strings, nullptr, vars.strings.size + 1, -1);
+            NamesSetSizeOriginal(&vars.strings, nullptr, vars.strings.size + 1, -1);
             mfc::CString temp(text);
             NamesSetAtGrow(&vars.stringNames, nullptr, vars.stringNames.size, &temp);
             result = 1;
@@ -161,7 +158,7 @@ BOOL __fastcall ScriptAddParameter(ScriptDefinition* definition, void*, const mf
             GroupValuesSetSize(&vars.groups, nullptr, vars.groups.size + 1, -1);
             mfc::CString temp(text);
             int at = vars.groupNames.size;
-            NamesSetSize(&vars.groupNames, nullptr, at + 1, -1);
+            NamesSetSizeOriginal(&vars.groupNames, nullptr, at + 1, -1);
             vars.groupNames.data[at] = temp;
             result = 1;
         }

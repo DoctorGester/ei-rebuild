@@ -45,7 +45,6 @@ __declspec(naked) ScriptDecl* __fastcall NewCommandList(CScript*) EI_ORIGINAL(0x
 __declspec(naked) ScriptDecl* __fastcall FindBlockOrig(const CScript*, void*, int) EI_ORIGINAL(0x004BFA50)
 // ScriptObjectRef::Load (rewritten in script_group.cpp) and the group values' SetSize.
 __declspec(naked) void __fastcall RefLoad(ScriptObjectRef*, void*, ScriptStream*) EI_ORIGINAL(0x004B2590)
-__declspec(naked) void __fastcall GroupValuesSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C3980)
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
 // 00593AA0 the world's FindObject (007AFF60).
@@ -60,8 +59,6 @@ void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArrayS
 
 // CArray template members (out of line), __thiscall (size, growBy).
 __declspec(naked) void __fastcall LightsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C5CB0)      // 0x20 slots
-__declspec(naked) void __fastcall DefinitionsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CD770) // 0xC0
-__declspec(naked) void __fastcall AreasSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CDB30)       // ScriptArea
 __declspec(naked) void __fastcall PartsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004CC640)       // ScriptAreaPart
 void __fastcall CmdsSetSize(void* a0, void*, int a2, int a3) { CmdArraySetSizeOriginal(a0, nullptr, a2, a3); }
 void __fastcall IfThenSetSize(void* a0, void*, int a2, int a3) { IfThenArraySetSizeOriginal(a0, nullptr, a2, a3); }
@@ -77,23 +74,18 @@ __declspec(naked) void __fastcall VarsDestruct(ScriptVars*) EI_ORIGINAL(0x004BE0
 __declspec(naked) void __stdcall ZeroFloats(void*, int) EI_ORIGINAL(0x004CC870)
 void __stdcall ConstructStrings(void* a0, int a1) { CStringElementsConstruct(a0, a1); }
 void __stdcall DestructStrings(void* a0, int a1) { CStringElementsDestruct(a0, a1); }
-__declspec(naked) void __stdcall ConstructRefs(void*, int) EI_ORIGINAL(0x004CC800)
 void __stdcall DestructRefs(void* a0, int a1) { ScriptRefElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall ConstructGroups(void*, int) EI_ORIGINAL(0x004CC9B0)
 void __stdcall DestructGroups(void* a0, int a1) { ScriptGroupElementsDestruct(a0, a1); }
 __declspec(naked) void __stdcall ConstructCmds(void*, int) EI_ORIGINAL(0x004CE920)
 __declspec(naked) void __stdcall ConstructIfThen(void*, int) EI_ORIGINAL(0x004CD4A0)
 __declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)
-__declspec(naked) void __fastcall GroupDestroy(void*, void*, int) EI_ORIGINAL(0x004CE210)
 __declspec(naked) void __fastcall CmdDestroy(void*, void*, int) EI_ORIGINAL(0x004BF620)
 // 004CCA10: ConstructElements of the pointer arrays (zeroes).
 __declspec(naked) void __stdcall ZeroPointers(void*, int) EI_ORIGINAL(0x004CCA10)
 
 // SSCCmd's argument arrays (out of line), __thiscall (size, growBy): floats, group pointers,
 // bindings (both arrays), nested calls (a new SSCCmd per element).
-__declspec(naked) void __fastcall FloatArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4410)
-__declspec(naked) void __fastcall GroupArgsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C49F0)
-__declspec(naked) void __fastcall BindingsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C4CE0)
 void __fastcall SubCallsSetSize(void* a0, void*, int a2, int a3) { SubCallArraySetSizeOriginal(a0, nullptr, a2, a3); }
 // 004B6330 (__thiscall on the element): type, argument index, then SSCCmd::Load into its command.
 __declspec(naked) void __fastcall SubCallLoad(ScriptSubCall*, void*, ScriptStream*) EI_ORIGINAL(0x004B6330)

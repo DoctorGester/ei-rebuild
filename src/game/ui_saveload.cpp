@@ -114,8 +114,6 @@ __declspec(naked) void __fastcall ScrollbarSetRange(CUiScrollbar*, void*, int /*
 // 006FE508: CTime::GetCurrentTime (time(), returned through `out`).
 __declspec(naked) std::int32_t* __stdcall CurrentTime(std::int32_t* /*out*/) EI_ORIGINAL(0x006FE508)
 // 006E80D8: atoi.
-// 0070133F (RET 8): CFile::Write.
-__declspec(naked) void __fastcall FileWrite(mfc::CFile*, void*, const void*, unsigned) EI_ORIGINAL(0x0070133F)
 // 006FE925: CStringArray's constructor.
 
 // The stream's header (004A5340, RET 8: magic, version) and reads (004A52D0, RET 0xC: true when
@@ -431,7 +429,7 @@ void CSaveLoadWindow::SaveGame() {
             mfc::CString path = folder + Text(kShotFile);
             shot.Open(path, kOpenWrite, nullptr);
         }
-        FileWrite(&shot, nullptr, pixels.Bits(), kShotBytes);
+        CFileWrite(&shot, nullptr, pixels.Bits(), kShotBytes);
         shot.Close();
         gameapi::LeaveCriticalSection(DeviceLock());
         pixels.End();
@@ -647,7 +645,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
     mfc::CFile shot;
     shot.Open(folder + Text(kShotFile), kOpenWrite, nullptr);
-    FileWrite(&shot, nullptr, pixels, kShotBytes);
+    CFileWrite(&shot, nullptr, pixels, kShotBytes);
     shot.Close();
     gamecrt::operator_delete(pixels);
     if (surface != nullptr) {
