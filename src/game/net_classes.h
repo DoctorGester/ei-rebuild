@@ -30,6 +30,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CParty;   // party.h
 class ChunkArchive;
 
 namespace net {
@@ -619,13 +620,26 @@ static_assert(offsetof(ClientBase, alwaysAsk_) == 0x25C0);
 static_assert(offsetof(ClientBase, nextQuery_) == 0x25D0);
 static_assert(sizeof(ClientBase) == 0x25D8);
 
-// The 0x70-byte unit record builder (constructor 00661050, destructor 006611D0; world.md): the
-// client keeps two (slot 2 resets them).
-struct UnitRecordBuilder {
-    void* vtable;
-    std::uint8_t unknown_04[0x6C];
+// An embedded CParty (party.h; constructor 00661050, destructor 006611D0): its bytes, as CPlayer
+// keeps its party (the class is abstract in C++). The client keeps two (slot 2, Create, makes their
+// managers), a trade record three.
+struct PartyStorage {
+    alignas(4) std::uint8_t bytes[0x70];   // sizeof(CParty), checked in net_client.cpp
+
+    CParty* Party() { return reinterpret_cast<CParty*>(bytes); }
 };
-static_assert(sizeof(UnitRecordBuilder) == 0x70);
+static_assert(sizeof(PartyStorage) == 0x70);
+
+// A node of the client's trade records (ClientSession::tradeRecords_, 0x160 bytes): the revisions
+// of a finished trade and copies of the two parties and the traded one.
+struct TradeRecordNode {
+    TradeRecordNode* next;
+    TradeRecordNode* prev;
+    std::uint32_t acceptedRevision;   // +0x08 our offer's accepted revision of the partner's
+    std::uint32_t revision;           // +0x0C our offer's revision
+    PartyStorage parties[3];          // +0x10 ours, the partner's, the traded party
+};
+static_assert(sizeof(TradeRecordNode) == 0x160);
 
 // The game client (vtable 0073BDEC). 0x2700 bytes, pointer at 0079B5D8 (GameClient()). It keeps
 // what the server replicates to it, by class, in STLport lists of counted pointers (value at +8).
@@ -667,10 +681,10 @@ public:
     void* awards_;                      // +0x2608 awards received, applied by ApplyAwards (0073BD48)
     RefPtr party_;                      // +0x260C our trade offer (party description 0073BD78)
     void* offers_;                      // +0x2610 the other players' trade offers (0073BD78)
-    void* tradeRecords_;                // +0x2614 0x160-byte nodes: the trades done
+    TradeRecordNode* tradeRecords_;     // +0x2614 the trades done (the list's sentinel)
     CRefObject* trade_;                 // +0x2618 the current trade (0073BD60), counted
     std::uint32_t gameType_;            // +0x261C the multiplayer game type 0..3 (StartServer 0057E740): start zone, type variable
-    UnitRecordBuilder parties_[2];      // +0x2620 ours (published at +0x260C), +0x2690 the partner's
+    PartyStorage parties_[2];           // +0x2620 ours (published at +0x260C), +0x2690 the partner's
 };
 static_assert(offsetof(ClientSession, players_) == 0x25D8);
 static_assert(offsetof(ClientSession, info_) == 0x25EC);

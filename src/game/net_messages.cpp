@@ -990,7 +990,7 @@ void InitParty(PartyMessage* m) {
     m->acceptedRevision_ = 0;
     m->revision_ = 1;
     m->accepted_ = 0;
-    m->partyValue_ = 0;
+    m->money_ = 0;
     m->trading_ = 0;
 }
 } // namespace
@@ -1010,7 +1010,7 @@ PartyMessage* PartyMessage::Clone() {   // 004176A0
     const void* copy = RefsGetAllocator(&members_, nullptr, &allocator);
     VectorBaseConstruct(&p->members_, nullptr, static_cast<std::size_t>(members_.size()), copy);
     p->members_.Finish() = UninitializedCopy(members_.begin(), members_.end(), p->members_.begin(), 0);
-    p->partyValue_ = partyValue_;
+    p->money_ = money_;
     p->accepted_ = accepted_;
     p->acceptedRevision_ = acceptedRevision_;
     p->revision_ = revision_;
@@ -1035,7 +1035,7 @@ void PartyMessage::Write(BufferCursor* cursor) {   // 00412AC0
     std::int32_t count = static_cast<std::int32_t>(members_.size());
     Put(cursor, count);
     for (std::int32_t i = 0; i < count; ++i) PutObject(cursor, members_.begin()[i]);
-    Put(cursor, partyValue_);
+    Put(cursor, money_);
     Put(cursor, accepted_);
     Put(cursor, acceptedRevision_);
     Put(cursor, revision_);
@@ -1050,7 +1050,7 @@ void PartyMessage::Read(BufferCursor* cursor) {   // 00412B70
         RefPtr& slot = members_.begin()[i];
         AssignCounted(slot, CurrentConnection()->ReadObjectRef(cursor));
     }
-    Take(cursor, partyValue_);
+    Take(cursor, money_);
     Take(cursor, accepted_);
     Take(cursor, acceptedRevision_);
     Take(cursor, revision_);
