@@ -242,7 +242,7 @@ public:
     // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
     virtual CBaseManager* SpecificManager();
     virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
-    virtual class CFigureCache* FigureCache();   // 23: the figure cache (+0x5C; map_object_figures.h)
+    virtual CLinkFigureLoader* FigureLoader();   // 23 (vtable +0x5C): the figure loader (model.h)
     // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::
     // CopyItem). Not called CopyItem here: CWorldServer's plain member of that name would hide it.
     virtual CEngineObject* DuplicateItem(CEngineObject* item);

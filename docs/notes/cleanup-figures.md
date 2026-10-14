@@ -133,3 +133,21 @@ original does); a local keeps the old code.
   hid CMapObjectCompanion::owner (C4458 warnings on main). Release object identical.
 - figure_mesh_life.cpp: `unknown_18` -> `prototypeId_` (main did not build: F4's rename met F4a's ConstructBase).
 - Follow-up F4d: CFigureCache into CLinkFigureLoader (float arguments to check), PieceNames, CountedRef as a template.
+
+## F4d: CFigureCache into CLinkFigureLoader (2026-10-14)
+
+- `CFigureCache` (map_object_figures.h) is gone. CWorld slot 23 (vtable +0x5C) is `FigureLoader()` returning
+  `CLinkFigureLoader*` (model.h). MakeFigure (00516DA0) calls `LoadLink` (slot 4) / `LoadFigure` (slot 3) and
+  SetFigureScale (00517700) calls `Remorph` (slot 6) with the scale as floats and `fresh` false.
+- The hand-made `PieceNames` is the loader's `stlp::vector<stlp::string>` (filled through Start / Finish /
+  EndOfStorage as before, freed by destroying each string and FreeStorage).
+- `CountedRef` is a template, `CountedRef<T>`, with `Assign` defined in object3d_lifetime.cpp for the three types
+  the game's copies hold (explicit instantiations): 00519580 `CountedRef<CLinkMesh>` (the figure), 0051E570
+  `CountedRef<WoundsMaterial>` and 0051E4F0 `CountedRef<CRenderPreset>` (Ghidra xrefs: 0051C3D0 calls 0051E570 for
+  the wounds material at 0051C4E3 / 0051C56F and 0051E4F0 for its preset at 0051C587; 0051AF70 calls 0051E570 too).
+  The count and the deletion are `CountOf` / `DeleteCounted` overloads there (inline: without `inline` the release
+  build calls them, since it inlines only functions declared inline). The verify wrapper is a template too.
+- Release objects compared with dumpbin: CountedRef<T>::Assign and DropReference identical to the old ones (names
+  aside). MakeFigure and SetFigureScale are not: the scale floats now go through `fld / fstp` to the argument slots
+  instead of being pushed as dwords (and registers / stack slots moved). An x87 float load and store is exact for
+  every value but a signalling NaN, which a figure scale never is; checked with a suite run (below).

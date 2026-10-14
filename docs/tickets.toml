@@ -661,10 +661,18 @@ done = "2026-10-14"
 id = "F4d"
 title = "CFigureCache into CLinkFigureLoader (F4c follow-up)"
 group = "cleanup"
-status = "running"
+status = "review"
 depends = ["F4c"]
 note = "CFigureCache (map_object_figures.h; CWorld slot 23 in world.h) is a view of CLinkFigureLoader (model.h, vtable 0073D808): slots 3 LoadFigure, 4 LoadLink, 6 Remorph. The view passes the scale as float bits (std::uint32_t) where the loader takes float s, t, u and bool fresh; check the release code of CObject3D::MakeFigure (00516DA0) and SetFigureScale (00517700) stays the same with floats (the original pushes the dwords with MOV/PUSH). The hand-made PieceNames vector in object3d_figure_setup.cpp is the loader's stlp::vector<stlp::string>. CountedRef (00519580) could become a counted-pointer template: its copies 0051E4F0 / 0051E570 hold the client half's wounds material and its helper preset (0051C3D0)."
 started = "2026-10-14"
+
+[[ticket]]
+id = "F4e"
+title = "ShowWounds' AssignCountedRoot onto CountedRef<T>"
+group = "cleanup"
+status = "queued"
+depends = ["F4d"]
+note = "unit_client_wounds.cpp (0051C3D0) keeps its own AssignCountedRoot template (inlined) for the wounds material and its preset; CountedRef<WoundsMaterial> / <CRenderPreset> (map_object_figures.h, object3d_lifetime.cpp, F4d) are the same code out of line. Either call those (release code changes from inlined to a call) or make CountedRef::Assign inline in a header that sees the counted types. party.h slot 23 is still named FigureCache (null in CParty)."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

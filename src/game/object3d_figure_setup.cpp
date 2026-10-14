@@ -311,41 +311,33 @@ constexpr int kClassUnit50 = 0x50;
 constexpr int kClassUnit54 = 0x54;
 constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
 
-// An STLport vector<string> of the piece names, as the cache's slot 3 reads it (the original
-// builds it with 005195B0 / 004DDBA0 and assigns each name).
-struct PieceNames {
-    stlp::string* begin;
-    stlp::string* end;
-    stlp::string* endOfStorage;
-};
-
-PieceNames MakePieceNames(const PartNameArray* names) {
-    PieceNames out{};
+// The piece names as the loader's slot 3 (LoadFigure) reads them, into an empty vector (the original
+// sizes it with 005195B0 / 004DDBA0 and assigns each name).
+void FillPieceNames(stlp::vector<stlp::string>& pieces, const PartNameArray* names) {
     int count = names->size;
     if (count > 0) {
-        out.begin = static_cast<stlp::string*>(stlp::allocate(static_cast<std::size_t>(count) * sizeof(stlp::string)));
+        auto* start = static_cast<stlp::string*>(stlp::allocate(static_cast<std::size_t>(count) * sizeof(stlp::string)));
+        pieces.Start() = start;
         for (int i = 0; i < count; ++i) {
             const char* text = static_cast<const char*>((*names)[i]);
-            new (&out.begin[i]) stlp::string(text, text + std::strlen(text));
+            new (&start[i]) stlp::string(text, text + std::strlen(text));
         }
-        out.end = out.begin + count;
-        out.endOfStorage = out.end;
+        pieces.Finish() = start + count;
+        pieces.EndOfStorage() = pieces.Finish();
     }
-    return out;
 }
 
-void FreePieceNames(PieceNames& names) {
-    for (stlp::string* s = names.begin; s != names.end; ++s) s->~string();
-    if (names.begin)
-        stlp::deallocate(names.begin, static_cast<std::size_t>(names.endOfStorage - names.begin) * sizeof(stlp::string));
+void FreePieceNames(stlp::vector<stlp::string>& pieces) {
+    for (stlp::string& piece : pieces) piece.~string();
+    pieces.FreeStorage();
 }
 
 // 00517110 (LoadParts, above), through its address so its wrapper runs.
 __declspec(naked) int __fastcall LoadPartsAt(CObject3D*, void*, const char*, const void*, std::uint32_t)
     EI_ORIGINAL(0x00517110)
 
-CFigureCache* FigureCacheOf(const CObject3D* object) {
-    return static_cast<CWorld*>(object->ManagerContext())->FigureCache();
+CLinkFigureLoader* FigureLoaderOf(const CObject3D* object) {
+    return static_cast<CWorld*>(object->ManagerContext())->FigureLoader();
 }
 } // namespace
 
@@ -360,17 +352,14 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
     if (names->size == 0 && animation) {
         AnimationStatePartNamesOriginal(animation, nullptr, partList);
         stlp::string key(model, model + std::strlen(model));
-        CLinkMesh* made = FigureCacheOf(this)->BuildWholeFigure(
-            &key, std::bit_cast<std::uint32_t>(scale.x), std::bit_cast<std::uint32_t>(scale.y),
-            std::bit_cast<std::uint32_t>(scale.z), 0);
+        CLinkMesh* made = FigureLoaderOf(this)->LoadLink(&key, scale.x, scale.y, scale.z, false);
         FigureRef().Assign(made);
     } else {
-        PieceNames pieces = MakePieceNames(names);
+        stlp::vector<stlp::string> pieces;
+        FillPieceNames(pieces, names);
         {
             stlp::string key(model, model + std::strlen(model));
-            CLinkMesh* made = FigureCacheOf(this)->BuildFigure(
-                &key, &pieces, std::bit_cast<std::uint32_t>(scale.x), std::bit_cast<std::uint32_t>(scale.y),
-                std::bit_cast<std::uint32_t>(scale.z), 0);
+            CLinkMesh* made = FigureLoaderOf(this)->LoadFigure(&key, &pieces, scale.x, scale.y, scale.z, false);
             CLinkMesh* old = figure;
             figure = made;
             if (made) ++made->refCount_;

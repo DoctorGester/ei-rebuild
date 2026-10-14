@@ -309,36 +309,17 @@ static_assert(offsetof(CFigureAnimationState, morphS) == 0x68);
 static_assert(offsetof(CFigureAnimationState, changed) == 0x74);
 static_assert(sizeof(CFigureAnimationState) == 0x78);
 
-// The figure cache (the world's slot 23): builds the figures objects hold at +0xF0; the
-// CLinkFigureLoader (model.h, vtable 0073D808) as the 3D object calls it, the scale passed as
-// float bits. Slots 0-2 keep their place only.
-class CFigureCache {
-public:
-    virtual void DeleteThis();   // 0: 004F6A30 (flags)
-    virtual void CacheSize();    // 1: 004F6A20
-    virtual void CacheBytes();   // 2: 004FAAA0
-    // 3: the figure of model `name` (an stlp::string) made of the pieces `pieceNames` (an STLport
-    // vector<string>), at the scale; referenced by the caller.
-    virtual CLinkMesh* BuildFigure(const void* name, const void* pieceNames, std::uint32_t x, std::uint32_t y,
-                                   std::uint32_t z, int flag);
-    // 4: the whole figure of model `name` at the scale.
-    virtual CLinkMesh* BuildWholeFigure(const void* name, std::uint32_t x, std::uint32_t y, std::uint32_t z, int flag);
-    virtual void Clear();   // 5: 004F7020 (every cached figure released, the cache emptied)
-    // 6: 004F75E0. `figure` (one this cache built) at the scale (raw float bits): with fewer than 3
-    // references its pieces are rebuilt in place and it is returned (null for null), otherwise a new
-    // whole figure of its model is built through slot 4.
-    virtual CLinkMesh* ScaledFigure(CLinkMesh* figure, std::uint32_t x, std::uint32_t y, std::uint32_t z);
-};
-
-// A counted figure reference: the pointer slot is the `this` of 00519580.
+// A counted reference: the pointer slot is the `this` of 00519580 (the 3D object's figure, a
+// CLinkMesh) and of its byte-identical copies 0051E570 (the client half's wounds material) and
+// 0051E4F0 (that material's helper preset), both called by 0051C3D0. T's count is at +0x04 and its
+// slot 0 deletes it; object3d_lifetime.cpp defines Assign for those three types.
+template <typename T>
 struct CountedRef {
-    // 00519580 (object3d_lifetime.cpp). object = `value`: the new figure gains a reference, the
-    // old one loses one and is deleted (its slot 0 with 1) when that was the last. The same code
-    // serves the byte-identical copies 0051E4F0 / 0051E570 (the client half's wounds material and
-    // its helper preset, 0051C3D0): any counted object (count +0x04, slot 0 deletes).
-    void Assign(CLinkMesh* value);
+    // object = `value`: the new one gains a reference, the old one loses one and is deleted (its
+    // slot 0 with 1) when that was the last.
+    void Assign(T* value);
 
-    CLinkMesh* object;
+    T* object;
 };
 
 class CObject3D : public CEngineObject {
@@ -537,7 +518,7 @@ public:
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
     // The figure (+0xF0) as the counted reference 00519580 assigns.
-    CountedRef& FigureRef() { return *reinterpret_cast<CountedRef*>(&figure); }
+    CountedRef<CLinkMesh>& FigureRef() { return *reinterpret_cast<CountedRef<CLinkMesh>*>(&figure); }
     // The object as the CTransformObject it starts with (core_transform.h).
     CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
     const CTransformObject* Transform() const { return reinterpret_cast<const CTransformObject*>(this); }

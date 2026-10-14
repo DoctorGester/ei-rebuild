@@ -165,8 +165,8 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
         return 0;   // the original leaves the FPU status word in AX here
     std::memcpy(&scale, newScale, sizeof(scale));
     if (CLinkMesh* current = figure) {
-        CFigureCache* cache = static_cast<CWorld*>(ManagerContext())->FigureCache();
-        CLinkMesh* rebuilt = cache->ScaledFigure(current, Bits(scale.x), Bits(scale.y), Bits(scale.z));
+        CLinkFigureLoader* loader = static_cast<CWorld*>(ManagerContext())->FigureLoader();
+        CLinkMesh* rebuilt = loader->Remorph(current, scale.x, scale.y, scale.z);
         FigureRef().Assign(rebuilt);   // 00519580
         for (int i = 0; i < parts.size; ++i) {
             auto* part = static_cast<CFigureMesh*>(parts.data[i]);
