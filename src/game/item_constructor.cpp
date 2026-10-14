@@ -336,9 +336,9 @@ void FillCommon(char* record, const char* prototype, const char* material) {
     // Every operand is read before the arithmetic so that no partial result leaves the FPU (the
     // original keeps them in ST0). Price: the prototype's +0x4C (an unsigned count, FILD qword)
     // times the material's price, plus the prototype's price.
-    std::int64_t units = Head(prototype)->unknown_4C;
+    double units = x87::FromUnsigned(Head(prototype)->unknown_4C);
     float materialPrice = Material(material)->quality, price = Head(prototype)->price;
-    Put<float>(record, 0x34, static_cast<float>(static_cast<double>(units) * materialPrice + price));
+    Put<float>(record, 0x34, static_cast<float>(units * materialPrice + price));
     float value38 = F(prototype, 0x38), factor38 = F(material, 0x14);
     Put<float>(record, 0x38, value38 * factor38);
     CopyDword(record, 0x3C, prototype, 0x3C);
