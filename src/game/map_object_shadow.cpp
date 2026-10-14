@@ -43,7 +43,7 @@ int ShadowSwitch(int classId) {
     if (classId == 0x52) return *reinterpret_cast<const int*>(0x0079BD1C);
     return *reinterpret_cast<const int*>(0x0079BD18);
 }
-const float* DefaultLight() { return reinterpret_cast<const float*>(0x007AF230); }   // three floats
+const Vector3* DefaultLight() { return reinterpret_cast<const Vector3*>(0x007AF230); }
 void* TextureManager() { return *reinterpret_cast<void**>(0x007AF744); }
 void* RenderDevice() { return *reinterpret_cast<void**>(0x007AF080); }
 void* ShadowProjector() { return reinterpret_cast<void*>(0x007AF5B8); }
@@ -211,75 +211,67 @@ double Brightness(const CLight* light) {
 
 // A point light's share: from the light towards the object, scaled by its brightness and its
 // falloff over the squared distance. False when the object is out of its range.
-bool PointLightShare(const CObject3D* object, CLight* light, float* out) {
-    const float* at = &object->position.x;
-    const float* from = &light->position_.x;
-    double dx = static_cast<double>(at[0]) - from[0];
-    double dy = static_cast<double>(at[1]) - from[1];
-    double dz = static_cast<double>(at[2]) - from[2];
-    float distanceSquared = static_cast<float>((dz * dz + dy * dy) + dx * dx);
+bool PointLightShare(const CObject3D* object, CLight* light, Vector3* out) {
+    const Vector3& at = object->position;
+    const Vector3& from = light->position_;
+    double dx = static_cast<double>(at.x) - from.x;
+    double dy = static_cast<double>(at.y) - from.y;
+    double dz = static_cast<double>(at.z) - from.z;
+    float distanceSquared = static_cast<float>(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz));
     if (distanceSquared >= light->rangeSquared_) return false;   // NaN counts as in range
     double falloff = kOne - static_cast<double>(light->inverseRangeSquared_) * distanceSquared;
     float intensity = static_cast<float>(Brightness(light) * falloff);
-    float towards[3] = {static_cast<float>(static_cast<double>(at[0]) - from[0]),
-                        static_cast<float>(static_cast<double>(at[1]) - from[1]),
-                        static_cast<float>(static_cast<double>(at[2]) - from[2])};
+    Vector3 towards = {static_cast<float>(static_cast<double>(at.x) - from.x),
+                       static_cast<float>(static_cast<double>(at.y) - from.y),
+                       static_cast<float>(static_cast<double>(at.z) - from.z)};
     if (!(distanceSquared < 0.0f || distanceSquared > 0.0f)) {   // zero (or NaN)
-        std::memcpy(towards, DefaultLight(), sizeof(towards));
+        std::memcpy(&towards, DefaultLight(), sizeof(towards));
     } else {
         double inverse = kOneDouble / x87::fsqrt(distanceSquared);
-        towards[0] = static_cast<float>(towards[0] * inverse);
-        towards[1] = static_cast<float>(towards[1] * inverse);
-        towards[2] = static_cast<float>(towards[2] * inverse);
+        towards.x = static_cast<float>(towards.x * inverse);
+        towards.y = static_cast<float>(towards.y * inverse);
+        towards.z = static_cast<float>(towards.z * inverse);
     }
     double scale = intensity;
     if (light->flags_ & kLightStrong) scale = scale * kStrongFactor;
-    out[2] = static_cast<float>(towards[2] * scale);
-    out[1] = static_cast<float>(towards[1] * scale);
-    out[0] = static_cast<float>(towards[0] * scale);
+    out->z = static_cast<float>(towards.z * scale);
+    out->y = static_cast<float>(towards.y * scale);
+    out->x = static_cast<float>(towards.x * scale);
     return true;
 }
 
 // A directional light's share: its direction times its brightness.
-void DirectionalShare(CLight* light, float* out) {
+void DirectionalShare(CLight* light, Vector3* out) {
     double brightness = Brightness(light);
-    out[2] = static_cast<float>(brightness * light->direction_.z);
-    out[1] = static_cast<float>(brightness * light->direction_.y);
-    out[0] = static_cast<float>(brightness * light->direction_.x);
+    out->z = static_cast<float>(brightness * light->direction_.z);
+    out->y = static_cast<float>(brightness * light->direction_.y);
+    out->x = static_cast<float>(brightness * light->direction_.x);
 }
 
 // The normalised direction of `sum`, tilted down to at least 20 degrees below the horizontal.
-void LightDirection(const float* sum, float* direction) {
-    double lengthSquared = (static_cast<double>(sum[0]) * sum[0] + static_cast<double>(sum[2]) * sum[2]) +
-                           static_cast<double>(sum[1]) * sum[1];
-    std::memcpy(direction, sum, 12);
+void LightDirection(const Vector3& sum, Vector3* direction) {
+    double lengthSquared = LengthSquaredUnrounded<Sum3::ZXY, double>(sum);   // (x + z) + y
+    std::memcpy(direction, &sum, 12);
     if (lengthSquared < 0.0 || lengthSquared > 0.0) {
         double inverse = kOneDouble / x87::fsqrt(lengthSquared);
-        direction[0] = static_cast<float>(sum[0] * inverse);
-        direction[1] = static_cast<float>(inverse * direction[1]);
-        direction[2] = static_cast<float>(inverse * direction[2]);
+        direction->x = static_cast<float>(sum.x * inverse);
+        direction->y = static_cast<float>(inverse * direction->y);
+        direction->z = static_cast<float>(inverse * direction->z);
     }
-    float horizontal = static_cast<float>(
-        x87::fsqrt(static_cast<double>(direction[1]) * direction[1] + static_cast<double>(direction[0]) * direction[0]));
-    float height = std::bit_cast<float>(std::bit_cast<std::uint32_t>(direction[2]) & 0x7FFFFFFFu);
+    float horizontal = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded<double>(direction->y, direction->x)));
+    float height = std::bit_cast<float>(std::bit_cast<std::uint32_t>(direction->z) & 0x7FFFFFFFu);
     double elevation = x87::fpatan(height, horizontal);   // FLD y; FLD x; FPATAN
     double minimum = g_pi * g_perDegree * g_minimumTilt;
     if (elevation >= minimum) return;   // NaN tilts
     double z = static_cast<double>(horizontal) * kTiltSlope;
-    double inverse = kOne / x87::fsqrt((z * z + static_cast<double>(direction[1]) * direction[1]) +
-                                       static_cast<double>(direction[0]) * direction[0]);
-    direction[0] = static_cast<float>(inverse * direction[0]);
-    direction[1] = static_cast<float>(inverse * direction[1]);
-    direction[2] = static_cast<float>(inverse * z);
+    double inverse = kOne / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction->x, direction->y, z));
+    direction->x = static_cast<float>(inverse * direction->x);
+    direction->y = static_cast<float>(inverse * direction->y);
+    direction->z = static_cast<float>(inverse * z);
 }
 
 // The squared distance of a part from the object; parts beyond 1e10 are skipped (NaN is not).
-bool PartTooFar(const FigurePart* part) {
-    double x = part->position.x;
-    double y = part->position.y;
-    double z = part->position.z;
-    return (x * x + y * y) + z * z > kFarSquared;
-}
+bool PartTooFar(const FigurePart* part) { return LengthSquaredUnrounded<Sum3::XYZ, double>(part->position) > kFarSquared; }
 
 FigurePart* PartAt(const CObject3D* object, int i) { return static_cast<FigurePart*>(object->parts.data[i]); }
 
@@ -328,34 +320,34 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     void* device = context->graphicsProcessor_;
 
     // The lights reaching the object.
-    float sum[3];
-    std::memcpy(sum, DefaultLight(), sizeof(sum));
+    Vector3 sum;
+    std::memcpy(&sum, DefaultLight(), sizeof(sum));
     ObjectListIterator lights{nullptr, nullptr};
     for (auto* light = static_cast<CLight*>(lights.First(TheLightFactory())); light;
          light = static_cast<CLight*>(lights.Next())) {
         if (light->flags_ & kLightOff || light->flags_ & kLightRemoved) continue;
-        float share[3];
+        Vector3 share;
         if (light->type_ == kTypePointLight) {
-            if (!PointLightShare(self->object, light, share)) continue;
+            if (!PointLightShare(self->object, light, &share)) continue;
         } else {
-            DirectionalShare(light, share);
+            DirectionalShare(light, &share);
         }
-        sum[0] = static_cast<float>(static_cast<double>(share[0]) + sum[0]);
-        sum[1] = static_cast<float>(static_cast<double>(share[1]) + sum[1]);
-        sum[2] = static_cast<float>(static_cast<double>(share[2]) + sum[2]);
+        sum.x = static_cast<float>(static_cast<double>(share.x) + sum.x);
+        sum.y = static_cast<float>(static_cast<double>(share.y) + sum.y);
+        sum.z = static_cast<float>(static_cast<double>(share.z) + sum.z);
     }
-    float direction[3];
-    LightDirection(sum, direction);
+    Vector3 direction;
+    LightDirection(sum, &direction);
 
     // Look from the light; the object turned to face it.
     Matrix4 view;
-    LightViewMatrix(pipeline, nullptr, view.m, direction);
+    LightViewMatrix(pipeline, nullptr, view.m, &direction.x);
     pipeline->PushMatrixProduct(view, kShadowStack);
     ResizeDiscarding(Points(), kPointBufferSize, AllocatePoints);
     ResizeDiscarding(Pixels(), kPointBufferSize, AllocatePixels);
     int count = 0;
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
-    LightRotation(pipeline, nullptr, direction, &turn);
+    LightRotation(pipeline, nullptr, &direction.x, &turn);
     CObject3D* object = self->object;
     PreMultiplyAt(&object->orientation, nullptr, &turn);
     ObjectWorldMatrix(&object->orientation, &object->position, &object->worldMatrix);
@@ -401,16 +393,17 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     float scaleY = static_cast<float>(kTextureScale / (static_cast<double>(self->bounds[3]) - self->bounds[1]));
     float offsetX = static_cast<float>(-(static_cast<double>(scaleX) * self->bounds[0]));
     float offsetY = static_cast<float>(-(static_cast<double>(scaleY) * self->bounds[1]));
-    float toPixels[16] = {};
-    toPixels[0] = toPixels[5] = toPixels[10] = toPixels[15] = 1.0f;   // 0051E1C0
-    toPixels[0] = scaleX;
-    toPixels[12] = offsetX;
-    toPixels[13] = offsetY;
-    toPixels[5] = scaleY;
+    Matrix4 toPixels = {};
+    float* t = toPixels.m;
+    t[0] = t[5] = t[10] = t[15] = 1.0f;   // 0051E1C0
+    t[0] = scaleX;
+    t[12] = offsetX;
+    t[13] = offsetY;
+    t[5] = scaleY;
     for (int k = 0; k < Points().size; ++k) {
-        float x = static_cast<float>(static_cast<double>(toPixels[0]) * PointAt(k)[0] + toPixels[12]);
+        float x = static_cast<float>(static_cast<double>(t[0]) * PointAt(k)[0] + t[12]);
         PixelAt(k)[0] = x87::fistp(x);
-        float y = static_cast<float>(static_cast<double>(toPixels[5]) * PointAt(k)[1] + toPixels[13]);
+        float y = static_cast<float>(static_cast<double>(t[5]) * PointAt(k)[1] + t[13]);
         PixelAt(k)[1] = x87::fistp(y);
     }
     ResizeDiscarding(Pixels(), count, AllocatePixels);
@@ -470,8 +463,8 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     double x2 = static_cast<double>(turn.x) + turn.x;
     float y2 = static_cast<float>(static_cast<double>(turn.y) + turn.y);
     float z2 = static_cast<float>(static_cast<double>(turn.z) + turn.z);
-    float at[3];
-    std::memcpy(at, &self->object->position, sizeof(at));
+    Vector3 at;
+    std::memcpy(&at, &self->object->position, sizeof(at));
     float wx = static_cast<float>(x2 * turn.w);
     float wy = static_cast<float>(static_cast<double>(y2) * turn.w);
     float wz = static_cast<float>(static_cast<double>(z2) * turn.w);
@@ -503,9 +496,9 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float x = static_cast<float>(CornerX(m, a, b));
         (void)z;   // computed for the corner's Vector3, never used
         float* quad = static_cast<float*>(Quads().data);
-        quad[0] = static_cast<float>(static_cast<double>(at[0]) + x);
-        quad[4] = static_cast<float>(static_cast<double>(at[1]) + y);
-        quad[8] = at[2];
+        quad[0] = static_cast<float>(static_cast<double>(at.x) + x);
+        quad[4] = static_cast<float>(static_cast<double>(at.y) + y);
+        quad[8] = at.z;
         quad[12] = 1.0f;
     }
     const float corners[3][2] = {{self->bounds[3], self->bounds[2]},
@@ -517,9 +510,9 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         float y = CornerY(m, a, b);
         double x = CornerX(m, a, b);
         float* quad = static_cast<float*>(Quads().data);
-        quad[1 + c] = static_cast<float>(x + at[0]);
-        quad[5 + c] = static_cast<float>(static_cast<double>(y) + at[1]);
-        quad[9 + c] = at[2];
+        quad[1 + c] = static_cast<float>(x + at.x);
+        quad[5 + c] = static_cast<float>(static_cast<double>(y) + at.y);
+        quad[9 + c] = at.z;
         quad[13 + c] = 1.0f;
     }
 
@@ -531,11 +524,11 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
     double pz = (product(w[9], c.y) + product(w[10], c.z)) + product(w[8], c.x);
     float py = static_cast<float>((product(w[5], c.y) + product(w[6], c.z)) + product(w[4], c.x));
     float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
-    float point[3] = {static_cast<float>(static_cast<double>(px) + at[0]),
-                      static_cast<float>(static_cast<double>(py) + at[1]), static_cast<float>(pz + at[2])};
+    Vector3 point = {static_cast<float>(static_cast<double>(px) + at.x),
+                     static_cast<float>(static_cast<double>(py) + at.y), static_cast<float>(pz + at.z)};
     std::uint32_t radiusBits;
     std::memcpy(&radiusBits, &self->object->radius, 4);
-    ProjectShadow(ShadowProjector(), nullptr, direction, point, radiusBits, &Quads(),
+    ProjectShadow(ShadowProjector(), nullptr, &direction.x, &point.x, radiusBits, &Quads(),
                   &self->vertices, &self->texCoords, &self->indices, 0, keyedParts == 0);
 
     if (self->vertices.size != 0) {
