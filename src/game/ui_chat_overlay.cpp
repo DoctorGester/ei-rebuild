@@ -10,6 +10,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -244,7 +245,7 @@ void CChatOverlay::ClearLines() {
 }
 EI_REPLACE_METHOD(0x005E3930, CChatOverlay::ClearLines);
 
-// --- 005E3700: the typed line drawn (Rebirth-patched; the vanilla body) ---------------------------------
+// --- 005E3700: the typed line drawn (Rebirth-patched: WideScreen reproduced) ------------------------------
 
 namespace {
 constexpr int kTypedTextRight = 0x30F, kTypedTextBottom = 0x11;
@@ -272,8 +273,9 @@ void CChatOverlay::DrawTyped() {
         void* oldPen = dc->SelectPen(&pen);
         POINT top{width, 0};
         POINT bottom{width, kCaretBottom};
-        interface_->CallScalePointToScreen(&top);
-        interface_->CallScalePointToScreen(&bottom);
+        // WideScreen (005E3839 / 005E386C: XOR ECX,ECX): without the margin.
+        interface_->CallScalePointToScreenNoMargin(&top);
+        interface_->CallScalePointToScreenNoMargin(&bottom);
         dc->MoveTo(top.x, top.y);
         dc->LineTo(bottom.x, bottom.y);
         dc->SelectPen(oldPen);
@@ -282,6 +284,7 @@ void CChatOverlay::DrawTyped() {
     SurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x005E3700, CChatOverlay::DrawTyped);
+EI_REBIRTH_IMPLEMENTS(0x005E3700, ei::rebirth::Patch::WideScreen);
 
 // --- 005E3230 / 005E3550: the chat line's keys (input slots 9 and 10) ---------------------------------
 

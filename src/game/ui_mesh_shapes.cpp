@@ -1,12 +1,14 @@
-// The shapes an interface sprite (CUiMesh, ui.h) is given as the unpatched game builds them.
-// Rebirth patches these for its wide layout, so the bodies here are hooked in the vanilla launch
-// only and rewritten callers keep going through the forwarders (CUiMesh::SetRectangle, ...).
-// docs/notes/ui.md, section 9.
+// The shapes an interface sprite (CUiMesh, ui.h) is given. Rebirth's WideScreen patches each of
+// them (one site: the x of the sprite's position moved by its panel offset, ui_widescreen.h), which
+// these reproduce behind the flag (ticket W2); rewritten callers keep going through the forwarders
+// (CUiMesh::SetRectangle, ...). docs/notes/ui.md, section 9.
 #include "ui.h"
+#include "ui_widescreen.h"
 
 #include "figure_mesh.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/containers.h"
 #include "lib/vecmath.h"
 
@@ -104,6 +106,10 @@ void SetLayoutScale(CUiMesh* sprite, float depth, float scale) {
     sprite->ScaleZ() = size;
 }
 
+// Rebirth's WideScreen: addon's code at the four sites adds its panel offset (an int, FIADD) to the
+// layout x before the scaling: once to a left edge or a point, twice to a sum of two edges.
+float MovedX(float x) { return x + static_cast<float>(widescreen::PanelOffset()); }
+
 } // namespace
 
 void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0,
@@ -135,7 +141,10 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     quad.y[3] = halfHeight;
     // The centre in front of the interface camera, as Place puts a layout point.
     float y = ((top + bottom) * GameFloat(0x00740164) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
-    float x = ((left + right) * GameFloat(0x00740164) - One()) * ViewHalfWidth() * depth;
+    // WideScreen (005E75D1, addon's 100231E1): both edges moved.
+    float sumX = left + right;
+    if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
+    float x = (sumX * GameFloat(0x00740164) - One()) * ViewHalfWidth() * depth;
     Vector3 centre;
     position_ = *centre.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);
@@ -143,6 +152,7 @@ void CUiMesh::SetRectangleVanilla(float depth, float scale, float left, float to
     Commit();
 }
 EI_REPLACE_METHOD(0x005E70E0, CUiMesh::SetRectangleVanilla);
+EI_REBIRTH_IMPLEMENTS(0x005E70E0, ei::rebirth::Patch::WideScreen);
 
 void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1, int columns, int rows) {
@@ -188,7 +198,9 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
         ++point;
     }
     // The top left corner in front of the interface camera.
-    position_.x = (left * GameFloat(0x0074015C) - One()) * ViewHalfWidth() * depth;
+    // WideScreen (005E7C8D, addon's 100231CA): the left edge moved.
+    const float gridLeft = widescreen::Active() ? MovedX(left) : left;
+    position_.x = (gridLeft * GameFloat(0x0074015C) - One()) * ViewHalfWidth() * depth;
     position_.y = (top * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
     position_.z = depth;
     SetLayoutScale(this, depth, scale);
@@ -196,6 +208,7 @@ void CUiMesh::SetGridVanilla(float depth, float scale, float left, float top, fl
     Commit();
 }
 EI_REPLACE_METHOD(0x005E7680, CUiMesh::SetGridVanilla);
+EI_REBIRTH_IMPLEMENTS(0x005E7680, ei::rebirth::Patch::WideScreen);
 
 void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, float right, float bottom, float border,
                               int u0, int v0, int u1, int v1) {
@@ -237,7 +250,10 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     lower.y[2] = outerY;
     lower.x[3] = -innerX;
     lower.y[3] = innerY;
-    position_.x = ((left + right) * GameFloat(0x00740164) - One()) * ViewHalfWidth() * depth;
+    // WideScreen (005E835E, addon's 100231FA): both edges moved.
+    float sumX = left + right;
+    if (widescreen::Active()) sumX = MovedX(MovedX(sumX));
+    position_.x = (sumX * GameFloat(0x00740164) - One()) * ViewHalfWidth() * depth;
     position_.y = ((top + bottom) * GameFloat(0x00740164) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
     position_.z = depth;
     SetLayoutScale(this, depth, scale);
@@ -245,6 +261,7 @@ void CUiMesh::SetFrameVanilla(float depth, float scale, float left, float top, f
     Commit();
 }
 EI_REPLACE_METHOD(0x005E7D60, CUiMesh::SetFrameVanilla);
+EI_REBIRTH_IMPLEMENTS(0x005E7D60, ei::rebirth::Patch::WideScreen);
 
 void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2,
                                  float u0, float v0, float u1, float v1, float u2, float v2) {
@@ -276,7 +293,9 @@ void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, f
     points.x[3] = 0.0f;
     points.y[3] = 0.0f;
     float y = (y0 * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * ViewHalfWidth() * depth;
-    float x = (x0 * GameFloat(0x0074015C) - One()) * ViewHalfWidth() * depth;
+    // WideScreen (005E9E77, addon's 100231B3): the first point moved.
+    const float firstX = widescreen::Active() ? MovedX(x0) : x0;
+    float x = (firstX * GameFloat(0x0074015C) - One()) * ViewHalfWidth() * depth;
     Vector3 first;
     position_ = *first.Construct(x, y, depth);
     SetLayoutScale(this, depth, scale);
@@ -284,3 +303,4 @@ void CUiMesh::SetTriangleVanilla(float depth, float scale, float x0, float y0, f
     Commit();
 }
 EI_REPLACE_METHOD(0x005E99D0, CUiMesh::SetTriangleVanilla);
+EI_REBIRTH_IMPLEMENTS(0x005E99D0, ei::rebirth::Patch::WideScreen);

@@ -11,7 +11,7 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    EI_RENDER=new,present: the game has no DirectDraw or Direct3D 7 device and the new
                    renderer presents through its own swap chain (docs/notes/renderer.md section 9)
   --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"):
-                   the scenarios (default ui_widescreen; they set the wide mode with the harness's
+                   the scenarios (default ui_widescreen and ui_widescreen_more; they set the wide mode with the harness's
                    "resolution" / "widescreen" steps) under Rebirth twice, with our hooks
                    (<scenario>-rebirth) and without (<scenario>-rebirth-nohooks: addon's code only),
                    then tools/compare_frames.py on the two runs' frames
@@ -32,6 +32,7 @@ import argparse, collections, concurrent.futures, contextlib, glob, json, msvcrt
 import prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more']   # --widescreen without scenario names
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
 # Runs go to <BUILD>/runs. <BUILD>/run_times.json keeps each run's seconds from the last suite: the
 # longest start first, so the last games to finish are short ones (alphabetical order left a 50 s run
@@ -68,7 +69,9 @@ def machine_slot(alone=False):
     """One of the machine's MACHINE_SLOTS game slots (shared by every checkout's run_all), or all of
     them (alone): for a game that sets the display mode, which takes the surfaces of every other
     game running then (they fail with DDERR_SURFACELOST: "Can't begin scene", untextured models).
-    Games that want all the slots queue on one more lock, so two of them never split the slots."""
+    Games that want all the slots queue on one more lock, so two of them never split the slots; while
+    one holds it, no other game takes a slot (a suite's next game would take each slot as it frees,
+    and the one that wants them all waited for the end of every other suite on the machine)."""
     os.makedirs(SLOT_DIR, exist_ok=True)
     held = []
     gate = None
@@ -76,13 +79,15 @@ def machine_slot(alone=False):
         if alone:
             while not (gate := _lock(os.path.join(SLOT_DIR, 'alone'))):
                 time.sleep(0.5)
-        else:
-            # A game waiting for all the slots holds the gate; others take no new slot meanwhile,
-            # or freed slots go to them first and it starves (35 minutes once with four suites).
-            while not (probe := _lock(os.path.join(SLOT_DIR, 'alone'))):
-                time.sleep(0.5)
-            _unlock(probe)
         while True:
+            if not alone:
+                # A game waiting for all the slots holds the gate; others take no new slot meanwhile,
+                # or freed slots go to them first and it starves (35 minutes once with four suites).
+                waiting = _lock(os.path.join(SLOT_DIR, 'alone'))
+                if not waiting:
+                    time.sleep(0.5)
+                    continue
+                _unlock(waiting)
             for i in range(MACHINE_SLOTS):
                 if alone and i in [h[0] for h in held]:
                     continue
@@ -184,8 +189,16 @@ def compare_widescreen(name, out=None, root=ROOT, build=BUILD):
         cmd = [sys.executable, os.path.join(root, 'tools', 'compare_frames.py'), a, b, '--worst', '4',
                '--diff', os.path.join(diffs, frame + '.bmp')]
         later_a, later_b = os.path.join(ours, frame + '_later.bmp'), os.path.join(addons, frame + '_later.bmp')
+        excludes = []
         if os.path.exists(later_a) and os.path.exists(later_b):
-            cmd += ['--exclude', a, later_a, '--exclude', b, later_b, '--exclude-grow', '8']
+            excludes += ['--exclude', a, later_a, '--exclude', b, later_b]
+        # A window that pauses the world (the Esc menu's): what moved in <f>_moving / <f>_moving_later,
+        # captured before it opened, is left out of <f> too.
+        moving = [os.path.join(d, frame + s) for d in (ours, addons) for s in ('_moving.bmp', '_moving_later.bmp')]
+        if all(os.path.exists(m) for m in moving):
+            excludes += ['--exclude', moving[0], moving[1], '--exclude', moving[2], moving[3]]
+        if excludes:
+            cmd += excludes + ['--exclude-grow', '8']
         out.flush()
         if out is sys.stdout:
             ok = subprocess.run(cmd).returncode == 0 and ok
@@ -240,7 +253,7 @@ def plan(args, root=ROOT):
     rebirth = set(names) if args.scenarios or args.all_rebirth or args.rebirth_only else rebirth_scenarios(names, root)
     jobs = [(name, install) for name in names for install in installs if install != 'rebirth' or name in rebirth]
     if args.widescreen:
-        names = args.scenarios or ['ui_widescreen']
+        names = args.scenarios or WIDESCREEN_SCENARIOS
         jobs = [(name, install) for name in names for install in ('rebirth', 'rebirth-nohooks')]
     return jobs
 
@@ -301,7 +314,7 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
         for fn, (calls, mismatches) in bad:
             print(f'  {fn}: {mismatches} of {calls}', file=out)
     if args.widescreen:
-        for name in args.scenarios or ['ui_widescreen']:
+        for name in args.scenarios or WIDESCREEN_SCENARIOS:
             print(f'\nframes of {name}: ours (rebirth) against addon\'s alone (rebirth-nohooks)', file=out)
             out.flush()
             ok = compare_widescreen(name, out, root, build) and ok

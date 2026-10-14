@@ -1,5 +1,5 @@
 // The message box's edit field: its key handler (0065C610), constructor (0065C010) and character
-// handler (0065C930), and its drawing (0065C2E0, A-H26: the vanilla body). See ui.h (CUiEditField) and
+// handler (0065C930), and its drawing (0065C2E0, A-H26; Rebirth's WideScreen behind its flag). See ui.h (CUiEditField) and
 // docs/notes/items_spells.md (A-H19).
 #include "ui.h"
 
@@ -8,6 +8,7 @@
 #include "ui_gdi.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -235,8 +236,9 @@ void CUiEditField::DrawContentsVanilla() {
         void* oldPen = dc->SelectPen(&pen);
         POINT top{caretX, 0};
         POINT bottom{caretX, height};
-        interface_->CallScalePointToScreen(&top);
-        interface_->CallScalePointToScreen(&bottom);
+        // WideScreen (0065C51F / 0065C544: XOR ECX,ECX): without the margin.
+        interface_->CallScalePointToScreenNoMargin(&top);
+        interface_->CallScalePointToScreenNoMargin(&bottom);
         dc->MoveTo(top.x, top.y);
         dc->LineTo(bottom.x, bottom.y);
         dc->SelectPen(oldPen);
@@ -245,3 +247,4 @@ void CUiEditField::DrawContentsVanilla() {
     SurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x0065C2E0, CUiEditField::DrawContentsVanilla);
+EI_REBIRTH_IMPLEMENTS(0x0065C2E0, ei::rebirth::Patch::WideScreen);

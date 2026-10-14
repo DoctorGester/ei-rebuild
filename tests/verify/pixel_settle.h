@@ -12,6 +12,21 @@
 
 namespace ei::verify {
 
+// How many pixel comparisons are running (a draw compared inside another's comparison: the text
+// draw 005FDE20 inside the trade lists', the wrapped text's, an edit field's). The inner one draws
+// ours only then: the outer compares the result, and drawing twice inside it made the outer's
+// original unstable (CTradePanel::DrawLists).
+inline int& PixelComparisonDepth() {
+    static int depth = 0;
+    return depth;
+}
+struct PixelComparisonScope {
+    PixelComparisonScope() { ++PixelComparisonDepth(); }
+    ~PixelComparisonScope() { --PixelComparisonDepth(); }
+    PixelComparisonScope(const PixelComparisonScope&) = delete;
+    PixelComparisonScope& operator=(const PixelComparisonScope&) = delete;
+};
+
 struct SettleOutcome {
     bool settled = false; // two redraws in a row agreed
     int tries = 0;

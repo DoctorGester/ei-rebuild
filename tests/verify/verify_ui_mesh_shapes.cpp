@@ -1,7 +1,8 @@
-// Checks for the vanilla bodies of the interface sprites' shapes (A-I22,
-// src/game/ui_mesh_shapes.cpp): the rectangle 005E70E0, the grid 005E7680, the frame 005E7D60 and
-// the triangle 005E99D0. Rebirth patches them, so the installer hooks them in the vanilla launch
-// only and these wrappers run there.
+// Checks for the interface sprites' shapes (A-I22, src/game/ui_mesh_shapes.cpp): the rectangle
+// 005E70E0, the grid 005E7680, the frame 005E7D60 and the triangle 005E99D0. Rebirth's WideScreen
+// patches them (x moved by the panel offset); ours reproduce it behind the flag (W2), so in a
+// Rebirth launch these compare with addon's patched code (ui_widescreen: the battle screen's panels,
+// built while addon's panel builders set the offset).
 //
 // All four side by side. Each writes all of what it sizes (the point packets, one packet of
 // normals, the corners, four texture coordinates, the indices), the position and the three

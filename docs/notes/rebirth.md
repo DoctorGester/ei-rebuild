@@ -236,21 +236,45 @@ are compared without what moved between the two (the hero, his portrait, the men
 tolerance (at most 0.065% of the pixels differ). Not compared: the global map (its scene is lit by the world's time, which differs between
 the two runs). The options window's slider thumbs are a few pixels wider in ours: the same with WideScreen off (not WideScreen; to look at).
 
-**W2-W4** (the remaining 87 sites; each needs its functions rewritten or the rewrite to declare the patch, and its frames compared):
-- **W2, sprite shapes and text**: the shape builders' sites (005E70E0+4F1 SetRectangle, 005E7680+60D SetGrid, 005E7D60+5FE SetFrame,
-  005E99D0+4A7 SetTriangle: x moved by the panel offset); the text extent 005F8340+8F (80 bytes) and the text surfaces' draw
-  005FDE20+74 (the ECX 0 scaling); the rectangles read from +0x98 in the console / edit / list / chat / tooltip draws (0065C2E0+23F/+264,
-  0061D780+38E/+3BE, 006567A0+257/+268, 005E3700+139/+16C, 0065E580+1FE with its 0x320 / -0x320 operands).
+**Done (W2)**: the shape builders' sites (005E70E0+4F1 SetRectangle, 005E7680+60D SetGrid, 005E7D60+5FE SetFrame, 005E99D0+4A7
+SetTriangle: x moved by the panel offset; SetRectangle / SetFrame add it twice to the left + right sum, as addon), the text extent
+005F8340+8F (pixels to layout units: `cx * 800 / width43`, `cy * 600 / height`; `widescreen::TextExtentToLayout`), the text surfaces'
+draw 005FDE20+74 and the +0x98 rectangles of the edit field 0065C2E0, the save / load list 006567A0, the chat line 005E3700 and the
+tooltip 0065E580 (scaled with ECX 0: `CInterface3D::CallScale*NoMargin`, ui.h; the tooltip's right edge at `800 + extra`,
+`widescreen::LayoutRight`). Each declares `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`. Not reproduced: 0061D780 (the connect list) also
+holds ExtendedServerName (+0x27C), so it keeps addon's code in a Rebirth launch (its WideScreen change is in our rewrite all the same).
+Verified against addon's code in a Rebirth launch (`ui_widescreen_more`, a second widescreen scenario: the multiplayer hero screen's name
+field, tooltips at both screen edges, the console, the Esc menu's Save window): the shapes, the text extent, the tooltip at 0 mismatches;
+the text draw, the edit field, the list and the chat line compare the surface's pixels side by side (`tests/verify/gdi_pixels.h`,
+`ui_surface_pixels.h`; the text draw reads only its rectangle's rows) at 0 mismatches. Every Rebirth launch of the suite is wide too
+(the starter's settings here: the desktop's mode, WideScreen on), so the Rebirth half of the suite compares these wrappers with addon's
+code as well (ui_camp: DrawTextIn 8301 calls). The chat line is not drawn in a single player game (the overlay's root is drawn only for
+network clients): the harness's `chat 1|0` step opens it for the wrapper. A pausing window's frame (the Save window) leaves out what moved
+in `<f>_moving` / `<f>_moving_later`, captured before it opened (run_all); the unit panel is slid out first, as the window's picture is a
+copy of the screen with the animated hero in it.
+2026-10-14: both scenarios' frames within the default tolerance (ui_widescreen at most 0.064%, options; ui_widescreen_more at most
+0.040%, the Save window; the menu's swaying trees once reached 0.135%), and the W2 wrappers at 0 mismatches (TextExtent 1354 calls, DrawTextIn 3238, SetRectangle 853, the tooltip
+19221, the edit field 8, the list 2, the chat line 3).
+Font smoothing is a desktop setting: the titles / credits screen switches it off and "restores" a value it never read, so a harness
+game left it off for the whole machine and other runs turned it back; the two runs compared then drew text with and without GDI's
+grey edges (every text failed). The harness no longer passes the game's SPI_SETFONTSMOOTHING on, and creates the game's fonts
+NONANTIALIASED_QUALITY (as they look after the titles), so text no longer depends on the desktop's setting (harness.cpp); checkouts
+without that commit still flip the setting while they run games.
+Display: a scenario with a `resolution` step runs alone on the machine (run_all, X36): the desktop-mode game took the surfaces of games
+running beside it (DDERR_SURFACELOST; the widescreen game itself got it too when it ran beside others). While such a game gathers the
+slots, no other game takes one (else it waited for every other suite on the machine to end).
+
+**W3-W4** (each needs its functions rewritten or the rewrite to declare the patch, and its frames compared):
 - **W3, the battle screen's panel builders** (they set the panel offset; then `widescreen::SetPanelOffset` replaces addon's variable):
   the minimap 00641F20 / 00642930 / 00642B40, the unit panels 00645210 / 006456E0 / 00645F80 / 006462A0 / 00647FB0, the weapon bar and
   quick items 0063BAB0 / 0063BCC0 / 0063C050 / 0063C800 / 0063CAE0, the action and spell columns 0063F300 / 0063F500 / 0063E2A0 /
   0063E4B0, the move panel 00649190 / 00649910, the clock 00648520: replaced entries, epilogue hooks and layout immediates.
 - **W4, the other screens and the input**: the camp and hero screens (0060C870 CCampPages::Create, 00613EA0 / 00615D30 CMpHeroScreen),
   the help page 00659420+574, the global map 0062F950+1D0 and its mouse move 00630010 (+7C, +22C), the camera's mouse move 005EB210+39
-  (the last two call addon's no-margin entry 005F7DFE), the cursor's rectangles 005F5320 (+14A .. +251), the interface's creation
-  005F4990+BF and 005F4F81, 005FD237 (9 bytes), 004F1330+2A (AxisSwapMatrix, a device file).
+  (the last two call addon's no-margin entry 005F7DFE: `CInterface3D::CallScalePointFromScreenNoMargin` since W2), the cursor's
+  rectangles 005F5320 (+14A .. +251), the interface's creation 005F4990+BF and 005F4F81, 005FD237 (9 bytes), 004F1330+2A (AxisSwapMatrix, a device file).
 
 ### Remaining work
 
-WideScreen W2-W4 (above); the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
+WideScreen W3-W4 (above); the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
 layer); the multiplayer patches and EI_Plugin features (with multiplayer).

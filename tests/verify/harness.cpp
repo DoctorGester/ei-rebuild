@@ -67,6 +67,8 @@
 //                             opens with, as a base dialogue's "constrN" answer (006064E0) sets it
 //                             (classes 1, 3, 4, 5 after a new game); fails when there is no such
 //                             class template
+//   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
+//                             does, so that its typed line and caret are drawn; or close it
 //   zone <name> [exit]        leave the zone as its exits do: the server's LeaveToZone (0066F310) for
 //                             the local player, to map.txt zone <name> (gz2g, bz1g, ...), the party
 //                             arriving at that zone's exit <exit> (from 0: map.txt's "#exit n" minus
@@ -661,6 +663,33 @@ LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWO
     if (!logged) Log("harness: registry writes are skipped (first: %s)", name ? name : "(default)");
     logged = true;
     return ERROR_SUCCESS;
+}
+
+// Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switches
+// it off and "restores" a value it never read (off), so a harness game left it off for every program
+// on the machine, and text in runs before and after differed (GDI's grey edges or none: the
+// widescreen comparison of two runs). Harness runs leave the setting alone, and the game's fonts are
+// created without smoothing (NONANTIALIASED_QUALITY), as they look once the titles have switched it
+// off, whatever the desktop's setting and other programs do to it during the run.
+constexpr std::uintptr_t kSystemParametersInfoASlot = 0x0073B4C0;   // game.exe import table
+constexpr std::uintptr_t kCreateFontIndirectASlot = 0x0073B068;     // game.exe import table
+constexpr UINT kSetFontSmoothing = 0x4B;                             // SPI_SETFONTSMOOTHING
+decltype(&::SystemParametersInfoA) g_systemParametersInfo;
+decltype(&::CreateFontIndirectA) g_createFontIndirect;
+
+BOOL WINAPI HarnessSystemParametersInfo(UINT action, UINT uiParam, PVOID pvParam, UINT winIni) {
+    if (action != kSetFontSmoothing) return g_systemParametersInfo(action, uiParam, pvParam, winIni);
+    static bool logged = false;
+    if (!logged) Log("harness: font smoothing left as the desktop has it (the game asked for %u)", uiParam);
+    logged = true;
+    return TRUE;
+}
+
+HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
+    if (!font) return g_createFontIndirect(font);
+    LOGFONTA plain = *font;
+    plain.lfQuality = NONANTIALIASED_QUALITY;
+    return g_createFontIndirect(&plain);
 }
 
 // The "show tutorial" option (options object 0079BC70 + 0x208, registry value ShowTutorial). With it
@@ -1703,6 +1732,17 @@ void RunSteps() {
                 if (id == 5) SetCurrentConstructor(static_cast<float>(constr));
                 RequestScreen(id);
             }
+        } else if (s.verb == "chat") {
+            // The chat line (the interface's root, CChatOverlay) opened as a multiplayer client's Enter
+            // opens it (005F7C60: SetOpen 005E36C0, which draws it, 005E3700), or closed.
+            auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+            if (!ui->root_) {
+                g_failures.push_back("chat: the interface has no chat overlay");
+            } else if (std::atoi(s.argument.c_str()) != 0) {
+                ChatKeyEnterOriginal(ui);
+            } else {
+                ui->root_->SetOpen(false);
+            }
         } else if (s.verb == "zone") {
             // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
             char name[64] = "";
@@ -2153,6 +2193,8 @@ struct Harness {
         PatchSlot(kGetFileAttributesASlot, &RedirectedGetFileAttributes, g_getFileAttributes);
         PatchSlot(kSetFileAttributesASlot, &RedirectedSetFileAttributes, g_setFileAttributes);
         PatchSlot(kRegSetValueExASlot, &SkippedRegSetValue, g_regSetValue);
+        PatchSlot(kSystemParametersInfoASlot, &HarnessSystemParametersInfo, g_systemParametersInfo);
+        PatchSlot(kCreateFontIndirectASlot, &HarnessCreateFontIndirect, g_createFontIndirect);
         PatchSlot(kGetPrivateProfileStringASlot, &HarnessGetProfileString, g_getProfileString);
         PatchSlot(kGetPrivateProfileSectionASlot, &RedirectedGetProfileSection, g_getProfileSection);
         PatchSlot(kGetPrivateProfileIntASlot, &RedirectedGetProfileInt, g_getProfileInt);

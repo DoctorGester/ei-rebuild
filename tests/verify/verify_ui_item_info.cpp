@@ -83,6 +83,7 @@ void* PanelSurface(CItemInfoPanel* panel) {
 // and the item list (count, first item) must agree.
 void CompareDrawing(const char* name, CItemInfoPanel* panel, const std::function<void()>& original,
                     const std::function<void()>& ours, int detail) {
+    ei::verify::PixelComparisonScope scope;
     void* surface = PanelSurface(panel);
     Pixels before;
     bool pixels = AccessPixels(surface, before, false);

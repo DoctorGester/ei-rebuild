@@ -128,6 +128,24 @@ SITE_STATUS = {
  ('WideScreen', 0x005FC9F4): 'implemented: CUiRegion::SetRect (src/game/ui_window.cpp)',
  ('WideScreen', 0x005FCA70): 'implemented: CUiRegion::AddPoint (src/game/ui_window.cpp)',
  ('WideScreen', 0x005E6FA0): 'implemented: CUiMesh::PlaceBody (src/game/ui_mesh_draw.cpp)',
+ # WideScreen, ticket W2.
+ ('WideScreen', 0x005E75D1): 'implemented: CUiMesh::SetRectangleVanilla (src/game/ui_mesh_shapes.cpp)',
+ ('WideScreen', 0x005E7C8D): 'implemented: CUiMesh::SetGridVanilla (src/game/ui_mesh_shapes.cpp)',
+ ('WideScreen', 0x005E835E): 'implemented: CUiMesh::SetFrameVanilla (src/game/ui_mesh_shapes.cpp)',
+ ('WideScreen', 0x005E9E77): 'implemented: CUiMesh::SetTriangleVanilla (src/game/ui_mesh_shapes.cpp)',
+ ('WideScreen', 0x005F83CF): 'implemented: CInterface3D::TextExtent (src/game/ui_text_draw.cpp)',
+ ('WideScreen', 0x005FDE94): 'implemented: CUiSurface::DrawTextIn (src/game/ui_text_draw.cpp)',
+ ('WideScreen', 0x0065C51F): 'implemented: CUiEditField::DrawContentsVanilla (src/game/ui_edit_field.cpp)',
+ ('WideScreen', 0x0065C544): 'implemented: CUiEditField::DrawContentsVanilla (src/game/ui_edit_field.cpp)',
+ ('WideScreen', 0x0061DB0E): 'implemented: CMpConnectScreen::DrawListVanilla (src/game/ui_connect_list.cpp; ExtendedServerName not, so skipped under Rebirth)',
+ ('WideScreen', 0x0061DB3E): 'implemented: CMpConnectScreen::DrawListVanilla (src/game/ui_connect_list.cpp; ExtendedServerName not, so skipped under Rebirth)',
+ ('WideScreen', 0x006569F7): 'implemented: CSaveLoadWindow::RefreshListVanilla (src/game/ui_saveload_list.cpp)',
+ ('WideScreen', 0x00656A08): 'implemented: CSaveLoadWindow::RefreshListVanilla (src/game/ui_saveload_list.cpp)',
+ ('WideScreen', 0x005E3839): 'implemented: CChatOverlay::DrawTyped (src/game/ui_chat_overlay.cpp)',
+ ('WideScreen', 0x005E386C): 'implemented: CChatOverlay::DrawTyped (src/game/ui_chat_overlay.cpp)',
+ ('WideScreen', 0x0065E77E): 'implemented: CUiTooltip::OnMouseMoveVanilla (src/game/ui_tooltip.cpp)',
+ ('WideScreen', 0x0065E7C3): 'implemented: CUiTooltip::OnMouseMoveVanilla (src/game/ui_tooltip.cpp)',
+ ('WideScreen', 0x0065E7CA): 'implemented: CUiTooltip::OnMouseMoveVanilla (src/game/ui_tooltip.cpp)',
 }
 # What addon writes at each site, for the sites worth saying more than the patch summary.
 SITE_SUMMARY = {

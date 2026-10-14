@@ -1,7 +1,8 @@
 // The multiplayer connection screen's list (CMpConnectScreen::DrawListVanilla 0061D780): the
 // servers' rows, the new game's controls and the selected entry's details, drawn on the screen's
-// first surface. Rebirth patches it, so this is the vanilla body and it is hooked in the vanilla
-// launch only; the screen's other members call it through its address. See ui_screens.h and
+// first surface. Rebirth patches it: WideScreen is reproduced behind its flag (W2), ExtendedServerName
+// is not, so it is hooked in the vanilla launch only; the screen's other members call it through its
+// address. See ui_screens.h and
 // docs/notes/ui.md, section 5.
 #include "ui_screens.h"
 
@@ -9,6 +10,7 @@
 #include "ui_gdi.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
@@ -117,8 +119,9 @@ void CMpConnectScreen::DrawListVanilla() {
     void* oldPen = dc->SelectPen(&pen);
     POINT from{8, row.bottom - 2};
     POINT to{270, row.bottom - 2};
-    interface_->CallScalePointToScreen(&from);
-    interface_->CallScalePointToScreen(&to);
+    // WideScreen (0061DB0E / 0061DB3E: XOR ECX,ECX): without the margin.
+    interface_->CallScalePointToScreenNoMargin(&from);
+    interface_->CallScalePointToScreenNoMargin(&to);
     dc->MoveTo(from.x, from.y);
     dc->LineTo(to.x, to.y);
     Down(&row, 27);
@@ -219,3 +222,5 @@ void CMpConnectScreen::DrawListVanilla() {
     pen.Destruct();
 }
 EI_REPLACE_METHOD(0x0061D780, CMpConnectScreen::DrawListVanilla);
+// (Rebirth's ExtendedServerName patches it too, not reproduced: in a Rebirth launch it stays skipped.)
+EI_REBIRTH_IMPLEMENTS(0x0061D780, ei::rebirth::Patch::WideScreen);

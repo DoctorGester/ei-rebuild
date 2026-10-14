@@ -1,8 +1,8 @@
 // The save/load window's list (CSaveLoadWindow::RefreshList, 006567A0; A-H26): the visible rows
 // with their dates, the name being typed with its caret, the selection's marker and the selected
 // save's details, all drawn into the window's first surface.
-// Rebirth patches it, so this is the vanilla body and installs in the vanilla launch only (rule
-// 9); our callers keep the forwarder in ui_menus.cpp. Patched callees through their addresses: the
+// Rebirth's WideScreen patches it (the caret's points scaled without the margin), which this
+// reproduces behind the flag (ticket W2); our callers keep the forwarder in ui_menus.cpp (rule 9). Patched callees through their addresses: the
 // surface's text 005FDE20, the text extent 005F8340, the point scaling 005F7D20 and the sprite's
 // Place 005E6FA0. See ui.h (CSaveLoadWindow) and docs/notes/items_spells.md ("A-H26").
 #include "ui.h"
@@ -12,6 +12,7 @@
 #include "world_glue.h"         // GameClientTexts
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -99,8 +100,9 @@ void CSaveLoadWindow::RefreshListVanilla() {
                     void* oldPen = dc->SelectPen(&pen);
                     POINT top{titleRect.left + width, titleRect.top};
                     POINT bottom{titleRect.left + width, titleRect.bottom - 3};
-                    interface_->CallScalePointToScreen(&top);
-                    interface_->CallScalePointToScreen(&bottom);
+                    // WideScreen (006569F7 / 00656A08: XOR ECX,ECX): without the margin.
+                    interface_->CallScalePointToScreenNoMargin(&top);
+                    interface_->CallScalePointToScreenNoMargin(&bottom);
                     dc->MoveTo(top.x, top.y);
                     dc->LineTo(bottom.x, bottom.y);
                     dc->SelectPen(oldPen);
@@ -156,3 +158,4 @@ void CSaveLoadWindow::RefreshListVanilla() {
     SurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x006567A0, CSaveLoadWindow::RefreshListVanilla);
+EI_REBIRTH_IMPLEMENTS(0x006567A0, ei::rebirth::Patch::WideScreen);

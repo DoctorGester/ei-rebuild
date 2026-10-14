@@ -90,6 +90,15 @@ public:
     int CallScaleRectToScreen(RECT* rect) const;        // -> 005F7CA0
     int CallScalePointToScreen(POINT* point) const;     // -> 005F7D20
     int CallScalePointFromScreen(POINT* point) const;   // -> 005F7E00
+    // The same where Rebirth's WideScreen scales without the margin: addon clears ECX before the call
+    // (XOR ECX,ECX over MOV ECX,[ESI+0x98] / [EDI+4]: the text surfaces' draw 005FDE20, the edit
+    // field 0065C2E0, the connection list 0061D780, the save / load list 006567A0, the chat line
+    // 005E3700, the tooltip 0065E580). With the flag on (widescreen::Active) these call the
+    // original addresses with ECX 0, which addon's code and our hooks take as "no margin"; with it
+    // off, with this interface, as the original.
+    int CallScaleRectToScreenNoMargin(RECT* rect) const;        // -> 005F7CA0
+    int CallScalePointToScreenNoMargin(POINT* point) const;     // -> 005F7D20
+    int CallScalePointFromScreenNoMargin(POINT* point) const;   // -> 005F7E00
 
     // 005F57C0. Once per frame (main loop): closes the top window while a value is pending,
     // closes all windows on request, activates a queued window, reads the mouse and updates the
@@ -162,7 +171,7 @@ public:
     // empties the chat lines (ClearLines).
     void ChatKeyEnter();
     void ChatKeyBackspace();
-    // 005F8340 (RET 0xC; Rebirth-patched, this is the vanilla body; ui_text_draw.cpp; rewritten
+    // 005F8340 (RET 0xC; Rebirth-patched, WideScreen reproduced behind its flag, W2; ui_text_draw.cpp; rewritten
     // callers go through InterfaceTextExtentOriginal). The extent of `text` (a CString taken by
     // value) in interface font `font`, measured on the game window's DC (GetTextExtentPoint32)
     // and scaled to the layout: cx * 800 / width, cy * 600 / height. Returns `out`.
@@ -472,8 +481,8 @@ public:
     // (ui_text.cpp).
     int DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
                         int flag);
-    // 005FDE20 (RET 0x18; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
-    // only; ui_text_draw.cpp; rewritten callers go through SurfaceDrawText). Draws `text` in
+    // 005FDE20 (RET 0x18; Rebirth-patched, WideScreen reproduced behind its flag, W2;
+    // ui_text_draw.cpp; rewritten callers go through SurfaceDrawText). Draws `text` in
     // interface font `font` and `colour` into `rect` (layout coordinates scaled to the screen,
     // 005F7CA0, then two pixels wider and higher; an empty rect is the whole surface) with the
     // DrawText `format`, transparent; with `shadow` first in 0x080808 one pixel right and down.
@@ -945,7 +954,7 @@ struct CUiTooltip : CUiWindow {
     // first flag_ lines in 0x31B3FF and the others in 0xA7D7E4; the first line followed by
     // "  ( <key> )" when keyName_ is set.
     void DrawLines();
-    // 0065E580 (RET 8; Rebirth-patched: the vanilla body is OnMouseMoveVanilla in ui_tooltip.cpp
+    // 0065E580 (RET 8; Rebirth-patched: the body is OnMouseMoveVanilla in ui_tooltip.cpp, WideScreen reproduced behind its flag, W2,
     // and callers use this forwarder, rule 9). One step of the showing, with the mouse at (x, y)
     // in layout coordinates; the region has set the state to 1 (mouse inside) or 3 (left) before.
     // State 1: no lines or a zero delay (setting 20) gives 0; the timer runs up to the delay, then
@@ -1611,12 +1620,13 @@ public:
     // 005E99D0 (Rebirth-patched: through its address; the vanilla body is SetTriangleVanilla).
     void SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
                      float v0, float u1, float v1, float u2, float v2);
-    // 005E70E0 (RET 0x28; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
-    // only; ui_mesh_shapes.cpp; rewritten callers go through SetRectangle). A rectangle of two
+    // 005E70E0 (RET 0x28; Rebirth-patched; ui_mesh_shapes.cpp, hooked in the vanilla launch and,
+    // reproducing WideScreen, in a Rebirth launch; rewritten callers go through SetRectangle). A rectangle of two
     // triangles: one packet of normals (0, 0, 1), four corners, the texels (u0, v0)-(u1, v1) as
     // texture coordinates (v upwards; both u one less when u0 > u1; half a texel inwards), the
     // quad (+-half width, +-half height) / scale about the origin, position_ the layout centre at
-    // `depth` (as Place), the three scales 0.48157 * depth * scale / 400; then Commit.
+    // `depth` (as Place), the three scales 0.48157 * depth * scale / 400; then Commit. With
+    // Rebirth's WideScreen every shape's layout x is moved by the panel offset (ui_widescreen.h).
     void SetRectangleVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
                              int u1, int v1);
     // The other shapes' vanilla bodies (Rebirth-patched like the rectangle; ui_mesh_shapes.cpp).
@@ -2453,8 +2463,8 @@ public:
     void CallDeleteSave();
     void CallLoadSelected();
 
-    // 006567A0 (Rebirth-patched: callers use this forwarder, rule 9; the vanilla body is
-    // RefreshListVanilla in ui_saveload_list.cpp, A-H26). Draws the list into surface 0: the caret
+    // 006567A0 (Rebirth-patched: callers use this forwarder, rule 9; the body is
+    // RefreshListVanilla in ui_saveload_list.cpp, A-H26, WideScreen reproduced behind its flag, W2). Draws the list into surface 0: the caret
     // clamped to the name; up to sixteen rows from firstVisible_, each the save's title (the typed
     // name for the selected row of a save window) and, but for a save window's new save, its date
     // ("%d/%m, %H:%M"); the selected row also gets the caret (a save window, not the quick or an
@@ -2826,8 +2836,8 @@ public:
     // text, the others with the caret at the end). Then the text is drawn again (0065C2E0) and
     // the key is marked used. Other keys: nothing.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0065C2E0 (Rebirth-patched: callers use this forwarder, rule 9; the vanilla body is
-    // DrawContentsVanilla in ui_edit_field.cpp, A-H26). The caret is clamped to the text; with the
+    // 0065C2E0 (Rebirth-patched: callers use this forwarder, rule 9; the body is
+    // DrawContentsVanilla in ui_edit_field.cpp, A-H26, WideScreen reproduced behind its flag, W2). The caret is clamped to the text; with the
     // surface's DC (nothing without one) the surface is cleared, the text drawn over the whole
     // field in font_ and colour_ (centred when centred_), and the caret drawn as a line of
     // caretColour_ over the field's height after the first caret_ characters, unless it falls
@@ -3042,7 +3052,7 @@ public:
     void SetOpen(bool open);
     // 005E3930. Every line destroyed and its node returned to the pool; the list left empty.
     void ClearLines();
-    // 005E3700 (Rebirth-patched, this is the vanilla body, hooked in the vanilla launch only;
+    // 005E3700 (Rebirth-patched, WideScreen reproduced behind its flag, W2;
     // rewritten callers go through ChatOverlayDrawTypedOriginal). The typed line's surface hidden
     // while the chat is closed; else shown, the caret clamped to the line, the surface cleared,
     // the line drawn (font 1, white, DT_NOPREFIX, shadowed) over (0, 0)-(783, 17) and, while the

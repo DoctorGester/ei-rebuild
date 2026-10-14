@@ -206,6 +206,16 @@ int PointFromScreen(POINT* point, bool margin) {
     return point->y;
 }
 
+// addon's code at 005F83CF: MOV EAX,800; IMUL EBX; MOV ECX,width43; IDIV ECX, then the same with 600
+// and the height.
+SIZE TextExtentToLayout(SIZE pixels) {
+    const Layout& l = Get();
+    return SIZE{MulDiv64(pixels.cx, kLayoutWidth, l.width43), MulDiv64(pixels.cy, kLayoutHeight, l.height)};
+}
+
+// addon's apply function: 0x320 + extra written at 0065E7C3, -0x320 - extra at 0065E7CA.
+int LayoutRight() { return kLayoutWidth + Get().extra; }
+
 float FoundLayoutWidth() { return g_foundLayoutWidth; }
 float FoundPanelRight() { return g_foundPanelRight; }
 
