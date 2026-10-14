@@ -29,12 +29,12 @@ constexpr int kMaterialsChunk = 1;
 constexpr int kWeaponsChunk = 2;
 constexpr int kArmorsChunk = 3;
 constexpr int kQuickItemsChunk = 4;
-constexpr int kLootChunk = 5;
-constexpr int kQuestItemsChunk = 6;
+constexpr int kQuestItemsChunk = 5;
+constexpr int kLootChunk = 6;
 
 // The tables' vector serialisers (RET 0xC: id, vector, unused; rewritten in item_db_load.cpp) and
 // the last three tables' loads (RET 8: stream, chunk), through their addresses so that their
-// verify wrappers run.
+// verify wrappers run (LoadLootAt loads the quest items and LoadQuestItemsAt the loot: first names).
 __declspec(naked) void __fastcall SerializeSpellsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x00684EF0)
 __declspec(naked) void __fastcall SerializeModifiersAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x00684FE0)
 __declspec(naked) void __fastcall SerializeSpellListsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x00684C50)
@@ -124,8 +124,8 @@ int ItemDatabase::Load(const char* folder, const char* archive) {
     LoadTable(stream, kArmorsChunk, SerializeArmorsAt, &armors, data,
               [this] { FileRecords(armors.records, kArmorSize, armors.ByName(), ItemName); });
     LoadQuickItemsAt(&quickItems, nullptr, stream, kQuickItemsChunk);
-    LoadLootAt(&loot, nullptr, stream, kLootChunk);
-    LoadQuestItemsAt(&questItems, nullptr, stream, kQuestItemsChunk);
+    LoadLootAt(&questItems, nullptr, stream, kQuestItemsChunk);
+    LoadQuestItemsAt(&loot, nullptr, stream, kLootChunk);
 
     resource.Get()->CMappedResource::CloseFile(data);
     resource.Get()->CMappedResource::CloseResource();

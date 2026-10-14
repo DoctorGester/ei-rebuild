@@ -34,8 +34,8 @@ char* CItem::GetPrototype() {
     case kItemWeapon: return Weapons().At(index, kWeaponSize);
     case kItemArmor: return Armors().At(index, kArmorSize);
     case kItemQuick: return QuickItems().At(index, kQuickItemSize);
-    case kItemQuest: return QuestItems().At(index, kQuestItemSize);
     case kItemLoot: return Loot().At(index, kLootSize);
+    case kItemQuest: return QuestItems().At(index, kQuestItemSize);
     default: return nullptr;
     }
 }

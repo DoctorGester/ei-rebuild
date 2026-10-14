@@ -28,13 +28,13 @@ void CopyBytes(R* target, const R* source, std::size_t from, std::size_t to) {
 int __fastcall itemdb::WeaponRecordKind(ItemRecordHead*) { return 0x3004; }
 int __fastcall itemdb::ArmorRecordKind(ItemRecordHead*) { return 0x3005; }
 int __fastcall itemdb::QuickItemRecordKind(ItemRecordHead*) { return 0x3006; }
-int __fastcall itemdb::Record7CKind(ItemRecordHead*) { return 0x3009; }
-int __fastcall itemdb::Record78Kind(ItemRecordHead*) { return 0x3007; }
+int __fastcall itemdb::QuestItemRecordKind(ItemRecordHead*) { return 0x3009; }
+int __fastcall itemdb::LootItemRecordKind(ItemRecordHead*) { return 0x3007; }
 EI_REPLACE(0x006A6430, itemdb::WeaponRecordKind);
 EI_REPLACE(0x006A6440, itemdb::ArmorRecordKind);
 EI_REPLACE(0x006A6450, itemdb::QuickItemRecordKind);
-EI_REPLACE(0x006A6460, itemdb::Record7CKind);
-EI_REPLACE(0x006A6470, itemdb::Record78Kind);
+EI_REPLACE(0x006A6460, itemdb::QuestItemRecordKind);
+EI_REPLACE(0x006A6470, itemdb::LootItemRecordKind);
 
 ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     text04 = source->text04;
@@ -126,8 +126,8 @@ char* __fastcall itemdb::RecordTableAt(const RecordTable* table, void*, std::uin
 }
 EI_REPLACE(0x006A5950, itemdb::RecordTableAt<kArmorSize>);
 EI_REPLACE(0x006A5990, itemdb::RecordTableAt<kQuickItemSize>);
-EI_REPLACE(0x006A59D0, itemdb::RecordTableAt<kLootSize>);
-EI_REPLACE(0x006A5A10, itemdb::RecordTableAt<kQuestItemSize>);
+EI_REPLACE(0x006A59D0, itemdb::RecordTableAt<kQuestItemSize>);
+EI_REPLACE(0x006A5A10, itemdb::RecordTableAt<kLootSize>);
 
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     value70 = source->value70;

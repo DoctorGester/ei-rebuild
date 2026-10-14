@@ -31,8 +31,8 @@ constexpr int kSlotInitFromRecord = 13;          // CItem slot 13 (+0x34)
 constexpr int kClassWeapon = 0x11;
 constexpr int kClassArmor = 0x12;
 constexpr int kClassQuick = 0x13;
-constexpr int kClassQuest = 0x14;    // table 007C8758 (item_db.h calls it Loot())
-constexpr int kClassLoot = 0x15;     // table 007C8778 (item_db.h calls it QuestItems())
+constexpr int kClassQuest = 0x14;    // QuestItems() (007C8758)
+constexpr int kClassLoot = 0x15;     // Loot() (007C8778)
 constexpr int kClassSpell = 0x16;    // spell container; quick item table
 
 constexpr int kCategoryWand = 8;     // quick item category whose spell comes from the prototype
@@ -349,7 +349,7 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
         return IndexIn(QuickItems(), prototype, kQuickItemSize);
     case kClassQuest:
         CopyBits(record->category, prototype->category);
-        return IndexIn(Loot(), prototype, kLootSize);
+        return IndexIn(QuestItems(), prototype, kQuestItemSize);
     case kClassLoot: {
         auto* to = static_cast<LootItemRecord*>(record);
         auto* from = static_cast<const LootItemRecord*>(prototype);
@@ -360,7 +360,7 @@ std::uint32_t FillClass(int classId, ItemRecordHead* record, const ItemRecordHea
             CopyBits(to->index, material->number);
         else
             CopyBits(to->index, from->index);
-        return IndexIn(QuestItems(), prototype, kQuestItemSize);
+        return IndexIn(Loot(), prototype, kLootSize);
     }
     default:
         return 0;   // not reached: the record of an unknown class is null and faulted above
@@ -616,11 +616,11 @@ CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t mater
     case kItemSpell:
         prototype = QuickItems().At(index, kQuickItemSize);
         break;
-    case kItemQuest:
-        prototype = QuestItems().At(index, kQuestItemSize);
-        break;
     case kItemLoot:
         prototype = Loot().At(index, kLootSize);
+        break;
+    case kItemQuest:
+        prototype = QuestItems().At(index, kQuestItemSize);
         break;
     default:
         break;

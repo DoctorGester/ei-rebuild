@@ -21,9 +21,9 @@ enum ItemKind : int {
     kItemWeapon = 0x3004,
     kItemArmor = 0x3005,
     kItemQuick = 0x3006,
-    kItemQuest = 0x3007,
+    kItemLoot = 0x3007,
     kItemSpell = 0x3008,   // a spell container; prototype in the quick item database
-    kItemLoot = 0x3009,
+    kItemQuest = 0x3009,
 };
 
 inline std::uint32_t PrototypeIndex(std::uint32_t packedId) { return packedId >> 16; }

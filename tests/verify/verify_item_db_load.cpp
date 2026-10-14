@@ -39,12 +39,12 @@ void __fastcall LoadQuickItemsVerify(itemdb::IndexedRecordTable* self, void*, CS
     CheckIndex("IndexedRecordTable::LoadQuickItems", self, itemdb::kQuickItemSize, &QuickItemIndexInsertOriginal);
 }
 void __fastcall LoadLootVerify(itemdb::IndexedRecordTable* self, void*, CStream* source, int field) {
-    self->LoadLoot(source, field);
-    CheckIndex("IndexedRecordTable::LoadLoot", self, itemdb::kLootSize, &LootIndexInsertOriginal);
+    self->LoadQuestItems(source, field);
+    CheckIndex("IndexedRecordTable::LoadQuestItems", self, itemdb::kQuestItemSize, &LootIndexInsertOriginal);
 }
 void __fastcall LoadQuestItemsVerify(itemdb::IndexedRecordTable* self, void*, CStream* source, int field) {
-    self->LoadQuestItems(source, field);
-    CheckIndex("IndexedRecordTable::LoadQuestItems", self, itemdb::kQuestItemSize, &QuestItemIndexInsertOriginal);
+    self->LoadLoot(source, field);
+    CheckIndex("IndexedRecordTable::LoadLoot", self, itemdb::kLootSize, &QuestItemIndexInsertOriginal);
 }
 } // namespace
 
@@ -77,11 +77,11 @@ void __fastcall SerializeQuickItemsVerify(ChunkArchive* ar, void*, int id, void*
 }
 void __fastcall SerializeLootVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
     SerializeItemsVerify<&ChunkArchive::SerializeLoot>("ChunkArchive::SerializeLoot", ar, id, records, unused,
-                                                       itemdb::kLootSize);
+                                                       itemdb::kQuestItemSize);
 }
 void __fastcall SerializeQuestItemsVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
     SerializeItemsVerify<&ChunkArchive::SerializeQuestItems>("ChunkArchive::SerializeQuestItems", ar, id, records, unused,
-                                                             itemdb::kQuestItemSize);
+                                                             itemdb::kLootSize);
 }
 } // namespace
 EI_VERIFY(0x006A7C20, SerializeQuickItemsVerify, 0, s_unused);

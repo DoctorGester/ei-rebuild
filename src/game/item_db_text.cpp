@@ -177,12 +177,10 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         kindKey = "item_wand";
         break;
     }
-    case kItemQuest: {
-        // 0x3007 is loot in this code ("litem", the +0x4C kind of CItemLoot); item_db.h calls its
-        // table (007C8778) QuestItems.
+    case kItemLoot: {
         auto* loot = static_cast<CItemLoot*>(item);
         if (loot->kind_ == 0) {
-            KeyName(recordName, QuestItems().At(prototypeIndex, kQuestItemSize), 4);
+            KeyName(recordName, Loot().At(prototypeIndex, kLootSize), 4);
             ReadItemText(this, mfc::CString(kLootItem) + recordName, name, description);
             kindKey = "item_loot";
         } else if (loot->kind_ == 1) {
@@ -233,9 +231,9 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         kindKey = "item_spell";
         break;
     }
-    case kItemLoot: {
+    case kItemQuest: {
         // 0x3009 is the quest item ("questitem"); its table (007C8758) is Loot in item_db.h.
-        KeyName(recordName, Loot().At(prototypeIndex, kLootSize), 4);
+        KeyName(recordName, QuestItems().At(prototypeIndex, kQuestItemSize), 4);
         ReadItemText(this, mfc::CString(kQuestItem) + recordName, name, description);
         kindKey = "item_quest";
         break;

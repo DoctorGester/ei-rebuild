@@ -46,8 +46,8 @@ constexpr int kMaterialSize = 0x50;
 constexpr int kWeaponSize = 0xB4;
 constexpr int kArmorSize = 0xC8;
 constexpr int kQuickItemSize = 0x8C;    // also the spell containers (scrolls)
-constexpr int kLootSize = 0x7C;
-constexpr int kQuestItemSize = 0x78;
+constexpr int kQuestItemSize = 0x7C;
+constexpr int kLootSize = 0x78;
 constexpr int kSpellSize = 0x84;
 constexpr int kSpellModifierSize = 0x24;
 
@@ -176,7 +176,7 @@ struct ItemRecordHead {
     std::uint8_t unknown_68;            // +0x68 1 after construction
     std::uint8_t unknown_69[3];
     // +0x6C the category (5 wands, 8 quick items whose prototype names their spell), a quest
-    // item's quest, a loot item's kind; an armour's first absorption factor (float bits).
+    // item's id, a loot item's kind; an armour's first absorption factor (float bits).
     std::uint32_t category;
 };
 static_assert(offsetof(ItemRecordHead, list20) == 0x20);
@@ -200,12 +200,12 @@ public:
 };
 inline ItemRecordSlots* RecordSlots(ItemRecordHead* record) { return reinterpret_cast<ItemRecordSlots*>(record); }
 // 006A6430 / 006A6440 / 006A6450 / 006A6460 / 006A6470 (item_db_records.cpp, A-H25): slot 0 of the
-// weapon / armour / quick / 0x7C / 0x78 records: 0x3004, 0x3005, 0x3006, 0x3009, 0x3007.
+// weapon / armour / quick item / quest item / loot records: 0x3004, 0x3005, 0x3006, 0x3009, 0x3007.
 int __fastcall WeaponRecordKind(ItemRecordHead*);
 int __fastcall ArmorRecordKind(ItemRecordHead*);
 int __fastcall QuickItemRecordKind(ItemRecordHead*);
-int __fastcall Record7CKind(ItemRecordHead*);
-int __fastcall Record78Kind(ItemRecordHead*);
+int __fastcall QuestItemRecordKind(ItemRecordHead*);
+int __fastcall LootItemRecordKind(ItemRecordHead*);
 
 // A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
 // The record kinds' copy constructors, as STLport's uninitialized_copy (first, last, dest) and
@@ -309,7 +309,7 @@ struct QuestItemRecord : ItemRecordHead {
     mfc::CString* zonesEnd;             // +0x74
     mfc::CString* zonesCapacity;        // +0x78
 };
-static_assert(sizeof(QuestItemRecord) == kLootSize);
+static_assert(sizeof(QuestItemRecord) == kQuestItemSize);
 
 // The prototype of a CItemLoot (table 007C8778): kind (the head's category), record type, index.
 struct LootItemRecord : ItemRecordHead {
@@ -324,7 +324,7 @@ struct LootItemRecord : ItemRecordHead {
     std::uint32_t index;                // +0x74
 };
 static_assert(offsetof(LootItemRecord, index) == 0x74);
-static_assert(sizeof(LootItemRecord) == kQuestItemSize);
+static_assert(sizeof(LootItemRecord) == kLootSize);
 
 // 006AB9C0 / 006ABCD0 / 006ABF60 / 006AC240 / 006AC520 (__fastcall, RET 8): uninitialized_copy of
 // [first, last) to `dest`; 006ABB50 / 006ABE20 / 006AC0D0 / 006AC3B0 / 006AC640: uninitialized_fill_n
@@ -368,7 +368,7 @@ static_assert(offsetof(MaterialRecordHead, absorbFactors) == 0x2C);
 static_assert(offsetof(MaterialRecordHead, armourFlags) == 0x48);
 
 // 006A5950 / 006A5990 / 006A59D0 / 006A5A10 (RET 4; item_db_records.cpp, A-H25): RecordTable::At
-// out of line for the armour, quick item, 0x7C and 0x78 tables (only the quick item's figure name
+// out of line for the armour, quick item, quest item and loot tables (only the quick item's figure name
 // 006A3CD0 called them).
 template <int Stride>
 char* __fastcall RecordTableAt(const RecordTable* table, void*, std::uint32_t index);
@@ -377,23 +377,23 @@ inline const RecordTable& Materials() { return *reinterpret_cast<const RecordTab
 inline const RecordTable& Weapons() { return *reinterpret_cast<const RecordTable*>(0x007C86F8); }
 inline const RecordTable& Armors() { return *reinterpret_cast<const RecordTable*>(0x007C8718); }
 inline const RecordTable& QuickItems() { return *reinterpret_cast<const RecordTable*>(0x007C8738); }
-inline const RecordTable& Loot() { return *reinterpret_cast<const RecordTable*>(0x007C8758); }
-inline const RecordTable& QuestItems() { return *reinterpret_cast<const RecordTable*>(0x007C8778); }
+inline const RecordTable& QuestItems() { return *reinterpret_cast<const RecordTable*>(0x007C8758); }
+inline const RecordTable& Loot() { return *reinterpret_cast<const RecordTable*>(0x007C8778); }
 inline const RecordTable& Spells() { return *reinterpret_cast<const RecordTable*>(0x007C8510); }
 inline const RecordTable& SpellModifiers() { return *reinterpret_cast<const RecordTable*>(0x007C8530); }
 
 // A table of the item database (0x20 bytes from 007C86D8: materials, weapons, armors, quick items,
-// loot, quest items) as its load (006A67A0, Rebirth-patched) fills it: the STLport vector of
+// quest items, loot) as its load (006A67A0, Rebirth-patched) fills it: the STLport vector of
 // records and the name index (+0x0C, hash_map<string, record*>; records with the same name: the
 // last one). item_db_load.cpp (A-H17).
 struct IndexedRecordTable {
-    // 006A6E50 / 006A7110 / 006A73B0 (RET 8). The quick items (0x8C bytes) / loot (0x7C) / quest
-    // items (0x78) of chunk `field` read from `source` through an archive built on the stack (Open
+    // 006A6E50 / 006A7110 / 006A73B0 (RET 8). The quick items (0x8C bytes) / quest items (0x7C) /
+    // loot (0x78) of chunk `field` read from `source` through an archive built on the stack (Open
     // for loading, the vector's chunk serialiser 006A7C20 / 006A7D20 / 006A7E10, Close), then every
     // record filed in the index under its name (+0x04).
     void LoadQuickItems(CStream* source, int field);
-    void LoadLoot(CStream* source, int field);
     void LoadQuestItems(CStream* source, int field);
+    void LoadLoot(CStream* source, int field);
 
     // The name index, typed (the materials are filed under their key, +0x00).
     using NameIndex = stlp::hash_map<stlp::string, char*, stlp::StringHash>;
@@ -441,7 +441,7 @@ struct ItemDatabase {
     // 006A67A0 (RET 8; item_db_open.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch
     // only). "items.idb" of the archive `folder` + `archive`: the materials (chunk 1, filed under
     // their key), the weapons (2) and the armour (3), each through an archive of its own and filed
-    // under its name, then the quick items, loot and quest items (chunks 4-6, their loads). 1;
+    // under its name, then the quick items, quest items and loot (chunks 4-6, their loads). 1;
     // FatalError's result when the archive or the file cannot be opened.
     int Load(const char* folder, const char* archive);
     // 006A6570 (item_db_load.cpp, A-H18). The tables from the last to the first: the name index
@@ -452,8 +452,8 @@ struct ItemDatabase {
     IndexedRecordTable weapons;     // +0x20 kWeaponSize
     IndexedRecordTable armors;      // +0x40 kArmorSize
     IndexedRecordTable quickItems;  // +0x60 kQuickItemSize
-    IndexedRecordTable loot;        // +0x80 kLootSize (Loot())
-    IndexedRecordTable questItems;  // +0xA0 kQuestItemSize (QuestItems())
+    IndexedRecordTable questItems;  // +0x80 kQuestItemSize (QuestItems())
+    IndexedRecordTable loot;        // +0xA0 kLootSize (Loot())
 };
 static_assert(sizeof(ItemDatabase) == 0xC0);
 

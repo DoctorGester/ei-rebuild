@@ -376,7 +376,7 @@ void ItemStock::GenerateMaterials(int minCount, int maxCount, StockList* out) {
     } else if (&materials != &taken) {
         AssignMaterials(taken, materials);
     }
-    char* prototype = FindTable15Named(TableObject(itemdb::QuestItems()), nullptr, game::MaterialText());
+    char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, game::MaterialText());
     for (StockMaterial* e = taken.start; e != taken.finish; ++e) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);
@@ -408,7 +408,7 @@ void GenerateInstructions(ItemStock* stock, const StockPtrVector& source, const 
     StockPtrVector& taken = TakenPrototypes();
     taken.finish = taken.start;   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source);
-    char* prototype = FindTable15Named(TableObject(itemdb::QuestItems()), nullptr, prototypeName);
+    char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, prototypeName);
     for (char** p = taken.start; p != taken.finish; ++p) {
         if (skip && Compare(PrototypeName(*p), skip) == 0) continue;
         ctor->SetManager(manager);
@@ -891,7 +891,7 @@ void GenerateMagicInstructions(ItemStock* stock, const StockPtrVector& source, S
     PartyOf(stock)->SpellManager();   // (fetched and not used)
     taken.finish = taken.start;   // erase(begin, end)
     if (&source != &taken) AssignPointers(taken, source, allocate, deallocate);
-    char* prototype = FindTable15Named(TableObject(itemdb::QuestItems()), nullptr, prototypeName);
+    char* prototype = FindTable15Named(TableObject(itemdb::Loot()), nullptr, prototypeName);
     for (char** p = taken.start; p != taken.finish; ++p) {
         ctor->SetManager(manager);
         ctor->BeginCreateItem(0x3007, -1);

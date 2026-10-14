@@ -203,8 +203,8 @@ static BOOL __fastcall BuildVerify(CItemConstructor* self) {
         case 0x12: table = &itemdb::Armors(); stride = itemdb::kArmorSize; break;
         case 0x13:
         case 0x16: table = &itemdb::QuickItems(); stride = itemdb::kQuickItemSize; break;
-        case 0x14: table = &itemdb::Loot(); stride = itemdb::kLootSize; break;
-        case 0x15: table = &itemdb::QuestItems(); stride = itemdb::kQuestItemSize; break;
+        case 0x14: table = &itemdb::QuestItems(); stride = itemdb::kQuestItemSize; break;
+        case 0x15: table = &itemdb::Loot(); stride = itemdb::kLootSize; break;
         default: break;
         }
         std::uint32_t index = table ? static_cast<std::uint32_t>(static_cast<int>(self->prototype_ - table->begin) / stride) : 0;

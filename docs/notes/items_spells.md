@@ -30,10 +30,11 @@ spell containers, 007C8758 / 007C8778 quest and loot items, 007C8510 spells, 007
 `index < (end - begin) / stride` (signed division, unsigned compare), else null; callers then read fields of the null
 record, so an index out of range faults (kept: `Field<T>()`).
 
-**Naming mismatch (resolved):** the game treats 0x3007 as the loot item ("litem", item_loot, CItemLoot kind at +0x4C, table
+**Naming (fixed in C2i):** the game treats 0x3007 as the loot item ("litem", item_loot, CItemLoot kind at +0x4C, table
 007C8778, 0x78-byte records) and 0x3009 as the quest item ("questitem", item_quest, table 007C8758, 0x7C). `item.h` /
-`item_db.h` name them the other way (`kItemQuest` = 0x3007, `QuestItems()` = 007C8778, `kItemLoot` = 0x3009, `Loot()` =
-007C8758). The swap is consistent, so the code is right; `LootItemRecord`'s comment and item_stock.cpp use the game's sense.
+`item_db.h` used to name them the other way; they now follow the game (`kItemLoot` = 0x3007, `Loot()` = 007C8778, `kLootSize`
+0x78; `kItemQuest` = 0x3009, `QuestItems()` = 007C8758, `kQuestItemSize` 0x7C). The file-local forwarders in item_db_load.cpp /
+item_db_open.cpp and `ChunkArchive::SerializeLoot` / `SerializeQuestItems` keep the old sense.
 
 Weapon stats as the unit stats code (00538960) combines them: min damage = weapon damage x material damage, max = (spread +
 damage) x material damage, attack = weapon attack x material attack, damage type = first non-zero weight (6 if none).
@@ -53,7 +54,7 @@ compared; saving O): 0069F620 material, 0069F700 `ItemRecordHead::SerializeHead`
 armour (two 9-dword rows at +0x6C / +0x90 that straddle the declared members), 0069F940 quick, 0069F9C0 the 0x7C kind
 (zone list through InlineStrings), 0069FA90 the 0x78 kind (fields 0x15-0x17).
 
-Loading (item_db_load.cpp; O; startup, every scenario): `IndexedRecordTable::LoadQuickItems / LoadLoot / LoadQuestItems`
+Loading (item_db_load.cpp; O; startup, every scenario): `IndexedRecordTable::LoadQuickItems / LoadQuestItems / LoadLoot`
 006A6E50 / 006A7110 / 006A73B0 (a stack archive: ConstructLocal, Open, the vector serialisers, Close; then each record filed
 under its name with find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h; Rebirth's patched 006A67A0 calls them
 by address), `ChunkArchive::SerializeQuickItems / SerializeLoot / SerializeQuestItems` 006A7C20 / 006A7D20 / 006A7E10 (the
