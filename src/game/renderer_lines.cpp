@@ -49,7 +49,7 @@ void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), count, nullptr, 0, D3DPT_LINESTRIP)) {
         gameapi::EnterCriticalSection(device::Lock());
         device->lastLoadResult_ =
-            device::D3D(device)->DrawPrimitive(D3DPT_LINESTRIP, kFvf, vertices, static_cast<DWORD>(count), 0);
+            device::DrawPrimitive(device::D3D(device), D3DPT_LINESTRIP, kFvf, vertices, static_cast<DWORD>(count), 0);
         gameapi::LeaveCriticalSection(device::Lock());
     }
     device->vertexCount_ += count;
@@ -58,9 +58,9 @@ void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
 }
 
 void SetStageOps(CTextureDevice* device, DWORD op) {
-    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kColourOp, op);
+    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kColourOp, op);
     render::state::Stage(0, kColourOp, op);
-    device->lastLoadResult_ = device::D3D(device)->SetTextureStageState(0, kAlphaOp, op);
+    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, kAlphaOp, op);
     render::state::Stage(0, kAlphaOp, op);
 }
 
@@ -117,7 +117,7 @@ long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoint
         buffer.size = count;
     }
 
-    device::D3D(device)->SetRenderState(kShadeMode, kShadeFlat);
+    device::SetRenderState(device::D3D(device), kShadeMode, kShadeFlat);
     render::state::Render(kShadeMode, kShadeFlat);
     SetStageOps(device, kOpDisable);
     for (int i = 0; i < points->count; ++i) {
@@ -128,7 +128,7 @@ long __fastcall DeviceDrawLineStrip(CTextureDevice* device, const ProjectedPoint
     }
     DrawStrip(device, buffer.data, buffer.size);
     SetStageOps(device, kOpModulate);
-    long hr = device::D3D(device)->SetRenderState(kShadeMode, kShadeGouraud);
+    long hr = device::SetRenderState(device::D3D(device), kShadeMode, kShadeGouraud);
     render::state::Render(kShadeMode, kShadeGouraud);
     return hr;
 }

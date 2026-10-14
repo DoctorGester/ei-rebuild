@@ -169,7 +169,7 @@ int CSceneRenderer::ClearFrame() {
     DWORD flags = D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER;
     if ((device->depthFormat_.words[1] & DDPF_STENCILBUFFER) && device->depthFormat_.words[4] != 0) flags |= D3DCLEAR_STENCIL;
     gameapi::EnterCriticalSection(GameDeviceLock());
-    device->lastLoadResult_ = D3DDevice(device)->Clear(0, nullptr, flags, colour, 1.0f, 0);
+    device->lastLoadResult_ = device::Clear(D3DDevice(device), 0, nullptr, flags, colour, 1.0f, 0);
     gameapi::LeaveCriticalSection(GameDeviceLock());
     return 1;
 }
@@ -188,7 +188,7 @@ int CSceneRenderer::SetTexture(int stage, void* texture) {
         if (!bound) return 1;
         bound = nullptr;
         DeviceFlushBatchAOriginal(device);
-        device->lastLoadResult_ = D3DDevice(device)->SetTexture(static_cast<DWORD>(stage), nullptr);
+        device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), nullptr);
         ++device->textureChanges_;
         return 1;
     }
@@ -196,7 +196,7 @@ int CSceneRenderer::SetTexture(int stage, void* texture) {
     if (bound == surface) return 1;
     bound = surface;
     DeviceFlushBatchAOriginal(device);
-    device->lastLoadResult_ = D3DDevice(device)->SetTexture(static_cast<DWORD>(stage), surface ? Surface(surface) : nullptr);
+    device->lastLoadResult_ = device::SetTexture(D3DDevice(device), static_cast<DWORD>(stage), surface ? Surface(surface) : nullptr);
     ++device->textureChanges_;
     return 1;
 }
@@ -275,7 +275,7 @@ bool CSceneRenderer::RestoreSurfaces() {
     }
     CTextureDevice* device = device_;
     gameapi::EnterCriticalSection(GameDeviceLock());
-    device->lastLoadResult_ = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
+    device->lastLoadResult_ = device::RestoreAllSurfaces(static_cast<IDirectDraw7*>(device->ddraw_));
     gameapi::LeaveCriticalSection(GameDeviceLock());
     Surface(device_->primary_)->Restore();
     Surface(device_->renderTarget_)->Restore();
