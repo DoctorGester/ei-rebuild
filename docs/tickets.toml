@@ -122,7 +122,7 @@ done = "2026-10-14"
 id = "R9b1"
 title = "GetDxVersion probe failing in native runs with several games"
 group = "renderer"
-status = "queued"
+status = "review"
 model = "sonnet"
 depends = ["R9b"]
 note = "Native present runs end now and then at the 'DirectX 7 or later' message (seen before R9b too). Skipping the probe in present mode hung sound init (renderer.md R9b): find which side effect the sound code needs (DirectMusic / DDRAW.DLL) before guarding."
@@ -140,7 +140,7 @@ note = "The harness patches the CALL at 00457595, so WinMain 00456440's original
 id = "PF3"
 title = "Create DirectDraw once at startup"
 group = "renderer"
-status = "running"
+status = "review"
 note = "Profile 2026-10-14: under dgVoodoo every DirectDrawCreateEx builds a D3D12 device (~190 ms, with driver signature checks). Startup does it four times: GetDxVersion's two probes (~390 ms), FirstHardwareDirectDrawDriver (~195 ms) and CTextureDevice::CreateDirectDraw (the one kept). Skipping the probes (DirectX 7 is a given) and reusing the enumerated object saves ~0.6 s of the ~1.8 s to the main menu, but changes what the original does; also fixes R9b1. Waits on the user's decision (flag, native only, or standalone only). Decided (user 2026-10-14): only in native runs (EI_RENDER present, run/native) and the standalone exe; vanilla and Rebirth runs keep the original's probes."
 started = "2026-10-14"
 
@@ -180,6 +180,13 @@ status = "queued"
 model = "opus"
 depends = ["R9c"]
 note = "R9c covers a window resized from outside (the window covers the monitor again, the swap chain resizes). The game's own device re-creation on a resolution change in the options, and a desktop mode change while running, are not exercised by any scenario (renderer.md section 9, R9c)."
+
+[[ticket]]
+id = "PF3a"
+title = "render_scene / render_terrain fail samecapture in native runs"
+group = "renderer"
+status = "queued"
+note = "Seen by PF3 on its base and branch (2026-10-14): run_all --native, samecapture world world_again differs on ~2.9% of the pixels (largest 60-74) in both scenarios, every run; vanilla/rebirth pass. Probably something that moves by itself in the new frame (water phase, weather) between the two captures; decide whether the scenario's tolerance or the renderer is wrong."
 
 # ---------------------------------------------------------------- native interface drawing
 
