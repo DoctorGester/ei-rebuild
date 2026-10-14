@@ -627,6 +627,12 @@ struct UiInputSide {
     // 005E28B0 (slot 12 of the base input side 007401D0 and of every window without a wheel
     // handler; RET 0x10; ui_small_members.cpp): the wheel is not used, 0.
     int WheelIgnored(int flags, int delta, int x, int y);
+    // 005EACD0 and 1 more (slot 0, the deleting destructor; ui_window_delete.cpp). The base vtable
+    // stored back and the memory freed when bit 0 of `flags` is set; returns this.
+    UiInputSide* InputSideDelete(unsigned flags);
+    // 005EA850 (slot 0, the deleting destructor; ui_window_delete.cpp). The base vtable stored back
+    // and the memory freed when bit 0 of `flags` is set; returns this.
+    UiInputSide* InputSideBaseDelete(unsigned flags);
     // Slot 12. The handlers return 1.
     int Wheel(int flags, int delta, int x, int y) {
         using Fn = int(__thiscall*)(UiInputSide*, int, int, int, int);
@@ -687,6 +693,9 @@ public:
     // surfaces, regions, referenced objects and models (in that order), clears +0x08, then the
     // engine object's base destructor (ui_window.cpp).
     void DestroyBase();
+    // 005FE910 and 11 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBase,
+    // then the memory freed when bit 0 of `flags` is set; returns this.
+    CUiWindow* UiWindowDelete(unsigned flags);
     // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
     // rectangle and +0xA0..+0xD7 zeroed, rotation from 007C7E58), two materials of the manager
     // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
@@ -1145,6 +1154,9 @@ public:
     // 0063BC70 (ui_hud_destroy.cpp; slot 0 0063BC50 calls it). Destructor body: the labels, then the
     // window base's (005FE930).
     void DestroyBody();
+    // 0063BC50 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHudWeaponBar* HudWeaponBarDelete(unsigned flags);
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C slots in use
@@ -1230,6 +1242,9 @@ public:
     // array (its vtable 007428A0 written, the storage deleted), then the
     // window base's (005FE930).
     void DestroyBody();
+    // 0063CA50 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHudQuickItems* HudQuickItemsDelete(unsigned flags);
 
     CBattleScreen* owner_;           // +0x148
     int unknown_14C;                 // +0x14C sprites added (the shown entries)
@@ -1301,6 +1316,9 @@ public:
     // 0063E460 (ui_hud_destroy.cpp; slot 0 0063E440 calls it). Destructor body: the labels, then the
     // window base's (005FE930).
     void DestroyBody();
+    // 0063E440 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHudSpellColumn* HudSpellColumnDelete(unsigned flags);
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C sprites added
@@ -1355,6 +1373,9 @@ public:
     // array (its vtable 0073C3D0 written, the storage deleted), then the
     // window base's (005FE930).
     void DestroyBody();
+    // 0063F470 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHudActionColumn* HudActionColumnDelete(unsigned flags);
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C buttons added
@@ -1448,6 +1469,9 @@ public:
     // slot's three strings (suffix, prefix, face name), the slots' storage back to the node
     // allocator, then the window base's (005FE930).
     void DestroyBody();
+    // 0063FF50 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHudPortraits* HudPortraitsDelete(unsigned flags);
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C
@@ -1660,6 +1684,9 @@ public:
     // 00635CA0 (ui_hud_destroy.cpp; slot 0 00635C80 calls it). Destructor body: the visible
     // area's and the view polygon's aligned storage freed, then the window base's (005FE930).
     void DestroyBody();
+    // 00635C80 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHudMap* HudMapDelete(unsigned flags);
     // 00642930 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, this is the vanilla body,
     // hooked in the vanilla launch only; our callers go through CallLayout). Places the panel's
     // parts (scene objects 0-4 and 6-11), its text surface and the regions after the first at the
@@ -1740,6 +1767,9 @@ public:
     // 00635D00 (ui_hud_destroy.cpp; slot 0 00635CE0 calls it). Destructor body: the part labels,
     // textsVtable_'s array, the two strings (+0x168 first), then the window base's (005FE930).
     void DestroyBody();
+    // 00635CE0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHudUnitPanel* HudUnitPanelDelete(unsigned flags);
     // 00645F80 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, this is the vanilla body,
     // hooked in the vanilla launch only; our callers go through CallLayout). Places the panel's
     // parts (scene objects 0, 1, 3-7, 9-13, the six body parts' pairs 14-25 at the places of the
@@ -1901,6 +1931,9 @@ public:
     // 00635E00 (ui_hud_destroy.cpp; slot 0 00635DE0 calls it). Destructor body: the two page
     // texts (page 1 first), then the window base's (005FE930).
     void DestroyBody();
+    // 00635DE0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHudTopPanel* HudTopPanelDelete(unsigned flags);
     // 00649AF0 (RET 8; ui_hud_top_panel.cpp). Sets the panel up over 180..620 x 0..100, slid in
     // when the low byte of `shown` is set: the two page buttons' and the slide button's regions
     // with their tips (0x27D9 / 0x27DA with 0x32 / 0x33, 0x27D8) and the whole panel's, two plain
@@ -1957,6 +1990,9 @@ public:
     // 00600BA0 (ui_container.cpp). Destructor body: the extra input sides and the children deleted
     // (their slot 0 with 1), both lists freed, then the window base's (005FE930).
     void DestroyContainer();
+    // 00600B80 and 3 more (slot 0, the deleting destructor; ui_window_delete.cpp).
+    // DestroyContainer, then the memory freed when bit 0 of `flags` is set; returns this.
+    CUiContainer* UiContainerDelete(unsigned flags);
     // 00600CC0 (RET 4; ui_container.cpp). Appends an extra input side (null is ignored).
     void AddInput(UiInputSide* input);
     // 00601AC0 (RET 4; the containers' slot 19, ui_container.cpp). The window's own surfaces
@@ -2296,6 +2332,9 @@ public:
     // 006070C0 (ui_window_delete.cpp). The destructor body: the name, each entry's strings and
     // string arrays, the entries' storage, then the container's.
     void DestroyBody();
+    // 006070A0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CSaveLoadWindow* SaveLoadDelete(unsigned flags);
 
     // A-H14 (ui_saveload.cpp).
     // 00655290. OK: nothing without a selection; a save window plays "ok" and saves into the new
@@ -2456,6 +2495,9 @@ public:
     // storage, the quests, the exits (vtable 00741264, storage freed), the two zone names, the
     // zone list, then the container's. The exit distances (+0x178) are not freed here.
     void DestroyBody();
+    // 00603B70 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CObjectivesWindow* ObjectivesDelete(unsigned flags);
     // 0064BE80 (slot 25, the window's Create; ui_objectives.cpp).
     void Build();
     // 0064CC10: shows zone `zone`: picture, exits, quests and description.
@@ -2645,6 +2687,9 @@ public:
     // 0062B180 (the destructor body; slot 0 0062B160 deletes; ui_menus.cpp): the group titles, the
     // settings' and the bindings' strings and storage, then the container's (00600BA0).
     void DestroyOptions();
+    // 0062B160 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyOptions, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    COptionsWindow* OptionsWindowDelete(unsigned flags);
 
     // 00650E40 (input side, RET 0xC; ui_menu_keys.cpp). Keys: Esc cancels, Enter starts a key
     // binding or steps a spin row, Up / Down select rows, PgUp / PgDn switch groups, Left /
@@ -2777,6 +2822,9 @@ public:
     // 0061E3E0 (and the difficulty question's 00633750, the same code; ui_window_delete.cpp). The
     // destructor body: the text and title strings, then the container's.
     void DestroyBody();
+    // 00633730 and 1 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody,
+    // then the memory freed when bit 0 of `flags` is set; returns this.
+    CMessageBox* MessageBoxDelete(unsigned flags);
 
     const char* title_;              // +0x164 CString (text of the title key)
     const char* text_;               // +0x168 CString (text of the text key)
@@ -2801,6 +2849,9 @@ public:
     // 005F8970 (ui_window_delete.cpp). The destructor body: the two lists (nodes, then the
     // sentinel), the text array, the two strings, then the container's.
     void DestroyBody();
+    // 005F8950 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CHelpWindow* HelpWindowDelete(unsigned flags);
     // 00658E10 (slot 25; ui_help_window.cpp). Loads "saveload", makes a 256x256 texture, reads the
     // title and the pages (above; the keys replaced by their "tutor" texts, trailing CR / LF
     // trimmed); without the text or without pages the interface's pending value is set to 0 and
@@ -2878,6 +2929,9 @@ public:
     // 005E28E0 (ui_window_delete.cpp). The destructor body: the typed line, every chat line
     // (destroyed, node freed), the list's sentinel, then the window's.
     void DestroyBody();
+    // 005E28C0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
+    // memory freed when bit 0 of `flags` is set; returns this.
+    CChatOverlay* ChatOverlayDelete(unsigned flags);
     // 005E26F0 (RET 4; ui_chat_overlay.cpp). Constructor: the window base, an empty line list
     // (its sentinel from the node pool), an empty typed line, the vtables 007400DC / 007400A8, the
     // typed line's surface over (10, 573)-(790, 590) (format 4), closed, the caret at 0, then the

@@ -106,9 +106,8 @@ static ItemTurn* __fastcall ItemTurnDeleteVerify(ItemTurn* self, void*, unsigned
 }
 EI_VERIFY(0x005ED780, ItemTurnDeleteVerify, 0, s_unused);
 
-UiInputSide* __fastcall InputSideBaseDelete(UiInputSide* side, void*, unsigned flags);   // ui_window_delete.cpp
 static UiInputSide* __fastcall InputSideBaseDeleteVerify(UiInputSide* side, void*, unsigned flags) {
-    UiInputSide* result = InputSideBaseDelete(side, nullptr, flags);
+    UiInputSide* result = side->InputSideBaseDelete(flags);
     ei::verify::Check("InputSideBaseDelete", true, result == side, "");
     return result;
 }

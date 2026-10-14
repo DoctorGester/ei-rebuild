@@ -182,7 +182,7 @@ State Blended(State state, D3DBLEND source, D3DBLEND dest) {
 
 // 004FCE90 (RET 8; only AL is the result). The state list of built-in preset `index` into `states`
 // (emptied first); false beyond the nine. Presets 0 and 8 have no states.
-bool __fastcall RenderHelperBuiltInStateList(CRenderHelper*, void*, StateVector* states, unsigned index) {
+bool CRenderHelper::RenderHelperBuiltInStateList(StateVector* states, unsigned index) {
     states->Finish() = states->Start();
     if (index >= CRenderHelper::kPresetCount) return false;
     const State unset{};
@@ -221,7 +221,7 @@ bool __fastcall RenderHelperBuiltInStateList(CRenderHelper*, void*, StateVector*
     }
     return true;
 }
-EI_REPLACE(0x004FCE90, RenderHelperBuiltInStateList);
+EI_REPLACE_METHOD(0x004FCE90, CRenderHelper::RenderHelperBuiltInStateList);
 
 // ---- State blocks -------------------------------------------------------------------------------------
 
@@ -366,35 +366,34 @@ EI_REPLACE(0x004FD9D0, RenderHelperReleaseBlock);
 
 // 004FCA60 (RET 8; returns the helper). Takes the device and its capabilities, then records the nine
 // built-in presets (`flag`'s low byte: one texture stage each).
-CRenderHelper* __fastcall RenderHelperConstruct(CRenderHelper* self, void*, IDirect3DDevice7* device,
-                                                std::uint32_t flag) {
-    self->refs_ = 0;
-    self->device_ = nullptr;
-    self->records_.InitBuckets(100);
-    self->presets_.Start() = self->presets_.Finish() = self->presets_.EndOfStorage() = nullptr;
-    ei::SetVtable(self, 0x0073D840);
+CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, std::uint32_t flag) {
+    refs_ = 0;
+    device_ = nullptr;
+    records_.InitBuckets(100);
+    presets_.Start() = presets_.Finish() = presets_.EndOfStorage() = nullptr;
+    ei::SetVtable(this, 0x0073D840);
 
-    self->device_ = device;
+    device_ = device;
     if (device) device->AddRef();
 
-    std::memset(self->caps_, 0, sizeof(self->caps_));
-    const HRESULT result = self->device_->GetCaps(&Caps(self));
+    std::memset(caps_, 0, sizeof(caps_));
+    const HRESULT result = device_->GetCaps(&Caps(this));
     if (result < 0) {
         FatalDirectX(result, CantGetCapsText());
-        std::memset(self->caps_, 0, sizeof(self->caps_));
+        std::memset(caps_, 0, sizeof(caps_));
     }
 
-    Resize(&self->presets_, CRenderHelper::kPresetCount, static_cast<CRenderPreset*>(nullptr));
+    Resize(&presets_, CRenderHelper::kPresetCount, static_cast<CRenderPreset*>(nullptr));
     StateVector states;
     for (unsigned index = 0; index < CRenderHelper::kPresetCount; ++index) {
-        if (BuiltInStateListOriginal(self, nullptr, &states, index)) {
-            RecordOriginal(self, nullptr, &states, static_cast<int>(index), flag);
+        if (BuiltInStateListOriginal(this, nullptr, &states, index)) {
+            RecordOriginal(this, nullptr, &states, static_cast<int>(index), flag);
         }
     }
     states.FreeStorage();
-    return self;
+    return this;
 }
-EI_REPLACE(0x004FCA60, RenderHelperConstruct);
+EI_REPLACE_METHOD(0x004FCA60, CRenderHelper::RenderHelperConstruct);
 
 // 004FCD50: the destructor body. Every record's preset goes through slot 3, which erases the record
 // the walk stands on: as in the original, the step to the next record then reads the freed node (its
@@ -551,33 +550,33 @@ const char* NoFunctionText() { return reinterpret_cast<const char*>(0x0078EB5C);
 // counted base, the 16 matrix stacks, the processor's CPUID function 1 into the globals (as the
 // renderer does again), then 3DfpFPU.dll loaded from `folder` and its GetTLPipeline()'s transform
 // object taken. No library, or no such function in it (the library is unloaded again): throws.
-CTransformPipeline* __fastcall TransformPipelineConstruct(CTransformPipeline* self, void*, const char* folder) {
-    self->refs_ = 0;
-    std::memset(self->unknown_08, 0, sizeof(self->unknown_08));
-    ei::SetVtable(self, 0x0073D768);
-    for (int i = 0; i < kMatrixStacks; ++i) MatrixStackConstructOriginal(&self->stacks_[i]);
-    ei::SetVtable(self, 0x0073D778);
+CTransformPipeline* CTransformPipeline::TransformPipelineConstruct(const char* folder) {
+    refs_ = 0;
+    std::memset(unknown_08, 0, sizeof(unknown_08));
+    ei::SetVtable(this, 0x0073D768);
+    for (int i = 0; i < kMatrixStacks; ++i) MatrixStackConstructOriginal(&stacks_[i]);
+    ei::SetVtable(this, 0x0073D778);
 
     std::optional<stlp::string> path;   // freed by hand before a throw
     path.emplace(folder);
     ReadProcessorInfo();
-    self->library_ = gameapi::LoadLibraryA(stlp::Plus(*path, TransformLibraryName()).data());
+    library_ = gameapi::LoadLibraryA(stlp::Plus(*path, TransformLibraryName()).data());
     DebugMessageOriginal(LibraryLoadedText());
-    if (!self->library_) ThrowPipelineError(self, path, NoLibraryText());
+    if (!library_) ThrowPipelineError(this, path, NoLibraryText());
 
     using GetTLPipeline = ITransformPipeline*(__cdecl*)();
     auto getPipeline = reinterpret_cast<GetTLPipeline>(
-        gameapi::GetProcAddress(static_cast<HMODULE>(self->library_), TransformFunctionName()));
+        gameapi::GetProcAddress(static_cast<HMODULE>(library_), TransformFunctionName()));
     if (!getPipeline) {
-        gameapi::FreeLibrary(static_cast<HMODULE>(self->library_));
-        self->library_ = nullptr;
-        ThrowPipelineError(self, path, NoFunctionText());
+        gameapi::FreeLibrary(static_cast<HMODULE>(library_));
+        library_ = nullptr;
+        ThrowPipelineError(this, path, NoFunctionText());
     }
     DebugMessageOriginal(AcquiringText());
-    self->transform_ = getPipeline();
-    return self;
+    transform_ = getPipeline();
+    return this;
 }
-EI_REPLACE(0x004F0B90, TransformPipelineConstruct);
+EI_REPLACE_METHOD(0x004F0B90, CTransformPipeline::TransformPipelineConstruct);
 
 // 004F0E10: the destructor body: the transform object forgotten, 3DfpFPU.dll unloaded, the stacks'
 // blocks freed from the last to the first (004F0DE0 each), the counted base's vtable left.

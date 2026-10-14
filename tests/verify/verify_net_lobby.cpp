@@ -12,7 +12,6 @@
 #include <cstring>
 
 namespace net {
-Query* __fastcall QueriesFind(QueryVector* v, void*, const NetAddress* address);
 std::int32_t __fastcall BufferLength(GameBuffer* b);
 } // namespace net
 
@@ -24,7 +23,7 @@ void* s_unused;
 Query*(__fastcall* s_find)(QueryVector*, void*, const NetAddress*);
 Query* __fastcall FindVerify(QueryVector* v, void*, const NetAddress* address) {
     Query* expected = s_find(v, nullptr, address);
-    Query* got = QueriesFind(v, nullptr, address);
+    Query* got = v->QueriesFind(address);
     ei::verify::Check("QueriesFind", reinterpret_cast<std::uintptr_t>(expected), reinterpret_cast<std::uintptr_t>(got), "");
     return got;
 }
