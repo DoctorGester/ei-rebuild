@@ -299,10 +299,11 @@ note = "Drop the DIB and memcmp for native surfaces; renderer.md section 6 and u
 id = "N0a"
 title = "Census coverage: help page, chat, connect list, escape-menu capture, save picture, global-map pick"
 group = "native-ui"
-status = "queued"
+status = "running"
 size = 0.5
 files = ["tests/scenarios/", "tests/verify/ui_census.cpp"]
 note = "N0's suite did not reach the help page 00659420, chat line / window, connect list 0061D780, escape-menu CaptureScreen + greyscale, save picture 005FD440, global-map pick PixelAt, FPS surface, debug panel drawing. Add scenarios (or N4 gallery steps) and rerun the census (docs/notes/ui-census.md). Also explain the four Rebirth-only owners with heap vtables (2FBD....) in ui_trade_hold before P3c keys on vtables under Rebirth."
+started = "2026-10-14"
 
 [[ticket]]
 id = "N2a"
