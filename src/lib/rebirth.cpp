@@ -22,6 +22,7 @@ static_assert(sizeof(kNames) / sizeof(kNames[0]) == kPatchCount);
 bool g_followAddon = true;
 char g_queued[1024];                         // QueueSpec runs before any C++ object may be used
 const Implements* g_implements = nullptr;    // constant-initialised: registrations come first
+const LiveStolen* g_liveStolen = nullptr;
 
 void SetAll(bool on) {
     for (bool& e : detail::g_enabled) e = on;
@@ -96,6 +97,14 @@ Implements::Implements(std::uintptr_t address_, const Patch* patches_, int count
 }
 
 const Implements* FirstImplements() { return g_implements; }
+
+LiveStolen::LiveStolen(std::uintptr_t address_) : address(address_), next(g_liveStolen) { g_liveStolen = this; }
+
+bool LiveStolenAt(std::uintptr_t address) {
+    for (const LiveStolen* l = g_liveStolen; l; l = l->next)
+        if (l->address == address) return true;
+    return false;
+}
 
 bool ImplementsAt(std::uintptr_t address, Patch p) {
     for (const Implements* i = g_implements; i; i = i->next) {

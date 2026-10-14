@@ -315,7 +315,8 @@ Verdict Check(std::uintptr_t address, std::uint32_t size, const unsigned char* o
             std::snprintf(why, whySize, "Rebirth patch %s is applied but its flag is off", rebirth::Name(s->patch));
             return Verdict::Skip;
         }
-        if (stolen > 0 && i < static_cast<std::uint32_t>(stolen) && s->address + s->size > address + stolen) {
+        if (stolen > 0 && i < static_cast<std::uint32_t>(stolen) && s->address + s->size > address + stolen &&
+            !rebirth::LiveStolenAt(address)) {
             std::snprintf(why, whySize, "the %d stolen bytes end inside Rebirth patch %s's site", stolen,
                           rebirth::Name(s->patch));
             return Verdict::Skip;
@@ -362,6 +363,18 @@ bool FlagWithoutOriginal(std::uintptr_t address, std::uint32_t size, const unsig
 }
 
 bool RelocateStolen(std::uintptr_t address, int stolen, unsigned char* trampoline) {
+    // A JMP / CALL rel32 addon wrote at the function's start inside a larger site of its code
+    // (EI_REBIRTH_LIVE_STOLEN: 005F7E30 jumps to 005F7E00 in WideScreen's code).
+    const unsigned char* start = Live(static_cast<std::uint32_t>(address));
+    const Site* around = AddonSiteAt(address);
+    if (rebirth::LiveStolenAt(address) && around && around->address < address && stolen >= 5 &&
+        (start[0] == 0xE8 || start[0] == 0xE9)) {
+        std::int32_t rel;
+        std::memcpy(&rel, start + 1, 4);
+        std::uintptr_t target = address + 5 + rel;
+        std::int32_t moved = static_cast<std::int32_t>(target - (reinterpret_cast<std::uintptr_t>(trampoline) + 5));
+        std::memcpy(trampoline + 1, &moved, 4);
+    }
     for (std::size_t i = 0; i < kSiteCount; ++i) {
         const Site& s = kSites[i];
         if (!g_siteDiffers[i] || s.address < address || s.address >= address + stolen) continue;
