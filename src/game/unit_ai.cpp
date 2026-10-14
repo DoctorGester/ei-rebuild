@@ -86,9 +86,7 @@ const char* MotivationFormat() { return reinterpret_cast<const char*>(0x00791E20
 // --- Forwarders ----------------------------------------------------------------------------------
 
 __declspec(naked) void UnitController::Turn(const Vector3*, float) EI_ORIGINAL(0x005546B0)
-void UnitController::Say(int what) {
-    reinterpret_cast<AIAlarm*>(reinterpret_cast<char*>(this) + 0xB10)->Raise(what);   // 005AEA60
-}
+void UnitController::Say(int what) { alarm.Raise(what); }  // 005AEA60
 
 void AIMode::Release() { RefObjectRelease((void*)this); }
 int AIMode::Evaluate(AIBrain* brain) { return Virtuals()->Evaluate(brain); }
@@ -500,7 +498,7 @@ void AIBrain::UpdateAttack() {
         giveUp = true;
     }
     if (giveUp) {
-        if (IsGone(target) == 0) Notice(reinterpret_cast<Vector3*>(reinterpret_cast<char*>(target) + 0x1C), 1000, -2);
+        if (IsGone(target) == 0) Notice(&static_cast<CMapObject*>(target)->position, 1000, -2);
         action = kActionNone;
         return;
     }
@@ -639,7 +637,7 @@ void AIBrain::SetSeen(CEngineObject* object) {
             std::uint32_t bit = 1u << (static_cast<CUnit*>(seen)->side & 31);
             allied = (Diplomacy()[owner->unit->side] & bit) != 0;
         }
-        if (!allied) CallAllies(reinterpret_cast<const Vector3*>(reinterpret_cast<char*>(object) + 0x1C));
+        if (!allied) CallAllies(&static_cast<CMapObject*>(object)->position);
     } else {
         CallAllies(&owner->unit->position);
     }

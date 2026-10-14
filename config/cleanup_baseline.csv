@@ -256,12 +256,12 @@ src/game/ui_trade_panel.cpp,0,0,0,0,1,0,0,1,0,0,0
 src/game/ui_view_screen.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_window.cpp,0,0,1,0,0,0,0,1,0,0,0
 src/game/unit.cpp,0,0,0,1,0,0,0,0,0,0,0
-src/game/unit_ai.cpp,0,0,0,1,4,0,0,3,0,0,2
+src/game/unit_ai.cpp,0,0,0,1,4,0,0,0,0,0,2
 src/game/unit_ai.h,0,0,0,0,2,0,1,0,0,0,0
 src/game/unit_ai_brain.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_ai_fear.cpp,0,0,0,0,0,0,0,0,0,0,3
 src/game/unit_ai_memory.cpp,0,0,0,0,0,0,0,0,0,0,4
-src/game/unit_ai_modes.cpp,0,0,1,1,3,0,0,4,0,0,2
+src/game/unit_ai_modes.cpp,0,0,1,1,3,0,0,0,0,0,2
 src/game/unit_ai_moves.cpp,0,0,0,0,0,0,0,0,0,0,11
 src/game/unit_ai_player.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_ai_sight.cpp,0,0,0,0,0,0,0,0,0,0,3

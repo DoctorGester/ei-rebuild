@@ -10,6 +10,7 @@
 // count at +4, released through 0040A3A0) kept in the brain's mode list; the brain holds a counted
 // pointer to the mode in charge.
 
+#include "ai_alarm.h"
 #include "ai_map.h"
 #include "core_refcount.h"
 #include "engine_object.h"
@@ -24,6 +25,7 @@
 
 struct AIBrain;
 struct AIOrder;
+struct UnitController;  // below AIBrain
 
 using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
 
@@ -38,74 +40,6 @@ public:
     int unknown_04;
     int version;            // +0x08
 };
-
-// The unit controller of AI units (the object at CUnit + 0x240; its tick is 00552300). Only the
-// fields the brain reads.
-struct UnitController {
-    std::uint8_t unknown_000[0x1C];
-    CUnit* unit;                    // +0x01C
-    std::uint8_t unknown_020[0x164 - 0x20];
-    int state;                      // +0x164 5: the brain does nothing
-    std::uint8_t unknown_168[0x174 - 0x168];
-    std::uint8_t busy;              // +0x174 set by modes that keep the unit occupied
-    std::uint8_t unknown_175[0x18C - 0x175];
-    std::uint8_t inCombat;          // +0x18C
-    std::uint8_t unknown_18D[0x190 - 0x18D];
-    int command;                    // +0x190 the controller's current command (1/2 move, 3 attack, ...)
-    std::uint8_t unknown_194[4];
-    CEngineObject* commandTarget;   // +0x198
-    std::uint8_t unknown_19C[0x1B4 - 0x19C];
-    int nextCommand;                // +0x1B4 the queued command
-    std::uint8_t unknown_1B8[4];
-    CEngineObject* nextTarget;      // +0x1BC
-    std::uint8_t unknown_1C0[0x1E0 - 0x1C0];
-    UnitStats stats;                // +0x1E0
-    std::uint16_t protection[8];    // +0x8E4 what an attack's damage words are measured against (00522AE0)
-    std::uint8_t unknown_8F4[4];
-    float moveFactors[4];           // +0x8F8 (CUnitServer::moveFactors)
-    std::uint8_t unknown_908[0x978 - 0x908];
-    // +0x978 called with the unit when its current action (an animation) has finished, or null.
-    void(__fastcall* actionDone)(CUnit* unit);
-    std::uint8_t unknown_97C[4];
-    std::uint8_t brain[0x190];      // +0x980 the AIBrain (Brain())
-
-    AIBrain* Brain();
-
-    // 00552CF0 (RET 4; unit_ai_brain.cpp). The unit's CUnit::AddHostileMask (its EAX returned).
-    std::uintptr_t AddHostileMask(std::uint32_t mask);
-
-    // Not rewritten (forwarders).
-    void Turn(const Vector3* direction, float time);        // 005546B0
-    void Say(int what);                                     // 005AEA60 on this + 0xB10 (see Voice)
-    void MoveTo(const Vector3* point, int run, int unused, float time);    // 00554740
-    // 00554B30. Starts attacking `target`.
-    void Attack(CEngineObject* target, int how, int unknown, int flags);
-    // 0054C8B0. Whether the player's order check accepts `order` (see AttackTarget).
-    bool CheckOrder(const void* order);
-    // 0054C960 (RET 8). The same check with the unit moved to `point` meanwhile (only AL).
-    bool CheckOrderAt(const AIOrder* order, const Vector3* point);
-    void CastAt(int spell, const Vector3* point, int run);  // 00554D00
-    void UseOnPoint(CEngineObject* object, int a, int b);   // 00555570
-    void UseOnUnit(CEngineObject* unit, int b);             // 005553B0
-    void UseOnUnit2(CEngineObject* unit, int b);            // 00555480
-    void UseSpecial(CEngineObject* unit, int b);            // 00555630
-    bool CanCast(int spell);                                // 0054B820
-    void Cast(int spell, CEngineObject* target, int unused);    // 00554F50
-    // 0054B520 (CUnitServer::GetMovePoint). The point of the first move order; false without one.
-    bool GetMovePoint(Vector3* out);
-};
-static_assert(offsetof(UnitController, unit) == 0x1C);
-static_assert(offsetof(UnitController, state) == 0x164);
-static_assert(offsetof(UnitController, busy) == 0x174);
-static_assert(offsetof(UnitController, inCombat) == 0x18C);
-static_assert(offsetof(UnitController, command) == 0x190);
-static_assert(offsetof(UnitController, commandTarget) == 0x198);
-static_assert(offsetof(UnitController, nextCommand) == 0x1B4);
-static_assert(offsetof(UnitController, nextTarget) == 0x1BC);
-static_assert(offsetof(UnitController, stats) == 0x1E0);
-static_assert(offsetof(UnitController, protection) == 0x8E4);
-static_assert(offsetof(UnitController, actionDone) == 0x978);
-static_assert(offsetof(UnitController, brain) == 0x980);
 
 // An order as the controller's order checks take it (0x1C bytes, built on the stack).
 struct AIOrder {
@@ -1255,7 +1189,76 @@ static_assert(offsetof(AIBrain, seesEnemy) == 0x18C);
 static_assert(sizeof(AIBrain) == 0x190);
 static_assert(offsetof(AIBrain, attention) == 0xA4);
 
-inline AIBrain* UnitController::Brain() { return reinterpret_cast<AIBrain*>(brain); }
+// The unit controller of AI units (the object at CUnit + 0x240; its tick is 00552300). Only the
+// fields the brain reads. The same object as combat.h's CUnitServer, which lays out all of it
+// (0xB20 bytes); declared after the brain it embeds.
+struct UnitController {
+    std::uint8_t unknown_000[0x1C];
+    CUnit* unit;                    // +0x01C
+    std::uint8_t unknown_020[0x164 - 0x20];
+    int state;                      // +0x164 5: the brain does nothing
+    std::uint8_t unknown_168[0x174 - 0x168];
+    std::uint8_t busy;              // +0x174 set by modes that keep the unit occupied
+    std::uint8_t unknown_175[0x18C - 0x175];
+    std::uint8_t inCombat;          // +0x18C
+    std::uint8_t unknown_18D[0x190 - 0x18D];
+    int command;                    // +0x190 the controller's current command (1/2 move, 3 attack, ...)
+    std::uint8_t unknown_194[4];
+    CEngineObject* commandTarget;   // +0x198
+    std::uint8_t unknown_19C[0x1B4 - 0x19C];
+    int nextCommand;                // +0x1B4 the queued command
+    std::uint8_t unknown_1B8[4];
+    CEngineObject* nextTarget;      // +0x1BC
+    std::uint8_t unknown_1C0[0x1E0 - 0x1C0];
+    UnitStats stats;                // +0x1E0
+    std::uint16_t protection[8];    // +0x8E4 what an attack's damage words are measured against (00522AE0)
+    std::uint8_t unknown_8F4[4];
+    float moveFactors[4];           // +0x8F8 (CUnitServer::moveFactors)
+    std::uint8_t unknown_908[0x978 - 0x908];
+    // +0x978 called with the unit when its current action (an animation) has finished, or null.
+    void(__fastcall* actionDone)(CUnit* unit);
+    std::uint8_t unknown_97C[4];
+    AIBrain brain;                  // +0x980
+    AIAlarm alarm;                  // +0xB10 the voice (ai_alarm.h)
+
+    AIBrain* Brain() { return &brain; }
+
+    // 00552CF0 (RET 4; unit_ai_brain.cpp). The unit's CUnit::AddHostileMask (its EAX returned).
+    std::uintptr_t AddHostileMask(std::uint32_t mask);
+
+    // Not rewritten (forwarders).
+    void Turn(const Vector3* direction, float time);        // 005546B0
+    void Say(int what);                                     // 005AEA60 on `alarm`
+    void MoveTo(const Vector3* point, int run, int unused, float time);    // 00554740
+    // 00554B30. Starts attacking `target`.
+    void Attack(CEngineObject* target, int how, int unknown, int flags);
+    // 0054C8B0. Whether the player's order check accepts `order` (see AttackTarget).
+    bool CheckOrder(const void* order);
+    // 0054C960 (RET 8). The same check with the unit moved to `point` meanwhile (only AL).
+    bool CheckOrderAt(const AIOrder* order, const Vector3* point);
+    void CastAt(int spell, const Vector3* point, int run);  // 00554D00
+    void UseOnPoint(CEngineObject* object, int a, int b);   // 00555570
+    void UseOnUnit(CEngineObject* unit, int b);             // 005553B0
+    void UseOnUnit2(CEngineObject* unit, int b);            // 00555480
+    void UseSpecial(CEngineObject* unit, int b);            // 00555630
+    bool CanCast(int spell);                                // 0054B820
+    void Cast(int spell, CEngineObject* target, int unused);    // 00554F50
+    // 0054B520 (CUnitServer::GetMovePoint). The point of the first move order; false without one.
+    bool GetMovePoint(Vector3* out);
+};
+static_assert(offsetof(UnitController, unit) == 0x1C);
+static_assert(offsetof(UnitController, state) == 0x164);
+static_assert(offsetof(UnitController, busy) == 0x174);
+static_assert(offsetof(UnitController, inCombat) == 0x18C);
+static_assert(offsetof(UnitController, command) == 0x190);
+static_assert(offsetof(UnitController, commandTarget) == 0x198);
+static_assert(offsetof(UnitController, nextCommand) == 0x1B4);
+static_assert(offsetof(UnitController, nextTarget) == 0x1BC);
+static_assert(offsetof(UnitController, stats) == 0x1E0);
+static_assert(offsetof(UnitController, protection) == 0x8E4);
+static_assert(offsetof(UnitController, actionDone) == 0x978);
+static_assert(offsetof(UnitController, brain) == 0x980);
+static_assert(offsetof(UnitController, alarm) == 0xB10 && sizeof(UnitController) == 0xB20);
 
 // The script-made modes' constructors and slots (004BA1A0-004BA9B0) are members of the mode structs
 // above (script_unit_modes.cpp). Slots of 3 bytes (RET 4, MOV AL,1, XOR EAX,EAX ...) cannot be

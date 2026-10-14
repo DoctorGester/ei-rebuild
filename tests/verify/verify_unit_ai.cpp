@@ -944,7 +944,7 @@ static void __fastcall HearAlarmVerify(AIBrain* self, void*, int slot) {
     const bool inRange = slot >= 0 && slot < self->alarmRecords.size;
     const bool applies = inRange && (self->alarmRecords.data[slot].unknown_38 != 0 || slot == 0);
     const int before = self->unknown_36;
-    auto* alarm = reinterpret_cast<const AIAlarm*>(self->owner->brain + sizeof(self->owner->brain));
+    const AIAlarm* alarm = &self->owner->alarm;
     const int pendingBefore = alarm->pending;
     self->HearAlarm(slot);
     bool ok = applies ? self->unknown_36 == static_cast<std::int8_t>(slot) : self->unknown_36 == before;
