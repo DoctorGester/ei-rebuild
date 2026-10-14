@@ -92,7 +92,7 @@ EI_REPLACE_METHOD(0x0067E510, CSpellEffect::Construct);
 void CSpellEffect::Destruct() {
     SetVtable(this, kVtableAddress);
     if (footprintStamped) UpdateFootprint(static_cast<int>(spellId >> 16), 0);
-    if (visual) reinterpret_cast<CWorldServer*>(world)->RemoveTimedObject(static_cast<unsigned>(visual->id_));
+    if (visual) world->RemoveTimedObject(static_cast<unsigned>(visual->id_));
     Drop(visual);
     ReleaseSound();
     ReleaseLight();
@@ -130,7 +130,7 @@ void AssignCounted(CEngineObject*& slot, CEngineObject* object) {
 }
 } // namespace
 
-void CSpellEffect::Init(char* newWorld, CSpell* spell, CEngineObject* newCaster, const Vector3* newPosition,
+void CSpellEffect::Init(CWorldServer* newWorld, CSpell* spell, CEngineObject* newCaster, const Vector3* newPosition,
                         CEngineObject* newTarget, const Vector3* newTargetPoint, std::uint8_t flagA4) {
     spell->CallCopyTo(Spell());
     world = newWorld;

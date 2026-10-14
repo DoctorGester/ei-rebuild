@@ -16,8 +16,6 @@ namespace {
 // The sound manager (*007AF784).
 CSoundManager* SoundManager() { return *reinterpret_cast<CSoundManager**>(0x007AF784); }
 
-mfc::CString& AsString(char*& data) { return *reinterpret_cast<mfc::CString*>(&data); }
-
 std::uint32_t NextRandom() { return IsaacRandom::Global().Next(); }
 
 // The choosers (00676DD0..00676F90): called with the previous index and the number of sounds
@@ -72,7 +70,7 @@ void CEffectSoundSeq::Start(int update) {
         return;
     }
     console::CStringArray list;
-    mfc::CString& first = AsString(name_);
+    mfc::CString& first = name_;
     const mfc::CStringArray& others = names_;
     bool withFirst = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(first)),
                                      reinterpret_cast<const unsigned char*>("")) != 0;
@@ -89,7 +87,7 @@ int CEffectSoundSeq::Unpack(int update, DeltaField* field) {
     alignas(4) unsigned char text[sizeof(mfc::CString)];
     field->ReadString(text);
     auto* read = reinterpret_cast<mfc::CString*>(text);
-    AsString(name_) = *read;
+    name_ = *read;
     read->~CString();
     // The count is read into the stack slot of `field` (ReadDelta always stores it).
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(field));

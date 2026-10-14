@@ -40,7 +40,7 @@ void SaveEffectObject(CStream* stream, const CEngineObject* object) {
 // The packed id is read through the stream argument's stack slot and the object ids through a slot
 // holding `this` (a read that writes nothing leaves those; kept).
 void CSpellEffect::Load(CStream* stream) {
-    world = reinterpret_cast<char*>(LoadingProjectileWorld());
+    world = LoadingProjectileWorld();
     stream->Read(&position, 12);
     Ref(caster).Load(RefStream(stream), world);
     Ref(target).Load(RefStream(stream), world);
@@ -50,7 +50,7 @@ void CSpellEffect::Load(CStream* stream) {
     auto packed = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&packed, 4);
     spellId = packed;
-    auto* server = reinterpret_cast<CWorld*>(world);
+    CWorld* server = world;
     auto id = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(this));
     LoadEffectObject(stream, server, id, visual);
     LoadEffectObject(stream, server, id, sound);

@@ -5,8 +5,10 @@
 // spell), EndConstruct, CSpell::Clone into a new spell object, SetManager(null).
 #include "spell.h"
 
+#include "item.h"
+
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "ei/vcall.h"   // SetVtable
 #include "lib/crt.h"
 #include "originals_effects.h"
 #include "originals_gameplay.h"
@@ -26,12 +28,6 @@ const char* const kNoSpellConstructor = reinterpret_cast<const char*>(0x00795990
 const char* const kCantBegin = reinterpret_cast<const char*>(0x0079595C);           // ... "%s"
 const char* const kCantEnd = reinterpret_cast<const char*>(0x0079593C);
 
-constexpr int kSlotCreate = 2;
-constexpr int kSlotDestroy = 3;
-constexpr int kSlotRelease = 4;
-constexpr int kSlotSlot5 = 5;
-constexpr int kManagerSlotCreateObject = 23;    // CBaseManager slot 23 (+0x5C): (class, key)
-constexpr int kContextSlotSpellConstructor = 17; // +0x44
 constexpr int kClassSpellContainer = 0x3003;
 
 // Free list of the STLport node allocator for 16-byte blocks (the 12-byte list nodes).
@@ -135,13 +131,13 @@ char Letter(const char* modifier, int i) { return modifier[4 + i]; }
 // --- CSpell ------------------------------------------------------------------------------------
 
 void CSpell::ClearModifiers() {
-    ei::VCall<void>(this, kSlotSlot5);
+    ClearState();
     std::memset(modifiers_, 0, sizeof(modifiers_));
 }
 EI_REPLACE_METHOD(0x0068B350, CSpell::ClearModifiers);
 
 void CSpell::CopyTo(CSpell* target) {
-    ei::VCall<void>(target, kSlotDestroy);
+    target->Destroy();
     std::memcpy(&target->prototypeIndex_, &prototypeIndex_, 0x54 - 0x1C);
     std::memset(target->modifiers_, 0, sizeof(target->modifiers_));
     for (int i = 0; i < 8; ++i) {
@@ -166,16 +162,16 @@ EI_REPLACE_METHOD(0x0068B410, CSpell::Clone);
 BOOL CSpellContainer::Reset() {
     prototype_ = nullptr;
     FreeModifierNodes(&modifiers_);
-    ei::VCall<int>(Spell(), kSlotCreate);
+    Spell()->Create();
     return 1;
 }
 EI_REPLACE_METHOD(0x0068BD80, CSpellContainer::Reset);
 
 void CSpellContainer::Shutdown() {
-    ei::VCall<void>(this, kSlotSlot5);
+    ClearState();
     prototype_ = nullptr;
     FreeModifierNodes(&modifiers_);
-    ei::VCall<void>(Spell(), kSlotDestroy);
+    Spell()->Destroy();
 }
 EI_REPLACE_METHOD(0x0068BDD0, CSpellContainer::Shutdown);
 
@@ -339,14 +335,14 @@ EI_REPLACE_METHOD(0x0068BF60, CSpellContainer::Build);
 // --- CSpellManager -----------------------------------------------------------------------------
 
 CSpellContainer* CSpellManager::NewContainer() {
-    return ei::VCall<CSpellContainer*>(this, kManagerSlotCreateObject, kClassSpellContainer, -1);
+    return static_cast<CSpellContainer*>(CreateObject(kClassSpellContainer, -1));
 }
 EI_REPLACE_METHOD(0x00688EB0, CSpellManager::NewContainer);
 
 __declspec(naked) CSpell* CSpellManager::CallCreateSpellObject(int) EI_ORIGINAL(0x00688EC0)
 
 CSpell* CSpellManager::CreateSpell(char* prototype, SpellModifierNode** modifiers) {
-    auto* constructor = ei::VCall<CSpellConstructor*>(context_, kContextSlotSpellConstructor);
+    CSpellConstructor* constructor = static_cast<CManagerContext*>(context_)->SpellConstructor();
     if (!constructor) return reinterpret_cast<CSpell*>(game::FatalError(kNoSpellConstructor));
     constructor->CallSetManager(this);
     if (!constructor->CallBeginConstruct(prototype))
@@ -394,7 +390,7 @@ EI_REPLACE(0x00684070, SpellConstructorClassId);
 BOOL CSpellConstructor::Reset() {
     CSpellContainer* container = container_;
     container_ = nullptr;
-    if (container) ei::VCall<void>(container, kSlotRelease);
+    if (container) container->Release();
     manager_ = nullptr;
     return 1;
 }
@@ -403,7 +399,7 @@ EI_REPLACE_METHOD(0x00684120, CSpellConstructor::Reset);
 void CSpellConstructor::Detach() {
     CSpellContainer* container = container_;
     container_ = nullptr;
-    if (container) ei::VCall<void>(container, kSlotRelease);
+    if (container) container->Release();
     if (manager_) --manager_->refCount_;
     manager_ = nullptr;
 }
@@ -412,7 +408,7 @@ EI_REPLACE_METHOD(0x00684150, CSpellConstructor::Detach);
 void CSpellConstructor::SetManager(CSpellManager* manager) {
     CSpellContainer* container = container_;
     container_ = nullptr;
-    if (container) ei::VCall<void>(container, kSlotRelease);
+    if (container) container->Release();
     if (manager_) --manager_->refCount_;
     manager_ = manager;
     if (manager) ++manager->refCount_;
@@ -426,7 +422,7 @@ BOOL CSpellConstructor::BeginConstruct(char* prototype) {
     CSpellContainer* previous = container_;
     container_ = container;
     if (container) ++container->refCount_;
-    if (previous) ei::VCall<void>(previous, kSlotRelease);
+    if (previous) previous->Release();
     container_->prototype_ = prototype;   // no null check, as in the original
     return 1;
 }

@@ -148,7 +148,7 @@ public:
     void SaveState(void* stream);                 // 00677430 (slot 10)
     double Radius();                              // 00676930 (slot 19): radius_
 
-    char* name_;               // +0x14C CString: the first sound
+    mfc::CString name_;        // +0x14C the first sound
     mfc::CStringArray names_;  // +0x150 the others
     float volume_;             // +0x164
     float radius_;             // +0x168

@@ -13,6 +13,7 @@
 #include <cstring>
 
 class CSpell;
+class CSpellConstructor;
 class CSpellManager;
 class CStream;
 
@@ -485,7 +486,7 @@ public:
     virtual void TimedObjectManager();             // 14
     virtual void FigureManager();                  // 15
     virtual CItemConstructor* ItemConstructor();   // 16
-    virtual void SpellConstructor();               // 17
+    virtual CSpellConstructor* SpellConstructor(); // 17
     virtual void ItemFactory();                    // 18
     virtual void MapObjectManager();               // 19
     virtual void PlayerList();                     // 20

@@ -94,8 +94,9 @@ bool CSpell::HasCastFlagModifier() {
         std::int8_t entry = modifiers_[i];
         if (entry == 0) break;
         // Modifier index = entry - 1, sign-extended then compared unsigned; faults when out of range.
-        char* modifier = SpellModifiers().At(static_cast<std::uint32_t>(entry - 1), kSpellModifierSize);
-        int code = Field<int>(modifier, field::kModifierCode);
+        SpellModifierRecord* modifier = SpellModifierAt(static_cast<std::uint32_t>(entry - 1));
+        int code;
+        std::memcpy(&code, modifier->code, sizeof(code));
         if (code == 0x6369 || code == 0x7469) return true;   // "ic", "it"
     }
     return false;
@@ -217,11 +218,13 @@ EI_REPLACE_METHOD(0x0068D280, CLight::SetLitColors);
 int __stdcall SpellCodeByName(const char* name) {
     const RecordTable& spells = Spells();
     for (std::uint32_t i = 0; static_cast<int>(i) < static_cast<int>((spells.end - spells.begin) / kSpellSize); ++i) {
-        char* spell = spells.At(i, kSpellSize);
-        const char* spellName = Field<const char*>(spell, 0);
+        auto* spell = reinterpret_cast<const SpellRecord*>(spells.At(i, kSpellSize));
+        const char* spellName = spell->name;
         if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(spellName),
                              reinterpret_cast<const unsigned char*>(name)) == 0) {
-            return Field<int>(spells.At(i, kSpellSize), field::kSpellCode);
+            // The code string's pointer, as the original returns it.
+            const char* code = reinterpret_cast<const SpellRecord*>(spells.At(i, kSpellSize))->code;
+            return static_cast<int>(reinterpret_cast<std::uintptr_t>(code));
         }
     }
     return 0;
@@ -232,13 +235,12 @@ char* __stdcall SpellModifierCodeByName(const char* name) {
     const RecordTable& modifiers = SpellModifiers();
     for (std::uint32_t i = 0;
          static_cast<int>(i) < static_cast<int>((modifiers.end - modifiers.begin) / kSpellModifierSize); ++i) {
-        char* modifier = modifiers.At(i, kSpellModifierSize);
-        const char* modifierName = Field<const char*>(modifier, 0);
+        auto* modifier = reinterpret_cast<const SpellModifierRecord*>(modifiers.At(i, kSpellModifierSize));
+        const char* modifierName = modifier->name;
         if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(modifierName),
                              reinterpret_cast<const unsigned char*>(name)) == 0) {
             // Out of range gives address 4 (null record + 4), as in the original.
-            return reinterpret_cast<char*>(
-                reinterpret_cast<std::uintptr_t>(modifiers.At(i, kSpellModifierSize)) + field::kModifierCode);
+            return reinterpret_cast<SpellModifierRecord*>(modifiers.At(i, kSpellModifierSize))->code;
         }
     }
     return nullptr;

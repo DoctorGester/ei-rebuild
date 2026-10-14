@@ -11,6 +11,7 @@
 #include "maths.h"
 
 class CStream;              // core_streams.h
+class CWorldServer;         // world.h
 struct MapEffect;           // map_object.h
 
 // A spell instance (vtable 00743A94). unknown_18 of CEngineObject is the packed id: spell
@@ -209,7 +210,7 @@ struct CSpellEffect {
     // 0067ECB0 (RET 0x1C; A-H25). A cast begins: `spell` copied into the embedded spell, the
     // world, the position, the caster and the target (each counted; the one held before released),
     // the target point, state 0 and the byte +0xA4.
-    void Init(char* world, CSpell* spell, CEngineObject* caster, const Vector3* position, CEngineObject* target,
+    void Init(CWorldServer* world, CSpell* spell, CEngineObject* caster, const Vector3* position, CEngineObject* target,
               const Vector3* targetPoint, std::uint8_t flagA4);
     // 0067EF00 (RET 4; A-H25). `object` leaves the world: 0 when it is the target (the world then
     // drops the effect); else 1, the caster released and cleared when it is `object`.
@@ -226,7 +227,7 @@ struct CSpellEffect {
     void Save(CStream* stream);
 
     std::uint8_t unknown_00[0x08];
-    char* world;                // +0x08 the world server; its sector map is at +0x170 + 0x124
+    CWorldServer* world;        // +0x08
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit
     Vector3 position;           // +0x10
     CEngineObject* target;      // +0x1C

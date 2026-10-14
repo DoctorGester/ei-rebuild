@@ -206,7 +206,7 @@ void CEffectSoundSeq::Reset() {
     sound_ = -1;
     volume_ = 0.0f;
     radius_ = 0.0f;
-    *reinterpret_cast<mfc::CString*>(&name_) = EmptyCString();
+    name_ = EmptyCString();
     StringArraySetSize(&names_, nullptr, 0, -1);
     noFade_ = 0;
 }

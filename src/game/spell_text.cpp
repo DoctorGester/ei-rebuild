@@ -4,7 +4,7 @@
 
 #include "console.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "item.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -15,8 +15,6 @@
 #pragma warning(disable : 4740) // naked forwarders
 
 namespace {
-
-constexpr int kContextSlotSpellConstructor = 17;   // +0x44
 
 // The game's messages, passed by address as the original does.
 const char* const kNoSpellConstructor = reinterpret_cast<const char*>(0x00795990);
@@ -93,7 +91,7 @@ CSpell* CSpellManager::CreateSpellFromText(const char* source) {
     console::CStringArray codes;
     ParseSpellText(text, codes);
 
-    auto* constructor = ei::VCall<CSpellConstructor*>(context_, kContextSlotSpellConstructor);
+    CSpellConstructor* constructor = static_cast<CManagerContext*>(context_)->SpellConstructor();
     if (!constructor) return reinterpret_cast<CSpell*>(game::FatalError(kNoSpellConstructor));
     constructor->CallSetManager(this);
 

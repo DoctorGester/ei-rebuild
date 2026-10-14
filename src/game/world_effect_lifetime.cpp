@@ -33,8 +33,6 @@ T* DeleteAfter(T* object, unsigned flags) {
     return object;
 }
 
-mfc::CString& AsString(char*& data) { return *reinterpret_cast<mfc::CString*>(&data); }
-
 } // namespace
 
 // --- Streams and the state field -----------------------------------------------------------------
@@ -151,7 +149,7 @@ void CEffectSoundSeq::Destruct() {
     Reset();
     Reset();   // again through slot 18
     names_.Destruct();
-    AsString(name_).~CString();
+    name_.~CString();
     DestructEffect();
 }
 EI_REPLACE_METHOD(0x00676980, CEffectSoundSeq::Destruct);
