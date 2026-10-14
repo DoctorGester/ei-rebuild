@@ -126,7 +126,7 @@ function render() {
     let list = data.tickets.filter(t => t.state === k && match(t));
     if (k === 'done') list = list.sort((a, b) => (b.done || '').localeCompare(a.done || ''));
     const cards = list.map(t => {
-      const meta = [t.model, t.size ? `${t.size} sess.` : '', t.started && k === 'running' ? `since ${t.started.slice(5)}` : '', t.done ? t.done : ''].filter(Boolean).join(' · ');
+      const meta = [t.model, t.size ? `${t.size} sess.` : '', t.started && k === 'running' ? `since ${t.started.slice(5)}` : '', t.done ? t.done : ''].filter(Boolean).join(' \u00b7 ');
       const deps = (t.depends || []).map(d => `<button class="dep s-${byId[d].state}" data-goto="${d}" title="${esc(byId[d].title)} (${byId[d].state})">${esc(d)}</button>`).join('');
       const blocks = data.tickets.filter(o => (o.depends || []).includes(t.id) && o.state !== 'done')
         .map(o => `<button class="dep s-${o.state}" data-goto="${o.id}" title="${esc(o.title)}">${esc(o.id)}</button>`).join('');
@@ -137,7 +137,7 @@ function render() {
         <div class="title">${esc(t.title)}</div>${note}
         ${deps ? `<div class="deps">after ${deps}</div>` : ''}
         ${blocks ? `<div class="deps">unblocks ${blocks}</div>` : ''}
-        ${t.files ? `<div class="files">${t.files.map(esc).join(' · ')}</div>` : ''}
+        ${t.files ? `<div class="files">${t.files.map(esc).join(' \u00b7 ')}</div>` : ''}
       </article>`;
     }).join('');
     return `<section class="lane"><h2>${name}<span class="n">${list.length}</span></h2><p class="hint">${hint}</p>` +
