@@ -252,23 +252,24 @@ public:
     // modes 2-4; the top window's slot 20 with the renderer (00500960); then the fade over it all.
     // Returns 1.
     int Draw();
-    // 005F5320 (Rebirth-patched, this is the vanilla body, hooked in the vanilla launch only;
-    // ui_interface_draw.cpp; the main loop calls it after the scene's EndScene through its
-    // address). What is drawn over the scene with GDI and blits: the debug panel hears the
+    // 005F5320 (Rebirth-patched; ui_interface_draw.cpp, reproducing WideScreen, so hooked in both
+    // launches; the main loop calls it after the scene's EndScene through its address). What is drawn over the scene with GDI and blits: the debug panel hears the
     // surfaces' kept and allocated bytes; the top window redraws its surfaces (slot 22) and
     // tooltips (slot 23); the status surface blits; a backdrop asked for (mode 1 or 3) is made
-    // (800 x 600, or 400 x 300 stretched when the option 00784753 is set) and takes the screen:
+    // (800 x 600, or 400 x 300 stretched when the option 00784753 is set; with Rebirth's
+    // WideScreen the mode's width x height in pixels, unscaled) and takes the screen:
     // mode 1 also keeps a 256 x 192 copy (+0x5C) and greys the backdrop (mode 2), mode 3 first
     // puts the old backdrop aside (+0x58, its contents kept in memory) (mode 4); a multiplayer
     // client with one window redraws the chat overlay; the debug panel ticks; the frame rate
     // ("FPS:" and frames * 1000 / ms, every 400 ms) is drawn and blitted while shown; the shown
     // console blits.
     void DrawOverlays();
-    // 005F4990 (RET 4; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
-    // only; ui_interface_create.cpp; the application's start 004570D4 calls it with the
+    // 005F4990 (RET 4; Rebirth-patched; ui_interface_create.cpp, reproducing WideScreen, so hooked
+    // in both launches; the application's start 004570D4 calls it with the
     // renderer's device object 007AF080). The screen size is the render target's (not written
     // usefully without a primary surface). The three fonts are "Times New Roman": a 75-point one
-    // is made first and its height in pixels / 100 is the scale s; the fonts are of
+    // is made first and its height in pixels / 100 is the scale s (with Rebirth's WideScreen its
+    // height times width * 0.0075 / height: widescreen::FontScale); the fonts are of
     // _ftol(width * k / s / 800) tenths of a point, k = 104, 112, 144 (a font that cannot be
     // made is fatal: "CInterface3D::Create.\n Cannot create font.\n", and nothing else is
     // done). The keyboard layout of the language 0079BE98 is activated (each layout is activated
@@ -2979,14 +2980,15 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // 00659420 (Rebirth-patched; through its address). Shows page page_.
     void ShowPage();
-    // 00659420's vanilla body (plain RET; ui_help_page.cpp, A-H26; hooked in the vanilla launch
-    // only). Empties the two lists, the surfaces, regions and scene objects, opens "tutorial
-    // <text_>" (without it the pending value is set to 0) and goes to the page's "#screen" line.
-    // The page's rectangle is (200, 50)-(600, 560), or "#position left top right [rows]" (at least
-    // 300 wide, rows x 16 + 110 high, at most 600). Scene objects 0 the plain background, 1 the
-    // frame, 2 / 3 / 4 the previous, OK and next buttons; then one pulsing frame per "#rectangle
-    // left top right bottom" line and one entry per "#text [picture]" line (the next line's first
-    // word is the text's key). Surfaces: 0 the page's title and "title (page/pages)", 1 the
+    // 00659420's body (plain RET; ui_help_page.cpp, A-H26; reproducing Rebirth's WideScreen, so
+    // hooked in both launches). Empties the two lists, the surfaces, regions and scene objects,
+    // opens "tutorial <text_>" (without it the pending value is set to 0) and goes to the page's
+    // "#screen" line. The page's rectangle is (200, 50)-(600, 560), or "#position left top right
+    // [rows]" (at least 300 wide, rows x 16 + 110 high, at most 600). Scene objects 0 the plain
+    // background, 1 the frame, 2 / 3 / 4 the previous, OK and next buttons; then one pulsing frame
+    // per "#rectangle left top right bottom" line (with Rebirth's WideScreen some zone tutorial
+    // pages' frames move by the layout's extra units, as the battle screen's panels) and one entry
+    // per "#text [picture]" line (the next line's first word is the text's key). Surfaces: 0 the page's title and "title (page/pages)", 1 the
     // entries' wrapped "tutor <key>" texts (laid out twice when no rows are given: the first pass
     // makes the pictures, "tutorial_<picture>" copied into referenced object 1's 64-pixel cells,
     // and gives the height), 2 the buttons' texts with the help key's name. Regions 0-2 the

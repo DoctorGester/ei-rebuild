@@ -8,8 +8,10 @@
 #include "core_maths.h"
 #include "model.h"
 #include "texture.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -67,12 +69,17 @@ void DebugPanelSet(void* panel, const char* key, const char* value) {
     reinterpret_cast<Fn>((*static_cast<void***>(panel))[0])(panel, key, value);
 }
 
-// A new surface for the screen's picture, as the interface's backdrop.
+// A new surface for the screen's picture, as the interface's backdrop. Rebirth's WideScreen makes
+// the full-size one the mode's size in pixels, unscaled (addon's operands at 005F546A..005F5473
+// and 005F5568..005F5571: 1 -> 0, 600 -> height, 800 -> width).
 void MakeBackdrop(CInterface3D* ui) {
     auto* surface = static_cast<CUiSurface*>(gamecrt::operator_new(sizeof(CUiSurface)));
     if (SmallBackdrops()) {
         ui->backdrop_ = surface ? surface->Construct(ui, 0, 0, 400, 300, 6, 1) : nullptr;
         ui->backdrop_->SetRect(0, 0, 800, 600);
+    } else if (widescreen::Active()) {
+        const widescreen::Layout& wide = widescreen::Get();
+        ui->backdrop_ = surface ? surface->Construct(ui, 0, 0, wide.width, wide.height, 4, 0) : nullptr;
     } else {
         ui->backdrop_ = surface ? surface->Construct(ui, 0, 0, 800, 600, 4, 1) : nullptr;
     }
@@ -186,3 +193,4 @@ void CInterface3D::DrawOverlays() {
     if (console_ && console_->shown_) console_->Blit();
 }
 EI_REPLACE_METHOD(0x005F5320, CInterface3D::DrawOverlays);
+EI_REBIRTH_IMPLEMENTS(0x005F5320, ei::rebirth::Patch::WideScreen);

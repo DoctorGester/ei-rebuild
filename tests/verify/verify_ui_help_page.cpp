@@ -1,5 +1,6 @@
 // Check for ui_help_page.cpp (A-H26): the help / message window's page, CHelpWindow::ShowPage
-// (00659420; Rebirth-patched, so hooked in the vanilla launch only).
+// (00659420; Rebirth-patched: the rewrite reproduces WideScreen, so in a Rebirth launch the original
+// run is addon's, with its context hook moving the zone tutorials' frames).
 // Side by side on the real window. The function starts by emptying the window (both lists, the
 // surfaces, regions and scene objects) and builds everything again from the texts, so the second
 // run replaces what the first made; the first run's result is recorded before: the regions and
@@ -8,7 +9,8 @@
 // reader's position and the interface's pending value (set when the texts are missing; put back
 // between the runs). The pictures are copied into the same cells of the same texture twice. The
 // surfaces' pixels are not compared.
-// Scenario: ui_help (F1 on the battle screen: the first page, then Enter and the arrows).
+// Scenario: ui_help (F1 on the battle screen: the first page, then Enter and the arrows);
+// ui_widescreen_screens under Rebirth (zone tutorial messages whose frames move: zt4, zt9).
 #include "verify.h"
 
 #include "ui_panel_shot.h"
