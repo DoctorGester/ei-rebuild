@@ -34,7 +34,7 @@ CFigureMesh* CFigureMesh::ConstructBase() {
     ei::SetVtable(this, CEngineObject::kVtableAddress);
     refCount_ = 0;
     id_ = -1;
-    unknown_018 = 0;
+    spare18_ = 0;
     type_ = 0;
     flags_ = 0;
     manager_ = nullptr;
@@ -48,7 +48,7 @@ CFigureMesh* CFigureMesh::ConstructBase() {
     colorsA_.Construct();
     colorsB_.Construct();
     std::memset(&bounds_, 0, sizeof(bounds_));
-    std::memset(unknown_1B4, 0, sizeof(unknown_1B4));
+    std::memset(&boxPivot_, 0, sizeof(boxPivot_));
     ei::SetVtable(this, kBaseVtableAddress);
     FigureMeshCreateOriginal(this);
     return this;
@@ -59,16 +59,16 @@ int CFigureMesh::Create() {
     radius_ = 0.0f;
     drawer_ = nullptr;
     flags_ = 0;
-    unknown_158 = 0;
+    materialValue_ = 0;
     meshType_ = 0;
     std::memset(&buffers_, 0, sizeof(buffers_));
     textureOffsetU_ = 0;
     textureOffsetV_ = 0;
-    unknown_0DC = 0;
+    spareDC_ = 0;
     flatColour_ = 0xFFFFFFFF;
     flatSpecular_ = 0xFFFFFFFF;
     std::memset(&bounds_, 0, sizeof(bounds_));
-    std::memset(unknown_1B4, 0, sizeof(unknown_1B4));
+    std::memset(&boxPivot_, 0, sizeof(boxPivot_));
     return 1;
 }
 EI_REPLACE_METHOD(0x0059F210, CFigureMesh::Create);
@@ -82,7 +82,7 @@ void CFigureMesh::Clear() {
     colorsA_.SetSize(0);
     colorsB_.SetSize(0);
     std::memset(&buffers_, 0, sizeof(buffers_));
-    unknown_158 = 0;
+    materialValue_ = 0;
     meshType_ = 0;
     if (drawer_ != nullptr) {
         drawer_->mesh_ = nullptr;

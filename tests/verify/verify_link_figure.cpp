@@ -161,7 +161,7 @@ void LoadVerify(const char* what, LoadFn original, OursFn ours, int vertexCount,
 
     const LinkPartHeader* e = LinkHeaderMapAtOriginal(&scratch.mesh->headers_, nullptr, name);
     const LinkPartHeader* a = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
-    bool same = *cursor == expectedCursor && e->unknown_00 == a->unknown_00 && e->unknown_04 == a->unknown_04;
+    bool same = *cursor == expectedCursor && e->meshType == a->meshType && e->materialValue == a->materialValue;
     int bad = -1;
     const char* diff = same ? nullptr : "cursor or header";
     if (!diff && !present) {

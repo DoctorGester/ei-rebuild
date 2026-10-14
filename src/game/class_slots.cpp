@@ -92,7 +92,7 @@ EI_REPLACE(0x004689D0, LightningManagerCreateHook);
 // 00446AF0, slot 2 (Create): the skin created and given the unit, then the unit's own Create.
 int __fastcall FakeUnitCreate(scene::FakeUnitScene* self) {
     self->skin.Create();
-    self->skin.SetUnknown00(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(self)));
+    self->skin.SetOwner(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(self)));
     return reinterpret_cast<CUnit*>(self)->CreateUnit();
 }
 EI_REPLACE(0x00446AF0, FakeUnitCreate);

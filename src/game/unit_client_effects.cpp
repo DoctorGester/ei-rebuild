@@ -170,7 +170,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
         auto* source = static_cast<CParticleSource*>(
             ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kBloodParticles[blood - 1]));
         source->position = {0.0f, 0.0f, kBloodHeight};
-        source->ScaleSize(part->unknown_198 * kBloodScale);
+        source->ScaleSize(part->radius * kBloodScale);
         source->typeParam = kBloodRate;
         float alpha = amount;
         if (!(alpha >= kBloodMinAlpha)) alpha = kBloodMinAlpha;

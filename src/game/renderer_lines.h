@@ -56,11 +56,11 @@ static_assert(sizeof(LinePacket) == 0x40);
 // world client's lists (00569D60). The points sit four to a packet; the unused points of the last
 // packet repeat the last point.
 struct LineBatch {
-    int unknown_00;                          // -1
+    int spare00;                             // +0x00 -1 (the destructor, 005A75D0); nothing reads it
     lib::AlignedArray<LinePacket> packets;   // +0x04
     int count;                               // +0x14 points
     std::uint32_t colour;                    // +0x18
-    int unknown_1C;
+    int spare1C;                             // +0x1C nothing reads it
 
     // 0049B140 (RET 4). Appends the point (x, y, z; w 1), with a new packet when the last one is
     // full, and repeats it through the rest of its packet. Returns the new count.

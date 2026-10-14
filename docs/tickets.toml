@@ -353,9 +353,10 @@ note = "Coordinate with W2 (ui.h) and the P tickets: renames only."
 id = "F4"
 title = "Unknown fields: scene, figures, terrain, map objects, textures (~140)"
 group = "fields"
-status = "running"
+status = "review"
 started = "2026-10-14"
 files = ["scene_loader.*", "map_object_figures.h", "terrain*", "figure*", "camera.h", "texture.h", "map_object*", "link_figure.h", "object_tables.h", "material.h", "model.h", "renderer_lines.h"]
+note = "Done 2026-10-14: 143 named (90) or unused_XXX (53), 374 -> 231; meanings in cleanup-figures.md (F4 section)."
 
 [[ticket]]
 id = "F5"
@@ -574,6 +575,15 @@ title = "Forwarders to rewritten code into direct calls"
 group = "cleanup"
 status = "later"
 note = "2,377 sites; with the standalone work (changes what the verify wrappers see)."
+
+[[ticket]]
+id = "F4a"
+title = "View structs into their classes (F4 follow-up)"
+group = "cleanup"
+status = "queued"
+depends = ["F4"]
+files = ["map_object_figures.h", "figure_mesh.h", "link_figure.h", "scene_loader.h", "material.h", "terrain.h", "terrain_sector.h", "figure_part_bounds.cpp", "renderer_lines.h"]
+note = "F4 named the gaps of views after the real classes; merge them: FigurePart -> CFigureMesh (piece158 / piece15C are materialValue_ / meshType_), FigurePieceRecord's piece -> LinkPartHeader, FigureMaterial and SceneHelper -> CMaterial, TerrainFields -> Terrain, TerrainSector -> terrain::SectorData, the two LineBatch declarations into renderer_lines.h's."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

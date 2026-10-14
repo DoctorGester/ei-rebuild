@@ -176,7 +176,7 @@ position, rotation); +0x2E0..+0x2E8 near / far / fov are read by `renderer_init`
 | 0040FB30, 0040F8B0 | `Update(dt)` (listener, follow / track, pan, tilt, turn, zoom, limits, ApplyView, shakes), `ApplyView` | scratch copy of the first 0x120 bytes; Update ours only while shakes run |
 | 0040D9B0 | `SampleTerrain` (`__stdcall`, 9 args: average / min / max surface height on a grid) | outputs into scratch |
 | 0040F5C0, 0040F230, 0040F430, 004107A0 | `SetFocus`, `Pan`, `StopMotion`, `ZoomBy` (mouse wheel, 1.05^steps via `_CIpow`) | scratch copy |
-| 0040E810, 0040F360 / 0040F3C0 / 0040F420, 0040D3B0 / 0040D420 | `GroundPoint`, `SetTurnRate` / `SetTiltRate` / `SetUnknownD0`, `SetTarget` / `SetTargetId` | output / scratch copy |
+| 0040E810, 0040F360 / 0040F3C0 / 0040F420, 0040D3B0 / 0040D420 | `GroundPoint`, `SetTurnRate` / `SetTiltRate` / `SetZoomTarget`, `SetTarget` / `SetTargetId` | output / scratch copy |
 | 00410860 / 004108D0, 00411470, 00410D70 / 00410D10, 004109E0, 00410E50 / 00411060 / 00411360, 004110D0, 0040D710, 0040E4C0 | `SaveView` / `RestoreView` (F9-F12; a modifier saves), `SetDistancePitch`, `ViewsToSettings` / `FromSettings` (`_CIacos`), `SetHeading`, `SetFree` / `LookFrom` / `SetBounds`, `LookDirection`, `AlignToTarget`, `ClampAboveObjects` | scratch copy (0x1E0 + settings record) |
 | 004113A0 | `Shake` (distance by `_hypot`, node added to the list at +0x108) | original on a scratch camera with a private list, ours on the real one; new node compared |
 | 0040F1B0 / 0040EFB0 | `PlaybackStart` / `PlaybackStep` (camera\*.cam, PlayCamera) | scratch copy (0x308) + result |

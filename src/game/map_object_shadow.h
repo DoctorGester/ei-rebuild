@@ -219,7 +219,7 @@ public:
     float bounds[4];                // +0x80 minimum x, y and maximum x, y in the light's view
     ClipBounds sphere;              // +0x90 the shadow's bounds (the scene object's slot 7), the
                                     //       centre relative to the object
-    std::uint8_t unknown_BC[0xC8 - 0xBC];   // +0xBC zeroed with the bounds
+    std::uint8_t unused_BC[0xC8 - 0xBC];    // +0xBC zeroed with the bounds
     int drawnRect[4];               // +0xC8 RECT: the screen area of the dirty parts Draw drew
     CTexture* woundsTexture;        // +0xD8 the wounds texture (counted; 0051C3D0 loads it)
     struct WoundsMaterial* woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)

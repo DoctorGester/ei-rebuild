@@ -18,12 +18,12 @@ namespace {
 void(__fastcall* s_setDetail)(SectorData*, void*, int);
 
 void __fastcall SetDetailVerify(SectorData* self, void*, int level) {
-    const int before = self->unknown_170;
+    const int before = self->detail;
     s_setDetail(self, nullptr, level);
-    const int expected = self->unknown_170;
-    self->unknown_170 = before;
+    const int expected = self->detail;
+    self->detail = before;
     self->SetDetail(level);
-    ei::verify::Check("SectorData::SetDetail", expected, self->unknown_170, "level %d", level);
+    ei::verify::Check("SectorData::SetDetail", expected, self->detail, "level %d", level);
 }
 EI_VERIFY(0x006C1390, SetDetailVerify, 10, s_setDetail);
 
@@ -33,12 +33,12 @@ EI_VERIFY(0x006C1390, SetDetailVerify, 10, s_setDetail);
 void(__fastcall* s_chooseDetail)(Terrain*, void*, SectorData*);
 
 void __fastcall ChooseDetailVerify(Terrain* self, void*, SectorData* sector) {
-    const int before = sector->unknown_170;
+    const int before = sector->detail;
     s_chooseDetail(self, nullptr, sector);
-    const int expected = sector->unknown_170;
-    sector->unknown_170 = before;
+    const int expected = sector->detail;
+    sector->detail = before;
     self->ChooseDetail(sector);
-    ei::verify::Check("Terrain::ChooseDetail", expected, sector->unknown_170, "sector %d,%d min %d", sector->sx,
+    ei::verify::Check("Terrain::ChooseDetail", expected, sector->detail, "sector %d,%d min %d", sector->sx,
                       sector->sy, self->minDetail);
 }
 EI_VERIFY(0x006C66E0, ChooseDetailVerify, 5, s_chooseDetail);
@@ -51,7 +51,7 @@ int(__fastcall* s_isDrawn)(const SectorData*);
 
 int __fastcall IsDrawnVerify(const SectorData* self) {
     const int expected = s_isDrawn(self);
-    ei::verify::Check("SectorData::IsDrawn", expected, self->IsDrawn(), "+0x60 %u", self->unknown_060);
+    ei::verify::Check("SectorData::IsDrawn", expected, self->IsDrawn(), "+0x60 %u", self->clipMode);
     return expected;
 }
 EI_VERIFY(0x006BFB00, IsDrawnVerify, 5, s_isDrawn);
@@ -60,17 +60,17 @@ EI_VERIFY(0x006BFB00, IsDrawnVerify, 5, s_isDrawn);
 // "culled", its quarters' (the pipeline's test is pure): the original, the five values put back,
 // ours; all five compared (a culled sector's quarters are the ones both runs started from).
 struct ClipVerdicts {
-    std::uint32_t sector;
+    int sector;
     int quarters[4];
 };
 
 ClipVerdicts ReadVerdicts(const SectorData* sector) {
-    return {sector->unknown_060,
+    return {sector->clipMode,
             {sector->quarterMode[0], sector->quarterMode[1], sector->quarterMode[2], sector->quarterMode[3]}};
 }
 
 void WriteVerdicts(SectorData* sector, const ClipVerdicts& verdicts) {
-    sector->unknown_060 = verdicts.sector;
+    sector->clipMode = verdicts.sector;
     for (int q = 0; q < 4; ++q) sector->quarterMode[q] = verdicts.quarters[q];
 }
 
@@ -98,15 +98,15 @@ EI_VERIFY(0x006BFB20, ClipTestVerify, 5, s_clipTest);
 void(__fastcall* s_findSeams)(SectorData*);
 
 void __fastcall FindSeamsVerify(SectorData* self) {
-    const int before174 = self->unknown_174, before178 = self->unknown_178;
+    const int before174 = self->seamBefore, before178 = self->seamAfter;
     s_findSeams(self);
-    const int expected174 = self->unknown_174, expected178 = self->unknown_178;
-    self->unknown_174 = before174;
-    self->unknown_178 = before178;
+    const int expected174 = self->seamBefore, expected178 = self->seamAfter;
+    self->seamBefore = before174;
+    self->seamAfter = before178;
     self->FindSeams();
-    ei::verify::Check("SectorData::FindSeams", true, expected174 == self->unknown_174 && expected178 == self->unknown_178,
-                      "sector %d,%d detail %d: %d %d / ours %d %d", self->sx, self->sy, self->unknown_170, expected174,
-                      expected178, self->unknown_174, self->unknown_178);
+    ei::verify::Check("SectorData::FindSeams", true, expected174 == self->seamBefore && expected178 == self->seamAfter,
+                      "sector %d,%d detail %d: %d %d / ours %d %d", self->sx, self->sy, self->detail, expected174,
+                      expected178, self->seamBefore, self->seamAfter);
 }
 EI_VERIFY(0x006BFB80, FindSeamsVerify, 9, s_findSeams);
 

@@ -19,14 +19,14 @@ namespace {
 // The renderer's line batch (0x20 bytes): positions in 64-byte blocks of four points (x4, y4, z4,
 // w4), the point count at +0x14, the colour at +0x18.
 struct LineBatch {
-    int unknown_00;           // -1
+    int spare00;              // -1 (LineBatch in renderer_lines.h)
     char* data;
     int size;
     int capacity;
     int growBy;
     int count;
     std::uint32_t colour;     // 0xFFFF0000
-    int unknown_1C;
+    int spare1C;
 };
 static_assert(sizeof(LineBatch) == 0x20);
 
@@ -68,12 +68,12 @@ void __fastcall DrawPartBounds(FigureMeshDrawer* node, void*, CSceneRenderer* re
 
 EI_REPLACE(0x005A7290, DrawPartBounds);
 
-// 005A75D0 (A-W14): the line batch's destructor: unknown_00 -1, the points' block freed, the array
+// 005A75D0 (A-W14): the line batch's destructor: spare00 -1, the points' block freed, the array
 // empty. Only the unwind funclet 00726C10 of the original DrawPartBounds calls it (the rewritten
 // one frees its batch itself).
 void __fastcall LineBatchDestruct(void* batch) {
     auto* self = static_cast<LineBatch*>(batch);
-    self->unknown_00 = -1;
+    self->spare00 = -1;
     if (self->data) {
         FreeBlock(self->data);
         self->data = nullptr;

@@ -63,7 +63,7 @@ std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(Roun
 
 void SectorData::ResetFields() {
     sx = sy = -1;
-    unknown_170 = unknown_178 = unknown_174 = 0;
+    detail = seamAfter = seamBefore = 0;
     hasWater = 0;
     hasWaterTiles = 0;
     data = nullptr;
@@ -72,9 +72,9 @@ void SectorData::ResetFields() {
     built = 0;
     lastUsed = 0;
     relightCountdown = 0;
-    unknown_060 = 2;
-    unknown_38C = 0;
-    unknown_390 = 0;
+    clipMode = 2;
+    spare38C = 0;
+    spare390 = 0;
     hasSpecular = 0;
 }
 

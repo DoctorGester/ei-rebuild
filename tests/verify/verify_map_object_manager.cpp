@@ -17,7 +17,7 @@
 //   DeltaField::Destruct (00510340): objects and arrows dropped.
 // - CObject3D: DeleteObject3D (00515D50): none known (map objects have their own slot 0).
 //   SetSpecific (005161A0): none known (its caller 00455BA0 is not reached by a rewritten
-//   path). SetPartFlags / ClearPartFlags / SetPartsUnknownD4 / D8 (00517910, 00517950, 00519500,
+//   path). SetPartFlags / ClearPartFlags / SetPartsFlatColour / D8 (00517910, 00517950, 00519500,
 //   00519530): the interface's model views; the client's new objects. SetAnimationState
 //   (005187D0): every object made. PlayAnimation / PlayAnimationSecond / AttachPartMesh /
 //   RestartPose (005187B0, 00518840, 00518820, 00518860): interface models, party units, arrows,
@@ -321,16 +321,16 @@ static void __fastcall ClearPartFlagsVerify(CObject3D* self, void*, std::uint32_
 EI_VERIFY(0x00517950, ClearPartFlagsVerify, 0, s_unused);
 
 static void __fastcall SetPartsD4Verify(CObject3D* self, void*, std::uint32_t value) {
-    self->SetPartsUnknownD4(value);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t v) { return part->unknown_0D4 == v; }, value);
-    ei::verify::Check("CObject3D::SetPartsUnknownD4", true, ok, "%X", value);
+    self->SetPartsFlatColour(value);
+    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t v) { return part->flatColour == v; }, value);
+    ei::verify::Check("CObject3D::SetPartsFlatColour", true, ok, "%X", value);
 }
 EI_VERIFY(0x00519500, SetPartsD4Verify, 0, s_unused);
 
 static void __fastcall SetPartsD8Verify(CObject3D* self, void*, std::uint32_t value) {
-    self->SetPartsUnknownD8(value);
-    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t v) { return part->unknown_0D8 == v; }, value);
-    ei::verify::Check("CObject3D::SetPartsUnknownD8", true, ok, "%X", value);
+    self->SetPartsFlatSpecular(value);
+    bool ok = EveryPart(self, [](const FigurePart* part, std::uint32_t v) { return part->flatSpecular == v; }, value);
+    ei::verify::Check("CObject3D::SetPartsFlatSpecular", true, ok, "%X", value);
 }
 EI_VERIFY(0x00519530, SetPartsD8Verify, 0, s_unused);
 

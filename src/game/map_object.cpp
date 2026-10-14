@@ -92,7 +92,7 @@ void RemoveOutdatedEffects(CMapObject* object, const MapEffect* effect) {
         if (e->type != effect->type || e->ticksLeft > effect->ticksLeft) continue;
         if (!(FloatBits(effect->value) >= FloatBits(e->value))) continue;   // FCOMPP; TEST AH,1
         if (e->ending != effect->ending) continue;
-        float difference = FloatBits(e->unknown_0C) - FloatBits(effect->unknown_0C);
+        float difference = FloatBits(e->strength) - FloatBits(effect->strength);
         float distance = difference < 0.0f ? -difference : difference;     // CRT fabs: exact
         if (!(static_cast<double>(distance) < kRebirthSameStrength)) continue;
         std::memmove(e, e + 1, (object->effectCount - i - 1) * sizeof(MapEffect));

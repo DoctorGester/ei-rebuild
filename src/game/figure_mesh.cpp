@@ -353,7 +353,7 @@ void CFigureMesh::LoadFig(char** cursor, float s, float t, float u) {
     FigHeader header;
     std::memcpy(&header, *cursor, sizeof(header));
     *cursor += sizeof(header);
-    unknown_158 = Read<std::uint32_t>(*cursor);
+    materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
     // 005A18E0 through its address (the verify build checks it there).
     reinterpret_cast<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
@@ -398,7 +398,7 @@ void CFigureMesh::LoadFigShared(char** cursor, float s, float t, float u) {
     FigHeader header;
     std::memcpy(&header, *cursor, sizeof(header));
     *cursor += sizeof(header);
-    unknown_158 = Read<std::uint32_t>(*cursor);
+    materialValue_ = Read<std::uint32_t>(*cursor);
     meshType_ = Read<std::uint32_t>(*cursor);
     reinterpret_cast<void(__fastcall*)(CFigureMesh*, void*, char**, float, float, float, std::uint32_t)>(0x005A18E0)(
         this, nullptr, cursor, s, t, u, header.magic);
@@ -453,7 +453,7 @@ int ReadCount(char** cursor) {
 // The part both old-format loaders share: header words, bounds, vertices and records (the
 // records' second colour array is set to opaque black).
 void LoadOldCommon(CFigureMesh* mesh, char** cursor, float s, float t, float u, bool shared) {
-    mesh->unknown_158 = Read<std::uint32_t>(*cursor);
+    mesh->materialValue_ = Read<std::uint32_t>(*cursor);
     mesh->meshType_ = Read<std::uint32_t>(*cursor);
     if (shared)
         MorphOldBounds(mesh->bounds_, reinterpret_cast<const float*>(*cursor), s, t, u, CornerKept, CornerPerOp);
