@@ -9,6 +9,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "party.h"
+#include "resource_local.h"   // LocalStream
 
 #include "ei/hook.h"
 
@@ -48,20 +49,6 @@ void AssignCounted(T*& slot, CRefObject* object) {
 }
 
 CRefObject* AsRefObject(void* object) { return static_cast<CRefObject*>(object); }
-
-// The memory stream the archive is read from or written to, built and destroyed inline.
-struct LocalStream {
-    LocalStream() { stream.Construct(); }
-    ~LocalStream() { stream.Destruct(); }
-    CMemoryStream stream;
-};
-
-// The archive, built and destroyed inline.
-struct LocalArchive {
-    LocalArchive() { archive.ConstructLocal(); }
-    ~LocalArchive() { archive.DestructLocal(); }
-    ChunkArchive archive;
-};
 
 } // namespace
 

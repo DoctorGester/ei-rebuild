@@ -58,6 +58,14 @@ inline void* const kTempGroupList = reinterpret_cast<void*>(0x0073D43C);
 inline void* const kTempObjectList = reinterpret_cast<void*>(0x0073D448);
 } // namespace scriptvtable
 
+// A CString returned by value into raw storage; destroyed at the end of the scope.
+struct TempString {
+    void* data;
+    mfc::CString& Get() { return *reinterpret_cast<mfc::CString*>(this); }
+    ~TempString() { Get().~CString(); }
+};
+static_assert(sizeof(TempString) == 4);
+
 // A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
 // deleted from the world stay allocated while referenced and have bit 0 of flags_ set.
 struct ScriptObjectRef {

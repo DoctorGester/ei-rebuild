@@ -76,10 +76,6 @@ constexpr std::uintptr_t kListKeys[6] = {
     0x00796730,   // "complete zones"
 };
 
-// A CString passed by value: copy-constructed into the argument slot, destroyed by the callee.
-struct StringArg {
-    char* data;
-};
 StringArg Copy(const char* text) {
     StringArg arg;
     new (&arg) mfc::CString(text);

@@ -138,14 +138,8 @@ void OpenBox(CInterface3D* ui, const char* title, const char* text, std::uint32_
     InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
 }
 
-// The archive and the file stream the address book is written with, built and torn down inline.
-struct LocalArchive {
-    LocalArchive() { archive.ConstructLocal(); }
-    ~LocalArchive() { archive.DestructLocal(); }
-    LocalArchive(const LocalArchive&) = delete;
-    LocalArchive& operator=(const LocalArchive&) = delete;
-    ChunkArchive archive;
-};
+// The file stream the address book is written with, built and torn down inline (the archive is
+// LocalArchive, chunk_archive.h).
 struct LocalFileStream {
     LocalFileStream() { stream.Construct(); }
     ~LocalFileStream() { stream.Destruct(); }

@@ -25,6 +25,14 @@ namespace mfc { class CString; }
 namespace console { class ConsoleWindow; }
 namespace ui_gdi { struct GameFont; }
 
+// A CString an item's or a spell's virtual method returns (by hidden pointer); released when it goes.
+struct ReturnedString {
+    char* data = nullptr;
+    mfc::CString* Slot() { return reinterpret_cast<mfc::CString*>(&data); }
+    ~ReturnedString() { Slot()->~CString(); }
+};
+static_assert(sizeof(ReturnedString) == 4);
+
 class CUiWindow;
 class CChatOverlay;
 struct UiInputSide;

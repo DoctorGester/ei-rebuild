@@ -21,7 +21,8 @@ struct LocalResource {
     alignas(void*) unsigned char storage[sizeof(CMappedResource)];
 };
 
-// The memory stream a file is copied into, built and destroyed as the loaders inline it.
+// The memory stream a file is copied into (or an archive is read from or written to), built and
+// destroyed as the loaders inline it.
 struct LocalStream {
     LocalStream() { stream.Construct(); }
     ~LocalStream() { stream.Destruct(); }
@@ -36,3 +37,4 @@ struct LocalStream {
     }
     CMemoryStream stream;
 };
+static_assert(sizeof(LocalStream) == sizeof(CMemoryStream) && sizeof(LocalResource) == sizeof(CMappedResource));

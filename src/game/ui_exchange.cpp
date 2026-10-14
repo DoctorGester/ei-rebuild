@@ -118,11 +118,6 @@ const char* GameText(std::uintptr_t address) { return reinterpret_cast<const cha
 
 void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
 
-// The children's vtable pairs (main, input).
-struct VtablePair {
-    void** main;
-    void** input;
-};
 VtablePair ItemPanelVtables() { return {Vtable(0x00741B58), Vtable(0x00741B24)}; }          // CUiItemPanel
 VtablePair InfoPanelVtables() { return {Vtable(0x007404DC), Vtable(0x007404A8)}; }          // CItemInfoPanel
 VtablePair ForwardingStripVtables() { return {Vtable(0x0074197C), Vtable(0x00741948)}; }

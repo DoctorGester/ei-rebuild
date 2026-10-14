@@ -46,12 +46,6 @@ void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { SpriteSetScale
 // 005E6FA0 (Rebirth-patched): places a sprite.
 void __fastcall SpritePlace(CEngineObject* a0, void*, float a2, float a3, float a4) { SpritePlaceOriginal((void*)a0, nullptr, a2, a3, a4); }
 
-// A CString an item's virtual method returns (by hidden pointer); released when it goes.
-struct ReturnedString {
-    char* data = nullptr;
-    mfc::CString* Slot() { return reinterpret_cast<mfc::CString*>(&data); }
-    ~ReturnedString() { Slot()->~CString(); }
-};
 // The item's slot 19 (the picture's name) and 20 (the model's name).
 void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
     using Fn = mfc::CString*(__thiscall*)(CEngineObject*, mfc::CString*);
