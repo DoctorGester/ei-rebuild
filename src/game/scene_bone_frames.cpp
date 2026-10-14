@@ -2,7 +2,7 @@
 // each frame and recursively for every child, children first): a bone's translation and rotation
 // keys of frame `frame` become relative to its parent's, its rest offset and rotation too (frame 0
 // only), and each rotation key is turned into an axis-angle step from the previous frame. Plain
-// float maths (rule 7). Names provisional; see docs/notes/objects.md ("Sixth round").
+// float maths (rule 7). Names provisional; see docs/notes/objects.md ("Rewritten").
 #include "figure.h"
 #include "maths.h"
 

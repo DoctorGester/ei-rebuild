@@ -2,7 +2,7 @@
 // the roll moves the creature a stage along: 1 no longer hostile to the tamer's side, 2 on the
 // tamer's side (its own side kept at +0x90C), 3 in the tamer's party with a "tamed" AI mode; a
 // failed attempt (or one on a creature with a player) undoes the taming when it was the tamer's
-// side doing it, and counts as an attack. See docs/notes/combat.md ("Fourth round").
+// side doing it, and counts as an attack. See docs/notes/combat.md ("Order lifecycle").
 #include "combat.h"
 #include "map_object.h"
 #include "unit_ai.h"

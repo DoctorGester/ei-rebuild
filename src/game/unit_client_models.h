@@ -3,7 +3,7 @@
 // How the client dresses a unit: the figure parts of the armour it wears and the composed skin
 // texture of party units. CUnitClientSpecific is the client-side controller of a party unit
 // (GetClassName "CUnitClientSpecific", class id 0x3D, vtable 0073ECD8); names provisional. See
-// docs/notes/units.md ("Fourth round").
+// docs/notes/units.md ("Creation, databases, save").
 
 #include "console.h"
 #include "engine_object.h"

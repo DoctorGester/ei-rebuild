@@ -4,7 +4,7 @@
 // 005087B0) and four CArrays: the figures (+0x530, CFigureMesh records, vtable 0073C108), the
 // meshes (+0x544, SceneMesh, 0073C0FC), the bone links (+0x558, a CArray each, 0073C0F0) and the
 // helpers (+0x56C, CMaterial, 0073C0E4). Every callee is reached through its original address.
-// See docs/notes/objects.md ("Sixth round").
+// See docs/notes/objects.md ("Rewritten").
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"

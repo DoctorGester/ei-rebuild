@@ -1,6 +1,6 @@
 // The multiplayer heroes' files (<folder>\<n>.mp): one party per file, saved (with its variables)
 // into a memory stream and written as a save file (magic 0x114). See party.h, ui_screens.h
-// (MpHeroRecord) and docs/notes/objects.md ("Party files").
+// (MpHeroRecord) and docs/notes/items_spells.md ("Party records and the party object").
 #include "party.h"
 
 #include "core_streams.h"

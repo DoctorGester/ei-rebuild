@@ -1,5 +1,5 @@
 // CUnitServer's Load and Save slots (vtable 0073EF38 slots 9 and 10). See combat.h and
-// docs/notes/combat.md ("Third round").
+// docs/notes/combat.md ("Rewritten").
 #include "combat.h"
 
 #include "map_object.h"

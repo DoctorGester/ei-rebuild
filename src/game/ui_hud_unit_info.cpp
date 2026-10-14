@@ -1,7 +1,7 @@
 // The battle HUD's unit info texts (00647040, thiscall on the info panel, RET 4): the lines drawn
 // for the unit under the cursor or selected (called by 006462A0). Each line is a label from the
 // panel's label table followed by values, drawn with the panel surface's text routine and moved
-// down 15 pixels. See docs/notes/ui.md ("Unit info texts").
+// down 15 pixels. See docs/notes/ui.md ("Battle HUD panels").
 #include "console.h"
 #include "ui.h"
 #include "unit.h"

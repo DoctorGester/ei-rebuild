@@ -1,5 +1,5 @@
 // The options window's settings and key bindings (00651350..006524A0) and its slider's layout
-// (0065B8B0). See ui.h (COptionsWindow, CUiSlider) and docs/notes/drafts/DR-H16.md.
+// (0065B8B0). See ui.h (COptionsWindow, CUiSlider) and docs/notes/ui.md ("Objectives, save/load, options").
 #include "ui.h"
 
 #include "item_db_text.h"

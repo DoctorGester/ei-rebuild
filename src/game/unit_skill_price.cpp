@@ -1,5 +1,5 @@
 // What learning a skill level costs (00528050; the interface's skill pages call it). See unit.h
-// (UnitStats::SkillPrice) and docs/notes/units.md ("Sixth round"). Plain C++ float maths (rule 7).
+// (UnitStats::SkillPrice) and docs/notes/units.md ("Statistics in play"). Plain C++ float maths (rule 7).
 #include "unit.h"
 #include "unit_db.h"
 

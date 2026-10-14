@@ -1,5 +1,5 @@
 // CPlayerClient's remaining message handlers and its slot 14 (A-H23). See player_client.h and
-// docs/notes/objects.md ("Client" handler table).
+// docs/notes/objects.md ("Players").
 #include "player_client.h"
 
 #include "camera.h"

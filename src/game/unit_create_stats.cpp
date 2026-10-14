@@ -1,6 +1,6 @@
 // A creature's starting vitals and statistics from its prototype records, the prototype applied
-// to a new map object, and the map object factory. See unit_create.h and docs/notes/units.md
-// ("Fourth round").
+// to a new map object, and the map object factory. See unit_create.h and docs/notes/units.md ("Creation,
+// databases, save").
 #include "unit_create.h"
 
 #include "item.h"

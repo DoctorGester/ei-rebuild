@@ -10,7 +10,7 @@
 //   subclasses' Save).
 // The record classes (vtables, kind at +0x48): the base 0073C5C4 (0); objects 0073C5F0 (1); flames
 // 0073C620 (6); magic traps 0073C650 (7); levers 0073C6B0 (8); units 0073C6E0 (5). Names are
-// provisional; see docs/notes/objects.md ("Sixth round").
+// provisional; see docs/notes/objects.md ("Rewritten").
 #include "chunk_stream.h"
 #include "maths.h"
 #include "lib/mfc.h"

@@ -1,5 +1,5 @@
 // A unit's size class, standing height and radius (00530570). See unit.h and docs/notes/units.md
-// ("Seventh round (U5)").
+// ("Creation, databases, save").
 #include "unit.h"
 
 #include "combat.h"

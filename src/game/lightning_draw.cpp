@@ -1,7 +1,7 @@
 // Drawing a lightning bolt (00467AD0, CLightning's renderer virtual; called by DrawAll) and its
 // glow (00467590): the segments as textured strips through the render device (slot 16), then a
 // glow of eight sprites (slot 17) at one or both ends, sized by the bolt's length and animated by
-// the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Sixth round").
+// the world's frame counter. Plain float maths (rule 7). See docs/notes/objects.md ("Rewritten").
 #include "lightning.h"
 
 #include "core_maths.h"

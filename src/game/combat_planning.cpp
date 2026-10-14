@@ -1,6 +1,6 @@
 // Combat, eighth part: planning an order's way (PlanOrder), the spot a use order goes to, the time
 // along a path until an action can be carried out, and a party unit's move. See combat.h,
-// combat_plan.h and docs/notes/combat.md ("Fourth round").
+// combat_plan.h and docs/notes/combat.md ("Order lifecycle").
 //
 // These build paths on the stack: an AIPath (0x88 bytes: the motion order, the step and cell lists
 // at +0x20 / +0x3C, a point array at +0x70) and the motion order a path turns into (0x3C bytes:

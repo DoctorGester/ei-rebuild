@@ -1,8 +1,8 @@
 #pragma once
 
 // Unit setup helpers around creation and loading: the unit prototype table's name index and the
-// server controller's statistics hand-over. Names provisional. See docs/notes/units.md
-// ("Fourth round").
+// server controller's statistics hand-over. Names provisional. See docs/notes/units.md ("Creation,
+// databases, save").
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
