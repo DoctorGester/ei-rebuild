@@ -486,11 +486,12 @@ done = "2026-10-14"
 id = "W2b"
 title = "Connect screen Create 0061B2C0: addon's ExtendedServerName sites"
 group = "widescreen"
-status = "queued"
+status = "running"
 size = 0.3
 model = "sonnet"
 files = ["src/game/ui_connect_screen.cpp", "config/rebirth_patches.csv"]
 note = "From W2a (2026-10-14): the connect list draw now reproduces ExtendedServerName, but Create 0061B2C0 still carries addon's sites (field sizes, 0061BB51 and neighbours) plus the 0061B5CE float. Same approach as W2a: read addon's live bytes, gate on Patch::ExtendedServerName, compare in ui_mp_host under Rebirth."
+started = "2026-10-15"
 
 [[ticket]]
 id = "W4a"
