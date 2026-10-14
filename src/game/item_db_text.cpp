@@ -1,7 +1,7 @@
 #include "item_db_text.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "resource.h"
 #include "spell.h"
 
 #include "lib/crt.h"
@@ -44,8 +44,8 @@ constexpr const char kLineEnd[] = "\r\n";
 // the archive writes the text's size to length_.
 const char* FindText(CTextManager* self, const char* key) {
     for (CTextManager::SourceNode* node = self->sources_.head->next; node != self->sources_.head; node = node->next) {
-        // CMappedResource vtable slot 5, GetFile(name, size): the file's data or null.
-        if (const char* text = ei::VCall<const char*>(node->data.source, 5, key, &self->length_)) return text;
+        // The file's data or null.
+        if (const char* text = static_cast<const char*>(node->data.source->GetFile(key, &self->length_))) return text;
     }
     return nullptr;
 }
@@ -85,7 +85,7 @@ void ReadItemText(CTextManager* self, const mfc::CString& key, mfc::CString* nam
 
 // Armor types 0-2 are worn on the upper body.
 bool IsUpperArmor(const char* armor) {
-    int type = Field<int>(armor, field::kItemType);
+    int type = reinterpret_cast<const ItemRecordHead*>(armor)->type;
     return type == 0 || type == 1 || type == 2;
 }
 
@@ -153,7 +153,8 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         KeyName(recordName, QuickItems().At(prototypeIndex, kQuickItemSize), 4);
         // A quick item whose prototype has no material (+0x10 "none") is a potion.
         char* prototype = item->GetPrototype();
-        if (prototype && gamecrt::mbsicmp(Field<const unsigned char*>(item->GetPrototype(), 0x10),
+        if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(
+                                              reinterpret_cast<const ItemRecordHead*>(item->GetPrototype())->materialClass)),
                                           reinterpret_cast<const unsigned char*>(kNoMaterial)) == 0) {
             ReadItemText(this, mfc::CString(kQuickItem) + recordName, name, description);
             kindKey = "item_potion";
@@ -163,7 +164,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         ReadItemText(this, mfc::CString(kQuickItem) + recordName + kSpace + materialName, name, description);
         // Only wands (category 5) get a kind; their name is followed by the spell's name.
         if (item->GetCategory() != 5) break;
-        if (auto* spell = static_cast<CSpell*>(item->spell_)) {
+        if (CSpell* spell = item->spell_) {
             mfc::CString spellName(kUnknown);
             bool found;
             {
@@ -176,12 +177,10 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         kindKey = "item_wand";
         break;
     }
-    case kItemQuest: {
-        // 0x3007 is loot in this code ("litem", the +0x4C kind of CItemLoot); item_db.h calls its
-        // table (007C8778) QuestItems.
+    case kItemLoot: {
         auto* loot = static_cast<CItemLoot*>(item);
         if (loot->kind_ == 0) {
-            KeyName(recordName, QuestItems().At(prototypeIndex, kQuestItemSize), 4);
+            KeyName(recordName, Loot().At(prototypeIndex, kLootSize), 4);
             ReadItemText(this, mfc::CString(kLootItem) + recordName, name, description);
             kindKey = "item_loot";
         } else if (loot->kind_ == 1) {
@@ -226,15 +225,15 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         break;
     }
     case kItemSpell: {
-        auto* spell = static_cast<CSpell*>(item->spell_);
+        CSpell* spell = item->spell_;
         if (!spell) break;
         ReadItemText(this, mfc::CString(kSpell) + StringAt(spell->GetPrototype(), 4), name, description);
         kindKey = "item_spell";
         break;
     }
-    case kItemLoot: {
+    case kItemQuest: {
         // 0x3009 is the quest item ("questitem"); its table (007C8758) is Loot in item_db.h.
-        KeyName(recordName, Loot().At(prototypeIndex, kLootSize), 4);
+        KeyName(recordName, QuestItems().At(prototypeIndex, kQuestItemSize), 4);
         ReadItemText(this, mfc::CString(kQuestItem) + recordName, name, description);
         kindKey = "item_quest";
         break;
@@ -251,9 +250,9 @@ BOOL CTextManager::FormatItemName(CItem* item, mfc::CString* out) {
     mfc::CString format;   // first the description, then the format text
     mfc::CString kind;
     if (!GetItemTexts(item, &name, &format, &kind)) return 0;
-    if (static_cast<int>(item->unknown_48) > 1) {
+    if (static_cast<int>(item->count_) > 1) {
         GetString("format_item2", &format);
-        out->Format(format, static_cast<const char*>(kind), static_cast<const char*>(name), item->unknown_48);
+        out->Format(format, static_cast<const char*>(kind), static_cast<const char*>(name), item->count_);
     } else {
         GetString("format_item1", &format);
         out->Format(format, static_cast<const char*>(kind), static_cast<const char*>(name));

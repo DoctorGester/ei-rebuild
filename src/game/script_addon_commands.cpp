@@ -259,7 +259,7 @@ bool GiveUnitWeapon(Call* call) {
         volatile float sum = prototype->combat[3] + weapon->defenceBonus;
         Store(&stats.defence, sum);
         float reach;
-        std::memcpy(&reach, &weapon->value8C, 4);
+        std::memcpy(&reach, &weapon->reach, 4);
         Store(&stats.reach, reach);
         sum = prototype->combat[1] + weapon->attackBonus;
         Store(&stats.attack, sum);

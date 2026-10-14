@@ -358,7 +358,7 @@ CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, i
     int whole = static_cast<std::uint8_t>(merge) != 0 && interface_->shiftDown_ != 0;
     if (limit > 0 && to->items_.size >= limit) {
         for (int i = 0; i < limit; ++i) {
-            if (!item->IsSameAsSlot(static_cast<CItem*>(to->items_.data[i]))) continue;
+            if (!item->IsSameAs(static_cast<CItem*>(to->items_.data[i]))) continue;
             CItem* moved = AddItemAt(to, item, whole, merge);
             RemoveItemAt(from, item, whole);
             return moved;

@@ -186,8 +186,8 @@ void DropLink(netlink::NetLink*& link) {
     if (old != nullptr) old->Release();
 }
 
-// The data word every item class keeps at +0x4C (CItemLoot::kind_ for loot).
-std::uint32_t ItemWord4C(CEngineObject* item) { return static_cast<CItemLoot*>(item)->kind_; }
+// The data word every item class keeps at +0x4C (a quest item's id).
+std::uint32_t ItemWord4C(CEngineObject* item) { return static_cast<CItemQuest*>(item)->questItemId_; }
 
 } // namespace
 
@@ -245,7 +245,7 @@ EI_REPLACE_METHOD(0x00665550, CPlayer::TakeAllItems);
 
 BOOL CPlayer::HasLoot(int kind) {
     for (auto* node = items_.head; node != nullptr; node = node->next)
-        if (node->data->type_ == kItemLoot && ItemWord4C(node->data) == static_cast<std::uint32_t>(kind)) return 1;
+        if (node->data->type_ == kItemQuest && ItemWord4C(node->data) == static_cast<std::uint32_t>(kind)) return 1;
     for (ObjectMap::Node* node = units_.First(); node != nullptr && node->value != nullptr; node = units_.After(node)) {
         auto* unit = static_cast<CUnit*>(node->value);
         for (int i = 0; i < unit->carriedCount; ++i)
@@ -275,7 +275,7 @@ BOOL TakeFirst(CPlayer* player, Match match) {
 
 BOOL CPlayer::TakeLoot(int kind) {
     return TakeFirst(this, [kind](CEngineObject* item) {
-        return item->type_ == kItemLoot && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
+        return item->type_ == kItemQuest && ItemWord4C(item) == static_cast<std::uint32_t>(kind);
     });
 }
 EI_REPLACE_METHOD(0x00665780, CPlayer::TakeLoot);

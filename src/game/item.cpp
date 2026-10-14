@@ -16,16 +16,6 @@ constexpr float kZero = 0.0f;   // 0073B858
 
 // FCOMP; TEST AH,0x40: ZF set when equal or unordered (a NaN compares "equal").
 bool EqualOrUnordered(float a, float b) { return !(a < b) && !(a > b); }
-
-// The records of the item database, typed (null when the index is out of range).
-WeaponRecord* WeaponAt(std::uint32_t index) { return reinterpret_cast<WeaponRecord*>(Weapons().At(index, kWeaponSize)); }
-ArmorRecord* ArmorAt(std::uint32_t index) { return reinterpret_cast<ArmorRecord*>(Armors().At(index, kArmorSize)); }
-QuickItemRecord* QuickItemAt(std::uint32_t index) {
-    return reinterpret_cast<QuickItemRecord*>(QuickItems().At(index, kQuickItemSize));
-}
-MaterialRecordHead* MaterialAt(std::uint32_t index) {
-    return reinterpret_cast<MaterialRecordHead*>(Materials().At(index, kMaterialSize));
-}
 } // namespace
 
 char* CItem::GetPrototype() {
@@ -34,8 +24,8 @@ char* CItem::GetPrototype() {
     case kItemWeapon: return Weapons().At(index, kWeaponSize);
     case kItemArmor: return Armors().At(index, kArmorSize);
     case kItemQuick: return QuickItems().At(index, kQuickItemSize);
-    case kItemQuest: return QuestItems().At(index, kQuestItemSize);
     case kItemLoot: return Loot().At(index, kLootSize);
+    case kItemQuest: return QuestItems().At(index, kQuestItemSize);
     default: return nullptr;
     }
 }
@@ -43,12 +33,12 @@ EI_REPLACE_METHOD(0x006A0110, CItem::GetPrototype);
 
 int CItem::GetCategory() {
     // Same lookup as GetPrototype, inlined in the original.
-    char* prototype = GetPrototype();
-    return prototype ? Field<int>(prototype, field::kItemCategory) : INT_MAX;
+    auto* prototype = reinterpret_cast<const ItemRecordHead*>(GetPrototype());
+    return prototype ? static_cast<int>(prototype->category) : INT_MAX;
 }
 EI_REPLACE_METHOD(0x006A4230, CItem::GetCategory);
 
-BOOL CItem::Recharge() {
+int CItem::RunTick() {
     if (EqualOrUnordered(charge_, chargeMax_)) return 0;
     if (!(chargeRate_ > kZero)) {
         std::memcpy(&charge_, &chargeMax_, sizeof(float));
@@ -58,7 +48,11 @@ BOOL CItem::Recharge() {
     if (charge_ >= chargeMax_) std::memcpy(&charge_, &chargeMax_, sizeof(float));
     return 1;
 }
-EI_REPLACE_METHOD(0x006A0070, CItem::Recharge);
+namespace {
+// Slot 6's entry point (rule 4).
+int __fastcall ItemRunTickHook(CItem* self) { return self->CItem::RunTick(); }
+} // namespace
+EI_REPLACE(0x006A0070, ItemRunTickHook);
 
 int CItemWeapon::GetType() {
     return WeaponAt(PrototypeIndex(unknown_18))->type;
@@ -89,15 +83,20 @@ double CItemWeapon::RollDamage() {
 }
 EI_REPLACE_METHOD(0x006A2DE0, CItemWeapon::RollDamage);
 
-BOOL CItemWeapon::IsSameAs(CItemWeapon* other) {
-    if (!CItem::IsSameAs(other)) return 0;
+BOOL CItemWeapon::IsSameAs(CItem* item) {
+    if (!CItem::IsSameAs(item)) return 0;
+    auto* other = static_cast<CItemWeapon*>(item);
     if (other->unknown_4C != unknown_4C) return 0;
     if (!EqualOrUnordered(other->damage_, damage_)) return 0;
     if (!EqualOrUnordered(other->damageSpread_, damageSpread_)) return 0;
-    if (!EqualOrUnordered(other->unknown_58, unknown_58)) return 0;
+    if (!EqualOrUnordered(other->reach_, reach_)) return 0;
     return 1;
 }
-EI_REPLACE_METHOD(0x006A06C0, CItemWeapon::IsSameAs);
+namespace {
+// Slot 14's entry point (rule 4).
+BOOL __fastcall WeaponIsSameAsHook(CItemWeapon* self, void*, CItem* other) { return self->CItemWeapon::IsSameAs(other); }
+} // namespace
+EI_REPLACE(0x006A06C0, WeaponIsSameAsHook);
 
 int CItemArmor::GetType() {
     return ArmorAt(PrototypeIndex(unknown_18))->type;
@@ -113,7 +112,7 @@ EI_REPLACE_METHOD(0x006A31A0, CItemArmor::GetTypeGroup);
 float CItemLoot::GetPrice() {
     switch (kind_) {
     case 0: return price_;
-    case 1: return MaterialAt(index_)->quality;
+    case 1: return MaterialAt(index_)->unitPrice;
     case 2: break;
     default: return -1.0f;   // 0073B854
     }
@@ -121,16 +120,20 @@ float CItemLoot::GetPrice() {
     case 0: return WeaponAt(index_)->price;
     case 1: return ArmorAt(index_)->price;
     case 2: return QuickItemAt(index_)->price;
-    case 3: return Field<float>(Spells().At(index_, kSpellSize), field::kSpellPrice);
-    case 4: return Field<float>(SpellModifiers().At(index_, kSpellModifierSize), field::kModifierPrice);
+    case 3: return SpellAt(index_)->price;
+    case 4: return SpellModifierAt(index_)->price;
     default: return -1.0f;
     }
 }
-EI_REPLACE_METHOD(0x006A5470, CItemLoot::GetPrice);
+namespace {
+// Slot 16's entry point (rule 4).
+float __fastcall LootGetPriceHook(CItemLoot* self) { return self->CItemLoot::GetPrice(); }
+} // namespace
+EI_REPLACE(0x006A5470, LootGetPriceHook);
 
 namespace {
 WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }
-char* MaterialOf(std::uint32_t packedId) { return Materials().At(MaterialIndex(packedId), kMaterialSize); }
+MaterialRecordHead* MaterialOf(std::uint32_t packedId) { return MaterialAt(MaterialIndex(packedId)); }
 } // namespace
 
 int __fastcall WeaponType(std::uint32_t packedId) {
@@ -140,20 +143,19 @@ EI_REPLACE(0x006A2B80, WeaponType);
 
 float __fastcall WeaponMinDamage(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
-    return weapon->damage * Field<float>(MaterialOf(packedId), field::kMaterialDamage);
+    return weapon->damage * MaterialOf(packedId)->damageFactor;
 }
 EI_REPLACE(0x006A2A50, WeaponMinDamage);
 
 float __fastcall WeaponMaxDamage(std::uint32_t packedId) {
     WeaponRecord* weapon = WeaponOf(packedId);
-    return (weapon->damageSpread + weapon->damage) *
-           Field<float>(MaterialOf(packedId), field::kMaterialDamage);
+    return (weapon->damageSpread + weapon->damage) * MaterialOf(packedId)->damageFactor;
 }
 EI_REPLACE(0x006A2AE0, WeaponMaxDamage);
 
 float __fastcall WeaponAttack(std::uint32_t packedId) {
-    char* weapon = reinterpret_cast<char*>(WeaponOf(packedId));
-    return Field<float>(weapon, field::kWeaponAttack) * Field<float>(MaterialOf(packedId), field::kMaterialAttack);
+    WeaponRecord* weapon = WeaponOf(packedId);
+    return weapon->value38 * MaterialOf(packedId)->factor38;
 }
 EI_REPLACE(0x006A2BD0, WeaponAttack);
 
@@ -178,7 +180,7 @@ float __fastcall WeaponStat88(std::uint32_t packedId) {
 EI_REPLACE(0x006A2D90, WeaponStat88);
 
 int __fastcall ArmorFieldB8(std::uint32_t index) {
-    char* armor = Armors().At(index, kArmorSize);
-    return armor ? Field<int>(armor, field::kArmorB8) : 0;
+    ArmorRecord* armor = ArmorAt(index);
+    return armor ? static_cast<int>(armor->layer) : 0;
 }
 EI_REPLACE(0x006A3200, ArmorFieldB8);

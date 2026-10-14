@@ -20,14 +20,16 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, AsCString(&key));
     ar->CStringField(1, AsCString(&soundName));
     ar->CStringField(2, AsCString(&name));
-    ar->Field(3, &unknown_0C, 4);
-    ar->Field(4, &quality, 4);
-    ar->Field(5, &unknown_14, 4);
+    ar->Field(3, &number, 4);
+    ar->Field(4, &unitPrice, 4);
+    ar->Field(5, &factor38, 4);
     ar->Field(6, &magicPower, 4);
     ar->Field(7, &magicLevel, 4);
-    for (int i = 0; i < 3; ++i) ar->Field(8 + i, &unknown_20[i], 4);
-    ar->Field(11, unknown_2C, sizeof(unknown_2C));
-    ar->Field(12, &unknown_48, 4);
+    ar->Field(8, &conditionFactor, 4);
+    ar->Field(9, &unknown_24, 4);
+    ar->Field(10, &damageFactor, 4);
+    ar->Field(11, absorbFactors, sizeof(absorbFactors));
+    ar->Field(12, &armourFlags, 4);
     ar->Field(13, &unknown_4C, 4);
 }
 EI_REPLACE_METHOD(0x0069F620, MaterialRecordHead::Serialize);
@@ -36,7 +38,7 @@ void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->CStringField(0, &text04);
     ar->CStringField(1, &text08);
     ar->Field(2, &type, 4);
-    ar->CStringField(3, &text10);
+    ar->CStringField(3, &materialClass);
     ar->Field(4, &unknown_14, 4);
     ar->Field(5, &number, 4);
     ar->Field(6, &variant, 4);
@@ -44,9 +46,9 @@ void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->Field(8, &value38, 4);
     ar->Field(9, &value3C, 4);
     ar->Field(10, &charge, 4);
-    ar->Field(11, &value44, 4);
-    ar->Field(12, &value48, 4);
-    ar->Field(13, &unknown_4C, 4);
+    ar->Field(11, &magicLevel, 4);
+    ar->Field(12, &condition, 4);
+    ar->Field(13, &materialUnits, 4);
     ar->Field(14, &unknown_64, 4);
     ar->Field(15, &unknown_68, 1);
 }
@@ -56,7 +58,7 @@ void WeaponRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
     ar->Field(0x15, &category, 4);
     ar->Field(0x16, &unknown_70[0], 8);
-    ar->Field(0x17, &value8C, 4);
+    ar->Field(0x17, &reach, 4);
     ar->Field(0x18, &damage, 4);
     ar->Field(0x19, &damageSpread, 4);
     ar->Field(0x1A, damageTypes, sizeof(damageTypes));
@@ -69,8 +71,8 @@ EI_REPLACE_METHOD(0x0069F800, WeaponRecord::Serialize);
 
 void ArmorRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
-    ar->Field(0x15, &category, 0x24);           // +0x6C..+0x8F: the category, absorbFirst and a dword
-    ar->Field(0x16, &unknown_8C[4], 0x24);      // +0x90..+0xB3: a dword, absorbOthers and a dword
+    ar->Field(0x15, &category, 0x24);           // +0x6C..+0x8F: the factor (category), absorbFirst and the flags
+    ar->Field(0x16, &othersFactor, 0x24);       // +0x90..+0xB3: the factor, absorbOthers and the flags
     ar->Field(0x17, &showsWounds, 1);
     ar->Field(0x18, &layer, 4);
     ar->Field(0x19, &unknown_BC[0], 3);

@@ -208,7 +208,7 @@ CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool ref
         }
     }
     record->itemId = static_cast<std::uint32_t>(itemRecord->id_);
-    RefPtrAssign(&item->unknown_1C, nullptr, record);
+    RefPtrAssign(&item->link_, nullptr, record);
     return item;
 }
 
@@ -317,7 +317,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             UnitEquipArmourOriginal(unit, nullptr, MakeItem(this, record->armor[n], true));
         for (int n = 0; n < static_cast<int>(record->quickItemCount); ++n) {
             auto* item = static_cast<CItem*>(MakeItem(this, record->quickItems[n], true));
-            item->unknown_48 = static_cast<CItem*>(record->quickItems[n])->unknown_48;
+            item->count_ = static_cast<CItem*>(record->quickItems[n])->count_;
             std::memcpy(&item->charge_, &item->chargeMax_, 4);
             UnitAddQuickItemOriginal(unit, nullptr, item);
         }

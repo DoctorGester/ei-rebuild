@@ -58,7 +58,7 @@ void CopyList(AlignedPtrArray& list, const AlignedPtrArray& source, CParty* part
         auto* item = static_cast<CItem*>(source.data[i]);
         list.data[i] = party->CopyItem(item);
         auto* copy = static_cast<CItem*>(list.data[i]);
-        copy->unknown_48 = item->unknown_48;
+        copy->count_ = item->count_;
         ++copy->refCount_;
     }
 }

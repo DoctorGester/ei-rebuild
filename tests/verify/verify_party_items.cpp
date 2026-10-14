@@ -44,14 +44,14 @@ bool Removed(const std::vector<void*>& before, void** data, int count, void* rem
 // The values CopyTo gives a target.
 bool SameValues(const CItem* a, const CItem* b) {
     return a->type_ == b->type_ && a->unknown_18 == b->unknown_18 &&
-           std::memcmp(&a->unknown_20, &b->unknown_20, offsetof(CItem, spell_) - offsetof(CItem, unknown_20)) == 0;
+           std::memcmp(&a->condition_, &b->condition_, offsetof(CItem, spell_) - offsetof(CItem, condition_)) == 0;
 }
 } // namespace
 
 // 0069FF70 (stolen 0): a null result, or a new item of the same kind and values, counted once.
 static CItem* __fastcall CloneVerify(CItem* self, void*, CSpellManager* spells) {
     CItem* copy = self->Clone(spells);
-    bool ok = !copy || (copy != self && SameValues(copy, self) && copy->unknown_48 == 1 &&
+    bool ok = !copy || (copy != self && SameValues(copy, self) && copy->count_ == 1 &&
                         (copy->spell_ != nullptr) == (self->spell_ != nullptr));
     ei::verify::Check("CItem::Clone", true, ok, "kind %X: copy %p", self->type_, copy);
     return copy;
@@ -61,10 +61,10 @@ EI_VERIFY(0x0069FF70, CloneVerify, 0, s_unused);
 // 0069FFC0 (stolen 0): 0 for another kind (target untouched), else the target has the values.
 static BOOL __fastcall CopyToVerify(CItem* self, void*, CItem* target, CSpellManager* spells) {
     int targetKind = target->type_;
-    BOOL result = self->CopyTo(target, spells);
+    BOOL result = self->CItem::CopyTo(target, spells);
     bool ok = targetKind != self->type_
                   ? result == 0
-                  : result == 1 && SameValues(target, self) && target->unknown_48 == 1 &&
+                  : result == 1 && SameValues(target, self) && target->count_ == 1 &&
                         (target->spell_ != nullptr) == (self->spell_ != nullptr);
     ei::verify::Check("CItem::CopyTo", true, ok, "kind %X -> %X: %d", self->type_, targetKind, result);
     return result;
@@ -75,7 +75,7 @@ EI_VERIFY(0x0069FFC0, CopyToVerify, 0, s_unused);
 // new copy is appended with the count.
 static CItem* __fastcall AddItemVerify(CParty* self, void*, CItem* item, int keepCount, int merge) {
     std::vector<void*> before = Snapshot(self->items_.data, self->items_.size);
-    int count = item && (keepCount & 0xFF) ? static_cast<int>(item->unknown_48) : 1;
+    int count = item && (keepCount & 0xFF) ? static_cast<int>(item->count_) : 1;
     CItem* result = self->AddItem(item, keepCount, merge);
     bool ok;
     if (!item) {
@@ -86,7 +86,7 @@ static CItem* __fastcall AddItemVerify(CParty* self, void*, CItem* item, int kee
         ok = (merge & 0xFF) && listed && std::memcmp(before.data(), self->items_.data, before.size() * sizeof(void*)) == 0;
     } else {
         ok = result && Appended(before, self->items_.data, self->items_.size, result) &&
-             static_cast<int>(result->unknown_48) == count;
+             static_cast<int>(result->count_) == count;
     }
     ei::verify::Check("CParty::AddItem", true, ok, "item %p keep %d merge %d: %p, %d -> %d items", item, keepCount, merge,
                       result, static_cast<int>(before.size()), self->items_.size);

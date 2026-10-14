@@ -31,7 +31,7 @@ std::uint64_t HeadDigest(const ItemRecordHead* r) {
     std::uint64_t d = kSeed;
     MixText(d, r->text04);
     MixText(d, r->text08);
-    MixText(d, r->text10);
+    MixText(d, r->materialClass);
     Mix(d, &r->type, 4);
     Mix(d, &r->unknown_14, 12);
     Mix(d, &r->price, offsetof(ItemRecordHead, list50) - offsetof(ItemRecordHead, price));
@@ -74,7 +74,7 @@ std::uint64_t Digest(const MaterialRecordHead* r) {
     MixText(d, r->key);
     MixText(d, r->soundName);
     MixText(d, r->name);
-    Mix(d, &r->unknown_0C, sizeof(MaterialRecordHead) - offsetof(MaterialRecordHead, unknown_0C));
+    Mix(d, &r->number, sizeof(MaterialRecordHead) - offsetof(MaterialRecordHead, number));
     return d;
 }
 

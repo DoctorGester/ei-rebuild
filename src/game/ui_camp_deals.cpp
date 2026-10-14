@@ -54,7 +54,7 @@ int ItemCount(const CParty* party) { return party->items_.size; }
 std::uint32_t PrototypeIndex(const CEngineObject* object) { return object->unknown_18 >> 16; }
 // An item record (+0x1C) marked as made by a constructor (+0x10).
 bool MadeByConstructor(const CItem* item) {
-    auto* record = reinterpret_cast<const std::uint8_t*>(item->unknown_1C);
+    auto* record = reinterpret_cast<const std::uint8_t*>(item->link_);
     return record && record[0x10];
 }
 
@@ -166,7 +166,7 @@ bool CCampPages::DeconstructItem() {
         AddNamed(results, instruction, PrototypeIndex(copy), true);
     // A material per one the prototype needs; a material index out of range reads its key through
     // null, as in the original.
-    for (std::uint32_t i = 0; i < reinterpret_cast<const itemdb::ItemRecordHead*>(copy->GetPrototype())->unknown_4C; ++i) {
+    for (std::uint32_t i = 0; i < reinterpret_cast<const itemdb::ItemRecordHead*>(copy->GetPrototype())->materialUnits; ++i) {
         auto* material = reinterpret_cast<const itemdb::MaterialRecordHead*>(
             itemdb::Materials().At(MaterialIndex(copy->unknown_18), itemdb::kMaterialSize));
         // The original builds CString("material") + '.' + key (operator+ twice); the text is the same.

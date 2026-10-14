@@ -155,13 +155,13 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x006FE11F: 4 files, 4 sites, signatures differ
 - `src/game/ini_file.cpp:138`: `void TextOps::TrimLeft()`
-- `src/game/item_constructor.cpp:448`: `void ItemText::TrimSpaceRight()`
+- `src/game/item_constructor.cpp:431`: `void ItemText::TrimSpaceRight()`
 - `src/game/originals_library.h:196`: `void __fastcall CStringTrimRightOriginal(void* /*string*/)`
 - `src/game/spell_text.cpp:57`: `void TextOps::TrimLeft()`
 
 ### 0x006FE216: 4 files, 4 sites, signatures differ
 - `src/game/ini_file.cpp:137`: `void TextOps::TrimRight()`
-- `src/game/item_constructor.cpp:447`: `void ItemText::TrimSpaceLeft()`
+- `src/game/item_constructor.cpp:430`: `void ItemText::TrimSpaceLeft()`
 - `src/game/originals_library.h:191`: `void __fastcall CStringTrimLeftOriginal(void* /*string*/)`
 - `src/game/spell_text.cpp:56`: `void TextOps::TrimRight()`
 

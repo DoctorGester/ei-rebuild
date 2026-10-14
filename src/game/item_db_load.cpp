@@ -1,5 +1,5 @@
-// The item database's name-indexed tables read from an archive stream: quick items, loot and
-// quest items (006A6E50 / 006A7110 / 006A73B0, from the database's load 006A67A0). See item_db.h
+// The item database's name-indexed tables read from an archive stream: quick items, quest items and
+// loot (006A6E50 / 006A7110 / 006A73B0, from the database's load 006A67A0). See item_db.h
 // (itemdb::IndexedRecordTable) and docs/notes/items_spells.md (A-H17).
 #include "item_db.h"
 
@@ -22,7 +22,8 @@ using FindOrInsertFn = void*(__fastcall*)(void* index, void*, const void* pair);
 using SerializeFn = void(__fastcall*)(ChunkArchive*, void*, int, void*, void*);
 
 // The vector serialisers (rewritten below, A-H18) through their addresses, so that their verify
-// wrappers run.
+// wrappers run. The forwarders here keep their first names, in which "Loot" is the quest item
+// table (0x7C records) and "QuestItem" the loot table (0x78).
 __declspec(naked) void __fastcall SerializeQuickItemsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006A7C20)
 __declspec(naked) void __fastcall SerializeLootAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006A7D20)
 __declspec(naked) void __fastcall SerializeQuestItemsAt(ChunkArchive*, void*, int, void*, void*) EI_ORIGINAL(0x006A7E10)
@@ -48,11 +49,11 @@ namespace itemdb {
 void IndexedRecordTable::LoadQuickItems(CStream* source, int field) {
     LoadIndexed(this, source, field, kQuickItemSize, SerializeQuickItemsAt, &QuickItemIndexInsertOriginal);
 }
-void IndexedRecordTable::LoadLoot(CStream* source, int field) {
-    LoadIndexed(this, source, field, kLootSize, SerializeLootAt, &LootIndexInsertOriginal);
-}
 void IndexedRecordTable::LoadQuestItems(CStream* source, int field) {
-    LoadIndexed(this, source, field, kQuestItemSize, SerializeQuestItemsAt, &QuestItemIndexInsertOriginal);
+    LoadIndexed(this, source, field, kQuestItemSize, SerializeLootAt, &LootIndexInsertOriginal);
+}
+void IndexedRecordTable::LoadLoot(CStream* source, int field) {
+    LoadIndexed(this, source, field, kLootSize, SerializeQuestItemsAt, &QuestItemIndexInsertOriginal);
 }
 
 } // namespace itemdb
@@ -123,11 +124,11 @@ void ChunkArchive::SerializeQuickItems(int id, void* records, void*) {
                          QuickItemDestroy, QuickItemsResize, QuickItemSerialize);
 }
 void ChunkArchive::SerializeLoot(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kLootSize, LootDestroy,
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kQuestItemSize, LootDestroy,
                          LootResize, LootSerialize);
 }
 void ChunkArchive::SerializeQuestItems(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kQuestItemSize,
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kLootSize,
                          QuestItemDestroy, QuestItemsResize, QuestItemSerialize);
 }
 EI_REPLACE_METHOD(0x006A7C20, ChunkArchive::SerializeQuickItems);
@@ -151,8 +152,8 @@ EI_REPLACE_METHOD(0x006A7A30, ChunkArchive::SerializeWeapons);
 EI_REPLACE_METHOD(0x006A7B30, ChunkArchive::SerializeArmors);
 
 EI_REPLACE_METHOD(0x006A6E50, itemdb::IndexedRecordTable::LoadQuickItems);
-EI_REPLACE_METHOD(0x006A7110, itemdb::IndexedRecordTable::LoadLoot);
-EI_REPLACE_METHOD(0x006A73B0, itemdb::IndexedRecordTable::LoadQuestItems);
+EI_REPLACE_METHOD(0x006A7110, itemdb::IndexedRecordTable::LoadQuestItems);
+EI_REPLACE_METHOD(0x006A73B0, itemdb::IndexedRecordTable::LoadLoot);
 
 // --- A-H21: the spell database's vectors and records ---------------------------------------------
 
@@ -207,7 +208,7 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);
     ar->CStringField(1, &code);
     ar->CStringField(2, &text08);
-    ar->Field(3, &unknown_0C, 4);
+    ar->Field(3, &price, 4);
     ar->Field(4, &unknown_10, 4);
     ar->Field(5, &mana, 4);
     for (int i = 0; i < 9; ++i) ar->Field(6 + i, &unknown_1C[i], 4);
@@ -226,7 +227,7 @@ EI_REPLACE_METHOD(0x00683B80, itemdb::SpellRecord::Serialize);
 void itemdb::SpellModifierRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(0, &name);
     ar->Field(1, &code[0], 4);
-    ar->Field(2, &code[4], 4);
+    ar->Field(2, &price, 4);
     ar->Field(3, &kind, 4);
     ar->Field(4, &mana, 4);
     ar->Field(5, &strength, 4);
@@ -321,8 +322,8 @@ void DestroyTable(itemdb::IndexedRecordTable& table, int size, IndexFn clear, In
 } // namespace
 
 void itemdb::ItemDatabase::DestructBody() {
-    DestroyTable(questItems, kQuestItemSize, QuestItemIndexClear, QuestItemBucketsDestroy, QuestItemDestroy);
-    DestroyTable(loot, kLootSize, LootIndexClear, LootBucketsDestroy, LootDestroy);
+    DestroyTable(loot, kLootSize, QuestItemIndexClear, QuestItemBucketsDestroy, QuestItemDestroy);
+    DestroyTable(questItems, kQuestItemSize, LootIndexClear, LootBucketsDestroy, LootDestroy);
     DestroyTable(quickItems, kQuickItemSize, QuickItemIndexClear, QuickItemBucketsDestroy, QuickItemDestroy);
     DestroyTable(armors, kArmorSize, ArmorIndexClear, ArmorBucketsDestroy, ArmorDestroy);
     DestroyTable(weapons, kWeaponSize, WeaponIndexClear, WeaponBucketsDestroy, WeaponDestroy);

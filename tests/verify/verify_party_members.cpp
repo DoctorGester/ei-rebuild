@@ -27,7 +27,7 @@ bool CopiedList(const AlignedPtrArray& list, const AlignedPtrArray& source) {
     for (int i = 0; i < list.size; ++i) {
         auto* copy = static_cast<const CItem*>(list.data[i]);
         auto* item = static_cast<const CItem*>(source.data[i]);
-        if (!copy || copy == item || copy->type_ != item->type_ || copy->unknown_48 != item->unknown_48) return false;
+        if (!copy || copy == item || copy->type_ != item->type_ || copy->count_ != item->count_) return false;
     }
     return true;
 }

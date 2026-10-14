@@ -63,7 +63,7 @@ void RemoveEntry(CEngineObject**& data, CItem* entry) {
 
 CItem* CItem::Clone(CSpellManager* spells) {
     auto* copy = static_cast<CItem*>(owner_->CreateObject(type_, -1));
-    if (CopyToSlot(copy, spells)) return copy;
+    if (CopyTo(copy, spells)) return copy;
     ++copy->refCount_;
     copy->Release();
     return nullptr;
@@ -75,20 +75,19 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
     target->Destroy();
     target->unknown_18 = unknown_18;
     // +0x20..+0x40 copied as dwords.
-    std::memcpy(&target->unknown_20, &unknown_20, offsetof(CItem, spell_) - offsetof(CItem, unknown_20));
-    auto* previous = static_cast<CEngineObject*>(target->spell_);
+    std::memcpy(&target->condition_, &condition_, offsetof(CItem, spell_) - offsetof(CItem, condition_));
+    CSpell* previous = target->spell_;
     if (spell_) {
-        CSpell* spell = static_cast<CSpell*>(spell_)->Clone(spells);
+        CSpell* spell = spell_->Clone(spells);
         target->spell_ = spell;
         if (spell) ++spell->refCount_;
     } else {
         target->spell_ = nullptr;
     }
     if (previous) previous->Release();
-    target->unknown_48 = 1;
+    target->count_ = 1;
     return 1;
 }
-EI_REPLACE_METHOD(0x0069FFC0, CItem::CopyTo);
 
 __declspec(naked) BOOL CItem::CallCopyTo(CItem*, CSpellManager*) EI_ORIGINAL(0x0069FFC0)
 
@@ -99,7 +98,6 @@ BOOL CItemWeapon::CopyTo(CItem* target, CSpellManager* spells) {
     std::memcpy(&weapon->unknown_4C, &unknown_4C, sizeof(CItemWeapon) - offsetof(CItemWeapon, unknown_4C));
     return 1;
 }
-EI_REPLACE_METHOD(0x006A0730, CItemWeapon::CopyTo);
 
 BOOL CItemArmor::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
@@ -109,21 +107,18 @@ BOOL CItemArmor::CopyTo(CItem* target, CSpellManager* spells) {
     armor->layerMask_[1] = layerMask_[1];
     return 1;
 }
-EI_REPLACE_METHOD(0x006A3140, CItemArmor::CopyTo);
 
 BOOL CItemQuick::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
     static_cast<CItemQuick*>(target)->unknown_4C = unknown_4C;
     return 1;
 }
-EI_REPLACE_METHOD(0x006A3C50, CItemQuick::CopyTo);
 
 BOOL CItemQuest::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
-    static_cast<CItemQuest*>(target)->unknown_4C = unknown_4C;
+    static_cast<CItemQuest*>(target)->questItemId_ = questItemId_;
     return 1;
 }
-EI_REPLACE_METHOD(0x006A4540, CItemQuest::CopyTo);
 
 BOOL CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
@@ -133,38 +128,68 @@ BOOL CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
     loot->index_ = index_;
     return 1;
 }
-EI_REPLACE_METHOD(0x006A4B50, CItemLoot::CopyTo);
 
 BOOL CItemSpell::CopyTo(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
     static_cast<CItemSpell*>(target)->unknown_4C = unknown_4C;
     return 1;
 }
-EI_REPLACE_METHOD(0x006A57F0, CItemSpell::CopyTo);
+
+namespace {
+// Slot 15's entry points (rule 4).
+BOOL __fastcall ItemCopyToHook(CItem* self, void*, CItem* target, CSpellManager* spells) {
+    return self->CItem::CopyTo(target, spells);
+}
+BOOL __fastcall WeaponCopyToHook(CItemWeapon* self, void*, CItem* target, CSpellManager* spells) {
+    return self->CItemWeapon::CopyTo(target, spells);
+}
+BOOL __fastcall ArmorCopyToHook(CItemArmor* self, void*, CItem* target, CSpellManager* spells) {
+    return self->CItemArmor::CopyTo(target, spells);
+}
+BOOL __fastcall QuickCopyToHook(CItemQuick* self, void*, CItem* target, CSpellManager* spells) {
+    return self->CItemQuick::CopyTo(target, spells);
+}
+BOOL __fastcall QuestCopyToHook(CItemQuest* self, void*, CItem* target, CSpellManager* spells) {
+    return self->CItemQuest::CopyTo(target, spells);
+}
+BOOL __fastcall LootCopyToHook(CItemLoot* self, void*, CItem* target, CSpellManager* spells) {
+    return self->CItemLoot::CopyTo(target, spells);
+}
+BOOL __fastcall SpellCopyToHook(CItemSpell* self, void*, CItem* target, CSpellManager* spells) {
+    return self->CItemSpell::CopyTo(target, spells);
+}
+} // namespace
+EI_REPLACE(0x0069FFC0, ItemCopyToHook);
+EI_REPLACE(0x006A0730, WeaponCopyToHook);
+EI_REPLACE(0x006A3140, ArmorCopyToHook);
+EI_REPLACE(0x006A3C50, QuickCopyToHook);
+EI_REPLACE(0x006A4540, QuestCopyToHook);
+EI_REPLACE(0x006A4B50, LootCopyToHook);
+EI_REPLACE(0x006A57F0, SpellCopyToHook);
 
 // --- The party's items --------------------------------------------------------------------------
 
 CItem* CParty::MakeCopyOf(CItem* item) {
     std::uint32_t packed = item->unknown_18;
     CItem* copy = static_cast<CItemManager*>(ItemManager())->MakeItem(item->type_, packed >> 16, packed & 0xFFFF, -1);
-    item->CopyToSlot(copy, SpellManager());
+    item->CopyTo(copy, SpellManager());
     return copy;
 }
 EI_REPLACE_METHOD(0x0055E940, CParty::MakeCopyOf);
 
 CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     if (!item) return nullptr;
-    int count = ByteFlag(keepCount) ? static_cast<int>(item->unknown_48) : 1;
+    int count = ByteFlag(keepCount) ? static_cast<int>(item->count_) : 1;
     if (ByteFlag(merge)) {
         for (int i = 0; i < items_.size; ++i) {
             auto* existing = static_cast<CItem*>(items_.data[i]);
-            if (!existing->IsSameAsSlot(item)) continue;
-            existing->unknown_48 += static_cast<std::uint32_t>(count);
+            if (!existing->IsSameAs(item)) continue;
+            existing->count_ += static_cast<std::uint32_t>(count);
             return existing;
         }
     }
     CItem* copy = CopyItem(item);
-    copy->unknown_48 = static_cast<std::uint32_t>(count);
+    copy->count_ = static_cast<std::uint32_t>(count);
     Append(items_, copy);
     ++copy->refCount_;
     return copy;
@@ -175,8 +200,8 @@ CItem* CParty::RemoveItem(CItem* item, int all) {
     for (int i = 0; i < items_.size; ++i) {
         if (items_.data[i] != item) continue;
         auto* entry = static_cast<CItem*>(items_.data[i]);
-        if (static_cast<int>(entry->unknown_48) > 1 && !ByteFlag(all)) {
-            --entry->unknown_48;
+        if (static_cast<int>(entry->count_) > 1 && !ByteFlag(all)) {
+            --entry->count_;
             return entry;
         }
         entry->Release();

@@ -118,7 +118,7 @@ BOOL CRepairGrid::Draw(int pass) {
         ItemCell cell{item, static_cast<float>(x) + 250.0f, static_cast<float>(y) + 150.0f,
                       static_cast<float>(scale) * 6.0f, 100.0f, mode_};
         DrawItem(owner_, pass, &cell);
-        int pieces = static_cast<int>(item->unknown_48);   // the stack's count
+        int pieces = static_cast<int>(item->count_);   // the stack's count
         if (pieces > 1) {
             text.Format(NumberFormat(), pieces);
             RECT r{x + 0x0F, y + 0x0F, x + 0x55, y + 0x23};
@@ -367,7 +367,7 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
             DrawSprite(highlight, pass, 350.0f, 250.0f);
         } else if (part) {
             // The grid cells the part has room for (+0x4C) beyond the materials in it.
-            int room = static_cast<int>(part->unknown_4C);
+            int room = static_cast<int>(part->materialUnits);
             int cellIndex = 0;
             bool none = true;
             for (int x = 450; x < 650; x += 100) {

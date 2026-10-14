@@ -28,19 +28,19 @@ void CopyBytes(R* target, const R* source, std::size_t from, std::size_t to) {
 int __fastcall itemdb::WeaponRecordKind(ItemRecordHead*) { return 0x3004; }
 int __fastcall itemdb::ArmorRecordKind(ItemRecordHead*) { return 0x3005; }
 int __fastcall itemdb::QuickItemRecordKind(ItemRecordHead*) { return 0x3006; }
-int __fastcall itemdb::Record7CKind(ItemRecordHead*) { return 0x3009; }
-int __fastcall itemdb::Record78Kind(ItemRecordHead*) { return 0x3007; }
+int __fastcall itemdb::QuestItemRecordKind(ItemRecordHead*) { return 0x3009; }
+int __fastcall itemdb::LootItemRecordKind(ItemRecordHead*) { return 0x3007; }
 EI_REPLACE(0x006A6430, itemdb::WeaponRecordKind);
 EI_REPLACE(0x006A6440, itemdb::ArmorRecordKind);
 EI_REPLACE(0x006A6450, itemdb::QuickItemRecordKind);
-EI_REPLACE(0x006A6460, itemdb::Record7CKind);
-EI_REPLACE(0x006A6470, itemdb::Record78Kind);
+EI_REPLACE(0x006A6460, itemdb::QuestItemRecordKind);
+EI_REPLACE(0x006A6470, itemdb::LootItemRecordKind);
 
 ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     text04 = source->text04;
     text08 = source->text08;
     type = source->type;
-    text10 = source->text10;
+    materialClass = source->materialClass;
     CopyBytes(this, source, offsetof(ItemRecordHead, unknown_14), offsetof(ItemRecordHead, list20));
     CopyBytes(this, source, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50));
     unknown_68 = source->unknown_68;
@@ -52,7 +52,7 @@ EI_REPLACE_METHOD(0x006A8F20, ItemRecordHead::Assign);
 void ItemRecordHead::ConstructHead(std::uintptr_t vtableAddress) {
     new (&text04) mfc::CString();
     new (&text08) mfc::CString();
-    new (&text10) mfc::CString();
+    new (&materialClass) mfc::CString();
     new (&list20) console::CStringArray();
     new (&list50) console::CStringArray();
     unknown_68 = 1;
@@ -61,7 +61,7 @@ void ItemRecordHead::ConstructHead(std::uintptr_t vtableAddress) {
 
 void WeaponRecord::CopyOwn(const WeaponRecord* source) {
     CopyBytes(this, source, offsetof(WeaponRecord, category), 0x83);
-    CopyBytes(this, source, offsetof(WeaponRecord, value8C), sizeof(WeaponRecord));
+    CopyBytes(this, source, offsetof(WeaponRecord, reach), sizeof(WeaponRecord));
 }
 
 WeaponRecord* WeaponRecord::AssignWeapon(const WeaponRecord* source) {
@@ -115,7 +115,7 @@ MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* 
     new (&key) mfc::CString(*text(&source->key));
     new (&soundName) mfc::CString(*text(&source->soundName));
     new (&name) mfc::CString(*text(&source->name));
-    CopyBytes(this, source, offsetof(MaterialRecordHead, unknown_0C), sizeof(MaterialRecordHead));
+    CopyBytes(this, source, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
     return this;
 }
 EI_REPLACE_METHOD(0x006A9E40, MaterialRecordHead::CopyConstruct);
@@ -126,8 +126,8 @@ char* __fastcall itemdb::RecordTableAt(const RecordTable* table, void*, std::uin
 }
 EI_REPLACE(0x006A5950, itemdb::RecordTableAt<kArmorSize>);
 EI_REPLACE(0x006A5990, itemdb::RecordTableAt<kQuickItemSize>);
-EI_REPLACE(0x006A59D0, itemdb::RecordTableAt<kLootSize>);
-EI_REPLACE(0x006A5A10, itemdb::RecordTableAt<kQuestItemSize>);
+EI_REPLACE(0x006A59D0, itemdb::RecordTableAt<kQuestItemSize>);
+EI_REPLACE(0x006A5A10, itemdb::RecordTableAt<kLootSize>);
 
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     value70 = source->value70;

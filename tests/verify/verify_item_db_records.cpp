@@ -21,7 +21,7 @@ bool SameBytes(const void* a, const void* b, std::size_t from, std::size_t to) {
 
 bool SameHead(const ItemRecordHead* a, const ItemRecordHead* b) {
     bool ok = std::strcmp(a->text04, b->text04) == 0 && std::strcmp(a->text08, b->text08) == 0 &&
-              std::strcmp(a->text10, b->text10) == 0 && a->type == b->type &&
+              std::strcmp(a->materialClass, b->materialClass) == 0 && a->type == b->type &&
               SameBytes(a, b, offsetof(ItemRecordHead, unknown_14), offsetof(ItemRecordHead, list20)) &&
               SameBytes(a, b, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50)) &&
               a->unknown_68 == b->unknown_68 && a->list20.GetSize() == b->list20.GetSize();
@@ -112,13 +112,13 @@ struct KindCheck {
 static constexpr auto& WeaponKindVerify = KindCheck<itemdb::WeaponRecordKind>::Verify;
 static constexpr auto& ArmorKindVerify = KindCheck<itemdb::ArmorRecordKind>::Verify;
 static constexpr auto& QuickKindVerify = KindCheck<itemdb::QuickItemRecordKind>::Verify;
-static constexpr auto& Record7CKindVerify = KindCheck<itemdb::Record7CKind>::Verify;
-static constexpr auto& Record78KindVerify = KindCheck<itemdb::Record78Kind>::Verify;
+static constexpr auto& QuestItemRecordKindVerify = KindCheck<itemdb::QuestItemRecordKind>::Verify;
+static constexpr auto& LootItemRecordKindVerify = KindCheck<itemdb::LootItemRecordKind>::Verify;
 EI_VERIFY(0x006A6430, WeaponKindVerify, 5, KindCheck<itemdb::WeaponRecordKind>::original);
 EI_VERIFY(0x006A6440, ArmorKindVerify, 5, KindCheck<itemdb::ArmorRecordKind>::original);
 EI_VERIFY(0x006A6450, QuickKindVerify, 5, KindCheck<itemdb::QuickItemRecordKind>::original);
-EI_VERIFY(0x006A6460, Record7CKindVerify, 5, KindCheck<itemdb::Record7CKind>::original);
-EI_VERIFY(0x006A6470, Record78KindVerify, 5, KindCheck<itemdb::Record78Kind>::original);
+EI_VERIFY(0x006A6460, QuestItemRecordKindVerify, 5, KindCheck<itemdb::QuestItemRecordKind>::original);
+EI_VERIFY(0x006A6470, LootItemRecordKindVerify, 5, KindCheck<itemdb::LootItemRecordKind>::original);
 
 // A-H25. The other kinds' operator= (stolen 0, as the weapon's: only a vector insert in the middle
 // reaches them), the base record's constructor and the material's copy constructor (the vectors'
@@ -171,7 +171,7 @@ MaterialRecordHead* __fastcall MaterialCopyVerify(MaterialRecordHead* self, void
     MaterialRecordHead* result = self->CopyConstruct(source);
     const bool same = result == self && expected == scratch && std::strcmp(scratch->key, self->key) == 0 &&
                       std::strcmp(scratch->soundName, self->soundName) == 0 && std::strcmp(scratch->name, self->name) == 0 &&
-                      SameBytes(scratch, self, offsetof(MaterialRecordHead, unknown_0C), sizeof(MaterialRecordHead));
+                      SameBytes(scratch, self, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
     ei::verify::Check("MaterialRecordHead::CopyConstruct", true, same, "material '%s'", source->key);
     for (const char** text : {&scratch->key, &scratch->soundName, &scratch->name})
         reinterpret_cast<mfc::CString*>(text)->~CString();
@@ -191,8 +191,8 @@ struct TableAtCheck {
 };
 using ArmorAtCheck = TableAtCheck<kArmorSize>;
 using QuickAtCheck = TableAtCheck<kQuickItemSize>;
-using Record7CAtCheck = TableAtCheck<kLootSize>;
-using Record78AtCheck = TableAtCheck<kQuestItemSize>;
+using QuestAtCheck = TableAtCheck<kQuestItemSize>;
+using LootAtCheck = TableAtCheck<kLootSize>;
 } // namespace
 EI_VERIFY(0x006A9370, AssignArmorCheck::Verify, 0, s_unused);
 EI_VERIFY(0x006A9770, AssignQuickCheck::Verify, 0, s_unused);
@@ -202,9 +202,9 @@ EI_VERIFY(0x006A63B0, ConstructBaseVerify, 7, s_constructBase);
 EI_VERIFY(0x006A9E40, MaterialCopyVerify, 7, s_materialCopy);
 static constexpr auto& ArmorAtVerify = ArmorAtCheck::Verify;
 static constexpr auto& QuickAtVerify = QuickAtCheck::Verify;
-static constexpr auto& Record7CAtVerify = Record7CAtCheck::Verify;
-static constexpr auto& Record78AtVerify = Record78AtCheck::Verify;
+static constexpr auto& QuestAtVerify = QuestAtCheck::Verify;
+static constexpr auto& LootAtVerify = LootAtCheck::Verify;
 EI_VERIFY(0x006A5950, ArmorAtVerify, 6, ArmorAtCheck::original);
 EI_VERIFY(0x006A5990, QuickAtVerify, 6, QuickAtCheck::original);
-EI_VERIFY(0x006A59D0, Record7CAtVerify, 6, Record7CAtCheck::original);
-EI_VERIFY(0x006A5A10, Record78AtVerify, 6, Record78AtCheck::original);
+EI_VERIFY(0x006A59D0, QuestAtVerify, 6, QuestAtCheck::original);
+EI_VERIFY(0x006A5A10, LootAtVerify, 6, LootAtCheck::original);

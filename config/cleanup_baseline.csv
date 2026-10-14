@@ -78,12 +78,8 @@ src/game/figure_rasterise.cpp,8,0,0,2,0,0,0,0,0,0,0
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0
 src/game/ground_decal.cpp,0,0,0,0,0,0,0,0,0,0,3
 src/game/hoover_loot.cpp,3,1,0,0,0,0,0,0,0,0,0
-src/game/item.cpp,8,0,0,0,0,0,0,0,0,0,0
-src/game/item_constructor.cpp,8,14,1,0,7,0,0,5,0,0,0
-src/game/item_db_text.cpp,2,1,0,0,0,0,0,0,0,0,0
-src/game/item_names.cpp,2,1,0,0,5,0,0,0,0,0,0
-src/game/item_parts.cpp,2,0,0,0,0,0,0,0,0,0,0
-src/game/item_stock.h,0,0,0,0,0,0,0,0,0,5,0
+src/game/item_constructor.cpp,0,0,1,0,0,0,0,0,0,0,0
+src/game/item_names.cpp,0,0,0,0,5,0,0,0,0,0,0
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/lever_object.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/lightning.cpp,0,0,0,1,0,0,0,1,0,0,4

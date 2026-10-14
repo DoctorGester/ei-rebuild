@@ -182,12 +182,12 @@ int __fastcall RoundVerify(void* self, void*, float value) {
 // 004BA030: MOV EAX,[ECX+0x24] (3), MOV [ECX+0x20],EAX (3).
 void(__fastcall* s_repair)(CItem*);
 void __fastcall RepairVerify(CItem* item) {
-    std::uint32_t saved = item->unknown_20;
+    std::uint32_t saved = item->condition_;
     s_repair(item);
-    std::uint32_t expected = item->unknown_20;
-    item->unknown_20 = saved;
+    std::uint32_t expected = item->condition_;
+    item->condition_ = saved;
     ScriptItemRepair(item);
-    ei::verify::Check("script accessor 004BA030", expected, item->unknown_20, "");
+    ei::verify::Check("script accessor 004BA030", expected, item->condition_, "");
 }
 
 // 004BA060 / 004BA070 / 004BA080 / 004BA9C0: one six-byte MOV or LEA.

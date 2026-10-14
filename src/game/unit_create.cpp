@@ -42,7 +42,7 @@ void* PlayerMessages(const char* player) { return *reinterpret_cast<void* const*
 
 // The item's condition (CItem +0x20, a float kept as a dword) rounds to nothing.
 bool IsBroken(const CEngineObject* item) {
-    return x87::fistp(std::bit_cast<float>(static_cast<const CItem*>(item)->unknown_20)) <= 0;
+    return x87::fistp(std::bit_cast<float>(static_cast<const CItem*>(item)->condition_)) <= 0;
 }
 
 using ItemList = mfc::CTypedPtrList<CEngineObject>;

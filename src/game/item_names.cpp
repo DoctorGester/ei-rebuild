@@ -3,24 +3,18 @@
 // "initwesw3weapon", "qitem0012.uq". Each returns a new CString (by hidden pointer, as MFC does).
 #include "item.h"
 #include "game_strings.h"
+#include "spell.h"
 
 #include "console.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstring>
+#include <new>
 
 using namespace itemdb;
 
 namespace {
-
-constexpr int kSlotModelName = 17;   // +0x44
-
-// The two-letter type codes of weapons (007963E0..007963F4, "hm" at 00784524) and armors
-// (00796534..0079654C), by type.
-constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
-constexpr const char* kArmorCodes[7] = {"hl", "pl", "lg", "sh", "pt", "bt", "gl"};
 
 // The code of `type`. The original copies it into a 4-byte stack buffer and leaves the buffer
 // uninitialised for any other type (never the case in the databases); "" stands in for that.
@@ -51,10 +45,6 @@ const char* const kHumanPrefix = Text(0x007908C8);        // "unhuma"
 const char* const kNoMaterial = Text(0x007846F0);         // "none"
 const char* const kUnknownMaterial = Text(0x007963C0);    // "uq"
 
-// Record fields used here.
-constexpr int kRecordNameList = 0x20;   // CStringArray
-constexpr int kSpellFigureNumber = 0x60;
-
 // The records are read without a null check where the original reads them without one.
 const ItemRecordHead* Head(const char* record) { return reinterpret_cast<const ItemRecordHead*>(record); }
 const MaterialRecordHead* Material(const char* record) { return reinterpret_cast<const MaterialRecordHead*>(record); }
@@ -75,16 +65,16 @@ mfc::CString ModelNameOf(const RecordTable& table, int stride, const char* const
 // The first string of the prototype's list, or "" (slot 18).
 mfc::CString FirstListNameOf(const RecordTable& table, int stride, std::uint32_t id) {
     const char* prototype = table.At(PrototypeIndex(id), stride);
-    auto* list = reinterpret_cast<const console::CStringArray*>(prototype + kRecordNameList);
+    const console::CStringArray* list = &Head(prototype)->list20;
     if (prototype && list->GetSize() != 0) return mfc::CString((*list)[0]);
     return mfc::CString(game::EmptyText());   // ""
 }
 
-// "unhuma" + the item's slot 17 (called through its vtable).
+// "unhuma" + the item's slot 17 (a virtual call). The model name is destroyed before the prefix,
+// as in the original.
 mfc::CString HumanFigureName(CItem* item) {
-    char model[sizeof(mfc::CString)];   // constructed by the callee
-    ei::VCall<void*>(item, kSlotModelName, static_cast<void*>(model));
-    mfc::CString& modelName = *reinterpret_cast<mfc::CString*>(model);
+    alignas(mfc::CString) char model[sizeof(mfc::CString)];
+    mfc::CString& modelName = *new (model) mfc::CString(item->ModelName());
     mfc::CString prefix(kHumanPrefix);
     mfc::CString name = prefix + modelName;
     modelName.~CString();
@@ -106,32 +96,24 @@ mfc::CString PictureNameOf(const RecordTable& table, int stride, const char* con
 // --- Weapons and armors ---------------------------------------------------------------------------
 
 mfc::CString CItemWeapon::ModelName() { return ModelNameOf(Weapons(), kWeaponSize, kWeaponCodes, unknown_18); }
-EI_REPLACE_METHOD(0x006A0840, CItemWeapon::ModelName);
 
 mfc::CString CItemWeapon::FirstListName() { return FirstListNameOf(Weapons(), kWeaponSize, unknown_18); }
-EI_REPLACE_METHOD(0x006A0F70, CItemWeapon::FirstListName);
 
 mfc::CString CItemWeapon::FigureName() { return HumanFigureName(this); }
-EI_REPLACE_METHOD(0x006A2750, CItemWeapon::FigureName);
 
 mfc::CString CItemWeapon::PictureName() {
     return PictureNameOf(Weapons(), kWeaponSize, kWeaponCodes, kWeaponPicture, unknown_18);
 }
-EI_REPLACE_METHOD(0x006A27E0, CItemWeapon::PictureName);
 
 mfc::CString CItemArmor::ModelName() { return ModelNameOf(Armors(), kArmorSize, kArmorCodes, unknown_18); }
-EI_REPLACE_METHOD(0x006A3240, CItemArmor::ModelName);
 
 mfc::CString CItemArmor::FirstListName() { return FirstListNameOf(Armors(), kArmorSize, unknown_18); }
-EI_REPLACE_METHOD(0x006A36A0, CItemArmor::FirstListName);
 
 mfc::CString CItemArmor::FigureName() { return HumanFigureName(this); }
-EI_REPLACE_METHOD(0x006A3720, CItemArmor::FigureName);
 
 mfc::CString CItemArmor::PictureName() {
     return PictureNameOf(Armors(), kArmorSize, kArmorCodes, kArmorPicture, unknown_18);
 }
-EI_REPLACE_METHOD(0x006A37B0, CItemArmor::PictureName);
 
 // 006A0CC0. The original formats the number into a 4-byte buffer just before the name buffer; a
 // number above 999 would overrun it (none in the database; the overlapping strcat that would
@@ -174,7 +156,7 @@ EI_REPLACE(0x006A0CC0, WeaponBaseFigure);
 mfc::CString CItemQuick::FigureName() {
     mfc::CString name;
     const char* prototype = GetPrototype();
-    if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->text10)),
+    if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->materialClass)),
                                       reinterpret_cast<const unsigned char*>(kNoMaterial)) != 0) {
         const char* material = Materials().At(MaterialIndex(unknown_18), kMaterialSize);
         const char* materialName = material ? Material(material)->name : kUnknownMaterial;
@@ -184,40 +166,33 @@ mfc::CString CItemQuick::FigureName() {
     name.Format(kQuickFigure, Number(GetPrototype()));
     return name;
 }
-EI_REPLACE_METHOD(0x006A3CD0, CItemQuick::FigureName);
 
 mfc::CString CItemQuick::PictureName() {
     mfc::CString name;
     name.Format(kQuickPicture, Number(GetPrototype()));
     return name;
 }
-EI_REPLACE_METHOD(0x006A4040, CItemQuick::PictureName);
 
 mfc::CString CItemQuest::FigureName() {
     mfc::CString name;
     name.Format(kQuestFigure, Number(GetPrototype()));
     return name;
 }
-EI_REPLACE_METHOD(0x006A45C0, CItemQuest::FigureName);
 
 mfc::CString CItemQuest::PictureName() {
     mfc::CString name;
     name.Format(kQuestPicture, Number(GetPrototype()));
     return name;
 }
-EI_REPLACE_METHOD(0x006A47B0, CItemQuest::PictureName);
 
 mfc::CString CItemSpell::FigureName() {
-    const auto* spell = static_cast<const CEngineObject*>(spell_);
-    const char* prototype = Spells().At(PrototypeIndex(spell->unknown_18), kSpellSize);
+    const SpellRecord* prototype = SpellAt(PrototypeIndex(spell_->unknown_18));
     mfc::CString name;
-    name.Format(kSpellFigure, Field<int>(prototype, kSpellFigureNumber));
+    name.Format(kSpellFigure, prototype->icon);
     return name;
 }
-EI_REPLACE_METHOD(0x006A5820, CItemSpell::FigureName);
 
 mfc::CString CItemSpell::PictureName() { return mfc::CString(kSpellPicture); }
-EI_REPLACE_METHOD(0x006A58E0, CItemSpell::PictureName);
 
 // --- Loot ----------------------------------------------------------------------------------------
 
@@ -245,7 +220,7 @@ mfc::CString CItemLoot::FigureName() {
             name.Format(kQuickFigure, Head(QuickItems().At(index_, kQuickItemSize))->number);
             break;
         case kRecordSpell:
-            name.Format(kPrototypeFigure, Field<int>(Spells().At(index_, kSpellSize), kSpellFigureNumber));
+            name.Format(kPrototypeFigure, SpellAt(index_)->icon);
             break;
         case kRecordModifier:
             name.Format(kModifierFigure, index_);
@@ -261,7 +236,6 @@ mfc::CString CItemLoot::FigureName() {
         name.Format(kLootFigure, Number(GetPrototype()));
     return name;
 }
-EI_REPLACE_METHOD(0x006A4B90, CItemLoot::FigureName);
 
 mfc::CString CItemLoot::PictureName() {
     mfc::CString name;
@@ -296,4 +270,72 @@ mfc::CString CItemLoot::PictureName() {
         name.Format(kLootPicture, Number(GetPrototype()));
     return name;
 }
-EI_REPLACE_METHOD(0x006A5030, CItemLoot::PictureName);
+
+// --- The virtual slots' entry points (rule 4): the name built in the caller's result -------------
+
+namespace {
+mfc::CString* __fastcall WeaponModelNameHook(CItemWeapon* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemWeapon::ModelName());
+}
+mfc::CString* __fastcall WeaponFirstListNameHook(CItemWeapon* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemWeapon::FirstListName());
+}
+mfc::CString* __fastcall WeaponFigureNameHook(CItemWeapon* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemWeapon::FigureName());
+}
+mfc::CString* __fastcall WeaponPictureNameHook(CItemWeapon* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemWeapon::PictureName());
+}
+mfc::CString* __fastcall ArmorModelNameHook(CItemArmor* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemArmor::ModelName());
+}
+mfc::CString* __fastcall ArmorFirstListNameHook(CItemArmor* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemArmor::FirstListName());
+}
+mfc::CString* __fastcall ArmorFigureNameHook(CItemArmor* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemArmor::FigureName());
+}
+mfc::CString* __fastcall ArmorPictureNameHook(CItemArmor* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemArmor::PictureName());
+}
+mfc::CString* __fastcall QuickFigureNameHook(CItemQuick* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemQuick::FigureName());
+}
+mfc::CString* __fastcall QuickPictureNameHook(CItemQuick* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemQuick::PictureName());
+}
+mfc::CString* __fastcall QuestFigureNameHook(CItemQuest* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemQuest::FigureName());
+}
+mfc::CString* __fastcall QuestPictureNameHook(CItemQuest* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemQuest::PictureName());
+}
+mfc::CString* __fastcall SpellFigureNameHook(CItemSpell* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemSpell::FigureName());
+}
+mfc::CString* __fastcall SpellPictureNameHook(CItemSpell* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemSpell::PictureName());
+}
+mfc::CString* __fastcall LootFigureNameHook(CItemLoot* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemLoot::FigureName());
+}
+mfc::CString* __fastcall LootPictureNameHook(CItemLoot* self, void*, mfc::CString* out) {
+    return new (out) mfc::CString(self->CItemLoot::PictureName());
+}
+} // namespace
+EI_REPLACE(0x006A0840, WeaponModelNameHook);
+EI_REPLACE(0x006A0F70, WeaponFirstListNameHook);
+EI_REPLACE(0x006A2750, WeaponFigureNameHook);
+EI_REPLACE(0x006A27E0, WeaponPictureNameHook);
+EI_REPLACE(0x006A3240, ArmorModelNameHook);
+EI_REPLACE(0x006A36A0, ArmorFirstListNameHook);
+EI_REPLACE(0x006A3720, ArmorFigureNameHook);
+EI_REPLACE(0x006A37B0, ArmorPictureNameHook);
+EI_REPLACE(0x006A3CD0, QuickFigureNameHook);
+EI_REPLACE(0x006A4040, QuickPictureNameHook);
+EI_REPLACE(0x006A45C0, QuestFigureNameHook);
+EI_REPLACE(0x006A47B0, QuestPictureNameHook);
+EI_REPLACE(0x006A5820, SpellFigureNameHook);
+EI_REPLACE(0x006A58E0, SpellPictureNameHook);
+EI_REPLACE(0x006A4B90, LootFigureNameHook);
+EI_REPLACE(0x006A5030, LootPictureNameHook);

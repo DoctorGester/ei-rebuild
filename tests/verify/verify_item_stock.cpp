@@ -43,7 +43,7 @@ bool NewItemsValid(const StockList* list, std::size_t skip, int lo, int hi) {
 
 bool NoNegativeUnits(const ItemStock* stock, const int* before, std::size_t count) {
     for (std::size_t i = 0; i < count && i < stock->materials.size(); ++i)
-        if (stock->materials.start[i].left < 0 && before[i] >= 0) return false;
+        if (stock->materials[i].left < 0 && before[i] >= 0) return false;
     return true;
 }
 
@@ -63,7 +63,7 @@ static void __fastcall GenerateItemsVerify(ItemStock* self, void*, StockPtrVecto
     std::size_t prototypeCount = prototypes->size();
     int units[256];
     std::size_t materialCount = self->materials.size();
-    for (std::size_t i = 0; i < materialCount && i < 256; ++i) units[i] = self->materials.start[i].left;
+    for (std::size_t i = 0; i < materialCount && i < 256; ++i) units[i] = self->materials[i].left;
     self->ItemStock::GenerateItems(prototypes, minCount, maxCount, out, kind);
     std::size_t after = ListSize(out);
     // The count drawn never exceeds maxCount.
@@ -71,7 +71,7 @@ static void __fastcall GenerateItemsVerify(ItemStock* self, void*, StockPtrVecto
     std::size_t upper = static_cast<std::size_t>(maxCount > 0 ? maxCount : 0);
     if (upper < limit) limit = upper;
     bool ok = after >= before && after - before <= limit && NewItemsValid(out, before, 0x3004, 0x3006) &&
-              Candidates().start == Candidates().finish && NoNegativeUnits(self, units, materialCount < 256 ? materialCount : 256);
+              Candidates().begin() == Candidates().end() && NoNegativeUnits(self, units, materialCount < 256 ? materialCount : 256);
     ei::verify::Check("ItemStock::GenerateItems", true, ok, "kind %d, %d..%d of %u prototypes: %u -> %u items", kind, minCount,
                       maxCount, static_cast<unsigned>(prototypeCount), static_cast<unsigned>(before), static_cast<unsigned>(after));
 }
@@ -88,7 +88,7 @@ static void __fastcall GenerateMaterialsVerify(ItemStock* self, void*, int minCo
     if (lo > size) lo = size;
     if (hi > size) hi = size;
     bool ok = added >= lo && added <= hi && NewItemsValid(out, before, INT_MIN, INT_MAX) &&
-              TakenMaterials().start == TakenMaterials().finish;
+              TakenMaterials().begin() == TakenMaterials().end();
     ei::verify::Check("ItemStock::GenerateMaterials", true, ok, "%d..%d of %u entries: %u items", minCount, maxCount,
                       static_cast<unsigned>(size), static_cast<unsigned>(added));
 }
@@ -123,7 +123,7 @@ void CheckInstructions(const char* name, ItemStock* self, const StockPtrVector& 
     // The expected record indices, in order (the function does not change the source vector).
     int indices[kMaxRecords];
     std::size_t expected = 0;
-    for (char** p = source.start; p != source.finish; ++p) {
+    for (char** p = source.begin(); p != source.end(); ++p) {
         if (skipScrolls && IsScroll(*p)) continue;
         std::intptr_t offset = reinterpret_cast<std::intptr_t>(*p) - *reinterpret_cast<const std::intptr_t*>(table);
         if (expected < kMaxRecords) indices[expected] = static_cast<int>(offset) / recordSize;
@@ -132,7 +132,7 @@ void CheckInstructions(const char* name, ItemStock* self, const StockPtrVector& 
     (self->*generate)(minCount, maxCount, out);
     std::size_t added = ListSize(out) - before;
     int lo = minCount < maxCount ? minCount : maxCount;
-    bool ok = added == expected && TakenPrototypes().start == TakenPrototypes().finish;
+    bool ok = added == expected && TakenPrototypes().begin() == TakenPrototypes().end();
     std::size_t i = 0;
     for (const StockListNode* node = out->head->next; ok && node != out->head; node = node->next, ++i) {
         if (i < before) continue;
@@ -224,11 +224,11 @@ std::size_t KeyLength(char kind) {
 static void __fastcall FillSpellMapsVerify(ItemStock* self, void*, const SpellRecipeVector* recipes) {
     self->ItemStock::FillSpellMaps(recipes);
     std::size_t expected = 0;
-    for (char* r = recipes->start; r != recipes->finish; r += kSpellRecipeSize) {
-        if (!(*reinterpret_cast<const std::uint32_t*>(r + 0x30) & (1u << (self->classIndex & 31)))) continue;
-        char* spell = *SpellByNameForCheck(reinterpret_cast<void*>(0x007C851C), nullptr, r);
+    for (const SpellRecipe* recipe = recipes->begin(); recipe != recipes->end(); ++recipe) {
+        if (!(recipe->classMask & (1u << (self->classIndex & 31)))) continue;
+        char* spell = *SpellByNameForCheck(reinterpret_cast<void*>(0x007C851C), nullptr, &recipe->spell);
         if (!spell) continue;
-        for (char** s = self->spells.start; s != self->spells.finish; ++s) {
+        for (char** s = self->spells.begin(); s != self->spells.end(); ++s) {
             if (*s == spell) {
                 ++expected;
                 break;
@@ -247,7 +247,7 @@ static void __fastcall FillSpellMapsVerify(ItemStock* self, void*, const SpellRe
     constexpr std::size_t kMaxKeys = 128;
     Entry entries[kMaxKeys];
     std::size_t keys = 0;
-    for (char** p = self->modifiers.start; p != self->modifiers.finish; ++p) {
+    for (char** p = self->modifiers.begin(); p != self->modifiers.end(); ++p) {
         char* m = *p;
         std::size_t length = KeyLength(m[4]);
         if (length == 0) continue;
@@ -305,9 +305,9 @@ bool GrewUniquely(const StockPtrVector& list, std::size_t before) {
     std::size_t size = list.size();
     if (size < before) return false;
     for (std::size_t i = before; i < size; ++i) {
-        if (!list.start[i]) return false;
+        if (!list[i]) return false;
         for (std::size_t j = 0; j < i; ++j)
-            if (list.start[j] == list.start[i]) return false;
+            if (list[j] == list[i]) return false;
     }
     return true;
 }
@@ -321,12 +321,12 @@ static void __fastcall LoadListsVerify(ItemStock* self, void*, void* stream) {
     std::size_t materialCount = self->materials.size();
     StockMaterial materials[kMaxListed];
     std::size_t kept = materialCount < kMaxListed ? materialCount : kMaxListed;
-    for (std::size_t i = 0; i < kept; ++i) materials[i] = self->materials.start[i];
+    for (std::size_t i = 0; i < kept; ++i) materials[i] = self->materials[i];
     self->ItemStock::LoadLists(stream);
     bool ok = self->materials.size() >= materialCount;
     for (int i = 0; i < 5; ++i) ok = ok && GrewUniquely(*lists[i], sizes[i]);
     for (std::size_t i = 0; ok && i < kept; ++i)
-        ok = std::memcmp(&materials[i], &self->materials.start[i], sizeof(StockMaterial)) == 0;
+        ok = std::memcmp(&materials[i], &self->materials[i], sizeof(StockMaterial)) == 0;
     ei::verify::Check("ItemStock::LoadLists", true, ok, "lists %u/%u/%u/%u/%u, materials %u -> %u/%u/%u/%u/%u, %u",
                       static_cast<unsigned>(sizes[0]), static_cast<unsigned>(sizes[1]), static_cast<unsigned>(sizes[2]),
                       static_cast<unsigned>(sizes[3]), static_cast<unsigned>(sizes[4]), static_cast<unsigned>(materialCount),
@@ -369,7 +369,7 @@ GenerateInstructionsFn s_unusedScrolls;
 bool SameElements(const StockPtrVector& a, const StockPtrVector& b) {
     if (a.size() != b.size()) return false;
     for (std::size_t i = 0; i < a.size(); ++i)
-        if (a.start[i] != b.start[i]) return false;
+        if (a[i] != b[i]) return false;
     return true;
 }
 
@@ -382,7 +382,7 @@ void CheckMagicInstructions(const char* name, ItemStock* self, const StockPtrVec
     std::size_t expected = source.size();
     int indices[kMaxRecords];   // -2: not in the table
     for (std::size_t i = 0; i < expected && i < kMaxRecords; ++i) {
-        const char* r = source.start[i];
+        const char* r = source[i];
         indices[i] = r >= tableStart && r < tableEnd ? static_cast<int>((r - tableStart) / recordSize) : -2;
     }
     std::size_t before = ListSize(out);
@@ -390,7 +390,7 @@ void CheckMagicInstructions(const char* name, ItemStock* self, const StockPtrVec
     std::size_t added = ListSize(out) - before;
     const StockPtrVector& taken = *reinterpret_cast<const StockPtrVector*>(scratch);
     int lo = minCount < maxCount ? minCount : maxCount;
-    bool ok = added == expected && taken.start == taken.finish;
+    bool ok = added == expected && taken.begin() == taken.end();
     std::size_t i = 0;
     for (const StockListNode* node = out->head->next; ok && node != out->head; node = node->next, ++i) {
         if (i < before) continue;
@@ -423,19 +423,19 @@ static void __fastcall ResetMaterialUnitsVerify(ItemStock* self, void*) {
     }
     int before[kMaxListed];
     int original[kMaxListed];
-    for (std::size_t i = 0; i < count; ++i) before[i] = self->materials.start[i].left;
+    for (std::size_t i = 0; i < count; ++i) before[i] = self->materials[i].left;
     std::uint32_t seed = RandSeed();
     s_originalResetMaterialUnits(self, nullptr);
     std::uint32_t originalSeed = RandSeed();
     for (std::size_t i = 0; i < count; ++i) {
-        original[i] = self->materials.start[i].left;
-        self->materials.start[i].left = before[i];
+        original[i] = self->materials[i].left;
+        self->materials[i].left = before[i];
     }
     RandSeed() = seed;
     self->ItemStock::ResetMaterialUnits();
     int mismatch = -1;
     for (std::size_t i = 0; i < count && mismatch < 0; ++i)
-        if (self->materials.start[i].left != original[i]) mismatch = static_cast<int>(i);
+        if (self->materials[i].left != original[i]) mismatch = static_cast<int>(i);
     ei::verify::Check("ItemStock::ResetMaterialUnits", true, mismatch < 0 && RandSeed() == originalSeed,
                       "%u entries, first mismatch %d, seed %08X / %08X", static_cast<unsigned>(count), mismatch, originalSeed,
                       RandSeed());
@@ -574,10 +574,10 @@ static void __fastcall Verify(ItemStock* self, void*, char* record) {
     StockPtrVector& list = self->*List;
     std::size_t before = list.size();
     std::size_t had = 0;
-    for (char** p = list.start; p != list.finish; ++p) had += *p == record;
+    for (char** p = list.begin(); p != list.end(); ++p) had += *p == record;
     (self->*Ours)(record);
     std::size_t has = 0;
-    for (char** p = list.start; p != list.finish; ++p) has += *p == record;
+    for (char** p = list.begin(); p != list.end(); ++p) has += *p == record;
     bool ok = record ? has == (had ? had : 1) && list.size() == before + (had ? 0 : 1)
                      : list.size() == before;
     ei::verify::Check("ItemStock list add", true, ok, "record %p: %u -> %u entries", record,
@@ -593,12 +593,12 @@ using AddModifierCheck = AddCheck<&ItemStock::modifiers, &ItemStock::AddModifier
 void __fastcall AddMaterialVerify(ItemStock* self, void*, char* record, int minCount, int maxCount) {
     std::size_t before = self->materials.size();
     bool had = false;
-    for (StockMaterial* e = self->materials.start; e != self->materials.finish; ++e) had = had || e->record == record;
+    for (StockMaterial* e = self->materials.begin(); e != self->materials.end(); ++e) had = had || e->record == record;
     self->AddMaterial(record, minCount, maxCount);
     bool ok = self->materials.size() == before + (record && !had ? 1 : 0);
     if (record) {
         const StockMaterial* found = nullptr;
-        for (StockMaterial* e = self->materials.start; e != self->materials.finish && !found; ++e)
+        for (StockMaterial* e = self->materials.begin(); e != self->materials.end() && !found; ++e)
             if (e->record == record) found = e;
         ok = ok && found && found->minCount == minCount && found->maxCount == maxCount && found->left == maxCount;
     }

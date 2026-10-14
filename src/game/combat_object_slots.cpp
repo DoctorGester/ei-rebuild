@@ -29,7 +29,7 @@ constexpr int kPartWeapons = 6;         // CUnit::MarkChanged part
 AIBrain* BrainOf(CUnitServer* self) { return reinterpret_cast<AIBrain*>(self->brain); }
 
 // The weapon's condition (CItem +0x20, a float) rounded to nearest (FISTP) is above 0.
-bool Usable(const CItem* weapon) { return weapon && std::lrint(std::bit_cast<float>(weapon->unknown_20)) > 0; }
+bool Usable(const CItem* weapon) { return weapon && std::lrint(std::bit_cast<float>(weapon->condition_)) > 0; }
 } // namespace
 
 void CUnitServer::ClaimHostility(CUnit* claimant, std::uint32_t mask) {

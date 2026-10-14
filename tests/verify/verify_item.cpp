@@ -43,7 +43,7 @@ EI_VERIFY(0x006A4230, GetCategoryVerify, 9, s_getCategory);
 static BOOL(__fastcall* s_recharge)(CItem*);
 static BOOL __fastcall RechargeVerify(CItem* self) {
     std::uint32_t beforeBits = Bits(self->charge_);
-    BOOL actual = self->Recharge();
+    BOOL actual = self->CItem::RunTick();
     std::uint32_t actualCharge = Bits(self->charge_);
     std::memcpy(&self->charge_, &beforeBits, sizeof(float));
     BOOL expected = s_recharge(self);
@@ -100,7 +100,7 @@ EI_VERIFY(0x006A2DE0, RollDamageVerify, 9, s_rollDamage);
 static BOOL(__fastcall* s_isSameAs)(CItemWeapon*, void*, CItemWeapon*);
 static BOOL __fastcall IsSameAsVerify(CItemWeapon* self, void*, CItemWeapon* other) {
     BOOL expected = s_isSameAs(self, nullptr, other);
-    ei::verify::Check("CItemWeapon::IsSameAs", expected, self->IsSameAs(other), "id %08X vs %08X", self->unknown_18,
+    ei::verify::Check("CItemWeapon::IsSameAs", expected, self->CItemWeapon::IsSameAs(other), "id %08X vs %08X", self->unknown_18,
                       other->unknown_18);
     return expected;
 }
@@ -131,7 +131,7 @@ EI_VERIFY(0x006A31A0, ArmorGroupVerify, 6, s_armorGroup);
 static float(__fastcall* s_lootPrice)(CItemLoot*);
 static float __fastcall LootPriceVerify(CItemLoot* self) {
     float expected = s_lootPrice(self);
-    ei::verify::Check("CItemLoot::GetPrice", Bits(expected), Bits(self->GetPrice()), "kind %u type %u index %u",
+    ei::verify::Check("CItemLoot::GetPrice", Bits(expected), Bits(self->CItemLoot::GetPrice()), "kind %u type %u index %u",
                       self->kind_, self->recordType_, self->index_);
     return expected;
 }

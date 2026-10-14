@@ -90,10 +90,10 @@ static CItem* __fastcall MoveItemVerify(CItemScreen* self, void*, CItem* item, C
     bool searched = limit > 0 && toBefore >= limit;
     bool match = false;
     for (int i = 0; searched && i < limit && !match; ++i)
-        match = item->IsSameAsSlot(static_cast<CItem*>(to->items_.data[i])) != 0;
+        match = item->IsSameAs(static_cast<CItem*>(to->items_.data[i])) != 0;
     bool whole = static_cast<std::uint8_t>(merge) != 0 && self->interface_->shiftDown_ != 0;
     // A stack of more than one stays in `from` (one fewer) unless the whole of it moves.
-    bool stays = !whole && static_cast<int>(item->unknown_48) > 1;
+    bool stays = !whole && static_cast<int>(item->count_) > 1;
     CItem* moved = self->CItemScreen::MoveItem(item, to, from, limit, merge, turning);
     bool ok;
     if (searched && !match) {
@@ -144,7 +144,7 @@ static void __fastcall ScrollToItemVerify(CUiItemStrip* self, void*, char* item)
     int found = -1;
     for (int i = 0; ok && i < self->list_.size; ++i) {
         ok &= self->list_.data[i] == expected[i];
-        if (reinterpret_cast<CItem*>(item)->IsSameAsSlot(reinterpret_cast<CItem*>(expected[i]))) found = i;
+        if (reinterpret_cast<CItem*>(item)->IsSameAs(reinterpret_cast<CItem*>(expected[i]))) found = i;
     }
     float position = self->position_[self->tab_];
     if (ok && found >= 0) ok = position >= static_cast<float>(found - 6) && position <= static_cast<float>(found);

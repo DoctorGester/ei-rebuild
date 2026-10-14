@@ -39,12 +39,12 @@ R CompareOnObject(const char* name, void* object, std::size_t size, Ours ours, O
 
 // 006A0490 writes the item's +0x20..+0x44: ours, bytes saved and restored, original; compared.
 // MOV EAX,[ESP+4]; FLD [EAX+0x48] (7 bytes).
-static void(__fastcall* s_initFromRecord)(CItem*, void*, const char*);
-static void __fastcall InitFromRecordVerify(CItem* self, void*, const char* record) {
+static void(__fastcall* s_initFromRecord)(CItem*, void*, const itemdb::ItemRecordHead*);
+static void __fastcall InitFromRecordVerify(CItem* self, void*, const itemdb::ItemRecordHead* record) {
     char* bytes = reinterpret_cast<char*>(self) + 0x20;
     char before[0x28], ours[0x28];
     std::memcpy(before, bytes, sizeof(before));
-    self->InitFromRecord(record);
+    self->CItem::InitFromRecord(record);
     std::memcpy(ours, bytes, sizeof(ours));
     std::memcpy(bytes, before, sizeof(before));
     s_initFromRecord(self, nullptr, record);
@@ -57,7 +57,7 @@ EI_VERIFY(0x006A0490, InitFromRecordVerify, 7, s_initFromRecord);
 // from the old spell's to the new one's (the same float operations, repeated here).
 static void* s_attachSpell;
 static void __fastcall AttachSpellVerify(CItem* self, void*, CSpell* spell) {
-    const char* previous = static_cast<const char*>(self->spell_);
+    const char* previous = reinterpret_cast<const char*>(self->spell_);
     volatile float price = self->price_;
     if (previous) price = price - Field<float>(previous, 0x48);
     if (spell) price = Field<float>(reinterpret_cast<const char*>(spell), 0x48) + price;
@@ -86,16 +86,16 @@ bool Cleared(const CItemConstructor* self) {
 
 static void* s_ctorReset;
 static BOOL __fastcall CtorResetVerify(CItemConstructor* self) {
-    BOOL result = self->Reset();
-    ei::verify::Check("CItemConstructor::Reset", true, result == 1 && Cleared(self), "%p", self);
+    BOOL result = self->CItemConstructor::Create();
+    ei::verify::Check("CItemConstructor::Create", true, result == 1 && Cleared(self), "%p", self);
     return result;
 }
 EI_VERIFY(0x006A5B90, CtorResetVerify, 0, s_ctorReset);
 
 static void* s_ctorDetach;
 static void __fastcall CtorDetachVerify(CItemConstructor* self) {
-    self->Detach();
-    ei::verify::Check("CItemConstructor::Detach", true, Cleared(self), "%p", self);
+    self->CItemConstructor::Destroy();
+    ei::verify::Check("CItemConstructor::Destroy", true, Cleared(self), "%p", self);
 }
 EI_VERIFY(0x006A5BD0, CtorDetachVerify, 0, s_ctorDetach);
 
@@ -109,7 +109,7 @@ static void __fastcall CtorDestructVerify(CItemConstructor* self) {
 EI_VERIFY(0x006A5B20, CtorDestructVerify, 0, s_ctorDestruct);
 
 static void* s_ctorSetManager;
-static void __fastcall CtorSetManagerVerify(CItemConstructor* self, void*, CEngineObject* manager) {
+static void __fastcall CtorSetManagerVerify(CItemConstructor* self, void*, CBaseManager* manager) {
     int count = manager ? manager->refCount_ : 0;
     bool same = self->manager_ == manager;
     self->SetManager(manager);
@@ -176,7 +176,7 @@ EI_VERIFY(0x006A5CF0, EndCreateItemVerify, 0, s_endCreateItem);
 
 static void* s_ctorCancel;
 static BOOL __fastcall CtorCancelVerify(CItemConstructor* self) {
-    CEngineObject* manager = self->manager_;
+    CBaseManager* manager = self->manager_;
     BOOL result = self->Cancel();
     bool ok = result == 1 && self->manager_ == manager && !self->item_ && !self->material_ && !self->prototype_ &&
               !self->spell_;
@@ -203,14 +203,14 @@ static BOOL __fastcall BuildVerify(CItemConstructor* self) {
         case 0x12: table = &itemdb::Armors(); stride = itemdb::kArmorSize; break;
         case 0x13:
         case 0x16: table = &itemdb::QuickItems(); stride = itemdb::kQuickItemSize; break;
-        case 0x14: table = &itemdb::Loot(); stride = itemdb::kLootSize; break;
-        case 0x15: table = &itemdb::QuestItems(); stride = itemdb::kQuestItemSize; break;
+        case 0x14: table = &itemdb::QuestItems(); stride = itemdb::kQuestItemSize; break;
+        case 0x15: table = &itemdb::Loot(); stride = itemdb::kLootSize; break;
         default: break;
         }
         std::uint32_t index = table ? static_cast<std::uint32_t>(static_cast<int>(self->prototype_ - table->begin) / stride) : 0;
         std::uint32_t low = self->material_ ? Field<std::uint32_t>(self->material_, 0x0C) & 0xFFFF : 0;
         ok = result == 1 && self->item_->unknown_18 == (index << 16 | low) &&
-             self->item_->unknown_48 == static_cast<std::uint32_t>(self->count_);
+             self->item_->count_ == static_cast<std::uint32_t>(self->count_);
     }
     ei::verify::Check("CItemConstructor::Build", true, ok, "class %X id %08X", classId, self->item_->unknown_18);
     return result;

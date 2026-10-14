@@ -15,8 +15,8 @@ namespace {
 void* s_unused;
 
 template <typename V>
-bool Empty(const V& v) {
-    return v.start == nullptr && v.finish == nullptr && v.eos == nullptr;
+bool Empty(V& v) {
+    return v.begin() == nullptr && v.end() == nullptr && v.EndOfStorage() == nullptr;
 }
 
 // A stock's map (raw bytes): an empty hash table with NextPrime(100) buckets, all null.
@@ -25,7 +25,7 @@ bool EmptyMap(const std::uint8_t* map) {
     return view->Size() == 0 && view->BucketCount() == stlp::NextPrime(100) && view->First() == nullptr;
 }
 
-bool FreshStock(const ItemStock& stock, const void* context) {
+bool FreshStock(ItemStock& stock, const void* context) {
     return stock.context == context && stock.classIndex == 0 && Empty(stock.armors) && Empty(stock.weapons) &&
            Empty(stock.quickItems) && Empty(stock.materials) && Empty(stock.spells) && Empty(stock.modifiers) &&
            EmptyMap(stock.spellMap) && EmptyMap(stock.modifierMap);

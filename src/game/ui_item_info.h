@@ -117,7 +117,7 @@ struct ItemTurn {
 };
 static_assert(sizeof(ItemTurn) == 0x18);
 // The item's turning state (CItem +0x1C).
-inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(item->unknown_1C); }
+inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(item->link_); }
 
 class CParty;
 class CItemScreen;

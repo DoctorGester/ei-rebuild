@@ -58,18 +58,12 @@ void MapConstruct(std::uint8_t* map) { reinterpret_cast<StockMapView*>(map)->Ini
 __declspec(naked) void __fastcall ModifierMapDestroy(std::uint8_t* /*map*/) EI_ORIGINAL(0x004A9010)
 __declspec(naked) void __fastcall SpellMapDestroy(std::uint8_t* /*map*/) EI_ORIGINAL(0x004A8E60)
 
-// _Vector_base's destructor: the storage back to the node allocator (operator delete above 128
-// bytes).
-template <typename V>
-void VectorFree(V* v) {
-    if (v->start) stlp::deallocate(v->start, static_cast<std::size_t>(v->eos - v->start) * sizeof(*v->start));
-}
-
-template <typename V>
-void VectorConstruct(V* v) {
-    v->start = nullptr;
-    v->finish = nullptr;
-    v->eos = nullptr;
+// The vectors' constructor: no storage.
+template <typename T>
+void VectorConstruct(stlp::vector<T>* v) {
+    v->Start() = nullptr;
+    v->Finish() = nullptr;
+    v->EndOfStorage() = nullptr;
 }
 
 } // namespace
@@ -110,12 +104,13 @@ void ItemStock::Destruct() {
     context = nullptr;
     ModifierMapDestroy(modifierMap);
     SpellMapDestroy(spellMap);
-    VectorFree(&modifiers);
-    VectorFree(&spells);
-    VectorFree(&materials);
-    VectorFree(&quickItems);
-    VectorFree(&weapons);
-    VectorFree(&armors);
+    // _Vector_base's destructors: the storage back to the node allocator (operator delete above 128 bytes).
+    modifiers.FreeStorage();
+    spells.FreeStorage();
+    materials.FreeStorage();
+    quickItems.FreeStorage();
+    weapons.FreeStorage();
+    armors.FreeStorage();
 }
 
 void ClassTemplate::Destruct() {

@@ -50,9 +50,9 @@ T* ConstructBoth(const char* name, T*(__fastcall* original)(T*), T* self) {
 bool BuiltItem(const CItem* item) {
     const std::uint32_t minusOne = 0xBF800000;
     bool ok = item->refCount_ == 0 && item->flags_ == 0 && item->id_ == -1 && item->type_ == 0 &&
-              item->owner_ == nullptr && item->unknown_18 == 0 && item->unknown_1C == 0 && item->spell_ == nullptr &&
-              item->unknown_48 == 1;
-    const std::uint32_t* fields[] = {&item->unknown_20, &item->unknown_24, &item->unknown_34, &item->unknown_3C};
+              item->owner_ == nullptr && item->unknown_18 == 0 && item->link_ == 0 && item->spell_ == nullptr &&
+              item->count_ == 1;
+    const std::uint32_t* fields[] = {&item->condition_, &item->conditionMax_, &item->weight_, &item->unknown_3C};
     for (const std::uint32_t* f : fields) ok = ok && *f == minusOne;
     ok = ok && Bits(&item->charge_) == minusOne && Bits(&item->chargeMax_) == minusOne &&
          Bits(&item->chargeRate_) == minusOne && Bits(&item->price_) == minusOne;
@@ -70,7 +70,7 @@ CItemArmor* __fastcall ArmorCtorVerify(CItemArmor* self) {
 CItemWeapon* __fastcall WeaponCtorVerify(CItemWeapon* self) {
     CItemWeapon* result = self->Construct();
     bool extra = self->unknown_4C == 0 && Bits(&self->damage_) == 0xBF800000 &&
-                 Bits(&self->damageSpread_) == 0xBF800000 && Bits(&self->unknown_58) == 0xBF800000;
+                 Bits(&self->damageSpread_) == 0xBF800000 && Bits(&self->reach_) == 0xBF800000;
     ei::verify::Check("CItemWeapon::Construct", true,
                       result == self && VtableOf(self) == 0x00743DFC && BuiltItem(self) && extra, "object %p", self);
     return result;
@@ -101,20 +101,20 @@ CItemSpell* __fastcall SpellCtorVerify(CItemSpell* self) {
 }
 
 int __fastcall CreateVerify(CItem* self) {
-    int result = self->CreateItem();
-    ei::verify::Check("CItem::CreateItem", true, result == 1 && self->unknown_48 == 1 && self->spell_ == nullptr,
+    int result = self->CItem::Create();
+    ei::verify::Check("CItem::Create", true, result == 1 && self->count_ == 1 && self->spell_ == nullptr,
                       "item %p", self);
     return result;
 }
 void __fastcall DestroyVerify(CItem* self) {
-    self->DestroyItem();
-    ei::verify::Check("CItem::DestroyItem", true, self->spell_ == nullptr && self->unknown_1C == 0, "item %p", self);
+    self->CItem::Destroy();
+    ei::verify::Check("CItem::Destroy", true, self->spell_ == nullptr && self->link_ == 0, "item %p", self);
 }
 
 // What the destructor body leaves: CEngineObject's vtable, no owner, spell or link.
 bool Destructed(const CItem* item) {
     return VtableOf(item) == CEngineObject::kVtableAddress && item->owner_ == nullptr && item->spell_ == nullptr &&
-           item->unknown_1C == 0;
+           item->link_ == 0;
 }
 void __fastcall DestructVerify(CItem* self) {
     self->DestructBody();
@@ -159,8 +159,8 @@ EI_VERIFY(0x006A5720, DeletingVerify, 0, s_unused);
 // the factory allocates; a new item reports the kind's class and carries the kind in type_.
 namespace {
 BOOL __fastcall ManagerCreateVerify(CItemManager* self) {
-    BOOL result = ItemManagerCreate(self);
-    ei::verify::Check("ItemManagerCreate", true, result == 0 || result == 1, "manager %p -> %d", static_cast<void*>(self),
+    BOOL result = self->CItemManager::Create();
+    ei::verify::Check("CItemManager::Create", true, result == 0 || result == 1, "manager %p -> %d", static_cast<void*>(self),
                       result);
     return result;
 }
@@ -178,11 +178,11 @@ int ClassOfKind(int kind) {
 }
 
 CEngineObject* __fastcall NewObjectVerify(CBaseManager* manager, void*, int kind) {
-    CEngineObject* object = ItemNewObject(manager, nullptr, kind);
+    CEngineObject* object = static_cast<CItemManager*>(manager)->CItemManager::NewObject(kind);
     const int expectedClass = ClassOfKind(kind);
     const bool ok = expectedClass < 0 ? object == nullptr
                                       : object == nullptr || (object->type_ == kind && object->GetClassId() == expectedClass);
-    ei::verify::Check("ItemNewObject", true, ok, "kind %X object %p", kind, static_cast<void*>(object));
+    ei::verify::Check("CItemManager::NewObject", true, ok, "kind %X object %p", kind, static_cast<void*>(object));
     return object;
 }
 } // namespace

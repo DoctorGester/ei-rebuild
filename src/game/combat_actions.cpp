@@ -350,7 +350,7 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     item->charge_ = item->charge_ - cost;
     WorldItemChanged(world, nullptr, item);
     char* player = unit->player;
-    const char* ref = reinterpret_cast<const char*>(static_cast<std::uintptr_t>(item->unknown_1C));
+    const char* ref = reinterpret_cast<const char*>(static_cast<std::uintptr_t>(item->link_));
     if (!player || !ref) return;
     auto* items = ei::VCall<CBaseManager*>(player + 0x70, kWorldSlotItems);
     auto* copy = static_cast<CItem*>(items->FindObject(Field<std::uint32_t>(ref, 8)));

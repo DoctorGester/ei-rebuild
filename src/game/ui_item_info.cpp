@@ -516,7 +516,7 @@ void CItemInfoPanel::DescribeItem() {
     bool materialLine;
     if (kind == kQuick) {
         char* prototype = Of(item)->Prototype();
-        materialLine = !prototype || MbsICmp(static_cast<const char*>(reinterpret_cast<itemdb::ItemRecordHead*>(prototype)->text10), GameText(0x007846F0)) != 0;   // "none"
+        materialLine = !prototype || MbsICmp(static_cast<const char*>(reinterpret_cast<itemdb::ItemRecordHead*>(prototype)->materialClass), GameText(0x007846F0)) != 0;   // "none"
     } else {
         materialLine = kind != kQuest && kind != kLoot;
     }
@@ -701,7 +701,7 @@ void CItemInfoPanel::DescribeBlueprint() {
         w.Number(2, FtolOf(head->charge));
         w.Number(14, At<int>(record, 0x44));
     }
-    if (sort <= 1) w.Number(3, FtolOf(head->value48));
+    if (sort <= 1) w.Number(3, FtolOf(head->condition));
     if (sort == 0) {
         // A weapon: damage (times 10), the first damage kind with a weight, and its figures.
         unsigned first = FirstDamageKind(weapon->damageTypes);

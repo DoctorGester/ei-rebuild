@@ -1145,7 +1145,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             int id = Ftol(f[0]);
             for (int i = 0; i < count; ++i) {
                 auto* item = static_cast<CItemQuest*>(static_cast<CUnit*>(unit)->carried[i]);
-                if (static_cast<int>(item->unknown_4C) == id) {
+                if (static_cast<int>(item->questItemId_) == id) {
                     UnitRemoveCarried(static_cast<CUnit*>(unit), nullptr, i);
                     break;
                 }

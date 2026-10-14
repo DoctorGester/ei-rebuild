@@ -98,7 +98,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         line.Format(GameText(0x007944B0), labels_[0], Truncate(weapon->damage_),   // "%s %d-%d %s\n"
                     Truncate(weapon->damageSpread_ + weapon->damage_), static_cast<const char*>(description));
         tip += line;
-        float value = weapon->unknown_58;
+        float value = weapon->reach_;
         int category = Get<int>(weapon->GetPrototype(), 0x6C);
         line.Format(GameText(0x007944A0), labels_[1], category, labels_[2], Truncate(value));   // "%s %d  %s %d\n"
         tip += line;
@@ -132,7 +132,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
     text->Empty();
     // (The original passes one CString as the description and the kind.)
     TextManagerItemTexts(Texts(), nullptr, item, text, &line, &line);
-    auto* data = static_cast<std::uint8_t*>(item->spell_);
+    auto* data = reinterpret_cast<std::uint8_t*>(item->spell_);
     if (!data) return;
     const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
     const float pi = *reinterpret_cast<const volatile float*>(0x007423F8);

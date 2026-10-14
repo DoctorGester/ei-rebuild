@@ -150,7 +150,7 @@ void CWorldServer::TakeZoneQuestItems(void* itemArray, void* listArg) {
         itemdb::QuestItemRecord* info = reinterpret_cast<itemdb::QuestItemRecord*>(ItemGetPrototypeOriginal(reinterpret_cast<CItem*>(item)));
         if (unknown12D64_ == kKindSinglePlayer && !IsMultiplayerClient()) {
             bool here = info && NamesZone(info, zoneName_);
-            if (!here && !Contains(wanted, static_cast<int>(static_cast<CItemQuest*>(item)->unknown_4C))) continue;
+            if (!here && !Contains(wanted, static_cast<int>(static_cast<CItemQuest*>(item)->questItemId_))) continue;
         }
         AddTail(*list, ItemAt(items, i));
         int following = items->size - i - 1;
@@ -183,7 +183,7 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
                 ObjectList one;
                 InitList(one);
                 CEngineObject* fresh = DuplicateItem(item);
-                static_cast<CItem*>(fresh)->unknown_48 = static_cast<CItem*>(item)->unknown_48;
+                static_cast<CItem*>(fresh)->count_ = static_cast<CItem*>(item)->count_;
                 AddTail(one, fresh);
                 PlayerGiveItems(player, nullptr, &one, 0);
                 item->Release();
@@ -286,7 +286,7 @@ CEngineObject* CWorldServer::CopyItem(CEngineObject* item) {
     CEngineObject* factory = ItemFactory();
     CEngineObject* copy = FactoryMakeItem(factory, nullptr, type, static_cast<int>(packed >> 16),
                                           static_cast<int>(packed & 0xFFFF), -1);
-    source->CopyToSlot(static_cast<CItem*>(copy), SpellManager());
+    source->CopyTo(static_cast<CItem*>(copy), SpellManager());
     std::memcpy(&static_cast<CItem*>(copy)->charge_, &source->charge_, 4);
     // An item below its maximum is kept on the counted list (once).
     float current = source->charge_;
@@ -325,15 +325,15 @@ EI_REPLACE_METHOD(0x00594CE0, CWorldServer::CopyItem);
 
 void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
     if (unit->player) {
-        if (auto* link = reinterpret_cast<ItemSourceRef*>(item->unknown_1C)) {
+        if (auto* link = reinterpret_cast<ItemSourceRef*>(item->link_)) {
             CParty* party = reinterpret_cast<WorldPlayer*>(unit->player)->Party();
             if (reinterpret_cast<PartyRecords*>(party)->Find(unit->id_)) {
                 CEngineObject* source = party->ItemManager()->FindObject(link->itemId);
-                if (source) --static_cast<CItem*>(source)->unknown_48;
+                if (source) --static_cast<CItem*>(source)->count_;
             }
         }
     }
-    --item->unknown_48;
+    --item->count_;
 }
 EI_REPLACE_METHOD(0x00595020, CWorldServer::UseItemUp);
 EI_REPLACE_METHOD(0x00594F30, CWorldServer::AddCounted);

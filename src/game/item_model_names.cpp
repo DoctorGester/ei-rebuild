@@ -10,16 +10,9 @@
 
 using namespace itemdb;
 
-namespace {
-// The two-letter armour type codes (00796534..0079654C), by type.
-constexpr const char* kArmorCodes[7] = {"hl", "pl", "lg", "sh", "pt", "bt", "gl"};
-// The weapons' (007963E0..007963F4, "hm" at 00784524).
-constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
-} // namespace
-
 void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std::uint32_t materialIndex) {
-    auto* material = reinterpret_cast<const MaterialRecordHead*>(Materials().At(materialIndex, kMaterialSize));
-    auto* armor = reinterpret_cast<const ItemRecordHead*>(Armors().At(armorIndex, kArmorSize));
+    const MaterialRecordHead* material = MaterialAt(materialIndex);
+    const ArmorRecord* armor = ArmorAt(armorIndex);
     out->Empty();
     if (!material || !armor) return;
     // The code goes into the stack slot of `materialIndex` (4 bytes): another type keeps the
@@ -32,8 +25,8 @@ void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std:
 EI_REPLACE(0x006A3480, ArmorModelName);
 
 void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, std::uint32_t materialIndex) {
-    auto* material = reinterpret_cast<const MaterialRecordHead*>(Materials().At(materialIndex, kMaterialSize));
-    auto* weapon = reinterpret_cast<const ItemRecordHead*>(Weapons().At(weaponIndex, kWeaponSize));
+    const MaterialRecordHead* material = MaterialAt(materialIndex);
+    const WeaponRecord* weapon = WeaponAt(weaponIndex);
     out->Empty();
     if (!weapon || !material) return;
     // As the armour's: the code goes into the stack slot of `materialIndex`.

@@ -12,17 +12,17 @@ namespace {
 template <typename T>
 BOOL SameBoth(const char* name, BOOL(__fastcall* original)(T*, void*, T*), T* self, T* other) {
     BOOL expected = original(self, nullptr, other);
-    BOOL actual = self->IsSameAs(other);
+    BOOL actual = self->T::IsSameAs(other);
     ei::verify::Check(name, expected, actual, "items %p / %p", self, other);
     return expected;
 }
 
 template <typename T>
-void InitBoth(const char* name, void(__fastcall* original)(T*, void*, const char*), T* self, const char* record) {
+void InitBoth(const char* name, void(__fastcall* original)(T*, void*, const itemdb::ItemRecordHead*), T* self, const itemdb::ItemRecordHead* record) {
     alignas(4) unsigned char scratch[sizeof(T)];
     std::memcpy(scratch, self, sizeof(T));
     original(reinterpret_cast<T*>(scratch), nullptr, record);
-    self->InitFromRecord(record);
+    self->T::InitFromRecord(record);
     int diff = -1;
     for (std::size_t i = 0; i < sizeof(T) && diff < 0; ++i)
         if (scratch[i] != reinterpret_cast<const unsigned char*>(self)[i]) diff = static_cast<int>(i);
@@ -54,24 +54,24 @@ BOOL __fastcall LootSameVerify(CItemLoot* self, void*, CItemLoot* other) {
 
 // 006A0660 / 006A3BE0 / 006A44D0 / 006A4AB0: MOV EAX,[ESP+4] (4); FLD [EAX+48h] (3).
 // 006A3070: MOV EDX,[ESP+4] (4); MOV EAX,ECX (2).
-void(__fastcall* s_weaponInit)(CItemWeapon*, void*, const char*);
-void(__fastcall* s_armorInit)(CItemArmor*, void*, const char*);
-void(__fastcall* s_quickInit)(CItemQuick*, void*, const char*);
-void(__fastcall* s_questInit)(CItemQuest*, void*, const char*);
-void(__fastcall* s_lootInit)(CItemLoot*, void*, const char*);
-void __fastcall WeaponInitVerify(CItemWeapon* self, void*, const char* record) {
+void(__fastcall* s_weaponInit)(CItemWeapon*, void*, const itemdb::ItemRecordHead*);
+void(__fastcall* s_armorInit)(CItemArmor*, void*, const itemdb::ItemRecordHead*);
+void(__fastcall* s_quickInit)(CItemQuick*, void*, const itemdb::ItemRecordHead*);
+void(__fastcall* s_questInit)(CItemQuest*, void*, const itemdb::ItemRecordHead*);
+void(__fastcall* s_lootInit)(CItemLoot*, void*, const itemdb::ItemRecordHead*);
+void __fastcall WeaponInitVerify(CItemWeapon* self, void*, const itemdb::ItemRecordHead* record) {
     InitBoth("CItemWeapon::InitFromRecord", s_weaponInit, self, record);
 }
-void __fastcall ArmorInitVerify(CItemArmor* self, void*, const char* record) {
+void __fastcall ArmorInitVerify(CItemArmor* self, void*, const itemdb::ItemRecordHead* record) {
     InitBoth("CItemArmor::InitFromRecord", s_armorInit, self, record);
 }
-void __fastcall QuickInitVerify(CItemQuick* self, void*, const char* record) {
+void __fastcall QuickInitVerify(CItemQuick* self, void*, const itemdb::ItemRecordHead* record) {
     InitBoth("CItemQuick::InitFromRecord", s_quickInit, self, record);
 }
-void __fastcall QuestInitVerify(CItemQuest* self, void*, const char* record) {
+void __fastcall QuestInitVerify(CItemQuest* self, void*, const itemdb::ItemRecordHead* record) {
     InitBoth("CItemQuest::InitFromRecord", s_questInit, self, record);
 }
-void __fastcall LootInitVerify(CItemLoot* self, void*, const char* record) {
+void __fastcall LootInitVerify(CItemLoot* self, void*, const itemdb::ItemRecordHead* record) {
     InitBoth("CItemLoot::InitFromRecord", s_lootInit, self, record);
 }
 
@@ -96,7 +96,7 @@ ItemUse*(__fastcall* s_questUse)(CItemQuest*, void*, ItemUse*);
 ItemUse* __fastcall QuestUseVerify(CItemQuest* self, void*, ItemUse* out) {
     ItemUse* expected = s_questUse(self, nullptr, out);
     ItemUse ours{~0u, ~0u, ~0u};
-    ItemUse* result = self->GetUse(&ours);
+    ItemUse* result = self->CItemQuest::GetUse(&ours);
     ei::verify::Check("CItemQuest::GetUse", true,
                       expected == out && result == &ours && std::memcmp(out, &ours, sizeof(ours)) == 0,
                       "%u %u %u vs %u %u %u", out->kind, out->value, out->extra, ours.kind, ours.value, ours.extra);
