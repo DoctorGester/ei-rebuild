@@ -381,7 +381,7 @@ static_assert(sizeof(UnitSpec) == 0x324);
 
 // Record constructors (each returns this), by .mob chunk id.
 UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self);             // 0046C010 (0xBBBB0000, 0x324)
-std::int32_t* __fastcall DiplomacyConstruct(std::int32_t* self);    // 0046E5E0
+ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self);  // 0046E5E0
 // The records of a .mob file by id (00481660's local): an STLport hash_map<int, record*> (100
 // buckets to start) and the largest id read.
 struct MobRecords {

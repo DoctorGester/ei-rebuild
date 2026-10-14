@@ -605,11 +605,13 @@ void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const
 
 // The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader 00481660): every
 // pair 1 but a player with itself (0), and the player names "Player-<i>". Returns this.
-std::int32_t* __fastcall DiplomacyConstruct(std::int32_t* self) {
-    auto* names = reinterpret_cast<mfc::CStringArray*>(self + 0x400);
+ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
+    mfc::CStringArray* names = &self->names;
     StringArrayConstruct(names);
-    for (int i = 0; i < 0x400; ++i) self[i] = 1;
-    for (int i = 0; i < 32; ++i) self[i * 33] = 0;
+    for (auto& row : self->relations) {
+        for (std::int32_t& relation : row) relation = 1;
+    }
+    for (int i = 0; i < 32; ++i) self->relations[i][i] = 0;
     for (int i = 0; i < 32; ++i) {
         StringArraySetAtGrow(names, nullptr, names->size, game::EmptyText());
         names->data[i].Format(Text(0x00787E44), i);   // "Player-%i"
