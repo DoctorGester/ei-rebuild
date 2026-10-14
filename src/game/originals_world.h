@@ -77,6 +77,10 @@ __declspec(naked) inline bool __fastcall WorldLootOriginal(void* /*world*/, void
 // already loaded), else the fatal error's result.
 __declspec(naked) inline int __fastcall WorldLoadMobFileOriginal(void* /*world*/, void*, const char* /*file*/)
     EI_ORIGINAL(0x00595AB0)
+// 0066ED30 (rewritten as CPlayerServer::SendPosition04; RET 0xC): the player's server sends message 0x04 (a position
+// and two dwords: the start view's bits or 0, then the start kind); EAX the send's result.
+__declspec(naked) inline int __fastcall PlayerSendPosition04Original(void* /*server*/, void*, const Vector3* /*at*/,
+                                                                     std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066ED30)
 __declspec(naked) inline void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x0057ED60)
 // 005800C0 (rewritten as GameFlow::UpdateFromServer; patched by Rebirth, so called here): the game

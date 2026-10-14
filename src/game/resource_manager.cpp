@@ -9,8 +9,6 @@
 #include <cstring>
 
 namespace {
-// Archive constructors (not rewritten yet; they build the STLport hash maps).
-__declspec(naked) CMappedResource* __fastcall ConstructMmioResource(void*) EI_ORIGINAL(0x006721D0)
 
 bool SameName(const stlp::string& a, const char* b) {
     std::size_t n = std::strlen(b);
@@ -67,7 +65,7 @@ BOOL CResourceManager::AddArchive(const char* path) {
 }
 
 BOOL CResourceManager::AddMmioArchive(const char* path) {
-    return AddArchiveOf(path, sizeof(CMMIOResource), ConstructMmioResource);
+    return AddArchiveOf(path, sizeof(CMMIOResource), MmioResourceConstructOriginal);
 }
 EI_REPLACE_METHOD(0x005AA360, CResourceManager::AddMmioArchive);
 

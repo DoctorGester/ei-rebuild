@@ -37,13 +37,13 @@ struct CampPanel {
     void ShowHelp(int topic);                    // 005F2910 (help panel: "camphelp%d")
     void ShowStats(int page);                    // 006233C0 (stats panel, ui_hero_panels.cpp)
     void SelectTrade(int index);                 // 00625860 (trade panel)
-    int SettleTrade(char a, char all);           // 006255A0 (trade panel)
+    void SettleTrade(char a, char all);          // 006255A0 (trade panel)
     void AddItem(void* item);                    // 00621570 (an item strip)
 };
 void CampPanel::ShowHelp(int topic) { InfoPanelShowHelpOriginal(this, nullptr, topic); }
 __declspec(naked) void CampPanel::ShowStats(int) EI_ORIGINAL(0x006233C0)
 void CampPanel::SelectTrade(int index) { TradePanelSelectHeroOriginal(this, nullptr, index); }
-int CampPanel::SettleTrade(char a, char all) { return TradePanelSettleOriginal(this, nullptr, a, all); }
+void CampPanel::SettleTrade(char a, char all) { TradePanelSettleOriginal(this, nullptr, a, all); }
 void CampPanel::AddItem(void* item) { ItemStripScrollToItemOriginal(this, nullptr, item); }
 CampPanel* Panel(void* window) { return static_cast<CampPanel*>(window); }
 
@@ -1205,18 +1205,14 @@ namespace {
 // The hero record (thiscall, RET 4): 006608D0 / 00660AB0 / 00660E70 add a weapon, a 0x3006 item, a
 // 0x3008 item; 00660C90 adds armour and returns what the unit wears.
 struct HeroRecordAdd {
-    void AddWeapon(std::uint8_t* item);       // 006608D0
-    void Add3006(std::uint8_t* item);         // 00660AB0
-    void Add3008(std::uint8_t* item);         // 00660E70
+    void AddWeapon(std::uint8_t* item) { RecordAddQuickEntryOriginal(this, nullptr, item); }   // 006608D0
+    void Add3006(std::uint8_t* item) { RecordAddBeltEntryOriginal(this, nullptr, item); }      // 00660AB0
+    void Add3008(std::uint8_t* item) { RecordAddSpellEntryOriginal(this, nullptr, item); }     // 00660E70
     void* AddArmour(std::uint8_t* item) { return RecordAddWornEntryOriginal(this, nullptr, item); }   // 00660C90
 };
-__declspec(naked) void HeroRecordAdd::AddWeapon(std::uint8_t*) EI_ORIGINAL(0x006608D0)
-__declspec(naked) void HeroRecordAdd::Add3006(std::uint8_t*) EI_ORIGINAL(0x00660AB0)
-__declspec(naked) void HeroRecordAdd::Add3008(std::uint8_t*) EI_ORIGINAL(0x00660E70)
 // 00530730 (thiscall on a unit, RET 4): wears armour. 00661F30 (thiscall on the player's data,
 // RET 8): takes an item out of the player's items.
 void __fastcall UnitWearArmour(std::uint8_t* a0, void*, void* a2) { UnitEquipArmourOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall PlayerDropItem(std::uint8_t*, void*, std::uint8_t*, int) EI_ORIGINAL(0x00661F30)
 // TakeOff through its address (so its hook and wrapper see the call).
 struct TakeOffAt {
     int TakeOff(std::uint8_t* item);
@@ -1269,7 +1265,7 @@ void CCampPages::PutOn(std::uint8_t* item) {
     default:
         return;
     }
-    PlayerDropItem(GlueAt(0x007AFEA5)->PlayerData(), nullptr, item, 0);
+    PartyRemoveItemOriginal(GlueAt(0x007AFEA5)->PlayerData(), nullptr, item, 0);
     StatsPanelDrawStatsOriginal(statsPanel_);
 }
 EI_REPLACE_METHOD(0x0060FCA0, CCampPages::PutOn);

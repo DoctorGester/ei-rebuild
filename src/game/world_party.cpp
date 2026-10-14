@@ -77,8 +77,6 @@ const MapRecord* FindZone(const char* name) {
 }
 // 0049ECC0 (RET 8). Quaternion from an axis and an angle.
 __declspec(naked) void* __fastcall QuaternionFromAxisAngle(void*, void*, const Vector3*, float) EI_ORIGINAL(0x0049ECC0)
-// 0066ED30 (RET 0xC). Sends the player state its start position.
-__declspec(naked) void __fastcall StateSendStart(CPlayerServer*, void*, const Vector3*, std::uint32_t, int) EI_ORIGINAL(0x0066ED30)
 // Rewritten here and elsewhere, reached through their addresses.
 __declspec(naked) void __fastcall TakeZoneQuestItemsAt(CWorldServer*, void*, ItemArray*, ObjectList*) EI_ORIGINAL(0x005901E0)
 __declspec(naked) void __fastcall RestorePlayerItemsAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x00590460)
@@ -252,7 +250,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     std::memcpy(&lastZ, &state->lastPosition_.z, 4);
     if (lastZ != kNoStart) {
         std::memcpy(&state->lastPosition_, &start, sizeof(start));
-        StateSendStart(state, nullptr, &start, startValue, unknown12D64_);
+        PlayerSendPosition04Original(state, nullptr, &start, startValue, unknown12D64_);
     }
     player->lastTick = tick_;
     if (unknown12D64_ == kKindNoRangeTest) WorldUpdateMercBriefingsOriginal(this);

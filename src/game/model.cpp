@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_engine.h"
 
 #include <cstring>
 
@@ -192,7 +193,6 @@ struct ListIterator {
 // insert(pos, value_type()) with the string reserved for 8 bytes, and erase(pos).
 __declspec(naked) ListIterator* __fastcall ListInsertDefault(LinkArchiveNode**, void*, ListIterator*, ListIterator) EI_ORIGINAL(0x004FB2E0)
 __declspec(naked) ListIterator* __fastcall ListErase(LinkArchiveNode**, void*, ListIterator*, ListIterator) EI_ORIGINAL(0x004FAE00)
-__declspec(naked) CMappedResource* __fastcall ConstructMmioResource(void*) EI_ORIGINAL(0x006721D0)
 } // namespace
 
 int CLinkFigureLoader::AddArchive(const stlp::string* path) {
@@ -206,7 +206,7 @@ int CLinkFigureLoader::AddArchive(const stlp::string* path) {
     if (&node->name != path && path->size() != 0) node->name.Append(path->data(), path->data() + path->size());
 
     void* memory = gamecrt::operator_new(sizeof(CMMIOResource));
-    CMappedResource* resource = memory ? ConstructMmioResource(memory) : nullptr;
+    CMappedResource* resource = memory ? MmioResourceConstructOriginal(memory) : nullptr;
     node->resource = resource;
     if (resource->OpenResource(path->data(), 0)) return 1;
 

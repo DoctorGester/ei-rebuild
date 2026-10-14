@@ -45,7 +45,7 @@ src/game/console.cpp,0,0,0,0,54,3,0,0,0,0,0
 src/game/console.h,0,0,0,0,3,0,0,0,0,0,0
 src/game/console_addon.cpp,0,0,0,0,0,1,0,1,0,0,0
 src/game/console_commands.cpp,8,0,0,0,34,6,0,1,0,0,0
-src/game/console_window.cpp,0,0,0,0,0,2,0,0,0,0,0
+src/game/console_window.cpp,0,0,0,0,0,1,0,0,0,0,0
 src/game/core_maths.cpp,0,0,0,2,0,0,0,0,0,0,7
 src/game/core_streams.h,0,0,0,0,4,0,0,0,0,0,0
 src/game/core_transform.cpp,0,4,0,0,0,0,0,0,0,0,5
