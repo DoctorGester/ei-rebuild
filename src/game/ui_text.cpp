@@ -20,28 +20,21 @@ namespace {
 // 005F8340 (Rebirth-patched, called through its address): the extent of `text` in interface
 // font `font`. It takes a CString by value and releases it; a naked forwarder cannot declare a
 // by-value CString, so the string's data pointer is handed over (TextExtent).
-struct TextMetricsAt {
-    // The SIZE comes back through the hidden pointer, as a member function's struct result does.
-    SIZE TextExtentRaw(char* text, int font) {
-        SIZE size;
-        InterfaceTextExtentOriginal(reinterpret_cast<CInterface3D*>(this), nullptr, &size, text, font);
-        return size;
-    }
-    // Passes `text` by value: its data goes to the callee, which releases it.
-    SIZE TextExtent(mfc::CString text, int font) {
-        char* data;
-        std::memcpy(&data, &text, sizeof(data));
-        mfc::CString empty;
-        std::memcpy(&text, &empty, sizeof(data));   // `text` now owns nothing
-        return TextExtentRaw(data, font);
-    }
-};
+// Passes `text` by value: its data goes to the callee, which releases it.
+SIZE TextExtent(CInterface3D* ui, mfc::CString text, int font) {
+    char* data;
+    std::memcpy(&data, &text, sizeof(data));
+    mfc::CString empty;
+    std::memcpy(&text, &empty, sizeof(data));   // `text` now owns nothing
+    SIZE size;
+    InterfaceTextExtentOriginal(ui, nullptr, &size, data, font);
+    return size;
+}
 
-// 005FDE20 (Rebirth-patched): draws one line into the layout rectangle.
-struct SurfaceTextAt {
-    int Text(const char* text, RECT* rect, int font, COLORREF colour, int format, int flag);
-};
-int SurfaceTextAt::Text(const char* text, RECT* rect, int format, COLORREF colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
+// 005FDE20 (Rebirth-patched; through its address): draws one line into the layout rectangle.
+int DrawLine(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour, int format, int flag) {
+    return SurfaceDrawText(surface, nullptr, text, rect, font, colour, format, flag);
+}
 
 // The character at `p` as the original compares it: a lead byte shifted left by 8 (sign-extended)
 // plus the next byte (sign-extended), otherwise the byte itself.
@@ -62,9 +55,7 @@ constexpr std::uintptr_t kSpace = 0x0078DA40;     // " " put back after each wor
 
 int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour,
                                 int format, int flag) {
-    void* inner = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(this) + 0x10);
-    if (!inner) return 0;
-    TextMetricsAt* metrics = reinterpret_cast<TextMetricsAt*>(interface_);
+    if (!holder_) return 0;
     int width = rect->right - rect->left;
     mfc::CString ch, word, line;
     mfc::CString source(text);
@@ -81,7 +72,7 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
         }
         int c = CharAt(p);
         if (c == '\n') {
-            if (metrics->TextExtent(line + word, font).cx > width) {
+            if (TextExtent(interface_, line + word, font).cx > width) {
                 lines.SetAtGrow(lines.GetSize(), line);
                 lines.SetAtGrow(lines.GetSize(), word);
             } else {
@@ -91,7 +82,7 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
             line.Empty();
             word.Empty();
         } else if (c == ' ') {
-            if (metrics->TextExtent(line + word, font).cx > width) {
+            if (TextExtent(interface_, line + word, font).cx > width) {
                 lines.SetAtGrow(lines.GetSize(), line);
                 line = word + console::GameText(kSpace);
             } else {
@@ -106,7 +97,7 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     RECT at = *rect;
     int height = rect->bottom - rect->top;
     for (int i = 0; i < maxLines && i < lines.GetSize(); ++i) {
-        reinterpret_cast<SurfaceTextAt*>(this)->Text(lines[i], &at, font, colour, format, flag);
+        DrawLine(this, lines[i], &at, font, colour, format, flag);
         gameapi::OffsetRect(&at, 0, height);
     }
     return lines.GetSize();

@@ -25,20 +25,10 @@
 
 namespace {
 
-// What a surface's +0x10 points at: a counted holder of the DirectDraw surface.
-struct SurfaceHolder {
-    void* vtable;                // [0](1): deleting destructor
-    int references;              // +0x04
-    long result;                 // +0x08 the last DirectDraw call's result
-    std::uint8_t* device;        // +0x0C the device; its +0x18 holds the screen's holder
-    void** surface;              // +0x10 IDirectDrawSurface7
-};
+// What a surface's holder_ points at: a counted holder of the DirectDraw surface (texture.h).
+using SurfaceHolder = CDXSurface;
 
-SurfaceHolder* HolderOf(const CUiSurface* surface) {
-    SurfaceHolder* holder;
-    std::memcpy(&holder, reinterpret_cast<const std::uint8_t*>(surface) + 0x10, 4);
-    return holder;
-}
+SurfaceHolder* HolderOf(const CUiSurface* surface) { return surface->holder_; }
 
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
@@ -48,17 +38,17 @@ CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x00
 // 004F0B00 (cdecl): the copies' error report (an empty function in 1.06).
 
 // IDirectDrawSurface7 slots.
-long Blt(void** surface, RECT* to, void** from, RECT* fromRect, unsigned long flags, void* fx) {
-    using Fn = long(__stdcall*)(void**, RECT*, void**, RECT*, unsigned long, void*);
-    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(surface))[5])(surface, to, from, fromRect, flags, fx);
+long Blt(void* surface, RECT* to, void* from, RECT* fromRect, unsigned long flags, void* fx) {
+    using Fn = long(__stdcall*)(void*, RECT*, void*, RECT*, unsigned long, void*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(surface))[5])(surface, to, from, fromRect, flags, fx);
 }
-long LockSurface(void** surface, std::uint32_t* desc) {
-    using Fn = long(__stdcall*)(void**, RECT*, void*, unsigned long, void*);
-    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(surface))[25])(surface, nullptr, desc, 1, nullptr);
+long LockSurface(void* surface, std::uint32_t* desc) {
+    using Fn = long(__stdcall*)(void*, RECT*, void*, unsigned long, void*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(surface))[25])(surface, nullptr, desc, 1, nullptr);
 }
-long UnlockSurface(void** surface) {
-    using Fn = long(__stdcall*)(void**, RECT*);
-    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(surface))[32])(surface, nullptr);
+long UnlockSurface(void* surface) {
+    using Fn = long(__stdcall*)(void*, RECT*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(surface))[32])(surface, nullptr);
 }
 
 constexpr unsigned long kBltWait = 0x01000000;   // DDBLT_WAIT
@@ -118,7 +108,7 @@ std::uint32_t Grey32(std::uint32_t pixel) {
 void CUiSurface::CaptureScreen() {
     SurfaceHolder* holder = HolderOf(this);
     if (!holder) return;
-    SurfaceHolder* screen = *reinterpret_cast<SurfaceHolder**>(holder->device + 0x18);
+    SurfaceHolder* screen = holder->device->renderTarget_;
     if (screen->surface == holder->surface) return;
     // In the switch-over the old render target does not hold the frame being drawn: no copy from it
     // (and a holder made in the switch-over has no DirectDraw surface to copy into).
@@ -139,8 +129,7 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     CUiSurface* copy = nullptr;
     if (memory) {
-        int format;
-        std::memcpy(&format, reinterpret_cast<std::uint8_t*>(this) + 0x0C, 4);
+        int format = static_cast<int>(flags_);   // the format, as the constructors store it
         copy = static_cast<CUiSurface*>(memory)->Construct(interface_, 0, 0, width, height, format, 0);
     }
     SurfaceHolder* from = HolderOf(this);
@@ -272,11 +261,11 @@ void CUiSurface::Greyscale() {
 namespace {
 
 // 004E6BA0 (thiscall): drops a holder reference.
-void ReleaseHolder(SurfaceHolder* holder) { reinterpret_cast<CDXSurface*>(holder)->Release(); }
+void ReleaseHolder(SurfaceHolder* holder) { holder->Release(); }
 
-long GetSurfaceDesc(void** surface, std::uint32_t* desc) {
-    using Fn = long(__stdcall*)(void**, void*);
-    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(surface))[22])(surface, desc);
+long GetSurfaceDesc(void* surface, std::uint32_t* desc) {
+    using Fn = long(__stdcall*)(void*, void*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(surface))[22])(surface, desc);
 }
 
 std::uint32_t& KeptBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E74); }
@@ -285,29 +274,21 @@ std::uint32_t& SurfaceBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x
 } // namespace
 
 void CUiSurface::SwapContents(int restore) {
-    auto* self = reinterpret_cast<std::uint8_t*>(this);
-    auto keptAt = [self] { return reinterpret_cast<std::uint8_t**>(self + 0x1C); };
-    auto keptSize = [self] { return reinterpret_cast<std::uint32_t*>(self + 0x20); };
-    auto holderAt = [self] { return reinterpret_cast<SurfaceHolder**>(self + 0x10); };
     std::uint32_t desc[0x1F];
     if (restore) {
-        if (!*holderAt()) {
+        if (!holder_) {
             // A new surface of the surface's size.
             void* memory = gamecrt::operator_new(0x20);
             SurfaceHolder* made = nullptr;
             if (memory) {
-                void* device;
-                std::memcpy(&device, reinterpret_cast<std::uint8_t*>(interface_) + 8, 4);
-                int width, height;
-                std::memcpy(&width, self + 0x14, 4);
-                std::memcpy(&height, self + 0x18, 4);
-                made = reinterpret_cast<SurfaceHolder*>(DXSurfaceConstructOriginal(memory, nullptr, device, width, height));
+                made = reinterpret_cast<SurfaceHolder*>(
+                    DXSurfaceConstructOriginal(memory, nullptr, interface_->renderer_, width_, height_));
             }
-            SurfaceHolder* previous = *holderAt();
-            *holderAt() = made;
-            if (made) ++made->references;
+            SurfaceHolder* previous = holder_;
+            holder_ = made;
+            if (made) ++made->refCount;
             if (previous) ReleaseHolder(previous);
-            SurfaceHolder* holder = *holderAt();
+            SurfaceHolder* holder = holder_;
             std::memset(desc, 0, sizeof(desc));
             desc[0] = 0x7C;
             if (!DirectPixels(holder, desc)) {
@@ -317,8 +298,8 @@ void CUiSurface::SwapContents(int restore) {
             }
             SurfaceBytesTotal() += desc[kDescHeight] * desc[kDescPitch];
         }
-        if (!*keptAt()) return;
-        SurfaceHolder* holder = *holderAt();
+        if (!kept_) return;
+        SurfaceHolder* holder = holder_;
         gameapi::EnterCriticalSection(DeviceLock());
         std::memset(desc, 0, sizeof(desc));
         desc[0] = 0x7C;
@@ -328,21 +309,21 @@ void CUiSurface::SwapContents(int restore) {
             holder->result = hr;
             if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
         }
-        std::memcpy(reinterpret_cast<void*>(desc[kDescSurface]), *keptAt(), *keptSize());
-        KeptBytesTotal() -= *keptSize();
-        holder = *holderAt();
+        std::memcpy(reinterpret_cast<void*>(desc[kDescSurface]), kept_, keptSize_);
+        KeptBytesTotal() -= keptSize_;
+        holder = holder_;
         gameapi::LeaveCriticalSection(DeviceLock());
         if (!direct) {
             long hr = UnlockSurface(holder->surface);
             holder->result = hr;
             if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
         }
-        gamecrt::operator_delete(*keptAt());
-        *keptAt() = nullptr;
-        *keptSize() = 0;
+        gamecrt::operator_delete(kept_);
+        kept_ = nullptr;
+        keptSize_ = 0;
         return;
     }
-    SurfaceHolder* holder = *holderAt();
+    SurfaceHolder* holder = holder_;
     if (!holder) return;
     gameapi::EnterCriticalSection(DeviceLock());
     std::memset(desc, 0, sizeof(desc));
@@ -353,24 +334,24 @@ void CUiSurface::SwapContents(int restore) {
         holder->result = hr;
         if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
     }
-    if (*keptAt()) gamecrt::operator_delete(*keptAt());
-    *keptSize() = desc[kDescHeight] * desc[kDescPitch];
-    *keptAt() = static_cast<std::uint8_t*>(gamecrt::operator_new(*keptSize()));
-    std::memcpy(*keptAt(), reinterpret_cast<const void*>(desc[kDescSurface]), *keptSize());
-    KeptBytesTotal() += *keptSize();
-    holder = *holderAt();
+    if (kept_) gamecrt::operator_delete(kept_);
+    keptSize_ = desc[kDescHeight] * desc[kDescPitch];
+    kept_ = static_cast<std::uint8_t*>(gamecrt::operator_new(keptSize_));
+    std::memcpy(kept_, reinterpret_cast<const void*>(desc[kDescSurface]), keptSize_);
+    KeptBytesTotal() += keptSize_;
+    holder = holder_;
     gameapi::LeaveCriticalSection(DeviceLock());
     if (!direct) {
         long hr = UnlockSurface(holder->surface);
         holder->result = hr;
         if (hr != 0) FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
     }
-    SurfaceBytesTotal() -= *keptSize();
-    SurfaceHolder* released = *holderAt();
-    *holderAt() = nullptr;
-    if (released && --released->references == 0) {
+    SurfaceBytesTotal() -= keptSize_;
+    SurfaceHolder* released = holder_;
+    holder_ = nullptr;
+    if (released && --released->refCount == 0) {
         using DeleteFn = void(__thiscall*)(SurfaceHolder*, int);
-        reinterpret_cast<DeleteFn>(*reinterpret_cast<void**>(released->vtable))(released, 1);
+        reinterpret_cast<DeleteFn>(*static_cast<void**>(released->vtable))(released, 1);
     }
 }
 
@@ -379,10 +360,7 @@ void CUiSurface::SwapContents(int restore) {
 std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y) {
     SurfaceHolder* holder = HolderOf(self);
     if (!holder || x < 0 || y < 0) return 0;
-    int width, height;
-    std::memcpy(&width, reinterpret_cast<const std::uint8_t*>(self) + 0x14, 4);
-    std::memcpy(&height, reinterpret_cast<const std::uint8_t*>(self) + 0x18, 4);
-    if (x >= width || y >= height) return 0;
+    if (x >= self->width_ || y >= self->height_) return 0;
     gameapi::EnterCriticalSection(DeviceLock());
     std::uint32_t desc[0x1F] = {};
     desc[0] = 0x7C;

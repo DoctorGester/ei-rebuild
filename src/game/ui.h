@@ -1051,6 +1051,11 @@ void __fastcall UiDwordsSetSize(UiDwordArray* array, void*, int size, int growBy
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
 struct UiD3DDevice {
     // IDirect3DDevice7 slots 20 / 21 (stdcall).
+    // Slot 10: Clear(count, rects, flags, colour, z, stencil).
+    long Clear(DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, void*, DWORD, DWORD, float, DWORD);
+        return reinterpret_cast<Fn>(vtable_[10])(this, count, rects, flags, colour, z, stencil);
+    }
     long SetRenderState(std::uint32_t state, std::uint32_t value) {
         using Fn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, std::uint32_t);
         return reinterpret_cast<Fn>(vtable_[20])(this, state, value);
@@ -1914,7 +1919,7 @@ public:
     // world's update period (27 ms fast, 55 normal), the interface's copy, no blink, no pulse.
     void SetupVanilla(int fast);
 
-    std::uint8_t unknown_148[4];
+    CBattleScreen* owner_;           // +0x148 (Create sets it; the clock does not read it)
     float blink_;                    // +0x14C 0..1, the pause blink phase
     float dial_;                     // +0x150 speed dial angle (wraps at pi / 6)
     int fast_;                       // +0x154 fast game speed (copied to CInterface3D +0x94)
