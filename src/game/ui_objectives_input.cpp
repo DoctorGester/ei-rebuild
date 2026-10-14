@@ -47,7 +47,7 @@ void* QuestIndex() { return reinterpret_cast<void*>(0x007C87B4); }
 void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     InputOf(this)->BaseLButtonDown(buttons, x, y);
     int region = RegionAt(x, y);
-    std::uint32_t zoneCount = static_cast<std::uint32_t>(zonesEnd_ - zonesBegin_);
+    std::uint32_t zoneCount = static_cast<std::uint32_t>(zones_.end() - zones_.begin());
     switch (region) {
     case kRegionOk:
         interface_->PlaySound(OkSound(), 0);
@@ -69,12 +69,12 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     case kRegionPreviousZone:
         if (listZones_ == 0 || zoneCount <= 1) return;
         if (--zoneIndex_ < 0) zoneIndex_ = static_cast<int>(zoneCount) - 1;
-        ShowZone(zonesBegin_[zoneIndex_]);
+        ShowZone(zones_[zoneIndex_]);
         return;
     case kRegionNextZone:
         if (listZones_ == 0 || zoneCount <= 1) return;
         if (static_cast<std::uint32_t>(++zoneIndex_) >= zoneCount) zoneIndex_ = 0;
-        ShowZone(zonesBegin_[zoneIndex_]);
+        ShowZone(zones_[zoneIndex_]);
         return;
     default:
         break;
@@ -82,7 +82,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     if (region < kRegionFirstRow) return;
     if (region < kRegionFirstExit) {
         int row = firstRow_ + region - kRegionFirstRow;
-        if (row >= 0 && row < reinterpret_cast<mfc::CStringArray*>(quests_)->GetSize()) {
+        if (row >= 0 && row < quests_.GetSize()) {
             interface_->PlaySound(SelectSound(), 0);
             selectedQuest_ = row;
             DrawQuestList();
@@ -90,7 +90,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
         }
         return;
     }
-    if (region >= exitCount_ + kRegionFirstExit) return;
+    if (region >= exits_.size + kRegionFirstExit) return;
     int exit = region - kRegionFirstExit;
     if (twoButtons_ != 0 && exits_[exit].flag_) {
         interface_->PlaySound(EnterSound(), 0);
@@ -156,7 +156,7 @@ EI_REPLACE(0x0064E330, ObjectivesLButtonDown);
 EI_REPLACE(0x0064E5A0, ObjectivesKeyDown);
 
 void CObjectivesWindow::LoadQuestPlaces(const char* name) {
-    stlp::vector<UiPointF>& places = QuestPlaces();
+    stlp::vector<UiPointF>& places = questPlaces_;
     places.clear();
     if (IsMultiplayerClient()) {
         stlp::string key(name);
@@ -208,7 +208,7 @@ CUiMesh* Sprite(const CObjectivesWindow* window, int index) {
 
 void CObjectivesWindow::SelectExit(int index) {
     nearestExit_ = index;
-    for (int i = 0; i < exitCount_; ++i) {
+    for (int i = 0; i < exits_.size; ++i) {
         CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
         if (i == index) {
             marker->SetScale(markerScale_ * kNearestScale);
@@ -225,7 +225,7 @@ void CObjectivesWindow::SelectExit(int index) {
 EI_REPLACE_METHOD(0x0064E990, CObjectivesWindow::SelectExit);
 
 void CObjectivesWindow::RefreshQuests() {
-    const auto* quests = reinterpret_cast<const mfc::CStringArray*>(quests_);
+    const auto* quests = &quests_;
     if (quests->GetSize() == 0) return;
     if (selectedQuest_ < 0) selectedQuest_ = 0;
     if (selectedQuest_ >= quests->GetSize()) selectedQuest_ = quests->GetSize() - 1;
@@ -251,12 +251,12 @@ void CObjectivesWindow::Update() {
     blinkTime_ = static_cast<float>(time);
     const std::uint32_t slow = gamecrt::Ftol((std::cos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
     const std::uint32_t fast = gamecrt::Ftol((std::cos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
-    for (int i = exitCount_ + kFirstExitSprite; i < sceneObjects_.size; ++i) {
+    for (int i = exits_.size + kFirstExitSprite; i < sceneObjects_.size; ++i) {
         CUiMesh* place = Sprite(this, i);
         place->flags_ |= kPlainColour;
         place->plainColour_ = fast << 24 | 0xFF0000u;
     }
-    for (int i = 0; i < exitCount_; ++i) {
+    for (int i = 0; i < exits_.size; ++i) {
         CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
         marker->flags_ |= kPlainColour;
         marker->plainColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;

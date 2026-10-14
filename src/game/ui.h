@@ -2616,13 +2616,6 @@ public:
     // (its float pairs), otherwise from map.txt's "#quest <name>" entry (the second line after
     // it, its words as x y pairs).
     void LoadQuestPlaces(const char* name);
-    // The quest places (+0x1CC) as the STLport vector they are.
-    stlp::vector<UiPointF>& QuestPlaces() { return reinterpret_cast<stlp::vector<UiPointF>&>(questPlacesBegin_); }
-    // The other containers as what they are (the fields below are their parts).
-    stlp::vector<mfc::CString>& Zones() { return reinterpret_cast<stlp::vector<mfc::CString>&>(zonesBegin_); }
-    mfc::CArray<ObjectiveExit>& Exits() { return reinterpret_cast<mfc::CArray<ObjectiveExit>&>(exitsVtable_); }
-    mfc::CStringArray& Quests() { return reinterpret_cast<mfc::CStringArray&>(quests_); }
-    mfc::CStringArray& ObjectiveTexts() { return reinterpret_cast<mfc::CStringArray&>(objectiveTexts_); }
     // ui_objectives_input.cpp (A-H24).
     // 0064E990 (RET 4). Exit `index` becomes the nearest (+0x19C): its marker (sprite 21 + index)
     // 1.2 times markerScale_ and the first frame, the blink restarted; the others markerScale_ and
@@ -2648,38 +2641,32 @@ public:
     void Setup(const char* zone, void* exitDistances, int twoButtons, int listZones);
     const char* HelpTopic() const;
 
-    char** zonesBegin_;             // +0x164 STLport vector<CString> of the zones listed
-    char** zonesEnd_;                // +0x168
-    char** zonesCapacity_;           // +0x16C
+    stlp::vector<mfc::CString> zones_;   // +0x164 the zones listed
     char* zoneName_;                 // +0x170 CString: the zone it was opened for
     int twoButtons_;                 // +0x174 OK on the left and a second button (else OK centred)
     stlp::map<int, float>* exitDistances_;   // +0x178 exit -> distance, or null
     int listZones_;                  // +0x17C list the zones of the zone's allod with quests
     int zoneIndex_;                  // +0x180 the zone shown
     char* shownZone_;                // +0x184 CString
-    void* exitsVtable_;              // +0x188 CArray<ObjectiveExit>
-    ObjectiveExit* exits_;           // +0x18C
-    int exitCount_;                  // +0x190
-    int exitCapacity_;               // +0x194
-    int exitGrowBy_;                 // +0x198
+    mfc::CArray<ObjectiveExit> exits_;   // +0x188 (vtable 00741264)
     int nearestExit_;                // +0x19C
     int selectedQuest_;              // +0x1A0 row of the quest named by the global at 007C8178
     int shownQuest_;                 // +0x1A4 the row ShowQuest last showed (-1: none)
-    std::uint8_t quests_[0x14];      // +0x1A8 CStringArray (data +0x1AC, size +0x1B0)
+    mfc::CStringArray quests_;       // +0x1A8
     CUiScrollbar* bar_;              // +0x1BC
     int firstRow_;                   // +0x1C0 the first quest row shown (the bar's position)
     float markerScale_;              // +0x1C4
     float blinkTime_;                // +0x1C8 seconds since the exit was selected (the markers' blink)
-    // +0x1CC STLport vector of the selected quest's places (8-byte points); RefreshQuests
-    // (0064DC60) gives each a sprite and a region after the exits'.
-    UiPointF* questPlacesBegin_;     // +0x1CC
-    UiPointF* questPlacesEnd_;       // +0x1D0
-    UiPointF* questPlacesCapacity_;  // +0x1D4
-    std::uint8_t objectiveTexts_[0x14];   // +0x1D8 CStringArray of obj_0..obj_2
+    // +0x1CC the selected quest's places; ShowQuest (0064DC60) gives each a sprite and a region
+    // after the exits'.
+    stlp::vector<UiPointF> questPlaces_;
+    mfc::CStringArray objectiveTexts_;   // +0x1D8 obj_0..obj_2
     std::uint32_t savedAlphaRef_;    // +0x1EC
 };
-static_assert(offsetof(CObjectivesWindow, zonesBegin_) == 0x164);
-static_assert(offsetof(CObjectivesWindow, exits_) == 0x18C);
+static_assert(offsetof(CObjectivesWindow, zones_) == 0x164);
+static_assert(offsetof(CObjectivesWindow, exits_) == 0x188 && offsetof(CObjectivesWindow, nearestExit_) == 0x19C);
+static_assert(offsetof(CObjectivesWindow, quests_) == 0x1A8 && offsetof(CObjectivesWindow, questPlaces_) == 0x1CC);
+static_assert(offsetof(CObjectivesWindow, objectiveTexts_) == 0x1D8 && offsetof(CObjectivesWindow, savedAlphaRef_) == 0x1EC);
 static_assert(offsetof(CObjectivesWindow, bar_) == 0x1BC);
 static_assert(sizeof(CObjectivesWindow) == 0x1F0);
 

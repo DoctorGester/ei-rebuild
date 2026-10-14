@@ -39,14 +39,12 @@ EI_VERIFY(0x00634650, MessageBoxVerify, 0, s_messageBox);
 static CObjectivesWindow*(__fastcall* s_objectives)(CObjectivesWindow*, void*, CInterface3D*);
 static CObjectivesWindow* __fastcall ObjectivesVerify(CObjectivesWindow* self, void*, CInterface3D* ui) {
     CObjectivesWindow* r = self->CObjectivesWindow::Construct(ui);
-    const std::int32_t* quests = reinterpret_cast<const std::int32_t*>(self->quests_);
-    const std::int32_t* texts = reinterpret_cast<const std::int32_t*>(self->objectiveTexts_);
     bool ok = r == self && Is(self->vtable_, 0x007411BC) && Is(self->inputVtable_, 0x00741188) && self->interface_ == ui &&
-              !self->zonesBegin_ && !self->zonesEnd_ && !self->zonesCapacity_ && *Str(&self->zoneName_) == 0 &&
-              !self->exitDistances_ && *Str(&self->shownZone_) == 0 && Is(self->exitsVtable_, 0x00741264) &&
-              !self->exits_ && self->exitCount_ == 0 && self->exitCapacity_ == 0 && self->exitGrowBy_ == 0 &&
-              quests[1] == 0 && quests[2] == 0 && !self->questPlacesBegin_ && !self->questPlacesEnd_ &&
-              !self->questPlacesCapacity_ && texts[1] == 0 && texts[2] == 0;
+              !self->zones_.Start() && !self->zones_.Finish() && !self->zones_.EndOfStorage() && *Str(&self->zoneName_) == 0 &&
+              !self->exitDistances_ && *Str(&self->shownZone_) == 0 && Is(self->exits_.vtable, 0x00741264) &&
+              !self->exits_.data && self->exits_.size == 0 && self->exits_.maxSize == 0 && self->exits_.growBy == 0 &&
+              !self->quests_.data && self->quests_.size == 0 && !self->questPlaces_.Start() && !self->questPlaces_.Finish() &&
+              !self->questPlaces_.EndOfStorage() && !self->objectiveTexts_.data && self->objectiveTexts_.size == 0;
     ei::verify::Check("CObjectivesWindow::Construct", true, ok, "window %p", self);
     return r;
 }

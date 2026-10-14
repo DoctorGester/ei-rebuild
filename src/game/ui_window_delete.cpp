@@ -228,15 +228,15 @@ void CHelpWindow::DestroyBody() {
 EI_REPLACE_METHOD(0x005F8970, CHelpWindow::DestroyBody);
 
 void CObjectivesWindow::DestroyBody() {
-    StringArrayDestruct(objectiveTexts_);
-    FreeVectorStorage(questPlacesBegin_, questPlacesCapacity_);
-    StringArrayDestruct(quests_);
-    exitsVtable_ = ObjectiveExitsVtable();
-    if (exits_) gamecrt::operator_delete(exits_);
+    StringArrayDestruct(&objectiveTexts_);
+    FreeVectorStorage(questPlaces_.begin(), questPlaces_.EndOfStorage());
+    StringArrayDestruct(&quests_);
+    exits_.vtable = ObjectiveExitsVtable();
+    if (exits_.data) gamecrt::operator_delete(exits_.data);
     CStringDestroy(&shownZone_);
     CStringDestroy(&zoneName_);
-    for (char** zone = zonesBegin_; zone != zonesEnd_; ++zone) CStringDestroy(zone);
-    FreeVectorStorage(zonesBegin_, zonesCapacity_);
+    for (mfc::CString* zone = zones_.begin(); zone != zones_.end(); ++zone) CStringDestroy(zone);
+    FreeVectorStorage(zones_.begin(), zones_.EndOfStorage());
     DestroyContainer();
 }
 EI_REPLACE_METHOD(0x00603B90, CObjectivesWindow::DestroyBody);

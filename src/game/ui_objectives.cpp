@@ -298,14 +298,14 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     float nearest = Bits(kFarAway);
     nearestExit_ = -1;
     bool anyKnown = false;
-    mfc::CArray<ObjectiveExit>* exitArray = &Exits();
+    mfc::CArray<ObjectiveExit>* exitArray = &exits_;
     ExitsSetSize(exitArray, nullptr, 0, -1);
     for (int i = 0; i < map->exits.size; ++i) {
         const MapExit& source = map->exits.data[i];
         if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(source.target),
                              reinterpret_cast<const unsigned char*>(GameText(0x007846F0))) == 0)   // "none"
             continue;
-        int index = exitCount_;
+        int index = exits_.size;
         ObjectiveExit blank = {};
         ExitsSetAtGrow(exitArray, nullptr, index, blank);
         ObjectiveExit* exit = &exits_[index];
@@ -390,7 +390,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     }
 
     // The quests: the player's variables "q.<zone>.<quest>" that are not 0, sorted by name.
-    mfc::CStringArray* quests = &Quests();
+    mfc::CStringArray* quests = &quests_;
     quests->SetSize(0, -1);
     {
         mfc::CString prefix;
@@ -500,7 +500,7 @@ void CObjectivesWindow::ShowQuest() {
     if (shownQuest_ == selectedQuest_) return;
     shownQuest_ = selectedQuest_;
     LogClear(children_.data[0]);
-    mfc::CStringArray* quests = &Quests();
+    mfc::CStringArray* quests = &quests_;
     if (selectedQuest_ < 0 || selectedQuest_ >= quests->GetSize()) return;
     LastQuest() = (*quests)[selectedQuest_];
 
@@ -574,15 +574,15 @@ void CObjectivesWindow::ShowQuest() {
     MapRecord* map = FindZone(shownZone_);
     if (!map) return;
     FillQuestPlaces(this, nullptr, (*quests)[selectedQuest_]);
-    while (sceneObjects_.size > exitCount_ + 0x15) RemoveSceneObjectAt(exitCount_ + 0x15);
-    while (regions_.size > exitCount_ + 9) RemoveRegionAt(exitCount_ + 9);
+    while (sceneObjects_.size > exits_.size + 0x15) RemoveSceneObjectAt(exits_.size + 0x15);
+    while (regions_.size > exits_.size + 9) RemoveRegionAt(exits_.size + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
-    for (unsigned i = 0; i < static_cast<unsigned>(questPlacesEnd_ - questPlacesBegin_); ++i) {
+    for (unsigned i = 0; i < static_cast<unsigned>(questPlaces_.end() - questPlaces_.begin()); ++i) {
         float worldWidth = Store(static_cast<double>(map->sizeX << 5));
         float worldHeight = Store(static_cast<double>(map->sizeY << 5));
         float span = worldWidth < worldHeight || x87::IsNaN(worldWidth) || x87::IsNaN(worldHeight) ? worldHeight
                                                                                                    : worldWidth;
-        const UiPointF& place = questPlacesBegin_[i];
+        const UiPointF& place = questPlaces_[i];
         float x = Store((D(place.x) - D(worldWidth) * 0.5f) * kPictureSpan / D(span) + kPictureCentreX);
         float y = Store(kPictureCentreY - (D(place.y) - D(worldHeight) * 0.5f) * kPictureSpan / D(span));
         CUiMesh* marker = AddSprite(0);
@@ -612,7 +612,7 @@ void CObjectivesWindow::Build() {
 
     mfc::CString text;
     mfc::CString key;
-    mfc::CStringArray* objectiveTexts = &ObjectiveTexts();
+    mfc::CStringArray* objectiveTexts = &objectiveTexts_;
     for (int k = 0; k < 3; ++k) {
         key.Format(GameText(0x00794670), k);   // "obj_%d"
         Texts()->GetString(key, &text);
@@ -715,7 +715,7 @@ void CObjectivesWindow::Build() {
         alignas(VariableTable) unsigned char tableStorage[sizeof(VariableTable)];
         auto* table = new (tableStorage) VariableTable();
         table->Fill(GameText(0x00783D7C));   // "q."
-        ZoneNames* zones = &Zones();
+        ZoneNames* zones = &zones_;
         const char* interfaceQuest = interface_->savedText_;
         for (NamedFloatTable::Node* node = table->First(); node; node = table->Next(node)) {
             StringSplit(node->key, &parts, '.');
@@ -777,7 +777,7 @@ void CObjectivesWindow::DrawQuestList() {
     SurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
-    mfc::CStringArray* quests = &Quests();
+    mfc::CStringArray* quests = &quests_;
     int row = firstRow_;
     int y = 13;
     for (int i = 16; i < 21 && row < quests->GetSize(); ++i, ++row, y += 24) {

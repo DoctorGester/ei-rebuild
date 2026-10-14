@@ -127,7 +127,7 @@ EI_VERIFY(0x005F8970, HelpWindowDestroyVerify, 0, s_unused);
 static void __fastcall ObjectivesDestroyVerify(CObjectivesWindow* self) {
     self->DestroyBody();
     ei::verify::Check("CObjectivesWindow::DestroyBody", true,
-                      BaseEmpty(self) && !self->children_.data && self->exitsVtable_ == reinterpret_cast<void*>(0x00741264), "");
+                      BaseEmpty(self) && !self->children_.data && self->exits_.vtable == reinterpret_cast<void*>(0x00741264), "");
 }
 EI_VERIFY(0x00603B90, ObjectivesDestroyVerify, 0, s_unused);
 
