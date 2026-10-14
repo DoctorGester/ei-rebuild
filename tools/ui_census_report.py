@@ -143,7 +143,7 @@ class Resolver:
         self.cache[token] = out
         return out
 
-    def site(self, chain, install='vanilla'):
+    def site(self, chain, install='vanilla', skipped=frozenset()):
         """(site, via, rebirth, duplicate, verify): the first caller frame (with the rewritten or game
         function it lies in when it is a helper of ours without a game address), the surface
         helpers before it, addon code involved, whether the call ran in a verify wrapper's
@@ -158,7 +158,7 @@ class Resolver:
             if VERIFY_ONLY.search(label):
                 continue
             if (re.fullmatch(r'[0-9A-F]{8}', token) and address in self.replaced_addresses and
-                    not (install == 'rebirth' and address in self.rebirth_patched)):
+                    not (install == 'rebirth' and address in self.rebirth_patched) and address not in skipped):
                 duplicate = True
             if category == 'addon':
                 rebirth = True
@@ -244,8 +244,23 @@ def read_runs(paths):
         install = m.group(1) if m else folder.rsplit('-', 1)[-1]
         scenario = folder.rsplit('-', 1)[0] if '-' in folder else folder
         rows = list(csv.DictReader([l for l in lines if not l.startswith('#')]))
-        runs.append((scenario, install, rows, header))
+        runs.append((scenario, install, rows, skipped_hooks(os.path.dirname(f))))
     return runs
+
+
+def skipped_hooks(folder):
+    """Game addresses whose hook the run left out ("SKIP <name> at <address>: ..." in its
+    ei_hook.log: patched by EI_Plugin.asi, by a Rebirth patch we do not implement, or by another
+    mod). Only the game code runs there, so it is not a verify wrapper's second run (CChatWindow::
+    Update 006095A0 under Rebirth, which EI_Plugin.asi patches)."""
+    out = set()
+    log = os.path.join(folder, 'ei_hook.log')
+    if os.path.exists(log):
+        for line in open(log, encoding='cp1251', errors='replace'):
+            m = re.search(r'\bSKIP \S+ at ([0-9A-F]{8}):', line)
+            if m:
+                out.add(int(m.group(1), 16))
+    return out
 
 
 def main():
@@ -264,7 +279,7 @@ def main():
     merged = collections.OrderedDict()
     surfaces = collections.defaultdict(lambda: collections.Counter())
     surface_runs = collections.defaultdict(set)
-    for scenario, install, rows, _ in runs:
+    for scenario, install, rows, skipped in runs:
         for r in rows:
             owner = owner_name(r['owner'], names)
             if r['kind'] == 'surface':
@@ -276,7 +291,7 @@ def main():
                     c[k] = max(c[k], int(v)) if k == 'maxrun' else c[k] + int(v)
                 surface_runs[(owner, r['size'], install)].add(scenario)
                 continue
-            site, via, rebirth, duplicate, verify = res.site(r['chain'], install)
+            site, via, rebirth, duplicate, verify = res.site(r['chain'], install, skipped)
             if verify:
                 site += ' [in verify]'
             key = (owner, '', r['primitive'], r['kind'], site, via)
