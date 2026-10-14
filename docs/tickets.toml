@@ -353,10 +353,11 @@ note = "Coordinate with W2 (ui.h) and the P tickets: renames only."
 id = "F4"
 title = "Unknown fields: scene, figures, terrain, map objects, textures (~140)"
 group = "fields"
-status = "review"
+status = "done"
 started = "2026-10-14"
 files = ["scene_loader.*", "map_object_figures.h", "terrain*", "figure*", "camera.h", "texture.h", "map_object*", "link_figure.h", "object_tables.h", "material.h", "model.h", "renderer_lines.h"]
 note = "Done 2026-10-14: 143 named (90) or unused_XXX (53), 374 -> 231; meanings in cleanup-figures.md (F4 section)."
+done = "2026-10-14"
 
 [[ticket]]
 id = "F5"
