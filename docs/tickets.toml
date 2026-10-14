@@ -924,8 +924,10 @@ done = "2026-10-15"
 id = "C9b"
 title = "map_object_shadow.cpp raw offsets"
 group = "cleanup"
-status = "queued"
+status = "done"
 note = "Left from C9 (models.md, \"Layouts\")."
+started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "C11"
@@ -965,10 +967,11 @@ done = "2026-10-14"
 id = "F5a"
 title = "Duplicate declarations F5 found (lever record, sound system view, waypoint names)"
 group = "cleanup"
-status = "running"
+status = "done"
 files = ["app_device_list.cpp", "lever.h", "bink_video.cpp", "sound.h", "map_spec.h", "world_update.cpp", "player_client.h"]
 note = "app_device_list.cpp's DeviceRecord is lever.h's LeverRecord (Levers.ldb; one declaration, the file and its notes say device). bink_video.cpp's SoundSystem view is CSoundManager (+0x1C Miles driver). mapspec::Waypoint::wait is the look's turning time (AILook::time), rename it. world_update.cpp's IsLocal tests CPlayerServer::possessedId_ < 0 (no pending possession), rename. CPlayerClient::sendParty_ (+0x85) vs LocalViewData::partyTaken: one name. Renames only, layout unchanged."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "F4b"
@@ -1032,6 +1035,16 @@ status = "queued"
 size = 0.2
 model = "sonnet"
 note = "From C5 (2026-10-15): per-file accessors for the save stream 007AFDF8 (SaveGameStream in ui_battle_slots.cpp and ui_briefing.cpp, SaveStream() in ui_briefing_create.cpp, two verify tests) into one shared accessor; the two LocalFileStream wrappers (ui_connect_screen.cpp, ui_saveload.cpp; different interfaces, needs a regrouping call); identical SaveRecorder (verify_unit_ai_save) and RecordingStream (verify_unit_ai_options); TweenArray in model_db.cpp; hash_tables_400 / atexit_400 views."
+
+[[ticket]]
+id = "C9c"
+title = "map_object_shadow.cpp: what C9b left raw"
+group = "cleanup"
+status = "queued"
+size = 0.3
+model = "opus"
+files = ["src/game/map_object_shadow.cpp"]
+note = "From C9b (2026-10-15): the colour key read from CTexture::block_ (+0x60; for a keyed texture, flags 0x2000, its meaning needs recovering); reinterpret_cast<CUnit*>(object) to reach the controller (CObject3D / CMapObject relation); AlignedRecordBuffer and PointAt/PixelAt indexing (CLinkMesh::ProjectPart and RasterisePart take float* / int*, typing them changes signatures)."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

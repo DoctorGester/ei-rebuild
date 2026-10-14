@@ -7,10 +7,10 @@
 #include <cstdint>
 #include <cstring>
 
+struct LeverRecord;   // lever.h
 namespace app {
-struct DeviceRecord;
-DeviceRecord* __fastcall RecordCopyConstruct(DeviceRecord* self, void*, const DeviceRecord* from);
-DeviceRecord* __fastcall RecordAssign(DeviceRecord* self, void*, const DeviceRecord* from);
+LeverRecord* __fastcall RecordCopyConstruct(LeverRecord* self, void*, const LeverRecord* from);
+LeverRecord* __fastcall RecordAssign(LeverRecord* self, void*, const LeverRecord* from);
 } // namespace app
 
 namespace {
@@ -24,14 +24,14 @@ bool SameRecord(const void* a, const void* b) {
     return std::memcmp(x + 4, y + 4, 0x1C) == 0;
 }
 
-app::DeviceRecord* __fastcall CopyVerify(app::DeviceRecord* self, void*, const app::DeviceRecord* from) {
+LeverRecord* __fastcall CopyVerify(LeverRecord* self, void*, const LeverRecord* from) {
     app::RecordCopyConstruct(self, nullptr, from);
-    ei::verify::Check("DeviceRecord copy", true, SameRecord(self, from), "");
+    ei::verify::Check("LeverRecord copy", true, SameRecord(self, from), "");
     return self;
 }
-app::DeviceRecord* __fastcall AssignVerify(app::DeviceRecord* self, void*, const app::DeviceRecord* from) {
+LeverRecord* __fastcall AssignVerify(LeverRecord* self, void*, const LeverRecord* from) {
     app::RecordAssign(self, nullptr, from);
-    ei::verify::Check("DeviceRecord assign", true, SameRecord(self, from), "");
+    ei::verify::Check("LeverRecord assign", true, SameRecord(self, from), "");
     return self;
 }
 } // namespace

@@ -21,6 +21,7 @@
 #include "bink_video.h"
 #include "game_strings.h"
 #include "device.h"   // device::SameSurface, device::WithoutDirectDraw
+#include "sound.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -45,7 +46,7 @@ using BinkOpenFn = BinkHeader*(__stdcall*)(const char*, unsigned);
 using BinkCloseFn = void(__stdcall*)(BinkHeader*);
 using BinkSurfaceTypeFn = unsigned(__stdcall*)(void*);
 using BinkVolumeFn = void(__stdcall*)(BinkHeader*, int);
-using BinkSoundSystemFn = void(__stdcall*)(void*, int);   // (open function, Miles driver)
+using BinkSoundSystemFn = void(__stdcall*)(void*, void*);   // (open function, Miles driver)
 using BinkGotoFn = void(__stdcall*)(BinkHeader*, unsigned, int);
 template <typename F>
 F Import(std::uintptr_t slot) {
@@ -75,13 +76,6 @@ long ComCall(void* object, int slot, Args... args) {
     return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
 }
 
-// The sound system (the global at 007AF784; also the loading screen's owner): +0x1C the Miles
-// driver handle.
-struct SoundSystem {
-    std::uint8_t unused_00[0x1C];
-    int milesDriver;            // +0x1C
-};
-
 // The loading screen's movie (005DA400): globals from 007C551C on.
 struct LoadingMovie {
     CDXSurface* holder;         // 007C551C
@@ -105,7 +99,7 @@ CRITICAL_SECTION* DeviceLock() { return &Global<CRITICAL_SECTION>(0x007AEE78); }
 CTextureDevice* DeviceObject() { return Global<CTextureDevice*>(0x007AF080); }
 void* Cursor() { return &Global<std::uint8_t>(0x007C7BD8); }
 void* RendererObject() { return &Global<std::uint8_t>(0x007AF060); }
-SoundSystem* Sound() { return Global<SoundSystem*>(0x007AF784); }
+CSoundManager* Sound() { return Global<CSoundManager*>(0x007AF784); }
 int MoviesMode() { return Global<int>(0x0079BCBC); }           // 0 off, 1 at size, 2 stretched to the width
 int MovieSound() { return Global<int>(0x0079BCC0); }
 int MovieVolume() { return Global<int>(0x0079BCC4); }          // percent
@@ -294,7 +288,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     if (!MoviesMode()) return 1;
     const char* file = name ? name : "";   // the original copies it into a CString
     if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
-    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->milesDriver);
+    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
     BinkHeader* bink = BinkOpen()(file, 0);
     if (!bink) {
         game::DebugLog(game::Text(0x007922F8), file);   // "Can't open (or bad format) video file %s."
@@ -484,7 +478,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     if (bink) BinkClose()(bink);
     if (!MoviesMode()) return 0;
     if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
-    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->milesDriver);
+    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
     bink = BinkOpen()(name, 0);
     if (!bink) {
         game::DebugLog(game::Text(0x007922F8), name);   // "Can't open (or bad format) video file %s."
