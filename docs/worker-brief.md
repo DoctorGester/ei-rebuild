@@ -6,7 +6,18 @@ originals in the running game through a hook DLL. Your task is ONE ticket, given
 do it, commit, report, and stop. Don't start other work.
 
 Read first: README.md (harness section), docs/rewrite-guide.md (all rules come from real bugs),
-and the notes file named in your ticket. For renderer work also docs/notes/renderer.md.
+your ticket with `python tools/tickets.py show <ID>` (status, note, files, what it waits on, its
+group's note and doc), and the notes file it names. For renderer work also docs/notes/renderer.md.
+Don't read docs/tickets.md whole (it is generated; `tickets.py show` / `list` cover it).
+
+Tickets (docs/tickets.toml, changed only through tools/tickets.py, never by hand):
+- When your branch is ready: `python tools/tickets.py set <ID> review`, and commit it with your work.
+- Follow-up work you found but did not do: `python tools/tickets.py add <NEW-ID> --group <key>
+  --title "..." --note "..." [--depends <ID>]` (ids: your ticket's prefix plus a letter or number;
+  `tickets.py list` shows what exists). Mention them in your report.
+- Leave other tickets' status alone; the coordinator sets running and done.
+- If docs/tickets.toml or docs/tickets.md conflicts when you merge main: take main's toml, re-apply
+  your few changes with tickets.py, and let it rewrite tickets.md.
 
 Rules:
 - Never modify anything under F:\games or the registry. Don't install anything. Don't call any

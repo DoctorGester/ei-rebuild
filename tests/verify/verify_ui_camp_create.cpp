@@ -27,7 +27,7 @@ static void __fastcall CampCreateVerify(CCampPages* self) {
     std::uint32_t ids[kIdsKept] = {};
     {
         auto* before = reinterpret_cast<CParty*>(LocalPlayerData());
-        for (int i = 0; i < before->members_.size && i < kIdsKept; ++i) ids[i] = before->members_.data[i].unknown_01C;
+        for (int i = 0; i < before->members_.size && i < kIdsKept; ++i) ids[i] = before->members_.data[i].unitId;
     }
     self->Create();
     // No class template for the player's "constr.current": back to the world, nothing built.
@@ -50,7 +50,7 @@ static void __fastcall CampCreateVerify(CCampPages* self) {
     auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
     bool heroes = self->heroes_.size == player->members_.size;
     for (int i = 0; heroes && i < player->members_.size && i < kIdsKept; ++i)
-        heroes = player->members_.data[i].unknown_01C == ids[i];
+        heroes = player->members_.data[i].unitId == ids[i];
     ei::verify::Check("CCampPages::Create heroes", true,
                       heroes && self->hero_ >= 0 && self->hero_ < self->heroes_.size && self->heroes_[self->hero_] != nullptr,
                       "heroes %d party %d shown %d", self->heroes_.size, player->members_.size, self->hero_);

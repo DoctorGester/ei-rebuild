@@ -90,7 +90,7 @@ int __fastcall NewZoneVerify(CWorldServer* self, void*, const char* map, const c
     int result = self->NewZone(map, mob, zone);
     bool ok = result == 0;
     if (result == 1)
-        ok = self->loaded_ == 1 && self->AIMap()->refreshUnits && self->unknown160_ == 0 &&
+        ok = self->loaded_ == 1 && self->AIMap()->refreshUnits && self->scriptsActive_ == 0 &&
              (!zone || std::strcmp(self->zoneName_, zone) == 0);
     ei::verify::Check("CWorldServer::NewZone", true, ok, "%s / %s / %s: result %d", map ? map : "(null)",
                       mob ? mob : "(null)", zone ? zone : "(null)", result);

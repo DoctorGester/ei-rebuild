@@ -145,17 +145,17 @@ bool SameIds(const AlignedPtrArray& a, const AlignedPtrArray& b) {
 bool SameRecord(PartyUnitRecord& a, PartyUnitRecord& b) {
     for (int i = 0; i < 7; ++i)
         if (std::strcmp(a.texts[i], b.texts[i]) != 0) return false;
-    return a.unknown_01C == b.unknown_01C && std::memcmp(a.stats, b.stats, sizeof(a.stats)) == 0 &&
-           std::memcmp(&a.unknown_724, &b.unknown_724, 0xC) == 0 && SameIds(ItemList(a.weapons), ItemList(b.weapons)) &&
+    return a.unitId == b.unitId && std::memcmp(a.stats, b.stats, sizeof(a.stats)) == 0 &&
+           std::memcmp(&a.scaleX, &b.scaleX, 0xC) == 0 && SameIds(ItemList(a.weapons), ItemList(b.weapons)) &&
            SameIds(ItemList(a.quickItems), ItemList(b.quickItems)) && SameIds(ItemList(a.armor), ItemList(b.armor)) &&
-           SameIds(ItemList(a.spells), ItemList(b.spells)) && a.unknown_770 == b.unknown_770 &&
-           a.weaponIndex == b.weaponIndex && a.unknown_778 == b.unknown_778 && a.unknown_77C == b.unknown_77C &&
-           a.unknown_780 == b.unknown_780;
+           SameIds(ItemList(a.spells), ItemList(b.spells)) && a.moveMode2 == b.moveMode2 &&
+           a.weaponIndex == b.weaponIndex && a.selected == b.selected && a.leaderId == b.leaderId &&
+           a.fightAtWill == b.fightAtWill;
 }
 
 bool SameParty(CParty* copy, CParty* source) {
-    bool ok = std::strcmp(copy->zone_, source->zone_) == 0 && copy->unknown_50 == source->unknown_50 &&
-              copy->unknown_6C == source->unknown_6C && SameIds(copy->items_, source->items_) &&
+    bool ok = std::strcmp(copy->zone_, source->zone_) == 0 && copy->money_ == source->money_ &&
+              copy->entrance_ == source->entrance_ && SameIds(copy->items_, source->items_) &&
               copy->variables_.Size() == source->variables_.Size() && copy->members_.size == source->members_.size;
     for (int i = 0; ok && i < copy->members_.size; ++i) ok = SameRecord(copy->members_.data[i], source->members_.data[i]);
     return ok;

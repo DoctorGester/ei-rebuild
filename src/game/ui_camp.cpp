@@ -835,13 +835,13 @@ void CCampPages::Close() {
     auto* player = reinterpret_cast<CParty*>(GameLocalPlayerDataOriginal(UiClientGlue()));
     for (int i = 0; i < player->members_.size; ++i) {
         PartyUnitRecord* record = &player->members_.data[i];
-        record->unknown_01C += kRecordBias;
+        record->unitId += kRecordBias;
         int index = records.size;
         RecordArraySetSizeOriginal(&records, nullptr, index + 1, -1);
         records.data[index] = reinterpret_cast<std::uint8_t*>(&player->members_.data[i]);
     }
     GameTakeUnitRecordsOriginal(UiClientGlue(), nullptr, &records);
-    for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unknown_01C -= kRecordBias;
+    for (int i = 0; i < player->members_.size; ++i) player->members_.data[i].unitId -= kRecordBias;
 
     // The heroes array emptied (the CArray's SetSize(0) without elements to destroy).
     if (heroes_.data) {

@@ -50,7 +50,7 @@ constexpr int kMissileSize = 0xA8;                            // operator new si
 
 // Save format versions (WorldStream::version_) at which fields were added.
 constexpr int kVersionTimeSpeedFloat = 0x4C;   // the time speed is a float (an int before)
-constexpr int kVersionUnknown13C = 0x74;
+constexpr int kVersionRainBoltTick = 0x74;
 constexpr int kVersionCountdowns = 0x4E;
 constexpr int kVersionPlayerLists = 0x55;      // a player's id list (+0x114); the object records
 constexpr int kVersionPlayerByte = 0x49;       // before: a byte that is read and dropped
@@ -309,7 +309,7 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
             if (changed != 0 && (1u << (i & 31)) != 0) UnitMarkChanged(object, nullptr, i);
 
         if (object->GetClassId() == world::kClassUnit &&
-            reinterpret_cast<UnitController*>(static_cast<CUnit*>(object)->controller)->Brain()->unknown_37 == 0)
+            reinterpret_cast<UnitController*>(static_cast<CUnit*>(object)->controller)->Brain()->alwaysUpdated == 0)
             continue;   // a unit whose controller does not ask for updates (its brain's +0x37)
         AddToUpdateMap(object);
     }
@@ -365,10 +365,10 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
     if (it) it->list = nullptr;
     for (WorldPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
         CPlayerServer* state = player->server;
-        stream->Read(&player->unknownFC, 4);
+        stream->Read(&player->partyId, 4);
         PlayerRecordsLoad(player->party, nullptr, stream, 1);
         player->lastTick = world->tick_;
-        stream->Read(&player->unknown100, 4);
+        stream->Read(&player->sessionKind, 4);
         CEngineObject* items = world->ItemFactory();
         for (;;) {
             int id = ReadValue<int>(stream);
@@ -378,7 +378,7 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             PtrListAddTailOriginal(&player->items, nullptr, object);
             ++object->refCount_;
         }
-        stream->Read(&player->unknown108, 1);
+        stream->Read(&player->godMode, 1);
         if (stream->version_ >= kVersionPlayerLists) {
             DwordList& ids = player->ids;
             int count = ReadValue<int>(stream);
@@ -419,12 +419,12 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     mfc::CString zoneName;
 
     gameResult_ = 0;
-    unknown160_ = 0;
+    scriptsActive_ = 0;
     if (PlayerList()) {
         PlayerIterator it;
         for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
             gameResult_ = 1;
-            unknown160_ = 1;
+            scriptsActive_ = 1;
             PlayerClear(player, nullptr);
         }
     }
@@ -445,22 +445,22 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             player->dirty = 0xFFFFFFFFu;
     }
 
-    stream->Read(unknown24_, 12);
-    stream->Read(&unknown30_, 4);
-    stream->Read(&unknown84_, 4);
+    stream->Read(windDirection_, 12);
+    stream->Read(&windStrength_, 4);
+    stream->Read(&nightLevel_, 4);
     for (WorldAlarm& alarm : alarms_) stream->Read(&alarm, 16);
     stream->Read(&tick_, 4);
-    stream->Read(&unknownE4_, 4);
-    stream->Read(&unknownE8_, 4);
+    stream->Read(&weather_, 4);
+    stream->Read(&weatherStrength_, 4);
     float time = ReadValue<float>(stream);
     float speed;
     if (stream->version_ >= kVersionTimeSpeedFloat) {
         stream->Read(&speed, 4);
-        if (stream->version_ >= kVersionUnknown13C) stream->Read(&unknown13C_, 4);
+        if (stream->version_ >= kVersionRainBoltTick) stream->Read(&lastRainBoltTick_, 4);
     } else {
         speed = static_cast<float>(ReadValue<int>(stream));
     }
-    stream->Read(&unknown12D64_, 4);
+    stream->Read(&sessionKind_, 4);
 
     int result;
     if (!LoadAIGraph(this, nullptr, mapName, mobName, &savedGraph.stream)) {
@@ -521,8 +521,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             TimeWheelLoad(timeWheel_, nullptr, stream);
             CommandQueueLoad(commandsA_, nullptr, stream);
             DiplomacyRead(&diplomacy_, nullptr, stream);
-            stream->Read(&unknownDC_, 4);
-            stream->Read(&unknownE0_, 4);
+            stream->Read(&climate_, 4);
+            stream->Read(&cave_, 4);
             if (stream->version_ >= kVersionCountdowns) CountdownsLoad(countdowns_, nullptr, stream);
 
             // Counted references to items (added at the head of the list).
@@ -553,7 +553,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     auto* record = static_cast<CItemLink*>(gamecrt::operator_new(sizeof(CItemLink)));
                     // The count's whole dword is cleared, before the null test.
                     record->references = 0;
-                    record->unknown_06 = 0;
+                    record->refsHigh = 0;
                     if (record) record->vtable = CItemLink::Vtable();
                     record->value = value;
                     CItemLink* old = LinkOf(object);
@@ -594,7 +594,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     SharedObject empty;
                     empty.objectId = 0;
                     empty.player = 0;
-                    empty.unknown_08 = 0;
+                    empty.money = 0;
                     ObjectPtrArrayConstruct(&empty.objects);
                     SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, shared.tail, nullptr);
                     node->data.CopyFrom(&empty);
@@ -630,16 +630,16 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
     auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
     if (it) it->list = nullptr;
     for (WorldPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
-        stream->Write(&player->unknownFC, 4);
+        stream->Write(&player->partyId, 4);
         PlayerRecordsSave(player->party, nullptr, stream, 1);
-        stream->Write(&player->unknown100, 4);
+        stream->Write(&player->sessionKind, 4);
         for (auto* node = player->items.head; node;) {
             auto* next = node->next;
             WriteCopy(stream, node->data->id_);
             node = next;
         }
         WriteCopy(stream, -1);
-        WriteCopy(stream, player->unknown108);
+        WriteCopy(stream, player->godMode);
         DwordList& ids = player->ids;
         WriteCopy(stream, ids.count);
         for (auto* node = ids.head; node;) {
@@ -677,7 +677,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     CMemoryStream current;
     ConstructSaveStream(&current);
 
-    if (unknown12D64_ == 1 || unknown12D64_ == 3) UpdatePlayerTimesAt(this, nullptr, 0.0f);
+    if (sessionKind_ == 1 || sessionKind_ == 3) UpdatePlayerTimesAt(this, nullptr, 0.0f);
     ManagerReleaseUnused(manager40_, nullptr);
     ManagerReleaseUnused(manager48_, nullptr);
     ManagerReleaseUnused(manager4C_, nullptr);
@@ -686,14 +686,14 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WriteString(stream, mobName_);
     WriteString(stream, mapName_);
     WriteString(stream, zoneName_);
-    stream->Write(unknown24_, 12);
-    WriteCopy(stream, unknown30_);
-    WriteCopy(stream, unknown84_);
+    stream->Write(windDirection_, 12);
+    WriteCopy(stream, windStrength_);
+    WriteCopy(stream, nightLevel_);
     for (WorldAlarm& alarm : alarms_) stream->Write(&alarm, 16);
     WriteCopy(stream, tick_);
-    stream->Write(&unknownE4_, 4);
+    stream->Write(&weather_, 4);
     std::uint32_t e8;
-    std::memcpy(&e8, &unknownE8_, 4);
+    std::memcpy(&e8, &weatherStrength_, 4);
     WriteCopy(stream, e8);
     // Stored by the callee with FSTP; copied on as dwords.
     std::uint32_t time;
@@ -701,8 +701,8 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WorldTimeSettings(this, nullptr, reinterpret_cast<float*>(&time), reinterpret_cast<float*>(&speed));
     WriteCopy(stream, time);
     WriteCopy(stream, speed);
-    WriteCopy(stream, unknown13C_);
-    stream->Write(&unknown12D64_, 4);
+    WriteCopy(stream, lastRainBoltTick_);
+    stream->Write(&sessionKind_, 4);
 
     LoadAIGraph(this, nullptr, mapName_, mobName_, &base);
     AILayerSave(aiLayer_, nullptr, &current);
@@ -740,8 +740,8 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     TimeWheelSave(timeWheel_, nullptr, stream);
     CommandQueueSave(commandsA_, nullptr, stream);
     DiplomacyWrite(&diplomacy_, nullptr, stream);
-    stream->Write(&unknownDC_, 4);
-    stream->Write(&unknownE0_, 4);
+    stream->Write(&climate_, 4);
+    stream->Write(&cave_, 4);
     CountdownsSave(countdowns_, nullptr, stream);
 
     for (auto* node = counted_.head; node;) {
@@ -776,7 +776,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
         SharedObjectNode* next = node->next;
         WriteCopy(stream, node->data.objectId);
         WriteCopy(stream, node->data.player);
-        WriteCopy(stream, node->data.unknown_08);
+        WriteCopy(stream, node->data.money);
         int count = node->data.objects.size;
         WriteCopy(stream, count);
         for (int i = 0; i < count; ++i) WriteCopy(stream, node->data.objects.data[i]->id_);
@@ -819,7 +819,7 @@ void __fastcall LoadSharedObject(void* entryArg, void*, WorldStream* stream) {
     auto* entry = static_cast<SharedObject*>(entryArg);
     stream->Read(&entry->objectId, 4);
     stream->Read(&entry->player, 4);
-    stream->Read(&entry->unknown_08, 4);
+    stream->Read(&entry->money, 4);
     int count = ReadValue<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);
@@ -853,7 +853,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     SharedObject& entry = shared.head->data;
     entry.objectId = id;
     entry.player = player;
-    entry.unknown_08 = value;
+    entry.money = value;
     auto* objects = static_cast<mfc::CTypedPtrList<CEngineObject>*>(objectsArg);
     for (auto* it = objects->head; it;) {
         auto* next = it->next;
@@ -899,7 +899,7 @@ bool MapFileMissing(const char* name) {
 } // namespace
 
 int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
-    unknownE0_ = 0;
+    cave_ = 0;
     PickLoadingMovie(this, nullptr, zone);
     ShowLoadProgress(kProgressStart);
     if (map && MapFileMissing(map)) return 0;
@@ -920,7 +920,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     AIMap()->refreshUnits = true;
     ShowLoadProgress(kProgressDone);
     if (zone) *reinterpret_cast<mfc::CString*>(&zoneName_) = zone;
-    unknown160_ = 0;
+    scriptsActive_ = 0;
     return 1;
 }
 EI_REPLACE_METHOD(0x00595480, CWorldServer::NewZone);

@@ -34,7 +34,7 @@ static int __fastcall ApplyHitVerify(UnitStats* self, void*, CUnit* unit, UnitVi
                                      CEngineObject* weapon) {
     int result = self->ApplyHit(unit, vitals, hit, weapon);
     ei::verify::Check("UnitStats::ApplyHit", true, result == 0 || HitPointsFollowSlots(self, vitals),
-                      "unit %d location %d: hp %g of %g", unit->id_, hit->unknown_2C, vitals->hitPoints,
+                      "unit %d location %d: hp %g of %g", unit->id_, hit->location, vitals->hitPoints,
                       vitals->maxHitPoints);
     return result;
 }
@@ -43,10 +43,10 @@ EI_VERIFY(0x005254B0, ApplyHitVerify, 0, s_unused);
 // 00525070: ours only.
 static int __fastcall DamageSlotVerify(UnitStats* self, void*, CUnit* unit, UnitVitals* vitals, const DamageInfo* hit,
                                        CEngineObject* weapon) {
-    bool usable = self->slots[hit->unknown_2C].kind >= 2;
+    bool usable = self->slots[hit->location].kind >= 2;
     int result = self->DamageSlot(unit, vitals, hit, weapon);
     ei::verify::Check("UnitStats::DamageSlot", true, !usable || HitPointsFollowSlots(self, vitals),
-                      "unit %d location %d", unit->id_, hit->unknown_2C);
+                      "unit %d location %d", unit->id_, hit->location);
     return result;
 }
 EI_VERIFY(0x00525070, DamageSlotVerify, 0, s_unused);

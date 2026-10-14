@@ -169,7 +169,7 @@ int CParticleSource::Draw(void* renderer) {
     using DrawFn = int(__fastcall*)(void*, void*, int, ParticleVertexArray*, ParticleSpriteArray*);
     DrawFn draw = reinterpret_cast<DrawFn>((*static_cast<void***>(renderer))[17]);
     int blend;
-    std::memcpy(&blend, &unknown_150, sizeof(blend));
+    std::memcpy(&blend, &additiveBlend, sizeof(blend));
     return draw(renderer, nullptr, blend != 0, &Vertices(), &Sprites());
 }
 EI_REPLACE_METHOD(0x004976B0, CParticleSource::Draw);

@@ -75,7 +75,7 @@ static int __fastcall DrawVerify(CParticleSource* self, void*, void* renderer) {
     bool ok = self->hiddenTicks == hiddenExpected;
     if (g_capture.called) {
         int flag = 0;
-        std::memcpy(&flag, &self->unknown_150, sizeof(flag));
+        std::memcpy(&flag, &self->additiveBlend, sizeof(flag));
         ok = ok && g_capture.flag == (flag != 0 ? 1 : 0) && g_capture.vertexArray == &Vertices() &&
              g_capture.spriteArray == &Sprites() &&
              static_cast<int>(g_capture.vertices.size()) == Vertices().size &&

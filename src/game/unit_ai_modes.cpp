@@ -114,8 +114,8 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
 
 // The brain's remembered positions after choosing a new place to be.
 void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY) {
-    brain->unknown_44 = nearX;
-    brain->unknown_48 = nearY;
+    brain->nearX = nearX;
+    brain->nearY = nearY;
     std::memcpy(&brain->previousPosition, &brain->position, sizeof(Vector3));
     std::memcpy(&brain->position, where, sizeof(Vector3));
     std::uint32_t previous;
@@ -646,7 +646,7 @@ void PlayerMode::Execute(AIBrain* brain) {
     // The player controls this unit directly.
     bool direct = false;
     if (unit->player) direct = PlayerServerOf(unit->player)->refreshPending_ == 2;
-    if (brain->seen && unit->unknown_438 != 1) ControllerShout(reinterpret_cast<CUnitServer*>(brain->owner), nullptr, 0x20);
+    if (brain->seen && unit->fightAtWill != 1) ControllerShout(reinterpret_cast<CUnitServer*>(brain->owner), nullptr, 0x20);
 
     switch (state) {
     case kStateFollow: {

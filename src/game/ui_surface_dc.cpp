@@ -34,6 +34,9 @@ std::unordered_map<HDC, HGDIOBJ> g_memoryDcs;
 
 } // namespace
 
+// The verify build's interface census (tests/verify/ui_census.cpp): a memory DC 005FDC00 gave out.
+bool IsSurfaceMemoryDc(HDC dc) { return g_memoryDcs.count(dc) != 0; }
+
 // 005FDC00. The surface's CDC (a temporary MFC wrapper), or null without a surface or when getting
 // the DC failed and the report said stop (the device lock then stays held, as in the original).
 void* __fastcall UiSurfaceGetDC(CUiSurface* surface) {

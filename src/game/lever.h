@@ -163,7 +163,7 @@ public:
     float rate;                     // +0x25C 1 / duration (0: no move)
     std::uint8_t flag260;           // +0x260 (record +0x14)
     std::uint8_t keepsMapFlag;      // +0x261 the AI map flag kept while it moves (SetState)
-    std::uint8_t unknown_262[2];
+    std::uint8_t unused_262[2];
 };
 static_assert(offsetof(Lever, state) == 0x238);
 static_assert(offsetof(Lever, lock) == 0x244);

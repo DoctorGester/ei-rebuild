@@ -618,8 +618,8 @@ void CHudMovePanel::Update() {
         else if (mode != unit->moveMode2)
             mode = -2;
         if (flag == -1)
-            flag = unit->unknown_438;
-        else if (flag != unit->unknown_438)
+            flag = unit->fightAtWill;
+        else if (flag != unit->fightAtWill)
             flag = -2;
     }
     ShowMode(mode);

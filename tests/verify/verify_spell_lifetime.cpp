@@ -115,7 +115,7 @@ void __fastcall CastInitVerify(CSpellEffect* self, void*, CWorldServer* world, C
     Vector3 from = *position, to = *targetPoint;
     self->Init(world, spell, caster, position, target, targetPoint, static_cast<std::uint8_t>(flagA4));
     bool ok = self->world == world && self->caster == caster && self->target == target && self->state == 0 &&
-              self->unknown_A4 == static_cast<std::uint8_t>(flagA4) &&
+              self->silentEnd == static_cast<std::uint8_t>(flagA4) &&
               std::memcmp(&self->position, &from, sizeof(from)) == 0 &&
               std::memcmp(&self->targetPoint, &to, sizeof(to)) == 0 &&
               self->Spell()->unknown_18 == spell->unknown_18 &&

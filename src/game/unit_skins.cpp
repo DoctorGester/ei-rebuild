@@ -51,7 +51,7 @@ const UnitModelRecord* UnitModel(std::uint32_t index) {
 const itemdb::ArmorRecord* Armour(std::uint32_t index) {
     return reinterpret_cast<const itemdb::ArmorRecord*>(itemdb::Armors().At(index, itemdb::kArmorSize));
 }
-const char* ModelPrefix(const UnitModelRecord* model) { return model->unknown_E8; }
+const char* ModelPrefix(const UnitModelRecord* model) { return model->figureName; }
 
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 

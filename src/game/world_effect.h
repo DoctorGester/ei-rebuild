@@ -86,7 +86,7 @@ public:
     // 00676900 (slot 6 of the base and of CEffectAmbientSound). 1: the effect stays.
     int TickDefault();
 
-    std::uint8_t unknown_54[0x94 - 0x54];
+    std::uint8_t unused_54[0x94 - 0x54];
     int startTick_;            // +0x94 game tick the effect began (particles: warm-up and lifetime)
     Vector3 velocity_;         // +0x98 added to the position every tick while moving_
     int moving_;               // +0xA4 velocity is not zero
@@ -123,10 +123,10 @@ public:
     float radius_;             // +0x250
     int looping_;              // +0x254 0: the effect ends after its first tick
     std::uint8_t noFade_;      // +0x258 plays with flag 1000
-    std::uint8_t unknown_259[3];
+    std::uint8_t unused_259[3];
     int sound_;                // +0x25C handle in the sound system (007AF784), -1: none
     std::uint8_t fresh_;       // +0x260 set by Reset, cleared by the first tick
-    std::uint8_t unknown_261[3];
+    std::uint8_t unused_261[3];
 };
 static_assert(offsetof(CEffectSound, sound_) == 0x25C);
 static_assert(sizeof(CEffectSound) == 0x264);
@@ -153,7 +153,7 @@ public:
     float volume_;             // +0x164
     float radius_;             // +0x168
     std::uint8_t noFade_;      // +0x16C
-    std::uint8_t unknown_16D[3];
+    std::uint8_t unused_16D[3];
     int sound_;                // +0x170 sequence handle, -1: none
 };
 static_assert(offsetof(CEffectSoundSeq, volume_) == 0x164);
@@ -178,8 +178,8 @@ public:
     mfc::CStringArray names_;  // +0x14C
     float volume_;             // +0x160
     float radius_;             // +0x164
-    int unknown_168;           // +0x168
-    int unknown_16C;           // +0x16C
+    int minInterval_;          // +0x168 ms between plays (the sound emitter's minInterval)
+    int maxInterval_;          // +0x16C ms, the upper bound
     int sound_;                // +0x170 handle, -1: none
 };
 static_assert(offsetof(CEffectAmbientSound, volume_) == 0x160);
@@ -296,7 +296,7 @@ public:
     int toObject_;             // +0x16C its position (+1 in z) becomes to_
     int fromObject_;           // +0x170 a unit: its 00532860 point becomes from_ (server only)
     std::uint8_t flag_;        // +0x174
-    std::uint8_t unknown_175[3];
+    std::uint8_t unused_175[3];
 };
 static_assert(offsetof(CEffectLightning, bolt_) == 0x168);
 static_assert(sizeof(CEffectLightning) == 0x178);
@@ -318,7 +318,7 @@ public:
     int arrived_;              // +0x14C
     int targetId_;             // +0x150 world object id, -1: none
     std::uint8_t fromCaster_;  // +0x154 the client starts the missile at the caster's effect point
-    std::uint8_t unknown_155[3];
+    std::uint8_t unused_155[3];
 };
 static_assert(offsetof(CEffectMissile, arrived_) == 0x14C);
 static_assert(sizeof(CEffectMissile) == 0x158);

@@ -92,8 +92,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     if (unit && !unitDead(unit)) {
         if (unit != panel->hoverUnit_) {
             panel->hoverUnit_ = unit;
-            std::memcpy(&panel->viewSize_[1], &HoverPrototype(unit)->unknown_20, 4);
-            std::memcpy(&panel->viewHeight_[1], &HoverPrototype(panel->hoverUnit_)->unknown_24, 4);
+            std::memcpy(&panel->viewSize_[1], &HoverPrototype(unit)->panelViewSize, 4);
+            std::memcpy(&panel->viewHeight_[1], &HoverPrototype(panel->hoverUnit_)->height, 4);
             HoverShowPanelUnit(panel->owner_, nullptr, panel->hoverUnit_, &panel->strings_[1]);
         }
     } else if (panel->hoverUnit_) {

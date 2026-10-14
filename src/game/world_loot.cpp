@@ -107,7 +107,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             else items.head = entry;
             items.tail = entry;
         }
-        player->Party()->Money() += static_cast<int>(node->data.unknown_08);
+        player->Party()->Money() += static_cast<int>(node->data.money);
         PlayerGiveItems(player, nullptr, &items, 0);
         if (node == list.head) list.head = node->next;
         else node->prev->next = node->next;

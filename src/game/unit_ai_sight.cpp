@@ -97,18 +97,18 @@ void AIViewer::Refresh(CUnit* self, AIBrain* brain) {
     int count = 0;
     const std::int16_t* offsets =
         brain->sightCells.Get(RoundToFloat(static_cast<double>(reach) * kSightCellsFactor * kSectorScale), &count);
-    for (auto* node = brain->unknown_0F4.head; node; node = node->next) {
+    for (auto* node = brain->nearby.head; node; node = node->next) {
         if (node->data) node->data->Release();
         node->data = nullptr;
     }
-    brain->unknown_0F4.RemoveAll();
+    brain->nearby.RemoveAll();
     for (int i = 0; i < count; ++i) {
         AIObjectList* units = map->SectorMap()->UnitsAt(offsets[2 * i] + blockX, offsets[2 * i + 1] + blockY);
         if (!units) continue;
         for (auto* node = units->head; node; node = node->next) {
             CEngineObject* other = node->data;
             if (other == static_cast<CEngineObject*>(self)) continue;
-            AddCountedTail(&brain->unknown_0F4, nullptr, other);
+            AddCountedTail(&brain->nearby, nullptr, other);
         }
     }
 }
@@ -120,14 +120,14 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
     UnitController* ours = ControllerOf(self);
     bool seesAll = self->player != nullptr || (self->flags_ & kFlagSeeAll) != 0;
     self->flags_ &= ~kFlagSeeAll;
-    for (auto* node = brain->unknown_0F4.head; node;) {
+    for (auto* node = brain->nearby.head; node;) {
         auto* other = static_cast<CUnit*>(node->data);
         node = node->next;
         bool dead = IsDead(other);
         bool hostile = self->IsHostileTo(other) || other->player != nullptr;
         if (dead) {
             if (!seesAll && hostile) continue;
-            if (brain->unknown_12C.Find(other)) continue;
+            if (brain->seenCorpses.Find(other)) continue;
         } else {
             if (!seesAll && !hostile) continue;
             if (brain->visible.Find(other)) continue;
@@ -137,7 +137,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
         static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
         Vector3 d = theirEye - eye;
         UnitController* theirs = ControllerOf(other);
-        float coneLimit = ours->stats.unknown_044;
+        float coneLimit = ours->stats.sightCone;
         float distance = Length2D({d.x, d.y});
         double sightRaw = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
                           ours->stats.valuesB0[0].current;
@@ -153,7 +153,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
         bool alive = !dead;
         if (!seen) {
             float behind = DotZYX(d, facing);
-            if ((std::bit_cast<std::uint32_t>(behind) & 0x80000000u) == 0 && ours->stats.unknown_048 > distance) {
+            if ((std::bit_cast<std::uint32_t>(behind) & 0x80000000u) == 0 && ours->stats.peripheralRange > distance) {
                 console::EndLine(LogPair(self, " sees unit ", other) << " with peripheral vision");
                 seen = true;
             } else {
@@ -165,7 +165,7 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
         }
         if (seen && dead) {
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
-            AddCountedTail(&brain->unknown_12C, nullptr, other);
+            AddCountedTail(&brain->seenCorpses, nullptr, other);
             if (Allied(self->side, other->side)) AddCountedTail(&brain->corpses, nullptr, other);
             continue;
         }
@@ -208,12 +208,12 @@ void AIViewer::Update(UnitController* owner, AIBrain* brain) {
         if (IsDead(other)) {
             if (Allied(self->side, other->side)) {
                 // The original's inlined AddTail (a second copy follows below).
-                brain->unknown_12C.AddTail(other);
+                brain->seenCorpses.AddTail(other);
                 ++other->refCount_;
                 if (brain->noticedLevel < kCorpseLevel) NoticeAt(brain, other, kCorpseLevel, kCorpseKind);
             }
             console::EndLine(LogPair(self, " sees corpse of unit ", other));
-            AddCountedTail(&brain->unknown_12C, nullptr, other);
+            AddCountedTail(&brain->seenCorpses, nullptr, other);
             if (Allied(self->side, other->side)) AddCountedTail(&brain->corpses, nullptr, other);
         } else {
             if (self->IsHostileTo(other) && !hasPlayer) continue;
@@ -254,7 +254,7 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
 
     UnitController* mine = ControllerOf(seer);
     UnitController* theirs = ControllerOf(observer);
-    float cone = mine->stats.unknown_044;
+    float cone = mine->stats.sightCone;
     float sight = RoundToFloat(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
                                theirs->stats.valuesE0[0].current * mine->stats.valuesB0[0].current);
     // The larger of 0 and the sight (NaN kept).
@@ -264,7 +264,7 @@ void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* gri
     map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
     double hearing = static_cast<double>(mine->stats.valuesB0[2].current) * theirs->stats.valuesE0[2].current;
     if (!ZeroOrUnordered(hearing)) map->MarkVisibleCells(&eye, RoundToFloat(hearing), &look, kNoCone, kNoLineOfSight, grid);
-    float peripheral = mine->stats.unknown_048;
+    float peripheral = mine->stats.peripheralRange;
     if (!ZeroOrUnordered(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, kZero, kNoLineOfSight, grid);
 }
 EI_REPLACE(0x005CD210, MarkSightCells);

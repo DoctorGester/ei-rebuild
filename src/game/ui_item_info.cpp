@@ -752,10 +752,10 @@ void CItemInfoPanel::DescribeSpellRecord() {
     const itemdb::SpellRecord* record = AsSpell(spell);
     w.Number(7, FtolOf(record->mana));
     w.Number(14, record->skill);
-    w.School(record->unknown_10);
+    w.School(record->castType);
     bool known = record->bytes78[3] != 0;
     // The dwords +0x20 power, +0x24, +0x28 radius, +0x2C level (floats), +0x34, +0x38 duration.
-    const std::uint32_t* values = record->unknown_1C;
+    const std::uint32_t* values = record->effectValues;
     SpellLevelLine(w, known, known ? FtolOf(FloatOf(values[4])) : 0);
     float power = FloatOf(values[1]);
     if (!(power >= 1.0f))   // FCOMP; TEST AH,1: below 1 or unordered
@@ -851,7 +851,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     w.Head(title, kindText);
     w.Number(7, FtolOf(Read<float>(spell, 0x40)));
     w.Number(14, Read<int>(spell, 0x50));
-    w.School(SpellPrototypeOf(spell)->unknown_10);
+    w.School(SpellPrototypeOf(spell)->castType);
     bool known = SpellPrototypeOf(spell)->bytes78[3] != 0;
     SpellLevelLine(w, known, known ? FtolOf(Read<float>(spell, 0x24)) : 0);
     float power = Read<float>(spell, 0x30);

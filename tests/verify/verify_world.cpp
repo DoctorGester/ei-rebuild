@@ -40,16 +40,16 @@ struct ServerState {
     std::vector<std::uint32_t> dirty;
 
     static ServerState Take(CWorldServer* server, const std::vector<WorldPlayer*>& players) {
-        ServerState s{server->paused_, server->unknownDC_, server->unknownE0_, server->unknownE4_, server->unknownE8_, {}};
+        ServerState s{server->paused_, server->climate_, server->cave_, server->weather_, server->weatherStrength_, {}};
         for (WorldPlayer* p : players) s.dirty.push_back(p->dirty);
         return s;
     }
     void Restore(CWorldServer* server, const std::vector<WorldPlayer*>& players) const {
         server->paused_ = b6C;
-        server->unknownDC_ = dc;
-        server->unknownE0_ = e0;
-        server->unknownE4_ = e4;
-        server->unknownE8_ = e8;
+        server->climate_ = dc;
+        server->cave_ = e0;
+        server->weather_ = e4;
+        server->weatherStrength_ = e8;
         for (std::size_t i = 0; i < players.size(); ++i) players[i]->dirty = dirty[i];
     }
     bool operator==(const ServerState& o) const {
@@ -178,21 +178,21 @@ EI_VERIFY(0x0058B6D0, MarkDirtyVerify, 7, s_markDirty);
 // 0058CC70: MOV EAX,[ESP+4]; MOV [ECX+0xE0],EAX (10 bytes).
 static void(__fastcall* s_setE0)(CWorldServer*, void*, int);
 static void __fastcall SetE0Verify(CWorldServer* self, void*, int value) {
-    CompareSetter("CWorldServer::SetUnknownE0", self, [&] { self->SetUnknownE0(value); }, [&] { s_setE0(self, nullptr, value); });
+    CompareSetter("CWorldServer::SetCave", self, [&] { self->SetCave(value); }, [&] { s_setE0(self, nullptr, value); });
 }
 EI_VERIFY(0x0058CC70, SetE0Verify, 10, s_setE0);
 
 // 0058CC80: PUSH ESI; MOV ESI,ECX; MOV EAX,[ESI+0xE4] (9 bytes).
 static void(__fastcall* s_setDC)(CWorldServer*, void*, int);
 static void __fastcall SetDCVerify(CWorldServer* self, void*, int value) {
-    CompareSetter("CWorldServer::SetUnknownDC", self, [&] { self->SetUnknownDC(value); }, [&] { s_setDC(self, nullptr, value); });
+    CompareSetter("CWorldServer::SetClimate", self, [&] { self->SetClimate(value); }, [&] { s_setDC(self, nullptr, value); });
 }
 EI_VERIFY(0x0058CC80, SetDCVerify, 9, s_setDC);
 
 // 0058EE00: MOV EAX,[ESP+4]; MOV EDX,[ESP+8] (8 bytes).
 static void(__fastcall* s_setE4E8)(CWorldServer*, void*, int, float);
 static void __fastcall SetE4E8Verify(CWorldServer* self, void*, int e4, float e8) {
-    CompareSetter("CWorldServer::SetUnknownE4E8", self, [&] { self->SetUnknownE4E8(e4, e8); },
+    CompareSetter("CWorldServer::SetWeather", self, [&] { self->SetWeather(e4, e8); },
                   [&] { s_setE4E8(self, nullptr, e4, e8); });
 }
 EI_VERIFY(0x0058EE00, SetE4E8Verify, 8, s_setE4E8);
@@ -429,7 +429,7 @@ static void __fastcall CreateExitMarkersVerify(CWorldClient* self) {
              ei::verify::NearlyEqual(source->position.x, (exit.x2 + exit.x1) * 0.5f, 4, 1e-6f) &&
              ei::verify::NearlyEqual(source->position.y, (exit.y2 + exit.y1) * 0.5f, 4, 1e-6f) &&
              ei::verify::NearlyEqual(source->alpha, (exit.x2 - exit.x1) * 0.5f, 4, 1e-6f) &&
-             ei::verify::NearlyEqual(source->unknown_11C, (exit.y2 - exit.y1) * 0.5f, 4, 1e-6f);
+             ei::verify::NearlyEqual(source->typeParam, (exit.y2 - exit.y1) * 0.5f, 4, 1e-6f);
     }
     ei::verify::Check("CWorldClient::CreateExitMarkers", true, ok, "%d exits, %d markers", self->exitCount_,
                       self->countedA0_.GetSize());

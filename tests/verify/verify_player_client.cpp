@@ -253,7 +253,7 @@ int __fastcall PartyStateVerify(CPlayerClient* self) {
     int result = self->OnPartyState();
     auto* world = static_cast<CWorldClient*>(self->Owner()->ManagerContext());
     bool ok = result == 1 && self->in_.position_ == end && world->paused_ == (paused != 0 ? 1 : 0) &&
-              world->unknown6E4_ == danger && self->partyUnitIds_.size == count && self->otherUnitIds_.size == others;
+              world->partyDanger_ == danger && self->partyUnitIds_.size == count && self->otherUnitIds_.size == others;
     for (int i = 0; ok && i < count; ++i) {
         ok = self->partyUnitIds_[i] == ids[static_cast<std::size_t>(i)];
         CEngineObject* unit = WorldFindUnit(world, nullptr, ids[static_cast<std::size_t>(i)]);

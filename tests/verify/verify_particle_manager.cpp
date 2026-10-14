@@ -35,7 +35,7 @@ int HeldConsistency(const CParticleManager* m) {
 void* s_unusedCreate;
 int __fastcall CreateVerify(CParticleManager* self) {
     int r = self->CParticleManager::Create();
-    ei::verify::Check("CParticleManager::Create", true, (r == 0 || r == 1) && self->unknown_E4 == 0, "result %d", r);
+    ei::verify::Check("CParticleManager::Create", true, (r == 0 || r == 1) && self->quietStart == 0, "result %d", r);
     return r;
 }
 
@@ -43,7 +43,7 @@ void* s_unusedDestroy;
 void __fastcall DestroyVerify(CParticleManager* self) {
     int held = static_cast<int>(self->held_.Size());
     self->CParticleManager::Destroy();
-    bool ok = self->held_.Size() == 0 && self->maxHeldId_ == 0 && self->unknown_E4 == 0 &&
+    bool ok = self->held_.Size() == 0 && self->maxHeldId_ == 0 && self->quietStart == 0 &&
               self->freeParticles.count == 0 && !self->freeParticles.head && !self->freeParticles.blocks &&
               self->objectList_.count == 0;
     ei::verify::Check("CParticleManager::Destroy", true, ok, "held %d before", held);

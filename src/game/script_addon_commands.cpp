@@ -164,7 +164,7 @@ bool ResetTarget(Call* call) {
     CEngineObject* unit = ObjectArg(call, 0);
     if (!unit || !IsUnit(unit)) return InvalidArguments("ResetTarget");
     AIBrain* brain = ServerOf(unit)->Brain();
-    int index = brain->unknown_36;
+    int index = brain->alarmSlot;
     brain->ResetMemory();
     if (index >= brain->alarmRecords.size) return Report("ResetTarget", "Failed to reset unit %d", unit->id_);
     brain->ApplyBehaviour(&brain->alarmRecords.data[index], index);
@@ -263,7 +263,7 @@ bool GiveUnitWeapon(Call* call) {
         Store(&stats.reach, reach);
         sum = prototype->combat[1] + weapon->attackBonus;
         Store(&stats.attack, sum);
-        stats.unknown_8C = static_cast<float>(x87::FromUnsigned(weapon->category));
+        stats.attackCategory = static_cast<float>(x87::FromUnsigned(weapon->category));
         stats.naturalWeapon = item->GetType();
         for (int i = 0; i < 7; ++i) Store(&stats.damageWeights[i], weapon->damageTypes[i]);
         UnitMarkChanged(unit, nullptr, 0);
@@ -350,7 +350,7 @@ bool SetWeather(Call* call) {
         kind = 2;
         strength = 40.0f;
     }
-    WorldServer()->SetUnknownE4E8(kind, strength);
+    WorldServer()->SetWeather(kind, strength);
     return true;
 }
 

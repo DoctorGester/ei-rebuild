@@ -225,7 +225,7 @@ void __fastcall LeaveToZoneVerify(CPlayerServer* self, void*, const char* zone, 
     bool ok = true;
     if (self->state_ == 3 && state == 1) {
         CParty* party = self->Owner()->Party();
-        ok = std::strcmp(party->zone_, zone) == 0 && static_cast<int>(party->unknown_6C) == entrance;
+        ok = std::strcmp(party->zone_, zone) == 0 && static_cast<int>(party->entrance_) == entrance;
     } else {
         ok = self->state_ == state;
     }

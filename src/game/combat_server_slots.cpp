@@ -43,11 +43,11 @@ UnitAction* UnitAction::Construct() {
 EI_REPLACE_METHOD(0x00545F70, UnitAction::Construct);
 
 AnimationStep* AnimationStep::Construct() {
-    unknown_01 = 0xFF;
+    variant = 0xFF;
     animation = 0xFF;
     duration = -1;
-    unknown_08 = 0;
-    unknown_02 = 0;
+    kind = 0;
+    flags = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00550A60, AnimationStep::Construct);

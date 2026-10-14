@@ -396,13 +396,13 @@ EI_REPLACE_METHOD(0x005C3530, LocalSearch::RestoreLevels);
 void CAIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
     out->forwardSpeed = 0.1f;
     out->backwardSpeed = 0.1f;
-    out->unknown_10 = 10.0f;
+    out->turnScale = 10.0f;
     out->shift = unit->sizeClass * 4;
     const ClimbTable& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->climb = climb.data + climb.size / 2;
     out->costs = passCosts;
     unit->GetMoveSpeeds(&out->forwardSpeed, &out->backwardSpeed);
-    out->costs = unit->unknown_43C ? passCostsAlt : passCosts;
+    out->costs = unit->altPassCosts ? passCostsAlt : passCosts;
 }
 EI_REPLACE_METHOD(0x005B9580, CAIMap::CostContextFor);
 

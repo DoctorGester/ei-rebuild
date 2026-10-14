@@ -202,29 +202,29 @@ EI_REPLACE_METHOD(0x0068BEC0, CSpellContainer::AllowsModifier);
 BOOL CSpellContainer::Build() {
     CSpell* spell = Spell();
     const char* proto = prototype_;
-    spell->unknown_30 = DwordAt(proto, 0x20);
-    spell->unknown_34 = DwordAt(proto, 0x24);
+    spell->speed_ = DwordAt(proto, 0x20);
+    spell->range_ = DwordAt(proto, 0x24);
     std::uint32_t kind = DwordAt(proto, 0x30);
     if (kind == 0x75) {             // 'u'
         spell->targetFlags_ = 0x10000000;
     } else if (kind == 0x74) {      // 't'
         spell->targetFlags_ = 0x20000000;
     }
-    spell->unknown_38 = DwordAt(proto, 0x34);
-    spell->unknown_40 = DwordAt(proto, 0x18);
-    spell->unknown_44 = DwordAt(proto, 0x1C);
+    spell->targetCount_ = DwordAt(proto, 0x34);
+    spell->manaCost_ = DwordAt(proto, 0x18);
+    spell->complexity_ = DwordAt(proto, 0x1C);
     spell->price_ = DwordAt(proto, 0x0C);
-    spell->unknown_4C = DwordAt(proto, 0x3C);
-    spell->unknown_1D = 0x10;
+    spell->prototypeField14_ = DwordAt(proto, 0x3C);
+    spell->effectPower_ = 0x10;
 
     char* found = FindSpellByCode(kSpellTableHolder, nullptr, *reinterpret_cast<char* const*>(proto + 4));
     int index = found ? static_cast<int>(found - itemdb::Spells().begin) / itemdb::kSpellSize : -1;
     proto = prototype_;
     spell->prototypeIndex_ = static_cast<std::uint8_t>(index);
-    spell->unknown_24 = DwordAt(proto, 0x2C);
-    spell->unknown_28 = DwordAt(proto, 0x28);
-    spell->unknown_20 = DwordAt(proto, 0x38);
-    spell->unknown_50 = DwordAt(proto, 0x44);
+    spell->damage_ = DwordAt(proto, 0x2C);
+    spell->radius_ = DwordAt(proto, 0x28);
+    spell->duration_ = DwordAt(proto, 0x38);
+    spell->skillNeeded_ = DwordAt(proto, 0x44);
     spell->unknown_18 = static_cast<std::uint32_t>(index & 0xFF) << 16;
 
     if (codes_ != codesEnd_) {
@@ -237,15 +237,15 @@ BOOL CSpellContainer::Build() {
         float strength = FloatAt(modifier, 0x14);
         switch (Letter(modifier, 0)) {
         case 'a':   // area
-            AddScaledPositive(spell->unknown_28, strength, FloatAt(prototype_, 0x28));
+            AddScaledPositive(spell->radius_, strength, FloatAt(prototype_, 0x28));
             break;
         case 'd': { // duration
-            int sum = static_cast<int>(spell->unknown_20) + ScaleTruncate(DwordAt(prototype_, 0x38), strength);
-            spell->unknown_20 = static_cast<std::uint32_t>(sum < 0 ? 0 : sum);
+            int sum = static_cast<int>(spell->duration_) + ScaleTruncate(DwordAt(prototype_, 0x38), strength);
+            spell->duration_ = static_cast<std::uint32_t>(sum < 0 ? 0 : sum);
             break;
         }
         case 'e':   // effect
-            AddScaledPositive(spell->unknown_24, strength, FloatAt(prototype_, 0x2C));
+            AddScaledPositive(spell->damage_, strength, FloatAt(prototype_, 0x2C));
             break;
         case 'f':   // target restrictions
             switch (Letter(modifier, 1)) {
@@ -263,22 +263,22 @@ BOOL CSpellContainer::Build() {
             else if (Letter(modifier, 1) == 't') spell->targetFlags_ |= 0x10000;
             break;
         case 'm':   // mana
-            AddScaledPositive(spell->unknown_40, strength, FloatAt(prototype_, 0x18));
+            AddScaledPositive(spell->manaCost_, strength, FloatAt(prototype_, 0x18));
             break;
         case 'r':   // range
-            AddScaledPositive(spell->unknown_34, strength, FloatAt(prototype_, 0x24));
+            AddScaledPositive(spell->range_, strength, FloatAt(prototype_, 0x24));
             break;
         case 't':
-            spell->unknown_38 = static_cast<std::uint32_t>(static_cast<int>(spell->unknown_38) +
+            spell->targetCount_ = static_cast<std::uint32_t>(static_cast<int>(spell->targetCount_) +
                                                            ScaleTruncate(DwordAt(prototype_, 0x34), strength));
             break;
         default:
             break;
         }
 
-        spell->unknown_44 += 1;
-        spell->unknown_50 += DwordAt(modifier, 0x18);
-        SetFloat(spell->unknown_40, FloatAt(modifier, 0x10) + GetFloat(spell->unknown_40));
+        spell->complexity_ += 1;
+        spell->skillNeeded_ += DwordAt(modifier, 0x18);
+        SetFloat(spell->manaCost_, FloatAt(modifier, 0x10) + GetFloat(spell->manaCost_));
         SetFloat(spell->price_, FloatAt(modifier, 0x08) + GetFloat(spell->price_));
 
         char* record = FindModifierByCode(kModifierTableHolder, nullptr, modifier + 4);
@@ -295,17 +295,17 @@ BOOL CSpellContainer::Build() {
         ++codesEnd_;
     }
 
-    float area = GetFloat(spell->unknown_28);
+    float area = GetFloat(spell->radius_);
     if (area > 0.0f) {
         float radius = static_cast<float>(AreaToRadius(area));
-        SetFloat(spell->unknown_28, radius);
+        SetFloat(spell->radius_, radius);
     }
 
     // mana = max(prototype's mana, mana): the original's select keeps the computed value when the
     // prototype's is smaller or either is NaN.
     float base = FloatAt(prototype_, 0x18);
-    float mana = GetFloat(spell->unknown_40);
-    if (base >= mana) SetFloat(spell->unknown_40, base);
+    float mana = GetFloat(spell->manaCost_);
+    if (base >= mana) SetFloat(spell->manaCost_, base);
 
     // std::sort of the codes (signed chars). Any correct sort gives the same bytes.
     if (codes_ != codesEnd_) {

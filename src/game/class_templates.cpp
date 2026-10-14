@@ -197,7 +197,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
                  const std::uint32_t (&weights)[9], CopyConstructFn copyConstruct) {
     auto* memory = static_cast<ClassTemplate*>(gamecrt::operator_new(sizeof(ClassTemplate)));
     memory->refCount = 0;
-    memory->unknown_06 = 0;
+    memory->refsHigh = 0;
     ClassTemplate* t = memory ? TemplateConstruct(memory) : nullptr;
     t->type = type;
     t->flag0C = flag0C;

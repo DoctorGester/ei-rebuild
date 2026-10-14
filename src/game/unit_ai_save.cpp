@@ -63,9 +63,9 @@ EI_REPLACE(0x005D91B0, SaveLooks);
 
 void AIBrain::LoadMemory(AIStream* stream) {
     noticedKind = -1;
-    CountedListLoadOriginal(&unknown_0F4, stream, WorldServer());
+    CountedListLoadOriginal(&nearby, stream, WorldServer());
     CountedListLoadOriginal(&visible, stream, WorldServer());
-    CountedListLoadOriginal(&unknown_12C, stream, WorldServer());
+    CountedListLoadOriginal(&seenCorpses, stream, WorldServer());
     CountedListLoadOriginal(&corpses, stream, WorldServer());
     stream->Read(&noticedX, 8);         // x and y
     stream->Read(&noticedLevel, 4);
@@ -81,19 +81,19 @@ void AIBrain::LoadMemory(AIStream* stream) {
     CallsSetSizeAt(&calls, nullptr, count, -1);
     for (int i = 0; i < calls.size; ++i) {
         AICallRecord& call = calls.data[i];
-        call.unknown_10 = 0;
+        call.hostileMask = 0;
         stream->Read(&call.point, 12);
         stream->Read(&call.kind, 4);
         StreamReadCStringOriginal(stream, nullptr, &call.text);
-        stream->Read(&call.unknown_10, 4);
+        stream->Read(&call.hostileMask, 4);
     }
     stream->Read(&noticedKind, 4);
 }
 
 void AIBrain::SaveMemory(AIStream* stream) {
-    SaveObjectList(unknown_0F4, stream);
+    SaveObjectList(nearby, stream);
     SaveObjectList(visible, stream);
-    SaveObjectList(unknown_12C, stream);
+    SaveObjectList(seenCorpses, stream);
     SaveObjectList(corpses, stream);
     stream->Write(&noticedX, 8);        // x and y
     WriteCopy(stream, noticedLevel);
@@ -109,7 +109,7 @@ void AIBrain::SaveMemory(AIStream* stream) {
         stream->Write(&call.point, 12);
         WriteCopy(stream, call.kind);
         stream->Write(call.text, static_cast<unsigned>(std::strlen(call.text) + 1));
-        WriteCopy(stream, call.unknown_10);
+        WriteCopy(stream, call.hostileMask);
     }
     WriteCopy(stream, noticedKind);
 }

@@ -235,7 +235,7 @@ void __fastcall ToggleFlagVerify(CHudMovePanel* self, void*) {
     bool ok = self->flag_ == 0 || self->flag_ == 1;
     for (int i = 0; i < self->owner_->partyCount_; ++i) {
         CUnit* unit = self->owner_->party_[i];
-        if ((unit->flags_ & 0x10) && unit->unknown_438 != self->flag_) ok = false;
+        if ((unit->flags_ & 0x10) && unit->fightAtWill != self->flag_) ok = false;
     }
     float frame = Sprite(self, 5)->uOffset_;
     ok = ok && frame == (self->flag_ == 0 ? 0.3359375f : 0.0f);
@@ -342,7 +342,7 @@ static void __fastcall ShowItemsVerify(CHudTopPanel* self) {
         for (CItem* kind : kinds) seen = seen || kind->IsSameAs(item);
         if (!seen) kinds.push_back(item);
     }
-    int money = static_cast<int>(reinterpret_cast<CParty*>(LocalPlayerData())->unknown_50);
+    int money = static_cast<int>(reinterpret_cast<CParty*>(LocalPlayerData())->money_);
     self->ShowItems();
     const char* text = self->pageTexts_[1];
     int lines = 0;

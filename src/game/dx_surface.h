@@ -16,6 +16,10 @@ class CTextureDevice;
 // own memory.
 HBITMAP ClientBitmap(const void* holder);
 
+// Whether `dc` is a memory DC on a holder's DIB section that 005FDC00 gave out and 005FDC60 has not
+// taken back yet (ui_surface_dc.cpp; for the verify build's interface census).
+bool IsSurfaceMemoryDc(HDC dc);
+
 // The pixel code reads and writes the memory of `holder` directly, without DirectDraw: in the
 // switch-over ("present") for any holder with such memory (nothing of the old path draws from these
 // surfaces then), and always for a holder with no DirectDraw surface. Fills `desc` (a DDSURFACEDESC2

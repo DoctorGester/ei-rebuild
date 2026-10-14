@@ -28,11 +28,11 @@ AIBrain* BrainOf(CUnitServer* self) { return &self->brain; }
 
 BOOL CUnitServer::RefreshVitals(char withHitPoints) {
     int now = static_cast<CWorld*>(ManagerContext())->tick_;
-    float oldRate = Combat().unknown_30;
+    float oldRate = Combat().rate;
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
     stats.Recompute(&VitalsOf(unit), unit);
     if (nextAttackTime > now) {
-        float scaled = RoundToFloat(static_cast<double>(nextAttackTime - now) * oldRate / Combat().unknown_30);
+        float scaled = RoundToFloat(static_cast<double>(nextAttackTime - now) * oldRate / Combat().rate);
         nextAttackTime = static_cast<int>(std::lrint(scaled)) + now;
     }
     unit->MarkChanged(0);

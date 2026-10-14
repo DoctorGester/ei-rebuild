@@ -26,7 +26,7 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
     ar->Field(6, &magicPower, 4);
     ar->Field(7, &magicLevel, 4);
     ar->Field(8, &conditionFactor, 4);
-    ar->Field(9, &unknown_24, 4);
+    ar->Field(9, &field9, 4);
     ar->Field(10, &damageFactor, 4);
     ar->Field(11, absorbFactors, sizeof(absorbFactors));
     ar->Field(12, &armourFlags, 4);
@@ -39,7 +39,7 @@ void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->CStringField(1, &text08);
     ar->Field(2, &type, 4);
     ar->CStringField(3, &materialClass);
-    ar->Field(4, &unknown_14, 4);
+    ar->Field(4, &field4, 4);
     ar->Field(5, &number, 4);
     ar->Field(6, &variant, 4);
     ar->Field(7, &price, 4);
@@ -50,19 +50,19 @@ void ItemRecordHead::SerializeHead(ChunkArchive* ar) {
     ar->Field(12, &condition, 4);
     ar->Field(13, &materialUnits, 4);
     ar->Field(14, &classMask, 4);
-    ar->Field(15, &unknown_68, 1);
+    ar->Field(15, &field15, 1);
 }
 EI_REPLACE_METHOD(0x0069F700, ItemRecordHead::SerializeHead);
 
 void WeaponRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
     ar->Field(0x15, &category, 4);
-    ar->Field(0x16, &unknown_70[0], 8);
+    ar->Field(0x16, field16, 8);
     ar->Field(0x17, &reach, 4);
     ar->Field(0x18, &damage, 4);
     ar->Field(0x19, &damageSpread, 4);
     ar->Field(0x1A, damageTypes, sizeof(damageTypes));
-    ar->Field(0x1B, &unknown_70[8], 3);
+    ar->Field(0x1B, field1B, 3);
     ar->Field(0x1C, skillBonus, 8);   // +0x7B..+0x82
     ar->Field(0x1D, &attackBonus, 4);
     ar->Field(0x1E, &defenceBonus, 4);
@@ -75,8 +75,8 @@ void ArmorRecord::Serialize(ChunkArchive* ar) {
     ar->Field(0x16, &othersFactor, 0x24);       // +0x90..+0xB3: the factor, absorbOthers and the flags
     ar->Field(0x17, &showsWounds, 1);
     ar->Field(0x18, &layer, 4);
-    ar->Field(0x19, &unknown_BC[0], 3);
-    ar->Field(0x1A, &unknown_BC[3], 8);
+    ar->Field(0x19, field19, 3);
+    ar->Field(0x1A, field1A, 8);
 }
 EI_REPLACE_METHOD(0x0069F8C0, ArmorRecord::Serialize);
 
@@ -84,11 +84,11 @@ void QuickItemRecord::Serialize(ChunkArchive* ar) {
     SerializeHead(ar);
     ar->Field(0x15, &category, 4);
     ar->Field(0x16, &value70, 4);
-    ar->Field(0x17, &unknown_74[0], 4);
-    ar->Field(0x18, &unknown_74[4], 4);
+    ar->Field(0x17, field17, 4);
+    ar->Field(0x18, field18, 4);
     ar->CStringField(0x19, &text7C);
     ar->Field(0x1A, attributeBonus, 3);
-    ar->Field(0x1B, &unknown_83[0], 8);
+    ar->Field(0x1B, field1B, 8);
 }
 EI_REPLACE_METHOD(0x0069F940, QuickItemRecord::Serialize);
 

@@ -41,7 +41,7 @@ void AppendCall(AICallArray* calls, const Vector3& point, int kind, std::uint32_
     AICallRecord& added = calls->data[index];
     added.point = point;
     added.kind = kind;
-    added.unknown_10 = static_cast<int>(mask);
+    added.hostileMask = static_cast<int>(mask);
     TextOf(added) = text;
 }
 
@@ -57,7 +57,7 @@ __declspec(naked) void __fastcall CallsAddClaimAt(AICallArray*, void*, std::uint
 void __fastcall CallsHear(AICallArray* calls, void*, const Vector3* point, int kind, const char* text) {
     for (int i = 0; i < calls->size; ++i) {
         const AICallRecord& call = calls->data[i];
-        if (call.unknown_10 == 0 && call.kind >= kind) RemoveCall(calls, i--);
+        if (call.hostileMask == 0 && call.kind >= kind) RemoveCall(calls, i--);
     }
     const Vector3 at = *point;
     mfc::CString copy(text);
@@ -75,7 +75,7 @@ EI_REPLACE(0x005CCEA0, CallsAddClaim);
 
 void __fastcall CallsRemoveClaims(AICallArray* calls) {
     for (int i = 0; i < calls->size; ++i)
-        if (calls->data[i].unknown_10 != 0) RemoveCall(calls, i--);
+        if (calls->data[i].hostileMask != 0) RemoveCall(calls, i--);
 }
 EI_REPLACE(0x005CCBF0, CallsRemoveClaims);
 

@@ -94,32 +94,32 @@ void CopyThrough(CParty* target, CParty* source) {
 void PartyUnitRecord::Load(CStream* stream) {
     ClearItems();
     weaponIndex = 0;
-    unknown_770 = 2;
-    unknown_77C = -1;
-    unknown_778 = 0;
-    unknown_780 = 1;
+    moveMode2 = 2;
+    leaderId = -1;
+    selected = 0;
+    fightAtWill = 1;
     ReadText(stream, texts[0]);
     ReadText(stream, texts[2]);
     ReadText(stream, texts[3]);
     ReadText(stream, texts[4]);
     ReadText(stream, texts[5]);
     texts[6] = texts[5];
-    stream->Read(&unknown_01C, sizeof(unknown_01C));
+    stream->Read(&unitId, sizeof(unitId));
     UnitStatsLoadOriginal(stats, nullptr, stream);
-    stream->Read(&unknown_724, 0xC);   // +0x724, +0x728 and the height
+    stream->Read(&scaleX, 0xC);   // +0x724, +0x728 and the height
     ReadItemIds(stream, ItemList(weapons), LoadingParty()->ItemManager());
     ReadItemIds(stream, ItemList(quickItems), LoadingParty()->ItemManager());
     ReadItemIds(stream, ItemList(armor), LoadingParty()->ItemManager());
     ReadItemIds(stream, ItemList(spells), LoadingParty()->ItemManager());
     ReadText(stream, texts[1]);
     if (Version(stream) < kVersionRecordFlags) return;
-    stream->Read(&unknown_770, 4);
+    stream->Read(&moveMode2, 4);
     stream->Read(&weaponIndex, 4);
-    stream->Read(&unknown_778, 1);
+    stream->Read(&selected, 1);
     if (Version(stream) < kVersionRecord77C) return;
-    stream->Read(&unknown_77C, 4);
+    stream->Read(&leaderId, 4);
     if (Version(stream) < kVersionRecord780) return;
-    stream->Read(&unknown_780, 4);
+    stream->Read(&fightAtWill, 4);
     if (Version(stream) < kVersionRecordText6) return;
     ReadText(stream, texts[6]);
 }
@@ -131,19 +131,19 @@ void PartyUnitRecord::Save(CStream* stream) {
     WriteText(stream, texts[3]);
     WriteText(stream, texts[4]);
     WriteText(stream, texts[5]);
-    WriteValue(stream, unknown_01C);
+    WriteValue(stream, unitId);
     UnitStatsSaveOriginal(stats, nullptr, stream);
-    stream->Write(&unknown_724, 0xC);
+    stream->Write(&scaleX, 0xC);
     WriteItemIds(stream, ItemList(weapons));
     WriteItemIds(stream, ItemList(quickItems));
     WriteItemIds(stream, ItemList(armor));
     WriteItemIds(stream, ItemList(spells));
     WriteText(stream, texts[1]);
-    stream->Write(&unknown_770, 4);
+    stream->Write(&moveMode2, 4);
     WriteValue(stream, weaponIndex);
-    WriteValue(stream, unknown_778);
-    WriteValue(stream, unknown_77C);
-    stream->Write(&unknown_780, 4);
+    WriteValue(stream, selected);
+    WriteValue(stream, leaderId);
+    stream->Write(&fightAtWill, 4);
     WriteText(stream, texts[6]);
 }
 EI_REPLACE_METHOD(0x0065FDE0, PartyUnitRecord::Save);
@@ -155,7 +155,7 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     LoadingParty() = this;
     Clear(loadVariables, 0);
     ReadText(stream, zone_);
-    stream->Read(&unknown_6C, 4);
+    stream->Read(&entrance_, 4);
     itemManager_->Load(stream);
     spellManager_->Load(stream);
     itemManager_->LoadObjects(stream);
@@ -167,12 +167,12 @@ void CParty::LoadParty(CStream* stream, int loadVariables) {
     for (int i = 0; i < records; ++i) members_.data[i].Load(stream);
     if (loadVariables != 0) Variables(variables_).Load(stream);
     LoadingParty() = nullptr;
-    unknown_50 = 0;
-    stream->Read(&unknown_50, 4);
+    money_ = 0;
+    stream->Read(&money_, 4);
     if (Version(stream) > kVersionPartyKey) {
         std::uint32_t key;
         stream->Read(&key, sizeof(key));
-        unknown_50 ^= key;
+        money_ ^= key;
     }
     itemManager_->ReleaseUnused();
     spellManager_->ReleaseUnused();
@@ -182,7 +182,7 @@ EI_REPLACE_METHOD(0x006618C0, CParty::LoadParty);
 void CParty::SaveParty(CStream* stream, int saveVariables) {
     if (itemManager_ == nullptr) Create();
     WriteText(stream, zone_);
-    WriteValue(stream, unknown_6C);
+    WriteValue(stream, entrance_);
     itemManager_->Save(stream);
     spellManager_->Save(stream);
     itemManager_->SaveObjects(stream);
@@ -193,7 +193,7 @@ void CParty::SaveParty(CStream* stream, int saveVariables) {
     for (int i = 0; i < records; ++i) members_.data[i].Save(stream);
     if (saveVariables != 0) Variables(variables_).Save(stream);
     std::uint32_t key = IsaacRandom::Global().Next();
-    WriteValue(stream, unknown_50 ^ key);
+    WriteValue(stream, money_ ^ key);
     WriteValue(stream, key);
 }
 EI_REPLACE_METHOD(0x00661C10, CParty::SaveParty);

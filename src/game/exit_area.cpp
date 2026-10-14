@@ -53,20 +53,20 @@ void CStream::ReadInto(mfc::CString* out) {
 EI_REPLACE_METHOD(0x004E5840, CStream::ReadInto);
 
 void ZoneExit::Read(CStream* stream) {
-    for (std::uint32_t& word : unknown_00) stream->Read(&word, 4);
+    for (std::uint32_t& word : passTimeDeploy) stream->Read(&word, 4);
     stream->Read(&x1, 4);
     stream->Read(&y1, 4);
     stream->Read(&x2, 4);
     stream->Read(&y2, 4);
     stream->ReadInto(reinterpret_cast<mfc::CString*>(&target));
     stream->Read(&entrance, 4);
-    stream->Read(&unknown_30, 4);
-    unknown_34 = 0;
-    unknown_38 = 0;
+    stream->Read(&view, 4);
+    hasDeployAngle = 0;
+    deployAngle = 0;
     std::memset(&angle, 0, sizeof(angle));
     if (static_cast<int>(stream->version_) >= static_cast<int>(kExitExtrasVersion)) {
-        stream->Read(&unknown_34, 1);
-        stream->Read(&unknown_38, 4);
+        stream->Read(&hasDeployAngle, 1);
+        stream->Read(&deployAngle, 4);
         stream->Read(&angle, 4);
     }
 }
@@ -79,16 +79,16 @@ void ZoneExit::Write(CStream* stream) const {
         std::memcpy(&copy, field, size);
         stream->Write(&copy, size);
     };
-    for (const std::uint32_t& word : unknown_00) put(&word, 4);
+    for (const std::uint32_t& word : passTimeDeploy) put(&word, 4);
     put(&x1, 4);
     put(&y1, 4);
     put(&x2, 4);
     put(&y2, 4);
     stream->Write(target, static_cast<std::uint32_t>(std::strlen(target) + 1));
     put(&entrance, 4);
-    put(&unknown_30, 4);
-    put(&unknown_34, 1);
-    put(&unknown_38, 4);
+    put(&view, 4);
+    put(&hasDeployAngle, 1);
+    put(&deployAngle, 4);
     put(&angle, 4);
 }
 EI_REPLACE_METHOD(0x004E58A0, ZoneExit::Write);

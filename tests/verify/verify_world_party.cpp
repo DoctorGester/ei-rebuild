@@ -64,7 +64,7 @@ static void __fastcall RestorePlayerItemsVerify(CWorldServer* self, void*, World
     auto* items = reinterpret_cast<ItemArray*>(reinterpret_cast<std::uint8_t*>(player) + 0xB0);
     int before = items->size;
     CEngineObject** data = items->data;
-    int kind = self->unknown12D64_;
+    int kind = self->sessionKind_;
     self->RestorePlayerItems(player);
     bool ok = items->size >= 0 && (kind != 4 || (items->size == before && items->data == data));
     ei::verify::Check("CWorldServer::RestorePlayerItems", true, ok, "kind %d, carried items %d -> %d", kind, before,
@@ -124,11 +124,11 @@ static void __fastcall RedeployVerify(CWorldServer* self, void*, WorldPlayer* pl
         return;
     }
     int lastTick = player->lastTick;
-    bool deploys = (self->unknown12D64_ == kKindSinglePlayer || self->unknown12D64_ == kKindNoRangeTest) &&
-                   self->unknown15C_ != 0;
+    bool deploys = (self->sessionKind_ == kKindSinglePlayer || self->sessionKind_ == kKindNoRangeTest) &&
+                   self->zoneLoaded_ != 0;
     self->Redeploy(player, placements, runScripts);
     bool ok = deploys ? player->lastTick == self->tick_ : player->lastTick == lastTick;
-    ei::verify::Check("CWorldServer::Redeploy", true, ok, "kind %d, %s, %d records, tick %d", self->unknown12D64_,
+    ei::verify::Check("CWorldServer::Redeploy", true, ok, "kind %d, %s, %d records, tick %d", self->sessionKind_,
                       deploys ? "deployed" : "not deployed", player->mercCount, player->lastTick);
 }
 EI_VERIFY(0x00590700, RedeployVerify, 0, s_unused);

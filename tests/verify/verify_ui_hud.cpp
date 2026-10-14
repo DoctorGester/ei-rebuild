@@ -441,8 +441,8 @@ static void __fastcall MovePanelUpdateVerify(CHudMovePanel* self, void*) {
             CUnit* unit = self->owner_->party_[i];
             if (!(unit->flags_ & 0x10)) continue;
             if (flag == -1)
-                flag = unit->unknown_438;
-            else if (flag != unit->unknown_438)
+                flag = unit->fightAtWill;
+            else if (flag != unit->fightAtWill)
                 flag = -2;
         }
         shown = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;

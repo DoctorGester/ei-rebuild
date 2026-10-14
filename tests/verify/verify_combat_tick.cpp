@@ -21,7 +21,7 @@ static UnitAction* __fastcall AssignVerify(UnitAction* self, void*, const UnitAc
     UnitAction* result = self->Assign(from);
     bool same = result == self && self->kind == from->kind && self->source == from->source &&
                 self->target == from->target && std::memcmp(&self->point, &from->point, sizeof(self->point)) == 0 &&
-                self->flag18 == from->flag18 && self->unknown_1C == from->unknown_1C && self->unknown_20 == from->unknown_20;
+                self->flag18 == from->flag18 && self->param == from->param && self->modifier == from->modifier;
     ei::verify::Check("UnitAction::Assign", true, same, "kind %d", from->kind);
     return result;
 }
@@ -30,7 +30,7 @@ EI_VERIFY(0x0054B320, AssignVerify, 0, s_unused);
 // 0054B230: ours only.
 static void __fastcall ResetVerify(UnitAction* self) {
     self->Reset();
-    ei::verify::Check("UnitAction::Reset", true, self->kind == 9 && !self->target && !self->unknown_1C, "");
+    ei::verify::Check("UnitAction::Reset", true, self->kind == 9 && !self->target && !self->param, "");
 }
 EI_VERIFY(0x0054B230, ResetVerify, 0, s_unused);
 

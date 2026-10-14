@@ -20,8 +20,8 @@ bool Dropped(const UnitAction& order) { return order.kind == 9 && !order.target;
 bool UseOrderOk(const CUnitServer* self, const UnitAction& before, std::uint32_t source, const CEngineObject* target,
                 int spot, int run) {
     const UnitAction& now = self->action2;
-    if (now.kind == 6 && now.source == source && now.target == target && now.unknown_1C == spot &&
-        now.unknown_20 == static_cast<std::uint8_t>(run))
+    if (now.kind == 6 && now.source == source && now.target == target && now.param == spot &&
+        now.modifier == static_cast<std::uint8_t>(run))
         return true;
     return Dropped(now) || SameOrder(before, now);
 }
@@ -53,13 +53,13 @@ EI_VERIFY(0x0054A5A0, FitsMoveModeVerify, 0, s_unusedFitsMoveMode);
 // running the current order's run flag is cleared.
 static void* s_unusedSetMoveStyle;
 static void __fastcall SetMoveStyleVerify(CUnitServer* self, void*, int style) {
-    std::uint8_t runBefore = self->action.unknown_20;
+    std::uint8_t runBefore = self->action.modifier;
     self->SetMoveStyle(style);
     bool keepsRun = style == 2 || style == 3;
-    bool ok = self->unit->moveMode2 == style && self->unknown_938 == 0 &&
-              self->action.unknown_20 == (keepsRun ? runBefore : 0);
+    bool ok = self->unit->moveMode2 == style && self->boredTicks == 0 &&
+              self->action.modifier == (keepsRun ? runBefore : 0);
     ei::verify::Check("CUnitServer::SetMoveStyle", true, ok, "unit %d style %d: stored %d, run %d -> %d", UnitId(self),
-                      style, self->unit->moveMode2, runBefore, self->action.unknown_20);
+                      style, self->unit->moveMode2, runBefore, self->action.modifier);
 }
 EI_VERIFY(0x00555270, SetMoveStyleVerify, 0, s_unusedSetMoveStyle);
 
@@ -67,7 +67,7 @@ EI_VERIFY(0x00555270, SetMoveStyleVerify, 0, s_unusedSetMoveStyle);
 static void* s_unusedSetWantedWeapon;
 static void __fastcall SetWantedWeaponVerify(CUnitServer* self, void*, int slot) {
     self->SetWantedWeapon(slot);
-    ei::verify::Check("CUnitServer::SetWantedWeapon", true, self->unit->pendingWeapon == slot && self->unknown_938 == 0,
+    ei::verify::Check("CUnitServer::SetWantedWeapon", true, self->unit->pendingWeapon == slot && self->boredTicks == 0,
                       "unit %d slot %d: stored %d", UnitId(self), slot, self->unit->pendingWeapon);
 }
 EI_VERIFY(0x005552E0, SetWantedWeaponVerify, 0, s_unusedSetWantedWeapon);
@@ -128,7 +128,7 @@ static void __fastcall PlayAnimationVerify(CUnitServer* self, void*, const char*
     self->PlayAnimation(name);
     const UnitAction& now = self->action2;
     bool ok = SameOrder(before, now) ||
-              ((now.kind == 7 || now.kind == 8) && !now.target && !now.flag18 && !now.unknown_20);
+              ((now.kind == 7 || now.kind == 8) && !now.target && !now.flag18 && !now.modifier);
     ei::verify::Check("CUnitServer::PlayAnimation", true, ok, "unit %d animation %s: queued kind %d", UnitId(self),
                       name ? name : "(null)", now.kind);
 }

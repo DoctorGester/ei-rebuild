@@ -535,7 +535,7 @@ struct AttackOrder {
     CEngineObject* object;          // +0x08 counted
     Vector3 point;                  // +0x0C left uninitialised by the original
     std::uint8_t flag;              // +0x18
-    std::uint8_t unknown_19[3];
+    std::uint8_t unused_19[3];
 };
 static_assert(sizeof(AttackOrder) == 0x1C);
 } // namespace

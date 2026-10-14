@@ -55,12 +55,12 @@ EI_VERIFY(0x0055FB50, SetTimeSpeedVerify, 0, s_unused);
 static void(__fastcall* s_setWind)(CWorld*, void*, const Vector3*, float);
 static void __fastcall SetWindVerify(CWorld* self, void*, const Vector3* direction, float strength) {
     std::uint8_t before[16], theirs[16], ours[16];
-    std::memcpy(before, self->unknown24_, 16);
+    std::memcpy(before, self->windDirection_, 16);
     s_setWind(self, nullptr, direction, strength);
-    std::memcpy(theirs, self->unknown24_, 16);
-    std::memcpy(self->unknown24_, before, 16);
+    std::memcpy(theirs, self->windDirection_, 16);
+    std::memcpy(self->windDirection_, before, 16);
     self->SetWind(direction, strength);
-    std::memcpy(ours, self->unknown24_, 16);
+    std::memcpy(ours, self->windDirection_, 16);
     ei::verify::Check("CWorld::SetWind", true, std::memcmp(theirs, ours, 16) == 0, "world %p", self);
 }
 EI_VERIFY(0x0055FCB0, SetWindVerify, 5, s_setWind);
@@ -83,8 +83,8 @@ EI_VERIFY(0x0058EEE0, ServerSetTimeSpeedVerify, 0, s_unused);
 static void __fastcall ChangeWindVerify(CWorldServer* self, void*, const Vector3* direction, float strength) {
     self->ChangeWind(direction, strength);
     float stored;
-    std::memcpy(&stored, &self->unknown30_, 4);
-    bool ok = std::memcmp(self->unknown24_, direction, 12) == 0 && stored >= 0.0f && stored <= 1.0f && AllDirty(self, 8);
+    std::memcpy(&stored, &self->windStrength_, 4);
+    bool ok = std::memcmp(self->windDirection_, direction, 12) == 0 && stored >= 0.0f && stored <= 1.0f && AllDirty(self, 8);
     ei::verify::Check("CWorldServer::ChangeWind", true, ok, "strength %f -> %f", strength, stored);
 }
 EI_VERIFY(0x0058EE20, ChangeWindVerify, 0, s_unused);

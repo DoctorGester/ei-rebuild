@@ -438,7 +438,7 @@ static void __fastcall SoundSeqResetVerify(CEffectSoundSeq* self) {
 EI_VERIFY(0x00676B10, SoundSeqResetVerify, 0, s_unused);
 static void __fastcall AmbientResetVerify(CEffectAmbientSound* self) {
     self->Reset();
-    bool ok = BaseCleared(self) && self->names_.size == 0 && self->unknown_168 == 0 && self->unknown_16C == 0;
+    bool ok = BaseCleared(self) && self->names_.size == 0 && self->minInterval_ == 0 && self->maxInterval_ == 0;
     ei::verify::Check("CEffectAmbientSound::Reset", true, ok, "object %p", self);
 }
 EI_VERIFY(0x00677870, AmbientResetVerify, 0, s_unused);

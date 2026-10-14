@@ -41,9 +41,9 @@ ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     text08 = source->text08;
     type = source->type;
     materialClass = source->materialClass;
-    CopyBytes(this, source, offsetof(ItemRecordHead, unknown_14), offsetof(ItemRecordHead, list20));
+    CopyBytes(this, source, offsetof(ItemRecordHead, field4), offsetof(ItemRecordHead, list20));
     CopyBytes(this, source, offsetof(ItemRecordHead, price), offsetof(ItemRecordHead, list50));
-    unknown_68 = source->unknown_68;
+    field15 = source->field15;
     StringArrayCopyOriginal(&list20, nullptr, &source->list20);
     return this;
 }
@@ -55,7 +55,7 @@ void ItemRecordHead::ConstructHead(std::uintptr_t vtableAddress) {
     new (&materialClass) mfc::CString();
     new (&list20) console::CStringArray();
     new (&list50) console::CStringArray();
-    unknown_68 = 1;
+    field15 = 1;
     vtable = reinterpret_cast<void*>(vtableAddress);
 }
 

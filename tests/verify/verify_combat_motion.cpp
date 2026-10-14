@@ -36,8 +36,8 @@ struct StepsCopy {
         for (int i = 0; i < count; ++i) {
             const AnimationStep& a = steps[static_cast<std::size_t>(i)];
             const AnimationStep& b = list->steps[i];
-            if (a.animation != b.animation || a.unknown_01 != b.unknown_01 || a.unknown_02 != b.unknown_02 ||
-                a.duration != b.duration || a.unknown_08 != b.unknown_08)
+            if (a.animation != b.animation || a.variant != b.variant || a.flags != b.flags ||
+                a.duration != b.duration || a.kind != b.kind)
                 return false;
         }
         return true;

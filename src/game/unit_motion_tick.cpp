@@ -219,9 +219,9 @@ void ClearWaitingFor(CUnitServer* controller) {
 void SetObstacle(CUnitServer* c, int obstacle) {
     CWorldServer* world = ServerOf(c);
     CUnit* unit = UnitOf(c);
-    if (static_cast<int>(unit->unknown_278) == obstacle) return;
+    if (static_cast<int>(unit->obstacle) == obstacle) return;
     SectorMapRemove(world->Sectors(), nullptr, unit);
-    UnitOf(c)->unknown_278 = static_cast<std::uint32_t>(obstacle);
+    UnitOf(c)->obstacle = static_cast<std::uint32_t>(obstacle);
     SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     UnitMarkChanged(UnitOf(c), nullptr, 7);
 }
@@ -249,7 +249,7 @@ void HitWhileTurning(CUnitServer* c) {
             c->keepHitDirection = 1;
             StepsCopyB(&c->savedQueue, nullptr, Queue(c));
             CtlPlaySteps(c, nullptr, &steps);
-            c->unknown_021 = 1;
+            c->animationHeld = 1;
         }
     }
     StepsDestroy(&steps);
@@ -281,7 +281,7 @@ void HitWhileMoving(CUnitServer* c) {
             std::uint32_t emote;
             std::memcpy(&emote, reinterpret_cast<const char*>(&step) + 1, 4);
             StepsEmote(&fall, nullptr, emote);
-        } else if (step.unknown_01 == 0xFF) {
+        } else if (step.variant == 0xFF) {
             std::uint32_t head;
             std::memcpy(&head, &step, 4);
             StepsAddStep(&fall, nullptr, head, step.duration);
@@ -393,13 +393,13 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
     MotionPathOf(c)->cells.RemoveAll();
 
     float range = MotionPathOf(c)->goal.z;
-    std::uint32_t saved = UnitOf(c)->unknown_43C;
+    std::uint32_t saved = UnitOf(c)->altPassCosts;
     CWorldServer* context = ServerOf(c);
     MotionPathOf(c)->flag6E = UnitOf(c)->player ? 0 : 1;
-    std::uint32_t current = UnitOf(c)->unknown_43C;
-    UnitOf(c)->unknown_43C = saved;
+    std::uint32_t current = UnitOf(c)->altPassCosts;
+    UnitOf(c)->altPassCosts = saved;
     bool found = MapFindPath(context->AIMap(), nullptr, UnitOf(c), &MotionPathOf(c)->goal, MotionPathOf(c), range, 0.0f);
-    UnitOf(c)->unknown_43C = current;
+    UnitOf(c)->altPassCosts = current;
     if (liftBlocker) {
         SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
         StampWaterPatchOriginal(world->AIMap(), nullptr, position, 0);
@@ -423,7 +423,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
 // Then the tick's end (00548520).
 void Exhaustion(CUnitServer* c) {
     CUnit* unit = UnitOf(c);
-    if (unit->unknown_278 == 0) return;
+    if (unit->obstacle == 0) return;
     if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
     CPlayer* player = PlayerOf(unit);
     if (c->moveMode.wasMode3 && player && player->unknown_108 == 0 && GameMode() != 3) {
@@ -526,9 +526,9 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, &position);
     } else if (blocked == kBlockedWait) {
-        if (c->stats.unknown_060 == 2) c->unknown_021 = 1;   // +0x240: the stats' +0x60
-        else c->unknown_020 = 1;
-        if (UnitOf(c)->unknown_278 != 0) SetObstacle(c, 0);
+        if (c->stats.movementKind == 2) c->animationHeld = 1;   // +0x240: the stats' +0x60
+        else c->frozen = 1;
+        if (UnitOf(c)->obstacle != 0) SetObstacle(c, 0);
     }
     Exhaustion(c);
 }

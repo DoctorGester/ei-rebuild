@@ -62,13 +62,13 @@ void CWorld::GetTime(float* hours, float* speed) {
 EI_REPLACE_METHOD(0x0055FBD0, CWorld::GetTime);
 
 void CWorld::SetWind(const Vector3* direction, float strength) {
-    std::memcpy(unknown24_, direction, sizeof(unknown24_));
-    std::memcpy(&unknown30_, &strength, sizeof(unknown30_));
+    std::memcpy(windDirection_, direction, sizeof(windDirection_));
+    std::memcpy(&windStrength_, &strength, sizeof(windStrength_));
 }
 EI_REPLACE_METHOD(0x0055FCB0, CWorld::SetWind);
 
 void CWorldServer::SetTime(float hours) {
-    if (KeepsPlayerTimes(unknown12D64_)) UpdatePlayerTimes(0.0f);
+    if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);
     CWorld::SetTime(hours);
     MarkPlayersDirty(4);
     UpdateWeather();
@@ -78,7 +78,7 @@ void __fastcall ServerSetTimeHook(CWorldServer* self, void*, float hours) { self
 EI_REPLACE(0x0058EEA0, ServerSetTimeHook);
 
 void CWorldServer::SetTimeSpeed(float speed) {
-    if (KeepsPlayerTimes(unknown12D64_)) UpdatePlayerTimes(0.0f);
+    if (KeepsPlayerTimes(sessionKind_)) UpdatePlayerTimes(0.0f);
     CWorld::SetTimeSpeed(speed);
     MarkPlayersDirty(4);
     UpdateWeather();

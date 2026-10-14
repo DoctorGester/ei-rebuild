@@ -52,7 +52,7 @@ struct LocalPartyRecords {
     int count;                       // +0x34
 };
 LocalPartyRecords* LocalRecords() { return reinterpret_cast<LocalPartyRecords*>(LocalPlayerData()); }
-int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unknown_01C); }
+int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unitId); }
 
 CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }

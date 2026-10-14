@@ -156,7 +156,7 @@ struct MarkState {
     int top;             // +0x04
     int passage;         // +0x08 0x400 open, damped by occluders; negative: blocked
     int cost;            // +0x0C
-    int unknown10;       // +0x10
+    int ceiling;                        // +0x10 the room above the bottom (0x7F8 on open ground)
     std::uint8_t doubled;   // +0x14 the cost counts twice (occluder type 3)
 };
 
@@ -231,7 +231,7 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
         s->cost = 1;
         s->bottom = bottom;
         s->top = bottom + levelHeight;
-        s->unknown10 = 0x7F8;
+        s->ceiling = 0x7F8;
     } else {
         int base = terrain->cost;
         int ceiling = level != 1 ? levelHeight : 0;
@@ -240,7 +240,7 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
         s->cost = base;
         s->bottom = bottom;
         s->top = levelHeight + bottom;
-        s->unknown10 = ceiling;
+        s->ceiling = ceiling;
         if (extra & 0x3F) {
             int depth = extra & 0x3F;
             if (depth == 0x3F || depth >= ceiling - 1) {

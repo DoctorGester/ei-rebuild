@@ -78,7 +78,7 @@ public:
     void Destruct();
     CTextManager* DeletingDestruct(unsigned flags);
 
-    std::uint8_t unknown_00[0x1C];
+    std::uint8_t unused_00[0x1C];
     TextSourceList sources_;   // +0x1C
     const char* cursor_;    // +0x20 read position in the current text
     const char* text_;      // +0x24 start of the current text (null: none)

@@ -101,9 +101,9 @@ void AIEventTable::Load(CStream* stream) {
         event->prev = nullptr;
         event->nextInSlot = nullptr;
         stream->Read(&event->x, 8);   // x, y
-        stream->Read(event->unknown_08, 8);
+        stream->Read(event->origin, 8);
         stream->Read(&event->expiry, 4);
-        stream->Read(event->unknown_14, 8);
+        stream->Read(event->payload, 8);
         stream->Read(&event->sourceId, 4);
         stream->Read(&event->side, 4);
         AIEventCell* cell = CellOf(event);
@@ -131,10 +131,10 @@ void AIEventTable::Save(CStream* stream) {
                     const char more = 1;
                     stream->Write(&more, 1);
                     stream->Write(&event->x, 8);
-                    stream->Write(event->unknown_08, 8);
+                    stream->Write(event->origin, 8);
                     int value = event->expiry;
                     stream->Write(&value, 4);
-                    stream->Write(event->unknown_14, 8);
+                    stream->Write(event->payload, 8);
                     value = event->sourceId;
                     stream->Write(&value, 4);
                     value = event->side;

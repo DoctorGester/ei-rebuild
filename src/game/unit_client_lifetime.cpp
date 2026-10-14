@@ -33,7 +33,7 @@ int CUnitClientSpecific::CreateClient() {
     snapHeading = 1;
     fadeIn = 1.0f;
     idleSound = kNone;
-    unknown_08C = kNone;
+    otherSound = kNone;
     speechSound = kNone;
     lastSpeech = nullptr;
     lastSpeechTime = 0;
