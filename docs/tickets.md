@@ -68,6 +68,19 @@ Not started; both wait for the port. Counts are on the dashboard ("Standalone re
 - S: first standalone exe with our own layout-compatible MFC / STLport / CRT classes (6-8 tickets), data definitions and vtables (4-6), direct calls, entry and link (3-4), first boot (2-4), old renderer code (3-4). Standard-library types come after the hook build is retired.
 - U1-U5: UTF-8 inside, cp1251 assets converted when read, behind a switch in the standalone build (5-6 tickets). Saves and multiplayer need not match vanilla (user, 2026-10-13).
 
+## Lua scripting (later, after S; user 2026-10-14; docs/notes/lua-scripting.md)
+
+Mission scripts run on Lua through a transpiler (assets unchanged), mods can write Lua, and saves keep running coroutines (Eris).
+- L1 script IR from the existing parser (blocks, commands, definitions, globals; Rebirth's extensions) with a text dump; every mission, quest and console form parses.
+- L2 vendor Lua (decide 5.3 + Eris or Luau + Ares) and generate the bindings from the keyword table (300 + Rebirth's 69); object references and groups as userdata.
+- L3 transpiler: blocks as resumable `block(pc, run)` functions, rule sets, For / ForIf bodies (a wait ends the body), assignments, script calls, the WorldScript.
+- L4 scheduler with ScriptTick's exact order and timing (head insertion, same-tick vs next-tick, Execute count, Sleep ticks, NaN as false).
+- L5 lockstep `luaboth`: both engines per tick, comparing variables, run positions, instances and the built-in call log; scenarios plus a mission corpus.
+- L6 saves: Eris for the whole Lua state (permanents, `__persist` by object id), old saves loaded as coroutines at their index; decide whether to keep writing the old format.
+- L7 runtime paths: quests (QFinish) and console lines through the transpiler; a cache for mission files.
+- L8 mod API: `.lua` loading, Lua names for the built-ins, waits as yields, sandbox, errors as "Script error".
+- L9 Lua by default; the old executor removed (the parser stays as the front end).
+
 ## Pending work
 
 - Republish the dashboard and remove merged worktrees.
