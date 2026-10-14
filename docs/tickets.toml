@@ -142,11 +142,12 @@ note = "Render targets, command queue, fill / frame / line / pixel / glyph run /
 id = "N2"
 title = "Font loading, glyph atlas and DrawText-compatible layout"
 group = "native-ui"
-status = "running"
+status = "done"
 started = "2026-10-14"
 size = 2
 files = ["src/render/render_text.{h,cpp}", "third_party/stb", "third_party/fonts"]
-note = "stb_truetype with Liberation Serif / Mono (vendored 2026-10-14); the layout also serves the text extent. Not pixel-exact with GDI; a test tool reports line-break differences."
+note = "stb_truetype with Liberation Serif / Mono (vendored 2026-10-14); the layout also serves the text extent. Not pixel-exact with GDI; a test tool reports line-break differences. Merged 2026-10-14: render::text (Font / LoadFont via stb_truetype, GlyphAtlas, GetTextFont, DecodeCp1251, Layout, TextExtent, ComposeAgainstBlack); FontDirectory() / SetFontDirectory decide where fonts load from. ei_text_check: --rules 829 checks; --gdi: every game string matches DrawTextA exactly with GDI's metrics; --report: with Liberation 5.8% of layouts break differently (9.6% at 800x600 font 0), heights 1-3 px shorter than hinted Times. For P2: DrawText kerns (Uniscribe), GetTextExtentPoint32 does not; key on composed colour != key; composite shadow then text; clip quads; upload the atlas after Layout (Generation()); GetTextFont not thread-safe; CP1251 only."
+done = "2026-10-14"
 
 [[ticket]]
 id = "N3"
@@ -282,6 +283,15 @@ status = "queued"
 size = 0.5
 files = ["tests/scenarios/", "tests/verify/ui_census.cpp"]
 note = "N0's suite did not reach the help page 00659420, chat line / window, connect list 0061D780, escape-menu CaptureScreen + greyscale, save picture 005FD440, global-map pick PixelAt, FPS surface, debug panel drawing. Add scenarios (or N4 gallery steps) and rerun the census (docs/notes/ui-census.md). Also explain the four Rebirth-only owners with heap vtables (2FBD....) in ui_trade_hold before P3c keys on vtables under Rebirth."
+
+[[ticket]]
+id = "N2a"
+title = "Line heights matching GDI's hinted Times New Roman (optional)"
+group = "native-ui"
+status = "queued"
+size = 0.3
+depends = ["N2"]
+note = "Liberation is 1-3 px shorter than GDI's hinted Times at most sizes (16 vs 15 at 14 px, 75 vs 73 at 66 px); a per-size height / ascent table in render_text keeps line spacing as today."
 
 # ---------------------------------------------------------------- widescreen
 
@@ -537,9 +547,10 @@ note = "V1-V3g: 507 -> 0 (vector-math.md \"V3 status\"); V3g did SectorPosition,
 id = "C3"
 title = "Forwarders whose declarations differ between files"
 group = "cleanup"
-status = "queued"
+status = "running"
 model = "opus"
 note = "docs/originals-report.md \"differ\" group (261 after C3l, 209 already rewritten): one declaration per address in originals_<area>.h (RET n, callers, Ghidra); the ui_* sites next. Batches of 50."
+started = "2026-10-14"
 
 [[ticket]]
 id = "C5"
