@@ -136,7 +136,7 @@ bool AIPath::Start(const Vector3* position, const Vector3* direction, int time) 
     MotionOrder* order = OrderOf(this);
     double dx = direction->x;
     float dy = direction->y;
-    double length = x87::fsqrt(static_cast<double>(dy) * dy + dx * dx);
+    double length = x87::fsqrt(LengthSquared2DUnrounded<double>(dy, dx));
     double angle = length > 0.0 ? Fpatan(dy / length, dx / length) : 0.0;
     double x = kHalfCellScale * position->x;
     float y = Store(kHalfCellScale * position->y);
@@ -315,10 +315,10 @@ bool UnitMotion::Sample(CWorld* world, MotionOrder* order, float time, bool* tur
         const Vector3* where;
         if (static_cast<double>(from) >= time) where = object->PositionAt(&buffer, from);
         else where = object->AimPoint(&buffer);
-        float target[3];
-        std::memcpy(target, where, sizeof(target));
-        float tx = Store(kHalfCellScale * target[0]);
-        double ty = kHalfCellScale * target[1];
+        Vector3 target;
+        std::memcpy(&target, where, sizeof(target));
+        float tx = Store(kHalfCellScale * target.x);
+        double ty = kHalfCellScale * target.y;
         int to = static_cast<int>(order->arg7);
         if (static_cast<double>(to) > time && to != order->startTime) {
             // Still turning towards it: interpolate the facing over [start, to].
@@ -401,7 +401,7 @@ bool UnitMotion::SamplePath(float time, bool* turning, float* position, float* d
             std::memcpy(&toX, &to.x, 4 * sizeof(float));
             double dx = static_cast<double>(fromX) - toX;
             double dy = static_cast<double>(fromY) - toY;
-            double distance = x87::fsqrt(dy * dy + dx * dx);
+            double distance = x87::fsqrt(LengthSquared2DUnrounded(dy, dx));
             length = Store(distance);
             CopyBits(&speed, &from.speed);
             end = end + distance / speed;
@@ -642,7 +642,7 @@ void UnitMotion::SubdivideSegment(const MotionWaypoint* a, const MotionWaypoint*
                                   float endOffset, int* stepIndex) {
     double dx = static_cast<double>(a->x) - b->x;
     double dy = static_cast<double>(a->y) - b->y;
-    double distance = x87::fsqrt(dy * dy + dx * dx);
+    double distance = x87::fsqrt(LengthSquared2DUnrounded(dy, dx));
     if (Equal(distance, 0.0)) distance = kMinLength;
     MotionPoint p;
     p.cellX = -1;
@@ -693,7 +693,7 @@ void UnitMotion::LimitSpeeds(float rate) {
         if (angle > kPi) angle = twoPi - angle;
         double dx = static_cast<double>(p[0].x) - p[1].x;
         double dy = static_cast<double>(p[0].y) - p[1].y;
-        float distance = Store(x87::fsqrt(dy * dy + dx * dx));
+        float distance = Store(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
         double turnTime = angle / rate;
         double wayTime = static_cast<double>(distance) / p[0].speed;
         if (turnTime > wayTime) p[0].speed = Store(distance / turnTime);
