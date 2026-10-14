@@ -2980,14 +2980,15 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // 00659420 (Rebirth-patched; through its address). Shows page page_.
     void ShowPage();
-    // 00659420's vanilla body (plain RET; ui_help_page.cpp, A-H26; hooked in the vanilla launch
-    // only). Empties the two lists, the surfaces, regions and scene objects, opens "tutorial
-    // <text_>" (without it the pending value is set to 0) and goes to the page's "#screen" line.
-    // The page's rectangle is (200, 50)-(600, 560), or "#position left top right [rows]" (at least
-    // 300 wide, rows x 16 + 110 high, at most 600). Scene objects 0 the plain background, 1 the
-    // frame, 2 / 3 / 4 the previous, OK and next buttons; then one pulsing frame per "#rectangle
-    // left top right bottom" line and one entry per "#text [picture]" line (the next line's first
-    // word is the text's key). Surfaces: 0 the page's title and "title (page/pages)", 1 the
+    // 00659420's body (plain RET; ui_help_page.cpp, A-H26; reproducing Rebirth's WideScreen, so
+    // hooked in both launches). Empties the two lists, the surfaces, regions and scene objects,
+    // opens "tutorial <text_>" (without it the pending value is set to 0) and goes to the page's
+    // "#screen" line. The page's rectangle is (200, 50)-(600, 560), or "#position left top right
+    // [rows]" (at least 300 wide, rows x 16 + 110 high, at most 600). Scene objects 0 the plain
+    // background, 1 the frame, 2 / 3 / 4 the previous, OK and next buttons; then one pulsing frame
+    // per "#rectangle left top right bottom" line (with Rebirth's WideScreen some zone tutorial
+    // pages' frames move by the layout's extra units, as the battle screen's panels) and one entry
+    // per "#text [picture]" line (the next line's first word is the text's key). Surfaces: 0 the page's title and "title (page/pages)", 1 the
     // entries' wrapped "tutor <key>" texts (laid out twice when no rows are given: the first pass
     // makes the pictures, "tutorial_<picture>" copied into referenced object 1's 64-pixel cells,
     // and gives the height), 2 the buttons' texts with the help key's name. Regions 0-2 the

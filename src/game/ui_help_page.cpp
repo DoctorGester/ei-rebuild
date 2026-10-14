@@ -1,7 +1,8 @@
 // The help / message window's page (CHelpWindow::ShowPage, 00659420; A-H26): everything the
 // window shows is rebuilt from the texts for page page_ (see ui.h).
-// Rebirth patches it, so this is the vanilla body and installs in the vanilla launch only (rule
-// 9); our callers keep the forwarder in ui_help_window.cpp. Patched callees through their
+// Rebirth's WideScreen patches it (a context hook at +574: the pulsing frames of some tutorial
+// messages follow the battle screen's panels to the screen's edges), which this reproduces, so it
+// installs in both launches; our callers keep the forwarder in ui_help_window.cpp (rule 9). Patched callees through their
 // addresses: the surface's text 005FDE20, the sprites' Place 005E6FA0, SetRectangle 005E70E0 and
 // SetFrame 005E7D60, the regions' SetRect 005FC9E0. See docs/notes/items_spells.md ("A-H26").
 #include "ui.h"
@@ -10,8 +11,10 @@
 #include "object_tables.h"      // FindCommandByKey
 #include "text_reader.h"
 #include "ui_gdi.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -21,6 +24,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -81,6 +85,29 @@ void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int
 }
 
 void SetRegion(CUiRegion* region, const RECT& rect) { region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom); }
+
+// Rebirth's WideScreen (addon's handler 10023702, a context hook over the first AddSprite of a
+// "#rectangle" line at 00659994): on a message window (message_), the page "<text_>:<page_>" of the
+// zone tutorials whose frames point at the battle screen's left panels moves them left by the
+// layout's extra units, of those pointing at its right panels right (addon's two string sets, built
+// once from its literals 100AF5F0..100AF668; the frame's left and right, the original's locals
+// [ESP+0x64] / [ESP+0x58], change; top and bottom do not).
+constexpr const char* kLeftPanelPages[] = {"zt9:0", "zt12:0", "zt12:1", "zt13:0", "zt14:0", "zt14:2", "zt17:0", "zt20:0", "zt22:0"};
+constexpr const char* kRightPanelPages[] = {"zt3:2", "zt4:0", "zt4:1", "zt7:0", "zt10:0", "zt10:1", "zt18:0"};
+
+bool Listed(const std::string& page, const char* const* names, std::size_t count) {
+    for (std::size_t i = 0; i < count; ++i)
+        if (page == names[i]) return true;
+    return false;
+}
+
+int TutorialFrameShift(const CHelpWindow* window) {
+    if (!widescreen::Active() || !window->message_) return 0;
+    const std::string page = std::string(static_cast<const char*>(window->text_)) + ':' + std::to_string(window->page_);
+    if (Listed(page, kLeftPanelPages, std::size(kLeftPanelPages))) return -widescreen::EdgeShift();
+    if (Listed(page, kRightPanelPages, std::size(kRightPanelPages))) return widescreen::EdgeShift();
+    return 0;
+}
 
 } // namespace
 
@@ -169,10 +196,11 @@ void CHelpWindow::ShowPageVanilla() {
         TextSplit(texts, nullptr, &words, 1);
         if (Same(words[0], kScreenLine)) break;
         if (Same(words[0], kRectangleLine) && words.GetSize() > 4) {
-            const int left = GameAtoi(words[1]);
             const int top = GameAtoi(words[2]);
-            const int right = GameAtoi(words[3]);
             const int bottom = GameAtoi(words[4]);
+            const int shift = TutorialFrameShift(this);
+            const int left = GameAtoi(words[1]) + shift;
+            const int right = GameAtoi(words[3]) + shift;
             CUiMesh* mark = AddSprite(nullptr);
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
@@ -304,3 +332,4 @@ void CHelpWindow::ShowPageVanilla() {
     stlp::deallocate(entries.head, sizeof(stlp::list<PageEntry>::Node));
 }
 EI_REPLACE_METHOD(0x00659420, CHelpWindow::ShowPageVanilla);
+EI_REBIRTH_IMPLEMENTS(0x00659420, ei::rebirth::Patch::WideScreen);

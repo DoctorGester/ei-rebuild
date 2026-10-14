@@ -11,7 +11,8 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    EI_RENDER=new,present: the game has no DirectDraw or Direct3D 7 device and the new
                    renderer presents through its own swap chain (docs/notes/renderer.md section 9)
   --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"):
-                   the scenarios (default ui_widescreen, ui_widescreen_more and ui_widescreen_hud; they
+                   the scenarios (default ui_widescreen, ui_widescreen_more, ui_widescreen_hud and
+                   ui_widescreen_screens; they
                    set the wide mode with the harness's "resolution" / "widescreen" steps) under Rebirth
                    twice, with our hooks
                    (<scenario>-rebirth) and without (<scenario>-rebirth-nohooks: addon's code only),
@@ -36,7 +37,7 @@ import argparse, functools, collections, concurrent.futures, contextlib, glob, j
 import prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud']   # --widescreen without scenario names
+WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud', 'ui_widescreen_screens']   # --widescreen without scenario names
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
 # Runs go to <BUILD>/runs. <BUILD>/run_times.json keeps each run's seconds from the last suite: the
 # longest start first, so the last games to finish are short ones (alphabetical order left a 50 s run

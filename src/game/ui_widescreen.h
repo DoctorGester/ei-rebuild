@@ -49,7 +49,7 @@ struct Layout {
     int extra;     // margin in layout units, ceil((float)(margin * 800.0 / width43)) (100BD0A8)
     // Two floats addon computes when it applies its patches (53-bit FPU precision, rounded to float):
     float axisScale;   // (float)(width43 / width): written into the axis swap at 004F135A
-    float fontScale;   // (float)(width * 0.0075 / height): written at 005F4F81, read by 005F4990+BF
+    float fontScale;   // (float)(width * (double)0.0075f / height): written at 005F4F81, read by 005F4990+BF
 };
 
 // The layout (computed in Startup; on first use if something asks earlier).

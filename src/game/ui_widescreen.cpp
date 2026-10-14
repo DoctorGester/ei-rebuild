@@ -74,11 +74,11 @@ Layout Compute() {
     layout.margin = (w - layout.width43) / 2;
     volatile float units = static_cast<float>(layout.margin * 800.0 / layout.width43);
     layout.extra = static_cast<int>(std::ceil(static_cast<double>(units)));
-    // FILD width43; FIDIV width; FSTP dword (10024954) and FILD width; FMUL 0.0075; FIDIV height;
-    // FSTP dword (10024902).
+    // FILD width43; FIDIV width; FSTP dword (10024954) and FILD width; FMUL qword 0.0075f (a float
+    // constant widened to a double: 0.0074999998); FIDIV height; FSTP dword (10024902).
     volatile double ratio = static_cast<double>(layout.width43) / static_cast<double>(w);
     layout.axisScale = static_cast<float>(ratio);
-    volatile double perHeight = static_cast<double>(w) * 0.0075;
+    volatile double perHeight = static_cast<double>(w) * static_cast<double>(0.0075f);
     perHeight = perHeight / static_cast<double>(h);
     layout.fontScale = static_cast<float>(perHeight);
     layout.active = true;

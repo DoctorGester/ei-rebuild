@@ -1,0 +1,125 @@
+# Rebirth's WideScreen, part four (ticket W4; docs/notes/rebirth.md "WideScreen"): the other screens,
+# for comparison with Rebirth's own frames:
+#   python tools\run_all.py --widescreen
+# runs this with the other ui_widescreen scenarios under Rebirth with our hooks and with --no-hooks
+# (addon's code only) and compares the frames. Same settings as part one (the desktop's mode,
+# WideScreen on, the virtual clock); a frame with a "_later" twin is compared without what moved
+# between the two, one with "_moving" / "_moving_later" without what moved before its window opened.
+# On screen here: the multiplayer hero screen's list (its mode 00615D30 hides the curtains over the
+# margins there; the new hero, where they show, is in ui_widescreen_more); two zone tutorial
+# messages whose pulsing frames point at the battle screen's panels and follow them to the screen's
+# edges (00659420+574: "zt4" at the right panels, both pages; "zt9" at the left ones), each queued
+# with the script's SendStringEvent ("tutorial <name>", as the zones' scripts do) and opened with
+# the message key (H: the harness keeps the tutorial option off, so a queued message does not open
+# by itself; the key shows the last one); then the global map's mouse moves (00630010, its pick
+# picture read without the margin) and a right-button drag turning it (the drag's motion scaled
+# without the margin). Not captured: its scene is lit by the world's time, which differs between
+# the runs.
+deterministic
+resolution desktop
+widescreen 1
+rebirthflags WideScreen
+reject Script error
+wait 6000
+
+# The multiplayer hero screen (main menu region 5): the hero list; Esc back to the main menu.
+clickregion 5
+wait 2000
+move 400 20
+wait 300
+freeze
+capture heroes
+unfreeze
+wait 700
+freeze
+capture heroes_later
+unfreeze
+key esc
+wait 2000
+
+# The hero on zone1, the camera settled.
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+move 400 20
+wait 2000
+
+# "zt4" (frames at the right panels), its first page and the next one. The window's backdrop is a
+# copy of the screen: what moves on the battle screen is captured first.
+console @SendStringEvent(0,"tutorial zt4")
+frames 10
+freeze
+capture zt4_moving
+capture zt4b_moving
+unfreeze
+wait 700
+freeze
+capture zt4_moving_later
+capture zt4b_moving_later
+unfreeze
+key h
+waitwindow 10 help
+move 400 20
+wait 500
+freeze
+capture zt4
+unfreeze
+clickregion 2
+frames 10
+move 400 20
+wait 500
+freeze
+capture zt4b
+unfreeze
+clickregion 1
+waitwindow 10 battle
+wait 1000
+
+# "zt9" (frames at the left panels).
+console @SendStringEvent(0,"tutorial zt9")
+frames 10
+freeze
+capture zt9_moving
+unfreeze
+wait 700
+freeze
+capture zt9_moving_later
+unfreeze
+key h
+waitwindow 10 help
+move 400 20
+wait 500
+freeze
+capture zt9
+unfreeze
+clickregion 1
+waitwindow 10 battle
+wait 1000
+
+# The global map (screen 4): the mouse over it (the zone under it read from the pick picture), then
+# the right button held while the mouse moves (the map turns) and let go. Not captured.
+screen 4
+waitwindow 15 map
+move 300 300
+frames 5
+move 400 250
+frames 5
+move 500 350
+frames 5
+move 250 400
+frames 5
+rdown 400 300
+frames 5
+move 450 310
+frames 5
+move 520 290
+frames 5
+move 380 320
+frames 5
+rup 380 320
+frames 5
+report
+quit

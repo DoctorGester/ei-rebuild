@@ -42,7 +42,7 @@ Notes on the inventory:
 
 **Changed 2026-10-14 (user):** the native path does not use GDI at all, for metrics or glyphs, and need not be pixel-exact. N2 loads its own font (TrueType rasteriser plus a font metric-compatible with Times New Roman) and its layout also serves the text extent, so wrapping uses the same metrics as drawing. The GDI notes below describe the original behaviour to approximate.
 
-**Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts_[0..2]` with `CFont::CreatePointFont` 0070BBE5: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the pixel height of a 75-point font. So the font size depends on resolution, and WideScreen W4 will patch 005F4990+BF.
+**Fonts.** `CInterface3D::Create` 005F4990 (`ui_interface_create.cpp`) makes `fonts_[0..2]` with `CFont::CreatePointFont` 0070BBE5: "Times New Roman" at width·{104, 112, 144}/800/scale. The scale is the pixel height of a 75-point font. So the font size depends on resolution; with WideScreen the scale's 0.01 becomes width·0.0075/height (addon's float at 005F4F81, `widescreen::FontScale`; W4).
 - The console has its own point font (`console_window_create.cpp`); the debug panel has its own too.
 - All text is GDI: no bitmap fonts, quality left at its default, so the system's ClearType / smoothing setting decides the look.
 - The credits switch font smoothing off for the session.
@@ -137,7 +137,7 @@ Notes on the inventory:
   - `uinative[=all|list]`: native surfaces skip GDI pixels; GDI is still called on the metrics DC for return values.
   - `uiboth` (verify default): record and draw GDI, so the existing pixel wrappers (`pixel_settle.h` users) keep working, and the per-surface diff can run.
   - Default stays CPU.
-- **Fallback.** A surface that any code we have not ported draws into stays CPU, uploaded as today. This covers RichEdit 0065F020, and Rebirth-patched draws in a Rebirth launch until W2–W4 make them ours (`EI_REBIRTH_IMPLEMENTS`).
+- **Fallback.** A surface that any code we have not ported draws into stays CPU, uploaded as today. This covers RichEdit 0065F020, and Rebirth-patched draws that still run addon's code in a Rebirth launch (after W2–W4: the connect list 0061D780 until W2a, the hero screen's Create 00613EA0 while EiPluginFixes is not ported).
 - **Readers.**
   - `PixelAt` and `Rgb565Copy` call `ReadBack` first, then run the original CPU code unchanged. This keeps the format round trip the global-map pick relies on.
   - `SwapContents` keeps the canvas; the 007C7E74 / 007C7E78 totals are still computed from pitch × height.
@@ -173,9 +173,9 @@ Prefix "N" (the "U" prefix is taken by the UTF-8 tickets). Sizes are in Opus ses
 | P1 | Surface plumbing: canvas per native surface, blit, Get/ReleaseDC (metrics DC), Fill / Clear / FrameRect, readback for PixelAt / Rgb565Copy / SwapContents, CaptureScreen as a GPU copy, Greyscale on the GPU. First native surfaces: backdrop, FPS, status | `ui_surface_{create,blit,dc,frame,pixels}.cpp`, `dx_surface.cpp`, new `ui_native.cpp` | 2 | N1, N3 |
 | P2 | Text: 005FDE20 records glyph runs (GDI on the metrics DC for the return value); 005FDFA0 unchanged | `ui_text_draw.cpp` | 1 | N2, P1, **W2 merged** (same file; W2 also makes it hookable under Rebirth) |
 | P3a | Menus and dialogs (main menu, message box, difficulty, options, objectives, credits text without RichEdit, escape-menu backdrop and save picture). Mostly native-table entries plus fixes the diff finds | `ui_native.cpp`, `ui_layouts.cpp`, `ui_menus.cpp`, `ui_options.cpp`, `ui_objectives.cpp` | 1 | P2 |
-| P3b | HUD: unit-panel name, top panel and message log (`ui_scroll_text.cpp`), tooltips, quick strip, clock | `ui_hud*.cpp`, `ui_tooltip.cpp`, `ui_scroll_text.cpp` | 1 | P2; `ui_tooltip.cpp` waits for W2; 006462A0 is native only in vanilla until W3 |
-| P3c | Camp, hero, trade and item info (stats rows, trade lists, item strip, describe panel, exchange) | `ui_camp*.cpp`, `ui_hero*.cpp`, `ui_trade_*.cpp`, `ui_item_*.cpp`, `ui_stats_rows.cpp`, `ui_exchange.cpp` | 1.5 | P2; under Rebirth the camp / hero screens wait for W4 |
-| P3d | Briefing, global map titles, help page, chat window | `ui_briefing*.cpp`, `ui_global_map*.cpp`, `ui_help_page.cpp`, `ui_chat_window.cpp` | 1 | P2; help page 00659420 and global map wait for W4 under Rebirth |
+| P3b | HUD: unit-panel name, top panel and message log (`ui_scroll_text.cpp`), tooltips, quick strip, clock | `ui_hud*.cpp`, `ui_tooltip.cpp`, `ui_scroll_text.cpp` | 1 | P2; the tooltip (W2) and 006462A0 (W3) are ours under Rebirth too |
+| P3c | Camp, hero, trade and item info (stats rows, trade lists, item strip, describe panel, exchange) | `ui_camp*.cpp`, `ui_hero*.cpp`, `ui_trade_*.cpp`, `ui_item_*.cpp`, `ui_stats_rows.cpp`, `ui_exchange.cpp` | 1.5 | P2; under Rebirth the camp and the hero screen's mode are ours since W4; the hero screen's Create 00613EA0 stays addon's (EiPluginFixes) |
+| P3d | Briefing, global map titles, help page, chat window | `ui_briefing*.cpp`, `ui_global_map*.cpp`, `ui_help_page.cpp`, `ui_chat_window.cpp` | 1 | P2; the help page 00659420 and the global map's input are ours under Rebirth since W4 |
 | P4 | Console and debug panel: direct FillSolidRect / DrawText, own fonts, the 2-pixel pen caret | `ui_console_window.cpp`, `string_map.cpp` | 1 | P1, N2 |
 | P5 | Controls with lines and carets: edit field 0065C2E0, chat typed line 005E3700, connect list 0061D780, save/load list 006567A0 | `ui_edit_field.cpp`, `ui_chat_overlay.cpp`, `ui_connect_list.cpp`, `ui_saveload_list.cpp` | 1 | P1, **W2 merged** (same four files) |
 | P6 | Global-map pick picture (`RefreshSelection` 00630670: frame step, GPU copy, readback on click; colours exact, point copy, no dithering) and the camp's backdrop modes 3/4 | `ui_global_map_places.cpp`, `ui_global_map_input.cpp` | 0.5 | P1 |
@@ -211,7 +211,7 @@ Total: about 7 sessions of preparation and about 10–11 of porting, P7 included
 - 16-bit mode quantises colours and the key test: 0x080808 survives, but near-black text colours may become transparent in the CPU path and must do so on the GPU too.
 
 **Rebirth.**
-- Patched draws run addon's GDI code until W2–W4 port them. Affected: 005FDE20, 005F8340, 005E3700, 0065C2E0, 0061D780, 006567A0, 00659420, 0065E580, 006462A0, 005F5320 (the cursor rectangles) and the creation 005F4990. Those surfaces must stay CPU in a Rebirth launch; the fallback is automatic only if N0 or the diff catches drawing we have not ported.
+- Patched draws ran addon's GDI code until W2–W4 ported them (005FDE20, 005F8340, 005E3700, 0065C2E0, 006567A0, 00659420, 0065E580, 006462A0, the backdrop in 005F5320 and the creation 005F4990 are ours in a Rebirth launch now). Still addon's there: the connect list 0061D780 (ExtendedServerName, W2a) and the hero screen's Create 00613EA0 (EiPluginFixes); their surfaces must stay CPU in a Rebirth launch; the fallback is automatic only if N0 or the diff catches drawing we have not ported.
 - `present` under Rebirth still crashes (R9c), so native UI is validated on vanilla and `--native` first.
 - EI_Plugin's fixes (006407E0, 005ED7B0) keep original code there.
 
