@@ -46,7 +46,7 @@ src/game/combat_update.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/console.cpp,0,0,0,0,54,3,0,0,0,0,0
 src/game/console.h,0,0,0,0,3,0,0,0,0,1,0
 src/game/console_addon.cpp,0,0,0,0,0,1,0,1,0,0,0
-src/game/console_commands.cpp,13,0,0,0,34,7,0,1,0,0,0
+src/game/console_commands.cpp,8,0,0,0,34,7,0,1,0,0,0
 src/game/console_window.cpp,0,0,0,0,0,2,0,0,0,0,0
 src/game/core_maths.cpp,0,0,0,2,0,0,0,0,0,0,7
 src/game/core_streams.h,0,0,0,0,4,0,0,0,0,0,0
@@ -70,7 +70,7 @@ src/game/figure_links.cpp,0,7,0,0,0,0,0,0,0,0,0
 src/game/figure_load_bounds.cpp,0,4,0,0,0,0,0,0,0,0,0
 src/game/figure_mesh.cpp,0,2,0,4,0,0,0,1,0,0,3
 src/game/figure_mesh.h,0,0,0,0,0,0,0,0,0,0,2
-src/game/figure_mesh_file.cpp,13,3,3,2,0,0,0,4,0,0,1
+src/game/figure_mesh_file.cpp,5,3,3,2,0,0,0,4,0,0,1
 src/game/figure_model_destroy.cpp,0,3,0,0,1,0,0,0,0,0,0
 src/game/figure_models.cpp,0,6,0,0,0,0,0,0,0,0,0
 src/game/figure_part_bounds.cpp,5,0,0,2,0,0,0,0,0,0,0
@@ -166,7 +166,6 @@ src/game/quest_database.cpp,0,0,0,0,16,0,0,0,0,0,0
 src/game/refptr_copies.cpp,0,3,0,0,0,0,0,0,0,0,0
 src/game/registry.cpp,0,0,1,0,1,0,0,0,0,0,0
 src/game/renderer_init.cpp,0,0,2,0,0,0,0,0,0,0,1
-src/game/renderer_lines.cpp,14,0,0,0,0,0,0,0,0,0,0
 src/game/renderer_sprites.cpp,2,0,0,0,0,0,0,0,0,0,0
 src/game/renderer_strip.cpp,0,0,2,0,0,0,0,0,0,0,0
 src/game/renderer_triangles.cpp,9,0,0,0,0,0,0,0,0,0,0
@@ -286,7 +285,7 @@ src/game/unit_client_effects.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_client_path.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_client_sounds.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_create.cpp,1,4,0,0,1,0,0,0,0,0,0
-src/game/unit_create_stats.cpp,14,5,3,1,19,0,0,1,0,0,1
+src/game/unit_create_stats.cpp,12,5,3,1,19,0,0,1,0,0,1
 src/game/unit_db.h,0,0,0,0,0,0,0,0,0,1,0
 src/game/unit_db_destroy.cpp,0,0,0,0,1,0,0,0,0,1,0
 src/game/unit_equipment.cpp,0,2,0,0,5,0,0,0,0,0,0

@@ -7,6 +7,7 @@
 #include "map_object.h"
 #include "object_tables.h"
 #include "unit.h"
+#include "unit_db.h"
 
 #include "lib/crt.h"
 
@@ -239,6 +240,7 @@ void LearnNpcSkills(UnitStats* stats, const char* npcRecord) {
     std::memcpy(&stats->spentExperience, &stats->experience, 4);
 }
 
+static_assert(offsetof(UnitStats, unknown_044) == 0x44);
 float* StatField(UnitStats* stats, int offset) { return &At<float>(stats, offset); }
 } // namespace
 
@@ -349,7 +351,7 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
         CopyDword(stats, 0xB0 + 8 * i, prototype, proto::kValuesB0 + 4 * i);
         CopyDword(stats, 0xE0 + 8 * i, prototype, proto::kValuesE0 + 4 * i);
     }
-    *StatField(stats, 0x44) = HalfAngleCosine(model);
+    stats->unknown_044 = HalfAngleCosine(model);
     CopyDword(stats, 0x48, prototype, proto::kStats48);
     *StatField(stats, 0x4C) = RightAngleCosine();
     CopyDword(stats, 0x60, model, model::kStats60);
@@ -412,7 +414,7 @@ int __stdcall BuildNpcStats(UnitStats* stats, const char* name) {
         FpuCopy2(&stats->valuesE0[i].base, &stats->valuesE0[i].current,
                  reinterpret_cast<const float*>(prototype + proto::kValuesE0 + 4 * i));
     }
-    *StatField(stats, 0x44) = HalfAngleCosine(model);
+    stats->unknown_044 = HalfAngleCosine(model);
     CopyDword(stats, 0x48, prototype, proto::kStats48);
     *StatField(stats, 0x4C) = RightAngleCosine();
     CopyDword(stats, 0x60, model, model::kStats60);
@@ -489,7 +491,7 @@ __declspec(naked) double __cdecl HitPointExperienceCurve(const float* /*experien
 
 // A level record's value (+0x34, unsigned) as the original's FILD of a zero-extended qword.
 double LevelOf(const char* record) {
-    volatile std::int64_t wide = Field<std::uint32_t>(record, 0x34);
+    volatile std::int64_t wide = reinterpret_cast<const SkillLevelRecord*>(record)->values[7];
     return static_cast<double>(wide);
 }
 double LevelOrZero(UnitStats* stats, int skill) {
@@ -701,7 +703,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
         // The figure stands lower by the model's height.
         float lift = static_cast<float>(-static_cast<double>(Read<float>(model, model::kHeight)));
         SetBits(object, 0xF4, 0);
-        At<float>(object, 0xF8) = lift;
+        static_cast<CObject3D*>(object)->defaultScale.y = lift;
         SetBits(object, 0xFC, 0);
         float scale[3];
         std::memcpy(scale, prototype + proto::kScale, sizeof(scale));
