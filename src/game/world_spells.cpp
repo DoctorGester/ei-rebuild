@@ -161,7 +161,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     units.blocks = nullptr;
     units.blockSize = 10;
     if (caster) {
-        if (void* owner = At<void*>(caster, 0x24C)) heroes = At<void*>(owner, 0x20);
+        if (char* owner = static_cast<CUnit*>(caster)->player) heroes = reinterpret_cast<WorldPlayer*>(owner)->server;
     }
     if ((flags & kSpellAreaFlag) && !(flags & kSpellNoTargetFlag)) {
         --targets;
