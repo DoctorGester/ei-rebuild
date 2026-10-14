@@ -71,7 +71,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             }
         }
         if (!found) {
-            FatalErrorOriginal(Text(0x007844B4), static_cast<const char*>(parts.data[1]), name);   // unknown texture type
+            game::FatalError(Text(0x007844B4), static_cast<const char*>(parts.data[1]), name);   // unknown texture type
             *texture = 1;
         }
         parts.data[2].MakeUpper();
@@ -84,7 +84,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             }
         }
         if (!found) {
-            FatalErrorOriginal(Text(0x0078444C), static_cast<const char*>(parts.data[2]), name);   // unknown material
+            game::FatalError(Text(0x0078444C), static_cast<const char*>(parts.data[2]), name);   // unknown material
             *material = 0x15;
         }
     }

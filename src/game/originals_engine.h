@@ -33,9 +33,6 @@ __declspec(naked) inline void* __fastcall FieldReadString(DeltaField*, void*, vo
 __declspec(naked) inline void __fastcall DeltaStateFinishOriginal(DeltaState* /*state*/) EI_ORIGINAL(0x0047FE90)
 // 004800E0 (cdecl, printf style): reports a DirectX error (HRESULT, format, arguments) and exits; returns 0 if it comes back.
 __declspec(naked) inline int __cdecl FatalDirectX(long /*result*/, const char* /*format*/, ...) EI_ORIGINAL(0x004800E0)
-// 00480080 (rewritten as FatalError; cdecl, printf style, plain RET): reports a fatal error and exits; returns 0
-// if it comes back.
-__declspec(naked) inline int __cdecl FatalErrorOriginal(const char* /*format*/, ...) EI_ORIGINAL(0x00480080)
 // Text tables (CTextManager): 004DEFC0 opens a section by key (RET 4, EAX 1 when found and non-empty, else 0);
 // 004E0020 reads a string into a CString (RET 8, EAX 1 when found, else 0).
 __declspec(naked) inline int __fastcall TextsOpenSection(void* /*texts*/, void*, const char* /*key*/)

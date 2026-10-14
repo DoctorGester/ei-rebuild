@@ -137,7 +137,7 @@ CTexture* CTextureManager::NewTexture(int width, int height, int kind) {
         // registered with the manager).
         if (!device_->FindFormat(f->id, &format))
             return reinterpret_cast<CTexture*>(
-                static_cast<std::uintptr_t>(FatalErrorOriginal(game::CantFindTextureFormatText(), kind)));
+                static_cast<std::uintptr_t>(game::FatalError(game::CantFindTextureFormatText(), kind)));
         texture->format_ = format;
         header.alphaMask = f->alpha.mask;
         header.alphaShift = f->alpha.shift;

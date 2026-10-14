@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_library.h"
+#include "lib/crt.h"
 #include "originals_engine.h"
 
 namespace {
@@ -32,7 +33,7 @@ __declspec(naked) void __fastcall ReadName(mfc::CString*, const std::uint8_t**) 
 // The figure: link a piece to its parent (RET 0xC), finish.
 __declspec(naked) void __fastcall LinkPiece(void*, void*, void*, const char*, const char*) EI_ORIGINAL(0x0050CC60)
 __declspec(naked) void __fastcall FinishLinks(void*) EI_ORIGINAL(0x0050D2E0)
-// 00480080: FatalErrorOriginal(format, ...).
+// 00480080: game::FatalError(format, ...).
 
 // The figure's bone loaders (RET 4: {data, size}): 0x48-byte data, or any other size.
 __declspec(naked) void __fastcall LoadBones48(void*, void*, void*) EI_ORIGINAL(0x0050BC00)
@@ -64,7 +65,7 @@ int __fastcall LoadSkeletonLinks(void* manager, void*, void* figure, const char*
         mfc::CString path = base + reinterpret_cast<const char*>(0x0078EC70);   // ".lnk"
         data = ei::VCall<std::uint32_t*>(manager, kSlotOpenResource, static_cast<const char*>(path), 0);
     }
-    if (!data) return FatalErrorOriginal(reinterpret_cast<const char*>(0x00790D70), name);
+    if (!data) return game::FatalError(reinterpret_cast<const char*>(0x00790D70), name);
 
     const std::uint8_t* cursor = reinterpret_cast<const std::uint8_t*>(data + 1);
     {

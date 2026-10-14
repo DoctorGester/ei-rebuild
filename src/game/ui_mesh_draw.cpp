@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
 
@@ -68,7 +69,7 @@ EI_REPLACE_METHOD(0x005E6FA0, CUiMesh::PlaceVanilla);
 int CUiMesh::Draw(CSceneRenderer* renderer) {
     if (!visible_) return 1;
     CTransformPipeline* pipeline = renderer->pipeline_;
-    if (!renderer->SetTexture(0, texture_)) return FatalErrorOriginal(SetTextureFailed());
+    if (!renderer->SetTexture(0, texture_)) return game::FatalError(SetTextureFailed());
 
     orientation_.ToMatrix(placement_);
     placement_[3] = position_.x;
@@ -93,7 +94,7 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     const float origin[3] = {0.0f, 0.0f, 0.0f};
     const int drawn = renderer->DrawFigure(this, &IdentityOrientation(), origin, material_, 0xFF, nullptr);
     renderer->SetColour(saved);
-    if (!drawn) return FatalErrorOriginal(DrawFailed());
+    if (!drawn) return game::FatalError(DrawFailed());
 
     MatrixStack& view = pipeline->stacks_[kStackView];
     MatrixStack& world = pipeline->stacks_[kStackWorld];

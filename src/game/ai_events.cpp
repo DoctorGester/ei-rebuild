@@ -199,7 +199,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
         error = TextAt(kCantOpenNormal);
     }
     if (!data) {
-        const int result = FatalErrorOriginal(error);
+        const int result = game::FatalError(error);
         MappedResourceDestroyOriginal(archive);
         return result;
     }

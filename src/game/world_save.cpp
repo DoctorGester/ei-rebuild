@@ -914,14 +914,14 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     if (mob && MapFileMissing(mob)) return 0;
     LocalMemoryStream graph;
     if (!LoadAIGraph(this, nullptr, map, mob, &graph.stream))
-        return FatalErrorOriginal(reinterpret_cast<const char*>(kCantLoadGraph));
+        return game::FatalError(reinterpret_cast<const char*>(kCantLoadGraph));
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     AIMapBeginRefresh(AIMap(), nullptr);
     loaded_ = 0;
     std::memset(alarms_, 0, sizeof(alarms_));
     AIMap()->refreshUnits = false;
     if (!LoadMapAt(this, nullptr, map, mob, &graph.stream, 0))
-        return FatalErrorOriginal(reinterpret_cast<const char*>(kCantLoadMap));
+        return game::FatalError(reinterpret_cast<const char*>(kCantLoadMap));
     ShowLoadProgress(kProgressObjects);
     loaded_ = 1;
     AIMapEndRefresh(AIMap(), nullptr);

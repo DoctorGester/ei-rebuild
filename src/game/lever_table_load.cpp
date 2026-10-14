@@ -5,7 +5,8 @@
 #include "lever.h"
 
 #include "chunk_archive.h"
-#include "originals_engine.h"   // FatalErrorOriginal, LeverRecordsArchiveOriginal
+#include "lib/crt.h"
+#include "originals_engine.h"   // game::FatalError, LeverRecordsArchiveOriginal
 #include "resource_local.h"
 
 #include "ei/hook.h"
@@ -26,11 +27,11 @@ int LeverRecordTable::Load(const char* folder) {
     if (!opened) {
         // The message names "databases.res", not the file it tried: as the original.
         mfc::CString path = dir + "databases.res";
-        return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(path));
+        return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     }
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("Levers.ldb", &size);
-    if (!data) return FatalErrorOriginal("Can't open Levers database\n");
+    if (!data) return game::FatalError("Can't open Levers database\n");
 
     LocalStream local;
     local.Fill(data, size);

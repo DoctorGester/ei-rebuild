@@ -8,6 +8,7 @@
 
 #include "chunk_archive.h"
 #include "core_streams.h"
+#include "lib/crt.h"
 #include "originals_engine.h"   // MappedResourceOpenOriginal / DestroyOriginal, ChunkArchiveDestroyOriginal
 #include "resource.h"
 
@@ -50,7 +51,7 @@ inline bool OpenDatabase(LocalResource& resource, const mfc::CString& folder) {
 }
 // Their report of a failed open. The original names "databases.res" here.
 inline int ReportNoDatabase(const mfc::CString& folder) {
-    return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(folder + "databases.res"));
+    return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(folder + "databases.res"));
 }
 
 // A vector serialiser of the chunk archive through its address (RET 0xC: the chunk id, the vector,

@@ -101,7 +101,7 @@ EI_REPLACE_METHOD(0x00664E00, CPlayer::DeletingDestruct);
 int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type) {
     mfc::CString text;
     text.Format(format, previous & 0xFF, type & 0xFF);
-    return FatalErrorOriginal(text);
+    return game::FatalError(text);
 }
 EI_REPLACE(0x00664B70, PlayerMessageError);
 

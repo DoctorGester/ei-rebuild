@@ -15,7 +15,7 @@
 #include "ai_grids.h"
 #include "ai_map.h"
 #include "console.h"
-#include "originals_engine.h"    // FatalErrorOriginal, MappedResourceOpenOriginal, MappedResourceDestroyOriginal
+#include "originals_engine.h"    // game::FatalError, MappedResourceOpenOriginal, MappedResourceDestroyOriginal
 #include "originals_library.h"   // GameAtoi, CStringFindCharOriginal
 #include "registry.h"
 #include "resource.h"
@@ -137,7 +137,7 @@ struct Registry {
     CFileRegistry file;
 };
 
-int Fatal(const mfc::CString& message) { return FatalErrorOriginal(message); }
+int Fatal(const mfc::CString& message) { return game::FatalError(message); }
 
 // The .mp file `name`.MP of `archive` into `map`. Returns 1, or the fatal error's result when the
 // file is missing or not a map (its size must be the header's counts).
@@ -211,11 +211,11 @@ int ReadTerrainTypes(CAIMap& map) {
         mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextFolderString()));
         opened = archive.Open(folder + "aiinfo.res");
     }
-    if (!opened) return FatalErrorOriginal("Unable to read file aiinfo.res");
+    if (!opened) return game::FatalError("Unable to read file aiinfo.res");
     void* file = archive.File("tileDesc.reg", nullptr);
-    if (!file) return FatalErrorOriginal("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
+    if (!file) return game::FatalError("CAIMap::Load.\n Can't open file \"tileDesc.reg\"");
     Registry registry;
-    if (!registry.file.Attach(file)) return FatalErrorOriginal("CAIMap::Load.\n Can't open aiReg");
+    if (!registry.file.Attach(file)) return game::FatalError("CAIMap::Load.\n Can't open aiReg");
     console::CStringArray sections;
     registry.file.GetSectionNames(&sections);
 
