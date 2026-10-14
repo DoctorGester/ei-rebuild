@@ -91,6 +91,17 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `render <spec>` turns the new renderer on for the run (its frame goes to `<name>.new.bmp`) and
   `oldterrain`, `oldobjects`, `oldinterface` (`off|on`) switch parts of the old draw
   (`docs/notes/renderer.md`, scenario `render_scene`).
+- Harness runs use a virtual clock (`tests/verify/harness_clock.h`): each main-loop frame is five
+  world updates, the main thread's sleeps and timed waits take no real time, sample ends come on
+  virtual time, the date and the random seeds are fixed, and frames present without waiting for
+  vsync. A scenario that repeats takes the same course on every run, so
+  `python tools\compare.py <scenarios> --runs 3` can diff the console output of the original code and
+  ours (those that do not repeat yet are listed in `docs/open-questions.md`). The harness's waits
+  (`wait`, `waitfor`, `frames`, ...) count virtual time, each with a real-time safety limit. A
+  `realtime` line puts a scenario on the real clock; `EI_HARNESS_CLOCK` (or `run_all.py` /
+  `compare.py --clock`) overrides: `virtual` or `real`, plus `clocktrace` (every clock read and wait
+  by function, caller and thread, in `ei_hook.log`) and `randtrace` (every random draw with its frame
+  and caller, in `randtrace.txt`; `compare.py --clock virtual,randtrace` to find where two runs part).
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
 before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and run_all.py): the
@@ -118,4 +129,5 @@ default 16; the whole suite takes about 2 minutes). Each run writes to its own f
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
 one), keeps the game active when it loses focus (it otherwise pauses), and opens data files for
-shared reading. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.
+shared reading. A game that Windows gave the foreground and that lost it to a starting game is
+minimised by dgVoodoo, which can take its surfaces for good; a run that fails after that is run again. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.
