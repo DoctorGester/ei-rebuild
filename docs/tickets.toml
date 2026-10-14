@@ -625,13 +625,14 @@ started = "2026-10-14"
 id = "WB3"
 title = "Work board: local live server and pages"
 group = "harness"
-status = "review"
+status = "done"
 size = 1
 model = "sonnet"
 depends = ["WB1"]
 files = ["tools/work.py", "tools/work_board/"]
 note = "docs/notes/work-board.md 'Server': work.py serve on localhost:8765, JSON API over work.db + tickets.toml + git log of assigned branches; ticket page (worker, worktree, last note, last commit and age, latest batch progress) and test-run page (queue, running, history). Board style from tools/tickets_board. Polls; never published."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "WB4"
