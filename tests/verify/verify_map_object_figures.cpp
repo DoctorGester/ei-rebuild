@@ -139,7 +139,7 @@ std::vector<std::uint8_t> MemoryOf(const CEngineObject* object) {
 // fatal error). In the switch-over with "cpuwindows" (render_present, render_present_cpuwindows)
 // the shadow's render surface and texture are memory-only (texture_shadow.cpp): when the call
 // rendered the shadow (the render surface's memory changed), the texture's memory equals it.
-static int __fastcall DrawShadowVerify(CObject3DClientSpecific* self, void*, ShadowDrawContext* context) {
+static int __fastcall DrawShadowVerify(CObject3DClientSpecific* self, void*, CSceneRenderer* context) {
     CTextureManager* manager = TextureManager();
     std::vector<std::uint8_t> before = MemoryOf(manager ? manager->shadowRenderSurface_ : nullptr);
     int result = self->DrawShadow(context);
@@ -157,8 +157,8 @@ EI_VERIFY(0x0051CE60, DrawShadowVerify, 0, s_unused);
 
 // 0051B7E0. Ours only (draws): returns 1 and the scene's three matrix stacks end as deep as they
 // started.
-static int __fastcall DrawVerify(CObject3DClientSpecific* self, void*, ShadowDrawContext* context, void* dirty) {
-    auto depth = [&](int index) { return *reinterpret_cast<int*>(static_cast<char*>(context->scene) + 0x18 + 8 * index); };
+static int __fastcall DrawVerify(CObject3DClientSpecific* self, void*, CSceneRenderer* context, void* dirty) {
+    auto depth = [&](int index) { return context->pipeline_->stacks_[index].count; };
     int before[3] = {depth(1), depth(2), depth(3)};
     int result = self->Draw(context, dirty);
     bool ok = result == 1 && depth(1) == before[0] && depth(2) == before[1] && depth(3) == before[2];

@@ -404,7 +404,7 @@ static int __fastcall ForgetObjectVerify(MagicTrap* self, void*, CEngineObject* 
     int before = 0;
     const char* problem = ListProblem(self, object, &before);
     int countBefore = self->inside.count;
-    int result = self->ForgetObject(object);
+    int result = self->MagicTrap::ForgetObject(object);
     int after = 0;
     if (!problem) problem = ListProblem(self, object, &after);
     if (!problem && after != 0) problem = "entry kept";

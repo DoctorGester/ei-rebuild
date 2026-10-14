@@ -1,6 +1,7 @@
 // The 3D object base under CMapObject: loading the figure's parts, rescaling them and their
 // bounding box. See map_object_figures.h and docs/notes/map_objects.md ("Figures").
 #include "map_object_figures.h"
+#include "world.h"   // CWorld: the figure manager and cache
 
 #include "lib/crt.h"
 #include "lib/stlp.h"
@@ -30,15 +31,9 @@ constexpr std::uint32_t kFloatLowest = 0xFF7FFFFF;
 constexpr float kNearSquared = 1e9f;                 // 0073DE58: parts farther away are skipped
 constexpr float kHalf = 0.5f;                        // 0073B86C
 
-// Manager slots: the figure manager (ManagerContext slot 15) and the figure cache (slot 23),
-// whose slot 6 builds a figure at a scale.
-constexpr int kContextFigureManager = 0x3C / 4;
-constexpr int kContextFigureCache = 0x5C / 4;
+// The figure cache's (CFigureCache, the world's slot 23) slot 6 builds a figure at a scale (slot 5
+// is not known, so the slot stays a VCall).
 constexpr int kCacheScaledFigure = 0x18 / 4;
-// The attached object (+0x94): a part was added (13), the figure is complete (21).
-constexpr int kAttachedPartAdded = 0x34 / 4;
-constexpr int kAttachedFiguresLoaded = 0x54 / 4;
-constexpr int kSlotGetName = 7;
 
 std::uint32_t Bits(float v) { return std::bit_cast<std::uint32_t>(v); }
 float Float(std::uint32_t bits) { return std::bit_cast<float>(bits); }
@@ -64,15 +59,6 @@ void __fastcall FindPiece(void* a0, void*, const FigurePieceRecord** a2, const s
 __declspec(naked) std::uint32_t __fastcall ComputeBoundsAt(CObject3D*) EI_ORIGINAL(0x00518310)
 __declspec(naked) void __fastcall SetAtGrowAt(AlignedPtrArray*, void*, int, void*) EI_ORIGINAL(0x00519E80)
 __declspec(naked) void __fastcall SetSizeAt(AlignedPtrArray*, void*, int, int) EI_ORIGINAL(0x00519D70)
-
-// 00519580: *slot = value with counted references; an old value that drops to 0 is deleted
-// (its slot 0 with 1).
-void AssignCounted(CEngineObject** slot, CEngineObject* value) {
-    CEngineObject* old = *slot;
-    *slot = value;
-    if (value) ++value->refCount_;
-    if (old && --old->refCount_ == 0) ei::VCall<void>(old, 0, 1);
-}
 
 // The original's branch-free selects: the stored candidate `v` replaces the bound when the
 // comparison sets C0 (it is beyond the bound, or unordered).
@@ -187,17 +173,17 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
         return 0;   // the original leaves the FPU status word in AX here
     std::memcpy(&scale, newScale, sizeof(scale));
     if (CEngineObject* current = figure) {
-        void* cache = ei::VCall<void*>(ManagerContext(), kContextFigureCache);
+        CFigureCache* cache = static_cast<CWorld*>(ManagerContext())->FigureCache();
         auto* rebuilt = ei::VCall<CEngineObject*>(cache, kCacheScaledFigure, current, Bits(scale.x), Bits(scale.y),
                                                   Bits(scale.z));
-        AssignCounted(&figure, rebuilt);
+        FigureRef().Assign(rebuilt);   // 00519580
         for (int i = 0; i < parts.size; ++i) {
             auto* part = static_cast<FigurePart*>(parts.data[i]);
-            const char* pieceName = ei::VCall<const char*>(part, kSlotGetName);
+            const char* pieceName = part->GetName();
             const FigurePieceRecord* piece;
             {
                 stlp::string key(pieceName);
-                FindPiece(reinterpret_cast<char*>(figure) + 0x14, nullptr, &piece, &key);
+                FindPiece(reinterpret_cast<CFigureInstance*>(figure)->pieces, nullptr, &piece, &key);
             }
             part = static_cast<FigurePart*>(parts.data[i]);
             std::memcpy(&part->offset, &piece->offset, sizeof(part->offset));
@@ -221,7 +207,7 @@ int CObject3D::AddPart(FigurePart* part) {
     SetPartOwner(part, nullptr, this);
     if (animation) AnimationAddPart(animation, nullptr, part);
     if (!attached) return 1;
-    return ei::VCall<int>(attached, kAttachedPartAdded, part);
+    return Specific()->OnPartAdded(part);
 }
 EI_REPLACE_METHOD(0x005164B0, CObject3D::AddPart);
 
@@ -229,7 +215,7 @@ EI_REPLACE_METHOD(0x005164B0, CObject3D::AddPart);
 
 int CObject3D::LoadFigures() {
     if (flags_ & kFlagFiguresLoaded) return 1;
-    void* manager = ei::VCall<void*>(ManagerContext(), kContextFigureManager);
+    void* manager = static_cast<CWorld*>(ManagerContext())->FigureManager();
     void* model;
     {
         stlp::string key(name);
@@ -247,14 +233,14 @@ int CObject3D::LoadFigures() {
         ++part->refCount_;
         SetPartOwner(part, nullptr, this);
         if (animation) AnimationAddPart(animation, nullptr, part);
-        if (attached) ei::VCall<void>(attached, kAttachedPartAdded, part);
+        if (attached) Specific()->OnPartAdded(part);
     }
     SetSizeAt(&pendingParts, nullptr, 0, -1);
     if (GetClassId() != kClassUnit) {
         for (int i = 0; i < parts.size; ++i) static_cast<FigurePart*>(parts.data[i])->flags_ |= kPartFlagStatic;
         flags_ |= kFlagPartsMarked;
     }
-    ei::VCall<void>(attached, kAttachedFiguresLoaded);
+    Specific()->ApplyMaterials();
     flags_ |= kFlagFiguresLoaded;
     return 1;
 }

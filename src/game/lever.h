@@ -77,7 +77,7 @@ static_assert(offsetof(LeverSetup, cycling) == 0x16);
 // factory 00512730; gates are levers too, e.g. zone1's "VGate", id 1889). A map object whose
 // scale's y (+0xC8) is the shown position (0..1) and z (+0xCC) a second animation value that
 // scales the spots' distance. flags_ 0x80000: disabled (EnableLever 0). Names provisional; see
-// docs/notes/units.md ("Levers"). unit_lever.cpp: SetState, UseSpots; lever_object.cpp the rest.
+// docs/notes/units.md ("Levers"). unit_lever.cpp: SetState, CollectUseSpots; lever_object.cpp the rest.
 class Lever : public CMapObject {
 public:
     // 0052B7A0 (RET 8). Sets state `state` (negative: the next one, wrapping when cycling) and
@@ -92,7 +92,7 @@ public:
     // unknown model), the position plus the facing's X axis times `along` and its Y axis times
     // `across`, the offset normalised and set at distance
     // ((1 - +0xCC) + +0xCC * record scale) * |offset| + userRadius.
-    void UseSpots(LeverSpots* out, float userRadius);
+    void CollectUseSpots(LeverSpots* out, float userRadius);
 
     // lever_object.cpp (A-U6).
     // 0052B1F0. The constructor: the map object (0050E2D0), the lock {1, 0, 0}, the vtable, the
@@ -143,7 +143,7 @@ public:
     // 0052BB00 (slot 38). 0 when disabled, else whether the lock has a mask.
     int NeedsKey();
     // 0052BBC0 (slot 40). The lock's id when its mask has bit 3, else 0.
-    std::uint32_t KeyId();
+    std::uint32_t KeyId() override;
     // 0052BB50 (slot 41, RET 8: ApplyScience). When `key` opens the lock (00522A80, Rebirth's
     // FixLeversActivate, through its address): the next state (SetState(-1, -10)), disabled,
     // MarkChanged(5); AL 1. Else 0. The second argument is not read.

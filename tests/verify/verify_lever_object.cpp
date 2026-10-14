@@ -115,7 +115,7 @@ EI_VERIFY(0x0052BB00, NeedsKeyVerify, 7, s_needsKey);
 // 0052BBC0: TEST byte ptr [ECX+0x244],8 (7 bytes).
 static std::uint32_t __fastcall KeyIdVerify(Lever* self) {
     std::uint32_t expected = s_keyId(self);
-    ei::verify::Check("Lever::KeyId", expected, self->KeyId(), "lever %d", self->id_);
+    ei::verify::Check("Lever::KeyId", expected, self->Lever::KeyId(), "lever %d", self->id_);
     return expected;
 }
 EI_VERIFY(0x0052BBC0, KeyIdVerify, 7, s_keyId);

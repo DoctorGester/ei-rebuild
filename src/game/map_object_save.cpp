@@ -20,6 +20,7 @@ __declspec(naked) void __fastcall MapEffectLoad(MapEffect*, void*, CStream*) EI_
 __declspec(naked) void __fastcall MapEffectSave(const MapEffect*, void*, CStream*) EI_ORIGINAL(0x006885A0)
 
 mfc::CString& AsString(char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
+mfc::CString& AsString(const char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
 
 // A string read up to its terminator (CStream::ReadString into a temporary).
 struct ReadText {
@@ -36,7 +37,7 @@ void WriteText(CStream* stream, const char* text) {
 
 void CMapObject::LoadMapObject(CStream* stream) {
     companion->Load(stream);
-    stream->Read(&unknown_178, sizeof(unknown_178));
+    stream->Read(&animationSpeed, sizeof(animationSpeed));
     stream->Read(&position.x, 3 * sizeof(float));
     stream->Read(&orientation, sizeof(orientation));
     {
@@ -63,8 +64,8 @@ EI_REPLACE_METHOD(0x0050F7A0, CMapObject::LoadMapObject);
 
 void CMapObject::SaveMapObject(CStream* stream) {
     companion->Save(stream);
-    float value178 = unknown_178;
-    stream->Write(&value178, sizeof(value178));
+    float speed = animationSpeed;
+    stream->Write(&speed, sizeof(speed));
     stream->Write(&position.x, 3 * sizeof(float));
     stream->Write(&orientation, sizeof(orientation));
     WriteText(stream, name);

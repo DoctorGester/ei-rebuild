@@ -3,7 +3,7 @@
 // Torches (GetClassName "CTorchObject", class id 0x57, 0x23C bytes, vtable 0073E834, constructor
 // 0052BEE0): a map object holding its light / flame description, a CTorchObjectSpec
 // (server_specific_manager.h, type_ 0x4B), at +0x238. Names provisional; torch_object.cpp (A-U6);
-// Create (0052BFC0) is TorchCreate in map_object_create.cpp.
+// Create (0052BFC0) is in map_object_create.cpp.
 
 #include "map_object.h"
 
@@ -21,6 +21,10 @@ public:
     // 0052BF40 (slot 0, RET 4): it, then operator delete when `flags` bit 0 is set; returns this.
     void DestructBody();
     CTorchObject* DeletingDestruct(int flags);
+    // map_object_create.cpp (U6). 0052BFC0 (slot 2, Create): the map object's Create (0050E770),
+    // the spec released and cleared, 5 network fields (SetSize 0050FA30 inlined), then
+    // DeltaState::Reset. Returns 1.
+    int CreateTorch();
     // 0052C150 (slot 3, Destroy). The spec released and cleared, the network state reset
     // (0047FB70), then the map object's Destroy.
     void DestroyTorch();

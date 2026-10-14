@@ -57,7 +57,7 @@ int CObject3D::DrawFigure(void* context) { return attached ? Specific()->DrawPar
 EI_REPLACE_METHOD(0x00516460, CObject3D::DrawFigure);
 
 int CObject3D::DrawCollectDirty(void* context) {
-    gameapi::SetRectEmpty(reinterpret_cast<RECT*>(dirtyRect));
+    gameapi::SetRectEmpty(DirtyRect());
     return attached ? Specific()->DrawParts(context, dirtyRect) : 1;
 }
 EI_REPLACE_METHOD(0x00516420, CObject3D::DrawCollectDirty);

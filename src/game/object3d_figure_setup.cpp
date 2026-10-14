@@ -361,7 +361,7 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
         CFigureInstance* made = FigureCacheOf(this)->BuildWholeFigure(
             &key, std::bit_cast<std::uint32_t>(scale.x), std::bit_cast<std::uint32_t>(scale.y),
             std::bit_cast<std::uint32_t>(scale.z), 0);
-        reinterpret_cast<CountedRef*>(&figure)->Assign(static_cast<CEngineObject*>(static_cast<void*>(made)));
+        FigureRef().Assign(static_cast<CEngineObject*>(static_cast<void*>(made)));
     } else {
         PieceNames pieces = MakePieceNames(names);
         {

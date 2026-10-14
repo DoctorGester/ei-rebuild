@@ -129,7 +129,7 @@ static int __fastcall NotifyCompanionVerify(CMapObject* self) {
 EI_VERIFY(0x0050E930, NotifyCompanionVerify, 0, s_unused);
 
 static void __fastcall TakePrototypeVerify(CMapObject* self, void*, const char* prototype) {
-    self->TakePrototype(prototype);
+    self->CMapObject::TakePrototype(prototype);
     ei::verify::Check("CMapObject::TakePrototype", true, true, "");
 }
 EI_VERIFY(0x0050E9B0, TakePrototypeVerify, 0, s_unused);

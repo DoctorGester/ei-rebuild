@@ -51,7 +51,7 @@ FigurePart* PartAt(const AlignedPtrArray& parts, int i) { return static_cast<Fig
 
 int CObject3DClientSpecific::BoundsContainPoint(const long* point) {
     if (!(object->flags_ & kObjectShown)) return FALSE;
-    return gameapi::PtInRect(reinterpret_cast<const RECT*>(object->dirtyRect), AsPoint(point));
+    return gameapi::PtInRect(object->DirtyRect(), AsPoint(point));
 }
 EI_REPLACE_METHOD(0x0051C130, CObject3DClientSpecific::BoundsContainPoint);
 

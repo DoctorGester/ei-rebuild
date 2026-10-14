@@ -1,6 +1,6 @@
 // The map object's small virtual slots (CMapObject, vtable 0073DAA0; A-U12): the ones a plain
 // object leaves empty (units, levers, traps and torches override them), its deleting destructor
-// and the network state's write / read wrappers. Slot names: CMapObjectVirtuals (map_object.h).
+// and the network state's write / read wrappers. Slot names: CMapObject (map_object.h).
 #include "map_object.h"
 
 #include "core_transform.h"
@@ -92,7 +92,10 @@ void CMapObject::TakePrototype(const char* prototype) {
     reinterpret_cast<UnitStatsBuilder*>(owner_)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(PackedVitals());
 }
-EI_REPLACE_METHOD(0x0050E9B0, CMapObject::TakePrototype);
+void __fastcall TakePrototypeHook(CMapObject* self, void*, const char* prototype) {
+    self->CMapObject::TakePrototype(prototype);
+}
+EI_REPLACE(0x0050E9B0, TakePrototypeHook);
 
 void CMapObject::WriteFullState() {
     DeltaState* state = NetState();
@@ -129,8 +132,8 @@ mfc::CString* CMapObject::SetSecondName(const char* text) {
 }
 EI_REPLACE_METHOD(0x0050F150, CMapObject::SetSecondName);
 
-void CMapObject::SaveTransformSlot(void* file) { Object3D()->Transform()->CTransformObject::SaveTransform(file); }
+void CMapObject::SaveTransformSlot(void* file) { Transform()->CTransformObject::SaveTransform(file); }
 EI_REPLACE_METHOD(0x00516350, CMapObject::SaveTransformSlot);
 
-void CMapObject::LoadTransformSlot(void* file) { Object3D()->Transform()->CTransformObject::LoadTransform(file); }
+void CMapObject::LoadTransformSlot(void* file) { Transform()->CTransformObject::LoadTransform(file); }
 EI_REPLACE_METHOD(0x00516360, CMapObject::LoadTransformSlot);

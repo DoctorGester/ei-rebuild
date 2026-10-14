@@ -82,7 +82,7 @@ struct ArrayView {
 } // namespace
 
 static bool __fastcall ApplyScienceVerify(CMapObject* self, void*, int first, int second) {
-    bool result = self->ApplyScience(first, second);
+    bool result = self->CMapObject::ApplyScience(first, second);
     ei::verify::Check("CMapObject::ApplyScience", false, result, "object %d", self->id_);
     return result;
 }
@@ -99,7 +99,7 @@ EI_VERIFY(0x0050F120, FreeArrayVerify, 0, s_unusedFreeArray);
 static int __fastcall CreateClientCompanionVerify(CMapObjectClientSpecific* self) {
     int result = self->CreateClientCompanion();
     ei::verify::Check("CMapObjectClientSpecific::CreateClientCompanion", true,
-                      result == 1 && self->endSound == -1 && !self->object, "result %d", result);
+                      result == 1 && self->endSound == -1 && !self->owner, "result %d", result);
     return result;
 }
 EI_VERIFY(0x00510770, CreateClientCompanionVerify, 0, s_unusedCompanionCreate);

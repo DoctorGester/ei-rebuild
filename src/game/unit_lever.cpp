@@ -136,7 +136,7 @@ void* const kLeverTable = reinterpret_cast<void*>(0x0079C1A0);
 
 } // namespace
 
-void Lever::UseSpots(LeverSpots* out, float userRadius) {
+void Lever::CollectUseSpots(LeverSpots* out, float userRadius) {
     // CArray::RemoveAll, inlined.
     if (out->data) {
         gamecrt::operator_delete(out->data);
@@ -173,4 +173,4 @@ void Lever::UseSpots(LeverSpots* out, float userRadius) {
         SpotsSetAtGrow(out, nullptr, out->size, &at);
     }
 }
-EI_REPLACE_METHOD(0x0052BBE0, Lever::UseSpots);
+EI_REPLACE_METHOD(0x0052BBE0, Lever::CollectUseSpots);

@@ -155,7 +155,7 @@ static void __fastcall PlayEffectSoundVerify(bool play, EffectSoundRecord* recor
 EI_VERIFY(0x005114D0, PlayEffectSoundVerify, 0, s_unusedPlay);
 
 static void __fastcall EffectsChangedVerify(CMapObjectClientSpecific* self, void*, bool first) {
-    self->EffectsChanged(first);
+    self->OnEffectsChanged(first);
     ei::verify::Check("CMapObjectClientSpecific::EffectsChanged", true, true, "");
 }
 EI_VERIFY(0x005117D0, EffectsChangedVerify, 0, s_unusedChanged);
@@ -227,7 +227,7 @@ EI_VERIFY(0x00511830, CreateLightVerify, 0, s_unusedCreate);
 
 static void __fastcall SetLightModeVerify(CMapObjectClientSpecific* self, void*, int mode) {
     bool had = self->light != nullptr;
-    self->SetLightMode(mode);
+    self->ApplyLightMode(mode);
     bool ok = true;
     if (mode == 1) ok = self->light && (self->light->flags_ & 0x200) && OnLitList(self->light->id_);
     else if (mode == 2) ok = self->light == nullptr;
@@ -237,7 +237,7 @@ EI_VERIFY(0x00511A00, SetLightModeVerify, 0, s_unusedMode);
 
 static void __fastcall DestroyClientCompanionVerify(CMapObjectClientSpecific* self) {
     self->DestroyClientCompanion();
-    bool ok = !self->light && !self->object && self->particles.size == 0;
+    bool ok = !self->light && !self->owner && self->particles.size == 0;
     ei::verify::Check("CMapObjectClientSpecific::DestroyClientCompanion", true, ok, "");
 }
 EI_VERIFY(0x005107B0, DestroyClientCompanionVerify, 0, s_unusedDestroy);

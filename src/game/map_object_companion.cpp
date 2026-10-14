@@ -5,12 +5,12 @@
 #include "map_object.h"
 #include "object_tables.h"
 #include "random.h"
+#include "spell.h"    // CLight
 #include "unit.h"
 
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_effects.h"
 
 #include <cstring>
@@ -33,7 +33,7 @@ constexpr float kStenchFar = 50.0f;                  // 0073DBE4
 const char* const kEndSoundName = reinterpret_cast<const char*>(0x0078EFCC);     // "magic\end1.wav"
 const char* const kStenchSoundFormat = reinterpret_cast<const char*>(0x0078EFB8); // "magic\Stench\%i.wav"
 
-CMapObject* OwnerOf(void* companion) { return CompanionOwner(static_cast<CEngineObject*>(companion)); }
+CMapObject* OwnerOf(CEngineObject* companion) { return CompanionOwner(companion); }
 
 // 00688530 (thiscall). --ticksLeft; is it still positive?
 __declspec(naked) BOOL __fastcall TickEffect(MapEffect*) EI_ORIGINAL(0x00688530)
@@ -43,9 +43,8 @@ __declspec(naked) BOOL __fastcall ApplyHit(void* /*stats*/, void*, const void* /
 // 0050F5B0 (map_object.cpp), through its game address.
 __declspec(naked) std::uintptr_t __fastcall ClearEffectsAt(CMapObject*) EI_ORIGINAL(0x0050F5B0)
 
-// The sound system (global 007AF784) and the light manager (007AF738); thiscall.
+// The sound system (global 007AF784); thiscall.
 void* SoundSystem() { return *reinterpret_cast<void**>(0x007AF784); }
-void* LightManager() { return *reinterpret_cast<void**>(0x007AF738); }
 // 006B8600. Plays a 3D sound at `position`; returns its handle.
 // Arguments: sounds, -, name, 0, position, near distance, far distance, 0, 0.
 __declspec(naked) int __fastcall PlaySound3D(void*, void*, const char*, int, const float*, float, float, int, int)
@@ -60,23 +59,8 @@ __declspec(naked) void __fastcall MoveSound(void* /*sounds*/, void*, int /*handl
 // 006CA830. Points a light along `direction`.
 void __fastcall AimLight(void* a0, void*, CEngineObject* a2, const float* a3) { LightMoveOriginal(a0, nullptr, a2, a3); }
 
-// A looping effect sound of the client companion (+0x40, 0x14 bytes; built by 005112A0).
-struct EffectSound {
-    int kind;                       // +0x00 the effect type
-    int unknown_04;                 // -1
-    int handle;                     // +0x08 sound handle (feeble mind), -1 none
-    std::uint32_t timer;            // +0x0C ticks to the next stench sound
-    std::uint8_t present;           // +0x10 (used while the effect list is compared)
-    std::uint8_t unknown_11[3];
-};
-static_assert(sizeof(EffectSound) == 0x14);
-
-// The client companion's fields beyond unit.h's layout.
-EffectSound* Sounds(void* self) { return *reinterpret_cast<EffectSound**>(static_cast<char*>(self) + 0x40); }
-int SoundCount(void* self) { return *reinterpret_cast<int*>(static_cast<char*>(self) + 0x44); }
-CEngineObject* Light(void* self) { return *reinterpret_cast<CEngineObject**>(static_cast<char*>(self) + 0x50); }
-int& EndSound(void* self) { return *reinterpret_cast<int*>(static_cast<char*>(self) + 0x54); }
-float* PositionOf(CEngineObject* object) { return reinterpret_cast<float*>(reinterpret_cast<char*>(object) + 0x1C); }
+// The light's position (a point light of the light factory, class 0x31).
+float* PositionOf(CEngineObject* light) { return &static_cast<CLight*>(light)->position_.x; }
 
 bool IsScaleEffect(int type) {
     return type == mapeffect::kStrengthen || type == mapeffect::kWeaken || type == mapeffect::kEnlarge ||
@@ -87,42 +71,41 @@ bool IsScaleEffect(int type) {
 // --- CMapObjectServer ------------------------------------------------------------------------
 
 int CMapObjectServer::Update() {
-    if (OwnerOf(this)->effectCount <= 0) return 0;
+    if (owner->effectCount <= 0) return 0;
     int i = 0;
     do {
-        if (!TickEffect(&OwnerOf(this)->effects[i])) {
-            CMapObject* owner = OwnerOf(this);
+        if (!TickEffect(&owner->effects[i])) {
             int type = owner->effects[i].type;
             int tail = owner->effectCount - i - 1;
             if (tail != 0) std::memmove(&owner->effects[i], &owner->effects[i + 1], tail * sizeof(MapEffect));
             --owner->effectCount;
             bool scaleEffect = IsScaleEffect(type);
-            if (scaleEffect) ei::VCall<int>(OwnerOf(this), mapslot::kRecomputeScale);
-            OwnerOf(this)->MarkChanged(3);
-            ei::VCall<int>(OwnerOf(this), mapslot::kScaleEffectChanged, scaleEffect ? 1 : 0);
+            if (scaleEffect) ObjectSlots(owner)->RecomputeScale();
+            owner->MarkChanged(3);
+            ObjectSlots(owner)->ScaleEffectChanged(scaleEffect ? 1 : 0);
             --i;
-            ei::VCall<int>(OwnerOf(this), mapslot::kEffectsChanged);
-            if (!OwnerOf(this)->HasEffect(mapeffect::kStun) && !OwnerOf(this)->HasEffect(mapeffect::kStun2))
-                ei::VCall<int>(OwnerOf(this), mapslot::kSetStunned, 0);
+            ObjectSlots(owner)->EffectsChanged();
+            if (!owner->HasEffect(mapeffect::kStun) && !owner->HasEffect(mapeffect::kStun2))
+                ObjectSlots(owner)->SetStunned(0);
         }
         ++i;
-    } while (i < OwnerOf(this)->effectCount);
+    } while (i < owner->effectCount);
     return 0;
 }
 EI_REPLACE_METHOD(0x00515820, CMapObjectServer::Update);
 
 std::uintptr_t CMapObjectServer::SetData(const void* data) {
-    std::memcpy(reinterpret_cast<char*>(this) + 0x20, data, 0x58);
-    return OwnerOf(this)->MarkChanged(0);
+    std::memcpy(&vitals, data, sizeof(vitals));
+    return owner->MarkChanged(0);
 }
 EI_REPLACE_METHOD(0x00515950, CMapObjectServer::SetData);
 
 BOOL CMapObjectServer::TakeHit(const void* hit) {
-    if (!ApplyHit(reinterpret_cast<char*>(this) + 0x20, nullptr, hit)) return 0;
-    OwnerOf(this)->MarkChanged(0);
-    if (ei::VCall<BOOL>(this, 17)) {   // IsDead
-        ClearEffectsAt(OwnerOf(this));
-        OwnerOf(this)->flags_ |= kFlagDestroyed;
+    if (!ApplyHit(&vitals, nullptr, hit)) return 0;
+    owner->MarkChanged(0);
+    if (CompanionSlots(this)->IsDead()) {
+        ClearEffectsAt(owner);
+        owner->flags_ |= kFlagDestroyed;
     }
     return 1;
 }
@@ -140,20 +123,20 @@ int CMapObjectClientSpecific::Update() {
             int left = --effect.ticksLeft;
             if (left >= kEndSoundTicks || effect.ending) continue;
             if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;   // AL only
-            int handle = EndSound(this);
+            int handle = endSound;
             void* soundSystem = SoundSystem();
             if (handle != -1 &&
                 (SoundIsPlaying(soundSystem, nullptr, handle) || SoundIsQueued(soundSystem, nullptr, handle)))
                 continue;
-            EndSound(this) = PlaySound3D(SoundSystem(), nullptr, kEndSoundName, 0, &OwnerOf(this)->position.x,
+            endSound = PlaySound3D(SoundSystem(), nullptr, kEndSoundName, 0, &OwnerOf(this)->position.x,
                                          kEndSoundNear, kEndSoundFar, 0, 0);
         }
     }
 
     // Looping effect sounds: stench every 16 ticks (one of three, picked at random), feeble mind
     // follows the object.
-    for (int i = 0; i < SoundCount(this); ++i) {
-        EffectSound* sound = &Sounds(this)[i];
+    for (int i = 0; i < sounds.size; ++i) {
+        EffectSoundRecord* sound = &sounds[i];
         if (sound->kind == kSoundStench) {
             std::uint32_t timer = sound->timer - 1;
             sound->timer = timer;
@@ -171,7 +154,7 @@ int CMapObjectClientSpecific::Update() {
     }
 
     // The light follows the object, kLightHeight above it, aimed down at it.
-    CEngineObject* lamp = Light(this);
+    CEngineObject* lamp = light;
     if (lamp && !(lamp->flags_ & kFlagHidden)) {
         float lightPosition[3];
         std::memcpy(lightPosition, PositionOf(lamp), sizeof(lightPosition));
@@ -188,7 +171,7 @@ int CMapObjectClientSpecific::Update() {
             direction[2] = owner->position.z - lightZ;
             AimLight(LightManager(), nullptr, lamp, direction);
             owner = OwnerOf(this);
-            float* position = PositionOf(Light(this));
+            float* position = PositionOf(light);
             std::memcpy(position, &owner->position.x, 2 * sizeof(float));
             position[2] = static_cast<float>(static_cast<double>(kLightHeight) + owner->position.z);
         }

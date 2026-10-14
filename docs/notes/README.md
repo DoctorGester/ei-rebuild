@@ -19,4 +19,5 @@ history is in git. Each fact lives in one file; others link to it by file name a
 - `platform-layer.md`: effort estimate for a cross-platform build (not an area note).
 - `standalone.md`: what still ties the code to the exe, the MFC / STLport / CRT replacement plan, the UTF-8 switch (not an area note).
 - `inventory.md` (library / dead code classification), `cleanup-tooling.md` (checks, progress counts, shared forwarder
-  headers), `cleanup-engine-base.md` / `cleanup-network.md` (how those classes are declared after cleanup phase 1).
+  headers), `cleanup-engine-base.md` / `cleanup-network.md` / `cleanup-map-objects.md` (how those classes are declared after
+  cleanup phase 1).

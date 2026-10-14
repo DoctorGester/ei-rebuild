@@ -17,6 +17,7 @@
 
 class CObject3D;
 class CTransformObject;   // core_transform.h
+struct tagRECT;           // windows.h
 
 // A growable pointer array whose storage is 32-byte aligned (the block from operator new is
 // kept at data[-1]). Registered on the template: SetAtGrow 00519E80 and SetSize 00519D70
@@ -30,10 +31,13 @@ struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
 // A part of an object's figure (a scene node; names provisional). Only what the figure code
 // reads: its position relative to the object, the piece's offset and box in the figure.
 struct FigurePart : CEngineObject {
-    Vector3 position;               // +0x01C
-    std::uint8_t unknown_028[0x74 - 0x28];
-    Vector3 pivot;                  // +0x074 copied to the object's part box (FootprintPart::pivot)
-    std::uint8_t unknown_080[0x94 - 0x80];
+    Vector3 position;               // +0x01C relative to the object
+    std::uint8_t unknown_028[0x34 - 0x28];
+    Quaternion orientation;         // +0x034 (CFigureMesh::rotation_)
+    std::uint8_t unknown_044[0x54 - 0x44];
+    // +0x054 part -> object: the rotation, the position as column 3 (the draws build it,
+    // ObjectWorldMatrix in map_object_shadow.h).
+    Matrix4 worldMatrix;
     // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
     // rectangle (+0x20) is where the part was last drawn (the flying hit points, 005E18E0).
     class CLinkMesh* mesh;
@@ -56,6 +60,7 @@ struct FigurePart : CEngineObject {
     Vector3 boxPivot;               // +0x1B4 the part's position when it was loaded
 };
 static_assert(offsetof(FigurePart, position) == 0x1C);
+static_assert(offsetof(FigurePart, orientation) == 0x34 && offsetof(FigurePart, worldMatrix) == 0x54);
 static_assert(offsetof(FigurePart, unknown_0D4) == 0xD4);
 static_assert(offsetof(FigurePart, offset) == 0x18C);
 static_assert(offsetof(FigurePart, boxMin) == 0x19C);
@@ -399,6 +404,8 @@ struct CountedRef {
 
 class CObject3D : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DDD4);
+
     // map_object_lifetime.cpp.
     // 00515BD0. The constructor: the engine object and transform bases (vtables 0073B8E0,
     // 0073BA38), identity orientations, empty name, part list (vtable 0073DE4C), arrays and
@@ -585,8 +592,13 @@ public:
     // 00518860. The animation state (if any) goes to frame 0 and places the skeleton.
     void RestartPose();
 
+    // dirtyRect as the RECT it is (windows.h).
+    tagRECT* DirtyRect() { return reinterpret_cast<tagRECT*>(dirtyRect); }
+
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
+    // The figure (+0xF0) as the counted reference 00519580 assigns.
+    CountedRef& FigureRef() { return *reinterpret_cast<CountedRef*>(&figure); }
     // The object as the CTransformObject it starts with (core_transform.h).
     CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
     const CTransformObject* Transform() const { return reinterpret_cast<const CTransformObject*>(this); }

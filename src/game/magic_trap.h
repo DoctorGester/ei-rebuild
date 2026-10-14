@@ -89,7 +89,7 @@ public:
     // 0052AC90 (virtual slot 56, RET 4: the world server's RemoveObject tells every object). Drops
     // every entry of the units inside that refers to `object` (the reference released and
     // cleared, the node freed; the last one empties the list as RemoveAll). Returns 0 (EAX).
-    int ForgetObject(CEngineObject* object);
+    int ForgetObject(CEngineObject* object) override;
 
     // 0052A2C0 (RET 4). Sets the trap up from its zone record (the zone loader 005927C0): the
     // sides, the spell made from the record's text by the spell manager (the context's slot 22,

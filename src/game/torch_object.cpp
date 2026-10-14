@@ -72,7 +72,7 @@ void CTorchObject::SaveTorch(CStream* stream) {
 EI_REPLACE_METHOD(0x0052C2A0, CTorchObject::SaveTorch);
 
 std::uintptr_t CTorchObject::AttachTorchObject(CEngineObject* object) {
-    if (object->type_ != kTypeTorchSpec) return AttachObject(object);
+    if (object->type_ != kTypeTorchSpec) return CMapObject::AttachObject(object);
     CTorchObjectSpec* old = spec;
     spec = static_cast<CTorchObjectSpec*>(object);
     if (spec) ++spec->refCount_;

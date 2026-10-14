@@ -12,6 +12,7 @@
 #include "maths.h"
 #include "object.h"
 #include "texture.h"
+#include "world.h"              // CWorld::TextureManager
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -46,7 +47,6 @@ int ShadowSwitch(int classId) {
 const float* DefaultLight() { return reinterpret_cast<const float*>(0x007AF230); }   // three floats
 void* TextureManager() { return *reinterpret_cast<void**>(0x007AF744); }
 void* RenderDevice() { return *reinterpret_cast<void**>(0x007AF080); }
-void* LightManager() { return *reinterpret_cast<void**>(0x007AF738); }
 void* ShadowProjector() { return reinterpret_cast<void*>(0x007AF5B8); }
 void* TextureStages() { return reinterpret_cast<void*>(0x007AF060); }
 // The work buffers: projected points (two floats each), their pixels (two ints each), and the
@@ -88,20 +88,6 @@ volatile double g_pi = 3.141592653589793;
 volatile double g_perDegree = std::bit_cast<double>(0x3F76C16C16C16C17ull);
 volatile double g_minimumTilt = 20.0;
 
-template <typename T>
-T& At(void* base, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
-
-// FLD y; FLD x; FPATAN: atan(y / x) in ST0.
-__declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
-    __asm {
-        fld qword ptr [esp + 4]
-        fld qword ptr [esp + 12]
-        fpatan
-        ret
-    }
-}
 
 // --- Not rewritten, forwarders ----------------------------------------------------------------
 // 00692010. Texture manager: a new 64x64 texture.
@@ -109,10 +95,6 @@ __declspec(naked) CEngineObject* __fastcall CreateShadowTexture(void*) EI_ORIGIN
 // 004F1440 / 004F15C0. Scene: the view matrix and the rotation that look along a direction.
 __declspec(naked) void __fastcall LightViewMatrix(void*, void*, float*, const float*) EI_ORIGINAL(0x004F1440)
 __declspec(naked) void __fastcall LightRotation(void*, void*, const float*, Quaternion*) EI_ORIGINAL(0x004F15C0)
-// 004D9880. 4x4 matrix: this = a * b.
-inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
-// 004D9AA0. A quaternion into a 4x4 matrix.
-void __fastcall OrientationToMatrix(void* a0, void*, float* a2) { QuaternionToMatrixOriginal((const void*)a0, nullptr, a2); }
 // 004545A0 / 004F65B0 / 00452E70. Aligned storage for 8-, 8- and 64-byte records.
 __declspec(naked) void* __fastcall AllocatePoints(int) EI_ORIGINAL(0x004545A0)
 void* __fastcall AllocatePixels(int a0) { return AllocAligned32Of8Original(a0); }
@@ -152,43 +134,13 @@ void AssignTexture(CEngineObject** slot, CEngineObject* value) {
     if (old) old->Release();
 }
 
-// --- The scene's matrix stack -----------------------------------------------------------------
+// The pipeline's stack the shadow is rendered with (+0x64).
+constexpr int kShadowStack = 10;
 
-SceneMatrixStack& Stack(void* scene) { return At<SceneMatrixStack>(scene, 0x64); }
+const float* TopMatrix(const CTransformPipeline* pipeline) { return pipeline->Top(kShadowStack)->m; }
 
-void PushMatrix(void* scene, const float* m) {
-    SceneMatrixStack& stack = Stack(scene);
-    if (stack.depth == 0) {
-        stack.depth = 1;
-        std::memcpy(stack.matrices[0], m, 64);
-        return;
-    }
-    int depth = ++stack.depth;
-    MultiplyMatrix(stack.matrices[depth - 1], nullptr, stack.matrices[depth - 2], m);
-}
-
-void PopMatrix(void* scene) {
-    SceneMatrixStack& stack = Stack(scene);
-    if (stack.depth != 0) --stack.depth;
-}
-
-float* TopMatrix(void* scene) {
-    SceneMatrixStack& stack = Stack(scene);
-    return stack.matrices[stack.depth - 1];
-}
-
-// A 4x4 matrix at the object's or part's +0x54 from its orientation (+0x34) and position.
-void BuildMatrix(CEngineObject* object) {
-    auto* raw = reinterpret_cast<char*>(object);
-    OrientationToMatrix(raw + 0x34, nullptr, reinterpret_cast<float*>(raw + 0x54));
-    std::memcpy(raw + 0x60, raw + 0x1C, 4);
-    std::memcpy(raw + 0x70, raw + 0x20, 4);
-    std::memcpy(raw + 0x80, raw + 0x24, 4);
-    At<std::uint32_t>(raw, 0x8C) = 0;
-    At<std::uint32_t>(raw, 0x88) = 0;
-    At<std::uint32_t>(raw, 0x84) = 0;
-    At<float>(raw, 0x90) = 1.0f;
-}
+// The texture's +0x60 (CTexture::block_) holds the colour key of a keyed texture (flags_ 0x2000).
+std::uint32_t ColourKey(const CTexture* texture) { return std::bit_cast<std::uint32_t>(texture->block_); }
 
 // --- Work buffers -----------------------------------------------------------------------------
 
@@ -311,7 +263,7 @@ void LightDirection(const float* sum, float* direction) {
     float horizontal = static_cast<float>(
         x87::fsqrt(static_cast<double>(direction[1]) * direction[1] + static_cast<double>(direction[0]) * direction[0]));
     float height = std::bit_cast<float>(std::bit_cast<std::uint32_t>(direction[2]) & 0x7FFFFFFFu);
-    double elevation = Fpatan(height, horizontal);
+    double elevation = x87::fpatan(height, horizontal);   // FLD y; FLD x; FPATAN
     double minimum = g_pi * g_perDegree * g_minimumTilt;
     if (elevation >= minimum) return;   // NaN tilts
     double z = static_cast<double>(horizontal) * kTiltSlope;
@@ -372,10 +324,9 @@ float CornerY(const float* m, float a, float b) {
 namespace {
 // Renders the shadow texture again and projects it onto the ground. Returns false (with the
 // fatal error's result in *failure) when the render surface cannot be locked.
-bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int* failure) {
-    void* scene = context->scene;
-    void* device = context->device;
-    void* sceneObject = At<void*>(scene, 0xC);
+bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* failure) {
+    CTransformPipeline* pipeline = context->pipeline_;
+    void* device = context->graphicsProcessor_;
 
     // The lights reaching the object.
     float sum[3];
@@ -398,51 +349,52 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     LightDirection(sum, direction);
 
     // Look from the light; the object turned to face it.
-    float view[16];
-    LightViewMatrix(scene, nullptr, view, direction);
-    PushMatrix(scene, view);
+    Matrix4 view;
+    LightViewMatrix(pipeline, nullptr, view.m, direction);
+    pipeline->PushMatrixProduct(view, kShadowStack);
     ResizeDiscarding(Points(), kPointBufferSize, AllocatePoints);
     ResizeDiscarding(Pixels(), kPointBufferSize, AllocatePixels);
     int count = 0;
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
-    LightRotation(scene, nullptr, direction, &turn);
+    LightRotation(pipeline, nullptr, direction, &turn);
     CObject3D* object = self->object;
     PreMultiplyAt(&object->orientation, nullptr, &turn);
-    BuildMatrix(object);
+    ObjectWorldMatrix(&object->orientation, &object->position, &object->worldMatrix);
     turn.x = -turn.x;
     turn.y = -turn.y;
     turn.z = -turn.z;
     PreMultiplyAt(&self->object->orientation, nullptr, &turn);
-    std::memcpy(view, self->object->worldMatrix.m, sizeof(view));
+    view = self->object->worldMatrix;
     std::memcpy(&self->bounds[0], &kFloatMax, 4);
     std::memcpy(&self->bounds[2], &kFloatLowest, 4);
     std::memcpy(&self->bounds[1], &kFloatMax, 4);
     std::memcpy(&self->bounds[3], &kFloatLowest, 4);
-    view[11] = 0.0f;
-    view[7] = 0.0f;
-    view[3] = 0.0f;
-    PushMatrix(scene, view);
+    view.m[11] = 0.0f;
+    view.m[7] = 0.0f;
+    view.m[3] = 0.0f;
+    pipeline->PushMatrixProduct(view, kShadowStack);
 
     // Project the parts' points.
     for (int i = 0; i < self->object->parts.size; ++i) {
         FigurePart* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
         if (part->flags_ & kPartHidden) continue;
-        BuildMatrix(part);
-        std::memcpy(view, &At<float>(PartAt(self->object, i), 0x54), sizeof(view));
-        PushMatrix(scene, view);
+        ObjectWorldMatrix(&part->orientation, &part->position, &part->worldMatrix);
+        view = PartAt(self->object, i)->worldMatrix;
+        pipeline->PushMatrixProduct(view, kShadowStack);
         if (CEngineObject* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
             count += reinterpret_cast<CLinkMesh*>(figure)->ProjectPart(&key, &PartAt(self->object, i)->offsets,
-                                                                       TopMatrix(scene), PointAt(count), self->bounds);
+                                                                       TopMatrix(pipeline), PointAt(count), self->bounds);
         } else {
-            count += ProjectPart(PartAt(self->object, i), nullptr, scene, TopMatrix(scene), PointAt(count), self->bounds);
+            count += ProjectPart(PartAt(self->object, i), nullptr, pipeline, const_cast<float*>(TopMatrix(pipeline)),
+                                 PointAt(count), self->bounds);
         }
-        PopMatrix(scene);
+        pipeline->PopMatrix(kShadowStack);
     }
-    PopMatrix(scene);
-    PopMatrix(scene);
+    pipeline->PopMatrix(kShadowStack);
+    pipeline->PopMatrix(kShadowStack);
     ResizeDiscarding(Points(), count, AllocatePoints);
 
     // Points to texture pixels.
@@ -465,7 +417,7 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     ResizeDiscarding(Pixels(), count, AllocatePixels);
 
     // Rasterise into the render surface.
-    void* surface = RenderSurface(ei::VCall<void*>(self->ManagerContext(), 0x88 / 4));
+    void* surface = RenderSurface(static_cast<CWorld*>(self->ManagerContext())->TextureManager());
     SurfaceDescription description;
     if (!LockSurface(surface, nullptr, &description)) {
         *failure = game::FatalError(reinterpret_cast<const char*>(0x0078F584), self->GetName());
@@ -473,8 +425,8 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
         return false;
     }
     RasterTarget target{};
-    CEngineObject* material = self->partSets[0] ? self->partSets[0]->texture : nullptr;
-    target.colourKey = material && (material->flags_ & kMaterialKeyed) ? At<std::uint32_t>(material, 0x60) : 0;
+    CTexture* skin = self->partSets[0] ? self->partSets[0]->texture : nullptr;
+    target.colourKey = skin && (skin->flags_ & kMaterialKeyed) ? ColourKey(skin) : 0;
     target.width = 0x200;
     target.pitch = description.pitch;
     // The shadow is rasterised into a CPU buffer of the surface's layout (the new renderer takes it
@@ -530,7 +482,7 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     float yz = static_cast<float>(static_cast<double>(z2) * turn.y);
     double zzExact = static_cast<double>(z2) * turn.z;
     float zz = static_cast<float>(zzExact);
-    float* m = view;
+    float* m = view.m;
     m[0] = static_cast<float>(kOne - (zzExact + yy));
     m[1] = static_cast<float>(xy - wz);
     m[2] = static_cast<float>(static_cast<double>(xz) + wy);
@@ -572,11 +524,13 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     }
 
     // The point the shadow falls from: the object's offset point through its matrix.
-    const char* o = reinterpret_cast<const char*>(self->object);
-    auto f = [o](int offset) { return static_cast<double>(*reinterpret_cast<const float*>(o + offset)); };
-    double pz = (f(0x78) * f(0x12C) + f(0x7C) * f(0x130)) + f(0x74) * f(0x128);
-    float py = static_cast<float>((f(0x68) * f(0x12C) + f(0x6C) * f(0x130)) + f(0x64) * f(0x128));
-    float px = static_cast<float>((f(0x58) * f(0x12C) + f(0x5C) * f(0x130)) + f(0x54) * f(0x128));
+    // Each row of the world matrix times the bounds' centre (+0x128): (y + z) + x, unrounded.
+    const float* w = self->object->worldMatrix.m;
+    const Vector3& c = self->object->center;
+    auto product = [](float a, float b) { return static_cast<double>(a) * b; };
+    double pz = (product(w[9], c.y) + product(w[10], c.z)) + product(w[8], c.x);
+    float py = static_cast<float>((product(w[5], c.y) + product(w[6], c.z)) + product(w[4], c.x));
+    float px = static_cast<float>((product(w[1], c.y) + product(w[2], c.z)) + product(w[0], c.x));
     float point[3] = {static_cast<float>(static_cast<double>(px) + at[0]),
                       static_cast<float>(static_cast<double>(py) + at[1]), static_cast<float>(pz + at[2])};
     std::uint32_t radiusBits;
@@ -585,7 +539,7 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
                   &self->vertices, &self->texCoords, &self->indices, 0, keyedParts == 0);
 
     if (self->vertices.size != 0) {
-        ei::VCall<void>(sceneObject, 7, &self->sphere, self->vertices.data, self->vertices.size);
+        pipeline->transform_->FitBounds(&self->sphere, self->vertices.data, self->vertices.size);
         const float* position = &self->object->position.x;
         self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position[0]);
         self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position[1]);
@@ -599,7 +553,7 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
 }
 } // namespace
 
-int CObject3DClientSpecific::DrawShadow(ShadowDrawContext* context) {
+int CObject3DClientSpecific::DrawShadow(CSceneRenderer* context) {
     if (ShadowMode() <= 0) return 1;
     if (!ShadowSwitch(object->GetClassId())) return 1;
     if (object->flags_ & kObjectHidden) return 1;

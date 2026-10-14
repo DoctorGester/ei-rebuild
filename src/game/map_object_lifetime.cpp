@@ -32,10 +32,8 @@ namespace {
 using ei::SetVtable;
 
 // Vtables.
-constexpr std::uintptr_t kObject3DVtable = std::uintptr_t(0x0073DDD4);
 constexpr std::uintptr_t kPartListVtable = std::uintptr_t(0x0073DE4C);
 constexpr std::uintptr_t kFrameArrayVtable = std::uintptr_t(0x0073DE40);
-constexpr std::uintptr_t kMapObjectVtable = std::uintptr_t(0x0073DAA0);
 constexpr std::uintptr_t kEffectArrayVtable = std::uintptr_t(0x0073DBA0);
 constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073DB94);
 // CMemoryStream's second vtable (the network queue's streams, 0073C960).
@@ -49,9 +47,6 @@ constexpr std::uintptr_t kMotionSpeedsVtable = std::uintptr_t(0x0073D490);
 constexpr std::uintptr_t kMotionPointsEndVtable = std::uintptr_t(0x0073EBA8);
 constexpr std::uintptr_t kMotionWaypointsEndVtable = std::uintptr_t(0x0073EBB4);
 constexpr std::uintptr_t kMotionSpeedsEndVtable = std::uintptr_t(0x0073D3E8);
-constexpr std::uintptr_t kCompanionBaseVtable = std::uintptr_t(0x0073DC54);
-constexpr std::uintptr_t kServerCompanionVtable = std::uintptr_t(0x0073DD6C);
-constexpr std::uintptr_t kClientCompanionVtable = std::uintptr_t(0x0073DBEC);
 constexpr std::uintptr_t kParticleArrayVtable = std::uintptr_t(0x0073DC48);
 constexpr std::uintptr_t kSoundArrayVtable = std::uintptr_t(0x0073DC3C);
 constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
@@ -65,9 +60,8 @@ constexpr std::uint32_t kTenth = 0x3DCCCCCD;          // 0.1
 constexpr std::uint32_t kThreeQuarters = 0x3F400000;  // 0.75
 constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
 
-// The figures' default scale (007AF1D0, three floats) and the light manager (*007AF738).
+// The figures' default scale (007AF1D0, three floats).
 const void* DefaultFigureScale() { return reinterpret_cast<const void*>(0x007AF1D0); }
-void* LightManager() { return *reinterpret_cast<void* const*>(0x007AF738); }
 
 // A float stored as the dword the original moves.
 void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
@@ -174,7 +168,7 @@ CObject3D* CObject3D::Construct() {
     partBoxGrowBy = 0;
     partBoxCapacity = 0;
     partBoxCount = 0;
-    SetVtable(this, kObject3DVtable);
+    SetVtable(this, CObject3D::kVtableAddress);
     attached = nullptr;
     animation = nullptr;
     std::memset(&scale, 0, sizeof(scale));
@@ -184,7 +178,7 @@ CObject3D* CObject3D::Construct() {
 EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
 
 void CObject3D::DestructBody() {
-    SetVtable(this, kObject3DVtable);
+    SetVtable(this, CObject3D::kVtableAddress);
     ReleaseParts(this);
     partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
     if (partBoxes) gamecrt::operator_delete(partBoxes);
@@ -240,18 +234,18 @@ CMapObject* CMapObject::Construct() {
     stream->Reset();
     SetVtable(stream, kQueueStreamVtable);
     ResetNetRecords(records);
-    SetVtable(this, kMapObjectVtable);
+    SetVtable(this, CMapObject::kVtableAddress);
     companion = nullptr;
     ResetPackedVitals(PackedVitals());
     sectorCellX = -1;
     sectorCellY = -1;
-    SetBits(unknown_178, kOne);
+    SetBits(animationSpeed, kOne);
     return this;
 }
 EI_REPLACE_METHOD(0x0050E2D0, CMapObject::Construct);
 
 void CMapObject::DestructBody() {
-    SetVtable(this, kMapObjectVtable);
+    SetVtable(this, CMapObject::kVtableAddress);
     DeltaState* records = NetState();
     DestroyStream(&records->header_[1]);
     DestroyStream(&records->header_[0]);
@@ -382,35 +376,35 @@ EI_REPLACE_METHOD(0x0052E2A0, CUnit::DeletingDestructor);
 
 CMapObjectServer* CMapObjectServer::Construct() {
     InitEngineObject(this);
-    SetVtable(this, kCompanionBaseVtable);
-    CompanionOwner(this) = nullptr;
+    SetVtable(this, CMapObjectCompanion::kVtableAddress);
+    owner = nullptr;
     ConstructString(&name78);
     ConstructString(&name7C);
     StringArrayConstruct(&stringsVtable);
-    SetVtable(this, kServerCompanionVtable);
-    CompanionOwner(this) = nullptr;
+    SetVtable(this, CMapObjectServer::kVtableAddress);
+    owner = nullptr;
     UnitVitalsReset(&vitals);
     return this;
 }
 EI_REPLACE_METHOD(0x00515610, CMapObjectServer::Construct);
 
 void CMapObjectServer::DestructBody() {
-    SetVtable(this, kServerCompanionVtable);
+    SetVtable(this, CMapObjectServer::kVtableAddress);
     UnitVitalsReset(&vitals);
     StringArraySetSize(&stringsVtable, nullptr, 0, -1);
-    CompanionOwner(this) = nullptr;
+    owner = nullptr;
     StringArrayDestruct(&stringsVtable);
     name7C.~CString();
     name78.~CString();
-    SetVtable(this, kCompanionBaseVtable);
-    CompanionOwner(this) = nullptr;
+    SetVtable(this, CMapObjectCompanion::kVtableAddress);
+    owner = nullptr;
     EngineObjectDestructBase(this);
 }
 EI_REPLACE_METHOD(0x00515720, CMapObjectServer::DestructBody);
 
 CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     InitEngineObject(this);
-    object = nullptr;
+    owner = nullptr;
     // The effect particles (0x10 each) and looping sounds (0x14 each), MFC CArrays.
     SetVtable(&particles, kParticleArrayVtable);
     particles.data = nullptr;
@@ -423,7 +417,7 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     sounds.maxSize = 0;
     sounds.size = 0;
     light = nullptr;
-    SetVtable(this, kClientCompanionVtable);
+    SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
     unknown_20 = 0;
     unknown_24 = 0;
     return this;
@@ -431,7 +425,7 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
 EI_REPLACE_METHOD(0x00510450, CMapObjectClientSpecific::Construct);
 
 void CMapObjectClientSpecific::DestructBody() {
-    SetVtable(this, kClientCompanionVtable);
+    SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
     unknown_20 = 0;
     unknown_24 = 0;
     SetParticleCount(&particles, nullptr, 0, -1);
@@ -440,8 +434,8 @@ void CMapObjectClientSpecific::DestructBody() {
         if (CEngineObject* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
             shown->flags_ |= 0x80;
             RemoveLight(LightManager(), nullptr, light);
-            if (CUnit* owner = object) {
-                if (CEngineObject* half = owner->Object3D()->attached)
+            if (CUnit* unit = Unit()) {
+                if (CEngineObject* half = unit->Object3D()->attached)
                     static_cast<CObject3DSpecific*>(half)->SetLit(0);
             }
         }
@@ -449,7 +443,7 @@ void CMapObjectClientSpecific::DestructBody() {
         LightIdsRemoveOriginal(&TheLightFactory()->litIds_, nullptr, &id);
         AssignReference(&light, nullptr, nullptr);
     }
-    object = nullptr;
+    owner = nullptr;
     if (light) light->Release();
     DestroyArray(sounds, kSoundArrayVtable);
     SetVtable(&particles, kParticleArrayVtable);
@@ -458,8 +452,8 @@ void CMapObjectClientSpecific::DestructBody() {
             if (data[i].source) reinterpret_cast<CEngineObject*>(data[i].source)->Release();
         gamecrt::operator_delete(particles.data);
     }
-    SetVtable(this, kCompanionBaseVtable);
-    object = nullptr;
+    SetVtable(this, CMapObjectCompanion::kVtableAddress);
+    owner = nullptr;
     EngineObjectDestructBase(this);
 }
 EI_REPLACE_METHOD(0x00510560, CMapObjectClientSpecific::DestructBody);

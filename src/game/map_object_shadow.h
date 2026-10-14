@@ -21,19 +21,6 @@ struct FigurePart;   // map_object_figures.h
 struct VertexPacket;    // figure_mesh.h
 struct DecalTexCoord;   // ground_decal.h
 
-// The draw call's context: the scene (+0x08: its matrix stack) and the device (+0x0C).
-struct ShadowDrawContext {
-    std::uint8_t unknown_00[8];
-    void* scene;                    // +0x08
-    void* device;                   // +0x0C
-};
-
-// The scene's matrix stack (scene + 0x64: 4x4 float matrices, +0x68: depth).
-struct SceneMatrixStack {
-    float (*matrices)[16];
-    int depth;
-};
-
 // A growable array of fixed-size records in 32-byte aligned storage (the block is kept at
 // data[-1]): the shadow code's three global work buffers.
 struct AlignedRecordBuffer {
@@ -45,7 +32,12 @@ struct AlignedRecordBuffer {
 
 struct tagRECT;   // windows.h
 #include "material.h"   // CMaterial
-#include "model.h"      // ClipBounds
+#include "model.h"      // ClipBounds, CSceneRenderer (the draws' context), CTransformPipeline
+
+// The world matrix (+0x54) of a 3D object or a figure part as the draws build it (0051B7E0,
+// 0051CE60; map_object_draw.cpp): the rotation of `orientation` (004D9AA0), `position` as column 3,
+// the last row (0, 0, 0, 1).
+void ObjectWorldMatrix(const Quaternion* orientation, const Vector3* position, Matrix4* out);
 
 // The parts of a figure drawn with one material (0x14 bytes; a part set's group).
 struct PartGroup {
@@ -71,7 +63,7 @@ static_assert(sizeof(TextureParts) == 0x14);
 
 class CObject3DClientSpecific : public CEngineObject {
 public:
-    // 0051CE60. Draws the object's shadow (`context` is the frame's draw context). When shadows
+    // 0051CE60. Draws the object's shadow (`context` is the scene renderer, 007AF060). When shadows
     // are on for its kind (0079BD0C > 0 and the per-kind switch) and the object is shown: unless
     // the shadow is still valid, sums the lights reaching the object into a direction (tilted
     // to at least 20 degrees above the ground), renders the figure's parts from there into the
@@ -79,7 +71,7 @@ public:
     // projects the texture's square onto the ground (0056C750 into +0x4C/+0x5C/+0x6C). Then the
     // shadow geometry is drawn with the shadow's alpha (units: their controller's +0x78).
     // Returns 1, or a fatal error's result when the texture or the surface cannot be had.
-    int DrawShadow(ShadowDrawContext* context);
+    int DrawShadow(CSceneRenderer* context);
 
     // 0051B7E0 (map_object_draw.cpp). Draws the object (`context` as above; `dirty` receives the screen rectangle the
     // parts flagged 0x40 covered, or null): the object's state is updated (its slot 26) and its
@@ -89,7 +81,7 @@ public:
     // context's slot 13 with those lights. A figure whose parts are all static (part flags 0x10)
     // becomes static (object flags 0x400; +0xEC the time it did, flags_ bit 8). Returns 1, or
     // a fatal error's result.
-    int Draw(ShadowDrawContext* context, void* dirty);
+    int Draw(CSceneRenderer* context, void* dirty);
 
     // unit_client_update.cpp (A-U). 0051B6D0 / 0051B6F0. Walk the materials (+0x38): the first
     // (cursor 0; with none the cursor is -1) / the next (the cursor moves on); null at the end.
@@ -204,6 +196,9 @@ public:
     // scene pipeline's ClipTest, 004F16A0, gives 2 for outside).
     bool ShadowInView();
 
+    // drawnRect as the RECT it is (windows.h).
+    tagRECT* DrawnRect() { return reinterpret_cast<tagRECT*>(drawnRect); }
+
     // The half as the interface its slots are called through (map_object_figures.h).
     class CObject3DSpecific* AsSpecific() { return reinterpret_cast<class CObject3DSpecific*>(this); }
 
@@ -223,7 +218,8 @@ public:
     float bounds[4];                // +0x80 minimum x, y and maximum x, y in the light's view
     ClipBounds sphere;              // +0x90 the shadow's bounds (the scene object's slot 7), the
                                     //       centre relative to the object
-    std::uint8_t unknown_BC[0xD8 - 0xBC];   // +0xBC..+0xC8 zeroed with the bounds
+    std::uint8_t unknown_BC[0xC8 - 0xBC];   // +0xBC zeroed with the bounds
+    int drawnRect[4];               // +0xC8 RECT: the screen area of the dirty parts Draw drew
     CTexture* woundsTexture;        // +0xD8 the wounds texture (counted; 0051C3D0 loads it)
     struct WoundsMaterial* woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
     mfc::CString skinName;          // +0xE0 the first set's texture name (SetSkins)
@@ -246,6 +242,8 @@ static_assert(offsetof(CObject3DClientSpecific, bounds) == 0x80);
 static_assert(offsetof(CObject3DClientSpecific, sphere) == 0x90);
 static_assert(offsetof(CObject3DClientSpecific, pulseClock) == 0xE8);
 static_assert(offsetof(CObject3DClientSpecific, woundsTexture) == 0xD8);
+static_assert(offsetof(CObject3DClientSpecific, drawnRect) == 0xC8 && offsetof(CObject3DClientSpecific, touchTime) == 0xEC);
+static_assert(offsetof(CObject3DClientSpecific, figureScale) == 0xF0 && offsetof(CObject3DClientSpecific, woundsMaterial) == 0xDC);
 
 // A texture stage of a material (0x14 bytes): copied by 0051E970 / 0051E430 (the texture gains a
 // reference), destroyed by releasing the texture (0051E3D0) and freeing the name.

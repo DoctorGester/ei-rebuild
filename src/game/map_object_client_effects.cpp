@@ -147,7 +147,7 @@ __declspec(naked) void __fastcall CallResetPartAlpha(CObject3DClientSpecific*) E
 __declspec(naked) void __fastcall CallClearPartTints(CObject3DClientSpecific*) EI_ORIGINAL(0x0051CD60)
 
 CObject3DClientSpecific* ClientHalf(CMapObject* owner) {
-    return static_cast<CObject3DClientSpecific*>(owner->Object3D()->attached);
+    return static_cast<CObject3DClientSpecific*>(owner->attached);
 }
 
 // Is there a record of `type` other than `index`?
@@ -167,28 +167,12 @@ constexpr int kPointLight = 0x31;
 constexpr float kLightHeight = 2.0f;             // 0073DBE8
 constexpr int kUnitClassId = 0x50;
 
-// An entry of the light factory's list of lit ids (STLport list<int> on the node pool).
-struct LitIdNode {
-    LitIdNode* next;
-    LitIdNode* prev;
-    int id;
-};
-
-// The light factory (*007AF748): a manager whose +0xD4 list holds the ids of the lights held on.
-struct LightFactory : CBaseManager {
-    std::uint8_t unknown_B0[0xD4 - 0xB0];
-    LitIdNode* litIds;              // +0xD4 the list's head node
-};
-static_assert(offsetof(LightFactory, litIds) == 0xD4);
-
-LightFactory* Lights() { return *reinterpret_cast<LightFactory* const*>(0x007AF748); }
-void* LightManager() { return *reinterpret_cast<void* const*>(0x007AF738); }
 // The default light of slot 19's mode 1 (0079BEB0: r, g, b; 0079BEBC: radius).
 const float* DefaultLightColour() { return reinterpret_cast<const float*>(0x0079BEB0); }
 float DefaultLightRadius() { return *reinterpret_cast<const float*>(0x0079BEBC); }
 
 CObject3DSpecific* SideHalf(CMapObject* owner) {
-    return static_cast<CObject3DSpecific*>(owner->Object3D()->attached);
+    return owner->Specific();
 }
 
 // 00511950 (rewritten below; through its game address so the wrapper sees the calls).
@@ -200,7 +184,7 @@ void DropLight(CMapObjectClientSpecific* self) {
     self->HideLight();
     self->light->flags_ |= kLightHeld;
     int id = self->light->id_;
-    LightIdsRemoveOriginal(&Lights()->litIds, nullptr, &id);
+    LightIdsRemoveOriginal(&TheLightFactory()->litIds_, nullptr, &id);
     CEngineObject* old = self->light;
     self->light = nullptr;
     if (old) old->Release();
@@ -242,11 +226,11 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
 }
 EI_REPLACE(0x005114D0, PlayEffectSound);
 
-void CMapObjectClientSpecific::EffectsChanged(bool first) {
+void CMapObjectClientSpecific::OnEffectsChanged(bool first) {
     CallUpdateEffectParticles(this, nullptr, first);
     CallUpdateEffectSounds(this, nullptr, first);
 }
-EI_REPLACE_METHOD(0x005117D0, CMapObjectClientSpecific::EffectsChanged);
+EI_REPLACE_METHOD(0x005117D0, CMapObjectClientSpecific::OnEffectsChanged);
 
 void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
     CMapObject* owner = CompanionOwner(this);
@@ -469,7 +453,7 @@ EI_REPLACE_METHOD(0x00511950, CMapObjectClientSpecific::ShowLight);
 
 void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bool flag) {
     HideLight();
-    CountedRefStoreOriginal(&light, nullptr, Lights()->CreateObject(kPointLight, -1));
+    CountedRefStoreOriginal(&light, nullptr, TheLightFactory()->CreateObject(kPointLight, -1));
     float rgb[3] = {colour[0], colour[1], colour[2]};
     SetLightColorPosition(light, nullptr, rgb, rgb);
     CMapObject* owner = CompanionOwner(this);
@@ -487,7 +471,7 @@ void CMapObjectClientSpecific::CreateLight(const float* colour, float radius, bo
 }
 EI_REPLACE_METHOD(0x00511830, CMapObjectClientSpecific::CreateLight);
 
-void CMapObjectClientSpecific::SetLightMode(int mode) {
+void CMapObjectClientSpecific::ApplyLightMode(int mode) {
     if (mode == 1) {
         if (!light) {
             float colour[4] = {DefaultLightColour()[0], DefaultLightColour()[1], DefaultLightColour()[2], 1.0f};
@@ -499,20 +483,20 @@ void CMapObjectClientSpecific::SetLightMode(int mode) {
         light->flags_ |= kLightHeld;
         int id = light->id_;
         void* end = nullptr;
-        ListEnd4049D0Original(&Lights()->litIds, nullptr, &end);
+        ListEnd4049D0Original(&TheLightFactory()->litIds_, nullptr, &end);
         void* inserted = nullptr;
-        ListInsert404A40Original(&Lights()->litIds, nullptr, &inserted, end, &id);
+        ListInsert404A40Original(&TheLightFactory()->litIds_, nullptr, &inserted, end, &id);
         return;
     }
     if (mode == 2 && light) DropLight(this);
 }
-EI_REPLACE_METHOD(0x00511A00, CMapObjectClientSpecific::SetLightMode);
+EI_REPLACE_METHOD(0x00511A00, CMapObjectClientSpecific::ApplyLightMode);
 
 void CMapObjectClientSpecific::DestroyClientCompanion() {
     unknown_20 = 0;
     unknown_24 = 0;
     CompanionParticlesSetSizeOriginal(&particles, nullptr, 0, -1);
     if (light) DropLight(this);
-    object = nullptr;
+    owner = nullptr;
 }
 EI_REPLACE_METHOD(0x005107B0, CMapObjectClientSpecific::DestroyClientCompanion);

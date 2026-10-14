@@ -465,7 +465,7 @@ EI_VERIFY(0x005271C0, PeriodVerify, 6, s_period);
 static BOOL(__fastcall* s_serverIsDead)(CMapObjectServer*);
 static BOOL __fastcall ServerIsDeadVerify(CMapObjectServer* self) {
     BOOL expected = s_serverIsDead(self);
-    ei::verify::Check("CMapObjectServer::IsDead", expected, self->IsDead(), "hp %g", self->vitals.hitPoints);
+    ei::verify::Check("CMapObjectServer::IsDead", expected, self->CMapObjectServer::IsDead(), "hp %g", self->vitals.hitPoints);
     return expected;
 }
 EI_VERIFY(0x005156A0, ServerIsDeadVerify, 6, s_serverIsDead);
@@ -474,7 +474,7 @@ EI_VERIFY(0x005156A0, ServerIsDeadVerify, 6, s_serverIsDead);
 static BOOL(__fastcall* s_serverOverkilled)(CMapObjectServer*);
 static BOOL __fastcall ServerOverkilledVerify(CMapObjectServer* self) {
     BOOL expected = s_serverOverkilled(self);
-    ei::verify::Check("CMapObjectServer::IsOverkilled", expected, self->IsOverkilled(), "hp %g max %g", self->vitals.hitPoints,
+    ei::verify::Check("CMapObjectServer::IsOverkilled", expected, self->CMapObjectServer::IsOverkilled(), "hp %g max %g", self->vitals.hitPoints,
                       self->vitals.maxHitPoints);
     return expected;
 }
@@ -484,7 +484,7 @@ EI_VERIFY(0x005156C0, ServerOverkilledVerify, 9, s_serverOverkilled);
 static BOOL(__fastcall* s_clientIsDead)(CMapObjectClientSpecific*);
 static BOOL __fastcall ClientIsDeadVerify(CMapObjectClientSpecific* self) {
     BOOL expected = s_clientIsDead(self);
-    ei::verify::Check("CMapObjectClientSpecific::IsDead", expected, self->IsDead(), "hp %d", self->object->hitPoints);
+    ei::verify::Check("CMapObjectClientSpecific::IsDead", expected, self->CMapObjectClientSpecific::IsDead(), "hp %d", self->Unit()->hitPoints);
     return expected;
 }
 EI_VERIFY(0x005104D0, ClientIsDeadVerify, 5, s_clientIsDead);
@@ -493,8 +493,8 @@ EI_VERIFY(0x005104D0, ClientIsDeadVerify, 5, s_clientIsDead);
 static BOOL(__fastcall* s_clientOverkilled)(CMapObjectClientSpecific*);
 static BOOL __fastcall ClientOverkilledVerify(CMapObjectClientSpecific* self) {
     BOOL expected = s_clientOverkilled(self);
-    ei::verify::Check("CMapObjectClientSpecific::IsOverkilled", expected, self->IsOverkilled(), "hp %d max %d",
-                      self->object->hitPoints, self->object->maxHitPoints);
+    ei::verify::Check("CMapObjectClientSpecific::IsOverkilled", expected, self->CMapObjectClientSpecific::IsOverkilled(), "hp %d max %d",
+                      self->Unit()->hitPoints, self->Unit()->maxHitPoints);
     return expected;
 }
 EI_VERIFY(0x005104F0, ClientOverkilledVerify, 10, s_clientOverkilled);
