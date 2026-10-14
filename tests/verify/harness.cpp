@@ -668,10 +668,14 @@ LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWO
 // Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switches
 // it off and "restores" a value it never read (off), so a harness game left it off for every program
 // on the machine, and text in runs before and after differed (GDI's grey edges or none: the
-// widescreen comparison of two runs). Harness runs leave it alone; text draws with the desktop's.
+// widescreen comparison of two runs). Harness runs leave the setting alone, and the game's fonts are
+// created without smoothing (NONANTIALIASED_QUALITY), as they look once the titles have switched it
+// off, whatever the desktop's setting and other programs do to it during the run.
 constexpr std::uintptr_t kSystemParametersInfoASlot = 0x0073B4C0;   // game.exe import table
+constexpr std::uintptr_t kCreateFontIndirectASlot = 0x0073B068;     // game.exe import table
 constexpr UINT kSetFontSmoothing = 0x4B;                             // SPI_SETFONTSMOOTHING
 decltype(&::SystemParametersInfoA) g_systemParametersInfo;
+decltype(&::CreateFontIndirectA) g_createFontIndirect;
 
 BOOL WINAPI HarnessSystemParametersInfo(UINT action, UINT uiParam, PVOID pvParam, UINT winIni) {
     if (action != kSetFontSmoothing) return g_systemParametersInfo(action, uiParam, pvParam, winIni);
@@ -679,6 +683,13 @@ BOOL WINAPI HarnessSystemParametersInfo(UINT action, UINT uiParam, PVOID pvParam
     if (!logged) Log("harness: font smoothing left as the desktop has it (the game asked for %u)", uiParam);
     logged = true;
     return TRUE;
+}
+
+HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
+    if (!font) return g_createFontIndirect(font);
+    LOGFONTA plain = *font;
+    plain.lfQuality = NONANTIALIASED_QUALITY;
+    return g_createFontIndirect(&plain);
 }
 
 // The "show tutorial" option (options object 0079BC70 + 0x208, registry value ShowTutorial). With it
@@ -2183,6 +2194,7 @@ struct Harness {
         PatchSlot(kSetFileAttributesASlot, &RedirectedSetFileAttributes, g_setFileAttributes);
         PatchSlot(kRegSetValueExASlot, &SkippedRegSetValue, g_regSetValue);
         PatchSlot(kSystemParametersInfoASlot, &HarnessSystemParametersInfo, g_systemParametersInfo);
+        PatchSlot(kCreateFontIndirectASlot, &HarnessCreateFontIndirect, g_createFontIndirect);
         PatchSlot(kGetPrivateProfileStringASlot, &HarnessGetProfileString, g_getProfileString);
         PatchSlot(kGetPrivateProfileSectionASlot, &RedirectedGetProfileSection, g_getProfileSection);
         PatchSlot(kGetPrivateProfileIntASlot, &RedirectedGetProfileInt, g_getProfileInt);
