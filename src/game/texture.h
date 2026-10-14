@@ -211,6 +211,9 @@ public:
     int textureChanges_;        // +0x178 texture bindings changed (00501AF0)
 };
 static_assert(offsetof(CTextureDevice, drawnRect_) == 0x15C && offsetof(CTextureDevice, vertexCount_) == 0x16C);
+static_assert(offsetof(CTextureDevice, lastLoadResult_) == 0x08);
+static_assert(offsetof(CTextureDevice, primitiveCount_) == 0x170 && offsetof(CTextureDevice, drawCount_) == 0x174);
+static_assert(offsetof(CTextureDevice, textureChanges_) == 0x178);
 static_assert(sizeof(CTextureDevice) == 0x17C);
 static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
 static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
