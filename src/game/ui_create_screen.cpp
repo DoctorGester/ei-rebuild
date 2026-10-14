@@ -474,8 +474,6 @@ void FreeNode18(void* node) {
 // screen 8's members at +0x170 (00671280 / 006714A0) and +0x1D8 (005DB340 / 005DB350).
 __declspec(naked) void __fastcall Screen9FirstMap(void*, void*, const void*, const void*) EI_ORIGINAL(0x005F9F80)
 __declspec(naked) void __fastcall Screen9SecondMap(void*) EI_ORIGINAL(0x005F98F0)
-__declspec(naked) void* __fastcall Screen8Member170(void*) EI_ORIGINAL(0x00671280)
-__declspec(naked) void __fastcall Screen8Member170Destruct(void*) EI_ORIGINAL(0x006714A0)
 __declspec(naked) void __fastcall Screen8Member1D8Destruct(void*) EI_ORIGINAL(0x005DB350)
 __declspec(naked) void __fastcall ConstructCStringFrom(void*, void*, const char*) EI_ORIGINAL(0x007009DE)
 
@@ -508,7 +506,7 @@ EI_REPLACE(0x005F6F30, Screen9Construct);
 // at +0x1C8 gets its header node, +0x1D4 the text, +0x1F4 the flag's low byte.
 void* __fastcall Screen8Construct(void* self, void*, CInterface3D* ui, int flag, const char* text) {
     ConstructContainerAt(self, nullptr, ui);
-    Screen8Member170(Bytes(self) + 0x170);
+    MappedResourceConstructOriginal(Bytes(self) + 0x170);
     std::uint8_t* list = Bytes(self) + 0x1C8;
     list[0] = static_cast<std::uint8_t>(flag);   // the allocator byte, overwritten
     SetDword(list, 0, 0);
@@ -552,7 +550,7 @@ void __fastcall Screen8Destroy(void* self) {
     SetDword(header, 4, static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(header)));
     header = headerOf();
     if (header) FreeNode18(header);
-    Screen8Member170Destruct(Bytes(self) + 0x170);
+    MappedResourceDestroyOriginal(reinterpret_cast<CMappedResource*>(Bytes(self) + 0x170));
     DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F6E40, Screen8Destroy);

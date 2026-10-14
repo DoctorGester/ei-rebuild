@@ -131,7 +131,7 @@ __declspec(naked) inline void __fastcall RecordRemoveSpellEntryOriginal(void* /*
 // 00661F30: takes an item out of the party's item list (RET 8: item, flag read as a byte; when the stack count at +0x48 is above
 // 1 and the flag is clear it only lowers the count and EAX is the item, otherwise the item is released and removed and EAX is
 // 0; no caller reads it). 006620F0: removes the member record (0x784 bytes) whose key at +0x1C equals the argument (RET 4; EAX 1
-// when found, else 0). 00665440: the unit belongs to the player (RET 4; EAX 0/1). 00665780: erases the quest item (type 0x3009)
+// when found, else 0). 00665440 (rewritten as CPlayer::IsLeader, which compares the unit with the first party member; callers read it as "the player has the unit"; RET 4; EAX 0/1). 00665780: erases the quest item (type 0x3009)
 // with a number (RET 4; EAX 1 when found, else 0). 00665A70 / 00665B50: add / remove a unit of the player (RET 4, EAX is not a
 // result).
 __declspec(naked) inline void* __fastcall PartyRemoveItemOriginal(void* /*party*/, void*, void* /*item*/, int /*flag*/)
@@ -189,3 +189,15 @@ struct ItemConstructorManagerOriginal {
     void SetManager(void* manager);
 };
 __declspec(naked) inline void ItemConstructorManagerOriginal::SetManager(void*) EI_ORIGINAL(0x006A5C00)
+
+// C3n batch 4. The player and its server half (thiscall), through their addresses so the wrappers run: 00665DE0
+// (rewritten as CPlayer::Tick; plain RET) the player's update before the tick; 0066D6E0 (CPlayerServer::SendObject0B; RET 8)
+// the message (player + 0x20) about an object with a code / value; 0066EE10 / 0066EE80 (CPlayerServer::SetVariable /
+// SetVariableMax; RET 8) a quest variable of the name, set / raised to the value.
+__declspec(naked) inline void __fastcall PlayerTickOriginal(void* /*player*/) EI_ORIGINAL(0x00665DE0)
+__declspec(naked) inline void __fastcall PlayerSendObject0BOriginal(void* /*messages*/, void*, const void* /*object*/,
+                                                                    std::uint32_t /*value*/) EI_ORIGINAL(0x0066D6E0)
+__declspec(naked) inline void __fastcall PlayerStateSetVariableOriginal(void* /*state*/, void*, const char* /*name*/,
+                                                                        float /*value*/) EI_ORIGINAL(0x0066EE10)
+__declspec(naked) inline void __fastcall PlayerStateSetVariableMaxOriginal(void* /*state*/, void*, const char* /*name*/,
+                                                                           float /*value*/) EI_ORIGINAL(0x0066EE80)

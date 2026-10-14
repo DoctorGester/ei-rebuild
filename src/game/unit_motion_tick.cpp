@@ -20,6 +20,7 @@
 #include "originals_ai.h"
 #include "originals_core.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 #include "originals_units.h"
 
 #include <cstdint>
@@ -58,7 +59,6 @@ __declspec(naked) bool __fastcall MapContinuePath(void*, void*, CUnit*, void* /*
 // The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 // 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
-__declspec(naked) void __fastcall PartyMessage(void*, void*, CUnit*, int) EI_ORIGINAL(0x0066D6E0)
 
 // --- x87 sequences ------------------------------------------------------------------------------
 
@@ -442,7 +442,7 @@ void Exhaustion(CUnitServer* c) {
         } else {
             if (Drain(stamina, rate)) {
                 if (UnitOf(c)->player)
-                    PartyMessage(PlayerOf(UnitOf(c))->connection_, nullptr, UnitOf(c), 0x1D);
+                    PlayerSendObject0BOriginal(PlayerOf(UnitOf(c))->connection_, nullptr, UnitOf(c), 0x1D);
                 std::memset(stamina, 0, 4);
                 c->moveMode2.wasMode3 = 0;
                 int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;

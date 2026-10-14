@@ -411,7 +411,6 @@ MenuGlue* Glue(std::uintptr_t address) { return reinterpret_cast<MenuGlue*>(addr
 // The titles window's members: CMappedResource 00671280, a vector 00634300 (allocator, RET 4),
 // 005DB340 (the music player at +0x1D8). The hero screen's: the item screen base's caches 00633F50
 // / 00633FF0, two lists 0053F4F0 and two vectors 006342A0 (allocator, RET 4).
-__declspec(naked) void* __fastcall MenuMappedResource(void*) EI_ORIGINAL(0x00671280)
 __declspec(naked) void __fastcall MenuTitlesVector(void*, void*, const void*) EI_ORIGINAL(0x00634300)
 __declspec(naked) void __fastcall MenuModelCache(void*) EI_ORIGINAL(0x00633F50)
 __declspec(naked) void __fastcall MenuTextureCache(void*) EI_ORIGINAL(0x00633FF0)
@@ -478,7 +477,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         void* w = gamecrt::operator_new(0x1FC);
         if (w) {
             ConstructContainerAt(w, nullptr, ui);
-            MenuMappedResource(static_cast<std::uint8_t*>(w) + 0x170);
+            MappedResourceConstructOriginal(static_cast<std::uint8_t*>(w) + 0x170);
             char allocator = 0;
             MenuTitlesVector(static_cast<std::uint8_t*>(w) + 0x1C8, nullptr, &allocator);
             new (static_cast<std::uint8_t*>(w) + 0x1D4) mfc::CString(GameText(0x00794250));   // "Titles"

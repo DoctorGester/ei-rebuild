@@ -1120,15 +1120,11 @@ namespace {
 // The hero record (thiscall, RET 4): 00660A50 / 00660E10 / 00660C30 / 00660FF0 take a weapon,
 // armour, a 0x3006 item or a 0x3008 item off.
 struct HeroRecordAt {
-    void RemoveWeapon(std::uint8_t* item);    // 00660A50
-    void RemoveArmour(std::uint8_t* item);    // 00660E10
-    void Remove3006(std::uint8_t* item);      // 00660C30
-    void Remove3008(std::uint8_t* item);      // 00660FF0
+    void RemoveWeapon(std::uint8_t* item) { RecordRemoveQuickEntryOriginal(this, nullptr, item); }   // 00660A50
+    void RemoveArmour(std::uint8_t* item) { RecordRemoveWornEntryOriginal(this, nullptr, item); }    // 00660E10
+    void Remove3006(std::uint8_t* item) { RecordRemoveBeltEntryOriginal(this, nullptr, item); }      // 00660C30
+    void Remove3008(std::uint8_t* item) { RecordRemoveSpellEntryOriginal(this, nullptr, item); }     // 00660FF0
 };
-__declspec(naked) void HeroRecordAt::RemoveWeapon(std::uint8_t*) EI_ORIGINAL(0x00660A50)
-__declspec(naked) void HeroRecordAt::RemoveArmour(std::uint8_t*) EI_ORIGINAL(0x00660E10)
-__declspec(naked) void HeroRecordAt::Remove3006(std::uint8_t*) EI_ORIGINAL(0x00660C30)
-__declspec(naked) void HeroRecordAt::Remove3008(std::uint8_t*) EI_ORIGINAL(0x00660FF0)
 
 // 00661DB0 (thiscall on the local player's data, RET 0xC): puts an item among the player's items.
 inline int __fastcall PlayerTakeItem(std::uint8_t* a0, void*, std::uint8_t* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, (void*)a2, a3, a4); }
@@ -1219,12 +1215,11 @@ struct HeroRecordAdd {
     void AddWeapon(std::uint8_t* item);       // 006608D0
     void Add3006(std::uint8_t* item);         // 00660AB0
     void Add3008(std::uint8_t* item);         // 00660E70
-    void* AddArmour(std::uint8_t* item);      // 00660C90
+    void* AddArmour(std::uint8_t* item) { return RecordAddWornEntryOriginal(this, nullptr, item); }   // 00660C90
 };
 __declspec(naked) void HeroRecordAdd::AddWeapon(std::uint8_t*) EI_ORIGINAL(0x006608D0)
 __declspec(naked) void HeroRecordAdd::Add3006(std::uint8_t*) EI_ORIGINAL(0x00660AB0)
 __declspec(naked) void HeroRecordAdd::Add3008(std::uint8_t*) EI_ORIGINAL(0x00660E70)
-__declspec(naked) void* HeroRecordAdd::AddArmour(std::uint8_t*) EI_ORIGINAL(0x00660C90)
 // 00530730 (thiscall on a unit, RET 4): wears armour. 00661F30 (thiscall on the player's data,
 // RET 8): takes an item out of the player's items.
 void __fastcall UnitWearArmour(std::uint8_t* a0, void*, void* a2) { UnitEquipArmourOriginal((void*)a0, nullptr, a2); }

@@ -344,8 +344,7 @@ __declspec(naked) void __fastcall SoundSetVolumeA(CSoundManager*, void*, int) EI
 __declspec(naked) void __fastcall SoundSetVolumeB(CSoundManager*, void*, int) EI_ORIGINAL(0x006B78A0)
 __declspec(naked) void __fastcall SoundSetVolumeC(CSoundManager*, void*, int) EI_ORIGINAL(0x006B7A00)
 __declspec(naked) void __fastcall SoundTick(CSoundManager*) EI_ORIGINAL(0x006B9B10)
-// 00665DE0 CPlayer::Tick and 00665A10 CPlayer::Disconnect on the local session.
-__declspec(naked) void __fastcall SessionUpdate(WorldSession*) EI_ORIGINAL(0x00665DE0)
+// 00665A10 CPlayer::Disconnect on the local session.
 void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOriginal(session); }
 __declspec(naked) int __fastcall PendingLookup(PendingMap*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)
 __declspec(naked) void __fastcall PendingListRemoveAt(mfc::CList<CEngineObject*>*, void*, void*) EI_ORIGINAL(0x005704A0)
@@ -415,7 +414,7 @@ int CWorldClient::Segment() {
     if (void* p = unknown60_) SessionPump(p, nullptr, net::GameClient());
     if (WorldSession* session = Session()) {
         CPlayerConnection* view = session->localView;
-        if (!paused_) SessionUpdate(session);
+        if (!paused_) PlayerTickOriginal(session);
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport (5 NOPs at 00564330)
             // keeps the session: only the error is reported.

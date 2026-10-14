@@ -4,12 +4,12 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "originals_engine.h"
 
 #include <cstring>
 
 namespace {
 // Archive constructors (not rewritten yet; they build the STLport hash maps).
-__declspec(naked) CMappedResource* __fastcall ConstructMappedResource(void*) EI_ORIGINAL(0x00671280)
 __declspec(naked) CMappedResource* __fastcall ConstructMmioResource(void*) EI_ORIGINAL(0x006721D0)
 
 bool SameName(const stlp::string& a, const char* b) {
@@ -63,7 +63,7 @@ void CResourceManager::Destroy() {
 // --- Archives -----------------------------------------------------------------------------------
 
 BOOL CResourceManager::AddArchive(const char* path) {
-    return AddArchiveOf(path, sizeof(CMappedResource), ConstructMappedResource);
+    return AddArchiveOf(path, sizeof(CMappedResource), MappedResourceConstructOriginal);
 }
 
 BOOL CResourceManager::AddMmioArchive(const char* path) {

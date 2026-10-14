@@ -23,6 +23,7 @@
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
@@ -113,7 +114,6 @@ CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->
 namespace {
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
 // 00455950 the object's world; 0066D6E0 party messages; 00552780 the unit shouts.
-__declspec(naked) void __fastcall TickMessage(void*, void*, CUnit*, int) EI_ORIGINAL(0x0066D6E0)
 // CUnitServer helpers: 0054A150 follow the path (true while moving), 00550F30 the idle animation
 // (+0x960), 00546C40 play it, 00547280 / 00547090 / 005474B0 / 0054EB30 / 005467B0 movement and
 // motion updates, 00548700 plan a path to a point, 005468D0 take nearby units off the sector map
@@ -165,7 +165,7 @@ __declspec(naked) void UnitAction::CallReset() EI_ORIGINAL(0x0054B230)
 
 namespace {
 void TellParty(CUnit* unit, int message) {
-    if (unit->player) TickMessage(PlayerMessages(unit->player), nullptr, unit, message);
+    if (unit->player) PlayerSendObject0BOriginal(PlayerMessages(unit->player), nullptr, unit, message);
 }
 
 // 00545F40 (UnitAction::Clear) followed by the +0x1C / +0x20 reset, as callers inline it.

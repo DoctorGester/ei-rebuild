@@ -5,6 +5,7 @@
 #include "map_object_figures.h"
 #include "net_classes.h"
 #include "net_messages.h"
+#include "originals_gameplay.h"
 #include "originals_world.h"
 #include "text_reader.h"
 #include "ui_camp.h"
@@ -38,9 +39,8 @@ __declspec(naked) void __fastcall AddItemSprite(CHudQuickItems*, void*, const ch
 // the step). The original inlines the same code after each sprite.
 __declspec(naked) void __fastcall EntriesSetSize(void*, void*, int /*size*/, int /*growBy*/) EI_ORIGINAL(0x0064B060)
 // 00578BC0 (jumps to 005699F0 with the world 007AF5B8): the local player's view; its +0x1C is the
-// player. 00665440 (thiscall on the player, RET 4): whether `unit` is the player's own.
+// player.
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x00578BC0)
-__declspec(naked) int __fastcall PlayerOwns(std::uint8_t*, void*, CUnit*) EI_ORIGINAL(0x00665440)
 // 005E7060 (thiscall on a sprite, RET 4): its scale.
 void __fastcall SpriteScale(CEngineObject* a0, void*, float a2) { SpriteSetScaleOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 // 005E6FA0 (Rebirth-patched): places a sprite.
@@ -115,7 +115,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     // The local player's own unit also shows up to four of the player's 0x3009 items above, from
     // the last of the player's items backwards (node: +4 previous, +8 item).
     std::uint8_t* player = *reinterpret_cast<std::uint8_t**>(LocalView(reinterpret_cast<void*>(0x007AFEA5)) + 0x1C);
-    if (!PlayerOwns(player, nullptr, unit_)) return;
+    if (!PlayerOwnsUnitOriginal(player, nullptr, unit_)) return;
     player = *reinterpret_cast<std::uint8_t**>(LocalView(reinterpret_cast<void*>(0x007AFEA5)) + 0x1C);
     std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(player + 0xE8);
     if (!node) return;

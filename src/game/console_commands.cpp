@@ -89,11 +89,10 @@ T& Field(char* base, int offset) { return *reinterpret_cast<T*>(base + offset); 
 WorldPlayer* AsPlayer(char* player) { return reinterpret_cast<WorldPlayer*>(player); }
 
 struct PlayerStateAt {
-    void SetVariable(const char* name, float value);   // 0066EE10
+    void SetVariable(const char* name, float value) { PlayerStateSetVariableOriginal(this, nullptr, name, value); }   // 0066EE10
     void Refresh();                                    // 0066EF80
     void ResendParty();                                // 0066F450
 };
-__declspec(naked) void PlayerStateAt::SetVariable(const char*, float) EI_ORIGINAL(0x0066EE10)
 void PlayerStateAt::Refresh() { PlayerStateRefreshOriginal((void*)this); }
 void PlayerStateAt::ResendParty() { PlayerResendPartyOriginal((void*)this); }
 

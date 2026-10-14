@@ -36,8 +36,6 @@ constexpr int kMercSlots = 10;
 // 00461360. The text key (object id) of a name (object_tables.cpp), ECX = name.
 // 00460AF0 (RET 4). Named float table Get; the value is left in ST0.
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
-// 0066EE10 (RET 8). CPlayerServer::SetVariable (player_messages.cpp).
-__declspec(naked) void __fastcall StateSetVariable(CPlayerServer*, void*, const char*, float) EI_ORIGINAL(0x0066EE10)
 
 // C3 of FCOMP: equal or unordered (the original's TEST AH,0x40).
 bool EqualOrUnordered(double a, float b) { return !(a < b) && !(a > b); }
@@ -59,7 +57,7 @@ void CWorldServer::UpdateMercBriefings() {
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         CPlayerServer* state = player->server;
         int otherMercs = CountLivingMercs(player->id);
-        auto set = [&](const mfc::CString& name, float value) { StateSetVariable(state, nullptr, name, value); };
+        auto set = [&](const mfc::CString& name, float value) { PlayerStateSetVariableOriginal(state, nullptr, name, value); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
             mfc::CString merc;
@@ -181,7 +179,6 @@ __declspec(naked) void __fastcall TempListDestruct(mfc::CTypedPtrList<void>*, vo
 inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::CTypedPtrList<CEngineObject>* l, void*, mfc::CTypedPtrList<CEngineObject>::Node* prev, mfc::CTypedPtrList<CEngineObject>::Node* next) { return static_cast<mfc::CTypedPtrList<CEngineObject>::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 void __fastcall PlayerEraseQuestItem(WorldPlayer* a0, void*, int a2) { PlayerEraseQuestItemOriginal(a0, nullptr, a2); }
-__declspec(naked) void __fastcall StateSetVariableMax(CPlayerServer*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
 // 004D23A0 (RET 8). The first command queue: add a line (ScriptsRun runs it once).
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
@@ -239,13 +236,13 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
 
     CPlayerServer* state = player->server;
     for (const mfc::CString* name = record->giveQuests.begin(); name != record->giveQuests.end(); ++name)
-        StateSetVariableMax(state, nullptr, *name, 1.0f);
+        PlayerStateSetVariableMaxOriginal(state, nullptr, *name, 1.0f);
     for (const mfc::CString* name = record->completeQuests.begin(); name != record->completeQuests.end(); ++name)
-        StateSetVariable(state, nullptr, *name, 2.0f);
+        PlayerStateSetVariableOriginal(state, nullptr, *name, 2.0f);
     for (const mfc::CString* name = record->availableZones.begin(); name != record->availableZones.end(); ++name)
-        StateSetVariableMax(state, nullptr, *name, 1.0f);
+        PlayerStateSetVariableMaxOriginal(state, nullptr, *name, 1.0f);
     for (const mfc::CString* name = record->completeZones.begin(); name != record->completeZones.end(); ++name)
-        StateSetVariable(state, nullptr, *name, 2.0f);
+        PlayerStateSetVariableOriginal(state, nullptr, *name, 2.0f);
 
     // The list's inlined destructor (its nodes are dropped, the items stay with the player).
     items.vtable = reinterpret_cast<void*>(worlddata::kItemListVtable);
@@ -334,7 +331,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         v.hired.Format(worlddata::MercHiredFormat(), slot);
         CEngineObject* unit = WorldFindUnit(this, nullptr, key);
 
-        if (is(v.n8)) StateSetVariable(state, nullptr, v.n8, 0.0f);
+        if (is(v.n8)) PlayerStateSetVariableOriginal(state, nullptr, v.n8, 0.0f);
         // n10: the mercenary leaves the party and the world; n2: the party.
         if (is(v.n10)) {
             PartyRemoveMember(party, nullptr, key);
@@ -343,7 +340,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         if (is(v.n2)) PartyRemoveMember(party, nullptr, key);
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
-            StateSetVariable(state, nullptr, v.hired, 2.0f);
+            PlayerStateSetVariableOriginal(state, nullptr, v.hired, 2.0f);
             const char* prototype = unit ? *UnitPrototype(unit, nullptr) : worlddata::HumanHeroText();
             PartyAddMember(party, nullptr, v.merc, prototype, game::EmptyText());
         }

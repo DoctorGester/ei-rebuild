@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_engine.h"
 #include "originals_gameplay.h"
 #include "originals_units.h"
 
@@ -77,9 +78,7 @@ __declspec(naked) void __fastcall WeaponTexture(mfc::CString*, std::uint32_t, st
 // 00693180. Texture manager: composes a skin.
 __declspec(naked) void* __fastcall ComposeTexture(void*, void*, void*, SkinRequest*, mfc::CString*, mfc::CString*, int,
                                                   int, int) EI_ORIGINAL(0x00693180)
-// Rewritten elsewhere, through their game addresses: 00674850 CMappedResource::FindEntry,
-// 006A3200 ArmorFieldB8, 006A1780 AppendWeaponModelParts.
-__declspec(naked) int __fastcall FindEntry(void*, void*, const char*) EI_ORIGINAL(0x00674850)
+// Rewritten elsewhere, through their game addresses: 006A3200 ArmorFieldB8, 006A1780 AppendWeaponModelParts.
 __declspec(naked) int __fastcall ArmourDrawOrder(std::uint32_t) EI_ORIGINAL(0x006A3200)
 __declspec(naked) void __fastcall AppendWeaponParts(std::uint32_t, stlp::vector<stlp::string>*) EI_ORIGINAL(0x006A1780)
 
@@ -122,7 +121,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
         }
         CEngineObject* current = FindPart(unit, nullptr, part);
         armourPart.Format(Text(0x0078FB14), static_cast<const char*>(part), ItemHead(armour)->number);
-        if (FindEntry(*static_cast<void**>(model), nullptr, armourPart) != -1) {
+        if (MappedResourceFindEntryOriginal(static_cast<const CMappedResource*>(*static_cast<void**>(model)), nullptr, armourPart) != -1) {
             AddPart(unit, nullptr, armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) RemovePart(unit, nullptr, current);
         } else if (current) {
