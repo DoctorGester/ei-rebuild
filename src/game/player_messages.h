@@ -254,11 +254,11 @@ public:
     void SendPathMessage(CEngineObject* unit, void* path, const float* point, int kind, int flag,
                          std::uint32_t limitBits);
 
-    CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
+    CPlayer* Owner() const { return player_; }
 
     void* vtable_;
     std::uint8_t engineObject_[0x1C - 0x04];
-    std::uint8_t* player_;          // +0x1C the world player (+0xC4 variables, +0x100, +0x130 dirty bits)
+    CPlayer* player_;               // +0x1C the world player
     int state_;                     // +0x20
     std::uint32_t unknown24_;       // +0x24 sent with message 0x60
     // 0066C9A0 (slot 2; player_messages.cpp). The outgoing messages emptied, both sent-object

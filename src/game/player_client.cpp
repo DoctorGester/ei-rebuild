@@ -499,7 +499,7 @@ int CPlayerClient::OnPathMarker() {
         auto* marker = static_cast<CParticleSource*>(ParticleCreateSourceOriginal(
             ParticleManagerObject(), nullptr, flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
         marker->position = at;
-        auto* owner = reinterpret_cast<CEngineObject*>(player_);
+        CEngineObject* owner = player_;
         CEngineObject* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
         if (unit != nullptr) ControllerSetMarkers(static_cast<CUnit*>(unit)->controller, nullptr, pathSource, marker);
     }

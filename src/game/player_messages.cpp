@@ -174,11 +174,12 @@ void CPlayerServer::SendPair16(std::uint32_t a, std::uint32_t b) {
 
 void CPlayerServer::SendObjects0C(const void* list) {
     WriteByte(&out_, 0x0C);
-    // An MFC CPtrList: head at +4; nodes {next, prev, object}.
-    auto* node = *reinterpret_cast<void* const*>(static_cast<const char*>(list) + 4);
+    // An MFC CPtrList of objects.
+    using ObjectList = mfc::CTypedPtrList<CEngineObject>;
+    ObjectList::Node* node = static_cast<const ObjectList*>(list)->head;
     while (node != nullptr) {
-        void* next = *static_cast<void**>(node);
-        const void* object = static_cast<void**>(node)[2];
+        ObjectList::Node* next = node->next;
+        const CEngineObject* object = node->data;
         WriteDword(&out_, ObjectId(object));
         WriteDword(&out_, ItemCharge(object));
         node = next;
