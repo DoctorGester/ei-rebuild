@@ -639,13 +639,14 @@ done = "2026-10-14"
 id = "WB4"
 title = "Work board: workers and coordinator switch to work.py"
 group = "harness"
-status = "review"
+status = "done"
 size = 0.3
 model = "sonnet"
 depends = ["WB2", "WB3"]
 files = ["docs/worker-brief.md", ".claude/agents/area-worker.md"]
 note = "Worker brief: work.py start at the beginning, note at milestones, test instead of run_all; coordinator: done at merge."
 started = "2026-10-14"
+done = "2026-10-14"
 
 # ---------------------------------------------------------------- cleanup
 

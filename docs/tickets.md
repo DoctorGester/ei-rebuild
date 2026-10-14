@@ -79,7 +79,6 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
-- **WB4** Work board: workers and coordinator switch to work.py (review since 2026-10-14; sonnet, 0.3 sessions). Worker brief: work.py start at the beginning, note at milestones, test instead of run_all; coordinator: done at merge. Files: `docs/worker-brief.md`, `.claude/agents/area-worker.md`. After: WB2, WB3.
 - **T2** T1 follow-ups: remaining fixed waits and weak scenarios (ready). 8-10 s waits in ground_prints, sandbox_map, particles, map_objects, movement; world_client waits for the battle window; ui_help's clickregion hits a window with no regions; ui_hero_delete's question never appears; run_all keeps the first attempt's log on retry; ui_widescreen's wait 6000 (after SV1). No longer reached reliably: ScriptFloats/Strings/Objects/GroupsConstruct on load, acks::PickEnvironmentSpeech, CUnitServer::EndOrder. After: T1.
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **X32** Rebirth runs: game still running 10 s after quit (watch). Since 2026-10-13; runs pass. Suspects: wrappers that fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct). Not a dialog (message boxes are caught).
@@ -96,6 +95,7 @@ Scenarios, run_all and the tools around them; X tickets are problems seen in run
 - **WB1** Work board: live database and work.py start/note/status/done (done 2026-10-14; opus, 1 session). docs/notes/work-board.md: build/live/work.db (SQLite WAL, shared by every worktree via git-common-dir), tables assignment/note/batch/run; work.py start/note/status/done; a lock around tickets.py's read-modify-write of the toml. Files: `tools/work.py`, `tools/tickets.py`.
 - **WB2** Work board: test batches through one scheduler (done 2026-10-14; opus, 1.5 sessions). docs/notes/work-board.md 'Scheduler': work.py test <ID> [run_all args] submits a batch and waits, printing run_all's summary and exit code; one on-demand scheduler owns the 16 slots, runs batches in order with backfill, display-mode runs alone, uses run_all.run() pointed at the batch's worktree/build. Plain run_all keeps working. Files: `tools/work.py`, `tools/run_all.py`. After: WB1.
 - **WB3** Work board: local live server and pages (done 2026-10-14; sonnet, 1 session). docs/notes/work-board.md 'Server': work.py serve on localhost:8765, JSON API over work.db + tickets.toml + git log of assigned branches; ticket page (worker, worktree, last note, last commit and age, latest batch progress) and test-run page (queue, running, history). Board style from tools/tickets_board. Polls; never published. Files: `tools/work.py`, `tools/work_board/`. After: WB1.
+- **WB4** Work board: workers and coordinator switch to work.py (done 2026-10-14; sonnet, 0.3 sessions). Worker brief: work.py start at the beginning, note at milestones, test instead of run_all; coordinator: done at merge. Files: `docs/worker-brief.md`, `.claude/agents/area-worker.md`. After: WB2, WB3.
 
 ## Cleanup (docs/cleanup-plan.md)
 
