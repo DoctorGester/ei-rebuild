@@ -78,11 +78,13 @@ def seconds_since(stamp):
 
 # ---- batches in the database (shared by `test` and the scheduler)
 
-def submit(db, ticket, worktree, build, argv, runs, submitter=None):
-    """A new batch; runs: dicts with scenario, install, hooks, alone, expected, folder. Its id."""
+def submit(db, ticket, worktree, build, argv, runs, submitter=None, env=None):
+    """A new batch; runs: dicts with scenario, install, hooks, alone, expected, folder. env: the submitter's
+    game variables ({name: value}, run_all.game_environment()); its games run with exactly these. Its id."""
     with work.transaction(db):
-        cur = db.execute('INSERT INTO batch (ticket, worktree, build, args, submitted, submitter) VALUES (?, ?, ?, ?, ?, ?)',
-                         (ticket, worktree, build, json.dumps(argv), work.now(), submitter))
+        cur = db.execute('INSERT INTO batch (ticket, worktree, build, args, submitted, submitter, env) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                         (ticket, worktree, build, json.dumps(argv), work.now(), submitter,
+                          json.dumps(env, sort_keys=True) if env is not None else None))
         batch = cur.lastrowid
         db.executemany('INSERT INTO run (batch, scenario, install, hooks, alone, expected, folder) VALUES (?, ?, ?, ?, ?, ?, ?)',
                        [(batch, r['scenario'], r['install'], int(r['hooks']), int(r['alone']), r['expected'], r['folder'])
@@ -157,13 +159,25 @@ class SlotPool:
 
 # ---- running games
 
+def batch_env(batch):
+    """The batch's game variables {name: value}, or None for a batch from before they were recorded (its games
+    inherit the scheduler's environment)."""
+    try:
+        text = batch['env']
+    except (KeyError, IndexError):
+        return None
+    return json.loads(text) if text else None
+
+
 def real_runner(batch, run, retries, on_attempt):
     """run_all.run_with_retries() of one run row, in the batch's checkout and build, in a slot we hold."""
     attempts = iter(range(retries + 1))
+    env = batch_env(batch)
 
     def one(name, install, hooks, folder):
         on_attempt(next(attempts))
-        return run_all.run(name, install, hooks, folder, root=batch['worktree'], build=batch['build'], take_slot=False)
+        return run_all.run(name, install, hooks, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
+                           game_env=env)
     return run_all.run_with_retries(run['scenario'], run['install'].split('-')[0], bool(run['hooks']), retries,
                                     os.path.basename(run['folder']), runner=one)
 
@@ -452,7 +466,8 @@ def cmd_test(db, args):
         runs.append({'scenario': name, 'install': install, 'hooks': run_all.uses_hooks(install, ra),
                      'alone': run_all.sets_display_mode(scenario), 'expected': times.get(f'{name}-{install}'),
                      'folder': work.norm(os.path.join(build, 'runs', f'{name}-{install}'))})
-    batch = submit(db, args.id, root, build, argv, runs, os.getpid())
+    env = run_all.game_environment()
+    batch = submit(db, args.id, root, build, argv, runs, os.getpid(), env=env)
     ahead = db.execute("SELECT count(*) FROM batch WHERE id < ? AND state IN ('queued', 'running')", (batch,)).fetchone()[0]
     print(f'batch #{batch} ({args.id}): {len(runs)} runs, {ahead} batch(es) ahead (work.py status shows the queue)')
     ensure_scheduler()

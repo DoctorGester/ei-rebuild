@@ -174,6 +174,8 @@ function batchPanel(b, pos) {
     `<span class="mono" style="color:var(--muted)">${esc(b.worktree)}</span>${pos ? `<span class="pill">position ${pos}</span>` : ''}` +
     `<span class="sub" style="margin-left:auto">${batchSummary(b, false)}</span></div>${progress(b)}` +
     (b.args.length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">${esc(b.args.join(' '))}</div>` : '') +
+    // The submitter's EI_* variables the games ran with (EI_PROFILE=1, EI_PLAIN=1, ...).
+    (Object.keys(b.env || {}).length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)" title="Environment of this batch's games">env: ${esc(Object.entries(b.env).map(([k, v]) => k + '=' + v).join(' '))}</div>` : '') +
     (b.games.length ? gamesTable(b, now) : '') + `</section>`;
 }
 function runsView() {
@@ -192,7 +194,9 @@ function runsView() {
     const result = b.state === 'cancelled' ? 'cancelled'
       : games + (checks ? `, <span class="bad">${checks} check${checks > 1 ? 's' : ''} failed</span>` : '');
     return `<tr><td class="num">#${b.id}</td><td>${esc(b.ticket || '-')}</td><td class="mono">${esc(b.worktree)}</td><td class="num">${ageOf(b.finished)}</td>` +
-      `<td class="num">${dur(b.elapsed)}</td><td>${result}${b.exit_code && !n ? ` <span class="pill down">exit ${b.exit_code}</span>` : ''}</td><td>${fails}</td></tr>`;
+      `<td class="num">${dur(b.elapsed)}</td><td>${result}${b.exit_code && !n ? ` <span class="pill down">exit ${b.exit_code}</span>` : ''}` +
+      (Object.keys(b.env || {}).length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">env: ${esc(Object.entries(b.env).map(([k, v]) => k + '=' + v).join(' '))}</div>` : '') +
+      `</td><td>${fails}</td></tr>`;
   }).join('');
   out.push(`<section class="lane"><h2>History<span class="n">${r.history.length}</span></h2>` + (rows ?
     `<div class="panel scroll"><table><thead><tr><th class="num">Batch</th><th>Ticket</th><th>Worktree</th><th class="num">Ago</th><th class="num">Took</th><th>Result</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` :

@@ -202,3 +202,20 @@ the slot A's game freed; both ALL PASS. A plain `run_all.py smoke --vanilla-only
 **Not done / risks.** Games of a cancelled batch are not killed. A killed scheduler leaves its games running
 and the next one runs them again (its run folders are emptied under them). The pid check can be fooled by
 pid reuse (only delays a cancel). A batch from an old work.py is read by whichever scheduler is running.
+
+## WB5: the submitter's EI_* variables reach the games (2026-10-14)
+
+`work.py test` records `run_all.game_environment()` (every EI_* variable of its environment except
+EI_BUILD_DIR, EI_HARNESS_SLOTS, EI_OUT_DIR, EI_HARNESS: the build, the slots and what ei_launch sets itself; so
+EI_PROFILE, EI_PLAIN, EI_RENDER, EI_COVER, EI_UI_CENSUS, EI_REBIRTH, EI_NO_HOOKS, EI_GAME_ROOT, EI_RESOLUTION,
+EI_WIDESCREEN, ...) as JSON in the new `batch.env` column (MIGRATIONS entry 2, `ALTER TABLE`). The scheduler's
+`real_runner` passes it as `run_all.run(game_env=...)`: the game subprocess gets this process's environment
+without its own game variables plus the batch's, so the scheduler's own shell (EI_PLAIN set where it was
+started) never leaks into a batch and batches running at once do not see each other's; `os.environ` is not
+touched. `run_all.run(game_env=None)` (plain run_all) inherits as before; native still forces EI_RENDER.
+A batch with `env` NULL (submitted before) inherits the scheduler's environment as before. The test-runs
+page shows `env: EI_PLAIN=1 EI_PROFILE=1` under the arguments of queued/running batches and in the history row.
+Risk: an older scheduler process already running ignores `env` (its games inherit its own environment) until
+it idles out (120 s) and the next `test` starts the new one.
+Tested: tools/test_work_sched.py (`test_game_environment_per_batch`: env per batch, scheduler's own EI_PROFILE
+not leaking, NULL/no column inherit); real: `EI_PLAIN=1 EI_PROFILE=1 python tools/work.py test WB5 ui_main_menu --native`.

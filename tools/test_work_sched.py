@@ -200,6 +200,56 @@ class SchedTest(unittest.TestCase):
         self.assertEqual(len(xs), 2)
         self.assertGreaterEqual(xs[1][0], xs[0][1] - 0.01)
 
+    def test_game_environment_per_batch(self):
+        """WB5: a batch's games get the submitter's EI_* variables (and only those), os.environ is untouched,
+        and a batch from before (no recorded env) inherits as it did."""
+        seen = []
+
+        def fake_subprocess_run(cmd, **kw):
+            seen.append((cmd, kw.get('env')))
+            return subprocess.CompletedProcess(cmd, 0, '', '')
+        scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
+        os.makedirs(scenarios)
+        open(os.path.join(scenarios, 'x.txt'), 'w').close()
+        build = os.path.join(self.tmp, 'bld')
+        old_run, old_environ = run_all.subprocess.run, dict(os.environ)
+        run_all.subprocess.run = fake_subprocess_run
+        os.environ['EI_PROFILE'] = 'scheduler-own'      # the scheduler's own, not any batch's
+        os.environ['EI_BUILD_DIR'] = 'whatever'
+        try:
+            env = {'EI_PLAIN': '1', 'EI_PROFILE': '1'}
+            row = {'worktree': self.tmp, 'build': build, 'env': json.dumps(env)}
+            run = {'scenario': 'x', 'install': 'vanilla', 'hooks': 1, 'folder': build + '/runs/x-vanilla'}
+            work_sched.real_runner(row, run, 0, lambda n: None)
+            work_sched.real_runner(dict(row, env=json.dumps({})), run, 0, lambda n: None)
+            work_sched.real_runner(dict(row, env=None), run, 0, lambda n: None)
+            work_sched.real_runner({'worktree': self.tmp, 'build': build}, run, 0, lambda n: None)   # no env column at all
+            self.assertEqual(os.environ['EI_PROFILE'], 'scheduler-own')
+        finally:
+            run_all.subprocess.run = old_run
+            os.environ.clear()
+            os.environ.update(old_environ)
+        with_env, empty, null, no_column = (e for _, e in seen)
+        self.assertEqual((with_env['EI_PLAIN'], with_env['EI_PROFILE']), ('1', '1'))
+        self.assertEqual(run_all.game_environment(with_env), env)
+        self.assertEqual(run_all.game_environment(empty), {}, "the scheduler's own EI_PROFILE leaked into a batch")
+        self.assertEqual(empty['EI_BUILD_DIR'], 'whatever')        # not a game setting: left alone
+        self.assertIsNone(null)                                     # inherit
+        self.assertIsNone(no_column)
+
+        # and through the database: recorded at submit, absent (NULL) for a batch submitted without
+        a = self.submit(['q'])
+        self.assertIsNone(work_sched.batch_env(self.batch(a)))
+        runs = [{'scenario': 'q', 'install': 'vanilla', 'hooks': True, 'alone': False, 'expected': None,
+                 'folder': f'{self.root}/b/runs/q-vanilla'}]
+        b = work_sched.submit(self.db, 'T1', self.root, f'{self.root}/b', ['q'], runs, None, env=env)
+        self.assertEqual(work_sched.batch_env(self.batch(b)), env)
+
+    def test_game_environment_names(self):
+        got = run_all.game_environment({'EI_PLAIN': '1', 'EI_PROFILE': '1', 'EI_BUILD_DIR': 'x', 'EI_HARNESS_SLOTS': '4',
+                                        'EI_OUT_DIR': 'o', 'EI_HARNESS': 'h', 'PATH': 'p', 'WORK_DB': 'd'})
+        self.assertEqual(got, {'EI_PLAIN': '1', 'EI_PROFILE': '1'})
+
     def test_one_scheduler_and_idle_exit(self):
         env = dict(os.environ, WORK_DB=os.path.join(self.tmp, 'work.db'), WORK_SCHED_IDLE='1.5')
         cmd = [sys.executable, os.path.join(work.ROOT, 'tools', 'work.py'), 'scheduler']
