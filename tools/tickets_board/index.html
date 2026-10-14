@@ -6,18 +6,18 @@
 :root {
   --bg: #f3f4f2; --panel: #ffffff; --ink: #1d2422; --muted: #5d6a66; --line: #d9dedb;
   --accent: #b5652a; --accent-soft: #f1dfd0; --track: #e6e9e7; --good: #3d7a52; --good-soft: #dcebe0;
-  --wait: #8a6d1f; --wait-soft: #f1e8cc; --watch: #a54a5a; --watch-soft: #f3dde1; --blue: #4a6fa5; --blue-soft: #dde6f2;
+  --wait: #8a6d1f; --wait-soft: #f1e8cc; --watch: #a54a5a; --watch-soft: #f3dde1; --blue: #4a6fa5; --blue-soft: #dde6f2; --rev: #8a5aa0; --rev-soft: #ece0f1;
   --sans: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
   --display: "IBM Plex Sans Condensed", "IBM Plex Sans", system-ui, sans-serif;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #151a19; --panel: #1d2423; --ink: #e5ebe8; --muted: #93a19c; --line: #2e3836;
   --accent: #e08a4a; --accent-soft: #3b2a1e; --track: #2a3331; --good: #6fbf8a; --good-soft: #1f3327;
-  --wait: #d6b55a; --wait-soft: #352d17; --watch: #e07a8a; --watch-soft: #3a2228; --blue: #7fa3d9; --blue-soft: #1f2a3a; color-scheme: dark } }
+  --wait: #d6b55a; --wait-soft: #352d17; --watch: #e07a8a; --watch-soft: #3a2228; --blue: #7fa3d9; --blue-soft: #1f2a3a; --rev: #c39ad6; --rev-soft: #2f2236; color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #151a19; --panel: #1d2423; --ink: #e5ebe8; --muted: #93a19c; --line: #2e3836;
   --accent: #e08a4a; --accent-soft: #3b2a1e; --track: #2a3331; --good: #6fbf8a; --good-soft: #1f3327;
-  --wait: #d6b55a; --wait-soft: #352d17; --watch: #e07a8a; --watch-soft: #3a2228; --blue: #7fa3d9; --blue-soft: #1f2a3a; color-scheme: dark }
+  --wait: #d6b55a; --wait-soft: #352d17; --watch: #e07a8a; --watch-soft: #3a2228; --blue: #7fa3d9; --blue-soft: #1f2a3a; --rev: #c39ad6; --rev-soft: #2f2236; color-scheme: dark }
 body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 14px; line-height: 1.5 }
 main { max-width: 1240px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 48px; display: grid; gap: 22px }
 header { display: grid; gap: 4px }
@@ -56,6 +56,7 @@ h2 .n { font-family: var(--mono); font-size: 13px; color: var(--muted); font-wei
 .dep { font-family: var(--mono); font-size: 11px; padding: 0 6px; border-radius: 3px; border: 0; cursor: pointer; background: var(--s); color: var(--c) }
 .files { font-family: var(--mono); font-size: 11px; color: var(--muted); overflow-wrap: anywhere }
 .s-running { --c: var(--accent); --s: var(--accent-soft) }
+.s-review { --c: var(--rev); --s: var(--rev-soft) }
 .s-ready { --c: var(--good); --s: var(--good-soft) }
 .s-waiting { --c: var(--wait); --s: var(--wait-soft) }
 .s-watch { --c: var(--watch); --s: var(--watch-soft) }
@@ -98,12 +99,13 @@ footer { color: var(--muted); font-size: 12px }
 <script>
 const LANES = [
   ['running', 'Running', 'A worker has it now.'],
+  ['review', 'Review', 'The worker is finished; the branch waits to be merged.'],
   ['ready', 'Ready', 'Everything it depends on is done; can start in the next free slot.'],
   ['waiting', 'Waiting', 'Queued behind unfinished tickets.'],
   ['watch', 'Watching', 'Flaky or open problems we observe.'],
   ['later', 'Later', 'Not before its phase.'],
   ['done', 'Done', 'Merged or finished.']];
-const state = { q: '', group: null, lanes: new Set(['running', 'ready', 'waiting', 'watch', 'later', 'done']) };
+const state = { q: '', group: null, lanes: new Set(['running', 'review', 'ready', 'waiting', 'watch', 'later', 'done']) };
 try { const s = JSON.parse(localStorage.getItem('ei-board') || 'null'); if (s) { state.group = s.group; state.lanes = new Set(s.lanes); } } catch (e) {}
 const save = () => { try { localStorage.setItem('ei-board', JSON.stringify({ group: state.group, lanes: [...state.lanes] })); } catch (e) {} };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -126,7 +128,7 @@ function render() {
     let list = data.tickets.filter(t => t.state === k && match(t));
     if (k === 'done') list = list.sort((a, b) => (b.done || '').localeCompare(a.done || ''));
     const cards = list.map(t => {
-      const meta = [t.model, t.size ? `${t.size} sess.` : '', t.started && k === 'running' ? `since ${t.started.slice(5)}` : '', t.done ? t.done : ''].filter(Boolean).join(' \u00b7 ');
+      const meta = [t.model, t.size ? `${t.size} sess.` : '', t.started && (k === 'running' || k === 'review') ? `since ${t.started.slice(5)}` : '', t.done ? t.done : ''].filter(Boolean).join(' \u00b7 ');
       const deps = (t.depends || []).map(d => `<button class="dep s-${byId[d].state}" data-goto="${d}" title="${esc(byId[d].title)} (${byId[d].state})">${esc(d)}</button>`).join('');
       const blocks = data.tickets.filter(o => (o.depends || []).includes(t.id) && o.state !== 'done')
         .map(o => `<button class="dep s-${o.state}" data-goto="${o.id}" title="${esc(o.title)}">${esc(o.id)}</button>`).join('');

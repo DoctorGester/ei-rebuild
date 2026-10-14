@@ -313,10 +313,11 @@ note = "Also camera mouse moves and 004F1330."
 
 [[ticket]]
 id = "F1"
-title = "Unknown fields: world, combat, effects, spells (~180)"
+title = "Unknown fields: world, combat, effects, spells"
 group = "fields"
-status = "running"
-started = "2026-10-14"
+status = "done"
+done = "2026-10-14"
+note = "181 named or unused_XXX (with F2: 727 -> 374); notes in cleanup-world.md / cleanup-effects.md. Follow-ups: CSpellEffect and world.h's Projectile as one declaration (CSpellEffect::targetCount is really the duration); ZoneExit and MapExit as one declaration; the dead aiPresence / AIEventPresence path (005C9770 always returns 0)."
 files = ["world.h", "combat.h", "spell.h", "effects.h", "world_effect.h", "sky_object.h", "lightning / trap / lever / cage", "particle_emitters.cpp"]
 
 [[ticket]]
@@ -340,7 +341,8 @@ note = "Coordinate with W2 (ui.h) and the P tickets: renames only."
 id = "F4"
 title = "Unknown fields: scene, figures, terrain, map objects, textures (~140)"
 group = "fields"
-status = "queued"
+status = "running"
+started = "2026-10-14"
 files = ["scene_loader.*", "map_object_figures.h", "terrain*", "figure*", "camera.h", "texture.h", "map_object*", "link_figure.h", "object_tables.h", "material.h", "model.h", "renderer_lines.h"]
 
 [[ticket]]

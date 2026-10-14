@@ -1,6 +1,6 @@
 # Ticket queue
 
-Generated from docs/tickets.toml by tools/tickets.py: edit the toml, then run the script. The ticket board shows the same data.
+Generated from docs/tickets.toml by tools/tickets.py: never edit this file; read one ticket with `python tools/tickets.py show ID` and change tickets through the script. The ticket board shows the same data.
 
 - Workers own one ticket or area for about a usage session, commit small green groups (all checks green), and follow docs/worker-brief.md. The coordinator merges, runs the suite and keeps this file current.
 - Mark a ticket running with the start date when a worker takes it, done with the date when it is merged.
@@ -50,10 +50,10 @@ Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `ru
 
 Every unknown_XXX member becomes a real name or unused_XXX (same type and offset; renames only, layout unchanged). check_cleanup counts `unknown field` (727 in 97 files on 2026-10-14) and `unused field accessed` (stays 0). Rebirth's DLL may read a field we call unused.
 
-- **F1** Unknown fields: world, combat, effects, spells (~180) (running since 2026-10-14). Files: `world.h`, `combat.h`, `spell.h`, `effects.h`, `world_effect.h`, `sky_object.h`, `lightning / trap / lever / cage`, `particle_emitters.cpp`.
+- **F4** Unknown fields: scene, figures, terrain, map objects, textures (~140) (running since 2026-10-14). Files: `scene_loader.*`, `map_object_figures.h`, `terrain*`, `figure*`, `camera.h`, `texture.h`, `map_object*`, `link_figure.h`, `object_tables.h`, `material.h`, `model.h`, `renderer_lines.h`.
 - **F3** Unknown fields: interface (~125) (ready). Coordinate with W2 (ui.h) and the P tickets: renames only. Files: `ui.h`, `ui_camp.h`, `ui_screens.h`, `ui_briefing.h`, `ui_*`.
-- **F4** Unknown fields: scene, figures, terrain, map objects, textures (~140) (ready). Files: `scene_loader.*`, `map_object_figures.h`, `terrain*`, `figure*`, `camera.h`, `texture.h`, `map_object*`, `link_figure.h`, `object_tables.h`, `material.h`, `model.h`, `renderer_lines.h`.
 - **F5** Unknown fields: the rest (~105) (ready). Files: `map_spec.h`, `net_*`, `player_*`, `sound*`, `script*`, `app_*`, `bink_video.cpp`, `quest_records.h`, `base_manager.h`, `src/lib`.
+- **F1** Unknown fields: world, combat, effects, spells (done 2026-10-14). 181 named or unused_XXX (with F2: 727 -> 374); notes in cleanup-world.md / cleanup-effects.md. Follow-ups: CSpellEffect and world.h's Projectile as one declaration (CSpellEffect::targetCount is really the duration); ZoneExit and MapExit as one declaration; the dead aiPresence / AIEventPresence path (005C9770 always returns 0). Files: `world.h`, `combat.h`, `spell.h`, `effects.h`, `world_effect.h`, `sky_object.h`, `lightning / trap / lever / cage`, `particle_emitters.cpp`.
 - **F2** Unknown fields: units, AI, items (done 2026-10-14). 172 named or unused_XXX (727 -> 555); meanings in cleanup-units.md. Follow-ups: CombatStats +0x60 / +0x64 / +0x8C take UnitStats' names; SetUnknown438 -> SetFightAtWill; unit_db_destroy.cpp's local skill record structs have swapped names; a Ghidra pass on the archive fields named fieldN. Files: `unit.h`, `unit_db.h`, `unit_ai.h`, `ai_map.h`, `ai_*`, `item_db.h`, `item*`, `unit_looks.h`, `unit_client_*`, `class_templates.h`, `party*`.
 
 ## Standalone verification (docs/notes/standalone-verification.md)
