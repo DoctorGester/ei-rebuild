@@ -264,11 +264,38 @@ Display: a scenario with a `resolution` step runs alone on the machine (run_all,
 running beside it (DDERR_SURFACELOST; the widescreen game itself got it too when it ran beside others). While such a game gathers the
 slots, no other game takes one (else it waited for every other suite on the machine to end).
 
-**W3-W4** (each needs its functions rewritten or the rewrite to declare the patch, and its frames compared):
-- **W3, the battle screen's panel builders** (they set the panel offset; then `widescreen::SetPanelOffset` replaces addon's variable):
-  the minimap 00641F20 / 00642930 / 00642B40, the unit panels 00645210 / 006456E0 / 00645F80 / 006462A0 / 00647FB0, the weapon bar and
-  quick items 0063BAB0 / 0063BCC0 / 0063C050 / 0063C800 / 0063CAE0, the action and spell columns 0063F300 / 0063F500 / 0063E2A0 /
-  0063E4B0, the move panel 00649190 / 00649910, the clock 00648520: replaced entries, epilogue hooks and layout immediates.
+**Done (W3)**: the battle screen's panel builders, each with `EI_REBIRTH_IMPLEMENTS(..., WideScreen)`: the map 00641F20 (setup) /
+00642930 (layout) / 00642B40 (update) / 00645210 (mouse up), the unit panel 006456E0 / 00645F80 / 006462A0 (draw) / 00647FB0, the
+weapon bar 0063BAB0 / 0063BCC0 / 0063C050, the quick items 0063C800 / 0063CAE0, the spell column 0063E2A0 / 0063E4B0, the action
+column 0063F300 / 0063F500, the movement panel 00649190 / 00649910 and the clock 00648520 (ui_hud_slide.cpp, ui_hud_build.cpp,
+ui_hud_setup.cpp, ui_hud_unit_draw.cpp, ui_hud.cpp). addon's handlers (10023068..100234A8) set its panel offset at a builder's entry
+(`-extra` for the left panels, `+extra` for the right ones) and 0 at every return; ours call `widescreen::EnterLeftPanel` /
+`EnterRightPanel` / `LeavePanel` at the same points, and its operands become `widescreen::EdgeShift()` (extra while Active, else 0)
+added to or taken off the layout constants. As with addon a builder called inside another one leaves 0 behind (the layouts inside
+the setups, ShowMode inside the movement panel's setup, Highlight inside AddWeapon); the mid-function handlers are kept where they
+are: the unit panel's setup sets it at +39 (after the SEH frame), the action column's constructor at +78 (after the vtables), the map's
+layout clears it at +1D9 (before the regions' offsets), the unit panel's draw at +87D (before the window's base draw). Details:
+- The unit panel's setup writes addon's own rectangle (-133, 0)-(52, 225) and `sliding_` 0 (the original: (0, 0)-(185, 225), 1),
+  whatever the margin.
+- The weapon bar's constructor starts its regions at 80 - extra but still loops while x < 240 (addon changed `MOV EDI,0x50` only):
+  at 3840 x 2160 (extra 134) eight regions, tips on the first four. AddWeapon's two FADDs read addon's floats written over SetRect's
+  dead code at 005FC9F4 / 005FC9F8 (80 - extra, 120 - extra; its SetRect site W1).
+- The unit panel's draw scales its three depth-clear rectangles without the margin (XOR ECX,ECX: `CallScaleRectToScreenNoMargin`)
+  and puts the model at layout x 100 - extra - slide offset; the map's click takes the centre at 700 + extra (two operands).
+- The panel offset's storage: in a Rebirth launch it stays addon's variable (found at hook time, W1). Our builders are its only
+  writers in a launch with our hooks (nothing else in addon writes it), but the verify build's side-by-side wrappers run addon's
+  builders, whose handlers write addon's variable, and our callees (SetRect, AddPoint, Place, the shapes) must read what they set.
+Verified: in a Rebirth launch (every one wide here) the side-by-side wrappers compare ours with addon's code (the four setups,
+the two layouts, the unit panel's update, Highlight, ShowMode); the ours-only wrappers check the wide rectangles and region count
+(the constructors) and the panel offset at 0 after the builders and the draw. Frames: `ui_widescreen_hud` (a third widescreen
+scenario: a weapon slot highlighted, the unit panel's info page, a movement mode, a click on the map, both side panels slid out and
+back) and the battle screen in the other two, compared by `run_all --widescreen`. 2026-10-14: every frame of the three scenarios
+within the default tolerance (ui_widescreen_hud at most 0.008%, the slid panels, about 95% of each frame compared), the W3 wrappers
+at 0 mismatches (e.g. ShowMode 3520 calls, Highlight, the setups and layouts). Note: the work board's scheduler runs summaries with
+the run_all it imported when it started, so `work.py test --widescreen` without names compares only the scenarios that copy knows;
+name them (or compare with `run_all.compare_widescreen`).
+
+**W4** (each needs its functions rewritten or the rewrite to declare the patch, and its frames compared):
 - **W4, the other screens and the input**: the camp and hero screens (0060C870 CCampPages::Create, 00613EA0 / 00615D30 CMpHeroScreen),
   the help page 00659420+574, the global map 0062F950+1D0 and its mouse move 00630010 (+7C, +22C), the camera's mouse move 005EB210+39
   (the last two call addon's no-margin entry 005F7DFE: `CInterface3D::CallScalePointFromScreenNoMargin` since W2), the cursor's
