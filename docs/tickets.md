@@ -29,7 +29,6 @@ Our own swap chain without dgVoodoo (renderer.md section 9), in parallel with th
 
 Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src/render, own font loading (user 2026-10-14).
 
-- **N0d** Census call chains: stale return addresses (running since 2026-10-15; 0.25 sessions). Chain() scans the stack for return-address-like values, so the pixel helpers' rows sometimes name stale callers (Rebirth's greyscale marked [in verify], SwapContents 'by' Connection::SendUpdate / CastSpell with zero counts). Walk only from the helper's own return address with real frames, or mark the helpers noinline (N0a, ui-census.md Readers). Files: `tests/verify/ui_census.cpp`.
 - **N1** 2D canvas layer (ready; 2 sessions). Render targets, command queue, fill / frame / line / pixel / glyph run / copy frame / greyscale / readback, a Canvas command in the frame, 16-bit quantise. Few lines in render.cpp (SV1 edits it too). Files: `src/render/render_ui.{h,cpp}`, `src/render/render.cpp`, `src/render/render_internal.h`. After: SV1.
 - **N4** ui_gallery scenario: every window family captured (ready; 1 session). Files: `tests/scenarios/`. After: SV1.
 - **P7** CPU-written textures and clouds on the GPU (optional) (ready; 1.5 sessions).
@@ -51,6 +50,7 @@ Window surfaces drawn on the GPU instead of GDI into DIB sections; no GDI in src
 - **N2a** Line heights matching GDI's hinted Times New Roman (optional) (done 2026-10-14; 0.3 sessions). Dropped 2026-10-14: the user is fine with Liberation's wrapping and heights (screenshots from ei_text_check --pictures). After: N2.
 - **N0b** ui_help opens help: H, not F1 (done 2026-10-14; 0.25 sessions). ui_help presses F1, which is select1 in keyboard.ini; the help key is H (tutorial_script), so it never opened the help window (N0a, ui-census.md Coverage). Switch it to H on a topic with a tutorial text, or fold it into ui_help_page, and keep its checks. Files: `tests/scenarios/ui_help.txt`.
 - **N0c** ui_mp_host under Rebirth: disconnect box after the chat line (done 2026-10-15; 0.5 sessions). Under Rebirth a 'disconnect' message box (disconnect_msg) sometimes appears on the briefing about a second after the chat line is sent in ui_mp_host; the scenario still passes. Find whether EI_Plugin.asi / Rebirth's net patches or our client/server cause it (vanilla never shows it). Files: `tests/scenarios/ui_mp_host.txt`.
+- **N0d** Census call chains: stale return addresses (done 2026-10-15; 0.25 sessions). Chain() scans the stack for return-address-like values, so the pixel helpers' rows sometimes name stale callers (Rebirth's greyscale marked [in verify], SwapContents 'by' Connection::SendUpdate / CastSpell with zero counts). Walk only from the helper's own return address with real frames, or mark the helpers noinline (N0a, ui-census.md Readers). Files: `tests/verify/ui_census.cpp`.
 
 ## WideScreen (docs/notes/rebirth.md)
 

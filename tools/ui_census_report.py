@@ -43,6 +43,11 @@ HELPER_NAMES = re.compile(r'GameDC::|SurfaceDC::|CallSlot|SurfaceDrawText|Surfac
 # original body with ours, so their reads are not the game's, and a chain that passes one is inside a
 # verify wrapper whose bodies run more than once (its counts are high by up to 3-4x).
 VERIFY_ONLY = re.compile(r'\b(AccessPixels|CopySurfaceDC|WindowBytes|DiffPixels|FirstDifferentRow|CompareDrawing)\b')
+# A whole-surface pixel helper's row (g_uiSurfacePixelObserver) that a verify wrapper's CompareDrawing
+# called is still the game's call: the wrapper hooks the game's own call, runs the original body
+# (which the observer does not see) and ours once, so ours is that call, not an extra one.
+PIXEL_HELPERS = re.compile(r'(CaptureScreen|Rgb565Copy|Greyscale|PixelAt|SwapContents)')
+VERIFY_ONLY_PIXEL_HELPER = re.compile(r'(AccessPixels|CopySurfaceDC|WindowBytes|DiffPixels|FirstDifferentRow)')
 KINDS_ORDER = ['text', 'draw', 'write', 'read', 'metric', 'state', 'font', 'dc', 'uncaught']
 
 
@@ -56,8 +61,9 @@ def load_game_functions():
     return [r[0] for r in rows], rows
 
 
-def load_replacements():
-    """EI_REPLACE / EI_REPLACE_METHOD lines: function name -> game address."""
+def load_replacements(bare_only=False):
+    """EI_REPLACE / EI_REPLACE_METHOD lines: function name -> game address. `bare_only`: the names
+    written without a class, as written (no aliases)."""
     out = {}
     short = collections.defaultdict(set)
     pattern = re.compile(r'EI_REPLACE(?:_METHOD)?\(\s*(0x[0-9A-Fa-f]+)\s*,\s*([\w:]+)\s*\)')
@@ -65,6 +71,8 @@ def load_replacements():
         for m in pattern.finditer(open(path, encoding='utf-8', errors='replace').read()):
             out.setdefault(m.group(2), int(m.group(1), 16))
             short[m.group(2).split('::')[-1]].add(int(m.group(1), 16))
+    if bare_only:
+        return {name: address for name, address in out.items() if '::' not in name}
     for name, addresses in short.items():   # a bare name only when it is not ambiguous
         if len(addresses) == 1:
             out.setdefault(name, next(iter(addresses)))
@@ -100,6 +108,10 @@ class Resolver:
         self.syms = resolve_crash.load_map(map_path) if os.path.exists(map_path) else []
         self.offsets = [s[0] for s in self.syms]
         self.replaced = load_replacements()
+        # A function of ours with a bare name (no class) is a replacement only when EI_REPLACE names it
+        # so: the bare aliases of qualified names (Send for SessionBase::Send) would make every
+        # function called Send, a lambda in an anonymous namespace among them, the game's.
+        self.replaced_bare = load_replacements(bare_only=True)
         self.replaced_addresses = set(self.replaced.values())
         self.our_names = {}
         for name, address in self.replaced.items():
@@ -131,7 +143,7 @@ class Resolver:
             i = bisect.bisect_right(self.offsets, off) - 1
             if i >= 0:
                 name = plain_name(self.syms[i][1])
-                game = self.replaced.get(name)
+                game = (self.replaced if '::' in name else self.replaced_bare).get(name)
                 if game in WRAPPERS:
                     out = (f'{game:08X} {self.our_names.get(game, name)}', game, 'wrapper')
                 elif game:
@@ -143,7 +155,7 @@ class Resolver:
         self.cache[token] = out
         return out
 
-    def site(self, chain, install='vanilla', skipped=frozenset()):
+    def site(self, chain, install='vanilla', skipped=frozenset(), primitive=''):
         """(site, via, rebirth, duplicate, verify): the first caller frame (with the rewritten or game
         function it lies in when it is a helper of ours without a game address), the surface
         helpers before it, addon code involved, whether the call ran in a verify wrapper's
@@ -151,7 +163,8 @@ class Resolver:
         tokens = [t for t in chain.split() if t and t != '?']
         via = []
         rebirth = duplicate = False
-        verify = any(VERIFY_ONLY.search(self.frame(t)[0]) for t in tokens)
+        only = VERIFY_ONLY_PIXEL_HELPER if PIXEL_HELPERS.match(primitive) else VERIFY_ONLY
+        verify = any(only.search(self.frame(t)[0]) for t in tokens)
         site = None
         for i, token in enumerate(tokens):
             label, address, category = self.frame(token)
@@ -291,7 +304,7 @@ def main():
                     c[k] = max(c[k], int(v)) if k == 'maxrun' else c[k] + int(v)
                 surface_runs[(owner, r['size'], install)].add(scenario)
                 continue
-            site, via, rebirth, duplicate, verify = res.site(r['chain'], install, skipped)
+            site, via, rebirth, duplicate, verify = res.site(r['chain'], install, skipped, r['primitive'])
             if verify:
                 site += ' [in verify]'
             key = (owner, '', r['primitive'], r['kind'], site, via)
