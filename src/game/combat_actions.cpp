@@ -3,6 +3,7 @@
 // death and the AI's reactions to it (witnesses, hostility claims). See combat.h and
 // docs/notes/combat.md.
 #include "combat.h"
+#include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
 
@@ -164,9 +165,6 @@ struct ScienceRecord {
 // 00525900. UnitStats: heals the slots of `serverStats` by `amount`; returns 1.
 __declspec(naked) BOOL __fastcall StatsHeal(UnitStats*, void*, void*, float) EI_ORIGINAL(0x00525900)
 // 0067AC70. Missile: aims at the object `id` (+0x14C = 0, +0x150 = id).
-// 0058E850. CWorldServer: casts `spell` from `caster` at `from` on `target` at `at`.
-__declspec(naked) void __fastcall WorldCastSpell(void*, void*, void*, CUnit*, const float*,
-                                                 CEngineObject*, const void*, int) EI_ORIGINAL(0x0058E850)
 // 0058ECE0. CWorldServer: applies the quick item `item` (a potion) to `unit`.
 __declspec(naked) void __fastcall WorldUseQuickItem(void*, void*, CItem*, CUnit*) EI_ORIGINAL(0x0058ECE0)
 // 00594F30. CWorldServer: an item's state changed.
@@ -202,9 +200,7 @@ UnitListNode* __fastcall UnitListNewNode(UnitList* a0, void*, UnitListNode* a2, 
 // 00557B60 / 00556870. The death animation's (AnimationSteps) base constructor and copy constructor.
 AnimationSteps* __fastcall AnimationListConstruct(AnimationSteps* a0) { return (AnimationSteps*)StepsConstructOriginal((void*)a0); }
 AnimationSteps* __fastcall AnimationListCopy(AnimationSteps* a0, void*, const AnimationSteps* a2) { return (AnimationSteps*)StepsCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
-// 00548DE0. CUnitServer: plays `animation` (taken by value and destroyed).
-__declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, AnimationSteps)
-    EI_ORIGINAL(0x00548DE0)
+// 00548DE0 (CtlPlayAnimationOrder, originals_combat.h). CUnitServer: plays `animation` (taken by value and destroyed).
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
 
@@ -323,8 +319,8 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     CtlUseItemCharge(this, nullptr, weapon, cost);
     CUnit* self = unit;
     Vector3 point;
-    const void* at = ei::VCall<const Vector3*>(target, kUnitSlotAimPoint, &point);
-    WorldCastSpell(WorldServer(), nullptr, spell, self, &self->position.x, target, at, 0);
+    const Vector3* at = ei::VCall<const Vector3*>(target, kUnitSlotAimPoint, &point);
+    WorldCastSpellOriginal(WorldServer(), nullptr, spell, self, &self->position, target, at, 0);
 }
 EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
 
@@ -341,7 +337,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!fires) continue;
         CtlUseItemCharge(this, nullptr, item, cost);
         CUnit* self = unit;
-        WorldCastSpell(WorldServer(), nullptr, spell, self, &self->position.x, self, &self->position.x, 0);
+        WorldCastSpellOriginal(WorldServer(), nullptr, spell, self, &self->position, self, &self->position, 0);
     }
 }
 EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);
@@ -485,7 +481,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     if (ei::VCall<int>(ServerObjectOf(unit), kServerSlotIsDead) == 0) {
         CallTriggerItemSpells(0);
         if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
-        RememberAttacker(brain, nullptr, attacker);
+        BrainSetSeenOriginal(brain, nullptr, attacker);
         unit->flags_ |= 0x80000;
         CtlPropagateHostility(this);
         std::uint32_t direction = CallHitDirection(attacker, hitKind);
@@ -522,7 +518,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AnimationSteps copy;
     AnimationListCopy(&copy, nullptr, &animation);
     copy.extra = animation.extra;
-    ControllerPlayAnimation(this, nullptr, copy);
+    CtlPlayAnimationOrder(this, nullptr, copy);
     AIEventsDied(AIEventsOf(world), nullptr, this);
     if (char* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(player, unit))

@@ -74,7 +74,6 @@ __declspec(naked) void __fastcall EndSession(void*) EI_ORIGINAL(0x0057ED00)
 
 // Windows: 00634650 the message box (RET 0x18), 005F7350 (RET 0xC) opens one on top.
 void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
-__declspec(naked) void __fastcall PushWindow(CInterface3D*, void*, void*, int, int) EI_ORIGINAL(0x005F7350)
 
 // The camp screen as the hero screen builds it inline (the same fields as its constructor
 // 005F6240, with the texture cache's header node made by the tree's own allocator): container
@@ -395,7 +394,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         void* box = memory ? MessageBoxConstruct(memory, nullptr, ui, GameText(0x00793A30), GameText(0x00793A40),
                                                  0x10000, 3, 1)
                            : nullptr;
-        PushWindow(ui, nullptr, box, 1, 1);
+        InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
         return;
     }
     case 8: {
@@ -403,7 +402,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
         void* camp = BuildCamp(window.interface_, &flags);
-        PushWindow(window.interface_, nullptr, camp, 0, 1);
+        InterfacePushWindowOriginal(window.interface_, nullptr, camp, 0, 1);
         return;
     }
     default:

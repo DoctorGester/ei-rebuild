@@ -15,13 +15,13 @@
 #include "originals_world.h"
 #include "originals_library.h"
 #include "originals_core.h"
+#include "originals_ai.h"
 
 namespace {
 
 
-// 005B5E10 / 005B8B30. CAIMap: forget the map / start collecting refreshes.
+// 005B5E10. CAIMap: forget the map (005B8B30, AIMapBeginRefreshOriginal: start collecting refreshes).
 __declspec(naked) void __fastcall AIMapReset(void*, void*) EI_ORIGINAL(0x005B5E10)
-__declspec(naked) void __fastcall AIMapBeginRefresh(void*, void*) EI_ORIGINAL(0x005B8B30)
 // 005B43C0 (RET 4). CAIMap: loads the terrain map file; 0 on failure. Patched by Rebirth.
 __declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) EI_ORIGINAL(0x005B43C0)
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
@@ -68,7 +68,7 @@ int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char
     void* aiMap = aiMap_;
     if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(mapName_), reinterpret_cast<const unsigned char*>(map)) != 0) {
         AIMapReset(aiMap, nullptr);
-        AIMapBeginRefresh(aiMap, nullptr);
+        AIMapBeginRefreshOriginal(aiMap);
         bool failed;
         {
             char* path = nullptr;

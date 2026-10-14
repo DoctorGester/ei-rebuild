@@ -64,8 +64,7 @@ __declspec(naked) void __fastcall MissileInit(Projectile*, void*, CWorldServer*,
                                               CEngineObject* /*target*/, const Vector3* /*to*/, int)
     EI_ORIGINAL(0x0067ECB0)
 __declspec(naked) int __fastcall MissileUpdate(Projectile*, void*) EI_ORIGINAL(0x0067E6D0)
-// 005D7E90 (RET 4). The target's AI brain is attacked by `caster`.
-__declspec(naked) void __fastcall BrainAttackedBy(void*, void*, CEngineObject*) EI_ORIGINAL(0x005D7E90)
+// 005D7E90 (BrainSetSeenOriginal, RET 4). The target's AI brain is attacked by `caster`.
 // 00455680 (RET 0xC). CDiplomacy: `a` attacked `b` (strength).
 
 constexpr int kSlotIsDead = 55;
@@ -129,7 +128,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     if (target && target->GetClassId() == world::kClassUnit && caster) {
         void* controller = static_cast<CUnit*>(target)->controller;
         if (IsHostileType(SpellType(spell))) {
-            BrainAttackedBy(static_cast<std::uint8_t*>(controller) + 0x980, nullptr, caster);
+            BrainSetSeenOriginal(static_cast<std::uint8_t*>(controller) + 0x980, nullptr, caster);
             DiplomacyOnAttack(diplomacy_, nullptr, caster, target, 10);
             target->flags_ |= kFlagFought;
             caster->flags_ |= kFlagFought;

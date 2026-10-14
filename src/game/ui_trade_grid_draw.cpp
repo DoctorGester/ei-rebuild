@@ -7,6 +7,7 @@
 // depth buffer is cleared to 1 again. The new renderer (src/render) gets the depth clears. See
 // docs/notes/ui.md ("Camp") and docs/notes/renderer.md.
 #include "ui_camp.h"
+#include "ui_item_info.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -31,17 +32,7 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
-// The cell an item's model is drawn in (005ECA10's second argument).
-struct ItemCell {
-    void* item;
-    float x, y;
-    float size;
-    float depth;      // 100
-    int scale;        // the grid's +0x148
-};
-
 // 005ECA10 (thiscall on the grid's +0x14C object): draws an item's model in a cell.
-__declspec(naked) void __fastcall DrawItemModel(void*, void*, int /*pass*/, ItemCell*) EI_ORIGINAL(0x005ECA10)
 // The window's surface text helpers (Rebirth patches 005FDE20).
 struct SurfaceText {
     void* Begin() { return SurfaceGetDC(this); }
@@ -79,7 +70,7 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surfac
         int y = (i / 4) * 100;
         ItemCell cell{items[i], static_cast<float>(x) + GameFloat(0x0073BF48), static_cast<float>(y) + yOffset,
                       i <= 3 ? bigSize : smallSize, 100.0f, grid->mode_};
-        DrawItemModel(grid->owner_, nullptr, pass, &cell);
+        ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(grid->owner_), nullptr, pass, &cell);
         int pieces = At<int>(cell.item, 0x48);
         if (pieces > 1) {
             text.Format(Text(0x0078EEEC), pieces);

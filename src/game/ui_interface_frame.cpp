@@ -82,7 +82,7 @@ struct SessionAt {
 };
 bool SessionAt::IsMultiplayerClient() { return IsNetworkClientOriginal(); }
 void SessionAt::Disconnect() { GameDisconnectOriginal(this); }
-__declspec(naked) void SessionAt::LeaveGame() EI_ORIGINAL(0x00581660)
+void SessionAt::LeaveGame() { FlowCloseSessionsOriginal(this); }
 SessionAt* Session() { return reinterpret_cast<SessionAt*>(0x007AFE20); }
 
 struct GameStateAt {
@@ -96,11 +96,6 @@ struct SurfaceAt {
 };
 __declspec(naked) void SurfaceAt::ReleaseContents() EI_ORIGINAL(0x005FD120)
 void SurfaceAt::Freeze(int save) { SurfaceSwapContentsOriginal(this, nullptr, save); }
-
-struct InterfaceAt : CInterface3D {
-    void Push(void* window, int a, int b);                  // 005F7350
-};
-__declspec(naked) void InterfaceAt::Push(void*, int, int) EI_ORIGINAL(0x005F7350)
 
 // 00634650: the message box (0x180 bytes): owner, caption and text ids, the value it leaves
 // pending, two flags.
@@ -197,7 +192,7 @@ void CInterface3D::Update() {
                                  this, reinterpret_cast<const char*>(0x0079242C),
                                  reinterpret_cast<const char*>(0x00793074), 0x990000, 1, 1)
                            : nullptr;
-        static_cast<InterfaceAt*>(this)->Push(box, 1, 1);
+        InterfacePushWindowOriginal(this, nullptr, box, 1, 1);
     } else if (stackBegin_ != stackEnd_) {
         CallSlot<void>(stackEnd_[-1], 24);
     }
@@ -219,7 +214,6 @@ __declspec(naked) void** __fastcall QueueInsert(void*, void*, void** /*out*/, vo
 void __fastcall MenuSet578920(void*, void*, int a2) { MenuSetOriginal(a2); }
 void __fastcall MenuCall578940(void*, void*) { MenuCallOriginal(); }
 void* __fastcall MessageWindowConstruct(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
-__declspec(naked) void __fastcall InterfaceShowWindow(CInterface3D*, void*, void*, int, int) EI_ORIGINAL(0x005F7350)
 
 constexpr int kSlotShowBriefing = 34;   // top window (+0x88): (text)
 constexpr int kSlotEndOfGame = 31;      // top window (+0x7C): (1)
@@ -250,7 +244,7 @@ void CInterface3D::OnStringEvent(const char* event) {
         const char* message = words.size > 2 ? static_cast<const char*>(words.data[2]) : "game_over_msg";
         void* memory = gamecrt::operator_new(0x180);
         void* window = memory ? MessageWindowConstruct(memory, nullptr, this, title, message, 0x20000, 3, 1) : nullptr;
-        InterfaceShowWindow(this, nullptr, window, 1, 1);
+        InterfacePushWindowOriginal(this, nullptr, window, 1, 1);
         return;
     }
     auto top = [this]() { return stackEnd_[-1]; };

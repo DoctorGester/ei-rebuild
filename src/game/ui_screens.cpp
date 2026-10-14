@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "originals_ui.h"
+#include "originals_world.h"
 #include "originals_units.h"
 
 namespace {
@@ -44,7 +45,6 @@ __declspec(naked) int __cdecl GameFtol(double) {
 
 // Not rewritten (forwarders). Thiscall methods are declared __fastcall with the unused EDX.
 __declspec(naked) int __fastcall PlaySoundAt(CInterface3D*, void*, const char*, int) EI_ORIGINAL(0x005F7E60)
-__declspec(naked) void __fastcall LeaveGameAt(void*) EI_ORIGINAL(0x00581660)
 // 005F7C80 / 005F7C60: the chat line (when it is not open: 005E3930 / 005E36C0).
 // 005FC730: a region's tooltip (text "tip_<id>").
 __declspec(naked) void __fastcall SetRegionTip(CUiRegion*, void*, int, int, int) EI_ORIGINAL(0x005FC730)
@@ -141,7 +141,7 @@ EI_REPLACE_METHOD(0x005EE130, UiItemKinds::IsBuildable);
 
 namespace uiorig {
 void PlayUiSound(CInterface3D* ui, const char* name, int flags) { PlaySoundAt(ui, nullptr, name, flags); }
-void LeaveGame() { LeaveGameAt(kGame); }
+void LeaveGame() { FlowCloseSessionsOriginal(kGame); }
 } // namespace uiorig
 
 // --- CUiItemStrip -----------------------------------------------------------------------------

@@ -195,11 +195,8 @@ struct ScriptError {
 };
 __declspec(naked) ScriptError* __fastcall GetScriptError(void*, void*, ScriptError*) EI_ORIGINAL(0x00456360)
 
-__declspec(naked) void __fastcall MenuPrepare(void*) EI_ORIGINAL(0x00581660)
 void __fastcall MenuOpen(void* flow) { FlowProcessRequestOriginal(flow); }
 int __fastcall WorldLoadMap(void* a0, void*, const char* a2, const char* a3, int a4) { return WorldNewZoneOriginal(a0, nullptr, a2, a3, (const char*)a4); }
-__declspec(naked) void __fastcall WorldSetGameResult(void*, void*, int) EI_ORIGINAL(0x0058DC90)
-__declspec(naked) std::uint8_t* __fastcall ClientLocalView(void*) EI_ORIGINAL(0x005699F0)
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
@@ -310,17 +307,17 @@ int __cdecl StartFirstMap() {
     map = Length(cmdMap) != 0 ? cmdMap : Global<mfc::CString>(0x0079BEC8);   // options' DefaultMapName
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(cmdMode)),
                         reinterpret_cast<const unsigned char*>(game::EmptyText())) == 0) {
-        MenuPrepare(reinterpret_cast<void*>(0x007AFE20));
+        FlowCloseSessionsOriginal(reinterpret_cast<void*>(0x007AFE20));
         MenuOpen(reinterpret_cast<void*>(0x007AFE20));
         return 1;
     }
     void* world = reinterpret_cast<void*>(0x007AFF60);
     if (!WorldLoadMap(world, nullptr, map, cmdMode, 0))
         return game::FatalError(reinterpret_cast<const char*>(0x007847E4), static_cast<const char*>(map));   // "Can't load map '%s'"
-    WorldSetGameResult(world, nullptr, 1);
+    WorldSetGameResultOriginal(world, nullptr, 1);
     void* client = reinterpret_cast<void*>(0x007AF5B8);
     ClientSetPlayer(client, nullptr, Global<int>(0x007AFFBC));
-    ClientLocalView(client)[0x85] = 0;
+    ClientWorldLocalViewOriginal(client)[0x85] = 0;
     Global<int>(0x007C2CC4) = 7;
     if (Length(cmdScript) == 0) return 1;
     void* script = reinterpret_cast<void*>(0x007C27D4);

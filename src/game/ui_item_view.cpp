@@ -480,15 +480,6 @@ EI_REPLACE_METHOD(0x005ECA10, CItemScreen::DrawItem);
 
 // --- 005EE5C0: the description panel's slot 20 --------------------------------------------------------
 
-namespace {
-// The owner's DrawItem through its original address (so that its hook, and in the verify build its
-// wrapper, sees the call).
-struct DrawItemAt {
-    void DrawItem(int pass, ItemCell* cell);
-};
-__declspec(naked) void DrawItemAt::DrawItem(int, ItemCell*) EI_ORIGINAL(0x005ECA10)
-} // namespace
-
 BOOL CItemInfoPanel::Draw(int pass) {
     if (itemCount_ && items_[0]) {
         ItemCell cell;
@@ -498,7 +489,7 @@ BOOL CItemInfoPanel::Draw(int pass) {
         cell.size = 120.0f;
         cell.mode = 9;
         cell.y = Store(static_cast<double>(y_) + D(GameFloat(0x0073CF58)));   // + 200
-        reinterpret_cast<DrawItemAt*>(owner_)->DrawItem(pass, &cell);
+        ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(owner_), nullptr, pass, &cell);   // through its address, so the wrapper sees the call
     }
     return 1;
 }

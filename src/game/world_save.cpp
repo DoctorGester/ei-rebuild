@@ -135,11 +135,9 @@ __declspec(naked) void __fastcall PickLoadingMovie(CWorldServer*, void*, const c
 void __fastcall ShowLoadProgress(int stage) { ShowLoadingMovieOriginal(stage); }
 // 00665200. Empties a player before it is loaded.
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
-// 005B8B30 / 005B8B80. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp).
-__declspec(naked) void __fastcall AIMapBeginRefresh(void*, void*) EI_ORIGINAL(0x005B8B30)
-__declspec(naked) void __fastcall AIMapEndRefresh(void*, void*) EI_ORIGINAL(0x005B8B80)
-// 005BA830 / 005BA9D0. CAIMap::CanLeaveCell / FindFreeCellNear (ai_map.cpp).
-__declspec(naked) bool __fastcall AIMapCanLeaveCell(void*, void*, CEngineObject*) EI_ORIGINAL(0x005BA830)
+// 005B8B30 / 005B8B80 / 005BA830 / 005BA9D0. CAIMap::BeginRefresh / EndRefresh (ai_footprint.cpp) / CanLeaveCell /
+// FindFreeCellNear (ai_map.cpp): AIMapBeginRefreshOriginal, AIMapEndRefreshOriginal, AIMapCanLeaveCellOriginal,
+// FindFreeCellNearOriginal (originals_ai.h).
 // 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
 __declspec(naked) int __fastcall LoadAIGraph(CWorldServer*, void*, const char* /*map*/, const char* /*mob*/,
                                              CMemoryStream* /*out*/) EI_ORIGINAL(0x00596140)
@@ -335,7 +333,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
     for (auto* node = world->objects_.map.First(); node; node = world->objects_.map.After(node)) {
         CEngineObject* object = node->value;
         if (object->GetClassId() != world::kClassUnit) continue;
-        if (AIMapCanLeaveCell(world->AIMap(), nullptr, object)) continue;
+        if (AIMapCanLeaveCellOriginal(world->AIMap(), nullptr, static_cast<CUnit*>(object))) continue;
         int id = object->id_;
         int index = stranded.size;
         DwordArraySetSizeOriginal(&stranded, nullptr, index + 1, -1);
@@ -432,7 +430,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             PlayerClear(player, nullptr);
         }
     }
-    AIMapBeginRefresh(AIMap(), nullptr);
+    AIMapBeginRefreshOriginal(AIMap());
     loaded_ = 0;
     AIMap()->refreshUnits = false;   // +0x172
 
@@ -572,7 +570,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             SetTimeSpeed(speed);   // slot 32 (virtual)
             SetTime(time);   // slot 31 (virtual)
             loaded_ = 1;
-            AIMapEndRefresh(AIMap(), nullptr);
+            AIMapEndRefreshOriginal(AIMap());
             AIMap()->refreshUnits = true;
 
             RelocateStrandedUnits(this);
@@ -912,7 +910,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     if (!LoadAIGraph(this, nullptr, map, mob, &graph.stream))
         return game::FatalError(reinterpret_cast<const char*>(kCantLoadGraph));
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
-    AIMapBeginRefresh(AIMap(), nullptr);
+    AIMapBeginRefreshOriginal(AIMap());
     loaded_ = 0;
     std::memset(alarms_, 0, sizeof(alarms_));
     AIMap()->refreshUnits = false;
@@ -920,7 +918,7 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
         return game::FatalError(reinterpret_cast<const char*>(kCantLoadMap));
     ShowLoadProgress(kProgressObjects);
     loaded_ = 1;
-    AIMapEndRefresh(AIMap(), nullptr);
+    AIMapEndRefreshOriginal(AIMap());
     AIMap()->refreshUnits = true;
     ShowLoadProgress(kProgressDone);
     if (zone) *reinterpret_cast<mfc::CString*>(&zoneName_) = zone;

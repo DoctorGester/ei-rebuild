@@ -89,7 +89,6 @@ __declspec(naked) void __fastcall BrainReset(void*) EI_ORIGINAL(0x005D4E80)
 // The world server: 00593AF0 a unit's death is final, 0058E520 / 0058E5D0 add / remove a timed
 // object (world_server.cpp); 00665440 does the player still have the unit.
 __declspec(naked) void __fastcall WorldUnitDied(void*, void*, CUnit*) EI_ORIGINAL(0x00593AF0)
-__declspec(naked) void __fastcall WorldAddTimed(void*, void*, CEngineObject*) EI_ORIGINAL(0x0058E520)
 int __fastcall PlayerHasUnit(void* a0, void*, CUnit* a2) { return PlayerOwnsUnitOriginal(a0, nullptr, a2); }
 // 00679280 CEffectParticle::SetAttachedTo (world_effect_visual.cpp).
 __declspec(naked) void __fastcall ParticleAttach(CEngineObject*, void*, int) EI_ORIGINAL(0x00679280)
@@ -704,7 +703,7 @@ void CUnitServer::TickItemSpells() {
         }
         CtlUseItemCharge(this, nullptr, item, std::bit_cast<float>(spell->unknown_40));
         CUnit* self = unit;
-        WorldCastSpell(world, nullptr, spell, self, &self->position.x, self, &self->position.x, 1);
+        WorldCastSpellOriginal(world, nullptr, spell, self, &self->position, self, &self->position, 1);
         int countdown = static_cast<int>(spell->unknown_20) - 3;
         current->countdown = countdown;
         if (countdown <= 0) current->countdown = 8;

@@ -1,6 +1,7 @@
 // The network pump. See net_session.h.
 #include "ei/x87.h"
 #include "net_session.h"
+#include "originals_world.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -12,13 +13,6 @@ std::uint32_t& LastPumpTime() { return *reinterpret_cast<std::uint32_t*>(0x0079B
 
 // 0073BB24: milliseconds to the sessions' time unit (1/1024).
 constexpr float kMillisecondsToSeconds = 0.0009765625f;
-
-// 0057F190 with the game object 007AFE20 in ECX: the per-frame network step (sends the local
-// player's state; not rewritten).
-struct NetGame {
-    void Step();
-};
-__declspec(naked) void NetGame::Step() EI_ORIGINAL(0x0057F190)
 
 // A session that is there and not shutting down is ticked (slot 14) with `elapsed` milliseconds.
 void TickSession(net::SessionBase* session, std::uint32_t elapsed) {
@@ -40,7 +34,7 @@ void __cdecl Pump() {
     LastPumpTime() = now;
     TickSession(GameServer(), elapsed);
     TickSession(GameClient(), elapsed);
-    reinterpret_cast<NetGame*>(0x007AFE20)->Step();
+    FlowUpdateMultiplayerVariableOriginal(reinterpret_cast<void*>(0x007AFE20));   // 0057F190 with the game flow 007AFE20: the per-frame network step
 }
 EI_REPLACE(0x004122D0, Pump);
 

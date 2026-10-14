@@ -28,7 +28,7 @@ struct World {
     void AddTimedObject(void* object);    // 0058E520
 };
 void World::RemoveTimedObject(int id) { ::WorldRemoveTimed(this, nullptr, id); }
-__declspec(naked) void World::AddTimedObject(void*) EI_ORIGINAL(0x0058E520)
+void World::AddTimedObject(void* object) { WorldAddTimed(this, nullptr, static_cast<CEngineObject*>(object)); }
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 
 // CArray<ScriptAreaPart>::SetSize(newSize, -1) as the area functions inline it.

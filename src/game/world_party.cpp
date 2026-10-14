@@ -12,6 +12,7 @@
 #include "player_messages.h"
 #include "unit.h"
 
+#include "originals_world.h"
 #include "lib/crt.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -82,9 +83,6 @@ __declspec(naked) void __fastcall StateSendStart(CPlayerServer*, void*, const Ve
 // Rewritten here and elsewhere, reached through their addresses.
 __declspec(naked) void __fastcall TakeZoneQuestItemsAt(CWorldServer*, void*, ItemArray*, ObjectList*) EI_ORIGINAL(0x005901E0)
 __declspec(naked) void __fastcall RestorePlayerItemsAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x00590460)
-__declspec(naked) void __fastcall CreateUnitsAt(CWorldServer*, void*, WorldPlayer*, RecordArray*, const Vector3*, Quaternion,
-                                                void*) EI_ORIGINAL(0x0058EF20)
-__declspec(naked) void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*) EI_ORIGINAL(0x00591800)
 
 // FPATAN: atan2(y, x) as the x87 computes it.
 __declspec(naked) double __cdecl Fpatan(double /*y*/, double /*x*/) {
@@ -248,7 +246,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     Vector3 up{0.0f, 0.0f, 1.0f};
     QuaternionFromAxisAngle(&rotation, nullptr, &up, angle);
 
-    CreateUnitsAt(this, nullptr, player, &records, &start, rotation, placements);
+    WorldCreateUnitsOriginal(this, nullptr, player, &records, &start, rotation, placements);
     if (placements) PlacementsSetSizeOriginal(placements, nullptr, 0, -1);
     CPlayerServer* state = player->server;
     std::uint32_t lastZ;
@@ -258,7 +256,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
         StateSendStart(state, nullptr, &start, startValue, unknown12D64_);
     }
     player->lastTick = tick_;
-    if (unknown12D64_ == kKindNoRangeTest) UpdateMercBriefingsAt(this, nullptr);
+    if (unknown12D64_ == kKindNoRangeTest) WorldUpdateMercBriefingsOriginal(this);
     if (runScripts) {
         unknown160_ = 1;
         for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());

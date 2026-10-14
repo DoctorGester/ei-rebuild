@@ -293,7 +293,7 @@ int GameFlow::SaveGame(const char* slot) {
 
 namespace {
 
-constexpr std::uint32_t kCatchUpRadius = 0x428C0000;    // 70.0f
+constexpr float kCatchUpRadius = 70.0f;
 constexpr std::uint32_t kStartTime = 0x40800000;        // 4.0f
 constexpr int kMaxCatchUpTicks = 1000;
 
@@ -321,8 +321,6 @@ __declspec(naked) bool __fastcall ReadSaveFile(CMemoryStream* /*out*/, unsigned 
 // 00596E70 / 0058D3D0 / 0058DCD0 / 005915E0. CWorldServer::LoadSave, WakeUnitsAround, Tick and
 // SetZoneExits, through their addresses (rewritten in world_save / world_tick / world_zone).
 __declspec(naked) int __fastcall LoadSaveAt(CWorldServer*, void*, CMemoryStream*, const char*) EI_ORIGINAL(0x00596E70)
-__declspec(naked) void __fastcall WakeUnitsAroundAt(CWorldServer*, void*, const float*, std::uint32_t /*radius*/)
-    EI_ORIGINAL(0x0058D3D0)
 __declspec(naked) void __fastcall SetZoneExitsAt(CWorldServer*, void*, const void*) EI_ORIGINAL(0x005915E0)
 // 00595480 (RET 0xC). CWorldServer::NewZone(map, mob, zone). Patched by Rebirth: original address.
 int __fastcall NewZone(CWorldServer* a0, void*, const char* a2, const char* a3, const char* a4) { return WorldNewZoneOriginal((void*)a0, nullptr, a2, a3, a4); }
@@ -393,7 +391,7 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
         point[1] = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * GameFloat(kHalf));
         point[2] = 0.0f;
         for (int i = ticks; i != 0; --i) {
-            WakeUnitsAroundAt(World(), nullptr, point, kCatchUpRadius);
+            WorldWakeUnits(World(), nullptr, reinterpret_cast<const Vector3*>(point), kCatchUpRadius);
             TickAt(World(), nullptr, 1);
         }
     }
@@ -495,7 +493,6 @@ __declspec(naked) void __fastcall ZoneExitAssign(ZoneExit*, void*, const ZoneExi
 // (world_server / world_tick), LoadMobFile (world_zone).
 __declspec(naked) void __fastcall WorldSetUnknownDC(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC80)
 __declspec(naked) void __fastcall WorldSetUnknownE0(CWorldServer*, void*, int) EI_ORIGINAL(0x0058CC70)
-__declspec(naked) void __fastcall WorldSetGameResult(CWorldServer*, void*, int) EI_ORIGINAL(0x0058DC90)
 __declspec(naked) int __fastcall WorldLoadMobFile(CWorldServer*, void*, const char*) EI_ORIGINAL(0x00595AB0)
 // The host announcement of a network game: gethostname (WS2_32, through 006E6100), the address
 // (00440440 builds it from the host and port, 00435010 formats it into an STLport string, 00425040
@@ -612,7 +609,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     WorldSetUnknownDC(World(), nullptr, zoneRecord->setting2C);
     WorldSetUnknownE0(World(), nullptr, zoneRecord->setting30);
     CampaignMode() = 1;
-    WorldSetGameResult(World(), nullptr, kGameResultNetwork);
+    WorldSetGameResultOriginal(World(), nullptr, kGameResultNetwork);
     SpectatorFlag() = 1;
 
     if (Active(net::GameServer())) {
@@ -1461,7 +1458,7 @@ void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 void __fastcall WorldSetTimeSpeedF(CWorldServer* a0, void*, float a2) { WorldSetTimeSpeedOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 void __fastcall WorldSetTimeF(CWorldServer* a0, void*, float a2) { WorldSetTimeOriginal((void*)a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
 // 00566CE0 (RET 4) / 005699F0. The client world: the local player / its local view.
-__declspec(naked) LocalViewData* __fastcall ClientWorldLocalView(void*) EI_ORIGINAL(0x005699F0)
+inline LocalViewData* ClientWorldLocalView(void* client) { return reinterpret_cast<LocalViewData*>(ClientWorldLocalViewOriginal(client)); }
 // 0057A060 (__stdcall; the original passes the flow in ECX too). EnterZone above, through its address.
 __declspec(naked) int __stdcall EnterZoneAt(PartyRecords*) EI_ORIGINAL(0x0057A060)
 
@@ -1556,7 +1553,7 @@ void GameFlow::StartZone(const char* zone, int mode) {
 
     CampaignMode() = mode;
     if (mode == 1) SpectatorFlag() = mode;
-    WorldSetGameResult(World(), nullptr, result);
+    WorldSetGameResultOriginal(World(), nullptr, result);
     ClientSetPlayer(kClientWorld, nullptr, At<int>(World(), 0x5C));
     ClientWorldLocalView(kClientWorld)->partyTaken = 0;
 }
@@ -1594,7 +1591,6 @@ constexpr int kStateMainMenu = 1, kStateLoad = 2, kStateNewGame = 3, kStateZone 
 __declspec(naked) int __stdcall LeaveZoneAt(PartyRecords*) EI_ORIGINAL(0x0057A780)
 __declspec(naked) int __stdcall StartNetworkZoneAt(const char*) EI_ORIGINAL(0x0057BDF0)
 __declspec(naked) void __fastcall LoadGameAt(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057ABA0)
-__declspec(naked) void __fastcall BeginMultiplayerGameAt(GameFlow*, void*) EI_ORIGINAL(0x0057F280)
 // 005F74F0 (the interface 007C7D50): closes its windows for the zone change.
 void __fastcall InterfaceCloseAll(void* a0) { InterfaceCloseAllOriginal(a0); }
 // 0057CB50 (ECX name): switches the resource database.
@@ -1689,7 +1685,7 @@ void GameFlow::ProcessRequest() {
     case kStateLoad:
         ClientSetPlayer(clientWorld, nullptr, *reinterpret_cast<int*>(0x007AFFBC));
         ClientWorldLocalView(clientWorld)->partyTaken = 0;
-        WorldSetGameResult(World(), nullptr, 1);
+        WorldSetGameResultOriginal(World(), nullptr, 1);
         ClientSegmentAt(clientWorld);
         ServerUpdateAt(World());
         ClientSegmentAt(clientWorld);
@@ -1721,7 +1717,7 @@ void GameFlow::ProcessRequest() {
         WorldTeardownZone(World(), nullptr);
         if (!ClientHasZone(clientWorld, nullptr, zone)) {
             if (Active(net::GameClient())) {
-                BeginMultiplayerGameAt(this, nullptr);
+                FlowBeginMultiplayerGameOriginal(this);
             } else {
                 ToMainMenu() = 1;
                 StartZoneAt(this, nullptr, Text(kMainMenu), 2);
@@ -1928,8 +1924,6 @@ namespace {
 
 // 0057DEE0 (RET 4). The flow's party setup step (1 here).
 void __fastcall FlowPartyStep(GameFlow* flow, void*, int step) { FlowPartyStepOriginal(flow, nullptr, step); }
-// 00461540. The named float table's clear, through its address.
-__declspec(naked) void __fastcall VariablesClear(NamedFloatTable*) EI_ORIGINAL(0x00461540)
 // 00661FB0. The party outside a game (007C82B0) resets its members.
 // 00426A80 (RET 8). STLport string assign(first, last) (the second call is inlined in the
 // original, the same algorithm).
@@ -1947,7 +1941,7 @@ void GameFlow::AfterServerStart() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        VariablesClear(variables);
+        FloatTableClearOriginal(variables);
     PartyResetItems(GlobalParty());
     // The client's player record gets the hero's and the party's names (or the defaults).
     if (GlobalParty()->count == 1) {
@@ -1975,16 +1969,11 @@ __declspec(naked) void __fastcall QuestFilesClear(void*) EI_ORIGINAL(0x00581860)
 // Local NamedFloatTable copies: 00581790 an empty one (100 buckets), 00580900 a copy.
 void __fastcall VariablesConstruct(NamedFloatTable* a0) { NamedTableConstructOriginal(a0); }
 __declspec(naked) void __fastcall VariablesCopy(NamedFloatTable*, void*, const NamedFloatTable*) EI_ORIGINAL(0x00580900)
-__declspec(naked) void __fastcall VariablesClearAt(NamedFloatTable*) EI_ORIGINAL(0x00461540)
 // 00460BC0 with the value as the raw dword the original pushes (no FPU load on the way).
 void __fastcall VariableSetBits(void* a0, void*, const char* a2, std::uint32_t a3) { NamedTableSet(a0, nullptr, a2, a3); }
 // The flow's methods, through their addresses.
 inline void __fastcall FlowLoadZoneQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
-__declspec(naked) void __fastcall FlowMarkBriefing(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057FF40)
-__declspec(naked) void __fastcall FlowRegisterQuests(GameFlow*, void*, const char*) EI_ORIGINAL(0x005810A0)
 __declspec(naked) void __fastcall FlowVariableChanged(void*, void*, const void*) EI_ORIGINAL(0x00580840)
-__declspec(naked) void __fastcall FlowUpdateMultiplayerVariable(GameFlow*, void*) EI_ORIGINAL(0x0057F190)
-__declspec(naked) mfc::CString* __stdcall BriefingVariableAt(mfc::CString*, const char*) EI_ORIGINAL(0x0057FDE0)
 // CString members.
 struct TextOpsAt : mfc::CString {
     int Find(const char* text) const;      // 006FDBD9
@@ -2073,7 +2062,7 @@ void GameFlow::UpdateFromServer() {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::PersistentGlobalVars))
         ClearVariablesKeepingGlobals(variables);
     else
-        VariablesClearAt(variables);
+        FloatTableClearOriginal(variables);
     VariableSet(variables, nullptr, Text(kConstructionVariable), construction);
     if (auto* map = static_cast<net::MapMessage*>(net::GameClient()->map_)) {
         if (Active(map)) FlowLoadZoneQuests(this, nullptr, map->text_.start);
@@ -2088,8 +2077,8 @@ void GameFlow::UpdateFromServer() {
     }
     alignas(mfc::CString) std::uint8_t questSlot[sizeof(mfc::CString)];
     alignas(mfc::CString) std::uint8_t kSlot[sizeof(mfc::CString)];
-    BriefingVariableAt(reinterpret_cast<mfc::CString*>(questSlot), briefing + Text(kBriefingSuffixQuest));
-    BriefingVariableAt(reinterpret_cast<mfc::CString*>(kSlot), briefing + Text(kBriefingSuffixK));
+    BriefingVariableIntoOriginal(reinterpret_cast<mfc::CString*>(questSlot), briefing + Text(kBriefingSuffixQuest));
+    BriefingVariableIntoOriginal(reinterpret_cast<mfc::CString*>(kSlot), briefing + Text(kBriefingSuffixK));
     mfc::CString& questVariable = *reinterpret_cast<mfc::CString*>(questSlot);
     mfc::CString& kVariable = *reinterpret_cast<mfc::CString*>(kSlot);
     mfc::CString* const names[2] = {&questVariable, &kVariable};
@@ -2105,7 +2094,7 @@ void GameFlow::UpdateFromServer() {
     // The briefings the server says were seen.
     for (ZoneNode* node = static_cast<ZoneNode*>(net::GameClient()->zones_)->next;
          node != static_cast<ZoneNode*>(net::GameClient()->zones_); node = node->next)
-        FlowMarkBriefing(this, nullptr, node->message->text_.start);
+        FlowMarkBriefingOriginal(this, nullptr, node->message->text_.start);
     // The quest variables ("q.<folder>.<name>") register their quest folders.
     for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
         mfc::CString name(NodeRecord(node)->name_.start);
@@ -2120,7 +2109,7 @@ void GameFlow::UpdateFromServer() {
         int dot = Ops(rest).Find(Text(kDot));
         if (dot > 0) {
             mfc::CString folder = rest.Left(dot);
-            FlowRegisterQuests(this, nullptr, folder);
+            FlowRegisterQuestsOriginal(this, nullptr, folder);
         }
     }
 
@@ -2174,7 +2163,7 @@ void GameFlow::UpdateFromServer() {
         }
         AppliedStamp() = 0;
     }
-    FlowUpdateMultiplayerVariable(this, nullptr);
+    FlowUpdateMultiplayerVariableOriginal(this);
     kVariable.~CString();
     questVariable.~CString();
 }
@@ -2207,8 +2196,7 @@ __declspec(naked) void __fastcall RecordsPart661640(void*) EI_ORIGINAL(0x0066164
 __declspec(naked) void __fastcall RecordsVariablesDestroy(void*) EI_ORIGINAL(0x00663330)
 __declspec(naked) void __fastcall RecordsArrayDestroy(void*) EI_ORIGINAL(0x006643F0)
 __declspec(naked) void __fastcall RecordsPart664160(void*) EI_ORIGINAL(0x00664160)
-// 004616A0 (RET 4): the variables table frees one node (what the original's inlined clear does).
-__declspec(naked) void __fastcall VariablesFreeNode(NamedFloatTable*, void*, NamedFloatTable::Node*) EI_ORIGINAL(0x004616A0)
+// 004616A0 (RET 4, FloatTableDeleteNodeOriginal): the variables table frees one node (what the original's inlined clear does).
 
 void DestroyPartyEntry(SavedPartyEntry* entry) {
     PartyRecords* records = &entry->records;
@@ -2258,7 +2246,7 @@ void SavedParties::Reload() {
                     NamedFloatTable::Node* node = variables->buckets[b];
                     while (node) {
                         NamedFloatTable::Node* next = node->next;
-                        VariablesFreeNode(variables, nullptr, node);
+                        FloatTableDeleteNodeOriginal(variables, nullptr, node);
                         node = next;
                     }
                     variables->buckets[b] = nullptr;
@@ -2343,7 +2331,7 @@ void GameFlow::BuildZoneTable() {
         mfc::CString name;
         CFileFindTitle(&find, nullptr, &name);
         name.MakeUpper();
-        FlowRegisterQuests(this, nullptr, name);
+        FlowRegisterQuestsOriginal(this, nullptr, name);
         UnloadQuestTexts();
         mfc::CString map;
         if (MapRecord* record = FindZone(name)) {

@@ -4,6 +4,7 @@
 // See docs/notes/ui.md ("Sixteenth pass", "Seventeenth pass").
 #include "maths.h"
 #include "originals_core.h"
+#include "originals_library.h"
 #include "originals_world.h"
 #include "random.h"
 #include "text_reader.h"
@@ -49,13 +50,11 @@ struct OrderUnits {
     int capacity;
     int growBy;
 };
-__declspec(naked) void __fastcall OrderUnitsSetSize(OrderUnits*, void*, int, int) EI_ORIGINAL(0x005EBDB0)
 // The toggle's CArray<DWORD> (vtable 0073C3D0; 00460500 SetAtGrow, RET 8).
-__declspec(naked) void __fastcall ChosenSetAtGrow(UiDwordArray*, void*, int, std::uint32_t) EI_ORIGINAL(0x00460500)
 
 // The client world (007AF5B8, thiscall): 005699F0 the local view, 00566100 (RET 4) with 0 clears
 // the selection, 00566030 (RET 4) controls a unit.
-__declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
+inline std::uint8_t* LocalView(void* client) { return ClientWorldLocalViewOriginal(client); }
 // The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10;
 // LocalViewSendAttackOriginal), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 __declspec(naked) void __fastcall ViewOrderDead(void*, void*, OrderUnits*, CUnit*, int) EI_ORIGINAL(0x0066AB80)
@@ -144,7 +143,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
     UiDwordArray chosen{reinterpret_cast<void*>(0x0073C3D0), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
-        ChosenSetAtGrow(&chosen, nullptr, chosen.size, member ? (member->flags_ & kFlagSelected) : 0);
+        DwordArraySetAtGrowOriginal(&chosen, nullptr, chosen.size, member ? (member->flags_ & kFlagSelected) : 0);
     }
     if (interface_->shiftDown_) {
         chosen.data[index] = chosen.data[index] == 0 ? 1u : 0u;
@@ -206,7 +205,7 @@ void CBattleScreenSetup::AttackUnit(CUnit* target, int ctrl) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;
-        OrderUnitsSetSize(&units, nullptr, n + 1, -1);
+        PartyArraySetSizeOriginal(&units, nullptr, n + 1, -1);
         units.data[n] = member;
         HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
         slot.wobbleTime_ = PortraitDelay(UiRandom().Next());
@@ -228,7 +227,7 @@ void CBattleScreenSetup::OrderDeadUnit(CUnit* target, int ctrl) {
         auto* member = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;
-        OrderUnitsSetSize(&units, nullptr, n + 1, -1);
+        PartyArraySetSizeOriginal(&units, nullptr, n + 1, -1);
         units.data[n] = member;
         HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
         slot.wobbleTime_ = PortraitDelay(UiRandom().Next());

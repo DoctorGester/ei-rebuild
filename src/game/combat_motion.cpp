@@ -7,6 +7,7 @@
 #include "ai_map.h"
 #include "ai_motion.h"
 #include "combat.h"
+#include "originals_combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
 
@@ -68,7 +69,6 @@ __declspec(naked) int __fastcall StatsMovementState(UnitStats*, void*, int) EI_O
 // The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005BA6E0
 // IsUnitCellPassable, 005BA830 CanLeaveCell, 005BA5A0 StandsOnCheapCell, 005BB350 FindPath.
 __declspec(naked) bool __fastcall MapCellPassable(void*, void*, CUnit*) EI_ORIGINAL(0x005BA6E0)
-__declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA830)
 __declspec(naked) bool __fastcall MapCheapCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA5A0)
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add (returns AL),
 // 005C0BD0 FindUnitsInRadius.
@@ -84,9 +84,8 @@ __declspec(naked) void __fastcall PathTurn(void*, void*, int /*now*/, CUnit*, co
 void* __fastcall CellListConstruct(void* a0, void*, int a2) { return CellListConstructOriginal(a0, nullptr, a2); }
 void __fastcall CellListRemoveAll(void* a0) { CellListRemoveAllOriginal(a0); }
 // The world server's timed objects (world_server.cpp).
-// The AI: 005D5E90 the brain's leader (unit_ai.cpp), 005D4F70 the brain's reset, 005AEA40 the
+// The AI: 005D5E90 the brain's leader (BrainLeaderOrFollowedOriginal), 005D4F70 the brain's reset, 005AEA40 the
 // alarm's reset.
-__declspec(naked) CUnit* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 // 0066D490: the player's message about a path to `point` (kind, flag, distance limit); the motion
 // order (the path, serialised for kinds other than 3).
 void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, const float* a4, int a5, int a6, std::uint32_t a7) {
@@ -98,7 +97,6 @@ __declspec(naked) std::uint32_t __fastcall CtlWeaponTypeMask(CUnitServer*) EI_OR
 __declspec(naked) std::uint32_t __fastcall CtlMoveModeMask(CUnitServer*, void*, const MoveModeState*) EI_ORIGINAL(0x005500A0)
 // And the functions of this file.
 __declspec(naked) void __fastcall CtlBuildIdle(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00550D90)
-__declspec(naked) void __fastcall CtlPlayAnimation(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548DE0)
 // Animation lists (MFC CArray<AnimationStep> instantiations, library code): 00556950 / 005483C0
 // Copy, 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80 SetSize,
 // 00558950 SetAtGrow, 00557CC0 Add, 00544D50 add an emote (a pause step's +1 byte); 00550A60 a
@@ -538,7 +536,7 @@ bool CUnitServer::ChangeMoveMode() {
     UnitUpdateSizeClass(unit);
     bool placed;
     if (!sameMode &&
-        !(passableBefore ? MapCellPassable(ServerAIMap(), nullptr, unit) : MapCanLeaveCell(ServerAIMap(), nullptr, unit)))
+        !(passableBefore ? MapCellPassable(ServerAIMap(), nullptr, unit) : AIMapCanLeaveCellOriginal(ServerAIMap(), nullptr, unit)))
         placed = false;
     else
         placed = SectorMapAdd(ServerSectors(), nullptr, unit);
@@ -578,7 +576,7 @@ bool CUnitServer::ChangeMoveMode() {
             StepsSetSize(&copy, nullptr, transition.count, -1);
             for (int i = 0; i < transition.count; ++i) copy.steps[i] = transition.steps[i];
             copy.extra = transition.extra;
-            CtlPlayAnimation(this, nullptr, copy);
+            CtlPlayAnimationOrder(this, nullptr, copy);
         }
         transition.vtable = kAnimationStepsBaseVtable;
         if (transition.steps) gamecrt::operator_delete(transition.steps);
@@ -694,7 +692,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         if (member == unit) continue;
         auto* controller = reinterpret_cast<CUnitServer*>(member->controller);
         bool lift = moving && (controller->action.kind == kOrderMove || controller->action2.kind == kOrderMove);
-        if (!lift) lift = BrainLeader(controller->brain) == unit;
+        if (!lift) lift = BrainLeaderOrFollowedOriginal(controller->brain) == unit;
         if (!lift) continue;
         auto* added = static_cast<UnitList::Node*>(ListNewNode(list, nullptr, list->tail, nullptr));
         added->data = member;
@@ -717,7 +715,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
     int message;
     if (!partial) {
         if (self->player) PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 3, 1, kFarBits);
-        if (BrainLeader(brain)) return;
+        if (BrainLeaderOrFollowedOriginal(brain)) return;
         self = unit;
         if (!self->player) return;
         message = kMessageCannotDo;
@@ -733,7 +731,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         bool far = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
         if (self->player)
             PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, far ? 0 : 1, kFarBits);
-        if (BrainLeader(brain)) return;
+        if (BrainLeaderOrFollowedOriginal(brain)) return;
         self = unit;
         if (!self->player) return;
         message = far ? kMessagePartial : kMessageCannotDo;

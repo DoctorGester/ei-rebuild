@@ -61,7 +61,6 @@ void* TextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
 
 // Not rewritten, forwarders:
 // 005AA5F0. Figure manager: the model named `name`.
-__declspec(naked) void* __fastcall FindModel(void*, void*, const stlp::string*) EI_ORIGINAL(0x005AA5F0)
 // 00516A80. 3D object: its figure part named `name`, or null.
 CEngineObject* __fastcall FindPart(CUnit* a0, void*, const char* a2) { return ObjectFindPartOriginal((void*)a0, nullptr, a2); }
 // 00517240. 3D object: adds the figure part `name` of `model`; returns it (null when the model has
@@ -104,7 +103,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     void* model;
     {
         stlp::string name(unit->prototypeName);
-        model = FindModel(manager, nullptr, &name);
+        model = FigureManagerFindModelOriginal(manager, nullptr, &name);
     }
     if (!model) return false;
     const char* armour = ArmourRecord(type);
@@ -166,7 +165,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
     void* model;
     {
         stlp::string name(unit->prototypeName);
-        model = FindModel(FigureManager(), nullptr, &name);
+        model = FigureManagerFindModelOriginal(FigureManager(), nullptr, &name);
     }
     if (!model) return false;   // the slot stays cleared
     for (int i = 0; i < 7; ++i) {
@@ -227,7 +226,7 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
     void* model;
     {
         stlp::string name(unit->prototypeName);
-        model = FindModel(FigureManager(), nullptr, &name);
+        model = FigureManagerFindModelOriginal(FigureManager(), nullptr, &name);
     }
     if (previous != kNone) {
         WeaponPartNames(previous >> 16, &names);

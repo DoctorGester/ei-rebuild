@@ -290,7 +290,6 @@ __declspec(naked) void __fastcall ConstructSaveList(void* /*vector*/, void*, voi
 __declspec(naked) void __fastcall ConstructBindingList(void*, void*, void*) EI_ORIGINAL(0x0062B570)
 __declspec(naked) void __fastcall ConstructSettingList(void*, void*, void*) EI_ORIGINAL(0x0062B5E0)
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
-__declspec(naked) void __fastcall ActivateWindow(CInterface3D*, void*, void* /*window*/, int, int) EI_ORIGINAL(0x005F7350)
 
 constexpr std::uintptr_t kSaveLoadVtable = 0x00741388;
 constexpr std::uintptr_t kSaveLoadInputVtable = 0x00741354;
@@ -377,7 +376,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         open = false;
         break;
     }
-    if (open) ActivateWindow(ui, nullptr, opened, 1, 1);
+    if (open) InterfacePushWindowOriginal(ui, nullptr, opened, 1, 1);
     UiContainerMouseDown(window.InputSide(), nullptr, buttons, x, y);
 }
 
@@ -440,7 +439,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
                                       1);   // "option_difficulty", ""
             SetVtables(box, 0x0074225C, 0x00742228);
         }
-        ActivateWindow(ui, nullptr, box, 1, 1);
+        InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
         break;
     }
     case 1: {
@@ -450,7 +449,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         // (Like the original, these two stores do not check the allocation.)
         w->isSave_ = false;
         w->sliding_ = false;
-        ActivateWindow(ui, nullptr, w, 1, 1);
+        InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
         break;
     }
     case 2: {
@@ -467,7 +466,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         ui->PlaySound(okSound, 0);
         COptionsWindow* w = NewOptionsWindow(ui);
         w->sliding_ = false;   // (unchecked, as the original)
-        ActivateWindow(ui, nullptr, w, 1, 1);
+        InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
         break;
     }
     case 4: {
@@ -487,7 +486,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             Put<std::uint8_t>(w, 0x1F4, 1);
             SetVtables(w, 0x00740C3C, 0x00740C08);
         }
-        ActivateWindow(ui, nullptr, w, 0, 1);
+        InterfacePushWindowOriginal(ui, nullptr, w, 0, 1);
         break;
     }
     case 5: {
@@ -513,7 +512,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             MenuHeroVector(bytes + 0x204, nullptr, &allocators[3]);
             SetVtables(w, 0x0074214C, 0x00742118);
         }
-        ActivateWindow(ui, nullptr, w, 1, 1);
+        InterfacePushWindowOriginal(ui, nullptr, w, 1, 1);
         break;
     }
     default:

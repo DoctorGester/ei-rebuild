@@ -13,6 +13,7 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "originals_world.h"
 #include "lib/crt.h"
 
 #include "ei/hook.h"
@@ -20,6 +21,7 @@
 #include "ei/x87.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_ai.h"
 
 #include <bit>
 #include <cstring>
@@ -157,10 +159,8 @@ __declspec(naked) double __fastcall UnitLoad(CUnit*) EI_ORIGINAL(0x005304A0)
 __declspec(naked) int __fastcall StatsApplyHit(UnitStats*, void*, CUnit*, void*, DamageInfo*, CEngineObject*)
     EI_ORIGINAL(0x005254B0)
 // 00524560. Recomputes the unit's server stats (hit points and the like) after a change.
-// 005911C0. The world server's experience award for a kill (`player` null in multiplayer).
-__declspec(naked) void __fastcall WorldAwardKill(void*, void*, char*, int) EI_ORIGINAL(0x005911C0)
-// 005D7E90. The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
-__declspec(naked) void __fastcall RememberAttacker(void*, void*, CUnit*) EI_ORIGINAL(0x005D7E90)
+// 005911C0 (WorldAwardExperienceOriginal). The world server's experience award for a kill (`player` null in multiplayer).
+// 005D7E90 (BrainSetSeenOriginal). The AI's memory of attackers (CUnitServer + 0x980): remembers `attacker`.
 
 GameOstream* GameOstream::Put(const char* text) { return static_cast<GameOstream*>(OstreamPutString(this, nullptr, text)); }
 GameOstream* GameOstream::Put(long v) { return static_cast<GameOstream*>(OstreamPutLongOriginal(this, nullptr, v)); }
@@ -703,11 +703,11 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
                 if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
                     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
                     if (IsMultiplayerClient() & 0xFF) {
-                        WorldAwardKill(world, nullptr, nullptr, static_cast<int>(prototype->unknown_54));
+                        WorldAwardExperienceOriginal(world, nullptr, nullptr, static_cast<int>(prototype->unknown_54));
                         return 1;
                     }
                     char* killer = source->player;
-                    WorldAwardKill(world, nullptr, killer, static_cast<int>(prototype->unknown_54));
+                    WorldAwardExperienceOriginal(world, nullptr, reinterpret_cast<WorldPlayer*>(killer), static_cast<int>(prototype->unknown_54));
                 }
             }
             return 1;
@@ -718,7 +718,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         auto* diplomacy = reinterpret_cast<CDiplomacy*>(static_cast<CWorldServer*>(ManagerContext())->diplomacy_);
         diplomacy->OnAttack(attacker, unit, 10);
     }
-    RememberAttacker(brain, nullptr, attacker);
+    BrainSetSeenOriginal(brain, nullptr, attacker);
     return 0;
 }
 EI_REPLACE_METHOD(0x00553F40, CUnitServer::TakeHit);

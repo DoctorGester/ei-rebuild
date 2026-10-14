@@ -80,8 +80,7 @@ inline const char* GameString(std::uintptr_t address) { return reinterpret_cast<
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-// The world server's timed objects (world_server.cpp; thiscall on the world).
-__declspec(naked) inline void __fastcall WorldAddTimed(void* /*world*/, void*, CEngineObject*) EI_ORIGINAL(0x0058E520)
+// The world server's timed objects: WorldAddTimed (originals_world.h).
 // Effect setters (world_effect*.cpp).
 __declspec(naked) inline void __fastcall EffectSetVelocity(CEngineObject*, void*, const Vector3*) EI_ORIGINAL(0x00675D50)
 __declspec(naked) inline void __fastcall ParticleSetAttachedTo(CEngineObject*, void*, int /*id*/) EI_ORIGINAL(0x00679280)
@@ -123,8 +122,7 @@ __declspec(naked) inline void __fastcall EffectHitUnitsInRadius(CSpellEffect*) E
 __declspec(naked) inline void __fastcall EffectHitUnitsAlong(CSpellEffect*, void*, const Vector3*) EI_ORIGINAL(0x00683730)
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source` at `at`.
 inline void __fastcall AiNoise(void* a0, void*, void* a2, float a3, int a4, const Vector3* a5) { AiEventsNoiseOriginal(a0, nullptr, a2, a3, a4, (const void*)a5); }
-// 0058D3D0 CWorldServer::WakeUnitsAround (world_tick.cpp).
-__declspec(naked) inline void __fastcall WorldWakeUnits(void* /*world*/, void*, const Vector3*, float /*radius*/) EI_ORIGINAL(0x0058D3D0)
+// 0058D3D0 CWorldServer::WakeUnitsAround (world_tick.cpp): WorldWakeUnits (originals_world.h).
 // 005CBBE0: the unit controller's AI memory (+0xA50) notices `point` at `level` / `kind`.
 inline void __fastcall AiMemoryNotice(void* a0, void*, const Vector3* a2, int a3, int a4) { AiMemoryNoticeOriginal(a0, nullptr, (const void*)a2, a3, a4); }
 // 004B2EF0 / 004B31D0 ScriptGroup::Insert / InsertAll (script_group.cpp).

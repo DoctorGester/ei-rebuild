@@ -104,7 +104,6 @@ int __fastcall CursorSetShape(void* a0, void*, int a2) { return CursorSetShapeOr
 // 005F75B0 (RET 4): the interface shows `text` in a notice band and draws a frame.
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top.
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
-__declspec(naked) void __fastcall ActivateWindow(CInterface3D*, void*, void* /*window*/, int, int) EI_ORIGINAL(0x005F7350)
 // 00578B50 / 00578A90 (RET 4): the local player's variable `name` (ST0) and zone (a CString
 // constructed at `out`, returned).
 __declspec(naked) mfc::CString* __fastcall PlayerZone(void*, void*, void* /*out*/) EI_ORIGINAL(0x00578A90)
@@ -376,7 +375,7 @@ void CSaveLoadWindow::SaveGame() {
             CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, Text(kNoSpace), Text(kNoSpaceText),
                                                           0x30000, 1, 1)
                                     : nullptr;
-            ActivateWindow(interface_, nullptr, box, 1, 1);
+            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
             return;
         }
     }
@@ -693,7 +692,7 @@ constexpr const char* kEveryFile = "\\*.*";                             // 0078B
 void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
     void* memory = gamecrt::operator_new(kMessageBoxBytes);
     CUiWindow* box = memory != nullptr ? ConstructMessageBox(memory, nullptr, ui, name, text, result, 3, 1) : nullptr;
-    ActivateWindow(ui, nullptr, box, 1, 1);
+    InterfacePushWindowOriginal(ui, nullptr, box, 1, 1);
 }
 } // namespace
 

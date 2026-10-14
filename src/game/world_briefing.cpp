@@ -47,7 +47,6 @@ inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLo
 void __fastcall VariableSet(void* a0, void*, const char* a2, float a3) { NamedTableSet(a0, nullptr, a2, std::bit_cast<std::uint32_t>(a3)); }
 // Rewritten here, through their addresses.
 __declspec(naked) mfc::CString* __stdcall BriefingSpeakerAt(void* /*out*/, const char*) EI_ORIGINAL(0x0057FC90)
-__declspec(naked) mfc::CString* __stdcall BriefingVariableAt(void* /*out*/, const char*) EI_ORIGINAL(0x0057FDE0)
 
 // A CString constructed by a callee into raw storage, destroyed explicitly.
 struct StringSlot {
@@ -116,7 +115,7 @@ void GameFlow::MarkBriefing(const char* briefing) {
         FlowLoadQuests(this, nullptr, zone);
     }
     StringSlot variable;
-    BriefingVariableAt(variable.Raw(), briefing);
+    BriefingVariableIntoOriginal(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
     VariableSet(player->variables, nullptr, variable.Get(), 1.0f);
     variable.Get().~CString();
 }
@@ -138,7 +137,7 @@ LoadedFiles& QuestFiles() { return *reinterpret_cast<LoadedFiles*>(0x007AFDD0); 
 void GameFlow::ForgetBriefing(const char* briefing) {
     auto* player = *reinterpret_cast<WorldPlayer**>(WorldClient()->LocalView() + 0x1C);
     StringSlot variable;
-    BriefingVariableAt(variable.Raw(), briefing);
+    BriefingVariableIntoOriginal(reinterpret_cast<mfc::CString*>(variable.Raw()), briefing);
     VariableRemove(player->variables, nullptr, variable.Get());
     variable.Get().~CString();
 }

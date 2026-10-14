@@ -494,7 +494,8 @@ __declspec(naked) inline void __fastcall DcFillSolidRectOriginal(void* /*dc*/, v
                                                                  int /*cy*/, std::uint32_t /*colour*/) EI_ORIGINAL(0x0070BB04)
 // STLport hash_map<CString, float> (NamedFloatTable, object_tables.h; the party's variables), thiscall on the table:
 // 004A8A50 copy constructor from `source` (RET 4, returns this), 004AA950 copy_from(`source`) (RET 4), 00461540
-// clear (plain RET), 004616A0 deletes one node (RET 4). 00609F50: the bucket vector's destructor (plain RET).
+// clear (plain RET), 004616A0 deletes one node (RET 4), 004614C0 begin() (RET 4: the iterator it fills; no result).
+// 00609F50: the bucket vector's destructor (plain RET).
 __declspec(naked) inline void* __fastcall FloatTableCopyConstructOriginal(void* /*table*/, void*, const void* /*source*/)
     EI_ORIGINAL(0x004A8A50)
 __declspec(naked) inline void __fastcall FloatTableCopyFromOriginal(void* /*table*/, void*, const void* /*source*/)
@@ -502,6 +503,8 @@ __declspec(naked) inline void __fastcall FloatTableCopyFromOriginal(void* /*tabl
 __declspec(naked) inline void __fastcall FloatTableClearOriginal(void* /*table*/) EI_ORIGINAL(0x00461540)
 __declspec(naked) inline void __fastcall FloatTableDeleteNodeOriginal(void* /*table*/, void*, void* /*node*/)
     EI_ORIGINAL(0x004616A0)
+__declspec(naked) inline void __fastcall FloatTableBeginOriginal(void* /*table*/, void*, void* /*iterator*/)
+    EI_ORIGINAL(0x004614C0)
 __declspec(naked) inline void __fastcall BucketVectorDestroyOriginal(void* /*vector*/) EI_ORIGINAL(0x00609F50)
 // dinput.lib's DirectInputCreateEx (import thunk 006E61F0; __stdcall): instance, version, interface id, the
 // interface out, outer unknown.

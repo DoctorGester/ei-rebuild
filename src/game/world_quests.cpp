@@ -21,6 +21,7 @@
 #include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_ai.h"
 #include "originals_world.h"
 #include "originals_core.h"
 #include "originals_engine.h"
@@ -161,8 +162,7 @@ inline BriefingRecord** __fastcall BriefingMapAt(void* a0, void*, const RawStrin
 __declspec(naked) void __fastcall RequestBriefing(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057FB60)
 // 00591DE0 (RET 8). CWorldServer: the player's part of completing a briefing.
 __declspec(naked) void __fastcall BriefingNotify(CWorldServer*, void*, WorldPlayer*, const char*) EI_ORIGINAL(0x00591DE0)
-// 005911C0 (RET 8). CWorldServer: experience for `player` (float bits).
-__declspec(naked) void __fastcall AwardExperience(CWorldServer*, void*, WorldPlayer*, std::uint32_t) EI_ORIGINAL(0x005911C0)
+// 005911C0 (RET 8). CWorldServer: experience for `player` (float bits): WorldAwardExperienceOriginal.
 // The game's _ftol (006E853C).
 __declspec(naked) int __cdecl GameFtol(double) {
     __asm {
@@ -205,7 +205,7 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecor
     if (experience < 0.0f || experience > 0.0f) {
         std::uint32_t bits;
         std::memcpy(&bits, &experience, 4);
-        AwardExperience(world, nullptr, player, bits);
+        WorldAwardExperienceOriginal(world, nullptr, player, bits);
     }
     PartyOf(player)->Money() += GameFtol(record->gold);
 
@@ -305,7 +305,6 @@ static const char** UnitPrototype(CEngineObject* object, void*) { return static_
 void __fastcall PartyAddMember(CParty* a0, void*, const char* a2, const char* a3, const char* a4) { PartyAddMemberOriginal(a0, nullptr, a2, a3, a4); }
 void __fastcall PartyRemoveMember(CParty* a0, void*, unsigned a2) { PartyRemoveMemberOriginal(a0, nullptr, a2); }
 // 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
-__declspec(naked) void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*) EI_ORIGINAL(0x00591800)
 
 // One slot's names, declared so that they are destroyed in the original's order: amerc, n10,
 // n2, n8, n9, n3, n1, merc.
@@ -349,7 +348,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
             PartyAddMember(party, nullptr, v.merc, prototype, game::EmptyText());
         }
     }
-    UpdateMercBriefingsAt(this, nullptr);
+    WorldUpdateMercBriefingsOriginal(this);
 }
 
 // ---- AwardExperience --------------------------------------------------------------------------
@@ -627,8 +626,6 @@ constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
 using PlacementArray = mfc::CArray<UnitPlacement>;
 
 __declspec(naked) void __fastcall PlacementsSetAtGrow(PlacementArray*, void*, int, const UnitPlacement*) EI_ORIGINAL(0x0059C510)
-// 005D5E90 (AIBrain::LeaderOrFollowed, unit_ai.h): the leader the brain follows, or null.
-__declspec(naked) CEngineObject* __fastcall BrainLeader(void* /*brain*/, void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordPtrArray*, CParty*, void*) EI_ORIGINAL(0x0058FD90)
@@ -685,7 +682,7 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
         for (int i = 0; i < list->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
             CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
-            CEngineObject* leader = BrainLeader(ControllerOf(unit)->brain, nullptr);
+            CEngineObject* leader = BrainLeaderOrFollowedOriginal(ControllerOf(unit)->brain);
             record->unknown_77C = leader ? leader->id_ : -1;
         }
     }

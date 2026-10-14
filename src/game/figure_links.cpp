@@ -14,6 +14,7 @@
 #include "originals_library.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
+#include "originals_units.h"
 
 namespace {
 
@@ -27,7 +28,6 @@ struct RawString {
 // assign(first, last) (RET 8), the destructor.
 void __fastcall StringEndOfStorage(char** a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, a3); }
 // 005AA5F0: the manager's model of a name (figure_models.cpp).
-__declspec(naked) void** __fastcall FindModelAt(void*, void*, const RawString*) EI_ORIGINAL(0x005AA5F0)
 // 004DBCA0: reads a length-prefixed string at *cursor into a CString and advances the cursor.
 __declspec(naked) void __fastcall ReadName(mfc::CString*, const std::uint8_t**) EI_ORIGINAL(0x004DBCA0)
 // The figure: link a piece to its parent (RET 0xC), finish.
@@ -54,7 +54,7 @@ int __fastcall LoadSkeletonLinks(void* manager, void*, void* figure, const char*
     int zero = 0;
     StringEndOfStorage(&key.eos, nullptr, &allocatorTag, &zero);
     StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
-    void** model = FindModelAt(manager, nullptr, &key);
+    void** model = static_cast<void**>(FigureManagerFindModelOriginal(manager, nullptr, &key));
     StringBufferFree(&key);
 
     std::uint32_t* data;

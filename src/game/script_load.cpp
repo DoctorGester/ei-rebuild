@@ -16,6 +16,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -45,7 +46,6 @@ __declspec(naked) void __fastcall RefLoad(ScriptObjectRef*, void*, ScriptStream*
 
 // Object lookups: 00403F40 the id registry at *007AFFA8 (refcount raised by the caller),
 // 00593AA0 the world's FindObject (007AFF60).
-__declspec(naked) CEngineObject* __fastcall WorldFindObject(void*, void*, int) EI_ORIGINAL(0x00593AA0)
 CEngineObject* RegistryObject(int id) { return ManagerFindObject(*reinterpret_cast<void**>(0x007AFFA8), nullptr, id); }
 
 // Rewritten script helpers, called through their addresses (their verify wrappers run).
@@ -272,7 +272,7 @@ void __fastcall ScriptObjectsLoad(ScriptNamedValues<ScriptObjectRef>* vars, void
             RefReset(ref);
             ref->object = nullptr;
         } else {
-            CEngineObject* object = WorldFindObject(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
+            CEngineObject* object = WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
             RefReset(ref);
             if (object) ++object->refCount_;
             ref->object = object;
@@ -297,7 +297,7 @@ void __fastcall ScriptGroupsLoad(ScriptNamedValues<ScriptGroup>* vars, void*, Sc
             int id = 0;
             stream->Read(&id, 4);
             CEngineObject* object =
-                id == -1 ? nullptr : WorldFindObject(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
+                id == -1 ? nullptr : WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, id);
             RefAssign(&group->data[k], nullptr, object);
         }
         GroupSort(group);
@@ -442,7 +442,7 @@ void __fastcall ScriptVarsLoad(ScriptVars* vars, void*, ScriptStream* stream) {
             RefReset(ref);
             ref->object = nullptr;
         } else {
-            RefAssign(ref, nullptr, WorldFindObject(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
+            RefAssign(ref, nullptr, WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
         }
         StringLoad(&vars->objectNames.data[i], stream);
     }

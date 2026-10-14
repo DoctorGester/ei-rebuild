@@ -998,7 +998,7 @@ struct GameGlue {
     void TakeRecords(CloseRecordArray* records);        // 005789E0 (on 007AFEA5)
 };
 void GameGlue::SetServerFlag(std::uint8_t f) { SetServerFlagOriginal(f); }
-__declspec(naked) std::uint8_t* GameGlue::PlayerData() EI_ORIGINAL(0x00578BA0)
+std::uint8_t* GameGlue::PlayerData() { return GameLocalPlayerDataOriginal(this); }
 void GameGlue::TakeRecords(CloseRecordArray* records) { GameTakeUnitRecordsOriginal(this, nullptr, records); }
 GameGlue* GlueAt(std::uintptr_t address) { return reinterpret_cast<GameGlue*>(address); }
 

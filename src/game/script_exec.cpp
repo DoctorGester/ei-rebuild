@@ -168,13 +168,13 @@ struct WorldCalls : WorldAlarmOriginal {
     void CollectParty(WorldPlayer* player, void* list);                  // 00590A40
     void Redeploy(WorldPlayer* player, void* list, int flag);            // 00590700
     void AwardKill(WorldPlayer* player, std::uint32_t exp);              // 005911C0 (the amount as float bits)
-    void CastSpell(CEngineObject* spell, int a, const Vector3* from, CEngineObject* target, const void* to, int b);  // 0058E850
+    void CastSpell(CEngineObject* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target, const Vector3* to, int extra);  // 0058E850
 };
 WorldPlayer* WorldCalls::GetPlayer(int id) { return static_cast<WorldPlayer*>(::WorldGetPlayer(this, nullptr, id)); }
 __declspec(naked) float WorldCalls::GridHeight(float, float) EI_ORIGINAL(0x00594220)
 __declspec(naked) void WorldCalls::AddUnit(int, const char*, const char*, const Vector3*) EI_ORIGINAL(0x005910A0)
 void WorldCalls::RemoveObject(int id) { WorldRemoveObject(this, nullptr, id); }
-__declspec(naked) void WorldCalls::RecalcMercBriefings() EI_ORIGINAL(0x00591800)
+void WorldCalls::RecalcMercBriefings() { WorldUpdateMercBriefingsOriginal(this); }
 __declspec(naked) void WorldCalls::SetWind(const Vector3*, float) EI_ORIGINAL(0x0058EE20)
 void WorldCalls::SetTimeSpeed(float a0) { WorldSetTimeSpeedOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 void WorldCalls::SetTime(float a0) { WorldSetTimeOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
@@ -184,8 +184,8 @@ __declspec(naked) CEngineObject* WorldCalls::FindItem(const char*) EI_ORIGINAL(0
 __declspec(naked) CEngineObject* WorldCalls::FindSpell(const char*) EI_ORIGINAL(0x00594BC0)
 __declspec(naked) void WorldCalls::CollectParty(WorldPlayer*, void*) EI_ORIGINAL(0x00590A40)
 __declspec(naked) void WorldCalls::Redeploy(WorldPlayer*, void*, int) EI_ORIGINAL(0x00590700)
-__declspec(naked) void WorldCalls::AwardKill(WorldPlayer*, std::uint32_t) EI_ORIGINAL(0x005911C0)
-__declspec(naked) void WorldCalls::CastSpell(CEngineObject*, int, const Vector3*, CEngineObject*, const void*, int) EI_ORIGINAL(0x0058E850)
+void WorldCalls::AwardKill(WorldPlayer* player, std::uint32_t exp) { WorldAwardExperienceOriginal(this, nullptr, player, exp); }
+void WorldCalls::CastSpell(CEngineObject* spell, CEngineObject* caster, const Vector3* from, CEngineObject* target, const Vector3* to, int extra) { WorldCastSpellOriginal(this, nullptr, spell, caster, from, target, to, extra); }
 WorldCalls* TheWorld() { return reinterpret_cast<WorldCalls*>(WorldServer()); }
 
 // The world's AI map (CWorldServer +0x170); its sector map is at +0x124.
@@ -202,8 +202,8 @@ __declspec(naked) void AIMapCalls::Move(CEngineObject*, const Vector3*) EI_ORIGI
 __declspec(naked) void AIMapCalls::FindUnitsInRadius(const Vector3*, void*, float) EI_ORIGINAL(0x004BA100)
 __declspec(naked) void AIMapCalls::Remove(CEngineObject*) EI_ORIGINAL(0x004BA0C0)
 __declspec(naked) void AIMapCalls::Add(CEngineObject*) EI_ORIGINAL(0x004BA0A0)
-__declspec(naked) bool AIMapCalls::CanLeaveCell(CEngineObject*) EI_ORIGINAL(0x005BA830)
-__declspec(naked) bool AIMapCalls::FindFreeCellNear(CEngineObject*, const Vector3*, Vector3*) EI_ORIGINAL(0x005BA9D0)
+bool AIMapCalls::CanLeaveCell(CEngineObject* object) { return AIMapCanLeaveCellOriginal(this, nullptr, static_cast<CUnit*>(object)); }
+bool AIMapCalls::FindFreeCellNear(CEngineObject* object, const Vector3* from, Vector3* out) { return FindFreeCellNearOriginal(this, nullptr, object, from, out); }
 __declspec(naked) char AIMapCalls::SetUpdates(int) EI_ORIGINAL(0x004BA090)
 AIMapCalls* TheAIMap() { return reinterpret_cast<AIMapCalls*>(WorldServer()->AIMap()); }
 
@@ -230,7 +230,7 @@ __declspec(naked) void BrainCalls::AttackTarget(CEngineObject*) EI_ORIGINAL(0x00
 __declspec(naked) void BrainCalls::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x005D7DA0)
 __declspec(naked) void BrainCalls::ResetTarget() EI_ORIGINAL(0x005D7C30)
 void BrainCalls::ClearModes() { BrainClearModesOriginal((void*)this); }
-__declspec(naked) void BrainCalls::StopAction() EI_ORIGINAL(0x005D7790)
+void BrainCalls::StopAction() { BrainStopActionOriginal(this); }
 __declspec(naked) void BrainCalls::Guard(const Vector3*, float) EI_ORIGINAL(0x005D6230)
 __declspec(naked) void BrainCalls::Sentry(const Vector3*) EI_ORIGINAL(0x005D64E0)
 void BrainCalls::AddMode(void* a0) { BrainAddModeOriginal((void*)this, nullptr, a0); }

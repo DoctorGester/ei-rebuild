@@ -91,7 +91,6 @@ __declspec(naked) double __cdecl CIacos(double) {
 void __fastcall BrainClearModes(void* a0, void*) { BrainClearModesOriginal(a0); }
 void* __fastcall PlayerModeConstruct(void* a0, void*) { return ModePlayerConstructOriginal(a0); }
 void __fastcall BrainAddMode(void* a0, void*, void* a2) { BrainAddModeOriginal(a0, nullptr, a2); }
-__declspec(naked) void __fastcall BrainStopAction(void*, void*) EI_ORIGINAL(0x005D7790)
 __declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E60)
 __declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brain*/, CEngineObject*) EI_ORIGINAL(0x005D3DE0)
 // Placement on the maps.
@@ -293,7 +292,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         void* memory = gamecrt::operator_new(0x24);
         static_cast<std::uint32_t*>(memory)[1] = 0;   // +4, written before the null test
         BrainAddMode(brain, nullptr, memory ? PlayerModeConstruct(memory, nullptr) : nullptr);
-        BrainStopAction(brain, nullptr);
+        BrainStopActionOriginal(brain);
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
         std::memcpy(&free, &AsUnit(unit)->position.x, sizeof(free));
@@ -407,8 +406,6 @@ __declspec(naked) void __fastcall ObjectSetSecondName(CEngineObject*, void*, con
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
 __declspec(naked) void __fastcall ManagerRegisterUnit2(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x005141F0)
-__declspec(naked) void __fastcall ServerCastSpell(CWorldServer*, void*, CEngineObject*, int, const void*, CEngineObject*,
-                                                  const void*, int) EI_ORIGINAL(0x0058E850)
 __declspec(naked) CEngineObject* __fastcall SpellsFromText(void*, void*, const char*) EI_ORIGINAL(0x00689030)
 inline void __fastcall TextAssignChars(mfc::CString* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 void __fastcall TextAssign(mfc::CString* a0, void*, const mfc::CString* a2) { CStringAssignOriginal((void*)a0, nullptr, (const void*)a2); }
@@ -508,7 +505,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             at[0] = flame->offset.x + base.position.x;
             CEngineObject* spell = SpellsFromText(SpellManager(), nullptr, worlddata::CampfireText());
             if (spell) ++spell->refCount_;
-            ServerCastSpell(this, nullptr, spell, 0, const_cast<float*>(at), nullptr, const_cast<float*>(at), 0);
+            WorldCastSpellOriginal(this, nullptr, spell, nullptr, reinterpret_cast<const Vector3*>(const_cast<float*>(at)), nullptr,
+                                   reinterpret_cast<const Vector3*>(const_cast<float*>(at)), 0);
             if (spell) spell->Release();
         }
         base.object = object;

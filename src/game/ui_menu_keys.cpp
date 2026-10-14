@@ -55,7 +55,6 @@ mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field
 // 00634650 (RET 0x18): the message box; 005F7350 (RET 0xC): opens a window on top (rewritten
 // elsewhere; called through its address as the other windows do).
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
-__declspec(naked) void __fastcall ActivateWindow(CInterface3D*, void*, void* /*window*/, int, int) EI_ORIGINAL(0x005F7350)
 } // namespace
 
 // --- Save/load window ----------------------------------------------------------------------------
@@ -271,7 +270,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             // The box's text (+0x168; a null box is written through, as in the original).
             *reinterpret_cast<mfc::CString*>(reinterpret_cast<std::uint8_t*>(box) + 0x168) =
                 static_cast<const char*>(message);
-            ActivateWindow(interface_, nullptr, box, 1, 1);
+            InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
             return;
         }
         CallCommitBinding();

@@ -30,11 +30,7 @@ CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x00
 
 // 005ECA10 (rewritten, ui_item_view.cpp; through its address so its wrapper runs): the owner screen
 // draws an item's model in a cell (RET 8).
-struct ItemModelDraw {
-    void DrawItem(int pass, ItemCell* cell);
-};
-__declspec(naked) void ItemModelDraw::DrawItem(int, ItemCell*) EI_ORIGINAL(0x005ECA10)
-void DrawItem(CUiWindow* owner, int pass, ItemCell* cell) { reinterpret_cast<ItemModelDraw*>(owner)->DrawItem(pass, cell); }
+void DrawItem(CUiWindow* owner, int pass, ItemCell* cell) { ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(owner), nullptr, pass, cell); }
 
 // The window's surface text (005FDE20 Rebirth-patched: through its address).
 struct SurfaceText {
