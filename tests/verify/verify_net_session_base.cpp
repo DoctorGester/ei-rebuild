@@ -39,12 +39,12 @@ void __fastcall RegisterVerify(TypeRegistry* self, void*, std::uint32_t type, Me
 // 004377D0: ours only. The vector must have grown by the handler.
 void __fastcall AddHandlerVerify(SessionBase* self, void*, int channel, std::uint32_t type, void* handler) {
     bool valid = channel >= 0 && channel < kChannels;
-    std::size_t before = valid ? self->handlers_[channel][type & 0xFF].end - self->handlers_[channel][type & 0xFF].begin : 0;
+    std::size_t before = valid ? self->handlers_[channel][type & 0xFF].size() : 0;
     self->AddHandler(channel, type, handler);
     bool ok = true;
     if (valid) {
         const HandlerVector& v = self->handlers_[channel][type & 0xFF];
-        ok = static_cast<std::size_t>(v.end - v.begin) == before + 1 && v.end[-1] == handler;
+        ok = static_cast<std::size_t>(v.size()) == before + 1 && v.end()[-1] == handler;
     }
     ei::verify::Check("SessionBase::AddHandler", true, ok, "channel %d type %u", channel, type);
 }

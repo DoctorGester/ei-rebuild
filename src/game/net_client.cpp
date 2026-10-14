@@ -172,8 +172,8 @@ void ClientSession::CollectReplicated(ReplicatedVector** out) {
         PushReplicatedInline(*out, group, 1);
         for (std::uint32_t i = 0;; ++i) {
             const RefVector& members = static_cast<PartyMessage*>(self->party_.ptr)->members_;
-            RefPtr* begin = members.start;
-            if (i >= static_cast<std::uint32_t>(members.finish - begin)) break;
+            RefPtr* begin = members.begin();
+            if (i >= static_cast<std::uint32_t>(members.end() - begin)) break;
             PushReplicatedInline(*out, begin[i].ptr, 1);
         }
     }

@@ -14,7 +14,7 @@ class CStream;
 struct RefPtr;
 namespace lib { template <typename T> struct AlignedArray; }
 namespace console { class CStringArray; }
-namespace net { struct FreedBatch; struct HistoryNode; struct RefVector; struct StringRep; }
+namespace net { struct FreedBatch; struct HistoryNode; struct StringRep; }
 
 // STLport std::string destructor (frees the buffer back to the node allocator unless it is the inline one).
 __declspec(naked) inline void __fastcall StlStringDestroy(void* /*string*/) EI_ORIGINAL(0x0040C720)
@@ -523,7 +523,7 @@ __declspec(naked) inline int __cdecl Strncmp(const char*, const char*, std::size
 __declspec(naked) inline void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
 __declspec(naked) inline void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)
 // C3m. 00421F60: the counted-pointer vector's base constructor (n elements, allocator; plain RET).
-__declspec(naked) inline void __fastcall VectorBaseConstruct(net::RefVector* /*vector*/, void*, std::size_t /*n*/,
+__declspec(naked) inline void __fastcall VectorBaseConstruct(void* /*vector*/, void*, std::size_t /*n*/,
                                                            const void* /*allocator*/) EI_ORIGINAL(0x00421F60)
 // C3m. STLport strings of the net code (the 12-byte rep): 00424E40 allocates a block of n bytes, 00427D60 string + text,
 // 00427FA0 equality, 0042AFB0 append(first, last, tag).

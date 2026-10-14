@@ -56,19 +56,19 @@ typename Map::Node* FindOrInsert(Map& table, std::uint32_t key, Resize resize, N
 
 void PushReplicated(ReplicatedVector* v, void* object, std::uint8_t priority) {
     ReplicatedPushDefault(v);
-    Replicated* last = v->end - 1;
+    Replicated* last = v->end() - 1;
     last->object = static_cast<Message*>(object);
     last->priority = priority;
 }
 
 void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priority) {
-    if (v->end != v->eos) {
-        ++v->end;   // the element's default constructor (00429030) does nothing
+    if (v->end() != v->EndOfStorage()) {
+        ++v->Finish();   // the element's default constructor (00429030) does nothing
     } else {
         Replicated value{};   // the original passes an uninitialised local; it is overwritten below
-        ReplicatedInsertOverflow(v, nullptr, v->end, &value, 1);
+        ReplicatedInsertOverflow(v, nullptr, v->end(), &value, 1);
     }
-    Replicated* last = v->end - 1;
+    Replicated* last = v->end() - 1;
     last->object = static_cast<Message*>(object);
     last->priority = priority;
 }
@@ -125,9 +125,9 @@ EI_REPLACE_METHOD(0x00436770, SessionBase::Construct);
 // 00436A30 (no Ghidra function): the handler vector's element constructor (an empty vector; the
 // session constructor inlines it). Leaves 0 in EAX, as the original.
 void* __fastcall HandlerVectorConstruct(HandlerVector* self) {
-    self->begin = nullptr;
-    self->end = nullptr;
-    self->eos = nullptr;
+    self->Start() = nullptr;
+    self->Finish() = nullptr;
+    self->EndOfStorage() = nullptr;
     return nullptr;
 }
 EI_REPLACE(0x00436A30, HandlerVectorConstruct);
@@ -135,12 +135,12 @@ EI_REPLACE(0x00436A30, HandlerVectorConstruct);
 void SessionBase::AddHandler(int channel, std::uint32_t type, void* handler) {
     if (channel < 0 || channel >= kChannels) return;
     HandlerVector& v = handlers_[channel][type & 0xFF];
-    if (v.end == v.eos) {
-        HandlersInsertOverflow(&v, nullptr, v.end, &handler, 1);
+    if (v.end() == v.EndOfStorage()) {
+        HandlersInsertOverflow(&v, nullptr, v.end(), &handler, 1);
         return;
     }
-    if (v.end) *v.end = handler;
-    ++v.end;
+    if (v.end()) *v.Finish() = handler;
+    ++v.Finish();
 }
 EI_REPLACE_METHOD(0x004377D0, SessionBase::AddHandler);
 

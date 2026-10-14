@@ -54,11 +54,11 @@ void WriteDword(CStream* stream, std::uint32_t* scratch, std::uint32_t value) {
 CStream* StreamOf(CRefObject* member) { return &static_cast<PartyMemberMessage*>(member)->stream_; }
 
 void PushBack(RefVector* v, const RefPtr* value) {
-    if (v->finish != v->eos) {
-        RefPtrConstructCopy(v->finish, value);
-        ++v->finish;
+    if (v->end() != v->EndOfStorage()) {
+        RefPtrConstructCopy(v->end(), value);
+        ++v->Finish();
     } else {
-        VectorInsertOverflow(v, nullptr, v->finish, value, 1);
+        VectorInsertOverflow(v, nullptr, v->end(), value, 1);
     }
 }
 
@@ -97,9 +97,9 @@ void __fastcall ClientPublishParty(ClientSession* self) {
     std::uint8_t allocator = 0;
     const void* allocatorCopy = VectorGetAllocator(messages, nullptr, &allocator);
     RefVector previous;
-    VectorBaseConstruct(&previous, nullptr, static_cast<std::size_t>(messages->finish - messages->start), allocatorCopy);
-    previous.finish = UninitializedCopy(messages->start, messages->finish, previous.start, 0);
-    VectorErase(&state()->members_, nullptr, state()->members_.start, state()->members_.finish);
+    VectorBaseConstruct(&previous, nullptr, static_cast<std::size_t>(messages->size()), allocatorCopy);
+    previous.Finish() = UninitializedCopy(messages->begin(), messages->end(), previous.begin(), 0);
+    VectorErase(&state()->members_, nullptr, state()->members_.begin(), state()->members_.end());
     state()->partyValue_ = Get32(base, 0x2670);
 
     std::uint32_t scratch = 0;
@@ -128,13 +128,13 @@ void __fastcall ClientPublishParty(ClientSession* self) {
         WriteDword(stream, &scratch, Get32(member, 0x18));
         ei::VCall<void>(member, 10, stream);
 
-        RefPtr* same = FindSameMessage(previous.start, previous.finish, static_cast<PartyMemberMessage*>(ref.ptr), scratch);
+        RefPtr* same = FindSameMessage(previous.begin(), previous.end(), static_cast<PartyMemberMessage*>(ref.ptr), scratch);
         PartyMessage* current = state();
-        if (same != previous.finish) {
+        if (same != previous.end()) {
             PushBack(&current->members_, same);
-            if (same + 1 != previous.finish) RefPtrCopyRange(same + 1, previous.finish, same);
-            --previous.finish;
-            RefPtrDestroyAt(previous.finish, nullptr, 0);
+            if (same + 1 != previous.end()) RefPtrCopyRange(same + 1, previous.end(), same);
+            --previous.Finish();
+            RefPtrDestroyAt(previous.end(), nullptr, 0);
         } else {
             PushBack(&current->members_, &ref);
         }
@@ -144,9 +144,9 @@ void __fastcall ClientPublishParty(ClientSession* self) {
     ++state()->revision_;
     state()->accepted_ = 0;
     ++state()->version_;
-    for (RefPtr* p = previous.start; p != previous.finish; ++p)
+    for (RefPtr* p = previous.begin(); p != previous.end(); ++p)
         if (p->ptr) p->ptr->Release();
-    VectorDeallocate(previous.start, static_cast<std::size_t>(previous.eos - previous.start));
+    VectorDeallocate(previous.begin(), static_cast<std::size_t>(previous.EndOfStorage() - previous.begin()));
 }
 EI_REPLACE(0x0041DA50, ClientPublishParty);
 
@@ -184,9 +184,9 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     auto* base = reinterpret_cast<std::uint8_t*>(self);
     auto* remote = static_cast<PartyMessage*>(ClientFindParty(self));
     if (!remote) return;
-    auto count = [remote] { return static_cast<std::uint32_t>(remote->members_.finish - remote->members_.start); };
+    auto count = [remote] { return static_cast<std::uint32_t>(remote->members_.size()); };
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CRefObject* message = remote->members_.start[i].ptr;
+        CRefObject* message = remote->members_.begin()[i].ptr;
         if (!message || (message->flags7_ & CRefObject::kDetached)) return;
         if (StreamOf(message)->Size() == 0) return;
     }
@@ -202,7 +202,7 @@ void __fastcall ClientApplyParty(ClientSession* self) {
     std::uint8_t allocator = 0;
     ObjectVectorConstruct(&members, nullptr, &allocator);
     for (std::uint32_t i = 0; i < count(); ++i) {
-        CStream* stream = StreamOf(remote->members_.start[i].ptr);
+        CStream* stream = StreamOf(remote->members_.begin()[i].ptr);
         stream->Seek(0);
         std::int32_t id;
         std::uint32_t prototype, value;

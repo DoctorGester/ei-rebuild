@@ -135,7 +135,7 @@ void __fastcall CollectChangesVerify(Connection* self) {
     self->CollectChanges();
     auto* items = reinterpret_cast<ReplicatedVector*>(0x0079B8D0);
     ei::verify::Check("Connection::CollectChanges", true,
-                      self->byObject_.count <= static_cast<std::uint32_t>(items->end - items->begin), "");
+                      self->byObject_.count <= static_cast<std::uint32_t>(items->size()), "");
 }
 
 // 004357C0: MOV EAX,ECX (2), MOV CL,[EAX+0xC] (3). The original on a copy of the cursor first (it

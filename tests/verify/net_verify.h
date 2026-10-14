@@ -137,18 +137,18 @@ inline void CompareSessionTables(BuiltCompare& cmp, const std::uint8_t* e, const
 template <typename Session, typename Fn, typename Orig>
 void CheckCollect(const char* name, Session* self, net::ReplicatedVector** out, Fn ours, Orig original) {
     net::ReplicatedVector* real = *out;
-    std::size_t before = static_cast<std::size_t>(real->end - real->begin);
+    std::size_t before = static_cast<std::size_t>(real->size());
     ours(self, nullptr, out);
-    net::ReplicatedVector scratch{nullptr, nullptr, nullptr};
+    net::ReplicatedVector scratch;
     net::ReplicatedVector* scratchPtr = &scratch;
     original(self, nullptr, &scratchPtr);
-    std::size_t added = static_cast<std::size_t>(real->end - real->begin) - before;
-    bool same = added == static_cast<std::size_t>(scratch.end - scratch.begin);
+    std::size_t added = static_cast<std::size_t>(real->size()) - before;
+    bool same = added == static_cast<std::size_t>(scratch.size());
     for (std::size_t i = 0; same && i < added; ++i)
-        same = real->begin[before + i].object == scratch.begin[i].object &&
-               real->begin[before + i].priority == scratch.begin[i].priority;
-    if (scratch.begin)
-        stlp::deallocate(scratch.begin, static_cast<std::size_t>(scratch.eos - scratch.begin) * sizeof(net::Replicated));
+        same = real->begin()[before + i].object == scratch.begin()[i].object &&
+               real->begin()[before + i].priority == scratch.begin()[i].priority;
+    if (scratch.begin())
+        stlp::deallocate(scratch.begin(), static_cast<std::size_t>(scratch.EndOfStorage() - scratch.begin()) * sizeof(net::Replicated));
     ei::verify::Check(name, true, same, "%u items", unsigned(added));
 }
 

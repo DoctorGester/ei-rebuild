@@ -151,7 +151,7 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
             auto* request = ValueOf<FileRequestMessage>(m);
             if (request->FileRef().ptr != ValueOf(n) || request->ConnectionRef().ptr != CurrentConnection()) continue;
             const RefVector& chunks = ValueOf<FileMessage>(n)->chunks_;
-            for (RefPtr* p = chunks.start; p != chunks.finish; ++p) PushReplicated(*out, p->ptr, 1);
+            for (RefPtr* p = chunks.begin(); p != chunks.end(); ++p) PushReplicated(*out, p->ptr, 1);
             break;
         }
     }
@@ -167,15 +167,15 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
         auto* offer = ValueOf<PartyMessage>(n);
         if (offer->partner_.ptr != record) continue;
         bool complete = true;
-        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members_.finish - offer->members_.start); ++i) {
-            CRefObject* member = offer->members_.start[i].ptr;
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(offer->members_.size()); ++i) {
+            CRefObject* member = offer->members_.begin()[i].ptr;
             if (!member || (member->flags7_ & CRefObject::kDetached)) complete = false;
         }
         if (!complete) continue;
         PushReplicated(*out, offer, 2);
         const RefVector& members = ValueOf<PartyMessage>(n)->members_;
-        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.finish - members.start); ++i)
-            PushReplicated(*out, ValueOf<PartyMessage>(n)->members_.start[i].ptr, 2);
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(members.size()); ++i)
+            PushReplicated(*out, ValueOf<PartyMessage>(n)->members_.begin()[i].ptr, 2);
     }
     for (void* n = Next(Head(&trades_)); n != Head(&trades_); n = Next(n)) {
         auto* trade = ValueOf<TradeMessage>(n);

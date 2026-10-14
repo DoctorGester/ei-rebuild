@@ -40,11 +40,7 @@ T* NewMessageMemory() {
 
 // An STLport vector of counted pointers (start, finish, end of storage), as the file and party
 // messages embed it.
-struct RefVector {
-    RefPtr* start;
-    RefPtr* finish;
-    RefPtr* eos;
-};
+using RefVector = stlp::vector<RefPtr>;
 static_assert(sizeof(RefVector) == 12);
 
 // ---- Client to server ---------------------------------------------------------------------------

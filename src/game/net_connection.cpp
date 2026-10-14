@@ -144,7 +144,7 @@ void Increment(Node*& it) {
 using Handler = void(__fastcall*)(SessionBase*, CRefObject*);
 void CallHandlers(SessionBase* session, int channel, std::uint32_t type, CRefObject* message) {
     HandlerVector& v = session->handlers_[channel][type & 0xFF];
-    for (void** h = v.begin; h != v.end; ++h) reinterpret_cast<Handler>(*h)(session, message);
+    for (void** h = v.begin(); h != v.end(); ++h) reinterpret_cast<Handler>(*h)(session, message);
 }
 
 // A message's virtual Write (slot 4) and Read (slot 5) over a byte cursor.
@@ -601,19 +601,19 @@ void Connection::CollectChanges() {
         ReplicatedConstruct(&items, nullptr, &allocator);
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(kReplicatedDestroyAtExit));
     }
-    ReplicatedErase(&items, nullptr, items.begin, items.end);
+    ReplicatedErase(&items, nullptr, items.begin(), items.end());
     ReplicatedVector* target = &items;
     CurrentSession()->CollectReplicated(&target);
-    if (items.begin != items.end) {
+    if (items.begin() != items.end()) {
         int depth = 0;
-        for (std::int32_t n = static_cast<std::int32_t>(items.end - items.begin); n != 1; n >>= 1) ++depth;
-        ReplicatedSortLoop(items.begin, items.end, nullptr, depth * 2, target);
-        ReplicatedSortFinish(items.begin, items.end, target);
+        for (std::int32_t n = static_cast<std::int32_t>(items.size()); n != 1; n >>= 1) ++depth;
+        ReplicatedSortLoop(items.begin(), items.end(), nullptr, depth * 2, target);
+        ReplicatedSortFinish(items.begin(), items.end(), target);
     }
 
     // Merge the sorted list with byObject_ (both ordered by object pointer).
-    Replicated* item = items.begin;
-    Replicated* end = items.end;
+    Replicated* item = items.begin();
+    Replicated* end = items.end();
     ObjectMap::Node* header = byObject_.header;
     ObjectMap::Node* node = byObject_.Begin();
     auto entryAt = [](ObjectMap::Node* n) { return static_cast<ReplicaEntry*>(n->value.ptr); };

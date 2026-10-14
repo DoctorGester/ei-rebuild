@@ -232,11 +232,7 @@ constexpr int kMessageTypes = 0x100;
 
 // A vector of message handlers (STLport vector<void(*)()>: begin, end, end of storage). Handlers are
 // `void __fastcall (SessionBase*, Message*)`.
-struct HandlerVector {
-    void** begin;
-    void** end;
-    void** eos;
-};
+using HandlerVector = stlp::vector<void*>;
 static_assert(sizeof(HandlerVector) == 12);
 
 // The message type registry (+0x2C of a session): two STLport hash_maps.
@@ -296,11 +292,8 @@ struct Replicated {
     std::uint8_t priority;     // 0..10
     std::uint8_t unknown_05[3];
 };
-struct ReplicatedVector {
-    Replicated* begin;
-    Replicated* end;
-    Replicated* eos;
-};
+using ReplicatedVector = stlp::vector<Replicated>;
+static_assert(sizeof(ReplicatedVector) == 12);
 
 // Appending one {object, priority} to the vector, as the slot 13 implementations do: through the
 // out-of-line push_back of a default element (0041F790) or inline (the same, with the overflow
