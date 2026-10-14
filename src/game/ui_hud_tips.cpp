@@ -115,7 +115,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
         }
         regions_.data[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x26);
     }
-    selected_ = static_cast<int>(unit_->unknown_270);
+    selected_ = static_cast<int>(unit_->pendingWeapon);
     if (selected_ >= count_) selected_ = -1;
     Highlight(selected_, 1);
 }

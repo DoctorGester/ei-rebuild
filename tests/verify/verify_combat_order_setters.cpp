@@ -67,8 +67,8 @@ EI_VERIFY(0x00555270, SetMoveStyleVerify, 0, s_unusedSetMoveStyle);
 static void* s_unusedSetWantedWeapon;
 static void __fastcall SetWantedWeaponVerify(CUnitServer* self, void*, int slot) {
     self->SetWantedWeapon(slot);
-    ei::verify::Check("CUnitServer::SetWantedWeapon", true, self->unit->unknown_270 == slot && self->unknown_938 == 0,
-                      "unit %d slot %d: stored %d", UnitId(self), slot, self->unit->unknown_270);
+    ei::verify::Check("CUnitServer::SetWantedWeapon", true, self->unit->pendingWeapon == slot && self->unknown_938 == 0,
+                      "unit %d slot %d: stored %d", UnitId(self), slot, self->unit->pendingWeapon);
 }
 EI_VERIFY(0x005552E0, SetWantedWeaponVerify, 0, s_unusedSetWantedWeapon);
 

@@ -167,21 +167,21 @@ void CUnit::LoadUnit(UnitStream* stream) {
     void* newPlayer = PlayerById(this, playerId);
 
     stream->Read(&side, 4);
-    stream->Read(&unknown_254, 1);
-    stream->Read(&unknown_255, 1);
-    stream->Read(&unknown_258, 4);
-    stream->Read(&unknown_25C, 4);
-    stream->Read(&unknown_260, 4);
+    stream->Read(&animationEntry, 1);
+    stream->Read(&secondEntry, 1);
+    stream->Read(&animationStart, 4);
+    stream->Read(&motionMode, 4);
+    stream->Read(&pathTimeShift, 4);
     stream->Read(&moveMode, 4);
     stream->Read(&moveMode2, 4);
     stream->Read(&activeWeapon, 4);
-    stream->Read(&unknown_270, 4);
+    stream->Read(&pendingWeapon, 4);
     stream->Read(&dead, 4);
     stream->Read(&unknown_278, 4);
     Motion()->LoadState(AsStream(stream));
     stream->Read(&heightOffset, 4);
     stream->Read(&sizeClass, 4);
-    stream->Read(&unknown_328, 4);
+    stream->Read(&unitRadius, 4);
     Params()->Reset();
     stream->Read(&activeWeapon, 4);             // saved twice; the second copy wins
 
@@ -225,21 +225,21 @@ void CUnit::SaveUnit(UnitStream* stream) {
     WriteCopy(stream, relationsA);
     WriteCopy<int>(stream, player ? reinterpret_cast<CPlayer*>(player)->playerId_ : -1);
     WriteCopy(stream, side);
-    WriteCopy(stream, unknown_254);
-    WriteCopy(stream, unknown_255);
-    WriteCopy(stream, unknown_258);
-    stream->Write(&unknown_25C, 4);
-    stream->Write(&unknown_260, 4);
+    WriteCopy(stream, animationEntry);
+    WriteCopy(stream, secondEntry);
+    WriteCopy(stream, animationStart);
+    stream->Write(&motionMode, 4);
+    stream->Write(&pathTimeShift, 4);
     stream->Write(&moveMode, 4);
     stream->Write(&moveMode2, 4);
     WriteCopy(stream, activeWeapon);
-    WriteCopy(stream, unknown_270);
+    WriteCopy(stream, pendingWeapon);
     WriteCopy(stream, dead);
     WriteCopy(stream, unknown_278);
     Motion()->SaveState(AsStream(stream));
     WriteCopy(stream, heightOffset);
     WriteCopy(stream, sizeClass);
-    WriteCopy(stream, std::bit_cast<std::uint32_t>(unknown_328));
+    WriteCopy(stream, std::bit_cast<std::uint32_t>(unitRadius));
     WriteCopy(stream, activeWeapon);
 
     WriteItemIds(stream, weapons, 4);

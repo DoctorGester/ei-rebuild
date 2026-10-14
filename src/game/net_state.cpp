@@ -104,17 +104,17 @@ void __fastcall UnitWriteNetState(std::uint8_t* object) {
             (static_cast<std::uint8_t>((static_cast<std::uint8_t>(static_cast<std::uint8_t>(unit->unknown_278) << 1) |
                                         (static_cast<std::uint8_t>(unit->dead) & 1))
                                        << 3) |
-             (static_cast<std::uint8_t>(unit->unknown_260) & 7))
+             (static_cast<std::uint8_t>(unit->pathTimeShift) & 7))
             << 3);
-        bits = static_cast<std::uint8_t>(bits | (static_cast<std::uint8_t>(unit->unknown_25C) & 7));
+        bits = static_cast<std::uint8_t>(bits | (static_cast<std::uint8_t>(unit->motionMode) & 7));
         PutByte(field, bits);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(8)) {
-        PutByte(field, static_cast<std::uint8_t>(unit->unknown_254));
-        PutByte(field, static_cast<std::uint8_t>(unit->unknown_255));
-        PutWord(field, static_cast<std::uint32_t>(unit->unknown_258));
-        PutByte(field, static_cast<std::uint8_t>(unit->unknown_256));
+        PutByte(field, static_cast<std::uint8_t>(unit->animationEntry));
+        PutByte(field, static_cast<std::uint8_t>(unit->secondEntry));
+        PutWord(field, static_cast<std::uint32_t>(unit->animationStart));
+        PutByte(field, static_cast<std::uint8_t>(unit->actionSound));
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(9)) {
@@ -317,24 +317,24 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
             changed = true;
             unit->Controller()->ShowWeapon(value);   // slot 25
         }
-        unit->unknown_270 = static_cast<int>(unit->activeWeapon);
+        unit->pendingWeapon = static_cast<int>(unit->activeWeapon);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(7)) {
         std::uint8_t bits;
         field->ReadDelta(&bits, 1);
-        unit->unknown_25C = static_cast<signed char>(bits << 5) >> 5;
-        unit->unknown_260 = static_cast<signed char>(bits << 2) >> 5;
+        unit->motionMode = static_cast<signed char>(bits << 5) >> 5;
+        unit->pathTimeShift = static_cast<signed char>(bits << 2) >> 5;
         unit->dead = static_cast<signed char>(bits << 1) >> 7;
         unit->unknown_278 = static_cast<std::uint32_t>(static_cast<signed char>(bits) >> 7);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(8)) {
-        field->ReadDelta(&unit->unknown_254, 1);
-        field->ReadDelta(&unit->unknown_255, 1);
-        field->ReadDelta(&unit->unknown_258, 4);
-        field->ReadDelta(&unit->unknown_256, 1);
-        if (unit->unknown_25C == 1) --unit->unknown_258;
+        field->ReadDelta(&unit->animationEntry, 1);
+        field->ReadDelta(&unit->secondEntry, 1);
+        field->ReadDelta(&unit->animationStart, 4);
+        field->ReadDelta(&unit->actionSound, 1);
+        if (unit->motionMode == 1) --unit->animationStart;
         float time = static_cast<float>(WorldOf(unit)->tick_);
         unit->Controller()->RestartAnimation(time);   // slot 14
         field->EndField();
@@ -350,7 +350,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
     if (DeltaField* field = state->BeginField(10)) {
         AIPath* path = unit->Controller()->Path();
         PathReadOriginal(path, nullptr, field);
-        if (unit->unknown_260 == 1) PathShiftTime(path, nullptr, -1);
+        if (unit->pathTimeShift == 1) PathShiftTime(path, nullptr, -1);
         AIPath* path2 = unit->Controller()->Path();
         PathSetOwner(path2, nullptr, unit->id_);
         float walk, run;

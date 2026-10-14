@@ -77,7 +77,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
             int slot = AddWeaponAt(unit, nullptr, MakeWeapon(items, prototype->weaponName, name));
-            if (slot != -1) unit->unknown_270 = slot;
+            if (slot != -1) unit->pendingWeapon = slot;
         }
         if (Named(prototype->secondWeaponName))
             AddWeaponAt(unit, nullptr, MakeWeapon(items, prototype->secondWeaponName, name));

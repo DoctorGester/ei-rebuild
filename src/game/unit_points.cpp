@@ -81,7 +81,7 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
         CopyPosition(out, unit);
         return out;
     }
-    auto index = static_cast<std::uint8_t>(unit->unknown_254);
+    auto index = static_cast<std::uint8_t>(unit->animationEntry);
     Vector3 offset = {0.0f, 0.0f, 0.0f};
     auto* entry = reinterpret_cast<const FigureAnimation*>(ObjectAnimationEntryOriginal(unit, nullptr, index));
     if (!entry) {

@@ -159,9 +159,9 @@ UI_INPUT_HANDLER(0x0063C7D0, CHudWeaponBar, OnMouseMove);
 
 void CHudWeaponBar::Update() {
     CUnit* unit = unit_;
-    if (!unit || selected_ == unit->unknown_270) return;
+    if (!unit || selected_ == unit->pendingWeapon) return;
     Highlight(selected_, 0);
-    selected_ = unit_->unknown_270;
+    selected_ = unit_->pendingWeapon;
     Highlight(selected_, 1);
 }
 EI_REPLACE_METHOD(0x0063C600, CHudWeaponBar::Update);

@@ -93,14 +93,14 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     lastTime = time;
     if (ObjectSlots(unit)->InvisibleSlot()) CallInvisiblePulse(ClientHalf(unit), nullptr, step);
     if (unit->MapObject()->IsStunned()) CallStunnedPulse(ClientHalf(unit), nullptr, step);
-    if (unit->unknown_260 == 0) CallPlaceOnPath(this, nullptr, time, step);
+    if (unit->pathTimeShift == 0) CallPlaceOnPath(this, nullptr, time, step);
     else unit->animationSpeed = 1.0f;
-    if (unit->unknown_25C == kMotionScaled) {
+    if (unit->motionMode == kMotionScaled) {
         volatile float scaled = step * unit->animationSpeed;
         step = scaled;
     }
     CFigureAnimationState* state = unit->Object3D()->animation;
-    if (state && unit->unknown_25C != kMotionPaused) FigureAdvanceOriginal(state, nullptr, step);
+    if (state && unit->motionMode != kMotionPaused) FigureAdvanceOriginal(state, nullptr, step);
 }
 EI_REPLACE_METHOD(0x00535B30, CUnitClientSpecific::AdvanceTime);
 
@@ -108,22 +108,22 @@ void CUnitClientSpecific::RestartAnimation(float time) {
     if (unit->flags_ & kFlagFrozen) return;
     CFigureAnimationState* state = unit->Object3D()->animation;
     state->queue.RemoveAll();
-    if (unit->unknown_255 == kModeSpecialIdle) {
+    if (unit->secondEntry == kModeSpecialIdle) {
         ClientStartIdleAnimationOriginal(this, nullptr, 1);
     } else {
         char* first = nullptr;
         char* second = nullptr;
-        if (unit->unknown_254 != kNoEntry)
-            first = UnitAnimationEntry(unit, nullptr, static_cast<std::uint8_t>(unit->unknown_254));
-        if (unit->unknown_255 != kNoEntry)
-            second = UnitAnimationEntry(unit, nullptr, static_cast<std::uint8_t>(unit->unknown_255));
+        if (unit->animationEntry != kNoEntry)
+            first = UnitAnimationEntry(unit, nullptr, static_cast<std::uint8_t>(unit->animationEntry));
+        if (unit->secondEntry != kNoEntry)
+            second = UnitAnimationEntry(unit, nullptr, static_cast<std::uint8_t>(unit->secondEntry));
         if (first) FigurePlayOriginal(unit->Object3D()->animation, nullptr, first);
         if (second) {
             if (!first) FigurePlayOriginal(unit->Object3D()->animation, nullptr, second);
             else FigureQueueOriginal(unit->Object3D()->animation, nullptr, second);
         }
     }
-    double start = unit->unknown_258;
+    double start = unit->animationStart;
     volatile float stored = static_cast<float>((time + 1.0f) - start);   // FST to the argument's slot
     float step = stored;
     state = unit->Object3D()->animation;
@@ -155,7 +155,7 @@ void CUnitClientSpecific::StartIdleAnimation(std::uint8_t play) {
         key = 1u << unit->Params()->naturalWeapon;
     }
     if (unit->type_ != kUnitTypeHero) key |= kKeyNotHero;
-    if (unit->unknown_255 == kModeSpecialIdle) key |= kKeySpecialIdle;
+    if (unit->secondEntry == kModeSpecialIdle) key |= kKeySpecialIdle;
     char* animation = UnitFindAnimation(unit, nullptr, key, 1);
     if (!animation) return;
     if (play) FigurePlayOriginal(unit->Object3D()->animation, nullptr, animation);

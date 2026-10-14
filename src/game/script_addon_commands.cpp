@@ -249,7 +249,7 @@ bool GiveUnitWeapon(Call* call) {
     if (!item) return Report("GiveUnitWeapon", "Can't create item \"%s\"", name);
     int slot = UnitAddWeaponOriginal(unit, nullptr, item);
     if (slot == -1) return true;
-    AsCUnit(unit)->unknown_270 = slot;
+    AsCUnit(unit)->pendingWeapon = slot;
     if (override) {
         auto* weapon = reinterpret_cast<const itemdb::WeaponRecord*>(item->GetPrototype());
         CombatStats& stats = ServerOf(unit)->Combat();

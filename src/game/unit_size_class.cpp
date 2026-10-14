@@ -28,7 +28,7 @@ void CUnit::UpdateSizeClass() {
     Controller()->UpdateMoveFactors();   // the server's 005536B0; empty (00533D10) on the others
     if (controller->GetClassId() != kClassUnitServer) {
         sizeClass = movementKind == kMovesOnWater ? 0 : 3;
-        std::memcpy(&unknown_328, &kDefaultRadius, 4);
+        std::memcpy(&unitRadius, &kDefaultRadius, 4);
         return;
     }
     // The server controller's size classes, read unsigned.
@@ -43,7 +43,7 @@ void CUnit::UpdateSizeClass() {
     float extent = !(extentX >= extentY) ? extentY : extentX;
     float height = extent * kHeightScale;
     standingHeight = height;
-    unknown_328 = height + kRadiusExtra;
+    unitRadius = height + kRadiusExtra;
     if (player) standingHeight = height + kPlayerExtra;
     // At most 2, selected the same way: 2 when below the height or NaN.
     float limited = standingHeight;

@@ -793,9 +793,9 @@ void CUnitServer::ResyncWithUnit() {
     CtlSetStanding(this, nullptr, 0);
     CtlSetState(this, nullptr, kStateChasing);
     UnitUpdateSizeClass(unit);
-    unit->unknown_270 = 0;
-    if (unit->unknown_270 != static_cast<int>(unit->activeWeapon))
-        unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->unknown_270));   // slot 25
+    unit->pendingWeapon = 0;
+    if (unit->pendingWeapon != static_cast<int>(unit->activeWeapon))
+        unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->pendingWeapon));   // slot 25
     if (state == kStateTurning) return;
     std::uint32_t key = CtlWeaponTypeMask(this) | CtlMoveModeMask(this, nullptr, &moveMode);
     if (IdleKey(this) == key) {

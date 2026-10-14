@@ -50,7 +50,7 @@ static int __fastcall GiveStartingEquipmentVerify(CMapObjectManager* self, void*
             if (weapons != std::min(4, weaponsBefore + named)) problem = "weapons";
             else if (Filled(unit->armor, 7) < armourBefore) problem = "armour";
             else if (Named(prototype->weaponName) && weaponsBefore < 4 &&
-                     (static_cast<unsigned>(unit->unknown_270) >= 4 || !unit->weapons[unit->unknown_270]))
+                     (static_cast<unsigned>(unit->pendingWeapon) >= 4 || !unit->weapons[unit->pendingWeapon]))
                 problem = "weapon slot (+0x270)";
         }
     }

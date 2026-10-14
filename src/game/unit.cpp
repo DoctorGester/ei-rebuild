@@ -112,28 +112,28 @@ std::uintptr_t CUnit::SetUnknown438(int value) {
 }
 EI_REPLACE_METHOD(0x0052E9B0, CUnit::SetUnknown438);
 
-std::uintptr_t CUnit::SetUnknown254(std::int8_t a, std::int8_t b, int c, std::int8_t d) {
-    unknown_254 = a;
-    unknown_255 = b;
-    unknown_256 = d;
-    unknown_258 = c;
+std::uintptr_t CUnit::SetAnimationEntries(std::int8_t a, std::int8_t b, int c, std::int8_t d) {
+    animationEntry = a;
+    secondEntry = b;
+    actionSound = d;
+    animationStart = c;
     return MarkChanged(8);
 }
-EI_REPLACE_METHOD(0x0052EA90, CUnit::SetUnknown254);
+EI_REPLACE_METHOD(0x0052EA90, CUnit::SetAnimationEntries);
 
-std::uintptr_t CUnit::SetUnknown25C(int value) {
-    if (unknown_25C == value) return static_cast<std::uintptr_t>(value);
-    unknown_25C = value;
+std::uintptr_t CUnit::SetMotionMode(int value) {
+    if (motionMode == value) return static_cast<std::uintptr_t>(value);
+    motionMode = value;
     return MarkChanged(7);
 }
-EI_REPLACE_METHOD(0x0052EAD0, CUnit::SetUnknown25C);
+EI_REPLACE_METHOD(0x0052EAD0, CUnit::SetMotionMode);
 
-std::uintptr_t CUnit::SetUnknown260(int value) {
-    if (unknown_260 == value) return static_cast<std::uintptr_t>(value);
-    unknown_260 = value;
+std::uintptr_t CUnit::SetPathTimeShift(int value) {
+    if (pathTimeShift == value) return static_cast<std::uintptr_t>(value);
+    pathTimeShift = value;
     return MarkChanged(7);
 }
-EI_REPLACE_METHOD(0x0052EAF0, CUnit::SetUnknown260);
+EI_REPLACE_METHOD(0x0052EAF0, CUnit::SetPathTimeShift);
 
 std::uintptr_t CUnit::SetMoveModes(int mode, int mode2) {
     moveMode = mode;

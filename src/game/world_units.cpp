@@ -341,8 +341,8 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         }
         ControllerReposition(controller, nullptr);
         if (unknown12D64_ == kKindSinglePlayer || unknown12D64_ == kKindNoRangeTest)
-            AsUnit(unit)->unknown_270 = static_cast<int>(record->weaponIndex);
-        if (placement && unknown12D64_ != kKindNoRangeTest) AsUnit(unit)->unknown_270 = static_cast<int>(placement->value24);
+            AsUnit(unit)->pendingWeapon = static_cast<int>(record->weaponIndex);
+        if (placement && unknown12D64_ != kKindNoRangeTest) AsUnit(unit)->pendingWeapon = static_cast<int>(placement->value24);
     }
 
     // Followers follow their leaders.

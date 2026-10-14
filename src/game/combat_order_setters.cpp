@@ -94,7 +94,7 @@ EI_REPLACE_METHOD(0x00555270, CUnitServer::SetMoveStyle);
 
 void CUnitServer::SetWantedWeapon(int slot) {
     unknown_938 = 0;
-    unit->unknown_270 = slot;
+    unit->pendingWeapon = slot;
 }
 EI_REPLACE_METHOD(0x005552E0, CUnitServer::SetWantedWeapon);
 

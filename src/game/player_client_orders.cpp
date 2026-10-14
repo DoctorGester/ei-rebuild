@@ -136,7 +136,7 @@ int CPlayerClient::SetWeapon(CUnit* unit, int slot) {
     UnitByteBlock block{unit->id_, static_cast<std::uint8_t>(slot)};
     WriteType(out_, kWeapon);
     out_.Write(&block, sizeof(block));
-    unit->unknown_270 = slot;
+    unit->pendingWeapon = slot;
     return 1;
 }
 

@@ -292,11 +292,12 @@ public:
 
     // 0052E9B0. Sets unknown_438; marks part 13.
     std::uintptr_t SetUnknown438(int value);
-    // 0052EA90. Sets the bytes at +0x254, +0x255, +0x256 and the int at +0x258; marks part 8.
-    std::uintptr_t SetUnknown254(std::int8_t a, std::int8_t b, int c, std::int8_t d);
-    // 0052EAD0 / 0052EAF0. Set unknown_25C / unknown_260; mark part 7 when they change.
-    std::uintptr_t SetUnknown25C(int value);
-    std::uintptr_t SetUnknown260(int value);
+    // 0052EA90. Sets the animation entries (+0x254, +0x255), the action sound (+0x256) and the
+    // animation start (+0x258); marks part 8.
+    std::uintptr_t SetAnimationEntries(std::int8_t entry, std::int8_t second, int start, std::int8_t sound);
+    // 0052EAD0 / 0052EAF0. Set motionMode / pathTimeShift; mark part 7 when they change.
+    std::uintptr_t SetMotionMode(int mode);
+    std::uintptr_t SetPathTimeShift(int shift);
     // 0052EB10. Sets both movement modes (+0x264, +0x268); marks part 6.
     std::uintptr_t SetMoveModes(int mode, int mode2);
     // 0052EBE0. Clears (on) or sets (off) flags_ bit 0x40000000; marks part 5.
@@ -587,23 +588,25 @@ public:
     std::uint32_t relationsB;       // +0x248 / bit s set
     char* player;                   // +0x24C the player that owns the unit (null: none)
     int side;                       // +0x250
-    std::int8_t unknown_254;
-    std::int8_t unknown_255;
-    std::int8_t unknown_256;
+    // +0x254 / +0x255 the animation entries (FigureAnimation::index) the unit shows: -1 none; the
+    // second -2 for the special idle. The client's RestartAnimation (controller slot 14) plays them.
+    std::int8_t animationEntry;
+    std::int8_t secondEntry;
+    std::int8_t actionSound;        // +0x256 a hero's action sound (CUnitClientSpecific's sounds)
     std::uint8_t unknown_257;
-    int unknown_258;
-    int unknown_25C;
-    int unknown_260;
+    int animationStart;             // +0x258 the world tick the animation started at (+1 per paused tick)
+    int motionMode;                 // +0x25C 0 plays, 1 paused (the start moves on), 2 scaled
+    int pathTimeShift;              // +0x260 1: the client shifts its motion path's time each update
     int moveMode;                   // +0x264 0..4
     int moveMode2;                  // +0x268
     std::uint32_t activeWeapon;     // +0x26C slot of the weapon in use
-    int unknown_270;
+    int pendingWeapon;              // +0x270 the weapon slot to take up (-1 none; TakeUpWeapon / ShowWeapon)
     int dead;                       // +0x274 (virtual slot 55 returns it; CUnitServer::SetDead)
     std::uint32_t unknown_278;      // +0x278 ("large unit": slot 54 returns it)
     std::uint8_t motion[0xA4];      // +0x27C the unit's UnitMotion (ai_motion.h): Motion()
     float heightOffset;             // +0x320 height above the water surface (PlaceOnGround)
     int sizeClass;                  // +0x324 selects the 4-bit passability field in each AI map cell
-    float unknown_328;              // +0x328 0.75 after Reset
+    float unitRadius;               // +0x328 virtual slot 60 (Radius); 0.75 after Reset
     float standingHeight;           // +0x32C; deeper water or higher ground than (2 - height) * 16 blocks it
     std::uint8_t unknown_330[0x33E - 0x330];
     std::uint8_t attackRate;        // +0x33E (25 / value: see UnitParamsPeriod)
@@ -644,7 +647,9 @@ static_assert(offsetof(CUnit, actionSpeeds) == 0x4B0);
 static_assert(offsetof(CUnit, dead) == 0x274);
 static_assert(offsetof(CUnit, heightOffset) == 0x320);
 static_assert(offsetof(CUnit, scriptName) == 0x238);
-static_assert(offsetof(CUnit, unknown_254) == 0x254);
+static_assert(offsetof(CUnit, animationEntry) == 0x254);
+static_assert(offsetof(CUnit, pendingWeapon) == 0x270);
+static_assert(offsetof(CUnit, unitRadius) == 0x328);
 static_assert(offsetof(CUnit, unknown_278) == 0x278);
 static_assert(offsetof(CUnit, motion) == 0x27C);
 static_assert(offsetof(CUnit, unknown_330) == 0x330);

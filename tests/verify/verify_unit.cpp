@@ -133,8 +133,8 @@ EI_VERIFY(0x0052E9B0, Set438Verify, 6, s_set438);
 // 0052EA90: MOV AL,[ESP+4]; MOV DL,[ESP+8] (8 bytes).
 static std::uintptr_t(__fastcall* s_set254)(CUnit*, void*, std::int8_t, std::int8_t, int, std::int8_t);
 static std::uintptr_t __fastcall Set254Verify(CUnit* self, void*, std::int8_t a, std::int8_t b, int c, std::int8_t d) {
-    return SameUnitWrites<std::uintptr_t>("CUnit::SetUnknown254", self, nullptr,
-                                          [&] { return self->SetUnknown254(a, b, c, d); },
+    return SameUnitWrites<std::uintptr_t>("CUnit::SetAnimationEntries", self, nullptr,
+                                          [&] { return self->SetAnimationEntries(a, b, c, d); },
                                           [&] { return s_set254(self, nullptr, a, b, c, d); });
 }
 EI_VERIFY(0x0052EA90, Set254Verify, 8, s_set254);
@@ -142,14 +142,14 @@ EI_VERIFY(0x0052EA90, Set254Verify, 8, s_set254);
 // 0052EAD0 / 0052EAF0: MOV EAX,[ESP+4]; MOV EDX,[ECX+0x25C / 0x260] (10 bytes).
 static std::uintptr_t(__fastcall* s_set25C)(CUnit*, void*, int);
 static std::uintptr_t __fastcall Set25CVerify(CUnit* self, void*, int value) {
-    return SameUnitWrites<std::uintptr_t>("CUnit::SetUnknown25C", self, nullptr, [&] { return self->SetUnknown25C(value); },
+    return SameUnitWrites<std::uintptr_t>("CUnit::SetMotionMode", self, nullptr, [&] { return self->SetMotionMode(value); },
                                           [&] { return s_set25C(self, nullptr, value); });
 }
 EI_VERIFY(0x0052EAD0, Set25CVerify, 10, s_set25C);
 
 static std::uintptr_t(__fastcall* s_set260)(CUnit*, void*, int);
 static std::uintptr_t __fastcall Set260Verify(CUnit* self, void*, int value) {
-    return SameUnitWrites<std::uintptr_t>("CUnit::SetUnknown260", self, nullptr, [&] { return self->SetUnknown260(value); },
+    return SameUnitWrites<std::uintptr_t>("CUnit::SetPathTimeShift", self, nullptr, [&] { return self->SetPathTimeShift(value); },
                                           [&] { return s_set260(self, nullptr, value); });
 }
 EI_VERIFY(0x0052EAF0, Set260Verify, 10, s_set260);

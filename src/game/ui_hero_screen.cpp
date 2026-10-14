@@ -380,7 +380,7 @@ void CMpHeroScreen::MakePreview(int flag) {
             std::uint32_t random = IsaacRandom::Global().Next();
             double frames = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
             int start = static_cast<int>(frames - static_cast<int>(random % 51));
-            unit->SetUnknown254(-1, static_cast<std::int8_t>(animation->index), start, 0);
+            unit->SetAnimationEntries(-1, static_cast<std::int8_t>(animation->index), start, 0);
         }
         CUnitController* controller = unit->Controller();
         controller->ShowWeapon(0xFFFFFFFF);

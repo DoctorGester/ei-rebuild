@@ -305,7 +305,7 @@ void CUnit::Reset() {
     prototype23C = -1;
     heightOffset = 0.0f;
     sizeClass = 3;
-    SetBits(unknown_328, kThreeQuarters);
+    SetBits(unitRadius, kThreeQuarters);
     SetBits(standingHeight, kHalf);
     relationsA = 0;
     relationsB = 0xFFFFFFFFu;
@@ -314,17 +314,17 @@ void CUnit::Reset() {
         static_cast<CUnitServer*>(controller)->unit = nullptr;
         controller->Release();
     }
-    unknown_254 = -1;
-    unknown_255 = -1;
+    animationEntry = -1;
+    secondEntry = -1;
     controller = nullptr;
     player = nullptr;
-    unknown_256 = 0;
-    unknown_258 = 0;
-    unknown_25C = 0;
-    unknown_260 = 0;
+    actionSound = 0;
+    animationStart = 0;
+    motionMode = 0;
+    pathTimeShift = 0;
     moveMode = 2;
     moveMode2 = 2;
-    unknown_270 = -1;
+    pendingWeapon = -1;
     dead = 0;
     unknown_278 = 0;
     activeWeapon = 0xFFFFFFFFu;

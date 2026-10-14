@@ -223,8 +223,8 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (view->player->mode == kViewNoAttackSounds) break;
         sounds->StopSound(idleSound);
         if (PassedFrame(x87::FromUnsigned(current->moment), lastAnimationTime, now)) Shake(unit);
-        if (unit->type_ == kUnitTypeHero && unit->unknown_256 &&
-            CallActionSound(this, nullptr, current, lastAnimationTime, now, &sound, static_cast<std::uint8_t>(unit->unknown_256)))
+        if (unit->type_ == kUnitTypeHero && unit->actionSound &&
+            CallActionSound(this, nullptr, current, lastAnimationTime, now, &sound, static_cast<std::uint8_t>(unit->actionSound)))
             sounds->Play3D(sound, kPriorityAction, &position.x, kSoundNear, kSoundFar, 0, 0);
         priority = kPriorityAction;
         action = true;
