@@ -10,8 +10,10 @@
 #include "core_refcount.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include "originals_ai.h"
@@ -19,19 +21,23 @@
 
 namespace {
 
-CRefObject*& Patch() { return *reinterpret_cast<CRefObject**>(0x007C2F64); }
+CUnitShape*& Patch() { return *reinterpret_cast<CUnitShape**>(0x007C2F64); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F68); }
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-CRefObject* NewPatch() {
-    auto* object = static_cast<std::uint8_t*>(gamecrt::operator_new(0x10C));
-    if (!object) return nullptr;
-    *reinterpret_cast<std::uint32_t*>(object + 4) = 0;
-    *reinterpret_cast<std::uint32_t*>(object) = 0x0073FD5C;
-    std::memset(object + 8, 0, 0x100);
-    *reinterpret_cast<float*>(object + 0x108) = -1.0f;
-    return reinterpret_cast<CRefObject*>(object);
+// An empty unit shape (as CUnitShape::Empty leaves one), built inline. The counted header (count
+// and flags) is cleared with one dword store, as the original does.
+CUnitShape* NewPatch() {
+    auto* shape = static_cast<CUnitShape*>(gamecrt::operator_new(sizeof(CUnitShape)));
+    if (!shape) return nullptr;
+    const std::uint32_t noReferences = 0;
+    std::memcpy(&shape->refs_, &noReferences, sizeof(noReferences));
+    static_assert(offsetof(CUnitShape, flags7_) - offsetof(CUnitShape, refs_) == 3);
+    ei::SetVtable(shape, kUnitShapeVtable);
+    std::memset(shape->levels, 0, sizeof(shape->levels));
+    shape->radius = -1.0f;
+    return shape;
 }
 
 } // namespace
@@ -49,8 +55,8 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005B80C0));
     }
     if (!Patch() || (Patch()->flags7_ & CRefObject::kDetached)) {
-        CRefObject* fresh = NewPatch();
-        CRefObject* old = Patch();
+        CUnitShape* fresh = NewPatch();
+        CUnitShape* old = Patch();
         Patch() = fresh;
         if (fresh) ++fresh->refs_;
         if (old) old->Release();
@@ -60,10 +66,10 @@ void CAIMap::StampWaterPatch(const Vector3* position, bool add) {
     int y0 = y - 7 < 0 ? 0 : y - 7;
     int x1 = width - 1 >= x + 7 ? x + 7 : width - 1;
     int y1 = height - 1 >= y + 7 ? y + 7 : height - 1;
-    auto* shape = reinterpret_cast<std::uint8_t*>(Patch());
+    CUnitShape* shape = Patch();
     for (int yy = y0; yy < y1; ++yy)
         for (int xx = x0; xx < x1; ++xx)
-            shape[8 + (yy - y0) * 16 + (xx - x0)] = static_cast<std::uint8_t>(waterDepth[yy][xx]);
+            shape->levels[yy - y0][xx - x0] = static_cast<std::uint8_t>(waterDepth[yy][xx]);
     // The pseudo unit is only a key to the layer (ai_unit_layer.cpp).
     CUnitLayer* layer = &unitLayerSmall;
     auto* owner = reinterpret_cast<CUnit*>(static_cast<std::intptr_t>(key));

@@ -1021,7 +1021,7 @@ struct SpiralCache {
 int WorldToCell(float world);
 
 // 005B6070 (thiscall on the map; ai_cost_tables.cpp). The cost tables per passability nibble.
-void __fastcall InitCostTables(std::uint8_t* map);
+void __fastcall InitCostTables(CAIMap* map);
 // 005B7B20. Standing level of size class `sizeClass` (0..7): (2 - height) * 16, at least 0. Outside
 // 0..7 the original returns only AL = 0 (the rest of EAX is the argument), reproduced here.
 int __stdcall LevelForSizeClass(int sizeClass);

@@ -475,7 +475,7 @@ void CAIMap::AttachTerrain() {
     loaded = true;
     refreshUnits = false;
     BuildOpenMarks();
-    InitCostTables(reinterpret_cast<std::uint8_t*>(this));
+    InitCostTables(this);
     SearchGrid<std::int8_t>& water = WaterGrid();
     ResizeGrid(water, width, height, AllocateBytes);
     std::memset(water.data, 0, static_cast<std::size_t>(water.height * water.width));

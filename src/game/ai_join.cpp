@@ -51,9 +51,8 @@ void DestroyList(PathCellList& list) {
 void SetBuildCellsStaleWord(std::uint32_t value) { g_staleWord = value; }
 
 bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
-    auto* self = reinterpret_cast<std::uint8_t*>(this);
-    void* forward = self + 0x2594;
-    void* backward = self + 0x2614;
+    LocalSearch* forward = &forwardSearch;
+    LocalSearch* backward = &backwardSearch;
     bool ok = true;
     int x = 0, y = 0, open = 0, other = 0;
     for (;;) {

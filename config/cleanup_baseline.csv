@@ -15,7 +15,7 @@ src/game/ai_path_stand.cpp,0,0,1,2,0,0,0,0,0,0,0
 src/game/ai_plan.cpp,0,0,0,0,2,0,0,0,0,0,0
 src/game/ai_refresh.cpp,0,0,1,2,6,0,0,0,0,0,0
 src/game/ai_shape_cache.cpp,0,0,0,2,0,0,0,0,0,0,0
-src/game/ai_water_patch.cpp,0,0,0,2,1,0,0,0,0,0,0
+src/game/ai_water_patch.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/app_device_list.cpp,0,0,0,0,0,0,0,3,0,0,0
 src/game/app_frame.cpp,8,1,0,0,1,0,0,1,0,0,0
 src/game/app_registry.cpp,0,2,0,0,0,0,0,0,0,0,0

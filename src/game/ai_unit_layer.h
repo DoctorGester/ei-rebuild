@@ -6,6 +6,7 @@
 // Names provisional; layout static_asserted below.
 
 #include "ai_map.h"
+#include "ai_shape_cache.h"
 #include "core_refcount.h"
 #include "unit.h"
 
@@ -33,12 +34,8 @@ static_assert(offsetof(CUnitShape, levels) == 8);
 static_assert(sizeof(CUnitShape) == 0x10C);
 constexpr std::uintptr_t kUnitShapeVtable = std::uintptr_t(0x0073FD5C);
 
-struct UnitShapeHandle {
-    void* cache;
-    CRefObject* ref;
-    std::uint32_t key;
-    float radius;
-};
+// The shape cache's handle (ai_shape_cache.h); its height is the shape's radius.
+using UnitShapeHandle = ShapeCacheHandle;
 // 005B33D0 (the shape cache's slot 0, RET 4). A new shape for the handle's radius.
 CUnitShape* __fastcall CreateUnitShape(void* cache, void*, const UnitShapeHandle* handle);
 

@@ -31,7 +31,7 @@ public:
     // A node is {next, handle, shape}: 0x18 bytes.
     using Map = stlp::hash_map<ShapeCacheHandle, RefPtr, ShapeCacheHash>;
 
-    // 0 (RET 4): makes the shape for a handle (005B33D0, CreateUnitShape in ai_unit_shape.cpp).
+    // 0 (RET 4): makes the shape for a handle (005B33D0, CreateUnitShape in ai_unit_layer.h).
     virtual CRefObject* CreateShape(const ShapeCacheHandle* handle);
 
     // 005B32E0 (the static initialiser 005B31C0 calls it on 007C2F70; returns this). An empty map
