@@ -252,13 +252,14 @@ code as well (ui_camp: DrawTextIn 8301 calls). The chat line is not drawn in a s
 network clients): the harness's `chat 1|0` step opens it for the wrapper. A pausing window's frame (the Save window) leaves out what moved
 in `<f>_moving` / `<f>_moving_later`, captured before it opened (run_all); the unit panel is slid out first, as the window's picture is a
 copy of the screen with the animated hero in it.
-2026-10-14: both scenarios' frames within the default tolerance (ui_widescreen at most 0.088%, menu; ui_widescreen_more at most
-0.029%, the Save window), and the W2 wrappers at 0 mismatches (TextExtent 1354 calls, DrawTextIn 3238, SetRectangle 853, the tooltip
+2026-10-14: both scenarios' frames within the default tolerance (ui_widescreen at most 0.064%, options; ui_widescreen_more at most
+0.040%, the Save window; the menu's swaying trees once reached 0.135%), and the W2 wrappers at 0 mismatches (TextExtent 1354 calls, DrawTextIn 3238, SetRectangle 853, the tooltip
 19221, the edit field 8, the list 2, the chat line 3).
 Font smoothing is a desktop setting: the titles / credits screen switches it off and "restores" a value it never read, so a harness
 game left it off for the whole machine and other runs turned it back; the two runs compared then drew text with and without GDI's
-grey edges (every text failed). The harness no longer passes the game's SPI_SETFONTSMOOTHING on (harness.cpp); checkouts without
-that commit still flip it while they run games.
+grey edges (every text failed). The harness no longer passes the game's SPI_SETFONTSMOOTHING on, and creates the game's fonts
+NONANTIALIASED_QUALITY (as they look after the titles), so text no longer depends on the desktop's setting (harness.cpp); checkouts
+without that commit still flip the setting while they run games.
 Display: a scenario with a `resolution` step runs alone on the machine (run_all, X36): the desktop-mode game took the surfaces of games
 running beside it (DDERR_SURFACELOST; the widescreen game itself got it too when it ran beside others). While such a game gathers the
 slots, no other game takes one (else it waited for every other suite on the machine to end).

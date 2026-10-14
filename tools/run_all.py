@@ -32,6 +32,7 @@ import argparse, collections, concurrent.futures, contextlib, glob, json, msvcrt
 import prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more']   # --widescreen without scenario names
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
 # Runs go to <BUILD>/runs. <BUILD>/run_times.json keeps each run's seconds from the last suite: the
 # longest start first, so the last games to finish are short ones (alphabetical order left a 50 s run
@@ -252,7 +253,7 @@ def plan(args, root=ROOT):
     rebirth = set(names) if args.scenarios or args.all_rebirth or args.rebirth_only else rebirth_scenarios(names, root)
     jobs = [(name, install) for name in names for install in installs if install != 'rebirth' or name in rebirth]
     if args.widescreen:
-        names = args.scenarios or ['ui_widescreen', 'ui_widescreen_more']
+        names = args.scenarios or WIDESCREEN_SCENARIOS
         jobs = [(name, install) for name in names for install in ('rebirth', 'rebirth-nohooks')]
     return jobs
 
@@ -313,7 +314,7 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
         for fn, (calls, mismatches) in bad:
             print(f'  {fn}: {mismatches} of {calls}', file=out)
     if args.widescreen:
-        for name in args.scenarios or ['ui_widescreen']:
+        for name in args.scenarios or WIDESCREEN_SCENARIOS:
             print(f'\nframes of {name}: ours (rebirth) against addon\'s alone (rebirth-nohooks)', file=out)
             out.flush()
             ok = compare_widescreen(name, out, root, build) and ok
