@@ -29,18 +29,6 @@ struct UnitController;  // below AIBrain
 
 using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
 
-// The stream the save-game code passes to Load/Save (vtable slot 1 Read, slot 2 Write); +8 is the
-// version of the file being read.
-class AIStream {
-public:
-    virtual void* DeletingDestruct(unsigned flags) = 0;         // 0: CStream's (00417400)
-    virtual void Read(void* buffer, unsigned size) = 0;          // 1
-    virtual void Write(const void* buffer, unsigned size) = 0;   // 2
-
-    int reading;                        // +0x04 CStream::reading_ (its low byte)
-    int version;            // +0x08
-};
-
 // An order as the controller's order checks take it (0x1C bytes, built on the stack).
 struct AIOrder {
     // 00545F40. Kind 9 (none): the object released and cleared, the flag cleared.
@@ -94,8 +82,8 @@ void __fastcall LooksGetAt(const AILookArray* looks, void*, AILook* out, int ind
 AILookArray* __fastcall LooksInit(AILookArray* looks);
 // 005D9010 / 005D91B0 (fastcall, plain RET; unit_ai_save.cpp). The looks from / to a save: the
 // count, then angle, time and wait of each and (files from version 0x44) the stop flag.
-void __fastcall LoadLooks(AILookArray* looks, AIStream* stream);
-void __fastcall SaveLooks(const AILookArray* looks, AIStream* stream);
+void __fastcall LoadLooks(AILookArray* looks, CStream* stream);
+void __fastcall SaveLooks(const AILookArray* looks, CStream* stream);
 // 005D9DE0. CArray::GetAt returning by value (into `out`, which EAX returns).
 AILook* __fastcall LooksElementAt(const AILookArray* looks, void*, AILook* out, int index);
 constexpr std::uintptr_t kLookArrayVtable = 0x0073D4B4;
@@ -143,8 +131,8 @@ public:
     // 9: 1 for most modes; AddMode replaces a mode of another type when both answer 1.
     virtual bool Exclusive() = 0;
     virtual void OnObjectDeleted(CEngineObject* object) = 0;    // 10
-    virtual void Load(AIStream* stream) = 0;            // 11
-    virtual void Save(AIStream* stream) = 0;            // 12
+    virtual void Load(CStream* stream) = 0;            // 11
+    virtual void Save(CStream* stream) = 0;            // 12
 };
 
 // Base of all modes (vtables 0073D15C (abstract), 0073D22C (abstract)); the slots are listed in
@@ -239,8 +227,8 @@ struct GuardMode : AIMode {
     // the unit) and look around there.
     void Execute(AIBrain* brain);
     // 005D0EB0 / 005D0F00 (slots 11 / 12).
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
     // 004BA1C0 (RET 0xC; script_unit_modes.cpp). Constructor after operator new: the vtable, then Set.
     GuardMode* ScriptGuardModeConstruct(const Vector3* newPoint, float newRadius, float newWander);
     // The script-made modes' own slots (script_unit_modes.cpp). Clone (slot 3): a new mode (operator new,
@@ -301,8 +289,8 @@ struct PatrolMode : AIMode {
     // 005D1930 / 005D1A40 (slots 11 / 12). The point count (the points' SetSize 004C9970), per point
     // its position, look count (the looks' SetSize 005D8EE0) and per look angle, time, wait and
     // (from version 0x44 when loading) the stop flag byte; then `current`.
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
     // 005D12B0 (through its address, so the verify wrapper sees Evaluate's calls).
     void AddPoint(const Vector3* position);
     // 005D12B0 (unit_ai_looks.cpp). Appends a point with no looks at ((n + 0.5) / 2, z 0) for
@@ -332,8 +320,8 @@ struct SentryMode : AIMode {
     // 005D1B70 (slot 5). When idle: back to the point and look around.
     void Execute(AIBrain* brain);
     // 005D1DA0 / 005D1DC0 (slots 11 / 12).
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
     // 004BA360 (RET 4; script_unit_modes.cpp). Constructor after operator new: the vtable, then Set.
     SentryMode* ScriptSentryModeConstruct(const Vector3* newPoint);
     // Slots 3 / 2 / 0 as for GuardMode (script_unit_modes.cpp).
@@ -352,8 +340,8 @@ struct FollowMode : AIMode {
     // 005D1DE0 (slot 10). Drops the leader when it is the deleted object.
     void OnObjectDeleted(CEngineObject* object);
     // 005D1E60 / 005D1E80 (slots 11 / 12). Loads / saves the leader's reference.
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
     // 004BA450 (RET 4; script_unit_modes.cpp). Constructor after operator new: the leader is referenced.
     FollowMode* ScriptFollowModeConstruct(CEngineObject* newLeader);
     // Slots 3 / 2 / 0 (script_unit_modes.cpp). Clone and Reset reference / drop the leader. FollowDestruct:
@@ -379,8 +367,8 @@ struct SuspectionMode : AIMode {
     // 005D2310 (slot 7). Clears busy; remark 3.
     void Leave(AIBrain* brain);
     // 005D2330 / 005D2360 (slots 11 / 12).
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
     // 004BA610 (script_unit_modes.cpp). Constructor after operator new: the vtable only.
     SuspectionMode* ScriptSuspectionModeConstruct();
     // Slots 3 / 2 / 0 as for GuardMode (script_unit_modes.cpp).
@@ -406,8 +394,8 @@ struct AggressionMode : AIMode {
     // clears busy; remark 4.
     void Leave(AIBrain* brain);
     // 005D2770 / 005D27A0 (slots 11 / 12). The enemy's reference and `fixed`.
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
     // 004BA710 (script_unit_modes.cpp). Constructor after operator new: no enemy, the whole unit as the
     // part to hit, enemy not fixed. 004BA830 (RET 4; UMRevenge): the same with `fixed` from the argument's
     // low byte.
@@ -482,8 +470,8 @@ struct FearMode : AIMode {
     // 005D3680 (slot 7). Clears busy.
     void Leave(AIBrain* brain);
     // 005D3690 / 005D36F0 (slots 11 / 12).
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
 
     float distance;                 // +0x08 how near danger counts (10, FearDefaultDistance)
     float spread;                   // +0x0C random spread of a flight point (3)
@@ -528,9 +516,9 @@ struct PlayerMode : AIMode {
     // 005D4CD0 (slot 11 of both vtables; unit_ai_modes.cpp, A-W14). The target's and the leader's
     // references, the point and the state. Saves of versions 0x46 .. 0x5D hold a group of objects
     // after them (ScriptGroup::Load), which is read and dropped.
-    void Load(AIStream* stream);
+    void Load(CStream* stream);
     // 005D4DB0 (slot 12).
-    void Save(AIStream* stream);
+    void Save(CStream* stream);
 
     // The player's commands (state 1 or 2: the unit does what it was told).
     // 005D39E0. Walk to `to` + `offset` (just `to` when the way there is blocked); forgets the leader
@@ -592,8 +580,8 @@ struct AIRef {
     // 0052A8F0. Hold `object` (released first unless it is already held).
     void Assign(CEngineObject* object);
     // 0050E220 / 0050E290. Read / write the object id (-1: none); Load looks it up in `world`.
-    void Load(AIStream* stream, void* world);
-    void Save(AIStream* stream);
+    void Load(CStream* stream, void* world);
+    void Save(CStream* stream);
 
     CEngineObject* object;
 };
@@ -701,8 +689,8 @@ struct AIAttackOption {
     // 005CE860 / 005CE920 (RET 4; unit_ai_options.cpp). The option from / to a save. Before
     // version 0x5A only the part, a dropped dword and the damage were saved: the kind becomes
     // part >= 0, the range 1, the rest 0.
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
 
     int kind;                       // +0x00 0..3 attacks (2, 3 hit an area), 4..6 helping spells, 7 healing
     int part;                       // +0x04 -1 a weapon, else the spell
@@ -981,13 +969,13 @@ struct AIBrain {
     // records, and (by file version) the attack options. Load empties the mode list first, creates
     // each mode by type (stopping at an unknown type, 9 or above 10) and maps a call radius equal
     // to [Logic] CallForHelpRadiusDefault to CallForHelpRadius.
-    void Load(AIStream* stream);
-    void Save(AIStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
     // 005CC1E0 / 005CC350 (thiscall on +0xD0, RET 4; unit_ai_save.cpp). The perception memory:
     // the four object lists (appended to on load), the noticed point, level and countdown, the
     // reports, the heard calls (point, kind, text, +0x10) and the noticed kind (-1 until read).
-    void LoadMemory(AIStream* stream);
-    void SaveMemory(AIStream* stream);
+    void LoadMemory(CStream* stream);
+    void SaveMemory(CStream* stream);
     // The standard mode sets of the script's Guard / Sentry commands: ClearModes, then the guard
     // (radius, wander -1: the default) or sentry mode, Suspection, Aggression, CorpseWatcher and
     // Fear(0); the target is released and the action dropped. 005D6230 / 005D64E0.

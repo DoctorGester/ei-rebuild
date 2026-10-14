@@ -31,11 +31,11 @@ public:
 } // namespace
 
 // 00528800: MOV EAX,ECX; PUSH 0x704 (7 bytes).
-static void(__fastcall* s_saveTo)(UnitStats*, void*, UnitStream*);
-static void __fastcall SaveToVerify(UnitStats* self, void*, UnitStream* stream) {
+static void(__fastcall* s_saveTo)(UnitStats*, void*, CStream*);
+static void __fastcall SaveToVerify(UnitStats* self, void*, CStream* stream) {
     CaptureStream original, ours;
-    s_saveTo(self, nullptr, reinterpret_cast<UnitStream*>(static_cast<CStream*>(&original)));
-    self->SaveTo(reinterpret_cast<UnitStream*>(static_cast<CStream*>(&ours)));
+    s_saveTo(self, nullptr, &original);
+    self->SaveTo(&ours);
     bool same = original.sizes == ours.sizes && original.data == ours.data;
     ei::verify::Check("UnitStats::SaveTo", true, same, "%u / %u writes", static_cast<unsigned>(original.sizes.size()),
                       static_cast<unsigned>(ours.sizes.size()));
@@ -43,8 +43,8 @@ static void __fastcall SaveToVerify(UnitStats* self, void*, UnitStream* stream) 
 }
 EI_VERIFY(0x00528800, SaveToVerify, 7, s_saveTo);
 
-static int __fastcall LoadFromVerify(UnitStats* self, void*, UnitStream* stream) {
-    int version = stream->version;
+static int __fastcall LoadFromVerify(UnitStats* self, void*, CStream* stream) {
+    int version = stream->version_;
     int result = self->LoadFrom(stream);
     bool ok = version >= 0x63 || self->pendingExperience == 0.0f;
     ei::verify::Check("UnitStats::LoadFrom", true, ok, "version 0x%X", version);

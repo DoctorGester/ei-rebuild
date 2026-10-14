@@ -174,7 +174,7 @@ const CommandRegistration kCommandRegistrations[27] = {
 // cheat word, then (after it) the cheat map. Looking a command up inserts it (original behaviour).
 void __fastcall Execute(const char* text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
-        mfc::CString name(GameText(r.name));
+        mfc::CString name(game::Text(r.name));
         *CommandIndex(r.cheat ? CheatCommands() : PublicCommands(), nullptr, name) = reinterpret_cast<CommandHandler>(r.handler);
     }
 
@@ -193,18 +193,18 @@ void __fastcall Execute(const char* text) {
         if (CheatEnabled() && local) {
             mfc::CString script = Ops(command).Mid(1);
             if (first == '@')
-                RunScriptLineAt(&script, &args, GameText(0x00790940), GameText(0x0078D71C));   // "WorldScript(" ")"
+                RunScriptLineAt(&script, &args, game::Text(0x00790940), game::Text(0x0078D71C));   // "WorldScript(" ")"
             else if (first == '#')   // "WorldScript( ConsoleFloat( " " ))"
-                RunScriptLineAt(&script, &args, GameText(0x007923C4), GameText(0x007923E0));
+                RunScriptLineAt(&script, &args, game::Text(0x007923C4), game::Text(0x007923E0));
             else                     // "WorldScript( ConsoleString( " " ))"
-                RunScriptLineAt(&script, &args, GameText(0x007923A4), GameText(0x007923E0));
+                RunScriptLineAt(&script, &args, game::Text(0x007923A4), game::Text(0x007923E0));
         }
         return;
     }
 
     Ops(command).MakeUpper();
     for (int i = 0; i < args.GetSize(); ++i) Ops(args[i]).MakeUpper();
-    if (Mbscmp(command, GameText(0x0079239C)) == 0 || Mbscmp(command, GameText(0x00792394)) == 0) {   // quit, exit
+    if (Mbscmp(command, game::Text(0x0079239C)) == 0 || Mbscmp(command, game::Text(0x00792394)) == 0) {   // quit, exit
         QuitGame(0);
         return;
     }
@@ -216,16 +216,16 @@ void __fastcall Execute(const char* text) {
         char* p = Ops(command).GetBuffer(12);
         for (; *p; ++p) *p ^= 0x66;
         Ops(command).ReleaseBuffer(-1);
-        if (std::strcmp(command, GameText(kCheatWordXor66)) == 0) {
+        if (std::strcmp(command, game::Text(kCheatWordXor66)) == 0) {
             CheatEnabled() = true;
-            PrintLine(GameText(0x00792388));   // "Activated!"
+            PrintLine(game::Text(0x00792388));   // "Activated!"
             return;
         }
     } else if (*CommandIndex(CheatCommands(), nullptr, command)) {
         if (!NetworkGame()) (*CommandIndex(CheatCommands(), nullptr, command))(&args);
         return;
     }
-    PrintLine(GameText(0x0078D848));   // "Unknown command"
+    PrintLine(game::Text(0x0078D848));   // "Unknown command"
 }
 EI_REPLACE(0x005DC620, Execute);
 EI_REBIRTH_IMPLEMENTS(0x005DC620, ei::rebirth::Patch::AddNewConsoleCommands);
@@ -290,13 +290,13 @@ void __fastcall RunScriptLine(const mfc::CString* text, const CStringArray* args
     mfc::CString line(prefix);
     line += *text;
     for (int i = 0; i < args->GetSize(); ++i) {
-        Ops(line).AppendText(GameText(0x0078DA40));   // " "
+        Ops(line).AppendText(game::Text(0x0078DA40));   // " "
         mfc::CString arg((*args)[i]);
         line += arg;
     }
     Ops(line).AppendText(suffix);
     if (!RunScriptTextAt(&line, 1, &error))
-        EndLine(Out() << GameText(0x007924CC) << static_cast<const char*>(error.text));   // "Script error: "
+        EndLine(Out() << game::Text(0x007924CC) << static_cast<const char*>(error.text));   // "Script error: "
 }
 EI_REPLACE(0x005DD800, RunScriptLine);
 

@@ -259,13 +259,13 @@ namespace {
 // map_object_lifetime.cpp], its Create and Destroy (slots 2 and 3, called directly) [0050E770 /
 // 0050E840, not rewritten], the map object part of Load / Save [0050F7A0 / 0050F900, not
 // rewritten]: all through their game addresses.
-void __fastcall MapObjectLoad(void* a0, void*, UnitStream* a2) { MapObjectLoadOriginal(a0, nullptr, (void*)a2); }
-void __fastcall MapObjectSave(void* a0, void*, UnitStream* a2) { MapObjectSaveOriginal(a0, nullptr, (void*)a2); }
+void __fastcall MapObjectLoad(void* a0, void*, CStream* a2) { MapObjectLoadOriginal(a0, nullptr, (void*)a2); }
+void __fastcall MapObjectSave(void* a0, void*, CStream* a2) { MapObjectSaveOriginal(a0, nullptr, (void*)a2); }
 // A counted reference's Save (its object's id, -1 for none) [0050E290, RET 4]; the units inside
 // read back and appended, each resolved in `context` [0052AF20, fastcall: ECX the list, EDX the
 // stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
 // [00403F40, rewritten in base_manager.cpp].
-void __fastcall CountedRefSave(CEngineObject** a0, void*, UnitStream* a2) { CountedRefSaveOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall CountedRefSave(CEngineObject** a0, void*, CStream* a2) { CountedRefSaveOriginal((void*)a0, nullptr, (void*)a2); }
 
 constexpr std::uintptr_t kTrapVtable = 0x0073E63C;
 constexpr std::uintptr_t kCirclesVtable = 0x0073C68C;        // while constructed
@@ -360,7 +360,7 @@ void MagicTrap::DestructBody() {
 }
 EI_REPLACE_METHOD(0x00529F90, MagicTrap::DestructBody);
 
-void MagicTrap::SaveTrap(UnitStream* stream) {
+void MagicTrap::SaveTrap(CStream* stream) {
     MapObjectSave(this, nullptr, stream);
     std::int32_t value = spell ? spell->id_ : -1;
     stream->Write(&value, 4);
@@ -384,7 +384,7 @@ void MagicTrap::SaveTrap(UnitStream* stream) {
 }
 EI_REPLACE_METHOD(0x0052B070, MagicTrap::SaveTrap);
 
-void MagicTrap::LoadTrap(UnitStream* stream) {
+void MagicTrap::LoadTrap(CStream* stream) {
     MapObjectLoad(this, nullptr, stream);
     void* manager = SpellManagerOf(ManagerContextOf(this));
     // The original reads the id and the two counts into its argument's stack slot: a read that

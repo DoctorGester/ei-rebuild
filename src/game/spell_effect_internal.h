@@ -4,6 +4,7 @@
 // (missile flight 00681BB0, lasting effects 00682650): forwarders, the x87 sequences the
 // original repeats inline, and small accessors. See docs/notes/items_spells.md.
 
+#include "game_strings.h"
 #include "spell.h"
 
 #include "combat.h"
@@ -69,7 +70,6 @@ constexpr std::uintptr_t kTargetHeight = 0x0073CDF4;    // 1.2
 constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fireball case
 constexpr float kHalfBits = 0.5f;                       // immediate pushed to the footprint builder
 
-inline const char* GameString(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // --- Forwarders ----------------------------------------------------------------------------------
 

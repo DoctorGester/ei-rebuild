@@ -54,8 +54,6 @@ CTextManager* Texts() { return *reinterpret_cast<CTextManager**>(0x007AF788); }
 
 namespace {
 
-// The game's own strings are passed (callees may keep the pointer).
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // Fields of an interface sprite set directly by the builders.
 void SetSpriteTexture(CUiMesh* sprite, CEngineObject* texture) { sprite->texture_ = texture; }
@@ -101,7 +99,7 @@ void Shade(CUiWindow* window, float depth, float left, float top, float right, f
 // The window's 3D model: the stone menu (`escMenu00`) turned about x.
 CUiModel* AddMenuModel(CUiWindow* window, float angle) {
     CUiModel* model = window->AddModel();
-    model->CallLoad(GameText(0x00793FA8), GameText(0x00793FB0), GameText(0x00793FBC));   // "unmoco1", "escMenu00", "escMenu00labels"
+    model->CallLoad(game::Text(0x00793FA8), game::Text(0x00793FB0), game::Text(0x00793FBC));   // "unmoco1", "escMenu00", "escMenu00labels"
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, angle);
@@ -115,7 +113,7 @@ CUiModel* AddMenuModel(CUiWindow* window, float angle) {
 
 void CSaveLoadWindow::Build() {
     rect_ = RECT{0, 0, 800, 600};
-    LoadTexture(GameText(0x00793380), 3, 0);   // "saveload"
+    LoadTexture(game::Text(0x00793380), 3, 0);   // "saveload"
     // The selected save's picture (5:6:5; game-owned memory with "cpuwindows", ui_saveload.cpp).
     GivePictureMemory(CreateTexture(0x100, 0x100, 0x1E));
 
@@ -155,11 +153,11 @@ void CSaveLoadWindow::Build() {
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     model->ShowAllParts(0);
     if (isSave_) {
-        model->ShowPart(GameText(0x0079495C), 1);   // "save"
-        model->ShowPart(GameText(0x00794950), 1);   // "savelabel"
+        model->ShowPart(game::Text(0x0079495C), 1);   // "save"
+        model->ShowPart(game::Text(0x00794950), 1);   // "savelabel"
     } else {
-        model->ShowPart(GameText(0x00794948), 1);   // "load"
-        model->ShowPart(GameText(0x0079493C), 1);   // "loadlabel"
+        model->ShowPart(game::Text(0x00794948), 1);   // "load"
+        model->ShowPart(game::Text(0x0079493C), 1);   // "loadlabel"
     }
 
     dialog_ = nullptr;
@@ -193,7 +191,7 @@ const char* OptionGroupName(int index) { return reinterpret_cast<const char* con
 
 void COptionsWindow::Build() {
     rect_ = RECT{0, 0, 800, 600};
-    LoadTexture(GameText(0x00793380), 3, 0);   // "saveload"
+    LoadTexture(game::Text(0x00793380), 3, 0);   // "saveload"
     CreateTexture(0x100, 0x100, 0x1E);
 
     // OK and cancel (regions 0 and 1).
@@ -213,11 +211,11 @@ void COptionsWindow::Build() {
         CUiRegion* region = AddRect(this, 100, top, 250, top + 24);
         AddSprite(0)->SetRectangle(3.0f, 100.0f, 110.0f, static_cast<float>(top + 2), 240.0f,
                                    static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
-        text.Format(GameText(0x00794860), OptionGroupName(k));   // "tip option_group_%s"
+        text.Format(game::Text(0x00794860), OptionGroupName(k));   // "tip option_group_%s"
         if (reinterpret_cast<UiTexts*>(Texts())->Find(text) != 0) Texts()->ReadToHash(&text, 1);
         region->SetTipString(text, 1, 0);
         {
-            mfc::CString prefix(GameText(0x00794850));   // "option_group_"
+            mfc::CString prefix(game::Text(0x00794850));   // "option_group_"
             mfc::CString key = prefix + OptionGroupName(k);
             Texts()->GetString(key, &text);
         }
@@ -233,8 +231,8 @@ void COptionsWindow::Build() {
     CUiModel* model = AddMenuModel(this, *reinterpret_cast<const float*>(0x007C81A0));
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     model->ShowAllParts(0);
-    model->ShowPart(GameText(0x00794848), 1);   // "options"
-    model->ShowPart(GameText(0x00794838), 1);   // "optionslabel"
+    model->ShowPart(game::Text(0x00794848), 1);   // "options"
+    model->ShowPart(game::Text(0x00794838), 1);   // "optionslabel"
 
     if (sliding_) slide_ = 0.0f;
     waitingForKey_ = false;
@@ -253,7 +251,7 @@ EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);
 void CEscMenu::Build() {
     window.rect_ = RECT{0, 0, 800, 600};
     CUiModel* model = window.AddModel();
-    model->CallLoad(GameText(0x00793FA8), GameText(0x00793FB0), GameText(0x00793FBC));
+    model->CallLoad(game::Text(0x00793FA8), game::Text(0x00793FB0), game::Text(0x00793FBC));
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
@@ -269,7 +267,7 @@ void CEscMenu::Build() {
         region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
     window.models_.data[0]->Play(1);
-    window.interface_->PlaySound(GameText(0x00793F90), 0);   // "buttons\menu\shift.wav"
+    window.interface_->PlaySound(game::Text(0x00793F90), 0);   // "buttons\menu\shift.wav"
 }
 EI_REPLACE_METHOD(0x0062AB20, CEscMenu::Build);
 
@@ -329,7 +327,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
     CInterface3D* ui = window.interface_;
     int region = window.RegionAt(x, y);
     if (region >= 0) {
-        ui->PlaySound(GameText(0x00793FF0), 0);   // "buttons\menu\ok.wav"
+        ui->PlaySound(game::Text(0x00793FF0), 0);   // "buttons\menu\ok.wav"
         window.inputHandled_ = true;
     }
     void* opened = nullptr;
@@ -354,7 +352,7 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     case 3: { // quit: the message box
         void* memory = gamecrt::operator_new(0x180);
-        opened = memory ? ConstructMessageBox(memory, nullptr, ui, GameText(0x0079239C), GameText(0x00793FE4),
+        opened = memory ? ConstructMessageBox(memory, nullptr, ui, game::Text(0x0079239C), game::Text(0x00793FE4),
                                               0x10000, 3, 1)   // "quit_msg"
                         : nullptr;
         break;
@@ -415,7 +413,7 @@ const char* EmptyStringData() { return *reinterpret_cast<const char* const*>(0x0
 
 void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     CInterface3D* ui = interface_;
-    const char* okSound = GameText(0x00793FF0);   // "buttons\menu\ok.wav"
+    const char* okSound = game::Text(0x00793FF0);   // "buttons\menu\ok.wav"
     switch (RegionAt(x, y)) {
     case 0: {
         // A new game: the difficulty question (a message box with its own vtables).
@@ -423,7 +421,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         void* memory = gamecrt::operator_new(0x184);
         CUiWindow* box = nullptr;
         if (memory) {
-            box = ConstructMessageBox(memory, nullptr, ui, GameText(0x00794258), game::EmptyText(), 0x20000, 3,
+            box = ConstructMessageBox(memory, nullptr, ui, game::Text(0x00794258), game::EmptyText(), 0x20000, 3,
                                       1);   // "option_difficulty", ""
             SetVtables(box, 0x0074225C, 0x00742228);
         }
@@ -443,7 +441,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 2: {
         // Exit: the exit movie, then quit.
         {
-            mfc::CString path = *Glue(0x007AFEA4)->Directory() + GameText(0x0079422C);   // "Movies\Exit.bik"
+            mfc::CString path = *Glue(0x007AFEA4)->Directory() + game::Text(0x0079422C);   // "Movies\Exit.bik"
             PlayMovieFile(path, 0, 0, 0, 1, 1, 1);
         }
         QuitGame(0);
@@ -469,7 +467,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
             MappedResourceConstructOriginal(w->archive_);
             char allocator = 0;
             MenuTitlesVector(&w->lines_, nullptr, &allocator);
-            new (static_cast<void*>(&w->name_)) mfc::CString(GameText(0x00794250));   // "Titles"
+            new (static_cast<void*>(&w->name_)) mfc::CString(game::Text(0x00794250));   // "Titles"
             Screen8Member1D8(&w->player_);
             w->fromGame_ = true;
             SetVtables(&w->window, 0x00740C3C, 0x00740C08);
@@ -480,7 +478,7 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
     case 5: {
         // Multiplayer: the hero screen (a server session starts).
         mfc::CString text;
-        TextsGetString(Glue(0x007AFEA4)->TextTable(), nullptr, GameText(0x00793A54), &text);   // "reserved_04"
+        TextsGetString(Glue(0x007AFEA4)->TextTable(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
         ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
         Glue(0x007AFEA4)->SetServer(1);
         ui->PlaySound(okSound, 0);
@@ -548,7 +546,7 @@ void EditSetText(CUiWindow* edit, void*, const char* text) { EditFieldSetTextOri
 } // namespace
 
 void CMessageBox::Build() {
-    LoadTexture(GameText(0x00793380), 3, 0);   // "saveload"
+    LoadTexture(game::Text(0x00793380), 3, 0);   // "saveload"
     CUiSurface* surface = NewSurface(interface_, 200, 50, 600, 500);
     AddSurface(surface);
     SurfaceGetDC(surface);
@@ -561,7 +559,7 @@ void CMessageBox::Build() {
     // An edit field takes one line of the font (the extent of "A").
     if (flags_ & 4)
         textHeight =
-            TextExtent(interface_, mfc::CString(GameText(0x00787BA4)), font).cy;
+            TextExtent(interface_, mfc::CString(game::Text(0x00787BA4)), font).cy;
     int height = titleHeight + textHeight;
     int top = (0x226 - (height + 0x3C)) / 2;   // the block centred in 550 pixels
     rect = RECT{15, top - 35, 385, 450};
@@ -608,7 +606,7 @@ EI_REPLACE_METHOD(0x00634790, CMessageBox::Build);
 // --- Difficulty question (006337B0) ---------------------------------------------------------------
 
 void CDifficultyBox::Build() {
-    LoadTexture(GameText(0x00793380), 3, 0);   // "saveload"
+    LoadTexture(game::Text(0x00793380), 3, 0);   // "saveload"
     CUiSurface* surface = NewSurface(interface_, 200, 100, 600, 500);
     AddSurface(surface);
     SurfaceGetDC(surface);
@@ -617,9 +615,9 @@ void CDifficultyBox::Build() {
     int titleHeight = BoxText(surface, title_, &rect, 2, 0, 0x411, 1);
     mfc::CString explanation;
     int textHeight = 0;
-    if (reinterpret_cast<UiTexts*>(Texts())->Find(GameText(0x0079429C)) != 0) {   // "tip option_difficulty"
+    if (reinterpret_cast<UiTexts*>(Texts())->Find(game::Text(0x0079429C)) != 0) {   // "tip option_difficulty"
         Texts()->ReadToHash(&explanation, 1);
-        explanation.TrimRight(GameText(0x0078DD00));   // CR LF
+        explanation.TrimRight(game::Text(0x0078DD00));   // CR LF
         rect = RECT{15, 0, 385, 300};
         textHeight = BoxText(surface, explanation, &rect, 1, 0, 0x410, 1);
     }
@@ -633,8 +631,8 @@ void CDifficultyBox::Build() {
     // The two choices, their labels centred on 430 (surface x 230) by their mean width.
     mfc::CString easy;
     mfc::CString hard;
-    Texts()->GetString(GameText(0x0079428C), &easy);   // "difficulty_easy"
-    Texts()->GetString(GameText(0x0079427C), &hard);   // "difficulty_hard"
+    Texts()->GetString(game::Text(0x0079428C), &easy);   // "difficulty_easy"
+    Texts()->GetString(game::Text(0x0079427C), &hard);   // "difficulty_hard"
     SIZE easySize = TextExtent(interface_, easy, 2);
     SIZE hardSize = TextExtent(interface_, hard, 2);
     int half = ((easySize.cx + hardSize.cx) / 2 + 0x1E) / 2;
@@ -710,7 +708,7 @@ void CCreditsScreen::Build() {
         MusicSystemStopOriginal(*reinterpret_cast<CMusicSystem**>(0x007AF760));
     }
     CursorShowOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, 0);
-    PlayMoviesOriginal(mfc::operator+(name, GameText(0x00794040)), 1, 0, 0, 0);   // "<name>fin"
+    PlayMoviesOriginal(mfc::operator+(name, game::Text(0x00794040)), 1, 0, 0, 0);   // "<name>fin"
     nextLineAt_ = 0.0f;
     // (As the original: the field's address goes in as uiParam, so it is never written; then font
     // smoothing is switched off.)
@@ -720,10 +718,10 @@ void CCreditsScreen::Build() {
 
     // The script: one record per line, words separated by spaces.
     auto* archive = reinterpret_cast<CMappedResource*>(archive_);
-    archive->OpenResource(mfc::operator+(*reinterpret_cast<const mfc::CString*>(0x0079BC94), GameText(0x00794034)),
+    archive->OpenResource(mfc::operator+(*reinterpret_cast<const mfc::CString*>(0x0079BC94), game::Text(0x00794034)),
                           0);   // "outro.res"
     std::uint32_t size = 0;
-    void* data = archive->GetFile(GameText(0x00794028), &size);   // "credits.scr"
+    void* data = archive->GetFile(game::Text(0x00794028), &size);   // "credits.scr"
     if (!data) {
         currentLine_ = lines_.End();
     } else {
@@ -731,11 +729,11 @@ void CCreditsScreen::Build() {
         GameMemmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
         script.ReleaseBuffer(-1);
         TitlesRemoveCr(&script);
-        TitlesTokenizer lines{0, &script, GameText(0x00784340)};   // "\n"
+        TitlesTokenizer lines{0, &script, game::Text(0x00784340)};   // "\n"
         TitlesTokenStart(&lines);
         while (lines.position != -1 && static_cast<const char*>(lines.word) != nullptr) {
             mfc::CString line(static_cast<const char*>(lines.word));
-            TitlesTokenizer words{0, &line, GameText(0x0078DA40)};   // " "
+            TitlesTokenizer words{0, &line, game::Text(0x0078DA40)};   // " "
             TitlesTokenStart(&words);
             TitleLine record = {};
             record.text = EmptyStringData();
@@ -743,7 +741,7 @@ void CCreditsScreen::Build() {
             {
                 mfc::CString first(words.WordOrNull());
                 record.scroll = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(first)),
-                                                 reinterpret_cast<const unsigned char*>(GameText(0x00794020))) ==
+                                                 reinterpret_cast<const unsigned char*>(game::Text(0x00794020))) ==
                                 0;   // "#scroll"
             }
             TitlesTokenNext(&words);
@@ -780,8 +778,8 @@ void CCreditsScreen::Build() {
     savedDisplay_ = static_cast<int>(TitlesDisplay()->fogColour_);
     TitlesDisplay()->fogColour_ = 0;
     TitlesPlay(&player_, nullptr,
-               mfc::operator+(mfc::operator+(mfc::operator+(*Glue(0x007AFEA4)->Directory(), GameText(0x00784A4C)), name),
-                              GameText(0x00794018)),   // "<folder>Movies\<name>.bik"
+               mfc::operator+(mfc::operator+(mfc::operator+(*Glue(0x007AFEA4)->Directory(), game::Text(0x00784A4C)), name),
+                              game::Text(0x00794018)),   // "<folder>Movies\<name>.bik"
                0);
     finished_ = false;
 }

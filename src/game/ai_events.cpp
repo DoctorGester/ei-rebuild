@@ -2,6 +2,7 @@
 // 005C9530, ForgetUnit 005C97B0, Load 005CAE30, Save 005CAFA0). See unit_ai.h (AIEventTable) and
 // docs/notes/ai.md.
 #include "unit_ai.h"
+#include "game_strings.h"
 
 #include "combat.h"
 #include "core_streams.h"
@@ -160,7 +161,6 @@ constexpr std::uintptr_t kCantOpenNormal = std::uintptr_t(0x007919C4);       // 
 constexpr std::uintptr_t kNormalTable = std::uintptr_t(0x007C43C4);          // the 4096 bytes of normal.dat
 constexpr std::size_t kNormalTableSize = 0x1000;
 
-const char* TextAt(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 
 } // namespace
@@ -189,14 +189,14 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     bool failed;
     {
         mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
-        mfc::CString path = folder + TextAt(kAiInfoArchive);
+        mfc::CString path = folder + game::Text(kAiInfoArchive);
         failed = MappedResourceOpenOriginal(archive, nullptr, path, 0) == 0;
     }
     void* data = nullptr;
-    const char* error = TextAt(kCantReadAiInfo);
+    const char* error = game::Text(kCantReadAiInfo);
     if (!failed) {
-        data = archive->CMappedResource::GetFile(TextAt(kNormalFile), nullptr);
-        error = TextAt(kCantOpenNormal);
+        data = archive->CMappedResource::GetFile(game::Text(kNormalFile), nullptr);
+        error = game::Text(kCantOpenNormal);
     }
     if (!data) {
         const int result = game::FatalError(error);

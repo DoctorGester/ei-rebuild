@@ -3,6 +3,7 @@
 // and it is hooked in the vanilla launch only; the screen's other members call it through their
 // forwarder. See ui_screens.h and docs/notes/ui.md, section 5.
 #include "ui_screens.h"
+#include "game_strings.h"
 
 #include "ui_camp.h"
 #include "ui_item_info.h"
@@ -14,7 +15,6 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 constexpr int kModeHeroList = 9;
 constexpr int kModeNewHero = 10;
@@ -85,8 +85,8 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
 
     CUiRegion** regions = window.regions_.data;
     if (mode == kModeHeroList) {
-        menu->ShowPart(GameText(0x007939E8), 1);   // "but03"
-        menu->ShowPart(GameText(0x007939D0), 1);   // "button03_multiplayer"
+        menu->ShowPart(game::Text(0x007939E8), 1);   // "but03"
+        menu->ShowPart(game::Text(0x007939D0), 1);   // "button03_multiplayer"
         Enable(heroScroll_, 1);
         for (int i = 0; i < window.sceneObjects_.size; ++i) Sprite(this, i)->visible_ = 1;
         ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 0);

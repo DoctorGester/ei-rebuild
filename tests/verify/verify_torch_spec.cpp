@@ -15,8 +15,7 @@ using unitverify::CaptureStream;
 void* s_unused;
 void(__fastcall* s_setLight)(CTorchObjectSpec*, void*, std::uint32_t, const float*, float);
 void(__fastcall* s_setFlame)(CTorchObjectSpec*, void*, const float*, float, const float*);
-void(__fastcall* s_save)(CTorchObjectSpec*, void*, UnitStream*);
-CStream* AsStream(UnitStream* stream) { return reinterpret_cast<CStream*>(stream); }
+void(__fastcall* s_save)(CTorchObjectSpec*, void*, CStream*);
 
 struct SpecBytes {
     unsigned char bytes[sizeof(CTorchObjectSpec)];
@@ -51,10 +50,10 @@ static void __fastcall SetFlameVerify(CTorchObjectSpec* self, void*, const float
 EI_VERIFY(0x0052C5C0, SetFlameVerify, 5, s_setFlame);
 
 // 0052C500: PUSH EBX; PUSH EBP; MOV EBX,ECX; PUSH ESI (5 bytes).
-static void __fastcall SpecSaveVerify(CTorchObjectSpec* self, void*, UnitStream* stream) {
+static void __fastcall SpecSaveVerify(CTorchObjectSpec* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_save(self, nullptr, &expected);
-    self->SaveSpec(AsStream(&actual));
+    self->SaveSpec(&actual);
     ei::verify::Check("CTorchObjectSpec::SaveSpec", true, expected.Same(actual), "%u vs %u bytes, first difference at %d",
                       static_cast<unsigned>(expected.bytes.size()), static_cast<unsigned>(actual.bytes.size()),
                       expected.FirstDifference(actual));

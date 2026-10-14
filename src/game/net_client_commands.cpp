@@ -3,6 +3,7 @@
 // start of the game (0041D410, slot 15) and the ratio of a received buffer (0041D9A0).
 // See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
+#include "game_strings.h"
 #include "core_refcount.h"
 #include "net_coder.h"
 
@@ -37,7 +38,6 @@ void __fastcall StringAppendTag(StringRep* a0, void*, const char* a2, const char
 constexpr std::uintptr_t kEmptyText = 0x00783D6C;
 constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
 // RefPtr::Destroy as the callers inline it (the release is not null-checked after the shutdown,
 // and done inline: one reference less, deleted at zero).
@@ -140,7 +140,7 @@ void ClientSession::CreateEntry(RefPtr* out) {
         StringReserve(description, nullptr, &allocator, 8);
         *description->finish = 0;
         ei::SetVtable(entry, ServerEntry::kVtableAddress);
-        const char* empty = Text(kEmptyText);
+        const char* empty = game::Text(kEmptyText);
         StringAssignRange(name, nullptr, empty, empty + std::strlen(empty));
         entry->kind_ = 4;
         const char* end = empty + std::strlen(empty);

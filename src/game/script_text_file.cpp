@@ -3,6 +3,7 @@
 // constructor, which throws when it cannot; so does a failed read. Either ends with a result of 0
 // and what was read so far in the text.
 #include "script_parse.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "ei/hook.h"
@@ -15,7 +16,7 @@ namespace {
 constexpr unsigned kOpenFlags = 0x4020;   // CFile::typeText | CFile::shareDenyWrite, for reading
 constexpr unsigned kLineSize = 0x800;     // longer lines arrive in pieces
 // The empty text the result starts from (a zero byte of the exe).
-const char* NoText() { return GameText(0x0079B298); }
+const char* NoText() { return game::Text(0x0079B298); }
 } // namespace
 
 int __fastcall ReadTextFile(const char* path, mfc::CString* text) {

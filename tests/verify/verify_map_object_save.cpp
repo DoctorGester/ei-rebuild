@@ -24,15 +24,14 @@ using unitverify::ReadRecorder;
 void* s_unusedLoad;
 void* s_unusedLoadServer;
 
-CStream* AsStream(UnitStream* stream) { return reinterpret_cast<CStream*>(stream); }
 } // namespace
 
 // 0050F900: PUSH EBX; MOV EBX,ECX; PUSH EBP; PUSH ESI (5 bytes).
-static void(__fastcall* s_saveMapObject)(CMapObject*, void*, UnitStream*);
-static void __fastcall SaveMapObjectVerify(CMapObject* self, void*, UnitStream* stream) {
+static void(__fastcall* s_saveMapObject)(CMapObject*, void*, CStream*);
+static void __fastcall SaveMapObjectVerify(CMapObject* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_saveMapObject(self, nullptr, &expected);
-    self->SaveMapObject(AsStream(&actual));
+    self->SaveMapObject(&actual);
     ei::verify::Check("CMapObject::SaveMapObject", true, expected.Same(actual), "object %d: %u vs %u bytes, first difference at %d",
                       self->id_, static_cast<unsigned>(expected.bytes.size()), static_cast<unsigned>(actual.bytes.size()),
                       expected.FirstDifference(actual));
@@ -41,11 +40,11 @@ static void __fastcall SaveMapObjectVerify(CMapObject* self, void*, UnitStream* 
 EI_VERIFY(0x0050F900, SaveMapObjectVerify, 5, s_saveMapObject);
 
 // 00515AC0: PUSH EBX; PUSH EBP; MOV EBX,ECX; PUSH ESI (5 bytes).
-static void(__fastcall* s_saveServer)(CMapObjectServer*, void*, UnitStream*);
-static void __fastcall SaveServerVerify(CMapObjectServer* self, void*, UnitStream* stream) {
+static void(__fastcall* s_saveServer)(CMapObjectServer*, void*, CStream*);
+static void __fastcall SaveServerVerify(CMapObjectServer* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_saveServer(self, nullptr, &expected);
-    self->SaveServer(AsStream(&actual));
+    self->SaveServer(&actual);
     ei::verify::Check("CMapObjectServer::SaveServer", true, expected.Same(actual), "%u vs %u bytes, first difference at %d",
                       static_cast<unsigned>(expected.bytes.size()), static_cast<unsigned>(actual.bytes.size()),
                       expected.FirstDifference(actual));
@@ -53,27 +52,27 @@ static void __fastcall SaveServerVerify(CMapObjectServer* self, void*, UnitStrea
 }
 EI_VERIFY(0x00515AC0, SaveServerVerify, 5, s_saveServer);
 
-static void __fastcall LoadMapObjectVerify(CMapObject* self, void*, UnitStream* stream) {
+static void __fastcall LoadMapObjectVerify(CMapObject* self, void*, CStream* stream) {
     bool appendingCompanion = false;
     if (self->companion && self->companion->GetClassId() == 0x39)
         appendingCompanion = static_cast<CMapObjectServer*>(self->companion)->stringCount != 0;
     ReadRecorder record(stream);
-    self->LoadMapObject(AsStream(&record));
+    self->LoadMapObject(&record);
     bool ok = true;
-    if (s_saveMapObject && stream->version > 0x4E && !appendingCompanion) {
+    if (s_saveMapObject && stream->version_ > 0x4E && !appendingCompanion) {
         CaptureStream saved(stream);
         s_saveMapObject(self, nullptr, &saved);
         ok = saved.bytes == record.bytes;
     }
     ei::verify::Check("CMapObject::LoadMapObject", true, ok, "object %d version %d: %u bytes read", self->id_,
-                      stream->version, static_cast<unsigned>(record.bytes.size()));
+                      stream->version_, static_cast<unsigned>(record.bytes.size()));
 }
 EI_VERIFY(0x0050F7A0, LoadMapObjectVerify, 0, s_unusedLoad);
 
-static void __fastcall LoadServerVerify(CMapObjectServer* self, void*, UnitStream* stream) {
+static void __fastcall LoadServerVerify(CMapObjectServer* self, void*, CStream* stream) {
     bool appending = self->stringCount != 0;
     ReadRecorder record(stream);
-    self->LoadServer(AsStream(&record));
+    self->LoadServer(&record);
     bool ok = true;
     if (s_saveServer && !appending) {
         CaptureStream saved(stream);

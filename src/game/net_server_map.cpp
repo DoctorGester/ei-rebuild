@@ -2,6 +2,7 @@
 // code outside this file (or STLport strings) and are reached through their original addresses.
 // See net_classes.h and docs/notes/network.md.
 #include "net_messages.h"
+#include "game_strings.h"
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -56,7 +57,6 @@ constexpr std::uintptr_t kPathPrefix = 0x00783D7C;
 constexpr std::uintptr_t kPathMiddle = 0x00783D78;
 constexpr std::uintptr_t kPathSuffix = 0x00783D74;
 
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 std::uint32_t* VariableCounter() { return reinterpret_cast<std::uint32_t*>(0x0079B608); }
 
 // Frees every node of a list (sentinel kept and linked to itself): element destructor, then the node.
@@ -87,7 +87,7 @@ void ServerSession::SetMap(const StringRep* name) {
     ClearList(&variables_, Element25B0Destroy, List25B0FreeNode);
 
     StringRep messageName;
-    StringPlusText(&messageName, name, Text(kMapSuffix));
+    StringPlusText(&messageName, name, game::Text(kMapSuffix));
     auto* memory = static_cast<ZoneMessage*>(NewRefObject(sizeof(ZoneMessage)));
     ZoneMessage* message = memory ? memory->Construct() : nullptr;
     MessageStringAssign(&message->text_, nullptr, &messageName);
@@ -122,7 +122,7 @@ void ServerSession::SetMap(const StringRep* name) {
     CStringDestroy(&title);
 
     StringRep registryName;
-    StringPlusText(&registryName, name, Text(kRegistrySuffix));
+    StringPlusText(&registryName, name, game::Text(kRegistrySuffix));
     auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &registryName));
     StringRepDestroy(&registryName);
     if (!entry) return;
@@ -146,9 +146,9 @@ void ServerSession::SetMap(const StringRep* name) {
 
     std::uint32_t alloc;
     StringRep prefix, a, b, path;
-    StringFromText(&prefix, nullptr, Text(kPathPrefix), &alloc);
+    StringFromText(&prefix, nullptr, game::Text(kPathPrefix), &alloc);
     StringPlusString(&a, &prefix, name);
-    StringPlusText(&b, &a, Text(kPathMiddle));
+    StringPlusText(&b, &a, game::Text(kPathMiddle));
     StringPlusString(&path, &b, name);
     SetVariable(&path, 1.0f);
     StlStringDestroy(&path);
@@ -157,11 +157,11 @@ void ServerSession::SetMap(const StringRep* name) {
     StlStringDestroy(&prefix);
 
     StringRep prefix2, a2, b2, c2, path2;
-    StringFromText(&prefix2, nullptr, Text(kPathPrefix), &alloc);
+    StringFromText(&prefix2, nullptr, game::Text(kPathPrefix), &alloc);
     StringPlusString(&a2, &prefix2, name);
-    StringPlusText(&b2, &a2, Text(kPathMiddle));
+    StringPlusText(&b2, &a2, game::Text(kPathMiddle));
     StringPlusString(&c2, &b2, name);
-    StringPlusText(&path2, &c2, Text(kPathSuffix));
+    StringPlusText(&path2, &c2, game::Text(kPathSuffix));
     SetVariable(&path2, 1.0f);
     StlStringDestroy(&path2);
     StlStringDestroy(&c2);
@@ -190,7 +190,7 @@ void ServerSession::QueueMapList() {
     FlowPickZones(flow, nullptr, &zones, kind_, mapName_.start);
     for (StringRep* zone = zones.start; zone != zones.finish; ++zone) {
         StringRep key;
-        StringPlusText(&key, zone, Text(kMapSuffix));
+        StringPlusText(&key, zone, game::Text(kMapSuffix));
         auto* message = NewMessageMemory<ZoneMessage>();
         if (message) {
             MessageConstructBase(message);
@@ -237,7 +237,7 @@ bool ServerSession::FinishMap(const StringRep* name) {
     static_cast<void**>(queuedMaps_)[1] = queuedMaps_;
 
     StringRep messageName;
-    StringPlusText(&messageName, name, Text(kFinishSuffix));
+    StringPlusText(&messageName, name, game::Text(kFinishSuffix));
     auto* message = NewMessageMemory<ZoneMessage>();
     if (message) {
         MessageConstructBase(message);

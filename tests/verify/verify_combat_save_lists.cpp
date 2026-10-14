@@ -27,8 +27,8 @@ int ReadInt(const std::vector<unsigned char>& bytes, std::size_t at) {
 } // namespace
 
 // 00558420: PUSH ECX; PUSH ESI; PUSH EDI; MOV EDI,ECX (5 bytes).
-static void(__fastcall* s_saveSteps)(const AnimationSteps*, UnitStream*);
-static void __fastcall SaveStepListVerify(const AnimationSteps* steps, UnitStream* stream) {
+static void(__fastcall* s_saveSteps)(const AnimationSteps*, CStream*);
+static void __fastcall SaveStepListVerify(const AnimationSteps* steps, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_saveSteps(steps, &expected);
     SaveStepList(steps, &actual);
@@ -38,7 +38,7 @@ static void __fastcall SaveStepListVerify(const AnimationSteps* steps, UnitStrea
 }
 EI_VERIFY(0x00558420, SaveStepListVerify, 5, s_saveSteps);
 
-static void __fastcall LoadStepListVerify(AnimationSteps* steps, UnitStream* stream) {
+static void __fastcall LoadStepListVerify(AnimationSteps* steps, CStream* stream) {
     ReadRecorder record(stream);
     LoadStepList(steps, &record);
     bool ok = true;
@@ -53,8 +53,8 @@ static void __fastcall LoadStepListVerify(AnimationSteps* steps, UnitStream* str
 EI_VERIFY(0x005582A0, LoadStepListVerify, 0, s_unused);
 
 // 00545430: PUSH ECX; PUSH ESI; PUSH EDI; MOV EDI,ECX (5 bytes).
-static void(__fastcall* s_saveSpell)(const ArmourSpell*, void*, UnitStream*);
-static void __fastcall SaveArmourSpellVerify(const ArmourSpell* entry, void*, UnitStream* stream) {
+static void(__fastcall* s_saveSpell)(const ArmourSpell*, void*, CStream*);
+static void __fastcall SaveArmourSpellVerify(const ArmourSpell* entry, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_saveSpell(entry, nullptr, &expected);
     entry->Save(&actual);
@@ -64,7 +64,7 @@ static void __fastcall SaveArmourSpellVerify(const ArmourSpell* entry, void*, Un
 }
 EI_VERIFY(0x00545430, SaveArmourSpellVerify, 5, s_saveSpell);
 
-static void __fastcall LoadArmourSpellsVerify(ArmourSpellList* list, UnitStream* stream) {
+static void __fastcall LoadArmourSpellsVerify(ArmourSpellList* list, CStream* stream) {
     ReadRecorder record(stream);
     LoadArmourSpells(list, &record);
     bool ok = record.bytes.size() == 4 + 8 * static_cast<std::size_t>(list->count);

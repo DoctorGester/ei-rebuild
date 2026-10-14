@@ -176,26 +176,7 @@ EI_VERIFY(0x0052A2C0, SetUpVerify, 0, s_unused);
 namespace {
 using unitverify::CaptureStream;
 
-// Forwards every call to the real stream and records the bytes read.
-class ReadRecorder : public UnitStream {
-public:
-    explicit ReadRecorder(UnitStream* real) : real_(real) {
-        reading = real->reading;
-        version = real->version;
-    }
-    void DeletingDestructor() override { real_->DeletingDestructor(); }
-    int Read(void* buffer, unsigned size) override {
-        int result = real_->Read(buffer, size);
-        auto* p = static_cast<const unsigned char*>(buffer);
-        bytes.insert(bytes.end(), p, p + size);
-        return result;
-    }
-    void Write(const void* buffer, unsigned size) override { real_->Write(buffer, size); }
-    std::vector<unsigned char> bytes;
-
-private:
-    UnitStream* real_;
-};
+using unitverify::ReadRecorder;
 
 bool EmptyArrayWith(void* trap, int offset, std::uintptr_t vtable) {
     return Field<std::uintptr_t>(trap, offset) == vtable && !Field<void*>(trap, offset + 4) &&
@@ -251,8 +232,8 @@ EI_VERIFY(0x00529F90, DestructVerify, 0, s_unused);
 // sizes are compared and the original's writes go on to the real stream. Reached by
 // SaveMapObjects (00596730) for each magic trap when the game saves.
 // 0052B070: PUSH ESI; MOV ESI,[ESP+8] (5 bytes).
-static void(__fastcall* s_originalSave)(MagicTrap*, void*, UnitStream*);
-static void __fastcall SaveTrapVerify(MagicTrap* self, void*, UnitStream* stream) {
+static void(__fastcall* s_originalSave)(MagicTrap*, void*, CStream*);
+static void __fastcall SaveTrapVerify(MagicTrap* self, void*, CStream* stream) {
     CaptureStream expected(stream), actual(stream);
     s_originalSave(self, nullptr, &expected);
     self->SaveTrap(&actual);
@@ -270,7 +251,7 @@ EI_VERIFY(0x0052B070, SaveTrapVerify, 5, s_originalSave);
 // appends to it) or the original Save is not hooked. A spell or unit id that no longer resolves
 // would show here too (saved back as -1). Reached by the save's load (00596E70, the map objects)
 // for each magic trap.
-static void __fastcall LoadTrapVerify(MagicTrap* self, void*, UnitStream* stream) {
+static void __fastcall LoadTrapVerify(MagicTrap* self, void*, CStream* stream) {
     int victimsBefore = Field<int>(self, 0x274);
     ReadRecorder record(stream);
     self->LoadTrap(&record);
@@ -292,7 +273,7 @@ static void __fastcall LoadTrapVerify(MagicTrap* self, void*, UnitStream* stream
             if (read[i] != written[i]) diff = static_cast<int>(i);
     }
     ei::verify::Check("MagicTrap::LoadTrap", true, diff == -1, "trap %d version %d: %u bytes read, %u of the trap, difference at %d",
-                      reinterpret_cast<CEngineObject*>(self)->id_, stream->version, static_cast<unsigned>(record.bytes.size()),
+                      reinterpret_cast<CEngineObject*>(self)->id_, stream->version_, static_cast<unsigned>(record.bytes.size()),
                       static_cast<unsigned>(part), diff);
 }
 EI_VERIFY(0x0052ADC0, LoadTrapVerify, 0, s_unused);

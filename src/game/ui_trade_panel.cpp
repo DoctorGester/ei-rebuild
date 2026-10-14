@@ -2,6 +2,7 @@
 // schools and perks (00625880) and their drawing (006261A0). See docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui_camp.h"
+#include "game_strings.h"
 #include "party.h"
 #include "unit.h"
 
@@ -21,7 +22,6 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 mfc::CString* Str(char*& field) { return reinterpret_cast<mfc::CString*>(&field); }
 const mfc::CString& StrAt(const std::uint8_t* address) { return *reinterpret_cast<const mfc::CString*>(address); }
 
@@ -99,12 +99,12 @@ void Clear(TradeRows* rows) {
 
 // Whether the text table has "perk <name>" (the key's temporaries released before returning).
 int HasPerkText(void* table, const mfc::CString& name) {
-    mfc::CString prefix(GameText(0x00792FC8));   // "perk "
+    mfc::CString prefix(game::Text(0x00792FC8));   // "perk "
     mfc::CString key = prefix + name;
     return TextsOpenSection(table, nullptr, key);
 }
 int HasPerkText(void* table, const char* name) {
-    mfc::CString prefix(GameText(0x00792FC8));
+    mfc::CString prefix(game::Text(0x00792FC8));
     mfc::CString key = prefix + name;
     return TextsOpenSection(table, nullptr, key);
 }
@@ -112,8 +112,8 @@ int HasPerkText(void* table, const char* name) {
 // A perk record's text key: its name (+4) without trailing level digits, plus "0".
 void PerkBaseName(mfc::CString* text, const std::uint8_t* record) {
     *text = StrAt(record + 4);
-    text->TrimRight(GameText(0x00793E60));   // "123"
-    *text += GameText(0x007856B8);           // "0"
+    text->TrimRight(game::Text(0x00793E60));   // "123"
+    *text += game::Text(0x007856B8);           // "0"
 }
 
 void Down(RECT* rect) { gameapi::OffsetRect(rect, 0, 15); }
@@ -178,7 +178,7 @@ void CTradePanel::BuildLists() {
 
     mfc::CString text;
     mfc::CString perkLevel;
-    TextsGetString(table, nullptr, GameText(0x00793E70), &perkLevel);   // "perk_level"
+    TextsGetString(table, nullptr, game::Text(0x00793E70), &perkLevel);   // "perk_level"
 
     // The perks held: the skill records come in groups of three levels; the group's level byte.
     for (unsigned group = 0; group < 0x6C; group += 3) {
@@ -195,7 +195,7 @@ void CTradePanel::BuildLists() {
         else
             text = StrAt(record);
         if (level > 1)
-            Str(row->name)->Format(GameText(0x00793E64), static_cast<const char*>(text),   // "%s (%s%d)"
+            Str(row->name)->Format(game::Text(0x00793E64), static_cast<const char*>(text),   // "%s (%s%d)"
                                    static_cast<const char*>(perkLevel), level);
         else
             *Str(row->name) = text;
@@ -262,7 +262,7 @@ void PriceSprite(CTradePanel* panel, const RECT& row, float left, float right) {
 // A school row: name, level 40 pixels in from the right, and below level 100 the next level's price.
 void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* school, mfc::CString* value) {
     draw->Text(school->name, row, 0, kBright, 0, 1);
-    value->Format(GameText(0x0078EEEC), school->level);   // "%d"
+    value->Format(game::Text(0x0078EEEC), school->level);   // "%d"
     RECT shifted = *row;
     gameapi::OffsetRect(&shifted, -40, 0);
     RECT levelRect = shifted;
@@ -415,11 +415,11 @@ void CTradePanel::Build() {
         mfc::CString text;
         void* titles = &texts_;
         int* size = &texts_.size;
-        TextsGetString(table, nullptr, GameText(0x00793E58), &text);   // "skills"
+        TextsGetString(table, nullptr, game::Text(0x00793E58), &text);   // "skills"
         TitlesSetAtGrow(titles, nullptr, *size, &text);
-        TextsGetString(table, nullptr, GameText(0x00793E50), &text);   // "perks"
+        TextsGetString(table, nullptr, game::Text(0x00793E50), &text);   // "perks"
         TitlesSetAtGrow(titles, nullptr, *size, &text);
-        TextsGetString(table, nullptr, GameText(0x00793E44), &text);   // "perks_av"
+        TextsGetString(table, nullptr, game::Text(0x00793E44), &text);   // "perks_av"
         TitlesSetAtGrow(titles, nullptr, *size, &text);
 
         // One statistics record per party member (inlined in the original; 00625430's body).

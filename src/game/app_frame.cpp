@@ -3,6 +3,7 @@
 // from an .ini file, each played, the screen cleared through the primary surface's Blt). Every
 // callee is reached through its original address. See docs/notes/app.md.
 #include "dib.h"
+#include "game_strings.h"
 #include "texture.h"   // CTextureDevice, CDXSurface
 
 #include "ei/hook.h"
@@ -24,7 +25,6 @@ namespace {
 
 template <typename T>
 T& Global(std::uintptr_t address) { return *reinterpret_cast<T*>(address); }
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
 void* Interface() { return reinterpret_cast<void*>(0x007C7D50); }
 void* Game() { return reinterpret_cast<void*>(0x007AF060); }
@@ -96,14 +96,14 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     if (!draw || !Running()) return;
     CursorLockAtCallSite()(Screen());
     ScreenDraw(Screen());
-    if (DevicePresentOriginal(RenderDeviceObject())) game::FatalError(Text(0x00784A30));   // "Can't flip render surface"
+    if (DevicePresentOriginal(RenderDeviceObject())) game::FatalError(game::Text(0x00784A30));   // "Can't flip render surface"
     CursorUnlockOriginal(Screen());
     if (!Global<std::uint8_t>(0x0079BC54)) return;
     char path[256];
-    gamecrt::sprintf(path, Text(0x00784A20), Global<std::uint32_t>(0x0079BA0C), Global<std::uint32_t>(0x0079BC58));
+    gamecrt::sprintf(path, game::Text(0x00784A20), Global<std::uint32_t>(0x0079BA0C), Global<std::uint32_t>(0x0079BC58));
     mfc::CFile file;
     if (!file.Open(path, 0x1001, nullptr)) {
-        game::FatalError(Text(0x007849F4), path);   // "Can't open file (%s) to write movie"
+        game::FatalError(game::Text(0x007849F4), path);   // "Can't open file (%s) to write movie"
         Global<std::uint8_t>(0x0079BC54) = 0;
         return;
     }
@@ -139,16 +139,16 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
     IniConstruct(ini);
     {
         alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-        mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), reinterpret_cast<const mfc::CString*>(0x007AF460), Text(0x00784A5C));
+        mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), reinterpret_cast<const mfc::CString*>(0x007AF460), game::Text(0x00784A5C));
         IniSetPath(ini, nullptr, *path);
         path->~CString();
     }
-    IniGetListOriginal(ini, nullptr, section, Text(0x00784A54), &list, ',');
+    IniGetListOriginal(ini, nullptr, section, game::Text(0x00784A54), &list, ',');
     if (clearFirst) ClearScreen();
     for (int i = 0; i < list.size; ++i) {
         alignas(mfc::CString) unsigned char dirRaw[sizeof(mfc::CString)];
         alignas(mfc::CString) unsigned char fullRaw[sizeof(mfc::CString)];
-        mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), reinterpret_cast<const mfc::CString*>(0x007AF458), Text(0x00784A4C));
+        mfc::CString* dir = ConcatText(reinterpret_cast<mfc::CString*>(dirRaw), reinterpret_cast<const mfc::CString*>(0x007AF458), game::Text(0x00784A4C));
         mfc::CString* full = ConcatString(reinterpret_cast<mfc::CString*>(fullRaw), dir, &list.data[i]);
         PlayMovieFile(*full, 0, 1, 0, 0, a, b);
         full->~CString();

@@ -30,7 +30,7 @@ void AIRef::Assign(CEngineObject* newObject) {
 EI_REPLACE_METHOD(0x0052A8F0, AIRef::Assign);
 
 // The id read; -1 drops the object, any other is looked up in the world's map object manager.
-void AIRef::Load(AIStream* stream, void* world) {
+void AIRef::Load(CStream* stream, void* world) {
     int id;
     stream->Read(&id, 4);
     if (id == kNoObject) {
@@ -42,7 +42,7 @@ void AIRef::Load(AIStream* stream, void* world) {
 }
 EI_REPLACE_METHOD(0x0050E220, AIRef::Load);
 
-void AIRef::Save(AIStream* stream) {
+void AIRef::Save(CStream* stream) {
     int id = object ? object->id_ : kNoObject;
     stream->Write(&id, 4);
 }
@@ -51,7 +51,7 @@ EI_REPLACE_METHOD(0x0050E290, AIRef::Save);
 // 0052AF20 (fastcall: ECX the list, EDX the stream; RET 4; A-U12): a count read, then that many
 // counted references added at the tail of the list, each loaded in `context` (the trap's units,
 // the brain's lists).
-void __fastcall CountedListLoad(mfc::CTypedPtrList<CEngineObject>* list, AIStream* stream, void* context) {
+void __fastcall CountedListLoad(mfc::CTypedPtrList<CEngineObject>* list, CStream* stream, void* context) {
     int count;
     stream->Read(&count, 4);
     while (count-- > 0) {

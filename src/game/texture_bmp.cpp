@@ -9,6 +9,7 @@
 // written there and the new renderer reads them. Outside the switch-over (or without memory) as
 // the original. See docs/notes/renderer.md (section 7).
 #include "texture.h"
+#include "game_strings.h"
 
 #include "device.h"
 
@@ -32,13 +33,12 @@
 namespace {
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* CantLoadText() { return Text(0x00795BB4); }        // "CTexture::FillSurface.\n Can't Load texture %s.\n"
-const char* AlphaNot8BitText() { return Text(0x00795B84); }    // "Alpha-file %s must be 8bit gray instead of %d"
-const char* CantLockStagingText() { return Text(0x00795B48); }     // "...Can't lock system memory surface\n"
-const char* CantUnlockStagingText() { return Text(0x00795B0C); }   // "...Can't unlock system memory surface\n"
-const char* CantLockText() { return Text(0x0078E30C); }        // "Can't lock surface.\n"
-const char* CantUnlockText() { return Text(0x0078E2F4); }      // "Can't unlock surface.\n"
+const char* CantLoadText() { return game::Text(0x00795BB4); }        // "CTexture::FillSurface.\n Can't Load texture %s.\n"
+const char* AlphaNot8BitText() { return game::Text(0x00795B84); }    // "Alpha-file %s must be 8bit gray instead of %d"
+const char* CantLockStagingText() { return game::Text(0x00795B48); }     // "...Can't lock system memory surface\n"
+const char* CantUnlockStagingText() { return game::Text(0x00795B0C); }   // "...Can't unlock system memory surface\n"
+const char* CantLockText() { return game::Text(0x0078E30C); }        // "Can't lock surface.\n"
+const char* CantUnlockText() { return game::Text(0x0078E2F4); }      // "Can't unlock surface.\n"
 
 constexpr std::uint32_t kLockWriteWait = 0x21;   // DDLOCK_WAIT | DDLOCK_WRITEONLY
 

@@ -865,9 +865,10 @@ done = "2026-10-14"
 id = "C5"
 title = "C4 leftovers: per-file streams and Text helpers"
 group = "cleanup"
-status = "running"
+status = "done"
 note = "UnitStream, SaveStream, FileStream, the unit_ai stream, verify_magic_trap's wrapper, the per-file Text(0x...) helpers (cleanup-engine-base.md)."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "C9b"
@@ -971,6 +972,15 @@ depends = ["F4e"]
 note = "unit_client_wounds.cpp HideWounds (0051C920) and object3d_client_parts.cpp (DropWoundsMaterial and three hand-written drops) release the wounds material by hand. Check in Ghidra whether the originals call 0051E570 or inline it; if they call, use CountedRef<WoundsMaterial>::Assign(nullptr) (see F4e's AsCountedRef); else a shared inline drop. Compare release code with dumpbin; run combat / units if it changes."
 started = "2026-10-14"
 done = "2026-10-14"
+
+[[ticket]]
+id = "C5a"
+title = "C5 leftovers: save stream accessor, LocalFileStream wrappers, duplicate test streams"
+group = "cleanup"
+status = "queued"
+size = 0.2
+model = "sonnet"
+note = "From C5 (2026-10-15): per-file accessors for the save stream 007AFDF8 (SaveGameStream in ui_battle_slots.cpp and ui_briefing.cpp, SaveStream() in ui_briefing_create.cpp, two verify tests) into one shared accessor; the two LocalFileStream wrappers (ui_connect_screen.cpp, ui_saveload.cpp; different interfaces, needs a regrouping call); identical SaveRecorder (verify_unit_ai_save) and RecordingStream (verify_unit_ai_options); TweenArray in model_db.cpp; hash_tables_400 / atexit_400 views."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

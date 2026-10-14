@@ -1,5 +1,6 @@
 // Connections of the network sessions: object replication. See net_connection.h.
 #include "net_connection.h"
+#include "game_strings.h"
 
 #include "core_refcount.h"
 #include "core_streams.h"
@@ -112,11 +113,10 @@ std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(
 // 004DA5C0: the growing buffer makes room for `size` bytes.
 inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) { GameBufferGrowOriginal((void*)a0, nullptr, a2); }
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // "text\n" and a flush to the network log, when there is one.
 void LogLine(std::uintptr_t text) {
-    if (LogStream* log = NetLog()) log->Put(Text(text))->PutChar('\n')->Flush();
+    if (LogStream* log = NetLog()) log->Put(game::Text(text))->PutChar('\n')->Flush();
 }
 constexpr std::uintptr_t kSkipUpdate = 0x00783EB0;   // "SKIP update, newer version of object"
 constexpr std::uintptr_t kSkipRemove = 0x00783E78;   // "SKIP remove, newer version of object"
@@ -846,7 +846,7 @@ bool Connection::Accept(std::uint32_t sequence) {
     std::uint32_t newest = lastReceived_;
     if (sequence + 0x20 < newest) {
         if (LogStream* log = NetLog())
-            log->Put(Text(kTooOld))->PutInt(static_cast<int>(newest - sequence))->PutChar('\n')->Flush();
+            log->Put(game::Text(kTooOld))->PutInt(static_cast<int>(newest - sequence))->PutChar('\n')->Flush();
         return false;
     }
     if (!(newest > sequence)) newest = sequence;
@@ -856,7 +856,7 @@ bool Connection::Accept(std::uint32_t sequence) {
             if (NetLog()) {
                 StringRep peer;
                 const char* text = address_.ToString(&peer)->start;
-                NetLog()->Put(Text(kDuplicate))->Put(text)->PutChar('\n')->Flush();
+                NetLog()->Put(game::Text(kDuplicate))->Put(text)->PutChar('\n')->Flush();
                 if (peer.start) stlp::deallocate(peer.start, static_cast<std::size_t>(peer.eos - peer.start));
             }
             return false;

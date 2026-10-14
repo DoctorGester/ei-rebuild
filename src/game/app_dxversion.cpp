@@ -14,6 +14,7 @@
 // DDRAW.DLL next to game.exe) probe as the original does. The standalone exe presents itself and has
 // no original to probe against: it takes the native path unconditionally.
 #include "ei/hook.h"
+#include "game_strings.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
 
@@ -38,12 +39,11 @@ constexpr int kCreateSurface = 6;            // IDirectDraw::CreateSurface (+0x1
 constexpr int kSetCooperativeLevel = 20;     // IDirectDraw::SetCooperativeLevel (+0x50)
 
 const void* Id(std::uintptr_t a) { return reinterpret_cast<const void*>(a); }
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
 using DirectDrawCreate = long(__stdcall*)(void*, void**, void*);
 using DirectDrawCreateEx = long(__stdcall*)(void*, void**, const void*, void*);
 
-const char* DirectDrawLibraryName() { return Text(0x00785674); }   // "DDRAW.DLL"
+const char* DirectDrawLibraryName() { return game::Text(0x00785674); }   // "DDRAW.DLL"
 
 // The folder part of a module's file name (up to and including the last backslash), or "".
 void ModuleFolder(HMODULE module, char (&folder)[MAX_PATH]) {
@@ -82,36 +82,36 @@ std::uint32_t __cdecl GetDxVersion() {
     void* surface4 = nullptr;
     HMODULE ddrawLibrary = gameapi::LoadLibraryA(DirectDrawLibraryName());
     if (!ddrawLibrary) return 0;
-    FARPROC create = gameapi::GetProcAddress(ddrawLibrary, Text(0x00785660));   // "DirectDrawCreate"
+    FARPROC create = gameapi::GetProcAddress(ddrawLibrary, game::Text(0x00785660));   // "DirectDrawCreate"
     if (!create) {
         gameapi::FreeLibrary(ddrawLibrary);
-        gameapi::OutputDebugStringA(Text(0x00785640));
+        gameapi::OutputDebugStringA(game::Text(0x00785640));
         return 0;
     }
     if (reinterpret_cast<DirectDrawCreate>(create)(nullptr, &ddraw, nullptr) < 0) {
         gameapi::FreeLibrary(ddrawLibrary);
-        gameapi::OutputDebugStringA(Text(0x00785628));
+        gameapi::OutputDebugStringA(game::Text(0x00785628));
         return 0;
     }
     if (Com(ddraw, kQueryInterface, Id(0x00745CB0), &ddraw2) < 0) {   // IID_IDirectDraw2
         Com(ddraw, kRelease);
         gameapi::FreeLibrary(ddrawLibrary);
-        gameapi::OutputDebugStringA(Text(0x00785610));
+        gameapi::OutputDebugStringA(game::Text(0x00785610));
         return 0x100;
     }
     Com(ddraw2, kRelease);
 
-    HMODULE inputLibrary = gameapi::LoadLibraryA(Text(0x00785604));   // "DINPUT.DLL"
+    HMODULE inputLibrary = gameapi::LoadLibraryA(game::Text(0x00785604));   // "DINPUT.DLL"
     if (!inputLibrary) {
-        gameapi::OutputDebugStringA(Text(0x007855E4));
+        gameapi::OutputDebugStringA(game::Text(0x007855E4));
         Com(ddraw, kRelease);
         return 0x200;
     }
-    if (!gameapi::GetProcAddress(inputLibrary, Text(0x007855D0))) {   // "DirectInputCreateA"
+    if (!gameapi::GetProcAddress(inputLibrary, game::Text(0x007855D0))) {   // "DirectInputCreateA"
         gameapi::FreeLibrary(inputLibrary);
         gameapi::FreeLibrary(ddrawLibrary);
         Com(ddraw, kRelease);
-        gameapi::OutputDebugStringA(Text(0x007855A8));
+        gameapi::OutputDebugStringA(game::Text(0x007855A8));
         return 0x200;
     }
     gameapi::FreeLibrary(inputLibrary);
@@ -123,13 +123,13 @@ std::uint32_t __cdecl GetDxVersion() {
     if (Com(ddraw, kSetCooperativeLevel, static_cast<void*>(nullptr), 8) < 0) {   // DDSCL_NORMAL
         Com(ddraw, kRelease);
         gameapi::FreeLibrary(ddrawLibrary);
-        gameapi::OutputDebugStringA(Text(0x0078558C));
+        gameapi::OutputDebugStringA(game::Text(0x0078558C));
         return 0;
     }
     if (Com(ddraw, kCreateSurface, static_cast<void*>(desc), &surface, static_cast<void*>(nullptr)) < 0) {
         Com(ddraw, kRelease);
         gameapi::FreeLibrary(ddrawLibrary);
-        gameapi::OutputDebugStringA(Text(0x00785570));
+        gameapi::OutputDebugStringA(game::Text(0x00785570));
         return 0;
     }
     if (Com(surface, kQueryInterface, Id(0x00745C60), &surface3) < 0) {   // IID_IDirectDrawSurface3
@@ -149,14 +149,14 @@ std::uint32_t __cdecl GetDxVersion() {
     gameapi::CoInitialize(nullptr);
     if (gameapi::CoCreateInstance(*static_cast<const CLSID*>(Id(0x00744930)), nullptr, 1, *static_cast<const IID*>(Id(0x00744900)),
                                   &music) < 0) {
-        gameapi::OutputDebugStringA(Text(0x0078554C));
+        gameapi::OutputDebugStringA(game::Text(0x0078554C));
         gameapi::FreeLibrary(ddrawLibrary);
         return 0x600;
     }
     Com(music, kRelease);
     gameapi::CoUninitialize();
 
-    FARPROC createEx = gameapi::GetProcAddress(ddrawLibrary, Text(0x00785538));   // "DirectDrawCreateEx"
+    FARPROC createEx = gameapi::GetProcAddress(ddrawLibrary, game::Text(0x00785538));   // "DirectDrawCreateEx"
     if (!createEx) {
         gameapi::FreeLibrary(ddrawLibrary);
         return 0x601;
@@ -167,7 +167,7 @@ std::uint32_t __cdecl GetDxVersion() {
         return 0x601;
     }
     Com(ddraw7, kRelease);
-    HMODULE d3d8 = gameapi::LoadLibraryA(Text(0x0078552C));   // "D3D8.DLL"
+    HMODULE d3d8 = gameapi::LoadLibraryA(game::Text(0x0078552C));   // "D3D8.DLL"
     if (!d3d8) {
         gameapi::FreeLibrary(ddrawLibrary);
         return 0x700;

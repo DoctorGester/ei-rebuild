@@ -1,6 +1,7 @@
 // The camp's debug fill of the constructors' lists (00612CF0, slot 39). See ui_camp.h and
 // docs/notes/ui.md, section 5.
 #include "ui_camp.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "item.h"
@@ -17,16 +18,15 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* InstructionWeapon() { return GameText(0x007938D0); }      // "Instruction Weapon"
-const char* InstructionArmor() { return GameText(0x007938E4); }       // "Instruction Armor"
-const char* InstructionQuickItem() { return GameText(0x007938F8); }   // "Instruction Quick Item"
-const char* PrototypeWord() { return GameText(0x00793924); }          // "prototype"
-const char* WandWord() { return GameText(0x0079391C); }               // "wand"
-const char* MaterialWord() { return GameText(0x00793910); }           // "Material"
-const char* Dot() { return GameText(0x00783D78); }                    // "."
-const char* RuneItem() { return GameText(0x007938B0); }               // "Rune"
-const char* PrototypeItem() { return GameText(0x007938B8); }          // "Prototype"
+const char* InstructionWeapon() { return game::Text(0x007938D0); }      // "Instruction Weapon"
+const char* InstructionArmor() { return game::Text(0x007938E4); }       // "Instruction Armor"
+const char* InstructionQuickItem() { return game::Text(0x007938F8); }   // "Instruction Quick Item"
+const char* PrototypeWord() { return game::Text(0x00793924); }          // "prototype"
+const char* WandWord() { return game::Text(0x0079391C); }               // "wand"
+const char* MaterialWord() { return game::Text(0x00793910); }           // "Material"
+const char* Dot() { return game::Text(0x00783D78); }                    // "."
+const char* RuneItem() { return game::Text(0x007938B0); }               // "Rune"
+const char* PrototypeItem() { return game::Text(0x007938B8); }          // "Prototype"
 
 // The item and spell databases (their name lists, originals_gameplay.h).
 void* ItemDatabase() { return *reinterpret_cast<void* const*>(0x007AF60C); }

@@ -8,6 +8,7 @@
 // into the real console. Only commands that can safely run twice run side by side; the others run
 // ours only (inside a capture, replayed the same way) and are checked for consistency.
 #include "verify.h"
+#include "../../src/game/game_strings.h"
 
 #include "../../src/game/acks_db.h"
 #include "../../src/game/console.h"
@@ -166,7 +167,7 @@ void OursOnly(const char* name, Handler ours, CStringArray* args, const std::fun
 }
 
 bool PrintedOnly(const Captured& out, std::uintptr_t text) {
-    return out.pending.empty() && out.lines.size() == 1 && out.lines[0] == std::string(GameText(text)) + "\n";
+    return out.pending.empty() && out.lines.size() == 1 && out.lines[0] == std::string(game::Text(text)) + "\n";
 }
 
 std::string Int(int v) { return std::to_string(v); }
@@ -262,7 +263,7 @@ void __fastcall ExecVerify(CStringArray* args) {
     bool exists = attributes != INVALID_FILE_ATTRIBUTES && !(attributes & FILE_ATTRIBUTE_DIRECTORY);
     OursOnly("Exec", &commands::Exec, args, [&](const Captured& out) {
         bool failed = false;
-        for (const std::string& l : out.lines) failed |= l.rfind(GameText(0x0079266C), 0) == 0;
+        for (const std::string& l : out.lines) failed |= l.rfind(game::Text(0x0079266C), 0) == 0;
         return failed != exists;
     });
 }
@@ -288,7 +289,7 @@ EI_VERIFY(0x005DF0F0, GiveVerify, 0, s_unused);
 // 005DF5B0: ours only; prints "Looting..." first.
 void __fastcall LootAllVerify(CStringArray* args) {
     OursOnly("LootAll", &commands::LootAll, args, [](const Captured& out) {
-        return !out.lines.empty() && out.lines[0] == std::string(GameText(0x00792838)) + "\n";
+        return !out.lines.empty() && out.lines[0] == std::string(game::Text(0x00792838)) + "\n";
     });
 }
 EI_VERIFY(0x005DF5B0, LootAllVerify, 0, s_unused);
@@ -334,7 +335,7 @@ bool FindCommand(CommandMap* map, const char* key, CommandHandler* handler) {
 
 std::string CheatWord() {
     std::string word;
-    for (const char* p = GameText(kCheatWordXor66); *p; ++p) word += static_cast<char>(*p ^ 0x66);
+    for (const char* p = game::Text(kCheatWordXor66); *p; ++p) word += static_cast<char>(*p ^ 0x66);
     return word;
 }
 
@@ -352,10 +353,10 @@ void __fastcall ExecuteVerify(const char* text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
         bool replaced = false;
         for (const AddonCommandRegistration& a : kAddonCommandRegistrations)
-            replaced |= addon && a.cheat == r.cheat && std::strcmp(a.name, GameText(r.name)) == 0;
+            replaced |= addon && a.cheat == r.cheat && std::strcmp(a.name, game::Text(r.name)) == 0;
         if (replaced) continue;
         CommandHandler handler = nullptr;
-        registered &= FindCommand(r.cheat ? CheatCommands() : PublicCommands(), GameText(r.name), &handler) &&
+        registered &= FindCommand(r.cheat ? CheatCommands() : PublicCommands(), game::Text(r.name), &handler) &&
                       reinterpret_cast<std::uintptr_t>(handler) == r.handler;
     }
     for (const AddonCommandRegistration& a : kAddonCommandRegistrations) {
@@ -401,7 +402,7 @@ void __fastcall RunScriptLineVerify(const mfc::CString* text, const CStringArray
     bool ok;
     if (files == filesBefore)
         ok = out.lines.size() == 1 && out.pending.empty() &&
-             out.lines[0] == std::string(GameText(0x007924CC)) + Text(*reinterpret_cast<mfc::CString*>(script + 0x1EC)) + "\n";
+             out.lines[0] == std::string(game::Text(0x007924CC)) + Text(*reinterpret_cast<mfc::CString*>(script + 0x1EC)) + "\n";
     else
         ok = files > filesBefore;
     ei::verify::Check("RunScriptLine", true, ok, "'%s%s %s%s': files %d -> %d, output %s", prefix,
@@ -584,7 +585,7 @@ EI_VERIFY(0x005DFCE0, EnvironmentLinesVerify, 7, s_environmentLines);
 
 // 005DFDA0: PUSH -1; PUSH imm32 (7). Side by side: the original writes scenack.txt, the file is
 // summarised (length and a hash of its bytes) and emptied, ours writes it again.
-std::string AcksFilePath() { return Text(*GameDataPathString()) + GameText(0x00792C00); }
+std::string AcksFilePath() { return Text(*GameDataPathString()) + game::Text(0x00792C00); }
 std::string AcksFileSummary() {
     mfc::CFile file;
     if (!file.Open(AcksFilePath().c_str(), mfc::CFile::modeRead, nullptr)) return "no file";

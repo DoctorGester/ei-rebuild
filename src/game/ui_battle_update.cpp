@@ -2,6 +2,7 @@
 // its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
 // item panel's unit (0063D2B0). See docs/notes/ui.md ("Battle screen").
 #include "item.h"
+#include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_classes.h"
@@ -581,7 +582,6 @@ CTextManager* TextGlue::Table() { return (CTextManager*)GameFlowOriginal(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
 void __fastcall LogAddText(CUiWindow* a0, void*, const char* a2) { LogAddTextOriginal((void*)a0, nullptr, a2); }
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 float GameFloatAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 // FCOMP; TEST AH,0x40: equal, or unordered.
 bool EqualOrNaN(float a, float b) { return a == b || x87::IsNaN(a) || x87::IsNaN(b); }
@@ -600,27 +600,27 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
         const char* key;
         if (EqualOrNaN(value, complete)) {
             if (unknown_1FC <= 3) unknown_1FC = 3;
-            key = GameText(0x007943A0);   // "combat_complete_quest"
+            key = game::Text(0x007943A0);   // "combat_complete_quest"
         } else if (EqualOrNaN(value, failed)) {
             value = 1.0f;
-            key = GameText(0x0079438C);   // "combat_failed_quest"
+            key = game::Text(0x0079438C);   // "combat_failed_quest"
         } else {
-            key = GameText(0x00794378);   // "combat_get_quest"
+            key = game::Text(0x00794378);   // "combat_get_quest"
         }
         TextsGetString(texts, nullptr, key, &title);
         text.Empty();
         BOOL found;
         {
-            mfc::CString quest(GameText(0x00790790));   // "quest "
+            mfc::CString quest(game::Text(0x00790790));   // "quest "
             mfc::CString textKey = quest + parts[2];
             found = TextOpen(texts, nullptr, textKey);
         }
         if (found) TextReadLine(texts, nullptr, &text, 1);
-        mfc::CString colour(GameText(0x00794370));   // colour code 0x31E3EE43 and a space
-        text = colour + title + GameText(0x0078DA40) + text;
+        mfc::CString colour(game::Text(0x00794370));   // colour code 0x31E3EE43 and a space
+        text = colour + title + game::Text(0x0078DA40) + text;
     } else if (parts.size == 4) {
         if (!IsNetworkClientOriginal()) {
-            const char* dot = GameText(0x00783D78);
+            const char* dot = game::Text(0x00783D78);
             mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];
             double current = HoverPlayerVariable(reinterpret_cast<void*>(0x007AFEA5), nullptr, variable);
             // FCOMP of the unrounded result with 0 (0073B858); TEST AH,0x40.
@@ -628,21 +628,21 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
         }
         const char* key;
         if (EqualOrNaN(value, complete)) {
-            key = GameText(0x00794358);   // "combat_complete_subobj"
+            key = game::Text(0x00794358);   // "combat_complete_subobj"
         } else if (EqualOrNaN(value, failed)) {
             value = 1.0f;
-            key = GameText(0x00794340);   // "combat_failed_subobj"
+            key = game::Text(0x00794340);   // "combat_failed_subobj"
         } else {
-            key = GameText(0x0079432C);   // "combat_get_subobj"
+            key = game::Text(0x0079432C);   // "combat_get_subobj"
         }
         TextsGetString(texts, nullptr, key, &title);
         text.Empty();
         bool found = false;
         {
-            mfc::CString quest(GameText(0x00790790));   // "quest "
+            mfc::CString quest(game::Text(0x00790790));   // "quest "
             mfc::CString textKey = quest + parts[2];
             if (TextOpen(texts, nullptr, textKey)) {
-                mfc::CString sub(GameText(0x00794320));   // "#subobj "
+                mfc::CString sub(game::Text(0x00794320));   // "#subobj "
                 mfc::CString lineKey = sub + parts[3];
                 found = TextFindLine(texts, nullptr, lineKey) != 0;
             }
@@ -651,10 +651,10 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
             TextNextLine(texts);
             TextReadLine(texts, nullptr, &text, 1);
         }
-        mfc::CString colour(GameText(0x0079349C));   // colour code 0x31B3FF43 and a space
-        text = colour + title + GameText(0x0078DA40) + text;
+        mfc::CString colour(game::Text(0x0079349C));   // colour code 0x31B3FF43 and a space
+        text = colour + title + game::Text(0x0078DA40) + text;
     }
-    text = text + GameText(0x00794318);   // colour code and a line end
+    text = text + game::Text(0x00794318);   // colour code and a line end
 
     CHudTopPanel* top = static_cast<CHudTopPanel*>(topPanel_);
     const char* line = text;

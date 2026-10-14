@@ -1,6 +1,7 @@
 // 005ACE80: the main menu's and the escape menu's button rectangles from "menus.reg" (each entry
 // four integers; a missing or malformed one is a fatal error). See docs/notes/world.md.
 #include "base_manager.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 
@@ -13,7 +14,6 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 constexpr std::uintptr_t kMenusReg = 0x00791020;       // "menus.reg"
 constexpr std::uintptr_t kCantOpen = 0x00790FE4;       // "Can't open file "menus.reg" with the main/esc menu rects\n"
@@ -56,9 +56,9 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     alignas(4) std::uint8_t reg[0x18];
     AsRegistry(reg)->Construct();
     // The owning manager's GetFile (slot 19): the resource file's data.
-    void* file = static_cast<CBaseManager*>(owner)->GetFile(Text(kMenusReg), nullptr);
+    void* file = static_cast<CBaseManager*>(owner)->GetFile(game::Text(kMenusReg), nullptr);
     if (!file || !AsRegistry(reg)->Attach(file)) {
-        int result = game::FatalError(Text(file ? kCantParse : kCantOpen));
+        int result = game::FatalError(game::Text(file ? kCantParse : kCantOpen));
         AsRegistry(reg)->Destroy();
         return result;
     }
@@ -66,9 +66,9 @@ int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects) {
     SetRectFn setRect = ImportSetRect();
     for (const MenuRect& entry : kRects) {
         DwordsSetSize(reinterpret_cast<lib::AlignedArray<std::uint32_t>*>(&values), nullptr, 0, -1);
-        RegReadInts(reg, nullptr, Text(entry.section), Text(entry.name), &values);
+        RegReadInts(reg, nullptr, game::Text(entry.section), game::Text(entry.name), &values);
         if (values.size != 4) {
-            int result = game::FatalError(Text(entry.error));
+            int result = game::FatalError(game::Text(entry.error));
             if (values.data) gamecrt::operator_delete(reinterpret_cast<void**>(values.data)[-1]);
             AsRegistry(reg)->Destroy();
             return result;

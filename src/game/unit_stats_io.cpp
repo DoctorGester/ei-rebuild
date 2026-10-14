@@ -11,9 +11,9 @@ constexpr int kVersionFixedMax = 0x50;      // below: up to fixedMaxHitPoints (0
 constexpr int kVersionPending = 0x63;       // below: up to pendingExperience (0x700)
 } // namespace
 
-int UnitStats::LoadFrom(UnitStream* stream) {
+int UnitStats::LoadFrom(CStream* stream) {
     pendingExperience = 0.0f;
-    int version = stream->version;
+    int version = stream->version_;
     unsigned size;
     if (version < kVersionFlagsOnly) size = offsetof(UnitStats, flags);
     else if (version < kVersionFixedMax) size = offsetof(UnitStats, fixedMaxHitPoints);
@@ -23,5 +23,5 @@ int UnitStats::LoadFrom(UnitStream* stream) {
 }
 EI_REPLACE_METHOD(0x005287A0, UnitStats::LoadFrom);
 
-void UnitStats::SaveTo(UnitStream* stream) { stream->Write(this, sizeof(UnitStats)); }
+void UnitStats::SaveTo(CStream* stream) { stream->Write(this, sizeof(UnitStats)); }
 EI_REPLACE_METHOD(0x00528800, UnitStats::SaveTo);

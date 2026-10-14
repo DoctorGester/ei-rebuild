@@ -1,5 +1,6 @@
 // Text layout on interface surfaces (game.exe 005FDFA0). See docs/notes/ui.md ("Interface base").
 #include "ui.h"
+#include "game_strings.h"
 #include "console.h"
 
 #include "lib/gameapi.h"
@@ -59,7 +60,7 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     int width = rect->right - rect->left;
     mfc::CString ch, word, line;
     mfc::CString source(text);
-    source += console::GameText(kNewline);
+    source += game::Text(kNewline);
     console::CStringArray lines;
     // Words collect characters up to a space or newline; a word that would make the line wider
     // than the rectangle starts a new line (a newline then also ends the word's line).
@@ -84,10 +85,10 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
         } else if (c == ' ') {
             if (TextExtent(interface_, line + word, font).cx > width) {
                 lines.SetAtGrow(lines.GetSize(), line);
-                line = word + console::GameText(kSpace);
+                line = word + game::Text(kSpace);
             } else {
                 line += word;
-                line += console::GameText(kSpace);
+                line += game::Text(kSpace);
             }
             word.Empty();
         } else {

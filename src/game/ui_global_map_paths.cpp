@@ -4,6 +4,7 @@
 // the target and calls it with the local player's zone. See docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui_camp.h"
+#include "game_strings.h"
 
 #include "object_tables.h"
 #include "originals_ui.h"
@@ -56,10 +57,9 @@ bool SameName(const char* a, const char* b) {
 // 006312C0 through its address, as the original click calls it (the check's wrapper runs).
 __declspec(naked) void __fastcall FindPathsOriginal(CGlobalMap*, void*, MapRecord* /*from*/) EI_ORIGINAL(0x006312C0)
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* MoveSound() { return GameText(0x00794180); }      // "buttons\globalmap\move.wav"
-const char* TransitSound() { return GameText(0x0079372C); }   // "buttons\globalmap\transit.wav"
-const char* OkSound() { return GameText(0x0079419C); }        // "buttons\globalmap\ok.wav"
+const char* MoveSound() { return game::Text(0x00794180); }      // "buttons\globalmap\move.wav"
+const char* TransitSound() { return game::Text(0x0079372C); }   // "buttons\globalmap\transit.wav"
+const char* OkSound() { return game::Text(0x0079419C); }        // "buttons\globalmap\ok.wav"
 // The client's glue objects (their members do not read them).
 void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }

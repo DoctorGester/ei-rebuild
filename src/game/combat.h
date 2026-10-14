@@ -96,16 +96,16 @@ struct AnimationSteps {
     // 00544EF0 / 00544F60 (RET 4). Load: the count (into the argument's stack slot: a failed read
     // leaves the stream pointer as the count), SetSize, each step (12 bytes), extra. Save: the
     // same fields.
-    void Load(UnitStream* stream);
-    void Save(UnitStream* stream);
+    void Load(CStream* stream);
+    void Save(CStream* stream);
 };
 static_assert(sizeof(AnimationSteps) == 0x18);
 
 // combat_save.cpp (A-U7). 005582A0 / 00558420 (__fastcall, plain RET): a step list from / to a
 // save: the count (Load: SetSize to it, growth step kept; a count the stream did not deliver is
 // the original's stack garbage, ours 0), then each step's 12 bytes. `extra` is not part of it.
-void __fastcall LoadStepList(AnimationSteps* steps, UnitStream* stream);
-void __fastcall SaveStepList(const AnimationSteps* steps, UnitStream* stream);
+void __fastcall LoadStepList(AnimationSteps* steps, CStream* stream);
+void __fastcall SaveStepList(const AnimationSteps* steps, CStream* stream);
 
 // The plan of an order (0x44 bytes; CUnitServer + 0xC4 holds the current one): its animation, when
 // it starts and ends, and what it aims at. 0054CA40 fills it.
@@ -233,7 +233,7 @@ struct ArmourSpell {
     // appended (no item, countdown 0; the original's `worn` byte is stack garbage, ours 0), then each
     // entry from the head takes its item (the item manager's object of the id read, referenced) and
     // countdown.
-    void Save(UnitStream* stream) const;
+    void Save(CStream* stream) const;
     // 00558840 (RET 4; combat_small_records.cpp, A-U12; the list's SetAt in RefreshItemSpells).
     // The record assigned: `other`'s item referenced (the old one released after), its countdown
     // and worn byte. Returns this.
@@ -257,7 +257,7 @@ class CSpell;
 bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
                                  CUnit* toUnit, const Vector3* to);
 
-void __fastcall LoadArmourSpells(ArmourSpellList* list, UnitStream* stream);
+void __fastcall LoadArmourSpells(ArmourSpellList* list, CStream* stream);
 
 class CUnitServer : public CEngineObject {
 public:
@@ -533,9 +533,9 @@ public:
     // 00555D10. Virtual slot 9 (Load): the controller's state (animation lists, the motion and
     // plan objects, both orders, the stats copy, movement factors, the brain, the voice, the
     // effect object and the attackers list), version dependent from 0x44 on.
-    void LoadServer(UnitStream* stream);
+    void LoadServer(CStream* stream);
     // 005561C0. Virtual slot 10 (Save): the same in the same order, at the current version.
-    void SaveServer(UnitStream* stream);
+    void SaveServer(CStream* stream);
 
     // combat_sight.cpp: can an order be carried out from here, and when.
     // 0054BCB0. What a cast (kinds 4, 5) or an order on a unit must see: false for a point order

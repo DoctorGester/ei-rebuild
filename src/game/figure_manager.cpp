@@ -26,7 +26,6 @@ constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG"
 constexpr std::uintptr_t kFiguresArchive = std::uintptr_t(0x0078EC24);   // "figures.res"
 constexpr std::uintptr_t kMenusArchive = std::uintptr_t(0x0078EC18);     // "menus.res"
 constexpr std::uintptr_t kMenuRects = std::uintptr_t(0x007C8048);        // the menus' rectangles (menu_rects.cpp)
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 constexpr int kSharedPartClass = 0x41;             // a part whose buffers point into the file data; 0x42 owns them
 
 // Copies `text` with its terminator to `end`; returns the new end (at the terminator).
@@ -47,8 +46,8 @@ void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
 int CFigureManager::CreateWithArchives() {
     if (!CBaseManager::Create()) return 0;
     mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
-    AddArchive(folder + Text(kFiguresArchive));
-    AddArchive(folder + Text(kMenusArchive));
+    AddArchive(folder + game::Text(kFiguresArchive));
+    AddArchive(folder + game::Text(kMenusArchive));
     LoadMenuRects(this, nullptr, reinterpret_cast<std::uint8_t*>(kMenuRects));
     return 1;
 }

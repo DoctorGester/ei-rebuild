@@ -1,6 +1,7 @@
 // The session's receive step (00437370, slot 14), its packet handlers, sends and destruction,
 // and the byte buffer helpers they use. See net_classes.h and docs/notes/network.md.
 #include "net_classes.h"
+#include "game_strings.h"
 #include "net_connection.h"
 
 #include "core_streams.h"
@@ -29,12 +30,11 @@ namespace {
 inline void __fastcall StringDeallocate(void*, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 // 004DA170: reading past the buffer's end (zeroes the target, sets error bit 3).
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 constexpr std::uintptr_t kZeroLength = 0x00784020;   // "ZERO length packet received from "
 constexpr std::uintptr_t kTimeout = 0x00784008;      // "TIMEOUT client, drop "
 
 // "<text><address>\n" and a flush to the network log.
-void LogAddress(std::uintptr_t text, const char* address) { NetLog()->Put(Text(text))->Put(address)->PutChar('\n')->Flush(); }
+void LogAddress(std::uintptr_t text, const char* address) { NetLog()->Put(game::Text(text))->Put(address)->PutChar('\n')->Flush(); }
 
 } // namespace
 
@@ -140,15 +140,15 @@ constexpr std::uintptr_t kRemove = 0x00783EE8;        // "REMOVE client "
 
 // "<text>\n" and a flush, when there is a network log.
 void LogText(std::uintptr_t text) {
-    if (LogStream* log = NetLog()) log->Put(Text(text))->PutChar('\n')->Flush();
+    if (LogStream* log = NetLog()) log->Put(game::Text(text))->PutChar('\n')->Flush();
 }
 
 // The address string of a connection, logged as "<before><address><after>\n", then freed.
 void LogConnection(std::uintptr_t before, Connection* connection, std::uintptr_t after) {
     StringRep peer;
     const char* text = connection->address_.ToString(&peer)->start;
-    LogStream* log = NetLog()->Put(Text(before))->Put(text);
-    if (after) log = log->Put(Text(after));
+    LogStream* log = NetLog()->Put(game::Text(before))->Put(text);
+    if (after) log = log->Put(game::Text(after));
     log->PutChar('\n')->Flush();
     NodeFree(peer.start, static_cast<std::size_t>(peer.eos - peer.start));
 }
@@ -273,9 +273,6 @@ unsigned GameBuffer::BufferWrite(const void* from, unsigned size) {
 EI_REPLACE_METHOD(0x00436C60, GameBuffer::BufferWrite);
 
 namespace net {
-
-namespace {
-} // namespace
 
 bool SessionBase::Send(const NetAddress* address, GameBuffer* buffer) { return socket_.SendTo(address, buffer); }
 EI_REPLACE_METHOD(0x00436F60, SessionBase::Send);

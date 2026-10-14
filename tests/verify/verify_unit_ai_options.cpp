@@ -1,5 +1,6 @@
 // Checks for the attack option list (src/game/unit_ai_options.cpp).
 #include "verify.h"
+#include "fake_stream.h"
 
 #include "../../src/game/unit_ai.h"
 #include "../../src/lib/crt.h"
@@ -128,30 +129,26 @@ static void __fastcall SetSizeVerify(AIAttackOptions* self, void*, int size, int
 EI_VERIFY(0x005D9250, SetSizeVerify, 0, s_unused);
 
 namespace {
-// An AIStream that records what is written (reads give nothing).
-class RecordingStream : public AIStream {
+// A stream that records what is written (reads give nothing).
+class RecordingStream : public FakeStream {
 public:
-    explicit RecordingStream(int fileVersion) {
-        reading = 0;
-        version = fileVersion;
-    }
-    void* DeletingDestruct(unsigned) override { return this; }
-    void Read(void*, unsigned) override {}
-    void Write(const void* buffer, unsigned size) override {
+    explicit RecordingStream(int fileVersion) { version_ = static_cast<std::uint32_t>(fileVersion); }
+    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
+    void Write(const void* buffer, std::uint32_t size) override {
         const auto* bytes = static_cast<const std::uint8_t*>(buffer);
         written.insert(written.end(), bytes, bytes + size);
     }
     std::vector<std::uint8_t> written;
 };
 
-using StreamFn = void(__fastcall*)(AIAttackOption*, void*, AIStream*);
+using StreamFn = void(__fastcall*)(AIAttackOption*, void*, CStream*);
 StreamFn s_originalSave;
 } // namespace
 
 // 005CE920: the original into a recording stream, ours into another; the bytes compared, then
 // ours into the real stream.
-static void __fastcall SaveVerify(AIAttackOption* self, void*, AIStream* stream) {
-    RecordingStream expected(stream->version), actual(stream->version);
+static void __fastcall SaveVerify(AIAttackOption* self, void*, CStream* stream) {
+    RecordingStream expected(stream->version_), actual(stream->version_);
     s_originalSave(self, nullptr, &expected);
     self->Save(&actual);
     ei::verify::Check("AIAttackOption::Save", true, expected.written == actual.written, "%d bytes (original %d)",
@@ -161,18 +158,18 @@ static void __fastcall SaveVerify(AIAttackOption* self, void*, AIStream* stream)
 EI_VERIFY(0x005CE920, SaveVerify, 5, s_originalSave);
 
 // 005CE860: reads the stream, so ours only: an old record gets the derived kind and range.
-static void __fastcall OptionLoadVerify(AIAttackOption* self, void*, AIStream* stream) {
+static void __fastcall OptionLoadVerify(AIAttackOption* self, void*, CStream* stream) {
     self->Load(stream);
-    bool ok = stream->version >= 0x5A || (self->kind == (self->part >= 0 ? 1 : 0) && self->range == 1.0f);
-    ei::verify::Check("AIAttackOption::Load", true, ok, "version %d kind %d part %d", stream->version, self->kind,
+    bool ok = stream->version_ >= 0x5A || (self->kind == (self->part >= 0 ? 1 : 0) && self->range == 1.0f);
+    ei::verify::Check("AIAttackOption::Load", true, ok, "version %d kind %d part %d", stream->version_, self->kind,
                       self->part);
 }
 EI_VERIFY(0x005CE860, OptionLoadVerify, 0, s_unused);
 
-void __fastcall LoadAttackOptions(AIAttackOptions* options, AIStream* stream);
+void __fastcall LoadAttackOptions(AIAttackOptions* options, CStream* stream);
 
 // 005D9B80: reads the stream, so ours only: the storage holds the read count.
-static void __fastcall LoadAttackOptionsVerify(AIAttackOptions* options, AIStream* stream) {
+static void __fastcall LoadAttackOptionsVerify(AIAttackOptions* options, CStream* stream) {
     LoadAttackOptions(options, stream);
     bool ok = options->size >= 0 && options->maxSize >= options->size && (options->size == 0 || options->data);
     ei::verify::Check("LoadAttackOptions", true, ok, "%d options", options->size);

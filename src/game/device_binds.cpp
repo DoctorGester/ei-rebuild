@@ -3,6 +3,7 @@
 // Direct3D 7 calls (SetTexture, IDirect3DVertexBuffer7::Unlock, DrawIndexedPrimitiveVB) are made as
 // the original makes them. See docs/notes/renderer.md (section 12).
 #include "device.h"
+#include "game_strings.h"
 
 #include "ground_print.h"       // NamedTexture
 #include "originals_engine.h"   // FatalDirectX
@@ -18,7 +19,7 @@ void Flush(CTextureDevice* device, DeviceVertexBatch& batch) {
     if (!buffer) return;
     buffer->result = static_cast<IDirect3DVertexBuffer7*>(buffer->buffer)->Unlock();
     gameapi::LeaveCriticalSection(device::Lock());
-    if (buffer->result != 0) FatalDirectX(buffer->result, device::Text(0x0078E2D4));   // "Can't unlock vertex buffer.\n"
+    if (buffer->result != 0) FatalDirectX(buffer->result, game::Text(0x0078E2D4));   // "Can't unlock vertex buffer.\n"
     const int vertexCount = batch.vertexCount;
     if (vertexCount != 0) {
         const int indexCount = batch.indices.size;

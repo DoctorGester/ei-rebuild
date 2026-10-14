@@ -32,8 +32,6 @@ namespace {
 
 // The empty string the game compares against and passes as "no text" (a zero byte in .data).
 constexpr const char* kNoExit = "none";   // 007846F0
-// Error texts (printf formats; the original passes these addresses to FatalError).
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 constexpr std::uintptr_t kWrongEntrance = 0x00790958;   // "Wrong entrance number in zone exit..."
 constexpr std::uintptr_t kCantLoadMob = 0x00790B08;     // "CWorldServer::LoadMap.\n Can't load .mob file "%s".\n"
 constexpr std::uintptr_t kCantReadObjects = 0x00790B3C; // "CWorldServer::LoadMapObjects\nUnable to read file "%s"\n"
@@ -110,7 +108,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
             continue;   // leads nowhere
         if (from->entrance < 0 && gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(from->target),
                                                   reinterpret_cast<const unsigned char*>(kNoExit)) != 0)
-            game::FatalError(Text(kWrongEntrance));
+            game::FatalError(game::Text(kWrongEntrance));
         int index = exits->size;
         ZoneExitsSetSizeOriginal(exits, nullptr, index + 1, -1);
         ZoneExit* to = &exits->data[index];
@@ -162,11 +160,11 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     ServerMapPath(this, nullptr, reinterpret_cast<char**>(&path), file);   // constructs the CString in place
     int result;
     if (!root->Open(path, 0x8020)) {
-        result = game::FatalError(Text(kCantOpenObjects), file);
+        result = game::FatalError(game::Text(kCantOpenObjects), file);
     } else {
         bool read = ReadMapObjectFile(root, nullptr, this, keepIds);
         fileObject->Close();
-        result = read ? 1 : game::FatalError(Text(kCantReadObjects), file);
+        result = read ? 1 : game::FatalError(game::Text(kCantReadObjects), file);
     }
     root->Destruct();
     return result;
@@ -184,7 +182,7 @@ int CWorldServer::LoadMobFile(const char* file) {
         if (loaded == 0) {
             LoadingMobFile() = 0;
             zoneLoaded_ = 0;
-            return game::FatalError(Text(kCantLoadMob), file);
+            return game::FatalError(game::Text(kCantLoadMob), file);
         }
     }
     LoadingMobFile() = 0;
@@ -268,23 +266,23 @@ void __stdcall SelectLoadingMovie(const char* zone) {
         if (map) allod = *reinterpret_cast<const mfc::CString*>(reinterpret_cast<const char*>(map) + 4);
     }
     if (SameName(allod, "gipat")) {
-        LoadingMovie() = Text(0x00790A9C);   // progres2.bik
+        LoadingMovie() = game::Text(0x00790A9C);   // progres2.bik
     } else if (SameName(allod, "ingos")) {
-        LoadingMovie() = Text(0x00790A8C);   // progres3.bik
+        LoadingMovie() = game::Text(0x00790A8C);   // progres3.bik
     } else {
         bool suslanger = SameName(allod, "suslanger");
-        LoadingMovie() = Text(0x00790A7C);   // progres4.bik
+        LoadingMovie() = game::Text(0x00790A7C);   // progres4.bik
         if (!suslanger) {
-            LoadingMovie() = Text(0x00790A70);   // progres.bik
+            LoadingMovie() = game::Text(0x00790A70);   // progres.bik
             if (ei::rebirth::Enabled(ei::rebirth::Patch::FixProgressNames)) {
-                if (SameName(allod, "gipat2")) LoadingMovie() = Text(0x00790A9C);
+                if (SameName(allod, "gipat2")) LoadingMovie() = game::Text(0x00790A9C);
                 else if (SameName(allod, "jigran")) LoadingMovie() = kProgres5;
             }
         }
     }
     if (zone) {
-        if (gamecrt::stricmp(zone, "gz1g") == 0) LoadingMovie() = Text(0x00790A60);   // progres1.bik
-        if (gamecrt::stricmp(zone, "bz7g") == 0) LoadingMovie() = Text(0x00790A60);
+        if (gamecrt::stricmp(zone, "gz1g") == 0) LoadingMovie() = game::Text(0x00790A60);   // progres1.bik
+        if (gamecrt::stricmp(zone, "bz7g") == 0) LoadingMovie() = game::Text(0x00790A60);
     }
 }
 

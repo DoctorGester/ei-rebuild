@@ -4,6 +4,7 @@
 // in the original's order; a value that is missing keeps the field's current value, which is
 // passed as the default. Value names are passed by their original addresses.
 #include "options.h"
+#include "game_strings.h"
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
@@ -138,7 +139,6 @@ __declspec(naked) void __cdecl StoreUnsigned(void* /*out*/, std::uint32_t /*valu
     }
 }
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 enum Kind { kInt, kDword, kFloat };
 
@@ -317,9 +317,9 @@ public:
 
     void Read(const Value& v) {
         switch (v.kind) {
-        case kInt: SetBits(v.field, key_.GetInt(Key(v.key), GameText(v.name), static_cast<int>(Bits(v.field)))); break;
-        case kDword: SetBits(v.field, key_.GetDword(Key(v.key), GameText(v.name), static_cast<int>(Bits(v.field)))); break;
-        case kFloat: SetFloat(v.field, static_cast<float>(key_.GetFloat(Key(v.key), GameText(v.name), Bits(v.field)))); break;
+        case kInt: SetBits(v.field, key_.GetInt(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field)))); break;
+        case kDword: SetBits(v.field, key_.GetDword(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field)))); break;
+        case kFloat: SetFloat(v.field, static_cast<float>(key_.GetFloat(Key(v.key), game::Text(v.name), Bits(v.field)))); break;
         }
     }
     template <std::size_t N>
@@ -328,13 +328,13 @@ public:
     }
     template <std::size_t N>
     void Read(const StringValue (&values)[N]) {
-        for (const StringValue& v : values) String(v.field) = GetString(key_, Key(v.key), GameText(v.name), String(v.field));
+        for (const StringValue& v : values) String(v.field) = GetString(key_, Key(v.key), game::Text(v.name), String(v.field));
     }
 
     // Stored as -1 / 1 floats, kept in the registry as booleans.
     void ReadCameraFlip(std::size_t offset, std::uintptr_t name) {
         int flipped = Bits(offset) == 0xBF800000u ? 1 : 0;   // the current value is -1
-        int value = key_.GetInt(Key(field::kKeyCamera), GameText(name), flipped);
+        int value = key_.GetInt(Key(field::kKeyCamera), game::Text(name), flipped);
         SetFloat(offset, static_cast<float>(value ? -1 : 1));
     }
 
@@ -343,7 +343,7 @@ public:
         for (unsigned i = 0; i < 4; ++i) {
             std::size_t base = field::kCameraShortcuts + i * 0x18;
             for (const auto& v : kShortcutValues) {
-                gamecrt::sprintf(name, GameText(v.format), i);
+                gamecrt::sprintf(name, game::Text(v.format), i);
                 SetFloat(base + v.offset, static_cast<float>(key_.GetFloat(Key(field::kKeyCamera), name, Bits(base + v.offset))));
             }
         }
@@ -353,11 +353,11 @@ public:
     void ReadLight(std::size_t offset, const std::uintptr_t (&names)[4]) {
         for (int c = 0; c < 3; ++c) {
             std::size_t f = offset + c * 4;
-            int value = key_.GetDword(Key(field::kKeyGame), GameText(names[c]), FtolProduct(o_ + f, kTimes255));
+            int value = key_.GetDword(Key(field::kKeyGame), game::Text(names[c]), FtolProduct(o_ + f, kTimes255));
             StoreUnsignedProduct(o_ + f, static_cast<std::uint32_t>(value), kOver255);
         }
         std::size_t f = offset + 12;
-        int radius = key_.GetDword(Key(field::kKeyGame), GameText(names[3]), Ftol(o_ + f));
+        int radius = key_.GetDword(Key(field::kKeyGame), game::Text(names[3]), Ftol(o_ + f));
         StoreUnsigned(o_ + f, static_cast<std::uint32_t>(radius));
     }
 
@@ -382,9 +382,9 @@ public:
 
     void Write(const Value& v) {
         switch (v.kind) {
-        case kInt: key_.SetInt(Key(v.key), GameText(v.name), static_cast<int>(Bits(v.field))); break;
-        case kDword: key_.SetDword(Key(v.key), GameText(v.name), static_cast<int>(Bits(v.field))); break;
-        case kFloat: key_.SetFloat(Key(v.key), GameText(v.name), Bits(v.field)); break;
+        case kInt: key_.SetInt(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field))); break;
+        case kDword: key_.SetDword(Key(v.key), game::Text(v.name), static_cast<int>(Bits(v.field))); break;
+        case kFloat: key_.SetFloat(Key(v.key), game::Text(v.name), Bits(v.field)); break;
         }
     }
     template <std::size_t N>
@@ -393,12 +393,12 @@ public:
     }
     template <std::size_t N>
     void Write(const StringValue (&values)[N]) {
-        for (const StringValue& v : values) SetString(key_, Key(v.key), GameText(v.name), String(v.field));
+        for (const StringValue& v : values) SetString(key_, Key(v.key), game::Text(v.name), String(v.field));
     }
 
     // 1 when the stored float is exactly -1 (compared as bits).
     void WriteCameraFlip(std::size_t offset, std::uintptr_t name) {
-        key_.SetInt(Key(field::kKeyCamera), GameText(name), Bits(offset) == 0xBF800000u ? 1 : 0);
+        key_.SetInt(Key(field::kKeyCamera), game::Text(name), Bits(offset) == 0xBF800000u ? 1 : 0);
     }
 
     void WriteCameraShortcuts() {
@@ -406,7 +406,7 @@ public:
         for (unsigned i = 0; i < 4; ++i) {
             std::size_t base = field::kCameraShortcuts + i * 0x18;
             for (const auto& v : kShortcutValues) {
-                gamecrt::sprintf(name, GameText(v.format), i);
+                gamecrt::sprintf(name, game::Text(v.format), i);
                 key_.SetFloat(Key(field::kKeyCamera), name, Bits(base + v.offset));
             }
         }
@@ -415,8 +415,8 @@ public:
     // The colour channels as _ftol(value * 255), the radius as _ftol(radius).
     void WriteLight(std::size_t offset, const std::uintptr_t (&names)[4]) {
         for (int c = 0; c < 3; ++c)
-            key_.SetDword(Key(field::kKeyGame), GameText(names[c]), FtolProduct(o_ + offset + c * 4, kTimes255));
-        key_.SetDword(Key(field::kKeyGame), GameText(names[3]), Ftol(o_ + offset + 12));
+            key_.SetDword(Key(field::kKeyGame), game::Text(names[c]), FtolProduct(o_ + offset + c * 4, kTimes255));
+        key_.SetDword(Key(field::kKeyGame), game::Text(names[3]), Ftol(o_ + offset + 12));
     }
 
 private:
@@ -438,7 +438,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
     l.Read(Value{kInt, 0x0C, 0x007854EC, 0x02C});   // DrawingTarget
     {
         // VideoResolution goes through the local string the original built first.
-        resolution = GetString(key, l.Key(field::kKeyVideo), GameText(0x007854DC), resolution);
+        resolution = GetString(key, l.Key(field::kKeyVideo), game::Text(0x007854DC), resolution);
         int x = Ops(resolution).FindChar('x');
         if (x != -1) {
             l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(GameAtoi(resolution.Left(x))));
@@ -447,7 +447,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
         }
     }
     l.Read(kVideoValues);
-    l.SetBits(0x048, static_cast<std::uint32_t>(key.GetInt(l.Key(field::kKeyVideo), GameText(0x00785480), 0)));   // Joystick
+    l.SetBits(0x048, static_cast<std::uint32_t>(key.GetInt(l.Key(field::kKeyVideo), game::Text(0x00785480), 0)));   // Joystick
     l.Read(kAudioToGeneralValues);
     l.ReadCameraFlip(field::kCameraFlipX, 0x007851EC);   // CameraFlipXAxis
     l.ReadCameraFlip(field::kCameraFlipY, 0x007851DC);   // CameraFlipYAxis
@@ -458,13 +458,13 @@ void GameOptions::LoadFromRegistry(const char* path) {
     l.Read(kGameValues2);
     l.ReadLight(field::kHeroLight, kHeroLightNames);
     l.ReadLight(field::kQuestLight, kQuestLightNames);
-    int difficulty = key.GetDword(l.Key(field::kKeyGame), GameText(0x00784BB8), static_cast<int>(l.Bits(field::kDifficulty + 4)));
+    int difficulty = key.GetDword(l.Key(field::kKeyGame), game::Text(0x00784BB8), static_cast<int>(l.Bits(field::kDifficulty + 4)));
     l.SetBits(field::kDifficulty + 4, static_cast<std::uint32_t>(difficulty));
     l.SetBits(field::kDifficulty, static_cast<std::uint32_t>(difficulty));
     l.Read(kDefaultValues);
     l.Read(kFogValues);
     l.String(field::kMasterServerName) =
-        GetString(key, l.Key(field::kKeyNetwork), GameText(0x00784B50), l.String(field::kMasterServerName));
+        GetString(key, l.Key(field::kKeyNetwork), game::Text(0x00784B50), l.String(field::kMasterServerName));
     key.Close();
     key.Destruct();
 }
@@ -480,11 +480,11 @@ void GameOptions::SaveToRegistry(const char* path) {
 
     s.Write(kPathValues);
     s.Write(Value{kInt, 0x0C, 0x007854EC, 0x02C});   // DrawingTarget
-    resolution.Format(GameText(0x00785524), static_cast<int>(s.Bits(field::kResolutionX)),   // "%dx%d"
+    resolution.Format(game::Text(0x00785524), static_cast<int>(s.Bits(field::kResolutionX)),   // "%dx%d"
                       static_cast<int>(s.Bits(field::kResolutionY)));
-    SetString(key, s.Key(field::kKeyVideo), GameText(0x007854DC), resolution);   // VideoResolution
+    SetString(key, s.Key(field::kKeyVideo), game::Text(0x007854DC), resolution);   // VideoResolution
     s.Write(kVideoValues);
-    key.SetInt(s.Key(field::kKeyVideo), GameText(0x00785480), 0);   // Joystick
+    key.SetInt(s.Key(field::kKeyVideo), game::Text(0x00785480), 0);   // Joystick
     s.Write(kAudioToGeneralValues);
     s.WriteCameraFlip(field::kCameraFlipX, 0x007851EC);   // CameraFlipXAxis
     s.WriteCameraFlip(field::kCameraFlipY, 0x007851DC);   // CameraFlipYAxis
@@ -495,10 +495,10 @@ void GameOptions::SaveToRegistry(const char* path) {
     s.Write(kGameValues2);
     s.WriteLight(field::kHeroLight, kHeroLightNames);
     s.WriteLight(field::kQuestLight, kQuestLightNames);
-    key.SetDword(s.Key(field::kKeyGame), GameText(0x00784BB8), static_cast<int>(s.Bits(field::kDifficulty + 4)));
+    key.SetDword(s.Key(field::kKeyGame), game::Text(0x00784BB8), static_cast<int>(s.Bits(field::kDifficulty + 4)));
     s.Write(kDefaultValues);
     s.Write(kFogValues);
-    SetString(key, s.Key(field::kKeyNetwork), GameText(0x00784B50), s.String(field::kMasterServerName));
+    SetString(key, s.Key(field::kKeyNetwork), game::Text(0x00784B50), s.String(field::kMasterServerName));
     key.Close();
     key.Destruct();
 }
