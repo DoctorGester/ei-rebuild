@@ -57,7 +57,6 @@ ScriptGroup* __fastcall GroupsGetAt(void* a0, void*, ScriptGroup* a2, int a3) { 
 mfc::CString* __fastcall NamesGetAt(void* a0, void*, mfc::CString* a2, int a3) { return (mfc::CString*)ScriptStringAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
 ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup* a0, void*, ScriptObjectRef* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
 void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
-__declspec(naked) void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned /*flags*/) EI_ORIGINAL(0x004CE1E0)
 void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 // The network log's ostream (007C56B0).
 inline void* __fastcall OstreamPutLong(void* s, void*, long v) { return OstreamPutLongOriginal(s, nullptr, v); }
@@ -175,7 +174,7 @@ int CWorldServer::Update() {
     heroes.vtable = scriptvtable::kRefsBase;
     if (heroes.data) {
         ScriptObjectRef* ref = heroes.data;
-        for (int n = heroes.size; n != 0; --n) RefDestruct(ref++, nullptr, 0);
+        for (int n = heroes.size; n != 0; --n) ScriptRefDestroyOriginal(ref++, nullptr, 0);
         gamecrt::operator_delete(heroes.data);
     }
 

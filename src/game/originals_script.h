@@ -133,3 +133,8 @@ __declspec(naked) inline void __fastcall VarsAssign(ScriptVars* /*to*/, void*, c
     EI_ORIGINAL(0x004CBAE0)
 __declspec(naked) inline void __fastcall DefinitionDestruct(ScriptDefinition*) EI_ORIGINAL(0x004BE9D0)
 __declspec(naked) inline void __fastcall ScriptsRun(CScript*) EI_ORIGINAL(0x004BF000)
+
+// C3o. 004CE1E0 (rewritten as ScriptRefDestroy; thiscall, RET 4): a script object reference's scalar deleting destructor
+// (the object released through its slot 4; the reference freed when flags & 1); returns the reference.
+__declspec(naked) inline void* __fastcall ScriptRefDestroyOriginal(void* /*ref*/, void*, int /*flags*/)
+    EI_ORIGINAL(0x004CE1E0)

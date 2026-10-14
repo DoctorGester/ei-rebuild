@@ -26,7 +26,6 @@ __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x004
 // 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
 __declspec(naked) void __fastcall AddScorch(void*, void*, std::uint32_t /*x*/, std::uint32_t /*y*/, std::uint32_t /*outer*/, std::uint32_t /*inner*/, std::uint32_t /*angle*/, std::uint32_t /*alpha*/) EI_ORIGINAL(0x0056D4C0)
 // 004113A0 (camera.cpp): a camera shake from an event at `at`.
-__declspec(naked) void __fastcall ShakeCamera(void* /*camera*/, void*, const Vector3* /*at*/, std::uint32_t /*strength*/, std::uint32_t /*duration*/, std::uint32_t /*decay*/) EI_ORIGINAL(0x004113A0)
 // The global ISAAC generator (007A9D40): 004667F0 Next, 0049EE70 Refill.
 __declspec(naked) void __fastcall RandomRefill(void* /*random*/) EI_ORIGINAL(0x0049EE70)
 void* TheRandom() { return reinterpret_cast<void*>(0x007A9D40); }
@@ -446,7 +445,7 @@ void CEffectParticle::Spawn() {
         std::uint32_t radius = Bits(size_);
         float angle = RandomAngle(random);
         AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), radius, radius, Bits(angle), alpha);
-        ShakeCamera(CameraObject(), nullptr, &localPosition_, Bits(size_), 0x40000000u /* 2.0 */, 0x3E800000u /* 0.25 */);
+        CameraShakeOriginal(CameraObject(), nullptr, &localPosition_, size_, 2.0f, 0.25f);
     }
 }
 

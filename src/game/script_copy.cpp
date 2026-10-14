@@ -141,7 +141,6 @@ ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) { ret
 ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal(a0, nullptr, a2, a3); }
 // Rewritten reference helpers, called through their addresses (script_group.cpp).
 // 004CE1E0: a reference's destructor (__thiscall (flags)); 004C2290: a group's destructor.
-__declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // 006FE268: ConstructElements for CString.
 void __stdcall ConstructStrings(void* a0, int a1) { CStringElementsConstruct(a0, a1); }
@@ -282,7 +281,7 @@ ScriptNamedValues<ScriptGroup>* __fastcall ScriptGroupsCopyConstruct(ScriptNamed
         }
         copy.vtable = reinterpret_cast<void*>(kRefsBaseVtable);
         if (copy.data) {
-            for (int k = 0; k < copy.size; ++k) RefDestroy(&copy.data[k], nullptr, 0);
+            for (int k = 0; k < copy.size; ++k) ScriptRefDestroyOriginal(&copy.data[k], nullptr, 0);
             gamecrt::operator_delete(copy.data);
         }
     }

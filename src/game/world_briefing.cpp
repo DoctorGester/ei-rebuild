@@ -40,7 +40,6 @@ constexpr std::uintptr_t kDot = 0x00783D78;               // "."
 // there is none), 004DF030 (RET 4) finds the next line with a tag, 004DFCB0 (RET 8) splits the
 // current line into words.
 void* BriefingTexts() { return *reinterpret_cast<void**>(0x007AF788); }
-__declspec(naked) int __fastcall TextsFindTag(void*, void*, const char*) EI_ORIGINAL(0x004DF030)
 
 // 005809D0 (RET 4). The flow loads the quests of a zone (not rewritten).
 inline void __fastcall FlowLoadQuests(GameFlow*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
@@ -75,7 +74,7 @@ mfc::CString* __stdcall BriefingSpeakerInto(mfc::CString* out, const char* brief
     if (missing) return new (out) mfc::CString(game::EmptyText());
     // The first "#show" line whose second word is not "Hero" names the speaker.
     console::CStringArray words;
-    while (TextsFindTag(texts, nullptr, Text(kShowTag))) {
+    while (TextFindLineOriginal(texts, nullptr, Text(kShowTag))) {
         ReaderSplit(static_cast<CTextManager*>(texts), nullptr, &words, 1);
         if (words.GetSize() >= 2 &&
             gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(words[1])),

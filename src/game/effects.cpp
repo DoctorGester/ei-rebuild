@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "originals_effects.h"
 #include "originals_engine.h"
 
 #include <bit>
@@ -78,7 +79,6 @@ __declspec(naked) double __cdecl LnOfInt(int) {
 
 // 004113A0: the camera's shake around a point (the camera object is 0079B2A8).
 // Arguments: camera, unused EDX, point, strength, range, duration.
-__declspec(naked) void __fastcall CameraShake(void*, void*, const Vector3*, float, float, float) EI_ORIGINAL(0x004113A0)
 void* TheCamera() { return reinterpret_cast<void*>(0x0079B2A8); }
 
 constexpr int kTypeFire = 0x2003;
@@ -363,7 +363,7 @@ EI_REPLACE_METHOD(0x0048EE20, CParticleSource::TickTendril);
 // its first tick; emission stops after 30 ticks.
 void CParticleSource::TickMushroom(ParticleElement* e) {
     if (type_ == kTypeMushroom && e->ticks == 0 && e == elements)
-        CameraShake(TheCamera(), nullptr, &origin, 5.0f, size, 0.25f);
+        CameraShakeOriginal(TheCamera(), nullptr, &origin, 5.0f, size, 0.25f);
     int ticks = ++e->ticks;
     e->pos.x = static_cast<float>(LnOfInt(ticks + 1) * size * kMushroomWidth);
     e->pos.z = size * kMushroomRise + e->pos.z;
