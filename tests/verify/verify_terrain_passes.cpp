@@ -43,6 +43,73 @@ void __fastcall ChooseDetailVerify(Terrain* self, void*, SectorData* sector) {
 }
 EI_VERIFY(0x006C66E0, ChooseDetailVerify, 5, s_chooseDetail);
 
+// The sector's part of the passes (A-Z1), reached from DrawPages (which calls the three through
+// their addresses) each frame for every visible sector.
+
+// 006BFB00: MOV EAX,[ECX+0x60]; TEST EAX,EAX (5 bytes). Pure.
+int(__fastcall* s_isDrawn)(const SectorData*);
+
+int __fastcall IsDrawnVerify(const SectorData* self) {
+    const int expected = s_isDrawn(self);
+    ei::verify::Check("SectorData::IsDrawn", expected, self->IsDrawn(), "+0x60 %u", self->unknown_060);
+    return expected;
+}
+EI_VERIFY(0x006BFB00, IsDrawnVerify, 5, s_isDrawn);
+
+// 006BFB20: PUSH EBP; MOV EBP,[ESP+8] (5 bytes). It writes the sector's verdict and, unless that is
+// "culled", its quarters' (the pipeline's test is pure): the original, the five values put back,
+// ours; all five compared (a culled sector's quarters are the ones both runs started from).
+struct ClipVerdicts {
+    std::uint32_t sector;
+    int quarters[4];
+};
+
+ClipVerdicts ReadVerdicts(const SectorData* sector) {
+    return {sector->unknown_060,
+            {sector->quarterMode[0], sector->quarterMode[1], sector->quarterMode[2], sector->quarterMode[3]}};
+}
+
+void WriteVerdicts(SectorData* sector, const ClipVerdicts& verdicts) {
+    sector->unknown_060 = verdicts.sector;
+    for (int q = 0; q < 4; ++q) sector->quarterMode[q] = verdicts.quarters[q];
+}
+
+void(__fastcall* s_clipTest)(SectorData*, void*, CSceneRenderer*);
+
+void __fastcall ClipTestVerify(SectorData* self, void*, CSceneRenderer* renderer) {
+    const ClipVerdicts before = ReadVerdicts(self);
+    s_clipTest(self, nullptr, renderer);
+    const ClipVerdicts expected = ReadVerdicts(self);
+    WriteVerdicts(self, before);
+    self->ClipTest(renderer);
+    const ClipVerdicts actual = ReadVerdicts(self);
+    bool same = expected.sector == actual.sector;
+    for (int q = 0; q < 4; ++q) same = same && expected.quarters[q] == actual.quarters[q];
+    ei::verify::Check("SectorData::ClipTest", true, same, "sector %d,%d: %u [%d %d %d %d] / ours %u [%d %d %d %d]", self->sx,
+                      self->sy, expected.sector, expected.quarters[0], expected.quarters[1], expected.quarters[2],
+                      expected.quarters[3], actual.sector, actual.quarters[0], actual.quarters[1], actual.quarters[2],
+                      actual.quarters[3]);
+}
+EI_VERIFY(0x006BFB20, ClipTestVerify, 5, s_clipTest);
+
+// 006BFB80: PUSH EBP; PUSH ESI; MOV ESI,ECX; MOV EBP,1 (9 bytes). It writes the two seam flags:
+// the original, the flags put back, ours; compared. Its neighbour lookups (SectorAt without
+// create) only move a sector to the cache's front once per frame, which the second run finds done.
+void(__fastcall* s_findSeams)(SectorData*);
+
+void __fastcall FindSeamsVerify(SectorData* self) {
+    const int before174 = self->unknown_174, before178 = self->unknown_178;
+    s_findSeams(self);
+    const int expected174 = self->unknown_174, expected178 = self->unknown_178;
+    self->unknown_174 = before174;
+    self->unknown_178 = before178;
+    self->FindSeams();
+    ei::verify::Check("SectorData::FindSeams", true, expected174 == self->unknown_174 && expected178 == self->unknown_178,
+                      "sector %d,%d detail %d: %d %d / ours %d %d", self->sx, self->sy, self->unknown_170, expected174,
+                      expected178, self->unknown_174, self->unknown_178);
+}
+EI_VERIFY(0x006BFB80, FindSeamsVerify, 9, s_findSeams);
+
 // 006C6460: ours only (it draws; its callees SectorAt, ChooseDetail, Project and DrawSectorPage run
 // through their own wrappers). Checked: 0 without a map, else 1 (a failed draw would show here).
 int(__fastcall* s_drawPages)(Terrain*, void*, CSceneRenderer*, int, int);

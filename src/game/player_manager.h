@@ -31,7 +31,7 @@ public:
     // (positions_ and the object list are left alone).
     void ChangeId(CEngineObject* object, int id);
     // 0066C340 / 0066C3C0 (RET 8). Every player's connection (a CPlayerServer) gets message
-    // 0x12 (0066D730: one uninitialised byte, then `value`) / 0x13 (SendText13, `text`).
+    // 0x12 (SendValue12 through its address: a byte, then `value`) / 0x13 (SendText13, `text`).
     void SendValueToAll(int unused, int value);
     void SendTextToAll(int unused, const char* text);
 };

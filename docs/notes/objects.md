@@ -151,7 +151,7 @@ Rewritten (O unless marked; S = ours into the stream, the stream (and the fields
 | 0066F4C0 | OnLeaderDied (slot 20, from CUnitServer::UpdateServer when the dead unit IsLeader): single player 0x09 + 0x0B (hero id, 0xFF); a network game revives a one-hero party (money / experience shares 007C5490 / 007C5494 over the NPC record's +0x54 `experienceFloor`, shared object, new id, CollectParty / SendParty / Redeploy, the old brain's +0x12C units and the old hero into the new one's; flag70_ 1, lastPosition_.z -1313 (hero_death)) |
 | 00670310, 00670670, 006706A0 (S), 00670730 (S), 00670760 (S), 006707D0 (S) | OnUseOrder (0x36: units, flag, kind, value, object; the nearest unit asked by CheckOrder / CheckOrderAt from its path end; Player mode CommandUse), UseOrderDistanceSquared, AIPath::Construct / TargetPoint, AIOrder::MakeUse / AimPoint (ui_battle_commands' dead-wolf clicks) |
 | 0066FAA0, 00670C20, 00670DA0, 00670E00, 00670EB0, 00670F50, 00671060, 0066FFF0, 0066FBD0, 00670190, 00670B60 | server handlers 0x02 refresh party, 0x03 take exit, 0x05 joined, 0x06 leave to zone, 0x07 briefing done, 0x08 new party, 0x09 resume, 0x30 walk, 0x3A go to, 0x31 attack, 0x50 party update |
-| 0066C0F0, 0066C110, 0066C1D0, 0066C1E0, 0066C340 / 0066C3C0 | CPlayerManager (`player_manager.cpp`, vtable 0073F328): CreatePlayers (2), NewPlayer (14), ReleasePlayer, ChangeId (client message 0x00), SendValueToAll / SendTextToAll (0x12 via 0066D730 forwarded / SendText13) |
+| 0066C0F0, 0066C110, 0066C1D0, 0066C1E0, 0066C340 / 0066C3C0 | CPlayerManager (`player_manager.cpp`, vtable 0073F328): CreatePlayers (2), NewPlayer (14), ReleasePlayer, ChangeId (client message 0x00), SendValueToAll / SendTextToAll (0x12 via SendValue12 0066D730, through its address / SendText13) |
 | 00666D10, 00666FD0 / 00666FB0, 00666F90 / 00666FA0, 00666EC0 / 00666F70 | CPlayerClient Construct, DestructBody / DeletingDestruct, class name / id; CPlayerConnection's destructors (A-H21, `player_client.cpp`) |
 | 00667510 (3) / 00667600 (15), 006671A0, 00667680, 00667810, 00667970, 00667A30 | CPlayerClient::Clear, CoderState::Reset (out.End, then Construct), Pump (slot 4: login message 0 with version 100, "Tango", "Very top secret", the player's +0xFC; state 2 sends the camera anchor as 0x40), SendToServer, DispatchMessages, ReceiveMessages (slot 21, one packet per call) |
 | 00667D80 (S), 00669850, 00669960, 00669EB0, 00669F40, 00669010, 006690F0, 006691C0, 00669290 | client handlers: ReadText, 0x81 set variable, 0x82 delete variable, 0x08 zone change (`GameFlow::RequestZoneChange`), 0x0D jingle (`CMusicSystem::PlayJingle`), 0x02 zone (player cleared, client world 00567AB0, Rebirth-patched, by address), 0x03 / 0x05 world blocks (00567A60 / 00567950), 0x0A item removed (00665870, then quest log 005F7F30 with an empty CPtrList, vtable 0073BE80) |
@@ -176,7 +176,7 @@ in library.csv); the AIPath is destroyed through 00546100; CPlayer::Clear's unit
 unit; the constructor's maps keep their uninitialised functor bytes; HasLoot reads +0x4C of every carried item whatever its
 class; ReleaseTamedUnits (like Clear's sibling walks) goes on from the node of a unit SetPlayer has just erased, reading the
 freed node; Connect / Disconnect / GiveItems / TakeAllItems call the connection without a null test; 0066D730 (message 0x12)
-writes one uninitialised stack byte (not reproduced exactly).
+writes one uninitialised stack byte (ours sends 0: A-Z1, items_spells.md).
 
 ### Message handlers not yet ported (research from DR-H16 / DR-C4)
 

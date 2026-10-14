@@ -61,9 +61,6 @@ std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(Roun
 
 } // namespace
 
-// 006BFB00: +0x60 is 0 or 1.
-__declspec(naked) int SectorData::IsDrawn() EI_ORIGINAL(0x006BFB00)
-
 void SectorData::ResetFields() {
     sx = sy = -1;
     unknown_170 = unknown_178 = unknown_174 = 0;

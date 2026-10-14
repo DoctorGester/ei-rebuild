@@ -40,6 +40,12 @@ static_assert(sizeof(FootprintCell) == 0x18);
 
 // A growable array of FootprintCell with a 16-bucket hash on (x + y). Name provisional.
 struct FootprintCellSet {
+    // 0067E4E0 (A-Z1; returns the set). The constructor as the spells' global set 007C8478 gets it
+    // from its static initialiser 0067E4C0 (before the hooks; compared at start-up): an empty
+    // array, `hashed` set. The buckets are not written (the global's are zero until the first
+    // footprint empties them).
+    FootprintCellSet* Construct();
+
     // 005BD350. Resizes the array to `size` (0 frees it). The storage is 32-byte aligned, with the
     // raw allocation stored just before it. `growBy` != -1 also sets the growth step.
     void SetSize(int size, int growBy);
@@ -60,7 +66,7 @@ struct FootprintCellSet {
     int capacity;           // +0x08
     int growBy;             // +0x0C 0 = an eighth of the size, clamped to 4..1024
     int buckets[16];        // +0x10 first index per (x + y) & 15, -1 when empty
-    bool hashed;            // +0x50 set by the first insertion, never cleared
+    bool hashed;            // +0x50 set by Construct and by every insertion, never cleared
     std::uint8_t unknown_51[3];
 };
 static_assert(sizeof(FootprintCellSet) == 0x54);

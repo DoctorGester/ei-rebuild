@@ -611,3 +611,26 @@ stage 0's mip filter (state 0x12) read, set to 1 and put back through the device
 None of the ported ones drives the device directly (0065E580 makes an interface surface through 005FCDD0; 0065C2E0 and
 006567A0 draw GDI text and a pen line into one through its DC; 00641F20 sets one pixel through a surface's DC).
 Next candidates: none left of the ticket's list.
+
+## A-Z1: the last eight hookable functions without a replacement
+
+| Address | What | Verified |
+|---|---|---|
+| 006BFB00, 006BFB20, 006BFB80 | `SectorData::IsDrawn` (+0x60 is 0 or 1), `ClipTest` (the box's verdict at +0x60, -1 stored as 2; unless culled the four quarters' in `quarterMode`), `FindSeams` (the two seam flags from the lit neighbours' level of detail; lookups without create) in `terrain_passes.cpp` | S, every map frame: DrawPages calls the three through their addresses (forwarders in `terrain_passes.cpp`, as for its other callees; RunTick calls IsDrawn directly). IsDrawn pure; the other two run the original, put the values back, run ours |
+| 0066D730 | `CPlayerServer::SendValue12` (`player_messages.cpp`): message 0x12, a byte and the value | S with the stream restored, the unwritten byte left out; the script command SendEvent (script_exec.txt) through CPlayerManager::SendValueToAll, which calls it by address |
+| 0067E4E0 | `FootprintCellSet::Construct` (`ai_footprint.cpp`): the constructor of the spells' cell set 007C8478 (empty array, `hashed` 1; the buckets not written) | start-up check (it runs from the static initialiser 0067E4C0, before the hooks): the five written fields against the original's global, nothing else written |
+| 00695BE0 | not game code: CIniFile's compiler-generated destructor, a JMP to CString::~CString (config/library.csv, as the other such thunks) | - |
+| 00646C25, 00656464 | not functions: the strings "%ld" (0074676C) and "dde" (0074718C) have the bytes of these two code addresses, so Ghidra made a function at each (both lie inside an instruction) and ended the real functions 00646B90 / 00655D40 there (config/library.csv) | the ports of 00646B90 (`ShowEffects`) and 00655D40 (`FillEntries`) were read against the tails: both cover them |
+
+Kept: message 0x12's first payload byte is never written by the original; what goes out is the stack byte 8 below its
+entry ESP, left by whatever its callers' callers ran before (the iterator helpers in between do not touch it). That
+cannot be reproduced (the rewritten callers already leave other bytes there) and nothing reads it: the client's handler
+00667E20 skips the byte. Ours sends 0, as the other senders' unwritten bytes.
+
+The two false functions also had rows in config/vtables.csv (dropped) and cut the real functions' sizes short:
+`src/hook/function_sizes.inc` and `config/extra_function_sizes.csv` now give 00646B90 1167 bytes and 00655D40 2301
+(tools/gen_function_sizes.py lets a row there replace Ghidra's size), so the installer's comparison with the exe on disk
+and check_signatures see the whole bodies. No Rebirth site lies in either tail. (Run today, the generator changes many
+other sizes of the committed list: Ghidra's first body range is shorter than what the list holds. Not regenerated.)
+
+Left in the game range: functions under five bytes only.

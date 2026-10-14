@@ -90,8 +90,8 @@ __declspec(naked) inline void __fastcall PartyRecordsDestructOriginal(void* /*pa
 __declspec(naked) inline void __fastcall PlayerClearOriginal(void* /*player*/) EI_ORIGINAL(0x00665200)
 __declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player*/) EI_ORIGINAL(0x00665A10)
 __declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/) EI_ORIGINAL(0x0066C180)
-// 0066D730 (CPlayerServer, RET 8): message 0x12, one uninitialised stack byte and `value` (the first
-// argument is not read; not rewritten because of that byte).
+// 0066D730 (CPlayerServer::SendValue12, RET 8; player_messages.cpp): message 0x12. Through its
+// address, so that its verify wrapper runs (CPlayerManager::SendValueToAll is its only caller).
 __declspec(naked) inline void __fastcall PlayerServerSend12Original(void* /*server*/, void*, int /*unused*/, int /*value*/)
     EI_ORIGINAL(0x0066D730)
 __declspec(naked) inline void __fastcall PlayerStateRefreshOriginal(void* /*state*/) EI_ORIGINAL(0x0066EF80)

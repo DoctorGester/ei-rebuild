@@ -809,12 +809,12 @@ Rewritten as `FindFigureModel` (src/game/figure_models.cpp).
 
 ### 0x005B36B0: 2 files, 2 sites, signatures differ
 Rewritten as `CUnitLayer::Add` (src/game/ai_unit_layer.cpp).
-- `src/game/ai_footprint.cpp:131`: `void __fastcall UnitLayerAdd(CUnitLayer*, void*, CUnit*, void*, int, int)`
+- `src/game/ai_footprint.cpp:141`: `void __fastcall UnitLayerAdd(CUnitLayer*, void*, CUnit*, void*, int, int)`
 - `src/game/ai_water_patch.cpp:25`: `void __fastcall LayerAdd(void*, void*, int, void*, int, int)`
 
 ### 0x005B3890: 2 files, 2 sites, signatures differ
 Rewritten as `CUnitLayer::Remove` (src/game/ai_unit_layer.cpp).
-- `src/game/ai_footprint.cpp:132`: `void __fastcall UnitLayerRemove(CUnitLayer*, void*, CUnit*, int, int)`
+- `src/game/ai_footprint.cpp:142`: `void __fastcall UnitLayerRemove(CUnitLayer*, void*, CUnit*, int, int)`
 - `src/game/ai_water_patch.cpp:26`: `void __fastcall LayerRemove(void*, void*, int, int, int)`
 
 ### 0x005B8B30: 4 files, 4 sites, signatures differ

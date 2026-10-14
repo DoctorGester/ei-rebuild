@@ -575,8 +575,6 @@ constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x00744184);
 constexpr std::uintptr_t kFlagArrayArrayVtable = std::uintptr_t(0x007441A8);
 constexpr std::uintptr_t kTileListArrayVtable = std::uintptr_t(0x007441B4);
 
-constexpr int kCulled = 2;
-constexpr int kCrossing = 1;
 constexpr int kQuarterCells = 16;
 constexpr int kRow = 33;
 
@@ -584,7 +582,6 @@ constexpr int kRow = 33;
 static_assert(offsetof(SectorBox, low) == offsetof(ClipBounds, boxMin) &&
               offsetof(SectorBox, high) == offsetof(ClipBounds, boxMax) &&
               offsetof(SectorBox, centre) == offsetof(ClipBounds, center));
-const ClipBounds* BoundsOf(const SectorBox& box) { return reinterpret_cast<const ClipBounds*>(&box); }
 
 } // namespace
 

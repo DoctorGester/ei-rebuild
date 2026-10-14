@@ -67,6 +67,10 @@ public:
     void SendPair18(std::uint32_t a, std::uint32_t b);              // 0066F2C0
     void SendObject43(const void* object);                          // 0066D6A0: id, nothing without an object
     void SendObject0B(const void* object, std::uint32_t value);     // 0066D6E0: id, value
+    // 0066D730 (RET 8; A-Z1): message 0x12, a byte and `value` (the 2nd argument; the first is not
+    // read). The original never writes the byte: whatever its stack holds goes out. Ours sends 0;
+    // the client's handler (00667E20) skips the byte.
+    void SendValue12(std::uint32_t unused, std::uint32_t value);
     void SendText13(std::uint32_t unused, const char* text);        // 0066D770: the text is the 2nd argument
     void SendText(std::uint8_t type, const char* text);             // 0066D7B0
     void WriteTo(void* target);                                     // 0066D230: target's slot 7 (stream)

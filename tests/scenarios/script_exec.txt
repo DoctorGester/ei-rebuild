@@ -153,5 +153,10 @@ console #GroupSize(GroupAdd(GroupSee(GetPlayerUnits(GetPlayer(GetLeader()))),Pla
 console @MoveToPoint(GetLeader(),Add(GSGetVar(0,"zu.x"),1),GSGetVar(0,"zu.y")) SleepUntilIdle(GetLeader()) GSSetVar(0,"zw.idle",1)
 waitfor 15 IsEqual(GSGetVar(0,"zw.idle"),1)
 check IsAlive(GetLeader())
+
+# SendEvent: message 0x12 to every player (CPlayerManager::SendValueToAll, CPlayerServer::SendValue12);
+# the client stores the value, which nothing reads. The commands after it still run.
+console @SendEvent(0,7) GSSetVar(0,"zw.event",1)
+waitfor 5 IsEqual(GSGetVar(0,"zw.event"),1)
 report
 quit

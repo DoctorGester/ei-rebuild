@@ -20,8 +20,8 @@ on 2026-10-13; ticket counts are estimates.
 | Old renderer code | 100 functions, 43 KB in 0x4C0000-0x500000 | ported as is, or the parked device removal (renderer.md section 9) |
 
 Also needed: the remaining static initialisers (they run before the hooks; a port is compared at
-WinMain's entry by a start-up check, as A-E2's are), resources, and the functions kept original on purpose
-(0066D730's uninitialised byte). WinMain and the MFC TRY / CATCH functions 006D5910, 006D5AC0, 004D5880 are
+WinMain's entry by a start-up check, as A-E2's are) and resources; no function is kept original on purpose
+any more (0066D730 was ported by A-Z1). WinMain and the MFC TRY / CATCH functions 006D5910, 006D5AC0, 004D5880 are
 ported (app.md "A-E2"); the standalone build still needs its own exception link for them.
 
 ## 2. Runtime: MFC, STLport, CRT

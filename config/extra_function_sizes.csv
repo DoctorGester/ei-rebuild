@@ -90,3 +90,5 @@ address,size,note
 00670B20,51,server session: message 0x40 handler: two dwords to +0x38 / +0x3C (table +0x100; no Ghidra function)
 00670CE0,191,server session: message 0x04 handler: party collected (table +0x10; no Ghidra function)
 00455A30,93,operator new handler installed by WinMain (referenced only by address; no Ghidra function)
+00646B90,1167,"CHudUnitPanel::ShowEffects: Ghidra ends it at the false function 00646C25 (149 bytes); code up to the RET 4 at 0064701C, jump table at 00647020"
+00655D40,2301,"CSaveLoadWindow::FillEntries: Ghidra ends it at the false function 00656464 (1828 bytes); code up to the RET at 0065663C"
