@@ -6,6 +6,7 @@
 // operator delete" shells of five classes, and the transform pipeline's constructor and destructor
 // with its matrix stacks' constructor. The device object's and the DirectDraw holder's destructor bodies are not
 // here. See docs/notes/renderer.md (section 12).
+#include "device.h"   // the old device's calls
 #include "dx_errors.h"
 #include "model.h"
 #include "sys_info.h"
@@ -242,7 +243,7 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
     stlp::vector<std::uint32_t> blocks;
     Resize(&blocks, static_cast<std::size_t>(count - stages + 1), std::uint32_t{0});
 
-    HRESULT result = device_->BeginStateBlock();
+    HRESULT result = device::BeginStateBlock(device_);
     if (result < 0) {
         const int error = FatalDirectX(result, CantBeginBlockText());
         blocks.FreeStorage();
@@ -257,17 +258,17 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
             Resize(&blocks, states->size() - i + 1, std::uint32_t{0});
             break;
         }
-        device_->SetTextureStageState(i, D3DTSS_COLOROP, state.colourOp);
-        device_->SetTextureStageState(i, D3DTSS_COLORARG1, state.colourArg1);
-        device_->SetTextureStageState(i, D3DTSS_COLORARG2, state.colourArg2);
-        device_->SetTextureStageState(i, D3DTSS_ALPHAOP, state.alphaOp);
-        device_->SetTextureStageState(i, D3DTSS_ALPHAARG1, state.alphaArg1);
-        device_->SetTextureStageState(i, D3DTSS_ALPHAARG2, state.alphaArg2);
+        device::SetTextureStageState(device_, i, D3DTSS_COLOROP, state.colourOp);
+        device::SetTextureStageState(device_, i, D3DTSS_COLORARG1, state.colourArg1);
+        device::SetTextureStageState(device_, i, D3DTSS_COLORARG2, state.colourArg2);
+        device::SetTextureStageState(device_, i, D3DTSS_ALPHAOP, state.alphaOp);
+        device::SetTextureStageState(device_, i, D3DTSS_ALPHAARG1, state.alphaArg1);
+        device::SetTextureStageState(device_, i, D3DTSS_ALPHAARG2, state.alphaArg2);
     }
-    device_->SetTextureStageState(stages, D3DTSS_COLOROP, D3DTOP_DISABLE);
-    device_->SetTextureStageState(stages, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+    device::SetTextureStageState(device_, stages, D3DTSS_COLOROP, D3DTOP_DISABLE);
+    device::SetTextureStageState(device_, stages, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
     DWORD block = 0;
-    result = device_->EndStateBlock(&block);
+    result = device::EndStateBlock(device_, &block);
     if (result < 0) {
         const int error = FatalDirectX(result, CantEndBlockText());
         blocks.FreeStorage();
@@ -276,7 +277,7 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
     blocks[0] = block;
 
     for (std::size_t i = static_cast<std::size_t>(stages); i < states->size(); ++i) {
-        result = device_->BeginStateBlock();
+        result = device::BeginStateBlock(device_);
         if (result < 0) {
             const int error = FatalDirectX(result, CantBeginBlockText());
             blocks.FreeStorage();
@@ -284,10 +285,10 @@ CRenderPreset* CRenderHelper::Record(const StateVector* states, int index, bool 
         }
         const State& state = (*states)[i];
         if (state.blend) {
-            device_->SetRenderState(D3DRENDERSTATE_SRCBLEND, state.sourceBlend);
-            device_->SetRenderState(D3DRENDERSTATE_DESTBLEND, state.destBlend);
+            device::SetRenderState(device_, D3DRENDERSTATE_SRCBLEND, state.sourceBlend);
+            device::SetRenderState(device_, D3DRENDERSTATE_DESTBLEND, state.destBlend);
         }
-        result = device_->EndStateBlock(&block);
+        result = device::EndStateBlock(device_, &block);
         if (result < 0) {
             const int error = FatalDirectX(result, CantEndBlockText());
             blocks.FreeStorage();
@@ -335,7 +336,7 @@ EI_REPLACE(0x004FD2A0, RenderHelperRecord);
 void CRenderHelper::ReleaseBlock(CRenderPreset* preset) {
     for (int i = 0; i < static_cast<int>(preset->blocks_.size()); ++i) {
         const std::uint32_t block = preset->blocks_[i];
-        const HRESULT result = device_->DeleteStateBlock(block);
+        const HRESULT result = device::DeleteStateBlock(device_, block);
         if (result < 0) FatalDirectX(result, CantDeleteBlockText(), block);
     }
     if (preset->Index() < kPresetCount) presets_[preset->Index()] = nullptr;
@@ -377,7 +378,7 @@ CRenderHelper* CRenderHelper::RenderHelperConstruct(IDirect3DDevice7* device, st
     if (device) device->AddRef();
 
     std::memset(caps_, 0, sizeof(caps_));
-    const HRESULT result = device_->GetCaps(&Caps(this));
+    const HRESULT result = device::GetCaps(device_, &Caps(this));
     if (result < 0) {
         FatalDirectX(result, CantGetCapsText());
         std::memset(caps_, 0, sizeof(caps_));

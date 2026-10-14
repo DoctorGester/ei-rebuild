@@ -385,6 +385,50 @@ Still R9c's: the loading screen and the movie players still reach the present th
 ends the frame); full screen without a display mode change, gamma, lost Direct3D 11 devices, resolution changes,
 Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
 
+### R9b: the rewritten code's calls into the old device guarded (done)
+
+- `device_null.cpp`: the stand-ins' state (render / stage states, state blocks, bound textures, viewport, scene
+  bracket, display mode) is a plain object, `SwitchOverDevice`; the two COM stand-ins only log and forward to it.
+- `device.h`: `device::SetRenderState(d3d, ...)` and one call per method the rewritten code uses (GetCaps,
+  EnumTextureFormats, Begin / EndScene, Clear, SetViewport, SetRenderTarget, Set / GetRenderState, Set /
+  GetTextureStageState, Begin / End / Apply / DeleteStateBlock, SetTexture, DrawPrimitive, DrawIndexedPrimitive;
+  IDirectDraw7 GetCaps, CreateSurface, GetDisplayMode, EnumDisplayModes, SetDisplayMode, RestoreDisplayMode,
+  SetCooperativeLevel, GetAvailableVidMem, RestoreAllSurfaces, FlipToGDISurface, WaitForVerticalBlank). With a
+  DirectDraw device each calls the interface given, as before. Without one, when the interface is the device
+  object's stand-in (or null), it answers from `SwitchOverDevice` with the stand-in's results (states kept and
+  fed to the mirror, blocks recorded and applied, fixed capabilities / formats / mode / 256 MB, CreateSurface
+  refused and logged, draws / clears / mode changes / restores D3D_OK). Any other interface is still called: the
+  verify wrapper of CRenderHelper (`verify_render_helper.cpp`) builds helpers on a recording device.
+- Converted: every `->Method(` on the device in src/game (app, app_main, device_binds, device_draw, device_object,
+  device_states, directdraw_holder, dx_surface, link_mesh_draw, render_helper, renderer_gamma / init / lifetime /
+  lines / rect / scene / sprites / strip / triangles, texture, ui_camp, ui_camp_create, ui_cursor_frame,
+  ui_hud_unit_draw, weather_particles, world_client_draw) and the vtable-slot helpers of the interface code: the
+  interface's `UiD3DDevice` (ui.h) is now declared methods (`ui_d3d_device.cpp`: Clear, Get / Set render and stage
+  states, ApplyStateBlock) used by ui_container_draws, ui_global_map_places, ui_help_window, ui_hud, ui_interface_draw,
+  ui_objectives, ui_panel_draws, ui_trade_grid_draw (the per-file slot calls are gone). The new renderer's state
+  reads (render.cpp `OldRenderStates` / `OldStageStates`) read `SwitchOverDevice` through `device_switchover.h`
+  (no Direct3D 7 headers there).
+- Verify wrappers whose originals ask the old device run ours only without DirectDraw: 004E6EE0 (BuildFormatTable:
+  formats and ids not empty), 00504A60 (SetGamma: false, the three values unchanged), 006913A0 (SetDevice: device
+  stored, a tenth of 256 MB); the state readers of verify_renderer_lines / state_setters / ui_hud / ui_hud_unit_draw
+  go through the calls above.
+- 0045E310 (`GetDxVersion`) still probes in `present` mode (its own DirectDraw object and primary surface, not the
+  device object's). Tried and dropped: returning 0x800 without probing hung every native run in sound init (after
+  `CSoundManager::Close`, before `Open`): the probe's side effects (DirectMusic through CoCreateInstance, DDRAW.DLL
+  left loaded) matter to the sound code there. The probe fails now and then in native runs with several games on the
+  machine, ending the run at the "DirectX 7 or later" message; seen before R9b too (follow-up R9b1).
+- `tools/old_device_calls.py [run folders]` lists the stand-ins' log by calling function (default: every
+  `build/verify/runs/*present*`). The four present scenarios, vanilla and native: 73 calling places in 46 functions
+  before, 4 in 1 after: WinMain's original (00456440: GetAvailableVidMem at 00456DA2 / 00456DC6 / 00456E0D,
+  RestoreAllSurfaces at 0045715A). The harness patches WinMain (the `CALL` at 00457595 for `freeze`), so the
+  installer leaves the original in place in every harness run; the rewrite (`app_main.cpp`, converted) runs only
+  in a launch without the harness.
+- Not reached by these scenarios but converted: the draws (DrawPrimitive / DrawIndexedPrimitive of renderer_lines,
+  rect, scene, sprites, strip, triangles, device_draw, weather_particles; skipped already when the old path is off),
+  the mode changes and restores, the cursor thread's WaitForVerticalBlank.
+- Left on the stand-ins: code of game.exe that is not rewritten or not installed (WinMain in harness runs; in a
+  Rebirth launch the Rebirth-patched originals the rewrites leave in place, e.g. 006462A0, 0060C870).
+
 ### Before R9a (reference)
 
 The old device existed in the switch-over: the DirectDraw object (004EDD70), primary surface, render target and

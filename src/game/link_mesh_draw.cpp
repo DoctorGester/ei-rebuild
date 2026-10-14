@@ -4,6 +4,7 @@
 // callers are the figure part draw 005A7A70 (figure_part_draw.cpp) and the shadow 0051CE60
 // (map_object_shadow.cpp), through the vtable only. The old Direct3D 7 path: the two plain draws
 // turn the device's specular on around the draw for a material that keeps its speculars.
+#include "device.h"   // the old device's calls
 #include "link_figure.h"
 
 #include "core_maths.h"          // StoreFloat
@@ -89,7 +90,7 @@ const VertexPacket* MovedPositions(const VertexPacket* source, int packets, cons
 
 // IDirect3DDevice7::SetRenderState(D3DRENDERSTATE_SPECULARENABLE); the result is not kept.
 void SetSpecular(CTextureDevice* device, bool on) {
-    static_cast<IDirect3DDevice7*>(device->d3dDevice_)->SetRenderState(D3DRENDERSTATE_SPECULARENABLE, on ? 1 : 0);
+    device::SetRenderState(static_cast<IDirect3DDevice7*>(device->d3dDevice_), D3DRENDERSTATE_SPECULARENABLE, on ? 1 : 0);
     render::state::Render(D3DRENDERSTATE_SPECULARENABLE, on ? 1 : 0);
 }
 

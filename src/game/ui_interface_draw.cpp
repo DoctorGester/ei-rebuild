@@ -28,11 +28,9 @@ float LetterboxShare() { return *reinterpret_cast<const float*>(0x00740150); }
 constexpr float kOpaque = 255.0f;     // 0073C370
 constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE
 
-// IDirect3DDevice7::SetRenderState (slot 20; stdcall, the interface first), recorded for the
-// frame capture as the other ported draws do.
+// IDirect3DDevice7::SetRenderState, recorded for the frame capture as the other ported draws do.
 void SetRenderState(void* device, std::uint32_t state, std::uint32_t value) {
-    using Fn = long(__stdcall*)(void*, std::uint32_t, std::uint32_t);
-    reinterpret_cast<Fn>((*static_cast<void***>(device))[20])(device, state, value);
+    static_cast<UiD3DDevice*>(device)->SetRenderState(state, value);
     render::state::Render(state, value);
 }
 

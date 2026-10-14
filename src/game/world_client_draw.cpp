@@ -16,6 +16,7 @@
 #include "model.h"
 #include "terrain.h"
 #include "texture.h"
+#include "device.h"
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
@@ -42,14 +43,10 @@
 
 namespace {
 
-// IDirect3DDevice7 (the renderer's d3dDevice_): SetRenderState (slot 20), ApplyStateBlock (slot
-// 39; its HRESULT goes to the renderer's lastLoadResult_, +0x08).
-constexpr int kD3DSetRenderState = 20;
-constexpr int kD3DApplyStateBlock = 39;
+// IDirect3DDevice7 (the renderer's d3dDevice_): SetRenderState, ApplyStateBlock (its HRESULT goes
+// to the renderer's lastLoadResult_, +0x08).
 void SetRenderState(CTextureDevice* renderer, int state, std::uint32_t value) {
-    void* d3d = renderer->d3dDevice_;
-    using Fn = long(__stdcall*)(void*, int, std::uint32_t);
-    reinterpret_cast<Fn>((*static_cast<void***>(d3d))[kD3DSetRenderState])(d3d, state, value);
+    device::SetRenderState(device::D3D(renderer), static_cast<D3DRENDERSTATETYPE>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 // The renderer's state block handles: 007AEDD0 the scene's, 007AEDD8 the alpha passes', 007AEDDC
@@ -58,9 +55,7 @@ const std::uint32_t& StateBlockScene() { return *reinterpret_cast<const std::uin
 const std::uint32_t& StateBlockAlpha() { return *reinterpret_cast<const std::uint32_t*>(0x007AEDD8); }
 const std::uint32_t& StateBlockTerrain() { return *reinterpret_cast<const std::uint32_t*>(0x007AEDDC); }
 void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
-    void* d3d = renderer->d3dDevice_;
-    using Fn = long(__stdcall*)(void*, std::uint32_t);
-    renderer->lastLoadResult_ = reinterpret_cast<Fn>((*static_cast<void***>(d3d))[kD3DApplyStateBlock])(d3d, handle);
+    renderer->lastLoadResult_ = device::ApplyStateBlock(device::D3D(renderer), handle);
     render::state::Block(handle);
 }
 

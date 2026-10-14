@@ -30,10 +30,9 @@ const char* OkSound() { return Text(0x0079477C); }           // "buttons\tutoria
 
 constexpr char kHelpAction = ';';   // the help key's action (KeyActions)
 
-// Direct3D render states through the device's vtable (slot 20), fed to the renderer's mirror.
+// Direct3D render states, fed to the renderer's mirror.
 void SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
-    using Fn = long(__stdcall*)(UiD3DDevice*, int, std::uint32_t);
-    reinterpret_cast<Fn>(device->vtable_[20])(device, state, value);
+    device->SetRenderState(static_cast<std::uint32_t>(state), value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
 
