@@ -552,12 +552,13 @@ done = "2026-10-14"
 id = "PF2"
 title = "Faster hook installation"
 group = "harness"
-status = "review"
+status = "done"
 size = 0.5
 model = "sonnet"
 files = ["src/hook/hook.cpp"]
 note = "Profile 2026-10-14: installing ~6000 hooks costs ~300 ms per launch: ThunkEntryAt and VerifyEntry scan the whole hook list per hook (O(n^2), 130 ms), two VirtualProtect calls per hook (page-table work, ~160 ms), and one VirtualAlloc (a 64 KB granule) per trampoline. Index hooks by address, unprotect .text once, allocate trampolines from one block. Harness only, every run benefits."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "WB1"
