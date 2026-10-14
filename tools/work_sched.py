@@ -9,9 +9,11 @@ then run_all's summary, and returns run_all's exit code. Ctrl+C cancels the batc
 WORK_SCHED_IDLE seconds, default 120, with nothing to do) runs the batches on the machine's game
 slots, the same lock files run_all's machine_slot() takes, so a plain run_all beside it never
 collides:
-- batches in submission order: a batch takes every free slot (up to its --jobs) until all its runs
-  have started; later batches only fill the slots it cannot use (backfill);
-- within a batch, display-mode runs (alone) first, then the longest expected first;
+- batches in submission order: a batch takes every free slot until all its runs have started (its
+  --jobs is ignored: run_all needs it to share the machine, the scheduler shares it already); later
+  batches only fill the slots it cannot use (backfill);
+- within a batch the longest expected first; its display-mode runs (alone) last, and only once it is
+  the earliest batch with runs left: a later batch's alone run never stops the backfill;
 - an alone run waits until none of ours runs, holds the alone gate and every slot, and runs by itself;
 - each game is run_all.run() pointed at the batch's checkout and build (run folders and run_times.json
   stay where run_all puts them), retried as run_all.run_with_retries() does, in the same slot;
@@ -167,9 +169,9 @@ def real_runner(batch, run, retries, on_attempt):
 
 
 def order_key(run):
-    """Display-mode runs first (they need the machine to themselves), then the longest expected."""
+    """The longest expected first."""
     expected = run['expected'] if run['expected'] is not None else UNKNOWN_SECONDS
-    return (not run['alone'], -expected, run['id'])
+    return (-expected, run['id'])
 
 
 class Scheduler:
@@ -258,29 +260,30 @@ class Scheduler:
                                  "WHERE run.state = 'queued' AND batch.state IN ('queued', 'running')"):
             queued[r['batch']].append(r)
         busy = {g['folder'] for g in self.games.values()}   # never two games in one run folder
-        per_batch = collections.Counter(g['batch'] for g in self.games.values())
+        head = True        # the earliest batch with runs left: only it gathers the machine for an alone run
         for b in batches:
             args = self.batch_args(b)
-            if args is None:
+            runs = sorted(queued[b['id']], key=order_key)
+            if args is None or not runs:
                 continue
-            for r in sorted(queued[b['id']], key=order_key):
+            plain = [r for r in runs if not r['alone']]
+            for r in plain:
                 if r['folder'] in busy:
                     continue
-                if r['alone']:
-                    if not self.pool.take_all() or self.games:
-                        return True                          # nothing else starts until it has run
-                    self.start(b, r, args, list(self.pool.held))
-                    return False
-                if per_batch[b['id']] >= max(1, args.jobs):
-                    break                                    # its --jobs: the next batch may use the slot
                 if not self.pool.gate_free():
                     return False                             # a plain run_all gathers for a display-mode game
                 slot = self.pool.take_one()
                 if slot is None:
                     return False                             # the machine is full
                 if self.start(b, r, args, [slot]):
-                    per_batch[b['id']] += 1
                     busy.add(r['folder'])
+            alone = [r for r in runs if r['alone'] and r['folder'] not in busy]
+            if head and alone and not plain:                 # its other runs have all started
+                if not self.pool.take_all() or self.games:
+                    return True                              # nothing else starts until it has run
+                self.start(b, alone[0], args, list(self.pool.held))
+                return False
+            head = False
         return False
 
     def start(self, batch, run, args, slots):

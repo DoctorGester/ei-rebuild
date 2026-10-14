@@ -107,15 +107,20 @@ class SchedTest(unittest.TestCase):
             self.assertEqual((self.batch(x)['state'], self.batch(x)['exit_code']), ('finished', 0))
             self.assertIn('ALL PASS', self.batch(x)['summary'])
 
-    def test_jobs_limit_lets_next_batch_in(self):
+    def test_jobs_ignored(self):
         fake = Fake(default=0.3)
-        a = self.submit(['a1', 'a2', 'a3', 'a4'], argv=['--jobs', '2'])
-        b = self.submit(['b1', 'b2'], build='b2')
+        self.submit(['a1', 'a2', 'a3', 'a4'], argv=['--jobs', '2'])
         self.drive(self.sched(fake))
-        self.assertLess(min(fake.starts(b)), min(fake.starts(a)) + 0.1, 'the next batch did not get the slots --jobs leaves')
-        spans_a = [x for x in fake.spans if x[0] == a]
-        most_a = max(sum(1 for _, _, s, e in spans_a if s <= t < e) for _, _, t, _ in spans_a)
-        self.assertLessEqual(most_a, 2)
+        self.assertEqual(fake.most_at_once(), 4, "a batch's --jobs held it under the machine's slots")
+
+    def test_later_alone_run_does_not_stop_backfill(self):
+        fake = Fake(default=0.3)
+        a = self.submit(['a1', 'a2', 'a3', 'a4', 'a5', 'a6'])
+        b = self.submit(['w'], alone=['w'], build='b2')
+        c = self.submit(['c1'], build='c2')
+        self.drive(self.sched(fake))
+        self.assertLess(min(fake.starts(c)), min(fake.starts(b)), "a later batch's display-mode run held up the backfill")
+        self.assertLess(min(fake.starts(c)), max(fake.ends(a)) - 0.05, 'no backfill while the earlier batch ran')
 
     def test_display_mode_runs_alone(self):
         fake = Fake({'a1': .4, 'a2': .4, 'a3': .4, 'a4': .4, 'w': .3, 'b1': .2, 'b2': .2})
@@ -125,7 +130,7 @@ class SchedTest(unittest.TestCase):
         (w0,), (w1,) = fake.starts(b, ['w']), [e for _, n, s, e in fake.spans if n == 'w']
         self.assertGreaterEqual(w0, max(fake.ends(a)) - 0.01, 'the display-mode run started beside others')
         self.assertEqual(fake.most_at_once(w0 + 0.01, w1 - 0.01), 1)
-        self.assertGreaterEqual(min(fake.starts(b, ['b1', 'b2'])), w1 - 0.01)
+        self.assertLessEqual(max(e for _, n, s, e in fake.spans if n in ('b1', 'b2')), w0 + 0.01)   # its other runs first
         self.assertEqual(self.runs(b)['w']['state'], 'finished')
 
     def test_plain_run_all_slots_and_gate(self):
