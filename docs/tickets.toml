@@ -1503,11 +1503,12 @@ done = "2026-10-15"
 id = "S4"
 title = "Standalone library: CRT functions, iostream, import thunks, allocator"
 group = "standalone"
-status = "review"
+status = "done"
 size = 1
 files = ["src/lib/crt.h", "src/lib/crt.cpp", "src/game/originals_library.h"]
 note = "Three groups: CRT string / ctype / mbs / qsort / splitpath / itoa ports and the WSOCK32 / DINPUT thunks; rand, maths, _controlfp, eh vector iterators, the node allocator (exact, both builds), standalone-only heap / new / atexit / exit (EI_REPLACE_STANDALONE); memcpy / memset / strstr / floor and the mbs functions mfc_string forwards to. Suite 128 runs, 0 mismatches (only the pre-existing zone_gz15h_tornado rebirth timeout). Left: S4a (sprintf family, atof), S4b (file functions, rest of the heap, image only), S4c (_ftol / _CI maths, _CxxThrowException, iostream, locale)."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S5"
@@ -1640,7 +1641,7 @@ size = 1.5
 model = "opus"
 depends = ["S1", "S2", "S3", "S4", "S5", "S6", "S6a", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15"]
 files = ["src/standalone/*.cpp"]
-note = "Run the boot scenario, fix what the INT3 log names, until the main menu draws and the game exits cleanly."
+note = "Also needs S4a, S4b, S4c (S4's remainder: printf family and atof, file functions and the rest of the heap in the image, _ftol / _CI maths / exceptions / iostream / locale)."
 
 [[ticket]]
 id = "S17"
