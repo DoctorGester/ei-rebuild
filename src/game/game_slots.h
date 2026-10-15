@@ -9,6 +9,8 @@
 #include "game/game_lists.h"
 #include "game/script.h"
 
+struct PlatformSet;   // game/world.h
+
 namespace gameslots {
 
 // The script's #define list (004D6340).
@@ -18,6 +20,9 @@ struct DefineListClass {
 
 // A script group's destructor body as a free function (004C2290).
 void __fastcall GroupDestruct(ScriptGroup* group);
+
+// 00561840: CBridgeManager's slot 3 (Destroy): the face list emptied (Clear's body without its 1).
+void __fastcall BridgeManagerDestroy(PlatformSet* set);
 
 // ---- Elements -------------------------------------------------------------------------------------
 

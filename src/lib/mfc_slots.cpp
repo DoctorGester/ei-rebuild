@@ -122,6 +122,12 @@ EI_REPLACE(0x0045FBD0, OwnedAllods::Destruct<AllodArrayClass>);
 EI_REPLACE(0x004BE430, ScriptAreas::Destruct<ScriptAreaArrayClass>);
 EI_REPLACE(0x004CB650, ScriptAreas::Destruct<ScriptAreaArrayClass>);
 
+// The exception classes' own destructors (a jump to std::exception's; their throw information's).
+EI_REPLACE(0x0040C4A0, ExceptionDestruct);
+EI_REPLACE(0x0040C4D0, ExceptionDestruct);
+EI_REPLACE(0x0040C500, ExceptionDestruct);
+EI_REPLACE(0x0041F760, ExceptionDestruct);
+
 // ---- Scalar deleting destructors (vtable slot 1; the exception classes' slot 0) --------------------
 
 // Over the destructors of arrays whose elements own something.
@@ -336,5 +342,29 @@ EI_REPLACE(0x00452110, SerializeCMap<Map64x64>);   // CornerMapAClass
 EI_REPLACE(0x004523B0, SerializeCMap<Map64x32>);   // CornerMapBClass
 EI_REPLACE(0x00452650, SerializeCMap<Map32>);   // CornerMapCClass
 EI_REPLACE(0x004761C0, SerializeCMap<Map32>);   // DwordMapClass
+
+// Arrays whose elements SetSize builds (zeroed, then their fields) and nothing destroys.
+EI_REPLACE(0x00451060, SerializeCArray<KeyFrames>);   // vtable 0073C12C
+EI_REPLACE(0x004C9510, SerializeCArray<Placements>);   // PartySlotArrayClass
+EI_REPLACE(0x00511E20, SerializeCArray<SoundRecords>);   // EffectSoundArrayClass
+EI_REPLACE(0x005396E0, SerializeCArray<PathRecords>);   // SkinLayerArrayClass
+EI_REPLACE(0x00557E90, SerializeCArray<AnimationSteps>);   // AnimationStepsClass
+EI_REPLACE(0x0059E0C0, SerializeCArray<Plain8>);   // SectorOccluderArrayClass
+EI_REPLACE(0x005C1AB0, SerializeCArray<Plain8>);   // SpiralCellArrayClass
+EI_REPLACE(0x006CD8A0, SerializeCArray<Plain16>);   // TerrainArrayBClass
+EI_REPLACE(0x00519B50, SerializeCArray<Plain56>);   // FrameArrayClass
+
+// Arrays whose elements SetSize builds and destroys (a shrinking load destroys the ones past the count).
+EI_REPLACE(0x0045DC60, SerializeCArray<OwnedPatrols>);   // PatrolArrayClass
+EI_REPLACE(0x0045FCB0, SerializeCArray<OwnedAllods>);   // AllodArrayClass
+EI_REPLACE(0x004C88E0, SerializeCArray<ScriptAreas>);   // ScriptAreaArrayClass
+EI_REPLACE(0x006C4A40, SerializeCArray<ByteArrays>);   // TerrainByteArraysClass
+EI_REPLACE(0x005D9610, SerializeCArray<AiLookRecords>);   // vtable 0073FF74
+EI_REPLACE(0x00450D40, SerializeCArray<AlignedAt4Records>);   // AlignedAt4ArrayClass
+EI_REPLACE(0x0050A210, SerializeCArray<AlignedAt8Records>);   // AlignedAt8ArrayClass
+EI_REPLACE(0x00450570, SerializeCArray<OwnedBoneLinkArrays>);   // FakeUnitBoneArraysClass
+EI_REPLACE(0x00476430, SerializeCArray<OwnedDwordMaps>);   // SceneObjectArrayClass
+EI_REPLACE(0x006C4C90, SerializeCArray<AlignedArrays>);   // vtable 007441B4
+EI_REPLACE(0x00451A70, SerializeCArray<NamedStrings>);   // TextureNameArrayClass
 
 } // namespace mfc::impl

@@ -336,5 +336,13 @@ using GlobalMapPoints = StringsAt<0x18, 0x14, 0x10>;
 using GlobalMapZones = StringsAt<0x10, 0xC, 8>;
 
 using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
+using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
+
+// The scene's object records: CMap<DWORD, DWORD>s built by 00477380, destroyed through slot 1.
+using DwordMap = CMap<std::uint32_t, std::uint32_t>;
+using OwnedDwordMaps = ArrayAbi<DwordMap, EachElements<DwordMap, InitMap<DwordMapClass>, DeleteThroughObject<DwordMap>>>;
+// {id, CString}: the string empty (004553F0); its destructor (0044C490).
+using NamedStrings = ArrayAbi<WithString<8, 4>, EachElements<WithString<8, 4>, InitWithString<8, 4>,
+                                                            DestroyStringsAt<WithString<8, 4>, 4>>>;
 
 } // namespace mfc::impl

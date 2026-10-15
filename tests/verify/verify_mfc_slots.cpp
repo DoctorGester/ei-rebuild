@@ -260,6 +260,16 @@ using B004BE430 = OursDestruct<0x004BE430, &ScriptAreas::Destruct<ScriptAreaArra
 EI_VERIFY(0x004BE430, B004BE430::Run, 0, s_unused);
 using B004CB650 = OursDestruct<0x004CB650, &ScriptAreas::Destruct<ScriptAreaArrayClass>, ScriptAreaArrayClass>;
 EI_VERIFY(0x004CB650, B004CB650::Run, 0, s_unused);
+using B0040C4A0 = OursDestruct<0x0040C4A0, &ExceptionDestruct, NoVtable>;
+EI_VERIFY(0x0040C4A0, B0040C4A0::Run, 0, s_unused);
+using B0040C4D0 = OursDestruct<0x0040C4D0, &ExceptionDestruct, NoVtable>;
+EI_VERIFY(0x0040C4D0, B0040C4D0::Run, 0, s_unused);
+using B0040C500 = OursDestruct<0x0040C500, &ExceptionDestruct, NoVtable>;
+EI_VERIFY(0x0040C500, B0040C500::Run, 0, s_unused);
+using B0041F760 = OursDestruct<0x0041F760, &ExceptionDestruct, NoVtable>;
+EI_VERIFY(0x0041F760, B0041F760::Run, 0, s_unused);
+using B00561840 = OursDestruct<0x00561840, &gameslots::BridgeManagerDestroy, NoVtable>;
+EI_VERIFY(0x00561840, B00561840::Run, 0, s_unused);
 using B00427600 = OursDestruct<0x00427600, &gamelists::EngineObjects::Destruct<gameslots::ItemObjectListClass>, gameslots::ItemObjectListClass>;
 EI_VERIFY(0x00427600, B00427600::Run, 0, s_unused);
 using B00571F10 = OursDestruct<0x00571F10, &gamelists::EngineObjects::Destruct<gameslots::ClientObjectList2Class>, gameslots::ClientObjectList2Class>;

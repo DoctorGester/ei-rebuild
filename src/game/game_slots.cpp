@@ -2,6 +2,8 @@
 // ticket S6a): each calls its class's destructor (ours, registered elsewhere) directly.
 #include "game/game_slots.h"
 
+#include "game/world.h"
+
 #include "ei/hook.h"
 
 namespace gameslots {
@@ -9,6 +11,9 @@ namespace gameslots {
 using mfc::impl::ScalarDelete;
 
 void __fastcall GroupDestruct(ScriptGroup* group) { group->DestructBody(); }
+
+void __fastcall BridgeManagerDestroy(PlatformSet* set) { set->list.RemoveAll(); }
+EI_REPLACE(0x00561840, BridgeManagerDestroy);
 
 // ---- Destructors ----------------------------------------------------------------------------------
 
