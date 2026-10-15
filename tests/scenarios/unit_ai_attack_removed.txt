@@ -1,0 +1,24 @@
+# The hero attacks a wolf that leaves the server mid-attack (T2b): the brain keeps action 3 with its
+# target cleared, PlayerMode::Execute hands that to UpdateCombat (005D4170), which finds nobody and
+# leaves it as the original does. Twice: removed after 55 ms and after 220 ms.
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @AddUnitToServer("Wolf1","WolfTutor","Wolf1",Add(GetX(GetLeader()),3),GetY(GetLeader()),0)
+console @AddUnitToServer("Wolf2","WolfTutor","Wolf2",Sub(GetX(GetLeader()),3),GetY(GetLeader()),0)
+waitfor 10 IsAlive(GetObjectByName("Wolf2"))
+wait 500
+console @Attack(GetLeader(),GetObjectByName("Wolf1"))
+wait 55
+console @RemoveUnitFromServer(GetObjectByName("Wolf1"))
+wait 1000
+console @Attack(GetLeader(),GetObjectByName("Wolf2"))
+wait 220
+console @RemoveUnitFromServer(GetObjectByName("Wolf2"))
+wait 1000
+check IsAlive(GetLeader())
+report
+quit

@@ -1,0 +1,105 @@
+# Locks and keys (LockKey::Opens 00522A80 through Lever::KeyOpens 0052BBA0 and Lever::ApplyKey 0052BB50;
+# standalone-verification.md, SV5b). zone1's gate lever 1889 gets locks of the three kinds a key can meet:
+# by id (mask 8): the key fits, the id differs, the lever has no lock; the hero is put next to it.
+# The quest item "Palantir" (id 8, the player's list; hudstate prints the id) shows in the quick item
+# panel's top row (region 4, x 670..720, y 500..550; Rebirth's widescreen layout puts it at 700..750) when the leader is selected; picking it starts
+# mode 6 ("use on an object"), whose hover (KeyOpens through the cursor) and click (KeyOpens, then the
+# order whose use action is ApplyKey) are exercised on the lever (clickunit "#1889": a map object by id).
+# (A key's level branch is out of reach: a quest item's key has mask 8 only, and a locked lever refuses
+# the plain click that would carry mask 1.)
+reject Script error
+waitmenu
+console thingamabob
+newgame
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GodMode(0,1)
+console @GiveQuestItem(0,"Palantir")
+console @GSSetVar(0,"lx",GetX(GetObject(1889)))
+console @GSSetVar(0,"ly",GetY(GetObject(1889)))
+console @GSSetVar(0,"lv",GetLeverState(GetObject(1889)))
+console @SetCPFast(GetLeader(),Sub(GSGetVar(0,"lx"),3),GSGetVar(0,"ly"),GetZValue(Sub(GSGetVar(0,"lx"),3),GSGetVar(0,"ly")))
+frames 10
+waitwindow 15 battle
+click 400 560
+frames 10
+hudstate
+waitunit 10 #1889
+
+# 1. The lock wants item 8: the cursor over the lever (KeyOpens), the click (KeyOpens, the use order),
+# the hero walks up and uses it (ApplyKey opens it: the lever changes state and is disabled).
+console @SetScience(GetObject(1889),8,0,0,0,0,1)
+vanilla click 695 525
+rebirth click 725 525
+frames 5
+hudstate
+clickunit #1889 move
+frames 5
+clickunit #1889
+waitfor 15 Not(IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv")))
+check IsAlive(GetLeader())
+
+# 2. Another item id: the cursor over it and a click both refuse (KeyOpens 0, no order).
+console @EnableLever(GetObject(1889),1)
+console @SetScience(GetObject(1889),9,0,0,0,0,1)
+console @GSSetVar(0,"lv2",GetLeverState(GetObject(1889)))
+frames 5
+vanilla click 695 525
+rebirth click 725 525
+frames 5
+clickunit #1889 move
+frames 5
+clickunit #1889
+frames 5
+hudstate
+key esc
+frames 5
+
+# 3. No lock at all: a key opens nothing (the masks do not meet).
+console @SetScience(GetObject(1889),0,0,0,0,0,0)
+frames 5
+vanilla click 695 525
+rebirth click 725 525
+frames 5
+clickunit #1889 move
+frames 5
+clickunit #1889
+frames 5
+key esc
+frames 5
+check IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv2"))
+check IsAlive(GetLeader())
+
+# 4. Other kinds of lock under the cursor (hover only): by level, by id and level together.
+console @SetScience(GetObject(1889),0,0,1,0,0,0)
+vanilla click 695 525
+rebirth click 725 525
+frames 5
+clickunit #1889 move
+frames 5
+move 400 300
+frames 3
+console @SetScience(GetObject(1889),8,3,0,1,0,0)
+clickunit #1889 move
+frames 5
+move 400 300
+frames 3
+console @SetScience(GetObject(1889),8,0,1,1,1,1)
+clickunit #1889 move
+frames 5
+move 400 300
+frames 3
+console @SetScience(GetObject(1889),9,2,0,0,0,1)
+clickunit #1889 move
+frames 5
+move 400 300
+frames 3
+console @SetScience(GetObject(1889),9,9,0,0,1,1)
+clickunit #1889 move
+frames 5
+key esc
+frames 5
+check IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv2"))
+check IsAlive(GetLeader())
+report
+quit
