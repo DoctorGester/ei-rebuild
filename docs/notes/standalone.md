@@ -29,8 +29,8 @@ rebuilding the exe's address space without its code:
   with a zero-filled array. It copies the headers, .rdata, .data and .rsrc of game.exe on disk into place
   (data only, nothing from .text runs), fills .text with INT3, resolves the import table itself (DDraw,
   mss32 and binkw32 from Engine\, the rest from System32, so Rebirth's dinput proxy and addon.dll stay
-  out), loads `ei_game.dll` (the hook DLL's sources built with `EI_STANDALONE`) and lets `InstallHooks`
-  write its JMP stubs into the blank text. Forwarders, function pointers in data and vtable slots then
+  out), loads the same ei_hook.dll (it sees that it is not inside game.exe) and lets `InstallHooks`
+  write its JMP stubs into the blank text (plain replacements only). Forwarders, function pointers in data and vtable slots then
   reach our code through the stubs. An INT3 hit logs the address's name and exits: that is the list of
   what is still missing.
 - **Library code is ported like game code** (S4-S13). Bodies for the MFC / STLport / CRT pieces live in
@@ -51,6 +51,16 @@ rebuilding the exe's address space without its code:
 
 Later, after C13 (S18): generated definitions for the data addresses, vtables as real virtual classes,
 imports linked directly, plain new / delete; then the image and the read of game.exe go.
+
+**S1 (2026-10-15).** `build\<config>\ei_standalone.exe [--exe <game.exe>] [--dll <ei_hook.dll>] [--run]`
+(src/standalone/host.cpp, src/hook/standalone.cpp), run from the game folder. Without `--run` it builds
+the image, writes the jumps, checks them and exits (no window): on run\vanilla's game.exe 504 imports
+resolve, 6,217 jumps go in, 0 wrong. In the image a registration the hook build skips as a short
+function or unknown start (147) gets its jump when the next function leaves 5 bytes. Left out: three
+virtual-call thunk registrations (00675D40, 00469E00, 00469DE0). Registered twice (the last one runs, as
+in the hook build): 00558CA0, 00558CC0, 0054EAC0. `--run` calls WinMain under a handler that logs an
+INT3 hit (address, containing function, caller); not run yet (S15 / S16: static initialisers,
+resources and the command line are missing).
 
 ## 3. Runtime: MFC, STLport, CRT
 

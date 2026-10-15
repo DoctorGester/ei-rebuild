@@ -1339,7 +1339,7 @@ status = "queued"
 size = 1
 model = "opus"
 files = ["CMakeLists.txt", "build.cmd", "src/standalone/host.cpp", "src/standalone/image.cpp", "src/hook/hook.cpp", "src/hook/dllmain.cpp"]
-note = "ei_standalone.exe linked below 0x400000, reserving 0x400000-0x7D7000 with a zero-filled array; ei_game.dll = the hook DLL sources with EI_STANDALONE. The host copies headers, .rdata, .data, .rsrc of game.exe on disk into place, fills .text with INT3, resolves the import table (DDraw / mss32 / binkw32 from Engine\\, the rest from System32), then InstallHooks writes its JMP stubs into the blank text. A vectored handler logs an INT3 hit with the address's name (functions.csv / library.csv) and exits. Done: both configs build, the hook build is unchanged, a run logs the first missing address. First, no dependency."
+note = "ei_standalone.exe linked at 0x200000 (fixed), reserving 0x400000-0x7D7000 with a zero-filled array; the same ei_hook.dll (Standalone(): the main module is not at 0x400000). The host copies headers, .rdata, .data, .rsrc of game.exe on disk into place, fills .text with INT3, resolves the import table (game.exe's folder, then the working directory, else System32; dinput always System32), then EiStandaloneMain: InstallHooks writes plain jumps into the blank text (no Rebirth detection, no wrappers, no start-up checks), the jumps are checked, and with --run WinMain runs under a handler that logs an INT3 hit (address, containing function, caller) and exits. Without --run nothing of the game runs (no window). Landed 2026-10-15 (with the split): host, image, imports, jumps and their check (--check mode: 504 imports, 6,217 jumps, 0 wrong on run\\vanilla's game.exe); hook build unchanged (smoke, ui_main_menu, rebirth_flags pass on both installs). Left: the first --run under the harness (needs S15's launcher path or a safe windowed setting), logging the first missing address."
 
 [[ticket]]
 id = "S2"
@@ -1348,7 +1348,7 @@ group = "standalone"
 status = "queued"
 size = 1
 files = ["src/game/short_functions.cpp", "include/ei/hook.h", "src/hook/hook.cpp", "tools/gen_short_functions.py"]
-note = "All 201 left are under 5 bytes (ret, xor eax,eax; ret, ret 4, ...); 154 are vtable slots. Port them (generated from their bytes where the pattern is plain), registered with a short-function flag: the hook build skips them as now, the standalone image stubs them (each has 5 bytes of room). Check: a tool compares each port's kind with the exe's bytes. No dependency."
+note = "All 201 left are under 5 bytes (ret, xor eax,eax; ret, ret 4, ...); 154 are vtable slots. Port them (generated from their bytes where the pattern is plain), registered with a short-function flag: the hook build skips them as now, the standalone image stubs them (each has 5 bytes of room). Check: a tool compares each port's kind with the exe's bytes. No dependency. S1 found: the 67 rewritten short functions (and 83 registrations at starts the size table does not know) already get jumps in the image; this ticket is about the 201 with no rewrite."
 
 [[ticket]]
 id = "S3"
@@ -1467,7 +1467,7 @@ status = "queued"
 size = 1
 depends = ["S1"]
 files = ["src/game/app_main.cpp", "src/game/app_frame.cpp", "src/hook/rebirth_hook.cpp", "src/standalone/host.cpp"]
-note = "Sites that read the exe's code bytes (the camera call target 00457595, app_frame's CALL test, rebirth_hook's live-byte detection) get a standalone path; Rebirth flags from ei_rebirth.ini alone; Miles must not load EI_Plugin.asi into the image; the new renderer (present) as the standalone default so dgVoodoo is not needed."
+note = "Sites that read the exe's code bytes (the camera call target 00457595, app_frame's CALL test, rebirth_hook's live-byte detection) get a standalone path; Rebirth flags from ei_rebirth.ini alone; Miles must not load EI_Plugin.asi into the image; the new renderer (present) as the standalone default so dgVoodoo is not needed. Also: resources. The game passes hInstance 0x400000 to LoadIcon / LoadCursor / FindResource, which is not a loaded module in the standalone process: hand it a module from LoadLibraryEx(game.exe, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE) or route those calls. The command line: EiStandaloneMain passes an empty one to WinMain for now. Miles loads *.asi from the game root (EI_Plugin.asi, mp3dec.asi): keep mp3dec, keep EI_Plugin out."
 
 [[ticket]]
 id = "S15"
@@ -1510,6 +1510,15 @@ size = 5
 depends = ["S17", "C13"]
 files = ["tools", "src/game/*.h"]
 note = "Generated definitions for the 3,601 data addresses, vtables as real virtual classes, imports linked directly, plain new / delete; then the image and the read of game.exe go. After C13."
+
+[[ticket]]
+id = "S1a"
+title = "Registrations the image skips or doubles"
+group = "standalone"
+status = "queued"
+size = 0.5
+files = ["src/game/effects.cpp", "src/game/map_spec.cpp", "src/game/ai_path.cpp"]
+note = "From S1's check run: three registrations through a virtual-call thunk are skipped in both builds (CEffect::DestroyEffect 00675D40, Spec::SpecRefresh 00469E00, Spec::SpecRemove 00469DE0): register non-virtual shims so the image (and the hook build) get them. Three addresses are registered twice with different functions (00558CA0 CountedRefDelete / AIRefDelete, 00558CC0 CallRecordDelete / AICallRecordDelete, 0054EAC0 PathConstructSteps / AIPath::ConstructSteps): keep one. No dependency. Where (the files field is a guess): map_spec.cpp, world_effect.cpp, ai_path_cells.cpp, combat_small_records.cpp, world_deleting_destructors.cpp."
 
 # ---------------------------------------------------------------- Lua
 
