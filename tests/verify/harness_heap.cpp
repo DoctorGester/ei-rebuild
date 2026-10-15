@@ -3,6 +3,7 @@
 
 #include "../../src/game/world.h"
 #include "../../src/hook/log.h"
+#include "ei/hook.h"
 
 #include <windows.h>
 
@@ -105,7 +106,13 @@ constexpr CountdownSite kCountdownSites[] = {
 
 // Each site's `SAR r,5 / AND r,0xF` (6 bytes) becomes `MOV r,[r+0xC] / AND r,0xF`: the object's id
 // (CEngineObject::id_) instead of its address, as CWorldServer::UpdateCountdownFor does.
+// The standalone image has none of these sites (INT3): there the eight functions are ours only.
 void SpreadCountdownsById() {
+    if (ei::Standalone()) {
+        CWorldServer::SpreadUpdateCountdownsById();
+        Log("harness: update countdowns from object ids (the rewrites only: no original code in the image)");
+        return;
+    }
     int patched = 0;
     for (const CountdownSite& site : kCountdownSites) {
         auto* code = reinterpret_cast<unsigned char*>(site.address);
@@ -118,6 +125,7 @@ void SpreadCountdownsById() {
         }
         const unsigned char byId[6] = {0x8B, static_cast<unsigned char>(0x40 | (r << 3) | r), 0x0C,
                                        0x83, static_cast<unsigned char>(0xE0 + r), 0x0F};
+        ei::NoteHarnessPatch(site.address, sizeof(byId), "the update countdown from the object's id, SV1b");
         DWORD old;
         VirtualProtect(code, sizeof(byId), PAGE_EXECUTE_READWRITE, &old);
         std::memcpy(code, byId, sizeof(byId));

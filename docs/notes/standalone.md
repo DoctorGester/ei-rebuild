@@ -12,7 +12,7 @@ exe, how the first standalone exe gets around it, and what a switch from cp1251 
 | Forwarders (`EI_ORIGINAL`) | 3,795 addresses: 2,347 to rewritten code (C13), 5 unported, 1,443 library: STLport 881, MFC 399, compiler-generated 49, CRT 37, import thunks and others 77 |
 | Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions (336 MFC: the `CArray` / `CList` / `CMap` deleting destructors and `Serialize` slots) |
 | Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
-| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3), with their 130 unported exit functions (S3a); their call targets lack 35 (S3b), the exit functions' callees 47 (S4-S9, S3c) |
+| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3), with their 130 unported exit functions (S3a); their call targets lack 25, all library code (S4-S12; S3b ported the ten game-side ones), the exit functions' callees 47 (S4-S9, S3c) |
 | Reads of the exe's code bytes | the frame's camera call target (00457595), app_frame's CALL test, Rebirth detection (live bytes against the file): each has a standalone path (S14) |
 | Runtime uses outside src/lib | `mfc::` 3,481, `stlp::` 1,009, `gamecrt::` 1,191 (865 new / delete), `gameapi::` 536 |
 | Cleanup counts (no effect on the first exe) | C11 shims 1,034, `__asm` 221, `float_control` 114, raw addresses 1,025 |
@@ -83,16 +83,15 @@ into its report (`SetMissingCodeHandler`): `FAILED: standalone: no code at <addr
 the jumps (its fixed ISAAC seed at 0049F660) keeps the harness's jump, as in the hook build. First run: 6,416
 jumps, 0 wrong, WinMain runs and stops at once on 006FE925, MFC's `CStringArray` constructor, called from
 ei_hook.dll (app::GameMain; `tools/resolve_crash.py <run folder>` names it; S4-S13). Static initialisers (S3)
-do not run yet. Harness pieces that patch call sites inside the original code do nothing in the image (the
-frame capture at 004580D7, the held server update and client segment, the update countdown sites), so boot
-has no capture yet: S15a.
+do not run yet. Harness pieces that patch call sites inside the original code reach the image through
+hook points (S15a).
 
 **S14 (2026-10-15).** What the image needs in place of game.exe's own module (hook build unchanged: every
 change is behind `ei::Standalone()`, now cached, or in the host).
 - Code-byte readers: app_main's `CallTarget` (camera 00457595, server update 00457314, client segment
   00457368) and app_frame's cursor lock (004580D7) call our rewrites directly in the image;
-  `AddonPanelOffset` (ui_widescreen, addon's JMP at 005FC9E0) returns none. The harness's redirections at
-  those sites are S15a's.
+  `AddonPanelOffset` (ui_widescreen, addon's JMP at 005FC9E0) returns none. The harness reaches those
+  calls through hook points (S15a).
 - Rebirth: `InstallHooks` calls `rebirth_hook::SettingsOnly` instead of `Detect`: flags from
   ei_rebirth.ini (and EI_REBIRTH, the harness), EI_Plugin's player count from `[Rebirth] NPlayers`
   (default 7). Miles's import of LoadLibraryA (mss32.dll) refuses EI_Plugin.asi (logged); mp3dec.asi loads.
@@ -106,6 +105,22 @@ change is behind `ei::Standalone()`, now cached, or in the host).
   code makes through its own imports are not routed.
 - Command line: `ei_standalone ... -- <game args>` (as typed) is WinMain's line and GetCommandLineA's
   after `"<game.exe>"`; `ei_launch --standalone` passes its game args that way.
+
+**S15a (2026-10-15).** Harness hook points in the rewritten callers: `ei::mainloop::g_harnessHooks`
+(ei/main_loop.h) holds the server update, client segment, frame camera update and cursor lock hooks;
+app_main's `ServerUpdate` / `ClientSegment` / `FrameCameraUpdate` and app_frame's cursor lock call the
+hook when set, before the CALL-target read. The harness sets each hook when it redirects that CALL, and
+with hook points only (tests/verify/harness_hooks.h: always in the image, in game.exe with
+`EI_HARNESS_HOOK_POINTS=1`) sets them without touching the original code. The countdown sites are left
+alone in the image (the eight functions are ours, which follow `UpdateCountdownFor`). Hook build
+unchanged: the redirections still make the installer leave WinMain (and the frame step when capturing)
+to the original. Checked in game.exe with `EI_HARNESS_HOOK_POINTS=1` (WinMain and FrameStep rewrites
+then run): smoke, combat, render_scene, render_terrain, ui_saveload, world_client, ui_main_menu digests
+equal their vanilla goldens (the held server update writes the records), frames_basic captures on the
+same frames (9, 23, 26, 34, 46); the frozen menu capture differs in 118 pixels of one animated spot
+from the original WinMain's (R9b2's ground). Rebirth runs keep WinMain's original (NivalRegistry), so
+that mode is for vanilla. The image: boot logs the hook-point and countdown lines, no "unexpected
+code"; it stops in library code before the first frame, so capture and freeze are not seen there yet.
 
 **S2 (2026-10-15).** The 200 game functions under five bytes that no rewrite ported are in
 src/game/short_functions.cpp, generated by tools/gen_short_functions.py from their bytes: 12 kinds
@@ -133,8 +148,48 @@ guards match the original's memory in smoke and ui_main_menu, both installs; thr
 values) that a later call rebuilds are left to their own checks) and `Targets` (the standalone check logs the call targets and exit functions that
 are still INT3). tools/check_static_init.py (build.cmd) re-decodes game.exe: the file must match (a
 helper that gets registered later changes the output: rerun the generator), and every address must be
-in its section. On 2026-10-15 the image lacks 35 call targets (library constructors for S4-S12, ten
+in its section. On 2026-10-15 the image lacked 35 call targets (library constructors for S4-S12, ten
 compiler-generated global constructors, MFC internals: S3b) and 130 of the 311 exit functions (S3a).
+
+**S4 (2026-10-15), group 1.** src/lib/crt.cpp, namespace `libcrt` (not `crt`: ei_vectors has
+`ei::vectors::crt`), registered at their addresses in both builds: strncmp, strncpy, memmove, _stricmp,
+_strnicmp, _mbscmp, _mbsicmp, _mbsinc, _ismbblead, isleadbyte, tolower, toupper, isalpha, isdigit,
+isspace, isprint, atoi (atol inside it), _itoa, _splitpath, qsort (VC6's: middle pivot, selection
+sort up to 8, larger part stacked), and the 19 WSOCK32 import thunks (by ordinal) plus
+DirectInputCreateEx's, each a call through its import slot. The CRT state is read where the exe keeps
+it: the game runs under a real LC_CTYPE locale (`__lc_handle` 007CABF0 nonzero, set before the text
+manager's setlocale query), so tolower / toupper take `_tolower_lk`'s path (LCMapStringW in
+`__lc_codepage`) and the compares fold bytes through a table of tolower rebuilt when the locale
+changes; character classes come from `_pctype`, lead bytes from `_mbctype`. Only single-byte paths
+are ported (`__mb_cur_max` 1, `__ismbcodepage` 0). In the standalone image that data is the C
+locale (ASCII case only) unless something sets it: who sets the hook build's locale is still open.
+Library functions have no Ghidra size in function_sizes.inc: each registered one is added to
+config/extra_function_sizes.csv (the installer skips an unknown start). Checks
+(tests/verify/verify_crt.cpp): against the original, memmove ours only; atoi against atol 006E804D;
+qsort sorts the caller's array twice (comparators such as CompareSlots read through the element's
+address). 0 mismatches in 20 runs (10 scenarios, both installs), e.g. toupper 4.7M, tolower 3.7M,
+_splitpath 1.6M, _strnicmp 1.3M, qsort 6.7k calls. The thunks have no wrapper (a jump through the slot).
+
+**S4 group 2.** Registered in both builds: rand / srand (the seed is the game CRT's `_holdrand`,
+`_getptd`+0x14, in the hook build, which the harness reads and seeds; a thread_local in the image),
+ceil, modf, _controlfp (x87 word only), set_new_handler, the eh vector constructor / destructor
+iterators (a guard object unwinds like `__ArrayUnwind`; C++ exceptions only, not SEH), and the STLport
+node allocator 00405950 / 00404D70 with its refill 004060E0 and chunk_alloc 00406B70, ported exactly
+because the pool is the exe's data and original code pushes and pops its free lists inline.
+`EI_REPLACE_STANDALONE` (include/ei/hook.h) registers in the image only: malloc, free, operator new
+(MFC handler loop), operator delete, _onexit, atexit and exit (our list, then the host CRT's exit; the
+exe's __xp / __xt terminators are for the game CRT's streams). The hook build keeps the exe's heap
+and atexit list, which other unported CRT code (realloc, calloc, _strdup, the stream table) shares.
+acos, asin and fmod have no callers (the game calls the _CI forms) and are not ported. Full suite
+(127 runs): all pass but zone_gz15h_tornado rebirth (times out on main too); 0 mismatches, e.g. modf
+9.5M, _controlfp 698k, rand 351k calls; the image check installs every registration.
+Group 3: memcpy (overlap as memmove), memset, strstr, wcslen, floor and the multibyte functions
+mfc_string.cpp forwards to, by their single-byte path: _mbschr, _mbsrchr, _mbsstr, _mbspbrk, _mbsncmp,
+_mbclen, _mbslwr (`_SBUP` bytes through `_mbcasemap` 007CC080). Suite: 0 mismatches (memcpy 118M,
+_mbschr 3.7M, _mbslwr 1.7M calls). Left for S4a-S4c: sprintf / vsprintf / fprintf / printf / atof
+(MSVC6 _output / _input digits), the file functions and the rest of the heap (image only), _ftol and
+the _CI maths (register arguments), _CxxThrowException, the iostream operators, setlocale / _setmbcp,
+_ismbcdigit / _ismbcspace. (library.csv named 006EC8A8 _mbsupr: it lowers.)
 
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
@@ -153,6 +208,23 @@ destructors (S3c). Checked: check_static_init (the file and the sizes against ga
 the standalone check (0 exit functions without code), smoke and ui_main_menu on both installs (129
 hooked; vanilla exits through all of them).
 
+**S3b (2026-10-15).** The ten compiler-generated global constructors only static initialisers call
+are ported and registered at their addresses: the skill, spell, item, quest, prints and acks databases
+(src/game/database_construct.cpp: empty vectors, hash_maps of 100), the logic settings' defaults
+(005CDFC0, logic_settings.cpp; size 297 in extra_function_sizes), the multiplayer heroes
+(SavedParties, party_file.cpp) and both worlds (world_construct.cpp: the members' constructors in the
+original's order, the inlined ones written out). They run before the hooks, so
+tests/verify/verify_global_constructors.cpp builds each again at WinMain entry and compares with the
+original's global (fields bit for bit, heap pointers by kind, the hash_maps' three uninitialised functor
+bytes skipped, including the AI map's bridge heights): 0 mismatches in smoke, ui_main_menu, net_lobby
+and ui_mp_host, both installs. The image then lacks 25 call targets, all library code: S5 CWordArray
+006FEE9A, CByteArray 006FF5EA, CString(LPCTSTR) 007009DE and the MFC internals (006E6BCD, 006E68C9,
+006E6916, 006E6AEA, 006E6B37, 0070B600, 0070D1AA, 00704546, 0070DC4D, 00700674, 006FC42F); S6 CArray
+005C1760; S7 CList 005CDAD0; S4 atexit 006E727B, the eh vector constructor iterator 006E8693, the
+WSAStartup thunk 006E6106; S11 hashtables 004DC830, 0066B320; S12 STLport 00455E50, 004ED540, 0056A410,
+005E0A90. The world constructors also call GridAllocate 00572820 / 005728D0, CStringArray 006FE925 and
+CString::operator= 00700AF9 at their addresses.
+
 **S9 (2026-10-15).** STLport `list<T>` (src/lib/stlp_list.h, stlp_list.cpp): one body per member,
 `ListAbi<T, Policy>` shims with the instantiations' calling conventions, the element copy / destroy
 as a policy (plain bytes, or the holder policies in stlp_list_refs.h: Share + Destroy, counted +
@@ -164,6 +236,40 @@ holder lists ours only (links, the copy's count or clone, the freed node on top 
 The suite reaches 106 of the 160 (most server-side award and trade lists not). The node size picks
 the free list: a wrong element size corrupts the pool of another size (005392C0 holds 20 bytes in a
 32-byte node). Left: S9a (15 with element types not ported yet).
+
+**S13 (2026-10-15).** Compiler-written helpers of game types: 46 of the 49 forwarded rows and 9
+of the 17 data-pointed ones registered. Record destructors (item, spell, skill, quest and ack
+records; save entries), copies and assignments (save entries, music themes, zone exits, face groups,
+shared objects, wave records, the shape map's pair), deleting destructors (ground prints, sector
+lists, shared objects, figure-map pairs, unit shape, party base, slot 1 of seven MFC collections),
+the skill database's reset and the eight aligned-buffer constructors. src/game/record_lifetime.h
+holds the shared pieces (`DestroyVector`, `AsCString` for CStrings declared as `char*`,
+`LeadingStringDelete`). Bodies that are library rows (MFC CArray / CList destructors, STLport vector
+storage, hash_map clear) are called through the library's address or inlined from lib/, never
+registered here. Verify: ours-only wrappers in tests/verify/verify_record_lifetime.cpp (shape
+before, result and copy equality after). Most destructors run at shutdown, after harness_report.txt
+is written: read their `verify total` lines in ei_hook.log. Not reached by the suite:
+SaveEntry::Assign (two or more saves sorted), ZoneExit::Assign (net zone start), FaceGroup::Assign,
+SharedObject copy and delete (shared loot), the party base's and the collections' deleting
+destructors. Left: S13a (three database resets, six world destructors); 00646C25 and 00656464 are
+string bytes, not functions.
+
+**S10 (2026-10-15).** STLport `vector<T>` (src/lib/stlp_vector.h, stlp_vector.cpp): STLport's members
+(insert overflow, fill / range insert, erase, resize, reserve, push_back, operator=, the base
+constructors and destructors) as one body each over an element policy (`PlainElement`,
+`ObjectElement` for CString, `StringElement` in stlp.h, `CountedRefElement` in stlp_vector_refs.h),
+`VectorAbi<T, Policy>` shims; `stlp_alloc.h` holds the allocator declarations and `Opaque<N>` for
+both families. 201 of the 266 forwarded vector-family addresses are registered: 141 that never
+touch an element (`_STLP_alloc_proxy::deallocate` 70 in two calling conventions, `_Vector_base`
+constructors / destructors / get_allocator, by element size read from each one's size
+arithmetic), 42 plain-data members, 12 CString / stlp::string members, 6 counted-reference ones.
+Checks (tests/verify/verify_stlp_vector*.cpp): plain data against the original (its result is
+recorded and undone: the new block back to the pool, the old one off its free list, bytes and
+pointers restored; ours must take the same block and give the same elements); string and
+reference vectors ours only against a model of the elements (texts, pointers, reference counts).
+The suite reaches 125 of the 201, 0 mismatches. 004387D0 (no Ghidra function) got its size row.
+Left: S10a (54 vectors of game records whose element copy / destroy are records' own functions,
+and 11 non-vector entries named like vector code).
 
 ## 3. Runtime: MFC, STLport, CRT
 

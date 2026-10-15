@@ -7,6 +7,7 @@
 #include "texture.h"   // CTextureDevice, CDXSurface
 
 #include "ei/hook.h"
+#include "ei/main_loop.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -40,9 +41,12 @@ __declspec(naked) void __fastcall InterfaceDrawCursor(void*) EI_ORIGINAL(0x005F5
 // 004580D7 (the original body stays in place behind the hook's jump): the harness's frame capture
 // redirects that call (tests/verify/harness_capture.cpp) to read the finished frame before the
 // cursor is blitted and the frame flipped, and keeps working with this rewrite. Without the
-// harness, and in the standalone image (no original code there, INT3), the target is 005E65F0.
-using CursorLock = void(__fastcall*)(void*);
+// harness, and in the standalone image (no original code there, INT3), the target is 005E65F0. A
+// harness hook for the call (ei/main_loop.h) comes first wherever one is set; in the image it is the
+// harness's only way in.
+using CursorLock = ei::mainloop::HarnessHooks::CursorLock;
 CursorLock CursorLockAtCallSite() {
+    if (auto hook = ei::mainloop::g_harnessHooks.cursorLock) return hook;
     constexpr std::uintptr_t kCall = 0x004580D7;
     const auto direct = reinterpret_cast<CursorLock>(0x005E65F0);
     if (ei::Standalone()) return direct;

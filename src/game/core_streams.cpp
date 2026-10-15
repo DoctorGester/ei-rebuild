@@ -49,6 +49,7 @@ void* __fastcall RefObjectDeletingDestructor(void* self, void*, unsigned flags) 
     return DeleteIf(self, flags);
 }
 EI_REPLACE(0x00412730, RefObjectDeletingDestructor);
+EI_REPLACE(0x005B3570, RefObjectDeletingDestructor);   // S13: the unit shape's (calls its copy 005B3590)
 
 void* __fastcall RefValueConstructBase(void* self) {
     SetVtable(self, kRefValueVtable);

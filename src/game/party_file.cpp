@@ -100,6 +100,16 @@ void SavedParties::SaveAll() {
 }
 EI_REPLACE_METHOD(0x006632B0, SavedParties::SaveAll);
 
+SavedParties* SavedParties::Construct() {
+    new (&folder_) mfc::CString();
+    entries_ = nullptr;
+    finish_ = nullptr;
+    eos_ = nullptr;
+    reinterpret_cast<MpHeroRecord*>(outsideGame_)->Construct();
+    return this;
+}
+EI_REPLACE_METHOD(0x0065F580, SavedParties::Construct);
+
 void SavedParties::Destruct() {
     reinterpret_cast<MpHeroRecord*>(outsideGame_)->Destruct();
     auto* begin = reinterpret_cast<MpHeroRecord*>(entries_);

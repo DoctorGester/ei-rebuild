@@ -280,6 +280,24 @@ void ReleaseHandle(ShapeHandle* handle) {
 }
 } // namespace
 
+ShapePair* __fastcall ConstructShapePair(ShapePair* pair, void*, const ShapeHandle* key, const RefPtr* value) {
+    ShapeHandle& to = const_cast<ShapeHandle&>(pair->key);
+    to.cache = key->cache;
+    to.ref = key->ref;
+    if (to.ref) ++to.ref->refs_;
+    to.key = key->key;
+    to.height = key->height;
+    pair->value.Share(value->ptr);
+    return pair;
+}
+EI_REPLACE(0x005BE370, ConstructShapePair);
+
+void __fastcall DestroyShapePair(ShapePair* pair) {
+    pair->value.Destroy();
+    ReleaseHandle(const_cast<ShapeHandle*>(&pair->key));
+}
+EI_REPLACE(0x005BE280, DestroyShapePair);
+
 void* CAIMap::UnitShape(float standingHeight) {
     ShapeHandle handle;
     handle.cache = nullptr;

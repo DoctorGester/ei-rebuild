@@ -3975,7 +3975,7 @@ address,name,library,signature,notes
 006EBBB4,_controlfp,CRT,"unsigned __cdecl(unsigned,unsigned)",FPU control word: affects every float result
 006EC3A0,memcpy,CRT,"void* __cdecl(void*,const void*,size_t)",
 006EC6F2,_mbschr,CRT,"unsigned char* __cdecl(const unsigned char*,unsigned int)",
-006EC8A8,_mbsupr,CRT,unsigned char* __cdecl(unsigned char*),
+006EC8A8,_mbslwr,CRT,unsigned char* __cdecl(unsigned char*),
 006EC99C,_mbsrchr,CRT,"unsigned char* __cdecl(const unsigned char*,unsigned int)",
 006ECAB3,_mbsstr,CRT,"unsigned char* __cdecl(const unsigned char*,const unsigned char*)",
 006F2230,_stricmp,CRT,"int __cdecl(const char*,const char*)",

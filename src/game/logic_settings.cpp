@@ -79,3 +79,53 @@ void LogicSettings::Load(const char* path) {
 }
 
 EI_REPLACE_METHOD(0x005CE0F0, LogicSettings::Load);
+
+LogicSettings* LogicSettings::Construct() {
+    // [Logic]
+    guardStayTime = 10.0f;
+    sentryStayTime = 10.0f;
+    followMinDist = 2.0f;
+    followMaxDist = 4.0f;
+    guardRadius = 10.0f;
+    callForHelpRadius = 7.0f;
+    callForHelpRadiusDefault = 7.0f;
+    followLimit = 15.0f;
+    playerCallForHelp = 16.0f;
+    rangedRunDist = 4.0f;
+    rangedAttackDist = 7.0f;
+    swarmRadius = 10.0f;
+    // [RPG]
+    humanCrossAnimationSpeed = 1.0f;
+    backstabAdd = 3.0f;
+    backstabMult = 0.0f;
+    rotateSpeedMult = 100.0f;
+    damageLevel1 = 0.5f;
+    damageLevel1Value = 0.5f;
+    damageLevel2 = 0.0f;
+    damageLevel2Value = 0.33f;
+    damageLevelRunLimit = 0.5f;
+    int1ExpBonus = 0.2f;
+    const float hpMp[5] = {25.0f, 30.0f, 50.0f, 1.1f, 1.61f};
+    for (int i = 0; i < 5; ++i) {
+        hpVal[i] = hpMp[i];
+        mpVal[i] = hpMp[i];
+    }
+    skillVal[0] = 50.0f;
+    skillVal[1] = 5.0f;
+    perkPowerBase = 2.0f;
+    considerModifier = 200.0f;
+    considerLogBase = 1.61f;
+    // [LMP], [Scenario]
+    lostMoney = 0.1f;
+    lostXp = 0.1f;
+    questsToRespawn = 3;
+    itemDurabilityCritical = 0.3f;
+    for (int i = 0; i < 3; ++i) {
+        absorption[i] = 1.0f;
+        attack[i] = 1.0f;
+        defence[i] = 1.0f;
+    }
+    loaded = false;
+    return this;
+}
+EI_REPLACE_METHOD(0x005CDFC0, LogicSettings::Construct);

@@ -20,6 +20,8 @@ struct QuestRecord {
     // places (one field 1 per float; loading empties the vector and fills it with that many
     // zeros first).
     void Serialize(ChunkArchive* ar);
+    // 006AF4D0 (S13; the compiler's destructor). The text, the places' storage, the name.
+    void Destruct();
 
     stlp::string name;              // +0x00
     float exp;                      // +0x0C
@@ -39,6 +41,9 @@ struct QuestBriefingRecord {
     // chunk 3 the given items (0052DF40), string field 4 the text, chunks 5-9 the other lists
     // (InlineStrings), 10 +0x68.
     void Serialize(ChunkArchive* ar);
+    // 006AF5A0 (S13; the compiler's destructor). The text, the lists from the last (each string,
+    // then the storage), the name.
+    void Destruct();
 
     stlp::string name;              // +0x00
     float exp;                      // +0x0C
@@ -77,6 +82,9 @@ struct QuestDatabase {
     // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the
     // file cannot be opened.
     int Load(const char* folder);
+    // 006AE0F0 (database_construct.cpp; the static initialiser 006ADF10). Both vectors empty, both
+    // indexes with 100 buckets (193). Returns this.
+    QuestDatabase* Construct();
 
     stlp::vector<QuestRecord> quests;   // +0x00
     QuestIndex questsByName;            // +0x0C

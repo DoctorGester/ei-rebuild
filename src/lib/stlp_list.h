@@ -10,13 +10,12 @@
 // stlp_list.cpp through the ListAbi shims: one body for every element type, the element's copy and
 // destruction supplied by an element policy.
 
+#include "stlp_alloc.h"
+
 #include <cstddef>
 #include <new>
 
 namespace stlp {
-
-void* allocate(std::size_t bytes);                  // 00405950
-void deallocate(void* p, std::size_t bytes);        // 00404D70
 
 // How an instantiation copies an element into a new node (_M_create_node) and destroys one (erase,
 // clear): T's own copy constructor and destructor. Holders whose copy the game writes as functions
@@ -136,12 +135,8 @@ struct list {
 };
 static_assert(sizeof(list<int>) == 4 && sizeof(list<int>::Node) == 12);
 
-// An element as raw bytes, for instantiations seen only through their node size (the constructors
-// and the destructors of plain data never touch an element; the size picks the pool's free list).
-template <std::size_t Bytes>
-struct Opaque {
-    unsigned char bytes[Bytes];
-};
+// Instantiations seen only through their node size (the constructors and the destructors of plain
+// data never touch an element).
 template <std::size_t NodeBytes>
 using OpaqueList = list<Opaque<NodeBytes - 8>>;
 static_assert(sizeof(OpaqueList<16>::Node) == 16);

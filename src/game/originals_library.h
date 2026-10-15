@@ -65,6 +65,8 @@ __declspec(naked) inline int __stdcall WsGetHostName(char*, int) EI_ORIGINAL(0x0
 __declspec(naked) inline int __cdecl GameAtExit(void(__cdecl*)()) EI_ORIGINAL(0x006E727B)
 __declspec(naked) inline int __cdecl GameAtoi(const char* /*text*/) EI_ORIGINAL(0x006E80D8)
 __declspec(naked) inline void __cdecl ExitGame(int) EI_ORIGINAL(0x006E8DA7)
+// The CRT's _getptd (006F00D1, plain RET): the calling thread's _tiddata (allocated on first use).
+__declspec(naked) inline void* __cdecl CrtThreadDataOriginal() EI_ORIGINAL(0x006F00D1)
 __declspec(naked) inline double __cdecl GameAtof(const char*) EI_ORIGINAL(0x006E911A)
 __declspec(naked) inline const char* __cdecl MbsInc(const char*) EI_ORIGINAL(0x006E9947)
 __declspec(naked) inline int __cdecl IsMbbLead(unsigned) EI_ORIGINAL(0x006E99F2)
@@ -469,6 +471,8 @@ __declspec(naked) inline void* __fastcall PtrListNewNode573290Original(void* /*l
     EI_ORIGINAL(0x00573290)
 __declspec(naked) inline void __fastcall CountedPtrArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x0059A100)
 __declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0059C890)
+// 00599330: CArray<Sector>'s destructor (each element's destructor slot with flags 0, the storage freed; plain RET).
+__declspec(naked) inline void __fastcall SectorArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x00599330)
 // MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
 // result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
 // 006E6722 GetFilePath(out) (RET 4, EAX = out). The constructor, destructor, FindFile and GetFilePath are mfc::CFileFind's

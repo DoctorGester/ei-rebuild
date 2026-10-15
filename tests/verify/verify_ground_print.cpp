@@ -388,6 +388,27 @@ void __fastcall DestructVerify(GroundPrint* self) {
 }
 EI_VERIFY(0x006CF960, DestructVerify, 0, s_unused);
 
+// S13 (ours only): the client world's copies. 0056D080 (blood) when a print's life ends and when
+// the lists are emptied (zone change, exit); 0056D400 / 0056D680 through the deleting destructors
+// 00575560 / 00575580 (footprints, scorch marks), which return the print.
+void __fastcall ListDestructVerify(GroundPrint* self) {
+    bool ok = self->positions_.size <= self->positions_.capacity && self->indices_.size <= self->indices_.capacity;
+    self->Destruct();
+    ei::verify::Check("GroundPrint::Destruct (lists)", true, ok, "positions %d / %d, indices %d / %d",
+                      self->positions_.size, self->positions_.capacity, self->indices_.size, self->indices_.capacity);
+}
+GroundPrint* __fastcall DeletingDestructVerify(GroundPrint* self, void*, unsigned flags) {
+    GroundPrint* result = self->DeletingDestruct(flags);
+    ei::verify::Check("GroundPrint::DeletingDestruct", static_cast<void*>(self), static_cast<void*>(result),
+                      "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x0056D080, ListDestructVerify, 0, s_unused);
+EI_VERIFY(0x0056D400, ListDestructVerify, 0, s_unused);
+EI_VERIFY(0x0056D680, ListDestructVerify, 0, s_unused);
+EI_VERIFY(0x00575560, DeletingDestructVerify, 0, s_unused);
+EI_VERIFY(0x00575580, DeletingDestructVerify, 0, s_unused);
+
 // ---- The client world's prints: the original appends a node, which is taken out again (random
 // state restored); ours appends; the two records compared ---------------------------------------------
 

@@ -670,6 +670,9 @@ struct PrintsDatabase {
     // archive of its own and filed under its records' names. 1; FatalError's result when the
     // archive (reported as "databases.res") or the file cannot be opened.
     int Load(const char* folder);
+    // 006D0250 (database_construct.cpp; the static initialiser 006D00B0). The three tables empty,
+    // each index with 100 buckets (193). Returns this.
+    PrintsDatabase* Construct();
 
     stlp::vector<PrintRecord> blood;          // +0x00
     NameIndex<PrintRecord> bloodByName;       // +0x0C

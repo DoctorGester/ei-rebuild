@@ -291,6 +291,8 @@ UnitModelRecord* __fastcall UnitModelAt(UnitModelRecord** models, void*, std::ui
 struct SkillRecord {
     // 0051F3A0 (RET 4). Fields 0..2 and chunk 10 (the stat names, InlineStrings).
     void Serialize(ChunkArchive* ar);
+    // 00520D20 (S13; the compiler's destructor). The stat names and their storage, field1, name.
+    void Destruct();
 
     mfc::CString name;              // +0x00 field 0
     mfc::CString field1;                // +0x04 1 (nothing reads it)
@@ -305,6 +307,8 @@ static_assert(offsetof(SkillRecord, statNames) == 0x0C && sizeof(SkillRecord) ==
 struct SkillLevelRecord {
     // 0051F480 (RET 4). Fields 0, 1, 2, 10, 11, 12..22 and 0x17.
     void Serialize(ChunkArchive* ar);
+    // 00520DE0 (S13; the compiler's destructor). The strings +0x14, +0x0C, +0x04, +0x00.
+    void Destruct();
 
     mfc::CString field0;                // +0x00 field 0 (nothing reads it)
     mfc::CString name;              // +0x04 1 (the lookups compare it, _mbsicmp)
@@ -348,6 +352,13 @@ struct SkillDatabase {
     // (chunk 2, one chunk 1 each). Returns 1, or what the fatal error report returns when the
     // archive or the file cannot be opened.
     int Load(const char* folder, const char* archive);
+    // 0057CD60 (S13; the compiler's destruction and construction in place, which the resource
+    // switch 0057CB50 runs): the level records destroyed (00520DE0) and their storage freed, then
+    // the skills (00520D20 through their deleting destructor 00521FA0 with 0); both vectors empty.
+    void Reset();
+    // 0051FB10 (database_construct.cpp; the static initialiser 0051FAF0). Both vectors empty.
+    // Returns this.
+    SkillDatabase* Construct();
 
     stlp::vector<SkillRecord> skills;        // +0x00
     stlp::vector<SkillLevelRecord> levels;   // +0x0C

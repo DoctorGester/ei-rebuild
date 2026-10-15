@@ -114,6 +114,31 @@ static AlignedWords* __fastcall ArrayConstructVerify(AlignedWords* self) {
 EI_VERIFY(0x004D9E80, ArrayConstructVerify, 0, s_construct80);
 EI_VERIFY(0x004D9E90, ArrayConstructVerify, 0, s_construct90);
 EI_VERIFY(0x004D9EA0, ArrayConstructVerify, 0, s_constructA0);
+// S13: the other copies (ours only): the scene loader's point block 00475F10 (any figure load), the
+// unit skins' 0056FCC0, the figure factory's 0056FD00 and the terrain's (zone loads).
+static AlignedWords* s_moreConstructs[8];
+EI_VERIFY(0x00475F10, ArrayConstructVerify, 0, s_moreConstructs[0]);
+EI_VERIFY(0x0056FCC0, ArrayConstructVerify, 0, s_moreConstructs[1]);
+EI_VERIFY(0x0056FD00, ArrayConstructVerify, 0, s_moreConstructs[2]);
+EI_VERIFY(0x0056FD30, ArrayConstructVerify, 0, s_moreConstructs[3]);
+EI_VERIFY(0x00570DE0, ArrayConstructVerify, 0, s_moreConstructs[4]);
+EI_VERIFY(0x00570E10, ArrayConstructVerify, 0, s_moreConstructs[5]);
+EI_VERIFY(0x00570E40, ArrayConstructVerify, 0, s_moreConstructs[6]);
+EI_VERIFY(0x00570E70, ArrayConstructVerify, 0, s_moreConstructs[7]);
+
+// 005636A0 (S13, ours only: it releases): the client world's teardown (a zone change, the exit).
+// The objects it holds must still be counted when it runs.
+static void* s_skyDestruct;
+static void __fastcall SkyDestructVerify(CSky* self) {
+    auto counted = [](const void* object) {
+        return !object || static_cast<const CEngineObject*>(object)->refCount_ > 0;
+    };
+    bool ok = counted(self->object) && counted(self->material) && counted(self->texture);
+    self->Destruct();
+    ei::verify::Check("CSky::Destruct", true, ok, "object %p material %p texture %p", static_cast<void*>(self->object),
+                      static_cast<void*>(self->material), self->texture);
+}
+EI_VERIFY(0x005636A0, SkyDestructVerify, 0, s_skyDestruct);
 
 // 004D9680 (A-S8, ours only): no object, turning, a texture holder loaded.
 static CSky* (__fastcall* s_skyConstruct)(CSky*);

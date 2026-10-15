@@ -26,6 +26,7 @@ struct HookEntry {
     bool recordOurs = false;  // EI_RECORD_OURS: our replacement's own entry leads to the recorder too
     bool shortFunction = false; // EI_REPLACE_SHORT / EI_REPLACE_DISPATCH: installed in the standalone image only
     bool dispatch = false;      // EI_REPLACE_DISPATCH: the replacement is a deliberate vtable dispatch
+    bool standaloneOnly = false; // EI_REPLACE_STANDALONE: the game's runtime (heap, exit list), image only
 };
 
 // Registers a replacement at static-initialisation time. Installed by InstallHooks().
@@ -75,6 +76,17 @@ struct DispatchRegistrar {
     }
 };
 
+// A library function whose state the hook build must keep sharing with the exe's remaining library
+// code (the CRT heap, operator new's handler, the atexit list): the hook build leaves the original;
+// the standalone image, which has no such code, jumps to the replacement.
+struct StandaloneRegistrar {
+    HookRegistrar registrar;
+    StandaloneRegistrar(std::uintptr_t address, void* replacement, const char* name)
+        : registrar(address, replacement, name) {
+        registrar.entry.standaloneOnly = true;
+    }
+};
+
 // Address of a member function, for registering class methods as replacements.
 // Valid for non-virtual members of classes with single inheritance (the only kind we hook).
 template <typename T>
@@ -87,6 +99,15 @@ void* MemberAddress(T member) {
 
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
+
+// The harness (verify build) patches `size` bytes of game code at `address` (`what`, a string
+// literal). Called before InstallHooks, it marks the functions holding the bytes as the harness's:
+// their registrations are left out as expected, not as unexpected skips.
+void NoteHarnessPatch(std::uintptr_t address, std::size_t size, const char* what);
+// Registrations InstallHooks left out for a reason other than the harness's or another mod's patches
+// (an unknown function start, a second hook on one address, ...): their rewrites never run. The
+// harness fails a run with any (SV6).
+int UnexpectedSkips();
 
 // True inside ei_standalone.exe (src/standalone/host.cpp, docs/notes/standalone.md section 2): no
 // game.exe code, only its headers and data laid out at kImageBase, into which InstallHooks writes the
@@ -142,6 +163,10 @@ void InstallHooksAtWinMain();
 // own (DestroyEffect, SpecRemove, SpecRefresh); see DispatchRegistrar. Standalone image only.
 #define EI_REPLACE_DISPATCH(addr, method) \
     static ::ei::DispatchRegistrar EI_CAT(ei_dispatch_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
+
+// Replace the library function at `addr` in the standalone image only (StandaloneRegistrar).
+#define EI_REPLACE_STANDALONE(addr, fn) \
+    static ::ei::StandaloneRegistrar EI_CAT(ei_standalone_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
 // Replace the function under five bytes at `addr` in the standalone image only (ShortRegistrar).
 #define EI_REPLACE_SHORT(addr, fn) \

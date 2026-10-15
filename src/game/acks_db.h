@@ -32,6 +32,9 @@ static_assert(sizeof(EnvironmentSpeech) == 0x2C);
 struct AckRecordHead {
     stlp::string name;              // +0x00
     stlp::hash_map<int, SpeechList*, stlp::IntHash> speeches;   // +0x0C by ack kind
+
+    // The compiler's destructor (006DCC50 and inline in the records' ones): the map, then the name.
+    void Destruct();
 };
 static_assert(sizeof(AckRecordHead) == 0x20);
 
@@ -42,6 +45,9 @@ struct UnitAcks {
     // 4 name (and 10 the environment flags). Loading empties each list first and sizes it to the
     // number of speech chunks.
     void Serialize(ChunkArchive* ar);
+    // 006DC390 (S13; the compiler's destructor): the members in reverse, each vector's records
+    // destroyed in order before its storage is freed.
+    void Destruct();
 
     AckRecordHead head;                                     // +0x000
     SpeechList lists[33];                                   // +0x020 the speech lists the map points into
@@ -54,6 +60,8 @@ static_assert(sizeof(UnitAcks) == 0x1C4);
 struct ModelAcks {
     // 006E3FD0 (RET 4). The name, then the lists as chunks 10..14.
     void Serialize(ChunkArchive* ar);
+    // 006DC920 (S13): the lists from the last, then the head.
+    void Destruct();
 
     AckRecordHead head;
     SpeechList lists[5];            // +0x20
@@ -64,6 +72,8 @@ static_assert(sizeof(ModelAcks) == 0x5C);
 struct ExtraAcks {
     // 006E3DC0 (RET 4). The name, then the lists as chunks 10 and 11.
     void Serialize(ChunkArchive* ar);
+    // 006DCAF0 (S13): the lists from the last, then the head (all inline in the original).
+    void Destruct();
 
     AckRecordHead head;
     SpeechList lists[2];            // +0x20
@@ -94,6 +104,9 @@ struct AckDatabase {
     // 0x2D). 1; FatalError's result when the archive (reported as "databases.res") or the file
     // cannot be opened.
     int Load(const char* folder);
+    // 006D7220 (database_construct.cpp; the static initialiser 006D7080). The three tables empty,
+    // each index with 100 buckets (193). Returns this.
+    AckDatabase* Construct();
 
     AckTable<UnitAcks> units;       // +0x00
     AckTable<ModelAcks> models;     // +0x20
