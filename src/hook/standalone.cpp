@@ -3,6 +3,8 @@
 // resolved its imports; here the jumps to our code are written and checked, and WinMain runs.
 #include "ei/hook.h"
 #include "log.h"
+#include "standalone/static_init.h"
+#include "game/originals_library.h"
 
 #include <windows.h>
 
@@ -91,10 +93,18 @@ extern "C" __declspec(dllexport) int __cdecl EiStandaloneMain(const char* exePat
     const bool winMain = *reinterpret_cast<const unsigned char*>(kWinMain) == 0xE9;
     Log("standalone: %d jump(s) written into the image, %d wrong, WinMain %s", installed, bad,
         winMain ? "rewritten" : "missing");
+    // What the static initialisers call that has no code yet (logged; not a failure of the check).
+    static_init::ReportMissingTargets();
     if (!run) return installed > 0 && bad == 0 && winMain ? 0 : 1;
     AddVectoredExceptionHandler(1, OnBreakpoint);
     SetUnhandledExceptionFilter(OnUnhandled);
+    // As the CRT's start-up: the static initialisers, WinMain, then exit with its result (the CRT's
+    // exit runs the functions the initialisers registered with atexit).
+    static_init::RunStaticInitialisers();
     using WinMainFn = int(__stdcall*)(HINSTANCE, HINSTANCE, char*, int);
     char commandLine[1] = {};
-    return reinterpret_cast<WinMainFn>(kWinMain)(reinterpret_cast<HINSTANCE>(kImageBase), nullptr, commandLine, SW_SHOWNORMAL);
+    const int result =
+        reinterpret_cast<WinMainFn>(kWinMain)(reinterpret_cast<HINSTANCE>(kImageBase), nullptr, commandLine, SW_SHOWNORMAL);
+    ExitGame(result);
+    return result;
 }

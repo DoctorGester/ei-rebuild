@@ -38,6 +38,8 @@ add_library(ei_hook SHARED
     src/hook/profile.cpp
     src/hook/rebirth_hook.cpp
     src/hook/standalone.cpp
+    src/standalone/static_init.cpp
+    src/standalone/static_init_run.cpp
     ${EI_GAME_SOURCES})
 target_include_directories(ei_hook PRIVATE include src)
 target_link_libraries(ei_hook PRIVATE ei_render)

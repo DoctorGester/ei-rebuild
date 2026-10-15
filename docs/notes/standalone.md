@@ -12,7 +12,7 @@ exe, how the first standalone exe gets around it, and what a switch from cp1251 
 | Forwarders (`EI_ORIGINAL`) | 3,795 addresses: 2,347 to rewritten code (C13), 5 unported, 1,443 library: STLport 881, MFC 399, compiler-generated 49, CRT 37, import thunks and others 77 |
 | Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions (336 MFC: the `CArray` / `CList` / `CMap` deleting destructors and `Serialize` slots) |
 | Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
-| Static initialisers | 748 in the .data list 00783004-00783BB0, one hooked (0042FAE0); 15 instruction patterns cover about 720 (175 guarded `atexit`, 286 stores, 114 float folds, about 100 with an `atexit`) |
+| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3); their call targets lack 35, their exit functions 130 (S3a, S3b) |
 | Reads of the exe's code bytes | the frame's camera call target (00457595), app_frame's CALL test, Rebirth detection (live bytes against the file) |
 | Runtime uses outside src/lib | `mfc::` 3,481, `stlp::` 1,009, `gamecrt::` 1,191 (865 new / delete), `gameapi::` 536 |
 | Cleanup counts (no effect on the first exe) | C11 shims 1,034, `__asm` 221, `float_control` 114, raw addresses 1,025 |
@@ -71,6 +71,25 @@ image jumps to them. tools/check_short_functions.py (build.cmd) checks every reg
 game.exe and our compiled code, the room for the jump, and that none is left unported. The getters read
 the object as dwords (classes named in the comments by vtable, not declared yet). 00656D69 (Ghidra's
 1-byte "function" `CF`) is the ModRM byte of a MOV inside RefreshList 006567A0: in dead_code.csv.
+
+**S3 (2026-10-15).** All 748 static initialisers are generated (src/standalone/static_init.cpp by
+tools/gen_static_init.py; none by hand). A small symbolic interpreter decodes each one's instructions
+into operations: dword stores, copies and fills, float folds of constants (+ - * /, FLDLN2 / FYL2X as
+`Log`), calls (cdecl, stdcall, thiscall, through an import slot) with their arguments, `atexit`, and
+the once-only guard bit. A callee that nothing registers, referenced from one place only and decodable,
+is inlined (the compiler's `call A; jmp B` halves, CArray / vector header constructors); everything else
+is called at its address (our rewrite or a library port through the image's jump). An initialiser
+that is itself registered (0042FAE0, the 004DDxxx debug ones) is one call. Result: 294 stores, 175
+guarded atexit, 120 float folds, 77 constructor + atexit, 53 stores + atexit, 29 others. One template,
+`StaticInitialisers(Do&)` (static_init.h), with three visitors: `Run` (the image, before WinMain;
+`EiStandaloneMain` then calls the CRT's exit with WinMain's result, as the CRT did), `Check` (verify
+build start-up check, tests/verify/verify_static_init.cpp: 1,153 stores, 121 folds bit-exact, 175
+guards match the original's memory in smoke and ui_main_menu, both installs; three initialisers (2,570
+values) that a later call rebuilds are left to their own checks) and `Targets` (the standalone check logs the call targets and exit functions that
+are still INT3). tools/check_static_init.py (build.cmd) re-decodes game.exe: the file must match (a
+helper that gets registered later changes the output: rerun the generator), and every address must be
+in its section. On 2026-10-15 the image lacks 35 call targets (library constructors for S4-S12, ten
+compiler-generated global constructors, MFC internals: S3b) and 130 of the 311 exit functions (S3a).
 
 ## 3. Runtime: MFC, STLport, CRT
 
