@@ -191,7 +191,7 @@ title = "Rebirth present-mode runs: game still running 3 s after the scenario qu
 group = "renderer"
 size = 0.3
 model = "sonnet"
-note = "From R9c2 (2026-10-15): under Rebirth, render_present, render_movie_present, render_device_lost, render_present_shot and render_cursor_present end with 'game still running 3 s after the scenario quit; terminating it'. An older render_present-rebirth log on main stops at DestroyClassRegistry, so it likely predates R9c2. Find where the exit hangs and fix it."
+note = "Same cause as S3e (merged 2026-10-15): Rebirth's addon.dll starts CTFMon.exe from DLL_PROCESS_DETACH when the starter setting CtfMon is 1; the harness now answers CtfMon = 0, and the full suite has no 'still running after quit' lines. Closed."
 
 [[ticket]]
 id = "R10a"
@@ -902,7 +902,7 @@ note = "Windows crashed twice (NVIDIA hang, bugcheck 0x133) with 24 games; EI_HA
 id = "X32"
 title = "Rebirth runs: game still running 10 s after quit"
 group = "harness"
-note = "Since 2026-10-13; runs pass. Suspects: wrappers that fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct). Not a dialog (message boxes are caught)."
+note = "Same cause as S3e (merged 2026-10-15): Rebirth's addon.dll starts CTFMon.exe from DLL_PROCESS_DETACH when the starter setting CtfMon is 1; the harness now answers CtfMon = 0, and the full suite has no 'still running after quit' lines. Closed."
 
 [[ticket]]
 id = "X30"
