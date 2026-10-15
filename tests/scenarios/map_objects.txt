@@ -5,12 +5,11 @@
 # (HideObject sets flags_ 0x10000, read by IsInvisible), and units being spawned, walked, turned,
 # placed (SetCPFast), killed and removed. The verify totals in the report show what ran.
 # SetCPFast(object, x, y, z); HideObject(object, on). No lever is known on zone1, so
-# SwitchLeverState is not used. The game runs ~5.5x faster (10 ms per world update).
+# SwitchLeverState is not used.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)

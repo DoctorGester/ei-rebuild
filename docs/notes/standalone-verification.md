@@ -226,3 +226,46 @@ Two causes, not one.
   same build: with `speed 10` 81 s (timeout), without 26 s. The 78 other scenarios with `speed 10`
   keep it (their goldens are being recorded with it); SV1i looks at which of them wait on sound or
   timers.
+
+## SV1i: no more `speed 10` (2026-10-15)
+
+On the virtual clock `speed 10` gave each frame 50 ms of virtual time instead of 275 (five updates a
+frame at any length), so anything that waits on sound ends or the clock took 5.5 times the frames,
+and every `wait <ms>` ran 5.5 times the world updates at about 100 ms of real time per frame.
+
+Two options were tried, on the same build and machine (4 games at once, vanilla):
+
+- (a) `speed` with a virtual-clock meaning: a frame always advances 275 ms, and the main loop's pass
+  limit (the original's `LEA EAX,[EAX+EAX*4]` at 0045725C, five updates) patched to the frame's
+  length, so `speed 10` runs 27-28 updates a frame. Same world updates per `wait` as before, but a
+  frame with 27 updates costs far more than one with five (the verify wrappers run in every update):
+  movement 44.7 -> 23.3 s, rebirth_flags 60.4 -> 28.8 s, against 15-18 s for (b). And 27 updates
+  between two interface / input / sound-end steps is a different game: unit_ai_fear's fight no longer
+  happened (161 functions fewer) and effects_bow's clickunit missed its wolf. Not taken.
+- (b) `speed 10` dropped from all 77 scenarios (taken). A `wait 1000` is now 18 world updates instead
+  of 100, so the world does 5.5 times less in each fixed wait. The verify call counts of each
+  scenario before and after (work.db's run.counts) show what that cost: the suite as a whole lost 7
+  functions, all where a scenario's purpose needs world time, and those scenarios now wait for it:
+  hero_death (the death and game-over messages: wait 10 s), unit_ai_fear (the fight: 16 s),
+  spells / spells_cast (the wall and fog ending: AI map footprints and occluders removed: 11 s),
+  spells_hero (FogDestroy: 16.5 s), rebirth_flags (the snow fades in over 40 updates: 4 s),
+  effects_bow (the shots and the loot: 10 s and 5.5 s), sandbox_actions and sound (the death's own
+  updates after the kill: 3 s more), ground_prints (the intro blocks the hero a few updates in:
+  `waitfor IsUnitBlocked` before unblocking, and the walks wait for the hero's position), script_exec
+  (a script `Sleep(200)` is 200 updates, 11 s: waitfor 20). What stays lost is incidental and reached
+  by other scenarios: zone1's scripted storm (lightning, rain, timed objects) and environment remarks
+  that came with the longer world time, idle animations, armour model queries.
+
+Times (vanilla, the 77 scenarios, 4 at once): 1616 s before (batch 209), 1053 s with `speed` dropped
+alone (batch 218). The whole suite (117 runs, both installs, 4 at once, batch 280): 1586 s against
+1992 s for the last comparable suite (batch 211, 115 runs, 16 at once) and 2584 s for SV1f's (batch
+200). Biggest wins: movement 42.7 -> 15.9 s, rebirth_flags 38.4 -> 19.9 (vanilla) and 42.7 -> 24.8
+(rebirth), ui_widescreen_more 38.1 -> 17.5 (rebirth), ui_widescreen_hud 34.0 -> 17.5 (rebirth),
+map_objects 34.0 -> 17.6 (rebirth), particles 24.4 -> 10.7, world_client 28.4 -> 16.5.
+
+Every one of the 77 scenarios changes its digests (the waits cover other world updates, the camera
+moves by 55 ms ticks): the goldens of camera, console, hero_death, items, levers, objects_more,
+party_records, render_movie, render_movie_present, render_scene, render_terrain, sandbox_actions,
+script_copy, script_parse, script_quest, spells_cast, ui_battle_spells, ui_container_input, ui_help,
+ui_objectives, ui_order_move, ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens,
+ui_trade_restore, unit_create and world_load need recording again (SV3).

@@ -8,7 +8,6 @@ waitmenu
 console fps on
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 waitwindow 15 battle

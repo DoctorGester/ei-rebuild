@@ -40,7 +40,6 @@ waitwindow 10 menu
 
 # A game: a right click and a double click on the battle screen, then keys and the wheel on the escape menu.
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 waitwindow 15 battle

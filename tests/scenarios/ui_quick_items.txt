@@ -16,12 +16,11 @@
 # 470..510). SetUnit leaves it highlighted, and a click on the highlighted spell cancels, so the
 # button and the ground are clicked twice: one of the two clicks starts mode 2 (no flag
 # 0x10000000) and the ground click casts it at the point (SelectUnit -> 00637750).
-# Coordinates are the 800x600 layout. The game runs ~5.5x faster (10 ms per world update).
+# Coordinates are the 800x600 layout.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 

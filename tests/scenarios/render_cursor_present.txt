@@ -32,7 +32,6 @@ cursorcheck menu_stall 10
 cursormark
 mouseglide 3000 550 400 250 250
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 cursorcheck - 0
 console @BlockUnit(GetLeader(),0)

@@ -1,12 +1,11 @@
 # A save made while a script's water level change is still running, loaded back: TweenArray::Load
 # (006D45D0) applies each saved level through Terrain::SetWaterLevel (006CC7F0; docs/notes/models.md
 # "Landscape passes, light tests"). The change runs over 5000 world updates, so it is still pending
-# when the game is saved. The game runs ~5.5x faster.
+# when the game is saved.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 waitline 15 Saved savea
 console @SetWaterLevel(0,0,5000)

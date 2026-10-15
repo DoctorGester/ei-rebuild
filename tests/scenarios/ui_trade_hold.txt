@@ -9,7 +9,6 @@ waitmenu
 console thingamabob
 
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 rebirth console @GiveUnitExp(GetLeader(),50000)

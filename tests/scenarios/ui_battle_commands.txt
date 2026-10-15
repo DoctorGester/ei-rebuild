@@ -6,12 +6,11 @@
 # same order for any living unit). Then the wolves die and the same clicks land on the bodies: a
 # click on a dead unit is 006373A0. The report's call counts for CBattleScreenSetup::AttackUnit /
 # OrderDeadUnit show the clicks hit (3 each).
-# Coordinates are the 800x600 layout. The game runs ~5.5x faster (10 ms per world update).
+# Coordinates are the 800x600 layout.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),1)
 console @GodMode(0,1)

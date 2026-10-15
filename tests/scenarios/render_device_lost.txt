@@ -26,7 +26,6 @@ samecapture menu menu_again
 
 # The hero on zone1, unblocked and standing still, the camera settled on him.
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 waitwindow 10 battle

@@ -7,7 +7,6 @@ reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 
@@ -27,7 +26,8 @@ wait 2000
 # Clairvoyance (type 0x14) on a point and vision fog (0x17) on the hero.
 console @CastSpellPoint("clairvoyence{d2}",GetX(GetLeader()),GetY(GetLeader()),Add(GetX(GetLeader()),6),GetY(GetLeader()))
 console @CastSpellUnit("vision_fog{d2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
-wait 2000
+# Long enough for the light wall to end (its AI map footprint and occluder removed).
+wait 11000
 
 check IsAlive(GetLeader())
 report

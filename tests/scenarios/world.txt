@@ -2,12 +2,11 @@
 # (timed objects, missiles, countdowns, command queues) and wakes the units around each party
 # member (WakeUnitsAround). The scenario adds a timed spell effect and a spawned wolf, raises
 # alarms with InvokeAlarm (alarm slots, the AI units hearing it) and checks that the tick count
-# (AlarmTime stores it) moves on. The game runs ~5.5x faster (10 ms per world update).
+# (AlarmTime stores it) moves on.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 console @GSSetVar(0,"hx",GetX(GetLeader()))

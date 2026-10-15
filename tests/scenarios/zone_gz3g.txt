@@ -7,7 +7,6 @@
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 waitfor 15 IsUnitBlocked(GetLeader())
 zone gz3g 0

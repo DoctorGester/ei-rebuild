@@ -4,12 +4,11 @@
 # standing ogre. Exercises the order header (AIPath Start/Reset/SetTarget), the trajectory (Build,
 # Subdivide, LimitSpeeds, Sample every tick), the step speeds, the blocking-unit test and the
 # sector map moves. Script signatures: Walk/Run/Crawl(unit), MoveToPoint(unit, x, y),
-# MoveToObject(unit, target), Follow(unit, leader). The game runs ~5.5x faster (10 ms per update).
+# MoveToObject(unit, target), Follow(unit, leader).
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)
@@ -47,7 +46,8 @@ wait 2000
 console @Follow(GetObjectByName("Mv1"),GetLeader())
 console @Follow(GetObjectByName("Mv2"),GetObjectByName("Mv1"))
 console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),6))
-# (Long enough for the walking hero's environment remark, acks 006D88E0, which comes at random.)
+# (The walking hero's environment remark, acks 006D88E0, comes at random: in some 160 updates here,
+# not in every run; units, map_objects and ui_quick_items reach it too.)
 wait 9000
 
 # Around an obstacle: an ogre stands on the straight line from a new wolf to its target.

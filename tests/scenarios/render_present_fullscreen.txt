@@ -20,7 +20,6 @@ clickregion 1
 waitwindow 10 menu
 
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 waitwindow 10 battle

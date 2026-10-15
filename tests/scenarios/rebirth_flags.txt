@@ -17,7 +17,6 @@ reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 
@@ -146,7 +145,7 @@ console @PauseGame(0) PauseGame(1)
 console @SetWeather("rain")
 wait 1500
 console @SetWeather("snow")
-wait 2000
+wait 4000
 console @SetWeather("clear")
 console @GiveUnitWeapon(GetLeader(),"Axe.steel",1)
 console @GiveUnitArmor(GetLeader(),"UniqueGipatHadagan Helm.Iron",0) GiveUnitArmor(GetLeader(),"no such armour",1)

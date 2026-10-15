@@ -85,7 +85,9 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
 - `speed <ms>` sets the real time per world update (game default 55, its own speed-up key 27);
   `speed 10` runs the game about 5.5x faster on real time. On the virtual clock a frame is five
   updates whatever their length, so it speeds nothing up: each frame only gets less virtual time,
-  and what waits on sound or the clock (speech, script timers) takes more frames (SV1f).
+  and what waits on sound or the clock (speech, script timers) takes more frames (SV1f). No
+  scenario uses it since SV1i; a `wait <ms>` is 55 ms of game time per world update, so a scenario
+  that needs the world to do something waits for it (`waitfor`) or waits long enough at 55 ms.
 - `capture <name>` writes the next presented frame to `frames\<name>.bmp` in the run's folder;
   `freeze` / `unfreeze` hold the game's clocks and camera around captures; `samecapture <a> <b>`
   requires two captures to match. `python tools\compare_frames.py A B` compares two captures or two

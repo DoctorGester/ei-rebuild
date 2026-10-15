@@ -3,7 +3,7 @@
 # hit resolution, TakeHit and its log ("Unit 12 was attacked by 34 skill=... damage=... destHL=Body",
 # printed to the console, so the expects below see it), plus the range and weapon queries the AI
 # uses on the way. Each "check" must print a nonzero value; each "waitfor" waits until its condition
-# holds. The game runs ~5.5x faster (10 ms per world update).
+# holds.
 #
 # WolfTutor dies to the first hit. GoblinF1 (database.res: a level 1 goblin, the same base values
 # as WolfGreyF1, which has 25 where WolfTutor has 20 in its first stat field) is the sturdier enemy:
@@ -16,7 +16,6 @@ console thingamabob
 # Combat messages go to a console stream that is filtered out by default; show them all.
 console filter all on
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)

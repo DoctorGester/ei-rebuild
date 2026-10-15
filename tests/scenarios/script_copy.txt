@@ -7,7 +7,6 @@
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 waitline 15 Saved savea
 console @BlockUnit(GetLeader(),0)

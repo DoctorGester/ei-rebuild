@@ -3,12 +3,11 @@
 # action and, with no targetable object there either, calls CBattleScreen::OrderAt (00636F10),
 # which nods the hero's portrait and gives the local view the move order. The new game's hero is
 # selected; the clicks are away from the HUD panels (800x600 layout). The hero must then walk
-# away from where it stood. The game runs ~5.5x faster (10 ms per world update).
+# away from where it stood.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The zone's intro script blocks the hero (flags 0x800000, IsUnitBlocked) for ~37 s, and the
 # server's order handler (0066FFF0) skips blocked units. The script can start after the hero

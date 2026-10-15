@@ -4,7 +4,7 @@
 # of every unit (CUnit::Tick, UnitVitals::Regenerate), poses and movement modes (lie, crawl, stand,
 # rest), damage through the body slots and armour (UnitStats::ApplyHit / DamageSlot), a heal, and
 # a short fight with a kill (experience). Each "check" must print a nonzero value; each "waitfor"
-# waits until its condition holds. The game runs ~5.5x faster (10 ms per world update).
+# waits until its condition holds.
 #
 # Script signatures (game.exe command table): GiveStrength / GiveDexterity / GiveIntelligence
 # (unit, amount), GiveSkill (unit, "melee" | "archery" | ... | "science", amount), GiveItem / GiveMoney
@@ -13,7 +13,6 @@ reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 # The level intro keeps the hero blocked for ~37 s of real time; unblock it instead of waiting.
 console @BlockUnit(GetLeader(),0)

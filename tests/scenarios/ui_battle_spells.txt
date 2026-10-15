@@ -7,12 +7,11 @@
 # through SelectUnit (00638EF0): mode 1 is the spell on a unit (00637500), mode 2 the spell at the
 # unit's position (00637750). The wolves stand blocked next to the blocked hero; the report's call
 # counts for CBattleScreenSetup::UseOnUnit / UseAtPoint show which were reached.
-# Coordinates are the 800x600 layout. The game runs ~5.5x faster (10 ms per world update).
+# Coordinates are the 800x600 layout.
 reject Script error
 waitmenu
 console thingamabob
 newgame
-speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),1)
 console @GodMode(0,1)
