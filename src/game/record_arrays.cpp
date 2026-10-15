@@ -1,0 +1,212 @@
+// The CArray<T> instantiations of game records (record_arrays.h), registered at their library
+// addresses (ticket S6b). Our code keeps calling them through their addresses (the forwarders in
+// scene_loader.cpp, script_copy.cpp, sound_music.cpp, ...).
+#include "game/record_arrays.h"
+
+#include "ei/hook.h"
+#include "ei/vcall.h"
+#include "lib/crt.h"
+
+#include <cstddef>
+#include <cstring>
+#include <new>
+
+namespace recordarrays {
+
+using mfc::impl::ArrayHeader;
+using mfc::impl::GlobalMapPointRecords;
+
+// ---- Scene records -------------------------------------------------------------------------------
+
+// 00453240 writes zeros over the mesh's six arrays (+0x1C0..+0x21C) after ConstructBase; the zero
+// fill already cleared them.
+void InitFigurePart(CFigureMesh* p) {
+    p->ConstructBase();
+    ei::SetVtable(p, CFigureMesh::kPlainMeshVtableAddress);
+}
+
+EI_REPLACE(0x0044FCD0, FigureParts::SetSize);
+EI_REPLACE(0x00453240, FigureParts::ConstructElements);
+EI_REPLACE(0x00453550, Materials::SetSize);
+EI_REPLACE(0x00454E40, Materials::ConstructElements);
+EI_REPLACE(0x004545C0, SceneMeshes::ConstructElements);
+EI_REPLACE(0x00454F80, SceneNodes::ConstructElements);
+EI_REPLACE(0x00477100, SceneNodes::DestructElements);
+EI_REPLACE(0x00474DB0, FaceGroups::SetSize);
+EI_REPLACE(0x00476F20, FaceGroups::DestructElements);
+EI_REPLACE(0x00454A50, ArrayHeader<FaceGroupArrayClass>::Construct);
+
+// ---- Records -------------------------------------------------------------------------------------
+
+EI_REPLACE(0x0050FA30, DeltaFields::SetSize);
+EI_REPLACE(0x005101A0, DeltaFields::ConstructElements);
+
+void InitTheme(MusicTheme* p) {
+    new (&p->name) mfc::CString();
+    new (&p->briefing) mfc::CString();
+    new (&p->constructor) mfc::CString();
+    p->calm.Construct();
+    p->combat.Construct();
+}
+void __fastcall DestroyTheme(MusicTheme* p) {
+    p->combat.Destruct();
+    p->calm.Destruct();
+    p->constructor.~CString();
+    p->briefing.~CString();
+    p->name.~CString();
+}
+EI_REPLACE(0x006B59A0, Themes::SetSize);
+EI_REPLACE(0x006B5BC0, Themes::ConstructElements);
+EI_REPLACE(0x006B4D90, DestroyTheme);
+EI_REPLACE(0x006B56C0, Themes::Destruct<ThemeArrayClass>);
+
+void __fastcall DestroyWave(WaveRecord* p) { gamelists::DestroyWave(p); }
+EI_REPLACE(0x006BE240, Waves::ConstructElements);
+EI_REPLACE(0x006BE210, Waves::DestructElements);
+EI_REPLACE(0x006B90C0, DestroyWave);
+
+EI_REPLACE(0x00557890, Behaviours::Destruct<BehaviourArrayClass>);
+
+// The position and the waypoints are copied as the dwords they are.
+mapspec::Patrol* __fastcall PatrolGetAt(const mfc::CArray<mapspec::Patrol>* self, void*, mapspec::Patrol* result,
+                                        int index) {
+    const mapspec::Patrol& from = self->data[index];
+    std::memcpy(&result->position, &from.position, sizeof(from.position));
+    mfc::CArray<mapspec::Waypoint>& to = result->waypoints;
+    to.Construct(reinterpret_cast<std::uintptr_t>(mfc::impl::WaypointArrayClass::Vtable()));
+    int n = from.waypoints.size;
+    if (n) {
+        to.data = static_cast<mapspec::Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(mapspec::Waypoint)));
+        mfc::PlainElements<mapspec::Waypoint>::Construct(to.data, n);   // 0045E130
+    }
+    to.maxSize = n;
+    to.size = n;
+    for (int i = 0; i < from.waypoints.size; ++i) std::memcpy(&to.data[i], &from.waypoints.data[i], sizeof(mapspec::Waypoint));
+    return result;
+}
+EI_REPLACE(0x0046EAB0, PatrolGetAt);
+EI_REPLACE(0x0046EFD0, PatrolGetAt);
+
+// The first ten dwords as they are, the target copy-constructed, then the rest (the flag as a byte).
+ZoneExit* __fastcall ExitGetAt(const mfc::CArray<ZoneExit>* self, void*, ZoneExit* result, int index) {
+    const ZoneExit& from = self->data[index];
+    std::memcpy(result, &from, offsetof(ZoneExit, target));
+    new (static_cast<void*>(&result->target)) mfc::CString(*reinterpret_cast<const mfc::CString*>(&from.target));
+    result->entrance = from.entrance;
+    result->view = from.view;
+    result->hasDeployAngle = from.hasDeployAngle;
+    result->deployAngle = from.deployAngle;
+    return result;
+}
+EI_REPLACE(0x00584EA0, ExitGetAt);
+EI_REPLACE(0x00587DD0, ExitGetAt);
+
+// The global map's links and quests (the zero fill, then both strings empty).
+void __fastcall DestroyGlobalMapRecord(Bytes<0x18>* p) { mfc::impl::DestroyStringsAt<Bytes<0x18>, 0x14, 0x10>(p); }
+EI_REPLACE(0x00631E70, GlobalMapPointRecords::SetSize);
+EI_REPLACE(0x00631FF0, GlobalMapPointRecords::SetSize);
+EI_REPLACE(0x005FBFB0, GlobalMapPointRecords::ConstructElements);
+EI_REPLACE(0x005FC010, GlobalMapPointRecords::ConstructElements);
+EI_REPLACE(0x005FBD80, DestroyGlobalMapRecord);
+EI_REPLACE(0x005FBDD0, DestroyGlobalMapRecord);
+
+// ---- The script's command arrays ------------------------------------------------------------------
+
+namespace {
+
+// The arrays as the GetAt bodies (script_copy.cpp) take them.
+const mfc::CArray<SSCCmd>* Plain(const Cmds::Array* a) { return reinterpret_cast<const mfc::CArray<SSCCmd>*>(a); }
+const mfc::CArray<ScriptSubCall>* Plain(const SubCalls::Array* a) {
+    return reinterpret_cast<const mfc::CArray<ScriptSubCall>*>(a);
+}
+
+// The storage of a copy constructor: exactly `n` elements, built by the instantiation's
+// ConstructElements; none when `n` is 0.
+template <typename Abi>
+void AllocateExact(typename Abi::Array* self, int n) {
+    using T = typename Abi::Element;
+    if (n) {
+        self->data = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(T)));
+        Abi::ConstructElements(self->data, n);
+    }
+    self->maxSize = n;
+    self->size = n;
+}
+
+// Each nested call of `self` (as many as the source has) assigned from a GetAt copy of the source's:
+// type and argument, the command by SSCCmd's assignment, the copy's command destroyed and deleted.
+void AssignSubCalls(SubCalls::Array* self, const SubCalls::Array* source) {
+    for (int i = 0; i < source->size; ++i) {
+        ScriptSubCall copy;
+        ScriptSubCallCopyAt(Plain(source), nullptr, &copy, i);
+        ScriptSubCall& to = self->data[i];
+        to.type = copy.type;
+        to.argIndex = copy.argIndex;
+        to.cmd->ScriptCmdAssign(copy.cmd);
+        if (copy.cmd) {
+            ScriptCmdDestruct(copy.cmd);
+            gamecrt::operator_delete(copy.cmd);
+        }
+    }
+}
+
+} // namespace
+
+void InitSubCall(ScriptSubCall* p) {
+    p->type = 0;
+    p->argIndex = 0;
+    auto* cmd = static_cast<SSCCmd*>(gamecrt::operator_new(sizeof(SSCCmd)));
+    p->cmd = cmd ? cmd->Construct() : nullptr;
+}
+
+// The original assigns the commands member by member (the float arguments through SetSize 004C4410
+// and dword copies); SSCCmd's assignment copies them through the FPU, the same values.
+void __fastcall CmdArrayCopy(Cmds::Array* self, void*, const Cmds::Array* source) {
+    self->SetSize(source->size, -1);
+    for (int i = 0; i < source->size; ++i) {
+        alignas(SSCCmd) std::uint8_t storage[sizeof(SSCCmd)];
+        auto* copy = reinterpret_cast<SSCCmd*>(storage);
+        ScriptCmdCopyAt(Plain(source), nullptr, copy, i);
+        self->data[i].ScriptCmdAssign(copy);
+        ScriptCmdDestruct(copy);
+    }
+}
+
+void __fastcall SubCallArrayCopy(SubCalls::Array* self, void*, const SubCalls::Array* source) {
+    self->SetSize(source->size, -1);
+    AssignSubCalls(self, source);
+}
+
+Bindings::Array* __fastcall BindingsCopyConstruct(Bindings::Array* self, void*, const Bindings::Array* source) {
+    self->Construct(reinterpret_cast<std::uintptr_t>(BindingArrayClass::Vtable()));
+    AllocateExact<Bindings>(self, source->size);
+    for (int i = 0; i < source->size; ++i) self->data[i] = source->data[i];
+    return self;
+}
+
+SubCalls::Array* __fastcall SubCallsCopyConstruct(SubCalls::Array* self, void*, const SubCalls::Array* source) {
+    self->Construct(reinterpret_cast<std::uintptr_t>(SubCallArrayClass::Vtable()));
+    AllocateExact<SubCalls>(self, source->size);
+    AssignSubCalls(self, source);
+    return self;
+}
+
+EI_REPLACE(0x004CD2B0, Cmds::SetSize);
+EI_REPLACE(0x004CE920, Cmds::ConstructElements);
+EI_REPLACE(0x004CD470, Cmds::DestructElements);
+EI_REPLACE(0x004C4FD0, SubCalls::SetSize);
+EI_REPLACE(0x004CD130, SubCalls::ConstructElements);
+EI_REPLACE(0x004CD0F0, SubCalls::DestructElements);
+EI_REPLACE(0x004CD770, Definitions::SetSize);
+EI_REPLACE(0x004CD900, Definitions::DestructElements);
+EI_REPLACE(0x004CEC80, Runs::DestructElements);
+EI_REPLACE(0x004CD740, Decls::DestructElements);
+EI_REPLACE(0x004CC0C0, CmdArrayCopy);
+EI_REPLACE(0x004C6D10, SubCallArrayCopy);
+EI_REPLACE(0x004CCCB0, BindingsCopyConstruct);
+EI_REPLACE(0x004CCD90, SubCallsCopyConstruct);
+// The by-value GetAt wrappers: their bodies (004CE750, 004CCAA0) have the same arguments.
+EI_REPLACE(0x004CD450, ScriptCmdCopyAt);
+EI_REPLACE(0x004C7510, ScriptSubCallCopyAt);
+
+} // namespace recordarrays

@@ -745,6 +745,25 @@ the original (stolen bytes) on memory archives: the stored bytes, and loads into
 shrinking objects. No suite scenario calls a Serialize. Left: S6c (33 Serialize whose elements are
 counted references or script records, about 20 destructors).
 
+**S6b (2026-10-15).** The last CArray<T> instantiations of game records, 46 addresses
+(src/game/record_arrays.*, verify_record_arrays.cpp): the figure's 0x220-byte parts (a class 0x42
+figure mesh: CFigureMesh::ConstructBase, then the plain mesh vtable), the scene's materials, meshes
+(SceneMesh::Construct: CTransformObject's base, the name, the face groups) and nodes
+(SceneNode::Construct, 00454F80's body; the two quaternions at +0x30 / +0x40 are now named), face
+groups and their array header; network delta fields; music themes (element constructor and
+destructor, the array destructor 006B56C0); the sound cache's wave records; the brain's behaviour
+array destructor 00557890; patrols and zone exits by value (0046EAB0 / 0046EFD0, 00584EA0 /
+00587DD0); the global map's records (both copies of each); the script's command, nested-call,
+definition, run and block arrays, the command and nested-call copies (004CC0C0, 004C6D10), the
+bindings' and nested calls' copy constructors (004CCCB0, 004CCD90) and the by-value GetAt
+wrappers 004CD450 / 004C7510. Checks: element constructors that allocate nothing on a copy of the
+bytes next to the original; SetSize growing ours first, then the original on a twin; the GetAts and
+the bindings' copy constructor ours first, then the original into a twin whose blocks are freed;
+the allocating constructors (materials, wave names, nested calls), destructors and command copies
+ours only. Known difference: 004CC0C0 copies a command's float arguments as dwords, ours through
+SSCCmd's assignment (the FPU): only a signalling NaN would differ. 00557890 and 006B56C0 were also
+on S6c's destructor list; their deleting destructors (005587E0, 006B5980) stay there.
+
 **S12a (2026-10-15).** The rest of the exe's STLport maps (src/game/library_trees.*, one
 `TreeAbi` alias each, node sizes from each `_M_create_node`): the debug panel's map<string, string>,
 the .mob loader's tint lists (map<string, list<16-byte record>>, dead with 00481660's branch), a

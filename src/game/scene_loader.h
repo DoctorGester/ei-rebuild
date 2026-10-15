@@ -11,6 +11,7 @@
 //   records (0x2C header each, one mesh and one node per record), then the skipped records (same
 //   format, read and dropped), then the helpers (0x3E header each).
 
+#include "core_transform.h"
 #include "engine_object.h"
 #include "material.h"
 
@@ -190,6 +191,10 @@ struct SceneNode {
     // 004543E0 (S7a). The destructor: the arrays last to first (each its vtable back, then its
     // storage freed; the morph keys' point blocks first), then the parent's and the node's names.
     void Destruct();
+    // The constructor body ConstructElements 00454F80 inlines after its zero fill (S6b,
+    // scene_loader.cpp): the names empty, the four rotations identity, each array empty with its
+    // vtable.
+    void Construct();
 
     std::uint32_t unused_000;
     mfc::CString name;                  // +0x004
@@ -197,7 +202,10 @@ struct SceneNode {
     std::uint32_t unused_00C;
     std::uint32_t spare010;             // +0x010 cleared by BuildSkeleton; nothing reads it
     std::uint32_t spare014;             // +0x014 cleared by BuildSkeleton; nothing reads it
-    std::uint8_t unused_018[0x54 - 0x18];
+    std::uint8_t unused_018[0x30 - 0x18];
+    Quaternion spareRotation030;        // +0x030 identity from the constructor; nothing reads it
+    Quaternion spareRotation040;        // +0x040 identity from the constructor; nothing reads it
+    std::uint32_t unused_050;
     Vector3 offset;                     // +0x054 the pivot (must be 0, 0, 0: BuildBone)
     Vector3 axis;                       // +0x060 the first position key's axis
     float angle;                        // +0x06C its angle
@@ -215,6 +223,7 @@ struct SceneNode {
     mfc::CArray<SceneNode*, mfc::RawElements<SceneNode*>> children;                 // +0x10C
 };
 static_assert(offsetof(SceneNode, name) == node::kName);
+static_assert(offsetof(SceneNode, spareRotation030) == 0x30 && offsetof(SceneNode, spareRotation040) == 0x40);
 static_assert(offsetof(SceneNode, offset) == node::kOffset);
 static_assert(offsetof(SceneNode, restPivot) == 0x8C);
 static_assert(offsetof(SceneNode, restRotation) == 0x98);
@@ -232,10 +241,16 @@ struct MeshCornerKey {
 };
 static_assert(sizeof(MeshCornerKey) == 6);
 
-// A mesh (mesh:: offsets): an engine object whose slot 7 (GetName) gives its name. Only the
-// members the scene code uses are declared.
-struct SceneMesh : CEngineObject {
-    std::uint8_t unused_01C[0x94 - 0x1C];
+// A mesh (mesh:: offsets): a transform object (an engine object whose slot 7, GetName, gives its
+// name; vtable 0073C274). Only the members the scene code uses are declared.
+struct SceneMesh : CTransformObject {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C274);
+    // The constructor body ConstructElements 004545C0 inlines after its zero fill (S6b,
+    // scene_loader.cpp): the transform object's (00453400), the name empty, the groups' array
+    // empty (00454A50), then the mesh's vtable.
+    void Construct();
+
+    std::uint8_t unused_054[0x94 - 0x54];
     mfc::CString name;                  // +0x094
     std::uint8_t unused_098[0xA8 - 0x98];
     // +0x0A8 / +0x0B8 the positions and the normals packed four to a 64-byte block (x[4], y[4],
