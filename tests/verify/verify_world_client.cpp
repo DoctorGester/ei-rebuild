@@ -3,6 +3,7 @@
 #include "game_state_message.h"
 #include "verify.h"
 
+#include "../../src/game/address_order.h"
 #include "../../src/game/world.h"
 #include "../../src/lib/stlp_alloc.h"
 #include "../../src/hook/log.h"
@@ -159,9 +160,26 @@ struct InstallDrawSortCheck {
 } s_installDrawSortCheck;
 } // namespace
 
+// With address_order::ById (harness runs, SV7b6) ours sorts the draw lists by name, which the original's
+// sorts cannot: their insertion sort compares with the first element by address inline and calls
+// 00574300 elsewhere, and the two orders mixed run its unguarded scans off the array. Then ours sorts
+// alone, and the final sort's result is checked to be in order.
+namespace {
+int OutOfOrder(Obj* first, Obj* last) {
+    UnitOrderLess less;
+    for (Obj* p = first + 1; p < last; ++p)
+        if (less.Less(p[0], p[-1])) return static_cast<int>(p - first);
+    return -1;
+}
+} // namespace
+
 // 005740D0: SUB ESP,0x18; PUSH EBX; PUSH EBP (5 bytes). Output only (the array is reordered).
 static void(__fastcall* s_introByModel)(Obj*, Obj*, void*, int, int);
 static void __fastcall IntroByModelVerify(Obj* first, Obj* last, void* valueType, int depth, int comp) {
+    if (::address_order::ById()) {
+        IntroSortByModel(first, last, valueType, depth, comp);
+        return;
+    }
     int bad = Suspicious(first, last);
     if (bad >= 0) {
         ReportSuspicious("IntroSortByModel", first, last, bad);
@@ -177,6 +195,13 @@ EI_VERIFY(0x005740D0, IntroByModelVerify, 5, s_introByModel);
 // 00574390: SUB ESP,0x14; MOV EAX,EDX (5 bytes).
 static void(__fastcall* s_finalByModel)(Obj*, Obj*, int);
 static void __fastcall FinalByModelVerify(Obj* first, Obj* last, int comp) {
+    if (::address_order::ById()) {
+        FinalSortByModel(first, last, comp);
+        const int at = last > first ? OutOfOrder(first, last) : -1;
+        ei::verify::Check("FinalSortByModel", -1, at, "n %d, element %d sorts before the one ahead of it",
+                          static_cast<int>(last - first), at);
+        return;
+    }
     int bad = Suspicious(first, last);
     if (bad >= 0) {
         ReportSuspicious("FinalSortByModel", first, last, bad);

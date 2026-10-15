@@ -7,7 +7,8 @@
 //   - ours: address_order::UseIds (the standalone always does);
 //   - the original: the object sets' sort 0047ADF0 jumps to a sort by id (then address), the
 //     comparison of DiffObjectSets' merge (0047B4C0) to a stub that compares the same way, and
-//     SetSun's comparator 006C8E90 to one that compares the sectors it was meant to.
+//     SetSun's comparator 006C8E90 to one that compares the sectors it was meant to, and the draw
+//     lists' sorts 005740D0 / 00574390 to ours (by texture and figure name; SV7b6).
 //
 // Patched at the first message loop pass, after InstallHooks: an entry ours has hooked (0047ADF0 in
 // hooked runs) is left alone, ours runs there.

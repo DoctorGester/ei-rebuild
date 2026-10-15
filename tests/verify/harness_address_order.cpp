@@ -4,6 +4,7 @@
 #include "../../src/game/address_order.h"
 #include "../../src/game/engine_object.h"
 #include "../../src/game/terrain_sector.h"
+#include "../../src/game/world.h"
 #include "../../src/hook/log.h"
 #include "../../src/lib/containers.h"
 #include "ei/hook.h"
@@ -98,6 +99,12 @@ const Site kSites[] = {
      reinterpret_cast<void*>(&MergeStep), "DiffObjectSets' merge 0047B1F0"},
     {0x006C8E90, {0x8B, 0x54, 0x24, 0x08, 0x56}, 5, reinterpret_cast<void*>(&CompareSectorsForOriginal),
      "SetSun's comparator 006C8E90"},
+    // The draw lists' sorts: ours, by name with ById (SV7b6). Their insertion sort compares with the
+    // first element by address inline, so the comparator 00574300 alone cannot be replaced.
+    {0x005740D0, {0x83, 0xEC, 0x18, 0x53, 0x55}, 5, reinterpret_cast<void*>(&IntroSortByModel),
+     "the draw lists' sort 005740D0"},
+    {0x00574390, {0x83, 0xEC, 0x14, 0x8B, 0xC2}, 5, reinterpret_cast<void*>(&FinalSortByModel),
+     "the draw lists' final sort 00574390"},
 };
 
 } // namespace
@@ -132,7 +139,7 @@ void PatchOriginal() {
         FlushInstructionCache(GetCurrentProcess(), code, site.size);
         ++patched;
     }
-    Log("harness: address orders by object id and sector (%d of %d original sites)", patched, int(sizeof(kSites) / sizeof(kSites[0])));
+    Log("harness: address orders by object id, sector and name (%d of %d original sites)", patched, int(sizeof(kSites) / sizeof(kSites[0])));
 }
 
 } // namespace ei::verify::address_order
