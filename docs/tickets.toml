@@ -730,7 +730,7 @@ id = "SV3f"
 title = "Client unit orientation differs from the original by an ulp"
 group = "verification"
 size = 0.5
-note = "From SV3d: digest 2's cunit rot (the client world's unit orientation quaternion) differs by 1-2 ulps between ours and the original, which repeat each: cunit2 (unmoco2, main menu) rot.w/x/y/z in ui_main_menu @220, ui_hero_stats @500 (ui_hero_screen @620 by more, 0.72510165 against 0.725037515: probably a frame later), cunit187 (unmoog1) rot.w in ui_container_input / ui_widescreen* @60, cunit1000011214 (hero) rot.z in script_exec @560. Find the client-side rotation rewrite whose float maths differ (rule 7; golden.py diff with --records to see the first record and the units) and fix it, or explain. Blocks those scenarios' goldens (ui_main_menu, ui_hero_screen and ui_hero_stats keep their digest-1 goldens meanwhile)."
+note = "Probably the same effect as SV7b4 (DrawShadow's inexact round trip plus whatever flips its count); not fixed. See SV7b4a."
 
 [[ticket]]
 id = "SV3g"
@@ -962,7 +962,7 @@ id = "SV7b4"
 title = "Rebirth menu unit orientation ulp under jitter"
 group = "verification"
 depends = ["SV7a"]
-note = "SV7a family 4. cunit148 (unanwiwo) rot.w/rot.z differ by 1 ulp at update 80 with EI_HEAP_JITTER=1 in Rebirth --no-hooks runs only (ui_container_input, ui_widescreen_more, render_titles_present); repeats. Not ClientPlaceOnPath 00535850 (ours steady in hooked runs; original and ours bitwise equal in the wrapper under both layouts); the incoming orientation already varies. Trace the writer among addon.dll / Rebirth-patched originals (address-dependent read or uninitialised float). Probably SV3f."
+note = "Investigated (2026-10-15): writers are SetHeading via ClientPlaceOnPath and DrawShadow 0051CE60's inexact shadow round trip (Rebirth's draw radius). The jitter-1 ulp is not one stack slot: any scrub, a 1 us spin, EI_DIGEST=1 or the watch bring the golden back. Tools EI_WATCH_CUNIT / EI_WATCH_ADDR / EI_STACK_SCRUB / EI_SPIN_US (harness_watch.h). Not fixed, no goldens re-recorded; follow-up SV7b4a."
 
 [[ticket]]
 id = "SV7b5"
@@ -1026,6 +1026,13 @@ group = "verification"
 size = 0.25
 depends = ["SV7d"]
 note = "From SV7d (decoded saves): folded into SV7b1. ground_prints obj1000011214's brain.memory.seenCorpses order is 1195532174, 1195532175 in the original and the other way round in ours (and in the original under EI_HEAP_JITTER=1, and under Rebirth). PartySync (player_sync.cpp) rebuilds each party unit's seenCorpses from a ScriptGroup (known.InsertAll, ScriptGroupToListOriginal), whose members are in address order. Nothing to do beyond SV7b1: once it lands, check the order agrees and drop the seenCorpses entry (marked SV7b1) from golden.py SAVES_KNOWN."
+
+[[ticket]]
+id = "SV7b4a"
+title = "Client orientation ulp: find what flips it (shadow round trip)"
+group = "verification"
+depends = ["SV7b4"]
+note = "From SV7b4 (docs/notes/standalone-verification.md, 'SV7b4 / SV3f'). cunit148's rot differs by an ulp under EI_HEAP_JITTER=1 in Rebirth --no-hooks runs, but a 1 us spin or any stack scrub after each world update brings it back; not one stack slot. Next: count DrawShadow 0051CE60 re-renders (the round trip 0051D479 / 0051D4E0 drifts the quaternion an ulp each) and ClientPlaceOnPath calls per update in plain vs jitter runs with a counter patch (not debug registers); or make the round trip exact in both (save and restore the orientation instead of the conjugate PreMultiply: a harness patch at 0051D4E0 and ours in map_object_shadow.cpp) and check whether the jitter and SV3f differences go. Then re-record ui_container_input, ui_widescreen*, render_titles_present, ui_main_menu, ui_hero_*."
 
 # ---------------------------------------------------------------- harness and suite
 
