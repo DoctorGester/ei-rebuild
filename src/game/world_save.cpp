@@ -220,7 +220,6 @@ __declspec(naked) SharedObjectNode* __fastcall SharedObjectsNewNode(SharedObject
                                                                      SharedObjectNode* /*next*/) EI_ORIGINAL(0x0059CA60)
 __declspec(naked) void __fastcall DwordListAddTail(DwordList*, void*, std::uint32_t) EI_ORIGINAL(0x0059CC60)
 } // namespace
-__declspec(naked) void SharedObject::CopyFrom(const SharedObject*) EI_ORIGINAL(0x0059B510)
 __declspec(naked) void SharedObject::Load(WorldStream*) EI_ORIGINAL(0x00589CA0)
 
 namespace {
@@ -814,6 +813,22 @@ void Append(ObjectPtrArray& array, CEngineObject* object) {
 }
 
 } // namespace
+
+SharedObject* SharedObject::CopyFrom(const SharedObject* from) {
+    objectId = from->objectId;
+    player = from->player;
+    money = from->money;
+    ObjectPtrArrayCopy(&objects, nullptr, &from->objects);
+    return this;
+}
+EI_REPLACE_METHOD(0x0059B510, SharedObject::CopyFrom);
+
+SharedObject* SharedObject::DeletingDestruct(unsigned flags) {
+    CountedPtrArrayDestructOriginal(&objects);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x0059DDE0, SharedObject::DeletingDestruct);
 
 void __fastcall LoadSharedObject(void* entryArg, void*, WorldStream* stream) {
     auto* entry = static_cast<SharedObject*>(entryArg);

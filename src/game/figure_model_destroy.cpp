@@ -5,6 +5,8 @@
 // docs/notes/models.md.
 #include "figure_manager.h"   // CFigureManager, FigureModel
 
+#include "record_lifetime.h"
+
 #include "lib/crt.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -87,6 +89,8 @@ void __fastcall DestroyFigureModel(FigureModel* model) {
 }
 
 EI_REPLACE(0x005A9C90, DestroyFigureModel);
+EI_REPLACE(0x005AE5B0, records::LeadingStringDelete);   // S13
+EI_REPLACE(0x005AE5D0, records::LeadingStringDelete);
 
 // 005AA1C0 (thiscall): the figure manager's destructor: its vtable (0073FB88), every cached model
 // destroyed and freed, the base's clean-up (00674F40), the model map cleared and its buckets

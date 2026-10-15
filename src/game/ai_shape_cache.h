@@ -49,4 +49,11 @@ public:
 static_assert(sizeof(UnitShapeCache::Map::Node) == 0x18);
 static_assert(offsetof(UnitShapeCache, shapes) == 8 && sizeof(UnitShapeCache) == 0x1C);
 
+// The map's pair (S13, ai_movement.cpp; compiler-written). 005BE370 (RET 8): constructed from a
+// handle (copied, its reference added) and a RefPtr (shared: RefPtr::Share). 005BE280: destroyed,
+// the value released as its owner (RefPtr::Destroy), then the handle's reference dropped.
+UnitShapeCache::Map::Pair* __fastcall ConstructShapePair(UnitShapeCache::Map::Pair* pair, void*,
+                                                         const ShapeCacheHandle* key, const RefPtr* value);
+void __fastcall DestroyShapePair(UnitShapeCache::Map::Pair* pair);
+
 inline UnitShapeCache* UnitShapes() { return reinterpret_cast<UnitShapeCache*>(0x007C2F70); }

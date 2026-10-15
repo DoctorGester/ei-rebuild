@@ -220,6 +220,23 @@ The suite reaches 106 of the 160 (most server-side award and trade lists not). T
 the free list: a wrong element size corrupts the pool of another size (005392C0 holds 20 bytes in a
 32-byte node). Left: S9a (15 with element types not ported yet).
 
+**S13 (2026-10-15).** Compiler-written helpers of game types: 46 of the 49 forwarded rows and 9
+of the 17 data-pointed ones registered. Record destructors (item, spell, skill, quest and ack
+records; save entries), copies and assignments (save entries, music themes, zone exits, face groups,
+shared objects, wave records, the shape map's pair), deleting destructors (ground prints, sector
+lists, shared objects, figure-map pairs, unit shape, party base, slot 1 of seven MFC collections),
+the skill database's reset and the eight aligned-buffer constructors. src/game/record_lifetime.h
+holds the shared pieces (`DestroyVector`, `AsCString` for CStrings declared as `char*`,
+`LeadingStringDelete`). Bodies that are library rows (MFC CArray / CList destructors, STLport vector
+storage, hash_map clear) are called through the library's address or inlined from lib/, never
+registered here. Verify: ours-only wrappers in tests/verify/verify_record_lifetime.cpp (shape
+before, result and copy equality after). Most destructors run at shutdown, after harness_report.txt
+is written: read their `verify total` lines in ei_hook.log. Not reached by the suite:
+SaveEntry::Assign (two or more saves sorted), ZoneExit::Assign (net zone start), FaceGroup::Assign,
+SharedObject copy and delete (shared loot), the party base's and the collections' deleting
+destructors. Left: S13a (three database resets, six world destructors); 00646C25 and 00656464 are
+string bytes, not functions.
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

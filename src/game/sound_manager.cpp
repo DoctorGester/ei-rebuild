@@ -1261,7 +1261,7 @@ __declspec(naked) void __fastcall CacheErase(void*, void*, const void*) EI_ORIGI
 __declspec(naked) void* __fastcall PairConstruct(void*, void*, const void*, WaveNode* const*) EI_ORIGINAL(0x006BC140)
 // The cache list: a new node [prev, next], the record's copy into it, a node freed.
 __declspec(naked) WaveNode* __fastcall ListNewNode(WaveList*, void*, WaveNode*, WaveNode*) EI_ORIGINAL(0x006BD4F0)
-__declspec(naked) void __fastcall RecordCopy(WaveRecord*, void*, const WaveRecord*) EI_ORIGINAL(0x006BD1B0)
+__declspec(naked) void __fastcall RecordCopy(WaveRecord*, void*, const WaveRecord*) EI_ORIGINAL(0x006BD1B0)   // S13 below
 __declspec(naked) void __fastcall ListFreeNode(WaveList*, void*, WaveNode*) EI_ORIGINAL(0x006BD560)
 
 // Miles.
@@ -1439,3 +1439,15 @@ EI_REPLACE_METHOD(0x006B89F0, CSoundManager::LoadSample);
 // --- Forwarders -------------------------------------------------------------------------------------
 
 __declspec(naked) void CSoundManager::StreamNotify(int) EI_ORIGINAL(0x006BBAC0)
+
+WaveRecord* WaveRecord::Assign(const WaveRecord* from) {
+    data = from->data;
+    auto& to = *reinterpret_cast<stlp::string*>(name);
+    const auto& source = *reinterpret_cast<const stlp::string*>(from->name);
+    if (&source != &to) to.AssignFrom(source);
+    lastUsed = from->lastUsed;
+    size = from->size;
+    uses = from->uses;
+    return this;
+}
+EI_REPLACE_METHOD(0x006BD1B0, WaveRecord::Assign);

@@ -36,6 +36,7 @@
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
+#include "record_lifetime.h"
 
 #include <ddraw.h>
 
@@ -692,6 +693,41 @@ mfc::CString SaveEntry::AllodTitle() const {
     return title;
 }
 EI_REPLACE_METHOD(0x00653CD0, SaveEntry::AllodTitle);
+
+SaveEntry* SaveEntry::Assign(const SaveEntry* from) {
+    records::AsCString(title_) = records::AsCString(from->title_);
+    records::AsCString(folder_) = records::AsCString(from->folder_);
+    savedAt_ = from->savedAt_;
+    gameTime_ = from->gameTime_;
+    records::AsCString(map_) = records::AsCString(from->map_);
+    records::AsCString(zone_) = records::AsCString(from->zone_);
+    stringArrays_[0].Copy(from->stringArrays_[0]);
+    stringArrays_[1].Copy(from->stringArrays_[1]);
+    broken_ = from->broken_;
+    return this;
+}
+EI_REPLACE_METHOD(0x006538E0, SaveEntry::Assign);
+
+SaveEntry* SaveEntry::CopyConstruct(const SaveEntry* from) {
+    new (&title_) mfc::CString();
+    new (&folder_) mfc::CString();
+    new (&map_) mfc::CString();
+    new (&zone_) mfc::CString();
+    stringArrays_[0].Construct();
+    stringArrays_[1].Construct();
+    return Assign(from);
+}
+EI_REPLACE_METHOD(0x00656640, SaveEntry::CopyConstruct);
+
+void SaveEntry::Destruct() {
+    stringArrays_[1].Destruct();
+    stringArrays_[0].Destruct();
+    records::AsCString(zone_).~CString();
+    records::AsCString(map_).~CString();
+    records::AsCString(folder_).~CString();
+    records::AsCString(title_).~CString();
+}
+EI_REPLACE_METHOD(0x00656720, SaveEntry::Destruct);
 
 void CSaveLoadWindow::Confirm() {
     if (selected_ < 0) return;

@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "record_lifetime.h"
 
 namespace {
 
@@ -94,6 +95,20 @@ void QuestBriefingRecord::Serialize(ChunkArchive* ar) {
     ar->Field(10, &field10, 4);
 }
 EI_REPLACE_METHOD(0x006AD900, QuestBriefingRecord::Serialize);
+
+void QuestRecord::Destruct() {
+    text.~string();
+    places.FreeStorage();
+    name.~string();
+}
+EI_REPLACE_METHOD(0x006AF4D0, QuestRecord::Destruct);
+
+void QuestBriefingRecord::Destruct() {
+    text.~string();
+    for (int i = 5; i >= 0; --i) records::DestroyVector(lists[i]);
+    name.~string();
+}
+EI_REPLACE_METHOD(0x006AF5A0, QuestBriefingRecord::Destruct);
 
 void ChunkArchive::SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void*) {
     SerializeRecords(this, id, quests, QuestDestroy, QuestsResize, QuestSerializeAt);

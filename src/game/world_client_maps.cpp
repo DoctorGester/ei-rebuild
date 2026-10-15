@@ -1201,6 +1201,15 @@ __declspec(naked) void __fastcall CellsDelete2(SectorList*, void*, int) EI_ORIGI
 __declspec(naked) void __fastcall GridAllocate(SectorGrid*) EI_ORIGINAL(0x00572820)
 __declspec(naked) void __fastcall GridAllocate2(SectorGrid*) EI_ORIGINAL(0x005728D0)
 
+// A cell's list destroyed (STLport's list<counted pointer>::~list, 0056DEF0 / 00572E90): each
+// object released (slot 4) and its node returned to the pool, the sentinel last.
+void DestroySectorList(SectorList* list) {
+    list->ClearWith([](CEngineObject** object) {
+        if (*object) (*object)->Release();
+    });
+    stlp::deallocate(list->head, sizeof(SectorListNode));
+}
+
 std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
 
 // A heap object made by its constructor (null without memory), stored and referenced (the
@@ -1243,6 +1252,20 @@ void ReferenceEveryObject(CBaseManager* manager) {
 }
 
 } // namespace
+
+SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flags) {
+    if (flags & 2) {
+        int* block = reinterpret_cast<int*>(cells) - 1;   // new[]'s element count
+        for (int i = *block; i-- > 0;) DestroySectorList(&cells[i]);
+        if (flags & 1) gamecrt::operator_delete(block);
+        return reinterpret_cast<SectorList*>(block);
+    }
+    DestroySectorList(cells);
+    if (flags & 1) gamecrt::operator_delete(cells);
+    return cells;
+}
+EI_REPLACE(0x00572B30, SectorListsDelete);
+EI_REPLACE(0x00572C50, SectorListsDelete);
 
 int CWorldClient::Setup() {
     WorldCreateManagers(this);

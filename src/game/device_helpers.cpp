@@ -71,7 +71,8 @@ void __fastcall PipelinePointerAssign(CTransformPipeline** pointer, void*, CTran
 }
 EI_REPLACE(0x004EBE80, PipelinePointerAssign);
 
-// 004EBE60 (RET 4; byte-identical to 00429B50): a counted engine object pointer (a texture) takes
+// 004EBE60 (RET 4; byte-identical to 00429B50 and 0056F1A0, a particle source's): a counted engine
+// object pointer (a texture) takes
 // `value`: counted first, then the old one released through its slot 4.
 void __fastcall TexturePointerAssign(CEngineObject** pointer, void*, CEngineObject* value) {
     CEngineObject* previous = *pointer;
@@ -80,6 +81,7 @@ void __fastcall TexturePointerAssign(CEngineObject** pointer, void*, CEngineObje
     if (previous) previous->Release();
 }
 EI_REPLACE(0x004EBE60, TexturePointerAssign);
+EI_REPLACE(0x0056F1A0, TexturePointerAssign);   // S13: the world effect's source (world_effect_visual.cpp)
 
 // 004C17E0, 004D9E60, 004D9E70 (byte-identical to 00421350): the destructor of such a pointer: the
 // object released through slot 4. Unwind funclets only.
@@ -133,6 +135,7 @@ EI_REPLACE_METHOD(0x004EC790, lib::AlignedArray<TLVertex>::SetSize);
 // fields left as they were. Unwind funclets only.
 void __fastcall AlignedArrayDestroy(lib::AlignedArray<std::uint8_t>* array) { array->FreeData(); }
 EI_REPLACE(0x004D9EB0, AlignedArrayDestroy);
+EI_REPLACE(0x006643F0, AlignedArrayDestroy);   // S13: the same bytes (world_game.cpp's records array)
 
 // ---- The device's vertex-buffer batch ---------------------------------------------------------------
 

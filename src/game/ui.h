@@ -2410,6 +2410,14 @@ struct SaveEntry {
     // name, text "allod " + map_, else "Unknown".
     mfc::CString ZoneTitle() const;
     mfc::CString AllodTitle() const;
+    // S13 (ui_saveload.cpp; the compiler's). 006538E0 (RET 4) operator=: the strings +0x00, +0x04,
+    // the dwords +0x08, +0x0C, the strings +0x10, +0x14, the arrays (CStringArray::Copy), the byte
+    // +0x40; returns this. 00656640 (RET 4) the copy constructor: the strings empty, the arrays
+    // constructed, then the same; returns this. 00656720 the destructor: the arrays (last first),
+    // then the strings from the last.
+    SaveEntry* Assign(const SaveEntry* from);
+    SaveEntry* CopyConstruct(const SaveEntry* from);
+    void Destruct();
 
     char* title_;                    // +0x00 CString shown in the list
     char* folder_;                   // +0x04 CString folder name under saves\ ("saveq" quick save,

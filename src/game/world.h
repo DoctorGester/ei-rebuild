@@ -201,6 +201,9 @@ struct ZoneExit {
     void Write(class CStream* stream) const;
     // 004608B0. Scalar deleting destructor (flags & 1: free the record too); returns this.
     ZoneExit* DeletingDestructor(unsigned flags);
+    // 00583B50 (RET 4; S13, exit_area.cpp; the compiler's operator=): +0x00..+0x24 as dwords,
+    // the target (CString), +0x2C, +0x30, the byte +0x34 and +0x38; returns this.
+    ZoneExit* Assign(const ZoneExit* from);
 };
 static_assert(sizeof(ZoneExit) == 0x3C);
 static_assert(offsetof(ZoneExit, target) == 0x28);
@@ -412,7 +415,13 @@ struct SharedObject {
     std::uint32_t money;                    // +0x08 gold the loot adds to the finder's party
     mfc::CArray<CEngineObject*> objects;    // +0x0C
 
-    void CopyFrom(const SharedObject* from);  // 0059B510 (RET 4)
+    // 0059B510 (RET 4; S13, world_save.cpp; the compiler's copy constructor): the three dwords, then
+    // the array by its Copy (0059B8F0, the objects counted). Returns this.
+    SharedObject* CopyFrom(const SharedObject* from);
+    // 0059DDE0 (RET 4; S13, world_save.cpp; the compiler's deleting destructor): the body 00594950
+    // (an MFC row: the array's destructor 0059A100 at +0x0C, every object released), then operator
+    // delete when bit 0 of the flags is set. Returns this.
+    SharedObject* DeletingDestruct(unsigned flags);
     void Load(WorldStream* stream);           // 00589CA0 (RET 4)
 };
 static_assert(sizeof(SharedObject) == 0x20);
@@ -975,6 +984,10 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
 // world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
 using SectorList = stlp::list<CEngineObject*>;
 using SectorListNode = SectorList::Node;
+// 00572B30 / 00572C50 (RET 4; S13, world_client_maps.cpp): the cells' vector deleting
+// destructor. Bit 1 of `flags`: `cells` is a new[] block (its count in the dword before it), every
+// list destroyed from the last; else the one list. Bit 0: the memory freed. Returns the block.
+SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flags);
 struct SectorGrid {
     SectorList* cells_;                   // +0x00 the lists
     SectorList** rows_;                   // +0x04 row y: its lists

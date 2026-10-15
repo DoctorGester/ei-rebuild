@@ -49,6 +49,8 @@ CEngineObject* CEngineObject::DeletingDestruct(unsigned flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x00402D20, CEngineObject::DeletingDestruct);
+// S13: CParty's base (vtable 0074306C slot 0); its body 0055ED90 is a jump to 00455930.
+EI_REPLACE_METHOD(0x006611B0, CEngineObject::DeletingDestruct);
 
 void* CEngineObject::ManagerContext() const { return owner_->context_; }
 EI_REPLACE_METHOD(0x00455940, CEngineObject::ManagerContext);

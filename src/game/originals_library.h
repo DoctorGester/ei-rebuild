@@ -471,6 +471,8 @@ __declspec(naked) inline void* __fastcall PtrListNewNode573290Original(void* /*l
     EI_ORIGINAL(0x00573290)
 __declspec(naked) inline void __fastcall CountedPtrArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x0059A100)
 __declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0059C890)
+// 00599330: CArray<Sector>'s destructor (each element's destructor slot with flags 0, the storage freed; plain RET).
+__declspec(naked) inline void __fastcall SectorArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x00599330)
 // MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
 // result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
 // 006E6722 GetFilePath(out) (RET 4, EAX = out). The constructor, destructor, FindFile and GetFilePath are mfc::CFileFind's

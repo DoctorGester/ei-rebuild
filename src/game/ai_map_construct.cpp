@@ -43,7 +43,6 @@ __declspec(naked) void __fastcall DestroyBlockSearch(BlockSearch*, void*) EI_ORI
 __declspec(naked) void __fastcall DestroyNodeList(void*, void*) EI_ORIGINAL(0x005995E0)
 __declspec(naked) void __fastcall DestroyAreaList(void*, void*) EI_ORIGINAL(0x005997A0)
 __declspec(naked) void __fastcall DestroyCellSet(FootprintCellSet*, void*) EI_ORIGINAL(0x005995C0)
-__declspec(naked) void __fastcall DestroySectorArray(void*, void*) EI_ORIGINAL(0x00599330)
 __declspec(naked) void __fastcall DestroyBridgeMap(void*, void*) EI_ORIGINAL(0x005984A0)
 __declspec(naked) void __fastcall DestroyTerrainTypes(void*, void*) EI_ORIGINAL(0x00599780)
 __declspec(naked) void __fastcall DestroyClimbTable(void*, void*) EI_ORIGINAL(0x004600D0)
@@ -135,7 +134,7 @@ void __fastcall ResetAIMap(CAIMap* self) {
     DestroyCellSet(&self->bridges, nullptr);
     DestroyCellSet(&self->footprint, nullptr);
     self->sectorMap.vtable = reinterpret_cast<void*>(CSectorMap::kVtableAddress);
-    DestroySectorArray(&self->sectorMap.sectors, nullptr);
+    SectorArrayDestructOriginal(&self->sectorMap.sectors);
     DestroyBridgeMap(self->bridgeHeights, nullptr);
     DestroyTerrainTypes(&self->materials, nullptr);
     DestroyClimbTable(&self->climbSmall, nullptr);

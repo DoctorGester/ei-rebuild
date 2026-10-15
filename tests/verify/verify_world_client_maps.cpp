@@ -936,3 +936,23 @@ static int __fastcall LoadZoneVerify(CWorldClient* self, void*, CStream* block) 
     return result;
 }
 EI_VERIFY(0x00567AB0, LoadZoneVerify, 0, s_unused);
+
+// 00572B30 / 00572C50 (S13, ours only: it frees): the sector grids' cells deleted (GridToFour on a
+// zone load, the client world's teardown). Every list must be well formed before; the block is
+// returned.
+static SectorList* __fastcall SectorListsDeleteVerify(SectorList* cells, void*, unsigned flags) {
+    int count = (flags & 2) ? reinterpret_cast<int*>(cells)[-1] : 1;
+    int bad = -1;
+    for (int i = 0; i < count && bad < 0; ++i) {
+        const SectorList& list = cells[i];
+        if (!list.head || list.head->next->prev != list.head || list.head->prev->next != list.head) bad = i;
+    }
+    SectorList* result = SectorListsDelete(cells, nullptr, flags);
+    void* expected = (flags & 2) ? static_cast<void*>(reinterpret_cast<int*>(cells) - 1) : static_cast<void*>(cells);
+    ei::verify::Check("SectorListsDelete", true, bad < 0 && static_cast<void*>(result) == expected,
+                      "flags %u, %d lists, list %d malformed", flags, count, bad);
+    return result;
+}
+static void* s_sectorListsDelete;
+EI_VERIFY(0x00572B30, SectorListsDeleteVerify, 0, s_sectorListsDelete);
+EI_VERIFY(0x00572C50, SectorListsDeleteVerify, 0, s_sectorListsDelete);

@@ -1602,10 +1602,10 @@ note = "_Rb_tree / map / set, stlp::string, pair, __introsort_loop (keep its ord
 id = "S13"
 title = "Standalone: compiler-generated helpers of game types"
 group = "standalone"
-status = "running"
+status = "review"
 size = 1
 files = ["src/game/*.cpp", "config/library.csv"]
-note = "The 49 forwarded \"compiler\" rows (record copy constructors, destructors, deleting destructors, aligned buffer constructors) and the 17 the exe's data points at: game types, ported like game code. No dependency."
+note = "The 49 forwarded \"compiler\" rows (record copy constructors, destructors, deleting destructors, aligned buffer constructors) and the 17 the exe's data points at: game types, ported like game code. No dependency. Done 2026-10-15: 46 of 49 forwarded rows and 9 of 17 data-pointed (two are string bytes, not functions); the rest is S13a."
 started = "2026-10-15"
 
 [[ticket]]
@@ -1768,6 +1768,16 @@ status = "queued"
 size = 1
 files = ["src/lib/crt.h", "src/lib/crt.cpp"]
 note = "_ftol 006E853C and _CIpow 006E81A0 / _CIasin_or_acos 006E7320 006E83C0 / 006E95AA take ST0 (register arguments; they need a naked shim or are only reached from unported code: check the image's call targets first). _CxxThrowException 006E7819 and exception::exception / ~exception 006E7CD5 / 006E7DA8 (VC6 ThrowInfo layout; the image needs the host's). The ostream operators 00434FE0, 006FC0B0, 006FC14E, 006FC31D, 006FC7FA, 006FC91C, 006FC9C6. setlocale 006EA234 and _setmbcp 006E9E30: in the hook build __lc_handle[LC_CTYPE] is nonzero (a real locale) but who sets it is still open; the image has the C locale, so tolower / stricmp fold ASCII only until this is decided. _ismbcdigit 006ECE1A, _ismbcspace 006ECEA9 (mfc_string forwards; single-byte path = _pctype). standalone.md S4."
+
+[[ticket]]
+id = "S13a"
+title = "Standalone: compiler-written world destructors and database resets"
+group = "standalone"
+status = "queued"
+size = 1
+depends = ["S13"]
+files = ["src/game/*.cpp"]
+note = "Left from S13 (docs/notes/standalone.md S13). Three database resets, each destroyed and constructed again in place with many STLport hash_map / vector instantiations: units 0057CBE0, spell tables 0057CE80, items 0057D340 (the skills' 0057CD60 is SkillDatabase::Reset). Six data-pointed deleting destructors whose bodies are compiler rows not yet ported: CWorld base 0055EC60 (body 0055EC80, 259 bytes), CWorldClient 00561A00 (00561B00, 844), particle manager 005627A0 (005627C0, 283), Terrain 00562B60 (00562B80, 484), CWorldServer 0058A430 (0058AAD0, 825), Sector 0059E080 (005BFCD0, 295). Verify like verify_record_lifetime.cpp; most run at shutdown (read 'verify total' in ei_hook.log)."
 
 # ---------------------------------------------------------------- Lua
 

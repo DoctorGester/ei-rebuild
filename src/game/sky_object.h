@@ -94,6 +94,9 @@ struct CSky {
     // pushed onto the pipeline's stacks 2 and 1; then the texture bound to stage 0 and the object
     // drawn (renderer slot 14 with alpha 0xFF), and both stacks popped (when not empty).
     void Draw(CSceneRenderer* renderer, const Vector3* eye);
+    // 005636A0 (S13; the compiler's destructor, from CWorldClient::Teardown): the texture, the
+    // material and the object released (slot 4), in that order, each when set.
+    void Destruct();
 
     CSkyObject* object;   // +0x00 null until the zone's sky is loaded
     CEngineObject* material;   // +0x04 counted (0068E970, type 0x12, by CWorldClient::LoadSky); 0 when constructed

@@ -11,6 +11,8 @@
 #include "unit_db.h"
 #include "world.h"
 
+#include "record_lifetime.h"
+
 #include "ei/hook.h"
 #include "lib/crt.h"
 
@@ -293,5 +295,33 @@ void ExtraAcks::Serialize(ChunkArchive* ar) {
 EI_REPLACE_METHOD(0x006E3780, UnitAcks::Serialize);
 EI_REPLACE_METHOD(0x006E3FD0, ModelAcks::Serialize);
 EI_REPLACE_METHOD(0x006E3DC0, ExtraAcks::Serialize);
+
+// ---- The records' destructors (S13) -------------------------------------------------------------
+
+void AckRecordHead::Destruct() {
+    speeches.Destroy();
+    name.~string();
+}
+
+void UnitAcks::Destruct() {
+    records::DestroyVector(namedSpeeches);
+    records::DestroyVector(environmentSpeeches);
+    for (int i = 32; i >= 0; --i) records::DestroyVector(lists[i]);
+    head.Destruct();
+}
+EI_REPLACE_METHOD(0x006DC390, UnitAcks::Destruct);
+
+void ModelAcks::Destruct() {
+    for (int i = 4; i >= 0; --i) records::DestroyVector(lists[i]);
+    head.Destruct();
+}
+EI_REPLACE_METHOD(0x006DC920, ModelAcks::Destruct);
+
+void ExtraAcks::Destruct() {
+    records::DestroyVector(lists[1]);
+    records::DestroyVector(lists[0]);
+    head.Destruct();
+}
+EI_REPLACE_METHOD(0x006DCAF0, ExtraAcks::Destruct);
 
 } // namespace acks

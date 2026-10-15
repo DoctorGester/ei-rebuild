@@ -107,6 +107,10 @@ using FaceBuffer = lib::AlignedArray<MeshFace>;
 
 // A material group (0x18): its name and the faces it uses.
 struct FaceGroup {
+    // 00474C50 (RET 4; S13, scene_loader.cpp; the compiler's operator=): the name, then the faces
+    // (CDWordArray::Copy: SetSize to the source's, the indices copied).
+    void Assign(const FaceGroup* from);
+
     mfc::CString name;        // +00
     mfc::CArray<std::uint32_t> faces;   // +04 CDWordArray of face indices
 };

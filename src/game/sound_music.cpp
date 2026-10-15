@@ -360,6 +360,16 @@ void CMusicSystem::FadeIn() { sound::Manager()->FadeInStream(); }
 EI_REPLACE_METHOD(0x006B4E10, CMusicSystem::FadeOut);
 EI_REPLACE_METHOD(0x006B4E20, CMusicSystem::FadeIn);
 
+void MusicTheme::Assign(const MusicTheme* from) {
+    name = from->name;
+    dungeon = from->dungeon;
+    briefing = from->briefing;
+    constructor = from->constructor;
+    calm.Copy(from->calm);
+    combat.Copy(from->combat);
+}
+EI_REPLACE_METHOD(0x006B4D40, MusicTheme::Assign);
+
 // 006B4470 / 006B4480: slots 11 and 12.
 const char* __fastcall MusicSystemClassName(CMusicSystem*) { return MusicClassNameText(); }
 int __fastcall MusicSystemClassId(CMusicSystem*) { return kMusicClassId; }

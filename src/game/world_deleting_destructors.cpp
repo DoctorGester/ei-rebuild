@@ -10,6 +10,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_library.h"
 
 void __fastcall DestroyFigureManager(char* manager);   // figure_model_destroy.cpp (005AA1C0)
 void __fastcall ObjectHolderRelease(CEngineObject** self);   // refptr_copies.cpp
@@ -23,6 +24,15 @@ T* DestroyAndFree(T* self, unsigned flags, Body body) {
     if (flags & 1) gamecrt::operator_delete(self);
     return self;
 }
+
+// The MFC collection destructors the deleting destructors below run (library rows).
+__declspec(naked) void __fastcall PlatformListDestruct(void*) EI_ORIGINAL(0x0056FE40)
+__declspec(naked) void __fastcall ClientArrayDestruct(void*) EI_ORIGINAL(0x005711E0)
+void __fastcall SectorArrayDestruct(void* array) { SectorArrayDestructOriginal(array); }
+__declspec(naked) void __fastcall ArrayElementListDestruct(void*) EI_ORIGINAL(0x0059A3C0)
+__declspec(naked) void __fastcall BlockCostListDestruct(void*) EI_ORIGINAL(0x005B1810)
+__declspec(naked) void __fastcall AIMapListDestruct(void*) EI_ORIGINAL(0x005B19A0)
+__declspec(naked) void __fastcall WaypointListDestruct(void*) EI_ORIGINAL(0x005BDEE0)
 
 } // namespace
 
@@ -63,3 +73,26 @@ EI_REPLACE(0x005754E0, ObjectHolderDelete);
 EI_REPLACE(0x00575510, ObjectHolderDelete);
 EI_REPLACE(0x005768A0, ObjectHolderDelete);
 EI_REPLACE(0x0059DDB0, ObjectHolderDelete);
+
+// ---- MFC collections (S13) ----------------------------------------------------------------------
+
+void* __fastcall PlatformListDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, PlatformListDestruct); }
+EI_REPLACE(0x00571E50, PlatformListDelete);
+
+void* __fastcall ClientArrayDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, ClientArrayDestruct); }
+EI_REPLACE(0x00571ED0, ClientArrayDelete);
+
+void* __fastcall SectorArrayDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, SectorArrayDestruct); }
+EI_REPLACE(0x0059B430, SectorArrayDelete);
+
+void* __fastcall ArrayElementListDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, ArrayElementListDestruct); }
+EI_REPLACE(0x0059B4F0, ArrayElementListDelete);
+
+void* __fastcall BlockCostListDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, BlockCostListDestruct); }
+EI_REPLACE(0x005B1B30, BlockCostListDelete);
+
+void* __fastcall AIMapListDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, AIMapListDestruct); }
+EI_REPLACE(0x005B1B50, AIMapListDelete);
+
+void* __fastcall WaypointListDelete(void* self, void*, unsigned flags) { return DestroyAndFree(self, flags, WaypointListDestruct); }
+EI_REPLACE(0x005BE070, WaypointListDelete);
