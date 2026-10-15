@@ -110,6 +110,10 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   countdowns come from their ids on both sides (`tests/verify/harness_heap.h`); `lfheap` keeps the
   game's own heap and countdowns, `heaptrace` writes every call on the CRT heap with its callers to
   `heaptrace.txt` until world update `EI_HEAPTRACE` (default 40), then every object's address.
+  `EI_HEAP_JITTER=<seed>[,fill]` moves the game's blocks (seeded spacers; `fill`: new blocks hold seeded
+  bytes) without changing its calls, to find behaviour that follows addresses; `EI_SAVETRACE=1` writes
+  every memory stream write up to each saved file to `savetrace.txt`, and `python tools\save_trace.py diff
+  <run A> <run B>` names the writers of the save bytes that differ (SV7a).
 - The game-state digest (`tests/verify/harness_digest.h`): `digest <N>` (or `EI_DIGEST=<N>`) writes the
   world's state (units, positions, vitals, effects, AI state, generators, players) every N world updates to
   the run's `digest.txt`, `dump <name>` all of it once; `python tools\golden.py diff <run A> <run B>` names

@@ -150,4 +150,30 @@ using HeroRecords = stlp::vector<MpHeroRecord>;
 void __fastcall InsertHeroRecordsOverflow(HeroRecords* self, void*, MpHeroRecord* pos, const MpHeroRecord* x,
                                           std::size_t n);
 
+// ---- S12g: the last library code our rewrites called ----------------------------------------------
+
+// The briefing's speakers vector (CBriefingScreen +0x294): an element copied as 0060AB00 does (the
+// unit, CString's copy constructor, the flag byte; the padding is not copied) and destroyed with the
+// name's destructor.
+struct SpeakerElement {
+    static void Construct(BriefingSpeaker* to, const BriefingSpeaker& from);
+    static void Destroy(BriefingSpeaker* p) { p->name.~CString(); }
+};
+using Speakers = stlp::vector<BriefingSpeaker>;
+// _Construct(p, value) (0060AB00; ECX p, EDX value, plain RET): nothing for a null p.
+void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value);
+// _M_insert_overflow(pos, x, n) (0060A660; RET 0xC).
+void __fastcall InsertSpeakersOverflow(Speakers* self, void*, BriefingSpeaker* pos, const BriefingSpeaker* x,
+                                       std::size_t n);
+
+// The client's trade record's destructor (00424DB0): the three parties' CParty destructor
+// (006611D0), the traded party first.
+void __fastcall DestroyTradeRecord(net::TradeRecord* self);
+
+// find_if(first, last, pred) over the server's banned addresses (00427FF0; out in ECX, RET 0xC): the
+// first node whose address has value's host (the port is not compared), else last.
+using AddressList = stlp::list<net::NetAddress>;
+AddressList::Node** __fastcall FindAddressByHost(AddressList::Node** out, void*, AddressList::Node* first,
+                                                 AddressList::Node* last, const net::NetAddress* value);
+
 } // namespace libcontainers
