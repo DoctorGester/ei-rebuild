@@ -5,6 +5,7 @@ const state = { view: 'tickets', q: '' };
 try { const v = location.hash.slice(1); if (v === 'runs' || v === 'tickets') state.view = v; } catch (e) {}
 const open = new Set();            // keys of <details> the viewer opened, kept across redraws
 let data = null, fetchedAt = Date.now();
+const batchGames = new Map();     // finished batch id -> its games (or 'loading' / an error), fetched when its row opens
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const base = p => String(p || '').split('/').filter(Boolean).pop() || '';
@@ -169,6 +170,37 @@ function gamesTable(b, now) {
     games.map(g => gameRow(g)).join('') + `</tbody></table></div>`;
 }
 // What a batch is for: its ticket's title, or the worktree's folder for a batch with no ticket (main).
+// The run column of the history, laid out like GitHub Actions: when the batch started, and how long it ran.
+const ICON_CAL = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5 1.5v3M11 1.5v3"/></svg>';
+const ICON_WATCH = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="9" r="5.5"/><path d="M8 9V6.5M6.5 1.5h3M12.5 4.5l1-1"/></svg>';
+const stamp = s => new Date(s).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+function whenCell(b) {
+  const start = b.started || b.submitted;
+  const wait = b.queued_for ? `, waited ${dur(b.queued_for)} in the queue` : '';
+  return `<div class="when" title="${esc((start || '') + wait)}">` +
+    (start ? `<span>${ICON_CAL}${esc(stamp(start))}</span>` : '') +
+    (b.elapsed != null ? `<span>${ICON_WATCH}${dur(b.elapsed).replace(/(\d)([dhm])(\d)/, '$1$2 $3')}</span>` : '') + '</div>';
+}
+// The games of a finished batch, failed ones first.
+function historyGames(id) {
+  const g = batchGames.get(id);
+  if (!g || g === 'loading') return '<p class="empty">Loading the games…</p>';
+  if (typeof g === 'string') return `<p class="empty bad">${esc(g)}</p>`;
+  const bad = x => /^PASS/.test(x.result || '') ? 1 : 0;
+  const games = [...g].sort((x, y) => bad(x) - bad(y) || x.scenario.localeCompare(y.scenario) || x.install.localeCompare(y.install));
+  return `<div class="gamescroll"><table class="games"><colgroup><col style="width:34%"><col style="width:16%"><col style="width:7%"><col style="width:28%"><col style="width:15%"></colgroup>` +
+    `<thead><tr><th>Scenario</th><th>Install</th><th class="num">Slot</th><th>Time</th><th>Result</th></tr></thead><tbody>${games.map(gameRow).join('')}</tbody></table></div>`;
+}
+async function loadGames(id) {
+  if (batchGames.has(id)) return;
+  batchGames.set(id, 'loading');
+  try {
+    const r = await fetch('/api/batch/' + id, { cache: 'no-store' });
+    if (!r.ok) throw new Error(r.status);
+    batchGames.set(id, (await r.json()).games || []);
+  } catch (e) { batchGames.set(id, 'Could not load the games: ' + e.message); }
+  render();
+}
 function batchWhat(b) {
   const t = data.tickets.find(t => t.id === b.ticket);
   return `<span class="bwhat" title="${esc(b.worktree)}">${esc(t ? t.title : String(b.worktree || '').split(/[\\/]/).pop())}</span>`;
@@ -198,21 +230,24 @@ function runsView() {
     (r.queued.length ? r.queued.map((b, i) => batchPanel(b, i + 1)).join('') : '<p class="empty">Queue empty.</p>') + '</section>');
   const rows = r.history.map(b => {
     const key = 'h-' + b.id;
-    const n = failCount(b), checks = checkFailures(b).length;
-    const fails = n ? details(key, `<span class="bad">what failed</span>`, failureList(b)) : '';
-    const games = `<span class="${b.failed ? 'bad' : 'ok'}">${b.passed}/${b.total} games passed</span>`;
+    const n = failCount(b), checks = checkFailures(b).length, shown = n && open.has(key);
+    // The failure list goes in its own full-width row under the batch, so opening it leaves the columns alone.
+    const fails = n ? ` <button class="rowtoggle failtoggle" data-toggle="${key}" aria-expanded="${!!shown}">what failed</button>` : '';
+    const gkey = 'g-' + b.id, gshown = open.has(gkey);
+    const games = `<button class="rowtoggle ${b.failed ? 'bad' : 'ok'}" data-toggle="${gkey}" data-batch="${b.id}" aria-expanded="${gshown}">${b.passed}/${b.total} games passed</button>`;
     const result = b.state === 'cancelled' ? 'cancelled'
       : games + (checks ? `, <span class="bad">${checks} check${checks > 1 ? 's' : ''} failed</span>` : '');
-    return `<tr><td class="num">#${b.id}</td><td>${esc(b.ticket || '-')}</td><td>${batchWhat(b)}</td><td class="num">${ageOf(b.finished)}</td>` +
-      `<td class="num">${dur(b.elapsed)}</td><td>${result}${b.exit_code && !n ? ` <span class="pill down">exit ${b.exit_code}</span>` : ''}` +
-      (Object.keys(b.env || {}).length ? `<div class="mono" style="font-size:11.5px;color:var(--muted)">env: ${esc(Object.entries(b.env).map(([k, v]) => k + '=' + v).join(' '))}</div>` : '') +
-      `</td><td>${fails}</td></tr>`;
+    return `<tr><td class="num">#${b.id}</td><td>${esc(b.ticket || '-')}</td><td>${batchWhat(b)}` +
+      (Object.keys(b.env || {}).length ? `<div class="mono env">env: ${esc(Object.entries(b.env).map(([k, v]) => k + '=' + v).join(' '))}</div>` : '') +
+      `</td><td>${result}${b.exit_code && !n ? ` <span class="pill down">exit ${b.exit_code}</span>` : ''}${fails}</td><td>${whenCell(b)}</td></tr>` +
+      (n && shown ? `<tr class="detailrow"><td colspan="5">${failureList(b)}</td></tr>` : '') +
+      (gshown ? `<tr class="detailrow"><td colspan="5">${historyGames(b.id)}</td></tr>` : '');
   }).join('');
   const bad = r.history.filter(b => b.state !== 'cancelled' && (failCount(b) || b.exit_code)).length;
   out.push(`<section class="lane"><h2>History<span class="n">${r.history.length}</span></h2>` + (rows ?
     `<details class="panel batch" data-key="history"${open.has('history') ? ' open' : ''}><summary><div class="head">` +
     `<span>${r.history.length} finished batch${r.history.length > 1 ? 'es' : ''}</span>${bad ? `<span class="bad">${bad} with failures</span>` : ''}</div></summary>` +
-    `<div class="body scroll"><table><thead><tr><th class="num">Batch</th><th>Ticket</th><th>What</th><th class="num">Ago</th><th class="num">Took</th><th>Result</th><th></th></tr></thead><tbody>${rows}</tbody></table></div></details>` :
+    `<div class="body scroll"><table class="history"><colgroup><col class="c-id"><col class="c-ticket"><col><col class="c-result"><col class="c-when"></colgroup><thead><tr><th class="num">Batch</th><th>Ticket</th><th>What</th><th>Result</th><th>Run</th></tr></thead><tbody>${rows}</tbody></table></div></details>` :
     '<p class="empty">No finished batches yet.</p>') + '</section>');
   return out.join('');
 }
@@ -228,7 +263,7 @@ function procs() {
 }
 function render() {
   if (!data) return;
-  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === state.view));
+  document.querySelectorAll('.tab[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === state.view));
   document.getElementById('procs').innerHTML = procs();
   document.getElementById('asof').textContent = 'Updated ' + (data.time || '').slice(11, 19) + '.';
   const el = document.getElementById('view');
@@ -257,7 +292,14 @@ document.addEventListener('click', e => {
     open.has(k) ? open.delete(k) : open.add(k);
     act.classList.toggle('expanded', open.has(k));
   }
-  const tab = e.target.closest('.tab');
+  const rt = e.target.closest('.rowtoggle');
+  if (rt) {
+    const k = rt.dataset.toggle;
+    open.has(k) ? open.delete(k) : open.add(k);
+    if (open.has(k) && rt.dataset.batch) loadGames(+rt.dataset.batch);
+    render();
+  }
+  const tab = e.target.closest('.tab[data-view]');
   if (tab) { state.view = tab.dataset.view; location.hash = state.view; render(); }
 });
 document.addEventListener('input', e => { if (e.target.id === 'q') { state.q = e.target.value; render(); } });

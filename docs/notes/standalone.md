@@ -235,6 +235,15 @@ bytes, the file afterwards), 12 _open flag sets, bad descriptors, _access, _find
 smoke and ui_saveload, both installs: 0 mismatches. The image installs all 18; `--standalone` boot still
 stops at 0040AA80 (hash table resize, S11) before any file code.
 
+**S4b1 (2026-10-15).** The check's rare false fclose / _close mismatches under load were the machine's,
+not the CRT's: a truncating open ("w" modes, _O_TRUNC) of a file just written, then a write past its
+end, sometimes reads the gap back as the old bytes instead of zeros (about 1 in 4000 with 8 processes
+doing it at once, reproduced with plain CreateFileA / WriteFile; hit either side; open and read-back
+never failed). A case that differs now runs again on a new pair of files (3 attempts), each retry
+logged as "crt file check: ... differs on attempt n" with both differences and errors; a real
+difference repeats. Two stress runs (the file cases 60 times per game, 24 games 4 at once): about
+10 and 4 retries, every one passing on attempt 2, 0 mismatches.
+
 **S4c (2026-10-15), group 1: the x87 entries.** _ftol 006E853C, _CIacos 006E7320, _CIasin 006E83C0, _CIpow
 006E81A0 and _CIfmod 006E95AA take ST0 / ST1 and return in EDX:EAX or ST0; our src/game helpers call them
 through their addresses (`mov eax, addr; call eax`), so the image needs code there. src/lib/crt_x87.cpp:
@@ -296,6 +305,33 @@ width) and runs a start-up battery of 9,191 insertions (25 formats x 7 streambuf
 flush and the manipulators are ours only. Left for the image: the streams themselves (ostream(streambuf*)
 006FC42F, which the static initialisers call, the ios / streambuf constructors and destructors, the
 log's streambuf), fflush for ios::stdio.
+
+**S4d (2026-10-15): the streams.** src/lib/crt_iostream.{h,cpp}, both builds (no state of their own: the
+shared lock 007CAE90 and the live-ios count 007CAEC8 are the exe's): streambuf(char*, int) 006FCAD2,
+~streambuf 006FCB35 and its deleting destructor 006FCAB6, the base class's virtuals the console's streambufs
+inherit (sync 006FCC86, setbuf 006FCB65, seekoff 006FCD18, seekpos 006FCD1E, xsputn 006FCB99, xsgetn
+006FCBEF, pbackfail 006FCD30, doallocate 006FCCBB; `Streambuf::Default*`, non-virtual so they can be
+registered); ios() 006FCDB1, ~ios 006FCEDC, its deleting destructor 006FCE0F, ios::init 006FCF26;
+ostream(streambuf*) 006FC42F (the eight static-initialiser calls), ~ostream 006FC502 and its deleting
+destructor 006FC404, both entered with the ios as `this` (`Ios::DestructOstream` / `DeleteOstream`). The
+constructors write the exe's vtables. There is no separate log streambuf: the eight ostreams 007C55A8-
+007C5810 all write to console streambufs (console.h). Not ported (no callers): streambuf() 006FCA77,
+ios(streambuf*) 006FCE94, ostream() 006FC3CE, ostream(const ostream&) 006FC494, ostream_withassign.
+fflush 006ED534: image only (crt_file.cpp, the host stream's; a null stream flushes all), also reached from
+MFC's CStdioFile::Flush 00701FB8. Check: tests/verify/verify_crt_streams.cpp, original vs ours on scratch
+streambufs whose own virtuals record the calls (8 states x 5 behaviours x every operation, 807 cases) and on
+scratch ios / ostreams (bytes but the critical section, the count's change, an owned streambuf deleted once);
+the game's calls are shadowed (xsputn on every console line, the ostream / ios / streambuf destructors at
+exit); the two deleting destructors without trampoline room against the destructor plus operator delete;
+fflush in verify_crt_file's scripts. smoke and ui_main_menu, both installs: 0 mismatches. `--standalone`
+boot: 006FC42F, 006FC502 and 006FCEDC no longer missing; it still stops at 00411AB0 (S12) first.
+The C initialisers the image does not run, checked: 006E728D (__onexitinit: the atexit table, which only
+the exe's _onexit / exit read; the image's are ours), 006F239A (__initstdio: `__piob` for the exe's
+_getstream / flsall; the image's fopen / fflush are the host's; MFC's CStdioFile::Open 00701CB0 calls the
+exe's 006ED1A3 / 006ED350 (_open_osfhandle / _fdopen, its descriptor and stream tables): map those to the
+host as fopen is when CStdioFile is ported, S8) and 006F02F9 (VC6's unhandled-exception
+filter: terminate() on an uncaught C++ exception; the image keeps the host's filter, which reports the
+crash). None is needed now.
 
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
@@ -576,6 +612,12 @@ a real one. Then the last two static-initialiser list constructors of S12's set
 list 007AF5B4 (start-up check as for 00455E50). The standalone boot then stops at 00572820, the
 client's sector grid storage (originals_world.h `GridAllocate`, world area, next to S13b's grid
 resizes).
+
+**S10d (2026-10-15).** record_members.h decides plain data by `records::IsPlain<T>` (trivially copyable,
+but never CString, stlp::string, stlp::vector or arrays of them; a trivially copyable record with
+its own CopyMember / AssignMember / DefaultMember specialises it to false), so arrays of vectors go
+element by element and an element type with no policy does not compile. AcksElement copies its
+lists as arrays through it (same order as before); smoke and ui_saveload: 0 mismatches.
 
 **S7 (2026-10-15).** CPlex and MFC `CList<T>` / `CMap<K, V>` (src/lib/mfc_list.h, mfc_list.cpp;
 game-element lists in src/game/game_lists.*): mfc::CList's bodies under `ListAbi<T, Policy>`

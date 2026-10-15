@@ -324,6 +324,7 @@ int __cdecl Fseek(gamecrt::CrtFile* file, long offset, int origin);             
 long __cdecl Ftell(gamecrt::CrtFile* file);                                     // 006E97C4
 std::size_t __cdecl Fread(void* to, std::size_t size, std::size_t count, gamecrt::CrtFile* file);        // 006E8F35
 std::size_t __cdecl Fwrite(const void* from, std::size_t size, std::size_t count, gamecrt::CrtFile* file); // 006E968B
+int __cdecl Fflush(gamecrt::CrtFile* file);                                     // 006ED534 (S4d)
 int Fileno(const gamecrt::CrtFile* file);
 
 } // namespace libcrt
