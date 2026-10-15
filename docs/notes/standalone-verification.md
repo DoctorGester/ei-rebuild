@@ -1136,3 +1136,68 @@ WS_EX_NOACTIVATE from CreateWindowEx and SetWindowLong. With nothing activating 
 WM_ACTIVATE, so the harness sends it (ActivateWithoutForeground, once the device object exists), as the switch-over
 runs already needed. `Watch` logs when the game window becomes the foreground window: none of 2x128 suite runs did.
 run_all's MINIMISED rerun is gone. Two `--golden` suites: 128 runs each all pass, 56 goldens the same, no rerun.
+
+## SV7a: the game's address-dependent behaviour (2026-10-15)
+
+**Tools.** `EI_HEAP_JITTER=<seed>[,fill]` (tests/verify/harness_heap.cpp, off by default; goldens are recorded without
+it) moves the game's blocks without changing its calls: after HeapCreate a spacer of 16 B..64 KB, and before about one
+in four of the main thread's reservation allocations either a new spacer of 8..512 bytes (up to 8192 kept) or the free
+of a random kept one, all from a seeded xorshift32. `fill` also writes seeded bytes into new blocks that the game did not
+ask zeroed, so uninitialised reads show. `EI_SAVETRACE=1` (tests/verify/harness_savetrace.*) wraps Write of both memory
+stream vtables (0073BD90, 0073C960) and, when the game opens a `.sav` for writing, appends every write of each stream
+over 2 KB (position, size, four callers) to `savetrace.txt`. `python tools\save_trace.py plain` decodes a save
+(SaveFileWrite 00579B80: magic, version, checksum above 0x6B, flag above 0x71, the LZ coder of CoderState 00430960) and
+checks its checksum; `save_trace.py diff A B` names the writers of the plain bytes that differ.
+
+**Runs.** The 97 goldens (44 vanilla, 53 Rebirth) `--no-hooks --golden`, five passes: no jitter, seeds 1, 2, `3,fill`,
+and repeats of the passes that differed. Without jitter 97 the same. Seed 1: 12 differ, seed 2: 1, `3,fill`: 3, every
+one in the families below. `obj2 hp`, which golden.py already leaves out, differs in all 97 under every seed.
+
+| Family | Site | What decides by address | Seen in |
+| --- | --- | --- | --- |
+| Script groups in address order | ScriptGroup::Sort 004B2D60 (GameQsort with CompareObjectAddress 004B2D80), Insert 004B2EF0 (binary search by address), Union 004B2620, Difference 004B2920, Intersection 004B2B60, Load 004B3360 | Member order of every script group, so which unit a script's "first / last / n-th of group" gets | `script #gobject` `gobject.i` 702 / 1884 (zone gz1g Peasans {699, 702, 1884}, the last member after a load): seed 1 in ground_prints V+R, magic_traps R, script_copy R, terrain_water_load V+R, ui_saveload_delete V+R, world_load R; seed 2 ui_saveload_delete V; `3,fill` ground_prints V, ui_saveload_delete R. Also SV2b, SV2d, SV2h1b, SV3i (zone_gz3g `VSS#i#val`) |
+| Save writers write unwritten bytes and pointers | listed below | Stack and heap leftovers (addresses among them) in fields the game never set, object pointers as archive keys | mission.sav and scenario.sav of every saving scenario, between two plain runs too; shot.sav 5 bytes under jitter (untraced); info.sav the same |
+| UnitStats stack copies | GiveDefaults 00513630 copies a stack UnitStats; UnitStatSlot::Reset 00523600 leaves spareAbsorb, share, factor (zeroed only by ClearOuterLayers) | The leftovers, heap pointers among them, reach unmoco2's hit points (NaN) | `obj2 hp` in all 97 (SV3a, SV3h); the same leftovers are most of mission.sav's differing bytes (UnitStats::SaveTo) |
+| Rebirth menu unit orientation | not found: outside ClientPlaceOnPath 00535850 | cunit148 (unanwiwo) `rot.w` / `rot.z` differ by 1 ulp at update 80 | seed 1, Rebirth only, repeats: ui_container_input, ui_widescreen_more, render_titles_present |
+
+**Save writers** (combat, vanilla, seed 1 against a plain traced run; mission.sav 10217 plain bytes):
+
+- UnitStats::SaveTo 00528800 (a raw 0x704-byte write) from CUnitServer::SaveServer 005561C0+317: 8931 bytes, the
+  spareAbsorb / slot leftovers above. PartyUnitRecord::Save 0065FDE0 writes the same stats for party records.
+- CUnit::SaveUnit 005321C0+2FC: `levels4C8`, 20 bytes at +0x4C8. Loading reads them back ("2 or below, or NaN, asks for
+  a party refresh"), so a leftover can change behaviour after a load, not only the file.
+- CUnitServer::SaveServer: +113 plan vector at +0xFC; +1CF / +1DF 8-byte writes of the 4-byte moveMode / moveMode2 at
+  +0x168 / +0x170 (the other 4 bytes are the next field or padding); +227 / +244 / +25A action order at +0x190 / +0x194
+  / +0x19C; +2B6 / +2CC action2 at +0x1B4; +58A waitFrame at +0x93C.
+- SuspectionMode::Save 005D2360 (point, level), FearMode::Save 005D36F0 (shelter, fleePoint): fields of modes that never
+  ran.
+- UnitMotion::SaveState 005C79B0+11A / +144: startAngle / turn at +0x48 / +0x4C. AIPath::SavePath 005B2570+6D;
+  00558420+3C (a step list).
+- CMapObjectServer::SaveServer 00515AC0: the vitals block (0x58 bytes) and levers.
+- scenario.sav, 219 bytes: CStream::WriteSized 004A5250 from PartyManager::Save 004A8560 through the ChunkArchive:
+  SaveObjectRef 0040A440 writes the object pointer as its key, and Close iterates the pointer-keyed `objects_` hash, so
+  both the keys and their order follow addresses.
+
+Saves need no jitter to differ: two plain runs already part, and the trace's own stack use changes them again (compare
+two traced runs).
+
+**The orientation ulp.** In hooked runs with seed 1 ours (ClientPlaceOnPath) does not vary, and the original and ours in
+its verify wrapper were bitwise equal under both layouts; the orientation the unit comes in with also changes by an ulp
+(or the sign of a zero) between calls. So the writer is something only `--no-hooks` Rebirth runs execute: addon.dll or
+a Rebirth-patched original. Likely the same as SV3f.
+
+**Not repeated.** `3,fill` once had ui_widescreen_more (Rebirth) diverge at update 300
+(isaac.count 112 against 18, unmoto obj1937's path); reruns with `3,fill` and with 3 matched the golden, so it is a
+one-off, not a layout effect.
+
+**Static candidates the suite did not show** (read, not run against):
+
+- Net Connection (net_connection.cpp): `priorities_[11]` are maps keyed by ReplicaEntry*, `byObject_` / `attached_` by
+  CRefObject*. SendUpdate 00435A00 hands out net ids and decides which entries wait when over budget in address order;
+  CollectChanges 004346D0 merges by pointer. Only multiplayer and the lobby reach it.
+- PointerHash containers: model.h `records_` keyed by CRenderPreset* (iterated in render_helper.cpp:406), resource.h
+  `filesByData_`. No golden field showed them.
+
+Follow-ups, one per family (group verification, after SV7a): SV7b1 script groups, SV7b2 save writers, SV7b3 UnitStats
+leftovers, SV7b4 the Rebirth orientation ulp, SV7b5 net replication order, SV7b6 pointer-keyed hashes. SV7d (decoded
+saves) can use save_trace.py and the writer list above for its leave-out rules.
