@@ -43,6 +43,7 @@ static_assert(sizeof(Patrol) == 0x20);
 
 // A unit's behaviour record (0x4C bytes; constructor 0045D5B0, destructor 0046C290).
 struct Behaviour {
+    mapspec::Behaviour* DeleteScalar(unsigned flags);
     void Read(void* stream);
     void Write(void* stream);
     std::int32_t type;           // +0x00 (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
@@ -367,6 +368,7 @@ static_assert(sizeof(SoundSpec) == 0x88);
 // A unit record (vtable 0073C6E0, 0x324 bytes; code in map_spec_unit.cpp). The world server's
 // CreateUnits (0058EF20) fills one on the stack for each unit it creates.
 struct UnitSpec {
+    UnitSpec* DeleteScalar(unsigned flags);
     ObjectSpec object;           // +0x000
     std::int32_t behaviours;     // +0x08C records read so far
     Behaviour behaviour[5];      // +0x090

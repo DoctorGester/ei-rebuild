@@ -212,12 +212,12 @@ void __fastcall SysInfoDestruct(CSysInfo* self) {
 EI_REPLACE(0x004DDE75, SysInfoDestruct);
 
 // 004DE8B0 (slot 0, RET 4): the destructor, then operator delete when bit 0 of `flags` is set.
-CSysInfo* __fastcall SysInfoDelete(CSysInfo* self, void*, unsigned flags) {
-    SysInfoDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CSysInfo* CSysInfo::DeleteScalar(unsigned flags) {
+    SysInfoDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004DE8B0, SysInfoDelete);
+EI_REPLACE_METHOD(0x004DE8B0, CSysInfo::DeleteScalar);
 
 // 004DDD60 (cdecl; registered with atexit by the static initialiser): the global's destructor.
 void __cdecl SysInfoAtExit() { SysInfoDestruct(TheSysInfo()); }

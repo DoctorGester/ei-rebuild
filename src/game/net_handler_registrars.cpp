@@ -29,46 +29,46 @@ void RegisterHandler(SessionBase* self, int channel, void* handler, Message* (__
 } // namespace
 
 // Server: the requests (0073BC58), the party descriptions (0073BDD0), the party members (0073BD78).
-void __fastcall RegisterRequestHandler(SessionBase* self, void*, int channel, void* handler) {   // 004279B0
-    RegisterHandler(self, channel, handler, FileRequestMessage::Create);
+void SessionBase::RegisterRequestHandler(int channel, void* handler) {   // 004279B0
+    RegisterHandler(this, channel, handler, FileRequestMessage::Create);
 }
-void __fastcall RegisterPartyHandler(SessionBase* self, void*, int channel, void* handler) {   // 00427AC0, 00428690
-    RegisterHandler(self, channel, handler, PartyMessage::Create);
+void SessionBase::RegisterPartyHandler(int channel, void* handler) {   // 00427AC0, 00428690
+    RegisterHandler(this, channel, handler, PartyMessage::Create);
 }
-void __fastcall RegisterMemberHandler(SessionBase* self, void*, int channel, void* handler) {   // 00427C40, 004287D0
-    RegisterHandler(self, channel, handler, PartyMemberMessage::Create);
+void SessionBase::RegisterMemberHandler(int channel, void* handler) {   // 00427C40, 004287D0
+    RegisterHandler(this, channel, handler, PartyMemberMessage::Create);
 }
 // Client: the map (0073BD00), the variables (0073BCE8), the files (0073BD18), the file chunks
 // (0073BD30), the awards (0073BD48), the trade (0073BD60).
-void __fastcall RegisterMapHandler(SessionBase* self, void*, int channel, void* handler) {   // 00428090
-    RegisterHandler(self, channel, handler, MapMessage::Create);
+void SessionBase::RegisterMapHandler(int channel, void* handler) {   // 00428090
+    RegisterHandler(this, channel, handler, MapMessage::Create);
 }
-void __fastcall RegisterVariableHandler(SessionBase* self, void*, int channel, void* handler) {   // 004281C0
-    RegisterHandler(self, channel, handler, VariableMessage::Create);
+void SessionBase::RegisterVariableHandler(int channel, void* handler) {   // 004281C0
+    RegisterHandler(this, channel, handler, VariableMessage::Create);
 }
-void __fastcall RegisterFileHandler(SessionBase* self, void*, int channel, void* handler) {   // 004282F0
-    RegisterHandler(self, channel, handler, FileMessage::Create);
+void SessionBase::RegisterFileHandler(int channel, void* handler) {   // 004282F0
+    RegisterHandler(this, channel, handler, FileMessage::Create);
 }
-void __fastcall RegisterChunkHandler(SessionBase* self, void*, int channel, void* handler) {   // 00428440
-    RegisterHandler(self, channel, handler, FileChunkMessage::Create);
+void SessionBase::RegisterChunkHandler(int channel, void* handler) {   // 00428440
+    RegisterHandler(this, channel, handler, FileChunkMessage::Create);
 }
-void __fastcall RegisterAwardHandler(SessionBase* self, void*, int channel, void* handler) {   // 00428550
-    RegisterHandler(self, channel, handler, AwardMessage::Create);
+void SessionBase::RegisterAwardHandler(int channel, void* handler) {   // 00428550
+    RegisterHandler(this, channel, handler, AwardMessage::Create);
 }
-void __fastcall RegisterTradeHandler(SessionBase* self, void*, int channel, void* handler) {   // 004288E0
-    RegisterHandler(self, channel, handler, TradeMessage::Create);
+void SessionBase::RegisterTradeHandler(int channel, void* handler) {   // 004288E0
+    RegisterHandler(this, channel, handler, TradeMessage::Create);
 }
 
-EI_REPLACE(0x004279B0, RegisterRequestHandler);
-EI_REPLACE(0x00427AC0, RegisterPartyHandler);
-EI_REPLACE(0x00428690, RegisterPartyHandler);
-EI_REPLACE(0x00427C40, RegisterMemberHandler);
-EI_REPLACE(0x004287D0, RegisterMemberHandler);
-EI_REPLACE(0x00428090, RegisterMapHandler);
-EI_REPLACE(0x004281C0, RegisterVariableHandler);
-EI_REPLACE(0x004282F0, RegisterFileHandler);
-EI_REPLACE(0x00428440, RegisterChunkHandler);
-EI_REPLACE(0x00428550, RegisterAwardHandler);
-EI_REPLACE(0x004288E0, RegisterTradeHandler);
+EI_REPLACE_METHOD(0x004279B0, SessionBase::RegisterRequestHandler);
+EI_REPLACE_METHOD(0x00427AC0, SessionBase::RegisterPartyHandler);
+EI_REPLACE_METHOD(0x00428690, SessionBase::RegisterPartyHandler);
+EI_REPLACE_METHOD(0x00427C40, SessionBase::RegisterMemberHandler);
+EI_REPLACE_METHOD(0x004287D0, SessionBase::RegisterMemberHandler);
+EI_REPLACE_METHOD(0x00428090, SessionBase::RegisterMapHandler);
+EI_REPLACE_METHOD(0x004281C0, SessionBase::RegisterVariableHandler);
+EI_REPLACE_METHOD(0x004282F0, SessionBase::RegisterFileHandler);
+EI_REPLACE_METHOD(0x00428440, SessionBase::RegisterChunkHandler);
+EI_REPLACE_METHOD(0x00428550, SessionBase::RegisterAwardHandler);
+EI_REPLACE_METHOD(0x004288E0, SessionBase::RegisterTradeHandler);
 
 } // namespace net

@@ -7,7 +7,11 @@
 // at process exit (005754E0 from the client world's, 0059DD70 from the server's).
 #include "verify.h"
 
+#include "../../src/game/core_refcount.h"
+#include "../../src/game/figure_manager.h"
 #include "../../src/game/map_spec.h"
+#include "../../src/game/script.h"
+#include "../../src/game/unit_ai.h"
 #include "../../src/game/world_deleting_destructors.h"
 
 namespace {
@@ -21,12 +25,19 @@ void* s_unused;
         return result;                                                                               \
     }
 
-EI_DELETE_CHECK(AIRef, AIRefDelete)
-EI_DELETE_CHECK(AICallRecord, AICallRecordDelete)
-EI_DELETE_CHECK(RefPtr, RefPtrDestroyDelete)
-EI_DELETE_CHECK(ScriptPointLight, ScriptPointLightDelete)
-EI_DELETE_CHECK(CFigureManager, FigureManagerDelete)
-EI_DELETE_CHECK(mapspec::Behaviour, BehaviourDelete)
+#define EI_DELETE_MEMBER_CHECK(Type, Function, Member)                                               \
+    Type* __fastcall Function##Verify(Type* self, void*, unsigned flags) {                           \
+        Type* result = self->Member(flags);                                                          \
+        ei::verify::Check(#Function, true, result == self, "flags %u", flags);                       \
+        return result;                                                                               \
+    }
+
+EI_DELETE_MEMBER_CHECK(AIRef, AIRefDelete, DeleteScalar)
+EI_DELETE_MEMBER_CHECK(AICallRecord, AICallRecordDelete, DeleteScalar)
+EI_DELETE_MEMBER_CHECK(RefPtr, RefPtrDestroyDelete, DeleteDestroyed)
+EI_DELETE_MEMBER_CHECK(ScriptPointLight, ScriptPointLightDelete, DeleteScalar)
+EI_DELETE_MEMBER_CHECK(CFigureManager, FigureManagerDelete, DeleteScalar)
+EI_DELETE_MEMBER_CHECK(mapspec::Behaviour, BehaviourDelete, DeleteScalar)
 EI_DELETE_CHECK(CEngineObject*, ObjectHolderDelete)
 
 } // namespace

@@ -328,6 +328,7 @@ void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<V
 // registered by address); it names the slots after CEngineObject's that the player calls.
 class CPlayerConnection : public CEngineObject {
 public:
+    CPlayerConnection* DeleteScalar(unsigned flags);
     virtual void ForgetSentObjects();       // 13: server 0066CE50 (sent objects, party units); client empty
     virtual void UnitChanged(CUnit* unit);  // 14: client 00667BA0 (the unit's controller); server empty
     virtual void ResetState();              // 15: server 0066CF20, client 00667600

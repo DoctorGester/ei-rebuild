@@ -93,6 +93,10 @@ struct LockKey;      // unit.h
 // bodies of map_object_stub_slots.cpp. Names and evidence: docs/notes/map_objects.md ("Virtual slot names").
 class __declspec(novtable) CMapObject : public CObject3D {
 public:
+    int ScaleEffectChangedDefault(int /*scaleEffect*/);
+    bool AcceptsAnyAnimation(const void* /*animation*/);
+    int AcceptsNoKey(const void* /*key*/);
+    void IgnoreArgument(int);
     void SetScriptPosition(const Vector3* point);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DAA0);
 
@@ -382,6 +386,9 @@ using CMapObjectVirtuals = CMapObject;
 // The two classes (unit.h) do not derive from it; CompanionSlots reaches a companion through it.
 class __declspec(novtable) CMapObjectCompanion : public CEngineObject {
 public:
+    void HitNothing(int, int);
+    int QueryNothing(int, int);
+    void IgnoreArgument(int);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DC54);
 
     virtual void EffectsChanged(int first);   // 13: client 005117D0, server 005106D0 (empty, RET 4)

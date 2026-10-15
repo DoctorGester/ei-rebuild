@@ -88,6 +88,9 @@ class CBaseManager;   // base_manager.h
 // address), the 3D object reaches its half through CObject3D::Specific().
 class CObject3DSpecific : public CEngineObject {
 public:
+    void IgnoreArgument(int);
+    int ReturnZero(void*);
+    int DrawNothing(void* /*context*/, int* /*dirty*/);
     virtual int OnPartAdded(CFigureMesh* part);      // 13: client 0051B050, server 0051F270 (0)
     // 14: (name) client 0051B210: the part named (slot 16) taken out of the drawn part sets (+0x20,
     // +0x24) and released; returns it or null. Server 0051F290. Slots declared `void Name()` keep

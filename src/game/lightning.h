@@ -73,6 +73,7 @@ static_assert(sizeof(LightningSegment) == 0xA8);
 
 class CLightning : public CEngineObject {
 public:
+    CLightning* DeleteScalar(unsigned flags);
     void DrawGlow(void* device, const Vector3* position, int /*frame: not used*/, float size);
     // Slot 2 (00466EA0): resets the bolt like slot 3, then adds it to the manager's list of new
     // bolts, which holds a reference until the next DrawAll. Returns 1.

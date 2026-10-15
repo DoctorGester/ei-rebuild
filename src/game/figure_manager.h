@@ -20,6 +20,7 @@ struct FigureBone;
 
 class CFigureManager : public CResourceManager {
 public:
+    CFigureManager* DeleteScalar(unsigned flags);
     int LoadSkeletonLinks(CFigureAnimationState* state, const char* name);
     int LoadFigureBones(FigureModel* model, FigureBone* bone);
     int LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u);

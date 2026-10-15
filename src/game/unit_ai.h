@@ -575,6 +575,7 @@ static_assert(sizeof(PlayerMode) == 0x24);
 
 // A counted reference (CEngineObject refcount at +4, released through vtable slot 4).
 struct AIRef {
+    AIRef* DeleteScalar(unsigned flags);
     // 0052B030. Release and clear.
     void Reset();
     // 0052A8F0. Hold `object` (released first unless it is already held).
@@ -605,6 +606,7 @@ float* __fastcall CopyPoint2(float* out, const float* point);
 
 // A call the perception memory heard (0x18 bytes; CallAllies sends kind 0x1A).
 struct AICallRecord {
+    AICallRecord* DeleteScalar(unsigned flags);
     Vector3 point;                  // +0x00
     int kind;                       // +0x0C
     int hostileMask;                    // +0x10 sides the hearer turns hostile to (0 for a plain call)

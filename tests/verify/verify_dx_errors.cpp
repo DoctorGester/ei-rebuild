@@ -86,13 +86,13 @@ void __fastcall DestructVerify(GameError* self) {
 }
 void* s_unusedDeleting;
 GameError* __fastcall DeletingVerify(GameError* self, void*, int flags) {
-    GameError* result = GameErrorDeletingDestruct(self, nullptr, flags);
+    GameError* result = self->DeleteScalar(flags);
     ei::verify::Check("GameErrorDeletingDestruct", true, result == self, "flags %d", flags);
     return result;
 }
 void* s_unusedBaseDeleting;
 GameError* __fastcall BaseDeletingVerify(GameError* self, void*, int flags) {
-    GameError* result = GameErrorBaseDeletingDestruct(self, nullptr, flags);
+    GameError* result = self->DeleteScalarBase(flags);
     ei::verify::Check("GameErrorBaseDeletingDestruct", true, result == self, "flags %d", flags);
     return result;
 }

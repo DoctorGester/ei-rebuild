@@ -52,13 +52,9 @@ UnitModelRecord* __fastcall UnitModelAt(UnitModelRecord** models, void*, std::ui
 const char* __fastcall UnitClassName(CUnit*);
 int __fastcall UnitClassId(CUnit*);
 void __fastcall ControllerDestruct(CUnitController* self);
-CUnitController* __fastcall ControllerDelete(CUnitController* self, void*, unsigned flags);
 int __fastcall ControllerCreate(CUnitController* self);
 void __fastcall ControllerDestroy(CUnitController* self);
 int __fastcall ControllerFiguresLoaded(CUnitController*);
-int __fastcall ControllerZeroOne(CUnitController*, void*, int);
-int __fastcall ControllerZeroThree(CUnitController*, void*, int, int, int);
-bool __fastcall ControllerFalse(CUnitController*, void*, int);
 const char* __fastcall ClientControllerClassName(CUnitClientSpecific*);
 int __fastcall ClientControllerClassId(CUnitClientSpecific*);
 void __fastcall ClientMotionChanged(CUnitClientSpecific* self);
@@ -260,7 +256,7 @@ static void __fastcall ControllerDestructVerify(CUnitController* self) {
 EI_VERIFY(0x00533DB0, ControllerDestructVerify, 0, s_unused);
 
 static CUnitController* __fastcall ControllerDeleteVerify(CUnitController* self, void*, unsigned flags) {
-    CUnitController* result = ControllerDelete(self, nullptr, flags);
+    CUnitController* result = self->DeleteScalar(flags);
     ei::verify::Check("CUnitController::Delete", static_cast<void*>(self), static_cast<void*>(result), "");
     return result;
 }
@@ -289,7 +285,7 @@ static int __fastcall ControllerFiguresLoadedVerify(CUnitController* self) {
 EI_VERIFY(0x00533B90, ControllerFiguresLoadedVerify, 5, s_ControllerFiguresLoaded);
 
 static int __fastcall ControllerZeroOneVerify(CUnitController* self, void*, int value) {
-    int result = ControllerZeroOne(self, nullptr, value);
+    int result = self->ReturnZeroOne(value);
     ei::verify::Check("CUnitController zero slot", 0, result, "");
     return result;
 }
@@ -297,14 +293,14 @@ EI_VERIFY(0x00533BD0, ControllerZeroOneVerify, 0, s_unused);
 EI_VERIFY(0x00533BF0, ControllerZeroOneVerify, 0, s_unused);
 
 static int __fastcall ControllerZeroThreeVerify(CUnitController* self, void*, int first, int second, int third) {
-    int result = ControllerZeroThree(self, nullptr, first, second, third);
+    int result = self->ReturnZeroThree(first, second, third);
     ei::verify::Check("CUnitController::TakeHit", 0, result, "");
     return result;
 }
 EI_VERIFY(0x00533BE0, ControllerZeroThreeVerify, 0, s_unused);
 
 static bool __fastcall ControllerFalseVerify(CUnitController* self, void*, int value) {
-    bool result = ControllerFalse(self, nullptr, value);
+    bool result = self->ReturnFalse(value);
     ei::verify::Check("CUnitController false slot", false, result, "");
     return result;
 }

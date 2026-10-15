@@ -110,103 +110,102 @@ EI_REPLACE(0x004DB040, BufferedStreamCommit);
 
 // --- Slots ---------------------------------------------------------------------------------------
 
-void __fastcall BufferedStreamReserveRead(BufferedStream* self, void*, std::int32_t size) {
-    std::int32_t capacity = self->Capacity();
+void BufferedStream::ReserveReadWindow(std::int32_t size) {
+    std::int32_t capacity = Capacity();
     if (static_cast<std::uint32_t>(size) <= static_cast<std::uint32_t>(capacity)) {
-        self->Rebase();
+        Rebase();
         return;
     }
     std::int32_t grown = size + static_cast<std::int32_t>(kWindowBytes);
-    if (!(grown < capacity)) Reallocate(self, grown);
+    if (!(grown < capacity)) ::Reallocate(this, grown);
     // The window is reloaded where it starts (with min(capacity, high - cur) bytes).
-    std::int32_t position = self->base;
-    self->Flush();
-    self->MoveWindow(position);
+    std::int32_t position = base;
+    Flush();
+    MoveWindow(position);
 }
-EI_REPLACE(0x004DAE30, BufferedStreamReserveRead);
+EI_REPLACE_METHOD(0x004DAE30, BufferedStream::ReserveReadWindow);
 
-void __fastcall BufferedStreamReserveWrite(BufferedStream* self, void*, std::int32_t size) {
+void BufferedStream::ReserveWriteWindow(std::int32_t size) {
     std::int32_t grown = size + static_cast<std::int32_t>(kWindowBytes);
-    if (!(grown < self->Capacity())) Reallocate(self, grown);
+    if (!(grown < Capacity())) ::Reallocate(this, grown);
 }
-EI_REPLACE(0x004DAFC0, BufferedStreamReserveWrite);
+EI_REPLACE_METHOD(0x004DAFC0, BufferedStream::ReserveWriteWindow);
 
-int __fastcall BufferedStreamReadMore(BufferedStream* self, void*, void* to, std::uint32_t size) {
-    if (size > static_cast<std::uint32_t>(self->Capacity())) {
-        self->Flush();
-        int read = self->ReadAt(self->Position(), to, size);
-        if (static_cast<std::uint32_t>(read) != size) self->flags |= kFlagError;
-        self->cur += size;
-        self->Rebase();
+int BufferedStream::ReadMoreWindow(void* to, std::uint32_t size) {
+    if (size > static_cast<std::uint32_t>(Capacity())) {
+        Flush();
+        int read = ReadAt(Position(), to, size);
+        if (static_cast<std::uint32_t>(read) != size) flags |= kFlagError;
+        cur += size;
+        Rebase();
         return read;
     }
-    self->Rebase();
-    std::uint8_t* next = self->cur + size;
-    if (next > self->high) {
-        self->flags |= kFlagError;
+    Rebase();
+    std::uint8_t* next = cur + size;
+    if (next > high) {
+        flags |= kFlagError;
         std::memset(to, 0, size);
-        if (self->cur < self->high)
-            return static_cast<int>(net::BufferRead(self, nullptr, to, static_cast<unsigned>(self->high - self->cur)));
-        self->cur = self->high;
+        if (cur < high)
+            return static_cast<int>(ReadBytes(to, static_cast<unsigned>(high - cur)));
+        cur = high;
         return 0;
     }
-    if (next > self->end) return self->ReadMore(to, size);
-    std::memcpy(to, self->cur, size);
-    self->cur += size;
+    if (next > end) return ReadMore(to, size);
+    std::memcpy(to, cur, size);
+    cur += size;
     return static_cast<int>(size);
 }
-EI_REPLACE(0x004DB200, BufferedStreamReadMore);
+EI_REPLACE_METHOD(0x004DB200, BufferedStream::ReadMoreWindow);
 
-int __fastcall BufferedStreamWriteMore(BufferedStream* self, void*, const void* from, std::uint32_t size) {
-    if (size > static_cast<std::uint32_t>(self->Capacity())) {
-        self->Flush();
-        int written = self->WriteAt(self->Position(), from, size);
-        if (static_cast<std::uint32_t>(written) != size) self->flags |= kFlagError;
-        self->cur += size;
-        if (self->cur > self->high) self->high = self->cur;
-        self->Rebase();
+int BufferedStream::WriteMoreWindow(const void* from, std::uint32_t size) {
+    if (size > static_cast<std::uint32_t>(Capacity())) {
+        Flush();
+        int written = WriteAt(Position(), from, size);
+        if (static_cast<std::uint32_t>(written) != size) flags |= kFlagError;
+        cur += size;
+        if (cur > high) high = cur;
+        Rebase();
         return written;
     }
-    self->Rebase();
-    if (self->cur + size > self->end) return self->WriteMore(from, size);
-    self->flags |= kFlagUnwritten;
-    std::memcpy(self->cur, from, size);
-    self->cur += size;
+    Rebase();
+    if (cur + size > end) return WriteMore(from, size);
+    flags |= kFlagUnwritten;
+    std::memcpy(cur, from, size);
+    cur += size;
     return static_cast<int>(size);
 }
-EI_REPLACE(0x004DB420, BufferedStreamWriteMore);
+EI_REPLACE_METHOD(0x004DB420, BufferedStream::WriteMoreWindow);
 
-std::uint8_t* __fastcall BufferedStreamSeek(BufferedStream* self, void*, std::int32_t position) {
-    std::uint8_t* old = self->cur;
-    if (self->cur > self->high) self->high = self->cur;
-    std::uint8_t* target = self->begin + (position - self->base);
-    if (target >= self->begin && target < self->end) {
-        self->cur = target;
+std::uint8_t* BufferedStream::SeekWindow(std::int32_t position) {
+    std::uint8_t* old = cur;
+    if (cur > high) high = cur;
+    std::uint8_t* target = begin + (position - base);
+    if (target >= begin && target < end) {
+        cur = target;
         return old;
     }
-    self->Flush();
-    self->cur = target;
-    self->Rebase();
+    Flush();
+    cur = target;
+    Rebase();
     return old;
 }
-EI_REPLACE(0x004DB0F0, BufferedStreamSeek);
+EI_REPLACE_METHOD(0x004DB0F0, BufferedStream::SeekWindow);
 
 // --- The file ------------------------------------------------------------------------------------
 
-int __fastcall BufferedFileReadAt(BufferedFile* self, void*, std::int32_t position, void* to, std::uint32_t size) {
-    if (!self->file) return 0;
-    if (gamecrt::fseek(self->file, position, kSeekSet) != 0) return 0;
-    return static_cast<int>(gamecrt::fread(to, 1, size, self->file));
+int BufferedFile::ReadAtFile(std::int32_t position, void* to, std::uint32_t size) {
+    if (!file) return 0;
+    if (gamecrt::fseek(file, position, kSeekSet) != 0) return 0;
+    return static_cast<int>(gamecrt::fread(to, 1, size, file));
 }
-EI_REPLACE(0x004DB5E0, BufferedFileReadAt);
+EI_REPLACE_METHOD(0x004DB5E0, BufferedFile::ReadAtFile);
 
-int __fastcall BufferedFileWriteAt(BufferedFile* self, void*, std::int32_t position, const void* from,
-                                   std::uint32_t size) {
-    if (!self->file) return 0;
-    if (gamecrt::fseek(self->file, position, kSeekSet) != 0) return 0;
-    return static_cast<int>(gamecrt::fwrite(from, 1, size, self->file));
+int BufferedFile::WriteAtFile(std::int32_t position, const void* from, std::uint32_t size) {
+    if (!file) return 0;
+    if (gamecrt::fseek(file, position, kSeekSet) != 0) return 0;
+    return static_cast<int>(gamecrt::fwrite(from, 1, size, file));
 }
-EI_REPLACE(0x004DB630, BufferedFileWriteAt);
+EI_REPLACE_METHOD(0x004DB630, BufferedFile::WriteAtFile);
 
 void BufferedFile::Close() {
     ReleaseBlock();

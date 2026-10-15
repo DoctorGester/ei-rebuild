@@ -37,7 +37,6 @@ void** __fastcall ListIteratorCopy(void** iterator, void*, void** out);
 std::uint8_t* __fastcall AllocateAlignedBytes(int bytes);
 TLVertex* __fastcall AllocateVertices(int count);
 void __fastcall AlignedArrayDestroy(lib::AlignedArray<std::uint8_t>* array);
-CDXSurface* __fastcall DXSurfaceDelete(CDXSurface* holder, void*, unsigned flags);
 void* __fastcall RendererBaseDelete(void* object, void*, unsigned flags);
 void* __fastcall LoaderBaseDelete(void* object, void*, unsigned flags);
 Matrix4* __stdcall AxisSwapMatrix(Matrix4* out);
@@ -172,7 +171,7 @@ void __fastcall AppendBatchIndicesVerify(CTextureDevice* self, void*, const std:
 // ---- Deleting destructors ----
 
 CDXSurface* __fastcall DXSurfaceDeleteVerify(CDXSurface* holder, void*, unsigned flags) {
-    CDXSurface* result = DXSurfaceDelete(holder, nullptr, flags);
+    CDXSurface* result = holder->DeleteScalar(flags);
     ei::verify::Check("CDXSurface deleting destructor (004EF790)", static_cast<void*>(holder),
                       static_cast<void*>(result), "flags %u", flags);
     return result;

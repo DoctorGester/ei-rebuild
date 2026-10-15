@@ -8,24 +8,15 @@
 #include <cstdint>
 
 namespace net {
-void __fastcall RegisterRequestHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterPartyHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterMemberHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterMapHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterVariableHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterFileHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterChunkHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterAwardHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterTradeHandler(SessionBase* self, void*, int channel, void* handler);
 }
 
 namespace {
 void* s_unused;
 
-using Register = void(__fastcall*)(net::SessionBase*, void*, int, void*);
+using Register = void (net::SessionBase::*)(int, void*);
 
 void Run(const char* name, Register fn, std::uint32_t vtable, net::SessionBase* self, int channel, void* handler) {
-    fn(self, nullptr, channel, handler);
+    (self->*fn)(channel, handler);
     if (channel < 0 || channel >= net::kChannels) {
         ei::verify::Check(name, true, true, "");
         return;
@@ -37,7 +28,7 @@ void Run(const char* name, Register fn, std::uint32_t vtable, net::SessionBase* 
 
 #define EI_REGISTER_VERIFY(fn, vtable)                                                                     \
     void __fastcall fn##Verify(net::SessionBase* self, void*, int channel, void* handler) {                \
-        Run(#fn, net::fn, vtable, self, channel, handler);                                                 \
+        Run(#fn, &net::SessionBase::fn, vtable, self, channel, handler);                                                 \
     }
 EI_REGISTER_VERIFY(RegisterRequestHandler, net::FileRequestMessage::kVtableAddress)
 EI_REGISTER_VERIFY(RegisterPartyHandler, net::PartyMessage::kVtableAddress)

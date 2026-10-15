@@ -20,7 +20,6 @@ RefPtr* __fastcall RefPtrFromRaw(RefPtr* self, CRefObject* object);   // refptr_
 
 namespace net {
 
-RefPtr* __fastcall RefPtrCopyConstruct(RefPtr* self, void*, const RefPtr* other);   // net_server_awards.cpp
 
 namespace {
 
@@ -118,7 +117,7 @@ void ClientSession::SendCommand(int kind, const char* text) {
     RefPtrFromRaw(&raw, command);
     TimedEntry entry;
     entry.secondsBits = kCommandLifetime;
-    RefPtrCopyConstruct(&entry.object, nullptr, &raw);
+    entry.object.CopyShared(&raw);
     TimersPushBack(&self->timers_, nullptr, &entry);
     entry.object.Destroy();
     raw.ptr = nullptr;
@@ -202,7 +201,7 @@ double __fastcall ClientBufferRatio(ClientSession*, void*, GameBuffer* buffer) {
     }
     buffer->Seek(0);
     std::uint32_t stored;
-    BufferRead(buffer, nullptr, &stored, 4);
+    buffer->ReadBytes(&stored, 4);
     std::int32_t divisor = stored != 0 ? static_cast<std::int32_t>(stored) : 1;
     return static_cast<double>(streamSize()) / static_cast<double>(divisor);
 }

@@ -39,25 +39,33 @@ void Sanitize(StringRep* s) {
 
 } // namespace
 
+} // namespace net
+
 // 00401310: copies `size` bytes from the read position and moves it on; returns the buffer.
-GameBuffer* __fastcall BufferCopyOut(GameBuffer* buffer, void*, void* to, unsigned size) {
-    std::memcpy(to, buffer->cur, size);
-    buffer->cur += size;
-    return buffer;
+GameBuffer* GameBuffer::CopyOut(void* to, unsigned size) {
+    std::memcpy(to, cur, size);
+    cur += size;
+    return this;
 }
-EI_REPLACE(0x00401310, BufferCopyOut);
+
+namespace net {
+EI_REPLACE_METHOD(0x00401310, GameBuffer::CopyOut);
+
+} // namespace net
 
 // 00401340: reads `size` bytes: past the highest written position through 004DA170, from memory
 // when they lie before `end`, otherwise through slot 3. Returns `size` or what the callee left.
-unsigned __fastcall BufferRead(GameBuffer* buffer, void*, void* to, unsigned size) {
-    std::uint8_t* next = buffer->cur + size;
-    if (next > buffer->high) return BufferReadPastEnd(buffer, nullptr, to, size);
-    if (next > buffer->end) return static_cast<unsigned>(buffer->ReadMore(to, size));
-    std::memcpy(to, buffer->cur, size);
-    buffer->cur += size;
+unsigned GameBuffer::ReadBytes(void* to, unsigned size) {
+    std::uint8_t* next = cur + size;
+    if (next > high) return BufferReadPastEnd(this, nullptr, to, size);
+    if (next > end) return static_cast<unsigned>(ReadMore(to, size));
+    std::memcpy(to, cur, size);
+    cur += size;
     return size;
 }
-EI_REPLACE(0x00401340, BufferRead);
+
+namespace net {
+EI_REPLACE_METHOD(0x00401340, GameBuffer::ReadBytes);
 
 // 00401000: writes the record: +0x1C, +0x20, the two strings, the bytes +0x18, +0x19, +0x1B,
 // +0x1A, then +0x24.
@@ -76,15 +84,15 @@ void GameInfoRecord::Write(GameBuffer* buffer) const {
 // 00401170: reads the record in the same order (strings of at most 0x100 bytes), replaces control
 // characters in both strings with '|'; returns 1 unless the buffer ran short (error bit 3).
 int GameInfoRecord::Read(GameBuffer* buffer) {
-    BufferRead(buffer, nullptr, &masterKey, 4);
-    BufferRead(buffer, nullptr, &masterToken, 4);
+    buffer->ReadBytes(&masterKey, 4);
+    buffer->ReadBytes(&masterToken, 4);
     BufferReadString(buffer, nullptr, &name, 0x100);
     BufferReadString(buffer, nullptr, &description, 0x100);
-    BufferRead(buffer, nullptr, &players, 1);
-    BufferRead(buffer, nullptr, &maxPlayers, 1);
-    BufferRead(buffer, nullptr, &hasPassword, 1);
-    BufferRead(buffer, nullptr, &kind, 1);
-    BufferRead(buffer, nullptr, &magic, 4);
+    buffer->ReadBytes(&players, 1);
+    buffer->ReadBytes(&maxPlayers, 1);
+    buffer->ReadBytes(&hasPassword, 1);
+    buffer->ReadBytes(&kind, 1);
+    buffer->ReadBytes(&magic, 4);
     Sanitize(&name);
     Sanitize(&description);
     return static_cast<int>((~buffer->flags >> 3) & 1);

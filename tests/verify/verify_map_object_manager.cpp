@@ -37,9 +37,6 @@
 const char* __fastcall MapObjectManagerFolder(CMapObjectManager*);
 const char* __fastcall MapObjectManagerClassName(CMapObjectManager*);
 int __fastcall MapObjectManagerClassId(CMapObjectManager*);
-void __fastcall CompanionIgnore(CMapObjectCompanion*, void*, int);
-int __fastcall CompanionQuery(CMapObjectCompanion*, void*, int, int);
-void __fastcall CompanionHit(CMapObjectCompanion*, void*, int, int);
 const char* __fastcall ClientCompanionClassName(CMapObjectClientSpecific*);
 int __fastcall ClientCompanionClassId(CMapObjectClientSpecific*);
 const char* __fastcall ServerCompanionClassName(CMapObjectServer*);
@@ -212,21 +209,21 @@ static int __fastcall CompanionUpdateVerify(CMapObjectCompanion* self) {
 EI_VERIFY(0x005106E0, CompanionUpdateVerify, 0, s_unused);
 
 static void __fastcall CompanionIgnoreVerify(CMapObjectCompanion* self, void*, int value) {
-    CompanionIgnore(self, nullptr, value);
+    self->IgnoreArgument(value);
     ei::verify::Check("CMapObjectCompanion empty slot", true, true, "");
 }
 EI_VERIFY(0x005106D0, CompanionIgnoreVerify, 0, s_unused);
 EI_VERIFY(0x00510700, CompanionIgnoreVerify, 0, s_unused);
 
 static int __fastcall CompanionQueryVerify(CMapObjectCompanion* self, void*, int first, int second) {
-    int result = CompanionQuery(self, nullptr, first, second);
+    int result = self->QueryNothing(first, second);
     ei::verify::Check("CMapObjectCompanion::Query", 0, result, "");
     return result;
 }
 EI_VERIFY(0x005104C0, CompanionQueryVerify, 0, s_unused);
 
 static void __fastcall CompanionHitVerify(CMapObjectCompanion* self, void*, int damage, int kind) {
-    CompanionHit(self, nullptr, damage, kind);
+    self->HitNothing(damage, kind);
     ei::verify::Check("CMapObjectCompanion::Hit", true, true, "");
 }
 EI_VERIFY(0x005106F0, CompanionHitVerify, 0, s_unused);

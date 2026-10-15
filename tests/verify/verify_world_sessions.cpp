@@ -25,7 +25,6 @@ using netlink::DriverSession;
 const char* __fastcall PlayerManagerClassName(CPlayerManager*);
 int __fastcall PlayerManagerClassId(CPlayerManager*);
 void __fastcall PlayerManagerDestruct(CPlayerManager* self);
-CPlayerManager* __fastcall PlayerManagerDelete(CPlayerManager* self, void*, unsigned flags);
 const char* __fastcall EffectManagerClassName(CBaseManager*);
 int __fastcall EffectManagerClassId(CBaseManager*);
 void __fastcall EffectManagerDestruct(CBaseManager* self);
@@ -34,7 +33,6 @@ BOOL __fastcall EffectManagerCreate(CBaseManager* self);
 const char* __fastcall ItemManagerClassName(CItemManager*);
 int __fastcall ItemManagerClassId(CItemManager*);
 void __fastcall ItemManagerDestruct(CItemManager* self);
-CItemManager* __fastcall ItemManagerDelete(CItemManager* self, void*, unsigned flags);
 
 namespace {
 
@@ -96,7 +94,7 @@ void __fastcall PlayerDestructVerify(CPlayerManager* self) {
     ei::verify::Check("PlayerManagerDestruct", CEngineObject::kVtableAddress, VtableOf(self), "");
 }
 void* __fastcall PlayerDeleteVerify(CPlayerManager* self, void*, unsigned flags) {
-    void* result = PlayerManagerDelete(self, nullptr, flags);
+    void* result = self->DeleteScalar(flags);
     ei::verify::Check("PlayerManagerDelete", static_cast<void*>(self), result, "");
     return result;
 }
@@ -121,7 +119,7 @@ void __fastcall ItemDestructVerify(CItemManager* self) {
     ei::verify::Check("ItemManagerDestruct", CEngineObject::kVtableAddress, VtableOf(self), "");
 }
 void* __fastcall ItemDeleteVerify(CItemManager* self, void*, unsigned flags) {
-    void* result = ItemManagerDelete(self, nullptr, flags);
+    void* result = self->DeleteScalar(flags);
     ei::verify::Check("ItemManagerDelete", static_cast<void*>(self), result, "");
     return result;
 }

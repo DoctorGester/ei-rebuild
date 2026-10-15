@@ -4,6 +4,7 @@
 // erase); a start-up check runs the original and ours on twin destinations and compares them.
 #include "verify.h"
 
+#include "../../src/game/lever.h"
 #include "../../src/lib/mfc.h"
 
 #include <cstdint>
@@ -11,10 +12,7 @@
 #include <string>
 #include <vector>
 
-struct LeverRecord;   // lever.h
 namespace app {
-LeverRecord* __fastcall RecordCopyConstruct(LeverRecord* self, void*, const LeverRecord* from);
-LeverRecord* __fastcall RecordAssign(LeverRecord* self, void*, const LeverRecord* from);
 LeverRecord* __fastcall RecordsCopyForward(LeverRecord* first, LeverRecord* last, LeverRecord* result, const void*, int);
 } // namespace app
 
@@ -30,12 +28,12 @@ bool SameRecord(const void* a, const void* b) {
 }
 
 LeverRecord* __fastcall CopyVerify(LeverRecord* self, void*, const LeverRecord* from) {
-    app::RecordCopyConstruct(self, nullptr, from);
+    self->CopyConstruct(from);
     ei::verify::Check("LeverRecord copy", true, SameRecord(self, from), "");
     return self;
 }
 LeverRecord* __fastcall AssignVerify(LeverRecord* self, void*, const LeverRecord* from) {
-    app::RecordAssign(self, nullptr, from);
+    self->Assign(from);
     ei::verify::Check("LeverRecord assign", true, SameRecord(self, from), "");
     return self;
 }

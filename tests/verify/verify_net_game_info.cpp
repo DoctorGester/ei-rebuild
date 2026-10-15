@@ -22,7 +22,7 @@ GameBuffer* __fastcall CopyOutVerify(GameBuffer* buffer, void*, void* to, unsign
     GameBuffer copy = *buffer;
     std::vector<std::uint8_t> scratch(size + 1);
     GameBuffer* expected = s_copyOut(&copy, nullptr, scratch.data(), size);
-    GameBuffer* actual = net::BufferCopyOut(buffer, nullptr, to, size);
+    GameBuffer* actual = buffer->CopyOut(to, size);
     bool ok = expected == &copy && actual == buffer && copy.cur == buffer->cur &&
               std::memcmp(scratch.data(), to, size) == 0;
     ei::verify::Check("BufferCopyOut", true, ok, "size %u", size);
@@ -34,14 +34,14 @@ unsigned(__fastcall* s_read)(GameBuffer*, void*, void*, unsigned);
 unsigned __fastcall ReadVerify(GameBuffer* buffer, void*, void* to, unsigned size) {
     std::uint8_t* next = buffer->cur + size;
     if (next > buffer->high || next > buffer->end) {
-        unsigned result = net::BufferRead(buffer, nullptr, to, size);
+        unsigned result = buffer->ReadBytes(to, size);
         ei::verify::Check("BufferRead (slow)", true, true, "");
         return result;
     }
     GameBuffer copy = *buffer;
     std::vector<std::uint8_t> scratch(size + 1);
     unsigned expected = s_read(&copy, nullptr, scratch.data(), size);
-    unsigned actual = net::BufferRead(buffer, nullptr, to, size);
+    unsigned actual = buffer->ReadBytes(to, size);
     bool ok = expected == actual && copy.cur == buffer->cur && std::memcmp(scratch.data(), to, size) == 0;
     ei::verify::Check("BufferRead", true, ok, "size %u", size);
     return actual;

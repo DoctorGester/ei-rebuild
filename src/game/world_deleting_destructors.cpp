@@ -39,35 +39,35 @@ __declspec(naked) void __fastcall WaypointListDestruct(void*) EI_ORIGINAL(0x005B
 
 } // namespace
 
-AIRef* __fastcall AIRefDelete(AIRef* self, void*, unsigned flags) {
-    return DestroyAndFree(self, flags, [](AIRef* ref) { ref->Reset(); });
+AIRef* AIRef::DeleteScalar(unsigned flags) {
+    return DestroyAndFree(this, flags, [](AIRef* ref) { ref->Reset(); });
 }
-EI_REPLACE(0x00558CA0, AIRefDelete);
+EI_REPLACE_METHOD(0x00558CA0, AIRef::DeleteScalar);
 
-AICallRecord* __fastcall AICallRecordDelete(AICallRecord* self, void*, unsigned flags) {
-    return DestroyAndFree(self, flags, [](AICallRecord* call) { call->Destruct(); });
+AICallRecord* AICallRecord::DeleteScalar(unsigned flags) {
+    return DestroyAndFree(this, flags, [](AICallRecord* call) { call->Destruct(); });
 }
-EI_REPLACE(0x00558CC0, AICallRecordDelete);
+EI_REPLACE_METHOD(0x00558CC0, AICallRecord::DeleteScalar);
 
-RefPtr* __fastcall RefPtrDestroyDelete(RefPtr* self, void*, unsigned flags) {
-    return DestroyAndFree(self, flags, [](RefPtr* pointer) { pointer->Destroy(); });
+RefPtr* RefPtr::DeleteDestroyed(unsigned flags) {
+    return DestroyAndFree(this, flags, [](RefPtr* pointer) { pointer->Destroy(); });
 }
-EI_REPLACE(0x00560590, RefPtrDestroyDelete);
+EI_REPLACE_METHOD(0x00560590, RefPtr::DeleteDestroyed);
 
-ScriptPointLight* __fastcall ScriptPointLightDelete(ScriptPointLight* self, void*, unsigned flags) {
-    return DestroyAndFree(self, flags, [](ScriptPointLight* light) { light->ScriptPointLightDestruct(); });
+ScriptPointLight* ScriptPointLight::DeleteScalar(unsigned flags) {
+    return DestroyAndFree(this, flags, [](ScriptPointLight* light) { light->ScriptPointLightDestruct(); });
 }
-EI_REPLACE(0x0059DD70, ScriptPointLightDelete);
+EI_REPLACE_METHOD(0x0059DD70, ScriptPointLight::DeleteScalar);
 
-CFigureManager* __fastcall FigureManagerDelete(CFigureManager* self, void*, unsigned flags) {
-    return DestroyAndFree(self, flags, [](CFigureManager* manager) { DestroyFigureManager(reinterpret_cast<char*>(manager)); });
+CFigureManager* CFigureManager::DeleteScalar(unsigned flags) {
+    return DestroyAndFree(this, flags, [](CFigureManager* manager) { DestroyFigureManager(reinterpret_cast<char*>(manager)); });
 }
-EI_REPLACE(0x005AA1A0, FigureManagerDelete);
+EI_REPLACE_METHOD(0x005AA1A0, CFigureManager::DeleteScalar);
 
-mapspec::Behaviour* __fastcall BehaviourDelete(mapspec::Behaviour* self, void*, unsigned flags) {
-    return DestroyAndFree(self, flags, [](mapspec::Behaviour* behaviour) { mapspec::BehaviourDestruct(behaviour); });
+mapspec::Behaviour* mapspec::Behaviour::DeleteScalar(unsigned deleteFlags) {
+    return DestroyAndFree(this, deleteFlags, [](mapspec::Behaviour* behaviour) { mapspec::BehaviourDestruct(behaviour); });
 }
-EI_REPLACE(0x005DA290, BehaviourDelete);
+EI_REPLACE_METHOD(0x005DA290, mapspec::Behaviour::DeleteScalar);
 
 CEngineObject** __fastcall ObjectHolderDelete(CEngineObject** self, void*, unsigned flags) {
     return DestroyAndFree(self, flags, [](CEngineObject** holder) { ObjectHolderRelease(holder); });

@@ -183,7 +183,7 @@ std::uint8_t*(__fastcall* s_viewSeek)(GameBuffer*, void*, std::int32_t);
 std::uint8_t* __fastcall BufferViewSeekVerify(GameBuffer* self, void*, std::int32_t position) {
     GameBuffer copy = *self;
     std::uint8_t* expected = s_viewSeek(&copy, nullptr, position);
-    std::uint8_t* actual = BufferViewSeek(self, nullptr, position);
+    std::uint8_t* actual = self->SeekView(position);
     ei::verify::Check("BufferViewSeek", true, expected == actual && std::memcmp(&copy, self, sizeof(GameBuffer)) == 0, "position %d",
                       position);
     return actual;
@@ -200,7 +200,7 @@ void __fastcall BufferViewDestructVerify(GameBuffer* self) {
 
 // 0047D940: a CALL at +3: ours only.
 void* __fastcall BufferViewDeletingDestructorVerify(GameBuffer* self, void*, unsigned flags) {
-    void* result = BufferViewDeletingDestructor(self, nullptr, flags);
+    void* result = self->DeleteView(flags);
     ei::verify::Check("BufferViewDeletingDestructor", static_cast<void*>(self), result, "");
     return result;
 }
@@ -209,13 +209,13 @@ void* __fastcall BufferViewDeletingDestructorVerify(GameBuffer* self, void*, uns
 void*(__fastcall* s_baseDelete)(GameBuffer*, void*, unsigned);
 void* __fastcall BufferViewBaseDeletingDestructorVerify(GameBuffer* self, void*, unsigned flags) {
     if (flags & 1) {
-        void* result = BufferViewBaseDeletingDestructor(self, nullptr, flags);
+        void* result = self->DeleteViewBase(flags);
         ei::verify::Check("BufferViewBaseDeletingDestructor", static_cast<void*>(self), result, "");
         return result;
     }
     GameBuffer copy = *self;
     void* expected = s_baseDelete(&copy, nullptr, flags);
-    void* actual = BufferViewBaseDeletingDestructor(self, nullptr, flags);
+    void* actual = self->DeleteViewBase(flags);
     bool same = expected == static_cast<void*>(&copy) && actual == static_cast<void*>(self) &&
                 std::memcmp(&copy, self, sizeof(GameBuffer)) == 0;
     ei::verify::Check("BufferViewBaseDeletingDestructor", true, same, "");

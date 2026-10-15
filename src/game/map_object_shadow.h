@@ -55,6 +55,7 @@ static_assert(sizeof(TextureParts) == 0x14);
 
 class CObject3DClientSpecific : public CEngineObject {
 public:
+    CObject3DClientSpecific* DeleteScalar(unsigned flags);
     // 0051CE60. Draws the object's shadow (`context` is the scene renderer, 007AF060). When shadows
     // are on for its kind (0079BD0C > 0 and the per-kind switch) and the object is shown: unless
     // the shadow is still valid, sums the lights reaching the object into a direction (tilted

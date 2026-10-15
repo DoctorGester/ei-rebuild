@@ -74,7 +74,7 @@ void SessionBase::Tick(double dt) {
         char kind;
         if (buffer->cur + 1 > buffer->high) BufferReadPastEnd(buffer, nullptr, &kind, 1);
         else if (buffer->cur + 1 > buffer->end) buffer->ReadMore(&kind, 1u);
-        else BufferCopyOut(buffer, nullptr, &kind, 1);
+        else buffer->CopyOut(&kind, 1);
         BufferUpdateHigh(buffer);
         BufferCursor cursor{};
         cursor.p = buffer->begin + 1;
