@@ -2061,7 +2061,7 @@ id = "S19c"
 title = "EI_Plugin NewMaster's second master server: port or drop (user's decision)"
 group = "standalone"
 size = 0.5
-note = "From S19a: the plugin's hat.gipath.org:28004 link is not reproduced: a resolver thread started by the main menu's click (00632D70 at 006330A9; 300 ms first wait, retried every 10 s), a copy of each master announcement with 0xDEADBEEF, the count and the players' names (0041AA10 at 0041ABDA) and a 1 s TCP connect probe of the configured master with fallback in CMpConnectScreen::MasterRequest 0061D0D0 (0061D138). Hooked Rebirth keeps the plugin's code there; the image runs vanilla. Options and costs: docs/notes/rebirth.md (EI_Plugin.asi). Waits for the user: port it (harness runs kept offline), port it behind an opt-in setting, or drop it."
+note = "User 2026-10-15: port it behind an opt-in setting (master address in ei_rebirth.ini, empty in harness runs so runs stay offline). Check offline against a local listener; goldens can't cover it."
 
 # ---------------------------------------------------------------- Lua
 
