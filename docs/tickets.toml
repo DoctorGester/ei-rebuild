@@ -1561,10 +1561,11 @@ done = "2026-10-15"
 id = "S10"
 title = "Standalone library: STLport vector<T>"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1
 files = ["src/lib/stlp_vector.h", "src/lib/stlp.h"]
 note = "About 280: vector resize / _M_insert_overflow / _M_fill_insert / erase / push_back / clear, _Vector_base, _STLP_alloc_proxy (70 deallocate). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S11"
@@ -1684,9 +1685,10 @@ done = "2026-10-15"
 id = "S3b"
 title = "Standalone: constructors only the static initialisers call"
 group = "standalone"
-status = "queued"
+status = "running"
 depends = ["S3"]
 note = "Call targets of the generated static initialisers (src/standalone/static_init.cpp) that no library ticket covers, as the standalone check lists them: compiler-generated global constructors 0051FB10 (skill archive), 005612F0 (CWorldClient), 00589ED0 (CWorldServer), 0057E2F0 (spell tables), 0057E3D0 (item database), 0065F580 (multiplayer heroes), 006AE0F0 (quest database), 006D0250 (prints), 006D7220 (acks), 005CDFC0; MFC internals 006E6BCD (x10), 006E68C9, 006E6916, 006E6AEA, 006E6B37, 0070B600, 0070D1AA, 00704546 (x4), 0070DC4D, 00700674 (x5), 006FC42F (x8). Check first which S4-S12 already take (CString, CWordArray, CByteArray, CArray, CList, hashtable and stlp ctors 00455E50, 004ED540, 0056A410, 004DC830, 0066B320, 005E0A90; atexit, eh vector constructor, the WSAStartup thunk). Port with EI_REPLACE at the address and a verify start-up check where they build data. docs/notes/standalone.md S3."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S15a"
