@@ -1,9 +1,9 @@
 // Differential checks for the script savegame loaders (src/game/script_load.cpp).
 //
-// Record / replay: the original reads the real stream into a fresh, empty scratch object (every
-// Read recorded: size, result, bytes), ours replays the recording into the real object. Both must
-// make the same reads, and the objects must end equal; the scratch is then destroyed (its object
-// references released). This needs the real object to be empty on entry (it always is when a save
+// Record / replay: ours reads the real stream into the real object (every Read recorded: size,
+// result, bytes), then the original replays the recording into a fresh, empty scratch object made
+// afterwards (SV2h1: ours allocates first). Both must make the same reads, and the objects must end
+// equal; the scratch is then destroyed (its object references released). This needs the real object to be empty on entry (it always is when a save
 // is loaded: the world is new); otherwise ours runs alone on the real stream and only the shape is
 // checked. Command blocks, definitions and runs are compared through their savers (bytes written).
 // Nested loaders run through their own wrappers in both runs. CScript::Load itself runs ours only.
@@ -200,9 +200,9 @@ void VarsVerify(const char* name, VarsLoadFn<T> original, VarsLoadFn<T> ours, Sc
     }
     ScriptNamedValues<T> scratch{EmptyLike(self->values), EmptyLike(self->names)};
     RecordStream record(stream);
-    original(&scratch, nullptr, record.AsScript());
+    ours(self, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    ours(self, nullptr, replay.AsScript());
+    original(&scratch, nullptr, replay.AsScript());
     bool ok = SameShape(scratch.values, self->values) && SameNames(scratch.names, self->names);
     for (int i = 0; ok && i < self->values.size; ++i) ok = same(scratch.values.data[i], self->values.data[i]);
     char what[64];
@@ -279,9 +279,9 @@ bool SameVars(const ScriptVars& a, const ScriptVars& b) {
 }
 
 // 004B3AD0: PUSH ECX; PUSH EBX; PUSH EBP; PUSH ESI; MOV ESI,[ESP+0x14] (8 bytes). Called on new
-// definitions, instances and runs (empty sets): the original loads into a scratch set built by the
-// ScriptVars constructor 004C00D0, ours replays into the real one; the scratch is destroyed with
-// 004BE090 (its references released).
+// definitions, instances and runs (empty sets): ours loads into the real one, then the original
+// replays into a scratch set built by the ScriptVars constructor 004C00D0; the scratch is destroyed
+// with 004BE090 (its references released).
 void(__fastcall* s_vars)(ScriptVars*, void*, ScriptStream*);
 void __fastcall VarsLoadVerify(ScriptVars* self, void*, ScriptStream* stream) {
     if (!EmptyVars(*self)) {
@@ -292,13 +292,13 @@ void __fastcall VarsLoadVerify(ScriptVars* self, void*, ScriptStream* stream) {
                           "ours only: value and name counts differ");
         return;
     }
+    RecordStream record(stream);
+    self->Load(record.AsScript());
     alignas(ScriptVars) unsigned char raw[sizeof(ScriptVars)];
     VarsConstruct(raw);
     auto* scratch = reinterpret_cast<ScriptVars*>(raw);
-    RecordStream record(stream);
-    s_vars(scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    self->Load(replay.AsScript());
+    s_vars(scratch, nullptr, replay.AsScript());
     char what[96];
     std::snprintf(what, sizeof(what), "%d/%d/%d/%d vs %d/%d/%d/%d variables", scratch->floats.size,
                   scratch->strings.size, scratch->objects.size, scratch->groups.size, self->floats.size,
@@ -334,8 +334,8 @@ bool SameLoadedCmd(const SSCCmd& a, const SSCCmd& b) {
            a.calledScript == b.calledScript && Saved(CmdSave, &a) == Saved(CmdSave, &b);
 }
 
-// 004B5FE0: SUB ESP,0xC; PUSH EBX; MOV EBX,[ESP+0x14] (8 bytes). The original reads into a fresh
-// scratch command (constructed with 004D0A50); compared: SSCCmd::Save's bytes (id, floats, strings,
+// 004B5FE0: SUB ESP,0xC; PUSH EBX; MOV EBX,[ESP+0x14] (8 bytes). Ours reads, then the original
+// replays into a fresh scratch command (constructed with 004D0A50); compared: SSCCmd::Save's bytes (id, floats, strings,
 // argument counts, bindings, the nested trees, the called block's id), every array's size and
 // capacity, null object / group slots, the called block pointer. Nested commands load through
 // this wrapper again (004B6330 calls it) in both runs.
@@ -347,12 +347,12 @@ void __fastcall CmdLoadVerify(SSCCmd* self, void*, ScriptStream* stream) {
                           "ours only: command %d", self->id);
         return;
     }
+    RecordStream record(stream);
+    self->Load(record.AsScript());
     alignas(SSCCmd) unsigned char raw[sizeof(SSCCmd)];
     SSCCmd* scratch = CmdConstruct(raw);
-    RecordStream record(stream);
-    s_cmd(scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    self->Load(replay.AsScript());
+    s_cmd(scratch, nullptr, replay.AsScript());
     bool ok = SameLoadedCmd(*scratch, *self);
     char what[64];
     std::snprintf(what, sizeof(what), "command %d vs %d", scratch->id, self->id);
@@ -361,17 +361,17 @@ void __fastcall CmdLoadVerify(SSCCmd* self, void*, ScriptStream* stream) {
 }
 
 // 004B6330: PUSH ESI; MOV ESI,[ESP+8]; PUSH EDI (6 bytes). One nested call element (SSCCmd::Load
-// calls it per element). The original reads into a scratch element whose command is fresh (built
-// with 004D0A50), ours replays into the real one; type, argument index and the two commands
+// calls it per element). Ours reads into the real one, then the original replays into a scratch
+// element whose command is fresh (built with 004D0A50); type, argument index and the two commands
 // compared as in ScriptCmdLoad. Both command loads run through the 004B5FE0 wrapper.
 void(__fastcall* s_subCall)(ScriptSubCall*, void*, ScriptStream*);
 void __fastcall SubCallLoadVerify(ScriptSubCall* self, void*, ScriptStream* stream) {
+    RecordStream record(stream);
+    self->Load(record.AsScript());
     alignas(SSCCmd) unsigned char raw[sizeof(SSCCmd)];
     ScriptSubCall scratch{0, 0, CmdConstruct(raw)};
-    RecordStream record(stream);
-    s_subCall(&scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    self->Load(replay.AsScript());
+    s_subCall(&scratch, nullptr, replay.AsScript());
     bool ok = scratch.type == self->type && scratch.argIndex == self->argIndex && self->cmd &&
               SameLoadedCmd(*scratch.cmd, *self->cmd);
     char what[96];
@@ -382,15 +382,15 @@ void __fastcall SubCallLoadVerify(ScriptSubCall* self, void*, ScriptStream* stre
 }
 
 // 004B3D10: PUSH -1; PUSH 0x717EB8 (7 bytes). A string (every name and string value of a loaded
-// save): the original reads into a scratch empty CString, ours replays into the real one; the
-// texts compared.
+// save): ours reads into the real one, then the original replays into a scratch empty CString;
+// the texts compared.
 void(__fastcall* s_string)(mfc::CString*, ScriptStream*);
 void __fastcall StringLoadVerify(mfc::CString* self, ScriptStream* stream) {
     mfc::CString scratch;
     RecordStream record(stream);
-    s_string(&scratch, record.AsScript());
+    ScriptStringLoad(self, record.AsScript());
     ReplayStream replay(stream, record);
-    ScriptStringLoad(self, replay.AsScript());
+    s_string(&scratch, replay.AsScript());
     char what[96];
     std::snprintf(what, sizeof(what), "\"%.32s\" vs \"%.32s\"", static_cast<const char*>(scratch),
                   static_cast<const char*>(*self));
@@ -409,9 +409,9 @@ void __fastcall DeclCommandsVerify(ScriptDecl* self, ScriptStream* stream) {
     }
     ScriptDecl scratch{EmptyLike(self->commands), self->id};
     RecordStream record(stream);
-    s_declCommands(&scratch, record.AsScript());
+    ScriptDeclCommandsLoad(self, record.AsScript());
     ReplayStream replay(stream, record);
-    ScriptDeclCommandsLoad(self, replay.AsScript());
+    s_declCommands(&scratch, replay.AsScript());
     bool ok = SameShape(scratch.commands, self->commands) && Saved(DeclSave, &scratch) == Saved(DeclSave, self);
     char what[64];
     std::snprintf(what, sizeof(what), "block %d: %d vs %d commands", self->id, scratch.commands.size, self->commands.size);
@@ -429,9 +429,9 @@ void __fastcall IfThenVerify(mfc::CArray<ScriptIfThen>* self, ScriptStream* stre
     }
     mfc::CArray<ScriptIfThen> scratch = EmptyLike(*self);
     RecordStream record(stream);
-    s_ifThen(&scratch, record.AsScript());
+    ScriptIfThenLoad(self, record.AsScript());
     ReplayStream replay(stream, record);
-    ScriptIfThenLoad(self, replay.AsScript());
+    s_ifThen(&scratch, replay.AsScript());
     bool ok = SameShape(scratch, *self) &&
               (self->size <= 0 || std::memcmp(scratch.data, self->data, self->size * sizeof(ScriptIfThen)) == 0);
     char what[64];
@@ -441,14 +441,14 @@ void __fastcall IfThenVerify(mfc::CArray<ScriptIfThen>* self, ScriptStream* stre
 }
 
 // 004BB590: PUSH ECX; PUSH ESI; MOV ESI,[ESP+0xC] (6 bytes). Both fields are always written: the
-// original reads into a scratch pair, ours replays into the real one.
+// ours reads into the real pair, then the original replays into a scratch one.
 void(__fastcall* s_pair)(ScriptIfThen*, void*, ScriptStream*);
 void __fastcall PairLoadVerify(ScriptIfThen* self, void*, ScriptStream* stream) {
     ScriptIfThen scratch{};
     RecordStream record(stream);
-    s_pair(&scratch, nullptr, record.AsScript());
+    self->Load(record.AsScript());
     ReplayStream replay(stream, record);
-    self->Load(replay.AsScript());
+    s_pair(&scratch, nullptr, replay.AsScript());
     char what[96];
     std::snprintf(what, sizeof(what), "blocks %p %p vs %p %p", static_cast<void*>(scratch.conditions),
                   static_cast<void*>(scratch.commands), static_cast<void*>(self->conditions),
@@ -468,8 +468,8 @@ ScriptDecl* __fastcall FindBlockVerify(const CScript* self, void*, int id) {
 }
 
 // ---- Effects (src/game/script_effects.cpp) -------------------------------------------------------------
-// A loaded save with point lights or FX sources (script_fx): the original reads into a zeroed scratch
-// element, ours replays into the real one; all fields compared (an FX source's name as text); the
+// A loaded save with point lights or FX sources (script_fx): ours reads into the real element, then
+// the original replays into a zeroed scratch one; all fields compared (an FX source's name as text); the
 // scratch's object reference dropped again.
 
 // 004B18B0: PUSH EBX; PUSH ESI; MOV ESI,[ESP+0xC] (6 bytes).
@@ -477,9 +477,9 @@ void(__fastcall* s_pointLight)(ScriptPointLight*, void*, ScriptStream*);
 void __fastcall PointLightLoadVerify(ScriptPointLight* self, void*, ScriptStream* stream) {
     ScriptPointLight scratch{};
     RecordStream record(stream);
-    s_pointLight(&scratch, nullptr, record.AsScript());
+    self->ScriptPointLightLoad(record.AsScript());
     ReplayStream replay(stream, record);
-    self->ScriptPointLightLoad(replay.AsScript());
+    s_pointLight(&scratch, nullptr, replay.AsScript());
     char what[64];
     std::snprintf(what, sizeof(what), "light %d vs %d", scratch.id, self->id);
     Report("ScriptPointLightLoad", std::memcmp(&scratch, self, sizeof(scratch)) == 0, replay, record, what);
@@ -491,9 +491,9 @@ void(__fastcall* s_fxSource)(ScriptFxSource*, void*, ScriptStream*);
 void __fastcall FxSourceLoadVerify(ScriptFxSource* self, void*, ScriptStream* stream) {
     ScriptFxSource scratch{};
     RecordStream record(stream);
-    s_fxSource(&scratch, nullptr, record.AsScript());
+    self->ScriptFxSourceLoad(record.AsScript());
     ReplayStream replay(stream, record);
-    self->ScriptFxSourceLoad(replay.AsScript());
+    s_fxSource(&scratch, nullptr, replay.AsScript());
     bool same = scratch.object == self->object && scratch.id == self->id && SameString(scratch.name, self->name) &&
                 std::memcmp(&scratch.position, &self->position, sizeof(ScriptFxSource) - offsetof(ScriptFxSource, position)) == 0;
     char what[96];
@@ -507,8 +507,9 @@ void __fastcall FxSourceLoadVerify(ScriptFxSource* self, void*, ScriptStream* st
 
 using ListLoadFn = void(__fastcall*)(ScriptList*, ScriptStream*);
 
-// Record / replay for a list loader: `same` compares two nodes' elements, `destroy` frees one
-// scratch element; the scratch's blocks are freed here.
+// Record / replay for a list loader (ours records, the original replays into the scratch list):
+// `same` compares two nodes' elements, `destroy` frees one scratch element; the scratch's blocks are
+// freed here.
 template <typename Same, typename Destroy>
 void ListVerify(const char* name, ListLoadFn original, ListLoadFn ours, ScriptList* self, ScriptStream* stream,
                 Same same, Destroy destroy) {
@@ -519,9 +520,9 @@ void ListVerify(const char* name, ListLoadFn original, ListLoadFn ours, ScriptLi
     }
     ScriptList scratch = EmptyLike(*self);
     RecordStream record(stream);
-    original(&scratch, record.AsScript());
+    ours(self, record.AsScript());
     ReplayStream replay(stream, record);
-    ours(self, replay.AsScript());
+    original(&scratch, replay.AsScript());
     bool ok = scratch.count == self->count && WellFormed(scratch) && WellFormed(*self);
     int index = 0;
     for (ScriptListNode *a = scratch.head, *b = self->head; ok && a && b; a = a->next, b = b->next, ++index)
@@ -529,7 +530,8 @@ void ListVerify(const char* name, ListLoadFn original, ListLoadFn ours, ScriptLi
     char what[64];
     std::snprintf(what, sizeof(what), "%d vs %d nodes, node %d", scratch.count, self->count, index);
     Report(name, ok, replay, record, what);
-    for (ScriptListNode* node = scratch.head; node; node = node->next) destroy(node->data.bytes);
+    // Last to first: the elements' strings go back to their allocators as they were (kept_strings.h).
+    for (ScriptListNode* node = scratch.tail; node; node = node->prev) destroy(node->data.bytes);
     mfc::PlexFreeDataChain(scratch.blocks);
 }
 
