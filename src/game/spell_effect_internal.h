@@ -6,6 +6,7 @@
 
 #include "game_strings.h"
 #include "spell.h"
+#include "world_data.h"
 
 #include "combat.h"
 #include "console.h"
@@ -53,20 +54,8 @@ constexpr float kHearing = 50.0f;
 constexpr float kLoud = 1000.0f;
 
 // Constants the original reads from memory (Rebirth may patch data; read them as the original does).
-inline float ConstAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-inline const float* ConstPtr(std::uintptr_t address) { return reinterpret_cast<const float*>(address); }
-constexpr std::uintptr_t kOne = 0x0073B84C;             // 1.0
-constexpr std::uintptr_t kAcidRayScale = 0x0073B868;    // 0.4
-constexpr std::uintptr_t kFireballScale = 0x0073C54C;   // 0.3
-constexpr std::uintptr_t kFireballNear = 0x0073CF50;    // 1.25
-constexpr std::uintptr_t kStrikeDepth = 0x0073BAA4;     // 3.0
-constexpr std::uintptr_t kStrikeHeight = 0x0073BAF0;    // 30.0
-constexpr std::uintptr_t kStrikeWidth = 0x007439B0;     // -7.0
-constexpr std::uintptr_t kLightAbove = 0x0073BF34;      // 5.0
-constexpr std::uintptr_t kBoltWidthScale = 0x0073BF34;  // 5.0 (the same constant)
-constexpr std::uintptr_t kTeleportDepth = 0x0073BAD4;   // 0.2
-constexpr std::uintptr_t kBuffScale = 0x0073CA98;       // 16.0
-constexpr std::uintptr_t kTargetHeight = 0x0073CDF4;    // 1.2
+inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
+inline const float* ConstPtr(const float& constant) { return &constant; }
 constexpr float kDefaultSpeed = 5.0f;                   // immediate in the fireball case
 constexpr float kHalfBits = 0.5f;                       // immediate pushed to the footprint builder
 
@@ -547,7 +536,7 @@ inline float Power(CSpellEffect* e) {
     PowerToFloat(&e->damage, reinterpret_cast<const float*>(Prototype(e) + 0x2C), &out);
     return out;
 }
-inline float PowerScaled(CSpellEffect* e, std::uintptr_t scale) {
+inline float PowerScaled(CSpellEffect* e, const float& scale) {
     float out;
     PowerScaledToFloat(&e->damage, reinterpret_cast<const float*>(Prototype(e) + 0x2C), ConstPtr(scale), &out);
     return out;
@@ -563,7 +552,7 @@ inline float LightRise(CSpellEffect* e) {
 }
 
 // The same quotient left unrounded and multiplied by the constant at `scale`, then rounded.
-inline float LightRiseScaled(CSpellEffect* e, std::uintptr_t scale) {
+inline float LightRiseScaled(CSpellEffect* e, const float& scale) {
     float value;
     std::memcpy(&value, Prototype(e) + 0x74, 4);
     float range = PrototypeRange(e);

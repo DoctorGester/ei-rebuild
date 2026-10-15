@@ -5,6 +5,7 @@
 
 #include "base_manager.h"
 #include "core_maths.h"
+#include "game_strings.h"
 #include "map_object.h"
 #include "random.h"
 #include "world_effect.h"
@@ -170,9 +171,7 @@ void CWorldServer::UpdateWeather() {
 
 namespace {
 
-constexpr std::uintptr_t kThunderScript = 0x007904A8;
 // "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
-constexpr std::uintptr_t kLightningScript = 0x00790394;
 // "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( %f,%f,%f,...,"nature\lightning\%i.wav" )
 //  CreateLightning(1, from, to,-7) ... CreateLightning(2, from, to,-7) ... )"
 constexpr std::uintptr_t kScriptQueue = 0x007C29CC;   // a command queue (004D23A0 adds a line)
@@ -198,13 +197,13 @@ void __fastcall ShowBolt(void* /*glue*/, void*, Vector3 from, Vector3 to) {
     if ((Random().Next() & 3) == 0) {
         // Thunder only: one of four sounds at `from`.
         unsigned sound = (Random().Next() & 3) + 1;
-        text.Format(reinterpret_cast<const char*>(kThunderScript), fx, fy, fz, sound);
+        text.Format(game::weathertexts::ThunderScript(), fx, fy, fz, sound);
         mfc::CString line = prefix + text;
         QueueAddLine(reinterpret_cast<void*>(kScriptQueue), nullptr, &line, 1);
     } else {
         // A light at the middle, one of three sounds, and two bolts from `from` to `to`.
         unsigned sound = Random().Next() % 3 + 1;
-        text.Format(reinterpret_cast<const char*>(kLightningScript), static_cast<double>(midX),
+        text.Format(game::weathertexts::LightningScript(), static_cast<double>(midX),
                     static_cast<double>(midY), static_cast<double>(midZ), fx, fy, fz, sound, fx, fy, fz, tx, ty,
                     tz, fx, fy, fz, tx, ty, tz);
         QueueAddLine(reinterpret_cast<void*>(kScriptQueue), nullptr, &text, 1);

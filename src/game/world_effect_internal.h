@@ -7,6 +7,7 @@
 #include "world_effect.h"
 #include "game_strings.h"
 #include "world.h"
+#include "world_data.h"
 
 #include "ei/hook.h"
 #include "originals_core.h"
@@ -37,14 +38,7 @@ inline std::uint8_t FrameCounter() { return *reinterpret_cast<const std::uint8_t
 inline BitStream* ReadSnapshot() { return *reinterpret_cast<BitStream**>(0x007A9794); }
 
 // Constants the original reads from memory (read the same way so nothing is folded).
-inline float ConstAt(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-constexpr std::uintptr_t kZero = 0x0073B858;          // 0.0
-constexpr std::uintptr_t kOne = 0x0073B84C;           // 1.0
-constexpr std::uintptr_t kHalf = 0x0073B86C;          // 0.5
-constexpr std::uintptr_t kRangeEpsilon = 0x0073CCF4;  // 0.001
-constexpr std::uintptr_t kScorchAlpha = 0x0073CDE0;   // 0.6
-constexpr std::uintptr_t kScorchMargin = 0x0073C54C;  // 0.3
-constexpr std::uintptr_t kDefaultRadius = 0x007433AC; // 100.0
+inline float ConstAt(const float& constant) { return *reinterpret_cast<const volatile float*>(&constant); }
 inline double AngleScale() { return *reinterpret_cast<const volatile double*>(0x0073FFD0); }  // ~2 pi / 2^32
 
 // By reference: a float passed by value would be loaded and stored through the FPU.

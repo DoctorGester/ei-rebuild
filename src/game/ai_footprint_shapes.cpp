@@ -12,8 +12,6 @@
 
 namespace {
 
-float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-constexpr std::uintptr_t kCellSize = 0x0073FD18;   // 1.0
 
 // Empties the set (SetSize(0, -1)) and its buckets when it was hashed.
 void ResetSet(FootprintCellSet* set) {
@@ -66,7 +64,7 @@ Bounds SquareAround(CAIMap* map, float cx, float cy, float r) {
 // 005B2A00 (thiscall on the set, RET 0x10).
 void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, float width, const Vector3* direction) {
     double scale = static_cast<double>(worlddata::One()) /
-                   (static_cast<double>(GameFloat(kCellSize)) * static_cast<double>(worlddata::Half()));
+                   (static_cast<double>(worlddata::CellSize()) * static_cast<double>(worlddata::Half()));
     float cx = StoreFloat(static_cast<float>(scale * position->x));
     float cy = StoreFloat(static_cast<float>(scale * position->y));
     double dx = direction->x, dy = direction->y, dz = direction->z;
@@ -97,7 +95,7 @@ void FootprintCellSet::AlongDirection(CAIMap* map, const Vector3* position, floa
 // 005B2760 (thiscall on the set, RET 0xC).
 void FootprintCellSet::DiscAt(CAIMap* map, const Vector3* position, float radius) {
     double scale = static_cast<double>(worlddata::One()) /
-                   (static_cast<double>(GameFloat(kCellSize)) * static_cast<double>(worlddata::Half()));
+                   (static_cast<double>(worlddata::CellSize()) * static_cast<double>(worlddata::Half()));
     float cx = StoreFloat(static_cast<float>(scale * position->x));
     float cy = StoreFloat(static_cast<float>(scale * position->y));
     double reach = scale * radius + static_cast<double>(worlddata::One());

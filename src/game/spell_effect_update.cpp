@@ -12,12 +12,6 @@ using namespace spellfx;
 
 namespace {
 
-constexpr std::uintptr_t kSplashScale = 0x0073C538;    // 0.7: the impact particle's size per power
-constexpr std::uintptr_t kRiseScale = 0x00743998;      // 1.5: impact lights rise faster and reach further
-constexpr std::uintptr_t kNoiseKind = 0x0074396C;      // 4.0, truncated by _ftol
-constexpr std::uintptr_t kWakeMargin = 0x0073BF34;     // 5.0
-constexpr std::uintptr_t kPossessWake = 0x00743970;    // 2.0
-constexpr std::uintptr_t kPossessWakeBase = 0x0073CCF8; // 20.0
 constexpr float kExplosionLoudness = 5.0f;             // immediate
 constexpr float kStrikeWidthImmediate = -7.0f;         // immediate in the lasting strike
 constexpr int kEndedTimer = -80;                       // the effects linger this long after ending
@@ -53,24 +47,24 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     std::memcpy(&at, &static_cast<CUnit*>(target)->position, 12);
     at.z = static_cast<float>(UnitModeSpeed(static_cast<CUnit*>(target)));
     at.z = GroundPlus(e, kWorldSlotGridHeight, e->targetPoint, &at.z);
-    float size = PowerScaled(e, kSplashScale);
+    float size = PowerScaled(e, worlddata::SplashScale());
     e->CreateParticle(0, particleType, &kZeroVector, size, 1.0f, &kZeroVector, e->target);
     e->CreateSound(0, sound, &at, &kZeroVector, kVolume, kHearing);
 
     Vector3 velocity;
     if (arrow) {
         Vector3 rise{0.0f, 0.0f, LightRise(e)};
-        velocity.x = rise.x * ConstAt(kRiseScale);
-        velocity.y = rise.y * ConstAt(kRiseScale);
-        velocity.z = rise.z * ConstAt(kRiseScale);
+        velocity.x = rise.x * ConstAt(worlddata::RiseScale());
+        velocity.y = rise.y * ConstAt(worlddata::RiseScale());
+        velocity.z = rise.z * ConstAt(worlddata::RiseScale());
     } else {
         velocity.x = 0.0f;
         velocity.y = 0.0f;
-        velocity.z = LightRiseScaled(e, kRiseScale);
+        velocity.z = LightRiseScaled(e, worlddata::RiseScale());
     }
     float range = PrototypeRange(e);
     Vector3 color = PrototypeColor(e);
-    e->CreatePointLight(&at, &color, range * ConstAt(kRiseScale), &velocity);
+    e->CreatePointLight(&at, &color, range * ConstAt(worlddata::RiseScale()), &velocity);
     e->timer = 0x23;
     e->state = 2;
 }
@@ -97,12 +91,12 @@ void FireballFlight(CSpellEffect* e) {
         float alpha = Power(e);
         ParticleSetColors(blast, nullptr, alpha, radius);
         e->CreateSound(0, game::Text(0x00795754), &at, &kZeroVector, kVolume, kHearing);
-        Vector3 velocity{0.0f, 0.0f, LightRiseScaled(e, kRiseScale)};
+        Vector3 velocity{0.0f, 0.0f, LightRiseScaled(e, worlddata::RiseScale())};
         float range = PrototypeRange(e);
         Vector3 color = PrototypeColor(e);
-        e->CreatePointLight(&at, &color, range * ConstAt(kRiseScale), &velocity);
+        e->CreatePointLight(&at, &color, range * ConstAt(worlddata::RiseScale()), &velocity);
         if (IsUnit(e->caster)) {
-            AiNoise(e->world->timeWheel_, nullptr, ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(kNoiseKind)),
+            AiNoise(e->world->timeWheel_, nullptr, ControllerOf(e->caster), kExplosionLoudness, FtolOf(ConstPtr(worlddata::NoiseKind())),
                     &e->targetPoint);
         }
         e->timer = 0x23;
@@ -148,7 +142,7 @@ void LightStrikeEcho(CSpellEffect* e) {
     e->ReleaseVisual();
     if (e->timer == 5) {
         Vector3 top = e->position;
-        top.z = top.z + ConstAt(kStrikeHeight);
+        top.z = top.z + ConstAt(worlddata::StrikeHeight());
         CEngineObject* bolt = CreateObject(e, kClassLightning);
         LightningSetEnds(bolt, nullptr, &top, &e->position, kStrikeWidthImmediate);
         e->SetVisual(bolt);
@@ -244,7 +238,7 @@ void Fireworks(CSpellEffect* e, UnitList& units) {
     int ticks = e->timer - 1;
     e->timer = ticks;
     if (ticks >= 0) {
-        float wake = e->radius + ConstAt(kWakeMargin);
+        float wake = e->radius + ConstAt(worlddata::ImpactWakeMargin());
         WorldWakeUnits(e->world, nullptr, &e->position, wake);
         SectorMapFindUnitsInRadius(e->world->Sectors(), nullptr, &e->position, &units, e->radius);
         for (auto* node = units.head; node;) {
@@ -279,7 +273,7 @@ void Clairvoyance(CSpellEffect* e, UnitList& units) {
                 GroupInsert(group, nullptr, unit);
             }
         }
-        float wake = e->radius + ConstAt(kWakeMargin);
+        float wake = e->radius + ConstAt(worlddata::ImpactWakeMargin());
         WorldWakeUnits(e->world, nullptr, &e->position, wake);
     }
     int ticks = e->timer - 1;
@@ -312,7 +306,7 @@ void Possession(CSpellEffect* e) {
         float floor = server->stats.valuesB0[2].current;
         float reach = !(sight >= floor) ? floor : sight;
         float wake;
-        MultiplyAdd(&reach, ConstPtr(kPossessWake), ConstPtr(kPossessWakeBase), &wake);
+        MultiplyAdd(&reach, ConstPtr(worlddata::PossessWake()), ConstPtr(worlddata::PossessWakeBase()), &wake);
         WorldWakeUnits(e->world, nullptr, &static_cast<CUnit*>(target)->position, wake);
     }
     int ticks = e->timer - 1;

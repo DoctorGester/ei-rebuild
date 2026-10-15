@@ -258,7 +258,7 @@ void CEffectPointLight::Start(int update) {
         float shownRange;
         std::memcpy(&shownRange, &light_->range_, 4);
         float change = FromBits(Bits(StoreFloat(shownRange - range)) & 0x7FFFFFFFu);
-        if (!(change >= ConstAt(kRangeEpsilon))) {
+        if (!(change >= ConstAt(worlddata::RangeEpsilon()))) {
             // The range is (nearly) the same: move the light.
             Vector3& at = LightPosition(light_);
             Vector3 delta;
@@ -275,7 +275,7 @@ void CEffectPointLight::Start(int update) {
         }
     }
     // A negative range (or NaN) sets flag 0x400.
-    if (!(range_ >= ConstAt(kZero)))
+    if (!(range_ >= ConstAt(worlddata::ZeroRef())))
         LightFlags(light_) |= 0x400;
     else
         LightFlags(light_) &= ~0x400u;
@@ -322,7 +322,7 @@ void CEffectPointLight::SaveState(void* stream) {
     WriteCopy(stream, &lightFlags_);
 }
 
-double CEffectPointLight::Radius() { return static_cast<double>(ConstAt(kDefaultRadius)) + range_; }
+double CEffectPointLight::Radius() { return static_cast<double>(ConstAt(worlddata::DefaultRadius())) + range_; }
 
 // --- CEffectParticle -----------------------------------------------------------------------------
 
@@ -432,13 +432,13 @@ void CEffectParticle::Spawn() {
     }
 
     if (type_ == 0x2002) {
-        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(kScorchAlpha)));
+        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t radius = Bits(param164_);
         float angle = RandomAngle(RandomNext(static_cast<IsaacRandom*>(TheRandom())));
         AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), radius, radius, Bits(angle), alpha);
     }
     if (type_ == 0x2030) {
-        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(kScorchAlpha)));
+        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t random = InlineRandom();
         std::uint32_t radius = Bits(size_);
         float angle = RandomAngle(random);
@@ -599,11 +599,11 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
     if (source_ != nullptr) std::memcpy(&source_->extent, &direction_, sizeof(Vector3));
     if (update == 0 && type_ == 0x2010) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
-        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(kScorchAlpha)));
-        float half = StoreFloat(size_ * ConstAt(kHalf));
+        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(worlddata::ScorchAlpha())));
+        float half = StoreFloat(size_ * ConstAt(worlddata::HalfRef()));
         float shape[2];   // angle, outer
         WallScorchShape(&direction_, &half, shape);
-        float inner = StoreFloat(half + ConstAt(kScorchMargin));
+        float inner = StoreFloat(half + ConstAt(worlddata::ScorchMargin()));
         AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), Bits(shape[1]), Bits(inner),
                   Bits(shape[0]), alpha);
     }
@@ -657,7 +657,7 @@ void CEffectLightning::UpdateEnds() {
     CEngineObject* target = WorldOf(this)->ObjectWithId(toObject_);
     if (target != nullptr) {
         std::memcpy(&to_, &static_cast<CTransformObject*>(target)->localPosition_, sizeof(Vector3));
-        to_.z = to_.z + ConstAt(kOne);
+        to_.z = to_.z + ConstAt(worlddata::OneRef());
     }
     CEngineObject* source = WorldOf(this)->ObjectWithId(fromObject_);
     if (source != nullptr && source->GetClassId() == 0x50 && ContextWorld(this)->IsServer() == 0) {
@@ -711,7 +711,7 @@ void CEffectLightning::SetEnds(const Vector3* from, const Vector3* to, float wid
     std::memcpy(&to_, to, sizeof(Vector3));
     std::memcpy(&width_, &width, 4);
     // The midpoint: the x sum stays on the FPU, the y and z sums are rounded first.
-    float half = ConstAt(kHalf);
+    float half = ConstAt(worlddata::HalfRef());
     float sumY = StoreFloat(from_.y + to_.y);
     float sumZ = StoreFloat(from_.z + to_.z);
     localPosition_.x = StoreFloat((to_.x + from_.x) * half);

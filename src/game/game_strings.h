@@ -200,4 +200,59 @@ inline const char* NoWeapon() { return Text(0x0078F2DC); }  // Can't create weap
 inline const char* NoSpell() { return Text(0x0078F2B4); }  // Can't create spell "%s" for unit "%s".
 }  // namespace equipmenttexts
 
+// The menu rectangles' resource and its error texts (menu_rects.cpp).
+namespace menutexts {
+inline const char* MenusReg() { return Text(0x00791020); }  // "menus.reg"
+inline const char* CantOpen() { return Text(0x00790FE4); }  // "Can't open file "menus.reg" with the main/esc menu rects\n"
+inline const char* CantParse() { return Text(0x00790FA4); }  // "Can't open "menus.reg" as .reg with ...\n"
+}  // namespace menutexts
+
+// The network log's lines (net_session_tick.cpp, net_connection.cpp).
+namespace nettexts {
+inline const char* ZeroLength() { return Text(0x00784020); }  // "ZERO length packet received from "
+inline const char* Timeout() { return Text(0x00784008); }  // "TIMEOUT client, drop "
+inline const char* UnknownHost() { return Text(0x00783F2C); }  // "ERROR: Update from unknown host"
+inline const char* BadClient() { return Text(0x00783F1C); }  // "ERROR: client "
+inline const char* BadUpdate() { return Text(0x00783F04); }  // " sent incorrect update"
+inline const char* RemoveClient() { return Text(0x00783EE8); }  // "REMOVE client "
+inline const char* AddClient() { return Text(0x00783EF8); }  // "ADD client "
+inline const char* CantHandleGetInfo() { return Text(0x00783F4C); }  // "ERROR: Can't handle get info"
+inline const char* CantHandleLogin() { return Text(0x00783F6C); }  // "ERROR: Can't handle login"
+inline const char* CantHandleInfo() { return Text(0x00783F88); }  // "ERROR: Can't handle info"
+inline const char* CantHandleAccepted() { return Text(0x00783FA4); }  // "ERROR: Can't handle accepted"
+inline const char* CantHandleRejected() { return Text(0x00783FC4); }  // "ERROR: Can't handle rejected"
+inline const char* CantHandleMaster() { return Text(0x00783FE4); }  // "ERROR: Can't handle master packet"
+inline const char* SkipUpdate() { return Text(0x00783EB0); }  // "SKIP update, newer version of object"
+inline const char* SkipRemove() { return Text(0x00783E78); }  // "SKIP remove, newer version of object"
+inline const char* TooOld() { return Text(0x00783E5C); }  // "SKIP too old update, dif "
+inline const char* Duplicate() { return Text(0x00783E3C); }  // "DUPLICATE update received from "
+}  // namespace nettexts
+
+// "\n" (ui_console_window.cpp, ui_text.cpp) and a path suffix (net_server_map.cpp).
+inline const char* NewLineText() { return Text(0x00784340); }
+inline const char* PathSuffixText() { return Text(0x00783D74); }
+
+// The save folders and the key-mapping message (ui_menu_keys.cpp).
+namespace menukeytexts {
+inline const char* QuickSave() { return Text(0x007933AC); }  // "saveq"
+inline const char* AutoSaveA() { return Text(0x007942E8); }  // "savea"
+inline const char* AutoSaveB() { return Text(0x007940F0); }  // "saveb"
+inline const char* KeyMapped() { return Text(0x00794874); }  // "key_already_mapped"
+inline const char* KeyMappedText() { return Text(0x00794888); }  // "key_already_mapped_msg"
+}  // namespace menukeytexts
+
+// The console window's prompt and "more" mark (ui_console_window.cpp).
+namespace consoletexts {
+inline const char* Prompt() { return Text(0x00792DE0); }
+inline const char* More() { return Text(0x00787BD8); }
+}  // namespace consoletexts
+
+// The thunderstorm's script lines (world_weather.cpp).
+namespace weathertexts {
+// "WorldScript(CreateFX( %f,%f,%f,60,150,"nature\thunder\%i.wav" ) )"
+inline const char* ThunderScript() { return Text(0x007904A8); }
+// "WorldScript(CreatePointLight(1,%f,%f,%f,...) CreateFX( ... "nature\lightning\%i.wav" ) CreateLightning(1, ...) ... )"
+inline const char* LightningScript() { return Text(0x00790394); }
+}  // namespace weathertexts
+
 } // namespace game
