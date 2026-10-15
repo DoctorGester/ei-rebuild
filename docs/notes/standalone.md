@@ -396,6 +396,25 @@ the last node removed, RemoveAll, destructors, CPlex and the game-element lists 
 suite reaches 62 of the 104, 0 mismatches; the CMap rows (scene / model file loaders 00453B90-
 00477380) and the shared-object, AI-map and armour-spell lists are not reached. Left: S7a.
 
+**S8 (2026-10-15).** MFC files, archives, exceptions, AfxMessageBox and the map-free CDC members,
+108 addresses (size rows added for each). mfc_exception: CException's constructor and Delete, the
+CFileException / CArchiveException destructors, OsErrorToException, the four throws (through the
+game's `_CxxThrowException` 006E7819 with the exe's throw information: S4c owns that function) and
+AFX_EXCEPTION_LINK; the link chain is the original's thread state (00702107) in the hook build, a
+`thread_local` registered image-only at 00702107. mfc_file: CFile, CStdioFile (stream calls on the
+game CRT in the hook build, the host CRT in the image, as S4b), CFileFind, AfxFullPath / AfxGetRoot.
+mfc_time: CTime's constructors, GetCurrentTime, Format (host `_mktime32` / `_localtime32_s` /
+`strftime` in the image, with VC6's time() from GetLocalTime through the import slot). mfc_archive:
+CArchive Read / Write / Flush / FillBuffer / counts / BYTE-WORD-DWORD operators, the CString
+operators and AfxReadStringLength, CString = LPCWSTR (00700B20) and `_wcstombsz`. mfc_window:
+AfxMessageBox: CWinApp's constructor (0070D654) has no caller, so the module state never has an
+application and the box always has no owner and the module's file name as its title (the image
+shows ei_standalone.exe there); the wrapper checks that against the original's state. mfc_gdi: CDC
+SetBkMode / MoveTo / LineTo / FillSolidRect. Checks: pure functions against the original (paths,
+CFileFind getters, CTime, CFile Read / Open / lengths on a twin or read twice, CStdioFile line
+reads read twice), the rest ours only; start-up checks throw each exception, run files through a
+temporary folder and an archive round trip with a 16-byte buffer. Left: S8a.
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

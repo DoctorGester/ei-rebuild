@@ -1583,7 +1583,7 @@ note = "The about 330 library functions only the exe's vtables point at: CArray 
 id = "S8"
 title = "Standalone library: MFC files, archives, GDI and exceptions"
 group = "standalone"
-status = "queued"
+status = "review"
 size = 1
 files = ["src/lib/mfc.h", "src/lib/mfc.cpp", "src/lib/mfc_try.h"]
 note = "CFile, CFileFind, CArchive (Read, Write, Flush, counts), CTime, CDC / CPen / CFont / CGdiObject, AfxMessageBox, AFX_EXCEPTION_LINK / AfxTryCleanup, _CxxThrowException and the exception classes (the standalone build throws its own). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
@@ -1880,6 +1880,15 @@ status = "queued"
 size = 1
 files = ["src/game/game_lists.h", "src/game/game_lists.cpp", "tests/verify/verify_mfc_list.cpp"]
 note = "Left by S7 (14 rows): script lists with game copy semantics: 004C69B0 ScriptDecl RemoveHead, 004C7A10 / 004C82B0 ScriptDefinition / ScriptRun RemoveHead (copy out), 004C7C90 ScriptDefinition AddHead, 004CDA30 / 004CD930 ScriptRun / ScriptDefinition NewNode (ConstructElements 004CECB0 / 004CEB80), 004C9210 ScriptObjectRef AddHead (zero, release old, set + addref), 004C9100 ScriptObjectRef RemoveTail (into the result, RET 4), 004C8CE0 / 004C8D80 ScriptGroup AddHead / AddTail (InitGroup then gamearrays::ObjectRefCopy), 004C8AF0 ScriptGroup RemoveTail (GroupGetAt-like copy, DestructBody); 004543E0 CMap destructor with owning values; 00454DB0 / 00454CE0 FaceGroup (0x18: CString + CDWordArray) ConstructElements and array destructor (vtable 0073C2BC). Also candidates: 006BE240 / 006BE210 / 006B90C0 (wave record Construct/DestructElements, string destroy). Use ListAbi with EachElements policies as in game_lists.h; ours-only checks."
+
+[[ticket]]
+id = "S8a"
+title = "Standalone library: MFC handle maps and the GDI objects"
+group = "standalone"
+status = "queued"
+size = 1
+files = ["src/lib/mfc_gdi.h", "src/lib/mfc_gdi.cpp"]
+note = "S8 left these: CDC::FromHandle 00708D79, CDC::SelectObject(CPen*) 00708F5A, CGdiObject::Attach 0070A075 / DeleteObject 0070A0CC, CPen(style, width, colour) 0070A0E2, CFont::CreatePointFont 0070BBE5 (+ CreatePointFontIndirect 0070BC2A), and the CDC vtable slots the interface calls (10 SelectObject(CFont*), 12 SetTextColor, 26 DrawText). They need MFC's handle maps (afxMapHDC 00708D07, afxMapHGDIOBJ 00709FEE, CHandleMap::FromHandle 0070367C, CGdiObject::FromHandle 0070A060, Detach 0070A0A2, AfxThrowResourceException 0070A29E): the hook build keeps the original's maps (module thread state), the image needs its own. Also unported from S8's families: AfxMessageBox(UINT) 0070ACCC (needs CString::LoadString 00702B0E), CFile slots 4-6 GetFileName / GetFileTitle / GetFilePath (00702C31 / 00702CB3 / 00702D35), CFileException / CArchiveException GetErrorMessage and ReportError (vtable slots). standalone.md S8."
 
 # ---------------------------------------------------------------- Lua
 
