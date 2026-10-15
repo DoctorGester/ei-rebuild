@@ -2063,6 +2063,13 @@ title = "Standalone on Rebirth: the mod-folder patches (Maps, ResOverride, Movie
 group = "standalone"
 note = "From S19: addon's mod loader looks in the selected mod's folders first (WinMain's loader and ~30 resource functions, the BinkOpen import, 0040ECD0 camera, 006BB3A0 stream; docs/notes/rebirth.md 'Resources and paths'). With the Standard mod it passes through, so every S19 run matched; the image ignores another mod's folders (IronMod's Res). Needs the standalone resource layer: read the starter's AddonPath / mod list and route OpenResource, the finds and the map paths through it behind the flags."
 
+[[ticket]]
+id = "S19c"
+title = "EI_Plugin NewMaster's second master server: port or drop (user's decision)"
+group = "standalone"
+size = 0.5
+note = "User 2026-10-15: port it behind an opt-in setting (master address in ei_rebirth.ini, empty in harness runs so runs stay offline). Check offline against a local listener; goldens can't cover it."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

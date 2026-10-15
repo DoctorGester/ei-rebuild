@@ -1940,7 +1940,7 @@ static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 class CHudClock : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00648D30
-    // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch only).
+    // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth's MPSpeedControl reproduced behind its flag).
     // The button released over the clock that took it: region 0 toggles the pause (with the
     // clock's sound); regions 1 and 2 set the normal / fast speed (not on a network client: the
     // pause lifted, fast_ 0 / 1, the world's update period 55 / 27 ms, the interface's fastGame_,

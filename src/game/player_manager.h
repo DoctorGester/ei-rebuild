@@ -3,8 +3,8 @@
 // The world's player manager (vtable 0073F328; a CBaseManager of CPlayer objects, the world's +0x38,
 // also the script commands' event dispatcher 007AFF98). player_manager.cpp (A-H15). Its slot 2 and
 // 14 bodies are registered by address under their own names (rule 4: they are CBaseManager
-// virtuals). 0066C180 (a player for a lobby session) is Rebirth-patched: its vanilla body is here
-// and callers go through its address (PlayerCreateOriginal, rule 9).
+// virtuals). 0066C180 (a player for a lobby session) is Rebirth-patched (PlayerNumbers, reproduced
+// behind its flag); callers go through its address (PlayerCreateOriginal, rule 9).
 
 #include "base_manager.h"
 
@@ -20,10 +20,10 @@ public:
     // 0066C110 (slot 14, RET 4). A new CPlayer (0x134 bytes, CPlayer::Construct) whose type_ is
     // `type`; null when the allocation fails.
     CEngineObject* NewPlayer(int type);
-    // 0066C180 (A-H26; Rebirth-patched, hooked in the vanilla launch only). A new player (type
-    // 0x300A, a free id) with a new connection from the world's side-specific manager (type 0x49:
-    // a CPlayerServer or a CPlayerClient), one reference taken, player number 0. Null when the
-    // player cannot be made (the connection is not checked).
+    // 0066C180 (A-H26). A new player (type 0x300A, a free id) with a new connection from the
+    // world's side-specific manager (type 0x49: a CPlayerServer or a CPlayerClient), one reference
+    // taken, player number 0 (Rebirth's PlayerNumbers: the server world's highest other + 1). Null
+    // when the player cannot be made (the connection is not checked).
     CEngineObject* CreateSessionPlayer();
     // 0066C1D0 (RET 4). `player`'s Release (slot 4); `this` is not used.
     void ReleasePlayer(CEngineObject* player);
