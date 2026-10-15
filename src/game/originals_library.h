@@ -28,6 +28,8 @@ __declspec(naked) inline void* __fastcall StringInitEmpty(void* /*string*/) EI_O
 __declspec(naked) inline void* __fastcall StringInitWithAllocator(void* /*string*/, void*, const void* /*alloc*/)
     EI_ORIGINAL(0x004217E0)
 __declspec(naked) inline void __fastcall StringBufferFree(void* /*string*/) EI_ORIGINAL(0x00425040)
+// __stl_throw_out_of_range("basic_string"): basic_string::substr's out_of_range, thrown.
+__declspec(naked) inline void __fastcall StringThrowOutOfRangeOriginal() EI_ORIGINAL(0x004410A0)
 __declspec(naked) inline void __fastcall StringAssignSpan(void* /*string*/, void*, const char* /*first*/, const char* /*last*/)
     EI_ORIGINAL(0x00428F10)
 // MSVC 6 iostream ostream members on the game's streams: operator<<(manipulator function) 00434FE0,

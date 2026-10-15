@@ -67,6 +67,8 @@ public:
     }
 
 private:
+    friend struct StringAbi;   // the exe's members at their addresses (stlp_string.h)
+
     void InitRange(const char* first, const char* last);
     void Release() {
         if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_));
