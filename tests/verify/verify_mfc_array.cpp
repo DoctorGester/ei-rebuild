@@ -362,6 +362,8 @@ using A004BB000 = TwinConstruct<0x004BB000, PartySlotArrayClass>;
 EI_VERIFY(0x004BB000, A004BB000::Run, 10, A004BB000::original);
 using A004C2030 = TwinConstruct<0x004C2030, ObjectRefArrayClass>;
 EI_VERIFY(0x004C2030, A004C2030::Run, 10, A004C2030::original);
+using A004C59A0 = TwinConstruct<0x004C59A0, ScriptIfThenArrayClass>;
+EI_VERIFY(0x004C59A0, A004C59A0::Run, 10, A004C59A0::original);
 using A004CD080 = TwinConstruct<0x004CD080, FloatArrayClass>;
 EI_VERIFY(0x004CD080, A004CD080::Run, 10, A004CD080::original);
 using A004D5990 = TwinConstruct<0x004D5990, ArgFloatArrayClass>;
@@ -813,3 +815,15 @@ using A00453210 = OursDestructElements<0x00453210, FigureParts>;
 EI_VERIFY(0x00453210, A00453210::Run, 0, A00453210::original);
 using A00476F50 = OursDestructElements<0x00476F50, SceneRecords>;
 EI_VERIFY(0x00476F50, A00476F50::Run, 0, A00476F50::original);
+
+namespace {
+// 004C59A0 (S6e): no suite scenario constructs a CArray<ScriptIfThen> through it; the twin check run on
+// a filled header at start-up.
+void IfThenConstructStartupCheck() {
+    if (!A004C59A0::original) return;
+    std::uint8_t header[sizeof(mfc::CArray<Bytes<1>>)];
+    std::memset(header, 0xCD, sizeof(header));
+    A004C59A0::Run(reinterpret_cast<mfc::CArray<Bytes<1>>*>(header));
+}
+} // namespace
+EI_STARTUP_CHECK(IfThenConstructStartupCheck);
