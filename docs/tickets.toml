@@ -702,9 +702,10 @@ done = "2026-10-15"
 id = "SV1g"
 title = "Verify wrappers that leave the verify build off the game's course"
 group = "verification"
-status = "review"
+status = "done"
 note = "From SV1a: UnitReadNetStateVerify re-ran the original on live state without putting the random generators back, so the verify build's fights differed from the plain build. Find others the same way: random traces of the verify build against EI_PLAIN=1 per scenario (first draw that differs by value and frame), then a verified.txt bisection (standalone-verification.md, SV1a section). Fix each wrapper (put shared state back, or run ours only where the replay cannot be faithful)."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV1h"
