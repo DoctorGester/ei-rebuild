@@ -1220,7 +1220,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "batch 6: 64 virtual-slot Hook shims converted to <Slot>Impl members (unit_update, map_object, light, texture, manager NewObject, terrain, renderer, net sessions, world time); progress 1,005 -> 941 (952 after merging main, which added 11). verify and release clean before and after merging main, check_stolen/x87/signatures/thunks 0. work.py test C11 --golden before the merge: 128 runs ALL PASS, goldens 55 the same, 1 differ (render_movie_present vanilla, script #gobject: the SV7a heap-order site). Post-merge golden run not done (queue of 300+ runs). Notes in docs/notes/cleanup-units.md."
+note = "Batch 6 merged 2026-10-15: 64 virtual-slot shims to Impl members; 952 shims left. The virtual-slot forwarder pool is used up; what is left is mostly call-through blocks, UI input shims, free __fastcall bodies of slots with no member yet, and shims that dereference a pointer parameter (see docs/notes/cleanup-units.md, C11 batch 6)."
 
 [[ticket]]
 id = "C12"
