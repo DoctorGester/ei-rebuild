@@ -7,6 +7,8 @@
 // OnMessageResult, OnGameOver and ShowChat are not known to be reached.
 #include "verify.h"
 
+#include "kept_strings.h"
+
 #include "../../src/game/camera.h"
 #include "../../src/game/core_streams.h"
 #include "../../src/game/ui_briefing.h"
@@ -15,6 +17,7 @@
 
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -214,9 +217,11 @@ static void __fastcall KeyDownVerify(void* input, void*, int key, int repeat, in
 EI_VERIFY(0x006034A0, KeyDownVerify, 0, s_unused);
 
 // --- Topics (ui_briefing_topics.cpp) -----------------------------------------------------------
-// Side by side: FindTopics only rebuilds topics_ (the original's list is recorded, then ours is
-// compared with it); TopicTitle writes a fresh string (both into raw storage). Reached by the
-// mouse moving over Smith and by the topic list's drawing (ui_base_dialogue).
+// Side by side, ours first (SV2h1: ours allocates first). FindTopics only rebuilds topics_: ours
+// rebuilds the screen's, then the original a twin's (the screen's bytes in our memory with an empty
+// topics_ array), whose strings are freed last to first and its buffer after; the lists' texts are
+// compared. TopicTitle writes a fresh string (both into raw storage). Reached by the mouse moving
+// over Smith and by the topic list's drawing (ui_base_dialogue).
 
 namespace {
 void* s_findTopics;
@@ -233,10 +238,18 @@ std::string TopicsText(const CBriefingScreen* self) {
 } // namespace
 
 static void __fastcall FindTopicsVerify(CBriefingScreen* self, void*, int personId) {
-    reinterpret_cast<void(__fastcall*)(CBriefingScreen*, void*, int)>(s_findTopics)(self, nullptr, personId);
-    std::string expected = TopicsText(self);
     self->FindTopics(personId);
     std::string actual = TopicsText(self);
+    std::vector<unsigned char> bytes(sizeof(CBriefingScreen));
+    std::memcpy(bytes.data(), self, bytes.size());
+    auto* twin = reinterpret_cast<CBriefingScreen*>(bytes.data());
+    twin->topics_.data = nullptr;
+    twin->topics_.size = 0;
+    twin->topics_.maxSize = 0;
+    reinterpret_cast<void(__fastcall*)(CBriefingScreen*, void*, int)>(s_findTopics)(twin, nullptr, personId);
+    std::string expected = TopicsText(twin);
+    ei::verify::EmptyBackwards(twin->topics_);
+    twin->topics_.SetSize(0, -1);
     ei::verify::Check("CBriefingScreen::FindTopics", true, expected == actual, "person %d: %.80s / %.80s", personId,
                       expected.c_str(), actual.c_str());
 }
@@ -244,10 +257,10 @@ static void __fastcall FindTopicsVerify(CBriefingScreen* self, void*, int person
 EI_VERIFY(0x00607360, FindTopicsVerify, 7, s_findTopics);
 
 static mfc::CString* __fastcall TopicTitleVerify(CBriefingScreen* self, void*, mfc::CString* out, const char* topic) {
+    mfc::CString* actual = self->TopicTitle(out, topic);
     alignas(4) std::uint8_t raw[4];
     auto* expected = reinterpret_cast<mfc::CString* (__fastcall*)(CBriefingScreen*, void*, mfc::CString*, const char*)>(
         s_topicTitle)(self, nullptr, reinterpret_cast<mfc::CString*>(raw), topic);
-    mfc::CString* actual = self->TopicTitle(out, topic);
     bool ok = std::strcmp(*expected, *actual) == 0;
     ei::verify::Check("CBriefingScreen::TopicTitle", true, ok, "%s: %.60s / %.60s", topic,
                       static_cast<const char*>(*expected), static_cast<const char*>(*actual));

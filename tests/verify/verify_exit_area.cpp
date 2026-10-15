@@ -24,11 +24,12 @@ bool __fastcall ContainsVerify(const ZoneExit* self, void*, float x, float y) {
     return actual;
 }
 
-// A-S10. The readers against the original: the original reads first (into a scratch exit / string),
-// the stream is put back (position and ok flag), then ours reads the real one; the fields, the
-// strings by content and the end positions are compared. The writer: ours only (the bytes added).
-// Reached by the client's zone load (00567AB0 -> 004E5750) and the server's zone message
-// (world_sync.cpp -> 004E58A0) in every scenario; 004E5840 also by the save readers.
+// A-S10. The readers against the original: ours reads the real stream into the real exit / string
+// first, the stream is put back (position and ok flag), then the original reads into a scratch exit
+// / string (freed again) and the stream is left where ours ended (SV2h1: ours allocates first); the
+// fields, the strings by content and the end positions are compared. The writer: ours only (the
+// bytes added). Reached by the client's zone load (00567AB0 -> 004E5750) and the server's zone
+// message (world_sync.cpp -> 004E58A0) in every scenario; 004E5840 also by the save readers.
 
 struct StreamMark {
     std::uint32_t position;
@@ -39,19 +40,20 @@ void Restore(CStream* s, const StreamMark& m) {
     s->Seek(m.position);
     s->ok_ = m.ok;
 }
+bool SameMark(const StreamMark& a, const StreamMark& b) { return a.position == b.position && a.ok == b.ok; }
 
 // 004E5840: PUSH -1; PUSH imm32 (7).
 void(__fastcall* s_readInto)(CStream*, void*, mfc::CString*);
 void __fastcall ReadIntoVerify(CStream* self, void*, mfc::CString* out) {
     StreamMark start = Mark(self);
+    self->CStream::ReadInto(out);
+    StreamMark mine = Mark(self);
+    Restore(self, start);
     mfc::CString expected;
     s_readInto(self, nullptr, &expected);
     StreamMark end = Mark(self);
-    Restore(self, start);
-    self->CStream::ReadInto(out);
-    StreamMark mine = Mark(self);
-    ei::verify::Check("CStream::ReadInto", true,
-                      std::strcmp(expected, *out) == 0 && end.position == mine.position && end.ok == mine.ok,
+    if (!SameMark(end, mine)) Restore(self, mine);
+    ei::verify::Check("CStream::ReadInto", true, std::strcmp(expected, *out) == 0 && SameMark(end, mine),
                       "\"%s\" at %u", static_cast<const char*>(*out), start.position);
 }
 
@@ -61,18 +63,19 @@ void __fastcall ExitReadVerify(ZoneExit* self, void*, CStream* stream) {
     StreamMark start = Mark(stream);
     alignas(ZoneExit) unsigned char scratchBytes[sizeof(ZoneExit)];
     std::memcpy(scratchBytes, self, sizeof(scratchBytes));
+    self->ZoneExit::Read(stream);
+    StreamMark mine = Mark(stream);
+    Restore(stream, start);
     auto* scratch = reinterpret_cast<ZoneExit*>(scratchBytes);
     auto* scratchTarget = new (&scratch->target) mfc::CString();
     s_exitRead(scratch, nullptr, stream);
     StreamMark end = Mark(stream);
-    Restore(stream, start);
-    self->ZoneExit::Read(stream);
-    StreamMark mine = Mark(stream);
+    if (!SameMark(end, mine)) Restore(stream, mine);
     bool ok = std::memcmp(scratch, self, offsetof(ZoneExit, target)) == 0 &&
               std::strcmp(scratch->target, self->target) == 0 &&
               std::memcmp(&scratch->entrance, &self->entrance, offsetof(ZoneExit, hasDeployAngle) - offsetof(ZoneExit, entrance)) == 0 &&
               scratch->hasDeployAngle == self->hasDeployAngle && scratch->deployAngle == self->deployAngle &&
-              end.position == mine.position && end.ok == mine.ok;
+              SameMark(end, mine);
     ei::verify::Check("ZoneExit::Read", true, ok, "\"%s\" version %u", self->target, stream->version_);
     scratchTarget->~CString();
 }
