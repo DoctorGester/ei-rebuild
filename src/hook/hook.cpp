@@ -18,6 +18,11 @@ namespace ei {
 
 static HookEntry* g_hooks = nullptr;
 
+// Every address InstallHooks patched, in install order, with the plain replacement registered for
+// it (nullptr when there is none): EI_COVER=hooks (cover.cpp) watches both.
+static std::vector<std::pair<std::uintptr_t, void*>> g_installed;
+const std::vector<std::pair<std::uintptr_t, void*>>& InstalledHooks() { return g_installed; }
+
 HookRegistrar::HookRegistrar(std::uintptr_t address, void* replacement, const char* name)
     : entry{address, replacement, name, g_hooks} {
     g_hooks = &entry;
@@ -106,6 +111,15 @@ static HookEntry* VerifyEntry(std::uintptr_t address) {
     if (it == g_hooksByAddress.end()) return nullptr;
     for (HookEntry* h : it->second)
         if (h->verify) return h;
+    return nullptr;
+}
+
+// Our replacement registered for `address` (EI_REPLACE), or nullptr.
+static void* PlainReplacement(std::uintptr_t address) {
+    auto it = g_hooksByAddress.find(address);
+    if (it == g_hooksByAddress.end()) return nullptr;
+    for (HookEntry* h : it->second)
+        if (!h->verify && !h->record) return h->replacement;
     return nullptr;
 }
 
@@ -406,6 +420,7 @@ int InstallHooks() {
         FlushInstructionCache(GetCurrentProcess(), target, 5);
         Log(h->record ? "recording %s at %08X -> %p" : h->verify ? "verifying %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name,
             static_cast<unsigned>(h->address), h->replacement);
+        g_installed.emplace_back(h->address, PlainReplacement(h->address));
         ++installed;
     }
     text.Restore();

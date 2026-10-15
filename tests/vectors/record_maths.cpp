@@ -210,19 +210,23 @@ void __fastcall BSplineRecord(CubicSegment* self, void*, float p0, float p1, flo
     g_bspline.sampler.Offer(v, cw);
 }
 
-// 0040E440
+// 0040E440, and its byte-for-byte copy 004E5660 (the camera's and the AI's curves call the copy; the
+// only caller of 0040E440, 0040DEB0, is never called): one set of vectors for both.
 Recorded<EvaluateCall> g_evaluate("CubicSegment::Evaluate");
-float(__fastcall* s_evaluate)(const CubicSegment*, void*, float);
-float __fastcall EvaluateRecord(const CubicSegment* self, void*, float t) {
+using EvaluateFn = float(__fastcall*)(const CubicSegment*, void*, float);
+EvaluateFn s_evaluate, s_evaluateCopy;
+float RecordEvaluate(EvaluateFn original, const CubicSegment* self, float t) {
     auto v = Zeroed<EvaluateCall>();
     v.segment = *self;
     v.t = t;
     std::uint16_t cw = ControlWord();
-    float result = s_evaluate(self, nullptr, t);
+    float result = original(self, nullptr, t);
     v.result = result;
     g_evaluate.sampler.Offer(v, cw);
     return result;
 }
+float __fastcall EvaluateRecord(const CubicSegment* self, void*, float t) { return RecordEvaluate(s_evaluate, self, t); }
+float __fastcall EvaluateCopyRecord(const CubicSegment* self, void*, float t) { return RecordEvaluate(s_evaluateCopy, self, t); }
 
 // 0049E950
 Recorded<ConjugateCall> g_conjugate("MultiplyByConjugate");
@@ -287,3 +291,4 @@ EI_RECORD(0x0040F560, AxisYRecord, 6, s_axisY);
 EI_RECORD(0x0040D6B0, AxisZRecord, 5, s_axisZ);
 EI_RECORD(0x0040E3D0, BSplineRecord, 10, s_bspline);
 EI_RECORD(0x0040E440, EvaluateRecord, 7, s_evaluate);
+EI_RECORD(0x004E5660, EvaluateCopyRecord, 7, s_evaluateCopy);

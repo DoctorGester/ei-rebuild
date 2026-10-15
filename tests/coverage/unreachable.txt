@@ -1,0 +1,12 @@
+# Rewritten functions no scenario can reach, by hand (tools/coverage.py list reads it): ADDRESS STATUS REASON.
+# STATUS is `startup` (a static initialiser: it runs before the hooks are installed; an EI_STARTUP_CHECK in
+# tests/verify/verify_static_initialisers.cpp compares what it built) or `dead` (game.exe never calls it).
+# Such a function is left out of the risk ranking while no scenario reaches it.
+00444740 startup the debug panel's string table (DebugPanelStartupCheck)
+00458870 startup the options (OptionsStartupCheck)
+004DDD6F startup CSysInfo (SysInfoStartupCheck)
+004DDF28 startup CSysInfo::Collect (SysInfoStartupCheck)
+004E3980 startup the weather noise curves (WeatherNoiseStartupCheck)
+0067E4E0 startup the footprint cell set (FootprintSetStartupCheck)
+0040E3D0 dead its only caller, 0040DEB0, is not referenced anywhere in game.exe
+0040E440 dead its only caller is 0040DEB0; the byte-for-byte copy 004E5660 runs ours too, so it shows as reached
