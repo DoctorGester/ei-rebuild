@@ -790,10 +790,11 @@ started = "2026-10-15"
 id = "SV4d"
 title = "Function vectors: stat formulas that read game settings and databases"
 group = "verification"
-status = "review"
+status = "done"
 depends = ["SV4a"]
 note = "Left out of SV4a: UnitStats::GetFactors, StrengthRatio, DexterityRatio, SkillWithBonus, SkillLevelValue, Value6E8/6E9, SkillPrice, SchoolPrice, UnitParams::ProtectionBlock and WeaponSkillBonus, UnitStats::PickLocation read game settings at fixed addresses or the skill databases. Pass the values in the payload and make the sources read them through a seam the replay can fill; CTransformPipeline::PushMatrix needs the pipeline object. See standalone-verification.md SV4a."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV3d"
