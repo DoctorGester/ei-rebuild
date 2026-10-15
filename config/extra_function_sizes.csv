@@ -385,3 +385,4 @@ address,size,note
 006ECC98,22,library function registered at its address (S4; Ghidra size)
 006ECD2B,239,library function registered at its address (S4; Ghidra size)
 005CDFC0,297,logic settings constructor (S3b; the static initialiser 005CDFB0; no Ghidra function)
+004387D0,64,STLport vector<T>::~vector of 8-byte elements (no Ghidra function)

@@ -1575,11 +1575,12 @@ done = "2026-10-15"
 id = "S10"
 title = "Standalone library: STLport vector<T>"
 group = "standalone"
-status = "running"
+status = "done"
 size = 1
 files = ["src/lib/stlp_vector.h", "src/lib/stlp.h"]
 note = "About 280: vector resize / _M_insert_overflow / _M_fill_insert / erase / push_back / clear, _Vector_base, _STLP_alloc_proxy (70 deallocate). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S11"
@@ -1781,6 +1782,16 @@ size = 1
 depends = ["S13"]
 files = ["src/game/*.cpp"]
 note = "Left from S13 (docs/notes/standalone.md S13). Three database resets, each destroyed and constructed again in place with many STLport hash_map / vector instantiations: units 0057CBE0, spell tables 0057CE80, items 0057D340 (the skills' 0057CD60 is SkillDatabase::Reset). Six data-pointed deleting destructors whose bodies are compiler rows not yet ported: CWorld base 0055EC60 (body 0055EC80, 259 bytes), CWorldClient 00561A00 (00561B00, 844), particle manager 005627A0 (005627C0, 283), Terrain 00562B60 (00562B80, 484), CWorldServer 0058A430 (0058AAD0, 825), Sector 0059E080 (005BFCD0, 295). Verify like verify_record_lifetime.cpp; most run at shutdown (read 'verify total' in ei_hook.log)."
+
+[[ticket]]
+id = "S10a"
+title = "Standalone library: STLport vector<T> of game records"
+group = "standalone"
+status = "queued"
+size = 2
+depends = ["S10"]
+files = ["src/lib/stlp_vector.h", "src/lib/stlp_vector.cpp", "src/lib/stlp_vector_refs.h"]
+note = "S10 left the vector members whose elements are game records with their own copy / destroy functions (each needs a policy over the record's ported copy constructor, operator= and destructor, or the record type first): resize of item / spell / weapon / armour / quest / unit / model / acks database records (00684D60 00685730 006858D0 006A7F00 006A8110 006A8290 006A83F0 006A85A0 006A8790 006B2100 006B2240 0053E2A0 0053E520 0053E730 0053E9B0 005209D0 00520B20 0055A400 0055A580 006D26E0 006D2830 006DB9C0 006DBBD0 006DBE20 006E4560 006E47F0 004ADAA0 00465180 00444090), clear 00520C20, push_back 006B0710 006B0780 0041F790 0064AB20, erase 004442B0 0064AD40 006578F0 00421D90, operator= 00443BF0, insert 00426CB0, _M_insert_overflow 004439C0 00426B10 00587480 0061EC40 00629E60 0062A0B0 00652930 006579C0, ~vector 0041F7F0; RefPtr resize 004200C0 and counted_ptr resize 004AD700 004AD8D0 (their default element and fill helpers); 00428A20 held CEngineObject pointers (release through vtable slot 4). Not vector members (other tickets): 006E859F / 006E8693 eh vector iterators (S13), 00580900 hashtable copy constructor, record destructors 0041F7F0 0056D080 00589860 006AF4D0 006AF5A0 00575560 00575580 004AD640 and list-array deleting destructors 00572B30 00572C50. Scheme: standalone.md S10; plain records can use ChangeCheck (verify_stlp_vector.cpp), others the model checks in verify_stlp_vector_objects.cpp."
 
 # ---------------------------------------------------------------- Lua
 

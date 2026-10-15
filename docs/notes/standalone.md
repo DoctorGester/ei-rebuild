@@ -254,6 +254,23 @@ SharedObject copy and delete (shared loot), the party base's and the collections
 destructors. Left: S13a (three database resets, six world destructors); 00646C25 and 00656464 are
 string bytes, not functions.
 
+**S10 (2026-10-15).** STLport `vector<T>` (src/lib/stlp_vector.h, stlp_vector.cpp): STLport's members
+(insert overflow, fill / range insert, erase, resize, reserve, push_back, operator=, the base
+constructors and destructors) as one body each over an element policy (`PlainElement`,
+`ObjectElement` for CString, `StringElement` in stlp.h, `CountedRefElement` in stlp_vector_refs.h),
+`VectorAbi<T, Policy>` shims; `stlp_alloc.h` holds the allocator declarations and `Opaque<N>` for
+both families. 201 of the 266 forwarded vector-family addresses are registered: 141 that never
+touch an element (`_STLP_alloc_proxy::deallocate` 70 in two calling conventions, `_Vector_base`
+constructors / destructors / get_allocator, by element size read from each one's size
+arithmetic), 42 plain-data members, 12 CString / stlp::string members, 6 counted-reference ones.
+Checks (tests/verify/verify_stlp_vector*.cpp): plain data against the original (its result is
+recorded and undone: the new block back to the pool, the old one off its free list, bytes and
+pointers restored; ours must take the same block and give the same elements); string and
+reference vectors ours only against a model of the elements (texts, pointers, reference counts).
+The suite reaches 125 of the 201, 0 mismatches. 004387D0 (no Ghidra function) got its size row.
+Left: S10a (54 vectors of game records whose element copy / destroy are records' own functions,
+and 11 non-vector entries named like vector code).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
