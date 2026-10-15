@@ -1311,7 +1311,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 7 merged 2026-10-15: 47 free slot bodies and pointer-parameter shims to Impl members; 908 shims left. Both easy pools are used up; what is left is call-through blocks, UI input shims and void* selfs, template aliases (C11 batch 7 in docs/notes/cleanup-units.md). Next batch: the constexpr addresses and per-file At() copies part of this ticket, or the UI input shims as one family."
+note = "Batch 8 merged 2026-10-15: address constants 369 to 249, own At() files 4 to 2 (left by family in docs/notes/cleanup-units.md, C11 batch 8). Next batch: RecordTable::At -> RecordAt and CMap::At -> ElementAt renames (about 110 call sites), then constants with no typed home yet."
 
 [[ticket]]
 id = "C12"
