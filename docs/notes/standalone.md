@@ -523,6 +523,60 @@ copyable (a vector's copy assignment is implicit and trivial), so its array over
 a default record's lists were left as garbage. Checks ours only (model text: name, map, every list);
 reached at boot, 0 mismatches.
 
+**S12 group 1 (2026-10-15).** STLport `deque<T>` (src/lib/stlp_deque.h, stlp_deque.cpp; moved out of
+stlp.h): the constructor, `_M_initialize_map`, `_M_create_nodes`, `_M_push_back_aux`,
+`_M_reallocate_map`, ~deque, the iterator copy and the three destroy helpers (trivial elements:
+nothing), `DequeAbi<T>` shims, 20 addresses for the two instantiations (camera view stack, 0x24-byte
+entries in 0x1F8-byte nodes; material entries, 0x10 in 0x200). 00411D60 / 00411F70 have no Ghidra
+function: size rows added. The camera's deque is built by a static initialiser before the hooks and
+its push (00410E70) is dead, so tests/verify/verify_stlp_deque.cpp adds a start-up check: deques built
+from the original `_M_initialize_map`, emptied from the front, refilled through the original
+`_M_reallocate_map` / `_M_push_back_aux` and freed by the original destructor, next to ours (shape and
+elements after every step; 384 cases, 0 mismatches). Per call: the constructor and
+`_M_initialize_map` against the original on a scratch deque (same map block), the rest ours only.
+The standalone boot gets past 00411AB0 and stops at 006FE8EF, MFC's `CPlex::Create`, from
+`CFixedAlloc::Alloc` (mfc_string.cpp).
+**S12 group 2.** The tree's node-only half (src/lib/stlp_tree.h, stlp_tree.cpp; `map<K, V>` moved there
+from stlp.h, its node colour now the original's byte): `_Rb_global` increment 0043DBE0, decrement
+0043FBE0, the rotations 0043E300 / 0043E350, `_Rebalance` 0043FE90 and `_Rebalance_for_erase` 0043D830
+(fastcall: node in ECX, root reference in EDX), registered in both builds. The exe's tree is SGI's 3.x
+one (`_M_insert(x, y, v)`, RET 0x10, no hint argument; the hint insert falls back to
+`insert_unique(v)`); `map` now has the members on top (`Insert`, `InsertUnique` with and without a
+hint, `InsertEqual`, `Erase` of a node / range / key, `At` for operator[], node policies like the
+list's). Checks (tests/verify/verify_stlp_tree.cpp), all against the original: the iterators are pure;
+rotations and rebalances save the nodes they can touch (the path to the root and the header, three
+levels below each), run the original, put the nodes back and run ours (same bytes, words, result).
+A start-up check fills a map<int, int> with random keys and erases them all through the
+`_Rebalance_for_erase` check with the red-black invariants after each step (the suite erases little):
+smoke 2,136 erases, the suite's rebalances and rotations, 0 mismatches.
+**S12 group 3.** The Connection's five maps (src/game/net_connection_trees.*; the members in
+src/lib/stlp_tree_abi.h `TreeAbi<Map, E>`, map's `At` renamed `Subscript`): sent ids
+(map<int32_t, RefPtr>; the compare is signed), objects, entries, records and attached ids, 127
+addresses: constructors (copy through SGI `_M_copy`), clear / destroy, `_M_empty_initialize`,
+operator[], the lookups, `_M_create_node`, `_M_insert`, `insert_unique` with and without a hint,
+the three erases, the node deallocators and the shared iterator / insert-result / distance /
+get_allocator helpers. The originals' operator[] for records and attached ids inserts a value it
+leaves partly uninitialised. Checks (tests/verify/verify_net_connection_trees.cpp): lookups against
+the original; `_M_empty_initialize` and the constructors original first, the header back to the
+pool, then ours (same block, colour byte and links: bytes 1-3 of a refilled header hold the free
+list's link); the rest ours only. A start-up check drives each tree 4 x 600 random steps through the
+originals and ours side by side. The standalone boot gets past the protection checks' list
+constructor 00455E50 (app_helpers.cpp) and stops at the CRT's 006ECE1A, called from ei_hook (S4c).
+**S12 group 4.** `basic_string<char>` (src/lib/stlp_string.*, `StringAbi`): `_M_range_initialize`
+(with and without the tag), the copy, `_Construct`, from-text, default (an 8-byte block) and capacity
+constructors, `_M_append` / append, assign (range, string, text), erase, substr (out_of_range through
+the shared forwarder `StringThrowOutOfRangeOriginal`), reserve, push_back, operator< and
+`__compare`, the deleting destructor; 26 addresses. Checks (tests/verify/verify_stlp_string.cpp):
+the compares against the original, the constructors original first then ours (same block, length,
+capacity, bytes), the mutators ours only against the contents before (append's capacity follows
+size + max(size, n) + 1), and a start-up script of 8 x 200 random steps through the originals and
+ours side by side. The from-text constructor reads its allocator argument (a byte), so callers pass
+a real one. Then the last two static-initialiser list constructors of S12's set
+(src/game/static_lists.cpp): 004ED540 the DirectDraw driver list 007AEE64, 0056A410 the deferred unit
+list 007AF5B4 (start-up check as for 00455E50). The standalone boot then stops at 00572820, the
+client's sector grid storage (originals_world.h `GridAllocate`, world area, next to S13b's grid
+resizes).
+
 **S7 (2026-10-15).** CPlex and MFC `CList<T>` / `CMap<K, V>` (src/lib/mfc_list.h, mfc_list.cpp;
 game-element lists in src/game/game_lists.*): mfc::CList's bodies under `ListAbi<T, Policy>`
 (NewNode, FreeNode, RemoveAt, RemoveAll, AddTail / AddHead and RemoveHead by value, destructor with

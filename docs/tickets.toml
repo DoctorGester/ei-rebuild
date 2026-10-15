@@ -1671,11 +1671,12 @@ done = "2026-10-15"
 id = "S12"
 title = "Standalone library: STLport trees, strings, algorithms and the unreviewed families"
 group = "standalone"
-status = "running"
+status = "done"
 size = 1.5
 files = ["src/lib/stlp_tree.h", "src/lib/stlp.h", "config/library.csv"]
-note = "_Rb_tree / map / set, stlp::string, pair, __introsort_loop (keep its order), distance; then the about 130 library.csv rows named only \"container instantiation\" (classify each into its family first, hand the rest to S9-S11 owners if still open). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+note = "_Rb_tree / map / set, stlp::string, pair, __introsort_loop (keep its order), distance; then the about 130 library.csv rows named only \"container instantiation\" (classify each into its family first, hand the rest to S9-S11 owners if still open). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2. Done: deque (group 1), the tree's node half (2), the Connection's five maps (3, 127 addresses), basic_string (4, 26). Left: S12a (the other tree instantiations), S12b (sorts, pair, distance, unclassified rows); list rows in S12b (S9a was done), hash rows noted on S11a."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S13"
@@ -1922,7 +1923,7 @@ status = "done"
 size = 1
 depends = ["S11"]
 files = ["src/lib/stlp_hash.h", "src/lib/stlp_hash.cpp"]
-note = "S11 left the forwarded hash members whose values have their own copy / destroy (each needs a traits over the ported type): hash_map<CString, float> 004613C0 (operator[]), 00461540 (clear), 004615B0 (_M_new_node), 004616A0 (_M_delete_node), 00461750 (resize), 004A8A50 / 00580900 (copy ctor), 004A8AD0 (operator=), 004AA950 (_M_copy_from), 005E0DB0 (char* key skip); hash_map<int, CParty> 004A91B0, 004ABA70, 004AD050; destructor-value clears 004A8E60 004A9010 006A6C20 005986B0 00598860 004AAEB0 (pair<string, list>); find_or_insert 0069D130 (string to list); the AI shape cache (float key, ref-counted handle) 005BCCB0 005BCDE0 005BE090 005BE320 005BE730. 004E15C0 is a list node create (list family). About 350 more hash members in library.csv are called only from other originals (dead in the standalone image unless the exe's data points at them, e.g. the 0073B984 table). Scheme: standalone.md S11 (StringKeyTraits, the bucket-local snapshot and the free trail in verify_stlp_hash.cpp)."
+note = "S11 left the forwarded hash members whose values have their own copy / destroy (each needs a traits over the ported type): hash_map<CString, float> 004613C0 (operator[]), 00461540 (clear), 004615B0 (_M_new_node), 004616A0 (_M_delete_node), 00461750 (resize), 004A8A50 / 00580900 (copy ctor), 004A8AD0 (operator=), 004AA950 (_M_copy_from), 005E0DB0 (char* key skip); hash_map<int, CParty> 004A91B0, 004ABA70, 004AD050; destructor-value clears 004A8E60 004A9010 006A6C20 005986B0 00598860 004AAEB0 (pair<string, list>); find_or_insert 0069D130 (string to list); the AI shape cache (float key, ref-counted handle) 005BCCB0 005BCDE0 005BE090 005BE320 005BE730. 004E15C0 is a list node create (list family). About 350 more hash members in library.csv are called only from other originals (dead in the standalone image unless the exe's data points at them, e.g. the 0073B984 table). Scheme: standalone.md S11 (StringKeyTraits, the bucket-local snapshot and the free trail in verify_stlp_hash.cpp). S12 classification: hashtable rows among the 'container instantiation' / 'unreviewed family' rows of library.csv, unregistered: 004A6280 00613920 00663330 00663580."
 done = "2026-10-15"
 
 [[ticket]]
@@ -1937,6 +1938,26 @@ started = "2026-10-15"
 done = "2026-10-15"
 
 [[ticket]]
+id = "S12a"
+title = "Standalone library: the remaining STLport tree instantiations"
+group = "standalone"
+status = "queued"
+size = 1
+depends = ["S12"]
+files = ["src/lib/stlp_tree_abi.h", "src/lib/stlp_tree.h", "config/library.csv"]
+note = "S12 ported the Connection's five maps through TreeAbi<Map, E> (src/lib/stlp_tree_abi.h; scheme in tests/verify/verify_net_connection_trees.cpp: lookups against the original, constructors original-then-ours on the same pooled header, a start-up random script per tree). Left, one PairTree / TreeAbi alias each, node size from its _M_create_node: 004337xx, map<string, string> 00445xxx, 00478D50 / 00479150, 00482xxx, the link mesh 004F4xxx-004F6xxx, the link loader 004FBxxx, 005197B0, 005DC080 / 005E0xxx (CString keys), the interface's maps 005F3xxx-005FBxxx, 0060Axxx, 00619630, 00631xxx-00632xxx, 00634160 / 00634200, 0065A770. Grep for existing registrations first (stlp_vector.cpp holds 0043A480 / 0043A4E0). standalone.md S12 group 3."
+
+[[ticket]]
+id = "S12b"
+title = "Standalone library: STLport sorts, pair, distance and the unclassified container rows"
+group = "standalone"
+status = "queued"
+size = 1.5
+depends = ["S12"]
+files = ["src/lib/stlp_algo.h", "config/library.csv"]
+note = "Sorts: about 9 __introsort_loop / __insertion_sort / __final_insertion_sort / heap instantiations (63 rows), each with its own comparator; keep the original's order exactly (unstable sort): Connection 0043F870 / 0043F9B0, 0042A020 / 0042A150, draw entries 0057xxxx, the CString quest sort 0064Fxxx, SaveEntry 00657xxx-00658xxx, MpAddressEntry 0061Exxx-0061Fxxx, char* 0068CAxx, 00589160 EntryIdLess, 00577E90; check against the original on copies of the same random arrays. Then pair copies (004FB170 pair<string, dword>) and distance. Then the about 250 library.csv rows named 'container instantiation' / 'unreviewed family' that are neither list (S9a note) nor hash (S11a note): about 40 call string members (record copies holding strings), the rest need reading; 006DFFC0 is an AckRecord copy (S10b). standalone.md S12. Also list<T> rows among them (S9a was done first), by an identical twin or by their callees, unregistered: 00437F20 00437F30 00438000 00438640 00438650 00438730 00438820 00438830 00438F60 00438FF0 00439000 004390C0 00439100 004397E0 00439940 00439A60 00439C80 00439CC0 00439CE0 00439D40 0043ADE0 0043AEE0 0043B9E0 0043BA20 0043D420 0043D800 0043DC20 0043DC50 0043DD20 0043DD30 0043FBA0 0043FC30 0043FC70 0043FCB0 (the Connection's lists), 0049D320 004FAE00 00539220 0055FDC0 00560060 0056E000 0056ECD0 00583A20 005E3AD0 005F8E90 005F92A0 005F94B0 005FB810 00609A80 0069CA10; begin / end / iterator copies among them have registered twins."
+
+[[ticket]]
 id = "S13b"
 title = "Standalone: script and AI map destructors left by S13a"
 group = "standalone"
@@ -1944,7 +1965,7 @@ status = "done"
 size = 1
 depends = ["S13a"]
 files = ["src/game/world_destructors.cpp", "src/game/originals_world.h"]
-note = "Left from S13a (docs/notes/standalone.md S13a). Forwarded from the world destructors: CScript's destructor 0058A140 (the first world script, +0x12874) and the MFC rows the server's inlined second-script destructor calls (004C92C0 004C8E20 004CB650 004C7560 004C8520 004C7E30 004CB310 004C6760 004C6410 004C6120 004CB150; S6b / S7 may own some), the AI map's destructor 0058A450 (688 bytes; hash / array members), and the client's sector grid resizes 00572450 / 005724F0. Verify ours-only like verify_world_destructors.cpp (the globals' exit functions and the start-up checks reach them). Done with S7a: CScript 0058A140 + 11 rows, AI map 0058A450, LocalSearch 0058AA60, sector array 00599330, grid Resize / Allocate (all four). Suite 128/128, 0 mismatches."
+note = "Left from S13a (docs/notes/standalone.md S13a). Forwarded from the world destructors: CScript's destructor 0058A140 (the first world script, +0x12874) and the MFC rows the server's inlined second-script destructor calls (004C92C0 004C8E20 004CB650 004C7560 004C8520 004C7E30 004CB310 004C6760 004C6410 004C6120 004CB150; S6b / S7 may own some), the AI map's destructor 0058A450 (688 bytes; hash / array members), and the client's sector grid resizes 00572450 / 005724F0. Verify ours-only like verify_world_destructors.cpp (the globals' exit functions and the start-up checks reach them). Done with S7a: CScript 0058A140 + 11 rows, AI map 0058A450, LocalSearch 0058AA60, sector array 00599330, grid Resize / Allocate (all four). Suite 128/128, 0 mismatches. S12: the standalone boot stops at 00572820 (the client's sector grid storage, originals_world.h GridAllocate; 005728D0 frees it), next to the grid resizes here."
 done = "2026-10-15"
 
 [[ticket]]

@@ -492,6 +492,8 @@ address,size,note
 006EAEB0,60,library function registered at its address (S4a; Ghidra size)
 006E955F,65,library function registered at its address (S4a; Ghidra size)
 006E911A,87,library function registered at its address (S4a; Ghidra size)
+00411D60,129,stlp::deque<T>::_M_push_back_aux of the camera view stack (no Ghidra function)
+00411F70,424,stlp::deque<T>::_M_reallocate_map of the camera view stack (no Ghidra function)
 006FE8EF,32,MFC CPlex::Create registered by S7 (no Ghidra function; 006FE8EF-006FE90E)
 006FE90F,22,MFC CPlex::FreeDataChain registered by S7 (no Ghidra function; 006FE90F-006FE924)
 006E853C,39,library function registered at its address (S4c; Ghidra size)
