@@ -1470,28 +1470,31 @@ done = "2026-10-15"
 id = "S3"
 title = "Standalone: the 748 static initialisers, generated"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1
 files = ["tools/gen_static_init.py", "src/standalone/static_init.cpp"]
 note = "The .data list 00783004-00783BB0. A generator turns the 15 patterns (guarded atexit, stores, float folds, constructor + atexit) into C++ run in list order before WinMain in the standalone build; the 30 or so others by hand. Check: a verify-build start-up check evaluates the generated stores and float folds against what the original's initialisers left in memory at WinMain. No dependency."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S4"
 title = "Standalone library: CRT functions, iostream, import thunks, allocator"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1
 files = ["src/lib/crt.h", "src/lib/crt.cpp", "src/game/originals_library.h"]
 note = "37 CRT functions (rand, _ftol, sprintf, qsort, atexit, file I/O, mbs*, ctype), 4 ostream operators, the WSOCK32 and DirectInputCreateEx thunks. Keep MSVC6 behaviour (rand, qsort order, sprintf float digits, the case table). The allocator (operator new / delete, malloc / free, STLport node allocator 00405950 / 00404D70) registered for the standalone image only. Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S5"
 title = "Standalone library: CString and the plain MFC collections"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1
 files = ["src/lib/mfc.h", "src/lib/mfc.cpp"]
 note = "CString (about 30 members, operator+), CStringArray, CWordArray, CByteArray, CDWordArray, CPtrList. Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S6"
@@ -1534,10 +1537,11 @@ note = "CFile, CFileFind, CArchive (Read, Write, Flush, counts), CTime, CDC / CP
 id = "S9"
 title = "Standalone library: STLport list<T>"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1
 files = ["src/lib/stlp_list.h", "src/lib/stlp.h"]
 note = "About 175 instantiations (insert, list, end, clear, erase, begin, push_back, ~list, distance). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S10"
@@ -1631,10 +1635,11 @@ note = "Generated definitions for the 3,601 data addresses, vtables as real virt
 id = "S1a"
 title = "Registrations the image skips or doubles"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 0.5
 files = ["src/game/effects.cpp", "src/game/map_spec.cpp", "src/game/ai_path.cpp"]
 note = "From S1's check run: three registrations through a virtual-call thunk are skipped in both builds (CEffect::DestroyEffect 00675D40, Spec::SpecRefresh 00469E00, Spec::SpecRemove 00469DE0): register non-virtual shims so the image (and the hook build) get them. Three addresses are registered twice with different functions (00558CA0 CountedRefDelete / AIRefDelete, 00558CC0 CallRecordDelete / AICallRecordDelete, 0054EAC0 PathConstructSteps / AIPath::ConstructSteps): keep one. No dependency. Where (the files field is a guess): map_spec.cpp, world_effect.cpp, ai_path_cells.cpp, combat_small_records.cpp, world_deleting_destructors.cpp."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S2a"
