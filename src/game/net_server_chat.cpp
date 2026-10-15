@@ -16,8 +16,6 @@
 namespace net {
 
 namespace {
-
-void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
 // The lines list (+0x2594): a counted pointer from a raw one without a reference, end, insert,
 // node count, erase (library).
 __declspec(naked) RefPtr* __fastcall LineRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428030)
@@ -52,7 +50,7 @@ void ServerSession::Announce(const char* text, CRefObject* player) {
 
     void** sentinel = static_cast<void**>(lines_);
     auto* added = static_cast<LineMessage*>(static_cast<void**>(sentinel[1])[2]);
-    StringAssignRange(&added->text_, nullptr, text, text + std::strlen(text));
+    StringAssignRangeOriginal(&added->text_, nullptr, text, text + std::strlen(text));
     added->number_ = nextLine_;
     ++nextLine_;
 

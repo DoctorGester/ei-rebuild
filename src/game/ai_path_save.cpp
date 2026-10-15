@@ -19,8 +19,6 @@ namespace {
 // advanced).
 __declspec(naked) void __fastcall AppendCell(PathCellList*, void*, const PathCell*) EI_ORIGINAL(0x005BD2A0)
 __declspec(naked) PathCell* __fastcall NextCell(PathCellList*, void*, PathCellList::Node**) EI_ORIGINAL(0x005BD340)
-// 005B16D0 (RET 8): the excluded blocks' SetSize.
-inline void __fastcall ExcludedSetSize(BlockPointArray* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 
 } // namespace
 
@@ -43,7 +41,7 @@ void AIPath::LoadPath(CStream* stream) {
     stream->Read(&flag6F, 1);
     BlockPointArray* excluded = &excludedBlocks;
     stream->Read(&count, 4);
-    ExcludedSetSize(excluded, nullptr, count, -1);
+    PointArraySetSizeOriginal(excluded, nullptr, count, -1);
     for (int i = 0; i < excluded->size; ++i) {
         stream->Read(&excluded->data[i].x, 4);
         stream->Read(&excluded->data[i].y, 4);

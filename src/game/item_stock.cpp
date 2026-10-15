@@ -496,7 +496,6 @@ __declspec(naked) CEngineObject* __fastcall BuildSpell(void*, void*, itemdb::Spe
 // insert 0068C560 (result, position, &value), node free 0068C640 (fastcall: node, count).
 __declspec(naked) void __fastcall ModifierListConstruct(StockList*, void*, const void*) EI_ORIGINAL(0x0069BF70)
 __declspec(naked) void __fastcall ModifierListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0068C500)
-void __fastcall ModifierListInsert(StockList* a0, void*, StockListNode** a2, StockListNode* a3, char* const* a4) { ListInsert68C560Original(a0, nullptr, (void**)a2, a3, a4); }
 __declspec(naked) void __fastcall ModifierNodesFree(StockListNode*, int) EI_ORIGINAL(0x0068C640)
 // The output list of counted spells: end 0069BE60, insert 0069C410 (result, position, &value).
 __declspec(naked) void __fastcall SpellListEnd(StockList*, void*, StockListNode**) EI_ORIGINAL(0x0069BE60)
@@ -529,7 +528,7 @@ void AppendModifier(StockList& list, char* modifier) {
     StockListNode* end;
     ModifierListEnd(&list, nullptr, &end);
     StockListNode* result;
-    ModifierListInsert(&list, nullptr, &result, end, &modifier);
+    ListInsert68C560Original(&list, nullptr, (void**)&result, end, &modifier);
 }
 
 void ClearModifierList(StockList& list) {

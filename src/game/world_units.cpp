@@ -58,8 +58,6 @@ using PlacementArray = mfc::CArray<Placement>;
 
 __declspec(naked) void* __fastcall MessageConstruct(void*, void*) EI_ORIGINAL(0x0046C010)
 __declspec(naked) void __fastcall MessageDestructBase(void*, void*) EI_ORIGINAL(0x0046AEB0)
-void __fastcall StringArraySetAtGrowText(void* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal(a0, nullptr, a2, a3); }
-void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 // 006E859F. `eh vector destructor iterator` (array, element size, count, destructor).
 void __stdcall VectorDestruct(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
 // 00513240 (RET 4). The map objects manager's type of a prototype name.
@@ -139,10 +137,10 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& s
         if (std::strcmp(part, worlddata::HairPartText()) == 0) {
             if (hairStyle != -1) {
                 scratch.Format(worlddata::HairFormat(), hairStyle);
-                StringArraySetAtGrow(parts, nullptr, parts->size, &scratch);
+                StringArraySetAtGrowStringOriginal(parts, nullptr, parts->size, &scratch);
             }
         } else {
-            StringArraySetAtGrowText(parts, nullptr, parts->size, part);
+            StringArraySetAtGrowTextOriginal(parts, nullptr, parts->size, part);
         }
     }
 }
@@ -404,9 +402,6 @@ __declspec(naked) void __fastcall ObjectSetSecondName(CEngineObject*, void*, con
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
 __declspec(naked) void __fastcall ManagerRegisterUnit2(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x005141F0)
-inline void __fastcall TextAssignChars(mfc::CString* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
-void __fastcall TextAssign(mfc::CString* a0, void*, const mfc::CString* a2) { CStringAssignOriginal((void*)a0, nullptr, (const void*)a2); }
-void __fastcall TextArrayCopy(void* a0, void*, const void* a2) { StringArrayCopyOriginal(a0, nullptr, a2); }
 void __fastcall UnitSetDiplomacy(CEngineObject* a0, void*, int a2) { UnitSetHostileMaskOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
 __declspec(naked) void __fastcall UnitRecordApply(void*, void*, CEngineObject*) EI_ORIGINAL(0x00477B00)
 UnitPrototypeRecord** __fastcall UnitPrototypeAt(void* a0, void*, const void* a2) { return (UnitPrototypeRecord**)PrototypeMapAtOriginal(a0, nullptr, a2); }
@@ -451,9 +446,9 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         return -1;
     };
     auto companionTexts = [spec](CMapObjectServer* companion) {
-        TextAssign(&companion->name78, nullptr, &spec->parentIname);
-        TextAssign(&companion->name7C, nullptr, &spec->skinTexture);
-        TextArrayCopy(&companion->stringsVtable, nullptr, &spec->parts);
+        CStringAssignOriginal(&companion->name78, nullptr, &spec->parentIname);
+        CStringAssignOriginal(&companion->name7C, nullptr, &spec->skinTexture);
+        StringArrayCopyOriginal(&companion->stringsVtable, nullptr, &spec->parts);
     };
     auto race = [spec](CMapObject* object) {
         ++object->refCount_;
@@ -509,7 +504,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         base.object = object;
         CTorchObjectSpecSlots* torch = TorchSpecSlots(static_cast<CTorchObject*>(object)->spec);
         auto* companion = static_cast<CMapObjectServer*>(object->companion);
-        TextAssignChars(NameString(object), nullptr, spec->texture);
+        CStringAssignTextOriginal(NameString(object), nullptr, spec->texture);
         companionTexts(companion);
         race(object);
         torch->SetLightSlot(kTorchLightKind, &flame->offset.x, flame->volume);
@@ -571,7 +566,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (base.id == -1) base.id = id;
         base.object = object;
         auto* companion = static_cast<CMapObjectServer*>(object->companion);
-        TextAssignChars(NameString(object), nullptr, spec->texture);
+        CStringAssignTextOriginal(NameString(object), nullptr, spec->texture);
         ObjectSetSecondName(object, nullptr, spec->model);
         companionTexts(companion);
         race(object);
@@ -651,7 +646,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         auto* sound = reinterpret_cast<mapspec::SoundSpec*>(message);
         if (sound->ambient) {
             auto* ambient = static_cast<CEffectAmbientSound*>(timedManager->CreateObject(kTimedAmbientSound, base.id));
-            TextArrayCopy(&ambient->names_, nullptr, &sound->sounds);
+            StringArrayCopyOriginal(&ambient->names_, nullptr, &sound->sounds);
             Copy(&ambient->localPosition_, &base.position, 12);
             ambient->volume_ = static_cast<float>(sound->volume);
             ambient->radius_ = static_cast<float>(sound->radius);

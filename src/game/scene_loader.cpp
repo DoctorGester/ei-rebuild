@@ -154,8 +154,6 @@ __declspec(naked) void __fastcall DestroyPointBlock(PointBuffer*) EI_ORIGINAL(0x
 // The helpers array (+0x56C).
 __declspec(naked) void __fastcall SetSizeHelpers(VtArray*, void*, int, int) EI_ORIGINAL(0x00453550)
 
-// MFC.
-void __fastcall SetSizeDwordArray(mfc::CArray<std::uint32_t>* a0, void*, int a2, int a3) { UIntArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
 // --- Inlined MFC templates -----------------------------------------------------------------------
 
@@ -296,7 +294,7 @@ void Loader::ReadGroups(RecordArrays& r, const RecordHeader& h) {
         Read(file_, &gh, sizeof(gh));
         FaceGroup* group = r.Group(g);
         Read(file_, group->name.GetBufferSetLength(gh.nameLength), gh.nameLength);
-        SetSizeDwordArray(&group->faces, nullptr, static_cast<int>(gh.faceCount), -1);
+        UIntArraySetSizeOriginal(&group->faces, nullptr, static_cast<int>(gh.faceCount), -1);
         Read(file_, group->faces.data, gh.faceCount * 4);
     }
 }
@@ -732,7 +730,6 @@ using FigureRecordArray = mfc::CArray<CFigureMesh, OriginalElements<CFigureMesh,
 // Per figure, a copy of its node's frame records (NodeFrame, 0x28 bytes each).
 using BoneLinkArray = mfc::CArray<VtArray, OriginalElements<VtArray, ConstructBoneLinks, DestructBoneLinks>>;
 __declspec(naked) void __fastcall SetSizeBoneLinks(VtArray*, void*, int, int) EI_ORIGINAL(0x00450370)       // unit +0x558
-void __fastcall SetSizeFigures(VtArray* a0, void*, int a2, int a3) { FigureArraySetSizeOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall SetSizeBoneLinkRecords(VtArray*, void*, int, int) EI_ORIGINAL(0x00450F20) // 0x28-byte records
 __declspec(naked) void __fastcall DestructNode(void*) EI_ORIGINAL(0x004543E0)
 // Reads the figure's .reg file: the texture names ({id, name}) and links ({id, value}).
@@ -824,7 +821,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     SceneLoad s(fileName);
     SetSizeBoneLinks(boneLinks, nullptr, 0, -1);
     SetSizeHelpers(helpers, nullptr, 0, -1);
-    SetSizeFigures(figures, nullptr, 0, -1);
+    FigureArraySetSizeOriginal(figures, nullptr, 0, -1);
 
     if (!s.file.Open(fileName, 0x8000, nullptr)) {
         mfc::CString message;

@@ -80,7 +80,6 @@ struct RawString {
     char* eos;
 };
 static RawString* StringFromChars(RawString* s, void*, const char* text, const void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-void __fastcall StringCopy(RawString* a0, void*, const RawString* a2) { StringCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.
@@ -168,7 +167,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         RawString key{};
         StringAssignSpan(&key, nullptr, code, code + std::strlen(code));
         ModifierPair pair;
-        StringCopy(&pair.name, nullptr, &key);
+        StringCopyConstructOriginal(&pair.name, nullptr, &key);
         pair.record = nullptr;
         auto* element = reinterpret_cast<ModifierPair*>(ModifierFindOrInsert(kModifierMap, nullptr, &pair));
         StlStringDestroy(&pair.name);

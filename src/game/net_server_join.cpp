@@ -18,8 +18,6 @@
 namespace net {
 
 namespace {
-
-void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, void* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 // Counted pointers from a raw pointer without a reference (the list insert adds one).
 __declspec(naked) RefPtr* __fastcall PlayerRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428040)
 __declspec(naked) RefPtr* __fastcall BindingRefFromRaw(RefPtr* /*ref*/, void* /*object*/) EI_ORIGINAL(0x00428050)
@@ -91,9 +89,9 @@ void __fastcall ServerOnJoin(ServerSession* self, LoginMessage* msg) {
     auto* bound = static_cast<BindingMessage*>(LastObject(bindings));
 
     StringRep* name = &record->name_;
-    if (&msg->name_ != name) StringAssign(name, nullptr, msg->name_.start, msg->name_.finish, name);
+    if (&msg->name_ != name) StringAssignTaggedOriginal(name, nullptr, msg->name_.start, msg->name_.finish, name);
     record->state_ = msg->state_;
-    if (&msg->text_ != &record->text_) StringAssign(&record->text_, nullptr, msg->text_.start, msg->text_.finish, name);
+    if (&msg->text_ != &record->text_) StringAssignTaggedOriginal(&record->text_, nullptr, msg->text_.start, msg->text_.finish, name);
     record->id_ = msg->id_;
 
     // The lowest player number no player has yet.

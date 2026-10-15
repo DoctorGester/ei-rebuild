@@ -38,8 +38,6 @@ __declspec(naked) void __fastcall AddWeaponSprite(CHudWeaponBar*, void*, const c
 // action), counted in +0x14C.
 __declspec(naked) void __fastcall AddActionButton(CHudActionColumn*, void*, const char* /*model*/,
                                                   const char* /*image*/, int /*action*/) EI_ORIGINAL(0x0063F500)
-// 0059C660 (thiscall, RET 8): CDWordArray::SetSize (`growBy` -1 keeps the step).
-inline void __fastcall DwordArraySetSize(void* a, void*, int n, int g) { DwordArraySetSizeOriginal(a, nullptr, n, g); }
 
 // The item's slot 19 (the picture's name) and 20 (the model's name).
 void ItemName(CEngineObject* item, int slot, ReturnedString* out) {
@@ -203,7 +201,7 @@ EI_REPLACE_METHOD(0x0063CEE0, CHudQuickItems::ItemTip);
 void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     unit_ = unit;
     ClearSceneObjects();
-    DwordArraySetSize(&actions_, nullptr, 0, -1);
+    DwordArraySetSizeOriginal(&actions_, nullptr, 0, -1);
     count_ = 0;
     selected_ = -1;
     for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);

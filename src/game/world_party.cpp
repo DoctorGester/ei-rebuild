@@ -58,16 +58,10 @@ using RecordArray = RecordPtrArray;
 
 // 004621A0 (RET 8). CPtrList::NewNode(prev, next), out of line.
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
-// 00429F10. CPtrList::RemoveAll.
-inline void __fastcall PtrListRemoveAll(ObjectList* a0, void*) { PtrListRemoveAllNodesOriginal((void*)a0); }
-// 00427830. CPtrList destructor.
-inline void __fastcall PtrListDestruct(ObjectList* a0, void*) { PtrListDestructOriginal((void*)a0); }
 // 0059D450 (RET 8). CArray<int>::SetAtGrow(index, value).
 __declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, int) EI_ORIGINAL(0x0059D450)
 // 0059CB50 (RET 8). The item array's SetSize(size, growBy).
 __declspec(naked) void __fastcall ItemArraySetSize(ItemArray*, void*, int, int) EI_ORIGINAL(0x0059CB50)
-// 005719B0 (RET 8). The record array's SetSize(size, growBy).
-inline void __fastcall RecordArraySetSize(RecordArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 // 006A0110 (CItem::GetPrototype). A quest item's description: the names of the zones it belongs to.
 // 00665470 (RET 8). Puts a list of items into the player's inventory.
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
@@ -185,10 +179,10 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
                 AddTail(one, fresh);
                 PlayerGiveItems(player, nullptr, &one, 0);
                 item->Release();
-                PtrListDestruct(&one, nullptr);
+                PtrListDestructOriginal(&one);
                 node = next;
             }
-            PtrListRemoveAll(&taken, nullptr);
+            PtrListRemoveAllNodesOriginal(&taken);
         }
     }
     // The list's inline destructor.
@@ -209,7 +203,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     RecordArray records{RecordArrayVtable(), nullptr, 0, 0, 0};
     for (int i = 0; i < party->members_.size; ++i) {
         int index = records.size;
-        RecordArraySetSize(&records, nullptr, index + 1, -1);
+        RecordArraySetSizeOriginal(&records, nullptr, index + 1, -1);
         records.data[index] = reinterpret_cast<std::uint8_t*>(&party->members_.data[i]);
     }
     // A lost game sends the party back to this zone's first exit.

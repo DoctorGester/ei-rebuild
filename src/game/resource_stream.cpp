@@ -17,7 +17,6 @@ namespace {
 
 // CRT and MFC routines of the game.
 void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { gamecrt::splitpath(path, drive, dir, name, ext); }
-void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal(a0, nullptr, a2, a3); }
 
 // The listing's drive and directory tests: an empty pattern matches anything.
 bool PartMatches(const char* name, const char* pattern) {
@@ -213,7 +212,7 @@ void CMappedResource::ListFiles(void* stringArray, const char* pattern) const {
             if (WildcardMatch(nameBase, patternBase, 0) == 0 || WildcardMatch(nameExt, patternExt, 1) == 0) continue;
         }
         int count = static_cast<const int*>(stringArray)[2];
-        StringArraySetAtGrow(stringArray, nullptr, count, name);
+        StringArraySetAtGrowTextOriginal(stringArray, nullptr, count, name);
     }
 }
 

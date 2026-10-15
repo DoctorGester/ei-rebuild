@@ -22,8 +22,6 @@ namespace {
 int __cdecl MbsCmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }
 // 00661050 constructor of the embedded party (returns this).
 void* __fastcall PartyConstruct(void* a0) { return PartyRecordsConstructOriginal(a0); }
-// 00700AF9 CString::operator=(LPCTSTR) on a raw CString slot.
-inline void __fastcall AssignText(void* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 // Counted pointer helpers: 004AB910 copy(first, last, result) (__fastcall, returns the result's
 // end), 004AB960 destructor (__thiscall (flags)), 004A5D70 release, 004A5D50 copy constructor,
 // 004AB320 vector _M_insert_overflow(pos, x, n).
@@ -72,8 +70,8 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
     PartyRecord** newEnd = RecordCopy(end, end, list->records.Start());
     for (PartyRecord** p = newEnd; p != end; ++p) RecordPtrDestroy(p, nullptr, 0);
     list->records.Finish() = newEnd;
-    AssignText(&list->text0C, nullptr, game::EmptyText());
-    AssignText(&list->text10, nullptr, game::EmptyText());
+    CStringAssignTextOriginal(&list->text0C, nullptr, game::EmptyText());
+    CStringAssignTextOriginal(&list->text10, nullptr, game::EmptyText());
 
     PartyRecord* temp = NewRecord();
     if (temp) ++temp->refCount;
@@ -87,7 +85,7 @@ void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
 
     char* party = (*list->records.Start())->party;
     PartyAddMember(party, nullptr, kHero, kHumanHero, game::EmptyText());
-    AssignText(party + 0x68, nullptr, kFirstZone);
+    CStringAssignTextOriginal(party + 0x68, nullptr, kFirstZone);
     *reinterpret_cast<int*>(party + 0x6C) = 0;
     PartySetVar(party + 0x54, nullptr, kGameTime, kSix);
 }
@@ -105,7 +103,7 @@ EI_REPLACE_METHOD(0x004A5E10, NamedPartyRecords::Find);
 
 void NamedPartyRecords::Add(const char* name) {
     PartyRecord* record = NewRecord();
-    AssignText(&record->name, nullptr, name);
+    CStringAssignTextOriginal(&record->name, nullptr, name);
     PartyRecord* temp = record;
     if (temp) ++temp->refCount;
     if (records.Finish() == records.EndOfStorage()) {

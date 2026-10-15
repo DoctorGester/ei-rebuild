@@ -102,9 +102,6 @@ __declspec(naked) int __fastcall StateSendZone(CPlayerServer*, void*, void* /*me
 // `kept` and `removed` (ECX known, EDX current).
 __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray* /*current*/, StaticPtrArray* /*added*/,
                                                  StaticPtrArray* /*kept*/, StaticPtrArray* /*removed*/) EI_ORIGINAL(0x0047B1F0)
-// 005C0BD0 (RET 0xC). CSectorMap: the units within `radius` of `position` into a CPtrList.
-// 0052CA10. CPtrList destructor body (RemoveAll).
-inline void __fastcall PtrListDestruct(void* l, void*) { PtrListRemoveAllOriginal(l); }
 // 004E58A0 (RET 4). Writes a zone exit to a stream.
 __declspec(naked) void __fastcall ZoneExitWrite(ZoneExit*, void*, void* /*stream*/) EI_ORIGINAL(0x004E58A0)
 // The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured
@@ -238,7 +235,7 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
         SectorMapFindUnitsInRadius(world->sectorMap_, nullptr, PositionOf(unit), &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = mfc::PtrListVtable();
-        PtrListDestruct(&heard, nullptr);
+        PtrListRemoveAllOriginal(&heard);
     }
     return out;
 }

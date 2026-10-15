@@ -41,8 +41,6 @@ __declspec(naked) void __stdcall ConstructMaps(void*, int) EI_ORIGINAL(0x004607E
 __declspec(naked) void __stdcall DestructMaps(void*, int) EI_ORIGINAL(0x004607B0)
 __declspec(naked) void __stdcall ConstructExits(void*, int) EI_ORIGINAL(0x004606A0)
 __declspec(naked) void __stdcall DestructExits(void*, int) EI_ORIGINAL(0x00460670)
-// CDWordArray::SetAtGrow (the allod's map list).
-void __fastcall SetAtGrowDword(void* a0, void*, int a2, std::uint32_t a3) { DwordArraySetAtGrowOriginal(a0, nullptr, a2, a3); }
 
 // *out = float(GameAtof(text) * (pi * 1/180)): degrees to radians on the FPU as the original does
 // (the factor is the product of two doubles at 0073C3B8 and 0073BA30, rounded by the FPU).
@@ -171,7 +169,7 @@ void Loader::AddMap() {
         if (gamecrt::mbsicmp(*reinterpret_cast<const unsigned char* const*>(a), reinterpret_cast<const unsigned char*>(allodName)) != 0)
             continue;
         void* mapList = a + allod::kMaps;
-        SetAtGrowDword(mapList, nullptr, Body(mapList).size, static_cast<std::uint32_t>(map_));
+        DwordArraySetAtGrowOriginal(mapList, nullptr, Body(mapList).size, static_cast<std::uint32_t>(map_));
         break;
     }
     if (Is(Word(3), game::mapwords::Game())) Set<int>(Map(), map::kKind, 0);
