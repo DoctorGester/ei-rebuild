@@ -2044,6 +2044,18 @@ model = "opus"
 files = ["src/hook", "tests/verify", "build.cmd", "tools/run_all.py"]
 note = "User 2026-10-15: finish the golden net (SV7 tail, SV7c, S20), Rebirth in the standalone (S19) and the remaining function vectors (SV4b1, SV4c), then retire the hook and verify builds: the standalone is the only product, checked by goldens and function vectors. Keep a slim harness that runs the original game only to record goldens (or freeze them). C13 and C15 run after this, on the standalone, with the goldens as the check (C13 changes what the verify wrappers see anyway). Then Phase 4 of docs/cleanup-plan.md."
 
+[[ticket]]
+id = "S19a"
+title = "Standalone on Rebirth: addon's multiplayer patches and EI_Plugin's NewMaster, Pause, Briefings"
+group = "standalone"
+note = "From S19: the image runs our code where hooked Rebirth runs keep the patched original (SKIP lines): addon's FixProcessLogin (00443080), MQClient (0041ECC0), MPSpeedControl (0063A560, 00648D70), PlayerNumbers (0066C180); EI_Plugin.asi (kept out of the image, EiPluginInit) with NewMaster (0041AA10, 0041ACA0, 00440DE0, 0061D0D0, 00632D70, and SaveToRegistry 0045C560's 42 NOPs: the image saves the master server name), Pause (0066FAC0, Pause=1) and Briefings (00592090). Multiplayer only: no golden reaches them (SV5d's two-client harness would). Reproduce each behind its flag (rebirth_patches.csv rows), declare EI_REBIRTH_IMPLEMENTS, verify in a Rebirth launch; EI_Plugin's own network thread / master-server link needs a decision (port or drop). Fixes / NPlayers: W4b."
+
+[[ticket]]
+id = "S19b"
+title = "Standalone on Rebirth: the mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch)"
+group = "standalone"
+note = "From S19: addon's mod loader looks in the selected mod's folders first (WinMain's loader and ~30 resource functions, the BinkOpen import, 0040ECD0 camera, 006BB3A0 stream; docs/notes/rebirth.md 'Resources and paths'). With the Standard mod it passes through, so every S19 run matched; the image ignores another mod's folders (IronMod's Res). Needs the standalone resource layer: read the starter's AddonPath / mod list and route OpenResource, the finds and the map paths through it behind the flags."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

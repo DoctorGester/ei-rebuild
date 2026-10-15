@@ -33,4 +33,9 @@ bool ParseStep(const std::string& verb, const std::string& argument);
 // Applies the environment fallbacks and answers the registry reads (once, at harness start).
 void Install();
 
+// Whether this run plays the Rebirth install: addon.dll is loaded (game.exe), or the standalone image runs
+// with Rebirth flags (rebirth_hook::SettingsOnly; S19). Scenario lines "vanilla ..." / "rebirth ..." and the
+// digest's and the UI census's install follow it.
+bool RebirthInstall();
+
 } // namespace ei::verify::starter

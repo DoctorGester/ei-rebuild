@@ -115,10 +115,11 @@ FixProcessLogin (clears +0x18 of a login record, 00443080), ExtendedServerName (
 ChatLog. The mod-only table (PerkLimit, ExpCalc, RandomMagicDamage, FastTeleport, the Lua* rule replacements, ...) is not applied here and
 not inventoried.
 
-### Resources and paths (6 of 12 applied; single player; all *deferred*)
+### Resources and paths (6 of 12 applied; single player; NivalRegistry implemented, the rest *deferred*)
 
 NivalRegistry (the `PUSH` at 004568E9 makes WinMain's registry root `Software\Gipat.ru\EI_Starter\EvilIslands`, root 007AF450; WinMain stays
-original because the harness keys on its return addresses; every registry read goes through that root, so rewrites follow it); Maps (10
+original in hooked runs because the harness keys on its return addresses; every registry read goes through that root, so rewrites follow it;
+our GameMain takes addon's key with the flag, for the standalone image, S19); Maps (10
 sites), ResOverride (25 sites: resource archive open / close / init, every file find, the file-find vtable slot 007432F4), MoviesPatch (the
 BinkOpen import 0073B720), CameraPatch (0040ECD0), StreamPatch (006BB3A0): the starter's mod loader looks in the selected mod's folders
 (and Rebirth's) first. The install runs the Standard mod (no Maps / Res / Movies / Camera / Stream folders), so in the runs we have they pass
@@ -378,5 +379,5 @@ wrapper re-derives the slider's rectangle, maximum and position and the field's 
 
 ### Remaining work
 
-WideScreen has no leftovers; the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
+WideScreen has no leftovers; the deferred Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
 layer); the multiplayer patches and EI_Plugin features (with multiplayer).

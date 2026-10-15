@@ -15,7 +15,8 @@
 // it lays out game.exe's data without its code and loads ei_hook.dll itself (--run), with the same
 // environment, working directory, output folder, job object and time limits as a hooked run. Its own
 // output (imports, the INT3 hit) comes through ei_launch's. Game args go after "--" (WinMain gets them as
-// game.exe would).
+// game.exe would). EI_LAUNCH_STANDALONE=1 in the environment does the same as --standalone (a test batch's
+// environment reaches ei_launch when the scheduler's run_all does not know the install yet; S19).
 //
 // A run with --harness ends whatever state the game is in: the harness's watchdog thread ends it at the
 // scenario's "timeout" (60 s unless the scenario says otherwise); if that thread cannot run, ei_launch ends
@@ -299,6 +300,8 @@ int wmain(int argc, wchar_t** argv) {
         else if (a == L"--standalone") standalone = true;
         else gameArgs += L" \"" + a + L"\"";
     }
+    wchar_t standaloneValue[4];
+    if (GetEnvironmentVariableW(L"EI_LAUNCH_STANDALONE", standaloneValue, 4) == 1 && standaloneValue[0] == L'1') standalone = true;
     wchar_t full[MAX_PATH];
     GetFullPathNameW(dll.c_str(), MAX_PATH, full, nullptr);
     dll = full;
