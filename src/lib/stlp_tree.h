@@ -102,6 +102,8 @@ public:
         V second;
     };
     using Element = TreeElement<Value>;
+    using key_type = K;
+    using mapped_type = V;
 
     map() = default;
     map(const map&) = delete;
@@ -202,6 +204,51 @@ public:
     static void DestroyNode(Node* n) {
         E::Destroy(reinterpret_cast<Value*>(&n->first));
         deallocate(n, sizeof(Node));
+    }
+
+    // _M_clone_node: a node with a copy of x's value and colour, no children.
+    template <typename E = Element>
+    static Node* CloneNode(const Node* x) {
+        Node* z = CreateNode<E>(*reinterpret_cast<const Value*>(&x->first));
+        z->color = x->color;
+        z->left = nullptr;
+        z->right = nullptr;
+        return z;
+    }
+    // _M_copy(x, p) (e.g. 0043BA60; RET 8): a copy of the subtree at x under p, the right subtrees
+    // recursively and the left spine iteratively; returns the copy of x.
+    template <typename E = Element>
+    static Node* CopySubtree(const Node* x, Node* p) {
+        Node* top = CloneNode<E>(x);
+        top->parent = p;
+        if (x->right) top->right = CopySubtree<E>(x->right, top);
+        p = top;
+        for (x = x->left; x; x = x->left) {
+            Node* y = CloneNode<E>(x);
+            p->left = y;
+            y->parent = p;
+            if (x->right) y->right = CopySubtree<E>(x->right, y);
+            p = y;
+        }
+        return top;
+    }
+    // The copy constructor (e.g. 00437AA0): a header from the pool, the compare byte, the nodes
+    // copied with their colours (_M_copy) and leftmost / rightmost found again, then the count.
+    template <typename E = Element>
+    void CopyFrom(const map& from) {
+        header_ = static_cast<Node*>(allocate(sizeof(Node)));
+        count_ = 0;
+        compare_ = from.compare_;
+        if (!from.header_->parent) {
+            EmptyInitialize();
+        } else {
+            header_->color = RbNodeBase::kRed;
+            Node* root = CopySubtree<E>(from.header_->parent, header_);
+            header_->parent = root;
+            header_->left = Node::From(RbNodeBase::Minimum(root->Base()));
+            header_->right = Node::From(RbNodeBase::Maximum(root->Base()));
+        }
+        count_ = from.count_;
     }
 
     // _M_insert(x, y, v) (e.g. 0043E140; RET 0x10): a new node as y's left child when y is the
@@ -317,7 +364,7 @@ public:
     // operator[] (e.g. 004382A0): lower_bound, and when the key is not there a value-initialised
     // element inserted at that hint; returns the mapped value.
     template <typename E = Element>
-    V& At(const K& key) {
+    V& Subscript(const K& key) {
         Node* i = lower_bound(key);
         if (i == header_ || key < i->first) {
             Value v{key, V()};
