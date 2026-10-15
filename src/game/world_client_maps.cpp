@@ -879,9 +879,9 @@ int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, c
     *out = record;
     float ux = b->x - a->x, uy = b->y - a->y, uz = b->z - a->z;
     float vx = c->x - a->x, vy = c->y - a->y, vz = c->z - a->z;
-    float lengthU = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz));
+    float lengthU = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz)));
     record->sizeU = lengthU;
-    float lengthV = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz));
+    float lengthV = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz)));
     record->sizeV = lengthV;
     std::memcpy(&record->normal, normal, 12);
     std::memcpy(&record->origin, a, 12);

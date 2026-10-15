@@ -70,6 +70,9 @@ constexpr int kSoundVolume = 100;
 constexpr float kSecondsPerCharacter = 0.05f;   // 0074134C
 constexpr double kPi = 3.141592653589793;       // 007410C8
 constexpr double kDegree = 1.0 / 180.0;         // 0073BA30
+// pi * (1 / 180) as the original's FLD / FMUL leaves it at 24-bit precision (SV7d1a: the folded
+// double constant has 29 more bits).
+constexpr float kRadiansPerDegree = static_cast<float>(kPi * kDegree);
 // Camera presets (ViewPreset) and the speakers they view.
 constexpr int kViewBoth = 1;
 constexpr int kViewLeader = 2;
@@ -130,7 +133,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
             animation = GameAtoi(words[1]);
         } else if (Compare(words[0], CameraCommand()) == 0) {
             if (count >= 5) {
-                angle = static_cast<float>(kPi * kDegree * GameAtof(words[2]));
+                angle = static_cast<float>(kRadiansPerDegree * GameAtof(words[2]));
                 distance = static_cast<float>(GameAtof(words[3]));
                 height = static_cast<float>(GameAtof(words[4]));
                 view = true;
