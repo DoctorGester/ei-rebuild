@@ -9,6 +9,7 @@
 #include "../../src/lib/mfc_slots.h"
 
 #include <cstdio>
+#include <cstring>
 
 using namespace mfc::impl;
 
@@ -615,3 +616,35 @@ using D00558780 = OursDelete<0x00558780, &gamelists::OwnedRefs::Destruct<gamelis
 EI_VERIFY(0x00558780, D00558780::Run, 0, s_unused);
 using D0059B4D0 = OursDelete<0x0059B4D0, &gamearrays::ObjectPtrs::Destruct<gamearrays::ObjectPtrArrayBaseClass>, gamearrays::ObjectPtrArrayBaseClass>;
 EI_VERIFY(0x0059B4D0, D0059B4D0::Run, 0, s_unused);
+
+// 0046F160, a patrol element's scalar deleting destructor (ours only): the object back; kept, its
+// waypoint array has the base's vtable.
+namespace {
+void* __fastcall PatrolDeleteCheck(void* self, void*, unsigned flags) {
+    void* result = ScalarDelete<&DestroyPatrol>(self, nullptr, flags);
+    bool ok = result == self &&
+              ((flags & 1) || *reinterpret_cast<void* const*>(static_cast<std::uint8_t*>(self) + 0xC) == ArrayBaseClass::Vtable());
+    Check("MFC slot deleting destructor 0046F160", true, ok, "%u", flags);
+    return result;
+}
+// No suite scenario deletes a patrol element: at start-up, one kept (flags 0) and one freed (flags 1),
+// each with waypoints. Blocks are freed in the reverse of their allocation, which leaves the game's heap
+// as it was.
+void PatrolDeleteStartupCheck() {
+    auto withWaypoints = [](PatrolElement* p) {
+        InitWithArray<0x20, 0xC, WaypointArrayClass>(p);
+        auto* waypoints = reinterpret_cast<mfc::CArray<Bytes<1>>*>(p->bytes + 0xC);
+        waypoints->data = static_cast<Bytes<1>*>(gamecrt::operator_new(0x18));
+        waypoints->size = waypoints->maxSize = 0x18;
+    };
+    PatrolElement kept = {};
+    withWaypoints(&kept);
+    PatrolDeleteCheck(&kept, nullptr, 0);
+    auto* freed = static_cast<PatrolElement*>(gamecrt::operator_new(sizeof(PatrolElement)));
+    std::memset(freed, 0, sizeof(PatrolElement));
+    withWaypoints(freed);
+    PatrolDeleteCheck(freed, nullptr, 1);
+}
+} // namespace
+EI_VERIFY(0x0046F160, PatrolDeleteCheck, 0, s_unused);
+EI_STARTUP_CHECK(PatrolDeleteStartupCheck);

@@ -64,6 +64,18 @@ int __cdecl StrnicmpVerify(const char* a, const char* b, std::size_t n) {
 // 006FA1A0: PUSH EBP; MOV EBP,ESP; PUSH EDI; PUSH ESI (5 bytes).
 EI_VERIFY(0x006FA1A0, StrnicmpVerify, 5, s_strnicmp);
 
+// 006FD2F0 _memicmp (the registry file's section and key lookups; every start).
+int(__cdecl* s_memicmp)(const void*, const void*, std::size_t);
+int __cdecl MemicmpVerify(const void* a, const void* b, std::size_t n) {
+    const int expected = s_memicmp(a, b, n);
+    const int actual = libcrt::Memicmp(a, b, n);
+    Check("_memicmp", expected, actual, "\"%.*s\" \"%.*s\"", int(n < 40 ? n : 40), static_cast<const char*>(a),
+          int(n < 40 ? n : 40), static_cast<const char*>(b));
+    return actual;
+}
+// PUSH EBP; MOV EBP,ESP; PUSH EDI; PUSH ESI (5 bytes).
+EI_VERIFY(0x006FD2F0, MemicmpVerify, 5, s_memicmp);
+
 int(__cdecl* s_mbscmp)(const unsigned char*, const unsigned char*);
 int __cdecl MbscmpVerify(const unsigned char* a, const unsigned char* b) {
     const int expected = s_mbscmp(a, b);

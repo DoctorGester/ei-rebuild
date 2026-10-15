@@ -55,12 +55,15 @@ struct CountedEntry {
     static void Destroy(RefEntry* p) { CountedRef::Destroy(&p->ref); }
 };
 
-// A held engine object copied with one more reference (its dword count; e.g. 0056F680). The
-// instantiations that use it never destroy an element here.
+// A held engine object copied with one more reference (its dword count; e.g. 0056F680) and
+// destroyed with its Release (slot 4) when there is one (clear 00573660).
 struct HeldObject {
     static void Copy(CEngineObject** to, CEngineObject* const& from) {
         *to = from;
         if (from) ++from->refCount_;
+    }
+    static void Destroy(CEngineObject** p) {
+        if (*p) (*p)->Release();
     }
 };
 

@@ -100,6 +100,8 @@ EI_REPLACE(0x0059CA60, SharedObjectNewList::NewNode);   // 0x28: a header at +0x
 // Their ConstructElements helpers (RET 8; the zero fill, then the element's inlined constructor).
 EI_REPLACE(0x004CE580, Plain4::ConstructElements);
 EI_REPLACE(0x0059E2C0, Plain4::ConstructElements);
+EI_REPLACE(0x00479620, Plain4::ConstructElements);   // counted references (S6e)
+EI_REPLACE(0x00558EF0, Plain4::ConstructElements);   // counted references (S6e)
 EI_REPLACE(0x0059E390, Plain8::ConstructElements);
 EI_REPLACE(0x00558EA0, Plain12::ConstructElements);
 EI_REPLACE(0x005BF320, Plain12::ConstructElements);

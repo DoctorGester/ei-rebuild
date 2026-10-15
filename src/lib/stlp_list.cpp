@@ -312,6 +312,8 @@ EI_REPLACE(0x004236C0, CountedEntryList::Erase);
 EI_REPLACE(0x005F8E50, CStringList::Erase);
 // erase(pos) of the connection's 0x104-byte headers (nodes from operator new; S12d).
 EI_REPLACE(0x00438660, PlainList260::Erase);
+// erase(pos) of pair<const string, dword> (the link loader's archives; S12e).
+EI_REPLACE(0x004FAE00, StringDwordList::Erase);
 
 // clear(): SharedRef (7), CountedRef (8), SharedEntry (2).
 EI_REPLACE(0x00427100, SharedRefList::Clear);
@@ -330,6 +332,13 @@ EI_REPLACE(0x004274C0, CountedRefList::Clear);
 EI_REPLACE(0x00427500, CountedRefList::Clear);
 EI_REPLACE(0x004275A0, CountedRefList::Clear);
 EI_REPLACE(0x004272E0, SharedEntryList::Clear);
+// The client's sector grids' cell lists (S16, on the standalone boot path): clear (2), erase,
+// ~list (2).
+EI_REPLACE(0x005703C0, HeldObjectList::Clear);
+EI_REPLACE(0x00573660, HeldObjectList::Clear);
+EI_REPLACE(0x00572270, HeldObjectList::Erase);
+EI_REPLACE(0x00572E90, HeldObjectList::Destruct);
+EI_REPLACE(0x0069BE70, HeldObjectList::Destruct);
 EI_REPLACE(0x00427560, SharedEntryList::Clear);
 EI_REPLACE(0x004FBCF0, StringDwordList::Clear);   // S12c: the link loader's archives
 

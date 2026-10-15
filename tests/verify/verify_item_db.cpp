@@ -226,3 +226,19 @@ static TextSourceList::Node** __fastcall ListInsertVerify(TextSourceList* self, 
     return result;
 }
 EI_VERIFY(0x004E1590, ListInsertVerify, 0, s_unusedList);
+
+// The original's node (checked, then destroyed and back to the pool), then ours: the same node again
+// (the pool's free list is last in, first out), the pair copied.
+static TextSourceList::Node*(__fastcall* s_createNode)(TextSourceList*, void*, const TextSource*);
+static TextSourceList::Node* __fastcall CreateNodeVerify(TextSourceList* self, void*, const TextSource* value) {
+    TextSourceList::Node* theirs = s_createNode(self, nullptr, value);
+    const bool theirsOk = theirs->data.name == value->name && theirs->data.source == value->source;
+    theirs->data.~TextSource();
+    stlp::deallocate(theirs, sizeof(TextSourceList::Node));
+    TextSourceList::Node* ours = TextSourcesCreateNode(self, nullptr, value);
+    const bool ok = ours == theirs && ours->data.name == value->name && ours->data.source == value->source;
+    ei::verify::Check("TextSourcesCreateNode", true, theirsOk && ok, "\"%s\"", value->name.data());
+    return ours;
+}
+// PUSH EBP; MOV EBP,ESP; PUSH -1 (5).
+EI_VERIFY(0x004E15C0, CreateNodeVerify, 5, s_createNode);

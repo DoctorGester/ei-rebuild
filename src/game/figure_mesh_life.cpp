@@ -72,6 +72,12 @@ int CFigureMesh::CreateMesh() {
 }
 EI_REPLACE_METHOD(0x0059F210, CFigureMesh::CreateMesh);
 
+// 005A6C70 / 005A6E00: the jumps of the figure classes' slot 2 to CreateMesh (through its address,
+// so its check runs).
+int __fastcall CreateMeshJump(CFigureMesh* self) { return FigureMeshCreateOriginal(self); }
+EI_REPLACE(0x005A6C70, CreateMeshJump);
+EI_REPLACE(0x005A6E00, CreateMeshJump);
+
 // --- Clearing -----------------------------------------------------------------------------------
 
 void CFigureMesh::Clear() {

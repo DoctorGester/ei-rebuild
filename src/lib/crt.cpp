@@ -323,6 +323,22 @@ int __cdecl Strnicmp(const char* a, const char* b, std::size_t n) {
 }
 EI_REPLACE(0x006FA1A0, libcrt::Strnicmp);
 
+// VC6's _memicmp: no terminator test; bytes that differ are compared folded (A-Z in the "C" locale,
+// _tolower_lk otherwise), as unsigned bytes: -1 or 1 (S16).
+int __cdecl Memicmp(const void* a, const void* b, std::size_t n) {
+    const int* fold = FoldTable();
+    const unsigned char* pa = static_cast<const unsigned char*>(a);
+    const unsigned char* pb = static_cast<const unsigned char*>(b);
+    for (; n > 0; --n, ++pa, ++pb) {
+        if (*pa == *pb) continue;
+        const unsigned char ca = static_cast<unsigned char>(fold[*pa]);
+        const unsigned char cb = static_cast<unsigned char>(fold[*pb]);
+        if (ca != cb) return ca < cb ? -1 : 1;
+    }
+    return 0;
+}
+EI_REPLACE(0x006FD2F0, libcrt::Memicmp);
+
 // Single-byte code page (__ismbcodepage zero): strcmp and _stricmp.
 int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b) {
     return Strcmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));

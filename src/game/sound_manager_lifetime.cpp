@@ -193,6 +193,23 @@ void ConstructFader(SoundFader& fader) {
 
 } // namespace
 
+// The emitters' and sequences' element constructors (thiscall, return this) and destructors
+// (compiler-generated: the name array at +4; S16, on the standalone boot path).
+SoundEmitter* __fastcall ConstructEmitter(SoundEmitter* emitter) {
+    emitter->names.Construct();
+    return emitter;
+}
+EI_REPLACE(0x006B63D0, ConstructEmitter);
+void __fastcall DestructEmitter(SoundEmitter* emitter) { emitter->names.Destruct(); }
+EI_REPLACE(0x006B63E0, DestructEmitter);
+SoundSequence* __fastcall ConstructSequence(SoundSequence* sequence) {
+    sequence->names.Construct();
+    return sequence;
+}
+EI_REPLACE(0x006B63F0, ConstructSequence);
+void __fastcall DestructSequence(SoundSequence* sequence) { sequence->names.Destruct(); }
+EI_REPLACE(0x006B6400, DestructSequence);
+
 CSoundManager* CSoundManager::Construct() {
     ei::SetVtable(this, CEngineObject::kVtableAddress);
     ClearFields();
@@ -487,6 +504,14 @@ void CSoundManager::StreamThread() {
     AfxEndThreadOriginal(0, 1);
 }
 EI_REPLACE_METHOD(0x006BB910, CSoundManager::StreamThread);
+
+// 006B6A10: the stream thread's procedure (cdecl): the manager's StreamThread, then 0 (not reached:
+// StreamThread ends the thread). S16, on the standalone boot path.
+unsigned __cdecl StreamThreadEntry(void* manager) {
+    static_cast<CSoundManager*>(manager)->StreamThread();
+    return 0;
+}
+EI_REPLACE(0x006B6A10, StreamThreadEntry);
 
 // --- A-H26: the stream's reader -----------------------------------------------------------------------
 

@@ -16,6 +16,8 @@
 
 #include <cstring>
 
+int __fastcall CreateMeshJump(CFigureMesh* self);   // figure_mesh_life.cpp
+
 namespace {
 void* s_unused;
 
@@ -179,8 +181,21 @@ CEngineObject* __fastcall CreateFigureObjectVerify(CFigureManager* self, void*, 
     ei::verify::Check("CFigureManager::CreateFigureObject", true, ok, "type 0x%X id %d", type, id);
     return object;
 }
+// 005A6C70 / 005A6E00 (jumps to CreateMesh, whose own check runs inside): ours only, the result.
+int __fastcall CreateJumpVerify(CFigureMesh* self) {
+    int result = CreateMeshJump(self);
+    ei::verify::Check("figure Create jump", 1, result, "");
+    return result;
+}
+int __fastcall CreateJumpVerify2(CFigureMesh* self) {
+    int result = CreateMeshJump(self);
+    ei::verify::Check("figure Create jump (0x41)", 1, result, "");
+    return result;
+}
 } // namespace
 
+EI_VERIFY(0x005A6C70, CreateJumpVerify, 0, s_unused);
+EI_VERIFY(0x005A6E00, CreateJumpVerify2, 0, s_unused);
 EI_VERIFY(0x0059F210, CreateVerify, 5, s_create);
 EI_VERIFY(0x005AABC0, ConstructBaseVerify, 7, s_constructBase);
 EI_VERIFY(0x0059F2B0, ClearVerify, 0, s_unused);

@@ -114,6 +114,7 @@ void __fastcall FreeVerify(lib::AlignedArray<std::uint8_t>* a) {
 } // namespace
 
 EI_VERIFY(0x00600A80, AllocDwordsVerify, 0, s_unused);
+EI_VERIFY(0x00475F20, FreeVerify, 0, s_unused);
 EI_VERIFY(0x00600330, FreeVerify, 0, s_unused);
 EI_VERIFY(0x00600350, FreeVerify, 0, s_unused);
 EI_VERIFY(0x00600370, FreeVerify, 0, s_unused);

@@ -101,6 +101,16 @@ static_assert(sizeof(SoundEmitter) == 0x38);
 
 // A 3D sound sequence (8 at CSoundManager + 0x5F0, 0x4C bytes): plays its names one after the
 // other (or at random, or as a callback chooses) at one position.
+struct SoundSequence;
+// 006B6A10 (sound_manager_lifetime.cpp): the stream thread's procedure, CSoundManager::StreamThread.
+unsigned __cdecl StreamThreadEntry(void* manager);
+// 006B63D0 / 006B63E0, 006B63F0 / 006B6400 (sound_manager_lifetime.cpp): the elements' constructors
+// (return this) and destructors, handed to the CRT's eh vector iterators.
+SoundEmitter* __fastcall ConstructEmitter(SoundEmitter* emitter);
+void __fastcall DestructEmitter(SoundEmitter* emitter);
+SoundSequence* __fastcall ConstructSequence(SoundSequence* sequence);
+void __fastcall DestructSequence(SoundSequence* sequence);
+
 struct SoundSequence {
     std::int32_t active;        // +0x00
     SoundNameArray names;       // +0x04

@@ -277,11 +277,13 @@ void __fastcall BuildSmoothEdges(SmoothEdgeArray* edges, void*, int direction, b
 }
 EI_REPLACE(0x005C3690, BuildSmoothEdges);
 
-void SmoothTable::Construct() {
+SmoothTable* SmoothTable::Construct() {
     copies.Construct(kCopyArrayVtable);
     steps.Construct(kStepArrayVtable);
     chained.Construct(kStepArrayVtable);
+    return this;
 }
+EI_REPLACE_METHOD(0x005C4210, SmoothTable::Construct);
 
 void SmoothTable::Destruct() {
     chained.vtable = reinterpret_cast<void*>(kStepArrayVtable);

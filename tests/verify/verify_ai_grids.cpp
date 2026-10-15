@@ -203,6 +203,32 @@ static SearchGrid<std::uint32_t>* __fastcall ConstructOccludersVerify(SearchGrid
 }
 EI_VERIFY(0x005BCF00, ConstructOccludersVerify, 5, s_constructOccluders);
 
+// 005AF580 / 005AF590: MOV EAX,1; MOV [ECX+8],EAX (8). The original constructs a probe, ours the
+// real grid: 1 x 1, fitting rows and the same cells (edges -1, representative cells 0).
+static void(__fastcall* s_constructEdges)(SearchGrid<std::int16_t>*);
+static void __fastcall ConstructEdgesVerify(SearchGrid<std::int16_t>* grid) {
+    SearchGrid<std::int16_t> probe{nullptr, nullptr, -1, -1};
+    s_constructEdges(&probe);
+    ConstructEdgeGrid(grid);
+    bool ok = grid->width == 1 && grid->height == 1 && RowsFit(probe, 8) && RowsFit(*grid, 8) &&
+              SameCells(probe, *grid, 8, Equal<std::int16_t>);
+    ei::verify::Check("ConstructEdgeGrid", true, ok, "%d x %d", grid->width, grid->height);
+    FreeProbe(probe);
+}
+EI_VERIFY(0x005AF580, ConstructEdgesVerify, 8, s_constructEdges);
+
+static void(__fastcall* s_constructRepresentatives)(SearchGrid<std::uint8_t>*);
+static void __fastcall ConstructRepresentativesVerify(SearchGrid<std::uint8_t>* grid) {
+    SearchGrid<std::uint8_t> probe{nullptr, nullptr, -1, -1};
+    s_constructRepresentatives(&probe);
+    ConstructRepresentativeGrid(grid);
+    bool ok = grid->width == 1 && grid->height == 1 && RowsFit(probe) && RowsFit(*grid) &&
+              SameCells(probe, *grid, 1, Equal<std::uint8_t>);
+    ei::verify::Check("ConstructRepresentativeGrid", true, ok, "%d x %d", grid->width, grid->height);
+    FreeProbe(probe);
+}
+EI_VERIFY(0x005AF590, ConstructRepresentativesVerify, 8, s_constructRepresentatives);
+
 // 005AF5A0: PUSH ESI; MOV ESI,ECX; MOV EAX,1 (8).
 static void(__fastcall* s_constructRegions)(SearchGrid<std::uint16_t>*);
 static void __fastcall ConstructRegionsVerify(SearchGrid<std::uint16_t>* grid) {

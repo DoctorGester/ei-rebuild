@@ -11,7 +11,7 @@ namespace mfc::impl {
 
 // ---- Constructors and destructors of arrays whose elements need nothing ---------------------------
 
-// The constructor: the vtable, the rest zero (21 instantiations).
+// The constructor: the vtable, the rest zero (22 instantiations).
 EI_REPLACE(0x00468D60, ArrayHeader<SpriteArrayClass>::Construct);
 EI_REPLACE(0x00475500, ArrayHeader<RotKeyArrayClass>::Construct);
 EI_REPLACE(0x00475860, ArrayHeader<PosKeyArrayClass>::Construct);
@@ -19,6 +19,7 @@ EI_REPLACE(0x00475BC0, ArrayHeader<MorphHeadArrayClass>::Construct);
 EI_REPLACE(0x00476930, ArrayHeader<NormalArrayClass>::Construct);
 EI_REPLACE(0x004BB000, ArrayHeader<PartySlotArrayClass>::Construct);
 EI_REPLACE(0x004C2030, ArrayHeader<ObjectRefArrayClass>::Construct);
+EI_REPLACE(0x004C59A0, ArrayHeader<ScriptIfThenArrayClass>::Construct);
 EI_REPLACE(0x004CD080, ArrayHeader<FloatArrayClass>::Construct);
 EI_REPLACE(0x004D5990, ArrayHeader<ArgFloatArrayClass>::Construct);
 EI_REPLACE(0x00556810, ArrayHeader<MotionWaypointArrayClass>::Construct);

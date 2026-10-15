@@ -9,6 +9,8 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "engine_object.h"
+#include "model.h"
+#include "net_classes.h"
 #include "ui_briefing.h"
 
 #include "lib/mfc.h"
@@ -119,5 +121,14 @@ void __fastcall SetRootVtable(void* self);
 // less a span of seconds into `out` (thiscall, RET 8; called from 005E0400 after a CTime
 // constructor); returns out.
 mfc::impl::CTime* __fastcall TimeMinusSpan(const mfc::impl::CTime* self, void*, mfc::impl::CTime* out, long span);
+
+// ---- Vector members destroyed inside an owner (S12e) ------------------------------------------------
+
+// The server list's game record (net_classes.h; 0041AC30): the description's block back to the pool,
+// then the name's.
+void __fastcall DestroyGameInfoRecord(net::GameInfoRecord* self);
+// The print records' name (model.h; 006D29A0 for PrintRecord, 006D29E0 for PrintRecord2, whose name
+// is at the same +0x04): its block back to the pool.
+void __fastcall DestroyPrintName(PrintRecord* self);
 
 } // namespace libcontainers
