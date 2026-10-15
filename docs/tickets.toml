@@ -1271,7 +1271,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 6 merged 2026-10-15: 64 virtual-slot shims to Impl members; 952 shims left. The virtual-slot forwarder pool is used up; what is left is mostly call-through blocks, UI input shims, free __fastcall bodies of slots with no member yet, and shims that dereference a pointer parameter (see docs/notes/cleanup-units.md, C11 batch 6)."
+note = "Batch 7 merged 2026-10-15: 47 free slot bodies and pointer-parameter shims to Impl members; 908 shims left. Both easy pools are used up; what is left is call-through blocks, UI input shims and void* selfs, template aliases (C11 batch 7 in docs/notes/cleanup-units.md). Next batch: the constexpr addresses and per-file At() copies part of this ticket, or the UI input shims as one family."
 
 [[ticket]]
 id = "C12"
