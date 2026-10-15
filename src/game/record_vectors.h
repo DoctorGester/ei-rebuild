@@ -12,7 +12,9 @@
 #include "net_classes.h"
 #include "party_manager.h"
 #include "quest_records.h"
+#include "record_lifetime.h"
 #include "record_members.h"
+#include "ui.h"
 #include "unit_db.h"
 #include "unit_looks.h"
 
@@ -320,6 +322,72 @@ struct LeverElement : records::Memberwise<LeverRecord, &LeverRecord::name, &Leve
 };
 
 using LeverVector = stlp::VectorAbi<LeverRecord, LeverElement>;
+
+// ---- The session's replicated messages (net_classes.h; net_session_base.cpp's 0041F790 / 00426B10)
+
+// {message, priority}: plain bytes; push_back(T()) builds nothing (the constructor 00429030 is
+// empty), the caller stores into the new element.
+struct ReplicatedElement : stlp::PlainElement<net::Replicated> {
+    static void Default(net::Replicated*) {}
+};
+
+using ReplicatedVector = stlp::VectorAbi<net::Replicated, ReplicatedElement>;
+
+// ---- The HUD's portrait slots (ui.h; ui_hud_portrait_setup.cpp's 0064AB20 / 0064AD40) -----------
+
+// A slot: member by member (the padding after hasPlayer_ is not copied), the three texts as
+// CStrings; push_back(T())'s default has identity orientations and empty texts (the other fields
+// left as they are); the destructor 0064ACD0 the texts from the last.
+struct HudPortraitSlotElement {
+    using R = HudPortraitSlot;
+    static void Construct(R* to, const R& from) {
+        Plain(*to, from);
+        new (&records::AsCString(to->faceName_)) mfc::CString(records::AsCString(from.faceName_));
+        new (&records::AsCString(to->modelPrefix_)) mfc::CString(records::AsCString(from.modelPrefix_));
+        new (&records::AsCString(to->modelSuffix_)) mfc::CString(records::AsCString(from.modelSuffix_));
+    }
+    static void Assign(R& to, const R& from) {
+        Plain(to, from);
+        records::AsCString(to.faceName_) = records::AsCString(from.faceName_);
+        records::AsCString(to.modelPrefix_) = records::AsCString(from.modelPrefix_);
+        records::AsCString(to.modelSuffix_) = records::AsCString(from.modelSuffix_);
+    }
+    static void Default(R* p) {
+        p->restA_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+        p->current_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+        p->restB_ = Quaternion{1.0f, 0.0f, 0.0f, 0.0f};
+        new (&records::AsCString(p->faceName_)) mfc::CString();
+        new (&records::AsCString(p->modelPrefix_)) mfc::CString();
+        new (&records::AsCString(p->modelSuffix_)) mfc::CString();
+        p->wobbleTarget_.SetIdentity();
+    }
+    static void Destroy(R* p) {
+        records::AsCString(p->modelSuffix_).~CString();
+        records::AsCString(p->modelPrefix_).~CString();
+        records::AsCString(p->faceName_).~CString();
+    }
+
+private:
+    static void Plain(R& to, const R& from) {
+        to.lastHitPoints_ = from.lastHitPoints_;
+        to.flash_ = from.flash_;
+        to.restA_ = from.restA_;
+        to.current_ = from.current_;
+        to.restB_ = from.restB_;
+        to.wobbleKind_ = from.wobbleKind_;
+        to.wobbleTime_ = from.wobbleTime_;
+        to.faceState_ = from.faceState_;
+        to.faceMode_ = from.faceMode_;
+        to.faceTimer_ = from.faceTimer_;
+        to.build_ = from.build_;
+        to.wobbleTarget_ = from.wobbleTarget_;
+        to.wobbleSpeed_ = from.wobbleSpeed_;
+        to.hasPlayer_ = from.hasPlayer_;
+        to.playerId_ = from.playerId_;
+    }
+};
+
+using HudPortraitSlotVector = stlp::VectorAbi<HudPortraitSlot, HudPortraitSlotElement>;
 
 // ---- The quest database (quest_records.h) ------------------------------------------------------
 

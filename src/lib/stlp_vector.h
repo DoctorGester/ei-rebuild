@@ -257,6 +257,22 @@ public:
         }
     }
 
+    // push_back(T()) (e.g. 0064AB20): the default element made in place when there is room, else a
+    // temporary the policy makes, inserted through InsertOverflow and destroyed.
+    template <typename E>
+    void PushDefault() {
+        if (finish_ != eos_) {
+            E::Default(finish_);
+            ++finish_;
+            return;
+        }
+        alignas(T) unsigned char storage[sizeof(T)];
+        T* x = reinterpret_cast<T*>(storage);
+        E::Default(x);
+        InsertOverflow<E>(finish_, *x, 1);
+        E::Destroy(x);
+    }
+
     // operator=(x) (e.g. 0064AF30).
     template <typename E>
     void AssignVector(const vector& x) {
@@ -401,6 +417,8 @@ struct VectorAbi {
     static void __fastcall Reserve(Vector* self, void*, std::size_t n) { self->template Reserve<E>(n); }
     // push_back(x) (e.g. 0069BD30; RET 4).
     static void __fastcall PushBack(Vector* self, void*, const T* x) { self->template PushBack<E>(*x); }
+    // push_back(T()) out of line (e.g. 0064AB20; plain RET).
+    static void __fastcall PushDefault(Vector* self) { self->template PushDefault<E>(); }
     // operator=(x) (e.g. 0064AF30; RET 4): returns this.
     static Vector* __fastcall Assign(Vector* self, void*, const Vector* x) {
         self->template AssignVector<E>(*x);

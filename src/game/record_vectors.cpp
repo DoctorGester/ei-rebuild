@@ -59,3 +59,11 @@ EI_REPLACE(0x004ADAA0, PartyEntryVector::ResizeDefault);   // 0x14
 
 // The lever table's records (resize(n), RET 4; Levers.ldb at startup).
 EI_REPLACE(0x00465180, LeverVector::ResizeDefault);   // 0x2C
+
+// The session's replicated messages: push_back(T()) (plain RET) and _M_insert_overflow (RET 0xC).
+EI_REPLACE(0x0041F790, ReplicatedVector::PushDefault);    // 8
+EI_REPLACE(0x00426B10, ReplicatedVector::InsertOverflow);
+
+// The HUD's portrait slots: push_back(T()) (plain RET) and erase(first, last) (RET 8).
+EI_REPLACE(0x0064AB20, HudPortraitSlotVector::PushDefault);   // 0x78
+EI_REPLACE(0x0064AD40, HudPortraitSlotVector::EraseRange);

@@ -12,6 +12,7 @@
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -210,6 +211,34 @@ struct LeverText {
     }
 };
 
+// The HUD's portrait slots: the texts and the orientations.
+std::string QuaternionText(const Quaternion& q) {
+    char text[64];
+    std::snprintf(text, sizeof(text), "(%g,%g,%g,%g)", q.w, q.x, q.y, q.z);
+    return text;
+}
+struct HudPortraitSlotText {
+    static std::string Of(const HudPortraitSlot& r) {
+        return Str(r.faceName_) + "|" + Str(r.modelPrefix_) + "|" + Str(r.modelSuffix_) + QuaternionText(r.restA_) +
+               QuaternionText(r.current_) + QuaternionText(r.restB_) + QuaternionText(r.wobbleTarget_);
+    }
+};
+
+// The session's replicated messages: push_back(T()) leaves the new element as the storage held
+// it, so only the earlier elements' bytes and the count are compared.
+template <std::uintptr_t A>
+struct ReplicatedPush {
+    static void __fastcall PushDefault(ReplicatedVector::Vector* self) {
+        std::vector<net::Replicated> before(self->begin(), self->end());
+        ReplicatedVector::PushDefault(self);
+        bool ok = self->size() == before.size() + 1 &&
+                  std::memcmp(self->begin(), before.data(), before.size() * sizeof(net::Replicated)) == 0;
+        ei::verify::Report(stlp_verify::Name<A>("stlp::vector::push_back(T())"), ok,
+                           ok ? "" : "the earlier elements or the count differ");
+    }
+};
+
+template <std::uintptr_t A> using HudPortraitSlots = ModelCheck<A, HudPortraitSlotVector, HudPortraitSlotText>;
 template <std::uintptr_t A> using Levers = ModelCheck<A, LeverVector, LeverText>;
 template <std::uintptr_t A> using PartyEntries = ModelCheck<A, PartyEntryVector, PartyEntryText>;
 template <std::uintptr_t A> using Queries = ModelCheck<A, QueryVector, QueryText>;
@@ -288,3 +317,10 @@ EI_VERIFY(0x004ADAA0, PartyEntries<0x004ADAA0>::ResizeDefault, 0, s_unused);
 
 // The lever table (loaded at startup).
 EI_VERIFY(0x00465180, Levers<0x00465180>::ResizeDefault, 0, s_unused);
+
+// The session's replicated messages (multiplayer sessions).
+EI_VERIFY(0x0041F790, ReplicatedPush<0x0041F790>::PushDefault, 0, s_unused);
+
+// The HUD's portrait slots (the party's portraits).
+EI_VERIFY(0x0064AB20, HudPortraitSlots<0x0064AB20>::PushDefault, 0, s_unused);
+EI_VERIFY(0x0064AD40, HudPortraitSlots<0x0064AD40>::EraseRange, 0, s_unused);

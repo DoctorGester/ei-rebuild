@@ -106,6 +106,12 @@ struct ModelCheck {
         Abi::PushBack(self, nullptr, x);
         Compare("stlp::vector::push_back", self, m);
     }
+    static void __fastcall PushDefault(Vector* self) {
+        Model m = Read(*self);
+        m.push_back(DefaultText());
+        Abi::PushDefault(self);
+        Compare("stlp::vector::push_back(T())", self, m);
+    }
     static Vector* __fastcall Assign(Vector* self, void*, const Vector* x) {
         Model m = Read(*x);
         Vector* result = Abi::Assign(self, nullptr, x);

@@ -368,6 +368,7 @@ struct ChangeCheck {
 };
 template <std::uintptr_t A> using Change1 = ChangeCheck<A, Vector1>;
 template <std::uintptr_t A> using Change4 = ChangeCheck<A, Vector4>;
+template <std::uintptr_t A> using Change8 = ChangeCheck<A, Vector8>;
 template <std::uintptr_t A> using Change12 = ChangeCheck<A, Vector12>;
 template <std::uintptr_t A> using Change16 = ChangeCheck<A, Vector16>;
 template <std::uintptr_t A> using Change24 = ChangeCheck<A, Vector24>;
@@ -571,3 +572,6 @@ EI_VERIFY(0x0040AF00, Change4<0x0040AF00>::Reserve, 5, Change4<0x0040AF00>::orig
 EI_VERIFY(0x005AD880, Change4<0x005AD880>::Reserve, 5, Change4<0x005AD880>::original);
 EI_VERIFY(0x0064AF30, Change4<0x0064AF30>::Assign, 5, Change4<0x0064AF30>::original);
 EI_VERIFY(0x004387D0, Free8<0x004387D0>::DestroyBase, 5, Free8<0x004387D0>::original);
+
+// vector<Replicated> (src/game/record_vectors.cpp; 8-byte plain records).
+EI_VERIFY(0x00426B10, Change8<0x00426B10>::InsertOverflow, 5, Change8<0x00426B10>::original);
