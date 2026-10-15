@@ -1249,3 +1249,8 @@ Against the plain pass (golden.py diff, `obj2 hp` left out, SV7b3):
 No `script` field differs in any pass: the group order no longer follows the layout. ScriptGroup::Union (32178 calls)
 and Sort (196) compared ours with the patched original without a mismatch; Insert, Difference, Intersection and Load
 were not reached from original code in hooked runs (their callers are ours).
+
+**SV3i and SV2d.** zone_gz3g (vanilla): two plain `--no-hooks` runs, one with seed 1 and two with our hooks agree in
+every record (`gobject.VSS#i#val` 3353 in all, where SV3i saw 3353 / 3357 between our runs and 3363 / 3371 between the
+original's). SV2d (gobject.i 1884 in ours, 702 in the original after a load) is gone: 1884 on both sides. Both set
+done. Follow-ups: SV7b7 (the `3,fill` uninitialised read), SV7b8 (the seed-2 vanilla menu unit orientation).
