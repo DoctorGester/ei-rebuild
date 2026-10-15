@@ -1,8 +1,9 @@
 // Checks for MFC's CFile, CStdioFile, CFileFind and CTime (src/lib/mfc_file.cpp, mfc_time.cpp,
-// ticket S8). The functions that only read run as the original and as ours and the results are
-// compared (a new object or string built by the original into scratch storage). CFile::Read and
-// CStdioFile's line readers read twice: the original, then back to where it started and ours.
-// CFile::Open runs the original on a twin object whose handle is closed before ours opens. The rest
+// ticket S8). The functions that only read run as ours and as the original and the results are
+// compared (a new object or string built by the original into scratch storage after ours, SV2h1).
+// CFile::Read and CStdioFile's char* reader read twice: the original, then back to where it started
+// and ours; the CString line reader reads ours first. CFile::Open runs the original on a twin object
+// whose handle is closed (and strings freed) before ours opens. The rest
 // (the constructors that start with a call, writes, seeks, closes, the searches) run ours only, with
 // checks of the state they leave. A start-up check drives the classes through their addresses in a
 // private temporary folder (written, read back, searched, removed).
@@ -58,9 +59,9 @@ BOOL __stdcall FullPathVerify(char* out, const char* path) {
 // 00701940: MOV ECX,[ESP+8]; PUSH EBX (5 bytes).
 void(__stdcall* s_getRoot)(const char*, CString&);
 void __stdcall GetRootVerify(const char* path, CString& root) {
+    mfc::impl::GetRoot(path, root);
     CString expected;
     s_getRoot(path, expected);
-    mfc::impl::GetRoot(path, root);
     Check("AfxGetRoot", true, Same(expected, root), "\"%.80s\": \"%.80s\" (original \"%.80s\")", path, Text(root), Text(expected));
 }
 
@@ -126,30 +127,50 @@ CFile* __fastcall DeletingDestructorVerify(CFile* self, void*, unsigned flags) {
     return result;
 }
 
-// 007011E8: PUSH EBP; MOV EBP,ESP; SUB ESP,0x110 (9 bytes). The original opens on a twin; its handle
-// is closed before ours opens (an exclusive share would refuse the second open).
+// 007011E8: PUSH EBP; MOV EBP,ESP; SUB ESP,0x110 (9 bytes). The original opens on a twin first: its
+// handle is closed before ours opens (an exclusive share would refuse a second open, so ours cannot
+// open first). What it left is kept in our memory and its strings are freed (the exception's name
+// first, the file's name last) before ours runs, so no block of the original's is alive while ours
+// allocates (SV2h1).
 BOOL(__fastcall* s_open)(CFile*, void*, const char*, unsigned, CFileException*);
 BOOL __fastcall OpenVerify(CFile* self, void*, const char* path, unsigned flags, CFileException* error) {
-    Slot<CFile> twin;
-    twin.Get()->Construct();
-    Slot<CFileException> twinError;
-    if (error) {
-        std::memcpy(twinError.Get(), error, sizeof(CFileException));
-        ::new (&twinError.Get()->fileName) CString(error->fileName);
+    struct Opened {
+        BOOL result;
+        BOOL closeOnDelete;
+        bool hasHandle;
+        std::string fileName;
+        int cause;
+        LONG osError;
+        std::string errorName;
+    } expected{};
+    {
+        Slot<CFile> twin;
+        twin.Get()->Construct();
+        Slot<CFileException> twinError;
+        if (error) {
+            std::memcpy(twinError.Get(), error, sizeof(CFileException));
+            ::new (&twinError.Get()->fileName) CString(error->fileName);
+        }
+        expected.result = s_open(twin.Get(), nullptr, path, flags, error ? twinError.Get() : nullptr);
+        if (twin.Get()->handle != CFile::kNoFile) gameapi::CloseHandle(twin.Get()->handle);
+        expected.closeOnDelete = twin.Get()->closeOnDelete;
+        expected.hasHandle = twin.Get()->handle != CFile::kNoFile;
+        expected.fileName = Text(twin.Get()->fileName);
+        if (error) {
+            expected.cause = twinError.Get()->cause;
+            expected.osError = twinError.Get()->osError;
+            expected.errorName = Text(twinError.Get()->fileName);
+            twinError.Get()->fileName.~CString();
+        }
+        twin.Get()->fileName.~CString();
     }
-    const BOOL expected = s_open(twin.Get(), nullptr, path, flags, error ? twinError.Get() : nullptr);
-    if (twin.Get()->handle != CFile::kNoFile) gameapi::CloseHandle(twin.Get()->handle);
     const BOOL result = self->Open(path, flags, error);
-    bool ok = result == expected && self->closeOnDelete == twin.Get()->closeOnDelete && Same(self->fileName, twin.Get()->fileName) &&
-              (self->handle != CFile::kNoFile) == (twin.Get()->handle != CFile::kNoFile);
-    if (error) {
-        ok = ok && error->cause == twinError.Get()->cause && error->osError == twinError.Get()->osError &&
-             Same(error->fileName, twinError.Get()->fileName);
-        twinError.Get()->fileName.~CString();
-    }
-    Check("CFile::Open", true, ok, "\"%.80s\" %#x: %d \"%.80s\" (original %d \"%.80s\")", path, flags, result, Text(self->fileName), expected,
-          Text(twin.Get()->fileName));
-    twin.Get()->fileName.~CString();
+    bool ok = result == expected.result && self->closeOnDelete == expected.closeOnDelete && expected.fileName == Text(self->fileName) &&
+              (self->handle != CFile::kNoFile) == expected.hasHandle;
+    if (error)
+        ok = ok && error->cause == expected.cause && error->osError == expected.osError && expected.errorName == Text(error->fileName);
+    Check("CFile::Open", true, ok, "\"%.80s\" %#x: %d \"%.80s\" (original %d \"%.80s\")", path, flags, result, Text(self->fileName),
+          expected.result, expected.fileName.c_str());
     return result;
 }
 
@@ -313,17 +334,21 @@ void __fastcall StdioWriteStringVerify(CStdioFile* self, void*, const char* text
     Check("CStdioFile::WriteString", true, true, "");
 }
 
-// 00701E93: PUSH EBX/EBP/ESI/EDI; MOV EDI,[ESP+0x14] (8 bytes). Read twice (ftell / fseek back).
+// 00701E93: PUSH EBX/EBP/ESI/EDI; MOV EDI,[ESP+0x14] (8 bytes). Read twice: ours into the caller's
+// string, back to the start (fseek), the original into a scratch string; the stream is put back
+// where ours left it when the original ended elsewhere (SV2h1).
 BOOL(__fastcall* s_readLine)(CStdioFile*, void*, CString&);
 BOOL __fastcall StdioReadLineVerify(CStdioFile* self, void*, CString& text) {
     const long at = Tell(self);
     if (at < 0) return self->ReadLine(text);
+    const BOOL result = self->ReadLine(text);
+    const long end = Tell(self);
+    gamecrt::fseek(self->stream, at, SEEK_SET);
     CString expected;
     const BOOL expectedResult = s_readLine(self, nullptr, expected);
     const long expectedEnd = Tell(self);
-    gamecrt::fseek(self->stream, at, SEEK_SET);
-    const BOOL result = self->ReadLine(text);
-    Check("CStdioFile::ReadString(CString&)", true, result == expectedResult && Same(text, expected) && Tell(self) == expectedEnd,
+    if (expectedEnd != end) gamecrt::fseek(self->stream, end, SEEK_SET);
+    Check("CStdioFile::ReadString(CString&)", true, result == expectedResult && Same(text, expected) && end == expectedEnd,
           "%d \"%.80s\" (original %d \"%.80s\")", result, Text(text), expectedResult, Text(expected));
     return result;
 }
@@ -422,7 +447,7 @@ BOOL __fastcall FindNextFileVerify(CFileFind* self) {
     return result;
 }
 
-// The string getters: the original into scratch storage. GetFileName / GetFilePath / GetFileTitle /
+// The string getters: ours into the caller's storage, then the original into scratch storage. GetFileName / GetFilePath / GetFileTitle /
 // GetFileURL: MOV EAX,imm32 (5 bytes); GetRoot: PUSH EBP; MOV EBP,ESP; PUSH ECX; AND [EBP-4],0 (8).
 using StringGetter = CString*(__fastcall*)(const CFileFind*, void*, CString*);
 template <int Id>
@@ -431,9 +456,9 @@ struct FindString {
     static inline CString (CFileFind::*ours)() const;
     static inline const char* name;
     static CString* __fastcall Verify(const CFileFind* self, void*, CString* result) {
+        ::new (result) CString((self->*ours)());
         Slot<CString> expected;
         original(self, nullptr, expected.Get());
-        ::new (result) CString((self->*ours)());
         Check(name, true, Same(*expected.Get(), *result), "\"%.80s\" (original \"%.80s\")", Text(*result), Text(*expected.Get()));
         expected.Get()->~CString();
         return result;
@@ -533,9 +558,9 @@ CTime* __stdcall CurrentTimeVerify(CTime* out) {
 // 006FE795: PUSH EBP; MOV EBP,ESP; SUB ESP,0x84 (9 bytes).
 CString*(__fastcall* s_timeFormat)(const CTime*, void*, CString*, const char*);
 CString* __fastcall TimeFormatVerify(const CTime* self, void*, CString* result, const char* format) {
+    ::new (result) CString(self->Format(format));
     Slot<CString> expected;
     s_timeFormat(self, nullptr, expected.Get(), format);
-    ::new (result) CString(self->Format(format));
     Check("CTime::Format", true, Same(*expected.Get(), *result), "\"%.40s\": \"%.80s\" (original \"%.80s\")", format, Text(*result),
           Text(*expected.Get()));
     expected.Get()->~CString();

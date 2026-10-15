@@ -6,6 +6,8 @@
 #include "stlp_list.h"
 
 #include "stlp_list_refs.h"
+#include "stlp_pair.h"
+#include "stlp_tree_abi.h"
 #include "mfc.h"
 
 #include "ei/hook.h"
@@ -99,6 +101,20 @@ EI_REPLACE(0x004436C0, stlp::ListEnd);
 EI_REPLACE(0x0068C500, stlp::ListEnd);
 EI_REPLACE(0x0069BE60, stlp::ListEnd);
 EI_REPLACE(0x0069C2E0, stlp::ListEnd);
+// S12c: the .mob loader's tint lists (00478FC0, 00478FD0, 00478FE0).
+EI_REPLACE(0x00478FC0, stlp::ListBegin);
+EI_REPLACE(0x00478FD0, stlp::ListBegin);
+EI_REPLACE(0x00478FE0, stlp::ListEnd);
+
+// get_allocator() (00479130; RET 4) and the iterator's copy (004FB3B0; RET 4) have the tree's bodies
+// (stlp_tree_abi.h): the list's first byte copied out; one node pointer copied, this returned.
+EI_REPLACE(0x00479130, stlp::TreeGetAllocator);
+EI_REPLACE(0x004FB3B0, stlp::TreeIteratorCopy);
+// The iterator's operator--().
+EI_REPLACE(0x004FB570, stlp::ListIteratorDecrement);
+// The sentinel (0x20 bytes) given back while a list's constructor unwinds.
+EI_REPLACE(0x00482790, stlp::ListPutSentinel<32>);
+EI_REPLACE(0x004FB840, stlp::ListPutSentinel<32>);
 EI_REPLACE(0x00437F20, stlp::ListEnd);   // S12d: the connection's history, headers, the session's clients
 EI_REPLACE(0x00438650, stlp::ListEnd);
 EI_REPLACE(0x00438830, stlp::ListEnd);
@@ -153,6 +169,8 @@ EI_REPLACE(0x00439120, List24::Construct);
 EI_REPLACE(0x004A94A0, List24::Construct);
 EI_REPLACE(0x005F9300, List24::Construct);
 EI_REPLACE(0x00634300, List24::Construct);
+EI_REPLACE(0x004827D0, List24::Construct);
+EI_REPLACE(0x004FB3C0, List24::Construct);
 EI_REPLACE(0x00562A80, List24::ConstructDefault);
 // With 40-byte, 0x30-byte and 0x160-byte nodes (the 0x30-byte ones: the link's send queues
 // (net_link.cpp) and the create screen's list, 005F90E0).
@@ -170,6 +188,9 @@ EI_REPLACE(0x0069C830, List16::Destruct);
 EI_REPLACE(0x00421CD0, List24::Destruct);
 EI_REPLACE(0x004A9650, List24::Destruct);
 EI_REPLACE(0x00421D20, List40::Destruct);
+EI_REPLACE(0x004829B0, List24::Destruct);   // S12c (library.csv: clear)
+EI_REPLACE(0x00482CC0, List24::Destruct);
+EI_REPLACE(0x005F9620, List16::Destruct);
 // The connection's reliable headers (S12d): ~list() and clear().
 EI_REPLACE(0x00439D40, List268::Destruct);
 EI_REPLACE(0x0043D420, List268::Clear);
@@ -201,6 +222,7 @@ using SharedEntryList = stlp::ListAbi<stlp::RefEntry, stlp::SharedEntry>;
 using CountedEntryList = stlp::ListAbi<stlp::RefEntry, stlp::CountedEntry>;
 using HeldObjectList = stlp::ListAbi<CEngineObject*, stlp::HeldObject>;
 using CStringList = stlp::ListAbi<mfc::CString>;
+using StringDwordList = stlp::ListAbi<stlp::StringDwordPair, stlp::StringDwordElement>;
 
 } // namespace
 
@@ -250,6 +272,15 @@ EI_REPLACE(0x0056E8A0, HeldObjectList::Insert);
 EI_REPLACE(0x00572B00, HeldObjectList::Insert);
 EI_REPLACE(0x0069C410, HeldObjectList::Insert);
 EI_REPLACE(0x005F97E0, CStringList::Insert);
+// S12c: 16 bytes (the tint lists) and pair<const string, dword> (the link loader's archives).
+EI_REPLACE(0x00482980, PlainList16::Insert);
+EI_REPLACE(0x004FB730, StringDwordList::Insert);
+
+// _M_create_node(x): 16 bytes of plain data, a CString (called by 005F97E0) and pair<const string,
+// dword> (by 004FB730).
+EI_REPLACE(0x00482C30, PlainList16::CreateNode);   // library.csv: hashtable::_M_new_node
+EI_REPLACE(0x005F9C70, CStringList::CreateNode);
+EI_REPLACE(0x004FB8B0, StringDwordList::CreateNode);
 
 // push_back(x): end(), then the instantiation's insert.
 EI_REPLACE(0x004207C0, SharedRefList::PushBack);
@@ -281,6 +312,8 @@ EI_REPLACE(0x004236C0, CountedEntryList::Erase);
 EI_REPLACE(0x005F8E50, CStringList::Erase);
 // erase(pos) of the connection's 0x104-byte headers (nodes from operator new; S12d).
 EI_REPLACE(0x00438660, PlainList260::Erase);
+// erase(pos) of pair<const string, dword> (the link loader's archives; S12e).
+EI_REPLACE(0x004FAE00, StringDwordList::Erase);
 
 // clear(): SharedRef (7), CountedRef (8), SharedEntry (2).
 EI_REPLACE(0x00427100, SharedRefList::Clear);
@@ -299,7 +332,15 @@ EI_REPLACE(0x004274C0, CountedRefList::Clear);
 EI_REPLACE(0x00427500, CountedRefList::Clear);
 EI_REPLACE(0x004275A0, CountedRefList::Clear);
 EI_REPLACE(0x004272E0, SharedEntryList::Clear);
+// The client's sector grids' cell lists (S16, on the standalone boot path): clear (2), erase,
+// ~list (2).
+EI_REPLACE(0x005703C0, HeldObjectList::Clear);
+EI_REPLACE(0x00573660, HeldObjectList::Clear);
+EI_REPLACE(0x00572270, HeldObjectList::Erase);
+EI_REPLACE(0x00572E90, HeldObjectList::Destruct);
+EI_REPLACE(0x0069BE70, HeldObjectList::Destruct);
 EI_REPLACE(0x00427560, SharedEntryList::Clear);
+EI_REPLACE(0x004FBCF0, StringDwordList::Clear);   // S12c: the link loader's archives
 
 // ~list() of CountedRef (the release inlined): 2 instantiations.
 EI_REPLACE(0x00423370, CountedRefList::Destruct);

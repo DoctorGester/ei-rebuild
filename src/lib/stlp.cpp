@@ -4,6 +4,7 @@
 #include "game/originals_library.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <iterator>
 
 namespace stlp {
@@ -27,6 +28,24 @@ std::size_t NextPrime(std::size_t n) {
     const std::size_t* p = std::lower_bound(std::begin(kPrimes), std::end(kPrimes), n);
     return p == std::end(kPrimes) ? kPrimes[27] : *p;
 }
+
+// 00408A50 lower_bound<unsigned*> (RET 8; the last argument is the distance tag): STLport's binary
+// search, halving the length, unsigned comparisons (S16: the hashtable constructors' prime lookup).
+const std::uint32_t* __fastcall LowerBoundDwords(const std::uint32_t* first, const std::uint32_t* last,
+                                                 const std::uint32_t* value, int) {
+    int length = static_cast<int>(last - first);
+    while (length > 0) {
+        const int half = length >> 1;
+        if (first[half] < *value) {
+            first += half + 1;
+            length -= half + 1;
+        } else {
+            length = half;
+        }
+    }
+    return first;
+}
+EI_REPLACE(0x00408A50, LowerBoundDwords);
 
 void string::InitRange(const char* first, const char* last) {
     std::size_t n = static_cast<std::size_t>(last - first);

@@ -194,6 +194,7 @@ template <std::uintptr_t A> using CountedRefErase = EraseCheck<A, CountedRefList
 template <std::uintptr_t A> using SharedEntryErase = EraseCheck<A, SharedEntryList>;
 template <std::uintptr_t A> using CountedEntryErase = EraseCheck<A, CountedEntryList>;
 template <std::uintptr_t A> using CStringErase = EraseCheck<A, CStringList>;
+template <std::uintptr_t A> using HeldObjectErase = EraseCheck<A, HeldObjectList>;
 template <std::uintptr_t A> using PlainErase260 = EraseCheck<A, PlainList260>;
 // By node size (S12d): 16, 24, 32 and 40 bytes.
 template <std::uintptr_t A> using PlainEraseNode16 = EraseCheck<A, stlp::ListAbi<stlp::Opaque<8>>>;
@@ -303,6 +304,12 @@ EI_VERIFY(0x00427260, SharedRefErase<0x00427260>::Clear, 0, s_unused);
 EI_VERIFY(0x004272A0, SharedRefErase<0x004272A0>::Clear, 0, s_unused);
 EI_VERIFY(0x00427480, SharedRefErase<0x00427480>::Clear, 0, s_unused);
 EI_VERIFY(0x00427200, CountedRefErase<0x00427200>::Clear, 0, s_unused);
+// S16: the client's sector grid cell lists.
+EI_VERIFY(0x005703C0, HeldObjectErase<0x005703C0>::Clear, 0, s_unused);
+EI_VERIFY(0x00573660, HeldObjectErase<0x00573660>::Clear, 0, s_unused);
+EI_VERIFY(0x00572270, HeldObjectErase<0x00572270>::Verify, 0, s_unused);
+EI_VERIFY(0x00572E90, HeldObjectErase<0x00572E90>::Destruct, 0, s_unused);
+EI_VERIFY(0x0069BE70, HeldObjectErase<0x0069BE70>::Destruct, 0, s_unused);
 EI_VERIFY(0x00427360, CountedRefErase<0x00427360>::Clear, 0, s_unused);
 EI_VERIFY(0x004273A0, CountedRefErase<0x004273A0>::Clear, 0, s_unused);
 EI_VERIFY(0x004273E0, CountedRefErase<0x004273E0>::Clear, 0, s_unused);

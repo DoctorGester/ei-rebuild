@@ -1,5 +1,5 @@
 // The game CRT's formatted text (S4a): MSVC 6's _output behind sprintf / vsprintf / fprintf / printf
-// and its _input number parser behind atof, with the CRT's own number conversion: $I10_OUTPUT's 17
+// and its _input number parser behind atof (and sscanf's _input, S16), with the CRT's own number conversion: $I10_OUTPUT's 17
 // digits from a 12-byte long double (96-bit mantissa products, the exe's power-of-ten tables), _fptostr's
 // rounding of that digit string, and __strgtold12 / _ld12cvt back. All integer arithmetic, so the
 // results are the same bytes as the original's in either build. docs/notes/standalone.md, S4a.
@@ -1351,5 +1351,337 @@ double __cdecl Atof(const char* text) {
     return Ld12ToDouble(value);
 }
 EI_REPLACE(0x006E911A, libcrt::Atof);
+
+// ---- sscanf: _input over a string FILE (ticket S16) ----
+
+namespace {
+
+constexpr unsigned short kHexDigit = 0x80;
+
+// The string FILE sscanf builds (_IOREAD | _IOSTRG, its count the text's length): _inc reads a
+// byte, or EOF once the count runs out (it keeps counting down); ungetc backs up over a byte only
+// when it is the one there (a string is never written), never for EOF.
+struct StringInput {
+    const unsigned char* base;
+    const unsigned char* next;
+    int left;
+
+    int Get() {
+        if (--left < 0) return -1;
+        return *next++;
+    }
+    void Unget(int c) {
+        if (c == -1) return;
+        if (next == base) {
+            if (left) return;
+            ++next;
+        }
+        if (*--next != static_cast<unsigned char>(c)) {
+            ++next;
+            return;
+        }
+        ++left;
+    }
+    // _whiteout (006F79B9): bytes read (each counted) until one that is not white space, returned.
+    int SkipWhite(int& chars) {
+        int c;
+        do {
+            ++chars;
+            c = Get();
+        } while (CharClass(c) & kSpace);
+        return c;
+    }
+};
+
+// _hextodec (006F7951): a digit as it is; a hex letter so that subtracting '0' gives its value.
+int HexToDecimal(int c) { return (CharClass(c) & kDigit) ? c : (c & ~0x20) - 7; }
+
+// MSVC 6's _input (006F6F2C) for what the game's formats use: white space, literal bytes (a lead
+// byte with its trail byte), %%, and d i o u x p n c s [ with a width, '*', h / l / L / I64 and the
+// ignored F / N. Floats (e f g) and wide characters (lc ls l[ C S) end the scan as a matching
+// failure would (the original converts them; no caller passes them). The arguments are read as
+// the original reads them, as an array of pointers.
+int Input(StringInput& in, const unsigned char* f, void* const* args) {
+    int count = 0;             // conversions assigned
+    signed char matched = 0;   // directives matched (a byte in the original)
+    int chars = 0;             // bytes consumed, for %n
+    int ch = 0;                // the last byte read (unset in the original until the first read)
+    for (;;) {
+        if (*f == 0) break;
+        if (CharClass(*f) & kSpace) {
+            --chars;
+            in.Unget(in.SkipWhite(chars));
+            while (CharClass(f[1]) & kSpace) ++f;
+            ++f;
+        }
+        if (*f == '%') {
+            bool done = false, negative = false, suppress = false, int64 = false;
+            signed char size = 1, wide = 0;
+            int widthSet = 0, width = 0, started = 0, n = 0;
+            long long n64 = 0;
+            for (;;) {
+                const unsigned c = f[1];
+                ++f;
+                if (CharClass(static_cast<int>(c)) & kDigit) {
+                    ++widthSet;
+                    width = static_cast<int>(c - '0') + width * 10;
+                } else if (c == 'N' || c == 'F') {
+                } else if (c == '*') {
+                    suppress = true;
+                } else if (c == 'I') {
+                    if (f[1] != '6' || f[2] != '4') break;
+                    int64 = true;
+                    n64 = 0;
+                    f += 2;
+                } else if (c == 'L') {
+                    ++size;
+                } else if (c == 'h') {
+                    --size;
+                    --wide;
+                } else if (c == 'l') {
+                    ++size;
+                    ++wide;
+                } else if (c == 'w') {
+                    ++wide;
+                } else {
+                    break;
+                }
+            }
+            void* dest = nullptr;
+            void* const* saved = args;
+            if (!suppress) dest = *args++;
+            if (wide == 0) wide = (*f == 'S' || *f == 'C') ? 1 : -1;
+            const bool prefixed = *f == 'x' || *f == 'X' || *f == 'i';
+            unsigned comchr = *f | 0x20u;
+            if (comchr != 'n') {
+                if (comchr == 'c' || comchr == '{') {
+                    ++chars;
+                    ch = in.Get();
+                } else {
+                    ch = in.SkipWhite(chars);
+                }
+            }
+            if (widthSet && width == 0) {
+                --chars;
+                in.Unget(ch);
+                break;
+            }
+            if (comchr == 'c' || comchr == 's' || comchr == '{') {
+                if (wide > 0) break;   // wide characters: not handled
+                const unsigned char* p;
+                unsigned char negate = 0xFF;
+                if (comchr == 'c') {
+                    if (!widthSet) {
+                        ++width;
+                        widthSet = 1;
+                    }
+                    p = reinterpret_cast<const unsigned char*>("]");
+                } else if (comchr == 's') {
+                    p = reinterpret_cast<const unsigned char*>(" \t-\r]");
+                } else {
+                    p = f + 1;
+                    if (*p == '^')
+                        ++p;
+                    else
+                        negate = 0;
+                }
+                unsigned char set[32];
+                std::memset(set, 0, sizeof(set));
+                unsigned prev = 0;
+                if (comchr == '{' && *p == ']') {
+                    prev = ']';
+                    set[']' >> 3] |= 1 << (']' & 7);
+                    ++p;
+                }
+                while (*p != ']') {
+                    if (*p == '-' && prev != 0 && p[1] != ']') {
+                        unsigned lo = prev, hi = p[1];
+                        if (hi <= lo) {
+                            lo = hi;
+                            hi = prev;
+                        }
+                        for (unsigned b = lo; b <= hi; ++b) set[b >> 3] |= static_cast<unsigned char>(1 << (b & 7));
+                        prev = 0;
+                        p += 2;
+                    } else {
+                        prev = *p;
+                        set[prev >> 3] |= static_cast<unsigned char>(1 << (prev & 7));
+                        ++p;
+                    }
+                }
+                if (comchr == '{') f = p;
+                --chars;
+                in.Unget(ch);
+                auto* out = static_cast<unsigned char*>(dest);
+                int stored = 0;
+                bool widthOut = false;
+                for (;;) {
+                    if (widthSet && width-- == 0) {
+                        widthOut = true;
+                        break;
+                    }
+                    ++chars;
+                    ch = in.Get();
+                    if (ch == -1 || !((set[ch >> 3] ^ negate) & (1 << (ch & 7)))) break;
+                    if (!suppress) *out++ = static_cast<unsigned char>(ch);
+                    ++stored;
+                }
+                if (!widthOut) {
+                    --chars;
+                    in.Unget(ch);
+                }
+                if (stored == 0) break;
+                if (!suppress) {
+                    ++count;
+                    if (comchr != 'c') *out = 0;
+                }
+            } else if (comchr == 'n') {
+                if (!suppress) {
+                    if (int64)
+                        *static_cast<long long*>(dest) = n64;
+                    else if (size == 0)
+                        *static_cast<short*>(dest) = static_cast<short>(chars);
+                    else
+                        *static_cast<int*>(dest) = chars;
+                }
+            } else if (comchr == 'd' || comchr == 'o' || comchr == 'u' || comchr == 'p' || comchr == 'x' ||
+                       comchr == 'i') {
+                if (comchr == 'p') size = 1;
+                if (comchr == 'i') comchr = 'd';
+                if (ch == '-' || ch == '+') {
+                    if (ch == '-') negative = true;
+                    if (--width == 0 && widthSet) {
+                        done = true;
+                    } else {
+                        ++chars;
+                        ch = in.Get();
+                    }
+                }
+                if (prefixed && ch == '0') {
+                    ++chars;
+                    ch = in.Get();
+                    if (static_cast<char>(ch) == 'x' || static_cast<char>(ch) == 'X') {
+                        ++chars;
+                        ch = in.Get();
+                        comchr = 'x';
+                    } else {
+                        started = 1;
+                        if (comchr == 'x') {
+                            --chars;
+                            in.Unget(ch);
+                            ch = '0';
+                        } else {
+                            comchr = 'o';
+                        }
+                    }
+                }
+                // The 64-bit loop takes only 'x' as hex ('p' with I64 reads decimal digits).
+                const bool hex = comchr == 'x' || (!int64 && comchr == 'p');
+                while (!done) {
+                    int c = ch;
+                    if (!hex) {
+                        if (!(CharClass(c) & kDigit) || (comchr == 'o' && c > '7')) {
+                            --chars;
+                            in.Unget(c);
+                            break;
+                        }
+                        if (int64)
+                            n64 = comchr == 'o' ? static_cast<long long>(static_cast<unsigned long long>(n64) << 3) : n64 * 10;
+                        else
+                            n = comchr == 'o' ? static_cast<int>(static_cast<unsigned>(n) << 3) : static_cast<int>(static_cast<unsigned>(n) * 10u);
+                    } else {
+                        if (!(CharClass(c) & kHexDigit)) {
+                            --chars;
+                            in.Unget(c);
+                            break;
+                        }
+                        if (int64)
+                            n64 = static_cast<long long>(static_cast<unsigned long long>(n64) << 4);
+                        else
+                            n = static_cast<int>(static_cast<unsigned>(n) << 4);
+                        c = HexToDecimal(c);
+                        ch = c;
+                    }
+                    ++started;
+                    if (int64)
+                        n64 = static_cast<long long>(static_cast<unsigned long long>(n64) + static_cast<unsigned long long>(static_cast<long long>(c - '0')));
+                    else
+                        n = static_cast<int>(static_cast<unsigned>(n) + static_cast<unsigned>(c - '0'));
+                    if (widthSet && --width == 0) break;
+                    ++chars;
+                    ch = in.Get();
+                }
+                if (negative) {
+                    n = static_cast<int>(0u - static_cast<unsigned>(n));
+                    n64 = static_cast<long long>(0ull - static_cast<unsigned long long>(n64));
+                }
+                if (started == 0) break;
+                if (!suppress) {
+                    ++count;
+                    if (int64)
+                        *static_cast<long long*>(dest) = n64;
+                    else if (size == 0)
+                        *static_cast<short*>(dest) = static_cast<short>(n);
+                    else
+                        *static_cast<int*>(dest) = n;
+                }
+            } else if (comchr == 'e' || comchr == 'f' || comchr == 'g') {
+                break;   // floats: not handled
+            } else {
+                // Any other byte after the flags (%% among them) matches itself; no argument used.
+                if (*f != static_cast<unsigned>(ch)) {
+                    --chars;
+                    in.Unget(ch);
+                    break;
+                }
+                --matched;
+                if (!suppress) args = saved;
+            }
+            ++matched;
+            ++f;
+        } else {
+            ++chars;
+            ch = in.Get();
+            const unsigned expected = *f++;
+            if (expected != static_cast<unsigned>(ch)) {
+                --chars;
+                in.Unget(ch);
+                break;
+            }
+            if (CharClass(ch & 0xFF) & kLeadByte) {
+                ++chars;
+                const int trail = in.Get();
+                if (*f++ != static_cast<unsigned>(trail)) {
+                    --chars;
+                    in.Unget(trail);
+                    --chars;
+                    in.Unget(ch);
+                    break;
+                }
+                --chars;
+            }
+        }
+        if (ch == -1 && (f[0] != '%' || f[1] != 'n')) break;
+    }
+    if (ch == -1 && count == 0 && matched == 0) return -1;
+    return count;
+}
+
+} // namespace
+
+int __cdecl Vsscanf(const char* text, const char* format, va_list args) {
+    const auto* bytes = reinterpret_cast<const unsigned char*>(text);
+    StringInput in{bytes, bytes, static_cast<int>(std::strlen(text))};
+    return Input(in, reinterpret_cast<const unsigned char*>(format), reinterpret_cast<void* const*>(args));
+}
+
+int __cdecl Sscanf(const char* text, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    const int result = Vsscanf(text, format, args);
+    va_end(args);
+    return result;
+}
+EI_REPLACE(0x006EAEEC, libcrt::Sscanf);
 
 } // namespace libcrt

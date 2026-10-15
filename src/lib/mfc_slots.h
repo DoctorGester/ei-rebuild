@@ -74,6 +74,49 @@ void __fastcall SerializeCList(typename Abi::List* self, void*, CArchive* ar) {
     }
 }
 
+// The same stored form; loading goes through a temporary as the instantiations whose element has an
+// assignment of its own compile it (ticket S6d). `Through` is a ListTemporary: `Init` builds the
+// temporary (before its bytes are read over it), the list's NewNode builds the tail node's element,
+// `Assign` assigns it from the temporary, the node is linked, `Destroy` destroys the temporary. The
+// temporary holds the stored bytes, so its pointers are whatever the archive held: the assignment
+// shares them and the destruction releases them again.
+template <typename ListAbiT, auto InitFn, auto AssignFn, auto DestroyFn>
+struct ListTemporary {
+    using Abi = ListAbiT;
+    using T = typename Abi::Element;
+    static void Init(T* p) { InitFn(p); }
+    static void Assign(T* to, const T* from) { AssignFn(to, from); }
+    static void Destroy(T* p) { DestroyFn(p); }
+};
+
+template <typename Through>
+void __fastcall SerializeCListThrough(typename Through::Abi::List* self, void*, CArchive* ar) {
+    using T = typename Through::T;
+    if (!ar->IsLoading()) {
+        ar->WriteCount(static_cast<unsigned long>(self->count));
+        for (auto* node = self->head; node; node = node->next) ar->Write(&node->data, sizeof(T));
+        return;
+    }
+    for (unsigned long n = ar->ReadCount(); n--;) {
+        alignas(T) unsigned char storage[sizeof(T)];
+        T* value = reinterpret_cast<T*>(storage);
+        Through::Init(value);
+        ar->Read(value, sizeof(T));
+        auto* node = self->NewNode(self->tail, nullptr);
+        Through::Assign(&node->data, value);
+        if (self->tail) self->tail->next = node;
+        else self->head = node;
+        self->tail = node;
+        Through::Destroy(value);
+    }
+}
+
+// 007085AF SerializeElements<CString> (__stdcall, RET 0xC): each string stored (operator<<) or
+// loaded (operator>>).
+void __stdcall SerializeStrings(CArchive* ar, CString* strings, int count);
+// 004C2700 CArray<CString>::Serialize: the count (loading: SetSize(count, -1)), then the strings.
+void __fastcall SerializeStringArray(Strings::Array* self, void*, CArchive* ar);
+
 // The count, then (when there are any) key and value of each association, bucket by bucket. Loading
 // reads each pair and sets it (operator[]).
 template <typename Abi>

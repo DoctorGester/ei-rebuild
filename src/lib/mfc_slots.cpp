@@ -12,6 +12,19 @@ namespace mfc::impl {
 
 void __fastcall ExceptionDestruct(libcrt::Exception* self) { self->Destruct(); }
 
+void __stdcall SerializeStrings(CArchive* ar, CString* strings, int count) {
+    if (!ar->IsLoading())
+        for (; count--; ++strings) StoreText(*ar, *strings);
+    else
+        for (; count--; ++strings) LoadText(*ar, *strings);
+}
+
+void __fastcall SerializeStringArray(Strings::Array* self, void*, CArchive* ar) {
+    if (!ar->IsLoading()) ar->WriteCount(static_cast<unsigned long>(self->size));
+    else self->SetSize(static_cast<int>(ar->ReadCount()), -1);
+    SerializeStrings(ar, self->data, self->size);
+}
+
 // ---- Destructors ----------------------------------------------------------------------------------
 
 // Arrays: the vtable, the storage freed.
@@ -375,5 +388,9 @@ EI_REPLACE(0x005BDF40, SerializeCList<List12>);          // WaypointListClass
 EI_REPLACE(0x005B1A00, SerializeCList<List8>);           // AiMapListClass
 EI_REPLACE(0x005CDC00, SerializeCList<List30>);          // StaticListClass
 EI_REPLACE(0x005D9A40, SerializeCList<AttentionList>);   // AttentionListClass
+
+// CArray<CString> (vtables 0073D2D4 / 0073D2F8) and its SerializeElements.
+EI_REPLACE(0x004C2700, SerializeStringArray);
+EI_REPLACE(0x007085AF, SerializeStrings);
 
 } // namespace mfc::impl

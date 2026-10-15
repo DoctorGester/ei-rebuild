@@ -147,6 +147,14 @@ DWORD WINAPI ImageModuleFileName(HMODULE module, LPSTR out, DWORD size) {
     return length;
 }
 LPSTR WINAPI ImageCommandLine() { return g_commandLine.data(); }
+// DirectInput checks its instance is a loaded module (E_INVALIDARG otherwise): the image's handle
+// becomes the host's.
+using DirectInputCreateExFn = HRESULT(WINAPI*)(HINSTANCE, DWORD, REFIID, LPVOID*, LPUNKNOWN);
+DirectInputCreateExFn g_directInputCreateEx;
+HRESULT WINAPI ImageDirectInputCreateEx(HINSTANCE instance, DWORD version, REFIID iid, LPVOID* out, LPUNKNOWN outer) {
+    if (instance == ImageModule()) instance = GetModuleHandleA(nullptr);
+    return g_directInputCreateEx(instance, version, iid, out, outer);
+}
 
 // Points `base`'s import slots of `dll`!`function` at `replacement`. Slots are matched by what they hold
 // (the export the loader, or the host, resolved), so a module without an import name table works too.
@@ -187,7 +195,7 @@ HMODULE WINAPI MilesLoadLibrary(LPCSTR name) {
     return LoadLibraryA(name);
 }
 
-// Routes the image's resource, module and command-line calls, and Miles's LoadLibraryA. False when
+// Routes the image's resource, module, command-line and DirectInput calls, and Miles's LoadLibraryA. False when
 // game.exe's resources cannot be loaded or a call is not found.
 bool RouteImageCalls() {
     g_resources = LoadLibraryExA(g_exePath, nullptr, LOAD_LIBRARY_AS_DATAFILE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
@@ -210,7 +218,10 @@ bool RouteImageCalls() {
         {"KERNEL32.dll", "GetModuleHandleA", reinterpret_cast<const void*>(&ImageModuleHandle)},
         {"KERNEL32.dll", "GetModuleFileNameA", reinterpret_cast<const void*>(&ImageModuleFileName)},
         {"KERNEL32.dll", "GetCommandLineA", reinterpret_cast<const void*>(&ImageCommandLine)},
+        {"DINPUT.dll", "DirectInputCreateEx", reinterpret_cast<const void*>(&ImageDirectInputCreateEx)},
     };
+    if (HMODULE input = GetModuleHandleA("DINPUT.dll"))
+        g_directInputCreateEx = reinterpret_cast<DirectInputCreateExFn>(GetProcAddress(input, "DirectInputCreateEx"));
     bool ok = true;
     for (const Route& r : routes) {
         if (RouteImport(kImageBase, r.dll, r.function, r.replacement)) continue;
