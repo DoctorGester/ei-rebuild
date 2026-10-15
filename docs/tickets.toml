@@ -1809,11 +1809,12 @@ note = "Left from S13 (docs/notes/standalone.md S13). Three database resets, eac
 id = "S10a"
 title = "Standalone library: STLport vector<T> of game records"
 group = "standalone"
-status = "review"
+status = "done"
 size = 2
 depends = ["S10"]
 files = ["src/lib/stlp_vector.h", "src/lib/stlp_vector.cpp", "src/lib/stlp_vector_refs.h"]
 note = "S10 left the vector members whose elements are game records with their own copy / destroy functions (each needs a policy over the record's ported copy constructor, operator= and destructor, or the record type first): resize of item / spell / weapon / armour / quest / unit / model / acks database records (00684D60 00685730 006858D0 006A7F00 006A8110 006A8290 006A83F0 006A85A0 006A8790 006B2100 006B2240 0053E2A0 0053E520 0053E730 0053E9B0 005209D0 00520B20 0055A400 0055A580 006D26E0 006D2830 006DB9C0 006DBBD0 006DBE20 006E4560 006E47F0 004ADAA0 00465180 00444090), clear 00520C20, push_back 006B0710 006B0780 0041F790 0064AB20, erase 004442B0 0064AD40 006578F0 00421D90, operator= 00443BF0, insert 00426CB0, _M_insert_overflow 004439C0 00426B10 00587480 0061EC40 00629E60 0062A0B0 00652930 006579C0, ~vector 0041F7F0; RefPtr resize 004200C0 and counted_ptr resize 004AD700 004AD8D0 (their default element and fill helpers); 00428A20 held CEngineObject pointers (release through vtable slot 4). Not vector members (other tickets): 006E859F / 006E8693 eh vector iterators (S13), 00580900 hashtable copy constructor, record destructors 0041F7F0 0056D080 00589860 006AF4D0 006AF5A0 00575560 00575580 004AD640 and list-array deleting destructors 00572B30 00572C50. Scheme: standalone.md S10; plain records can use ChangeCheck (verify_stlp_vector.cpp), others the model checks in verify_stlp_vector_objects.cpp."
+done = "2026-10-15"
 
 [[ticket]]
 id = "S10b"
