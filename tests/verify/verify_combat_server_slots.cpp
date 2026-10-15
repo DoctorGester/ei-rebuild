@@ -31,12 +31,14 @@ static int __fastcall ServerIdVerify(CUnitServer* self) {
 }
 EI_VERIFY(0x005460D0, ServerIdVerify, 5, s_id);
 
-// 00550A60: MOV EAX,ECX; XOR ECX,ECX; MOV byte ptr [EAX+1],0xFF (8 bytes).
+// 00550A60: MOV EAX,ECX; XOR ECX,ECX; MOV byte ptr [EAX+1],0xFF (8 bytes). Byte 3 is compared
+// without the original's (it leaves it; ours zeroes it, SV7b2a).
 static AnimationStep* __fastcall StepConstructVerify(AnimationStep* self) {
     AnimationStep copy;
     std::memcpy(&copy, self, sizeof(copy));
     AnimationStep* expected = s_step(&copy);
     AnimationStep* actual = self->Construct();
+    copy.padding = 0;
     ei::verify::Check("AnimationStep::Construct", true,
                       expected == &copy && actual == self && std::memcmp(&copy, self, sizeof(copy)) == 0, "");
     return actual;

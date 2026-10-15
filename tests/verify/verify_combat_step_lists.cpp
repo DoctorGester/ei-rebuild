@@ -1,8 +1,8 @@
 // Checks for combat_step_lists.cpp (A-U5). The list writers run the original on the real list, then
 // ours on a deep copy made afterwards from the list as it was (kept in our memory, so that the
 // original's blocks land where they would without the check, SV2f), then compare (count, capacity,
-// growth, extra and the steps without byte 3, which the original leaves as a stack byte); the
-// readers are compared directly.
+// growth, extra and the steps without byte 3, which the original leaves as a stack byte and the
+// check then zeroes on the real list as ours does); the readers are compared directly.
 #include "combat_verify_util.h"
 #include "unit_capture_stream.h"
 
@@ -22,6 +22,7 @@ static void(__fastcall* s_addStep)(AnimationSteps*, void*, int, int);
 static void __fastcall AddStepVerify(AnimationSteps* self, void*, int animation, int duration) {
     KeptSteps before(self);
     s_addStep(self, nullptr, animation, duration);
+    combatverify::ZeroPadding(self);
     AnimationSteps copy;
     before.CopyTo(&copy);
     copy.AddStep(animation, duration);
@@ -35,6 +36,7 @@ static void(__fastcall* s_addEmote)(AnimationSteps*, void*, int);
 static void __fastcall AddEmoteVerify(AnimationSteps* self, void*, int emote) {
     KeptSteps before(self);
     s_addEmote(self, nullptr, emote);
+    combatverify::ZeroPadding(self);
     AnimationSteps copy;
     before.CopyTo(&copy);
     copy.AddEmote(emote);

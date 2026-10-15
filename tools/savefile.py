@@ -7,8 +7,9 @@ saves\current\<zone>.sav (SaveWorld too). Every .sav but info.sav and shot.sav i
 magic, version, checksum of the plain data, a compressed flag and the LZ coder's output (net_coder.cpp).
 
 decode(path) gives the save as entities keyed by object id rather than by memory: [(key, description, [(field,
-value)])]. Values that follow memory layout are written as a rule token (`~addr`, `~junk`, ...; RULES gives each
-one's reason), so two runs of the same scenario decode to the same text whatever their heap layout:
+value)])]. Values that follow memory layout can be written as a rule token (`~addr`, `~junk`, ...; RULES gives each
+one's reason), so two runs of the same scenario decode to the same text whatever their heap layout (no reader uses
+one since SV7b2a: the harness makes the original write canonical values instead):
   ~addr   a heap, stack or module address the writer copies with a raw block; nothing reads it back as a value
   ~junk   bytes the game never sets before writing them (struct padding, stack leftovers, unused tails)
   p<N>    a pointer the save uses as an identity (records referring to each other by address): numbered by first

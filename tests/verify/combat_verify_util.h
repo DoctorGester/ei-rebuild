@@ -65,6 +65,12 @@ inline void FreeSteps(AnimationSteps* steps) {
     steps->steps = nullptr;
 }
 
+// Where the original's list stands, its byte 3 (a stack leftover) is zeroed as ours writes it, so
+// the saves are the same in every mode (SV7b2a).
+inline void ZeroPadding(AnimationSteps* steps) {
+    for (int i = 0; steps->steps && i < steps->count; ++i) steps->steps[i].padding = 0;
+}
+
 // Steps compared without byte 3, which the original never initialises (00550A60).
 inline int StepsDifference(const AnimationStep* a, const AnimationStep* b, int count) {
     for (int i = 0; i < count; ++i) {

@@ -48,6 +48,7 @@ AnimationStep* AnimationStep::Construct() {
     duration = -1;
     kind = 0;
     flags = 0;
+    padding = 0;   // SV7b2a: the original leaves it (a stack byte); the harness zeroes it there too
     return this;
 }
 EI_REPLACE_METHOD(0x00550A60, AnimationStep::Construct);
