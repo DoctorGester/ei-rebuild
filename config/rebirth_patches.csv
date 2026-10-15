@@ -96,7 +96,7 @@ WideScreen,addon,005F7D9E,194,data,widescreen/rendering,yes,9090568b7424088b068d
 WideScreen,addon,005EB249,5,005EB210+39,widescreen/rendering,yes,call 0x5f7e00,hooked: addon code (wide layout),implemented: CCameraInput::OnMouseMove (src/game/ui_camera_input.cpp),
 WideScreen,addon,0063008C,5,00630010+7C,widescreen/rendering,yes,call 0x5f7e00,hooked: addon code (wide layout),implemented: CGlobalMap::OnMouseMove (src/game/ui_global_map_input.cpp),
 WideScreen,addon,0060C870,5,0060C870+0,widescreen/rendering,yes,"push ebp; (+1)mov ebp, esp; (+3)push -1",function replaced: JMP to addon's widescreen version,implemented: CCampPages::Create (src/game/ui_camp_create.cpp; widescreen::AddCurtains),
-WideScreen,addon,00613EA0,7,00613EA0+0,widescreen/rendering,yes,push -1; (+2)push 0x72bcbc,function replaced: JMP to addon's widescreen version,implemented: CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; widescreen::AddCurtains); a Rebirth launch keeps addon's code (EiPluginFixes),
+WideScreen,addon,00613EA0,7,00613EA0+0,widescreen/rendering,yes,push -1; (+2)push 0x72bcbc,function replaced: JMP to addon's widescreen version,implemented: CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; widescreen::AddCurtains); EiPluginFixes reproduced in it too (W4a),
 WideScreen,addon,00615D30,5,00615D30+0,widescreen/rendering,yes,"push ebx; (+1)push ebp; (+2)push esi; (+3)mov esi, ecx",function replaced: JMP to addon's widescreen version,implemented: CMpHeroScreen::SetModeVanilla (src/game/ui_hero_screen_mode.cpp; widescreen::ShowHeroCurtains),
 WideScreen,addon,00659994,7,00659420+574,widescreen/rendering,yes,push 0; (+2)call 0x5ff3c0,hooked: addon code (wide layout),implemented: CHelpWindow::ShowPageVanilla (src/game/ui_help_page.cpp),
 ObjectsDrawRadius,addon,0056B0EA,4,0056AFE0+10A,widescreen/rendering,yes,(at 56B0E8)fadd dword ptr [0x73bab0],operand replaced,implemented: new rewrite CWorldClient::DrawPass 0056AFE0 (src/game/world_client_draw.cpp),
@@ -128,12 +128,12 @@ FixCreateItem,addon,006ACCD0,5,006AC970+360,bug fix,yes,"mov ecx, dword ptr [esp
 DisableExitOnCrashReport,addon,004800A7,5,00480080+27,infrastructure,yes,call 0x4560d0,context hook replacing the message box call 004560D0: the text goes to addon.log,implemented: new rewrite FatalError 00480080 (src/game/app.cpp; the addon.log line is not reproduced),
 DisableExitOnCrashReport,addon,004800C9,9,00480080+49,infrastructure,yes,jl 0x4800d2; (+2)push -1; (+4)call 0x6e8da7,9 NOPs: the error counter test and exit(-1),implemented: new rewrite FatalError 00480080 (src/game/app.cpp),
 DisableExitOnCrashReport,addon,00564330,5,005641F0+140,infrastructure,yes,call 0x665a10,5 NOPs: CALL 00665A10 before the FatalError,implemented: new rewrite CWorldClient::Segment 005641F0 (src/game/world_client.cpp),
-ExtendedServerName,addon,0061BB51,4,0061B2C0+891,multiplayer,no,"(at 61BB50)mov edi, 0x28a",operand replaced,not started,
-ExtendedServerName,addon,0061BC0E,1,0061B2C0+94E,multiplayer,no,(at 61BC0D)push 3,operand replaced,not started,
-ExtendedServerName,addon,0061BC09,1,0061B2C0+949,multiplayer,no,(at 61BC08)push 0xa,operand replaced,not started,
-ExtendedServerName,addon,0061BC0B,1,0061B2C0+94B,multiplayer,no,(at 61BC0A)push 1,operand replaced,not started,
+ExtendedServerName,addon,0061BB51,4,0061B2C0+891,multiplayer,no,"(at 61BB50)mov edi, 0x28a",operand replaced,implemented: CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b),
+ExtendedServerName,addon,0061BC0E,1,0061B2C0+94E,multiplayer,no,(at 61BC0D)push 3,operand replaced,implemented: CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b),
+ExtendedServerName,addon,0061BC09,1,0061B2C0+949,multiplayer,no,(at 61BC08)push 0xa,operand replaced,implemented: CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b),
+ExtendedServerName,addon,0061BC0B,1,0061B2C0+94B,multiplayer,no,(at 61BC0A)push 1,operand replaced,implemented: CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b),
 ExtendedServerName,addon,0061DB23,4,0061D780+3A3,multiplayer,no,"(at 61DB1F)mov dword ptr [esp + 0x38], 0x10e",operand replaced,not started,
-ExtendedServerName,addon,0061B5CE,4,0061B2C0+30E,multiplayer,no,(at 61B5CD)push 0x43b90000,operand replaced,not started,
+ExtendedServerName,addon,0061B5CE,4,0061B2C0+30E,multiplayer,no,(at 61B5CD)push 0x43b90000,operand replaced,implemented: CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b),
 ExtendedServerName,addon,0061DBEF,4,0061D780+46F,multiplayer,no,(at 61DBEE)push 0x436f0000,operand replaced,not started,
 ExtendedServerName,addon,0061DD40,4,0061D780+5C0,multiplayer,no,"(at 61DD3C)mov dword ptr [esp + 0x50], 0xdc",operand replaced,not started,
 ExtendedServerName,addon,0061D9FC,4,0061D780+27C,multiplayer,no,"(at 61D9F8)mov dword ptr [esp + 0x58], 0x109",operand replaced,not started,
@@ -268,8 +268,8 @@ SavesPath,addon,00655D7E,5,00655D40+3E,resources/paths,no,call,disabled here: CA
 SavesPath,addon,00615622,5,00613EA0+1782,resources/paths,no,call,disabled here: CALL redirected,n/a: disabled in this install,
 EiPluginInit,EI_Plugin,006B6272,5,006B6040+232,infrastructure,no,,CALL into the plugin after AIL_startup,active here; not started,always
 EiPluginInit,EI_Plugin,0073AF20,4,data,infrastructure,no,,marker,active here; not started,always
-EiPluginNPlayers,EI_Plugin,0061BB82,1,0061B2C0+8C2,multiplayer,no,,player count - 1,active here; not started,always
-EiPluginNPlayers,EI_Plugin,0061BAF7,2,0061B2C0+837,multiplayer,no,,bytes,active here; not started,always
+EiPluginNPlayers,EI_Plugin,0061BB82,1,0061B2C0+8C2,multiplayer,no,,player count - 1,active here; implemented in CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b); the other sites not started,always
+EiPluginNPlayers,EI_Plugin,0061BAF7,2,0061B2C0+837,multiplayer,no,,bytes,active here; implemented in CMpConnectScreen::Create (src/game/ui_connect_screen.cpp; W2b); the other sites not started,always
 EiPluginNPlayers,EI_Plugin,00640069,4,00640060+9,multiplayer,no,,bytes,active here; not started,always
 EiPluginNPlayers,EI_Plugin,00608D9D,4,00608D20+7D,multiplayer,no,,0,active here; not started,always
 EiPluginNPlayers,EI_Plugin,00608DE4,4,00608D20+C4,multiplayer,no,,0,active here; not started,always
@@ -303,8 +303,8 @@ EiPluginBriefings,EI_Plugin,005920C3,1,00592090+33,multiplayer,no,,jump offset +
 EiPluginBriefings,EI_Plugin,005920D5,1,00592090+45,multiplayer,no,,jump offset +0x14,active here; not started,always
 EiPluginBriefings,EI_Plugin,005920E9,1,00592090+59,multiplayer,no,,jump offset +0x14,active here; not started,always
 EiPluginBriefings,EI_Plugin,005920F0,1,00592090+60,multiplayer,no,,jump offset +0x14,active here; not started,always
-EiPluginFixes,EI_Plugin,00614BB5,22,00613EA0+D15,multiplayer,partly,,"cmp word [ecx+4],0x6566; jne; jmp; NOPs",active here; not started,always
-EiPluginFixes,EI_Plugin,00614D1B,26,00613EA0+E7B,multiplayer,partly,,jmp; NOPs,active here; not started,always
+EiPluginFixes,EI_Plugin,00614BB5,22,00613EA0+D15,multiplayer,partly,,"cmp word [ecx+4],0x6566; jne; jmp; NOPs",active here; implemented in CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; W4a); the other sites not started,always
+EiPluginFixes,EI_Plugin,00614D1B,26,00613EA0+E7B,multiplayer,partly,,jmp; NOPs,active here; implemented in CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; W4a); the other sites not started,always
 EiPluginFixes,EI_Plugin,005ED889,8,005ED7B0+D9,multiplayer,partly,,"cmp byte [ecx+4],0x66; je; jmp",active here; not started,always
 EiPluginFixes,EI_Plugin,00609427,8,006091C0+267,multiplayer,partly,,"cmp byte [eax+4],0x66; je; jmp",active here; not started,always
 EiPluginFixes,EI_Plugin,006408E6,8,006407E0+106,multiplayer,partly,,"cmp byte [eax+4],0x66; je; jmp",active here; not started,always

@@ -331,8 +331,7 @@ into the code):
   lists move to the screen's edges: zt9:0, zt12:0, zt12:1, zt13:0, zt14:0, zt14:2, zt17:0, zt20:0, zt22:0 by `-extra`, zt3:2, zt4:0,
   zt4:1, zt7:0, zt10:0, zt10:1, zt18:0 by `+extra` (both of the `#rectangle` line's x values; addon's 10023702 changes the locals
   before the first AddSprite); `TutorialFrameShift`.
-- Not reproduced in a Rebirth launch: 00613EA0 also holds EI_Plugin's fixes (+D15, +E7B), so the installer keeps addon's code there
-  (as 0061D780 did until W2a); ours runs in a vanilla launch with the flag. Follow-up W4a.
+- 00613EA0 also holds EI_Plugin's fixes (+D15, +E7B); not reproduced by W4, done in W4a below.
 Verified: side by side in a Rebirth launch, against addon's code, the help page (with addon's handler), the axis swap, the
 camera's and the global map's mouse moves; ours only, the camp's and the hero screen's sprites (the curtains' rectangles, tint and
 visibility), the mode's curtains, the map's left button and the backdrop; the startup check compares addon's two floats (005F4F81,
@@ -350,7 +349,31 @@ hero and the hero list whole, at the same places as addon's. Before W4 a vanilla
 the 800x600 backdrop (flagged as scaled) and the 3D view's x scale 1, the likely causes. The vanilla frames differ from Rebirth's in
 texture filtering (Rebirth's other settings), not in placement.
 
+**Done (W4a)**: `CMpHeroScreen::Create` 00613EA0 declares `WideScreen` and `EiPluginFixes`, so a Rebirth launch hooks it. The plugin
+writes (assembled on its stack, EI_Plugin.asi +0x2260) two patches in the figure loop, where the original compares the figure
+prototype's model name (a CString, `[esp+28]`) with "unhuma" (strcmp at 00614BB5, 22 bytes) and then with "unhufe" (00614D1B, 26 bytes):
+00614BB5 becomes `cmp word [ecx+4], 0x6566; jne +0E` (to the men's body 00614BCB) `; jmp 00614D35` (the women's body) with 9 NOPs, and
+00614D1B becomes `jmp 00614E84` (past the women's test, which the men's body would run) with NOPs. So with the flag a model whose
+characters 4 and 5 are "fe" is a woman's and every other model a man's (the original: exactly "unhuma" / "unhufe", compared without case;
+anything else was in neither list); `ModelNameIsFemale` reads the 16 bits at +4 as the plugin does, past a short name's end included. With
+the shipped models nothing differs (every figure is "unhuma" or "unhufe"); modded models change the lists. Verified: ours only
+(the screen cannot be built twice): the verify wrapper counts the lists a second time from the creature table with the same rule
+(`figure counts` check, flag on and off) next to the earlier layout / curtains / order checks; ui_widescreen_more and
+ui_widescreen_screens in a Rebirth launch (hooked: "Rebirth-patched ... implements WideScreen EiPluginFixes") at 0 mismatches and the
+frames of the four widescreen scenarios within the default tolerance.
+
+**Done (W2b)**: `CMpConnectScreen::Create` 0061B2C0 declares `ExtendedServerName` and `EiPluginNPlayers`. addon's operands (live bytes of
+the sites; the values are in addon.dll's installer at +0x18960, the float read from its constant at 100B1CA4): the selection sprite's right
+edge 370 -> 381.5 (0061B5CE), the name field's rectangle and the players slider's rectangle (set after its construction) right edge
+650 -> 680 (0061BB51: the register `mov edi, 0x28a` the two use), and the name field's `SetLook(3, 0, 1, 10, ...)` -> `SetLook(15, 0, 0, 50, ...)`
+(0061BC0E classes, 0061BC0B font, 0061BC09 length; the trimming of the hero's name to 10 characters stays). EI_Plugin's NPlayers (its
+installer at +0x2090, the setting `NPlayers` of EI_Plugin.ini, 7 here) also lies in the function, so the declaration is needed for the
+hook: the slider's maximum (0061BAF7+1, the construction's `push 5`) becomes `max(n, 7) - 1` and its position (0061BB82, `push 5` of
+SetPosition) `max(n, 1) - 1`; `maxPlayers_` stays 6. `ei::rebirth::PluginNPlayers()` (new, include/ei/rebirth.h) carries n from the hook's
+ini reading (default 7, the plugin's). Verified ours only (no server answers; the screen is built once by ui_mp_host): the verify
+wrapper re-derives the slider's rectangle, maximum and position and the field's rectangle, classes, font and length from the flags.
+
 ### Remaining work
 
-WideScreen's leftover (00613EA0 under Rebirth: W4a, above); the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
+WideScreen has no leftovers; the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
 layer); the multiplayer patches and EI_Plugin features (with multiplayer).

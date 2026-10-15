@@ -41,6 +41,12 @@ extern bool g_enabled[kPatchCount];
 inline bool Enabled(Patch p) { return detail::g_enabled[static_cast<int>(p)]; }
 
 void Set(Patch p, bool on);
+
+// The player count EI_Plugin's NPlayers feature (Patch::EiPluginNPlayers) is configured with
+// (EI_Plugin.ini [CONFIG] NPlayers; the plugin's default 7 until the hook DLL has read the ini).
+int PluginNPlayers();
+void SetPluginNPlayers(int players);
+
 const char* Name(Patch p);
 bool FromName(const char* name, Patch* out);
 
