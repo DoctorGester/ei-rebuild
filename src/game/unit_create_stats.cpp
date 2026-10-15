@@ -94,8 +94,6 @@ void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
 // This file's functions through their addresses, so their verify wrappers stay in the path.
 __declspec(naked) char* __fastcall FindNpcAt(NpcPrototypeTable*, void*, const char*) EI_ORIGINAL(0x005145D0)
 __declspec(naked) int __fastcall SetDefaultsAt(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*) EI_ORIGINAL(0x005134F0)
-__declspec(naked) int __fastcall BuildFromPrototypeAt(UnitStatsBuilder*, void*, UnitVitals*, UnitStats*, const char*)
-    EI_ORIGINAL(0x005136D0)
 // 0050F050 CMapObject::SetServerData, 00517700 CObject3D::SetFigureScale, 005308A0
 // CUnit::SetPrototype23C, rewritten elsewhere.
 __declspec(naked) std::uintptr_t __fastcall SetServerDataAt(CEngineObject*, void*, const void*) EI_ORIGINAL(0x0050F050)
@@ -263,6 +261,11 @@ int UnitStatsBuilder::BuildFromPrototype(UnitVitals* vitals, UnitStats* stats, c
     const Model* model = ModelOf(prototype);
     const Npc* npc = FindNpc(name);
     if (!vitals || !stats) return 0;
+    // Both blocks start zeroed: the fields the resets and this builder leave (the layers' spare
+    // absorb values, the high bits of builtFlags, ...) are 0, not what the caller's stack held
+    // (a determinism fix, SV7b3; the harness zeroes them in the original too, harness_leftovers.h).
+    std::memset(vitals, 0, sizeof(UnitVitals));
+    std::memset(stats, 0, sizeof(UnitStats));
     UnitVitalsReset(vitals);
     UnitStatsResetOriginal(stats);
 
@@ -623,7 +626,7 @@ EI_REPLACE_METHOD(0x005260A0, UnitStats::CanLearn);
 // --- Applying a prototype ---------------------------------------------------------------------
 
 int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
-    UnitVitals vitals{};   // the original's stack copies start as whatever the stack held
+    UnitVitals vitals{};   // zeroed (the original's start as the stack held them; SV7b3)
     UnitStats stats{};
     auto* mapObject = static_cast<CMapObject*>(object);
     const Prototype* prototype = FindPrototype(name);
@@ -644,7 +647,7 @@ int UnitStatsBuilder::ApplyPrototype(CEngineObject* object, const char* name) {
     }
     const Model* model = ModelOf(prototype);
     if (object->GetClassId() == kClassUnit) {
-        BuildFromPrototypeAt(this, nullptr, &vitals, &stats, name);
+        UnitStatsBuildFromPrototype(this, nullptr, &vitals, &stats, name);
         stats.builtFlags |= 1;
         vitals.builtFlags |= 1;
         SetServerDataAt(object, nullptr, &vitals);

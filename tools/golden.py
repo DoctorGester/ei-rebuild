@@ -69,11 +69,8 @@ ADDRESS_DEPENDENT = None
 # Differences between our code and the original that are known, each with the ticket that fixes it: "<key> <field>"
 # patterns. A compact digest keeps these fields in clear next to the hashes, and the comparison with a golden
 # leaves them out (unless --strict), so the golden needs no re-recording when the ticket lands; drop the entry then.
-KNOWN = {
-    r'^obj2 hp$': "SV3h: the main menu unit unmoco2's hit points are the NaN its prototype-less stats' stack "
-                  "leftovers give; on SV2b's heap they differ by scenario and install in the original "
-                  "(0xFFFFFDxx vanilla, 0xFFFFFFxx Rebirth), ours keeps SV3a's 0xFFC00000",
-}   # SV2b (zone1's script variable i between our runs under Rebirth) fixed 2026-10-15
+KNOWN = {}   # SV2b (zone1's script variable i between our runs under Rebirth) fixed 2026-10-15; SV7b3 (obj2 hp:
+# unmoco2's prototype-less statistics, stack leftovers) 2026-10-15: both sides zero those stack copies
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
 SAVES = 'harness_saves'
