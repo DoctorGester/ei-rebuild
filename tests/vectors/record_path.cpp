@@ -175,15 +175,21 @@ void EnsureSaved(const CAIMap* map) {
 }
 
 // The map a search runs on: the saved map's id and the differences from it.
-void PutCallMap(Writer& w, const CAIMap* map) {
+void PutCallMap(Writer& w, const CAIMap* map, std::uint8_t planes = kCallAll) {
     AcquireSRWLockExclusive(&g_mapLock);
     EnsureSaved(map);
     w.Put(g_saved.id);
-    PutDiff(w, g_saved.cells.data(), reinterpret_cast<const std::uint8_t*>(map->cellBlock), CellBytes(map));
-    PutDiff(w, g_saved.water.data(), reinterpret_cast<const std::uint8_t*>(map->waterBlock), WaterBytes(map));
-    PutDiff(w, g_saved.marks.data(), reinterpret_cast<const std::uint8_t*>(map->marks.data), MarkBytes(map));
-    const std::vector<std::uint8_t> regions = RegionBytes(map);
-    PutDiff(w, g_saved.regions.data(), regions.data(), static_cast<std::uint32_t>(regions.size()));
+    w.Put(planes);
+    if (planes & kCallCells)
+        PutDiff(w, g_saved.cells.data(), reinterpret_cast<const std::uint8_t*>(map->cellBlock), CellBytes(map) / 9, 9);
+    if (planes & kCallWater)
+        PutDiff(w, g_saved.water.data(), reinterpret_cast<const std::uint8_t*>(map->waterBlock), WaterBytes(map), 1);
+    if (planes & kCallMarks)
+        PutDiff(w, g_saved.marks.data(), reinterpret_cast<const std::uint8_t*>(map->marks.data), MarkBytes(map), 1);
+    if (planes & kCallRegions) {
+        const std::vector<std::uint8_t> regions = RegionBytes(map);
+        PutDiff(w, g_saved.regions.data(), regions.data(), static_cast<std::uint32_t>(regions.size()), 1);
+    }
     ReleaseSRWLockExclusive(&g_mapLock);
 }
 
@@ -199,6 +205,16 @@ UnitState StateOf(CUnit* unit) {
     return s;
 }
 
+std::vector<std::uint8_t> MarksOf(const CAIMap& map) {
+    const auto* p = reinterpret_cast<const std::uint8_t*>(map.marks.data);
+    return std::vector<std::uint8_t>(p, p + MarkBytes(&map));
+}
+
+// What the search changed in the marks.
+void PutMarksAfter(Writer& w, const std::vector<std::uint8_t>& before, const CAIMap& map) {
+    PutDiff(w, before.data(), reinterpret_cast<const std::uint8_t*>(map.marks.data), MarkBytes(&map), 1);
+}
+
 bool Small(const AIPath* path) { return path->cells.count <= kMaxCells && path->steps.count <= kMaxCells; }
 
 // ---- FindPath, and the map it searches on ----------------------------------------------------------
@@ -208,6 +224,7 @@ struct PendingFind {
     const CAIMap* map;
     const CEngineObject* unit;
     Writer state;
+    std::vector<std::uint8_t> marks;   // the marks when the map was taken
     bool captured = false;
     int plans = 0;
 };
@@ -240,7 +257,7 @@ bool __fastcall FindPathRecord(CAIMap* self, void*, CUnit* unit, const Vector3* 
     w.PutBytes(head.data(), head.size());
     w.Put<std::uint8_t>(result);
     PutPath(w, *path);
-    w.Put(MarksHash(*self));
+    if (pending.captured) PutMarksAfter(w, pending.marks, *self);
     unsigned bucket = !result ? kFindFailed : pending.plans ? kFindPlanned : kFindNear;
     g_findPath.OfferBytes(w, cw, bucket);
     return result;
@@ -254,6 +271,7 @@ bool __fastcall RemoveRecord(CSectorMap* self, void*, CEngineObject* object) {
     PendingFind* pending = t_find;
     if (pending && !pending->captured && object == pending->unit) {
         PutCallMap(pending->state, pending->map);
+        pending->marks = MarksOf(*pending->map);
         pending->captured = true;
     }
     return result;
@@ -274,12 +292,13 @@ bool __fastcall PlanRecord(CAIMap* self, void*, CUnit* unit, int fromX, int from
     PutPath(w, *path);
     const bool fits = Small(path);
     const bool failedBefore = path->failed;
+    const std::vector<std::uint8_t> marks = MarksOf(*self);
     std::uint16_t cw = ControlWord();
     bool result = s_plan(self, nullptr, unit, fromX, fromY, toX, toY, path, retry, maxCells);
     if (!fits || !Small(path)) return result;
     w.Put<std::uint8_t>(result);
     PutPath(w, *path);
-    w.Put(MarksHash(*self));
+    PutMarksAfter(w, marks, *self);
     unsigned bucket = !result ? kPlanFailed : path->failed && !failedBefore ? kPlanAimed : kPlanReached;
     g_plan.OfferBytes(w, cw, bucket);
     return result;
@@ -294,7 +313,7 @@ int __fastcall SmoothRecord(PathSmoother* self, void*, CUnit* unit, CAIMap* map,
     OfferTables();
     if (path->count > kMaxCells) return s_smooth(self, nullptr, unit, map, path, startDirection, fraction);
     Writer w;
-    PutCallMap(w, map);
+    PutCallMap(w, map, kCallCells);
     w.Put(StateOf(unit));
     PutCells(w, *path);
     w.Put<std::int32_t>(startDirection);

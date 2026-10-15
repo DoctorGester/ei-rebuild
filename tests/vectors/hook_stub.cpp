@@ -3,6 +3,8 @@
 #include "ei/hook.h"
 #include "vectors.h"
 
+#include <windows.h>
+
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
@@ -61,6 +63,9 @@ extern "C" void* __cdecl ei_replay_forward_target(std::uintptr_t address) {
     std::printf("ei_vectors: a forwarder to %08X was called; nothing in ei_vectors is registered there\n",
                 static_cast<unsigned>(address));
     std::fflush(stdout);
+    // A check that guards its call (replay_path.cpp) fails naming the address; elsewhere the run ends.
+    const ULONG_PTR info[2] = {0, address};
+    RaiseException(ei::vectors::kMissingForwarder, EXCEPTION_NONCONTINUABLE, 2, info);
     std::abort();
 }
 

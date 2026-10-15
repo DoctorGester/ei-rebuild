@@ -11,9 +11,10 @@
 // it: cost and climb tables, the cells, water depths and marks, the region map's grids. Its id is
 // a hash of the content. The grids are stored byte plane by byte plane, run-length coded.
 //
-// A search's record holds the map it ran on as the id of its "@AIMap" and the differences from it
-// (units move, searches leave marks), the unit's fields the searches read, the arguments and the
-// path before; then the result, the path after and a hash of the marks after.
+// A search's record holds the map it ran on as the id of its "@AIMap", the planes it differs in
+// (CallPlanes) and the differences (units move, searches leave marks), the unit's fields the
+// searches read, the arguments and the path before; then the result, the path after and what the
+// search changed in the marks.
 
 #include "vectors.h"
 
@@ -56,32 +57,62 @@ constexpr std::uint32_t kSmoothStepSize = sizeof(SmoothStep);
 // A grid of `count` elements of `stride` bytes is coded plane by plane (byte k of every element),
 // each control byte c either c + 1 literal bytes (c < 0x80) or the next byte c - 0x80 + 3 times.
 
-inline void PutPacked(Writer& w, const std::uint8_t* data, std::uint32_t count, std::uint32_t stride) {
-    std::vector<std::uint8_t> out;
-    std::vector<std::uint8_t> plane(count);
-    for (std::uint32_t k = 0; k < stride; ++k) {
-        for (std::uint32_t i = 0; i < count; ++i) plane[i] = data[static_cast<std::size_t>(i) * stride + k];
-        std::uint32_t i = 0;
-        while (i < count) {
-            std::uint32_t run = 1;
-            while (i + run < count && run < 130 && plane[i + run] == plane[i]) ++run;
-            if (run >= 3) {
-                out.push_back(static_cast<std::uint8_t>(0x80 + run - 3));
-                out.push_back(plane[i]);
-                i += run;
-                continue;
-            }
-            // Literals up to the next run of three.
-            std::uint32_t start = i, n = 0;
-            while (i < count && n < 128) {
-                if (i + 2 < count && plane[i] == plane[i + 1] && plane[i] == plane[i + 2]) break;
-                ++i;
-                ++n;
-            }
-            out.push_back(static_cast<std::uint8_t>(n - 1));
-            out.insert(out.end(), plane.begin() + start, plane.begin() + start + n);
+// Codes `count` bytes (every `stride`th from `data`) onto `out`.
+inline void RleEncode(std::vector<std::uint8_t>& out, const std::uint8_t* data, std::uint32_t count,
+                      std::uint32_t stride = 1) {
+    auto at = [&](std::uint32_t i) { return data[static_cast<std::size_t>(i) * stride]; };
+    std::uint32_t i = 0;
+    while (i < count) {
+        std::uint32_t run = 1;
+        while (i + run < count && run < 130 && at(i + run) == at(i)) ++run;
+        if (run >= 3) {
+            out.push_back(static_cast<std::uint8_t>(0x80 + run - 3));
+            out.push_back(at(i));
+            i += run;
+            continue;
+        }
+        // Literals up to the next run of three.
+        const std::size_t control = out.size();
+        out.push_back(0);
+        std::uint32_t n = 0;
+        while (i < count && n < 128) {
+            if (i + 2 < count && at(i) == at(i + 1) && at(i) == at(i + 2)) break;
+            out.push_back(at(i));
+            ++i;
+            ++n;
+        }
+        out[control] = static_cast<std::uint8_t>(n - 1);
+    }
+}
+
+// Decodes `count` bytes (to every `stride`th of `out`) from [p, end); the position after them, or
+// null when the coding does not fit.
+inline const std::uint8_t* RleDecode(const std::uint8_t* p, const std::uint8_t* end, std::uint8_t* out,
+                                     std::uint32_t count, std::uint32_t stride = 1) {
+    std::uint32_t i = 0;
+    while (i < count) {
+        if (p >= end) return nullptr;
+        const std::uint8_t c = *p++;
+        if (c < 0x80) {
+            const std::uint32_t n = c + 1u;
+            if (n > count - i || n > static_cast<std::size_t>(end - p)) return nullptr;
+            for (std::uint32_t j = 0; j < n; ++j) out[static_cast<std::size_t>(i + j) * stride] = p[j];
+            p += n;
+            i += n;
+        } else {
+            const std::uint32_t n = c - 0x80u + 3u;
+            if (n > count - i || p >= end) return nullptr;
+            for (std::uint32_t j = 0; j < n; ++j) out[static_cast<std::size_t>(i + j) * stride] = *p;
+            ++p;
+            i += n;
         }
     }
+    return p;
+}
+
+inline void PutPacked(Writer& w, const std::uint8_t* data, std::uint32_t count, std::uint32_t stride) {
+    std::vector<std::uint8_t> out;
+    for (std::uint32_t k = 0; k < stride; ++k) RleEncode(out, data + k, count, stride);
     w.Put(static_cast<std::uint32_t>(out.size()));
     w.PutBytes(out.data(), out.size());
 }
@@ -93,71 +124,110 @@ inline bool GetPacked(Reader& r, std::uint8_t* out, std::uint32_t count, std::ui
     const std::uint8_t* p = r.Bytes(size);
     if (!p) return false;
     const std::uint8_t* end = p + size;
-    for (std::uint32_t k = 0; k < stride; ++k) {
-        std::uint32_t i = 0;
-        while (i < count) {
-            if (p >= end) return false;
-            std::uint8_t c = *p++;
-            if (c < 0x80) {
-                std::uint32_t n = c + 1u;
-                if (i + n > count || p + n > end) return false;
-                for (std::uint32_t j = 0; j < n; ++j) out[static_cast<std::size_t>(i + j) * stride + k] = p[j];
-                p += n;
-                i += n;
-            } else {
-                std::uint32_t n = c - 0x80u + 3u;
-                if (i + n > count || p >= end) return false;
-                for (std::uint32_t j = 0; j < n; ++j) out[static_cast<std::size_t>(i + j) * stride + k] = *p;
-                ++p;
-                i += n;
-            }
-        }
-    }
+    for (std::uint32_t k = 0; k < stride && p; ++k) p = RleDecode(p, end, out + k, count, stride);
     return p == end;
 }
 
 // ---- Differences from the saved map --------------------------------------------------------------
-// The runs where `now` differs from `base` (`size` bytes): u32 count, then each u32 offset, u32
-// length and the bytes of `now`. Runs closer than kDiffGap bytes are joined.
-constexpr std::uint32_t kDiffGap = 8;
+// The elements where `now` differs from `base` (`count` elements of `stride` bytes), byte plane by
+// byte plane: per plane a run count, then each run as the gap since the previous run's end and its
+// length (both LEB128); then the bytes of `now` in every run, run-length coded as above (u32 size
+// first). Runs closer than kDiffGap are joined.
+constexpr std::uint32_t kDiffGap = 4;
 
-inline void PutDiff(Writer& w, const std::uint8_t* base, const std::uint8_t* now, std::uint32_t size) {
-    struct Run {
-        std::uint32_t offset, length;
-    };
-    std::vector<Run> runs;
-    std::uint32_t i = 0;
-    while (i < size) {
-        if (base[i] == now[i]) {
-            ++i;
-            continue;
-        }
-        std::uint32_t start = i, last = i;
-        for (++i; i < size && i - last <= kDiffGap; ++i)
-            if (base[i] != now[i]) last = i;
-        runs.push_back({start, last + 1 - start});
-        i = last + 1;
+inline void PutVarint(Writer& w, std::uint32_t v) {
+    while (v >= 0x80) {
+        w.Put(static_cast<std::uint8_t>(v | 0x80));
+        v >>= 7;
     }
-    w.Put(static_cast<std::uint32_t>(runs.size()));
-    for (const Run& run : runs) {
-        w.Put(run.offset);
-        w.Put(run.length);
-        w.PutBytes(now + run.offset, run.length);
-    }
+    w.Put(static_cast<std::uint8_t>(v));
 }
 
-// Applies what PutDiff wrote to `data` (`size` bytes); false when a run does not fit.
-inline bool ApplyDiff(Reader& r, std::uint8_t* data, std::uint32_t size) {
-    const std::uint32_t count = r.Get<std::uint32_t>();
-    for (std::uint32_t k = 0; k < count; ++k) {
-        const std::uint32_t offset = r.Get<std::uint32_t>();
-        const std::uint32_t length = r.Get<std::uint32_t>();
-        const std::uint8_t* bytes = r.Bytes(length);
-        if (!bytes || offset > size || length > size - offset) return false;
-        std::memcpy(data + offset, bytes, length);
+inline std::uint32_t GetVarint(Reader& r) {
+    std::uint32_t v = 0;
+    for (int shift = 0; shift < 35; shift += 7) {
+        const std::uint8_t b = r.Get<std::uint8_t>();
+        v |= static_cast<std::uint32_t>(b & 0x7F) << shift;
+        if (!(b & 0x80) || !r.ok()) return v;
     }
+    r.Bytes(~std::size_t(0));   // too long: fails the reader
+    return 0;
+}
+
+inline void PutDiff(Writer& w, const std::uint8_t* base, const std::uint8_t* now, std::uint32_t count,
+                    std::uint32_t stride) {
+    std::vector<std::uint8_t> bytes;
+    for (std::uint32_t k = 0; k < stride; ++k) {
+        auto differs = [&](std::uint32_t i) {
+            return base[static_cast<std::size_t>(i) * stride + k] != now[static_cast<std::size_t>(i) * stride + k];
+        };
+        std::vector<std::uint32_t> runs;   // start, length
+        for (std::uint32_t i = 0; i < count;) {
+            if (!differs(i)) {
+                ++i;
+                continue;
+            }
+            std::uint32_t start = i, last = i;
+            for (++i; i < count && i - last <= kDiffGap; ++i)
+                if (differs(i)) last = i;
+            runs.push_back(start);
+            runs.push_back(last + 1 - start);
+            i = last + 1;
+        }
+        PutVarint(w, static_cast<std::uint32_t>(runs.size() / 2));
+        std::uint32_t at = 0;
+        for (std::size_t j = 0; j < runs.size(); j += 2) {
+            PutVarint(w, runs[j] - at);
+            PutVarint(w, runs[j + 1]);
+            for (std::uint32_t i = runs[j]; i < runs[j] + runs[j + 1]; ++i)
+                bytes.push_back(now[static_cast<std::size_t>(i) * stride + k]);
+            at = runs[j] + runs[j + 1];
+        }
+    }
+    std::vector<std::uint8_t> coded;
+    RleEncode(coded, bytes.data(), static_cast<std::uint32_t>(bytes.size()));
+    w.Put(static_cast<std::uint32_t>(coded.size()));
+    w.PutBytes(coded.data(), coded.size());
+}
+
+// Applies what PutDiff wrote to `data`; false when a run does not fit.
+inline bool ApplyDiff(Reader& r, std::uint8_t* data, std::uint32_t count, std::uint32_t stride) {
+    std::vector<std::uint32_t> runs;   // element index, length, plane
+    std::uint32_t total = 0;
+    for (std::uint32_t k = 0; k < stride; ++k) {
+        const std::uint32_t n = GetVarint(r);
+        std::uint32_t at = 0;
+        for (std::uint32_t j = 0; j < n && r.ok(); ++j) {
+            const std::uint32_t gap = GetVarint(r);
+            const std::uint32_t length = GetVarint(r);
+            if (gap > count - at || length > count - at - gap) return false;
+            at += gap;
+            runs.insert(runs.end(), {at, length, k});
+            at += length;
+            total += length;
+        }
+    }
+    const std::uint32_t size = r.Get<std::uint32_t>();
+    const std::uint8_t* p = r.Bytes(size);
+    if (!p) return false;
+    std::vector<std::uint8_t> bytes(total);
+    if (RleDecode(p, p + size, bytes.data(), total) != p + size) return false;
+    std::size_t from = 0;
+    for (std::size_t j = 0; j < runs.size(); j += 3)
+        for (std::uint32_t i = 0; i < runs[j + 1]; ++i)
+            data[static_cast<std::size_t>(runs[j] + i) * stride + runs[j + 2]] = bytes[from++];
     return r.ok();
 }
+
+// Which of the map's planes a record's differences cover (the rest are the saved map's): the
+// smoother reads only the cells.
+enum CallPlanes : std::uint8_t {
+    kCallCells = 1,
+    kCallWater = 2,
+    kCallMarks = 4,
+    kCallRegions = 8,
+    kCallAll = 15,
+};
 
 // ---- The unit and the path -------------------------------------------------------------------------
 
@@ -194,11 +264,6 @@ inline void PutPath(Writer& w, const AIPath& path) {
     w.Put(static_cast<std::uint32_t>(path.excludedBlocks.size));
     for (int i = 0; i < path.excludedBlocks.size; ++i) w.Put(path.excludedBlocks.data[i]);
     w.Put(path.smoothing);
-}
-
-// The marks after a search (the next searches read them).
-inline std::uint64_t MarksHash(const CAIMap& map) {
-    return HashBytes(map.marks.data, static_cast<std::size_t>(map.marks.width) * map.marks.height);
 }
 
 // Buckets.

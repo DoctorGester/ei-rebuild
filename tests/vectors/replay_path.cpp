@@ -299,7 +299,8 @@ void BuildMap(const SavedMap& s) {
     g_mapOf = &s;
 }
 
-// The saved map's content back, the record's differences applied, the searches fresh.
+// The saved map's content back, the record's differences applied (the planes it has), the searches
+// fresh.
 bool PrepareMap(const SavedMap& s, Reader& r) {
     if (g_mapOf != &s) BuildMap(s);
     CAIMap* map = g_map;
@@ -307,10 +308,16 @@ bool PrepareMap(const SavedMap& s, Reader& r) {
     CopyGrid(map->WaterGrid(), s.water);
     CopyGrid(map->marks, s.marks);
     std::vector<std::uint8_t> regions = s.regionBytes;
-    bool ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->cellBlock), static_cast<std::uint32_t>(s.cells.bytes.size())) &&
-              ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->waterBlock), static_cast<std::uint32_t>(s.water.bytes.size())) &&
-              ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->marks.data), static_cast<std::uint32_t>(s.marks.bytes.size())) &&
-              ApplyDiff(r, regions.data(), static_cast<std::uint32_t>(regions.size()));
+    const std::uint8_t planes = r.Get<std::uint8_t>();
+    bool ok = r.ok() && !(planes & ~kCallAll);
+    if (ok && (planes & kCallCells))
+        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->cellBlock), static_cast<std::uint32_t>(s.cells.bytes.size() / 9), 9);
+    if (ok && (planes & kCallWater))
+        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->waterBlock), static_cast<std::uint32_t>(s.water.bytes.size()), 1);
+    if (ok && (planes & kCallMarks))
+        ok = ApplyDiff(r, reinterpret_cast<std::uint8_t*>(map->marks.data), static_cast<std::uint32_t>(s.marks.bytes.size()), 1);
+    if (ok && (planes & kCallRegions))
+        ok = ApplyDiff(r, regions.data(), static_cast<std::uint32_t>(regions.size()), 1);
     if (!ok) return false;
     std::size_t at = 0;
     CRegionMap& rm = map->regionMap;
@@ -452,8 +459,34 @@ bool Guarded(Fn& fn, char* d, std::size_t n, const char* what) {
     } __except (Filter(GetExceptionInformation(), &code, &at)) {
     }
     if (done) return true;
-    std::snprintf(d, n, "%s: exception %08lX at %08X", what, code, static_cast<unsigned>(at));
+    if (code == kMissingForwarder)
+        std::snprintf(d, n, "%s: a forwarder to %08X with nothing behind it in ei_vectors", what, static_cast<unsigned>(at));
+    else
+        std::snprintf(d, n, "%s: exception %08lX at %08X", what, code, static_cast<unsigned>(at));
     g_mapOf = nullptr;   // the map may be half-changed: built again for the next record
+    return false;
+}
+
+// ---- The marks -------------------------------------------------------------------------------------
+
+std::uint8_t* MarkData() { return reinterpret_cast<std::uint8_t*>(g_map->marks.data); }
+std::uint32_t MarkCount() { return static_cast<std::uint32_t>(g_map->marks.width * g_map->marks.height); }
+
+// The marks the original left: the record's map's marks with the recorded changes.
+bool MarksAfter(Reader& r, std::vector<std::uint8_t>& marks) {
+    marks.assign(MarkData(), MarkData() + MarkCount());
+    return ApplyDiff(r, marks.data(), MarkCount(), 1);
+}
+
+bool SameMarks(const std::vector<std::uint8_t>& original, char* d, std::size_t n, const char* what) {
+    const std::uint8_t* ours = MarkData();
+    int differ = 0, first = -1;
+    for (std::uint32_t i = 0; i < MarkCount(); ++i)
+        if (ours[i] != original[i] && differ++ == 0) first = static_cast<int>(i);
+    if (!differ) return true;
+    const int w = g_map->marks.width;
+    std::snprintf(d, n, "%s: %d marks differ, the first at (%d,%d): ours %d, original %d", what, differ, first % w,
+                  first / w, ours[first], original[first]);
     return false;
 }
 
@@ -471,7 +504,8 @@ bool CheckFindPath(Reader& r, char* d, std::size_t n) {
     ReadPath(r, path);
     const bool expected = r.Get<std::uint8_t>() != 0;
     const std::vector<std::uint8_t> after = TakePath(r);
-    const std::uint64_t marks = r.Get<std::uint64_t>();
+    std::vector<std::uint8_t> marks;
+    if (captured && !MarksAfter(r, marks)) return !r.ok();
     if (!r.ok()) return true;
     if (!captured && !g_map) {
         // Returned before taking the unit out of the sector map: any map will do.
@@ -489,11 +523,7 @@ bool CheckFindPath(Reader& r, char* d, std::size_t n) {
         return false;
     }
     if (!SamePath(path, after, d, n, "FindPath")) return false;
-    if (captured && MarksHash(*g_map) != marks) {
-        std::snprintf(d, n, "(%g,%g): the marks after differ", target.x, target.y);
-        return false;
-    }
-    return true;
+    return !captured || SameMarks(marks, d, n, "FindPath");
 }
 EI_VECTOR_CHECK_BYTES("CAIMap::FindPath", CheckFindPath);
 
@@ -506,7 +536,8 @@ bool CheckPlan(Reader& r, char* d, std::size_t n) {
     ReadPath(r, path);
     const bool expected = r.Get<std::uint8_t>() != 0;
     const std::vector<std::uint8_t> after = TakePath(r);
-    const std::uint64_t marks = r.Get<std::uint64_t>();
+    std::vector<std::uint8_t> marks;
+    if (!MarksAfter(r, marks)) return !r.ok();
     if (!r.ok()) return true;
     CUnit* u = MakeUnit(unit);
     bool actual = false;
@@ -518,11 +549,7 @@ bool CheckPlan(Reader& r, char* d, std::size_t n) {
         return false;
     }
     if (!SamePath(path, after, d, n, "PlanLongPath")) return false;
-    if (MarksHash(*g_map) != marks) {
-        std::snprintf(d, n, "(%d,%d)->(%d,%d): the marks after differ", args[0], args[1], args[2], args[3]);
-        return false;
-    }
-    return true;
+    return SameMarks(marks, d, n, "PlanLongPath");
 }
 EI_VECTOR_CHECK_BYTES("CAIMap::PlanLongPath", CheckPlan);
 
