@@ -71,6 +71,8 @@ AREAS = [
 
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
 REPLACE = re.compile(r'EI_REPLACE(?:_METHOD|_SHORT)?\(\s*0x([0-9A-Fa-f]+)')
+# Standalone-only registrations (the exe's allocator and other library code the hooked game keeps).
+REPLACE_STANDALONE = re.compile(r'EI_REPLACE_STANDALONE\(\s*0x([0-9A-Fa-f]+)')
 HANDLER = re.compile(r'UI_(?:INPUT|WHEEL)_HANDLER\(\s*0x([0-9A-Fa-f]+)')
 ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
 CLEANUP = {
@@ -165,6 +167,7 @@ def file_stats(path, text):
     """One file's share of measure(): its loc part and lines, rewritten addresses, one EI_ORIGINAL
     target per site, cleanup counts, standalone counts and data addresses."""
     replaced, origins, cleanup, standalone, data = set(), [], defaultdict(int), defaultdict(int), set()
+    standalone_only = set()
     part = ('tests/scenarios' if path.startswith('tests/scenarios') else 'tests/verify'
             if path.startswith('tests/') else '/'.join(path.split('/')[:2]))
     if path.startswith('tests/scenarios') and path.endswith('.txt'):
@@ -174,6 +177,7 @@ def file_stats(path, text):
         if path.startswith('src/'):
             replaced |= {int(a, 16) for a in REPLACE.findall(code)}
             replaced |= {int(a, 16) for a in HANDLER.findall(code)}
+            standalone_only |= {int(a, 16) for a in REPLACE_STANDALONE.findall(code)}
             for a in ORIGINAL.findall(code):
                 cleanup['forwarder_sites'] += 1
                 origins.append(int(a, 16))
@@ -188,7 +192,7 @@ def file_stats(path, text):
                         standalone[k] += len(rx.findall(code))
         else:
             cleanup['verify_wrappers'] += len(re.findall(r'\bEI_VERIFY\s*\(', code))
-    return part, text.count('\n'), replaced, origins, dict(cleanup), dict(standalone), data
+    return part, text.count('\n'), replaced, origins, dict(cleanup), dict(standalone), data, standalone_only
 
 
 def measure(tree):
@@ -201,10 +205,11 @@ def measure(tree):
     if not funcs or not sizes:
         return None
     game = {int(r['address'], 16) for r in csv.DictReader(io.StringIO(funcs)) if r['kind'] == 'game'}
-    game -= addresses(tree.read('config/library.csv')) | addresses(tree.read('config/dead_code.csv'))
+    library = addresses(tree.read('config/library.csv'))
+    game -= library | addresses(tree.read('config/dead_code.csv'))
 
     replaced, loc, cleanup = set(), defaultdict(int), defaultdict(int)
-    standalone, data = defaultdict(int), set()
+    standalone, data, standalone_only = defaultdict(int), set(), set()
     origin_files = defaultdict(set)
     for path in tree.paths:
         if not path.endswith(('.cpp', '.h', '.inc', '.txt', '.py')):
@@ -220,7 +225,8 @@ def measure(tree):
             f = file_stats(path, text)
             if key[0]:
                 FILE_CACHE[key] = f
-        part, lines, replaced_here, origins, counts, stand, data_here = f
+        part, lines, replaced_here, origins, counts, stand, data_here, standalone_here = f
+        standalone_only |= standalone_here
         loc[part] += lines
         replaced |= replaced_here
         for a in origins:
@@ -246,6 +252,12 @@ def measure(tree):
         data_addresses=len(data), unported_functions=len(left),
         unported_unhookable=sum(1 for a in left if sizes.get(a, 0) < UNHOOKABLE_BYTES),
         unported_rebirth_patched=len(left & patched))
+    # The exe's library code (config/library.csv) with our code at its address: what the standalone image
+    # runs there instead of INT3 (S3 / S6 / S12 / S16).
+    ours = library & (replaced | standalone_only)
+    standalone.update(library_functions=len(library), library_ours=len(ours),
+                      library_bytes=sum(sizes.get(a, 0) for a in library),
+                      library_ours_bytes=sum(sizes.get(a, 0) for a in ours))
     areas = []
     for lo, hi, name in AREAS:
         g = {a for a in game if lo <= a < hi}
