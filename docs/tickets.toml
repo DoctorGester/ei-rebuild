@@ -730,7 +730,7 @@ id = "SV3f"
 title = "Client unit orientation differs from the original by an ulp"
 group = "verification"
 size = 0.5
-note = "From SV3d: digest 2's cunit rot (the client world's unit orientation quaternion) differs by 1-2 ulps between ours and the original, which repeat each: cunit2 (unmoco2, main menu) rot.w/x/y/z in ui_main_menu @220, ui_hero_stats @500 (ui_hero_screen @620 by more, 0.72510165 against 0.725037515: probably a frame later), cunit187 (unmoog1) rot.w in ui_container_input / ui_widescreen* @60, cunit1000011214 (hero) rot.z in script_exec @560. Find the client-side rotation rewrite whose float maths differ (rule 7; golden.py diff with --records to see the first record and the units) and fix it, or explain. Blocks those scenarios' goldens (ui_main_menu, ui_hero_screen and ui_hero_stats keep their digest-1 goldens meanwhile)."
+note = "Paused 2026-10-15: probably the same cause as SV7b4 (an uninitialised stack read in the original's client orientation path; see SV7b4's note)."
 
 [[ticket]]
 id = "SV3g"
@@ -962,7 +962,7 @@ id = "SV7b4"
 title = "Rebirth menu unit orientation ulp under jitter"
 group = "verification"
 depends = ["SV7a"]
-note = "SV7a family 4. cunit148 (unanwiwo) rot.w/rot.z differ by 1 ulp at update 80 with EI_HEAP_JITTER=1 in Rebirth --no-hooks runs only (ui_container_input, ui_widescreen_more, render_titles_present); repeats. Not ClientPlaceOnPath 00535850 (ours steady in hooked runs; original and ours bitwise equal in the wrapper under both layouts); the incoming orientation already varies. Trace the writer among addon.dll / Rebirth-patched originals (address-dependent read or uninitialised float). Probably SV3f."
+note = "Paused 2026-10-15 (WIP commit). Found: jitter-1 difference in cunit148 vanishes with EI_STACK_SCRUB (any byte) after each server update, EI_DIGEST=1 or the watch: an uninitialised stack read in the original, value-insensitive except for the jitter value. Orientation writers: SetHeading 00402220 via ClientPlaceOnPath and the shadow round trip in DrawShadow 0051CE60 (PreMultiply 004018A0 by turn then by its conjugate; Rebirth's larger draw radius is why Rebirth only). Bisect (jitter 1, scrub 0): 0..0x4000 below the scrub frame fixes it, 0..0x2000 does not; next: bisect 0x2000..0x4000 (scratchpad SV7b4/bisect.py), then a data breakpoint on that slot to name the reader, canonicalise in both. SV3f likely the same cause."
 
 [[ticket]]
 id = "SV7b5"
@@ -977,6 +977,13 @@ title = "Pointer-keyed hashes: check iteration reaches output"
 group = "verification"
 depends = ["SV7a"]
 note = "SV7a family 6 (static). PointerHash containers keyed by address: model.h records_ (CRenderPreset*, iterated in render_helper.cpp:406), resource.h filesByData_. No golden field differed under jitter; check whether any iteration order reaches frames, sounds or state (frame-capture under jitter) and canonicalise if so."
+
+[[ticket]]
+id = "SV7b4a"
+title = "Client orientation ulp: find what flips it (shadow round trip)"
+group = "verification"
+depends = ["SV7b4"]
+note = "From SV7b4 (docs/notes/standalone-verification.md, 'SV7b4 / SV3f'). cunit148's rot differs by an ulp under EI_HEAP_JITTER=1 in Rebirth --no-hooks runs, but a 1 us spin or any stack scrub after each world update brings it back; not one stack slot. Next: count DrawShadow 0051CE60 re-renders (the round trip 0051D479 / 0051D4E0 drifts the quaternion an ulp each) and ClientPlaceOnPath calls per update in a watched plain vs jitter run without exceptions (a counter patch, not debug registers); or make the round trip exact in both (save and restore the orientation instead of the conjugate PreMultiply: a harness patch at 0051D4E0 and ours in map_object_shadow.cpp) and check whether the jitter and SV3f differences go. Then re-record ui_container_input, ui_widescreen*, render_titles_present, ui_main_menu, ui_hero_*."
 
 # ---------------------------------------------------------------- harness and suite
 

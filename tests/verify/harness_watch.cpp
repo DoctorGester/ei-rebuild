@@ -20,6 +20,9 @@ constexpr DWORD kArmCode = 0xE1A70001;   // our own exception: the handler loads
 constexpr int kCallers = 8;
 
 unsigned g_id;
+std::uintptr_t g_slot;                  // EI_WATCH_ADDR: one dword watched for reads and writes
+unsigned g_slotFrom = 0, g_slotTo = ~0u;  // the world updates it is logged in
+bool g_slotArmed;
 FILE* g_file;
 CUnit* g_unit;          // the unit the registers watch (null: none)
 CUnit* g_wanted;        // what the next arm exception loads (null: clear)
@@ -62,7 +65,10 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
     const DWORD code = info->ExceptionRecord->ExceptionCode;
     if (code == kArmCode) {
         c->ContextFlags |= CONTEXT_DEBUG_REGISTERS;
-        if (g_wanted) {
+        if (g_slot) {
+            c->Dr0 = g_slotArmed ? g_slot : 0;
+            c->Dr7 = g_slotArmed ? (0x1u | (0xFu << 16)) : 0;   // L0; R/W 11 (reads and writes), LEN 11
+        } else if (g_wanted) {
             const auto base = reinterpret_cast<std::uintptr_t>(&g_wanted->orientation);
             c->Dr0 = base;
             c->Dr1 = base + 4;
@@ -76,6 +82,25 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
         }
         c->Dr6 = 0;
         g_unit = g_wanted;
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
+    if (code == EXCEPTION_SINGLE_STEP && g_slot && (c->Dr6 & 1)) {
+        if (GetCurrentThreadId() == g_mainThread) {
+            std::fprintf(g_file, "u%u", g_updates);
+            Print(c->Eip);
+            std::fprintf(g_file, " v %08X esp-%X <", unsigned(*reinterpret_cast<const std::uint32_t*>(g_slot)),
+                         unsigned(g_slot - c->Esp));
+            const auto* stack = reinterpret_cast<const std::uintptr_t*>(c->Esp);
+            int found = 0;
+            for (int i = 0; i < 256 && found < 4; ++i) {
+                if (!ReturnAddress(stack[i])) continue;
+                Print(stack[i]);
+                ++found;
+            }
+            std::fprintf(g_file, "\n");
+        }
+        c->Dr6 = 0;
+        c->ContextFlags |= CONTEXT_DEBUG_REGISTERS;
         return EXCEPTION_CONTINUE_EXECUTION;
     }
     if (code != EXCEPTION_SINGLE_STEP || !g_unit || (c->Dr6 & 0xF) == 0) return EXCEPTION_CONTINUE_SEARCH;
@@ -116,10 +141,12 @@ void Arm(CUnit* unit) {
 
 int g_scrub = -1;   // EI_STACK_SCRUB=<byte>[,<from>,<to>]: after each world update, below the caller's frame
 unsigned g_scrubFrom = 0, g_scrubTo = 0x10000;   // bytes below the area's top
+unsigned g_skipFrom = 0, g_skipTo = 0;            // left alone within it
 
 __declspec(noinline) void Scrub(int value) {
     volatile unsigned char area[0x10000];
-    for (unsigned i = g_scrubFrom; i < g_scrubTo; ++i) area[sizeof(area) - 1 - i] = static_cast<unsigned char>(value);
+    for (unsigned i = g_scrubFrom; i < g_scrubTo; ++i)
+        if (i < g_skipFrom || i >= g_skipTo) area[sizeof(area) - 1 - i] = static_cast<unsigned char>(value);
     static bool noted;
     if (!noted) {
         noted = true;
@@ -132,6 +159,18 @@ __declspec(noinline) void Scrub(int value) {
 } // namespace
 
 void ScrubStack() {
+    static long spin = -1;   // EI_SPIN_US=<n> (experiment): a busy wait of n microseconds instead
+    if (spin < 0) {
+        char value[16] = "";
+        spin = GetEnvironmentVariableA("EI_SPIN_US", value, sizeof(value)) ? std::strtol(value, nullptr, 0) : 0;
+    }
+    if (spin > 0) {
+        LARGE_INTEGER f, a, b;
+        QueryPerformanceFrequency(&f);
+        QueryPerformanceCounter(&a);
+        do QueryPerformanceCounter(&b);
+        while ((b.QuadPart - a.QuadPart) * 1000000 / f.QuadPart < spin);
+    }
     if (g_scrub < 0) {
         char value[48] = "";
         char* end = value;
@@ -140,13 +179,22 @@ void ScrubStack() {
                       : 0x100;
         if (*end == ',') g_scrubFrom = static_cast<unsigned>(std::strtoul(end + 1, &end, 0));
         if (*end == ',') g_scrubTo = static_cast<unsigned>(std::strtoul(end + 1, &end, 0));
+        if (*end == ',') g_skipFrom = static_cast<unsigned>(std::strtoul(end + 1, &end, 0));
+        if (*end == ',') g_skipTo = static_cast<unsigned>(std::strtoul(end + 1, &end, 0));
         if (g_scrubTo > 0x10000) g_scrubTo = 0x10000;
     }
     if (g_scrub < 0x100) Scrub(g_scrub);
 }
 
 bool Enabled() {
-    char value[32] = "";
+    char value[64] = "";
+    if (GetEnvironmentVariableA("EI_WATCH_ADDR", value, sizeof(value))) {
+        char* end = value;
+        g_slot = static_cast<std::uintptr_t>(std::strtoul(value, &end, 16)) & ~std::uintptr_t(3);
+        if (*end == ',') g_slotFrom = static_cast<unsigned>(std::strtoul(end + 1, &end, 0));
+        if (*end == ',') g_slotTo = static_cast<unsigned>(std::strtoul(end + 1, &end, 0));
+        if (g_slot) return true;
+    }
     if (!GetEnvironmentVariableA("EI_WATCH_CUNIT", value, sizeof(value))) return false;
     g_id = static_cast<unsigned>(std::strtoul(value, nullptr, 10));
     return g_id != 0;
@@ -162,9 +210,9 @@ void Install() {
                        reinterpret_cast<LPCSTR>(&Install), &self);
     ModuleRange(self, g_selfBase, g_selfEnd);
     AddVectoredExceptionHandler(1, Handler);
-    std::fprintf(g_file, "# watch cunit%u orientation (addon %08X, ei_hook %08X)\n", g_id, unsigned(g_addonBase),
-                 unsigned(g_selfBase));
-    Log("harness: watching cunit%u's orientation (EI_WATCH_CUNIT, watch.txt)", g_id);
+    std::fprintf(g_file, "# watch %s %08X (addon %08X, ei_hook %08X)\n", g_slot ? "dword" : "cunit orientation",
+                 unsigned(g_slot ? g_slot : g_id), unsigned(g_addonBase), unsigned(g_selfBase));
+    Log("harness: watching %s (EI_WATCH_ADDR / EI_WATCH_CUNIT, watch.txt)", g_slot ? "a dword" : "a unit's orientation");
 }
 
 void AfterWorldUpdate() {
@@ -172,6 +220,17 @@ void AfterWorldUpdate() {
     if (!g_mainThread) g_mainThread = GetCurrentThreadId();   // the thread of the world updates
     ++g_updates;
     if (!g_addonEnd) ModuleRange(GetModuleHandleA("addon.dll"), g_addonBase, g_addonEnd);
+    if (g_slot) {
+        // Logged from the end of update g_slotFrom to the end of update g_slotTo.
+        const bool on = g_updates >= g_slotFrom && g_updates < g_slotTo;
+        if (on != g_slotArmed) {
+            g_slotArmed = on;
+            RaiseException(kArmCode, 0, 0, nullptr);
+            std::fprintf(g_file, "u%u %s %08X\n", g_updates, on ? "armed" : "cleared", unsigned(g_slot));
+        }
+        std::fflush(g_file);
+        return;
+    }
     CUnit* unit = FindUnit();
     if (unit != g_unit) Arm(unit);
     std::fflush(g_file);
