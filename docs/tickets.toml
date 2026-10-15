@@ -831,6 +831,14 @@ size = 1
 files = ["tests/verify/harness*.cpp"]
 note = "Main suite --golden at 16 at once after the SV2f merge (2026-10-15): 128 runs ALL PASS in 144 s, 56 goldens the same, 0 differ. Closed."
 
+[[ticket]]
+id = "SV2h"
+title = "Twin checks that allocate: ours first, everywhere"
+group = "verification"
+size = 1
+files = ["tests/verify/*"]
+note = "SV2f found that a twin check which runs the original first on an allocating call (new block, grown table, copy) gives the original the block address a no-hooks run would get and ours the next one, shifting game heap order and so random draws (five Rebirth goldens differed). It fixed verify_mfc_list / mfc_array / mfc_coll. Sweep the other tests/verify checks for the same order (original first, or a twin buffer / snapshot on the game heap) and apply the SV2f rule from docs/notes/standalone-verification.md: ours allocates first, the original's blocks come after and are freed, snapshots live in our memory. Also the S4a1 note: a start-up battery that calls a recorded function's trampoline crashes in record mode (null trampoline); guard those. Check with work.py test SV2h --golden."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
