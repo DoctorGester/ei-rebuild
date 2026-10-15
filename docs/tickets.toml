@@ -668,7 +668,7 @@ title = "Remaining early verify-against-plain trace differences"
 group = "verification"
 model = "opus"
 depends = ["SV1j"]
-note = "From SV1g's sweep: effects (frame 12), objects_more (CLightning::Start, 12), script_fx (8), ui_mp_host (96, SaveParty), unit_create's rand (12), zone_base_bz1g, zone_gz2g_traps. Several also differ plain against plain, so run each 3 times per build first; bisect only what differs every time (SV1g section: build copies with EI_BUILD_DIR, randtrace.py). Also check whether CheckNear wrappers returning the original's value (Score, Distance2) part the builds anywhere."
+note = "T2f saw an EI_PLAIN=1 verify-build run crash at frame 0 (C0000005) on main as of T2f's merge; not investigated."
 
 [[ticket]]
 id = "SV2b"
@@ -767,7 +767,7 @@ id = "SV3j"
 title = "sound and zone_gz2g_traps: ours draws rand() apart from the original"
 group = "verification"
 size = 0.5
-note = "From SV3d: the original repeats, ours differs from it in crt.rand: sound (ours repeats; console line 32 an extra 'Unit 1000012714 was attacked by 1000011214' line, digests part at update 100 in crt.rand; SV1b saw a FindAnimation pick one frame earlier in ours at 272), zone_gz2g_traps (@120 crt.rand; ours' own runs part at 80 in isaac.count, maybe SV1j), models (@100 crt.rand, ours alternates between the original's value and another). Use randtrace on both sides after SV1j lands."
+note = "Fixed by T2f (same address-order cause); sound and zone_gz2g_traps match the original on both installs, hooked and standalone. Goldens left to S20."
 
 [[ticket]]
 id = "SV3c1"
@@ -977,7 +977,7 @@ id = "SV7b5"
 title = "Net replication ordered by pointer"
 group = "verification"
 depends = ["SV7a"]
-note = "SV7a family 5 (static, no golden shows it). net Connection: priorities_[11] maps keyed by ReplicaEntry*, byObject_/attached_ by CRefObject*; SendUpdate 00435A00 assigns net ids and picks entries over the budget in address order, CollectChanges 004346D0 merges by pointer. Order by object id in the original (harness patch) and ours; needs a multiplayer/lobby scenario under EI_HEAP_JITTER to show and check it."
+note = "T2f (merged) already orders DiffObjectSets/SyncPlayer object sends (0047ADF0, 0047B4C0) by object id on both sides; the Connection maps here are the remaining part."
 
 [[ticket]]
 id = "SV7b6"
@@ -1103,7 +1103,7 @@ id = "SV5b1"
 title = "levers_key goldens"
 group = "verification"
 depends = ["SV5b"]
-note = "levers_key repeats on both sides but ours flips against the original at update 60 (isaac.count, zone1 wolf obj1936 ai.standCooldown: the SV1j family); record its goldens when that is settled (standalone-verification.md, SV5b)."
+note = "Fixed by T2f (address-ordered object sends and SetSun relight order); levers_key matches the original in all 39 records on both installs, goldens recorded."
 
 [[ticket]]
 id = "SV7c"
