@@ -1344,6 +1344,14 @@ model = "sonnet"
 files = ["tools/work_sched.py", "tools/run_all.py", "tests/scenarios/ui_mp_host.txt"]
 note = "Cause: not the port (N0c's per-game port is in; two batches of ui_mp_host, 4 games at once, all PASS). The scenario takes 36-49 s on a busy machine and 61-67 s when suites overlap, past the default 60 s limit (frames ~1 s each). Fix: timeout 120 in ui_mp_host.txt; no scheduler change."
 
+[[ticket]]
+id = "I13"
+title = "Read-before-write detector: trap the first read of never-written heap bytes"
+group = "harness"
+size = 1
+model = "opus"
+note = "From SV7b7 (4.5 h, ~140 batches, a 24-step bisection over heap block indices plus one false lead to find one uninitialised read). A harness mode that gives chosen fresh CRT blocks (by size, call site or block index) guard pages or a shadow 'written' bitmap with hardware/PAGE_GUARD traps, and logs the first read of a never-written byte with its EIP, the block's allocation call stack and offset. One run instead of a bisection; works for the original and ours. Keep it in the slim harness that survives S21 (goldens are recorded from the original)."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
