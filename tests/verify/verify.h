@@ -33,7 +33,8 @@ template <typename T>
 void Check(const char* name, const T& expected, const T& actual, const char* fmt, ...) {
     // Bitwise: behaviour must be identical, including float rounding.
     bool match = std::memcmp(&expected, &actual, sizeof(T)) == 0;
-    char detail[256] = "";
+    char detail[256];
+    detail[0] = 0;
     if (!match) {
         va_list ap;
         va_start(ap, fmt);
@@ -76,7 +77,8 @@ bool NearlyEqual(F expected, F actual, int maxUlps, F absEps) {
 template <typename F>
 void CheckNear(const char* name, F expected, F actual, const char* fmt, ...) {
     bool match = NearlyEqual<F>(expected, actual, 4, static_cast<F>(1e-6));
-    char detail[256] = "";
+    char detail[256];
+    detail[0] = 0;
     if (!match) {
         va_list ap;
         va_start(ap, fmt);

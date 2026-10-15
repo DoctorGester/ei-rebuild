@@ -9,6 +9,7 @@
 
 #include <cstdarg>
 #include <cstdio>
+#include <cstring>
 #include <map>
 #include <string>
 
@@ -26,6 +27,39 @@ void FormatContext(char* buf, std::size_t size, const char* fmt, void* args) {
 // Totals are also written when the DLL unloads, so rarely called functions still show up.
 struct Registry {
     std::map<std::string, Counts> counts;
+    // Report() runs hundreds of millions of times in a long scenario (terrain lighting): the names are
+    // string literals, so a pointer-keyed table finds the entry without building a std::string. A hit is
+    // confirmed by comparing the text (a name formatted into a reused buffer falls back to `counts`).
+    struct Slot {
+        const char* key = nullptr;
+        const std::string* name = nullptr;
+        Counts* counts = nullptr;
+    };
+    static constexpr std::size_t kSlots = 16384;   // a power of two; about 2500 names are in use
+    static constexpr std::size_t kProbes = 8;
+    std::vector<Slot> byPointer = std::vector<Slot>(kSlots);
+
+    Counts& Find(const char* name) {
+        std::size_t home = static_cast<std::size_t>((reinterpret_cast<std::uintptr_t>(name) >> 2) * 2654435761u) &
+                           (kSlots - 1);
+        for (std::size_t probe = 0; probe < kProbes; ++probe) {
+            Slot& slot = byPointer[(home + probe) & (kSlots - 1)];
+            if (slot.key == name && std::strcmp(slot.name->c_str(), name) == 0) return *slot.counts;
+            if (!slot.key) break;
+        }
+        auto entry = counts.try_emplace(name).first;
+        // The first free (or this pointer's own) slot of the probe run, else the home slot.
+        Slot* target = &byPointer[home];
+        for (std::size_t probe = 0; probe < kProbes; ++probe) {
+            Slot& slot = byPointer[(home + probe) & (kSlots - 1)];
+            if (!slot.key || slot.key == name) {
+                target = &slot;
+                break;
+            }
+        }
+        *target = Slot{name, &entry->first, &entry->second};
+        return entry->second;
+    }
     ~Registry() {
         for (auto& [name, c] : counts)
             Log("verify total %s: %lu calls, %lu mismatches", name.c_str(), c.calls, c.mismatches);
@@ -113,7 +147,7 @@ void ForEachRaisedPrecision(const std::function<void(const char*, unsigned, bool
 void Report(const char* name, bool match, const char* detail) {
     TracePrecision(name);
     AcquireSRWLockExclusive(&g_countsLock);
-    Counts& c = GetRegistry().counts[name];
+    Counts& c = GetRegistry().Find(name);
     if (++c.calls == 1) Log("verify %s: first call", name);
     if (!match) {
         ++c.mismatches;
@@ -122,7 +156,8 @@ void Report(const char* name, bool match, const char* detail) {
     // Totals at 1k, 10k, 100k, ... calls: hot functions do not flood the log.
     static constexpr unsigned long kMilestones[] = {1000ul, 10000ul, 100000ul, 1000000ul, 10000000ul, 100000000ul, 1000000000ul};
     bool milestone = false;
-    for (unsigned long m : kMilestones) milestone |= c.calls == m;
+    if (c.calls >= 1000 && c.calls % 1000 == 0)
+        for (unsigned long m : kMilestones) milestone |= c.calls == m;
     if (milestone)
         Log("verify %s: %lu calls, %lu mismatches", name, c.calls, c.mismatches);
     ReleaseSRWLockExclusive(&g_countsLock);
