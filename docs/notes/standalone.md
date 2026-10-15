@@ -1306,7 +1306,13 @@ Before: 13 forwarders, 5 code literals, 226 data references open; after: 0 open 
   "second" was the string "%ld" at 0074676C) and the one-slot row 007474B8 is gone (strftime's "a/p",
   read as a pointer into the middle of 00702F61's body; listed as data). library.csv: the rows 0055C730
   and 00561B00 had unquoted commas in their names (the library column read " memmove)" and " then the
-  members destructors)"); quoted.
+  members destructors)"); quoted. Left for S16e: find_vtables.py should take only function starts as
+  slots (a regenerated vtables.csv brings both false rows back), and the dashboard's library count
+  includes the four "not a function" rows.
+After merging main: `work.py test S16d --golden --jobs 4` 128 runs pass, 54 goldens the same, 2 differ
+(levers, ui_saveload_delete vanilla: script #gobject only, the known heap-layout difference); all 98
+scenarios pass under `--standalone` (render_cursor_present passed on its retry: the first attempt's
+cursor check saw the cursor away from the mouse).
 
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
