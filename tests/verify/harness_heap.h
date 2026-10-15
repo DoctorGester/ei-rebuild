@@ -52,6 +52,9 @@ void SettleCrt();
 // addresses found on the stack, up to ten (into game.exe, or ours as 0x10000000 + offset). Until world update
 // EI_HEAPTRACE (default 40), where the digest notes every world object's address ("# obj ...").
 void StartTrace(std::uintptr_t selfBase, std::uintptr_t selfEnd);
+// "EI_HEAPSEQ=<update>": the same events kept in memory and written to heapseq.txt at that world update
+// (callers six deep), so the trace does not slow the game down while it runs.
+void StartSequence(std::uintptr_t selfBase, std::uintptr_t selfEnd);
 unsigned TraceUntil();   // 0 when not tracing
 unsigned TracePlace(const void* p);   // as the trace writes an address
 void Note(const char* text);

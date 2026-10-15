@@ -2680,6 +2680,7 @@ struct Harness {
             clock::InstallVirtual(&g_tickLength);
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
+            if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);

@@ -12,6 +12,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 using namespace mfc::impl;
 
@@ -27,17 +28,29 @@ const char* Name(const char* what, std::uintptr_t address) {
     return name;
 }
 
-// A copy of the header with its own storage of the same allocated size.
+// The header and elements before a call, kept in our memory: ours runs first, so that what it
+// allocates lands where the original's would without the check (the game reads the heap's address
+// order, SV2f); the original then runs on a twin made from this (its own copy of the storage, the
+// same allocated size) and the twin's storage is freed after.
 template <typename Array>
-Array Twin(const Array& a) {
-    Array twin = a;
-    if (a.data) {
-        using T = std::remove_pointer_t<decltype(a.data)>;
-        twin.data = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(a.maxSize) * sizeof(T)));
-        std::memcpy(static_cast<void*>(twin.data), a.data, static_cast<std::size_t>(a.size) * sizeof(T));
+struct Before {
+    using T = std::remove_pointer_t<decltype(Array::data)>;
+    Array header;
+    std::vector<std::uint8_t> bytes;
+    explicit Before(const Array& a) : header(a) {
+        if (a.data)
+            bytes.assign(reinterpret_cast<const std::uint8_t*>(a.data),
+                         reinterpret_cast<const std::uint8_t*>(a.data) + static_cast<std::size_t>(a.size) * sizeof(T));
     }
-    return twin;
-}
+    Array Twin() const {
+        Array twin = header;
+        if (header.data) {
+            twin.data = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(header.maxSize) * sizeof(T)));
+            if (!bytes.empty()) std::memcpy(static_cast<void*>(twin.data), bytes.data(), bytes.size());
+        }
+        return twin;
+    }
+};
 
 template <typename Array>
 bool Same(const Array& expected, const Array& actual) {
@@ -56,9 +69,10 @@ struct TwinSetSize {
     static inline void(__fastcall* original)(Array*, void*, int, int);
     static void __fastcall Run(Array* self, void*, int newSize, int newGrowBy) {
         static const char* name = Name("SetSize", Address);
-        Array twin = Twin(*self);
-        original(&twin, nullptr, newSize, newGrowBy);
+        Before<Array> before(*self);
         Abi::SetSize(self, nullptr, newSize, newGrowBy);
+        Array twin = before.Twin();
+        original(&twin, nullptr, newSize, newGrowBy);
         Check(name, true, Same(twin, *self), "%d, %d: %d / %d (original %d / %d)", newSize, newGrowBy, self->size,
               self->maxSize, twin.size, twin.maxSize);
         gamecrt::operator_delete(twin.data);
@@ -73,9 +87,10 @@ struct TwinSetAtGrow {
     static void __fastcall Run(Array* self, void*, int index, const T* value) {
         static const char* name = Name("SetAtGrow", Address);
         T copy = *value;   // `value` may be an element the call moves
-        Array twin = Twin(*self);
-        original(&twin, nullptr, index, &copy);
+        Before<Array> before(*self);
         Abi::SetAtGrow(self, nullptr, index, value);
+        Array twin = before.Twin();
+        original(&twin, nullptr, index, &copy);
         Check(name, true, Same(twin, *self), "%d: %d / %d", index, self->size, self->maxSize);
         gamecrt::operator_delete(twin.data);
     }
@@ -88,9 +103,10 @@ struct TwinSetAtGrowByValue {
     static inline void(__fastcall* original)(Array*, void*, int, T);
     static void __fastcall Run(Array* self, void*, int index, T value) {
         static const char* name = Name("SetAtGrow", Address);
-        Array twin = Twin(*self);
-        original(&twin, nullptr, index, value);
+        Before<Array> before(*self);
         Abi::SetAtGrowByValue(self, nullptr, index, value);
+        Array twin = before.Twin();
+        original(&twin, nullptr, index, value);
         Check(name, true, Same(twin, *self), "%d: %d / %d", index, self->size, self->maxSize);
         gamecrt::operator_delete(twin.data);
     }
@@ -104,9 +120,10 @@ struct TwinAdd {
     static int __fastcall Run(Array* self, void*, const T* value) {
         static const char* name = Name("Add", Address);
         T copy = *value;
-        Array twin = Twin(*self);
-        int expected = original(&twin, nullptr, &copy);
+        Before<Array> before(*self);
         int result = Abi::Add(self, nullptr, value);
+        Array twin = before.Twin();
+        int expected = original(&twin, nullptr, &copy);
         Check(name, true, Same(twin, *self) && expected == result, "%d: %d / %d", result, self->size, self->maxSize);
         gamecrt::operator_delete(twin.data);
         return result;
@@ -121,12 +138,12 @@ struct TwinConstructElements {
     static void __stdcall Run(T* elements, int count) {
         static const char* name = Name("ConstructElements", Address);
         std::size_t bytes = static_cast<std::size_t>(count) * sizeof(T);
-        auto* twin = static_cast<T*>(gamecrt::operator_new(bytes ? bytes : 1));
+        std::vector<std::uint32_t> buffer((bytes + 3) / 4 + 1);   // our memory, not the game's heap
+        auto* twin = reinterpret_cast<T*>(buffer.data());
         std::memcpy(static_cast<void*>(twin), elements, bytes);
         original(twin, count);
         Abi::ConstructElements(elements, count);
         Check(name, true, std::memcmp(twin, elements, bytes) == 0, "%d", count);
-        gamecrt::operator_delete(twin);
     }
 };
 
@@ -136,9 +153,10 @@ struct TwinCopy {
     static inline void(__fastcall* original)(Array*, void*, const Array*);
     static void __fastcall Run(Array* self, void*, const Array* source) {
         static const char* name = Name("Copy", Address);
-        Array twin = Twin(*self);
-        original(&twin, nullptr, source == self ? &twin : source);
+        Before<Array> before(*self);
         Abi::Copy(self, nullptr, source);
+        Array twin = before.Twin();
+        original(&twin, nullptr, source == self ? &twin : source);
         Check(name, true, Same(twin, *self), "%d / %d", self->size, self->maxSize);
         gamecrt::operator_delete(twin.data);
     }
@@ -150,9 +168,10 @@ struct TwinRemoveAt {
     static inline void(__fastcall* original)(Array*, void*, int, int);
     static void __fastcall Run(Array* self, void*, int index, int count) {
         static const char* name = Name("RemoveAt", Address);
-        Array twin = Twin(*self);
-        original(&twin, nullptr, index, count);
+        Before<Array> before(*self);
         Abi::RemoveAt(self, nullptr, index, count);
+        Array twin = before.Twin();
+        original(&twin, nullptr, index, count);
         Check(name, true, Same(twin, *self), "%d, %d: %d", index, count, self->size);
         gamecrt::operator_delete(twin.data);
     }
@@ -199,9 +218,9 @@ struct TwinListCopyConstruct {
     static inline AnimationStepList*(__fastcall* original)(AnimationStepList*, void*, const AnimationStepList*);
     static AnimationStepList* __fastcall Run(AnimationStepList* self, void*, const AnimationStepList* source) {
         static const char* name = Name("copy constructor", Address);
+        AnimationStepList* result = AnimationStepListAbi::CopyConstruct(self, nullptr, source);   // ours first
         AnimationStepList twin{};
         AnimationStepList* expected = original(&twin, nullptr, source);
-        AnimationStepList* result = AnimationStepListAbi::CopyConstruct(self, nullptr, source);
         Check(name, true, SameList(twin, *self) && expected == &twin && result == self, "%d", self->size);
         gamecrt::operator_delete(twin.data);
         return result;
@@ -214,9 +233,9 @@ struct TwinStepsCopyConstruct {
     static inline Array*(__fastcall* original)(Array*, void*, const Array*);
     static Array* __fastcall Run(Array* self, void*, const Array* source) {
         static const char* name = Name("copy constructor", Address);
+        Array* result = AnimationStepListAbi::CopyConstructSteps(self, nullptr, source);   // ours first
         Array twin{};
         Array* expected = original(&twin, nullptr, source);
-        Array* result = AnimationStepListAbi::CopyConstructSteps(self, nullptr, source);
         Check(name, true, Same(twin, *self) && expected == &twin && result == self, "%d", self->size);
         gamecrt::operator_delete(twin.data);
         return result;
@@ -228,9 +247,10 @@ struct TwinListAssign {
     static inline AnimationStepList*(__fastcall* original)(AnimationStepList*, void*, const AnimationStepList*);
     static AnimationStepList* __fastcall Run(AnimationStepList* self, void*, const AnimationStepList* source) {
         static const char* name = Name("assignment", Address);
-        AnimationStepList twin = Twin(*self);
-        AnimationStepList* expected = original(&twin, nullptr, source == self ? &twin : source);
+        Before<AnimationStepList> before(*self);
         AnimationStepList* result = AnimationStepListAbi::Assign(self, nullptr, source);
+        AnimationStepList twin = before.Twin();
+        AnimationStepList* expected = original(&twin, nullptr, source == self ? &twin : source);
         Check(name, true, SameList(twin, *self) && expected == &twin && result == self, "%d", self->size);
         gamecrt::operator_delete(twin.data);
         return result;
@@ -252,9 +272,10 @@ struct TwinSetSizeGrow {
                   "%d: %d / %d", newSize, self->size, self->maxSize);
             return;
         }
-        Array twin = Twin(*self);
-        original(&twin, nullptr, newSize, newGrowBy);
+        Before<Array> before(*self);
         Abi::SetSize(self, nullptr, newSize, newGrowBy);
+        Array twin = before.Twin();
+        original(&twin, nullptr, newSize, newGrowBy);
         Check(name, true, Same(twin, *self), "%d, %d: %d / %d (original %d / %d)", newSize, newGrowBy, self->size,
               self->maxSize, twin.size, twin.maxSize);
         gamecrt::operator_delete(twin.data);
