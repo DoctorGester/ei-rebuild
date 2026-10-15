@@ -58,6 +58,9 @@ void CCloudNoise::DestructBody() {
     gamecrt::operator_delete(ramp_);
 }
 EI_REPLACE_METHOD(0x00499E90, CCloudNoise::DestructBody);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE_METHOD(0x0062EDC0, CCloudNoise::DestructBody);
 
 CCloudNoise* __fastcall CloudNoiseBaseDeletingDestruct(CCloudNoise* self, void*, unsigned flags) {
     self->DestructBody();

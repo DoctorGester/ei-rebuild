@@ -230,6 +230,14 @@ void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
 void __fastcall DestroyModelRecord(UnitModelRecord* record);
 // 0053F010 (thiscall): a model slot's destructor (its level name).
 void __fastcall DestroyModelSlot(UnitModelSlot* slot);
+// 0053EFF0 (thiscall; S16a): a level record's destructor (its name; a jump to ~CString).
+void __fastcall DestroyLevelRecord(UnitLevelRecord* record);
+// 00540840 / 005407E0 (RET 4; S16a): the level and prototype records' scalar deleting destructors
+// (the destructor, then operator delete when bit 0 of `flags` is set). Return the record.
+UnitLevelRecord* __fastcall DeleteLevelRecord(UnitLevelRecord* self, void*, unsigned flags);
+UnitPrototypeRecord* __fastcall DeletePrototypeRecord(UnitPrototypeRecord* self, void*, unsigned flags);
+// 005214B0 (ECX first, EDX last; S16a): stlp::_Destroy over CStrings, first to last.
+void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last);
 } // namespace unitdb
 
 // The model table (0x20 bytes, the database's +0x40): the records (an STLport vector) and a

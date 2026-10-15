@@ -302,6 +302,7 @@ EI_VERIFY(0x006FC346, FlushVerify, 0, s_unusedFlush);
 // --- The start-up battery. -----------------------------------------------------------------------------
 
 __declspec(naked) Ostream* __cdecl FlushManipulatorAt(Ostream*) EI_ORIGINAL(0x00435000)
+__declspec(naked) Ostream* __cdecl EndlManipulatorAt(Ostream*) EI_ORIGINAL(0x004BA9F0)
 
 const Format kFormats[] = {
     {0, 0, 6, ' ', 0, 0},
@@ -392,6 +393,9 @@ void IostreamStartupCheck() {
             Shadow("ostream << flush", "flush", format, behaviour,
                    [](Ostream* s) { return OriginalApply(s, &FlushManipulatorAt); },
                    [](Ostream* s) { return s->Apply(&libcrt::FlushManipulator); });
+            Shadow("ostream << endl", "endl", format, behaviour,
+                   [](Ostream* s) { return OriginalApply(s, &EndlManipulatorAt); },
+                   [](Ostream* s) { return s->Apply(&libcrt::EndlManipulator); });
         }
     }
     ei::Log("crt iostream: %d insertion(s) compared", s_cases);

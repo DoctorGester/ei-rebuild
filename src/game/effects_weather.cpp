@@ -158,6 +158,9 @@ void CRainSnow::Clear() {
     density = kFullDensity;
 }
 EI_REPLACE_METHOD(0x004E3B80, CRainSnow::Clear);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE_METHOD(0x005617B0, CRainSnow::Clear);
 
 void CRainSnow::Start(int newMode, float duration) {
     LoadTextureOriginal(reinterpret_cast<void**>(&texture), nullptr, kWeatherTextureKind, WeatherTextureName());

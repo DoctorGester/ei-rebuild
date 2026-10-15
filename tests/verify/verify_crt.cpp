@@ -457,4 +457,25 @@ unsigned __cdecl ControlfpVerify(unsigned value, unsigned mask) {
 // 006EBBB4: PUSH EBP; MOV EBP,ESP; PUSH ECX; PUSH ESI (5 bytes).
 EI_VERIFY(0x006EBBB4, ControlfpVerify, 5, s_controlfp);
 
+// The node allocator's deallocate copies that skip a null block: a pooled block comes straight back
+// from the next allocate of its size (the free lists are the exe's data, so ours alone is checked).
+void NodeDeallocateCheck(const char* name, void* p, std::size_t bytes) {
+    if (!p || bytes > 128) return;
+    void* again = libcrt::NodeAllocate(bytes);
+    libcrt::NodeDeallocate(again, bytes);
+    ei::verify::Report(name, again == p, again == p ? "" : "not on top of its free list");
+}
+void(__fastcall* s_unusedNodeDeallocate)(void*, std::size_t);
+void __fastcall NodeDeallocateVerify(void* p, std::size_t bytes) {
+    libcrt::NodeDeallocateChecked(p, bytes);
+    NodeDeallocateCheck("stlp::__node_alloc::deallocate 0043B310", p, bytes);
+}
+EI_VERIFY(0x0043B310, NodeDeallocateVerify, 0, s_unusedNodeDeallocate);
+void(__stdcall* s_unusedNodeDeallocateStd)(void*, std::size_t);
+void __stdcall NodeDeallocateStdVerify(void* p, std::size_t bytes) {
+    libcrt::NodeDeallocateCheckedStd(p, bytes);
+    NodeDeallocateCheck("stlp::__node_alloc::deallocate 00426450", p, bytes);
+}
+EI_VERIFY(0x00426450, NodeDeallocateStdVerify, 0, s_unusedNodeDeallocateStd);
+
 } // namespace

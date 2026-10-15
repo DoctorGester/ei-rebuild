@@ -258,6 +258,10 @@ void CMapObject::DestructBody() {
     DestructObject3DAt(this);
 }
 EI_REPLACE_METHOD(0x0050E660, CMapObject::DestructBody);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE_METHOD(0x00529B20, CMapObject::DestructBody);
+EI_REPLACE_METHOD(0x00529B50, CMapObject::DestructBody);
 
 // --- CUnit ------------------------------------------------------------------------------------
 
