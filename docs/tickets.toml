@@ -1795,6 +1795,14 @@ depends = ["S12e"]
 files = ["src/game/stl_sorts.cpp", "src/lib/stlp_algo.h", "src/lib/stlp_vector.cpp", "src/game/library_containers.cpp"]
 note = "S12e's hero screen rows (A-I15), still forwarded by our code: the topic sort over vector<stlp::string> (ui_briefing_topics.cpp): introsort loop 0060B330 (RET 0xC) and final insertion sort 0060B440 (RET 4); the comparison is _stricmp of the two texts (partition 0060B990: the pivot a string copy, swaps through string(first, last) / assign, so copies allocate: stlp::Sort with a string Ops, ours first per SV2f); the CString sort (ui_hero_screen_create.cpp, operator< by _mbscmp): 0061A240 (RET 8) / 0061A300 (copies add references: ValueOps<CString>, ours first); the spell prototype by name 00613920 (thiscall on 007C8510, RET 4: a stlp::string made from the text, map find 00613C20, the value at +0xC, the string freed); vector<party file entry, 0x74 bytes: PartyRecords + CString at +0x70> _M_insert_overflow 00619920 (RET 0xC; copy 006613C0 + CString copy, destroy CString + 006611D0; ours first). Not done in S12e (it took the connection lists, the hashtables, the vector members, the hero caches' constructors and 00619770)."
 
+[[ticket]]
+id = "S12g"
+title = "Standalone library: the last library functions our code forwards to"
+group = "standalone"
+size = 1
+depends = ["S12f"]
+note = "tools/dashboard_data.py counts 102 distinct EI_ORIGINAL targets that are library code (config/library.csv) with no code of ours at the address (forwarders_to_library; 2026-10-15). Each is a stop for the standalone image as soon as a caller runs. List them (forwarded addresses minus game and minus registered), group by family (MFC, STLport, CRT, allocator new/delete 007005AF/007005D8 which only the standalone registers), port and register them at their library addresses with checks under SV2f (ours first), and file what does not fit. Avoid S16a's current boot-stop functions."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
