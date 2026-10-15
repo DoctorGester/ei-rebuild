@@ -936,6 +936,48 @@ group = "verification"
 size = 1
 note = "Step (d) of SV7, takes over SV3b. Saves (harness_saves/<save>/*.sav) differ byte for byte between two --no-hooks runs of the original, so goldens keep only their size/hash note. Decode the save format (the game's own Save/Load: world, units, items, scripts, players) into a field list with ids instead of pointers, find which bytes differ between runs (uninitialised padding, address-derived values) and leave them out by rule, then have golden.py compare decoded saves at each checkpoint and name the first differing field. Must not depend on heap layout (SV7a's jitter mode, when merged, should leave decoded saves equal)."
 
+[[ticket]]
+id = "SV7b1"
+title = "Script groups ordered by object id, not address"
+group = "verification"
+depends = ["SV7a"]
+note = "SV7a family 1. ScriptGroup keeps members in address order: Sort 004B2D60 (GameQsort, CompareObjectAddress 004B2D80), Insert 004B2EF0 (binary search by address), Union 004B2620, Difference 004B2920, Intersection 004B2B60, Load 004B3360. Order by object id in the original (harness patch, like the update countdown) and in ours (script_group.cpp), kept in the standalone. Shows as script #gobject gobject.i 702/1884 under EI_HEAP_JITTER in 9 goldens; covers SV2d and SV3i. Done: those goldens equal under seeds 1, 2, 3,fill (re-record what the id order changes)."
+
+[[ticket]]
+id = "SV7b2"
+title = "Save writers: unwritten bytes and pointer keys"
+group = "verification"
+depends = ["SV7a"]
+note = "SV7a family 2 (writer list in standalone-verification.md SV7a). mission.sav/scenario.sav differ between two plain runs: UnitStats::SaveTo 00528800 leftovers, CUnit::SaveUnit levels4C8 (read back on load: behaviour risk), CUnitServer::SaveServer 8-byte writes of 4-byte fields and unset orders, SuspectionMode/FearMode::Save, UnitMotion::SaveState, AIPath::SavePath, CMapObjectServer::SaveServer vitals, ChunkArchive SaveObjectRef 0040A440 pointer keys and pointer-ordered Close. SV7d leaves these out when comparing; this ticket decides which to canonicalise in the standalone (zero before save, ids for archive keys) and checks levels4C8 after a load. Tool: EI_SAVETRACE + tools/save_trace.py diff."
+
+[[ticket]]
+id = "SV7b3"
+title = "UnitStats stack-copy leftovers (obj2 hp)"
+group = "verification"
+depends = ["SV7a"]
+note = "SV7a family 3. GiveDefaults 00513630 copies a stack UnitStats; UnitStatSlot::Reset 00523600 leaves spareAbsorb/share/factor (only ClearOuterLayers zeroes them). The leftovers (heap pointers among them) give unmoco2 NaN hp (obj2 hp, left out of golden compare, differs in all 97 goldens under jitter) and most of mission.sav's differing bytes. Find every reader of the leftover fields, decide the canonical value (zero) for the standalone, patch the original alike in the harness, then put obj2 hp back into the compare. Relates to SV3a/SV3h."
+
+[[ticket]]
+id = "SV7b4"
+title = "Rebirth menu unit orientation ulp under jitter"
+group = "verification"
+depends = ["SV7a"]
+note = "SV7a family 4. cunit148 (unanwiwo) rot.w/rot.z differ by 1 ulp at update 80 with EI_HEAP_JITTER=1 in Rebirth --no-hooks runs only (ui_container_input, ui_widescreen_more, render_titles_present); repeats. Not ClientPlaceOnPath 00535850 (ours steady in hooked runs; original and ours bitwise equal in the wrapper under both layouts); the incoming orientation already varies. Trace the writer among addon.dll / Rebirth-patched originals (address-dependent read or uninitialised float). Probably SV3f."
+
+[[ticket]]
+id = "SV7b5"
+title = "Net replication ordered by pointer"
+group = "verification"
+depends = ["SV7a"]
+note = "SV7a family 5 (static, no golden shows it). net Connection: priorities_[11] maps keyed by ReplicaEntry*, byObject_/attached_ by CRefObject*; SendUpdate 00435A00 assigns net ids and picks entries over the budget in address order, CollectChanges 004346D0 merges by pointer. Order by object id in the original (harness patch) and ours; needs a multiplayer/lobby scenario under EI_HEAP_JITTER to show and check it."
+
+[[ticket]]
+id = "SV7b6"
+title = "Pointer-keyed hashes: check iteration reaches output"
+group = "verification"
+depends = ["SV7a"]
+note = "SV7a family 6 (static). PointerHash containers keyed by address: model.h records_ (CRenderPreset*, iterated in render_helper.cpp:406), resource.h filesByData_. No golden field differed under jitter; check whether any iteration order reaches frames, sounds or state (frame-capture under jitter) and canonicalise if so."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
