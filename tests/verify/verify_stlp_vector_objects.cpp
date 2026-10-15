@@ -4,12 +4,11 @@
 // one reference per new copy (the moved elements' copies and releases cancel out).
 //
 // Ours only (the copies allocate and free string buffers the original's run could not hand back in
-// order): the elements are read as text before the call, the same change is made to that model, and
-// afterwards the vector must hold the model's texts with its pointers ordered; a freed block must be
-// on top of its free list.
+// order): the model check of stlp_vector_verify.h over the elements' texts.
 #include "verify.h"
 
 #include "stlp_list_verify.h"
+#include "stlp_vector_verify.h"
 
 #include "../../src/lib/mfc.h"
 #include "../../src/lib/stlp.h"
@@ -31,82 +30,13 @@ using stlp_verify::Name;
 using CStringVector = stlp::VectorAbi<mfc::CString, stlp::ObjectElement<mfc::CString>>;
 using StringVector = stlp::VectorAbi<stlp::string, stlp::StringElement>;
 
-std::string Text(const mfc::CString& s) { return static_cast<const char*>(s); }
-std::string Text(const stlp::string& s) { return std::string(s.data(), s.size()); }
-
-template <std::uintptr_t A, typename Abi>
-struct ObjectCheck {
-    using Vector = typename Abi::Vector;
-    using T = typename Vector::value_type;
-    using Model = std::vector<std::string>;
-
-    static Model Read(const Vector& v) {
-        Model m;
-        for (const T* p = v.begin(); p != v.end(); ++p) m.push_back(Text(*p));
-        return m;
-    }
-    static void Compare(const char* kind, Vector* self, const Model& expected, bool extra = true) {
-        bool ok = extra && self->Start() <= self->Finish() && self->Finish() <= self->EndOfStorage() &&
-                  Read(*self) == expected;
-        char detail[96] = "";
-        if (!ok)
-            std::snprintf(detail, sizeof(detail), "%u elements (expected %u), capacity %u",
-                          static_cast<unsigned>(self->size()), static_cast<unsigned>(expected.size()),
-                          static_cast<unsigned>(self->Capacity()));
-        ei::verify::Report(Name<A>(kind), ok, detail);
-    }
-
-    static void __fastcall InsertOverflow(Vector* self, void*, T* pos, const T* x, std::size_t n) {
-        Model m = Read(*self);
-        m.insert(m.begin() + (pos - self->begin()), n, Text(*x));
-        Abi::InsertOverflow(self, nullptr, pos, x, n);
-        Compare("stlp::vector::_M_insert_overflow", self, m);
-    }
-    static void __fastcall RangeInsert(Vector* self, void*, T* pos, const T* first, const T* last, const void* tag) {
-        Model m = Read(*self);
-        Model inserted;
-        for (const T* p = first; p != last; ++p) inserted.push_back(Text(*p));
-        m.insert(m.begin() + (pos - self->begin()), inserted.begin(), inserted.end());
-        Abi::RangeInsert(self, nullptr, pos, first, last, tag);
-        Compare("stlp::vector::_M_range_insert", self, m);
-    }
-    static T* __fastcall EraseRange(Vector* self, void*, T* first, T* last) {
-        Model m = Read(*self);
-        m.erase(m.begin() + (first - self->begin()), m.begin() + (last - self->begin()));
-        T* result = Abi::EraseRange(self, nullptr, first, last);
-        Compare("stlp::vector::erase", self, m, result == first);
-        return result;
-    }
-    static void __fastcall Clear(Vector* self) {
-        Abi::Clear(self);
-        Compare("stlp::vector::clear", self, Model());
-    }
-    static void __fastcall ResizeDefault(Vector* self, void*, std::size_t n) {
-        Model m = Read(*self);
-        m.resize(n);
-        Abi::ResizeDefault(self, nullptr, n);
-        Compare("stlp::vector::resize", self, m);
-    }
-    static void __fastcall Reserve(Vector* self, void*, std::size_t n) {
-        Model m = Read(*self);
-        Abi::Reserve(self, nullptr, n);
-        Compare("stlp::vector::reserve", self, m, self->Capacity() >= n);
-    }
-    static void __fastcall PushBack(Vector* self, void*, const T* x) {
-        Model m = Read(*self);
-        m.push_back(Text(*x));
-        Abi::PushBack(self, nullptr, x);
-        Compare("stlp::vector::push_back", self, m);
-    }
-    static void __fastcall Destruct(Vector* self) {
-        T* start = self->Start();
-        std::size_t bytes = self->Capacity() * sizeof(T);
-        void** list = start ? FreeList(bytes) : nullptr;
-        Abi::Destruct(self);
-        bool ok = !list || *list == start;
-        ei::verify::Report(Name<A>("stlp::vector::~vector"), ok, ok ? "" : "the storage is not on top of its free list");
-    }
+struct CStringText {
+    static std::string Of(const mfc::CString& s) { return static_cast<const char*>(s); }
 };
+struct StringText {
+    static std::string Of(const stlp::string& s) { return std::string(s.data(), s.size()); }
+};
+
 using CountedRefVector = stlp::VectorAbi<RefPtr, stlp::CountedRefElement>;
 
 template <std::uintptr_t A>
@@ -146,8 +76,8 @@ struct RefCheck {
     }
 };
 
-template <std::uintptr_t A> using CStrings = ObjectCheck<A, CStringVector>;
-template <std::uintptr_t A> using Strings = ObjectCheck<A, StringVector>;
+template <std::uintptr_t A> using CStrings = stlp_verify::ModelCheck<A, CStringVector, CStringText>;
+template <std::uintptr_t A> using Strings = stlp_verify::ModelCheck<A, StringVector, StringText>;
 
 } // namespace
 
