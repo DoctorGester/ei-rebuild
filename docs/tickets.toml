@@ -975,8 +975,9 @@ done = "2026-10-15"
 id = "SV6a"
 title = "zone_gz15h_tornado (Rebirth) near its 120 s limit under load"
 group = "verification"
-status = "review"
+status = "done"
 note = "SV6 full suite (4 jobs): the Rebirth run timed out twice at step 11 (wait 150000); alone it passes in 92 s (vanilla 50 s). Shorten the wait or raise the limit, or find what makes the Rebirth run slower."
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV6b"
