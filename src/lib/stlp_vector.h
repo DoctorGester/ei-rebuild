@@ -466,6 +466,12 @@ T* __fastcall CopyElements(const T* first, const T* last, T* out) {
     for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++out) *out = *first;
     return out;
 }
+// - the same with the element policy's assignment (004AB910, counted_ptr<T>; RET 4).
+template <typename T, typename E>
+T* __fastcall CopyAssigned(const T* first, const T* last, T* out) {
+    for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++out) E::Assign(*out, *first);
+    return out;
+}
 
 // The members that never touch an element, one body for all instantiations (stlp_vector.cpp).
 using AnyVector = vector<Opaque<1>>;

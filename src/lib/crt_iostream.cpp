@@ -476,4 +476,7 @@ EI_REPLACE_METHOD(0x006FC346, libcrt::Ostream::Flush);
 Ostream* __cdecl FlushManipulator(Ostream* stream) { return stream->Flush(); }
 EI_REPLACE(0x00435000, libcrt::FlushManipulator);
 
+Ostream* __cdecl EndlManipulator(Ostream* stream) { return stream->PutChar('\n')->Flush(); }
+EI_REPLACE(0x004BA9F0, libcrt::EndlManipulator);
+
 } // namespace libcrt

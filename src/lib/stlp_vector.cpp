@@ -352,6 +352,7 @@ using CountedRefVector = stlp::VectorAbi<RefPtr, stlp::CountedRefElement>;
 } // namespace
 EI_REPLACE(0x00426F00, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x004AB320, CountedRefVector::InsertOverflow);
+EI_REPLACE(0x004AB910, (stlp::CopyAssigned<RefPtr, stlp::CountedRefElement>));   // S16a: the party records' copy
 EI_REPLACE(0x004AB520, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x0060A120, CountedRefVector::InsertOverflow);
 EI_REPLACE(0x00421ED0, CountedRefVector::EraseRange);

@@ -85,6 +85,16 @@ EI_REPLACE(0x00438A10, RefPtrRelease);
 EI_REPLACE(0x00439910, RefPtrRelease);
 EI_REPLACE(0x0059B4B0, RefPtrRelease);   // byte-identical copy (A-W12)
 EI_REPLACE(0x0069FD50, RefPtrRelease);   // byte-identical copy (A-H24; only unwind funclets call it)
+EI_REPLACE(0x004A5D70, RefPtrRelease);   // counted_ptr<T>'s destructor (S16a: the party records)
+
+// 004AB960 (RET 4; S16a): counted_ptr<T>'s scalar deleting destructor (the release, then operator
+// delete when bit 0 of `flags` is set). Returns the holder.
+RefPtr* __fastcall RefPtrDelete(RefPtr* self, void*, unsigned flags) {
+    RefPtrRelease(self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+EI_REPLACE(0x004AB960, RefPtrDelete);
 
 // The same release of the counted pointer at +4 (the destructor of a pair whose second member is
 // the RefPtr). 4 copies.
@@ -179,6 +189,10 @@ RefPtr* RefPtr::FromRawCounted(CRefObject* object) {
 }
 EI_REPLACE_METHOD(0x0040A770, RefPtr::FromRawCounted);
 EI_REPLACE_METHOD(0x0041DD50, RefPtr::FromRawCounted);
+
+RefPtr* RefPtr::CopyCounted(const RefPtr* from) { return FromRawCounted(from->ptr); }
+EI_REPLACE_METHOD(0x004A5D50, RefPtr::CopyCounted);
+EI_REPLACE_METHOD(0x004ABE30, RefPtr::CopyCounted);
 
 // The owning pointer's constructor from a raw pointer (RefPtr::Share, 00418BE0, which returns
 // nothing) as the instantiations emit it out of line: the same body, returning the holder.
