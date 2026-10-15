@@ -702,7 +702,6 @@ struct NamePair {
     stlp::string first;
     UnitPrototypeRecord* second;
 };
-NamePair* __fastcall NameMapFindOrInsert(void* a0, void*, const NamePair* a2) { return (NamePair*)NameMapInsertOriginal(a0, nullptr, (const void*)a2); }
 // CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
 // [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
@@ -712,14 +711,9 @@ int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringA
 void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSetAnimationsOriginal(a0, nullptr, a2, a3); }
 void __fastcall Unit518860(void* a0) { Object3DRestartAnimationOriginal(a0); }
 void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
-void __fastcall UnitAddWeapon(void* a0, void*, void* a2) { UnitAddWeaponOriginal(a0, nullptr, a2); }
-void __fastcall UnitEquipArmour(void* a0, void*, void* a2) { UnitEquipArmourOriginal(a0, nullptr, a2); }
 // The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
 // [006A39E0, on the item].
 void __fastcall Figure51C970(void* a0) { FigureLoadTexturesOriginal(a0); }
-void __fastcall FigureSwapTexture(void* a0, void*, const char* a2, const char* a3) {
-    FigureSwapTextureOriginal(a0, nullptr, a2, a3);
-}
 
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
@@ -744,7 +738,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
                 {
                     stlp::string key(static_cast<const char*>(record->texts[5]));
                     NamePair pair{key, nullptr};
-                    stored = NameMapFindOrInsert(worlddata::PrototypeNameMap(), nullptr, &pair);
+                    stored = (NamePair*)NameMapInsertOriginal(worlddata::PrototypeNameMap(), nullptr, (const void*)&pair);
                 }
                 int number = stored->second->hair;
                 if (number != -1) {
@@ -771,7 +765,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         Unit518840(unit, nullptr, record->texts[2], 0);
         Unit518860(unit);
         const char* skin = record->texts[4];
-        FigureSwapTexture(figure, nullptr, game::NoneText(), SameText(skin, game::NoneText()) ? nullptr : skin);
+        FigureSwapTextureOriginal(figure, nullptr, game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
@@ -780,12 +774,12 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         slots->ApplyBaseScale();
         UnitReleaseAllItems(unit);
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
-            UnitAddWeapon(unit, nullptr, record->weapons[j]);
+            UnitAddWeaponOriginal(unit, nullptr, record->weapons[j]);
         CUnitController* controller = unit->Controller();
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
             CEngineObject* armour = record->armor[j];
-            if (allArmour || ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)) != 0) UnitEquipArmour(unit, nullptr, armour);
+            if (allArmour || ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)) != 0) UnitEquipArmourOriginal(unit, nullptr, armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
             UnitAddQuickItemOriginal(unit, nullptr, record->quickItems[j]);

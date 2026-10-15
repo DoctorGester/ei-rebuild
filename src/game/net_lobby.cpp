@@ -48,8 +48,6 @@ __declspec(naked) void __fastcall GameBufferAssign(GameBuffer* /*to*/, void*, co
 __declspec(naked) Node** __fastcall ServersEnd(void* /*list*/, void*, Node** /*out*/) EI_ORIGINAL(0x004436C0)
 __declspec(naked) Node** __fastcall ServersInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004437A0)
 __declspec(naked) Node** __fastcall ServersErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004436D0)
-Node** __fastcall WaitingEnd(void* a0, void*, Node** a2) { return (Node**)ListEndIteratorOriginal(a0, nullptr, (void**)a2); }
-Node** __fastcall WaitingInsert(void* a0, void*, Node** a2, Node* a3, const NetAddress* a4) { return (Node**)ListInsert421AF0Original(a0, nullptr, (void**)a2, (void*)a3, (const void*)a4); }
 __declspec(naked) Node** __fastcall WaitingErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004437D0)
 __declspec(naked) Node** __fastcall JoinsErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x00443730)
 __declspec(naked) Node** __fastcall JoinsInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const PendingJoin* /*value*/) EI_ORIGINAL(0x00443800)
@@ -421,9 +419,9 @@ void ClientBase::Refresh() {
     if (index < static_cast<std::uint32_t>(v.size())) ClientSendPingAt(this, nullptr, &v[index].address);
     if (alwaysAsk_.ip != 0) {
         Node* pos;
-        WaitingEnd(&waiting_, nullptr, &pos);
+        ListEndIteratorOriginal(&waiting_, nullptr, (void**)&pos);
         Node* out;
-        WaitingInsert(&waiting_, nullptr, &out, pos, &alwaysAsk_);
+        ListInsert421AF0Original(&waiting_, nullptr, (void**)&out, (void*)pos, (const void*)&alwaysAsk_);
     }
 }
 EI_REPLACE_METHOD(0x00442180, ClientBase::Refresh);
@@ -558,9 +556,9 @@ void ClientBase::AddServer(ServerEntry* entry) {
         ServersInsert(&servers_, nullptr, &out, pos, &holder);
     }
     Node* pos;
-    WaitingEnd(&waiting_, nullptr, &pos);
+    ListEndIteratorOriginal(&waiting_, nullptr, (void**)&pos);
     Node* out;
-    WaitingInsert(&waiting_, nullptr, &out, pos, &entry->address_);
+    ListInsert421AF0Original(&waiting_, nullptr, (void**)&out, (void*)pos, (const void*)&entry->address_);
 }
 EI_REPLACE_METHOD(0x004428A0, ClientBase::AddServer);
 

@@ -34,7 +34,6 @@ void* LeverRecordMap() { return reinterpret_cast<void*>(0x0079C1AC); }
 // tests [005BA830 CanLeaveCell, 005BA9D0 FindFreeCellNear (unit, from, out)]; the figure's
 // animation [005179E0 (model name)]; MarkChanged [0050E9F0 (part)]; the unit's controller resync
 // [00554450, on +0x240].
-void __fastcall FigureAnimate(void* a0, void*, const char* a2) { ObjectSetupFigureOriginal(a0, nullptr, a2); }
 void __fastcall ControllerResync(void* a0) { ControllerRepositionOriginal(a0); }
 
 // A unit from the sector map: its position and controller.
@@ -97,7 +96,7 @@ void Lever::SetState(int wanted, float duration) {
         rate = 0.0f;
     }
     scale.y = travel;   // the shown position
-    FigureAnimate(this, nullptr, name);
+    ObjectSetupFigureOriginal(this, nullptr, name);
     UnitMarkChanged(this, nullptr, 5);
     SectorMapAdd(sectors, nullptr, AsEngineObject(this));
     AIMapEndRefreshOriginal(map);

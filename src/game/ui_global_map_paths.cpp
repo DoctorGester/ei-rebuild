@@ -196,6 +196,10 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
 }
 
 namespace {
+// Rebirth-patched (the shim stays a named function so check_patched_calls sees it).
+void __fastcall GlobalMapLeftDown(void* input, void*, int buttons, int x, int y) {
+    WindowFromInput<CGlobalMap>(input)->OnLeftDown(buttons, x, y);
+}
 } // namespace
-EI_REPLACE_METHOD(0x0062F950, InputForward<&CGlobalMap::OnLeftDown>::Call);
+EI_REPLACE(0x0062F950, GlobalMapLeftDown);
 EI_REBIRTH_IMPLEMENTS(0x0062F950, ei::rebirth::Patch::WideScreen);

@@ -355,5 +355,9 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
+// Rebirth-patched (the shim stays a named function so check_patched_calls sees it).
+void __fastcall BattleScreenKeyDown(void* input, void*, int key, int repeat, int flags) {
+    WindowFromInput<CBattleScreenSetup>(input)->OnKeyDown(key, repeat, flags);
+}
 } // namespace
-EI_REPLACE_METHOD(0x0063A560, InputForward<&CBattleScreenSetup::OnKeyDown>::Call);
+EI_REPLACE(0x0063A560, BattleScreenKeyDown);

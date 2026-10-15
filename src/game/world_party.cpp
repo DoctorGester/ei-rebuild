@@ -293,7 +293,6 @@ namespace {
 
 // 006AC970 (RET 4, patched by Rebirth). The item manager makes an item by name.
 // 006AD1E0 (RET 8). The item manager makes a spell by name (with world slot 22).
-CEngineObject* __fastcall ManagerCreateSpell(void* a0, void*, const char* a2, void* a3) { return (CEngineObject*)FactoryCreateSpellOriginal(a0, nullptr, a2, a3); }
 
 // The world server's item manager (CWorld::itemManager_, 007AFFB4).
 CEngineObject* ItemManager() { return WorldServer()->itemManager_; }
@@ -305,7 +304,7 @@ CEngineObject* CWorldServer::CreateItemNamed(const char* name) { return ItemMana
 
 CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
     CEngineObject* manager = ItemManager();   // read before slot 22, as in the original
-    return ManagerCreateSpell(manager, nullptr, name, SpellManager());
+    return (CEngineObject*)FactoryCreateSpellOriginal(manager, nullptr, name, SpellManager());
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {

@@ -35,7 +35,6 @@ __declspec(naked) void __fastcall FreeNode(void* /*node*/, std::size_t /*n*/) EI
 __declspec(naked) void __fastcall AwardsPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00422F70)
 
 // The world (0x7AFE20), the text table (0x7C7D50), the map registry (0x7C87D4).
-inline void** __fastcall MapRegistryFind(void* a0, void*, const StringRep* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, (const void*)a2); }
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
@@ -192,7 +191,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
 
     StringRep key;
     StringPlusText(&key, zone, game::ZoneSuffix3Text());
-    auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(worlddata::QuestBriefings(), nullptr, &key));
+    auto* entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&key));
     StringRepDestroy(&key);
     if (entry) {
         void* clients = &clients_;
@@ -270,7 +269,7 @@ void ServerSession::LeaveZone() {
         std::uint8_t allocator = 0;
         StringInitWithAllocator(&lookup, nullptr, &allocator);
         StringAssignSpan(&lookup, nullptr, keyText, keyText + std::strlen(keyText));
-        auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(worlddata::QuestBriefings(), nullptr, &lookup));
+        auto* entry = static_cast<std::uint8_t*>(*(void**)MapRegistryFindOriginal((void*)worlddata::QuestBriefings(), nullptr, (const void*)&lookup));
         StlStringDestroy(&lookup);
         StringDeallocateOriginal(key.start, static_cast<std::size_t>(key.eos - key.start));
         if (entry) AwardHost(entry, true);

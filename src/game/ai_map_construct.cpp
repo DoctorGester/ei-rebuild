@@ -17,7 +17,6 @@ namespace {
 // Constructors of the members (thiscall).
 __declspec(naked) void __fastcall ConstructBridgeMap(void*, void*) EI_ORIGINAL(0x005BCCD0)
 __declspec(naked) void __fastcall ConstructSectorArray(void*, void*) EI_ORIGINAL(0x005BD1C0)
-void __fastcall ConstructWaterGrid(void* a0, void*) { SearchPartConstructOriginal(a0); }
 __declspec(naked) void __fastcall ConstructUnitLayer(CUnitLayer*, void*) EI_ORIGINAL(0x005B4110)
 __declspec(naked) void __fastcall ConstructRegionMap(CRegionMap*, void*) EI_ORIGINAL(0x005AF3D0)
 __declspec(naked) void __fastcall NodeGridConstruct(void*, void*, int, int) EI_ORIGINAL(0x005BCC50)
@@ -84,7 +83,7 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     self->bridges.hashed = true;
     self->waterWidth = 1;
     self->waterHeight = 1;
-    ConstructWaterGrid(&self->waterBlock, nullptr);
+    SearchPartConstructOriginal(&self->waterBlock);
     for (mfc::CArray<AreaOffset>& list : self->areaLists) list.Construct(kAreaListVtable);
     ConstructUnitLayerOf(self, &self->unitLayerSmall, CUnitLayer::kSmallVtableAddress);
     ConstructUnitLayerOf(self, &self->unitLayerLarge, CUnitLayer::kLargeVtableAddress);

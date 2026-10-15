@@ -138,7 +138,6 @@ __declspec(naked) void __fastcall ResizeFigured(stlp::vector<FiguredUnitRecord>*
 __declspec(naked) void __fastcall ResizeDressed(stlp::vector<DressedUnitRecord>*, void*, std::uint32_t)
     EI_ORIGINAL(0x0055A580)
 __declspec(naked) void __fastcall ResizeIds(UnitIdList*, void*, std::uint32_t, const std::uint32_t*) EI_ORIGINAL(0x004FE0C0)
-void __fastcall ReadCString(void* a0, void*, void* a2) { StreamReadCStringOriginal(a0, nullptr, a2); }
 
 void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 
@@ -171,7 +170,7 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &names, 4);
         CStringVectorResizeOriginal(&record->names, nullptr, names);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
-            ReadCString(stream, nullptr, &record->names[i]);
+            StreamReadCStringOriginal(stream, nullptr, &record->names[i]);
     }
     Get(stream, &count, 4);
     ResizeDressed(dressed, nullptr, count);

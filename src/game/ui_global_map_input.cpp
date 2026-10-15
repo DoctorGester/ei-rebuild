@@ -226,10 +226,14 @@ EI_REPLACE_METHOD(0x0062EE30, CGlobalMap::OnMessageResult);
 
 namespace {
 void __fastcall GlobalMapDeactivate(void* input) { WindowFromInput<CGlobalMap>(input)->OnDeactivate(); }
+// Rebirth-patched (the shim stays a named function so check_patched_calls sees it).
+void __fastcall GlobalMapMouseMove(void* input, void*, int buttons, int x, int y) {
+    WindowFromInput<CGlobalMap>(input)->OnMouseMove(buttons, x, y);
+}
 } // namespace
 EI_REPLACE(0x0062FF10, GlobalMapDeactivate);
 EI_REPLACE_METHOD(0x0062FF60, InputForward<&CGlobalMap::OnRightDown>::Call);
 EI_REPLACE_METHOD(0x0062FFC0, InputForward<&CGlobalMap::OnRightUp>::Call);
-EI_REPLACE_METHOD(0x00630010, InputForward<&CGlobalMap::OnMouseMove>::Call);
+EI_REPLACE(0x00630010, GlobalMapMouseMove);
 EI_REBIRTH_IMPLEMENTS(0x00630010, ei::rebirth::Patch::WideScreen);
 EI_REPLACE_METHOD(0x00630580, InputForward<&CGlobalMap::OnKeyDown>::Call);
