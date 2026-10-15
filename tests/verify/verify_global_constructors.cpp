@@ -14,12 +14,14 @@
 #include "verify.h"
 
 #include "../../src/game/acks_db.h"
+#include "../../src/game/ai_map.h"
 #include "../../src/game/item_db.h"
 #include "../../src/game/logic_settings.h"
 #include "../../src/game/model.h"
 #include "../../src/game/quest_records.h"
 #include "../../src/game/unit_db.h"
 #include "../../src/game/world.h"
+#include "../../src/hook/log.h"
 
 #include <windows.h>
 
@@ -67,6 +69,8 @@ struct Skip {
     std::size_t offset, size;
 };
 
+constexpr int kLoggedDiffs = 8;
+
 bool HeapBlock(std::uint32_t value) {
     if (value < 0x10000) return false;
     MEMORY_BASIC_INFORMATION info{};
@@ -101,7 +105,7 @@ int ShapeDiff(const void* theirsObject, const void* oursObject, std::size_t size
             same = !inside(x, theirs) && !inside(y, ours) && HeapBlock(x) && HeapBlock(y);
         if (same) continue;
         if (!wrong) *first = o;
-        ++wrong;
+        if (++wrong <= kLoggedDiffs) ei::Log("global constructor check: +0x%X %08X / ours %08X", static_cast<unsigned>(o), x, y);
     }
     return wrong;
 }
@@ -220,5 +224,63 @@ void SavedPartiesStartupCheck() {
     ours->Destruct();
 }
 EI_STARTUP_CHECK(SavedPartiesStartupCheck);
+
+// ---- The worlds ------------------------------------------------------------------------------------
+//
+// Ours is built in zeroed storage of its own and destroyed with the original's destructor (0058AAD0
+// / 00561B00: Teardown, then the members), as the game does at exit.
+
+__declspec(naked) void __fastcall WorldServerDestructOriginal(CWorldServer* /*world*/) EI_ORIGINAL(0x0058AAD0)
+__declspec(naked) void __fastcall WorldClientDestructOriginal(CWorldClient* /*world*/) EI_ORIGINAL(0x00561B00)
+
+// The functor bytes of a hash_map member.
+#define EI_FUNCTORS(Class, member) Skip{offsetof(Class, member), 3}
+
+void WorldServerStartupCheck() {
+    auto* theirs = reinterpret_cast<CWorldServer*>(std::uintptr_t(0x007AFF60));
+    auto* ours = ZeroedStorage<CWorldServer>();
+    const bool result = ours->Construct() == ours;
+    bool maps = true;
+    for (CWorldServer* world : {theirs, ours})
+        for (ObjectIdMap* map : {&world->updateMap_, &world->objects_, &world->sentObjects_, &world->mapObjects_,
+                                 &world->otherMapObjects_, &world->namedObjects_, &world->timedObjects_})
+            maps = maps && EmptyMap(map->map) && map->maxId == 0;
+    std::size_t first = 0;
+    const int wrong = ShapeDiff(theirs, ours, sizeof(CWorldServer),
+                                {EI_FUNCTORS(CWorldServer, updateMap_), EI_FUNCTORS(CWorldServer, objects_),
+                                 EI_FUNCTORS(CWorldServer, sentObjects_), EI_FUNCTORS(CWorldServer, mapObjects_),
+                                 EI_FUNCTORS(CWorldServer, otherMapObjects_), EI_FUNCTORS(CWorldServer, namedObjects_),
+                                 EI_FUNCTORS(CWorldServer, timedObjects_),
+                                 // the AI map's bridge heights (the hashtable constructor 005BCCD0)
+                                 Skip{offsetof(CWorldServer, aiMap_) + offsetof(CAIMap, bridgeHeights), 3}},
+                                &first);
+    ei::verify::Check("static constructor: world server 00589ED0", true, result && maps && wrong == 0,
+                      "result %d, id maps %d, %d dwords differ, the first at +0x%X", result, maps, wrong,
+                      static_cast<unsigned>(first));
+    WorldServerDestructOriginal(ours);
+}
+EI_STARTUP_CHECK(WorldServerStartupCheck);
+
+void WorldClientStartupCheck() {
+    auto* theirs = reinterpret_cast<CWorldClient*>(std::uintptr_t(0x007AF5B8));
+    auto* ours = ZeroedStorage<CWorldClient>();
+    const bool result = ours->Construct() == ours;
+    bool parts = EmptyMap(theirs->dynamicNodes_) && EmptyMap(ours->dynamicNodes_) && EmptyMap(theirs->lineLists_) &&
+                 EmptyMap(ours->lineLists_);
+    for (CWorldClient* world : {theirs, ours})
+        for (stlp::list<CEngineObject*>* list : {&world->heroes_, &world->objects_})
+            parts = parts && list->Empty();
+    for (auto name : {&CWorldClient::appName_, &CWorldClient::windowClass_, &CWorldClient::windowTitle_,
+                      &CWorldClient::pausedTitle_})
+        parts = parts && std::strcmp(theirs->*name, ours->*name) == 0;
+    std::size_t first = 0;
+    const int wrong = ShapeDiff(theirs, ours, sizeof(CWorldClient),
+                                {EI_FUNCTORS(CWorldClient, dynamicNodes_), EI_FUNCTORS(CWorldClient, lineLists_)}, &first);
+    ei::verify::Check("static constructor: world client 005612F0", true, result && parts && wrong == 0,
+                      "result %d, lists, maps and names %d, %d dwords differ, the first at +0x%X", result, parts, wrong,
+                      static_cast<unsigned>(first));
+    WorldClientDestructOriginal(ours);
+}
+EI_STARTUP_CHECK(WorldClientStartupCheck);
 
 } // namespace
