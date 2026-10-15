@@ -86,6 +86,23 @@ class GoldenTest(unittest.TestCase):
         self.assertTrue(any(line.startswith('  obj1 (80 unhuma "") #vitals:') for line in out), out)
         self.assertFalse(any('#place' in line for line in out), out)
 
+    def test_known_difference_kept_in_clear_and_left_out(self):
+        old = dict(golden.KNOWN)
+        golden.KNOWN.clear()
+        golden.KNOWN[r'^obj1 hp$'] = 'test'
+        try:
+            a, b = self.compact_of(digest(), 'a'), self.compact_of(digest(hp='nan:0xFFFFFFFF'), 'b')
+            d = golden.Digest(a)
+            for _ in d:
+                pass
+            self.assertEqual(d.state['obj1'][1]['hp'], '20.0')
+            out = []
+            self.assertEqual(golden.diff(a, b, 'A', 'B', ignore=golden.known_pattern(), out=out.append), 0, out)
+            self.assertEqual(golden.diff(a, b, 'A', 'B', out=out.append), 1)
+        finally:
+            golden.KNOWN.clear()
+            golden.KNOWN.update(old)
+
     def test_full_against_compact_refused(self):
         full = self.write('full.txt', digest())
         code, out = self.diff_lines(self.compact_of(digest(), 'a'), full)

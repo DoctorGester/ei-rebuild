@@ -60,6 +60,11 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
   <CUnit:1884>, <CUnit:702>, <CUnit:699>`, then `..., 699, 702`; a loop's last unit `i` with them),
   on both installs. An order that changes between runs with the same clock and draws points to an
   order by heap address.
+- **Digests of the whole suite (SV3, 2026-10-15, a record every 20 world updates):** two runs of the
+  original part in 46 of 110 runs (31 of 86 vanilla, 15 of 24 Rebirth), most at the first record
+  where zone1's idle wolves (obj1936/1937, unmoto) think: ai.standCooldown or regenTicks, and the
+  generators' counts. Ours repeats in all but two of the rest, but 14 of those differ from the
+  original the same way in both of ours' runs. The lists are in standalone-verification.md (SV3).
 - **dgVoodoo's minimise.** A game that Windows gave the foreground (when the game in front closed)
   and that lost it to a starting game is minimised by dgVoodoo; each time it came twice within
   ~100 ms, the first time taking the surfaces (the harness restores them, harness.cpp

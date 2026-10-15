@@ -648,6 +648,24 @@ status = "running"
 note = "From SV1a: UnitReadNetStateVerify re-ran the original on live state without putting the random generators back, so the verify build's fights differed from the plain build. Find others the same way: random traces of the verify build against EI_PLAIN=1 per scenario (first draw that differs by value and frame), then a verified.txt bisection (standalone-verification.md, SV1a section). Fix each wrapper (put shared state back, or run ours only where the replay cannot be faithful)."
 started = "2026-10-15"
 
+[[ticket]]
+id = "SV3a"
+title = "Main menu unit 2 (unmoco2): ours leaves its hit points unwritten"
+group = "verification"
+status = "queued"
+size = 0.5
+files = ["tools/golden.py"]
+note = "From SV3: every hooked run's first digest record (zone -, the main menu world) has obj2 (unmoco2) hp nan:0xFFFFFFFF and maxHp heap bytes (9.07788734e+12 or 2.04619825e+14); the original has nan:0xFFC00000 and 1.0 in every run. Other menu units match. Find the rewrite that creates or loads that unit's server half (CreateObject / unit stats for a unit without a database entry). Listed in tools/golden.py KNOWN, so goldens leave it out; drop the entry when fixed (golden.py compare --strict shows it)."
+
+[[ticket]]
+id = "SV3b"
+title = "Saved games differ byte for byte between runs of the original"
+group = "verification"
+status = "queued"
+size = 0.5
+files = ["tools/golden.py"]
+note = "From SV3: harness_saves/<save>/mission.sav (size and bytes) differs between two --no-hooks runs of the same scenario in nearly every scenario that saves (52 of 86 vanilla), so goldens keep the saves only as the state after loading them (dump steps). Find what a save holds that the digest leaves out (likely the update-map countdown from heap addresses, or other heap bytes), then keep the saves' hashes or a decoded field list in the goldens (golden.py saves())."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]

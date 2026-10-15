@@ -36,14 +36,16 @@ usage:
       Keeps runs of the original code as goldens. DIR (default build\verify\runs) holds run folders
       <scenario>-<install>; the first DIR's must have passed with --no-hooks and a digest, and the run
       folders of every other DIR (a second run of the original, runs with our hooks) must agree with it:
-      the console, every digest record and dump, the saves. A scenario that does not is not recorded; its
-      first difference is printed. No SCENARIO: every run folder of the install in the first DIR.
+      the console, every digest record and dump (but the known differences, KNOWN). A scenario that does
+      not is not recorded; its first difference is printed. The saves are kept (saves.txt) only when every
+      run wrote the same bytes. No SCENARIO: every run folder of the install in the first DIR.
       Run the games through the scheduler, e.g.:
         set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks
         python tools\golden.py snapshot <scratch>\orig1   (then the same again, and with hooks)
-  python tools/golden.py compare SCENARIO... [--install vanilla|rebirth] [--run FOLDER] [--ulps N] ...
+  python tools/golden.py compare SCENARIO... [--install vanilla|rebirth] [--run FOLDER] [--strict] [--ulps N] ...
       A run (by default build\verify\runs\<scenario>-<install>, made with the golden's EI_DIGEST) against
-      the scenario's golden: the console, the digest, the dumps and the saves. `run_all.py --golden` (also
+      the scenario's golden: the console, the digest, the dumps and the saves. The known differences (KNOWN, each
+      with its ticket) are left out unless --strict. `run_all.py --golden` (also
       through `work.py test`) runs the games with the goldens' digest period and does this for every run.
 exit code: 0 the same, 1 a difference, 2 something missing
 """
@@ -57,6 +59,13 @@ GOLDEN = os.path.join(ROOT, 'tests', 'golden')
 # hooks (the verify wrappers allocate too): a unit's update-map countdown is 0x80 + bits 5..8 of its address
 # (CWorldServer::AddToUpdateMap 0058D5D0, CreateObject 005927C0). Left out unless --all-fields.
 ADDRESS_DEPENDENT = r' updateCountdown$'
+# Differences between our code and the original that are known, each with the ticket that fixes it: "<key> <field>"
+# patterns. A compact digest keeps these fields in clear next to the hashes, and the comparison with a golden
+# leaves them out (unless --strict), so the golden needs no re-recording when the ticket lands; drop the entry then.
+KNOWN = {
+    r'^obj2 (hp|maxHp)$': "SV3a: the main menu world's unit 2 (unmoco2): ours leaves its hit points unwritten "
+                          "(nan:0xFFFFFFFF and heap bytes), the original has nan:0xFFC00000 and 1.0",
+}
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
 SAVES = 'harness_saves'
@@ -160,24 +169,36 @@ def group_of(field):
     return 'unit'
 
 
-def compact_entity(key, entry, ignore):
+def known_pattern():
+    """The "<key> <field>" expression of the known differences (KNOWN), or None."""
+    return '|'.join(f'(?:{p})' for p in KNOWN) or None
+
+
+def compact_entity(key, entry, ignore, clear=None):
     """An entity as the compact digest keeps it: [description, fields]. Fields that ignore matches are left
-    out; an object's fields become hashes, '#' (one for the object) or '#<group>' for a unit."""
+    out; an object's fields become hashes, '#' (one for the object) or '#<group>' for a unit, but for those
+    that clear matches, which are kept as they are."""
     description, fields = entry
     kept = {f: v for f, v in fields.items() if not (ignore and ignore.search(f'{key} {f}'))}
     if not key.startswith('obj'):
         return [description, kept]
     unit = any(f.startswith('ai.') or f == 'player' for f in kept)
-    groups = {}
+    groups, plain = {}, {}
     for f in sorted(kept):
-        groups.setdefault('#' + group_of(f) if unit else '#', []).append(f'{f} {kept[f]}')
-    return [description, {g: crc('\n'.join(lines)) for g, lines in sorted(groups.items())}]
+        if clear and clear.search(f'{key} {f}'):
+            plain[f] = kept[f]
+        else:
+            groups.setdefault('#' + group_of(f) if unit else '#', []).append(f'{f} {kept[f]}')
+    plain.update((g, crc('\n'.join(lines))) for g, lines in sorted(groups.items()))
+    return [description, plain]
 
 
-def compact(src, dst, ignore=ADDRESS_DEPENDENT):
+def compact(src, dst, ignore=ADDRESS_DEPENDENT, clear=None):
     """Writes the compact form of the digest or dump src to dst (the same record format, so diff and state
     read it). ignore: the fields left out (default the address-dependent ones); hashed fields cannot be
-    left out later."""
+    left out later. clear: the fields kept in clear (default the known differences, KNOWN)."""
+    clear = known_pattern() if clear is None else clear
+    clear = re.compile(clear) if clear else None
     d = Digest(src)
     if d.compact:
         shutil.copyfile(src, dst)
@@ -191,7 +212,7 @@ def compact(src, dst, ignore=ADDRESS_DEPENDENT):
         for h in d:
             lines = []
             for key in sorted(d.touched, key=key_order):
-                new = compact_entity(key, d.state[key], pattern) if key in d.state else None
+                new = compact_entity(key, d.state[key], pattern, clear) if key in d.state else None
                 old = state.get(key)
                 if new is None:
                     if old is not None:
@@ -382,10 +403,14 @@ def first_line_difference(what, expected, actual, name_a, name_b):
             f'{actual[first].strip() if first < len(actual) else "(ends)"!r}')
 
 
-def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=ADDRESS_DEPENDENT, golden=False):
+def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=ADDRESS_DEPENDENT, golden=False,
+                    with_saves=True, known=None, clear=None):
     """Two runs' console, digest, dumps and saves (a may be a golden: golden=True; b's digest and dumps are
-    then compacted into b first). The lines that describe the differences; [] when the same."""
+    then compacted into b first, leaving out ignore and keeping clear in clear, as the golden was; with_saves
+    False: not the saves). known: fields left out of the comparison too (the known differences). The lines that
+    describe the differences; [] when the same."""
     lines = []
+    left_out = known if golden else '|'.join(p for p in (ignore, known) if p) or None
     if golden:
         expected = read_lines(os.path.join(a, 'console.txt'))
     else:
@@ -402,10 +427,10 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
             lines.append(f'digest: {name_a} takes a record every {period_a} world updates, {name_b} every {period_b}')
         else:
             if golden:
-                compact(digest_b, os.path.join(b, 'golden_digest.txt'), ignore)
+                compact(digest_b, os.path.join(b, 'golden_digest.txt'), ignore, clear)
                 digest_b = os.path.join(b, 'golden_digest.txt')
             found = []
-            if diff(digest_a, digest_b, name_a, name_b, ulps, records, fields, None if golden else ignore, out=found.append):
+            if diff(digest_a, digest_b, name_a, name_b, ulps, records, fields, left_out, out=found.append):
                 lines += found
     dumps_a, dumps_b = dumps(a), dumps(b)
     if sorted(dumps_a) != sorted(dumps_b):
@@ -414,12 +439,12 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
         path_b = dumps_b[name]
         if golden:
             path_b = os.path.join(b, f'golden_dump_{name}.txt')
-            compact(dumps_b[name], path_b, ignore)
+            compact(dumps_b[name], path_b, ignore, clear)
         found = []
-        if diff(dumps_a[name], path_b, name_a, name_b, ulps, 1, fields, None if golden else ignore, out=found.append):
+        if diff(dumps_a[name], path_b, name_a, name_b, ulps, 1, fields, left_out, out=found.append):
             lines += [f'dump {name}: ' + found[0]] + found[1:]
     saves_a = golden_saves(a) if golden else saves(a)
-    if saves_a is not None:
+    if saves_a is not None and with_saves:
         saves_b = saves(b)
         if saves_a != saves_b:
             lines.append(first_line_difference('saves', saves_a, saves_b, name_a, name_b))
@@ -485,7 +510,9 @@ def record(args):
             if report_result(other) != 'PASS':
                 problem = [f'{other} did not pass ({report_result(other) or "no report"})']
             else:
-                found = compare_folders(folders[0], other, folders[0], other, ulps=0, records=1, fields=args.fields)
+                label_a, label_b = (os.path.basename(os.path.dirname(f)) for f in (folders[0], other))
+                found = compare_folders(folders[0], other, label_a, label_b, ulps=0, records=1, fields=args.fields,
+                                        with_saves=False, known=known_pattern())
                 if found:
                     problem = [f'{other} differs from {folders[0]}:'] + found
         if problem:
@@ -502,13 +529,19 @@ def record(args):
             compact(path, os.path.join(target, f'dump_{dump}.txt'))
         with open(os.path.join(target, 'console.txt'), 'w', encoding='cp1251', errors='replace', newline='\n') as f:
             f.writelines(line + '\n' for line in console(folders[0]))
-        files = saves(folders[0])
-        if files:
-            with open(os.path.join(target, 'saves.txt'), 'w', encoding='utf-8', newline='\n') as f:
-                f.writelines(line + '\n' for line in files)
         meta = {'scenario': name, 'install': args.install, 'recorded': datetime.date.today().isoformat(),
                 'commit': commit(), 'digest_period': Digest(digest).period(), 'left_out': ADDRESS_DEPENDENT,
-                'repeated_in': len(folders), 'reason': args.reason}
+                'clear': known_pattern(), 'repeated_in': len(folders), 'reason': args.reason}
+        # The saves' bytes only when every run wrote the same: a save also holds what the digest leaves out
+        # (values that follow heap addresses). The dumps after loading them compare them field by field.
+        files = saves(folders[0])
+        if files:
+            differ = next(((os.path.basename(os.path.dirname(f)), saves(f)) for f in folders[1:] if saves(f) != files), None)
+            if differ is None:
+                with open(os.path.join(target, 'saves.txt'), 'w', encoding='utf-8', newline='\n') as f:
+                    f.writelines(line + '\n' for line in files)
+            else:
+                meta['saves'] = 'not kept: ' + first_line_difference('saves', files, differ[1], 'the first run', differ[0])
         with open(os.path.join(target, 'golden.json'), 'w', encoding='utf-8', newline='\n') as f:
             json.dump(meta, f, indent=2)
             f.write('\n')
@@ -522,8 +555,9 @@ def golden_folder(name, install, root=ROOT):
     return os.path.join(root, 'tests', 'golden', name, install)
 
 
-def compare_one(name, install, folder, ulps=0, records=1, fields=12, root=ROOT):
-    """A run folder against the scenario's golden: ('SAME' | 'DIFFERS' | 'NO GOLDEN' | 'NO RUN', lines)."""
+def compare_one(name, install, folder, ulps=0, records=1, fields=12, root=ROOT, strict=False):
+    """A run folder against the scenario's golden: ('SAME' | 'DIFFERS' | 'NO GOLDEN' | 'NO RUN', lines).
+    The known differences (KNOWN) are left out unless strict."""
     golden = golden_folder(name, install, root)
     if not os.path.exists(os.path.join(golden, 'golden.json')):
         return 'NO GOLDEN', []
@@ -532,7 +566,8 @@ def compare_one(name, install, folder, ulps=0, records=1, fields=12, root=ROOT):
     with open(os.path.join(golden, 'golden.json'), encoding='utf-8') as f:
         meta = json.load(f)
     lines = compare_folders(golden, folder, 'the golden', 'the run', ulps, records, fields,
-                            meta.get('left_out', ADDRESS_DEPENDENT), golden=True)
+                            meta.get('left_out', ADDRESS_DEPENDENT), golden=True,
+                            known=None if strict else known_pattern(), clear=meta.get('clear') or '')
     return ('DIFFERS' if lines else 'SAME'), lines
 
 
@@ -540,7 +575,7 @@ def compare(args):
     code = 0
     for name in args.scenarios:
         result, lines = compare_one(name, args.install, run_folder(name, args.install, args.run), args.ulps, args.records,
-                                    args.fields)
+                                    args.fields, strict=args.strict)
         print(f'{name} {args.install}: {result}')
         for line in lines:
             print('  ' + line)
@@ -607,6 +642,7 @@ def main():
     p.add_argument('scenarios', nargs='+')
     p.add_argument('--install', default='vanilla', choices=['vanilla', 'rebirth'])
     p.add_argument('--run')
+    p.add_argument('--strict', action='store_true')
     comparing(p)
     args = ap.parse_args()
     if args.command in ('diff', 'compare') and not args.all_fields:
