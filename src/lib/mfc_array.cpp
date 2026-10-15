@@ -205,6 +205,11 @@ EI_REPLACE(0x004C9970, AiLookRecords::SetSize);
 EI_REPLACE(0x004CDE30, AiLookRecords::ConstructElements);
 EI_REPLACE(0x004606F0, OwnedAllods::DestructElements);
 
+// ---- Script areas --------------------------------------------------------------------------------
+EI_REPLACE(0x004CDB30, ScriptAreas::SetSize);
+EI_REPLACE(0x004CEDC0, ScriptAreas::ConstructElements);
+EI_REPLACE(0x004CD4F0, ArrayAbi<Bytes<32>>::ConstructElements);   // the script's point lights: the fill
+
 // ---- Elements that are aligned arrays ------------------------------------------------------------
 EI_REPLACE(0x006C5050, AlignedArrays::ConstructElements);
 EI_REPLACE(0x006C5010, AlignedArrays::DestructElements);

@@ -64,6 +64,10 @@ inline void ReleaseOnly(CEngineObject** p) {
     if (*p) (*p)->Release();
 }
 
+// The script's point lights: the light leaves the world's timed objects and is released, the slot
+// cleared (004B17F0's body, inlined by 004C5CB0).
+inline void DestroyPointLight(ScriptPointLight* p) { p->ScriptPointLightDestruct(); }
+
 using BlocksAt8 = ArrayAbi<Bytes<24>, EachElements<Bytes<24>, nullptr, DestroyBlockAt8>>;
 using BlocksAt4 = ArrayAbi<Bytes<20>, EachElements<Bytes<20>, nullptr, DestroyBlockAt4>>;
 using Exits = ArrayAbi<MapExit, EachElements<MapExit, InitExit, DestroyExit>>;
@@ -73,6 +77,7 @@ using Objectives = ArrayAbi<ScriptQuestObjective, EachElements<ScriptQuestObject
 using Particles = ArrayAbi<EffectParticle, EachElements<EffectParticle, InitParticle, DestroyParticle>>;
 using ObjectRefs = ArrayAbi<ScriptObjectRef, EachElements<ScriptObjectRef, nullptr, ReleaseAndClear>>;
 using ObjectPtrs = ArrayAbi<CEngineObject*, EachElements<CEngineObject*, nullptr, ReleaseOnly>>;
+using PointLights = ArrayAbi<ScriptPointLight, EachElements<ScriptPointLight, nullptr, DestroyPointLight>>;
 
 // The vtable 0059A100 restores (an array of object pointers, Serialize 0059A170).
 struct ObjectPtrArrayBaseClass {
@@ -93,6 +98,13 @@ ScriptGroup* __fastcall GroupGetAt(const Groups::Array* self, void*, ScriptGroup
 // 004C1BE0 (RET 4): SetSize to the source's size, then each group assigned from a copy (GroupGetAt),
 // the copy destroyed after.
 void __fastcall GroupArrayCopy(Groups::Array* self, void*, const Groups::Array* source);
+
+// 0059E300 / 0059CA40 (RET 8): element `index` into `result` with one more reference; returns
+// `result`.
+CEngineObject** __fastcall ObjectPtrGetAt(const ObjectPtrs::Array* self, void*, CEngineObject** result, int index);
+// 0059B8F0 (RET 4): SetSize to the source's size, then each pointer replaced by the source's (a
+// counted temporary from GetAt; the new one referenced before the old one is released).
+void __fastcall ObjectPtrCopy(ObjectPtrs::Array* self, void*, const ObjectPtrs::Array* source);
 
 // 004CC7A0 (RET 8): element `index` copied into `result` with one more reference; returns `result`.
 // 004C21E0 (RET 8) calls it.

@@ -238,6 +238,9 @@ struct CellRowArrayClass {   // the AI map's cell rows
 struct AreaListClass {   // the AI map's area lists
     static void* Vtable() { return reinterpret_cast<void*>(0x0073F9E0); }
 };
+struct ScriptAreaPartsClass {   // the array a script area element holds (base ScriptAreaClass)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D328); }
+};
 struct StringArrayClass {   // CArray<CString> (the script's string variables)
     static void* Vtable() { return reinterpret_cast<void*>(0x0073D2F8); }
 };
@@ -469,6 +472,12 @@ using AiLookRecords = ArrayAbi<AiLookElement, EachElements<AiLookElement, InitWi
 using AllodElement = StringsAndArray<0x2C, 6, 0x18, IntArrayClass>;
 using OwnedAllods = ArrayAbi<AllodElement, EachElements<AllodElement, InitStringsAndArray<0x2C, 6, 0x18, IntArrayClass>,
                                                        DestroyStringsAndArray<AllodElement, 6, 0x18, IntArrayClass>>>;
+
+// Script areas: 24-byte elements that are an array of ScriptAreaPartsClass (004CEDC0), destroyed by
+// the base's destructor (004BCF10: ScriptAreaClass's vtable, the storage freed).
+using ScriptAreaElement = WithArray<0x18, 0, ScriptAreaPartsClass>;
+using ScriptAreas = ArrayAbi<ScriptAreaElement, EachElements<ScriptAreaElement, InitWithArray<0x18, 0, ScriptAreaPartsClass>,
+                                                            DestroyArrayAt<ScriptAreaElement, 0, ScriptAreaClass>>>;
 
 // Elements that are the engine's aligned arrays (lib/containers.h AlignedArray, 16 bytes; the terrain
 // sectors' lists): zero filled (006C5050); destroyed by freeing the block (006C5010), the fields left.

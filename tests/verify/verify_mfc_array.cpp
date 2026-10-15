@@ -737,3 +737,23 @@ using A006C5050 = TwinConstructElements<0x006C5050, AlignedArrays>;
 EI_VERIFY(0x006C5050, A006C5050::Run, 5, A006C5050::original);
 using A006C5010 = OursDestructElements<0x006C5010, AlignedArrays>;
 EI_VERIFY(0x006C5010, A006C5010::Run, 0, A006C5010::original);
+
+// Batch 7: script areas, point lights, the object pointers' copy.
+using A004CDB30 = TwinSetSizeGrow<0x004CDB30, ScriptAreas>;
+EI_VERIFY(0x004CDB30, A004CDB30::Run, 5, A004CDB30::original);
+using A004CEDC0 = TwinConstructElements<0x004CEDC0, ScriptAreas>;
+EI_VERIFY(0x004CEDC0, A004CEDC0::Run, 6, A004CEDC0::original);
+using A004CD4F0 = TwinConstructElements<0x004CD4F0, ArrayAbi<Bytes<32>>>;
+EI_VERIFY(0x004CD4F0, A004CD4F0::Run, 5, A004CD4F0::original);
+using A004C5CB0 = TwinSetSizeGrow<0x004C5CB0, gamearrays::PointLights>;
+EI_VERIFY(0x004C5CB0, A004C5CB0::Run, 5, A004C5CB0::original);
+namespace {
+using PtrArray = gamearrays::ObjectPtrs::Array;
+void __fastcall ObjectPtrCopyVerify(PtrArray* self, void*, const PtrArray* source) {
+    gamearrays::ObjectPtrCopy(self, nullptr, source);
+    bool ok = self->size == source->size;
+    for (int i = 0; ok && i < self->size; ++i) ok = self->data[i] == source->data[i];
+    Check("CArray Copy 0059B8F0", true, ok, "%d", self->size);
+}
+} // namespace
+EI_VERIFY(0x0059B8F0, ObjectPtrCopyVerify, 0, s_unused);

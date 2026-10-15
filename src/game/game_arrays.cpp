@@ -82,5 +82,29 @@ EI_REPLACE(0x0059C8C0, ObjectPtrs::SetSize);
 EI_REPLACE(0x00570000, ObjectPtrs::SetSize);
 EI_REPLACE(0x0059C890, ObjectPtrs::DestructElements);
 EI_REPLACE(0x0059A100, ObjectPtrs::Destruct<ObjectPtrArrayBaseClass>);
+CEngineObject** __fastcall ObjectPtrGetAt(const ObjectPtrs::Array* self, void*, CEngineObject** result, int index) {
+    CEngineObject* object = self->data[index];
+    *result = object;
+    if (object) ++object->refCount_;
+    return result;
+}
+EI_REPLACE(0x0059E300, ObjectPtrGetAt);
+EI_REPLACE(0x0059CA40, ObjectPtrGetAt);
+void __fastcall ObjectPtrCopy(ObjectPtrs::Array* self, void*, const ObjectPtrs::Array* source) {
+    self->SetSize(source->size, -1);
+    for (int i = 0; i < source->size; ++i) {
+        CEngineObject* copy;
+        ObjectPtrGetAt(source, nullptr, &copy, i);
+        CEngineObject* old = self->data[i];
+        self->data[i] = copy;
+        if (copy) ++copy->refCount_;
+        if (old) old->Release();
+        if (copy) copy->Release();
+    }
+}
+EI_REPLACE(0x0059B8F0, ObjectPtrCopy);
+
+// The script's point lights.
+EI_REPLACE(0x004C5CB0, PointLights::SetSize);
 
 } // namespace gamearrays
