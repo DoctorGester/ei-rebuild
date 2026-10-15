@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <cstring>
 
-void __fastcall DrawUnitInfo(CHudUnitPanel* self, void*, CUnit* unit);
 
 // 00647040 only draws text: ours only. The unit's values it reads (health and mana, packedVitals
 // +0x17C..+0x186) and the panel's surface and label table stay as they were.
@@ -17,7 +16,7 @@ static void __fastcall DrawUnitInfoVerify(CHudUnitPanel* self, void*, CUnit* uni
     std::memcpy(before, &unit->packedVitals, sizeof(before));
     void* surface = self->surfaces_.data;
     mfc::CString* labels = self->texts_.data;
-    DrawUnitInfo(self, nullptr, unit);
+    self->DrawUnitInfo(unit);
     bool ok = std::memcmp(before, &unit->packedVitals, sizeof(before)) == 0 && surface == self->surfaces_.data &&
               labels == self->texts_.data;
     ei::verify::Check("DrawUnitInfo", true, ok, "unit %p", static_cast<void*>(unit));

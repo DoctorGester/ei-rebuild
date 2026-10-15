@@ -106,13 +106,13 @@ void MoveBetweenFrames(CCursor* self) {
 
 // 005E5640 (thiscall on the destination holder, RET 0x14): Blt from `source`'s surface (rectangles,
 // flags, effects) under the device lock; Blt's result.
-long __fastcall HolderBlt(CDXSurface* self, void*, RECT* to, CDXSurface* source, RECT* from, unsigned long flags, void* fx) {
+long CDXSurface::Blt(RECT* to, CDXSurface* source, RECT* from, unsigned long flags, void* fx) {
     gameapi::EnterCriticalSection(DeviceLock());
-    long hr = ComCall(self->surface, kBlt, to, source->surface, from, flags, fx);
+    long hr = ComCall(surface, kBlt, to, source->surface, from, flags, fx);
     gameapi::LeaveCriticalSection(DeviceLock());
     return hr;
 }
-EI_REPLACE(0x005E5640, HolderBlt);
+EI_REPLACE_METHOD(0x005E5640, CDXSurface::Blt);
 
 // 005E54A0.
 void __fastcall CursorDrawFrame(CCursor* self) {
@@ -251,17 +251,17 @@ EI_REPLACE(0x005E5690, CursorThread);
 // 005E6630 (thiscall, RET 4): the part of the drawn rectangle inside `bounds_` is copied from the
 // primary (`fromPrimary`) or the render target into the background surface, as the screen under the
 // cursor changed (the movie players after their blits to the primary).
-void __fastcall CursorSaveBackground(CCursor* self, void*, char fromPrimary) {
-    if (!self->enabled_) return;
+void CCursor::SaveBackground(char fromPrimary) {
+    if (!enabled_) return;
     RECT part;
-    if (!gameapi::IntersectRect(&part, &self->drawn_, &self->bounds_)) return;
+    if (!gameapi::IntersectRect(&part, &drawn_, &bounds_)) return;
     // With "present" nothing draws from the background (the thread and the frame draw's old blits
     // are left out).
-    if (!OldPathDraws(self)) return;
+    if (!OldPathDraws(this)) return;
     RECT local = Local(part);
-    CDXSurface* under = self->under_;
+    CDXSurface* under = under_;
     CDXSurface* screen = fromPrimary ? Primary(under) : RenderTarget(under);
     if (screen->surface == under->surface) return;
     LockedBlt(under, &local, screen, &part);
 }
-EI_REPLACE(0x005E6630, CursorSaveBackground);
+EI_REPLACE_METHOD(0x005E6630, CCursor::SaveBackground);

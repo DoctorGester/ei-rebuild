@@ -23,6 +23,13 @@ class CLight;        // spell.h
 // "CFigureClientSpecific" (0x3C bytes): the client-specific manager's factory 0042D700 makes one
 // for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure.
 struct FigureMeshDrawer {
+    // 0x005A7640 (figure_part_draw_plain.cpp).
+    int DrawPlain(CTextureDevice* device, int, int, int, int alpha, RECT* rect);
+    // 0x005A7A70 (figure_part_draw.cpp).
+    int DrawLit(CTextureDevice* device, const FigureLights* lights, CMaterial* material, int alpha, RECT* rect,
+                CTexture* textureA, CTexture* textureB);
+    // 0x005A7290 (figure_part_bounds.cpp).
+    void DrawBounds(CSceneRenderer* renderer);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FB10);
     // Its base (slots 2, 3, 11 and 12 pure): the mesh pointer alone.
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073FB44);
@@ -63,10 +70,6 @@ class CTextureDevice;   // texture.h
 class CTexture;         // texture.h
 // The drawer's draws (the renderer's slots 13 / 14 call them): 005A7A70 lit, with two textures
 // (figure_part_draw.cpp), and 005A7640 plain (figure_part_draw_plain.cpp). Both return 1.
-int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* device, const FigureLights* lights,
-                              CMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB);
-int __fastcall DrawFigurePartPlain(FigureMeshDrawer* node, void*, CTextureDevice* device, int, int, int, int alpha,
-                                   RECT* rect);
 
 struct CDXSurface;   // texture.h
 

@@ -472,6 +472,8 @@ static_assert(sizeof(CUiRegion) == 0x34);
 // 005FCC00/005FCDD0). Only the placement members are named.
 class CUiSurface {
 public:
+    // 0x005FD240 (ui_surface_pixels.cpp).
+    std::uint32_t PixelAt(int x, int y);
     // 005FD3A0. Sets the screen rectangle from layout coordinates.
     void SetRect(int left, int top, int right, int bottom);
     // 005FE400. Moves the screen rectangle so its top-left is the layout point (x, y).
@@ -1842,6 +1844,8 @@ static_assert(offsetof(CHudMap, unknown_1B0) == 0x1B0);
 // the sling button, 1-4 the body parts, 5 the whole panel.
 class CHudUnitPanel : public CUiWindow {
 public:
+    // 0x00647040 (ui_hud_unit_info.cpp).
+    void DrawUnitInfo(CUnit* unitIn);
     // 006477E0 (RET 4; ui_hud_panels.cpp, called by the panel's draw 006462A0). The health bar
     // and number of `unit` (scene objects 10 / 11), and its mana bar and number (12 / 13) when it
     // is one of the party.

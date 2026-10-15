@@ -9,7 +9,6 @@
 #include <cstring>
 #include <vector>
 
-void __fastcall DrawPartBounds(FigureMeshDrawer* node, void*, CSceneRenderer* renderer);
 
 namespace {
 using BoundsFn = void(__fastcall*)(FigureMeshDrawer*, void*, CSceneRenderer*);
@@ -43,6 +42,9 @@ struct StandIn {
 };
 void* s_vtable[16];
 
+// Ours, through the registered member.
+void __fastcall BoundsOurs(FigureMeshDrawer* node, void*, CSceneRenderer* renderer) { node->DrawBounds(renderer); }
+
 void RunInto(BoundsFn fn, FigureMeshDrawer* node, Captured& out) {
     for (void*& slot : s_vtable) slot = nullptr;
     s_vtable[15] = reinterpret_cast<void*>(&CaptureLines);
@@ -56,12 +58,12 @@ void RunInto(BoundsFn fn, FigureMeshDrawer* node, Captured& out) {
 static void __fastcall DrawPartBoundsVerify(FigureMeshDrawer* node, void*, CSceneRenderer* renderer) {
     Captured expected, actual;
     RunInto(s_original, node, expected);
-    RunInto(&DrawPartBounds, node, actual);
+    RunInto(&BoundsOurs, node, actual);
     bool ok = expected.called == actual.called && expected.count == actual.count && expected.colour == actual.colour &&
               expected.points == actual.points;
     ei::verify::Check("DrawPartBounds", true, ok, "drawn %d/%d, %d points (original %d)", actual.called,
                       expected.called, actual.count, expected.count);
-    DrawPartBounds(node, nullptr, renderer);
+    node->DrawBounds(renderer);
 }
 EI_VERIFY(0x005A7290, DrawPartBoundsVerify, 7, s_original);
 

@@ -29,6 +29,8 @@ static_assert(offsetof(BinkHeader, lastFrame) == 0x10);
 // CBinkVideo (opened by 005DBA50, stepped by 005DBD80): the decode surface, its Bink surface type,
 // the letterboxed screen rectangle and the Bink handle.
 struct CBinkVideo {
+    // 0x005DBD80 (bink_video.cpp).
+    unsigned Frame(char toPrimary);
     // 005DBA50 (RET 8): closes the movie open before, opens `name` (with movies on), hides the
     // cursor, makes the decode surface's holder and the screen rectangle (centred at the movie's size
     // in movies mode 1, else stretched to the screen's width). Nonzero (the low byte) when it plays.
