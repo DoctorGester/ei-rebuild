@@ -89,7 +89,8 @@ void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
 EI_REPLACE_METHOD(0x0049E870, Quaternion::PreMultiplyConjugate);
 
 // 0049E950. out = conj(b) * a (b copied first, its vector part negated through float
-// temporaries); a is read completely before out is written.
+// temporaries); a is read completely before out is written. Dead (SV5c): only MakeFrameRelative
+// calls it, in the fake unit scene loader; its vector check was removed.
 Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b) {
     Quaternion c = Conjugate(b);
     double cw = c.w, cx = c.x, cy = c.y, cz = c.z;
