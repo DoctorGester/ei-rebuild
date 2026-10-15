@@ -140,6 +140,22 @@ def machine_slot(alone=False):
             _unlock(gate)
 
 
+@functools.lru_cache(maxsize=None)
+def run_dir(root):
+    """root's run dir (the installs' game.exe copies). A worktree without its own (a worker that forgot the junction,
+    so every game ended NO REPORT) uses the main checkout's: its .git file names <main>/.git/worktrees/<name>."""
+    own = os.path.join(root, 'run')
+    if os.path.isdir(own):
+        return own
+    with contextlib.suppress(OSError):
+        with open(os.path.join(root, '.git'), encoding='utf8') as f:
+            gitdir = f.read().strip().removeprefix('gitdir:').strip()
+        main = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(gitdir))), 'run')
+        if os.path.isdir(main):
+            return main
+    return own
+
+
 def switches_display(scenario):
     """Whether a scenario asks for full screen at a mode other than the desktop's (`resolution WxH` with
     `fullscreen 1`). Only our renderer covers the monitor without changing the mode; the original's DirectDraw,
@@ -309,13 +325,13 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
         env = {k: v for k, v in os.environ.items() if k not in game_environment()}
         env.update(game_env)
     if install == 'vanilla':
-        cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(root, 'run', 'vanilla', 'game.exe')]
+        cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(run_dir(root), 'vanilla', 'game.exe')]
     elif install == 'native':
-        cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(root, 'run', 'native', 'game.exe')]
+        cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(run_dir(root), 'native', 'game.exe')]
         env = dict(os.environ if env is None else env, EI_RENDER=OUR_RENDERER)
-    elif os.path.exists(os.path.join(root, 'run', 'rebirth', 'game.exe')):
+    elif os.path.exists(os.path.join(run_dir(root), 'rebirth', 'game.exe')):
         # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
-        cmd += ['--exe', os.path.join(root, 'run', 'rebirth', 'game.exe')]
+        cmd += ['--exe', os.path.join(run_dir(root), 'rebirth', 'game.exe')]
     environ = os.environ if env is None else env
     if install != 'native' and 'EI_RENDER' not in environ and our_renderer(scenario, install, hooks, dgvoodoo, environ):
         env = dict(environ, EI_RENDER=OUR_RENDERER)    # dgVoodoo's DLLs stay beside game.exe; nothing draws through them
@@ -396,7 +412,7 @@ def install_fingerprint(root, install):
     (names, sizes, times; configuration files such as dgVoodoo.conf by content)."""
     h = hashlib.sha1(install.encode())
     with contextlib.suppress(OSError):
-        for entry in sorted(os.scandir(os.path.join(root, 'run', install)), key=lambda e: e.name.lower()):
+        for entry in sorted(os.scandir(os.path.join(run_dir(root), install)), key=lambda e: e.name.lower()):
             if not entry.is_file():
                 continue
             st = entry.stat()
@@ -608,7 +624,7 @@ def plan(args, root=ROOT):
     if args.rebirth_only: installs = ['rebirth']
     if args.native:
         installs = ['native']
-        native = os.path.join(root, 'run', 'native', 'game.exe')
+        native = os.path.join(run_dir(root), 'native', 'game.exe')
         if not os.path.exists(native):
             sys.exit(f'{native} is missing: run tools\\setup_native_run.cmd first')
     rebirth = set(names) if args.scenarios or args.all_rebirth or args.rebirth_only else rebirth_scenarios(names, root)
