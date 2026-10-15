@@ -102,6 +102,7 @@ void FreeAt(void* self, std::size_t offset) {
 void __fastcall ArrayFree1(lib::AlignedArray<std::uint8_t>* a) { a->FreeData(); }
 EI_REPLACE(0x0044F1B0, ArrayFree1);
 // Byte-identical copies in the interface (A-I15): the window arrays' frees.
+EI_REPLACE(0x00475F20, ArrayFree1);   // the scene loader's point blocks (S6e)
 EI_REPLACE(0x00600330, ArrayFree1);
 EI_REPLACE(0x00600350, ArrayFree1);
 EI_REPLACE(0x00600370, ArrayFree1);

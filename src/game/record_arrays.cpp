@@ -117,6 +117,9 @@ EI_REPLACE(0x005FBFB0, GlobalMapPointRecords::ConstructElements);
 EI_REPLACE(0x005FC010, GlobalMapPointRecords::ConstructElements);
 EI_REPLACE(0x005FBD80, DestroyGlobalMapRecord);
 EI_REPLACE(0x005FBDD0, DestroyGlobalMapRecord);
+// The zones (16 bytes): the strings at +0xC, then +8.
+void __fastcall DestroyGlobalMapZone(Bytes<0x10>* p) { mfc::impl::DestroyStringsAt<Bytes<0x10>, 0xC, 8>(p); }
+EI_REPLACE(0x005FBD30, DestroyGlobalMapZone);
 
 // ---- The script's command arrays ------------------------------------------------------------------
 
@@ -268,5 +271,7 @@ void __fastcall DestroyWaterLevel(WaterLevelElement* p) {
     mfc::impl::DestroyArrayAt<WaterLevelElement, 0, mfc::impl::FloatArrayClass>(p);
 }
 EI_REPLACE(0x005755C0, DestroyWaterLevel);
+// The array's destructor (vtable 0073F730; each element as above, then the storage freed).
+EI_REPLACE(0x005711E0, WaterLevels::Destruct<mfc::impl::ClientMapArrayClass>);
 
 } // namespace recordarrays

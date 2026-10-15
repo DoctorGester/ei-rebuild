@@ -158,6 +158,7 @@ EI_REPLACE(0x005FB890, ScalarDelete<&GlobalMapPoints::Destruct<GlobalMapPathArra
 EI_REPLACE(0x005FB850, ScalarDelete<&GlobalMapZones::Destruct<GlobalMapZoneArrayClass>>);
 EI_REPLACE(0x0045D890, ScalarDelete<&OwnedPatrols::Destruct<PatrolArrayClass>>);
 EI_REPLACE(0x0045E070, ScalarDelete<&OwnedPatrols::Destruct<PatrolArrayClass>>);
+EI_REPLACE(0x0046F160, ScalarDelete<&DestroyPatrol>);   // a patrol element's own (0045E1E0, then freed)
 EI_REPLACE(0x004600F0, ScalarDelete<&OwnedAllods::Destruct<AllodArrayClass>>);
 EI_REPLACE(0x004C1A60, ScalarDelete<&ScriptAreas::Destruct<ScriptAreaArrayClass>>);
 EI_REPLACE(0x004CB630, ScalarDelete<&ScriptAreas::Destruct<ScriptAreaArrayClass>>);
