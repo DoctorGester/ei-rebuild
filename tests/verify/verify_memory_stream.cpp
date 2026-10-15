@@ -95,11 +95,11 @@ bool SameContents(Scratch& expected, const CMemoryStream* actual) {
 // 004A5380: MOV EAX,[ESP+8] (4), MOV EDX,ECX (2).
 std::uint32_t(__fastcall* s_read)(CMemoryStream*, void*, void*, std::uint32_t);
 std::uint32_t __fastcall ReadVerify(CMemoryStream* self, void*, void* buffer, std::uint32_t size) {
-    if (size > kMaxScratchBytes) return self->CMemoryStream::Read(buffer, size);
+    if (size > kMaxScratchBytes) return self->CMemoryStream::ReadImpl(buffer, size);
     Scratch expected(self);
     std::vector<unsigned char> expectedBytes(size ? size : 1);
     std::uint32_t expectedRet = s_read(expected.get(), nullptr, expectedBytes.data(), size);
-    std::uint32_t actualRet = self->CMemoryStream::Read(buffer, size);
+    std::uint32_t actualRet = self->CMemoryStream::ReadImpl(buffer, size);
     // Callers may read into the stream object itself (a field of a derived stream); the original
     // wrote those bytes into expectedBytes, so put them into the copy before comparing the objects.
     auto* at = static_cast<unsigned char*>(buffer);
@@ -161,7 +161,7 @@ void(__fastcall* s_seek)(CMemoryStream*, void*, std::uint32_t);
 void __fastcall SeekVerify(CMemoryStream* self, void*, std::uint32_t position) {
     Scratch expected(self);
     s_seek(expected.get(), nullptr, position);
-    self->CMemoryStream::Seek(position);
+    self->CMemoryStream::SeekImpl(position);
     CheckFieldsOnly("CMemoryStream::Seek", expected, self);
 }
 
@@ -195,7 +195,7 @@ void __fastcall StartByteVerify(CMemoryStream* self) {
 
 // 004A55D0 (slot 7): ours only.
 void __fastcall MemoryCopyFromVerify(CMemoryStream* self, void*, CStream* source) {
-    self->CMemoryStream::CopyFrom(source);
+    self->CMemoryStream::CopyFromImpl(source);
     std::uint32_t size = source->Size();
     bool ok = self->size_ == size && self->position_ == 0 && self->bitsIndex_ == -1 && self->bitMask_ == 0x80;
     if (ok && IsMemoryStream(source)) ok = SameBytes(static_cast<CMemoryStream*>(source)->data_, self->data_, size);
@@ -244,7 +244,7 @@ void __fastcall SetSizeVerify(CMemoryStream* self, void*, std::uint32_t size) {
 
 // 004A4D40 (slot 7 of CStream and the file streams): ours only.
 void __fastcall StreamCopyFromVerify(CStream* self, void*, CStream* source) {
-    self->CStream::CopyFrom(source);
+    self->CStream::CopyFromImpl(source);
     ei::verify::Check("CStream::CopyFrom", true, self->reading_ == 0 && source->reading_ == 1, "");
 }
 

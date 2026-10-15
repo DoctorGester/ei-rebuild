@@ -80,7 +80,7 @@ CSpell* CSpellManager::CreateSpellObject(int id) {
 }
 EI_REPLACE_METHOD(0x00688EC0, CSpellManager::CreateSpellObject);
 
-CEngineObject* CSpellManager::NewObject(int type) {
+CEngineObject* CSpellManager::NewObjectImpl(int type) {
     if (type == kClassSpell) {
         if (void* memory = gamecrt::operator_new(sizeof(CSpell))) return ConstructSpellAt(memory);
     } else if (type == kClassSpellContainer) {
@@ -135,13 +135,10 @@ EI_REPLACE(0x00689820, NextSpellContainer);
 namespace {
 int __fastcall SpellManagerCreateHook(CSpellManager* self) { return self->CSpellManager::Create(); }
 void __fastcall SpellManagerDestroyHook(CSpellManager* self) { self->CSpellManager::Destroy(); }
-CEngineObject* __fastcall SpellManagerNewObjectHook(CSpellManager* self, void*, int type) {
-    return self->CSpellManager::NewObject(type);
-}
 } // namespace
 EI_REPLACE(0x00688B30, SpellManagerCreateHook);
 EI_REPLACE(0x00688B40, SpellManagerDestroyHook);
-EI_REPLACE(0x00688CD0, SpellManagerNewObjectHook);
+EI_REPLACE_METHOD(0x00688CD0, CSpellManager::NewObjectImpl);
 
 const char* __fastcall SpellManagerClassName(CSpellManager*) { return reinterpret_cast<const char*>(kSpellManagerClassName); }
 int __fastcall SpellManagerClassId(CSpellManager*) { return 0x33; }

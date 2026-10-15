@@ -266,7 +266,7 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     }
 }
 
-int Terrain::RunTick() {
+int Terrain::RunTickImpl() {
     if (lightCountdown > 0 && --lightCountdown == 0) {
         lightCountdown = lightInterval;
         SetSun(sun, &ambient);
@@ -289,7 +289,6 @@ int Terrain::RunTick() {
 }
 
 namespace {
-int __fastcall RunTickHook(Terrain* self, void*) { return self->Terrain::RunTick(); }
 } // namespace
 
 EI_REPLACE_METHOD(0x006C3C80, SectorData::Clear);
@@ -298,4 +297,4 @@ EI_REPLACE_METHOD(0x006C3E30, SectorData::ScheduleRelight);
 EI_REPLACE_METHOD(0x006C3E50, SectorData::RelightTick);
 EI_REPLACE_METHOD(0x006C3E80, SectorData::Animate);
 EI_REPLACE_METHOD(0x006C8ED0, Terrain::SetSun);
-EI_REPLACE(0x006CB1E0, RunTickHook);
+EI_REPLACE_METHOD(0x006CB1E0, Terrain::RunTickImpl);

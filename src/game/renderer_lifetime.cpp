@@ -140,15 +140,12 @@ void CSceneRenderer::DestructRenderer() {
 }
 EI_REPLACE_METHOD(0x00500AC0, CSceneRenderer::DestructRenderer);
 
-void* CSceneRenderer::DeleteRenderer(unsigned flags) {
+void* CSceneRenderer::DeleteRendererImpl(unsigned flags) {
     DestructRenderer();
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
-void* __fastcall RendererDeleteHook(CSceneRenderer* self, void*, unsigned flags) {
-    return self->CSceneRenderer::DeleteRenderer(flags);
-}
-EI_REPLACE(0x00500AA0, RendererDeleteHook);
+EI_REPLACE_METHOD(0x00500AA0, CSceneRenderer::DeleteRendererImpl);
 
 void CSceneRenderer::DestroyRenderer() {
     DestroyBase();
@@ -181,7 +178,7 @@ std::uint32_t __fastcall RendererZEnableHook(CSceneRenderer* self) { return self
 EI_REPLACE(0x00501AA0, RendererZEnableHook);
 
 // The holder is stored before the batch is flushed; no device lock.
-int CSceneRenderer::SetTexture(int stage, void* texture) {
+int CSceneRenderer::SetTextureImpl(int stage, void* texture) {
     CTextureDevice* device = device_;
     CDXSurface*& bound = device->stageSurfaces_[stage];
     if (!texture) {
@@ -200,49 +197,32 @@ int CSceneRenderer::SetTexture(int stage, void* texture) {
     ++device->textureChanges_;
     return 1;
 }
-int __fastcall RendererSetTextureHook(CSceneRenderer* self, void*, int stage, void* texture) {
-    return self->CSceneRenderer::SetTexture(stage, texture);
-}
-EI_REPLACE(0x00501AF0, RendererSetTextureHook);
+EI_REPLACE_METHOD(0x00501AF0, CSceneRenderer::SetTextureImpl);
 
-void CSceneRenderer::SetColour(std::uint32_t colour) {
+void CSceneRenderer::SetColourImpl(std::uint32_t colour) {
     SetBaseColour(colour);
     device_->colour_ = colour;
 }
-void __fastcall RendererSetColourHook(CSceneRenderer* self, void*, std::uint32_t colour) {
-    self->CSceneRenderer::SetColour(colour);
-}
-EI_REPLACE(0x00501CC0, RendererSetColourHook);
+EI_REPLACE_METHOD(0x00501CC0, CSceneRenderer::SetColourImpl);
 
-void CSceneRenderer::DrawLineList(void* lines) { LineListDrawOriginal(lines, nullptr, pipeline_, device_); }
-void __fastcall RendererDrawLineListHook(CSceneRenderer* self, void*, void* lines) {
-    self->CSceneRenderer::DrawLineList(lines);
-}
-EI_REPLACE(0x00501CE0, RendererDrawLineListHook);
+void CSceneRenderer::DrawLineListImpl(void* lines) { LineListDrawOriginal(lines, nullptr, pipeline_, device_); }
+EI_REPLACE_METHOD(0x00501CE0, CSceneRenderer::DrawLineListImpl);
 
-int CSceneRenderer::DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
+int CSceneRenderer::DrawFigureImpl(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
                                tagRECT* screen) {
     auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawPlain(device_, reinterpret_cast<int>(unknownA), reinterpret_cast<int>(unknownB), reinterpret_cast<int>(material), alpha, screen);
 }
-int __fastcall RendererDrawFigureHook(CSceneRenderer* self, void*, void* figure, const void* unknownA,
-                                      const void* unknownB, void* material, int alpha, tagRECT* screen) {
-    return self->CSceneRenderer::DrawFigure(figure, unknownA, unknownB, material, alpha, screen);
-}
-EI_REPLACE(0x00501D00, RendererDrawFigureHook);
+EI_REPLACE_METHOD(0x00501D00, CSceneRenderer::DrawFigureImpl);
 
-int CSceneRenderer::DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
+int CSceneRenderer::DrawFigureLitImpl(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
                                   CTexture* textureA, CTexture* textureB) {
     auto* mesh = static_cast<CFigureMesh*>(figure);
     if (mesh->flags_ & kFigureHidden) return 1;
     return mesh->drawer_->DrawLit(device_, static_cast<const FigureLights*>(lights), static_cast<CMaterial*>(material), alpha, screen, textureA, textureB);
 }
-int __fastcall RendererDrawFigureLitHook(CSceneRenderer* self, void*, void* figure, const void* lights, void* material,
-                                         int alpha, tagRECT* screen, CTexture* textureA, CTexture* textureB) {
-    return self->CSceneRenderer::DrawFigureLit(figure, lights, material, alpha, screen, textureA, textureB);
-}
-EI_REPLACE(0x00501D40, RendererDrawFigureLitHook);
+EI_REPLACE_METHOD(0x00501D40, CSceneRenderer::DrawFigureLitImpl);
 
 void CSceneRenderer::GetGamma(float* brightness, float* contrast, float* gamma) const {
     *brightness = brightness_;

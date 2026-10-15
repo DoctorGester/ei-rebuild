@@ -46,6 +46,7 @@ public:
     virtual std::uint32_t Position() = 0;                               // 5
     virtual void Clear() = 0;                                           // 6: memory streams empty, file streams rewind
     virtual void CopyFrom(CStream* source);                             // 7: 004A4D40 (all of `source`, 1 KB at a time)
+    void CopyFromImpl(CStream* source);   // body of the slot above (registered by member pointer)
 
     // 0047A200. Constructor body: the vtable, version_ = 2000000000, ok_ = 1. Returns this.
     CStream* ConstructBase();
@@ -126,12 +127,15 @@ public:
 
     ~CMemoryStream() override {}                                        // 0: 004173B0 (deleting destructor)
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 004A5380 (a short read zero-fills, clears ok_)
+    std::uint32_t ReadImpl(void* buffer, std::uint32_t size);   // body of the slot above (registered by member pointer)
     void Write(const void* buffer, std::uint32_t size) override;       // 2: 004A53F0 (grows to (capacity + size) * 2)
     void Seek(std::uint32_t position) override;                        // 3: 004A5490 (then EndBits)
+    void SeekImpl(std::uint32_t position);   // body of the slot above (registered by member pointer)
     std::uint32_t Size() override;                                     // 4: 00417390 (size_)
     std::uint32_t Position() override;                                 // 5: 004173A0 (position_)
     void Clear() override;                                             // 6: 00417350
     void CopyFrom(CStream* source) override;                           // 7: 004A55D0 (one Read into a resized buffer)
+    void CopyFromImpl(CStream* source);   // body of the slot above (registered by member pointer)
 
     // 0041DD70. Constructor body: CStream's fields, the vtable, an empty stream (Reset's fields).
     // Fields +4, +6, +7 and +0xC are left as they are. Returns this.

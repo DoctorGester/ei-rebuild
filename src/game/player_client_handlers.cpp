@@ -314,8 +314,8 @@ int CPlayerClient::OnWorldTime() {
     float values[2];   // time, speed
     in_.Read(values, 8);
     CWorldClient* world = WorldClient();
-    world->CWorld::SetTimeSpeed(values[1]);
-    world->CWorld::SetTime(values[0]);
+    world->CWorld::SetTimeSpeedImpl(values[1]);
+    world->CWorld::SetTimeImpl(values[0]);
     world->UpdateLighting();
     return 1;
 }

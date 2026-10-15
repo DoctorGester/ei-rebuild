@@ -175,7 +175,7 @@ EI_VERIFY(0x0052EBE0, SetFlag40Verify, 6, s_setFlag40);
 // 0052F7F0: MOV EAX,[ESP+4]; TEST EAX,EAX (6 bytes).
 static std::uint32_t(__fastcall* s_setFlag1)(CUnit*, void*, int);
 static std::uint32_t __fastcall SetFlag1Verify(CUnit* self, void*, int on) {
-    return SameUnitWrites<std::uint32_t>("CUnit::SetFlag1000000", self, nullptr, [&] { return self->CUnit::SetStunned(on); },
+    return SameUnitWrites<std::uint32_t>("CUnit::SetFlag1000000", self, nullptr, [&] { return self->CUnit::SetStunnedImpl(on); },
                                          [&] { return s_setFlag1(self, nullptr, on); });
 }
 EI_VERIFY(0x0052F7F0, SetFlag1Verify, 6, s_setFlag1);
@@ -434,7 +434,7 @@ EI_VERIFY(0x005327D0, ActionSpeedVerify, 7, s_actionSpeed);
 static bool(__fastcall* s_acceptsTarget)(CUnit*, void*, const void*);
 static bool __fastcall AcceptsTargetVerify(CUnit* self, void*, const void* target) {
     bool expected = s_acceptsTarget(self, nullptr, target);
-    ei::verify::Check("CUnit::AcceptsTarget", expected, self->CUnit::AcceptsAnimation(target), "type %X", self->type_);
+    ei::verify::Check("CUnit::AcceptsTarget", expected, self->CUnit::AcceptsAnimationImpl(target), "type %X", self->type_);
     return expected;
 }
 EI_VERIFY(0x00532DA0, AcceptsTargetVerify, 7, s_acceptsTarget);

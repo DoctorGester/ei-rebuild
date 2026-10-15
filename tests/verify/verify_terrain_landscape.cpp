@@ -305,7 +305,7 @@ EI_VERIFY(0x006C7EB0, WavesVerify, 6, s_waves);
 int(__fastcall* s_create)(Terrain*, void*);
 
 int __fastcall CreateVerify(Terrain* self, void*) {
-    int result = self->Terrain::Create();
+    int result = self->Terrain::CreateImpl();
     ei::verify::Check("Terrain::Create", 1, result, "result");
     float expected[512];
     for (int i = 0; i < 512; ++i) expected[i] = static_cast<float>(std::sin(i * 3.141592653589793 / 256));
@@ -321,7 +321,7 @@ EI_VERIFY(0x006C5430, CreateVerify, 0, s_create);
 void(__fastcall* s_destroy)(Terrain*, void*);
 
 void __fastcall DestroyVerify(Terrain* self, void*) {
-    self->Terrain::Destroy();
+    self->Terrain::DestroyImpl();
     ei::verify::Check("Terrain::Destroy", true,
                       self->lights.Size() == 0 && self->lights.First() == nullptr && self->maxLightId == 0 &&
                           self->sectorCache.count == 0 && self->sectorCache.head == nullptr && self->sectorsX == -1,

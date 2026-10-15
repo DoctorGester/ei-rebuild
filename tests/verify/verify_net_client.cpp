@@ -68,7 +68,7 @@ ClientSession* __fastcall ClientConstructVerify(ClientSession* self) {
 // 0041D050: SUB ESP,8 (3), PUSH EBX (1), PUSH EBP (1).
 void(__fastcall* s_collect)(ClientSession*, void*, ReplicatedVector**);
 void __fastcall ClientCollectVerify(ClientSession* self, void*, ReplicatedVector** out) {
-    auto ours = [](ClientSession* session, void*, ReplicatedVector** to) { session->ClientSession::CollectReplicated(to); };
+    auto ours = [](ClientSession* session, void*, ReplicatedVector** to) { session->ClientSession::CollectReplicatedImpl(to); };
     netverify::CheckCollect("ClientCollectReplicated", self, out, ours, s_collect);
 }
 

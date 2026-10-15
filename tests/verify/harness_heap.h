@@ -32,6 +32,12 @@
 //
 // The clock option "lfheap" (EI_HARNESS_CLOCK, run_all.py / compare.py --clock virtual,lfheap)
 // leaves both as the game has them, to see what they change.
+//
+// EI_HEAP_JITTER=<seed>[,fill] (SV7a) moves the game's blocks without changing its calls: seeded spacer
+// blocks of the harness's between them in the reservation (made and freed at random, so the address
+// order changes too), and with "fill" every new block filled with seeded bytes (reads of memory the
+// game never wrote). Runs of two seeds that differ show where the game decides by address
+// (docs/notes/standalone-verification.md, SV7a). Off by default; goldens are recorded without it.
 
 #include <cstdint>
 

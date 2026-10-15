@@ -208,9 +208,68 @@ bool Reserved(SIZE_T bytes, void* const* frame) {
     return bytes < kLarge && GetCurrentThreadId() == g_mainThread && !t_aside && !InHandleMap(frame);
 }
 
+// The jitter (EI_HEAP_JITTER=<seed>[,fill]; SV7a): spacer blocks of the harness's between the game's in
+// the reservation, so the same calls get other addresses and another address order, seeded. Before
+// about one in four of the main thread's small blocks a spacer (8..512 bytes) is made and kept, or a
+// kept one freed (its hole takes a later block below earlier ones); the reservation starts with one of
+// 16 bytes..64 KB. The game's calls stay as they were (spacers go to the heap directly: no trace, no
+// observer). "fill": every new block of the game's (not HEAP_ZERO_MEMORY) is filled with seeded bytes,
+// so a read of memory the game never wrote differs between seeds too. Off (no variable): nothing changes.
+bool g_jitter;
+bool g_jitterFill;
+unsigned g_jitterState;
+constexpr unsigned kSpacers = 8192;
+void* g_spacers[kSpacers];
+unsigned g_spacerCount;
+
+unsigned JitterNext() {   // xorshift32
+    unsigned x = g_jitterState;
+    x ^= x << 13;
+    x ^= x >> 17;
+    x ^= x << 5;
+    return g_jitterState = x;
+}
+
+void ReadJitter() {
+    char text[64] = "";
+    if (!GetEnvironmentVariableA("EI_HEAP_JITTER", text, sizeof(text)) || !text[0]) return;
+    const unsigned seed = static_cast<unsigned>(std::strtoul(text, nullptr, 0));
+    g_jitter = true;
+    g_jitterFill = std::strstr(text, "fill") != nullptr;
+    g_jitterState = seed * 2654435761u ^ 0x9E3779B9u;
+    if (!g_jitterState) g_jitterState = 1;
+    for (int i = 0; i < 8; ++i) JitterNext();
+    Log("harness: heap jitter, seed %u%s (spacer blocks between the game's; addresses not as in a golden)", seed,
+        g_jitterFill ? ", new blocks filled" : "");
+}
+
+// Before a block of the reservation (the lock held).
+void Jitter() {
+    const unsigned r = JitterNext();
+    if (r & 3) return;
+    if (g_spacerCount && ((r >> 2) & 1)) {
+        const unsigned i = (r >> 3) % g_spacerCount;
+        g_heapFree(g_heap, 0, g_spacers[i]);
+        g_spacers[i] = g_spacers[--g_spacerCount];
+        return;
+    }
+    if (g_spacerCount == kSpacers) return;
+    if (void* p = g_heapAlloc(g_heap, 0, 8u * (1 + ((r >> 3) & 63)))) g_spacers[g_spacerCount++] = p;
+}
+
+void JitterFill(void* p, SIZE_T bytes, DWORD flags) {
+    if (!g_jitterFill || !p || (flags & HEAP_ZERO_MEMORY)) return;
+    auto* b = static_cast<unsigned char*>(p);
+    for (SIZE_T i = 0; i < bytes; ++i) b[i] = static_cast<unsigned char>(JitterNext() >> 11);
+}
+
 void* Allocate(DWORD flags, SIZE_T bytes, bool reserved) {
     if (reserved) {
-        if (void* p = g_heapAlloc(g_heap, flags, bytes)) return p;
+        if (g_jitter) Jitter();
+        if (void* p = g_heapAlloc(g_heap, flags, bytes)) {
+            if (g_jitter) JitterFill(p, bytes, flags);
+            return p;
+        }
         if (!g_full) Log("harness: the CRT heap's reservation (%u MB) is full, small blocks from the growable heap",
                          unsigned(kReserve >> 20));
         g_full = true;
@@ -240,6 +299,9 @@ HANDLE WINAPI RepeatableHeapCreate(DWORD options, SIZE_T initial, SIZE_T maximum
         g_end += info.RegionSize;
     Log("harness: the CRT's heap %p, %08X-%08X, without the low-fragmentation heap (repeatable addresses; thread %u)",
         g_heap, unsigned(g_begin), unsigned(g_end), unsigned(g_mainThread));
+    ReadJitter();
+    if (g_jitter && g_spacerCount < kSpacers)
+        if (void* p = g_heapAlloc(g_heap, 0, 16u * (1 + JitterNext() % 4096))) g_spacers[g_spacerCount++] = p;
     return g_heap;
 }
 

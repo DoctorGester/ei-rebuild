@@ -57,7 +57,7 @@ EI_REPLACE_METHOD(0x004D6940, CServerSpecificManager::DeletingDestruct);
 const char* CServerSpecificManager::GetClassName() { return reinterpret_cast<const char*>(kManagerClassName); }
 int CServerSpecificManager::GetClassId() { return kManagerClassId; }
 
-CEngineObject* CServerSpecificManager::NewObject(int type) {
+CEngineObject* CServerSpecificManager::NewObjectImpl(int type) {
     switch (type) {
     case kObject3DServer:
         if (void* p = gamecrt::operator_new(0x20)) return Object3DServerConstruct(p);
@@ -98,13 +98,10 @@ const char* __fastcall ManagerClassNameHook(CServerSpecificManager* self) {
     return self->CServerSpecificManager::GetClassName();
 }
 int __fastcall ManagerClassIdHook(CServerSpecificManager* self) { return self->CServerSpecificManager::GetClassId(); }
-CEngineObject* __fastcall NewObjectHook(CServerSpecificManager* self, void*, int type) {
-    return self->CServerSpecificManager::NewObject(type);
-}
 } // namespace
 EI_REPLACE(0x004D6920, ManagerClassNameHook);
 EI_REPLACE(0x004D6930, ManagerClassIdHook);
-EI_REPLACE(0x004D6970, NewObjectHook);
+EI_REPLACE_METHOD(0x004D6970, CServerSpecificManager::NewObjectImpl);
 
 // --- CTorchObjectSpec ---------------------------------------------------------------------------
 

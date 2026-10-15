@@ -31,7 +31,7 @@ static void __fastcall SetTimeVerify(CWorld* self, void*, float hours) {
     s_setTime(self, nullptr, hours);
     float theirs = self->timeBase_;
     self->timeBase_ = before;
-    self->CWorld::SetTime(hours);
+    self->CWorld::SetTimeImpl(hours);
     ei::verify::CheckNear("CWorld::SetTime", theirs, self->timeBase_, "tick %d hours %f", self->tick_, hours);
 }
 EI_VERIFY(0x0055FB30, SetTimeVerify, 6, s_setTime);
@@ -40,7 +40,7 @@ EI_VERIFY(0x0055FB30, SetTimeVerify, 6, s_setTime);
 // per tick follow from the speed.
 static void __fastcall SetTimeSpeedVerify(CWorld* self, void*, float speed) {
     double before = TimeOfDay(self);
-    self->CWorld::SetTimeSpeed(speed);
+    self->CWorld::SetTimeSpeedImpl(speed);
     double rate = speed > 0.0f ? 1.0 / speed : speed < 0.0f ? 1.0 / TimeSpeedSetting() : 0.0;
     ei::verify::CheckNear("CWorld::SetTimeSpeed rate", static_cast<float>(rate / 15.0), self->secondsPerTick_, "speed %f",
                           speed);
@@ -67,13 +67,13 @@ EI_VERIFY(0x0055FCB0, SetWindVerify, 5, s_setWind);
 
 // 0058EEA0 / 0058EEE0 server SetTime / SetTimeSpeed: ours only; every player is marked dirty (4).
 static void __fastcall ServerSetTimeVerify(CWorldServer* self, void*, float hours) {
-    self->CWorldServer::SetTime(hours);
+    self->CWorldServer::SetTimeImpl(hours);
     ei::verify::Check("CWorldServer::SetTime", true, AllDirty(self, 4), "hours %f", hours);
 }
 EI_VERIFY(0x0058EEA0, ServerSetTimeVerify, 0, s_unused);
 
 static void __fastcall ServerSetTimeSpeedVerify(CWorldServer* self, void*, float speed) {
-    self->CWorldServer::SetTimeSpeed(speed);
+    self->CWorldServer::SetTimeSpeedImpl(speed);
     ei::verify::Check("CWorldServer::SetTimeSpeed", true, AllDirty(self, 4), "speed %f", speed);
 }
 EI_VERIFY(0x0058EEE0, ServerSetTimeSpeedVerify, 0, s_unused);
