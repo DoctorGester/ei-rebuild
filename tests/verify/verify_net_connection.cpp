@@ -65,8 +65,9 @@ void __fastcall WriteAcksVerify(Connection* self, void*, std::uint8_t** p) {
 // 00438930: SUB ESP,8 (3), PUSH EBX (1), PUSH ESI (1).
 Message*(__fastcall* s_create)(TypeRegistry*, void*, std::uint32_t);
 Message* __fastcall TypeCreateVerify(TypeRegistry* self, void*, std::uint32_t type) {
-    Message* expected = s_create(self, nullptr, type);
+    // Ours first, so that its message lands where the original's would without the check (SV2f).
     Message* actual = self->Create(type);
+    Message* expected = s_create(self, nullptr, type);
     bool same = (expected == nullptr) == (actual == nullptr) && (!expected || *reinterpret_cast<std::uintptr_t*>(expected) == *reinterpret_cast<std::uintptr_t*>(actual));
     ei::verify::Check("TypeRegistry::Create", true, same, "type %u", type);
     if (expected) delete expected;

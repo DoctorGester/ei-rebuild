@@ -3,9 +3,10 @@
 //
 // The key handlers and ShowSelection play sounds, open message boxes, save or load, so ours run
 // alone and the wrappers check the state they must leave (selection, name and caret, pending
-// close value, handled flag). IsReservedSave is pure and runs side by side. Tokenize runs the
-// original first on a stand-in window (the interface pointer and a copy of the token array) and
-// ours on the real one; the tokens each appended are compared, then the stand-in's are freed.
+// close value, handled flag). IsReservedSave is pure and runs side by side. Tokenize runs ours
+// first on the real window, then the original on a stand-in (the interface pointer and a copy of
+// the token array as it was, kept in our memory and made after ours, SV2f); the tokens each
+// appended are compared, then the stand-in's are freed.
 #include "verify.h"
 
 #include "../../src/game/ui.h"
@@ -15,6 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -189,15 +191,18 @@ static void __fastcall TokenizeVerify(CUiScrollText* self, void*, const mfc::CSt
     scratch->interface_ = self->interface_;
     UiTokenArray& own = self->tokens_;
     UiTokenArray& copy = scratch->tokens_;
-    copy = own;
-    if (own.data) {
-        int capacity = own.maxSize > 0 ? own.maxSize : 1;
-        copy.data = static_cast<UiTextToken**>(gamecrt::operator_new(capacity * sizeof(UiTextToken*)));
-        std::memcpy(copy.data, own.data, own.size * sizeof(UiTextToken*));
-    }
+    const UiTokenArray keptHeader = own;
+    std::vector<UiTextToken*> keptTokens;
+    if (own.data && own.size > 0) keptTokens.assign(own.data, own.data + own.size);
     int before = own.size;
-    s_tokenize(scratch, nullptr, text);
     self->CUiScrollText::Tokenize(text);
+    copy = keptHeader;
+    if (keptHeader.data) {
+        int capacity = keptHeader.maxSize > 0 ? keptHeader.maxSize : 1;
+        copy.data = static_cast<UiTextToken**>(gamecrt::operator_new(capacity * sizeof(UiTextToken*)));
+        if (!keptTokens.empty()) std::memcpy(copy.data, keptTokens.data(), keptTokens.size() * sizeof(UiTextToken*));
+    }
+    s_tokenize(scratch, nullptr, text);
     bool ok = copy.size == own.size;
     int bad = -1;
     for (int i = before; ok && i < own.size; ++i) {

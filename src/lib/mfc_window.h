@@ -8,7 +8,7 @@
 // here (registered in mfc_window.cpp; tests/verify/verify_mfc_window.cpp checks the assumption
 // against the original's state whenever a box is shown).
 //
-// CWnd's destructor (S3d): the exit functions run it on MFC's four static windows (wndTop,
+// CWnd's constructor (S3f) and destructor (S3d): the exit functions run it on MFC's four static windows (wndTop,
 // wndBottom, wndTopMost, wndNoTopMost: placement constants, never destroyed as windows); MFC's other
 // classes reach it from their own destructors. Checked by tests/verify/verify_mfc_state.cpp.
 
@@ -39,6 +39,9 @@ struct CCmdTarget {
     BOOL resultExpected;        // +0x14 m_bResultExpected
     void* connectionPoints;     // +0x18 m_xConnPtContainer
 
+    // 00703EAE: one reference, no outer unknown or dispatch, a result expected; no vtable written
+    // (returns this).
+    CCmdTarget* Construct();
     // 00703EC8: an enabled dispatch disconnected (COleDispatchImpl::Disconnect, slot 7).
     void Destruct();
 };
@@ -68,6 +71,11 @@ struct CWnd {
 
     static void* Vtable() { return reinterpret_cast<void*>(0x00746DA8); }
 
+    // 00704546 CWnd(HWND): CCmdTarget's constructor, CWnd's vtable, CWnd's members cleared and the
+    // handle kept (returns this). The static initialisers build MFC's four static windows with it
+    // (wndTop 0, wndBottom 1, wndTopMost -1, wndNoTopMost -2); CWnd's default constructor (007068AA)
+    // calls it too.
+    CWnd* Construct(HWND handle);
     // 00704FE3: a window still attached destroyed (CWnd::DestroyWindow, at its address), except for the
     // four static windows; the control container deleted; the control site let go of this window; then
     // CCmdTarget's destructor. The original's unwind frame (CCmdTarget destroyed when DestroyWindow

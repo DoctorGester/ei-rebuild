@@ -2157,7 +2157,7 @@ void RunSteps() {
             WriteReport();
         } else if (s.verb == "quit") {
             WriteReport();
-            // The game can hang on the way out (Rebirth does). The quit console command calls exit(),
+            // The game can hang on the way out (Rebirth did: harness_starter.cpp). The quit console command calls exit(),
             // which stops our watchdog thread too, so ei_launch ends the process when it sees
             // harness_quit and the game is still running 3 s later.
             char marker[MAX_PATH];
@@ -2174,7 +2174,7 @@ void RunSteps() {
 }
 
 // Watchdog thread: makes sure every harness run ends without Task Manager. After "quit" the game
-// gets 5 s to exit by itself (under Rebirth it hangs on the way out). A scenario that has not
+// gets 5 s to exit by itself. A scenario that has not
 // finished within its time limit (60 s from game start unless it says "timeout <seconds>") fails:
 // the report is written with the failure and the game is closed. Keep scenarios well inside it.
 constexpr DWORD kDefaultTimeLimitMs = 60000;

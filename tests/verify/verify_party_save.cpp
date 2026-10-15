@@ -1,10 +1,11 @@
 // Checks for party_save.cpp. Every new game copies the party into the named party records
 // (004A8800 -> CParty::Assign: SaveParty and LoadParty through a memory stream, each record's Save
 // and Load); saving a game (scenarios ui_saveload, party_records) writes the parties, loading reads them.
-// - PartyUnitRecord::Save and CParty::SaveParty: into a memory stream, the original into a
-//   scratch memory stream first and ours into the real one; the bytes compared. SaveParty draws
-//   one ISAAC key: the generator is put back to its state before ours runs. Other streams, and a
-//   party without managers (Create runs), run ours only.
+// - PartyUnitRecord::Save and CParty::SaveParty: into a memory stream, ours into the real one
+//   first, then the original into a scratch memory stream made after it (SV2f); the bytes
+//   compared. SaveParty draws one ISAAC key: the generator is put back to its state before ours
+//   ran for the original, and to ours' after. Other streams, and a party without managers (Create
+//   runs), run ours only.
 // - PartyUnitRecord::Load: ours, then (memory stream, version 0x6B or later) the original record
 //   Save into a scratch stream must give back the bytes Load consumed.
 // - CParty::LoadParty: ours only; every item of the party and of its records is registered in
@@ -26,6 +27,13 @@
 namespace {
 
 void* s_unused;
+
+// The ISAAC generator's state, kept in our memory (SV2f).
+struct KeptRandom {
+    unsigned char bytes[sizeof(IsaacRandom)];
+    void Save() { std::memcpy(bytes, &IsaacRandom::Global(), sizeof(bytes)); }
+    void Restore() const { std::memcpy(&IsaacRandom::Global(), bytes, sizeof(bytes)); }
+};
 
 std::uintptr_t VtableOf(const void* object) {
     std::uintptr_t vtable;
@@ -68,10 +76,10 @@ void __fastcall RecordSaveVerify(PartyUnitRecord* self, void*, CStream* stream) 
         self->Save(stream);
         return;
     }
-    CMemoryStream* scratch = NewScratchStream(stream);
-    s_recordSave(self, nullptr, scratch);
     std::uint32_t start = real->position_;
     self->Save(stream);
+    CMemoryStream* scratch = NewScratchStream(stream);
+    s_recordSave(self, nullptr, scratch);
     ei::verify::Check("PartyUnitRecord::Save", true, SameBytes(real, start, scratch), "record %p: %u bytes, original %u",
                       self, real->position_ - start, scratch->size_);
     DeleteScratchStream(scratch);
@@ -97,17 +105,18 @@ void __fastcall PartySaveVerify(CParty* self, void*, CStream* stream, int saveVa
         self->SaveParty(stream, saveVariables);
         return;
     }
-    auto* random = static_cast<IsaacRandom*>(gamecrt::operator_new(sizeof(IsaacRandom)));
-    std::memcpy(random, &IsaacRandom::Global(), sizeof(IsaacRandom));
-    CMemoryStream* scratch = NewScratchStream(stream);
-    s_partySave(self, nullptr, scratch, saveVariables);
-    std::memcpy(&IsaacRandom::Global(), random, sizeof(IsaacRandom));
+    KeptRandom before, afterOurs;
+    before.Save();
     std::uint32_t start = real->position_;
     self->SaveParty(stream, saveVariables);
+    afterOurs.Save();
+    before.Restore();
+    CMemoryStream* scratch = NewScratchStream(stream);
+    s_partySave(self, nullptr, scratch, saveVariables);
+    afterOurs.Restore();
     ei::verify::Check("CParty::SaveParty", true, SameBytes(real, start, scratch), "party %p: %u bytes, original %u", self,
                       real->position_ - start, scratch->size_);
     DeleteScratchStream(scratch);
-    gamecrt::operator_delete(random);
 }
 
 // Every entry of `list` is the item manager's object under its id.

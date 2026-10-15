@@ -15,22 +15,50 @@ void* s_unused;
 
 // ---- Helpers ------------------------------------------------------------------------------------
 
-// A copy of a group holding its own references, so original code can run on it while ours runs
-// on the real group. Destroy releases the references and frees the array.
-ScriptGroup Clone(const ScriptGroup& g) {
-    ScriptGroup c{};
-    c.vtable = g.vtable;
-    c.growBy = g.growBy;
-    if (g.data) {
-        c.data = static_cast<ScriptObjectRef*>(gamecrt::operator_new(g.maxSize * 4));
-        for (int i = 0; i < g.maxSize; ++i) c.data[i].object = i < g.size ? g.data[i].object : nullptr;
-        for (int i = 0; i < g.size; ++i)
-            if (c.data[i].object) ++c.data[i].object->refCount_;
+// A group's elements taken before ours runs: the object pointers in our memory, each holding a
+// reference (taken at once, so that ours' releases leave the objects alive as the clone used to).
+// Clone, after ours ran, makes a copy of the group (its array on the game heap) that adopts those
+// references, so original code can run on it; Destroy releases them and frees the array. The copy
+// is allocated after ours so that ours' blocks land where the original's would without the check
+// (the game reads the heap's address order, SV2f).
+struct KeptGroup {
+    ScriptGroup header{};
+    std::vector<CEngineObject*> objects;
+    bool adopted = false;
+    explicit KeptGroup(const ScriptGroup& g) {
+        header.vtable = g.vtable;
+        header.growBy = g.growBy;
+        header.size = g.size;
+        header.maxSize = g.maxSize;
+        header.data = g.data;   // only tested for null
+        if (g.data) {
+            objects.resize(static_cast<std::size_t>(g.maxSize), nullptr);
+            for (int i = 0; i < g.size; ++i) objects[static_cast<std::size_t>(i)] = g.data[i].object;
+            for (int i = 0; i < g.size; ++i)
+                if (objects[static_cast<std::size_t>(i)]) ++objects[static_cast<std::size_t>(i)]->refCount_;
+        }
     }
-    c.size = g.size;
-    c.maxSize = g.maxSize;
-    return c;
-}
+    KeptGroup(const KeptGroup&) = delete;
+    KeptGroup& operator=(const KeptGroup&) = delete;
+    ~KeptGroup() {
+        if (adopted) return;
+        for (int i = 0; i < header.size && header.data; ++i)
+            if (objects[static_cast<std::size_t>(i)]) objects[static_cast<std::size_t>(i)]->Release();
+    }
+    ScriptGroup Clone() {
+        adopted = true;
+        ScriptGroup c{};
+        c.vtable = header.vtable;
+        c.growBy = header.growBy;
+        if (header.data) {
+            c.data = static_cast<ScriptObjectRef*>(gamecrt::operator_new(header.maxSize * 4));
+            for (int i = 0; i < header.maxSize; ++i) c.data[i].object = objects[static_cast<std::size_t>(i)];
+        }
+        c.size = header.size;
+        c.maxSize = header.maxSize;
+        return c;
+    }
+};
 
 void Destroy(ScriptGroup& g) {
     if (g.data) {
@@ -197,14 +225,16 @@ EI_VERIFY(0x004B25F0, RefSaveVerify, 11, s_refSave);
 
 // ---- ScriptGroup --------------------------------------------------------------------------------
 
-// The set operations only write `this`: run the original into a clone and ours into the real
-// group, then compare elements, size and capacity.
+// The set operations only write `this`: run ours into the real group and the original into a
+// clone (made after ours from the elements kept before it), then compare elements, size and
+// capacity. The other in-place operations below likewise.
 using SetOp = void(__fastcall*)(ScriptGroup*, void*, const ScriptGroup*, const ScriptGroup*);
 static void SetOpVerify(const char* name, SetOp original, void (ScriptGroup::*ours)(const ScriptGroup&, const ScriptGroup&),
                         ScriptGroup* self, const ScriptGroup* a, const ScriptGroup* b) {
-    ScriptGroup scratch = Clone(*self);
-    original(&scratch, nullptr, a, b);
+    KeptGroup before(*self);
     (self->*ours)(*a, *b);
+    ScriptGroup scratch = before.Clone();
+    original(&scratch, nullptr, a, b);
     ei::verify::Check(name, true, SameGroup(scratch, *self), "a %d b %d -> %d vs %d", a->size, b->size, scratch.size, self->size);
     Destroy(scratch);
 }
@@ -227,9 +257,10 @@ EI_VERIFY(0x004B2B60, IntersectionVerify, 7, s_intersection);
 // 004B2D60: MOV EAX,[ECX+8]; MOV ECX,[ECX+4] (6 bytes).
 static void(__fastcall* s_sort)(ScriptGroup*);
 static void __fastcall SortVerify(ScriptGroup* self) {
-    ScriptGroup scratch = Clone(*self);
-    s_sort(&scratch);
+    KeptGroup before(*self);
     self->Sort();
+    ScriptGroup scratch = before.Clone();
+    s_sort(&scratch);
     ei::verify::Check("ScriptGroup::Sort", true, SameGroup(scratch, *self), "size %d", self->size);
     Destroy(scratch);
 }
@@ -244,14 +275,15 @@ static int __fastcall IndexOfVerify(const ScriptGroup* self, void*, const Script
 }
 EI_VERIFY(0x004B2DA0, IndexOfVerify, 7, s_indexOf);
 
-// Remove / Insert / RemoveDeleted / InsertAll modify the group in place: clone, run the original
-// on the clone and ours on the real group, compare.
+// Remove / Insert / RemoveDeleted / InsertAll modify the group in place: keep the elements, run
+// ours on the real group, then the original on a clone, compare.
 // 004B2E60: PUSH ECX; MOV EAX,[ECX+8]; PUSH EBX (5 bytes).
 static void(__fastcall* s_remove)(ScriptGroup*, void*, CEngineObject*);
 static void __fastcall RemoveVerify(ScriptGroup* self, void*, CEngineObject* object) {
-    ScriptGroup scratch = Clone(*self);
-    s_remove(&scratch, nullptr, object);
+    KeptGroup before(*self);
     self->Remove(object);
+    ScriptGroup scratch = before.Clone();
+    s_remove(&scratch, nullptr, object);
     ei::verify::Check("ScriptGroup::Remove", true, SameGroup(scratch, *self), "%p size %d", object, self->size);
     Destroy(scratch);
 }
@@ -260,9 +292,10 @@ EI_VERIFY(0x004B2E60, RemoveVerify, 5, s_remove);
 // 004B2EF0: SUB ESP,0x10; MOV EAX,[ESP+0x14] (7 bytes).
 static void(__fastcall* s_insert)(ScriptGroup*, void*, CEngineObject*);
 static void __fastcall InsertVerify(ScriptGroup* self, void*, CEngineObject* object) {
-    ScriptGroup scratch = Clone(*self);
-    s_insert(&scratch, nullptr, object);
+    KeptGroup before(*self);
     self->Insert(object);
+    ScriptGroup scratch = before.Clone();
+    s_insert(&scratch, nullptr, object);
     ei::verify::Check("ScriptGroup::Insert", true, SameGroup(scratch, *self) && Sorted(*self), "%p size %d", object, self->size);
     Destroy(scratch);
 }
@@ -271,9 +304,10 @@ EI_VERIFY(0x004B2EF0, InsertVerify, 7, s_insert);
 // 004B3110: PUSH ECX; PUSH EBX; MOV EBX,ECX; XOR EAX,EAX (6 bytes).
 static void(__fastcall* s_removeDeleted)(ScriptGroup*);
 static void __fastcall RemoveDeletedVerify(ScriptGroup* self) {
-    ScriptGroup scratch = Clone(*self);
-    s_removeDeleted(&scratch);
+    KeptGroup before(*self);
     self->RemoveDeleted();
+    ScriptGroup scratch = before.Clone();
+    s_removeDeleted(&scratch);
     ei::verify::Check("ScriptGroup::RemoveDeleted", true, SameGroup(scratch, *self), "size %d vs %d", scratch.size, self->size);
     Destroy(scratch);
 }
@@ -282,9 +316,10 @@ EI_VERIFY(0x004B3110, RemoveDeletedVerify, 6, s_removeDeleted);
 // 004B31D0: MOV EAX,[ESP+4]; PUSH ESI (5 bytes).
 static void(__fastcall* s_insertAll)(ScriptGroup*, void*, const mfc::CTypedPtrList<CEngineObject>*);
 static void __fastcall InsertAllVerify(ScriptGroup* self, void*, const mfc::CTypedPtrList<CEngineObject>* list) {
-    ScriptGroup scratch = Clone(*self);
-    s_insertAll(&scratch, nullptr, list);
+    KeptGroup before(*self);
     self->InsertAll(list);
+    ScriptGroup scratch = before.Clone();
+    s_insertAll(&scratch, nullptr, list);
     ei::verify::Check("ScriptGroup::InsertAll", true, SameGroup(scratch, *self), "list %d -> %d vs %d", list->count,
                       scratch.size, self->size);
     Destroy(scratch);
@@ -300,15 +335,16 @@ static BOOL __fastcall ContainsVerify(const ScriptGroup* self, void*, CEngineObj
 }
 EI_VERIFY(0x004B3330, ContainsVerify, 5, s_contains);
 
-// 004B3360: SUB ESP,0xC; PUSH EBX; MOV EBX,ECX (6 bytes). The original reads the real stream into
-// a clone; ours replays the recorded bytes.
+// 004B3360: SUB ESP,0xC; PUSH EBX; MOV EBX,ECX (6 bytes). Ours reads the real stream (recorded)
+// into the real group; the original replays the recorded bytes into a clone made after it.
 static void(__fastcall* s_groupLoad)(ScriptGroup*, void*, ScriptStream*);
 static void __fastcall GroupLoadVerify(ScriptGroup* self, void*, ScriptStream* stream) {
-    ScriptGroup scratch = Clone(*self);
+    KeptGroup before(*self);
     RecordStream record(stream);
-    s_groupLoad(&scratch, nullptr, &record);
+    self->Load(&record);
+    ScriptGroup scratch = before.Clone();
     ReplayStream replay(record.bytes);
-    self->Load(&replay);
+    s_groupLoad(&scratch, nullptr, &replay);
     ei::verify::Check("ScriptGroup::Load", true, SameGroup(scratch, *self) && replay.Consumed(), "size %d vs %d",
                       scratch.size, self->size);
     Destroy(scratch);

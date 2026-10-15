@@ -177,6 +177,10 @@ public:
     // 005AAD00 (class 0x43; sets its vtable 0073FC48) / 005AADC0 (class 0x41): the mesh's arrays
     // freed, then DestructBase. 005AACE0 / 005AADA0 are their scalar deleting destructors.
     void DestructMesh();
+    // 00454510 (class 0x42, the figure's parts; 004543A0 is its scalar deleting destructor):
+    // DestructMesh without its vtable.
+    void DestructPlainMesh();
+    CFigureMesh* DeletingDestructPlainMesh(unsigned flags);
     void DestructSharedMesh();
     CFigureMesh* DeletingDestructMesh(unsigned flags);
     CFigureMesh* DeletingDestructSharedMesh(unsigned flags);

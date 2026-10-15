@@ -23,11 +23,14 @@
 // process it started) never outlives ei_launch. Exit codes of a run: 0 passed, 1 failed, 2 no report /
 // not started, 3 and 4 below.
 #include <windows.h>
+#include <tlhelp32.h>
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <vector>
 
 static std::wstring Dir(const std::wstring& path) {
     return path.substr(0, path.find_last_of(L"\\/"));
@@ -94,6 +97,83 @@ static void PrintOpenWindowsBounded(DWORD pid) {
     if (!t) return;
     WaitForSingleObject(t, 2000);
     CloseHandle(t);
+}
+
+// Where a game that will not end waits: for each of its threads, the instruction pointer and the return
+// addresses on its stack (words after a CALL into a loaded module), as module+offset, written to <path>.
+// The game's own watchdog cannot do this once exit() is under way (ExitProcess has ended every other thread).
+static void WriteThreadStacks(HANDLE process, DWORD pid, const std::wstring& path) {
+    struct Module {
+        std::uintptr_t base, size;
+        wchar_t name[MAX_MODULE_NAME32 + 1];
+    };
+    std::vector<Module> modules;
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, pid);
+    if (snap != INVALID_HANDLE_VALUE) {
+        MODULEENTRY32W me{sizeof(me)};
+        for (BOOL ok = Module32FirstW(snap, &me); ok; ok = Module32NextW(snap, &me)) {
+            Module m{reinterpret_cast<std::uintptr_t>(me.modBaseAddr), me.modBaseSize, L""};
+            wcscpy_s(m.name, me.szModule);
+            modules.push_back(m);
+        }
+        CloseHandle(snap);
+    }
+    auto describe = [&](std::uintptr_t a, wchar_t* out, std::size_t size) {
+        for (const Module& m : modules)
+            if (a - m.base < m.size) {
+                std::swprintf(out, size, L"%s+%X", m.name, static_cast<unsigned>(a - m.base));
+                return true;
+            }
+        return false;
+    };
+    // A return address: the 2, 3, 5 or 6 bytes before it are a CALL (FF /2 register or memory, E8 rel32).
+    auto afterCall = [&](std::uintptr_t a) {
+        unsigned char b[8] = {};
+        SIZE_T got = 0;
+        if (!ReadProcessMemory(process, reinterpret_cast<void*>(a - 8), b, 8, &got) || got != 8) return false;
+        if (b[3] == 0xE8) return true;
+        for (int n : {2, 3, 6, 7})
+            if (b[8 - n] == 0xFF && ((b[9 - n] >> 3) & 7) == 2) return true;
+        return false;
+    };
+    FILE* out = nullptr;
+    if (_wfopen_s(&out, path.c_str(), L"w") != 0 || !out) return;
+    snap = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    THREADENTRY32 te{sizeof(te)};
+    for (BOOL ok = snap != INVALID_HANDLE_VALUE && Thread32First(snap, &te); ok; ok = Thread32Next(snap, &te)) {
+        if (te.th32OwnerProcessID != pid) continue;
+        HANDLE t = OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION, FALSE, te.th32ThreadID);
+        if (!t) continue;
+        SuspendThread(t);
+        CONTEXT c{};
+        c.ContextFlags = CONTEXT_CONTROL;
+        wchar_t where[MAX_MODULE_NAME32 + 16] = L"?";
+        if (GetThreadContext(t, &c)) {
+            describe(c.Eip, where, std::size(where));
+            std::fwprintf(out, L"thread %lu: eip %08lX %s\n", te.th32ThreadID, c.Eip, where);
+            std::vector<std::uint32_t> stack(16384);
+            SIZE_T got = 0;
+            ReadProcessMemory(process, reinterpret_cast<void*>(c.Esp), stack.data(), stack.size() * 4, &got);
+            if (!got) {
+                // The read stops at the stack's end: take what is there, a page at a time.
+                for (SIZE_T n = 4096; n <= stack.size() * 4; n += 4096) {
+                    SIZE_T part = 0;
+                    if (!ReadProcessMemory(process, reinterpret_cast<void*>(c.Esp), stack.data(), n, &part)) break;
+                    got = part;
+                }
+            }
+            int shown = 0;
+            for (SIZE_T i = 0; i < got / 4 && shown < 48; ++i)
+                if (describe(stack[i], where, std::size(where)) && afterCall(stack[i])) {
+                    std::fwprintf(out, L"  %s\n", where);
+                    ++shown;
+                }
+        }
+        ResumeThread(t);
+        CloseHandle(t);
+    }
+    if (snap != INVALID_HANDLE_VALUE) CloseHandle(snap);
+    std::fclose(out);
 }
 
 // Ends the game and everything it started. A process whose thread is stuck inside a driver (kernel
@@ -263,8 +343,10 @@ int wmain(int argc, wchar_t** argv) {
 
     // Wait for the game, then report the harness result (harness_report.txt in the output folder). The
     // harness writes harness_quit when its scenario quits, after its report; a game still running 3 s
-    // after that is hung on exit (Rebirth always is, after DestroyClassRegistry) and is terminated, so
-    // no run needs Task Manager. The vanilla game exits within 0.4 s (2.5 s at most, 16 games at once).
+    // after that is hung on exit and is terminated, so no run needs Task Manager; where its threads were
+    // goes to exit_hang.txt first. The vanilla game exits within 0.4 s (2.5 s at most, 16 games at once).
+    // Rebirth runs hung in addon.dll's DLL_PROCESS_DETACH (restarting CTFMon.exe) until the harness turned
+    // its CtfMon switch off (S3e, tests/verify/harness_starter.cpp).
     std::wstring quitMarker = outDir + L"\\harness_quit";
     ULONGLONG quitSeen = 0;
     const ULONGLONG started = GetTickCount64();
@@ -300,7 +382,9 @@ int wmain(int argc, wchar_t** argv) {
         if (GetFileAttributesW(quitMarker.c_str()) == INVALID_FILE_ATTRIBUTES) continue;
         if (!quitSeen) quitSeen = GetTickCount64();
         if (GetTickCount64() - quitSeen >= 3000) {
-            std::wprintf(L"ei_launch: game still running 3 s after the scenario quit; terminating it\n");
+            WriteThreadStacks(pi.hProcess, pi.dwProcessId, outDir + L"\\exit_hang.txt");
+            std::wprintf(L"ei_launch: game still running 3 s after the scenario quit (its threads: exit_hang.txt); "
+                         L"terminating it\n");
             unkillable = !EndGame(pi.hProcess, job, pi.dwProcessId, 0);
             break;
         }

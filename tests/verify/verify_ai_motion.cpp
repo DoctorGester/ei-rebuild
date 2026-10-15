@@ -1,7 +1,10 @@
 // Checks for a unit's motion (src/game/ai_motion.cpp): the AIPath order header and the trajectory.
 //
-// The trajectory functions only change the motion object (and its three arrays): the original runs
-// on a deep copy with its own game-heap arrays, ours on the real object, and everything is compared.
+// The trajectory functions only change the motion object (and its three arrays): ours runs on the
+// real object first, then the original on a deep copy of the object as it was (kept in our memory
+// meanwhile) with its own game-heap arrays, freed after, and everything is compared. Ours first, so
+// that what it allocates lands where the original's would without the check (the game reads the
+// heap's address order, SV2f).
 #include "verify.h"
 
 #include "../../src/game/ai_motion.h"
@@ -36,6 +39,30 @@ bool SameArray(const mfc::CArray<T>& a, const mfc::CArray<T>& b) {
     if ((a.data == nullptr) != (b.data == nullptr)) return false;
     return a.size <= 0 || !a.data || std::memcmp(a.data, b.data, a.size * sizeof(T)) == 0;
 }
+
+// A motion object before a call, its arrays' elements in our memory.
+struct MotionBefore {
+    UnitMotion m;
+    std::vector<std::uint8_t> points, waypoints, stepSpeeds;
+    explicit MotionBefore(const UnitMotion& source) {
+        std::memcpy(&m, &source, sizeof(m));
+        Keep(m.points, points);
+        Keep(m.waypoints, waypoints);
+        Keep(m.stepSpeeds, stepSpeeds);
+    }
+    MotionBefore(const MotionBefore&) = delete;
+    MotionBefore& operator=(const MotionBefore&) = delete;
+
+private:
+    template <typename T>
+    static void Keep(mfc::CArray<T>& array, std::vector<std::uint8_t>& bytes) {
+        if (!array.data) return;
+        const std::size_t size = array.size > 0 ? static_cast<std::size_t>(array.size) * sizeof(T) : 0;
+        bytes.resize(size + 1);
+        std::memcpy(bytes.data(), array.data, size);
+        array.data = reinterpret_cast<T*>(bytes.data());
+    }
+};
 
 // A motion object with its own copies of the arrays.
 struct MotionClone {
@@ -156,9 +183,10 @@ EI_VERIFY(0x005C6FC0, SamplePathVerify, 6, s_samplePath);
 // 005C67D0: SUB ESP,0x70; PUSH EBX; PUSH EBP (5 bytes).
 static void(__fastcall* s_build)(UnitMotion*, void*, AIPath*);
 static void __fastcall BuildVerify(UnitMotion* self, void*, AIPath* path) {
-    MotionClone clone(*self);
-    s_build(&clone.m, nullptr, path);
+    MotionBefore before(*self);
     self->Build(path);
+    MotionClone clone(before.m);
+    s_build(&clone.m, nullptr, path);
     ei::verify::Check("UnitMotion::Build", true, SameMotion(clone.m, *self), "kind %d: %d vs %d points",
                       OrderOf(path)->kind, clone.m.points.size, self->points.size);
 }
@@ -167,9 +195,10 @@ EI_VERIFY(0x005C67D0, BuildVerify, 5, s_build);
 // 005C6750: PUSH ECX; MOV EAX,[ESP+8] (5 bytes).
 static void(__fastcall* s_assignCells)(UnitMotion*, void*, AIPath*);
 static void __fastcall AssignCellsVerify(UnitMotion* self, void*, AIPath* path) {
-    MotionClone clone(*self);
-    s_assignCells(&clone.m, nullptr, path);
+    MotionBefore before(*self);
     self->AssignCells(path);
+    MotionClone clone(before.m);
+    s_assignCells(&clone.m, nullptr, path);
     ei::verify::Check("UnitMotion::AssignCells", true, SameMotion(clone.m, *self), "%d points, %d steps",
                       self->points.size, path->steps.count);
 }
@@ -178,9 +207,10 @@ EI_VERIFY(0x005C6750, AssignCellsVerify, 5, s_assignCells);
 // 005C66C0: SUB ESP,0xC; PUSH ESI; PUSH EDI (5 bytes).
 static void(__fastcall* s_subdivide)(UnitMotion*, void*);
 static void __fastcall SubdivideVerify(UnitMotion* self, void*) {
-    MotionClone clone(*self);
-    s_subdivide(&clone.m, nullptr);
+    MotionBefore before(*self);
     self->Subdivide();
+    MotionClone clone(before.m);
+    s_subdivide(&clone.m, nullptr);
     ei::verify::Check("UnitMotion::Subdivide", true, SameMotion(clone.m, *self), "%d waypoints: %d vs %d points",
                       self->waypoints.size, clone.m.points.size, self->points.size);
 }
@@ -192,10 +222,11 @@ static void(__fastcall* s_subdivideSegment)(UnitMotion*, void*, const MotionWayp
 static void __fastcall SubdivideSegmentVerify(UnitMotion* self, void*, const MotionWaypoint* a, const MotionWaypoint* b,
                                               int cells, float startOffset, float endOffset, int* stepIndex) {
     // a and b point into the real waypoint array, which neither run changes.
-    MotionClone clone(*self);
+    MotionBefore before(*self);
     int expectedIndex = *stepIndex;
-    s_subdivideSegment(&clone.m, nullptr, a, b, cells, startOffset, endOffset, &expectedIndex);
     self->SubdivideSegment(a, b, cells, startOffset, endOffset, stepIndex);
+    MotionClone clone(before.m);
+    s_subdivideSegment(&clone.m, nullptr, a, b, cells, startOffset, endOffset, &expectedIndex);
     ei::verify::Check("UnitMotion::SubdivideSegment", true, SameMotion(clone.m, *self) && expectedIndex == *stepIndex,
                       "%d cells (%g,%g): %d vs %d points", cells, startOffset, endOffset, clone.m.points.size,
                       self->points.size);
@@ -205,9 +236,10 @@ EI_VERIFY(0x005C6370, SubdivideSegmentVerify, 6, s_subdivideSegment);
 // 005C6290: PUSH EBP; MOV EBP,ESP; PUSH ECX; MOV EAX,[ECX+8] (7 bytes).
 static void(__fastcall* s_limitSpeeds)(UnitMotion*, void*, float);
 static void __fastcall LimitSpeedsVerify(UnitMotion* self, void*, float rate) {
-    MotionClone clone(*self);
-    s_limitSpeeds(&clone.m, nullptr, rate);
+    MotionBefore before(*self);
     self->LimitSpeeds(rate);
+    MotionClone clone(before.m);
+    s_limitSpeeds(&clone.m, nullptr, rate);
     ei::verify::Check("UnitMotion::LimitSpeeds", true, SameMotion(clone.m, *self), "%d points rate %g",
                       self->points.size, rate);
 }

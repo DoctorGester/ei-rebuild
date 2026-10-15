@@ -15,6 +15,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -189,29 +190,41 @@ static void __fastcall DestructBrainVerify(AIBrain* self) {
 EI_VERIFY(0x005457E0, DestructBrainVerify, 0, s_unused);
 
 namespace {
-// A copy of `count` steps in a block of the game's heap (null for none), for the original to free.
-AnimationStep* CopySteps(const AnimationStep* steps, int count) {
-    if (!steps) return nullptr;
-    int n = count > 0 ? count : 1;
-    auto* copy = static_cast<AnimationStep*>(gamecrt::operator_new(static_cast<unsigned>(n) * sizeof(AnimationStep)));
-    if (count > 0) std::memcpy(copy, steps, static_cast<std::size_t>(count) * sizeof(AnimationStep));
+// `count` steps kept in our memory (empty for none).
+std::vector<AnimationStep> KeepSteps(const AnimationStep* steps, int count) {
+    if (!steps || count <= 0) return {};
+    return std::vector<AnimationStep>(steps, steps + count);
+}
+
+// A copy of kept steps in a block of the game's heap (null when the list had none), for the
+// original to free.
+AnimationStep* CopySteps(bool had, const std::vector<AnimationStep>& kept) {
+    if (!had) return nullptr;
+    std::size_t n = kept.empty() ? 1 : kept.size();
+    auto* copy = static_cast<AnimationStep*>(gamecrt::operator_new(static_cast<unsigned>(n * sizeof(AnimationStep))));
+    if (!kept.empty()) std::memcpy(copy, kept.data(), kept.size() * sizeof(AnimationStep));
     return copy;
 }
 } // namespace
 
-// 00545110: MOV EAX,FS:[0]; PUSH -1 (8 bytes). Output: the original on a copy of the plan (its
-// steps duplicated) with a duplicate of the argument (it frees both), ours on the plan; every field
-// but the steps pointer, and the copied steps, compared.
+// 00545110: MOV EAX,FS:[0]; PUSH -1 (8 bytes). Output: ours on the plan first, then the original on
+// a copy of the plan as it was (its steps duplicated) with a duplicate of the argument (it frees
+// both); the copies are made after ours from bytes kept in our memory (SV2f). Every field but the
+// steps pointer, and the copied steps, compared.
 static void(__fastcall* s_takeSteps)(OrderPlan*, void*, AnimationSteps, int, int);
 static void __fastcall TakeStepsVerify(OrderPlan* self, void*, AnimationSteps steps, int start, int duration) {
     OrderPlan scratch;
     std::memcpy(&scratch, self, sizeof(scratch));
-    scratch.animation.steps = CopySteps(self->animation.steps, self->animation.capacity);
+    bool hadOwn = self->animation.steps != nullptr;
+    std::vector<AnimationStep> ownSteps = KeepSteps(self->animation.steps, self->animation.capacity);
+    bool hadArgument = steps.steps != nullptr;
+    std::vector<AnimationStep> argumentSteps = KeepSteps(steps.steps, steps.count);
+    self->TakeSteps(steps, start, duration);
+    scratch.animation.steps = CopySteps(hadOwn, ownSteps);
     AnimationSteps argument;
     std::memcpy(&argument, &steps, sizeof(argument));
-    argument.steps = CopySteps(steps.steps, steps.count);
+    argument.steps = CopySteps(hadArgument, argumentSteps);
     s_takeSteps(&scratch, nullptr, argument, start, duration);
-    self->TakeSteps(steps, start, duration);
     AnimationStep* expectedSteps = scratch.animation.steps;
     scratch.animation.steps = self->animation.steps;
     bool ok = std::memcmp(&scratch, self, sizeof(scratch)) == 0 &&

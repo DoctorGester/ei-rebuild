@@ -1,5 +1,6 @@
 // Checks for camera_object.cpp.
-//  - The constructor: the original on a scratch copy of the memory, ours on the real object;
+//  - The constructor: ours on the real object, then the original on a scratch copy of the memory
+//    (our memory);
 //    BuiltCompare (the shake list sentinel and the view stack blocks pair up); the scratch camera is
 //    then destroyed with our destructor body.
 //  - The small slots, Init, GetRange and Anchor: side by side (scratch copies of the camera).
@@ -14,6 +15,7 @@
 #include "../../src/lib/crt.h"
 
 #include <cstring>
+#include <vector>
 
 CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self);
 void __fastcall TransformDestruct(CTransformObject* self);
@@ -55,16 +57,18 @@ CTransformObject* __fastcall TransformDeleteVerify(CTransformObject* self, void*
 // 0040C8B0: PUSH -1 (2), PUSH imm32 (5).
 CCamera*(__fastcall* s_cameraCtor)(CCamera*);
 CCamera* __fastcall CameraCtorVerify(CCamera* self) {
-    auto* scratch = static_cast<std::uint8_t*>(gamecrt::operator_new(sizeof(CCamera)));
+    // Ours first and the scratch in our memory, so that ours' blocks land where the original's would
+    // without the check (the game reads the heap's address order, SV2f).
+    std::vector<std::uint8_t> scratchBytes(sizeof(CCamera));
+    std::uint8_t* scratch = scratchBytes.data();
     std::memcpy(scratch, self, sizeof(CCamera));
-    CCamera* expected = s_cameraCtor(reinterpret_cast<CCamera*>(scratch));
     CCamera* actual = self->Construct();
+    CCamera* expected = s_cameraCtor(reinterpret_cast<CCamera*>(scratch));
     netverify::BuiltCompare cmp{scratch, reinterpret_cast<const std::uint8_t*>(self), sizeof(CCamera)};
     cmp.Range(0, sizeof(CCamera));
     ei::verify::Check("CCamera::Construct", true,
                       cmp.ok && expected == reinterpret_cast<CCamera*>(scratch) && actual == self, "%s", cmp.detail);
     reinterpret_cast<CCamera*>(scratch)->Destruct();
-    gamecrt::operator_delete(scratch);
     return actual;
 }
 

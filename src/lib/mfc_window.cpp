@@ -1,4 +1,4 @@
-// MFC 4.2's AfxMessageBox and CWnd's destructor, registered at their library addresses
+// MFC 4.2's AfxMessageBox, CWnd's constructor and destructor, registered at their library addresses
 // (mfc_window.h).
 #include "mfc_window.h"
 
@@ -19,8 +19,32 @@ bool IsStaticWindow(const CWnd* wnd) {
 
 } // namespace
 
+CCmdTarget* CCmdTarget::Construct() {
+    refCount = 1;
+    outerUnknown = nullptr;
+    innerUnknownVtable = nullptr;
+    dispatchVtable = nullptr;
+    resultExpected = TRUE;
+    connectionPoints = nullptr;
+    return this;
+}
+
 void CCmdTarget::Destruct() {
     if (dispatchVtable) reinterpret_cast<COleDispatchImpl*>(&dispatchVtable)->Disconnect();
+}
+
+CWnd* CWnd::Construct(HWND handle) {
+    base.Construct();
+    base.vtable = Vtable();
+    owner = nullptr;
+    flags = 0;
+    superProc = nullptr;
+    modalResult = 0;
+    dropTarget = nullptr;
+    controlContainer = nullptr;
+    controlSite = nullptr;
+    window = handle;
+    return this;
 }
 
 void CWnd::Destruct() {
@@ -31,7 +55,9 @@ void CWnd::Destruct() {
     base.Destruct();
 }
 
+EI_REPLACE_METHOD(0x00703EAE, CCmdTarget::Construct);
 EI_REPLACE_METHOD(0x00703EC8, CCmdTarget::Destruct);
+EI_REPLACE_METHOD(0x00704546, CWnd::Construct);
 EI_REPLACE_METHOD(0x00704FE3, CWnd::Destruct);
 
 int __stdcall MessageBoxText(const char* text, unsigned type, unsigned) {

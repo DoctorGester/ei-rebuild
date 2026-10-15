@@ -12,7 +12,7 @@ exe, how the first standalone exe gets around it, and what a switch from cp1251 
 | Forwarders (`EI_ORIGINAL`) | 3,795 addresses: 2,347 to rewritten code (C13), 5 unported, 1,443 library: STLport 881, MFC 399, compiler-generated 49, CRT 37, import thunks and others 77 |
 | Code pointers in the exe's data | 4,524 to rewritten code (vtables, callback tables), 391 to 359 library functions (336 MFC: the `CArray` / `CList` / `CMap` deleting destructors and `Serialize` slots) |
 | Game data addresses | 3,601 distinct in 524 files: .rdata 912, import table 465, initialised .data 1,812, .bss 410 |
-| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3), with their 130 unported exit functions (S3a); their call targets lack 25, all library code (S4-S12; S3b ported the ten game-side ones), the exit functions' callees 47 (S4-S9, S3c) |
+| Static initialisers | 748 in the .data list 00783004-00783BB0: all generated (S3), with their 130 unported exit functions (S3a); every call target and exit function callee has code in the image (S3b-S3f, S4-S12) |
 | Reads of the exe's code bytes | the frame's camera call target (00457595), app_frame's CALL test, Rebirth detection (live bytes against the file): each has a standalone path (S14) |
 | Runtime uses outside src/lib | `mfc::` 3,481, `stlp::` 1,009, `gamecrt::` 1,191 (865 new / delete), `gameapi::` 536 |
 | Cleanup counts (no effect on the first exe) | C11 shims 1,034, `__asm` 221, `float_control` 114, raw addresses 1,025 |
@@ -745,6 +745,42 @@ the original (stolen bytes) on memory archives: the stored bytes, and loads into
 shrinking objects. No suite scenario calls a Serialize. Left: S6c (33 Serialize whose elements are
 counted references or script records, about 20 destructors).
 
+**S6b (2026-10-15).** The last CArray<T> instantiations of game records, 46 addresses
+(src/game/record_arrays.*, verify_record_arrays.cpp): the figure's 0x220-byte parts (a class 0x42
+figure mesh: CFigureMesh::ConstructBase, then the plain mesh vtable), the scene's materials, meshes
+(SceneMesh::Construct: CTransformObject's base, the name, the face groups) and nodes
+(SceneNode::Construct, 00454F80's body; the two quaternions at +0x30 / +0x40 are now named), face
+groups and their array header; network delta fields; music themes (element constructor and
+destructor, the array destructor 006B56C0); the sound cache's wave records; the brain's behaviour
+array destructor 00557890; patrols and zone exits by value (0046EAB0 / 0046EFD0, 00584EA0 /
+00587DD0); the global map's records (both copies of each); the script's command, nested-call,
+definition, run and block arrays, the command and nested-call copies (004CC0C0, 004C6D10), the
+bindings' and nested calls' copy constructors (004CCCB0, 004CCD90) and the by-value GetAt
+wrappers 004CD450 / 004C7510. Checks: element constructors that allocate nothing on a copy of the
+bytes next to the original; SetSize growing ours first, then the original on a twin; the GetAts and
+the bindings' copy constructor ours first, then the original into a twin whose blocks are freed;
+the allocating constructors (materials, wave names, nested calls), destructors and command copies
+ours only. Known difference: 004CC0C0 copies a command's float arguments as dwords, ours through
+SSCCmd's assignment (the FPU): only a signalling NaN would differ. 00557890 and 006B56C0 were also
+on S6c's destructor list; their deleting destructors (005587E0, 006B5980) stay there.
+
+**S6c (2026-10-15).** S6a's leftovers that S6b's element policies made possible (record_arrays.*,
+plus small members elsewhere). Destructors: the arrays of scene nodes (004514B0), nested calls
+(004C5180 / 004CCF70, base vtable 0073D418), delta fields (0050FBC0), behaviours (00545BA0, a copy
+of 00557890), the terrain's aligned records (006C4C40), sector vertices (006C4690: each vertex's
+lights back to the pool) and the sound cache's CList<WaveRecord> (006BC870), with all their scalar
+deleting destructors and those over 00557890, 006B56C0, 00454CE0; SceneMesh::Destruct (00454830;
+the aligned blocks at +0x98 / +0xC8 are now members), CFigureMesh::DestructPlainMesh (00454510, class
+0x42: DestructMesh without its vtable; DestructMesh now calls it); the game's inlined ~CGdiObject
+(00444B30, 00444B90, 005FDDE0 and their deleting destructors: CGdiObject::Destruct in mfc_gdi).
+Serialize (SerializeCArray over the policies; each start-up check against the original, Mode 2 where
+a destroyed copy would free what the source owns): figure parts, scene meshes, materials, nodes,
+face groups, nested calls, definitions, delta fields, behaviours (now built by their constructor:
+00558E10 registered), themes, sector vertices, water levels (CArray<CArray<float>>, element helpers
+00575690 / 005755C0) and sectors. Checks of the destructors are ours only; in the suite only
+004C5180 and 00444B10 are reached. Left for S6d: the 19 list Serialize whose loader builds, assigns
+and releases a temporary (counted references, script records) and 004C2700 (SerializeElements<CString>).
+
 **S12a (2026-10-15).** The rest of the exe's STLport maps (src/game/library_trees.*, one
 `TreeAbi` alias each, node sizes from each `_M_create_node`): the debug panel's map<string, string>,
 the .mob loader's tint lists (map<string, list<16-byte record>>, dead with 00481660's branch), a
@@ -853,6 +889,33 @@ S12d (0060A660, 0060AB00, 005F8E90, 005F92A0, 005F94B0, 005FB810). Unregistered 
 ranges with the same instructions: 00429060, 00429DB0, 004298F0 (the RefPtr and held-object copies),
 004FAF10 (a char vector's ~_Vector_base), 0042B3C0, 0042B3F0, 00404D50, 004E15C0, 005E1560, 00457940,
 004FC0C0, 004217C0.
+**S12d (2026-10-15).** The allocating sorts (src/game/stl_sorts.cpp on `stlp::Sort<T, Less, Ops>`;
+stlp_algo.h now takes an element policy, `Held<T, Ops>` temporaries and `CopyBackward`, with every
+by-value copy, assignment and destruction where STLport's has them): the objectives window's quests
+0064F310 / 0064F9A0 / 0064FBD0 (`ByQuestOrder`: each comparison is QuestTable::Find of both names,
+which adds a missing name, so the allocations are the original's; a name without a record compares
+true even against itself) and the save list 00657DF0 / 00657F10 with copy_backward 00657D50
+(`SaveEntryOps`: CopyConstruct / Assign / Destruct). Every save helper tests 00658020
+(a.savedAt < b.savedAt) and takes the other branch, so the order is `!(a < b)`, newest first, and
+equal times compare true both ways (not a strict weak ordering). pair<string, list<T>> 0069C1C0 in
+stlp_pair.cpp. Checks run ours first (SV2f), the original after it on a twin: the quests on a copy of
+the CStrings (the lookups only find now), the saves on key-only entries (empty strings and arrays,
+the position in the game time) compared by each entry's strings, time, flag and arrays; a quest range
+with a name without a record, or more than 16 saves with two equal times, is sorted by ours alone and
+logged (the unguarded scans could leave it). copy_backward ours only. A start-up check sorts 340
+save lists with distinct times (40 with small arrays: sizes and capacities compared). The
+container rows: list begin / end 00438640 00438820 / 00437F20 00438650 00438830, the iterator's copy
+004387C0 and decrement 00439A60, splice 004380C0 / 00438770 (checked on twins of both lists' nodes),
+the 0x10C / 0x120-node lists' constructors 00439CE0 / 00439960, ~list 00439D40, clear 0043D420 and
+erase 00438660 (operator new / delete), plain erase by node size (16: 0040AA40 00512030 0056DFB0; 24:
+0040A920 00411540 004437D0; 32: 005392F0; 40: 00443730) and clear (00405500 0040B390, 24: 0040B290),
+vector<uint16> insert_overflow 0043B530, vector<8 bytes> erase 00439DD0, frees by element size
+(00439D80 0053B7A0 0053BEB0 0069C9D0 00613630 0056FB80), and the out-of-line `_Construct` 0043D7E0 /
+0043D7F0 / 0064B620 and copies 0043B360 (memmove) / 0043DC80 (stlp_vector.h `ConstructAt`,
+`CopyTrivial`, `CopyElements`). Left (S12e): the connection's lists whose elements own something
+(SentPacket's items, the freed-id batches' vectors: copy constructors, default inserts, erase, clear,
+~list), its find_if and counted-pointer init, two plain hashtable erases, a hashtable clear and two
+constructors, three vector-member destructors and the hero screen's string sorts and vector members.
 
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
 extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
@@ -881,6 +944,50 @@ mismatches. Seen, not caused here: on Rebirth the exit stops after the handle ma
 own runs end the same way (S3e). `--standalone`: the only exit callee without code left is 005DC080
 (S12a); the MFC constructors the static initialisers still call (the four exceptions', CWnd(HWND),
 0070B600, 0070DC4D, 00700674) are S3f. The boot still stops at 005AF580.
+
+**S3f (2026-10-15).** The MFC call targets of the static initialisers, with the callees the image
+needs, 16 addresses (size rows in extra_function_sizes.csv; 0070C3C5 and 0070DC4D take decoded sizes,
+0070B5F0 / 0070B600 have no Ghidra function). mfc_exception: CException(BOOL) 0070205D and
+CSimpleException (0x98 bytes: +0x0C m_bInitialized, +0x10 m_bLoaded, +0x14 the message, +0x94 the
+resource id; +0x08 is never touched) with the four classes' constructors 006E68C9 / 006E6916 /
+006E6AEA / 006E6B37. mfc_window: CCmdTarget's constructor 00703EAE and CWnd(HWND) 00704546.
+mfc_state: CSimpleList::AddHead 0070C4E9, AfxClassInit 00700674, MFC's global locks AfxCriticalInit
+0070C3C5 / AfxLockGlobals 0070C458 / AfxUnlockGlobals 0070C4C8 (17 lock types: _afxResourceLock
+007C8EE0 ends where _afxCriticalWin32s 007C9078 and _afxThreadData 007C9084 start; an 18th type
+overwrote _afxThreadData in a first try), _AfxInitDBCS 0070DC4D (GetCPInfo of the OEM code page),
+and wingdix.cpp's halftone brush: 0070B600 registers AfxWingdixTerm 0070B5F0 with atexit
+(_afxWingdixTerm 007C8D44), which deletes _afxHalftoneBrush 007C8D40. AfxGetModuleState 0070CE8C
+stays the original's in the hook build (the shared `mfc::impl::AfxGetModuleState`, which
+verify_mfc_window.cpp now uses too); the image registers `ImageModuleState` there (one module state
+for the process, nothing but the class list, linked at m_pNextClass +0x14). Checks
+(tests/verify/verify_mfc_static_init.cpp): a start-up check runs CException(BOOL), the exception
+constructors, CCmdTarget's constructor, AddHead, AfxCriticalInit and _AfxInitDBCS through the
+original's trampolines and ours on twins; against the original's initialisers' results: the four
+static exceptions (vtable, auto-delete, id), the four static windows (whole), the five classes in the
+module state's list (in reverse order), _afxDBCS and _afxWingdixTerm (ours registers the term once
+more: it runs twice at exit, the second time on a null brush); the locks on two unused lock types,
+one through the original and one through ours (initialised, owned twice, once, free); AfxClassInit
+on two fake classes (the head put back). Per call, ours only or against the original on a copy.
+smoke, ui_main_menu, console, ui_saveload, both installs: 0 mismatches (the runs fail only on main's
+second registrations at 00445040 / 00445170 / 004457F0, S12a against S12b). `--standalone`: static
+initialisers without code 0 call targets, 0 exit functions, 0 exit callees; the boot still stops at
+005AF580. In the image AfxCriticalInit and the locks run over the exe's data copy (zero, so first
+use initialises them).
+
+**S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
+hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
+quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return
+addresses as module+offset) before it ends a game hung after quit; it showed one thread left, in ntdll's
+process shutdown -> addon.dll's DLL_PROCESS_DETACH (addon+1022E, +101DB) -> addon+BCE5 -> CreateProcessA
+(through AcLayers' shim) -> USER32 -> win32u. addon+BCE5 starts `<system32>\CTFMon.exe` and waits up to 2 s for
+it when the starter switch `Settings\CtfMon` is 1 (it is here); the same switch makes addon send WM_DESTROY to
+the `CicLoaderWndClass` window (ctfmon) when it applies its patches, so every Rebirth run also ended the user's
+text input service. The harness answers CtfMon 0 in every run (tests/verify/harness_starter.cpp, through the
+advapi32 RegQueryValueExW slot it already answered for WideScreen; now patched in every run). After it, the full
+suite (128 runs) and render_present / render_movie_present / render_device_lost on Rebirth exit by themselves,
+and every Rebirth log ends with its `verify total` lines. The log's last "first call" (~CMapPtrToPtr) was only
+the last hooked function reached for the first time, not where it stopped. The Riched20 access violation of
+ui_main_menu-rebirth was not seen again in these runs. R9c6 and X32 are the same cause.
 
 ## 3. Runtime: MFC, STLport, CRT
 

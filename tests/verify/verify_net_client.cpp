@@ -15,6 +15,7 @@
 #include "ei/vcall.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -38,9 +39,13 @@ ClientQueries* __fastcall VectorVerify(ClientQueries* self) {
 ClientSession*(__fastcall* s_construct)(ClientSession*);
 ClientSession* __fastcall ClientConstructVerify(ClientSession* self) {
     constexpr std::size_t kSize = sizeof(ClientSession);
-    auto* scratch = static_cast<std::uint8_t*>(gamecrt::operator_new(kSize));
-    std::memcpy(scratch, self, kSize);
+    // The bytes are kept in our memory and the scratch block allocated after ours ran, so that ours'
+    // blocks land where the original's would without the check (SV2f).
+    std::vector<std::uint8_t> before(reinterpret_cast<const std::uint8_t*>(self),
+                                     reinterpret_cast<const std::uint8_t*>(self) + kSize);
     ClientSession* actualRet = self->Construct();
+    auto* scratch = static_cast<std::uint8_t*>(gamecrt::operator_new(kSize));
+    std::memcpy(scratch, before.data(), kSize);
     ClientSession* expectedRet = s_construct(reinterpret_cast<ClientSession*>(scratch));
     auto* actual = reinterpret_cast<const std::uint8_t*>(self);
     netverify::BuiltCompare cmp{scratch, actual, kSize};

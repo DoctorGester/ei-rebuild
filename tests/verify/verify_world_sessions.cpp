@@ -143,8 +143,9 @@ void* __fastcall SourceDeleteVerify(CPlayerSource* self, void*, unsigned flags) 
 // 0055F1A0: PUSH ESI (1), MOV ESI,ECX (2), PUSH 0xC (2).
 CWorldHandle*(__fastcall* s_handleClone)(CWorldHandle*);
 CWorldHandle* __fastcall HandleCloneVerify(CWorldHandle* self) {
-    CWorldHandle* expected = s_handleClone(self);
+    // Ours first, so that its copy lands where the original's would without the check (SV2f).
     CWorldHandle* actual = self->CWorldHandle::Clone();
+    CWorldHandle* expected = s_handleClone(self);
     if (expected && actual)
         ei::verify::Check("CWorldHandle::Clone", true,
                           std::memcmp(expected, actual, sizeof(CWorldHandle)) == 0, "");
@@ -218,8 +219,8 @@ bool SameElements(const DriverNode* a, const DriverNode* b, bool cloned) {
 // 0055F550: PUSH -1 (2), PUSH imm32 (5).
 DriverSession*(__fastcall* s_sessionClone)(DriverSession*);
 DriverSession* __fastcall SessionCloneVerify(DriverSession* self) {
+    DriverSession* actual = self->DriverSession::Clone();   // ours first (SV2f)
     DriverSession* expected = s_sessionClone(self);
-    DriverSession* actual = self->DriverSession::Clone();
     if (expected && actual) {
         bool ok = std::memcmp(expected, actual, 8) == 0 && SameElements(expected->drivers_, actual->drivers_, true) &&
                   SameElements(expected->holders_, actual->holders_, false);

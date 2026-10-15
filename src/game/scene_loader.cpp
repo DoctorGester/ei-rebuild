@@ -15,6 +15,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc_coll.h"
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -657,6 +658,60 @@ void SceneNode::Destruct() {
     name.~CString();
 }
 EI_REPLACE_METHOD(0x004543E0, SceneNode::Destruct);
+
+// ---- Element constructors (S6b; their ConstructElements are record_arrays.cpp's) -----------------
+
+// 00454F80's element. The original then sizes the rotation and position keys, the frames and the
+// children to 0 (00455170, 004552B0, 00450F20, 00453790), which leaves empty arrays as they are.
+void SceneNode::Construct() {
+    new (&name) mfc::CString();
+    new (&parent) mfc::CString();
+    spareRotation030.SetIdentity();
+    spareRotation040.SetIdentity();
+    rotation.SetIdentity();
+    restRotation.SetIdentity();
+    rotationKeys.Construct(kRotationKeysVtable);
+    positionKeys.Construct(kPositionKeysVtable);
+    morphKeys.Construct(kMorphKeysVtable);
+    normals.Construct(kNormalsVtable);
+    frames.Construct(kFramesVtable);
+    children.Construct(kChildrenVtable);   // 00455150
+}
+
+// 004545C0's element.
+void SceneMesh::Construct() {
+    ConstructBase();
+    new (&name) mfc::CString();
+    groups.Construct(kFaceGroupArrayVtable);
+    ei::SetVtable(this, kVtableAddress);
+}
+
+// Each group is destroyed by its scalar deleting destructor with 0 (00454D90), FaceGroup::Destruct.
+void SceneMesh::Destruct() {
+    FaceGroupArrayDestruct(&groups);
+    faces.FreeData();
+    cornerIndices.FreeData();
+    pairs.FreeData();
+    corners.FreeData();
+    normals.FreeData();
+    texCoords.FreeData();
+    positions.FreeData();
+    spareBlocks0C8.FreeData();
+    normalBlocks.FreeData();
+    positionBlocks.FreeData();
+    spareBlocks098.FreeData();
+    name.~CString();
+    ei::SetVtable(this, CTransformObject::kVtableAddress);
+    CEngineObject::DestructBase();
+}
+EI_REPLACE_METHOD(0x00454830, SceneMesh::Destruct);
+
+SceneMesh* SceneMesh::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00454810, SceneMesh::DeletingDestruct);
 
 // --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
 

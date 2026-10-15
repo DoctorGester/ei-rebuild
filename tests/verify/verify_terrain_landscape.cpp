@@ -10,22 +10,35 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
 using Words = lib::AlignedArray<std::uint32_t>;
 
-// A private copy of an aligned array: the header, and its block copied (the original may grow or
-// free it, so it must not share ours).
+// An aligned array's header and elements kept in our memory before ours runs; Copy makes a private
+// copy (the header, and its own block: the original may grow or free it, so it must not share
+// ours) after ours ran, so that ours' blocks land where the original's would without the check
+// (the game reads the heap's address order, SV2f).
 template <typename T>
-lib::AlignedArray<T> CopyArray(const lib::AlignedArray<T>& source) {
-    lib::AlignedArray<T> copy = source;
-    if (source.data) {
-        copy.data = lib::AlignedArray<T>::Allocate(source.capacity);
-        std::memcpy(static_cast<void*>(copy.data), source.data, static_cast<std::size_t>(source.size) * sizeof(T));
+struct KeptArray {
+    lib::AlignedArray<T> header;
+    std::vector<unsigned char> elements;
+    explicit KeptArray(const lib::AlignedArray<T>& source) : header(source) {
+        if (source.data && source.size > 0) {
+            const auto* p = reinterpret_cast<const unsigned char*>(source.data);
+            elements.assign(p, p + static_cast<std::size_t>(source.size) * sizeof(T));
+        }
     }
-    return copy;
-}
+    lib::AlignedArray<T> Copy() const {
+        lib::AlignedArray<T> copy = header;
+        if (header.data) {
+            copy.data = lib::AlignedArray<T>::Allocate(header.capacity);
+            if (!elements.empty()) std::memcpy(static_cast<void*>(copy.data), elements.data(), elements.size());
+        }
+        return copy;
+    }
+};
 
 // The header and the first `size` elements agree.
 template <typename T>
@@ -41,8 +54,9 @@ void FreeCopy(lib::AlignedArray<T>& copy) {
 
 // ---- Terrain::SetVisibleSectors ------------------------------------------------------------------
 // 006CA260: PUSH EBP; MOV EBP,ESP; SUB ESP,0xC (6 bytes). Every frame from the draw pass (all
-// scenarios). The original runs on a raw copy of the object whose two arrays have their own blocks
-// (it reads only +0x104 / +0x108 and writes +0xAA4..+0xAC4), ours on the real one; the first row and
+// scenarios). Ours runs on the real one, then the original on a raw copy of the object (taken
+// before) whose two arrays have their own blocks (it reads only +0x104 / +0x108 and writes
+// +0xAA4..+0xAC4); the first row and
 // both arrays (header and elements) compared.
 void(__fastcall* s_setVisible)(Terrain*, void*, float, float, float);
 
@@ -50,10 +64,11 @@ void __fastcall SetVisibleSectorsVerify(Terrain* self, void*, float x, float y, 
     alignas(Terrain) static unsigned char scratchBytes[sizeof(Terrain)];
     std::memcpy(scratchBytes, static_cast<void*>(self), sizeof(Terrain));
     auto* scratch = reinterpret_cast<Terrain*>(scratchBytes);
-    scratch->visibleColumnFirst = CopyArray(self->visibleColumnFirst);
-    scratch->visibleColumnLast = CopyArray(self->visibleColumnLast);
+    KeptArray<int> first(self->visibleColumnFirst), last(self->visibleColumnLast);
+    self->SetVisibleSectors(x, y, radius);   // ours first (SV2f)
+    scratch->visibleColumnFirst = first.Copy();
+    scratch->visibleColumnLast = last.Copy();
     s_setVisible(scratch, nullptr, x, y, radius);
-    self->SetVisibleSectors(x, y, radius);
     bool same = scratch->visibleRowFirst == self->visibleRowFirst &&
                 SameArray(scratch->visibleColumnFirst, self->visibleColumnFirst) &&
                 SameArray(scratch->visibleColumnLast, self->visibleColumnLast);
@@ -114,9 +129,10 @@ void CompareSetSize(const char* name, SetSizeFn original, Words* self, int count
     // The originals leave grown elements uninitialised (no fill after the copy), so only the elements
     // kept from before are compared.
     int kept = self->size < count ? self->size : count;
-    Words scratch = CopyArray(*self);
+    KeptArray<std::uint32_t> before(*self);
+    self->SetSize(count, growBy);   // ours first (SV2f)
+    Words scratch = before.Copy();
     original(&scratch, nullptr, count, growBy);
-    self->SetSize(count, growBy);
     bool same = scratch.size == self->size && scratch.capacity == self->capacity && scratch.growBy == self->growBy &&
                 !scratch.data == !self->data &&
                 (kept <= 0 || std::memcmp(scratch.data, self->data, static_cast<std::size_t>(kept) * sizeof(std::uint32_t)) == 0);
@@ -126,9 +142,10 @@ void CompareSetSize(const char* name, SetSizeFn original, Words* self, int count
 }
 
 void CompareSetAtGrow(const char* name, SetAtGrowFn original, Words* self, int index, std::uint32_t value) {
-    Words scratch = CopyArray(*self);
+    KeptArray<std::uint32_t> before(*self);
+    self->SetAtGrow(index, value);   // ours first (SV2f)
+    Words scratch = before.Copy();
     original(&scratch, nullptr, index, value);
-    self->SetAtGrow(index, value);
     ei::verify::Check(name, true, SameArray(scratch, *self), "index %d: size %d/%d cap %d/%d", index, scratch.size,
                       self->size, scratch.capacity, self->capacity);
     FreeCopy(scratch);
@@ -192,8 +209,8 @@ void __fastcall ResetVerify(Terrain* self, void*) {
     scratch->visibleColumnLast.data = nullptr;
     scratch->textF8 = empty;
     scratch->textAE0 = empty;
+    self->Reset();   // ours first (SV2f)
     s_reset(scratch, nullptr);
-    self->Reset();
     bool texts = std::strcmp(scratch->textF8, self->textF8) == 0 && std::strcmp(scratch->textAE0, self->textAE0) == 0;
     AsString(scratch->textF8).~CString();
     AsString(scratch->textAE0).~CString();
@@ -224,15 +241,19 @@ int FirstFar(const float* expected, const float* actual, int count) {
 }
 
 void __fastcall WavePhasesVerify(Terrain* self, void*) {
+    // Ours first; the copy's phase block is made after it and rand()'s state put back for the
+    // original, then left as ours left it (SV2f).
     Terrain* scratch = RawCopy<1>(self);
-    scratch->wavePhases = CopyArray(self->wavePhases);
+    KeptArray<float> phases(self->wavePhases);
     combatverify::RandomState before, afterOriginal, afterOurs;
     before.Save();
-    s_wavePhases(scratch, nullptr);
-    afterOriginal.Save();
-    before.Restore();
     self->BuildWavePhases();
     afterOurs.Save();
+    before.Restore();
+    scratch->wavePhases = phases.Copy();
+    s_wavePhases(scratch, nullptr);
+    afterOriginal.Save();
+    afterOurs.Restore();
     ei::verify::Check("Terrain::BuildWavePhases rand", true, afterOriginal.SameAs(afterOurs), "state after");
     bool header = scratch->wavePhases.size == self->wavePhases.size &&
                   scratch->wavePhases.capacity == self->wavePhases.capacity;
@@ -338,9 +359,10 @@ void __fastcall VertexTilesVerify(Terrain* self) {
     alignas(Terrain) unsigned char storage[sizeof(Terrain)];
     std::memcpy(storage, self, sizeof(Terrain));
     auto* copy = reinterpret_cast<Terrain*>(storage);
-    copy->vertexTiles = CopyArray(self->vertexTiles);
+    KeptArray<terrain::VertexTiles> tiles(self->vertexTiles);
+    self->BuildVertexTiles();   // ours first (SV2f)
+    copy->vertexTiles = tiles.Copy();
     s_vertexTiles(copy);
-    self->BuildVertexTiles();
     const auto& e = copy->vertexTiles;
     const auto& a = self->vertexTiles;
     int bad = -1;

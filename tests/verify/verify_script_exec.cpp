@@ -361,15 +361,26 @@ EI_VERIFY(0x004BF000, TickVerify, 0, s_unused);
 
 namespace {
 
-// A copy of an area's parts with its own data block, for the original to append to.
-mfc::CArray<ScriptAreaPart> CloneParts(const mfc::CArray<ScriptAreaPart>& parts) {
-    mfc::CArray<ScriptAreaPart> copy = parts;
-    if (parts.data) {
-        copy.data = static_cast<ScriptAreaPart*>(gamecrt::operator_new(parts.maxSize * sizeof(ScriptAreaPart)));
-        std::memcpy(copy.data, parts.data, parts.size * sizeof(ScriptAreaPart));
+// An area's parts kept in our memory before ours runs; Clone makes a copy with its own data block
+// for the original to append to, after ours ran (the game reads the heap's address order, SV2f).
+struct KeptParts {
+    mfc::CArray<ScriptAreaPart> header;
+    std::vector<unsigned char> bytes;
+    explicit KeptParts(const mfc::CArray<ScriptAreaPart>& parts) : header(parts) {
+        if (parts.data) {
+            const auto* p = reinterpret_cast<const unsigned char*>(parts.data);
+            bytes.assign(p, p + parts.size * sizeof(ScriptAreaPart));
+        }
     }
-    return copy;
-}
+    mfc::CArray<ScriptAreaPart> Clone() const {
+        mfc::CArray<ScriptAreaPart> copy = header;
+        if (header.data) {
+            copy.data = static_cast<ScriptAreaPart*>(gamecrt::operator_new(header.maxSize * sizeof(ScriptAreaPart)));
+            if (!bytes.empty()) std::memcpy(copy.data, bytes.data(), bytes.size());
+        }
+        return copy;
+    }
+};
 
 // Same counts and parts; a circle leaves its fourth value unset.
 bool SameParts(const mfc::CArray<ScriptAreaPart>& a, const mfc::CArray<ScriptAreaPart>& b) {
@@ -398,9 +409,10 @@ int FindLight(CScript* script, int id) {
 
 // 004B1ED0: SUB ESP,0x14; PUSH EBX; MOV EBX,ECX (6 bytes). The original appends to a copy.
 static void __fastcall AddRectVerify(mfc::CArray<ScriptAreaPart>* area, void*, float x1, float y1, float x2, float y2) {
-    mfc::CArray<ScriptAreaPart> copy = CloneParts(*area);
+    KeptParts before(*area);
+    ScriptAreaAddRect(area, nullptr, x1, y1, x2, y2);   // ours first
+    mfc::CArray<ScriptAreaPart> copy = before.Clone();
     s_addRect(&copy, nullptr, x1, y1, x2, y2);
-    ScriptAreaAddRect(area, nullptr, x1, y1, x2, y2);
     ei::verify::Check("ScriptAreaAddRect", true, SameParts(copy, *area), "%d parts", area->size);
     if (copy.data) gamecrt::operator_delete(copy.data);
 }
@@ -408,9 +420,10 @@ EI_VERIFY(0x004B1ED0, AddRectVerify, 6, s_addRect);
 
 // 004B2070: SUB ESP,0x14; PUSH EBX; PUSH EBP (5 bytes).
 static void __fastcall AddRoundVerify(mfc::CArray<ScriptAreaPart>* area, void*, float x, float y, float radius) {
-    mfc::CArray<ScriptAreaPart> copy = CloneParts(*area);
+    KeptParts before(*area);
+    ScriptAreaAddRound(area, nullptr, x, y, radius);   // ours first
+    mfc::CArray<ScriptAreaPart> copy = before.Clone();
     s_addRound(&copy, nullptr, x, y, radius);
-    ScriptAreaAddRound(area, nullptr, x, y, radius);
     ei::verify::Check("ScriptAreaAddRound", true, SameParts(copy, *area), "%d parts", area->size);
     if (copy.data) gamecrt::operator_delete(copy.data);
 }

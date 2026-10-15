@@ -30,9 +30,20 @@ void __fastcall ListDistance(int* n, void*, const AnyList::Node* first, const An
     AnyList::Distance(first, last, *n);
 }
 
-AnyList::Node** __fastcall ListIteratorDecrement(AnyList::Node** self) {
-    *self = (*self)->prev;
+AnyList::Node** __fastcall ListIteratorCopy(AnyList::Node** self, void*, AnyList::Node* const* from) {
+    *self = *from;
     return self;
+}
+
+AnyList::Node** __fastcall ListIteratorDecrement(AnyList::Node** it) {
+    *it = (*it)->prev;
+    return it;
+}
+
+void __fastcall ListSpliceOne(AnyList*, void*, AnyList::Node* pos, AnyList*, AnyList::Node* i) { AnyList::SpliceOne(pos, i); }
+
+void __fastcall ListSpliceRange(AnyList*, void*, AnyList::Node* pos, AnyList*, AnyList::Node* first, AnyList::Node* last) {
+    AnyList::SpliceRange(pos, first, last);
 }
 
 } // namespace stlp
@@ -46,18 +57,24 @@ using List24 = stlp::ListAbi<stlp::Opaque<16>>;
 using List40 = stlp::ListAbi<stlp::Opaque<32>>;
 using List352 = stlp::ListAbi<stlp::Opaque<0x158>>;
 using List48 = stlp::ListAbi<stlp::Opaque<0x28>>;
+// The connection's reliable headers (0x10C-byte nodes) and send history (0x120), from operator new.
+using List268 = stlp::ListAbi<stlp::Opaque<0x104>>;
+using List32 = stlp::ListAbi<stlp::Opaque<24>>;
+using List288 = stlp::ListAbi<stlp::Opaque<0x118>>;
 
 } // namespace
 
-// begin(): 6 instantiations.
+// begin(): 8 instantiations.
 EI_REPLACE(0x0040A9F0, stlp::ListBegin);
 EI_REPLACE(0x0041FCC0, stlp::ListBegin);
 EI_REPLACE(0x00420280, stlp::ListBegin);
 EI_REPLACE(0x00420380, stlp::ListBegin);
 EI_REPLACE(0x004219E0, stlp::ListBegin);
 EI_REPLACE(0x00422B90, stlp::ListBegin);
+EI_REPLACE(0x00438640, stlp::ListBegin);   // the connection's headers (S12d)
+EI_REPLACE(0x00438820, stlp::ListBegin);   // the session's clients (S12d)
 
-// end(): 26 instantiations.
+// end(): 29 instantiations.
 EI_REPLACE(0x004049D0, stlp::ListEnd);
 EI_REPLACE(0x0040AA00, stlp::ListEnd);
 EI_REPLACE(0x00411530, stlp::ListEnd);
@@ -98,6 +115,16 @@ EI_REPLACE(0x004FB570, stlp::ListIteratorDecrement);
 // The sentinel (0x20 bytes) given back while a list's constructor unwinds.
 EI_REPLACE(0x00482790, stlp::ListPutSentinel<32>);
 EI_REPLACE(0x004FB840, stlp::ListPutSentinel<32>);
+EI_REPLACE(0x00437F20, stlp::ListEnd);   // S12d: the connection's history, headers, the session's clients
+EI_REPLACE(0x00438650, stlp::ListEnd);
+EI_REPLACE(0x00438830, stlp::ListEnd);
+
+// The iterator's copy constructor and --it; splice(pos, x, i) and splice(pos, x, first, last) (the
+// connection's history and headers, S12d).
+EI_REPLACE(0x004387C0, stlp::ListIteratorCopy);
+EI_REPLACE(0x00439A60, stlp::ListIteratorDecrement);
+EI_REPLACE(0x004380C0, stlp::ListSpliceOne);
+EI_REPLACE(0x00438770, stlp::ListSpliceRange);
 
 // distance(first, last, n): 4 instantiations.
 EI_REPLACE(0x00429040, stlp::ListDistance);
@@ -152,6 +179,8 @@ EI_REPLACE(0x00478D50, List48::Construct);
 EI_REPLACE(0x00479150, List48::Construct);
 EI_REPLACE(0x005F90E0, List48::Construct);
 EI_REPLACE(0x004249E0, List352::Construct);
+EI_REPLACE(0x00439CE0, List268::Construct);   // S12d
+EI_REPLACE(0x00439960, List288::Construct);   // S12d
 
 // ~list() of plain elements (nothing to destroy; Ghidra's names say clear): 5 instantiations.
 EI_REPLACE(0x004A96A0, List16::Destruct);
@@ -162,6 +191,22 @@ EI_REPLACE(0x00421D20, List40::Destruct);
 EI_REPLACE(0x004829B0, List24::Destruct);   // S12c (library.csv: clear)
 EI_REPLACE(0x00482CC0, List24::Destruct);
 EI_REPLACE(0x005F9620, List16::Destruct);
+// The connection's reliable headers (S12d): ~list() and clear().
+EI_REPLACE(0x00439D40, List268::Destruct);
+EI_REPLACE(0x0043D420, List268::Clear);
+// clear() and erase(pos) of plain elements by node size (S12d): clear 16 bytes (2) and 24; erase
+// 16 bytes (3), 24 (3), 32 and 40.
+EI_REPLACE(0x00405500, List16::Clear);
+EI_REPLACE(0x0040B390, List16::Clear);
+EI_REPLACE(0x0040B290, List24::Clear);
+EI_REPLACE(0x0040AA40, List16::Erase);
+EI_REPLACE(0x00512030, List16::Erase);
+EI_REPLACE(0x0056DFB0, List16::Erase);
+EI_REPLACE(0x0040A920, List24::Erase);
+EI_REPLACE(0x00411540, List24::Erase);
+EI_REPLACE(0x004437D0, List24::Erase);
+EI_REPLACE(0x005392F0, List32::Erase);
+EI_REPLACE(0x00443730, List40::Erase);
 
 // The instantiations that copy or destroy elements, grouped by element policy (stlp_list_refs.h).
 namespace {
@@ -265,6 +310,8 @@ EI_REPLACE(0x00422FA0, SharedEntryList::Erase);
 EI_REPLACE(0x004246E0, SharedEntryList::Erase);
 EI_REPLACE(0x004236C0, CountedEntryList::Erase);
 EI_REPLACE(0x005F8E50, CStringList::Erase);
+// erase(pos) of the connection's 0x104-byte headers (nodes from operator new; S12d).
+EI_REPLACE(0x00438660, PlainList260::Erase);
 
 // clear(): SharedRef (7), CountedRef (8), SharedEntry (2).
 EI_REPLACE(0x00427100, SharedRefList::Clear);

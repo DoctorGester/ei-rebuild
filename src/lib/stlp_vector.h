@@ -14,6 +14,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <new>
 #include <type_traits>
 
@@ -442,6 +443,29 @@ struct VectorAbi {
         return first;
     }
 };
+
+// Helpers of the plain-data instantiations compiled out of line (ECX and EDX the first two
+// arguments):
+// - _Construct(p, x) (e.g. 0043D7F0; plain RET): placement new, which skips a null p.
+template <typename T>
+void __fastcall ConstructAt(T* p, const T* x) {
+    if (p) new (p) T(*x);
+}
+// - copy(first, last, out) as __copy_trivial (0043B360; RET 4): one memmove of the whole range;
+//   returns the end of the copy.
+template <typename T>
+T* __fastcall CopyTrivial(const T* first, const T* last, T* out) {
+    std::size_t bytes = static_cast<std::size_t>(last - first) * sizeof(T);
+    std::memmove(out, first, bytes);
+    return out + (last - first);
+}
+// - copy(first, last, out) as the element loop (0043DC80; RET 4): nothing when last is not after
+//   first; returns the end of the copy.
+template <typename T>
+T* __fastcall CopyElements(const T* first, const T* last, T* out) {
+    for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++out) *out = *first;
+    return out;
+}
 
 // The members that never touch an element, one body for all instantiations (stlp_vector.cpp).
 using AnyVector = vector<Opaque<1>>;

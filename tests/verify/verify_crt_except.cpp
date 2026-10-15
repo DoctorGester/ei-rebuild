@@ -49,9 +49,10 @@ EI_VERIFY(0x006E7CD5, ConstructVerify, 6, s_construct);
 // 006E7D3F: PUSH ESI; PUSH EDI; MOV EDI,[ESP+0xC]; MOV ESI,ECX (8 bytes).
 Exception*(__fastcall* s_copyConstruct)(Exception*, void*, const Exception*);
 Exception* __fastcall CopyConstructVerify(Exception* self, void*, const Exception* source) {
+    // Ours first, so that its text lands where the original's would without the check (SV2f).
+    Exception* result = self->CopyConstruct(*source);
     Exception expected;
     s_copyConstruct(&expected, nullptr, source);
-    Exception* result = self->CopyConstruct(*source);
     bool same = result == self && expected.vtable == self->vtable && expected.ownsText == self->ownsText;
     if (self->ownsText) {
         same = same && self->text != source->text && expected.text && self->text &&

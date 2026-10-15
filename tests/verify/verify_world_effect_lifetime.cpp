@@ -1,8 +1,8 @@
 // Checks for world_effect_lifetime.cpp (effect constructors / destructors, the state field).
 //
 // - Stream and field constructors, DeltaField::Empty: side by side on copies of the bytes.
-// - Effect constructors: the original on a scratch copy of the fresh memory (so bytes neither
-//   writes stay equal), ours on the real object; the whole object compared. Nothing they do has
+// - Effect constructors: ours on the real object, then the original on a scratch copy of the fresh
+//   memory (our memory; bytes neither writes stay equal); the whole object compared. Nothing they do has
 //   outside effects (every Reset they run finds no sound, light, source or bolt).
 // - Destructors: ours only, run by the slot 0 wrappers (flag bit 0 cleared, the memory freed by the
 //   wrapper): CEngineObject's vtable and no owner, the four streams back to CStream's vtable, and
@@ -14,6 +14,7 @@
 #include "../../src/lib/crt.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -83,18 +84,19 @@ void __fastcall FieldEmptyVerify(DeltaField* self) {
 
 // --- Constructors -------------------------------------------------------------------------------------
 
-// The original on scratch memory holding the same bytes, ours on the real object.
+// Ours on the real object, then the original on scratch memory (ours, holding the same bytes): the
+// game reads the heap's address order (SV2f).
 template <typename T>
 T* ConstructBoth(const char* name, T*(__fastcall* original)(T*), T* self) {
-    auto* scratch = static_cast<unsigned char*>(gamecrt::operator_new(sizeof(T)));
+    std::vector<unsigned char> scratchBytes(sizeof(T));
+    unsigned char* scratch = scratchBytes.data();
     std::memcpy(scratch, self, sizeof(T));
-    T* expected = original(reinterpret_cast<T*>(scratch));
     T* actual = self->Construct();
+    T* expected = original(reinterpret_cast<T*>(scratch));
     int diff = FirstDifference(scratch, self, sizeof(T));
     ei::verify::Check(name, true, diff < 0 && expected == reinterpret_cast<T*>(scratch) && actual == self,
                       "object %p: first difference at +0x%X", self, diff);
-    gamecrt::operator_delete(scratch);   // holds no buffers or references
-    return actual;
+    return actual;   // the scratch holds no buffers or references
 }
 
 // Each constructor starts with PUSH -1; PUSH imm32 (7).
@@ -222,10 +224,12 @@ CEffectArrowFigure* __fastcall ArrowFigureDeleteVerify(CEffectArrowFigure* self,
 // original's blocks are freed with its scratch.
 CEffectShowVisibility*(__fastcall* s_visibilityCtor)(CEffectShowVisibility*);
 CEffectShowVisibility* __fastcall VisibilityCtorVerify(CEffectShowVisibility* self) {
-    auto* scratch = static_cast<CEffectShowVisibility*>(gamecrt::operator_new(sizeof(CEffectShowVisibility)));
+    // Ours first, the scratch in our memory (SV2f).
+    std::vector<unsigned char> scratchBytes(sizeof(CEffectShowVisibility));
+    auto* scratch = reinterpret_cast<CEffectShowVisibility*>(scratchBytes.data());
     std::memcpy(scratch, self, sizeof(CEffectShowVisibility));
-    CEffectShowVisibility* expected = s_visibilityCtor(scratch);
     CEffectShowVisibility* actual = self->Construct();
+    CEffectShowVisibility* expected = s_visibilityCtor(scratch);
     bool shape = scratch->grid_.rows[0] == scratch->grid_.cells && self->grid_.rows[0] == self->grid_.cells;
     gamecrt::operator_delete(scratch->grid_.cells);
     gamecrt::operator_delete(scratch->grid_.rows);
@@ -234,7 +238,6 @@ CEffectShowVisibility* __fastcall VisibilityCtorVerify(CEffectShowVisibility* se
     int diff = FirstDifference(scratch, self, sizeof(CEffectShowVisibility));
     ei::verify::Check("CEffectShowVisibility::Construct", true, diff < 0 && shape && expected == scratch && actual == self,
                       "object %p: first difference at +0x%X", self, diff);
-    gamecrt::operator_delete(scratch);
     return actual;
 }
 bool Destroyed(const CEffectShowVisibility* e) {
@@ -372,8 +375,8 @@ void __fastcall ResetMissileVerify(CEffectMissile* self) {
     ei::verify::Check("CEffectMissile::ResetMissile", true, ok, "missile %p", static_cast<void*>(self));
 }
 
-// 006773A0: MOV EAX,FS:[0] (6). The original appends to an empty scratch array (same vtable and
-// grow-by); the stream is put back where it was and ours appends to the real array. The new
+// 006773A0: MOV EAX,FS:[0] (6). Ours appends to the real array; the stream is put back where it
+// was and the original appends to an empty scratch array (same vtable and grow-by). The new
 // elements must be the scratch's texts and the stream must end at the same place.
 void(__fastcall* s_readSavedStrings)(mfc::CStringArray*, CStream*);
 void __fastcall ReadSavedStringsVerify(mfc::CStringArray* array, CStream* stream) {
@@ -384,12 +387,14 @@ void __fastcall ReadSavedStringsVerify(mfc::CStringArray* array, CStream* stream
     scratch->size = 0;
     scratch->maxSize = 0;
     scratch->growBy = array->growBy;
+    // Ours first, then the original from the same place (the game reads the heap's address order,
+    // SV2f).
     const std::uint32_t start = stream->Position();
-    s_readSavedStrings(scratch, stream);
-    const std::uint32_t end = stream->Position();
-    stream->Seek(start);
     const int before = array->size;
     ReadSavedStrings(array, stream);
+    const std::uint32_t end = stream->Position();
+    stream->Seek(start);
+    s_readSavedStrings(scratch, stream);
     bool same = stream->Position() == end && array->size == before + scratch->size;
     for (int i = 0; same && i < scratch->size; ++i)
         same = std::strcmp(static_cast<const char*>((*scratch)[i]), static_cast<const char*>((*array)[before + i])) == 0;

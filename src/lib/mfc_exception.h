@@ -18,8 +18,33 @@ struct CException {
     BOOL autoDelete;    // +0x04
 
     CException* Construct();                        // 00702053: auto-delete on, no vtable written
+    CException* ConstructAutoDelete(BOOL autoDeleteFlag);   // 0070205D CException(BOOL): no vtable written
 };
 static_assert(sizeof(CException) == 8);
+
+// CSimpleException (0x98 bytes): the exceptions MFC keeps one static object of, their message loaded
+// from the resource on first use (GetErrorMessage 006FE346).
+struct CSimpleException {
+    void* vtable;
+    BOOL autoDelete;        // +0x04
+    BOOL reserved;          // +0x08 (no code of the exe's touches it)
+    BOOL initialized;       // +0x0C m_bInitialized (the message was looked up)
+    BOOL loaded;            // +0x10 m_bLoaded (the message was found)
+    char message[128];      // +0x14 m_szMessage
+    unsigned resourceId;    // +0x94 m_nResourceID
+
+    // The four classes' constructors (BOOL autoDelete, UINT resourceId): CException(BOOL), the flags
+    // cleared, the resource id kept, the class's vtable (the one its destructor stores, below). Only the
+    // static initialisers call them, on the static objects (resource ids AFX_IDS_RESOURCE_EXCEPTION ...).
+    CSimpleException* ConstructResource(BOOL autoDeleteFlag, unsigned id);       // 006E68C9 (007C8C58, 0xF022)
+    CSimpleException* ConstructUser(BOOL autoDeleteFlag, unsigned id);           // 006E6916 (007C8BC0, 0xF024)
+    CSimpleException* ConstructMemory(BOOL autoDeleteFlag, unsigned id);         // 006E6AEA (007C8DE8, 0xF023)
+    CSimpleException* ConstructNotSupported(BOOL autoDeleteFlag, unsigned id);   // 006E6B37 (007C8D50, 0xF021)
+
+private:
+    CSimpleException* Construct(BOOL autoDeleteFlag, unsigned id, void* classVtable);
+};
+static_assert(sizeof(CSimpleException) == 0x98);
 
 // CException::Delete (00702069; thiscall, called as fastcall): an auto-delete exception is
 // deleted through vtable slot 1. The original reads the flag before testing the pointer.

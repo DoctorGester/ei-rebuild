@@ -12,7 +12,8 @@
 //   fpscursor 0|1                  the game's FPSIndependentCursor (options +0x80: on, the cursor runs in
 //                                  mode 2 with its drawing thread 005E5690; off, mode 1 without one)
 // Without them the environment variables EI_RESOLUTION and EI_WIDESCREEN (same values) apply, and
-// without those the registry's own values.
+// without those the registry's own values. Rebirth's CtfMon switch is answered 0 in every run (S3e:
+// addon.dll closes ctfmon at start and restarts it from its DLL_PROCESS_DETACH, which hung the exit).
 //
 // The game reads the resolution through its import table (RegQueryValueExA), the rebuild's WideScreen
 // code reads both settings through the same slot (ui_widescreen.cpp), and addon.dll reads them

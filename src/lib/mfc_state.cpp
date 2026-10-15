@@ -3,7 +3,10 @@
 #include "mfc_state.h"
 
 #include "ei/hook.h"
+#include "game/originals_library.h"   // GameAtExit
 #include "gameapi.h"
+
+#pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace mfc::impl {
 
@@ -16,6 +19,14 @@ GetVersionFn& GetVersionImport() { return *reinterpret_cast<GetVersionFn*>(0x007
 // 0070D158 / 0070D188 as the original calls them: on afxData, no arguments.
 void __cdecl UpdateAfxScrollMetricsMarked4() { AfxData().UpdateScrollMetricsMarked4(); }
 void __cdecl UpdateAfxScrollMetrics() { AfxData().UpdateScrollMetrics(); }
+
+// The module state lookup at its address (the original's in the hook build, ImageModuleState in the
+// image).
+__declspec(naked) ModuleState* __cdecl ModuleStateAt() EI_ORIGINAL(0x0070CE8C)
+
+// AfxWingdixTerm as the exe's atexit list holds it: its address (ours, through the registration).
+using ExitFunction = void(__cdecl*)();
+ExitFunction WingdixTermAt() { return reinterpret_cast<ExitFunction>(0x0070B5F0); }
 
 } // namespace
 
@@ -132,5 +143,92 @@ EI_REPLACE_METHOD(0x00703E12, AuxData::UpdateSysColors);
 EI_REPLACE_METHOD(0x00703E56, AuxData::UpdateSysMetrics);
 EI_REPLACE(0x0070D158, UpdateAfxScrollMetricsMarked4);
 EI_REPLACE(0x0070D188, UpdateAfxScrollMetrics);
+
+} // namespace mfc::impl
+
+namespace mfc::impl {
+
+// ---- Module state, runtime class list, global locks (S3f) ----------------------------------------
+
+void CSimpleList::AddHead(void* element) {
+    *reinterpret_cast<void**>(static_cast<char*>(element) + nextOffset) = head;
+    head = element;
+}
+
+ModuleState* __cdecl AfxGetModuleState() { return ModuleStateAt(); }
+
+ModuleState* __cdecl ImageModuleState() {
+    static ModuleState state = {nullptr, nullptr, nullptr, nullptr, nullptr, 0, 0, {0, 0}, 0, {nullptr, kNextClassOffset}};
+    return &state;
+}
+
+BOOL& AfxCriticalInitDone() { return *reinterpret_cast<BOOL*>(0x007C907C); }
+BOOL& AfxCriticalWin32s() { return *reinterpret_cast<BOOL*>(0x007C9078); }
+int* AfxLockInit() { return reinterpret_cast<int*>(0x007C8E80); }
+CRITICAL_SECTION* AfxResourceLocks() { return reinterpret_cast<CRITICAL_SECTION*>(0x007C8EE0); }
+CRITICAL_SECTION* AfxLockInitLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007C8EC8); }
+
+BOOL __cdecl AfxCriticalInit() {
+    if (!AfxCriticalInitDone()) {
+        AfxCriticalInitDone() = TRUE;
+        const DWORD versionWord = GetVersionImport()();
+        if ((versionWord & 0xFF) < 4 && (versionWord & 0x80000000u)) {
+            AfxCriticalWin32s() = TRUE;
+        } else {
+            AfxCriticalWin32s() = FALSE;
+            gameapi::InitializeCriticalSection(AfxLockInitLock());
+        }
+    }
+    return AfxCriticalInitDone();
+}
+
+void __stdcall AfxLockGlobals(int lockType) {
+    if (!AfxCriticalInitDone()) AfxCriticalInit();
+    if (AfxCriticalWin32s()) return;
+    if (!AfxLockInit()[lockType]) {
+        gameapi::EnterCriticalSection(AfxLockInitLock());
+        if (!AfxLockInit()[lockType]) {
+            gameapi::InitializeCriticalSection(&AfxResourceLocks()[lockType]);
+            ++AfxLockInit()[lockType];
+        }
+        gameapi::LeaveCriticalSection(AfxLockInitLock());
+    }
+    gameapi::EnterCriticalSection(&AfxResourceLocks()[lockType]);
+}
+
+void __stdcall AfxUnlockGlobals(int lockType) {
+    if (AfxCriticalWin32s()) return;
+    gameapi::LeaveCriticalSection(&AfxResourceLocks()[lockType]);
+}
+
+void __stdcall AfxClassInit(CRuntimeClass* newClass) {
+    ModuleState* state = AfxGetModuleState();
+    AfxLockGlobals(kRuntimeClassListLock);
+    state->classList.AddHead(newClass);
+    AfxUnlockGlobals(kRuntimeClassListLock);
+}
+
+BOOL __cdecl AfxInitDbcs() {
+    CPINFO info;
+    gameapi::GetCPInfo(gameapi::GetOEMCP(), &info);
+    return info.MaxCharSize > 1 ? TRUE : FALSE;
+}
+
+HGDIOBJ& AfxHalftoneBrush() { return *reinterpret_cast<HGDIOBJ*>(0x007C8D40); }
+char& AfxWingdixTermResult() { return *reinterpret_cast<char*>(0x007C8D44); }
+
+void __cdecl AfxWingdixTerm() { AfxDeleteObject(&AfxHalftoneBrush()); }
+
+void __cdecl AfxWingdixTermInit() { AfxWingdixTermResult() = static_cast<char>(GameAtExit(WingdixTermAt())); }
+
+EI_REPLACE_METHOD(0x0070C4E9, CSimpleList::AddHead);
+EI_REPLACE_STANDALONE(0x0070CE8C, ImageModuleState);
+EI_REPLACE(0x0070C3C5, AfxCriticalInit);
+EI_REPLACE(0x0070C458, AfxLockGlobals);
+EI_REPLACE(0x0070C4C8, AfxUnlockGlobals);
+EI_REPLACE(0x00700674, AfxClassInit);
+EI_REPLACE(0x0070DC4D, AfxInitDbcs);
+EI_REPLACE(0x0070B5F0, AfxWingdixTerm);
+EI_REPLACE(0x0070B600, AfxWingdixTermInit);
 
 } // namespace mfc::impl

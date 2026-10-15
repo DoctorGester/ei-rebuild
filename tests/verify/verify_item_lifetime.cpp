@@ -1,6 +1,6 @@
 // Checks for item_lifetime.cpp.
-// - CItem::Construct (0069FCA0) and CItemArmor::Construct (006A2F20): the original on a scratch copy
-//   of the fresh memory (bytes neither writes stay equal), ours on the real object; whole object
+// - CItem::Construct (0069FCA0) and CItemArmor::Construct (006A2F20): ours on the real object, then
+//   the original on a scratch copy (our memory) of the fresh memory (bytes neither writes stay equal); whole object
 //   compared. Nothing they release exists yet.
 // - The other constructors start with a CALL within five bytes (no trampoline): ours only, the
 //   fields CItem's constructor sets and the class's vtable and fields checked.
@@ -14,6 +14,7 @@
 #include "../../src/lib/crt.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -33,16 +34,17 @@ std::uint32_t Bits(const void* field) {
 
 template <typename T>
 T* ConstructBoth(const char* name, T*(__fastcall* original)(T*), T* self) {
-    auto* scratch = static_cast<unsigned char*>(gamecrt::operator_new(sizeof(T)));
+    // Ours first and the scratch in our memory (the game reads the heap's address order, SV2f).
+    std::vector<unsigned char> scratchBytes(sizeof(T));
+    unsigned char* scratch = scratchBytes.data();
     std::memcpy(scratch, self, sizeof(T));
-    T* expected = original(reinterpret_cast<T*>(scratch));
     T* actual = self->Construct();
+    T* expected = original(reinterpret_cast<T*>(scratch));
     int diff = -1;
     for (std::size_t i = 0; i < sizeof(T) && diff < 0; ++i)
         if (scratch[i] != reinterpret_cast<const unsigned char*>(self)[i]) diff = static_cast<int>(i);
     ei::verify::Check(name, true, diff < 0 && expected == reinterpret_cast<T*>(scratch) && actual == self,
                       "object %p: first difference at +0x%X", self, diff);
-    gamecrt::operator_delete(scratch);
     return actual;
 }
 

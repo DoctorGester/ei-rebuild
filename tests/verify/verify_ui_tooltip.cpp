@@ -1,8 +1,9 @@
 // Checks for the region tooltips (ui_tooltip.cpp, A-H20). Scenarios: every screen with regions makes
 // tooltips (the main menu at a new game, the battle HUD's panels: ui_hud_tips, ui_camp, ...); they
 // are drawn when the mouse rests on a region (ui_hud_tips moves over them).
-// - CUiTooltip::Construct (0065E320): side by side. The original builds a scratch tooltip (a fresh
-//   0x184-byte block, destroyed again with our DestroyBody), ours the real one; the lines and,
+// - CUiTooltip::Construct (0065E320): side by side. Ours builds the real one, then the original a
+//   scratch tooltip (fresh zeroed bytes in our memory, destroyed again with our DestroyBody); the
+//   lines and,
 //   for a non-empty text, the measurements and the two arguments compared.
 // - CUiTooltip::SetText (0065E540): side by side; the original first, its lines copied, then ours;
 //   both draw the same lines.
@@ -32,10 +33,11 @@ std::vector<std::string> LinesOf(const CUiTooltip* tip) {
 static CUiTooltip*(__fastcall* s_construct)(void*, void*, CInterface3D*, CUiRegion*, const char*, int, int);
 static CUiTooltip* __fastcall TooltipConstructVerify(CUiTooltip* self, void*, CInterface3D* ui, CUiRegion* region,
                                                      const char* text, int flag, int extra) {
-    auto* scratch = static_cast<CUiTooltip*>(gamecrt::operator_new(sizeof(CUiTooltip)));
-    std::memset(scratch, 0, sizeof(CUiTooltip));
-    s_construct(scratch, nullptr, ui, region, text, flag, extra);
+    // Ours first, the scratch in our memory (the game reads the heap's address order, SV2f).
+    std::vector<unsigned char> scratchBytes(sizeof(CUiTooltip), 0);
+    auto* scratch = reinterpret_cast<CUiTooltip*>(scratchBytes.data());
     self->CUiTooltip::Construct(ui, region, text, flag, extra);
+    s_construct(scratch, nullptr, ui, region, text, flag, extra);
     bool ok = LinesOf(scratch) == LinesOf(self) && scratch->vtable_ == self->vtable_ &&
               scratch->inputVtable_ == self->inputVtable_ && scratch->region_ == self->region_ &&
               scratch->state_ == self->state_ && scratch->timer_ == self->timer_;
@@ -47,7 +49,6 @@ static CUiTooltip* __fastcall TooltipConstructVerify(CUiTooltip* self, void*, CI
                       scratch->lines_.size, self->lines_.size, scratch->width_, scratch->height_, self->width_,
                       self->height_);
     scratch->CUiTooltip::DestroyBody();
-    gamecrt::operator_delete(scratch);
     return self;
 }
 EI_VERIFY(0x0065E320, TooltipConstructVerify, 7, s_construct);
