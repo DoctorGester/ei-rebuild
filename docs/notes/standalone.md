@@ -235,6 +235,15 @@ bytes, the file afterwards), 12 _open flag sets, bad descriptors, _access, _find
 smoke and ui_saveload, both installs: 0 mismatches. The image installs all 18; `--standalone` boot still
 stops at 0040AA80 (hash table resize, S11) before any file code.
 
+**S4b1 (2026-10-15).** The check's rare false fclose / _close mismatches under load were the machine's,
+not the CRT's: a truncating open ("w" modes, _O_TRUNC) of a file just written, then a write past its
+end, sometimes reads the gap back as the old bytes instead of zeros (about 1 in 4000 with 8 processes
+doing it at once, reproduced with plain CreateFileA / WriteFile; hit either side; open and read-back
+never failed). A case that differs now runs again on a new pair of files (3 attempts), each retry
+logged as "crt file check: ... differs on attempt n" with both differences and errors; a real
+difference repeats. Two stress runs (the file cases 60 times per game, 24 games 4 at once): about
+10 and 4 retries, every one passing on attempt 2, 0 mismatches.
+
 **S4c (2026-10-15), group 1: the x87 entries.** _ftol 006E853C, _CIacos 006E7320, _CIasin 006E83C0, _CIpow
 006E81A0 and _CIfmod 006E95AA take ST0 / ST1 and return in EDX:EAX or ST0; our src/game helpers call them
 through their addresses (`mov eax, addr; call eax`), so the image needs code there. src/lib/crt_x87.cpp:
@@ -502,6 +511,12 @@ speech-list arrays itself: `records::Memberwise` takes an array of `stlp::vector
 copyable (a vector's copy assignment is implicit and trivial), so its array overloads never apply and
 a default record's lists were left as garbage. Checks ours only (model text: name, map, every list);
 reached at boot, 0 mismatches.
+
+**S10d (2026-10-15).** record_members.h decides plain data by `records::IsPlain<T>` (trivially copyable,
+but never CString, stlp::string, stlp::vector or arrays of them; a trivially copyable record with
+its own CopyMember / AssignMember / DefaultMember specialises it to false), so arrays of vectors go
+element by element and an element type with no policy does not compile. AcksElement copies its
+lists as arrays through it (same order as before); smoke and ui_saveload: 0 mismatches.
 
 **S7 (2026-10-15).** CPlex and MFC `CList<T>` / `CMap<K, V>` (src/lib/mfc_list.h, mfc_list.cpp;
 game-element lists in src/game/game_lists.*): mfc::CList's bodies under `ListAbi<T, Policy>`
