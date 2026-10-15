@@ -14,7 +14,8 @@
 //
 // Memory streams the functions touch (only the two CMemoryStream classes) are deep-copied for the
 // original's run: header plus a private buffer from the game heap; compared field by field (the
-// buffer pointer excepted) and up to the size. The queue's streams are compared without +4, +6,
+// buffer pointer excepted) and up to the size. Ours runs first: the streams' bytes are kept in our
+// memory before it and the copies made after it (the game reads the heap's address order, SV2f). The queue's streams are compared without +4, +6,
 // +7 and +0xC, which their copy constructor never writes (pool leftovers).
 //
 //  - FileStream constructor: the original on the real object, ours on a copy taken before (the
@@ -45,6 +46,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <vector>
 
 #include <windows.h>
 
@@ -73,19 +75,48 @@ bool IsMemoryStream(const void* s) {
     std::uintptr_t v = VtableOf(s);
     return v == 0x0073BD90 || v == 0x0073C960;
 }
-void CloneStream(CMemoryStream* dst, const CMemoryStream* src) {
-    std::memcpy(dst, src, sizeof(CMemoryStream));
-    if (!src->data_) return;
-    std::uint32_t bytes = src->capacity_ > src->size_ ? src->capacity_ : src->size_;
-    if (bytes == 0) bytes = 1;
-    dst->data_ = static_cast<std::uint8_t*>(gamecrt::operator_new(bytes));
-    std::memset(dst->data_, 0, bytes);
-    std::memcpy(dst->data_, src->data_, src->size_);
-}
 void FreeStream(CMemoryStream* s) {
     if (s->data_) gamecrt::operator_delete(s->data_);
     s->data_ = nullptr;
 }
+// A stream's fields and bytes kept in our memory before ours runs; CloneTo makes the deep copy
+// (as CloneStream) after ours ran, so that ours' blocks land where the original's would without
+// the check (the game reads the heap's address order, SV2f).
+struct KeptStream {
+    alignas(8) std::uint8_t header[sizeof(CMemoryStream)];
+    std::vector<std::uint8_t> data;
+    std::uint32_t bytes = 0;
+    bool hasData = false;
+    explicit KeptStream(const CMemoryStream* src) {
+        std::memcpy(header, src, sizeof(header));
+        if (!src->data_) return;
+        hasData = true;
+        bytes = src->capacity_ > src->size_ ? src->capacity_ : src->size_;
+        if (bytes == 0) bytes = 1;
+        data.assign(src->data_, src->data_ + src->size_);
+    }
+    void CloneTo(CMemoryStream* dst) const {
+        std::memcpy(dst, header, sizeof(header));
+        if (!hasData) return;
+        dst->data_ = static_cast<std::uint8_t*>(gamecrt::operator_new(bytes));
+        std::memset(dst->data_, 0, bytes);
+        if (!data.empty()) std::memcpy(dst->data_, data.data(), data.size());
+    }
+};
+// A deep copy made from a KeptStream when the original is about to run, freed at the end of the
+// scope if it was made.
+struct LateStream {
+    alignas(8) std::uint8_t bytes[sizeof(CMemoryStream)];
+    bool made = false;
+    CMemoryStream* get() { return reinterpret_cast<CMemoryStream*>(bytes); }
+    void Make(const KeptStream& kept) {
+        kept.CloneTo(get());
+        made = true;
+    }
+    ~LateStream() {
+        if (made) FreeStream(get());
+    }
+};
 bool SameBytes(const CMemoryStream* a, const CMemoryStream* b) {
     if (a->size_ == 0) return true;
     if (!a->data_ || !b->data_) return a->data_ == b->data_;
@@ -483,19 +514,21 @@ bool __fastcall LinkRecordVerify(NetLink* self, void*, void* stream) {
         ei::verify::Check("LinkRecord", true, expected == actual && SameLinkHeader(copy, self), "");
         return actual;
     }
-    CMemoryStream source;
-    CloneStream(&source, static_cast<CMemoryStream*>(stream));
+    KeptStream keptSource(static_cast<CMemoryStream*>(stream));
+    LateStream source;   // made after ours (SV2f)
     bool actual = false;
     bool expected = false;
     RunRecorded(
         self->record_.file_, link->record_.file_, [&] { actual = self->NetLink::Receive(static_cast<CStream*>(stream)); },
-        [&] { expected = s_linkRecord(link, nullptr, &source); },
+        [&] {
+            source.Make(keptSource);
+            expected = s_linkRecord(link, nullptr, source.get());
+        },
         [&](bool replayed) {
             bool same = replayed && expected == actual && SameLinkHeader(copy, self) &&
-                        SameStream(&source, static_cast<CMemoryStream*>(stream));
+                        SameStream(source.get(), static_cast<CMemoryStream*>(stream));
             ei::verify::Check("LinkRecord", true, same, replayed ? "" : "calls differ");
         });
-    FreeStream(&source);
     return actual;
 }
 
@@ -596,8 +629,9 @@ bool SameClone(const LoopbackLink* a, const LoopbackLink* b) {
     return p == a->queue_ && q == b->queue_;
 }
 LoopbackLink* __fastcall LoopbackCloneVerify(LoopbackLink* self) {
-    LoopbackLink* expected = s_clone(self);
+    // Ours first, so that its copy lands where the original's would without the check (SV2f).
     LoopbackLink* actual = self->LoopbackLink::Clone();
+    LoopbackLink* expected = s_clone(self);
     if (expected && actual) {
         ei::verify::Check("LoopbackClone", true, SameClone(expected, actual), "%d queued", QueueCount(self->queue_));
     }
@@ -658,9 +692,10 @@ bool __fastcall LoopbackSendVerify(LoopbackLink* self, void*, void* stream) {
         return actual;
     }
     if (!IsMemoryStream(stream)) return self->LoopbackLink::Send(static_cast<CStream*>(stream));
-    CMemoryStream source;
-    CloneStream(&source, static_cast<CMemoryStream*>(stream));
+    KeptStream keptSource(static_cast<CMemoryStream*>(stream));
     bool actual = self->LoopbackLink::Send(static_cast<CStream*>(stream));
+    CMemoryStream source;
+    keptSource.CloneTo(&source);   // after ours (SV2f)
 
     alignas(8) std::uint8_t peerCopy[sizeof(LoopbackLink)];
     alignas(8) std::uint8_t selfCopy[sizeof(LoopbackLink)];
@@ -696,44 +731,54 @@ bool __fastcall LoopbackReceiveVerify(LoopbackLink* self, void*, void* stream) {
     int before = QueueCount(self->queue_);
 
     // The original's link: a copy whose queue holds a copy of the front stream (pool nodes: its
-    // erase gives the node back to the pool and frees the stream's buffer).
+    // erase gives the node back to the pool and frees the stream's buffer). Ours runs first: the
+    // link's bytes and the two streams are kept in our memory before it, the scratch queue and the
+    // streams' game-heap copies made after it (the game reads the heap's address order, SV2f).
     alignas(8) std::uint8_t selfCopy[sizeof(LoopbackLink)];
     std::memcpy(selfCopy, self, sizeof(selfCopy));
     auto* scratchSelf = reinterpret_cast<LoopbackLink*>(selfCopy);
-    QueueNode* header = ScratchQueue();
-    auto* node = static_cast<QueueNode*>(NodeAllocate(sizeof(QueueNode)));
-    CloneStream(&node->stream, &self->queue_->next->stream);
-    node->next = header;
-    node->prev = header;
-    header->next = node;
-    header->prev = node;
-    scratchSelf->queue_ = header;
-    CMemoryStream target;
-    CloneStream(&target, static_cast<CMemoryStream*>(stream));
+    KeptStream keptFront(&self->queue_->next->stream);
+    KeptStream keptTarget(static_cast<CMemoryStream*>(stream));
+    QueueNode* header = nullptr;
+    LateStream target;
+    auto setUp = [&] {
+        header = ScratchQueue();
+        auto* node = static_cast<QueueNode*>(NodeAllocate(sizeof(QueueNode)));
+        keptFront.CloneTo(&node->stream);
+        node->next = header;
+        node->prev = header;
+        header->next = node;
+        header->prev = node;
+        scratchSelf->queue_ = header;
+        target.Make(keptTarget);
+    };
 
     bool actual = false;
     bool expected = false;
     auto compare = [&](bool replayed) {
         bool same = replayed && expected == actual && QueueCount(header) == 0 && QueueCount(self->queue_) == before - 1 &&
                     scratchSelf->skipNext_ == self->skipNext_ &&
-                    SameStream(&target, static_cast<CMemoryStream*>(stream));
+                    SameStream(target.get(), static_cast<CMemoryStream*>(stream));
         ei::verify::Check("LoopbackReceive", true, same, "%s, %d queued", replayed ? "replayed" : "calls differ", before);
     };
     if (self->recording_ && !self->skipNext_) {
         RunRecorded(
             self->record_.file_, scratchSelf->record_.file_, [&] { actual = self->LoopbackLink::Receive(static_cast<CStream*>(stream)); },
-            [&] { expected = s_receive(scratchSelf, nullptr, &target); }, compare);
+            [&] {
+                setUp();
+                expected = s_receive(scratchSelf, nullptr, target.get());
+            },
+            compare);
     } else {
         actual = self->LoopbackLink::Receive(static_cast<CStream*>(stream));
-        expected = s_receive(scratchSelf, nullptr, &target);
+        setUp();
+        expected = s_receive(scratchSelf, nullptr, target.get());
         compare(true);
     }
-    if (header->next != header) {
-        // The original did not run (a nested recorded check): the scratch node is still queued.
-        QueueClear(&header);
+    if (header) {
+        if (header->next != header) QueueClear(&header);   // the original did not empty it
+        NodeFree(header, sizeof(QueueNode));
     }
-    NodeFree(header, sizeof(QueueNode));
-    FreeStream(&target);
     return actual;
 }
 
@@ -803,8 +848,8 @@ void __fastcall ReplayResetVerify(ReplayLink* self) {
 // fresh file streams), the original's deleted.
 ReplayLink*(__fastcall* s_replayClone)(ReplayLink*);
 ReplayLink* __fastcall ReplayCloneVerify(ReplayLink* self) {
+    ReplayLink* actual = self->ReplayLink::Clone();   // ours first (SV2f)
     ReplayLink* expected = s_replayClone(self);
-    ReplayLink* actual = self->ReplayLink::Clone();
     if (expected && actual) {
         bool same = std::memcmp(expected, actual, 10) == 0 && SameFileStream(expected->record_, actual->record_) &&
                     SameFileStream(expected->replay_, actual->replay_);
@@ -850,20 +895,22 @@ bool __fastcall ReplayReceiveVerify(ReplayLink* self, void*, void* stream) {
     alignas(8) std::uint8_t copy[sizeof(ReplayLink)];
     std::memcpy(copy, self, sizeof(copy));
     auto* link = reinterpret_cast<ReplayLink*>(copy);
-    CMemoryStream target;
-    CloneStream(&target, static_cast<CMemoryStream*>(stream));
+    KeptStream keptTarget(static_cast<CMemoryStream*>(stream));
+    LateStream target;   // made after ours (SV2f)
     bool actual = false;
     bool expected = false;
     RunRecorded(
         self->replay_.file_, link->replay_.file_, [&] { actual = self->ReplayLink::Receive(static_cast<CStream*>(stream)); },
-        [&] { expected = s_replayReceive(link, nullptr, &target); },
+        [&] {
+            target.Make(keptTarget);
+            expected = s_replayReceive(link, nullptr, target.get());
+        },
         [&](bool replayed) {
             bool same = replayed && expected == actual && std::memcmp(copy, self, kReplayHeader) == 0 &&
-                        SameStream(&target, static_cast<CMemoryStream*>(stream));
+                        SameStream(target.get(), static_cast<CMemoryStream*>(stream));
             ei::verify::Check("ReplayReceive", true, same, "%s, %u bytes", replayed ? "replayed" : "calls differ",
                               static_cast<CMemoryStream*>(stream)->size_);
         });
-    FreeStream(&target);
     return actual;
 }
 

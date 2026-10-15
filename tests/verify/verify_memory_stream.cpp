@@ -12,6 +12,9 @@
 // - ReadSized / WriteSized / WriteHeader with memory streams only: the stream that is written to is
 //   cloned with its buffer; otherwise ours only.
 // - CopyFrom (both slots): ours only, the copy's size / position / flags checked.
+// Where ours allocates, ours runs first and the scratch's clone is made after it from the buffer's
+// bytes kept in our memory, so that ours' blocks land where the original's would without the check
+// (the game reads the heap's address order, SV2f).
 #include "verify.h"
 
 #include "../../src/game/core_streams.h"
@@ -50,12 +53,24 @@ struct Scratch {
         return std::memcmp(bytes, y, kDataOffset) == 0 &&
                std::memcmp(bytes + kDataOffset + 4, y + kDataOffset + 4, kStreamBytes - kDataOffset - 4) == 0;
     }
-    // Gives the copy its own game-heap clone of the buffer (`bytes` of it; the original may free it).
+    // Saves `count` bytes of the buffer in our memory before ours runs (ours may free or grow the
+    // buffer), so that CloneBuffer can follow ours (SV2f).
+    std::vector<std::uint8_t> kept;
+    bool hasKept = false;
+    void Keep(std::uint32_t count) {
+        if (get()->data_ && count) kept.assign(get()->data_, get()->data_ + count);
+        hasKept = true;
+    }
+    // Gives the copy its own game-heap clone of the buffer (`count` bytes of it; the original may
+    // free it): from the kept bytes when Keep ran.
     void CloneBuffer(std::uint32_t count) {
         CMemoryStream* s = get();
         if (!s->data_) return;
         auto* clone = static_cast<std::uint8_t*>(gamecrt::operator_new(count ? count : 1));
-        std::memcpy(clone, s->data_, count);
+        if (!hasKept)
+            std::memcpy(clone, s->data_, count);
+        else if (!kept.empty())
+            std::memcpy(clone, kept.data(), std::min<std::size_t>(count, kept.size()));
         s->data_ = clone;
     }
     void FreeBuffer() {
@@ -122,9 +137,10 @@ std::uint32_t __fastcall WriteVerify(CMemoryStream* self, void*, const void* buf
         same = expectedRet == self->position_ && expected.SameButData(self) &&
                SameBytes(block.data(), self->data_ + position, size);
     } else {
+        expected.Keep(oldCapacity);
+        self->CMemoryStream::Write(buffer, size);
         expected.CloneBuffer(oldCapacity);
         std::uint32_t expectedRet = s_write(expected.get(), nullptr, buffer, size);
-        self->CMemoryStream::Write(buffer, size);
         std::uint32_t kept = oldCapacity < oldSize ? oldCapacity : oldSize;
         same = expectedRet == self->position_ && expected.SameButData(self) && SameBytes(expected.get()->data_, self->data_, kept) &&
                SameBytes(expected.get()->data_ + position, self->data_ + position, size);
@@ -200,9 +216,10 @@ void __fastcall ResizeVerify(CMemoryStream* self, void*, std::uint32_t size) {
     }
     std::uint32_t oldSize = self->size_;
     std::int32_t bitsIndex = self->bitsIndex_;
+    expected.Keep(oldSize);
+    self->Resize(size);
     expected.CloneBuffer(oldSize);
     s_resize(expected.get(), nullptr, size);
-    self->Resize(size);
     bool same = expected.SameButData(self) && SameBytes(expected.get()->data_, self->data_, oldSize);
     if (same && bitsIndex >= static_cast<std::int32_t>(oldSize))
         same = expected.get()->data_[bitsIndex] == self->data_[bitsIndex];
@@ -216,8 +233,8 @@ void __fastcall SetSizeVerify(CMemoryStream* self, void*, std::uint32_t size) {
     Scratch expected(self);
     bool grows = size > self->capacity_;
     if (grows) expected.get()->data_ = nullptr;   // the original would free the real buffer
-    s_setSize(expected.get(), nullptr, size);
     self->SetSize(size);
+    s_setSize(expected.get(), nullptr, size);
     bool same = grows ? expected.SameButData(self) : expected.Same(self);
     if (grows) expected.FreeBuffer();
     ei::verify::Check("CMemoryStream::SetSize", true, same, "size %u grows %d", size, grows);
@@ -243,8 +260,8 @@ void __fastcall ReadSizedVerify(CStream* self, void*, CStream* to) {
     Scratch source(self);
     Scratch target(to);
     target.get()->data_ = nullptr;   // the original's Clear would free the real buffer
-    s_readSized(source.get(), nullptr, target.get());
     self->ReadSized(to);
+    s_readSized(source.get(), nullptr, target.get());
     auto* actual = static_cast<CMemoryStream*>(to);
     bool same = source.Same(self) && SameContents(target, actual);
     target.FreeBuffer();
@@ -264,10 +281,12 @@ void __fastcall WriteSizedVerify(CStream* self, void*, CStream* from) {
     }
     auto* target = static_cast<CMemoryStream*>(self);
     Scratch expected(self);
-    expected.CloneBuffer(target->capacity_ > target->size_ ? target->capacity_ : target->size_);
+    std::uint32_t count = target->capacity_ > target->size_ ? target->capacity_ : target->size_;
+    expected.Keep(count);
     Scratch source(from);
-    s_writeSized(expected.get(), nullptr, source.get());
     self->WriteSized(from);
+    expected.CloneBuffer(count);
+    s_writeSized(expected.get(), nullptr, source.get());
     bool same = SameContents(expected, target) && source.Same(from);
     expected.FreeBuffer();
     ei::verify::Check("CStream::WriteSized", true, same, "size %u", static_cast<CMemoryStream*>(from)->size_);
@@ -291,9 +310,11 @@ void __fastcall WriteHeaderVerify(CStream* self, void*, std::uint32_t magic, std
     if (!IsMemoryStream(self)) return self->WriteHeader(magic, version);
     auto* target = static_cast<CMemoryStream*>(self);
     Scratch expected(self);
-    expected.CloneBuffer(target->capacity_ > target->size_ ? target->capacity_ : target->size_);
-    s_writeHeader(expected.get(), nullptr, magic, version);
+    std::uint32_t count = target->capacity_ > target->size_ ? target->capacity_ : target->size_;
+    expected.Keep(count);
     self->WriteHeader(magic, version);
+    expected.CloneBuffer(count);
+    s_writeHeader(expected.get(), nullptr, magic, version);
     bool same = SameContents(expected, target);
     expected.FreeBuffer();
     ei::verify::Check("CStream::WriteHeader", true, same, "magic %08X version %u", magic, version);

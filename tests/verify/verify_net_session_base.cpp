@@ -2,7 +2,8 @@
 //  - TypeOf: pure, both run, results compared.
 //  - Register, AddHandler, RegisterMessageTypes: ours only (they insert into the session's tables);
 //    the tables are then read back.
-//  - SessionBase::Construct: the original on a scratch copy of the bytes, ours on the real object,
+//  - SessionBase::Construct: ours on the real object, then the original on a scratch copy of the
+//    bytes (our memory),
 //    compared with BuiltCompare (allocations pair up); the scratch is then destroyed by the
 //    original base destructor body (00436A50; nothing is connected, so it only frees).
 #include "net_verify.h"
@@ -11,6 +12,7 @@
 #include "../../src/lib/crt.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -62,10 +64,12 @@ __declspec(naked) void __fastcall SessionBaseDestructOriginal(void*) EI_ORIGINAL
 SessionBase*(__fastcall* s_construct)(SessionBase*);
 SessionBase* __fastcall SessionBaseConstructVerify(SessionBase* self) {
     constexpr std::size_t kSize = sizeof(SessionBase);
-    auto* scratch = static_cast<std::uint8_t*>(gamecrt::operator_new(kSize));
-    std::memcpy(scratch, self, kSize);
-    SessionBase* expectedRet = s_construct(reinterpret_cast<SessionBase*>(scratch));
+    // Ours first, the scratch in our memory (the game reads the heap's address order, SV2f).
+    std::vector<std::uint8_t> scratchBytes(reinterpret_cast<const std::uint8_t*>(self),
+                                           reinterpret_cast<const std::uint8_t*>(self) + kSize);
+    std::uint8_t* scratch = scratchBytes.data();
     SessionBase* actualRet = self->Construct();
+    SessionBase* expectedRet = s_construct(reinterpret_cast<SessionBase*>(scratch));
     netverify::BuiltCompare cmp{scratch, reinterpret_cast<const std::uint8_t*>(self), kSize};
     for (std::size_t o : netverify::kRegistryFunctors) cmp.skipped.push_back(o);
     cmp.Range(0, kSize);
@@ -74,7 +78,6 @@ SessionBase* __fastcall SessionBaseConstructVerify(SessionBase* self) {
                       cmp.ok && expectedRet == reinterpret_cast<SessionBase*>(scratch) && actualRet == self, "%s",
                       cmp.detail);
     SessionBaseDestructOriginal(scratch);
-    gamecrt::operator_delete(scratch);
     return actualRet;
 }
 

@@ -43,13 +43,14 @@ static AIObjectList::Node* __fastcall AddCountedTailVerify(AIObjectList* list, v
 }
 EI_VERIFY(0x005CD500, AddCountedTailVerify, 0, s_unused);
 
-// 005CB260 FindEnemies: PUSH ECX/EBX/EBP/ESI; MOV ESI,[ESP+0x18] (8 bytes). Output: the original
-// fills an empty scratch list, ours the caller's; the element sequences compared.
+// 005CB260 FindEnemies: PUSH ECX/EBX/EBP/ESI; MOV ESI,[ESP+0x18] (8 bytes). Output: ours fills the
+// caller's list first, then the original an empty scratch list (its nodes allocated after ours',
+// SV2f); the element sequences compared.
 static void(__fastcall* s_findEnemies)(std::uint8_t*, void*, CUnit*, AIObjectList*);
 static void __fastcall FindEnemiesVerify(std::uint8_t* memory, void*, CUnit* self, AIObjectList* out) {
+    BrainOfMemory(memory)->FindEnemies(self, out);
     AIObjectList scratch = ScratchLike(*out);
     s_findEnemies(memory, nullptr, self, &scratch);
-    BrainOfMemory(memory)->FindEnemies(self, out);
     bool same = Elements(scratch) == Elements(*out);
     ei::verify::Check("AIBrain::FindEnemies", true, same, "unit %p: %d vs %d", self, scratch.count, out->count);
     scratch.RemoveAll();
@@ -61,9 +62,9 @@ EI_VERIFY(0x005CB260, FindEnemiesVerify, 8, s_findEnemies);
 static void(__fastcall* s_findEnemiesNear)(std::uint8_t*, void*, CUnit*, AIObjectList*, const Vector3*, float);
 static void __fastcall FindEnemiesNearVerify(std::uint8_t* memory, void*, CUnit* self, AIObjectList* out, const Vector3* point,
                                              float radius) {
+    BrainOfMemory(memory)->FindEnemiesNear(self, out, point, radius);
     AIObjectList scratch = ScratchLike(*out);
     s_findEnemiesNear(memory, nullptr, self, &scratch, point, radius);
-    BrainOfMemory(memory)->FindEnemiesNear(self, out, point, radius);
     bool same = Elements(scratch) == Elements(*out);
     ei::verify::Check("AIBrain::FindEnemiesNear", true, same, "unit %p radius %f: %d vs %d", self, radius, scratch.count, out->count);
     scratch.RemoveAll();

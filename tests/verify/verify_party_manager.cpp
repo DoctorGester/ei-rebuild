@@ -1,8 +1,9 @@
 // Checks for party_manager.cpp. Saving a game writes the party manager (004A8560); loading one reads
 // it back (004A8310). Scenarios: every new game (autosave), world_load (load savea), ui_saveload.
-// - PartyManager::Save: the original into a scratch memory stream first, then ours into the real
-//   one; the appended bytes compared. Every party saved draws one ISAAC key (CParty::SaveParty):
-//   the generator is put back to its state before ours runs.
+// - PartyManager::Save: ours into the real stream first, then the original into a scratch memory
+//   stream made after it (SV2f); the appended bytes compared. Every party saved draws one ISAAC key
+//   (CParty::SaveParty): the generator is put back to its state before ours ran for the original,
+//   and to ours' after.
 // - PartyManager::Load: ours only (the archive's object keys are the saving game's pointers, so the
 //   bytes cannot be saved back); the block was consumed, every template is a class 1..5 with a
 //   reference, every record is non-null with a reference.
@@ -26,6 +27,13 @@ namespace {
 
 void* s_unused;
 
+// The ISAAC generator's state, kept in our memory (SV2f).
+struct KeptRandom {
+    unsigned char bytes[sizeof(IsaacRandom)];
+    void Save() { std::memcpy(bytes, &IsaacRandom::Global(), sizeof(bytes)); }
+    void Restore() const { std::memcpy(&IsaacRandom::Global(), bytes, sizeof(bytes)); }
+};
+
 CMemoryStream* NewScratchStream(const CStream* like) {
     auto* scratch = static_cast<CMemoryStream*>(gamecrt::operator_new(sizeof(CMemoryStream)));
     scratch->Construct();
@@ -41,18 +49,19 @@ void DeleteScratchStream(CMemoryStream* scratch) {
 // 004A8560: PUSH -1; PUSH 0x7175F9 (7).
 void(__fastcall* s_save)(PartyManager*, void*, CMemoryStream*);
 void __fastcall SaveVerify(PartyManager* self, void*, CMemoryStream* to) {
-    auto* random = static_cast<IsaacRandom*>(gamecrt::operator_new(sizeof(IsaacRandom)));
-    std::memcpy(random, &IsaacRandom::Global(), sizeof(IsaacRandom));
-    CMemoryStream* scratch = NewScratchStream(to);
-    s_save(self, nullptr, scratch);
-    std::memcpy(&IsaacRandom::Global(), random, sizeof(IsaacRandom));
+    KeptRandom before, afterOurs;
+    before.Save();
     std::uint32_t start = to->position_;
     self->Save(to);
     std::uint32_t written = to->position_ - start;
+    afterOurs.Save();
+    before.Restore();
+    CMemoryStream* scratch = NewScratchStream(to);
+    s_save(self, nullptr, scratch);
+    afterOurs.Restore();
     bool same = written == scratch->size_ && (written == 0 || std::memcmp(to->data_ + start, scratch->data_, written) == 0);
     ei::verify::Check("PartyManager::Save", true, same, "%u bytes, original %u", written, scratch->size_);
     DeleteScratchStream(scratch);
-    gamecrt::operator_delete(random);
 }
 
 void __fastcall LoadVerify(PartyManager* self, void*, CMemoryStream* from) {

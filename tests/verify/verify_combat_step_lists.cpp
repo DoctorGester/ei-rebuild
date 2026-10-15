@@ -1,11 +1,13 @@
-// Checks for combat_step_lists.cpp (A-U5). The list writers run ours on a deep copy and the
-// original on the real list, then compare (count, capacity, growth, extra and the steps without
-// byte 3, which the original leaves as a stack byte); the readers are compared directly.
+// Checks for combat_step_lists.cpp (A-U5). The list writers run the original on the real list, then
+// ours on a deep copy made afterwards from the list as it was (kept in our memory, so that the
+// original's blocks land where they would without the check, SV2f), then compare (count, capacity,
+// growth, extra and the steps without byte 3, which the original leaves as a stack byte); the
+// readers are compared directly.
 #include "combat_verify_util.h"
 #include "unit_capture_stream.h"
 
-using combatverify::CopySteps;
 using combatverify::FreeSteps;
+using combatverify::KeptSteps;
 using combatverify::SameSteps;
 
 namespace {
@@ -18,10 +20,11 @@ void ReportLists(const char* name, const AnimationSteps* ours, const AnimationSt
 // 00544CE0: SUB ESP,0xC; PUSH EBX; PUSH EBP (5 bytes).
 static void(__fastcall* s_addStep)(AnimationSteps*, void*, int, int);
 static void __fastcall AddStepVerify(AnimationSteps* self, void*, int animation, int duration) {
-    AnimationSteps copy;
-    CopySteps(&copy, self);
-    copy.AddStep(animation, duration);
+    KeptSteps before(self);
     s_addStep(self, nullptr, animation, duration);
+    AnimationSteps copy;
+    before.CopyTo(&copy);
+    copy.AddStep(animation, duration);
     ReportLists("AnimationSteps::AddStep", &copy, self, animation & 0xFF);
     FreeSteps(&copy);
 }
@@ -30,10 +33,11 @@ EI_VERIFY(0x00544CE0, AddStepVerify, 5, s_addStep);
 // 00544D50: SUB ESP,0xC; MOV AL,0xFF (5 bytes).
 static void(__fastcall* s_addEmote)(AnimationSteps*, void*, int);
 static void __fastcall AddEmoteVerify(AnimationSteps* self, void*, int emote) {
-    AnimationSteps copy;
-    CopySteps(&copy, self);
-    copy.AddEmote(emote);
+    KeptSteps before(self);
     s_addEmote(self, nullptr, emote);
+    AnimationSteps copy;
+    before.CopyTo(&copy);
+    copy.AddEmote(emote);
     ReportLists("AnimationSteps::AddEmote", &copy, self, emote & 0xFF);
     FreeSteps(&copy);
 }
@@ -42,10 +46,11 @@ EI_VERIFY(0x00544D50, AddEmoteVerify, 5, s_addEmote);
 // 00544DD0: MOV EAX,ECX; MOV ECX,[EAX+8] (5 bytes).
 static void(__fastcall* s_setStepFlags)(AnimationSteps*, void*, int);
 static void __fastcall SetStepFlagsVerify(AnimationSteps* self, void*, int value) {
-    AnimationSteps copy;
-    CopySteps(&copy, self);
-    copy.SetStepFlags(value);
+    KeptSteps before(self);
     s_setStepFlags(self, nullptr, value);
+    AnimationSteps copy;
+    before.CopyTo(&copy);
+    copy.SetStepFlags(value);
     ReportLists("AnimationSteps::SetStepFlags", &copy, self, value);
     FreeSteps(&copy);
 }

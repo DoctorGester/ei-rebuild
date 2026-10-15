@@ -2,8 +2,9 @@
 // every drawn object shadow (0051CE60) and every ground print built (006CEDE0); zone1 after a new
 // game, the platform pass where a bridge or another platform object is near.
 //
-// The original runs first into private copies of the three arrays (same capacities, their own
-// buffers), ours into the caller's; both use the same builder code (through its addresses), so
+// Ours runs first into the caller's arrays, then the original into private copies of the three
+// arrays as they were (same capacities, their own buffers, made after ours from bytes kept in our
+// memory, SV2f); both use the same builder code (through its addresses), so
 // the sizes, capacities and used elements must agree (positions without the packets' w row, which
 // the builder never writes; texture coordinates only of the vertices the indices use). The rebuilt object matrices are the same values both times, the
 // pipeline's stack 14 is balanced, the static builder starts afresh in Begin and the static point
@@ -15,18 +16,31 @@
 #include "../../src/game/world.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
+// An array kept in our memory (header and used elements); Copy makes the private copy (same
+// capacity, its own buffer) later.
 template <typename T>
-lib::AlignedArray<T> CopyArray(const lib::AlignedArray<T>& source) {
-    lib::AlignedArray<T> copy = source;
-    if (source.data) {
-        copy.data = lib::AlignedArray<T>::Allocate(source.capacity);
-        std::memcpy(static_cast<void*>(copy.data), source.data, static_cast<std::size_t>(source.size) * sizeof(T));
+struct KeptArray {
+    lib::AlignedArray<T> header;
+    std::vector<unsigned char> elements;
+    explicit KeptArray(const lib::AlignedArray<T>& source) : header(source) {
+        if (source.data && source.size > 0) {
+            const auto* p = reinterpret_cast<const unsigned char*>(source.data);
+            elements.assign(p, p + static_cast<std::size_t>(source.size) * sizeof(T));
+        }
     }
-    return copy;
-}
+    lib::AlignedArray<T> Copy() const {
+        lib::AlignedArray<T> copy = header;
+        if (header.data) {
+            copy.data = lib::AlignedArray<T>::Allocate(header.capacity);
+            if (!elements.empty()) std::memcpy(static_cast<void*>(copy.data), elements.data(), elements.size());
+        }
+        return copy;
+    }
+};
 
 template <typename T>
 void FreeCopy(lib::AlignedArray<T>& copy) {
@@ -75,13 +89,16 @@ void __fastcall ProjectDecalVerify(CWorldClient* self, void*, const Vector3* dir
                                    VertexPacket* const* corners, lib::AlignedArray<VertexPacket>* points,
                                    lib::AlignedArray<DecalTexCoord>* texCoords, lib::AlignedArray<std::uint16_t>* indices,
                                    std::uint32_t skipOnPlatform, std::uint32_t objects) {
-    lib::AlignedArray<VertexPacket> expectedPoints = CopyArray(*points);
-    lib::AlignedArray<DecalTexCoord> expectedTexCoords = CopyArray(*texCoords);
-    lib::AlignedArray<std::uint16_t> expectedIndices = CopyArray(*indices);
-    s_project(self, nullptr, direction, point, depth, corners, &expectedPoints, &expectedTexCoords, &expectedIndices,
-              skipOnPlatform, objects);
+    KeptArray<VertexPacket> keptPoints(*points);
+    KeptArray<DecalTexCoord> keptTexCoords(*texCoords);
+    KeptArray<std::uint16_t> keptIndices(*indices);
     self->ProjectDecal(direction, point, depth, corners, points, texCoords, indices,
                        static_cast<std::uint8_t>(skipOnPlatform), static_cast<std::uint8_t>(objects));
+    lib::AlignedArray<VertexPacket> expectedPoints = keptPoints.Copy();
+    lib::AlignedArray<DecalTexCoord> expectedTexCoords = keptTexCoords.Copy();
+    lib::AlignedArray<std::uint16_t> expectedIndices = keptIndices.Copy();
+    s_project(self, nullptr, direction, point, depth, corners, &expectedPoints, &expectedTexCoords, &expectedIndices,
+              skipOnPlatform, objects);
     bool headers = SameHeader(expectedPoints, *points) && SameHeader(expectedTexCoords, *texCoords) &&
                    SameHeader(expectedIndices, *indices);
     int packet = headers ? FirstPointDifference(expectedPoints, *points) : -1;

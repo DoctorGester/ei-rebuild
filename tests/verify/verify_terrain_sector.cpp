@@ -147,19 +147,48 @@ const char* CompareBuild(const SectorData* a, const SectorData* b, bool lists) {
 
 } // namespace
 
-// 006C1C00 SectorData::Build. The original runs first on a scratch copy of the sector whose
-// rebuilt arrays start empty and whose vertices / water material list are private copies; the
-// random generator and the owner's water level row are put back before ours runs on the real
-// sector. Everything the build writes is compared (pointers as indices), then the scratch is
-// destroyed (its light references go back to the pool through the original's record destructor).
+// 006C1C00 SectorData::Build. Ours runs first on the real sector; the sector's bytes, its vertices
+// and water material list, the random generator and the owner's water level row are kept in our
+// memory before it. The random generator and the row are then put back and the original runs on a
+// scratch copy of the sector (made after ours, from the kept bytes: the game reads the heap's
+// address order, SV2f) whose rebuilt arrays start empty and whose vertices / water material list
+// are private copies; afterwards the random generator and the row are left as ours left them.
+// Everything the build writes is compared (pointers as indices), then the scratch is destroyed
+// (its light references go back to the pool through the original's record destructor).
 static void(__fastcall* s_build)(SectorData*, void*);
 static void __fastcall BuildVerify(SectorData* s, void*) {
     bool freshRecords = s->records.data == nullptr;
-    auto* scratch = static_cast<SectorData*>(gamecrt::operator_new(sizeof(SectorData)));
-    std::memcpy(scratch, s, sizeof(SectorData));
+    std::vector<std::uint8_t> sectorBefore(reinterpret_cast<const std::uint8_t*>(s),
+                                           reinterpret_cast<const std::uint8_t*>(s) + sizeof(SectorData));
     // The vertex array's size and capacity count (x, y, z) vertices of 12 bytes.
-    scratch->vertices.data = CopyBlock(s->vertices.data, s->vertices.size, s->vertices.maxSize, 12);
-    scratch->waterMaterials.data = CopyBlock(s->waterMaterials.data, s->waterMaterials.size, s->waterMaterials.maxSize, 1);
+    const bool hadVertices = s->vertices.data != nullptr;
+    std::vector<std::uint8_t> verticesBefore(static_cast<std::size_t>(s->vertices.size) * 12 + 1);
+    if (hadVertices) std::memcpy(verticesBefore.data(), s->vertices.data, static_cast<std::size_t>(s->vertices.size) * 12);
+    const bool hadMaterials = s->waterMaterials.data != nullptr;
+    std::vector<std::uint8_t> materialsBefore(static_cast<std::size_t>(s->waterMaterials.size) + 1);
+    if (hadMaterials) std::memcpy(materialsBefore.data(), s->waterMaterials.data, static_cast<std::size_t>(s->waterMaterials.size));
+
+    mfc::CArray<float>* row = WaterRow(s);
+    std::vector<float> rowBefore = RowCopy(row);
+    std::vector<std::uint8_t> rngBefore(sizeof(IsaacRandom));
+    std::memcpy(rngBefore.data(), &Rng(), sizeof(IsaacRandom));
+
+    s->Build();
+
+    std::vector<float> rowOurs = RowCopy(row);
+    std::vector<std::uint8_t> rngOurs(sizeof(IsaacRandom));
+    std::memcpy(rngOurs.data(), &Rng(), sizeof(IsaacRandom));
+    std::memcpy(&Rng(), rngBefore.data(), sizeof(IsaacRandom));
+    RowRestore(row, rowBefore);
+
+    auto* scratch = static_cast<SectorData*>(gamecrt::operator_new(sizeof(SectorData)));
+    std::memcpy(scratch, sectorBefore.data(), sizeof(SectorData));
+    const auto& before = *reinterpret_cast<const SectorData*>(sectorBefore.data());
+    scratch->vertices.data = CopyBlock(hadVertices ? reinterpret_cast<const decltype(before.vertices.data)>(verticesBefore.data()) : nullptr,
+                                       before.vertices.size, before.vertices.maxSize, 12);
+    scratch->waterMaterials.data =
+        CopyBlock(hadMaterials ? reinterpret_cast<const decltype(before.waterMaterials.data)>(materialsBefore.data()) : nullptr,
+                  before.waterMaterials.size, before.waterMaterials.maxSize, 1);
     scratch->records.data = nullptr;
     scratch->records.size = scratch->records.maxSize = 0;
     for (lib::AlignedArray<int>* a : {&scratch->tileTextures, &scratch->classCounts}) {
@@ -175,24 +204,17 @@ static void __fastcall BuildVerify(SectorData* s, void*) {
         scratch->tiles[q].size = scratch->tiles[q].maxSize = 0;
     }
 
-    mfc::CArray<float>* row = WaterRow(s);
-    std::vector<float> rowBefore = RowCopy(row);
-    std::vector<std::uint8_t> rngBefore(sizeof(IsaacRandom));
-    std::memcpy(rngBefore.data(), &Rng(), sizeof(IsaacRandom));
-
     s_build(scratch, nullptr);
 
     std::vector<float> rowOriginal = RowCopy(row);
     std::vector<std::uint8_t> rngOriginal(sizeof(IsaacRandom));
     std::memcpy(rngOriginal.data(), &Rng(), sizeof(IsaacRandom));
-    std::memcpy(&Rng(), rngBefore.data(), sizeof(IsaacRandom));
-    RowRestore(row, rowBefore);
-
-    s->Build();
+    std::memcpy(&Rng(), rngOurs.data(), sizeof(IsaacRandom));
+    RowRestore(row, rowOurs);
 
     const char* bad = CompareBuild(s, scratch, freshRecords);
-    if (!bad && std::memcmp(rngOriginal.data(), &Rng(), sizeof(IsaacRandom))) bad = "random generator";
-    if (!bad && RowCopy(row) != rowOriginal) bad = "water level row";
+    if (!bad && rngOriginal != rngOurs) bad = "random generator";
+    if (!bad && rowOurs != rowOriginal) bad = "water level row";
     Report("SectorData::Build", bad == nullptr, bad ? bad : "", s);
 
     // Destroy the scratch.

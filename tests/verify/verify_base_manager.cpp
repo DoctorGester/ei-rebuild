@@ -1,8 +1,8 @@
 // Checks for base_manager.cpp and engine_object.cpp.
 //  - FindObject, CopyFrom, the default name / description, ObjectListIterator::Next and the empty
 //    archive slots: pure (or writing only their own object), both run side by side.
-//  - ConstructBase: ours on the real manager; the original on a scratch block holding a copy of its
-//    bytes before construction; BuiltCompare (bucket allocations pair up); the scratch is destroyed
+//  - ConstructBase: ours on the real manager, then the original on a scratch block (our memory)
+//    holding a copy of its bytes before construction; BuiltCompare (bucket allocations pair up); the scratch is destroyed
 //    with the destructor body.
 //  - Everything else (destructors, registration, spares, saving and loading): ours only, then the
 //    resulting state is checked where it can be.
@@ -12,6 +12,7 @@
 #include "../../src/lib/crt.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -29,7 +30,9 @@ CEngineObject* __fastcall FindObjectVerify(const CBaseManager* self, void*, unsi
 CBaseManager*(__fastcall* s_construct)(CBaseManager*);
 CBaseManager* __fastcall ConstructVerify(CBaseManager* self) {
     constexpr std::size_t kSize = sizeof(CBaseManager);
-    auto* scratch = static_cast<std::uint8_t*>(gamecrt::operator_new(kSize));
+    // The scratch is our memory, not the game's heap, whose address order the game reads (SV2f).
+    std::vector<std::uint8_t> scratchBytes(kSize);
+    std::uint8_t* scratch = scratchBytes.data();
     std::memcpy(scratch, self, kSize);
     CBaseManager* actual = self->ConstructBase();
     CBaseManager* expected = s_construct(reinterpret_cast<CBaseManager*>(scratch));
@@ -44,7 +47,6 @@ CBaseManager* __fastcall ConstructVerify(CBaseManager* self) {
     ei::verify::Check("CBaseManager::ConstructBase", true,
                       cmp.ok && expected == reinterpret_cast<CBaseManager*>(scratch) && actual == self, "%s", cmp.detail);
     reinterpret_cast<CBaseManager*>(scratch)->DestructBody();
-    gamecrt::operator_delete(scratch);
     return actual;
 }
 
