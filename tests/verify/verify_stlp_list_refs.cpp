@@ -275,6 +275,23 @@ void __fastcall RemoveHeldVerify(stlp::list<CEngineObject*>* self, void*, CEngin
     ei::verify::Report("stlp::list::remove 00570400", ok, ok ? "" : "a node holds the object or is unlinked");
 }
 
+// remove(value) of a list<int> (S16a): every node still linked both ways, none equal to the value
+// (unless `value` is one of the elements).
+void __fastcall RemoveIntVerify(stlp::list<int>* self, void*, const int* value) {
+    using Node = stlp::list<int>::Node;
+    bool aliased = false;
+    for (Node* n = self->head->next; n != self->head; n = n->next) aliased |= &n->data == value;
+    const int id = *value;
+    stlp::ListRemoveInt(self, nullptr, value);
+    bool ok = true;
+    Node* prev = self->head;
+    for (Node* n = self->head->next; ok; prev = n, n = n->next) {
+        ok = n->prev == prev && (n == self->head || aliased || n->data != id);
+        if (n == self->head) break;
+    }
+    ei::verify::Report("stlp::list::remove 00511FB0", ok, ok ? "" : "a node holds the value or is unlinked");
+}
+
 // for_each with the releasing functor: the nodes stay linked, the functor comes back (ours only:
 // the releases cannot run twice).
 char __stdcall ForEachReleaseVerify(stlp::list<CEngineObject*>::Node* first, stlp::list<CEngineObject*>::Node* last,
@@ -394,4 +411,5 @@ EI_VERIFY(0x00423370, CountedRefErase<0x00423370>::Destruct, 0, s_unused);
 EI_VERIFY(0x004235F0, CountedRefErase<0x004235F0>::Destruct, 0, s_unused);
 EI_VERIFY(0x00427320, RemoveCountedVerify, 0, s_unused);
 EI_VERIFY(0x00570400, RemoveHeldVerify, 0, s_unused);
+EI_VERIFY(0x00511FB0, RemoveIntVerify, 0, s_unused);
 EI_VERIFY(0x00571780, ForEachReleaseVerify, 0, s_unused);

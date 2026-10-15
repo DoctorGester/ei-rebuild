@@ -831,3 +831,4 @@ address,size,note
 006C8D20,20,exit function of a static initialiser (tools/gen_static_init.py; no Ghidra function)
 006C9270,20,exit function of a static initialiser (tools/gen_static_init.py; no Ghidra function)
 004BA9F0,25,the game's endl manipulator (no Ghidra function; S16a)
+00468900,29,the lightning segment constructor for the eh vector iterator (no Ghidra function; S16a)

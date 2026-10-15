@@ -237,6 +237,10 @@ void __fastcall ListRemoveHeld(list<CEngineObject*>* self, void*, CEngineObject*
     self->Remove<HeldObject>(*value, [](CEngineObject* a, CEngineObject* b) { return a == b; });
 }
 
+void __fastcall ListRemoveInt(list<int>* self, void*, const int* value) {
+    self->Remove(*value, [](int a, int b) { return a == b; });
+}
+
 char __stdcall ListForEachRelease(list<CEngineObject*>::Node* first, list<CEngineObject*>::Node* last, char f) {
     for (; first != last; first = first->next) HeldObject::Destroy(&first->data);
     return f;
@@ -363,5 +367,7 @@ EI_REPLACE(0x004235F0, CountedRefList::Destruct);
 EI_REPLACE(0x00427320, stlp::ListRemoveCounted);
 // remove(value) of HeldObject (erasing through 00572270): the client sector grid's cells.
 EI_REPLACE(0x00570400, stlp::ListRemoveHeld);
+// remove(value) of int (erasing through 00512030): the light factory's lit ids (S16a).
+EI_REPLACE(0x00511FB0, stlp::ListRemoveInt);
 // for_each with the releasing functor over a HeldObject list (the client's object maps).
 EI_REPLACE(0x00571780, stlp::ListForEachRelease);
