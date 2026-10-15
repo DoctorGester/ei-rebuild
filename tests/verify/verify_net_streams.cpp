@@ -13,10 +13,11 @@
 // stack).
 //
 // Ours runs first on the real streams. Memory streams are kept in our memory before
-// (deltasnap::KeptStream: header plus bytes) and the original runs afterwards on twins made from
-// them (each buffer our memory, or a game-heap block, freed, when ours replaced the real stream's
-// block), so ours' blocks are where the original's would be without the check (SV2f / SV2h). The streams are compared field by field (the buffer pointer
-// excepted) and up to the size; anything else runs ours only.
+// (deltasnap::KeptStream: header plus bytes) and the original runs afterwards, inside a heap::Aside,
+// on twins made from them (a game-heap buffer each, outside the reservation, freed), so ours' blocks
+// are the only ones the check makes in the reservation (SV2f / SV2h / SV2h3). The streams are
+// compared field by field (the buffer pointer excepted) and up to the size; anything else runs ours
+// only.
 //  - Compression: ours on the real coder and output stream; the original on a copy of the coder
 //    (0x2828 bytes, taken before ours) writing into a twin of the output stream; the outputs
 //    compared, and the coders but for the output cursor's three pointers into the (freed) result
@@ -32,6 +33,7 @@
 #include "verify.h"
 
 #include "delta_snapshot.h"
+#include "harness_heap.h"
 
 #include "../../src/game/net_coder.h"
 #include "../../src/game/net_delta.h"
@@ -40,6 +42,8 @@
 #include <cstring>
 
 namespace {
+
+namespace heap = ei::verify::heap;
 
 using deltasnap::IsMemoryStream;
 using deltasnap::KeptStream;
@@ -80,8 +84,9 @@ void RunCode(const char* name, CodeFn original, void (BitStream::*ours)(CoderSta
     const KeptStream keptOut(out);
     std::uint32_t size = self->size_;
     (self->*ours)(coder, out);
+    heap::Aside aside;
     TwinStream target;
-    original(self, nullptr, expected, target.Make(keptOut, out));
+    original(self, nullptr, expected, target.Make(keptOut));
     bool sameOut = SameStream(&target.stream, out);
     bool sameCoder = SameCoder(*expected, *coder);
     ei::verify::Check(name, true, sameOut && sameCoder, "out %d coder %d, %u bytes in, %u / %u out", sameOut, sameCoder, size,
@@ -111,9 +116,10 @@ void __fastcall WriteStreamVerify(BitStream* self, void*, BitStream* from) {
     const KeptStream keptTo(self);
     const KeptStream keptFrom(from);
     self->WriteStream(from);
+    heap::Aside aside;
     TwinStream to, source;
-    to.Make(keptTo, self);
-    source.Make(keptFrom, from);
+    to.Make(keptTo);
+    source.Make(keptFrom);
     s_writeStream(&to.stream, nullptr, &source.stream);
     bool same = SameStream(&to.stream, self) && SameStream(&source.stream, from);
     ei::verify::Check("BitStream::WriteStream", true, same, "%u bytes", from->size_);
@@ -126,9 +132,10 @@ int __fastcall ReadStreamVerify(BitStream* self, void*, BitStream* to) {
     const KeptStream keptFrom(self);
     const KeptStream keptTo(to);
     int actual = self->ReadStream(to);
+    heap::Aside aside;
     TwinStream from, target;
-    from.Make(keptFrom, self);
-    target.Make(keptTo, to);
+    from.Make(keptFrom);
+    target.Make(keptTo);
     int expected = s_readStream(&from.stream, nullptr, &target.stream);
     bool same = expected == actual && SameStream(&from.stream, self) && SameStream(&target.stream, to);
     ei::verify::Check("BitStream::ReadStream", true, same, "%d / %d, %u bytes", expected, actual, to->size_);
@@ -151,10 +158,11 @@ void __fastcall WriteStreamBothVerify(DeltaField* self, void*, BitStream* from) 
     const KeptStream keptFrom(from);
     self->WriteStreamBoth(from);
     auto* twin = reinterpret_cast<DeltaField*>(bytes);
+    heap::Aside aside;
     TwinStream out0, out1, source;
-    std::memcpy(&twin->out[0], out0.Make(keptOut0, &self->out[0]), sizeof(BitStream));
-    std::memcpy(&twin->out[1], out1.Make(keptOut1, &self->out[1]), sizeof(BitStream));
-    s_writeStreamBoth(twin, nullptr, source.Make(keptFrom, from));
+    std::memcpy(&twin->out[0], out0.Make(keptOut0), sizeof(BitStream));
+    std::memcpy(&twin->out[1], out1.Make(keptOut1), sizeof(BitStream));
+    s_writeStreamBoth(twin, nullptr, source.Make(keptFrom));
     // The original may have grown the outputs: the twins free the buffers the twin field holds now.
     std::memcpy(&out0.stream, &twin->out[0], sizeof(BitStream));
     std::memcpy(&out1.stream, &twin->out[1], sizeof(BitStream));
@@ -171,9 +179,10 @@ int __fastcall FieldReadStreamVerify(DeltaField* self, void*, BitStream* to) {
     const KeptStream keptFrom(reader);
     const KeptStream keptTo(to);
     int actual = self->ReadStream(to);
+    heap::Aside aside;
     TwinStream from, target;
-    delta::Reader() = from.Make(keptFrom, reader);
-    int expected = s_fieldReadStream(self, nullptr, target.Make(keptTo, to));
+    delta::Reader() = from.Make(keptFrom);
+    int expected = s_fieldReadStream(self, nullptr, target.Make(keptTo));
     delta::Reader() = reader;
     bool same = expected == actual && SameStream(&from.stream, reader) && SameStream(&target.stream, to);
     ei::verify::Check("DeltaField::ReadStream", true, same, "%d / %d, %u bytes", expected, actual, to->size_);

@@ -5,14 +5,14 @@
 //
 // Compress / Decompress: ours runs first on the real objects. The coder state (0x2828 bytes) is
 // copied into scratch memory and the output buffer's header and block kept in our memory before;
-// afterwards the original runs on the scratch coder writing into a twin of the output buffer (same
-// class, the kept contents in a block of our memory, or of the game heap when ours replaced the real
-// buffer's block), with the input buffer's header put back as it was before ours (and ours' put
-// back after). Compared: the input's header, the output's header (pointers relative to its block),
+// afterwards, inside a heap::Aside, the original runs on the scratch coder writing into a twin of
+// the output buffer (same class, a game-heap block with the kept contents, outside the reservation,
+// freed), with the input buffer's header put back as it was before ours (and ours' put back after). Compared: the input's header, the output's header (pointers relative to its block),
 // the output bytes up to its cursor, and the coder state (its cursor pointers relative to the output
 // block). Only the two known buffer classes are handled; with anything else (or an input the coder
 // would grow) ours runs alone.
 #include "verify.h"
+#include "harness_heap.h"
 
 #include "../../src/game/net_coder.h"
 #include "../../src/lib/crt.h"
@@ -160,22 +160,14 @@ struct KeptBuffer {
         : header(b), block(b.begin, b.begin + static_cast<std::size_t>(b.end - b.begin)) {}
 };
 
-// The original's output: a copy of the kept buffer made after ours ran. Its block is our memory when
-// ours kept the real buffer's block (the original, growing through the same calls, keeps it too),
-// else a game-heap block, as the original grows it (the game frees it and allocates a new one, which
-// the destructor frees).
+// The original's output: a copy of the kept buffer made after ours ran, its block from the game heap
+// (the original may grow it: the game frees it and allocates a new one, which the destructor frees).
 class TwinBuffer {
 public:
-    TwinBuffer(const KeptBuffer& kept, const GameBuffer& after) {
+    explicit TwinBuffer(const KeptBuffer& kept) {
         buffer = kept.header;
         const std::size_t capacity = kept.block.size();
-        std::uint8_t* to;
-        if (after.begin == kept.header.begin && after.end == kept.header.end) {
-            own_.assign(capacity ? capacity : 1, 0);
-            to = own_.data();
-        } else {
-            to = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity ? capacity : 1));
-        }
+        auto* to = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity ? capacity : 1));
         if (capacity) std::memcpy(to, kept.block.data(), capacity);
         buffer.begin = to;
         buffer.cur = to + (kept.header.cur - kept.header.begin);
@@ -184,13 +176,8 @@ public:
     }
     TwinBuffer(const TwinBuffer&) = delete;
     TwinBuffer& operator=(const TwinBuffer&) = delete;
-    ~TwinBuffer() {
-        if (buffer.begin != own_.data()) gamecrt::operator_delete(buffer.begin);
-    }
+    ~TwinBuffer() { gamecrt::operator_delete(buffer.begin); }
     GameBuffer buffer;
-
-private:
-    std::vector<std::uint8_t> own_;
 };
 
 // Pointer fields: equal, or at the same offset in their output blocks.
@@ -229,7 +216,8 @@ void RunBoth(const char* name, CoderFn original, void (CoderState::*ours)(GameBu
     (self->*ours)(in, out);
     const GameBuffer inOurs = *in;
     *in = inBefore;
-    TwinBuffer twin(keptOut, *out);
+    ei::verify::heap::Aside aside;
+    TwinBuffer twin(keptOut);
     GameBuffer& expectedOut = twin.buffer;
     original(expected, nullptr, in, &expectedOut);
     const GameBuffer expectedIn = *in;

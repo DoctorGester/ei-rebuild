@@ -1,17 +1,19 @@
 #pragma once
 
 // Copies of the network delta coder's streams and states (src/game/net_delta.h) for verify wrappers.
-//  - Kept and twin (the order of the checks that may allocate, SV2f / SV2h): a stream's fields and
-//    bytes are kept in our memory (KeptStream, KeptField, KeptState) before ours runs on the real
-//    objects; the original then runs on a twin made from them (TwinStream, TwinField, TwinState).
-//    A twin's buffer is our memory too when ours kept the real stream's block, and a game-heap block
-//    only when ours replaced it (the original, whose stream calls are ours, then replaces the twin's
-//    the same way); game-heap blocks are freed afterwards, in the reverse of the order they were
-//    made in. Ours' blocks then stay where the original's would be without the check, and a check
-//    takes nothing from the game heap unless a stream grows.
+//  - Kept and twin (the order of the checks that may allocate, SV2f / SV2h / SV2h3): a stream's
+//    fields and bytes are kept in our memory (KeptStream, KeptField, KeptState) before ours runs on
+//    the real objects; then, inside a heap::Aside (harness_heap.h), the original runs on a twin made
+//    from them (TwinStream, TwinField, TwinState: game-heap buffers, as the original may grow them)
+//    and the twin is freed. Ours' blocks are then the only ones the check makes in the reservation,
+//    where a --no-hooks run makes the original's; the twin's blocks and whatever the original makes
+//    for itself come from the heap outside it.
+//    Where the original must run on the real object (verify_net_state.cpp's readers), the twin is
+//    put into the state in place (KeptState::CloneInto) with ours' state set aside (StateAside),
+//    and freed (FreeStateBuffers) before ours' is put back.
 //  - StateCopy: save and restore of a whole DeltaState for the checks that run the original on the
-//    real state first (verify_net_state.cpp, DeltaState::Finish): copy the state, run the original,
-//    copy its result, put the saved state back, run ours, compare.
+//    real state first (verify_net_state.cpp's writers): copy the state, run the original, copy its
+//    result, put the saved state back, run ours, compare.
 // Only memory streams (the two CMemoryStream vtables) qualify, since another stream class would
 // share its resource with the copy. The read-side globals are saved with the state.
 
@@ -174,23 +176,13 @@ public:
         if (block_ == 0) block_ = 1;
         bytes_.assign(s->data_, s->data_ + s->size_);
     }
-    // Whether `after` (the kept stream once ours ran) still has the block it had when it was kept.
-    bool SameBlock(const BitStream* after) const {
-        const auto* kept = reinterpret_cast<const BitStream*>(header_);
-        return after->data_ == kept->data_ && after->capacity_ == kept->capacity_;
-    }
-    // A copy into `dst`: the header, and the bytes in a block of the stream's size, zeroed past the
-    // bytes: `own` when given (our memory), else a game-heap block.
-    void CloneTo(BitStream* dst, std::vector<std::uint8_t>* own = nullptr) const {
+    // The deep copy CloneStream would have made of the stream when it was kept (its buffer a block
+    // of the game heap, which the original may grow: free and make anew).
+    void CloneTo(BitStream* dst) const {
         std::memcpy(dst, header_, sizeof(header_));
         if (!block_) return;
-        if (own) {
-            own->assign(block_, 0);
-            dst->data_ = own->data();
-        } else {
-            dst->data_ = static_cast<std::uint8_t*>(gamecrt::operator_new(block_));
-            std::memset(dst->data_, 0, block_);
-        }
+        dst->data_ = static_cast<std::uint8_t*>(gamecrt::operator_new(block_));
+        std::memset(dst->data_, 0, block_);
         if (!bytes_.empty()) std::memcpy(dst->data_, bytes_.data(), bytes_.size());
     }
 
@@ -200,25 +192,6 @@ private:
     std::uint32_t block_ = 0;   // the buffer's size; 0: no buffer
 };
 
-// The buffer of a twin stream. When ours kept the real stream's block, the original (whose stream
-// calls are ours: the same growth on the same bytes) keeps it too, and the twin's block is our
-// memory: the twin then takes nothing from the game heap. When ours replaced the block, the twin's
-// is a game-heap block, as the original frees it and makes a new one; Free frees what the twin
-// holds then.
-class TwinBuffer {
-public:
-    void Make(BitStream* dst, const KeptStream& kept, const BitStream* after) {
-        kept.CloneTo(dst, kept.SameBlock(after) ? &own_ : nullptr);
-    }
-    void Free(BitStream* s) {
-        if (s->data_ && s->data_ != own_.data()) gamecrt::operator_delete(s->data_);
-        s->data_ = nullptr;
-    }
-
-private:
-    std::vector<std::uint8_t> own_;
-};
-
 // A twin of a kept stream, made when the original is about to run, freed with the scope.
 class TwinStream {
 public:
@@ -226,18 +199,16 @@ public:
     TwinStream(const TwinStream&) = delete;
     TwinStream& operator=(const TwinStream&) = delete;
     ~TwinStream() {
-        if (made_) buffer_.Free(&stream);
+        if (made_) FreeStream(&stream);
     }
-    // `after`: the stream that was kept, once ours ran on it.
-    BitStream* Make(const KeptStream& kept, const BitStream* after) {
-        buffer_.Make(&stream, kept, after);
+    BitStream* Make(const KeptStream& kept) {
+        kept.CloneTo(&stream);
         made_ = true;
         return &stream;
     }
     BitStream stream;
 
 private:
-    TwinBuffer buffer_;
     bool made_ = false;
 };
 
@@ -251,25 +222,21 @@ struct KeptField {
             out[c].Keep(&f->out[c]);
         }
     }
+    void CloneTo(DeltaField* dst) const {
+        for (int c = 0; c < 2; ++c) {
+            snapshot[c].CloneTo(&dst->snapshot[c]);
+            out[c].CloneTo(&dst->out[c]);
+        }
+    }
 };
 
-// A field's four twin buffers, made and freed in the order of the streams (freed in reverse).
-struct TwinFieldBuffers {
-    TwinBuffer snapshot[2];
-    TwinBuffer out[2];
-    void Make(DeltaField* dst, const KeptField& kept, const DeltaField* after) {
-        for (int c = 0; c < 2; ++c) {
-            snapshot[c].Make(&dst->snapshot[c], kept.snapshot[c], &after->snapshot[c]);
-            out[c].Make(&dst->out[c], kept.out[c], &after->out[c]);
-        }
+// Frees a field copy's four buffers, in the reverse of KeptField::CloneTo's order.
+inline void FreeField(DeltaField* f) {
+    for (int c = 1; c >= 0; --c) {
+        FreeStream(&f->out[c]);
+        FreeStream(&f->snapshot[c]);
     }
-    void Free(DeltaField* f) {
-        for (int c = 1; c >= 0; --c) {
-            out[c].Free(&f->out[c]);
-            snapshot[c].Free(&f->snapshot[c]);
-        }
-    }
-};
+}
 
 // A twin of a kept field (freed with the scope).
 class TwinField {
@@ -278,11 +245,10 @@ public:
     TwinField(const TwinField&) = delete;
     TwinField& operator=(const TwinField&) = delete;
     ~TwinField() {
-        if (made_) buffers_.Free(&field);
+        if (made_) FreeField(&field);
     }
-    // `after`: the field that was kept, once ours ran on it.
-    DeltaField* Make(const KeptField& kept, const DeltaField* after) {
-        buffers_.Make(&field, kept, after);
+    DeltaField* Make(const KeptField& kept) {
+        kept.CloneTo(&field);
         made_ = true;
         return &field;
     }
@@ -296,7 +262,6 @@ public:
     DeltaField field;
 
 private:
-    TwinFieldBuffers buffers_;
     bool made_ = false;
 };
 
@@ -324,6 +289,16 @@ public:
     bool valid() const { return valid_; }
     int fieldCount() const { return static_cast<int>(fields_.size()); }
 
+    // A twin put into `s` in place, over what it holds (set aside first: StateAside): the kept
+    // bytes (its field array kept), every stream's buffer a new game-heap block (FreeStateBuffers).
+    void CloneInto(DeltaState* s) const {
+        DeltaField* fields = s->fields_;
+        std::memcpy(s, head_, sizeof(head_));
+        s->fields_ = fields;
+        for (int c = 0; c < 2; ++c) header_[c].CloneTo(&s->header_[c]);
+        for (std::size_t i = 0; i < fields_.size(); ++i) fields_[i].CloneTo(&fields[i]);
+    }
+
 private:
     friend class TwinState;
     bool valid_ = false;
@@ -333,23 +308,21 @@ private:
 };
 
 // A twin of a kept state for the original: the state and its field array in our memory, every
-// stream's buffer a TwinBuffer (freed with the scope, in the reverse of the order made).
+// stream's buffer a game-heap block (freed with the scope, in the reverse of the order made).
 class TwinState {
 public:
-    // `after`: the state that was kept, once ours ran on it (the same field count).
-    TwinState(const KeptState& kept, const DeltaState* after)
-        : count_(kept.fields_.size()), fields_(count_ + 1), fieldBuffers_(count_) {   // one more field: never an empty array
+    explicit TwinState(const KeptState& kept) : count_(kept.fields_.size()), fields_(count_ + 1) {   // never empty
         DeltaState* s = get();
         std::memcpy(raw_, kept.head_, sizeof(kept.head_));
-        for (int c = 0; c < 2; ++c) headerBuffers_[c].Make(&s->header_[c], kept.header_[c], &after->header_[c]);
-        for (std::size_t i = 0; i < count_; ++i) fieldBuffers_[i].Make(&fields_[i], kept.fields_[i], &after->fields_[i]);
+        for (int c = 0; c < 2; ++c) kept.header_[c].CloneTo(&s->header_[c]);
+        for (std::size_t i = 0; i < count_; ++i) kept.fields_[i].CloneTo(&fields_[i]);
         s->fields_ = fields_.data();
     }
     TwinState(const TwinState&) = delete;
     TwinState& operator=(const TwinState&) = delete;
     ~TwinState() {
-        for (std::size_t i = count_; i-- > 0;) fieldBuffers_[i].Free(&fields_[i]);
-        for (int c = 1; c >= 0; --c) headerBuffers_[c].Free(&get()->header_[c]);
+        for (std::size_t i = count_; i-- > 0;) FreeField(&fields_[i]);
+        for (int c = 1; c >= 0; --c) FreeStream(&get()->header_[c]);
     }
     DeltaState* get() { return reinterpret_cast<DeltaState*>(raw_); }
     const DeltaState* get() const { return reinterpret_cast<const DeltaState*>(raw_); }
@@ -377,8 +350,46 @@ private:
     alignas(8) unsigned char raw_[sizeof(DeltaState)] = {};
     std::size_t count_;
     std::vector<DeltaField> fields_;
-    TwinBuffer headerBuffers_[2];
-    std::vector<TwinFieldBuffers> fieldBuffers_;
+};
+
+// Frees a state's stream buffers, in the reverse of KeptState::CloneInto's order.
+inline void FreeStateBuffers(DeltaState* s) {
+    for (int i = s->fieldCount_; i-- > 0;) FreeField(&s->fields_[i]);
+    for (int c = 1; c >= 0; --c) FreeStream(&s->header_[c]);
+}
+
+// A state as it is, set aside in our memory (its bytes and its fields' streams; the buffers stay
+// the state's) while a twin takes its place, and put back.
+class StateAside {
+public:
+    explicit StateAside(const DeltaState* s)
+        : count_(static_cast<std::size_t>(s->fieldCount_)), fields_(count_ * sizeof(DeltaField) + 1) {
+        std::memcpy(raw_, s, sizeof(raw_));
+        if (count_) std::memcpy(fields_.data(), s->fields_, count_ * sizeof(DeltaField));
+    }
+    void PutBack(DeltaState* s) const {
+        std::memcpy(s, raw_, sizeof(raw_));
+        if (count_) std::memcpy(s->fields_, fields_.data(), count_ * sizeof(DeltaField));
+    }
+    // Whether `s` holds the same state (the buffer pointers excepted).
+    bool Same(const DeltaState* s) const {
+        if (std::memcmp(raw_, s, offsetof(DeltaState, header_)) != 0) return false;
+        const auto* t = reinterpret_cast<const DeltaState*>(raw_);
+        for (int c = 0; c < 2; ++c)
+            if (!SameStream(&t->header_[c], &s->header_[c])) return false;
+        const auto* f = reinterpret_cast<const DeltaField*>(fields_.data());
+        for (std::size_t i = 0; i < count_; ++i)
+            for (int c = 0; c < 2; ++c)
+                if (!SameStream(&f[i].snapshot[c], &s->fields_[i].snapshot[c]) ||
+                    !SameStream(&f[i].out[c], &s->fields_[i].out[c]))
+                    return false;
+        return true;
+    }
+
+private:
+    alignas(8) unsigned char raw_[sizeof(DeltaState)] = {};
+    std::size_t count_;
+    std::vector<unsigned char> fields_;
 };
 
 } // namespace deltasnap

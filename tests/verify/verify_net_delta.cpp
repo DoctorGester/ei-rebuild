@@ -3,14 +3,15 @@
 // Everything here changes memory streams (headers, buffers that may be reallocated) and a few
 // globals. Ours runs first on the real objects: each wrapper keeps the streams the function can
 // touch in our memory (deltasnap::KeptStream / KeptField / KeptState: header plus bytes), runs ours,
-// then makes twins from what it kept (each buffer our memory, or a game-heap block when ours replaced
-// the real stream's block: delta_snapshot.h), points the globals at the twins, runs the original on
-// them and puts ours' globals back. The streams must then match: every header field except the
-// buffer pointer, and the buffer contents up to the stream's size. The globals must match too
-// (pointers into the twin field compared by their offset). Ours' blocks are then where the
-// original's would be without the check (SV2f / SV2h).
+// then, inside a heap::Aside, makes twins from what it kept (a game-heap buffer each, outside the
+// reservation), points the globals at the twins, runs the original on them, frees the twins and puts
+// ours' globals back. The streams must then match: every header field except the buffer pointer, and
+// the buffer contents up to the stream's size. The globals must match too (pointers into the twin
+// field compared by their offset). Ours' blocks are then the only ones the check makes in the
+// reservation, where a --no-hooks run makes the original's (SV2f / SV2h / SV2h3).
 #include "verify.h"
 #include "delta_snapshot.h"
+#include "harness_heap.h"
 
 #include "../../src/game/ai_motion.h"
 #include "../../src/game/net_delta.h"
@@ -20,6 +21,8 @@
 #include <vector>
 
 namespace {
+
+namespace heap = ei::verify::heap;
 
 using deltasnap::IsMemoryStream;
 using deltasnap::KeptField;
@@ -94,8 +97,9 @@ void __fastcall PutBitVerify(BitStream* self, void*, int bit) {
     if (!IsMemoryStream(self)) return self->PutBit((bit & 0xFF) != 0);
     const KeptStream kept(self);
     self->PutBit((bit & 0xFF) != 0);
+    heap::Aside aside;
     TwinStream expected;
-    s_putBit(expected.Make(kept, self), nullptr, bit);
+    s_putBit(expected.Make(kept), nullptr, bit);
     ei::verify::Check("BitStream::PutBit", true, SameStream(&expected.stream, self), "mask %d", self->bitMask_);
 }
 
@@ -107,8 +111,9 @@ void __fastcall WriteRawVerify(const void* data, std::uint32_t size, BitStream* 
     if (!IsMemoryStream(out)) return delta::WriteRaw(data, size, out);
     const KeptStream kept(out);
     delta::WriteRaw(data, size, out);
+    heap::Aside aside;
     TwinStream expected;
-    s_writeRaw(data, size, expected.Make(kept, out));
+    s_writeRaw(data, size, expected.Make(kept));
     ei::verify::Check("delta::WriteRaw", true, SameStream(&expected.stream, out), "size %u", size);
 }
 
@@ -118,8 +123,9 @@ void __fastcall WriteDiffVerify(const void* old, const void* data, std::uint32_t
     if (!IsMemoryStream(out)) return delta::WriteDiff(old, data, size, out);
     const KeptStream kept(out);
     delta::WriteDiff(old, data, size, out);
+    heap::Aside aside;
     TwinStream expected;
-    s_writeDiff(old, data, size, expected.Make(kept, out));
+    s_writeDiff(old, data, size, expected.Make(kept));
     ei::verify::Check("delta::WriteDiff", true, SameStream(&expected.stream, out), "size %u", size);
 }
 
@@ -130,10 +136,11 @@ void __fastcall WriteChannelVerify(BitStream* snapshot, const void* data, std::u
     const KeptStream keptSnapshot(snapshot);
     const KeptStream keptOut(out);
     delta::WriteDeltaChannel(snapshot, data, size, keep, out);
+    heap::Aside aside;
     TwinStream expectedSnapshot;
     TwinStream expectedOut;
-    expectedSnapshot.Make(keptSnapshot, snapshot);
-    expectedOut.Make(keptOut, out);
+    expectedSnapshot.Make(keptSnapshot);
+    expectedOut.Make(keptOut);
     s_writeChannel(&expectedSnapshot.stream, data, size, keep, &expectedOut.stream);
     bool same = SameStream(&expectedSnapshot.stream, snapshot) && SameStream(&expectedOut.stream, out);
     ei::verify::Check("delta::WriteDeltaChannel", true, same, "size %u keep %d", size, keep);
@@ -159,12 +166,13 @@ void CheckField(const char* name, DeltaField* self, Original original, Ours ours
     auto actualRet = ours(self);
     const Globals actual = Globals::Save();
 
+    heap::Aside aside;
     TwinField expected;
-    expected.Make(keptField, self);
+    expected.Make(keptField);
     TwinStream readerTwin;
     Globals scratch = before;
     scratch.snapshot = Map(before.snapshot, self, &expected.field, sizeof(DeltaField));
-    if (realReader) scratch.reader = readerTwin.Make(keptReader, realReader);
+    if (realReader) scratch.reader = readerTwin.Make(keptReader);
     scratch.Restore();
     auto expectedRet = original(&expected.field);
     const Globals after = Globals::Save();
@@ -275,13 +283,14 @@ void CheckFieldRead(const char* name, DeltaField* self, void* actualOut, std::si
     ours(actualOut);
     const Globals actual = Globals::Save();
 
+    heap::Aside aside;
     TwinField expected;
-    expected.Make(keptField, self);
+    expected.Make(keptField);
     TwinStream reader;
     TwinStream snapshotTwin;
     Globals scratch = before;
-    scratch.reader = reader.Make(keptReader, before.reader);
-    scratch.snapshot = outside ? snapshotTwin.Make(keptOutside, outside) : Map(before.snapshot, self, &expected.field, sizeof(DeltaField));
+    scratch.reader = reader.Make(keptReader);
+    scratch.snapshot = outside ? snapshotTwin.Make(keptOutside) : Map(before.snapshot, self, &expected.field, sizeof(DeltaField));
     scratch.Restore();
     original(&expected.field, buffer.data());
     actual.Restore();
@@ -403,8 +412,9 @@ int __fastcall GetBitVerify(BitStream* reader) {
     if (!IsMemoryStream(reader)) return delta::GetBit(reader);
     const KeptStream kept(reader);
     int actualBit = delta::GetBit(reader);
+    heap::Aside aside;
     TwinStream expected;
-    int expectedBit = s_getBit(expected.Make(kept, reader));
+    int expectedBit = s_getBit(expected.Make(kept));
     ei::verify::Check("delta::GetBit", true, expectedBit == actualBit && SameStream(&expected.stream, reader), "%d / %d",
                       expectedBit, actualBit);
     return actualBit;
@@ -420,8 +430,9 @@ bool __fastcall ReadDiffVerify(const void* old, void* data, std::uint32_t size, 
     const std::vector<std::uint8_t> keptOld = KeepBytes(old, size);
     std::vector<std::uint8_t> buffer = KeepBytes(data, size);
     bool actualRet = delta::ReadDiff(old, data, size, reader);
+    heap::Aside aside;
     TwinStream expected;
-    bool expectedRet = (s_readDiff(old ? keptOld.data() : nullptr, buffer.data(), size, expected.Make(kept, reader)) & 0xFF) != 0;
+    bool expectedRet = (s_readDiff(old ? keptOld.data() : nullptr, buffer.data(), size, expected.Make(kept)) & 0xFF) != 0;
     bool same = expectedRet == actualRet && SameStream(&expected.stream, reader) && std::memcmp(buffer.data(), data, size) == 0;
     ei::verify::Check("delta::ReadDiff", true, same, "size %u", size);
     return actualRet;
@@ -435,8 +446,9 @@ std::uint32_t __fastcall ReadRawVerify(DeltaField* self, void*, void* data, std:
     const KeptStream kept(realReader);
     std::vector<std::uint8_t> buffer = KeepBytes(data, size);
     std::uint32_t actual = self->ReadRaw(data, size);
+    heap::Aside aside;
     TwinStream reader;
-    delta::Reader() = reader.Make(kept, realReader);
+    delta::Reader() = reader.Make(kept);
     std::uint32_t expected = s_readRaw(self, nullptr, buffer.data(), size);
     delta::Reader() = realReader;
     bool same = expected == actual && SameStream(&reader.stream, realReader) && std::memcmp(buffer.data(), data, size) == 0;
@@ -478,7 +490,8 @@ void CheckState(const char* name, DeltaState* self, Original original, Ours ours
         ei::verify::Check(name, kept.fieldCount(), self->fieldCount_, "field count, mode %d", mode);
         return;
     }
-    TwinState expected(kept, self);
+    heap::Aside aside;
+    TwinState expected(kept);
     before.Restore();
     original(expected.get());
     const Globals after = Globals::Save();
@@ -513,8 +526,9 @@ DeltaField* __fastcall BeginFieldVerify(DeltaState* self, void*, int index) {
     const Globals before = Globals::Save();
     DeltaField* actualRet = self->BeginField(index);
     const Globals actual = Globals::Save();
+    heap::Aside aside;
     TwinField expected;
-    state->fields_ = expected.Make(kept, real) - index;
+    state->fields_ = expected.Make(kept) - index;
     before.Restore();
     DeltaField* expectedRet = s_beginField(state, nullptr, index);
     const Globals after = Globals::Save();
@@ -545,8 +559,9 @@ int __fastcall BeginReadVerify(DeltaState* self, void*, int second, BitStream* r
     std::memcpy(state, self, kStateHeader);
     const KeptStream kept(reader);
     int actual = self->BeginRead(second, reader);
+    heap::Aside aside;
     TwinStream readerTwin;
-    int expected = s_beginRead(state, nullptr, second, readerTwin.Make(kept, reader));
+    int expected = s_beginRead(state, nullptr, second, readerTwin.Make(kept));
     state->reader_ = state->reader_ == &readerTwin.stream ? reader : nullptr;
     bool same = expected == actual && std::memcmp(raw, self, kStateHeader) == 0 && SameStream(&readerTwin.stream, reader);
     ei::verify::Check("DeltaState::BeginRead", true, same, "%d", second);
@@ -590,8 +605,9 @@ void __fastcall ReadTextVerify(DeltaField* self, void*, char* text, int size) {
     const KeptStream kept(realReader);
     self->ReadText(text, size);
     std::vector<char> buffer(static_cast<std::size_t>(size), '\0');
+    heap::Aside aside;
     TwinStream reader;
-    delta::Reader() = reader.Make(kept, realReader);
+    delta::Reader() = reader.Make(kept);
     s_readText(self, nullptr, buffer.data(), size);
     delta::Reader() = realReader;
     bool same = SameStream(&reader.stream, realReader) && std::strcmp(buffer.data(), text) == 0;
@@ -665,15 +681,16 @@ static void __fastcall PathReadStateVerify(AIPath* self, void*, DeltaField* fiel
     self->ReadState(field);
     const Globals actual = Globals::Save();
 
+    heap::Aside aside;
     TwinField expected;
-    expected.Make(keptField, field);
+    expected.Make(keptField);
     TwinStream reader;
     alignas(4) unsigned char scratchBytes[sizeof(AIPath)] = {};
     auto* scratch = reinterpret_cast<AIPath*>(scratchBytes);
     scratch->steps.vtable = PathCellListVtable();
     scratch->steps.blockSize = 0x80;
     Globals scratchGlobals = before;
-    scratchGlobals.reader = reader.Make(keptReader, before.reader);
+    scratchGlobals.reader = reader.Make(keptReader);
     scratchGlobals.snapshot = Map(before.snapshot, field, &expected.field, sizeof(DeltaField));
     scratchGlobals.Restore();
     s_pathRead(scratch, nullptr, &expected.field);
