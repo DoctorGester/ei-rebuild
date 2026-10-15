@@ -14,8 +14,11 @@ namespace {
 std::uint32_t __fastcall MemoryStreamReadHook(CMemoryStream* self, void*, void* buffer, std::uint32_t size) {
     return self->CMemoryStream::Read(buffer, size);
 }
-void __fastcall MemoryStreamWriteHook(CMemoryStream* self, void*, const void* buffer, std::uint32_t size) {
+// The slot is void, but 004A53F0 leaves the new position in EAX and callers return it
+// (CPlayerClient::SendResume, TakeExit, ...).
+std::uint32_t __fastcall MemoryStreamWriteHook(CMemoryStream* self, void*, const void* buffer, std::uint32_t size) {
     self->CMemoryStream::Write(buffer, size);
+    return self->position_;
 }
 void __fastcall MemoryStreamSeekHook(CMemoryStream* self, void*, std::uint32_t position) {
     self->CMemoryStream::Seek(position);

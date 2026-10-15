@@ -31,7 +31,7 @@ struct Header {
 };
 
 template <typename Ours, typename Original>
-int CompareSend(const char* name, CPlayerClient* self, Ours ours, Original original, bool compareResult = true) {
+int CompareSend(const char* name, CPlayerClient* self, Ours ours, Original original) {
     Header before(self->out_);
     int actual = ours();
     Header after(self->out_);
@@ -39,10 +39,13 @@ int CompareSend(const char* name, CPlayerClient* self, Ours ours, Original origi
     std::vector<std::uint8_t> written(after.Get().data_, after.Get().data_ + after.Get().size_);
     before.RestoreTo(self->out_);
     int expected = original();
-    bool same = std::memcmp(&self->out_, after.bytes, sizeof(BitStream)) == 0 &&
-                (written.empty() || std::memcmp(self->out_.data_, written.data(), written.size()) == 0) &&
-                (!compareResult || expected == actual);
-    ei::verify::Check(name, true, same, "client %p: size %u vs %u", self, self->out_.size_, after.Get().size_);
+    bool sameHeader = std::memcmp(&self->out_, after.bytes, sizeof(BitStream)) == 0;
+    bool sameBytes = written.empty() || std::memcmp(self->out_.data_, written.data(), written.size()) == 0;
+    bool sameResult = expected == actual;
+    ei::verify::Check(name, true, sameHeader && sameBytes && sameResult,
+                      "client %p: header %s (size %u vs %u, pos %u vs %u), bytes %s, result %d vs %d", self,
+                      sameHeader ? "same" : "differs", self->out_.size_, after.Get().size_, self->out_.position_,
+                      after.Get().position_, sameBytes ? "same" : "differ", expected, actual);
     return expected;
 }
 
@@ -149,8 +152,7 @@ int __fastcall Leave04Verify(CPlayerClient* self, void*, int value) {
     int after = state;
     int result = CompareSend("CPlayerClient::SendLeave04", self,
                              [&] { int r = self->SendLeave04(value); after = self->state_; self->state_ = state; return r; },
-                             [&] { return s_leave04(self, nullptr, value); },
-                             false);   // 0066B280 returns whatever the stream's Write leaves in EAX
+                             [&] { return s_leave04(self, nullptr, value); });
     ei::verify::Check("CPlayerClient::SendLeave04 state", self->state_, after, "client %p", self);
     return result;
 }

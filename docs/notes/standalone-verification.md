@@ -841,3 +841,16 @@ The scenario reaches CEffectTornado (Launch, Tick, Reset) on Rebirth only, and n
 ground at a random point (about 3 % of the 64-tick weather updates, 44 in the wait), so runs with 72 to 90 s waited
 launched one in about half the cases and the 150 s wait is what makes it likely. Vanilla did not launch one in any run.
 Shortening the wait would lose the coverage; no golden is recorded for it (the strikes differ between runs).
+
+## SV6b: rare under-load failures after SV6 (2026-10-15)
+
+- CPlayerClient::SendResume (0066B300) returns whatever its stream Write call leaves in EAX, and 004A53F0 leaves
+  the new position there (a void slot). Our MemoryStreamWriteHook and WriteVerify returned nothing, so the original
+  SendResume (and the original TakeExit / RequestZone / SendLeave04 tails, and any game caller using the slot's EAX)
+  returned leftovers of our code; in the verify build it was usually 1 by chance (the stream held only the resume
+  byte), hence one mismatch in a suite. Both now return position_, and WriteVerify checks the original's EAX
+  against it. CompareSend's message names what differs (header with size / position, bytes, results).
+- sound-vanilla: the second goblin (Snd2) killed the hero in the 2 s after the first one died (its hits roll
+  differently from run to run: the AI messages' order varies under load), twice in main suites. The scenario
+  removes Snd2 once Snd1 is dead. Nine repeats of sound + render_cursor_present (4 at once, other batches running)
+  passed.
