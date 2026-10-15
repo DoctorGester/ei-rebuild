@@ -1459,3 +1459,9 @@ and Rebirth TIMEOUT; passed alone right after: it hosts on UDP 8888, which a gam
 56 goldens it reaches the same, saves included, with SAVES_KNOWN's SV7b1 entries gone (SV7d5 done). `--no-hooks
 --golden` with EI_HEAP_JITTER=1 over all 97: 96 the same; ui_battle_spells (vanilla) differed once in two units'
 hashes at update 180 and matched in two more seed-1 runs and a plain one.
+
+**After SV7b3 (second merge of main).** Recorded again from two fresh plain `--no-hooks` runs on top of SV7b3's zeroed
+unit statistics: 81 goldens differed from main's only in `script #gobject` (and two in mission.sav's script globals);
+hero_death, movement, ui_screens and world_load (Rebirth) already matched. SAVES_KNOWN's three SV7b1 entries on main
+(seenCorpses, render_movie_present's "Peasans", Rebirth ui_widescreen_more's group 5 [1901, 1913]) are dropped: id
+order settles each.
