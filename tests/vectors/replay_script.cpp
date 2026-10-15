@@ -8,12 +8,14 @@
 #include "../../src/game/game_data.h"
 #include "../../src/game/script.h"
 #include "../../src/game/script_addon.h"
+#include "../../src/game/script_parse.h"
 
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <deque>
+#include <new>
 #include <string>
 #include <vector>
 
@@ -120,7 +122,12 @@ EI_VECTOR_CHECK_BYTES("KeywordName", CheckKeywordName);
 // A CScript the lexer can run on: it reads no member, it only reports errors (CScript::Error).
 CScript* NoScript() {
     alignas(8) static unsigned char bytes[sizeof(CScript)];
-    return reinterpret_cast<CScript*>(bytes);
+    static CScript* const script = [] {
+        auto* s = reinterpret_cast<CScript*>(bytes);
+        new (&s->ErrorText()) mfc::CString;
+        return s;
+    }();
+    return script;
 }
 
 bool CheckTokenize(Reader& r, char* d, std::size_t n) {
@@ -202,8 +209,9 @@ EI_VECTOR_CHECK_BYTES("ApplyDefines", CheckApplyDefines);
 } // namespace
 
 // The replay's CScript::Error (the game's is the original 004CF470, which Rebirth patches): the report
-// is kept for the check (wvsprintfA's formats the lexer uses are printf's).
-int __cdecl CScript::Error(CScript*, int line, int code, const char* format, ...) {
+// is kept for the check and set on the script as ScriptErrorV sets it (wvsprintfA's formats the
+// parser uses, %s and %i, are printf's).
+int __cdecl CScript::Error(CScript* script, int line, int code, const char* format, ...) {
     va_list args;
     va_start(args, format);
     std::vsnprintf(g_error.text, sizeof(g_error.text), format, args);
@@ -211,6 +219,9 @@ int __cdecl CScript::Error(CScript*, int line, int code, const char* format, ...
     g_error.reported = true;
     g_error.line = line;
     g_error.code = code;
+    script->ErrorLine() = line;
+    script->ErrorText() = g_error.text;
+    script->ErrorCode() = code;
     return 0;
 }
 
@@ -220,4 +231,8 @@ namespace scriptaddon {
 bool Enabled() { return false; }
 const ScriptKeyword* Table() { std::abort(); }
 bool RejectsMatch(const char*, char) { std::abort(); }
-} // namespace scriptaddon
+void SignatureStep(SSCCmd*, const char**, int) { std::abort(); }
+}
+
+// CScript::LoadFile's file reader (script_text_file.cpp needs the game's files): not replayed.
+int __fastcall scriptparse::ReadTextFile(const char*, mfc::CString*) { std::abort(); } // namespace scriptaddon

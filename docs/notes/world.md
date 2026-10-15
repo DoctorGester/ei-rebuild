@@ -166,7 +166,9 @@ at the depth limit (00577FC0 / 00577730, 00577E90 / 005782F0), insertion sort of
 wrapper, so every recursion level is checked. **Rare Rebirth crash** (`docs/open-questions.md`): `UnitOrderLess`'s last test
 is "less or unordered", so an object with a NaN view depth (+0x30) makes `Less(x, x)` true and STLport's unguarded partition
 walks off the vector; the rewrite behaves exactly like the original, crash included (the verify logs "not orderable" and
-sends NaN ranges to the original alone). Where the NaN depths come from is open.
+sends NaN ranges to the original alone). The NaN depths were heap leftovers: the constructor leaves +0x28 and objects
+listed only for their shadow before they were ever in view sort on it; it now starts at zero in ours and, through a
+harness site, in the original (S17a, docs/notes/standalone.md).
 
 **Client maps**: `AddObject` 005647E0 (an already listed id is only referenced and released; the grid listing is removed
 before it is appended), `RemoveObject` 00564BE0, `ClearMaps` 00564E70, `CreatePartyUnits` 00566F70 (per record the figure's

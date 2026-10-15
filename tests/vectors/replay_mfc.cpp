@@ -5,6 +5,7 @@
 // rounds small ones up to its fixed-size blocks; only when a later write reallocates differs).
 #include "../../src/lib/crt.h"
 #include "../../src/lib/mfc.h"
+#include "../../src/lib/mfc_string.h"
 
 #include <cstdio>
 #include <cstdlib>
@@ -240,3 +241,7 @@ void __fastcall PlexFreeDataChain(CPlex* head) {
 }
 
 } // namespace mfc
+
+// The empty string of the library's CString (mfc_string.h) is this one.
+mfc::impl::CStringData* mfc::impl::DataNil() { return reinterpret_cast<CStringData*>(&g_nil.data); }
+char* mfc::impl::PchNil() { return NilChars(); }
