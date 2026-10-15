@@ -1599,11 +1599,12 @@ done = "2026-10-15"
 id = "S6a"
 title = "Standalone library: MFC container slots in the exe's vtables"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1
 depends = ["S6", "S7"]
 files = ["src/lib/mfc_array.h", "src/lib/mfc_list.h"]
 note = "The about 330 library functions only the exe's vtables point at: CArray / CList / CMap scalar deleting destructors (about 160) and Serialize (about 150), reached through the vtables our constructors install. Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S8"
