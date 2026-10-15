@@ -559,11 +559,8 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     }
 }
 namespace {
-void __fastcall BattleScreenLButtonUp(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CBattleScreenSetup>(input)->OnLButtonUp(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00638B30, BattleScreenLButtonUp);
+EI_REPLACE_METHOD(0x00638B30, InputForward<&CBattleScreenSetup::OnLButtonUp>::Call);
 
 // --- 006369D0: a quest variable's notice -------------------------------------------------------
 

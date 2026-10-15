@@ -336,19 +336,10 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
 // --- Entry points --------------------------------------------------------------------------------
 
 namespace {
-void __fastcall SaveLoadKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CSaveLoadWindow>(input)->OnKeyDown(key, repeat, flags);
-}
-void __fastcall SaveLoadChar(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CSaveLoadWindow>(input)->OnChar(key, repeat, flags);
-}
-void __fastcall OptionsKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<COptionsWindow>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
 
-EI_REPLACE(0x006548A0, SaveLoadKeyDown);
-EI_REPLACE(0x00650E40, OptionsKeyDown);
-EI_REPLACE(0x00655050, SaveLoadChar);
+EI_REPLACE_METHOD(0x006548A0, InputForward<&CSaveLoadWindow::OnKeyDown>::Call);
+EI_REPLACE_METHOD(0x00650E40, InputForward<&COptionsWindow::OnKeyDown>::Call);
+EI_REPLACE_METHOD(0x00655050, InputForward<&CSaveLoadWindow::OnChar>::Call);
 EI_REPLACE_METHOD(0x00655430, CSaveLoadWindow::ShowSelection);
 EI_REPLACE_METHOD(0x00657820, CSaveLoadWindow::IsReservedSave);

@@ -82,15 +82,9 @@ void CMessageBox::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
-void __fastcall MessageBoxLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CMessageBox>(input)->OnLButtonDown(buttons, x, y);
-}
-void __fastcall MessageBoxKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CMessageBox>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x00634D20, MessageBoxLButtonDown);
-EI_REPLACE(0x00634E60, MessageBoxKeyDown);
+EI_REPLACE_METHOD(0x00634D20, InputForward<&CMessageBox::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x00634E60, InputForward<&CMessageBox::OnKeyDown>::Call);
 
 // --- CDifficultyBox ------------------------------------------------------------------------------
 
@@ -137,12 +131,6 @@ void CDifficultyBox::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
-void __fastcall DifficultyLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CDifficultyBox>(input)->OnLButtonDown(buttons, x, y);
-}
-void __fastcall DifficultyKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CDifficultyBox>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x00633DD0, DifficultyLButtonDown);
-EI_REPLACE(0x00633EC0, DifficultyKeyDown);
+EI_REPLACE_METHOD(0x00633DD0, InputForward<&CDifficultyBox::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x00633EC0, InputForward<&CDifficultyBox::OnKeyDown>::Call);

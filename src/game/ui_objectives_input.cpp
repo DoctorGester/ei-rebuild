@@ -145,15 +145,9 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
-void __fastcall ObjectivesKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CObjectivesWindow>(input)->OnKeyDown(key, repeat, flags);
-}
-void __fastcall ObjectivesLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CObjectivesWindow>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x0064E330, ObjectivesLButtonDown);
-EI_REPLACE(0x0064E5A0, ObjectivesKeyDown);
+EI_REPLACE_METHOD(0x0064E330, InputForward<&CObjectivesWindow::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x0064E5A0, InputForward<&CObjectivesWindow::OnKeyDown>::Call);
 
 void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     stlp::vector<UiPointF>& places = questPlaces_;

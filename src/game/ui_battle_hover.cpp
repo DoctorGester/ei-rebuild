@@ -56,7 +56,6 @@ static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
     return static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit));
 }
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel block `block`.
-void __fastcall HoverShowPanelUnit(void* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal(a0, nullptr, (void*)a2, a3); }
 
 // fcomp with 0.0 and C3: true for zero (either sign) and for NaN.
 bool ZeroOrNaN(float value) {
@@ -94,7 +93,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             panel->hoverUnit_ = unit;
             std::memcpy(&panel->viewSize_[1], &HoverPrototype(unit)->panelViewSize, 4);
             std::memcpy(&panel->viewHeight_[1], &HoverPrototype(panel->hoverUnit_)->height, 4);
-            HoverShowPanelUnit(panel->owner_, nullptr, panel->hoverUnit_, &panel->strings_[1]);
+            BattleShowPanelUnitOriginal(panel->owner_, nullptr, (void*)panel->hoverUnit_, &panel->strings_[1]);
         }
     } else if (panel->hoverUnit_) {
         panel->hoverUnit_ = nullptr;

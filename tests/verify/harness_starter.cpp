@@ -3,6 +3,8 @@
 #include "harness_starter.h"
 
 #include "../../src/hook/log.h"
+#include "../../src/hook/rebirth_hook.h"
+#include "ei/hook.h"
 
 #include <windows.h>
 
@@ -198,6 +200,10 @@ void Install() {
         PatchSlot(reinterpret_cast<decltype(&::RegQueryValueExW)*>(slot), &QueryW, g_queryW);
     else
         Log("harness: advapi32's RegQueryValueExW is not the expected stub: addon.dll reads the registry's settings");
+}
+
+bool RebirthInstall() {
+    return GetModuleHandleA("addon.dll") != nullptr || (ei::Standalone() && rebirth_hook::RebirthLaunch());
 }
 
 } // namespace ei::verify::starter

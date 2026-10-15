@@ -21,7 +21,7 @@ void Detect(const std::vector<unsigned char>& file);
 // EiPluginNPlayers is the ini's [Rebirth] NPlayers (default 7, the plugin's). Logs the flags.
 void SettingsOnly(const char* iniPath);
 
-// True when addon.dll or EI_Plugin.asi patch this launch.
+// True when addon.dll or EI_Plugin.asi patch this launch; in the standalone image, when a flag is on.
 bool RebirthLaunch();
 
 enum class Verdict {

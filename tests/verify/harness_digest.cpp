@@ -3,6 +3,7 @@
 
 #include "harness_clock.h"
 #include "harness_heap.h"
+#include "harness_starter.h"
 
 #include "../../src/hook/log.h"
 #include "ei/hook.h"
@@ -911,7 +912,7 @@ bool OpenDigest() {
     char hooks[8] = "";
     GetEnvironmentVariableA("EI_NO_HOOKS", hooks, sizeof(hooks));
     std::fprintf(g_file, "# ei state digest 2; groups %s; hooks %s; install %s; every %u world updates\n", kNewGroups,
-                 hooks[0] == '1' ? "off" : "on", GetModuleHandleA("addon.dll") ? "rebirth" : "vanilla", g_period);
+                 hooks[0] == '1' ? "off" : "on", starter::RebirthInstall() ? "rebirth" : "vanilla", g_period);
     return true;
 }
 

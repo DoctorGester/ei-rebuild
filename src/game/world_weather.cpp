@@ -63,7 +63,6 @@ __declspec(naked) double __fastcall AIMapLineFree(void*, void*, const Vector3*, 
 // 0067DA50 (RET 8). A lightning object's path.
 __declspec(naked) void __fastcall LightningSetPath(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x0067DA50)
 // 00675CA0. Marks an object new.
-void __fastcall MarkNew(void* a0, void*) { ObjectMarkNewOriginal(a0); }
 // 00578E30 (RET 0x18). Shows a lightning bolt from `from` to `to` (the client glue at 007AFEA4).
 void __fastcall ShowBoltAt(void* glue, void*, Vector3 from, Vector3 to) {
     ShowBoltOriginal(glue, nullptr, from.x, from.y, from.z, to.x, to.y, to.z);
@@ -104,7 +103,7 @@ void TryLightningStrike(CWorldServer* world) {
     LightningSetPath(lightning, nullptr, &ground, &sky);
     static_cast<CEffect*>(lightning)->startTick_ = world->tick_;
     ++lightning->refCount_;
-    MarkNew(lightning, nullptr);
+    ObjectMarkNewOriginal(lightning);
     world->timedObjects_.Set(static_cast<unsigned>(lightning->id_), lightning);
 }
 

@@ -227,11 +227,8 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
     InputOf(this)->BaseMouseMove(buttons, x, y);
 }
 namespace {
-void __fastcall MainMenuMouseMove(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CMainMenu>(input)->OnMouseMove(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00633400, MainMenuMouseMove);
+EI_REPLACE_METHOD(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->BaseKeyDown(key, repeat, flags);
@@ -241,8 +238,5 @@ void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
 }
 namespace {
-void __fastcall MainMenuKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CMainMenu>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x00633540, MainMenuKeyDown);
+EI_REPLACE_METHOD(0x00633540, InputForward<&CMainMenu::OnKeyDown>::Call);

@@ -14,8 +14,9 @@
 // procedure (while the renderer is inactive).
 //
 // Every game function is called through its address, so hooks and verify wrappers on the callees
-// keep running. Rebirth patches the original (NivalRegistry), so this body runs in the vanilla
-// launch only. See docs/notes/app.md ("WinMain").
+// keep running. Rebirth patches the original (NivalRegistry), so in game.exe this body runs in the
+// vanilla launch only; the standalone image runs it on Rebirth too, with the flag. See
+// docs/notes/app.md ("WinMain").
 #include "device.h"   // the old device's calls
 #include "game_strings.h"
 #include "app.h"
@@ -32,6 +33,7 @@
 
 #include "ei/hook.h"
 #include "ei/main_loop.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -760,7 +762,10 @@ int __stdcall GameMain(HINSTANCE instance, HINSTANCE, char* commandLine, int sho
     RegisterWindowClass(instance);
 
     GameOptions* options = options::TheOptions();
-    RegistryRoot() = game::Text(0x007848A8);   // "Software\Nival Interactive\EvilIslands"
+    // NivalRegistry: addon's PUSH at 004568E9 names its own key instead.
+    RegistryRoot() = ei::rebirth::Enabled(ei::rebirth::Patch::NivalRegistry)
+                         ? "Software\\Gipat.ru\\EI_Starter\\EvilIslands"
+                         : game::Text(0x007848A8);   // "Software\Nival Interactive\EvilIslands"
     StoreStartFolderAt();
     {
         mfc::CString settings = StartFolder() + game::Text(0x00784898);   // "config\ai.reg"
