@@ -167,6 +167,9 @@ original at update 60 in `isaac.count` (as in SV3's list), before any new group 
 in these runs: 6-13 timed effects and 11-15 missiles over a run, the script's 25 instances and its runs, 51 client
 objects in the main menu; the AI event table was empty in all of them.
 
+Full suite with `--golden` (117 runs): all pass, 41 of 42 goldens the same; unit_create parted once at update 80
+in `crt.rand` only (no new group differed either), and matched its golden in two runs alone (SV2c).
+
 **The reference cache:** `run_all` takes a `--no-hooks` run from the shared reference cache (build/reference),
 whose key leaves out the harness. After a digest change, run the original with `--fresh`, or the run's digest is
 the one of whichever harness filled the cache (an older digest: golden.py then compares the groups both have).
