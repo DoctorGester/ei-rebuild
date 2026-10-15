@@ -1586,10 +1586,11 @@ note = "_Rb_tree / map / set, stlp::string, pair, __introsort_loop (keep its ord
 id = "S13"
 title = "Standalone: compiler-generated helpers of game types"
 group = "standalone"
-status = "queued"
+status = "running"
 size = 1
 files = ["src/game/*.cpp", "config/library.csv"]
 note = "The 49 forwarded \"compiler\" rows (record copy constructors, destructors, deleting destructors, aligned buffer constructors) and the 17 the exe's data points at: game types, ported like game code. No dependency."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S14"
@@ -1668,9 +1669,10 @@ note = "S2 ported 45 of the 200 short functions as LoadDword<n> / MemberAddress<
 id = "S3a"
 title = "Standalone: the static initialisers' exit functions"
 group = "standalone"
-status = "queued"
+status = "running"
 depends = ["S3"]
 note = "130 of the 311 functions the static initialisers register with atexit have no code in the image (the standalone check logs them: 'exit function ... has no code yet'). Patterns: 83 'mov ecx, obj; jmp dtor', guarded variants (test/or of a flag bit, then the same), 14 'free the buffer at [p]-4 if set' (operator delete), refcount releases, eh vector destructor iterator, a WSACleanup loop. Extend tools/gen_static_init.py (conditional branches) or port by hand like src/game/atexit_400.cpp; registered with EI_REPLACE they also run at exit in the hook build. docs/notes/standalone.md S3."
+started = "2026-10-15"
 
 [[ticket]]
 id = "S3b"
