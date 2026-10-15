@@ -12,8 +12,8 @@ usage:
       the players, the objects by id. --ulps N lets floats differ by up to N units in the last place
       (the rewrite's float maths, rewrite guide rule 7); --records K shows K differing records (default
       1), --fields K up to K fields each (default 12); --ignore drops fields whose "<key> <field>"
-      matches the expression. Fields that follow heap addresses (ADDRESS_DEPENDENT: the units'
-      update-map countdown) are left out unless --all-fields.
+      matches the expression. Fields that follow heap addresses (ADDRESS_DEPENDENT; none since
+      SV1b) are left out unless --all-fields.
   python tools/golden.py state A [--record N] [--key REGEX]
       The whole state at record N (default: the last) of one digest, or the entities whose key matches.
   python tools/golden.py record SCENARIO... --reason TEXT [--install vanilla|rebirth] [--run FOLDER]
@@ -33,10 +33,12 @@ import run_all
 
 ROOT = run_all.ROOT
 GOLDEN = os.path.join(ROOT, 'tests', 'golden')
-# Fields that follow heap addresses, which differ between a run of the original code alone and one with our
-# hooks (the verify wrappers allocate too): a unit's update-map countdown is 0x80 + bits 5..8 of its address
-# (CWorldServer::AddToUpdateMap 0058D5D0, CreateObject 005927C0). Left out unless --all-fields.
-ADDRESS_DEPENDENT = r' updateCountdown$'
+# Fields that follow heap addresses, which would differ between runs and between the original code alone and
+# ours (the verify wrappers allocate too); left out unless --all-fields. None now: the one there was, a unit's
+# update-map countdown (0x80 + bits 5..8 of its address in the game), harness runs on the virtual clock take
+# from the object's id on both sides (tests/verify/harness_heap.h, SV1b). Runs with `--clock virtual,lfheap`
+# keep the game's: pass --ignore ' updateCountdown$' for those.
+ADDRESS_DEPENDENT = None
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 
 
@@ -361,7 +363,7 @@ def main():
         else:
             comparing(p)
     args = ap.parse_args()
-    if args.command in ('diff', 'compare') and not args.all_fields:
+    if args.command in ('diff', 'compare') and not args.all_fields and ADDRESS_DEPENDENT:
         args.ignore = f'{args.ignore}|{ADDRESS_DEPENDENT}' if args.ignore else ADDRESS_DEPENDENT
 
     if args.command == 'diff':

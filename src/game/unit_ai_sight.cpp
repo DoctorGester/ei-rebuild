@@ -107,7 +107,10 @@ void AIViewer::Refresh(CUnit* self, AIBrain* brain) {
         for (auto* node = units->head; node; node = node->next) {
             CEngineObject* other = node->data;
             if (other == static_cast<CEngineObject*>(self)) continue;
-            AddCountedTail(&brain->nearby, nullptr, other);
+            // At the head, holding a reference (the original's inlined AddHead): See walks the list
+            // from the head, so the units of the last sector come first.
+            brain->nearby.AddHead(other);
+            if (other) ++other->refCount_;
         }
     }
 }

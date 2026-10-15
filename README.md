@@ -102,6 +102,9 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `compare.py --clock`) overrides: `virtual` or `real`, plus `clocktrace` (every clock read and wait
   by function, caller and thread, in `ei_hook.log`) and `randtrace` (every random draw with its frame
   and caller, in `randtrace.txt`; `compare.py --clock virtual,randtrace` to find where two runs part).
+  On the virtual clock the game's CRT heap also gives the same addresses every run, and units' update
+  countdowns come from their ids on both sides (`tests/verify/harness_heap.h`); `lfheap` keeps the
+  game's own heap and countdowns.
 - The game-state digest (`tests/verify/harness_digest.h`): `digest <N>` (or `EI_DIGEST=<N>`) writes the
   world's state (units, positions, vitals, effects, AI state, generators, players) every N world updates to
   the run's `digest.txt`, `dump <name>` all of it once; `python tools\golden.py diff <run A> <run B>` names
