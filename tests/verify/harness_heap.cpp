@@ -202,8 +202,10 @@ bool InHandleMap(void* const* frame) {
 }
 
 // Whether a block of `bytes` goes into the reservation: the main thread's small blocks.
+thread_local int t_aside;   // Aside's depth on this thread
+
 bool Reserved(SIZE_T bytes, void* const* frame) {
-    return bytes < kLarge && GetCurrentThreadId() == g_mainThread && !InHandleMap(frame);
+    return bytes < kLarge && GetCurrentThreadId() == g_mainThread && !t_aside && !InHandleMap(frame);
 }
 
 void* Allocate(DWORD flags, SIZE_T bytes, bool reserved) {
@@ -462,5 +464,8 @@ void Install() {
     PatchSlot(kHeapReAllocSlot, &RepeatableHeapReAlloc, g_heapReAlloc);
     PatchSlot(kHeapSizeSlot, &RepeatableHeapSize, g_heapSize);
 }
+
+Aside::Aside() { ++t_aside; }
+Aside::~Aside() { --t_aside; }
 
 } // namespace ei::verify::heap

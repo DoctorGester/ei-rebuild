@@ -73,4 +73,16 @@ unsigned long MainThread();   // the thread that made the CRT's heap (the game's
 void StartOrderCheck(std::uintptr_t selfBase, std::uintptr_t selfEnd);
 void WriteOrderReport();
 
+// While one is alive on a thread, that thread's new blocks come from the growable heap, outside the
+// reservation, so they move no block the game makes in it (SV2h3). For a verify wrapper's scratch
+// sets and twins: the blocks a no-hooks run never has. Freeing or resizing them later finds their
+// heap by address; a block of the game's that is resized inside one moves out of the reservation,
+// so only scratch work goes inside.
+struct Aside {
+    Aside();
+    ~Aside();
+    Aside(const Aside&) = delete;
+    Aside& operator=(const Aside&) = delete;
+};
+
 } // namespace ei::verify::heap

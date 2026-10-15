@@ -1035,6 +1035,17 @@ from the input kept in our memory). WakeVerify needs no change: the update map's
 allocator (no heap calls in any run); erasing the original's new keys and inserting ours permutes which pooled node
 holds which key, and only a bucket resize inside it (an update map past 193 entries) could change a chain's order.
 
+Freeing a scratch block before the original runs is not enough: an allocation and its free do not leave the heap as
+it was (where a free block is split, which free block is found next). With only the MarkFootprint reorder, the four
+Rebirth goldens that pass on main (ground_prints, harness_digest, script_parse, ui_trade_restore) parted at world
+update 40 in gz1g, and the three of SV2h1b came back the same; --no-hooks matched all 14. So the harness heap has an
+aside scope now (heap::Aside, harness_heap.h): while one is alive on the main thread, new blocks come from the
+growable heap outside the reservation, and frees and resizes find them by address. MarkFootprint's scratch sets and
+Smooth's copy (with the original's run on it) are made inside one. With it: --golden 55 the same, 1 differs
+(terrain_water_load, SV2h1b's script #gobject; ui_saveload_delete differed in one of two runs), against main's 3. The
+scope is the cheap fix for SV2h3a too: a twin made, run and freed inside an Aside moves nothing in the reservation,
+whatever the order (the pools inside the game, CFixedAlloc / STLport nodes / a CPlex free list, are still shared).
+
 Follow-ups: SV2h3a (the original first on a copy, outside the files other tickets hold), SV2h3b (the same object run
 twice, restores after ours allocates), SV2h3c (both sides keep blocks). Left to their tickets: verify_stlp_hash.cpp
 (S12c), verify_mfc_string.cpp, script_load / script_parse / text_reader / text_split / mob_script_decoder / mfc_try /

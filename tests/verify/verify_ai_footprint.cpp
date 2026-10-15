@@ -1,5 +1,6 @@
 // Checks for the footprint code (src/game/ai_footprint.cpp).
 #include "verify.h"
+#include "harness_heap.h"
 
 #include "../../src/game/ai_map.h"
 #include "../../src/lib/crt.h"
@@ -204,22 +205,26 @@ static bool __fastcall ApplyBridgesSpy(CAIMap* self, void*, FootprintCellSet* se
 EI_VERIFY(0x005B6740, ApplyBridgesSpy, 7, s_applyBridges);
 
 // 005B6A80: PUSH EBP; MOV EBP,ESP; PUSH -1; PUSH 0x727A76 (10 bytes). Ours collects into scratch
-// sets first; their cells are kept in our memory and the sets freed before the original runs on the
-// map (and keeps its blocks), so no scratch block is alive while it allocates (SV2h3).
+// sets first, aside from the reservation (harness_heap.h); their cells are kept in our memory and
+// the sets freed before the original runs on the map and keeps its blocks (SV2h3).
 static bool(__fastcall* s_markFootprint)(CAIMap*, void*, CEngineObject*, bool);
 static bool __fastcall MarkFootprintVerify(CAIMap* self, void*, CEngineObject* object, bool remove) {
     if (object->GetClassId() == kClassUnit || g_capture.active) return self->MarkFootprint(object, remove);
 
-    FootprintCellSet footprint, bridges;
-    PrepareScratch(&footprint, self->footprint);
-    PrepareScratch(&bridges, self->bridges);
-    bool hasBridge = self->CollectFootprint(object, &footprint, &bridges);
     std::vector<FootprintCell> ourFootprint, ourBridges;
     int ourFootprintBuckets[16], ourBridgeBuckets[16];
-    Snapshot(&footprint, ourFootprint, ourFootprintBuckets);
-    Snapshot(&bridges, ourBridges, ourBridgeBuckets);
-    footprint.SetSize(0, -1);
-    bridges.SetSize(0, -1);
+    bool hasBridge;
+    {
+        ei::verify::heap::Aside aside;
+        FootprintCellSet footprint, bridges;
+        PrepareScratch(&footprint, self->footprint);
+        PrepareScratch(&bridges, self->bridges);
+        hasBridge = self->CollectFootprint(object, &footprint, &bridges);
+        Snapshot(&footprint, ourFootprint, ourFootprintBuckets);
+        Snapshot(&bridges, ourBridges, ourBridgeBuckets);
+        footprint.SetSize(0, -1);
+        bridges.SetSize(0, -1);
+    }
 
     g_capture.active = true;
     g_capture.map = self;
