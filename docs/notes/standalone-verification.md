@@ -170,8 +170,10 @@ bytes between two runs of the original in every scenario that saves (SV3b).
 
 **Known differences** (golden.py KNOWN, each with its ticket): fields kept in clear in compact digests and left out
 of comparisons with a golden (`compare --strict` keeps them), so a golden needs no re-recording when the ticket lands;
-the entry is dropped then. One so far: SV3a, the main menu world's unit 2 (unmoco2), whose hit points ours leaves
-unwritten (every hooked run's first record).
+the entry is dropped then. None now: SV3a (the main menu unit unmoco2's hit points, every hooked run's first record)
+was CMapObjectManager::GiveDefaults' stack copy, whose fields Reset and SetDefaults leave alone (the slots' shares
+and factors, fixedMaxHitPoints) held our DLL's addresses and -1 instead of the original's tiny leftovers; ours now
+seeds them with the original's values there (map_object_manager.cpp).
 
 **Recording** (period 20 world updates, `run_all.GOLDEN_PERIOD`):
 ```

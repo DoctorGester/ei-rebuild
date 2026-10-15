@@ -64,10 +64,7 @@ ADDRESS_DEPENDENT = None
 # Differences between our code and the original that are known, each with the ticket that fixes it: "<key> <field>"
 # patterns. A compact digest keeps these fields in clear next to the hashes, and the comparison with a golden
 # leaves them out (unless --strict), so the golden needs no re-recording when the ticket lands; drop the entry then.
-KNOWN = {
-    r'^obj2 (hp|maxHp)$': "SV3a: the main menu world's unit 2 (unmoco2): ours leaves its hit points unwritten "
-                          "(nan:0xFFFFFFFF and heap bytes), the original has nan:0xFFC00000 and 1.0",
-}
+KNOWN = {}   # none now (SV3a, the main menu unit unmoco2's hit points, fixed 2026-10-15)
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
 SAVES = 'harness_saves'

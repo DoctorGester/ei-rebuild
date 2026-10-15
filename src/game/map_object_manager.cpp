@@ -17,6 +17,8 @@
 #include "lib/crt.h"
 #include "originals_engine.h"
 
+#include <cstring>
+
 namespace {
 
 constexpr std::uintptr_t kManagerVtable = std::uintptr_t(0x0073DCD8);
@@ -52,6 +54,30 @@ int ThirdHalfOf(int classId) {
     default:
         return 0;
     }
+}
+
+// GiveDefaults' statistics are a stack copy whose fields Reset and SetDefaults leave alone keep what
+// the original's stack held: the leftovers of CWorldServer::CreateObject's earlier callees. Only a
+// unit added without a prototype reads them, the main menu's unmoco2 (Recompute: the maximum hit
+// points at least 1 from fixedMaxHitPoints, the slots' maxima from their shares, the hit points
+// from those). Ours starts from zeros and these dwords, the ones the original has there (game
+// pointers and small integers: tiny floats); its hit points become NaN (0xFFC00000) and the maximum
+// 1, as in the original. Our own stack held our DLL's addresses and -1 there (ticket SV3a).
+struct SlotLeftovers {
+    std::uint32_t share, factor;
+};
+constexpr SlotLeftovers kSlotLeftovers[6] = {
+    {0x34010035, 0x02DE00C0}, {0x02DE0000, 0x0B834FE0}, {0x00000005, 0x000000B9},
+    {0x0001007F, 0x00000000}, {0x0B8349F8, 0x0B833658}, {0x00000000, 0x089A7FB8},
+};
+constexpr std::uint32_t kFixedMaxLeftover = 5434185;   // 0052EB49, a code address: a denormal float
+
+void SeedLeftovers(UnitStats& stats) {
+    for (int i = 0; i < 6; ++i) {
+        std::memcpy(&stats.slots[i].share, &kSlotLeftovers[i].share, 4);
+        std::memcpy(&stats.slots[i].factor, &kSlotLeftovers[i].factor, 4);
+    }
+    std::memcpy(&stats.fixedMaxHitPoints, &kFixedMaxLeftover, 4);
 }
 
 } // namespace
@@ -137,7 +163,8 @@ int CMapObjectManager::GiveDefaults(CEngineObject* object) {
         builder->SetDefaults(&vitals, nullptr);
         ObjectSlots(object)->SetServerData(&vitals);
     } else {
-        UnitStats stats;
+        UnitStats stats{};
+        SeedLeftovers(stats);
         stats.Reset();
         builder->SetDefaults(&vitals, &stats);
         ObjectSlots(object)->SetStats(&stats);
