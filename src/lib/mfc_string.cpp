@@ -40,13 +40,21 @@ bool Contains(const char* set, char c) { return MbsChr(U(set), static_cast<unsig
 bool IsSpace(char c) { return IsMbcSpace(static_cast<unsigned>(static_cast<int>(c))) != 0; }
 bool IsDigit(char c) { return IsMbcDigit(static_cast<unsigned>(static_cast<int>(c))) != 0; }
 
-// The reference count updates go through the import table, as the library's do.
+// The reference count updates and lstrlen go through the import table, as the library's do (ei_vectors
+// has no game image: the API itself).
+#ifdef EI_VECTORS_REPLAY
+LONG Increment(long* refs) { return ::InterlockedIncrement(refs); }
+LONG Decrement(long* refs) { return ::InterlockedDecrement(refs); }
+int StrLen(const char* text) { return ::lstrlenA(text); }
+#else
 using InterlockedFn = LONG(WINAPI*)(LONG volatile*);
 LONG Increment(long* refs) { return (*reinterpret_cast<InterlockedFn*>(0x0073B254))(refs); }
 LONG Decrement(long* refs) { return (*reinterpret_cast<InterlockedFn*>(0x0073B258))(refs); }
+int StrLen(const char* text) { return gameapi::lstrlenA(text); }
+#endif
 
 // SafeStrlen: lstrlen, 0 for null.
-int SafeLength(const char* text) { return text ? gameapi::lstrlenA(text) : 0; }
+int SafeLength(const char* text) { return text ? StrLen(text) : 0; }
 
 } // namespace
 
@@ -123,7 +131,7 @@ CString::CString(const char* text) {
     if (text && HIWORD(reinterpret_cast<std::uintptr_t>(text)) == 0) {
         LoadResourceString(LOWORD(reinterpret_cast<std::uintptr_t>(text)));
     } else if (text) {
-        int length = gameapi::lstrlenA(text);
+        int length = StrLen(text);
         if (length != 0) {
             AllocBuffer(length);
             std::memcpy(data_, text, static_cast<std::size_t>(length));
@@ -370,7 +378,7 @@ char* CString::GetBuffer(int minLength) {
 
 void CString::ReleaseBuffer(int newLength) {
     CopyBeforeWrite();
-    if (newLength == -1) newLength = gameapi::lstrlenA(data_);
+    if (newLength == -1) newLength = StrLen(data_);
     GetData()->dataLength = newLength;
     data_[newLength] = '\0';
 }
@@ -618,7 +626,7 @@ void CString::FormatV(const char* format, va_list arguments) {
             if (!text) {
                 itemLength = 6;   // "(null)"
             } else {
-                itemLength = gameapi::lstrlenA(text);
+                itemLength = StrLen(text);
                 if (itemLength < 1) itemLength = 1;
             }
             break;

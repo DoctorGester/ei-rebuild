@@ -38,8 +38,9 @@
 
 namespace ei::vectors::script {
 
-// Records larger than this are not kept (a whole mission's tokens in one LoadCommands).
-constexpr std::uint32_t kMaxLoadPayload = 0x10000;
+// LoadFunction / LoadCommands records larger than this are not kept (a mission's sections: Load's
+// records run those through ours in the replay).
+constexpr std::uint32_t kMaxLoadPayload = 0x4000;
 
 inline void PutText(Writer& w, const mfc::CString& s) { w.PutString(static_cast<const char*>(s)); }
 
