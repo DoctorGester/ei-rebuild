@@ -2,7 +2,7 @@
   "scenario": "unit_ai_attack_removed",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "e6ec9cb7",
+  "commit": "b834ff24",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
