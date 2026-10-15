@@ -41,6 +41,22 @@ struct InitElements {
     static void Destruct(T*, int) {}
 };
 
+// Zero fill, then `Init` on each element; `Destroy` on each, in order, when destroyed (MFC's
+// DestructElements calling the element's destructor). Either nullptr: nothing. Each takes T* (an
+// element constructor or destructor of the game's, ours, called directly).
+template <typename T, auto Init, auto Destroy>
+struct EachElements {
+    static void Construct(T* p, int n) {
+        PlainElements<T>::Construct(p, n);
+        if constexpr (!std::is_null_pointer_v<decltype(Init)>)
+            for (; n--; ++p) Init(p);
+    }
+    static void Destruct(T* p, int n) {
+        if constexpr (!std::is_null_pointer_v<decltype(Destroy)>)
+            for (; n--; ++p) Destroy(p);
+    }
+};
+
 // Elements built by `ConstructFn` and destroyed by `DestructFn` (each void(T*, int): an out-of-line
 // ConstructElements / DestructElements, ours or the game's). nullptr: zero fill / nothing destroyed.
 template <typename T, auto ConstructFn, auto DestructFn>
@@ -127,8 +143,11 @@ struct FloatArrayClass {   // CArray<float>
 struct ArgFloatArrayClass {   // the script commands' float arguments (a CArray<float> subclass)
     static void* Vtable() { return reinterpret_cast<void*>(0x0073D490); }
 };
-struct ScriptGroupClass {   // CArray<ScriptObjectRef>, a script group
+struct ObjectRefArrayClass {   // CArray<ScriptObjectRef> (a script group's base)
     static void* Vtable() { return reinterpret_cast<void*>(0x0073D11C); }
+};
+struct ScriptGroupClass {   // a script group (game/script.h ScriptGroup)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073D110); }
 };
 struct ScriptFloatsClass {   // the script's float variables
     static void* Vtable() { return reinterpret_cast<void*>(0x0073D2EC); }
@@ -331,6 +350,23 @@ inline void InitAnimationStep12(AnimationStep12* p) {
     p->flags = 0;
 }
 
+// 16-byte effect particles (game/unit.h EffectParticle): type 0, power 0x10, no source, not present
+// (005124D0).
+struct Particle16 {
+    int type;
+    int power;
+    void* source;
+    std::uint8_t present;
+    std::uint8_t padding[3];
+};
+static_assert(sizeof(Particle16) == 0x10);
+inline void InitParticle16(Particle16* p) {
+    p->source = nullptr;
+    p->type = 0;
+    p->power = 0x10;
+    p->present = 0;
+}
+
 // ---- The instantiations --------------------------------------------------------------------------
 
 using Plain4 = ArrayAbi<Bytes<4>>;
@@ -358,6 +394,10 @@ using BoneLinkArrays = ArrayAbi<WithArray<0x14, 0, BoneLinkArrayClass>,
 using Patrols = ArrayAbi<WithArray<0x20, 0xC, WaypointArrayClass>,
                          InitElements<WithArray<0x20, 0xC, WaypointArrayClass>, InitWithArray<0x20, 0xC, WaypointArrayClass>>>;
 
+using QuestObjectives = ArrayAbi<WithString<12, 4>, InitElements<WithString<12, 4>, InitWithString<12, 4>>>;
+using ScriptGroups = ArrayAbi<WithArray<0x14, 0, ScriptGroupClass>,
+                              InitElements<WithArray<0x14, 0, ScriptGroupClass>, InitWithArray<0x14, 0, ScriptGroupClass>>>;
+using Particles = ArrayAbi<Particle16, InitElements<Particle16, InitParticle16>>;
 using Placements = ArrayAbi<Placement40, InitElements<Placement40, InitPlacement40>>;
 using PathRecords = ArrayAbi<PathRecord12, InitElements<PathRecord12, InitPathRecord12>>;
 using SoundRecords = ArrayAbi<SoundRecord20, InitElements<SoundRecord20, InitSoundRecord20>>;

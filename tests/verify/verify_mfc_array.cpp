@@ -7,6 +7,7 @@
 // they leave.
 #include "verify.h"
 
+#include "../../src/game/game_arrays.h"
 #include "../../src/lib/mfc_array.h"
 
 #include <cstdio>
@@ -236,6 +237,42 @@ struct TwinListAssign {
     }
 };
 
+// Arrays whose elements own something: against the original on a twin while nothing is destroyed
+// (the size grows or stays: new elements are built in place, the old ones moved with memcpy), ours
+// only when it shrinks.
+template <std::uintptr_t Address, typename Abi>
+struct TwinSetSizeGrow {
+    using Array = typename Abi::Array;
+    static inline void(__fastcall* original)(Array*, void*, int, int);
+    static void __fastcall Run(Array* self, void*, int newSize, int newGrowBy) {
+        static const char* name = Name("SetSize", Address);
+        if (newSize < self->size) {
+            Abi::SetSize(self, nullptr, newSize, newGrowBy);
+            Check(name, true, self->size == newSize && self->maxSize >= newSize && (newSize == 0) == (self->data == nullptr),
+                  "%d: %d / %d", newSize, self->size, self->maxSize);
+            return;
+        }
+        Array twin = Twin(*self);
+        original(&twin, nullptr, newSize, newGrowBy);
+        Abi::SetSize(self, nullptr, newSize, newGrowBy);
+        Check(name, true, Same(twin, *self), "%d, %d: %d / %d (original %d / %d)", newSize, newGrowBy, self->size,
+              self->maxSize, twin.size, twin.maxSize);
+        gamecrt::operator_delete(twin.data);
+    }
+};
+
+// DestructElements of owning elements: ours only (counted).
+template <std::uintptr_t Address, typename Abi>
+struct OursDestructElements {
+    using T = typename Abi::Element;
+    static inline void(__stdcall* original)(T*, int);
+    static void __stdcall Run(T* elements, int count) {
+        static const char* name = Name("DestructElements", Address);
+        Abi::DestructElements(elements, count);
+        Check(name, true, count >= 0, "%d", count);
+    }
+};
+
 template <std::uintptr_t Address, typename Class>
 struct TwinConstruct {
     using Array = mfc::CArray<Bytes<1>>;
@@ -278,7 +315,7 @@ using A00476930 = TwinConstruct<0x00476930, NormalArrayClass>;
 EI_VERIFY(0x00476930, A00476930::Run, 10, A00476930::original);
 using A004BB000 = TwinConstruct<0x004BB000, PartySlotArrayClass>;
 EI_VERIFY(0x004BB000, A004BB000::Run, 10, A004BB000::original);
-using A004C2030 = TwinConstruct<0x004C2030, ScriptGroupClass>;
+using A004C2030 = TwinConstruct<0x004C2030, ObjectRefArrayClass>;
 EI_VERIFY(0x004C2030, A004C2030::Run, 10, A004C2030::original);
 using A004CD080 = TwinConstruct<0x004CD080, FloatArrayClass>;
 EI_VERIFY(0x004CD080, A004CD080::Run, 10, A004CD080::original);
@@ -516,3 +553,35 @@ using A00512520 = TwinConstructElements<0x00512520, SoundRecords>;
 EI_VERIFY(0x00512520, A00512520::Run, 6, A00512520::original);
 using A00558AB0 = TwinConstructElements<0x00558AB0, AnimationSteps>;
 EI_VERIFY(0x00558AB0, A00558AB0::Run, 6, A00558AB0::original);
+
+// Batch 3: elements the game destroys (src/game/game_arrays.*) and the pure constructors next to them.
+using A0050FE70 = TwinSetSize<0x0050FE70, Plain20>;
+EI_VERIFY(0x0050FE70, A0050FE70::Run, 5, A0050FE70::original);
+using A005102A0 = TwinConstructElements<0x005102A0, Plain20>;
+EI_VERIFY(0x005102A0, A005102A0::Run, 6, A005102A0::original);
+using A004CEE80 = TwinConstructElements<0x004CEE80, QuestObjectives>;
+EI_VERIFY(0x004CEE80, A004CEE80::Run, 5, A004CEE80::original);
+using A004CC9B0 = TwinConstructElements<0x004CC9B0, ScriptGroups>;
+EI_VERIFY(0x004CC9B0, A004CC9B0::Run, 6, A004CC9B0::original);
+using A005124D0 = TwinConstructElements<0x005124D0, Particles>;
+EI_VERIFY(0x005124D0, A005124D0::Run, 5, A005124D0::original);
+using A0044F7E0 = TwinSetSizeGrow<0x0044F7E0, gamearrays::BlocksAt8>;
+EI_VERIFY(0x0044F7E0, A0044F7E0::Run, 5, A0044F7E0::original);
+using A00573080 = TwinSetSizeGrow<0x00573080, gamearrays::Exits>;
+EI_VERIFY(0x00573080, A00573080::Run, 5, A00573080::original);
+using A004C3980 = TwinSetSizeGrow<0x004C3980, gamearrays::Groups>;
+EI_VERIFY(0x004C3980, A004C3980::Run, 5, A004C3980::original);
+using A004CDF40 = TwinSetSizeGrow<0x004CDF40, gamearrays::Objectives>;
+EI_VERIFY(0x004CDF40, A004CDF40::Run, 5, A004CDF40::original);
+using A005121B0 = TwinSetSizeGrow<0x005121B0, gamearrays::Particles>;
+EI_VERIFY(0x005121B0, A005121B0::Run, 5, A005121B0::original);
+using A00452DF0 = OursDestructElements<0x00452DF0, gamearrays::BlocksAt8>;
+EI_VERIFY(0x00452DF0, A00452DF0::Run, 0, A00452DF0::original);
+using A00453700 = OursDestructElements<0x00453700, gamearrays::BlocksAt4>;
+EI_VERIFY(0x00453700, A00453700::Run, 0, A00453700::original);
+using A00460670 = OursDestructElements<0x00460670, gamearrays::Exits>;
+EI_VERIFY(0x00460670, A00460670::Run, 0, A00460670::original);
+using A004607B0 = OursDestructElements<0x004607B0, gamearrays::ZoneRecords>;
+EI_VERIFY(0x004607B0, A004607B0::Run, 0, A004607B0::original);
+using A004CC980 = OursDestructElements<0x004CC980, gamearrays::Groups>;
+EI_VERIFY(0x004CC980, A004CC980::Run, 0, A004CC980::original);

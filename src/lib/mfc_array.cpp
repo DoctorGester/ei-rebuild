@@ -18,7 +18,7 @@ EI_REPLACE(0x00475860, ArrayHeader<PosKeyArrayClass>::Construct);
 EI_REPLACE(0x00475BC0, ArrayHeader<MorphHeadArrayClass>::Construct);
 EI_REPLACE(0x00476930, ArrayHeader<NormalArrayClass>::Construct);
 EI_REPLACE(0x004BB000, ArrayHeader<PartySlotArrayClass>::Construct);
-EI_REPLACE(0x004C2030, ArrayHeader<ScriptGroupClass>::Construct);
+EI_REPLACE(0x004C2030, ArrayHeader<ObjectRefArrayClass>::Construct);
 EI_REPLACE(0x004CD080, ArrayHeader<FloatArrayClass>::Construct);
 EI_REPLACE(0x004D5990, ArrayHeader<ArgFloatArrayClass>::Construct);
 EI_REPLACE(0x00556810, ArrayHeader<MotionWaypointArrayClass>::Construct);
@@ -117,6 +117,7 @@ EI_REPLACE(0x0045E180, Patrols::ConstructElements);
 
 // SetSize.
 EI_REPLACE(0x0046E970, Plain20::SetSize);
+EI_REPLACE(0x0050FE70, Plain20::SetSize);   // the map effects (005102A0)
 EI_REPLACE(0x0046EAD0, Plain12::SetSize);
 EI_REPLACE(0x004C4CE0, Plain12::SetSize);
 EI_REPLACE(0x005C86B0, Plain12::SetSize);
@@ -172,11 +173,15 @@ EI_REPLACE(0x0046F0E0, Plain12::ConstructElements);
 EI_REPLACE(0x004CCA50, Plain12::ConstructElements);
 EI_REPLACE(0x005338D0, Plain12::ConstructElements);
 EI_REPLACE(0x004CE5C0, Plain20::ConstructElements);
+EI_REPLACE(0x005102A0, Plain20::ConstructElements);   // MapEffect's constructor clears zero fields
 EI_REPLACE(0x005338A0, Plain28::ConstructElements);
 // ... and the zero fill, then the element's constructor.
 EI_REPLACE(0x004CEE20, Placements::ConstructElements);
 EI_REPLACE(0x00539910, PathRecords::ConstructElements);
 EI_REPLACE(0x00512520, SoundRecords::ConstructElements);
 EI_REPLACE(0x00558AB0, AnimationSteps::ConstructElements);
+EI_REPLACE(0x004CEE80, QuestObjectives::ConstructElements);
+EI_REPLACE(0x004CC9B0, ScriptGroups::ConstructElements);
+EI_REPLACE(0x005124D0, Particles::ConstructElements);
 
 } // namespace mfc::impl
