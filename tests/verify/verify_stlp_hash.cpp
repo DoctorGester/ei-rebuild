@@ -19,6 +19,7 @@
 #include "stlp_list_verify.h"
 
 #include "../../src/game/game_hashes.h"
+#include "../../src/lib/stlp.h"
 #include "../../src/lib/stlp_hash.h"
 
 #include <cstdint>
@@ -1055,6 +1056,18 @@ EI_VERIFY(0x0040B400, H8<0x0040B400>::Find, 5, H8<0x0040B400>::original);
 EI_VERIFY(0x0042A810, H8<0x0042A810>::Find, 5, H8<0x0042A810>::original);
 EI_VERIFY(0x0066B490, H8<0x0066B490>::Find, 5, H8<0x0066B490>::original);
 EI_VERIFY(0x0055C5C0, H8<0x0055C5C0>::BucketOfKey, 7, H8<0x0055C5C0>::original);
+// 00408A50 lower_bound<unsigned*> (S16): the original on the same range; MOV EAX,ECX; PUSH ESI;
+// SUB EDX,EAX (5).
+static const std::uint32_t*(__fastcall* s_lowerBound)(const std::uint32_t*, const std::uint32_t*, const std::uint32_t*, int);
+static const std::uint32_t* __fastcall LowerBoundVerify(const std::uint32_t* first, const std::uint32_t* last,
+                                                        const std::uint32_t* value, int tag) {
+    const std::uint32_t* expected = s_lowerBound(first, last, value, tag);
+    const std::uint32_t* actual = stlp::LowerBoundDwords(first, last, value, tag);
+    ei::verify::Check("stlp::lower_bound<unsigned*>", static_cast<long long>(expected - first),
+                      static_cast<long long>(actual - first), "value %u of %d", *value, static_cast<int>(last - first));
+    return expected;
+}
+EI_VERIFY(0x00408A50, LowerBoundVerify, 5, s_lowerBound);
 EI_VERIFY(0x0040AE00, H8<0x0040AE00>::NextSize, 5, H8<0x0040AE00>::original);
 EI_VERIFY(0x00672EC0, H8<0x00672EC0>::NextSize, 5, H8<0x00672EC0>::original);
 EI_VERIFY(0x00404C30, H8<0x00404C30>::Begin, 5, H8<0x00404C30>::original);

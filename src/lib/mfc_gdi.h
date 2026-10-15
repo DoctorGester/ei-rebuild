@@ -34,11 +34,10 @@ struct CGdiObject {
     BOOL Attach(HGDIOBJ object);        // 0070A075: FALSE for null; else kept and put in the permanent map
     HGDIOBJ Detach();                   // 0070A0A2: taken out of the permanent map; the old handle
     BOOL DeleteObject();                // 0070A0CC: FALSE without a handle; else detached and deleted
-    // The game's out-of-line ~CGdiObject (00444B30, 00444B90, 005FDDE0; ticket S16): CGdiObject's
-    // vtable, then DeleteObject (its result left in EAX).
-    BOOL Destruct();
-    // Their scalar deleting destructors (00444B10, 00444B70, 005FDDC0; RET 4): Destruct, then
-    // operator delete when bit 0 of `flags` is set. Return this.
+    // ~CGdiObject as the game's code inlines it (S6c: 00444B30, 00444B90, 005FDDE0, the fonts'
+    // destructors): the CGdiObject vtable, then DeleteObject. Their scalar deleting destructors
+    // (00444B10, 00444B70, 005FDDC0): it, then the memory freed when bit 0 of `flags` is set.
+    void Destruct();
     CGdiObject* DeletingDestruct(unsigned flags);
 };
 static_assert(sizeof(CGdiObject) == 8);

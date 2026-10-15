@@ -133,6 +133,11 @@ EI_REPLACE_METHOD(0x0059F030, CFigureMesh::DestructBase);
 
 void CFigureMesh::DestructMesh() {
     ei::SetVtable(this, kMeshVtableAddress);
+    DestructPlainMesh();
+}
+EI_REPLACE_METHOD(0x005AAD00, CFigureMesh::DestructMesh);
+
+void CFigureMesh::DestructPlainMesh() {
     texCoords_.FreeData();
     indices_.FreeData();
     words_.FreeData();
@@ -141,7 +146,14 @@ void CFigureMesh::DestructMesh() {
     vertices_.FreeData();
     FigureDestructBodyOriginal(this);
 }
-EI_REPLACE_METHOD(0x005AAD00, CFigureMesh::DestructMesh);
+EI_REPLACE_METHOD(0x00454510, CFigureMesh::DestructPlainMesh);
+
+CFigureMesh* CFigureMesh::DeletingDestructPlainMesh(unsigned flags) {
+    DestructPlainMesh();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x004543A0, CFigureMesh::DeletingDestructPlainMesh);
 
 void CFigureMesh::DestructSharedMesh() {
     normals_.FreeData();

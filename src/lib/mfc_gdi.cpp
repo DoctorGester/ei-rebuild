@@ -2,6 +2,7 @@
 #include "mfc_gdi.h"
 
 #include "ei/hook.h"
+#include "crt.h"
 #include "gameapi.h"
 #include "mfc_exception.h"
 #include "mfc_string.h"
@@ -127,9 +128,9 @@ BOOL CFont::CreatePointFontIndirect(const LOGFONTA* source, CDC* dc) {
     return Attach(gameapi::CreateFontIndirectA(&font));
 }
 
-BOOL CGdiObject::Destruct() {
+void CGdiObject::Destruct() {
     vtable = Vtable();
-    return DeleteObject();
+    DeleteObject();
 }
 
 CGdiObject* CGdiObject::DeletingDestruct(unsigned flags) {
@@ -138,13 +139,13 @@ CGdiObject* CGdiObject::DeletingDestruct(unsigned flags) {
     return this;
 }
 
-EI_REPLACE(0x0070A060, CGdiObject::FromHandle);
 EI_REPLACE_METHOD(0x00444B30, CGdiObject::Destruct);
 EI_REPLACE_METHOD(0x00444B90, CGdiObject::Destruct);
 EI_REPLACE_METHOD(0x005FDDE0, CGdiObject::Destruct);
 EI_REPLACE_METHOD(0x00444B10, CGdiObject::DeletingDestruct);
 EI_REPLACE_METHOD(0x00444B70, CGdiObject::DeletingDestruct);
 EI_REPLACE_METHOD(0x005FDDC0, CGdiObject::DeletingDestruct);
+EI_REPLACE(0x0070A060, CGdiObject::FromHandle);
 EI_REPLACE_METHOD(0x0070A075, CGdiObject::Attach);
 EI_REPLACE_METHOD(0x0070A0A2, CGdiObject::Detach);
 EI_REPLACE_METHOD(0x0070A0CC, CGdiObject::DeleteObject);

@@ -2,6 +2,9 @@
 #include "stl_sorts.h"
 
 #include "net_messages.h"
+#include "quest_records.h"
+#include "script.h"
+#include "ui.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -63,6 +66,27 @@ struct ByColumn {
 };
 using ServerSort = stlp::Sort<MpAddressEntry, ByColumn>;
 
+struct ByQuestOrder {
+    bool operator()(const mfc::CString& a, const mfc::CString& b) const {
+        auto* first = static_cast<const QuestRecord*>(TheQuestTable()->Find(a));
+        auto* second = static_cast<const QuestRecord*>(TheQuestTable()->Find(b));
+        return !first || (second && static_cast<unsigned>(first->order) > static_cast<unsigned>(second->order));
+    }
+};
+using QuestSort = stlp::Sort<mfc::CString, ByQuestOrder>;
+
+struct SaveEntryOps {
+    static void Construct(SaveEntry* at, const SaveEntry& from) { at->CopyConstruct(&from); }
+    static void Assign(SaveEntry& to, const SaveEntry& from) { to.Assign(&from); }
+    static void Destroy(SaveEntry* p) { p->Destruct(); }
+};
+// Every helper tests 00658020 (a.savedAt < b.savedAt) and takes the other branch: the order is
+// "not older than".
+struct NotOlder {
+    bool operator()(const SaveEntry& a, const SaveEntry& b) const { return !(a.savedAt_ < b.savedAt_); }
+};
+using SaveSort = stlp::Sort<SaveEntry, NotOlder, SaveEntryOps>;
+
 } // namespace
 
 void __fastcall ChunkIntroSort(net::FileChunkMessage** first, net::FileChunkMessage** last, void*, int depth, int) {
@@ -103,6 +127,24 @@ void __fastcall ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEnt
     ServerSort::UnguardedInsertionSort(first, last, ByColumn{key});
 }
 
+void __fastcall QuestIntroSort(mfc::CString* first, mfc::CString* last, void*, int depth, int) {
+    QuestSort::IntroLoop(first, last, depth, ByQuestOrder());
+}
+void __fastcall QuestInsertionSort(mfc::CString* first, mfc::CString* last, int) {
+    QuestSort::InsertionSort(first, last, ByQuestOrder());
+}
+void __fastcall QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* last, void*, int) {
+    QuestSort::UnguardedInsertionSort(first, last, ByQuestOrder());
+}
+
+void __fastcall SaveIntroSort(SaveEntry* first, SaveEntry* last, void*, int depth, int) {
+    SaveSort::IntroLoop(first, last, depth, NotOlder());
+}
+void __fastcall SaveFinalSort(SaveEntry* first, SaveEntry* last, int) { SaveSort::FinalInsertionSort(first, last, NotOlder()); }
+SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result) {
+    return stlp::CopyBackward<SaveEntry, SaveEntryOps>(first, last, result);
+}
+
 EI_REPLACE(0x0042A020, ChunkIntroSort);
 EI_REPLACE(0x0042A150, ChunkFinalSort);
 EI_REPLACE(0x0043F870, ReplicatedIntroSort);
@@ -115,5 +157,11 @@ EI_REPLACE(0x0064B750, IdFinalSort);
 EI_REPLACE(0x0061EF60, ServerIntroSort);
 EI_REPLACE(0x0061F6F0, ServerInsertionSort);
 EI_REPLACE(0x0061FB00, ServerUnguardedInsertionSort);
+EI_REPLACE(0x0064F310, QuestIntroSort);
+EI_REPLACE(0x0064F9A0, QuestInsertionSort);
+EI_REPLACE(0x0064FBD0, QuestUnguardedInsertionSort);
+EI_REPLACE(0x00657DF0, SaveIntroSort);
+EI_REPLACE(0x00657F10, SaveFinalSort);
+EI_REPLACE(0x00657D50, SaveCopyBackward);
 
 } // namespace stl_sorts

@@ -41,6 +41,33 @@ CException* CException::Construct() {
     return this;
 }
 
+CException* CException::ConstructAutoDelete(BOOL autoDeleteFlag) {
+    autoDelete = autoDeleteFlag;
+    return this;
+}
+
+CSimpleException* CSimpleException::Construct(BOOL autoDeleteFlag, unsigned id, void* classVtable) {
+    reinterpret_cast<CException*>(this)->ConstructAutoDelete(autoDeleteFlag);
+    initialized = FALSE;
+    loaded = FALSE;
+    resourceId = id;
+    vtable = classVtable;
+    return this;
+}
+
+CSimpleException* CSimpleException::ConstructResource(BOOL autoDeleteFlag, unsigned id) {
+    return Construct(autoDeleteFlag, id, reinterpret_cast<void*>(0x0074646C));
+}
+CSimpleException* CSimpleException::ConstructUser(BOOL autoDeleteFlag, unsigned id) {
+    return Construct(autoDeleteFlag, id, reinterpret_cast<void*>(0x00746484));
+}
+CSimpleException* CSimpleException::ConstructMemory(BOOL autoDeleteFlag, unsigned id) {
+    return Construct(autoDeleteFlag, id, reinterpret_cast<void*>(0x007465F8));
+}
+CSimpleException* CSimpleException::ConstructNotSupported(BOOL autoDeleteFlag, unsigned id) {
+    return Construct(autoDeleteFlag, id, reinterpret_cast<void*>(0x00746610));
+}
+
 void __fastcall DeleteException(CException* exception) {
     if (exception->autoDelete > 0 && exception) Virtuals(exception)->DeletingDestructor(1);
 }
@@ -216,24 +243,12 @@ void __stdcall ThrowResourceException() {
 void* __fastcall FileExceptionRuntimeClass(const void*) { return FileExceptionClass(); }
 void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return ArchiveExceptionClass(); }
 
-CSimpleException* __fastcall ConstructResourceException(CSimpleException* self, void*, BOOL autoDelete, unsigned id) {
-    return self->Construct(ResourceExceptionVtable(), autoDelete, id);
-}
-CSimpleException* __fastcall ConstructUserException(CSimpleException* self, void*, BOOL autoDelete, unsigned id) {
-    return self->Construct(UserExceptionVtable(), autoDelete, id);
-}
-CSimpleException* __fastcall ConstructMemoryException(CSimpleException* self, void*, BOOL autoDelete, unsigned id) {
-    return self->Construct(MemoryExceptionVtable(), autoDelete, id);
-}
-CSimpleException* __fastcall ConstructNotSupportedException(CSimpleException* self, void*, BOOL autoDelete, unsigned id) {
-    return self->Construct(NotSupportedExceptionVtable(), autoDelete, id);
-}
-EI_REPLACE(0x006E68C9, ConstructResourceException);
-EI_REPLACE(0x006E6916, ConstructUserException);
-EI_REPLACE(0x006E6AEA, ConstructMemoryException);
-EI_REPLACE(0x006E6B37, ConstructNotSupportedException);
-
 EI_REPLACE_METHOD(0x00702053, CException::Construct);
+EI_REPLACE_METHOD(0x0070205D, CException::ConstructAutoDelete);
+EI_REPLACE_METHOD(0x006E68C9, CSimpleException::ConstructResource);
+EI_REPLACE_METHOD(0x006E6916, CSimpleException::ConstructUser);
+EI_REPLACE_METHOD(0x006E6AEA, CSimpleException::ConstructMemory);
+EI_REPLACE_METHOD(0x006E6B37, CSimpleException::ConstructNotSupported);
 EI_REPLACE(0x00702069, DeleteException);
 EI_REPLACE_METHOD(0x006E6335, CFileException::Destruct);
 EI_REPLACE_METHOD(0x006E6319, CFileException::DeletingDestructor);

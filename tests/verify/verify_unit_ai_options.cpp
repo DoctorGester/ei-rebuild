@@ -12,15 +12,23 @@
 namespace {
 void* s_unused;
 
-// A deep copy of an options array (the original frees and reallocates the copy's storage).
-AIAttackOptions CopyOptions(const AIAttackOptions& from) {
-    AIAttackOptions copy = from;
-    if (from.data) {
-        copy.data = static_cast<AIAttackOption*>(gamecrt::operator_new(from.maxSize * sizeof(AIAttackOption)));
-        std::memcpy(copy.data, from.data, from.size * sizeof(AIAttackOption));
+// An options array kept in our memory; Copy makes a deep copy of it as it was (the original frees
+// and reallocates the copy's storage) later, after ours ran (SV2f).
+struct KeptOptions {
+    AIAttackOptions header;
+    std::vector<AIAttackOption> options;
+    explicit KeptOptions(const AIAttackOptions& from) : header(from) {
+        if (from.data && from.size > 0) options.assign(from.data, from.data + from.size);
     }
-    return copy;
-}
+    AIAttackOptions Copy() const {
+        AIAttackOptions copy = header;
+        if (header.data) {
+            copy.data = static_cast<AIAttackOption*>(gamecrt::operator_new(header.maxSize * sizeof(AIAttackOption)));
+            if (!options.empty()) std::memcpy(copy.data, options.data(), options.size() * sizeof(AIAttackOption));
+        }
+        return copy;
+    }
+};
 bool SameOptions(const AIAttackOptions& a, const AIAttackOptions& b) {
     return a.size == b.size && (a.size == 0 || std::memcmp(a.data, b.data, a.size * sizeof(AIAttackOption)) == 0);
 }
@@ -29,15 +37,17 @@ using BuildFn = void(__fastcall*)(AIAttention*, void*, CUnit*);
 BuildFn s_originalBuild;
 } // namespace
 
-// 005CEED0: the original on a copy of the attention (its arrays copied), ours on the real one;
-// both lists and the heal weight compared.
+// 005CEED0: ours on the real attention first, then the original on a copy of it as it was (its
+// arrays copied after ours from bytes kept in our memory, SV2f); both lists and the heal weight
+// compared.
 static void __fastcall BuildVerify(AIAttention* self, void*, CUnit* unit) {
     AIAttention scratch;
     std::memcpy(&scratch, self, sizeof(scratch));
-    scratch.weapons = CopyOptions(self->weapons);
-    scratch.spells = CopyOptions(self->spells);
-    s_originalBuild(&scratch, nullptr, unit);
+    KeptOptions weapons(self->weapons), spells(self->spells);
     self->Build(unit);
+    scratch.weapons = weapons.Copy();
+    scratch.spells = spells.Copy();
+    s_originalBuild(&scratch, nullptr, unit);
     bool ok = SameOptions(scratch.weapons, self->weapons) && SameOptions(scratch.spells, self->spells) &&
               std::memcmp(&scratch.healWeight, &self->healWeight, 4) == 0;
     ei::verify::Check("AIAttention::Build", true, ok, "%d / %d options (original %d / %d)", self->weapons.size,

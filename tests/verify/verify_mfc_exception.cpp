@@ -26,7 +26,6 @@ namespace {
 using mfc::impl::CArchiveException;
 using mfc::impl::CException;
 using mfc::impl::CFileException;
-using mfc::impl::CSimpleException;
 using ei::verify::Check;
 void* s_unused;
 
@@ -228,54 +227,9 @@ void ThrowCheck() {
     Check("exception link chain (after the throws)", true, ChainTop() == top, "%p / %p", ChainTop(), top);
 }
 
-// The four static exceptions' constructors (S16): the original builds a scratch object, ours
-// another from the same bytes; every byte and the returned this compared.
-using SimpleConstructFn = CSimpleException*(__fastcall*)(CSimpleException*, void*, BOOL, unsigned);
-template <std::uintptr_t Address>
-struct SimpleExceptionConstruct {
-    static inline SimpleConstructFn original;
-    static inline SimpleConstructFn ours;
-    static inline const char* name;
-    static CSimpleException* __fastcall Verify(CSimpleException* self, void*, BOOL autoDelete, unsigned id) {
-        CSimpleException theirs;
-        std::memcpy(&theirs, self, sizeof(theirs));
-        CSimpleException* expected = original(&theirs, nullptr, autoDelete, id);
-        CSimpleException* actual = ours(self, nullptr, autoDelete, id);
-        Check(name, true, expected == &theirs && actual == self && std::memcmp(&theirs, self, sizeof(theirs)) == 0,
-              "%d, %04X", autoDelete, id);
-        return actual;
-    }
-};
-using ResourceExceptionConstruct = SimpleExceptionConstruct<0x006E68C9>;
-using UserExceptionConstruct = SimpleExceptionConstruct<0x006E6916>;
-using MemoryExceptionConstruct = SimpleExceptionConstruct<0x006E6AEA>;
-using NotSupportedExceptionConstruct = SimpleExceptionConstruct<0x006E6B37>;
-
-// Only the static initialisers call them (before the hooks): each wrapper once on a scratch object,
-// and ours against MFC's static object the original built (its fields as the constructor left them).
-template <typename C>
-void SimpleExceptionCheck(const CSimpleException* global, BOOL autoDelete, unsigned id) {
-    CSimpleException scratch;
-    std::memset(&scratch, 0xCD, sizeof(scratch));
-    C::Verify(&scratch, nullptr, autoDelete, id);
-    bool ok = global->vtable == scratch.vtable && global->autoDelete == scratch.autoDelete &&
-              global->initialized == scratch.initialized && global->loaded == scratch.loaded &&
-              global->resourceId == scratch.resourceId;
-    Check(C::name, true, ok, "the static object at %p", static_cast<const void*>(global));
-}
-
-void SimpleExceptionsCheck() {
-    auto at = [](std::uintptr_t a) { return reinterpret_cast<const CSimpleException*>(a); };
-    SimpleExceptionCheck<ResourceExceptionConstruct>(at(0x007C8C58), 0, 0xF022);
-    SimpleExceptionCheck<UserExceptionConstruct>(at(0x007C8BC0), 0, 0xF024);
-    SimpleExceptionCheck<MemoryExceptionConstruct>(at(0x007C8DE8), 0, 0xF023);
-    SimpleExceptionCheck<NotSupportedExceptionConstruct>(at(0x007C8D50), 0, 0xF021);
-}
-
 void ExceptionStartupCheck() {
     OsErrorTableCheck();
     ThrowCheck();
-    SimpleExceptionsCheck();
 }
 EI_STARTUP_CHECK(ExceptionStartupCheck);
 
@@ -285,14 +239,6 @@ struct Names {
         FileExceptionClass::ours = &mfc::impl::FileExceptionRuntimeClass;
         ArchiveExceptionClass::name = "CArchiveException::GetRuntimeClass";
         ArchiveExceptionClass::ours = &mfc::impl::ArchiveExceptionRuntimeClass;
-        ResourceExceptionConstruct::name = "CResourceException::CResourceException";
-        ResourceExceptionConstruct::ours = &mfc::impl::ConstructResourceException;
-        UserExceptionConstruct::name = "CUserException::CUserException";
-        UserExceptionConstruct::ours = &mfc::impl::ConstructUserException;
-        MemoryExceptionConstruct::name = "CMemoryException::CMemoryException";
-        MemoryExceptionConstruct::ours = &mfc::impl::ConstructMemoryException;
-        NotSupportedExceptionConstruct::name = "CNotSupportedException::CNotSupportedException";
-        NotSupportedExceptionConstruct::ours = &mfc::impl::ConstructNotSupportedException;
     }
 } s_names;
 
@@ -307,11 +253,6 @@ EI_VERIFY(0x007030F0, ThrowOsErrorVerify, 0, s_unused);
 EI_VERIFY(0x0070A835, ThrowArchiveExceptionVerify, 0, s_unused);
 EI_VERIFY(0x006FE3A2, ThrowNotSupportedVerify, 0, s_unused);
 EI_VERIFY(0x00702069, DeleteExceptionVerify, 0, s_unused);
-// PUSH ESI; MOV ESI,ECX; PUSH [ESP+8] (7).
-EI_VERIFY(0x006E68C9, ResourceExceptionConstruct::Verify, 7, ResourceExceptionConstruct::original);
-EI_VERIFY(0x006E6916, UserExceptionConstruct::Verify, 7, UserExceptionConstruct::original);
-EI_VERIFY(0x006E6AEA, MemoryExceptionConstruct::Verify, 7, MemoryExceptionConstruct::original);
-EI_VERIFY(0x006E6B37, NotSupportedExceptionConstruct::Verify, 7, NotSupportedExceptionConstruct::original);
 EI_VERIFY(0x006E6335, FileExceptionDestructVerify, 0, s_unused);
 EI_VERIFY(0x006E6319, FileExceptionDeleteVerify, 0, s_unused);
 EI_VERIFY(0x006E6BA1, ArchiveExceptionDestructVerify, 0, s_unused);

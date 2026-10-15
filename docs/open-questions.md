@@ -69,7 +69,8 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
   group = <CUnit:1884>, <CUnit:702>, <CUnit:699>`, then `..., 699, 702`), an order by heap address,
   which the repeatable heap above fixed. The other difference was the scenario's own:
   `#DistancePointPoint(3,4)` printed the two floats addon's handler reads past its arguments (5,
-  1.#INF or a NaN); the scenario now only checks that it is not below 0 (SV1b).
+  1.#INF or a NaN); the scenario now only checks that it is not below 0 (SV1b), which a NaN fails too
+  (T2e: it now checks `Or(DistancePointPoint(3,4),1)`, true for any value).
 - **Digests of the whole suite (SV3, 2026-10-15, a record every 20 world updates):** two runs of the
   original part in 46 of 110 runs (31 of 86 vanilla, 15 of 24 Rebirth), most at the first record
   where zone1's idle wolves (obj1936/1937, unmoto) think: ai.standCooldown or regenTicks, and the

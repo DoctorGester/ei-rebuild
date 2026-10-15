@@ -167,7 +167,8 @@ void PushBack(ZoneNames* v, const mfc::CString& x) {
     }
 }
 
-// STLport sort<CString*> pieces (not rewritten): the introsort loop and the two insertion sorts.
+// STLport sort<CString*> pieces, called at their addresses (stl_sorts.cpp, QuestIntroSort ...): the
+// introsort loop and the two insertion sorts.
 __declspec(naked) void __fastcall IntroSortLoop(mfc::CString* /*first*/, mfc::CString* /*last*/, void*, int /*depth*/,
                                                 int /*comp*/) EI_ORIGINAL(0x0064F310)
 __declspec(naked) void __fastcall InsertionSort(mfc::CString*, mfc::CString*, int /*comp*/) EI_ORIGINAL(0x0064F9A0)

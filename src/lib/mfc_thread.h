@@ -8,7 +8,7 @@
 // _beginthreadex and need no MFC thread state: the procedures never pump messages or open dialogs, so
 // AfxInitThread's message filter hook and AfxTermThread's temporary maps are left out.
 
-#include "mfc_module.h"
+#include "mfc_window.h"
 
 #include <windows.h>
 

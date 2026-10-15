@@ -11,6 +11,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <vector>
 
 namespace combatverify {
 
@@ -36,16 +37,28 @@ struct RandomState {
     }
 };
 
-// A deep copy of a step list (its own array of the same capacity).
-inline void CopySteps(AnimationSteps* copy, const AnimationSteps* steps) {
-    *copy = *steps;
-    copy->steps = nullptr;
-    if (steps->steps && steps->capacity > 0) {
-        copy->steps = static_cast<AnimationStep*>(
-            gamecrt::operator_new(static_cast<std::size_t>(steps->capacity) * sizeof(AnimationStep)));
-        std::memcpy(copy->steps, steps->steps, static_cast<std::size_t>(steps->count) * sizeof(AnimationStep));
+// A step list kept in our memory before the kept side runs; CopyTo makes a deep copy (its own array
+// of the same capacity) after it ran, so that the kept side's blocks land where they would without
+// the check (the game reads the heap's address order, SV2f).
+struct KeptSteps {
+    AnimationSteps header;
+    std::vector<unsigned char> bytes;
+    explicit KeptSteps(const AnimationSteps* steps) : header(*steps) {
+        if (steps->steps && steps->capacity > 0 && steps->count > 0) {
+            const auto* p = reinterpret_cast<const unsigned char*>(steps->steps);
+            bytes.assign(p, p + static_cast<std::size_t>(steps->count) * sizeof(AnimationStep));
+        }
     }
-}
+    void CopyTo(AnimationSteps* copy) const {
+        *copy = header;
+        copy->steps = nullptr;
+        if (header.steps && header.capacity > 0) {
+            copy->steps = static_cast<AnimationStep*>(
+                gamecrt::operator_new(static_cast<std::size_t>(header.capacity) * sizeof(AnimationStep)));
+            if (!bytes.empty()) std::memcpy(copy->steps, bytes.data(), bytes.size());
+        }
+    }
+};
 
 inline void FreeSteps(AnimationSteps* steps) {
     if (steps->steps) gamecrt::operator_delete(steps->steps);

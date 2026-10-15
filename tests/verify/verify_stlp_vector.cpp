@@ -30,6 +30,7 @@ using stlp::AllocProxy;
 using stlp::AnyVector;
 
 using Vector1 = stlp::VectorAbi<char>;
+using Vector2 = stlp::VectorAbi<std::uint16_t>;
 using Vector4 = stlp::VectorAbi<std::uint32_t>;
 using Vector8 = stlp::VectorAbi<stlp::Opaque<8>>;
 using Vector12 = stlp::VectorAbi<stlp::Opaque<12>>;
@@ -167,6 +168,11 @@ template <std::uintptr_t A> using Free40 = FreeCheck<A, Vector40>;
 template <std::uintptr_t A> using Free48 = FreeCheck<A, Vector48>;
 template <std::uintptr_t A> using Free96 = FreeCheck<A, Vector96>;
 template <std::uintptr_t A> using Free288 = FreeCheck<A, Vector288>;
+template <std::uintptr_t A> using Free268 = FreeCheck<A, stlp::VectorAbi<stlp::Opaque<0x10C>>>;
+template <std::uintptr_t A> using Free60 = FreeCheck<A, stlp::VectorAbi<stlp::Opaque<60>>>;
+template <std::uintptr_t A> using Free68 = FreeCheck<A, stlp::VectorAbi<stlp::Opaque<68>>>;
+template <std::uintptr_t A> using Free164 = FreeCheck<A, stlp::VectorAbi<stlp::Opaque<164>>>;
+template <std::uintptr_t A> using Free360 = FreeCheck<A, stlp::VectorAbi<stlp::Opaque<360>>>;
 
 // A vector's three pointers and its elements, to compare the original's result with ours.
 template <typename T>
@@ -374,6 +380,55 @@ template <std::uintptr_t A> using Change12 = ChangeCheck<A, Vector12>;
 template <std::uintptr_t A> using Change60 = ChangeCheck<A, Vector60>;
 template <std::uintptr_t A> using Change16 = ChangeCheck<A, Vector16>;
 template <std::uintptr_t A> using Change24 = ChangeCheck<A, Vector24>;
+template <std::uintptr_t A> using Change2 = ChangeCheck<A, Vector2>;
+
+// The plain-data helpers compiled out of line (S12d). The copies: the original writes, the bytes it
+// wrote are kept and the destination put back (the source may overlap it), then ours must write the
+// same bytes and return the same pointer. _Construct (TEST ECX,ECX; JZ: too short to copy) runs ours
+// only: the value must be in place.
+template <std::uintptr_t A, typename T>
+struct HelperCheck {
+    static inline void* original = nullptr;
+
+    template <typename Theirs, typename Ours>
+    static T* Compare(const char* name, T* out, std::ptrdiff_t n, Theirs theirs, Ours ours) {
+        std::size_t bytes = n > 0 ? static_cast<std::size_t>(n) * sizeof(T) : 0;
+        std::vector<unsigned char> before(bytes), expected(bytes);
+        if (bytes) std::memcpy(before.data(), out, bytes);
+        T* theirResult = theirs();
+        if (bytes) {
+            std::memcpy(expected.data(), out, bytes);
+            std::memcpy(out, before.data(), bytes);
+        }
+        T* ourResult = ours();
+        bool ok = theirResult == ourResult && (!bytes || std::memcmp(out, expected.data(), bytes) == 0);
+        char detail[96] = "";
+        if (!ok)
+            std::snprintf(detail, sizeof(detail), "%d elements at %p, ours returned %p, original's %p", static_cast<int>(n),
+                          out, ourResult, theirResult);
+        ei::verify::Report(name, ok, detail);
+        return ourResult;
+    }
+    static T* __fastcall CopyTrivial(const T* first, const T* last, T* out) {
+        using Fn = T*(__fastcall*)(const T*, const T*, T*);
+        return Compare(
+            Name<A>("stlp::copy (memmove)"), out, last - first,
+            [&] { return reinterpret_cast<Fn>(original)(first, last, out); },
+            [&] { return stlp::CopyTrivial<T>(first, last, out); });
+    }
+    static T* __fastcall CopyElements(const T* first, const T* last, T* out) {
+        using Fn = T*(__fastcall*)(const T*, const T*, T*);
+        return Compare(
+            Name<A>("stlp::copy"), out, last - first, [&] { return reinterpret_cast<Fn>(original)(first, last, out); },
+            [&] { return stlp::CopyElements<T>(first, last, out); });
+    }
+    static void __fastcall ConstructAt(T* p, const T* x) {
+        stlp::ConstructAt<T>(p, x);
+        ei::verify::Report(Name<A>("stlp::_Construct"), !p || std::memcmp(p, x, sizeof(T)) == 0, "");
+    }
+};
+template <std::uintptr_t A> using Helper2 = HelperCheck<A, std::uint16_t>;
+template <std::uintptr_t A> using Helper4 = HelperCheck<A, std::uint32_t>;
 
 } // namespace
 
@@ -583,3 +638,23 @@ EI_VERIFY(0x004387D0, Free8<0x004387D0>::DestroyBase, 5, Free8<0x004387D0>::orig
 EI_VERIFY(0x00426B10, Change8<0x00426B10>::InsertOverflow, 5, Change8<0x00426B10>::original);
 // The camp's trade records (src/game/record_vectors.cpp; 0x3C-byte plain records).
 EI_VERIFY(0x0062A0B0, Change60<0x0062A0B0>::InsertOverflow, 5, Change60<0x0062A0B0>::original);
+
+// S12d: the connection's id pools (uint16; PUSH EBP; MOV EBP,ESP; PUSH -1), its static replicated
+// vector (8 bytes; MOV EAX,[ESP+4]; PUSH ESI) and the plain-data helpers (0043B360: SUB EDX,ECX;
+// PUSH ESI; SAR EDX,2; 0043DC80: MOV EAX,[ESP+4]; SUB EDX,ECX).
+EI_VERIFY(0x0043B530, Change2<0x0043B530>::InsertOverflow, 5, Change2<0x0043B530>::original);
+EI_VERIFY(0x00439DD0, Change8<0x00439DD0>::EraseRange, 5, Change8<0x00439DD0>::original);
+EI_VERIFY(0x0043B360, Helper4<0x0043B360>::CopyTrivial, 6, Helper4<0x0043B360>::original);
+EI_VERIFY(0x0043DC80, Helper4<0x0043DC80>::CopyElements, 6, Helper4<0x0043DC80>::original);
+EI_VERIFY(0x0043D7E0, Helper2<0x0043D7E0>::ConstructAt, 0, s_unused);
+EI_VERIFY(0x0043D7F0, Helper4<0x0043D7F0>::ConstructAt, 0, s_unused);
+EI_VERIFY(0x0064B620, Helper4<0x0064B620>::ConstructAt, 0, s_unused);
+// A header list's sentinel (0x10C bytes, to operator delete: ours only).
+EI_VERIFY(0x00439D80, Free268<0x00439D80>::Deallocate, 6, Free268<0x00439D80>::original);
+// More frees by element size (S12d): ~_Vector_base of 360 bytes (above 128: ours only), deallocate
+// of 68 bytes (MOV ECX,[ESP+4]; TEST ECX,ECX), the register-argument ones ours only.
+EI_VERIFY(0x0053B7A0, Free360<0x0053B7A0>::DestroyBase, 0, s_unused);
+EI_VERIFY(0x0053BEB0, Free68<0x0053BEB0>::Deallocate, 6, Free68<0x0053BEB0>::original);
+EI_VERIFY(0x0069C9D0, Free16<0x0069C9D0>::DeallocateFast, 0, s_unused);
+EI_VERIFY(0x00613630, Free60<0x00613630>::DeallocateFast, 0, s_unused);
+EI_VERIFY(0x0056FB80, Free164<0x0056FB80>::DeallocateFast, 0, s_unused);

@@ -6,17 +6,39 @@
 // ranges only (the hits and pairs stay under 17), so a start-up check sorts random arrays with many
 // equal keys through the originals and ours, as the callers do (introsort loop, then the final
 // insertion sort), including depth limits that reach the heap sort.
+//
+// The two sorts that allocate (S12d) run ours first on the range itself (docs/notes/
+// standalone-verification.md, SV2f), then the original on a copy:
+// - The objectives' quests: every comparison looks names up in the quest table (a new name is
+//   added), so ours makes the additions in the original's order; the copy (CString copies share
+//   the strings) then only finds them, its keys and pairs going back to the pool in reverse.
+//   Ranges with a name that has no record are not ordered (the original's unguarded scans run off
+//   them): logged, ours alone. No start-up check (the comparison reads the game's quest table).
+// - The save list: SaveEntry copies allocate (CStringArray::Copy), so the original sorts a copy that
+//   holds only each saved time and its position (empty strings and arrays, which copy without
+//   allocating), and ours's order is compared through each entry's strings, time, flag and array
+//   contents. Its comparison is "not older" (00658020 is a less, every caller takes its other
+//   branch), so equal times compare true both ways: where the unguarded scans could leave the range
+//   (over 16 entries) and two saves have the same time, ours sorts alone (logged). copy_backward is
+//   checked ours only (the entries written equal the ones read). A
+//   start-up check sorts random key-only entries and, with small arrays, compares each position's
+//   array size and capacity too (capacities follow the whole copy and assignment sequence).
 #include "verify.h"
 
 #include "../../src/game/base_manager.h"
 #include "../../src/game/map_object.h"
 #include "../../src/game/net_messages.h"
+#include "../../src/game/quest_records.h"
+#include "../../src/game/script.h"
+#include "../../src/game/ui.h"
 #include "../../src/game/stl_sorts.h"
 #include "../../src/hook/log.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <new>
 #include <vector>
 
 using namespace stl_sorts;
@@ -255,6 +277,205 @@ static void __fastcall ServerUnguardedVerify(MpAddressEntry* first, MpAddressEnt
 }
 EI_VERIFY(0x0061FB00, ServerUnguardedVerify, 5, s_serverUnguarded);
 
+// ---- Objectives quests --------------------------------------------------------------------------
+
+namespace {
+
+bool HasRecords(const mfc::CString* first, const mfc::CString* last) {
+    for (const mfc::CString* p = first; p != last; ++p)
+        if (!TheQuestTable()->Find(*p)) return false;
+    return true;
+}
+
+// `guard` elements before `first` belong to the copy (the unguarded sort reads them); `runsOff`:
+// a name without a record lets this one's scans leave the range.
+template <typename Original, typename Ours>
+void CompareQuests(const char* name, mfc::CString* first, mfc::CString* last, int guard, bool runsOff, Original original,
+                   Ours ours) {
+    if (last < first) {
+        original(first, last);
+        return;
+    }
+    std::vector<mfc::CString> input(first - guard, last);
+    ours(first, last);
+    if (runsOff && !HasRecords(input.data(), input.data() + input.size())) {
+        static int s_logged = 0;
+        if (s_logged < 10) {
+            ++s_logged;
+            ei::Log("%s: %d quests, one without a record: ours only", name, static_cast<int>(last - first));
+        }
+        return;
+    }
+    original(input.data() + guard, input.data() + input.size());
+    int mismatch = -1;
+    for (int i = 0; i < static_cast<int>(input.size()); ++i)
+        if (static_cast<const char*>(input[static_cast<std::size_t>(i)]) != static_cast<const char*>(first[i - guard])) {
+            mismatch = i - guard;
+            break;
+        }
+    ei::verify::Check(name, -1, mismatch, "%d quests, first difference at %d", static_cast<int>(last - first), mismatch);
+}
+
+// ---- Save list ------------------------------------------------------------------------------------
+
+// What a save entry holds, by identity: its strings (copies share them), time, game time bits,
+// flag and each array's strings.
+struct SavePrint {
+    const char* strings[4];
+    std::int32_t savedAt;
+    std::uint32_t gameTime;
+    bool broken;
+    std::vector<const char*> arrays[2];
+
+    static SavePrint Of(const SaveEntry& e) {
+        SavePrint p{{e.title_, e.folder_, e.map_, e.zone_}, e.savedAt_, 0, e.broken_, {}};
+        std::memcpy(&p.gameTime, &e.gameTime_, sizeof(p.gameTime));
+        for (int a = 0; a < 2; ++a)
+            for (int i = 0; i < e.stringArrays_[a].size; ++i)
+                p.arrays[a].push_back(static_cast<const char*>(e.stringArrays_[a].data[i]));
+        return p;
+    }
+    bool operator==(const SavePrint& o) const {
+        return std::memcmp(strings, o.strings, sizeof(strings)) == 0 && savedAt == o.savedAt && gameTime == o.gameTime &&
+               broken == o.broken && arrays[0] == o.arrays[0] && arrays[1] == o.arrays[1];
+    }
+};
+
+// Entries holding only a saved time and a tag (in the game time): empty strings and arrays, so
+// copying, assigning and destroying them allocate nothing.
+struct KeyEntries {
+    std::vector<SaveEntry> entries;
+
+    explicit KeyEntries(std::size_t n) : entries(n) {
+        for (SaveEntry& e : entries) {
+            new (&e.title_) mfc::CString();
+            new (&e.folder_) mfc::CString();
+            new (&e.map_) mfc::CString();
+            new (&e.zone_) mfc::CString();
+            e.stringArrays_[0].Construct();
+            e.stringArrays_[1].Construct();
+            e.broken_ = false;
+        }
+    }
+    ~KeyEntries() {
+        for (SaveEntry& e : entries) e.Destruct();
+    }
+    KeyEntries(const KeyEntries&) = delete;
+    KeyEntries& operator=(const KeyEntries&) = delete;
+
+    void Set(std::size_t i, std::int32_t savedAt, int tag) {
+        entries[i].savedAt_ = savedAt;
+        entries[i].gameTime_ = static_cast<float>(tag);
+    }
+    int Tag(std::size_t i) const { return static_cast<int>(entries[i].gameTime_); }
+    SaveEntry* Data() { return entries.data(); }
+};
+
+bool DistinctTimes(const std::vector<SavePrint>& entries) {
+    std::vector<std::int32_t> times;
+    for (const SavePrint& e : entries) times.push_back(e.savedAt);
+    std::sort(times.begin(), times.end());
+    return std::adjacent_find(times.begin(), times.end()) == times.end();
+}
+
+// `runsOff`: the call's unguarded scans can leave the range when two saves have the same time.
+template <typename Original, typename Ours>
+void CompareSaves(const char* name, SaveEntry* first, SaveEntry* last, int guard, bool runsOff, Original original,
+                  Ours ours) {
+    if (last < first) {
+        original(first, last);
+        return;
+    }
+    std::size_t n = static_cast<std::size_t>(last - first + guard);
+    std::vector<SavePrint> input;
+    for (const SaveEntry* p = first - guard; p != last; ++p) input.push_back(SavePrint::Of(*p));
+    ours(first, last);
+    if (runsOff && !DistinctTimes(input)) {
+        static int s_logged = 0;
+        if (s_logged < 10) {
+            ++s_logged;
+            ei::Log("%s: %d saves, two of the same time: ours only", name, static_cast<int>(last - first));
+        }
+        return;
+    }
+    KeyEntries twin(n);
+    for (std::size_t i = 0; i < n; ++i) twin.Set(i, input[i].savedAt, static_cast<int>(i));
+    original(twin.Data() + guard, twin.Data() + n);
+    int mismatch = -1;
+    for (std::size_t i = 0; i < n; ++i)
+        if (!(input[static_cast<std::size_t>(twin.Tag(i))] == SavePrint::Of(first[static_cast<int>(i) - guard]))) {
+            mismatch = static_cast<int>(i) - guard;
+            break;
+        }
+    ei::verify::Check(name, -1, mismatch, "%d entries, first difference at %d", static_cast<int>(last - first), mismatch);
+}
+
+} // namespace
+
+// 0064F310: PUSH EBX; PUSH EBP; PUSH ESI; MOV ESI,EDX (5 bytes).
+static void(__fastcall* s_questIntro)(mfc::CString*, mfc::CString*, void*, int, int);
+static void __fastcall QuestIntroVerify(mfc::CString* first, mfc::CString* last, void* tag, int depth, int comp) {
+    CompareQuests(
+        "QuestIntroSort", first, last, 0, last - first > 16,
+        [&](mfc::CString* f, mfc::CString* l) { s_questIntro(f, l, tag, depth, comp); },
+        [&](mfc::CString* f, mfc::CString* l) { QuestIntroSort(f, l, tag, depth, comp); });
+}
+EI_VERIFY(0x0064F310, QuestIntroVerify, 5, s_questIntro);
+
+// 0064F9A0: PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI; MOV EDI,EDX (6 bytes). Guarded (a name without
+// a record goes to the front).
+static void(__fastcall* s_questInsertion)(mfc::CString*, mfc::CString*, int);
+static void __fastcall QuestInsertionVerify(mfc::CString* first, mfc::CString* last, int comp) {
+    CompareQuests(
+        "QuestInsertionSort", first, last, 0, false, [&](mfc::CString* f, mfc::CString* l) { s_questInsertion(f, l, comp); },
+        [&](mfc::CString* f, mfc::CString* l) { QuestInsertionSort(f, l, comp); });
+}
+EI_VERIFY(0x0064F9A0, QuestInsertionVerify, 6, s_questInsertion);
+
+// 0064FBD0: PUSH EBX; PUSH ESI; PUSH EDI; MOV EDI,EDX (5 bytes). Unguarded (see CompareUnguarded).
+static void(__fastcall* s_questUnguarded)(mfc::CString*, mfc::CString*, void*, int);
+static void __fastcall QuestUnguardedVerify(mfc::CString* first, mfc::CString* last, void* tag, int comp) {
+    CompareQuests(
+        "QuestUnguardedInsertionSort", first, last, kGuard, true,
+        [&](mfc::CString* f, mfc::CString* l) { s_questUnguarded(f, l, tag, comp); },
+        [&](mfc::CString* f, mfc::CString* l) { QuestUnguardedInsertionSort(f, l, tag, comp); });
+}
+EI_VERIFY(0x0064FBD0, QuestUnguardedVerify, 5, s_questUnguarded);
+
+// 00657DF0: PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI; MOV EDI,EDX (6 bytes).
+static void(__fastcall* s_saveIntro)(SaveEntry*, SaveEntry*, void*, int, int);
+static void __fastcall SaveIntroVerify(SaveEntry* first, SaveEntry* last, void* tag, int depth, int comp) {
+    CompareSaves(
+        "SaveIntroSort", first, last, 0, last - first > 16, [&](SaveEntry* f, SaveEntry* l) { s_saveIntro(f, l, tag, depth, comp); },
+        [&](SaveEntry* f, SaveEntry* l) { SaveIntroSort(f, l, tag, depth, comp); });
+}
+EI_VERIFY(0x00657DF0, SaveIntroVerify, 6, s_saveIntro);
+
+// 00657F10: PUSH ESI; MOV ESI,EDX; SUB EDX,ECX (5 bytes; the IMUL after them sets the flags again).
+static void(__fastcall* s_saveFinal)(SaveEntry*, SaveEntry*, int);
+static void __fastcall SaveFinalVerify(SaveEntry* first, SaveEntry* last, int comp) {
+    CompareSaves(
+        "SaveFinalSort", first, last, 0, last - first > 16, [&](SaveEntry* f, SaveEntry* l) { s_saveFinal(f, l, comp); },
+        [&](SaveEntry* f, SaveEntry* l) { SaveFinalSort(f, l, comp); });
+}
+EI_VERIFY(0x00657F10, SaveFinalVerify, 5, s_saveFinal);
+
+// 00657D50: ours only (its assignments allocate): the entries written hold what [first, last)
+// held, and the first one written comes back.
+static void* s_saveCopyBackwardUnused;
+static SaveEntry* __fastcall SaveCopyBackwardVerify(SaveEntry* first, SaveEntry* last, SaveEntry* result) {
+    std::vector<SavePrint> source;
+    for (const SaveEntry* p = first; p < last; ++p) source.push_back(SavePrint::Of(*p));
+    SaveEntry* written = SaveCopyBackward(first, last, result);
+    int n = static_cast<int>(source.size());
+    int mismatch = written == result - n ? -1 : -2;
+    for (int i = 0; i < n && mismatch == -1; ++i)
+        if (!(source[static_cast<std::size_t>(i)] == SavePrint::Of(written[i]))) mismatch = i;
+    ei::verify::Check("SaveCopyBackward", -1, mismatch, "%d entries, first difference at %d (-2: the result)", n, mismatch);
+    return written;
+}
+EI_VERIFY(0x00657D50, SaveCopyBackwardVerify, 0, s_saveCopyBackwardUnused);
+
 // ---- Start-up check --------------------------------------------------------------------------------
 
 namespace {
@@ -410,5 +631,55 @@ void SortStartupCheck() {
     ei::verify::Report("stlp::sort start-up (ids, replicated pairs, chunks, servers)", failed < 0, detail);
 }
 EI_STARTUP_CHECK(SortStartupCheck);
+
+// The save list's sort as FillEntries calls it (the introsort loop, then the final insertion
+// sort), on key-only entries with distinct times (300 cases) and on entries with small arrays of empty strings (40
+// cases; their blocks come from the game's heap and go back with the entries): each position's
+// time and tag, and with arrays their sizes and capacities, must match.
+void SaveSortStartupCheck() {
+    if (!s_saveIntro || !s_saveFinal) return;
+    int cases = 0, failed = -1;
+    for (std::uint32_t seed = 1; seed <= 340 && failed < 0; ++seed, ++cases) {
+        Random random{seed};
+        bool arrays = seed > 300;
+        std::size_t n = random.Next() % (arrays ? 40 : 200);
+        int depth = Depth(n, random.Next());
+        // Distinct times (with equal ones the unguarded scans can leave the range), shuffled.
+        std::vector<std::int32_t> times(n);
+        for (std::size_t i = 0; i < n; ++i) times[i] = static_cast<std::int32_t>(3 * i) - 40;
+        for (std::size_t i = n; i > 1; --i) std::swap(times[i - 1], times[random.Next() % i]);
+        KeyEntries theirs(n), ours(n);
+        for (std::size_t i = 0; i < n; ++i) {
+            theirs.Set(i, times[i], static_cast<int>(i));
+            ours.Set(i, times[i], static_cast<int>(i));
+            if (!arrays) continue;
+            for (int a = 0; a < 2; ++a) {
+                int size = static_cast<int>(random.Next() % 4);
+                if (size == 0) continue;
+                theirs.entries[i].stringArrays_[a].SetSize(size);
+                ours.entries[i].stringArrays_[a].SetSize(size);
+            }
+        }
+        if (n != 0) {
+            s_saveIntro(theirs.Data(), theirs.Data() + n, nullptr, depth, 0);
+            s_saveFinal(theirs.Data(), theirs.Data() + n, 0);
+            SaveIntroSort(ours.Data(), ours.Data() + n, nullptr, depth, 0);
+            SaveFinalSort(ours.Data(), ours.Data() + n, 0);
+        }
+        for (std::size_t i = 0; i < n && failed < 0; ++i) {
+            const SaveEntry& a = theirs.entries[i];
+            const SaveEntry& b = ours.entries[i];
+            bool same = a.savedAt_ == b.savedAt_ && theirs.Tag(i) == ours.Tag(i);
+            for (int k = 0; k < 2; ++k)
+                same = same && a.stringArrays_[k].size == b.stringArrays_[k].size &&
+                       a.stringArrays_[k].maxSize == b.stringArrays_[k].maxSize;
+            if (!same) failed = static_cast<int>(seed);
+        }
+    }
+    char detail[64];
+    std::snprintf(detail, sizeof(detail), "%d cases, first failure: seed %d", cases, failed);
+    ei::verify::Report("stlp::sort start-up (save list)", failed < 0, detail);
+}
+EI_STARTUP_CHECK(SaveSortStartupCheck);
 
 } // namespace

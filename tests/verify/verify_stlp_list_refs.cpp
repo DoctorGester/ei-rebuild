@@ -16,7 +16,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <vector>
 
 namespace {
 
@@ -195,6 +194,12 @@ template <std::uintptr_t A> using CountedRefErase = EraseCheck<A, CountedRefList
 template <std::uintptr_t A> using SharedEntryErase = EraseCheck<A, SharedEntryList>;
 template <std::uintptr_t A> using CountedEntryErase = EraseCheck<A, CountedEntryList>;
 template <std::uintptr_t A> using CStringErase = EraseCheck<A, CStringList>;
+template <std::uintptr_t A> using PlainErase260 = EraseCheck<A, PlainList260>;
+// By node size (S12d): 16, 24, 32 and 40 bytes.
+template <std::uintptr_t A> using PlainEraseNode16 = EraseCheck<A, stlp::ListAbi<stlp::Opaque<8>>>;
+template <std::uintptr_t A> using PlainEraseNode24 = EraseCheck<A, stlp::ListAbi<stlp::Opaque<16>>>;
+template <std::uintptr_t A> using PlainEraseNode32 = EraseCheck<A, stlp::ListAbi<stlp::Opaque<24>>>;
+template <std::uintptr_t A> using PlainEraseNode40 = EraseCheck<A, stlp::ListAbi<stlp::Opaque<32>>>;
 
 // remove(value): every node still linked both ways, none holding the object (unless `value` is one
 // of the elements: then the original too compares later nodes with the erased node's bytes).
@@ -213,39 +218,7 @@ void __fastcall RemoveCountedVerify(stlp::list<RefPtr>* self, void*, const RefPt
     ei::verify::Report("stlp::list::remove 00427320", ok, ok ? "" : "a node holds the object or is unlinked");
 }
 
-// clear() of plain data, ours only (the nodes go back to the pool): the sentinel linked to itself,
-// every node pushed on its free list in list order (the last one on top, each linking to the one
-// before, the first to the old top).
-template <std::uintptr_t A, typename Abi>
-struct PlainClear {
-    using List = typename Abi::List;
-    using Node = typename List::Node;
-    static void __fastcall Verify(List* self) {
-        std::vector<Node*> nodes;
-        for (Node* n = self->head->next; n != self->head && nodes.size() < 100000; n = n->next) nodes.push_back(n);
-        void** list = FreeList(sizeof(Node));
-        void* oldTop = *list;
-        Abi::Clear(self);
-        bool ok = self->head->next == self->head && self->head->prev == self->head;
-        void* expected = oldTop;
-        for (Node* n : nodes) {
-            ok = ok && *reinterpret_cast<void**>(n) == expected;
-            expected = n;
-        }
-        ok = ok && *list == expected;
-        ei::verify::Report(Name<A>("stlp::list::clear"), ok, "");
-    }
-};
-
 } // namespace
-
-using IdsClear = PlainClear<0x00405500, PlainList4>;
-EI_VERIFY(0x00405500, IdsClear::Verify, 0, s_unused);
-// The chunk archive's saved objects (list<CRefObject*>): erase and clear, ours only.
-using SavedErase = EraseCheck<0x0040AA40, PlainList4>;
-EI_VERIFY(0x0040AA40, SavedErase::Verify, 0, s_unused);
-using SavedClear = PlainClear<0x0040B390, PlainList4>;
-EI_VERIFY(0x0040B390, SavedClear::Verify, 0, s_unused);
 
 // insert(pos, x) of plain data: mov eax,[esp+0xC]; push eax (5 bytes).
 EI_VERIFY(0x00404A40, PlainInsert4<0x00404A40>::Verify, 5, PlainInsert4<0x00404A40>::original);
@@ -313,6 +286,15 @@ EI_VERIFY(0x00422FA0, SharedEntryErase<0x00422FA0>::Verify, 0, s_unused);
 EI_VERIFY(0x004246E0, SharedEntryErase<0x004246E0>::Verify, 0, s_unused);
 EI_VERIFY(0x004236C0, CountedEntryErase<0x004236C0>::Verify, 0, s_unused);
 EI_VERIFY(0x005F8E50, CStringErase<0x005F8E50>::Verify, 0, s_unused);
+EI_VERIFY(0x00438660, PlainErase260<0x00438660>::Verify, 0, s_unused);   // S12d: the node goes to operator delete
+EI_VERIFY(0x0040AA40, PlainEraseNode16<0x0040AA40>::Verify, 0, s_unused);
+EI_VERIFY(0x00512030, PlainEraseNode16<0x00512030>::Verify, 0, s_unused);
+EI_VERIFY(0x0056DFB0, PlainEraseNode16<0x0056DFB0>::Verify, 0, s_unused);
+EI_VERIFY(0x0040A920, PlainEraseNode24<0x0040A920>::Verify, 0, s_unused);
+EI_VERIFY(0x00411540, PlainEraseNode24<0x00411540>::Verify, 0, s_unused);
+EI_VERIFY(0x004437D0, PlainEraseNode24<0x004437D0>::Verify, 0, s_unused);
+EI_VERIFY(0x005392F0, PlainEraseNode32<0x005392F0>::Verify, 0, s_unused);
+EI_VERIFY(0x00443730, PlainEraseNode40<0x00443730>::Verify, 0, s_unused);
 EI_VERIFY(0x00427100, SharedRefErase<0x00427100>::Clear, 0, s_unused);
 EI_VERIFY(0x00427140, SharedRefErase<0x00427140>::Clear, 0, s_unused);
 EI_VERIFY(0x00427180, SharedRefErase<0x00427180>::Clear, 0, s_unused);

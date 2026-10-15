@@ -1,8 +1,9 @@
 // Checks for spell_lifetime.cpp (MapEffect, CSpell and CSpellEffect constructors and destructors).
 // Scenarios spells and spells_cast (every cast makes a CSpellEffect with its CSpell; spells are
 // built by the spell constructor and released again).
-// - Constructors: the original on a scratch copy of the memory (bytes neither writes stay equal),
-//   ours on the real object; the whole object and the result compared. They allocate nothing.
+// - Constructors: ours on the real object, then the original on a scratch copy of the memory (our
+//   memory; bytes neither writes stay equal); the whole object and the result compared. They
+//   allocate nothing.
 // - Destructors: ours only (they release references and the world's timed object); the state left
 //   is checked. Slot 0's wrappers run ours with bit 0 cleared and free the memory themselves.
 #include "verify.h"
@@ -12,6 +13,7 @@
 #include "../../src/lib/crt.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -33,14 +35,15 @@ int FirstDifference(const void* a, const void* b, std::size_t n) {
 
 template <typename T>
 T* ConstructBoth(const char* name, T*(__fastcall* original)(T*), T* self, std::size_t size) {
-    auto* scratch = static_cast<unsigned char*>(gamecrt::operator_new(size));
+    // Ours first and the scratch in our memory (the game reads the heap's address order, SV2f).
+    std::vector<unsigned char> scratchBytes(size);
+    unsigned char* scratch = scratchBytes.data();
     std::memcpy(scratch, self, size);
-    T* expected = original(reinterpret_cast<T*>(scratch));
     T* actual = self->Construct();
+    T* expected = original(reinterpret_cast<T*>(scratch));
     int diff = FirstDifference(scratch, self, size);
     ei::verify::Check(name, true, diff < 0 && expected == reinterpret_cast<T*>(scratch) && actual == self,
                       "object %p: first difference at +0x%X", static_cast<void*>(self), diff);
-    gamecrt::operator_delete(scratch);
     return actual;
 }
 

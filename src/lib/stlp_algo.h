@@ -7,12 +7,54 @@
 // behaviour: every step follows STLport's (same comparisons in the same order, same moves). Every
 // scan the original leaves unguarded is unguarded here too: with a comparator that is not a strict
 // weak ordering they run off the array.
+//
+// Element copies follow STLport's too, for elements whose copies allocate (the save list's entries
+// copy CStringArrays) or whose comparison does (the objectives' quest lookups): every by-value
+// argument and local of STLport's helpers is a Held copy that lives exactly as long (a by-value
+// argument is destroyed when its callee returns), every `*a = *b` an Ops::Assign.
+
+#include <new>
 
 namespace stlp {
 
-template <typename T, typename Less>
+// How a sort copies its elements: the element's own copy constructor, assignment and destructor
+// (nothing at all for plain data). An element type whose copies are functions of the game's
+// (SaveEntry) names them in an Ops of its own.
+template <typename T>
+struct ValueOps {
+    static void Construct(T* at, const T& from) { new (at) T(from); }
+    static void Assign(T& to, const T& from) { to = from; }
+    static void Destroy(T* p) { p->~T(); }
+};
+
+// A copy of an element for as long as the STLport argument or local it stands for.
+template <typename T, typename Ops>
+class Held {
+public:
+    explicit Held(const T& from) { Ops::Construct(Get(), from); }
+    ~Held() { Ops::Destroy(Get()); }
+    Held(const Held&) = delete;
+    Held& operator=(const Held&) = delete;
+    T& operator*() { return *Get(); }
+
+private:
+    T* Get() { return reinterpret_cast<T*>(storage_); }
+    alignas(T) unsigned char storage_[sizeof(T)];
+};
+
+// copy_backward(first, last, result) (e.g. 00657D50): [first, last) assigned to the elements before
+// `result`, from the last; returns the first one written.
+template <typename T, typename Ops = ValueOps<T>>
+T* CopyBackward(T* first, T* last, T* result) {
+    for (int n = static_cast<int>(last - first); n > 0; --n) Ops::Assign(*--result, *--last);
+    return result;
+}
+
+template <typename T, typename Less, typename Ops = ValueOps<T>>
 struct Sort {
-    // __median: the value of the median of three (STLport returns a reference; the callers copy it).
+    using Value = Held<T, Ops>;
+
+    // __median: the median of three (STLport returns a reference; the callers copy it).
     static const T& Median(const T& a, const T& b, const T& c, Less less) {
         if (less(a, b)) {
             if (less(b, c)) return b;
@@ -24,43 +66,48 @@ struct Sort {
         return b;
     }
 
-    static T* UnguardedPartition(T* first, T* last, T pivot, Less less) {
+    // __unguarded_partition(first, last, pivot); iter_swap through a copy of *first.
+    static T* UnguardedPartition(T* first, T* last, const T& pivot, Less less) {
         for (;;) {
             while (less(*first, pivot)) ++first;
             --last;
             while (less(pivot, *last)) --last;
             if (!(first < last)) return first;
-            T swap = *first;
-            *first = *last;
-            *last = swap;
+            {
+                Value swap(*first);
+                Ops::Assign(*first, *last);
+                Ops::Assign(*last, *swap);
+            }
             ++first;
         }
     }
 
-    static void PushHeap(T* first, int hole, int top, T value, Less less) {
+    static void PushHeap(T* first, int hole, int top, const T& value, Less less) {
         int parent = (hole - 1) / 2;
         while (hole > top && less(first[parent], value)) {
-            first[hole] = first[parent];
+            Ops::Assign(first[hole], first[parent]);
             hole = parent;
             parent = (hole - 1) / 2;
         }
-        first[hole] = value;
+        Ops::Assign(first[hole], value);
     }
 
-    static void AdjustHeap(T* first, int hole, int length, T value, Less less) {
+    // __adjust_heap(first, hole, length, value): __push_heap gets its own copy of the value.
+    static void AdjustHeap(T* first, int hole, int length, const T& value, Less less) {
         int top = hole;
         int child = 2 * hole + 2;
         while (child < length) {
             if (less(first[child], first[child - 1])) --child;
-            first[hole] = first[child];
+            Ops::Assign(first[hole], first[child]);
             hole = child;
             child = 2 * (child + 1);
         }
         if (child == length) {
-            first[hole] = first[child - 1];
+            Ops::Assign(first[hole], first[child - 1]);
             hole = child - 1;
         }
-        PushHeap(first, hole, top, value, less);
+        Value copy(value);
+        PushHeap(first, hole, top, *copy, less);
     }
 
     static void MakeHeap(T* first, T* last, Less less) {
@@ -68,17 +115,21 @@ struct Sort {
         if (length < 2) return;
         int parent = (length - 2) / 2;
         for (;;) {
-            AdjustHeap(first, parent, length, first[parent], less);
+            {
+                Value value(first[parent]);
+                AdjustHeap(first, parent, length, *value, less);
+            }
             if (parent == 0) return;
             --parent;
         }
     }
 
-    // pop_heap(first, last): the top goes to last - 1.
+    // pop_heap(first, last) (__pop_heap_aux, then __pop_heap): the top goes to last - 1.
     static void PopHeap(T* first, T* last, Less less) {
-        T value = last[-1];
-        last[-1] = *first;
-        AdjustHeap(first, 0, static_cast<int>(last - 1 - first), value, less);
+        Value value(last[-1]);
+        Ops::Assign(last[-1], *first);
+        Value copy(*value);
+        AdjustHeap(first, 0, static_cast<int>(last - 1 - first), *copy, less);
     }
 
     // partial_sort(first, last, last): heap sort.
@@ -97,38 +148,51 @@ struct Sort {
                 return;
             }
             --depthLimit;
-            T* cut = UnguardedPartition(first, last, T(Median(*first, first[(last - first) / 2], last[-1], less)), less);
+            T* cut;
+            {
+                Value pivot(Median(*first, first[(last - first) / 2], last[-1], less));
+                cut = UnguardedPartition(first, last, *pivot, less);
+            }
             IntroLoop(cut, last, depthLimit, less);
             last = cut;
         }
     }
 
-    static void UnguardedLinearInsert(T* last, T value, Less less) {
+    static void UnguardedLinearInsert(T* last, const T& value, Less less) {
         T* next = last - 1;
         while (less(value, *next)) {
-            *last = *next;
+            Ops::Assign(*last, *next);
             last = next;
             --next;
         }
-        *last = value;
+        Ops::Assign(*last, value);
+    }
+
+    // __linear_insert(first, last, value): __unguarded_linear_insert gets its own copy.
+    static void LinearInsert(T* first, T* last, const T& value, Less less) {
+        if (less(value, *first)) {
+            CopyBackward<T, Ops>(first, last, last + 1);
+            Ops::Assign(*first, value);
+        } else {
+            Value copy(value);
+            UnguardedLinearInsert(last, *copy, less);
+        }
     }
 
     static void InsertionSort(T* first, T* last, Less less) {
         if (first == last) return;
         for (T* i = first + 1; i != last; ++i) {
-            T value = *i;
-            if (less(value, *first)) {
-                for (T* p = i; p != first; --p) *p = p[-1];   // copy_backward
-                *first = value;
-            } else {
-                UnguardedLinearInsert(i, value, less);
-            }
+            Value value(*i);
+            LinearInsert(first, i, *value, less);
         }
     }
 
     // __unguarded_insertion_sort(first, last): every element has a smaller one before the range.
     static void UnguardedInsertionSort(T* first, T* last, Less less) {
-        for (T* i = first; i != last; ++i) UnguardedLinearInsert(i, *i, less);
+        for (T* i = first; i != last; ++i) {
+            Value value(*i);
+            UnguardedLinearInsert(i, *value, less);
+        }
     }
 
     static void FinalInsertionSort(T* first, T* last, Less less) {

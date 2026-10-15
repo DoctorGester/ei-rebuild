@@ -4,8 +4,8 @@
 //
 // Add / SetAtGrow run against the original on a scratch array: a copy of the header whose buffer
 // holds the same element bytes (a shallow copy; the call only constructs the new element and, when
-// it grows, moves the old ones without touching them). The original appends to the scratch, ours to
-// the real array; shape (size, capacity, growth step, vtable), the old elements' bytes and the new
+// it grows, moves the old ones without touching them). Ours appends to the real array first, then
+// the original to the scratch (its buffer made after ours, SV2f); shape (size, capacity, growth step, vtable), the old elements' bytes and the new
 // element (deeply) are compared, then the scratch's new element is destroyed and its buffer freed.
 #include "verify.h"
 #include "script_compare.h"
@@ -16,21 +16,33 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 void* s_unused;
 
 using namespace scriptcompare;
 
+// The constructor keeps the header and the element bytes in our memory (before ours runs); Make,
+// after ours ran, gives the scratch its game-heap buffer, so that ours' blocks land where the
+// original's would without the check (the game reads the heap's address order, SV2f).
 template <typename T>
 struct ScratchArray {
     mfc::CArray<T> array;
     int oldSize;
-    explicit ScratchArray(const mfc::CArray<T>& real) : array(real), oldSize(real.size) {
+    bool hadData;
+    std::vector<unsigned char> kept;
+    explicit ScratchArray(const mfc::CArray<T>& real) : array(real), oldSize(real.size), hadData(real.data != nullptr) {
         if (real.data) {
-            array.data = static_cast<T*>(gamecrt::operator_new(static_cast<unsigned>(real.maxSize) * sizeof(T)));
-            std::memcpy(array.data, real.data, static_cast<unsigned>(real.size) * sizeof(T));
+            const auto* p = reinterpret_cast<const unsigned char*>(real.data);
+            kept.assign(p, p + static_cast<unsigned>(real.size) * sizeof(T));
         }
+        array.data = nullptr;   // until Make
+    }
+    void Make() {
+        if (!hadData) return;
+        array.data = static_cast<T*>(gamecrt::operator_new(static_cast<unsigned>(array.maxSize) * sizeof(T)));
+        if (!kept.empty()) std::memcpy(static_cast<void*>(array.data), kept.data(), kept.size());
     }
     ScratchArray(const ScratchArray&) = delete;
     ~ScratchArray() { gamecrt::operator_delete(array.data); }
@@ -46,8 +58,9 @@ struct ScratchArray {
 int(__fastcall* s_bindingsAdd)(mfc::CArray<ScriptBinding>*, void*, const ScriptBinding*);
 int __fastcall BindingsAddVerify(mfc::CArray<ScriptBinding>* self, void*, const ScriptBinding* binding) {
     ScratchArray<ScriptBinding> scratch(*self);
-    int expected = s_bindingsAdd(&scratch.array, nullptr, binding);
     int actual = ScriptBindingsAdd(self, nullptr, binding);
+    scratch.Make();
+    int expected = s_bindingsAdd(&scratch.array, nullptr, binding);
     ei::verify::Check("ScriptBindingsAdd", true,
                       expected == actual && SamePlain(scratch.array, *self, true),
                       "size %d -> %d / %d, capacity %d / %d", scratch.oldSize, scratch.array.size, self->size,
@@ -59,8 +72,9 @@ int __fastcall BindingsAddVerify(mfc::CArray<ScriptBinding>* self, void*, const 
 int(__fastcall* s_subCallsAdd)(mfc::CArray<ScriptSubCall>*, void*, const ScriptSubCall*);
 int __fastcall SubCallsAddVerify(mfc::CArray<ScriptSubCall>* self, void*, const ScriptSubCall* call) {
     ScratchArray<ScriptSubCall> scratch(*self);
-    int expected = s_subCallsAdd(&scratch.array, nullptr, call);
     int actual = ScriptSubCallsAdd(self, nullptr, call);
+    scratch.Make();
+    int expected = s_subCallsAdd(&scratch.array, nullptr, call);
     bool ok = expected == actual && scratch.SameOld(*self);
     if (ok) {
         const ScriptSubCall& x = scratch.array.data[expected];
@@ -77,8 +91,9 @@ int __fastcall SubCallsAddVerify(mfc::CArray<ScriptSubCall>* self, void*, const 
 int(__fastcall* s_cmdsAdd)(mfc::CArray<SSCCmd>*, void*, const SSCCmd*);
 int __fastcall CmdsAddVerify(mfc::CArray<SSCCmd>* self, void*, const SSCCmd* cmd) {
     ScratchArray<SSCCmd> scratch(*self);
-    int expected = s_cmdsAdd(&scratch.array, nullptr, cmd);
     int actual = ScriptCmdsAdd(self, nullptr, cmd);
+    scratch.Make();
+    int expected = s_cmdsAdd(&scratch.array, nullptr, cmd);
     bool ok = expected == actual && scratch.SameOld(*self) &&
               SameCmd(scratch.array.data[expected], self->data[actual], true);
     for (int i = scratch.oldSize; i < scratch.array.size; ++i) ScriptCmdDestruct(&scratch.array.data[i]);
@@ -99,8 +114,9 @@ void __fastcall CmdsSetAtGrowVerify(mfc::CArray<SSCCmd>* self, void*, int index,
         return;
     }
     ScratchArray<SSCCmd> scratch(*self);
-    s_cmdsSetAtGrow(&scratch.array, nullptr, index, cmd);
     ScriptCmdsSetAtGrow(self, nullptr, index, cmd);
+    scratch.Make();
+    s_cmdsSetAtGrow(&scratch.array, nullptr, index, cmd);
     bool ok = scratch.SameOld(*self);
     for (int i = scratch.oldSize; ok && i < self->size; ++i)
         ok = SameCmd(scratch.array.data[i], self->data[i], true);
@@ -113,8 +129,9 @@ void __fastcall CmdsSetAtGrowVerify(mfc::CArray<SSCCmd>* self, void*, int index,
 int(__fastcall* s_definitionsAdd)(mfc::CArray<ScriptDefinition>*, void*, const ScriptDefinition*);
 int __fastcall DefinitionsAddVerify(mfc::CArray<ScriptDefinition>* self, void*, const ScriptDefinition* definition) {
     ScratchArray<ScriptDefinition> scratch(*self);
-    int expected = s_definitionsAdd(&scratch.array, nullptr, definition);
     int actual = ScriptDefinitionsAdd(self, nullptr, definition);
+    scratch.Make();
+    int expected = s_definitionsAdd(&scratch.array, nullptr, definition);
     bool ok = expected == actual && scratch.SameOld(*self) &&
               SameDefinition(scratch.array.data[expected], self->data[actual], true);
     for (int i = scratch.oldSize; i < scratch.array.size; ++i) ScriptDefinitionDestruct(&scratch.array.data[i]);
@@ -188,8 +205,9 @@ void __fastcall NamesSetAtGrowVerify(mfc::CArray<mfc::CString>* self, void*, int
         return;
     }
     ScratchArray<mfc::CString> scratch(*self);
-    s_namesSetAtGrow(&scratch.array, nullptr, index, text);
     ScriptNamesSetAtGrow(self, nullptr, index, text);
+    scratch.Make();
+    s_namesSetAtGrow(&scratch.array, nullptr, index, text);
     bool ok = scratch.SameOld(*self);
     for (int i = scratch.oldSize; ok && i < self->size; ++i) ok = SameText(scratch.array.data[i], self->data[i]);
     for (int i = scratch.oldSize; i < scratch.array.size; ++i) scratch.array.data[i].~CString();
@@ -202,8 +220,8 @@ void __fastcall NamesSetAtGrowVerify(mfc::CArray<mfc::CString>* self, void*, int
 void(__fastcall* s_stringsCopyTo)(const mfc::CArray<mfc::CString>*, void*, int, mfc::CString*);
 void __fastcall StringsCopyToVerify(const mfc::CArray<mfc::CString>* self, void*, int index, mfc::CString* out) {
     mfc::CString expected;
+    ScriptStringsCopyTo(self, nullptr, index, out);   // ours first (SV2f)
     s_stringsCopyTo(self, nullptr, index, &expected);
-    ScriptStringsCopyTo(self, nullptr, index, out);
     ei::verify::Check("ScriptStringsCopyTo", true, SameText(expected, *out), "index %d: \"%s\" / \"%s\"", index,
                       static_cast<const char*>(expected), static_cast<const char*>(*out));
 }
@@ -213,8 +231,9 @@ void __fastcall StringsCopyToVerify(const mfc::CArray<mfc::CString>* self, void*
 void(__fastcall* s_looksSetAtGrow)(mfc::CArray<AILook>*, void*, int, const AILook*);
 void __fastcall LooksSetAtGrowVerify(mfc::CArray<AILook>* self, void*, int index, const AILook* look) {
     ScratchArray<AILook> scratch(*self);
-    s_looksSetAtGrow(&scratch.array, nullptr, index, look);
     ScriptLooksSetAtGrow(self, nullptr, index, look);
+    scratch.Make();
+    s_looksSetAtGrow(&scratch.array, nullptr, index, look);
     ei::verify::Check("ScriptLooksSetAtGrow", true, SamePlain(scratch.array, *self, true),
                       "index %d, size %d -> %d / %d", index, scratch.oldSize, scratch.array.size, self->size);
 }
@@ -231,8 +250,8 @@ ScriptNamedValues<T>* CopyConstructCheck(const char* name, NamedCopyFn<T> origin
     alignas(ScriptNamedValues<T>) unsigned char raw[sizeof(ScriptNamedValues<T>)];
     std::memset(raw, 0xCC, sizeof(raw));
     auto* scratch = reinterpret_cast<ScriptNamedValues<T>*>(raw);
-    bool returned = original(scratch, nullptr, other) == scratch;
-    returned = ours(self, nullptr, other) == self && returned;
+    bool returned = ours(self, nullptr, other) == self;   // ours first (SV2f)
+    returned = original(scratch, nullptr, other) == scratch && returned;
     bool ok = returned && sameValues(scratch->values, self->values) && SameStrings(scratch->names, self->names, true);
     destruct(scratch);
     ei::verify::Check(name, true, ok, "%d values, %d names", other->values.size, other->names.size);

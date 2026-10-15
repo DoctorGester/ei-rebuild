@@ -8,8 +8,6 @@
 #include "verify.h"
 
 #include "../../src/game/game_arrays.h"
-#include "../../src/game/game_lists.h"
-#include "../../src/game/sound_themes.h"
 #include "../../src/lib/mfc_array.h"
 
 #include <cstdio>
@@ -640,19 +638,6 @@ using A004C3980 = TwinSetSizeGrow<0x004C3980, gamearrays::Groups>;
 EI_VERIFY(0x004C3980, A004C3980::Run, 5, A004C3980::original);
 using A004CDF40 = TwinSetSizeGrow<0x004CDF40, gamearrays::Objectives>;
 EI_VERIFY(0x004CDF40, A004CDF40::Run, 5, A004CDF40::original);
-// 004CD770: CScript's definitions (game_lists.cpp; script load grows, reset empties). MOV EAX,[ESP+8]; PUSH EBX (5).
-using A004CD770 = TwinSetSizeGrow<0x004CD770, ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>>;
-EI_VERIFY(0x004CD770, A004CD770::Run, 5, A004CD770::original);
-// The music themes (sound_music.cpp; every start loads music.reg). 006B59A0: MOV EAX,[ESP+8]; PUSH EBX (5);
-// 006B5BC0: MOV EDX,[ESP+8]; MOV EAX,FS:[0] (10).
-using A006B59A0 = TwinSetSizeGrow<0x006B59A0, MusicThemes>;
-EI_VERIFY(0x006B59A0, A006B59A0::Run, 5, A006B59A0::original);
-using A006B5BC0 = TwinConstructElements<0x006B5BC0, MusicThemes>;
-EI_VERIFY(0x006B5BC0, A006B5BC0::Run, 10, A006B5BC0::original);
-using A006B5B50 = OursDestructElements<0x006B5B50, MusicThemes>;
-EI_VERIFY(0x006B5B50, A006B5B50::Run, 0, A006B5B50::original);
-using A006B4D90 = OursDestroy<0x006B4D90, MusicTheme, &DestructMusicTheme>;
-EI_VERIFY(0x006B4D90, A006B4D90::Run, 0, A006B4D90::original);
 using A005121B0 = TwinSetSizeGrow<0x005121B0, gamearrays::Particles>;
 EI_VERIFY(0x005121B0, A005121B0::Run, 5, A005121B0::original);
 using A00452DF0 = OursDestructElements<0x00452DF0, gamearrays::BlocksAt8>;

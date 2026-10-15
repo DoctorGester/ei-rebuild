@@ -48,12 +48,17 @@ int ListDifference(const std::uint8_t* a, const std::uint8_t* b) {
 // 004A7080: PUSH -1; PUSH 0x7173C8 (7 bytes).
 void(__fastcall* s_fill)(ClassTemplate*);
 void __fastcall FillVerify(ClassTemplate* self) {
+    // Ours first; the scratch (and the managers its constructor makes) after it, so that ours'
+    // blocks land where the original's would without the check (the game reads the heap's address
+    // order, SV2f).
+    char fields[0x34 - 8];
+    std::memcpy(fields, reinterpret_cast<char*>(self) + 8, sizeof(fields));
+    ClassTemplateFill(self);
+
     void* memory = gamecrt::operator_new(sizeof(ClassTemplate));
     std::memset(memory, 0, 8);
     ClassTemplate* scratch = TemplateConstruct(memory);
-    std::memcpy(reinterpret_cast<char*>(scratch) + 8, reinterpret_cast<char*>(self) + 8, 0x34 - 8);
-
-    ClassTemplateFill(self);
+    std::memcpy(reinterpret_cast<char*>(scratch) + 8, fields, sizeof(fields));
     s_fill(scratch);
 
     int allowed = ListDifference(reinterpret_cast<const std::uint8_t*>(&scratch->allowed), reinterpret_cast<const std::uint8_t*>(&self->allowed));

@@ -24,25 +24,35 @@ std::uint32_t Offset(const GameBuffer* b, const std::uint8_t* p) {
     return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p) - reinterpret_cast<std::uintptr_t>(b->begin));
 }
 
-// A byte copy of the stream (never a C++ copy: the class is novtable) with its own block.
+// A byte copy of the stream (never a C++ copy: the class is novtable) with its own block. The
+// constructor keeps the block's bytes in our memory; Clone, called after ours ran, gives the copy a
+// game-heap block from them, so that ours' blocks land where the original's would without the
+// check (the game reads the heap's address order, SV2f).
 struct Scratch {
     alignas(4) unsigned char bytes[sizeof(BufferedFile)];
+    std::vector<std::uint8_t> kept;
     explicit Scratch(const BufferedStream* from) {
         std::memcpy(bytes, from, sizeof(BufferedFile));
         BufferedStream* s = get();
+        if (s->begin) kept.assign(s->begin, s->begin + static_cast<std::uint32_t>(s->Capacity()));
+    }
+    void Clone() {
+        BufferedStream* s = get();
+        cloned = true;   // the block the original leaves is the scratch's to free
         if (!s->begin) return;
         std::uint32_t capacity = static_cast<std::uint32_t>(s->Capacity());
         auto* clone = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity ? capacity : 1));
-        std::memcpy(clone, s->begin, capacity);
+        if (capacity) std::memcpy(clone, kept.data(), capacity);
         s->cur = clone + Offset(s, s->cur);
         s->high = clone + Offset(s, s->high);
         s->end = clone + capacity;
         s->begin = clone;
     }
     ~Scratch() {
-        if (get()->begin) gamecrt::operator_delete(get()->begin);
+        if (cloned && get()->begin) gamecrt::operator_delete(get()->begin);
     }
     BufferedStream* get() { return reinterpret_cast<BufferedStream*>(bytes); }
+    bool cloned = false;
 };
 
 // Same vtable, base, flags, capacity and offsets; the first `count` block bytes equal.
@@ -73,8 +83,9 @@ void(__fastcall* s_flush)(BufferedStream*);
 void __fastcall FlushVerify(BufferedStream* self) {
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
-    s_flush(expected.get());
     self->Flush();
+    expected.Clone();
+    s_flush(expected.get());
     Report("BufferedStream::Flush", SameState(expected.get(), self, count), self);
 }
 
@@ -83,8 +94,9 @@ void(__fastcall* s_commit)(BufferedStream*);
 void __fastcall CommitVerify(BufferedStream* self) {
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
-    s_commit(expected.get());
     BufferedStreamCommit(self);
+    expected.Clone();
+    s_commit(expected.get());
     Report("BufferedStreamCommit", SameState(expected.get(), self, count), self);
 }
 
@@ -93,8 +105,9 @@ void(__fastcall* s_reserveRead)(BufferedStream*, void*, std::int32_t);
 void __fastcall ReserveReadVerify(BufferedStream* self, void*, std::int32_t size) {
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
-    s_reserveRead(expected.get(), nullptr, size);
     BufferedStreamReserveRead(self, nullptr, size);
+    expected.Clone();
+    s_reserveRead(expected.get(), nullptr, size);
     Report("BufferedStreamReserveRead", SameState(expected.get(), self, count), self);
 }
 
@@ -103,8 +116,9 @@ void(__fastcall* s_reserveWrite)(BufferedStream*, void*, std::int32_t);
 void __fastcall ReserveWriteVerify(BufferedStream* self, void*, std::int32_t size) {
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
-    s_reserveWrite(expected.get(), nullptr, size);
     BufferedStreamReserveWrite(self, nullptr, size);
+    expected.Clone();
+    s_reserveWrite(expected.get(), nullptr, size);
     Report("BufferedStreamReserveWrite", SameState(expected.get(), self, count), self);
 }
 
@@ -114,8 +128,9 @@ int __fastcall ReadMoreVerify(BufferedStream* self, void*, void* to, std::uint32
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
     std::vector<unsigned char> expectedBytes(size + 1);
-    int expectedRet = s_readMore(expected.get(), nullptr, expectedBytes.data(), size);
     int actualRet = BufferedStreamReadMore(self, nullptr, to, size);
+    expected.Clone();
+    int expectedRet = s_readMore(expected.get(), nullptr, expectedBytes.data(), size);
     bool same = expectedRet == actualRet && SameState(expected.get(), self, count) &&
                 std::memcmp(expectedBytes.data(), to, size) == 0;
     Report("BufferedStreamReadMore", same, self);
@@ -127,8 +142,9 @@ int(__fastcall* s_writeMore)(BufferedStream*, void*, const void*, std::uint32_t)
 int __fastcall WriteMoreVerify(BufferedStream* self, void*, const void* from, std::uint32_t size) {
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
-    int expectedRet = s_writeMore(expected.get(), nullptr, from, size);
     int actualRet = BufferedStreamWriteMore(self, nullptr, from, size);
+    expected.Clone();
+    int expectedRet = s_writeMore(expected.get(), nullptr, from, size);
     Report("BufferedStreamWriteMore", expectedRet == actualRet && SameState(expected.get(), self, count), self);
     return actualRet;
 }
@@ -139,8 +155,9 @@ std::uint8_t* __fastcall SeekVerify(BufferedStream* self, void*, std::int32_t po
     Scratch expected(self);
     std::uint32_t count = OldCapacity(self);
     std::uint32_t oldCur = self->begin ? Offset(self, self->cur) : 0;
-    std::uint8_t* expectedRet = s_seek(expected.get(), nullptr, position);
     std::uint8_t* actualRet = BufferedStreamSeek(self, nullptr, position);
+    expected.Clone();
+    std::uint8_t* expectedRet = s_seek(expected.get(), nullptr, position);
     bool inWindow = expected.get()->base == self->base;
     bool same = SameState(expected.get(), self, count) &&
                 (!inWindow || !self->begin ||
@@ -177,10 +194,11 @@ int __fastcall WriteAtVerify(BufferedFile* self, void*, std::int32_t position, c
 void(__fastcall* s_release)(BufferedStream*);
 void __fastcall ReleaseVerify(BufferedStream* self) {
     Scratch expected(self);
-    s_release(expected.get());
     bool flushedSame = true;
     std::int32_t base = self->base;
     self->ReleaseBlock();
+    expected.Clone();
+    s_release(expected.get());
     flushedSame = expected.get()->begin == nullptr && self->begin == nullptr && expected.get()->flags == self->flags &&
                   base == self->base;
     Report("BufferedStream::ReleaseBlock", flushedSame, self);

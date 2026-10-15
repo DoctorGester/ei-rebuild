@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 int __fastcall ComposeTexture(void* manager, void*, mfc::CString* out, const SkinRequest* request,
                               const mfc::CString* name, const mfc::CString* fallback, unsigned mipCount,
@@ -53,21 +54,19 @@ static int __fastcall ComposeTextureVerify(void* manager, void*, mfc::CString* o
 }
 EI_VERIFY(0x00693180, ComposeTextureVerify, 0, s_compose);
 
-// 00693010: PUSH -1 (2), PUSH imm32 (5). The original draws into a copy of the image (same starting
-// pixels), ours into the image; results and pixels compared. GetFile / CloseFile only read the
+// 00693010: PUSH -1 (2), PUSH imm32 (5). Ours draws into the image first, then the original into a
+// copy of the image as it was (same starting pixels, kept in our memory, SV2f); results and pixels compared. GetFile / CloseFile only read the
 // archives. Reached by ComposeTexture (party skins: every scenario with a new game).
 static int(__fastcall* s_drawLayers)(CTextureManager*, void*, std::uint32_t*, const mfc::CStringArray*, int);
 static int __fastcall DrawLayersVerify(CTextureManager* self, void*, std::uint32_t* image, const mfc::CStringArray* names,
                                        int width) {
     const std::size_t bytes = static_cast<std::size_t>(width) * static_cast<std::size_t>(width) * 4;
-    auto* copy = static_cast<std::uint32_t*>(gamecrt::operator_new(bytes));
-    std::memcpy(copy, image, bytes);
-    const int expected = s_drawLayers(self, nullptr, copy, names, width);
+    std::vector<std::uint32_t> copy(image, image + bytes / 4);
     const int actual = self->DrawLayers(image, names, width);
-    const bool ok = expected == actual && std::memcmp(copy, image, bytes) == 0;
+    const int expected = s_drawLayers(self, nullptr, copy.data(), names, width);
+    const bool ok = expected == actual && (bytes == 0 || std::memcmp(copy.data(), image, bytes) == 0);
     ei::verify::Check("CTextureManager::DrawLayers", true, ok, "%d layers, width %d: %d / %d", names->GetSize(), width,
                       expected, actual);
-    gamecrt::operator_delete(copy);
     return expected;
 }
 EI_VERIFY(0x00693010, DrawLayersVerify, 7, s_drawLayers);

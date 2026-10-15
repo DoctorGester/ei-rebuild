@@ -1,6 +1,8 @@
 // Checks for the AI map's grids and member constructors (src/game/ai_grids.cpp). The allocators
 // and constructors are compared on a probe grid the original fills (then freed): sizes, the row
-// table's layout and the elements the original initialises. The frees and the event table are
+// table's layout and the elements the original initialises. Ours runs first, so that its blocks
+// land where the original's would without the check (the game reads the heap's address order,
+// SV2f); the probe's blocks come after and are freed. The frees and the event table are
 // ours only (they free memory). Reached by every map load (CAIMap::Load, the region map's Attach)
 // and the AI map's constructor at start-up; BuildOpenMarks by every map load.
 #include "verify.h"
@@ -39,13 +41,13 @@ void FreeProbe(SearchGrid<T>& probe) {
     gamecrt::operator_delete(probe.rows);
 }
 
-// The original allocates a probe of the same size, ours the real grid.
+// Ours allocates the real grid, then the original a probe of the same size.
 template <typename T, typename Same>
 void CompareAllocate(const char* name, SearchGrid<T>* grid, void(__fastcall* original)(SearchGrid<T>*),
                      void(__fastcall* ours)(SearchGrid<T>*), int perCell, Same same) {
     SearchGrid<T> probe{nullptr, nullptr, grid->width, grid->height};
-    original(&probe);
     ours(grid);
+    original(&probe);
     bool ok = RowsFit(probe, perCell) && RowsFit(*grid, perCell) && SameCells(probe, *grid, perCell, same);
     ei::verify::Check(name, true, ok, "%d x %d", grid->width, grid->height);
     FreeProbe(probe);
@@ -146,7 +148,7 @@ EI_VERIFY(0x005BCC30, FreeGridVerify, 0, s_unused);
 EI_VERIFY(0x0058AAB0, FreeGridVerify, 0, s_unused);   // A-W14 (unwind funclets only)
 
 namespace {
-// The original constructs a probe, ours the real grid; the probe's result must be itself.
+// Ours constructs the real grid, then the original a probe; the probe's result must be itself.
 template <typename T>
 SearchGrid<T>* __fastcall ConstructOurs(SearchGrid<T>* grid, void*, int width, int height) {
     return grid->Construct(width, height);
@@ -156,8 +158,8 @@ SearchGrid<T>* CompareConstruct(const char* name, SearchGrid<T>* grid, int width
                                 SearchGrid<T>*(__fastcall* original)(SearchGrid<T>*, void*, int, int),
                                 SearchGrid<T>*(__fastcall* ours)(SearchGrid<T>*, void*, int, int), Same same) {
     SearchGrid<T> probe{nullptr, nullptr, -1, -1};
-    SearchGrid<T>* expected = original(&probe, nullptr, width, height);
     SearchGrid<T>* actual = ours(grid, nullptr, width, height);
+    SearchGrid<T>* expected = original(&probe, nullptr, width, height);
     bool ok = expected == &probe && actual == grid && probe.width == width && probe.height == height &&
               RowsFit(probe) && RowsFit(*grid) && SameCells(probe, *grid, 1, same);
     ei::verify::Check(name, true, ok, "%d x %d", width, height);
@@ -231,8 +233,8 @@ EI_VERIFY(0x005AF590, ConstructRepresentativesVerify, 8, s_constructRepresentati
 static void(__fastcall* s_constructRegions)(SearchGrid<std::uint16_t>*);
 static void __fastcall ConstructRegionsVerify(SearchGrid<std::uint16_t>* grid) {
     SearchGrid<std::uint16_t> probe{nullptr, nullptr, -1, -1};
-    s_constructRegions(&probe);
     ConstructRegionGrid(grid);
+    s_constructRegions(&probe);
     bool ok = probe.width == 1 && probe.height == 1 && grid->width == 1 && grid->height == 1 && RowsFit(probe) &&
               RowsFit(*grid);
     ei::verify::Check("ConstructRegionGrid", true, ok, "%d x %d", grid->width, grid->height);
@@ -251,8 +253,8 @@ static LocalSearch* __fastcall ConstructSearchVerify(LocalSearch* self, void*, C
     }
     std::vector<unsigned char> scratch(sizeof(LocalSearch), 0xCD);
     auto* probe = reinterpret_cast<LocalSearch*>(scratch.data());
-    LocalSearch* expected = s_constructSearch(probe, nullptr, nullptr);
     LocalSearch* actual = self->Construct(nullptr);
+    LocalSearch* expected = s_constructSearch(probe, nullptr, nullptr);
     auto sized = [](const LocalSearch* s) {
         return s->nodes.width == 1 && s->nodes.height == 1 && s->levels.width == 1 && s->levels.height == 1 &&
                RowsFit(s->nodes) && RowsFit(s->levels) && !s->map;
@@ -314,17 +316,17 @@ static void __fastcall AllocateEventsVerify(SearchGrid<AIEventCell>* grid) {
 }
 EI_VERIFY(0x005CD4B0, AllocateEventsVerify, 6, s_allocateEvents);
 
-// 005CD3A0: PUSH EBX; MOV EBX,[ESP+0xC] (5). The original resizes a probe of the grid's size (its
-// own blocks), ours the real grid; both end with the size asked and fitting rows, and a call for
+// 005CD3A0: PUSH EBX; MOV EBX,[ESP+0xC] (5). Ours resizes the real grid, then the original a probe
+// of the grid's old size (its own blocks); both end with the size asked and fitting rows, and a call for
 // the size the grid has leaves the pointers alone. The visibility marks (the AI's sight checks).
 static void(__fastcall* s_resizeBytes)(SearchGrid<std::uint8_t>*, void*, int, int);
 static void __fastcall ResizeBytesVerify(SearchGrid<std::uint8_t>* grid, void*, int width, int height) {
     SearchGrid<std::uint8_t> before = *grid;
-    SearchGrid<std::uint8_t> probe{nullptr, nullptr, grid->width, grid->height};
+    grid->Resize(width, height);
+    SearchGrid<std::uint8_t> probe{nullptr, nullptr, before.width, before.height};
     AllocateByteGrid(&probe);
     SearchGrid<std::uint8_t> probeBefore = probe;
     s_resizeBytes(&probe, nullptr, width, height);
-    grid->Resize(width, height);
     bool same = before.width == width && before.height == height;
     bool ok = probe.width == width && probe.height == height && grid->width == width && grid->height == height &&
               RowsFit(probe) && RowsFit(*grid) && (!same || (probe.data == probeBefore.data && grid->data == before.data &&
@@ -334,13 +336,13 @@ static void __fastcall ResizeBytesVerify(SearchGrid<std::uint8_t>* grid, void*, 
 }
 EI_VERIFY(0x005CD3A0, ResizeBytesVerify, 5, s_resizeBytes);
 
-// 005CD410: PUSH EBP; MOV EBP,[ESP+8] (5). The original copies into a probe, ours into the real
-// grid; the sizes and every cell compared with the source. Growing the visibility marks.
+// 005CD410: PUSH EBP; MOV EBP,[ESP+8] (5). Ours copies into the real grid, then the original into
+// a probe; the sizes and every cell compared with the source. Growing the visibility marks.
 static void(__fastcall* s_copyBytes)(SearchGrid<std::uint8_t>*, void*, const SearchGrid<std::uint8_t>*);
 static void __fastcall CopyBytesVerify(SearchGrid<std::uint8_t>* grid, void*, const SearchGrid<std::uint8_t>* source) {
     SearchGrid<std::uint8_t> probe{nullptr, nullptr, -1, -1};
-    s_copyBytes(&probe, nullptr, source);
     grid->CopyFrom(source);
+    s_copyBytes(&probe, nullptr, source);
     bool ok = RowsFit(probe) && RowsFit(*grid) && SameCells(probe, *grid, 1, Equal<std::uint8_t>) &&
               SameCells(*source, *grid, 1, Equal<std::uint8_t>) && grid->data != source->data;
     ei::verify::Check("CopyByteGrid", true, ok, "%d x %d", source->width, source->height);
@@ -348,15 +350,15 @@ static void __fastcall CopyBytesVerify(SearchGrid<std::uint8_t>* grid, void*, co
 }
 EI_VERIFY(0x005CD410, CopyBytesVerify, 5, s_copyBytes);
 
-// 005C4BA0 CopyNodeGrid (A-W14; PUSH EBP; MOV EBP,[ESP+8]: 5 bytes): the original copies into a
-// probe, ours into the real grid; both must hold the source's nodes (compared by their bytes: the
+// 005C4BA0 CopyNodeGrid (A-W14; PUSH EBP; MOV EBP,[ESP+8]: 5 bytes): ours copies into the real
+// grid, then the original into a probe; both must hold the source's nodes (compared by their bytes: the
 // copies are plain memory copies) in a block of their own. No caller is left: the original
 // Recenter 005C25D0 is rewritten and copies the window itself.
 static void(__fastcall* s_copyNodes)(SearchGrid<SearchNode>*, void*, const SearchGrid<SearchNode>*);
 static void __fastcall CopyNodesVerify(SearchGrid<SearchNode>* grid, void*, const SearchGrid<SearchNode>* source) {
     SearchGrid<SearchNode> probe{nullptr, nullptr, -1, -1};
-    s_copyNodes(&probe, nullptr, source);
     grid->CopyFrom(source);
+    s_copyNodes(&probe, nullptr, source);
     auto sameBytes = [](const SearchNode& a, const SearchNode& b) { return std::memcmp(&a, &b, sizeof(SearchNode)) == 0; };
     bool ok = RowsFit(probe) && RowsFit(*grid) && SameCells(probe, *grid, 1, sameBytes) &&
               SameCells(*source, *grid, 1, sameBytes) && grid->data != source->data;
