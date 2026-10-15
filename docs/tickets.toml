@@ -1368,7 +1368,7 @@ note = "221 __asm blocks, 110 float_control pragmas; mostly kept for bit-exact x
 id = "C13"
 title = "Forwarders to rewritten code into direct calls"
 group = "cleanup"
-note = "2,377 sites; with the standalone work (changes what the verify wrappers see)."
+note = "User 2026-10-15: after hook retirement (S21), on the standalone, goldens as the check."
 
 [[ticket]]
 id = "F4a"
@@ -1464,7 +1464,7 @@ group = "cleanup"
 size = 3
 model = "sonnet"
 files = ["src/game", "src/lib", "config/cleanup_baseline.csv", "tools/check_cleanup.py"]
-note = "User 2026-10-15: the number of reinterpret_casts is a cleanup area. src has 6,077 (tests 2,797; cleanup-plan.md's baseline was 4,186 on 2026-10-04, so it grew with the port). Rough split by grep: ~2,700 cast a game address to a pointer (gameapi.h import slots 411, globals, forwarders; these mostly go with S18's own data and Phase 4's direct imports, so leave them until then), ~1,000 are byte-pointer offset reads (base + 0x.. into a struct: give the struct the field), the rest are pointer punning between game types, vtable and function-pointer casts. Batches like C11: one file family per worker, the biggest typed-struct families first (world_game.cpp 123, world_data.h 77, ui.h 68, ui_global_map.cpp 65, sound_manager*.cpp 122, ui_battle_update.cpp 59, player_client.cpp 54). Spelling and typing only: never change a calling convention, argument order or float grouping; goldens must stay the same. Add the count to check_cleanup's baseline so it can only fall. progress.py already counts it."
+note = "User 2026-10-15: after hook retirement (S21), on the standalone, goldens as the check (address casts go with S18 anyway)."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
@@ -2009,6 +2009,33 @@ size = 1
 depends = ["S17"]
 files = ["src/game/world_client_draw.cpp", "src/game/world_client_view.cpp", "src/game/world_rules.cpp"]
 note = "From S17. camera --standalone crashed once (batch 1235, run 33000, build at main 830d77a8; the retry passed; 0 in ~900 other standalone runs, 0 in hooked runs): C0000005 reading FF000094 in UnitOrderLess::Less (world_rules.cpp, Object3D(a)->attached at +0x94 with a = FF000000) under IntroSortByModel 005740D0 <- SortByModel <- CWorldClient::DrawPass <- Render, main thread, after 'key left; frames 5' (eax=esi=FF000000, ebx=edi=309CA954). An element read as FF000000 means the unguarded partition / linear insert ran off the frame list. Candidates: (1) an irreflexive comparison: Less ends with !(za >= zb) on viewPosition.z, so a NaN z (less(x, x) true) lets the unguarded scans run past either end; viewPosition is written only for objects in view (CollectVisible), never by the constructor (CObject3D::Construct 00515BD0 leaves +0x28), so an object listed only for its shadow before it was ever in view sorts on heap leftovers; in the image those come from the host heap, not the game's. Not confirmed: an S17 diagnostic (log NaN view z in SortByModel) saw none in 44 + 32 standalone runs, also with every image malloc filled with 0xFF. (2) memory overwritten under the list (another thread, the unlocked node allocator). Next: keep the NaN check as a verify-build check in SortByModel's wrapper (log the object and list), run the standalone suite repeatedly; if (1), give viewPosition a canonical start (zero in ours and in the original through a harness patch, as SV7b3) rather than changing the comparator."
+
+[[ticket]]
+id = "S19"
+title = "Standalone: the suite against the Rebirth goldens"
+group = "standalone"
+size = 1.5
+model = "opus"
+files = ["tools/run_all.py", "src/standalone", "src/hook/rebirth_hook.cpp"]
+note = "S17 compared only the 44 vanilla goldens: run_all --standalone has no Rebirth pass. S14 gave the image its Rebirth flags from ei_rebirth.ini (no addon, no EI_Plugin.asi). Make --standalone run the Rebirth installs' scenarios with those flags, compare with the Rebirth goldens and the hooked Rebirth runs, classify as S17 did, fix standalone-only differences (Rebirth patches that live in addon.dll / EI_Plugin and are not folded into ours show up here: list them). Blocks hook retirement (S21)."
+
+[[ticket]]
+id = "S20"
+title = "Goldens for every scenario before the hooks go"
+group = "standalone"
+size = 1.5
+model = "sonnet"
+files = ["tests/golden", "tools/golden.py", "tests/scenarios"]
+note = "72 of the 128 runs have no golden (S17: 54 scenarios pass under --standalone but are checked against nothing). Goldens can only be recorded from the original (--no-hooks), so record one for every scenario that can have one (golden.py record --runs, two fresh plain runs agreeing; under jitter too once SV7c lands); for each that cannot, say why in the scenario (renderer-only, timing-only, multiplayer). After the SV7 tail. Blocks hook retirement (S21)."
+
+[[ticket]]
+id = "S21"
+title = "Retire the hook builds"
+group = "standalone"
+size = 2
+model = "opus"
+files = ["src/hook", "tests/verify", "build.cmd", "tools/run_all.py"]
+note = "User 2026-10-15: finish the golden net (SV7 tail, SV7c, S20), Rebirth in the standalone (S19) and the remaining function vectors (SV4b1, SV4c), then retire the hook and verify builds: the standalone is the only product, checked by goldens and function vectors. Keep a slim harness that runs the original game only to record goldens (or freeze them). C13 and C15 run after this, on the standalone, with the goldens as the check (C13 changes what the verify wrappers see anyway). Then Phase 4 of docs/cleanup-plan.md."
 
 # ---------------------------------------------------------------- Lua
 
