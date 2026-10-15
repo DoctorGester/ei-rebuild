@@ -21,7 +21,6 @@ namespace {
 __declspec(naked) void __fastcall SearchExpand(void*, void*) EI_ORIGINAL(0x005C2D40)
 __declspec(naked) void __fastcall SearchBest(void*, void*, int*, int*, int*) EI_ORIGINAL(0x005C3050)
 __declspec(naked) void __fastcall SearchPathTo(void*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005C3200)
-void __fastcall SearchResetAt(void* a0, void*) { LocalSearchResetOriginal(a0); }
 // The path cell list: a reversed copy into `out` (RET 4, returns out), append a list (RET 4),
 // and the fix-up of the joined path.
 void __fastcall ListFixUp(PathCellList* a0, void*) { PathCellListFixUpOriginal((void*)a0); }
@@ -29,9 +28,6 @@ void __fastcall ListFixUp(PathCellList* a0, void*) { PathCellListFixUpOriginal((
 // 00539980: ConstructElements<PathCell> (zero-fills `count`).
 
 constexpr int kUnreached = 0x7FFFFFFF;
-
-// The word BuildCellsTo gives each cell's second dword (see SetBuildCellsStaleWord).
-std::uint32_t g_staleWord = 0;
 
 // The inlined list destructor (the nodes need no destruction).
 void DestroyList(PathCellList& list) {
@@ -44,10 +40,6 @@ void DestroyList(PathCellList& list) {
 }
 
 } // namespace
-
-// Set by the planner (ai_plan.cpp) to the dword the original's BuildCells would find in the stack
-// slot it reads for the cells' second dword (flags and unknown_6).
-void SetBuildCellsStaleWord(std::uint32_t value) { g_staleWord = value; }
 
 bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
     LocalSearch* forward = &forwardSearch;
@@ -81,9 +73,12 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         ListAppend(path, nullptr, ListReversed(&scratch, nullptr, &reversed));
         DestroyList(reversed);
         ListFixUp(path, nullptr);
+        // The original's cells keep the stack word under SearchPathTo's local cell (SearchBest's
+        // saved ESI, the forward search's address); ours get the plain words.
+        SetPlainCellWords(path);
     }
-    SearchResetAt(backward, nullptr);
-    SearchResetAt(forward, nullptr);
+    LocalSearchResetOriginal(backward);
+    LocalSearchResetOriginal(forward);
     DestroyList(scratch);
     return ok;
 }
@@ -97,12 +92,10 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
     mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(path->blocks));
     path->blocks = nullptr;
     if (x < 0 || x >= width || y < 0 || y >= height) return;
-    // The original builds each cell's second dword (flags, unknown_6) from a stack slot it never
-    // writes; its only caller, the planner, records what that slot holds (ai_plan.cpp).
-    std::uint32_t stale = g_staleWord;
-    auto cellAt = [stale](int cx, int cy) {
-        PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), static_cast<std::uint16_t>(stale),
-                   static_cast<std::uint16_t>(stale >> 16)};
+    // The original gives each cell's speed word and terrain bits a stack slot it never writes (the
+    // planner's last call left a search's row offset there); ours get the plain words.
+    auto cellAt = [](int cx, int cy) {
+        PathCell c{static_cast<std::int16_t>(cx), static_cast<std::int16_t>(cy), kPlainStepSpeed, 0};
         return c;
     };
     // Walk back along the marks (directions 1..8; 0 ends), each cell added at the head.

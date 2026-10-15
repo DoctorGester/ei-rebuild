@@ -29,9 +29,6 @@
 #include <bit>
 #include <cstring>
 
-// Keep the original's order of operations (see combat.cpp).
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                                   // 0073B858
 constexpr float kHitNoiseScale = 2.0f;                          // 0073EEF0
@@ -130,7 +127,6 @@ void __fastcall VoiceSay(void* a0, void*, int a2) { VoiceSayOriginal(a0, nullptr
 // `kind` made by `source`; `unit` died; `controller` updates its perception memory.
 void __fastcall AIEventsNoise(void* a0, void*, CUnitServer* a2, float a3, int a4, int a5) { AiEventsNoiseOriginal(a0, nullptr, (void*)a2, a3, a4, (const void*)a5); }
 __declspec(naked) void __fastcall AIEventsDied(void*, void*, CUnitServer*) EI_ORIGINAL(0x005C97B0)
-void __fastcall AIEventsUpdateMemory(void* a0, void*, CUnitServer* a2, void* a3) { AiEventsUpdateMemoryOriginal(a0, nullptr, a2, a3); }
 // 005CBE90. Perception memory (controller + 0xA50): a party member `dead` died near `member`.
 __declspec(naked) void __fastcall MemoryPartyMemberDied(void*, void*, CUnit*, CUnit*)
     EI_ORIGINAL(0x005CBE90)
@@ -344,7 +340,7 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
         if (!(diplomacy->allied_[other->side] & bit)) continue;
         other->flags_ |= 0x2000000;
         CUnitServer* controller = ControllerOf(other);
-        AIEventsUpdateMemory(AIEventsOf(world), nullptr, controller, controller->brain.memory);
+        AiEventsUpdateMemoryOriginal(AIEventsOf(world), nullptr, controller, controller->brain.memory);
         auto* watched = reinterpret_cast<UnitList*>(&controller->brain.visible);
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {

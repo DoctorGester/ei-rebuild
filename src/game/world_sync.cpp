@@ -102,9 +102,6 @@ __declspec(naked) int __fastcall StateSendZone(CPlayerServer*, void*, void* /*me
 // `kept` and `removed` (ECX known, EDX current).
 __declspec(naked) void __fastcall DiffObjectSets(void* /*known*/, StaticPtrArray* /*current*/, StaticPtrArray* /*added*/,
                                                  StaticPtrArray* /*kept*/, StaticPtrArray* /*removed*/) EI_ORIGINAL(0x0047B1F0)
-// 005C0BD0 (RET 0xC). CSectorMap: the units within `radius` of `position` into a CPtrList.
-// 0052CA10. CPtrList destructor body (RemoveAll).
-inline void __fastcall PtrListDestruct(void* l, void*) { PtrListRemoveAllOriginal(l); }
 // 004E58A0 (RET 4). Writes a zone exit to a stream.
 __declspec(naked) void __fastcall ZoneExitWrite(ZoneExit*, void*, void* /*stream*/) EI_ORIGINAL(0x004E58A0)
 // The unit set SendZone fills (world.h): its two maps' constructors and destructors (the figured
@@ -231,14 +228,14 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
         heard.blocks = nullptr;
         heard.blockSize = 10;
         auto* controller = static_cast<CUnitServer*>(static_cast<CUnit*>(unit)->controller);
-        float perception = StoreFloat(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
+        float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
         float range = !(perception >= minimum) ? minimum : perception;   // the original's branch-free select
-        float radius = StoreFloat(static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin()));
+        float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
         SectorMapFindUnitsInRadius(world->sectorMap_, nullptr, PositionOf(unit), &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = mfc::PtrListVtable();
-        PtrListDestruct(&heard, nullptr);
+        PtrListRemoveAllOriginal(&heard);
     }
     return out;
 }
@@ -251,8 +248,8 @@ CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, C
         const Vector3* position = TimedSlots(object)->Position(&state->partyUnits_);
         double dx = static_cast<double>(position->x) - state->lastPosition_.x;
         double dy = static_cast<double>(position->y) - state->lastPosition_.y;
-        float distance = StoreFloat(static_cast<float>(LengthSquared2DUnrounded(dy, dx)));
-        float reach = StoreFloat(static_cast<float>(TimedSlots(object)->Radius()));
+        float distance = static_cast<float>(LengthSquared2DUnrounded(dy, dx));
+        float reach = static_cast<float>(TimedSlots(object)->Radius());
         double reach2 = TimedSlots(object)->Radius() * reach;
         if (reach2 > distance) *out++ = object;
     }

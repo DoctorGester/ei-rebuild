@@ -2,6 +2,7 @@
 // ui_briefing.h and docs/notes/ui.md, section 3. Multiplayer only.
 #include "ui_briefing.h"
 #include "game_strings.h"
+#include "plugin_fixes.h"
 
 #include "item_db_text.h"
 #include "net_classes.h"
@@ -12,6 +13,7 @@
 #include "unit_db.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
@@ -50,7 +52,7 @@ constexpr int kSurfaceFormat = 5;
 constexpr int kTextureKind = 0x20;
 constexpr int kFaceWidth = 0x38;
 constexpr int kFirstFaceLeft = 0x2E8;
-constexpr int kFirstStatusLeft = 0x118;
+constexpr int kFirstStatusLeft = 0x118;   // with the window at 0x1D0; 0x2E8 with EI_Plugin's NPlayers (006095FB)
 constexpr std::uint32_t kWhite = 0xFFFFFF;
 constexpr int kPickCommandA = 4, kPickCommandB = 5;   // the client's command kinds for picks 1 / 2
 
@@ -104,9 +106,11 @@ CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
     texts_.Construct();
     vtable_ = MainVtable();
     inputVtable_ = InputVtable();
-    rect_ = RECT{0x1D0, 0, 800, 0xA0};
+    // EI_Plugin's NPlayers (00608D9D, 00608DE4): the window and its surface start at x 0, not 0x1D0.
+    const int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0;
+    rect_ = RECT{left, 0, 800, 0xA0};
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
-    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 0x1D0, 0x4B, 800, 0x69, kSurfaceFormat, 1)
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, left, 0x4B, 800, 0x69, kSurfaceFormat, 1)
                       : nullptr);
     portraits_ = 0;
     mfc::CString text;
@@ -117,6 +121,11 @@ CChatWindow* CChatWindow::Construct(CInterface3D* ui) {
     return this;
 }
 EI_REPLACE_METHOD(0x00608D20, CChatWindow::Construct);
+// EI_Plugin.asi patches the constructor and Update (NPlayers: the window's left edge and the first status
+// column) and ShowPlayers (Fixes: the faces' sex and the prototype fallback) in a Rebirth launch.
+EI_REBIRTH_IMPLEMENTS(0x00608D20, ei::rebirth::Patch::EiPluginNPlayers);
+EI_REBIRTH_IMPLEMENTS(0x006095A0, ei::rebirth::Patch::EiPluginNPlayers);
+EI_REBIRTH_IMPLEMENTS(0x006091C0, ei::rebirth::Patch::EiPluginFixes);
 
 // --- 00608F90: a face ---------------------------------------------------------------------------
 
@@ -210,15 +219,19 @@ void CChatWindow::ShowPlayers() {
             PrototypeNamePair key{stlp::string(player->text_.start, player->text_.finish), nullptr};
             prototype = static_cast<UnitPrototypeRecord*>(
                 static_cast<PrototypeNamePair*>(NameMapInsertOriginal(UnitPrototypes(), nullptr, &key))->value);
+            // EI_Plugin's Fixes (006093B7): an unknown prototype becomes the first one that is no creature.
+            if (!prototype && pluginfixes::Enabled())
+                prototype = reinterpret_cast<UnitPrototypeRecord*>(pluginfixes::FallbackPrototype());
         }
         FigurePrototypeRecord* figure;
         {
             stlp::string key(static_cast<const char*>(prototype->modelName));
             figure = reinterpret_cast<FigurePrototypeRecord*>(*FigureMapAtOriginal(FigurePrototypes(), nullptr, &key));
         }
-        if (SameText(figure->model, game::Text(0x007908C8)))          // "unhuma"
+        const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (00609427): the model's fifth character
+        if (fixes ? !pluginfixes::ModelIsFemale(figure->model) : SameText(figure->model, game::Text(0x007908C8)))   // "unhuma"
             sex = game::Text(0x00792EAC);                             // "m"
-        else if (SameText(figure->model, game::Text(0x00792EA4)))     // "unhufe"
+        else if (fixes || SameText(figure->model, game::Text(0x00792EA4)))     // "unhufe"
             sex = game::Text(0x0078BBD8);                             // "f"
         build = game::Text(0x007844A8);                               // "me"
         model.Format(game::Text(0x007935AC), figure->model, static_cast<const char*>(build), prototype->hair + 1);   // "infa%s%s%dface"
@@ -241,7 +254,7 @@ void CChatWindow::Update() {
     SurfaceGetDC(surface);
     surface->Clear();
     mfc::CString status, offer;
-    int left = kFirstStatusLeft;
+    int left = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? kFirstFaceLeft : kFirstStatusLeft;
     for (CRefObject** p = players_.Start(); p != players_.Finish(); ++p, left -= kFaceWidth) {
         net::PlayerMessage* player = PlayerOf(*p);
         status.Empty();
@@ -313,12 +326,6 @@ void CChatWindow::OnMouseMove(int, int x, int y) {
 }
 
 namespace {
-void __fastcall ChatWindowLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CChatWindow>(input)->OnLButtonDown(buttons, x, y);
-}
-void __fastcall ChatWindowMouseMove(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CChatWindow>(input)->OnMouseMove(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x006097E0, ChatWindowLButtonDown);
-EI_REPLACE(0x00609900, ChatWindowMouseMove);
+EI_REPLACE_METHOD(0x006097E0, InputForward<&CChatWindow::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x00609900, InputForward<&CChatWindow::OnMouseMove>::Call);

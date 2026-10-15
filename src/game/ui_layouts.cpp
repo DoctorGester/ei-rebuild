@@ -10,11 +10,13 @@
 #include "item_db_text.h"
 #include "maths.h"
 #include "model.h"
+#include "net_second_master.h"
 #include "resource.h"
 #include "ui_screens.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -282,11 +284,6 @@ __declspec(naked) void __fastcall ConstructBindingList(void*, void*, void*) EI_O
 __declspec(naked) void __fastcall ConstructSettingList(void*, void*, void*) EI_ORIGINAL(0x0062B5E0)
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 
-constexpr std::uintptr_t kSaveLoadVtable = 0x00741388;
-constexpr std::uintptr_t kSaveLoadInputVtable = 0x00741354;
-constexpr std::uintptr_t kOptionsVtable = 0x00741FAC;
-constexpr std::uintptr_t kOptionsInputVtable = 0x00741F78;
-
 void SetVtables(CUiWindow* window, std::uintptr_t main, std::uintptr_t input) {
     window->vtable_ = reinterpret_cast<void**>(main);
     window->inputVtable_ = reinterpret_cast<void**>(input);
@@ -303,7 +300,7 @@ CSaveLoadWindow* NewSaveLoadWindow(CInterface3D* ui) {
     w->isSave_ = false;
     w->sliding_ = false;
     new (static_cast<void*>(&w->name_)) mfc::CString();
-    SetVtables(w, kSaveLoadVtable, kSaveLoadInputVtable);
+    SetVtables(w, CSaveLoadWindow::kVtableAddress, CSaveLoadWindow::kInputVtableAddress);
     return w;
 }
 
@@ -318,7 +315,7 @@ COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
     ConstructSettingList(&w->settings_, nullptr, &allocator[1]);
     w->sliding_ = false;
     w->groupNames_.Construct();
-    SetVtables(w, kOptionsVtable, kOptionsInputVtable);
+    SetVtables(w, COptionsWindow::kVtableAddress, COptionsWindow::kInputVtableAddress);
     return w;
 }
 } // namespace
@@ -372,11 +369,8 @@ void CEscMenu::OnLButtonDown(int buttons, int x, int y) {
 }
 
 namespace {
-void __fastcall EscMenuLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CEscMenu>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x0062AE90, EscMenuLButtonDown);
+EI_REPLACE_METHOD(0x0062AE90, InputForward<&CEscMenu::OnLButtonDown>::Call);
 
 // --- Main menu clicks (00632D70) ------------------------------------------------------------------
 
@@ -476,7 +470,9 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
         break;
     }
     case 5: {
-        // Multiplayer: the hero screen (a server session starts).
+        // Multiplayer: the hero screen (a server session starts). EI_Plugin's NewMaster first looks up
+        // its second master server (its call at 006330A9, net_second_master.h).
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) net::second_master::OnMultiplayerClick();
         mfc::CString text;
         TextsGetString(Glue(0x007AFEA4)->TextTable(), nullptr, game::Text(0x00793A54), &text);   // "reserved_04"
         ShowStatusText(reinterpret_cast<void*>(0x007C7D50), nullptr, text);
@@ -507,11 +503,9 @@ void CMainMenu::OnLButtonDown(int buttons, int x, int y) {
 }
 
 namespace {
-void __fastcall MainMenuLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CMainMenu>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00632D70, MainMenuLButtonDown);
+EI_REPLACE_METHOD(0x00632D70, InputForward<&CMainMenu::OnLButtonDown>::Call);
+EI_REBIRTH_IMPLEMENTS(0x00632D70, ei::rebirth::Patch::EiPluginNewMaster);
 
 // --- Message box (00634790) -----------------------------------------------------------------------
 

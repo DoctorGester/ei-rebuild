@@ -23,9 +23,6 @@
 #include "originals_library.h"
 #include "originals_script.h"
 
-// The distances keep the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -40,10 +37,7 @@ constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 const CSpell* AsSpell(const void* spell) { return static_cast<const CSpell*>(spell); }
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
-
-inline void __fastcall UnitListRemoveAll(UnitList* l, void*) { PtrListRemoveAllOriginal(l); }
 UnitList::Node* __fastcall UnitListNewNode(UnitList* a0, void*, UnitList::Node* a2, UnitList::Node* a3) { return (UnitList::Node*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
-void __fastcall UnitListFreeNode(UnitList* a0, void*, UnitList::Node* a2) { UnitListFreeNodeOriginal((void*)a0, nullptr, (void*)a2); }
 // 004B3330 (RET 4). ScriptGroup::Contains (script_group.cpp), through its address.
 // 0054BBC0 (RET 0x10). Whether the spell (EDX) may hit `target` (ECX = the world).
 __declspec(naked) bool __fastcall SpellReaches(CWorldServer*, const void* /*spell*/, CEngineObject* /*caster*/,
@@ -79,7 +73,7 @@ void RemoveNode(UnitList& list, UnitList::Node* node) {
     else node->next->prev = node->prev;
     node->next = list.free;
     list.free = node;
-    if (--list.count == 0) UnitListRemoveAll(&list, nullptr);
+    if (--list.count == 0) PtrListRemoveAllOriginal(&list);
 }
 
 void Unlink(UnitList& list, UnitList::Node* node) {
@@ -97,7 +91,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     Vector3 end;
     std::memcpy(&end, aim, sizeof(end));
     if (static_cast<const CSpell*>(spell)->targetFlags_ & kSpellAreaFlag) target = nullptr;
-    end.z = StoreFloat(static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + GameFloat(0x0073C54C)));
+    end.z = static_cast<float>(RawSurfaceHeightAt(end.x, end.y) + GameFloat(0x0073C54C));
     if (caster) std::memcpy(&from, &static_cast<CUnit*>(caster)->position, sizeof(from));
 
     void* memory = gamecrt::operator_new(0xA8);
@@ -197,7 +191,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
                 float bestDistance;
                 std::memcpy(&bestDistance, &bestBits, 4);
                 if (!(distance >= bestDistance)) {
-                    float stored = StoreFloat(static_cast<float>(distance));
+                    float stored = static_cast<float>(distance);
                     std::memcpy(&bestBits, &stored, 4);
                     best = unit;
                     bestNode = node;
@@ -207,7 +201,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         }
         if (!best) break;
         Unlink(units, bestNode);
-        UnitListFreeNode(&units, nullptr, bestNode);
+        UnitListFreeNodeOriginal(&units, nullptr, bestNode);
 
         bool hit;
         if (!caster) {
@@ -238,8 +232,6 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
     units.vtable = mfc::PtrListVtable();
     units.RemoveAll();
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0058E850, CWorldServer::CastSpell);
 EI_REPLACE_METHOD(0x0058E670, CWorldServer::CreateMissile);

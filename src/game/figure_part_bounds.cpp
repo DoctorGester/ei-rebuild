@@ -26,7 +26,6 @@ constexpr std::uint32_t kShowBounds = 0x4000;   // the context's flags_
 
 } // namespace
 
-#pragma float_control(precise, on, push)
 void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
     if (!(ContextOf(this)->flags_ & kShowBounds)) return;
     LineBatch lines{-1, {nullptr, 0, 0, 0}, 0, 0xFFFF0000u, 0};
@@ -46,8 +45,6 @@ void FigureMeshDrawer::DrawBounds(CSceneRenderer* renderer) {
     renderer->DrawLineList(&lines);
     lines.packets.FreeData();
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x005A7290, FigureMeshDrawer::DrawBounds);
 

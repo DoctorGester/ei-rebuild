@@ -220,6 +220,12 @@ void ResetGameData();
 // After a fixture's records: what they wrote to the stand-in stays for the rest of the run.
 void KeepGameData();
 
+// A forwarder (EI_ORIGINAL) to `address` goes to `function` instead of our rewrite there, for code
+// outside the family that the replay leaves out (hook_stub.cpp). Called before the checks run.
+void ReplayStandIn(std::uintptr_t address, void* function, const char* name);
+// What a forwarder with nothing behind it raises (the address its second parameter).
+constexpr unsigned long kMissingForwarder = 0xE0455646;
+
 template <typename T, bool (*Fn)(const T&, char*, std::size_t)>
 bool RunTyped(const void* payload, std::uint32_t, char* detail, std::size_t detailSize) {
     T v;

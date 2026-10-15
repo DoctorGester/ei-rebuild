@@ -161,10 +161,10 @@ void CMainMenu::Update() {
             if (Random().Next() % 41 == 4) {
                 // A bolt from a random point high above the map to one near it on the ground; each
                 // coordinate is stored as a float before it is used again.
-                float fromX = StoreFloat(static_cast<float>(RandomScaled(4.656612874161595e-09)));    // 0073CD60
-                float fromY = StoreFloat(static_cast<float>(RandomScaled(1.3969838622484784e-08)));   // 00742110
-                float toX = StoreFloat(static_cast<float>(RandomScaled(9.31322574832319e-10) + fromX - 2.0));   // 0073FA20, 0073CDB8
-                float toY = StoreFloat(static_cast<float>(RandomScaled(9.31322574832319e-10) + fromY - 2.0));
+                float fromX = static_cast<float>(RandomScaled(4.656612874161595e-09));    // 0073CD60
+                float fromY = static_cast<float>(RandomScaled(1.3969838622484784e-08));   // 00742110
+                float toX = static_cast<float>(RandomScaled(9.31322574832319e-10) + fromX - 2.0);   // 0073FA20, 0073CDB8
+                float toY = static_cast<float>(RandomScaled(9.31322574832319e-10) + fromY - 2.0);
                 ShowBoltOriginal(GlueA(), nullptr, fromX, fromY, 17.0f, toX, toY, 1.0f);
             }
         }
@@ -227,11 +227,8 @@ void CMainMenu::OnMouseMove(int buttons, int x, int y) {
     InputOf(this)->BaseMouseMove(buttons, x, y);
 }
 namespace {
-void __fastcall MainMenuMouseMove(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CMainMenu>(input)->OnMouseMove(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00633400, MainMenuMouseMove);
+EI_REPLACE_METHOD(0x00633400, InputForward<&CMainMenu::OnMouseMove>::Call);
 
 void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->BaseKeyDown(key, repeat, flags);
@@ -241,8 +238,5 @@ void CMainMenu::OnKeyDown(int key, int repeat, int flags) {
     InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
 }
 namespace {
-void __fastcall MainMenuKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CMainMenu>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x00633540, MainMenuKeyDown);
+EI_REPLACE_METHOD(0x00633540, InputForward<&CMainMenu::OnKeyDown>::Call);

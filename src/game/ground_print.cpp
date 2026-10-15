@@ -102,7 +102,7 @@ const Record* EntryAt(const stlp::vector<Record>& table, CWorldClient* world, fl
 }
 
 // The colour's channel: FISTP of the float channel * 255.
-std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(x87::fistp(RoundToFloat(value * kAlphaRange))); }
+std::uint32_t Channel(float value) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(value * kAlphaRange))); }
 
 } // namespace
 
@@ -185,7 +185,7 @@ int GroundPrint::TickImpl() {
     --life_;
     halfWidth_ = halfWidth_ + growth_;
     halfLength_ = halfLength_ + growth_;
-    float t = RoundToFloat(static_cast<double>(lifetime_ - life_) / lifetime_);
+    float t = static_cast<float>(static_cast<double>(lifetime_ - life_) / lifetime_);
     // max(t, 0) by FCOMP: an unordered t is kept.
     float spent = (t > 0.0f || x87::IsNaN(t)) ? t : 0.0f;
     alpha_ = (kOne - spent) * alphaScale_;
@@ -244,7 +244,7 @@ int GroundPrint::Draw() {
         lib::AlignedArray<VertexPacket> quad;
         quad.Construct();
         Vector3 at{position_.x, position_.y, 0.0f};
-        float z = RoundToFloat(world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(position_.x, position_.y)));
+        float z = static_cast<float>(world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(position_.x, position_.y)));
         quad.SetSize(1);
         double c = x87::fcos(angle_);
         double s = x87::fsin(angle_);
@@ -265,8 +265,8 @@ int GroundPrint::Draw() {
         // The texture coordinates turned about the tile's centre, then into the tile. The original's
         // loop is unrolled four times: the fourth vertex stores its u part to a float before scaling
         // it, the others their v part.
-        float uc = RoundToFloat(x87::fcos(uvAngle_));
-        float us = RoundToFloat(x87::fsin(uvAngle_));
+        float uc = static_cast<float>(x87::fcos(uvAngle_));
+        float us = static_cast<float>(x87::fsin(uvAngle_));
         int vertices = positions_.size * 4;
         for (int i = 0; i < vertices; ++i) {
             DecalTexCoord& uv = texCoords_[i];
@@ -274,8 +274,8 @@ int GroundPrint::Draw() {
             double dv = uv.v - kHalf;
             double u = (du * uc - dv * us) + kHalf;
             double v = (dv * uc + du * us) + kHalf;
-            if ((i & 3) == 3) u = RoundToFloat(u);
-            else v = RoundToFloat(v);
+            if ((i & 3) == 3) u = static_cast<float>(u);
+            else v = static_cast<float>(v);
             uv.u = static_cast<float>(u * uvScale_.x + uvOffset_.x);
             uv.v = static_cast<float>(v * uvScale_.y + uvOffset_.y);
         }
@@ -284,7 +284,7 @@ int GroundPrint::Draw() {
         built_ = true;
         quad.FreeData();
     }
-    std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(RoundToFloat(alpha_ * kAlphaRange)));
+    std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(alpha_ * kAlphaRange)));
     colour_ = (colour_ & 0xFFFFFFu) | alpha << 24;
     CTextureDevice* device = RenderDeviceObject();
     DeviceBindNamedTexture(device, nullptr, 0, &texture_);
@@ -366,7 +366,7 @@ BloodPrint* BloodPrint::Construct(float x, float y, float halfSize, float fullSi
     uvScale_ = {kQuarter, kQuarter};
     uvOffset_.y = static_cast<float>(index >> 1) * kQuarter + static_cast<float>(high >> 1) * kHalf;
     uvAngle_ = static_cast<float>(RandomQuarter()) * HalfPi();
-    int steps = x87::fistp(RoundToFloat(TwoPi() * kAngleMilli));
+    int steps = x87::fistp(static_cast<float>(TwoPi() * kAngleMilli));
     angle_ = static_cast<float>(gamecrt::rand() * steps / 0x7FFF % steps) * kMilli;
     SetTexture("bloodprints");
     int spread = life / 2;
@@ -374,8 +374,8 @@ BloodPrint* BloodPrint::Construct(float x, float y, float halfSize, float fullSi
     spreadTicks_ = static_cast<std::int16_t>(spread);
     kind_ = high;
     fresh_ = fresh;
-    float degrees = RoundToFloat(kSpinDegrees / static_cast<double>(life));
-    float radiansPerDegree = RoundToFloat(Pi() * PerDegree());
+    float degrees = static_cast<float>(kSpinDegrees / static_cast<double>(life));
+    float radiansPerDegree = static_cast<float>(Pi() * PerDegree());
     spin_ = degrees * radiansPerDegree;
     growth_ = static_cast<float>((fullSize - halfWidth_) / static_cast<double>(spreadTicks_));
     return this;

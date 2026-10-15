@@ -70,7 +70,7 @@ void CodeStream(BitStream* self, CoderState* coder, BitStream* out, void (CoderS
     std::uint32_t length = BufferLength(result);
     out->Write(result.begin, length);
     out->Seek(0);
-    ei::SetVtable(&view, kBufferViewBaseVtable);
+    ei::SetVtable(&view, GameBuffer::kViewBaseVtableAddress);
     GrowingBufferDestruct(&result);
 }
 } // namespace
@@ -358,9 +358,6 @@ EI_REPLACE(0x0047EB20, ReadDiff);
 
 // --- Positions ---------------------------------------------------------------------------------
 
-// The quantisation keeps the original's order of operations.
-#pragma float_control(precise, on, push)
-
 namespace {
 constexpr float kWriteOffsetXY = -16.0f;          // 0073CA8C
 constexpr float kWriteScaleXY = 120.46875f;       // 0073CA88
@@ -375,7 +372,7 @@ constexpr float kWriteScale2D = 60.234375f;       // 0073CAA0
 const float kReadScale2D = std::bit_cast<float>(0x3C880088u);   // 0073CAA4
 constexpr float kReadOffset2D = 32.0f;            // 0073CA90
 
-int Quantize(float v, float offset, float scale) { return x87::fistp(StoreFloat((v - offset) * scale)); }
+int Quantize(float v, float offset, float scale) { return x87::fistp(static_cast<float>((v - offset) * scale)); }
 
 float Dequantize(std::uint16_t q, float scale, float offset) { return static_cast<float>(static_cast<int>(q)) * scale - offset; }
 } // namespace
@@ -444,19 +441,17 @@ const float kRangeStep = std::bit_cast<float>(0x37800080u);      // 0073CAAC (1 
 } // namespace
 
 void DeltaField::WriteRanged(float value, float min, float max) {
-    int q = x87::fistp(StoreFloat((value - min) * (kRangeSteps / (max - min))));
+    int q = x87::fistp(static_cast<float>((value - min) * (kRangeSteps / (max - min))));
     WriteDelta(&q, 2);
 }
 EI_REPLACE_METHOD(0x0047EF80, DeltaField::WriteRanged);
 
 void DeltaField::ReadRanged(float* value, float min, float max) {
-    float step = StoreFloat((max - min) * kRangeStep);
+    float step = static_cast<float>((max - min) * kRangeStep);
     std::uint16_t q = ReadWord();
     *value = static_cast<float>(static_cast<int>(q)) * step + min;
 }
 EI_REPLACE_METHOD(0x0047F110, DeltaField::ReadRanged);
-
-#pragma float_control(pop)
 
 // --- 16-bit floats -----------------------------------------------------------------------------
 

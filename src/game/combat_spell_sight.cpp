@@ -23,16 +23,16 @@ bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* c
     Vector3 to;
     if (!target) {
         to = *at;
-        to.z = StoreFloat(static_cast<float>(world->SurfaceHeightAt(to.x, to.y) + kAboveSurface));
+        to.z = static_cast<float>(world->SurfaceHeightAt(to.x, to.y) + kAboveSurface);
     } else {
         to = {target->position.x, target->position.y, target->position.z};
-        float ground = StoreFloat(static_cast<float>(target->GroundHeight(to.x, to.y)));
-        to.z = StoreFloat(static_cast<float>(target->ModeSpeed() + ground));
+        float ground = static_cast<float>(target->GroundHeight(to.x, to.y));
+        to.z = static_cast<float>(target->ModeSpeed() + ground);
     }
     Vector3 eye = *from;
     if (caster) {
-        float ground = StoreFloat(static_cast<float>(caster->GroundHeight(eye.x, eye.y)));
-        eye.z = StoreFloat(static_cast<float>(caster->BaseSpeed() + ground));
+        float ground = static_cast<float>(caster->GroundHeight(eye.x, eye.y));
+        eye.z = static_cast<float>(caster->BaseSpeed() + ground);
     }
     // The original compares the unrounded ST0 result (TEST AH,1: below or unordered fails).
     return LineOfSightOriginal(world->AIMap(), nullptr, &eye, &to) >= kMinSight;

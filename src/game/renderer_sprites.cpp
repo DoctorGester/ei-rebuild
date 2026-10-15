@@ -71,9 +71,6 @@ lib::AlignedArray<SpriteSortRecord>& Records() { return *reinterpret_cast<lib::A
 lib::AlignedArray<SpriteSortRecord*>& Order() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFC8); }
 lib::AlignedArray<SpriteSortRecord*>& Spare() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFB8); }
 std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8); }
-
-inline void __fastcall ByteArraySetSize(mfc::CArray<std::uint8_t>* a, void*, int n, int g) { ByteArraySetSizeOriginal(a, nullptr, n, g); }
-inline void __fastcall WordArraySetSize(mfc::CArray<std::uint16_t>* a, void*, int n, int g) { WordArraySetSizeOriginal(a, nullptr, n, g); }
 // The aligned arrays' SetSize instantiations (thiscall: size, growth or -1): 32-byte elements keeping
 // the contents (00504F70) or not (00505080), 16-byte (00505150) and 4-byte (00505270) elements.
 __declspec(naked) void __fastcall SetSize32(lib::AlignedArray<TLVertex>*, void*, int, int) EI_ORIGINAL(0x00504F70)
@@ -287,8 +284,8 @@ bool DrawClipped(CSceneRenderer* renderer, int sprites, ScreenSize& screen) {
         screen.width = static_cast<std::uint32_t>(target->width);
         screen.height = static_cast<std::uint32_t>(target->height);
     }
-    float xMax = RoundToFloat(x87::FromUnsigned(screen.width));
-    float yMax = RoundToFloat(x87::FromUnsigned(screen.height));
+    float xMax = static_cast<float>(x87::FromUnsigned(screen.width));
+    float yMax = static_cast<float>(x87::FromUnsigned(screen.height));
     TLVertex* vertices = CornerData();
     const auto* outcodes = Outcodes().data;
     std::uint16_t* tri = IndexData();
@@ -405,8 +402,8 @@ int CSceneRenderer::DrawSpritesImpl(char additive, const void* pointArray, const
     EnsureStatics();
     Unused().SetSizeDiscard(0x200);
     Corners().SetSizeDiscard(0x2000);
-    ByteArraySetSize(&Outcodes(), nullptr, 0x800, -1);
-    WordArraySetSize(&Indices(), nullptr, 0x3000, -1);
+    ByteArraySetSizeOriginal(&Outcodes(), nullptr, 0x800, -1);
+    WordArraySetSizeOriginal(&Indices(), nullptr, 0x3000, -1);
     std::uint32_t view[16];
     TransposedTop(pipeline, view);
 

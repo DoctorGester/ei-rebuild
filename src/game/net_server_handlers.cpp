@@ -2,9 +2,9 @@
 // (0041AA10, from the tick), the master server's answer (0041ACA0, slot 10) and a client's chat
 // line (0041B1C0, registered for SayMessage by ServerSession's constructor). All run from the
 // session's tick on the main thread (net::Pump). Rebirth's EI_Plugin.asi patches 0041AA10 and
-// 0041ACA0 (NewMaster, at 0041ABDA and 0041ACB7) and addon.dll's ChatLog has a site in 0041B1C0
-// (0041B25B, disabled in this install): these are the vanilla functions, and the installer leaves
-// a function with an active site alone. See docs/notes/network.md.
+// 0041ACA0 (NewMaster, at 0041ABDA and 0041ACB7; both reproduced: 0041ACA0's NOPs and 0041AA10's
+// copy of the announcement to the second master server, net_second_master.h) and addon.dll's ChatLog has a site in 0041B1C0
+// (0041B25B, disabled in this install). See docs/notes/network.md and rebirth.md.
 #include "net_classes.h"
 
 #include "core_refcount.h"
@@ -12,10 +12,12 @@
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_messages.h"
+#include "net_second_master.h"
 #include "originals_world.h"   // WorldMapTitle
 #include "world.h"             // TheGameFlow
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -75,24 +77,32 @@ void ServerSession::AnnounceToMaster() {
     info.magic = kSessionMagic;
     info.Write(&buffer);
     socket_.SendTo(&masterAddress_, &buffer);
+    // EI_Plugin's NewMaster (its call at 0041ABDA sends as SendTo does, then the copy).
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) second_master::CopyAnnouncement(socket_.socket, buffer);
 
     description.~string();
     name.~string();
     buffer.DestructGrowing();
 }
 EI_REPLACE_METHOD(0x0041AA10, ServerSession::AnnounceToMaster);
+EI_REBIRTH_IMPLEMENTS(0x0041AA10, ei::rebirth::Patch::EiPluginNewMaster);
 
 // 0041ACA0 (slot 10, RET 8). A packet of kind -1: only from the master server's address (all 16
-// bytes compared). Its first dword must be the session's +0x25FC; the second is then kept at
-// +0x2578 (the next announcement sends it back). The first dword is consumed either way.
+// bytes compared; from any address with EI_Plugin's NewMaster, which NOPs the JNE at 0041ACB7 so the
+// answer of its second master server counts). Its first dword must be the session's +0x25FC; the
+// second is then kept at +0x2578 (the next announcement sends it back). The first dword is consumed
+// either way.
 void ServerSession::OnMasterImpl(const NetAddress* from, BufferCursor* cursor) {
-    if (std::memcmp(from, &masterAddress_, sizeof(NetAddress)) != 0) return;
+    if (std::memcmp(from, &masterAddress_, sizeof(NetAddress)) != 0 &&
+        !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster))
+        return;
     if (TakeDword(cursor) != masterKey_) return;
     masterToken_ = TakeDword(cursor);
 }
 namespace {
 } // namespace
 EI_REPLACE_METHOD(0x0041ACA0, ServerSession::OnMasterImpl);
+EI_REBIRTH_IMPLEMENTS(0x0041ACA0, ei::rebirth::Patch::EiPluginNewMaster);
 
 // 0041B1C0 (the server in ECX, the message in EDX). A chat line from the connection being read
 // (0079B924; nothing when it is gone or detached): the first binding of that connection names the

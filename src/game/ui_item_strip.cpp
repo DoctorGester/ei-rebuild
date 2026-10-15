@@ -23,12 +23,6 @@ void __fastcall StripCells(CUiMesh* a0, void*, float a2, float a3, float a4, flo
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-// The original keeps this value in a float local (FSTP dword) and reads it back.
-float StoreFloat(float value) {
-    volatile float stored = value;
-    return stored;
-}
-
 
 // A surface's DC (005FDC00 / 005FDC60), its clear (005FE2F0) and a line of text (005FDE20,
 // Rebirth-patched).
@@ -145,7 +139,7 @@ EI_REPLACE_METHOD(0x00620380, CUiItemStrip::Build);
 BOOL CUiItemStrip::Draw(int pass) {
     const float position = position_[tab_];
     const int first = static_cast<int>(position);
-    const float frac = StoreFloat(position - static_cast<float>(first));
+    const float frac = static_cast<float>(position - static_cast<float>(first));
     const float hundred = GameFloat(0x0073BAB0), fifty = GameFloat(0x0074023C), one = GameFloat(0x0073B84C);
     CEngineObject** sprites = window.sceneObjects_.data;
     const std::uint32_t dim = 0x3E480000;   // 0.1953125
@@ -244,7 +238,7 @@ void CUiItemStrip::Update() {
     const float snapPending = GameFloat(0x0073CCD8); // 0.02
     const float snapHigh = GameFloat(0x00741F0C);    // 0.99
     const float one = GameFloat(0x0073B84C);
-    const float dt = StoreFloat(static_cast<float>(StripFrameTime(this)));
+    const float dt = static_cast<float>(StripFrameTime(this));
 
     // An arrow held: one slot at once, then one more every `repeat` seconds.
     if (scrollDirection_ != 0) {
@@ -254,9 +248,9 @@ void CUiItemStrip::Update() {
             const std::uint32_t first = 0x3A83126F;   // 0.001
             std::memcpy(&scrollTimer_, &first, 4);
         } else {
-            scrollTimer_ = StoreFloat(dt + scrollTimer_);
+            scrollTimer_ = static_cast<float>(dt + scrollTimer_);
             while (scrollTimer_ > repeat) {
-                scrollTimer_ = StoreFloat(scrollTimer_ - repeat);
+                scrollTimer_ = static_cast<float>(scrollTimer_ - repeat);
                 ++steps;
             }
         }
@@ -271,31 +265,31 @@ void CUiItemStrip::Update() {
             const float gain = accel * dt;
             float limited;
             if (pending_ > zero) {
-                velocity_ = StoreFloat(gain + velocity_);
+                velocity_ = static_cast<float>(gain + velocity_);
                 if (velocity_ > maxSpeed) velocity_ = maxSpeed;
-                const float limit = StoreFloat((pending_ - nearDistance) / dt);
+                const float limit = static_cast<float>((pending_ - nearDistance) / dt);
                 const float current = velocity_;
                 limited = !(current >= limit) ? current : limit;
             } else {
-                velocity_ = StoreFloat(velocity_ - gain);
+                velocity_ = static_cast<float>(velocity_ - gain);
                 const float minSpeed = -maxSpeed;
                 if (!(velocity_ >= minSpeed)) velocity_ = minSpeed;
-                const float limit = StoreFloat((nearDistance + pending_) / dt);
+                const float limit = static_cast<float>((nearDistance + pending_) / dt);
                 const float current = velocity_;
                 limited = !(limit >= current) ? current : limit;
             }
             speed = (limited + velocity_) * half;
         } else if (pending_ > zero) {
             // Near: the speed that eases out (sqrt(0.5 d) / 0.25).
-            speed = static_cast<float>(std::sqrt(static_cast<double>(nearDistance * pending_)) / easeDivisor);
+            speed = static_cast<float>(x87::fsqrt(static_cast<double>(nearDistance * pending_)) / easeDivisor);
         } else {
-            speed = -static_cast<float>(std::sqrt(static_cast<double>(-(nearDistance * pending_))) / easeDivisor);
+            speed = -static_cast<float>(x87::fsqrt(static_cast<double>(-(nearDistance * pending_))) / easeDivisor);
         }
-        velocity_ = StoreFloat(speed);
-        float step = StoreFloat(speed * dt);
+        velocity_ = static_cast<float>(speed);
+        float step = static_cast<float>(speed * dt);
         if (!(std::fabs(pending_) >= std::fabs(step))) step = pending_;
-        position_[tab_] = StoreFloat(step + position_[tab_]);
-        pending_ = StoreFloat(pending_ - step);
+        position_[tab_] = static_cast<float>(step + position_[tab_]);
+        pending_ = static_cast<float>(pending_ - step);
 
         // Settle on a whole slot when the remaining scroll is tiny and the position is within
         // 0.01 above or 0.01 below one.
@@ -307,7 +301,7 @@ void CUiItemStrip::Update() {
             done = true;
         }
         if (!done && position_[tab_] - whole > snapHigh && !(std::fabs(pending_) >= snapPending)) {
-            position_[tab_] = StoreFloat(whole + one);
+            position_[tab_] = static_cast<float>(whole + one);
             pending_ = 0.0f;
         }
     }

@@ -25,9 +25,6 @@
 #include "originals_library.h"
 #include "originals_script.h"
 
-// The arrival maths keeps the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 // Values and vtables read from the exe's memory as the original does (rule 9).
@@ -58,16 +55,10 @@ using RecordArray = RecordPtrArray;
 
 // 004621A0 (RET 8). CPtrList::NewNode(prev, next), out of line.
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
-// 00429F10. CPtrList::RemoveAll.
-inline void __fastcall PtrListRemoveAll(ObjectList* a0, void*) { PtrListRemoveAllNodesOriginal((void*)a0); }
-// 00427830. CPtrList destructor.
-inline void __fastcall PtrListDestruct(ObjectList* a0, void*) { PtrListDestructOriginal((void*)a0); }
 // 0059D450 (RET 8). CArray<int>::SetAtGrow(index, value).
 __declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, int) EI_ORIGINAL(0x0059D450)
 // 0059CB50 (RET 8). The item array's SetSize(size, growBy).
 __declspec(naked) void __fastcall ItemArraySetSize(ItemArray*, void*, int, int) EI_ORIGINAL(0x0059CB50)
-// 005719B0 (RET 8). The record array's SetSize(size, growBy).
-inline void __fastcall RecordArraySetSize(RecordArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 // 006A0110 (CItem::GetPrototype). A quest item's description: the names of the zones it belongs to.
 // 00665470 (RET 8). Puts a list of items into the player's inventory.
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
@@ -185,10 +176,10 @@ void CWorldServer::RestorePlayerItems(WorldPlayer* player) {
                 AddTail(one, fresh);
                 PlayerGiveItems(player, nullptr, &one, 0);
                 item->Release();
-                PtrListDestruct(&one, nullptr);
+                PtrListDestructOriginal(&one);
                 node = next;
             }
-            PtrListRemoveAll(&taken, nullptr);
+            PtrListRemoveAllNodesOriginal(&taken);
         }
     }
     // The list's inline destructor.
@@ -209,7 +200,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     RecordArray records{RecordArrayVtable(), nullptr, 0, 0, 0};
     for (int i = 0; i < party->members_.size; ++i) {
         int index = records.size;
-        RecordArraySetSize(&records, nullptr, index + 1, -1);
+        RecordArraySetSizeOriginal(&records, nullptr, index + 1, -1);
         records.data[index] = reinterpret_cast<std::uint8_t*>(&party->members_.data[i]);
     }
     // A lost game sends the party back to this zone's first exit.
@@ -221,8 +212,8 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     // The party arrives at the centre of its entrance's deploy rectangle (the target zone's exit
     // `entrance_`), facing away from the map's centre unless the exit gives a heading.
     double cell = static_cast<double>(CellSize()) * Half();
-    float centreX = StoreFloat(static_cast<float>(gridWidth_ * cell * Half()));
-    float centreY = StoreFloat(static_cast<float>(gridHeight_ * cell * Half()));
+    float centreX = static_cast<float>(gridWidth_ * cell * Half());
+    float centreY = static_cast<float>(gridHeight_ * cell * Half());
     Quaternion rotation;
     std::memcpy(&rotation, NoRotation(), sizeof(rotation));
     Vector3 start{0.0f, 0.0f, 0.0f};
@@ -232,13 +223,13 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     int entrance = static_cast<int>(party->entrance_);
     if (zone && entrance >= 0 && entrance < zone->exits.size) {
         exit = &zone->exits.data[entrance];
-        start.x = StoreFloat(static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * Half()));
-        start.y = StoreFloat(static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * Half()));
+        start.x = static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * Half());
+        start.y = static_cast<float>((static_cast<double>(exit->deploy[3]) + exit->deploy[1]) * Half());
         start.z = 0.0f;
         std::memcpy(&startValue, &exit->view, 4);
     }
-    float angle = StoreFloat(static_cast<float>(Fpatan(static_cast<double>(start.y) - centreY,
-                                                       static_cast<double>(start.x) - centreX) - FacingOffset()));
+    float angle = static_cast<float>(Fpatan(static_cast<double>(start.y) - centreY,
+                                                       static_cast<double>(start.x) - centreX) - FacingOffset());
     if (exit && *reinterpret_cast<const std::uint8_t*>(&exit->hasDeployAngle)) std::memcpy(&angle, &exit->deployAngle, sizeof(angle));
     Vector3 up{0.0f, 0.0f, 1.0f};
     QuaternionFromAxisAngle(&rotation, nullptr, &up, angle);
@@ -261,8 +252,6 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     records.vtable = RecordArrayVtable();
     if (records.data) gamecrt::operator_delete(records.data);
 }
-
-#pragma float_control(pop)
 
 // ---- CopyItem ---------------------------------------------------------------------------------
 
@@ -299,7 +288,6 @@ namespace {
 
 // 006AC970 (RET 4, patched by Rebirth). The item manager makes an item by name.
 // 006AD1E0 (RET 8). The item manager makes a spell by name (with world slot 22).
-CEngineObject* __fastcall ManagerCreateSpell(void* a0, void*, const char* a2, void* a3) { return (CEngineObject*)FactoryCreateSpellOriginal(a0, nullptr, a2, a3); }
 
 // The world server's item manager (CWorld::itemManager_, 007AFFB4).
 CEngineObject* ItemManager() { return WorldServer()->itemManager_; }
@@ -311,7 +299,7 @@ CEngineObject* CWorldServer::CreateItemNamed(const char* name) { return ItemMana
 
 CEngineObject* CWorldServer::CreateSpellNamed(const char* name) {
     CEngineObject* manager = ItemManager();   // read before slot 22, as in the original
-    return ManagerCreateSpell(manager, nullptr, name, SpellManager());
+    return (CEngineObject*)FactoryCreateSpellOriginal(manager, nullptr, name, SpellManager());
 }
 
 void CWorldServer::AddCounted(CEngineObject* item) {

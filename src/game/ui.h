@@ -725,6 +725,9 @@ public:
     // 005FE910 and 11 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBase,
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CUiWindow* UiWindowDelete(unsigned flags);
+    // 0060E3C0 (slot 0 of the trade panel; ui_window_delete.cpp). TradePanelDestroy, then the memory
+    // freed when bit 0 of `flags` is set; returns this.
+    CUiWindow* TradePanelDelete(unsigned flags);
     // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
     // rectangle and +0xA0..+0xD7 zeroed, rotation from 007C7E58), two materials of the manager
     // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
@@ -1937,7 +1940,7 @@ static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 class CHudClock : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00648D30
-    // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch only).
+    // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth's MPSpeedControl reproduced behind its flag).
     // The button released over the clock that took it: region 0 toggles the pause (with the
     // clock's sound); regions 1 and 2 set the normal / fast speed (not on a network client: the
     // pause lifted, fast_ 0 / 1, the world's update period 55 / 27 ms, the interface's fastGame_,
@@ -2248,6 +2251,8 @@ namespace mfc { class CString; }
 // The pieces of a scrolling text (CUiScrollText below): a format change (0x14 bytes, vtable
 // 00742F28, type 1) or a word (0x10 bytes, vtable 00742F20 over the base 00742F24, type 2).
 struct UiTextToken {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00742F24);
+    // (the base token's; the format token's and the word's are their own)
     // Slot 0: the deleting destructor (with 1: the memory is freed; 0065D8C0 format, 0065D8F0 word).
     void Delete() {
         using Fn = void(__thiscall*)(UiTextToken*, int);
@@ -2266,6 +2271,7 @@ struct UiTextToken {
     int type_;                       // +0x04 1 format, 2 word
 };
 struct UiFormatToken : UiTextToken {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00742F28);
     bool newline_;                   // +0x08 a line break (a newline token, or a font change after
                                      //       the first token)
     std::uint8_t unused_09[3];
@@ -2274,6 +2280,7 @@ struct UiFormatToken : UiTextToken {
 };
 static_assert(sizeof(UiFormatToken) == 0x14);
 struct UiWordToken : UiTextToken {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00742F20);
     // 0065D910 (ui_scroll_text.cpp): the destructor body: the text released, the base vtable back.
     void DestroyWord();
     // 0065D8F0 (RET 4; ui_control_delete.cpp). Slot 0, the deleting destructor: DestroyWord, then the
@@ -2453,6 +2460,8 @@ void __fastcall QuickLoad(const char* slot);
 // Regions: 0 OK, 1 cancel, 2 delete, 3.. the visible list rows.
 class CSaveLoadWindow : public CUiContainer {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00741388);
+    static constexpr std::uintptr_t kInputVtableAddress = std::uintptr_t(0x00741354);
     void OnMouseDown(int buttons, int x, int y);       // 00654660
     void OnDoubleClick(int buttons, int x, int y);     // 006547B0
     BOOL Draw(int pass);                               // 006544A0 (slot 20): slides in
@@ -2753,6 +2762,8 @@ struct OptionRow {
 // the option groups (100..250 x 156..420), 13.. the rows of the shown group.
 class COptionsWindow : public CUiContainer {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00741FAC);
+    static constexpr std::uintptr_t kInputVtableAddress = std::uintptr_t(0x00741F78);
     void OnMouseDown(int buttons, int x, int y);       // 00650C20
     void OnDoubleClick(int buttons, int x, int y);     // 00650D70
     BOOL Draw(int pass);                               // 00650920 (slot 20): slides in

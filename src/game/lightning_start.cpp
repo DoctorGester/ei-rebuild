@@ -91,7 +91,7 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
         main_.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
             float dx = from->x - to->x, dy = from->y - to->y, dz = from->z - to->z;
-            float reach = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C52C);
+            float reach = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C52C));
             float low = -reach;
             const double scale = GameDouble(0x0073C468);
             float offsetY = static_cast<float>((reach - low) * x87::FromUnsigned(Rng()->Next()) * scale + low);
@@ -132,11 +132,11 @@ namespace {
 // CRT eh vector constructor / destructor iterators (pointer, element size, count, [constructor,]
 // destructor); the segment's element constructor 00468900 and destructor 00468920; the engine
 // object's destructor body 00455930.
-void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3, std::uintptr_t a4) { EhVectorConstructorIterator(a0, a1, a2, (void*)a3, (void*)a4); }
-void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
-constexpr std::uintptr_t kSegmentConstruct = 0x00468900;
-constexpr std::uintptr_t kSegmentDestruct = 0x00468920;
-constexpr std::uintptr_t kLightningVtable = 0x0073C550;
+void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
+void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
+// The segment's element constructor and destructor as the iterators call them (ECX the element).
+void __fastcall SegmentConstruct(LightningSegment* segment) { segment->Construct(); }
+void __fastcall SegmentDestruct(LightningSegment* segment) { segment->Destruct(); }
 
 // A texture reference dropped: cleared, then released.
 void DropTexture(CEngineObject*& slot) {
@@ -168,8 +168,9 @@ CLightning* CLightningManager::NewObjectImpl(int /*type*/) {
     bolt->main_.points.growBy = 0;
     bolt->main_.points.capacity = 0;
     bolt->main_.points.size = 0;
-    VectorCtorIterator(bolt->branches_, sizeof(LightningSegment), 6, kSegmentConstruct, kSegmentDestruct);
-    SetVtable(bolt, kLightningVtable);
+    VectorCtorIterator(bolt->branches_, sizeof(LightningSegment), 6, reinterpret_cast<void*>(SegmentConstruct),
+                       reinterpret_cast<void*>(SegmentDestruct));
+    SetVtable(bolt, CLightning::kVtableAddress);
     std::uint32_t one = 0x3F800000u, tenth = 0x3DCCCCCDu;
     std::memcpy(&bolt->power_, &one, 4);
     std::memcpy(&bolt->amplitude_, &tenth, 4);
@@ -183,13 +184,13 @@ EI_REPLACE_METHOD(0x00468680, CLightningManager::NewObjectImpl);
 // points freed, the texture references released again (both null by then), the engine object's
 // body.
 void __fastcall LightningDestruct(CLightning* self) {
-    SetVtable(self, kLightningVtable);
+    SetVtable(self, CLightning::kVtableAddress);
     std::uint32_t one = 0x3F800000u, tenth = 0x3DCCCCCDu;
     std::memcpy(&self->power_, &one, 4);
     std::memcpy(&self->amplitude_, &tenth, 4);
     DropTexture(self->texture_);
     DropTexture(self->glowTexture_);
-    VectorDtorIterator(self->branches_, sizeof(LightningSegment), 6, kSegmentDestruct);
+    VectorDtorIterator(self->branches_, sizeof(LightningSegment), 6, reinterpret_cast<void*>(SegmentDestruct));
     if (self->main_.points.data) gamecrt::operator_delete(reinterpret_cast<void**>(self->main_.points.data)[-1]);
     if (self->glowTexture_) self->glowTexture_->Release();
     if (self->texture_) self->texture_->Release();

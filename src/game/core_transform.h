@@ -13,7 +13,7 @@
 class CTransformObject : public CEngineObject {
 public:
     CTransformObject* DeleteScalar(unsigned flags);
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BA38;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BA38);
 
     // 13: 00401490. Copies the local and world transform; returns this.
     virtual CTransformObject* CopyTransform(const CTransformObject& other);

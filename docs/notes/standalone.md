@@ -1314,6 +1314,116 @@ After merging main: `work.py test S16d --golden --jobs 4` 128 runs pass, 54 gold
 scenarios pass under `--standalone` (render_cursor_present passed on its retry: the first attempt's
 cursor check saw the cursor away from the mouse).
 
+**S17 (2026-10-15).** The suite against the goldens: `work.py test S17 --standalone --golden --jobs 4 <the 44
+scenarios with a vanilla golden>` (standalone runs use the vanilla goldens), next to the same scenarios hooked
+(`--vanilla-only --golden`) from the same build, and each standalone run against its hooked twin directly (console,
+full digest, dumps, decoded saves; scratch script build\S17\classify.py, golden.py's compare_folders).
+- Before SV7b1 / SV7d1 / SV7d2 reached main (two builds): 13 and then 18 of 44 standalone goldens differed, the
+  hooked runs 2 (levers, ui_saveload_delete). Every differing field was SV7b1's script group address order:
+  `script #gobject` (`gobject.i` 699 / 702 / 1884) and the saves' `globals.groups.3/5.objectN` and
+  `globals.objects.2.value` (one, ui_help's group 3 `object0`, outside SAVES_KNOWN's pattern). Under `--strict`
+  also SV7d1 (Fear `distance`, 172 field lines) and SV7d2 (path step flags, 249) in 39 scenarios, the same in
+  hooked runs. Standalone against hooked: only the script group order, which follows the heap layout, so the
+  image's other heap (the host's malloc) only reorders more groups. No standalone-only behaviour difference.
+- After merging main with SV7b1, SV7d1 and SV7d2: 44 of 44 the same, three passes (KNOWN and SAVES_KNOWN are
+  empty), hooked 44 of 44; standalone and hooked runs are identical in every record, dump and decoded field.
+  SV7b2 / SV7d3 / SV7d4's fields stay left out by savefile.py's rules (`~junk`, `~addr`), not compared.
+- A 0xFF fill of every block the image's malloc hands out (a temporary EI_ variable, not kept) changed no
+  golden field either.
+- One crash, not repeated: camera's first attempt (1 of about 900 standalone runs) hit an access violation in
+  UnitOrderLess::Less under the draw list sort (IntroSortByModel 005740D0), an element read as FF000000: the
+  unguarded scans ran off the list. Candidate: a NaN `viewPosition.z` (never written for an object listed only
+  for its shadow; Less is then not irreflexive). Not confirmed by a NaN check over 76 runs: S17a.
+
+**S17a (2026-10-15).** The cause is candidate (1). A probe (a sentinel view depth written by CObject3D::Construct,
+counted in the sorted lists; not kept) found unwritten depths in 115 of camera's 664 SortByModel calls: Shadow54 /
+ShadowOther entries listed for their shadow before they were ever in view, up to 13 of a 25-element list, mostly
+sharing a model with the rest (so their depths are compared). They sort on whatever the heap left at +0x28, which in
+the image is the host's malloc; a NaN there makes Less(x, x) true and a NaN pivot sends the unguarded partition off
+the list. Nothing else reads viewPosition.
+- Fix: the view position starts at zero, in ours (CObject3D::Construct) and in the original through a harness site
+  (harness_leftovers.cpp: CMapObject::Construct's CALL 0050E2F2 of 00515BD0, its one caller, zeroes it after the
+  original's construction; EI_LEFTOVERS family bit 6 since SV7b2). The comparator is unchanged. The constructor's verify zeroes the
+  object's +0x28 before comparing.
+- Check kept: `g_drawSortCheck` (world.h), called by DrawPass before each UnitOrderLess sort, installed by the verify
+  build (verify_world_client.cpp, ours only, so also in the image, which has no verify wrappers): `DrawPass sort list`
+  counts lists with a null element, no model or a NaN depth (bits) and logs the first five whole.
+- Goldens: none changed (97 `--no-hooks --fresh`, 97 hooked, 44 `--standalone`).
+- Runs: five `--standalone` suite passes (95 scenarios each, watchdog_* left out): 475 runs pass, 288,630 checked
+  sorts, 0 bad. Hooked suite with EI_HEAP_JITTER 1,fill / 2,fill / 3,fill (both installs, 571 runs): 263,386
+  checked sorts, 0 bad; one FAIL, combat_more Rebirth under 2,fill (the leader took no damage: the jitter's known AI
+  divergence, SV7d4), and timeouts that passed on retry. After merging main (S19, which saw the crash once more on
+  the Rebirth image: units, element 88000A00): two `--standalone` passes on both installs, 380 runs pass, 234,652
+  checked sorts, 0 bad; `--standalone --golden` 97 of 97 the same. Scratch driver: build\S17a\passes.py.
+
+**S19 (2026-10-15).** The image on the Rebirth install against the 53 Rebirth goldens. `run_all --standalone` now also
+runs install `standalone-rebirth` (run folders `<scenario>-standalone-rebirth`, Rebirth goldens; `--vanilla-only` /
+`--rebirth-only` pick one): run\rebirth's game.exe in the Rebirth folder, our renderer, and as EI_REBIRTH the flags
+`config/ei_rebirth_standalone.ini` sets, which are the 41 a hooked Rebirth launch of this install turns on
+(ei_hook.log "Rebirth flags on"; refresh it when addon.dll or EI_Plugin.ini change). `EI_LAUNCH_STANDALONE=1` makes
+ei_launch run the image as `--standalone` does: until the scheduler has this run_all, S19's batches were install
+`rebirth` with that variable (build\S19\submit_standalone.py; classifier build\S19\classify.py).
+- Hooked Rebirth, same build: 53 of 53 the same. Image, first pass: 50 the same, 3 differ. Two were the harness
+  (standalone-only): its `vanilla ...` / `rebirth ...` lines, the digest's and the UI census's install looked for
+  addon.dll, so script_parse expected vanilla's "Too much parameters" and ui_trade_restore skipped its Rebirth
+  GiveUnitExp. Now `starter::RebirthInstall()`: addon.dll, or the image with a Rebirth flag on (`SettingsOnly`
+  sets RebirthLaunch). The third, ui_objectives (and script_parse's digest), parted at world update 40 in gz1g
+  with SV7b7's fields (isaac.count, unmoto obj1937's path, ai.decay of obj1804 / 1890 / 1936): class (a), SV7b7.
+- After the fix, second pass: 53 of 53 the same, also `--strict`; each run equal to its hooked twin in console,
+  every digest record, dumps and decoded saves. No difference of class (b) is left. After merging main: 53 of 53
+  the same again; units passed on its retry, its first attempt hit S17a's crash (UnitOrderLess::Less under
+  IntroSortByModel, an element read as 88000A00), so S17a happens on Rebirth too.
+- NivalRegistry (standalone-only, fixed): the hooked runs keep the original WinMain, which addon's PUSH at 004568E9
+  points at `Software\Gipat.ru\EI_Starter\EvilIslands`; our GameMain read the vanilla key. It now takes addon's key
+  with the flag. Evidence: with `NivalRegistry=0` all six runs tried (smoke, camera, ui_hud, ui_options_bind,
+  ui_widescreen_hud / _more) differ from record 0 (the menu world, 150 objects against 51).
+- What the image does not have of Rebirth (the hooked runs' SKIP lines and rebirth_patches.csv; none reached by
+  a golden): addon's multiplayer FixProcessLogin (00443080), MQClient (0041ECC0), MPSpeedControl (0063A560,
+  00648D70), PlayerNumbers (0066C180); EI_Plugin's own code (EiPluginInit: the plugin is kept out) with
+  NewMaster (0041AA10, 0041ACA0, 00440DE0, 0061D0D0, 00632D70; SaveToRegistry 0045C560 saves the master server
+  name, which the plugin NOPs), Pause (0066FAC0) and Briefings (00592090): S19a; (Fixes and NPlayers, 005ED7B0, 006091C0,
+  006407E0, 005F13A0, 00536100, 00640060, 00608D20, 006095A0: reproduced in W4b, the image has them); the mod-folder group Maps,
+  ResOverride, MoviesPatch, CameraPatch, StreamPatch (pass-through with the Standard mod, so no run can show
+  them; another mod's folders are ignored by the image): S19b. SetEiPluginMode (0073AF10) only talks to EI_Plugin.
+  The unknown changed ranges of the hooked runs are the harness's own patches and addon's WinMain CALL (006EC302).
+
+**S19a (2026-10-15).** addon's FixProcessLogin, MQClient, MPSpeedControl, PlayerNumbers and EI_Plugin's Pause,
+Briefings and the game-side parts of NewMaster reproduced behind their flags and declared (rebirth.md, "Multiplayer"
+and "EI_Plugin.asi"), so hooked Rebirth runs now hook 00443080, 0041ECC0, 0063A560, 00648D70, 0066C180, 0066FAC0,
+00592090, 0045C560, 0041ACA0 and 00440DE0 ("Rebirth-patched ... implements") instead of skipping them. Still the
+plugin's under Rebirth and vanilla in the image: 00632D70, 0041AA10, 0061D0D0, the calls into NewMaster's second master
+server (hat.gipath.org), which wait for the user's decision (S19c). The image's flags gain `Pause=1`
+(`rebirth::PluginPause`, EI_Plugin.ini's mode).
+
+**S19b (2026-10-15).** Rebirth's mod-folder patches in the image: `src/game/mod_folders.{h,cpp}`, the resource layer
+(Maps, ResOverride, CameraPatch, StreamPatch, MoviesPatch as addon.dll does them; docs/notes/rebirth.md, "Resources and paths").
+`modfolders::Active(flag)` is the image with the flag on, so hooked runs (vanilla, and Rebirth with addon) run as before. The
+sites: GetFile / ListFiles bodies (resource.cpp, resource_stream.cpp; plain bodies `GetFilePlain` / `ListFilesPlain` for the
+layer), OpenResource / Destroy entries, CFigureManager::CreateWithArchives, CLinkFigureLoader::Construct, CTextureManager::Create,
+CMaterialManager::Create, the nine maps-folder users (world_map_files.cpp, world_save.cpp, world_client_maps.cpp, world_game.cpp,
+world_briefing.cpp), CCamera::LoadPath, SwitchStream, the three BinkOpen calls (bink_video.cpp; 005DA880 also calls it but is dead).
+The mod archives open through the addresses 00671280 / 00671730 (rule 9). No verify wrapper compares the layer (nothing of it runs in
+a hooked run); it is checked by its scenario against addon.dll:
+- tests/scenarios/rebirth_mod_folders.txt: a mod of our own (tools/make_test_mod.py, a `# prepare:` tool, writes it into the run's
+  harness_saves) selected with the new harness step `addonpath` (answers AddonPath for addon.dll's RegQueryValueExW and the game's
+  RegQueryValueExA). The new step `modfile <archive> <file> <bytes>` reads a file of a game archive through OpenResource's address
+  and GetFile's slot. Rebirth (addon) and standalone-rebirth (the layer) pass the same checks: gfx.res gives the mod archive's
+  s19b.txt (also as `t\s19b.txt`) and still the game's lightning.dat, AddMob("traps.mob") loads the mod's Maps\traps.mob,
+  PlayCamera("s19b.cam") the mod's Camera\s19b.cam; vanilla and standalone find none of them. With Maps, ResOverride and
+  CameraPatch off the standalone-rebirth run fails all of these (checked once with a scratch copy).
+- tools/prepare_scenario.py now runs a scenario's prepare tools from the scenario's own checkout (the queue's run_all is the main
+  checkout's, so a worktree's new tool was not found).
+- Runs (after merging main): `--standalone --golden` on the 53 golden scenarios and rebirth_mod_folders, 108 runs pass, 97
+  goldens the same, 0 differ (before the merge ui_container_input standalone-rebirth parted at world update 300 with SV7b7's
+  fields, isaac.count and unmoto obj1937; gone with main). rebirth_mod_folders hooked: vanilla and Rebirth pass.
+- Not covered by a run: StreamPatch and MoviesPatch (no script handle on the stream's or a movie's path), the figure / texture extra
+  archives and ignored ('-') archives, Maps' zone-table and quest sites. Caveat: a vanilla launch with these flags set by hand stays
+  vanilla (the hook build never runs the layer).
+
+**S19c (2026-10-15).** NewMaster's second master server ported opt-in (rebirth.md, "EI_Plugin.asi"): `SecondMaster=` in
+ei_rebirth.ini (empty in `config/ei_rebirth_standalone.ini` and in every harness run: the game's own code). 00632D70,
+0041AA10 and 0061D0D0 are declared, so hooked Rebirth runs hook them too (the plugin's look-up of hat.gipath.org no longer runs).
+
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
 quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return

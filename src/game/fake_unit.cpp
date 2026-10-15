@@ -26,8 +26,6 @@ namespace {
 
 using scene::FakeUnitScene;
 
-constexpr std::uintptr_t kFakeUnitVtable = 0x0073BFE8;
-
 // The unit's arrays with their element types (the destructor's loops are the instantiations'
 // inlined DestructElements: each element's destructor through its vtable).
 using FigureArray = mfc::CArray<CFigureMesh, mfc::RawElements<CFigureMesh>>;
@@ -43,8 +41,6 @@ void DestroyRecord(void* record) { static_cast<CEngineObject*>(record)->~CEngine
 
 __declspec(naked) void __fastcall UnitConstruct(void*) EI_ORIGINAL(0x0052E110)
 __declspec(naked) void __fastcall UnitDestroy(void*) EI_ORIGINAL(0x0052E590)
-// CArray<CFigure>::SetSize (library).
-void __fastcall FiguresSetSize(void* a0, void*, int a2, int a3) { FigureArraySetSizeOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void* __fastcall FakeUnitDestructAt(void*) EI_ORIGINAL(0x00446910)
 // 00446C10 (__stdcall file, regFile, unit; ECX the unit as well): the scene loader.
 __declspec(naked) int __fastcall LoadScene(void* /*ecx unit*/, void*, const char*, const char*, void*) EI_ORIGINAL(0x00446C10)
@@ -77,7 +73,7 @@ void* __fastcall FakeUnitConstruct(FakeUnitScene* self) {
     self->meshes.Construct(mfc::impl::FakeUnitSceneRecordArrayClass::Vtable());
     self->boneLinks.Construct(mfc::impl::FakeUnitBoneArraysClass::Vtable());
     self->helpers.Construct(mfc::impl::FakeUnitRecord9CArrayClass::Vtable());
-    ei::SetVtable(self, kFakeUnitVtable);
+    ei::SetVtable(self, FakeUnitScene::kVtableAddress);
     return self;
 }
 EI_REPLACE(0x004466D0, FakeUnitConstruct);
@@ -85,9 +81,9 @@ EI_REPLACE(0x004466D0, FakeUnitConstruct);
 // 00446910: the destructor. After the figures' SetSize(0, -1) the original walks the (now empty)
 // figure array dropping each figure's count; kept as written.
 void __fastcall FakeUnitDestruct(FakeUnitScene* self) {
-    ei::SetVtable(self, kFakeUnitVtable);
+    ei::SetVtable(self, FakeUnitScene::kVtableAddress);
     ReleaseParts(self);
-    FiguresSetSize(&self->figures, nullptr, 0, -1);
+    FigureArraySetSizeOriginal(&self->figures, nullptr, 0, -1);
     FigureArray& figures = Figures(self);
     for (int i = 0; i < figures.size; ++i) --figures.data[i].refCount_;
     DestructArray(Helpers(self), mfc::impl::FakeUnitRecord9CArrayClass::Vtable(), [](CMaterial& helper) { DestroyRecord(&helper); });

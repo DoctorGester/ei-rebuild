@@ -1,6 +1,7 @@
 #pragma once
 
 #include "engine_object.h"
+#include "game_data.h"
 #include "maths.h"
 #include "sector_map.h"
 #include "unit.h"
@@ -140,6 +141,21 @@ struct PathCellElements {
 // (ai_path_cells.cpp). RemoveAll is 00556D40's code.
 using PathCellList = mfc::CList<PathCell, PathCellElements>;
 static_assert(sizeof(PathCellList::Node) == 0x10);
+
+// The speed word and terrain bits a path builder gives its cells (SV7d2): the plain step speed, no
+// terrain bits. The originals leave stack leftovers there (SearchPathTo 005C3200 the caller's
+// register, BuildCells 005B9A20 a search's row offset, PathSmoother::Smooth 005C46C0 the open cost
+// or a list vtable); the harness patches them to this too (tests/verify/harness_path_cells.cpp).
+// SetStepSpeeds rewrites both words of every step but the last, whose speed word becomes
+// UnitMotion's last step speed (read only by a single-cell trajectory).
+constexpr std::uint16_t kPlainStepSpeed = 0x200;
+inline void SetPlainCellWords(PathCell* cell) {
+    cell->flags = kPlainStepSpeed;
+    cell->terrainBits = 0;
+}
+inline void SetPlainCellWords(PathCellList* list) {
+    for (PathCellList::Node* node = list->head; node; node = node->next) SetPlainCellWords(&node->data);
+}
 
 // 005C5DA0 (thiscall, RET 4; ai_path_cells.cpp). Appends copies of `other`'s cells to `list`.
 void __fastcall PathCellsAppend(PathCellList* list, void*, const PathCellList* other);
@@ -439,8 +455,8 @@ static_assert(sizeof(LocalSearch) == 0x80);
 
 // The direction steps 1..8 of the block searches and paths (00791108 / 0079112C; index 0 unused):
 // 1 = (0, -1), then clockwise towards -x as in PathCell::Step.
-inline const int* DirectionDx() { return reinterpret_cast<const int*>(0x00791108); }
-inline const int* DirectionDy() { return reinterpret_cast<const int*>(0x0079112C); }
+inline const int* DirectionDx() { return ei::GameData<const int[9]>(0x00791108); }
+inline const int* DirectionDy() { return ei::GameData<const int[9]>(0x0079112C); }
 
 // A block of a block search (24 bytes): open records wait in sorted doubly linked buckets; a
 // settled one moves to the search's `touched` chain (through `next`).
@@ -648,10 +664,11 @@ struct SmoothPool {
     SmoothNode* next;                   // the next free node
 };
 static_assert(sizeof(SmoothPool) == 0x1C);
-inline SmoothPool& SmoothNodePool() { return *reinterpret_cast<SmoothPool*>(0x007C3038); }
-inline const SmoothTable* SmoothTables() { return reinterpret_cast<const SmoothTable*>(0x007C3058); }
-// The direction (1..8, 0 for none) of the step (dx, dy) in -1..1: DirectionSteps()[dy * 3 + dx].
-inline const int* DirectionSteps() { return reinterpret_cast<const int*>(0x00791988); }
+inline SmoothPool& SmoothNodePool() { return ei::GameData<SmoothPool>(0x007C3038); }
+inline const SmoothTable* SmoothTables() { return ei::GameData<const SmoothTable[81]>(0x007C3058); }
+// The direction (1..8, 0 for none) of the step (dx, dy) in -1..1: DirectionSteps()[dy * 3 + dx], the
+// middle of the nine words at 00791978.
+inline const int* DirectionSteps() { return ei::GameData<const int[9]>(0x00791978) + 4; }
 // 005C3690 (thiscall on the array, RET 8; ai_path_smooth.cpp). The states of a cell the path crosses
 // in `direction` (1..8): seven moves for a straight step, nine for a diagonal one. Direction 0 (the
 // path's ends) gives the eight moves from the cell to its neighbours, or from the neighbours to it

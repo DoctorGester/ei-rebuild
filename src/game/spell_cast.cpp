@@ -16,8 +16,6 @@
 
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 // The game's own messages (passed by address, as the original does).
 const char* const kInvalidRune = reinterpret_cast<const char*>(0x007959F0);          // "Invalid rune"
@@ -40,9 +38,6 @@ void* const kModifierTableHolder = reinterpret_cast<void*>(0x007C8530);
 
 // 0068C680 (not rewritten). STLport string reserve(n) on the container's code string.
 __declspec(naked) void __fastcall CodesReserve(char**, void*, unsigned) EI_ORIGINAL(0x0068C680)
-// 0068C560 (not rewritten). list<char*>::insert(pos, *value), the iterator stored in *out.
-// Arguments: list, unused EDX, out, pos, value.
-void __fastcall ModifierListInsert(SpellModifierNode** a0, void*, SpellModifierNode** a2, SpellModifierNode* a3, char** a4) { ListInsert68C560Original(a0, nullptr, (void**)a2, a3, a4); }
 
 // The rewritten functions are called through their game addresses, so the verify wrappers see
 // every call (most have no other caller).
@@ -181,7 +176,7 @@ EI_REPLACE_METHOD(0x0068BC00, CSpellContainer::NameField);
 BOOL CSpellContainer::AddModifier(char* modifier) {
     if (!modifier) return game::FatalError(kInvalidRune);
     SpellModifierNode* inserted;
-    ModifierListInsert(&modifiers_, nullptr, &inserted, modifiers_, &modifier);
+    ListInsert68C560Original(&modifiers_, nullptr, (void**)&inserted, modifiers_, &modifier);
     return 1;
 }
 EI_REPLACE_METHOD(0x0068BE30, CSpellContainer::AddModifier);

@@ -2,6 +2,7 @@
 // Suspection, Aggression, CorpseWatcher, Fear and Player. The registered addresses are the vtable
 // targets, so every mode object of the game runs these.
 #include "unit_ai.h"
+#include "at_exit_functions.h"
 
 #include "player_messages.h"
 #include "random.h"
@@ -19,7 +20,6 @@
 #include "originals_units.h"
 #include "lib/mfc_array.h"
 
-#pragma float_control(precise, on)
 #pragma warning(disable : 4740) // naked forwarders
 
 namespace {
@@ -128,7 +128,6 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
 // built by 004C96A0.
 constexpr std::uintptr_t kCandidates = 0x007C54C8;
 constexpr std::uintptr_t kCandidatesGuard = 0x007C54E4;
-constexpr std::uintptr_t kCandidatesDestructor = 0x005D2570;
 
 } // namespace
 
@@ -194,9 +193,9 @@ void GuardMode::Execute(AIBrain* brain) {
     }
     failures = 0;
     // Look away from the guarded point, scaled to half the radius.
-    volatile float dx = order.point.x - point.x;    // FSTP float each
-    volatile float dy = order.point.y - point.y;
-    volatile float dz = order.point.z - point.z;
+    float dx = order.point.x - point.x;    // FSTP float each
+    float dy = order.point.y - point.y;
+    float dz = order.point.z - point.z;
     Vector3 direction;
     direction.x = dx;
     direction.y = dy;
@@ -503,7 +502,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     if (!(*guard & 1)) {
         *guard |= 1;
         PtrListConstructOriginal(reinterpret_cast<mfc::CList<void*>*>(kCandidates), nullptr, 10);
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kCandidatesDestructor));
+        GameAtExit(ei::static_init::Exit005D2570);
     }
     CUnit* self = brain->owner->unit;
     brain->CollectEnemies(self, reinterpret_cast<void*>(kCandidates));

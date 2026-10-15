@@ -8,6 +8,7 @@
 #include "console.h"
 #include "item_db_text.h"
 #include "net_classes.h"
+#include "mod_folders.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"
@@ -198,9 +199,10 @@ void ShareQuestFile(const char* path, const char* name) {
     net::GameServer()->ShareFile(reinterpret_cast<const net::StringRep*>(&listed), data);
 }
 
-// The path of the maps folder's file `file`.
+// The path of the maps folder's file `file` (LoadZoneQuests's).
 stlp::string MapFilePath(const mfc::CString& file) {
     mfc::CString folder;
+    modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuestsPath);
     MapsFolderAt(&folder);
     mfc::CString full = folder + file;
     return stlp::string(static_cast<const char*>(full));
@@ -216,6 +218,7 @@ bool __stdcall LoadZoneQuests(const char* zone) {
     {
         mfc::CFileFind find;
         mfc::CString folder;
+        modfolders::SelectMaps(file, modfolders::MapsSite::ZoneQuests);
         MapsFolderAt(&folder);
         mfc::CString pattern = folder + static_cast<const char*>(file);
         found = find.FindFile(pattern, 0) != 0;
@@ -270,8 +273,6 @@ inline bool __fastcall FlowLoadQuestFolder(GameFlow*, void*, const char* a2) { r
 __declspec(naked) void __fastcall QuestTableLoad(void*, void*, void*) EI_ORIGINAL(0x006AE8E0)
 // 0045EA20 (RET 4). CMapDatabase::Load (0079BF00).
 __declspec(naked) void __fastcall MapDatabaseLoad(void*, void*, const char*) EI_ORIGINAL(0x0045EA20)
-// 004DCE90 (RET 0xC). vector<string>::_M_insert_overflow(pos, value, count).
-void __fastcall StringVectorInsertOverflow(void* a0, void*, stlp::string* a2, const stlp::string* a3, unsigned a4) { StringVectorInsertOverflowOriginal(a0, nullptr, (void*)a2, (const void*)a3, a4); }
 // 004DF8D0 (RET 8). The texts read the current line into a CString.
 void __fastcall TextsReadLine(void* a0, void*, mfc::CString* a2, int a3) { TextsReadLineOriginal(a0, nullptr, a2, a3); }
 
@@ -316,7 +317,7 @@ void GameFlow::RegisterQuests(const char* folder) {
         new (folders.Finish()) stlp::string(name);
         ++folders.Finish();
     } else {
-        StringVectorInsertOverflow(&folders, nullptr, folders.Finish(), &name, 1);
+        StringVectorInsertOverflowOriginal(&folders, nullptr, folders.Finish(), &name, 1);
     }
 }
 

@@ -1,7 +1,8 @@
 // Checks for the path smoother (src/game/ai_path_smooth.cpp). Smooth: the original runs on a copy
 // of the path (its own list blocks), ours on the real one; the result and the cells' x, y are
-// compared (the second dwords are stale stack in the original). Advance: the node pool and the
-// states compared after the original (into scratch states, the pool put back) and ours. Relax:
+// compared (the second dwords are stale stack in the original; ours must hold the plain words,
+// SV7d2). Advance: the node pool and the states compared after the original (into scratch states,
+// the pool put back) and ours. Relax:
 // the original on a scratch state and node. Reached by every FindPath (movement, ui_order_move,
 // unit_ai). The turn costs are rounded floats: a product exactly on a rounding edge could differ.
 #include "verify.h"
@@ -15,6 +16,13 @@
 #include <vector>
 
 namespace {
+
+// Ours gives every cell the plain speed word and terrain bits (SV7d2; the original's are stack).
+bool PlainWords(const PathCellList* list) {
+    for (const PathCellList::Node* n = list->head; n; n = n->next)
+        if (n->data.flags != kPlainStepSpeed || n->data.terrainBits != 0) return false;
+    return true;
+}
 
 std::vector<int> CellsXY(const PathCellList* list) {
     std::vector<int> out;
@@ -78,6 +86,7 @@ static int __fastcall SmoothVerify(PathSmoother* self, void*, CUnit* unit, CAIMa
     ei::verify::Check("PathSmoother::Smooth", expected, actual, "%d cells, direction %d", path->count, startDirection);
     ei::verify::Check("PathSmoother::Smooth cells", true, CellsXY(path) == expectedCells, "%d cells (original %d)",
                       path->count, static_cast<int>(expectedCells.size() / 2));
+    ei::verify::Check("PathSmoother::Smooth words", true, PlainWords(path), "%d cells (ours only)", path->count);
     return actual;
 }
 EI_VERIFY(0x005C46C0, SmoothVerify, 9, s_smooth);

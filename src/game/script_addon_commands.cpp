@@ -256,7 +256,7 @@ bool GiveUnitWeapon(Call* call) {
         const UnitPrototypeRecord* prototype = PrototypeOf(unit);
         Store(&stats.damage, item->damage_);
         Store(&stats.damageSpread, item->damageSpread_);
-        volatile float sum = prototype->combat[3] + weapon->defenceBonus;
+        float sum = prototype->combat[3] + weapon->defenceBonus;
         Store(&stats.defence, sum);
         float reach;
         std::memcpy(&reach, &weapon->reach, 4);
@@ -290,7 +290,7 @@ bool GiveUnitArmor(Call* call) {
         UnitStatPair* protection = static_cast<CMapObjectServer*>(AsCUnit(unit)->companion)->vitals.protection;
         const UnitPrototypeRecord* prototype = PrototypeOf(unit);
         // Four blocks of seven values (A, C, B, D in memory order) and their weights.
-        volatile float blocks[4][7] = {};
+        float blocks[4][7] = {};
         const float weights[4] = {0.05f, 0.3f, 0.3f, 0.3f};
         auto addInto = [&](int block, const float* from) {
             for (int c = 0; c < 7; ++c) blocks[block][c] = from[c] + blocks[block][c];
@@ -312,9 +312,9 @@ bool GiveUnitArmor(Call* call) {
             }
         }
         for (int c = 0; c < 7; ++c) {
-            volatile float sum = 0.0f;
+            float sum = 0.0f;
             for (int k = 0; k < 4; ++k) sum = weights[k] * blocks[k][c] + sum;
-            volatile float value = prototype->protectionScale + sum;
+            float value = prototype->protectionScale + sum;
             Store(&protection[c].base, value);
             value = prototype->protectionScale + sum;
             Store(&protection[c].current, value);

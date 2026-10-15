@@ -28,9 +28,6 @@ struct StringSlot {
 };
 static_assert(sizeof(StringSlot) == sizeof(stlp::string));
 
-// STLport string members: the end-of-storage member from an allocator and a value (RET 8),
-// assign(first, last) (RET 8), the destructor.
-void __fastcall StringEndOfStorage(char** a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, a3); }
 // 005AA5F0: the manager's model of a name (figure_models.cpp).
 // 004DBCA0: reads a length-prefixed string at *cursor into a CString and advances the cursor.
 __declspec(naked) void __fastcall ReadName(mfc::CString*, const std::uint8_t**) EI_ORIGINAL(0x004DBCA0)
@@ -53,7 +50,7 @@ int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* 
     key.finish = nullptr;
     char allocatorTag;
     int zero = 0;
-    StringEndOfStorage(&key.eos, nullptr, &allocatorTag, &zero);
+    StringEndOfStorageOriginal(&key.eos, nullptr, &allocatorTag, &zero);
     StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
     auto* model = static_cast<FigureModel*>(FigureManagerFindModelOriginal(this, nullptr, &key));
     StringBufferFree(&key);

@@ -31,7 +31,9 @@ constexpr int kVertices = kRow * kRow;   // per layer
 constexpr std::uint32_t kLit = 4;        // SectorData::built
 
 constexpr float kPi = 3.14159274f;                         // 00744158 (float)
-constexpr double kSineIndex = 256.0 / 3.141592653589793;   // 00744198 / 00744150 (doubles): table entries per radian
+// Table entries per radian: 256 / pi (00744198 / 00744150, doubles) as the original's FDIV leaves it
+// at 24-bit precision (SV7d1a: not the folded double).
+constexpr float kSineIndex = static_cast<float>(256.0 / 3.141592653589793);
 constexpr float kQuarterTurn = 0.785398126f;               // 00744194
 constexpr float kTimeScale = 0.05f;                        // the circling waves' speed per world tick
 constexpr float kGlowScale = 50.0f;                        // 00744180
@@ -54,10 +56,10 @@ bool SignClear(float v) {
 
 // The sine table entry at `phase` radians: FISTP of (phase * 256 / pi) stored as a float, mod 512.
 float Sine(const Terrain* owner, double phase) {
-    return owner->sine[x87::fistp(RoundToFloat(phase * kSineIndex)) & 0x1FF];
+    return owner->sine[x87::fistp(static_cast<float>(phase * kSineIndex)) & 0x1FF];
 }
 
-std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(RoundToFloat(v))) & 0xFF; }
+std::uint32_t Byte(double v) { return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(v))) & 0xFF; }
 
 } // namespace
 
@@ -121,13 +123,13 @@ void SectorData::Animate(Terrain* landscape, int frame) {
     SectorVertex* water = &records[kVertices];
     const float* phaseOffset = landscape->wavePhases.data;
     Vector2 direction = {landscape->waveDirection.x, landscape->waveDirection.y};
-    float stepX = RoundToFloat(1.0f * direction.x);   // 00744160: the vertex spacing
-    float stepY = RoundToFloat(1.0f * direction.y);
+    float stepX = static_cast<float>(1.0f * direction.x);   // 00744160: the vertex spacing
+    float stepY = static_cast<float>(1.0f * direction.y);
     float height = landscape->waveHeight;
     float phase = landscape->wavePhase;
-    float fullTurn = RoundToFloat(kPi + kPi);
+    float fullTurn = static_cast<float>(kPi + kPi);
     Vector2 first = {positions[0].x, positions[0].y};
-    float rowStart = RoundToFloat(std::fmod(Dot2D(direction, first) + fullTurn, static_cast<double>(fullTurn)));
+    float rowStart = static_cast<float>(std::fmod(Dot2D(direction, first) + fullTurn, static_cast<double>(fullTurn)));
 
     int lastMaterial = -1;
     float lastTurn = 0.0f;
@@ -143,16 +145,16 @@ void SectorData::Animate(Terrain* landscape, int frame) {
             if (material != 0xFFFF) {
                 if (material != lastMaterial) {
                     const TerrainMaterial& m = landscape->materials[material];
-                    amplitude = RoundToFloat(height * m.priority);
+                    amplitude = static_cast<float>(height * m.priority);
                     kind = m.kind;
                     double glow = landscape->waveGlow * m.priority * kGlowScale;
-                    crest = {RoundToFloat(glow * m.waveColour.x), RoundToFloat(glow * m.waveColour.y),
-                             RoundToFloat(glow * m.waveColour.z)};
+                    crest = {static_cast<float>(glow * m.waveColour.x), static_cast<float>(glow * m.waveColour.y),
+                             static_cast<float>(glow * m.waveColour.z)};
                     double turn = std::fmod(static_cast<double>(phase * m.priority), 2.0 * kPi);
-                    float delta = RoundToFloat(turn - lastTurn);
-                    lastTurn = RoundToFloat(turn);
-                    rowStart = RoundToFloat(delta + rowStart);
-                    along = RoundToFloat(delta + along);
+                    float delta = static_cast<float>(turn - lastTurn);
+                    lastTurn = static_cast<float>(turn);
+                    rowStart = static_cast<float>(delta + rowStart);
+                    along = static_cast<float>(delta + along);
                     lastMaterial = material;
                 }
                 float s = Sine(landscape, along + *phaseOffset);
@@ -172,16 +174,16 @@ void SectorData::Animate(Terrain* landscape, int frame) {
                     }
                 } else {
                     position.z = static_cast<float>(lift * kRiseScale + record.position.z);
-                    float time = RoundToFloat((GameTicks() + GameTickFraction()) * kTimeScale);
+                    float time = static_cast<float>((GameTicks() + GameTickFraction()) * kTimeScale);
                     float sineX = Sine(landscape, column * kQuarterTurn + time);
                     position.x = sineX * amplitude * kCircleScale + record.position.x;
                     float sineY = Sine(landscape, row * kQuarterTurn + time);
                     position.y = sineY * amplitude * kCircleScale + record.position.y;
                 }
             }
-            along = RoundToFloat(along + stepX);
+            along = static_cast<float>(along + stepX);
         }
-        rowStart = RoundToFloat(rowStart + stepY);
+        rowStart = static_cast<float>(rowStart + stepY);
     }
 }
 
@@ -220,15 +222,15 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     float y = terrain::AwayFromZero(-light->direction_.y);
     float z = terrain::AwayFromZero(-light->direction_.z);
     double inverse = 1.0f / vecmath::Length<Sum3::ZYX>(Vector3{x, y, z});
-    x = RoundToFloat(inverse * x);
-    y = RoundToFloat(inverse * y);
+    x = static_cast<float>(inverse * x);
+    y = static_cast<float>(inverse * y);
     double up = z * inverse;
-    sunSlopeX = RoundToFloat(up / x);
-    sunSlopeY = RoundToFloat(up / y);
-    sunRunX = RoundToFloat(x / up);
-    sunRunY = RoundToFloat(y / up);
-    sunStepX = x87::fistp(RoundToFloat(terrain::SunStepScale() * x / terrain::CellSize()));
-    sunStepY = x87::fistp(RoundToFloat(terrain::SunStepScale() * y / terrain::CellSize()));
+    sunSlopeX = static_cast<float>(up / x);
+    sunSlopeY = static_cast<float>(up / y);
+    sunRunX = static_cast<float>(x / up);
+    sunRunY = static_cast<float>(y / up);
+    sunStepX = x87::fistp(static_cast<float>(terrain::SunStepScale() * x / terrain::CellSize()));
+    sunStepY = x87::fistp(static_cast<float>(terrain::SunStepScale() * y / terrain::CellSize()));
     sun = light;
     if (lightInterval <= 0) {
         for (SectorCache::Node* node = sectorCache.head; node; node = node->next) node->data->built &= ~terrain::kLit;
@@ -256,11 +258,11 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     }
     GameQsortOriginal(sorted.data, sorted.size, sizeof(SectorData*), terrain::CompareSlots);
     if (sorted.size == 0) return;
-    float step = RoundToFloat(static_cast<double>(lightInterval - 1) / sorted.size);
+    float step = static_cast<float>(static_cast<double>(lightInterval - 1) / sorted.size);
     float at = 0.0f;
     for (int i = 0; i < sorted.size; ++i) {
         int frames = x87::fistp(at);
-        at = RoundToFloat(at + step);
+        at = static_cast<float>(at + step);
         sorted[i]->ScheduleRelight(frames);
         if (frames == 0) sorted[i]->built &= ~terrain::kLit;
     }
@@ -277,7 +279,7 @@ int Terrain::RunTickImpl() {
         if (sector->built & terrain::kLit) sector->RelightTick();
     }
     if ((landscapeFlags & 8) != 0) PlayAmbience();
-    wavePhase = RoundToFloat(waveSpeed + wavePhase);
+    wavePhase = static_cast<float>(waveSpeed + wavePhase);
     ++frame;
     for (int row = 0; row < visibleColumnFirst.size; ++row) {
         for (int column = visibleColumnFirst[row]; column <= visibleColumnLast[row]; ++column) {

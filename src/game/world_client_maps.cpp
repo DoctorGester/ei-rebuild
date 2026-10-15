@@ -29,6 +29,7 @@
 #include "unit_db.h"
 #include "world_effect.h"
 #include "originals_engine.h"
+#include "mod_folders.h"
 #include "world_map_files.h"
 #include "world_glue.h"
 #include "unit_looks.h"
@@ -702,7 +703,6 @@ struct NamePair {
     stlp::string first;
     UnitPrototypeRecord* second;
 };
-NamePair* __fastcall NameMapFindOrInsert(void* a0, void*, const NamePair* a2) { return (NamePair*)NameMapInsertOriginal(a0, nullptr, (const void*)a2); }
 // CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
 // [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
@@ -712,14 +712,9 @@ int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringA
 void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSetAnimationsOriginal(a0, nullptr, a2, a3); }
 void __fastcall Unit518860(void* a0) { Object3DRestartAnimationOriginal(a0); }
 void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
-void __fastcall UnitAddWeapon(void* a0, void*, void* a2) { UnitAddWeaponOriginal(a0, nullptr, a2); }
-void __fastcall UnitEquipArmour(void* a0, void*, void* a2) { UnitEquipArmourOriginal(a0, nullptr, a2); }
 // The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
 // [006A39E0, on the item].
 void __fastcall Figure51C970(void* a0) { FigureLoadTexturesOriginal(a0); }
-void __fastcall FigureSwapTexture(void* a0, void*, const char* a2, const char* a3) {
-    FigureSwapTextureOriginal(a0, nullptr, a2, a3);
-}
 
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
@@ -744,7 +739,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
                 {
                     stlp::string key(static_cast<const char*>(record->texts[5]));
                     NamePair pair{key, nullptr};
-                    stored = NameMapFindOrInsert(worlddata::PrototypeNameMap(), nullptr, &pair);
+                    stored = (NamePair*)NameMapInsertOriginal(worlddata::PrototypeNameMap(), nullptr, (const void*)&pair);
                 }
                 int number = stored->second->hair;
                 if (number != -1) {
@@ -771,7 +766,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         Unit518840(unit, nullptr, record->texts[2], 0);
         Unit518860(unit);
         const char* skin = record->texts[4];
-        FigureSwapTexture(figure, nullptr, game::NoneText(), SameText(skin, game::NoneText()) ? nullptr : skin);
+        FigureSwapTextureOriginal(figure, nullptr, game::NoneText(), (SameText(skin, game::NoneText()) ? nullptr : skin));
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
@@ -780,12 +775,12 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         slots->ApplyBaseScale();
         UnitReleaseAllItems(unit);
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
-            UnitAddWeapon(unit, nullptr, record->weapons[j]);
+            UnitAddWeaponOriginal(unit, nullptr, record->weapons[j]);
         CUnitController* controller = unit->Controller();
         if (record->weaponCount != 0) controller->ShowWeapon(0);
         for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
             CEngineObject* armour = record->armor[j];
-            if (allArmour || ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)) != 0) UnitEquipArmour(unit, nullptr, armour);
+            if (allArmour || ArmorGetTypeOriginal(reinterpret_cast<CItemArmor*>(armour)) != 0) UnitEquipArmourOriginal(unit, nullptr, armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
             UnitAddQuickItemOriginal(unit, nullptr, record->quickItems[j]);
@@ -885,9 +880,9 @@ int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, c
     *out = record;
     float ux = b->x - a->x, uy = b->y - a->y, uz = b->z - a->z;
     float vx = c->x - a->x, vy = c->y - a->y, vz = c->z - a->z;
-    float lengthU = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz));
+    float lengthU = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz)));
     record->sizeU = lengthU;
-    float lengthV = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz));
+    float lengthV = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz)));
     record->sizeV = lengthV;
     std::memcpy(&record->normal, normal, 12);
     std::memcpy(&record->origin, a, 12);
@@ -1157,8 +1152,6 @@ namespace {
 // MFC: operator+(const CString&, LPCTSTR) [00700C05, __stdcall, the result constructed in `out`],
 // CString::operator=(const CString&) [00700AA9], operator=(LPCTSTR) [00700AF9], ~CString [00700970].
 void* __stdcall CStringConcat(void* a0, const void* a1, const char* a2) { return CStringConcatTextOriginal((mfc::CString*)a0, (const mfc::CString*)a1, a2); }
-void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
-inline void __fastcall CStringAssignText(void* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 // The lights table loader [00563930 (file name)], the text resources [004DEDB0 on +0x1D0 (path)].
 __declspec(naked) int __fastcall LoadLightsAt(void*, void*, const char*) EI_ORIGINAL(0x00563930)
 __declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)
@@ -1282,7 +1275,7 @@ int CWorldClient::Setup() {
     WorldCreateManagers(this);
     void* path;
     CStringConcat(&path, worlddata::DataPathString(), worlddata::TexturesFolderText());
-    CStringAssign(&texturePath_, nullptr, &path);
+    CStringAssignOriginal(&texturePath_, nullptr, &path);
     CStringDestroy(&path);
     LoadLightsAt(this, nullptr, worlddata::LightsTableText());
     lightingMark_ = 0;
@@ -1334,7 +1327,7 @@ int CWorldClient::Setup() {
     }
     terrain_ = terrain;
     ++terrain->refCount_;
-    CStringAssignText(&zoneName_, nullptr, worlddata::GipathText());
+    CStringAssignTextOriginal(&zoneName_, nullptr, worlddata::GipathText());
 
     manager44_ = MakeCounted<CBaseManager>(0xB0, Construct42D690);
     static_cast<CBaseManager*>(manager44_)->Init(this);
@@ -1721,6 +1714,7 @@ int CWorldClient::LoadZone(CStream* block) {
     Terrain* terrain = terrain_;
     if (map.GetLength() > 1 && map[1] != ':') {
         mfc::CString folder;
+        modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
         MapsFolderAt(&folder);
         map = folder + map;
     }

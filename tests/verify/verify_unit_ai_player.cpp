@@ -65,11 +65,18 @@ static void __fastcall AddPartyTargetsVerify(PlayerMode* self, void*, AIBrain* b
 }
 EI_VERIFY(0x005D3F50, AddPartyTargetsVerify, 7, s_addPartyTargets);
 
-// 005D4170 PlayerMode::UpdateCombat: ours only. The state stays valid; an attack has a target.
+// 005D4170 PlayerMode::UpdateCombat: ours only. The state stays valid, and an attack it orders has a
+// target. Execute calls it for an attack whose target is gone (action 3, brain target cleared when the
+// target left the server, t2b_attack_removed); finding nobody, it leaves that state as it was, as the
+// original does (T2b), so the attack check only applies when the call changed the action or target.
 static void __fastcall UpdateCombatVerify(PlayerMode* self, void*, AIBrain* brain) {
+    int action = brain->action;
+    CEngineObject* target = brain->target;
     self->UpdateCombat(brain);
+    bool changed = brain->action != action || brain->target != target;
     bool ok = self->state >= PlayerMode::kStateFollow && self->state <= PlayerMode::kStateMoveTo &&
-              (brain->action != AIBrain::kActionAttack || brain->target != nullptr);
-    ei::verify::Check("PlayerMode::UpdateCombat", true, ok, "mode %p state %d action %d", self, self->state, brain->action);
+              (!changed || brain->action != AIBrain::kActionAttack || brain->target != nullptr);
+    ei::verify::Check("PlayerMode::UpdateCombat", true, ok, "mode %p state %d action %d (was %d, target %p was %p)", self,
+                      self->state, brain->action, action, brain->target, target);
 }
 EI_VERIFY(0x005D4170, UpdateCombatVerify, 0, s_unused);

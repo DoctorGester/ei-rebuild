@@ -56,7 +56,7 @@ std::uint8_t PartLevel(const UnitBodyPart& part) {
     float maximum = static_cast<float>(part.maxDurability);
     float ratio = static_cast<float>(part.durability) / maximum;
     if (!(ratio < kFull || ratio > kFull)) return 0;   // equal (or NaN): unhurt
-    float stored = StoreFloat(ratio);
+    float stored = static_cast<float>(ratio);
     if (!(stored > kFull / maximum)) return 3;
     if (!(stored > kMedium)) return 2;
     if (!(stored < kLight)) return 0;

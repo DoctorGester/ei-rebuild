@@ -1,5 +1,6 @@
 // Connections of the network sessions: object replication. See net_connection.h.
 #include "net_connection.h"
+#include "at_exit_functions.h"
 #include "game_strings.h"
 
 #include "core_refcount.h"
@@ -104,14 +105,10 @@ __declspec(naked) void* __fastcall ReplicatedErase(ReplicatedVector* /*v*/, void
 __declspec(naked) void __fastcall ReplicatedSortLoop(Replicated* /*first*/, Replicated* /*last*/, void* /*tag*/, int /*depth*/,
                                                      void* /*compare*/) EI_ORIGINAL(0x0043F870)
 __declspec(naked) void __fastcall ReplicatedSortFinish(Replicated* /*first*/, Replicated* /*last*/, void* /*compare*/) EI_ORIGINAL(0x0043F9B0)
-constexpr std::uintptr_t kReplicatedDestroyAtExit = 0x00434980;
 // 0079B8D0 / 0079B8DC: CollectChanges's static vector of {object, priority} and its guard.
 ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
 std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(0x0079B8DC); }
 
-// --- Not rewritten yet ---------------------------------------------------------------------------
-// 004DA5C0: the growing buffer makes room for `size` bytes.
-inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) { GameBufferGrowOriginal((void*)a0, nullptr, a2); }
 
 
 // "text\n" and a flush to the network log, when there is one.
@@ -240,7 +237,7 @@ void Connection::QueueHeader(int budget) {
         std::memmove(reliableOut_.begin, reliableOut_.begin + size, static_cast<std::size_t>(remaining));
         reliableOut_.cur = reliableOut_.begin;
         reliableOut_.high = reliableOut_.begin + remaining;
-        if (reliableOut_.high > reliableOut_.end) GameBufferGrow(&reliableOut_, nullptr, static_cast<std::uint32_t>(remaining));
+        if (reliableOut_.high > reliableOut_.end) GameBufferGrowOriginal(&reliableOut_, nullptr, static_cast<std::uint32_t>(remaining));
         headerSequence_ = static_cast<std::uint16_t>(headerSequence_ + size);
         return;
     }
@@ -526,7 +523,7 @@ void Connection::Track(Replicated* item) {
     // A new entry (vtable 0073BF4C) with no version and no id yet.
     auto* entry = NewMessageMemory<ReplicaEntry>();
     if (entry) {
-        ei::SetVtable(entry, kRefValueVtable);
+        ei::SetVtable(entry, CRefObject::kVtableAddress);
         RefPtrFromRawOriginal(&entry->object_, nullptr, nullptr);
         ei::SetVtable(entry, ReplicaEntry::kVtableAddress);
         entry->version_ = 0;
@@ -594,7 +591,7 @@ void Connection::CollectChanges() {
         StaticReplicatedGuard() |= 1;
         char allocator = 0;
         ReplicatedConstruct(&items, nullptr, &allocator);
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kReplicatedDestroyAtExit));
+        GameAtExit(atexit400::DestroyGlobalVector);
     }
     ReplicatedErase(&items, nullptr, items.begin(), items.end());
     ReplicatedVector* target = &items;

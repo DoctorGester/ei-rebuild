@@ -21,9 +21,6 @@
 #include "originals_script.h"
 #include "originals_world.h"
 
-// The radius keeps the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 void* NetworkLog() { return reinterpret_cast<void*>(flowdata::kNetLogStream); }
@@ -54,16 +51,13 @@ ScriptGroup* __fastcall GroupsGetAt(void* a0, void*, ScriptGroup* a2, int a3) { 
 mfc::CString* __fastcall NamesGetAt(void* a0, void*, mfc::CString* a2, int a3) { return (mfc::CString*)ScriptStringAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
 ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup* a0, void*, ScriptObjectRef* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal((const void*)a0, nullptr, (void*)a2, a3); }
 void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
-void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
-// The network log's ostream (007C56B0).
-inline void* __fastcall OstreamPutLong(void* s, void*, long v) { return OstreamPutLongOriginal(s, nullptr, v); }
 
 // A player that lost its connection leaves the game.
 void DropPlayer(CWorldServer* world, WorldPlayer* player) {
     PlayerDisconnect(player, nullptr);
     PlayerListRelease(world->PlayerList(), nullptr, player);
     void* log = OstreamPutString(NetworkLog(), nullptr, worlddata::DisconnectingPlayerText());
-    log = OstreamPutLong(log, nullptr, player->id);
+    log = OstreamPutLongOriginal(log, nullptr, player->id);
     OstreamManipulate(OstreamPutChar(log, nullptr, '\n'), nullptr, worlddata::FlushManipulator());
 }
 
@@ -75,7 +69,7 @@ void WakeAroundUnits(CWorldServer* world, WorldPlayer* player) {
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
         auto* unit = static_cast<CUnit*>(node->value);
         auto* controller = static_cast<CUnitServer*>(unit->controller);
-        float perception = StoreFloat(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
+        float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
         float range = !(perception >= minimum) ? minimum : perception;   // the branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * worlddata::HearingScale() + worlddata::WakeMargin());
@@ -158,7 +152,7 @@ int CWorldServer::Update() {
         CPlayerServer* state = player->server;
         if (!NoPendingPossession(state)) continue;
         ScriptGroup& own = state->partyUnits_;
-        GroupSetSize(&own, nullptr, heroes.size, -1);
+        PtrArraySetSize(&own, nullptr, heroes.size, -1);
         for (int i = 0; i < heroes.size; ++i) {
             ScriptObjectRef copy;
             ScriptObjectRef* ref = GroupGetAt(&heroes, nullptr, &copy, i);
@@ -181,7 +175,5 @@ int CWorldServer::Update() {
     ++updateCount_;
     return 1;
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0058DFF0, CWorldServer::Update);

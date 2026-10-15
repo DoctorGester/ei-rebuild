@@ -71,8 +71,8 @@ EI_REPLACE_METHOD(0x006A0770, CItemWeapon::GetDamageTypes);
 
 double CItemWeapon::RollDamage() {
     if (EqualOrUnordered(damageSpread_, kZero)) return damage_;
-    volatile float high = damageSpread_ + damage_;   // stored as float in the original
-    volatile float low = damage_;                     // read back from memory for the subtraction and the add
+    float high = damageSpread_ + damage_;   // stored as float in the original
+    float low = damage_;                     // read back from memory for the subtraction and the add
     std::uint32_t roll = GlobalRandom()->Next();
     volatile std::int64_t roll64 = roll;               // FILD qword: exact
     // 0073C468: the double 0x3DF0000000100000, about 1 / (2^32 - 1).

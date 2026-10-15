@@ -263,8 +263,7 @@ void __fastcall DestroySkillDatabase(SkillDatabase* self) {
 namespace {
 // The CRT's `eh vector destructor iterator` (array, element size, count, destructor; last to
 // first) [006E859F, library]; the model slot's destructor, a jump to CString::~CString [0053F010].
-void __stdcall VectorDestructor(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
-constexpr std::uintptr_t kModelSlotDestructor = 0x0053F010;
+void __stdcall VectorDestructor(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
 
 // The record's inline ~vector<CString> with the storage freed by the node pool (00404D70 when
 // begin is set; 00520F60 for the sound names does the same test itself), the end read once.
@@ -315,7 +314,7 @@ void __fastcall DestroyModelRecord(UnitModelRecord* record) {
     DestroyStringsAndFree(&record->field20);
     DestroyStringsAndFree(&record->field1F);
     DestroyString(&record->figureName);
-    VectorDestructor(record->slots, sizeof(UnitModelSlot), 6, kModelSlotDestructor);
+    VectorDestructor(record->slots, sizeof(UnitModelSlot), 6, reinterpret_cast<void*>(DestroyModelSlot));
     DestroyString(&record->name);
 }
 

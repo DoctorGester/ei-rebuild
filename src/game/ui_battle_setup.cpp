@@ -29,8 +29,6 @@
 
 using console::CStringArray;
 
-void __fastcall UiDwordsSetSize(UiDwordArray* a, void*, int n, int g) { DwordArraySetSizeOriginal(a, nullptr, n, g); }
-
 namespace {
 
 // --- Not rewritten -------------------------------------------------------------------------------
@@ -129,7 +127,7 @@ void CBattleScreenSetup::Create() {
         stream->Seek(0);
         int count;
         stream->Read(&count, 4);
-        UiDwordsSetSize(&heroes_, nullptr, count, -1);
+        DwordArraySetSizeOriginal(&heroes_, nullptr, count, -1);
         for (int i = 0; i < heroes_.size; ++i) stream->Read(&heroes_.data[i], 4);
         stream->Read(&mapZoom, 4);
         std::uint8_t serverFlag;
@@ -155,7 +153,7 @@ void CBattleScreenSetup::Create() {
             int index = heroes_.size;
             std::uint32_t hero;
             std::memcpy(&hero, *reinterpret_cast<std::uint8_t**>(player + 0x30) + 0x1C, 4);
-            UiDwordsSetSize(&heroes_, nullptr, index + 1, -1);
+            DwordArraySetSizeOriginal(&heroes_, nullptr, index + 1, -1);
             heroes_.data[index] = hero;
             hasHero_ = true;
         }

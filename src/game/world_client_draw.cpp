@@ -118,7 +118,7 @@ float StarterDrawRadius(const char* name) {
             value = data;
         RegCloseKey(key);
     }
-    volatile float radius = static_cast<float>(static_cast<double>(value));
+    float radius = static_cast<float>(static_cast<double>(value));
     return radius;
 }
 
@@ -252,6 +252,7 @@ void SortByModel(FrameList list, CTextureDevice* renderer) {
     CEngineObject** first = v.begin();
     CEngineObject** last = v.end();
     if (first == last) return;
+    if (g_drawSortCheck) g_drawSortCheck(list, first, last);
     IntroSortByModelAt(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, renderer);
     FinalSortByModelAt(first, last, renderer);
 }
@@ -297,6 +298,8 @@ template <typename T>
 bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head; }
 
 } // namespace
+
+void (*g_drawSortCheck)(FrameList list, CEngineObject** first, CEngineObject** last) = nullptr;
 
 int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* queued) {
     if (!(object->flags_ & 0x20) || (object->flags_ & 0x40)) return 0;
@@ -619,7 +622,7 @@ int CWorldClient::DrawPass() {
         Vector3 sun;
         QuaternionAxisZ(&camera::TheCamera()->localRotation_, nullptr, &sun);
         const float scale = ShadowLength();
-        volatile float product = sun.x * scale;
+        float product = sun.x * scale;
         matrix.m[3] = product;
         product = sun.y * scale;
         matrix.m[7] = product;

@@ -418,9 +418,6 @@ __declspec(naked) inline char* __fastcall UnitPrototypeFindCopy(UnitPrototypeTab
     EI_ORIGINAL(0x00514930)
 // C3n. 00523370 (rewritten as UnitVitals::Reset; plain RET): the vitals back to their defaults; returns the vitals.
 __declspec(naked) inline void* __fastcall UnitVitalsReset(UnitVitals* /*vitals*/) EI_ORIGINAL(0x00523370)
-// 005233B0 (rewritten as UnitVitalsPacked::Reset; plain RET): zeroes the packed vitals but for their second byte;
-// returns 0.
-__declspec(naked) inline int __fastcall UnitVitalsPackedReset(void* /*packed*/) EI_ORIGINAL(0x005233B0)
 // C3n. 00523E80 / 00523F50 (rewritten as UnitStats::HitPointCurve / ManaCurve; plain RET): the maximum hit points /
 // mana the statistics give, in ST0 (declared double).
 __declspec(naked) inline double __fastcall UnitStatsHitPointCurve(UnitStats* /*stats*/) EI_ORIGINAL(0x00523E80)

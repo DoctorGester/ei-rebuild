@@ -90,7 +90,6 @@ __declspec(naked) void __fastcall BrainReset(void*) EI_ORIGINAL(0x005D4E80)
 // The world server: 00593AF0 a unit's death is final, 0058E520 / 0058E5D0 add / remove a timed
 // object (world_server.cpp); 00665440 does the player still have the unit.
 __declspec(naked) void __fastcall WorldUnitDied(void*, void*, CUnit*) EI_ORIGINAL(0x00593AF0)
-int __fastcall PlayerHasUnit(void* a0, void*, CUnit* a2) { return PlayerOwnsUnitOriginal(a0, nullptr, a2); }
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add.
 // The motion (+0x3C, an AIPath; ai_motion.cpp): 005C7CB0 ShiftTime, 005B23A0 Clear, 005C7B00
 // Start, and 005C7430 UnitMotion::Sample on CUnit + 0x27C.
@@ -296,7 +295,7 @@ int CUnitServer::UpdateServer() {
         WorldUnitDied(world, nullptr, unit);
         char* player = unit->player;
         UnitSetPlayer(unit, nullptr, nullptr);
-        if (player && PlayerHasUnit(player, nullptr, unit) != 0) {
+        if (player && PlayerOwnsUnitOriginal(player, nullptr, unit) != 0) {
             ConnectionOf(player)->LeaderDied();
         } else {
             BrainReset(&brain);

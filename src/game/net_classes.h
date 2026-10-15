@@ -129,7 +129,7 @@ inline ClientSession*& GameClient() { return *reinterpret_cast<ClientSession**>(
 // (destroyed and built again in place), slot 3 clones it.
 class __declspec(novtable) Message : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BC10;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BC10);
 
     // 0: 00413410 deleting destructor; 1: Serialize (empty); 2 / 3 pure in the base.
     virtual void Write(BufferCursor* cursor) = 0;   // 4: the fields at the cursor's byte position
@@ -156,7 +156,7 @@ Message* __fastcall MessageConstructBase(Message* self);
 // A server entry's base (vtable 0073BB40, 0x28 bytes; constructor body 004413E0).
 class __declspec(novtable) ServerEntryBase : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BB40;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BB40);
 
     // 0: 00412970 deleting destructor; 1: Serialize; 2 / 3 pure.
     virtual void Write(BufferCursor* cursor) = 0;   // 4
@@ -186,7 +186,7 @@ static_assert(sizeof(ServerEntryBase) == 0x28);
 // and the client lists (net_lobby.cpp, net_server_list.cpp).
 class __declspec(novtable) ServerEntry : public ServerEntryBase {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BB28;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BB28);
 
     // 0: 004128C0 deleting destructor; 1: 00412580 (empty). net_messages.cpp.
     int OnShutdown() override;                  // 2: 00412750 reset (EAX undefined in the original)
@@ -346,7 +346,7 @@ public:
     void RegisterMemberHandler(int channel, void* handler);
     void RegisterPartyHandler(int channel, void* handler);
     void RegisterRequestHandler(int channel, void* handler);
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BF5C;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BF5C);
 
     // 0: 004368D0 deleting destructor (DeletingDestruct); 1: Serialize (empty).
     virtual void RemoveClient(ClientNode* node);                                // 2: 00436CF0 (the sentinel is ignored)
@@ -460,7 +460,7 @@ struct PendingJoin {
 // join into a connection on its first update (slot 3).
 class __declspec(novtable) ServerBase : public SessionBase {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BBB4;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BBB4);
 
     // 0: 004132D0 deleting destructor (body 004132F0, DestructBase).
     bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override;    // 3: 004434F0
@@ -493,7 +493,7 @@ static_assert(sizeof(ServerBase) == 0x2570);
 // The lists are STLport lists of counted pointers (value at +8, or at +0xC after a float delay).
 class __declspec(novtable) ServerSession : public ServerBase {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BB70;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BB70);
 
     // 0: 00417A10 deleting destructor (DeletingDestruct).
     void OnMaster(const NetAddress* from, BufferCursor* cursor) override;    // 10: 0041ACA0
@@ -620,7 +620,7 @@ static_assert(sizeof(ServerSession) == 0x2600);
 // addresses, from the master server's list) and the join request to one of them.
 class __declspec(novtable) ClientBase : public SessionBase {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BE30;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BE30);
 
     enum JoinState : std::uint32_t { kNotJoined = 0, kAsking = 1, kJoined = 2 };
 
@@ -729,7 +729,7 @@ public:
     void StartParty(CRefObject* partner);
     // 0x0041E0A0 (net_client_handlers.cpp).
     void RecordTrade(const void* party);
-    static constexpr std::uintptr_t kVtableAddress = 0x0073BDEC;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BDEC);
 
     // 0: 0041C8B0 deleting destructor (DeletingDestruct).
     void CollectReplicated(ReplicatedVector** out) override;   // 13: 0041D050

@@ -19,9 +19,6 @@
 
 #include <cstring>
 
-// ai_join.cpp: the word BuildCellsTo gives its cells (see CommitLeg).
-void SetBuildCellsStaleWord(std::uint32_t value);
-
 namespace {
 
 constexpr int kUnreachable = 0x7FFFFFFF;
@@ -40,7 +37,6 @@ static_assert(sizeof(WaypointNode) == 0x14);
 
 // 00556D10 (RET 4) / 00556D40: the region list's constructor (block size) and RemoveAll.
 void __fastcall RegionListConstruct(PathCellList* a0, void*, int a2) { CellListConstructOriginal((void*)a0, nullptr, a2); }
-void __fastcall ListRemoveAll(void* a0, void*) { CellListRemoveAllOriginal(a0); }
 // 005B0D90 (RET 0x1C, AL). The region map's chain of regions from (fromX, fromY) to (toX, toY),
 // avoiding the blocks in `excluded` (AIPath::excludedBlocks).
 __declspec(naked) bool __fastcall RegionChain(CRegionMap*, void*, int, int, int, int, int, PathCellList*,
@@ -57,34 +53,13 @@ bool __fastcall SearchBegin(void* a0, void*, CUnit* a2, int a3, int a4, int a5, 
 __declspec(naked) bool __fastcall SearchContinue(void*, void*, int, int, int, int, int) EI_ORIGINAL(0x005C25D0)
 __declspec(naked) bool __fastcall SearchReached(void*, void*, int, int) EI_ORIGINAL(0x005C31A0)
 __declspec(naked) void __fastcall SearchCommit(void*, void*) EI_ORIGINAL(0x005C2A30)
-void __fastcall SearchReset(void* a0, void*) { LocalSearchResetOriginal(a0); }
-// 005B16D0 (RET 8). The excluded regions' CArray<{int x, y}>::SetSize.
-inline void __fastcall ExcludedSetSize(BlockPointArray* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 // 005B9A20 (RET 0xC). Builds the path cells to (toX, toY) from the search into `cells`.
 __declspec(naked) void __fastcall BuildCells(CAIMap*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005B9A20)
 // 006E727B. atexit, for the function-local spiral cache.
 
 // The function-local static SpiralCache at 007C2F58 (guard bit 0 of 007C2F60, destructor 005BA3F0).
-std::uint8_t& SpiralGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F60); }
-SpiralCache* Spiral() { return reinterpret_cast<SpiralCache*>(0x007C2F58); }
-
-// The second dword of every cell BuildCells (005B9A20) adds is a stack slot it never writes: in
-// the original it is the dword the planner's last call at the same depth left 20 bytes below the
-// planner's stack pointer. SpiralGet (two arguments) pushes the planner's EBP there, which is 0
-// at that call; SearchCommit (no arguments) keeps its row offset there, 4 * (last row + 1) after
-// its loop over rows max(1, -originY) .. min(32, height - originY - 1). Nothing else is called
-// between the last of those and BuildCells; the value reaches the steering as the last step's
-// speed word (SetStepSpeeds rewrites the others). BuildCellsTo (ai_join.cpp) takes it from here.
-void CommitLeg(LocalSearch* search) {
-    int originY = search->originY;
-    int height = search->map->height;
-    int first = -originY > 1 ? -originY : 1;
-    int last = height - originY - 1 > 32 ? 32 : height - originY - 1;
-    // When the loop does not run the slot keeps the previous call's word; that needs the search
-    // window outside the map, which the planner never sets up.
-    if (first <= last) SetBuildCellsStaleWord(static_cast<std::uint32_t>(4 * (last + 1)));
-    SearchCommit(search, nullptr);
-}
+std::uint8_t& SpiralGuard() { return ei::GameData<std::uint8_t>(0x007C2F60); }
+SpiralCache* Spiral() { return &ei::GameData<SpiralCache>(0x007C2F58); }
 
 // An inlined CList destructor: the nodes need no destruction; the blocks are freed.
 template <typename List>
@@ -93,8 +68,8 @@ void DestroyList(List& list, void* vtable) {
     list.RemoveAll();
 }
 
-double Threshold() { return *reinterpret_cast<const volatile double*>(0x0073F0A8); }
-float Half() { return *reinterpret_cast<const volatile float*>(0x0073B86C); }
+double Threshold() { return ei::GameData<const volatile double>(0x0073F0A8); }
+float Half() { return ei::GameData<const volatile float>(0x0073B86C); }
 
 } // namespace
 
@@ -108,11 +83,11 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         GameAtExit(reinterpret_cast<void (*)()>(0x005BA3F0));
     }
     int sizeClass = unit->sizeClass;
-    ListRemoveAll(&path->cells, nullptr);
+    CellListRemoveAllOriginal(&path->cells);
     bool ok = RegionChain(&regionMap, nullptr, sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
     if (!ok || chain.count * 8 > maxCells) {
         chain.vtable = PathCellListVtable();
-        ListRemoveAll(&chain, nullptr);
+        CellListRemoveAllOriginal(&chain);
         return false;
     }
     PrepareChain(this, nullptr, &chain);
@@ -153,7 +128,6 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
 
     int count = 0;
     const std::int16_t* offsets = SpiralGet(Spiral(), nullptr, kAllOffsets, &count);
-    SetBuildCellsStaleWord(0);
     LocalSearch* search = &forwardSearch;
     bool result = true;
     bool reachedLast = true;   // the previous leg ended on its waypoint
@@ -199,7 +173,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             }
             if (!next && SearchCost(search, nullptr, toX, toY) == kUnreachable) {
                 // The last leg did not reach the target: one more leg from the best cell.
-                CommitLeg(search);
+                SearchCommit(search, nullptr);
                 if (!SearchContinue(search, nullptr, bestX, bestY, toX, toY, 1)) {
                     failed = true;
                     failedAt = w;
@@ -215,7 +189,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             }
             curY = bestY;
             curX = bestX;
-            CommitLeg(search);
+            SearchCommit(search, nullptr);
             reachedLast = exact;
         }
         w = next;
@@ -232,17 +206,17 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         if (diff < 0) diff = -diff;
         int distance = diff + ((shorter * 1448) >> 10);
         if (static_cast<double>(distance) > Threshold()) {
-            CommitLeg(search);
+            SearchCommit(search, nullptr);
             toY = bestY;
             toX = bestX;
             path->failed = true;
             result = true;
-            float tx = StoreFloat(static_cast<float>(static_cast<double>(bestX) + Half()));
+            float tx = static_cast<float>(static_cast<double>(bestX) + Half());
             path->targetX = tx;
-            float ty = StoreFloat(static_cast<float>(static_cast<double>(bestY) + Half()));
+            float ty = static_cast<float>(static_cast<double>(bestY) + Half());
             path->targetY = ty;
         } else {
-            SearchReset(search, nullptr);
+            LocalSearchResetOriginal(search);
             bool retried = false;
             if (static_cast<char>(retry)) {
                 // Exclude the failing waypoint's region and plan again.
@@ -251,7 +225,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 int y = bad->data.y;
                 BlockPointArray* excluded = &path->excludedBlocks;
                 int size = excluded->size;
-                ExcludedSetSize(excluded, nullptr, size + 1, -1);
+                PointArraySetSizeOriginal(excluded, nullptr, size + 1, -1);
                 BlockPoint* data = excluded->data;
                 data[size].x = x;
                 data[size].y = y;
@@ -269,7 +243,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         PathCellList::Node* first = path->cells.head;
         if (first->data.x != fromX || first->data.y != fromY) result = false;
     }
-    SearchReset(search, nullptr);
+    LocalSearchResetOriginal(search);
     DestroyList(waypoints, mfc::impl::WaypointListClass::Vtable());
     DestroyList(chain, PathCellListVtable());
     return result;

@@ -1,9 +1,8 @@
 // Quaternion helpers at 0049E790-0049EE50: rotation from an angle and an axis (two argument
 // orders), products with a conjugate, and spherical interpolation. Names are provisional.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the order
-// of operations and the NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "maths.h"
 
 #include "ei/hook.h"
@@ -12,17 +11,9 @@
 #include <cstdint>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }
-
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 // Rounds to double, as FST qword does.
 double StoreDouble(double v) {
@@ -55,8 +46,8 @@ bool LessOrUnordered(double a, double b) { return !(a >= b); }
 void FromAngle(Quaternion* q, const Vector3& axis, float angle) {
     double half = D(angle) * D(EI_HALF_F);
     // The squared length stays unrounded (LengthSquaredXYZ would round it: the same at 24 bits).
-    float factor = Store(x87::fsin(half) / x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(axis)));
-    q->w = Store(x87::fcos(half));
+    float factor = static_cast<float>(x87::fsin(half) / x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(axis)));
+    q->w = static_cast<float>(x87::fcos(half));
     Vector3 v = factor * axis;
     q->x = v.x;
     q->y = v.y;
@@ -86,10 +77,10 @@ void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
     Quaternion c = Conjugate(r);
     double cw = c.w, cx = c.x, cy = c.y, cz = c.z;
     double qw = w, qx = x, qy = y, qz = z;
-    float nx = Store(((cy * qz - cz * qy) + cx * qw) + cw * qx);
-    float ny = Store(((cz * qx - cx * qz) + cw * qy) + cy * qw);
-    float nz = Store(((cx * qy - cy * qx) + cw * qz) + cz * qw);
-    float nw = Store(cw * qw - DotUnrounded<Sum3::ZYX>(cx, cy, cz, qx, qy, qz));
+    float nx = static_cast<float>(((cy * qz - cz * qy) + cx * qw) + cw * qx);
+    float ny = static_cast<float>(((cz * qx - cx * qz) + cw * qy) + cy * qw);
+    float nz = static_cast<float>(((cx * qy - cy * qx) + cw * qz) + cz * qw);
+    float nw = static_cast<float>(cw * qw - DotUnrounded<Sum3::ZYX>(cx, cy, cz, qx, qy, qz));
     y = ny;
     z = nz;
     w = nw;
@@ -107,10 +98,10 @@ Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a,
     double ny = ((cz * ax - cx * az) + cw * ay) + cy * aw;
     double nx = ((cy * az - cz * ay) + cw * ax) + cx * aw;
     double nw = cw * aw - DotUnrounded<Sum3::XYZ>(cx, cy, cz, ax, ay, az);
-    out->w = Store(nw);
-    out->x = Store(nx);
-    out->y = Store(ny);
-    out->z = Store(nz);
+    out->w = static_cast<float>(nw);
+    out->x = static_cast<float>(nx);
+    out->y = static_cast<float>(ny);
+    out->z = static_cast<float>(nz);
     return out;
 }
 EI_REPLACE(0x0049E950, MultiplyByConjugate);
@@ -126,26 +117,26 @@ void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
     if (LessOrUnordered(cosine, EI_ZERO_D)) {
         cosine = -cosine;
         stored = StoreDouble(cosine);
-        c.x = Store(-D(b.x));
-        c.y = Store(-D(b.y));
-        c.z = Store(-D(b.z));
-        c.w = Store(-D(b.w));
+        c.x = static_cast<float>(-D(b.x));
+        c.y = static_cast<float>(-D(b.y));
+        c.z = static_cast<float>(-D(b.z));
+        c.w = static_cast<float>(-D(b.w));
     }
     float weightA;
     double weightB;
     double one = EI_ONE_D;
     if (!(one - cosine > EI_SLERP_LINEAR)) {
-        weightA = Store(D(EI_ONE_F) - D(t));
+        weightA = static_cast<float>(D(EI_ONE_F) - D(t));
         weightB = t;
     } else {
         double angle = CIacos(stored);
         double inverseSine = one / x87::fsin(angle);
-        weightA = Store(x87::fsin((one - D(t)) * angle) * inverseSine);
+        weightA = static_cast<float>(x87::fsin((one - D(t)) * angle) * inverseSine);
         weightB = x87::fsin(angle * D(t)) * inverseSine;
     }
-    x = Store(D(weightA) * D(a.x) + weightB * D(c.x));
-    y = Store(D(weightA) * D(a.y) + weightB * D(c.y));
-    z = Store(D(weightA) * D(a.z) + weightB * D(c.z));
-    w = Store(D(weightA) * D(a.w) + weightB * D(c.w));
+    x = static_cast<float>(D(weightA) * D(a.x) + weightB * D(c.x));
+    y = static_cast<float>(D(weightA) * D(a.y) + weightB * D(c.y));
+    z = static_cast<float>(D(weightA) * D(a.z) + weightB * D(c.z));
+    w = static_cast<float>(D(weightA) * D(a.w) + weightB * D(c.w));
 }
 EI_REPLACE_METHOD(0x0049ED20, Quaternion::Slerp);

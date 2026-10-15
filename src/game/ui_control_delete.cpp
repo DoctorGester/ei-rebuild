@@ -7,6 +7,7 @@
 #include "ui_screens.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -19,7 +20,6 @@ constexpr std::uintptr_t kSpinVtable = std::uintptr_t(0x00742D5C);
 constexpr std::uintptr_t kSpinInputVtable = std::uintptr_t(0x00742D28);
 constexpr std::uintptr_t kEditFieldVtable = std::uintptr_t(0x00742DF4);
 constexpr std::uintptr_t kEditFieldInputVtable = std::uintptr_t(0x00742DC0);
-constexpr std::uintptr_t kTokenVtable = std::uintptr_t(0x00742F24);   // the tokens' base
 
 template <typename T>
 T* FreeIfAsked(T* self, unsigned flags) {
@@ -95,33 +95,18 @@ EI_REPLACE_METHOD(0x0065E4D0, CUiTooltip::TooltipDelete);
 // The input sides' slot 0 (SUB ECX,0x94; JMP to the window's): 0065CB70 the scroll bar's, 0065CB80
 // the slider's, 0065CB90 the spin's, 0065CBA0 the edit field's, 0065E2B0 the scrolling text's,
 // 0065EAC0 the tooltip's.
-void* __fastcall ScrollbarInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiScrollbar>(input)->ScrollbarDelete(flags);
-}
-EI_REPLACE(0x0065CB70, ScrollbarInputDelete);
-EI_REPLACE(0x0065CB80, ScrollbarInputDelete);
-void* __fastcall SpinInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiSpin>(input)->SpinDelete(flags);
-}
-EI_REPLACE(0x0065CB90, SpinInputDelete);
-void* __fastcall EditFieldInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiEditField>(input)->EditFieldDelete(flags);
-}
-EI_REPLACE(0x0065CBA0, EditFieldInputDelete);
-void* __fastcall ScrollTextInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiScrollText>(input)->ScrollTextDelete(flags);
-}
-EI_REPLACE(0x0065E2B0, ScrollTextInputDelete);
-void* __fastcall TooltipInputDelete(void* input, void*, unsigned flags) {
-    return WindowFromInput<CUiTooltip>(input)->TooltipDelete(flags);
-}
-EI_REPLACE(0x0065EAC0, TooltipInputDelete);
+EI_REPLACE_METHOD(0x0065CB70, UiInput::DeleteWindow<&CUiScrollbar::ScrollbarDelete>);
+EI_REPLACE_METHOD(0x0065CB80, UiInput::DeleteWindow<&CUiScrollbar::ScrollbarDelete>);
+EI_REPLACE_METHOD(0x0065CB90, UiInput::DeleteWindow<&CUiSpin::SpinDelete>);
+EI_REPLACE_METHOD(0x0065CBA0, UiInput::DeleteWindow<&CUiEditField::EditFieldDelete>);
+EI_REPLACE_METHOD(0x0065E2B0, UiInput::DeleteWindow<&CUiScrollText::ScrollTextDelete>);
+EI_REPLACE_METHOD(0x0065EAC0, UiInput::DeleteWindow<&CUiTooltip::TooltipDelete>);
 
 // --- The scrolling text's tokens ------------------------------------------------------------------
 
 // 0065D8A0: the base token (00742F24; its body inlined: the base vtable written).
 UiTextToken* UiTextToken::TextTokenDelete(unsigned flags) {
-    vtable_ = reinterpret_cast<void*>(kTokenVtable);
+    ei::SetVtable(this, UiTextToken::kVtableAddress);
     return FreeIfAsked(this, flags);
 }
 EI_REPLACE_METHOD(0x0065D8A0, UiTextToken::TextTokenDelete);

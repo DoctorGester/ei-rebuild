@@ -33,8 +33,6 @@ static_assert(sizeof(StringSlot) == sizeof(stlp::string));
 // The model map's find (RET 8: out iterator, key) and operator[] (RET 4: the pair, key then value).
 __declspec(naked) void __fastcall MapFind(ModelMap*, void*, ModelMap::Iterator*, const stlp::string*) EI_ORIGINAL(0x004FB0F0)
 __declspec(naked) ModelMap::Pair* __fastcall MapIndex(ModelMap*, void*, const StringSlot*) EI_ORIGINAL(0x004FBBD0)
-// STLport string copy constructor (RET 4) and two destructor instantiations.
-void __fastcall StringCopy(StringSlot* a0, void*, const stlp::string* a2) { StringCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 
 // The model's animation map: find (RET 8) and operator[] (RET 4). The animations are
 // CMMIOResources (0x6C bytes, MmioResourceConstructOriginal).
@@ -64,7 +62,7 @@ void* OpenPart(CFigureManager* manager, const stlp::string* name, std::uintptr_t
 
 FigureModel** ModelSlot(ModelMap* map, const stlp::string* name, void (__fastcall* destroy)(void*)) {
     StringSlot key;
-    StringCopy(&key, nullptr, name);
+    StringCopyConstructOriginal(&key, nullptr, name);
     ModelMap::Pair* pair = MapIndex(map, nullptr, &key);
     destroy(&key);
     return &pair->value;
@@ -110,11 +108,11 @@ CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
         void* memory = gamecrt::operator_new(0x6C);
         CMappedResource* animation = memory ? MmioResourceConstructOriginal(memory) : nullptr;
         StringSlot key;
-        StringCopy(&key, nullptr, name);
+        StringCopyConstructOriginal(&key, nullptr, name);
         CMappedResource** slot = &AnimIndex(map, nullptr, &key)->value;
         StringRepDestroy(&key);
         *slot = animation;
-        StringCopy(&key, nullptr, name);
+        StringCopyConstructOriginal(&key, nullptr, name);
         slot = &AnimIndex(map, nullptr, &key)->value;
         StringRepDestroy(&key);
         (*slot)->OpenFromMemory(data);

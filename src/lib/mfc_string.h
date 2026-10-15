@@ -63,8 +63,14 @@ struct CStringData {
 static_assert(sizeof(CStringData) == 12);
 
 // _afxDataNil and _afxPchNil: the shared empty string's header and its characters (game data).
+#ifdef EI_VECTORS_REPLAY
+// ei_vectors has no game data: the empty string of its own CString (tests/vectors/replay_mfc.cpp).
+CStringData* DataNil();
+char* PchNil();
+#else
 inline CStringData* DataNil() { return *reinterpret_cast<CStringData**>(0x00796E4C); }
 inline char* PchNil() { return *reinterpret_cast<char**>(0x00796E48); }
+#endif
 
 class CString {
 public:

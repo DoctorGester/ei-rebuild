@@ -12,6 +12,7 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_script.h"
@@ -40,7 +41,6 @@ constexpr std::uint32_t kFirstRetry = 0x3DCCCCCD;   // 0.1f
 
 // Growing buffers.
 __declspec(naked) void __fastcall GameBufferAssign(GameBuffer* /*to*/, void*, const GameBuffer* /*from*/) EI_ORIGINAL(0x004DAA80)
-inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) { GameBufferGrowOriginal((void*)a0, nullptr, a2); }
 
 // STLport containers (library): the servers list (004436C0 end, 004437A0 insert of a counted
 // pointer, 004436D0 erase), the waiting addresses (0041FCD0 end, 00421AF0 insert, 004437D0
@@ -49,8 +49,6 @@ inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) {
 __declspec(naked) Node** __fastcall ServersEnd(void* /*list*/, void*, Node** /*out*/) EI_ORIGINAL(0x004436C0)
 __declspec(naked) Node** __fastcall ServersInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004437A0)
 __declspec(naked) Node** __fastcall ServersErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004436D0)
-Node** __fastcall WaitingEnd(void* a0, void*, Node** a2) { return (Node**)ListEndIteratorOriginal(a0, nullptr, (void**)a2); }
-Node** __fastcall WaitingInsert(void* a0, void*, Node** a2, Node* a3, const NetAddress* a4) { return (Node**)ListInsert421AF0Original(a0, nullptr, (void**)a2, (void*)a3, (const void*)a4); }
 __declspec(naked) Node** __fastcall WaitingErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004437D0)
 __declspec(naked) Node** __fastcall JoinsErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x00443730)
 __declspec(naked) Node** __fastcall JoinsInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const PendingJoin* /*value*/) EI_ORIGINAL(0x00443800)
@@ -422,9 +420,9 @@ void ClientBase::Refresh() {
     if (index < static_cast<std::uint32_t>(v.size())) ClientSendPingAt(this, nullptr, &v[index].address);
     if (alwaysAsk_.ip != 0) {
         Node* pos;
-        WaitingEnd(&waiting_, nullptr, &pos);
+        ListEndIteratorOriginal(&waiting_, nullptr, (void**)&pos);
         Node* out;
-        WaitingInsert(&waiting_, nullptr, &out, pos, &alwaysAsk_);
+        ListInsert421AF0Original(&waiting_, nullptr, (void**)&out, (void*)pos, (const void*)&alwaysAsk_);
     }
 }
 EI_REPLACE_METHOD(0x00442180, ClientBase::Refresh);
@@ -559,9 +557,9 @@ void ClientBase::AddServer(ServerEntry* entry) {
         ServersInsert(&servers_, nullptr, &out, pos, &holder);
     }
     Node* pos;
-    WaitingEnd(&waiting_, nullptr, &pos);
+    ListEndIteratorOriginal(&waiting_, nullptr, (void**)&pos);
     Node* out;
-    WaitingInsert(&waiting_, nullptr, &out, pos, &entry->address_);
+    ListInsert421AF0Original(&waiting_, nullptr, (void**)&out, (void*)pos, (const void*)&entry->address_);
 }
 EI_REPLACE_METHOD(0x004428A0, ClientBase::AddServer);
 
@@ -740,8 +738,8 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 //
 // The original builds the new join on the stack and never sets its age (+0x18): the list gets
 // whatever the stack held, so the time the join may wait for its first update (ServerBase::Tick)
-// is not defined. Rebirth's FixProcessLogin (a jump at 004433D6) clears it; so does this body,
-// which is installed in the vanilla launch only.
+// is not defined. Rebirth's FixProcessLogin (a jump at 004433D6 to a stub that clears it) is what
+// this body always does: garbage cannot be reproduced, so the flag changes nothing here.
 void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t magic;
     cursor->ReadBytes(&magic, 4);
@@ -800,6 +798,7 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 
 EI_REPLACE_METHOD(0x00443080, ServerBase::OnLoginImpl);
+EI_REBIRTH_IMPLEMENTS(0x00443080, ei::rebirth::Patch::FixProcessLogin);
 EI_REPLACE_METHOD(0x00443060, ServerBase::OnGetInfoImpl);
 EI_REPLACE_METHOD(0x00443050, ServerBase::AdmitImpl);
 EI_REPLACE_METHOD(0x004434F0, ServerBase::OnUpdateImpl);
@@ -831,7 +830,7 @@ void ClientQueries::Serialize(ChunkArchive* archive) {
                 GameBuffer& r = q->reply;
                 r.cur = r.begin;
                 r.high = r.begin + length;
-                if (r.high > r.end) GameBufferGrow(&r, nullptr, length);
+                if (r.high > r.end) GameBufferGrowOriginal(&r, nullptr, length);
             } else {
                 length = static_cast<std::uint32_t>(BufferLengthAt(&q->reply));
                 archive->Field(2, &length, 4);

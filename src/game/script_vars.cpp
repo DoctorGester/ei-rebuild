@@ -100,7 +100,6 @@ EI_REPLACE_METHOD(0x004B3940, ScriptVars::RemoveDeletedObjects);
 // ---- ScriptDefinition::AddParameter -------------------------------------------------------------
 
 namespace {
-void __fastcall RefsSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall NamesSetAtGrow(void*, void*, int, const mfc::CString*) EI_ORIGINAL(0x004CE5F0)
 // 00700B9F operator+(const CString&, const CString&): constructs the result in `out`.
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
@@ -141,7 +140,7 @@ BOOL ScriptDefinition::AddParameterImpl(const mfc::CString* parameterName, int t
         if (FindName(vars.objectNames, text) >= 0) {
             result = 0;
         } else {
-            RefsSetSize(&vars.objects, nullptr, vars.objects.size + 1, -1);
+            PtrArraySetSize(&vars.objects, nullptr, vars.objects.size + 1, -1);
             mfc::CString temp(text);
             NamesSetAtGrow(&vars.objectNames, nullptr, vars.objectNames.size, &temp);
             result = 1;

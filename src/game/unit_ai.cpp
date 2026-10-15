@@ -17,8 +17,6 @@
 #include "originals_world.h"
 #include "world_data.h"
 
-// Keep the original's order of float operations (/fp:fast would reassociate constants).
-#pragma float_control(precise, on)
 #pragma warning(disable : 4740) // naked forwarders
 
 namespace {
@@ -391,14 +389,14 @@ bool AIBrain::IsNearPath(const Vector3* point, float radius) {
         return false;
     float pointX = point->x;
     float pointY = point->y;
-    volatile float segX = previousPosition.x - position.x;     // FSTP float [EBP+0xC]
-    volatile float segY = previousPosition.y - position.y;     // FSTP float [EBP+8]
-    volatile float t = static_cast<float>(((pointX - position.x) * segX + (pointY - position.y) * segY) /
+    float segX = previousPosition.x - position.x;     // FSTP float [EBP+0xC]
+    float segY = previousPosition.y - position.y;     // FSTP float [EBP+8]
+    float t = static_cast<float>(((pointX - position.x) * segX + (pointY - position.y) * segY) /
                                           LengthSquared2DUnrounded<double>(segY, segX));
     // Clamp to [0, 1] with the original's FCOMP/mask selects (C0: "less or unordered"): t is kept
     // when 0 < t or unordered, else 0; then 1 is taken when 1 < t or unordered.
     float clamped = !(0.0f >= t) ? static_cast<float>(t) : 0.0f;
-    volatile float clampedStored = clamped;                     // FLD/FSTP through memory
+    float clampedStored = clamped;                     // FLD/FSTP through memory
     float u = !(1.0f >= clampedStored) ? 1.0f : static_cast<float>(clampedStored);
     double ex = position.x - (pointX - u * segX);
     double ey = position.y - (pointY - u * segY);
@@ -470,7 +468,7 @@ void AIBrain::UpdateMove() {
     }
     if (actionTime == kLookStarted) {
         if (looks.data->stopFirst) reinterpret_cast<ControllerOriginals*>(o)->StopQueued();
-        volatile float end = static_cast<float>(GameTime()) + looks.data->wait;     // FILD + FADD, FSTP float
+        float end = static_cast<float>(GameTime()) + looks.data->wait;     // FILD + FADD, FSTP float
         actionTime = x87::fistp(end);
         int remaining = looks.size - 1;
         if (remaining != 0) GameMemmove(looks.data, looks.data + 1, static_cast<unsigned>(remaining) << 4);

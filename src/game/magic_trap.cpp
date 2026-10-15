@@ -204,7 +204,6 @@ EI_REPLACE_METHOD(0x0052A4B0, MagicTrap::CastAtUnits);
 namespace {
 // The spell manager's CreateSpellFromText (00689030, RET 4; not rewritten); the two arrays'
 // SetSize(n, -1) (0046EAD0 for the circles, 0052C8E0 for the points; MFC template code, RET 8).
-void __fastcall CirclesSetSize(TrapArea* a0, void*, int a2, int a3) { Array12SetSizeOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall PointsSetSize(TrapPoints*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x0052C8E0)
 // The map object context's (the world's) slot 22.
 CSpellManager* SpellManagerOf(void* context) { return static_cast<CWorld*>(context)->SpellManager(); }
@@ -239,7 +238,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     std::memcpy(&position.x, &record->position, sizeof(record->position));   // copied as dwords
 
     // The loop bounds are read again on every pass, as in the original.
-    CirclesSetSize(&area, nullptr, record->area.count, -1);
+    Array12SetSizeOriginal(&area, nullptr, record->area.count, -1);
     for (int i = 0; i < record->area.count; ++i)
         std::memcpy(&area.circles[i], &record->area.circles[i], sizeof(TrapCircle));
     PointsSetSize(&points, nullptr, record->points.count, -1);
@@ -261,17 +260,12 @@ namespace {
 // map_object_lifetime.cpp], its Create and Destroy (slots 2 and 3, called directly) [0050E770 /
 // 0050E840, not rewritten], the map object part of Load / Save [0050F7A0 / 0050F900, not
 // rewritten]: all through their game addresses.
-void __fastcall MapObjectLoad(void* a0, void*, CStream* a2) { MapObjectLoadOriginal(a0, nullptr, (void*)a2); }
-void __fastcall MapObjectSave(void* a0, void*, CStream* a2) { MapObjectSaveOriginal(a0, nullptr, (void*)a2); }
 // A counted reference's Save (its object's id, -1 for none) [0050E290, RET 4]; the units inside
 // read back and appended, each resolved in `context` [0052AF20, fastcall: ECX the list, EDX the
 // stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
 // [00403F40, rewritten in base_manager.cpp].
 void __fastcall CountedRefSave(CEngineObject** a0, void*, CStream* a2) { CountedRefSaveOriginal((void*)a0, nullptr, (void*)a2); }
 
-constexpr std::uintptr_t kTrapVtable = 0x0073E63C;
-constexpr std::uintptr_t kCirclesVtable = 0x0073C68C;        // while constructed
-constexpr std::uintptr_t kPointsVtable = 0x0073C680;
 constexpr std::uint32_t kTrapFlags = 0x80040;
 constexpr std::uint32_t kDefaultPeriod = 10;
 constexpr int kVictimBlockSize = 10;
@@ -281,8 +275,6 @@ void* TailFields(MagicTrap* trap, int i) {
     return fields[i];
 }
 constexpr int kTailFieldCount = 4;
-
-void* VtableOf(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
 // An empty MFC CArray's four fields after its vtable (data, grow by, capacity, count; in the
 // original's order).
@@ -313,9 +305,9 @@ MagicTrap* MagicTrap::Construct() {
     MapObjectConstructOriginal(this);
     spell = nullptr;
     EmptyArray(area);
-    area.vtable = VtableOf(kCirclesVtable);
+    area.vtable = mfc::impl::TrapAreasArrayClass::Vtable();   // while constructed
     EmptyArray(points);
-    points.vtable = VtableOf(kPointsVtable);
+    points.vtable = mfc::impl::TrapTargetsArrayClass::Vtable();
     inside.vtable = gameslots::VictimListClass::Vtable();
     inside.count = 0;
     inside.free = nullptr;
@@ -323,13 +315,13 @@ MagicTrap* MagicTrap::Construct() {
     inside.head = nullptr;
     inside.blocks = nullptr;
     inside.blockSize = kVictimBlockSize;
-    ei::SetVtable(this, kTrapVtable);
+    ei::SetVtable(this, kVtableAddress);
 
     MapObjectCreate(this);
     sides = 0xFFFFFFFFu;
     flags_ |= kTrapFlags;
     SetSpell(this, nullptr);
-    CirclesSetSize(&area, nullptr, 0, -1);
+    Array12SetSizeOriginal(&area, nullptr, 0, -1);
     PointsSetSize(&points, nullptr, 0, -1);
     ClearVictims(this);
     countdown = 0;
@@ -340,10 +332,10 @@ MagicTrap* MagicTrap::Construct() {
 EI_REPLACE_METHOD(0x00529DD0, MagicTrap::Construct);
 
 void MagicTrap::DestructBody() {
-    ei::SetVtable(this, kTrapVtable);
+    ei::SetVtable(this, kVtableAddress);
     MapObjectDestroy(this);
     SetSpell(this, nullptr);   // 0052C690(0)
-    CirclesSetSize(&area, nullptr, 0, -1);
+    Array12SetSizeOriginal(&area, nullptr, 0, -1);
     PointsSetSize(&points, nullptr, 0, -1);
     ClearVictims(this);        // RemoveAll (each element through 0052D030(0))
     // CList's destructor: its vtable, then RemoveAll again (elements through 0052CEC0).
@@ -360,7 +352,7 @@ void MagicTrap::DestructBody() {
 EI_REPLACE_METHOD(0x00529F90, MagicTrap::DestructBody);
 
 void MagicTrap::SaveTrap(CStream* stream) {
-    MapObjectSave(this, nullptr, stream);
+    MapObjectSaveOriginal(this, nullptr, (void*)stream);
     std::int32_t value = spell ? spell->id_ : -1;
     stream->Write(&value, 4);
     value = area.count;
@@ -384,7 +376,7 @@ void MagicTrap::SaveTrap(CStream* stream) {
 EI_REPLACE_METHOD(0x0052B070, MagicTrap::SaveTrap);
 
 void MagicTrap::LoadTrap(CStream* stream) {
-    MapObjectLoad(this, nullptr, stream);
+    MapObjectLoadOriginal(this, nullptr, (void*)stream);
     void* manager = SpellManagerOf(ManagerContextOf(this));
     // The original reads the id and the two counts into its argument's stack slot: a read that
     // fails leaves the previous value there (at first the stream pointer itself).
@@ -392,7 +384,7 @@ void MagicTrap::LoadTrap(CStream* stream) {
     stream->Read(&value, 4);
     SetSpell(this, value == -1 ? nullptr : ManagerFindObject(manager, nullptr, value));
     stream->Read(&value, 4);
-    CirclesSetSize(&area, nullptr, value, -1);
+    Array12SetSizeOriginal(&area, nullptr, value, -1);
     for (int i = 0; i < area.count; ++i) stream->Read(&area.circles[i], sizeof(TrapCircle));
     CountedListLoadOriginal(&inside, stream, ManagerContextOf(this));
     stream->Read(&value, 4);

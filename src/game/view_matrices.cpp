@@ -42,14 +42,14 @@ void __stdcall LightRotation(const Vector3* direction, Quaternion* out) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     double x = direction->x;
     float y = direction->y;
-    double scale = 1.0f / std::sqrt(LengthSquared2DUnrounded<double>(y, x));
-    float scaleF = StoreFloat(static_cast<float>(scale));
+    double scale = 1.0f / x87::fsqrt(LengthSquared2DUnrounded<double>(y, x));
+    float scaleF = static_cast<float>(scale);
     double cosine = x * scale;
-    float yNormal = StoreFloat(scaleF * y);
-    float clamped = StoreFloat(static_cast<float>(cosine));
+    float yNormal = static_cast<float>(scaleF * y);
+    float clamped = static_cast<float>(cosine);
     if (cosine > 1.0f) clamped = 1.0f;
     else if (!(clamped >= -1.0f)) clamped = -1.0f;
-    float angle = StoreFloat(static_cast<float>(std::acos(static_cast<double>(clamped))));
+    float angle = static_cast<float>(std::acos(static_cast<double>(clamped)));
     if (!(yNormal <= 0.0f)) axis = {0.0f, 0.0f, -1.0f};
     out->FromAxisAngle(axis, angle);
 }
@@ -64,7 +64,7 @@ void __stdcall LightShearMatrix(float* out, const Vector3* direction) {
     Vector3 cross = Cross(u, d);
     double twoW = q.w + q.w;
     Vector3 turn = {static_cast<float>(cross.x * twoW), static_cast<float>(cross.y * twoW), static_cast<float>(cross.z * twoW)};
-    float scale = StoreFloat(static_cast<float>(q.w * q.w - LengthSquaredZXY(u)));
+    float scale = static_cast<float>(q.w * q.w - LengthSquaredZXY(u));
     Vector3 sum = d * scale + turn;
     Vector3 rotated = {sum.x + along.x, sum.y + along.y, sum.z + along.z};
     std::memset(out, 0, 16 * sizeof(float));

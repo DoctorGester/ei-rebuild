@@ -149,7 +149,7 @@ std::uintptr_t VtableOf(const GameBuffer* b) {
     return v;
 }
 bool KnownBuffer(const GameBuffer* b) {
-    return VtableOf(b) == kGrowingBufferVtable || VtableOf(b) == kBufferViewVtable;
+    return VtableOf(b) == GameBuffer::kGrowingVtableAddress || VtableOf(b) == kBufferViewVtable;
 }
 
 // A growing buffer's header and block kept in our memory before ours runs.
@@ -233,7 +233,7 @@ void RunBoth(const char* name, CoderFn original, void (CoderState::*ours)(GameBu
 CoderFn s_compress;
 void __fastcall CompressVerify(CoderState* self, void*, GameBuffer* in, GameBuffer* out) {
     // The input is only grown (slot 0) when its base is not 0.
-    if (!KnownBuffer(in) || VtableOf(out) != kGrowingBufferVtable || in->base != 0 || in == out) {
+    if (!KnownBuffer(in) || VtableOf(out) != GameBuffer::kGrowingVtableAddress || in->base != 0 || in == out) {
         self->Compress(in, out);
         return;
     }
@@ -244,7 +244,7 @@ void __fastcall CompressVerify(CoderState* self, void*, GameBuffer* in, GameBuff
 CoderFn s_decompress;
 void __fastcall DecompressVerify(CoderState* self, void*, GameBuffer* in, GameBuffer* out) {
     std::uint8_t* high = in->cur > in->high ? in->cur : in->high;
-    if (!KnownBuffer(in) || VtableOf(out) != kGrowingBufferVtable || high > in->end || in == out) {
+    if (!KnownBuffer(in) || VtableOf(out) != GameBuffer::kGrowingVtableAddress || high > in->end || in == out) {
         self->Decompress(in, out);
         return;
     }

@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 78C951A2 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 9BCE8CC2 n 172
 + world world
 world tick 20
 world updates 20
@@ -541,11 +541,11 @@ cunit2 #place 05174B21
 cunit2 #unit CA7CD47D
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
-cunit129 #place A93B71E5
+cunit129 #place CC95DED6
 cunit129 #unit F0D31922
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place 40A0CCA1
+cunit148 #place CE270717
 cunit148 #unit 41270B60
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
@@ -556,7 +556,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 10 tick 40 zone - hash 23F1EA0D n 172
+@ 1 update 40 frame 10 tick 40 zone - hash AE0BA3A8 n 172
 world tick 40
 world updates 40
 random isaac.count 73
@@ -582,13 +582,13 @@ client tick 40
 client ticksRun 37
 cunit2 #place 85C53A26
 cunit2 #unit 0370F4FB
-cunit129 #place 98C45A20
+cunit129 #place F0D21162
 cunit129 #unit 8AE7D045
-cunit148 #place BC6FA938
+cunit148 #place 1A4C9798
 cunit148 #unit E08FCCA9
 cunit187 #place 8FD72F05
-cunit388 #place 7C14F88B
-@ 2 update 60 frame 14 tick 60 zone - hash 2047A353 n 172
+cunit388 #place 2C65C503
+@ 2 update 60 frame 14 tick 60 zone - hash ADBDEAF6 n 172
 world tick 60
 world updates 60
 random isaac.count 75
@@ -612,7 +612,7 @@ missile0 # AC368F1A
 aievents tick 60
 client tick 60
 client ticksRun 57
-@ 3 update 80 frame 21 tick 80 zone - hash 5EC77D0E n 172
+@ 3 update 80 frame 21 tick 80 zone - hash 1915A881 n 172
 world tick 80
 world updates 80
 random isaac.count 88
@@ -636,10 +636,8 @@ missile0 # 400D1185
 aievents tick 80
 client tick 80
 client ticksRun 77
-cunit2 #place D53F3501
-cunit129 #place D8147935
+cunit129 #place 33D6DA74
 cunit129 #unit 91F197F1
-cunit148 #place 8A34BE2B
+cunit148 #place 8F2A041B
 cunit148 #unit C73DF77E
-cunit187 #place 7589EF30
-cunit388 #place 7D666D45
+cunit388 #place CC64C5DC

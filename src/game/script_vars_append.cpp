@@ -27,8 +27,6 @@ namespace {
 mfc::CString* __fastcall StringAt(const void* a0, void*, void* a2, int a3) { return (mfc::CString*)ScriptStringAtOriginal(a0, nullptr, a2, a3); }
 ScriptObjectRef* __fastcall RefAt(const void* a0, void*, void* a2, int a3) { return (ScriptObjectRef*)ScriptRefAtOriginal(a0, nullptr, a2, a3); }
 ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) { return (ScriptGroup*)ScriptGroupAtOriginal(a0, nullptr, a2, a3); }
-// Rewritten script helpers, called through their addresses.
-void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
 
 // The float is copied through the FPU (FLD / FSTP), as the original does: a signalling NaN
@@ -109,7 +107,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Append(const ScriptNamedValues<
         ScriptGroup copy;
         GroupAt(&other->values, nullptr, &copy, i);
         ScriptGroup* group = &values.data[old + i];
-        GroupSetSize(group, nullptr, copy.size, -1);
+        PtrArraySetSize(group, nullptr, copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
             RefAt(&copy, nullptr, &member, k);
@@ -184,7 +182,7 @@ void __fastcall ScriptVarsClear(ScriptVars* vars) {
     NamesSetSizeOriginal(&vars->floatNames, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars->strings, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars->stringNames, nullptr, 0, -1);
-    GroupSetSize(reinterpret_cast<ScriptGroup*>(&vars->objects), nullptr, 0, -1);
+    PtrArraySetSize(reinterpret_cast<ScriptGroup*>(&vars->objects), nullptr, 0, -1);
     NamesSetSizeOriginal(&vars->objectNames, nullptr, 0, -1);
     if (vars->groups.data) {
         DestroyGroups(vars->groups.data, vars->groups.size);

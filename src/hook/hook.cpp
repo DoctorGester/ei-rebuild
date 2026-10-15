@@ -237,7 +237,7 @@ struct HarnessPatch {
     std::size_t size;
     const char* what;
 };
-static HarnessPatch g_harnessPatches[64];
+static HarnessPatch g_harnessPatches[256];
 static int g_harnessPatchCount = 0;
 
 void NoteHarnessPatch(std::uintptr_t address, std::size_t size, const char* what) {
@@ -445,6 +445,7 @@ int InstallHooks() {
         GetModuleFileNameA(self, ini, MAX_PATH);
         if (char* slash = std::strrchr(ini, '\\')) strcpy_s(slash + 1, ini + MAX_PATH - (slash + 1), "ei_rebirth.ini");
         rebirth::LoadSettings(ini);
+        if (rebirth::PluginSecondMaster()[0]) Log("Rebirth: NewMaster's second master server: %s", rebirth::PluginSecondMaster());
         if (standalone) rebirth_hook::SettingsOnly(ini);
         else rebirth_hook::Detect(file);
         unsigned short cw;
@@ -526,7 +527,9 @@ int InstallHooks() {
             continue;
         }
         const std::uint32_t span = (std::max)(size, 5u);   // the bytes the jump and the original's body cover
-        if (const HarnessPatch* patch = standalone ? nullptr : HarnessPatchIn(h->address, span)) {
+        // A recorder runs the original's body, harness patches included: only its stolen bytes count.
+        const std::uint32_t replaced = h->record ? (std::max)(static_cast<std::uint32_t>(h->stolen), 5u) : span;
+        if (const HarnessPatch* patch = standalone ? nullptr : HarnessPatchIn(h->address, replaced)) {
             std::snprintf(why, sizeof(why), "the harness patches +0x%X (%s)",
                           static_cast<unsigned>((std::max)(patch->address, h->address) - h->address), patch->what);
             LogSkip(h, true, why);
@@ -536,8 +539,20 @@ int InstallHooks() {
         // the function would silently drop that patch, unless the rewrite reproduces it (behind its
         // flag, which must be on). EI_Plugin.asi patches after this point; its sites are known too.
         // A patch outside every known site is expected only in a launch with Rebirth's mods.
+        // A recorder's body may hold the harness's own patches (above): those bytes count as the original's.
+        std::vector<unsigned char> withHarness;
+        if (!standalone && HarnessPatchIn(h->address, span)) {
+            withHarness.assign(orig, orig + span);
+            for (int i = 0; i < g_harnessPatchCount; ++i) {
+                const HarnessPatch& p = g_harnessPatches[i];
+                for (std::uintptr_t a = p.address; a < p.address + p.size; ++a)
+                    if (a >= h->address && a < h->address + span)
+                        withHarness[a - h->address] = *reinterpret_cast<const unsigned char*>(a);
+            }
+        }
         rebirth_hook::Verdict verdict = standalone ? rebirth_hook::Verdict::Unpatched
-            : rebirth_hook::Check(h->address, span, orig, h->verify || h->record ? h->stolen : 0, why, sizeof(why));
+            : rebirth_hook::Check(h->address, span, withHarness.empty() ? orig : withHarness.data(),
+                                  h->verify || h->record ? h->stolen : 0, why, sizeof(why));
         if (verdict == rebirth_hook::Verdict::Skip || verdict == rebirth_hook::Verdict::Unknown) {
             LogSkip(h, verdict == rebirth_hook::Verdict::Skip || rebirth_hook::RebirthLaunch(), why);
             continue;

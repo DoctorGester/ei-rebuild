@@ -21,7 +21,6 @@ __declspec(naked) void __fastcall AssignSource(CParticleSource** /*slot*/, void*
 // CParticleSource (effects.cpp, through the game addresses).
 inline void* __fastcall CreateSource(void* manager, void*, int type) { return ParticleCreateSourceOriginal(manager, nullptr, type); }
 __declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*factor*/) EI_ORIGINAL(0x00485480)
-void __fastcall AttachSource(void* a0, void*, void* a2) { ParticleSourceAttachOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)
 // 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
 __declspec(naked) void __fastcall AddScorch(void*, void*, std::uint32_t /*x*/, std::uint32_t /*y*/, std::uint32_t /*outer*/, std::uint32_t /*inner*/, std::uint32_t /*angle*/, std::uint32_t /*alpha*/) EI_ORIGINAL(0x0056D4C0)
@@ -257,14 +256,14 @@ void CEffectPointLight::Start(int update) {
         float range = FromBits(Bits(range_) & 0x7FFFFFFFu);
         float shownRange;
         std::memcpy(&shownRange, &light_->range_, 4);
-        float change = FromBits(Bits(StoreFloat(shownRange - range)) & 0x7FFFFFFFu);
+        float change = FromBits(Bits(static_cast<float>(shownRange - range)) & 0x7FFFFFFFu);
         if (!(change >= ConstAt(worlddata::RangeEpsilon()))) {
             // The range is (nearly) the same: move the light.
             Vector3& at = LightPosition(light_);
             Vector3 delta;
-            delta.z = StoreFloat(localPosition_.z - at.z);
-            delta.y = StoreFloat(localPosition_.y - at.y);
-            delta.x = StoreFloat(localPosition_.x - at.x);
+            delta.z = static_cast<float>(localPosition_.z - at.z);
+            delta.y = static_cast<float>(localPosition_.y - at.y);
+            delta.x = static_cast<float>(localPosition_.x - at.x);
             MoveLight(LightManager(), nullptr, light_, &delta);
             std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
         } else {
@@ -407,7 +406,7 @@ void CEffectParticle::Spawn() {
         std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
         float baseSize;
         std::memcpy(&baseSize, &source_->baseSize, 4);
-        ScaleSource(source_, nullptr, StoreFloat(size_ / baseSize));
+        ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
         CopyThroughFpu(&source_->alpha, &alpha_);
         CopyThroughFpu(&source_->typeParam, &param164_);
         ParticleAttachAt(this);
@@ -418,8 +417,8 @@ void CEffectParticle::Spawn() {
     std::memcpy(&source_->position, &localPosition_, sizeof(Vector3));
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);
-    ScaleSource(source_, nullptr, StoreFloat(size_ / baseSize));
-    AttachSource(source_, nullptr, nullptr);
+    ScaleSource(source_, nullptr, static_cast<float>(size_ / baseSize));
+    ParticleSourceAttachOriginal(source_, nullptr, nullptr);
     CopyThroughFpu(&source_->alpha, &alpha_);
     CopyThroughFpu(&source_->typeParam, &param164_);
     ParticleAttachAt(this);
@@ -432,13 +431,13 @@ void CEffectParticle::Spawn() {
     }
 
     if (type_ == 0x2002) {
-        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(worlddata::ScorchAlpha())));
+        std::uint32_t alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t radius = Bits(param164_);
         float angle = RandomAngle(RandomNext(static_cast<IsaacRandom*>(TheRandom())));
         AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), radius, radius, Bits(angle), alpha);
     }
     if (type_ == 0x2030) {
-        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(worlddata::ScorchAlpha())));
+        std::uint32_t alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
         std::uint32_t random = InlineRandom();
         std::uint32_t radius = Bits(size_);
         float angle = RandomAngle(random);
@@ -499,7 +498,7 @@ void CEffectParticle::Attach() {
     void* object = FindObject(ObjectManager(), nullptr, attachedTo_);
     Vector3 saved;
     std::memcpy(&saved, &source_->position, sizeof(Vector3));
-    AttachSource(source_, nullptr, object);
+    ParticleSourceAttachOriginal(source_, nullptr, object);
     if (object == nullptr) std::memcpy(&source_->position, &saved, sizeof(Vector3));
 }
 
@@ -536,19 +535,19 @@ int CEffectParticle::Tick() {
     unitId_ = -1;
     if (moving_ != 0) {
         Vector3 d;
-        d.x = StoreFloat(target_.x - localPosition_.x);
-        d.y = StoreFloat(target_.y - localPosition_.y);
-        d.z = StoreFloat(target_.z - localPosition_.z);
+        d.x = static_cast<float>(target_.x - localPosition_.x);
+        d.y = static_cast<float>(target_.y - localPosition_.y);
+        d.z = static_cast<float>(target_.z - localPosition_.z);
         float t;
         if (StepFraction(&velocity_, &d, &t) != 0) {
             // Keeps the target's height above the ground while moving towards it.
-            float aboveGround = StoreFloat(static_cast<float>(target_.z - WorldOf(this)->RawSurfaceHeightAt(target_.x, target_.y)));
-            float stepY = StoreFloat(t * d.y);
-            float stepZ = StoreFloat(d.z * t);
-            float x = StoreFloat(t * d.x + localPosition_.x);
-            float y = StoreFloat(stepY + localPosition_.y);
-            float z = StoreFloat(stepZ + localPosition_.z);
-            float floor = StoreFloat(static_cast<float>(WorldOf(this)->RawSurfaceHeightAt(x, y) + aboveGround));
+            float aboveGround = static_cast<float>(target_.z - WorldOf(this)->RawSurfaceHeightAt(target_.x, target_.y));
+            float stepY = static_cast<float>(t * d.y);
+            float stepZ = static_cast<float>(d.z * t);
+            float x = static_cast<float>(t * d.x + localPosition_.x);
+            float y = static_cast<float>(stepY + localPosition_.y);
+            float z = static_cast<float>(stepZ + localPosition_.z);
+            float floor = static_cast<float>(WorldOf(this)->RawSurfaceHeightAt(x, y) + aboveGround);
             std::uint32_t zBits = !(z >= floor) ? Bits(floor) : Bits(z);
             localPosition_.x = x;
             localPosition_.y = y;
@@ -599,11 +598,11 @@ int CEffectWall::Unpack(int update, DeltaField* field) {
     if (source_ != nullptr) std::memcpy(&source_->extent, &direction_, sizeof(Vector3));
     if (update == 0 && type_ == 0x2010) {
         // A scorch mark under the new wall: as long as the wall, as wide as half its size.
-        std::uint32_t alpha = BelowOneOrOne(StoreFloat(alpha_ * ConstAt(worlddata::ScorchAlpha())));
-        float half = StoreFloat(size_ * ConstAt(worlddata::HalfRef()));
+        std::uint32_t alpha = BelowOneOrOne(static_cast<float>(alpha_ * ConstAt(worlddata::ScorchAlpha())));
+        float half = static_cast<float>(size_ * ConstAt(worlddata::HalfRef()));
         float shape[2];   // angle, outer
         WallScorchShape(&direction_, &half, shape);
-        float inner = StoreFloat(half + ConstAt(worlddata::ScorchMargin()));
+        float inner = static_cast<float>(half + ConstAt(worlddata::ScorchMargin()));
         AddScorch(WorldClient(), nullptr, Bits(localPosition_.x), Bits(localPosition_.y), Bits(shape[1]), Bits(inner),
                   Bits(shape[0]), alpha);
     }
@@ -712,11 +711,11 @@ void CEffectLightning::SetEnds(const Vector3* from, const Vector3* to, float wid
     std::memcpy(&width_, &width, 4);
     // The midpoint: the x sum stays on the FPU, the y and z sums are rounded first.
     float half = ConstAt(worlddata::HalfRef());
-    float sumY = StoreFloat(from_.y + to_.y);
-    float sumZ = StoreFloat(from_.z + to_.z);
-    localPosition_.x = StoreFloat((to_.x + from_.x) * half);
-    localPosition_.y = StoreFloat(sumY * half);
-    localPosition_.z = StoreFloat(sumZ * half);
+    float sumY = static_cast<float>(from_.y + to_.y);
+    float sumZ = static_cast<float>(from_.z + to_.z);
+    localPosition_.x = static_cast<float>((to_.x + from_.x) * half);
+    localPosition_.y = static_cast<float>(sumY * half);
+    localPosition_.z = static_cast<float>(sumZ * half);
     MarkChanged();
 }
 

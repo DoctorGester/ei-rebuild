@@ -78,9 +78,6 @@ __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F59
 // The texture set's byte array: constructor [0056FCC0], destructor [0051E5B0], allocation [004ECB50].
 __declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
 __declspec(naked) void __fastcall BytesDestroy(void*) EI_ORIGINAL(0x0051E5B0)
-// CStringArray SetSize [006FE9B8], SetAtGrow of a CString [006FEBFA] and of a C string [006FEBCE].
-void __fastcall NamesSetAtGrowString(console::CStringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall NamesSetAtGrowText(console::CStringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
 // The texture cache [this +0x18C]: build a composite texture [00693180 TextureManagerComposeOriginal: out name, set,
 // name, name, 3, 0, 0x5551] and register it [00693F10: kind, name].
 __declspec(naked) void __fastcall CacheRegister(void*, void*, int, const char*) EI_ORIGINAL(0x00693F10)
@@ -105,7 +102,6 @@ __declspec(naked) void __fastcall StringsInsertRange(void*, void*, stlp::string*
 inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
 // STLport string members (as in figure_part_draw.cpp).
 inline void __fastcall StringInitRange(void* a0, void*, const char* a2, const char* a3, int a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
-void __fastcall StringEndOfStorage(void* a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal(a0, nullptr, a2, a3); }
 
 const std::uint8_t kAllocator = 0;
 
@@ -155,7 +151,7 @@ void AddItem(SkinComposition& set, const UnitModelRecord* model, std::uint32_t i
         ArmourTexture(&name, id >> 16, id & 0xFFFF);
         AppendName(model, name, buffer);
     }
-    NamesSetAtGrowText(&set.names, nullptr, set.names.GetSize(), buffer);
+    StringArraySetAtGrowTextOriginal(&set.names, nullptr, set.names.GetSize(), buffer);
 }
 
 // The weapons (items 1 and 2): the one whose armour layer (+0xB8) is lower first when both exist.
@@ -193,7 +189,7 @@ void AddExtraWeapon(SkinComposition& set, const UnitModelRecord* model, DressedU
         WeaponTextureName(&name, weapon, material);
         AppendName(model, name, buffer);
     }
-    NamesSetAtGrowText(&set.names, nullptr, set.names.GetSize(), buffer);
+    StringArraySetAtGrowTextOriginal(&set.names, nullptr, set.names.GetSize(), buffer);
 }
 
 // The texture cache is the client world's texture manager (+0x18C).
@@ -226,7 +222,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         } else {
             skin.Format(game::Text(0x0078FB54), ModelPrefix(model));                             // "%sskin_00.mmp"
         }
-        NamesSetAtGrowString(&set.names, nullptr, set.names.GetSize(), &skin);
+        StringArraySetAtGrowStringOriginal(&set.names, nullptr, set.names.GetSize(), &skin);
         for (int slot = 3; slot <= 6; ++slot) {
             if (items[slot] != kNone) AddItem(set, model, items[slot]);
         }
@@ -316,7 +312,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     alignas(4) char name[12];
     std::memset(name, 0, 2 * sizeof(char*));   // start and finish
     int zero = 0;
-    StringEndOfStorage(name + 8, nullptr, &kAllocator, &zero);
+    StringEndOfStorageOriginal(name + 8, nullptr, &kAllocator, &zero);
     const char* prefix = ModelPrefix(model);
     StringAssignSpan(name, nullptr, prefix, prefix + std::strlen(prefix));
     // The figure loader's slot 3 (LoadFigure; not fresh).

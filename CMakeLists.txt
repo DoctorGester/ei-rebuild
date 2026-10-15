@@ -12,9 +12,10 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 option(EI_VERIFY "Build ei_hook with differential verification wrappers" OFF)
 
 # x87 floating point, as in the original: SSE rounds differently and would change behaviour.
-# /fp:fast matches VC6's default x87 codegen (values stay in 80-bit registers, returns are not
-# re-rounded to float); /fp:precise inserts extra rounding stores the original never did.
-add_compile_options(/arch:IA32 /fp:fast /W4 /permissive- /utf-8)
+# /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by
+# an ulp (SV7d1). Precise's extra rounding stores change nothing on the main thread, which runs
+# at 24-bit precision; it calls the CRT for sqrt/sin/cos/atan2/exp/log, so game code uses x87::.
+add_compile_options(/arch:IA32 /fp:precise /W4 /permissive- /utf-8)
 
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 
@@ -67,23 +68,58 @@ file(GLOB EI_REPLAY_SOURCES CONFIGURE_DEPENDS tests/vectors/replay_*.cpp)
 add_executable(ei_vectors
     ${EI_REPLAY_SOURCES}
     tests/vectors/hook_stub.cpp
+    src/game/ai_block_search.cpp
+    src/game/ai_grids.cpp
+    src/game/ai_join.cpp
+    src/game/ai_local_search.cpp
+    src/game/ai_map.cpp
+    src/game/ai_motion.cpp
+    src/game/ai_movement.cpp
+    src/game/ai_path.cpp
+    src/game/ai_path_cells.cpp
+    src/game/ai_path_smooth.cpp
+    src/game/ai_plan.cpp
+    src/game/ai_region_reach.cpp
     src/game/core_maths.cpp
+    src/game/core_refcount.cpp
+    src/game/game_arrays.cpp
     src/game/game_buffer.cpp
+    src/game/game_lists.cpp
     src/game/maths.cpp
     src/game/matrix_math.cpp
     src/game/net_coder.cpp
     src/game/quaternion.cpp
     src/game/random.cpp
+    src/game/record_arrays.cpp
+    src/game/refptr_copies.cpp
+    src/game/script_arrays.cpp
+    src/game/script_blocks.cpp
+    src/game/script_copy.cpp
+    src/game/script_destroy.cpp
+    src/game/script_group.cpp
+    src/game/script_load.cpp
     src/game/script_parse.cpp
+    src/game/script_parse_arrays.cpp
+    src/game/script_parse_load.cpp
+    src/game/script_reset.cpp
+    src/game/script_runtime_helpers.cpp
+    src/game/script_vars.cpp
+    src/game/script_vars_append.cpp
     src/game/unit_hit_location.cpp
     src/game/unit_params_protection.cpp
     src/game/unit_params_skill.cpp
     src/game/unit_skill_price.cpp
     src/game/unit_stats.cpp
-    src/lib/rebirth.cpp
     src/lib/crt.cpp
     src/lib/crt_format.cpp
-    src/lib/mfc.cpp)
+    src/lib/mfc.cpp
+    src/lib/mfc_archive.cpp
+    src/lib/mfc_array.cpp
+    src/lib/mfc_list.cpp
+    src/lib/mfc_string.cpp
+    src/lib/rebirth.cpp
+    src/lib/stlp.cpp
+    src/lib/stlp_string.cpp)
 target_include_directories(ei_vectors PRIVATE include src)
 # EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
 target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)

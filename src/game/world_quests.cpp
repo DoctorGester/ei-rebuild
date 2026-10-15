@@ -17,6 +17,7 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -109,7 +110,7 @@ void CWorldServer::UpdateMercBriefings() {
             } else {
                 double hiredValue = VariableGet(variables, nullptr, b.hired);
                 float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
-                volatile float hiredStored = hired;
+                float hiredStored = hired;
                 if (!EqualOrUnordered(hiredValue, worlddata::Zero())) {
                     if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n8), worlddata::One())) {
                         if (otherMercs < 2) {
@@ -154,7 +155,6 @@ struct RawString {
     std::uint8_t bytes[12];
 };
 static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-inline BriefingRecord** __fastcall BriefingMapAt(void* a0, void*, const RawString* a2) { return static_cast<BriefingRecord**>(MapRegistryFindOriginal(a0, nullptr, a2)); }
 // 004DBE40. Splits `text` (ECX) at `separator` into `out` (EDX).
 // 0057FB60 (RET 4). The client asks the server to complete briefing `name` (GameFlow::RequestBriefing).
 __declspec(naked) void __fastcall RequestBriefing(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057FB60)
@@ -255,6 +255,10 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         console::CStringArray parts;
         StringSplit(name, &parts, '.');
         if (parts.GetSize() == 3) RequestBriefing(TheGameFlow(), nullptr, parts[2]);
+        // EI_Plugin's Briefings (005920FF: the array's destruction moved to the end, a jump to
+        // 005924D1): the client queues the completion script as well. The plugin formats it with the
+        // caller's EBX as the name; the client's only caller (00608851) holds the name there.
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginBriefings)) QueueBriefingScript(playerId, name);
         return;
     }
     console::CStringArray parts;
@@ -264,7 +268,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         RawString key;
         char allocator;
         RawStringInit(&key, nullptr, parts[2], &allocator);
-        record = *BriefingMapAt(worlddata::QuestBriefings(), nullptr, &key);
+        record = *(BriefingRecord**)MapRegistryFindOriginal(worlddata::QuestBriefings(), nullptr, &key);
         StlStringDestroy(&key);
     }
     WorldPlayer* player = nullptr;
@@ -282,6 +286,10 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         if (record) GiveBriefingRewards(this, player, record);
     }
 
+    QueueBriefingScript(playerId, name);
+}
+
+void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
     mfc::CString script;
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     CommandQueueAdd(commandsA_, nullptr, &script, 1);
@@ -349,9 +357,6 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
 
 // ---- AwardExperience --------------------------------------------------------------------------
 
-// The shares keep the original's operation order: no reassociation here.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 constexpr std::uint32_t kMinimumWeight = 0x3C23D70A;      // 0.01f
@@ -370,7 +375,6 @@ using IdArray = mfc::CArray<int>;
 __declspec(naked) ShareNode* __fastcall ShareListNewNode(ShareList*, void*, ShareNode* /*prev*/, ShareNode* /*next*/)
     EI_ORIGINAL(0x0059D5F0)
 __declspec(naked) void __fastcall ShareListRemoveAll(ShareList*, void*) EI_ORIGINAL(0x0059D5C0)
-inline void __fastcall IdArraySetSize(IdArray* a, void*, int n, int g) { DwordArraySetSizeOriginal(a, nullptr, n, g); }
 // 00553380 (RET 4). The unit controller gains experience.
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
 // 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
@@ -410,7 +414,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         else list.head = node;
         list.tail = node;
         total = static_cast<float>(Weight(node->data.controller) + total);
-        volatile float stored = total;   // FSTP into the float total
+        float stored = total;   // FSTP into the float total
         total = stored;
     }
     float minimum;
@@ -420,7 +424,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     for (ShareNode* node = list.head; node;) {
         ShareNode* next = node->next;
         float share = static_cast<float>(Weight(node->data.controller) * amount / divisor);
-        volatile float stored = share;
+        float stored = share;
         node->data.share = stored;
         DataGainExperience(node->data.controller, nullptr, stored);
         node = next;
@@ -455,13 +459,13 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
         if (ObjectSlots(unit)->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
         int id = unit->id_;
         int index = heroes.size;
-        IdArraySetSize(&heroes, nullptr, index + 1, -1);
+        DwordArraySetSizeOriginal(&heroes, nullptr, index + 1, -1);
         heroes.data[index] = id;
     }
     int count = heroes.size;
     if (count >= 1) {
         float share = static_cast<float>(static_cast<double>(amount) / count);
-        volatile float stored = share;
+        float stored = share;
         share = stored;
         for (int i = 0; i < heroes.size; ++i) {
             CEngineObject* unit = WorldFindUnit(world, nullptr, heroes.data[i]);
@@ -485,8 +489,6 @@ void CWorldServer::AwardExperience(WorldPlayer* player, float amount) {
     else ShareAmongHeroes(this, player, amount);
 }
 
-#pragma float_control(pop)
-
 // ---- SyncPartyRecords -------------------------------------------------------------------------
 
 namespace {
@@ -497,7 +499,6 @@ constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
 
 inline int __fastcall PartyAddItem(CParty* a0, void*, void* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, a2, a3, a4); }
-void __fastcall RecordArraySetAtGrow(RecordPtrArray* a0, void*, int a2, PartyUnitRecord* a3) { RecordArraySetAtGrowOriginal((void*)a0, nullptr, a2, (void*)a3); }
 // The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740
 // ("belt"), armour +0x750 ("worn"), spells +0x760): remove an entry (00660A50, 00660C30, 00660E10,
 // 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return the record entry).
@@ -513,7 +514,6 @@ CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) {
 CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return UnitWornItemOriginal((const void*)a0, nullptr, a2); }
 // 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
 __declspec(naked) void __fastcall ControllerStoreStats(CUnitServer*, void*, void*) EI_ORIGINAL(0x00553360)
-void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 
 // The party's copy of an item (CParty slot 24; the record entry's source).
 CItem* PartyCopy(CParty* party, CEngineObject* item) { return party->CopyItem(static_cast<CItem*>(item)); }
@@ -582,7 +582,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         CItemLink* old = reinterpret_cast<CItemLink*>(static_cast<std::uintptr_t>(item->link_));
         item->link_ = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(link));
         if (link) ++link->references;
-        if (old) RefRelease(old, nullptr);
+        if (old) RefObjectRelease(old);
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {
         CEngineObject* spell = UnitSpell(static_cast<CUnit*>(unit), nullptr, slot);
@@ -602,7 +602,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
         node = next;
     }
     RecordPtrArray list{reinterpret_cast<void*>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
-    for (int i = 0; i < player->mercCount; ++i) RecordArraySetAtGrow(&list, nullptr, list.size, &MercRecord(player, i));
+    for (int i = 0; i < player->mercCount; ++i) RecordArraySetAtGrowOriginal(&list, nullptr, list.size, &MercRecord(player, i));
     for (int i = 0; i < list.size; ++i) {
         auto* record = reinterpret_cast<PartyUnitRecord*>(list.data[i]);
         CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
@@ -631,7 +631,6 @@ __declspec(naked) void __fastcall StorePlayerItemsOriginal(CWorldServer*, void*,
 __declspec(naked) void __fastcall StateBeforeZoneChange(CPlayerServer*, void*) EI_ORIGINAL(0x0066F0C0)
 // 0065F740. The unit record's destructor body.
 __declspec(naked) void __fastcall UnitRecordDestruct(PartyUnitRecord*, void*) EI_ORIGINAL(0x0065F740)
-inline void __fastcall RecordArraySetSize(RecordPtrArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
@@ -726,7 +725,7 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     }
     for (int i = 0; i < player->mercCount; ++i) {
         int index = list.size;
-        RecordArraySetSize(&list, nullptr, index + 1, -1);
+        RecordArraySetSizeOriginal(&list, nullptr, index + 1, -1);
         list.data[index] = reinterpret_cast<std::uint8_t*>(&MercRecord(player, i));
     }
     StorePartyAt(this, nullptr, &list, PartyOf(player), placements);
@@ -777,4 +776,5 @@ EI_REPLACE_METHOD(0x00590A40, CWorldServer::CollectParty);
 EI_REPLACE_METHOD(0x00590C70, CWorldServer::SyncPartyRecords);
 EI_REPLACE_METHOD(0x005911C0, CWorldServer::AwardExperience);
 EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);
+EI_REBIRTH_IMPLEMENTS(0x00592090, ei::rebirth::Patch::EiPluginBriefings);
 EI_REPLACE_METHOD(0x00591DE0, CWorldServer::ApplyMercBriefing);

@@ -27,6 +27,7 @@
 // last frame is reported too.
 #include "ui_census.h"
 #include "slot_recorder.h"
+#include "harness_starter.h"
 
 #include "../../src/game/console.h"
 #include "../../src/game/dx_surface.h"
@@ -1534,7 +1535,7 @@ void Write() {
     ei::OutputPath("ui_census.csv", path);
     FILE* f = nullptr;
     if (fopen_s(&f, path, "w") != 0 || !f) return;
-    std::fprintf(f, "# ui_census install=%s frames=%u cpuwindows=%d\n", GetModuleHandleA("addon.dll") ? "rebirth" : "vanilla",
+    std::fprintf(f, "# ui_census install=%s frames=%u cpuwindows=%d\n", verify::starter::RebirthInstall() ? "rebirth" : "vanilla",
                  s.frame, render::CpuWindows() ? 1 : 0);
     std::fprintf(f, "kind,owner,size,primitive,chain,count,frames,detail\n");
     for (const auto& [key, row] : s.rows) {

@@ -138,7 +138,7 @@ TradeNode** __fastcall TradesInsertDefaultVerify(Trades::List* self, void*, Trad
 // --- The link queue -------------------------------------------------------------------------------
 
 using QueueListNode = StreamQueue::Node;
-bool IsQueueStream(const CMemoryStream& s) { return VtableOf(&s) == netlink::kNodeStreamVtable; }
+bool IsQueueStream(const CMemoryStream& s) { return VtableOf(&s) == CMemoryStream::kQueueVtableAddress; }
 
 QueueListNode** __fastcall QueueInsertDefaultVerify(StreamQueue::List* self, void*, QueueListNode** out,
                                                     QueueListNode* pos) {

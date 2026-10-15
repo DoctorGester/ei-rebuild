@@ -57,8 +57,6 @@ __declspec(naked) void __fastcall MotionSave(void*, void*, CStream*) EI_ORIGINAL
 __declspec(naked) void __fastcall PlanLoad(void*, void*, CStream*) EI_ORIGINAL(0x00544EF0)
 __declspec(naked) void __fastcall PlanSave(void*, void*, CStream*) EI_ORIGINAL(0x00544F60)
 // 0050E220 / 0050E290: a counted reference by id (load resolves through `context`).
-void __fastcall CountedRefLoad(void* a0, void*, CStream* a2, void* a3) { CountedRefLoadOriginal(a0, nullptr, (void*)a2, a3); }
-void __fastcall CountedRefSave(void* a0, void*, CStream* a2) { CountedRefSaveOriginal(a0, nullptr, (void*)a2); }
 // 005D8310 / 005D8860: the AI brain at +0x980.
 __declspec(naked) void __fastcall BrainLoad(void*, void*, CStream*) EI_ORIGINAL(0x005D8310)
 __declspec(naked) void __fastcall BrainSave(void*, void*, CStream*) EI_ORIGINAL(0x005D8860)
@@ -77,7 +75,7 @@ CEngineObject* ReadObject(CStream* stream, void* manager) {
 void LoadOrder(CStream* stream, UnitAction* order) {
     stream->Read(&order->kind, 4);
     stream->Read(&order->source, 4);
-    CountedRefLoad(&order->target, nullptr, stream, WorldServer());
+    CountedRefLoadOriginal(&order->target, nullptr, (void*)stream, WorldServer());
     stream->Read(&order->point, 0xC);
     stream->Read(&order->param, 4);
     stream->Read(&order->modifier, 1);
@@ -87,7 +85,7 @@ void LoadOrder(CStream* stream, UnitAction* order) {
 void SaveOrder(CStream* stream, UnitAction* order) {
     stream->Write(&order->kind, 4);
     stream->Write(&order->source, 4);
-    CountedRefSave(&order->target, nullptr, stream);
+    CountedRefSaveOriginal(&order->target, nullptr, (void*)stream);
     stream->Write(&order->point, 0xC);
     WriteCopy(stream, order->param);
     WriteCopy(stream, order->modifier);

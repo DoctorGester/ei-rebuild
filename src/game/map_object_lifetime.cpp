@@ -37,8 +37,6 @@ constexpr std::uintptr_t kPartListVtable = std::uintptr_t(0x0073DE4C);
 constexpr std::uintptr_t kFrameArrayVtable = std::uintptr_t(0x0073DE40);
 constexpr std::uintptr_t kEffectArrayVtable = std::uintptr_t(0x0073DBA0);
 constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073DB94);
-// CMemoryStream's second vtable (the network queue's streams, 0073C960).
-constexpr std::uintptr_t kQueueStreamVtable = std::uintptr_t(0x0073C960);
 constexpr std::uintptr_t kCarriedArrayVtable = std::uintptr_t(0x0073EB84);
 // The unit motion's arrays (UnitMotion: points, waypoints, step speeds) while constructed / destroyed.
 constexpr std::uintptr_t kMotionPointsVtable = std::uintptr_t(0x0073EB9C);
@@ -97,8 +95,9 @@ void __fastcall Brain14Destroy(void* a0) { AiLookArrayDestructOriginal(a0); }
 inline void __fastcall ControllerListDestroy(void* list) { AnimationStepsDestroyOriginal(list); }
 __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x00558020)
 // Rewritten elsewhere or here, through their game addresses (verify wrappers in the path):
-// 005233B0 UnitVitalsPacked::Reset (UnitVitalsPackedReset, originals_units.h), 00523370 UnitVitals::Reset,
-// 00523550 UnitParams::Reset, 00455930 CEngineObject::DestructBase, and this file's constructors and destructor bodies.
+// 005233B0 UnitVitalsPacked::Reset, 00523370 UnitVitals::Reset, 00523550 UnitParams::Reset,
+// 00455930 CEngineObject::DestructBase, and this file's constructors and destructor bodies.
+__declspec(naked) int __fastcall ResetPackedVitals(void*) EI_ORIGINAL(0x005233B0)
 __declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
 __declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D70)
 __declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
@@ -169,6 +168,11 @@ CObject3D* CObject3D::Construct() {
     animation = nullptr;
     std::memset(&scale, 0, sizeof(scale));
     std::memcpy(&defaultScale, DefaultFigureScale(), sizeof(defaultScale));
+    // The original leaves the view position as the heap held it, and the draw sorts read it for an
+    // object listed only for its shadow before it was ever in view (a NaN there made UnitOrderLess
+    // irreflexive: S17a). It starts at zero here, and in the original through a harness patch
+    // (harness_leftovers.cpp).
+    std::memset(&viewPosition, 0, sizeof(viewPosition));
     return this;
 }
 EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
@@ -222,20 +226,17 @@ CMapObject* CMapObject::Construct() {
     SetVtable(stream, kMemoryStreamVtable);
     stream->data_ = nullptr;
     stream->Reset();
-    SetVtable(stream, kQueueStreamVtable);
+    SetVtable(stream, CMemoryStream::kQueueVtableAddress);
     stream = &records->header_[1];
     stream->ConstructBase();
     SetVtable(stream, kMemoryStreamVtable);
     stream->data_ = nullptr;
     stream->Reset();
-    SetVtable(stream, kQueueStreamVtable);
+    SetVtable(stream, CMemoryStream::kQueueVtableAddress);
     ResetNetRecords(records);
     SetVtable(this, CMapObject::kVtableAddress);
     companion = nullptr;
-    // Reset leaves the second byte (unused_01) as the heap held it, and the network state sends all 0x18 bytes
-    // (MapObjectWriteNetState field 0): it starts zeroed, as the harness has the original's (SV7b7).
-    packedVitals = UnitVitalsPacked{};
-    UnitVitalsPackedReset(PackedVitals());
+    ResetPackedVitals(PackedVitals());
     sectorCellX = -1;
     sectorCellY = -1;
     SetBits(animationSpeed, kOne);

@@ -45,7 +45,7 @@ namespace netlink {
 // bodies build and tear it down explicitly (rewrite-guide rule 5).
 class __declspec(novtable) FileStream : public CStream {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073C8D8;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C8D8);
 
     ~FileStream() override {}                                           // 0: 00477F90 (DeletingDestruct)
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 00477F00 (a short read clears ok_)
@@ -104,7 +104,7 @@ static_assert(sizeof(QueueNode) == 0x30);
 // The link base (vtable 0073C8A4, 0x28 bytes).
 class __declspec(novtable) NetLink : public CRefObject {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073C8A4;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C8A4);
 
     // 0: 00478030 deleting destructor (DeletingDestruct); 1: Serialize (00412580, empty); 2 / 3 pure.
     virtual bool Connected() = 0;               // 4
@@ -149,7 +149,7 @@ static_assert(sizeof(NetLink) == 0x28);
 // The loopback link (vtable 0073C8F8, 0x30 bytes).
 class __declspec(novtable) LoopbackLink : public NetLink {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073C8F8;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C8F8);
 
     // 0: 00478780 deleting destructor (DeletingDestruct); 10, 12: NetLink's.
     int OnShutdown() override;                  // 2: 00478610 (destroyed and built again in place)
@@ -186,7 +186,7 @@ static_assert(sizeof(LoopbackLink) == 0x30);
 // The replay link (vtable 0073C92C, 0x44 bytes).
 class __declspec(novtable) ReplayLink : public NetLink {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073C92C;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C92C);
 
     // 0: 00478CA0 deleting destructor (DeletingDestruct); 7, 8, 10, 12: NetLink's.
     int OnShutdown() override;                  // 2: 00478B10 (destroyed and built again in place)
@@ -216,7 +216,7 @@ static_assert(sizeof(ReplayLink) == 0x44);
 // The framed link (vtable 0073C9C8, abstract, 0x50 bytes).
 class __declspec(novtable) FramedLink : public NetLink {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073C9C8;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C9C8);
 
     // 0: 00479B70 deleting destructor (DeletingDestruct); 2-5, 11 pure; 10, 12 NetLink's.
     bool HasIncoming() override;                // 6: 0047B9F0 (a whole message in the inbox)
@@ -246,7 +246,7 @@ static_assert(sizeof(FramedLink) == 0x50);
 // reliable streams.
 class __declspec(novtable) DriverLink : public FramedLink {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x0073C990;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073C990);
 
     // 0: 00479D20 deleting destructor (DeletingDestruct); 6-9 FramedLink's; 12 NetLink's.
     int OnShutdown() override;                  // 2: 00479C10 (destroyed and built again in place)
@@ -316,7 +316,6 @@ static_assert(offsetof(DriverSession, holders_) == 0x0C);
 constexpr std::uintptr_t kFileStreamVtable = FileStream::kVtableAddress;
 constexpr std::uintptr_t kLinkVtable = NetLink::kVtableAddress;
 constexpr std::uintptr_t kLoopbackVtable = LoopbackLink::kVtableAddress;
-constexpr std::uintptr_t kNodeStreamVtable = 0x0073C960;   // the queued streams' CMemoryStream vtable
 constexpr std::uintptr_t kReplayVtable = ReplayLink::kVtableAddress;
 constexpr std::uintptr_t kFramedVtable = FramedLink::kVtableAddress;
 constexpr std::uintptr_t kDriverVtable = DriverLink::kVtableAddress;

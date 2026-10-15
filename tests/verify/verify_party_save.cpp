@@ -42,11 +42,10 @@ std::uintptr_t VtableOf(const void* object) {
 }
 
 // The second memory stream vtable (the network queue's streams; the same slots).
-constexpr std::uintptr_t kQueueStreamVtable = std::uintptr_t(0x0073C960);
 
 CMemoryStream* AsMemoryStream(CStream* stream) {
     std::uintptr_t vtable = VtableOf(stream);
-    if (vtable != CMemoryStream::kVtableAddress && vtable != kQueueStreamVtable) return nullptr;
+    if (vtable != CMemoryStream::kVtableAddress && vtable != CMemoryStream::kQueueVtableAddress) return nullptr;
     return static_cast<CMemoryStream*>(stream);
 }
 

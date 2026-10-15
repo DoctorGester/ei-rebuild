@@ -31,14 +31,13 @@ void* s_unused;   // registrations without a trampoline
 
 constexpr std::size_t kStreamBytes = sizeof(CMemoryStream);
 constexpr std::size_t kDataOffset = offsetof(CMemoryStream, data_);
-constexpr std::uintptr_t kQueueStreamVtable = 0x0073C960;   // CMemoryStream's second vtable
 // Larger reads and writes are checked ours only (a scratch block of that size is not worth it).
 constexpr std::uint32_t kMaxScratchBytes = 64u << 20;
 
 bool IsMemoryStream(const void* stream) {
     std::uintptr_t vtable;
     std::memcpy(&vtable, stream, sizeof(vtable));
-    return vtable == CMemoryStream::kVtableAddress || vtable == kQueueStreamVtable;
+    return vtable == CMemoryStream::kVtableAddress || vtable == CMemoryStream::kQueueVtableAddress;
 }
 
 // A byte copy of a stream's fields.

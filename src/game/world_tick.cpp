@@ -1,6 +1,7 @@
 // CWorldServer: the per-tick update (timed objects, missiles, countdowns), waking units near a
 // point, alarms and the game result. See world.h.
 #include "world.h"
+#include "at_exit_functions.h"
 
 #include "core_maths.h"
 #include "map_object.h"
@@ -50,7 +51,6 @@ void __fastcall BrainHearAlarm(void* brain, void*, int index) { static_cast<AIBr
 // destructor 0058D5C0 registered with atexit).
 SpiralCache& WakeCache() { return *reinterpret_cast<SpiralCache*>(0x007AFF08); }
 std::uint8_t& WakeCacheGuard() { return *reinterpret_cast<std::uint8_t*>(0x007AFF10); }
-constexpr std::uintptr_t kWakeCacheDestructor = 0x0058D5C0;
 
 // 005C0930 (CSectorMap, inlined here: bounds check and address only). The unit list of sector
 // (x, y), or null outside the map.
@@ -60,7 +60,7 @@ mfc::CTypedPtrList<CEngineObject>* SectorUnits(CSectorMap* map, int x, int y) {
 }
 
 // Sector of a world coordinate: the AI map cell (half units, rounded through a float), / 32.
-int SectorOf(float world) { return x87::fistp(StoreFloat(2.0f * world - 0.5f)) / 32; }
+int SectorOf(float world) { return x87::fistp(static_cast<float>(2.0f * world - 0.5f)) / 32; }
 
 // STLport list<unsigned> on the game's node pool, as Tick builds it on the stack: 12-byte nodes
 // {next, prev, value}; the constructor (00404A70) allocates the head node.
@@ -172,7 +172,7 @@ void CWorldServer::WakeUnitsAround(const float* position, float radius) {
         WakeCache().radius = -1.0f;
         WakeCacheGuard() |= 1;
         WakeCache().length = 0;
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kWakeCacheDestructor));
+        GameAtExit(ei::short_functions::Ret);
     }
     int count;
     const std::int16_t* offsets = WakeCache().Get(radius * 0.03125f, &count);   // radius in sectors
@@ -238,8 +238,6 @@ using IdArray = lib::AlignedArray<unsigned>;
 IdArray& RemovedIds() { return *reinterpret_cast<IdArray*>(0x007AFEF0); }   // flagged for removal
 IdArray& SleepingIds() { return *reinterpret_cast<IdArray*>(0x007AFEE0); }  // leave the update map
 std::uint8_t& UpdateListGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AFF00); }
-constexpr std::uintptr_t kRemovedIdsDestructor = 0x0058DA20;
-constexpr std::uintptr_t kSleepingIdsDestructor = 0x0058DA00;
 
 constexpr int kUnitSleepCountdown = 0x174;   // CUnit +0x174: updates left before it may sleep
 int& SleepCountdown(CEngineObject* object) {
@@ -251,12 +249,12 @@ void CWorldServer::UpdateUnits() {
     if (!(UpdateListGuards() & 1)) {
         UpdateListGuards() |= 1;
         RemovedIds() = IdArray{};
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kRemovedIdsDestructor));
+        GameAtExit(ei::static_init::Exit0058DA20);
     }
     if (!(UpdateListGuards() & 2)) {
         UpdateListGuards() |= 2;
         SleepingIds() = IdArray{};
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kSleepingIdsDestructor));
+        GameAtExit(ei::static_init::Exit0058DA00);
     }
     RemovedIds().RemoveAll();
     SleepingIds().RemoveAll();

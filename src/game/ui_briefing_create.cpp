@@ -100,12 +100,12 @@ UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitControll
 // A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
 Vector3 NormalisedUnlessZero(const Vector3& v) {
     Vector3 out{v.x, v.y, v.z};
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out));
+    float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(out)));
     if (length == 0.0f || x87::IsNaN(length)) return out;
     float inverse = 1.0f / length;
-    out.x = StoreFloat(out.x * inverse);
-    out.y = StoreFloat(out.y * inverse);
-    out.z = StoreFloat(out.z * inverse);
+    out.x = static_cast<float>(out.x * inverse);
+    out.y = static_cast<float>(out.y * inverse);
+    out.z = static_cast<float>(out.z * inverse);
     return out;
 }
 
@@ -147,7 +147,7 @@ void StepTurning(BriefingMover* node) {
     const CUnit* person = reinterpret_cast<const CUnit*>(node->person);
     Vector3 axis;
     person->orientation.AxisY(&axis);
-    float facingX = StoreFloat(-axis.x);
+    float facingX = static_cast<float>(-axis.x);
     float facingY = -axis.y;
     Vector3 direction = NormalisedUnlessZero(node->direction);
     float dy = direction.y - facingY;
@@ -290,8 +290,8 @@ EI_REPLACE_METHOD(0x006024B0, CBriefingScreen::Create);
 // --- 00604130: slot 24 --------------------------------------------------------------------------
 
 void CBriefingScreen::Update() {
-    markPhase_ = StoreFloat(static_cast<float>(WindowFrameTimeOriginal(this) + markPhase_));
-    while (markPhase_ >= 1.0f) markPhase_ = StoreFloat(markPhase_ - 1.0f);
+    markPhase_ = static_cast<float>(WindowFrameTimeOriginal(this) + markPhase_);
+    while (markPhase_ >= 1.0f) markPhase_ = static_cast<float>(markPhase_ - 1.0f);
     UiUpdateChildrenOriginal(this);
     SetMeshesVisible(this, 0);
     for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 0);
@@ -299,7 +299,7 @@ void CBriefingScreen::Update() {
     WindowSetEnabled(children_.data[kTextChild], nullptr, 0, 1);
 
     for (BriefingMover* node = movers_->next; node != movers_; node = node->next) {
-        node->time = StoreFloat(static_cast<float>(WindowFrameTimeOriginal(this) + node->time));
+        node->time = static_cast<float>(WindowFrameTimeOriginal(this) + node->time);
         if (node->time > kMoverTimeout) {
             PlaceMover(node);
             node->state = BriefingMover::kDone;
@@ -350,7 +350,7 @@ void CBriefingScreen::Update() {
         if (voice_ != -1) {
             if (VoiceEnded(voice_)) BriefingNextPhraseOriginal(this, nullptr, 0);
         } else {
-            phraseTime_ = StoreFloat(static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this)));
+            phraseTime_ = static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this));
             if (!(phraseTime_ >= 0.0f)) BriefingNextPhraseOriginal(this, nullptr, 0);
         }
         break;
@@ -360,7 +360,7 @@ void CBriefingScreen::Update() {
         if (voice_ != -1) {
             if (speaking_ && VoiceEnded(voice_)) StopTalking(speaking_);
         } else {
-            phraseTime_ = StoreFloat(static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this)));
+            phraseTime_ = static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this));
             if (speaking_ && !(phraseTime_ >= 0.0f)) StopTalking(speaking_);
         }
         break;

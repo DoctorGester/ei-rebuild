@@ -65,14 +65,14 @@ Vector3 Facing(const CUnit* unit) {
 }
 
 Vector3 Middle(const Vector3& a, const Vector3& b) {
-    return Vector3{StoreFloat((a.x + b.x) * 0.5f), StoreFloat((a.y + b.y) * 0.5f), (a.z + b.z) * 0.5f};
+    return Vector3{static_cast<float>((a.x + b.x) * 0.5f), static_cast<float>((a.y + b.y) * 0.5f), (a.z + b.z) * 0.5f};
 }
 
 Vector3 Difference(const Vector3& a, const Vector3& b) { return Vector3{a.x - b.x, a.y - b.y, a.z - b.z}; }
 
 // Normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
 void Normalise(Vector3* v) {
-    float length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v));
+    float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, float>(*v)));
     if (length == 0.0f || x87::IsNaN(length)) return;
     float inverse = 1.0f / length;
     v->x = inverse * v->x;
@@ -154,7 +154,7 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     }
 
     auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(person_->GetPrototype());
-    float reach = StoreFloat(prototype->viewDistance + kSpacing);
+    float reach = static_cast<float>(prototype->viewDistance + kSpacing);
     Vector3& personPlace = places_[0];
     Vector3& leaderPlace = places_[1];
     Vector3& thirdPlace = places_[2];
@@ -165,8 +165,8 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
     Vector3 axis;
     standing->orientation.AxisY(&axis);
     Vector3 at = Position(standing);
-    float stepY = StoreFloat(axis.y * reach);
-    float stepX = StoreFloat(axis.x * reach);
+    float stepY = static_cast<float>(axis.y * reach);
+    float stepX = static_cast<float>(axis.x * reach);
     walkingPlace = Vector3{at.x - stepX, at.y - stepY, at.z - axis.z * reach};
     standingPlace = at;
     // The third place: the middle, moved sideways by the person's offset from it.

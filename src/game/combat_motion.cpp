@@ -108,8 +108,6 @@ __declspec(naked) AnimationStep* __fastcall StepBlank(AnimationStep*) EI_ORIGINA
 // MFC: CPlex::FreeDataChain (006FE90F); the CList<CUnit*> node allocation (0052CEF0, NewNode(prev,
 // next)) and release (005588A0, FreeNode) of the lists the controller fills.
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
-void* __fastcall ListNewNode(void* a0, void*, void* a2, void* a3) { return PtrListNewNode52CEF0Original(a0, nullptr, a2, a3); }
-void __fastcall ListFreeNode(void* a0, void*, void* a2) { UnitListFreeNodeOriginal(a0, nullptr, a2); }
 
 // The world server (007AFF60), its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
 CAIMap* ServerAIMap() { return WorldServer()->AIMap(); }
@@ -419,7 +417,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
             std::memcpy(&value, reinterpret_cast<const std::uint8_t*>(&step) + 1, 4);
             StepsEmote(&steps, nullptr, value);
         } else if (step.variant == 0xFF) {
-            AnimationStep blank;
+            AnimationStep blank{};   // SV7b2: padding 0, not a stack byte (the harness zeroes the original's)
             StepsAdd(&steps, nullptr, StepBlank(&blank));
             AnimationStep& last = steps.steps[steps.count - 1];
             last.animation = step.animation;
@@ -680,7 +678,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
             else current->prev->next = current->next;
             if (current == list->tail) list->tail = current->prev;
             else current->next->prev = current->prev;
-            ListFreeNode(list, nullptr, current);
+            UnitListFreeNodeOriginal(list, nullptr, current);
         }
     }
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
@@ -693,7 +691,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         bool lift = moving && (controller->action.kind == kOrderMove || controller->action2.kind == kOrderMove);
         if (!lift) lift = BrainLeaderOrFollowedOriginal(&controller->brain) == unit;
         if (!lift) continue;
-        auto* added = static_cast<UnitList::Node*>(ListNewNode(list, nullptr, list->tail, nullptr));
+        auto* added = static_cast<UnitList::Node*>(PtrListNewNode52CEF0Original(list, nullptr, list->tail, nullptr));
         added->data = member;
         if (list->tail) list->tail->next = added;
         else list->head = added;

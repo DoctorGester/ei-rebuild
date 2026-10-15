@@ -515,11 +515,11 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
         material.kind = source.kind;
         material.waveColour = source.colour;
         material.opacity = source.opacity;
-        material.absorption = RoundToFloat(1.0 / RoundToFloat(1.0 - source.opacity));
-        material.opacityByte = static_cast<std::uint8_t>(gamecrt::Ftol(RoundToFloat(material.opacity * kByteScale)));
-        material.colour.x = CappedAtOne(RoundToFloat(static_cast<double>(source.light) * material.waveColour.x));
-        material.colour.y = CappedAtOne(RoundToFloat(static_cast<double>(material.waveColour.y) * source.light));
-        material.colour.z = CappedAtOne(RoundToFloat(static_cast<double>(source.light) * material.waveColour.z));
+        material.absorption = static_cast<float>(1.0 / static_cast<float>(1.0 - source.opacity));
+        material.opacityByte = static_cast<std::uint8_t>(gamecrt::Ftol(static_cast<float>(material.opacity * kByteScale)));
+        material.colour.x = CappedAtOne(static_cast<float>(static_cast<double>(source.light) * material.waveColour.x));
+        material.colour.y = CappedAtOne(static_cast<float>(static_cast<double>(material.waveColour.y) * source.light));
+        material.colour.z = CappedAtOne(static_cast<float>(static_cast<double>(source.light) * material.waveColour.z));
         material.priority = source.priority;
         material.warpSpeed = source.warpSpeed;
         material.level = 0.0f;
@@ -545,8 +545,8 @@ int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
     }
 
     // A tile's side as a part of the page, and 8 pixels of the page inside each of its edges.
-    const float tileSide = RoundToFloat(1.0 / tilesPerRow);
-    const float margin = RoundToFloat(RoundToFloat(static_cast<double>(tileSide) / tileSize) * kMarginPixels);
+    const float tileSide = static_cast<float>(1.0 / tilesPerRow);
+    const float margin = static_cast<float>(static_cast<float>(static_cast<double>(tileSide) / tileSize) * kMarginPixels);
     const std::size_t tableBytes = static_cast<std::size_t>(perPage * kUvFloats * static_cast<int>(sizeof(float)));
     for (int rotation = 0; rotation < 4; ++rotation) {
         uvTables[rotation] = static_cast<float*>(gamecrt::operator_new(tableBytes));
@@ -597,7 +597,7 @@ EI_REPLACE_METHOD(0x006C9290, Terrain::SetLightInterval);
 
 void Terrain::SetWaterLevel(int material, float level) {
     if (material < 0 || material >= materials.size) return;
-    float change = RoundToFloat(level - materials[material].level);
+    float change = static_cast<float>(level - materials[material].level);
     materials[material].level = change + materials[material].level;
     for (int sector = 0; sector < sectorsY * sectorsX; ++sector) {
         float& sectorLevel = waterLevels[sector][material];

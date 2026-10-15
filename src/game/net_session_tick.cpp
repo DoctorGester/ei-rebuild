@@ -13,9 +13,6 @@
 
 #include <cstring>
 
-// Precise semantics keep the x87 division in SessionBase::AddClient as written.
-#pragma float_control(precise, on)
-
 namespace net {
 
 // The network log's inserters (library), declared in net_classes.h.
@@ -26,8 +23,6 @@ LogStream* LogStream::Apply(void* manipulator) { return static_cast<LogStream*>(
 
 namespace {
 
-// 0040C770: STLport string destructor; 00426450: the string allocator's deallocate(p, n).
-inline void __fastcall StringDeallocate(void*, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 // 004DA170: reading past the buffer's end (zeroes the target, sets error bit 3).
 
 
@@ -98,7 +93,7 @@ void SessionBase::TickImpl(double dt) {
                 StringRep address;
                 const char* text = connection->address_.ToString(&address)->start;
                 LogAddress(game::nettexts::Timeout(), text);
-                StringDeallocate(&address.eos, nullptr, address.start, static_cast<std::size_t>(address.eos - address.start));
+                StringDeallocateOriginal(address.start, static_cast<std::size_t>(address.eos - address.start));
             }
             OnClientLost(connection);
             RemoveClient(node);
@@ -281,7 +276,8 @@ namespace {
 // CRT eh vector destructor iterator (ptr, element size, count, destructor), the handler vector's
 // destructor.
 void __stdcall VectorDestructorIterator(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
-constexpr std::uintptr_t kHandlerVectorDestructor = 0x004389C0;
+// The handler vectors' destructor (the vector base's: the storage freed).
+constexpr auto HandlerVectorDestructor = stlp::VectorAbi<void*>::DestroyBase;
 // The type registry's tables: clear and bucket-vector destruction of byType and byVtable.
 __declspec(naked) void __fastcall ByTypeClear(TypeRegistry::ByType* /*table*/) EI_ORIGINAL(0x0043D590)
 __declspec(naked) void __fastcall ByTypeBucketsDestroy(void* /*buckets*/) EI_ORIGINAL(0x0043AAB0)
@@ -313,9 +309,9 @@ void SessionBase::Destruct() {
         socket_.SendTo(&connection->address_, buffer);
         GrowingBufferDestruct(buffer);
     }
-    VectorDestructorIterator(handlers_[2], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(kHandlerVectorDestructor));
-    VectorDestructorIterator(handlers_[1], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(kHandlerVectorDestructor));
-    VectorDestructorIterator(handlers_[0], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(kHandlerVectorDestructor));
+    VectorDestructorIterator(handlers_[2], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
+    VectorDestructorIterator(handlers_[1], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
+    VectorDestructorIterator(handlers_[0], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
     socket_.Destruct();
     ByTypeClear(&types_.byType);
     ByTypeBucketsDestroy(types_.byType.BucketVector());
@@ -332,7 +328,7 @@ void SessionBase::Destruct() {
     clients_->next = clients_;
     clients_->prev = clients_;
     ClientSentinelFree(clients_, 1);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x00436A50, SessionBase::Destruct);
 

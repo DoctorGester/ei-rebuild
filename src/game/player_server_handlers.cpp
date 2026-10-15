@@ -86,7 +86,7 @@ void CPlayerServer::OnLeaderDied() {
     int oldId = kNoId;
     int newId = kNoId;
     if (party->members_.size == 1) {
-        int lost = static_cast<int>(std::lrint(StoreFloat(static_cast<float>(party->Money()) * MoneyPenalty())));
+        int lost = static_cast<int>(std::lrint(static_cast<float>(static_cast<float>(party->Money()) * MoneyPenalty())));
         party->Money() -= lost;
         oldId = static_cast<int>(party->members_.data[0].unitId);
         CUnit* hero = FindUnit(oldId);
@@ -107,10 +107,10 @@ void CPlayerServer::OnLeaderDied() {
         record.unitId = static_cast<std::uint32_t>(newId);
         auto* stats = reinterpret_cast<UnitStats*>(record.stats);
         stats->RestoreSlots();
-        float experience = StoreFloat(stats->pendingExperience + stats->experience);
+        float experience = static_cast<float>(stats->pendingExperience + stats->experience);
         auto* npc = reinterpret_cast<UnitNpcRecord*>(unitdb::NpcTable().FindByName(record.texts[5]));
         if (npc) {
-            float above = StoreFloat(experience - npc->experienceFloor);
+            float above = static_cast<float>(experience - npc->experienceFloor);
             experience = !(above <= 0.0f) ? above : 0.0f;   // FCOMP 0 with it: a NaN is kept
         }
         stats->TakePendingExperience(ExperiencePenalty() * experience);
@@ -297,11 +297,6 @@ constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer +0x130
 constexpr std::uintptr_t kPointArrayVtable = std::uintptr_t(0x0073C120);
 using PointArray = mfc::CArray<Vector3>;
 
-float Rounded(double v) {
-    volatile float f = static_cast<float>(v);
-    return f;
-}
-
 // The unit list of the walk / attack orders: a count, then that many ids (missing units and units
 // flagged 0x800000 are left out).
 void ReadUnits(CMemoryStream& in, UnitArray* units) {
@@ -371,22 +366,22 @@ void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<V
     float sumY = 0.0f;
     for (int i = 0; i < count; ++i) {
         const Vector3* at = PositionOf(units->data[i]);
-        sumX = Rounded(static_cast<double>(sumX) + at->x);
-        sumY = Rounded(static_cast<double>(sumY) + at->y);
+        sumX = static_cast<float>(static_cast<double>(sumX) + at->x);
+        sumY = static_cast<float>(static_cast<double>(sumY) + at->y);
     }
     float n = static_cast<float>(count);
-    float centreX = Rounded(static_cast<double>(sumX) / n);
-    float centreY = Rounded(static_cast<double>(sumY) / n);
+    float centreX = static_cast<float>(static_cast<double>(sumX) / n);
+    float centreY = static_cast<float>(static_cast<double>(sumY) / n);
     offsets->SetSize(count, -1);
     for (int i = 0; i < units->size; ++i) {
         const Vector3* at = PositionOf(units->data[i]);
-        float dx = Rounded(static_cast<double>(at->x) - centreX);
-        float dy = Rounded(static_cast<double>(at->y) - centreY);
-        double length = std::sqrt(LengthSquared2DUnrounded<double>(dx, dy));
+        float dx = static_cast<float>(static_cast<double>(at->x) - centreX);
+        float dy = static_cast<float>(static_cast<double>(at->y) - centreY);
+        double length = x87::fsqrt(LengthSquared2DUnrounded<double>(dx, dy));
         if (length > 0.0) {   // the original skips zero and NaN (FCOM; TEST AH,0x40)
             double inverse = 1.0 / length;
-            dx = Rounded(dx * inverse);
-            dy = Rounded(dy * inverse);
+            dx = static_cast<float>(dx * inverse);
+            dy = static_cast<float>(dy * inverse);
         }
         offsets->data[i] = Vector3{dx, dy, 0.0f};
     }

@@ -79,13 +79,13 @@ void CBriefingScreen::StartPhrases() {
     const Quaternion& q = camera->localRotation_;
     double zz = q.z * q.z;
     double axisZ = (q.w * q.w - (LengthSquared2DUnrounded(q.x, q.y) + zz)) + (zz + zz);
-    float axisY = StoreFloat(static_cast<float>((q.y * q.z - q.x * q.w) * 2.0));
+    float axisY = static_cast<float>((q.y * q.z - q.x * q.w) * 2.0);
     // The original doubles x and y before multiplying; here the compiler doubles z instead of x,
     // which gives the same value (doubling is exact). Dot2D(x, y, z, w) * 2.0 would regroup the sum.
-    float axisX = StoreFloat(static_cast<float>(Dot2DUnrounded<double>(q.x * 2.0, q.y * 2.0, q.z, q.w)));
-    lookAt_.x = StoreFloat(static_cast<float>(savedCamera_.x + axisX));
-    lookAt_.y = StoreFloat(static_cast<float>(savedCamera_.y + axisY));
-    lookAt_.z = StoreFloat(static_cast<float>(axisZ + savedCamera_.z));
+    float axisX = static_cast<float>(Dot2DUnrounded<double>(q.x * 2.0, q.y * 2.0, q.z, q.w));
+    lookAt_.x = static_cast<float>(savedCamera_.x + axisX);
+    lookAt_.y = static_cast<float>(savedCamera_.y + axisY);
+    lookAt_.z = static_cast<float>(axisZ + savedCamera_.z);
 
     dialogueText_.Empty();
     LogSetTextOriginal(text_, nullptr, EmptyText());
@@ -138,19 +138,19 @@ EI_REPLACE(0x006023F0, SpeakerAnimationDone);
 // --- 00607BB0 -----------------------------------------------------------------------------------
 
 void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
-    float cosAngle = StoreFloat(static_cast<float>(std::cos(angle)));
-    float sinAngle = StoreFloat(static_cast<float>(std::sin(angle)));
+    float cosAngle = static_cast<float>(x87::fcos(angle));
+    float sinAngle = static_cast<float>(x87::fsin(angle));
     Vector3 eye{};
     double x;   // the facing, kept unrounded as the original does
     double y;
     if (!unit) {
         // The middle of the first two places, looked at across the line between them.
         double sumX = places_[kPersonPlace].x + places_[kLeaderPlace].x;
-        float sumY = StoreFloat(places_[kPersonPlace].y + places_[kLeaderPlace].y);
-        float sumZ = StoreFloat(places_[kPersonPlace].z + places_[kLeaderPlace].z);
-        eye.x = StoreFloat(static_cast<float>(sumX * 0.5));
-        eye.y = StoreFloat(sumY * 0.5f);
-        eye.z = StoreFloat(sumZ * 0.5f);
+        float sumY = static_cast<float>(places_[kPersonPlace].y + places_[kLeaderPlace].y);
+        float sumZ = static_cast<float>(places_[kPersonPlace].z + places_[kLeaderPlace].z);
+        eye.x = static_cast<float>(sumX * 0.5);
+        eye.y = static_cast<float>(sumY * 0.5f);
+        eye.z = static_cast<float>(sumZ * 0.5f);
         x = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
         y = static_cast<double>(places_[kPersonPlace].x) - places_[kLeaderPlace].x;
     } else {
@@ -171,15 +171,15 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
         }
         auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
         float reach = prototype->viewDistance;
-        float reachX = StoreFloat(facing.x * reach);
-        float reachY = StoreFloat(facing.y * reach);
-        eye.x = StoreFloat(reachX + place.x);
-        eye.y = StoreFloat(place.y + reachY);
-        eye.z = StoreFloat(place.z + prototype->viewHeight);
+        float reachX = static_cast<float>(facing.x * reach);
+        float reachY = static_cast<float>(facing.y * reach);
+        eye.x = static_cast<float>(reachX + place.x);
+        eye.y = static_cast<float>(place.y + reachY);
+        eye.z = static_cast<float>(place.z + prototype->viewHeight);
         x = facing.x;
         y = facing.y;
     }
-    double length = std::sqrt(LengthSquared2DUnrounded(y, x));
+    double length = x87::fsqrt(LengthSquared2DUnrounded(y, x));
     // FCOM with zero, TEST AH,0x40: a NaN length is left alone too.
     if (!(length == 0.0) && !x87::IsNaN(static_cast<float>(length))) {
         double inverse = 1.0 / length;
@@ -187,12 +187,12 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
         y *= inverse;
     }
     Vector3 at;
-    float alongX = StoreFloat(static_cast<float>(x * cosAngle + y * sinAngle));
-    alongX = StoreFloat(alongX * distance);
+    float alongX = static_cast<float>(x * cosAngle + y * sinAngle);
+    alongX = static_cast<float>(alongX * distance);
     double alongY = (y * cosAngle - x * sinAngle) * distance;
-    at.x = StoreFloat(eye.x + alongX);
-    at.y = StoreFloat(static_cast<float>(eye.y + alongY));
-    at.z = StoreFloat(eye.z + height);
+    at.x = static_cast<float>(eye.x + alongX);
+    at.y = static_cast<float>(eye.y + alongY);
+    at.z = static_cast<float>(eye.z + height);
     PlayerSendViewOriginal(LocalServerPlayer()->server, nullptr, &at, &eye, 1);
 }
 EI_REPLACE_METHOD(0x00607BB0, CBriefingScreen::ViewSpeaker);
@@ -220,9 +220,9 @@ void Sink(CUnit* unit) {
 void CBriefingScreen::ViewPreset(int preset) {
     double dx = static_cast<double>(places_[kLeaderPlace].x) - places_[kPersonPlace].x;
     double dy = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
-    float apart = StoreFloat(static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx))));
+    float apart = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
     auto view = [this](CUnit* unit, float angle, float distance, float height) {
-        BriefingViewSpeakerOriginal(this, nullptr, unit, StoreFloat(angle), StoreFloat(distance), height);
+        BriefingViewSpeakerOriginal(this, nullptr, unit, static_cast<float>(angle), static_cast<float>(distance), height);
     };
     switch (preset) {
     case 1:

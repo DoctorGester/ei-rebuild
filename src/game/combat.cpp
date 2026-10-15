@@ -26,10 +26,8 @@
 #include <bit>
 #include <cstring>
 
-// /fp:fast reassociates and distributes; the formulas here must keep the original's order of
-// operations. Values the original keeps on the FPU stack are double locals, values it stores
-// (FSTP to memory) are float locals.
-#pragma float_control(precise, on)
+// Values the original keeps on the FPU stack are double locals, values it stores (FSTP to memory)
+// are float locals.
 
 namespace {
 constexpr float kZero = 0.0f;                                       // 0073B858

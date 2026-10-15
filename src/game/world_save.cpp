@@ -17,6 +17,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
+#include "mod_folders.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"
@@ -172,7 +173,6 @@ __declspec(naked) void __fastcall ProjectileSave(Projectile*, void*, WorldStream
 // 0059C7A0 (RET 8). New node of the missile list (its counted pointer constructed empty).
 // 00419CD0 (RET 4). RefPtr::Assign (core_refcount.cpp).
 // 0040A3A0. CRefObject::Release.
-void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 // 00429EA0 (RET 8) / 00429B50 (RET 4). New node of the counted list (+0x12E44) and the counted
 // pointer's assignment (reference added, old one released through slot 4).
 mfc::CTypedPtrList<CEngineObject>::Node* __fastcall CountedNewNode(mfc::CTypedPtrList<CEngineObject>* a0, void*, mfc::CTypedPtrList<CEngineObject>::Node* a2, mfc::CTypedPtrList<CEngineObject>::Node* a3) { return (mfc::CTypedPtrList<CEngineObject>::Node*)ListNewNode429EA0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
@@ -190,11 +190,8 @@ __declspec(naked) void __fastcall CountdownsSave(void*, void*, WorldStream*) EI_
 __declspec(naked) void __fastcall PlayerRecordsLoad(void*, void*, WorldStream*, int) EI_ORIGINAL(0x006618C0)
 __declspec(naked) void __fastcall PlayerRecordsSave(void*, void*, WorldStream*, int) EI_ORIGINAL(0x00661C10)
 // 004C2030 / 004B3360 (RET 4) / 004C2290. A script group's constructor, Load and destructor.
-void __fastcall ScriptGroupConstruct(void* a0, void*) { ScriptGroupConstructOriginal(a0); }
 __declspec(naked) void __fastcall ScriptGroupLoad(void*, void*, WorldStream*) EI_ORIGINAL(0x004B3360)
-inline void __fastcall ScriptGroupDestruct(void* a0, void*) { ScriptGroupDestructOriginal((void*)a0); }
 // 0066EF80 / 0066D260 (RET 4). The player state's refresh after a load and SetFlag70.
-void __fastcall PlayerStateRefresh(void* a0, void*) { PlayerStateRefreshOriginal(a0); }
 __declspec(naked) void __fastcall PlayerStateSetFlag70(void*, void*, int /*byte*/) EI_ORIGINAL(0x0066D260)
 // 00460AF0 (RET 4). Named float table Get (object_tables.cpp); the value is left in ST0.
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
@@ -202,10 +199,6 @@ double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)
 // 0055FBD0 (RET 8). The time of day and the time speed (as LoadSave hands them to slots 31 / 32).
 // 005C1010 / 005C0DF0 (RET 4). CSectorMap::Remove / Add (sector_map.cpp) on +0x294.
 // 00554450. The unit controller's reposition after a move.
-void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOriginal(a0); }
-// 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: original address.
-// 006FEBFA / 006FE9B8. CStringArray::SetAtGrow(int, const CString&) / SetSize(int, int).
-void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
 void __fastcall MapObjectBeginLoad(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }
@@ -348,7 +341,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
             FindFreeCellNearOriginal(world->AIMap(), nullptr, unit, &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
             SectorMapAdd(world->Sectors(), nullptr, unit);
-            ControllerReposition(static_cast<CUnit*>(unit)->controller, nullptr);
+            ControllerRepositionOriginal((static_cast<CUnit*>(unit)->controller));
         } else {
             WorldRemoveObject(world, nullptr, stranded.data[i]);
         }
@@ -391,12 +384,12 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         if (stream->version_ < kVersionPlayerByte) ReadValue<std::uint8_t>(stream);
         if (stream->version_ < kVersionPlayerGroup) {
             ScriptGroup group;
-            ScriptGroupConstruct(&group, nullptr);
+            ScriptGroupConstructOriginal(&group);
             group.vtable = scriptvtable::kRefs;
             ScriptGroupLoad(&group, nullptr, stream);
-            ScriptGroupDestruct(&group, nullptr);
+            ScriptGroupDestructOriginal((void*)&group);
         }
-        PlayerStateRefresh(state, nullptr);
+        PlayerStateRefreshOriginal(state);
         PlayerStateSetFlag70(state, nullptr, 1);
     }
     if (it) {
@@ -558,7 +551,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     CItemLink* old = LinkOf(object);
                     static_cast<CItem*>(object)->link_ = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(record));
                     if (record) ++record->references;
-                    if (old) RefRelease(old, nullptr);
+                    if (old) RefObjectRelease(old);
                 }
             }
 
@@ -577,7 +570,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 for (int i = 0; i < count; ++i) {
                     alignas(4) unsigned char storage[sizeof(mfc::CString)];
                     mfc::CString* name = StreamReadString(stream, nullptr, storage);
-                    StringArraySetAtGrow(&mobFiles_, nullptr, mobFiles_.size, name);
+                    StringArraySetAtGrowStringOriginal(&mobFiles_, nullptr, mobFiles_.size, name);
                     name->~CString();
                 }
             } else {
@@ -902,10 +895,12 @@ namespace {
 constexpr std::uintptr_t kCantLoadGraph = std::uintptr_t(0x00790AD8);   // "CWorldServer::LoadMap.\n Can't load AIGraph.\n"
 constexpr std::uintptr_t kCantLoadMap = std::uintptr_t(0x00790AAC);     // "CWorldServer::NewZone()\n Can't load map.\n"
 
-// Whether the file `name` is neither there as named nor in the maps folder.
-bool MapFileMissing(const char* name) {
+// Whether the file `name` is neither there as named nor in the maps folder (Rebirth's Maps names it
+// first: `site`).
+bool MapFileMissing(const char* name, modfolders::MapsSite site) {
     if (gamecrt::access(name, 0) != -1) return false;
     mfc::CString folder;
+    modfolders::SelectMaps(name, site);
     MapsFolderAt(&folder);
     mfc::CString path = folder + name;
     return gamecrt::access(path, 0) == -1;
@@ -917,8 +912,8 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     cave_ = 0;
     PickLoadingMovie(this, nullptr, zone);
     ShowLoadProgress(kProgressStart);
-    if (map && MapFileMissing(map)) return 0;
-    if (mob && MapFileMissing(mob)) return 0;
+    if (map && MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
+    if (mob && MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
     LocalMemoryStream graph;
     if (!LoadAIGraph(this, nullptr, map, mob, &graph.stream))
         return game::FatalError(reinterpret_cast<const char*>(kCantLoadGraph));

@@ -3,8 +3,9 @@
 // the key actions of the key table (KeyActions): pause and game speed, the objectives window, the
 // camera, the order keys, movement modes, the action, spell, weapon and quick item buttons, the
 // unit panel's body parts, the top panel's pages, the map's slide, quick save / load, the party
-// members and the message window. Rebirth patches it (MPSpeedControl), so this is the vanilla body
-// and it is hooked in the vanilla launch only. See ui_camp.h (CBattleScreenSetup) and
+// members and the message window. Rebirth's MPSpeedControl (the two JNEs at 0063A6D4 / 0063A73A
+// aimed at the next instruction) lets the speed keys work on a network client too. See ui_camp.h
+// (CBattleScreenSetup) and
 // docs/notes/ui.md, section 6.
 #include "ui_camp.h"
 #include "game_strings.h"
@@ -16,6 +17,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -176,7 +178,7 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
     case kActionFastSpeed: {
         auto* clock = static_cast<CHudClock*>(clock_);
         if (GameIsPausedOriginal(GameGlueObject())) return;
-        if (IsNetworkClientOriginal()) return;
+        if (IsNetworkClientOriginal() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         clock->interface_->PlaySound(ClockSound(), 0);
         const bool fast = action == kActionFastSpeed;
         clock->fast_ = fast ? 1 : 0;
@@ -355,8 +357,10 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
+// Rebirth-patched (the shim stays a named function so check_patched_calls sees it).
 void __fastcall BattleScreenKeyDown(void* input, void*, int key, int repeat, int flags) {
     WindowFromInput<CBattleScreenSetup>(input)->OnKeyDown(key, repeat, flags);
 }
 } // namespace
 EI_REPLACE(0x0063A560, BattleScreenKeyDown);
+EI_REBIRTH_IMPLEMENTS(0x0063A560, ei::rebirth::Patch::MPSpeedControl);

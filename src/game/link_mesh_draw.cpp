@@ -7,7 +7,7 @@
 #include "device.h"   // the old device's calls
 #include "link_figure.h"
 
-#include "core_maths.h"          // StoreFloat
+#include "core_maths.h"
 #include "material.h"            // CMaterial
 #include "originals_library.h"   // GameAtExit
 #include "originals_render.h"    // DrawMesh, DrawMesh2
@@ -276,8 +276,8 @@ int CLinkMesh::RasterisePartImpl(const stlp::string* name, int* pixels, void* ta
     for (unsigned i = 0; i < static_cast<unsigned>(r.texCoords.count); ++i) {
         float uv[2];
         std::memcpy(uv, &texCoords_.data[r.texCoords.start + static_cast<int>(i)], sizeof(uv));
-        texturePixels.data[i].x = x87::fistp(StoreFloat(uv[0] * kByteScale));
-        texturePixels.data[i].y = x87::fistp(StoreFloat(uv[1] * kByteScale));
+        texturePixels.data[i].x = x87::fistp(static_cast<float>(uv[0] * kByteScale));
+        texturePixels.data[i].y = x87::fistp(static_cast<float>(uv[1] * kByteScale));
     }
 
     const IndexTriangle* corners = corners_.data + r.corners.start;

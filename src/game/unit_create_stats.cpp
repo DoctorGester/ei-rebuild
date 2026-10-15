@@ -19,7 +19,6 @@
 #include <cstring>
 
 // Values the original keeps on the FPU stack are double locals; values it stores are floats.
-#pragma float_control(precise, on)
 
 namespace {
 // The records (unit_db.h): prototypes (007AF358), models (007AF398), NPCs (007AF378) and the
@@ -700,10 +699,12 @@ constexpr FactoryEntry kFactory[] = {
 };
 } // namespace
 
+// Every object starts zeroed (operator_new_zeroed): the units' constructors leave levels4C8 and the
+// motion's turn fields, which the saves write (SV7b2).
 CEngineObject* CMapObjectManager::CreateObject(int classId) {
     for (const FactoryEntry& entry : kFactory) {
         if (entry.classId != classId) continue;
-        void* block = gamecrt::operator_new(entry.size);
+        void* block = gamecrt::operator_new_zeroed(entry.size);
         if (!block) return nullptr;
         return reinterpret_cast<Constructor>(entry.constructor)(block);
     }

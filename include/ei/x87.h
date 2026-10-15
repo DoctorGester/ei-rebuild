@@ -63,6 +63,21 @@ __declspec(naked) inline double __cdecl fexp(double) {
     __asm ret
 }
 
+// ln x and log10 x as VC6 inlines log / log10: FLDLN2 (FLDLG2); FLD x; FYL2X, unrounded in ST0.
+__declspec(naked) inline double __cdecl flog(double) {
+    __asm fldln2
+    __asm fld qword ptr [esp + 4]
+    __asm fyl2x
+    __asm ret
+}
+
+__declspec(naked) inline double __cdecl flog10(double) {
+    __asm fldlg2
+    __asm fld qword ptr [esp + 4]
+    __asm fyl2x
+    __asm ret
+}
+
 // FPATAN: atan2(y, x), unrounded (FPATAN ignores the precision control). std::atan2 only becomes
 // FPATAN under /fp:fast; under precise semantics it calls the modern CRT.
 __declspec(naked) inline double __cdecl fpatan(double /*y*/, double /*x*/) {

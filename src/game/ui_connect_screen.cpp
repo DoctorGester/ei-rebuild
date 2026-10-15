@@ -11,6 +11,7 @@
 #include "core_transform.h"
 #include "net_coder.h"
 #include "net_link.h"
+#include "net_second_master.h"
 #include "party.h"
 #include "random.h"
 #include "unit.h"
@@ -495,19 +496,10 @@ void CMpConnectScreen::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
-void __fastcall ConnectLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CMpConnectScreen>(input)->OnLButtonDown(buttons, x, y);
-}
-void __fastcall ConnectLButtonDouble(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CMpConnectScreen>(input)->OnLButtonDouble(buttons, x, y);
-}
-void __fastcall ConnectKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CMpConnectScreen>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x0061C700, ConnectLButtonDown);
-EI_REPLACE(0x0061CA30, ConnectLButtonDouble);
-EI_REPLACE(0x0061CAD0, ConnectKeyDown);
+EI_REPLACE_METHOD(0x0061C700, InputForward<&CMpConnectScreen::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x0061CA30, InputForward<&CMpConnectScreen::OnLButtonDouble>::Call);
+EI_REPLACE_METHOD(0x0061CAD0, InputForward<&CMpConnectScreen::OnKeyDown>::Call);
 
 // --- 0061CC00: the selection kept in the list and in view -----------------------------------------
 
@@ -581,7 +573,11 @@ EI_REPLACE_METHOD(0x0061CF50, CMpConnectScreen::EditAddress);
 void CMpConnectScreen::MasterRequest() {
     CopyText(boxText_, EmptyText());
     net::NetAddress master{};
-    master.Parse(MasterHost(), kMasterPort);
+    // EI_Plugin's NewMaster (its call at 0061D138): with a second master set, the master is tried first.
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) && net::second_master::Configured())
+        net::second_master::ParseMaster(&master, MasterHost(), kMasterPort);
+    else
+        master.Parse(MasterHost(), kMasterPort);
     net::ClientSession* client = net::GameClient();
     std::uint32_t extra = client ? client->queries_.extra : 0;
     void* memory = gamecrt::operator_new(sizeof(CMasterRequestBox));
@@ -591,6 +587,7 @@ void CMpConnectScreen::MasterRequest() {
     InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
 }
 EI_REPLACE_METHOD(0x0061D0D0, CMpConnectScreen::MasterRequest);
+EI_REBIRTH_IMPLEMENTS(0x0061D0D0, ei::rebirth::Patch::EiPluginNewMaster);
 
 // --- 0061D1C0: config\addrbook.ini ----------------------------------------------------------------
 

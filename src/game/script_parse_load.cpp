@@ -27,7 +27,9 @@ using namespace scriptparse;
 
 // ---- Forwarders ---------------------------------------------------------------------------------
 
+#ifndef EI_VECTORS_REPLAY   // ei_vectors has its own (tests/vectors/replay_script.cpp)
 __declspec(naked) int __cdecl CScript::Error(CScript*, int, int, const char*, ...) EI_ORIGINAL(0x004CF470)
+#endif
 __declspec(naked) mfc::CArray<SSCCmd>* CScript::NewWorldScript() EI_ORIGINAL(0x004BF900)
 __declspec(naked) void CScript::RunWorldScript(mfc::CArray<SSCCmd>*) EI_ORIGINAL(0x004BCC60)
 __declspec(naked) void SSCCmd::Clear() EI_ORIGINAL(0x004B5F70)
@@ -127,6 +129,9 @@ int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
 
 // *dst = (float)atof(text): the CRT's result in ST0 stored with FSTP.
 void StoreAtof(float* dst, const char* text) {
+#ifdef EI_VECTORS_REPLAY   // no game CRT: its port, through the address
+    *dst = static_cast<float>(GameAtof(text));
+#else
     __asm {
         push text
         mov eax, 0x006E911A
@@ -135,6 +140,7 @@ void StoreAtof(float* dst, const char* text) {
         mov eax, dst
         fstp dword ptr [eax]
     }
+#endif
 }
 
 // FILD / FSTP of an int.

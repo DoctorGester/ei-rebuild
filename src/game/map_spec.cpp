@@ -22,18 +22,6 @@ namespace mapspec {
 
 namespace {
 
-constexpr std::uintptr_t kSpecVtable = 0x0073C5C4;
-constexpr std::uintptr_t kObjectVtable = 0x0073C5F0;
-constexpr std::uintptr_t kFlameVtable = 0x0073C620;
-constexpr std::uintptr_t kTrapVtable = 0x0073C650;
-constexpr std::uintptr_t kLeverVtable = 0x0073C6B0;
-constexpr std::uintptr_t kAreasVtable = 0x0073C68C;      // CArray (12-byte elements)
-constexpr std::uintptr_t kTargetsVtable = 0x0073C680;    // CArray (8-byte elements)
-
-// MFC CStringArray (library).
-void __fastcall StringArrayAppend(mfc::CStringArray* a0, void*, const mfc::CStringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
-// MFC CArray helpers (library): SetSize of the 12-byte array, zeroing 8-byte elements.
-void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12SetSizeOriginal((void*)a0, nullptr, a2, a3); }
 
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
@@ -74,7 +62,7 @@ Spec* Spec::SpecConstruct() {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     new (&name) mfc::CString();
     new (&comment) mfc::CString();
-    ei::SetVtable(this, kSpecVtable);
+    ei::SetVtable(this, kVtableAddress);
     mfc::CString none(game::Text(0x007846F0));   // "none"
     id = -1;
     spareId = -1;
@@ -90,7 +78,7 @@ EI_REPLACE_METHOD(0x00469CA0, Spec::SpecConstruct);
 
 // 00469E50: the destructor body.
 void Spec::SpecDestruct() {
-    ei::SetVtable(this, kSpecVtable);
+    ei::SetVtable(this, kVtableAddress);
     comment.~CString();
     name.~CString();
     chunk.Destruct();
@@ -142,7 +130,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     new (&parentIname) mfc::CString();
     new (&skinTexture) mfc::CString();
     StringArrayConstruct(&parts);
-    ei::SetVtable(this, kObjectVtable);
+    ei::SetVtable(this, kVtableAddress);
     mfc::CString none(game::Text(0x007846F0));
     base.kind = 1;
     parentId = 0;
@@ -165,7 +153,7 @@ EI_REPLACE_METHOD(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
 
 // 0046AEB0: the destructor body.
 void ObjectSpec::ObjectSpecDestruct() {
-    ei::SetVtable(this, kObjectVtable);
+    ei::SetVtable(this, kVtableAddress);
     StringArrayDestruct(&parts);
     skinTexture.~CString();
     parentIname.~CString();
@@ -213,7 +201,7 @@ void ObjectSpec::ObjectSpecAssign(const ObjectSpec* from) {
     parentIname = from->parentIname;
     skinTexture = from->skinTexture;
     StringArraySetSize(&parts, nullptr, 0, -1);
-    StringArrayAppend(&parts, nullptr, &from->parts);
+    StringArrayCopyOriginal(&parts, nullptr, &from->parts);
 }
 EI_REPLACE_METHOD(0x0046A710, ObjectSpec::ObjectSpecAssign);
 
@@ -348,7 +336,7 @@ FlameSpec* FlameSpec::FlameSpecConstruct() {
     object.ObjectSpecConstruct();
     new (&sound) mfc::CString();
     offset = {0.0f, 0.0f, 0.0f};
-    ei::SetVtable(this, kFlameVtable);
+    ei::SetVtable(this, kVtableAddress);
     object.base.kind = 6;
     std::uint32_t volumeBits = 0x3F333333;   // 0.7f
     std::memcpy(&volume, &volumeBits, 4);
@@ -359,7 +347,7 @@ EI_REPLACE_METHOD(0x0046B210, FlameSpec::FlameSpecConstruct);
 
 // 0046B120: the destructor body.
 void FlameSpec::FlameSpecDestruct() {
-    ei::SetVtable(this, kFlameVtable);
+    ei::SetVtable(this, kVtableAddress);
     sound.~CString();
     object.ObjectSpecDestruct();
 }
@@ -423,14 +411,14 @@ TrapSpec* TrapSpec::TrapSpecConstruct() {
     areas.growBy = 0;
     areas.maxSize = 0;
     areas.size = 0;
-    ei::SetVtable(&areas, kAreasVtable);
+    ei::SetVtable(&areas, mfc::impl::TrapAreasArrayClass::Vtable());
     targets.data = nullptr;
     targets.growBy = 0;
     targets.maxSize = 0;
     targets.size = 0;
-    ei::SetVtable(&targets, kTargetsVtable);
+    ei::SetVtable(&targets, mfc::impl::TrapTargetsArrayClass::Vtable());
     interval = 15;
-    ei::SetVtable(this, kTrapVtable);
+    ei::SetVtable(this, kVtableAddress);
     object.base.kind = 7;
     return this;
 }
@@ -492,7 +480,7 @@ void TrapSpec::TrapSpecOnChunk() {
     case 0xBBAB0002: ReadInto(c, spell); break;
     case 0xBBAB0003: {
         std::uint32_t n = static_cast<std::uint32_t>(c.ReadInt());
-        AreasSetSize(&areas, nullptr, static_cast<int>(n), -1);
+        Array12SetSizeOriginal(&areas, nullptr, static_cast<int>(n), -1);
         for (std::uint32_t i = 0; i < n; ++i) {
             FileRead(c, areas.data + i * 12, 12);
             c.Advance(12);
@@ -528,7 +516,7 @@ LeverSpec* LeverSpec::LeverSpecConstruct() {
     cycled = 0;
     castOnce = 0;
     field04 = 0;
-    ei::SetVtable(this, kLeverVtable);
+    ei::SetVtable(this, kVtableAddress);
     object.base.kind = 8;
     return this;
 }
@@ -598,7 +586,6 @@ EI_REPLACE(0x0046A4B0, QuaternionRotate);
 // ---- 0046E5E0: the zone's diplomacy table --------------------------------------------------------
 
 namespace {
-void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
 } // namespace
 
 // The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader 00481660): every
@@ -611,7 +598,7 @@ ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     }
     for (int i = 0; i < 32; ++i) self->relations[i][i] = 0;
     for (int i = 0; i < 32; ++i) {
-        StringArraySetAtGrow(names, nullptr, names->size, game::EmptyText());
+        StringArraySetAtGrowTextOriginal(names, nullptr, names->size, game::EmptyText());
         names->data[i].Format(game::Text(0x00787E44), i);   // "Player-%i"
     }
     return self;

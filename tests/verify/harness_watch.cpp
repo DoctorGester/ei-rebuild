@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 namespace ei::verify::watch {
 
@@ -20,6 +21,8 @@ constexpr DWORD kArmCode = 0xE1A70001;   // our own exception: the handler loads
 constexpr int kCallers = 8;
 
 unsigned g_id;
+bool g_flags;                           // EI_WATCH_CUNIT=<id>,flags: the unit's flags_ instead of its orientation
+std::uint32_t g_lastFlags = ~0u;        // the flags value last logged (only changes are logged)
 std::uintptr_t g_slot;                  // EI_WATCH_ADDR: one dword watched for reads and writes
 unsigned g_slotFrom = 0, g_slotTo = ~0u;  // the world updates it is logged in
 bool g_slotArmed;
@@ -68,6 +71,9 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
         if (g_slot) {
             c->Dr0 = g_slotArmed ? g_slot : 0;
             c->Dr7 = g_slotArmed ? (0x1u | (0xFu << 16)) : 0;   // L0; R/W 11 (reads and writes), LEN 11
+        } else if (g_wanted && g_flags) {
+            c->Dr0 = reinterpret_cast<std::uintptr_t>(&g_wanted->flags_);
+            c->Dr7 = 0x1u | (0xDu << 16);   // L0; R/W 01 (writes), LEN 11
         } else if (g_wanted) {
             const auto base = reinterpret_cast<std::uintptr_t>(&g_wanted->orientation);
             c->Dr0 = base;
@@ -105,6 +111,26 @@ LONG CALLBACK Handler(EXCEPTION_POINTERS* info) {
     }
     if (code != EXCEPTION_SINGLE_STEP || !g_unit || (c->Dr6 & 0xF) == 0) return EXCEPTION_CONTINUE_SEARCH;
     if (GetCurrentThreadId() != g_mainThread) return EXCEPTION_CONTINUE_SEARCH;
+    if (g_flags) {
+        const std::uint32_t value = g_unit->flags_;
+        if (value != g_lastFlags) {
+            g_lastFlags = value;
+            std::fprintf(g_file, "u%u", g_updates);
+            Print(c->Eip);
+            std::fprintf(g_file, " flags %08X <", unsigned(value));
+            const auto* stack = reinterpret_cast<const std::uintptr_t*>(c->Esp);
+            int found = 0;
+            for (int i = 0; i < 256 && found < kCallers; ++i) {
+                if (!ReturnAddress(stack[i])) continue;
+                Print(stack[i]);
+                ++found;
+            }
+            std::fprintf(g_file, "\n");
+        }
+        c->Dr6 = 0;
+        c->ContextFlags |= CONTEXT_DEBUG_REGISTERS;
+        return EXCEPTION_CONTINUE_EXECUTION;
+    }
     const auto* q = reinterpret_cast<const std::uint32_t*>(&g_unit->orientation);
     std::fprintf(g_file, "u%u dr%X", g_updates, unsigned(c->Dr6 & 0xF));
     Print(c->Eip);
@@ -196,7 +222,9 @@ bool Enabled() {
         if (g_slot) return true;
     }
     if (!GetEnvironmentVariableA("EI_WATCH_CUNIT", value, sizeof(value))) return false;
-    g_id = static_cast<unsigned>(std::strtoul(value, nullptr, 10));
+    char* end = value;
+    g_id = static_cast<unsigned>(std::strtoul(value, &end, 10));
+    g_flags = std::strcmp(end, ",flags") == 0;
     return g_id != 0;
 }
 
@@ -210,7 +238,7 @@ void Install() {
                        reinterpret_cast<LPCSTR>(&Install), &self);
     ModuleRange(self, g_selfBase, g_selfEnd);
     AddVectoredExceptionHandler(1, Handler);
-    std::fprintf(g_file, "# watch %s %08X (addon %08X, ei_hook %08X)\n", g_slot ? "dword" : "cunit orientation",
+    std::fprintf(g_file, "# watch %s %08X (addon %08X, ei_hook %08X)\n", g_slot ? "dword" : g_flags ? "cunit flags" : "cunit orientation",
                  unsigned(g_slot ? g_slot : g_id), unsigned(g_addonBase), unsigned(g_selfBase));
     Log("harness: watching %s (EI_WATCH_ADDR / EI_WATCH_CUNIT, watch.txt)", g_slot ? "a dword" : "a unit's orientation");
 }

@@ -24,13 +24,10 @@ namespace net {
 
 namespace {
 
-// --- STLport (library) ---------------------------------------------------------------------------
-void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
 // vector<RefPtr> of the file message: copy of the elements sharing them, deallocate.
 __declspec(naked) RefPtr* __fastcall SharedRefsCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042AE90)
 __declspec(naked) void __fastcall FileRefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004251B0)
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
-void* __fastcall RefsGetAllocator(const RefVector* a0, void*, void* a2) { return VectorGetAllocatorOriginal((const void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall RefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00425210)
 __declspec(naked) void __fastcall RefsResize(RefVector* /*vector*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x004200C0)
 // Counted pointer element destructors (deleting destructors called with 0).
@@ -41,7 +38,7 @@ const char* EmptyText() { return reinterpret_cast<const char*>(0x00783D6C); }
 
 // The header of a clone (the base constructors inlined) and of a fresh or rebuilt message.
 void CloneHeader(Message* copy, const Message* source) {
-    ei::SetVtable(copy, kRefValueVtable);
+    ei::SetVtable(copy, CRefObject::kVtableAddress);
     copy->version_ = source->version_;
     ei::SetVtable(copy, kMessageVtable);
 }
@@ -100,7 +97,7 @@ void StringEmptyInline(StringRep& s) {
 void StringFree(StringRep& s) { stlp::deallocate(s.start, static_cast<std::size_t>(s.eos - s.start)); }
 void AssignEmptyText(StringRep& s) {
     const char* text = EmptyText();
-    StringAssignRange(&s, nullptr, text, text + std::strlen(text));
+    StringAssignRangeOriginal(&s, nullptr, text, text + std::strlen(text));
 }
 
 // An empty vector of counted pointers.
@@ -133,7 +130,7 @@ void PutString(BufferCursor* cursor, const StringRep& s) { PutBytes(cursor, s.st
 void TakeString(BufferCursor* cursor, StringRep& s) {
     const char* text = reinterpret_cast<const char*>(cursor->p);
     std::size_t length = std::strlen(text);
-    StringAssignRange(&s, nullptr, text, text + length);
+    StringAssignRangeOriginal(&s, nullptr, text, text + length);
     cursor->p += length + 1;
 }
 // Object references through the connection being written or read.
@@ -214,7 +211,7 @@ LoginMessage* LoginMessage::Clone() {   // 00413440
 int LoginMessage::OnShutdown() {   // 00413570
     ei::SetVtable(this, kVtableAddress);
     FreeLogin(this);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     InitLogin(this);
     return 0;
@@ -236,7 +233,7 @@ void LoginMessage::Read(BufferCursor* cursor) {   // 00413750
 void LoginMessage::Destruct() {   // 00413800
     ei::SetVtable(this, kVtableAddress);
     FreeLogin(this);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -261,7 +258,7 @@ TextMessage* TextMessage::CloneAs(std::uintptr_t vtable) {
 void TextMessage::ResetAs(std::uintptr_t vtable) {
     ei::SetVtable(this, vtable);
     StringFree(text_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(text_);
     ei::SetVtable(this, vtable);
@@ -271,7 +268,7 @@ void TextMessage::ReadText(BufferCursor* cursor) { TakeString(cursor, text_); }
 void TextMessage::DestructAs(std::uintptr_t vtable) {
     ei::SetVtable(this, vtable);
     StringFree(text_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 Message* __fastcall SayMessage::Create() { return CreateAs(kVtableAddress); }   // 004171A0
@@ -345,7 +342,7 @@ CommandMessage* CommandMessage::Clone() {   // 00413D20
 int CommandMessage::OnShutdown() {   // 00413E40
     ei::SetVtable(this, kVtableAddress);
     StringFree(text_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(text_);
     ei::SetVtable(this, kVtableAddress);
@@ -362,7 +359,7 @@ void CommandMessage::Read(BufferCursor* cursor) {   // 00413F50
 void CommandMessage::Destruct() {   // 00414060
     ei::SetVtable(this, kVtableAddress);
     StringFree(text_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -396,7 +393,7 @@ void PairMessage::ResetAs(std::uintptr_t vtable) {
     ei::SetVtable(this, vtable);
     ReleaseCounted(second_);
     ReleaseCounted(first_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
     first_.ptr = nullptr;
     second_.ptr = nullptr;
@@ -408,7 +405,7 @@ void PairMessage::DestructAs(std::uintptr_t vtable) {
     ei::SetVtable(this, vtable);
     ReleaseCounted(second_);
     ReleaseCounted(first_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 Message* __fastcall BindingMessage::Create() { return CreateAs(kVtableAddress); }   // 00415320
@@ -493,7 +490,7 @@ int PlayerMessage::OnShutdown() {   // 00414650
     ei::SetVtable(this, kVtableAddress);
     StringFree(text_);
     StringFree(name_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     InitPlayer(this);
     return 0;
@@ -518,7 +515,7 @@ void PlayerMessage::Destruct() {   // 004148E0
     ei::SetVtable(this, kVtableAddress);
     StringFree(text_);
     StringFree(name_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -554,7 +551,7 @@ int LineMessage::OnShutdown() {   // 00414AC0
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(connection_);
     StringFree(text_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(text_);
     connection_.ptr = nullptr;
@@ -573,7 +570,7 @@ void LineMessage::Destruct() {   // 00414D10
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(connection_);
     StringFree(text_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -608,7 +605,7 @@ int HostMessage::OnShutdown() {   // 00414FA0
     ei::SetVtable(this, kVtableAddress);
     StringFree(zone_);
     StringFree(address_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(address_);
     StringEmpty(zone_);
@@ -627,7 +624,7 @@ void HostMessage::Destruct() {   // 004152A0
     ei::SetVtable(this, kVtableAddress);
     StringFree(zone_);
     StringFree(address_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -654,7 +651,7 @@ VariableMessage* VariableMessage::Clone() {   // 00415A30
 int VariableMessage::OnShutdown() {   // 00415B60
     ei::SetVtable(this, kVtableAddress);
     StringFree(name_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(name_);
     ei::SetVtable(this, kVtableAddress);
@@ -673,7 +670,7 @@ void VariableMessage::Read(BufferCursor* cursor) {   // 00415C80
 void VariableMessage::Destruct() {   // 00415D00
     ei::SetVtable(this, kVtableAddress);
     StringFree(name_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -712,7 +709,7 @@ int FileMessage::OnShutdown() {   // 00416390
     for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) FileRefDestroy(p, nullptr, 0);
     FileRefsDeallocate(&chunks_.EndOfStorage(), nullptr, chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()));
     StringFree(name_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     StringEmpty(name_);
     ClearRefs(chunks_);
@@ -734,7 +731,7 @@ void FileMessage::Destruct() {   // 00416640
     for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();
     stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * sizeof(RefPtr));
     StringFree(name_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -761,7 +758,7 @@ FileChunkMessage* FileChunkMessage::Clone() {   // 00416720
 int FileChunkMessage::OnShutdown() {   // 00416780
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(file_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
     file_.ptr = nullptr;
     ei::SetVtable(this, kVtableAddress);
@@ -780,7 +777,7 @@ void FileChunkMessage::Read(BufferCursor* cursor) {   // 00416850
 void FileChunkMessage::Destruct() {   // 004168E0
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(file_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -810,7 +807,7 @@ int AwardMessage::OnShutdown() {   // 00416B30
     ei::SetVtable(this, kVtableAddress);
     StringFree(text_);
     ReleaseCounted(connection_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     FreshHeader(this);
     connection_.ptr = nullptr;
     StringEmpty(text_);
@@ -831,7 +828,7 @@ void AwardMessage::Destruct() {   // 00416D70
     ei::SetVtable(this, kVtableAddress);
     StringFree(text_);
     ReleaseCounted(connection_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -880,7 +877,7 @@ TradeMessage* TradeMessage::Clone() {   // 00416E30
 int TradeMessage::OnShutdown() {   // 00416EB0
     ei::SetVtable(this, kVtableAddress);
     FreeTrade(this);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
     InitTrade(this);
     return 0;
@@ -902,7 +899,7 @@ void TradeMessage::Read(BufferCursor* cursor) {   // 00412CE0
 void TradeMessage::Destruct() {   // 00416FC0
     ei::SetVtable(this, kVtableAddress);
     FreeTrade(this);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -954,7 +951,7 @@ PartyMemberMessage* PartyMemberMessage::Clone() {   // 00417420
 int PartyMemberMessage::OnShutdown() {   // 004174F0
     ei::SetVtable(this, kVtableAddress);
     FreeMemberStream(stream_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
     InitMemberStream(stream_);
     ei::SetVtable(this, kVtableAddress);
@@ -975,7 +972,7 @@ void PartyMemberMessage::Read(BufferCursor* cursor) {   // 004175B0
 void PartyMemberMessage::Destruct() {   // 00417620
     ei::SetVtable(this, kVtableAddress);
     FreeMemberStream(stream_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -1007,7 +1004,7 @@ PartyMessage* PartyMessage::Clone() {   // 004176A0
     if (!p) return nullptr;
     CloneHeader(p, this);
     std::uint8_t allocator = 0;
-    const void* copy = RefsGetAllocator(&members_, nullptr, &allocator);
+    const void* copy = VectorGetAllocatorOriginal(&members_, nullptr, &allocator);
     VectorBaseConstruct(&p->members_, nullptr, static_cast<std::size_t>(members_.size()), copy);
     p->members_.Finish() = UninitializedCopy(members_.begin(), members_.end(), p->members_.begin(), 0);
     p->money_ = money_;
@@ -1026,7 +1023,7 @@ int PartyMessage::OnShutdown() {   // 004177A0
     ReleaseCounted(player_);
     for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p) RefPtrDestroyAt(p, nullptr, 0);
     RefsDeallocate(&members_.EndOfStorage(), nullptr, members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()));
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     version_ = 1;
     InitParty(this);
     return 0;
@@ -1064,7 +1061,7 @@ void PartyMessage::Destruct() {   // 004178F0
     for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p)
         if (p->ptr) p->ptr->Release();
     stlp::deallocate(members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()) * sizeof(RefPtr));
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================
@@ -1074,7 +1071,7 @@ void PartyMessage::Destruct() {   // 004178F0
 ServerEntry* ServerEntry::Clone() {   // 00412590
     auto* p = NewMessageMemory<ServerEntry>();
     if (!p) return nullptr;
-    ei::SetVtable(p, kRefValueVtable);
+    ei::SetVtable(p, CRefObject::kVtableAddress);
     p->address_ = address_;
     std::memcpy(&p->timeout_, &timeout_, 4);   // the floats copied as dwords
     std::memcpy(&p->ping_, &ping_, 4);
@@ -1094,7 +1091,7 @@ int ServerEntry::OnShutdown() {   // 00412750
     ei::SetVtable(this, kVtableAddress);
     StringBufferFree(&description_);
     StringBufferFree(&name_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     ConstructBase();
     StringEmpty(name_);
     StringEmpty(description_);
@@ -1127,7 +1124,7 @@ void ServerEntry::Destruct() {   // 004128E0
     ei::SetVtable(this, kVtableAddress);
     StringFree(description_);
     StringFree(name_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 
 // ================================================================================================

@@ -37,6 +37,8 @@ constexpr float kHalf = 0.5f;                             // 0073B86C
 constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;   // 0073F74C, 0073BAF0
 constexpr double kPi = 3.141592653589793;                 // 0073F3D0
 constexpr double kPerDegree = 1.0 / 180.0;                // 0073BA30
+// pi * (1 / 180) as the original's FLD / FMUL leaves it at 24-bit precision (SV7d1a: not the folded double).
+constexpr float kRadiansPerDegree = static_cast<float>(kPi * kPerDegree);
 const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 0073F748: 1/24 (the sun turns once a day)
 // A cave's sun: (0.5, 0.5, -0.70710677).
 const Vector3 kCaveSun = {0.5f, 0.5f, std::bit_cast<float>(0xBF3504E6u)};
@@ -60,7 +62,7 @@ bool IsBlack(const LightColour& c) { return ZeroOrNaN(c.r) && ZeroOrNaN(c.g) && 
 
 // (b - a) * t + a, stored as a float.
 float Lerp(float a, float b, float t) {
-    volatile float value = (b - a) * t + a;
+    float value = (b - a) * t + a;
     return value;
 }
 LightColour Lerp(const LightColour& a, const LightColour& b, float t) {
@@ -72,7 +74,7 @@ LightColour Lerp(const LightColour& a, const LightColour& b, float t) {
     return c;
 }
 float Scaled(float value, float scale) {
-    volatile float result = value * scale;
+    float result = value * scale;
     return result;
 }
 
@@ -85,7 +87,7 @@ float FogStart(float hour) {
         if (hour < kDayStart) fog = (hour - kDawnStart) / kDawnLength * (day - night) + night;
         else fog = day - (hour - kDayEnd) / kDuskLength * (day - night);
     } else fog = night;
-    volatile float stored = static_cast<float>(fog);
+    float stored = static_cast<float>(fog);
     return stored;
 }
 
@@ -98,7 +100,7 @@ double SunElevation(float hour) {
     } else if (hour > kSunset) {
         night = (hour - kSunset) / (kDayLength - kSunset);
     } else {
-        volatile float offset = hour - (kSunset + kSunrise) * kHalf;
+        float offset = hour - (kSunset + kSunrise) * kHalf;
         const float distance = std::fabs(static_cast<float>(offset));
         const double t = distance / (kSunset - kSunrise);
         return ((1.0f - (t + t)) + 1.0f) * kBaseElevation;
@@ -127,7 +129,7 @@ int CWorldClient::UpdateLighting() {
     ITransformPipeline* transform = display->pipeline_->transform_;
 
     if (cave_ == 1) {
-        volatile float stored = static_cast<float>(now);
+        float stored = static_cast<float>(now);
         const float hour = stored;
         if (LastLitHour() > hour) LastLitHour() = -1.0f;
         transform->SetDepthRange(FogStartDay(), FarClipDistance());
@@ -163,26 +165,26 @@ int CWorldClient::UpdateLighting() {
         return 1;
     }
 
-    volatile float stored = static_cast<float>(now);
+    float stored = static_cast<float>(now);
     const float hour = stored;
     const int index = GameFtol(now);
     transform->SetDepthRange(FogStart(hour), FarClipDistance());
     lightingMark_ = 0x80;
     if (LastLitHour() > hour) LastLitHour() = -1.0f;
 
-    const double elevation = SunElevation(hour) * (kPi * kPerDegree);
+    const double elevation = SunElevation(hour) * kRadiansPerDegree;
     const double turn = hour * kPerHour;
     const double azimuth = (turn + turn) * kPi;
     const double cosElevation = x87::fcos(elevation);
     Vector3 direction;
     {
-        volatile float x = static_cast<float>(x87::fcos(azimuth) * cosElevation);
-        volatile float y = static_cast<float>(x87::fsin(azimuth) * cosElevation);
-        volatile float z = static_cast<float>(-x87::fsin(elevation));
+        float x = static_cast<float>(x87::fcos(azimuth) * cosElevation);
+        float y = static_cast<float>(x87::fsin(azimuth) * cosElevation);
+        float z = static_cast<float>(-x87::fsin(elevation));
         direction = {x, y, z};
     }
     double whole;
-    volatile float fractionStored = static_cast<float>(std::modf(static_cast<double>(hour), &whole));
+    float fractionStored = static_cast<float>(std::modf(static_cast<double>(hour), &whole));
     const float fraction = fractionStored;
     const int next = (index + 1) % kHours;
 

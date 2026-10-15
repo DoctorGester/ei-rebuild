@@ -91,7 +91,7 @@ int Lever::UpdateLever() {
     Vector3 shown = {scale.x, scale.y, scale.z};
     double t = (endTick - static_cast<double>(GameTick())) * rate;
     if (t > 0.0) {
-        shown.y = StoreFloat(static_cast<float>(to - (to - from) * t));
+        shown.y = static_cast<float>(to - (to - from) * t);
         Object3D()->SetFigureScale(&shown.x);
         ClientRefreshObjectOriginal(ClientWorldObject(), nullptr, this);
         return 1;
@@ -196,7 +196,7 @@ std::uintptr_t Lever::SetUp(const LeverSetup* setup) {
     lock = setup->lock;
     flag260 = setup->flag260;
     keepsMapFlag = setup->keepsMapFlag;
-    if (stateCount > 1) scale.y = StoreFloat(static_cast<float>(static_cast<double>(state) / (stateCount - 1)));
+    if (stateCount > 1) scale.y = static_cast<float>(static_cast<double>(state) / (stateCount - 1));
     else scale.y = 0.0f;
     return MarkChanged(kPartScale);
 }

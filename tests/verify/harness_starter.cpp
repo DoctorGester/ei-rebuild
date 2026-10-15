@@ -1,8 +1,14 @@
-// Starter settings answered for a harness run: the resolution and Rebirth's WideScreen switch.
-// See harness_starter.h.
+// Starter settings answered for a harness run: the resolution, Rebirth's WideScreen switch and the
+// selected mod's folder. See harness_starter.h.
 #include "harness_starter.h"
 
+#include "../../src/game/originals_engine.h"
+#include "../../src/game/resource.h"
+#include "../../src/game/world_data.h"
 #include "../../src/hook/log.h"
+#include "../../src/hook/rebirth_hook.h"
+#include "../../src/lib/mfc.h"
+#include "ei/hook.h"
 
 #include <windows.h>
 
@@ -10,6 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
+#include <new>
 
 namespace ei::verify::starter {
 namespace {
@@ -20,7 +27,9 @@ char g_resolution[32];      // "WxH", empty: the registry's
 int g_wideScreen = -1;      // 0 / 1, -1: the registry's
 int g_fullScreen = -1;      // 0 / 1, -1: the registry's
 int g_fpsCursor = -1;       // FPSIndependentCursor 0 / 1, -1: the registry's
-bool g_settingsGiven = false;   // one of the four is set for the run: addon.dll's reads are logged
+std::string g_addonFolder;  // "addonpath": the mod's folder under harness_saves, empty: the registry's
+char g_addonPath[MAX_PATH]; // its full path (Install)
+bool g_settingsGiven = false;   // one of them is set for the run: addon.dll's reads are logged
 
 // Rebirth's starter switch CtfMon (Settings\CtfMon, read by addon.dll) is always off in a harness run (S3e).
 // On, addon closes the text input service's window (class CicLoaderWndClass: ctfmon) when it applies its
@@ -74,6 +83,12 @@ bool Answer(const char* name, DWORD* type, const BYTE** data, DWORD* size, DWORD
         *size = 4;
         return true;
     }
+    if (g_addonPath[0] && _stricmp(name, "AddonPath") == 0) {
+        *type = REG_SZ;
+        *data = reinterpret_cast<const BYTE*>(g_addonPath);
+        *size = static_cast<DWORD>(std::strlen(g_addonPath) + 1);
+        return true;
+    }
     if (g_wideScreen >= 0 && _stricmp(name, "WideScreen") == 0) {
         *dword = static_cast<DWORD>(g_wideScreen);
         *type = REG_DWORD;
@@ -125,8 +140,8 @@ LSTATUS WINAPI QueryW(HKEY key, LPCWSTR name, LPDWORD reserved, LPDWORD type, LP
     if (Answer(narrow, &answerType, &answer, &answerSize, &dword)) {
         Log("harness: RegQueryValueExW %s: answered", narrow);   // CtfMon in every Rebirth run, once
         if (answerType != REG_SZ) return Fill(answerType, answer, answerSize, type, data, size);
-        wchar_t wide[32];
-        int chars = MultiByteToWideChar(CP_ACP, 0, reinterpret_cast<const char*>(answer), -1, wide, 32);
+        wchar_t wide[MAX_PATH];
+        int chars = MultiByteToWideChar(CP_ACP, 0, reinterpret_cast<const char*>(answer), -1, wide, MAX_PATH);
         return Fill(REG_SZ, wide, static_cast<DWORD>(chars * sizeof(wchar_t)), type, data, size);
     }
     if (g_settingsGiven && g_addonReads++ < 64) Log("harness: RegQueryValueExW %s", narrow);
@@ -176,21 +191,28 @@ bool ParseStep(const std::string& verb, const std::string& argument) {
         g_fpsCursor = std::atoi(argument.c_str()) != 0 ? 1 : 0;
         return true;
     }
+    if (verb == "addonpath") {
+        g_addonFolder = argument;
+        return true;
+    }
     return false;
 }
 
-void Install() {
+void Install(const char* savesDir) {
+    if (!g_addonFolder.empty()) std::snprintf(g_addonPath, sizeof(g_addonPath), "%s\\%s", savesDir, g_addonFolder.c_str());
     char value[32];
     DWORD n = GetEnvironmentVariableA("EI_RESOLUTION", value, sizeof(value));
     if (!g_resolution[0] && n && n < sizeof(value) && !SetResolution(value))
         Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
     n = GetEnvironmentVariableA("EI_WIDESCREEN", value, sizeof(value));
     if (g_wideScreen < 0 && n && n < sizeof(value)) g_wideScreen = std::atoi(value) != 0 ? 1 : 0;
-    g_settingsGiven = g_resolution[0] || g_wideScreen >= 0 || g_fullScreen >= 0 || g_fpsCursor >= 0;
+    g_settingsGiven = g_resolution[0] || g_wideScreen >= 0 || g_fullScreen >= 0 || g_fpsCursor >= 0 || g_addonPath[0];
     if (g_settingsGiven) {
-        Log("harness: starter settings for this run: resolution %s, WideScreen %s, FullScreen %s, FPSIndependentCursor %s",
+        Log("harness: starter settings for this run: resolution %s, WideScreen %s, FullScreen %s, FPSIndependentCursor %s, "
+            "AddonPath %s",
             g_resolution[0] ? g_resolution : "(registry)", g_wideScreen < 0 ? "(registry)" : g_wideScreen ? "1" : "0",
-            g_fullScreen < 0 ? "(registry)" : g_fullScreen ? "1" : "0", g_fpsCursor < 0 ? "(registry)" : g_fpsCursor ? "1" : "0");
+            g_fullScreen < 0 ? "(registry)" : g_fullScreen ? "1" : "0", g_fpsCursor < 0 ? "(registry)" : g_fpsCursor ? "1" : "0",
+            g_addonPath[0] ? g_addonPath : "(registry)");
         PatchSlot(reinterpret_cast<decltype(&::RegQueryValueExA)*>(kRegQueryValueExASlot), &QueryA, g_queryA);
     }
     // addon.dll's slot always: its CtfMon switch is answered in every run.
@@ -198,6 +220,37 @@ void Install() {
         PatchSlot(reinterpret_cast<decltype(&::RegQueryValueExW)*>(slot), &QueryW, g_queryW);
     else
         Log("harness: advapi32's RegQueryValueExW is not the expected stub: addon.dll reads the registry's settings");
+}
+
+std::string ModFileStep(const std::string& argument) {
+    char archive[MAX_PATH] = {}, name[MAX_PATH] = {};
+    long expected = -1;
+    if (sscanf_s(argument.c_str(), "%259s %259s %ld", archive, static_cast<unsigned>(sizeof(archive)), name,
+                 static_cast<unsigned>(sizeof(name)), &expected) != 3)
+        return "modfile " + argument + ": not <archive> <file> <bytes>";
+    // The archive as the game opens its own: the text resources' folder (007AF45C) and the name.
+    const mfc::CString path = *static_cast<const mfc::CString*>(worlddata::TextPathString()) + archive;
+    void* memory = ::operator new(sizeof(CMappedResource));
+    std::memset(memory, 0, sizeof(CMappedResource));
+    CMappedResource* res = MappedResourceConstructOriginal(memory);
+    long got = -2;   // the archive did not open
+    if (MappedResourceOpenOriginal(res, nullptr, path, 0)) {
+        std::uint32_t size = 0;
+        void* data = res->GetFile(name, &size);   // slot 5 (00671B40, Rebirth's ResOverride)
+        got = data ? static_cast<long>(size) : 0;
+        if (data) res->CloseFile(data);
+    }
+    MappedResourceDestroyOriginal(res);
+    ::operator delete(memory);
+    Log("harness: modfile %s %s: %ld bytes (expected %ld)", static_cast<const char*>(path), name, got, expected);
+    if (got == expected) return std::string();
+    char error[2 * MAX_PATH + 64];
+    std::snprintf(error, sizeof(error), "modfile %s %s: %ld bytes, expected %ld", archive, name, got, expected);
+    return error;
+}
+
+bool RebirthInstall() {
+    return GetModuleHandleA("addon.dll") != nullptr || (ei::Standalone() && rebirth_hook::RebirthLaunch());
 }
 
 } // namespace ei::verify::starter

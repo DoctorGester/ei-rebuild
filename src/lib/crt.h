@@ -10,10 +10,19 @@
 #include <cstdarg>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 namespace gamecrt {
 
 void* __cdecl operator_new(std::size_t size);   // 007005AF
+// operator_new with the block zeroed, for the objects whose constructors leave fields unset (server
+// and map objects, AI modes): a determinism fix the standalone keeps, SV7b2; the harness zeroes the
+// original's at the same calls (tests/verify/harness_leftovers.h).
+inline void* operator_new_zeroed(std::size_t size) {
+    void* block = operator_new(size);
+    if (block) std::memset(block, 0, size);
+    return block;
+}
 void __cdecl operator_delete(void* p);          // 007005D8
 void* __cdecl malloc(std::size_t size);         // 006EABD1
 void __cdecl free(void* p);                     // 006EA8AD

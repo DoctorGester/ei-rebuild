@@ -58,12 +58,8 @@ __declspec(naked) char* __stdcall ModifierCode(const char*) EI_ORIGINAL(0x006894
 // 007C8718); 004ABBD0 / 004ABAA0 / 004ABD00: operator[] of the string-keyed maps 007C8744 /
 // 007C86E4 / 007C851C (a missing name is inserted with a null record); 004ACC10 find_or_insert of
 // the modifier map 007C853C.
-void* __fastcall FindWeapon(void* a0, void*, const char* a2) { return FindWeaponOriginal(a0, nullptr, a2); }
-void* __fastcall FindArmor(void* a0, void*, const char* a2) { return FindArmorOriginal(a0, nullptr, a2); }
-void** __fastcall QuickItemAt(void* a0, void*, const void* a2) { return QuickItemMapAtOriginal(a0, nullptr, a2); }
 __declspec(naked) void** __fastcall FourthKindAt(void*, void*, const void*) EI_ORIGINAL(0x004ABAA0)
 void** __fastcall SpellAt(void* a0, void*, const void* a2) { return SpellMapAtOriginal(a0, nullptr, a2); }
-char* __fastcall ModifierFindOrInsert(void* a0, void*, const void* a2) { return (char*)ModifierMapFindOrInsertOriginal(a0, nullptr, a2); }
 void* const kWeapons = reinterpret_cast<void*>(0x007C86F8);
 void* const kArmors = reinterpret_cast<void*>(0x007C8718);
 void* const kQuickItemMap = reinterpret_cast<void*>(0x007C8744);
@@ -80,7 +76,6 @@ struct RawString {
     char* eos;
 };
 static RawString* StringFromChars(RawString* s, void*, const char* text, const void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-void __fastcall StringCopy(RawString* a0, void*, const RawString* a2) { StringCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.
@@ -121,19 +116,19 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
 
     ListWeapons(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = FindWeapon(kWeapons, nullptr, names.data[i]);
+        void* record = FindWeaponOriginal(kWeapons, nullptr, names.data[i]);
         if (record && Allowed(t, record)) AddWeapon(AllList(t), nullptr, record);
     }
     ListArmors(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
-        void* record = FindArmor(kArmors, nullptr, names.data[i]);
+        void* record = FindArmorOriginal(kArmors, nullptr, names.data[i]);
         if (record && Allowed(t, record)) AddArmor(AllList(t), nullptr, record);
     }
     ListQuickItems(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
         RawString key;
         StringFromChars(&key, nullptr, names.data[i], &alloc);
-        void* record = *QuickItemAt(kQuickItemMap, nullptr, &key);
+        void* record = *QuickItemMapAtOriginal(kQuickItemMap, nullptr, &key);
         StlStringDestroy(&key);
         if (record && Allowed(t, record)) AddQuickItem(AllList(t), nullptr, record);
     }
@@ -168,9 +163,9 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         RawString key{};
         StringAssignSpan(&key, nullptr, code, code + std::strlen(code));
         ModifierPair pair;
-        StringCopy(&pair.name, nullptr, &key);
+        StringCopyConstructOriginal(&pair.name, nullptr, &key);
         pair.record = nullptr;
-        auto* element = reinterpret_cast<ModifierPair*>(ModifierFindOrInsert(kModifierMap, nullptr, &pair));
+        auto* element = reinterpret_cast<ModifierPair*>((char*)ModifierMapFindOrInsertOriginal(kModifierMap, nullptr, &pair));
         StlStringDestroy(&pair.name);
         itemdb::SpellModifierRecord* record = element->record;
         StringBufferFree(&key);
@@ -198,6 +193,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     auto* memory = static_cast<ClassTemplate*>(gamecrt::operator_new(sizeof(ClassTemplate)));
     memory->refCount = 0;
     memory->refsHigh = 0;
+    std::memset(memory->weightsTail, 0, sizeof(memory->weightsTail));   // SV7b2: never set, saved
     ClassTemplate* t = memory ? TemplateConstruct(memory) : nullptr;
     t->type = type;
     t->flag0C = flag0C;

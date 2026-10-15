@@ -100,7 +100,7 @@ int CUnitClientSpecific::UpdateClient() {
     if (!(fadeIn >= 1.0f)) {   // below 1, or NaN
         auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
         for (CMaterial* part = CallFirstMaterial(half); part; part = CallNextMaterial(half)) part->colors.diffuse.w = fadeIn;
-        volatile float grown = fadeIn + kFadeStep;   // stored as a float before the compare
+        float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
         fadeIn = !(next >= 1.0f) ? next : 1.0f;   // the original's select keeps a NaN
     }
@@ -180,8 +180,8 @@ EI_REPLACE_METHOD(0x005344A0, CUnitClientSpecific::RestartFadeIn);
 
 int CUnitClientSpecific::Level() {
     double experience = x87::FromUnsigned(static_cast<std::uint32_t>(unit->Params()->experience));
-    double ratio = std::log(experience / LevelBase()) / std::log(static_cast<double>(LevelFactor()));
-    volatile float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
+    double ratio = x87::flog(experience / LevelBase()) / x87::flog(static_cast<double>(LevelFactor()));
+    float level = static_cast<float>(ratio);   // FSTP to a float, then FISTP
     float rounded = level;
     // FISTP gives the integer indefinite 0x80000000 for an infinite, NaN or out-of-range value;
     // the CRT's lrint gives 0. Experience 0 reaches it: ln 0 = -inf.

@@ -72,7 +72,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   `clickregion/rclickregion/moveregion <n>` do the same at the centre of region `<n>` of the
   window on top (region numbers as the screen's code uses them; see `docs/notes/ui.md`).
   `clickunit <name> [l|r|move] [ctrl]` clicks the unit with that script name where the game's own
-  picking finds it this frame (`ui_battle_commands.txt`).
+  picking finds it this frame (`ui_battle_commands.txt`); `clickunit #<id>` picks a map object by id (a lever,
+  `levers_key.txt`).
 - `screen <id>` asks the server for interface screen `<id>` as the global map's buttons do (4 the
   global map, 5 the camp); the camp's Esc returns to the game. `screen 5 <n>` opens the camp with
   constructor / trader class `<n>` as a base dialogue's "constrN" answer does (1, 3, 4, 5 after a
@@ -180,7 +181,9 @@ change, so none needs the machine to itself); dgVoodoo draws the original code (
 `present`, and everything with `--dgvoodoo` or `--widescreen` (its frames are compared with the original's). Passed runs of the original code are cached in
 `build\reference` by scenario commit and install (`--fresh` plays them again); docs/notes/renderer.md, R10.
 `--standalone` runs `ei_standalone.exe` instead of game.exe (install `standalone`: run\vanilla's game.exe laid
-out without its code, the vanilla data, our renderer; `ei_launch --standalone`), by default the `boot` scenario;
+out without its code, the vanilla data, our renderer; `ei_launch --standalone`) and on the Rebirth install
+(`standalone-rebirth`: run\rebirth's game.exe, the Rebirth data and goldens, the flags of
+`config/ei_rebirth_standalone.ini`; `--vanilla-only` / `--rebirth-only` pick one), by default the `boot` scenario;
 an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
 Harness games never take the foreground (harness.cpp, `noforeground::`: the activating user32 calls are patched for every
 caller in the process, windows are made without activation), so a starting game cannot minimise another through dgVoodoo's

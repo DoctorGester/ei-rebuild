@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 16A62041 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 857AF0E3 n 68
 + world world
 world tick 20
 world updates 20
@@ -333,18 +333,18 @@ cunit2 #place 05174B21
 cunit2 #unit CA7CD47D
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
-cunit129 #place F7787AC8
+cunit129 #place FB1423E0
 cunit129 #unit BF865974
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place 09D948A2
-cunit148 #unit 68E7CB98
+cunit148 #place A32411AD
+cunit148 #unit 29178A0E
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
-cunit187 #place C08C8AC9
+cunit187 #place F3DF9084
 cunit187 #unit D3B5CFA9
 cunit187 #vitals 1DDF30F4
-@ 1 update 40 frame 10 tick 40 zone - hash 841F7D98 n 68
+@ 1 update 40 frame 10 tick 40 zone - hash 775B9198 n 68
 world tick 40
 world updates 40
 random isaac.count 8
@@ -368,12 +368,12 @@ client tick 40
 client ticksRun 37
 cunit2 #place 85C53A26
 cunit2 #unit 0370F4FB
-cunit129 #place BECE05B5
+cunit129 #place F2982AF2
 cunit129 #unit BE7E866C
-cunit148 #place F1ACA3E9
+cunit148 #place A26C30EB
 cunit148 #unit D3E383F0
 cunit187 #place 8FD72F05
-@ 2 update 60 frame 14 tick 60 zone - hash B2CE43CB n 68
+@ 2 update 60 frame 14 tick 60 zone - hash 418AAFCB n 68
 world tick 60
 world updates 60
 random isaac.count 92
@@ -395,7 +395,7 @@ missile0 # AC368F1A
 aievents tick 60
 client tick 60
 client ticksRun 57
-@ 3 update 80 frame 21 tick 80 zone - hash 1664EBFA n 68
+@ 3 update 80 frame 21 tick 80 zone - hash 2398AE2B n 68
 world tick 80
 world updates 80
 random isaac.count 95
@@ -417,9 +417,7 @@ missile0 # 400D1185
 aievents tick 80
 client tick 80
 client ticksRun 77
-cunit2 #place 95EEDA81
-cunit129 #place FF5EC4F9
+cunit129 #place D9787FF6
 cunit129 #unit B88FF1A8
-cunit148 #place 6F10E5DF
+cunit148 #place B10FD61C
 cunit148 #unit 29178A0E
-cunit187 #place DAAE4E15

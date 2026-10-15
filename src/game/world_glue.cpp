@@ -149,7 +149,7 @@ EI_REPLACE(0x00578760, GameSetUnitHeight);
 std::uint8_t GameServerPaused() { return WorldServer()->paused_; }
 EI_REPLACE(0x00578D00, GameServerPaused);
 
-void __stdcall GameSetServerPaused(int paused) { WorldServer()->SetPaused(static_cast<std::uint8_t>(paused)); }
+void __stdcall GameSetServerPaused(int paused) { WorldServer()->SetServerPaused(static_cast<std::uint8_t>(paused)); }
 EI_REPLACE(0x00578D10, GameSetServerPaused);
 
 void GameStopCameraPath() { WorldClient()->camera_->flags_ &= ~CCamera::kPlaying; }

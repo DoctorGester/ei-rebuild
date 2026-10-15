@@ -19,10 +19,8 @@ namespace net {
 namespace {
 
 // The banned addresses (+0x25C4, STLport list<sockaddr_in>; library): end, begin, find, insert.
-void** __fastcall BannedEnd(void* a0, void*, void** a2) { return ListEndIteratorOriginal(a0, nullptr, a2); }
 __declspec(naked) void** __fastcall BannedBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x0041FCC0)
 __declspec(naked) void** __fastcall BannedFind(void** /*out*/, void*, void* /*first*/, void* /*last*/, std::uint32_t /*value*/) EI_ORIGINAL(0x00427FF0)
-void** __fastcall BannedInsert(void* a0, void*, void** a2, void* a3, const void* a4) { return ListInsert421AF0Original(a0, nullptr, a2, a3, a4); }
 
 constexpr std::size_t kPasswordSize = 0x14;
 
@@ -74,7 +72,7 @@ bool ServerSession::AdmitImpl(std::uint32_t address, const std::uint8_t** passwo
     *reason = 2;
     void* sentinel = banned_;
     void* last;
-    BannedEnd(banned, nullptr, &last);
+    ListEndIteratorOriginal(banned, nullptr, &last);
     void* first;
     BannedBegin(banned, nullptr, &first);
     void* found;
@@ -198,9 +196,9 @@ void ServerSession::Ban(void* connection) {
     }
     const NetAddress* address = &static_cast<Connection*>(connection)->address_;
     void* end;
-    BannedEnd(&banned_, nullptr, &end);
+    ListEndIteratorOriginal(&banned_, nullptr, &end);
     void* inserted;
-    BannedInsert(&banned_, nullptr, &inserted, end, address);
+    ListInsert421AF0Original(&banned_, nullptr, &inserted, end, address);
     DropClient(this, connection);
 }
 EI_REPLACE_METHOD(0x0041A620, ServerSession::Ban);

@@ -245,14 +245,18 @@ static void __fastcall PropagateVerify(CUnitServer* self) {
 EI_VERIFY(0x00552E00, PropagateVerify, 0, s_unusedPropagate);
 
 // 0054F000. Ours only (logs, steals, talks). Science and stealing leave the order alone (the talk
-// branch, kind 6 with source 0x18A95, starts a dialog that may change it, so it is not checked).
+// branch, kind 6 with source 0x18A95, starts a dialog that may change it, so it is not checked), except
+// a key that opens a lever: the lever's change of state ends the use order (levers_key; the original
+// returns right after the slot as well).
 static void* s_unusedUseSkill;
 static void __fastcall UseSkillVerify(CUnitServer* self, void*, CEngineObject* target) {
     int kind = self->action.kind;
     std::uint32_t source = self->action.source;
     bool talk = kind == 6 && source == 0x18A95;
+    constexpr int kClassLever = 0x5D;
+    bool lever = target && target->GetClassId() == kClassLever;
     self->UseSkill(target);
-    bool ok = talk || (self->action.kind == kind && self->action.source == source);
+    bool ok = talk || lever || (self->action.kind == kind && self->action.source == source);
     ei::verify::Check("CUnitServer::UseSkill", true, ok, "unit %d: order %d/%u -> %d/%u", UnitId(self), kind, source,
                       self->action.kind, self->action.source);
 }

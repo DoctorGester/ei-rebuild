@@ -58,14 +58,14 @@ void CTransformObject::UpdateWorldImpl(const Quaternion& q, const Vector3& p) {
     const float ux = q.x, uy = q.y, uz = q.z;
     const Vector3& l = localPosition_;
 #define EI_DOT2 DotUnrounded<Sum3::ZXY>(ux * 2.0f, uy * 2.0f, uz * 2.0f, l.x, l.y, l.z)
-    Vector3 along = {StoreFloat(EI_DOT2 * ux), StoreFloat(uy * EI_DOT2), StoreFloat(uz * EI_DOT2)};
+    Vector3 along = {static_cast<float>(EI_DOT2 * ux), static_cast<float>(uy * EI_DOT2), static_cast<float>(uz * EI_DOT2)};
 #undef EI_DOT2
-    Vector3 cross = {StoreFloat(uy * l.z - uz * l.y), StoreFloat(uz * l.x - ux * l.z),
-                     StoreFloat(ux * l.y - uy * l.x)};
-    Vector3 around = {StoreFloat(cross.x * (q.w * 2.0f)), StoreFloat(cross.y * (q.w * 2.0f)),
-                      StoreFloat(cross.z * (q.w * 2.0f))};
+    Vector3 cross = {static_cast<float>(uy * l.z - uz * l.y), static_cast<float>(uz * l.x - ux * l.z),
+                     static_cast<float>(ux * l.y - uy * l.x)};
+    Vector3 around = {static_cast<float>(cross.x * (q.w * 2.0f)), static_cast<float>(cross.y * (q.w * 2.0f)),
+                      static_cast<float>(cross.z * (q.w * 2.0f))};
 #define EI_SCALE (q.w * q.w - LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz))
-    Vector3 scaled = {StoreFloat(EI_SCALE * l.x), StoreFloat(EI_SCALE * l.y), StoreFloat(EI_SCALE * l.z)};
+    Vector3 scaled = {static_cast<float>(EI_SCALE * l.x), static_cast<float>(EI_SCALE * l.y), static_cast<float>(EI_SCALE * l.z)};
 #undef EI_SCALE
     Vector3 sum1, sum2;
     AddVectors(&sum1, scaled, around);
@@ -107,8 +107,8 @@ void CCamera::GroundPoint(Vector3* out) const {
     float ay = axis.y;
     float az = axis.z;
     if (std::fabs(az) > 1e-5 && -(pos.z / az) > 0.0f) {
-        float x = StoreFloat(ax * -(pos.z / az)) + pos.x;
-        float y = StoreFloat(ay * -(pos.z / az)) + pos.y;
+        float x = static_cast<float>(ax * -(pos.z / az)) + pos.x;
+        float y = static_cast<float>(ay * -(pos.z / az)) + pos.y;
         float z = -(pos.z / az) * az + pos.z;
         out->x = x;
         out->y = y;

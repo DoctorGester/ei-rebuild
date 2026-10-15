@@ -424,6 +424,16 @@ using List30 = ListAbi<Bytes<0x30>>;
 using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
 using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)
 
+struct TrapAreasArrayClass {   // a map trap record's areas (12-byte elements; the magic trap's circles)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C68C); }
+};
+struct TrapTargetsArrayClass {   // a map trap record's targets (8-byte elements; the magic trap's points)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C680); }
+};
+struct BehaviourPatrolsArrayClass {   // a unit record behaviour's patrols (mapspec::Patrol elements)
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073C37C); }
+};
+
 // The scene's object records: CMap<DWORD, DWORD>s built by 00477380, destroyed through slot 1.
 using DwordMap = CMap<std::uint32_t, std::uint32_t>;
 using OwnedDwordMaps = ArrayAbi<DwordMap, EachElements<DwordMap, InitMap<DwordMapClass>, DeleteThroughObject<DwordMap>>>;

@@ -13,6 +13,8 @@
 #include "../../src/game/ui.h"
 #include "../../src/game/unit.h"
 
+#include "ei/rebirth.h"
+
 #include <cstring>
 #include <vector>
 
@@ -28,11 +30,19 @@ static void __fastcall PortraitsRebuildVerify(CHudPortraits* self, void*, int wi
     bool ok = self->count_ >= party && SlotCount(self) == self->count_ && self->regions_.size == self->count_ &&
               self->sceneObjects_.size == 1 + 5 * self->count_ && self->objects_.size >= 1 + (self->count_ + 3) / 4;
     int bad = -1;
+    const bool fixes = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes);
     for (int i = 0; ok && i < party; ++i) {
         const HudPortraitSlot& slot = self->slots_[i];
         const CUnit* unit = self->owner_->party_[i];
         if (slot.lastHitPoints_ != unit->packedVitals.hitPoints || slot.playerId_ != -1 || slot.hasPlayer_ ||
             std::memcmp(&slot.build_, &unit->scale.y, 4) != 0 || slot.faceState_ != 0 || slot.wobbleKind_ != 0) {
+            ok = false;
+            bad = i;
+        }
+        // EI_Plugin's Fixes (006408E6): the picture "face<sex><skin>" has the sex the fifth character of the
+        // unit's name gives ('f' or 'm').
+        const char* picture = static_cast<const char*>(self->slots_[i].FaceName());
+        if (ok && fixes && picture[4] != (unit->name[4] == 'f' ? 'f' : 'm')) {
             ok = false;
             bad = i;
         }

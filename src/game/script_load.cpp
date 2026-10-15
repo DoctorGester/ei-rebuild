@@ -50,7 +50,6 @@ CEngineObject* RegistryObject(int id) { return ManagerFindObject(*reinterpret_ca
 
 // Rewritten script helpers, called through their addresses (their verify wrappers run).
 __declspec(naked) void __fastcall GroupSort(ScriptGroup*) EI_ORIGINAL(0x004B2D60)
-void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 
 // CArray template members (out of line), __thiscall (size, growBy).
 __declspec(naked) void __fastcall LightsSetSize(void*, void*, int, int) EI_ORIGINAL(0x004C5CB0)      // 0x20 slots
@@ -292,7 +291,7 @@ template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
         ScriptGroup* group = &values.data[i];
         int size = 0;
         stream->Read(&size, 4);
-        GroupSetSize(group, nullptr, size, -1);
+        PtrArraySetSize(group, nullptr, size, -1);
         for (int k = 0; k < size; ++k) {
             int id = 0;
             stream->Read(&id, 4);
@@ -433,7 +432,7 @@ void ScriptVars::Load(ScriptStream* stream) {
 
     count = 0;
     stream->Read(&count, 4);
-    GroupSetSize(static_cast<ScriptGroup*>(static_cast<void*>(&objects)), nullptr, count, -1);
+    PtrArraySetSize(static_cast<ScriptGroup*>(static_cast<void*>(&objects)), nullptr, count, -1);
     NamesSetSizeOriginal(&objectNames, nullptr, count, -1);
     for (int i = 0; i < objects.size; ++i) {
         ScriptObjectRef* ref = &objects.data[i];
@@ -454,7 +453,7 @@ void ScriptVars::Load(ScriptStream* stream) {
     for (int i = 0; i < groups.size; ++i) {
         ScriptGroup* group = &groups.data[i];
         stream->Read(&slot, 4);
-        GroupSetSize(group, nullptr, slot, -1);
+        PtrArraySetSize(group, nullptr, slot, -1);
         for (int k = 0; k < slot; ++k) RefLoad(&group->data[k], nullptr, stream);
         GroupSort(group);
         StringLoad(&groupNames.data[i], stream);

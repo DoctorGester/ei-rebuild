@@ -135,7 +135,7 @@ public:
     // can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
     int OpenFile(const char* name);
     int RecordFrame(std::uint32_t time);
-    static constexpr std::uintptr_t kVtableAddress = 0x0073B9E0;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073B9E0);
 
     static constexpr std::uint32_t kFollowing = 0x8;
     static constexpr std::uint32_t kRecording = 0x10;
@@ -313,11 +313,6 @@ namespace camera {
 
 inline double D(float f) { return f; }
 
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-inline float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 inline double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
 inline float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 

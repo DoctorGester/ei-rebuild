@@ -1,6 +1,7 @@
 // The save/load and options windows opened from the Esc menu: their mouse handlers, the slide-in
 // drawing and update, and the small slots. See ui.h and docs/notes/ui.md.
 #include "ui.h"
+#include "ui_screens.h"
 #include "sound.h"
 
 #include "ei/hook.h"
@@ -192,16 +193,10 @@ W* FromInput(void* input) {
     return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - 0x94);
 }
 
-void __fastcall SaveLoadMouseDown(void* input, void*, int buttons, int x, int y) {
-    FromInput<CSaveLoadWindow>(input)->OnMouseDown(buttons, x, y);
-}
-void __fastcall SaveLoadDoubleClick(void* input, void*, int buttons, int x, int y) {
-    FromInput<CSaveLoadWindow>(input)->OnDoubleClick(buttons, x, y);
-}
 } // namespace
 
-EI_REPLACE(0x00654660, SaveLoadMouseDown);
-EI_REPLACE(0x006547B0, SaveLoadDoubleClick);
+EI_REPLACE_METHOD(0x00654660, InputForward<&CSaveLoadWindow::OnMouseDown>::Call);
+EI_REPLACE_METHOD(0x006547B0, InputForward<&CSaveLoadWindow::OnDoubleClick>::Call);
 EI_REPLACE_METHOD(0x006544A0, CSaveLoadWindow::Draw);
 EI_REPLACE_METHOD(0x006545E0, CSaveLoadWindow::Update);
 EI_REPLACE_METHOD(0x00654430, CSaveLoadWindow::CloseDialog);
@@ -317,19 +312,14 @@ constexpr float kGammaScale = 0.02f;   // 00742B80: value * 0.02 - 1
 constexpr float kSlideSeconds = 0.5f;  // 00742B74
 } // namespace
 
-#pragma float_control(precise, on, push)
 namespace {
-float StoreRounded(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 } // namespace
 
 void COptionsWindow::Update() {
     UpdateBase();
     if (sliding_) {
         double slide = FrameTime() / kSlideSeconds + static_cast<double>(slide_);
-        slide_ = StoreRounded(slide);
+        slide_ = static_cast<float>(slide);
         if (slide > 1.0f) {
             sliding_ = false;
             interface_->ShowHelp(0);
@@ -348,9 +338,9 @@ void COptionsWindow::Update() {
                 Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(value);
             } else if (id >= kSettingGammaFirst && id <= kSettingGammaLast) {
                 const OptionSetting* gamma = settings_.begin() + kSettingGammaFirst;
-                float r = StoreRounded(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
-                float g = StoreRounded(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
-                float b = StoreRounded(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
+                float r = static_cast<float>(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
+                float g = static_cast<float>(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
+                float b = static_cast<float>(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
                 UiDisplaySettings* display = DisplaySettings();
                 using Fn = void(__thiscall*)(UiDisplaySettings*, float, float, float);
                 reinterpret_cast<Fn>(display->vtable_[22])(display, r, g, b);
@@ -368,19 +358,12 @@ void COptionsWindow::Update() {
         }
     }
 }
-#pragma float_control(pop)
 
 namespace {
-void __fastcall OptionsMouseDown(void* input, void*, int buttons, int x, int y) {
-    FromInput<COptionsWindow>(input)->OnMouseDown(buttons, x, y);
-}
-void __fastcall OptionsDoubleClick(void* input, void*, int buttons, int x, int y) {
-    FromInput<COptionsWindow>(input)->OnDoubleClick(buttons, x, y);
-}
 } // namespace
 
-EI_REPLACE(0x00650C20, OptionsMouseDown);
-EI_REPLACE(0x00650D70, OptionsDoubleClick);
+EI_REPLACE_METHOD(0x00650C20, InputForward<&COptionsWindow::OnMouseDown>::Call);
+EI_REPLACE_METHOD(0x00650D70, InputForward<&COptionsWindow::OnDoubleClick>::Call);
 EI_REPLACE_METHOD(0x00650920, COptionsWindow::Draw);
 EI_REPLACE_METHOD(0x00650A20, COptionsWindow::Redraw);
 EI_REPLACE_METHOD(0x006508E0, COptionsWindow::OnDialogResult);
@@ -469,18 +452,12 @@ void CUiScrollbar::OnMouseUp(int, int, int) {
 }
 
 namespace {
-void __fastcall ScrollbarMouseDown(void* input, void*, int buttons, int x, int y) {
-    FromInput<CUiScrollbar>(input)->OnMouseDown(buttons, x, y);
-}
-void __fastcall ScrollbarMouseUp(void* input, void*, int buttons, int x, int y) {
-    FromInput<CUiScrollbar>(input)->OnMouseUp(buttons, x, y);
-}
 } // namespace
 
 EI_REPLACE_METHOD(0x0065B090, CUiScrollbar::TakePosition);
 EI_REPLACE_METHOD(0x0065B360, CUiScrollbar::Update);
-EI_REPLACE(0x0065B240, ScrollbarMouseDown);
-EI_REPLACE(0x0065B340, ScrollbarMouseUp);
+EI_REPLACE_METHOD(0x0065B240, InputForward<&CUiScrollbar::OnMouseDown>::Call);
+EI_REPLACE_METHOD(0x0065B340, InputForward<&CUiScrollbar::OnMouseUp>::Call);
 
 // --- Tooltip -----------------------------------------------------------------------------------
 

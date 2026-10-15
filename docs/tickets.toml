@@ -204,7 +204,7 @@ id = "R10b"
 title = "Products with a repeated factor in /fp:fast files: check the grouping against the original"
 group = "renderer"
 files = ["src/game/ai_motion.cpp", "src/lib/vecmath.h"]
-note = "R10a found /fp:fast regrouping a * b * d * d as (a * b) * (d * d) in terrain_lighting.cpp (one ulp off under chop, hidden by CheckNear); fixed with vecmath Product(). A grep for repeated factors in /fp:fast files found ai_motion.cpp:257 (x * inverse * inverse) and :259 (cubic * length * length); other hits are integer or under precise. Check their dumpbin against Ghidra, use Product() where regrouped, and consider a bit-for-bit check where a float feeds a truncation."
+note = "Closed 2026-10-15: folded into SV7d1a (the same /fp:fast regrouping family; SV7d1a is trying /fp:precise as the default, which removes it). ai_motion.cpp:257 and :259 are the sites to check if precise is not adopted."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -450,6 +450,14 @@ size = 0.5
 model = "sonnet"
 note = "From W4a/W2b (2026-10-15): EiPluginFixes still addon's in 005ED7B0, 006091C0, 006407E0, 005F13A0, 00536100 and 006093B7/00640C97; EiPluginNPlayers at 00640060 and 00608D20 (ei::rebirth::PluginNPlayers() exists now). Same approach as W4a: read EI_Plugin.asi's installer, reproduce behind the flag, declare it on the hook, verify in a Rebirth launch."
 
+[[ticket]]
+id = "W4c"
+title = "EI_Plugin NPlayers above 7: AddPortrait's six sites"
+group = "widescreen"
+size = 0.25
+model = "sonnet"
+note = "From W4b: AddPortrait (00640060) holds six sites active only when EI_Plugin.ini NPlayers > 7; not reproduced. A Rebirth launch with NPlayers > 7 keeps the original there (rebirth_hook Check skips the function); the standalone treats NPlayers > 7 as 7 in the portraits. Port if anyone plays with more than 7."
+
 # ---------------------------------------------------------------- unknown fields
 
 [[ticket]]
@@ -622,7 +630,7 @@ title = "Saved games differ byte for byte between runs of the original"
 group = "verification"
 size = 0.5
 files = ["tools/golden.py"]
-note = "Taken over by SV7d."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 [[ticket]]
 id = "SV3c"
@@ -674,7 +682,7 @@ id = "SV2c"
 title = "unit_create parted from its golden once in crt.rand"
 group = "verification"
 depends = ["SV2a"]
-note = "In SV2a's full work.py test --golden batch (117 runs, 4 at once), unit_create vanilla parted from its golden at world update 80 in random crt.rand only (0xE0E3A9A6 against 0xEAD494CC), and stayed parted there; alone it matched the golden twice. Digest 2's client units, timed objects and missiles were the same in the parting run, so the extra or missing rand() is not in a unit's animation pick that the records see. Find the draw with randtrace (EI_HARNESS_CLOCK=virtual,randtrace) under a loaded batch: something on the main thread that depends on real time or on another thread. SV2b: on the new harness heap unit_create (both installs) does not repeat in ours: crt.rand at update 80 / 140."
+note = "Moved to watch 2026-10-15: one parting under load in SV2a's era; not seen in today's main suites."
 
 [[ticket]]
 id = "SV5a"
@@ -730,14 +738,14 @@ id = "SV3f"
 title = "Client unit orientation differs from the original by an ulp"
 group = "verification"
 size = 0.5
-note = "Probably the same effect as SV7b4 (DrawShadow's inexact round trip plus whatever flips its count); not fixed. See SV7b4a."
+note = "Settled by SV7b4a: the shadow round trip (DrawShadow 0051D479 / 0051D4E0) is exact in both (orientation kept and restored); hooked runs now match the original on client unit rotation in all golden scenarios."
 
 [[ticket]]
 id = "SV3g"
 title = "ui_widescreen*: client unit 129 has flag 0x400 in ours"
 group = "verification"
 size = 0.25
-note = "From SV3d: in ui_widescreen, ui_widescreen_hud, ui_widescreen_more and ui_widescreen_screens (vanilla, with hooks) the main menu world's client unit cunit129 (unanwibo) has flags 0x4A2 in ours and 0xA2 in the original at world update 60 (both repeat). Find which rewrite sets 0x400 on a client object and why it differs. Blocks those four goldens with SV3f."
+note = "Now tracked as SV7b8a (SV7b4a settled SV7b8's rotation part; the 0x400 flag is what remains)."
 
 [[ticket]]
 id = "SV3h"
@@ -813,7 +821,7 @@ note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; 
 id = "SV2e"
 title = "script_copy: ours' CPlayerServer::Flush compresses to another size between runs"
 group = "verification"
-note = "From SV2b: script_copy vanilla with our hooks: the heap traces of two runs part at CMemoryStream::Resize from CodeStream / CompressTo in CPlayerServer::Flush (called from LeaveVerify): 1392 bytes in one run, 1408 in another (a third run matched the first), and every later block moves, so zone1's gobject.i differs at update 80. Something in the flushed stream is not the same between runs (an address of a block from the growable heap, a padding byte, real time); dump the stream before compression in two runs and diff."
+note = "Closed 2026-10-15: the flushed stream varying between runs is heap-address or unwritten-byte content; covered by SV7b2 (unwritten bytes, pointer keys) and SV7b5 (net replication by pointer). Reopen if script_copy still varies after those."
 
 [[ticket]]
 id = "SV2f"
@@ -877,7 +885,7 @@ title = "Heap-order holes: the original first on a game-heap copy (render, data,
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_figure_bone_lifetime.cpp", "tests/verify/verify_figure_mesh.cpp", "tests/verify/verify_models.cpp", "tests/verify/verify_link_figure.cpp", "tests/verify/verify_ground_decal.cpp", "tests/verify/verify_ground_print.cpp", "tests/verify/verify_effects_weather_draw.cpp", "tests/verify/verify_render_helper.cpp", "tests/verify/verify_ini_file.cpp", "tests/verify/verify_registry.cpp", "tests/verify/verify_item_constructor.cpp", "tests/verify/verify_item_parts.cpp", "tests/verify/verify_core_stream_chunks.cpp", "tests/verify/verify_acks_db.cpp", "tests/verify/verify_ai_area_lists.cpp", "tests/verify/verify_unit_client_models.cpp", "tests/verify/verify_unit_item_lists.cpp", "tests/verify/verify_world_client_maps.cpp", "tests/verify/verify_world_save.cpp", "tests/verify/verify_player_sources.cpp", "tests/verify/verify_object3d_figure_setup.cpp", "tests/verify/verify_unit_ai_sight.cpp", "tests/verify/verify_aligned_arrays.cpp", "tests/verify/verify_dib.cpp", "tests/verify/verify_device_object.cpp", "tests/verify/verify_magic_trap.cpp", "tests/verify/verify_console.cpp", "tests/verify/verify_text_keys.cpp"]
-note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 
 [[ticket]]
@@ -886,7 +894,7 @@ title = "Heap-order holes: UI checks that run the same object twice or restore a
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_ui_battle_update.cpp", "tests/verify/verify_ui_hud_tips.cpp", "tests/verify/verify_ui_spell_column.cpp", "tests/verify/verify_ui_camp_stats.cpp", "tests/verify/verify_ui_hud_setup.cpp", "tests/verify/verify_ui_hud_panels.cpp", "tests/verify/verify_ui_scroll_text.cpp", "tests/verify/verify_ui_item_strip.cpp", "tests/verify/verify_ui_trade_panel.cpp", "tests/verify/verify_ui_trade_panel_input.cpp", "tests/verify/verify_ui_help_page.cpp", "tests/verify/verify_ui_connect_screen.cpp", "tests/verify/verify_ui_item_info.cpp", "tests/verify/verify_ui_hud_portraits.cpp"]
-note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 
 [[ticket]]
@@ -895,7 +903,7 @@ title = "Heap-order check: both sides keep blocks (twin leaks, caches) and the h
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_ui_tooltip.cpp", "tests/verify/verify_map_database.cpp", "tests/verify/verify_particle_render.cpp", "tests/verify/verify_particle_create.cpp", "tests/verify/verify_terrain_map_load.cpp", "tests/verify/verify_resource_stream.cpp", "tests/verify/verify_sound_lifetime.cpp", "tests/verify/verify_mfc_gdi.cpp", "tests/verify/verify_net_server.cpp", "tests/verify/verify_ui_options.cpp", "tests/verify/verify_ui_saveload_list.cpp", "tests/verify/verify_ui_surface.cpp", "tests/verify/verify_ui_text_draw.cpp", "tests/verify/verify_ui_interface_glue.cpp", "tests/verify/harness_heap_order.cpp"]
-note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 
 [[ticket]]
@@ -912,7 +920,7 @@ id = "SV2h1c"
 title = "Twin originals allocate outside the reservation heap"
 group = "verification"
 depends = ["SV2h1b"]
-note = "Superseded by SV7."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 [[ticket]]
 id = "SV7"
@@ -993,7 +1001,7 @@ title = "Fear mode distance: 9.99999714 in ours, 10.0 in the original"
 group = "verification"
 size = 0.5
 depends = ["SV7d"]
-note = "From SV7d (decoded saves): a Fear mode's distance (AIBrain mode 4, FearMode Save 005D36F0; savefile_unit's controller.brain.mode4.distance) is 10.0 in the original and 9.99999714 or 9.99999619 in ours in every scenario's save (camera obj1804 and others; Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481 too). A float computed in another order or precision on our side: find where FearMode sets distance and spread and match the original's arithmetic. Drop the SV7d1 entry from golden.py SAVES_KNOWN when it lands."
+note = "From SV7d (decoded saves): a Fear mode's distance (AIBrain mode 4, FearMode Save 005D36F0; savefile_unit's controller.brain.mode4.distance) is 10.0 in the original and 9.99999714 or 9.99999619 in ours in every scenario's save (camera obj1804 and others; Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481 too). A float computed in another order or precision on our side: find where FearMode sets distance and spread and match the original's arithmetic. Drop the SV7d1 entry from golden.py SAVES_KNOWN when it lands. Paused 2026-10-15, not started beyond reading. The original's FearMode::Evaluate tail at 005D3066 is FLD distance; FMUL 30; FADD [0073FF00]; FMUL [0073FFC0]; FSTP, the same order as ours. So check our codegen next (build/SV7d2/fear_ours.txt, disasm of the verify DLL) and the FPU precision. The (30x+10)/31 iteration sticks anywhere within about 15 ulp of 10, so 10.0 and 9.99999714 can both be fixed points; the cause is how it gets there (rounding of the intermediates or the start value). Done: /fp:fast had distributed (30x + d) / 31 and (2s + 3) / 3, so the result settled on a different fixed point. The sums are now rounded first, and the saves equal the original's. Follow-up: SV7d1a (audit the same pattern in other rewrites)."
 
 [[ticket]]
 id = "SV7d2"
@@ -1001,7 +1009,7 @@ title = "Path step flags: one step's flags are 0x2664 in ours"
 group = "verification"
 size = 0.5
 depends = ["SV7d"]
-note = "From SV7d (decoded saves): one path step's flags (controller.motion.order.stepN.flags, and so UnitMotion's step speed and its point's speed, ai_motion.cpp Build copies the cell flags) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310 (camera obj1804 vanilla, Rebirth obj1890 and obj1937; every run). Ours always holds 0x2664, so a path cell's flags are set from another value (AIPath's search, the step's cost or direction bits). Drop the SV7d2 entry from golden.py SAVES_KNOWN when it lands."
+note = "From SV7d (decoded saves): one path step's flags (controller.motion.order.stepN.flags, and so UnitMotion's step speed and its point's speed, ai_motion.cpp Build copies the cell flags) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310 (camera obj1804 vanilla, Rebirth obj1890 and obj1937; every run). Ours always holds 0x2664, so a path cell's flags are set from another value (AIPath's search, the step's cost or direction bits). Drop the SV7d2 entry from golden.py SAVES_KNOWN when it lands. Paused 2026-10-15, cause found, no code yet. Our PathSmoother::Smooth (ai_path_smooth.cpp) copies the old tail's second dword into the rebuilt cells. The original 005C46C0 gives the rebuilt tail [entry-0x3C], a slot it never writes. After the local route that slot holds JoinLocalSearches' last SearchBest open cost ([esp+0x1C]); after PlanLongPath it holds 0 (waypoints.blocks zeroed at exit). The stepped cells get [entry-0x50]: FindPath's saved EBP (a stack address) on the local route, 0x0073FD9C (waypoint list vtable) on the plan route. SearchPathTo cells carry forward-search addr 0x007B2664. Next: add SetSmoothLeftovers(tail, stepped), set it from JoinLocalSearches (open, -) and PlanLongPath (0, 0x0073FD9C), use it in Smooth, set the join cells' dword to the forward address, drop the SV7d2 entry from SAVES_KNOWN, then run goldens. Done (user direction 2026-10-15: no leftover emulation). Every path builder now gives its cells the plain words, speed 0x200 and terrain bits 0 (kPlainStepSpeed): ours in JoinLocalSearches, BuildCellsTo (the stale-word emulation is removed) and Smooth. The original gets the same through harness_path_cells.cpp, which redirects 4 CALL sites. The 85 saving goldens' saves were re-recorded; no digests changed. Final --golden --all-rebirth: 95 the same; levers and ui_saveload_delete vanilla differ only in script #gobject (SV7b1)."
 
 [[ticket]]
 id = "SV7d3"
@@ -1033,6 +1041,69 @@ title = "Client orientation ulp: find what flips it (shadow round trip)"
 group = "verification"
 depends = ["SV7b4"]
 note = "From SV7b4 (docs/notes/standalone-verification.md, 'SV7b4 / SV3f'). cunit148's rot differs by an ulp under EI_HEAP_JITTER=1 in Rebirth --no-hooks runs, but a 1 us spin or any stack scrub after each world update brings it back; not one stack slot. Next: count DrawShadow 0051CE60 re-renders (the round trip 0051D479 / 0051D4E0 drifts the quaternion an ulp each) and ClientPlaceOnPath calls per update in plain vs jitter runs with a counter patch (not debug registers); or make the round trip exact in both (save and restore the orientation instead of the conjugate PreMultiply: a harness patch at 0051D4E0 and ours in map_object_shadow.cpp) and check whether the jitter and SV3f differences go. Then re-record ui_container_input, ui_widescreen*, render_titles_present, ui_main_menu, ui_hero_*."
+
+[[ticket]]
+id = "SV7d1a"
+title = "Audit /fp:fast-distributed (a + b) * c in rewrites"
+group = "verification"
+depends = ["SV7d1"]
+note = "User 2026-10-15 questioned /fp:fast. Redirected: try /fp:precise as the project default (x87), compare verify mismatches and goldens with main; keep it if equal or better, then the regrouping audit is moot."
+
+[[ticket]]
+id = "SV7b7"
+title = "unmoto path reads uninitialised memory under EI_HEAP_JITTER=3,fill"
+group = "verification"
+size = 1
+depends = ["SV7a"]
+note = "From SV7b1: with 3,fill, vanilla gz1g --no-hooks runs part at world update 40: isaac.count 38 / 161, unmoto obj1937's path (pos, motion waypoints, ai.point, ai.looks) and ai.decay of obj1804 / 1890 / 1936. Hits different scenarios on each repeat (levers, party_records, render_terrain, harness_digest, sandbox_actions, ui_objectives, ui_quest_notice, ui_trade_restore), never with seed 3 without fill: an uninitialised read whose garbage decides, not an address order. Also SV7a's one-off ui_widescreen_more (Rebirth); probably what SV7d saw with 2,fill (noted on SV7d4). Recheck after SV7b3 (zeroed unit statistics may cover it). Find the reader (fill a known pattern, heaptrace the block), canonicalise in both sides as SV7b1 did."
+
+[[ticket]]
+id = "SV7b8"
+title = "Vanilla menu unit unmoco2 orientation under EI_HEAP_JITTER=2"
+group = "verification"
+size = 0.5
+depends = ["SV7a"]
+note = "SV7b4a: the rotation parts are settled (shadow round trip exact in both): seed 2 vanilla ui_hero_screen, ui_hero_stats, ui_screens match the plain run, and hooked runs match --no-hooks on menu unit rot. Left: cunit129 flags 0xA2 / 0x4A2 in hooked vanilla ui_widescreen_hud / ui_widescreen_more, moved to SV7b8a."
+
+[[ticket]]
+id = "SV7b8a"
+title = "Vanilla widescreen menu unit cunit129 flags 0xA2 / 0x4A2 hooked"
+group = "verification"
+note = "From SV7b4a (docs/notes/standalone-verification.md, 'SV7b4a / SV3f'): hooked vanilla ui_widescreen_hud and ui_widescreen_more have cunit129 (unanwibo) flags 0x4A2 where the patched original has 0xA2 from update 60, then the zone diverges (isaac.count 69 / 89 at update 180, obj1000011214 nextCommand). No vanilla golden for either. Repeats in two rounds; not an orientation ulp (the shadow round trip is exact now). Find which rewrite sets 0x400 on the menu unit."
+
+[[ticket]]
+id = "SV7d1a1"
+title = "Drop the fp:fast workarounds now that the build is /fp:precise"
+group = "verification"
+depends = ["SV7d1a"]
+note = "From SV7d1a: the build is /fp:precise. The 87 float_control(precise, on) pragmas and the volatile float store helpers (StoreFloat, RoundToFloat, Round, ...) written only to defeat /fp:fast's regrouping and unrounded float locals are redundant. Remove them where they only did that (a store the original does is a plain float assignment now), keeping x87::FromUnsigned, IsNaN and the x87:: transcendental helpers. check_cleanup's float_control count goes down. Suite with --golden; behaviour must not change."
+
+[[ticket]]
+id = "SV4c1"
+title = "Path vectors on more maps: smaller AI map snapshots"
+group = "verification"
+depends = ["SV4c"]
+note = "SV4c keeps 3 of 18 recorded maps (888 KB; zone1 alone 607 KB, gz3g 1.2 MB, the menu map 80 KB per run). A snapshot coded against a base map of the same size, or a small inflater in ei_vectors (zlib halves the planes), would let gz3g, bz1g and gz2g's searches in. tools/path_vectors.py prune --keep chooses the maps."
+
+[[ticket]]
+id = "SV7b2a"
+title = "Save-only stack leftovers and chunk archive keys"
+group = "verification"
+depends = ["SV7b2"]
+note = "From SV7b2 (notes: SV7b2 / SV7d3 / SV7d4). savefile.py still leaves out: controller.queue.stepN.padding (BuildTransition 005516D0, BuildOrderSteps 00550100, BuildAttackSteps 0054F970 build stack AnimationSteps inline, no call to redirect; ours zero them), an arrow figure's hit.pad (DamageInfo +0x39, DeliverAttack 0054F450's stack copy), script areas.N.partN.pad (AddRect 004B1ED0 / AddRound 004B2070 stack parts), a sound effect's nameTail, the item stock's stackTail (ItemStock::SaveLists 0069BAC0), and scenario.sav's chunk archive identities (SaveObjectRef 0040A440 writes template / record / party addresses; Close iterates the pointer-keyed hash). None varied in SV7b2's passes. Options: patch the inline stores (byte patches, not call redirects) or accept them as rules; for the archive, number keys by first save and order Close's records by that number in both sides (no format change: the loader maps any key)."
+
+[[ticket]]
+id = "SV7d6"
+title = "savefile.py: saveb scenario.sav screen block decodes 0x12 bytes past its end"
+group = "verification"
+note = "From SV7b2: the non-golden scenarios frames_basic, render_cpuwindows and render_present (vanilla) leave harness_saves\\saveb\\scenario.sav whose screen block (CBattleScreenSetup::SaveState 00635080 through the save stream) savefile_scenario.py reads to 0x1fac where the block ends at 0x1f9a. Find the reader branch that a second save (or these screens' state) takes and fix it; needed before S20 records goldens for every scenario."
+
+[[ticket]]
+id = "SV5b1"
+title = "levers_key goldens"
+group = "verification"
+depends = ["SV5b"]
+note = "levers_key repeats on both sides but ours flips against the original at update 60 (isaac.count, zone1 wolf obj1936 ai.standCooldown: the SV1j family); record its goldens when that is settled (standalone-verification.md, SV5b)."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -1254,7 +1325,7 @@ id = "T2d"
 title = "Goldens to record again after T2 scenario timing changes"
 group = "harness"
 size = 1
-note = "hero_death, sandbox_actions, spells_cast, levers and others whose scenario waits changed; world_client battle-window waitwindow idea (adds frames, loses ContinuePath) also open"
+note = "Closed 2026-10-15: every golden has been re-recorded several times since (SV7b1, SV7b3, SV7d), so the T2 timing changes are in."
 
 [[ticket]]
 id = "T2e"
@@ -1270,6 +1341,31 @@ group = "harness"
 size = 1
 files = ["tools/tickets.py", "tools/work.py", "tools/work_board/*", "tools/tickets_board/index.html"]
 note = "User 2026-10-15: move volatile ticket status (running / review / done / started dates) out of docs/tickets.toml into build/live/work.db (the shared database work.py already uses, found from any worktree), so a worker's status shows at once and merges stop conflicting on status lines. Ticket text (title, group, size, depends, files, notes) stays in git. work.py start sets running, the worker's 'tickets.py set ID review' writes the database, 'work.py done ID merged' sets done. tickets.py reads status from the database (falling back to the toml's status for tickets the database has never seen, then migrating them once), writes docs/tickets.md and build/tickets/tickets.json as before, and drops the status field from tickets.toml after migration. The work board server (work.py serve, :8765) also serves the ticket board page (tools/tickets_board/index.html) with live tickets.json, so it is always current; the claude.ai artifact stays and is republished by the coordinator. Update tools/tickets.py docs and tests, the area-worker brief if it mentions status, and keep the existing tickets' current statuses exactly."
+
+[[ticket]]
+id = "I12"
+title = "ui_mp_host times out when two batches run it at once"
+group = "harness"
+size = 0.5
+model = "sonnet"
+files = ["tools/work_sched.py", "tools/run_all.py", "tests/scenarios/ui_mp_host.txt"]
+note = "Cause: not the port (N0c's per-game port is in; two batches of ui_mp_host, 4 games at once, all PASS). The scenario takes 36-49 s on a busy machine and 61-67 s when suites overlap, past the default 60 s limit (frames ~1 s each). Fix: timeout 120 in ui_mp_host.txt; no scheduler change."
+
+[[ticket]]
+id = "I13"
+title = "Read-before-write detector: trap the first read of never-written heap bytes"
+group = "harness"
+size = 1
+model = "opus"
+note = "From SV7b7 (4.5 h, ~140 batches, a 24-step bisection over heap block indices plus one false lead to find one uninitialised read). A harness mode that gives chosen fresh CRT blocks (by size, call site or block index) guard pages or a shadow 'written' bitmap with hardware/PAGE_GUARD traps, and logs the first read of a never-written byte with its EIP, the block's allocation call stack and offset. One run instead of a bisection; works for the original and ours. Keep it in the slim harness that survives S21 (goldens are recorded from the original)."
+
+[[ticket]]
+id = "T2f"
+title = "bz1g runs: ours parts from the original in isaac.count at update 80-100 (blocks goldens of ui_base_dialogue, ui_base_topic, zone_base_bz1g)"
+group = "harness"
+size = 1
+depends = ["T2a"]
+note = "T2a: the original repeats (5 of 5), ours (hooked, --dgvoodoo, standalone) alternates: ours plays three more ambience sounds in frame 15 (Terrain::PlayAmbience, MaybeRemark draws; EI_HARNESS_CLOCK=virtual,randtrace + tools/randtrace.py on ui_base_dialogue). Find which input of PlayAmbience / the sector votes differs (listener, SectorAt load state, sound-end notes) and fix; then record ui_base_dialogue goldens (4 passes, vanilla and rebirth). Not the renderer (dgvoodoo parts too)."
 
 # ---------------------------------------------------------------- cleanup
 
@@ -1318,7 +1414,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 10 merged 2026-10-15: address constants 187 to 118, check_cleanup raw addresses 834 to 765. Left: class kVtableAddress statics, homeless vtables (map_spec*, ui_layouts, ui_scroll_text, resource_stream, magic_trap, lightning_start, misc_400, fake_unit; about 25), at-exit / eh-vector function addresses, a few globals (docs/notes/cleanup-units.md, C11 batch 10). Shims: 908."
+note = "Batch 14 merged: shims 792 -> 632 (input Delete / forward handlers as member templates, world_game shims, 100 more forwarder wrappers inlined). Left: wrappers used by tests/verify, float / by-value params, ~20 untyped deleting destructors, shims with bodies, 664 raw addresses."
 
 [[ticket]]
 id = "C12"
@@ -1330,7 +1426,7 @@ note = "221 __asm blocks, 110 float_control pragmas; mostly kept for bit-exact x
 id = "C13"
 title = "Forwarders to rewritten code into direct calls"
 group = "cleanup"
-note = "2,377 sites; with the standalone work (changes what the verify wrappers see)."
+note = "User 2026-10-15: after hook retirement (S21), on the standalone, goldens as the check."
 
 [[ticket]]
 id = "F4a"
@@ -1418,6 +1514,15 @@ title = "Standard types instead of MFC / STLport containers and strings"
 group = "cleanup"
 size = 5
 note = "Plan: docs/notes/standalone.md section 3, step 2 (discussed with the user 2026-10-13). After the hook build is retired (side-by-side checks need the shared layout): CArray to std::vector, CList to std::list, stlp::vector / list / map to their std twins, stlp::string and CString to one string type; the framework pieces (files, archives, GDI, exceptions) stay small classes of our own. Keep what must survive: hash_map iteration order where it feeds game logic, saves or network messages (39 stlp::hash_map uses; check each, the rest can be std::unordered_map), STLport sort order at sites where equal elements are visible (the objectives list), the CRT behaviour (_ftol, rand, sprintf digits), and the archive encoding of strings / arrays in saves and messages. Split into one ticket per family when started."
+
+[[ticket]]
+id = "C15"
+title = "reinterpret_cast: typed fields, objects and calls instead of casts"
+group = "cleanup"
+size = 3
+model = "sonnet"
+files = ["src/game", "src/lib", "config/cleanup_baseline.csv", "tools/check_cleanup.py"]
+note = "User 2026-10-15: after hook retirement (S21), on the standalone, goldens as the check (address casts go with S18 anyway)."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
@@ -1953,6 +2058,69 @@ group = "standalone"
 depends = ["S16d"]
 files = ["tools/find_vtables.py", "tools/dashboard_data.py", "config/vtables.csv"]
 note = "S16d found three strings read as code pointers (0074676C '%ld', 0074718C 'dde', 007474B8 'a/p'): find_vtables.py takes any .text value as a slot, so a regenerated vtables.csv brings _AFX_CTL3D_THREAD's 2nd slot and the 007474B8 row back (fixed by hand). Make it accept only function starts (functions.csv minus library.csv 'not a function' rows). dashboard_data.py counts the four 'not a function' library.csv rows in library_functions (a denominator nothing can reach); leave them out there (keep them out of the game count). standalone_gaps.py already skips them."
+
+[[ticket]]
+id = "S17a"
+title = "Standalone: one access violation in the draw list sort (camera, 1 of ~900 runs)"
+group = "standalone"
+size = 1
+depends = ["S17"]
+files = ["src/game/world_client_draw.cpp", "src/game/world_client_view.cpp", "src/game/world_rules.cpp"]
+note = "S19: also seen on Rebirth standalone (units, first attempt)."
+
+[[ticket]]
+id = "S19"
+title = "Standalone: the suite against the Rebirth goldens"
+group = "standalone"
+size = 1.5
+model = "opus"
+files = ["tools/run_all.py", "src/standalone", "src/hook/rebirth_hook.cpp"]
+note = "S17 compared only the 44 vanilla goldens: run_all --standalone has no Rebirth pass. S14 gave the image its Rebirth flags from ei_rebirth.ini (no addon, no EI_Plugin.asi). Make --standalone run the Rebirth installs' scenarios with those flags, compare with the Rebirth goldens and the hooked Rebirth runs, classify as S17 did, fix standalone-only differences (Rebirth patches that live in addon.dll / EI_Plugin and are not folded into ours show up here: list them). Blocks hook retirement (S21)."
+
+[[ticket]]
+id = "S20"
+title = "Goldens for every scenario before the hooks go"
+group = "standalone"
+size = 1.5
+model = "sonnet"
+files = ["tests/golden", "tools/golden.py", "tests/scenarios"]
+note = "From SV7b8a: ui_widescreen and ui_widescreen_screens can only have Rebirth goldens (rebirthflags WideScreen; golden.py refuses vanilla); record their Rebirth goldens here."
+
+[[ticket]]
+id = "S21"
+title = "Retire the hook builds"
+group = "standalone"
+size = 2
+model = "opus"
+files = ["src/hook", "tests/verify", "build.cmd", "tools/run_all.py"]
+note = "User 2026-10-15: finish the golden net (SV7 tail, SV7c, S20), Rebirth in the standalone (S19) and the remaining function vectors (SV4b1, SV4c), then retire the hook and verify builds: the standalone is the only product, checked by goldens and function vectors. Keep a slim harness that runs the original game only to record goldens (or freeze them). C13 and C15 run after this, on the standalone, with the goldens as the check (C13 changes what the verify wrappers see anyway). Then Phase 4 of docs/cleanup-plan.md."
+
+[[ticket]]
+id = "S19a"
+title = "Standalone on Rebirth: addon's multiplayer patches and EI_Plugin's NewMaster, Pause, Briefings"
+group = "standalone"
+note = "From S19: the image runs our code where hooked Rebirth runs keep the patched original (SKIP lines): addon's FixProcessLogin (00443080), MQClient (0041ECC0), MPSpeedControl (0063A560, 00648D70), PlayerNumbers (0066C180); EI_Plugin.asi (kept out of the image, EiPluginInit) with NewMaster (0041AA10, 0041ACA0, 00440DE0, 0061D0D0, 00632D70, and SaveToRegistry 0045C560's 42 NOPs: the image saves the master server name), Pause (0066FAC0, Pause=1) and Briefings (00592090). Multiplayer only: no golden reaches them (SV5d's two-client harness would). Reproduce each behind its flag (rebirth_patches.csv rows), declare EI_REBIRTH_IMPLEMENTS, verify in a Rebirth launch; EI_Plugin's own network thread / master-server link needs a decision (port or drop). Fixes / NPlayers: W4b."
+
+[[ticket]]
+id = "S19b"
+title = "Standalone on Rebirth: the mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch)"
+group = "standalone"
+note = "From S19: addon's mod loader looks in the selected mod's folders first (WinMain's loader and ~30 resource functions, the BinkOpen import, 0040ECD0 camera, 006BB3A0 stream; docs/notes/rebirth.md 'Resources and paths'). With the Standard mod it passes through, so every S19 run matched; the image ignores another mod's folders (IronMod's Res). Needs the standalone resource layer: read the starter's AddonPath / mod list and route OpenResource, the finds and the map paths through it behind the flags."
+
+[[ticket]]
+id = "S19c"
+title = "EI_Plugin NewMaster's second master server: port or drop (user's decision)"
+group = "standalone"
+size = 0.5
+note = "User 2026-10-15: port it behind an opt-in setting (master address in ei_rebirth.ini, empty in harness runs so runs stay offline). Check offline against a local listener; goldens can't cover it."
+
+[[ticket]]
+id = "S19d"
+title = "Standalone mod folders: checks for Stream, Movies and the uncovered Maps sites"
+group = "standalone"
+size = 0.5
+model = "sonnet"
+note = "From S19b: no scenario covers StreamPatch, MoviesPatch, the extra figure / texture archives, archives a mod switches off ('-' entries), or the zone-table and quest Maps sites. Rebirth's own override folders and a mod's [CONFIG] / [DEV] sections are not reproduced."
 
 # ---------------------------------------------------------------- Lua
 

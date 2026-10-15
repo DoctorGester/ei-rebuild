@@ -13,6 +13,7 @@
 #include "player_client.h"
 #include "ui_briefing.h"
 #include "ui_cursor.h"
+#include "ui_screens.h"
 #include "ui_widescreen.h"
 #include "ei/hook.h"
 #include "render/render_state.h"
@@ -50,12 +51,6 @@ CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient
 
 // The multiplayer session's player records (STLport list of PlayerMessage pointers).
 using SessionPlayerList = stlp::list<net::PlayerMessage*>;
-
-// The panel window whose input side is `input` (handlers get window + 0x94 as `this`).
-template <typename W>
-W* FromInput(void* input) {
-    return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - offsetof(CUiWindow, inputVtable_));
-}
 
 // IDirect3DDevice7::SetRenderState / GetRenderState.
 long SetRenderState(UiD3DDevice* device, int state, std::uint32_t value) {
@@ -97,20 +92,10 @@ constexpr int kMapCentreX = 700;
 constexpr int kMapCentreY = 80;
 constexpr std::uint32_t kCameraFollows = 8;
 
-// Shim from the input-side `this` to a panel member taking (buttons, x, y).
-#define UI_INPUT_HANDLER(addr, Class, Method)                                                     \
-    static void __fastcall Class##_##Method(void* input, void*, int buttons, int x, int y) {      \
-        FromInput<Class>(input)->Method(buttons, x, y);                                           \
-    }                                                                                             \
-    EI_REPLACE(addr, Class##_##Method)
-
-// Same for the wheel handlers (buttons, delta, x, y), which return BOOL.
-#define UI_WHEEL_HANDLER(addr, Class, Method)                                                     \
-    static BOOL __fastcall Class##_##Method(void* input, void*, int buttons, int delta, int x,     \
-                                            int y) {                                              \
-        return FromInput<Class>(input)->Method(buttons, delta, x, y);                             \
-    }                                                                                             \
-    EI_REPLACE(addr, Class##_##Method)
+// A panel member taking (buttons, x, y) as the handler of its input side; the wheel handlers
+// (buttons, delta, x, y) return BOOL.
+#define UI_INPUT_HANDLER(addr, Class, Method) EI_REPLACE_METHOD(addr, InputForward<&Class::Method>::Call)
+#define UI_WHEEL_HANDLER(addr, Class, Method) EI_REPLACE_METHOD(addr, InputForward<&Class::Method>::Call)
 } // namespace
 
 // --- Forwarders --------------------------------------------------------------------------------
@@ -409,8 +394,8 @@ void CHudMap::OnMouseUp(int, int x, int y) {
             right /= zoom_;
             down /= zoom_;
         }
-        const float worldX = RoundToFloat(right / scale_ + centreX_);
-        const float worldY = RoundToFloat(centreY_ - down / scale_);
+        const float worldX = static_cast<float>(right / scale_ + centreX_);
+        const float worldY = static_cast<float>(centreY_ - down / scale_);
         if (worldX > 0.0f && worldX < worldWidth_ && worldY > 0.0f && worldY < worldHeight_) {
             // The camera stops following its unit and looks there.
             CCamera* view = camera::TheCamera();
@@ -506,7 +491,8 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     case 1:     // the normal speed
     case 2:     // the fast speed
         inputHandled_ = true;
-        if (IsNetworkClientOriginal()) return;
+        // Rebirth's MPSpeedControl (the JNEs at 00648DFE / 00648E65 aimed at the next instruction).
+        if (IsNetworkClientOriginal() && !ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)) return;
         if (GameIsPausedOriginal(GameGlueObject())) GameSetPausedOriginal(GameGlueObject(), nullptr, 0);
         fast_ = region - 1;
         UpdatePeriod() = fast_ ? kFastPeriod : kNormalPeriod;
@@ -522,6 +508,7 @@ void CHudClock::OnMouseUp(int, int x, int y) {
     }
 }
 UI_INPUT_HANDLER(0x00648D70, CHudClock, OnMouseUp);
+EI_REBIRTH_IMPLEMENTS(0x00648D70, ei::rebirth::Patch::MPSpeedControl);
 
 void CHudClock::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
@@ -590,12 +577,12 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         }
         // The marker points at the mode's button: turned about -z and put on its circle. Place
         // (005E6FA0) is Rebirth-patched: through its address.
-        const float angle = RoundToFloat(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
+        const float angle = static_cast<float>(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
         const Vector3 axis = {0.0f, 0.0f, -1.0f};
         Quaternion turn;
         marker->orientation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
-        const float y = MarkerCentreY() - std::sin(angle) * MarkerRadius();
-        const float x = std::cos(angle) * MarkerRadius();
+        const float y = static_cast<float>(MarkerCentreY() - x87::fsin(angle) * MarkerRadius());
+        const float x = static_cast<float>(x87::fcos(angle) * MarkerRadius());
         SpritePlaceOriginal(sceneObjects_.data[0], nullptr, x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }

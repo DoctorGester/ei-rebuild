@@ -121,7 +121,7 @@ DriverLink* DriverSession::Start(net::Connection* player) {   // 0047A080
         ei::SetVtable(&stream, kMemoryStreamVtable);
         stream.data_ = nullptr;
         stream.Reset();
-        ei::SetVtable(&stream, kNodeStreamVtable);
+        ei::SetVtable(&stream, CMemoryStream::kQueueVtableAddress);
         driver->Receive(&stream);
         ei::SetVtable(&stream, kMemoryStreamVtable);
         if (void* data = stream.data_) gamecrt::operator_delete(data);

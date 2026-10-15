@@ -16,8 +16,6 @@
 #include "originals_library.h"
 #include "originals_units.h"
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                       // 0073B858
 constexpr float kOne = 1.0f;                        // 0073B84C
@@ -105,7 +103,7 @@ void Remark(CUnit* unit, int code) {
 void __fastcall WearItem(CEngineObject* item, CUnit* unit, float amount, int brokenRemark, int wornRemark) {
     if (!item || !unit || !(amount > kZero)) return;
     float before = ItemFloat(item, kItemCondition);
-    volatile float threshold = ItemFloat(item, kItemMaxCondition) * *reinterpret_cast<const float*>(0x007C549C);
+    float threshold = ItemFloat(item, kItemMaxCondition) * *reinterpret_cast<const float*>(0x007C549C);
     int pieces = *reinterpret_cast<int*>(reinterpret_cast<char*>(item) + kItemPieces);
     if (pieces > 0) {
         ItemFloat(item, kItemCondition) =
@@ -151,7 +149,7 @@ int UnitStats::DamageSlot(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit
     UnitStatSlot& slot = slots[hit->location];
     if (slot.kind < 2) return 0;
     for (int type = 0; type < kDamageTypes; ++type) {
-        volatile float typeDamage = hit->typeWeights[type] * hit->amount;
+        float typeDamage = hit->typeWeights[type] * hit->amount;
         if (!(typeDamage > kZero)) continue;
         for (int layer = keyed ? 2 : -1; layer >= 0; --layer) {
             if (slot.layers[layer].state < 2) continue;
@@ -207,9 +205,9 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     if (!(copy.amount < kZero || copy.amount > kZero)) return 0;
     float difficulty = unit->player ? kOne
                                     : reinterpret_cast<const float*>(0x007C54A0)[*reinterpret_cast<const int*>(0x0079BEC0)];
-    volatile float total = kZero;
+    float total = kZero;
     for (int type = 0; type < kDamageTypes; ++type) {
-        volatile float typeDamage = copy.amount * copy.typeWeights[type] -
+        float typeDamage = copy.amount * copy.typeWeights[type] -
                                     copy.multiplier * vitals->protection[type].current * difficulty;
         float passed = Max0(typeDamage);
         total = passed + total;
@@ -230,7 +228,7 @@ int UnitStats::ApplyHit(CUnit* unit, UnitVitals* vitals, const DamageInfo* hit, 
     for (const UnitStatSlot& slot : slots) {
         if (slot.kind > 1) factors += slot.factor;
     }
-    volatile float share = static_cast<float>(copy.amount / (factors * vitals->maxHitPoints));
+    float share = static_cast<float>(copy.amount / (factors * vitals->maxHitPoints));
     int damaged = 0;
     for (int i = 0; i < 6; ++i) {
         copy.multiplier = slots[i].maximum * hit->multiplier * share / hit->amount;
@@ -249,7 +247,7 @@ BOOL UnitVitals::TakeHit(const DamageInfo* hit) {
         double damage = hit->typeWeights[type] * hit->amount - protection[type].current;
         if (damage > kZero) hitPoints = static_cast<float>(hitPoints - damage);
     }
-    volatile float floor = maxHitPoints * kOverkill;
+    float floor = maxHitPoints * kOverkill;
     float f = floor;
     float hp = hitPoints;
     hitPoints = !(f >= hp) ? hp : f;
@@ -260,9 +258,9 @@ EI_REPLACE_METHOD(0x00524FE0, UnitVitals::TakeHit);
 BOOL CUnit::IsBehind(const CEngineObject* target) {
     if (!player) return 0;
     auto* t = static_cast<const CObject3D*>(target);
-    volatile float dx = t->position.x - position.x;
-    volatile float dy = t->position.y - position.y;
-    volatile float dz = t->position.z - position.z;
+    float dx = t->position.x - position.x;
+    float dy = t->position.y - position.y;
+    float dz = t->position.z - position.z;
     double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(dx, dy, dz));
     if (length > kZero) {
         dx = static_cast<float>(dx / length);
@@ -291,7 +289,7 @@ BOOL CUnit::IsBehind(const CEngineObject* target) {
     x = x + x;
     double cc = c * c;
     double rest = a * a - ((d * d + b * b) + cc);
-    volatile float y = static_cast<float>(cc + cc + rest);
+    float y = static_cast<float>(cc + cc + rest);
     double z = a * b + c * d;
     z = z + z;
     double facing = DotUnrounded<Sum3::ZYX, double>(x, y, z, dx, dy, dz);

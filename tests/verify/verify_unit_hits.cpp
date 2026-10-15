@@ -11,8 +11,6 @@
 
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 std::uint32_t Bits(float f) {
     std::uint32_t u;
