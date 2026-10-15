@@ -1785,10 +1785,11 @@ note = "Callees of the generated exit functions (src/standalone/static_exit.cpp)
 id = "S9a"
 title = "Standalone library: the last 15 STLport list<T> instantiations"
 group = "standalone"
-status = "review"
+status = "done"
 size = 1
 files = ["src/lib/stlp_list.h", "src/lib/stlp_list.cpp"]
 note = "S9 left the instantiations whose element type is not ported yet (all forwarded from src/game): StackNode list 0040A6B0 push_back(), 0040A6D0 pop_back, 0040A8D0 insert(pos) default; trade records of three 00661050 parties 00424900 push_back default, 00424A40 ~list, 00429770 erase (0x160-byte nodes, operator new); CMemoryStream elements 00478FF0 insert, 004790F0 erase, 00479570 clear, 004795B0 insert range (48-byte free list); 004FB2E0 LinkArchive default insert; ground print records 0056ED90 0056EED0 0056F010 (copy 00571FC0 unported); 0062C090 TitleLine insert (CStrings stored as const char*; ECX unused). Same scheme as S9: a policy per element in stlp_list_refs.h, ListAbi shims, verify in tests/verify/verify_stlp_list_refs.cpp. standalone.md S9."
+done = "2026-10-15"
 
 [[ticket]]
 id = "S5a"
