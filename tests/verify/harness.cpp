@@ -181,6 +181,7 @@
 #include "harness_starter.h"
 #include "harness_net.h"
 #include "ui_census.h"
+#include "../vectors/vectors.h"
 
 #include "../../src/hook/log.h"
 #include "ei/main_loop.h"
@@ -872,6 +873,7 @@ BOOL WINAPI RedirectedSetFileAttributes(LPCSTR name, DWORD attributes) {
 void WriteReport() {
     clock::FlushRandomTrace();
     digest::Flush();
+    ei::vectors::Flush();
     if (census::Enabled()) census::Write();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;

@@ -587,9 +587,10 @@ started = "2026-10-15"
 id = "SV4"
 title = "Function vector record mode and replay test exe"
 group = "verification"
-status = "queued"
+status = "review"
 size = 2
 depends = ["SV2"]
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV5"
@@ -647,6 +648,30 @@ group = "verification"
 status = "running"
 note = "From SV1a: UnitReadNetStateVerify re-ran the original on live state without putting the random generators back, so the verify build's fights differed from the plain build. Find others the same way: random traces of the verify build against EI_PLAIN=1 per scenario (first draw that differs by value and frame), then a verified.txt bisection (standalone-verification.md, SV1a section). Fix each wrapper (put shared state back, or run ours only where the replay cannot be faithful)."
 started = "2026-10-15"
+
+[[ticket]]
+id = "SV4a"
+title = "Function vectors: matrix maths, effects' Range, and pure formulas (stat, damage tables)"
+group = "verification"
+status = "queued"
+depends = ["SV4"]
+note = "Extend SV4's record/replay (tests/vectors) to matrix_math.cpp (MatrixMultiply, Quaternion::ToMatrix), MultiplyByConjugate (quaternion.cpp), IsaacRandom::Range and the pure stat/damage formula functions whose inputs are plain values or small structs. Same pattern as tests/vectors/record_maths.cpp; add the sources to ei_vectors in CMakeLists.txt; record with EI_VECTORS=1 and tools/vectors.py merge."
+
+[[ticket]]
+id = "SV4b"
+title = "Function vectors: parsers and the LZ coder"
+group = "verification"
+status = "queued"
+depends = ["SV4"]
+note = "SV4 families with buffer inputs: the script parser (script_parse*.cpp) and the LZ coder. Payloads need variable-size input/output (the .vec format is fixed-size per function: add a length-prefixed variant or cap the buffer), and the replay must build the parser's objects outside the game."
+
+[[ticket]]
+id = "SV4c"
+title = "Function vectors: pathing on a saved map"
+group = "verification"
+status = "queued"
+depends = ["SV4"]
+note = "SV4's last family in standalone-verification.md section 3: path searches (ai_path*.cpp) replayed on a saved AI map. Needs the map state captured once per record run (not per call) and loaded by ei_vectors; records hold the query and the path."
 
 # ---------------------------------------------------------------- harness and suite
 

@@ -150,3 +150,49 @@ purpose), the same console; Unit::ReadNetState 0 mismatches.
 
 Other wrappers that run an original after ours on live objects can do the same (the generators,
 or other shared state the original's run changes again); the plain-versus-verify trace finds them.
+
+## SV4: function vectors, record mode and replay (2026-10-15)
+
+**Record mode** (verify build, `EI_VECTORS=1` in the game's environment; `work.py test` passes it on). A
+family's recorders (`EI_RECORD(addr, recorder, stolen, orig)` in tests/vectors/record_<family>.cpp, stolen
+bytes as for EI_VERIFY, checked by check_stolen.py and check_signatures.py) replace every other hook at
+their address, ours and the verify wrapper alike, so the game runs the original there. A recorder copies
+the arguments and the state the function reads, reads the x87 control word, calls the original, copies
+the result and the state after, and offers that payload (a plain struct, tests/vectors/<family>_vectors.h)
+to its `Sampler`. The sampler drops repeats (a hash of control word and payload) and keeps a reservoir of
+`cap` distinct calls per bucket with a fixed-seed generator, so the same calls give the same sample; a
+bucket keeps a rare path from drowning among common calls (ISAAC's refilling draw). The harness's report
+writes `<run>/vectors/<family>/<function>.vec`.
+
+**Data** (tests/vectors/data/<family>/<function>.vec, checked in). `python tools/vectors.py merge <run
+folders>` merges runs: repeats dropped, `cap` per bucket chosen by a hash of the record (stable for the same
+runs); `vectors.py show` prints a file's header, buckets and control words. Re-recording replaces the
+files and the commit says why. The vectors are the original's behaviour, so a change of ours never is a
+reason; an intended difference (a Rebirth fix behind its flag) needs its own check, not new vectors.
+
+**Replay** (`ei_vectors.exe`, built in every configuration, run by build.cmd after the checks). It links
+the families' own sources (no hook DLL, no game: tests/vectors/hook_stub.cpp makes EI_REPLACE register
+nothing; src/lib's forwarders link but must never be called) and the checks in
+tests/vectors/replay_<family>.cpp, registered under the recorded function name. Each record runs under
+its recorded control word (exceptions masked), compared bitwise as the verify wrappers compare. It fails
+on a differing record, a file without a check or with another payload size, or no files at all.
+
+Families so far:
+- `maths` (maths.cpp, core_maths.cpp): Vector3::Vector3, Dot, Vector3::Length, Quaternion::FromAxisAngle,
+  AddVectors, NegateVector, ScaleVector, Vector3::AddInPlace, ClampUnit, Quaternion::SetIdentity,
+  Quaternion::PreMultiply, Quaternion::AxisX/Y/Z, CubicSegment::SetBSpline, CubicSegment::Evaluate; up to
+  256 per function. Whether the output pointer was one of the inputs is recorded and reproduced.
+- `random` (random.cpp): IsaacRandom::Next (12 ordinary draws and 12 refilling ones) and Refill (8),
+  the whole generator before and after.
+
+Recorded from units, sandbox_actions, camera, combat, movement, spells_cast and unit_ai (vanilla, 2026-10-15):
+16 files, 2,868 records, 271 KB; every one replays the same. Control word 007F (24 bits) everywhere but
+one FromAxisAngle call at 027F (53 bits, another thread). Few distinct calls exist for ClampUnit (13),
+AxisZ (6) and SetIdentity (1); none of the seven scenarios reaches CubicSegment::SetBSpline or Evaluate
+(their checks are registered and wait for a scenario that does: SV5's coverage list). A corrupted copy
+(one bit of a Dot result, one of Refill's state) fails both records.
+
+Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name,
+sizeof(payload), cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record
+run and `vectors.py merge`. A family whose functions read game objects needs those objects' state in the
+payload (copied, never pointers) and, for the replay, a way to build them outside the game.

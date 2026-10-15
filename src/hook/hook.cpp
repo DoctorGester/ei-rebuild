@@ -109,6 +109,15 @@ static HookEntry* VerifyEntry(std::uintptr_t address) {
     return nullptr;
 }
 
+// Whether a vector recorder (EI_RECORD) is registered for `address`.
+static bool HasRecorder(std::uintptr_t address) {
+    auto it = g_hooksByAddress.find(address);
+    if (it == g_hooksByAddress.end()) return false;
+    for (HookEntry* h : it->second)
+        if (h->record) return true;
+    return false;
+}
+
 // Whether `code` (following incremental-link jump stubs) is MSVC's virtual-call thunk:
 // MOV EAX,[ECX] then JMP [EAX], JMP [EAX+disp8] or JMP [EAX+disp32].
 static bool IsVirtualCallThunk(const void* replacement) {
@@ -320,11 +329,18 @@ int InstallHooks() {
     char plainValue[4];
     const bool plain = GetEnvironmentVariableA("EI_PLAIN", plainValue, sizeof(plainValue)) && plainValue[0] == '1';
     if (plain) Log("EI_PLAIN set: no verify wrappers");
+    // EI_VECTORS=1: record mode (tests/vectors): each function with a recorder runs the original
+    // through it, and its calls are sampled as test vectors.
+    char vectorsValue[4];
+    const bool recording = GetEnvironmentVariableA("EI_VECTORS", vectorsValue, sizeof(vectorsValue)) && vectorsValue[0] == '1';
+    if (recording) Log("EI_VECTORS set: recording function vectors");
     IndexHooks();
     TextUnprotect text(nt);
     int installed = 0;
     for (HookEntry* h = g_hooks; h; h = h->next) {
         if (IsDisabled(h->address)) continue;
+        // In record mode a recorder is the only hook at its address; otherwise recorders are left out.
+        if (h->record != (recording && HasRecorder(h->address))) continue;
         auto* target = reinterpret_cast<unsigned char*>(h->address);
         const unsigned char* orig = FileBytesAt(file, h->address);
         std::uint32_t size = FunctionSizeAt(h->address);
@@ -342,7 +358,7 @@ int InstallHooks() {
                     static_cast<unsigned>(h->address), why);
             wrapper = false;
         }
-        if (h->verify != wrapper) continue;
+        if (!h->record && h->verify != wrapper) continue;
         if (!orig || size < 5) {
             Log("SKIP %s at %08X: not a known function start", h->name, static_cast<unsigned>(h->address));
             continue;
@@ -351,7 +367,7 @@ int InstallHooks() {
         // the function would silently drop that patch, unless the rewrite reproduces it (behind its
         // flag, which must be on). EI_Plugin.asi patches after this point; its sites are known too.
         rebirth_hook::Verdict verdict =
-            rebirth_hook::Check(h->address, size, orig, h->verify ? h->stolen : 0, why, sizeof(why));
+            rebirth_hook::Check(h->address, size, orig, h->verify || h->record ? h->stolen : 0, why, sizeof(why));
         if (verdict == rebirth_hook::Verdict::Skip) {
             Log("SKIP %s at %08X: %s", h->name, static_cast<unsigned>(h->address), why);
             continue;
@@ -388,7 +404,8 @@ int InstallHooks() {
         std::memcpy(target + 1, &rel, 4);
         if (!inText) VirtualProtect(target, 5, old, &old);
         FlushInstructionCache(GetCurrentProcess(), target, 5);
-        Log(h->verify ? "verifying %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name, static_cast<unsigned>(h->address), h->replacement);
+        Log(h->record ? "recording %s at %08X -> %p" : h->verify ? "verifying %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name,
+            static_cast<unsigned>(h->address), h->replacement);
         ++installed;
     }
     text.Restore();

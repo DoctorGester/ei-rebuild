@@ -24,4 +24,6 @@ rem New duplicate EI_ORIGINAL forwarders: use the shared src/game/originals_<are
 python "%~dp0tools\check_forwarders.py" || exit /b 1
 rem Cleanup-plan patterns (offsets, VCall, __asm, raw addresses) may only go down per file.
 python "%~dp0tools\check_cleanup.py" || exit /b 1
+rem Function vectors recorded from the original, replayed against our code without the game (tests/vectors).
+"%~dp0build\%CFG%\ei_vectors.exe" || exit /b 1
 echo Built: %~dp0build\%CFG%

@@ -163,11 +163,12 @@ def declarations(map_path=MAP):
 
 
 def registrations():
-    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD) ('replace'), EI_VERIFY ('verify')
-    and EI_ORIGINAL ('forwarder') in src/ and tests/verify/."""
+    """(address, name, kind, file, line) of every EI_REPLACE(_METHOD) ('replace'), EI_VERIFY and EI_RECORD
+    ('verify') and EI_ORIGINAL ('forwarder') in src/, tests/verify/ and tests/vectors/."""
     regs = []
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.cpp'), recursive=True) + \
-                glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')):
+                glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')) + \
+                glob.glob(os.path.join(ROOT, 'tests', 'vectors', '*.cpp')):
         text = open(path, encoding='utf-8', errors='replace').read()
         # Blank out line comments and __declspec(...) (same length, so line numbers hold): otherwise
         # "__declspec" or a word in a comment before a forwarder is taken as the function's name.
@@ -177,7 +178,7 @@ def registrations():
         rel = os.path.relpath(path, ROOT)
         for m in re.finditer(r'EI_REPLACE(?:_METHOD)?\(\s*0x([0-9A-Fa-f]+)\s*,\s*([\w:]+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'replace', rel, text.count('\n', 0, m.start()) + 1))
-        for m in re.finditer(r'EI_VERIFY\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
+        for m in re.finditer(r'EI_(?:VERIFY|RECORD)\(\s*0x([0-9A-Fa-f]+)\s*,\s*(\w+)', text):
             regs.append((int(m.group(1), 16), m.group(2), 'verify', rel, text.count('\n', 0, m.start()) + 1))
         for m in re.finditer(r'([\w:~]+)\s*\((?:(?!EI_ORIGINAL)[^;{}])*\)\s*(?:const\s*)?EI_ORIGINAL\(\s*0x([0-9A-Fa-f]+)', text):
             regs.append((int(m.group(2), 16), m.group(1), 'forwarder', rel, text.count('\n', 0, m.start()) + 1))

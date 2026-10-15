@@ -1,4 +1,4 @@
-"""Checks the stolen-byte counts of every EI_VERIFY registration against the original code.
+"""Checks the stolen-byte counts of every EI_VERIFY and EI_RECORD registration against the original code.
 
 A verify wrapper calls the original through a trampoline holding the function's first N bytes.
 N must end on an instruction boundary, be at least 5, and the copied instructions must not be
@@ -23,9 +23,10 @@ def main():
         r'\{0x([0-9A-F]+), (\d+)\}', open(os.path.join(ROOT, 'src', 'hook', 'function_sizes.inc')).read())}
     bad = 0
     total = 0
-    for path in sorted(glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp'))):
+    for path in sorted(glob.glob(os.path.join(ROOT, 'tests', 'verify', '*.cpp')) +
+                       glob.glob(os.path.join(ROOT, 'tests', 'vectors', '*.cpp'))):
         text = open(path, encoding='utf-8').read()
-        for m in re.finditer(r'EI_VERIFY\(\s*0x([0-9A-Fa-f]+)\s*,\s*\w+\s*,\s*(\d+)\s*,', text):
+        for m in re.finditer(r'EI_(?:VERIFY|RECORD)\(\s*0x([0-9A-Fa-f]+)\s*,\s*\w+\s*,\s*(\d+)\s*,', text):
             address, stolen = int(m.group(1), 16), int(m.group(2))
             if stolen == 0:
                 continue

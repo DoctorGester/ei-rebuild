@@ -107,6 +107,11 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   the run's `digest.txt`, `dump <name>` all of it once; `python tools\golden.py diff <run A> <run B>` names
   the first world update and field where two runs differ, and `golden.py record` / `compare` keep and check
   golden runs of the original code in `tests/golden/` (docs/notes/standalone-verification.md, SV2).
+- Function vectors (`tests/vectors/vectors.h`): with `EI_VECTORS=1` the verify build runs the original of
+  each function that has a recorder (`tests/vectors/record_<family>.cpp`) and writes a sample of its calls
+  to the run's `vectors/` folder; `python toolsectors.py merge <run folders>` keeps them in
+  `tests/vectors/data`, and `ei_vectors.exe` (run by build.cmd) replays them against our code without the
+  game (docs/notes/standalone-verification.md, SV4).
 
 A scenario line `# prepare: <tool> [args]` runs `python tools\<tool> <harness_saves dir> [args]`
 before the game starts (`tools/prepare_scenario.py`, called by harness.cmd and run_all.py): the
