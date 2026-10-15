@@ -283,8 +283,8 @@ static void __fastcall IfThenRunVerify(const ScriptIfThen* self, void*, CScript*
 }
 EI_VERIFY(0x004BB520, IfThenRunVerify, 0, s_unused);
 
-// A run that did not finish is added at the head of the run list, with the block, the instance's
-// kill flag and a copy of the instance's variables, after its first Execute.
+// A run that did not finish is added at the head of the run list, with the block, no kill flag
+// (004BC420 clears it before the copy) and a copy of the instance's variables, after its first Execute.
 static void __fastcall RunCommandsVerify(CScript* script, void*, ScriptDecl* block, ScriptDefinition* instance) {
     int runs = Field<int>(script, 0x168);
     script->RunCommands(block, instance);
@@ -293,7 +293,7 @@ static void __fastcall RunCommandsVerify(CScript* script, void*, ScriptDecl* blo
     if (ok && added == 1) {
         auto* run = reinterpret_cast<ScriptRun*>(Field<ListNode*>(script, 0x160) + 1);
         // Execute returns 1 also when it ran to the end; such a run ends on the next tick.
-        ok = run->block == block && run->killFlag == reinterpret_cast<int*>(instance) && run->ticks == 1 &&
+        ok = run->block == block && run->killFlag == nullptr && run->ticks == 1 &&
              (run->index == block->commands.size ||
               (run->index < block->commands.size && IsWait(block->commands.data[run->index].id)));
         if (ok && instance)

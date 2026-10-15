@@ -884,11 +884,12 @@ note = "The coverage list's largest uncovered area is network play: net_messages
 id = "SV3e"
 title = "Script: RunCommands keeps the instance as a stored run's kill flag"
 group = "verification"
-status = "running"
+status = "done"
 size = 0.25
 files = ["src/game/script_exec_run.cpp"]
 note = "From SV3d (digest 2's script group): a run that CScript::RunCommands (004BC420) stores after Execute returns unfinished has killFlag = the instance in ours (script run#.instance -2 or an instance index in the digest), null in the original (-1): 004BC420 clears its local run's kill flag (local_b0 = 0) before copying it into runs_. So a stored run's KillScript would write through a stale pointer in ours instead of FatalError. Clear run->killFlag before RunAssign in script_exec_run.cpp, check that the verify wrapper sees it. Blocks the goldens of frames_basic, render_cpuwindows, render_present, ui_base_dialogue, ui_help_page, ui_hud (both installs), world_client, zone_base_bz1g, ui_mp_host."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV3f"
@@ -938,6 +939,14 @@ group = "verification"
 status = "queued"
 size = 0.5
 note = "From SV3c: GameRender called our CWorldClient::Render directly, so flags off ran the vanilla terrain radius while addon's patched 00569E40 was due; a one-off scan found three more (fixed). Make it a check: capstone over ei_hook.dll .text, follow incremental-link thunks, call/jmp targets that are the replacement of an address in docs/rebirth-patched-functions.txt, callers named from ei_hook.map; allow verify wrappers, self-calls, the script parser/evaluator family (one flag) and calls the original inlines (ProcessRequest -> StartNewGame, CMMIOResource::Destroy -> CMappedResource::Destroy). The scratch version took 47 s (undecorating the whole map): undecorate only the target and caller symbols. Inlined calls stay unseen (a source grep for small patched functions covers those)."
+
+[[ticket]]
+id = "SV3k"
+title = "ui_hud under Rebirth: script gobject.i differs from the original"
+group = "verification"
+status = "queued"
+depends = ["SV3e"]
+note = "From SV3e: ui_hud-rebirth, the original repeats and ours repeats, but from world update 40 the script group's gobject.i is 702 in the original and 1884 in ours (then units' ai.point differ). Find which script command picks the object (a group or object order, a Rebirth-patched callee?) and fix; then record ui_hud rebirth."
 
 # ---------------------------------------------------------------- harness and suite
 

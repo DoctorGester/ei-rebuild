@@ -306,6 +306,8 @@ void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     if (ExecuteOrig(run, nullptr, this)) {
         // Not finished: a copy goes to the head of the run list (AddHead inlined; the original
         // also inlines NewNode, which is 004CDA30's code).
+        // 004BC420 clears the kill flag (the instance pointer) before the copy.
+        run->killFlag = nullptr;
         RunList& runs = runs_;
         RunList::Node* node = RunListNewNode(&runs, nullptr, runs.head);
         RunAssign(&node->data, nullptr, run);
