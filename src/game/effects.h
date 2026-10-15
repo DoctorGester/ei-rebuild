@@ -131,6 +131,7 @@ void __fastcall PopHeapByDepth(ParticleDepth* first, ParticleDepth* last, Partic
 
 class CParticleSource {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073CFD0);
     // particle_render.cpp: fills the shared vertex / sprite arrays and draws through the renderer
     // (007AF060, vtable slot 17). 1 when there is nothing to draw or it is off screen.
     int Draw(void* renderer);                       // 004976B0

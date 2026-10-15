@@ -245,6 +245,8 @@ inline const char* KeyMappedText() { return Text(0x00794888); }  // "key_already
 namespace consoletexts {
 inline const char* Prompt() { return Text(0x00792DE0); }
 inline const char* More() { return Text(0x00787BD8); }
+// The cheat word, each character XOR 0x66 (console.cpp).
+inline const char* CheatWord() { return Text(0x00740028); }
 }  // namespace consoletexts
 
 // The thunderstorm's script lines (world_weather.cpp).

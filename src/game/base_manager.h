@@ -148,6 +148,7 @@ static_assert(sizeof(ObjectListIterator) == 8);
 // has a body in a class here, the other slots are rewritten as free functions.
 class CClientSpecificManager : public CBaseManager {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BECC);
     // Body of the slot at 0042D700 (registered by member pointer).
     CEngineObject* NewObjectImpl(int type);
 };

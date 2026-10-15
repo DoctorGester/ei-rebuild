@@ -2,6 +2,7 @@
 #include "originals_engine.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -41,7 +42,7 @@ CMappedResource* CMappedResource::Construct() {
     filesByData_.InitBuckets(100);
     std::memset(&filesByName_, 0, sizeof(filesByName_));
     filesByName_.InitBuckets(100);
-    *reinterpret_cast<std::uintptr_t*>(this) = 0x007432E0;
+    ei::SetVtable(this, kVtableAddress);
     image_ = nullptr;
     fd_ = -1;
     writable_ = 0;
@@ -49,7 +50,7 @@ CMappedResource* CMappedResource::Construct() {
 }
 
 void CMappedResource::Destroy() {
-    *reinterpret_cast<std::uintptr_t*>(this) = 0x007432E0;
+    ei::SetVtable(this, kVtableAddress);
     CMappedResource::FreeAllFiles();   // called directly, not through the vtable
     if (fd_ >= 0) {
         gamecrt::close(fd_);

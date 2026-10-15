@@ -83,12 +83,6 @@ KNOWN = {}   # SV2b (zone1's script variable i between our runs under Rebirth) f
 # Known differences in decoded saves (tools/savefile.py's "<key> <field>"), each with its ticket: left out of save
 # comparisons unless --strict, so the goldens' saves need no re-recording when the ticket lands; drop the entry then.
 SAVES_KNOWN = {
-    r'^obj\d+ controller\.brain\.mode4\.(distance|spread)$':
-        "SV7d1: a Fear mode's distance is 10.0 in the original, 9.99999714 or 9.99999619 in ours (camera obj1804, "
-        "every run); Rebirth magic_traps obj1890's spread 3.26337504 / 3.26337481",
-    r'^obj\d+ (controller\.motion\.order\.step\d+\.flags|motion\.point\d+\.speed|motion\.stepSpeed\d+)$':
-        "SV7d2: one path step's flags (UnitMotion's step speed, ai_motion.cpp Build) are 0x2664 in ours where the "
-        "original has 0x1417 / 0x2963 / 0x4310 (camera obj1804, Rebirth obj1890 and obj1937, every run)",
 }
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
@@ -771,7 +765,7 @@ def add_saves(args):
             for line in problem[1:8]:
                 print('  ' + line)
         else:
-            print(f'{name} {args.install}: {meta["saves"]}')
+            print(f'{name} {args.install}: {meta.get("saves", "no saves")}')
     used = set()
     for path in glob.glob(os.path.join(GOLDEN, '*', '*', 'saves.txt')):
         used.update((golden_saves(os.path.dirname(path)) or {}).values())

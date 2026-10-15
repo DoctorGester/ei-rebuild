@@ -3,6 +3,7 @@
 // The containers are STLport instantiations (library), called through their original addresses.
 // See net_connection.h and docs/notes/network.md.
 #include "net_connection.h"
+#include "net_connection_trees.h"
 
 #include "core_streams.h"
 #include "ei/hook.h"
@@ -30,12 +31,16 @@ float Store(double v) {
 }
 
 // CRT eh vector constructor / destructor iterators (stdcall).
-void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3, std::uintptr_t a4) { EhVectorConstructorIterator(a0, a1, a2, (void*)a3, (void*)a4); }
-void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, std::uintptr_t a3) { EhVectorDestructorIterator(a0, a1, a2, (void*)a3); }
-constexpr std::uintptr_t kIdPoolCtor = 0x00433040;   // IdPoolConstruct below, called through its address
-constexpr std::uintptr_t kIdPoolDtor = 0x004336D0;
-constexpr std::uintptr_t kPriorityCtor = 0x00437D70;
-constexpr std::uintptr_t kPriorityDtor = 0x00433850;
+void __stdcall VectorCtorIterator(void* a0, unsigned a1, int a2, void* a3, void* a4) { EhVectorConstructorIterator(a0, a1, a2, a3, a4); }
+void __stdcall VectorDtorIterator(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
+}  // namespace
+IdPool* __fastcall IdPoolConstruct(IdPool* self);   // below
+namespace {
+// An id pool's destructor: its vector of free ids freed.
+void __fastcall IdPoolDestruct(IdPool* pool) { stlp::VectorAbi<std::uint16_t>::DestroyBase(reinterpret_cast<stlp::vector<std::uint16_t>*>(pool)); }
+// A function as the pointer the iterators take.
+template <typename F>
+void* Callback(F function) { return reinterpret_cast<void*>(function); }
 
 // Container constructors (allocator / comparison arguments are empty objects passed by address).
 __declspec(naked) void __fastcall ReceivedConstruct(std::int32_t** /*vector*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00438CE0)
@@ -94,14 +99,14 @@ void DestroyForReset(Connection* c) {
     RecordsDestroy(&c->records_);
     HistoryDestroy(&c->acknowledged_);
     HistoryDestroy(&c->history_);
-    VectorDtorIterator(c->priorities_, sizeof(Connection::EntryMap), 11, kPriorityDtor);
+    VectorDtorIterator(c->priorities_, sizeof(Connection::EntryMap), 11, Callback(trees::Entries::Destroy));
     ByObjectClear(&c->byObject_);
     ByObjectFreeHeader(&c->byObject_);
     BySentIdClear(&c->bySentId_);
     BySentIdFreeHeader(&c->bySentId_);
     FreedClear(&c->freedIds_);
     FreedFreeSentinelA(&c->freedIds_, nullptr, c->freedIds_, 1);
-    VectorDtorIterator(c->idPools_, sizeof(IdPool), kMessageTypes, kIdPoolDtor);
+    VectorDtorIterator(c->idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(c);
 }
 
@@ -115,11 +120,11 @@ Connection* Connection::Construct(std::uint32_t id) {
     std::uint8_t tags[4] = {};   // the empty allocator / comparison objects the constructors take
     ReceivedConstruct(&received_, nullptr, &tags[2]);
     address_ = NetAddress{};
-    VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, kIdPoolCtor, kIdPoolDtor);
+    VectorCtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolConstruct), Callback(IdPoolDestruct));
     FreedListConstruct(&freedIds_, nullptr, &tags[2]);
     BySentIdConstruct(&bySentId_, nullptr, &tags[3], &tags[2]);
     ByObjectConstruct(&byObject_, nullptr, &tags[2], &tags[3]);
-    VectorCtorIterator(priorities_, sizeof(EntryMap), 11, kPriorityCtor, kPriorityDtor);
+    VectorCtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Construct), Callback(trees::Entries::Destroy));
     HistoryListConstruct(&history_, nullptr, &tags[3]);
     HistoryListConstruct(&acknowledged_, nullptr, &tags[3]);
     // The trees' comparison byte is copied from the stack slot of the id argument.
@@ -203,14 +208,14 @@ void Connection::Destruct() {
     HistorySentinelFree(acknowledged_, 1);
     HistoryClear(&history_);
     HistorySentinelFree(history_, 1);
-    VectorDtorIterator(priorities_, sizeof(EntryMap), 11, kPriorityDtor);
+    VectorDtorIterator(priorities_, sizeof(EntryMap), 11, Callback(trees::Entries::Destroy));
     ByObjectClear(&byObject_);
     ByObjectHeaderFree(&byObject_, nullptr, byObject_.end(), 1);
     BySentIdClear(&bySentId_);
     BySentIdHeaderFree(&bySentId_, nullptr, bySentId_.end(), 1);
     FreedClear(&freedIds_);
     FreedSentinelFreeB(freedIds_, 1);
-    VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, kIdPoolDtor);
+    VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, Callback(IdPoolDestruct));
     FreeReceived(this);
     ei::SetVtable(this, kRefObjectRootVtable);
 }

@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "ei/vcall.h"
 
 #include <cstring>
 #include <new>
@@ -23,18 +24,12 @@ namespace mapspec {
 
 namespace {
 
-constexpr std::uintptr_t kEffectVtable = 0x0073C728;
-constexpr std::uintptr_t kParticleVtable = 0x0073C758;
-constexpr std::uintptr_t kLightVtable = 0x0073C788;
-constexpr std::uintptr_t kSoundVtable = 0x0073C7B8;
-
 void __fastcall EffectRestart(void* a0) { ObjectMarkNewOriginal(a0); }
 // 0046D4D0 (below), through its address: the two strings are passed by value (destroyed there).
 __declspec(naked) void __fastcall EffectNotifyAt(void*, void*, std::uintptr_t, std::uintptr_t) EI_ORIGINAL(0x0046D4D0)
 
 void* World() { return reinterpret_cast<void*>(0x007AFF60); }
 void* Effects() { return *reinterpret_cast<void**>(0x007AFFA8); }
-void SetVtable(void* p, std::uintptr_t vtable) { std::memcpy(p, &vtable, 4); }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -147,7 +142,7 @@ ParticleSpec* ParticleSpec::ParticleSpecConstruct() {
     effect.base.object = nullptr;
     effect.effect = nullptr;
     type = 0;
-    SetVtable(this, kParticleVtable);
+    ei::SetVtable(this, kVtableAddress);
     effect.base.kind = 4;
     scale = 1.0f;
     return this;
@@ -218,7 +213,7 @@ LightSpec* LightSpec::LightSpecConstruct() {
     colour.y = 1.0f;
     effect.visible = 1;
     shadows = 1;
-    SetVtable(this, kLightVtable);
+    ei::SetVtable(this, kVtableAddress);
     effect.base.kind = 2;
     radius = 10.0f;
     colour.z = 1.0f;
@@ -286,12 +281,12 @@ EI_REPLACE_METHOD(0x0046DD70, LightSpec::LightSpecApply);
 // 0046DE70. Returns this.
 SoundSpec* SoundSpec::SoundSpecConstruct() {
     effect.base.SpecConstruct();
-    SetVtable(this, kEffectVtable);
+    ei::SetVtable(this, EffectSpec::kVtableAddress);
     effect.base.object = nullptr;
     effect.effect = nullptr;
     effect.visible = 1;
     StringArrayConstruct(&sounds);
-    SetVtable(this, kSoundVtable);
+    ei::SetVtable(this, kVtableAddress);
     effect.base.kind = 3;
     StringArraySetSize(&sounds, nullptr, 0, -1);
     volume = 10;
@@ -308,7 +303,7 @@ EI_REPLACE_METHOD(0x0046DE70, SoundSpec::SoundSpecConstruct);
 
 // 0046DF70: the destructor body.
 void SoundSpec::SoundSpecDestruct() {
-    SetVtable(this, kSoundVtable);
+    ei::SetVtable(this, kVtableAddress);
     StringArrayDestruct(&sounds);
     effect.base.SpecDestruct();
 }

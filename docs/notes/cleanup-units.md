@@ -446,3 +446,36 @@ Spelling only: no signature, argument order or float grouping changed.
 - Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
   check_thunks, check_registrations, check_cleanup, ei_vectors) on the tree merged with main. See the golden result below.
 - `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs, ALL PASS; 54 goldens the same, 2 differ (levers, ui_saveload_delete) only in script #gobject (heap layout, SV7's).
+
+## C11 batch 11: homes for the homeless vtables, at-exit and eh-vector callbacks by function (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...`: 118 before, 69 after (tools/progress.py); check_cleanup raw addresses 765 before, 714 after.
+Spelling only: no signature, argument order or float grouping changed.
+- Vtables on their class as `static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x...)` (the spelling of ai_map.h and
+  the other class statics; check_cleanup does not count it, so a header gains no raw address): the record structs of map_spec.h
+  (`Spec`, `ObjectSpec`, `FlameSpec`, `TrapSpec`, `LeverSpec`, `EffectSpec`, `ParticleSpec`, `LightSpec`, `SoundSpec`), the three chunk
+  classes of map_spec_unit.cpp (`WaypointChunk`, `PatrolChunk`, `BehaviourChunk`, empty classes on `TargetChunk`; `StartChild` is a
+  template on them), `MagicTrap`, `CLightning`, `CClientSpecificManager` (misc_400), `scene::FakeUnitScene`, `CSaveLoadWindow` and
+  `COptionsWindow` (also `kInputVtableAddress`), `UiTextToken` / `UiFormatToken` / `UiWordToken`, `CResourceBase`, `CResourceStream`,
+  `CMMIOResource`, `CMappedResource` (resource.cpp's two raw stores became `ei::SetVtable`), `CParticleSource`, `ConsoleStreambuf`
+  (its verify test too). Array vtables are `mfc::impl::TrapAreasArrayClass` (map_spec's areas and the magic trap's circles),
+  `TrapTargetsArrayClass` (targets, points) and `BehaviourPatrolsArrayClass` (mfc_slots.h). The files lost their local
+  `SetVtable` helpers (map_spec_effect, resource_stream, magic_trap's `VtableOf`); the cheat word is
+  `game::consoletexts::CheatWord()`. The unused `kMappedResourceVtable` of resource_stream.cpp was dropped.
+- Callbacks by function: `src/game/at_exit_functions.h` declares what the function-local statics register with `GameAtExit`:
+  `atexit400::DestroyGlobalVector` (net_connection), `ei::static_init::Exit004E1C50` / `Exit005D2570` / `Exit0058DA00` /
+  `Exit0058DA20` (the generated exit functions: effects_weather, unit_ai_modes, world_tick) and `ei::short_functions::Ret` (the wake
+  cache). The eh-vector iterators take `void*` and the functions themselves: `LightningSegment::Construct` / `Destruct` through two
+  `__fastcall` wrappers (lightning_start), `DestroyModelSlot` (unit_db_destroy), `stlp::VectorAbi<void*>::DestroyBase` (the handler
+  vectors), and in net_connection_life `IdPoolConstruct`, an id pool destructor wrapper on `VectorAbi<uint16_t>::DestroyBase`, and
+  `net::trees::Entries::Construct` / `Destroy` (a `Callback()` helper makes the `void*`).
+- Left (69): 43 class `kVtableAddress` statics written as plain `0x...` (the class's home already) and 26 others: net_coder.h /
+  core_streams.h / net_link.h shared vtable constants (`kRefObjectRootVtable`, `kRefValueVtable`, `kGrowingBufferVtable`,
+  `kBufferViewBaseVtable`, `kNodeStreamVtable`: used by 30 files, each needs a class home first); `kNoElementTick`
+  (particle_create: the address is stored into the particle type, so it must stay the original's), `kCall` / `kWinMain` / image
+  addresses (hook/ and standalone/), `kStateBlockAlpha`, `kMasterHost`, unit_ai's world and console, the candidates list and the
+  script queue, options' two float factors.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations, check_cleanup, check_static_init, ei_vectors) on the tree merged with main.
+  `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs, all PASS; 54 goldens the same, 2 differ (levers,
+  ui_saveload_delete) only in script #gobject (heap layout, SV7b1's).

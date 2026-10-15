@@ -281,7 +281,8 @@ namespace {
 // CRT eh vector destructor iterator (ptr, element size, count, destructor), the handler vector's
 // destructor.
 void __stdcall VectorDestructorIterator(void* a0, unsigned a1, int a2, void* a3) { EhVectorDestructorIterator(a0, a1, a2, a3); }
-constexpr std::uintptr_t kHandlerVectorDestructor = 0x004389C0;
+// The handler vectors' destructor (the vector base's: the storage freed).
+constexpr auto HandlerVectorDestructor = stlp::VectorAbi<void*>::DestroyBase;
 // The type registry's tables: clear and bucket-vector destruction of byType and byVtable.
 __declspec(naked) void __fastcall ByTypeClear(TypeRegistry::ByType* /*table*/) EI_ORIGINAL(0x0043D590)
 __declspec(naked) void __fastcall ByTypeBucketsDestroy(void* /*buckets*/) EI_ORIGINAL(0x0043AAB0)
@@ -313,9 +314,9 @@ void SessionBase::Destruct() {
         socket_.SendTo(&connection->address_, buffer);
         GrowingBufferDestruct(buffer);
     }
-    VectorDestructorIterator(handlers_[2], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(kHandlerVectorDestructor));
-    VectorDestructorIterator(handlers_[1], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(kHandlerVectorDestructor));
-    VectorDestructorIterator(handlers_[0], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(kHandlerVectorDestructor));
+    VectorDestructorIterator(handlers_[2], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
+    VectorDestructorIterator(handlers_[1], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
+    VectorDestructorIterator(handlers_[0], sizeof(HandlerVector), kMessageTypes, reinterpret_cast<void*>(HandlerVectorDestructor));
     socket_.Destruct();
     ByTypeClear(&types_.byType);
     ByTypeBucketsDestroy(types_.byType.BucketVector());

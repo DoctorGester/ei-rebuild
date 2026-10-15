@@ -1,5 +1,6 @@
 // Connections of the network sessions: object replication. See net_connection.h.
 #include "net_connection.h"
+#include "at_exit_functions.h"
 #include "game_strings.h"
 
 #include "core_refcount.h"
@@ -104,7 +105,6 @@ __declspec(naked) void* __fastcall ReplicatedErase(ReplicatedVector* /*v*/, void
 __declspec(naked) void __fastcall ReplicatedSortLoop(Replicated* /*first*/, Replicated* /*last*/, void* /*tag*/, int /*depth*/,
                                                      void* /*compare*/) EI_ORIGINAL(0x0043F870)
 __declspec(naked) void __fastcall ReplicatedSortFinish(Replicated* /*first*/, Replicated* /*last*/, void* /*compare*/) EI_ORIGINAL(0x0043F9B0)
-constexpr std::uintptr_t kReplicatedDestroyAtExit = 0x00434980;
 // 0079B8D0 / 0079B8DC: CollectChanges's static vector of {object, priority} and its guard.
 ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
 std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(0x0079B8DC); }
@@ -594,7 +594,7 @@ void Connection::CollectChanges() {
         StaticReplicatedGuard() |= 1;
         char allocator = 0;
         ReplicatedConstruct(&items, nullptr, &allocator);
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kReplicatedDestroyAtExit));
+        GameAtExit(atexit400::DestroyGlobalVector);
     }
     ReplicatedErase(&items, nullptr, items.begin(), items.end());
     ReplicatedVector* target = &items;

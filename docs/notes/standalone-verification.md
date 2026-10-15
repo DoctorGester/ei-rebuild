@@ -1271,10 +1271,11 @@ With these, two plain runs of the original decode to the same text in all 39 van
 **Ours against the original** (`--no-hooks` runs against hooked runs, and the `--golden` suite): the same text but for these, left out of
 golden comparisons by golden.py SAVES_KNOWN (each with its ticket; `compare --strict` keeps them):
 
-- SV7d1: a Fear mode's `distance` is 10.0 in the original and 9.99999714 or 9.99999619 in ours (camera obj1804 and
-  others, every run), Rebirth magic_traps obj1890's `spread` 3.26337504 / 3.26337481.
-- SV7d2: one path step's flags (`controller.motion.order.stepN.flags`, so UnitMotion's `stepSpeedN` and its point's
-  speed) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310.
+- SV7d1 (fixed, section SV7d1/SV7d2 below): a Fear mode's `distance` is 10.0 in the original and 9.99999714 or
+  9.99999619 in ours (camera obj1804 and others, every run), Rebirth magic_traps obj1890's `spread` 3.26337504 /
+  3.26337481.
+- SV7d2 (fixed, below): one path step's flags (`controller.motion.order.stepN.flags`, so UnitMotion's `stepSpeedN` and
+  its point's speed) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310.
 - SV7b1: the zone script group "Peasans" in render_movie_present is [1884, 699, 702] in the original and
   [1884, 702, 699] in ours, so the loop variable `i` ends on the other id; and ground_prints obj1000011214's
   `seenCorpses` swap (PartySync rebuilds them from a ScriptGroup). Both are address order: the original swaps them too
@@ -1393,6 +1394,49 @@ hooked build changes all of these. Stopped here as bounded (coordinator); follow
 The original's main-thread clock reads are all virtual (EI_HARNESS_CLOCK=virtual,clocktrace): only Miles
 (QueryPerformanceCounter on its own thread) and the game's sound stream thread (006BB910, timeGetTime / Sleep(100))
 read time on their own.
+
+## SV7d1 / SV7d2: the two real differences the decoded saves found (2026-10-15)
+
+**SV7d1, the Fear mode's distance and spread** (FearMode::Evaluate 005D2960, unit_ai_fear.cpp). The original computes
+`(distance * 30 + default) * (1/31)` and `(spread + spread + 3) * (1/3)` in that order (005D3066, 005D2985). Under
+`/fp:fast` MSVC distributed both: `distance * (30/31) + default * (1/31)` and `spread * (2/3) + 1`. The repeated
+update `(30x + 10) / 31` has a wide flat neighbourhood around 10 (a step under half an ulp leaves the value as it
+is), so the two groupings settle on different fixed points: 10.0 in the original, 9.99999714 in ours. The sums now go
+through the volatile float store first (exact at the main thread's 24-bit precision). Rule 7's warning about
+`static_cast<float>` not rounding under /fp:fast has a twin here: an unrounded `(a + b) * c` may be distributed.
+The verify wrapper's CheckNear (a few ulps) let this through.
+
+**SV7d2, path cells' speed words** (PathCell +4: `flags`, the step's speed word, and `terrainBits`). The original's
+path builders give every cell they create a stack slot they never write: SearchPathTo (005C3200, called by
+JoinLocalSearches) gets SearchBest's saved ESI, the forward search's address 0x007B2664; BuildCells (005B9A20) the row
+offset SearchCommit left (the emulation that was in ai_plan.cpp's CommitLeg); PathSmoother::Smooth (005C46C0) gives
+the rebuilt tail [entry-0x3C] (JoinLocalSearches' `open`, the meeting cell's cost, after the local route; 0, the
+waypoint list's freed blocks, after PlanLongPath) and the other rebuilt cells [entry-0x50] (FindPath's saved EBP, or the
+waypoint list's vtable 0x0073FD9C). SetStepSpeeds (005BA400) rewrites both words of every step but the last, so the
+last step's speed word stays the leftover: it is saved (`order.stepN.flags`, UnitMotion's `stepSpeedN`, `pointN.speed`)
+and read only by a single-cell trajectory (SubdivideSegment's one-cell case; SamplePath reads `from.speed`, never the
+last point's). Ours kept the old tail's word (0x2664) in the smoother.
+
+Per the user's decision (2026-10-15: leftover memory is not worth preserving), every builder now gives its cells the
+plain words: speed 0x200 (what FindPath gives a single-cell path and AIPath::SetStepSpeeds a follow path), terrain bits
+0 (`kPlainStepSpeed`, `SetPlainCellWords`, ai_map.h). Ours: JoinLocalSearches after the join, BuildCellsTo, Smooth's
+rebuilt cells. The original, in harness runs (tests/verify/harness_path_cells.cpp): the CALLs of SearchPathTo
+(005B97A6, 005B97BC), BuildCells (005BA337) and Smooth (005BB8C5) go through wrappers that set the plain words after
+the call (each builder clears its list first; FindPath's cells are all plain before the smoothing). Smooth's verify
+wrapper checks ours only for the plain words. Both SAVES_KNOWN entries are gone.
+
+
+**Verification and the goldens' saves.** `--no-hooks --golden --fresh` (vanilla, then `--rebirth-only --all-rebirth`)
+with the harness patch: all 85 goldens of saving scenarios (39 vanilla, 46 Rebirth) differed only in the last step's
+`order.stepN.flags`, `stepSpeedN` and `pointN.speed` (e.g. camera obj1804 0x1417 -> 0x200, obj1890 0x2963 -> 0x200);
+no digest, console or dump differed, so the last step's speed word never changed behaviour in the suite. Our hooked
+`--golden --all-rebirth` run differed from the goldens in exactly the same fields (the Fear distance and spread now
+equal the original's). `golden.py saves --runs <patched original> <ours>` re-recorded the 85 goldens' saves.txt (both
+runs decode to the same text; 17 store entries replaced); no digest was re-recorded. golden.py `saves` no longer stops
+on a golden without saves (it printed meta['saves'], which keep_saves leaves unset then).
+After merging main (SV7b3's zeroed statistics) the ground_prints goldens' saves were re-recorded the same way. The final
+`--golden --all-rebirth`: 95 goldens the same, levers and ui_saveload_delete (vanilla) differ only in the script's
+`#gobject` (address order, SV7b1); every save equal. Follow-up SV7d1a: audit other rewrites for the distributed sums.
 
 ## SV7b1: script groups ordered by object id (2026-10-15)
 
