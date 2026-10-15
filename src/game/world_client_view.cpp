@@ -7,7 +7,7 @@
 #include "map_object_figures.h"
 #include "map_object_shadow.h"
 #include "object_tables.h"
-#include "stl_sort.h"
+#include "lib/stlp_algo.h"
 #include "terrain.h"
 
 #include "ei/hook.h"
@@ -330,7 +330,7 @@ Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
 namespace {
 
 template <typename Less>
-using PtrSort = StlSort<CEngineObject*, Less>;
+using PtrSort = stlp::Sort<CEngineObject*, Less>;
 
 struct ByModel {
     bool operator()(CEngineObject* a, CEngineObject* b) const {
