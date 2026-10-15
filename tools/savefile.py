@@ -171,6 +171,7 @@ class Reader:
         self.p = 0
         self.version = version
         self.name = name
+        self.limit = None           # where the block being read ends (a read that crosses it fails at the field)
         self.entities = []          # [key, description, [(field, value)]]
         self.current = None
         self.path = []
@@ -218,6 +219,8 @@ class Reader:
     def take(self, n):
         if n < 0 or self.p + n > len(self.d):
             self.fail(f'{n} bytes past the end ({len(self.d):#x})')
+        if self.limit is not None and self.p + n > self.limit:
+            self.fail(f'{n} bytes past the end of its block ({self.limit:#x})')
         b = self.d[self.p:self.p + n]
         self.p += n
         return b
@@ -278,6 +281,8 @@ class Reader:
         end = self.d.find(b'\0', self.p)
         if end < 0:
             self.fail('a string without its terminator')
+        if self.limit is not None and end >= self.limit:
+            self.fail(f'a string past the end of its block ({self.limit:#x})')
         text = self.d[self.p:end].decode('cp1251', 'replace')
         self.p = end + 1
         if name is not None:

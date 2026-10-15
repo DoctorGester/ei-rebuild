@@ -420,11 +420,19 @@ def read_screen(r):
     """The save stream (007AFDF8) as a sized block (CStream::WriteSized 004A5250): what the bottom window's slot
     40 (CInterface3D::SaveWindowState 005F86D0) wrote, CBattleScreenSetup::SaveState (00635080): the selected
     units' ids, the map zoom, the server flag, savedWithScreen, the top panel's first page text, savedFlag,
-    savedSelection."""
+    savedSelection. The briefing screen (CBriefingScreen::SaveState 00602490) and the global map (0062D330) are the
+    bottom window of a save made over them, and write one zero dword instead (the battle screen's block is at least
+    19 bytes, so the size tells the two apart)."""
     end = sized(r)
     r.entity('screen', 'the bottom window\'s state (CBattleScreenSetup::SaveState 00635080)')
     r.put('size', str(end - r.p))
     if r.p == end:
+        return
+    r.limit = end
+    if end - r.p == 4:
+        if r.i32('overOtherScreen') != 0:
+            r.fail('a 4-byte screen block that is not a zero dword')
+        r.limit = None
         return
     n = r.i32('selected')
     if n < 0 or n > 1000:
@@ -437,6 +445,7 @@ def read_screen(r):
     r.string('topPanelText')
     r.u8('savedFlag')
     r.i32('savedSelection')
+    r.limit = None
     leave(r, end, 'the screen block')
 
 
