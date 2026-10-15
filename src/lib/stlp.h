@@ -14,6 +14,7 @@
 #include <type_traits>
 
 #include "stlp_alloc.h"
+#include "stlp_deque.h"
 #include "stlp_list.h"
 #include "stlp_vector.h"
 
@@ -93,132 +94,7 @@ struct StringElement {
     }
 };
 
-// vector<T>: stlp_vector.h, list<T>: stlp_list.h (included at the top).
-
-// deque<T> (0x28 bytes): the start and finish iterators (cur, first, last, node), the map of node
-// pointers and its size; the allocator proxies are empty bytes inside the map words. Nodes hold
-// 512 / sizeof(T) elements (one for larger T). Only trivially destructible T: the game's
-// instantiations here destroy nothing. Instantiations: the camera's view stack (0x24-byte entries,
-// camera.h keeps its own layout), the material's (0x10-byte, material.h).
-template <typename T>
-class deque {
-public:
-    static constexpr std::size_t kPerNode = sizeof(T) < 512 ? 512 / sizeof(T) : 1;
-    static constexpr std::size_t kNodeBytes = kPerNode * sizeof(T);
-    static_assert(std::is_trivially_destructible_v<T>);
-
-    struct Iterator {
-        T* cur;
-        T* first;
-        T* last;
-        T** node;
-        void SetNode(T** n) {
-            node = n;
-            first = *n;
-            last = first + kPerNode;
-        }
-    };
-
-    bool empty() const { return finish_.cur == start_.cur; }
-    std::size_t size() const {
-        return static_cast<std::size_t>(finish_.node - start_.node - 1) * kPerNode +
-               static_cast<std::size_t>(finish_.cur - finish_.first) + static_cast<std::size_t>(start_.last - start_.cur);
-    }
-    const Iterator& Start() const { return start_; }
-    const Iterator& Finish() const { return finish_; }
-    T** Map() const { return map_; }
-    std::size_t MapSize() const { return mapSize_; }
-
-    // The constructor deque(n) with _M_initialize_map(n) (e.g. 0068E0B0 / 0068E1C0 / 0068E320): a
-    // map of max(8, nodes + 2) slots from the pool, the nodes for `n` elements in its middle.
-    void Construct(std::size_t n = 0) {
-        std::size_t nodes = n / kPerNode + 1;
-        mapSize_ = nodes + 2 > 8 ? nodes + 2 : 8;
-        map_ = static_cast<T**>(allocate(mapSize_ * sizeof(T*)));
-        T** nstart = map_ + (mapSize_ - nodes) / 2;
-        T** nfinish = nstart + nodes;
-        for (T** p = nstart; p < nfinish; ++p) *p = static_cast<T*>(allocate(kNodeBytes));
-        start_.SetNode(nstart);
-        finish_.SetNode(nfinish - 1);
-        start_.cur = start_.first;
-        finish_.cur = finish_.first + n % kPerNode;
-    }
-
-    // pop_back(): the finish steps back; leaving an emptied node frees it (_M_pop_back_aux).
-    void pop_back() {
-        if (finish_.cur != finish_.first) {
-            --finish_.cur;
-            return;
-        }
-        deallocate(finish_.first, kNodeBytes);
-        finish_.SetNode(finish_.node - 1);
-        finish_.cur = finish_.last - 1;
-    }
-
-    // back(): the element before the finish (in the node before it when the finish opens a node).
-    T& back() {
-        T* p = finish_.cur != finish_.first ? finish_.cur : *(finish_.node - 1) + kPerNode;
-        return p[-1];
-    }
-
-    // push_back(x): constructed at the finish while the node has room for another after it; else
-    // _M_push_back_aux (e.g. 0051E840): the map makes room for one more node pointer
-    // (_M_reallocate_map(1, false), 004A39C0), a new node follows and the finish opens it.
-    void push_back(const T& x) {
-        if (finish_.cur != finish_.last - 1) {
-            if (finish_.cur) *finish_.cur = x;
-            ++finish_.cur;
-            return;
-        }
-        T value = x;
-        if (mapSize_ - static_cast<std::size_t>(finish_.node - map_) < 2) ReallocateMap(1, false);
-        finish_.node[1] = static_cast<T*>(allocate(kNodeBytes));
-        if (finish_.cur) *finish_.cur = value;
-        finish_.SetNode(finish_.node + 1);
-        finish_.cur = finish_.first;
-    }
-
-    // _M_reallocate_map (004A39C0): room for `add` more node pointers at the back (or the front):
-    // the used pointers are recentred in a map more than twice as large as needed, else moved to a
-    // new map of size + max(size, add) + 2 slots.
-    void ReallocateMap(std::size_t add, bool atFront) {
-        std::size_t oldNodes = static_cast<std::size_t>(finish_.node - start_.node) + 1;
-        std::size_t newNodes = oldNodes + add;
-        T** newStart;
-        if (mapSize_ > 2 * newNodes) {
-            newStart = map_ + (mapSize_ - newNodes) / 2 + (atFront ? add : 0);
-            std::memmove(newStart, start_.node, oldNodes * sizeof(T*));
-        } else {
-            std::size_t newSize = mapSize_ + (mapSize_ < add ? add : mapSize_) + 2;
-            T** newMap = static_cast<T**>(allocate(newSize * sizeof(T*)));
-            newStart = newMap + (newSize - newNodes) / 2 + (atFront ? add : 0);
-            std::memcpy(newStart, start_.node, oldNodes * sizeof(T*));
-            if (map_) deallocate(map_, mapSize_ * sizeof(T*));
-            map_ = newMap;
-            mapSize_ = newSize;
-        }
-        start_.SetNode(newStart);
-        finish_.SetNode(newStart + oldNodes - 1);
-    }
-
-    // `while (!empty()) pop_back();`, as the game inlines it to empty a deque.
-    void PopAll() {
-        while (!empty()) pop_back();
-    }
-
-    // ~deque (e.g. 0068DD40): every node from start to finish, then the map, back to the pool.
-    void Destroy() {
-        if (!map_) return;
-        for (T** p = start_.node; p < finish_.node + 1; ++p) deallocate(*p, kNodeBytes);
-        deallocate(map_, mapSize_ * sizeof(T*));
-    }
-
-private:
-    Iterator start_;
-    Iterator finish_;
-    T** map_;
-    std::size_t mapSize_;
-};
+// vector<T>: stlp_vector.h, list<T>: stlp_list.h, deque<T>: stlp_deque.h (included at the top).
 
 // map<K, V> (_Rb_tree, 0xC bytes): the header node (allocated by the owner's constructor; its
 // parent is the root, its left / right children the leftmost / rightmost node), the element count,

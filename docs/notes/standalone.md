@@ -364,6 +364,20 @@ time out). 169 of 201 reached, 0 mismatches. Group 3: the client's party-id hash
 a float key, and the 350-odd hash members nothing of ours calls (reached only from other
 originals; dead in the standalone image unless the exe's data points at them).
 
+**S12 group 1 (2026-10-15).** STLport `deque<T>` (src/lib/stlp_deque.h, stlp_deque.cpp; moved out of
+stlp.h): the constructor, `_M_initialize_map`, `_M_create_nodes`, `_M_push_back_aux`,
+`_M_reallocate_map`, ~deque, the iterator copy and the three destroy helpers (trivial elements:
+nothing), `DequeAbi<T>` shims, 20 addresses for the two instantiations (camera view stack, 0x24-byte
+entries in 0x1F8-byte nodes; material entries, 0x10 in 0x200). 00411D60 / 00411F70 have no Ghidra
+function: size rows added. The camera's deque is built by a static initialiser before the hooks and
+its push (00410E70) is dead, so tests/verify/verify_stlp_deque.cpp adds a start-up check: deques built
+from the original `_M_initialize_map`, emptied from the front, refilled through the original
+`_M_reallocate_map` / `_M_push_back_aux` and freed by the original destructor, next to ours (shape and
+elements after every step; 384 cases, 0 mismatches). Per call: the constructor and
+`_M_initialize_map` against the original on a scratch deque (same map block), the rest ours only.
+The standalone boot gets past 00411AB0 and stops at 006FE8EF, MFC's `CPlex::Create`, from
+`CFixedAlloc::Alloc` (mfc_string.cpp).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
