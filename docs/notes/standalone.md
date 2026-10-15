@@ -1349,7 +1349,9 @@ ei_launch run the image as `--standalone` does: until the scheduler has this run
   sets RebirthLaunch). The third, ui_objectives (and script_parse's digest), parted at world update 40 in gz1g
   with SV7b7's fields (isaac.count, unmoto obj1937's path, ai.decay of obj1804 / 1890 / 1936): class (a), SV7b7.
 - After the fix, second pass: 53 of 53 the same, also `--strict`; each run equal to its hooked twin in console,
-  every digest record, dumps and decoded saves. No difference of class (b) is left.
+  every digest record, dumps and decoded saves. No difference of class (b) is left. After merging main: 53 of 53
+  the same again; units passed on its retry, its first attempt hit S17a's crash (UnitOrderLess::Less under
+  IntroSortByModel, an element read as 88000A00), so S17a happens on Rebirth too.
 - NivalRegistry (standalone-only, fixed): the hooked runs keep the original WinMain, which addon's PUSH at 004568E9
   points at `Software\Gipat.ru\EI_Starter\EvilIslands`; our GameMain read the vanilla key. It now takes addon's key
   with the flag. Evidence: with `NivalRegistry=0` all six runs tried (smoke, camera, ui_hud, ui_options_bind,
