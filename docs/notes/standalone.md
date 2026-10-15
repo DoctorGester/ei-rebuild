@@ -949,8 +949,16 @@ CIniFile's destructor 00695BE0; the unit model slot's destructor 0053F010; the l
 the integer, %n, %c / %s / %[ conversions; floats and wide characters end the scan; a start-up battery
 of 37 formats x 33 texts against the original; a format that starts with %n is left out, the original
 then reads a stale stack byte as its last character); lower_bound<unsigned*> 00408A50 (the hashtable
-constructors' prime lookup). The run then stops at the inlined hashtable constructor's helpers
-005AD640 / 005AD880 / 005ADAD0 (S12c's branch has them).
+constructors' prime lookup); CStringArray's GetAt by value 004698A0 / 004698C0 (record_arrays.cpp);
+the script keyword table (below); the client sector grids' lists of held objects, clear 005703C0 /
+00573660, erase 00572270, ~list 00572E90 / 0069BE70 (`stlp::HeldObject` destroys with the object's
+Release, slot 4). The run then stops at 005593D0, the server's unit appearance cache build
+(CWorldServer::SendZone, the main menu's world): 1883 bytes over about 20 unported hash_map and
+vector helpers (0055A..-0055D..), filed as S16a. The main menu is not reached yet.
+- Code read as data: ClassifyToken's keyword table is the immediate at 004CF69B (Rebirth rewrites
+  it); the image has INT3 there, so `KeywordTable` gives the vanilla table 0078BCA0 when standalone
+  (through GameData, so ei_vectors' stand-in still holds it). No other GameData read of a code
+  address is left in src.
 - DirectInput in the image: DirectInputCreateEx refuses an instance that is not a loaded module
   (E_INVALIDARG), so standalone.cpp routes the image's import to a wrapper that gives the host's
   module for 0x400000. c_dfDIMouse (00745D00) points at its object table in game.exe's code section

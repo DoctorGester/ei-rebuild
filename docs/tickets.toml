@@ -1414,7 +1414,7 @@ size = 1.5
 model = "opus"
 depends = ["S1", "S2", "S3", "S4", "S5", "S6", "S6a", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15"]
 files = ["src/standalone/*.cpp"]
-note = "Also needs S13a (world, terrain and sector destructors, database resets)."
+note = "Also needs S13a (world, terrain and sector destructors, database resets). S16 (2026-10-15): about 30 boot stops ported (docs/notes/standalone.md S16): all static initialisers run, WinMain, the renderer, sound, DirectInput (instance routed to the host module; c_dfDIMouse's object table lives in game.exe's .text, ours used), scripts, the main menu world's load. The run now stops at 005593D0 (the server's unit appearance cache, S16a). Main menu not reached. 15 of S16's ports went to S3f / S6b / S6c / S12d, which merged first (S16's copies dropped)."
 
 [[ticket]]
 id = "S17"
@@ -1726,6 +1726,15 @@ size = 1
 depends = ["S6c"]
 files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "src/game/record_arrays.*", "tests/verify/verify_mfc_serialize.cpp"]
 note = "From S6c. Serialize (slot 2) of 20: lists of counted references whose loader builds, assigns and releases a temporary (00427690, 00571420, 004C9350, 0052C740, 005576C0, 00598FD0, 00599DF0, 00558100); script lists assigning records (004C61C0, 004C64C0, 004C6800, 004C7640, 004C7F60, 004C8640, 004C8F00, 004CA2E0, 004D63E0, 0059A4A0, 006BC920); 004C2700 with its own SerializeElements<CString>. SerializeCList builds the local with the element policy and adds a copy: each needs the instantiation's assignment and the temporary's release (a SerializeCList variant taking the element's copy / release), checked at start-up like verify_mfc_serialize.cpp's (Mode 2 where releasing a copy needs more than construction)."
+
+[[ticket]]
+id = "S16a"
+title = "Standalone: the server's unit appearance cache build (005593D0) and its hash_map helpers"
+group = "standalone"
+size = 1
+depends = ["S16"]
+files = ["src/game/world_sync.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp"]
+note = "The S16 boot stop after the main menu world's CWorldServer::SendZone: 005593D0 (1883 bytes, library.csv 'unit appearance cache build', called through world_sync.cpp's UnitSetAdd forwarder). Unported callees: 00559DB0, 004FF640, 0055C260, 0055AC40, 0055ABB0, 0055BA10, 0055AD10, 0055B5C0, 0055D020, 0055C270, 0055A860, 0055AEB0, 0055B670, 0055B540, 00559DE0, 0055BB40, 0055BA80, 0055A9F0, 0055BBF0, 0055BAC0, 004FE420, 0051FAD0, 004FDE90 (hash_maps keyed by the appearance, vectors of item / weapon prototype indices and CStrings). Then rerun work.py test S16a --standalone and continue S16's loop (docs/notes/standalone.md S16)."
 
 # ---------------------------------------------------------------- Lua
 
