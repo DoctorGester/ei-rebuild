@@ -1,19 +1,19 @@
 # The ticket queue. tools/tickets.py checks it, writes docs/tickets.md (read that) and the board's data.
 #
-# Per ticket:
-#   id, title, group (a [[group]] key), status:
-#     running   a worker has it (started = date)
-#     queued    to do; the board shows it "ready" when every depends is done, else "waiting"
+# Per ticket: id, title, group (a [[group]] key); optional: size (sessions), model (opus / sonnet), depends (ids),
+# files, doc, note. Keep notes to what a worker or the user needs; history goes into the area notes.
+# Status is not here (WB10): it lives in the shared work database (build/live/work.db of the main checkout), set by
+# `work.py start` (running, started date), `tickets.py set ID STATUS` and `work.py done ID merged` (done, date):
+#     running / review   a worker has it / its branch waits to be merged
+#     queued    to do (no row in the database); the board shows it "ready" when every depends is done, else "waiting"
 #     later     not before its phase (the group's note says when)
 #     watch     a flaky or open problem we only observe
-#     done      merged or finished (done = date)
-#   optional: size (sessions), model (opus / sonnet), depends (ids), files, doc, started, done, note.
-# Keep notes to what a worker or the user needs; history goes into the area notes.
+#     done      merged or finished
 
 [queue]
 rules = [
   "Workers own one ticket or area for about a usage session, commit small green groups (all checks green), and follow docs/worker-brief.md. The coordinator merges, runs the suite and keeps this file current.",
-  "Mark a ticket running with the start date when a worker takes it, done with the date when it is merged.",
+  "A ticket goes running when its worker runs `work.py start`, review when the worker's branch is ready, done when it is merged (`work.py done ID merged`); statuses live in the work database, so every checkout sees them at once.",
   "Mechanical tickets go to Sonnet; type recovery, renderer and tricky debugging to Opus. Sonnet tickets change spelling only, never a signature or grouping; the first diff of each kind is reviewed before more are sent.",
 ]
 

@@ -11,14 +11,17 @@ your ticket with `python tools/tickets.py show <ID>` (status, note, files, what 
 group's note and doc), and the notes file it names. For renderer work also docs/notes/renderer.md.
 Don't read docs/tickets.md whole (it is generated; `tickets.py show` / `list` cover it).
 
-Tickets (docs/tickets.toml, changed only through tools/tickets.py, never by hand):
-- When your branch is ready: `python tools/tickets.py set <ID> review`, and commit it with your work.
+Tickets (text in docs/tickets.toml, status in the shared work database; both only through tools/tickets.py,
+never by hand). `work.py start` set yours running.
+- When your branch is ready: `python tools/tickets.py set <ID> review` (shows on the board at once; commit
+  the rewritten docs/tickets.md with your work).
 - Follow-up work you found but did not do: `python tools/tickets.py add <NEW-ID> --group <key>
   --title "..." --note "..." [--depends <ID>]` (ids: your ticket's prefix plus a letter or number;
   `tickets.py list` shows what exists). Mention them in your report.
-- Leave other tickets' status alone; the coordinator sets running and done.
+- Leave other tickets' status alone; the coordinator sets done at merge.
 - If docs/tickets.toml or docs/tickets.md conflicts when you merge main: take main's toml, re-apply
-  your few changes with tickets.py, and let it rewrite tickets.md.
+  your few changes with tickets.py, and let it rewrite tickets.md (`python tools/tickets.py`; it also
+  drops any status line that came back: the database's status wins).
 
 Rules:
 - Never modify anything under F:\games or the registry. Don't install anything. Don't call any

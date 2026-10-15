@@ -5,6 +5,8 @@ except its own heartbeat row in the `process` table), docs/tickets.toml of the m
 git branches the open assignments point at, and serves the pages in this folder. Nothing is published.
 
     GET /                      the page (index.html; #tickets and #runs are its two views)
+    GET /tickets/              the ticket board (tools/tickets_board/index.html, the published page)
+    GET /tickets/tickets.json  its data, live: tickets.py's tickets.json with the database's statuses now
     GET /api/status            everything below in one request (what the page polls)
     GET /api/tickets           tickets joined with assignment, last notes, last commit, latest batch
     GET /api/runs              queued and running batches with their games, and the history
@@ -23,6 +25,7 @@ HISTORY = 40
 PASSED = ('PASS', 'PASS*')
 STATIC = {'/': ('index.html', 'text/html; charset=utf-8'), '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
           '/board.css': ('board.css', 'text/css; charset=utf-8')}
+TICKET_BOARD = os.path.join(TOOLS, 'tickets_board', 'index.html')    # the published ticket board's page
 
 
 def seconds_since(stamp):
@@ -78,8 +81,9 @@ class Board:
         db.execute('PRAGMA query_only = ON')   # this connection only reads
         return db
 
-    def load_tickets(self):
-        """(groups, tickets) of the main checkout's docs/tickets.toml, through tools/tickets.py's loader."""
+    def load_tickets(self, db):
+        """(data, groups, tickets) of the main checkout's docs/tickets.toml (through tools/tickets.py's loader, parsed
+        again when the file changes) with the statuses the database has now (ticket_status, WB10)."""
         path = os.path.join(self.main, 'docs', 'tickets.toml')
         with self.lock:
             st = os.stat(path)
@@ -90,9 +94,17 @@ class Board:
                     self.tickets_py = importlib.import_module('tickets')
                 self.tickets_py.SOURCE = path
                 data, groups, tickets, problems = self.tickets_py.load()
-                self.tickets_py.derive(tickets)
-                self.toml_cache = (key, (groups, tickets))
-            return self.toml_cache[1]
+                self.toml_cache = (key, (data, groups, tickets, self.tickets_py.toml_commit(self.main)))
+            data, groups, tickets, commit = self.toml_cache[1]
+        tickets = [dict(t) for t in tickets]
+        self.tickets_py.with_status(tickets, self.work.ticket_statuses(db))
+        self.tickets_py.derive(tickets)
+        return data, groups, tickets, commit
+
+    def ticket_board(self, db):
+        """tickets.json for the ticket board page (tools/tickets_board/index.html), live."""
+        data, groups, tickets, commit = self.load_tickets(db)
+        return self.tickets_py.board_data(data, groups, tickets, commit, live=True)
 
     def branches(self):
         """{branch: {hash, time, subject}} for every local branch: one git call, reused for GIT_TTL seconds."""
@@ -152,7 +164,7 @@ class Board:
     # ---- tickets
 
     def tickets(self, db):
-        groups, tickets = self.load_tickets()
+        data, groups, tickets, commit = self.load_tickets(db)
         gname = {g['key']: g['name'] for g in groups}
         branches = self.branches()
         assign = {a['ticket']: a for a in db.execute('SELECT * FROM assignment WHERE ended IS NULL')}
@@ -264,9 +276,19 @@ def make_handler(board):
                     name, ctype = STATIC[path]
                     with open(os.path.join(HERE, name), 'rb') as f:
                         return self.send(200, f.read(), ctype)
-                if path.startswith('/api/'):
+                if path == '/tickets':
+                    self.send_response(301)
+                    self.send_header('Location', '/tickets/')
+                    self.send_header('Content-Length', '0')
+                    return self.end_headers()
+                if path == '/tickets/':
+                    with open(TICKET_BOARD, 'rb') as f:
+                        return self.send(200, f.read(), 'text/html; charset=utf-8')
+                if path.startswith('/api/') or path == '/tickets/tickets.json':
                     db = board.connect()
                     try:
+                        if path == '/tickets/tickets.json':
+                            return self.json(board.ticket_board(db))
                         if path == '/api/tickets':
                             return self.json(board.tickets(db))
                         if path == '/api/runs':

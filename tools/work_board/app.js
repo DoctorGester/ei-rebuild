@@ -240,7 +240,7 @@ function procs() {
 }
 function render() {
   if (!data) return;
-  document.querySelectorAll('.tab').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === state.view));
+  document.querySelectorAll('.tab[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === state.view));
   document.getElementById('procs').innerHTML = procs();
   document.getElementById('asof').textContent = 'Updated ' + (data.time || '').slice(11, 19) + '.';
   const el = document.getElementById('view');
@@ -276,7 +276,7 @@ document.addEventListener('click', e => {
     ft.setAttribute('aria-expanded', open.has(k));
     if (row) row.hidden = !open.has(k);
   }
-  const tab = e.target.closest('.tab');
+  const tab = e.target.closest('.tab[data-view]');
   if (tab) { state.view = tab.dataset.view; location.hash = state.view; render(); }
 });
 document.addEventListener('input', e => { if (e.target.id === 'q') { state.q = e.target.value; render(); } });
