@@ -1669,7 +1669,7 @@ note = "S2 ported 45 of the 200 short functions as LoadDword<n> / MemberAddress<
 id = "S3a"
 title = "Standalone: the static initialisers' exit functions"
 group = "standalone"
-status = "running"
+status = "review"
 depends = ["S3"]
 note = "130 of the 311 functions the static initialisers register with atexit have no code in the image (the standalone check logs them: 'exit function ... has no code yet'). Patterns: 83 'mov ecx, obj; jmp dtor', guarded variants (test/or of a flag bit, then the same), 14 'free the buffer at [p]-4 if set' (operator delete), refcount releases, eh vector destructor iterator, a WSACleanup loop. Extend tools/gen_static_init.py (conditional branches) or port by hand like src/game/atexit_400.cpp; registered with EI_REPLACE they also run at exit in the hook build. docs/notes/standalone.md S3."
 started = "2026-10-15"
@@ -1681,6 +1681,14 @@ group = "standalone"
 status = "queued"
 depends = ["S3"]
 note = "Call targets of the generated static initialisers (src/standalone/static_init.cpp) that no library ticket covers, as the standalone check lists them: compiler-generated global constructors 0051FB10 (skill archive), 005612F0 (CWorldClient), 00589ED0 (CWorldServer), 0057E2F0 (spell tables), 0057E3D0 (item database), 0065F580 (multiplayer heroes), 006AE0F0 (quest database), 006D0250 (prints), 006D7220 (acks), 005CDFC0; MFC internals 006E6BCD (x10), 006E68C9, 006E6916, 006E6AEA, 006E6B37, 0070B600, 0070D1AA, 00704546 (x4), 0070DC4D, 00700674 (x5), 006FC42F (x8). Check first which S4-S12 already take (CString, CWordArray, CByteArray, CArray, CList, hashtable and stlp ctors 00455E50, 004ED540, 0056A410, 004DC830, 0066B320, 005E0A90; atexit, eh vector constructor, the WSAStartup thunk). Port with EI_REPLACE at the address and a verify start-up check where they build data. docs/notes/standalone.md S3."
+
+[[ticket]]
+id = "S3c"
+title = "Standalone: game-side destructors the exit functions call"
+group = "standalone"
+status = "queued"
+depends = ["S3a"]
+note = "Callees of the generated exit functions (src/standalone/static_exit.cpp) that no library ticket covers, as the standalone check logs them ('exit function's callee ... has no code yet'): compiler-generated destructors 00561B00 (CWorldClient), 0058AAD0 (CWorldServer), 0045E6F0 (map database), 00684390 (spell database), 006ADF40 (quest database), 006D00E0 (prints), 006D70B0 (acks), and the ones Ghidra has no function for: 0056E800 (x11), 004584E0, 004F0520, 005BF870, 005C4490, 0069BE20, 0070CC2D, 0070CE77, 0070D5F9, 0070D61F, 0070DC48, 0070E181 (check first which are MFC/STLport internals for S4-S9). The matching constructors are S3b's. Port at the address with EI_REPLACE (sizes in config/extra_function_sizes.csv where Ghidra has none). docs/notes/standalone.md S3a."
 
 # ---------------------------------------------------------------- Lua
 
