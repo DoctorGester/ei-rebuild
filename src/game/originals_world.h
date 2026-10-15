@@ -333,3 +333,22 @@ __declspec(naked) inline CEngineObject* __fastcall WorldFindObjectOriginal(void*
 __declspec(naked) inline double __fastcall TerrainHeightAtOriginal(Terrain* /*terrain*/, void*, float /*x*/, float /*y*/,
                                                                   int /*layer*/) EI_ORIGINAL(0x006C8680)
 __declspec(naked) inline void __fastcall TweenArrayRemoveAllOriginal(void* /*tweens*/) EI_ORIGINAL(0x006D43E0)
+
+// S13a. The server destructor's (0058AAD0) members not ported yet (all plain RET, thiscall on the member):
+// 0058A140 the first script's destructor (CScript, +0x12874), 0058A450 the AI map's (+0x170). The second
+// script's destructor is inlined; its member destructors are MFC rows of their own: 004C92C0 (+0x1CC),
+// 004C8E20 (+0x1B0), 004CB650 (+0x194), 004C7560 (+0x178 and +0x70), 004C8520 (+0x15C), 004C7E30 (+0x140),
+// 004CB310 (+0x8C), 004C6760 (+0x4C), 004C6410 (+0x30), 004C6120 (+0x14), 004CB150 (+0).
+__declspec(naked) inline void __fastcall ScriptDestructOriginal(void* /*script*/) EI_ORIGINAL(0x0058A140)
+__declspec(naked) inline void __fastcall AIMapDestructOriginal(void* /*map*/) EI_ORIGINAL(0x0058A450)
+__declspec(naked) inline void __fastcall ScriptMember4C92C0(void*) EI_ORIGINAL(0x004C92C0)
+__declspec(naked) inline void __fastcall ScriptMember4C8E20(void*) EI_ORIGINAL(0x004C8E20)
+__declspec(naked) inline void __fastcall ScriptMember4CB650(void*) EI_ORIGINAL(0x004CB650)
+__declspec(naked) inline void __fastcall ScriptMember4C7560(void*) EI_ORIGINAL(0x004C7560)
+__declspec(naked) inline void __fastcall ScriptMember4C8520(void*) EI_ORIGINAL(0x004C8520)
+__declspec(naked) inline void __fastcall ScriptMember4C7E30(void*) EI_ORIGINAL(0x004C7E30)
+__declspec(naked) inline void __fastcall ScriptMember4CB310(void*) EI_ORIGINAL(0x004CB310)
+__declspec(naked) inline void __fastcall ScriptMember4C6760(void*) EI_ORIGINAL(0x004C6760)
+__declspec(naked) inline void __fastcall ScriptMember4C6410(void*) EI_ORIGINAL(0x004C6410)
+__declspec(naked) inline void __fastcall ScriptMember4C6120(void*) EI_ORIGINAL(0x004C6120)
+__declspec(naked) inline void __fastcall ScriptMember4CB150(void*) EI_ORIGINAL(0x004CB150)

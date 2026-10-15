@@ -624,6 +624,14 @@ public:
     // messages registry, the AI map, both scripts, the diplomacy, the id maps, the zone header (a
     // queue stream), the three lists), the vtable 0073F928, then ResetState. Returns this.
     CWorldServer* Construct();
+    // world_destructors.cpp
+    // 0058AAD0 (the global's exit function 00589C00). The vtable 0073F928, Teardown, then the members
+    // last to first: the lists, the zone header, the id maps, the strings, the diplomacy (its Reset),
+    // both scripts (the second's destructor inlined), the AI map, the messages registry, the .mob
+    // list, the zone name, the update map, the zone exits, then the base body (CWorld::Destruct).
+    void Destruct();
+    // 0058A430 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
+    CWorldServer* DeletingDestruct(unsigned flags);
 
     // world_server_life.cpp
     // 0058AE10, vtable slot 2 (Create; called by WinMain). Teardown (slot 3) first, then the
