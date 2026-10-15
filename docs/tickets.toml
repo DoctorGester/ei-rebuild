@@ -977,7 +977,7 @@ id = "SV7b5"
 title = "Net replication ordered by pointer"
 group = "verification"
 depends = ["SV7a"]
-note = "SV7a family 5 (static, no golden shows it). net Connection: priorities_[11] maps keyed by ReplicaEntry*, byObject_/attached_ by CRefObject*; SendUpdate 00435A00 assigns net ids and picks entries over the budget in address order, CollectChanges 004346D0 merges by pointer. Order by object id in the original (harness patch) and ours; needs a multiplayer/lobby scenario under EI_HEAP_JITTER to show and check it."
+note = "T2f (merged) already orders DiffObjectSets/SyncPlayer object sends (0047ADF0, 0047B4C0) by object id on both sides; the Connection maps here are the remaining part."
 
 [[ticket]]
 id = "SV7b6"
