@@ -388,6 +388,15 @@ void PresentWindow() {
         ei::Log("render: the game window's Present failed (%08lX)", static_cast<unsigned long>(hr));
 }
 
+bool CurrentWindowParts(WindowParts* parts) {
+    if (!g_chain || !g_view || !g_pipeline.id || !g_rampView.id || g_failed) return false;
+    int clientWidth = 0, clientHeight = 0, frameWidth = 0, frameHeight = 0;
+    Rect placed{};
+    if (!Placement(&clientWidth, &clientHeight, &frameWidth, &frameHeight, &placed)) return false;
+    *parts = WindowParts{g_chain, g_view, g_shader, g_pipeline, g_rampView, g_chainWidth, g_chainHeight, placed, g_waitForVsync};
+    return true;
+}
+
 void DropWindow() {
     ReleaseChain();
     if (g_rampView.id) sg_destroy_view(g_rampView);
