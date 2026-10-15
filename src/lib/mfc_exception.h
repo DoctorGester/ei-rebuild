@@ -21,6 +21,41 @@ struct CException {
 };
 static_assert(sizeof(CException) == 8);
 
+// CSimpleException (0x98 bytes): MFC's four static exceptions (memory, not supported, resource,
+// user), not auto-deleted; the message is loaded from the resource on first use. Built by the
+// static initialisers through the classes' constructors (thiscall (bAutoDelete, nResourceID), RET 8,
+// return this; ticket S16).
+struct CSimpleException {
+    void* vtable;
+    BOOL autoDelete;            // +0x04
+    std::uint32_t untouched08;  // not written by the constructors
+    BOOL initialized;           // +0x0C m_bInitialized
+    BOOL loaded;                // +0x10 m_bLoaded
+    char message[128];          // +0x14 m_szMessage
+    unsigned resourceId;        // +0x94 m_nResourceID
+
+    CSimpleException* Construct(void* classVtable, BOOL autoDeleteFlag, unsigned id) {
+        autoDelete = autoDeleteFlag;
+        initialized = 0;
+        loaded = 0;
+        resourceId = id;
+        vtable = classVtable;
+        return this;
+    }
+};
+static_assert(sizeof(CSimpleException) == 0x98 && offsetof(CSimpleException, resourceId) == 0x94);
+// The four classes' vtables.
+inline void* ResourceExceptionVtable() { return reinterpret_cast<void*>(0x0074646C); }
+inline void* UserExceptionVtable() { return reinterpret_cast<void*>(0x00746484); }
+inline void* MemoryExceptionVtable() { return reinterpret_cast<void*>(0x007465F8); }
+inline void* NotSupportedExceptionVtable() { return reinterpret_cast<void*>(0x00746610); }
+// 006E68C9 CResourceException, 006E6916 CUserException, 006E6AEA CMemoryException, 006E6B37
+// CNotSupportedException (bAutoDelete, nResourceID).
+CSimpleException* __fastcall ConstructResourceException(CSimpleException* self, void*, BOOL autoDelete, unsigned id);
+CSimpleException* __fastcall ConstructUserException(CSimpleException* self, void*, BOOL autoDelete, unsigned id);
+CSimpleException* __fastcall ConstructMemoryException(CSimpleException* self, void*, BOOL autoDelete, unsigned id);
+CSimpleException* __fastcall ConstructNotSupportedException(CSimpleException* self, void*, BOOL autoDelete, unsigned id);
+
 // CException::Delete (00702069; thiscall, called as fastcall): an auto-delete exception is
 // deleted through vtable slot 1. The original reads the flag before testing the pointer.
 void __fastcall DeleteException(CException* exception);

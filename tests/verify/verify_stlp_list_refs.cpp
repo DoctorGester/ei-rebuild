@@ -16,6 +16,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -212,7 +213,34 @@ void __fastcall RemoveCountedVerify(stlp::list<RefPtr>* self, void*, const RefPt
     ei::verify::Report("stlp::list::remove 00427320", ok, ok ? "" : "a node holds the object or is unlinked");
 }
 
+// clear() of plain data, ours only (the nodes go back to the pool): the sentinel linked to itself,
+// every node pushed on its free list in list order (the last one on top, each linking to the one
+// before, the first to the old top).
+template <std::uintptr_t A, typename Abi>
+struct PlainClear {
+    using List = typename Abi::List;
+    using Node = typename List::Node;
+    static void __fastcall Verify(List* self) {
+        std::vector<Node*> nodes;
+        for (Node* n = self->head->next; n != self->head && nodes.size() < 100000; n = n->next) nodes.push_back(n);
+        void** list = FreeList(sizeof(Node));
+        void* oldTop = *list;
+        Abi::Clear(self);
+        bool ok = self->head->next == self->head && self->head->prev == self->head;
+        void* expected = oldTop;
+        for (Node* n : nodes) {
+            ok = ok && *reinterpret_cast<void**>(n) == expected;
+            expected = n;
+        }
+        ok = ok && *list == expected;
+        ei::verify::Report(Name<A>("stlp::list::clear"), ok, "");
+    }
+};
+
 } // namespace
+
+using IdsClear = PlainClear<0x00405500, PlainList4>;
+EI_VERIFY(0x00405500, IdsClear::Verify, 0, s_unused);
 
 // insert(pos, x) of plain data: mov eax,[esp+0xC]; push eax (5 bytes).
 EI_VERIFY(0x00404A40, PlainInsert4<0x00404A40>::Verify, 5, PlainInsert4<0x00404A40>::original);

@@ -156,6 +156,9 @@ BOOL CIniFile::SetPath(const char* path) {
 }
 EI_REPLACE_METHOD(0x00695BF0, CIniFile::SetPath);
 
+void CIniFile::Destruct() { reinterpret_cast<mfc::CString&>(path_).~CString(); }
+EI_REPLACE_METHOD(0x00695BE0, CIniFile::Destruct);
+
 // --- Readers ---------------------------------------------------------------------------------------
 
 BOOL CIniFile::GetKeyNames(const char* section, console::CStringArray* out) {

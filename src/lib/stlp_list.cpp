@@ -159,6 +159,8 @@ void __fastcall ListRemoveCounted(list<RefPtr>* self, void*, const RefPtr* value
 
 // insert(pos, x) of plain data: 4 bytes (6), 16 (2), 20, 28 and 0x104 (from operator new).
 EI_REPLACE(0x00404A40, PlainList4::Insert);
+// 00405500: list<int>::clear (the base manager's id lists; S16, on the standalone boot path).
+EI_REPLACE(0x00405500, PlainList4::Clear);
 EI_REPLACE(0x0040AA10, PlainList4::Insert);
 EI_REPLACE(0x0056EA80, PlainList4::Insert);
 EI_REPLACE(0x0068C560, PlainList4::Insert);

@@ -4,6 +4,7 @@
 // pause of 120..180 s, a calm track; the briefing, constructor, main menu and credits states each
 // play one file. The themes come from music.reg (LoadThemes, 006B4710).
 #include "sound.h"
+#include "sound_themes.h"
 #include "game_strings.h"
 
 #include "console.h"
@@ -54,6 +55,32 @@ void WaitAndEndAfter(CSoundManager* snd) {
     snd->StopStream(1);
 }
 
+} // namespace
+
+// ---- The theme array ----
+
+void InitMusicTheme(MusicTheme* theme) {
+    new (&theme->name) mfc::CString();
+    new (&theme->briefing) mfc::CString();
+    new (&theme->constructor) mfc::CString();
+    theme->calm.Construct();
+    theme->combat.Construct();
+}
+
+void __fastcall DestructMusicTheme(MusicTheme* theme) {
+    theme->combat.Destruct();
+    theme->calm.Destruct();
+    theme->constructor.~CString();
+    theme->briefing.~CString();
+    theme->name.~CString();
+}
+EI_REPLACE(0x006B4D90, DestructMusicTheme);
+EI_REPLACE(0x006B5BC0, MusicThemes::ConstructElements);
+EI_REPLACE(0x006B5B50, MusicThemes::DestructElements);
+EI_REPLACE(0x006B59A0, MusicThemes::SetSize);
+
+namespace {
+
 // ---- Theme loading (006B4710) ----
 
 StringArg Copy(const char* text) {
@@ -71,7 +98,9 @@ struct Registry : RegistryOriginals {
 // The theme array (CArray<MusicTheme> at +0x1C): SetSize [006B59A0: size, grow by (-1 keeps it)]
 // and the element assignment [006B4D40] (MFC template instantiations; the original inlines the
 // second SetSize and the first assignment, identically).
-__declspec(naked) void __fastcall ThemesSetSize(void*, void*, int, int) EI_ORIGINAL(0x006B59A0)
+void ThemesSetSize(void* themes, int size, int growBy) {
+    MusicThemes::SetSize(static_cast<MusicThemes::Array*>(themes), nullptr, size, growBy);
+}
 __declspec(naked) void __fastcall ThemeAssign(MusicTheme*, void*, const void*) EI_ORIGINAL(0x006B4D40)
 
 // The theme being read, laid out as MusicTheme with constructed members.
@@ -88,7 +117,7 @@ static_assert(sizeof(LocalTheme) == sizeof(MusicTheme));
 // Appends a copy of `theme` to the music system's themes.
 void AppendTheme(CMusicSystem* music, const LocalTheme& theme) {
     int n = music->themeCount;
-    ThemesSetSize(&music->themesVtable, nullptr, n + 1, -1);
+    ThemesSetSize(&music->themesVtable, n + 1, -1);
     ThemeAssign(&music->themes[n], nullptr, &theme);
 }
 
@@ -324,7 +353,7 @@ EI_REPLACE_METHOD(0x006B4350, CMusicSystem::Construct);
 
 void CMusicSystem::ResetThemes() {
     state = 0;
-    ThemesSetSize(&themesVtable, nullptr, 0, -1);
+    ThemesSetSize(&themesVtable, 0, -1);
     jingle = game::NoneText();
     mainMenu = jingle;
     credits = mainMenu;

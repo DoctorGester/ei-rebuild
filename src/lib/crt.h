@@ -143,6 +143,7 @@ void* __cdecl Memmove(void* to, const void* from, std::size_t n);               
 int __cdecl Strcmp(const char* a, const char* b);                               // 006F07D0 (not registered)
 int __cdecl Stricmp(const char* a, const char* b);                              // 006F2230
 int __cdecl Strnicmp(const char* a, const char* b, std::size_t n);              // 006FA1A0
+int __cdecl Memicmp(const void* a, const void* b, std::size_t n);               // 006FD2F0
 int __cdecl Mbscmp(const unsigned char* a, const unsigned char* b);             // 006E848B
 int __cdecl Mbsicmp(const unsigned char* a, const unsigned char* b);            // 006E8767
 unsigned char* __cdecl Mbsinc(const unsigned char* p);                          // 006E9947
@@ -185,7 +186,7 @@ int __cdecl Rand();                                                             
 void __cdecl Srand(unsigned seed);                                              // 006E77EA
 
 // Maths, plain C++ (rewrite guide rule 7), exact. (acos 006E7334, asin 006E83D4 and fmod 006E95A0
-// have no callers: the game calls the _CI forms.)
+// are CiAcos, CiAsin and StackFmod below, in the standalone image.)
 double __cdecl Ceil(double value);                                              // 006E8B1F
 double __cdecl Modf(double value, double* whole);                               // 006EAD0B
 // _controlfp on the x87 control word only (the SSE one is not the game's): returns the new word.
@@ -239,11 +240,15 @@ double __cdecl CiFmodEntry();                                                   
 std::int64_t __cdecl FtolExtended(const unsigned char* value);
 // The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
 // acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE, fmod exact. Out of
-// the domain: the x87 indefinite.
+// the domain: the x87 indefinite. CiAcos and CiAsin are also acos 006E7334 and asin 006E83D4
+// themselves (the stack-argument entries; standalone image only).
 double __cdecl CiAcos(double x);
 double __cdecl CiAsin(double x);
 double __cdecl CiPow(double x, double y);
 double __cdecl CiFmod(double x, double y);
+// fmod 006E95A0 (the stack-argument entry; standalone image only): CiFmod, but a NaN argument comes
+// in through the CRT's loader (006F2DAE), which garbles its payload's low bits.
+double __cdecl StackFmod(double x, double y);
 
 // C++ exceptions (S4c, src/lib/crt_except.cpp). _CxxThrowException: RaiseException(0xE06D7363, not
 // continuable, {0x19930520, object, throw info}); the throw information is VC6's layout, which this

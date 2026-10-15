@@ -193,6 +193,23 @@ void __stdcall ThrowNotSupported() {
 void* __fastcall FileExceptionRuntimeClass(const void*) { return FileExceptionClass(); }
 void* __fastcall ArchiveExceptionRuntimeClass(const void*) { return ArchiveExceptionClass(); }
 
+CSimpleException* __fastcall ConstructResourceException(CSimpleException* self, void*, BOOL autoDelete, unsigned id) {
+    return self->Construct(ResourceExceptionVtable(), autoDelete, id);
+}
+CSimpleException* __fastcall ConstructUserException(CSimpleException* self, void*, BOOL autoDelete, unsigned id) {
+    return self->Construct(UserExceptionVtable(), autoDelete, id);
+}
+CSimpleException* __fastcall ConstructMemoryException(CSimpleException* self, void*, BOOL autoDelete, unsigned id) {
+    return self->Construct(MemoryExceptionVtable(), autoDelete, id);
+}
+CSimpleException* __fastcall ConstructNotSupportedException(CSimpleException* self, void*, BOOL autoDelete, unsigned id) {
+    return self->Construct(NotSupportedExceptionVtable(), autoDelete, id);
+}
+EI_REPLACE(0x006E68C9, ConstructResourceException);
+EI_REPLACE(0x006E6916, ConstructUserException);
+EI_REPLACE(0x006E6AEA, ConstructMemoryException);
+EI_REPLACE(0x006E6B37, ConstructNotSupportedException);
+
 EI_REPLACE_METHOD(0x00702053, CException::Construct);
 EI_REPLACE(0x00702069, DeleteException);
 EI_REPLACE_METHOD(0x006E6335, CFileException::Destruct);

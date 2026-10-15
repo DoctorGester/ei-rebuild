@@ -220,6 +220,59 @@ void __fastcall SoundResetStreamVerify(void* stream) {
 }
 } // namespace
 EI_VERIFY(0x006B6040, SoundConstructVerify, 0, s_unused);
+
+// The emitters' and sequences' element constructors: the original on a scratch copy, ours on the
+// element, the name array's header compared (both built empty). The destructors ours only, counted (the
+// array's storage freed, the header left as it was). Reached by the sound manager's constructor
+// and destructor (every start and exit).
+namespace {
+template <typename T, T*(__fastcall* Ours)(T*)>
+struct ElementConstruct {
+    static inline T*(__fastcall* original)(T*);
+    static inline const char* name;
+    static T* __fastcall Verify(T* self) {
+        T theirs;
+        std::memcpy(static_cast<void*>(&theirs), self, sizeof(T));
+        T* expected = original(&theirs);
+        T* actual = Ours(self);
+        ei::verify::Check(name, true,
+                          expected == &theirs && actual == self && std::memcmp(&theirs, self, sizeof(T)) == 0, "");
+        return actual;
+    }
+};
+template <typename T, void(__fastcall* Ours)(T*)>
+struct ElementDestruct {
+    static inline const char* name;
+    static void __fastcall Verify(T* self) {
+        Ours(self);
+        ei::verify::Check(name, true, true, "");   // counted (the storage is freed, the header left)
+    }
+};
+using EmitterConstruct = ElementConstruct<SoundEmitter, &ConstructEmitter>;
+using SequenceConstruct = ElementConstruct<SoundSequence, &ConstructSequence>;
+using EmitterDestruct = ElementDestruct<SoundEmitter, &DestructEmitter>;
+using SequenceDestruct = ElementDestruct<SoundSequence, &DestructSequence>;
+struct ElementNames {
+    ElementNames() {
+        EmitterConstruct::name = "SoundEmitter constructor";
+        SequenceConstruct::name = "SoundSequence constructor";
+        EmitterDestruct::name = "SoundEmitter destructor";
+        SequenceDestruct::name = "SoundSequence destructor";
+    }
+} s_elementNames;
+} // namespace
+// PUSH ESI; MOV ESI,ECX; LEA ECX,[ESI+4] (6).
+EI_VERIFY(0x006B63D0, EmitterConstruct::Verify, 6, EmitterConstruct::original);
+EI_VERIFY(0x006B63F0, SequenceConstruct::Verify, 6, SequenceConstruct::original);
+EI_VERIFY(0x006B63E0, EmitterDestruct::Verify, 0, s_unused);
+EI_VERIFY(0x006B6400, SequenceDestruct::Verify, 0, s_unused);
+
+// The stream thread's procedure: ours only, counted on entry (it ends the thread, so never returns).
+static unsigned __cdecl StreamThreadEntryVerify(void* manager) {
+    ei::verify::Check("sound stream thread entry", true, manager != nullptr, "");
+    return StreamThreadEntry(manager);
+}
+EI_VERIFY(0x006B6A10, StreamThreadEntryVerify, 0, s_unused);
 EI_VERIFY(0x006B65D0, SoundDestructVerify, 0, s_unused);
 EI_VERIFY(0x006BA9C0, SoundResetStreamVerify, 0, s_unused);
 
