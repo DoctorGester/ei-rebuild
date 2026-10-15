@@ -70,3 +70,15 @@ EI_REPLACE(0x0064AD40, HudPortraitSlotVector::EraseRange);
 
 // The client party's engine objects: _M_insert_overflow (RET 0xC).
 EI_REPLACE(0x00428A20, EngineObjectRefVector::InsertOverflow);   // 4
+
+// The UI's lists: the save list (erase RET 8, _M_insert_overflow RET 0xC), the multiplayer
+// addresses, the camp's trade rows and records, the options' key bindings (_M_insert_overflow).
+EI_REPLACE(0x006578F0, SaveEntryVector::EraseRange);
+EI_REPLACE(0x006579C0, SaveEntryVector::InsertOverflow);       // 0x44
+EI_REPLACE(0x0061EC40, MpAddressVector::InsertOverflow);       // 0x2C
+EI_REPLACE(0x00629E60, TradeRowVector::InsertOverflow);        // 0x18
+EI_REPLACE(0x0062A0B0, TradeRecordVector::InsertOverflow);     // 0x3C
+EI_REPLACE(0x00652930, OptionBindingVector::InsertOverflow);   // 0x18
+
+// The game flow's zone table: _M_insert_overflow (RET 0xC).
+EI_REPLACE(0x00587480, ZoneTableVector::InsertOverflow);       // 0xC

@@ -16,6 +16,8 @@
 #include "record_lifetime.h"
 #include "record_members.h"
 #include "ui.h"
+#include "ui_camp.h"
+#include "ui_screens.h"
 #include "unit_db.h"
 #include "unit_looks.h"
 
@@ -405,6 +407,63 @@ private:
 };
 
 using HudPortraitSlotVector = stlp::VectorAbi<HudPortraitSlot, HudPortraitSlotElement>;
+
+// ---- The UI's lists (ui.h, ui_camp.h, ui_screens.h) ---------------------------------------------
+
+// The save list's entries (ui_saveload.cpp's 006578F0 / 006579C0): the compiler's copy constructor
+// 00656640, operator= 006538E0 and destructor 00656720 (S13).
+struct SaveEntryElement {
+    static void Construct(SaveEntry* to, const SaveEntry& from) { to->CopyConstruct(&from); }
+    static void Assign(SaveEntry& to, const SaveEntry& from) { to.Assign(&from); }
+    static void Destroy(SaveEntry* p) { p->Destruct(); }
+};
+
+// The multiplayer address list (ui_connect_screen.cpp's 0061EC40): 0061EE80, 0061E8F0, 0061E8A0.
+struct MpAddressElement {
+    static void Construct(MpAddressEntry* to, const MpAddressEntry& from) { to->CopyConstruct(&from); }
+    static void Assign(MpAddressEntry& to, const MpAddressEntry& from) { to.AssignFrom(from); }
+    static void Destroy(MpAddressEntry* p) { p->Destroy(); }
+};
+
+// The camp's trade rows (ui_trade_panel.cpp's 00629E60): the copy constructor 0062A310 (the texts,
+// then the numbers and the flag; the padding is not copied), the destructor 00613CF0.
+struct TradeRowElement {
+    static void Construct(TradeRow* to, const TradeRow& from) {
+        new (&records::AsCString(to->name)) mfc::CString(records::AsCString(from.name));
+        new (&records::AsCString(to->key)) mfc::CString(records::AsCString(from.key));
+        new (&records::AsCString(to->nextKey)) mfc::CString(records::AsCString(from.nextKey));
+        to->price = from.price;
+        to->level = from.level;
+        to->learnable = from.learnable;
+    }
+    static void Destroy(TradeRow* p) { p->Destroy(); }
+};
+
+// The options window's key bindings (ui_options.cpp's 00652930): memberwise (the copy constructor
+// 00652FF0), the destructor inline (OptionBinding::Destroy).
+struct OptionBindingElement : records::Memberwise<OptionBinding, &OptionBinding::action_, &OptionBinding::keys_,
+                                                  &OptionBinding::name_, &OptionBinding::keysText_> {
+    static void Destroy(OptionBinding* p) { p->Destroy(); }
+};
+
+using SaveEntryVector = stlp::VectorAbi<SaveEntry, SaveEntryElement>;
+using MpAddressVector = stlp::VectorAbi<MpAddressEntry, MpAddressElement>;
+using TradeRowVector = stlp::VectorAbi<TradeRow, TradeRowElement>;
+using TradeRecordVector = stlp::VectorAbi<TradeRecord>;   // plain 0x3C-byte records (0062A0B0)
+using OptionBindingVector = stlp::VectorAbi<OptionBinding, OptionBindingElement>;
+
+// ---- The game flow's zone table (world_game.cpp's 00587480) ------------------------------------
+
+// world_game.cpp's ZoneEntry with its texts typed: two CStrings and an id, copied memberwise and
+// destroyed from the last (the compiler's pair).
+struct ZoneTableEntry {
+    mfc::CString first;
+    mfc::CString second;
+    int id;
+};
+static_assert(sizeof(ZoneTableEntry) == 12);
+
+using ZoneTableVector = stlp::VectorAbi<ZoneTableEntry, stlp::ObjectElement<ZoneTableEntry>>;
 
 // ---- The quest database (quest_records.h) ------------------------------------------------------
 

@@ -257,6 +257,49 @@ struct EngineObjectRefs {
     }
 };
 
+// The UI's lists: their texts (and the numbers the copies carry).
+struct SaveEntryText {
+    static std::string Of(const SaveEntry& r) {
+        char at[16];
+        std::snprintf(at, sizeof(at), "|%d|", r.savedAt_);
+        return Str(r.title_) + "|" + Str(r.folder_) + at;
+    }
+};
+struct MpAddressText {
+    static std::string Of(const MpAddressEntry& r) {
+        char numbers[48];
+        std::snprintf(numbers, sizeof(numbers), "|%d|%d|%d|%d", r.players, r.maxPlayers, r.ping, r.gameType);
+        return Str(r.name) + "|" + Str(r.description) + numbers;
+    }
+};
+struct TradeRowText {
+    static std::string Of(const TradeRow& r) {
+        char numbers[48];
+        std::snprintf(numbers, sizeof(numbers), "|%d|%d|%d", r.price, r.level, r.learnable ? 1 : 0);
+        return Str(r.name) + "|" + Str(r.key) + "|" + Str(r.nextKey) + numbers;
+    }
+};
+struct OptionBindingText {
+    static std::string Of(const OptionBinding& r) {
+        char keys[48];
+        std::snprintf(keys, sizeof(keys), "|%p|%u|", static_cast<const void*>(r.action_),
+                      static_cast<unsigned>(r.keys_.size()));
+        return Str(r.name_) + keys + Str(r.keysText_);
+    }
+};
+struct ZoneTableText {
+    static std::string Of(const ZoneTableEntry& r) {
+        char id[16];
+        std::snprintf(id, sizeof(id), "|%d", r.id);
+        return Str(r.first) + "|" + Str(r.second) + id;
+    }
+};
+
+template <std::uintptr_t A> using SaveEntries = ModelCheck<A, SaveEntryVector, SaveEntryText>;
+template <std::uintptr_t A> using MpAddresses = ModelCheck<A, MpAddressVector, MpAddressText>;
+template <std::uintptr_t A> using TradeRowChecks = ModelCheck<A, TradeRowVector, TradeRowText>;
+template <std::uintptr_t A> using OptionBindings = ModelCheck<A, OptionBindingVector, OptionBindingText>;
+template <std::uintptr_t A> using ZoneTableChecks = ModelCheck<A, ZoneTableVector, ZoneTableText>;
 template <std::uintptr_t A> using HudPortraitSlots = ModelCheck<A, HudPortraitSlotVector, HudPortraitSlotText>;
 template <std::uintptr_t A> using Levers = ModelCheck<A, LeverVector, LeverText>;
 template <std::uintptr_t A> using PartyEntries = ModelCheck<A, PartyEntryVector, PartyEntryText>;
@@ -346,3 +389,13 @@ EI_VERIFY(0x0064AD40, HudPortraitSlots<0x0064AD40>::EraseRange, 0, s_unused);
 
 // The client party's engine objects (multiplayer).
 EI_VERIFY(0x00428A20, EngineObjectRefs<0x00428A20>::InsertOverflow, 0, s_unused);
+
+// The UI's lists (the save list, the multiplayer addresses, the camp, the options).
+EI_VERIFY(0x006578F0, SaveEntries<0x006578F0>::EraseRange, 0, s_unused);
+EI_VERIFY(0x006579C0, SaveEntries<0x006579C0>::InsertOverflow, 0, s_unused);
+EI_VERIFY(0x0061EC40, MpAddresses<0x0061EC40>::InsertOverflow, 0, s_unused);
+EI_VERIFY(0x00629E60, TradeRowChecks<0x00629E60>::InsertOverflow, 0, s_unused);
+EI_VERIFY(0x00652930, OptionBindings<0x00652930>::InsertOverflow, 0, s_unused);
+
+// The game flow's zone table (built when a game starts).
+EI_VERIFY(0x00587480, ZoneTableChecks<0x00587480>::InsertOverflow, 0, s_unused);
