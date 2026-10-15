@@ -356,7 +356,7 @@ def read_diff(r, name):
         if n == 0 and not first and last is not None and last != 255:
             break   # the end mark: an empty run after a run that was not full
         first = False
-        if not equal:
+        if not equal and n:
             changes.append((offset, r.take(n)))
         offset += n
         last = n

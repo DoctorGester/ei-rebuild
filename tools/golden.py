@@ -12,7 +12,11 @@ A golden (tests\golden\<scenario>\<install>\) is a run of the original code (--n
                 object as hashes of its fields (units: one hash each for place, vitals, AI and the rest), so
                 a golden stays small; a difference names the record, the object and the group
   dump_*.txt    the scenario's checkpoints ("dump" steps, e.g. after loading a save), compact too
-  saves.txt     every file the run left in harness_saves (the saves written at checkpoints): size and hash
+  saves.txt     the saves the run left in harness_saves (written at checkpoints: the autosave on entering a zone,
+                the scenario's own saves), decoded field by field (tools/savefile.py: keyed by object ids, the
+                values that follow memory layout written as rule tokens): each save's path and the hash of its
+                decoded text, which the shared store tests\golden\saves\<hash>.txt.gz holds (goldens share
+                saves: most start with the same autosave); a difference names the save, the object and the field
 To see the fields behind a differing hash, run the original again (its runs repeat) and `diff` the two
 full digests.
 
@@ -42,11 +46,15 @@ usage:
       folders of every other DIR (a second run of the original, runs with our hooks) must agree with it:
       the console, every digest record and dump (but the known differences, KNOWN). A scenario that does
       not is not recorded; its first difference is printed. The saves are kept (saves.txt) only when every
-      run wrote the same bytes. No SCENARIO: every run folder of the install in the first DIR.
+      run's saves decode to the same fields. No SCENARIO: every run folder of the install in the first DIR.
       Run the games through the scheduler, e.g.:
         set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh   (--fresh: not the reference cache,
                                                                                 whose runs may hold an older digest)
         python tools\golden.py snapshot <scratch>\orig1   (then the same again, and with hooks)
+  python tools/golden.py saves [SCENARIO...] --runs DIR... [--install vanilla|rebirth]
+      Adds the decoded saves to existing goldens without recording them again (SV7d): every DIR's run folder
+      must match the golden (console, digest, dumps) and the runs' saves must decode to the same fields.
+      Decoded saves no golden refers to any more leave the store.
   python tools/golden.py compare SCENARIO... [--install vanilla|rebirth] [--run FOLDER] [--strict] [--ulps N] ...
       A run (by default build\verify\runs\<scenario>-<install>, made with the golden's EI_DIGEST) against
       the scenario's golden: the console, the digest, the dumps and the saves. The known differences (KNOWN, each
