@@ -14,7 +14,8 @@
 // --standalone runs ei_standalone.exe (next to ei_launch.exe; src/standalone/host.cpp) instead of game.exe:
 // it lays out game.exe's data without its code and loads ei_hook.dll itself (--run), with the same
 // environment, working directory, output folder, job object and time limits as a hooked run. Its own
-// output (imports, the INT3 hit) comes through ei_launch's. No game args (WinMain gets an empty line).
+// output (imports, the INT3 hit) comes through ei_launch's. Game args go after "--" (WinMain gets them as
+// game.exe would).
 //
 // A run with --harness ends whatever state the game is in: the harness's watchdog thread ends it at the
 // scenario's "timeout" (60 s unless the scenario says otherwise); if that thread cannot run, ei_launch ends
@@ -214,13 +215,10 @@ int wmain(int argc, wchar_t** argv) {
     STARTUPINFOW si{sizeof(si)};
     BOOL inherit = FALSE;
     if (standalone) {
-        if (!gameArgs.empty()) {
-            std::fwprintf(stderr, L"ei_launch: --standalone takes no game args\n");
-            return 2;
-        }
         GetFullPathNameW(exe.c_str(), MAX_PATH, full, nullptr);
         program = Dir(self) + L"\\ei_standalone.exe";
         cmd = L"\"" + program + L"\" --exe \"" + full + L"\" --dll \"" + dll + L"\" --run";
+        if (!gameArgs.empty()) cmd += L" --" + gameArgs;
         // The host's own lines (imports it cannot resolve, its exit) go to ei_launch's output.
         si.dwFlags = STARTF_USESTDHANDLES;
         si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);

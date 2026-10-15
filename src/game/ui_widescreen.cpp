@@ -107,7 +107,9 @@ void WriteFloat(std::uintptr_t address, float value) {
 // ADD ECX,[offset] ... ADD EAX,[offset]: the variable's address is that operand. Only while addon's
 // code is there (a Rebirth launch, before our hooks): our builders then write that variable, and
 // addon's builders run by the verify build's side-by-side wrappers set the one our callees read.
+// Never in the standalone image (no addon, our jump at 005FC9E0).
 int* AddonPanelOffset() {
+    if (ei::Standalone()) return nullptr;
     constexpr std::uintptr_t kSetRect = std::uintptr_t(0x005FC9E0);
     const auto* start = reinterpret_cast<const std::uint8_t*>(kSetRect);
     if (start[0] != 0xE9) return nullptr;

@@ -6,6 +6,7 @@
 #include "render_internal.h"
 
 #include "../hook/log.h"
+#include "ei/hook.h"   // ei::Standalone
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -98,11 +99,13 @@ void ParseSpec(const char* spec) {
                 g_oldInterface ? "" : ", old interface off", g_cpuWindows ? ", windows in game memory" : "");
 }
 
-// EI_RENDER, or "".
+// EI_RENDER; without it "" (the old path), in the standalone image "new,present": it has no dgVoodoo to
+// count on and the new renderer presents by itself.
 std::string EnvironmentSpec() {
     char spec[256];
     DWORD n = GetEnvironmentVariableA("EI_RENDER", spec, sizeof(spec));
-    return n > 0 && n < sizeof(spec) ? std::string(spec) : std::string();
+    if (n > 0 && n < sizeof(spec)) return std::string(spec);
+    return ei::Standalone() ? std::string("new,present") : std::string();
 }
 
 void EnsureConfigured() {

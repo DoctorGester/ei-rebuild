@@ -211,6 +211,12 @@ void LogList(const char* label, const bool* set) {
     Log("%s", line);
 }
 
+void LogFlagsOn() {
+    bool enabled[rebirth::kPatchCount];
+    for (int i = 0; i < rebirth::kPatchCount; ++i) enabled[i] = rebirth::Enabled(static_cast<Patch>(i));
+    LogList("Rebirth flags on", enabled);
+}
+
 // The addon site covering `address`, preferring one addon wrote in this launch.
 const Site* AddonSiteAt(std::uintptr_t address) {
     const Site* found = nullptr;
@@ -274,9 +280,13 @@ void Detect(const std::vector<unsigned char>& file) {
             Log("Rebirth: FollowAddon: every flag follows what the mods apply");
         }
     }
-    bool enabled[rebirth::kPatchCount];
-    for (int i = 0; i < rebirth::kPatchCount; ++i) enabled[i] = rebirth::Enabled(static_cast<Patch>(i));
-    LogList("Rebirth flags on", enabled);
+    LogFlagsOn();
+}
+
+void SettingsOnly(const char* iniPath) {
+    rebirth::SetPluginNPlayers(static_cast<int>(GetPrivateProfileIntA("Rebirth", "NPlayers", 7, iniPath)));
+    Log("Rebirth: standalone image: the flags are ei_rebirth.ini's alone (no addon.dll, no EI_Plugin.asi)");
+    LogFlagsOn();
 }
 
 bool RebirthLaunch() { return g_rebirthLaunch; }
