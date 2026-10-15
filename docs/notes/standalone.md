@@ -1061,7 +1061,19 @@ string vector copy (texts, own blocks), the reference copies (pointers; counted:
 reference per copy; shared: null / clone / same as Share decides), the list range inserts (links
 and copies), the list destructors (the sentinel on top of its list), the queries, save entries and
 speakers by text, the trade record (revisions kept, the three parties down to one vtable); 00429080
-shares S16a's 004AB910 check.
+shares S16a's 004AB910 check. The string start-up check returns at once when a trampoline is null
+(the address in disabled.txt, record mode): the first bisect build crashed there.
+
+Reached in the `--golden` suite (128 runs, 0 mismatches): 00424E40, 00427D60 and 004193D0 in every
+run, 0069D9A0 / 0069DC70 / 0069DDD0 (trader stock), 00427FF0 and 00421A50 / 004238B0 (ui_mp_host),
+0060A660 (briefing), 00657C60 and 00427FA0 once; the start-up checks in every run. Not reached (the
+multiplayer client's paths and rare members): 00427E80, 00573520, 0053D7F0, 0042AF80, 0042AE90,
+00443E30, 00443FF0, 00560430, 00560460, 00429060, 004298F0, 0060AB00, 00424DB0; 004410A0 only by
+the start-up check. Goldens: from main's paths (EI_BUILD_DIR = build\S12g\v under the main checkout,
+SV2h1b) 56 the same, 0 differ; from the worktree's paths render_movie_present (vanilla) parts at
+update 40 (`script #gobject`), and so does main's own verify DLL (13:49, after SV7a) and this build
+with all 27 addresses in disabled.txt, both run from the worktree at a path as long as build\verify:
+the path-length case of SV2h1b, not these functions (SV7 takes the layout dependence).
 
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
 extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
