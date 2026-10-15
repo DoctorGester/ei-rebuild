@@ -28,7 +28,7 @@ What each window surface is drawn with, how often, and who reads it back. It was
   EI_UI_CENSUS=1 EI_RENDER=new,cpuwindows python tools/run_all.py ui_main_menu ui_screens ui_hud ui_camp ui_camp_deals ui_hero_screen ui_hero_stats ui_hero_delete ui_trade_hold ui_trade_restore ui_describe ui_help ui_objectives ui_saveload ui_saveload_delete ui_options_bind ui_quest_notice ui_quick_items ui_view_screen ui_base_dialogue ui_battle_commands ui_battle_spells ui_container_input console trader_stock render_present_cpuwindows ui_help_page ui_mp_host ui_global_map_pick --all-rebirth --jobs 4
   python tools/ui_census_report.py --summary
   ```
-- **Results:** 52 runs (N0); all passed except two Rebirth runs that crash without the census too. N0a's rerun with its three scenarios: 58 runs, the same two failures (with CBattleScreenSetup::Create's 2 mismatches, in those two runs only); three runs that timed out before their first step while the machine was loaded passed when run again.
+- **Results:** 52 runs (N0); all passed except two Rebirth runs that crash without the census too. N0a's rerun with its three scenarios: 58 runs, the same two failures (with CBattleScreen::Create's 2 mismatches, in those two runs only); three runs that timed out before their first step while the machine was loaded passed when run again.
   - ui_saveload-rebirth crashes under cpuwindows in SetTexture → device::Surface.
   - render_present_cpuwindows-rebirth is the known R9c crash.
 - **Counts are over the whole suite.** Where a verify wrapper is ours they include its reruns, so they are relative sizes, not per-frame costs.

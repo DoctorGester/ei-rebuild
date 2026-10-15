@@ -433,7 +433,7 @@ Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
 ### R9c: everything the player sees through the new renderer's present (done)
 
 - Rebirth's crash in `present` (NullDirect3DDevice7::SetTexture with surface 0x7463 from CUiMesh::Draw) and the
-  CBattleScreenSetup::Create verify mismatch (2 objects of 3) had one cause: the stand-in's texture formats left out
+  CBattleScreen::Create verify mismatch (2 objects of 3) had one cause: the stand-in's texture formats left out
   DXT2/4/5, and Rebirth's battle00 (1536x1536) and footprints are DXT5. ParseMmpHeader found no format, the texture
   load failed, Rebirth's DisableExitOnCrashReport made FatalError carry on, and the battle screen kept a garbage
   texture pointer. The list (`device_null.cpp` kTextureFormats) now has DXT1-5 as dgVoodoo did. Nothing for R9b2.

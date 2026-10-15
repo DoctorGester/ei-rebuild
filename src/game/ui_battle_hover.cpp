@@ -99,7 +99,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         panel->hoverUnit_ = nullptr;
     }
 
-    int count = partyCount_;
+    int count = party_.size;
     if (count <= 0) return;
     CUnit* first = nullptr;
     int selected = 0;
@@ -137,7 +137,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
                 shape = kCursorUse;
                 break;
             }
-            if (partyCount_ == 0 || !party_[0]) return;
+            if (party_.size == 0 || !party_[0]) return;
             if (!HoverHostileTo(party_[0], nullptr, unit)) return;
             shape = kCursorAttack;
             break;

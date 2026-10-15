@@ -233,7 +233,7 @@ void __fastcall ShowEffectsVerify(CHudUnitPanel* self, void*, CUnit* unit) {
 void __fastcall ToggleFlagVerify(CHudMovePanel* self, void*) {
     self->ToggleFlag();
     bool ok = self->flag_ == 0 || self->flag_ == 1;
-    for (int i = 0; i < self->owner_->partyCount_; ++i) {
+    for (int i = 0; i < self->owner_->party_.size; ++i) {
         CUnit* unit = self->owner_->party_[i];
         if ((unit->flags_ & 0x10) && unit->fightAtWill != self->flag_) ok = false;
     }

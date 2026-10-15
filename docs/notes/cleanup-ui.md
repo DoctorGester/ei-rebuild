@@ -73,7 +73,7 @@ Raw access the counter does not see (a byte pointer kept in a local, `Get` / `Se
 
 Declarations:
 
-- `CBattleScreen` (ui.h) and `CBattleScreenSetup` (ui_camp.h) declare the same object twice; `CCampScreen`
+- `CCampScreen`
   (ui_screens.h) repeats `CCampPages`; `CHudQuickItems::entries_` / `labels_` are raw arrays.
 - Each file keeps its own `SetRenderState` helper; `WindowFromInput` / `FromInput` are repeated per file.
 - `AllodView` repeats `AllodRecord`; `MapScreen` forwards CGlobalMap's own members through their addresses;
@@ -89,13 +89,13 @@ Every `unknown_XXX` member of the interface (ui.h, ui_camp.h, ui_screens.h, ui_b
 ui_*.cpp views, 132 in all) has a name now; layout unchanged. Alignment padding and blocks nothing in the rebuild
 touches are `unused_XXX` (the main menu's +0x168 / +0x174, the view screen's +0x164, the trade and statistics panels'
 +0x148, the briefing's +0x258 and the interface's +0x10 were also checked in the original's slots: nothing reads
-them). The duplicate views keep their blocks as `unused_` with a pointer to the view that names them (CBattleScreen's
-to CBattleScreenSetup, CUiMesh's to CFigureMesh, whose layout it repeats up to +0x220). Named:
+them). F3a merged the two battle screen views into `CBattleScreen` (ui.h) and derived `CUiMesh` from `CFigureMesh`.
+Named:
 
-- `CBattleScreenSetup`: `viewPressed_` (+0x1C0), `boxSelecting_` (+0x1C1), `questSound_` (+0x1FC), `partyCamera_`
+- `CBattleScreen`: `viewPressed_` (+0x1C0), `boxSelecting_` (+0x1C1), `questSound_` (+0x1FC), `clientParty_.camera`
   (+0x210, the camera id between the two party id vectors, as `PartyIds::camera`); `spare_` (+0x164) is only
   cleared by Create (00635250+9C4), no slot of the screen reads it.
-- `BattleTargetQuery` is laid out as a `LockKey` (unit.h): `kind` the mask (1), then `id` and `level` (0).
+- `CBattleScreen::itemUseKey_` (+0x220) is a `LockKey` (unit.h), built by `LockKey::ConstructItemUseKey` as {1, 0, 0}.
 - `CHudQuickItems::shownCount_` (+0x14C, the sprites added), `CHudMap::northTime_` (+0x1B0),
   `UiMeshVertex::normal` (+2, MeshCorner's second index; the builders write 0).
 - Written, never read in the original (named `*Spare`): `CInterface3D::fpsSpare_` (+0x24, Create with the frame rate

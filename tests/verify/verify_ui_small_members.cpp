@@ -42,22 +42,22 @@ void* s_unused;
 bool SameText(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 } // namespace
 
-static CBattleScreenSetup::PartyIds* __fastcall PartyIdsConstructVerify(CBattleScreenSetup::PartyIds* self) {
-    CBattleScreenSetup::PartyIds* result = self->Construct();
+static CBattleScreen::PartyIds* __fastcall PartyIdsConstructVerify(CBattleScreen::PartyIds* self) {
+    CBattleScreen::PartyIds* result = self->Construct();
     bool ok = result == self && !self->withUnit.begin() && !self->withUnit.end() && !self->withUnit.EndOfStorage() &&
               !self->without.begin() && !self->without.end() && !self->without.EndOfStorage();
-    ei::verify::Check("CBattleScreenSetup::PartyIds::Construct", true, ok, "");
+    ei::verify::Check("CBattleScreen::PartyIds::Construct", true, ok, "");
     return result;
 }
 EI_VERIFY(0x005F6080, PartyIdsConstructVerify, 0, s_unused);
 
-static BattleTargetQuery* __fastcall TargetQueryConstructVerify(BattleTargetQuery* self) {
-    BattleTargetQuery* result = self->Construct();
-    bool ok = result == self && self->kind == 1 && self->id == 0 && self->level == 0;
-    ei::verify::Check("BattleTargetQuery::Construct", true, ok, "");
+static LockKey* __fastcall ItemUseKeyConstructVerify(LockKey* self) {
+    LockKey* result = self->ConstructItemUseKey();
+    bool ok = result == self && self->mask == 1 && self->id == 0 && self->level == 0;
+    ei::verify::Check("LockKey::ConstructItemUseKey", true, ok, "");
     return result;
 }
-EI_VERIFY(0x005F5F90, TargetQueryConstructVerify, 0, s_unused);
+EI_VERIFY(0x005F5F90, ItemUseKeyConstructVerify, 0, s_unused);
 
 namespace {
 bool SamePlace(const GlobalMapPlace& a, const GlobalMapPlace& b) {
@@ -168,9 +168,9 @@ EI_VERIFY(0x0062EE70, GlobalMapHelpTopicVerify, 0, s_unused);
 
 // --- Setters and readers -------------------------------------------------------------------------------
 
-static void __fastcall SetPortraitModeVerify(CBattleScreenSetup* self, void*, int mode) {
+static void __fastcall SetPortraitModeVerify(CBattleScreen* self, void*, int mode) {
     self->SetPortraitMode(mode);
-    ei::verify::Check("CBattleScreenSetup::SetPortraitMode", mode, self->portraitMode_, "");
+    ei::verify::Check("CBattleScreen::SetPortraitMode", mode, self->portraitMode_, "");
 }
 EI_VERIFY(0x005F5FB0, SetPortraitModeVerify, 0, s_unused);
 

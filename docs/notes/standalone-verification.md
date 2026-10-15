@@ -253,7 +253,7 @@ A full vanilla sweep (plain against verify, both with randtrace) after the fix, 
 
 Not the server's answer: 00578B00 / 00578B20 set the interface's close-all flag (007C7D94 is
 CInterface3D +0x44, world_glue's `CloseAllRequested`) before the message goes out. The windows close,
-and the playing sounds stop (CBattleScreenSetup::Close -> CSoundManager::StopAll), at whichever comes
+and the playing sounds stop (CBattleScreen::Close -> CSoundManager::StopAll), at whichever comes
 first: the input dispatcher's first step (CloseAllPending 005F5AB0) for the next message WinMain's loop
 takes, or the next pass (the answer's CreateScreen -> Activate, else Draw). A step runs in the
 after-frame PeekMessageA, so whether a real message (Miles' WM_TIMER, WM_PAINT) waits right after it is
@@ -1271,7 +1271,7 @@ saves) can use save_trace.py and the writer list above for its leave-out rules.
 ## SV7d: saves in goldens, decoded field by field (2026-10-15)
 
 **The files** (GameFlow::SaveGame 0057B3B0): saves\<slot>\scenario.sav (magic 0xDEAD: PartyManager::Save 004A8560,
-CInterface3D::SaveState 005F85C0, the bottom window's state through the save stream (CBattleScreenSetup::SaveState
+CInterface3D::SaveState 005F85C0, the bottom window's state through the save stream (CBattleScreen::SaveState
 00635080) and CCamera::SaveState 00410C10), mission.sav (0x102: CWorldServer::SaveWorld 00597BD0), info.sav (0x111,
 not framed: the slot list's title) and shot.sav (the thumbnail, left out); visited zones as saves\current\<zone>.sav
 (SaveWorld too). SaveFileWrite (00579B80) frames the plain data: magic, version (0x74), checksum, a compressed flag
@@ -1669,7 +1669,7 @@ Not reached, with reasons:
   `CUnit::SetPlayer` verify wrapper (ours-only PlayerOwnsUnit check).
 - PatrolPointArray::Add / SetAtGrow: no patrol unit was found in the zones; not investigated further.
 - CTrapObject::UpdateTrap: needs a trap object with a category-2 consumable; none found.
-- UseOnUnit with a potion (quick item category 8) fails the `CBattleScreenSetup::UseOnUnit` wrapper: the potion is
+- UseOnUnit with a potion (quick item category 8) fails the `CBattleScreen::UseOnUnit` wrapper: the potion is
   consumed synchronously, so the member does not nod. Scenario dropped.
 
 Suite, after merging main (SV7b2's zeroed fields changed the saves, so the four goldens were recorded again on the merged

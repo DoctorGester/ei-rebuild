@@ -143,7 +143,7 @@ __declspec(naked) inline void __fastcall SpriteDrawOriginal(void* /*sprite*/, vo
 __declspec(naked) inline void __fastcall SpritePlaceOriginal(void* /*sprite*/, void*, float, float, float) EI_ORIGINAL(0x005E6FA0)
 // 006010E0: CUiContainer updates its children through slot 24 (plain RET, no result).
 __declspec(naked) inline void __fastcall UiUpdateChildrenOriginal(void* /*container*/) EI_ORIGINAL(0x006010E0)
-// 0063B920 (rewritten as CBattleScreenSetup::UnitName; called through its address so the wrapper runs): the
+// 0063B920 (rewritten as CBattleScreen::UnitName; called through its address so the wrapper runs): the
 // battle screen writes a unit's name into a CString (RET 8: unit, out; no result).
 __declspec(naked) inline void __fastcall BattleShowPanelUnitOriginal(void* /*screen*/, void*, void* /*unit*/, void* /*extra*/)
     EI_ORIGINAL(0x0063B920)
@@ -289,7 +289,7 @@ __declspec(naked) inline void* __stdcall AfxBeginThreadOriginal(void* /*procedur
 // 00702380: MFC's AfxEndThread(exit code, delete the thread object) (__stdcall; does not return).
 __declspec(naked) inline void __stdcall AfxEndThreadOriginal(unsigned /*exitCode*/, int /*deleteThread*/)
     EI_ORIGINAL(0x00702380)
-// 00637500 / 00637750 (rewritten as CBattleScreenSetup::UseOnUnit / UseAtPoint; through their addresses so the
+// 00637500 / 00637750 (rewritten as CBattleScreen::UseOnUnit / UseAtPoint; through their addresses so the
 // wrappers run): the pending spell or quick item used on `target` (thiscall, RET 0xC: target, quick (low byte), ctrl)
 // or at the point (RET 0x14: x, y, z, unit, quick (low byte)); no result.
 __declspec(naked) inline void __fastcall BattleUseOnUnitOriginal(void* /*screen*/, void*, void* /*target*/, char /*quick*/,
@@ -313,7 +313,7 @@ __declspec(naked) inline void __fastcall CameraSetTargetOriginal(void* /*camera*
 // 005EBDB0: the battle screen's party array (an MFC CArray of unit pointers) SetSize (RET 8; growBy -1 keeps the step).
 __declspec(naked) inline void __fastcall PartyArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x005EBDB0)
-// 00637DC0 (rewritten as CBattleScreenSetup::RefreshSelection; through its address so the wrapper runs; ECX, plain RET).
+// 00637DC0 (rewritten as CBattleScreen::RefreshSelection; through its address so the wrapper runs; ECX, plain RET).
 __declspec(naked) inline void __fastcall BattleRefreshSelectionOriginal(void* /*screen*/) EI_ORIGINAL(0x00637DC0)
 // 006407E0: the portraits rebuild their slots from the battle screen's party (RET 4: camera player first; no result).
 __declspec(naked) inline void __fastcall PortraitsRebuildOriginal(void* /*portraits*/, void*, int /*cameraFirst*/)
@@ -699,6 +699,6 @@ __declspec(naked) inline int __fastcall ContainerDrawOriginal(CUiWindow* /*conta
 // left button going down.
 __declspec(naked) inline void __fastcall ContainerLeftDownOriginal(void* /*input*/, void*, int /*buttons*/, int /*x*/, int /*y*/)
     EI_ORIGINAL(0x00601110)
-// 005F8F10: the constructor of CBattleScreenSetup's vector<int> instantiations from an allocator (thiscall, RET 4; no result).
+// 005F8F10: the constructor of CBattleScreen's vector<int> instantiations from an allocator (thiscall, RET 4; no result).
 __declspec(naked) inline void __fastcall IdVectorConstructOriginal(void* /*vector*/, void*, const void* /*allocator*/)
     EI_ORIGINAL(0x005F8F10)

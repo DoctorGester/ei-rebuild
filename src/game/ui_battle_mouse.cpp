@@ -1,5 +1,5 @@
 // The battle screen's mouse move (00639D60), left button down (00638A40) and a unit's name line
-// (0063B920). See ui_camp.h (CBattleScreenSetup) and docs/notes/ui.md ("Battle screen").
+// (0063B920). See ui.h (CBattleScreen) and docs/notes/ui.md ("Battle screen").
 #include "ui_camp.h"
 
 #include "item_db_text.h"
@@ -21,14 +21,14 @@ constexpr const char* kUnitTextPrefix = "unit ";   // 00794498
 
 // 00639EF0 (CBattleScreen::HoverUnit, rewritten in ui_battle_hover.cpp; thiscall on the window,
 // RET 0xC), through its address so its verify wrapper sees the battle screen's calls.
-__declspec(naked) void __fastcall HoverUnitAt(CBattleScreenSetup*, void*, CUnit*, int, int) EI_ORIGINAL(0x00639EF0)
+__declspec(naked) void __fastcall HoverUnitAt(CBattleScreen*, void*, CUnit*, int, int) EI_ORIGINAL(0x00639EF0)
 
 int Distance(int a, int b) { return a < b ? b - a : a - b; }
 } // namespace
 
 // --- 00639D60: the mouse moved over the battle screen ------------------------------------------
 
-void CBattleScreenSetup::OnMouseMove(int buttons, int x, int y) {
+void CBattleScreen::OnMouseMove(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
         GameCursor()->SetShape(kCursorPickPlayer);
         if (portraits_) portraits_->InputMouseMove(buttons, x, y);
@@ -58,11 +58,11 @@ void CBattleScreenSetup::OnMouseMove(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00639D60, InputForward<&CBattleScreenSetup::OnMouseMove>::Call);
+EI_REPLACE_METHOD(0x00639D60, InputForward<&CBattleScreen::OnMouseMove>::Call);
 
 // --- 00638A40: the left button went down on the battle screen ------------------------------------
 
-void CBattleScreenSetup::OnLButtonDown(int buttons, int x, int y) {
+void CBattleScreen::OnLButtonDown(int buttons, int x, int y) {
     if (portraitMode_ != 0) {
         if (portraits_) portraits_->Input()->Event(UiInputSide::kLeftDown, buttons, x, y);
         return;
@@ -78,11 +78,11 @@ void CBattleScreenSetup::OnLButtonDown(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00638A40, InputForward<&CBattleScreenSetup::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x00638A40, InputForward<&CBattleScreen::OnLButtonDown>::Call);
 
 // --- 0063B920: a unit's name line --------------------------------------------------------------
 
-void CBattleScreenSetup::UnitName(CUnit* unit, mfc::CString* out) {
+void CBattleScreen::UnitName(CUnit* unit, mfc::CString* out) {
     CTextManager* texts = GameTexts();
     mfc::CString name;
     name = unit->GetName();
@@ -103,4 +103,4 @@ void CBattleScreenSetup::UnitName(CUnit* unit, mfc::CString* out) {
     ReplaceChar(&name, ' ', '_');
     if (texts->Open(mfc::CString(kUnitTextPrefix) + name)) texts->ReadLine(out, 1);
 }
-EI_REPLACE_METHOD(0x0063B920, CBattleScreenSetup::UnitName);
+EI_REPLACE_METHOD(0x0063B920, CBattleScreen::UnitName);

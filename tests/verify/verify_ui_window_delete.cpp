@@ -99,12 +99,12 @@ static void __fastcall ChatOverlayDestroyVerify(CChatOverlay* self) {
 EI_VERIFY(0x005E28E0, ChatOverlayDestroyVerify, 0, s_unused);
 
 // The containers below: the base empty and no children left.
-static void __fastcall BattleScreenSetupDestroyVerify(CBattleScreenSetup* self) {
+static void __fastcall BattleScreenDestroyVerify(CBattleScreen* self) {
     self->DestroyBody();
-    ei::verify::Check("CBattleScreenSetup::DestroyBody", true,
+    ei::verify::Check("CBattleScreen::DestroyBody", true,
                       BaseEmpty(self) && !self->children_.data && self->personTexts_.size() == 0, "");
 }
-EI_VERIFY(0x005F6130, BattleScreenSetupDestroyVerify, 0, s_unused);
+EI_VERIFY(0x005F6130, BattleScreenDestroyVerify, 0, s_unused);
 
 static void __fastcall BriefingDestroyVerify(CBriefingScreen* self) {
     self->DestroyBody();
@@ -160,7 +160,7 @@ EI_DELETE_VERIFY(CUiWindow, UiWindowDelete)
 EI_DELETE_VERIFY(CUiContainer, UiContainerDelete)
 EI_DELETE_VERIFY(CChatOverlay, ChatOverlayDelete)
 EI_DELETE_VERIFY(CItemInfoPanel, ItemInfoPanelDelete)
-EI_DELETE_VERIFY(CBattleScreenSetup, BattleScreenSetupDelete)
+EI_DELETE_VERIFY(CBattleScreen, BattleScreenDelete)
 EI_DELETE_VERIFY(CItemScreen, ItemScreenDelete)
 EI_DELETE_VERIFY(CItemScreen, CampScreenDelete)
 EI_DELETE_VERIFY(CItemScreen, Screen9Delete)
@@ -216,7 +216,7 @@ EI_VERIFY(0x005EACD0, InputSideDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00602B80, InputSideDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005E28C0, ChatOverlayDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005EE420, ItemInfoPanelDeleteVerify, 0, s_unused);
-EI_VERIFY(0x005F5FC0, BattleScreenSetupDeleteVerify, 0, s_unused);
+EI_VERIFY(0x005F5FC0, BattleScreenDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F6450, ItemScreenDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F6600, CampScreenDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F6FF0, Screen9DeleteVerify, 0, s_unused);
@@ -259,7 +259,7 @@ EI_INPUT_DELETE_VERIFY(UiWindowInputDelete, CUiWindow, UiWindowDelete)
 EI_INPUT_DELETE_VERIFY(StatsPanelInputDelete, CHeroStatsPanel, StatsPanelDelete)
 EI_INPUT_DELETE_VERIFY(UiContainerInputDelete, CUiContainer, UiContainerDelete)
 EI_INPUT_DELETE_VERIFY(ItemInfoPanelInputDelete, CItemInfoPanel, ItemInfoPanelDelete)
-EI_INPUT_DELETE_VERIFY(BattleScreenSetupInputDelete, CBattleScreenSetup, BattleScreenSetupDelete)
+EI_INPUT_DELETE_VERIFY(BattleScreenInputDelete, CBattleScreen, BattleScreenDelete)
 EI_INPUT_DELETE_VERIFY(ItemScreenInputDelete, CItemScreen, ItemScreenDelete)
 EI_INPUT_DELETE_VERIFY(CampScreenInputDelete, CItemScreen, CampScreenDelete)
 EI_INPUT_DELETE_VERIFY(Screen9InputDelete, CItemScreen, Screen9Delete)
@@ -304,7 +304,7 @@ EI_VERIFY(0x005FC140, UiContainerInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005FC120, UiContainerInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0060C7E0, UiContainerInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F4600, ItemInfoPanelInputDeleteVerify, 0, s_unused);
-EI_VERIFY(0x005FC0E0, BattleScreenSetupInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x005FC0E0, BattleScreenInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005FC0C0, ItemScreenInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005FC100, CampScreenInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005FC110, Screen9InputDeleteVerify, 0, s_unused);

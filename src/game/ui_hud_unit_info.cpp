@@ -110,8 +110,8 @@ struct Panel {
 // Whether `unit` is not in the group (the battle screen's party).
 bool OutsideGroup(CHudUnitPanel* self, CUnit* unit) {
     CBattleScreen* group = self->owner_;
-    int count = group->partyCount_;
-    CUnit** units = group->party_;
+    int count = group->party_.size;
+    CUnit** units = group->party_.data;
     for (int i = 0; i < count; ++i) {
         if (units[i] == unit) return false;
     }
@@ -187,7 +187,7 @@ void CHudUnitPanel::DrawUnitInfo(CUnit* unitIn) {
         auto* prototype = static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unitIn));
         if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
         CBattleScreen* group = owner_;
-        if (group->partyCount_ > 0) {
+        if (group->party_.size > 0) {
             CUnit* leader = group->party_[0];
             int difference = UnitLevel(unitIn) - UnitLevel(leader);
             if (difference > kLevelDifferenceLimit) {

@@ -34,7 +34,7 @@ constexpr int kSlotRelease = 4;
 
 // --- 005F6080 / 005F5F90: the battle screen's members constructed by CreateScreen 1 ---------------------
 
-CBattleScreenSetup::PartyIds* CBattleScreenSetup::PartyIds::Construct() {
+CBattleScreen::PartyIds* CBattleScreen::PartyIds::Construct() {
     for (IdVector* ids : {&withUnit, &without}) {
         ids->Start() = nullptr;
         ids->Finish() = nullptr;
@@ -42,15 +42,15 @@ CBattleScreenSetup::PartyIds* CBattleScreenSetup::PartyIds::Construct() {
     }
     return this;
 }
-EI_REPLACE_METHOD(0x005F6080, CBattleScreenSetup::PartyIds::Construct);
+EI_REPLACE_METHOD(0x005F6080, CBattleScreen::PartyIds::Construct);
 
-BattleTargetQuery* BattleTargetQuery::Construct() {
-    kind = 1;
+LockKey* LockKey::ConstructItemUseKey() {
+    mask = 1;
     id = 0;
     level = 0;
     return this;
 }
-EI_REPLACE_METHOD(0x005F5F90, BattleTargetQuery::Construct);
+EI_REPLACE_METHOD(0x005F5F90, LockKey::ConstructItemUseKey);
 
 // --- 00632490 / 006324E0: a global map place assigned ---------------------------------------------------
 
@@ -106,8 +106,8 @@ EI_REPLACE_METHOD(0x0062EE70, CGlobalMap::HelpTopic);
 
 // --- One-line setters and readers ------------------------------------------------------------------------
 
-void CBattleScreenSetup::SetPortraitMode(int mode) { portraitMode_ = mode; }
-EI_REPLACE_METHOD(0x005F5FB0, CBattleScreenSetup::SetPortraitMode);
+void CBattleScreen::SetPortraitMode(int mode) { portraitMode_ = mode; }
+EI_REPLACE_METHOD(0x005F5FB0, CBattleScreen::SetPortraitMode);
 
 void CBriefingScreen::SetChatActive(int mode) { chatActive_ = mode; }
 EI_REPLACE_METHOD(0x005F6B70, CBriefingScreen::SetChatActive);

@@ -271,7 +271,7 @@ static void __fastcall PortraitsMouseDownVerify(void* input, void*, int buttons,
     bool ok;
     if (mode == 0) {
         bool hit = region >= 0;
-        bool takes = hit && region < w->owner_->partyCount_;
+        bool takes = hit && region < w->owner_->party_.size;
         ok = w->inputHandled_ == (hit ? true : handled) &&
              w->interface_->mouseCapture_ == (takes ? input : capture);
     } else {
@@ -439,7 +439,7 @@ static void __fastcall MovePanelUpdateVerify(CHudMovePanel* self, void*) {
     std::uint32_t shown = 0;
     if (view) {
         flag = -1;
-        for (int i = 0; i < self->owner_->partyCount_; ++i) {
+        for (int i = 0; i < self->owner_->party_.size; ++i) {
             CUnit* unit = self->owner_->party_[i];
             if (!(unit->flags_ & 0x10)) continue;
             if (flag == -1)
@@ -536,7 +536,7 @@ EI_VERIFY(0x00638EF0, SelectUnitVerify, 0, s_unused);
 static void __fastcall OrderAtVerify(CBattleScreen* self, void*, float x, float y, float z, int mode, int ctrl) {
     auto* bytes = reinterpret_cast<std::uint8_t*>(self);
     bool selected[64] = {};
-    int count = self->partyCount_ < 64 ? self->partyCount_ : 64;
+    int count = self->party_.size < 64 ? self->party_.size : 64;
     for (int i = 0; i < count; ++i) {
         CUnit* member = self->party_[i];
         selected[i] = member && (member->flags_ & 0x10);

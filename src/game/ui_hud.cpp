@@ -292,7 +292,7 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
     if (mode == 0) {
         if (region < 0) return;
         inputHandled_ = true;
-        if (region < owner_->partyCount_) CaptureMouse();
+        if (region < owner_->party_.size) CaptureMouse();
         return;
     }
     if (region < 0 || region >= count_) return;
@@ -331,7 +331,7 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     inputHandled_ = true;
     CBattleScreen* owner = owner_;
     // 00638EF0 through its address: Rebirth patches it (FixSpellSelfCasting; rule 9).
-    if (region < owner->partyCount_) SelectUnitAt(owner, nullptr, owner->party_[region], 0, 0);
+    if (region < owner->party_.size) SelectUnitAt(owner, nullptr, owner->party_[region], 0, 0);
 }
 UI_INPUT_HANDLER(0x00641E20, CHudPortraits, OnMouseUp);
 
@@ -341,7 +341,7 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
         if (region < 0) return;
         inputHandled_ = true;
         CBattleScreen* owner = owner_;
-        if (region < owner->partyCount_) owner->HoverUnit(owner->party_[region], 0, 0);
+        if (region < owner->party_.size) owner->HoverUnit(owner->party_[region], 0, 0);
         return;
     }
     if (region >= 0 && region < count_) GameCursor()->SetShape(0);
@@ -550,7 +550,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
     if (!WorldClient()->LocalView()) return;
     if (mode >= 0 && mode < 4) {
         interface_->PlaySound(kSoundClick, 0);
-        for (int i = 0; i < owner_->partyCount_; ++i) {
+        for (int i = 0; i < owner_->party_.size; ++i) {
             CUnit* unit = owner_->party_[i];
             if (unit->flags_ & 0x10) ViewSetMoveMode(LocalView(), nullptr, unit, mode);
         }
@@ -596,8 +596,8 @@ void CHudMovePanel::Update() {
     // The common value over the selected units: -1 none selected, -2 mixed.
     int mode = -1;
     int flag = -1;
-    int count = owner_->partyCount_;
-    CUnit** units = owner_->party_;
+    int count = owner_->party_.size;
+    CUnit** units = owner_->party_.data;
     for (int i = 0; i < count; ++i) {
         CUnit* unit = units[i];
         if (!(unit->flags_ & 0x10)) continue;
@@ -776,7 +776,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     };
 
     CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
-    int count = partyCount_;
+    int count = party_.size;
     int firstIndex = -1;
     CUnit* first = nullptr;
     int selected = 0;
@@ -793,11 +793,11 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     if (count <= 0 || selected == 0) {
         // Nobody selected: a click on a portrait's unit selects it (Ctrl: the camera follows it).
         if (count <= 0) return;
-        for (int i = 0; i < partyCount_; ++i) {
+        for (int i = 0; i < party_.size; ++i) {
             if (unit != party_[i]) continue;
             interface_->PlaySound(game::SoundOnOffText(), 0);
             if (interface_->doubleClick_) {
-                if (i < partyCount_) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
+                if (i < party_.size) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
             } else {
                 ScreenToggleMember(this, nullptr, i);
             }
@@ -835,12 +835,12 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 ScreenOrderDead(this, nullptr, unit, ctrl());
                 return;
             }
-            int members = partyCount_;
+            int members = party_.size;
             for (int i = 0; i < members; ++i) {
                 if (unit != party_[i]) continue;
                 interface_->PlaySound(game::SoundOnOffText(), 0);
                 if (interface_->doubleClick_) {
-                    if (i < partyCount_) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
+                    if (i < party_.size) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
                 } else {
                     ScreenToggleMember(this, nullptr, i);
                 }
@@ -913,7 +913,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     }
     case 7: {   // follow: every selected member follows the unit
         if (!unit || unitDead(unit)) return;
-        for (int i = 0; i < partyCount_; ++i) {
+        for (int i = 0; i < party_.size; ++i) {
             CUnit* member = party_[i];
             if (!member || !(member->flags_ & kFlagSelected)) continue;
             ViewOrderFollow(LocalView(), nullptr, member, unit);
@@ -950,7 +950,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
         if (unit) {
-            for (int i = 0; i < partyCount_; ++i)
+            for (int i = 0; i < party_.size; ++i)
                 if (unit == party_[i]) return;
             order(first, unit, 1, -1);
         } else {
@@ -1057,7 +1057,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
     // The original passes the address of its own argument slots as the point.
     Vector3 point = {x, y, z};
     int selected = 0;
-    for (int i = 0; i < partyCount_; ++i) {
+    for (int i = 0; i < party_.size; ++i) {
         CUnit* member = party_[i];
         if (member && (member->flags_ & kFlagSelected)) ++selected;
     }
@@ -1084,7 +1084,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
 
     // The selected members go; each one's portrait nods after a short random delay.
     OrderUnits units{reinterpret_cast<void*>(kUnitPtrArrayVtable), nullptr, 0, 0, 0};
-    for (int i = 0; i < partyCount_; ++i) {
+    for (int i = 0; i < party_.size; ++i) {
         CUnit* member = party_[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;

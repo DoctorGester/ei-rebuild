@@ -30,7 +30,7 @@ int InputCount(CUiContainer* w) { return static_cast<int>(w->inputsEnd_ - w->inp
 
 // Eleven panels appended as children in their order (each with its vtable), two input handlers,
 // three textures, the fields Create resets, one more hero id in a new game.
-static void __fastcall BattleScreenCreateVerify(CBattleScreenSetup* self, void*) {
+static void __fastcall BattleScreenCreateVerify(CBattleScreen* self, void*) {
     Counts before = CountsOf(self);
     int children = self->children_.size;
     int inputs = InputCount(self);
@@ -48,16 +48,16 @@ static void __fastcall BattleScreenCreateVerify(CBattleScreenSetup* self, void*)
                    VtableOf(self->topPanel_) == 0x00742498 &&
                    reinterpret_cast<std::uintptr_t>(self->unitPanel_->inputVtable_) == 0x007426C4;
     bool owners = true;
-    for (CUiWindow* p : {self->unitPanel_, self->map_, self->clock_, self->movePanel_, self->topPanel_})
+    for (CUiWindow* p : std::initializer_list<CUiWindow*>{self->unitPanel_, self->map_, self->clock_, self->movePanel_, self->topPanel_})
         owners = owners && *reinterpret_cast<CUiWindow**>(reinterpret_cast<std::uint8_t*>(p) + 0x148) == self;
-    bool fields = self->partyCamera_ == -1 && self->pendingAction_ == 0 && self->pendingSlot_ == -1 &&
+    bool fields = self->clientParty_.camera == -1 && self->pendingAction_ == 0 && self->pendingSlot_ == -1 &&
                   self->portraitMode_ == 0 && self->spare_ == 0 && self->questSound_ == 0 &&
                   !self->viewPressed_ && !self->boxSelecting_ &&
                   (*reinterpret_cast<const std::uint32_t*>(0x0079B2B0) & 0x40) == 0;
     bool heroOk = loading || self->heroes_.size == heroes + (self->hasHero_ ? 1 : 0);
     bool ok = order && vtables && owners && fields && heroOk && InputCount(self) == inputs + 2 &&
               after.objects >= before.objects + 3;
-    ei::verify::Check("CBattleScreenSetup::Create", true, ok,
+    ei::verify::Check("CBattleScreen::Create", true, ok,
                       "order %d vtables %d owners %d fields %d heroes %d->%d inputs %d->%d objects %d->%d", order,
                       vtables, owners, fields, heroes, self->heroes_.size, inputs, InputCount(self),
                       before.objects, after.objects);

@@ -1109,6 +1109,9 @@ struct LockKey {
     // the three dwords (the writes through a stack copy each).
     void ReadFrom(CStream* stream);
     void WriteTo(CStream* stream) const;
+    // 005F5F90 (ui_small_members.cpp). The constructor of the battle screen's item key
+    // (CBattleScreen::itemUseKey_): {1, 0, 0}. Returns this.
+    LockKey* ConstructItemUseKey();
 
     std::uint32_t mask;
     std::uint32_t id;

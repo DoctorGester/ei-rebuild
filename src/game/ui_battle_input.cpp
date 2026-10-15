@@ -1,5 +1,5 @@
 // The battle screen's slot 1 (00638A10), double click (00638AD0), key release (0063B6D0) and wheel (0063B770): its
-// input side slots 1, 7, 11 and 12. See ui_camp.h (CBattleScreenSetup) and docs/notes/ui.md, section 6.
+// input side slots 1, 7, 11 and 12. See ui.h (CBattleScreen) and docs/notes/ui.md, section 6.
 #include "ui_camp.h"
 
 #include "ei/hook.h"
@@ -14,20 +14,20 @@ constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 
 // --- 00638A10: the battle screen loses the top -----------------------------------------------
 
-void CBattleScreenSetup::OnDeactivate() {
+void CBattleScreen::OnDeactivate() {
     for (std::uint8_t& key : orderKeys_) key = 0;
     viewPressed_ = false;
     boxSelecting_ = false;
     static_cast<UiContainerInput*>(Input())->OnDeactivate();
 }
 namespace {
-void __fastcall BattleScreenDeactivate(void* input) { WindowFromInput<CBattleScreenSetup>(input)->OnDeactivate(); }
+void __fastcall BattleScreenDeactivate(void* input) { WindowFromInput<CBattleScreen>(input)->OnDeactivate(); }
 } // namespace
 EI_REPLACE(0x00638A10, BattleScreenDeactivate);
 
 // --- 00638AD0: a double click on the battle screen -------------------------------------------
 
-void CBattleScreenSetup::OnLeftDouble(int buttons, int x, int y) {
+void CBattleScreen::OnLeftDouble(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
         UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
@@ -40,11 +40,11 @@ void CBattleScreenSetup::OnLeftDouble(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00638AD0, InputForward<&CBattleScreenSetup::OnLeftDouble>::Call);
+EI_REPLACE_METHOD(0x00638AD0, InputForward<&CBattleScreen::OnLeftDouble>::Call);
 
 // --- 0063B6D0: a key released on the battle screen -------------------------------------------
 
-void CBattleScreenSetup::OnKeyUp(int key, int repeat, int flags) {
+void CBattleScreen::OnKeyUp(int key, int repeat, int flags) {
     if (portraitMode_ != 0) return;
     InputOf(this)->BaseKeyUp(key, repeat, flags);
     int action = KeyActions()[flags & 0x1FF] - kFirstOrderKeyAction;
@@ -52,11 +52,11 @@ void CBattleScreenSetup::OnKeyUp(int key, int repeat, int flags) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x0063B6D0, InputForward<&CBattleScreenSetup::OnKeyUp>::Call);
+EI_REPLACE_METHOD(0x0063B6D0, InputForward<&CBattleScreen::OnKeyUp>::Call);
 
 // --- 0063B770: the wheel on the battle screen ------------------------------------------------
 
-BOOL CBattleScreenSetup::OnWheel(int flags, int delta, int x, int y) {
+BOOL CBattleScreen::OnWheel(int flags, int delta, int x, int y) {
     if (portraitMode_ != 0) return 1;
     CUiWindow* const panels[4] = {map_, unitPanel_, messageLog_, topPanel_};
     for (CUiWindow* panel : panels) {
@@ -71,4 +71,4 @@ BOOL CBattleScreenSetup::OnWheel(int flags, int delta, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x0063B770, InputForward<&CBattleScreenSetup::OnWheel>::Call);
+EI_REPLACE_METHOD(0x0063B770, InputForward<&CBattleScreen::OnWheel>::Call);

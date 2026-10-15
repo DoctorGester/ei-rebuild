@@ -1,5 +1,5 @@
 // The battle screen's main-vtable slots for closing, the first poll, picked-up items, a unit leaving
-// the party and the saved state (CBattleScreenSetup, ui_camp.h). See docs/notes/ui.md, section 6.
+// the party and the saved state (CBattleScreen, ui.h). See docs/notes/ui.md, section 6.
 #include "ui_camp.h"
 
 #include "camera.h"
@@ -66,33 +66,33 @@ CHudMap* Map(CUiWindow* map) { return static_cast<CHudMap*>(map); }
 
 // --- 00635E60: slot 26 --------------------------------------------------------------------------
 
-void CBattleScreenSetup::Close() {
+void CBattleScreen::Close() {
     camera::TheCamera()->flags_ |= CCamera::kFree;
     WorldUpdatePeriod() = kDefaultUpdatePeriod;
     CursorSetHeldOriginal(GameCursor(), nullptr, 0);
     MenuSetOriginal(1);
     MenuCallOriginal();
-    PartyArraySetSizeOriginal(&Party(), nullptr, 0, -1);
+    PartyArraySetSizeOriginal(&party_, nullptr, 0, -1);
 }
-EI_REPLACE_METHOD(0x00635E60, CBattleScreenSetup::Close);
+EI_REPLACE_METHOD(0x00635E60, CBattleScreen::Close);
 
 // --- 006360F0: slot 35 --------------------------------------------------------------------------
 
-bool CBattleScreenSetup::PollShown() {
+bool CBattleScreen::PollShown() {
     if (hasHero_) {
-        UiDwordArray& party = Party();
-        if (party.size > 0) CameraSetTargetOriginal(camera::TheCamera(), nullptr, reinterpret_cast<void*>(party.data[0]));
+        auto& party = party_;
+        if (party.size > 0) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party.data[0]);
         if (AutoSaveEnabled()) AutoSaveOriginal(AutoSaveName(), 1);
         hasHero_ = false;
         interface_->ShowHelp(0);
     }
     return true;
 }
-EI_REPLACE_METHOD(0x006360F0, CBattleScreenSetup::PollShown);
+EI_REPLACE_METHOD(0x006360F0, CBattleScreen::PollShown);
 
 // --- 00636150: slot 28 --------------------------------------------------------------------------
 
-void CBattleScreenSetup::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled) {
+void CBattleScreen::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled) {
     for (auto* node = items->head; node != nullptr;) {
         auto* next = node->next;
         TopPanelPickedUpOriginal(topPanel_, nullptr, node->data, static_cast<char>(crippled));
@@ -102,11 +102,11 @@ void CBattleScreenSetup::OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int mon
     TopPanelShowPageOriginal(topPanel_);
     BattleRefreshSelectionOriginal(this);
 }
-EI_REPLACE_METHOD(0x00636150, CBattleScreenSetup::OnItemsPicked);
+EI_REPLACE_METHOD(0x00636150, CBattleScreen::OnItemsPicked);
 
 // --- 006364E0: slot 30 --------------------------------------------------------------------------
 
-void CBattleScreenSetup::OnUnitLeft(CUnit* unit) {
+void CBattleScreen::OnUnitLeft(CUnit* unit) {
     if (IsNetworkClientOriginal()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
@@ -114,9 +114,9 @@ void CBattleScreenSetup::OnUnitLeft(CUnit* unit) {
             LogSetTextOriginal(panel->owner_->children_.data[kMessageLogChild], nullptr, game::EmptyText());
         return;
     }
-    UiDwordArray& party = Party();
+    auto& party = party_;
     int index = 0;
-    while (index < party.size && party.data[index] != reinterpret_cast<std::uintptr_t>(unit)) ++index;
+    while (index < party.size && party.data[index] != unit) ++index;
     if (index >= party.size) return;
     int after = party.size - index - 1;
     if (after != 0) std::memmove(&party.data[index], &party.data[index + 1], after * sizeof(party.data[0]));
@@ -124,20 +124,20 @@ void CBattleScreenSetup::OnUnitLeft(CUnit* unit) {
     PortraitsRebuildOriginal(portraits_, nullptr, 0);
     BattleRefreshSelectionOriginal(this);
 }
-EI_REPLACE_METHOD(0x006364E0, CBattleScreenSetup::OnUnitLeft);
+EI_REPLACE_METHOD(0x006364E0, CBattleScreen::OnUnitLeft);
 
 // --- 00635080: slot 40 --------------------------------------------------------------------------
 
-void CBattleScreenSetup::SaveState() {
+void CBattleScreen::SaveState() {
     CStream* stream = GameSaveStream();
-    UiDwordArray& party = Party();
+    auto& party = party_;
     // The original collects the ids into a CDWordArray first; the bytes written are the same.
     int count = 0;
     for (int i = 0; i < party.size; ++i)
-        if (reinterpret_cast<CUnit*>(party.data[i])->flags_ & kUnitSelected) ++count;
+        if (party.data[i]->flags_ & kUnitSelected) ++count;
     stream->Write(&count, 4);
     for (int i = 0; i < party.size; ++i) {
-        auto* unit = reinterpret_cast<CUnit*>(party.data[i]);
+        auto* unit = party.data[i];
         if (unit->flags_ & kUnitSelected) stream->Write(&unit->id_, 4);
     }
     stream->Write(&Map(map_)->zoom_, 4);
@@ -145,14 +145,14 @@ void CBattleScreenSetup::SaveState() {
     stream->Write(&reinterpret_cast<const LocalPlayerBlock*>(LocalPlayerData())->savedWithScreen, 4);
     const char* text = TopPanel(topPanel_)->pageTexts_[0];
     stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
-    stream->Write(&savedFlag_, 1);
-    stream->Write(&savedSelection_, 4);
+    stream->Write(&exitPending_, 1);
+    stream->Write(&pendingExit_, 4);
 }
-EI_REPLACE_METHOD(0x00635080, CBattleScreenSetup::SaveState);
+EI_REPLACE_METHOD(0x00635080, CBattleScreen::SaveState);
 
 // --- 006361B0: slot 29 --------------------------------------------------------------------------
 
-void CBattleScreenSetup::MarkPortrait(int index) {
+void CBattleScreen::MarkPortrait(int index) {
     auto* portraits = static_cast<CHudPortraits*>(portraits_);
     reinterpret_cast<CUiMesh*>(portraits->sceneObjects_.data[index * kPortraitSprites + 4])->visible_ = 1;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
@@ -160,7 +160,7 @@ void CBattleScreenSetup::MarkPortrait(int index) {
     portraits->slots_[index].restB_ = *turn.SetAxisAngle(axis, SelectedFaceAngle());
 }
 
-void CBattleScreenSetup::OnUnitJoined(CUnit* unit) {
+void CBattleScreen::OnUnitJoined(CUnit* unit) {
     if (IsNetworkClientOriginal()) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
@@ -169,7 +169,7 @@ void CBattleScreenSetup::OnUnitJoined(CUnit* unit) {
         return;
     }
     LocalPlayerBlock* player = LocalPlayer();
-    UiDwordArray& party = Party();
+    auto& party = party_;
     // The unit's place: after the party units whose records come before its record.
     int place = 0;
     int record = 0;
@@ -180,7 +180,7 @@ void CBattleScreenSetup::OnUnitJoined(CUnit* unit) {
             found = true;
             break;
         }
-        if (place < party.size && reinterpret_cast<CUnit*>(party.data[place])->id_ == id) ++place;
+        if (place < party.size && party.data[place]->id_ == id) ++place;
     }
     bool selected = false;
     if (found) {
@@ -191,12 +191,12 @@ void CBattleScreenSetup::OnUnitJoined(CUnit* unit) {
             PartyArraySetSizeOriginal(&party, nullptr, count + 1, -1);
             std::memmove(&party.data[place + 1], &party.data[place], (count - place) * sizeof(party.data[0]));
         }
-        party.data[place] = reinterpret_cast<std::uintptr_t>(unit);
+        party.data[place] = unit;
         selected = player->records[record].selected != 0;
     } else {
         int count = party.size;
         PartyArraySetSizeOriginal(&party, nullptr, count + 1, -1);
-        party.data[count] = reinterpret_cast<std::uintptr_t>(unit);
+        party.data[count] = unit;
     }
     PortraitsRebuildOriginal(portraits_, nullptr, 0);
     if (selected) {
@@ -215,14 +215,14 @@ void CBattleScreenSetup::OnUnitJoined(CUnit* unit) {
     }
     BattleRefreshSelectionOriginal(this);
 }
-EI_REPLACE_METHOD(0x006361B0, CBattleScreenSetup::OnUnitJoined);
+EI_REPLACE_METHOD(0x006361B0, CBattleScreen::OnUnitJoined);
 
 // --- 00635EB0: slot 27 --------------------------------------------------------------------------
 
-void CBattleScreenSetup::OnMessageResult(int result) {
+void CBattleScreen::OnMessageResult(int result) {
     switch (static_cast<std::uint32_t>(result)) {
     case kLeaveZoneYes:
-        GameLeaveThroughExitOriginal(ClientGlue(), nullptr, savedSelection_);
+        GameLeaveThroughExitOriginal(ClientGlue(), nullptr, pendingExit_);
         break;
     case kGameOverLoad: {
         auto* window = static_cast<CSaveLoadWindow*>(gamecrt::operator_new(sizeof(CSaveLoadWindow)));
@@ -254,11 +254,11 @@ void CBattleScreenSetup::OnMessageResult(int result) {
         break;
     }
 }
-EI_REPLACE_METHOD(0x00635EB0, CBattleScreenSetup::OnMessageResult);
+EI_REPLACE_METHOD(0x00635EB0, CBattleScreen::OnMessageResult);
 
 // --- 006365E0: slot 31 --------------------------------------------------------------------------
 
-void CBattleScreenSetup::OnGameOver(char won) {
+void CBattleScreen::OnGameOver(char won) {
     MenuSetOriginal(1);
     MenuCallOriginal();
     void* box;
@@ -276,4 +276,4 @@ void CBattleScreenSetup::OnGameOver(char won) {
     }
     InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
 }
-EI_REPLACE_METHOD(0x006365E0, CBattleScreenSetup::OnGameOver);
+EI_REPLACE_METHOD(0x006365E0, CBattleScreen::OnGameOver);

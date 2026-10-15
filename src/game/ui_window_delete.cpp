@@ -158,17 +158,17 @@ void CChatOverlay::DestroyBody() {
 }
 EI_REPLACE_METHOD(0x005E28E0, CChatOverlay::DestroyBody);
 
-void CBattleScreenSetup::DestroyBody() {
-    FreeVectorStorage(partyWithout_.begin(), partyWithout_.EndOfStorage());
-    FreeVectorStorage(partyWithUnit_.begin(), partyWithUnit_.EndOfStorage());
+void CBattleScreen::DestroyBody() {
+    FreeVectorStorage(clientParty_.without.begin(), clientParty_.without.EndOfStorage());
+    FreeVectorStorage(clientParty_.withUnit.begin(), clientParty_.withUnit.EndOfStorage());
     DestroyPersonTexts(personTexts_);
     heroes_.vtable = DwordArrayVtable();
     heroes_.FreeData();
-    Party().vtable = PartyArrayVtable();
-    Party().FreeData();
+    party_.vtable = PartyArrayVtable();
+    party_.FreeData();
     DestroyContainer();
 }
-EI_REPLACE_METHOD(0x005F6130, CBattleScreenSetup::DestroyBody);
+EI_REPLACE_METHOD(0x005F6130, CBattleScreen::DestroyBody);
 
 static_assert(sizeof(BriefingMover) == 0x30);
 
@@ -329,11 +329,11 @@ CItemInfoPanel* CItemInfoPanel::ItemInfoPanelDelete(unsigned flags) {
 EI_REPLACE_METHOD(0x005EE420, CItemInfoPanel::ItemInfoPanelDelete);
 
 // 005F5FC0: the in-game screen (00740764).
-CBattleScreenSetup* CBattleScreenSetup::BattleScreenSetupDelete(unsigned flags) {
+CBattleScreen* CBattleScreen::BattleScreenDelete(unsigned flags) {
     DestroyBody();
     return FreeIfAsked(this, flags);
 }
-EI_REPLACE_METHOD(0x005F5FC0, CBattleScreenSetup::BattleScreenSetupDelete);
+EI_REPLACE_METHOD(0x005F5FC0, CBattleScreen::BattleScreenDelete);
 
 // 005F6450 / 005F6600 / 005F6FF0: the item screen (00740A2C), the camp (0074091C), screen 9
 // (00740D18).
@@ -531,7 +531,7 @@ EI_REPLACE_METHOD(0x005FC140, UiInput::DeleteWindow<&CUiContainer::UiContainerDe
 EI_REPLACE_METHOD(0x005FC120, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x0060C7E0, UiInput::DeleteWindow<&CUiContainer::UiContainerDelete>);
 EI_REPLACE_METHOD(0x005F4600, UiInput::DeleteWindow<&CItemInfoPanel::ItemInfoPanelDelete>);
-EI_REPLACE_METHOD(0x005FC0E0, UiInput::DeleteWindow<&CBattleScreenSetup::BattleScreenSetupDelete>);
+EI_REPLACE_METHOD(0x005FC0E0, UiInput::DeleteWindow<&CBattleScreen::BattleScreenDelete>);
 EI_REPLACE_METHOD(0x005FC0C0, UiInput::DeleteWindow<&CItemScreen::ItemScreenDelete>);
 EI_REPLACE_METHOD(0x005FC100, UiInput::DeleteWindow<&CItemScreen::CampScreenDelete>);
 EI_REPLACE_METHOD(0x005FC110, UiInput::DeleteWindow<&CItemScreen::Screen9Delete>);

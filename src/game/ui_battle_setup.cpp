@@ -36,11 +36,11 @@ namespace {
 // The panel constructors and builders, called on the panel (all thiscall).
 struct RawPanel : WindowConstructOriginal {
     // Constructors (owner = the battle screen); each returns the panel.
-    CUiWindow* ConstructWeaponBar(CInterface3D* ui, CUiWindow* owner);      // 0063BAB0 (Rebirth)
-    CUiWindow* ConstructQuickItems(CInterface3D* ui, CUiWindow* owner);     // 0063C800 (Rebirth)
-    CUiWindow* ConstructSpellColumn(CInterface3D* ui, CUiWindow* owner);    // 0063E2A0 (Rebirth)
-    CUiWindow* ConstructActionColumn(CInterface3D* ui, CUiWindow* owner);   // 0063F300 (Rebirth)
-    CUiWindow* ConstructPortraits(CInterface3D* ui, CUiWindow* owner);      // 0063FE70
+    CHudWeaponBar* ConstructWeaponBar(CInterface3D* ui, CUiWindow* owner);      // 0063BAB0 (Rebirth)
+    CHudQuickItems* ConstructQuickItems(CInterface3D* ui, CUiWindow* owner);     // 0063C800 (Rebirth)
+    CHudSpellColumn* ConstructSpellColumn(CInterface3D* ui, CUiWindow* owner);    // 0063E2A0 (Rebirth)
+    CHudActionColumn* ConstructActionColumn(CInterface3D* ui, CUiWindow* owner);   // 0063F300 (Rebirth)
+    CHudPortraits* ConstructPortraits(CInterface3D* ui, CUiWindow* owner);      // 0063FE70
     // 0065CC00: the message log (a scrolling text over `rect`, by value).
     CUiWindow* ConstructTextLog(CInterface3D* ui, void* font, RECT rect, float speed);
     // Builders of the inline-constructed panels.
@@ -53,11 +53,11 @@ struct RawPanel : WindowConstructOriginal {
     // 005EACB0: the battle view's camera and pick input (0x2C bytes).
     void* ConstructViewInput(CInterface3D* ui);
 };
-__declspec(naked) CUiWindow* RawPanel::ConstructWeaponBar(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063BAB0)
-__declspec(naked) CUiWindow* RawPanel::ConstructQuickItems(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063C800)
-__declspec(naked) CUiWindow* RawPanel::ConstructSpellColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063E2A0)
-__declspec(naked) CUiWindow* RawPanel::ConstructActionColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063F300)
-__declspec(naked) CUiWindow* RawPanel::ConstructPortraits(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063FE70)
+__declspec(naked) CHudWeaponBar* RawPanel::ConstructWeaponBar(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063BAB0)
+__declspec(naked) CHudQuickItems* RawPanel::ConstructQuickItems(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063C800)
+__declspec(naked) CHudSpellColumn* RawPanel::ConstructSpellColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063E2A0)
+__declspec(naked) CHudActionColumn* RawPanel::ConstructActionColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063F300)
+__declspec(naked) CHudPortraits* RawPanel::ConstructPortraits(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063FE70)
 CUiWindow* RawPanel::ConstructTextLog(CInterface3D* ui, void* font, RECT rect, float speed) {
     return static_cast<CUiWindow*>(ScrollTextConstructOriginal(this, nullptr, ui, static_cast<const char*>(font), rect.left,
                                                                rect.top, rect.right, rect.bottom, speed));
@@ -95,12 +95,12 @@ GameObjects* GameAt(std::uintptr_t address) { return reinterpret_cast<GameObject
 // A panel constructed inline by Create: the window base, the owner (the battle screen, declared
 // apart as CBattleScreen), the two vtables.
 template <typename Panel>
-Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreenSetup* owner, std::uintptr_t vtable,
+Panel* NewPlainPanel(CInterface3D* ui, std::size_t size, CBattleScreen* owner, std::uintptr_t vtable,
                      std::uintptr_t inputVtable) {
     void* memory = gamecrt::operator_new(size);
     if (!memory) return nullptr;
     auto* panel = static_cast<Panel*>(Raw(memory)->Construct(ui));
-    panel->owner_ = reinterpret_cast<CBattleScreen*>(owner);
+    panel->owner_ = owner;
     panel->vtable_ = reinterpret_cast<void**>(vtable);
     panel->inputVtable_ = reinterpret_cast<void**>(inputVtable);
     return panel;
@@ -113,13 +113,13 @@ char* EmptyStringData() { return *reinterpret_cast<char* const*>(0x00796E48); }
 
 // --- Create (00635250) ---------------------------------------------------------------------------
 
-void CBattleScreenSetup::Create() {
+void CBattleScreen::Create() {
     float mapZoom = 1.0f;
     portraitMode_ = 0;
     mfc::CString savedText;
     hasHero_ = false;
-    savedSelection_ = -1;
-    savedFlag_ = 0;
+    pendingExit_ = -1;
+    exitPending_ = 0;
 
     if (LoadingGame()) {
         // The screen's part of the saved game.
@@ -142,8 +142,8 @@ void CBattleScreenSetup::Create() {
             text->~CString();
         }
         if (SaveVersion() >= 0x62) {
-            stream->Read(&savedFlag_, 1);
-            stream->Read(&savedSelection_, 4);
+            stream->Read(&exitPending_, 1);
+            stream->Read(&pendingExit_, 4);
         }
         stream->Resize(0);
     } else {
@@ -202,7 +202,7 @@ void CBattleScreenSetup::Create() {
         CHudUnitPanel* panel = nullptr;
         if (void* p = gamecrt::operator_new(0x1C4)) {
             panel = static_cast<CHudUnitPanel*>(Raw(p)->Construct(interface_));
-            panel->owner_ = reinterpret_cast<CBattleScreen*>(this);
+            panel->owner_ = this;
             panel->strings_[0] = EmptyStringData();
             panel->strings_[1] = EmptyStringData();
             panel->texts_.Construct();
@@ -222,7 +222,7 @@ void CBattleScreenSetup::Create() {
         CHudMap* panel = nullptr;
         if (void* p = gamecrt::operator_new(0x1B4)) {
             panel = static_cast<CHudMap*>(Raw(p)->Construct(interface_));
-            panel->owner_ = reinterpret_cast<CBattleScreen*>(this);
+            panel->owner_ = this;
             for (UiPointArray* points : {&panel->viewPolygon_, &panel->visibleArea_}) {
                 points->data = nullptr;
                 points->growBy = 0;
@@ -260,7 +260,7 @@ void CBattleScreenSetup::Create() {
         CHudTopPanel* panel = nullptr;
         if (void* p = gamecrt::operator_new(0x16C)) {
             panel = static_cast<CHudTopPanel*>(Raw(p)->Construct(interface_));
-            panel->owner_ = reinterpret_cast<CBattleScreen*>(this);
+            panel->owner_ = this;
             panel->pageTexts_[0] = EmptyStringData();
             panel->pageTexts_[1] = EmptyStringData();
             panel->vtable_ = reinterpret_cast<void**>(0x00742498);
@@ -279,7 +279,7 @@ void CBattleScreenSetup::Create() {
         panelText += text;
         if (top->page_ == 0) {
             // The owner is this screen (a container; CBattleScreen declares it as a window).
-            auto* owner = reinterpret_cast<CUiContainer*>(top->owner_);
+            auto* owner = top->owner_;
             Raw(owner->children_.data[9])->AddLogText(text);
         }
     }
@@ -293,7 +293,7 @@ void CBattleScreenSetup::Create() {
     pendingSlot_ = -1;
     GameSetWeatherOriginal(GameAt(0x007AFEA6), nullptr, 0, 0.0f);   // clear weather
     GameAt(0x007AFEA5)->MarkInterfaceChanged();
-    PartyArraySetSizeOriginal(partyArray_, nullptr, 0, -1);
+    PartyArraySetSizeOriginal(&party_, nullptr, 0, -1);
     viewPressed_ = false;
     boxSelecting_ = false;
     std::memset(orderKeys_, 0, 6);   // +0x18D dword and +0x191 word
@@ -306,7 +306,7 @@ void CBattleScreenSetup::Create() {
         using SlotFn = void(__thiscall*)(CUiWindow*, int);
         reinterpret_cast<SlotFn>(vtable_[36])(this, 1);   // +0x90
     }
-    partyCamera_ = -1;
+    clientParty_.camera = -1;
 }
 
 // --- Drawing (slot 20, 00636020) ---------------------------------------------------------------
@@ -320,7 +320,7 @@ constexpr DWORD kClearStencil = 6;        // D3DCLEAR_ZBUFFER | D3DCLEAR_STENCIL
 
 } // namespace
 
-BOOL CBattleScreenSetup::Draw(void* target) {
+BOOL CBattleScreen::Draw(void* target) {
     MenuFrame578910(reinterpret_cast<void*>(0x007AFEA5));
     if (boxSelecting_) {   // the selection box, a dark rectangle with an outline (renderer slot 19)
         static_cast<CSceneRenderer*>(target)->DrawRectangle(selectionBox_.left, selectionBox_.top, selectionBox_.right,
@@ -343,6 +343,6 @@ BOOL CBattleScreenSetup::Draw(void* target) {
     return 1;
 }
 
-EI_REPLACE_METHOD(0x00635250, CBattleScreenSetup::Create);
-EI_REPLACE_METHOD(0x00636020, CBattleScreenSetup::Draw);
+EI_REPLACE_METHOD(0x00635250, CBattleScreen::Create);
+EI_REPLACE_METHOD(0x00636020, CBattleScreen::Draw);
 EI_REBIRTH_IMPLEMENTS(0x00636020, ei::rebirth::Patch::AddNewConsoleCommands);

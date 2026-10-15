@@ -172,7 +172,7 @@ void CHudPortraits::Update() {
     float dt = GamePaused() ? 0.0f : static_cast<float>(WindowFrameTime(this));
     Sprite(sceneObjects_.data[0])->visible_ = 0;   // the selection marker
 
-    for (int i = 0; i < owner_->partyCount_; ++i) {
+    for (int i = 0; i < owner_->party_.size; ++i) {
         if (i >= count_) continue;
         // Objects 5i+1 .. 5i+5, read afresh each time (replacing the face model may move the array).
         auto object = [this, i](int k) { return sceneObjects_.data[i * 5 + k]; };

@@ -54,7 +54,7 @@ __declspec(naked) void __fastcall ViewOrderDead(void*, void*, OrderUnits*, CUnit
 __declspec(naked) std::uint8_t* __fastcall SpeechPhrase(CUnit*, unsigned) EI_ORIGINAL(0x006D8430)
 __declspec(naked) std::uint8_t* __fastcall SpeechPhraseFor(CUnit*, char*, bool) EI_ORIGINAL(0x006D8A40)
 // 0063B920 (thiscall on the battle screen, RET 8): the unit's name line into a CString.
-void __fastcall UnitNameLine(CBattleScreenSetup* a0, void*, CUnit* a2, mfc::CString* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
+void __fastcall UnitNameLine(CBattleScreen* a0, void*, CUnit* a2, mfc::CString* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
 // 00578E20 (thiscall on 007AFEA4): the text manager.
 CTextManager* __fastcall TextTable(void*) { return (CTextManager*)GameFlowOriginal(); }
 // 0065CF30 (thiscall on the message log, RET 4): adds a line.
@@ -99,7 +99,7 @@ void DropColumn(Column* panel, bool inlinePanels, void(__fastcall* setPanel)(CUi
     panel->selected_ = -1;
 }
 
-void DropPendingAction(CBattleScreenSetup* self, bool inlinePanels) {
+void DropPendingAction(CBattleScreen* self, bool inlinePanels) {
     CHudQuickItems* quick = static_cast<CHudQuickItems*>(self->quickItems_);
     self->pendingSlot_ = -1;
     self->pendingAction_ = 0;
@@ -111,7 +111,7 @@ void DropPendingAction(CBattleScreenSetup* self, bool inlinePanels) {
 }
 
 // Member i's portrait nods after a random delay (as the orders' nod).
-void NodPortrait(CBattleScreenSetup* self, int i) {
+void NodPortrait(CBattleScreen* self, int i) {
     float delay = PortraitDelay(UiRandom().Next());
     static_cast<CHudPortraits*>(self->portraits_)->slots_[i].wobbleTime_ = delay;
     static_cast<CHudPortraits*>(self->portraits_)->slots_[i].wobbleKind_ = 1;
@@ -121,9 +121,9 @@ void NodPortrait(CBattleScreenSetup* self, int i) {
 
 // --- 006379E0: a party member toggled ----------------------------------------------------------
 
-void CBattleScreenSetup::ToggleMember(int index) {
-    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
+void CBattleScreen::ToggleMember(int index) {
+    auto* party = &party_;
+    auto unitAt = [party](int i) { return party->data[i]; };
     if (IsNetworkClientOriginal()) return;
     if (index >= party->size) return;
 
@@ -177,13 +177,13 @@ void CBattleScreenSetup::ToggleMember(int index) {
     BattleRefreshSelectionOriginal(this);
     if (chosen.data) gamecrt::operator_delete(chosen.data);
 }
-EI_REPLACE_METHOD(0x006379E0, CBattleScreenSetup::ToggleMember);
+EI_REPLACE_METHOD(0x006379E0, CBattleScreen::ToggleMember);
 
 // --- 00637190 / 006373A0: the selected members ordered at a unit -------------------------------
 
-void CBattleScreenSetup::AttackUnit(CUnit* target, int ctrl) {
-    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
+void CBattleScreen::AttackUnit(CUnit* target, int ctrl) {
+    auto* party = &party_;
+    auto unitAt = [party](int i) { return party->data[i]; };
     int kind = 0;
     while (kind < 6 && orderKeys_[kind] == 0) ++kind;
 
@@ -205,13 +205,13 @@ void CBattleScreenSetup::AttackUnit(CUnit* target, int ctrl) {
     units.vtable = reinterpret_cast<void*>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }
-EI_REPLACE_METHOD(0x00637190, CBattleScreenSetup::AttackUnit);
+EI_REPLACE_METHOD(0x00637190, CBattleScreen::AttackUnit);
 
-void CBattleScreenSetup::OrderDeadUnit(CUnit* target, int ctrl) {
-    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
+void CBattleScreen::OrderDeadUnit(CUnit* target, int ctrl) {
+    auto* party = &party_;
     OrderUnits units{reinterpret_cast<void*>(0x007402AC), nullptr, 0, 0, 0};
     for (int i = 0; i < party->size; ++i) {
-        auto* member = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
+        auto* member = party->data[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;
         PartyArraySetSizeOriginal(&units, nullptr, n + 1, -1);
@@ -224,13 +224,13 @@ void CBattleScreenSetup::OrderDeadUnit(CUnit* target, int ctrl) {
     units.vtable = reinterpret_cast<void*>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }
-EI_REPLACE_METHOD(0x006373A0, CBattleScreenSetup::OrderDeadUnit);
+EI_REPLACE_METHOD(0x006373A0, CBattleScreen::OrderDeadUnit);
 
 // --- 00637500 / 00637750: the pending spell or quick item used ---------------------------------
 
-void CBattleScreenSetup::UseOnUnit(CUnit* target, char quick, int ctrl) {
-    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
+void CBattleScreen::UseOnUnit(CUnit* target, char quick, int ctrl) {
+    auto* party = &party_;
+    auto unitAt = [party](int i) { return party->data[i]; };
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -249,11 +249,11 @@ void CBattleScreenSetup::UseOnUnit(CUnit* target, char quick, int ctrl) {
     }
     DropPendingAction(this, true);
 }
-EI_REPLACE_METHOD(0x00637500, CBattleScreenSetup::UseOnUnit);
+EI_REPLACE_METHOD(0x00637500, CBattleScreen::UseOnUnit);
 
-void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char quick) {
-    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
+void CBattleScreen::UseAtPoint(float x, float y, float z, CUnit* unit, char quick) {
+    auto* party = &party_;
+    auto unitAt = [party](int i) { return party->data[i]; };
     // The original works on its argument slots, so the shift below stays for the later members.
     Vector3 point = {x, y, z};
     for (int i = 0; i < party->size; ++i) {
@@ -280,11 +280,11 @@ void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char
     }
     DropPendingAction(this, false);
 }
-EI_REPLACE_METHOD(0x00637750, CBattleScreenSetup::UseAtPoint);
+EI_REPLACE_METHOD(0x00637750, CBattleScreen::UseAtPoint);
 
 // --- 006366F0: a unit's speech event (slot 32) -------------------------------------------------
 
-void CBattleScreenSetup::OnUnitSpeech(int id, unsigned event, char* extra) {
+void CBattleScreen::OnUnitSpeech(int id, unsigned event, char* extra) {
     auto* unit = reinterpret_cast<CUnit*>(ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, id));
     if (!unit) return;
     std::uint8_t* phrase = (event == 0x2A || event == 0x2B) ? SpeechPhraseFor(unit, extra, event == 0x2B)
@@ -318,8 +318,8 @@ void CBattleScreenSetup::OnUnitSpeech(int id, unsigned event, char* extra) {
         }
     }
 
-    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
+    auto* party = &party_;
+    auto unitAt = [party](int i) { return party->data[i]; };
     if (event == 0x30) {
         // The member's timed face (no null test, as the original).
         for (int i = 0; i < party->size; ++i) {
@@ -336,4 +336,4 @@ void CBattleScreenSetup::OnUnitSpeech(int id, unsigned event, char* extra) {
         }
     }
 }
-EI_REPLACE_METHOD(0x006366F0, CBattleScreenSetup::OnUnitSpeech);
+EI_REPLACE_METHOD(0x006366F0, CBattleScreen::OnUnitSpeech);

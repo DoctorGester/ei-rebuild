@@ -5,7 +5,7 @@
 // unit panel's body parts, the top panel's pages, the map's slide, quick save / load, the party
 // members and the message window. Rebirth's MPSpeedControl (the two JNEs at 0063A6D4 / 0063A73A
 // aimed at the next instruction) lets the speed keys work on a network client too. See ui_camp.h
-// (CBattleScreenSetup) and
+// (CBattleScreen) and
 // docs/notes/ui.md, section 6.
 #include "ui_camp.h"
 #include "game_strings.h"
@@ -84,7 +84,7 @@ enum KeyAction {
 constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 
 // The screen as the panels know it (the same object; ui.h).
-CBattleScreen* Hud(CBattleScreenSetup* screen) { return reinterpret_cast<CBattleScreen*>(screen); }
+CBattleScreen* Hud(CBattleScreen* screen) { return screen; }
 CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
 
 // The action column's button of an action name: "follow" is button 0, any other name button 1
@@ -114,7 +114,7 @@ void SlideKey(Panel* panel, int& shown, int choice, Show show) {
 
 } // namespace
 
-void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
+void CBattleScreen::OnKeyDown(int key, int repeat, int flags) {
     if (portraitMode_ != 0) {
         if (key == VK_ESCAPE) portraitMode_ = 0;
         return;
@@ -205,7 +205,7 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
     }
     case kActionCameraToUnit:
         // The camera follows the first selected member, or nobody.
-        for (int i = 0; i < hud->partyCount_; ++i) {
+        for (int i = 0; i < hud->party_.size; ++i) {
             if (hud->party_[i]->flags_ & kUnitSelected) {
                 CameraSetTargetOriginal(camera, nullptr, hud->party_[i]);
                 return;
@@ -236,7 +236,7 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
         const int mode = action - kActionMoveMode;
         if (WorldClient()->LocalView()) {
             panel->interface_->PlaySound(ClickSound(), 0);
-            for (int i = 0; i < panel->owner_->partyCount_; ++i) {
+            for (int i = 0; i < panel->owner_->party_.size; ++i) {
                 CUnit* unit = panel->owner_->party_[i];
                 if (unit->flags_ & kUnitSelected) LocalView()->SetMoveMode(unit, mode);
             }
@@ -333,18 +333,18 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
         interface_->PlaySound(OnOffSound(), 0);
         ToggleMember(member);
         // With Ctrl or Alt the camera follows the member.
-        if ((interface_->ctrlDown_ || interface_->altDown_) && hud->partyCount_ > member)
+        if ((interface_->ctrlDown_ || interface_->altDown_) && hud->party_.size > member)
             CameraSetTargetOriginal(camera, nullptr, hud->party_[member]);
         return;
     }
     case kActionSelectAll:
         if (IsNetworkClientOriginal()) return;
         interface_->PlaySound(OnOffSound(), 0);
-        for (int i = 0; i < hud->partyCount_; ++i) {
+        for (int i = 0; i < hud->party_.size; ++i) {
             MarkPortrait(i);
             if (CUnit* unit = hud->party_[i]) ClientWorldControlUnitOriginal(WorldClient(), nullptr, unit);
         }
-        if (hud->partyCount_ != 0 && hud->party_[0]) hud->VirtualUnitSpeech(hud->party_[0]->id_, 0, nullptr);
+        if (hud->party_.size != 0 && hud->party_[0]) hud->VirtualUnitSpeech(hud->party_[0]->id_, 0, nullptr);
         BattleRefreshSelectionOriginal(this);
         return;
     case kActionMessage:
@@ -359,7 +359,7 @@ void CBattleScreenSetup::OnKeyDown(int key, int repeat, int flags) {
 namespace {
 // Rebirth-patched (the shim stays a named function so check_patched_calls sees it).
 void __fastcall BattleScreenKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CBattleScreenSetup>(input)->OnKeyDown(key, repeat, flags);
+    WindowFromInput<CBattleScreen>(input)->OnKeyDown(key, repeat, flags);
 }
 } // namespace
 EI_REPLACE(0x0063A560, BattleScreenKeyDown);

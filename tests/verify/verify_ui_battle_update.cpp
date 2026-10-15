@@ -4,7 +4,7 @@
 // first, so the original runs, its result is recorded (fields, entries, region items, and each
 // sprite's position, orientation, texture corner and colour), then ours runs over it and both
 // must agree.
-// CBattleScreenSetup::Update (00638280, every frame) runs ours only: the quest sound request is
+// CBattleScreen::Update (00638280, every frame) runs ours only: the quest sound request is
 // consumed, a cleared zone-exit flag means a window was opened, a single player's party array
 // is left alone, and with a selection box every live party unit is marked exactly when the
 // world's box query (005656A0) lists it.
@@ -111,23 +111,23 @@ std::vector<std::uintptr_t> UnitsInBox(const void* box) {
 
 // 00638280: ours only.
 static void* s_battleUpdate;
-static void __fastcall BattleScreenUpdateVerify(CBattleScreenSetup* self) {
-    const UiDwordArray* party = reinterpret_cast<const UiDwordArray*>(self->partyArray_);
+static void __fastcall BattleScreenUpdateVerify(CBattleScreen* self) {
+    const UiDwordArray* party = reinterpret_cast<const UiDwordArray*>(&self->party_);
     bool client = reinterpret_cast<bool(__thiscall*)(void*)>(0x0057F440)(reinterpret_cast<void*>(0x007AFE20));
     std::uint32_t* partyData = party->data;
     int partySize = party->size;
-    bool savedFlag = self->savedFlag_ != 0;
+    bool savedFlag = self->exitPending_ != 0;
     CUiWindow* top = self->interface_->GetActiveWindow();
 
     self->Update();
 
-    ei::verify::Check("CBattleScreenSetup::Update", 0, self->questSound_, "quest sound %d left", self->questSound_);
-    if (savedFlag && !self->savedFlag_) {
-        ei::verify::Check("CBattleScreenSetup::Update", true, self->interface_->GetActiveWindow() != top,
+    ei::verify::Check("CBattleScreen::Update", 0, self->questSound_, "quest sound %d left", self->questSound_);
+    if (savedFlag && !self->exitPending_) {
+        ei::verify::Check("CBattleScreen::Update", true, self->interface_->GetActiveWindow() != top,
                           "zone exit asked without a new window");
     }
     if (!client) {
-        ei::verify::Check("CBattleScreenSetup::Update", true, party->data == partyData && party->size == partySize,
+        ei::verify::Check("CBattleScreen::Update", true, party->data == partyData && party->size == partySize,
                           "single player party changed (%d -> %d)", partySize, party->size);
     }
     if (self->boxSelecting_) {
@@ -141,12 +141,12 @@ static void __fastcall BattleScreenUpdateVerify(CBattleScreenSetup* self) {
             for (std::uintptr_t u : inside) listed |= u == party->data[i];
             if (((flags & 0x100) != 0) != listed) wrong = i;
         }
-        ei::verify::Check("CBattleScreenSetup::Update", -1, wrong, "party unit %d marked wrongly", wrong);
+        ei::verify::Check("CBattleScreen::Update", -1, wrong, "party unit %d marked wrongly", wrong);
     }
 }
 EI_VERIFY(0x00638280, BattleScreenUpdateVerify, 0, s_battleUpdate);
 
-// CBattleScreenSetup::OnLButtonUp (00638B30, input side slot 3): ours only (it selects units, plays
+// CBattleScreen::OnLButtonUp (00638B30, input side slot 3): ours only (it selects units, plays
 // sounds and gives orders through SelectUnit). Reached by every left click in a game: on a panel
 // the press was the panel's, so the container's handler runs (ui_hud, ui_describe); on the view a
 // press without a drag is a click through SelectUnit (world_client, ui_describe). A drag (box
@@ -154,7 +154,7 @@ EI_VERIFY(0x00638280, BattleScreenUpdateVerify, 0, s_battleUpdate);
 // (+0x22C) nothing changes; otherwise a press on the view (+0x1C0) is consumed.
 static void* s_battleLButtonUp;
 static void __fastcall BattleScreenLButtonUpVerify(void* input, void*, int buttons, int x, int y) {
-    auto* self = reinterpret_cast<CBattleScreenSetup*>(static_cast<std::uint8_t*>(input) - 0x94);
+    auto* self = reinterpret_cast<CBattleScreen*>(static_cast<std::uint8_t*>(input) - 0x94);
     int mode = self->portraitMode_;
     bool pressed = self->viewPressed_, dragging = self->boxSelecting_;
     self->OnLButtonUp(buttons, x, y);
@@ -163,19 +163,19 @@ static void __fastcall BattleScreenLButtonUpVerify(void* input, void*, int butto
         ok = self->viewPressed_ == pressed && self->boxSelecting_ == dragging;
     else
         ok = !(pressed && self->viewPressed_);
-    ei::verify::Check("CBattleScreenSetup::OnLButtonUp", true, ok, "mode %d, press %d/%d, drag %d/%d", mode,
+    ei::verify::Check("CBattleScreen::OnLButtonUp", true, ok, "mode %d, press %d/%d, drag %d/%d", mode,
                       pressed ? 1 : 0, self->viewPressed_ ? 1 : 0, dragging ? 1 : 0, self->boxSelecting_ ? 1 : 0);
 }
 EI_VERIFY(0x00638B30, BattleScreenLButtonUpVerify, 0, s_battleLButtonUp);
 
-// CBattleScreenSetup::OnQuestVariable (006369D0, slot 33): ours only (it appends to the top
+// CBattleScreen::OnQuestVariable (006369D0, slot 33): ours only (it appends to the top
 // panel's text and the message log). Reached when a "q." player variable changes in a game
 // (scenario ui_quest_notice: GSSetVar of q.<zone>.<quest> to 1, 2 and 3, a sub-objective and a
 // two-part name). Checked: the top panel's text grew by a line ending in the colour code and LF
 // (00794318), or (a single player's unset sub-objective) did not change; when it grew the clock
 // pulses and the quest sound request did not drop.
 static void* s_questVariable;
-static void __fastcall BattleScreenQuestVariableVerify(CBattleScreenSetup* self, void*, const char* name, float value) {
+static void __fastcall BattleScreenQuestVariableVerify(CBattleScreen* self, void*, const char* name, float value) {
     auto* top = reinterpret_cast<std::uint8_t*>(self->topPanel_);
     const auto& log = *reinterpret_cast<const mfc::CString*>(top + 0x164);
     int before = log.GetLength();
@@ -188,13 +188,13 @@ static void __fastcall BattleScreenQuestVariableVerify(CBattleScreenSetup* self,
                 std::memcmp(static_cast<const char*>(log) + after - tailLength, tail, tailLength) == 0;
     bool pulsed = Get<std::uint8_t>(self->clock_, 0x158) != 0;
     bool ok = after == before || (grew && pulsed && self->questSound_ >= sound);
-    ei::verify::Check("CBattleScreenSetup::OnQuestVariable", true, ok, "'%s' %g: text %d -> %d, clock %d, sound %d -> %d",
+    ei::verify::Check("CBattleScreen::OnQuestVariable", true, ok, "'%s' %g: text %d -> %d, clock %d, sound %d -> %d",
                       name ? name : "", static_cast<double>(value), before, after, pulsed ? 1 : 0, sound,
                       self->questSound_);
 }
 EI_VERIFY(0x006369D0, BattleScreenQuestVariableVerify, 0, s_questVariable);
 
-// CBattleScreenSetup::RefreshSelection (00637DC0): ours only (the panels' SetUnit calls it makes
+// CBattleScreen::RefreshSelection (00637DC0): ours only (the panels' SetUnit calls it makes
 // have their own side-by-side wrappers). Reached in every game: the screen's slot 29 (006361B0, a
 // unit joins the party, as the new game's hero does) ends with it; also slots 28 (items picked
 // up) and 30 (a member leaves), the member toggle 006379E0, a box drag (00638B30) and a network
@@ -204,8 +204,8 @@ EI_VERIFY(0x006369D0, BattleScreenQuestVariableVerify, 0, s_questVariable);
 // it, 00637EE5); the pending action is cleared (+0x17C 0, +0x180 / +0x184 -1) and the three
 // panels' highlights (+0x150) are -1.
 static void* s_refreshSelection;
-static void __fastcall RefreshSelectionVerify(CBattleScreenSetup* self) {
-    const UiDwordArray* party = reinterpret_cast<const UiDwordArray*>(self->partyArray_);
+static void __fastcall RefreshSelectionVerify(CBattleScreen* self) {
+    const UiDwordArray* party = reinterpret_cast<const UiDwordArray*>(&self->party_);
     void* first = nullptr;
     int selected = 0;
     for (int i = 0; i < party->size; ++i) {
@@ -226,15 +226,15 @@ static void __fastcall RefreshSelectionVerify(CBattleScreenSetup* self) {
     bool cleared = self->pendingAction_ == 0 && self->pendingSlot_ == -1 && self->pendingItem_ == -1 &&
                    Get<int>(self->quickItems_, 0x150) == -1 && Get<int>(self->spellColumn_, 0x150) == -1 &&
                    Get<int>(self->actionColumn_, 0x150) == -1;
-    ei::verify::Check("CBattleScreenSetup::RefreshSelection", true, panels && panel && cleared,
+    ei::verify::Check("CBattleScreen::RefreshSelection", true, panels && panel && cleared,
                       "%d selected (first %p, dead %d): panels %d, unit panel %p (want %p), cleared %d", selected, first,
                       dead ? 1 : 0, panels ? 1 : 0, panelUnit, first, cleared ? 1 : 0);
 }
 EI_VERIFY(0x00637DC0, RefreshSelectionVerify, 0, s_refreshSelection);
 
 // 006381E0, pure, side by side: the original's AL against ours. Every frame of the battle screen
-// (CBattleScreenSetup::Update compares the client's party ids through its address).
-using PartyIds = CBattleScreenSetup::PartyIds;
+// (CBattleScreen::Update compares the client's party ids through its address).
+using PartyIds = CBattleScreen::PartyIds;
 static bool(__fastcall* s_partyIdsEqual)(const PartyIds*, void*, const PartyIds*);
 static bool __fastcall PartyIdsEqualVerify(const PartyIds* self, void*, const PartyIds* other) {
     bool expected = s_partyIdsEqual(self, nullptr, other);

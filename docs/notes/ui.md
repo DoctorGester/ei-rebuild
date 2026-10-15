@@ -188,7 +188,7 @@ Small and multiplayer-only functions (O unless marked; no scenario unless named)
 
 | Address | Name (file) |
 |---|---|
-| 005FD760, 0060E210, 005EACB0, 005E7010 (S, CheckNear), 005E6B90, 00638A10, 0060FA80 (S, slot 64), 005ED710 / 005ED780, 005EA850 | `CUiSurface::Freeze` (hero screen, menus), `CUiItemPanel::ConstructBlank` (camp), `CCameraInput::Construct` (newgame), `CUiMesh::GetPlacement` (global map, portraits), `CScreenFade::Start`, `CBattleScreenSetup::OnDeactivate`, `CCampPages::HeroRecord`, `ItemTurn::Clone` / `DeletingDestruct`, the base input side's deleting destructor (`verify_ui_small_slots.cpp`) |
+| 005FD760, 0060E210, 005EACB0, 005E7010 (S, CheckNear), 005E6B90, 00638A10, 0060FA80 (S, slot 64), 005ED710 / 005ED780, 005EA850 | `CUiSurface::Freeze` (hero screen, menus), `CUiItemPanel::ConstructBlank` (camp), `CCameraInput::Construct` (newgame), `CUiMesh::GetPlacement` (global map, portraits), `CScreenFade::Start`, `CBattleScreen::OnDeactivate`, `CCampPages::HeroRecord`, `ItemTurn::Clone` / `DeletingDestruct`, the base input side's deleting destructor (`verify_ui_small_slots.cpp`) |
 | 005E2860 / 005E2880 | `UiInputSide::LeftDoubleAsDown` / `RightDoubleAsDown` (`ui_input_defaults.cpp`; slot 7 / 8 of most input sides; `dblclick`) |
 | 00612CF0 | `CCampPages::DebugFill` (`ui_camp_debug.cpp`; slot 39, only the vtable refers to it; the database name lists 006AD2F0 .. 00689610 shared in originals_gameplay.h) |
 | 00608D20, 00608F90, 006091C0, 006095A0, 006097E0 / 00609900 | `CChatWindow` (base screen, `ui_chat_window.cpp`): `Construct`, `AddPortrait`, `ShowPlayers`, `Update` (24), input 2 / 4; players vector +0x150 of counted `PlayerMessage`s, front insert = the inlined `insert(begin(), x)`, overflow 0060A120 |
@@ -300,7 +300,7 @@ Global map and camp pages (O unless marked):
 | 00630670, 006312C0 (S) | `CGlobalMap::RefreshSelection` (zone markers alone in colours 0xFF181818 + 0x101010 i through a frame step 00458010(0, 0) into the backdrop; the click reads the zone back from the pixel), `FindPaths` (RET 4, recursive way search; `arrivals_` = stlp::map<int, float> exit -> shortest "#passtime" sum; `ui_global_map_paths.cpp`) |
 | 00631CC0 | `GlobalMapZonesSetAtGrow` (`CArray<GlobalMapZone, GlobalMapZoneElements>`, elements 005FBF50 / 005FBD30) |
 | 0062FF60 (S), 0062FFC0 (S), 0062FF10, 00630580, 0062EE30, 0062EDD0 | `CGlobalMap::OnRightDown` / `OnRightUp` (the drag; motion 007C7C60), `OnDeactivate`, `OnKeyDown` (Esc menu inline, '5' / '6' quick save / load "saveq"), `OnMessageResult`, `Close` (`ui_global_map_input.cpp`) |
-| 00635250 | `CBattleScreenSetup::Create` (11 panels, 2 input handlers; every scenario) |
+| 00635250 | `CBattleScreen::Create` (11 panels, 2 input handlers; every scenario) |
 | 0060F470, 0060F5B0, 0060F600, 0060E900, 0060E980 (S) | `CCampPages::OnLButtonDown` / `OnLButtonUp` / `OnKeyDown`, `OnMessageResult` (0x10001 takes the first weapon back), `HelpTopic` (`ui_camp_input.cpp`; `turning_` +0x25C) |
 | 00611930 (S), 006100E0 (S), 0060E9E0, 0060F050, 00612600, 00612290 | `UpdateAction`, `CanEquip` (slot 43, AL), `ShowPage`, `Draw`, `CanMakeItem`, `CanMakeSpell` |
 | 0060E6B0, 0060FE40, 0060E3E0, 0060FCA0, 0060F9E0, 0060F980, 0060F6B0, 0060F710 / 0060F7A0, 0060F830, 00610AD0, 00610920 | `Close`, `TakeOff`, the trade panel's destructor body, `PutOn`, `RefreshWeapons` (46), `RefreshStats` (47), `Update` (turn via `_CIfmod`), `NextHero` / `PreviousHero`, `ShowHero`, `MoveItem` (42, RET 8), `PutOnFromStrip` (RET 4) |
@@ -434,7 +434,7 @@ and so are the rewritten ones with wrappers (00637DC0, 006379E0, 00637190, 00637
 
 | Address | Name | V; scenario |
 |---|---|---|
-| 00638280, 00637DC0 | `CBattleScreenSetup::Update` (every frame), `RefreshSelection` | O; every game scenario |
+| 00638280, 00637DC0 | `CBattleScreen::Update` (every frame), `RefreshSelection` | O; every game scenario |
 | 0063D2B0, 0063E820, 0063C180, 0063F800, 0063CEE0, 00639EF0 | `CHudQuickItems::SetUnit`, `CHudSpellColumn::SetUnit`, `CHudWeaponBar::SetUnit`, `CHudActionColumn::SetUnit` (RET 8), `CHudQuickItems::ItemTip` (RET 8), `CBattleScreen::HoverUnit` (RET 0xC) | S; every game scenario |
 | 00639D60, 0063B920, 00638B30, 00638A40 | `OnMouseMove`, `UnitName` (RET 8), `OnLButtonUp` (O), `OnLButtonDown` (O) | S; ui_hud, world_client, ui_describe |
 | 00635080, 00635E60, 006360F0, 00636150, 006364E0, 006361B0, 00635EB0, 006365E0 | `SaveState` (40; S through a recorder), `Close` (26), `PollShown` (35, AL), `OnItemsPicked` (28), `OnUnitLeft` (30), `OnUnitJoined` (29: placed by the local player's record order, selected by the record's +0x778), `OnMessageResult` (27), `OnGameOver` (31) (`ui_battle_slots.cpp`) | O; every new game ("savea", the hero joins); 27 / 28 / 30 / 31 not known |

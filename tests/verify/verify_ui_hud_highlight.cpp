@@ -128,21 +128,21 @@ static void __fastcall ActionClearVerify(CHudActionColumn* self, void*) {
 }
 EI_VERIFY(0x0063F7A0, ActionClearVerify, 6, s_actionClear);
 
-// CBattleScreenSetup::OnLButtonDown (00638A40): ours only (the container's handler passes the
+// CBattleScreen::OnLButtonDown (00638A40): ours only (the container's handler passes the
 // press to the panels, which must not get it twice). Without the portrait pick: a press already
 // on, or one no panel took, leaves the press on at (x, y) without a drag; a press a panel took
 // leaves it off. Reached by every click on the battle screen (ui_hud, ui_battle_commands,
 // ui_order_move, ...). PUSH EBX; PUSH ESI; MOV ESI,ECX; PUSH EDI (5).
 static void(__fastcall* s_battleLeftDown)(void*, void*, int, int, int);
 static void __fastcall BattleLeftDownVerify(void* input, void*, int buttons, int x, int y) {
-    auto* self = WindowFromInput<CBattleScreenSetup>(input);
+    auto* self = WindowFromInput<CBattleScreen>(input);
     bool portraits = self->portraitMode_ != 0;
     bool pressed = self->viewPressed_;
-    self->CBattleScreenSetup::OnLButtonDown(buttons, x, y);
+    self->CBattleScreen::OnLButtonDown(buttons, x, y);
     if (portraits) return;
     bool started = self->viewPressed_ && self->pressX_ == x && self->pressY_ == y && !self->boxSelecting_;
     bool ok = pressed ? started : (self->inputHandled_ ? !self->viewPressed_ : started);
-    ei::verify::Check("CBattleScreenSetup::OnLButtonDown", true, ok, "(%d,%d) pressed %d handled %d press %d at %d,%d drag %d",
+    ei::verify::Check("CBattleScreen::OnLButtonDown", true, ok, "(%d,%d) pressed %d handled %d press %d at %d,%d drag %d",
                       x, y, pressed ? 1 : 0, self->inputHandled_ ? 1 : 0, self->viewPressed_ ? 1 : 0, self->pressX_,
                       self->pressY_, self->boxSelecting_ ? 1 : 0);
 }

@@ -31,7 +31,7 @@ struct PortraitsCopy {
     std::uint8_t marker[16];             // visible flag and local position
 };
 
-int PortraitCount(CHudPortraits* p) { return (std::min)(p->count_, p->owner_->partyCount_); }
+int PortraitCount(CHudPortraits* p) { return (std::min)(p->count_, p->owner_->party_.size); }
 
 PortraitsCopy CopyPortraits(CHudPortraits* p) {
     PortraitsCopy c;

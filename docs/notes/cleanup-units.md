@@ -176,7 +176,7 @@ item_*, script_* helper blocks; progress.py counts them but there is no body to 
 callers skipped in batches 1 and 2 are converted. Release objects differ only in the registration thunks and the removed
 `xor edx, edx` at the callers, as before.
 - Class B (the shim only forwarded to an existing non-virtual member: deleted, member registered), 64 + 3: CInterface3D
-  Activate / PushWindow / CreateScreen / ShowMessage / OpenHelp / OnKeyDown / MessageText / LoadState; CBattleScreenSetup
+  Activate / PushWindow / CreateScreen / ShowMessage / OpenHelp / OnKeyDown / MessageText / LoadState; CBattleScreen
   OnUnitSpeech / UnitName / Create / OnQuestVariable; CBriefingScreen Create / Update / MovePerson; CCampPages DoAction /
   UndoAction; CConstructorPage SpellMakerItemAt / ItemMakerItemAt / DrawSpellMaker / DrawItemMaker; CCreditsScreen and
   CExchangeScreen Draw; CCursor::Blit; CHeroEquipPanel ShowWeapon / ShowArmour / ItemAt; CHeroQuickStrip ShowEntry / ItemAt /

@@ -92,7 +92,7 @@ void CHudUnitPanel::ShowHealth(CUnit* unit) {
     health.Format("%d", unit->packedVitals.hitPoints > 0 ? unit->packedVitals.hitPoints : 0);
     DrawPanelText(this, health, RECT{130, 185, 160, 200}, kTextColour, 0, 1);
 
-    for (int i = 0; i < owner_->partyCount_; ++i) {
+    for (int i = 0; i < owner_->party_.size; ++i) {
         if (owner_->party_[i] != unit) continue;
         Sprite(this, 13)->visible_ = 1;
         if (unit->packedVitals.maxMana != 0 && unit->packedVitals.mana != 0 && BarRatio(unit->packedVitals.mana, unit->packedVitals.maxMana, &ratio))
@@ -146,7 +146,7 @@ void CHudMovePanel::ToggleFlag() {
     interface_->PlaySound(kSoundClick, 0);
     // The selected party units' common flag: -1 none selected, -2 mixed.
     int common = -1;
-    for (int i = 0; i < owner_->partyCount_; ++i) {
+    for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];
         if (!(unit->flags_ & 0x10)) continue;
         if (common == -1)
@@ -154,8 +154,8 @@ void CHudMovePanel::ToggleFlag() {
         else if (common != unit->fightAtWill)
             common = -2;
     }
-    int value = owner_->partyCount_ > 0 && common == 1 ? 0 : 1;
-    for (int i = 0; i < owner_->partyCount_; ++i) {
+    int value = owner_->party_.size > 0 && common == 1 ? 0 : 1;
+    for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];
         if (unit->flags_ & 0x10) Orders()->SetFlag438(unit, value);
     }

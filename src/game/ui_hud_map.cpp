@@ -289,7 +289,7 @@ void CHudMap::BuildMarkers() {
         PutArrow(out.Block(), unit, x, y);
         std::int16_t frame = UnitFrame(unit);
         CBattleScreen* owner = owner_;
-        for (int k = 0; k < owner->partyCount_; ++k) {
+        for (int k = 0; k < owner->party_.size; ++k) {
             if (owner->party_[k] == unit) {
                 frame = kFrameParty;
                 break;

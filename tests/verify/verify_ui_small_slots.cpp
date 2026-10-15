@@ -75,11 +75,11 @@ EI_VERIFY(0x005E6B90, FadeStartVerify, 0, s_unused);
 // 00638A10 (ours only: it calls every child's slot 1): the order keys and the press flags clear.
 // A window opened over the battle screen (the escape menu, screen 5).
 static void __fastcall BattleDeactivateVerify(void* input) {
-    auto* self = WindowFromInput<CBattleScreenSetup>(input);
+    auto* self = WindowFromInput<CBattleScreen>(input);
     self->OnDeactivate();
     bool ok = !self->viewPressed_ && !self->boxSelecting_;
     for (std::uint8_t key : self->orderKeys_) ok = ok && key == 0;
-    ei::verify::Check("CBattleScreenSetup::OnDeactivate", true, ok, "");
+    ei::verify::Check("CBattleScreen::OnDeactivate", true, ok, "");
 }
 EI_VERIFY(0x00638A10, BattleDeactivateVerify, 0, s_unused);
 

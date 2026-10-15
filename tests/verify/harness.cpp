@@ -808,7 +808,7 @@ int& g_showTutorial = *reinterpret_cast<int*>(0x0079BE78);
 // Game speed. The main loop runs one world update per 0078FF34 milliseconds of real time (55 by
 // default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms> every
 // frame, since loading a zone resets it, and again after every world update (HeldServerUpdate,
-// HeldClientSegment): the battle clock's set-up (00648520) and CBattleScreenSetup::Close (00635E60,
+// HeldClientSegment): the battle clock's set-up (00648520) and CBattleScreen::Close (00635E60,
 // on leaving a screen such as the camp) set 55 inside the client's tick, and the main loop's client
 // loop, which tested its backlog against the held 10 before the tick, subtracts the 55 it reads
 // after it: the unsigned backlog (10..54) wraps to about 4.29e9 and the loop runs some 78 million
@@ -1388,8 +1388,8 @@ std::string HudState(const std::string& argument) {
     };
     auto* battle = reinterpret_cast<CBattleScreen*>(screen);
     Log("harness: hudstate: window %p, mode %d, slot %d, item %d, %d members", screen, at(screen, 0x17C),
-        at(screen, 0x180), at(screen, 0x184), battle->partyCount_);
-    for (int i = 0; i < battle->partyCount_ && i < 8; ++i) {
+        at(screen, 0x180), at(screen, 0x184), battle->party_.size);
+    for (int i = 0; i < battle->party_.size && i < 8; ++i) {
         CUnit* member = battle->party_[i];
         if (!member) continue;
         void* quick[4];

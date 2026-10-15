@@ -138,7 +138,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
         }
     } else {
         width = 0x38;
-        x = column * 0x38 - owner_->partyCount_ * 0x38 / 2 + 400;
+        x = column * 0x38 - owner_->party_.size * 0x38 / 2 + 400;
     }
     const int right = x + width;
 
@@ -209,7 +209,7 @@ void CHudPortraits::Rebuild(int wide) {
     mfc::CString tip;
     SlotsErase(&slots_, nullptr, slots_, slotsEnd_);
 
-    for (int i = 0; i < owner_->partyCount_; ++i) {
+    for (int i = 0; i < owner_->party_.size; ++i) {
         CUnit* unit = owner_->party_[i];
         const int skin = reinterpret_cast<UnitPrototypeRecord*>(unit->GetPrototype())->skin;
         SexOf(unit->name, sex);

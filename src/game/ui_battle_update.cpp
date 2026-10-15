@@ -164,7 +164,7 @@ void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
     std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->height, 4);
 }
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
-void __fastcall ShowPanelUnit(CBattleScreenSetup* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, a3); }
+void __fastcall ShowPanelUnit(CBattleScreen* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
@@ -175,8 +175,8 @@ __declspec(naked) void __fastcall UnitsInBox(void*, void*, const void*, void*) E
 // (__fastcall) constructs an element, 004E2FA0 the reallocating insert (RET 0xC), 0060B1E0 /
 // 0064B750 (__fastcall) sort's introsort loop (RET 8) and final insertion sort, 0064AF30 assigns
 // (RET 4), 004E2A20 / 005F9880 the destructors of the two instantiations.
-using IdVector = CBattleScreenSetup::IdVector;
-using PartyIds = CBattleScreenSetup::PartyIds;
+using IdVector = CBattleScreen::IdVector;
+using PartyIds = CBattleScreen::PartyIds;
 __declspec(naked) void __fastcall IdConstruct(int*, const int*) EI_ORIGINAL(0x0064B620)
 __declspec(naked) void __fastcall IdsIntroSort(int*, int*, const int*, int) EI_ORIGINAL(0x0060B1E0)
 __declspec(naked) void __fastcall IdsFinalSort(int*, int*) EI_ORIGINAL(0x0064B750)
@@ -188,7 +188,7 @@ __declspec(naked) bool __fastcall PartyIdsEqual(const PartyIds*, void*, const Pa
 
 // The party CArray<CUnit*> (+0x168): 005EBDB0 SetSize (RET 8), 0060AD50 SetAtGrow (RET 8),
 // 0060AEC0 (stdcall) ConstructElements; 006E79A0 the game's memmove.
-__declspec(naked) void __fastcall PartySetAtGrow(UiDwordArray*, void*, int, CUnit*) EI_ORIGINAL(0x0060AD50)
+__declspec(naked) void __fastcall PartySetAtGrow(mfc::CArray<CUnit*>*, void*, int, CUnit*) EI_ORIGINAL(0x0060AD50)
 __declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AEC0)
 // 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
 // camera's player; the original pushes a dword whose low byte only is set).
@@ -249,7 +249,7 @@ void SortIds(IdVector* ids) {
 }
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
-void RebuildClientParty(CBattleScreenSetup* screen) {
+void RebuildClientParty(CBattleScreen* screen) {
     net::ClientSession* session = *reinterpret_cast<net::ClientSession**>(0x0079B5D8);
     ListNode** players = reinterpret_cast<ListNode**>(&session->players_);
     PartyIds ids;
@@ -277,8 +277,8 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
     }
     SortIds(&ids.withUnit);
     SortIds(&ids.without);
-    if (!PartyIdsEqual(&ids, nullptr, reinterpret_cast<const PartyIds*>(&screen->partyWithUnit_))) {
-        auto* party = reinterpret_cast<UiDwordArray*>(screen->partyArray_);
+    if (!PartyIdsEqual(&ids, nullptr, &screen->clientParty_)) {
+        auto* party = &screen->party_;
         PartyArraySetSizeOriginal(party, nullptr, 0, -1);
         bool cameraFirst = false;
         for (int* id = ids.withUnit.begin(); id != ids.withUnit.end(); ++id) {
@@ -296,20 +296,20 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
                     GameMemmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
                     PartyConstruct(party->data, 1);
                 }
-                party->data[0] = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(unit));
+                party->data[0] = unit;
                 cameraFirst = true;
             } else {
                 PartySetAtGrow(party, nullptr, party->size, unit);
             }
         }
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
-        if (screen->partyCamera_ != ids.camera) {
+        if (screen->clientParty_.camera != ids.camera) {
             CameraFollow(reinterpret_cast<void*>(0x0079B2A8), nullptr, ids.camera);
             BattleRefreshSelectionOriginal(screen);
         }
-        IdsAssign(&screen->partyWithUnit_, nullptr, &ids.withUnit);
-        screen->partyCamera_ = ids.camera;
-        IdsAssign(&screen->partyWithout_, nullptr, &ids.without);
+        IdsAssign(&screen->clientParty_.withUnit, nullptr, &ids.withUnit);
+        screen->clientParty_.camera = ids.camera;
+        IdsAssign(&screen->clientParty_.without, nullptr, &ids.without);
     }
     IdsDestroyB(&ids.without);
     IdsDestroyA(&ids.withUnit);
@@ -329,14 +329,14 @@ void FreeListNodes(List* list) {
 
 } // namespace
 
-void CBattleScreenSetup::Update() {
+void CBattleScreen::Update() {
     // The one selected party unit is dead (its slot 55, IsDead): the panels lose their unit and the
     // unit panel shows it.
-    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
+    auto* party = &party_;
     CUnit* first = nullptr;
     int selected = 0;
     for (int i = 0; i < party->size; ++i) {
-        auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
+        auto* unit = party->data[i];
         if (unit && (unit->flags_ & 0x10)) {
             if (!first) first = unit;
             ++selected;
@@ -352,7 +352,7 @@ void CBattleScreenSetup::Update() {
             if (first != panel->shownUnit_) {
                 panel->shownUnit_ = first;
                 ShowPanelView(panel, first);
-                ShowPanelUnit(reinterpret_cast<CBattleScreenSetup*>(panel->owner_), nullptr, panel->shownUnit_,
+                ShowPanelUnit(panel->owner_, nullptr, panel->shownUnit_,
                               panel->strings_);
             }
         }
@@ -364,14 +364,14 @@ void CBattleScreenSetup::Update() {
     ShowNextMessage(interface_, nullptr, 0);
 
     // A zone exit saved with the game: once it can be taken, the "leave_zone" question.
-    if (savedFlag_) {
+    if (exitPending_) {
         PtrArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
         PtrArray second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
         void* menu = reinterpret_cast<void*>(0x007AFEA5);
         PartyRecords* data = reinterpret_cast<PartyRecords*>(GameLocalPlayerDataOriginal(menu));
         for (int i = 0; i < data->count; ++i)
             RecordArraySetAtGrowOriginal(&records, nullptr, records.size, data->records + i * 0x784);
-        if (CanLeaveZone(menu, nullptr, &records, savedSelection_, &second)) {
+        if (CanLeaveZone(menu, nullptr, &records, pendingExit_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? MessageBoxConstruct(memory, nullptr, interface_,
                                                      reinterpret_cast<const char*>(0x007943FC),    // "leave_zone"
@@ -379,7 +379,7 @@ void CBattleScreenSetup::Update() {
                                                      0x10000, 3, 1)
                                : nullptr;
             InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
-            savedFlag_ = 0;
+            exitPending_ = 0;
         }
         second.vtable = reinterpret_cast<void*>(0x0073FAA4);
         if (second.data) gamecrt::operator_delete(second.data);
@@ -398,7 +398,7 @@ void CBattleScreenSetup::Update() {
         ListConstruct404A70Original(&inside, nullptr, &allocator);
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
-                if (party->data[i] != node->data) continue;
+                if (reinterpret_cast<std::uintptr_t>(party->data[i]) != node->data) continue;
                 ListNode* end;
                 ListEnd4049D0Original(&inside, nullptr, reinterpret_cast<void**>(&end));
                 ListNode* inserted;
@@ -411,7 +411,7 @@ void CBattleScreenSetup::Update() {
             reinterpret_cast<MarkFn>((*reinterpret_cast<void***>(figure))[26])(figure, on);
         };
         for (int i = 0; i < party->size; ++i) {
-            auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
+            auto* unit = party->data[i];
             std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && (flags & 0x100)) {
                 unit->flags_ = flags & ~0x100u;
@@ -419,7 +419,7 @@ void CBattleScreenSetup::Update() {
             }
         }
         for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
-            auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[node->data]));
+            auto* unit = party->data[node->data];
             std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && !(flags & 0x100)) {
                 unit->flags_ = flags | 0x100;
@@ -448,7 +448,7 @@ void CBattleScreenSetup::Update() {
     }
 }
 namespace {
-void __fastcall BattleScreenUpdate(CBattleScreenSetup* self) { self->Update(); }
+void __fastcall BattleScreenUpdate(CBattleScreen* self) { self->Update(); }
 } // namespace
 EI_REPLACE(0x00638280, BattleScreenUpdate);
 
@@ -463,10 +463,10 @@ bool SameIds(const IdVector& a, const IdVector& b) {
 }
 } // namespace
 
-bool CBattleScreenSetup::PartyIds::Equals(const PartyIds& other) const {
+bool CBattleScreen::PartyIds::Equals(const PartyIds& other) const {
     return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
 }
-EI_REPLACE_METHOD(0x006381E0, CBattleScreenSetup::PartyIds::Equals);
+EI_REPLACE_METHOD(0x006381E0, CBattleScreen::PartyIds::Equals);
 
 // --- 00638B30: the battle screen's left button release -----------------------------------------
 
@@ -478,7 +478,7 @@ CUnit* UnitAtPoint(void* world, void*, int* point) { return WorldUnitAtPointOrig
 
 } // namespace
 
-void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
+void CBattleScreen::OnLButtonUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
     if (!viewPressed_) {
         InputOf(this)->BaseLButtonUp(buttons, x, y);
@@ -495,8 +495,8 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
         return;
     }
 
-    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [&](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
+    auto* party = &party_;
+    auto unitAt = [&](int i) { return party->data[i]; };
     int first = -1;
     std::uint8_t allocator = 0;
     List units;
@@ -507,7 +507,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     if (units.head->next != units.head) {
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size; ++i) {
-                if (party->data[i] != node->data) continue;
+                if (reinterpret_cast<std::uintptr_t>(party->data[i]) != node->data) continue;
                 ListNode* end;
                 ListEnd4049D0Original(&inside, nullptr, reinterpret_cast<void**>(&end));
                 ListNode* inserted;
@@ -560,7 +560,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
 }
 namespace {
 } // namespace
-EI_REPLACE_METHOD(0x00638B30, InputForward<&CBattleScreenSetup::OnLButtonUp>::Call);
+EI_REPLACE_METHOD(0x00638B30, InputForward<&CBattleScreen::OnLButtonUp>::Call);
 
 // --- 006369D0: a quest variable's notice -------------------------------------------------------
 
@@ -581,7 +581,7 @@ bool EqualOrNaN(float a, float b) { return a == b || x87::IsNaN(a) || x87::IsNaN
 
 } // namespace
 
-void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
+void CBattleScreen::OnQuestVariable(const char* name, float value) {
     CTextManager* texts = reinterpret_cast<TextGlue*>(0x007AFEA4)->Table();
     console::CStringArray parts;
     mfc::CString text;
@@ -661,7 +661,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
     if (questSound_ > sound) sound = questSound_;
     questSound_ = sound;
 }
-EI_REPLACE_METHOD(0x006369D0, CBattleScreenSetup::OnQuestVariable);
+EI_REPLACE_METHOD(0x006369D0, CBattleScreen::OnQuestVariable);
 
 // --- 00637DC0: the selection's refresh --------------------------------------------------------
 
@@ -675,12 +675,12 @@ void __fastcall ActionHighlight(CUiWindow* a0, void*, int a2, int a3) { ActionPa
 
 } // namespace
 
-void CBattleScreenSetup::RefreshSelection() {
-    auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
+void CBattleScreen::RefreshSelection() {
+    auto* party = &party_;
     CUnit* first = nullptr;
     int selected = 0;
     for (int i = 0; i < party->size; ++i) {
-        auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
+        auto* unit = party->data[i];
         if (!unit || !(unit->flags_ & 0x10)) continue;
         if (!first) first = unit;
         ++selected;
@@ -700,7 +700,7 @@ void CBattleScreenSetup::RefreshSelection() {
         panel->shownUnit_ = first;
         if (first) {
             ShowPanelView(panel, first);
-            ShowPanelUnit(reinterpret_cast<CBattleScreenSetup*>(panel->owner_), nullptr, panel->shownUnit_,
+            ShowPanelUnit(panel->owner_, nullptr, panel->shownUnit_,
                           panel->strings_);
         }
     }
@@ -719,4 +719,4 @@ void CBattleScreenSetup::RefreshSelection() {
     for (int i = 0; i < actions->count_; ++i) ActionHighlight(actions, nullptr, i, 0);
     actions->selected_ = -1;
 }
-EI_REPLACE_METHOD(0x00637DC0, CBattleScreenSetup::RefreshSelection);
+EI_REPLACE_METHOD(0x00637DC0, CBattleScreen::RefreshSelection);

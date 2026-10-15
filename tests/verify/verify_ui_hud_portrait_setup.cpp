@@ -26,7 +26,7 @@ int SlotCount(const CHudPortraits* p) { return static_cast<int>(p->slotsEnd_ - p
 
 static void __fastcall PortraitsRebuildVerify(CHudPortraits* self, void*, int wide) {
     self->CHudPortraits::Rebuild(wide);
-    const int party = self->owner_->partyCount_;
+    const int party = self->owner_->party_.size;
     bool ok = self->count_ >= party && SlotCount(self) == self->count_ && self->regions_.size == self->count_ &&
               self->sceneObjects_.size == 1 + 5 * self->count_ && self->objects_.size >= 1 + (self->count_ + 3) / 4;
     int bad = -1;

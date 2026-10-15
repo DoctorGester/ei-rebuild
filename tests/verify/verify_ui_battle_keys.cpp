@@ -12,23 +12,23 @@ namespace {
 void* s_unused;
 }
 
-// CBattleScreenSetup::OnKeyDown (0063A560). Read back: while a portrait click picks a player only
+// CBattleScreen::OnKeyDown (0063A560). Read back: while a portrait click picks a player only
 // Esc changes anything (it ends the pick); otherwise each order key keeps its value, is cleared
 // (a window opened over the screen deactivates it, 00638A10) or, for the key of the pressed
 // action (0x11..0x16), is set. Nothing is read after a quick save / load key (0x35 / 0x36).
 // Reached by every key pressed over the battle screen in the vanilla launch (the camera keys,
 // ui_hud's TAB, ...); the worker that wrote it could not run the game.
 static void __fastcall BattleKeyDownVerify(void* input, void*, int key, int repeat, int flags) {
-    auto* self = WindowFromInput<CBattleScreenSetup>(input);
+    auto* self = WindowFromInput<CBattleScreen>(input);
     const int portraits = self->portraitMode_;
     const int action = KeyActions()[flags & 0x1FF];
     std::uint8_t before[6];
     std::memcpy(before, self->orderKeys_, 6);
-    self->CBattleScreenSetup::OnKeyDown(key, repeat, flags);
+    self->CBattleScreen::OnKeyDown(key, repeat, flags);
     if (portraits != 0) {
-        ei::verify::Check("CBattleScreenSetup::OnKeyDown portrait pick", key == 0x1B ? 0 : portraits, self->portraitMode_,
+        ei::verify::Check("CBattleScreen::OnKeyDown portrait pick", key == 0x1B ? 0 : portraits, self->portraitMode_,
                           "key %d", key);
-        ei::verify::Check("CBattleScreenSetup::OnKeyDown portrait pick keys", true,
+        ei::verify::Check("CBattleScreen::OnKeyDown portrait pick keys", true,
                           std::memcmp(before, self->orderKeys_, 6) == 0, "key %d", key);
         return;
     }
@@ -40,6 +40,6 @@ static void __fastcall BattleKeyDownVerify(void* input, void*, int key, int repe
         const std::uint8_t now = self->orderKeys_[i];
         ok &= now == before[i] || now == 0 || (i == held && now == 1);
     }
-    ei::verify::Check("CBattleScreenSetup::OnKeyDown", true, ok, "key %d flags %X action %d", key, flags, action);
+    ei::verify::Check("CBattleScreen::OnKeyDown", true, ok, "key %d flags %X action %d", key, flags, action);
 }
 EI_VERIFY(0x0063A560, BattleKeyDownVerify, 0, s_unused);

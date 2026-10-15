@@ -60,20 +60,20 @@ int FirstDifference(const Recording& a, const Recording& b) {
     return a.bytes.size() == b.bytes.size() ? -1 : static_cast<int>(n);
 }
 
-bool InParty(CBattleScreenSetup* screen, const CUnit* unit) {
-    UiDwordArray& party = screen->Party();
+bool InParty(CBattleScreen* screen, const CUnit* unit) {
+    UiDwordArray& party = *reinterpret_cast<UiDwordArray*>(&screen->party_);
     for (int i = 0; i < party.size; ++i)
         if (party.data[i] == reinterpret_cast<std::uintptr_t>(unit)) return true;
     return false;
 }
 } // namespace
 
-static void __fastcall SaveStateVerify(CBattleScreenSetup* self, void*) {
+static void __fastcall SaveStateVerify(CBattleScreen* self, void*) {
     Recording expected, actual;
-    Recorded(&expected, [&] { reinterpret_cast<void(__fastcall*)(CBattleScreenSetup*, void*)>(s_saveState)(self, nullptr); });
+    Recorded(&expected, [&] { reinterpret_cast<void(__fastcall*)(CBattleScreen*, void*)>(s_saveState)(self, nullptr); });
     Recorded(&actual, [&] { self->SaveState(); });
     bool same = expected.bytes == actual.bytes && expected.chunks == actual.chunks;
-    ei::verify::Check("CBattleScreenSetup::SaveState", true, same, "%u vs %u bytes, first difference at %d",
+    ei::verify::Check("CBattleScreen::SaveState", true, same, "%u vs %u bytes, first difference at %d",
                       static_cast<unsigned>(expected.bytes.size()), static_cast<unsigned>(actual.bytes.size()),
                       FirstDifference(expected, actual));
     std::size_t pos = 0;
@@ -85,35 +85,35 @@ static void __fastcall SaveStateVerify(CBattleScreenSetup* self, void*) {
 // 00635080: PUSH -1; PUSH 0x72D958 (2 + 5 bytes).
 EI_VERIFY(0x00635080, SaveStateVerify, 7, s_saveState);
 
-static void __fastcall CloseVerify(CBattleScreenSetup* self, void*) {
+static void __fastcall CloseVerify(CBattleScreen* self, void*) {
     self->Close();
     bool held = reinterpret_cast<const std::uint8_t*>(GameCursor())[0x90] != 0 && GameCursor()->enabled_;
     bool ok = (camera::TheCamera()->flags_ & CCamera::kFree) != 0 && *reinterpret_cast<const int*>(0x0078FF34) == 55 &&
-              self->Party().size == 0 && !held;
-    ei::verify::Check("CBattleScreenSetup::Close", true, ok, "camera flags %X, party %d", camera::TheCamera()->flags_,
-                      self->Party().size);
+              self->party_.size == 0 && !held;
+    ei::verify::Check("CBattleScreen::Close", true, ok, "camera flags %X, party %d", camera::TheCamera()->flags_,
+                      self->party_.size);
 }
 EI_VERIFY(0x00635E60, CloseVerify, 0, s_unused);
 
-static bool __fastcall PollShownVerify(CBattleScreenSetup* self, void*) {
+static bool __fastcall PollShownVerify(CBattleScreen* self, void*) {
     bool result = self->PollShown();
-    ei::verify::Check("CBattleScreenSetup::PollShown", true, result && !self->hasHero_, "result %d", result);
+    ei::verify::Check("CBattleScreen::PollShown", true, result && !self->hasHero_, "result %d", result);
     return result;
 }
 EI_VERIFY(0x006360F0, PollShownVerify, 0, s_unused);
 
-static void __fastcall ItemsPickedVerify(CBattleScreenSetup* self, void*, mfc::CTypedPtrList<CItem>* items, int money,
+static void __fastcall ItemsPickedVerify(CBattleScreen* self, void*, mfc::CTypedPtrList<CItem>* items, int money,
                                          int crippled) {
     int count = items->count;
     self->OnItemsPicked(items, money, crippled);
     // RefreshSelection drops the pending action; the list is not changed.
     bool ok = items->count == count && self->pendingAction_ == 0 && self->pendingSlot_ == -1;
-    ei::verify::Check("CBattleScreenSetup::OnItemsPicked", true, ok, "%d items, money %d", count, money);
+    ei::verify::Check("CBattleScreen::OnItemsPicked", true, ok, "%d items, money %d", count, money);
 }
 EI_VERIFY(0x00636150, ItemsPickedVerify, 0, s_unused);
 
-static void __fastcall UnitLeftVerify(CBattleScreenSetup* self, void*, CUnit* unit) {
-    UiDwordArray& party = self->Party();
+static void __fastcall UnitLeftVerify(CBattleScreen* self, void*, CUnit* unit) {
+    UiDwordArray& party = *reinterpret_cast<UiDwordArray*>(&self->party_);
     std::vector<std::uintptr_t> before(party.data, party.data + party.size);
     bool wasIn = InParty(self, unit);
     bool client = IsMultiplayerClient() != 0;
@@ -130,13 +130,13 @@ static void __fastcall UnitLeftVerify(CBattleScreenSetup* self, void*, CUnit* un
         expected.push_back(u);
     }
     std::vector<std::uintptr_t> after(party.data, party.data + party.size);
-    ei::verify::Check("CBattleScreenSetup::OnUnitLeft", true, expected == after, "in party %d, %d -> %d", wasIn,
+    ei::verify::Check("CBattleScreen::OnUnitLeft", true, expected == after, "in party %d, %d -> %d", wasIn,
                       static_cast<int>(before.size()), static_cast<int>(after.size()));
 }
 EI_VERIFY(0x006364E0, UnitLeftVerify, 0, s_unused);
 
-static void __fastcall UnitJoinedVerify(CBattleScreenSetup* self, void*, CUnit* unit) {
-    UiDwordArray& party = self->Party();
+static void __fastcall UnitJoinedVerify(CBattleScreen* self, void*, CUnit* unit) {
+    UiDwordArray& party = *reinterpret_cast<UiDwordArray*>(&self->party_);
     std::vector<std::uintptr_t> before(party.data, party.data + party.size);
     bool client = IsMultiplayerClient() != 0;
     self->OnUnitJoined(unit);
@@ -151,12 +151,12 @@ static void __fastcall UnitJoinedVerify(CBattleScreenSetup* self, void*, CUnit* 
     bool inHeroes = false;
     for (int i = 0; i < self->heroes_.size; ++i) inHeroes |= static_cast<int>(self->heroes_.data[i]) == unit->id_;
     bool ok = party.size == static_cast<int>(before.size()) + 1 && count >= 1 && others == before && !inHeroes;
-    ei::verify::Check("CBattleScreenSetup::OnUnitJoined", true, ok, "unit %d, party %d -> %d", unit->id_,
+    ei::verify::Check("CBattleScreen::OnUnitJoined", true, ok, "unit %d, party %d -> %d", unit->id_,
                       static_cast<int>(before.size()), party.size);
 }
 EI_VERIFY(0x006361B0, UnitJoinedVerify, 0, s_unused);
 
-static void __fastcall MessageResultVerify(CBattleScreenSetup* self, void*, int result) {
+static void __fastcall MessageResultVerify(CBattleScreen* self, void*, int result) {
     CInterface3D* ui = self->interface_;
     self->OnMessageResult(result);
     bool ok = true;
@@ -166,14 +166,14 @@ static void __fastcall MessageResultVerify(CBattleScreenSetup* self, void*, int 
     } else if (result == 0x20002 || result == 0x90001 || result == 0x100001) {
         ok = ui->closeAll_;
     }
-    ei::verify::Check("CBattleScreenSetup::OnMessageResult", true, ok, "result %X", result);
+    ei::verify::Check("CBattleScreen::OnMessageResult", true, ok, "result %X", result);
 }
 EI_VERIFY(0x00635EB0, MessageResultVerify, 0, s_unused);
 
-static void __fastcall GameOverVerify(CBattleScreenSetup* self, void*, char won) {
+static void __fastcall GameOverVerify(CBattleScreen* self, void*, char won) {
     self->OnGameOver(won);
     auto* top = static_cast<CMessageBox*>(self->interface_->GetActiveWindow());
     bool ok = top != nullptr && top->result_ == (won ? 0xFFFF0000u : 0x20000u);
-    ei::verify::Check("CBattleScreenSetup::OnGameOver", true, ok, "won %d", won);
+    ei::verify::Check("CBattleScreen::OnGameOver", true, ok, "won %d", won);
 }
 EI_VERIFY(0x006365E0, GameOverVerify, 0, s_unused);
