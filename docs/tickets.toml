@@ -702,7 +702,7 @@ done = "2026-10-15"
 id = "SV1g"
 title = "Verify wrappers that leave the verify build off the game's course"
 group = "verification"
-status = "running"
+status = "review"
 note = "From SV1a: UnitReadNetStateVerify re-ran the original on live state without putting the random generators back, so the verify build's fights differed from the plain build. Find others the same way: random traces of the verify build against EI_PLAIN=1 per scenario (first draw that differs by value and frame), then a verified.txt bisection (standalone-verification.md, SV1a section). Fix each wrapper (put shared state back, or run ours only where the replay cannot be faithful)."
 started = "2026-10-15"
 
@@ -798,6 +798,23 @@ status = "queued"
 size = 0.5
 model = "opus"
 note = "SV1i (2026-10-15) dropped speed 10 from 77 scenarios: 29 goldens on main now fail run_all --golden (camera, console, hero_death, items, levers, objects_more, party_records, render_movie, render_movie_present, render_scene, render_terrain, sandbox_actions, script_copy, script_parse, script_quest, spells_cast, ui_battle_spells, ui_container_input, ui_help, ui_objectives, ui_order_move, ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens, ui_trade_restore, unit_create, world_load). SV1b's repeatable heap should let many of SV3's 46 non-repeating runs repeat now. Wait for SV2a (digest fields) to land, then run SV3's recipe (two original runs, two of ours, golden.py record) over the whole suite and report coverage."
+
+[[ticket]]
+id = "SV1j"
+title = "Harness: a screen step's answer lands in the step's frame or the next by real time"
+group = "verification"
+status = "queued"
+model = "opus"
+note = "From SV1g: in ui_view_screen the screen 7 step's switch (which stops the playing sounds) ran inside the step at virtual 1001500 in most verify runs and one frame later (1001550) in plain runs, but not always either way; the sounds' ends then decide whether Terrain::PlayAmbience draws, and the traces part (also ui_trade_hold, trader_stock, ui_camp, ui_describe, ui_global_map_pick, world, spells_hero, script_exec, effects_bow, ui_quick_items). Find what real time the server's answer to GameRequestScreen (00578B00) waits on and make it land in a fixed frame on the virtual clock. The randtrace notes (clock frame time, sound stopped / ended by the game) show it."
+
+[[ticket]]
+id = "SV1k"
+title = "Remaining early verify-against-plain trace differences"
+group = "verification"
+status = "queued"
+model = "opus"
+depends = ["SV1j"]
+note = "From SV1g's sweep: effects (frame 12), objects_more (CLightning::Start, 12), script_fx (8), ui_mp_host (96, SaveParty), unit_create's rand (12), zone_base_bz1g, zone_gz2g_traps. Several also differ plain against plain, so run each 3 times per build first; bisect only what differs every time (SV1g section: build copies with EI_BUILD_DIR, randtrace.py). Also check whether CheckNear wrappers returning the original's value (Score, Distance2) part the builds anywhere."
 
 # ---------------------------------------------------------------- harness and suite
 
