@@ -1310,6 +1310,16 @@ status = "queued"
 size = 1
 note = "Seen as PASS* in batch 438 on both installs and FAIL on vanilla in 398 and 406; scenario unchanged by T2. DistancePointPoint with two arguments is probably reading stale values"
 
+[[ticket]]
+id = "WB10"
+title = "Ticket status in the shared work database; live ticket board on :8765"
+group = "harness"
+status = "running"
+size = 1
+files = ["tools/tickets.py", "tools/work.py", "tools/work_board/*", "tools/tickets_board/index.html"]
+note = "User 2026-10-15: move volatile ticket status (running / review / done / started dates) out of docs/tickets.toml into build/live/work.db (the shared database work.py already uses, found from any worktree), so a worker's status shows at once and merges stop conflicting on status lines. Ticket text (title, group, size, depends, files, notes) stays in git. work.py start sets running, the worker's  writes the database,  sets done. tickets.py reads status from the database (falling back to the toml's status for tickets the database has never seen, then migrating them once), writes docs/tickets.md and build/tickets/tickets.json as before, and drops the status field from tickets.toml after migration. The work board server (work.py serve, :8765) also serves the ticket board page (tools/tickets_board/index.html) with live tickets.json, so it is always current; the claude.ai artifact stays and is republished by the coordinator. Update tools/tickets.py docs and tests, the area-worker brief if it mentions status, and keep the existing tickets' current statuses exactly."
+started = "2026-10-15"
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
