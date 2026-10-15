@@ -492,3 +492,8 @@ address,size,note
 006EAEB0,60,library function registered at its address (S4a; Ghidra size)
 006E955F,65,library function registered at its address (S4a; Ghidra size)
 006E911A,87,library function registered at its address (S4a; Ghidra size)
+006E853C,39,library function registered at its address (S4c; Ghidra size)
+006E7320,20,library function registered at its address (S4c; Ghidra size)
+006E83C0,20,library function registered at its address (S4c; Ghidra size)
+006E81A0,25,library function registered at its address (S4c; Ghidra size)
+006E95AA,10,library function registered at its address (S4c; Ghidra size)

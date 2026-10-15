@@ -235,6 +235,27 @@ bytes, the file afterwards), 12 _open flag sets, bad descriptors, _access, _find
 smoke and ui_saveload, both installs: 0 mismatches. The image installs all 18; `--standalone` boot still
 stops at 0040AA80 (hash table resize, S11) before any file code.
 
+**S4c (2026-10-15), group 1: the x87 entries.** _ftol 006E853C, _CIacos 006E7320, _CIasin 006E83C0, _CIpow
+006E81A0 and _CIfmod 006E95AA take ST0 / ST1 and return in EDX:EAX or ST0; our src/game helpers call them
+through their addresses (`mov eax, addr; call eax`), so the image needs code there. src/lib/crt_x87.cpp:
+a naked entry each (arguments to the stack, a plain C++ body; ECX / EDX kept), image only
+(`EI_REPLACE_STANDALONE`: the hook build keeps the exe's x87 results and so its goldens);
+check_cleanup exempts that one file's `__asm`. _ftol decodes the 80-bit value with integers (exact for every
+input, the integer indefinite for NaN / infinity / |x| >= 2^63). The _CI bodies follow the CRT: its control word
+(006EF665) keeps the caller's precision and rounds to nearest, so the port computes at 53 bits and rounds the
+FADD / FSUB / FMUL / FSQRT results to the caller's precision (a float store at 24 bits); FPATAN is inlined by
+/fp:fast as in the original; pow splits y log2(x) as y k + y log2(m) with fma errors (FYL2X's 64-bit product),
+n by ties-to-even, 2^f by exp2, FSCALE by ldexp; the integer test on y rounds y / 2 at the caller's precision
+(an odd y beyond 2^24 tests even at 24 bits, as in the original); overflow follows the caller's rounding
+direction (DBL_MAX under chop); fmod is exact, +0 for a zero x, the indefinite for an infinite y. errno /
+_matherr are not reproduced (nothing reads them). Check (tests/verify/verify_crt_x87.cpp, start-up, against
+the originals still in place): 44,900 cases under five control words (24 / 53 / 64 bits, nearest / chop / up),
+FPU stack depth and control word after each; _ftol and fmod bit for bit, the _CI functions bit for bit under
+007F (the main thread's word, the float the callers store) and for special values; at 53 / 64 bits pow is
+within 4 + |y| / 2 double units and acos / asin within 4 (1,758 results not bit-equal), denormal results
+within tolerance (the original's _87except may flush them). smoke vanilla: 0 mismatches; the image installs
+all five.
+
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
 (`EXIT_PATTERNS`: 83 `mov ecx, obj; jmp dtor`, 17 guarded by a flag bit (two encodings), 8 two calls on
