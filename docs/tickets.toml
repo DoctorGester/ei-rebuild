@@ -1799,7 +1799,7 @@ note = "_ftol 006E853C and _CIpow 006E81A0 / _CIasin_or_acos 006E7320 006E83C0 /
 id = "S13a"
 title = "Standalone: compiler-written world destructors and database resets"
 group = "standalone"
-status = "queued"
+status = "review"
 size = 1
 depends = ["S13"]
 files = ["src/game/*.cpp"]
@@ -1862,6 +1862,16 @@ size = 1
 depends = ["S11"]
 files = ["src/lib/stlp_hash.h", "src/lib/stlp_hash.cpp"]
 note = "S11 left the forwarded hash members whose values have their own copy / destroy (each needs a traits over the ported type): hash_map<CString, float> 004613C0 (operator[]), 00461540 (clear), 004615B0 (_M_new_node), 004616A0 (_M_delete_node), 00461750 (resize), 004A8A50 / 00580900 (copy ctor), 004A8AD0 (operator=), 004AA950 (_M_copy_from), 005E0DB0 (char* key skip); hash_map<int, CParty> 004A91B0, 004ABA70, 004AD050; destructor-value clears 004A8E60 004A9010 006A6C20 005986B0 00598860 004AAEB0 (pair<string, list>); find_or_insert 0069D130 (string to list); the AI shape cache (float key, ref-counted handle) 005BCCB0 005BCDE0 005BE090 005BE320 005BE730. 004E15C0 is a list node create (list family). About 350 more hash members in library.csv are called only from other originals (dead in the standalone image unless the exe's data points at them, e.g. the 0073B984 table). Scheme: standalone.md S11 (StringKeyTraits, the bucket-local snapshot and the free trail in verify_stlp_hash.cpp)."
+
+[[ticket]]
+id = "S13b"
+title = "Standalone: script and AI map destructors left by S13a"
+group = "standalone"
+status = "queued"
+size = 1
+depends = ["S13a"]
+files = ["src/game/world_destructors.cpp src/game/originals_world.h"]
+note = "Left from S13a (docs/notes/standalone.md S13a). Forwarded from the world destructors: CScript's destructor 0058A140 (the first world script, +0x12874) and the MFC rows the server's inlined second-script destructor calls (004C92C0 004C8E20 004CB650 004C7560 004C8520 004C7E30 004CB310 004C6760 004C6410 004C6120 004CB150; S6b / S7 may own some), the AI map's destructor 0058A450 (688 bytes; hash / array members), and the client's sector grid resizes 00572450 / 005724F0. Verify ours-only like verify_world_destructors.cpp (the globals' exit functions and the start-up checks reach them)."
 
 # ---------------------------------------------------------------- Lua
 
