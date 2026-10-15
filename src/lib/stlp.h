@@ -13,13 +13,13 @@
 #include <new>
 #include <type_traits>
 
+#include "stlp_alloc.h"
 #include "stlp_list.h"
+#include "stlp_vector.h"
 
 namespace stlp {
 
-// The game's __node_alloc: 16 free lists for sizes up to 128 bytes, operator new above that.
-void* allocate(std::size_t bytes);                  // 00405950
-void deallocate(void* p, std::size_t bytes);        // 00404D70
+// allocate / deallocate: stlp_alloc.h.
 // 0079B228: the node allocator's free list of 12-byte nodes (list nodes), which some code pushes
 // to inline.
 inline void*& SmallNodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }
@@ -80,81 +80,20 @@ static_assert(sizeof(string) == 12);
 // which the result is a copy of (two blocks; the temporary's is freed once the result has its own).
 string Plus(const string& a, const char* text);
 
-// vector<T>: three pointers. Grows to size + max(size, 1) elements on overflow, copying elements
-// into the new block (_M_insert_overflow). T must provide copy construction and AssignFrom.
-template <typename T>
-class vector {
-public:
-    vector() = default;
-    vector(const vector&) = delete;
-
-    T* begin() const { return start_; }
-    T* end() const { return finish_; }
-    std::size_t size() const { return static_cast<std::size_t>(finish_ - start_); }
-    T& back() const { return finish_[-1]; }
-    T& operator[](std::size_t i) const { return start_[i]; }
-
-    void push_back(const T& x) {
-        if (finish_ != eos_) {
-            new (finish_) T(x);
-            ++finish_;
-            return;
-        }
-        std::size_t old = size();
-        std::size_t len = old + (old > 1 ? old : 1);
-        T* fresh = static_cast<T*>(allocate(len * sizeof(T)));
-        T* out = fresh;
-        for (T* p = start_; p != finish_; ++p, ++out) new (out) T(*p);
-        new (out) T(x);
-        ++out;
-        for (T* p = start_; p != finish_; ++p) p->~T();
-        if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_) * sizeof(T));
-        start_ = fresh;
-        finish_ = out;
-        eos_ = fresh + len;
+// The vector element policy (stlp_vector.h) of strings: copied with the copy constructor
+// (00428DF0), assigned through assign(first, last), destroyed with the buffer freed. A
+// default-constructed one (resize(n), e.g. 004DC900) is empty with room for 8 bytes.
+struct StringElement {
+    static void Construct(string* to, const string& from) { new (to) string(from); }
+    static void Assign(string& to, const string& from) { to.AssignFrom(from); }
+    static void Destroy(string* p) { p->~string(); }
+    static void Default(string* p) {
+        new (p) string();
+        string::Reserve(*p, 8);
     }
-
-    // pop_back(): destroy the last element (a trivial one: the finish pointer steps back).
-    void pop_back() {
-        --finish_;
-        finish_->~T();
-    }
-
-    // clear(): destroy every element in order; keep the storage.
-    void clear() {
-        for (T* p = start_; p != finish_; ++p) p->~T();
-        finish_ = start_;
-    }
-
-    // The destructor's release of the storage (the elements are already destroyed).
-    void FreeStorage() {
-        if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_) * sizeof(T));
-    }
-
-    // The three pointers by reference, for code that inlines the original's own vector operations
-    // (reserve, push_back through the instantiation's _M_insert_overflow) on the same object.
-    T*& Start() { return start_; }
-    T*& Finish() { return finish_; }
-    T*& EndOfStorage() { return eos_; }
-
-    // erase(pos): shift the tail down by assignment (AssignFrom, or a plain copy for scalars such as
-    // pointers), destroy the last element.
-    void erase(T* pos) {
-        for (T* p = pos; p + 1 != finish_; ++p) {
-            if constexpr (std::is_class_v<T>) p->AssignFrom(p[1]);
-            else *p = p[1];
-        }
-        --finish_;
-        finish_->~T();
-    }
-
-private:
-    T* start_ = nullptr;
-    T* finish_ = nullptr;
-    T* eos_ = nullptr;
 };
 
-// list<T>: stlp_list.h (included at the top).
+// vector<T>: stlp_vector.h, list<T>: stlp_list.h (included at the top).
 
 // deque<T> (0x28 bytes): the start and finish iterators (cur, first, last, node), the map of node
 // pointers and its size; the allocator proxies are empty bytes inside the map words. Nodes hold

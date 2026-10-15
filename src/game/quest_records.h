@@ -22,6 +22,12 @@ struct QuestRecord {
     void Serialize(ChunkArchive* ar);
     // 006AF4D0 (S13; the compiler's destructor). The text, the places' storage, the name.
     void Destruct();
+    // The copy constructor (006B1770; S10a): each member copied in order (the places
+    // copy-constructed). operator= (inlined in 006B37E0): each member assigned. The vector's
+    // resize(n) temporary: empty strings with room for 8 bytes, no places.
+    void CopyConstruct(const QuestRecord* source);
+    void AssignQuest(const QuestRecord* source);
+    void ConstructDefault();
 
     stlp::string name;              // +0x00
     float exp;                      // +0x0C
@@ -44,6 +50,11 @@ struct QuestBriefingRecord {
     // 006AF5A0 (S13; the compiler's destructor). The text, the lists from the last (each string,
     // then the storage), the name.
     void Destruct();
+    // The copy constructor (006B1910; S10a), operator= (inlined in 006B2BA0) and the vector's
+    // resize(n) temporary (empty strings with room for 8 bytes, empty lists), as the quest's.
+    void CopyConstruct(const QuestBriefingRecord* source);
+    void AssignBriefing(const QuestBriefingRecord* source);
+    void ConstructDefault();
 
     stlp::string name;              // +0x00
     float exp;                      // +0x0C
@@ -82,6 +93,9 @@ struct QuestDatabase {
     // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the
     // file cannot be opened.
     int Load(const char* folder);
+    // 006AE0F0 (database_construct.cpp; the static initialiser 006ADF10). Both vectors empty, both
+    // indexes with 100 buckets (193). Returns this.
+    QuestDatabase* Construct();
 
     stlp::vector<QuestRecord> quests;   // +0x00
     QuestIndex questsByName;            // +0x0C

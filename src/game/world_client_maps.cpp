@@ -1193,13 +1193,11 @@ __declspec(naked) void __fastcall Construct4E3C20(void*) EI_ORIGINAL(0x004E3C20)
 __declspec(naked) ScreenEntry* __fastcall EntriesAllocateCopy(ScreenHits*, void*, int, ScreenEntry*, ScreenEntry*)
     EI_ORIGINAL(0x00573520)
 // The sector grids: resize [00572450 / 005724F0 (width, height)], the cells' vector deleting
-// destructor [00572B30 / 00572C50 (flags)], the allocation [00572820 / 005728D0].
+// destructor [00572B30 / 00572C50 (flags)], the allocation (originals_world.h).
 __declspec(naked) void __fastcall GridResize(SectorGrid*, void*, int, int) EI_ORIGINAL(0x00572450)
 __declspec(naked) void __fastcall GridResize2(SectorGrid*, void*, int, int) EI_ORIGINAL(0x005724F0)
 __declspec(naked) void __fastcall CellsDelete(SectorList*, void*, int) EI_ORIGINAL(0x00572B30)
 __declspec(naked) void __fastcall CellsDelete2(SectorList*, void*, int) EI_ORIGINAL(0x00572C50)
-__declspec(naked) void __fastcall GridAllocate(SectorGrid*) EI_ORIGINAL(0x00572820)
-__declspec(naked) void __fastcall GridAllocate2(SectorGrid*) EI_ORIGINAL(0x005728D0)
 
 // A cell's list destroyed (STLport's list<counted pointer>::~list, 0056DEF0 / 00572E90): each
 // object released (slot 4) and its node returned to the pool, the sentinel last.

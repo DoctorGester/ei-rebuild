@@ -121,6 +121,19 @@ MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* 
 }
 EI_REPLACE_METHOD(0x006A9E40, MaterialRecordHead::CopyConstruct);
 
+void MaterialRecordHead::AssignMaterial(const MaterialRecordHead* source) {
+    records::AsCString(key) = records::AsCString(source->key);
+    records::AsCString(soundName) = records::AsCString(source->soundName);
+    records::AsCString(name) = records::AsCString(source->name);
+    CopyBytes(this, source, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
+}
+
+void MaterialRecordHead::ConstructDefault() {
+    new (&key) mfc::CString();
+    new (&soundName) mfc::CString();
+    new (&name) mfc::CString();
+}
+
 // ---- S13: the records' destructors (the compiler's) ----------------------------------------------
 
 void ItemRecordHead::DestructHead() {
@@ -177,6 +190,84 @@ void SpellListRecord::Destruct() {
 }
 EI_REPLACE_METHOD(0x00589860, SpellListRecord::Destruct);
 
+// ---- S10a: the spell records as vector elements (record_vectors.h) -------------------------------
+
+namespace {
+using IdElement = stlp::PlainElement<int>;
+} // namespace
+
+void SpellRecord::CopyConstruct(const SpellRecord* source) {
+    new (&name) mfc::CString(source->name);
+    new (&code) mfc::CString(source->code);
+    new (&text08) mfc::CString(source->text08);
+    CopyBytes(this, source, offsetof(SpellRecord, price), offsetof(SpellRecord, list48));
+    list48.CopyConstruct<IdElement>(source->list48);
+    list54.CopyConstruct<IdElement>(source->list54);
+    CopyBytes(this, source, offsetof(SpellRecord, icon), offsetof(SpellRecord, unused_7D));
+    classMask = source->classMask;
+}
+
+void SpellRecord::AssignSpell(const SpellRecord* source) {
+    name = source->name;
+    code = source->code;
+    text08 = source->text08;
+    CopyBytes(this, source, offsetof(SpellRecord, price), offsetof(SpellRecord, list48));
+    list48.AssignVector<IdElement>(source->list48);
+    list54.AssignVector<IdElement>(source->list54);
+    CopyBytes(this, source, offsetof(SpellRecord, icon), offsetof(SpellRecord, unused_7D));
+    classMask = source->classMask;
+}
+
+void SpellRecord::ConstructDefault() {
+    new (&name) mfc::CString();
+    new (&code) mfc::CString();
+    new (&text08) mfc::CString();
+    list48.ConstructEmpty();
+    list54.ConstructEmpty();
+}
+
+void SpellModifierRecord::CopyConstruct(const SpellModifierRecord* source) {
+    new (&name) mfc::CString(source->name);
+    CopyBytes(this, source, offsetof(SpellModifierRecord, code), offsetof(SpellModifierRecord, text1C));
+    new (&text1C) mfc::CString(source->text1C);
+    classMask = source->classMask;
+}
+
+void SpellModifierRecord::AssignModifier(const SpellModifierRecord* source) {
+    name = source->name;
+    CopyBytes(this, source, offsetof(SpellModifierRecord, code), offsetof(SpellModifierRecord, text1C));
+    text1C = source->text1C;
+    classMask = source->classMask;
+}
+
+void SpellModifierRecord::ConstructDefault() {
+    new (&name) mfc::CString();
+    new (&text1C) mfc::CString();
+}
+
+void SpellListRecord::CopyConstruct(const SpellListRecord* source) {
+    new (&name) stlp::string(source->name);
+    list0C.CopyConstruct<stlp::StringElement>(source->list0C);
+    list18.CopyConstruct<stlp::StringElement>(source->list18);
+    new (&text24) stlp::string(source->text24);
+    value30 = source->value30;
+}
+
+void SpellListRecord::AssignList(const SpellListRecord* source) {
+    name.AssignFrom(source->name);
+    list0C.AssignVector<stlp::StringElement>(source->list0C);
+    list18.AssignVector<stlp::StringElement>(source->list18);
+    text24.AssignFrom(source->text24);
+    value30 = source->value30;
+}
+
+void SpellListRecord::ConstructDefault() {
+    stlp::StringElement::Default(&name);
+    list0C.ConstructEmpty();
+    list18.ConstructEmpty();
+    stlp::StringElement::Default(&text24);
+}
+
 template <int Stride>
 char* __fastcall itemdb::RecordTableAt(const RecordTable* table, void*, std::uint32_t index) {
     return table->At(index, Stride);
@@ -217,13 +308,39 @@ void ConstructExtra(QuestItemRecord* record) {
 // the second stack argument is STLport's unused type tag). Null destinations are skipped, as in
 // the original's placement new. Both return the end of the destination.
 template <typename R>
+void CopyConstructRecord(R* to, const R* from) {
+    to->ConstructHead(R::kVtableAddress);
+    ConstructExtra(to);
+    to->Assign(from);
+    to->CopyOwn(from);
+}
+
+// The resize(n) temporaries' fields beyond the members (zeroed bytes; S10a).
+template <typename R>
+void ZeroDefaultBytes(R*) {}
+template <>
+void ZeroDefaultBytes(WeaponRecord* record) {
+    std::memset(record->field1B, 0, 0x83 - offsetof(WeaponRecord, field1B));
+}
+template <>
+void ZeroDefaultBytes(QuickItemRecord* record) {
+    std::memset(record->attributeBonus, 0, 0x8B - offsetof(QuickItemRecord, attributeBonus));
+}
+
+template <typename R>
+void DefaultConstructRecord(R* to) {
+    to->ConstructHead(R::kVtableAddress);
+    ConstructExtra(to);
+    ZeroDefaultBytes(to);
+}
+
+// uninitialized_copy(first, last, dest) and uninitialized_fill_n(dest, n, x) (__fastcall, RET 8:
+// the second stack argument is STLport's unused type tag). Null destinations are skipped, as in
+// the original's placement new. Both return the end of the destination.
+template <typename R>
 R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int /*tag*/) {
     for (; first != last; ++first, ++dest) {
-        if (!dest) continue;
-        dest->ConstructHead(R::kVtableAddress);
-        ConstructExtra(dest);
-        dest->Assign(first);
-        dest->CopyOwn(first);
+        if (dest) CopyConstructRecord(dest, first);
     }
     return dest;
 }
@@ -231,14 +348,21 @@ R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int /*tag*
 template <typename R>
 R* __fastcall FillItemRecords(R* dest, int count, const R* value, int /*tag*/) {
     for (; count != 0; --count, ++dest) {
-        if (!dest) continue;
-        dest->ConstructHead(R::kVtableAddress);
-        ConstructExtra(dest);
-        dest->Assign(value);
-        dest->CopyOwn(value);
+        if (dest) CopyConstructRecord(dest, value);
     }
     return dest;
 }
+
+template void CopyConstructRecord(WeaponRecord*, const WeaponRecord*);
+template void CopyConstructRecord(ArmorRecord*, const ArmorRecord*);
+template void CopyConstructRecord(QuickItemRecord*, const QuickItemRecord*);
+template void CopyConstructRecord(QuestItemRecord*, const QuestItemRecord*);
+template void CopyConstructRecord(LootItemRecord*, const LootItemRecord*);
+template void DefaultConstructRecord(WeaponRecord*);
+template void DefaultConstructRecord(ArmorRecord*);
+template void DefaultConstructRecord(QuickItemRecord*);
+template void DefaultConstructRecord(QuestItemRecord*);
+template void DefaultConstructRecord(LootItemRecord*);
 
 template WeaponRecord* __fastcall CopyItemRecords(const WeaponRecord*, const WeaponRecord*, WeaponRecord*, int);
 template WeaponRecord* __fastcall FillItemRecords(WeaponRecord*, int, const WeaponRecord*, int);

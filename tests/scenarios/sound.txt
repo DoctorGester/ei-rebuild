@@ -47,6 +47,9 @@ waitfor 20 IsLess(HP(GetLeader()),GSGetVar(0,"hp0"))
 console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
 console @Attack(GetLeader(),GetObjectByName("Snd1"))
 waitfor 20 Not(IsAlive(GetObjectByName("Snd1")))
+# The second goblin goes before it can finish the hero: its hits roll differently from run to run
+# (the order of the AI's messages varies under load) and once in a while killed him in the wait.
+console @RemoveUnitFromServer(GetObjectByName("Snd2"))
 # The death's own updates (OnUnitDied, DeathEffect, the AI's reset).
 wait 2000
 expect elayed sound

@@ -60,6 +60,13 @@ struct SpellRecord {
     // 00685AA0 (S13; item_db_records.cpp). The destructor: the id lists +0x54, +0x48 (storage
     // only), then the strings +0x08, +0x04, +0x00.
     void Destruct();
+    // The copy constructor (the spell vector's copies, e.g. 00685BE0; S10a): the strings, +0x0C..+0x47,
+    // the id lists copy-constructed, +0x60..+0x7C and +0x80 (+0x7D..+0x7F are not copied).
+    void CopyConstruct(const SpellRecord* source);
+    // operator= (006875D0, inlined in 00687170; S10a): the same fields assigned.
+    void AssignSpell(const SpellRecord* source);
+    // The spell vector's resize(n) temporary (S10a): empty strings and lists, the rest left as it is.
+    void ConstructDefault();
 
     mfc::CString name;                  // +0x00
     // +0x04 the spell's code (0068C820 finds a record by it; the trader stock's spell
@@ -103,6 +110,13 @@ struct SpellListRecord {
     // 00589860 (S13; item_db_records.cpp). The destructor: text24, the lists +0x18 and +0x0C
     // (each string, then the storage), the name.
     void Destruct();
+    // The copy constructor (the list vector's copies, e.g. 006850D0; S10a): each member copied in
+    // order (the lists copy-constructed).
+    void CopyConstruct(const SpellListRecord* source);
+    // operator= (006866B0, inlined in 006853D0; S10a): each member assigned in order.
+    void AssignList(const SpellListRecord* source);
+    // The list vector's resize(n) temporary (S10a): empty strings with room for 8 bytes, empty lists.
+    void ConstructDefault();
 
     stlp::string name;                  // +0x00
     stlp::vector<stlp::string> list0C;  // +0x0C
@@ -121,6 +135,12 @@ struct SpellModifierRecord {
     void Serialize(ChunkArchive* ar);
     // 00685B70 (S13; item_db_records.cpp). The destructor: the strings +0x1C, +0x00.
     void Destruct();
+    // The copy constructor (00686620; S10a): the strings copied, +0x04..+0x1B and +0x20 copied.
+    void CopyConstruct(const SpellModifierRecord* source);
+    // operator= (inlined in 00687370; S10a): the same fields assigned.
+    void AssignModifier(const SpellModifierRecord* source);
+    // The modifier vector's resize(n) temporary (S10a): empty strings, the rest left as it is.
+    void ConstructDefault();
 
     mfc::CString name;                  // +0x00
     // +0x04 the modifier's code inline (0068C920 finds a record by it); its first one or two
@@ -355,6 +375,14 @@ template <typename R>
 R* __fastcall CopyItemRecords(const R* first, const R* last, R* dest, int tag);
 template <typename R>
 R* __fastcall FillItemRecords(R* dest, int count, const R* value, int tag);
+// One record of those copies (the kind's copy constructor), and the record the vectors' resize(n)
+// appends copies of (S10a): the head's empty members and +0x68 = 1, the kind's vtable and extra
+// members, the weapon's +0x78..+0x82 and the quick item's +0x80..+0x8A zero; the other fields are
+// left as they are (the original's stack temporary leaves them uninitialised).
+template <typename R>
+void CopyConstructRecord(R* to, const R* from);
+template <typename R>
+void DefaultConstructRecord(R* to);
 
 // The start of a material record (kMaterialSize bytes).
 struct MaterialRecordHead {
@@ -380,6 +408,11 @@ struct MaterialRecordHead {
     // 006A9E40 (RET 4; item_db_records.cpp, A-H25). The copy constructor (the material vector's
     // resize and growth): the three strings copy-constructed, +0x0C..+0x4F copied. Returns this.
     MaterialRecordHead* CopyConstruct(const MaterialRecordHead* source);
+    // operator= (as the material vector's copies inline it, e.g. 006AB170; S10a): the three
+    // strings assigned, +0x0C..+0x4F copied.
+    void AssignMaterial(const MaterialRecordHead* source);
+    // The material vector's resize(n) temporary (S10a): three empty strings, the rest left as it is.
+    void ConstructDefault();
     // 006A88F0 (S13; item_db_records.cpp). The destructor: the strings +0x08, +0x04, +0x00.
     void Destruct();
 };
@@ -436,6 +469,9 @@ struct IndexedRecordTable {
     void LoadQuickItems(CStream* source, int field);
     void LoadQuestItems(CStream* source, int field);
     void LoadLoot(CStream* source, int field);
+    // The constructor as 0057E3D0 inlines it (database_construct.cpp): no records, an empty index
+    // of 100 buckets (193).
+    void Construct();
 
     // The name index, typed (the materials are filed under their key, +0x00).
     using NameIndex = stlp::hash_map<stlp::string, char*, stlp::StringHash>;
@@ -454,6 +490,9 @@ struct CodeIndexedTable {
     // 0068C820 / 0068C920 (RET 4; spell_db_lookup.cpp). The record filed under `code`: the index's
     // operator[] with a copy of the key, so an unknown code is filed with null.
     char* FindByCode(const char* code);
+    // The constructor as 0057E2F0 inlines it (database_construct.cpp): no records, an empty index
+    // of 100 buckets (193).
+    void Construct();
 
     RecordTable records;            // +0x00 begin, end
     char* capacityEnd;              // +0x08
@@ -470,6 +509,10 @@ struct SpellDatabase {
     // the three lists through a third. 1; FatalError's result when the archive or the file cannot
     // be opened.
     int Load(const char* folder, const char* archive);
+    // 0057E2F0 (database_construct.cpp; the static initialiser 00684360, the resource switch
+    // 0057CB50 and reload 0057DEE0). Both tables (CodeIndexedTable::Construct), the three lists
+    // empty. Returns this.
+    SpellDatabase* Construct();
 
     CodeIndexedTable spells;                    // +0x00 kSpellSize records
     CodeIndexedTable modifiers;                 // +0x20 kSpellModifierSize
@@ -489,6 +532,9 @@ struct ItemDatabase {
     // 006A6570 (item_db_load.cpp, A-H18). The tables from the last to the first: the name index
     // emptied and its buckets freed, every record destroyed, the record storage freed.
     void DestructBody();
+    // 0057E3D0 (database_construct.cpp; the static initialiser 006A6540, the resource switch and
+    // reload). The six tables from the first (IndexedRecordTable::Construct). Returns this.
+    ItemDatabase* Construct();
 
     IndexedRecordTable materials;   // +0x00 kMaterialSize records
     IndexedRecordTable weapons;     // +0x20 kWeaponSize

@@ -964,11 +964,37 @@ note = "From SV3e: ui_hud-rebirth, the original repeats and ours repeats, but fr
 id = "SV6"
 title = "Hook build: 224 registrations skipped at install (unknown starts, a second hook on one address)"
 group = "verification"
-status = "running"
+status = "done"
 size = 1
 files = ["src/hook/function_sizes.inc", "config/extra_function_sizes.csv", "src/hook/hook.cpp"]
 note = "A vanilla smoke run on main (2026-10-15, build/verify/runs/smoke-vanilla/ei_hook.log) logs 224 SKIP lines: 108 verify wrappers and 42 plain replacements at 'not a known function start' (effect Update/Emit/Tick slots, ExchangeMessage 0062C920, MotionSegmentConstruct 0052E230, ControllerZero 00533C40/50/B0, ClientControllerPath 00533DF0, Verify_0x0066D7B0 twice, ...), and 67 with 'byte +0x0 differs from game.exe on disk' (Unpack/Load/Save verify wrappers of CEffect*; no address appears twice in the log, so the cause is not yet known: something writes those starts before install), besides the 8 expected SV1b countdown sites. None of these run in the hook build, so their rewrites are unverified; the standalone image does jump to the unknown starts. Add their sizes (config/extra_function_sizes.csv, function_sizes.inc), fold or drop the second registrations, and make build.cmd or the harness fail on an unexpected SKIP so new ones can't hide (S5's first suite tested nothing for this reason)."
 started = "2026-10-15"
+done = "2026-10-15"
+
+[[ticket]]
+id = "SV6a"
+title = "zone_gz15h_tornado (Rebirth) near its 120 s limit under load"
+group = "verification"
+status = "done"
+note = "SV6 full suite (4 jobs): the Rebirth run timed out twice at step 11 (wait 150000); alone it passes in 92 s (vanilla 50 s). Shorten the wait or raise the limit, or find what makes the Rebirth run slower."
+done = "2026-10-15"
+
+[[ticket]]
+id = "SV6b"
+title = "Rare under-load failures after SV6: SendResume mismatch, sound leader dead"
+group = "verification"
+status = "done"
+size = 0.5
+files = ["tests/verify/verify_player_messages.cpp"]
+note = "Main suite after the SV6 merge (2026-10-15, 16 at once): CPlayerClient::SendResume (wrapper newly installed by SV6) mismatched once in render_cursor_present-rebirth ('client 02D3BFC0: size 1 vs 1': the compare message prints equal sizes, so the bytes or another field differ and the message hides which); sound-vanilla failed 'check IsAlive(GetLeader()) printed 0' once. Both passed on a re-run alone. Make the SendResume message name the differing field, then find the cause; check whether the sound failure repeats under load (several suites) before chasing it."
+done = "2026-10-15"
+
+[[ticket]]
+id = "SV6c"
+title = "Startup crash inside AIL_waveOutOpen (EIP 00007EBC), seen once"
+group = "verification"
+status = "watch"
+note = "SV6b's full suite, zone_gz15h_tornado-vanilla first attempt: C0000005 at 00007EBC on the main thread inside AIL_waveOutOpen (harness MutedWaveOutOpen <- CSoundManager::Open via SoundOpenVerify), before the menu; retry passed. Watch main suites for a repeat (exception at a low address with MutedWaveOutOpen in the stack) before chasing it."
 
 [[ticket]]
 id = "SV2d"
@@ -1540,11 +1566,12 @@ done = "2026-10-15"
 id = "S6"
 title = "Standalone library: MFC CArray<T>"
 group = "standalone"
-status = "running"
+status = "done"
 size = 1
 files = ["src/lib/mfc_array.h", "src/lib/mfc.h", "src/lib/containers.h"]
 note = "About 200 forwarded instantiations: SetSize 65, constructors / destructors 45, Copy, SetAtGrow, GetAt, Add, RemoveAt, ConstructElements / DestructElements. Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S7"
@@ -1589,20 +1616,22 @@ done = "2026-10-15"
 id = "S10"
 title = "Standalone library: STLport vector<T>"
 group = "standalone"
-status = "running"
+status = "done"
 size = 1
 files = ["src/lib/stlp_vector.h", "src/lib/stlp.h"]
 note = "About 280: vector resize / _M_insert_overflow / _M_fill_insert / erase / push_back / clear, _Vector_base, _STLP_alloc_proxy (70 deallocate). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S11"
 title = "Standalone library: STLport hashtable, hash_map, hash_set"
 group = "standalone"
-status = "queued"
+status = "done"
 size = 1.5
 files = ["src/lib/stlp_hash.h", "src/lib/stlp.h"]
 note = "About 200: find_or_insert, operator[], clear, resize, find, erase, _M_new_node, iterators. Bucket counts and insertion order exactly as STLport's (iteration order feeds game logic and saves). Bodies in src/lib (layout- and allocator-compatible), each instantiation our code forwards to or the exe's data points at registered at its library address (config/library.csv), with a verify wrapper against the original where the elements are plain data, ours only otherwise. The forwarders in src/game stay (C13); no call-site changes, so no overlap with C11. One header per family so library tickets can run side by side. standalone.md section 2."
+done = "2026-10-15"
 
 [[ticket]]
 id = "S12"
@@ -1714,10 +1743,11 @@ done = "2026-10-15"
 id = "S3b"
 title = "Standalone: constructors only the static initialisers call"
 group = "standalone"
-status = "running"
+status = "done"
 depends = ["S3"]
-note = "Call targets of the generated static initialisers (src/standalone/static_init.cpp) that no library ticket covers, as the standalone check lists them: compiler-generated global constructors 0051FB10 (skill archive), 005612F0 (CWorldClient), 00589ED0 (CWorldServer), 0057E2F0 (spell tables), 0057E3D0 (item database), 0065F580 (multiplayer heroes), 006AE0F0 (quest database), 006D0250 (prints), 006D7220 (acks), 005CDFC0; MFC internals 006E6BCD (x10), 006E68C9, 006E6916, 006E6AEA, 006E6B37, 0070B600, 0070D1AA, 00704546 (x4), 0070DC4D, 00700674 (x5), 006FC42F (x8). Check first which S4-S12 already take (CString, CWordArray, CByteArray, CArray, CList, hashtable and stlp ctors 00455E50, 004ED540, 0056A410, 004DC830, 0066B320, 005E0A90; atexit, eh vector constructor, the WSAStartup thunk). Port with EI_REPLACE at the address and a verify start-up check where they build data. docs/notes/standalone.md S3."
+note = "Call targets of the generated static initialisers (src/standalone/static_init.cpp) that no library ticket covers, as the standalone check lists them: compiler-generated global constructors 0051FB10 (skill archive), 005612F0 (CWorldClient), 00589ED0 (CWorldServer), 0057E2F0 (spell tables), 0057E3D0 (item database), 0065F580 (multiplayer heroes), 006AE0F0 (quest database), 006D0250 (prints), 006D7220 (acks), 005CDFC0; MFC internals 006E6BCD (x10), 006E68C9, 006E6916, 006E6AEA, 006E6B37, 0070B600, 0070D1AA, 00704546 (x4), 0070DC4D, 00700674 (x5), 006FC42F (x8). Check first which S4-S12 already take (CString, CWordArray, CByteArray, CArray, CList, hashtable and stlp ctors 00455E50, 004ED540, 0056A410, 004DC830, 0066B320, 005E0A90; atexit, eh vector constructor, the WSAStartup thunk). Port with EI_REPLACE at the address and a verify start-up check where they build data. docs/notes/standalone.md S3. Done (S3b): the ten global constructors ported and checked at start-up against the originals (verify_global_constructors.cpp). The other listed targets are library tickets': S5 CWordArray 006FEE9A, CByteArray 006FF5EA, CString(LPCTSTR) 007009DE and all the MFC internals; S6 CArray 005C1760; S7 CList 005CDAD0; S4 atexit 006E727B, eh vector constructor 006E8693, WSAStartup thunk 006E6106; S11 004DC830, 0066B320; S12 00455E50, 004ED540, 0056A410, 005E0A90. The image lacks 25 call targets after this."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S15a"
@@ -1761,20 +1791,22 @@ note = "S5 ported what our code reaches. Left as original code: CPtrList (vtable
 id = "S4a"
 title = "Standalone library: MSVC6 formatted text (sprintf family, atof)"
 group = "standalone"
-status = "running"
+status = "done"
 size = 1
 files = ["src/lib/crt.h", "src/lib/crt.cpp"]
 note = "sprintf 006E8715, vsprintf 006ECC47 (mfc_string forwards to it), fprintf 006EAEB0, printf 006E955F, atof 006E911A: MSVC6 _output / _input as library code in src/lib/crt.cpp, registered at their addresses. Float digits: _fcvt-style rounding of the 17-digit string (round half up on the digit string), %g trimming, no inf/nan/hex; atof accepts a 'd' exponent. fprintf / printf write through the game's FILE (shared with S4b). Verify against the original into scratch buffers (tests/verify/verify_crt.cpp). standalone.md S4."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S4b"
 title = "Standalone library: CRT file functions and the rest of the heap (image only)"
 group = "standalone"
-status = "queued"
+status = "done"
 size = 1
 files = ["src/lib/crt.h", "src/lib/crt.cpp"]
 note = "EI_REPLACE_STANDALONE (S4 group 2): the game CRT's FILE table and heap stay the exe's in the hook build (MFC CStdioFile shares them). fopen 006E9107, fclose 006E8EB8, fseek 006E95D2, ftell 006E97C4, fread 006E8F35, fwrite 006E968B, _open 006EB35C, _read 006EB046, _write, _lseek 006EB284, _close 006EAF66, _filelength, _access 006EAF20, _findfirst 006EB832 over the host CRT; realloc, calloc, _msize, _strdup and any other heap entry the image reaches must use the host heap that S4's malloc / free now use (a game realloc of a host block corrupts it). The exe's __xp / __xt terminators flush the game CRT streams: exit runs the host's. standalone.md S4."
+done = "2026-10-15"
 
 [[ticket]]
 id = "S4c"
@@ -1794,6 +1826,64 @@ size = 1
 depends = ["S13"]
 files = ["src/game/*.cpp"]
 note = "Left from S13 (docs/notes/standalone.md S13). Three database resets, each destroyed and constructed again in place with many STLport hash_map / vector instantiations: units 0057CBE0, spell tables 0057CE80, items 0057D340 (the skills' 0057CD60 is SkillDatabase::Reset). Six data-pointed deleting destructors whose bodies are compiler rows not yet ported: CWorld base 0055EC60 (body 0055EC80, 259 bytes), CWorldClient 00561A00 (00561B00, 844), particle manager 005627A0 (005627C0, 283), Terrain 00562B60 (00562B80, 484), CWorldServer 0058A430 (0058AAD0, 825), Sector 0059E080 (005BFCD0, 295). Verify like verify_record_lifetime.cpp; most run at shutdown (read 'verify total' in ei_hook.log)."
+
+[[ticket]]
+id = "S10a"
+title = "Standalone library: STLport vector<T> of game records"
+group = "standalone"
+status = "done"
+size = 2
+depends = ["S10"]
+files = ["src/lib/stlp_vector.h", "src/lib/stlp_vector.cpp", "src/lib/stlp_vector_refs.h"]
+note = "S10 left the vector members whose elements are game records with their own copy / destroy functions (each needs a policy over the record's ported copy constructor, operator= and destructor, or the record type first): resize of item / spell / weapon / armour / quest / unit / model / acks database records (00684D60 00685730 006858D0 006A7F00 006A8110 006A8290 006A83F0 006A85A0 006A8790 006B2100 006B2240 0053E2A0 0053E520 0053E730 0053E9B0 005209D0 00520B20 0055A400 0055A580 006D26E0 006D2830 006DB9C0 006DBBD0 006DBE20 006E4560 006E47F0 004ADAA0 00465180 00444090), clear 00520C20, push_back 006B0710 006B0780 0041F790 0064AB20, erase 004442B0 0064AD40 006578F0 00421D90, operator= 00443BF0, insert 00426CB0, _M_insert_overflow 004439C0 00426B10 00587480 0061EC40 00629E60 0062A0B0 00652930 006579C0, ~vector 0041F7F0; RefPtr resize 004200C0 and counted_ptr resize 004AD700 004AD8D0 (their default element and fill helpers); 00428A20 held CEngineObject pointers (release through vtable slot 4). Not vector members (other tickets): 006E859F / 006E8693 eh vector iterators (S13), 00580900 hashtable copy constructor, record destructors 0041F7F0 0056D080 00589860 006AF4D0 006AF5A0 00575560 00575580 004AD640 and list-array deleting destructors 00572B30 00572C50. Scheme: standalone.md S10; plain records can use ChangeCheck (verify_stlp_vector.cpp), others the model checks in verify_stlp_vector_objects.cpp."
+done = "2026-10-15"
+
+[[ticket]]
+id = "S10b"
+title = "Standalone library: acks.db table record vectors"
+group = "standalone"
+status = "queued"
+size = 1
+depends = ["S10a", "S11"]
+files = ["src/game/record_vectors.h", "src/game/record_vectors.cpp", "src/game/acks_db.h"]
+note = "S10a left the resize(n) of acks.db's three table record vectors (006DB9C0 UnitAcks 0x1C4, 006DBBD0 ModelAcks 0x5C, 006DBE20 ExtraAcks 0x38): each record's head holds a hash_map<int, SpeechList*> (AckRecordHead), so the record's copy needs S11's hashtable copy (_M_copy_from); the speech lists copy with SpeechElement (record_vectors.h), the destructors are ported (acks_db.cpp). Policy pattern and checks: standalone.md S10a, verify_record_vectors.cpp."
+
+[[ticket]]
+id = "S10c"
+title = "Item stock: recipe pair destructor 004AD640"
+group = "standalone"
+status = "queued"
+size = 1
+files = ["src/game/item_stock.cpp"]
+note = "Named like vector code in S10's list but a pair<stlp::string, list<recipe*>> destructor (item_stock.cpp's RecipePairDestroy): the list's nodes (0xC bytes, 00404D70) and sentinel freed, then the string's storage. Port it in item_stock.cpp and register. The rest of S10's non-vector list is done elsewhere (0056D080 00575560 00575580 GroundPrint, 00589860 SpellListRecord, 006AF4D0 006AF5A0 quest records, 00572B30 00572C50 SectorListsDelete, 006E859F 006E8693 crt.cpp; 0041F7F0 was ~vector<Query>, S10a); 00580900 (NamedFloatTable copy, world_game.cpp) is S11's hashtable copy."
+
+[[ticket]]
+id = "S4a1"
+title = "Function vectors for the CRT float formatting and atof"
+group = "standalone"
+status = "queued"
+depends = ["S4a"]
+note = "S4a's conversions (crt_format.cpp: TenByteToDigits / FormatFloat / StringToLd12 / Ld12ToDouble) are pure integer code reading only the decimal point and _pctype. A tests/vectors family recording sprintf float conversions and atof from the game (SV4a/SV4b pattern) would replay them in ei_vectors without the game; the in-game start-up battery (verify_crt_format.cpp) already covers ~135k cases."
+
+[[ticket]]
+id = "S6b"
+title = "Standalone library: the last 31 CArray<T> instantiations"
+group = "standalone"
+status = "queued"
+size = 1
+depends = ["S6"]
+files = ["src/lib/mfc_array.h", "src/game/game_arrays.cpp"]
+note = "What S6 left (docs/notes/standalone.md S6): SetSize / ConstructElements of the CFigure parts and scene records (0044FCD0, 00453240, 00453550, 004545C0, 00454F80: their element constructors are game code), the script command family (004C4FD0, 004C54A0, 004C6D10, 004CC0C0, 004CCCB0, 004CCD90, 004CD130, 004CD2B0, 004CD770, 004CE920, 004CEB80), DeltaField 0050FA30, the CMap-element arrays 00474DB0 / 00476F20 / 00477100 (after S7), music themes 006B56C0 / 006B59A0, cache entries 006BE210, the menu arrays 00631E70 / 00631FF0 (compiler callees 005FBD80 / 005FBDD0), GetAt by copy 0046EAB0 / 00584EA0, and the class destructors 004763C0, 00557890, 0058AA60, 00599330. Same pattern: EachElements with the element's own constructor / destructor called directly, verify per address."
+
+[[ticket]]
+id = "S11a"
+title = "Standalone library: STLport hashtables of objects"
+group = "standalone"
+status = "queued"
+size = 1
+depends = ["S11"]
+files = ["src/lib/stlp_hash.h", "src/lib/stlp_hash.cpp"]
+note = "S11 left the forwarded hash members whose values have their own copy / destroy (each needs a traits over the ported type): hash_map<CString, float> 004613C0 (operator[]), 00461540 (clear), 004615B0 (_M_new_node), 004616A0 (_M_delete_node), 00461750 (resize), 004A8A50 / 00580900 (copy ctor), 004A8AD0 (operator=), 004AA950 (_M_copy_from), 005E0DB0 (char* key skip); hash_map<int, CParty> 004A91B0, 004ABA70, 004AD050; destructor-value clears 004A8E60 004A9010 006A6C20 005986B0 00598860 004AAEB0 (pair<string, list>); find_or_insert 0069D130 (string to list); the AI shape cache (float key, ref-counted handle) 005BCCB0 005BCDE0 005BE090 005BE320 005BE730. 004E15C0 is a list node create (list family). About 350 more hash members in library.csv are called only from other originals (dead in the standalone image unless the exe's data points at them, e.g. the 0073B984 table). Scheme: standalone.md S11 (StringKeyTraits, the bucket-local snapshot and the free trail in verify_stlp_hash.cpp)."
 
 # ---------------------------------------------------------------- Lua
 

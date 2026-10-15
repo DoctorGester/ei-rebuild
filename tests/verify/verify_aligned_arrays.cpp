@@ -15,6 +15,8 @@ struct Blob {
 };
 using Dwords = lib::AlignedArray<std::uint32_t>;
 using Vectors = lib::AlignedArray<Blob<12>>;
+using Blocks16 = lib::AlignedArray<Blob<16>>;
+Blob<16>* __fastcall AllocateBlocks16(int count);
 void __fastcall DwordArraySetAtGrowRef(Dwords* a, void*, int index, const std::uint32_t* value);
 Blob<12>* __fastcall AllocateVectors(int count);
 std::uint32_t* __fastcall AllocateDwords(int count);
@@ -25,6 +27,7 @@ namespace {
 using namespace aligned;
 void __fastcall DwordSetSizeCall(Dwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
 void __fastcall VectorSetSizeCall(Vectors* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
+void __fastcall Block16SetSizeCall(Blocks16* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
 void* s_unused;
 
 // The arrays seen as bytes (the checks compare element bytes).
@@ -43,6 +46,25 @@ void CheckSetSize(const char* name, void(__fastcall* fn)(A*, void*, int, int), A
 }
 
 void __fastcall SetSize4Verify(Array* a, void*, int n, int growBy) { CheckSetSize<4>("DwordArraySetSize", DwordSetSizeCall, a, n, growBy); }
+// The lightning points' copy (S6): against the original on a twin (its own aligned block).
+void(__fastcall* s_setSize16)(Blocks16*, void*, int, int);
+void __fastcall SetSize16Verify(Blocks16* a, void*, int n, int growBy) {
+    Blocks16 twin = *a;
+    if (a->data) {
+        twin.data = Blocks16::Allocate(a->capacity);
+        std::memcpy(twin.data, a->data, static_cast<std::size_t>(a->size) * 16);
+    }
+    int oldSize = a->size, oldCapacity = a->capacity;
+    s_setSize16(&twin, nullptr, n, growBy);
+    a->SetSize(n, growBy);
+    int kept = oldSize < a->size ? oldSize : a->size;   // new slots keep the block's bytes
+    bool ok = twin.size == a->size && twin.capacity == a->capacity && twin.growBy == a->growBy &&
+              (twin.data == nullptr) == (a->data == nullptr) &&
+              (kept <= 0 || !a->data || std::memcmp(twin.data, a->data, static_cast<std::size_t>(kept) * 16) == 0);
+    ei::verify::Check("Block16ArraySetSize", true, ok, "%d, %d from %d / %d: %d / %d (original %d / %d)", n, growBy,
+                      oldSize, oldCapacity, a->size, a->capacity, twin.size, twin.capacity);
+    if (twin.data) Blocks16::Free(twin.data);
+}
 void __fastcall SetSize12Verify(Array* a, void*, int n, int growBy) { CheckSetSize<12>("Vector3ArraySetSize", VectorSetSizeCall, a, n, growBy); }
 int __fastcall Add12Verify(Array* a, void*, Blob<12> value) {
     int old = a->size;
@@ -63,6 +85,12 @@ void __fastcall SetAtGrowValueVerify(Array* a, void*, int index, std::uint32_t v
 void __fastcall CopyVerify(Array* a, void*, const Array* other) {
     reinterpret_cast<Vectors*>(a)->Copy(*reinterpret_cast<const Vectors*>(other));
     ei::verify::Check("Vector3ArrayCopy", true, a->size == other->size && (a->size == 0 || std::memcmp(a->data, other->data, static_cast<std::size_t>(a->size) * 12) == 0), "");
+}
+std::uint8_t* __fastcall Alloc16Verify(int count) {
+    auto* p = reinterpret_cast<std::uint8_t*>(AllocateBlocks16(count));
+    auto* block = static_cast<std::uint8_t*>(reinterpret_cast<void**>(p)[-1]);
+    ei::verify::Check("AllocateBlocks16", true, (reinterpret_cast<std::uintptr_t>(p) & 0x1F) == 0 && p > block && p - block <= 0x23, "");
+    return p;
 }
 std::uint8_t* __fastcall AllocVerify(int count) {
     auto* p = reinterpret_cast<std::uint8_t*>(AllocateVectors(count));
@@ -132,3 +160,8 @@ EI_VERIFY(0x0051EB20, SetSize4Verify, 0, s_unused);
 EI_VERIFY(0x0051EC30, SetSize4Verify, 0, s_unused);
 EI_VERIFY(0x0051ED40, SetSize4Verify, 0, s_unused);
 EI_VERIFY(0x0051EE50, SetAtGrowValueVerify, 0, s_unused);
+// Copies found among the CArray instantiations (S6).
+EI_VERIFY(0x0059CB50, SetSize4Verify, 0, s_unused);
+EI_VERIFY(0x0059CCE0, SetAtGrowValueVerify, 0, s_unused);
+EI_VERIFY(0x00468C50, SetSize16Verify, 5, s_setSize16);
+EI_VERIFY(0x00468F70, Alloc16Verify, 0, s_unused);

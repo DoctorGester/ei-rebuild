@@ -837,3 +837,58 @@ original and 1884 in ours, both repeating (world_load, magic_traps vanilla; SV2d
 CPlayerServer::Flush (in LeaveVerify) compressed its stream to 1392 bytes in one run and 1408 in another, so every later
 block moved (SV2e); unit_create both (crt.rand between our runs, SV2c); zone_gz3g (SV3i: the original's VSS#i#val now
 differs between its runs in vanilla, ours from the original under Rebirth).
+
+## SV6: no registration skipped unnoticed at hook install (2026-10-15)
+
+The hook build left 224 registrations out at install (smoke, vanilla), so those rewrites never ran there:
+- 83 starts with no Ghidra function (spell effect Emit/Update/Tick slots 004889D0..00496840, reached through
+  tables; CPlayerServer 0066D7B0, 0066EAC0, 0066F1F0): sizes decoded with capstone (recursive descent within the gap,
+  two switch tables followed) and added to config/extra_function_sizes.csv and function_sizes.inc.
+- 64 functions under five bytes registered with EI_REPLACE / EI_VERIFY (RET, RET n, XOR EAX,EAX; RET, ...): game.exe
+  now gets their jump too when the bytes after them up to the fifth are NOP/INT3 padding on disk and in memory before
+  the next known function (InstallHooks, PaddingAfter). EI_REPLACE_SHORT ones stay the original's in the hook build.
+- 59 second registrations of one address: the EI_*_VERIFY macros of verify_player_messages.cpp and
+  verify_world_effect.cpp registered besides the EI_VERIFY line after each use (the macros now only define;
+  0066D490 had no line and got one), and 00669D50 had both an observer (verify_world_client.cpp, from before
+  OnGameState was ported) and OnGameStateVerify: the observer's counters moved into OnGameStateVerify
+  (game_state_message.h).
+- 9 the harness's own patches (the eight SV1b countdown sites in seven functions, the fixed ISAAC seed at 0049F660,
+  GameMain's redirected CALLs): expected.
+
+InstallHooks now classifies every SKIP. Expected: the harness patched the function (`ei::NoteHarnessPatch`, called by
+the harness's RedirectCall / JumpTo / JumpFrom / capture CALL / countdown sites; "the harness patches +0xN (...)"),
+a Rebirth site the rewrite does not implement, and, in a Rebirth launch only, a byte that differs outside every known
+site. Anything else (unknown start, short without padding, a second registration, thunk, dispatch, trampoline) is
+logged with " (unexpected)", counted, summed up in the log, and the harness report gets a FAILED line, so the run fails.
+
+## SV6a: zone_gz15h_tornado ran 1.6 times slower on Rebirth (2026-10-15)
+
+Same 2805 world ticks and 563 frames on both installs, but Rebirth lights 2.5 times as many terrain sectors
+(SectorData::Light 44198 calls against 17734; its map has more moving point lights), and every light call runs
+through the nested LightVertex / ShadeSun / AddDirectional verify wrappers: 88 million Check calls in the Rebirth run.
+EI_PROFILE=1 put about half of the main thread in ei::verify::Report, not in the lighting: it built a std::string
+and walked a std::map per check (and Check zeroed a 256-byte buffer). Report now finds its entry through a table keyed
+by the name literal's address (confirmed by comparing the text), Check/CheckNear leave the detail buffer unset.
+The wait of 150000 went from 88 s to 45-49 s on Rebirth (whole run 105 s -> 62-68 s, vanilla 65 s -> 42 s, 2 at once,
+profiled); the 120 s limit and the 150 s wait stay.
+
+The scenario reaches CEffectTornado (Launch, Tick, Reset) on Rebirth only, and not in every run: a strike needs open
+ground at a random point (about 3 % of the 64-tick weather updates, 44 in the wait), so runs with 72 to 90 s waited
+launched one in about half the cases and the 150 s wait is what makes it likely. Vanilla did not launch one in any run.
+Shortening the wait would lose the coverage; no golden is recorded for it (the strikes differ between runs).
+
+## SV6b: rare under-load failures after SV6 (2026-10-15)
+
+- CPlayerClient::SendResume (0066B300) returns whatever its stream Write call leaves in EAX, and 004A53F0 leaves
+  the new position there (a void slot). Our MemoryStreamWriteHook and WriteVerify returned nothing, so the original
+  SendResume (and the original TakeExit / RequestZone / SendLeave04 tails, and any game caller using the slot's EAX)
+  returned leftovers of our code; in the verify build it was usually 1 by chance (the stream held only the resume
+  byte), hence one mismatch in a suite. Both now return position_, and WriteVerify checks the original's EAX
+  against it. CompareSend's message names what differs (header with size / position, bytes, results).
+- sound-vanilla: the second goblin (Snd2) killed the hero in the 2 s after the first one died (its hits roll
+  differently from run to run: the AI messages' order varies under load), twice in main suites. The scenario
+  removes Snd2 once Snd1 is dead. Nine repeats of sound + render_cursor_present (4 at once, other batches running)
+  passed.
+- Full verify suite (128 runs, 4 at once) passed; zone_gz15h_tornado-vanilla passed on its retry after the first
+  attempt crashed at startup inside AIL_waveOutOpen (the harness's MutedWaveOutOpen from CSoundManager::Open, main
+  thread, EIP 00007EBC, no module): not seen before in the board's history; on watch (SV6c).

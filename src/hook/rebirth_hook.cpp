@@ -315,7 +315,7 @@ Verdict Check(std::uintptr_t address, std::uint32_t size, const unsigned char* o
         const Site* s = AddonSiteAt(address + i);
         if (!s) {
             std::snprintf(why, whySize, "byte +0x%X differs from game.exe on disk (patched by another mod)", i);
-            return Verdict::Skip;
+            return Verdict::Unknown;
         }
         if (!rebirth::ImplementsAt(address, s->patch)) {
             std::snprintf(why, whySize, "Rebirth patch %s at +0x%X is not implemented by the rewrite",

@@ -110,6 +110,65 @@ void QuestBriefingRecord::Destruct() {
 }
 EI_REPLACE_METHOD(0x006AF5A0, QuestBriefingRecord::Destruct);
 
+// ---- S10a: the records as vector elements (record_vectors.h) ----------------------------------
+
+namespace {
+using PlaceElement = stlp::PlainElement<float>;
+using NameElement = stlp::ObjectElement<mfc::CString>;
+} // namespace
+
+void QuestRecord::CopyConstruct(const QuestRecord* source) {
+    new (&name) stlp::string(source->name);
+    exp = source->exp;
+    field2 = source->field2;
+    money = source->money;
+    zone = source->zone;
+    order = source->order;
+    places.CopyConstruct<PlaceElement>(source->places);
+    new (&text) stlp::string(source->text);
+}
+
+void QuestRecord::AssignQuest(const QuestRecord* source) {
+    name.AssignFrom(source->name);
+    exp = source->exp;
+    field2 = source->field2;
+    money = source->money;
+    zone = source->zone;
+    order = source->order;
+    places.AssignVector<PlaceElement>(source->places);
+    text.AssignFrom(source->text);
+}
+
+void QuestRecord::ConstructDefault() {
+    stlp::StringElement::Default(&name);
+    places.ConstructEmpty();
+    stlp::StringElement::Default(&text);
+}
+
+void QuestBriefingRecord::CopyConstruct(const QuestBriefingRecord* source) {
+    new (&name) stlp::string(source->name);
+    exp = source->exp;
+    money = source->money;
+    for (int i = 0; i < 6; ++i) lists[i].CopyConstruct<NameElement>(source->lists[i]);
+    new (&text) stlp::string(source->text);
+    field10 = source->field10;
+}
+
+void QuestBriefingRecord::AssignBriefing(const QuestBriefingRecord* source) {
+    name.AssignFrom(source->name);
+    exp = source->exp;
+    money = source->money;
+    for (int i = 0; i < 6; ++i) lists[i].AssignVector<NameElement>(source->lists[i]);
+    text.AssignFrom(source->text);
+    field10 = source->field10;
+}
+
+void QuestBriefingRecord::ConstructDefault() {
+    stlp::StringElement::Default(&name);
+    for (CStringVector& list : lists) list.ConstructEmpty();
+    stlp::StringElement::Default(&text);
+}
+
 void ChunkArchive::SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void*) {
     SerializeRecords(this, id, quests, QuestDestroy, QuestsResize, QuestSerializeAt);
 }

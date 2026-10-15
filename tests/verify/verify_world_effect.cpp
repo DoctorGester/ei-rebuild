@@ -280,6 +280,8 @@ static double __fastcall DefaultRadiusVerify(CEffect* self) {
 }
 EI_VERIFY(0x006768F0, DefaultRadiusVerify, 6, s_defaultRadius);
 
+// The EI_*_VERIFY macros below define a wrapper; the EI_VERIFY line after each use registers it
+// (the tools read those lines).
 #define EI_RADIUS_VERIFY(addr, Class, label)                                                       \
     static double(__fastcall* s_radius_##Class)(Class*);                                            \
     static double __fastcall RadiusVerify_##Class(Class* self) {                                    \
@@ -287,8 +289,7 @@ EI_VERIFY(0x006768F0, DefaultRadiusVerify, 6, s_defaultRadius);
         double actual = self->Radius();                                                             \
         ei::verify::Check(label, Bits(expected), Bits(actual), "object %p", self);                  \
         return expected;                                                                            \
-    }                                                                                               \
-    EI_VERIFY(addr, RadiusVerify_##Class, 6, s_radius_##Class)
+    }
 
 EI_RADIUS_VERIFY(0x00676050, CEffectSound, "CEffectSound::Radius");
 EI_VERIFY(0x00676050, RadiusVerify_CEffectSound, 6, s_radius_CEffectSound);
@@ -306,8 +307,7 @@ EI_VERIFY(0x00677F70, RadiusVerify_CEffectPointLight, 6, s_radius_CEffectPointLi
     static void __fastcall PackVerify_##Class(Class* self, void*, DeltaField* field) {              \
         CheckPack(label, self, field, [&] { self->Class::Pack(field); },                            \
                   [&] { s_pack_##Class(self, nullptr, field); });                                   \
-    }                                                                                               \
-    EI_VERIFY(addr, PackVerify_##Class, stolen, s_pack_##Class)
+    }
 
 EI_PACK_VERIFY(0x00676550, CEffectSound, 6, "CEffectSound::Pack");
 EI_VERIFY(0x00676550, PackVerify_CEffectSound, 6, s_pack_CEffectSound);
@@ -330,8 +330,7 @@ EI_VERIFY(0x0067A600, PackVerify_CEffectLightning, 6, s_pack_CEffectLightning);
         CheckSave(label, self, sizeof(Class), stream,                                               \
                   [&](void* s) { s_save_##Class(self, nullptr, s); },                               \
                   [&](void* s) { self->Class::SaveState(s); });                                     \
-    }                                                                                               \
-    EI_VERIFY(addr, SaveVerify_##Class, stolen, s_save_##Class)
+    }
 
 EI_SAVE_VERIFY(0x006766D0, CEffectSound, 5, "CEffectSound::SaveState");
 EI_VERIFY(0x006766D0, SaveVerify_CEffectSound, 5, s_save_CEffectSound);
@@ -354,8 +353,7 @@ EI_VERIFY(0x0067A7F0, SaveVerify_CEffectLightning, 5, s_save_CEffectLightning);
         CheckLoad(label, self, sizeof(Class), stream,                                               \
                   [&](void* scratch, void* s) { s_load_##Class(scratch, nullptr, s); },             \
                   [&](void* s) { self->Class::LoadState(s); });                                     \
-    }                                                                                               \
-    EI_VERIFY(addr, LoadVerify_##Class, stolen, s_load_##Class)
+    }
 
 EI_LOAD_VERIFY(0x006765F0, CEffectSound, 6, "CEffectSound::LoadState");
 EI_VERIFY(0x006765F0, LoadVerify_CEffectSound, 6, s_load_CEffectSound);
@@ -381,8 +379,7 @@ EI_VERIFY(0x00677BF0, AmbientLoadVerify, 0, s_unused);
         int result = self->Class::Unpack(update, field);                                            \
         ei::verify::Check(label, true, result == 0 || result == 1, "result %d", result);            \
         return result;                                                                              \
-    }                                                                                               \
-    EI_VERIFY(addr, UnpackVerify_##Class, 0, s_unused)
+    }
 
 EI_UNPACK_VERIFY(0x00676430, CEffectSound, "CEffectSound::Unpack");
 EI_VERIFY(0x00676430, UnpackVerify_CEffectSound, 0, s_unused);

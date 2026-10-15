@@ -222,6 +222,14 @@ struct UnitLevelRecord {
 };
 static_assert(offsetof(UnitLevelRecord, valuesB) == 0x24 && sizeof(UnitLevelRecord) == 0x44);
 
+// unit_db_destroy.cpp (A-U11): the prototype, NPC and model records' destructors (0053EBC0,
+// 0053ED30, 0053EE70).
+namespace unitdb {
+void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record);
+void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
+void __fastcall DestroyModelRecord(UnitModelRecord* record);
+} // namespace unitdb
+
 // The model table (0x20 bytes, the database's +0x40): the records (an STLport vector) and a
 // hash_map<string, record*> from their names at +0x0C, as the prototype tables (unit_create.h).
 struct UnitModelTable {
@@ -356,6 +364,9 @@ struct SkillDatabase {
     // switch 0057CB50 runs): the level records destroyed (00520DE0) and their storage freed, then
     // the skills (00520D20 through their deleting destructor 00521FA0 with 0); both vectors empty.
     void Reset();
+    // 0051FB10 (database_construct.cpp; the static initialiser 0051FAF0). Both vectors empty.
+    // Returns this.
+    SkillDatabase* Construct();
 
     stlp::vector<SkillRecord> skills;        // +0x00
     stlp::vector<SkillLevelRecord> levels;   // +0x0C
