@@ -2,10 +2,10 @@
   "scenario": "ui_hero_delete",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "b1ca3d8b",
+  "commit": "5d15174f",
   "digest_period": 20,
   "left_out": null,
-  "clear": "(?:^obj2 (hp|maxHp)$)",
+  "clear": "(?:^obj2 hp$)",
   "repeated_in": 4,
-  "reason": "T2: the scenario now reaches the hero delete (name typed after the defaults button, msgbox wait)"
+  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout"
 }

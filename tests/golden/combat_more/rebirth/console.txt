@@ -1,0 +1,106 @@
+  Activated!
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Cannot open file autoexec.cfg for reading
+  0
+  Accepted player 0
+  party received on client
+  Unit 1936 new motivation Guard with power of 50
+  Unit 1937 new motivation Guard with power of 50
+  Unit 1000011214 new motivation Player with power of 10
+  Unit 1804 new motivation Patrol with power of 50
+  Unit 1890 new motivation Patrol with power of 50
+  Saved savea
+  1
+  Unit 1000066549 sees unit 1000011214 from 2.37171m distance
+  Unit 1000066549 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000066549 from 2.37171m distance
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  Unit 1000066549 was attacked by 1000011214 skill=3.40282e+038 damage=12.4803 destHL=RHand
+  impaling passed damage = 12.4803 HL was crippled
+  Unit 1000066549 damaged to death
+  Unit 1000011214 sees corpse of unit 1000066549
+  Unit 1000011214 lost from sight unit 1000066549
+  1
+  1
+  Unit 1001324934 sees unit 1000011214 from 1.97454m distance
+  Unit 1001324934 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1001324934 from 1.97454m distance
+  1
+  1
+  Unit 1001324934 sees corpse of unit 1000066549
+  38.7939
+  0
+  Unit 1000011214 was attacked by 1001324934 skill=3.40282e+038 damage=8.78 destHL=Head!
+  impaling passed damage = 8.78
+  1
+  12.3845
+  Unit 1000011214 was healed
+  38.7939
+  0
+  Delayed sound: Unit 1000011214 heard unit 1001324934 from 1.974538m distance
+  Unit 1001324934 was attacked by 1000011214 skill=-3.40282e+038 damage=9.94488 destHL=RHand
+  0
+  0
+  0
+  Unit 1001324934 was attacked by 1000011214 skill=-3.40282e+038 damage=12.851 destHL=LHand
+  Delayed sound: Unit 1001324934 heard unit 1000011214 from 1.974538m distance
+  0
+  0
+  0
+  Unit 1001324934 was attacked by 1000011214 skill=3.40282e+038 damage=12.9568 destHL=LLeg
+  impaling passed damage = 12.9568 HL was crippled
+  Unit 1000066549 sees unit 1000011214 from 1.97454m distance
+  Unit 1000066549 sees unit 1001324934 from 0m distance
+  Unit 1001324934 damaged to death
+  Unit 1000011214 sees corpse of unit 1001324934
+  Unit 1000011214 lost from sight unit 1001324934
+  1
+  1
+  Unit 1000010833 sees unit 1000011214 from 1.97454m distance
+  Unit 1000010833 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000010833 from 1.97454m distance
+  Unit 1000010833 sees corpse of unit 1001324934
+  Unit 1000010833 sees corpse of unit 1000066549
+  Unit 1000011214 lost from sight unit 1000010833
+  Unit 1000010834 sees unit 1000011214 from 1.97454m distance
+  Unit 1000010834 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000010834 from 1.97454m distance
+  Unit 1000010834 sees corpse of unit 1001324934
+  Unit 1000010834 sees corpse of unit 1000066549
+  Unit 1000011214 lost from sight unit 1000010834
+  Unit 1000010835 sees unit 1000011214 from 1.97454m distance
+  Unit 1000010835 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000010835 from 1.97454m distance
+  Unit 1000010835 sees corpse of unit 1001324934
+  Unit 1000010835 sees corpse of unit 1000066549
+  Unit 1000011214 lost from sight unit 1000010835
+  Unit 1000010836 sees unit 1000011214 from 1.97454m distance
+  Unit 1000010836 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000010836 from 1.97454m distance
+  Unit 1000010836 sees corpse of unit 1001324934
+  Unit 1000010836 sees corpse of unit 1000066549
+  Unit 1000011214 lost from sight unit 1000010836
+  Unit 1936 acknowledges with idleSound = AAn4XyU
+  1

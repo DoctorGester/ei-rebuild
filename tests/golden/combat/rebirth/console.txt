@@ -1,0 +1,79 @@
+  Activated!
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Unknown command
+  Cannot open file autoexec.cfg for reading
+  0
+  Accepted player 0
+  party received on client
+  Unit 1936 new motivation Guard with power of 50
+  Unit 1937 new motivation Guard with power of 50
+  Unit 1000011214 new motivation Player with power of 10
+  Unit 1804 new motivation Patrol with power of 50
+  Unit 1890 new motivation Patrol with power of 50
+  Saved savea
+  1
+  Unit 1000275419 sees unit 1000011214 from 2.37171m distance
+  Unit 1000275419 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000275419 from 2.37171m distance
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=12.4803 destHL=RHand
+  impaling passed damage = 12.4803 HL was crippled
+  Unit 1000275419 damaged to death
+  Unit 1000011214 sees corpse of unit 1000275419
+  Unit 1000011214 lost from sight unit 1000275419
+  1
+  1
+  38.7939
+  Unit 1000275420 sees unit 1000011214 from 1.97454m distance
+  Unit 1000275420 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000275420 from 1.97454m distance
+  1
+  1
+  1
+  Unit 1000275420 sees unit 1000275419 with peripheral vision
+  Unit 1000275420 sees corpse of unit 1000275419
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=12.14 destHL=Head!
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=10.17 destHL=LLeg
+  slashing passed damage = 5.19506
+  1
+  33.5729
+  Unit 1000011214 was healed
+  0
+  Unit 1804 acknowledges with idleSound = AAn4XyU
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=11.5369 destHL=Body
+  impaling passed damage = 11.5369 HL was crippled
+  Unit 1000275419 sees unit 1000011214 from 1.97454m distance
+  Unit 1000275419 sees unit 1000275420 from 0.556578m distance
+  Unit 1000275420 damaged to death
+  Unit 1000011214 sees corpse of unit 1000275420
+  Unit 1000011214 lost from sight unit 1000275420
+  1
+  38.9066
+  1

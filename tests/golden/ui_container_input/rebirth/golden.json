@@ -1,0 +1,12 @@
+{
+  "scenario": "ui_container_input",
+  "install": "rebirth",
+  "recorded": "2026-10-15",
+  "commit": "5d15174f",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^obj2 hp$)",
+  "repeated_in": 4,
+  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 51109 4b1bf1fcb612316e', orig2 'savea/mission.sav 51111 7febd5364d41b69f'"
+}

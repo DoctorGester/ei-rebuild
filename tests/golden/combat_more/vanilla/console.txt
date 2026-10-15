@@ -63,3 +63,32 @@
   Unit 1000011214 lost from sight unit 1001324934
   1
   1
+  Unit 1000010833 sees unit 1000011214 from 1.97454m distance
+  Unit 1000010833 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000010833 from 1.97454m distance
+  Unit 1000010833 sees corpse of unit 1001324934
+  Unit 1000010833 sees corpse of unit 1000066549
+  Unit 1000011214 lost from sight unit 1000010833
+  Unit 1000010834 sees unit 1000011214 from 1.97454m distance
+  Unit 1000010834 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000010834 from 1.97454m distance
+  Unit 1000010834 sees corpse of unit 1001324934
+  Unit 1000010834 sees corpse of unit 1000066549
+  Unit 1000011214 lost from sight unit 1000010834
+  Unit 1000010835 sees unit 1000011214 from 1.97454m distance
+  Unit 1000010835 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000010835 from 1.97454m distance
+  1
+  Unit 1000010835 sees corpse of unit 1001324934
+  Unit 1000010835 sees corpse of unit 1000066549
+  Unit 1000011214 lost from sight unit 1000010835
+  Unit 1000010836 sees unit 1000011214 from 1.97454m distance
+  Unit 1000010836 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000010836 from 1.97454m distance
+  1
+  Unit 1000010836 sees corpse of unit 1001324934
+  Unit 1000010836 sees corpse of unit 1000066549
+  Unit 1000011214 lost from sight unit 1000010836
+  1

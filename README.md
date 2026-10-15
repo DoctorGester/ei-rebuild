@@ -108,7 +108,8 @@ listed at the top of `tests/verify/harness.cpp`. The main ones:
   and caller, in `randtrace.txt`; `compare.py --clock virtual,randtrace` to find where two runs part).
   On the virtual clock the game's CRT heap also gives the same addresses every run, and units' update
   countdowns come from their ids on both sides (`tests/verify/harness_heap.h`); `lfheap` keeps the
-  game's own heap and countdowns.
+  game's own heap and countdowns, `heaptrace` writes every call on the CRT heap with its callers to
+  `heaptrace.txt` until world update `EI_HEAPTRACE` (default 40), then every object's address.
 - The game-state digest (`tests/verify/harness_digest.h`): `digest <N>` (or `EI_DIGEST=<N>`) writes the
   world's state (units, positions, vitals, effects, AI state, generators, players) every N world updates to
   the run's `digest.txt`, `dump <name>` all of it once; `python tools\golden.py diff <run A> <run B>` names

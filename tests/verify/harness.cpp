@@ -938,6 +938,8 @@ bool g_randomTrace = false;
 // "lfheap": on the virtual clock, leave the CRT's heap as the game makes it (its addresses do not
 // repeat; harness_heap.h).
 bool g_keepHeap = false;
+// "heaptrace": log the CRT heap's calls into heaptrace.txt (harness_heap.h).
+bool g_heapTrace = false;
 constexpr std::uintptr_t kGetLocalTimeSlot = 0x0073B1DC;   // game.exe import table
 constexpr std::uintptr_t kGetSystemTimeSlot = 0x0073B228;
 decltype(&::GetLocalTime) g_getLocalTime;
@@ -2497,6 +2499,7 @@ bool HoldMessagesForCloseAll(const void* returnAddress) {
 
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
     SetMainThread();
+    heap::SettleCrt();
     if (g_randomTrace) clock::InstallRandomTrace(&g_frames);
     TraceFpu("in the message loop");
     KeepGameWindowActive();
@@ -2610,6 +2613,7 @@ struct Harness {
         if (std::strstr(clockMode, "clocktrace")) g_clockTrace = true;
         if (std::strstr(clockMode, "randtrace")) g_randomTrace = true;
         if (std::strstr(clockMode, "lfheap")) g_keepHeap = true;
+        if (std::strstr(clockMode, "heaptrace")) g_heapTrace = true;
         if (report) {
             std::fputs("RESULT: RUNNING\n", report);
             std::fclose(report);
@@ -2675,6 +2679,7 @@ struct Harness {
         if (g_deterministic) {
             clock::InstallVirtual(&g_tickLength);
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
+            if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);
