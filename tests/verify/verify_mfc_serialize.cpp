@@ -12,6 +12,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <new>
 #include <vector>
 
 using namespace mfc::impl;
@@ -458,8 +459,83 @@ CString TextAt(const char* prefix, int seed) {
 // destroying their elements, and before their source. kFresh (the wave records): each load frees the
 // strings the stored bytes point at, so each load reads a source of its own, and its elements own
 // their copies (compared by text).
+// Leaks: what a load leaks for each element, taken back after it, so that the game's heap is as the
+// check found it (the goldens' runs depend on it). Most loads leak nothing.
+struct NoLeaks {
+    void Probe(int) {}
+    bool Reclaim() { return true; }
+};
+
+// The block allocators hand out their free blocks last freed first, and each element of these loads
+// leaks the temporary's block and frees the new node's before the next element: the n blocks a load
+// leaks are the first n of the free list as the load found it. Probe allocates and frees them (in
+// reverse, so the list is as it was) to learn them; Reclaim checks each is the leaked block and frees
+// it.
+// Tokens: the temporary's "None" (CString's 64-byte blocks); a leaked one holds one reference.
+struct TokenLeaks {
+    char* blocks[16] = {};
+    int count = 0;
+    void Probe(int n) {
+        count = n;
+        CString probes[16];
+        for (int i = 0; i < n; ++i) {
+            probes[i] = "None";
+            blocks[i] = const_cast<char*>(static_cast<const char*>(probes[i]));
+        }
+        for (int i = n; i--;) {
+            probes[i].~CString();
+            new (&probes[i]) CString;
+        }
+    }
+    bool Reclaim() {
+        bool ok = true;
+        for (int i = 0; i < count; ++i) {
+            char* text = blocks[i];
+            const int* header = reinterpret_cast<const int*>(text);
+            if (header[-3] != 1 || header[-2] != 4 || std::strcmp(text, "None") != 0) {
+                ok = false;   // not the temporary's: left alone
+                continue;
+            }
+            reinterpret_cast<CString*>(&text)->~CString();
+        }
+        return ok;
+    }
+};
+// Wave records: the temporary's 8-byte name buffer (STLport's node allocator). A free block is told
+// from a leaked one by allocating as many: none may come back.
+struct WaveLeaks {
+    using Words = std::uint32_t[3];   // a string's start, finish and end of storage
+    char* blocks[16] = {};
+    int count = 0;
+    static stlp::string* AsString(Words& w) { return reinterpret_cast<stlp::string*>(&w); }
+    static int Allocate(char** out, int n) {
+        Words strings[16];
+        for (int i = 0; i < n; ++i) {
+            stlp::StringElement::Default(AsString(strings[i]));
+            out[i] = stlp::StringAbi::Start(*AsString(strings[i]));
+        }
+        for (int i = n; i--;) stlp::StringElement::Destroy(AsString(strings[i]));
+        return n;
+    }
+    void Probe(int n) { count = Allocate(blocks, n); }
+    bool Reclaim() {
+        char* fresh[16];
+        Allocate(fresh, count);
+        for (int i = 0; i < count; ++i)
+            for (int j = 0; j < count; ++j)
+                if (fresh[i] == blocks[j]) return false;   // a probe was free after all: nothing freed
+        for (int i = count; i--;) {
+            Words w = {reinterpret_cast<std::uintptr_t>(blocks[i]), reinterpret_cast<std::uintptr_t>(blocks[i]),
+                       reinterpret_cast<std::uintptr_t>(blocks[i] + 8)};
+            stlp::StringElement::Destroy(AsString(w));
+        }
+        return true;
+    }
+};
+
 template <typename T>
 struct FillBase {
+    using Leaks = NoLeaks;
     static constexpr bool kFresh = false;
     static void Drop(T*) {}
     static bool Same(const T& a, const T& b) { return std::memcmp(&a, &b, sizeof(T)) == 0; }
@@ -534,6 +610,7 @@ struct GroupFill : FillBase<ScriptGroup> {   // empty groups (a loaded copy's te
     static void Set(ScriptGroup*, int, bool) {}
 };
 struct TokenFill : FillBase<ScriptToken> {
+    using Leaks = TokenLeaks;
     static void Set(ScriptToken* p, int seed, bool owned) {
         if (owned) p->text = TextAt("tok", seed);
         p->line = seed * 11;
@@ -560,6 +637,7 @@ struct SharedObjectFill : FillBase<SharedObject> {   // no objects (a loaded cop
     }
 };
 struct WaveFill : FillBase<WaveRecord> {
+    using Leaks = WaveLeaks;
     static constexpr bool kFresh = true;
     static void Set(WaveRecord* p, int seed, bool owned) {
         p->data = reinterpret_cast<void*>(static_cast<std::uintptr_t>(0x3000 + seed * 4));
@@ -615,9 +693,9 @@ struct ListThroughSerialize {
             if (!Fill::Same(a->data, b->data) || (a->prev == nullptr) != (b->prev == nullptr)) return false;
         return !a && !b && (x.tail == nullptr) == (y.tail == nullptr);
     }
-    static void Free(List& l, bool drop) {
-        if (drop)
-            for (auto* node = l.head; node; node = node->next) Fill::Drop(&node->data);
+    // The list's blocks freed, its first `drop` elements (-1: all) destroyed first.
+    static void Free(List& l, int drop) {
+        for (auto* node = l.head; node && drop--; node = node->next) Fill::Drop(&node->data);
         mfc::PlexFreeDataChain(l.blocks);
     }
     static std::vector<unsigned char> Store(SerializeFn fn, List& l) {
@@ -645,20 +723,27 @@ struct ListThroughSerialize {
             Make(y, -1 - start);
             MemoryArchive lx(bytesX), ly(bytesY);
             FakeWorld before = g_world;
+            typename Fill::Leaks leaks;
+            leaks.Probe(source);
             theirs(&x, nullptr, &lx.ar);
+            ok = leaks.Reclaim() && ok;
             FakeWorld afterOriginal = g_world;
             g_world = before;
+            leaks.Probe(source);
             ours(&y, nullptr, &ly.ar);
+            ok = leaks.Reclaim() && ok;
             ok = ok && lx.Used() == ly.Used() && Same(x, y) && std::memcmp(&afterOriginal, &g_world, sizeof(FakeWorld)) == 0;
             g_world = before;
-            Free(x, Fill::kFresh);
-            Free(y, Fill::kFresh);
+            // The starting elements (and the wave records' copies) are the list's own.
+            int own = Fill::kFresh ? -1 : (start == 0 ? 0 : 2);
+            Free(x, own);
+            Free(y, own);
             if constexpr (Fill::kFresh) {
-                Free(sx, false);   // its strings went with the load's temporaries
-                Free(sy, false);
+                Free(sx, 0);   // its strings went with the load's temporaries
+                Free(sy, 0);
             }
         }
-        Free(src, true);
+        Free(src, -1);
         return ok;
     }
 

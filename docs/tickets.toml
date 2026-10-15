@@ -1727,6 +1727,13 @@ depends = ["S6c"]
 files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "src/game/record_arrays.*", "tests/verify/verify_mfc_serialize.cpp"]
 note = "From S6c. Serialize (slot 2) of 20: lists of counted references whose loader builds, assigns and releases a temporary (00427690, 00571420, 004C9350, 0052C740, 005576C0, 00598FD0, 00599DF0, 00558100); script lists assigning records (004C61C0, 004C64C0, 004C6800, 004C7640, 004C7F60, 004C8640, 004C8F00, 004CA2E0, 004D63E0, 0059A4A0, 006BC920); 004C2700 with its own SerializeElements<CString>. SerializeCList builds the local with the element policy and adds a copy: each needs the instantiation's assignment and the temporary's release (a SerializeCList variant taking the element's copy / release), checked at start-up like verify_mfc_serialize.cpp's (Mode 2 where releasing a copy needs more than construction)."
 
+[[ticket]]
+id = "S6e"
+title = "Standalone library: the ConstructElements helpers S6d's loaders reach"
+group = "standalone"
+depends = ["S6d"]
+note = "From S6d. Unregistered element helpers the list Serialize (and the instantiations' other inlined NewNodes) call: 004D6840 ConstructElements<ScriptDefine> (zeroed, two empty strings: ArrayAbi<ScriptDefine, ScriptDefineElements>::ConstructElements), 00558EF0 and 00479620 (ConstructElements<RefPtr>: the zero fill, as 0059E2C0 / Plain4), 004C59A0 (CArray<ScriptIfThen>'s constructor, vtable 0073D3AC). Checks as verify_mfc_list.cpp's TwinConstructElements."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

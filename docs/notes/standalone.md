@@ -803,7 +803,12 @@ loads from the same state; copy-on-share, detached and zero-count objects includ
 strings shared; command blocks, definitions, runs, groups and shared objects without arrays (a loaded
 copy's temporary frees what the source's arrays hold); wave records loaded from a source each, compared
 by text; CArray<CString> and SerializeElements<CString> with texts up to 299 characters. No suite
-scenario calls them.
+scenario calls them. The token and wave loads leak each element's temporary block (its "None", its
+8-byte name buffer: read over), and leaking them in the check moved the game's heap enough to change
+ui_widescreen_hud / _more's goldens (a unit's place at world update 80). The check takes them back: the
+block allocators reuse the last freed block first, so the n blocks a load leaks are the first n of the
+free list; it allocates and frees them before the load to learn them and frees them after (a token's
+block must hold one reference to "None"; a wave block must not come back from as many allocations).
 
 **S12a (2026-10-15).** The rest of the exe's STLport maps (src/game/library_trees.*, one
 `TreeAbi` alias each, node sizes from each `_M_create_node`): the debug panel's map<string, string>,
