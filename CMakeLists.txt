@@ -63,12 +63,17 @@ add_executable(ei_vectors
     src/game/matrix_math.cpp
     src/game/quaternion.cpp
     src/game/random.cpp
+    src/game/unit_hit_location.cpp
+    src/game/unit_params_protection.cpp
+    src/game/unit_params_skill.cpp
+    src/game/unit_skill_price.cpp
     src/game/unit_stats.cpp
     src/lib/rebirth.cpp
     src/lib/crt.cpp
     src/lib/mfc.cpp)
 target_include_directories(ei_vectors PRIVATE include src)
-target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data")
+# EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
+target_compile_definitions(ei_vectors PRIVATE EI_VECTORS_DATA="${CMAKE_SOURCE_DIR}/tests/vectors/data" EI_VECTORS_REPLAY)
 
 # Offline check of the interface text layout (render_text): DrawText rules on synthetic cases, and a
 # report against GDI on the game's strings (tools/text_check; GDI only there).

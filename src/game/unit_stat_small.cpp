@@ -1,6 +1,7 @@
-// Small functions of the unit statistics and databases (A-U12): two stat ratios, the packed
-// vitals' and parameters' network fields, a school's price, the attack
-// parameters' difficulty scale and the databases' record lookups. Plain C++ float maths (rule 7).
+// Small functions of the unit statistics and databases (A-U12): the packed vitals' and parameters'
+// network fields, the attack parameters' difficulty scale and the databases' record lookups. The
+// stat ratios are in unit_stats.cpp and the school's price in unit_skill_price.cpp (ei_vectors
+// links those). Plain C++ float maths (rule 7).
 #include "combat.h"
 #include "net_delta.h"
 #include "unit.h"
@@ -9,26 +10,13 @@
 
 #include "ei/hook.h"
 
-#include <cmath>
-
 namespace {
-constexpr double kWorthBase = 1.61;   // 0073E140
 // The game's settings (globals read at the time of the call).
-constexpr std::uintptr_t kHitPointStatDivisor = std::uintptr_t(0x007C5454);
-constexpr std::uintptr_t kManaStatDivisor = std::uintptr_t(0x007C5468);
-constexpr std::uintptr_t kWorthScale = std::uintptr_t(0x007C547C);
-constexpr std::uintptr_t kWorthDivisor = std::uintptr_t(0x007C5480);
 constexpr std::uintptr_t kDifficulty = std::uintptr_t(0x0079BEC0);
 constexpr std::uintptr_t kAttackFactors = std::uintptr_t(0x007C54AC);    // a float per difficulty
 constexpr std::uintptr_t kDefenceFactors = std::uintptr_t(0x007C54B8);
 
-float Global(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
 int Difficulty() { return *reinterpret_cast<const int*>(kDifficulty); }
-
-// What a level value is worth (the curve of UnitStats::SkillPrice).
-double Worth(int value) {
-    return std::pow(kWorthBase, static_cast<double>(value) / Global(kWorthDivisor)) * Global(kWorthScale);
-}
 
 // Element `index` of the records between `begin` and `end`, or null past the end (the count is a
 // signed division, the comparison unsigned, as the original's).
@@ -37,14 +25,6 @@ T* RecordAt(T* begin, T* end, std::uint32_t index) {
     return index < static_cast<std::uint32_t>(end - begin) ? begin + index : nullptr;
 }
 } // namespace
-
-// --- Statistics -----------------------------------------------------------------------------------
-
-double UnitStats::StrengthRatio() { return stat10 / Global(kHitPointStatDivisor); }
-EI_REPLACE_METHOD(0x00523CB0, UnitStats::StrengthRatio);
-
-double UnitStats::DexterityRatio() { return stat18 / Global(kManaStatDivisor); }
-EI_REPLACE_METHOD(0x00523CC0, UnitStats::DexterityRatio);
 
 // 00523700 / 00523710 (fastcall: ECX the block, EDX the field): a map object's packed vitals
 // written to / read from its network field. 00523720 / 00523730: a unit's packed parameters.
@@ -64,15 +44,6 @@ void __fastcall ReadPackedParams(UnitParams* params, DeltaField* field) {
     field->ReadDelta(params, sizeof(UnitParams));
 }
 EI_REPLACE(0x00523730, ReadPackedParams);
-
-// 00527FF0 (fastcall). What raising a school from level value `from` to `to` costs: the worths'
-// difference, truncated.
-int __fastcall SchoolPrice(int from, int to) {
-    const double upper = Worth(to);
-    const double lower = Worth(from);
-    return static_cast<int>(upper - lower);
-}
-EI_REPLACE(0x00527FF0, SchoolPrice);
 
 void AttackParams::ScaleForDifficulty(int keyed) {
     if (keyed != 0) return;

@@ -122,6 +122,9 @@ struct CheckRegistrar {
 // The registered checks (replay_main.cpp).
 Check* Checks();
 
+// Clears the stand-in for the game's data (src/game/game_data.h; replay_game_data.cpp) before a record.
+void ResetGameData();
+
 template <typename T, bool (*Fn)(const T&, char*, std::size_t)>
 bool RunTyped(const void* payload, char* detail, std::size_t detailSize) {
     T v;

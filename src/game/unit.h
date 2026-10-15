@@ -6,6 +6,7 @@
 
 #include "core_streams.h"
 #include "engine_object.h"
+#include "game_data.h"
 #include "item_db.h"
 #include "map_object.h"   // CMapObjectCompanion
 #include "maths.h"
@@ -728,8 +729,8 @@ constexpr int kSkillSize = 0x18;
 constexpr int kSkillLevelSize = 0x44;
 inline const RecordTable& Prototypes() { return *reinterpret_cast<const RecordTable*>(0x007AF358); }
 inline const RecordTable& Models() { return *reinterpret_cast<const RecordTable*>(0x007AF398); }
-inline const RecordTable& Skills() { return *reinterpret_cast<const RecordTable*>(0x007AF268); }
-inline const RecordTable& SkillLevels() { return *reinterpret_cast<const RecordTable*>(0x007AF274); }
+inline const RecordTable& Skills() { return ei::GameData<const RecordTable>(0x007AF268); }
+inline const RecordTable& SkillLevels() { return ei::GameData<const RecordTable>(0x007AF274); }
 // 0073E048: for each armour type, the three body slots it covers (7: none); UnitStats::AddArmourLayer.
 inline const int* ArmourCoverage() { return reinterpret_cast<const int*>(0x0073E048); }
 } // namespace unitdb
@@ -815,8 +816,8 @@ struct UnitStats {
     // the FPU runs above 24-bit precision under Rebirth, see CItemWeapon::RollDamage).
     // 00523CD0. 25 / unknown_20.
     double Period20();
-    // unit_stat_small.cpp (A-U12; the item panel's lines). 00523CB0: stat10 over the setting at
-    // 007C5454; 00523CC0: stat18 over the one at 007C5468.
+    // The item panel's lines. 00523CB0: stat10 over the setting "HP Val 1" (007C5454);
+    // 00523CC0: stat18 over "MP Val 1" (007C5468).
     double StrengthRatio();
     double DexterityRatio();
     // unit_stats_io.cpp (A-U4). 005287A0 (RET 4): pendingExperience 0, then the block read raw,

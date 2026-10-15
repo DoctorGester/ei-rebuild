@@ -77,6 +77,12 @@ struct MatrixMultiplyCall {   // MatrixMultiply: bit 0 out is a, bit 1 out is b 
     float a[16], b[16], out[16];
     std::uint32_t alias;
 };
+// CTransformPipeline::PushMatrix: the old top (when the stack was not `empty`), m and the new top;
+// `alias` 1 when m was the slot the new top goes to.
+struct PushMatrixCall {
+    float top[16], m[16], out[16];
+    std::int32_t empty, alias;
+};
 struct ToMatrixCall {    // Quaternion::ToMatrix: the elements it leaves alone are equal in before and after
     Quaternion q;
     float before[16], after[16];
@@ -86,6 +92,7 @@ static_assert(sizeof(ConstructCall) == 24 && sizeof(DotCall) == 28 && sizeof(Len
 static_assert(sizeof(BinaryCall) == 40 && sizeof(UnaryCall) == 28 && sizeof(ScaleCall) == 32 && sizeof(AddInPlaceCall) == 40);
 static_assert(sizeof(ClampCall) == 8 && sizeof(IdentityCall) == 16 && sizeof(PreMultiplyCall) == 52 && sizeof(AxisCall) == 28);
 static_assert(sizeof(BSplineCall) == 32 && sizeof(EvaluateCall) == 24);
+static_assert(sizeof(PushMatrixCall) == 200);
 static_assert(sizeof(ConjugateCall) == 52 && sizeof(MatrixMultiplyCall) == 196 && sizeof(ToMatrixCall) == 144);
 
 } // namespace ei::vectors::maths

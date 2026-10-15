@@ -4,6 +4,8 @@
 #include "maths_vectors.h"
 #include "vectors.h"
 
+#include "../../src/game/model.h"
+
 #include "ei/hook.h"
 
 #include <cstring>
@@ -270,8 +272,25 @@ void __fastcall ToMatrixRecord(const Quaternion* self, void*, float* out) {
     g_toMatrix.sampler.Offer(v, cw);
 }
 
+// 004D9B80 (matrix_math.cpp)
+Recorded<PushMatrixCall> g_push("CTransformPipeline::PushMatrix");
+void(__fastcall* s_push)(CTransformPipeline*, void*, const float*, int);
+void __fastcall PushRecord(CTransformPipeline* self, void*, const float* m, int index) {
+    auto v = Zeroed<PushMatrixCall>();
+    MatrixStack& stack = self->stacks_[index];
+    v.empty = stack.count == 0;
+    if (!v.empty) std::memcpy(v.top, stack.matrices[stack.count - 1].m, sizeof(v.top));
+    std::memcpy(v.m, m, sizeof(v.m));
+    v.alias = m == stack.matrices[v.empty ? 0 : stack.count].m;
+    std::uint16_t cw = ControlWord();
+    s_push(self, nullptr, m, index);
+    std::memcpy(v.out, stack.matrices[stack.count - 1].m, sizeof(v.out));
+    g_push.sampler.Offer(v, cw);
+}
+
 } // namespace
 
+EI_RECORD(0x004D9B80, PushRecord, 6, s_push);
 EI_RECORD(0x0049E950, ConjugateRecord, 6, s_conjugate);
 EI_RECORD(0x004D9880, MultiplyRecord, 8, s_multiply);
 EI_RECORD(0x004D9AA0, ToMatrixRecord, 6, s_toMatrix);

@@ -3,6 +3,8 @@
 // The game's logic settings (the global at 007C53F8), read from a registry file at startup by
 // LogicSettings::Load (005CE0F0, called by 00456440). Field names are the registry keys.
 
+#include "game_data.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -59,4 +61,4 @@ static_assert(offsetof(LogicSettings, considerLogBase) == 0x94);
 static_assert(offsetof(LogicSettings, itemDurabilityCritical) == 0xA4);
 static_assert(sizeof(LogicSettings) == 0xCC);
 
-inline LogicSettings& GameLogicSettings() { return *reinterpret_cast<LogicSettings*>(0x007C53F8); }
+inline LogicSettings& GameLogicSettings() { return ei::GameData<LogicSettings>(0x007C53F8); }

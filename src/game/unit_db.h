@@ -6,6 +6,7 @@
 // the field ids are the archive's. See docs/notes/units.md ("Database records").
 
 #include "ei/x87.h"
+#include "game_data.h"
 #include "lib/mfc.h"
 #include "maths.h"
 
@@ -353,4 +354,4 @@ struct SkillDatabase {
 };
 static_assert(sizeof(stlp::vector<SkillRecord>) == 0x0C);
 // The skill database (007AF268).
-inline SkillDatabase* SkillDb() { return reinterpret_cast<SkillDatabase*>(std::uintptr_t(0x007AF268)); }
+inline SkillDatabase* SkillDb() { return &ei::GameData<SkillDatabase>(0x007AF268); }
