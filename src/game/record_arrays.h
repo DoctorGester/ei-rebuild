@@ -101,6 +101,9 @@ struct BehaviourArrayClass {   // CArray<Behaviour> (the server unit's brain)
 mapspec::Patrol* __fastcall PatrolGetAt(const mfc::CArray<mapspec::Patrol>* self, void*, mapspec::Patrol* result,
                                         int index);
 ZoneExit* __fastcall ExitGetAt(const mfc::CArray<ZoneExit>* self, void*, ZoneExit* result, int index);
+// CStringArray's GetAt by value (004698C0, and 004698A0 calling it; RET 8, S16): the element
+// copy-constructed into `result`, which is returned.
+mfc::CString* __fastcall StringGetAt(const mfc::CArray<mfc::CString>* self, void*, mfc::CString* result, int index);
 
 // The global map's 0x18-byte records (mfc::impl::GlobalMapPointRecords): the destructor, the
 // strings at +0x14 and +0x10 (005FBD80 / 005FBDD0).

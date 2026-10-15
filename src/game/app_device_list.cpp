@@ -85,6 +85,15 @@ LeverRecord* __fastcall RecordAssign(LeverRecord* self, void*, const LeverRecord
 }
 EI_REPLACE(0x00465BC0, RecordAssign);
 
+// 00465B20 (library, STLport's copy for the records; RET 0xC, the last two arguments its tags):
+// each record of [first, last) assigned to the next of `result`, first to last (the assignment
+// inline); returns the end of the copy.
+LeverRecord* __fastcall RecordsCopyForward(LeverRecord* first, LeverRecord* last, LeverRecord* result, const void*, int) {
+    for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++result) RecordAssign(result, nullptr, first);
+    return result;
+}
+EI_REPLACE(0x00465B20, RecordsCopyForward);
+
 // 00465090: the list in chunk `id` of the archive, one chunk 1 per record (emptied and resized
 // to the number of chunks when loading).
 void __fastcall DeviceListArchive(void* archive, void*, int id, LeverRecordVector* list, int /*unused*/) {

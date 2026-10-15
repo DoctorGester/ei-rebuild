@@ -234,6 +234,54 @@ double __cdecl CiPow(double x, double y) {
     return negate ? -power : power;
 }
 
+namespace {
+
+// An 80-bit value as fmod's argument loader (006F2DAE) builds it from a double: FLD for a finite one;
+// for an infinity or a NaN the exponent all ones and the mantissa's high dword the double's shifted
+// left 11 (with the low dword's top bits), but its low dword the double's own, unshifted (the
+// loader leaves out the SHL): a NaN's payload comes out changed.
+void LoadAsFmod(double value, unsigned char* to) {
+    const std::uint64_t bits = Bits(value);
+    if (Exponent(bits) != 0x7FF) {
+        __asm {
+            fld value
+            mov eax, to
+            fstp tbyte ptr [eax]
+        }
+        return;
+    }
+    const std::uint32_t high = static_cast<std::uint32_t>(bits >> 32);
+    const std::uint32_t low = static_cast<std::uint32_t>(bits);
+    const std::uint32_t mantissaHigh = (high << 11) | (low >> 21);
+    const std::uint16_t signAndExponent = static_cast<std::uint16_t>((high >> 16) | 0x7FFF);
+    std::memcpy(to, &low, 4);
+    std::memcpy(to + 4, &mantissaHigh, 4);
+    std::memcpy(to + 8, &signAndExponent, 2);
+}
+
+// x + y of two 80-bit values on the x87 (a NaN's propagation as FADD has it).
+__declspec(naked) double __cdecl AddExtended(const unsigned char* /*x*/, const unsigned char* /*y*/) {
+    __asm {
+        mov eax, [esp + 4]
+        fld tbyte ptr [eax]
+        mov eax, [esp + 8]
+        fld tbyte ptr [eax]
+        faddp st(1), st
+        ret
+    }
+}
+
+} // namespace
+
+double __cdecl StackFmod(double x, double y) {
+    if (!IsNan(Bits(x)) && !IsNan(Bits(y))) return CiFmod(x, y);
+    unsigned char loadedX[10];
+    unsigned char loadedY[10];
+    LoadAsFmod(x, loadedX);
+    LoadAsFmod(y, loadedY);
+    return AddExtended(loadedX, loadedY);
+}
+
 // ---- The register entries ----
 
 __declspec(naked) std::int64_t __cdecl FtolEntry() {
@@ -279,6 +327,12 @@ __declspec(naked) double __cdecl CiAsinEntry() {
     }
 }
 EI_REPLACE_STANDALONE(0x006E83C0, libcrt::CiAsinEntry);
+
+// acos, asin and fmod with their arguments on the stack (cdecl, the result in ST0): the same bodies
+// (S16: the terrain's wave step and ambient angle, the global map and the weather sway call them).
+EI_REPLACE_STANDALONE(0x006E7334, libcrt::CiAcos);
+EI_REPLACE_STANDALONE(0x006E83D4, libcrt::CiAsin);
+EI_REPLACE_STANDALONE(0x006E95A0, libcrt::StackFmod);
 
 // ST1 = x, ST0 = y.
 __declspec(naked) double __cdecl CiPowEntry() {

@@ -45,6 +45,14 @@ static BOOL __fastcall GetKeyNamesVerify(CIniFile* self, void*, const char* sect
 }
 EI_VERIFY(0x00695D10, GetKeyNamesVerify, 8, s_getKeyNames);
 
+// The destructor (a jump to ~CString; ours only, counted).
+static void __fastcall IniDestructVerify(CIniFile* self) {
+    self->Destruct();
+    ei::verify::Check("CIniFile::~CIniFile", true, true, "");
+}
+static void* s_iniDestructUnused;
+EI_VERIFY(0x00695BE0, IniDestructVerify, 0, s_iniDestructUnused);
+
 // 00695F00 / 00695F20: MOV ECX,[ECX]; MOV EAX,[ESP+0xC] (6 bytes).
 static unsigned(__fastcall* s_iniGetInt)(CIniFile*, void*, const char*, const char*, int);
 static unsigned __fastcall IniGetIntVerify(CIniFile* self, void*, const char* section, const char* key, int def) {

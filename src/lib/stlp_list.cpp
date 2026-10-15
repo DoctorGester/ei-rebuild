@@ -330,6 +330,13 @@ EI_REPLACE(0x004274C0, CountedRefList::Clear);
 EI_REPLACE(0x00427500, CountedRefList::Clear);
 EI_REPLACE(0x004275A0, CountedRefList::Clear);
 EI_REPLACE(0x004272E0, SharedEntryList::Clear);
+// The client's sector grids' cell lists (S16, on the standalone boot path): clear (2), erase,
+// ~list (2).
+EI_REPLACE(0x005703C0, HeldObjectList::Clear);
+EI_REPLACE(0x00573660, HeldObjectList::Clear);
+EI_REPLACE(0x00572270, HeldObjectList::Erase);
+EI_REPLACE(0x00572E90, HeldObjectList::Destruct);
+EI_REPLACE(0x0069BE70, HeldObjectList::Destruct);
 EI_REPLACE(0x00427560, SharedEntryList::Clear);
 EI_REPLACE(0x004FBCF0, StringDwordList::Clear);   // S12c: the link loader's archives
 

@@ -6,6 +6,7 @@
 // - _ftol: 80-bit values of every class (zeros, denormals, the 2^63 edges, infinities, NaNs, random
 //   mantissas and exponents): EDX:EAX bit for bit.
 // - _CIfmod: bit for bit (FPREM is exact) on random doubles and floats and every special pair.
+// - acos, asin, fmod (the stack-argument forms, S16): the same cases as their _CI forms.
 // - _CIacos, _CIasin, _CIpow: NaNs, zeros and every result under the main thread's control word (007F, the
 //   float its callers store) bit for bit; the rest within a tolerance (CompareResult).
 // Every scenario runs it (WinMain entry).
@@ -28,6 +29,10 @@ constexpr std::uintptr_t kAcos = 0x006E7320;
 constexpr std::uintptr_t kAsin = 0x006E83C0;
 constexpr std::uintptr_t kPow = 0x006E81A0;
 constexpr std::uintptr_t kFmod = 0x006E95AA;
+// The stack-argument forms (cdecl; S16).
+constexpr std::uintptr_t kStackAcos = 0x006E7334;
+constexpr std::uintptr_t kStackAsin = 0x006E83D4;
+constexpr std::uintptr_t kStackFmod = 0x006E95A0;
 
 struct Extended {
     unsigned char bytes[10];
@@ -76,6 +81,44 @@ __declspec(naked) void __cdecl CallUnary(void* /*entry*/, double /*x*/, Extended
         mov eax, [esp + 4]
         call eax
         mov eax, [esp + 16]
+        fstp tbyte ptr [eax]
+        ret
+    }
+}
+
+// x on the stack (cdecl), then the function; ST0 into *result.
+__declspec(naked) void __cdecl CallStackUnary(void* /*function*/, double /*x*/, Extended* /*result*/) {
+    __asm {
+        sub esp, 8
+        mov eax, [esp + 16]
+        mov [esp], eax
+        mov eax, [esp + 20]
+        mov [esp + 4], eax
+        mov eax, [esp + 12]
+        call eax
+        add esp, 8
+        mov eax, [esp + 16]
+        fstp tbyte ptr [eax]
+        ret
+    }
+}
+
+// x and y on the stack (cdecl), then the function; ST0 into *result.
+__declspec(naked) void __cdecl CallStackBinary(void* /*function*/, double /*x*/, double /*y*/, Extended* /*result*/) {
+    __asm {
+        sub esp, 16
+        mov eax, [esp + 24]
+        mov [esp], eax
+        mov eax, [esp + 28]
+        mov [esp + 4], eax
+        mov eax, [esp + 32]
+        mov [esp + 8], eax
+        mov eax, [esp + 36]
+        mov [esp + 12], eax
+        mov eax, [esp + 20]
+        call eax
+        add esp, 16
+        mov eax, [esp + 24]
         fstp tbyte ptr [eax]
         ret
     }
@@ -257,14 +300,24 @@ void CompareResult(const char* name, const Extended& expected, const Extended& a
     ei::verify::Report(name, near, detail);
 }
 
-void UnaryCase(const char* name, std::uintptr_t original, double (*ours)(), double x, unsigned controlWord, bool exact) {
+// A function's code address, as the callers take it.
+template <typename F>
+void* Code(F function) {
+    return reinterpret_cast<void*>(function);
+}
+
+using UnaryCaller = void(__cdecl*)(void*, double, Extended*);
+using BinaryCaller = void(__cdecl*)(void*, double, double, Extended*);
+
+void UnaryCase(const char* name, std::uintptr_t original, void* ours, double x, unsigned controlWord, bool exact,
+               UnaryCaller call = &CallUnary) {
     Extended expected, actual;
     SetControlWord(controlWord);
     const FpuState before = State();
-    CallUnary(reinterpret_cast<void*>(original), x, &expected);
+    call(reinterpret_cast<void*>(original), x, &expected);
     const FpuState afterOriginal = State();
     SetControlWord(controlWord);
-    CallUnary(reinterpret_cast<void*>(ours), x, &actual);
+    call(ours, x, &actual);
     const FpuState afterOurs = State();
     SetControlWord(0x027F);
     char arguments[64];
@@ -274,15 +327,15 @@ void UnaryCase(const char* name, std::uintptr_t original, double (*ours)(), doub
     ++s_cases;
 }
 
-void BinaryCase(const char* name, std::uintptr_t original, double (*ours)(), double x, double y, unsigned controlWord,
-                bool exact) {
+void BinaryCase(const char* name, std::uintptr_t original, void* ours, double x, double y, unsigned controlWord,
+                bool exact, BinaryCaller call = &CallBinary) {
     Extended expected, actual;
     SetControlWord(controlWord);
     const FpuState before = State();
-    CallBinary(reinterpret_cast<void*>(original), x, y, &expected);
+    call(reinterpret_cast<void*>(original), x, y, &expected);
     const FpuState afterOriginal = State();
     SetControlWord(controlWord);
-    CallBinary(reinterpret_cast<void*>(ours), x, y, &actual);
+    call(ours, x, y, &actual);
     const FpuState afterOurs = State();
     SetControlWord(0x027F);
     char arguments[96];
@@ -318,12 +371,16 @@ void InverseTrigBattery() {
     }
     for (unsigned controlWord : kControlWords) {
         for (double x : SpecialValues()) {
-            UnaryCase("_CIacos", kAcos, &libcrt::CiAcosEntry, x, controlWord, false);
-            UnaryCase("_CIasin", kAsin, &libcrt::CiAsinEntry, x, controlWord, false);
+            UnaryCase("_CIacos", kAcos, Code(&libcrt::CiAcosEntry), x, controlWord, false);
+            UnaryCase("_CIasin", kAsin, Code(&libcrt::CiAsinEntry), x, controlWord, false);
+            UnaryCase("acos", kStackAcos, Code(&libcrt::CiAcos), x, controlWord, false, &CallStackUnary);
+            UnaryCase("asin", kStackAsin, Code(&libcrt::CiAsin), x, controlWord, false, &CallStackUnary);
         }
         for (double x : ordinary) {
-            UnaryCase("_CIacos", kAcos, &libcrt::CiAcosEntry, x, controlWord, false);
-            UnaryCase("_CIasin", kAsin, &libcrt::CiAsinEntry, x, controlWord, false);
+            UnaryCase("_CIacos", kAcos, Code(&libcrt::CiAcosEntry), x, controlWord, false);
+            UnaryCase("_CIasin", kAsin, Code(&libcrt::CiAsinEntry), x, controlWord, false);
+            UnaryCase("acos", kStackAcos, Code(&libcrt::CiAcos), x, controlWord, false, &CallStackUnary);
+            UnaryCase("asin", kStackAsin, Code(&libcrt::CiAsin), x, controlWord, false, &CallStackUnary);
         }
     }
 }
@@ -338,7 +395,7 @@ void PowBattery() {
     }
     for (unsigned controlWord : kControlWords) {
         for (double x : bases) {
-            for (double y : exponents) BinaryCase("_CIpow", kPow, &libcrt::CiPowEntry, x, y, controlWord, false);
+            for (double y : exponents) BinaryCase("_CIpow", kPow, Code(&libcrt::CiPowEntry), x, y, controlWord, false);
         }
     }
     Lcg random{4321};
@@ -346,20 +403,20 @@ void PowBattery() {
         for (int i = 0; i < 300; ++i) {
             const double x = static_cast<float>(random.Uniform(0.0, 100.0));
             const double y = static_cast<float>(random.Uniform(-10.0, 10.0));
-            BinaryCase("_CIpow", kPow, &libcrt::CiPowEntry, x, y, controlWord, false);
+            BinaryCase("_CIpow", kPow, Code(&libcrt::CiPowEntry), x, y, controlWord, false);
         }
         for (int i = 0; i < 200; ++i) {
             const double x = random.Uniform(-50.0, 50.0);
             const double y = static_cast<double>(static_cast<int>(random.Next() % 41) - 20);
-            BinaryCase("_CIpow", kPow, &libcrt::CiPowEntry, x, y, controlWord, false);
+            BinaryCase("_CIpow", kPow, Code(&libcrt::CiPowEntry), x, y, controlWord, false);
         }
         for (int i = 0; i < 100; ++i) {   // overflow, underflow and denormal results
             const double x = random.Uniform(0.5, 4.0);
             const double y = random.Uniform(-1200.0, 1200.0);
-            BinaryCase("_CIpow", kPow, &libcrt::CiPowEntry, x, y, controlWord, false);
+            BinaryCase("_CIpow", kPow, Code(&libcrt::CiPowEntry), x, y, controlWord, false);
         }
         for (int i = 0; i < 100; ++i) {   // the camera's zoom steps and the map's 2.5^(delta / 1200)
-            BinaryCase("_CIpow", kPow, &libcrt::CiPowEntry, 2.5, static_cast<float>(random.Uniform(-3.0, 3.0)),
+            BinaryCase("_CIpow", kPow, Code(&libcrt::CiPowEntry), 2.5, static_cast<float>(random.Uniform(-3.0, 3.0)),
                        controlWord, false);
         }
     }
@@ -370,15 +427,19 @@ void FmodBattery() {
     Lcg random{555};
     for (unsigned controlWord : kControlWords) {
         for (double x : specials) {
-            for (double y : specials) BinaryCase("_CIfmod", kFmod, &libcrt::CiFmodEntry, x, y, controlWord, true);
+            for (double y : specials) {
+                BinaryCase("_CIfmod", kFmod, Code(&libcrt::CiFmodEntry), x, y, controlWord, true);
+                BinaryCase("fmod", kStackFmod, Code(&libcrt::StackFmod), x, y, controlWord, true, &CallStackBinary);
+            }
         }
         for (int i = 0; i < 400; ++i) {
             const double x = random.Uniform(-1e6, 1e6);
             const double y = random.Uniform(-100.0, 100.0);
-            BinaryCase("_CIfmod", kFmod, &libcrt::CiFmodEntry, x, y, controlWord, true);
-            BinaryCase("_CIfmod", kFmod, &libcrt::CiFmodEntry, static_cast<float>(x), static_cast<float>(y) * 0.01,
+            BinaryCase("_CIfmod", kFmod, Code(&libcrt::CiFmodEntry), x, y, controlWord, true);
+            BinaryCase("fmod", kStackFmod, Code(&libcrt::StackFmod), x, y, controlWord, true, &CallStackBinary);
+            BinaryCase("_CIfmod", kFmod, Code(&libcrt::CiFmodEntry), static_cast<float>(x), static_cast<float>(y) * 0.01,
                        controlWord, true);
-            BinaryCase("_CIfmod", kFmod, &libcrt::CiFmodEntry, FromBits(random.Next64()), FromBits(random.Next64()),
+            BinaryCase("_CIfmod", kFmod, Code(&libcrt::CiFmodEntry), FromBits(random.Next64()), FromBits(random.Next64()),
                        controlWord, true);
         }
     }

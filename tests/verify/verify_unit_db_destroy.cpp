@@ -11,9 +11,11 @@
 #include <cstdint>
 
 struct UnitModelRecord;
+struct UnitModelSlot;
 
 namespace unitdb {
 void __fastcall DestroyModelRecord(UnitModelRecord* record);
+void __fastcall DestroyModelSlot(UnitModelSlot* slot);
 struct UnitDatabase;
 struct RecordTable;
 struct SkillDatabase;
@@ -123,3 +125,11 @@ static unitdb::UnitDatabase* __fastcall ConstructUnitDatabaseVerify(unitdb::Unit
     return result;
 }
 EI_VERIFY(0x00539A10, ConstructUnitDatabaseVerify, 0, s_unused);
+
+// DestroyModelSlot (0053F010, ticket S16): destroys the level name, ours only (counted). Reached
+// through the vector destructor iterator in DestroyModelRecord.
+static void __fastcall DestroyModelSlotVerify(UnitModelSlot* slot) {
+    unitdb::DestroyModelSlot(slot);
+    ei::verify::Check("DestroyModelSlot", true, true, "");
+}
+EI_VERIFY(0x0053F010, DestroyModelSlotVerify, 0, s_unused);

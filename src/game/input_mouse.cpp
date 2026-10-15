@@ -18,7 +18,8 @@ namespace {
 const GUID& InputInterfaceId() { return *reinterpret_cast<const GUID*>(std::uintptr_t(0x00744F10)); }    // IID_IDirectInput7A
 const GUID& DeviceInterfaceId() { return *reinterpret_cast<const GUID*>(std::uintptr_t(0x00744EA0)); }   // IID_IDirectInputDevice7A
 const GUID& SystemMouseId() { return *reinterpret_cast<const GUID*>(std::uintptr_t(0x00744DD0)); }       // GUID_SysMouse
-const DIDATAFORMAT* MouseFormat() { return reinterpret_cast<const DIDATAFORMAT*>(std::uintptr_t(0x00745D00)); }   // c_dfDIMouse
+// c_dfDIMouse's axes (the game's GUID_XAxis, GUID_YAxis, GUID_ZAxis).
+const GUID* AxisId(std::uintptr_t address) { return reinterpret_cast<const GUID*>(address); }
 
 const char* const kNoInput = game::Text(0x00794C10);        // "Can't create direct input object\n"
 const char* const kNoDevice = game::Text(0x00794BE4);       // "Can't create direct input device for mouse\n"
@@ -50,6 +51,22 @@ int Reported(HRESULT result, const char* text) { return FatalDirectX(result, tex
 
 } // namespace
 
+const void* CDirectInputMouse::MouseDataFormat() {
+    constexpr DWORD kOptional = 0x80000000;   // DIDFT_OPTIONAL (DirectInput 8's headers only)
+    static DIOBJECTDATAFORMAT objects[] = {
+        {AxisId(0x00744E80), 0, DIDFT_AXIS | DIDFT_ANYINSTANCE, 0},
+        {AxisId(0x00744E70), 4, DIDFT_AXIS | DIDFT_ANYINSTANCE, 0},
+        {AxisId(0x00744E60), 8, DIDFT_AXIS | DIDFT_ANYINSTANCE | kOptional, 0},
+        {nullptr, 12, DIDFT_BUTTON | DIDFT_ANYINSTANCE, 0},
+        {nullptr, 13, DIDFT_BUTTON | DIDFT_ANYINSTANCE, 0},
+        {nullptr, 14, DIDFT_BUTTON | DIDFT_ANYINSTANCE | kOptional, 0},
+        {nullptr, 15, DIDFT_BUTTON | DIDFT_ANYINSTANCE | kOptional, 0},
+    };
+    static const DIDATAFORMAT format = {sizeof(DIDATAFORMAT), sizeof(DIOBJECTDATAFORMAT), DIDF_RELAXIS, 16,
+                                        sizeof(objects) / sizeof(objects[0]), objects};
+    return &format;
+}
+
 int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
     void* input = nullptr;
     HRESULT result = DirectInputCreateExOriginal(instance, kInputVersion, &InputInterfaceId(), &input, nullptr);
@@ -61,7 +78,7 @@ int CDirectInputMouse::Setup(HWND window, HINSTANCE instance) {
     if (result < 0) return Reported(result, kNoDevice);
     Adopt(device_, static_cast<IDirectInputDevice7A*>(device));
 
-    result = device_->SetDataFormat(MouseFormat());
+    result = device_->SetDataFormat(static_cast<const DIDATAFORMAT*>(MouseDataFormat()));
     if (result < 0) return Reported(result, kNoFormat);
     result = device_->SetCooperativeLevel(window, DISCL_NONEXCLUSIVE | DISCL_BACKGROUND);
     if (result < 0) return Reported(result, kNoCooperation);

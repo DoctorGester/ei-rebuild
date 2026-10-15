@@ -1003,6 +1003,42 @@ initialisers without code 0 call targets, 0 exit functions, 0 exit callees; the 
 005AF580. In the image AfxCriticalInit and the locks run over the exe's data copy (zero, so first
 use initialises them).
 
+**S16 (2026-10-15).** The first boot of the image, stop by stop (`work.py test S16 --standalone`, then
+`tools/resolve_crash.py` on the run). Each stop was ported at its address with a check; stops in
+another ticket's family took only the instantiation on the path (or waited for that ticket's merge).
+In order: the AI grids' constructors 005AF580 / 005AF590; the script definitions' SetSize 004CD770
+(S6b's now); the smooth table 005C4210; the console command map 005E0A90 (S12a's now); streambuf
+006FCAD2 (S4d); AfxClassInit 00700674, the static exceptions 006E68C9.., MFC's static data 0070B600
+(S3f's now); after that all 410 initialisers run and WinMain starts. Then list<int>::clear 00405500 and
+the chunk stack's erase / clear 0040A920.. (S12d's now); _memicmp 006FD2F0; the sound emitter
+constructor 006B63D0; the x87 stack forms of acos / asin / fmod 006E7334 / 006E83D4 / 006E95A0
+(src/lib/crt_x87.cpp; fmod keeps the CRT loader's NaN payload); the text source node 004E15C0; the
+music themes' SetSize 006B59A0 (S6b's now); AfxBeginThread 007022A0 / AfxEndThread 00702380 with
+CWinThread's constructor 0070C259 / 0070C2F6 (src/lib/mfc_thread.*: image only, host _beginthreadex,
+the current thread object thread-local, no message filter hook); the stream thread's entry 006B6A10;
+CIniFile's destructor 00695BE0; the unit model slot's destructor 0053F010; the lever records' copy
+00465B20; DirectInput (below); the figure classes' Create jumps 005A6C70 / 005A6E00; the game's
+~CGdiObject copies 00444B10.. (S6c's now); sscanf 006EAEEC (crt_format.cpp: MSVC 6's `_input` for
+the integer, %n, %c / %s / %[ conversions; floats and wide characters end the scan; a start-up battery
+of 37 formats x 33 texts against the original; a format that starts with %n is left out, the original
+then reads a stale stack byte as its last character); lower_bound<unsigned*> 00408A50 (the hashtable
+constructors' prime lookup); CStringArray's GetAt by value 004698A0 / 004698C0 (record_arrays.cpp);
+the script keyword table (below); the client sector grids' lists of held objects, clear 005703C0 /
+00573660, erase 00572270, ~list 00572E90 / 0069BE70 (`stlp::HeldObject` destroys with the object's
+Release, slot 4). The run then stops at 005593D0, the server's unit appearance cache build
+(CWorldServer::SendZone, the main menu's world): 1883 bytes over about 20 unported hash_map and
+vector helpers (0055A..-0055D..), filed as S16a. The main menu is not reached yet.
+- Code read as data: ClassifyToken's keyword table is the immediate at 004CF69B (Rebirth rewrites
+  it); the image has INT3 there, so `KeywordTable` gives the vanilla table 0078BCA0 when standalone
+  (through GameData, so ei_vectors' stand-in still holds it). No other GameData read of a code
+  address is left in src.
+- DirectInput in the image: DirectInputCreateEx refuses an instance that is not a loaded module
+  (E_INVALIDARG), so standalone.cpp routes the image's import to a wrapper that gives the host's
+  module for 0x400000. c_dfDIMouse (00745D00) points at its object table in game.exe's code section
+  (006E6180), which the image fills with INT3: `CDirectInputMouse::MouseDataFormat` is our copy (the
+  same seven objects and the game's axis GUIDs; a start-up check compares it with the original's).
+  Other dinput.lib data in .text, if any, would need the same.
+
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
 quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return
