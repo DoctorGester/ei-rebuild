@@ -18,6 +18,7 @@ namespace {
 constexpr std::uintptr_t kVitalsReset = 0x00523370;
 constexpr std::uintptr_t kStatsReset = 0x005233E0;
 constexpr std::uintptr_t kBuildFromPrototype = 0x005136D0;
+constexpr std::uintptr_t kPartyRecordConstruct = 0x0065F5F0;
 
 void* __fastcall ZeroedVitalsReset(UnitVitals* vitals) {
     std::memset(vitals, 0, sizeof(UnitVitals));
@@ -37,6 +38,12 @@ int __fastcall ZeroedVitalsBuild(UnitStatsBuilder* builder, void*, UnitVitals* v
     return UnitStatsBuildFromPrototype(builder, nullptr, vitals, stats, name);
 }
 
+// CParty::AddMember's stack record, whose statistics BuildNpcStats fills (its reset leaves some).
+PartyUnitRecord* __fastcall ZeroedRecordConstruct(PartyUnitRecord* record) {
+    std::memset(record, 0, sizeof(PartyUnitRecord));
+    return PartyUnitRecordConstructOriginal(record);
+}
+
 struct Site {
     std::uintptr_t call;     // a CALL rel32
     std::uintptr_t target;   // what it calls
@@ -52,6 +59,7 @@ const Site kSites[] = {
     {0x0052EB81, kVitalsReset, reinterpret_cast<const void*>(&ZeroedVitalsReset)},   // CUnit::TakePrototype 0052EB70
     {0x0052EB8A, kStatsReset, reinterpret_cast<const void*>(&ZeroedStatsReset)},
     {0x0050E9C5, kBuildFromPrototype, reinterpret_cast<const void*>(&ZeroedVitalsBuild)},   // CMapObject::TakePrototype
+    {0x00662901, kPartyRecordConstruct, reinterpret_cast<const void*>(&ZeroedRecordConstruct)},   // CParty::AddMember
 };
 
 bool Redirect(const Site& site) {

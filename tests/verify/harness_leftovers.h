@@ -15,9 +15,11 @@
 // zeroes the block first and then calls the original target.
 //
 // Sites: GiveDefaults 00513630, ApplyPrototype 00513B60 (no prototype), BuildFromPrototype 005136D0
-// (its callers' copies), CUnit::TakePrototype 0052EB70, CMapObject::TakePrototype 0050E9B0. Left
-// alone: the resets of blocks that live in objects (CUnitServer::ResetController 00546480, the
-// CMapObjectServer lifetime 00515610..005157E0, BuildNpcStats 00513DA0 on a party record).
+// (its callers' copies), CUnit::TakePrototype 0052EB70, CMapObject::TakePrototype 0050E9B0, and
+// CParty::AddMember 006628D0's stack record (0x784 bytes, whose statistics BuildNpcStats 00513DA0
+// fills: the party members' and so the heroes' statistics). Left alone: the resets of blocks that
+// live in objects (CUnitServer::ResetController 00546480, the CMapObjectServer lifetime
+// 00515610..005157E0).
 
 namespace ei::verify::leftovers {
 
