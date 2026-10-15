@@ -536,6 +536,9 @@ struct OptionBindingElement : records::Memberwise<OptionBinding, &OptionBinding:
 using SaveEntryVector = stlp::VectorAbi<SaveEntry, SaveEntryElement>;
 using MpAddressVector = stlp::VectorAbi<MpAddressEntry, MpAddressElement>;
 using TradeRowVector = stlp::VectorAbi<TradeRow, TradeRowElement>;
+// The row's copy constructor out of line (0062A310; thiscall, RET 4): TradeRowElement::Construct;
+// returns self (S12g).
+TradeRow* __fastcall CopyConstructTradeRow(TradeRow* self, void*, const TradeRow* from);
 using TradeRecordVector = stlp::VectorAbi<TradeRecord>;   // plain 0x3C-byte records (0062A0B0)
 using OptionBindingVector = stlp::VectorAbi<OptionBinding, OptionBindingElement>;
 
