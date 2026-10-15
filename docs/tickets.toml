@@ -2078,6 +2078,14 @@ group = "standalone"
 size = 0.5
 note = "User 2026-10-15: port it behind an opt-in setting (master address in ei_rebirth.ini, empty in harness runs so runs stay offline). Check offline against a local listener; goldens can't cover it."
 
+[[ticket]]
+id = "S19d"
+title = "Standalone mod folders: checks for Stream, Movies and the uncovered Maps sites"
+group = "standalone"
+size = 0.5
+model = "sonnet"
+note = "From S19b: no scenario covers StreamPatch, MoviesPatch, the extra figure / texture archives, archives a mod switches off ('-' entries), or the zone-table and quest Maps sites. Rebirth's own override folders and a mod's [CONFIG] / [DEV] sections are not reproduced."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
