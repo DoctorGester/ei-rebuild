@@ -764,6 +764,23 @@ ours only. Known difference: 004CC0C0 copies a command's float arguments as dwor
 SSCCmd's assignment (the FPU): only a signalling NaN would differ. 00557890 and 006B56C0 were also
 on S6c's destructor list; their deleting destructors (005587E0, 006B5980) stay there.
 
+**S6c (2026-10-15).** S6a's leftovers that S6b's element policies made possible (record_arrays.*,
+plus small members elsewhere). Destructors: the arrays of scene nodes (004514B0), nested calls
+(004C5180 / 004CCF70, base vtable 0073D418), delta fields (0050FBC0), behaviours (00545BA0, a copy
+of 00557890), the terrain's aligned records (006C4C40), sector vertices (006C4690: each vertex's
+lights back to the pool) and the sound cache's CList<WaveRecord> (006BC870), with all their scalar
+deleting destructors and those over 00557890, 006B56C0, 00454CE0; SceneMesh::Destruct (00454830;
+the aligned blocks at +0x98 / +0xC8 are now members), CFigureMesh::DestructPlainMesh (00454510, class
+0x42: DestructMesh without its vtable; DestructMesh now calls it); the game's inlined ~CGdiObject
+(00444B30, 00444B90, 005FDDE0 and their deleting destructors: CGdiObject::Destruct in mfc_gdi).
+Serialize (SerializeCArray over the policies; each start-up check against the original, Mode 2 where
+a destroyed copy would free what the source owns): figure parts, scene meshes, materials, nodes,
+face groups, nested calls, definitions, delta fields, behaviours (now built by their constructor:
+00558E10 registered), themes, sector vertices, water levels (CArray<CArray<float>>, element helpers
+00575690 / 005755C0) and sectors. Checks of the destructors are ours only; in the suite only
+004C5180 and 00444B10 are reached. Left for S6d: the 19 list Serialize whose loader builds, assigns
+and releases a temporary (counted references, script records) and 004C2700 (SerializeElements<CString>).
+
 **S12a (2026-10-15).** The rest of the exe's STLport maps (src/game/library_trees.*, one
 `TreeAbi` alias each, node sizes from each `_M_create_node`): the debug panel's map<string, string>,
 the .mob loader's tint lists (map<string, list<16-byte record>>, dead with 00481660's branch), a

@@ -566,3 +566,9 @@ EI_VERIFY(0x006BD190, X006BD190::Run, 0, s_unused);
 // The behaviours' element constructor (S6c: their Serialize builds them).
 using A00558E10 = TwinConstructElements<0x00558E10, Behaviours>;
 EI_VERIFY(0x00558E10, A00558E10::Run, 10, A00558E10::original);
+
+// The water levels' element helpers (S6c).
+using A00575690 = TwinConstructElements<0x00575690, WaterLevels>;
+EI_VERIFY(0x00575690, A00575690::Run, 6, A00575690::original);
+using O005755C0 = OursDestroy<0x005755C0, WaterLevelElement, DestroyWaterLevel>;
+EI_VERIFY(0x005755C0, O005755C0::Run, 0, s_unused);

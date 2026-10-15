@@ -1685,6 +1685,15 @@ title = "Standalone library: MFC constructors the static initialisers still call
 group = "standalone"
 note = "After S3d the standalone check's only exit callee without code is 005DC080 (S12a). The static initialisers' MFC call targets still without code: the four simple exceptions' constructors 006E68C9 (CResourceException, 007C8C58), 006E6916 (CUserException, 007C8BC0), 006E6AEA (CMemoryException, 007C8DE8), 006E6B37 (CNotSupportedException, 007C8D50) (CSimpleException(BOOL) 0070205? then +0x0C / +0x10 cleared, the resource id at +0x94, the class's vtable; their destructors are S3d's, mfc_exception.cpp), CWnd(HWND) 00704546 on wndTop / wndBottom / wndTopMost / wndNoTopMost (mfc_window.h has CWnd and CCmdTarget's layout now), 0070B600, 0070DC4D and 00700674 (x5). Port at their addresses with start-up checks against the original's globals (they run before the hooks), as S3b / S3d did. docs/notes/standalone.md S3b, S3d."
 
+[[ticket]]
+id = "S6d"
+title = "Standalone library: the last list Serialize (S6c leftovers)"
+group = "standalone"
+size = 1
+depends = ["S6c"]
+files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "src/game/record_arrays.*", "tests/verify/verify_mfc_serialize.cpp"]
+note = "From S6c. Serialize (slot 2) of 20: lists of counted references whose loader builds, assigns and releases a temporary (00427690, 00571420, 004C9350, 0052C740, 005576C0, 00598FD0, 00599DF0, 00558100); script lists assigning records (004C61C0, 004C64C0, 004C6800, 004C7640, 004C7F60, 004C8640, 004C8F00, 004CA2E0, 004D63E0, 0059A4A0, 006BC920); 004C2700 with its own SerializeElements<CString>. SerializeCList builds the local with the element policy and adds a copy: each needs the instantiation's assignment and the temporary's release (a SerializeCList variant taking the element's copy / release), checked at start-up like verify_mfc_serialize.cpp's (Mode 2 where releasing a copy needs more than construction)."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

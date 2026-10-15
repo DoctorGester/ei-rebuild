@@ -363,6 +363,8 @@ using S0050FC80 = ArraySerialize<0x0050FC80, recordarrays::DeltaFields, recordar
 using S00557960 = ArraySerialize<0x00557960, recordarrays::Behaviours, recordarrays::BehaviourArrayClass, 1>;
 using S006B5770 = ArraySerialize<0x006B5770, recordarrays::Themes, recordarrays::ThemeArrayClass, 1>;
 using S006C4790 = ArraySerialize<0x006C4790, recordarrays::SectorVertices, recordarrays::SectorVertexArrayClass, 1>;
+using S00571240 = ArraySerialize<0x00571240, recordarrays::WaterLevels, ClientMapArrayClass, 1>;
+using S005993A0 = ArraySerialize<0x005993A0, recordarrays::Sectors, VtableAt<CSectorMap::kSectorArrayVtable>, 2>;
 
 void SerializeStartupCheck() {
     S00405190::Startup();
@@ -492,6 +494,8 @@ void SerializeStartupCheck() {
     S00557960::Startup();
     S006B5770::Startup();
     S006C4790::Startup();
+    S00571240::Startup();
+    S005993A0::Startup();
 }
 
 } // namespace
@@ -624,3 +628,5 @@ EI_VERIFY(0x0050FC80, S0050FC80::Run, 5, S0050FC80::original);
 EI_VERIFY(0x00557960, S00557960::Run, 5, S00557960::original);
 EI_VERIFY(0x006B5770, S006B5770::Run, 5, S006B5770::original);
 EI_VERIFY(0x006C4790, S006C4790::Run, 5, S006C4790::original);
+EI_VERIFY(0x00571240, S00571240::Run, 5, S00571240::original);
+EI_VERIFY(0x005993A0, S005993A0::Run, 5, S005993A0::original);

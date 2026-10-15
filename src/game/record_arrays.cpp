@@ -252,5 +252,14 @@ EI_REPLACE(0x0050FC80, SerializeCArray<DeltaFields>);
 EI_REPLACE(0x00557960, SerializeCArray<Behaviours>);
 EI_REPLACE(0x006B5770, SerializeCArray<Themes>);
 EI_REPLACE(0x006C4790, SerializeCArray<SectorVertices>);
+EI_REPLACE(0x00571240, SerializeCArray<WaterLevels>);
+EI_REPLACE(0x005993A0, SerializeCArray<Sectors>);
+
+// The water levels' element helpers.
+EI_REPLACE(0x00575690, WaterLevels::ConstructElements);
+void __fastcall DestroyWaterLevel(WaterLevelElement* p) {
+    mfc::impl::DestroyArrayAt<WaterLevelElement, 0, mfc::impl::FloatArrayClass>(p);
+}
+EI_REPLACE(0x005755C0, DestroyWaterLevel);
 
 } // namespace recordarrays

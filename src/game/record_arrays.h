@@ -15,6 +15,7 @@
 #include "game/material.h"
 #include "game/net_delta.h"
 #include "game/scene_loader.h"
+#include "game/sector_map.h"
 #include "game/script.h"
 #include "game/sound.h"
 #include "game/terrain_sector.h"
@@ -165,5 +166,16 @@ struct SectorVertexArrayClass {   // a terrain sector's vertex records (destruct
 };
 // Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
 using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
+
+// The client world's water levels, CArray<CArray<float>> (vtable 0073F730, mfc::impl::
+// ClientMapArrayClass; Serialize 00571240): each element an empty CArray<float> (00575690),
+// destroyed by the base's destructor (005755C0: CArray<float>'s vtable, the storage freed).
+using WaterLevelElement = mfc::impl::WithArray<0x14, 0, mfc::impl::FloatArrayClass>;
+using WaterLevels =
+    ArrayAbi<WaterLevelElement, EachElements<WaterLevelElement, mfc::impl::InitWithArray<0x14, 0, mfc::impl::FloatArrayClass>,
+                                             mfc::impl::DestroyArrayAt<WaterLevelElement, 0, mfc::impl::FloatArrayClass>>>;
+void __fastcall DestroyWaterLevel(WaterLevelElement* p);   // 005755C0
+// The sector map's sectors (sector_map.h; Serialize 005993A0).
+using Sectors = ArrayAbi<Sector, SectorElements>;
 
 } // namespace recordarrays
