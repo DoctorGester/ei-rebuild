@@ -135,12 +135,12 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
+- **T2e** rebirth_flags: check Not(IsLess(DistancePointPoint(3,4),0)) prints 0 on a first run now and then (running since 2026-10-15; 1 session). 2026-10-15: now fails both attempts in a main --golden suite (batch after SV6d merge), and in several workers' batches; it is the most frequent false failure.
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **SV1c** Keep harness games from taking the foreground, then drop the minimise rerun (ready; sonnet, 0.4 sessions). From SV1: a game that got the foreground and lost it to a starting game is minimised twice by dgVoodoo and loses exclusive mode; run_all.run reruns such runs (MINIMISED). Block the activation so no harness game is ever foreground, then remove the rerun. Files: `tests/verify/harness.cpp`, `tools/run_all.py`.
 - **T2a** ui_base_dialogue: Smith has no topics, dialogue never starts (ready; 1 session). OpenTopics adds regions only if topics exist; pick a person and quest state with topics so the dialogue screens are reached
 - **T2b** Hero attack on a removed target: PlayerMode::UpdateCombat verify mismatch (ready; 1 session). Attack(hero, wolf) then RemoveUnitFromServer after 55-220 ms gives a mismatch (state 0 action 3). Possible rewrite bug; reproduce in a scratch scenario
 - **T2d** Goldens to record again after T2 scenario timing changes (ready; 1 session). hero_death, sandbox_actions, spells_cast, levers and others whose scenario waits changed; world_client battle-window waitwindow idea (adds frames, loses ContinuePath) also open
-- **T2e** rebirth_flags: check Not(IsLess(DistancePointPoint(3,4),0)) prints 0 on a first run now and then (ready; 1 session). Seen as PASS* in batch 438 on both installs and FAIL on vanilla in 398 and 406; scenario unchanged by T2. DistancePointPoint with two arguments is probably reading stale values
 - **X32** Rebirth runs: game still running 10 s after quit (watch). Since 2026-10-13; runs pass. Suspects: wrappers that fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct). Not a dialog (message boxes are caught).
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.

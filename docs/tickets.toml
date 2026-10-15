@@ -1074,7 +1074,7 @@ id = "T2e"
 title = "rebirth_flags: check Not(IsLess(DistancePointPoint(3,4),0)) prints 0 on a first run now and then"
 group = "harness"
 size = 1
-note = "Seen as PASS* in batch 438 on both installs and FAIL on vanilla in 398 and 406; scenario unchanged by T2. DistancePointPoint with two arguments is probably reading stale values"
+note = "2026-10-15: now fails both attempts in a main --golden suite (batch after SV6d merge), and in several workers' batches; it is the most frequent false failure."
 
 [[ticket]]
 id = "WB10"
