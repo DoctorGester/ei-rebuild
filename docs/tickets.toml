@@ -608,10 +608,11 @@ started = "2026-10-15"
 id = "SV4"
 title = "Function vector record mode and replay test exe"
 group = "verification"
-status = "review"
+status = "done"
 size = 2
 depends = ["SV2"]
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV5"
@@ -685,9 +686,10 @@ started = "2026-10-15"
 id = "SV4a"
 title = "Function vectors: matrix maths, effects' Range, and pure formulas (stat, damage tables)"
 group = "verification"
-status = "queued"
+status = "running"
 depends = ["SV4"]
 note = "Extend SV4's record/replay (tests/vectors) to matrix_math.cpp (MatrixMultiply, Quaternion::ToMatrix), MultiplyByConjugate (quaternion.cpp), IsaacRandom::Range and the pure stat/damage formula functions whose inputs are plain values or small structs. Same pattern as tests/vectors/record_maths.cpp; add the sources to ei_vectors in CMakeLists.txt; record with EI_VECTORS=1 and tools/vectors.py merge."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV4b"
