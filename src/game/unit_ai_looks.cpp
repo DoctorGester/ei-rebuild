@@ -73,11 +73,11 @@ EI_REPLACE_METHOD(0x005D7970, AIMoveOrder::Assign);
 
 void PatrolMode::AppendPoint(const Vector3* position) {
     // Half-cell index of each coordinate (rounded to nearest after a float store), then its middle.
-    float cell = StoreFloat(kOne * kHalf);
-    long ix = std::lrint(StoreFloat(kOne / cell * position->x));
-    long iy = std::lrint(StoreFloat(kOne / cell * position->y));
-    float x = StoreFloat((static_cast<float>(ix) + kHalf) * cell);
-    float y = StoreFloat((static_cast<float>(iy) + kHalf) * cell);
+    float cell = static_cast<float>(kOne * kHalf);
+    long ix = std::lrint(static_cast<float>(kOne / cell * position->x));
+    long iy = std::lrint(static_cast<float>(kOne / cell * position->y));
+    float x = static_cast<float>((static_cast<float>(ix) + kHalf) * cell);
+    float y = static_cast<float>((static_cast<float>(iy) + kHalf) * cell);
     int index = points.size;
     PatrolPointArraySetSizeOriginal(&points, nullptr, index + 1, -1);
     PatrolPoint& added = points[index];

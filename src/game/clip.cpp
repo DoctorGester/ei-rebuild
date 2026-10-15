@@ -37,7 +37,7 @@ __declspec(naked) int __cdecl StoreRatio(float /*limit*/, float /*a*/, float /*b
 // One colour byte: a + fistp(float((b - a) * t)).
 std::uint32_t LerpByte(std::uint32_t a, std::uint32_t b, float t) {
     int diff = static_cast<int>(b) - static_cast<int>(a);
-    return static_cast<std::uint32_t>(x87::fistp(StoreFloat(static_cast<float>(diff) * t))) + a;
+    return static_cast<std::uint32_t>(x87::fistp(static_cast<float>(static_cast<float>(diff) * t))) + a;
 }
 
 // The original computes the bytes in the order 2, 1, 0, 3 and ors them unmasked.

@@ -1,9 +1,8 @@
 // The hero panels shared by the camp and the multiplayer hero screen: the statistics column
 // (006233C0, 00623880). See docs/notes/ui.md ("Camp, global map, hero screens").
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
-// operation order is kept and NaN compares stay as written. Constants are read from memory.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float. Constants are read from memory.
 #include "ui_camp.h"
 #include "game_strings.h"
 
@@ -24,11 +23,6 @@
 namespace {
 
 inline double D(float f) { return f; }
-
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 // A label the original reads through a pointer table (00793BF0: Strength, Dexterity, ...).
@@ -178,7 +172,7 @@ void CHeroStatsPanel::DrawStats() {
         Down(&rect);
         rows->Row(&rect, Label(0x00793BF8), intelligence, -1);
         Down(&rect);
-        float sumF = Store(static_cast<double>(sum));
+        float sumF = static_cast<float>(static_cast<double>(sum));
         rows->Row(&rect, texts_[5], GameFtol(D(GameFloat(0x00741F04)) - D(sumF)), -1);
         Down(&rect);
         Down(&rect);
@@ -191,7 +185,7 @@ void CHeroStatsPanel::DrawStats() {
         float storedStats[3];
         for (int i = 0; i < 3; ++i) {
             double value = static_cast<double>(values[i]);
-            storedStats[i] = Store(value);
+            storedStats[i] = static_cast<float>(value);
             std::uint32_t colour = value > minimum ? kBright : kGrey;   // FCOMP; TEST AH,0x41
             draw->Text(game::Text(0x00787BDC), &rect, 0, colour, 1, 1);  // "-"
             Down(&rect);
@@ -341,7 +335,7 @@ void BuildCellGrid(CUiWindow* window) {
     float depth = 32.0f;
     int v = 0x1C;
     for (int top = 100; top < 500; top += 100) {
-        float pictureDepth = Store(D(depth) + D(depth));
+        float pictureDepth = static_cast<float>(D(depth) + D(depth));
         int bottom = top + 100;
         for (int left = 200; left < 600; left += 100) {
             CEngineObject** textures = window->objects_.data;
@@ -359,7 +353,7 @@ void BuildCellGrid(CUiWindow* window) {
             AddRect(window, RECT{left, top, right, bottom});
             u = 0x9C - u;
         }
-        depth = Store(D(depth) * D(GameFloat(0x0073B86C)));   // * 0.5
+        depth = static_cast<float>(D(depth) * D(GameFloat(0x0073B86C)));   // * 0.5
         v = 0x9C - v;
     }
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -386,12 +380,12 @@ void CHeroEquipPanel::Build(bool body) {
     // The slots' frames: four on the left half, four on the right, each half with its strip.
     float cell = GameFloat(0x0073BAB0);   // 100
     for (int i = 0; i < 4; ++i)
-        Builder(AddSprite(0))->Framed(8.0f, 100.0f, Store(static_cast<double>(i) * D(cell)), 0.0f,
-                                      Store(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0xE, 0xE, 0x72, 0x72);
+        Builder(AddSprite(0))->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
+                                      static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0xE, 0xE, 0x72, 0x72);
     Builder(AddSprite(0))->Cells(16.0f, 100.0f, 0.0f, 0.0f, 400.0f, 100.0f, 0xE, 0xE, 0x72, 0x72, 4, 1);
     for (int i = 4; i < 8; ++i)
-        Builder(AddSprite(0))->Framed(8.0f, 100.0f, Store(static_cast<double>(i) * D(cell)), 0.0f,
-                                      Store(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0x8E, 0xE, 0xF2, 0x72);
+        Builder(AddSprite(0))->Framed(8.0f, 100.0f, static_cast<float>(static_cast<double>(i) * D(cell)), 0.0f,
+                                      static_cast<float>(static_cast<double>(i + 1) * D(cell)), 100.0f, 15.0f, 0x8E, 0xE, 0xF2, 0x72);
     Builder(AddSprite(0))->Cells(16.0f, 100.0f, 400.0f, 0.0f, 800.0f, 100.0f, 0x8E, 0xE, 0xF2, 0x72, 4, 1);
     if (body_) {
         // The body's slots: 100x100 around the centres of two tables (00741EC4 x, 00741EE0 y).

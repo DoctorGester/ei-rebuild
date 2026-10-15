@@ -150,7 +150,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     if (!(axis > worlddata::AxisEpsilon())) {
         angle = worlddata::Zero();
     } else {
-        float axisStored = StoreFloat(static_cast<float>(axis));
+        float axisStored = static_cast<float>(axis);
         angle = CIacos(rx);
         angle = angle + angle;
         double sign = worlddata::One() / x87::fsqrt(axisStored) * rw;
@@ -162,19 +162,19 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     float zStep = 0.0f;
     std::memcpy(&spec.position, position, 12);
     std::memcpy(&spec.rotation, &rotation, 16);
-    float cosine = StoreFloat(static_cast<float>(x87::fcos(angle)));
+    float cosine = static_cast<float>(x87::fcos(angle));
     double sine = x87::fsin(angle);
-    float step = StoreFloat(static_cast<float>(index));
+    float step = static_cast<float>(index);
     double dy = sine * step;
-    float dx = StoreFloat(static_cast<float>(step * static_cast<double>(cosine)));
-    float dz = StoreFloat(static_cast<float>(static_cast<double>(zStep) * worlddata::LineSpacing()));
+    float dx = static_cast<float>(step * static_cast<double>(cosine));
+    float dz = static_cast<float>(static_cast<double>(zStep) * worlddata::LineSpacing());
     dy = dy * worlddata::LineSpacing();
     float& x = spec.position.x;
     float& y = spec.position.y;
     float& z = spec.position.z;
-    x = StoreFloat(static_cast<float>(static_cast<double>(dx) * worlddata::LineSpacing() + x));
-    y = StoreFloat(static_cast<float>(y + dy));
-    z = StoreFloat(static_cast<float>(static_cast<double>(z) + dz));
+    x = static_cast<float>(static_cast<double>(dx) * worlddata::LineSpacing() + x);
+    y = static_cast<float>(y + dy);
+    z = static_cast<float>(static_cast<double>(z) + dz);
 }
 
 // An item from an item record, with its counted record (+0x1C) holding the item record's id.

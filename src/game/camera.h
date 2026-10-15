@@ -313,11 +313,6 @@ namespace camera {
 
 inline double D(float f) { return f; }
 
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-inline float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 inline double GameDouble(std::uintptr_t address) { return *reinterpret_cast<const volatile double*>(address); }
 inline float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 

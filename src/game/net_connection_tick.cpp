@@ -1,9 +1,8 @@
 // A connection's tick (00433BD0): clocks, lost-packet detection, sending, delayed id reuse and the
 // timeout. See net_connection.h and docs/notes/network.md.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the order
-// of operations and the NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "net_connection.h"
 
 #include "ei/hook.h"
@@ -18,10 +17,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
 // The history / acknowledged lists (STLport list<HistoryNode>): end, splice of one node before
@@ -67,21 +62,21 @@ float Select(bool flag, float pick, float other) { return flag ? pick : other; }
 // reliable stream holds 32000 bytes.
 bool Connection::Tick(double dt) {
     CurrentConnection() = this;
-    idleTime_ = Store(D(idleTime_) + dt);
+    idleTime_ = static_cast<float>(D(idleTime_) + dt);
     Set(&clock_, dt + Get(&clock_));
-    float spread = Store(D(roundTrip_) * D(roundTrip_) - D(roundTripSquare_));
+    float spread = static_cast<float>(D(roundTrip_) * D(roundTrip_) - D(roundTripSquare_));
     std::uint32_t bits;
     std::memcpy(&bits, &spread, 4);
     bits &= 0x7FFFFFFF;
     std::memcpy(&spread, &bits, 4);
-    float loss = Store(x87::fsqrt(spread) * D(GameFloat(0x0073BAA4)) + D(roundTrip_));
+    float loss = static_cast<float>(x87::fsqrt(spread) * D(GameFloat(0x0073BAA4)) + D(roundTrip_));
     float tenth;
     const std::uint32_t tenthBits = 0x3DCCCCCD;   // 0.1f
     std::memcpy(&tenth, &tenthBits, 4);
     loss = Select(!(loss >= tenth), tenth, loss);
-    float longest = Store(static_cast<double>(CurrentSession()->maxRoundTrip_));
+    float longest = static_cast<float>(static_cast<double>(CurrentSession()->maxRoundTrip_));
     loss = Select(!(longest >= loss), longest, loss);
-    float kept = Store(static_cast<double>(CurrentSession()->maxRoundTrip_));
+    float kept = static_cast<float>(static_cast<double>(CurrentSession()->maxRoundTrip_));
 
     for (HistoryNode* node = history_->next; node != history_;) {
         double age = Get(&clock_) - Get(&node->data.time);
@@ -106,10 +101,10 @@ bool Connection::Tick(double dt) {
     }
 
     double timer = D(sendTimer_) + dt;
-    sendTimer_ = Store(timer);
+    sendTimer_ = static_cast<float>(timer);
     if (timer > D(sendInterval_)) {
         do {
-            sendTimer_ = Store(D(sendTimer_) - D(sendInterval_));
+            sendTimer_ = static_cast<float>(D(sendTimer_) - D(sendInterval_));
             if (SendUpdate(static_cast<int>(updateBudget_)) && headers_->next == headers_) {
                 if (ReliableSize(&reliableOut_) == 0) break;
             }
@@ -119,12 +114,12 @@ bool Connection::Tick(double dt) {
         double rest;
         do {
             rest = D(sendTimer_) - D(sendInterval_);
-            sendTimer_ = Store(rest);
+            sendTimer_ = static_cast<float>(rest);
         } while (rest > D(sendInterval_));
     }
 
     double freedTime = D(freedTimer_) + dt;
-    freedTimer_ = Store(freedTime);
+    freedTimer_ = static_cast<float>(freedTime);
     if (freedTime > static_cast<double>(CurrentSession()->idReuseTime_)) {
         freedTimer_ = 0.0f;
         FreedBatch* oldest = freedIds_->next;
@@ -174,11 +169,11 @@ float One() { return GameFloat(0x0073B84C); }       // 1.0f
 void Connection::Delivered(SentPacket* packet) {
     double sample = Get(&clock_) - Get(&packet->time);
     double kept = D(RttKeep()) * D(roundTrip_);
-    roundTrip_ = Store(kept);
-    roundTrip_ = Store((D(One()) - D(RttKeep())) * sample + kept);
+    roundTrip_ = static_cast<float>(kept);
+    roundTrip_ = static_cast<float>((D(One()) - D(RttKeep())) * sample + kept);
     double keptSquare = D(RttKeep()) * D(roundTripSquare_);
-    roundTripSquare_ = Store(keptSquare);
-    roundTripSquare_ = Store((D(One()) - D(RttKeep())) * sample * sample + keptSquare);
+    roundTripSquare_ = static_cast<float>(keptSquare);
+    roundTripSquare_ = static_cast<float>((D(One()) - D(RttKeep())) * sample * sample + keptSquare);
     for (SentItem* item = packet->items->next; item != packet->items; item = item->next) {
         auto action = static_cast<std::int32_t>(item->action);
         if (action == SentItem::kChangedReliable) {

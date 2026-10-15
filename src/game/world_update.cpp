@@ -69,7 +69,7 @@ void WakeAroundUnits(CWorldServer* world, WorldPlayer* player) {
     for (auto* node = units.First(); node && node->value; node = units.After(node)) {
         auto* unit = static_cast<CUnit*>(node->value);
         auto* controller = static_cast<CUnitServer*>(unit->controller);
-        float perception = StoreFloat(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
+        float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
         float range = !(perception >= minimum) ? minimum : perception;   // the branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * worlddata::HearingScale() + worlddata::WakeMargin());

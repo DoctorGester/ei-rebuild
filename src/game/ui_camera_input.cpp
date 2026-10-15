@@ -29,12 +29,6 @@ float ZoomSpeed() { return Option(0x0079BDE0) * Option(0x0079BDDC); }
 // 00740240: the wheel's steps per delta unit (read from the exe, rule 9).
 float WheelStep() { return Option(0x00740240); }
 
-// The original keeps these products in float stack slots: rounded through a volatile store.
-float StoreFloat(float value) {
-    volatile float stored = value;
-    return stored;
-}
-
 std::uint32_t Bits(float value) {
     std::uint32_t bits;
     std::memcpy(&bits, &value, sizeof(bits));
@@ -119,9 +113,9 @@ void CCameraInput::OnKeyUp(int, int, int flags) {
     if (!handled_) return;
     CCamera* camera = camera::TheCamera();
     if (!ModifierHeld(interface_)) {
-        float left = StoreFloat(-x_);
-        float speed = StoreFloat(PanSpeed());
-        Vector3 direction = {StoreFloat(y_ * speed), StoreFloat(left * speed), 0.0f};
+        float left = static_cast<float>(-x_);
+        float speed = static_cast<float>(PanSpeed());
+        Vector3 direction = {static_cast<float>(y_ * speed), static_cast<float>(left * speed), 0.0f};
         camera->Pan(&direction);
         camera->SetTurnRate(0.0f);
         camera->SetZoomTarget(Bits(ClimbSpeed() * z_));
@@ -169,10 +163,10 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
         // Rebirth's WideScreen scales the drag without the margin (005EB249: addon's entry 005F7DFE).
         interface_->CallScalePointFromScreenNoMargin(&drag);
         float across = static_cast<float>(drag.x) * PerWidth();
-        float along = StoreFloat(static_cast<float>(drag.y) * PerHeight());
+        float along = static_cast<float>(static_cast<float>(drag.y) * PerHeight());
         if (!ModifierHeld(interface_)) {
             camera->SetTurnRate(DragTurnSpeed() * across * Option(0x0073BAAC));
-            float width = StoreFloat(static_cast<float>(drag.x < 0 ? -drag.x : drag.x));
+            float width = static_cast<float>(drag.x < 0 ? -drag.x : drag.x);
             float height = static_cast<float>(drag.y < 0 ? -drag.y : drag.y);
             // At rest the camera tilts only when the mouse moves more up or down than sideways.
             const float zero = Option(0x0073B858);
@@ -181,8 +175,8 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
             else
                 camera->SetTiltRate(0.0f);
         } else {
-            float speed = StoreFloat(DragPanSpeed());
-            Vector3 direction{StoreFloat(across * speed), StoreFloat(along * speed), 0.0f};
+            float speed = static_cast<float>(DragPanSpeed());
+            Vector3 direction{static_cast<float>(across * speed), static_cast<float>(along * speed), 0.0f};
             camera->Pan(&direction);
         }
         MouseDragY() = 0;
@@ -212,12 +206,12 @@ void CCameraInput::OnMouseMove(int, int x, int y) {
         }
         if (!ModifierHeld(interface_)) {
             // The keys' pan goes on (OnKeyUp sets the same).
-            float left = StoreFloat(-x_);
-            float speed = StoreFloat(PanSpeed());
+            float left = static_cast<float>(-x_);
+            float speed = static_cast<float>(PanSpeed());
             float forward = y_ * speed;
-            left = StoreFloat(left * speed);
-            direction.x = StoreFloat(forward + direction.x);
-            direction.y = StoreFloat(left + direction.y);
+            left = static_cast<float>(left * speed);
+            direction.x = static_cast<float>(forward + direction.x);
+            direction.y = static_cast<float>(left + direction.y);
         }
         GameCursor()->SetShape(EdgeCursor(edges));
         camera->Pan(&direction);

@@ -16,12 +16,6 @@ namespace {
 
 inline double D(float f) { return f; }
 
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 ParticleDepthArray& DrawOrder() { return *reinterpret_cast<ParticleDepthArray*>(0x007A9C50); }
 
 // The camera's orientation (0079B2DC).
@@ -191,9 +185,9 @@ Vector3* CParticleSource::WorldPosition(Vector3* out) {
         double z = D(a->z) + D(position.z);
         double y = D(a->y) + D(position.y);
         double x = D(a->x) + D(position.x);
-        out->x = Store(x);
-        out->y = Store(y);
-        out->z = Store(z);
+        out->x = static_cast<float>(x);
+        out->y = static_cast<float>(y);
+        out->z = static_cast<float>(z);
         return out;
     }
     std::memcpy(out, &position, sizeof(Vector3));
@@ -227,7 +221,7 @@ int CParticleManager::DrawAll(void* renderer) {
         const Vector3* p = source->WorldPosition(&scratch);
         ParticleDepth entry;
         entry.source = source;
-        entry.depth = Store(DotUnrounded<Sum3::ZYX, double>(axis, *p));
+        entry.depth = static_cast<float>(DotUnrounded<Sum3::ZYX, double>(axis, *p));
         order.SetAtGrow(order.size, entry);
         source = node ? sourceOf(node->data) : nullptr;
     }

@@ -4,9 +4,8 @@
 // go through game.exe's import table; the wave loader with its cache (006B89F0) too. The voice
 // allocation (006B7D10, A-H17 below) and the stream / MIDI threads stay original.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
-// operation order is kept (/fp:fast may reassociate) and NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "sound.h"
 #include "game_strings.h"
 
@@ -28,12 +27,6 @@ namespace {
 
 inline double D(float f) { return f; }
 inline double I(std::int32_t v) { return v; }
-
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 float FloatBits(std::uint32_t bits) {
     float f;
@@ -149,7 +142,7 @@ int CSoundManager::FlatVolume(int level, int fade, int isSpeech) const {
     }
     v = v * (isSpeech != 0 ? speechVolume : effectsVolume);
     v = v * kMilesScale;
-    return ClampLevel(x87::fistp(Store(v)));
+    return ClampLevel(x87::fistp(static_cast<float>(v)));
 }
 
 // Hands the slot's volume and pan to Miles; the pan is mirrored unless panDirect.
@@ -184,9 +177,9 @@ SoundSlot* CSoundManager::SlotForHandle(int handle) const {
 // at farDistance, and the camera height fade; the pan from the angle between the listener axis and
 // the direction to the sound (0 ahead or behind, +-100 to the sides).
 void CSoundManager::UpdatePositional(SoundSlot* slot) {
-    float dx = Store(D(slot->position.x) - listener.x);
+    float dx = static_cast<float>(D(slot->position.x) - listener.x);
     double dyRaw = D(slot->position.y) - listener.y;
-    float dy = Store(dyRaw);
+    float dy = static_cast<float>(dyRaw);
     double dist2 = dyRaw * dy + D(dx) * dx;
     double farDist = slot->farDistance;
     if (dist2 > farDist * farDist) {
@@ -194,7 +187,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         return;
     }
     double dist = x87::fsqrt(dist2);
-    float distF = Store(dist);
+    float distF = static_cast<float>(dist);
     float h = listener.z;
     int level;
     if (!(dist >= slot->nearDistance)) {
@@ -203,21 +196,21 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
         else if (!(h <= kHeightFull)) v = HeightFactor(h) * kHundred;
         v = v * (slot->speech != 0 ? speechVolume : effectsVolume);
         v = v * kMilesScale;
-        level = ClampLevel(x87::fistp(Store(v)));
+        level = ClampLevel(x87::fistp(static_cast<float>(v)));
     } else {
         double t = (D(distF) - slot->nearDistance) / (D(slot->farDistance) - slot->nearDistance) * kHundred;
-        int falloff = 100 - x87::fistp(Store(t));
+        int falloff = 100 - x87::fistp(static_cast<float>(t));
         slot->volume = falloff;
         double v = falloff;
         if (!(h < kHeightSilent)) v = 0.0;
         else if (!(h <= kHeightFull)) v = v * HeightFactor(h);
         v = v * (slot->speech != 0 ? speechVolume : effectsVolume);
         v = v * kMilesScale;
-        level = ClampLevel(x87::fistp(Store(v)));
+        level = ClampLevel(x87::fistp(static_cast<float>(v)));
     }
     slot->volume = level;
 
-    float ahead = AbsBits(Store(Dot2DUnrounded<double>(dy, dx, listenerAxis.y, listenerAxis.x)));
+    float ahead = AbsBits(static_cast<float>(Dot2DUnrounded<double>(dy, dx, listenerAxis.y, listenerAxis.x)));
     if (ahead > distF) {
         slot->pan = 0;
         return;
@@ -229,7 +222,7 @@ void CSoundManager::UpdatePositional(SoundSlot* slot) {
     double angle = CIacos(D(ahead) / distF);
     if (angle > HalfPi()) angle = D(Pi()) - angle;
     double scale = D(kHundred) / HalfPi();
-    int pan = x87::fistp(Store(scale * angle));
+    int pan = x87::fistp(static_cast<float>(scale * angle));
     slot->pan = pan;
     if (D(dy) * listenerAxis.x > D(dx) * listenerAxis.y) slot->pan = -pan;
 }
@@ -276,9 +269,9 @@ void CSoundManager::SetListener(const float* position, const float* axis) {
         listenerAxis.z = 0.0f;
     } else {
         double inv = D(kOne) / len;
-        listenerAxis.x = Store(inv * listenerAxis.x);
-        listenerAxis.y = Store(inv * listenerAxis.y);
-        listenerAxis.z = Store(inv * listenerAxis.z);
+        listenerAxis.x = static_cast<float>(inv * listenerAxis.x);
+        listenerAxis.y = static_cast<float>(inv * listenerAxis.y);
+        listenerAxis.z = static_cast<float>(inv * listenerAxis.z);
     }
     RefreshVoices(this);
 }
@@ -289,7 +282,7 @@ void CSoundManager::SetMusicVolume(int volume) {
     int v = volume < 0 ? 0 : (volume > 100 ? 100 : volume);
     if (enabled == 0) return;
     musicFader.volume = v;
-    int level = x87::fistp(Store(I(v) * musicFader.factor * kLevelMax * kPercent));
+    int level = x87::fistp(static_cast<float>(I(v) * musicFader.factor * kLevelMax * kPercent));
     musicFader.level = level;
     level = level > 0x7F ? 0x7F : (level < 0 ? 0 : level);
     musicFader.level = level;
@@ -746,7 +739,7 @@ void CSoundManager::Tick() {
         double dx = D(listener.x) - e->position.x;
         double dy = D(listener.y) - e->position.y;
         double dist = x87::fsqrt(LengthSquared2DUnrounded(dy, dx));
-        float distF = Store(dist);
+        float distF = static_cast<float>(dist);
         std::uint32_t minInterval, maxInterval;
         if (!(dist >= e->innerRadius)) {
             minInterval = static_cast<std::uint32_t>(e->minInterval);
@@ -755,10 +748,10 @@ void CSoundManager::Tick() {
             // Out of earshot past outerRadius - 0.001 (NaN too).
             if (!(D(e->outerRadius) - kEmitterMargin >= distF)) continue;
             double t = (D(e->outerRadius) - e->innerRadius) / (D(e->outerRadius) - distF);
-            float tF = Store(t);
+            float tF = static_cast<float>(t);
             if (t > kEmitterMaxScale) continue;
-            minInterval = static_cast<std::uint32_t>(x87::fistp(Store(I(e->minInterval) * tF)));
-            maxInterval = static_cast<std::uint32_t>(x87::fistp(Store(I(e->maxInterval) * tF)));
+            minInterval = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(I(e->minInterval) * tF)));
+            maxInterval = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(I(e->maxInterval) * tF)));
         }
         std::uint32_t elapsed = now - e->lastPlayed;
         if (elapsed < minInterval) continue;
@@ -920,7 +913,7 @@ void CSoundManager::StopStream(int mode) {
                 musicFader.factor = 1.0f;
                 musicFader.mode = 0;
                 musicFader.finished = 0;
-                int level = x87::fistp(Store(I(musicFader.volume) * kLevelMax * kPercent));
+                int level = x87::fistp(static_cast<float>(I(musicFader.volume) * kLevelMax * kPercent));
                 musicFader.level = level;
                 musicFader.level = level > 0x7F ? 0x7F : (level < 0 ? 0 : level);
             }
@@ -1005,7 +998,7 @@ void SoundFader::SetHold(std::uint32_t until) {
     factor = 1.0f;
     mode = 0;
     finished = 0;
-    int v = x87::fistp(Store(I(volume) * kLevelMax * kPercent));
+    int v = x87::fistp(static_cast<float>(I(volume) * kLevelMax * kPercent));
     level = v;
     level = v > 0x7F ? 0x7F : (v < 0 ? 0 : v);
 }
@@ -1013,7 +1006,7 @@ EI_REPLACE_METHOD(0x006B5E80, SoundFader::SetHold);
 
 // 006B5FF0.
 void SoundFader::Recalc() {
-    int v = x87::fistp(Store(I(volume) * factor * kLevelMax * kPercent));
+    int v = x87::fistp(static_cast<float>(I(volume) * factor * kLevelMax * kPercent));
     level = v;
     level = v > 0x7F ? 0x7F : (v < 0 ? 0 : v);
 }
@@ -1026,7 +1019,7 @@ void SoundFader::Update() {
         factor = 1.0f;
         mode = 0;
         finished = 0;
-        int v = x87::fistp(Store(I(volume) * kLevelMax * kPercent));
+        int v = x87::fistp(static_cast<float>(I(volume) * kLevelMax * kPercent));
         level = v;
         level = v > 0x7F ? 0x7F : (v < 0 ? 0 : v);
         return;
@@ -1036,7 +1029,7 @@ void SoundFader::Update() {
         return;
     case 1: {
         double sum = D(step) + factor;
-        factor = Store(sum);
+        factor = static_cast<float>(sum);
         if (sum >= kOne) {
             mode = 0;
             factor = 1.0f;
@@ -1045,7 +1038,7 @@ void SoundFader::Update() {
     }
     case 2: {
         double diff = D(factor) - step;
-        factor = Store(diff);
+        factor = static_cast<float>(diff);
         if (!(diff > 0.0)) {
             mode = 0;
             factor = 0.0f;
@@ -1126,7 +1119,7 @@ int NewFlatLevel(const CSoundManager* m, int volume, int heightFade, int speech)
     }
     v = v * I(speech != 0 ? m->speechVolume : m->effectsVolume);
     v = v * kMilesScale;
-    return ClampLevel(x87::fistp(Store(v)));
+    return ClampLevel(x87::fistp(static_cast<float>(v)));
 }
 
 // No voice for a looping sound: it waits in the deferred map (silent, flat) until Tick restarts it.

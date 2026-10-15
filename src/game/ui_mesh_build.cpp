@@ -1,11 +1,12 @@
 // The interface sprites' shape builders (005E8450 framed rectangle, 005E8C60 disc, 005E91F0 ring).
 // See ui_mesh_build.h and docs/notes/ui.md ("Sprite shapes").
 //
-// Floating point: the rectangle's values are sums and products of floats and small integers kept
-// in the original's order (precise floating point; values the original stores as float go through
-// Store). The circle points use FCOS/FSIN of an angle the original computes on the FPU stack and
-// never stores; they are computed by the same instruction sequence in inline assembly, so they
-// round the same way whatever the FPU's precision. Constants are read from the exe's memory.
+// Floating point: the rectangle's values are sums and products of floats and small integers kept in
+// the original's order (precise floating point; values the original stores as float are rounded
+// with static_cast<float>). The circle points use FCOS/FSIN of an angle the original computes on
+// the FPU stack and never stores; they are computed by the same instruction sequence in inline
+// assembly, so they round the same way whatever the FPU's precision. Constants are read from the
+// exe's memory.
 #include "ui_mesh_build.h"
 
 #include "lib/containers.h"
@@ -18,11 +19,6 @@
 namespace {
 
 inline double D(float f) { return f; }
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 
 // The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_; SetSize 0044F960),
 // the two colour arrays (colorsA_, colorsB_; 005A6E70) and the 16-bit indices (+0x200; SetSize
@@ -64,15 +60,15 @@ void AppendByGrow(IndexArray* indices, CUiMesh* mesh, int value) { indices->SetA
 void NudgeAndCommit(CUiMesh* mesh) {
     double half = D(worlddata::HalfTexel());
     for (int i = 0; i < mesh->uvCount_; ++i) {
-        mesh->uvs_[2 * i] = Store(D(mesh->uvs_[2 * i]) + half);
-        mesh->uvs_[2 * i + 1] = Store(D(mesh->uvs_[2 * i + 1]) - half);
+        mesh->uvs_[2 * i] = static_cast<float>(D(mesh->uvs_[2 * i]) + half);
+        mesh->uvs_[2 * i + 1] = static_cast<float>(D(mesh->uvs_[2 * i + 1]) - half);
     }
     mesh->Commit();
 }
 
 // The scale every builder sets: 0.48157 * depth * scale * 0.0025, in the three scale fields.
 void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
-    float s = Store(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
+    float s = static_cast<float>(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
     mesh->ScaleX() = s;
     mesh->ScaleY() = s;
     mesh->ScaleZ() = s;
@@ -81,8 +77,8 @@ void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
 void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
-    mesh->position_.x = Store((x - D(worlddata::One())) * D(worlddata::InterfaceView()) * D(depth));
-    mesh->position_.y = Store((y - D(worlddata::ThreeQuarters())) * D(worlddata::InterfaceView()) * D(depth));
+    mesh->position_.x = static_cast<float>((x - D(worlddata::One())) * D(worlddata::InterfaceView()) * D(depth));
+    mesh->position_.y = static_cast<float>((y - D(worlddata::ThreeQuarters())) * D(worlddata::InterfaceView()) * D(depth));
     std::memcpy(&mesh->position_.z, &depth, 4);
 }
 
@@ -186,32 +182,32 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
                             int u0, int v0, int u1, int v1) {
     ResetVertexColours(this);
     // How far the inner edge lies in texels: the border's share of the width (height) of the texels.
-    float width = Store(D(right) - D(left));
-    float du = Store(static_cast<double>(u1 - u0) * D(border) / D(width));
-    float height = Store(D(bottom) - D(top));
-    float dv = Store(static_cast<double>(v1 - v0) * D(border) / D(height));
+    float width = static_cast<float>(D(right) - D(left));
+    float du = static_cast<float>(static_cast<double>(u1 - u0) * D(border) / D(width));
+    float height = static_cast<float>(D(bottom) - D(top));
+    float dv = static_cast<float>(static_cast<double>(v1 - v0) * D(border) / D(height));
 
     // Texture coordinates: the outer corners, then the inner ones.
     SetUvCount(8);
     double texel = D(worlddata::Texel());
     double one = D(worlddata::One());
     float* uv = uvs_;
-    float outerV0 = Store(one - static_cast<double>(v0) * texel);
-    float outerV1 = Store(one - static_cast<double>(v1) * texel);
-    uv[0] = Store(static_cast<double>(u0) * texel);
+    float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
+    float outerV1 = static_cast<float>(one - static_cast<double>(v1) * texel);
+    uv[0] = static_cast<float>(static_cast<double>(u0) * texel);
     uv[1] = outerV0;
     uv[2] = uv[0];
     uv[3] = outerV1;
-    uv[4] = Store(static_cast<double>(u1) * texel);
+    uv[4] = static_cast<float>(static_cast<double>(u1) * texel);
     uv[5] = outerV0;
     uv[6] = uv[4];
     uv[7] = outerV1;
-    float innerV0 = Store(one - (static_cast<double>(static_cast<float>(v0)) + D(dv)) * texel);
-    uv[8] = Store((static_cast<double>(u0) + D(du)) * texel);
+    float innerV0 = static_cast<float>(one - (static_cast<double>(static_cast<float>(v0)) + D(dv)) * texel);
+    uv[8] = static_cast<float>((static_cast<double>(u0) + D(du)) * texel);
     uv[9] = innerV0;
     uv[10] = uv[8];
-    uv[11] = Store(one - (static_cast<double>(static_cast<float>(v1)) - D(dv)) * texel);
-    uv[12] = Store((static_cast<double>(static_cast<float>(u1)) - D(du)) * texel);
+    uv[11] = static_cast<float>(one - (static_cast<double>(static_cast<float>(v1)) - D(dv)) * texel);
+    uv[12] = static_cast<float>((static_cast<double>(static_cast<float>(u1)) - D(du)) * texel);
     uv[13] = innerV0;
     uv[14] = uv[12];
     uv[15] = uv[11];
@@ -237,17 +233,17 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     double halfWidth = D(width) * half;
     double outerX = halfWidth / D(scale);
     double halfHeight = D(height) * half;
-    float outerY = Store(halfHeight / D(scale));
-    float innerX = Store((D(Store(halfWidth)) - D(border)) / D(scale));
-    float innerY = Store((halfHeight - D(border)) / D(scale));
+    float outerY = static_cast<float>(halfHeight / D(scale));
+    float innerX = static_cast<float>((D(static_cast<float>(halfWidth)) - D(border)) / D(scale));
+    float innerY = static_cast<float>((halfHeight - D(border)) / D(scale));
     UiQuadBlock& outer = quads_[0];
-    outer.x[0] = Store(-outerX);
+    outer.x[0] = static_cast<float>(-outerX);
     outer.y[0] = -outerY;
-    outer.x[1] = Store(-outerX);
+    outer.x[1] = static_cast<float>(-outerX);
     outer.y[1] = outerY;
-    outer.x[2] = Store(outerX);
+    outer.x[2] = static_cast<float>(outerX);
     outer.y[2] = -outerY;
-    outer.x[3] = Store(outerX);
+    outer.x[3] = static_cast<float>(outerX);
     outer.y[3] = outerY;
     UiQuadBlock& inner = quads_[1];
     inner.x[0] = -innerX;
@@ -302,7 +298,7 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
     }
     // Placed by the sprite's own Place (Rebirth-patched), scaled through 005E7060.
     Place(x, y, depth);
-    float s = Store(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
+    float s = static_cast<float>(D(worlddata::InterfaceView()) * D(depth) * D(scale) * D(worlddata::LayoutY()));
     reinterpret_cast<void(__thiscall*)(CUiMesh*, float)>(0x005E7060)(this, s);
     NudgeAndCommit(this);
 }
@@ -329,12 +325,12 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
     SetUvCount(4);
     double texel = D(worlddata::Texel());
     double one = D(worlddata::One());
-    float outerV0 = Store(one - static_cast<double>(v0) * texel);
-    uvs_[0] = Store(static_cast<double>(u0) * texel);
+    float outerV0 = static_cast<float>(one - static_cast<double>(v0) * texel);
+    uvs_[0] = static_cast<float>(static_cast<double>(u0) * texel);
     uvs_[1] = outerV0;
     uvs_[2] = uvs_[0];
-    uvs_[3] = Store(one - static_cast<double>(v1) * texel);
-    uvs_[4] = Store(static_cast<double>(u1) * texel);
+    uvs_[3] = static_cast<float>(one - static_cast<double>(v1) * texel);
+    uvs_[4] = static_cast<float>(static_cast<double>(u1) * texel);
     uvs_[5] = outerV0;
     uvs_[6] = uvs_[4];
     uvs_[7] = uvs_[3];

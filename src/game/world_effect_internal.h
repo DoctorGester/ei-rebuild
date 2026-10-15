@@ -54,11 +54,6 @@ inline float FromBits(std::uint32_t u) {
 }
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> inline float FromBits(T) = delete;
-inline float StoreFloat(float v) {
-    volatile float r = v;
-    return r;
-}
-
 // FCOMP against 0.0 then TEST AH,40h: "equal" also when the value is NaN (unordered sets C3).
 inline bool EqualsZeroOrNaN(const float& v) {
     std::uint32_t u = Bits(v);

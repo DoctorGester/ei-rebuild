@@ -1,9 +1,9 @@
 // Terrain sectors: loading (006C13A0), building (006C1C00), water levels (006C30E0) and the small
 // lookups around them. See terrain_sector.h for the layout.
 //
-// Floating point: compiled with precise semantics. Values the original keeps on the FPU stack are
-// `double` here; every store the original makes to a float goes through Store(). Constants it
-// multiplies at run time are read from the exe (rule 9: Rebirth may patch data).
+// Floating point: values the original keeps on the FPU stack are `double` here; every store the
+// original makes to a float is a static_cast<float>. Constants it multiplies at run time are read
+// from the exe (rule 9: Rebirth may patch data).
 #include "terrain_sector.h"
 #include "model.h"
 
@@ -19,11 +19,6 @@
 
 namespace terrain {
 namespace {
-
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 double GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
@@ -174,10 +169,10 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
             for (int col = 0; col < 33; ++col, ++vi, src += 8, ++out) {
                 std::uint16_t h;
                 std::memcpy(&h, src + 2, 2);
-                out->z = Store(static_cast<double>(h) * owner->heightRange * HeightUnit());
+                out->z = static_cast<float>(static_cast<double>(h) * owner->heightRange * HeightUnit());
                 if (layer == 0) {
-                    out->x = Store(One() * Half() * static_cast<std::int8_t>(src[0]) * OffsetScale() + x);
-                    out->y = Store(One() * Half() * static_cast<std::int8_t>(src[1]) * OffsetScale() + y);
+                    out->x = static_cast<float>(One() * Half() * static_cast<std::int8_t>(src[0]) * OffsetScale() + x);
+                    out->y = static_cast<float>(One() * Half() * static_cast<std::int8_t>(src[1]) * OffsetScale() + y);
                 } else {
                     // The water material of the vertex: the lowest priority among its tiles'.
                     const VertexTiles& around = owner->vertexTiles[vi];
@@ -188,12 +183,12 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
                         if (m == -1 || !(owner->materials[c].priority >= owner->materials[m].priority)) m = c;
                     }
                     if (m == -1) {
-                        out->x = Store(x);
+                        out->x = static_cast<float>(x);
                         std::memset(&out->z, 0, 4);
-                        out->y = Store(y);
+                        out->y = static_cast<float>(y);
                     } else if (owner->materials[m].kind != 4) {
-                        out->x = Store(x);
-                        out->y = Store(y);
+                        out->x = static_cast<float>(x);
+                        out->y = static_cast<float>(y);
                     } else {
                         std::memcpy(out, &vertices.data[vi].x, 8);
                     }
@@ -244,13 +239,13 @@ const std::uint8_t* BuildRecords(SectorData& s) {
                     rec->materialColour = mat.colour;
                 }
                 std::memcpy(&rec->position, vin, 12);
-                (rec - kVertices)->depth = Store(static_cast<double>(vin->z) - (vin - kVertices)->z);
+                (rec - kVertices)->depth = static_cast<float>(static_cast<double>(vin->z) - (vin - kVertices)->z);
             }
             std::uint32_t n;
             std::memcpy(&n, src + 4, 4);
-            rec->normal.z = Store(x87::FromUnsigned(n >> 22) * NormalScale());
-            rec->normal.x = Store((static_cast<double>(static_cast<int>((n >> 11) & 0x7FF)) - NormalBias()) * NormalScale());
-            rec->normal.y = Store((static_cast<double>(static_cast<int>(n & 0x7FF)) - NormalBias()) * NormalScale());
+            rec->normal.z = static_cast<float>(x87::FromUnsigned(n >> 22) * NormalScale());
+            rec->normal.x = static_cast<float>((static_cast<double>(static_cast<int>((n >> 11) & 0x7FF)) - NormalBias()) * NormalScale());
+            rec->normal.y = static_cast<float>((static_cast<double>(static_cast<int>(n & 0x7FF)) - NormalBias()) * NormalScale());
         }
     }
     return tiles + 0x2208;
@@ -361,7 +356,7 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
                     for (int c3 = 0; c3 < 3; ++c3, ++entry) {
                         std::memcpy(&entry->u, &uv[r3 * 3 + c3], 4);
                         entry->vertex = rec + c3;
-                        entry->v = Store(VOne() - uv[r3 * 3 + c3 + 9]);
+                        entry->v = static_cast<float>(VOne() - uv[r3 * 3 + c3 + 9]);
                     }
                 }
                 std::uint8_t& flags = s.tileFlags[quarter].data[page].data[count];
@@ -377,39 +372,39 @@ void FillTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
 // Bounding boxes of the sector and of its four quarters.
 void ComputeBounds(SectorData& s) {
     double size = One() * SectorCells();
-    float x0 = Store(s.sx * size);
-    float y0 = Store(s.sy * size);
+    float x0 = static_cast<float>(s.sx * size);
+    float y0 = static_cast<float>(s.sy * size);
     double half = size * Half();
-    s.maxZ = Store(One() + s.maxZ);
+    s.maxZ = static_cast<float>(One() + s.maxZ);
     double low = static_cast<double>(s.minZ) - One();
-    s.minZ = Store(low);
+    s.minZ = static_cast<float>(low);
     double cz = (static_cast<double>(s.maxZ) - low) * Half() + low;
-    float centreZ = Store(cz);
-    s.box.centre.x = Store(half + x0);
-    s.box.centre.y = Store(half + y0);
+    float centreZ = static_cast<float>(cz);
+    s.box.centre.x = static_cast<float>(half + x0);
+    s.box.centre.y = static_cast<float>(half + y0);
     s.box.centre.z = centreZ;
-    s.box.low.x = Store(-half);
-    s.box.low.y = Store(-half);
-    s.box.low.z = Store(s.minZ - cz);
-    s.box.high.x = Store(half);
-    s.box.high.y = Store(half);
-    s.box.high.z = Store(s.maxZ - cz);
+    s.box.low.x = static_cast<float>(-half);
+    s.box.low.y = static_cast<float>(-half);
+    s.box.low.z = static_cast<float>(s.minZ - cz);
+    s.box.high.x = static_cast<float>(half);
+    s.box.high.y = static_cast<float>(half);
+    s.box.high.z = static_cast<float>(s.maxZ - cz);
     s.box.flags |= 2;
     double q = half * Half();
     double r = half * MinusHalf();
     SectorBox* box = s.quarters;
     for (int i = 0; i < 2; ++i) {
-        float by = Store((i + Half()) * half + y0);
+        float by = static_cast<float>((i + Half()) * half + y0);
         for (int j = 0; j < 2; ++j, ++box) {
-            box->centre.x = Store((j + Half()) * half + x0);
+            box->centre.x = static_cast<float>((j + Half()) * half + x0);
             box->centre.y = by;
             box->centre.z = centreZ;
-            box->low.x = Store(r);
-            box->low.y = Store(r);
-            box->low.z = Store(s.minZ - cz);
-            box->high.x = Store(q);
-            box->high.y = Store(q);
-            box->high.z = Store(s.maxZ - cz);
+            box->low.x = static_cast<float>(r);
+            box->low.y = static_cast<float>(r);
+            box->low.z = static_cast<float>(s.minZ - cz);
+            box->high.x = static_cast<float>(q);
+            box->high.y = static_cast<float>(q);
+            box->high.z = static_cast<float>(s.maxZ - cz);
             box->flags |= 2;
         }
     }
@@ -479,8 +474,8 @@ void SectorData::ApplyWaterLevels() {
         float* z = &vertices.data[kVertices].z;
         for (int i = 0; i < kVertices; ++i, ++rec, z += 3) {
             if (rec->waterMaterial == id) {
-                rec->position.z = Store(level + rec->position.z);
-                *z = Store(level + *z);
+                rec->position.z = static_cast<float>(level + rec->position.z);
+                *z = static_cast<float>(level + *z);
             }
         }
         std::memset(&levels.data[id], 0, 4);
@@ -506,24 +501,24 @@ const float* Terrain::TileUv(int rotation, int index, int page) {
 
 int Terrain::SurfaceClass(float x, float y) {
     double unit = terrain::GameFloat(0x007441D0);
-    int ix = x87::fistp(terrain::Store(x / unit));
-    int iy = x87::fistp(terrain::Store(y / unit));
+    int ix = x87::fistp(static_cast<float>(x / unit));
+    int iy = x87::fistp(static_cast<float>(y / unit));
     if (ix < 0 || iy < 0 || ix >= sectorsX * 32 || iy >= sectorsY * 32) return 8;
     terrain::SectorData* sector = SectorAt(ix / 32, iy / 32, 2, 1);
     int tile = (iy % 32) / 2 * 16 + (ix % 32) / 2;
     if (!sector) return 8;
     if (sector->hasWater && sector->waterTiles.data[tile] != -1) {
-        float water = terrain::Store(terrain::RawHeight(this, x, y, 1));
+        float water = static_cast<float>(terrain::RawHeight(this, x, y, 1));
         if (!(terrain::RawHeight(this, x, y, 0) >= water)) return textureClass[sector->tileTextures.data[tile + 0x100]];
     }
     return textureClass[sector->tileTextures.data[tile]];
 }
 
 void Terrain::GroundAndWaterDepth(float x, float y, float* ground, float* depth) {
-    float water = terrain::Store(terrain::RawHeight(this, x, y, 1));
+    float water = static_cast<float>(terrain::RawHeight(this, x, y, 1));
     double g = terrain::RawHeight(this, x, y, 0);
-    *ground = terrain::Store(g);
-    if (water > g) *depth = terrain::Store(water - g);
+    *ground = static_cast<float>(g);
+    if (water > g) *depth = static_cast<float>(water - g);
     else *depth = 0.0f;
 }
 

@@ -372,7 +372,7 @@ constexpr float kWriteScale2D = 60.234375f;       // 0073CAA0
 const float kReadScale2D = std::bit_cast<float>(0x3C880088u);   // 0073CAA4
 constexpr float kReadOffset2D = 32.0f;            // 0073CA90
 
-int Quantize(float v, float offset, float scale) { return x87::fistp(StoreFloat((v - offset) * scale)); }
+int Quantize(float v, float offset, float scale) { return x87::fistp(static_cast<float>((v - offset) * scale)); }
 
 float Dequantize(std::uint16_t q, float scale, float offset) { return static_cast<float>(static_cast<int>(q)) * scale - offset; }
 } // namespace
@@ -441,13 +441,13 @@ const float kRangeStep = std::bit_cast<float>(0x37800080u);      // 0073CAAC (1 
 } // namespace
 
 void DeltaField::WriteRanged(float value, float min, float max) {
-    int q = x87::fistp(StoreFloat((value - min) * (kRangeSteps / (max - min))));
+    int q = x87::fistp(static_cast<float>((value - min) * (kRangeSteps / (max - min))));
     WriteDelta(&q, 2);
 }
 EI_REPLACE_METHOD(0x0047EF80, DeltaField::WriteRanged);
 
 void DeltaField::ReadRanged(float* value, float min, float max) {
-    float step = StoreFloat((max - min) * kRangeStep);
+    float step = static_cast<float>((max - min) * kRangeStep);
     std::uint16_t q = ReadWord();
     *value = static_cast<float>(static_cast<int>(q)) * step + min;
 }

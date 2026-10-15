@@ -38,13 +38,6 @@ constexpr float kDecay = -0.3f;               // 0073CDFC
 constexpr float kAnimationRate = 15.0f;       // 0073C518
 float FullTurn() { return *reinterpret_cast<const float*>(0x007AF330); }   // set at start-up
 
-// Rounds an x87 intermediate to float, as the original's FSTP into a float temporary does. Under
-// /fp:fast a cast to float alone leaves the FPATAN result unrounded in the register.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 } // namespace
 
 // 00535850 (RET 8; slot 41 passes (+0x34, 0); 00535B30 the tick's time and rate). Samples the
@@ -84,8 +77,8 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
         // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
         // a float ULP in about one call in ten, and at a heading of +-pi (where 00402220 jumps from
         // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.
-        float current = Store(x87::fpatan(-static_cast<double>(axis.y), -static_cast<double>(axis.x)));
-        float target = Store(x87::fpatan(static_cast<double>(direction.y), static_cast<double>(direction.x)));
+        float current = static_cast<float>(x87::fpatan(-static_cast<double>(axis.y), -static_cast<double>(axis.x)));
+        float target = static_cast<float>(x87::fpatan(static_cast<double>(direction.y), static_cast<double>(direction.x)));
         for (;;) {
             float gap = target - current;
             gap = gap < 0 ? -gap : gap;

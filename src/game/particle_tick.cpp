@@ -6,9 +6,8 @@
 // callback on every element, the update callback on every particle (rebuilding the bounding box),
 // then emit new particles. The callbacks are __thiscall on the source (effects.h).
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the order
-// of operations, signed zeros and the NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "effects.h"
 
 #include "random.h"
@@ -23,12 +22,6 @@
 namespace {
 
 inline double D(float f) { return f; }
-
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 // Constants the original reads from memory at run time.
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -66,9 +59,9 @@ double LengthYZX(const Vector3& v) { return x87::fsqrt(LengthSquaredUnrounded<Su
 // v *= 1 / length, the reciprocal kept on the FPU.
 void Normalize(Vector3& v, double length) {
     double scale = D(EI_ONE) / length;
-    v.x = Store(scale * D(v.x));
-    v.y = Store(scale * D(v.y));
-    v.z = Store(scale * D(v.z));
+    v.x = static_cast<float>(scale * D(v.x));
+    v.y = static_cast<float>(scale * D(v.y));
+    v.z = static_cast<float>(scale * D(v.z));
 }
 
 // The bounding-box fold of the tick and AddParticle: the minimum takes the particle when it is
@@ -143,19 +136,19 @@ struct TickSteps {
         if (s->attachedTo) {
             Vector3 point;
             const Vector3* a = s->AttachmentPoint(&point, s->attachedTo);
-            float wx = Store(D(a->x) + D(s->position.x));
-            float wy = Store(D(a->y) + D(s->position.y));
-            float wz = Store(D(a->z) + D(s->position.z));
-            s->motion.x = Store(D(wx) - D(s->origin.x));
-            s->motion.y = Store(D(wy) - D(s->origin.y));
-            s->motion.z = Store(D(wz) - D(s->origin.z));
+            float wx = static_cast<float>(D(a->x) + D(s->position.x));
+            float wy = static_cast<float>(D(a->y) + D(s->position.y));
+            float wz = static_cast<float>(D(a->z) + D(s->position.z));
+            s->motion.x = static_cast<float>(D(wx) - D(s->origin.x));
+            s->motion.y = static_cast<float>(D(wy) - D(s->origin.y));
+            s->motion.z = static_cast<float>(D(wz) - D(s->origin.z));
             s->origin.x = wx;
             s->origin.y = wy;
             s->origin.z = wz;
         } else {
-            s->motion.x = Store(D(s->position.x) - D(s->origin.x));
-            s->motion.y = Store(D(s->position.y) - D(s->origin.y));
-            s->motion.z = Store(D(s->position.z) - D(s->origin.z));
+            s->motion.x = static_cast<float>(D(s->position.x) - D(s->origin.x));
+            s->motion.y = static_cast<float>(D(s->position.y) - D(s->origin.y));
+            s->motion.z = static_cast<float>(D(s->position.z) - D(s->origin.z));
             std::memcpy(&s->origin, &s->position, sizeof(Vector3));
         }
     }
@@ -165,29 +158,29 @@ struct TickSteps {
     void BuildBasis() {
         const Vector3& m = s->motion;
         double distance = LengthDouble(m);
-        s->distance = Store(distance);
+        s->distance = static_cast<float>(distance);
         if (!(distance > EI_STILL)) {
             std::memset(&s->side, 0, sizeof(Vector3));
             std::memset(&s->up, 0, sizeof(Vector3));
             return;
         }
         double zero = EI_ZERO;
-        s->side.x = Store(D(m.y) - zero);
-        s->side.y = Store(zero - D(m.x));
+        s->side.x = static_cast<float>(D(m.y) - zero);
+        s->side.y = static_cast<float>(zero - D(m.x));
         SetBits(s->side.z, 0);
         double length = LengthDouble(s->side);
         if (LessOrUnordered(length, EI_DEGENERATE)) {
             float mx = m.x;
-            s->side.x = Store(D(m.y) - D(m.z));
-            s->side.y = Store(-D(mx));
+            s->side.x = static_cast<float>(D(m.y) - D(m.z));
+            s->side.y = static_cast<float>(-D(mx));
             s->side.z = mx;
             length = LengthYZX(s->side);
         }
         Normalize(s->side, length);
         const Vector3& v = s->side;
-        float ux = Store(D(m.y) * D(v.z) - D(m.z) * D(v.y));
-        float uy = Store(D(m.z) * D(v.x) - D(v.z) * D(m.x));
-        float uz = Store(D(m.x) * D(v.y) - D(m.y) * D(v.x));
+        float ux = static_cast<float>(D(m.y) * D(v.z) - D(m.z) * D(v.y));
+        float uy = static_cast<float>(D(m.z) * D(v.x) - D(v.z) * D(m.x));
+        float uz = static_cast<float>(D(m.x) * D(v.y) - D(m.y) * D(v.x));
         s->up.x = ux;
         s->up.y = uy;
         s->up.z = uz;
@@ -233,7 +226,7 @@ struct TickSteps {
     // max(emitCount, distance / emitSpacing) tries, each emitting with emitChance percent; a
     // source above 50% that emitted nothing gets one particle anyway.
     void Emit() {
-        int tries = x87::fistp(Store(D(s->distance) / D(s->emitSpacing)));
+        int tries = x87::fistp(static_cast<float>(D(s->distance) / D(s->emitSpacing)));
         if (tries <= s->emitCount) tries = s->emitCount;
         if (!(s->flags_ & 1)) return;
         if ((s->flags_ & 2) && !s->attachedTo) return;
@@ -251,18 +244,18 @@ struct TickSteps {
 
     // Centre and half extents of the bounds.
     void FinishBounds() {
-        float cx = Store((D(s->boundsMax.x) + D(s->boundsMin.x)) * D(EI_HALF));
-        float cy = Store((D(s->boundsMax.y) + D(s->boundsMin.y)) * D(EI_HALF));
-        float cz = Store((D(s->boundsMax.z) + D(s->boundsMin.z)) * D(EI_HALF));
+        float cx = static_cast<float>((D(s->boundsMax.x) + D(s->boundsMin.x)) * D(EI_HALF));
+        float cy = static_cast<float>((D(s->boundsMax.y) + D(s->boundsMin.y)) * D(EI_HALF));
+        float cz = static_cast<float>((D(s->boundsMax.z) + D(s->boundsMin.z)) * D(EI_HALF));
         s->boundsCenter.x = cx;
         s->boundsCenter.y = cy;
         s->boundsCenter.z = cz;
-        s->boundsLow.x = Store(D(s->boundsMin.x) - D(cx));
-        s->boundsLow.y = Store(D(s->boundsMin.y) - D(cy));
-        s->boundsLow.z = Store(D(s->boundsMin.z) - D(cz));
-        s->boundsHigh.x = Store(D(s->boundsMax.x) - D(cx));
-        s->boundsHigh.y = Store(D(s->boundsMax.y) - D(cy));
-        s->boundsHigh.z = Store(D(s->boundsMax.z) - D(cz));
+        s->boundsLow.x = static_cast<float>(D(s->boundsMin.x) - D(cx));
+        s->boundsLow.y = static_cast<float>(D(s->boundsMin.y) - D(cy));
+        s->boundsLow.z = static_cast<float>(D(s->boundsMin.z) - D(cz));
+        s->boundsHigh.x = static_cast<float>(D(s->boundsMax.x) - D(cx));
+        s->boundsHigh.y = static_cast<float>(D(s->boundsMax.y) - D(cy));
+        s->boundsHigh.z = static_cast<float>(D(s->boundsMax.z) - D(cz));
         s->boundsFlags |= 2;
     }
 };

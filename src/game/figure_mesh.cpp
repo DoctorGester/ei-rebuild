@@ -31,19 +31,17 @@ T Read(char*& p) {
 
 } // namespace
 
-// The arithmetic below is compiled exactly as written: /fp:fast must not regroup it, and each value
-// the original stores to a float goes through StoreFloat (F); everything else stays on the FPU.
+// Each value the original stores to a float is rounded with static_cast<float>; everything else
+// stays on the FPU.
 
 namespace {
-
-inline float F(double v) { return StoreFloat(static_cast<float>(v)); }
 
 // Inline Vector3 arithmetic of the original: every component of every operation is rounded to a
 // float (each result goes through a Vector3 temporary).
 Vector3 Load(const float* p) { return {p[0], p[1], p[2]}; }
-Vector3 Sub(const Vector3& a, const Vector3& b) { return {F(a.x - b.x), F(a.y - b.y), F(a.z - b.z)}; }
-Vector3 Add(const Vector3& a, const Vector3& b) { return {F(a.x + b.x), F(a.y + b.y), F(a.z + b.z)}; }
-Vector3 Scale(const Vector3& a, float s) { return {F(a.x * s), F(a.y * s), F(a.z * s)}; }
+Vector3 Sub(const Vector3& a, const Vector3& b) { return {static_cast<float>(a.x - b.x), static_cast<float>(a.y - b.y), static_cast<float>(a.z - b.z)}; }
+Vector3 Add(const Vector3& a, const Vector3& b) { return {static_cast<float>(a.x + b.x), static_cast<float>(a.y + b.y), static_cast<float>(a.z + b.z)}; }
+Vector3 Scale(const Vector3& a, float s) { return {static_cast<float>(a.x * s), static_cast<float>(a.y * s), static_cast<float>(a.z * s)}; }
 // a + (b - a) * s, written (b - a) * s + a as the original evaluates it.
 Vector3 LerpStored(const Vector3& a, const Vector3& b, float s) { return Add(Scale(Sub(b, a), s), a); }
 
@@ -59,7 +57,7 @@ Vector3 MorphVector(const float* v, float s, float t, float u, bool keepZ) {
     Vector3 step = Scale(Sub(b, a), t);
     Vector3 diff;
     if (keepZ) {
-        diff = {F(F(step.x + a.x) - lower.x), F(F(step.y + a.y) - lower.y), F((static_cast<double>(step.z) + a.z) - lower.z)};
+        diff = {static_cast<float>(static_cast<float>(step.x + a.x) - lower.x), static_cast<float>(static_cast<float>(step.y + a.y) - lower.y), static_cast<float>((static_cast<double>(step.z) + a.z) - lower.z)};
     } else {
         diff = Sub(Add(step, a), lower);
     }
@@ -75,7 +73,7 @@ Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
     Vector3 step = Scale(Sub(Load(c + 15), a), t);
     Vector3 diff;
     if (keepZ) {
-        diff = {F(F(step.x + a.x) - lower.x), F(F(step.y + a.y) - lower.y), F((static_cast<double>(step.z) + a.z) - lower.z)};
+        diff = {static_cast<float>(static_cast<float>(step.x + a.x) - lower.x), static_cast<float>(static_cast<float>(step.y + a.y) - lower.y), static_cast<float>((static_cast<double>(step.z) + a.z) - lower.z)};
     } else {
         diff = Sub(Add(step, a), lower);
     }
@@ -91,39 +89,39 @@ Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
 //          FPU; then per operation.
 //   PerOpKeptSum: per operation, except the upper sum b + step, which is not stored.
 //   PerOpKeptUpper: as PerOpKeptSum, and the upper step's difference (c5 - b) stays on the FPU.
-float LerpP(float a, float b, float s) { return F(F(F(b - a) * s) + a); }
+float LerpP(float a, float b, float s) { return static_cast<float>(static_cast<float>(static_cast<float>(b - a) * s) + a); }
 
 float CornerPerOp(const float* c, float s, float t, float u) {
     return LerpP(LerpP(LerpP(c[0], c[3], s), c[6], t), LerpP(LerpP(c[9], c[12], s), c[15], t), u);
 }
 float CornerKept(const float* c, float s, float t, float u) {
-    float a = F((static_cast<double>(c[3]) - c[0]) * s + c[0]);
+    float a = static_cast<float>((static_cast<double>(c[3]) - c[0]) * s + c[0]);
     double lower = (static_cast<double>(c[6]) - a) * t + a;
-    float b = F((static_cast<double>(c[12]) - c[9]) * s + c[9]);
+    float b = static_cast<float>((static_cast<double>(c[12]) - c[9]) * s + c[9]);
     double upper = (static_cast<double>(c[15]) - b) * t + b;
-    return F((upper - lower) * u + lower);
+    return static_cast<float>((upper - lower) * u + lower);
 }
 float CornerStoredLower(const float* c, float s, float t, float u) {
-    float a = F((static_cast<double>(c[3]) - c[0]) * s + c[0]);
-    float lower = F((static_cast<double>(c[6]) - a) * t + a);
-    float b = F((static_cast<double>(c[12]) - c[9]) * s + c[9]);
-    float step = F((static_cast<double>(c[15]) - b) * t);
-    float diff = F((static_cast<double>(b) + step) - lower);
-    return F(F(diff * u) + lower);
+    float a = static_cast<float>((static_cast<double>(c[3]) - c[0]) * s + c[0]);
+    float lower = static_cast<float>((static_cast<double>(c[6]) - a) * t + a);
+    float b = static_cast<float>((static_cast<double>(c[12]) - c[9]) * s + c[9]);
+    float step = static_cast<float>((static_cast<double>(c[15]) - b) * t);
+    float diff = static_cast<float>((static_cast<double>(b) + step) - lower);
+    return static_cast<float>(static_cast<float>(diff * u) + lower);
 }
 float CornerPerOpKeptSum(const float* c, float s, float t, float u) {
     float lower = LerpP(LerpP(c[0], c[3], s), c[6], t);
     float b = LerpP(c[9], c[12], s);
-    float step = F(F(c[15] - b) * t);
-    float diff = F((static_cast<double>(b) + step) - lower);
-    return F(F(diff * u) + lower);
+    float step = static_cast<float>(static_cast<float>(c[15] - b) * t);
+    float diff = static_cast<float>((static_cast<double>(b) + step) - lower);
+    return static_cast<float>(static_cast<float>(diff * u) + lower);
 }
 float CornerPerOpKeptUpper(const float* c, float s, float t, float u) {
     float lower = LerpP(LerpP(c[0], c[3], s), c[6], t);
     float b = LerpP(c[9], c[12], s);
-    float step = F((static_cast<double>(c[15]) - b) * t);
-    float diff = F((static_cast<double>(step) + b) - lower);
-    return F(F(diff * u) + lower);
+    float step = static_cast<float>((static_cast<double>(c[15]) - b) * t);
+    float diff = static_cast<float>((static_cast<double>(step) + b) - lower);
+    return static_cast<float>(static_cast<float>(diff * u) + lower);
 }
 
 // A scalar from 6 corners, kept on the FPU until the result.
@@ -132,7 +130,7 @@ float MorphScalar6(const float* r, float s, float t, float u) {
     double lower = (r[2] - a) * t + a;
     double b = (static_cast<double>(r[4]) - r[3]) * s + r[3];
     double upper = (r[5] - b) * t + b;
-    return F((upper - lower) * u + lower);
+    return static_cast<float>((upper - lower) * u + lower);
 }
 
 // A scalar morphed from 8 versions. The inner blends stay on the FPU; 005A18E0 stores the lower
@@ -141,11 +139,11 @@ float MorphScalar(const float* r, float s, float t, float u, bool storeLower) {
     double a = (static_cast<double>(r[1]) - r[0]) * s + r[0];
     double b = (static_cast<double>(r[3]) - r[2]) * s + r[2];
     double lower = (b - a) * t + a;
-    if (storeLower) lower = F(lower);
+    if (storeLower) lower = static_cast<float>(lower);
     double c = (static_cast<double>(r[5]) - r[4]) * s + r[4];
     double d = (static_cast<double>(r[7]) - r[6]) * s + r[6];
     double upper = (d - c) * t + c;
-    return F((upper - lower) * u + lower);
+    return static_cast<float>((upper - lower) * u + lower);
 }
 
 } // namespace
@@ -239,36 +237,36 @@ __declspec(noinline) void MorphBlock(float* out, const float* v, float s, float 
     // Lower half (versions 0-3), written to `out`.
     {
         double ax = (static_cast<double>(v[4]) - v[0]) * s + v[0];
-        float ay = F((static_cast<double>(v[5]) - v[1]) * s + v[1]);
-        float az = F((static_cast<double>(v[6]) - v[2]) * s + v[2]);
-        float aw = F((static_cast<double>(v[7]) - v[3]) * s + v[3]);
+        float ay = static_cast<float>((static_cast<double>(v[5]) - v[1]) * s + v[1]);
+        float az = static_cast<float>((static_cast<double>(v[6]) - v[2]) * s + v[2]);
+        float aw = static_cast<float>((static_cast<double>(v[7]) - v[3]) * s + v[3]);
         double bx = (static_cast<double>(v[12]) - v[8]) * s + v[8];
-        float by = F((static_cast<double>(v[13]) - v[9]) * s + v[9]);
-        float bz = F((static_cast<double>(v[14]) - v[10]) * s + v[10]);
-        float bw = F((static_cast<double>(v[15]) - v[11]) * s + v[11]);
-        out[0] = F((bx - ax) * t + ax);
-        out[1] = F((static_cast<double>(by) - ay) * t + ay);
-        out[2] = F((static_cast<double>(bz) - az) * t + az);
-        out[3] = F((static_cast<double>(bw) - aw) * t + aw);
+        float by = static_cast<float>((static_cast<double>(v[13]) - v[9]) * s + v[9]);
+        float bz = static_cast<float>((static_cast<double>(v[14]) - v[10]) * s + v[10]);
+        float bw = static_cast<float>((static_cast<double>(v[15]) - v[11]) * s + v[11]);
+        out[0] = static_cast<float>((bx - ax) * t + ax);
+        out[1] = static_cast<float>((static_cast<double>(by) - ay) * t + ay);
+        out[2] = static_cast<float>((static_cast<double>(bz) - az) * t + az);
+        out[3] = static_cast<float>((static_cast<double>(bw) - aw) * t + aw);
     }
     // Upper half (versions 4-7), blended into `out` by u.
     {
         double ax = (static_cast<double>(v[20]) - v[16]) * s + v[16];
-        float ay = F((static_cast<double>(v[21]) - v[17]) * s + v[17]);
-        float az = F((static_cast<double>(v[22]) - v[18]) * s + v[18]);
-        float aw = F((static_cast<double>(v[23]) - v[19]) * s + v[19]);
+        float ay = static_cast<float>((static_cast<double>(v[21]) - v[17]) * s + v[17]);
+        float az = static_cast<float>((static_cast<double>(v[22]) - v[18]) * s + v[18]);
+        float aw = static_cast<float>((static_cast<double>(v[23]) - v[19]) * s + v[19]);
         double bx = (static_cast<double>(v[28]) - v[24]) * s + v[24];
-        float by = F((static_cast<double>(v[29]) - v[25]) * s + v[25]);
-        float bz = F((static_cast<double>(v[30]) - v[26]) * s + v[26]);
-        float bw = F((static_cast<double>(v[31]) - v[27]) * s + v[27]);
+        float by = static_cast<float>((static_cast<double>(v[29]) - v[25]) * s + v[25]);
+        float bz = static_cast<float>((static_cast<double>(v[30]) - v[26]) * s + v[26]);
+        float bw = static_cast<float>((static_cast<double>(v[31]) - v[27]) * s + v[27]);
         double cx = (bx - ax) * t + ax;
-        float cy = F((static_cast<double>(by) - ay) * t + ay);
-        float cz = F((static_cast<double>(bz) - az) * t + az);
-        float cw = F((static_cast<double>(bw) - aw) * t + aw);
-        out[0] = F((cx - out[0]) * u + out[0]);
-        out[1] = F((static_cast<double>(cy) - out[1]) * u + out[1]);
-        out[2] = F((static_cast<double>(cz) - out[2]) * u + out[2]);
-        out[3] = F((static_cast<double>(cw) - out[3]) * u + out[3]);
+        float cy = static_cast<float>((static_cast<double>(by) - ay) * t + ay);
+        float cz = static_cast<float>((static_cast<double>(bz) - az) * t + az);
+        float cw = static_cast<float>((static_cast<double>(bw) - aw) * t + aw);
+        out[0] = static_cast<float>((cx - out[0]) * u + out[0]);
+        out[1] = static_cast<float>((static_cast<double>(cy) - out[1]) * u + out[1]);
+        out[2] = static_cast<float>((static_cast<double>(cz) - out[2]) * u + out[2]);
+        out[3] = static_cast<float>((static_cast<double>(cw) - out[3]) * u + out[3]);
     }
 }
 
@@ -280,7 +278,7 @@ __declspec(noinline) void MorphBlock6(float* out, const float* v, float s, float
         double lower = (v[8 + k] - a) * t + a;
         double b = (static_cast<double>(v[16 + k]) - v[12 + k]) * s + v[12 + k];
         double upper = (v[20 + k] - b) * t + b;
-        out[k] = F((upper - lower) * u + lower);
+        out[k] = static_cast<float>((upper - lower) * u + lower);
     }
 }
 

@@ -2,9 +2,8 @@
 // terrain sampling, panning / zoom / saved views, shakes and recorded camera paths
 // (0040D9B0-004114F0). Names are provisional.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
-// operation order is kept (/fp:fast may reassociate) and NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "camera.h"
 
 #include "base_manager.h"
@@ -25,7 +24,6 @@
 namespace {
 
 using camera::D;
-using camera::Store;
 
 constexpr float kTrackGain = 0.2f;        // 0073BAD4
 constexpr float kPanZoomSpan = 1.125f;    // 0073BAD0
@@ -60,7 +58,7 @@ void CopyFloat(float* dst, const float* src) { std::memcpy(dst, src, sizeof(floa
 // limit wins.
 float ClampToMap(float v, float last) {
     float low = !(v >= 0.0f) ? 0.0f : v;
-    float limit = Store(last - 1.0f);
+    float limit = static_cast<float>(last - 1.0f);
     return !(limit >= low) ? limit : low;
 }
 
@@ -93,16 +91,16 @@ __declspec(naked) double __cdecl Exp(double) {
 // Moves `rate` towards `target` by (target - rate) * response * dt; snaps to the target when the
 // step is tiny or the rate's magnitude passes the target's.
 void Approach(float* rate, const float* target, float response, float dt) {
-    float step = Store((D(*target) - *rate) * response);
+    float step = static_cast<float>((D(*target) - *rate) * response);
     if (!(D(AbsBits(step)) >= 0.001)) {
         CopyFloat(rate, target);
         return;
     }
     double before = D(*rate) * *rate;
     double after = D(step) * dt + *rate;
-    *rate = Store(after);
-    float after2 = Store(after * after);
-    float target2 = Store(D(*target) * *target);
+    *rate = static_cast<float>(after);
+    float after2 = static_cast<float>(after * after);
+    float target2 = static_cast<float>(D(*target) * *target);
     if ((!(before >= target2) && after2 > target2) || (before > target2 && !(after2 >= target2)))
         CopyFloat(rate, target);
 }
@@ -124,30 +122,30 @@ void ResetMotion(CCamera* c) {
 void __stdcall SampleTerrain(const Vector3* p, const Vector3*, const Vector3*, float step, float halfX, float halfY,
                              float* average, float* minimum, float* maximum) {
     double centre = SurfaceHeightRaw(WorldClient(), nullptr, p->x, p->y);
-    *minimum = Store(centre);
-    *maximum = Store(centre);
-    *average = Store(centre);
+    *minimum = static_cast<float>(centre);
+    *maximum = static_cast<float>(centre);
+    *average = static_cast<float>(centre);
     int count = 1;
-    float x = Store(D(p->x) - halfX);
+    float x = static_cast<float>(D(p->x) - halfX);
     while (x <= D(halfX) + p->x) {
         if (x >= 0.0f && camera::TheTerrain()->width > x) {
-            float y = Store(D(p->y) - halfY);
+            float y = static_cast<float>(D(p->y) - halfY);
             while (y <= D(halfY) + p->y) {
                 if (y >= 0.0f && camera::TheTerrain()->height > y) {
-                    float h = Store(SurfaceHeightRaw(WorldClient(), nullptr, x, y));
+                    float h = static_cast<float>(SurfaceHeightRaw(WorldClient(), nullptr, x, y));
                     float low = *minimum;
                     *minimum = !(h >= low) ? h : low;
                     float high = *maximum;
                     *maximum = !(high >= h) ? h : high;
                     ++count;
-                    *average = Store(D(h) + *average);
+                    *average = static_cast<float>(D(h) + *average);
                 }
-                y = Store(D(y) + step);
+                y = static_cast<float>(D(y) + step);
             }
         }
-        x = Store(D(x) + step);
+        x = static_cast<float>(D(x) + step);
     }
-    *average = Store(D(*average) / static_cast<double>(count));
+    *average = static_cast<float>(D(*average) / static_cast<double>(count));
 }
 EI_REPLACE(0x0040D9B0, SampleTerrain);
 
@@ -155,9 +153,9 @@ Vector3* CubicCurve3::Evaluate(Vector3* out, float t) const {
     double z = ((D(t) * c[11] + c[10]) * t + c[9]) * t + c[8];
     double y = ((D(t) * c[7] + c[6]) * t + c[5]) * t + c[4];
     double x = ((D(t) * c[3] + c[2]) * t + c[1]) * t + c[0];
-    out->x = Store(x);
-    out->y = Store(y);
-    out->z = Store(z);
+    out->x = static_cast<float>(x);
+    out->y = static_cast<float>(y);
+    out->z = static_cast<float>(z);
     return out;
 }
 EI_REPLACE_METHOD(0x0040E460, CubicCurve3::Evaluate);
@@ -191,18 +189,18 @@ int CCamera::PlaybackStep(float time) {
     }
     const CameraKey& a = keys[keyIndex_];
     const CameraKey& b = (&a)[1];
-    float start = Store(D(a.time) + timeOffset_);
+    float start = static_cast<float>(D(a.time) + timeOffset_);
     double span = next - start;
     float u = 0.0f;
-    if (NonZero(span)) u = Store((D(time) - start) / span);
+    if (NonZero(span)) u = static_cast<float>((D(time) - start) / span);
     double dx = D(b.position.x) - a.position.x;
-    float dy = Store(D(b.position.y) - a.position.y);
-    float dz = Store(D(b.position.z) - a.position.z);
-    float sy = Store(D(dy) * u);
-    float sz = Store(D(dz) * u);
-    localPosition_.x = Store(dx * u + a.position.x);
-    localPosition_.y = Store(D(sy) + a.position.y);
-    localPosition_.z = Store(D(sz) + a.position.z);
+    float dy = static_cast<float>(D(b.position.y) - a.position.y);
+    float dz = static_cast<float>(D(b.position.z) - a.position.z);
+    float sy = static_cast<float>(D(dy) * u);
+    float sz = static_cast<float>(D(dz) * u);
+    localPosition_.x = static_cast<float>(dx * u + a.position.x);
+    localPosition_.y = static_cast<float>(D(sy) + a.position.y);
+    localPosition_.z = static_cast<float>(D(sz) + a.position.z);
     localRotation_.Slerp(u, a.rotation, b.rotation);
     return 1;
 }
@@ -213,17 +211,17 @@ void CCamera::Pan(const Vector3* direction) {
     localRotation_.AxisX(&right);
     const Quaternion& r = localRotation_;
     Vector3 up;
-    up.z = Store(Dot2DUnrounded<double>(r.w, r.y, r.x, r.z) * 2.0);
-    up.y = Store((D(r.w) * r.w - LengthSquaredUnrounded<Sum3::ZXY, double>(r.x, r.y, r.z)) + D(r.y) * r.y * 2.0);
-    up.x = Store((D(r.y) * r.x - D(r.w) * r.z) * 2.0);
+    up.z = static_cast<float>(Dot2DUnrounded<double>(r.w, r.y, r.x, r.z) * 2.0);
+    up.y = static_cast<float>((D(r.w) * r.w - LengthSquaredUnrounded<Sum3::ZXY, double>(r.x, r.y, r.z)) + D(r.y) * r.y * 2.0);
+    up.x = static_cast<float>((D(r.y) * r.x - D(r.w) * r.z) * 2.0);
     double k1 = (1.0 / x87::fsqrt(LengthSquared2DUnrounded<double>(right.y, right.x))) * direction->x;
-    right.x = Store(k1 * right.x);
+    right.x = static_cast<float>(k1 * right.x);
     double rightY = k1 * right.y;
     double k2 = (1.0 / x87::fsqrt(LengthSquared2DUnrounded<double>(up.y, up.x))) * direction->y;
-    up.x = Store(k2 * up.x);
+    up.x = static_cast<float>(k2 * up.x);
     double upY = k2 * up.y;
-    offsetA4_.x = Store(D(up.x) + right.x);
-    offsetA4_.y = Store(upY + rightY);
+    offsetA4_.x = static_cast<float>(D(up.x) + right.x);
+    offsetA4_.y = static_cast<float>(upY + rightY);
     offsetA4_.z = 0.0f;
 }
 EI_REPLACE_METHOD(0x0040F230, CCamera::Pan);
@@ -234,11 +232,11 @@ void CCamera::StopMotion() {
     localRotation_.AxisY(&up);
     // The original multiplies by 0 (keeping NaN and -0), so the zero is read from memory.
     const float zero = CAM_ZERO;
-    right.x = Store(D(zero) * right.x);
-    right.y = Store(D(right.y) * zero);
+    right.x = static_cast<float>(D(zero) * right.x);
+    right.y = static_cast<float>(D(right.y) * zero);
     right.z = 0.0f;
-    up.x = Store(D(zero) * up.x);
-    up.y = Store(D(up.y) * zero);
+    up.x = static_cast<float>(D(zero) * up.x);
+    up.y = static_cast<float>(D(up.y) * zero);
     up.z = 0.0f;
     Vector3 sum;
     AddVectors(&sum, right, up);
@@ -255,9 +253,9 @@ EI_REPLACE_METHOD(0x0040F430, CCamera::StopMotion);
 void CCamera::SetFocus(const Vector3* p) {
     std::memcpy(&focus_, p, sizeof(Vector3));
     float average, low, high;
-    SampleTerrain(p, &camera::ZeroVector(), &camera::ZeroVector(), Store(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(), &average,
+    SampleTerrain(p, &camera::ZeroVector(), &camera::ZeroVector(), static_cast<float>(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(), &average,
                   &low, &high);
-    focus_.z = Store(D(average) + focusHeight_);
+    focus_.z = static_cast<float>(D(average) + focusHeight_);
 }
 EI_REPLACE_METHOD(0x0040F5C0, CCamera::SetFocus);
 
@@ -266,16 +264,16 @@ void CCamera::ApplyView() {
     Vector3 right;
     localRotation_.AxisX(&right);
     Quaternion tilt;
-    tilt.SetAngleAxis(Store(-(CAM_RIGHT_ANGLE + pitch_)), right);
+    tilt.SetAngleAxis(static_cast<float>(-(CAM_RIGHT_ANGLE + pitch_)), right);
     localRotation_.PreMultiply(tilt);
     Vector3 forward;
     localRotation_.AxisZ(&forward);
     const float d = distance_;
-    float ox = Store(D(forward.x) * d);
-    float oy = Store(D(forward.y) * d);
-    float px = Store(D(focus_.x) - ox);
-    float py = Store(D(focus_.y) - oy);
-    float pz = Store(D(focus_.z) - D(d) * forward.z);
+    float ox = static_cast<float>(D(forward.x) * d);
+    float oy = static_cast<float>(D(forward.y) * d);
+    float px = static_cast<float>(D(focus_.x) - ox);
+    float py = static_cast<float>(D(focus_.y) - oy);
+    float pz = static_cast<float>(D(focus_.z) - D(d) * forward.z);
     localPosition_.x = px;
     localPosition_.y = py;
     localPosition_.z = pz;
@@ -290,15 +288,15 @@ void CCamera::ApplyView() {
     std::memcpy(&localRotation_, &viewRotation_, sizeof(Quaternion));
     const Quaternion s = localRotation_;
     Vector3 axis;
-    axis.x = Store((D(s.w) * s.w - LengthSquaredUnrounded<Sum3::ZYX, double>(s.x, s.y, s.z)) + D(s.x) * s.x * 2.0);
-    axis.y = Store(Dot2DUnrounded<double>(s.x, s.z, s.y, s.w) * 2.0);
-    axis.z = Store((D(s.x) * s.z - D(s.y) * s.w) * 2.0);
+    axis.x = static_cast<float>((D(s.w) * s.w - LengthSquaredUnrounded<Sum3::ZYX, double>(s.x, s.y, s.z)) + D(s.x) * s.x * 2.0);
+    axis.y = static_cast<float>(Dot2DUnrounded<double>(s.x, s.z, s.y, s.w) * 2.0);
+    axis.z = static_cast<float>((D(s.x) * s.z - D(s.y) * s.w) * 2.0);
     Quaternion q;
-    q.SetAngleAxis(Store(-(CAM_RIGHT_ANGLE + angle)), axis);
-    float y = Store(((D(q.z) * s.x - D(s.z) * q.x) + D(s.w) * q.y) + D(s.y) * q.w);
-    float z = Store(((D(q.x) * s.y - D(s.x) * q.y) + D(s.w) * q.z) + D(s.z) * q.w);
-    float w = Store(D(s.w) * q.w - DotUnrounded<Sum3::ZXY, double>(s.x, s.y, s.z, q.x, q.y, q.z));
-    float x = Store(((D(s.z) * q.y - D(q.z) * s.y) + D(s.w) * q.x) + D(s.x) * q.w);
+    q.SetAngleAxis(static_cast<float>(-(CAM_RIGHT_ANGLE + angle)), axis);
+    float y = static_cast<float>(((D(q.z) * s.x - D(s.z) * q.x) + D(s.w) * q.y) + D(s.y) * q.w);
+    float z = static_cast<float>(((D(q.x) * s.y - D(s.x) * q.y) + D(s.w) * q.z) + D(s.z) * q.w);
+    float w = static_cast<float>(D(s.w) * q.w - DotUnrounded<Sum3::ZXY, double>(s.x, s.y, s.z, q.x, q.y, q.z));
+    float x = static_cast<float>(((D(s.z) * q.y - D(q.z) * s.y) + D(s.w) * q.x) + D(s.x) * q.w);
     localRotation_.y = y;
     localRotation_.z = z;
     localRotation_.w = w;
@@ -311,7 +309,7 @@ void CCamera::Update(float dt) {
     std::memcpy(&listener, &localPosition_, sizeof(Vector3));
     if (!(flags_ & kPlaced)) {
         std::memcpy(&listener, &focus_, sizeof(Vector3));
-        if (camera::TheTerrain()) listener.z = Store(SurfaceHeightRaw(WorldClient(), nullptr, focus_.x, focus_.y) + focusHeight_);
+        if (camera::TheTerrain()) listener.z = static_cast<float>(SurfaceHeightRaw(WorldClient(), nullptr, focus_.x, focus_.y) + focusHeight_);
     }
     Vector3 forward;
     localRotation_.AxisZ(&forward);
@@ -327,16 +325,16 @@ void CCamera::Update(float dt) {
             double lift = D(body->above.z) + body->center.z;
             std::memcpy(&localPosition_.x, &t->localPosition_.x, sizeof(float));
             std::memcpy(&localPosition_.y, &t->localPosition_.y, sizeof(float));
-            localPosition_.z = Store(lift + t->localPosition_.z);
+            localPosition_.z = static_cast<float>(lift + t->localPosition_.z);
             Vector3 side;
             t->localRotation_.AxisY(&side);
             double nx = -D(side.x);
             Vector3 dir;
             dir.y = -side.y;
             dir.z = 0.0f;
-            float inv = Store(1.0 / x87::fsqrt(D(dir.y) * dir.y + nx * nx));
-            dir.x = Store(nx * inv);
-            dir.y = Store(D(dir.y) * inv);
+            float inv = static_cast<float>(1.0 / x87::fsqrt(D(dir.y) * dir.y + nx * nx));
+            dir.x = static_cast<float>(nx * inv);
+            dir.y = static_cast<float>(D(dir.y) * inv);
             TurnTowards(dir);
             AlignToTarget();
             return;
@@ -345,29 +343,29 @@ void CCamera::Update(float dt) {
         // Drift the focus a fifth of the way to the tracked object.
         const CTransformObject* t = static_cast<const CTransformObject*>(target);
         double dx = D(t->localPosition_.x) - focus_.x;
-        float dy = Store(D(t->localPosition_.y) - focus_.y);
+        float dy = static_cast<float>(D(t->localPosition_.y) - focus_.y);
         float width = camera::TheTerrain()->width;
-        float dyStep = Store(D(dy) * kTrackGain);
-        focus_.x = ClampToMap(Store(dx * kTrackGain + focus_.x), width);
+        float dyStep = static_cast<float>(D(dy) * kTrackGain);
+        focus_.x = ClampToMap(static_cast<float>(dx * kTrackGain + focus_.x), width);
         float height = camera::TheTerrain()->height;
-        focus_.y = ClampToMap(Store(D(dyStep) + focus_.y), height);
+        focus_.y = ClampToMap(static_cast<float>(D(dyStep) + focus_.y), height);
     }
 
     // Pan: the velocity eases towards its target.
     Vector3& velocity = offset98_;
     const Vector3& wanted = offsetA4_;
-    Vector3 change = {Store(D(wanted.x) - velocity.x), Store(D(wanted.y) - velocity.y),
-                      Store(D(wanted.z) - velocity.z)};
+    Vector3 change = {static_cast<float>(D(wanted.x) - velocity.x), static_cast<float>(D(wanted.y) - velocity.y),
+                      static_cast<float>(D(wanted.z) - velocity.z)};
     Vector3 accel;
     ScaleVector(&accel, change, panResponse_);
     bool snap = true;
     if (LengthRaw(&accel) >= 0.001) {
-        float before = Store(Dot(velocity, velocity));
+        float before = static_cast<float>(Dot(velocity, velocity));
         Vector3 step;
         ScaleVector(&step, accel, dt);
         velocity.AddInPlace(step);
-        float after = Store(Dot(velocity, velocity));
-        float goal = Store(Dot(wanted, wanted));
+        float after = static_cast<float>(Dot(velocity, velocity));
+        float goal = static_cast<float>(Dot(wanted, wanted));
         snap = (!(before >= goal) && after > goal) || (before > goal && !(after >= goal));
     }
     if (snap) std::memcpy(&velocity, &wanted, sizeof(Vector3));
@@ -376,13 +374,13 @@ void CCamera::Update(float dt) {
         const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
         double scale = (D(distance_) - limits.min) / ((D(limits.max) - limits.min) * kPanZoomSpan) + kTrackGain;
         double moveX = D(dt) * velocity.x;
-        float moveY = Store(D(dt) * velocity.y);
-        float stepX = Store(moveX * scale);
-        float stepY = Store(D(moveY) * scale);
+        float moveY = static_cast<float>(D(dt) * velocity.y);
+        float stepX = static_cast<float>(moveX * scale);
+        float stepY = static_cast<float>(D(moveY) * scale);
         float width = camera::TheTerrain()->width;
-        focus_.x = ClampToMap(Store(D(stepX) + focus_.x), width);
+        focus_.x = ClampToMap(static_cast<float>(D(stepX) + focus_.x), width);
         float height = camera::TheTerrain()->height;
-        float y = ClampToMap(Store(D(stepY) + focus_.y), height);
+        float y = ClampToMap(static_cast<float>(D(stepY) + focus_.y), height);
         targetId_ = -1;
         flags_ &= ~kFollowing;
         focus_.y = y;
@@ -393,11 +391,11 @@ void CCamera::Update(float dt) {
             double radius = boundsRadius_;
             if (d2 > radius * radius) {
                 double inv = 1.0 / x87::fsqrt(d2);
-                float ux = Store(inv * bx);
+                float ux = static_cast<float>(inv * bx);
                 double uy = inv * by;
-                float px = Store(radius * ux);
-                float ny = Store(radius * uy + boundsCenter_.y);
-                focus_.x = Store(D(px) + boundsCenter_.x);
+                float px = static_cast<float>(radius * ux);
+                float ny = static_cast<float>(radius * uy + boundsCenter_.y);
+                focus_.x = static_cast<float>(D(px) + boundsCenter_.x);
                 focus_.y = ny;
             }
         }
@@ -405,21 +403,21 @@ void CCamera::Update(float dt) {
 
     // The focus height follows the target's or the ground's, a tenth of the way per frame.
     float average, low, high;
-    SampleTerrain(&focus_, &camera::ZeroVector(), &camera::ZeroVector(), Store(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(),
+    SampleTerrain(&focus_, &camera::ZeroVector(), &camera::ZeroVector(), static_cast<float>(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(),
                   &average, &low, &high);
     double ground = target ? D(static_cast<const CObject3D*>(target)->position.z) : D(average);
-    focus_.z = Store(((ground + focusHeight_) - focus_.z) * kHeightLag + focus_.z);
+    focus_.z = static_cast<float>(((ground + focusHeight_) - focus_.z) * kHeightLag + focus_.z);
 
     // Tilt (pitch in degrees, clamped to the settings' range).
     Approach(&tiltRate_, &tiltTarget_, tiltResponse_, dt);
     if (NonZero(tiltRate_)) {
         double pitch = D(dt) * tiltRate_ + pitch_;
-        pitch_ = Store(pitch);
+        pitch_ = static_cast<float>(pitch);
         bool alternate = (flags_ & kAlternate) != 0;
-        float most = Store(D(alternate ? settings_->altPitchMax : settings_->pitchMax) * CAM_DEGREE);
+        float most = static_cast<float>(D(alternate ? settings_->altPitchMax : settings_->pitchMax) * CAM_DEGREE);
         if (pitch > most) pitch_ = most;
         double least = D(alternate ? settings_->altPitchMin : settings_->pitchMin) * CAM_DEGREE;
-        if (least > pitch_) pitch_ = Store(least);
+        if (least > pitch_) pitch_ = static_cast<float>(least);
     }
 
     // Turn about Z.
@@ -427,12 +425,12 @@ void CCamera::Update(float dt) {
     if (NonZero(turnRate_)) {
         Vector3 up = {0.0f, 0.0f, 1.0f};
         Quaternion q;
-        q.SetAxisAngle(up, Store(D(dt) * turnRate_));
+        q.SetAxisAngle(up, static_cast<float>(D(dt) * turnRate_));
         const Quaternion r = viewRotation_;
-        float x = Store(((D(r.z) * q.y - D(r.y) * q.z) + D(q.w) * r.x) + D(r.w) * q.x);
-        float y = Store(((D(r.x) * q.z - D(r.z) * q.x) + D(q.w) * r.y) + D(r.w) * q.y);
-        float z = Store(((D(r.y) * q.x - D(q.y) * r.x) + D(r.z) * q.w) + D(r.w) * q.z);
-        float w = Store(D(q.w) * r.w - DotUnrounded<Sum3::ZYX, double>(q.x, q.y, q.z, r.x, r.y, r.z));
+        float x = static_cast<float>(((D(r.z) * q.y - D(r.y) * q.z) + D(q.w) * r.x) + D(r.w) * q.x);
+        float y = static_cast<float>(((D(r.x) * q.z - D(r.z) * q.x) + D(q.w) * r.y) + D(r.w) * q.y);
+        float z = static_cast<float>(((D(r.y) * q.x - D(q.y) * r.x) + D(r.z) * q.w) + D(r.w) * q.z);
+        float w = static_cast<float>(D(q.w) * r.w - DotUnrounded<Sum3::ZYX, double>(q.x, q.y, q.z, r.x, r.y, r.z));
         viewRotation_.z = z;
         viewRotation_.y = y;
         viewRotation_.w = w;
@@ -443,18 +441,18 @@ void CCamera::Update(float dt) {
     float zoomTarget;
     std::memcpy(&zoomTarget, &zoomTarget_, sizeof(float));
     Approach(&zoomRate_, &zoomTarget, zoomResponse_, dt);
-    if (NonZero(zoomRate_)) distance_ = Store(D(dt) * zoomRate_ + distance_);
+    if (NonZero(zoomRate_)) distance_ = static_cast<float>(D(dt) * zoomRate_ + distance_);
 
     const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
     if (!(distance_ >= limits.hardMin)) {
         CopyFloat(&distance_, &limits.hardMin);
     } else if (!(distance_ >= limits.min)) {
-        distance_ = Store((D(limits.min) - distance_) * dt * kEase / (D(limits.min) - limits.hardMin) + distance_);
+        distance_ = static_cast<float>((D(limits.min) - distance_) * dt * kEase / (D(limits.min) - limits.hardMin) + distance_);
     } else if (distance_ > limits.hardMax) {
         CopyFloat(&distance_, &limits.hardMax);
     } else if (distance_ > limits.max) {
         distance_ =
-            Store(D(distance_) - (D(distance_) - limits.max) * dt * kEase / (D(limits.hardMax) - limits.max));
+            static_cast<float>(D(distance_) - (D(distance_) - limits.max) * dt * kEase / (D(limits.hardMax) - limits.max));
     }
 
     ApplyView();
@@ -466,9 +464,9 @@ void CCamera::Update(float dt) {
     for (CameraShake* s = shakes_->next; s != shakes_;) {
         double damping = Exp(-(D(s->decay) * s->elapsed));
         double wave = x87::fcos(D(camera::ClockFloat()) * s->elapsed * kShakeFrequency);
-        offset = Store(wave * damping * s->amplitude + offset);
+        offset = static_cast<float>(wave * damping * s->amplitude + offset);
         double elapsed = D(dt) + s->elapsed;
-        s->elapsed = Store(elapsed);
+        s->elapsed = static_cast<float>(elapsed);
         if (!(elapsed >= s->duration)) {
             s = s->next;
         } else {
@@ -477,13 +475,13 @@ void CCamera::Update(float dt) {
             s = next;
         }
     }
-    localPosition_.z = Store(D(offset) + localPosition_.z);
+    localPosition_.z = static_cast<float>(D(offset) + localPosition_.z);
 }
 EI_REPLACE_METHOD(0x0040FB30, CCamera::Update);
 
 void CCamera::ZoomBy(float steps) {
     double d = CIpow(CAM_ZOOM_STEP, steps) * distance_;
-    distance_ = Store(d);
+    distance_ = static_cast<float>(d);
     if (!settings_) return;
     const CameraLimits& limits = (flags_ & kAlternate) ? settings_->alternate : settings_->normal;
     if (!(d >= limits.min)) {
@@ -529,16 +527,16 @@ void CCamera::ViewsToSettings(CameraSettings* settings) {
         CopyFloat(&r.pitch, &v.pitch);
         const Quaternion& q = v.rotation;
         double sum = LengthSquaredUnrounded<Sum3::ZXY, double>(q.x, q.y, q.z);
-        float sumF = Store(sum);
+        float sumF = static_cast<float>(sum);
         if (sum > kAxisTiny) {
             double angle = CIacos(q.w);
             angle = angle + angle;
             double inv = 1.0 / x87::fsqrt(sumF);
-            float invF = Store(inv);
-            r.axis.x = Store(inv * q.x);
-            r.axis.y = Store(D(invF) * q.y);
-            r.axis.z = Store(D(invF) * q.z);
-            r.angle = Store(angle);
+            float invF = static_cast<float>(inv);
+            r.axis.x = static_cast<float>(inv * q.x);
+            r.axis.y = static_cast<float>(D(invF) * q.y);
+            r.axis.z = static_cast<float>(D(invF) * q.z);
+            r.angle = static_cast<float>(angle);
         } else {
             r.axis.x = 1.0f;
             r.axis.y = 0.0f;
@@ -579,9 +577,9 @@ EI_REPLACE_METHOD(0x00410E50, CCamera::SetFree);
 void CCamera::LookFrom(const Vector3* from, const Vector3* to, int) {
     flags_ |= kFree;
     std::memcpy(&localPosition_, from, sizeof(Vector3));
-    float dx = Store(D(to->x) - from->x);
-    float dy = Store(D(to->y) - from->y);
-    float dz = Store(D(to->z) - from->z);
+    float dx = static_cast<float>(D(to->x) - from->x);
+    float dy = static_cast<float>(D(to->y) - from->y);
+    float dz = static_cast<float>(D(to->z) - from->z);
     LookDirection(dx, dy, dz);
 }
 EI_REPLACE_METHOD(0x00411060, CCamera::LookFrom);
@@ -596,15 +594,15 @@ EI_REPLACE_METHOD(0x00411360, CCamera::SetBounds);
 void CCamera::Shake(const Vector3* source, float duration, float amplitude, float decay) {
     const Vector3& at = (flags_ & kPlaced) ? localPosition_ : focus_;
     double distance = Hypot(D(at.x) - source->x, D(at.y) - source->y);
-    float distanceF = Store(distance);
+    float distanceF = static_cast<float>(distance);
     if (distance >= kShakeRange) return;
     double strength = amplitude;
     if (distanceF > kShakeFull)
         strength = (1.0 - (D(distanceF) - kShakeFull) / (D(kShakeRange) - kShakeFull)) * amplitude;
     float entry[4];
     entry[0] = 0.0f;
-    entry[1] = Store(D(duration) * kShakeTicks);
-    entry[2] = Store(strength);
+    entry[1] = static_cast<float>(D(duration) * kShakeTicks);
+    entry[2] = static_cast<float>(strength);
     CopyFloat(&entry[3], &decay);
     CameraShake* end;
     ShakeEnd(&shakes_, nullptr, &end);

@@ -19,10 +19,6 @@
 namespace {
 
 inline double D(float f) { return f; }
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 CCamera* Camera() { return reinterpret_cast<CCamera*>(0x0079B2A8); }
 
@@ -68,21 +64,21 @@ void CCameraInput::OnKeyDown(int, int, int flags) {
     if (!ModifierHeld(interface_)) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.
         float left = -x_;
-        float speed = Store(D(GameFloat(0x0079BDC0)) * D(GameFloat(0x0079BDB8)));
-        direction.x = Store(D(y_) * D(speed));
-        direction.y = Store(D(left) * D(speed));
+        float speed = static_cast<float>(D(GameFloat(0x0079BDC0)) * D(GameFloat(0x0079BDB8)));
+        direction.x = static_cast<float>(D(y_) * D(speed));
+        direction.y = static_cast<float>(D(left) * D(speed));
         Camera()->Pan(&direction);
         Camera()->SetTurnRate(0.0f);
-        Camera()->SetZoomTarget(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
+        Camera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
         Camera()->SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
     Camera()->Pan(&direction);
-    Camera()->SetTurnRate(Store(D(GameFloat(0x0079BDCC)) * D(GameFloat(0x0079BDC4)) * D(y_)));
-    Camera()->SetZoomTarget(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
+    Camera()->SetTurnRate(static_cast<float>(D(GameFloat(0x0079BDCC)) * D(GameFloat(0x0079BDC4)) * D(y_)));
+    Camera()->SetZoomTarget(Bits(static_cast<float>(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
     Camera()->SetTiltRate(
-        Store(D(GameFloat(0x0079BDD8)) * D(GameFloat(0x0079BDD0)) * D(x_) * D(GameFloat(0x0074023C))));
+        static_cast<float>(D(GameFloat(0x0079BDD8)) * D(GameFloat(0x0079BDD0)) * D(x_) * D(GameFloat(0x0074023C))));
 }
 
 void __fastcall CameraKeysOnKeyDown(void* self, void*, int key, int repeat, int flags) {

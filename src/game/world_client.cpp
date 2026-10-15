@@ -45,10 +45,10 @@ float CWorldClient::ClampedGroundHeight(float x, float y) {
     // Branch-free in the original (FCOM flags turned into a select mask); NaN picks the first
     // operand of each comparison.
     float cx = !(0.0f >= x) ? x : 0.0f;
-    float maxX = StoreFloat(terrain_->width - 1.0f);
+    float maxX = static_cast<float>(terrain_->width - 1.0f);
     cx = !(maxX >= cx) ? maxX : cx;
     float cy = !(0.0f >= y) ? y : 0.0f;
-    float maxY = StoreFloat(terrain_->height - 1.0f);
+    float maxY = static_cast<float>(terrain_->height - 1.0f);
     cy = !(maxY >= cy) ? maxY : cy;
     return terrain_->HeightAt(cx, cy, 0);
 }
@@ -65,11 +65,11 @@ float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
         float c = point->z - p.origin.z;
         // Project onto the platform plane along z, then into its (u, v) frame.
         c = c - DotUnrounded<Sum3::XYZ, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
-        float u = StoreFloat(DotUnrounded<Sum3::XYZ, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
-        float v = StoreFloat(DotUnrounded<Sum3::XYZ, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
+        float u = static_cast<float>(DotUnrounded<Sum3::XYZ, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
+        float v = static_cast<float>(DotUnrounded<Sum3::XYZ, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
         if (!(u >= -0.5f) || !(v >= -0.5f)) continue;
         if (!(p.sizeU + 0.5f >= u) || !(p.sizeV + 0.5f >= v)) continue;
-        float z = StoreFloat(p.axisV.z * v + p.axisU.z * u + p.origin.z);
+        float z = static_cast<float>(p.axisV.z * v + p.axisU.z * u + p.origin.z);
         height = !(height >= z) ? z : height;
     }
     return height;
@@ -85,8 +85,8 @@ bool PlatformSet::Contains(float x, float y) {
         float b = y - p.origin.y;
         float c = -p.origin.z;
         c = c - DotUnrounded<Sum3::ZYX, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
-        float u = StoreFloat(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
-        float v = StoreFloat(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
+        float u = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
+        float v = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
         if (!(u >= -0.1f) || !(v >= -0.1f)) continue;
         if (!(p.sizeU + 0.1f >= u) || !(p.sizeV + 0.1f >= v)) continue;
         return true;
@@ -104,8 +104,8 @@ void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height)
         float b = y - p.origin.y;
         float c = -p.origin.z;
         c = c - DotUnrounded<Sum3::ZYX, float>(p.normal.x, p.normal.y, p.normal.z, a, b, c) / p.normal.z;
-        float u = StoreFloat(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
-        float v = StoreFloat(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
+        float u = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisU.x, p.axisU.y, p.axisU.z, a, b, c));
+        float v = static_cast<float>(DotUnrounded<Sum3::ZYX, float>(p.axisV.x, p.axisV.y, p.axisV.z, a, b, c));
         if (!(u >= -0.5f) || !(v >= -0.5f)) continue;
         if (!(p.sizeU + 0.5f >= u) || !(p.sizeV + 0.5f >= v)) continue;
         float z = p.axisV.z * v + p.axisU.z * u + p.origin.z;
@@ -140,7 +140,7 @@ CEngineObject* CWorldClient::NearestVisibleUnit(CEngineObject* unit) {
         float dx = other->position.x - self->position.x;
         float distance = LengthSquared2DUnrounded(dx, dy);
         if (!(distance >= best)) {
-            best = StoreFloat(distance);
+            best = static_cast<float>(distance);
             nearest = other;
         }
     }

@@ -67,7 +67,7 @@ void __fastcall ShowBoltAt(void* glue, void*, Vector3 from, Vector3 to) {
 // 0058B6D0 / 0058D280. MarkPlayersDirty / UpdatePlayerTimes, through their addresses.
 __declspec(naked) void __fastcall MarkPlayersDirtyAt(CWorldServer*, void*, std::uint32_t) EI_ORIGINAL(0x0058B6D0)
 
-float Uniform(double scale) { return StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * scale)); }
+float Uniform(double scale) { return static_cast<float>(x87::FromUnsigned(Random().Next()) * scale); }
 
 // A lightning strike in a storm: a random point of the map, struck from a random point 30 to 70
 // away when the ground there is open and the line between them is not fully free.
@@ -81,21 +81,21 @@ void TryLightningStrike(CWorldServer* world) {
     if (kind != 3 && kind != 1) return;
     if (CellFlag80AtOriginal(aiMap, nullptr, &ground)) return;
 
-    float dx = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * OffsetScale() - OffsetCentre()));
+    float dx = static_cast<float>(x87::FromUnsigned(Random().Next()) * OffsetScale() - OffsetCentre());
     double dyRaw = x87::FromUnsigned(Random().Next()) * OffsetScale() - OffsetCentre();
-    float dy = StoreFloat(static_cast<float>(dyRaw));
+    float dy = static_cast<float>(dyRaw);
     if (!(dyRaw * dy + static_cast<double>(dx) * dx > MinDistance2())) return;
 
     Vector3 sky;
-    sky.x = StoreFloat(static_cast<float>(static_cast<double>(ground.x) + dx));
-    sky.y = StoreFloat(static_cast<float>(static_cast<double>(ground.y) + dy));
+    sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
+    sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
     if (AIMapLineFree(aiMap, nullptr, &ground, &sky) >= One()) return;   // NaN goes on (C0 set)
 
     CBaseManager* manager = world->TimedObjectManager();
     CEngineObject* lightning = manager->CreateObject(kTypeLightning, -1);
-    sky.x = StoreFloat(static_cast<float>(static_cast<double>(ground.x) + dx));
-    sky.y = StoreFloat(static_cast<float>(static_cast<double>(ground.y) + dy));
+    sky.x = static_cast<float>(static_cast<double>(ground.x) + dx);
+    sky.y = static_cast<float>(static_cast<double>(ground.y) + dy);
     sky.z = ground.z;
     LightningSetPath(lightning, nullptr, &ground, &sky);
     static_cast<CEffect*>(lightning)->startTick_ = world->tick_;
@@ -132,12 +132,12 @@ void UpdateRain(CWorldServer* world) {
 // A bolt in the sky during rain (every 20 ticks at most): a random ground point and one above it.
 void ShowRainBolt(CWorldServer* world) {
     world->lastRainBoltTick_ = static_cast<std::uint32_t>(world->tick_);
-    float x = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltScale() + Two()));
-    float y = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltScale() + Two()));
-    float z = StoreFloat(static_cast<float>(world->RawSurfaceHeightAt(x, y) - Five()));
-    float fromX = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltSpread() + x - Two()));
-    float fromY = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltSpread() + y - Two()));
-    float fromZ = StoreFloat(static_cast<float>(static_cast<double>(z) + BoltHeight()));
+    float x = static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltScale() + Two());
+    float y = static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltScale() + Two());
+    float z = static_cast<float>(world->RawSurfaceHeightAt(x, y) - Five());
+    float fromX = static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltSpread() + x - Two());
+    float fromY = static_cast<float>(x87::FromUnsigned(Random().Next()) * BoltSpread() + y - Two());
+    float fromZ = static_cast<float>(static_cast<double>(z) + BoltHeight());
     Vector3 to{x, y, z};
     Vector3 from{fromX, fromY, fromZ};
     ShowBoltAt(reinterpret_cast<void*>(0x007AFEA4), nullptr, from, to);
@@ -146,7 +146,7 @@ void ShowRainBolt(CWorldServer* world) {
 } // namespace
 
 void CWorldServer::UpdateWeather() {
-    float day = StoreFloat(static_cast<float>(WorldDayTime(this, nullptr)));
+    float day = static_cast<float>(WorldDayTime(this, nullptr));
     std::memcpy(&nightLevel_, &day, 4);
     if (sessionKind_ == kKindSinglePlayer) {
         if (climate_ != 0) {
@@ -183,11 +183,11 @@ void __fastcall ShowBolt(void* /*glue*/, void*, Vector3 from, Vector3 to) {
     mfc::CString prefix;   // stays empty
     mfc::CString text;
     // The middle: x and y are summed into floats first, z is not.
-    float sumY = StoreFloat(to.y + from.y);
-    float sumX = StoreFloat(to.x + from.x);
-    float midZ = StoreFloat(static_cast<float>((static_cast<double>(to.z) + from.z) * Half()));
-    float midY = StoreFloat(sumY * Half());
-    float midX = StoreFloat(sumX * Half());
+    float sumY = static_cast<float>(to.y + from.y);
+    float sumX = static_cast<float>(to.x + from.x);
+    float midZ = static_cast<float>((static_cast<double>(to.z) + from.z) * Half());
+    float midY = static_cast<float>(sumY * Half());
+    float midX = static_cast<float>(sumX * Half());
     double fx = from.x, fy = from.y, fz = from.z;
     double tx = to.x, ty = to.y, tz = to.z;
     if ((Random().Next() & 3) == 0) {

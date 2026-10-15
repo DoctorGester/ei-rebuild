@@ -24,14 +24,14 @@ bool ZoneExit::Contains(float x, float y) const {
         return !(y > y2);
     }
     double centerX = (x2 + x1) * 0.5f;
-    float centerY = StoreFloat(static_cast<float>((y2 + y1) * 0.5f));
-    float c = StoreFloat(static_cast<float>(x87::fcos(static_cast<double>(angle))));
-    float s = StoreFloat(static_cast<float>(x87::fsin(static_cast<double>(angle))));
-    float dy = StoreFloat(y - centerY);
+    float centerY = static_cast<float>((y2 + y1) * 0.5f);
+    float c = static_cast<float>(x87::fcos(static_cast<double>(angle)));
+    float s = static_cast<float>(x87::fsin(static_cast<double>(angle)));
+    float dy = static_cast<float>(y - centerY);
     double dxExact = x - centerX;
-    float dx = StoreFloat(static_cast<float>(dxExact));
+    float dx = static_cast<float>(dxExact);
     double turnedX = dxExact * c + dy * s + centerX;
-    float turnedY = StoreFloat(static_cast<float>(centerY - dx * s + dy * c));
+    float turnedY = static_cast<float>(centerY - dx * s + dy * c);
     if (!(turnedX >= x1)) return false;
     if (turnedX > x2) return false;
     if (y1 > turnedY) return false;

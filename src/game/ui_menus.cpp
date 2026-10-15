@@ -313,17 +313,13 @@ constexpr float kSlideSeconds = 0.5f;  // 00742B74
 } // namespace
 
 namespace {
-float StoreRounded(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 } // namespace
 
 void COptionsWindow::Update() {
     UpdateBase();
     if (sliding_) {
         double slide = FrameTime() / kSlideSeconds + static_cast<double>(slide_);
-        slide_ = StoreRounded(slide);
+        slide_ = static_cast<float>(slide);
         if (slide > 1.0f) {
             sliding_ = false;
             interface_->ShowHelp(0);
@@ -342,9 +338,9 @@ void COptionsWindow::Update() {
                 Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(value);
             } else if (id >= kSettingGammaFirst && id <= kSettingGammaLast) {
                 const OptionSetting* gamma = settings_.begin() + kSettingGammaFirst;
-                float r = StoreRounded(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
-                float g = StoreRounded(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
-                float b = StoreRounded(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
+                float r = static_cast<float>(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
+                float g = static_cast<float>(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
+                float b = static_cast<float>(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
                 UiDisplaySettings* display = DisplaySettings();
                 using Fn = void(__thiscall*)(UiDisplaySettings*, float, float, float);
                 reinterpret_cast<Fn>(display->vtable_[22])(display, r, g, b);

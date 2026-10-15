@@ -5,14 +5,6 @@
 
 #include "maths.h"
 
-// Rounds an x87 intermediate to float, as the original's FSTP into a float temporary does. Values
-// the original keeps on the FPU stack must not go through this (and must not be split into named
-// float locals the compiler might spill).
-inline float StoreFloat(float v) {
-    volatile float r = v;
-    return r;
-}
-
 // 0040CDC0. operator+: `out` = a + b. __fastcall (out in ECX, a in EDX, b on the stack), returns out.
 Vector3* __fastcall AddVectors(Vector3* out, const Vector3& a, const Vector3& b);
 // 00402200. Unary minus: `out` = -v. Returns out.

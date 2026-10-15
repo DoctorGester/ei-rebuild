@@ -27,11 +27,6 @@ constexpr float kMovingSlack = 2.0f;                            // 0x40000000
 constexpr float kStandingSlack = std::bit_cast<float>(0x3FB33333u); // 1.4
 constexpr float kNoRadius = -1.0f;                              // 0xBF800000
 
-float Round(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
 AIBrain* BrainOf(const CUnit* unit) { return ControllerOf(unit)->Brain(); }
 const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
@@ -119,7 +114,7 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         auto* next = node->next;
         auto* other = static_cast<CUnit*>(node->data);
         UnitController* control = ControllerOf(other);
-        float sight = Round(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
+        float sight = static_cast<float>(static_cast<double>(control->moveFactors[3]) * control->stats.valuesB0[0].current);
         float hearing = control->stats.valuesB0[2].current;
         float reach = (sight < hearing || x87::IsNaN(sight) || x87::IsNaN(hearing)) ? hearing : sight;
         double limit = static_cast<double>(reach) * kReachScale;

@@ -57,9 +57,9 @@ EI_REPLACE_METHOD(0x004F93A0, ClipBounds::SetBox);
 static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
     Vector3 c = TransformColumn<Sum3::ZXY, Sum3::ZXY, Sum3::ZYX>(m, p);
     float cw = TransformColumnW<Sum3::ZXY>(m, p);
-    float w2 = StoreFloat(cw + cw);
-    float xw = StoreFloat(c.x + cw);
-    float yw = StoreFloat(c.y + cw);
+    float w2 = static_cast<float>(cw + cw);
+    float xw = static_cast<float>(c.x + cw);
+    float yw = static_cast<float>(c.y + cw);
     return SignBit(xw) | SignBit(yw) << 2 | SignBit(c.z) << 4 | std::uint32_t(!(w2 >= xw)) << 1 |
            std::uint32_t(!(w2 >= yw)) << 3 | std::uint32_t(!(cw >= c.z)) << 5;
 }
@@ -162,9 +162,9 @@ EI_REPLACE(0x004F13F0, ShearMatrix);
 
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
     double half = fov * 0.5;
-    float c = StoreFloat(static_cast<float>(x87::fcos(half)));
+    float c = static_cast<float>(x87::fcos(half));
     double s = x87::fsin(half);
-    float q = StoreFloat(static_cast<float>(s * zFar / (zFar - zNear)));
+    float q = static_cast<float>(s * zFar / (zFar - zNear));
     std::memset(out, 0, sizeof(Matrix4));
     out->m[0] = c;
     out->m[5] = c * aspect;
