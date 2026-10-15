@@ -15,13 +15,12 @@
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "lib/mfc_list.h"
 
 #include <cstring>
 
 namespace {
 
-constexpr std::uintptr_t kRegionListVtable = 0x0073EDB0;   // CList of region nodes (+8 x, +0xA y: words)
-constexpr std::uintptr_t kWaypointListVtable = 0x0073FD9C; // CList of waypoints {x, y, region}
 constexpr int kUnreachable = 0x7FFFFFFF;
 constexpr std::uint32_t kAllOffsets = 0x60AD78EC;   // the spiral radius covering every offset
 
@@ -68,8 +67,8 @@ SpiralCache* Spiral() { return reinterpret_cast<SpiralCache*>(0x007C2F58); }
 
 // An inlined CList destructor: the nodes need no destruction; the blocks are freed.
 template <typename List>
-void DestroyList(List& list, std::uintptr_t vtable) {
-    list.vtable = reinterpret_cast<void*>(vtable);
+void DestroyList(List& list, void* vtable) {
+    list.vtable = vtable;
     list.RemoveAll();
 }
 
@@ -91,7 +90,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     ListRemoveAll(&path->cells, nullptr);
     bool ok = RegionChain(&regionMap, nullptr, sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
     if (!ok || chain.count * 8 > maxCells) {
-        chain.vtable = reinterpret_cast<void*>(kRegionListVtable);
+        chain.vtable = PathCellListVtable();
         ListRemoveAll(&chain, nullptr);
         return false;
     }
@@ -101,7 +100,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     // 8x8 block), then the target.
     int curX = fromX, curY = fromY;
     int bestX = fromX, bestY = fromY;
-    WaypointList waypoints{reinterpret_cast<void*>(kWaypointListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    WaypointList waypoints{mfc::impl::WaypointListClass::Vtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     std::uint8_t** cellRows = regionMap.cells[sizeClass].rows;
     RegionNode* region = chain.head;
     RegionNode* previous = region;
@@ -236,8 +235,8 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 data[size].y = y;
                 retried = PlanPath(this, nullptr, unit, fromX, fromY, toX, toY, path, retry, maxCells);
             }
-            DestroyList(waypoints, kWaypointListVtable);
-            DestroyList(chain, kRegionListVtable);
+            DestroyList(waypoints, mfc::impl::WaypointListClass::Vtable());
+            DestroyList(chain, PathCellListVtable());
             return retried;
         }
     }
@@ -249,8 +248,8 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         if (first->data.x != fromX || first->data.y != fromY) result = false;
     }
     SearchReset(search, nullptr);
-    DestroyList(waypoints, kWaypointListVtable);
-    DestroyList(chain, kRegionListVtable);
+    DestroyList(waypoints, mfc::impl::WaypointListClass::Vtable());
+    DestroyList(chain, PathCellListVtable());
     return result;
 }
 

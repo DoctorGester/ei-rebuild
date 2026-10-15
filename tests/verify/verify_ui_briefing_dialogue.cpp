@@ -112,6 +112,25 @@ static void __fastcall SpeakerAnimationVerify(CBriefingScreen* self, void*, CUni
 }
 EI_VERIFY(0x00607A60, SpeakerAnimationVerify, 0, s_unused);
 
+// 006023F0 (S16c): ours only (it starts animations and draws random numbers). Afterwards a server
+// unit whose client unit is one of the speakers has the callback back as its controller's actionDone
+// (PlaySpeakerAnimation set it again). Reached when a speaker's animation ends (ui_base_dialogue).
+void __fastcall SpeakerAnimationDone(CUnit* serverUnit);
+static void __fastcall SpeakerAnimationDoneVerify(CUnit* serverUnit) {
+    SpeakerAnimationDone(serverUnit);
+    if (!serverUnit) return;
+    auto* unit = reinterpret_cast<CUnit*>(WorldFindUnit(reinterpret_cast<void*>(0x007AF5B8), nullptr, serverUnit->id_));
+    if (!unit) return;
+    auto* screen = static_cast<CBriefingScreen*>(InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(0x007C7D50)));
+    bool speaker = false;
+    for (BriefingSpeaker* s = screen->speakers_; s != screen->speakersEnd_; ++s) speaker |= s->unit == unit;
+    if (!speaker) return;
+    auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
+    ei::verify::Check("SpeakerAnimationDone", SpeakerActionDone(), reinterpret_cast<void*>(controller->actionDone),
+                      "unit %d", serverUnit->id_);
+}
+EI_VERIFY(0x006023F0, SpeakerAnimationDoneVerify, 0, s_unused);
+
 static void __fastcall ViewSpeakerVerify(CBriefingScreen* self, void*, CUnit* unit, float angle, float distance,
                                          float height) {
     using Fn = void(__fastcall*)(CBriefingScreen*, void*, CUnit*, float, float, float);

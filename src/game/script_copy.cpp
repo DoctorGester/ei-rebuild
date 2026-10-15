@@ -11,6 +11,8 @@
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "originals_script.h"
+#include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -124,14 +126,6 @@ EI_REPLACE(0x004CB220, ScriptFxSourceAssign);
 namespace {
 
 // Derived vtables of the arrays (set after each base constructor; the base vtable never stays).
-constexpr std::uintptr_t kVarFloatsVtable = 0x0073D2E0;    // ScriptVars floats (base 0073D2EC)
-constexpr std::uintptr_t kStringsVtable = 0x0073D2D4;      // CString arrays (base 0073D2F8)
-constexpr std::uintptr_t kRefsVtable = 0x0073D110;         // ScriptGroup / object values
-constexpr std::uintptr_t kRefsBaseVtable = 0x0073D11C;     // their base (the destructor sets it)
-constexpr std::uintptr_t kGroupsVtable = 0x0073D304;       // group values (base 0073D310)
-constexpr std::uintptr_t kArgFloatsVtable = 0x0073D490;    // SSCCmd floats (base 0073D3E8)
-constexpr std::uintptr_t kArgObjectsVtable = 0x0073D484;   // SSCCmd objects (base 0073D3F4)
-constexpr std::uintptr_t kArgGroupsVtable = 0x0073D478;    // SSCCmd groups
 
 void __fastcall RefsSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
 // GetAt by value: CString (004C2680), a referenced ScriptObjectRef (004C21E0), a ScriptGroup copy
@@ -151,17 +145,17 @@ __declspec(naked) void __fastcall SubCallsCopyConstruct(void*, void*, const void
 __declspec(naked) void __fastcall NamesCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBA00)
 
 template <typename T>
-void InitArray(mfc::CArray<T>* a, std::uintptr_t vtable) {
+void InitArray(mfc::CArray<T>* a, void* vtable) {
     a->data = nullptr;
     a->size = 0;
     a->maxSize = 0;
     a->growBy = 0;
-    a->vtable = reinterpret_cast<void*>(vtable);
+    a->vtable = vtable;
 }
 
 // A string array constructed empty, resized with 004C2510, each element assigned from a GetAt copy.
 void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::CString>* from) {
-    InitArray(to, kStringsVtable);
+    InitArray(to, scriptvtable::kStrings);
     NamesSetSizeOriginal(to, nullptr, from->size, -1);
     for (int i = 0; i < from->size; ++i) {
         TempString s;
@@ -173,12 +167,12 @@ void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::
 // SSCCmd's copy constructor (inlined into both GetAt bodies).
 void CopyConstructCmd(SSCCmd* to, const SSCCmd* from) {
     to->id = from->id;
-    InitArray(&to->floatArgs, kArgFloatsVtable);
+    InitArray(&to->floatArgs, mfc::impl::ArgFloatArrayClass::Vtable());
     CopyFloats(&to->floatArgs, &from->floatArgs, FloatArgsSetSize);
     CopyConstructStrings(&to->stringArgs, &from->stringArgs);
-    InitArray(&to->objectArgs, kArgObjectsVtable);
+    InitArray(&to->objectArgs, mfc::impl::ArgObjectsClass::Vtable());
     CopyPlain(&to->objectArgs, &from->objectArgs, ObjectArgsSetSize);
-    InitArray(&to->groupArgs, kArgGroupsVtable);
+    InitArray(&to->groupArgs, mfc::impl::ArgGroupsClass::Vtable());
     CopyPlain(&to->groupArgs, &from->groupArgs, GroupArgsSetSize);
     BindingsCopyConstruct(&to->localBindings, nullptr, &from->localBindings);
     BindingsCopyConstruct(&to->globalBindings, nullptr, &from->globalBindings);
@@ -220,7 +214,7 @@ EI_REPLACE(0x004CCAA0, ScriptSubCallCopyAt);
 // name assigned from a GetAt copy.
 mfc::CArray<mfc::CString>* __fastcall ScriptNamesCopyConstruct(mfc::CArray<mfc::CString>* self, void*,
                                                             const mfc::CArray<mfc::CString>* other) {
-    InitArray(self, kStringsVtable);
+    InitArray(self, scriptvtable::kStrings);
     int n = other->size;
     if (n == 0) {
         self->maxSize = 0;
@@ -243,7 +237,7 @@ EI_REPLACE(0x004CBA00, ScriptNamesCopyConstruct);
 // Object values: each slot drops its (null) object and takes the GetAt copy's object with a
 // reference of its own; the copy is released (all inline in the original).
 template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRef>::CopyConstruct(const ScriptNamedValues<ScriptObjectRef>* other) {
-    InitArray(&values, kRefsVtable);
+    InitArray(&values, scriptvtable::kRefs);
     RefsSetSize(&values, nullptr, other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptObjectRef value;
@@ -263,7 +257,7 @@ EI_REPLACE_METHOD(0x004CBDB0, ScriptNamedValues<ScriptObjectRef>::CopyConstruct)
 // Group values: each group sized to the GetAt copy's and its members copied in place; the copy's
 // destructor inlined (vtable 0073D11C, each reference destroyed, the array freed).
 template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::CopyConstruct(const ScriptNamedValues<ScriptGroup>* other) {
-    InitArray(&values, kGroupsVtable);
+    InitArray(&values, scriptvtable::kGroups);
     GroupValuesSetSize(&values, nullptr, other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptGroup copy;
@@ -277,7 +271,7 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
             RefConstruct(&group->data[k], nullptr, &member);
             RefReset(&member);
         }
-        copy.vtable = reinterpret_cast<void*>(kRefsBaseVtable);
+        copy.vtable = scriptvtable::kRefsBase;
         if (copy.data) {
             for (int k = 0; k < copy.size; ++k) ScriptRefDestroyOriginal(&copy.data[k], nullptr, 0);
             gamecrt::operator_delete(copy.data);
@@ -291,13 +285,13 @@ EI_REPLACE_METHOD(0x004CBEF0, ScriptNamedValues<ScriptGroup>::CopyConstruct);
 // ScriptVars' copy constructor: names through 004CBA00, string values through 004C2510 / GetAt,
 // objects through the reference helpers, groups assigned (004C1290) from GetAt copies.
 ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
-    InitArray(&floats, kVarFloatsVtable);
+    InitArray(&floats, scriptvtable::kFloats);
     CopyFloats(&floats, &other->floats, FloatsSetSize);
     NamesCopyConstructAt(&floatNames, nullptr, &other->floatNames);
     CopyConstructStrings(&strings, &other->strings);
     NamesCopyConstructAt(&stringNames, nullptr, &other->stringNames);
 
-    InitArray(&objects, kRefsVtable);
+    InitArray(&objects, scriptvtable::kRefs);
     RefsSetSize(&objects, nullptr, other->objects.size, -1);
     for (int i = 0; i < other->objects.size; ++i) {
         ScriptObjectRef value;
@@ -309,7 +303,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     }
     NamesCopyConstructAt(&objectNames, nullptr, &other->objectNames);
 
-    InitArray(&groups, kGroupsVtable);
+    InitArray(&groups, scriptvtable::kGroups);
     GroupValuesSetSize(&groups, nullptr, other->groups.size, -1);
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
@@ -325,14 +319,14 @@ EI_REPLACE_METHOD(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);
 // ScriptVars' default constructor (004C00D0): each array's base constructor (004C24F0 / 004C2030 /
 // 004C3960: fields 0, base vtable) then its derived vtable, in member order; returns the set.
 ScriptVars* ScriptVars::ScriptVarsConstruct() {
-    InitArray(&floats, kVarFloatsVtable);
-    InitArray(&floatNames, kStringsVtable);
-    InitArray(&strings, kStringsVtable);
-    InitArray(&stringNames, kStringsVtable);
-    InitArray(&objects, kRefsVtable);
-    InitArray(&objectNames, kStringsVtable);
-    InitArray(&groups, kGroupsVtable);
-    InitArray(&groupNames, kStringsVtable);
+    InitArray(&floats, scriptvtable::kFloats);
+    InitArray(&floatNames, scriptvtable::kStrings);
+    InitArray(&strings, scriptvtable::kStrings);
+    InitArray(&stringNames, scriptvtable::kStrings);
+    InitArray(&objects, scriptvtable::kRefs);
+    InitArray(&objectNames, scriptvtable::kStrings);
+    InitArray(&groups, scriptvtable::kGroups);
+    InitArray(&groupNames, scriptvtable::kStrings);
     return this;
 }
 EI_REPLACE_METHOD(0x004C00D0, ScriptVars::ScriptVarsConstruct);
@@ -340,7 +334,7 @@ EI_REPLACE_METHOD(0x004C00D0, ScriptVars::ScriptVarsConstruct);
 // Float values: the values through their SetSize (004C2880) and the FPU, then the names as
 // ScriptNamesCopyConstruct builds them (inlined in the original).
 template <> ScriptNamedValues<float>* ScriptNamedValues<float>::CopyConstruct(const ScriptNamedValues<float>* other) {
-    InitArray(&values, kVarFloatsVtable);
+    InitArray(&values, scriptvtable::kFloats);
     CopyFloats(&values, &other->values, FloatsSetSize);
     ScriptNamesCopyConstruct(&names, nullptr, &other->names);
     return this;

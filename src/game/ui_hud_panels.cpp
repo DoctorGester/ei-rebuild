@@ -192,7 +192,7 @@ void CHudUnitPanel::ShowEffects(CUnit* unit) {
         code.Empty();
         text.Empty();
         const auto* spell =
-            reinterpret_cast<const itemdb::SpellRecord*>(itemdb::Spells().At(effects[i].type, itemdb::kSpellSize));
+            reinterpret_cast<const itemdb::SpellRecord*>(itemdb::Spells().RecordAt(effects[i].type, itemdb::kSpellSize));
         if (spell) {
             icons[i] = static_cast<int>(spell->icon);
             code = static_cast<const char*>(spell->code);

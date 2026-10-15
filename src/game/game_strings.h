@@ -85,4 +85,119 @@ inline const char* FigPathFormat() { return reinterpret_cast<const char*>(0x0079
 inline const char* CantOpenFigText() { return reinterpret_cast<const char*>(0x00790C74); }
 inline const char* AstExtensionText() { return reinterpret_cast<const char*>(0x00784630); }
 
+// 00783D6C: "?" (the server's and the client's lists show it for a name that is missing).
+inline const char* QuestionMarkText() { return reinterpret_cast<const char*>(0x00783D6C); }
+
+// The suffixes of the zone messages and the quest registry keys: 00783D70 "_1" (enter), 00783D80 "_2"
+// (leave), 00783D84 "_3" (finish).
+inline const char* ZoneSuffix1Text() { return reinterpret_cast<const char*>(0x00783D70); }
+inline const char* ZoneSuffix2Text() { return reinterpret_cast<const char*>(0x00783D80); }
+inline const char* ZoneSuffix3Text() { return reinterpret_cast<const char*>(0x00783D84); }
+
+// The interface sounds: 007937E4 "buttons\messbox\cancel.wav", 00793A88 "buttons\messbox\ok.wav",
+// 00793A60 "buttons\save\select.wav", 007937B0 "buttons\camp\put_on.wav", 007937C8
+// "buttons\camp\put_off.wav", 00793764 (the hero screen's rotate arrows).
+inline const char* CancelSoundText() { return reinterpret_cast<const char*>(0x007937E4); }
+inline const char* OkSoundText() { return reinterpret_cast<const char*>(0x00793A88); }
+inline const char* SelectSoundText() { return reinterpret_cast<const char*>(0x00793A60); }
+inline const char* PutOnSoundText() { return reinterpret_cast<const char*>(0x007937B0); }
+inline const char* PutOffSoundText() { return reinterpret_cast<const char*>(0x007937C8); }
+inline const char* RotateSoundText() { return reinterpret_cast<const char*>(0x00793764); }
+
+// The map files' keywords (map_database.cpp: the words of a map's .ini lines).
+namespace mapwords {
+inline const char* Allod() { return Text(0x00785768); }  // "#allod"
+inline const char* Zone() { return Text(0x00785760); }  // "#zone"
+inline const char* Game() { return Text(0x00785758); }  // "game"
+inline const char* Brief() { return Text(0x00785750); }  // "brief"
+inline const char* Edge() { return Text(0x00785748); }  // "edge"
+inline const char* Res() { return Text(0x00785740); }  // "#res"
+inline const char* Camera() { return Text(0x00785738); }  // "#camera"
+inline const char* Maps() { return Text(0x00785730); }  // "#maps"
+inline const char* Figure() { return Text(0x00785728); }  // "#figure"
+inline const char* Weather() { return Text(0x0078571C); }  // "#weather"
+inline const char* Snow() { return Text(0x00785714); }  // "snow"
+inline const char* Tornado() { return Text(0x0078570C); }  // "tornado"
+inline const char* Cage() { return Text(0x00785704); }  // "#cage"
+inline const char* Restrict() { return Text(0x007856F8); }  // "#restrict"
+inline const char* Sky() { return Text(0x007856F0); }  // "#sky"
+inline const char* Cave() { return Text(0x007856E8); }  // "cave"
+inline const char* Exit() { return Text(0x007856E0); }  // "#exit"
+inline const char* Deploy() { return Text(0x007856D8); }  // "#deploy"
+inline const char* Remove() { return Text(0x007856D0); }  // "#remove"
+inline const char* PassTime() { return Text(0x007856C4); }  // "#passtime"
+inline const char* View() { return Text(0x007856BC); }  // "#view"
+inline const char* Zero() { return Text(0x007856B8); }  // "0"
+inline const char* DeployAngle() { return Text(0x007856A8); }  // "#deployangle"
+}  // namespace mapwords
+
+// The quest file's section and key names (quest_database.cpp).
+namespace questwords {
+inline const char* Name() { return Text(0x007967C4); }  // "name"
+inline const char* Quest() { return Text(0x007967BC); }  // "quest"
+inline const char* Exp() { return Text(0x0079275C); }  // "exp"
+inline const char* Money() { return Text(0x00792760); }  // "money"
+inline const char* ZoneIndex() { return Text(0x007967B0); }  // "zone index"
+inline const char* Order() { return Text(0x007967A8); }  // "order"
+inline const char* QuestPlaces() { return Text(0x0079679C); }  // "questplaces"
+inline const char* BriefingReceive() { return Text(0x00796788); }  // "briefing receive"
+inline const char* BriefingReject() { return Text(0x00796720); }  // "briefing reject"
+inline const char* BriefingComplete() { return Text(0x0079670C); }  // "briefing complete"
+// The six lists of a briefing, by index: "give items", "remove items", "give quests", "complete quests", "available zones", "complete zones".
+inline const char* ListKey(int index) {
+    switch (index) {
+    case 0: return Text(0x0079677C);
+    case 1: return Text(0x0079676C);
+    case 2: return Text(0x00796760);
+    case 3: return Text(0x00796750);
+    case 4: return Text(0x00796740);
+    default: return Text(0x00796730);
+    }
+}
+}  // namespace questwords
+
+// The save/load screens' file names and texts (ui_saveload.cpp).
+namespace savewords {
+inline const char* SavePattern() { return Text(0x00794A34); }  // "%ssaves\\save*"
+inline const char* InfoFile() { return Text(0x007949B8); }  // "info.sav"
+inline const char* InfoInFolder() { return Text(0x00794A28); }  // "\\info.sav"
+inline const char* ShotFile() { return Text(0x007949AC); }  // "shot.sav"
+inline const char* BrokenTitle() { return Text(0x00794A1C); }  // "Error Save"
+inline const char* NewFolder() { return Text(0x00794A14); }  // "save%d"
+inline const char* GameTime() { return Text(0x00742B88); }  // "gtime"
+inline const char* NotifySaving() { return Text(0x007949C4); }  // "notify_saving"
+inline const char* NoSpace() { return Text(0x007949D4); }  // "no_disc_space"
+inline const char* NoSpaceText() { return Text(0x007949E4); }  // "no_disc_space_msg"
+inline const char* CantLockSurface() { return Text(0x0078E30C); }  // "Can't lock surface.\n"
+inline const char* CantUnlockSurface() { return Text(0x0078E2F4); }  // "Can't unlock surface.\n"
+}  // namespace savewords
+
+// The briefing and quest registry texts (world_briefing.cpp).
+namespace briefingwords {
+inline const char* BriefingSection() { return Text(0x007906E4); }  // "briefing "
+inline const char* ShowTag() { return Text(0x007906DC); }  // "#show"
+inline const char* Hero() { return Text(0x0078B0F4); }  // "Hero"
+inline const char* ElderPrefix() { return Text(0x007906F0); }  // "b.elder."
+inline const char* VariablePrefix() { return Text(0x007906FC); }  // "b."
+inline const char* QuestRegistry() { return Text(0x00790784); }  // "\quest.reg"
+inline const char* MapList() { return Text(0x00790778); }  // "\map.txt"
+inline const char* QuestSection() { return Text(0x00790790); }  // "quest "
+}  // namespace briefingwords
+
+// World loading error texts (world_zone.cpp).
+namespace zonetexts {
+inline const char* WrongEntrance() { return Text(0x00790958); }  // "Wrong entrance number in zone exit..."
+inline const char* CantLoadMob() { return Text(0x00790B08); }  // "CWorldServer::LoadMap.\n Can't load .mob file "%s".\n"
+inline const char* CantReadObjects() { return Text(0x00790B3C); }  // "CWorldServer::LoadMapObjects\nUnable to read file "%s"\n"
+inline const char* CantOpenObjects() { return Text(0x00790B74); }  // "CWorldServer::LoadMapObjects()\nUnable to read file "%s"\n"
+}  // namespace zonetexts
+
+// Unit equipment error texts (unit_equipment.cpp).
+namespace equipmenttexts {
+inline const char* NoPrototype() { return Text(0x0078F330); }  // Can't find prototype "%s".
+inline const char* NoArmour() { return Text(0x0078F308); }  // Can't create armor "%s" for unit "%s".
+inline const char* NoWeapon() { return Text(0x0078F2DC); }  // Can't create weapon "%s" for unit "%s".
+inline const char* NoSpell() { return Text(0x0078F2B4); }  // Can't create spell "%s" for unit "%s".
+}  // namespace equipmenttexts
+
 } // namespace game

@@ -168,7 +168,7 @@ bool CCampPages::DeconstructItem() {
     // null, as in the original.
     for (std::uint32_t i = 0; i < reinterpret_cast<const itemdb::ItemRecordHead*>(copy->GetPrototype())->materialUnits; ++i) {
         auto* material = reinterpret_cast<const itemdb::MaterialRecordHead*>(
-            itemdb::Materials().At(MaterialIndex(copy->prototypeId_), itemdb::kMaterialSize));
+            itemdb::Materials().RecordAt(MaterialIndex(copy->prototypeId_), itemdb::kMaterialSize));
         // The original builds CString("material") + '.' + key (operator+ twice); the text is the same.
         mfc::CString name(MaterialText());
         name += ".";
@@ -218,10 +218,10 @@ void StockSpells(CCampPages* camp, CParty* list) {
             StockAddSpellOriginal(stock, nullptr, SpellPrototypeByNameOriginal(SpellTable(), nullptr, name));
         } else if (ItemKindIsSpellOriginal(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
-            StockAddSpellOriginal(stock, nullptr, itemdb::Spells().At(index, itemdb::kSpellSize));
+            StockAddSpellOriginal(stock, nullptr, itemdb::Spells().RecordAt(index, itemdb::kSpellSize));
         } else if (ItemKindIsModifierOriginal(item)) {
             std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
-            StockAddModifierOriginal(stock, nullptr, itemdb::SpellModifiers().At(index, itemdb::kSpellModifierSize));
+            StockAddModifierOriginal(stock, nullptr, itemdb::SpellModifiers().RecordAt(index, itemdb::kSpellModifierSize));
         }
     }
 }
@@ -249,11 +249,11 @@ void StockItems(CCampPages* camp, CParty* list) {
             PartyRemoveItemOriginal(list, nullptr, item, 1);
         }
         if (kind == static_cast<int>(kRecordWeapon))
-            StockAddWeaponOriginal(stock, nullptr, itemdb::Weapons().At(index, itemdb::kWeaponSize));
+            StockAddWeaponOriginal(stock, nullptr, itemdb::Weapons().RecordAt(index, itemdb::kWeaponSize));
         else if (kind == static_cast<int>(kRecordArmor))
-            StockAddArmorOriginal(stock, nullptr, itemdb::Armors().At(index, itemdb::kArmorSize));
+            StockAddArmorOriginal(stock, nullptr, itemdb::Armors().RecordAt(index, itemdb::kArmorSize));
         else if (kind == static_cast<int>(kRecordQuickItem))
-            StockAddQuickItemOriginal(stock, nullptr, itemdb::QuickItems().At(index, itemdb::kQuickItemSize));
+            StockAddQuickItemOriginal(stock, nullptr, itemdb::QuickItems().RecordAt(index, itemdb::kQuickItemSize));
     }
 }
 

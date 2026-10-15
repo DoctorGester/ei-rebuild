@@ -17,6 +17,7 @@
 #include "originals_library.h"
 #include "originals_ai.h"
 #include "originals_units.h"
+#include "lib/mfc_array.h"
 
 #pragma float_control(precise, on)
 #pragma warning(disable : 4740) // naked forwarders
@@ -90,12 +91,12 @@ void MaybeRemark(AIBrain* brain, int what) {
 // An order on the stack: the looks array is constructed and given its derived vtable.
 void ConstructOrder(AIMoveOrder* order) {
     LooksConstructAt(&order->looks);
-    order->looks.vtable = reinterpret_cast<void*>(kLookArrayVtable);
+    order->looks.vtable = mfc::impl::AiLookRecordArrayClass::Vtable();
 }
 
 // The inlined destructor of the order's looks array.
 void DestroyLooks(AIMoveOrder* order) {
-    order->looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+    order->looks.vtable = mfc::impl::AiLookArrayClass::Vtable();
     if (order->looks.data) gamecrt::operator_delete(order->looks.data);
 }
 
@@ -207,8 +208,8 @@ void GuardMode::Execute(AIBrain* brain) {
         direction.y = static_cast<float>(direction.y * scale);
         direction.z = static_cast<float>(direction.z * scale);
     }
-    bool far = GameRandom()->Next() % 11 == 0;
-    brain->PlanLooks(&order, &direction, wander, far);
+    bool farLook = GameRandom()->Next() % 11 == 0;
+    brain->PlanLooks(&order, &direction, wander, farLook);
     StartMove(brain, &order);
     DestroyLooks(&order);
 }
@@ -328,11 +329,11 @@ void SentryMode::Execute(AIBrain* brain) {
     ConstructOrder(&order);
     LooksSetSizeAt(&order.looks, nullptr, 0, -1);
     std::memcpy(&order.point, &point, sizeof(Vector3));
-    bool far = GameRandom()->Next() % 11 == 0;
+    bool farLook = GameRandom()->Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
     // 007C53FC / 007C5400: the wander radii of a far and a near look-around.
-    float wanderRadius = far ? GlobalFloat(0x007C53FC) : GlobalFloat(0x007C5400);
-    brain->PlanLooks(&order, &none, wanderRadius, far);
+    float wanderRadius = farLook ? GlobalFloat(0x007C53FC) : GlobalFloat(0x007C5400);
+    brain->PlanLooks(&order, &none, wanderRadius, farLook);
     StartMove(brain, &order);
     SetPositions(brain, &order.point, kNearX, kNearY);
     DestroyLooks(&order);

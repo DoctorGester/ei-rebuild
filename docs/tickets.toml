@@ -745,7 +745,7 @@ title = "render_present_cpuwindows: the original's unmoco2 hit points are anothe
 group = "verification"
 size = 0.25
 depends = ["SV3a"]
-note = "From SV3d: after SV3a (unmoco2's hit points as the original's), render_present_cpuwindows (vanilla) still differs at the first record: obj2 hp nan:0xFFFFFF0A in the original (in both runs), nan:0xFFC00000 in ours. Other scenarios agree on 0xFFC00000; cunit2's packed vitals now agree everywhere. Find where the original's value comes from on that path (CPU windows) and match it, or add a KNOWN entry. SV2b: on the one-reservation harness heap the original's obj2 hp is a NaN from its stack leftovers in every scenario (0xFFFFFDxx vanilla, 0xFFFFFFxx Rebirth, by scenario; repeats); golden.py KNOWN leaves obj2 hp out. Match it (the leftover dwords on GiveDefaults' stack) or keep the entry."
+note = "Settled by SV7b3 (2026-10-15): the UnitStats leftovers are zeroed in both the original (harness_leftovers.cpp) and ours; unmoco2 hp is 1.0 on both sides."
 
 [[ticket]]
 id = "SV3i"
@@ -1311,7 +1311,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 7 merged 2026-10-15: 47 free slot bodies and pointer-parameter shims to Impl members; 908 shims left. Both easy pools are used up; what is left is call-through blocks, UI input shims and void* selfs, template aliases (C11 batch 7 in docs/notes/cleanup-units.md). Next batch: the constexpr addresses and per-file At() copies part of this ticket, or the UI input shims as one family."
+note = "Batch 9 merged 2026-10-15: own At() files 2 to 0 (RecordAt / ElementAt renames), address constants 249 to 187 (string accessors per file in game_strings.h), check_cleanup raw addresses 902 to 834. Left (187): menu_rects, net log texts and net_messages.h, effect float constants, class kVtableAddress statics, function addresses (docs/notes/cleanup-units.md, C11 batch 9)."
 
 [[ticket]]
 id = "C12"
@@ -1930,6 +1930,14 @@ title = "Standalone: console disconnect (005DFC10 -> 00581620 -> 00566E00) and r
 group = "standalone"
 depends = ["S16b"]
 note = "S16b left: the console's disconnect (005DFC10, a jump to GameFlow 00581620, itself a jump to the client world's 00566E00, unported) is reached by no scenario. And an INT3 hit in the image before the missing-code handler is active (startup actions, static initialisers) ends the run silently as RUNNING with nothing logged (seen with ui_widescreen's sscanf, docs/notes/standalone.md S16b): install the handler first, or report from ei_launch."
+
+[[ticket]]
+id = "S16d"
+title = "Standalone: library code game.exe's data points at with no registration (226: MFC vtable slots, CRT tables)"
+group = "standalone"
+depends = ["S16c"]
+files = ["tools/standalone_gaps.py", "src/lib/mfc_*.cpp", "src/lib/crt*.cpp"]
+note = "S16c's tools/standalone_gaps.py data lists 226 function starts referenced from game.exe's .rdata/.data that nothing registers (game code: none left). Nearly all are MFC class vtable slots (CWnd, CWinThread, CCmdTarget, CFile, CException ... 00702596-0070DD05) and CRT tables (__exit 006E8DB8 at 007978E0, 006F47FB at 007978A8, 006F01E4 / 006F02B3, the _initterm entry 006EA218 at 00783BC0 run by the host); plus 00460110, the deleting destructor of the map database's CArray<MapRecord> (vtable 0073C3E8, a global: never deleted through the vtable), and two false rows (00646C25, 00656464: strings read as code pointers, library.csv). None is reached by the 98-scenario --standalone suite. Decide per vtable whether the image can call it (the game makes no CWnd; CWinThread is replaced by the host's threads, S16) and port or list as unreachable; also the 13 forwarders to the exe's CRT file / time functions and _getptd / CWnd::DestroyWindow that run only in the hook build (behind ei::Standalone())."
 
 # ---------------------------------------------------------------- Lua
 

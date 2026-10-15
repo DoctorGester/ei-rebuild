@@ -15,6 +15,7 @@
 #include "originals_ai.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "world_data.h"
 
 // Keep the original's order of float operations (/fp:fast would reassociate constants).
 #pragma float_control(precise, on)
@@ -54,7 +55,6 @@ struct GameOstream {
 GameOstream* GameOstream::Write(const char* text) { return static_cast<GameOstream*>(OstreamPutString(this, nullptr, text)); }
 GameOstream* GameOstream::Put(int c) { return static_cast<GameOstream*>(OstreamPutChar(this, nullptr, static_cast<char>(c))); }
 GameOstream* GameOstream::Apply(void* manipulator) { return static_cast<GameOstream*>(OstreamManipulate(this, nullptr, manipulator)); }
-constexpr std::uintptr_t kFlushManipulator = 0x00435000;
 
 
 // 0052CEC0: DestructElements of counted references (stdcall).
@@ -237,7 +237,7 @@ void AIBrain::Think() {
             text.Format(MotivationFormat(), owner->unit->id_, static_cast<const char*>(name),
                         bestPriority);
             GameOstream* console = *reinterpret_cast<GameOstream**>(kConsole);
-            console->Write(text)->Put('\n')->Apply(reinterpret_cast<void*>(kFlushManipulator));
+            console->Write(text)->Put('\n')->Apply(worlddata::FlushManipulator());
             int type = best->GetType();
             if (type >= kModeSuspection && (type <= kModeCorpseWatcher || type == kModeFear) && alertMode == 2 && !alerted)
                 alerted = 1;

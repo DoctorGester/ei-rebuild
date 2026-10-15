@@ -66,7 +66,7 @@ std::uint8_t PartLevel(const UnitBodyPart& part) {
 // Whether the armour piece `id` (packed: prototype index in the high half) shows the wounds
 // under it. The original reads the record unchecked (an out-of-range index reads address 0xB4).
 bool ShowsWounds(std::uint32_t id) {
-    const auto* record = reinterpret_cast<const itemdb::ArmorRecord*>(itemdb::Armors().At(id >> 16, itemdb::kArmorSize));
+    const auto* record = reinterpret_cast<const itemdb::ArmorRecord*>(itemdb::Armors().RecordAt(id >> 16, itemdb::kArmorSize));
     return record->showsWounds != 0;
 }
 

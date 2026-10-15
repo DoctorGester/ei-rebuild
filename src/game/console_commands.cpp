@@ -355,6 +355,11 @@ EI_REPLACE(0x005DF490, HostServer);
 void __fastcall MemUsage(CStringArray*) {}
 EI_REPLACE(0x005DF5A0, MemUsage);
 
+// 005DFC10 (a jump to GameFlow 00581620; no Ghidra function, S16c): disconnect, any arguments: the
+// client world's local player disconnects.
+void __fastcall Disconnect(CStringArray*) { TheGameFlow()->DisconnectClient(); }
+EI_REPLACE(0x005DFC10, Disconnect);
+
 // 005DF5B0: lootall.
 void __fastcall LootAll(CStringArray*) {
     PrintLine(game::Text(0x00792838));   // "Looting..."

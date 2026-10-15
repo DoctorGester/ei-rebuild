@@ -77,14 +77,14 @@ template <typename Add> void ForEachPart(const char* record, Add add) {
 
 void __fastcall WeaponModelParts(std::uint32_t index, console::CStringArray* out) {
     out->SetSize(0, -1);
-    const char* record = Weapons().At(index, kWeaponSize);
+    const char* record = Weapons().RecordAt(index, kWeaponSize);
     if (!record) return;
     ForEachPart(record, [out](const char* name) { out->SetAtGrow(out->GetSize(), name); });
 }
 EI_REPLACE(0x006A0FF0, WeaponModelParts);
 
 void __fastcall AppendWeaponModelParts(std::uint32_t packedId, stlp::vector<stlp::string>* out) {
-    const char* record = Weapons().At(PrototypeIndex(packedId), kWeaponSize);
+    const char* record = Weapons().RecordAt(PrototypeIndex(packedId), kWeaponSize);
     if (!record) return;
     ForEachPart(record, [out](const char* name) {
         stlp::string s(name);

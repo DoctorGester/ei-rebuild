@@ -134,7 +134,7 @@ EI_REPLACE(0x00454040, Map64x64::NewAssoc);
 EI_REPLACE(0x00454160, Map64x32::NewAssoc);
 
 // operator[], RemoveAll, the destructor, ConstructElements of an array of maps.
-EI_REPLACE(0x00476050, Map32::At);
+EI_REPLACE(0x00476050, Map32::ElementAt);
 EI_REPLACE(0x00453F80, Map32::RemoveAll);
 EI_REPLACE(0x00476140, Map32::Destruct<DwordMapClass>);
 

@@ -50,7 +50,7 @@ void CUnit::UpdateSizeClass() {
     standingHeight = !(kMaxHeight >= limited) ? kMaxHeight : limited;
     if (sizeClass != 0) return;
     // The prototype by prototypeId_; out of range the original reads address 0x24 (kept).
-    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().At(prototypeId_, unitdb::kPrototypeSize));
+    auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(prototypeId_, unitdb::kPrototypeSize));
     // FCOMP; TEST AH,0x41: only for a value above 1.5.
     if (std::bit_cast<float>(prototype->height) > kDeepPrototype) std::memcpy(&standingHeight, &kShallowHeight, 4);
 }

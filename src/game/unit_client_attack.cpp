@@ -50,7 +50,7 @@ void CUnitClientSpecific::GetAttackParams(AttackParams* out) {
         out->weaponType = WeaponType(weapon);
         out->damageType = WeaponDamageType(weapon);
         out->speed = WeaponAttack(weapon);
-        const char* record = itemdb::Weapons().At(PrototypeIndex(weapon), itemdb::kWeaponSize);
+        const char* record = itemdb::Weapons().RecordAt(PrototypeIndex(weapon), itemdb::kWeaponSize);
         // The bonus is stored to a float (FSTP) before the weapon's figure is added; _ftol truncates.
         float bonus = static_cast<float>(WeaponSkillBonusAt(params, nullptr, out->weaponType, record));
         out->attack = static_cast<int>(static_cast<double>(WeaponStat84(weapon)) + bonus);

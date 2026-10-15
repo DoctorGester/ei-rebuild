@@ -37,6 +37,7 @@
 #include "originals_ui.h"
 #include "originals_world.h"
 #include "record_lifetime.h"
+#include "game_flow_data.h"
 
 #include <ddraw.h>
 
@@ -59,19 +60,6 @@ void* const kMapDatabase = reinterpret_cast<void*>(0x0079BF00);
 void* const kCursor = reinterpret_cast<void*>(0x007C7BD8);
 void* const kInterface = reinterpret_cast<void*>(0x007C7D50);
 
-constexpr std::uintptr_t kSlotFolder = 0x007905E4;   // "%ssaves\\%s\\"
-constexpr std::uintptr_t kSavePattern = 0x00794A34;  // "%ssaves\\save*"
-constexpr std::uintptr_t kInfoFile = 0x007949B8;     // "info.sav"
-constexpr std::uintptr_t kInfoInFolder = 0x00794A28; // "\\info.sav"
-constexpr std::uintptr_t kShotFile = 0x007949AC;     // "shot.sav"
-constexpr std::uintptr_t kBrokenTitle = 0x00794A1C;  // "Error Save"
-constexpr std::uintptr_t kNewFolder = 0x00794A14;    // "save%d"
-constexpr std::uintptr_t kGameTime = 0x00742B88;     // "gtime"
-constexpr std::uintptr_t kNotifySaving = 0x007949C4; // "notify_saving"
-constexpr std::uintptr_t kNoSpace = 0x007949D4;      // "no_disc_space"
-constexpr std::uintptr_t kNoSpaceText = 0x007949E4;  // "no_disc_space_msg"
-constexpr std::uintptr_t kCantLock = 0x0078E30C;     // "Can't lock surface.\n"
-constexpr std::uintptr_t kCantUnlock = 0x0078E2F4;   // "Can't unlock surface.\n"
 
 constexpr std::uint32_t kShotBytes = 0x18000;        // 256 x 192 pixels, 16 bits
 constexpr unsigned kInfoMagic = 0x111;
@@ -205,7 +193,7 @@ public:
         long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)
                       ->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc_), 0, nullptr);
         holder_->result = hr;
-        return hr == 0 || FatalDirectX(hr, game::Text(kCantLock)) != 0;
+        return hr == 0 || FatalDirectX(hr, game::savewords::CantLockSurface()) != 0;
     }
     std::uint8_t* Bits() const { return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc_[9])); }
     void Mirror() const {
@@ -219,7 +207,7 @@ public:
         if (direct_) return;
         long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)->Unlock(nullptr);
         holder_->result = hr;
-        if (hr != 0) FatalDirectX(hr, game::Text(kCantUnlock));
+        if (hr != 0) FatalDirectX(hr, game::savewords::CantUnlockSurface());
     }
 
 private:
@@ -274,11 +262,11 @@ void CSaveLoadWindow::ShowPicture() {
         return;
     }
     mfc::CString folder;
-    folder.Format(game::Text(kSlotFolder), GameFolder(), entry->folder_);
+    folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), entry->folder_);
     mfc::CFileFind find;
     BOOL found;
     {
-        mfc::CString path = folder + game::Text(kShotFile);
+        mfc::CString path = folder + game::savewords::ShotFile();
         found = find.FindFile(path, 0);
     }
     if (!found) return;
@@ -288,7 +276,7 @@ void CSaveLoadWindow::ShowPicture() {
     if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
     mfc::CFile file;
     {
-        mfc::CString path = folder + game::Text(kShotFile);
+        mfc::CString path = folder + game::savewords::ShotFile();
         file.Open(path, 0, nullptr);
     }
     file.Read(pixels.Bits(), kShotBytes);
@@ -357,7 +345,7 @@ void CSaveLoadWindow::SaveGame() {
         int needed = SaveSpaceNeeded(kFlow);
         if (static_cast<double>(needed) > space) {
             void* memory = gamecrt::operator_new(0x180);
-            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::Text(kNoSpace), game::Text(kNoSpaceText),
+            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::savewords::NoSpace(), game::savewords::NoSpaceText(),
                                                           0x30000, 1, 1)
                                     : nullptr;
             InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
@@ -365,9 +353,9 @@ void CSaveLoadWindow::SaveGame() {
         }
     }
     mfc::CString folder;
-    folder.Format(game::Text(kSlotFolder), GameFolder(), entry->folder_);
+    folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), entry->folder_);
     mfc::CString notice;
-    Texts()->GetString(game::Text(kNotifySaving), &notice);
+    Texts()->GetString(game::savewords::NotifySaving(), &notice);
     ShowStatusText(kInterface, nullptr, notice);
     SaveGameAt(kFlow, nullptr, entry->folder_);
     CursorSetShape(kCursor, nullptr, 3);
@@ -375,7 +363,7 @@ void CSaveLoadWindow::SaveGame() {
     // info.sav: the new save's entry (the first) with the title being given.
     LocalFileStream info;
     {
-        mfc::CString path = folder + game::Text(kInfoFile);
+        mfc::CString path = folder + game::savewords::InfoFile();
         info.Open(path, kOpenWrite, 0);
     }
     if (nameTyped_)
@@ -409,7 +397,7 @@ void CSaveLoadWindow::SaveGame() {
         }
         mfc::CFile shot;
         {
-            mfc::CString path = folder + game::Text(kShotFile);
+            mfc::CString path = folder + game::savewords::ShotFile();
             shot.Open(path, kOpenWrite, nullptr);
         }
         CFileWrite(&shot, nullptr, pixels.Bits(), kShotBytes);
@@ -426,7 +414,7 @@ EI_REPLACE_METHOD(0x00655550, CSaveLoadWindow::SaveGame);
 
 void CSaveLoadWindow::FillEntries() {
     mfc::CString pattern;
-    pattern.Format(game::Text(kSavePattern), GameFolder());
+    pattern.Format(game::savewords::SavePattern(), GameFolder());
     mfc::CFileFind find;
     EntriesErase(EntryVector(this), nullptr, entriesBegin_, entriesEnd_);
     int highest = 0;     // the highest number after "save" in the folder names
@@ -449,12 +437,12 @@ void CSaveLoadWindow::FillEntries() {
         BOOL hasInfo;
         {
             mfc::CString folderPath = FilePath(find);
-            mfc::CString path = folderPath + game::Text(kInfoInFolder);
+            mfc::CString path = folderPath + game::savewords::InfoInFolder();
             hasInfo = infoFind.FindFile(path, 0);
         }
         if (!hasInfo) {
             entry->broken_ = true;
-            Str(entry->title_) = game::Text(kBrokenTitle);
+            Str(entry->title_) = game::savewords::BrokenTitle();
         } else {
             FindNext(infoFind);
             LocalFileStream info;
@@ -513,8 +501,8 @@ void CSaveLoadWindow::FillEntries() {
             EntryAssign(at, nullptr, &copy.e);
         }
         SaveEntry* entry = entriesBegin_;
-        Str(entry->folder_).Format(game::Text(kNewFolder), highest + 1);
-        entry->gameTime_ = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::Text(kGameTime)));
+        Str(entry->folder_).Format(game::savewords::NewFolder(), highest + 1);
+        entry->gameTime_ = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::savewords::GameTime()));
         {
             alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
             mfc::CString* zone = PlayerZone(kGlue, nullptr, storage);
@@ -573,7 +561,7 @@ GameFlow* Flow() { return static_cast<GameFlow*>(kFlow); }
 // The save folder saves\<slot>\ under the game's folder.
 mfc::CString SlotFolder(const char* slot) {
     mfc::CString folder;
-    folder.Format(game::Text(kSlotFolder), GameFolder(), slot);
+    folder.Format(game::Text(flowdata::kSlotFolder), GameFolder(), slot);
     return folder;
 }
 } // namespace
@@ -594,7 +582,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     CursorSetShape(kCursor, nullptr, 3);
     Interface()->serverFlag_ = static_cast<std::uint8_t>(ServerFlagOriginal());
     mfc::CString notice;
-    Texts()->GetString(game::Text(kNotifySaving), &notice);
+    Texts()->GetString(game::savewords::NotifySaving(), &notice);
     ShowStatusText(kInterface, nullptr, notice);
     SaveGameAt(kFlow, nullptr, slot);
 
@@ -604,7 +592,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     mfc::CString zone;
     std::int32_t now;
     const std::int32_t savedAt = *CurrentTime(&now);
-    const float gameTime = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::Text(kGameTime)));
+    const float gameTime = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::savewords::GameTime()));
     {
         alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
         mfc::CString* current = PlayerZone(kGlue, nullptr, storage);
@@ -615,7 +603,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
         map = *reinterpret_cast<const mfc::CString*>(&record->allod);
     mfc::CString folder = SlotFolder(slot);
     LocalFileStream info;
-    info.Open(folder + game::Text(kInfoFile), kOpenWrite, 0);
+    info.Open(folder + game::savewords::InfoFile(), kOpenWrite, 0);
     StreamWriteHeader(&info.s, nullptr, kInfoMagic, kInfoVersion);
     info.Write(&gameTime, 4);
     info.WriteText(map);
@@ -627,7 +615,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     // shot.sav: the copied screen at 256x192.
     std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
     mfc::CFile shot;
-    shot.Open(folder + game::Text(kShotFile), kOpenWrite, nullptr);
+    shot.Open(folder + game::savewords::ShotFile(), kOpenWrite, nullptr);
     CFileWrite(&shot, nullptr, pixels, kShotBytes);
     shot.Close();
     gamecrt::operator_delete(pixels);

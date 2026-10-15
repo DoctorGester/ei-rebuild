@@ -15,6 +15,9 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "lib/mfc_array.h"
+#include "lib/mfc_slots.h"
+#include "record_arrays.h"
 
 #include <cstdint>
 
@@ -23,16 +26,6 @@
 namespace {
 
 // Base vtables the inlined destructors write.
-constexpr std::uintptr_t kFloatsBaseVtable = 0x0073D2EC;    // ScriptVars floats
-constexpr std::uintptr_t kStringsBaseVtable = 0x0073D2F8;   // CString arrays
-constexpr std::uintptr_t kRefsBaseVtable = 0x0073D11C;      // object values
-constexpr std::uintptr_t kGroupsBaseVtable = 0x0073D310;    // group values
-constexpr std::uintptr_t kIfThenBaseVtable = 0x0073D3AC;    // a definition's if-then pairs
-constexpr std::uintptr_t kArgFloatsBaseVtable = 0x0073D3E8; // SSCCmd float arguments
-constexpr std::uintptr_t kArgObjectsBaseVtable = 0x0073D3F4;
-constexpr std::uintptr_t kArgGroupsBaseVtable = 0x0073D400;
-constexpr std::uintptr_t kBindingsBaseVtable = 0x0073D40C;  // both binding arrays
-constexpr std::uintptr_t kSubCallsBaseVtable = 0x0073D418;
 
 // DestructElements (__stdcall (first, count)): CString (006FE296), ScriptObjectRef (004CC7D0,
 // each released), ScriptGroup (004CC980).
@@ -55,19 +48,19 @@ __declspec(naked) void __fastcall FxSourceBody(void*) EI_ORIGINAL(0x004BD540)
 __declspec(naked) void __fastcall WorldBlockBody(void*) EI_ORIGINAL(0x004BF7E0)
 
 template <typename T>
-void SetBaseVtable(mfc::CArray<T>* a, std::uintptr_t vtable) {
-    a->vtable = reinterpret_cast<void*>(vtable);
+void SetBaseVtable(mfc::CArray<T>* a, void* vtable) {
+    a->vtable = vtable;
 }
 
 // The inlined destructor of an array whose elements need nothing.
 template <typename T>
-void FreePlain(mfc::CArray<T>* a, std::uintptr_t vtable) {
+void FreePlain(mfc::CArray<T>* a, void* vtable) {
     SetBaseVtable(a, vtable);
     if (a->data) gamecrt::operator_delete(a->data);
 }
 
 void FreeStrings(mfc::CArray<mfc::CString>* a) {
-    SetBaseVtable(a, kStringsBaseVtable);
+    SetBaseVtable(a, scriptvtable::kStringsBase);
     if (a->data) {
         DestructStrings(a->data, a->size);
         gamecrt::operator_delete(a->data);
@@ -79,13 +72,13 @@ void FreeStrings(mfc::CArray<mfc::CString>* a) {
 // Members from the last to the first.
 void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
     FreeStrings(&vars->groupNames);
-    SetBaseVtable(&vars->groups, kGroupsBaseVtable);
+    SetBaseVtable(&vars->groups, scriptvtable::kGroupsBase);
     if (ScriptGroup* groups = vars->groups.data) {
         for (int i = 0; i < vars->groups.size; ++i) GroupDestroy(&groups[i], nullptr, 0);
         gamecrt::operator_delete(vars->groups.data);
     }
     FreeStrings(&vars->objectNames);
-    SetBaseVtable(&vars->objects, kRefsBaseVtable);
+    SetBaseVtable(&vars->objects, scriptvtable::kRefsBase);
     if (vars->objects.data) {
         DestructRefs(vars->objects.data, vars->objects.size);
         gamecrt::operator_delete(vars->objects.data);
@@ -93,14 +86,14 @@ void __fastcall ScriptVarsDestruct(ScriptVars* vars) {
     FreeStrings(&vars->stringNames);
     FreeStrings(&vars->strings);
     FreeStrings(&vars->floatNames);
-    FreePlain(&vars->floats, kFloatsBaseVtable);
+    FreePlain(&vars->floats, scriptvtable::kFloatsBase);
 }
 EI_REPLACE(0x004BE090, ScriptVarsDestruct);
 
 void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     ScriptVars& vars = definition->vars;
     NamesDestruct(&vars.groupNames);
-    SetBaseVtable(&vars.groups, kGroupsBaseVtable);
+    SetBaseVtable(&vars.groups, scriptvtable::kGroupsBase);
     if (vars.groups.data) {
         DestructGroups(vars.groups.data, vars.groups.size);
         gamecrt::operator_delete(vars.groups.data);
@@ -111,24 +104,24 @@ void __fastcall ScriptDefinitionDestruct(ScriptDefinition* definition) {
     FreeStrings(&vars.strings);
     NamesDestruct(&vars.floatNames);
     FloatArrayDestruct(&vars.floats);
-    FreePlain(&definition->ifThen, kIfThenBaseVtable);
+    FreePlain(&definition->ifThen, mfc::impl::ScriptIfThenArrayClass::Vtable());
     definition->params.~CString();
     definition->name.~CString();
 }
 EI_REPLACE(0x004BE9D0, ScriptDefinitionDestruct);
 
 void __fastcall ScriptCmdDestruct(SSCCmd* cmd) {
-    SetBaseVtable(&cmd->subCalls, kSubCallsBaseVtable);
+    SetBaseVtable(&cmd->subCalls, recordarrays::SubCallBaseClass::Vtable());
     if (ScriptSubCall* calls = cmd->subCalls.data) {
         for (int i = 0; i < cmd->subCalls.size; ++i) SubCallDestroy(&calls[i], nullptr, 0);
         gamecrt::operator_delete(cmd->subCalls.data);
     }
-    FreePlain(&cmd->globalBindings, kBindingsBaseVtable);
-    FreePlain(&cmd->localBindings, kBindingsBaseVtable);
-    FreePlain(&cmd->groupArgs, kArgGroupsBaseVtable);
-    FreePlain(&cmd->objectArgs, kArgObjectsBaseVtable);
+    FreePlain(&cmd->globalBindings, mfc::impl::BindingsBaseClass::Vtable());
+    FreePlain(&cmd->localBindings, mfc::impl::BindingsBaseClass::Vtable());
+    FreePlain(&cmd->groupArgs, mfc::impl::ArgGroupsBaseClass::Vtable());
+    FreePlain(&cmd->objectArgs, mfc::impl::ArgObjectsBaseClass::Vtable());
     FreeStrings(&cmd->stringArgs);
-    FreePlain(&cmd->floatArgs, kArgFloatsBaseVtable);
+    FreePlain(&cmd->floatArgs, mfc::impl::FloatArrayClass::Vtable());
 }
 EI_REPLACE(0x004BF640, ScriptCmdDestruct);
 

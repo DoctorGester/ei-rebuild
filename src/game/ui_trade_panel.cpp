@@ -20,6 +20,7 @@
 #include "originals_library.h"
 #include "originals_world.h"
 #include "originals_units.h"
+#include "unit_db.h"
 
 namespace {
 
@@ -63,11 +64,10 @@ struct SurfaceDraw {
 };
 int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t colour, int a, int b) { return SurfaceDrawText(this, nullptr, text, rect, format, colour, a, b); }
 
-constexpr std::uintptr_t kSkillDatabase = 0x007AF268;   // its records: vector at +0xC (0x44 bytes each)
 constexpr int kSkillRecordSize = 0x44;
-std::uint8_t* SkillRecords() { return *reinterpret_cast<std::uint8_t* const*>(kSkillDatabase + 0xC); }
+std::uint8_t* SkillRecords() { return reinterpret_cast<std::uint8_t*>(unitdb::SkillLevels().begin); }
 int SkillCount() {
-    std::uint8_t* end = *reinterpret_cast<std::uint8_t* const*>(kSkillDatabase + 0x10);
+    std::uint8_t* end = reinterpret_cast<std::uint8_t*>(unitdb::SkillLevels().end);
     return static_cast<int>(end - SkillRecords()) / kSkillRecordSize;
 }
 
@@ -231,7 +231,7 @@ void CTradePanel::BuildLists() {
         if (static_cast<unsigned>(index) >= static_cast<unsigned>(SkillCount())) continue;
         std::uint8_t* record = SkillRecords() + index * kSkillRecordSize;
         if (!record) continue;
-        if (!CanLearn(stats, nullptr, reinterpret_cast<void*>(kSkillDatabase), record)) continue;
+        if (!CanLearn(stats, nullptr, SkillDb(), record)) continue;
         TradeRow* row = PushBack(&learnable_, blank);
         PerkBaseName(&text, record);
         if (HasPerkText(table, text))

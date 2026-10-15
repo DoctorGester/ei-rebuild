@@ -156,3 +156,34 @@ static void __fastcall BuildBoneVerify(scene::SceneSkin* skin, CAnimationNode* b
                       node->positionKeys.size, node->rotationKeys.size, morphKeys, node->children.size);
 }
 EI_VERIFY(0x004492F0, BuildBoneVerify, 0, s_bone);
+
+// --- 0044CF00 / 0044CF60 (S16c) -----------------------------------------------------------------
+// The corner records' and pairs' qsort comparators: pure, so the original (its first five bytes: MOV EDX,
+// [ESP+4]; PUSH ESI) and ours run on the same two elements and the results are compared. Reached by
+// IndexMeshCorners (0044CFF0) through the game's qsort when a mesh has two records or pairs.
+
+namespace scene {
+int __cdecl CompareCornerRecords(const void* a, const void* b);
+int __cdecl CompareWordPairs(const void* a, const void* b);
+}
+
+namespace {
+using CompareFn = int(__cdecl*)(const void*, const void*);
+CompareFn s_compareRecords;
+CompareFn s_comparePairs;
+
+int __cdecl CompareRecordsVerify(const void* a, const void* b) {
+    int expected = s_compareRecords(a, b);
+    ei::verify::Check("CompareCornerRecords", expected, scene::CompareCornerRecords(a, b), "");
+    return expected;
+}
+int __cdecl ComparePairsVerify(const void* a, const void* b) {
+    int expected = s_comparePairs(a, b);
+    ei::verify::Check("CompareWordPairs", expected, scene::CompareWordPairs(a, b), "%08X %08X",
+                      *static_cast<const std::uint32_t*>(a), *static_cast<const std::uint32_t*>(b));
+    return expected;
+}
+} // namespace
+
+EI_VERIFY(0x0044CF00, CompareRecordsVerify, 5, s_compareRecords);
+EI_VERIFY(0x0044CF60, ComparePairsVerify, 5, s_comparePairs);

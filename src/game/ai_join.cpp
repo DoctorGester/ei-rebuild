@@ -30,11 +30,9 @@ void __fastcall ListFixUp(PathCellList* a0, void*) { PathCellListFixUpOriginal((
 
 constexpr int kUnreached = 0x7FFFFFFF;
 
-constexpr std::uintptr_t kListVtable = 0x0073EDB0;
-
 // The inlined list destructor (the nodes need no destruction).
 void DestroyList(PathCellList& list) {
-    list.vtable = reinterpret_cast<void*>(kListVtable);
+    list.vtable = PathCellListVtable();
     list.count = 0;
     list.free = nullptr;
     list.tail = nullptr;
@@ -67,7 +65,7 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         other = SearchCost(forward, nullptr, x, y);
         if (other < kUnreached) break;
     }
-    PathCellList scratch{reinterpret_cast<void*>(kListVtable), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
+    PathCellList scratch{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
     if (ok) {
         if (cost) *cost = other + open;
         SearchPathTo(forward, nullptr, x, y, path);

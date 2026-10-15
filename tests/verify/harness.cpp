@@ -196,6 +196,7 @@
 #include "harness_clock.h"
 #include "harness_digest.h"
 #include "harness_heap.h"
+#include "harness_leftovers.h"
 #include "harness_path_cells.h"
 #include "harness_savetrace.h"
 #include "harness_hooks.h"
@@ -2768,6 +2769,8 @@ struct Harness {
         net_port::Install();   // a UDP port of its own (harness_net.h)
         digest::Init(&g_frames);   // EI_DIGEST
         if (savetrace::Enabled()) savetrace::Install(g_selfBase, g_selfEnd);   // EI_SAVETRACE (harness_savetrace.h)
+        leftovers::Install();   // unit statistics stack copies zeroed in the original too (harness_leftovers.h, SV7b3)
+        path_cells::Install();   // the original's path cells get plain speed words too (harness_path_cells.h, SV7d2)
         if (census::Enabled()) census::Install();   // "uicensus" or EI_UI_CENSUS (ui_census.cpp)
         PatchSlot(kAilWaveOutOpenSlot, reinterpret_cast<AilWaveOutOpenFn>(&MutedWaveOutOpen), g_ailWaveOutOpen);
         PatchSlot(kPeekMessageASlot, &PeekMessageHook, g_peekMessage);
@@ -2796,7 +2799,6 @@ struct Harness {
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
             if (!g_keepHeap) heap::StartOrderCheck(g_selfBase, g_selfEnd);   // EI_HEAPORDER (harness_heap_order.cpp)
-            path_cells::Install();   // the original's path cells get plain speed words (SV7d2)
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);

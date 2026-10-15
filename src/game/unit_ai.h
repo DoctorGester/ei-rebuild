@@ -86,8 +86,6 @@ void __fastcall LoadLooks(AILookArray* looks, CStream* stream);
 void __fastcall SaveLooks(const AILookArray* looks, CStream* stream);
 // 005D9DE0. CArray::GetAt returning by value (into `out`, which EAX returns).
 AILook* __fastcall LooksElementAt(const AILookArray* looks, void*, AILook* out, int index);
-constexpr std::uintptr_t kLookArrayVtable = 0x0073D4B4;
-constexpr std::uintptr_t kLookArrayBaseVtable = 0x0073D460;
 
 // A move the modes prepare on the stack (0x20 bytes): where to go and what to look at there.
 struct AIMoveOrder {

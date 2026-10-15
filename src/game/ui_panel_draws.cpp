@@ -205,7 +205,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
         } else if (ItemKindIsSpellOriginal(item)) {
             // A record out of range is read through null, as in the original.
             auto* spell = reinterpret_cast<const itemdb::SpellRecord*>(
-                itemdb::Spells().At(reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellSize));
+                itemdb::Spells().RecordAt(reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellSize));
             needed += spell->skill;
             manaSum = StoreFloat(static_cast<double>(manaSum) + spell->mana);
             lastMana = spell->mana;
@@ -215,7 +215,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
             DrawItem(owner_, pass, &cell);
             hasSpell = true;
         } else if (ItemKindIsModifierOriginal(item)) {
-            auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(itemdb::SpellModifiers().At(
+            auto* modifier = reinterpret_cast<const itemdb::SpellModifierRecord*>(itemdb::SpellModifiers().RecordAt(
                 reinterpret_cast<const CItemLoot*>(item)->index_, itemdb::kSpellModifierSize));
             manaSum = StoreFloat(static_cast<double>(manaSum) + modifier->mana);
             needed += modifier->skill;
@@ -294,10 +294,10 @@ void DrawInSlot(CConstructorPage* page, int pass, ItemCell* cell, RECT slot) {
 // A part's prototype by its record type (weapons, armour, quick items), or null.
 const itemdb::ItemRecordHead* PartRecord(const CItemLoot* part) {
     switch (part->recordType_) {
-    case 0: return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::Weapons().At(part->index_, itemdb::kWeaponSize));
-    case 1: return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::Armors().At(part->index_, itemdb::kArmorSize));
+    case 0: return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::Weapons().RecordAt(part->index_, itemdb::kWeaponSize));
+    case 1: return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::Armors().RecordAt(part->index_, itemdb::kArmorSize));
     case 2:
-        return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::QuickItems().At(part->index_, itemdb::kQuickItemSize));
+        return reinterpret_cast<const itemdb::ItemRecordHead*>(itemdb::QuickItems().RecordAt(part->index_, itemdb::kQuickItemSize));
     default: return nullptr;
     }
 }

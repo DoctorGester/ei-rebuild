@@ -587,7 +587,7 @@ __declspec(naked) mfc::CString* __fastcall ClientVariableNameOriginal(void* /*wo
 __declspec(naked) void __fastcall ControllerClientSessionOriginal(void* /*controller*/) EI_ORIGINAL(0x00538DB0)
 
 const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
-    return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().At(index, unitdb::kPrototypeSize));
+    return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().RecordAt(index, unitdb::kPrototypeSize));
 }
 
 // FindPart, then RemovePart when there is one (the original inlines both calls).
@@ -651,7 +651,7 @@ int CPlayerClient::OnNewObject() {
         auto* unit = static_cast<CUnit*>(created);
         const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);
         auto* modelRecord = reinterpret_cast<const UnitModelRecord*>(
-            unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+            unitdb::Models().RecordAt(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
         unit->defaultScale.x = 0.0f;
         unit->defaultScale.y = modelRecord->height;
         unit->defaultScale.z = 0.0f;

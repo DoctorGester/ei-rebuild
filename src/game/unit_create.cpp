@@ -17,6 +17,7 @@
 #include <cstring>
 #include "originals_gameplay.h"
 #include "originals_units.h"
+#include "lib/mfc_list.h"
 
 namespace {
 constexpr int kPartStats = 4;          // MarkChanged parts
@@ -27,7 +28,6 @@ constexpr std::uint32_t kLastPlainRemark = 0x29;
 constexpr std::uint32_t kExtraRemark = 0x30;
 
 // The vtable of the CTypedPtrList<CPtrList, CItem*> the broken pieces are collected in.
-constexpr std::uintptr_t kPtrListVtable = 0x0073BE80;
 constexpr int kPtrListBlockSize = 10;
 
 // Called through their game addresses, being rewritten elsewhere, so their verify wrappers stay in the
@@ -91,7 +91,7 @@ void CUnit::DropBrokenEquipment() {
     char* owner = player;
     if (!owner) return;   // the empty list's destructor (00429F10) has nothing to free
     ItemList broken{};
-    broken.vtable = reinterpret_cast<void*>(kPtrListVtable);
+    broken.vtable = mfc::impl::ItemListClass::Vtable();
     broken.blockSize = kPtrListBlockSize;
     void* messages = PlayerMessages(owner);
 

@@ -15,6 +15,8 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
+#include "lib/mfc_slots.h"
+#include "ei/vcall.h"
 
 namespace mapspec {
 
@@ -26,9 +28,7 @@ constexpr std::uintptr_t kFlameVtable = 0x0073C620;
 constexpr std::uintptr_t kTrapVtable = 0x0073C650;
 constexpr std::uintptr_t kLeverVtable = 0x0073C6B0;
 constexpr std::uintptr_t kAreasVtable = 0x0073C68C;      // CArray (12-byte elements)
-constexpr std::uintptr_t kAreasDeadVtable = 0x0073C698;  // the same class's vtable once destroyed
 constexpr std::uintptr_t kTargetsVtable = 0x0073C680;    // CArray (8-byte elements)
-constexpr std::uintptr_t kTargetsDeadVtable = 0x0073C6A4;
 
 // MFC CStringArray (library).
 void __fastcall StringArrayAppend(mfc::CStringArray* a0, void*, const mfc::CStringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
@@ -42,7 +42,6 @@ void* World() { return reinterpret_cast<void*>(0x007AFF60); }
 void* Selection() { return reinterpret_cast<void*>(0x007B00D0); }
 void* Lists() { return reinterpret_cast<void*>(0x007B01F4); }
 
-void SetVtable(void* p, std::uintptr_t vtable) { std::memcpy(p, &vtable, 4); }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -75,7 +74,7 @@ Spec* Spec::SpecConstruct() {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     new (&name) mfc::CString();
     new (&comment) mfc::CString();
-    SetVtable(this, kSpecVtable);
+    ei::SetVtable(this, kSpecVtable);
     mfc::CString none(game::Text(0x007846F0));   // "none"
     id = -1;
     spareId = -1;
@@ -91,7 +90,7 @@ EI_REPLACE_METHOD(0x00469CA0, Spec::SpecConstruct);
 
 // 00469E50: the destructor body.
 void Spec::SpecDestruct() {
-    SetVtable(this, kSpecVtable);
+    ei::SetVtable(this, kSpecVtable);
     comment.~CString();
     name.~CString();
     chunk.Destruct();
@@ -143,7 +142,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     new (&parentIname) mfc::CString();
     new (&skinTexture) mfc::CString();
     StringArrayConstruct(&parts);
-    SetVtable(this, kObjectVtable);
+    ei::SetVtable(this, kObjectVtable);
     mfc::CString none(game::Text(0x007846F0));
     base.kind = 1;
     parentId = 0;
@@ -166,7 +165,7 @@ EI_REPLACE_METHOD(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
 
 // 0046AEB0: the destructor body.
 void ObjectSpec::ObjectSpecDestruct() {
-    SetVtable(this, kObjectVtable);
+    ei::SetVtable(this, kObjectVtable);
     StringArrayDestruct(&parts);
     skinTexture.~CString();
     parentIname.~CString();
@@ -349,7 +348,7 @@ FlameSpec* FlameSpec::FlameSpecConstruct() {
     object.ObjectSpecConstruct();
     new (&sound) mfc::CString();
     offset = {0.0f, 0.0f, 0.0f};
-    SetVtable(this, kFlameVtable);
+    ei::SetVtable(this, kFlameVtable);
     object.base.kind = 6;
     std::uint32_t volumeBits = 0x3F333333;   // 0.7f
     std::memcpy(&volume, &volumeBits, 4);
@@ -360,7 +359,7 @@ EI_REPLACE_METHOD(0x0046B210, FlameSpec::FlameSpecConstruct);
 
 // 0046B120: the destructor body.
 void FlameSpec::FlameSpecDestruct() {
-    SetVtable(this, kFlameVtable);
+    ei::SetVtable(this, kFlameVtable);
     sound.~CString();
     object.ObjectSpecDestruct();
 }
@@ -424,14 +423,14 @@ TrapSpec* TrapSpec::TrapSpecConstruct() {
     areas.growBy = 0;
     areas.maxSize = 0;
     areas.size = 0;
-    SetVtable(&areas, kAreasVtable);
+    ei::SetVtable(&areas, kAreasVtable);
     targets.data = nullptr;
     targets.growBy = 0;
     targets.maxSize = 0;
     targets.size = 0;
-    SetVtable(&targets, kTargetsVtable);
+    ei::SetVtable(&targets, kTargetsVtable);
     interval = 15;
-    SetVtable(this, kTrapVtable);
+    ei::SetVtable(this, kTrapVtable);
     object.base.kind = 7;
     return this;
 }
@@ -439,9 +438,9 @@ EI_REPLACE_METHOD(0x0046B4A0, TrapSpec::TrapSpecConstruct);
 
 // 0046B570: the destructor body (the arrays' destructors inlined: their blocks freed).
 void TrapSpec::TrapSpecDestruct() {
-    SetVtable(&targets, kTargetsDeadVtable);
+    ei::SetVtable(&targets, mfc::impl::TrapPointArrayClass::Vtable());
     if (targets.data) gamecrt::operator_delete(targets.data);
-    SetVtable(&areas, kAreasDeadVtable);
+    ei::SetVtable(&areas, mfc::impl::TrapCircleArrayClass::Vtable());
     if (areas.data) gamecrt::operator_delete(areas.data);
     spell.~CString();
     object.ObjectSpecDestruct();
@@ -529,7 +528,7 @@ LeverSpec* LeverSpec::LeverSpecConstruct() {
     cycled = 0;
     castOnce = 0;
     field04 = 0;
-    SetVtable(this, kLeverVtable);
+    ei::SetVtable(this, kLeverVtable);
     object.base.kind = 8;
     return this;
 }

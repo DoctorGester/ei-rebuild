@@ -139,7 +139,7 @@ struct MapAbi {
 
     // operator[](key) (RET 4): the value of `key`, a new association (value zero) put at the head of
     // its bucket when missing (the table allocated first if there is none).
-    static V* __fastcall At(Map* self, void*, const K* key) {
+    static V* __fastcall ElementAt(Map* self, void*, const K* key) {
         std::uint32_t hash;
         Assoc* assoc = GetAssocAt(self, nullptr, key, &hash);
         if (!assoc) {

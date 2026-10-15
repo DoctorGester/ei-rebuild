@@ -51,8 +51,8 @@ int Number(const char* record) { return record ? Head(record)->number : -1; }
 
 // "<code>_<number>.<material>.<variant>", or "" without a prototype or material (slot 17).
 mfc::CString ModelNameOf(const RecordTable& table, int stride, const char* const (&codes)[7], std::uint32_t id) {
-    const char* material = Materials().At(MaterialIndex(id), kMaterialSize);
-    const char* prototype = table.At(PrototypeIndex(id), stride);
+    const char* material = Materials().RecordAt(MaterialIndex(id), kMaterialSize);
+    const char* prototype = table.RecordAt(PrototypeIndex(id), stride);
     mfc::CString name;
     if (prototype && material)
         name.Format(kModelFormat, TypeCode(codes, Head(prototype)->type), Head(prototype)->number,
@@ -62,7 +62,7 @@ mfc::CString ModelNameOf(const RecordTable& table, int stride, const char* const
 
 // The first string of the prototype's list, or "" (slot 18).
 mfc::CString FirstListNameOf(const RecordTable& table, int stride, std::uint32_t id) {
-    const char* prototype = table.At(PrototypeIndex(id), stride);
+    const char* prototype = table.RecordAt(PrototypeIndex(id), stride);
     const console::CStringArray* list = &Head(prototype)->list20;
     if (prototype && list->GetSize() != 0) return mfc::CString((*list)[0]);
     return mfc::CString(game::EmptyText());   // ""
@@ -82,7 +82,7 @@ mfc::CString HumanFigureName(CItem* item) {
 // The picture name "<format with code and number>" (slot 20; no null check on the prototype).
 mfc::CString PictureNameOf(const RecordTable& table, int stride, const char* const (&codes)[7], const char* format,
                            std::uint32_t id) {
-    const char* prototype = table.At(PrototypeIndex(id), stride);
+    const char* prototype = table.RecordAt(PrototypeIndex(id), stride);
     const char* code = TypeCode(codes, Head(prototype)->type);
     mfc::CString name;
     name.Format(format, code, Head(prototype)->number);
@@ -119,7 +119,7 @@ mfc::CString CItemArmor::PictureNameImpl() {
 bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out) {
     out->Empty();
     if (index == 0xFFFFFFFFu) return false;
-    const char* prototype = Weapons().At(index, kWeaponSize);
+    const char* prototype = Weapons().RecordAt(index, kWeaponSize);
     if (!prototype) return false;
     char block[0x24];
     char* number = block;
@@ -156,7 +156,7 @@ mfc::CString CItemQuick::FigureNameImpl() {
     const char* prototype = GetPrototype();
     if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->materialClass)),
                                       reinterpret_cast<const unsigned char*>(kNoMaterial)) != 0) {
-        const char* material = Materials().At(MaterialIndex(prototypeId_), kMaterialSize);
+        const char* material = Materials().RecordAt(MaterialIndex(prototypeId_), kMaterialSize);
         const char* materialName = material ? Material(material)->name : kUnknownMaterial;
         name.Format(kQuickMaterialFigure, Number(GetPrototype()), materialName);
         return name;
@@ -206,7 +206,7 @@ mfc::CString CItemLoot::FigureNameImpl() {
         case kRecordWeapon:
         case kRecordArmor: {
             bool weapon = recordType_ == kRecordWeapon;
-            const char* record = weapon ? Weapons().At(index_, kWeaponSize) : Armors().At(index_, kArmorSize);
+            const char* record = weapon ? Weapons().RecordAt(index_, kWeaponSize) : Armors().RecordAt(index_, kArmorSize);
             mfc::CString code;
             int type = Head(record)->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
@@ -215,7 +215,7 @@ mfc::CString CItemLoot::FigureNameImpl() {
             break;
         }
         case kRecordQuick:
-            name.Format(kQuickFigure, Head(QuickItems().At(index_, kQuickItemSize))->number);
+            name.Format(kQuickFigure, Head(QuickItems().RecordAt(index_, kQuickItemSize))->number);
             break;
         case kRecordSpell:
             name.Format(kPrototypeFigure, SpellAt(index_)->icon);
@@ -242,7 +242,7 @@ mfc::CString CItemLoot::PictureNameImpl() {
         case kRecordWeapon:
         case kRecordArmor: {
             bool weapon = recordType_ == kRecordWeapon;
-            const char* record = weapon ? Weapons().At(index_, kWeaponSize) : Armors().At(index_, kArmorSize);
+            const char* record = weapon ? Weapons().RecordAt(index_, kWeaponSize) : Armors().RecordAt(index_, kArmorSize);
             mfc::CString code;
             int type = Head(record)->type;
             if (type >= 0 && type < 7) code = (weapon ? kWeaponCodes : kArmorCodes)[type];
@@ -251,7 +251,7 @@ mfc::CString CItemLoot::PictureNameImpl() {
             break;
         }
         case kRecordQuick:
-            name.Format(kQuickPicture, Head(QuickItems().At(index_, kQuickItemSize))->number);
+            name.Format(kQuickPicture, Head(QuickItems().RecordAt(index_, kQuickItemSize))->number);
             break;
         case kRecordSpell:
         case kRecordModifier:
