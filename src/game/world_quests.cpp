@@ -109,7 +109,7 @@ void CWorldServer::UpdateMercBriefings() {
             } else {
                 double hiredValue = VariableGet(variables, nullptr, b.hired);
                 float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
-                volatile float hiredStored = hired;
+                float hiredStored = hired;
                 if (!EqualOrUnordered(hiredValue, worlddata::Zero())) {
                     if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n8), worlddata::One())) {
                         if (otherMercs < 2) {
@@ -405,7 +405,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         else list.head = node;
         list.tail = node;
         total = static_cast<float>(Weight(node->data.controller) + total);
-        volatile float stored = total;   // FSTP into the float total
+        float stored = total;   // FSTP into the float total
         total = stored;
     }
     float minimum;
@@ -415,7 +415,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     for (ShareNode* node = list.head; node;) {
         ShareNode* next = node->next;
         float share = static_cast<float>(Weight(node->data.controller) * amount / divisor);
-        volatile float stored = share;
+        float stored = share;
         node->data.share = stored;
         DataGainExperience(node->data.controller, nullptr, stored);
         node = next;
@@ -456,7 +456,7 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
     int count = heroes.size;
     if (count >= 1) {
         float share = static_cast<float>(static_cast<double>(amount) / count);
-        volatile float stored = share;
+        float stored = share;
         share = stored;
         for (int i = 0; i < heroes.size; ++i) {
             CEngineObject* unit = WorldFindUnit(world, nullptr, heroes.data[i]);

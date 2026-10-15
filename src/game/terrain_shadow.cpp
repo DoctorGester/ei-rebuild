@@ -124,7 +124,7 @@ std::uint8_t Terrain::EdgeFade(const Vector3* point) {
     bottom = AtMostZero(bottom);
     right = AtMostZero(right);
     top = AtMostZero(top);
-    // ((top^2 + right^2) + bottom^2) + left^2; the partial sums are stored so that /fp:fast keeps the order.
+    // ((top^2 + right^2) + bottom^2) + left^2, the partial sums rounded to float (as at 24 bits).
     float sum = static_cast<float>(top * top + right * right);
     sum = static_cast<float>(sum + bottom * bottom);
     float depth = static_cast<float>(x87::fsqrt(sum + left * left));

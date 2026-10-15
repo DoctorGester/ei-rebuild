@@ -1,6 +1,6 @@
 // A mesh face's plane (A-S4): 0049AEC0, called for every face of the fake unit scene's meshes
 // (scene_normals.cpp). Plain float maths (rule 7); the values the original stores to floats are
-// rounded through a volatile store.
+// rounded to float.
 #include "scene_loader.h"
 
 #include "lib/vecmath.h"

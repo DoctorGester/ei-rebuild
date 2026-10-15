@@ -182,11 +182,11 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     if (blood == 0 || blood > kLastDecalBlood) return;
     float smaller = SmallerExtent(unit);
     float reach = !(1.0f >= smaller) ? smaller : 1.0f;
-    volatile float sizeStored = (part->bounds_.boxMax.y + part->bounds_.boxMax.x) * kHalf * kDecalScale;
+    float sizeStored = (part->bounds_.boxMax.y + part->bounds_.boxMax.x) * kHalf * kDecalScale;
     float size = sizeStored;
     Vector3 at;
     ObjectPartPositionOriginal(unit, nullptr, &at.x, part);
-    volatile float spreadStored = reach * kSpreadUnits;
+    float spreadStored = reach * kSpreadUnits;
     float spread = spreadStored;
     int offset = RandomBelow(x87::fistp(spread));
     at.x = static_cast<float>(offset * kSpreadStep - reach + at.x);
@@ -217,11 +217,11 @@ void CUnitClientSpecific::DeathEffect() {
     Vector3 at;
     float size;
     if (auto* body = static_cast<CFigureMesh*>(ObjectFindPartOriginal(unit, nullptr, "bd"))) {
-        volatile float stored = (body->bounds_.boxMax.y + body->bounds_.boxMax.x) * kHalf;
+        float stored = (body->bounds_.boxMax.y + body->bounds_.boxMax.x) * kHalf;
         size = stored;
         ObjectPartPositionOriginal(unit, nullptr, &at.x, body);
     } else {
-        volatile float stored = static_cast<float>(SmallerExtent(unit) * kDeathDecalScale);
+        float stored = static_cast<float>(SmallerExtent(unit) * kDeathDecalScale);
         size = stored;
         at.x = unit->position.x;
         at.y = unit->position.y;

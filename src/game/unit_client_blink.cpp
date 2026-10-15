@@ -50,7 +50,7 @@ struct EyeFrame {
 
 EyeFrame Frame(const CTexture* skin, const CTexture* face, const UnitModelRecord* model) {
     EyeFrame frame;
-    volatile float scale = static_cast<float>(x87::FromUnsigned(skin->width_) * kEyeUnit);
+    float scale = static_cast<float>(x87::FromUnsigned(skin->width_) * kEyeUnit);
     frame.scale = scale;
     int eyeHeight = static_cast<int>(model->eyeHeight);
     frame.offset = (x87::FromUnsigned(face->height_) / frame.scale - (eyeHeight + eyeHeight)) / frame.scale;

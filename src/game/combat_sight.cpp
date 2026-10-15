@@ -22,8 +22,8 @@
 #include <bit>
 #include <cstring>
 
-// Keep the original's order of operations: values it keeps on the FPU stack are double locals,
-// values it stores (FSTP to memory) are float (volatile where the compiler might keep them).
+// Values the original keeps on the FPU stack are double locals, values it stores (FSTP to memory)
+// are float locals.
 
 namespace {
 constexpr float kZero = 0.0f;                                       // 0073B858
@@ -194,7 +194,7 @@ namespace {
 // built from FCOMP's C0, so a NaN product picks the first).
 bool OutOfSightRange(CUnitServer* self, const float* point) {
     float limit = Get<float>(self, 0x2A4);
-    volatile float range = Get<float>(self, 0x904) * Get<float>(self, 0x294);
+    float range = Get<float>(self, 0x904) * Get<float>(self, 0x294);
     float rangeValue = range;
     std::uint32_t chosenBits = LessOrUnordered(rangeValue, limit) ? Bits(limit) : Bits(rangeValue);
     float chosen = std::bit_cast<float>(chosenBits);
@@ -210,18 +210,18 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
 // and less than 0.3 to the side.
 bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* point, int time) {
     CUnit* unit = self->unit;
-    volatile float dx = point[0] - unit->position.x;
-    volatile float dy = point[1] - unit->position.y;
-    volatile float dz = point[2] - unit->position.z;
+    float dx = point[0] - unit->position.x;
+    float dy = point[1] - unit->position.y;
+    float dz = point[2] - unit->position.z;
     double lengthSq = LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz);
-    volatile float ux = static_cast<float>(dx / lengthSq);
-    volatile float uy = static_cast<float>(dy / lengthSq);
-    volatile float uz = static_cast<float>(dz / lengthSq);
+    float ux = static_cast<float>(dx / lengthSq);
+    float uy = static_cast<float>(dy / lengthSq);
+    float uz = static_cast<float>(dz / lengthSq);
     double negX = -static_cast<double>(ux);
-    volatile float side = static_cast<float>(x87::fsqrt(negX * negX + static_cast<double>(uy) * uy));
-    volatile float vx = static_cast<float>(uy / side);
-    volatile float vy = static_cast<float>(negX / side);
-    volatile float vz = static_cast<float>(kZero / side);
+    float side = static_cast<float>(x87::fsqrt(negX * negX + static_cast<double>(uy) * uy));
+    float vx = static_cast<float>(uy / side);
+    float vy = static_cast<float>(negX / side);
+    float vz = static_cast<float>(kZero / side);
 
     // The units the brain lists as nearby (AIBrain +0xF4).
     for (auto* node = self->Brain()->nearby.head; node;) {
@@ -234,8 +234,8 @@ bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* po
         double a = static_cast<double>(p->x) - unit->position.x;
         double b = static_cast<double>(p->y) - unit->position.y;
         double c = static_cast<double>(p->z) - unit->position.z;
-        volatile float along = static_cast<float>(c * uz + b * uy + a * ux);
-        volatile float across = static_cast<float>(c * vz + b * vy + a * vx);
+        float along = static_cast<float>(c * uz + b * uy + a * ux);
+        float across = static_cast<float>(c * vz + b * vy + a * vx);
         if (Greater(along, kPointOne) && along < kPointNine && Greater(across, kMinusPointThree) &&
             across < kPointThree)
             return true;
@@ -271,7 +271,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     if (sight.unit) {
         // A unit target is seen at `point`, at its own height above the ground there.
         std::memcpy(&sight.point, point, sizeof(sight.point));
-        volatile float ground = static_cast<float>(UnitGroundHeight(sight.unit, nullptr, point[0], point[1]));
+        float ground = static_cast<float>(UnitGroundHeight(sight.unit, nullptr, point[0], point[1]));
         sight.point.z = static_cast<float>(UnitModeSpeed(sight.unit) + ground);
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for slot 48; it is always null here.)
@@ -308,7 +308,7 @@ int CastValue(CUnitServer* self, void* spell) {
     double scale = Get<float>(self, 0x210);
     if (!ZeroOrUnordered(scale)) scale = kFifteen / scale;
     volatile std::int64_t wide = Get<std::uint32_t>(spell, 0x4C);
-    volatile float value = static_cast<float>(static_cast<double>(wide) * scale);
+    float value = static_cast<float>(static_cast<double>(wide) * scale);
     return x87::fistp(value);
 }
 
@@ -369,17 +369,17 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     }
     if (duration <= 0) duration = 1;
 
-    volatile float range = static_cast<float>(CtlActionDistance(this, nullptr, order));
+    float range = static_cast<float>(CtlActionDistance(this, nullptr, order));
     if (order->flag18) range = std::bit_cast<float>(kNoRangeBits);
 
     // The unit's heading and how many ticks a half turn takes.
     Vector3 axis;
     unit->orientation.AxisY(&axis);
-    volatile Vector3 facing = {-axis.x, -axis.y, -axis.z};
-    volatile float heading = static_cast<float>(Fpatan(facing.y, facing.x));
+    Vector3 facing = {-axis.x, -axis.y, -axis.z};
+    float heading = static_cast<float>(Fpatan(facing.y, facing.x));
     float forward, turnSpeed;
     unit->GetMoveSpeeds(&forward, &turnSpeed);
-    volatile float halfTurn = kPi / turnSpeed;
+    float halfTurn = kPi / turnSpeed;
     int ticks = x87::fistp(halfTurn) + 3;
 
     bool predict = false;
@@ -389,16 +389,16 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     Vector3 aim;
     if (order->target) ObjectSlots(order->target)->AimPoint(&aim);
     else std::memcpy(&aim, &order->point, sizeof(aim));
-    volatile Vector3 delta;
+    Vector3 delta;
     delta.x = aim.x - origin.x;
     delta.y = aim.y - origin.y;
     delta.z = aim.z - origin.z;
     double ox = static_cast<double>(origin.x) - aim.x;
     double oy = static_cast<double>(origin.y) - aim.y;
-    volatile float distanceSq = static_cast<float>(LengthSquared2DUnrounded(oy, ox));
+    float distanceSq = static_cast<float>(LengthSquared2DUnrounded(oy, ox));
 
-    volatile float reachSq;    // the order's own range, squared
-    volatile float outerSq;    // how far the target may be and still be waited for
+    float reachSq;    // the order's own range, squared
+    float outerSq;    // how far the target may be and still be waited for
     if (!IsUnit(order->target)) {
         reachSq = static_cast<float>(static_cast<double>(range) * range);
         outerSq = reachSq;
@@ -456,7 +456,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
         trace.at[tick].turnTicks = turnTicks;
         trace.at[tick].path = path;
     };
-    volatile float best = std::bit_cast<float>(kBestStartBits);
+    float best = std::bit_cast<float>(kBestStartBits);
     for (int tick = 0; tick < ticks; ++tick) {
         if (predict) {
             Vector3 scratch;
@@ -467,7 +467,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
             delta.z = aim.z - origin.z;
         }
         double squared = LengthSquared2DUnrounded<double>(delta.y, delta.x);
-        volatile float stored = static_cast<float>(squared);
+        float stored = static_cast<float>(squared);
         bool tryHere = true;
         if (Greater(squared, reach)) {
             // Out of reach: wait while the target comes closer, give up once it moves off.
@@ -485,7 +485,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
             float turnSeen = 0.0f;
             int turnTicks = -1;
             if (!facingIt) {
-                volatile float turn = static_cast<float>(Fpatan(delta.y, delta.x) - heading);
+                float turn = static_cast<float>(Fpatan(delta.y, delta.x) - heading);
                 turn = std::bit_cast<float>(Bits(turn) & 0x7FFFFFFFu);
                 turnSeen = turn;
                 double angle = turn;

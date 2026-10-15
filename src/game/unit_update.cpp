@@ -115,7 +115,7 @@ EI_REPLACE(0x00530A50, UnitUpdateSizeClassesHook);
 float* CUnit::StandPoint(float* out) {
     float x = position.x;
     float y = position.y;
-    volatile float lift = static_cast<float>(ModeSpeed());   // the original inlines it
+    float lift = static_cast<float>(ModeSpeed());   // the original inlines it
     CWorld* world = WorldOf(this);
     double height;
     if (movementKind == kMovesOnWater) {

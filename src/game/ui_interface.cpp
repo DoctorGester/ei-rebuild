@@ -181,8 +181,8 @@ void CUiModel::SetScreenPosition(float x, float y, float depth) {
     // plane, (x / 400 - 1, y / 400 - 0.75) * k * depth. Each product is rounded once to float.
     constexpr float kLayoutScale = 0x1.47ae14p-9f;
     constexpr float kViewScale = 0x1.ed21e6p-2f;
-    volatile float px = (x * kLayoutScale - 1.0f) * kViewScale * depth;
-    volatile float py = (y * kLayoutScale - 0.75f) * kViewScale * depth;
+    float px = (x * kLayoutScale - 1.0f) * kViewScale * depth;
+    float py = (y * kLayoutScale - 0.75f) * kViewScale * depth;
     Vector3& position = object_->localPosition_;
     float value = px;
     std::memcpy(&position.x, &value, sizeof(float));

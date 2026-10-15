@@ -193,9 +193,9 @@ void GuardMode::Execute(AIBrain* brain) {
     }
     failures = 0;
     // Look away from the guarded point, scaled to half the radius.
-    volatile float dx = order.point.x - point.x;    // FSTP float each
-    volatile float dy = order.point.y - point.y;
-    volatile float dz = order.point.z - point.z;
+    float dx = order.point.x - point.x;    // FSTP float each
+    float dy = order.point.y - point.y;
+    float dz = order.point.z - point.z;
     Vector3 direction;
     direction.x = dx;
     direction.y = dy;

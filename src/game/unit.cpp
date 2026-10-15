@@ -368,7 +368,7 @@ double CUnit::BaseSpeed() {
 EI_REPLACE_METHOD(0x00530370, CUnit::BaseSpeed);
 
 double CUnit::ModeSpeed() {
-    volatile float speed = static_cast<float>(BaseSpeed());   // FSTP to a float local in the original
+    float speed = static_cast<float>(BaseSpeed());   // FSTP to a float local in the original
     if (moveMode != 0 && IsDead() == 0) {
         if (moveMode == 1) return speed * kSlowModeScale;
         return speed;
@@ -427,7 +427,7 @@ bool CUnit::AcceptsAnimationImpl(const void* entry) {
 EI_REPLACE_METHOD(0x00532DA0, CUnit::AcceptsAnimationImpl);
 
 double CUnit::AnimationRatio() {
-    volatile float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // FSTP to a float local
+    float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // FSTP to a float local
     return AnimationFactor(scale.z) / denominator;
 }
 EI_REPLACE_METHOD(0x00532E00, CUnit::AnimationRatio);

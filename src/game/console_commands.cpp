@@ -303,8 +303,8 @@ void __fastcall Give(CStringArray* args) {
     }
     if (ArgIs(args, 1, 0x0079275C) && args->GetSize() > 2) {   // exp
         int count = player->mercCount;
-        // Rounded to float once, as the original stores it (volatile: /fp:fast would keep a double).
-        volatile float share = static_cast<float>(GameAtof((*args)[2]) / count);
+        // Rounded to float once, as the original stores it.
+        float share = static_cast<float>(GameAtof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
             UnitStatsAddExperience(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(player->mercs)[i].stats), nullptr, share);
         return PlayerStateRefreshOriginal(state);

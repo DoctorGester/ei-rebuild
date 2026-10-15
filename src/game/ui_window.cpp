@@ -448,7 +448,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         CopyFloat(&sprite->vOffset_, &old->vOffset_);
         std::memcpy(&sprite->orientation_, &old->orientation_, 16);
         sprite->texture_ = old->texture_;
-        volatile float scale = static_cast<float>(SpriteScale(old));
+        float scale = static_cast<float>(SpriteScale(old));
         SetSpriteScale(made, nullptr, scale);
         sceneObjects_.RemoveAt(i);
         using ReleaseFn = void(__thiscall*)(void*);

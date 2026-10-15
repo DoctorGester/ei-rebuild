@@ -472,7 +472,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (id == -1) return -1;
         if (base.id == -1) base.id = id;
         // |ground height + z| below 0.7 (FCOMP with C0: a NaN counts as below).
-        volatile float height = flame->offset.z + base.position.z;
+        float height = flame->offset.z + base.position.z;
         float sum = height;
         std::uint32_t bits;
         std::memcpy(&bits, &sum, 4);
@@ -480,7 +480,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         float level;
         std::memcpy(&level, &bits, 4);
         if (x87::IsNaN(level) || level < worlddata::CampfireHeight()) {
-            volatile Vector3 at;
+            Vector3 at;
             at.z = flame->offset.z + base.position.z;
             at.y = flame->offset.y + base.position.y;
             at.x = flame->offset.x + base.position.x;

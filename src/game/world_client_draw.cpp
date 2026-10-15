@@ -118,7 +118,7 @@ float StarterDrawRadius(const char* name) {
             value = data;
         RegCloseKey(key);
     }
-    volatile float radius = static_cast<float>(static_cast<double>(value));
+    float radius = static_cast<float>(static_cast<double>(value));
     return radius;
 }
 
@@ -619,7 +619,7 @@ int CWorldClient::DrawPass() {
         Vector3 sun;
         QuaternionAxisZ(&camera::TheCamera()->localRotation_, nullptr, &sun);
         const float scale = ShadowLength();
-        volatile float product = sun.x * scale;
+        float product = sun.x * scale;
         matrix.m[3] = product;
         product = sun.y * scale;
         matrix.m[7] = product;
