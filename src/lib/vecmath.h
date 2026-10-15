@@ -180,6 +180,16 @@ __forceinline float Lerp(float a, float b, float t) { return (b - a) * t + a; }
 __forceinline Vector3 Lerp(const Vector3& a, const Vector3& b, float t) { return (b - a) * t + a; }
 __forceinline float LerpWeighted(float a, float b, float t) { return (1.0f - t) * a + t * b; }
 
+// A product of float operands left to right, ((a * b) * c) * ..., as the original's chain of FMULs:
+// /fp:fast regroups a product with a repeated factor (R10a: `a * b * d * d` became
+// `(a * b) * (d * d)`, one step off under chop rounding). Callers pass loaded floats. Returned
+// unrounded (ST0 after the last FMUL, as `double`): round it with RoundToFloat where the original
+// stores it; an intermediate store would also lose an underflowing product (a denormal factor).
+template <typename... Rest>
+__forceinline double Product(float first, Rest... rest) {
+    return (static_cast<double>(first) * ... * rest);
+}
+
 // The 3-term forms. Generic templates live in namespace vecmath (vecmath::Dot<Sum3::ZYX>; a global
 // template named Dot would make `&Dot`, the hooked 00401E00, ambiguous); the named variants and the
 // templates whose names are free are global.

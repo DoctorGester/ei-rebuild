@@ -683,6 +683,28 @@ resolution must have the machine to themselves and serialised the suites.
 - Seen once each in runs on our renderer and not on dgVoodoo: a one-record SectorData::Light mismatch
   (ui_battle_commands vanilla twice, effects_bow rebirth; passed on the next runs): R10a.
 
+### R10a: the SectorData::Light mismatch was our ShadeSun, not the renderer (done)
+
+- Cause: `SectorData::ShadeSun` (006C36B0, terrain_lighting.cpp) computed the underwater loss
+  `falloff * absorption * depth * depth` as `(falloff * absorption) * (depth * depth)`: /fp:fast regrouped the
+  repeated factor (dumpbin of the object). The original multiplies left to right, and Light runs with chop rounding,
+  so the lit colour of underwater vertices came out one step off (seen bit for bit in every scenario with water:
+  ui_battle_commands, effects_bow, combat, effects, zone_gz3g). ShadeSun's wrapper compares with CheckNear, so it
+  passed; Light compares the colour bytes exactly, and `lit * 255` truncated crosses an integer only when it sits
+  within that step of one, which is why a single record failed in some runs and not in others. The original is
+  deterministic there; the renderer only changed which sectors were lit at which sun position. LightVertex's water
+  product (`absorption * depth * depth * dz * dz * falloff`) had the same regrouping (no byte flip seen).
+- Fix: `Product(a, b, ...)` in vecmath.h (precise section: left to right, returned unrounded as `double`); both
+  products use it. A first try that stored each partial product (RoundToFloat) broke Rebirth runs: the sun's
+  position z there was a denormal (0x1.30012p-129), so `z * z` stored as a float became 0 and `1 - z * z * loss`
+  came out 1.0 instead of the chopped 0.99999994. Partial products stay in the FPU, as in the original.
+- Verify: ShadeSun's wrapper adds "SectorData::ShadeSun bits" (the lit colour bit for bit); 0 mismatches after the
+  fix in vanilla and Rebirth. Light's wrapper logs both records in hex floats at a mismatch (R10's log).
+- Rate: before, Light mismatched in 3 of 7 R10 runs of the two scenarios early on and in 0 of 116 repeats here
+  (copies of ui_battle_commands / effects_bow, vanilla and Rebirth, and two full suites), while the bit check found
+  the one-step difference in every vanilla and Rebirth run with water it was tried on; after, 104 runs of the two
+  scenarios and a full suite (165 runs): 0 ShadeSun bit and 0 Light mismatches (127 million ShadeSun calls).
+
 ### Before R9a (reference)
 
 The old device existed in the switch-over: the DirectDraw object (004EDD70), primary surface, render target and
