@@ -23,6 +23,8 @@ python "%~dp0tools\check_registrations.py" --dll "%~dp0build\%CFG%\ei_hook.dll" 
 rem No direct call to our rewrite of a Rebirth-patched function (rewrite-guide rule 9, SV3c1); not in the debug build,
 rem whose unoptimised code leaves calls the optimised builds inline.
 if /i not "%CFG%"=="debug" python "%~dp0tools\check_patched_calls.py" --dll "%~dp0build\%CFG%\ei_hook.dll" --map "%~dp0build\%CFG%\ei_hook.map" || exit /b 1
+rem Double constants folded from a product the original computes at 24 bits (SV7d1a); not in the debug build.
+if /i not "%CFG%"=="debug" python "%~dp0tools\check_fp_fold.py" --dll "%~dp0build\%CFG%\ei_hook.dll" || exit /b 1
 rem Replacements declared void whose game callers use EAX afterwards (UnitActionPoint, AddSurface).
 python "%~dp0tools\check_returns.py" --map "%~dp0build\%CFG%\ei_hook.map" || exit /b 1
 rem New duplicate EI_ORIGINAL forwarders: use the shared src/game/originals_<area>.h (ticket C3).

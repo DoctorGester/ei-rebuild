@@ -37,6 +37,8 @@ constexpr float kHalf = 0.5f;                             // 0073B86C
 constexpr float kNightSpan = 45.0f, kBaseElevation = 30.0f;   // 0073F74C, 0073BAF0
 constexpr double kPi = 3.141592653589793;                 // 0073F3D0
 constexpr double kPerDegree = 1.0 / 180.0;                // 0073BA30
+// pi * (1 / 180) as the original's FLD / FMUL leaves it at 24-bit precision (SV7d1a: not the folded double).
+constexpr float kRadiansPerDegree = static_cast<float>(kPi * kPerDegree);
 const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 0073F748: 1/24 (the sun turns once a day)
 // A cave's sun: (0.5, 0.5, -0.70710677).
 const Vector3 kCaveSun = {0.5f, 0.5f, std::bit_cast<float>(0xBF3504E6u)};
@@ -170,7 +172,7 @@ int CWorldClient::UpdateLighting() {
     lightingMark_ = 0x80;
     if (LastLitHour() > hour) LastLitHour() = -1.0f;
 
-    const double elevation = SunElevation(hour) * (kPi * kPerDegree);
+    const double elevation = SunElevation(hour) * kRadiansPerDegree;
     const double turn = hour * kPerHour;
     const double azimuth = (turn + turn) * kPi;
     const double cosElevation = x87::fcos(elevation);
