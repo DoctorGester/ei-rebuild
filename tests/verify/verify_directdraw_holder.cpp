@@ -1,12 +1,15 @@
 // Checks for directdraw_holder.cpp and the two CDXSurface ports of dx_surface.cpp (A-S13). All on
 // the main thread, at start-up (every scenario) unless noted.
 //  - Side by side:
-//    004EE4A0 (driver list): the original fills the list, its drivers are noted, ours fills it again.
-//    004ED610 (its callback; reached through the original 004EE4A0 above): the original appends to a
-//      scratch list, ours to the real one; the two new records are compared.
+//    004EE4A0 (driver list): ours fills the list, its drivers are noted, then the original fills a
+//      twin list put in the global's place (freed; the real list put back).
+//    004ED610 (its callback; reached through the original 004EE4A0 above, on the twin list): ours
+//      appends to the list it is given, then the original to a scratch list; the two new records
+//      are compared.
 //    004EE5D0 (the hardware driver): no state; the two results compared.
 //    004EEA90 (the DirectDraw object and its display modes): the original into a scratch object
-//      (its DirectDraw object released again), then ours; the mode lists compared.
+//      (its DirectDraw object released again and its mode list freed before ours runs: nothing of
+//      it is alive while ours allocates), then ours; the mode lists compared.
 //    004EFEA0 (a holder's size from its surface): the holder's size and result put back in between.
 //    004EFA60 (a holder from a description): ours first; for the first 48 descriptions that are not
 //      a primary surface the original then makes a second surface into a scratch holder, the two
@@ -58,26 +61,35 @@ std::vector<DriverCopy> Drivers(const stlp::list<DirectDrawDriver>& list) {
     return drivers;
 }
 
-// 004EE4A0: MOV EAX,[007AEE64] (5).
+// 004EE4A0: MOV EAX,[007AEE64] (5). Ours fills the list first; the original then fills a twin list
+// put in the global's place (its sentinel, nodes and strings allocated after ours' and freed), and
+// the real list is put back.
 int(__cdecl* s_enumerateDrivers)();
 int __cdecl EnumerateDriversVerify() {
-    const int expected = s_enumerateDrivers();
-    const std::vector<DriverCopy> original = Drivers(DirectDrawDrivers());
+    stlp::list<DirectDrawDriver>& drivers = DirectDrawDrivers();
     const int result = EnumerateDirectDrawDrivers();
-    const std::vector<DriverCopy> ours = Drivers(DirectDrawDrivers());
+    const std::vector<DriverCopy> ours = Drivers(drivers);
+    const stlp::list<DirectDrawDriver> real = drivers;
+    drivers.Construct();
+    const int expected = s_enumerateDrivers();
+    const std::vector<DriverCopy> original = Drivers(drivers);
+    drivers.ClearWith([](DirectDrawDriver* driver) { driver->~DirectDrawDriver(); });
+    drivers.Destroy();
+    drivers = real;
     ei::verify::Check("EnumerateDrivers (004EE4A0)", true, result == expected && ours == original,
                       "result %d / %d, drivers %u / %u", expected, result, static_cast<unsigned>(original.size()),
                       static_cast<unsigned>(ours.size()));
     return result;
 }
 
-// 004ED610: PUSH -1 (2), PUSH 0071BAC3 (5).
+// 004ED610: PUSH -1 (2), PUSH 0071BAC3 (5). Ours appends first; the original then to a scratch list
+// (freed).
 BOOL(__stdcall* s_driverCallback)(GUID*, char*, char*, void*, HMONITOR);
 BOOL __stdcall DriverCallbackVerify(GUID* guid, char* description, char* name, void* context, HMONITOR monitor) {
+    const BOOL result = DriverEnumCallback(guid, description, name, context, monitor);
     stlp::list<DirectDrawDriver> scratch;
     scratch.Construct();
     const BOOL expected = s_driverCallback(guid, description, name, &scratch, monitor);
-    const BOOL result = DriverEnumCallback(guid, description, name, context, monitor);
     const auto& drivers = *static_cast<const stlp::list<DirectDrawDriver>*>(context);
     const std::vector<DriverCopy> original = Drivers(scratch);
     const DirectDrawDriver& added = drivers.End()->prev->data;

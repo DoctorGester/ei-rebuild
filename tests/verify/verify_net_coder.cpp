@@ -3,19 +3,22 @@
 // Cursor helpers: the original runs on a copy of the cursor, ours on the real one; the cursors
 // (and results) are compared. Bytes they write go to the same addresses with the same values.
 //
-// Compress / Decompress: the original runs on a scratch copy of the coder state (0x2828 bytes)
-// writing into a clone of the output buffer (same class, a private block from the game heap with
-// the same contents); the input buffer's header is saved, its state after the original recorded,
-// restored, and ours runs on the real objects. Compared: the input's header, the output's header
-// (pointers relative to its block), the output bytes up to its cursor, and the coder state (its
-// cursor pointers relative to the output block). Only the two known buffer classes are handled;
-// with anything else (or an input the coder would grow) ours runs alone.
+// Compress / Decompress: ours runs first on the real objects. The coder state (0x2828 bytes) is
+// copied into scratch memory and the output buffer's header and block kept in our memory before;
+// afterwards the original runs on the scratch coder writing into a twin of the output buffer (same
+// class, the kept contents in a block of our memory, or of the game heap when ours replaced the real
+// buffer's block), with the input buffer's header put back as it was before ours (and ours' put
+// back after). Compared: the input's header, the output's header (pointers relative to its block),
+// the output bytes up to its cursor, and the coder state (its cursor pointers relative to the output
+// block). Only the two known buffer classes are handled; with anything else (or an input the coder
+// would grow) ours runs alone.
 #include "verify.h"
 
 #include "../../src/game/net_coder.h"
 #include "../../src/lib/crt.h"
 
 #include <cstring>
+#include <vector>
 
 #include <windows.h>
 
@@ -149,20 +152,46 @@ bool KnownBuffer(const GameBuffer* b) {
     return VtableOf(b) == kGrowingBufferVtable || VtableOf(b) == kBufferViewVtable;
 }
 
-// A growing buffer with a private copy of the block (the original may grow it: the game frees
-// the copy and allocates a new one, which FreeClone frees).
-GameBuffer CloneBuffer(const GameBuffer& b) {
-    GameBuffer copy = b;
-    std::size_t capacity = static_cast<std::size_t>(b.end - b.begin);
-    auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity ? capacity : 1));
-    if (capacity) std::memcpy(block, b.begin, capacity);
-    copy.begin = block;
-    copy.cur = block + (b.cur - b.begin);
-    copy.end = block + capacity;
-    copy.high = block + (b.high - b.begin);
-    return copy;
-}
-void FreeClone(GameBuffer& b) { gamecrt::operator_delete(b.begin); }
+// A growing buffer's header and block kept in our memory before ours runs.
+struct KeptBuffer {
+    GameBuffer header;
+    std::vector<std::uint8_t> block;   // the whole capacity
+    explicit KeptBuffer(const GameBuffer& b)
+        : header(b), block(b.begin, b.begin + static_cast<std::size_t>(b.end - b.begin)) {}
+};
+
+// The original's output: a copy of the kept buffer made after ours ran. Its block is our memory when
+// ours kept the real buffer's block (the original, growing through the same calls, keeps it too),
+// else a game-heap block, as the original grows it (the game frees it and allocates a new one, which
+// the destructor frees).
+class TwinBuffer {
+public:
+    TwinBuffer(const KeptBuffer& kept, const GameBuffer& after) {
+        buffer = kept.header;
+        const std::size_t capacity = kept.block.size();
+        std::uint8_t* to;
+        if (after.begin == kept.header.begin && after.end == kept.header.end) {
+            own_.assign(capacity ? capacity : 1, 0);
+            to = own_.data();
+        } else {
+            to = static_cast<std::uint8_t*>(gamecrt::operator_new(capacity ? capacity : 1));
+        }
+        if (capacity) std::memcpy(to, kept.block.data(), capacity);
+        buffer.begin = to;
+        buffer.cur = to + (kept.header.cur - kept.header.begin);
+        buffer.end = to + capacity;
+        buffer.high = to + (kept.header.high - kept.header.begin);
+    }
+    TwinBuffer(const TwinBuffer&) = delete;
+    TwinBuffer& operator=(const TwinBuffer&) = delete;
+    ~TwinBuffer() {
+        if (buffer.begin != own_.data()) gamecrt::operator_delete(buffer.begin);
+    }
+    GameBuffer buffer;
+
+private:
+    std::vector<std::uint8_t> own_;
+};
 
 // Pointer fields: equal, or at the same offset in their output blocks.
 bool SamePointer(const void* a, const std::uint8_t* baseA, const void* b, const std::uint8_t* baseB) {
@@ -187,24 +216,29 @@ bool SameCoder(const CoderState& a, const GameBuffer& outA, const CoderState& b,
 
 using CoderFn = void(__fastcall*)(CoderState*, void*, GameBuffer*, GameBuffer*);
 
-// Runs the original (on scratch copies) and ours (on the real objects) and compares.
+// Runs ours (on the real objects), then the original (on a copy of the coder and a twin of the
+// output, both taken before ours; the input's header put back for it, then ours' put back again)
+// and compares.
 void RunBoth(const char* name, CoderFn original, void (CoderState::*ours)(GameBuffer*, GameBuffer*),
              CoderState* self, GameBuffer* in, GameBuffer* out) {
     alignas(4) static unsigned char scratch[sizeof(CoderState)];
     auto* expected = reinterpret_cast<CoderState*>(scratch);
     std::memcpy(scratch, self, sizeof(CoderState));
-    GameBuffer inBefore = *in;
-    GameBuffer expectedOut = CloneBuffer(*out);
-    original(expected, nullptr, in, &expectedOut);
-    GameBuffer expectedIn = *in;
-    *in = inBefore;
+    const GameBuffer inBefore = *in;
+    const KeptBuffer keptOut(*out);
     (self->*ours)(in, out);
+    const GameBuffer inOurs = *in;
+    *in = inBefore;
+    TwinBuffer twin(keptOut, *out);
+    GameBuffer& expectedOut = twin.buffer;
+    original(expected, nullptr, in, &expectedOut);
+    const GameBuffer expectedIn = *in;
+    *in = inOurs;
     bool sameIn = std::memcmp(&expectedIn, in, sizeof(GameBuffer)) == 0;
     bool sameOut = SameOutput(expectedOut, *out);
     bool sameCoder = SameCoder(*expected, expectedOut, *self, *out);
     ei::verify::Check(name, true, sameIn && sameOut && sameCoder, "in %d out %d coder %d, %d bytes", sameIn, sameOut,
                       sameCoder, static_cast<int>(out->cur - out->begin));
-    FreeClone(expectedOut);
 }
 
 // 00430450: PUSH -1; PUSH imm32 (7).
