@@ -189,51 +189,51 @@ void BindStage0(CTextureDevice* device, CDXSurface* holder) {
 
 // 004EB550. Draws indexed primitives (DrawIndexedPrimitive's arguments) with the current material.
 // Returns 1.
-int __fastcall DeviceDrawIndexed(CTextureDevice* device, void*, int primitive, int fvf, void* vertices, int vertexCount,
+int CTextureDevice::DrawIndexed(int primitive, int fvf, void* vertices, int vertexCount,
                                  const std::uint16_t* indices, unsigned indexCount, int flags) {
     DrawArgs args = {primitive, fvf, vertices, vertexCount, indices, indexCount, flags};
-    CDeviceMaterial* material = CurrentMaterial(device);
+    CDeviceMaterial* material = CurrentMaterial(this);
     if (material) {
         CRenderPreset* preset = material->preset;
         if (material->blend) {
-            SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-            SetRenderState(device, D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(CurrentMaterial(device)->sourceBlend));
-            SetRenderState(device, D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(CurrentMaterial(device)->destBlend));
+            SetRenderState(this, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
+            SetRenderState(this, D3DRENDERSTATE_SRCBLEND, static_cast<std::uint32_t>(CurrentMaterial(this)->sourceBlend));
+            SetRenderState(this, D3DRENDERSTATE_DESTBLEND, static_cast<std::uint32_t>(CurrentMaterial(this)->destBlend));
         } else if (static_cast<unsigned>(PassCount(preset)) <= 1) {
-            SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, 0);
+            SetRenderState(this, D3DRENDERSTATE_ALPHABLENDENABLE, 0);
         }
         if (static_cast<unsigned>(PassCount(preset)) > 1) {
-            DrawPasses(device, preset, args);
+            DrawPasses(this, preset, args);
             return 1;
         }
-        device::ApplyStateBlock(device::D3D(device), preset->blocks_[0]);
+        device::ApplyStateBlock(device::D3D(this), preset->blocks_[0]);
         render::state::Block(preset->blocks_[0]);
         for (int stage = 0; stage < preset->stages_; ++stage) {
-            SetTexCoordIndex(device, stage, CurrentMaterial(device)->stages[stage].texCoordIndex, false);
-            SetSinglePassStage(device, stage, CurrentMaterial(device)->stages[stage]);
+            SetTexCoordIndex(this, stage, CurrentMaterial(this)->stages[stage].texCoordIndex, false);
+            SetSinglePassStage(this, stage, CurrentMaterial(this)->stages[stage]);
         }
     }
-    Draw(device, args, indexCount / 3);
+    Draw(this, args, indexCount / 3);
     return 1;
 }
-EI_REPLACE(0x004EB550, DeviceDrawIndexed);
+EI_REPLACE_METHOD(0x004EB550, CTextureDevice::DrawIndexed);
 
 // 004EB370. Draws the indexed primitives with `first` on stage 0, then again blended (source
 // alpha / inverse source alpha, blending on) with `second` and texture coordinates 0. Returns 1.
-int __fastcall DeviceDrawTwoTextures(CTextureDevice* device, void*, CDXSurface* first, CDXSurface* second, int primitive,
+int CTextureDevice::DrawTwoTextures(CDXSurface* first, CDXSurface* second, int primitive,
                                      int fvf, void* vertices, int vertexCount, const std::uint16_t* indices,
                                      unsigned indexCount, int flags) {
     DrawArgs args = {primitive, fvf, vertices, vertexCount, indices, indexCount, flags};
-    BindStage0(device, first);
+    BindStage0(this, first);
     unsigned triangles = indexCount / 3;
-    Draw(device, args, triangles);
-    SetRenderState(device, D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
-    SetRenderState(device, D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA);
-    SetRenderState(device, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
-    BindStage0(device, second);
-    device->lastLoadResult_ = device::SetTextureStageState(device::D3D(device), 0, D3DTSS_TEXCOORDINDEX, 0);
+    Draw(this, args, triangles);
+    SetRenderState(this, D3DRENDERSTATE_SRCBLEND, D3DBLEND_SRCALPHA);
+    SetRenderState(this, D3DRENDERSTATE_DESTBLEND, D3DBLEND_INVSRCALPHA);
+    SetRenderState(this, D3DRENDERSTATE_ALPHABLENDENABLE, 1);
+    BindStage0(this, second);
+    lastLoadResult_ = device::SetTextureStageState(device::D3D(this), 0, D3DTSS_TEXCOORDINDEX, 0);
     render::state::Stage(0, D3DTSS_TEXCOORDINDEX, 0);
-    Draw(device, args, triangles);
+    Draw(this, args, triangles);
     return 1;
 }
-EI_REPLACE(0x004EB370, DeviceDrawTwoTextures);
+EI_REPLACE_METHOD(0x004EB370, CTextureDevice::DrawTwoTextures);

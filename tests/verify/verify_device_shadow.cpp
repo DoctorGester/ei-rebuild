@@ -1,5 +1,7 @@
 // Checks for the device's flat geometry draw (device_shadow.cpp).
 #include "verify.h"
+
+#include "../../src/game/texture.h"
 #include "flat_draw_capture.h"
 
 #include "../../src/game/clip.h"
@@ -9,9 +11,6 @@
 
 class CTextureDevice;
 
-int __fastcall DeviceDrawFlat(CTextureDevice* device, void*, const void* positions, const char* uvs, int blocks,
-                              const std::uint16_t* indices, int indexCount, std::uint32_t colour, std::uint32_t specular,
-                              std::uint32_t last, float zScale);
 
 // 004EA4A0 draws: ours only. The result is 0 or 2; when the vertex buffer holds one vertex per
 // projected position (drawn without clipping, or clipped to the same count) every vertex has the
@@ -50,7 +49,7 @@ static int __fastcall DeviceDrawFlatVerify(CTextureDevice* device, void*, const 
         Record(*recording.record, positions, uvs, blocks, indices, indexCount, colour, specular, last, zScale);
         if (recording.skipDraw) return 0;
     }
-    int result = DeviceDrawFlat(device, nullptr, positions, uvs, blocks, indices, indexCount, colour, specular, last, zScale);
+    int result = device->DrawFlatBlocks(positions, uvs, blocks, indices, indexCount, colour, specular, last, zScale);
     bool ok = result == 0 || result == 2;
     struct Array {
         const TLVertex* data;

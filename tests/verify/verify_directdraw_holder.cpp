@@ -201,7 +201,7 @@ int __fastcall DescribeVerify(CDXSurface* holder) {
 void*(__fastcall* s_fromDesc)(void*, void*, CTextureDevice*, const std::uint32_t*);
 int g_fromDescCompared = 0;
 CDXSurface* __fastcall FromDescVerify(CDXSurface* holder, void*, CTextureDevice* device, const std::uint32_t* desc) {
-    CDXSurface* result = DXSurfaceFromDesc(holder, nullptr, device, desc);
+    CDXSurface* result = holder->ConstructFromDesc(device, desc);
     const auto* description = reinterpret_cast<const DDSURFACEDESC2*>(desc);
     const bool primary = (description->ddsCaps.dwCaps & DDSCAPS_PRIMARYSURFACE) != 0;
     const bool made = result == holder && holder->surface && holder->refCount == 0 && holder->device == device;

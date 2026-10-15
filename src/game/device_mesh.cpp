@@ -242,7 +242,7 @@ int DrawMesh(CTextureDevice* device, const MeshArgs& a, const Textures* textures
 } // namespace
 
 // 004E9010 (thiscall on the device, RET 0x48).
-int __fastcall DeviceDrawMesh(CTextureDevice* device, void*, const void* positions, int blocks, int unused5, int colourCount,
+int CTextureDevice::DrawMeshBlocks(const void* positions, int blocks, int unused5, int colourCount,
                               std::uint32_t* colours, std::uint32_t* speculars, const void* uvs, int unused10,
                               const void* corners, int cornerCount, int unused13, int unused14,
                               std::uint16_t* indices, int indexCount, float uOffset, float vOffset, int alpha,
@@ -250,12 +250,12 @@ int __fastcall DeviceDrawMesh(CTextureDevice* device, void*, const void* positio
     MeshArgs a{positions, blocks, unused5, colourCount, colours, speculars, static_cast<const TexCoord*>(uvs),
                unused10, static_cast<const MeshCorner*>(corners), cornerCount, unused13, unused14, indices,
                indexCount, &uOffset, &vOffset, alpha, flags};
-    return DrawMesh(device, a, nullptr);
+    return DrawMesh(this, a, nullptr);
 }
-EI_REPLACE(0x004E9010, DeviceDrawMesh);
+EI_REPLACE_METHOD(0x004E9010, CTextureDevice::DrawMeshBlocks);
 
 // 004E9A50 (thiscall on the device, RET 0x50): the same with two textures for the draw (004EB370).
-int __fastcall DeviceDrawMesh2(CTextureDevice* device, void*, void* firstTexture, void* secondTexture, const void* positions,
+int CTextureDevice::DrawMeshBlocks2(void* firstTexture, void* secondTexture, const void* positions,
                                int blocks, int unused5, int colourCount, std::uint32_t* colours,
                                std::uint32_t* speculars, const void* uvs, int unused10, const void* corners,
                                int cornerCount, int unused13, int unused14, std::uint16_t* indices, int indexCount,
@@ -264,6 +264,6 @@ int __fastcall DeviceDrawMesh2(CTextureDevice* device, void*, void* firstTexture
                unused10, static_cast<const MeshCorner*>(corners), cornerCount, unused13, unused14, indices,
                indexCount, &uOffset, &vOffset, alpha, flags};
     Textures textures{firstTexture, secondTexture};
-    return DrawMesh(device, a, &textures);
+    return DrawMesh(this, a, &textures);
 }
-EI_REPLACE(0x004E9A50, DeviceDrawMesh2);
+EI_REPLACE_METHOD(0x004E9A50, CTextureDevice::DrawMeshBlocks2);

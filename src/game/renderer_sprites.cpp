@@ -373,22 +373,22 @@ EI_REPLACE(0x005037D0, SpriteMergePass);
 // 00503680 (thiscall on the device holder, RET 0x1C). DrawIndexedPrimitive under the device's
 // critical section (007AEE78); the result goes to lastLoadResult_; counts vertices, triangles
 // (indices / 3) and calls. Returns 1.
-int __fastcall DrawIndexed(CTextureDevice* device, void*, int primitive, int fvf, void* vertices, int vertexCount,
+int CTextureDevice::DrawIndexedDirect(int primitive, int fvf, void* vertices, int vertexCount,
                            std::uint16_t* indices, int indexCount, int flags) {
     // The new renderer (src/render) takes the draw; with the old path's objects off it is skipped.
-    if (render::TlDraw(device, vertices, fvf, vertexCount, indices, indexCount, primitive)) {
+    if (render::TlDraw(this, vertices, fvf, vertexCount, indices, indexCount, primitive)) {
         gameapi::EnterCriticalSection(device::Lock());
-        device->lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(device), 
+        lastLoadResult_ = device::DrawIndexedPrimitive(device::D3D(this), 
             static_cast<D3DPRIMITIVETYPE>(primitive), static_cast<DWORD>(fvf), vertices, static_cast<DWORD>(vertexCount),
             indices, static_cast<DWORD>(indexCount), static_cast<DWORD>(flags));
         gameapi::LeaveCriticalSection(device::Lock());
     }
-    device->vertexCount_ += vertexCount;
-    device->primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
-    device->drawCount_ += 1;
+    vertexCount_ += vertexCount;
+    primitiveCount_ += static_cast<int>(static_cast<std::uint32_t>(indexCount) / 3);
+    drawCount_ += 1;
     return 1;
 }
-EI_REPLACE(0x00503680, DrawIndexed);
+EI_REPLACE_METHOD(0x00503680, CTextureDevice::DrawIndexedDirect);
 
 // --- 00502CA0 ------------------------------------------------------------------------------------
 
