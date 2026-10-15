@@ -713,6 +713,10 @@ static_assert(sizeof(TradeRecordNode) == 0x160);
 // what the server replicates to it, by class, in STLport lists of counted pointers (value at +8).
 class __declspec(novtable) ClientSession : public ClientBase {
 public:
+    // Body of the slot at 0041D9A0 (registered by member pointer).
+    double BufferRatioImpl(GameBuffer* buffer);
+    // Body of the slot at 0041D600 (registered by member pointer).
+    void ReadServerListImpl(GameBuffer* in);
     // 0x0041E270 (net_client_handlers.cpp).
     void StartParty(CRefObject* partner);
     // 0x0041E0A0 (net_client_handlers.cpp).

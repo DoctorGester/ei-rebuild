@@ -46,7 +46,7 @@ std::int32_t Offset(const GameBuffer& b, const std::uint8_t* p) {
 // Each item is a 16-byte address and a GameInfoRecord; it becomes a server entry with the record's
 // player counts, kind, password flag and texts, added to the client. A wrong size or
 // a short record ends the reading (the entry being filled is not added).
-void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
+void ClientSession::ReadServerListImpl(GameBuffer* in) {
     alignas(4) std::uint8_t recordBytes[sizeof(GameInfoRecord)];
     auto* record = reinterpret_cast<GameInfoRecord*>(recordBytes);
     StringInitEmpty(&record->name);
@@ -97,7 +97,7 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
             StringRep* description = &entry->description_;
             if (&record->description != description)
                 StringAssign(description, nullptr, record->description.start, record->description.finish, entry);
-            ClientAddServer(client, nullptr, entry);
+            ClientAddServer(this, nullptr, entry);
         }
     }
     CursorEnd(coderCursor);
@@ -109,6 +109,6 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
         StlStringDestroy(&record->name);
     }
 }
-EI_REPLACE(0x0041D600, ServerListRead);
+EI_REPLACE_METHOD(0x0041D600, ClientSession::ReadServerListImpl);
 
 } // namespace net

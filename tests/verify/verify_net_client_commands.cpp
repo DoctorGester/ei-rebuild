@@ -17,7 +17,6 @@
 #include <cstring>
 
 namespace net {
-double __fastcall ClientBufferRatio(ClientSession* self, void*, GameBuffer* buffer);
 }
 
 namespace {
@@ -75,13 +74,13 @@ double __fastcall BufferRatioVerify(net::ClientSession* self, void*, GameBuffer*
     std::uint8_t* first = buffer->begin + 4;
     bool known = vtable == kGrowingBufferVtable || vtable == kBufferViewVtable;
     if (!known || first > buffer->end || first > (buffer->cur > buffer->high ? buffer->cur : buffer->high)) {
-        double result = net::ClientBufferRatio(self, nullptr, buffer);
+        double result = self->BufferRatioImpl(buffer);
         ei::verify::Check("ClientBufferRatio (ours only)", true, true, "");
         return result;
     }
     GameBuffer copy = *buffer;
     double expected = s_bufferRatio(self, nullptr, &copy);
-    double actual = net::ClientBufferRatio(self, nullptr, buffer);
+    double actual = self->BufferRatioImpl(buffer);
     ei::verify::CheckNear("ClientBufferRatio", expected, actual, "");
     ei::verify::Check("ClientBufferRatio header", true, std::memcmp(&copy, buffer, sizeof(copy)) == 0, "");
     return actual;
