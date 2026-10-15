@@ -8,6 +8,9 @@
 //                                  ("desktop": the primary display's current mode)
 //   widescreen 0|1                 the starter's Settings\WideScreen (addon.dll's switch, and the
 //                                  rebuild's for its WideScreen flag)
+//   fullscreen 0|1                 the game's FullScreen
+//   fpscursor 0|1                  the game's FPSIndependentCursor (options +0x80: on, the cursor runs in
+//                                  mode 2 with its drawing thread 005E5690; off, mode 1 without one)
 // Without them the environment variables EI_RESOLUTION and EI_WIDESCREEN (same values) apply, and
 // without those the registry's own values.
 //
@@ -23,7 +26,7 @@
 
 namespace ei::verify::starter {
 
-// Consumes a "resolution" or "widescreen" scenario line; false for any other verb.
+// Consumes a "resolution", "widescreen", "fullscreen" or "fpscursor" scenario line; false for any other verb.
 bool ParseStep(const std::string& verb, const std::string& argument);
 
 // Applies the environment fallbacks and answers the registry reads (once, at harness start).

@@ -177,6 +177,7 @@ bool CreateDevice() {
         return false;
     }
     ei::Log("render: Direct3D 11 device ready (feature level %X)", static_cast<unsigned>(got));
+    ProtectDevice(g_device, g_context);
     return true;
 }
 
@@ -464,6 +465,7 @@ bool RecreateDevice() {
     FpuGuard fpu;
     ++g_losses;
     std::size_t kept = 0, keptBytes = 0;
+    DropCursorPresents();
     DropWindow();
     DropShowWindow();
     DestroyTarget();
@@ -800,6 +802,16 @@ bool DrawPending() {
     return true;
 }
 
+// The software cursor kept out of the frame's commands (render::Cursor when the new renderer
+// presents itself) drawn over it: the frame's last draw.
+void DrawCursor() {
+    if (!g_frame.haveCursor) return;
+    g_frame.haveCursor = false;
+    g_frame.blitBatches.push_back(g_frame.cursor);
+    g_frame.commands.push_back(Command{Command::Blit, static_cast<int>(g_frame.blitBatches.size()) - 1});
+    DrawPending();
+}
+
 // A staging copy of the off-screen target's `box`, mapped for reading: `rows` and `pitch` until
 // UnmapTarget. The staging texture (g_staging) is kept (the full frame is read every frame with
 // "present").
@@ -950,12 +962,21 @@ void EndFrame() {
     FpuGuard fpu;
     if (!DrawPending()) return;
     ShowFrame();
-    // "present" without DirectDraw: onto the game window through the new renderer's swap chain.
-    bool toWindow = g_presentsItself && DrawToWindow();
+    // "present" without DirectDraw: onto the game window through the new renderer's swap chain, in
+    // turn with the cursor thread's presents (render_cursor.cpp), which take the frame as it was
+    // before its cursor.
+    bool toWindow = false;
+    if (g_presentsItself) {
+        BeginWindowPresent();
+        KeepFrameForCursor();
+        DrawCursor();
+        toWindow = DrawToWindow();
+    }
     sg_commit();
     ++g_commits;
     if (g_swapChain && g_show && !g_viewFailed) g_swapChain->Present(0, 0);
     if (toWindow) PresentWindow();
+    if (g_presentsItself) EndWindowPresent(toWindow && !g_deviceLost);
     g_haveFrame = true;
     // "present" turned on after the DirectDraw device was made: into the game's render target,
     // which the old present then flips or copies to the screen.
@@ -982,6 +1003,7 @@ void Present() {
     g_frame.blitBatches.clear();
     g_frame.clears.clear();
     g_frame.commands.clear();
+    g_frame.haveCursor = false;
     g_frame.haveFog = false;
     g_frameDrawn = false;
     if (g_started) {

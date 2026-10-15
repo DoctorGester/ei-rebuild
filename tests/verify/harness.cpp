@@ -122,6 +122,8 @@
 //                             back (restored, WM_ACTIVATE click-active), as Windows does it
 //   windowsize <w> <h>        resize the game window (its client area) to <w> x <h>
 //   fullscreen 0|1            answer the game's FullScreen setting for this run (harness_starter.h)
+//   fpscursor 0|1             answer the game's FPSIndependentCursor setting for this run: 1 runs the
+//                             cursor's drawing thread 005E5690, 0 does not (harness_starter.h)
 //   waitpresent <seconds> [gamma]
 //                             wait until the switch-over has presented a frame on the game window
 //                             (its own swap chain); with "gamma" also until the verify build has
@@ -133,6 +135,21 @@
 //                             chain and every image again; waits (default 10 s) until it has, and
 //                             presenting on the game window, until a frame is presented on the new
 //                             device. Fails on a timeout or when the new renderer gave up
+//   mouseglide <ms> <x0> <y0> <x1> <y1>
+//                             move the harness's mouse (what the game's GetCursorPos reads) from
+//                             (x0, y0) to (x1, y1) in the 800x600 layout over <ms> real time, in 10 ms
+//                             steps, from a thread of its own: it goes on while the main thread is
+//                             busy (a stall, a movie, a loading screen). No messages are posted
+//   stall <ms>                the main thread does nothing for <ms> real time: one long frame
+//   cursormark                remember how often the cursor thread has presented (render::CursorPresents)
+//   cursorcheck <name>|- <min> [max]
+//                             require the cursor thread to have presented the frame again with the
+//                             cursor moved (the switch-over without DirectDraw, R9c2) at least <min>
+//                             and at most <max> times since "cursormark"; with a name, its last
+//                             present's frame is written to frames\<name>.bmp, the verify build's
+//                             checks of the composed frames must have found no difference, and its
+//                             rectangle must sit at the mouse less the cursor's hot spot (within the
+//                             distance the mouse covers in two steps of the cursor thread)
 //   render <spec>             the new renderer for this run (src/render/render.h; the format of
 //                             EI_RENDER, e.g. "new" or "new,split"). Read before the game starts.
 //                             With it, "capture" also writes frames\<name>.new.bmp
@@ -189,6 +206,7 @@
 #include "../../src/lib/mfc.h"
 #include "../../src/game/device.h"   // device::WithoutDirectDraw
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_cursor.h"
 #include "../../src/game/item.h"
 #include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
@@ -1042,6 +1060,96 @@ RECT GameClient() {
 POINT ToWindow(int x, int y) {
     render::FrameToWindow(&x, &y);
     return POINT{x, y};
+}
+
+// "mouseglide": the harness's mouse moved by a thread of its own (the main thread may be busy). A
+// newer glide ends an older one.
+struct Glide {
+    POINT from, to;
+    DWORD ms;
+    LONG generation;
+};
+volatile LONG g_glideGeneration = 0;
+
+DWORD WINAPI GlideThread(void* parameter) {
+    Glide glide = *static_cast<Glide*>(parameter);
+    delete static_cast<Glide*>(parameter);
+    const DWORD start = GetTickCount();
+    for (;;) {
+        if (g_glideGeneration != glide.generation) return 0;
+        DWORD elapsed = GetTickCount() - start;
+        if (elapsed > glide.ms) elapsed = glide.ms;
+        LONG x = glide.from.x + static_cast<LONG>((static_cast<long long>(glide.to.x - glide.from.x) * elapsed) / glide.ms);
+        LONG y = glide.from.y + static_cast<LONG>((static_cast<long long>(glide.to.y - glide.from.y) * elapsed) / glide.ms);
+        g_mouseX = x;
+        g_mouseY = y;
+        if (elapsed >= glide.ms) return 0;
+        Sleep(10);
+    }
+}
+
+void StartMouseGlide(int ms, int x0, int y0, int x1, int y1) {
+    RECT client = GameClient();
+    LONG w = client.right - client.left, h = client.bottom - client.top;
+    auto* glide = new Glide{ToWindow(x0 * w / 800, y0 * h / 600), ToWindow(x1 * w / 800, y1 * h / 600), static_cast<DWORD>(ms),
+                            InterlockedIncrement(&g_glideGeneration)};
+    Log("harness: mouseglide: window (%ld, %ld) to (%ld, %ld) over %d ms", glide->from.x, glide->from.y, glide->to.x,
+        glide->to.y, ms);
+    if (HANDLE thread = CreateThread(nullptr, 0, &GlideThread, glide, 0, nullptr)) CloseHandle(thread);
+    else delete glide;
+}
+
+// "cursormark" / "cursorcheck": the cursor thread's presents between frames (R9c2). The cursor
+// thread places the cursor where the mouse was at its step before (005E52E0), so the rectangle
+// trails the mouse by up to two of its 41 ms steps.
+std::uint32_t g_cursorMark = 0;
+constexpr int kCursorTrail = 24;   // frame pixels: the scenarios glide at most 0.25 px/ms
+
+std::string CursorCheck(const std::string& argument) {
+    char name[64] = "";
+    unsigned least = 0, most = ~0u;
+    if (sscanf_s(argument.c_str(), "%63s %u %u", name, unsigned(sizeof(name)), &least, &most) < 2)
+        return "cursorcheck needs <name>|- <min> [max]";
+    render::CursorPresentInfo info = render::CursorPresents();
+    std::uint32_t count = info.presents - g_cursorMark;
+    Log("harness: cursorcheck: %u presents by the cursor thread since cursormark (last at %d,%d-%d,%d); %d composed "
+        "frames checked, %d differed; in all %u moves handed over, refused: %u picture, %u no frame, %u recent frame, %u outside",
+        count, info.lastTo.left, info.lastTo.top, info.lastTo.right, info.lastTo.bottom, info.checks, info.mismatches, info.calls,
+        info.refused[0], info.refused[1], info.refused[2], info.refused[3]);
+    const CCursor* game = GameCursor();
+    Log("harness: cursorcheck: the cursor: mode %d, thread %s, image shown %d", game->mode_, game->thread_ ? "running" : "none",
+        game->imageShown_);
+    char what[240];
+    if (count < least || count > most) {
+        std::snprintf(what, sizeof(what), "cursorcheck: %u presents by the cursor thread, expected %u..%u", count, least, most);
+        return what;
+    }
+    if (info.mismatches) {
+        std::snprintf(what, sizeof(what), "cursorcheck: %d of %d frames composed by the cursor thread differ", info.mismatches,
+                      info.checks);
+        return what;
+    }
+    if (std::strcmp(name, "-") == 0 || count == 0) return {};
+    if (info.checks == 0) return "cursorcheck: the cursor thread's frames were not checked";
+    int width = 0, height = 0;
+    std::vector<std::uint8_t> bgr;
+    std::string path;
+    if (!render::ReadCursorPresent(&width, &height, &bgr) || !capture::WriteFrame(name, width, height, bgr, &path))
+        return std::string("cursorcheck: cannot write the cursor thread's frame ") + name;
+    g_capturedFrames.push_back(path + " (the cursor thread's last present)");
+    const CursorImage* image = GameCursor()->image_;
+    if (!image) return "cursorcheck: the cursor has no image";
+    int fx = g_mouseX, fy = g_mouseY;
+    render::WindowToFrame(&fx, &fy);
+    int dx = info.lastTo.left - (fx - image->hotX), dy = info.lastTo.top - (fy - image->hotY);
+    Log("harness: cursorcheck: %s; the mouse at frame (%d, %d), hot spot (%d, %d), the cursor %d, %d from mouse less hot spot",
+        path.c_str(), fx, fy, image->hotX, image->hotY, dx, dy);
+    if (dx < -kCursorTrail || dx > kCursorTrail || dy < -kCursorTrail || dy > kCursorTrail) {
+        std::snprintf(what, sizeof(what), "cursorcheck: the cursor at %d,%d is %d, %d from the mouse (%d, %d) less its hot spot (%d, %d)",
+                      info.lastTo.left, info.lastTo.top, dx, dy, fx, fy, image->hotX, image->hotY);
+        return what;
+    }
+    return {};
 }
 
 void PostMouse(const std::string& verb, int x, int y) {
@@ -1984,6 +2092,26 @@ void RunSteps() {
             g_newDeviceDeadline = Now() + static_cast<DWORD>(seconds) * 1000;
             g_waitingNewDevice = true;
             return;
+        } else if (s.verb == "mouseglide") {
+            int ms = 0, x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+            if (sscanf_s(s.argument.c_str(), "%d %d %d %d %d", &ms, &x0, &y0, &x1, &y1) != 5 || ms <= 0) {
+                g_failures.push_back("mouseglide needs <ms> <x0> <y0> <x1> <y1>");
+                continue;
+            }
+            StartMouseGlide(ms, x0, y0, x1, y1);
+        } else if (s.verb == "stall") {
+            DWORD ms = std::strtoul(s.argument.c_str(), nullptr, 10);
+            Sleep(ms);   // ei_hook's own Sleep: real time, the game's clocks are not touched
+            Log("harness: stall: the main thread was away for %lu ms", ms);
+        } else if (s.verb == "cursormark") {
+            g_cursorMark = render::CursorPresents().presents;
+            Log("harness: cursormark: %u presents by the cursor thread so far", g_cursorMark);
+        } else if (s.verb == "cursorcheck") {
+            std::string error = CursorCheck(s.argument);
+            if (!error.empty()) {
+                Log("harness: %s", error.c_str());
+                g_failures.push_back(error);
+            }
         } else if (s.verb == "focus" || s.verb == "windowsize") {
             std::string error = s.verb == "focus" ? FocusStep(s.argument) : WindowSizeStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);

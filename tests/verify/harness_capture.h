@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <string>
+#include <vector>
 
 // Frame capture for the harness's "capture <name>" step (verify build only; harness_capture.cpp).
 // The image comes from the game's own render target (the device object's +0x18, the back buffer in
@@ -23,6 +25,10 @@ State Poll(const char** detail);
 
 // Frames presented through the hooked point so far.
 unsigned FramesPresented();
+
+// Writes `bgr` (24-bit rows from the top, `width` x `height`) to <output folder>\frames\<name>.bmp as
+// the captures are written; `written` gets the file's path.
+bool WriteFrame(const char* name, int width, int height, const std::vector<std::uint8_t>& bgr, std::string* written);
 
 // Compares frames\<a>.bmp with frames\<b>.bmp as tools/compare_frames.py does: `differing` gets the
 // fraction of pixels with a channel differing by more than `tolerance`, `largest` the largest
