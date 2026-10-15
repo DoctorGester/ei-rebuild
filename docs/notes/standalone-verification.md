@@ -391,8 +391,9 @@ files and the commit says why. The vectors are the original's behaviour, so a ch
 reason; an intended difference (a Rebirth fix behind its flag) needs its own check, not new vectors.
 
 **Replay** (`ei_vectors.exe`, built in every configuration, run by build.cmd after the checks). It links
-the families' own sources (no hook DLL, no game: tests/vectors/hook_stub.cpp makes EI_REPLACE register
-nothing; src/lib's forwarders link but must never be called) and the checks in
+the families' own sources (no hook DLL, no game: tests/vectors/hook_stub.cpp keeps EI_REPLACE's
+registrations, and an EI_ORIGINAL forwarder jumps to the replacement registered at its address, as in the
+standalone image; one without stops the run naming the address) and the checks in
 tests/vectors/replay_<family>.cpp, registered under the recorded function name. Each record runs under
 its recorded control word (exceptions masked), compared bitwise as the verify wrappers compare. It fails
 on a differing record, a file without a check or with another payload size, or no files at all.
@@ -515,6 +516,30 @@ AxisZ (6) and SetIdentity (1); none of the seven scenarios reaches CubicSegment:
   FunctionSignature, the coder tables, a keyword record's length, isspace('a')) fail.
 - Not covered: CScript::Load / LoadFunction / LoadCommands (they need a CScript and its CArrays built
   outside the game), ExpectLexeme (SV4b1).
+
+**SV4b1 (2026-10-15): the script loader.**
+- ei_vectors links script_parse_load.cpp and the script array, variable, block, copy and list ports it
+  calls. Their EI_ORIGINAL forwarders reach ours through hook_stub.cpp's dispatch; ports no replay
+  reaches are stubs that stop the run (replay_unlinked.cpp). Under EI_VECTORS_REPLAY, CString allocates
+  from the replay heap and calls the API for its reference counts and lstrlen. replay_crt.cpp answers
+  the multibyte CRT calls (_mbclen, _mbsinc, _ismbcdigit, _mbsncmp, _mbscmp) for ASCII only and stops on
+  any other byte.
+- Records (tests/vectors/script_load_vectors.h): the script state the loader reads (file count, loaded
+  flag, block counts, definitions without their pairs, globals), the error, the inputs and the consumed
+  tokens. Afterwards: the result, the error, and hashes of what was built (the command or commands, the
+  new blocks, the definitions' new pairs, the globals, the text after #define), plus the block handed to
+  RunWorldScript. The replay builds a CScript from that state; it ends at the recorded token.
+- EI_RECORD_OURS for all four and KeywordName. The zone and mission loaders are ours and call ours, so
+  plain EI_RECORD saw no mission load. In record mode script_quest's QFinish check fails (2 of 2): the
+  recorder replaces the Load wrapper that captures QFinish's text.
+- Recorded from 29 vanilla scenarios (script_*, world_load, the four zones, quests, bases, camp, items,
+  units, combat, ...). The script family is now 812 KB: Load 17 records (256 KB, the 5 mission loads),
+  LoadCommands 45 (172 KB, kept up to 16 KB), LoadFunction 123 (92 KB), ExpectLexeme 65, KeywordName
+  109 (was 1), and Tokenize 10 sources up to 91 KB. All 10 files replay the same at 007F.
+- No source is 1-16 KB: console lines are under 1 KB, and every zone's mission script is 55-91 KB. The
+  quest .mob files (Maps\z*q*.mob, 4-140 KB) may give some, but no scenario loads one.
+- Corrupted copies (one bit near the end, or in the middle, of a record of each loader file) fail.
+  The exception is a LoadFunction input byte the call never reads.
 
 Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name,
 sizeof(payload), cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record
