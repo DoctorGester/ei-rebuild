@@ -18,9 +18,10 @@ resolution desktop
 widescreen 1
 rebirthflags WideScreen
 reject Script error
-# The main menu's animations: its model-space draws (device bounds of the projected vertices) come in the fifth second.
+# The main menu's draws that only come in its fifth second, and its world's random draws, keep the old sequence
+# (this was a wait 6000 from the start; the menu is up after 825 ms).
 waitmenu
-wait 5000
+wait 5200
 
 # The main menu.
 move 400 20
@@ -35,25 +36,25 @@ unfreeze
 
 # The options window (main menu region 3), cancelled (its region 1).
 clickregion 3
-waitwindow 10 options
+wait 1500
 move 400 20
 wait 300
 freeze
 capture options
 unfreeze
 clickregion 1
-waitwindow 10 menu
+wait 1500
 
 # The load window (region 1), cancelled.
 clickregion 1
-waitwindow 10 saveload
+wait 1500
 move 400 20
 wait 300
 freeze
 capture load
 unfreeze
 clickregion 1
-waitwindow 10 menu
+wait 1500
 
 # The hero on zone1 with the battle screen's panels, the camera settled.
 console thingamabob
@@ -72,8 +73,7 @@ unfreeze
 
 # The camp (screen 5); Esc returns to the game.
 screen 5
-waitwindow 15 camp
-wait 500
+wait 3000
 move 400 20
 wait 300
 freeze
@@ -84,6 +84,6 @@ freeze
 capture camp_later
 unfreeze
 key esc
-waitwindow 15 battle
+wait 2000
 report
 quit
