@@ -8,6 +8,7 @@
 #include "../lib/crt.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 
 #include <new>
 
@@ -42,13 +43,33 @@ CEngineObject* CPlayerManager::NewPlayer(int type) {
     return player;
 }
 
+namespace {
+// Rebirth's PlayerNumbers (addon's 10021B4A in place of the call of CPlayer::SetPlayerId at 0066C1C2):
+// the player gets the highest number of the server world's other players + 1 (signed), or `id` when
+// there is no player list, no other player or none numbered 0 or more. Written straight into +0x24.
+int NextPlayerNumber(CPlayer* self, int id) {
+    CBaseManager* players = WorldServer()->PlayerList();
+    if (!players) return id;
+    int highest = -1;
+    ForEachPlayer(players, [&](CEngineObject* other) {
+        if (other == self) return;
+        const int number = static_cast<CPlayer*>(other)->playerId_;
+        if (number > highest) highest = number;
+    });
+    return highest >= 0 ? highest + 1 : id;
+}
+} // namespace
+
 CEngineObject* CPlayerManager::CreateSessionPlayer() {
     auto* player = static_cast<CPlayer*>(CBaseManager::CreateObjectImpl(kPlayerType, -1));
     if (!player) return nullptr;
     CBaseManager* specific = static_cast<CWorld*>(context_)->SpecificManager();
     player->SetConnection(static_cast<CPlayerConnection*>(specific->CreateObject(kConnectionType, -1)));
     ++player->refCount_;
-    player->SetPlayerId(0);
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::PlayerNumbers))
+        player->playerId_ = NextPlayerNumber(player, 0);
+    else
+        player->SetPlayerId(0);
     return player;
 }
 
@@ -74,6 +95,7 @@ void CPlayerManager::SendTextToAll(int unused, const char* text) {
 EI_REPLACE_METHOD(0x0066C0F0, CPlayerManager::CreatePlayers);
 EI_REPLACE_METHOD(0x0066C110, CPlayerManager::NewPlayer);
 EI_REPLACE_METHOD(0x0066C180, CPlayerManager::CreateSessionPlayer);
+EI_REBIRTH_IMPLEMENTS(0x0066C180, ei::rebirth::Patch::PlayerNumbers);
 EI_REPLACE_METHOD(0x0066C1D0, CPlayerManager::ReleasePlayer);
 EI_REPLACE_METHOD(0x0066C1E0, CPlayerManager::ChangeId);
 EI_REPLACE_METHOD(0x0066C340, CPlayerManager::SendValueToAll);

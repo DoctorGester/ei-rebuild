@@ -9,6 +9,7 @@
 #include "lib/stlp_string.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "originals_library.h"
 #include "../hook/log.h"
 
@@ -321,6 +322,14 @@ int __fastcall MasterLinkTick(MasterLink* self) {
             return self->state;
         }
         if (n == 0) {
+            // EI_Plugin's NewMaster (its 10005490 called at 00440F9F): a link closed before anything
+            // arrived (base - begin + high of +0x1C, `high` as it stands) is left as it is.
+            GameBuffer* received = &self->in;
+            if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster) &&
+                received->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(received->begin)) +
+                        static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(received->high)) ==
+                    0)
+                return self->state;
             close(3);
             return self->state;
         }
@@ -354,5 +363,6 @@ int __fastcall MasterLinkTick(MasterLink* self) {
     }
 }
 EI_REPLACE(0x00440DE0, MasterLinkTick);
+EI_REBIRTH_IMPLEMENTS(0x00440DE0, ei::rebirth::Patch::EiPluginNewMaster);
 
 } // namespace net

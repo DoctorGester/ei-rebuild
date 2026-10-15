@@ -8,8 +8,6 @@
 #include <bit>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                    // 0073B858
 constexpr float kByteMax = 255.0f;               // 0073C370
@@ -35,7 +33,7 @@ int RoundStored(float value) { return x87::fistp(value); }
 
 // round(value * 255 / 2), at most 255 (unsigned compare: negative values become 255 too).
 std::uint8_t ScaledByte(float value, float scale, float divisor) {
-    volatile float scaled = value * scale / divisor;
+    float scaled = value * scale / divisor;
     auto rounded = static_cast<std::uint32_t>(x87::fistp(scaled));
     if (rounded > 0xFF) rounded = 0xFF;
     return static_cast<std::uint8_t>(rounded);
@@ -101,7 +99,7 @@ EI_REPLACE_METHOD(0x00523550, UnitParams::Reset);
 
 void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->experience = RoundStored(experience);
-    volatile float unspent = pendingExperience + experience - spentExperience;
+    float unspent = pendingExperience + experience - spentExperience;
     params->unspentExperience = RoundStored(unspent);
     params->stat10 = static_cast<std::uint8_t>(RoundStored(stat10));
     params->stat18 = static_cast<std::uint8_t>(RoundStored(stat18));

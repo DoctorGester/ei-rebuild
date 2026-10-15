@@ -1381,11 +1381,19 @@ ei_launch run the image as `--standalone` does: until the scheduler has this run
   a golden): addon's multiplayer FixProcessLogin (00443080), MQClient (0041ECC0), MPSpeedControl (0063A560,
   00648D70), PlayerNumbers (0066C180); EI_Plugin's own code (EiPluginInit: the plugin is kept out) with
   NewMaster (0041AA10, 0041ACA0, 00440DE0, 0061D0D0, 00632D70; SaveToRegistry 0045C560 saves the master server
-  name, which the plugin NOPs), Pause (0066FAC0) and Briefings (00592090): S19a; Fixes and NPlayers (005ED7B0,
-  006091C0, 006407E0, 005F13A0, 00536100, 00640060, 00608D20, 006095A0): W4b; the mod-folder group Maps,
+  name, which the plugin NOPs), Pause (0066FAC0) and Briefings (00592090): S19a; (Fixes and NPlayers, 005ED7B0, 006091C0,
+  006407E0, 005F13A0, 00536100, 00640060, 00608D20, 006095A0: reproduced in W4b, the image has them); the mod-folder group Maps,
   ResOverride, MoviesPatch, CameraPatch, StreamPatch (pass-through with the Standard mod, so no run can show
   them; another mod's folders are ignored by the image): S19b. SetEiPluginMode (0073AF10) only talks to EI_Plugin.
   The unknown changed ranges of the hooked runs are the harness's own patches and addon's WinMain CALL (006EC302).
+
+**S19a (2026-10-15).** addon's FixProcessLogin, MQClient, MPSpeedControl, PlayerNumbers and EI_Plugin's Pause,
+Briefings and the game-side parts of NewMaster reproduced behind their flags and declared (rebirth.md, "Multiplayer"
+and "EI_Plugin.asi"), so hooked Rebirth runs now hook 00443080, 0041ECC0, 0063A560, 00648D70, 0066C180, 0066FAC0,
+00592090, 0045C560, 0041ACA0 and 00440DE0 ("Rebirth-patched ... implements") instead of skipping them. Still the
+plugin's under Rebirth and vanilla in the image: 00632D70, 0041AA10, 0061D0D0, the calls into NewMaster's second master
+server (hat.gipath.org), which wait for the user's decision (S19c). The image's flags gain `Pause=1`
+(`rebirth::PluginPause`, EI_Plugin.ini's mode).
 
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario

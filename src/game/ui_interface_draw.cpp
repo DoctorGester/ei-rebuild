@@ -102,7 +102,7 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
     // A step towards 255 (rate > 0) or 0 (rate < 0), by the milliseconds since the last one.
     if ((!(alpha_ >= kOpaque) && rate_ > 0.0f) || (alpha_ > 0.0f && !(rate_ >= 0.0f))) {
         const DWORD now = gameapi::timeGetTime();
-        alpha_ = StoreFloat(static_cast<float>(x87::FromUnsigned(now - lastTime_) * rate_ + alpha_));
+        alpha_ = static_cast<float>(x87::FromUnsigned(now - lastTime_) * rate_ + alpha_);
         lastTime_ = gameapi::timeGetTime();
     }
     if (alpha_ > kOpaque) {

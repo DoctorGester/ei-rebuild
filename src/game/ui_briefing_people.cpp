@@ -69,9 +69,9 @@ Vector3 Normalised(float x, float y, float z) {
     float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZXY>(x, y, z)));
     if (length == 0.0f || x87::IsNaN(length)) return out;
     float inverse = 1.0f / length;
-    out.x = StoreFloat(x * inverse);
-    out.y = StoreFloat(y * inverse);
-    out.z = StoreFloat(z * inverse);
+    out.x = static_cast<float>(x * inverse);
+    out.y = static_cast<float>(y * inverse);
+    out.z = static_cast<float>(z * inverse);
     return out;
 }
 

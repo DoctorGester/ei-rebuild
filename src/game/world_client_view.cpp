@@ -19,9 +19,6 @@
 #include "originals_units.h"
 #include "originals_world.h"
 
-// Every float expression here must keep the original's association: (a + b) + c.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 constexpr int kTypeHero = 0x32;           // CEngineObject::type_ of heroes
@@ -256,20 +253,20 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
     // FCOM + TEST AH,0x40: skipped when zero or unordered.
     if (det < 0.0 || det > 0.0) {
         // The screen ray as x = a z + b, y = c z + d.
-        float a = StoreFloat(static_cast<float>(
-            (((m[13] * m[2] - m[1] * m[14]) * sy + (m[14] * m[5] - m[13] * m[6]) * sx) + (m[1] * m[6] - m[5] * m[2])) / det));
-        float b = StoreFloat(static_cast<float>(
-            (((m[5] * m[15] - m[13] * m[7]) * sx + (m[3] * m[13] - m[1] * m[15]) * sy) + (m[1] * m[7] - m[3] * m[5])) / det));
-        float c = StoreFloat(static_cast<float>(
-            -((((m[12] * m[2] - m[0] * m[14]) * sy + (m[4] * m[14] - m[6] * m[12]) * sx) + (m[0] * m[6] - m[4] * m[2])) / det)));
-        float d = StoreFloat(static_cast<float>(
-            -((((m[4] * m[15] - m[12] * m[7]) * sx + (m[3] * m[12] - m[0] * m[15]) * sy) + (m[0] * m[7] - m[3] * m[4])) / det)));
+        float a = static_cast<float>(
+            (((m[13] * m[2] - m[1] * m[14]) * sy + (m[14] * m[5] - m[13] * m[6]) * sx) + (m[1] * m[6] - m[5] * m[2])) / det);
+        float b = static_cast<float>(
+            (((m[5] * m[15] - m[13] * m[7]) * sx + (m[3] * m[13] - m[1] * m[15]) * sy) + (m[1] * m[7] - m[3] * m[5])) / det);
+        float c = static_cast<float>(
+            -((((m[12] * m[2] - m[0] * m[14]) * sy + (m[4] * m[14] - m[6] * m[12]) * sx) + (m[0] * m[6] - m[4] * m[2])) / det));
+        float d = static_cast<float>(
+            -((((m[4] * m[15] - m[12] * m[7]) * sx + (m[3] * m[12] - m[0] * m[15]) * sy) + (m[0] * m[7] - m[3] * m[4])) / det));
 
         // Start halfway up the terrain's height range.
-        float half = StoreFloat(world->terrain_->heightRange * 0.5f);
-        float x = NonNegative(StoreFloat(a * half + b));
-        float y = NonNegative(StoreFloat(c * half + d));
-        pz = StoreFloat(static_cast<float>((height(x, y) + half) * 0.5f));
+        float half = static_cast<float>(world->terrain_->heightRange * 0.5f);
+        float x = NonNegative(static_cast<float>(a * half + b));
+        float y = NonNegative(static_cast<float>(c * half + d));
+        pz = static_cast<float>((height(x, y) + half) * 0.5f);
 
         // Fixed-point iteration on the height (up to 100 steps)...
         float previous;
@@ -277,10 +274,10 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
         bool converged = false;
         for (;;) {
             previous = pz;
-            outX = NonNegative(StoreFloat(a * previous + b));
-            outY = NonNegative(StoreFloat(c * previous + d));
-            pz = StoreFloat(static_cast<float>(height(outX, outY)));
-            float diff = std::fabs(StoreFloat(pz - previous));
+            outX = NonNegative(static_cast<float>(a * previous + b));
+            outY = NonNegative(static_cast<float>(c * previous + d));
+            pz = static_cast<float>(height(outX, outY));
+            float diff = std::fabs(static_cast<float>(pz - previous));
             ++steps;
             if (!(diff > 0.01)) {
                 converged = steps < 100;
@@ -292,11 +289,11 @@ Vector3* PickPoint(CWorldClient* world, Vector3* out, int screenX, int screenY, 
         if (!converged) {
             steps = 0;
             do {
-                previous = StoreFloat((pz + previous) * 0.5f);
-                outX = NonNegative(StoreFloat(a * previous + b));
-                outY = NonNegative(StoreFloat(c * previous + d));
-                pz = StoreFloat(static_cast<float>(height(outX, outY)));
-                float diff = std::fabs(StoreFloat(pz - previous));
+                previous = static_cast<float>((pz + previous) * 0.5f);
+                outX = NonNegative(static_cast<float>(a * previous + b));
+                outY = NonNegative(static_cast<float>(c * previous + d));
+                pz = static_cast<float>(height(outX, outY));
+                float diff = std::fabs(static_cast<float>(pz - previous));
                 ++steps;
                 if (!(diff > 0.01)) break;
             } while (steps < 100);
@@ -322,8 +319,6 @@ Vector3* CWorldClient::PickSurface(Vector3* out, int x, int y) {
         return GroundHeightAt(px, py);
     });
 }
-
-#pragma float_control(pop)
 
 // ---- Draw list sorting ---------------------------------------------------------------------------
 

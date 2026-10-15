@@ -125,8 +125,6 @@ void CFigureMesh::CopyFigure(const CFigureMesh* other) {
     meshType_ = other->meshType_;
 }
 
-#pragma float_control(precise, on, push)
-
 void CFigureMesh::SetPose(const float* q, const float* offset) {
     // Slot 14 stores the quaternion as the world rotation (+0x44).
     FigureSlots(this)->CombineRotation(*reinterpret_cast<const Quaternion*>(q));
@@ -136,24 +134,24 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     auto* p = &localPosition_;
     double dot = DotUnrounded<Sum3::ZYX, double>(v, *p);
     double twice = dot + dot;
-    float z = StoreFloat(static_cast<float>(v.z * twice));
-    float y = StoreFloat(static_cast<float>(v.y * twice));
-    float x = StoreFloat(static_cast<float>(twice * v.x));
+    float z = static_cast<float>(v.z * twice);
+    float y = static_cast<float>(v.y * twice);
+    float x = static_cast<float>(twice * v.x);
     Vector3 along;
     VectorMake(&along, nullptr, x, y, z);
     float w = q[0];
     Vector3 cross, turned, scaled, sum, rotated;
     VectorCross(&cross, &v, p);
-    VectorScaleCopyOriginal(&turned, &cross, StoreFloat(static_cast<float>(static_cast<double>(w) + w)));
-    float ww = StoreFloat(static_cast<float>(static_cast<double>(w) * w));
-    float k = StoreFloat(static_cast<float>(ww - DotRaw(&v, &v)));
+    VectorScaleCopyOriginal(&turned, &cross, static_cast<float>(static_cast<double>(w) + w));
+    float ww = static_cast<float>(static_cast<double>(w) * w);
+    float k = static_cast<float>(ww - DotRaw(&v, &v));
     VectorScale(&scaled, p, k);
     VectorAdd(&sum, &scaled, &turned);
     VectorAdd(&rotated, &sum, &along);
     float* moved = &worldPosition_.x;
-    float mx = StoreFloat(static_cast<float>(static_cast<double>(rotated.x) + offset[0]));
-    float my = StoreFloat(static_cast<float>(static_cast<double>(rotated.y) + offset[1]));
-    float mz = StoreFloat(static_cast<float>(static_cast<double>(rotated.z) + offset[2]));
+    float mx = static_cast<float>(static_cast<double>(rotated.x) + offset[0]);
+    float my = static_cast<float>(static_cast<double>(rotated.y) + offset[1]);
+    float mz = static_cast<float>(static_cast<double>(rotated.z) + offset[2]);
     moved[0] = mx;
     moved[1] = my;
     moved[2] = mz;
@@ -169,33 +167,31 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     std::memcpy(&m[0], &one, 4);
     float qw = worldRotation_.w, qx = worldRotation_.x, qy = worldRotation_.y, qz = worldRotation_.z;
     double x2 = static_cast<double>(qx) + qx;
-    float y2 = StoreFloat(static_cast<float>(static_cast<double>(qy) + qy));
-    float z2 = StoreFloat(static_cast<float>(static_cast<double>(qz) + qz));
-    float wx = StoreFloat(static_cast<float>(x2 * qw));
-    float wy = StoreFloat(static_cast<float>(static_cast<double>(y2) * qw));
-    float wz = StoreFloat(static_cast<float>(static_cast<double>(z2) * qw));
+    float y2 = static_cast<float>(static_cast<double>(qy) + qy);
+    float z2 = static_cast<float>(static_cast<double>(qz) + qz);
+    float wx = static_cast<float>(x2 * qw);
+    float wy = static_cast<float>(static_cast<double>(y2) * qw);
+    float wz = static_cast<float>(static_cast<double>(z2) * qw);
     double xx = x2 * qx;
     double xy = static_cast<double>(y2) * qx;
-    float xz = StoreFloat(static_cast<float>(static_cast<double>(z2) * qx));
-    float yy = StoreFloat(static_cast<float>(static_cast<double>(y2) * qy));
-    float yz = StoreFloat(static_cast<float>(static_cast<double>(z2) * qy));
+    float xz = static_cast<float>(static_cast<double>(z2) * qx);
+    float yy = static_cast<float>(static_cast<double>(y2) * qy);
+    float yz = static_cast<float>(static_cast<double>(z2) * qy);
     double zz = static_cast<double>(z2) * qz;
-    float zzStored = StoreFloat(static_cast<float>(zz));
-    m[0] = StoreFloat(static_cast<float>(One() - (zz + yy)));
-    m[4] = StoreFloat(static_cast<float>(xy - wz));
-    m[8] = StoreFloat(static_cast<float>(static_cast<double>(wy) + xz));
-    m[1] = StoreFloat(static_cast<float>(xy + wz));
-    m[5] = StoreFloat(static_cast<float>(One() - (static_cast<double>(zzStored) + xx)));
-    m[9] = StoreFloat(static_cast<float>(static_cast<double>(yz) - wx));
-    m[2] = StoreFloat(static_cast<float>(static_cast<double>(xz) - wy));
-    m[6] = StoreFloat(static_cast<float>(static_cast<double>(yz) + wx));
-    m[10] = StoreFloat(static_cast<float>(One() - (static_cast<double>(yy) + xx)));
+    float zzStored = static_cast<float>(zz);
+    m[0] = static_cast<float>(One() - (zz + yy));
+    m[4] = static_cast<float>(xy - wz);
+    m[8] = static_cast<float>(static_cast<double>(wy) + xz);
+    m[1] = static_cast<float>(xy + wz);
+    m[5] = static_cast<float>(One() - (static_cast<double>(zzStored) + xx));
+    m[9] = static_cast<float>(static_cast<double>(yz) - wx);
+    m[2] = static_cast<float>(static_cast<double>(xz) - wy);
+    m[6] = static_cast<float>(static_cast<double>(yz) + wx);
+    m[10] = static_cast<float>(One() - (static_cast<double>(yy) + xx));
     FpuCopy(&moved[0], &m[12]);
     FpuCopy(&moved[1], &m[13]);
     FpuCopy(&moved[2], &m[14]);
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x0059F0F0, CFigureMesh::CopyFigure);
 EI_REPLACE_METHOD(0x0059F510, CFigureMesh::SetPose);

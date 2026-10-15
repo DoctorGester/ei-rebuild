@@ -361,7 +361,7 @@ int __fastcall DrawVerify(GroundPrint* self) {
         ei::verify::Check("GroundPrint::Draw hidden", 1, result, "");
         return result;
     }
-    std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(RoundToFloat(self->alpha_ * 255.0f)));
+    std::uint32_t alpha = static_cast<std::uint32_t>(x87::fistp(static_cast<float>(self->alpha_ * 255.0f)));
     ei::verify::Check("GroundPrint::Draw alpha", alpha, self->colour_ >> 24, "alpha %g", self->alpha_);
     if (!wasBuilt) {
         int vertices = self->positions_.size * 4;

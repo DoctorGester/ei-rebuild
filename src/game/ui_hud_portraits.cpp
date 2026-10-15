@@ -4,9 +4,8 @@
 // occasional random nod, shake or turn, and the marker under the selected unit's portrait.
 // See docs/notes/ui.md.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
-// operation order is kept and NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "ui.h"
 
 #include "maths.h"
@@ -22,16 +21,9 @@
 #include <cstring>
 #include "originals_ui.h"
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }
-
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 float FloatFromBits(std::uint32_t bits) {
     float f;
@@ -105,10 +97,10 @@ Quaternion* RotationOf(CEngineObject* object) {
 // A bar: its right edge (x of vertices 2 and 3) moves with the fraction, its texture follows.
 void SetBar(CEngineObject* object, double fraction, std::uint32_t v0, std::uint32_t v1) {
     CUiMesh* bar = Sprite(object);
-    float u = Store(((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel);
+    float u = static_cast<float>(((fraction * kBarTexels + kBarStart) * kTexel) + kHalfTexel);
     double right = fraction - kHalf;
-    bar->quads_[0].x[2] = Store(right);
-    bar->quads_[0].x[3] = Store(right);
+    bar->quads_[0].x[2] = static_cast<float>(right);
+    bar->quads_[0].x[3] = static_cast<float>(right);
     bar->uvs_[4] = u;
     bar->uvs_[5] = FloatFromBits(v0);
     bar->uvs_[6] = u;
@@ -119,30 +111,30 @@ void SetBar(CEngineObject* object, double fraction, std::uint32_t v0, std::uint3
 // component is rounded once. The wobble target: q1 (about y) times q2 (about x).
 Quaternion TargetProduct(const Quaternion& q1, const Quaternion& q2) {
     Quaternion r;
-    r.w = Store(D(q1.w) * D(q2.w) - DotUnrounded<Sum3::ZYX, double>(q1.x, q1.y, q1.z, q2.x, q2.y, q2.z));
-    r.x = Store(((D(q2.y) * D(q1.z) - D(q1.y) * D(q2.z)) + D(q1.w) * D(q2.x)) + D(q1.x) * D(q2.w));
-    r.y = Store(((D(q1.x) * D(q2.z) - D(q2.x) * D(q1.z)) + D(q1.w) * D(q2.y)) + D(q1.y) * D(q2.w));
-    r.z = Store(((D(q1.y) * D(q2.x) - D(q1.x) * D(q2.y)) + D(q2.w) * D(q1.z)) + D(q2.z) * D(q1.w));
+    r.w = static_cast<float>(D(q1.w) * D(q2.w) - DotUnrounded<Sum3::ZYX, double>(q1.x, q1.y, q1.z, q2.x, q2.y, q2.z));
+    r.x = static_cast<float>(((D(q2.y) * D(q1.z) - D(q1.y) * D(q2.z)) + D(q1.w) * D(q2.x)) + D(q1.x) * D(q2.w));
+    r.y = static_cast<float>(((D(q1.x) * D(q2.z) - D(q2.x) * D(q1.z)) + D(q1.w) * D(q2.y)) + D(q1.y) * D(q2.w));
+    r.z = static_cast<float>(((D(q1.y) * D(q2.x) - D(q1.x) * D(q2.y)) + D(q2.w) * D(q1.z)) + D(q2.z) * D(q1.w));
     return r;
 }
 
 // The face's rest orientation from the slot's two parts (a, b).
 Quaternion RestProduct(const Quaternion& a, const Quaternion& b) {
     Quaternion r;
-    r.w = Store(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
-    r.x = Store(((D(a.y) * D(b.z) - D(a.z) * D(b.y)) + D(a.x) * D(b.w)) + D(b.x) * D(a.w));
-    r.y = Store(((D(a.z) * D(b.x) - D(a.x) * D(b.z)) + D(a.y) * D(b.w)) + D(a.w) * D(b.y));
-    r.z = Store(((D(a.x) * D(b.y) - D(b.x) * D(a.y)) + D(a.z) * D(b.w)) + D(b.z) * D(a.w));
+    r.w = static_cast<float>(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
+    r.x = static_cast<float>(((D(a.y) * D(b.z) - D(a.z) * D(b.y)) + D(a.x) * D(b.w)) + D(b.x) * D(a.w));
+    r.y = static_cast<float>(((D(a.z) * D(b.x) - D(a.x) * D(b.z)) + D(a.y) * D(b.w)) + D(a.w) * D(b.y));
+    r.z = static_cast<float>(((D(a.x) * D(b.y) - D(b.x) * D(a.y)) + D(a.z) * D(b.w)) + D(b.z) * D(a.w));
     return r;
 }
 
 // The eased face orientation f with the wobble w applied.
 Quaternion WobbleProduct(const Quaternion& f, const Quaternion& w) {
     Quaternion r;
-    r.w = Store(D(f.w) * D(w.w) - DotUnrounded<Sum3::ZYX, double>(f.x, f.y, f.z, w.x, w.y, w.z));
-    r.x = Store(((D(w.z) * D(f.y) - D(f.z) * D(w.y)) + D(w.x) * D(f.w)) + D(f.x) * D(w.w));
-    r.y = Store(((D(f.z) * D(w.x) - D(w.z) * D(f.x)) + D(w.y) * D(f.w)) + D(f.y) * D(w.w));
-    r.z = Store(((D(w.y) * D(f.x) - D(w.x) * D(f.y)) + D(w.z) * D(f.w)) + D(f.z) * D(w.w));
+    r.w = static_cast<float>(D(f.w) * D(w.w) - DotUnrounded<Sum3::ZYX, double>(f.x, f.y, f.z, w.x, w.y, w.z));
+    r.x = static_cast<float>(((D(w.z) * D(f.y) - D(f.z) * D(w.y)) + D(w.x) * D(f.w)) + D(f.x) * D(w.w));
+    r.y = static_cast<float>(((D(f.z) * D(w.x) - D(w.z) * D(f.x)) + D(w.y) * D(f.w)) + D(f.y) * D(w.w));
+    r.z = static_cast<float>(((D(w.y) * D(f.x) - D(w.x) * D(f.y)) + D(w.z) * D(f.w)) + D(f.z) * D(w.w));
     return r;
 }
 
@@ -161,7 +153,7 @@ __declspec(naked) double __cdecl Exact(std::uint32_t) {
 }
 
 float RandomTilt(std::uint32_t r) {
-    return Store((Exact(r) * RandomScale31() - 1.0f) * D(WobbleAngle()) * kTwelfth);
+    return static_cast<float>((Exact(r) * RandomScale31() - 1.0f) * D(WobbleAngle()) * kTwelfth);
 }
 
 Quaternion AxisAngle(float x, float y, float z, float angle) {
@@ -177,7 +169,7 @@ __declspec(naked) void CHudPortraits::ShowFaceAt(int, int) EI_ORIGINAL(0x0064067
 __declspec(naked) CEngineObject* CHudPortraits::ReplaceSceneObject(CEngineObject*, const char*) EI_ORIGINAL(0x005FF460)
 
 void CHudPortraits::Update() {
-    float dt = GamePaused() ? 0.0f : Store(WindowFrameTime(this));
+    float dt = GamePaused() ? 0.0f : static_cast<float>(WindowFrameTime(this));
     Sprite(sceneObjects_.data[0])->visible_ = 0;   // the selection marker
 
     for (int i = 0; i < owner_->partyCount_; ++i) {
@@ -209,7 +201,7 @@ void CHudPortraits::Update() {
             slot.faceTimer_ = 0.0f;
             slot.faceMode_ = 2;
         } else if (slot.flash_ > 0.0f) {
-            slot.flash_ = Store(D(slot.flash_) - D(dt));
+            slot.flash_ = static_cast<float>(D(slot.flash_) - D(dt));
         }
         if (!(slot.flash_ >= 0.0f)) slot.flash_ = 0.0f;
         CEngineObject* flash = object(5);
@@ -225,7 +217,7 @@ void CHudPortraits::Update() {
         // The face picture: a timed one (hit, mode 1) while it lasts, else low mana or normal.
         int state = 0;
         if (slot.faceMode_ != 0) {
-            slot.faceTimer_ = Store(D(dt) + D(slot.faceTimer_));
+            slot.faceTimer_ = static_cast<float>(D(dt) + D(slot.faceTimer_));
             if (slot.faceMode_ == 1) {
                 if (slot.faceTimer_ > kMode1PictureTime) slot.faceMode_ = 0;
             } else if (slot.faceMode_ == 2) {
@@ -270,38 +262,38 @@ void CHudPortraits::Update() {
         if (slot.wobbleKind_ == 0 && dt > 0.0f) {
             std::uint32_t roll = Random()->Next();
             if (D(dt) * kWobbleRate > Exact(roll) * RandomScale32()) {
-                slot.wobbleTime_ = Store(Exact(Random()->Next()) * RandomDelayScale());
+                slot.wobbleTime_ = static_cast<float>(Exact(Random()->Next()) * RandomDelayScale());
                 slot.wobbleKind_ = 3;
                 std::uint32_t r1 = Random()->Next();
                 std::uint32_t r2 = Random()->Next();
                 Quaternion q1 = AxisAngle(0.0f, 1.0f, 0.0f, RandomTilt(r1));
                 Quaternion q2 = AxisAngle(1.0f, 0.0f, 0.0f, RandomTilt(r2));
                 slot.wobbleTarget_ = TargetProduct(q1, q2);
-                slot.wobbleSpeed_ = Store(Exact(Random()->Next()) * RandomScale31() + 1.0f);
+                slot.wobbleSpeed_ = static_cast<float>(Exact(Random()->Next()) * RandomScale31() + 1.0f);
             }
         }
         if (slot.wobbleKind_ != 0) {
-            slot.wobbleTime_ = Store(D(dt) + D(slot.wobbleTime_));
+            slot.wobbleTime_ = static_cast<float>(D(dt) + D(slot.wobbleTime_));
             if (slot.wobbleTime_ >= 0.0f) {
                 float t = slot.wobbleTime_;
                 switch (slot.wobbleKind_) {
                 case 1:   // nod
                     if (D(Pi()) * kWobbleSpan > D(t))
                         wobble = AxisAngle(1.0f, 0.0f, 0.0f,
-                                           Store(D(WobbleAngle()) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
+                                           static_cast<float>(D(WobbleAngle()) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
                         slot.wobbleKind_ = 0;
                     break;
                 case 2:   // shake
                     if (D(TurnPeriod()) * kWobbleSpan > D(t))
                         wobble = AxisAngle(0.0f, 1.0f, 0.0f,
-                                           Store(D(WobbleAngle()) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
+                                           static_cast<float>(D(WobbleAngle()) * x87::fsin(D(t) * kWobbleFrequency) * kWobbleAmplitude));
                     else
                         slot.wobbleKind_ = 0;
                     break;
                 case 3:   // turn towards the target and back
                     if (D(TurnPeriod()) / D(slot.wobbleSpeed_) > D(t)) {
-                        float w = Store(kHalf - x87::fcos(D(t) * D(slot.wobbleSpeed_)) * kHalf);
+                        float w = static_cast<float>(kHalf - x87::fcos(D(t) * D(slot.wobbleSpeed_)) * kHalf);
                         wobble.Slerp(w, *Identity(), slot.wobbleTarget_);
                     } else {
                         slot.wobbleKind_ = 0;
@@ -318,7 +310,7 @@ void CHudPortraits::Update() {
         Quaternion previous = slot.current_;
         Quaternion face;
         if (!(dt >= kHalf))
-            face.Slerp(Store(D(dt) + D(dt)), previous, rest);
+            face.Slerp(static_cast<float>(D(dt) + D(dt)), previous, rest);
         else
             face = rest;
         slot.current_ = face;
@@ -330,7 +322,7 @@ void CHudPortraits::Update() {
             Sprite(sceneObjects_.data[0])->visible_ = 1;
             float x, y, depth;
             reinterpret_cast<SpriteQuery*>(object(4))->Position(&x, &y, &depth);
-            Sprite(sceneObjects_.data[0])->Place(x, Store(D(y) - kMarkerRise), FloatFromBits(kMarkerDepth));
+            Sprite(sceneObjects_.data[0])->Place(x, static_cast<float>(D(y) - kMarkerRise), FloatFromBits(kMarkerDepth));
         }
     }
 }

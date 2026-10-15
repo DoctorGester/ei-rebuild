@@ -17,6 +17,7 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -109,7 +110,7 @@ void CWorldServer::UpdateMercBriefings() {
             } else {
                 double hiredValue = VariableGet(variables, nullptr, b.hired);
                 float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
-                volatile float hiredStored = hired;
+                float hiredStored = hired;
                 if (!EqualOrUnordered(hiredValue, worlddata::Zero())) {
                     if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n8), worlddata::One())) {
                         if (otherMercs < 2) {
@@ -254,6 +255,10 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         console::CStringArray parts;
         StringSplit(name, &parts, '.');
         if (parts.GetSize() == 3) RequestBriefing(TheGameFlow(), nullptr, parts[2]);
+        // EI_Plugin's Briefings (005920FF: the array's destruction moved to the end, a jump to
+        // 005924D1): the client queues the completion script as well. The plugin formats it with the
+        // caller's EBX as the name; the client's only caller (00608851) holds the name there.
+        if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginBriefings)) QueueBriefingScript(playerId, name);
         return;
     }
     console::CStringArray parts;
@@ -281,6 +286,10 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
         if (record) GiveBriefingRewards(this, player, record);
     }
 
+    QueueBriefingScript(playerId, name);
+}
+
+void CWorldServer::QueueBriefingScript(int playerId, const char* name) {
     mfc::CString script;
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     CommandQueueAdd(commandsA_, nullptr, &script, 1);
@@ -348,9 +357,6 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
 
 // ---- AwardExperience --------------------------------------------------------------------------
 
-// The shares keep the original's operation order: no reassociation here.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 constexpr std::uint32_t kMinimumWeight = 0x3C23D70A;      // 0.01f
@@ -408,7 +414,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         else list.head = node;
         list.tail = node;
         total = static_cast<float>(Weight(node->data.controller) + total);
-        volatile float stored = total;   // FSTP into the float total
+        float stored = total;   // FSTP into the float total
         total = stored;
     }
     float minimum;
@@ -418,7 +424,7 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
     for (ShareNode* node = list.head; node;) {
         ShareNode* next = node->next;
         float share = static_cast<float>(Weight(node->data.controller) * amount / divisor);
-        volatile float stored = share;
+        float stored = share;
         node->data.share = stored;
         DataGainExperience(node->data.controller, nullptr, stored);
         node = next;
@@ -459,7 +465,7 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
     int count = heroes.size;
     if (count >= 1) {
         float share = static_cast<float>(static_cast<double>(amount) / count);
-        volatile float stored = share;
+        float stored = share;
         share = stored;
         for (int i = 0; i < heroes.size; ++i) {
             CEngineObject* unit = WorldFindUnit(world, nullptr, heroes.data[i]);
@@ -482,8 +488,6 @@ void CWorldServer::AwardExperience(WorldPlayer* player, float amount) {
     if (!player) ShareAmongSoloPlayers(this, amount);
     else ShareAmongHeroes(this, player, amount);
 }
-
-#pragma float_control(pop)
 
 // ---- SyncPartyRecords -------------------------------------------------------------------------
 
@@ -772,4 +776,5 @@ EI_REPLACE_METHOD(0x00590A40, CWorldServer::CollectParty);
 EI_REPLACE_METHOD(0x00590C70, CWorldServer::SyncPartyRecords);
 EI_REPLACE_METHOD(0x005911C0, CWorldServer::AwardExperience);
 EI_REPLACE_METHOD(0x00592090, CWorldServer::CompleteBriefing);
+EI_REBIRTH_IMPLEMENTS(0x00592090, ei::rebirth::Patch::EiPluginBriefings);
 EI_REPLACE_METHOD(0x00591DE0, CWorldServer::ApplyMercBriefing);

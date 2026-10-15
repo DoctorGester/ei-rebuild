@@ -10,6 +10,7 @@
 #include "game_strings.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "originals_core.h"
@@ -359,13 +360,15 @@ void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0
 // chunks of the file as the file message announces, they are sorted by index, their 64 bytes each
 // joined in a growing buffer cut to the file's size, the game flow writes the buffer as the map
 // file of that name, and the requests for the file leave +0x25E8. A file without a name (the text
-// at 0079B298) is only collected. Rebirth patches the name test (MQClient): this installs in the
-// vanilla launch only, and the constructor registers the handler by its address.
+// at 0079B298) is only collected. Rebirth's MQClient (the JNE at 0041ED35 aimed at the next
+// instruction, the JE at 0041ED40 made a JMP) returns after collecting every chunk: no file from the
+// server is written. The constructor registers the handler by its address.
 void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
     AppendRaw(&self->chunks_, ChunksEnd, ChunksInsert, message);
     auto* file = static_cast<FileMessage*>(message->file_.ptr);
     const char* none = game::EmptyText();
     const std::size_t noneLength = std::strlen(none);
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::MQClient)) return;
     if (static_cast<std::size_t>(file->name_.finish - file->name_.start) == noneLength &&
         std::memcmp(file->name_.start, none, noneLength) == 0)
         return;
@@ -410,6 +413,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
     chunks.FreeStorage();
 }
 EI_REPLACE(0x0041ECC0, ClientOnFileChunk);
+EI_REBIRTH_IMPLEMENTS(0x0041ECC0, ei::rebirth::Patch::MQClient);
 void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(&self->chunks_, ObjectsErase, message); }   // 0041EF10
 // The awards on +0x2608 (applied by the tick).
 void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(&self->awards_, AwardsEnd, AwardsInsert, message); }   // 0041EF90

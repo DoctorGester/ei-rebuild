@@ -160,6 +160,7 @@ void DetectEiPlugin() {
     g_pluginNPlayers = nPlayers;
     rebirth::SetPluginNPlayers(nPlayers);
     g_pluginPause = pause;
+    if (pause != 0) rebirth::SetPluginPause(pause);
     g_pluginTest = test != 0;
     g_pluginNewMaster = newMaster != 0;
 }
@@ -285,6 +286,7 @@ void Detect(const std::vector<unsigned char>& file) {
 
 void SettingsOnly(const char* iniPath) {
     rebirth::SetPluginNPlayers(static_cast<int>(GetPrivateProfileIntA("Rebirth", "NPlayers", 7, iniPath)));
+    rebirth::SetPluginPause(static_cast<int>(GetPrivateProfileIntA("Rebirth", "Pause", 1, iniPath)));
     for (int i = 0; i < rebirth::kPatchCount; ++i) g_rebirthLaunch |= rebirth::Enabled(static_cast<Patch>(i));
     Log("Rebirth: standalone image: the flags are ei_rebirth.ini's alone (no addon.dll, no EI_Plugin.asi)");
     LogFlagsOn();
@@ -299,6 +301,11 @@ Verdict Check(std::uintptr_t address, std::uint32_t size, const unsigned char* o
     // EI_Plugin.asi writes after this point: into the original body we would no longer run.
     for (const Site& s : kSites) {
         if (!Overlaps(s, address, size) || !EiPluginSiteActive(s)) continue;
+        if (s.variant == kNPlayersOver7) {   // the plugin's layout for more than 7 players is not reproduced
+            std::snprintf(why, whySize, "EI_Plugin.asi patches +0x%X (%s) for more than 7 players",
+                          static_cast<unsigned>(s.address - address), rebirth::Name(s.patch));
+            return Verdict::Skip;
+        }
         if (!rebirth::ImplementsAt(address, s.patch) || !rebirth::Enabled(s.patch)) {
             std::snprintf(why, whySize, "EI_Plugin.asi patches +0x%X (%s) after WinMain",
                           static_cast<unsigned>(s.address - address), rebirth::Name(s.patch));

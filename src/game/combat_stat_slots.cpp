@@ -32,7 +32,7 @@ BOOL CUnitServer::RefreshVitals(char withHitPoints) {
     if (withHitPoints) stats.RecomputeHitPoints(&VitalsOf(unit), unit);
     stats.Recompute(&VitalsOf(unit), unit);
     if (nextAttackTime > now) {
-        float scaled = RoundToFloat(static_cast<double>(nextAttackTime - now) * oldRate / Combat().rate);
+        float scaled = static_cast<float>(static_cast<double>(nextAttackTime - now) * oldRate / Combat().rate);
         nextAttackTime = static_cast<int>(std::lrint(scaled)) + now;
     }
     unit->MarkChanged(0);

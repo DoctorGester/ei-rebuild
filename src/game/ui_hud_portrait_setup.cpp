@@ -4,6 +4,7 @@
 // a face picture into the portrait's quarter of a face texture. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
 #include "game_strings.h"
+#include "plugin_fixes.h"
 
 #include "maths.h"
 #include "net_classes.h"
@@ -13,6 +14,7 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
@@ -57,10 +59,12 @@ bool SameText(const char* a, const char* b) {
 }
 
 // The face picture's sex letter: "m" for "unhuma", "f" for "unhufe", else `sex` stays as it is.
+// EI_Plugin's Fixes (006408E6, 00640D2F): "f" when the fifth character of the name is 'f', else "m".
 void SexOf(const char* figure, mfc::CString& sex) {
-    if (SameText(figure, game::Text(0x007908C8)))          // "unhuma"
+    const bool fixes = pluginfixes::Enabled();
+    if (fixes ? !pluginfixes::ModelIsFemale(figure) : SameText(figure, game::Text(0x007908C8)))   // "unhuma"
         sex = game::Text(0x00792EAC);                     // "m"
-    else if (SameText(figure, game::Text(0x00792EA4)))     // "unhufe"
+    else if (fixes || SameText(figure, game::Text(0x00792EA4)))     // "unhufe"
         sex = game::Text(0x0078BBD8);                     // "f"
 }
 
@@ -102,7 +106,11 @@ void CHudPortraits::ShowFace(int index, int state) {
 
 void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide, int hasPlayer) {
     const bool player = static_cast<char>(hasPlayer) != 0;
-    const int column = count_ % 6;
+    // EI_Plugin's NPlayers (00640069): max(players, 7) portraits to a row instead of 6.
+    const int perRow = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers)
+                           ? (ei::rebirth::PluginNPlayers() < 7 ? 7 : ei::rebirth::PluginNPlayers())
+                           : 6;
+    const int column = count_ % perRow;
     int u = 0;
     int v = 0;
     switch (count_ % 4) {
@@ -248,6 +256,9 @@ void CHudPortraits::Rebuild(int wide) {
             NamePair key{stlp::string(player->text_.start, player->text_.finish), nullptr};
             prototype = static_cast<UnitPrototypeRecord*>(
                 static_cast<NamePair*>(NameMapInsertOriginal(UnitPrototypes(), nullptr, &key))->value);
+            // EI_Plugin's Fixes (00640C97): an unknown prototype becomes the first one that is no creature.
+            if (!prototype && pluginfixes::Enabled())
+                prototype = reinterpret_cast<UnitPrototypeRecord*>(pluginfixes::FallbackPrototype());
         }
         FigurePrototypeRecord* figure;
         {
@@ -273,3 +284,8 @@ void CHudPortraits::Rebuild(int wide) {
 EI_REPLACE_METHOD(0x00640670, CHudPortraits::ShowFace);
 EI_REPLACE_METHOD(0x00640060, CHudPortraits::AddPortrait);
 EI_REPLACE_METHOD(0x006407E0, CHudPortraits::Rebuild);
+// EI_Plugin.asi patches both in a Rebirth launch: NPlayers' row length in AddPortrait (00640069; the sites
+// for more than 7 players are not reproduced, the installer skips the function then) and Fixes in Rebuild
+// (the party's and the players' sex at 006408E6 / 00640D2F, the prototype fallback at 00640C97).
+EI_REBIRTH_IMPLEMENTS(0x00640060, ei::rebirth::Patch::EiPluginNPlayers);
+EI_REBIRTH_IMPLEMENTS(0x006407E0, ei::rebirth::Patch::EiPluginFixes);

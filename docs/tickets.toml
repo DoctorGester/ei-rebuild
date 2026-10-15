@@ -450,6 +450,14 @@ size = 0.5
 model = "sonnet"
 note = "From W4a/W2b (2026-10-15): EiPluginFixes still addon's in 005ED7B0, 006091C0, 006407E0, 005F13A0, 00536100 and 006093B7/00640C97; EiPluginNPlayers at 00640060 and 00608D20 (ei::rebirth::PluginNPlayers() exists now). Same approach as W4a: read EI_Plugin.asi's installer, reproduce behind the flag, declare it on the hook, verify in a Rebirth launch."
 
+[[ticket]]
+id = "W4c"
+title = "EI_Plugin NPlayers above 7: AddPortrait's six sites"
+group = "widescreen"
+size = 0.25
+model = "sonnet"
+note = "From W4b: AddPortrait (00640060) holds six sites active only when EI_Plugin.ini NPlayers > 7; not reproduced. A Rebirth launch with NPlayers > 7 keeps the original there (rebirth_hook Check skips the function); the standalone treats NPlayers > 7 as 7 in the portraits. Port if anyone plays with more than 7."
+
 # ---------------------------------------------------------------- unknown fields
 
 [[ticket]]
@@ -1069,6 +1077,13 @@ title = "Drop the fp:fast workarounds now that the build is /fp:precise"
 group = "verification"
 depends = ["SV7d1a"]
 note = "From SV7d1a: the build is /fp:precise. The 87 float_control(precise, on) pragmas and the volatile float store helpers (StoreFloat, RoundToFloat, Round, ...) written only to defeat /fp:fast's regrouping and unrounded float locals are redundant. Remove them where they only did that (a store the original does is a plain float assignment now), keeping x87::FromUnsigned, IsNaN and the x87:: transcendental helpers. check_cleanup's float_control count goes down. Suite with --golden; behaviour must not change."
+
+[[ticket]]
+id = "SV4c1"
+title = "Path vectors on more maps: smaller AI map snapshots"
+group = "verification"
+depends = ["SV4c"]
+note = "SV4c keeps 3 of 18 recorded maps (888 KB; zone1 alone 607 KB, gz3g 1.2 MB, the menu map 80 KB per run). A snapshot coded against a base map of the same size, or a small inflater in ei_vectors (zlib halves the planes), would let gz3g, bz1g and gz2g's searches in. tools/path_vectors.py prune --keep chooses the maps."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -2055,6 +2070,13 @@ id = "S19b"
 title = "Standalone on Rebirth: the mod-folder patches (Maps, ResOverride, MoviesPatch, CameraPatch, StreamPatch)"
 group = "standalone"
 note = "From S19: addon's mod loader looks in the selected mod's folders first (WinMain's loader and ~30 resource functions, the BinkOpen import, 0040ECD0 camera, 006BB3A0 stream; docs/notes/rebirth.md 'Resources and paths'). With the Standard mod it passes through, so every S19 run matched; the image ignores another mod's folders (IronMod's Res). Needs the standalone resource layer: read the starter's AddonPath / mod list and route OpenResource, the finds and the map paths through it behind the flags."
+
+[[ticket]]
+id = "S19c"
+title = "EI_Plugin NewMaster's second master server: port or drop (user's decision)"
+group = "standalone"
+size = 0.5
+note = "User 2026-10-15: port it behind an opt-in setting (master address in ei_rebirth.ini, empty in harness runs so runs stay offline). Check offline against a local listener; goldens can't cover it."
 
 # ---------------------------------------------------------------- Lua
 

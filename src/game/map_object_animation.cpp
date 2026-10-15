@@ -12,7 +12,6 @@
 
 // The original keeps the x difference and its product on the FPU stack and stores the others:
 // double locals where it keeps, float locals where it stores.
-#pragma float_control(precise, on)
 
 namespace {
 // The CRT's modf (006EAD0B): the fraction in ST0, the whole part in *whole.

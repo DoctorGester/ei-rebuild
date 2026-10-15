@@ -100,8 +100,8 @@ WorldPlayer* CWorldServer::GetPlayer(int id) {
 
 float CWorldServer::GridHeight(float x, float y) {
     // Cell size 1.0 at half-cell offset: (1 / (1 * 0.5)) * v - 0.5, rounded through a float.
-    int cx = x87::fistp(StoreFloat(2.0f * x - 0.5f));
-    int cy = x87::fistp(StoreFloat(2.0f * y - 0.5f));
+    int cx = x87::fistp(static_cast<float>(2.0f * x - 0.5f));
+    int cy = x87::fistp(static_cast<float>(2.0f * y - 0.5f));
     if (cx < 0 || cy < 0 || cx >= gridWidth_ || cy >= gridHeight_) return 0.0f;
     int raw = *reinterpret_cast<const std::uint16_t*>(gridRows_[cy] + cx * 9 + 4);
     return static_cast<float>(raw) / gridHeightScale_;
@@ -163,6 +163,11 @@ void CWorldServer::SetWeather(int weather, float strength) {
 }
 
 void CWorld::SetPaused(std::uint8_t value) { paused_ = value; }
+
+void CWorld::SetServerPaused(std::uint8_t value) {
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginPause) && ei::rebirth::PluginPause() == 3) return;
+    SetPaused(value);
+}
 
 BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
     if (index < 0 || index >= exitCount_) return 0;
@@ -312,7 +317,8 @@ EI_REPLACE_METHOD(0x0058B6D0, CWorldServer::MarkPlayersDirty);
 EI_REPLACE_METHOD(0x0058CC70, CWorldServer::SetCave);
 EI_REPLACE_METHOD(0x0058CC80, CWorldServer::SetClimate);
 EI_REPLACE_METHOD(0x0058EE00, CWorldServer::SetWeather);
-EI_REPLACE_METHOD(0x005942C0, CWorld::SetPaused);
+EI_REPLACE_METHOD(0x005942C0, CWorld::SetServerPaused);
+EI_REBIRTH_IMPLEMENTS(0x005942C0, ei::rebirth::Patch::EiPluginPause);
 EI_REPLACE_METHOD(0x00566350, CWorld::SetPaused);   // byte-identical copy (the client's, message 0x60; A-W12)
 EI_REPLACE_METHOD(0x0058E4C0, CWorldServer::GetZoneExit);
 EI_REPLACE_METHOD(0x0058E520, CWorldServer::AddTimedObject);

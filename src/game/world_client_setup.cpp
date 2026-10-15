@@ -64,9 +64,9 @@ void ReadTable(CIniFile& ini, console::CStringArray& keys, mfc::CString& hour, D
         values.SetSize(0, -1);      // the sky section frees the block inline (the same state)
         ini.GetIntArray(section, keys[i], &values);
         LightColour& to = table[index];
-        to.r = StoreFloat(static_cast<float>(static_cast<double>(static_cast<int>(values.data[0])) * kByteToUnit));
-        to.g = StoreFloat(static_cast<float>(static_cast<double>(static_cast<int>(values.data[1])) * kByteToUnit));
-        to.b = StoreFloat(static_cast<float>(static_cast<double>(static_cast<int>(values.data[2])) * kByteToUnit));
+        to.r = static_cast<float>(static_cast<double>(static_cast<int>(values.data[0])) * kByteToUnit);
+        to.g = static_cast<float>(static_cast<double>(static_cast<int>(values.data[1])) * kByteToUnit);
+        to.b = static_cast<float>(static_cast<double>(static_cast<int>(values.data[2])) * kByteToUnit);
         to.a = 1.0f;
         const LightColour& from = table[previous];
         double r = from.r, g = from.g, b = from.b;
@@ -76,9 +76,9 @@ void ReadTable(CIniFile& ini, console::CStringArray& keys, mfc::CString& hour, D
                 r += (static_cast<double>(to.r) - from.r) / steps;
                 g += (static_cast<double>(to.g) - from.g) / steps;
                 b += (static_cast<double>(to.b) - from.b) / steps;
-                table[k].r = StoreFloat(static_cast<float>(r));
-                table[k].g = StoreFloat(static_cast<float>(g));
-                table[k].b = StoreFloat(static_cast<float>(b));
+                table[k].r = static_cast<float>(r);
+                table[k].g = static_cast<float>(g);
+                table[k].b = static_cast<float>(b);
                 table[k].a = 1.0f;
             }
         }

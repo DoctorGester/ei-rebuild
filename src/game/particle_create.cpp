@@ -8,8 +8,8 @@
 // frame (the frames are a grid of `frameColumns` columns).
 //
 // The callbacks are stored as the original's addresses (several are rewritten and hooked there).
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "effects.h"
 
 #include "random.h"
@@ -27,17 +27,9 @@
 
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }
-
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 // A zero-extended dword loaded with FILD qword (exact).
 double Unsigned(std::uint32_t value) {
@@ -196,33 +188,33 @@ void SetupExplosion(CParticleSource* s) {
         float x, y, z;
         double lengthSquared;
         for (int tries = 10;;) {
-            x = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
-            y = Store(Range(-1.0f, 1.0f));
+            x = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
+            y = static_cast<float>(Range(-1.0f, 1.0f));
             double zUnrounded = Range(-1.0f, 1.0f) + D(EI_POINT_SEVEN);
-            z = Store(zUnrounded);
+            z = static_cast<float>(zUnrounded);
             lengthSquared = zUnrounded * D(z) + D(y) * D(y) + D(x) * D(x);
             if (!(lengthSquared >= D(EI_ONE))) break;
             if (!(--tries > 0)) break;
         }
-        float length = Store(x87::fsqrt(lengthSquared));
+        float length = static_cast<float>(x87::fsqrt(lengthSquared));
         Vector3 v;
         v.Construct(x, y, z);
         Vector3 direction;
         DivideVector(&direction, v, length);
         double speed = Unsigned(GlobalRandom().Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT);
-        float vx = Store(D(direction.x) * speed);
-        float vy = Store(speed * D(direction.y));
+        float vx = static_cast<float>(D(direction.x) * speed);
+        float vy = static_cast<float>(speed * D(direction.y));
         double vz = speed * D(direction.z);
         float* velocity = &s->elements[i].value[0];
-        velocity[0] = Store(D(vx) * D(EI_POINT_EIGHT));
-        velocity[1] = Store(D(vy) * D(EI_POINT_EIGHT));
-        velocity[2] = Store(vz * D(EI_POINT_EIGHT));
+        velocity[0] = static_cast<float>(D(vx) * D(EI_POINT_EIGHT));
+        velocity[1] = static_cast<float>(D(vy) * D(EI_POINT_EIGHT));
+        velocity[2] = static_cast<float>(vz * D(EI_POINT_EIGHT));
         SetElementDword(s, i, 0x30, 0);
         SetElementDword(s, i, 0x18, 0);
         SetElementFloat(s, i, 0x1C, 0.4f);
         SetElementFloat(s, i, 0x20, 0.7f);
-        SetElementFloat(s, i, 0x24, Store(Unsigned(GlobalRandom().Next() % 6)));
-        SetElementFloat(s, i, 0x28, Store(Unsigned(GlobalRandom().Next() & 1)));
+        SetElementFloat(s, i, 0x24, static_cast<float>(Unsigned(GlobalRandom().Next() % 6)));
+        SetElementFloat(s, i, 0x28, static_cast<float>(Unsigned(GlobalRandom().Next() & 1)));
     }
 }
 
@@ -248,7 +240,7 @@ void SetupTornadoRings(CParticleSource* s) {
     for (int i = 0; i < s->elementCount; ++i) {
         ParticleElement& e = s->elements[i];
         std::memset(&e.pos, 0, 2 * sizeof(float));
-        e.pos.z = Store(static_cast<double>(i) * D(EI_TWELVE) * D(EI_POINT_TWO));
+        e.pos.z = static_cast<float>(static_cast<double>(i) * D(EI_TWELVE) * D(EI_POINT_TWO));
         SetElementDword(s, i, 0x34, 0);
         SetElementDword(s, i, 0x30, 0);
     }
@@ -284,7 +276,7 @@ void SetupCurseHolder(CParticleSource* s) {
     s->height = 0.2f;
     SetBits(&s->frameDelay, 0x19000000);
     SetupTornadoRings(s);
-    s->elements[0].value[6] = Store(D(EI_TWELVE) * D(EI_POINT_FOUR));
+    s->elements[0].value[6] = static_cast<float>(D(EI_TWELVE) * D(EI_POINT_FOUR));
     SetElementDword(s, 0, 0x28, 0);
     SetBits(&s->elements[0].value[8], 0x3F7F3B64);     // 0.997
     SetCallbacks(s, 0x00489F70, 0x0048A310, 0x0048A560);
@@ -347,8 +339,8 @@ void SetupClayRing(CParticleSource* s) {
     for (int i = 0; i < s->elementCount; ++i) {
         double angle = static_cast<double>(i) * EI_RING_STEP;
         float* direction = &s->elements[i].value[3];
-        direction[0] = Store(x87::fsin(angle));
-        direction[1] = Store(x87::fcos(angle));
+        direction[0] = static_cast<float>(x87::fsin(angle));
+        direction[1] = static_cast<float>(x87::fcos(angle));
         SetBits(&direction[2], 0);
         std::memcpy(&s->elements[i].pos, &s->position, sizeof(Vector3));
         std::memcpy(&s->elements[i].value[0], &s->position, sizeof(Vector3));
@@ -478,7 +470,7 @@ const char* SetupType(CParticleSource* s) {
         s->lifetime = 16;
         s->frameDelay = 1;
         s->size = 2.5f;
-        s->height = Store(D(s->spreadMax.y) * D(EI_SIXTY_FOURTH));
+        s->height = static_cast<float>(D(s->spreadMax.y) * D(EI_SIXTY_FOURTH));
         s->growth = 0.99f;
         SetCallbacks(s, 0x0048BD50, 0x0048C010, 0);
         return "Vulkan";
@@ -798,17 +790,17 @@ using FrameArray = lib::AlignedArray<FrameRect>;
 
 // The frames are cells of a grid `columns` wide, row 0 at the top (v = 1), each inset by 1/512.
 void BuildFrames(CParticleSource* s) {
-    float step = Store(D(EI_ONE) / static_cast<double>(s->frameColumns));
+    float step = static_cast<float>(D(EI_ONE) / static_cast<double>(s->frameColumns));
     auto& frames = *reinterpret_cast<FrameArray*>(&s->frameBase);
     frames.SetSize(s->frameCount);
     FrameRect* rect = frames.data;
     for (int i = 0; i < s->frameCount; ++i, ++rect) {
         double column = static_cast<double>(i % s->frameColumns);
-        float row = Store(static_cast<double>(i / s->frameColumns));
-        rect->u0 = Store(column * D(step) + D(EI_UV_INSET));
-        rect->v0 = Store(D(EI_ONE) - (D(row) * D(step) + D(EI_UV_INSET)));
-        rect->u1 = Store((column + D(EI_ONE)) * D(step) - D(EI_UV_INSET));
-        rect->v1 = Store(D(EI_ONE) - ((D(row) + D(EI_ONE)) * D(step) - D(EI_UV_INSET)));
+        float row = static_cast<float>(static_cast<double>(i / s->frameColumns));
+        rect->u0 = static_cast<float>(column * D(step) + D(EI_UV_INSET));
+        rect->v0 = static_cast<float>(D(EI_ONE) - (D(row) * D(step) + D(EI_UV_INSET)));
+        rect->u1 = static_cast<float>((column + D(EI_ONE)) * D(step) - D(EI_UV_INSET));
+        rect->v1 = static_cast<float>(D(EI_ONE) - ((D(row) + D(EI_ONE)) * D(step) - D(EI_UV_INSET)));
     }
 }
 

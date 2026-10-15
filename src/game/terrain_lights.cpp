@@ -143,7 +143,7 @@ EI_REPLACE(0x006C4EE0, DestroyRecords);
 void __stdcall UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
                                   int remove) {
     VertexRange range = RangeIn(area, sector->sx, sector->sy);
-    float rangeSquared = RoundToFloat(light->range_ * light->range_);
+    float rangeSquared = static_cast<float>(light->range_ * light->range_);
     for (int y = range.y0; y <= range.y1; ++y) {
         const SectorPosition* vertex = &sector->vertices.data[y * kRow + range.x0];
         SectorVertex* record = &sector->records.data[y * kRow + range.x0];

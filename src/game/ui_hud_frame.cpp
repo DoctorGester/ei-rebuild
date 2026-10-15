@@ -3,9 +3,8 @@
 // while the game is paused; the top panel (CHudTopPanel::Update, 00649FF0) slides in and out.
 // See docs/notes/ui.md.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
-// operation order is kept and NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "ui.h"
 
 #include "maths.h"
@@ -18,16 +17,9 @@
 #include <cstring>
 #include "originals_ui.h"
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }
-
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 float FloatFromBits(std::uint32_t bits) {
     float f;
@@ -125,66 +117,66 @@ void CHudClock::Update() {
 
     // The blink phase runs from 0 to 1 once a second.
     double blink = WindowFrameTime(this) + D(blink_);
-    blink_ = Store(blink);
+    blink_ = static_cast<float>(blink);
     if (blink >= 1.0f) {
         double next;
         do {
             next = D(blink_) - 1.0f;
-            blink_ = Store(next);
+            blink_ = static_cast<float>(next);
         } while (next >= 1.0f);
     }
-    float pulse = Store(x87::fcos(D(BlinkRate()) * D(blink_)) * PulseAmplitude() + PulseMiddle());
+    float pulse = static_cast<float>(x87::fcos(D(BlinkRate()) * D(blink_)) * PulseAmplitude() + PulseMiddle());
 
     float handAngle;
     if (GamePaused()) {
-        SetTint(face, Store(BlinkBase() - D(pulse)));
-        handAngle = Store(D(Pi()) * PausedHand());
+        SetTint(face, static_cast<float>(BlinkBase() - D(pulse)));
+        handAngle = static_cast<float>(D(Pi()) * PausedHand());
         Sprite(objects[1])->visible_ = blink_ > Half() ? 1 : 0;
     } else {
         SetTint(face, 1.0f);
         double step;
         if (fast_ != 0) {
-            handAngle = Store(D(Pi()) * FastHand());
+            handAngle = static_cast<float>(D(Pi()) * FastHand());
             step = WindowFrameTime(this);
         } else {
-            handAngle = Store(D(Pi()) * NormalHand());
+            handAngle = static_cast<float>(D(Pi()) * NormalHand());
             step = WindowFrameTime(this) * Half();
         }
-        dial_ = Store(step + D(dial_));
+        dial_ = static_cast<float>(step + D(dial_));
         Sprite(objects[1])->visible_ = 1;
     }
 
     // The dial turns by whole notches' worth and wraps.
-    float notch = Store(D(Pi()) * DialStep());
+    float notch = static_cast<float>(D(Pi()) * DialStep());
     if (dial_ > notch) {
         double next;
         do {
             next = D(dial_) - D(notch);
-            dial_ = Store(next);
-            notch = Store(D(Pi()) * DialStep());
+            dial_ = static_cast<float>(next);
+            notch = static_cast<float>(D(Pi()) * DialStep());
         } while (next > notch);
     }
 
     // The hand (object 1) about -z, placed on its circle.
     Turn(objects[1], -1.0f, handAngle);
     double handSin = x87::fsin(handAngle);
-    float handY = Store(CentreY() - handSin * HandRadius());
-    float handX = Store(x87::fcos(handAngle) * HandRadius() + CentreX());
+    float handY = static_cast<float>(CentreY() - handSin * HandRadius());
+    float handX = static_cast<float>(x87::fcos(handAngle) * HandRadius() + CentreX());
     Sprite(objects[1])->Place(handX, handY, FloatFromBits(kHandDepth));
 
     // The face turns with the time of day.
-    Turn(face, 1.0f, Store((D(hours) + FaceOffset()) * D(Pi()) * FaceStep()));
+    Turn(face, 1.0f, static_cast<float>((D(hours) + FaceOffset()) * D(Pi()) * FaceStep()));
 
     // The four dial marks (objects 2-5), a notch apart.
-    float angle = Store(D(dial_) - D(Pi()) * FaceStep());
+    float angle = static_cast<float>(D(dial_) - D(Pi()) * FaceStep());
     for (int k = 2; k < 6; ++k) {
         CEngineObject* mark = objects[k];
         Turn(mark, 1.0f, angle);
         double c = x87::fcos(angle);
-        float y = Store(CentreY() - c * DialRadius());
-        float x = Store(x87::fsin(angle) * DialRadius() + CentreX());
+        float y = static_cast<float>(CentreY() - c * DialRadius());
+        float x = static_cast<float>(x87::fsin(angle) * DialRadius() + CentreX());
         Sprite(mark)->Place(x, y, FloatFromBits(kSpriteDepth));
-        angle = Store(D(angle) - D(Pi()) * DialStep());
+        angle = static_cast<float>(D(angle) - D(Pi()) * DialStep());
     }
 
     SetTint(objects[6], highlight_ ? pulse : 1.0f);
@@ -206,7 +198,7 @@ const void* SlingRestRotation() { return reinterpret_cast<const void*>(0x007C815
 void CHudTopPanel::Update() {
     if (sliding_) {
         double slide = WindowFrameTime(this) * D(slideDirection_) / SlideTime() + D(slide_);
-        slide_ = Store(slide);
+        slide_ = static_cast<float>(slide);
         if (slide > 1.0f) slide_ = 1.0f;
         if (!(slide_ >= 0.0f)) slide_ = 0.0f;
         // Ease in and out: 2s^2 for the first half, 1 - 2(1-s)^2 for the second.

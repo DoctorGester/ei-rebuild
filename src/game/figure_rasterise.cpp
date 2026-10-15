@@ -30,8 +30,6 @@ float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatil
 
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* rasteriser, const IntPoint* points,
                                    RasterTriangle* triangle) {
     const MeshBuffers& buffers = mesh->buffers_;
@@ -45,8 +43,8 @@ int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* ra
     float scale = GameFloat(0x0073C370);
     for (int i = 0; i < buffers.texCoordCount; ++i) {
         const float* source = static_cast<const float*>(buffers.texCoords) + i * 2;
-        uv.data[i].x = x87::fistp(StoreFloat(source[0] * scale));
-        uv.data[i].y = x87::fistp(StoreFloat(source[1] * scale));
+        uv.data[i].x = x87::fistp(static_cast<float>(source[0] * scale));
+        uv.data[i].y = x87::fistp(static_cast<float>(source[1] * scale));
     }
     for (int t = 0; t < buffers.indexCount; t += 3) {
         for (int k = 0; k < 3; ++k) {
@@ -60,7 +58,5 @@ int __fastcall RasteriseFigureMesh(CFigureMesh* mesh, void*, CPixelConverter* ra
     }
     return buffers.vertexCount * 4;
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE(0x005A0E80, RasteriseFigureMesh);

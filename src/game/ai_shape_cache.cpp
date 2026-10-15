@@ -34,8 +34,6 @@ bool SameHeight(float a, float b) {
 
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 CRefObject* UnitShapeCache::Get(void* handleIn) {
     auto* handle = static_cast<CacheHandle*>(handleIn);
     if (handle->cache == this && handle->ref && !(handle->ref->flags7_ & CRefObject::kDetached)) return handle->ref;
@@ -60,8 +58,6 @@ CRefObject* UnitShapeCache::Get(void* handleIn) {
     reinterpret_cast<RefPtr*>(&handle->ref)->Assign(created);
     return created;
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x005BD7F0, UnitShapeCache::Get);
 

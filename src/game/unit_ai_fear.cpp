@@ -52,12 +52,6 @@ constexpr double kRandomSix = std::bit_cast<double>(0x3E18000000180000ull);   //
 constexpr double kRandomUnit = std::bit_cast<double>(0x3DF0000000100000ull);  // 0073C468: 1 / 2^32
 constexpr std::uint32_t kUnsetBits = 0xC4A42000u;                   // -1313: no shelter
 
-// Rounds an FPU value to float as the original's FSTP into a float does.
-float Round(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 // FCOMP 0; TEST AH,0x40; JNZ: equal to zero or unordered.
 bool ZeroOrNaN(double v) { return x87::IsNaN(static_cast<float>(v)) || v == 0.0; }
 
@@ -87,29 +81,29 @@ void ConstructOrder(AIMoveOrder* order) {
 // point) lets the unit attack `enemy` from there.
 bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, const Vector3& foe, float dx, float dy,
                      Vector3* out) {
-    Vector3 away{dx, dy, Round(static_cast<double>(foe.z) - me.z)};
+    Vector3 away{dx, dy, static_cast<float>(static_cast<double>(foe.z) - me.z)};
     double length = LengthZXY(away);
     if (!ZeroOrNaN(length)) {
         double scale = kFlightStep / length;
-        away.x = Round(scale * away.x);
-        away.y = Round(away.y * scale);
-        away.z = Round(away.z * scale);
+        away.x = static_cast<float>(scale * away.x);
+        away.y = static_cast<float>(away.y * scale);
+        away.z = static_cast<float>(away.z * scale);
     }
     IsaacRandom& random = IsaacRandom::Global();
-    float jitterX = Round(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
-    float jitterY = Round(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
+    float jitterX = static_cast<float>(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
+    float jitterY = static_cast<float>(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
     Vector3 back = me - away;
-    Vector3 dest{Round(static_cast<double>(back.x) + jitterX), Round(static_cast<double>(back.y) + jitterY), back.z};
+    Vector3 dest{static_cast<float>(static_cast<double>(back.x) + jitterX), static_cast<float>(static_cast<double>(back.y) + jitterY), back.z};
 
     ScopedPath local;
     double way = DistanceZXY(dest, me);
-    float wayRounded = Round(way);
-    float range = Round(way * kThree + kRangeBase);
+    float wayRounded = static_cast<float>(way);
+    float range = static_cast<float>(way * kThree + kRangeBase);
     if (!Map()->FindPath(self, &dest, &local.path, range, kMinDistance)) return false;
     double scale = static_cast<double>(kOne) * kHalf;
     double limit = kOne / scale * wayRounded * kSmoothingScale;
     if (!(limit >= static_cast<double>(local.path.smoothing))) return false;
-    Vector3 end{Round(scale * local.path.targetX), Round(scale * local.path.targetY), 0.0f};
+    Vector3 end{static_cast<float>(scale * local.path.targetX), static_cast<float>(scale * local.path.targetY), 0.0f};
 
     AIOrder order;
     order.object = nullptr;
@@ -132,16 +126,16 @@ int FearMode::Evaluate(AIBrain* brain) {
     CUnit* self = owner->unit;
     // The sum rounded first, as the main thread's 24-bit FPU does (SV7d1: under /fp:fast MSVC
     // otherwise distributes the product, spread * 2/3 + 1, and the result drifts by an ulp).
-    float grown = Round(static_cast<double>(spread) + spread + kThree);
-    spread = Round(static_cast<double>(grown) * kThird);
+    float grown = static_cast<float>(static_cast<double>(spread) + spread + kThree);
+    spread = static_cast<float>(static_cast<double>(grown) * kThird);
     if (CEngineObject* seen = brain->seen) {
         const Vector3* at = PositionOf(seen);
         brain->Notice(at, kNoticeLevel, kNoticeKind);
         const Vector3* me = PositionOf(brain->owner->unit);
-        float x = Round(static_cast<double>(me->x) - at->x);
-        float y = Round(static_cast<double>(me->y) - at->y);
-        float z = Round(static_cast<double>(me->z) - at->z);
-        float reach = Round(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(x, y, z)) * kSeenScale);
+        float x = static_cast<float>(static_cast<double>(me->x) - at->x);
+        float y = static_cast<float>(static_cast<double>(me->y) - at->y);
+        float z = static_cast<float>(static_cast<double>(me->z) - at->z);
+        float reach = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZXY, double>(x, y, z)) * kSeenScale);
         // The larger of the two; an unordered pair takes the new one.
         if (!(distance >= reach)) distance = reach;
     }
@@ -160,7 +154,7 @@ int FearMode::Evaluate(AIBrain* brain) {
         if (static_cast<double>(range) * range > LengthSquared2DUnrounded(dx, dy)) {
             if (brain->owner->command == kCommandWalk || brain->owner->nextCommand == kCommandWalk) return kFlee;
             Vector3 flight;
-            if (FindFlightPoint(brain, self, enemy, me, foe, Round(dx), Round(dy), &flight)) {
+            if (FindFlightPoint(brain, self, enemy, me, foe, static_cast<float>(dx), static_cast<float>(dy), &flight)) {
                 fleePoint = flight;
                 fleePoint.z = kOne;
                 return kFlee;
@@ -189,7 +183,7 @@ int FearMode::Evaluate(AIBrain* brain) {
             double d2 = LengthSquared2DUnrounded(ox, oy);
             if (d2 < best) {
                 nearest = *PositionOf(other);
-                best = Round(d2);
+                best = static_cast<float>(d2);
             }
         }
         if (best < static_cast<double>(distance) * distance) brain->Notice(&nearest, kNoticeLevel, kNoticeKind);
@@ -206,8 +200,8 @@ int FearMode::Evaluate(AIBrain* brain) {
     }
     // Back towards the default by 1/31 a call; the sum rounded first (see spread above: distributed,
     // 30/31 * distance + default / 31 settled at 9.99999714 instead of 10).
-    float weighted = Round(static_cast<double>(distance) * kDistanceWeight + FearDefaultDistance());
-    distance = Round(static_cast<double>(weighted) * kDistanceDivisor);
+    float weighted = static_cast<float>(static_cast<double>(distance) * kDistanceWeight + FearDefaultDistance());
+    distance = static_cast<float>(static_cast<double>(weighted) * kDistanceDivisor);
     return kNoPriority;
 }
 
@@ -246,37 +240,37 @@ void FearMode::Execute(AIBrain* brain) {
             double vx = static_cast<double>(from.x) - here->x;
             double vy = static_cast<double>(from.y) - here->y;
             double vz = static_cast<double>(from.z) - here->z;
-            Vector3 step{Round(vx), Round(vy), Round(vz)};
-            float length = Round(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(vx, vy, vz)));
-            float limit = Round(static_cast<double>(distance) * kSpreadScale);
+            Vector3 step{static_cast<float>(vx), static_cast<float>(vy), static_cast<float>(vz)};
+            float length = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(vx, vy, vz)));
+            float limit = static_cast<float>(static_cast<double>(distance) * kSpreadScale);
             // The smaller of the two; an unordered pair keeps the old spread.
             float width = (spread < limit || x87::IsNaN(spread) || x87::IsNaN(limit)) ? spread : limit;
             spread = width;
             if (!ZeroOrNaN(length)) {
                 double scale = kFlightStep / length;
-                step.x = Round(scale * step.x);
-                step.y = Round(step.y * scale);
-                step.z = Round(step.z * scale);
+                step.x = static_cast<float>(scale * step.x);
+                step.y = static_cast<float>(step.y * scale);
+                step.z = static_cast<float>(step.z * scale);
             }
-            float low = Round(-static_cast<double>(width));
+            float low = static_cast<float>(-static_cast<double>(width));
             IsaacRandom& random = IsaacRandom::Global();
-            float jitterX = Round(x87::FromUnsigned(random.Next()) * (static_cast<double>(width) - low) * kRandomUnit + low);
+            float jitterX = static_cast<float>(x87::FromUnsigned(random.Next()) * (static_cast<double>(width) - low) * kRandomUnit + low);
             double jitterY = x87::FromUnsigned(random.Next()) * (static_cast<double>(width) - low) * kRandomUnit + low;
-            float backZ = Round(static_cast<double>(here->z) - step.z);
+            float backZ = static_cast<float>(static_cast<double>(here->z) - step.z);
             double backY = static_cast<double>(here->y) - step.y;
-            float backX = Round(static_cast<double>(here->x) - step.x);
-            dest.x = Round(static_cast<double>(backX) + jitterX);
-            dest.y = Round(backY + jitterY);
+            float backX = static_cast<float>(static_cast<double>(here->x) - step.x);
+            dest.x = static_cast<float>(static_cast<double>(backX) + jitterX);
+            dest.y = static_cast<float>(backY + jitterY);
             dest.z = backZ;
         }
         ScopedPath local;
         double way = DistanceZYX(dest, *here);
-        float range = Round(way * kThree + kRangeBase);
+        float range = static_cast<float>(way * kThree + kRangeBase);
         if (Map()->FindPath(brain->owner->unit, &dest, &local.path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->MoveTo(&dest, 0, 0, kMoveTime);
         }
-        spread = Round(static_cast<double>(spread) + spread);
+        spread = static_cast<float>(static_cast<double>(spread) + spread);
     }
 
     if (brain->action == AIBrain::kActionNone) {
@@ -298,9 +292,9 @@ void FearMode::Execute(AIBrain* brain) {
             double length = LengthXYZ(v);
             if (!ZeroOrNaN(length)) {
                 double twice = length + length;
-                direction.x = Round(v.x / twice);
-                direction.y = Round(v.y / twice);
-                direction.z = Round(v.z / twice);
+                direction.x = static_cast<float>(v.x / twice);
+                direction.y = static_cast<float>(v.y / twice);
+                direction.z = static_cast<float>(v.z / twice);
             }
             brain->PlanLooks(&order, &direction, kNoWander, false);
             reinterpret_cast<AIRef*>(&brain->target)->Assign(nullptr);

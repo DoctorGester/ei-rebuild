@@ -4,9 +4,8 @@
 // the player has quests and shows one of them. See
 // docs/notes/ui.md.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
-// operation order is kept and NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "ui.h"
 #include "game_strings.h"
 
@@ -33,18 +32,11 @@
 #include <cstring>
 #include <new>
 
-#pragma float_control(precise, on)
-
 using console::CStringArray;
 
 namespace {
 
 inline double D(float f) { return f; }
-
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 float Bits(std::uint32_t bits) {
     float f;
@@ -279,18 +271,18 @@ void CObjectivesWindow::ShowZone(const char* zone) {
 
     // The zone picture (scene object 3), fitted into a 300x300 square around (580, 190).
     LoadTexture(map->picture2, 3, 0);
-    float width = Store(static_cast<double>(map->sizeX));
-    float height = Store(static_cast<double>(map->sizeY));
+    float width = static_cast<float>(static_cast<double>(map->sizeX));
+    float height = static_cast<float>(static_cast<double>(map->sizeY));
     float larger = width < height || x87::IsNaN(width) || x87::IsNaN(height) ? height : width;
     double widthShare = D(width) / D(larger);
-    float heightShare = Store(D(height) / D(larger));
-    float halfHeight = Store(D(heightShare) * kPictureHalf);
-    float halfWidth = Store(widthShare * kPictureHalf);
+    float heightShare = static_cast<float>(D(height) / D(larger));
+    float halfHeight = static_cast<float>(D(heightShare) * kPictureHalf);
+    float halfWidth = static_cast<float>(widthShare * kPictureHalf);
     int u1 = GameFtol(widthShare * kTexels);
     int v0 = GameFtol((1.0f - D(heightShare)) * kTexels);
     CUiMesh* picture = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3]);
-    picture->SetRectangle(10.0f, 100.0f, Store(kPictureCentreX - D(halfWidth)), Store(kPictureCentreY - D(halfHeight)),
-                          Store(D(halfWidth) + kPictureCentreX), Store(D(halfHeight) + kPictureCentreY), 0, v0, u1,
+    picture->SetRectangle(10.0f, 100.0f, static_cast<float>(kPictureCentreX - D(halfWidth)), static_cast<float>(kPictureCentreY - D(halfHeight)),
+                          static_cast<float>(D(halfWidth) + kPictureCentreX), static_cast<float>(D(halfHeight) + kPictureCentreY), 0, v0, u1,
                           0x100);
     SetSpriteTexture(picture, objects_.data[2]);
 
@@ -310,8 +302,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         ExitsSetAtGrow(exitArray, nullptr, index, blank);
         ObjectiveExit* exit = &exits_[index];
         exit->exit_ = i;
-        exit->x_ = Store((D(source.deploy[2]) + D(source.deploy[0])) * 0.5f);
-        exit->y_ = Store((D(source.deploy[3]) + D(source.deploy[1])) * 0.5f);
+        exit->x_ = static_cast<float>((D(source.deploy[2]) + D(source.deploy[0])) * 0.5f);
+        exit->y_ = static_cast<float>((D(source.deploy[3]) + D(source.deploy[1])) * 0.5f);
         exit->distance_ = 0.0f;
         exit->flag_ = false;
         if (exitDistances_) {
@@ -338,26 +330,26 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         }
 
         // Position on the picture (world cells are 32 units).
-        float worldWidth = Store(static_cast<double>(map->sizeX << 5));
-        float worldHeight = Store(static_cast<double>(map->sizeY << 5));
+        float worldWidth = static_cast<float>(static_cast<double>(map->sizeX << 5));
+        float worldHeight = static_cast<float>(static_cast<double>(map->sizeY << 5));
         float span = worldWidth < worldHeight || x87::IsNaN(worldWidth) || x87::IsNaN(worldHeight) ? worldHeight
                                                                                                    : worldWidth;
         exit = &exits_[index];
         double dx = D(exit->x_) - D(worldWidth) * 0.5f;
-        float dy = Store(D(exit->y_) - D(worldHeight) * 0.5f);
-        float sideX = Store(dx / D(worldWidth));
-        float sideY = Store(D(dy) / D(worldHeight));
+        float dy = static_cast<float>(D(exit->y_) - D(worldHeight) * 0.5f);
+        float sideX = static_cast<float>(dx / D(worldWidth));
+        float sideY = static_cast<float>(D(dy) / D(worldHeight));
         double mapX = dx * kPictureSpan / D(span) + kPictureCentreX;
-        float x = Store(mapX);
-        float y = Store(kPictureCentreY - D(dy) * kPictureSpan / D(span));
-        exit->mapX_ = Store(mapX);
+        float x = static_cast<float>(mapX);
+        float y = static_cast<float>(kPictureCentreY - D(dy) * kPictureSpan / D(span));
+        exit->mapX_ = static_cast<float>(mapX);
         exit->mapY_ = y;
 
         CUiMesh* marker = AddSprite(0);
-        float base = Store(D(y) + kMarkerHeight);
-        marker->SetTriangle(5.0f, 100.0f, x, y, Store(D(x) - kMarkerHalfWidth), base, Store(D(x) + kMarkerHalfWidth),
+        float base = static_cast<float>(D(y) + kMarkerHeight);
+        marker->SetTriangle(5.0f, 100.0f, x, y, static_cast<float>(D(x) - kMarkerHalfWidth), base, static_cast<float>(D(x) + kMarkerHalfWidth),
                             base, 240.0f, 226.0f, 227.0f, 254.0f, 253.0f, 254.0f);
-        markerScale_ = Store(SpriteScaleOriginal(marker));   // the sprite's scale (005E70B0, left in ST0)
+        markerScale_ = static_cast<float>(SpriteScaleOriginal(marker));   // the sprite's scale (005E70B0, left in ST0)
         RECT rect;
         rect.left = GameFtol(D(x) - kExitHalf);
         rect.top = GameFtol(D(y) - kExitHalf);
@@ -578,18 +570,18 @@ void CObjectivesWindow::ShowQuest() {
     while (regions_.size > exits_.size + 9) RemoveRegionAt(exits_.size + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
     for (unsigned i = 0; i < static_cast<unsigned>(questPlaces_.end() - questPlaces_.begin()); ++i) {
-        float worldWidth = Store(static_cast<double>(map->sizeX << 5));
-        float worldHeight = Store(static_cast<double>(map->sizeY << 5));
+        float worldWidth = static_cast<float>(static_cast<double>(map->sizeX << 5));
+        float worldHeight = static_cast<float>(static_cast<double>(map->sizeY << 5));
         float span = worldWidth < worldHeight || x87::IsNaN(worldWidth) || x87::IsNaN(worldHeight) ? worldHeight
                                                                                                    : worldWidth;
         const UiPointF& place = questPlaces_[i];
-        float x = Store((D(place.x) - D(worldWidth) * 0.5f) * kPictureSpan / D(span) + kPictureCentreX);
-        float y = Store(kPictureCentreY - (D(place.y) - D(worldHeight) * 0.5f) * kPictureSpan / D(span));
+        float x = static_cast<float>((D(place.x) - D(worldWidth) * 0.5f) * kPictureSpan / D(span) + kPictureCentreX);
+        float y = static_cast<float>(kPictureCentreY - (D(place.y) - D(worldHeight) * 0.5f) * kPictureSpan / D(span));
         CUiMesh* marker = AddSprite(0);
-        float bottom = Store(D(y) + kMarkerHalfWidth);
-        float right = Store(D(x) + kMarkerHalfWidth);
-        float top = Store(D(y) - kMarkerHalfWidth);
-        float left = Store(D(x) - kMarkerHalfWidth);
+        float bottom = static_cast<float>(D(y) + kMarkerHalfWidth);
+        float right = static_cast<float>(D(x) + kMarkerHalfWidth);
+        float top = static_cast<float>(D(y) - kMarkerHalfWidth);
+        float left = static_cast<float>(D(x) - kMarkerHalfWidth);
         marker->SetRectangle(5.0f, 100.0f, left, top, right, bottom, 0, 0, 0x80, 0x80);
         SetSpriteTexture(marker, objects_.data[1]);
         std::memcpy(marker->tint_, red, sizeof(red));

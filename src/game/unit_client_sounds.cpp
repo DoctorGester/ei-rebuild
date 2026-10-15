@@ -73,10 +73,10 @@ int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
     CWorldClient* world = WorldClient();
     float x = unit->position.x;
     float y = unit->position.y;
-    volatile float ground = world->ClampedGroundHeight(x, y);   // stored as a float
+    float ground = world->ClampedGroundHeight(x, y);   // stored as a float
     Vector3 at{x, y, 0.0f};
     float surface = world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(x, y));   // its slot 27
-    volatile float gap = ground - surface;
+    float gap = ground - surface;
     if (std::fabs(static_cast<float>(gap)) > kPlatformGap) terrain = kTerrainPlatform;
     if (unit->moveMode == 0 && terrain != kTerrainNoCrawl2 && terrain != kTerrainNoCrawl1) {
         out->Format("steps\\human\\crawl\\%d.wav", RandomBelow(kCrawlSounds) + 1);
@@ -288,11 +288,11 @@ void CUnitClientSpecific::PlayStepSounds() {
         unit->orientation.AxisY(&facing);
         double length = x87::fsqrt(LengthSquared2DUnrounded(facing.y, facing.x));
         if (kMinAxisLength > length) length = kMinAxisLength;   // a NaN length stays
-        volatile float cosine = static_cast<float>(facing.y / length);
+        float cosine = static_cast<float>(facing.y / length);
         float clamped = cosine;
         if (clamped > 1.0f) clamped = 1.0f;
         else if (!(clamped >= -1.0f)) clamped = -1.0f;   // NaN too
-        volatile float angle = static_cast<float>(kPi - std::acos(static_cast<double>(clamped)));
+        float angle = static_cast<float>(kPi - std::acos(static_cast<double>(clamped)));
         float turn = angle;
         if (!(facing.x >= 0.0f)) turn = -turn;   // NaN too
         float sizeY = foot->bounds_.boxMax.y;

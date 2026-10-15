@@ -228,10 +228,10 @@ CEngineObject** CollectMapObjects(CWorldServer* world, WorldPlayer* player, CPla
         heard.blocks = nullptr;
         heard.blockSize = 10;
         auto* controller = static_cast<CUnitServer*>(static_cast<CUnit*>(unit)->controller);
-        float perception = StoreFloat(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
+        float perception = static_cast<float>(controller->moveFactors[3] * controller->stats.valuesB0[0].current);
         float minimum = controller->stats.valuesB0[2].current;
         float range = !(perception >= minimum) ? minimum : perception;   // the original's branch-free select
-        float radius = StoreFloat(static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin()));
+        float radius = static_cast<float>(static_cast<double>(range) * HearingScale() + HearingMargin());
         SectorMapFindUnitsInRadius(world->sectorMap_, nullptr, PositionOf(unit), &heard, radius);
         for (auto* entry = heard.head; entry; entry = entry->next) *out++ = entry->data;
         heard.vtable = mfc::PtrListVtable();
@@ -248,8 +248,8 @@ CEngineObject** CollectTimedObjects(CWorldServer* world, CPlayerServer* state, C
         const Vector3* position = TimedSlots(object)->Position(&state->partyUnits_);
         double dx = static_cast<double>(position->x) - state->lastPosition_.x;
         double dy = static_cast<double>(position->y) - state->lastPosition_.y;
-        float distance = StoreFloat(static_cast<float>(LengthSquared2DUnrounded(dy, dx)));
-        float reach = StoreFloat(static_cast<float>(TimedSlots(object)->Radius()));
+        float distance = static_cast<float>(LengthSquared2DUnrounded(dy, dx));
+        float reach = static_cast<float>(TimedSlots(object)->Radius());
         double reach2 = TimedSlots(object)->Radius() * reach;
         if (reach2 > distance) *out++ = object;
     }

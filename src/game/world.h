@@ -318,8 +318,10 @@ public:
     // +0x60 destroyed (RefPtr::Destroy, inlined) and the pointer cleared.
     void CloseSession();
     // 005942C0 (the server's, from the pause request 0x10) / 00566350 (the client's copy, from
-    // message 0x60), byte-identical (world_server.cpp): stores paused_ (+0x6C).
+    // message 0x60), byte-identical (world_server.cpp): stores paused_ (+0x6C). SetServerPaused is
+    // 005942C0's entry: EI_Plugin's Pause in mode 3 makes it a plain RET 4.
     void SetPaused(std::uint8_t value);
+    void SetServerPaused(std::uint8_t value);
     // 0055EAB0 (world_create.cpp; the two worlds' constructors 005612F0 / 00589ED0). The base
     // constructor: the engine object's fields, the base vtable 0073F18C, no figure loader, helper,
     // session or managers, the clock at 0 and the empty countdown array. Returns this.
@@ -723,8 +725,11 @@ public:
     // 00592090 (RET 8). Briefing `name` ("a.b.<record>") is complete for player `playerId`: a
     // network client asks the server; otherwise the player gets the record's experience, gold
     // and items, loses its quest items, its variables are set, and the scripts get
-    // GSSetVar / #OnBriefingComplete (run at once in kind-3 games).
+    // GSSetVar / #OnBriefingComplete (run at once in kind-3 games; also on a network client with
+    // EI_Plugin's Briefings).
     void CompleteBriefing(int playerId, const char* name);
+    // The end of 00592090: GSSetVar / #OnBriefingComplete for `name` queued, run at once in kind-3 games.
+    void QueueBriefingScript(int playerId, const char* name);
     // 00591DE0 (RET 8). The mercenary side of a completed briefing `name`: for the ten slots,
     // b.mercN.n8_N clears that variable, n10_N removes the mercenary from the party and the
     // world, n2_N from the party, n1_N / n3_N hire it (amerc_N = 2, added to the party with its

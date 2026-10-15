@@ -58,8 +58,8 @@ __declspec(naked) void __fastcall BuildCells(CAIMap*, void*, int, int, PathCellL
 // 006E727B. atexit, for the function-local spiral cache.
 
 // The function-local static SpiralCache at 007C2F58 (guard bit 0 of 007C2F60, destructor 005BA3F0).
-std::uint8_t& SpiralGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2F60); }
-SpiralCache* Spiral() { return reinterpret_cast<SpiralCache*>(0x007C2F58); }
+std::uint8_t& SpiralGuard() { return ei::GameData<std::uint8_t>(0x007C2F60); }
+SpiralCache* Spiral() { return &ei::GameData<SpiralCache>(0x007C2F58); }
 
 // An inlined CList destructor: the nodes need no destruction; the blocks are freed.
 template <typename List>
@@ -68,8 +68,8 @@ void DestroyList(List& list, void* vtable) {
     list.RemoveAll();
 }
 
-double Threshold() { return *reinterpret_cast<const volatile double*>(0x0073F0A8); }
-float Half() { return *reinterpret_cast<const volatile float*>(0x0073B86C); }
+double Threshold() { return ei::GameData<const volatile double>(0x0073F0A8); }
+float Half() { return ei::GameData<const volatile float>(0x0073B86C); }
 
 } // namespace
 
@@ -211,9 +211,9 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             toX = bestX;
             path->failed = true;
             result = true;
-            float tx = StoreFloat(static_cast<float>(static_cast<double>(bestX) + Half()));
+            float tx = static_cast<float>(static_cast<double>(bestX) + Half());
             path->targetX = tx;
-            float ty = StoreFloat(static_cast<float>(static_cast<double>(bestY) + Half()));
+            float ty = static_cast<float>(static_cast<double>(bestY) + Half());
             path->targetY = ty;
         } else {
             LocalSearchResetOriginal(search);

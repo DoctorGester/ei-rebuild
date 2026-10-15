@@ -30,14 +30,9 @@ const float* ClassHeights() { return reinterpret_cast<const float*>(0x007912BC);
 
 // LineOfSight through its original address (rewritten in ai_map.cpp), its ST0 taken unrounded.
 
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 // World coordinate to cell as the original computes it here: (x / (cell size 1.0 * 0.5) - 0.5)
 // rounded to float, then FISTP.
-int CellOf(float world) { return x87::fistp(Store(2.0 * world - 0.5f)); }
+int CellOf(float world) { return x87::fistp(static_cast<float>(2.0 * world - 0.5f)); }
 
 constexpr float kShapeMinHeight = 0.2f;     // 0073BAD4
 constexpr int kExpensive = 12000;           // cost above which a step is flagged 2
@@ -72,8 +67,8 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         if (!(otherHeight > kShapeMinHeight)) {
             if (handle.ref) handle.ref->Release();
         } else {
-            int tenths = x87::fistp(Store(static_cast<double>(otherHeight) * 10.0f + 1.0f));
-            handle.height = Store(static_cast<double>(tenths) * 0.1f);
+            int tenths = x87::fistp(static_cast<float>(static_cast<double>(otherHeight) * 10.0f + 1.0f));
+            handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
             std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
             shape = ShapeCacheGet(UnitShapes(), nullptr, &handle);
             if (CRefObject* ref = handle.ref) {
@@ -81,7 +76,7 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
             }
         }
 
-        int level = x87::fistp(Store((2.0f - static_cast<double>(unit->standingHeight)) * 16.0f));
+        int level = x87::fistp(static_cast<float>((2.0f - static_cast<double>(unit->standingHeight)) * 16.0f));
         int minLevel = level < 0 ? 0 : (level & 0xFF);
         int dxCells = unitX - otherX + 8;
         int dyCells = unitY - otherY + 8;
@@ -152,7 +147,7 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
     if (HasKind3Occluder(x, y)) {
         int sizeClass = unit->sizeClass;
-        int level = x87::fistp(Store(static_cast<double>(ClassHeights()[sizeClass]) * heightScale));
+        int level = x87::fistp(static_cast<float>(static_cast<double>(ClassHeights()[sizeClass]) * heightScale));
         std::uint32_t passability[6];
         AIMapCellMarkOriginal(this, nullptr, passability, sizeClass, level, x, y);
         return static_cast<int>(passability[3]) < kExpensive;
@@ -232,20 +227,20 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
             int gy = y - grid->originY;
             if (x * 9 < 0 || y < 0 || x >= width || y >= height) continue;
             Vector3 cell;
-            cell.x = Store(static_cast<double>(x) * half);
-            cell.y = Store(static_cast<double>(y) * half);
+            cell.x = static_cast<float>(static_cast<double>(x) * half);
+            cell.y = static_cast<float>(static_cast<double>(y) * half);
             cell.z = 0.0f;
-            float dx = Store(static_cast<double>(cell.x) - eye->x);
-            float dy = Store(static_cast<double>(cell.y) - eye->y);
-            float dz = Store(-static_cast<double>(eye->z));
-            float distance = Store(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
+            float dx = static_cast<float>(static_cast<double>(cell.x) - eye->x);
+            float dy = static_cast<float>(static_cast<double>(cell.y) - eye->y);
+            float dz = static_cast<float>(-static_cast<double>(eye->z));
+            float distance = static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(dy, dx)));
             if (radius < distance || x87::IsNaN(radius) || x87::IsNaN(distance)) continue;
             if (!anyDirection) {
                 double dot = DotUnrounded<Sum3::ZYX, double>(dx, dy, dz, look->x, look->y, look->z);
                 if (static_cast<double>(distance) * cosLimit > dot) continue;
             }
             if (!noLineOfSight) {
-                cell.z = Store(static_cast<double>(cells[y][x].groundLevel) / heightScale + targetHeight);
+                cell.z = static_cast<float>(static_cast<double>(cells[y][x].groundLevel) / heightScale + targetHeight);
                 double seen = LineOfSightOriginal(this, nullptr, eye, &cell) * radius;
                 if (!(seen >= distance)) continue;
             }
@@ -304,8 +299,8 @@ void* CAIMap::UnitShape(float standingHeight) {
     handle.ref = nullptr;
     handle.key = 0xFFFFFFFF;
     if (!(standingHeight > kShapeMinHeight)) return nullptr;
-    int tenths = x87::fistp(Store(static_cast<double>(standingHeight) * 10.0f + 1.0f));
-    handle.height = Store(static_cast<double>(tenths) * 0.1f);
+    int tenths = x87::fistp(static_cast<float>(static_cast<double>(standingHeight) * 10.0f + 1.0f));
+    handle.height = static_cast<float>(static_cast<double>(tenths) * 0.1f);
     std::memcpy(&handle.key, &handle.height, sizeof(handle.key));
 
     CRefObject* shape;

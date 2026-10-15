@@ -48,9 +48,6 @@ std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
 }
 EI_REPLACE_METHOD(0x004F93A0, ClipBounds::SetBox);
 
-// /fp:fast would regroup the sums ((a + b) + c) + d as (a + b) + (c + d), which rounds differently.
-#pragma float_control(precise, on, push)
-
 // Clip code of one corner p under matrix m: M * (p, 1), rows x, y and w summed ZXY, z ZYX, each
 // rounded to float as the original stores them. The original keeps the corner coordinates on the
 // FPU stack (the same at the main thread's 24-bit precision).
@@ -60,9 +57,9 @@ EI_REPLACE_METHOD(0x004F93A0, ClipBounds::SetBox);
 static std::uint32_t ClipCode(const Matrix4& m, const Vector3& p) {
     Vector3 c = TransformColumn<Sum3::ZXY, Sum3::ZXY, Sum3::ZYX>(m, p);
     float cw = TransformColumnW<Sum3::ZXY>(m, p);
-    float w2 = StoreFloat(cw + cw);
-    float xw = StoreFloat(c.x + cw);
-    float yw = StoreFloat(c.y + cw);
+    float w2 = static_cast<float>(cw + cw);
+    float xw = static_cast<float>(c.x + cw);
+    float yw = static_cast<float>(c.y + cw);
     return SignBit(xw) | SignBit(yw) << 2 | SignBit(c.z) << 4 | std::uint32_t(!(w2 >= xw)) << 1 |
            std::uint32_t(!(w2 >= yw)) << 3 | std::uint32_t(!(cw >= c.z)) << 5;
 }
@@ -109,7 +106,6 @@ int CTransformPipeline::ClipTest(const ClipBounds* b) const {
     }
     return 1;
 }
-#pragma float_control(pop)
 EI_REPLACE_METHOD(0x004F16A0, CTransformPipeline::ClipTest);
 
 int CTransformPipeline::ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks,
@@ -164,12 +160,11 @@ Matrix4* __stdcall ShearMatrix(Matrix4* out, const Vector3* dir) {
 }
 EI_REPLACE(0x004F13F0, ShearMatrix);
 
-#pragma float_control(precise, on, push)
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar) {
     double half = fov * 0.5;
-    float c = StoreFloat(static_cast<float>(x87::fcos(half)));
+    float c = static_cast<float>(x87::fcos(half));
     double s = x87::fsin(half);
-    float q = StoreFloat(static_cast<float>(s * zFar / (zFar - zNear)));
+    float q = static_cast<float>(s * zFar / (zFar - zNear));
     std::memset(out, 0, sizeof(Matrix4));
     out->m[0] = c;
     out->m[5] = c * aspect;
@@ -178,7 +173,6 @@ Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float
     out->m[11] = -(q * zNear);
     return out;
 }
-#pragma float_control(pop)
 EI_REPLACE(0x004F0E80, ProjectionMatrix);
 
 EI_REPLACE_METHOD(0x004F57B0, TriangleIndexArray::SetSize);   // the figure parts' triangle indices

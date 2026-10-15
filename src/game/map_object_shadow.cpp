@@ -34,7 +34,6 @@
 
 // The original keeps intermediate values on the FPU stack (double locals here) and rounds where
 // it stores to a float (float locals); the order of every operation is the original's.
-#pragma float_control(precise, on)
 
 namespace {
 // --- Globals ----------------------------------------------------------------------------------

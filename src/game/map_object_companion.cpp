@@ -17,7 +17,6 @@
 #include <cstring>
 
 // The light's distance test and position must round like the original.
-#pragma float_control(precise, on)
 
 namespace {
 constexpr std::uint32_t kFlagDestroyed = 1;          // CEngineObject::flags_ bit set on death

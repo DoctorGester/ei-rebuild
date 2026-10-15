@@ -14,24 +14,22 @@
 namespace {
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
-    float dx = StoreFloat(to->x - from->x);
-    float dy = StoreFloat(to->y - from->y);
+    float dx = static_cast<float>(to->x - from->x);
+    float dy = static_cast<float>(to->y - from->y);
     double dz = static_cast<double>(to->z) - from->z;
     double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(dx, dy, dz));
     double cell = static_cast<double>(worlddata::CellSize()) * worlddata::Half();
     double steps = length / cell;
-    float stepsF = StoreFloat(static_cast<float>(steps));
+    float stepsF = static_cast<float>(steps);
     // FCOMP sets C3 for equal and for unordered: a NaN length also returns 1.0.
     if (steps == static_cast<double>(worlddata::Zero()) || steps != steps) return worlddata::One();
-    float inverse = StoreFloat(static_cast<float>(static_cast<double>(worlddata::One()) / stepsF));
+    float inverse = static_cast<float>(static_cast<double>(worlddata::One()) / stepsF);
     int count = x87::fistp(stepsF);
     double fixed = worlddata::FixedPoint();
     auto toFixed = [&](double value) {
-        return x87::fistp(StoreFloat(static_cast<float>(value * fixed / (static_cast<double>(worlddata::CellSize()) *
-                                                                         worlddata::Half()))));
+        return x87::fistp(static_cast<float>(value * fixed / (static_cast<double>(worlddata::CellSize()) *
+                                                                         worlddata::Half())));
     };
     int fx = toFixed(from->x);
     int fy = toFixed(from->y);
@@ -57,7 +55,5 @@ double CAIMap::LargestStepAlong(const Vector3* from, const Vector3* to) {
     }
     return static_cast<double>(largest) / heightScale;
 }
-
-#pragma float_control(pop)
 
 EI_REPLACE_METHOD(0x005BC750, CAIMap::LargestStepAlong);

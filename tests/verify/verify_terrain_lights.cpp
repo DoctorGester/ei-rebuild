@@ -121,7 +121,7 @@ void __stdcall UpdateVertexLightsVerify(SectorData* sector, CLight* light, const
     int y0 = sector->sy == area->firstSectorY ? area->firstY : 0;
     int x1 = sector->sx == area->lastSectorX ? area->lastX : 32;
     int y1 = sector->sy == area->lastSectorY ? area->lastY : 32;
-    float rangeSquared = RoundToFloat(light->range_ * light->range_);
+    float rangeSquared = static_cast<float>(light->range_ * light->range_);
     int wrong = 0, firstWrong = -1;
     bool linked = true;
     for (int y = y0; y <= y1; ++y) {

@@ -1,9 +1,8 @@
 // Particle emit callbacks (+0x1E0 of a CParticleSource) in 0x00490000-0x00497000 and the element
 // array allocator. Names are provisional.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the order
-// of operations and the NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "effects.h"
 #include "map_object_figures.h"   // CObject3D
 
@@ -19,17 +18,9 @@
 #include <bit>
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }
-
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 // A zero-extended dword loaded with FILD qword (exact).
 double Unsigned(std::uint32_t value) {
@@ -112,37 +103,37 @@ constexpr float kTwoPi = std::bit_cast<float>(0x40C90FD0u);
 // One point of a new bolt: a random offset (none for point 0) around the source, on the ground,
 // with a fork direction.
 void PlaceBoltPoint(CParticleSource* s, int i, Vector3& dir) {
-    float radius = Store(Range(0.0f, 1.0f));
+    float radius = static_cast<float>(Range(0.0f, 1.0f));
     double angle = Range(0.0f, kTwoPi);
-    float dx = Store(x87::fsin(angle) * D(radius));
-    float dy = Store(x87::fcos(angle) * D(radius));
+    float dx = static_cast<float>(x87::fsin(angle) * D(radius));
+    float dy = static_cast<float>(x87::fcos(angle) * D(radius));
     dir.x = dx;
     dir.y = dy;
     std::memset(&dir.z, 0, sizeof(float));
     if (i == 0) std::memset(&dir, 0, sizeof(dir));
     double size = s->size;
-    float ax = Store(size * D(dir.x));
-    float ay = Store(D(dir.y) * size);
-    float az = Store(size * D(dir.z));
-    float bx = Store(D(ax) * D(EI_POINT_THREE));
-    float by = Store(D(ay) * D(EI_POINT_THREE));
-    float bz = Store(D(az) * D(EI_POINT_THREE));
-    float cx = Store(D(bx) + D(s->origin.x));
-    float cy = Store(D(by) + D(s->origin.y));
-    (void)Store(D(bz) + D(s->origin.z));
-    float cz = Store(SurfaceHeightRaw(TerrainOwner(), nullptr, cx, cy) + D(EI_POINT_THREE));
+    float ax = static_cast<float>(size * D(dir.x));
+    float ay = static_cast<float>(D(dir.y) * size);
+    float az = static_cast<float>(size * D(dir.z));
+    float bx = static_cast<float>(D(ax) * D(EI_POINT_THREE));
+    float by = static_cast<float>(D(ay) * D(EI_POINT_THREE));
+    float bz = static_cast<float>(D(az) * D(EI_POINT_THREE));
+    float cx = static_cast<float>(D(bx) + D(s->origin.x));
+    float cy = static_cast<float>(D(by) + D(s->origin.y));
+    (void)static_cast<float>(D(bz) + D(s->origin.z));
+    float cz = static_cast<float>(SurfaceHeightRaw(TerrainOwner(), nullptr, cx, cy) + D(EI_POINT_THREE));
     BoltPoint* points = reinterpret_cast<BoltPoint*>(s->elements);
     points[i].pos = {cx, cy, cz};
     points[i].base = {cx, cy, cz};
 
     double inverse = D(EI_ONE) / x87::fsqrt(LengthSquared2DUnrounded<double>(dir.y, dir.x) + D(EI_QUARTER));
-    dir.x = Store(inverse * D(dir.x));
-    dir.y = Store(D(dir.y) * inverse);
+    dir.x = static_cast<float>(inverse * D(dir.x));
+    dir.y = static_cast<float>(D(dir.y) * inverse);
     double halfInverse = inverse * D(EI_HALF);
-    dir.z = Store(halfInverse);
-    float fz = Store(halfInverse * D(EI_HALF));
-    float fy = Store(D(dir.y) * D(EI_HALF));
-    float fx = Store(D(dir.x) * D(EI_HALF));
+    dir.z = static_cast<float>(halfInverse);
+    float fz = static_cast<float>(halfInverse * D(EI_HALF));
+    float fy = static_cast<float>(D(dir.y) * D(EI_HALF));
+    float fx = static_cast<float>(D(dir.x) * D(EI_HALF));
     points = reinterpret_cast<BoltPoint*>(s->elements);
     points[i].fork = {fx, fy, fz};
     points[i].emitted = 0;
@@ -163,9 +154,9 @@ int EmitAlongBolt(CParticleSource* s, Particle* p, BoltPoint* points) {
     ++points[0].emitted;
     if (p->frameTimer == 0) return 1;
     std::uint32_t roll = GlobalRandom().Next();
-    p->aux0 = Store((Unsigned(roll) * EI_SCALE_0_9 + D(EI_HALF)) * D(s->size) * D(EI_POINT_TWO));
+    p->aux0 = static_cast<float>((Unsigned(roll) * EI_SCALE_0_9 + D(EI_HALF)) * D(s->size) * D(EI_POINT_TWO));
     p->frame = static_cast<int>((GlobalRandom().Next() & 3) + 12);
-    if (index == 0) p->aux0 = Store(D(s->size) * D(EI_POINT_FOUR));
+    if (index == 0) p->aux0 = static_cast<float>(D(s->size) * D(EI_POINT_FOUR));
     std::memcpy(&p->size, &p->aux0, sizeof(float));
     return 1;
 }
@@ -177,34 +168,34 @@ int EmitBurst(CParticleSource* s, Particle* p, BoltPoint* points) {
     p->frame = 8;
     GlobalRandom().Next();
     double u = Unsigned(GlobalRandom().Next()) * EI_SCALE_1;
-    float spread = Store(D(EI_ONE) - u * u);
-    float angle = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_ANGLE);
+    float spread = static_cast<float>(D(EI_ONE) - u * u);
+    float angle = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_ANGLE);
     float vx, vy;
     for (int tries = 10;;) {
-        vx = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
+        vx = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
         double y = Range(-1.0f, 1.0f);
-        vy = Store(y);
+        vy = static_cast<float>(y);
         if (!(y * D(vy) + D(vx) * D(vx) >= D(EI_ONE))) break;
         if (!(--tries > 0)) break;
     }
     p->drift = {vx, vy, 0.0f};
     std::memset(&p->drift.z, 0, sizeof(float));
-    p->drift.x = Store(x87::fcos(angle) * D(spread));
-    p->drift.y = Store(x87::fsin(angle) * D(spread));
+    p->drift.x = static_cast<float>(x87::fcos(angle) * D(spread));
+    p->drift.y = static_cast<float>(x87::fsin(angle) * D(spread));
     double scale = D(s->size) * D(EI_POINT_THREE);
-    p->drift.x = Store(scale * D(p->drift.x));
-    p->drift.y = Store(scale * D(p->drift.y));
-    p->drift.z = Store(scale * D(p->drift.z));
+    p->drift.x = static_cast<float>(scale * D(p->drift.x));
+    p->drift.y = static_cast<float>(scale * D(p->drift.y));
+    p->drift.z = static_cast<float>(scale * D(p->drift.z));
     std::memset(&p->drift.z, 0, sizeof(float));
-    p->pos.x = Store(D(points[0].pos.x) + D(p->drift.x));
-    p->pos.y = Store(D(points[0].pos.y) + D(p->drift.y));
+    p->pos.x = static_cast<float>(D(points[0].pos.x) + D(p->drift.x));
+    p->pos.y = static_cast<float>(D(points[0].pos.y) + D(p->drift.y));
     double rise = (D(EI_ONE) - D(spread)) * D(s->size) * D(EI_TENTH) + D(points[0].pos.z);
     std::memset(&p->size, 0, sizeof(float));
-    p->pos.z = Store(rise);
+    p->pos.z = static_cast<float>(rise);
     p->frameTimer = 0;
-    p->life = x87::fistp(Store(D(EI_NINE) - D(spread) * D(EI_THREE)));
+    p->life = x87::fistp(static_cast<float>(D(EI_NINE) - D(spread) * D(EI_THREE)));
     double roll = Unsigned(GlobalRandom().Next()) * EI_SCALE_0_04 + D(EI_TENTH);
-    p->aux0 = Store(roll * (D(EI_TWO) - D(spread)) * D(s->size));
+    p->aux0 = static_cast<float>(roll * (D(EI_TWO) - D(spread)) * D(s->size));
     return 1;
 }
 
@@ -213,7 +204,7 @@ int EmitSpark(CParticleSource* s, Particle* p) {
     std::uint32_t count = static_cast<std::uint32_t>(s->elementCount);
     std::uint32_t index = GlobalRandom().Next() % count;
     p->frame = 1;
-    p->aux0 = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_0_01 * D(EI_THREE) + D(EI_SPARK_SIZE));
+    p->aux0 = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_0_01 * D(EI_THREE) + D(EI_SPARK_SIZE));
     p->life = 6;
     p->frameTimer = 1;
     double u = Unsigned(GlobalRandom().Next()) * EI_SCALE_1;
@@ -222,15 +213,15 @@ int EmitSpark(CParticleSource* s, Particle* p) {
     std::memcpy(&p->pos, &points[index].pos, sizeof(Vector3));
     std::memset(&p->size, 0, sizeof(float));
     const BoltPoint& n = reinterpret_cast<BoltPoint*>(s->elements)[index];
-    float bx = Store(w * D(n.base.x));
-    float by = Store(w * D(n.base.y));
-    float bz = Store(w * D(n.base.z));
-    float px = Store(u * D(n.pos.x));
-    float py = Store(u * D(n.pos.y));
+    float bx = static_cast<float>(w * D(n.base.x));
+    float by = static_cast<float>(w * D(n.base.y));
+    float bz = static_cast<float>(w * D(n.base.z));
+    float px = static_cast<float>(u * D(n.pos.x));
+    float py = static_cast<float>(u * D(n.pos.y));
     double pz = u * D(n.pos.z);
-    p->velocity.x = Store(D(px) + D(bx));
-    p->velocity.y = Store(D(py) + D(by));
-    p->velocity.z = Store(pz + D(bz));
+    p->velocity.x = static_cast<float>(D(px) + D(bx));
+    p->velocity.y = static_cast<float>(D(py) + D(by));
+    p->velocity.z = static_cast<float>(pz + D(bz));
     return 1;
 }
 
@@ -294,11 +285,11 @@ Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
         break;
     case 1:
     case 2:
-        s->spreadMin.x = Store(D(twiceRadius) * D(EI_POINT_FOUR) + D(s->spreadMin.x));
+        s->spreadMin.x = static_cast<float>(D(twiceRadius) * D(EI_POINT_FOUR) + D(s->spreadMin.x));
         SetBits(&axis.z, 0x3F800000);
         break;
     case 3:
-        s->spreadMin.x = Store(D(s->spreadMin.x) - D(twiceRadius) * D(EI_POINT_FOUR));
+        s->spreadMin.x = static_cast<float>(D(s->spreadMin.x) - D(twiceRadius) * D(EI_POINT_FOUR));
         SetBits(&axis.z, 0x3F800000);
         break;
     case 4:
@@ -324,22 +315,22 @@ void PlaceModifierPoints(CParticleSource* s) {
     float radius;
     s->AttachmentOffset(&unused, &radius);
     std::memcpy(&s->spreadMin.x, &radius, sizeof(float));
-    float twice = Store(D(radius) + D(radius));
+    float twice = static_cast<float>(D(radius) + D(radius));
     Vector3 axis = ModifierAxis(s, twice);
     for (int i = 0; i < s->elementCount; ++i) {
         reinterpret_cast<ModifierPoint*>(s->elements)[i].fade = 0;
         float x, y;
         double z, lengthSq;
         for (;;) {
-            x = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
-            y = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
+            x = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
+            y = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE));
             z = Unsigned(GlobalRandom().Next()) * EI_SCALE_2 - D(EI_ONE);
             double dot = DotUnrounded<Sum3::ZYX, double>(axis.x, axis.y, axis.z, x, y, z);
-            float px = Store(D(axis.x) * dot);
-            float py = Store(D(axis.y) * dot);
+            float px = static_cast<float>(D(axis.x) * dot);
+            float py = static_cast<float>(D(axis.y) * dot);
             double pz = dot * D(axis.z);
-            x = Store(D(x) - D(px));
-            y = Store(D(y) - D(py));
+            x = static_cast<float>(D(x) - D(px));
+            y = static_cast<float>(D(y) - D(py));
             z = z - pz;
             lengthSq = LengthSquaredUnrounded<Sum3::ZYX, double>(x, y, z);
             if (NonZero(lengthSq)) break;
@@ -347,19 +338,19 @@ void PlaceModifierPoints(CParticleSource* s) {
         double scale = D(twice) / x87::fsqrt(lengthSq);
         if (LessOrUnordered(s->size, EI_ZERO)) scale = scale * D(EI_SMALL_RING);
         ModifierPoint& point = reinterpret_cast<ModifierPoint*>(s->elements)[i];
-        float ex = Store(scale * D(x));
-        float ey = Store(scale * D(y));
-        float ez = Store(scale * z);
+        float ex = static_cast<float>(scale * D(x));
+        float ey = static_cast<float>(scale * D(y));
+        float ez = static_cast<float>(scale * z);
         point.offset.x = ex;
         point.offset.y = ey;
         point.offset.z = ez;
-        float wx = Store(D(ex) + D(s->origin.x));
-        float wy = Store(D(ey) + D(s->origin.y));
-        float wz = Store(D(ez) + D(s->origin.z));
+        float wx = static_cast<float>(D(ex) + D(s->origin.x));
+        float wy = static_cast<float>(D(ey) + D(s->origin.y));
+        float wz = static_cast<float>(D(ez) + D(s->origin.z));
         point.pos.x = wx;
         point.pos.y = wy;
         point.pos.z = wz;
-        point.pos.z = Store(D(s->spreadMin.x) + D(point.pos.z));
+        point.pos.z = static_cast<float>(D(s->spreadMin.x) + D(point.pos.z));
         std::memcpy(&point.start, &point.pos, sizeof(Vector3));
     }
 }
@@ -427,27 +418,27 @@ int CParticleSource::EmitModifier(Particle* p, int index) {
 
     std::uint32_t count = static_cast<std::uint32_t>(elementCount);
     std::uint32_t pick = GlobalRandom().Next() % count;
-    float u = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_1);
+    float u = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_1);
     std::uint32_t frameRoll = GlobalRandom().Next();
     double w = D(EI_ONE) - D(u);
     p->life = 5;
     p->frame = static_cast<int>((frameRoll & 3) + 12);
     const ModifierPoint& e = reinterpret_cast<ModifierPoint*>(elements)[pick];
-    float b0 = Store(w * D(e.start.x));
-    float b1 = Store(w * D(e.start.y));
+    float b0 = static_cast<float>(w * D(e.start.x));
+    float b1 = static_cast<float>(w * D(e.start.y));
     double b2 = w * D(e.start.z);
     double a0 = D(u) * D(e.pos.x);
-    float a1 = Store(D(u) * D(e.pos.y));
-    float a2 = Store(D(u) * D(e.pos.z));
-    p->velocity.x = Store(a0 + D(b0));
-    p->velocity.y = Store(D(a1) + D(b1));
-    p->velocity.z = Store(D(a2) + b2);
+    float a1 = static_cast<float>(D(u) * D(e.pos.y));
+    float a2 = static_cast<float>(D(u) * D(e.pos.z));
+    p->velocity.x = static_cast<float>(a0 + D(b0));
+    p->velocity.y = static_cast<float>(D(a1) + D(b1));
+    p->velocity.z = static_cast<float>(D(a2) + b2);
     std::uint32_t ra = GlobalRandom().Next();
     std::uint32_t rb = GlobalRandom().Next();
     std::uint32_t rc = GlobalRandom().Next();
-    float jx = Store(Unsigned(rc) * EI_SCALE_0_08 - D(EI_JITTER));
-    float jy = Store(Unsigned(rb) * EI_SCALE_0_08 - D(EI_JITTER));
-    float jz = Store(Unsigned(ra) * EI_SCALE_0_08 - D(EI_JITTER));
+    float jx = static_cast<float>(Unsigned(rc) * EI_SCALE_0_08 - D(EI_JITTER));
+    float jy = static_cast<float>(Unsigned(rb) * EI_SCALE_0_08 - D(EI_JITTER));
+    float jz = static_cast<float>(Unsigned(ra) * EI_SCALE_0_08 - D(EI_JITTER));
     std::memcpy(&p->aux0, &jx, sizeof(float));
     std::memcpy(&p->aux1, &jy, sizeof(float));
     std::memcpy(&p->aux2, &jz, sizeof(float));
@@ -509,7 +500,7 @@ double Signed(std::uint32_t roll) { return Unsigned(roll) * EI_SCALE_2 - D(EI_ON
 // random point of an ellipse around the source (axes +0x118 * +0x120 and +0x124 * +0x11C) on the
 // ground, red-tinted when +0x130 is set, rising by an amount that is larger near the centre.
 int CParticleSource::EmitZoneExit(Particle* p, int) {
-    int count = x87::fistp(Store(D(alpha) * D(typeParam)));
+    int count = x87::fistp(static_cast<float>(D(alpha) * D(typeParam)));
     if (count > 40) count = 40;
     emitCount = count;
     p->color = NonZero(extent.x) ? 0x00FF6060u : 0x00FFFFFFu;
@@ -517,18 +508,18 @@ int CParticleSource::EmitZoneExit(Particle* p, int) {
     p->life = 15;
     p->frameTimer = 1;
     p->state = 0;
-    float a = Store(Signed(GlobalRandom().Next()));
+    float a = static_cast<float>(Signed(GlobalRandom().Next()));
     double b = Signed(GlobalRandom().Next());
-    float falloff = Store((D(EI_ZONE_EXIT_SPREAD) - D(a) * D(a)) - b * b);
-    float x = Store((D(a) * D(alpha) * D(turnCos) + D(origin.x)) - b * D(turnSin) * D(typeParam));
-    float y = Store((D(turnSin) * D(alpha) * D(a) + b * D(turnCos) * D(typeParam)) + D(origin.y));
+    float falloff = static_cast<float>((D(EI_ZONE_EXIT_SPREAD) - D(a) * D(a)) - b * b);
+    float x = static_cast<float>((D(a) * D(alpha) * D(turnCos) + D(origin.x)) - b * D(turnSin) * D(typeParam));
+    float y = static_cast<float>((D(turnSin) * D(alpha) * D(a) + b * D(turnCos) * D(typeParam)) + D(origin.y));
     double ground = SurfaceHeightRaw(TerrainOwner(), nullptr, x, y);
     p->pos.x = x;
     p->pos.y = y;
     std::memset(&p->size, 0, sizeof(float));
-    p->pos.z = Store(ground + D(EI_TENTH));
+    p->pos.z = static_cast<float>(ground + D(EI_TENTH));
     double roll = Unsigned(GlobalRandom().Next()) * EI_SCALE_0_03 + D(EI_POINT_SEVEN);
-    p->velocity.x = Store(roll * D(falloff) * D(EI_TWENTIETH));
+    p->velocity.x = static_cast<float>(roll * D(falloff) * D(EI_TWENTIETH));
     return 1;
 }
 EI_REPLACE_METHOD(0x00492D30, CParticleSource::EmitZoneExit);
@@ -539,7 +530,7 @@ EI_REPLACE_METHOD(0x00492D30, CParticleSource::EmitZoneExit);
 int CParticleSource::UpdateGlow(Particle* p) {
     if (p->life == -10) p->life = p->frameTimer * 8 / particles.count + 7;
     if (--p->life < 0) return 0;
-    int opacity = x87::fistp(Store(D(GlowAlpha()[p->life]) * D(EI_BYTE)));
+    int opacity = x87::fistp(static_cast<float>(D(GlowAlpha()[p->life]) * D(EI_BYTE)));
     p->color = (p->color & 0xFFFFFF) + (static_cast<std::uint32_t>(opacity) << 24);
     return 1;
 }
@@ -550,21 +541,21 @@ EI_REPLACE_METHOD(0x00493280, CParticleSource::UpdateGlow);
 int CParticleSource::UpdateGroundDust(Particle* p) {
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(DustAlpha()[p->life]) << 24) + (p->color & 0xFFFFFF);
-    p->pos.x = Store(D(p->velocity.x) + D(p->pos.x));
-    p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
-    p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
+    p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
+    p->pos.y = static_cast<float>(D(p->velocity.y) + D(p->pos.y));
+    p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
     double lifted = SurfaceHeightRaw(TerrainOwner(), nullptr, p->pos.x, p->pos.y) + D(EI_TENTH);
-    p->pos.z = Store(lifted);
+    p->pos.z = static_cast<float>(lifted);
     const float* plane = reinterpret_cast<const float*>(elements);
     double along = (D(p->pos.x) - D(origin.x)) * D(plane[6]) + (D(p->pos.y) - D(origin.y)) * D(plane[7]);
-    float onPlane = Store(D(plane[3]) - along * D(plane[8]) + D(EI_TENTH));
-    float ground = Store(lifted);
+    float onPlane = static_cast<float>(D(plane[3]) - along * D(plane[8]) + D(EI_TENTH));
+    float ground = static_cast<float>(lifted);
     p->pos.z = SelectLess(ground, onPlane, onPlane, ground);
     std::memcpy(&p->size, &p->aux0, sizeof(float));
-    p->velocity.x = Store(D(p->velocity.x) * D(EI_DUST_GROWTH));
-    p->velocity.y = Store(D(p->velocity.y) * D(EI_DUST_GROWTH));
-    p->velocity.z = Store(D(p->velocity.z) * D(EI_DUST_GROWTH));
-    p->aux0 = Store(D(p->aux1) * D(p->aux0));
+    p->velocity.x = static_cast<float>(D(p->velocity.x) * D(EI_DUST_GROWTH));
+    p->velocity.y = static_cast<float>(D(p->velocity.y) * D(EI_DUST_GROWTH));
+    p->velocity.z = static_cast<float>(D(p->velocity.z) * D(EI_DUST_GROWTH));
+    p->aux0 = static_cast<float>(D(p->aux1) * D(p->aux0));
     return 1;
 }
 EI_REPLACE_METHOD(0x004933F0, CParticleSource::UpdateGroundDust);
@@ -576,7 +567,7 @@ void CParticleSource::TickGroundPlane(ParticleElement* e) {
     if (e->ticks == 0) {
         float* plane = reinterpret_cast<float*>(e);
         GroundPlane(PlaneMap(), nullptr, origin.x, origin.y, reinterpret_cast<Vector3*>(plane + 6), plane + 3);
-        if (NonZero(plane[8])) plane[8] = Store(D(EI_ONE) / D(plane[8]));
+        if (NonZero(plane[8])) plane[8] = static_cast<float>(D(EI_ONE) / D(plane[8]));
     }
     if (++e->ticks > 1) flags_ &= ~1u;
 }
@@ -591,7 +582,7 @@ int CParticleSource::UpdatePortal(Particle* p) {
             std::memset(&p->size, 0, sizeof(float));
             return 1;
         }
-        p->size = Store(Unsigned(GlobalRandom().Next()) * EI_SCALE_0_4 * D(EI_ONE_AND_HALF) + D(EI_ONE_POINT_TWO));
+        p->size = static_cast<float>(Unsigned(GlobalRandom().Next()) * EI_SCALE_0_4 * D(EI_ONE_AND_HALF) + D(EI_ONE_POINT_TWO));
         return 1;
     }
     if (p->life == 0) return 0;
@@ -599,15 +590,15 @@ int CParticleSource::UpdatePortal(Particle* p) {
     double nx = D(p->aux1) * s + c * D(p->aux0);
     int timer = p->frameTimer - 1;
     double ny = D(p->aux1) * c - D(p->aux0) * s;
-    float nyRounded = Store(ny);
-    p->aux0 = Store(nx);
-    p->aux1 = Store(ny);
-    p->pos.x = Store(nx + D(origin.x));
-    p->pos.y = Store(D(nyRounded) + D(origin.y));
+    float nyRounded = static_cast<float>(ny);
+    p->aux0 = static_cast<float>(nx);
+    p->aux1 = static_cast<float>(ny);
+    p->pos.x = static_cast<float>(nx + D(origin.x));
+    p->pos.y = static_cast<float>(D(nyRounded) + D(origin.y));
     double rise = D(size) * D(p->velocity.z);
     p->frameTimer = timer;
-    p->pos.z = Store(rise + D(p->pos.z));
-    p->velocity.z = Store(D(p->velocity.z) * D(EI_PORTAL_GROWTH));
+    p->pos.z = static_cast<float>(rise + D(p->pos.z));
+    p->velocity.z = static_cast<float>(D(p->velocity.z) * D(EI_PORTAL_GROWTH));
     if (timer == 0) {
         if (++p->frame == 4) p->frame = 0;
         if (p->frame == 15) p->frame = 4;
@@ -621,7 +612,7 @@ int CParticleSource::UpdatePortal(Particle* p) {
         return 1;
     }
     std::memcpy(&p->size, &p->aux2, sizeof(float));
-    float fade = Store((D(EI_EIGHT) - climb) * (D(EI_TWO_HUNDRED) / D(EI_EIGHT)));
+    float fade = static_cast<float>((D(EI_EIGHT) - climb) * (D(EI_TWO_HUNDRED) / D(EI_EIGHT)));
     int opacity = (x87::fistp(fade) + 0x37) >> 2;
     if (opacity >= 0x40) opacity = 0x40;
     p->color = (static_cast<std::uint32_t>(opacity) << 24) | 0xFFFFFF;
@@ -641,19 +632,19 @@ int CParticleSource::UpdateSparks(Particle* p) {
             std::memset(&p->size, 0, sizeof(float));
             return 0;
         }
-        p->size = Store((Unsigned(GlobalRandom().Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT)) * D(size) *
+        p->size = static_cast<float>((Unsigned(GlobalRandom().Next()) * EI_SCALE_0_4 + D(EI_POINT_EIGHT)) * D(size) *
                         D(EI_SPARK_SCALE));
         return 1;
     }
     if (--p->life < 0) return 0;
     p->color = (static_cast<std::uint32_t>(SparkAlpha()[p->life]) << 24) | 0xFFFFFF;
-    p->pos.x = Store(D(p->drift.x) + D(p->pos.x));
-    p->pos.y = Store(D(p->drift.y) + D(p->pos.y));
-    p->pos.z = Store(D(p->drift.z) + D(p->pos.z));
-    p->size = Store(D(p->size) * D(EI_POINT_NINE));
-    p->drift.x = Store(D(p->drift.x) * D(EI_POINT_SIX));
-    p->drift.y = Store(D(p->drift.y) * D(EI_POINT_SIX));
-    p->drift.z = Store(D(p->drift.z) * D(EI_POINT_SIX));
+    p->pos.x = static_cast<float>(D(p->drift.x) + D(p->pos.x));
+    p->pos.y = static_cast<float>(D(p->drift.y) + D(p->pos.y));
+    p->pos.z = static_cast<float>(D(p->drift.z) + D(p->pos.z));
+    p->size = static_cast<float>(D(p->size) * D(EI_POINT_NINE));
+    p->drift.x = static_cast<float>(D(p->drift.x) * D(EI_POINT_SIX));
+    p->drift.y = static_cast<float>(D(p->drift.y) * D(EI_POINT_SIX));
+    p->drift.z = static_cast<float>(D(p->drift.z) * D(EI_POINT_SIX));
     ++p->frame;
     return 1;
 }
@@ -662,22 +653,22 @@ EI_REPLACE_METHOD(0x00494CD0, CParticleSource::UpdateSparks);
 // 004957E0. FeebleMind: size * 2 tries per tick; each particle starts one step out from the
 // source in a random horizontal direction.
 int CParticleSource::EmitFeebleMind(Particle* p, int) {
-    emitCount = x87::fistp(Store(D(size) + D(size)));
+    emitCount = x87::fistp(static_cast<float>(D(size) + D(size)));
     p->color = 0x00FFFFFF;
     p->frame = static_cast<int>(GlobalRandom().Next() & 15);
     std::memcpy(&p->pos, &origin, sizeof(Vector3));
     std::memset(&p->size, 0, sizeof(float));
     p->life = 20;
-    float twoPi = Store(D(EI_PI) + D(EI_PI));
+    float twoPi = static_cast<float>(D(EI_PI) + D(EI_PI));
     std::uint32_t roll = GlobalRandom().Next();
     std::memset(&p->velocity.z, 0, sizeof(float));
     double angle = Unsigned(roll) * D(twoPi) * EI_SCALE_1;
-    p->velocity.x = Store(x87::fcos(angle) * EI_FEEBLE_SPEED);
-    p->velocity.y = Store(x87::fsin(angle) * EI_FEEBLE_SPEED);
-    p->pos.x = Store(D(p->velocity.x) + D(p->pos.x));
-    p->pos.y = Store(D(p->velocity.y) + D(p->pos.y));
-    p->pos.z = Store(D(p->velocity.z) + D(p->pos.z));
-    float grow = Store((Unsigned(GlobalRandom().Next()) * EI_SCALE_0_2 + D(EI_POINT_NINE)) * D(size) *
+    p->velocity.x = static_cast<float>(x87::fcos(angle) * EI_FEEBLE_SPEED);
+    p->velocity.y = static_cast<float>(x87::fsin(angle) * EI_FEEBLE_SPEED);
+    p->pos.x = static_cast<float>(D(p->velocity.x) + D(p->pos.x));
+    p->pos.y = static_cast<float>(D(p->velocity.y) + D(p->pos.y));
+    p->pos.z = static_cast<float>(D(p->velocity.z) + D(p->pos.z));
+    float grow = static_cast<float>((Unsigned(GlobalRandom().Next()) * EI_SCALE_0_2 + D(EI_POINT_NINE)) * D(size) *
                        D(EI_FEEBLE_SIZE));
     std::memcpy(&p->aux2, &grow, sizeof(float));
     return 1;
@@ -688,7 +679,7 @@ EI_REPLACE_METHOD(0x004957E0, CParticleSource::EmitFeebleMind);
 // position once it is tracked, else the source), drifting in a random direction inside the unit
 // disc, rising.
 int CParticleSource::EmitFeetCloud(Particle* p, int) {
-    emitCount = x87::fistp(Store(D(size) * D(EI_FEET_DENSITY)));
+    emitCount = x87::fistp(static_cast<float>(D(size) * D(EI_FEET_DENSITY)));
     p->color = 0x00FFFFFF;
     p->frame = static_cast<int>(GlobalRandom().Next() & 15);
     int foot = static_cast<int>(GlobalRandom().Next() & 1);
@@ -700,29 +691,29 @@ int CParticleSource::EmitFeetCloud(Particle* p, int) {
     std::memset(&p->size, 0, sizeof(float));
     float x, y;
     for (int tries = 10;;) {
-        x = Store(Signed(GlobalRandom().Next()));
+        x = static_cast<float>(Signed(GlobalRandom().Next()));
         double wide = Signed(GlobalRandom().Next());
-        y = Store(wide);
+        y = static_cast<float>(wide);
         if (LessOrUnordered(wide * D(y) + D(x) * D(x), EI_ONE)) break;
         if (!(--tries > 0)) break;
     }
     float scale = e.value[3];          // +0x18
     double dx = D(x) * D(EI_TENTH);
-    float dy = Store(D(y) * D(EI_TENTH));
-    float dz = Store(0.0 * D(EI_TENTH));
+    float dy = static_cast<float>(D(y) * D(EI_TENTH));
+    float dz = static_cast<float>(0.0 * D(EI_TENTH));
     double sx = dx * D(scale);
-    float sy = Store(D(dy) * D(scale));
-    float sz = Store(D(dz) * D(scale));
-    p->drift.x = Store(sx * D(size));
-    p->drift.y = Store(D(sy) * D(size));
-    p->drift.z = Store(D(sz) * D(size));
+    float sy = static_cast<float>(D(dy) * D(scale));
+    float sz = static_cast<float>(D(dz) * D(scale));
+    p->drift.x = static_cast<float>(sx * D(size));
+    p->drift.y = static_cast<float>(D(sy) * D(size));
+    p->drift.z = static_cast<float>(D(sz) * D(size));
     std::memset(&p->aux0, 0, sizeof(float));
     std::memset(&p->aux1, 0, sizeof(float));
     std::memset(&p->aux2, 0, sizeof(float));
     SetBits(&p->velocity.y, 0x3F800000);
     p->life = 10;
-    p->velocity.x = Store(D(size) * D(e.value[3]) * D(EI_POINT_FOUR));
-    p->pos.z = Store(D(p->velocity.x) * D(EI_FEET_RISE) + D(p->pos.z));
+    p->velocity.x = static_cast<float>(D(size) * D(e.value[3]) * D(EI_POINT_FOUR));
+    p->pos.z = static_cast<float>(D(p->velocity.x) * D(EI_FEET_RISE) + D(p->pos.z));
     return 1;
 }
 EI_REPLACE_METHOD(0x00495A30, CParticleSource::EmitFeetCloud);
@@ -736,8 +727,8 @@ void CParticleSource::TickStartTrans(ParticleElement* e) {
         flags_ &= ~5u;
         Attach(nullptr);
     }
-    e->value[3] = Store(D(size) * D(EI_TRANS_GROWTH) + D(e->value[3]));
-    elements[0].value[4] = Store(D(elements[0].value[4]) + D(EI_POINT_FOUR));
+    e->value[3] = static_cast<float>(D(size) * D(EI_TRANS_GROWTH) + D(e->value[3]));
+    elements[0].value[4] = static_cast<float>(D(elements[0].value[4]) + D(EI_POINT_FOUR));
     int count = x87::fistp(elements[0].value[4]);
     emitCount = count;
     if (!(count < 8)) emitCount = 8;

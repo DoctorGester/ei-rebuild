@@ -28,8 +28,8 @@ namespace {
 // The function-local static CArray<{int x, y}> at 007C2EE0, guard bit 0 of 007C2EF4, constructed
 // by 00557230, destroyed at exit by 005B0AE0.
 using PointArray = BlockPointArray;
-PointArray& Blocks() { return *reinterpret_cast<PointArray*>(0x007C2EE0); }
-std::uint8_t& BlocksGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2EF4); }
+PointArray& Blocks() { return ei::GameData<PointArray>(0x007C2EE0); }
+std::uint8_t& BlocksGuard() { return ei::GameData<std::uint8_t>(0x007C2EF4); }
 using ExitFn = void(__cdecl*)();
 ExitFn BlocksDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0AE0)); }
 

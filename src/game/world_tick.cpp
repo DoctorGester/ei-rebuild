@@ -60,7 +60,7 @@ mfc::CTypedPtrList<CEngineObject>* SectorUnits(CSectorMap* map, int x, int y) {
 }
 
 // Sector of a world coordinate: the AI map cell (half units, rounded through a float), / 32.
-int SectorOf(float world) { return x87::fistp(StoreFloat(2.0f * world - 0.5f)) / 32; }
+int SectorOf(float world) { return x87::fistp(static_cast<float>(2.0f * world - 0.5f)) / 32; }
 
 // STLport list<unsigned> on the game's node pool, as Tick builds it on the stack: 12-byte nodes
 // {next, prev, value}; the constructor (00404A70) allocates the head node.

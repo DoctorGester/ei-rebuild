@@ -8,7 +8,7 @@
 
 #include "app.h"       // app::FatalErrorCode
 #include "clip.h"      // TLVertex
-#include "core_maths.h"   // StoreFloat
+#include "core_maths.h"
 #include "ui.h"        // GameDeviceLock, DebugInfoPanel
 #include "originals_render.h"
 #include "originals_ui.h"
@@ -112,7 +112,7 @@ EI_REPLACE_METHOD(0x005040A0, CSceneRenderer::EndScene);
 int CSceneRenderer::DrawTexture(CTexture* texture, float x, float y, float scale) {
     if (!texture) return 0;
     // The width's product is stored to a float before x is added; the height's is not.
-    float scaledWidth = StoreFloat(static_cast<float>(x87::FromUnsigned(texture->width_) * scale));
+    float scaledWidth = static_cast<float>(x87::FromUnsigned(texture->width_) * scale);
     float bottom = static_cast<float>(x87::FromUnsigned(texture->height_) * scale + y);
     float right = scaledWidth + x;
     TLVertex strip[4] = {

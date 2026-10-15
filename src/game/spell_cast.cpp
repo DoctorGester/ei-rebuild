@@ -16,8 +16,6 @@
 
 #include <cstring>
 
-#pragma float_control(precise, on)
-
 namespace {
 // The game's own messages (passed by address, as the original does).
 const char* const kInvalidRune = reinterpret_cast<const char*>(0x007959F0);          // "Invalid rune"
