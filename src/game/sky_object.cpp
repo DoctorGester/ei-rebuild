@@ -172,6 +172,13 @@ void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
 }
 EI_REPLACE_METHOD(0x004D96E0, CSky::Draw);
 
+void CSky::Destruct() {
+    if (texture) static_cast<CEngineObject*>(texture)->Release();
+    if (material) material->Release();
+    if (object) object->Release();
+}
+EI_REPLACE_METHOD(0x005636A0, CSky::Destruct);
+
 namespace {
 const char* __fastcall ClassNameHook(CSkyObject* self) { return self->CSkyObject::GetClassName(); }
 int __fastcall ClassIdHook(CSkyObject* self) { return self->CSkyObject::GetClassId(); }
@@ -185,3 +192,15 @@ EI_REPLACE_METHOD(0x004D9DE0, CSky::Light);
 EI_REPLACE_METHOD(0x004D9E80, lib::AlignedArray<std::uint32_t>::Construct);
 EI_REPLACE_METHOD(0x004D9E90, lib::AlignedArray<std::uint32_t>::Construct);
 EI_REPLACE_METHOD(0x004D9EA0, lib::AlignedArray<std::uint32_t>::Construct);
+// S13: more copies, of the scene loader's point block (00475F10), the unit skins' bytes (0056FCC0),
+// the figure factory's packets (0056FD00) and the terrain's arrays (0056FD30 the texture classes,
+// frames and visible columns; 00570DE0 the wave phases; 00570E10 the page materials; 00570E40 the
+// water materials; 00570E70 the vertex tiles).
+EI_REPLACE_METHOD(0x00475F10, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REPLACE_METHOD(0x0056FCC0, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REPLACE_METHOD(0x0056FD00, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REPLACE_METHOD(0x0056FD30, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REPLACE_METHOD(0x00570DE0, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REPLACE_METHOD(0x00570E10, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REPLACE_METHOD(0x00570E40, lib::AlignedArray<std::uint32_t>::Construct);
+EI_REPLACE_METHOD(0x00570E70, lib::AlignedArray<std::uint32_t>::Construct);

@@ -7,6 +7,7 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "record_lifetime.h"
 
 #include <cstddef>
 #include <cstring>
@@ -119,6 +120,62 @@ MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* 
     return this;
 }
 EI_REPLACE_METHOD(0x006A9E40, MaterialRecordHead::CopyConstruct);
+
+// ---- S13: the records' destructors (the compiler's) ----------------------------------------------
+
+void ItemRecordHead::DestructHead() {
+    list50.Destruct();
+    list20.Destruct();
+    materialClass.~CString();
+    text08.~CString();
+    text04.~CString();
+}
+EI_REPLACE_METHOD(0x006A8950, ItemRecordHead::DestructHead);   // weapons
+EI_REPLACE_METHOD(0x006A89D0, ItemRecordHead::DestructHead);   // armours
+EI_REPLACE_METHOD(0x006A8BD0, ItemRecordHead::DestructHead);   // loot
+
+void QuickItemRecord::Destruct() {
+    text7C.~CString();
+    DestructHead();
+}
+EI_REPLACE_METHOD(0x006A8A50, QuickItemRecord::Destruct);
+
+void QuestItemRecord::Destruct() {
+    for (mfc::CString* zone = zonesBegin; zone != zonesEnd; ++zone) zone->~CString();
+    if (zonesBegin) stlp::deallocate(zonesBegin, static_cast<std::size_t>(zonesCapacity - zonesBegin) * sizeof(mfc::CString));
+    DestructHead();
+}
+EI_REPLACE_METHOD(0x006A8AE0, QuestItemRecord::Destruct);
+
+void MaterialRecordHead::Destruct() {
+    records::AsCString(name).~CString();
+    records::AsCString(soundName).~CString();
+    records::AsCString(key).~CString();
+}
+EI_REPLACE_METHOD(0x006A88F0, MaterialRecordHead::Destruct);
+
+void SpellRecord::Destruct() {
+    list54.FreeStorage();
+    list48.FreeStorage();
+    text08.~CString();
+    code.~CString();
+    name.~CString();
+}
+EI_REPLACE_METHOD(0x00685AA0, SpellRecord::Destruct);
+
+void SpellModifierRecord::Destruct() {
+    text1C.~CString();
+    name.~CString();
+}
+EI_REPLACE_METHOD(0x00685B70, SpellModifierRecord::Destruct);
+
+void SpellListRecord::Destruct() {
+    text24.~string();
+    records::DestroyVector(list18);
+    records::DestroyVector(list0C);
+    name.~string();
+}
+EI_REPLACE_METHOD(0x00589860, SpellListRecord::Destruct);
 
 template <int Stride>
 char* __fastcall itemdb::RecordTableAt(const RecordTable* table, void*, std::uint32_t index) {

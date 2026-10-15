@@ -57,8 +57,12 @@ public:
     // visible, else the draw's result.
     int Draw();
     // 006CF960. The destructor (only reached from the constructors' unwinding): the arrays freed,
-    // the texture released, the name freed.
+    // the texture released, the name freed. The client world's lists have three more copies of it
+    // (0056D080 blood, 0056D400 footprints, 0056D680 scorch marks; S13).
     void Destruct();
+    // 00575560 / 00575580 (RET 4; S13): the footprint and scorch mark lists' scalar deleting
+    // destructors: Destruct, the print freed when bit 0 of `flags` is set; returns this.
+    GroundPrint* DeletingDestruct(unsigned flags);
 
     // The members the three constructors share before their own parts: everything cleared, the
     // texture name empty, `visible`, life and alpha scale, lifetime and colour set.

@@ -6,6 +6,7 @@
 
 #include "core_maths.h"
 #include "core_streams.h"
+#include "record_lifetime.h"
 
 #include "lib/mfc.h"
 
@@ -37,6 +38,22 @@ bool ZoneExit::Contains(float x, float y) const {
     return !(turnedY > y2);
 }
 EI_REPLACE_METHOD(0x004E59F0, ZoneExit::Contains);
+
+ZoneExit* ZoneExit::Assign(const ZoneExit* from) {
+    for (int i = 0; i < 5; ++i) passTimeDeploy[i] = from->passTimeDeploy[i];
+    x1 = from->x1;
+    y1 = from->y1;
+    x2 = from->x2;
+    y2 = from->y2;
+    angle = from->angle;
+    records::AsCString(target) = records::AsCString(from->target);
+    entrance = from->entrance;
+    view = from->view;
+    hasDeployAngle = from->hasDeployAngle;
+    deployAngle = from->deployAngle;
+    return this;
+}
+EI_REPLACE_METHOD(0x00583B50, ZoneExit::Assign);
 
 // ---- Stream form (004E5750 / 004E58A0) and the CString reader 004E5840 (A-S10) ------------------
 

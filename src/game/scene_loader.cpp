@@ -589,6 +589,12 @@ mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, VtArray* meshes, VtArray* he
 }
 EI_REPLACE_METHOD(0x00471B10, SceneInfo::Load);
 
+void FaceGroup::Assign(const FaceGroup* from) {
+    name = from->name;
+    faces.Copy(from->faces);
+}
+EI_REPLACE_METHOD(0x00474C50, FaceGroup::Assign);
+
 // --- 00446C10: building a CFakeUnit's figure from its scene ---------------------------------------
 
 namespace {

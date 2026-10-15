@@ -10,6 +10,7 @@
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_engine.h"
+#include "record_lifetime.h"
 
 namespace {
 
@@ -293,6 +294,21 @@ void SkillLevelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x17, &exclusionGroup);
 }
 EI_REPLACE_METHOD(0x0051F480, SkillLevelRecord::Serialize);
+
+void SkillRecord::Destruct() {
+    records::DestroyVector(statNames);
+    field1.~CString();
+    name.~CString();
+}
+EI_REPLACE_METHOD(0x00520D20, SkillRecord::Destruct);
+
+void SkillLevelRecord::Destruct() {
+    requiredSkillName.~CString();
+    requiredLevelName.~CString();
+    name.~CString();
+    field0.~CString();
+}
+EI_REPLACE_METHOD(0x00520DE0, SkillLevelRecord::Destruct);
 
 void ChunkArchive::SerializeSkills(int id, stlp::vector<SkillRecord>* skills, void*) {
     if (!ArchiveEnter(this, nullptr, id)) return;

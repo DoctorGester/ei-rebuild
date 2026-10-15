@@ -275,6 +275,12 @@ void GroundPrint::Destruct() {
     texture_.name.~string();
 }
 
+GroundPrint* GroundPrint::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+
 // ---- Footprint ----------------------------------------------------------------------------------
 
 Footprint* Footprint::Construct(float x, float y, float halfWidth, float halfLength, float angle, float alphaScale,
@@ -462,6 +468,11 @@ EI_REPLACE(0x006CFB40, BloodPrintLoadHook);
 EI_REPLACE(0x006CFAC0, BloodPrintSaveHook);
 EI_REPLACE_METHOD(0x006CEDE0, GroundPrint::Draw);
 EI_REPLACE_METHOD(0x006CF960, GroundPrint::Destruct);
+EI_REPLACE_METHOD(0x0056D080, GroundPrint::Destruct);
+EI_REPLACE_METHOD(0x0056D400, GroundPrint::Destruct);
+EI_REPLACE_METHOD(0x0056D680, GroundPrint::Destruct);
+EI_REPLACE_METHOD(0x00575560, GroundPrint::DeletingDestruct);
+EI_REPLACE_METHOD(0x00575580, GroundPrint::DeletingDestruct);
 EI_REPLACE_METHOD(0x006CFEA0, GroundPrint::ConstructScorch);
 EI_REPLACE_METHOD(0x006CFBA0, Footprint::Construct);
 EI_REPLACE_METHOD(0x006CF660, BloodPrint::Construct);

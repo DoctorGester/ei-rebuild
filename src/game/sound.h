@@ -407,6 +407,10 @@ static_assert(sizeof(CSoundManager) == 0x8C0);
 
 // A music theme (0x38 bytes) from music.reg: one per allod, open land or dungeon.
 struct MusicTheme {
+    // 006B4D40 (RET 4; S13, sound_music.cpp; the compiler's operator=, the theme array's element
+    // assignment): the members in order, the arrays by CStringArray::Copy.
+    void Assign(const MusicTheme* from);
+
     mfc::CString name;          // +0x00 allod
     std::int32_t dungeon;       // +0x04 0 open land, 1 dungeon
     mfc::CString briefing;      // +0x08
