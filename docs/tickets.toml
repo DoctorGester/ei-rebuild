@@ -1602,11 +1602,12 @@ note = "_Rb_tree / map / set, stlp::string, pair, __introsort_loop (keep its ord
 id = "S13"
 title = "Standalone: compiler-generated helpers of game types"
 group = "standalone"
-status = "review"
+status = "done"
 size = 1
 files = ["src/game/*.cpp", "config/library.csv"]
 note = "The 49 forwarded \"compiler\" rows (record copy constructors, destructors, deleting destructors, aligned buffer constructors) and the 17 the exe's data points at: game types, ported like game code. No dependency. Done 2026-10-15: 46 of 49 forwarded rows and 9 of 17 data-pointed (two are string bytes, not functions); the rest is S13a."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S14"
@@ -1641,7 +1642,7 @@ size = 1.5
 model = "opus"
 depends = ["S1", "S2", "S3", "S4", "S5", "S6", "S6a", "S7", "S8", "S9", "S10", "S11", "S12", "S13", "S14", "S15"]
 files = ["src/standalone/*.cpp"]
-note = "Also needs S4a, S4b, S4c (S4's remainder: printf family and atof, file functions and the rest of the heap in the image, _ftol / _CI maths / exceptions / iostream / locale)."
+note = "Also needs S13a (world, terrain and sector destructors, database resets)."
 
 [[ticket]]
 id = "S17"
