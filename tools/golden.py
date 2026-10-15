@@ -16,6 +16,10 @@ A golden (tests\golden\<scenario>\<install>\) is a run of the original code (--n
 To see the fields behind a differing hash, run the original again (its runs repeat) and `diff` the two
 full digests.
 
+Digest 2 (SV2a) adds entity groups (KEY_GROUPS: timed, missile, aievents, script, client, cunit) and names them in
+its title line. A golden keeps the groups its digest had: a run is compacted down to them before the comparison, and
+`diff` of two digests of different versions compares the groups both have. So adding a group needs no re-recording.
+
 usage:
   python tools/golden.py diff A B [--ulps N] [--records K] [--fields K] [--ignore REGEX] [--all-fields]
       A, B: run folders (a name under build\verify\runs, or a path) or digest files (also compact ones, but
@@ -40,7 +44,8 @@ usage:
       not is not recorded; its first difference is printed. The saves are kept (saves.txt) only when every
       run wrote the same bytes. No SCENARIO: every run folder of the install in the first DIR.
       Run the games through the scheduler, e.g.:
-        set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks
+        set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh   (--fresh: not the reference cache,
+                                                                                whose runs may hold an older digest)
         python tools\golden.py snapshot <scratch>\orig1   (then the same again, and with hooks)
   python tools/golden.py compare SCENARIO... [--install vanilla|rebirth] [--run FOLDER] [--strict] [--ulps N] ...
       A run (by default build\verify\runs\<scenario>-<install>, made with the golden's EI_DIGEST) against
@@ -67,6 +72,10 @@ ADDRESS_DEPENDENT = None
 KNOWN = {
     r'^obj2 (hp|maxHp)$': "SV3a: the main menu world's unit 2 (unmoco2): ours leaves its hit points unwritten "
                           "(nan:0xFFFFFFFF and heap bytes), the original has nan:0xFFC00000 and 1.0",
+    r'^cunit2 (hp|maxHp|mana|maxMana)$': "SV3a: the same unit in the client world: its packed vitals follow the unwritten "
+                                         "ones (ours maxHp 20, mana 20; the original 1 and 0)",
+    r'^script gobject\.i$': "SV2b: Rebirth with our hooks: zone1's script variable i (the last of an address-ordered "
+                            "group) is unit 702 or 1884 between our runs; the original's is 702",
 }
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
@@ -75,6 +84,13 @@ SAVES = 'harness_saves'
 GROUPS = (('place', ('pos.', 'rot.', 'scale.', 'cell.', 'motion.', 'heightOffset')),
           ('vitals', ('hp', 'maxHp', 'mana', 'maxMana', 'regenTicks', 'effect', 'dead')),
           ('ai', ('ai.',)))
+# The entity groups by key prefix, in record order (harness_digest.cpp's kGroupNames). Digest 1 has the first four;
+# digest 2 (SV2a) names the others it has in its title ("groups timed,missile,..."). A golden that lacks a group is
+# compared without it, so new groups need no re-recording of older goldens.
+KEY_GROUPS = ('world', 'random', 'player', 'obj', 'timed', 'missile', 'aievents', 'script', 'client', 'cunit')
+BASE_GROUPS = frozenset(KEY_GROUPS[:4])
+# Entities kept field by field in a compact digest (the rest become hashes).
+CLEAR_GROUPS = ('world', 'random', 'player', 'aievents', 'client')
 
 
 def digest_path(spec):
@@ -87,13 +103,21 @@ def digest_path(spec):
     return None
 
 
+def key_group(key):
+    """The group of an entity key (KEY_GROUPS), or None."""
+    for prefix in KEY_GROUPS:
+        if key.startswith(prefix) and (len(key) == len(prefix) or key[len(prefix)] in '-0123456789'):
+            return prefix
+    return None
+
+
 def key_order(key):
-    """Record order of an entity key: world, random, players by id, objects by id."""
-    for rank, prefix in enumerate(('world', 'random', 'player', 'obj')):
-        if key.startswith(prefix):
-            rest = key[len(prefix):]
-            return rank, int(rest) if rest.lstrip('-').isdigit() else 0
-    return 9, 0
+    """Record order of an entity key: world, random, players by id, objects by id, then digest 2's groups."""
+    group = key_group(key)
+    if group is None:
+        return len(KEY_GROUPS), 0
+    rest = key[len(group):]
+    return KEY_GROUPS.index(group), int(rest) if rest.lstrip('-').isdigit() else 0
 
 
 class Digest:
@@ -157,6 +181,11 @@ class Digest:
         m = re.search(r'every (\d+) world updates', self.title)
         return int(m.group(1)) if m else None
 
+    def groups(self):
+        """The entity groups the digest has: digest 1's (BASE_GROUPS) and those its title names."""
+        m = re.search(r'; groups ([\w,]+)', self.title)
+        return BASE_GROUPS | frozenset(m.group(1).split(',')) if m else BASE_GROUPS
+
 
 # ---- the compact form
 
@@ -182,23 +211,40 @@ def compact_entity(key, entry, ignore, clear=None):
     that clear matches, which are kept as they are."""
     description, fields = entry
     kept = {f: v for f, v in fields.items() if not (ignore and ignore.search(f'{key} {f}'))}
-    if not key.startswith('obj'):
+    group = key_group(key)
+    if group in CLEAR_GROUPS:
         return [description, kept]
-    unit = any(f.startswith('ai.') or f == 'player' for f in kept)
+    unit = group == 'cunit' or (group == 'obj' and any(f.startswith('ai.') or f == 'player' for f in kept))
     groups, plain = {}, {}
     for f in sorted(kept):
         if clear and clear.search(f'{key} {f}'):
             plain[f] = kept[f]
+        elif group == 'script':
+            # The script: one hash per kind (run, inst, global, fx, part, light, ...).
+            groups.setdefault('#' + re.match(r'[a-zA-Z]*', f).group(0), []).append(f'{f} {kept[f]}')
         else:
             groups.setdefault('#' + group_of(f) if unit else '#', []).append(f'{f} {kept[f]}')
     plain.update((g, crc('\n'.join(lines))) for g, lines in sorted(groups.items()))
     return [description, plain]
 
 
-def compact(src, dst, ignore=ADDRESS_DEPENDENT, clear=None):
+def titled_groups(title, groups):
+    """A digest's title line naming only `groups` (the ones beyond digest 1's)."""
+    extra = [g for g in KEY_GROUPS if g in groups and g not in BASE_GROUPS]
+    title = re.sub(r'; groups [\w,]+', '', title)
+    if not extra:
+        return title
+    if title.startswith('# ei state digest') and ';' in title:
+        head, rest = title.split(';', 1)
+        return f'{head}; groups {",".join(extra)};{rest}'
+    return f'{title}; groups {",".join(extra)}'
+
+
+def compact(src, dst, ignore=ADDRESS_DEPENDENT, clear=None, groups=None):
     """Writes the compact form of the digest or dump src to dst (the same record format, so diff and state
     read it). ignore: the fields left out (default the address-dependent ones); hashed fields cannot be
-    left out later. clear: the fields kept in clear (default the known differences, KNOWN)."""
+    left out later. clear: the fields kept in clear (default the known differences, KNOWN). groups: the entity
+    groups kept (default all; a golden's, to compare a newer digest with it)."""
     clear = known_pattern() if clear is None else clear
     clear = re.compile(clear) if clear else None
     d = Digest(src)
@@ -206,14 +252,17 @@ def compact(src, dst, ignore=ADDRESS_DEPENDENT, clear=None):
         shutil.copyfile(src, dst)
         return
     pattern = re.compile(ignore) if ignore else None
+    keep = d.groups() if groups is None else d.groups() & groups
     state, hashes = {}, {}
     with open(dst, 'w', encoding='cp1251', errors='replace', newline='\n') as out:
-        out.write((d.title or '# ei state digest') + '\n')
+        out.write(titled_groups(d.title or '# ei state digest', keep) + '\n')
         out.write(f'{COMPACT} (tools/golden.py): objects as hashes of their fields' +
                   (f'; left out: {ignore}' if ignore else '') + '\n')
         for h in d:
             lines = []
             for key in sorted(d.touched, key=key_order):
+                if key_group(key) not in keep:
+                    continue
                 new = compact_entity(key, d.state[key], pattern, clear) if key in d.state else None
                 old = state.get(key)
                 if new is None:
@@ -302,6 +351,13 @@ def diff(path_a, path_b, name_a='A', name_b='B', ulps=0, records=1, fields=12, i
     shown, compared, tolerated = 0, 0, 0
     ignore = re.compile(ignore) if ignore else None
     recheck = set()   # entities that differed at a record shown: looked at again even if untouched
+    # Digests of different versions: only the groups both have are compared (their record hashes cover the rest too,
+    # so every record is looked at).
+    common = da.groups() & db.groups()
+    partial = common != da.groups() or common != db.groups()
+    if partial:
+        out(f'digest: comparing the groups both have; left out: '
+            f'{", ".join(sorted((da.groups() | db.groups()) - common))}')
     while True:
         ha, hb = next(ia, None), next(ib, None)
         if ha is None or hb is None:
@@ -314,6 +370,8 @@ def diff(path_a, path_b, name_a='A', name_b='B', ulps=0, records=1, fields=12, i
         keys = da.touched | db.touched | recheck
         da.touched.clear()
         db.touched.clear()
+        if partial:
+            keys = {k for k in keys if key_group(k) in common}
         if (ha['update'], ha['tick']) != (hb['update'], hb['tick']) and shown == 0:
             out(f'digest: the records no longer line up at record {ha["record"]}: {name_a} world update {ha["update"]} '
                 f'tick {ha["tick"]}, {name_b} world update {hb["update"]} tick {hb["tick"]}')
@@ -322,7 +380,7 @@ def diff(path_a, path_b, name_a='A', name_b='B', ulps=0, records=1, fields=12, i
             continue
         found = differences(da.state, db.state, ulps, ignore, keys)
         if not found:
-            tolerated += 1
+            tolerated += 0 if partial and ha['zone'] == hb['zone'] else 1
             recheck = set()
             continue
         if ha['zone'] != hb['zone']:
@@ -429,7 +487,8 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
             lines.append(f'digest: {name_a} takes a record every {period_a} world updates, {name_b} every {period_b}')
         else:
             if golden:
-                compact(digest_b, os.path.join(b, 'golden_digest.txt'), ignore, clear)
+                # Only the groups the golden has (an older golden lacks digest 2's).
+                compact(digest_b, os.path.join(b, 'golden_digest.txt'), ignore, clear, Digest(digest_a).groups())
                 digest_b = os.path.join(b, 'golden_digest.txt')
             found = []
             if diff(digest_a, digest_b, name_a, name_b, ulps, records, fields, left_out, out=found.append):
@@ -441,7 +500,7 @@ def compare_folders(a, b, name_a, name_b, ulps=0, records=1, fields=12, ignore=A
         path_b = dumps_b[name]
         if golden:
             path_b = os.path.join(b, f'golden_dump_{name}.txt')
-            compact(dumps_b[name], path_b, ignore, clear)
+            compact(dumps_b[name], path_b, ignore, clear, Digest(dumps_a[name]).groups())
         found = []
         if diff(dumps_a[name], path_b, name_a, name_b, ulps, 1, fields, left_out, out=found.append):
             lines += [f'dump {name}: ' + found[0]] + found[1:]

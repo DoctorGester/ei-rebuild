@@ -7,11 +7,19 @@
 // alarms and counts ("world"), the generators ("random": ISAAC and the CRT's rand), each player with
 // its party ("player<id>": money, members, variables) and every world object ("obj<id>": class, flags,
 // position, orientation, scale, effects; map objects' hit points and mana; units' state, motion and
-// controller; the AI brain's action, target, alertness and modes). No pointers: objects are named by
-// their ids, AI modes by name (their game.exe vtables when not known).
+// controller; the AI brain's action, target, alertness and modes). Digest 2 (SV2a) adds, as groups
+// of their own: the timed objects' own state ("timed<id>": the effects' position, velocity, start
+// tick and their class's fields), the missiles ("missile<n>", by place in the list: the spell, its
+// state, position, caster, target and timer), the AI event table ("aievents": per side a count and a
+// hash), the mission script ("script": instances, waiting runs, global floats, its effects and
+// countdowns), and the client world ("client": its clock and counts; "cunit<id>": each unit's place,
+// animation and packed vitals). No pointers: objects are named by their ids, AI modes by name (their
+// game.exe vtables when not known). The title line names the groups beyond digest 1's, so
+// tools/golden.py compares a newer digest with an older golden on the groups the golden has.
 //
 // digest.txt in the run's folder holds the records: each a header line
-//   @ <record> update <n> frame <n> tick <n> zone <name> hash <h> world <h> random <h> players <h> objects <h> n <objects>
+//   @ <record> update <n> frame <n> tick <n> zone <name> hash <h> world <h> random <h> players <h> objects <h>
+//     timed <h> missiles <h> events <h> script <h> client <h> n <entities>
 // then, against the record before it, the entities that appeared ("+ <key> <description>", all their
 // fields follow), the fields that changed ("<key> <field> <value>"; "-" for a field gone) and the
 // entities gone ("- <key>"). The first record lists everything, so every record's whole state can be

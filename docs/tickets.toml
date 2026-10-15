@@ -681,10 +681,11 @@ done = "2026-10-15"
 id = "SV2a"
 title = "Digest: the client world, missiles, timed objects, script queues"
 group = "verification"
-status = "running"
+status = "done"
 depends = ["SV2"]
 note = "SV2's digest (tests/verify/harness_digest.cpp) reads the server world only. Not yet in it: the client world's units (positions the screen shows), each missile's position and target (Projectile 0xA8 bytes, layout unknown), timed objects' own state (spells, effects: class/flags/type only), the script command queues and countdowns, the AI event table. Add what a parting run needs first."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV1f"
@@ -817,6 +818,22 @@ status = "queued"
 model = "opus"
 depends = ["SV1j"]
 note = "From SV1g's sweep: effects (frame 12), objects_more (CLightning::Start, 12), script_fx (8), ui_mp_host (96, SaveParty), unit_create's rand (12), zone_base_bz1g, zone_gz2g_traps. Several also differ plain against plain, so run each 3 times per build first; bisect only what differs every time (SV1g section: build copies with EI_BUILD_DIR, randtrace.py). Also check whether CheckNear wrappers returning the original's value (Score, Distance2) part the builds anywhere."
+
+[[ticket]]
+id = "SV2b"
+title = "Rebirth with hooks: zone1 script variable i does not repeat"
+group = "verification"
+status = "queued"
+depends = ["SV2a"]
+note = "SV2a's digest 2 (script group): under Rebirth with our hooks, zone1's global object variable i (Rebirth's script, with VSS#i#val; the last object of a group, which keeps its objects in address order) is unit 702 in some runs and 1884 in others (spells_cast, combat, script_fx, ui_battle_spells, harness_digest); the original (addon alone) is 702 in every run. So some objects' addresses still differ between our runs under Rebirth (an allocation outside the repeatable CRT heap: addon.dll's or ours'). golden.py KNOWN leaves script gobject.i out meanwhile. Find which allocation moves (the group's members' addresses in two runs) and make it repeat."
+
+[[ticket]]
+id = "SV2c"
+title = "unit_create parted from its golden once in crt.rand"
+group = "verification"
+status = "queued"
+depends = ["SV2a"]
+note = "In SV2a's full work.py test --golden batch (117 runs, 4 at once), unit_create vanilla parted from its golden at world update 80 in random crt.rand only (0xE0E3A9A6 against 0xEAD494CC), and stayed parted there; alone it matched the golden twice. Digest 2's client units, timed objects and missiles were the same in the parting run, so the extra or missing rand() is not in a unit's animation pick that the records see. Find the draw with randtrace (EI_HARNESS_CLOCK=virtual,randtrace) under a loaded batch: something on the main thread that depends on real time or on another thread."
 
 # ---------------------------------------------------------------- harness and suite
 

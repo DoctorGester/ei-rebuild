@@ -114,8 +114,66 @@ Left out on purpose: a unit's motion floats while it has no trajectory (never wr
 path; zero in a run of the original alone, heap leftovers with our hooks), and pointers. `golden.py`
 leaves `updateCountdown` out of comparisons unless `--all-fields`: it follows the unit's heap address
 (open-questions.md, "Harness runs that do not repeat"), so even two runs of the original differ there.
-Not in the digest yet: the client world, missiles' own state (only their count), timed objects' own
-state (class, flags, type only), the script queues and countdowns, the AI event table.
+Digest 2 (SV2a, below) adds the client world, missiles, timed objects, the script and the AI event table.
+
+## SV2a: digest 2, the groups beyond the server world (2026-10-15)
+
+New entity groups, each in its own keys so that the server world's entities (and so the goldens' hashes) stay
+as they were. In record order after the objects:
+- `timed<id>`: every timed object of the server (`timedObjects_`) that is an effect (world_effect.h; class
+  0x48, 0x49, 0x4A, 0x4B, 0x4D, 0x4E, 0x5A, 0x5B, 0x5E, 99, 0x65): position, velocity, moving, start tick,
+  then its class's fields (sound: volume, radius, looping; particle source / wall: type, size, attached
+  object, target point, unit; point light: colour, range; lightning: ends and their objects; missile
+  0x4E / 0x5B: arrived, target id). Other timed objects keep only their `obj<id>` fields.
+- `missile<n>`: the server's missile list (`projectiles_`) by place. "Projectile" is CSpellEffect (spell.h,
+  0xA8 bytes; 0058E670 builds one per cast): the spell (its prototype index in the description), state,
+  flags, position, caster and target by id, target point, timer, damage, radius, target count, and the
+  ids of its visual (the flying CEffectArrow: its place is in `timed<visual>`), sound and light. A list
+  entry with another vtable is described by it and has no fields.
+- `aievents`: the AI event table (CWorldServer + 0x2838): its tick, grid size, the event count and per
+  side a count and a hash of the events in wheel order (place, origin, expiry, source, side; not the
+  payload, which 005C9630 leaves as the free list's or the stack's leftovers). No run so far had an event:
+  Ghidra shows no caller of the creator 005C9630, so the table may stay empty in this version.
+- `script`: the mission script (CScript 007C27D4): loaded, file count, the next automatic ids, each
+  running instance (killed flag, name and variables as hashes), each waiting run (the command queue:
+  block id, next command, ticks, sleep start, its instance, variables hash), the global variables by name
+  (`global.<name>` floats, `gstring.` / `gobject.` / `ggroup.` as text hash, id and sorted-id hash; by
+  index past the names), the FX sources (id, sound, place, idle; a randomized source's countdown, delays
+  and spread: CreateFXSource's new sources hold the original's stack leftovers there, docs/notes/script.md,
+  so those are not read), particle sources (moves, lifetime), point lights in use, lightning ids.
+- `client`: the client world (CWorldClient 007AF5B8): tick, pause, Segment count, tick fraction, party
+  danger, object, unit and synchronised counts; `cunit<id>`: each of its units (same ids as the server's):
+  place, orientation, animation entries and start, animation speed, death, packed vitals, effect count,
+  controller class.
+
+The title line says `# ei state digest 2; groups timed,missile,aievents,script,client,cunit; ...`, dumps get a
+title too, and the header has a hash per new section. tools/golden.py reads the groups (`Digest.groups()`; a
+digest without the list has the four of digest 1): a golden's comparison compacts the run down to the groups the
+golden has, and `diff` of digests with different groups compares the ones both have (and says which it left out).
+So the 42 goldens of digest 1 still compare (checked: 8 goldens the same with the new digest), and only a new
+recording brings the groups in. In compact form `aievents` and `client` stay field by field; `script` becomes one
+hash per kind (`#run`, `#inst`, `#global`, `#gobject`, `#fx`, ...), `cunit` units as the server's (`#place`,
+`#vitals`, `#unit`), the rest one `#`.
+
+Known differences (KNOWN): `cunit2` (the main menu's unmoco2) hp / maxHp / mana / maxMana follow the
+unwritten server vitals (SV3a; ours maxHp 20, mana 20; the original 1 and 0); `script gobject.i` (SV2b).
+
+Checked (harness_digest, spells_cast, script_quest, levers, combat, script_fx, ui_battle_spells; both installs;
+two runs of ours and one fresh run of the original, EI_DIGEST=20): every new group is the same in ours' two runs
+and against the original, but for SV2b: under Rebirth with our hooks zone1's script variable `i` (Rebirth's
+script; the last object of an address-ordered group) is unit 702 in some runs and 1884 in others, the original's
+702 in every run, so some allocation still moves between our Rebirth runs. script_fx vanilla parts from the
+original at update 60 in `isaac.count` (as in SV3's list), before any new group differs. What the new groups hold
+in these runs: 6-13 timed effects and 11-15 missiles over a run, the script's 25 instances and its runs, 51 client
+objects in the main menu; the AI event table was empty in all of them.
+
+Full suite with `--golden` (117 runs): all pass, 41 of 42 goldens the same; unit_create parted once at update 80
+in `crt.rand` only (no new group differed either), and matched its golden in two runs alone (SV2c).
+
+**The reference cache:** `run_all` takes a `--no-hooks` run from the shared reference cache (build/reference),
+whose key leaves out the harness. After a digest change, run the original with `--fresh`, or the run's digest is
+the one of whichever harness filled the cache (an older digest: golden.py then compares the groups both have).
+Record goldens with `--fresh`.
 
 First results (harness_digest, 2026-10-15): the original repeats itself and ours repeats itself in every
 other field; original against ours agree for 225 world updates, then only `random crt.rand` differs (an
@@ -223,7 +281,7 @@ unwritten (every hooked run's first record).
 
 **Recording** (period 20 world updates, `run_all.GOLDEN_PERIOD`):
 ```
-set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks        (the original; twice)
+set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks --fresh (the original; twice; --fresh: SV2a)
 set EI_DIGEST=20 & python tools\work.py test <ID>                   (ours; twice)
 python tools\golden.py snapshot <scratch>\orig1                       (after each suite: orig1, orig2, ours1, ours2)
 python tools\golden.py record --install vanilla --runs <scratch>\orig1 <scratch>\orig2 <scratch>\ours1 <scratch>\ours2 --reason "..."
