@@ -23,6 +23,17 @@
 //   checked ours only (the entries written equal the ones read). A
 //   start-up check sorts random key-only entries and, with small arrays, compares each position's
 //   array size and capacity too (capacities follow the whole copy and assignment sequence).
+//
+// S12f, ours first as well:
+// - A network client's briefing topics (stlp::string by _stricmp): copies allocate, so the texts are
+//   kept in our memory, ours sorts the range, then the original sorts a twin of game strings made
+//   from the kept texts (freed last to first) and the two are compared text by text (texts equal
+//   but for case show the order of equals). Not reached in the suite (only a network client sorts
+//   them): a start-up check sorts random topics both ways, comparing each position's text and
+//   capacity (assignments keep a larger block, so capacities follow the moves).
+// - The hero screen's figure names (CString by _mbscmp): copies only share the strings; the copy
+//   the original sorts is made before ours runs (references only) and compared by data pointer. A
+//   start-up check sorts random names both ways.
 #include "verify.h"
 
 #include "../../src/game/base_manager.h"
@@ -33,12 +44,14 @@
 #include "../../src/game/ui.h"
 #include "../../src/game/stl_sorts.h"
 #include "../../src/hook/log.h"
+#include "../../src/lib/stlp_string.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <new>
+#include <string>
 #include <vector>
 
 using namespace stl_sorts;
@@ -476,6 +489,102 @@ static SaveEntry* __fastcall SaveCopyBackwardVerify(SaveEntry* first, SaveEntry*
 }
 EI_VERIFY(0x00657D50, SaveCopyBackwardVerify, 0, s_saveCopyBackwardUnused);
 
+// ---- Briefing topics and hero names (S12f) --------------------------------------------------------
+
+namespace {
+
+std::string TextOf(const stlp::string& s) { return std::string(s.data(), s.size()); }
+
+// Game strings freed last to first (the pool's lists are LIFO).
+void PopAll(std::vector<stlp::string>& strings) {
+    while (!strings.empty()) strings.pop_back();
+}
+
+std::vector<stlp::string> GameStrings(const std::vector<std::string>& texts) {
+    std::vector<stlp::string> strings;
+    strings.reserve(texts.size());
+    for (const std::string& t : texts) strings.emplace_back(t.data(), t.data() + t.size());
+    return strings;
+}
+
+template <typename Original, typename Ours>
+void CompareTopics(const char* name, stlp::string* first, stlp::string* last, Original original, Ours ours) {
+    if (last < first) {
+        original(first, last);
+        return;
+    }
+    std::vector<std::string> kept;
+    kept.reserve(static_cast<std::size_t>(last - first));
+    for (const stlp::string* p = first; p != last; ++p) kept.push_back(TextOf(*p));
+    ours(first, last);
+    std::vector<stlp::string> twin = GameStrings(kept);
+    original(twin.data(), twin.data() + twin.size());
+    int mismatch = -1;
+    for (std::size_t i = 0; i < twin.size(); ++i)
+        if (TextOf(twin[i]) != TextOf(first[i])) {
+            mismatch = static_cast<int>(i);
+            break;
+        }
+    PopAll(twin);
+    ei::verify::Check(name, -1, mismatch, "%d topics, first difference at %d", static_cast<int>(kept.size()), mismatch);
+}
+
+template <typename Original, typename Ours>
+void CompareNames(const char* name, mfc::CString* first, mfc::CString* last, Original original, Ours ours) {
+    if (last < first) {
+        original(first, last);
+        return;
+    }
+    std::vector<mfc::CString> input(first, last);
+    ours(first, last);
+    original(input.data(), input.data() + input.size());
+    int mismatch = -1;
+    for (std::size_t i = 0; i < input.size(); ++i)
+        if (static_cast<const char*>(input[i]) != static_cast<const char*>(first[i])) {
+            mismatch = static_cast<int>(i);
+            break;
+        }
+    ei::verify::Check(name, -1, mismatch, "%d names, first difference at %d", static_cast<int>(input.size()), mismatch);
+}
+
+} // namespace
+
+// 0060B330: PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI; MOV EDI,EDX (6 bytes).
+static void(__fastcall* s_topicIntro)(stlp::string*, stlp::string*, int, int, int);
+static void __fastcall TopicIntroVerify(stlp::string* first, stlp::string* last, int tag, int depth, int comp) {
+    CompareTopics(
+        "TopicIntroSort", first, last, [&](stlp::string* f, stlp::string* l) { s_topicIntro(f, l, tag, depth, comp); },
+        [&](stlp::string* f, stlp::string* l) { TopicIntroSort(f, l, tag, depth, comp); });
+}
+EI_VERIFY(0x0060B330, TopicIntroVerify, 6, s_topicIntro);
+
+// 0060B440: PUSH ESI; MOV ESI,EDX; SUB EDX,ECX (5 bytes).
+static void(__fastcall* s_topicFinal)(stlp::string*, stlp::string*, int);
+static void __fastcall TopicFinalVerify(stlp::string* first, stlp::string* last, int comp) {
+    CompareTopics(
+        "TopicFinalSort", first, last, [&](stlp::string* f, stlp::string* l) { s_topicFinal(f, l, comp); },
+        [&](stlp::string* f, stlp::string* l) { TopicFinalSort(f, l, comp); });
+}
+EI_VERIFY(0x0060B440, TopicFinalVerify, 5, s_topicFinal);
+
+// 0061A240: PUSH EBX; PUSH EBP; PUSH ESI; MOV ESI,EDX (5 bytes).
+static void(__fastcall* s_nameIntro)(mfc::CString*, mfc::CString*, mfc::CString*, int);
+static void __fastcall NameIntroVerify(mfc::CString* first, mfc::CString* last, mfc::CString* tag, int depth) {
+    CompareNames(
+        "NameIntroSort", first, last, [&](mfc::CString* f, mfc::CString* l) { s_nameIntro(f, l, tag, depth); },
+        [&](mfc::CString* f, mfc::CString* l) { NameIntroSort(f, l, tag, depth); });
+}
+EI_VERIFY(0x0061A240, NameIntroVerify, 5, s_nameIntro);
+
+// 0061A300: PUSH EDI; MOV EDI,EDX; MOV EAX,EDI (5 bytes).
+static void(__fastcall* s_nameFinal)(mfc::CString*, mfc::CString*);
+static void __fastcall NameFinalVerify(mfc::CString* first, mfc::CString* last) {
+    CompareNames(
+        "NameFinalSort", first, last, [&](mfc::CString* f, mfc::CString* l) { s_nameFinal(f, l); },
+        [&](mfc::CString* f, mfc::CString* l) { NameFinalSort(f, l); });
+}
+EI_VERIFY(0x0061A300, NameFinalVerify, 5, s_nameFinal);
+
 // ---- Start-up check --------------------------------------------------------------------------------
 
 namespace {
@@ -681,5 +790,74 @@ void SaveSortStartupCheck() {
     ei::verify::Report("stlp::sort start-up (save list)", failed < 0, detail);
 }
 EI_STARTUP_CHECK(SaveSortStartupCheck);
+
+// The topics and the names as their callers sort them (the introsort loop, then the final sort),
+// on random texts from a small set: texts equal but for case (the topics' order of equals), the
+// characters between 'Z' and 'a' (_stricmp lowers before comparing) and several lengths. Topics:
+// each position's text and capacity; names: each position's string (data pointer).
+const char* const kSortWords[] = {"a",  "A", "ab", "AB", "aB", "abc", "Abc", "b",  "B", "zeta", "Zeta", "_x", "[", "\x60",
+                                  "Z", "y_", "Y[", "long topic text", "LONG TOPIC TEXT", ""};
+
+std::vector<std::string> RandomWords(Random& random, std::size_t n) {
+    constexpr std::uint32_t kWords = sizeof(kSortWords) / sizeof(kSortWords[0]);
+    std::vector<std::string> texts(n);
+    for (std::string& t : texts) {
+        t = kSortWords[random.Next() % kWords];
+        if (random.Next() % 4 == 0) t += static_cast<char>('0' + random.Next() % 3);
+    }
+    return texts;
+}
+
+void TopicNameStartupCheck() {
+    if (!s_topicIntro || !s_topicFinal || !s_nameIntro || !s_nameFinal) return;
+    int cases = 0, failed = -1;
+    const char* which = "";
+    for (std::uint32_t seed = 1; seed <= 200 && failed < 0; ++seed, ++cases) {
+        Random random{seed};
+        std::size_t n = random.Next() % 120;
+        int depth = Depth(n, random.Next());
+        std::vector<std::string> texts = RandomWords(random, n);
+
+        std::vector<stlp::string> theirs = GameStrings(texts), ours = GameStrings(texts);
+        if (n != 0) {
+            s_topicIntro(theirs.data(), theirs.data() + n, 0, depth, 0);
+            s_topicFinal(theirs.data(), theirs.data() + n, 0);
+            TopicIntroSort(ours.data(), ours.data() + n, 0, depth, 0);
+            TopicFinalSort(ours.data(), ours.data() + n, 0);
+        }
+        for (std::size_t i = 0; i < n && failed < 0; ++i) {
+            const stlp::string& a = theirs[i];
+            const stlp::string& b = ours[i];
+            if (TextOf(a) != TextOf(b) || stlp::StringAbi::EndOfStorage(a) - stlp::StringAbi::Start(a) !=
+                                              stlp::StringAbi::EndOfStorage(b) - stlp::StringAbi::Start(b)) {
+                failed = static_cast<int>(seed);
+                which = "topics";
+            }
+        }
+        PopAll(ours);
+        PopAll(theirs);
+        if (failed >= 0) break;
+
+        std::vector<mfc::CString> names;
+        names.reserve(n);
+        for (const std::string& t : texts) names.emplace_back(t.c_str());
+        std::vector<mfc::CString> sorted(names);
+        if (n != 0) {
+            s_nameIntro(names.data(), names.data() + n, nullptr, depth);
+            s_nameFinal(names.data(), names.data() + n);
+            NameIntroSort(sorted.data(), sorted.data() + n, nullptr, depth);
+            NameFinalSort(sorted.data(), sorted.data() + n);
+        }
+        for (std::size_t i = 0; i < n && failed < 0; ++i)
+            if (static_cast<const char*>(names[i]) != static_cast<const char*>(sorted[i])) {
+                failed = static_cast<int>(seed);
+                which = "names";
+            }
+    }
+    char detail[96];
+    std::snprintf(detail, sizeof(detail), "%d cases, first failure: %s seed %d", cases, which, failed);
+    ei::verify::Report("stlp::sort start-up (briefing topics, hero names)", failed < 0, detail);
+}
+EI_STARTUP_CHECK(TopicNameStartupCheck);
 
 } // namespace

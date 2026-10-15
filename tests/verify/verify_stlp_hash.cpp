@@ -717,6 +717,34 @@ struct RecordNamedCheck {
     }
 };
 
+// 00613920 (S12f, the spell prototypes by name), ours first (docs/notes/standalone-verification.md,
+// SV2f): ours looks the name up on the table, adding it mapped to null when missing; then the
+// original on the same table only finds it (its two temporary strings are made and freed again).
+// Both results must be the record the table maps the name to, the count one more only for a new
+// name.
+struct RecordNamedOursFirst {
+    static inline void* original = nullptr;
+    static void* __fastcall Run(stlp::RecordsByName* self, void*, const char* name) {
+        BorrowedString key(name);
+        bool had = self->byName.Find(key.get()) != nullptr;
+        std::size_t count = self->byName.Count();
+        void* ours = stlp::RecordNamed(self, nullptr, name);
+        void* theirs = reinterpret_cast<decltype(&stlp::RecordNamed)>(original)(self, nullptr, name);
+        const auto* found = self->byName.Find(key.get());
+        std::uintptr_t mapped = 0;
+        if (found) std::memcpy(&mapped, &found->value.mapped, sizeof(mapped));
+        bool ok = found && ours == theirs && Word(ours) == mapped && (had || mapped == 0) &&
+                  self->byName.Count() == count + (had ? 0 : 1);
+        char detail[160] = "";
+        if (!ok)
+            std::snprintf(detail, sizeof(detail), "\"%.40s\": ours %p, original's %p, mapped %08X, count %u -> %u", name, ours,
+                          theirs, static_cast<unsigned>(mapped), static_cast<unsigned>(count),
+                          static_cast<unsigned>(self->byName.Count()));
+        ei::verify::Report("stlp::hash_map::operator[](const char*) 00613920", ok, detail);
+        return ours;
+    }
+};
+
 // 00571050: hash_map() with the dword after it; ours only (the extra dword zeroed, an empty table).
 stlp::TableWithDword* __fastcall ConstructTableWithDword(stlp::TableWithDword* self) {
     stlp::TableWithDword* result = stlp::ConstructTableWithDword(self);
@@ -1191,6 +1219,7 @@ EI_VERIFY(0x0069D290, RecordNamedCheck<0x0069D290>::Run, 7, RecordNamedCheck<0x0
 EI_VERIFY(0x0069D380, RecordNamedCheck<0x0069D380>::Run, 7, RecordNamedCheck<0x0069D380>::original);
 EI_VERIFY(0x006AD580, RecordNamedCheck<0x006AD580>::Run, 7, RecordNamedCheck<0x006AD580>::original);
 EI_VERIFY(0x00613820, RecordNamedCheck<0x00613820>::Run, 7, RecordNamedCheck<0x00613820>::original);
+EI_VERIFY(0x00613920, RecordNamedOursFirst::Run, 7, RecordNamedOursFirst::original);
 EI_VERIFY(0x004ACC10, S4<0x004ACC10>::FindOrInsert, 6, S4<0x004ACC10>::original);
 EI_VERIFY(0x004CE110, S4<0x004CE110>::FindOrInsert, 6, S4<0x004CE110>::original);
 EI_VERIFY(0x004FBBD0, S4<0x004FBBD0>::FindOrInsert, 6, S4<0x004FBBD0>::original);

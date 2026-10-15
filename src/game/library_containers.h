@@ -12,6 +12,7 @@
 #include "model.h"
 #include "net_classes.h"
 #include "ui_briefing.h"
+#include "ui_screens.h"
 
 #include "lib/mfc.h"
 #include "lib/mfc_time.h"
@@ -130,5 +131,23 @@ void __fastcall DestroyGameInfoRecord(net::GameInfoRecord* self);
 // The print records' name (model.h; 006D29A0 for PrintRecord, 006D29E0 for PrintRecord2, whose name
 // is at the same +0x04): its block back to the pool.
 void __fastcall DestroyPrintName(PrintRecord* self);
+
+// ---- The party file entries' vector (S12f) ------------------------------------------------------
+
+// vector<MpHeroRecord> (0x74 bytes: a CParty and its file name; the multiplayer heroes 007C82A4 and
+// the world's saved parties, world_game.cpp): an element is copied as the party's copy constructor
+// (006613C0, by address) and then the name's (CString's copy), destroyed as MpHeroRecord::Destruct
+// (the name, then 006611D0) and assigned as MpHeroRecord::Assign.
+struct HeroRecordElement {
+    static void Construct(MpHeroRecord* to, const MpHeroRecord& from);
+    static void Assign(MpHeroRecord& to, const MpHeroRecord& from) { to.Assign(&from); }
+    static void Destroy(MpHeroRecord* p) { p->Destruct(); }
+};
+using HeroRecords = stlp::vector<MpHeroRecord>;
+// _M_insert_overflow(pos, x, n) (00619920; RET 0xC): a block of size + max(size, n) records (the
+// node allocator's pool for one record), [start, pos), n copies of x, [pos, finish); the old
+// records destroyed in order, the old block freed.
+void __fastcall InsertHeroRecordsOverflow(HeroRecords* self, void*, MpHeroRecord* pos, const MpHeroRecord* x,
+                                          std::size_t n);
 
 } // namespace libcontainers
