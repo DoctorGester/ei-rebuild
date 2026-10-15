@@ -8,6 +8,8 @@
 // orientation quaternion (CUnit +0x34, one register per component, writes only); every write is a
 // line: the world update, the code after the writing instruction, the four components as bit
 // patterns and the first return addresses on the stack. Two runs' files are compared line by line.
+// EI_WATCH_CUNIT=<id>,flags watches the unit's flags_ (+0x08) instead, logging the writes that
+// change it (SV7b8a).
 //
 // EI_WATCH_ADDR=<hex>[,<from>,<to>]: one dword (a stack slot, say) watched for reads and writes from
 // the end of world update <from> to the end of <to>: each access with the code, the value and the

@@ -414,26 +414,14 @@ void CUiItemStrip::OnLButtonDownForward(int flags, int x, int y) {
 }
 
 // Entry points on the input sub-object.
-void __fastcall ItemStripLButtonDown(void* input, void*, int flags, int x, int y) {
-    WindowFromInput<CUiItemStrip>(input)->OnLButtonDown(flags, x, y);
-}
-void __fastcall ItemStripLButtonUp(void* input, void*, int flags, int x, int y) {
-    WindowFromInput<CUiItemStrip>(input)->OnLButtonUp(flags, x, y);
-}
-void __fastcall ItemStripMouseMove(void* input, void*, int flags, int x, int y) {
-    WindowFromInput<CUiItemStrip>(input)->OnMouseMove(flags, x, y);
-}
 BOOL __fastcall ItemStripWheel(void* input, void*, int keys, int delta, int x, int y) {
     return WindowFromInput<CUiItemStrip>(input)->OnWheel(keys, static_cast<short>(delta), x, y);
 }
-void __fastcall ItemStripLButtonDownForward(void* input, void*, int flags, int x, int y) {
-    WindowFromInput<CUiItemStrip>(input)->OnLButtonDownForward(flags, x, y);
-}
-EI_REPLACE(0x00620E10, ItemStripLButtonDown);
-EI_REPLACE(0x00621010, ItemStripLButtonUp);
-EI_REPLACE(0x00620F10, ItemStripMouseMove);
+EI_REPLACE_METHOD(0x00620E10, InputForward<&CUiItemStrip::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x00621010, InputForward<&CUiItemStrip::OnLButtonUp>::Call);
+EI_REPLACE_METHOD(0x00620F10, InputForward<&CUiItemStrip::OnMouseMove>::Call);
 EI_REPLACE(0x006210F0, ItemStripWheel);
-EI_REPLACE(0x006212A0, ItemStripLButtonDownForward);
+EI_REPLACE_METHOD(0x006212A0, InputForward<&CUiItemStrip::OnLButtonDownForward>::Call);
 
 // --- Heroes' skills ---------------------------------------------------------------------------
 
@@ -614,10 +602,7 @@ void CMpHeroScreen::OnLButtonUp(int flags, int x, int y) {
     rotating_ = 0;
 }
 
-void __fastcall MpHeroLButtonUp(void* input, void*, int flags, int x, int y) {
-    WindowFromInput<CMpHeroScreen>(input)->OnLButtonUp(flags, x, y);
-}
-EI_REPLACE(0x006177D0, MpHeroLButtonUp);
+EI_REPLACE_METHOD(0x006177D0, InputForward<&CMpHeroScreen::OnLButtonUp>::Call);
 
 // --- CEscMenu ---------------------------------------------------------------------------------
 
@@ -680,14 +665,8 @@ void CEscMenu::OnMessageResult(int result) {
 }
 EI_REPLACE_METHOD(0x0062ACC0, CEscMenu::OnMessageResult);
 
-void __fastcall EscMenuMouseMove(void* input, void*, int flags, int x, int y) {
-    WindowFromInput<CEscMenu>(input)->OnMouseMove(flags, x, y);
-}
-void __fastcall EscMenuKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CEscMenu>(input)->OnKeyDown(key, repeat, flags);
-}
-EI_REPLACE(0x0062AD10, EscMenuMouseMove);
-EI_REPLACE(0x0062B300, EscMenuKeyDown);
+EI_REPLACE_METHOD(0x0062AD10, InputForward<&CEscMenu::OnMouseMove>::Call);
+EI_REPLACE_METHOD(0x0062B300, InputForward<&CEscMenu::OnKeyDown>::Call);
 
 // --- CCreditsScreen ---------------------------------------------------------------------------
 
@@ -702,14 +681,8 @@ void CCreditsScreen::OnKeyDown(int key, int, int) {
     if (key == VK_RETURN || key == VK_ESCAPE || key == VK_SPACE) Close();
 }
 
-void __fastcall CreditsLButtonDown(void* input, void*, int flags, int x, int y) {
-    WindowFromInput<CCreditsScreen>(input)->OnLButtonDown(flags, x, y);
-}
-void __fastcall CreditsKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CCreditsScreen>(input)->OnKeyDown(key, repeat, flags);
-}
-EI_REPLACE(0x0062BFE0, CreditsLButtonDown);
-EI_REPLACE(0x0062C010, CreditsKeyDown);
+EI_REPLACE_METHOD(0x0062BFE0, InputForward<&CCreditsScreen::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x0062C010, InputForward<&CCreditsScreen::OnKeyDown>::Call);
 
 // --- CExchangeScreen --------------------------------------------------------------------------
 
@@ -732,7 +705,4 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
     }
 }
 
-void __fastcall ExchangeKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CExchangeScreen>(input)->OnKeyDown(key, repeat, flags);
-}
-EI_REPLACE(0x0062D090, ExchangeKeyDown);
+EI_REPLACE_METHOD(0x0062D090, InputForward<&CExchangeScreen::OnKeyDown>::Call);

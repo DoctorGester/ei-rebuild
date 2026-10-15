@@ -226,22 +226,14 @@ EI_REPLACE_METHOD(0x0062EE30, CGlobalMap::OnMessageResult);
 
 namespace {
 void __fastcall GlobalMapDeactivate(void* input) { WindowFromInput<CGlobalMap>(input)->OnDeactivate(); }
-void __fastcall GlobalMapRightDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CGlobalMap>(input)->OnRightDown(buttons, x, y);
-}
-void __fastcall GlobalMapRightUp(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CGlobalMap>(input)->OnRightUp(buttons, x, y);
-}
+// Rebirth-patched (the shim stays a named function so check_patched_calls sees it).
 void __fastcall GlobalMapMouseMove(void* input, void*, int buttons, int x, int y) {
     WindowFromInput<CGlobalMap>(input)->OnMouseMove(buttons, x, y);
 }
-void __fastcall GlobalMapKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CGlobalMap>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
 EI_REPLACE(0x0062FF10, GlobalMapDeactivate);
-EI_REPLACE(0x0062FF60, GlobalMapRightDown);
-EI_REPLACE(0x0062FFC0, GlobalMapRightUp);
+EI_REPLACE_METHOD(0x0062FF60, InputForward<&CGlobalMap::OnRightDown>::Call);
+EI_REPLACE_METHOD(0x0062FFC0, InputForward<&CGlobalMap::OnRightUp>::Call);
 EI_REPLACE(0x00630010, GlobalMapMouseMove);
 EI_REBIRTH_IMPLEMENTS(0x00630010, ei::rebirth::Patch::WideScreen);
-EI_REPLACE(0x00630580, GlobalMapKeyDown);
+EI_REPLACE_METHOD(0x00630580, InputForward<&CGlobalMap::OnKeyDown>::Call);

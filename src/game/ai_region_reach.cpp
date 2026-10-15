@@ -33,9 +33,6 @@ std::uint8_t& BlocksGuard() { return *reinterpret_cast<std::uint8_t*>(0x007C2EF4
 using ExitFn = void(__cdecl*)();
 ExitFn BlocksDestructor() { return reinterpret_cast<ExitFn>(std::uintptr_t(0x005B0AE0)); }
 
-void __fastcall PointArrayConstruct(PointArray* a0, void*) { PointArrayConstructOriginal((void*)a0); }
-inline void __fastcall PointArraySetSize(PointArray* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
-
 // The local search at +0x98: set up over a window (size class, x0, y0, x1, y1 exclusive, start
 // x, y), flood (RET 4), finish, settle, the cost of a cell (0x7FFFFFFF unreached), reset.
 __declspec(naked) void __fastcall SearchSetup(LocalSearch*, void*, int, int, int, int, int, int, int) EI_ORIGINAL(0x005C2CF0)
@@ -170,7 +167,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
     PointArray& blocks = Blocks();
     if (!(BlocksGuard() & 1)) {
         BlocksGuard() |= 1;
-        PointArrayConstruct(&blocks, nullptr);
+        PointArrayConstructOriginal(&blocks);
         GameAtExit(BlocksDestructor());
     }
     if (blocks.data) {
@@ -184,7 +181,7 @@ bool CRegionMap::ReachesRegion(int sizeClass, int x, int y, int region, SearchGr
         for (int xx = bx - 1; xx < bx + 2; ++xx) {
             if (xx < 0 || xx >= BlocksWide(this)) continue;
             int n = blocks.size;
-            PointArraySetSize(&blocks, nullptr, n + 1, -1);
+            PointArraySetSizeOriginal(&blocks, nullptr, n + 1, -1);
             blocks.data[n].x = xx;
             blocks.data[n].y = yy;
         }
@@ -237,15 +234,15 @@ void CRegionMap::LabelRegions() {
     PointArray& second = FloodSecond();
     if (!(FloodGuard() & 1)) {
         FloodGuard() |= 1;
-        PointArrayConstruct(&queue, nullptr);
+        PointArrayConstructOriginal(&queue);
         GameAtExit(FloodQueueDestructor());
     }
     if (!(FloodGuard() & 2)) {
         FloodGuard() |= 2;
-        PointArrayConstruct(&second, nullptr);
+        PointArrayConstructOriginal(&second);
         GameAtExit(FloodSecondDestructor());
     }
-    PointArraySetSize(&queue, nullptr, 0, -1);
+    PointArraySetSizeOriginal(&queue, nullptr, 0, -1);
     for (int sizeClass = 0; sizeClass < 8; ++sizeClass) {
         SearchGrid<std::uint16_t>& grid = regions[sizeClass];
         std::memset(grid.data, 0, static_cast<std::size_t>(grid.height * grid.width * 2));
@@ -255,7 +252,7 @@ void CRegionMap::LabelRegions() {
                 if (grid.rows[by][bx] != 0) continue;
                 grid.rows[by][bx] = static_cast<std::uint16_t>(label);
                 int n = queue.size;
-                PointArraySetSize(&queue, nullptr, n + 1, -1);
+                PointArraySetSizeOriginal(&queue, nullptr, n + 1, -1);
                 queue.data[n].x = bx;
                 queue.data[n].y = by;
                 FloodRegion(this, nullptr, sizeClass, &queue, &second, label);
@@ -709,7 +706,7 @@ void CRegionMap::FloodRegionFrom(int sizeClass, void* frontierIn, void* nextIn, 
                 if (region != 0) continue;
                 region = static_cast<std::uint16_t>(label);
                 int n = next->size;
-                PointArraySetSize(next, nullptr, n + 1, -1);
+                PointArraySetSizeOriginal(next, nullptr, n + 1, -1);
                 next->data[n].x = nx;
                 next->data[n].y = ny;
             }

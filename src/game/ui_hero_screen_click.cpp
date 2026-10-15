@@ -404,18 +404,12 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
 }
 
 namespace {
-void __fastcall MpHeroLButtonDown(void* input, void*, int flags, int x, int y) {
-    WindowFromInput<CMpHeroScreen>(input)->OnLButtonDown(flags, x, y);
-}
 } // namespace
-EI_REPLACE(0x00617050, MpHeroLButtonDown);
+EI_REPLACE_METHOD(0x00617050, InputForward<&CMpHeroScreen::OnLButtonDown>::Call);
 
 namespace {
-void __fastcall MpHeroKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CMpHeroScreen>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x00618A10, MpHeroKeyDown);
+EI_REPLACE_METHOD(0x00618A10, InputForward<&CMpHeroScreen::OnKeyDown>::Call);
 
 // --- 00618060: rename ---------------------------------------------------------------------------
 

@@ -430,9 +430,6 @@ ItemText& AsText(mfc::CString& s) { return static_cast<ItemText&>(s); }
 // Prototype lookups by name: weapons 004AB720 (007C86F8), armors 004AB820 (007C8718), quick items
 // 00613820 (007C8738), the class-0x14 table 006AD580 (007C8758), the class-0x15 table 0069D380
 // (007C8778); materials 0069D290 (007C86D8). Each returns the record or null.
-char* __fastcall FindWeaponNamed(void* a0, void*, const char* a2) { return (char*)FindWeaponOriginal(a0, nullptr, a2); }
-char* __fastcall FindArmorNamed(void* a0, void*, const char* a2) { return (char*)FindArmorOriginal(a0, nullptr, a2); }
-char* __fastcall FindQuickNamed(void* a0, void*, const char* a2) { return (char*)FindQuickItemOriginal(a0, nullptr, a2); }
 __declspec(naked) char* __fastcall FindTable14Named(void*, void*, const char*) EI_ORIGINAL(0x006AD580)
 void* const kWeaponTable = reinterpret_cast<void*>(0x007C86F8);
 void* const kArmorTable = reinterpret_cast<void*>(0x007C8718);
@@ -461,9 +458,6 @@ static NameKey* KeyFromChars(NameKey* s, void*, const char* text, const void* al
 __declspec(naked) void __fastcall PairConstruct(NamePair*, void*, const NameKey*, void* const*) EI_ORIGINAL(0x00689950)
 __declspec(naked) char** __fastcall WeaponNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006AD670)
 __declspec(naked) char** __fastcall ArmorNameAt(void*, void*, const NameKey*) EI_ORIGINAL(0x006A75E0)
-char** __fastcall QuickNameAt(void* a0, void*, const NameKey* a2) { return (char**)QuickItemMapAtOriginal(a0, nullptr, (const void*)a2); }
-char** __fastcall SpellNameAt(void* a0, void*, const NameKey* a2) { return (char**)SpellMapAtOriginal(a0, nullptr, (const void*)a2); }
-NamePair* __fastcall ModifierNameFindOrInsert(void* a0, void*, const NamePair* a2) { return (NamePair*)ModifierMapFindOrInsertOriginal(a0, nullptr, (const void*)a2); }
 
 // Index of `record` in `table` (signed division of the byte offset), -1 for no record.
 int TableIndex(const RecordTable& table, const char* record, int stride) {
@@ -487,13 +481,13 @@ int LootTableIndex(int which, const char* name, const void* allocator) {
         return TableIndex(Armors(), record, kArmorSize);
     case 2:
         KeyFromChars(&key, nullptr, name, allocator);
-        record = *QuickNameAt(reinterpret_cast<void*>(0x007C8744), nullptr, &key);
+        record = *(char**)QuickItemMapAtOriginal(reinterpret_cast<void*>(0x007C8744), nullptr, (const void*)&key);
         StlStringDestroy(&key);
         return TableIndex(QuickItems(), record, kQuickItemSize);
     case 3:
         StringInitWithAllocator(&key, nullptr, allocator);
         StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
-        record = *SpellNameAt(reinterpret_cast<void*>(0x007C851C), nullptr, &key);
+        record = *(char**)SpellMapAtOriginal(reinterpret_cast<void*>(0x007C851C), nullptr, (const void*)&key);
         StlStringDestroy(&key);
         return TableIndex(Spells(), record, kSpellSize);
     case 4: {
@@ -502,7 +496,7 @@ int LootTableIndex(int which, const char* name, const void* allocator) {
         void* none = nullptr;
         NamePair pair;
         PairConstruct(&pair, nullptr, &key, &none);
-        void** slot = &ModifierNameFindOrInsert(reinterpret_cast<void*>(0x007C853C), nullptr, &pair)->record;
+        void** slot = &((NamePair*)ModifierMapFindOrInsertOriginal(reinterpret_cast<void*>(0x007C853C), nullptr, (const void*)&pair))->record;
         StlStringDestroy(&pair.name);
         record = static_cast<char*>(*slot);
         StringRepDestroy(&key);
@@ -541,7 +535,7 @@ CItem* CItemManager::CreateItem(const char* name) {
         CSpell* spell = SpellManagerCreateSpellFromTextOriginal(context->SpellManager(), nullptr, spellText);
         CItem* item = nullptr;
         if (spell) {
-            char* record = FindQuickNamed(kQuickTable, nullptr, kSpellContainer);
+            char* record = (char*)FindQuickItemOriginal(kQuickTable, nullptr, kSpellContainer);
             int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
             item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
             if (item) ItemAttachSpellOriginal(item, nullptr, spell);
@@ -551,9 +545,9 @@ CItem* CItemManager::CreateItem(const char* name) {
 
     // "prototype[.material]".
     const char* prototypeName = parts.data[0];
-    char* prototype = FindWeaponNamed(kWeaponTable, nullptr, prototypeName);
-    if (!prototype) prototype = FindArmorNamed(kArmorTable, nullptr, prototypeName);
-    if (!prototype) prototype = FindQuickNamed(kQuickTable, nullptr, prototypeName);
+    char* prototype = (char*)FindWeaponOriginal(kWeaponTable, nullptr, prototypeName);
+    if (!prototype) prototype = (char*)FindArmorOriginal(kArmorTable, nullptr, prototypeName);
+    if (!prototype) prototype = (char*)FindQuickItemOriginal(kQuickTable, nullptr, prototypeName);
     if (!prototype) prototype = FindTable14Named(kTable14, nullptr, prototypeName);
     if (!prototype) prototype = FindTable15Named(kTable15, nullptr, prototypeName);
     if (!prototype) {
@@ -641,7 +635,7 @@ EI_REBIRTH_IMPLEMENTS(0x006AC970, ei::rebirth::Patch::FixCreateItem);
 CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spells) {
     CSpell* spell = SpellManagerCreateSpellFromTextOriginal(static_cast<CSpellManager*>(spells), nullptr, spellText);
     if (!spell) return nullptr;
-    char* record = FindQuickNamed(kQuickTable, nullptr, kSpellContainer);
+    char* record = (char*)FindQuickItemOriginal(kQuickTable, nullptr, kSpellContainer);
     int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
     CItem* item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
     if (item) ItemAttachSpellOriginal(item, nullptr, spell);

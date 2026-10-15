@@ -66,7 +66,7 @@ int UnitStats::SkillPrice(const char* record) {
     float price = static_cast<float>(std::pow(static_cast<double>(GameLogicSettings().perkPowerBase), known) * cost);
 
     // The power of ten of the first digit (FLDLG2; FYL2X, the CRT's floor and _CIpow).
-    float power = static_cast<float>(std::pow(10.0, std::floor(std::log10(static_cast<double>(price)))));
+    float power = static_cast<float>(std::pow(10.0, std::floor(x87::flog10(static_cast<double>(price)))));
     float leading = price / power;
     if (!(leading >= kTwoDigitsBelow)) {   // below 4, or NaN (a price of 0)
         if (!(power > kRoundUpTo)) return static_cast<int>(std::ceil(static_cast<double>(price)));

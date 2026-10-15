@@ -108,11 +108,8 @@ void CTradePanel::OnLButtonDown(int, int x, int y) {
     }
 }
 namespace {
-void __fastcall TradeLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CTradePanel>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00626920, TradeLButtonDown);
+EI_REPLACE_METHOD(0x00626920, InputForward<&CTradePanel::OnLButtonDown>::Call);
 
 // --- 00626C30: the left button released (input slot 3) ---------------------------------------------
 

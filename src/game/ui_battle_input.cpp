@@ -39,11 +39,8 @@ void CBattleScreenSetup::OnLeftDouble(int buttons, int x, int y) {
     boxSelecting_ = false;
 }
 namespace {
-void __fastcall BattleScreenLeftDouble(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CBattleScreenSetup>(input)->OnLeftDouble(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00638AD0, BattleScreenLeftDouble);
+EI_REPLACE_METHOD(0x00638AD0, InputForward<&CBattleScreenSetup::OnLeftDouble>::Call);
 
 // --- 0063B6D0: a key released on the battle screen -------------------------------------------
 
@@ -54,11 +51,8 @@ void CBattleScreenSetup::OnKeyUp(int key, int repeat, int flags) {
     if (action >= 0 && action < 6) orderKeys_[kOrderKeyOfAction[action]] = 0;
 }
 namespace {
-void __fastcall BattleScreenKeyUp(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CBattleScreenSetup>(input)->OnKeyUp(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x0063B6D0, BattleScreenKeyUp);
+EI_REPLACE_METHOD(0x0063B6D0, InputForward<&CBattleScreenSetup::OnKeyUp>::Call);
 
 // --- 0063B770: the wheel on the battle screen ------------------------------------------------
 
@@ -76,8 +70,5 @@ BOOL CBattleScreenSetup::OnWheel(int flags, int delta, int x, int y) {
     return 1;
 }
 namespace {
-BOOL __fastcall BattleScreenWheel(void* input, void*, int flags, int delta, int x, int y) {
-    return WindowFromInput<CBattleScreenSetup>(input)->OnWheel(flags, delta, x, y);
-}
 } // namespace
-EI_REPLACE(0x0063B770, BattleScreenWheel);
+EI_REPLACE_METHOD(0x0063B770, InputForward<&CBattleScreenSetup::OnWheel>::Call);

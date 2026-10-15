@@ -113,7 +113,7 @@ void CLightning::DrawGlow(void* device, const Vector3* position, int /*frame: no
         p.x = position->x + along.x;
         p.y = position->y + along.y;
         p.z = position->z + along.z;
-        p.w = std::sqrt(1.0f - t * t) * size;
+        p.w = static_cast<float>(x87::fsqrt(1.0f - t * t) * size);
         SpriteRecord& s = Sprites().data[j];
         s.colour = 0xA0FFFFFFu;
         s.rect = frames[frame % 15];
@@ -154,7 +154,7 @@ int CLightning::DrawImpl(void* device) {
     Vector3 end{start.x + run.x, start.y + run.y, start.z + run.z};
     int frameCounter = static_cast<int*>(ObjectWorld(this))[0x64 / 4];
     float dx = start.x - end.x, dy = start.y - end.y, dz = start.z - end.z;
-    float size = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C528);   // 0.11
+    float size = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C528));   // 0.11
     int phase = (frameCounter / 2) % 15;
     if (power_ > zero) {
         // Clamped to [0.5, 1.2] with the original's selects (NaN keeps the size).

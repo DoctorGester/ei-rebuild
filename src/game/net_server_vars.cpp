@@ -19,7 +19,6 @@ namespace {
 
 // STLport (library): string equality, erase(first, last), append(first, last, tag); the list's
 // begin, insert and erase; a counted pointer from a raw one without a reference.
-void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void** __fastcall VariablesBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x00420280)
 __declspec(naked) void** __fastcall VariablesInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004221B0)
 __declspec(naked) void** __fastcall VariablesErase(void* /*list*/, void*, void** /*out*/, void* /*position*/) EI_ORIGINAL(0x00420290)
@@ -105,7 +104,7 @@ void** ServerSession::FindOrAddVariable(void** out, const StringRep* name) {
             }
         }
         if (append) StringAppend(to, nullptr, from, last, out);
-        else StringErase(to, nullptr, d, to->finish);
+        else StringEraseOriginal(to, nullptr, d, to->finish);
     }
     *out = first;
     return out;

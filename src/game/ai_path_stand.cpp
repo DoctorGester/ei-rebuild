@@ -72,8 +72,6 @@ __declspec(naked) void __fastcall FacingFromQuaternion(const float* /*q*/, float
     }
 }
 
-// 005B16D0 (RET 8): the excluded blocks' CArray::SetSize.
-inline void __fastcall ExcludedSetSize(BlockPointArray* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 // The order's follow-ups through their original addresses (ai_motion.cpp), the arguments as the
 // caller's dwords.
 __declspec(naked) void __fastcall OrderSetTurn(AIPath*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x005C7C00)
@@ -96,7 +94,7 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
     path->failed = false;
     path->flag6E = false;
     path->flag6F = true;
-    ExcludedSetSize(&path->excludedBlocks, nullptr, 0, -1);
+    PointArraySetSizeOriginal(&path->excludedBlocks, nullptr, 0, -1);
     path->smoothing = 0;
     path->reached = true;
     double scale = static_cast<double>(GameFloat(0x0073B84C)) /

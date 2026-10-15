@@ -43,10 +43,6 @@ struct Registry : RegistryOriginals {
 __declspec(naked) double Registry::GetFloat(const char*, const char*, std::uint32_t) EI_ORIGINAL(0x00694C80)
 __declspec(naked) int Registry::GetInt(const char*, const char*, int) EI_ORIGINAL(0x00694B90)
 
-// STLport string members: default constructor [0041F460], assign a range [00426A80], assign a
-// C string [0041F550].
-void __fastcall StringAssignRange(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
-void __fastcall StringAssign(void* a0, void*, const char* a2) { StringAssignCStrOriginal(a0, nullptr, a2); }
 // The quest places: vector<float> constructor [006AFB00, allocator] and insert-overflow [006ADD50:
 // position, value, count].
 __declspec(naked) void __fastcall PlacesConstruct(void*, void*, const void*) EI_ORIGINAL(0x006AFB00)
@@ -77,14 +73,9 @@ __declspec(naked) void __fastcall BriefingFind(void*, void*, void**, const void*
 __declspec(naked) void __fastcall BriefingIterator(void**, void*, void*, void*) EI_ORIGINAL(0x006B0B30)
 __declspec(naked) void __fastcall BriefingPushBack(void*, void*, const void*) EI_ORIGINAL(0x006B0780)
 __declspec(naked) void __fastcall BriefingIndexClear(void*) EI_ORIGINAL(0x006B0590)
-inline void** __fastcall BriefingIndexAt(void* a0, void*, const void* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIGINAL(0x006B0600)
 // The briefing index's find by a record's name [006B0930, RET 8: out iterator (node, table), key].
 __declspec(naked) void __fastcall BriefingFindNode(void*, void*, void**, const void*) EI_ORIGINAL(0x006B0930)
-// MFC: CString TrimLeft / TrimRight of one character [006FE1D3 / 006FE0DD]; the game's splitter of
-// a string at a separator into a CStringArray [004DBE40, __fastcall: text, out; separator]; atof.
-void __fastcall TrimLeftChar(mfc::CString* a0, void*, char a2) { CStringTrimLeftCharOriginal((void*)a0, nullptr, a2); }
-void __fastcall TrimRightChar(mfc::CString* a0, void*, char a2) { CStringTrimRightCharOriginal((void*)a0, nullptr, a2); }
 
 // An allocator argument: the members read at most a byte through it.
 const std::uint8_t kAllocator = 0;
@@ -110,7 +101,7 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
     {
         mfc::CString name = reg.GetString(game::questwords::Quest(), game::questwords::Name(), Copy(game::EmptyText()));
         const char* text = name;
-        StringAssignRange(&quest->name, nullptr, text, text + std::strlen(text));
+        StringAssignRangeOriginal(&quest->name, nullptr, text, text + std::strlen(text));
     }
     quest->exp = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Exp(), 0));
     quest->money = static_cast<float>(reg.GetFloat(game::questwords::Quest(), game::questwords::Money(), 0));
@@ -120,8 +111,8 @@ void ReadQuest(Registry& reg, QuestRecord* quest, console::CStringArray& places)
     // Each place "{x;y}": the braces trimmed, split at ';'; with two parts x and y are appended.
     for (int i = 0; i < places.GetSize(); ++i) {
         console::CStringArray parts;
-        TrimLeftChar(&places[i], nullptr, '{');
-        TrimRightChar(&places[i], nullptr, '}');
+        CStringTrimLeftCharOriginal(&places[i], nullptr, '{');
+        CStringTrimRightCharOriginal(&places[i], nullptr, '}');
         StringSplit(places[i], &parts, ';');
         if (parts.GetSize() == 2) {
             float x = static_cast<float>(GameAtof(parts[0]));
@@ -159,7 +150,7 @@ void AddReceiveBriefing(QuestDatabase* db, const QuestBriefingRecord* briefing) 
     BriefingPushBack(&briefings->records, nullptr, briefing);
     BriefingIndexClear(map);
     for (QuestBriefingRecord* r = briefings->records.begin(); r != briefings->records.end(); ++r) {
-        *BriefingIndexAt(map, nullptr, r) = r;
+        *(void**)MapRegistryFindOriginal((void*)map, nullptr, r) = r;
     }
 }
 
@@ -170,9 +161,9 @@ void ReadBriefingHeader(Registry& reg, QuestBriefingRecord* briefing, const char
         mfc::CString name = reg.GetString(section, game::questwords::Name(), Copy(game::EmptyText()));
         const char* text = name;
         if (assignChars) {
-            StringAssign(&briefing->name, nullptr, text);
+            StringAssignCStrOriginal(&briefing->name, nullptr, text);
         } else {
-            StringAssignRange(&briefing->name, nullptr, text, text + std::strlen(text));
+            StringAssignRangeOriginal(&briefing->name, nullptr, text, text + std::strlen(text));
         }
     }
     briefing->exp = static_cast<float>(reg.GetFloat(section, game::questwords::Exp(), 0));
@@ -290,7 +281,7 @@ bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
     BriefingPushBack(&records, nullptr, record);
     BriefingIndexClear(&index);
     for (QuestBriefingRecord* r = records.begin(); r != records.end(); ++r) {
-        *BriefingIndexAt(&index, nullptr, r) = r;
+        *(void**)MapRegistryFindOriginal((void*)&index, nullptr, r) = r;
     }
     return true;
 }

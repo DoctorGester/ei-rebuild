@@ -27,11 +27,6 @@ namespace {
 __declspec(naked) void** __fastcall TimersEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004210C0)
 __declspec(naked) void** __fastcall TimersInsert(void* /*list*/, void*, void** /*out*/, void* /*pos*/, const void* /*entry*/) EI_ORIGINAL(0x00426230)
 __declspec(naked) void __fastcall TimersPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x004246C0)
-void __fastcall StringAllocProxy(char** a0, void*, const void* a2, char* const* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, (const void*)a3); }
-inline void __fastcall StringReserve(StringRep* a0, void*, const void* a2, std::size_t a3) { StringReserveOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall StringAppendTag(StringRep* a0, void*, const char* a2, const char* a3, const void* a4) { StringAppendRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
 
 constexpr std::uint32_t kCommandLifetime = 0x42700000;     // 60.0f
 
@@ -67,7 +62,7 @@ void AssignText(StringRep* to, const char* text, const void* tag) {
         }
     } else {
         std::memcpy(to->start, text, size);
-        StringAppendTag(to, nullptr, text + (to->finish - to->start), end, tag);
+        StringAppendRangeOriginal(to, nullptr, text + (to->finish - to->start), end, tag);
     }
 }
 
@@ -102,7 +97,7 @@ void ClientSession::SendCommand(int kind, const char* text) {
         string->finish = nullptr;
         char* none = nullptr;
         std::uint8_t allocator = 0;
-        StringAllocProxy(&string->eos, nullptr, &allocator, &none);
+        StringEndOfStorageOriginal(&string->eos, nullptr, &allocator, &none);
         StringAllocateBlock(string, nullptr, 8);
         *string->finish = 0;
         ei::SetVtable(command, CommandMessage::kVtableAddress);
@@ -131,23 +126,23 @@ void ClientSession::CreateEntryImpl(RefPtr* out) {
         StringRep* name = &entry->name_;
         StringRep* description = &entry->description_;
         std::uint8_t allocator = 0;
-        StringReserve(name, nullptr, &allocator, 8);
+        StringReserveOriginal(name, nullptr, &allocator, 8);
         *name->finish = 0;
-        StringReserve(description, nullptr, &allocator, 8);
+        StringReserveOriginal(description, nullptr, &allocator, 8);
         *description->finish = 0;
         ei::SetVtable(entry, ServerEntry::kVtableAddress);
         const char* empty = game::QuestionMarkText();
-        StringAssignRange(name, nullptr, empty, empty + std::strlen(empty));
+        StringAssignRangeOriginal(name, nullptr, empty, empty + std::strlen(empty));
         entry->kind_ = 4;
         const char* end = empty + std::strlen(empty);
         std::size_t length = static_cast<std::size_t>(end - empty);
         std::size_t size = static_cast<std::size_t>(description->finish - description->start);
         if (length <= size) {
             std::memcpy(description->start, empty, length);
-            StringErase(description, nullptr, description->start + length, description->finish);
+            StringEraseOriginal(description, nullptr, description->start + length, description->finish);
         } else {
             std::memcpy(description->start, empty, size);
-            StringAppendTag(description, nullptr, empty + (description->finish - description->start), end, out);
+            StringAppendRangeOriginal(description, nullptr, empty + (description->finish - description->start), end, out);
         }
         entry->players_ = 0;
         entry->maxPlayers_ = 0;

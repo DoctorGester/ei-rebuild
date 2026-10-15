@@ -131,8 +131,8 @@ Vector3* CEffectMoshka::FindPerch(Vector3* out, const Vector3* from) {
         float radius = !(distance >= kPerchMinRadius) ? kPerchMinRadius : distance;
         double angle = x87::FromUnsigned(IsaacRandom::Global().Next()) * kRandomAngle;
         perch.z = StoreFloat(from->z + height);
-        perch.x = StoreFloat(static_cast<float>(std::cos(angle) * radius + from->x));
-        perch.y = StoreFloat(static_cast<float>(std::sin(angle) * radius + from->y));
+        perch.x = StoreFloat(static_cast<float>(x87::fcos(angle) * radius + from->x));
+        perch.y = StoreFloat(static_cast<float>(x87::fsin(angle) * radius + from->y));
         if (AIMap()->LineOfSight(&eye, &perch) > kClearance) break;
         height = height + kPerchHeightStep;
         distance = radius - kPerchRadiusStep;
@@ -172,8 +172,8 @@ void CEffectMoshka::Update(float now) {
             Vector3 perch = birdAt;
             perch.z = StoreFloat(perch.z + height_);
             double outward = kHalfPi + angle;
-            perch.x = StoreFloat(static_cast<float>(std::cos(outward) * kPerchSearchRadius + perch.x));
-            perch.y = StoreFloat(static_cast<float>(std::sin(outward) * kPerchSearchRadius + perch.y));
+            perch.x = StoreFloat(static_cast<float>(x87::fcos(outward) * kPerchSearchRadius + perch.x));
+            perch.y = StoreFloat(static_cast<float>(x87::fsin(outward) * kPerchSearchRadius + perch.y));
             if (AIMap()->LineOfSight(&bird->position, &perch) > kClearance) {
                 state_ = kFlyingOff;
                 timer_ = kFlyingOffFrames;
@@ -183,8 +183,8 @@ void CEffectMoshka::Update(float now) {
             }
         }
         target.z = StoreFloat(kCircleHeight + followed.z);
-        target.x = StoreFloat(static_cast<float>(std::cos(angle) * kCircleRadius + followed.x));
-        target.y = StoreFloat(static_cast<float>(std::sin(angle) * kCircleRadius + followed.y));
+        target.x = StoreFloat(static_cast<float>(x87::fcos(angle) * kCircleRadius + followed.x));
+        target.y = StoreFloat(static_cast<float>(x87::fsin(angle) * kCircleRadius + followed.y));
     } else if (state_ == kPerched) {
         if (timeUp) {
             Vector3 perch;
@@ -199,7 +199,7 @@ void CEffectMoshka::Update(float now) {
         float dx = target.x - birdAt.x;
         float dy = target.y - birdAt.y;
         if (!(LengthSquared2DUnrounded(dy, dx) >= kNearSquared)) {   // close (or NaN): start circling from here
-            double heading = std::atan2(-toFollowed.x, static_cast<double>(toFollowed.y));
+            double heading = x87::fpatan(-toFollowed.x, static_cast<double>(toFollowed.y));
             state_ = kCircling;
             timer_ = kCirclingFrames;
             height_ = kCircleStartHeight;
@@ -208,7 +208,7 @@ void CEffectMoshka::Update(float now) {
         // Approach the point 1.5 to the side of the followed object, 3.2 above it.
         float sideX = toFollowed.y;
         float sideY = StoreFloat(-toFollowed.x);
-        float scale = kCircleRadius / std::sqrt(LengthSquared2DUnrounded(sideY, sideX));
+        float scale = static_cast<float>(kCircleRadius / x87::fsqrt(LengthSquared2DUnrounded(sideY, sideX)));
         target.x = StoreFloat(target.x + StoreFloat(scale * sideX));
         target.y = StoreFloat(target.y + StoreFloat(scale * sideY));
         target.z = StoreFloat(kCircleHeight + target.z);
@@ -220,12 +220,12 @@ void CEffectMoshka::Update(float now) {
     float floor = StoreFloat(WorldClient()->platforms_.SurfaceHeight(&ground, static_cast<float>(raw)) + kClearance);
     float z = !(target.z >= floor) ? floor : target.z;
     Vector3 move{StoreFloat(target.x - birdAt.x), StoreFloat(target.y - birdAt.y), StoreFloat(z - birdAt.z)};
-    float distance = StoreFloat(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move)));
+    float distance = StoreFloat(static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, float>(move))));
     if (!SameOrNaN(distance, 0.0f)) {
         float gx = birdAt.x - followed.x;
         float gy = birdAt.y - followed.y;
         float gz = birdAt.z - followed.z;
-        double range = std::sqrt(std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(gx, gy, gz)));
+        double range = x87::fsqrt(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(gx, gy, gz)));
         double speed = (range * kSpeedFactor + kSpeedBase) * frames;
         if (distance > speed) {
             double scale = speed / distance;

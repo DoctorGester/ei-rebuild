@@ -145,15 +145,9 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
-void __fastcall ObjectivesKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CObjectivesWindow>(input)->OnKeyDown(key, repeat, flags);
-}
-void __fastcall ObjectivesLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CObjectivesWindow>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x0064E330, ObjectivesLButtonDown);
-EI_REPLACE(0x0064E5A0, ObjectivesKeyDown);
+EI_REPLACE_METHOD(0x0064E330, InputForward<&CObjectivesWindow::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x0064E5A0, InputForward<&CObjectivesWindow::OnKeyDown>::Call);
 
 void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     stlp::vector<UiPointF>& places = questPlaces_;
@@ -249,8 +243,8 @@ void CObjectivesWindow::Update() {
     // The sum stays unrounded for the alphas; the stored time is rounded to a float.
     const double time = FrameTime() + blinkTime_;
     blinkTime_ = static_cast<float>(time);
-    const std::uint32_t slow = gamecrt::Ftol((std::cos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
-    const std::uint32_t fast = gamecrt::Ftol((std::cos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
+    const std::uint32_t slow = gamecrt::Ftol((x87::fcos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
+    const std::uint32_t fast = gamecrt::Ftol((x87::fcos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
     for (int i = exits_.size + kFirstExitSprite; i < sceneObjects_.size; ++i) {
         CUiMesh* place = Sprite(this, i);
         place->flags_ |= kPlainColour;

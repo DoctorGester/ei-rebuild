@@ -204,7 +204,7 @@ id = "R10b"
 title = "Products with a repeated factor in /fp:fast files: check the grouping against the original"
 group = "renderer"
 files = ["src/game/ai_motion.cpp", "src/lib/vecmath.h"]
-note = "R10a found /fp:fast regrouping a * b * d * d as (a * b) * (d * d) in terrain_lighting.cpp (one ulp off under chop, hidden by CheckNear); fixed with vecmath Product(). A grep for repeated factors in /fp:fast files found ai_motion.cpp:257 (x * inverse * inverse) and :259 (cubic * length * length); other hits are integer or under precise. Check their dumpbin against Ghidra, use Product() where regrouped, and consider a bit-for-bit check where a float feeds a truncation."
+note = "Closed 2026-10-15: folded into SV7d1a (the same /fp:fast regrouping family; SV7d1a is trying /fp:precise as the default, which removes it). ai_motion.cpp:257 and :259 are the sites to check if precise is not adopted."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -622,7 +622,7 @@ title = "Saved games differ byte for byte between runs of the original"
 group = "verification"
 size = 0.5
 files = ["tools/golden.py"]
-note = "Taken over by SV7d."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 [[ticket]]
 id = "SV3c"
@@ -674,7 +674,7 @@ id = "SV2c"
 title = "unit_create parted from its golden once in crt.rand"
 group = "verification"
 depends = ["SV2a"]
-note = "In SV2a's full work.py test --golden batch (117 runs, 4 at once), unit_create vanilla parted from its golden at world update 80 in random crt.rand only (0xE0E3A9A6 against 0xEAD494CC), and stayed parted there; alone it matched the golden twice. Digest 2's client units, timed objects and missiles were the same in the parting run, so the extra or missing rand() is not in a unit's animation pick that the records see. Find the draw with randtrace (EI_HARNESS_CLOCK=virtual,randtrace) under a loaded batch: something on the main thread that depends on real time or on another thread. SV2b: on the new harness heap unit_create (both installs) does not repeat in ours: crt.rand at update 80 / 140."
+note = "Moved to watch 2026-10-15: one parting under load in SV2a's era; not seen in today's main suites."
 
 [[ticket]]
 id = "SV5a"
@@ -730,14 +730,14 @@ id = "SV3f"
 title = "Client unit orientation differs from the original by an ulp"
 group = "verification"
 size = 0.5
-note = "Probably the same effect as SV7b4 (DrawShadow's inexact round trip plus whatever flips its count); not fixed. See SV7b4a."
+note = "Settled by SV7b4a: the shadow round trip (DrawShadow 0051D479 / 0051D4E0) is exact in both (orientation kept and restored); hooked runs now match the original on client unit rotation in all golden scenarios."
 
 [[ticket]]
 id = "SV3g"
 title = "ui_widescreen*: client unit 129 has flag 0x400 in ours"
 group = "verification"
 size = 0.25
-note = "From SV3d: in ui_widescreen, ui_widescreen_hud, ui_widescreen_more and ui_widescreen_screens (vanilla, with hooks) the main menu world's client unit cunit129 (unanwibo) has flags 0x4A2 in ours and 0xA2 in the original at world update 60 (both repeat). Find which rewrite sets 0x400 on a client object and why it differs. Blocks those four goldens with SV3f."
+note = "Now tracked as SV7b8a (SV7b4a settled SV7b8's rotation part; the 0x400 flag is what remains)."
 
 [[ticket]]
 id = "SV3h"
@@ -813,7 +813,7 @@ note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; 
 id = "SV2e"
 title = "script_copy: ours' CPlayerServer::Flush compresses to another size between runs"
 group = "verification"
-note = "From SV2b: script_copy vanilla with our hooks: the heap traces of two runs part at CMemoryStream::Resize from CodeStream / CompressTo in CPlayerServer::Flush (called from LeaveVerify): 1392 bytes in one run, 1408 in another (a third run matched the first), and every later block moves, so zone1's gobject.i differs at update 80. Something in the flushed stream is not the same between runs (an address of a block from the growable heap, a padding byte, real time); dump the stream before compression in two runs and diff."
+note = "Closed 2026-10-15: the flushed stream varying between runs is heap-address or unwritten-byte content; covered by SV7b2 (unwritten bytes, pointer keys) and SV7b5 (net replication by pointer). Reopen if script_copy still varies after those."
 
 [[ticket]]
 id = "SV2f"
@@ -877,7 +877,7 @@ title = "Heap-order holes: the original first on a game-heap copy (render, data,
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_figure_bone_lifetime.cpp", "tests/verify/verify_figure_mesh.cpp", "tests/verify/verify_models.cpp", "tests/verify/verify_link_figure.cpp", "tests/verify/verify_ground_decal.cpp", "tests/verify/verify_ground_print.cpp", "tests/verify/verify_effects_weather_draw.cpp", "tests/verify/verify_render_helper.cpp", "tests/verify/verify_ini_file.cpp", "tests/verify/verify_registry.cpp", "tests/verify/verify_item_constructor.cpp", "tests/verify/verify_item_parts.cpp", "tests/verify/verify_core_stream_chunks.cpp", "tests/verify/verify_acks_db.cpp", "tests/verify/verify_ai_area_lists.cpp", "tests/verify/verify_unit_client_models.cpp", "tests/verify/verify_unit_item_lists.cpp", "tests/verify/verify_world_client_maps.cpp", "tests/verify/verify_world_save.cpp", "tests/verify/verify_player_sources.cpp", "tests/verify/verify_object3d_figure_setup.cpp", "tests/verify/verify_unit_ai_sight.cpp", "tests/verify/verify_aligned_arrays.cpp", "tests/verify/verify_dib.cpp", "tests/verify/verify_device_object.cpp", "tests/verify/verify_magic_trap.cpp", "tests/verify/verify_console.cpp", "tests/verify/verify_text_keys.cpp"]
-note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 
 [[ticket]]
@@ -886,7 +886,7 @@ title = "Heap-order holes: UI checks that run the same object twice or restore a
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_ui_battle_update.cpp", "tests/verify/verify_ui_hud_tips.cpp", "tests/verify/verify_ui_spell_column.cpp", "tests/verify/verify_ui_camp_stats.cpp", "tests/verify/verify_ui_hud_setup.cpp", "tests/verify/verify_ui_hud_panels.cpp", "tests/verify/verify_ui_scroll_text.cpp", "tests/verify/verify_ui_item_strip.cpp", "tests/verify/verify_ui_trade_panel.cpp", "tests/verify/verify_ui_trade_panel_input.cpp", "tests/verify/verify_ui_help_page.cpp", "tests/verify/verify_ui_connect_screen.cpp", "tests/verify/verify_ui_item_info.cpp", "tests/verify/verify_ui_hud_portraits.cpp"]
-note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 
 [[ticket]]
@@ -895,7 +895,7 @@ title = "Heap-order check: both sides keep blocks (twin leaks, caches) and the h
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_ui_tooltip.cpp", "tests/verify/verify_map_database.cpp", "tests/verify/verify_particle_render.cpp", "tests/verify/verify_particle_create.cpp", "tests/verify/verify_terrain_map_load.cpp", "tests/verify/verify_resource_stream.cpp", "tests/verify/verify_sound_lifetime.cpp", "tests/verify/verify_mfc_gdi.cpp", "tests/verify/verify_net_server.cpp", "tests/verify/verify_ui_options.cpp", "tests/verify/verify_ui_saveload_list.cpp", "tests/verify/verify_ui_surface.cpp", "tests/verify/verify_ui_text_draw.cpp", "tests/verify/verify_ui_interface_glue.cpp", "tests/verify/harness_heap_order.cpp"]
-note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 
 [[ticket]]
@@ -912,7 +912,7 @@ id = "SV2h1c"
 title = "Twin originals allocate outside the reservation heap"
 group = "verification"
 depends = ["SV2h1b"]
-note = "Superseded by SV7."
+note = "Closed 2026-10-15 in a ticket cleanup: obsolete, superseded by SV7/SV7d (user: heap layout is not preserved)."
 
 [[ticket]]
 id = "SV7"
@@ -1055,7 +1055,20 @@ title = "Vanilla menu unit unmoco2 orientation under EI_HEAP_JITTER=2"
 group = "verification"
 size = 0.5
 depends = ["SV7a"]
-note = "From SV7b1: with seed 2, vanilla --no-hooks ui_hero_screen (update 620), ui_hero_stats (500), ui_screens (100): cunit2 unmoco2 rot.w/x/y/z differ (ulps to 1e-4); repeats. None has a vanilla golden. Hooked vanilla runs differ from --no-hooks on menu units' rot in the last place too (ui_container_input, ui_screens, ui_widescreen_hud, ui_widescreen_more; cunit187 unmoog1, cunit129 flags 0xA2 / 0x4A2). Likely the UnitStats leftovers (SV7b3: unmoco2's NaN hp) or SV7b4's writer; recheck now that SV7b3 landed."
+note = "SV7b4a: the rotation parts are settled (shadow round trip exact in both): seed 2 vanilla ui_hero_screen, ui_hero_stats, ui_screens match the plain run, and hooked runs match --no-hooks on menu unit rot. Left: cunit129 flags 0xA2 / 0x4A2 in hooked vanilla ui_widescreen_hud / ui_widescreen_more, moved to SV7b8a."
+
+[[ticket]]
+id = "SV7b8a"
+title = "Vanilla widescreen menu unit cunit129 flags 0xA2 / 0x4A2 hooked"
+group = "verification"
+note = "From SV7b4a (docs/notes/standalone-verification.md, 'SV7b4a / SV3f'): hooked vanilla ui_widescreen_hud and ui_widescreen_more have cunit129 (unanwibo) flags 0x4A2 where the patched original has 0xA2 from update 60, then the zone diverges (isaac.count 69 / 89 at update 180, obj1000011214 nextCommand). No vanilla golden for either. Repeats in two rounds; not an orientation ulp (the shadow round trip is exact now). Find which rewrite sets 0x400 on the menu unit."
+
+[[ticket]]
+id = "SV7d1a1"
+title = "Drop the fp:fast workarounds now that the build is /fp:precise"
+group = "verification"
+depends = ["SV7d1a"]
+note = "From SV7d1a: the build is /fp:precise. The 87 float_control(precise, on) pragmas and the volatile float store helpers (StoreFloat, RoundToFloat, Round, ...) written only to defeat /fp:fast's regrouping and unrounded float locals are redundant. Remove them where they only did that (a store the original does is a plain float assignment now), keeping x87::FromUnsigned, IsNaN and the x87:: transcendental helpers. check_cleanup's float_control count goes down. Suite with --golden; behaviour must not change."
 
 [[ticket]]
 id = "SV7b2a"
@@ -1284,7 +1297,7 @@ id = "T2d"
 title = "Goldens to record again after T2 scenario timing changes"
 group = "harness"
 size = 1
-note = "hero_death, sandbox_actions, spells_cast, levers and others whose scenario waits changed; world_client battle-window waitwindow idea (adds frames, loses ContinuePath) also open"
+note = "Closed 2026-10-15: every golden has been re-recorded several times since (SV7b1, SV7b3, SV7d), so the T2 timing changes are in."
 
 [[ticket]]
 id = "T2e"
@@ -1357,7 +1370,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 12 merged: address constants 69 -> 20 (shared vtables got class homes); raw addresses 714 -> 664. Left: kNoElementTick, 7 image addresses, kEmptyTextAddress, kStateBlockAlpha, kMasterHost, unit_ai globals, kCandidates(+Guard), kScriptQueue, two options.cpp float factors. Next: other C11 shim/raw-address families."
+note = "Batch 14 merged: shims 792 -> 632 (input Delete / forward handlers as member templates, world_game shims, 100 more forwarder wrappers inlined). Left: wrappers used by tests/verify, float / by-value params, ~20 untyped deleting destructors, shims with bodies, 664 raw addresses."
 
 [[ticket]]
 id = "C12"
@@ -1369,7 +1382,7 @@ note = "221 __asm blocks, 110 float_control pragmas; mostly kept for bit-exact x
 id = "C13"
 title = "Forwarders to rewritten code into direct calls"
 group = "cleanup"
-note = "2,377 sites; with the standalone work (changes what the verify wrappers see)."
+note = "User 2026-10-15: after hook retirement (S21), on the standalone, goldens as the check."
 
 [[ticket]]
 id = "F4a"
@@ -1457,6 +1470,15 @@ title = "Standard types instead of MFC / STLport containers and strings"
 group = "cleanup"
 size = 5
 note = "Plan: docs/notes/standalone.md section 3, step 2 (discussed with the user 2026-10-13). After the hook build is retired (side-by-side checks need the shared layout): CArray to std::vector, CList to std::list, stlp::vector / list / map to their std twins, stlp::string and CString to one string type; the framework pieces (files, archives, GDI, exceptions) stay small classes of our own. Keep what must survive: hash_map iteration order where it feeds game logic, saves or network messages (39 stlp::hash_map uses; check each, the rest can be std::unordered_map), STLport sort order at sites where equal elements are visible (the objectives list), the CRT behaviour (_ftol, rand, sprintf digits), and the archive encoding of strings / arrays in saves and messages. Split into one ticket per family when started."
+
+[[ticket]]
+id = "C15"
+title = "reinterpret_cast: typed fields, objects and calls instead of casts"
+group = "cleanup"
+size = 3
+model = "sonnet"
+files = ["src/game", "src/lib", "config/cleanup_baseline.csv", "tools/check_cleanup.py"]
+note = "User 2026-10-15: after hook retirement (S21), on the standalone, goldens as the check (address casts go with S18 anyway)."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
@@ -2001,6 +2023,33 @@ size = 1
 depends = ["S17"]
 files = ["src/game/world_client_draw.cpp", "src/game/world_client_view.cpp", "src/game/world_rules.cpp"]
 note = "From S17. camera --standalone crashed once (batch 1235, run 33000, build at main 830d77a8; the retry passed; 0 in ~900 other standalone runs, 0 in hooked runs): C0000005 reading FF000094 in UnitOrderLess::Less (world_rules.cpp, Object3D(a)->attached at +0x94 with a = FF000000) under IntroSortByModel 005740D0 <- SortByModel <- CWorldClient::DrawPass <- Render, main thread, after 'key left; frames 5' (eax=esi=FF000000, ebx=edi=309CA954). An element read as FF000000 means the unguarded partition / linear insert ran off the frame list. Candidates: (1) an irreflexive comparison: Less ends with !(za >= zb) on viewPosition.z, so a NaN z (less(x, x) true) lets the unguarded scans run past either end; viewPosition is written only for objects in view (CollectVisible), never by the constructor (CObject3D::Construct 00515BD0 leaves +0x28), so an object listed only for its shadow before it was ever in view sorts on heap leftovers; in the image those come from the host heap, not the game's. Not confirmed: an S17 diagnostic (log NaN view z in SortByModel) saw none in 44 + 32 standalone runs, also with every image malloc filled with 0xFF. (2) memory overwritten under the list (another thread, the unlocked node allocator). Next: keep the NaN check as a verify-build check in SortByModel's wrapper (log the object and list), run the standalone suite repeatedly; if (1), give viewPosition a canonical start (zero in ours and in the original through a harness patch, as SV7b3) rather than changing the comparator."
+
+[[ticket]]
+id = "S19"
+title = "Standalone: the suite against the Rebirth goldens"
+group = "standalone"
+size = 1.5
+model = "opus"
+files = ["tools/run_all.py", "src/standalone", "src/hook/rebirth_hook.cpp"]
+note = "S17 compared only the 44 vanilla goldens: run_all --standalone has no Rebirth pass. S14 gave the image its Rebirth flags from ei_rebirth.ini (no addon, no EI_Plugin.asi). Make --standalone run the Rebirth installs' scenarios with those flags, compare with the Rebirth goldens and the hooked Rebirth runs, classify as S17 did, fix standalone-only differences (Rebirth patches that live in addon.dll / EI_Plugin and are not folded into ours show up here: list them). Blocks hook retirement (S21)."
+
+[[ticket]]
+id = "S20"
+title = "Goldens for every scenario before the hooks go"
+group = "standalone"
+size = 1.5
+model = "sonnet"
+files = ["tests/golden", "tools/golden.py", "tests/scenarios"]
+note = "From SV7b8a: ui_widescreen and ui_widescreen_screens can only have Rebirth goldens (rebirthflags WideScreen; golden.py refuses vanilla); record their Rebirth goldens here."
+
+[[ticket]]
+id = "S21"
+title = "Retire the hook builds"
+group = "standalone"
+size = 2
+model = "opus"
+files = ["src/hook", "tests/verify", "build.cmd", "tools/run_all.py"]
+note = "User 2026-10-15: finish the golden net (SV7 tail, SV7c, S20), Rebirth in the standalone (S19) and the remaining function vectors (SV4b1, SV4c), then retire the hook and verify builds: the standalone is the only product, checked by goldens and function vectors. Keep a slim harness that runs the original game only to record goldens (or freeze them). C13 and C15 run after this, on the standalone, with the goldens as the check (C13 changes what the verify wrappers see anyway). Then Phase 4 of docs/cleanup-plan.md."
 
 # ---------------------------------------------------------------- Lua
 

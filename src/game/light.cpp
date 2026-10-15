@@ -45,7 +45,7 @@ CLight* CLight::Construct() {
     unused_E4 = 1.0f;
     // FSQRT of the double FLT_MAX (00743B48); the main thread's 24-bit precision rounds the root to
     // a float, and its square from there (2^128 - 2^105, one below FLT_MAX).
-    const float root = RoundToFloat(std::sqrt(static_cast<double>(FLT_MAX)));
+    const float root = RoundToFloat(x87::fsqrt(static_cast<double>(FLT_MAX)));
     const double squared = static_cast<double>(root) * root;
     range_ = root;
     rangeSquared_ = RoundToFloat(squared);

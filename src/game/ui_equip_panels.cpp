@@ -74,11 +74,8 @@ void CHeroEquipPanel::OnRightDown(int, int x, int y) {
     RefreshWeapons(owner_);
 }
 namespace {
-void __fastcall EquipRightDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CHeroEquipPanel>(input)->OnRightDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00622960, EquipRightDown);
+EI_REPLACE_METHOD(0x00622960, InputForward<&CHeroEquipPanel::OnRightDown>::Call);
 
 // --- 00622860 / 00622D40: the item under a point ---------------------------------------------------
 

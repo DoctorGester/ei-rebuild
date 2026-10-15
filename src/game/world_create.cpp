@@ -25,8 +25,6 @@
 
 namespace {
 
-// MFC CString::operator=(LPCTSTR) on the path globals.
-inline void* __fastcall CStringAssign(void* s, void*, const char* t) { return CStringAssignTextOriginal(s, nullptr, t); }
 // The managers' constructors (thiscall, no arguments; they return this).
 __declspec(naked) void* __fastcall Manager5125E0(void*) EI_ORIGINAL(0x005125E0)
 __declspec(naked) void* __fastcall Manager5AA070(void*) EI_ORIGINAL(0x005AA070)
@@ -61,9 +59,9 @@ void Attach(CEngineObject* manager, CWorld* world) { static_cast<CBaseManager*>(
 
 int __fastcall WorldCreateManagers(CWorld* world) {
     world->paused_ = 0;
-    CStringAssign(worlddata::DataFolderString(), nullptr, worlddata::ConfiguredDataPath());
-    CStringAssign(worlddata::TextFolderString(), nullptr, worlddata::ConfiguredTextPath());
-    CStringAssign(worlddata::BaseFolderString(), nullptr, worlddata::ConfiguredBasePath());
+    CStringAssignTextOriginal(worlddata::DataFolderString(), nullptr, worlddata::ConfiguredDataPath());
+    CStringAssignTextOriginal(worlddata::TextFolderString(), nullptr, worlddata::ConfiguredTextPath());
+    CStringAssignTextOriginal(worlddata::BaseFolderString(), nullptr, worlddata::ConfiguredBasePath());
     world->tick_ = 0;
     // The wind: along x, no strength.
     const float direction[3] = {1.0f, 0.0f, 0.0f};

@@ -57,11 +57,8 @@ void CBattleScreenSetup::OnMouseMove(int buttons, int x, int y) {
     HoverUnitAt(this, nullptr, unit, point[0], point[1]);
 }
 namespace {
-void __fastcall BattleScreenMouseMove(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CBattleScreenSetup>(input)->OnMouseMove(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00639D60, BattleScreenMouseMove);
+EI_REPLACE_METHOD(0x00639D60, InputForward<&CBattleScreenSetup::OnMouseMove>::Call);
 
 // --- 00638A40: the left button went down on the battle screen ------------------------------------
 
@@ -80,11 +77,8 @@ void CBattleScreenSetup::OnLButtonDown(int buttons, int x, int y) {
     boxSelecting_ = false;
 }
 namespace {
-void __fastcall BattleScreenLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CBattleScreenSetup>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00638A40, BattleScreenLButtonDown);
+EI_REPLACE_METHOD(0x00638A40, InputForward<&CBattleScreenSetup::OnLButtonDown>::Call);
 
 // --- 0063B920: a unit's name line --------------------------------------------------------------
 

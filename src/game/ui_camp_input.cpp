@@ -109,16 +109,7 @@ const char* CCampPages::HelpTopic() { return PageHelpTopic(page_); }
 EI_REPLACE_METHOD(0x0060E980, CCampPages::HelpTopic);
 
 namespace {
-void __fastcall CampLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CCampPages>(input)->OnLButtonDown(buttons, x, y);
-}
-void __fastcall CampLButtonUp(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CCampPages>(input)->OnLButtonUp(buttons, x, y);
-}
-void __fastcall CampKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CCampPages>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x0060F470, CampLButtonDown);
-EI_REPLACE(0x0060F5B0, CampLButtonUp);
-EI_REPLACE(0x0060F600, CampKeyDown);
+EI_REPLACE_METHOD(0x0060F470, InputForward<&CCampPages::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x0060F5B0, InputForward<&CCampPages::OnLButtonUp>::Call);
+EI_REPLACE_METHOD(0x0060F600, InputForward<&CCampPages::OnKeyDown>::Call);

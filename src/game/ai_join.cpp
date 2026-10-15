@@ -21,7 +21,6 @@ namespace {
 __declspec(naked) void __fastcall SearchExpand(void*, void*) EI_ORIGINAL(0x005C2D40)
 __declspec(naked) void __fastcall SearchBest(void*, void*, int*, int*, int*) EI_ORIGINAL(0x005C3050)
 __declspec(naked) void __fastcall SearchPathTo(void*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005C3200)
-void __fastcall SearchResetAt(void* a0, void*) { LocalSearchResetOriginal(a0); }
 // The path cell list: a reversed copy into `out` (RET 4, returns out), append a list (RET 4),
 // and the fix-up of the joined path.
 void __fastcall ListFixUp(PathCellList* a0, void*) { PathCellListFixUpOriginal((void*)a0); }
@@ -78,8 +77,8 @@ bool CAIMap::JoinLocalSearches(PathCellList* path, int* cost) {
         // saved ESI, the forward search's address); ours get the plain words.
         SetPlainCellWords(path);
     }
-    SearchResetAt(backward, nullptr);
-    SearchResetAt(forward, nullptr);
+    LocalSearchResetOriginal(backward);
+    LocalSearchResetOriginal(forward);
     DestroyList(scratch);
     return ok;
 }

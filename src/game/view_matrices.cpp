@@ -42,7 +42,7 @@ void __stdcall LightRotation(const Vector3* direction, Quaternion* out) {
     Vector3 axis = {0.0f, 0.0f, 1.0f};
     double x = direction->x;
     float y = direction->y;
-    double scale = 1.0f / std::sqrt(LengthSquared2DUnrounded<double>(y, x));
+    double scale = 1.0f / x87::fsqrt(LengthSquared2DUnrounded<double>(y, x));
     float scaleF = StoreFloat(static_cast<float>(scale));
     double cosine = x * scale;
     float yNormal = StoreFloat(scaleF * y);

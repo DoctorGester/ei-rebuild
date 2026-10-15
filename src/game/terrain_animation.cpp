@@ -31,7 +31,9 @@ constexpr int kVertices = kRow * kRow;   // per layer
 constexpr std::uint32_t kLit = 4;        // SectorData::built
 
 constexpr float kPi = 3.14159274f;                         // 00744158 (float)
-constexpr double kSineIndex = 256.0 / 3.141592653589793;   // 00744198 / 00744150 (doubles): table entries per radian
+// Table entries per radian: 256 / pi (00744198 / 00744150, doubles) as the original's FDIV leaves it
+// at 24-bit precision (SV7d1a: not the folded double).
+constexpr float kSineIndex = static_cast<float>(256.0 / 3.141592653589793);
 constexpr float kQuarterTurn = 0.785398126f;               // 00744194
 constexpr float kTimeScale = 0.05f;                        // the circling waves' speed per world tick
 constexpr float kGlowScale = 50.0f;                        // 00744180

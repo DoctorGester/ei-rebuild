@@ -323,7 +323,7 @@ void AIBrain::CallAllies(const Vector3* point) {
             double dy = self->position.y - other->position.y;
             double dx = self->position.x - other->position.x;
             message.Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
-                           std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
+                           x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         }
         PerceptionOf(ally)->HearCall(point, 0x1A, message);
     }

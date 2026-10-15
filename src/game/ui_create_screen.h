@@ -10,3 +10,10 @@ void* __fastcall Screen9Construct(void* self, void* unused, CInterface3D* ui);
 void* __fastcall Screen8Construct(void* self, void* unused, CInterface3D* ui, int flag, const char* text);
 // 005F6E40 (thiscall). Screen 8's destructor body.
 void __fastcall Screen8Destroy(void* self);
+
+// Screen 8, the titles (vtable 00740C3C): only its deleting destructor is a method yet.
+struct CTitlesScreen {
+    // 005F6E20 (slot 0; ui_window_delete.cpp). Screen8Destroy, then the memory freed when bit 0 of
+    // `flags` is set; returns this.
+    CTitlesScreen* TitlesDelete(unsigned flags);
+};

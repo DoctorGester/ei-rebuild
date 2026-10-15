@@ -102,7 +102,7 @@ void CHelpWindow::Update() {
     UpdateBase();
     double time = FrameTime() + pulseTime_;
     pulseTime_ = static_cast<float>(time);
-    double wave = (std::cos(time * 5.0f) + 1.0f) * 0.5f;
+    double wave = (x87::fcos(time * 5.0f) + 1.0f) * 0.5f;
     double alpha = wave * 255.0f;
     volatile float alphaStored = static_cast<float>(alpha);   // the original's FST to a local
     double rest = (1.0f - wave) * 80.0f;
@@ -164,12 +164,6 @@ void CHelpWindow::OnKeyDown(int key, int repeat, int flags) {
 }
 
 namespace {
-void __fastcall HelpWindowLeftDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CHelpWindow>(input)->OnLeftDown(buttons, x, y);
-}
-void __fastcall HelpWindowKeyDown(void* input, void*, int key, int repeat, int flags) {
-    WindowFromInput<CHelpWindow>(input)->OnKeyDown(key, repeat, flags);
-}
 } // namespace
-EI_REPLACE(0x00659190, HelpWindowLeftDown);
-EI_REPLACE(0x006592C0, HelpWindowKeyDown);
+EI_REPLACE_METHOD(0x00659190, InputForward<&CHelpWindow::OnLeftDown>::Call);
+EI_REPLACE_METHOD(0x006592C0, InputForward<&CHelpWindow::OnKeyDown>::Call);
