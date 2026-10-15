@@ -118,6 +118,7 @@ void PrintLine(const char* text);
 // (+0x50) on overflow; sync hands the line to the console window.
 class ConsoleStreambuf {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00740034);
     ConsoleStreambuf* Construct(unsigned filter);         // 005DC200
     void Destruct();                                      // 005DC260
     ConsoleStreambuf* DeletingDestruct(unsigned flags);   // 005DC240 (vtable slot 0)
@@ -151,7 +152,6 @@ static_assert(sizeof(ConsoleStreambuf) == 0x454);
 static_assert(offsetof(ConsoleStreambuf, base_) == 0x10 && offsetof(ConsoleStreambuf, filter_) == 0x4C &&
               offsetof(ConsoleStreambuf, line_) == 0x50 && offsetof(ConsoleStreambuf, buffer_) == 0x54);
 
-constexpr std::uintptr_t kConsoleStreambufVtable = 0x00740034;
 inline ConsoleStreambuf* MainStreambuf() { return reinterpret_cast<ConsoleStreambuf*>(0x007C5868); }
 
 // 007C7B68: the message categories shown (bit per filter, "filter" command).
@@ -236,8 +236,6 @@ struct CommandRegistration {
     std::uintptr_t handler;
 };
 extern const CommandRegistration kCommandRegistrations[27];
-// 00740028: the cheat word, each character XOR 0x66.
-constexpr std::uintptr_t kCheatWordXor66 = 0x00740028;
 
 // 005DC620: runs one console line (command text in ECX).
 void __fastcall Execute(const char* text);

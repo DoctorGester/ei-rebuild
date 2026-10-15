@@ -1,4 +1,5 @@
 #include "effects.h"
+#include "at_exit_functions.h"
 
 #include "core_maths.h"
 #include "random.h"
@@ -66,7 +67,6 @@ void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32
 
 KeyVector& DeadCells() { return *reinterpret_cast<KeyVector*>(0x007ABB58); }
 std::uint8_t& DeadCellsGuard() { return *reinterpret_cast<std::uint8_t*>(0x007ABB64); }
-constexpr std::uintptr_t kDeadCellsDestructor = 0x004E1C50;
 
 // The cell map's own insert (004E2E90: resize, then insert a copy of the pair unless the key
 // exists; returns the pair) and erase by key (004E2F00).
@@ -255,7 +255,7 @@ int CVisibilityFog::UpdateCells() {
         DeadCellsGuard() |= 1;
         char allocator;
         KeyVectorConstruct(&dead, nullptr, &allocator);
-        GameAtExit(reinterpret_cast<void (*)()>(kDeadCellsDestructor));
+        GameAtExit(ei::static_init::Exit004E1C50);
     }
     dead.Finish() = dead.Start();
     World();   // called and ignored, as in the original
