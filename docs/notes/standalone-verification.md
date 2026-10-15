@@ -1514,3 +1514,40 @@ order settles each.
 SV7d2's plain path cell words: all 85 goldens of saving scenarios differed from main's only in their saves (mission.sav's
 script globals in 83, seenCorpses in 4); the digests were already the id order's. SAVES_KNOWN is empty now (main had
 removed SV7d1's and SV7d2's entries, this branch the three SV7b1 ones).
+
+## SV7b4a / SV3f: the shadow's turn undone exactly (2026-10-15)
+
+**The canonical behaviour** (user decision 2026-10-15: no golden depends on heap layout or timing accidents). DrawShadow
+0051CE60 turns the object toward the light (0051D479: PreMultiply 004018A0 by the light's turn), builds its world
+matrix and turns it back (0051D4E0: PreMultiply by the conjugate). The round trip is not exact, so every re-rendered
+shadow moved the orientation by an ulp, and how often a shadow is re-rendered followed the frame's timing and memory
+(SV7b4's search). Now the orientation is kept before the turn and put back after it, in both:
+
+- Ours (map_object_shadow.cpp, RenderShadow): `kept = orientation` before the turn, `orientation = kept` instead of
+  the conjugate PreMultiply; the conjugated turn is still made (the projector below uses it). Kept in the standalone.
+- The original, in every harness run that is not the standalone (tests/verify/harness_shadow_turn.cpp): the CALL at
+  0051D479 goes to KeepAndTurn (keeps the quaternion, then calls 004018A0), the one at 0051D4E0 to PutBack (puts it
+  back when it is the same object, else the original's PreMultiply). Both sites or neither; `EI_SHADOW_TURN=0` leaves
+  the original's round trip. The world matrix built while turned is the same as before.
+
+As with SV1b's and SV7b3's patches, the hook installer then leaves DrawShadow's registration out in hooked runs (the
+harness patches inside it: `SKIP DrawShadowVerify ... +0x619`), so hooked runs draw shadows with the patched original;
+ours runs in the standalone (`--standalone --golden` over ui_container_input, ui_widescreen_more, render_titles_present,
+ui_hero_screen, camera: all pass, the two with a golden the same).
+
+**Results.** The 54 golden scenarios on both installs (106 runs, ui_screens among them) in five passes: the patched
+original plain, EI_HEAP_JITTER 1, 2 and `3,fill`, and our hooks. Before merging SV7b1 the jitter and hooked passes
+differed from the plain one only in `script #gobject` (SV7b1); after it, every jitter pass is the same as the plain one
+in all 106 runs (digest, dumps, console, saves), and so is the hooked pass but for two runs without a golden:
+ui_widescreen_hud and ui_widescreen_more (vanilla), where cunit129's flags are 0xA2 in the original and 0x4A2 in ours
+from update 60 (then the zone diverges: isaac.count at update 180). That is SV7b8's flags line, older than this and not
+an orientation (follow-up SV7b8a). The seed-1 Rebirth difference (cunit148 #place at update 80 in ui_container_input,
+ui_widescreen_more, render_titles_present) is gone, and so are SV3f's hooked-against-original rotation ulps (ui_hero_*,
+ui_container_input, ui_widescreen_*, render_titles_present now match the original in hooked runs) and SV7b8's vanilla
+unmoco2 rotation under seed 2 (ui_hero_screen, ui_hero_stats, ui_screens the same as the plain run).
+
+**Goldens re-recorded** (all 97: every digest changes from record 0, where the main menu's units cunit129, cunit148 and
+cunit187 now keep their orientation) with `golden.py record --runs` over the five passes, all agreeing; the decoded
+saves are unchanged (no store entry changed).
+
+Final check (after merging main again): `work.py test SV7b4a --golden --jobs 4`: 128 runs all pass, the 56 goldens it reaches the same.
