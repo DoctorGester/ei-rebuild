@@ -133,6 +133,32 @@ What must survive either step:
 - **x87 maths**: unchanged by this; the standalone exe stays a 32-bit MSVC build with the same
   float settings until the float checks are replaced.
 
+**S5 (2026-10-15): CString and the plain collections.** The exe links VC6's MFC (strcore / strex of
+MFC 6.0). Bodies in `src/lib/mfc_string.*` (`mfc::impl::CString`, `CFixedAlloc`, the five string
+pools at 007C8B08..007C8B80 and 007C8D18) and `src/lib/mfc_coll.*` (`CStringArray`, and one
+`PlainArray` template for `CWordArray`, `CDWordArray`, `CByteArray`, `CUIntArray`), each registered
+at its library address; mfc.h's forwarders and the call sites are unchanged (C13).
+
+- Verify (`tests/verify/verify_mfc_string.cpp`, `verify_mfc_coll.cpp`): string members that only
+  build a new string or edit their own buffer run as the original on a twin and are compared
+  (constructors, assignments, appends, `operator+`, finds, Mid / Left / Right, trims with a set,
+  Remove, FormatV, the copy helpers); the rest (destructors, ReleaseBuffer, MakeLower, Format, the
+  allocator, the reference counting helpers) run ours only with state checks. Plain-array SetSize /
+  SetAtGrow compare against the original on a twin array; constructors, destructors, Serialize and
+  all of CStringArray run ours only.
+- 00700EFE was named `MakeUpper` in mfc.h; it calls `_mbslwr` (6EC8A8, mislabelled `_mbsupr` in
+  library.csv), so it is `MakeLower` now (same address, call sites renamed). 00700EEC is the real
+  MakeUpper, unreached.
+- ini_file.cpp's "DWordArray" (6FF933) is `CUIntArray` (vtable 007467A0).
+- Not ported, not reached by our code: CString Delete / Insert / Replace / MakeUpper / MakeReverse /
+  FreeExtra / Span* / AnsiToOem / wide constructors / FormatMessage / TrimLeft(set); CPtrList,
+  CPtrArray, CMapPtrToPtr. Kept as forwarders: LoadString (00702B0E) and CArchive's CString
+  operators (00708447 / 00708517), both CArchive / resource code (S8).
+- The CRT calls (`_mbschr`, `_mbsstr`, `_vsprintf`, ...) stay forwarders in mfc_string.cpp's
+  anonymous namespace; S4's CRT port can take them over.
+- `tests/vectors/replay_mfc.cpp` (SV4b) has its own CString / CPlex copy; it could use
+  `mfc::impl::CString` now, not done.
+
 ## 4. UTF-8 instead of cp1251
 
 Goal: every string inside the game is UTF-8. Original assets stay as they are and are converted when

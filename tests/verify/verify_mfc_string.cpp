@@ -550,7 +550,7 @@ CFixedAlloc* __fastcall FixedConstructVerify(CFixedAlloc* self, void*, unsigned 
 }
 
 // The static initialisers built the four string allocators before the hooks: ours builds the same
-// sizes (header + characters + terminator, 64 per chunk).
+// sizes (header + characters + terminator rounded up to 4, 64 per chunk).
 void StringAllocatorsCheck() {
     CFixedAlloc* live[] = {&mfc::impl::StringAlloc64(), &mfc::impl::StringAlloc128(), &mfc::impl::StringAlloc256(),
                            &mfc::impl::StringAlloc512()};
@@ -558,7 +558,7 @@ void StringAllocatorsCheck() {
     for (int i = 0; i < 4; ++i) {
         alignas(CFixedAlloc) unsigned char raw[sizeof(CFixedAlloc)];
         CFixedAlloc* ours = reinterpret_cast<CFixedAlloc*>(raw)->Construct(
-            static_cast<unsigned>(sizeof(CStringData)) + characters[i] + 1, 64);
+            (static_cast<unsigned>(sizeof(CStringData)) + characters[i] + 1 + 3) & ~3u, 64);
         Check("CFixedAlloc (string allocators)", true,
               ours->AllocSize() == live[i]->AllocSize() && ours->BlockSize() == live[i]->BlockSize(),
               "%u: %u / %u", characters[i], live[i]->AllocSize(), live[i]->BlockSize());
