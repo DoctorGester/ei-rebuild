@@ -119,7 +119,7 @@ void SpawnRing(CMapObject* owner, int type, float size, bool negate) {
 
 // The ring's size: power / 16, negative for weaken, rounded to a float as the original stores it.
 float RingSize(int type, int power) {
-    volatile float size = static_cast<float>(power) * kPowerScale;
+    float size = static_cast<float>(power) * kPowerScale;
     float value = size;
     if (type == kWeaken) {
         size = -value;

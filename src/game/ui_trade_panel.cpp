@@ -502,8 +502,8 @@ void CTradePanel::RestoreRecord() {
     TradeRecord& record = records_.begin[recordIndex_];
     UnitStats* stats = PartyMemberStats(recordIndex_);
     // The hit point maximum and the hit points the slots allow, before (both stored as float).
-    const float oldMaximum = StoreFloat(static_cast<float>(stats->HitPointCurve()));
-    const float oldHitPoints = StoreFloat(static_cast<float>(stats->Reduce(oldMaximum)));
+    const float oldMaximum = static_cast<float>(stats->HitPointCurve());
+    const float oldHitPoints = static_cast<float>(stats->Reduce(oldMaximum));
     for (int i = 0; i < 6; ++i) stats->skills[i] = record.schools[i];
     stats->attributes[0] = record.science;
     for (int i = 0; i < 36; ++i) stats->skillLevels[i] = record.perks[i];
@@ -512,12 +512,12 @@ void CTradePanel::RestoreRecord() {
     std::memcpy(&stats->pendingExperience, &record.pendingExperience, sizeof(float));
     std::memcpy(&stats->spentExperience, &record.spentExperience, sizeof(float));
     record.bought = 0;
-    const float newMaximum = StoreFloat(static_cast<float>(stats->HitPointCurve()));
+    const float newMaximum = static_cast<float>(stats->HitPointCurve());
     // Only when both maxima are above 1 (a NaN does nothing): the slots are healed by what keeps
     // the hit points in the old proportion to the new maximum.
     if (!(oldMaximum > 1.0f) || !(newMaximum > 1.0f)) return;
     const double hitPoints = stats->Reduce(newMaximum);
-    stats->HealSlots(newMaximum, StoreFloat(static_cast<float>(oldHitPoints / oldMaximum * newMaximum - hitPoints)));
+    stats->HealSlots(newMaximum, static_cast<float>(oldHitPoints / oldMaximum * newMaximum - hitPoints));
 }
 namespace {
 void __fastcall TradeRestoreRecord(CTradePanel* self) { self->RestoreRecord(); }

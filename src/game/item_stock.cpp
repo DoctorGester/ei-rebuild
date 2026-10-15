@@ -111,12 +111,6 @@ int CompareNoCase(const char* a, const char* b) {
     return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
-// A float the original stores (FSTP dword) before using it again.
-float Round(float value) {
-    volatile float stored = value;
-    return stored;
-}
-
 // The count drawn from the CRT generator: max when min >= max, else min + a value below the range
 // size (rand scaled by size / 0x7FFF, then modulo the size).
 int RandomCount(int minCount, int maxCount) {
@@ -204,16 +198,16 @@ const itemdb::MaterialRecordHead* Material(const StockMaterial* e) {
 // prototype's price p: 10% outside [2p/7 - p/5, p/5], else 110 - |(q - p/7) / (p/7 - p/5)| x 100
 // percent (truncated). Null when none was taken.
 StockMaterial* DrawMaterial(char* prototype) {
-    float seventh = Round(Record(prototype)->price * stock::SeventhFactor());
-    float fifth = Round(Record(prototype)->price * stock::FifthFactor());
+    float seventh = static_cast<float>(Record(prototype)->price * stock::SeventhFactor());
+    float fifth = static_cast<float>(Record(prototype)->price * stock::FifthFactor());
     CandidateVector& c = Candidates();
     if (c.begin() == c.end()) return nullptr;
-    float low = Round((seventh + seventh) - fifth);
+    float low = static_cast<float>((seventh + seventh) - fifth);
     for (StockMaterial** q = c.begin(); q != c.end(); ++q) {
         int chance = 10;
         float quality = Material(*q)->unitPrice;
         if (quality >= low && !(quality > fifth)) {
-            float t = Round(((quality - seventh) / (seventh - fifth)) * 100.0f);
+            float t = static_cast<float>(((quality - seventh) / (seventh - fifth)) * 100.0f);
             std::uint32_t bits;
             std::memcpy(&bits, &t, 4);
             bits &= 0x7FFFFFFFu;
@@ -623,7 +617,7 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
                 char* m = ModifierSlot(this, required[i]);
                 if (!m) continue;
                 AppendModifier(chosen, m);
-                cost = Round(cost + ModifierCost(m));
+                cost = static_cast<float>(cost + ModifierCost(m));
                 ++count;
                 level += ModifierLevel(m);
             }
@@ -634,7 +628,7 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
                 char* m = ModifierSlot(this, optional[i]);
                 if (!m || budget < ModifierLevel(m) + level) continue;
                 AppendModifier(chosen, m);
-                cost = Round(cost + ModifierCost(m));
+                cost = static_cast<float>(cost + ModifierCost(m));
                 ++count;
                 level += ModifierLevel(m);
             }
@@ -646,10 +640,10 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
                     ++count;
                     reached += ModifierLevel(repeated);
                     if (ModifierKind(repeated) == 'm') {
-                        cost = Round(ModifierFactor(repeated) * prototype->mana + cost + ModifierCost(repeated));
+                        cost = static_cast<float>(ModifierFactor(repeated) * prototype->mana + cost + ModifierCost(repeated));
                         if (!(cost > prototype->mana)) break;
                     } else {
-                        cost = Round(cost + ModifierCost(repeated));
+                        cost = static_cast<float>(cost + ModifierCost(repeated));
                     }
                     if (budget < ModifierLevel(repeated) + reached) break;
                 }

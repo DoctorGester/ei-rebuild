@@ -117,20 +117,39 @@ PlayerNumbers (addon+21B4A replaces `CPlayer::SetPlayerId(0)` in 0066C180: the h
 else 0). *Disabled here*: SetDefaultRate, MPConsole, MpZone, ChatLog. The mod-only table (PerkLimit, ExpCalc, RandomMagicDamage, FastTeleport, the Lua* rule replacements, ...) is not applied here and
 not inventoried.
 
-### Resources and paths (6 of 12 applied; single player; NivalRegistry implemented, the rest *deferred*)
+### Resources and paths (6 of 12 applied; single player; implemented: NivalRegistry, and the five mod-folder patches in the standalone image)
 
 NivalRegistry (the `PUSH` at 004568E9 makes WinMain's registry root `Software\Gipat.ru\EI_Starter\EvilIslands`, root 007AF450; WinMain stays
 original in hooked runs because the harness keys on its return addresses; every registry read goes through that root, so rewrites follow it;
 our GameMain takes addon's key with the flag, for the standalone image, S19); Maps (10
 sites), ResOverride (25 sites: resource archive open / close / init, every file find, the file-find vtable slot 007432F4), MoviesPatch (the
 BinkOpen import 0073B720), CameraPatch (0040ECD0), StreamPatch (006BB3A0): the starter's mod loader looks in the selected mod's folders
-(and Rebirth's) first. The install runs the Standard mod (no Maps / Res / Movies / Camera / Stream folders), so in the runs we have they pass
-through; only other mods (IronMod ships a Res folder) would exercise them and no harness run selects one. Reproducing them means rewriting
-WinMain and about thirty loader and resource functions around addon's override file system: standalone resource layer work. Our
-`OpenResource` 00671730 and `CMappedResource::Destroy` 006714A0 stay vanilla-only (patched sites). addon's side: `Maps` lists
-`<mod>\Maps<sub>\*.*` at start and each of 9 loader hooks passes the zone name to 1001B314, which points 100BB9D0 at the mod's path or the
-game's 007AF460 (the SetPath hook in 0055E990 pushes [100BB9D0]); `ResOverride` builds addon's tables once (1001FD2E) and routes the 4 mask
-finds (calls of 00674AC0) and 13 finds (calls of 00671B40) to addon; with an empty mod list every lookup falls back to the game's archives.
+first. The install runs the Standard mod (no Maps / Res / Movies / Camera / Stream folders, no [RES]).
+
+**The standalone resource layer (S19b, `src/game/mod_folders.{h,cpp}`).** The image does what addon.dll v0.12.4.2 does for these five, behind
+their flags (`modfolders::Active`: the image with the flag on; a hooked Rebirth launch keeps addon's, and our rewrites of the patched
+functions stay vanilla-only there). addon's side, as the layer reproduces it:
+- The mod: starter `Settings\AddonPath` + `\` (100BD184). Its `config.reg` (the game's registry format) section [RES]: for twelve archives
+  (aiinfo, database, databaseLmp, gfx, materials, outro, redress, sfx, speech, texts, textsLmp, textures) a value (string or array) names
+  mod archives (paths relative to the mod) that `CMappedResource::GetFile` asks before the game's archive; a value starting with `-` makes
+  the game's archive ignored. The key is the lower-case path the game opens: starter `Path Settings\RESOURCES PATH` (`.\Res\`) + name, speech
+  under `CD-ROM PATH` + `Res\`. figures.res / menus.res values are also extra figure archives (CFigureManager::CreateWithArchives 005AA544,
+  CLinkFigureLoader::Construct 004F6952, before the game's), textures / redress / menus.res values extra texture archives (CTextureManager::Create
+  006915EF, after the game's three when all opened). The mod archives open at the first OpenResource or CMaterialManager::Create (1001FD2E).
+- GetFile (13 calls of 00671B40 and the vtable slot): the mod's archives for this archive, then the archive unless ignored; a `t\` or `s\` name
+  not found is tried once more without the prefix (also with the Standard mod). ListFiles (4 calls of 00674AC0): the mod's listings and the
+  archive's own are appended to the caller's array, which is not emptied first (also with the Standard mod).
+- Maps: `<mod>\Maps<sub>\*.*` listed once; before each of the nine maps-folder uses (NewZone map / mob, MapPath, CWorldClient::LoadZone,
+  BuildZoneTable "*.mq", LoadZoneQuests twice, MapFileExists, WriteMapFile) the file's name selects the folder MapsFolder (0055E990) starts
+  from: the mod's when listed (any case; the zone table: the mod's top folder has a `.mq`), else the game's 007AF460. The choice stays until
+  the next site (the unhooked caller 00578DE4 sees the last one).
+- CameraPatch (CCamera::LoadPath's CFile::Open 0040ED42), MoviesPatch (every BinkOpen), StreamPatch (SwitchStream's path 006BB628): the mod's
+  `Camera\`, `Movies\` or `Stream\` file of that name when it exists.
+Check: tests/scenarios/rebirth_mod_folders.txt, with a mod tools/make_test_mod.py writes into the run's harness_saves and the harness step
+`addonpath` (AddonPath for addon.dll and the image): the harness's `modfile` reads gfx.res's files through GetFile (the mod's s19b.txt, `t\`
+retry, the game's lightning.dat), AddMob opens the mod's Maps\traps.mob, PlayCamera the mod's Camera\s19b.cam. Stream and Movies have no
+scenario (no script handle on the stream's file or a movie's path). Not reproduced: Rebirth's own override folders, the mod's [CONFIG] /
+[DEV] / SavesPath (disabled here), and addon's W file APIs (the layer uses the A ones).
 *Disabled here*: SavesPath, ConfigMusicReg, ConfigStreamSNReg, ConfigMovieIni, ConfigLightsIni, ConfigTutorialIni.
 
 ### Crash handling and infrastructure (2 of 9 applied)
@@ -146,7 +165,7 @@ The plugin checks game.exe (PE header word at +0x150 is 0x2EC226), refuses when 
 writable and patches 006B6272. Its first call reads `EI_Plugin.ini` and addon's mode word (0xAADDxxxx: bit 0 PK, 1 NPlayers = 6, 2 Pause,
 3 AutoAim, 4 GraphGen, 5 Test, 6 NewMaster, 7 Scripts, 8 Briefings, 9 Fixes off). Active here (multiplayer): NPlayers (player count bytes
 in the lobby code; W2b, W4b), Pause, NewMaster, Briefings (S19a, below), Fixes (0x66-byte checks in 00613EA0, 005ED7B0, 006091C0, 006407E0,
-JMPs in 005F13A0, 006093B7, 00640C97, NOPs in 00536100; W4a, W4b). Scripts is off (addon's AddNewScriptCommands / PlayerNumbers instead); PK,
+JMPs in 005F13A0, 006093B7, 00640C97, NOPs in 00536100; W4a, W4b: all reproduced). Scripts is off (addon's AddNewScriptCommands / PlayerNumbers instead); PK,
 AutoAim, GraphGen, Test off. It updates itself from hat.gipath.org (a signed manifest, then a new EI_Plugin.asi), so its patch set may change.
 
 S19a (installer at EI_Plugin.asi +0x28DD .. +0x29F9 and +0x2FD0):
@@ -160,12 +179,19 @@ S19a (installer at EI_Plugin.asi +0x28DD .. +0x29F9 and +0x2FD0):
   (005924D1). The plugin formats the name from the caller's EBX; the client's only caller (00608851) holds the name there, so ours passes it.
 - **NewMaster**, the game's own code: `GameOptions::SaveToRegistry` 0045C560 does not save the Master Server Name (42 NOPs);
   `ServerSession::OnMasterImpl` 0041ACA0 takes answers from any address (2 NOPs at 0041ACB7); `MasterLinkTick` 00440DE0 leaves a master
-  link that closed before anything arrived as it is (the plugin's 10005490 at 00440F9F). Not reproduced: the plugin's second master server
-  (hat.gipath.org:28004), which needs the user's decision (port or drop): a thread resolving the name (gethostbyname, retried at most every
-  10 s; the main menu's click 00632D70 starts it and waits up to 300 ms; 006330A9), a copy of each announcement with 0xDEADBEEF, the player
-  count and the players' names sent there (0041AA10 at 0041ABDA), and in `CMpConnectScreen::MasterRequest` 0061D0D0 (0061D138) a
-  nonblocking TCP connect probe of the configured master (up to 1 s) that falls back to the second one. Without a resolved address the
-  announcement is the original's; the probe is not. Those three functions stay the original under Rebirth (SKIP) and vanilla in the image.
+  link that closed before anything arrived as it is (the plugin's 10005490 at 00440F9F).
+- **NewMaster's second master server** (S19c, the user's decision: opt-in; `src/game/net_second_master.cpp`). The plugin's is
+  hat.gipath.org:28004; ours is `[Rebirth] SecondMaster=host[:port]` of ei_rebirth.ini (or `SecondMaster=` in a spec), empty by default
+  and in harness runs: then the three functions are the game's own code (no thread, packet or probe), also in a Rebirth launch, where the
+  plugin's code no longer runs (they are declared, so hooked). With an address and the flag: the main menu's Multiplayer click (00632D70,
+  plugin 100051B0 at 006330A9) starts a look-up thread (gethostbyname, one at a time, at most every 10 s, until an address is known) and
+  waits up to 300 ms, then notes the address and "a.b.c.d:port"; each announcement (0041AA10, plugin 10004E20 at 0041ABDA, after the
+  normal send) goes again to it as the same bytes, EF BE AD DE, the number of bindings (a byte) and per binding the player's name as
+  (strlen + 1 as a byte, the name, 0); `CMpConnectScreen::MasterRequest` (0061D0D0, plugin 100052D0 at 0061D138) tries the parsed master
+  with a nonblocking TCP connect (select on writing every 10 ms, up to 1 s; the error-set select gets the emptied set, as in the plugin)
+  and, when it cannot be parsed or reached and the address is known, parses the "a.b.c.d:port" text instead (not tried). Not reproduced:
+  the click site's Test part (10001000) and its clearing of the Test script commands' list (+0x8B; empty with Test off). Checked offline:
+  `net_second_master` (127.0.0.1 only; `masterhost` sets the configured master) with a listener standing in for both masters.
 
 ## FPU precision
 
@@ -395,7 +421,35 @@ SetPosition) `max(n, 1) - 1`; `maxPlayers_` stays 6. `ei::rebirth::PluginNPlayer
 ini reading (default 7, the plugin's). Verified ours only (no server answers; the screen is built once by ui_mp_host): the verify
 wrapper re-derives the slider's rectangle, maximum and position and the field's rectangle, classes, font and length from the flags.
 
+**Done (W4b)**: the rest of EI_Plugin's Fixes (installer at EI_Plugin.asi +0x2E60 and +0x2FD0..: `100031F0`, `10003220`, `10003110`) and
+NPlayers (+0x2C80, and +0x2D20 for more than 7 players), each behind its flag and declared:
+- *Sex of a face* (`EiPluginFixes`, 005ED889 `CItemScreen::FaceNames` for 005ED7B0, 00609427 `CChatWindow::ShowPlayers` 006091C0, 006408E6 and
+  00640D2F `CHudPortraits::Rebuild` 006407E0): the two strcmp tests ("unhuma" -> "m", "unhufe" -> "f", else the string kept) become
+  `cmp byte [name+4], 0x66`: a model whose fifth character is 'f' gives "f", every other one "m" (always assigned: the original's `sex`
+  carried over from the last face when the model was neither). `pluginfixes::ModelIsFemale` (src/game/plugin_fixes.h).
+- *Unknown unit prototype* (006093B7 in ShowPlayers, 00640C97 in Rebuild; the plugin's stubs 100031F0 / 10003220 call 10003110 when the
+  prototype map's `operator[]` inserted a null for a player's prototype name): the prototype becomes the value of the head of the first
+  bucket (bucket order, chains not walked) of the unit prototype map whose name has none of "NPC", "Human", "Orc", "Undead", "Male",
+  "Female" in it (case-insensitive substring; an empty name qualifies). `pluginfixes::FallbackPrototype`. Nothing in the shipped data
+  reaches it (every player's prototype exists), so it is ours only and unreached.
+- 005F13A0 `ItemDamageLists` (005F1401: `je` -> `jmp`): the integer form ("%d") is never taken, the threshold is always "%.1f".
+- 00536100 `CUnitClientSpecific::RefreshSkins` (00536132: the `jne` over the body is NOPed): every unit is refreshed, not only the hero (0x32).
+- *NPlayers* (n = `PluginNPlayers()`, 7 here): 00640069 `CHudPortraits::AddPortrait` `mov edi, 6` -> `max(n, 7)`: the portraits' column is
+  `count % max(n, 7)`; 00608D9D / 00608DE4 `CChatWindow::Construct`: the window's left edge and its surface's x 0x1D0 -> 0; 006095FB
+  `CChatWindow::Update`: the first status column 0x118 -> 0x2E8 (= 0x118 + 0x1D0: the surface is at 0 now). 006095A0 is not in the ticket's list
+  but holds a site of the feature, so it is declared too.
+- *More than 7 players* (`+0x2D20`: six more sites in AddPortrait 0064016B..00640240, inactive here): not reproduced. The installer
+  (`Check` in rebirth_hook.cpp) skips a function holding such a site while NPlayers > 7 ("EI_Plugin.asi patches ... for more than 7 players"),
+  so a Rebirth launch with a larger NPlayers keeps the original there; the standalone image treats NPlayers above 7 as 7 in the portraits.
+Verified: the wrappers compare with the patched original where they did before (DrawHeroFace compares the face's model state, so a wrong
+sex letter would show as another texture; ItemDamageLists compares the three lines) and check ours otherwise: Construct's rectangle,
+Rebuild's picture sex letter ("face<m|f>NN") against the unit's name. Reached (Rebirth runs, all 0 mismatches): ui_hero_screen / ui_hero_delete / ui_hero_stats
+(DrawHeroFace), ui_describe / ui_hud (ItemDamageLists), most scenarios (RefreshSkins, Rebuild's party half, AddPortrait), ui_mp_host
+(Construct 1 call, ShowPlayers 2, Update 43). Not reached by any scenario: the prototype fallbacks (006093B7, 00640C97), Rebuild's
+players half (00640D2F: a client player without a live unit), the sex rule for a model other than "unhuma" / "unhufe", and
+RefreshSkins for a non-hero is reached only if a scenario's non-hero client unit gets that far (no wrapper tells).
+
 ### Remaining work
 
-WideScreen has no leftovers; the deferred Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
-layer, S19b); EI_Plugin's Fixes and NPlayers leftovers (W4b); NewMaster's second master server (the user's decision, S19a).
+WideScreen has no leftovers; NPlayers above 7 (AddPortrait's six sites). The mod-folder group runs in the standalone image only
+(hooked Rebirth launches keep addon's; S19b).

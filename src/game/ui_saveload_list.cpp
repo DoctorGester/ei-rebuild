@@ -143,7 +143,7 @@ void CSaveLoadWindow::RefreshListVanilla() {
     SurfaceDrawText(surface, nullptr, line, &detailRect, kFont, kTextColour, 0, 1);
     gameapi::OffsetRect(&detailRect, 0, kRowHeight);
 
-    const int minutes = static_cast<int>(gamecrt::Ftol(RoundToFloat(entry.gameTime_ * MinutesPerHour())));
+    const int minutes = static_cast<int>(gamecrt::Ftol(static_cast<float>(entry.gameTime_ * MinutesPerHour())));
     const int day = minutes / kMinutesPerDay;
     const int minuteOfDay = minutes - day * kMinutesPerDay;
     const int hour = minuteOfDay / 60;

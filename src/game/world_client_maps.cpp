@@ -29,6 +29,7 @@
 #include "unit_db.h"
 #include "world_effect.h"
 #include "originals_engine.h"
+#include "mod_folders.h"
 #include "world_map_files.h"
 #include "world_glue.h"
 #include "unit_looks.h"
@@ -1713,6 +1714,7 @@ int CWorldClient::LoadZone(CStream* block) {
     Terrain* terrain = terrain_;
     if (map.GetLength() > 1 && map[1] != ':') {
         mfc::CString folder;
+        modfolders::SelectMaps(map, modfolders::MapsSite::ClientLoadZone);
         MapsFolderAt(&folder);
         map = folder + map;
     }

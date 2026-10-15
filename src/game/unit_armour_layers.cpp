@@ -26,11 +26,6 @@ constexpr int kArmourSlots = 7;         // CUnit::armor
 
 int CoveredSlot(int type, int which) { return unitdb::ArmourCoverage()[type * 3 + which]; }
 
-// Rounds an x87 intermediate to float, as the original's FSTP into a float temporary does.
-float StoreFloat(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 } // namespace
 
 void UnitStats::AddArmourLayer(CEngineObject* armour) {
@@ -69,7 +64,7 @@ void UnitStats::PackBodyProtection(CUnit* unit, const UnitVitals* vitals, std::i
         for (int j = top; j >= 0; --j) {
             if (body.layers[j].state >= kLayerThere) value += body.layers[j].absorb[k];
         }
-        out[1 + k] = static_cast<std::int16_t>(std::lrint(StoreFloat(value)));
+        out[1 + k] = static_cast<std::int16_t>(std::lrint(static_cast<float>(value)));
     }
 }
 EI_REPLACE_METHOD(0x00523020, UnitStats::PackBodyProtection);

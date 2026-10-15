@@ -2,8 +2,8 @@
 // (0041AA10, from the tick), the master server's answer (0041ACA0, slot 10) and a client's chat
 // line (0041B1C0, registered for SayMessage by ServerSession's constructor). All run from the
 // session's tick on the main thread (net::Pump). Rebirth's EI_Plugin.asi patches 0041AA10 and
-// 0041ACA0 (NewMaster, at 0041ABDA and 0041ACB7; 0041ACA0's NOPs are reproduced, 0041AA10's call
-// into the plugin's second master server is not) and addon.dll's ChatLog has a site in 0041B1C0
+// 0041ACA0 (NewMaster, at 0041ABDA and 0041ACB7; both reproduced: 0041ACA0's NOPs and 0041AA10's
+// copy of the announcement to the second master server, net_second_master.h) and addon.dll's ChatLog has a site in 0041B1C0
 // (0041B25B, disabled in this install). See docs/notes/network.md and rebirth.md.
 #include "net_classes.h"
 
@@ -12,6 +12,7 @@
 #include "net_coder.h"
 #include "net_connection.h"
 #include "net_messages.h"
+#include "net_second_master.h"
 #include "originals_world.h"   // WorldMapTitle
 #include "world.h"             // TheGameFlow
 
@@ -76,12 +77,15 @@ void ServerSession::AnnounceToMaster() {
     info.magic = kSessionMagic;
     info.Write(&buffer);
     socket_.SendTo(&masterAddress_, &buffer);
+    // EI_Plugin's NewMaster (its call at 0041ABDA sends as SendTo does, then the copy).
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNewMaster)) second_master::CopyAnnouncement(socket_.socket, buffer);
 
     description.~string();
     name.~string();
     buffer.DestructGrowing();
 }
 EI_REPLACE_METHOD(0x0041AA10, ServerSession::AnnounceToMaster);
+EI_REBIRTH_IMPLEMENTS(0x0041AA10, ei::rebirth::Patch::EiPluginNewMaster);
 
 // 0041ACA0 (slot 10, RET 8). A packet of kind -1: only from the master server's address (all 16
 // bytes compared; from any address with EI_Plugin's NewMaster, which NOPs the JNE at 0041ACB7 so the

@@ -3,6 +3,7 @@
 // the Miles setup Open / Close / Reset (006B6A30 / 006B6D80 / 006B73E0, A-H18).
 #include "sound.h"
 #include "game_strings.h"
+#include "mod_folders.h"
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
@@ -589,7 +590,9 @@ void ReadOrSilence(CSoundManager* m, std::uint8_t* to, int bytes) {
 void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
     m->streamReadPosition = 0;
     m->streamState = 0;
-    mfc::CString path = m->soundPath + m->nextName;
+    // Rebirth's StreamPatch (006BB628): the mod's Stream\ folder when it has the file.
+    const bool modStream = modfolders::Active(ei::rebirth::Patch::StreamPatch) && modfolders::StreamInMod(m->nextName);
+    mfc::CString path = (modStream ? modfolders::StreamFolder() : m->soundPath) + m->nextName;
     if (CompareText(m->nextName, game::EmptyText()) == 0 ||
         m->streamReader.OpenFile(path, reinterpret_cast<std::uint32_t*>(&m->streamFileSize)) == 0) {
         Silence(m, to, bytes);

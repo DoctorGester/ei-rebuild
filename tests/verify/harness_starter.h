@@ -11,6 +11,9 @@
 //   fullscreen 0|1                 the game's FullScreen
 //   fpscursor 0|1                  the game's FPSIndependentCursor (options +0x80: on, the cursor runs in
 //                                  mode 2 with its drawing thread 005E5690; off, mode 1 without one)
+//   addonpath <folder>             the starter's Settings\AddonPath (the selected Rebirth mod: addon.dll's,
+//                                  and the standalone image's mod_folders.h) as harness_saves\<folder>;
+//                                  a "# prepare:" tool writes the mod there (tools/make_test_mod.py)
 // Without them the environment variables EI_RESOLUTION and EI_WIDESCREEN (same values) apply, and
 // without those the registry's own values. Rebirth's CtfMon switch is answered 0 in every run (S3e:
 // addon.dll closes ctfmon at start and restarts it from its DLL_PROCESS_DETACH, which hung the exit).
@@ -27,11 +30,19 @@
 
 namespace ei::verify::starter {
 
-// Consumes a "resolution", "widescreen", "fullscreen" or "fpscursor" scenario line; false for any other verb.
+// Consumes a "resolution", "widescreen", "fullscreen", "fpscursor" or "addonpath" scenario line; false for any
+// other verb.
 bool ParseStep(const std::string& verb, const std::string& argument);
 
-// Applies the environment fallbacks and answers the registry reads (once, at harness start).
-void Install();
+// Applies the environment fallbacks and answers the registry reads (once, at harness start; `savesDir`: the
+// run's harness_saves).
+void Install(const char* savesDir);
+
+// The step "modfile <archive> <file> <bytes>": the game's archive <archive> in the text resources' folder opened
+// through OpenResource's address and <file> read through GetFile's vtable slot (Rebirth's ResOverride, addon's
+// or the standalone image's, looks in the mod's archives first): its size must be <bytes> (0: not found). An
+// error message, empty when it matches.
+std::string ModFileStep(const std::string& argument);
 
 // Whether this run plays the Rebirth install: addon.dll is loaded (game.exe), or the standalone image runs
 // with Rebirth flags (rebirth_hook::SettingsOnly; S19). Scenario lines "vanilla ..." / "rebirth ..." and the

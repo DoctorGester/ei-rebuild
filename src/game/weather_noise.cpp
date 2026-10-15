@@ -10,7 +10,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
-#include "lib/vecmath.h"   // RoundToFloat
+#include "lib/vecmath.h"
 
 #include <cstdint>
 #include <cstring>
@@ -44,19 +44,19 @@ void WeatherNoiseCurve::Build(float amplitude) {
 
     const double weight = SmoothingWeight();
     const double keep = static_cast<double>(One()) - weight;
-    for (int i = 1; i < kSamples; ++i) samples[i] = RoundToFloat(keep * samples[i - 1] + weight * samples[i]);
+    for (int i = 1; i < kSamples; ++i) samples[i] = static_cast<float>(keep * samples[i - 1] + weight * samples[i]);
     // Backwards from the last sample to the third. The last one's neighbour is the float after the
     // samples, the first segment's value.
     for (int i = kSamples - 1; i >= 2; --i) {
         const float next = i + 1 < kSamples ? samples[i + 1] : segments[0].value;
-        samples[i] = RoundToFloat(keep * next + weight * samples[i]);
+        samples[i] = static_cast<float>(keep * next + weight * samples[i]);
     }
     std::memmove(samples, samples + kShift, (kSamples - kShift) * sizeof(float));
 
     double squares = Zero();
     for (const float sample : samples) squares += static_cast<double>(sample) * sample;
     const double scale = amplitude / x87::fsqrt(squares * SampleShare());
-    for (float& sample : samples) sample = RoundToFloat(scale * sample);
+    for (float& sample : samples) sample = static_cast<float>(scale * sample);
 
     const double half = Half();
     for (int i = 0; i < kSamples - 1; ++i) {
@@ -66,11 +66,11 @@ void WeatherNoiseCurve::Build(float amplitude) {
                                                   : (static_cast<double>(samples[i + 2]) - samples[i]) * half;
         WeatherNoiseSegment& segment = segments[i];
         segment.value = samples[i];
-        segment.slope = RoundToFloat(slopeIn);
-        const float bend = RoundToFloat(((static_cast<double>(samples[i + 1]) - segment.value) - slopeIn) * 2.0);
+        segment.slope = static_cast<float>(slopeIn);
+        const float bend = static_cast<float>(((static_cast<double>(samples[i + 1]) - segment.value) - slopeIn) * 2.0);
         const double cubic = (slopeOut - slopeIn) - bend;
-        segment.cubic = RoundToFloat(cubic);
-        segment.quadratic = RoundToFloat((bend - (cubic + cubic)) * half);
+        segment.cubic = static_cast<float>(cubic);
+        segment.quadratic = static_cast<float>((bend - (cubic + cubic)) * half);
     }
 }
 EI_REPLACE_METHOD(0x004E3980, WeatherNoiseCurve::Build);

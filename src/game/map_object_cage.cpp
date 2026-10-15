@@ -8,7 +8,6 @@
 
 // Every step is rounded to float where the original stores (its Vector3 constructor arguments,
 // the vector helpers' results); values it keeps on the FPU stack are doubles.
-#pragma float_control(precise, on)
 
 namespace {
 float Sub(float a, float b) { return static_cast<float>(static_cast<double>(a) - b); }

@@ -19,7 +19,6 @@
 #include <cstring>
 
 // Values the original keeps on the FPU stack are double locals; values it stores are floats.
-#pragma float_control(precise, on)
 
 namespace {
 // The records (unit_db.h): prototypes (007AF358), models (007AF398), NPCs (007AF378) and the

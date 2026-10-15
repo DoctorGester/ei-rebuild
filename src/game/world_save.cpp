@@ -17,6 +17,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
+#include "mod_folders.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"
@@ -894,10 +895,12 @@ namespace {
 constexpr std::uintptr_t kCantLoadGraph = std::uintptr_t(0x00790AD8);   // "CWorldServer::LoadMap.\n Can't load AIGraph.\n"
 constexpr std::uintptr_t kCantLoadMap = std::uintptr_t(0x00790AAC);     // "CWorldServer::NewZone()\n Can't load map.\n"
 
-// Whether the file `name` is neither there as named nor in the maps folder.
-bool MapFileMissing(const char* name) {
+// Whether the file `name` is neither there as named nor in the maps folder (Rebirth's Maps names it
+// first: `site`).
+bool MapFileMissing(const char* name, modfolders::MapsSite site) {
     if (gamecrt::access(name, 0) != -1) return false;
     mfc::CString folder;
+    modfolders::SelectMaps(name, site);
     MapsFolderAt(&folder);
     mfc::CString path = folder + name;
     return gamecrt::access(path, 0) == -1;
@@ -909,8 +912,8 @@ int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
     cave_ = 0;
     PickLoadingMovie(this, nullptr, zone);
     ShowLoadProgress(kProgressStart);
-    if (map && MapFileMissing(map)) return 0;
-    if (mob && MapFileMissing(mob)) return 0;
+    if (map && MapFileMissing(map, modfolders::MapsSite::NewZoneMap)) return 0;
+    if (mob && MapFileMissing(mob, modfolders::MapsSite::NewZoneMob)) return 0;
     LocalMemoryStream graph;
     if (!LoadAIGraph(this, nullptr, map, mob, &graph.stream))
         return game::FatalError(reinterpret_cast<const char*>(kCantLoadGraph));

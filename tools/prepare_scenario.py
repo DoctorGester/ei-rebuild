@@ -13,12 +13,19 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 PREFIX = '# prepare:'
 
 
+def tools_of(scenario):
+    """The tools folder of the scenario's own checkout (<root>/tests/scenarios/x.txt -> <root>/tools): a
+    worker's batch runs from the main checkout's scheduler, with the worktree's scenarios and tools."""
+    tools = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(scenario)))), 'tools')
+    return tools if os.path.isdir(tools) else TOOLS
+
+
 def prepare(scenario, saves):
     for line in open(scenario, encoding='utf-8', errors='replace'):
         if not line.startswith(PREFIX):
             continue
         tool, *args = line[len(PREFIX):].split()
-        subprocess.run([sys.executable, os.path.join(TOOLS, tool), saves, *args], check=True,
+        subprocess.run([sys.executable, os.path.join(tools_of(scenario), tool), saves, *args], check=True,
                        capture_output=True)
 
 

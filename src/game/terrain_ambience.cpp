@@ -68,7 +68,7 @@ float HalfPi() { return *reinterpret_cast<const float*>(0x007C8930); }
 CWorldClient* ClientWorld() { return reinterpret_cast<CWorldClient*>(0x007AF5B8); }
 
 // The sector containing `v` (FISTP of v / cell, then / 32 towards zero).
-int SectorOf(float v) { return x87::fistp(RoundToFloat(v / CellSize())) / 32; }
+int SectorOf(float v) { return x87::fistp(static_cast<float>(v / CellSize())) / 32; }
 
 // 006CB360: by weight, highest first (an unordered pair sorts "after").
 int __cdecl ByWeight(const void* a, const void* b) {
@@ -87,20 +87,20 @@ float PanOf(const Vector3& offset, const Vector3& axis) {
     float length = Length2D(flat);
     float along = Dot2D(forward, flat);
     if (along > length) return 0.0f;
-    float c = RoundToFloat(along / length);
+    float c = static_cast<float>(along / length);
     if (c > 1.0f) c = 1.0f;
     else if (!(c >= -1.0f)) c = -1.0f;
     double angle = Acos(c);
     if (angle > HalfPi()) angle = kPi - angle;
     angle = kPercent / HalfPi() * angle;
     if (axis.x * offset.y > axis.y * offset.x) angle = -angle;
-    return RoundToFloat(angle);
+    return static_cast<float>(angle);
 }
 
 } // namespace
 
 mfc::CString* CWorldClient::AmbienceTimeOfDay(mfc::CString* out) {
-    float hour = RoundToFloat(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, 24.0));
+    float hour = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, 24.0));
     const char* name;
     if (!(hour < 6.0f) && !(hour > 18.0f)) name = "day";
     else if (!(hour >= 22.0f) && hour > 2.0f) name = !(hour >= 6.0f) ? "morning" : "evening";
@@ -114,8 +114,8 @@ void Terrain::PlayAmbience() {
     Vector3 axis = {sounds->listenerAxis.x, sounds->listenerAxis.y, sounds->listenerAxis.z};
     int centreX = SectorOf(listener.x);
     int centreY = SectorOf(listener.y);
-    float radius = RoundToFloat(CellSize() * kRadiusCells);
-    float radiusSquared = RoundToFloat(radius * radius);
+    float radius = static_cast<float>(CellSize() * kRadiusCells);
+    float radiusSquared = static_cast<float>(radius * radius);
     const AmbientSoundClass* classes = SoundClasses();
 
     // Each sector votes for the class with the most weighted textures (the first of equals).
@@ -137,17 +137,17 @@ void Terrain::PlayAmbience() {
                 cell.weight = 0.0f;
                 continue;
             }
-            cell.x = RoundToFloat((sx + 0.5f) * CellSize() * kSectorCells);
-            cell.y = RoundToFloat((sy + 0.5f) * CellSize() * kSectorCells);
+            cell.x = static_cast<float>((sx + 0.5f) * CellSize() * kSectorCells);
+            cell.y = static_cast<float>((sy + 0.5f) * CellSize() * kSectorCells);
             float ground = HeightAt(cell.x, cell.y, 0);
             float water = HeightAt(cell.x, cell.y, 1);
             cell.z = !(water >= ground) ? ground : water;
-            cell.offset = {RoundToFloat(cell.x - listener.x), RoundToFloat(cell.y - listener.y),
-                           RoundToFloat(cell.z - listener.z)};
+            cell.offset = {static_cast<float>(cell.x - listener.x), static_cast<float>(cell.y - listener.y),
+                           static_cast<float>(cell.z - listener.z)};
             float weights[kClasses] = {};
             for (int i = 0; i < kClasses; ++i) {
                 int target = classes[i].countsAs < 0 ? i : classes[i].countsAs;
-                weights[target] = RoundToFloat(sector->classCounts[i] * classes[i].weight + weights[target]);
+                weights[target] = static_cast<float>(sector->classCounts[i] * classes[i].weight + weights[target]);
             }
             float best = -1.0f;
             for (int i = 0; i < kClasses; ++i) {
@@ -156,11 +156,11 @@ void Terrain::PlayAmbience() {
                     cell.soundClass = i;
                 }
             }
-            float distance = RoundToFloat(LengthSquared2D(Vector2{cell.offset.x, cell.offset.y}));
+            float distance = static_cast<float>(LengthSquared2D(Vector2{cell.offset.x, cell.offset.y}));
             float within = !(distance >= radiusSquared) ? distance : radiusSquared;
-            cell.weight = RoundToFloat((radiusSquared - within) / radiusSquared * kPercent);
+            cell.weight = static_cast<float>((radiusSquared - within) / radiusSquared * kPercent);
             ClassVotes& vote = votes[cell.soundClass];
-            vote.weightSum = RoundToFloat(cell.weight * cell.weight + vote.weightSum);
+            vote.weightSum = static_cast<float>(cell.weight * cell.weight + vote.weightSum);
             vote.offset = cell.offset;
             ++vote.count;
         }
@@ -176,20 +176,20 @@ void Terrain::PlayAmbience() {
             for (int column = 0; column < 3; ++column) {
                 const Cell& cell = cells[column * 3 + row];
                 if (cell.soundClass != vote.soundClass) continue;
-                float dx = RoundToFloat(cell.weight * cell.offset.x);
-                float dy = RoundToFloat(cell.weight * cell.offset.y);
+                float dx = static_cast<float>(cell.weight * cell.offset.x);
+                float dy = static_cast<float>(cell.weight * cell.offset.y);
                 double dz = cell.weight * cell.offset.z;
-                vote.offset.x = RoundToFloat(dx + vote.offset.x);
-                vote.offset.y = RoundToFloat(dy + vote.offset.y);
-                vote.offset.z = RoundToFloat(dz + vote.offset.z);
+                vote.offset.x = static_cast<float>(dx + vote.offset.x);
+                vote.offset.y = static_cast<float>(dy + vote.offset.y);
+                vote.offset.z = static_cast<float>(dz + vote.offset.z);
             }
         }
-        vote.volume = x87::fistp(RoundToFloat(x87::fsqrt(vote.weightSum)));
+        vote.volume = x87::fistp(static_cast<float>(x87::fsqrt(vote.weightSum)));
         if (vote.volume > 100) vote.volume = 100;
         const AmbientSoundClass& kind = classes[vote.soundClass];
         float pan = PanOf(vote.offset, axis);
         float limit = kind.panLimit;
-        float low = RoundToFloat(-limit);
+        float low = static_cast<float>(-limit);
         pan = !(pan >= low) ? low : pan;
         pan = !(limit >= pan) ? limit : pan;
         vote.pan = x87::fistp(pan);
@@ -212,11 +212,11 @@ void Terrain::PlayAmbience() {
                              variant % static_cast<std::uint32_t>(kind.variants) + 1);
         }
         Vector3 position = listener + cells[pick].offset;
-        float half = RoundToFloat(CellSize() * kSpotCells);
-        float low2 = RoundToFloat(-half);
-        position.x = RoundToFloat((half - low2) * x87::FromUnsigned(random.Next()) * kTwoToMinus32 + low2 + position.x);
-        position.y = RoundToFloat((half - low2) * x87::FromUnsigned(random.Next()) * kTwoToMinus32 + low2 + position.y);
-        sounds->Play3D(name, 1, &position.x, RoundToFloat(half + half), radius, 0, 0);
+        float half = static_cast<float>(CellSize() * kSpotCells);
+        float low2 = static_cast<float>(-half);
+        position.x = static_cast<float>((half - low2) * x87::FromUnsigned(random.Next()) * kTwoToMinus32 + low2 + position.x);
+        position.y = static_cast<float>((half - low2) * x87::FromUnsigned(random.Next()) * kTwoToMinus32 + low2 + position.y);
+        sounds->Play3D(name, 1, &position.x, static_cast<float>(half + half), radius, 0, 0);
     }
 
     // The loops: a class already playing keeps its sound (volume and pan updated), a new one starts.

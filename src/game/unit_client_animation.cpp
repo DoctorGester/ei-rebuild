@@ -52,11 +52,11 @@ CObject3DClientSpecific* ClientHalf(CUnit* unit) {
 
 // The pulse's value after the clock moved on by `frames`.
 float Pulse(float& clock, float frames) {
-    volatile float now = frames + clock;   // FST to a float local, FSTP to the clock
+    float now = frames + clock;   // FST to a float local, FSTP to the clock
     clock = now;
     double phase = std::fmod(static_cast<double>(now), kPulsePeriod);
     if (phase > kPulseFold) phase = kPulseFull - phase;
-    volatile float value = static_cast<float>(phase * kPulseScale * kHalf + kPulseBase);
+    float value = static_cast<float>(phase * kPulseScale * kHalf + kPulseBase);
     return value;
 }
 } // namespace
@@ -80,7 +80,7 @@ void CObject3DClientSpecific::StunnedPulse(float frames) {
 EI_REPLACE_METHOD(0x0051CCD0, CObject3DClientSpecific::StunnedPulse);
 
 void CUnitClientSpecific::AdvanceTime(float time) {
-    volatile float stored = time - lastTime;   // FST to a float local
+    float stored = time - lastTime;   // FST to a float local
     float step = stored;
     if (!(step >= 0.0f)) {   // back in time (or NaN): only put back on the ground
         Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
@@ -96,7 +96,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     if (unit->pathTimeShift == 0) CallPlaceOnPath(this, nullptr, time, step);
     else unit->animationSpeed = 1.0f;
     if (unit->motionMode == kMotionScaled) {
-        volatile float scaled = step * unit->animationSpeed;
+        float scaled = step * unit->animationSpeed;
         step = scaled;
     }
     CFigureAnimationState* state = unit->Object3D()->animation;
@@ -124,7 +124,7 @@ void CUnitClientSpecific::RestartAnimation(float time) {
         }
     }
     double start = unit->animationStart;
-    volatile float stored = static_cast<float>((time + 1.0f) - start);   // FST to the argument's slot
+    float stored = static_cast<float>((time + 1.0f) - start);   // FST to the argument's slot
     float step = stored;
     state = unit->Object3D()->animation;
     if (step > 0.0f && state) {

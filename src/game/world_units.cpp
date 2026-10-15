@@ -36,9 +36,6 @@
 
 #include <cstring>
 
-// The placement maths keeps the original's operation order: no reassociation in this file.
-#pragma float_control(precise, on, push)
-
 namespace {
 
 using mapspec::ObjectSpec;
@@ -153,7 +150,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     if (!(axis > worlddata::AxisEpsilon())) {
         angle = worlddata::Zero();
     } else {
-        float axisStored = StoreFloat(static_cast<float>(axis));
+        float axisStored = static_cast<float>(axis);
         angle = CIacos(rx);
         angle = angle + angle;
         double sign = worlddata::One() / x87::fsqrt(axisStored) * rw;
@@ -165,19 +162,19 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& r
     float zStep = 0.0f;
     std::memcpy(&spec.position, position, 12);
     std::memcpy(&spec.rotation, &rotation, 16);
-    float cosine = StoreFloat(static_cast<float>(x87::fcos(angle)));
+    float cosine = static_cast<float>(x87::fcos(angle));
     double sine = x87::fsin(angle);
-    float step = StoreFloat(static_cast<float>(index));
+    float step = static_cast<float>(index);
     double dy = sine * step;
-    float dx = StoreFloat(static_cast<float>(step * static_cast<double>(cosine)));
-    float dz = StoreFloat(static_cast<float>(static_cast<double>(zStep) * worlddata::LineSpacing()));
+    float dx = static_cast<float>(step * static_cast<double>(cosine));
+    float dz = static_cast<float>(static_cast<double>(zStep) * worlddata::LineSpacing());
     dy = dy * worlddata::LineSpacing();
     float& x = spec.position.x;
     float& y = spec.position.y;
     float& z = spec.position.z;
-    x = StoreFloat(static_cast<float>(static_cast<double>(dx) * worlddata::LineSpacing() + x));
-    y = StoreFloat(static_cast<float>(y + dy));
-    z = StoreFloat(static_cast<float>(static_cast<double>(z) + dz));
+    x = static_cast<float>(static_cast<double>(dx) * worlddata::LineSpacing() + x);
+    y = static_cast<float>(y + dy);
+    z = static_cast<float>(static_cast<double>(z) + dz);
 }
 
 // An item from an item record, with its counted record (+0x1C) holding the item record's id.
@@ -383,8 +380,6 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     MessageDestructBase(message, nullptr);
 }
 
-#pragma float_control(pop)
-
 // ---- CreateObject (005927C0) -------------------------------------------------------------------
 
 namespace {
@@ -477,7 +472,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         if (id == -1) return -1;
         if (base.id == -1) base.id = id;
         // |ground height + z| below 0.7 (FCOMP with C0: a NaN counts as below).
-        volatile float height = flame->offset.z + base.position.z;
+        float height = flame->offset.z + base.position.z;
         float sum = height;
         std::uint32_t bits;
         std::memcpy(&bits, &sum, 4);
@@ -485,7 +480,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         float level;
         std::memcpy(&level, &bits, 4);
         if (x87::IsNaN(level) || level < worlddata::CampfireHeight()) {
-            volatile Vector3 at;
+            Vector3 at;
             at.z = flame->offset.z + base.position.z;
             at.y = flame->offset.y + base.position.y;
             at.x = flame->offset.x + base.position.x;

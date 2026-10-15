@@ -211,9 +211,9 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             toX = bestX;
             path->failed = true;
             result = true;
-            float tx = StoreFloat(static_cast<float>(static_cast<double>(bestX) + Half()));
+            float tx = static_cast<float>(static_cast<double>(bestX) + Half());
             path->targetX = tx;
-            float ty = StoreFloat(static_cast<float>(static_cast<double>(bestY) + Half()));
+            float ty = static_cast<float>(static_cast<double>(bestY) + Half());
             path->targetY = ty;
         } else {
             LocalSearchResetOriginal(search);

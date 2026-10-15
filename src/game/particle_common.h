@@ -1,12 +1,11 @@
 #pragma once
 
 // Helpers shared by the particle callback files (particle_callbacks*.cpp): x87 rounding, the game's
-// constants and random generator, and the forwarders they call. Include after effects.h; the
-// including file compiles under `#pragma float_control(precise, on)`.
+// constants and random generator, and the forwarders they call. Include after effects.h.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float; constants the original reads from memory are read
-// from the exe at run time.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float; constants the original reads from memory
+// are read from the exe at run time.
 
 #include "effects.h"
 #include "random.h"
@@ -23,12 +22,6 @@
 namespace particle {
 
 inline double D(float f) { return f; }
-
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-inline float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 // A zero-extended dword loaded with FILD qword (exact).
 inline double Unsigned(std::uint32_t value) {
@@ -150,6 +143,6 @@ constexpr int kUnitClass = 0x50;
 #define EI_P_SCALE_1 ::particle::GameDouble(0x0073C468)     // ~2^-32
 
 // Next() * 2^-31 - 1: a random value in [-1, 1), rounded to float.
-inline float SignedUnit() { return Store(Unsigned(Next()) * EI_P_SCALE_2 - D(EI_P_ONE)); }
+inline float SignedUnit() { return static_cast<float>(Unsigned(Next()) * EI_P_SCALE_2 - D(EI_P_ONE)); }
 
 } // namespace particle

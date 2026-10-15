@@ -2,9 +2,8 @@
 // rebuilds one mesh (its scene object 2) with a marker per party member and visible unit, per
 // marked object, per zone exit and, in multiplayer, per other player. See docs/notes/ui.md.
 //
-// Floating point follows the original's x87 code: `double` for values the original keeps on the
-// FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
-// operation order is kept and NaN compares stay as written.
+// Floating point follows the original's x87 code: `double` for values the original keeps on the FPU
+// stack, static_cast<float> where it stores to a float.
 #include "ui.h"
 
 #include "base_manager.h"
@@ -23,17 +22,9 @@
 #include <cstring>
 #include <new>
 
-#pragma float_control(precise, on)
-
 namespace {
 
 inline double D(float f) { return f; }
-
-// Rounds an x87 intermediate to float, as the original's FSTP to a float does.
-float Store(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 
 float AbsBits(float f) {
     std::uint32_t bits;
@@ -121,7 +112,7 @@ public:
     // Map coordinates of a world point, as the original computes them: x stays on the FPU
     // stack, y is stored (after the negation; map y grows downwards).
     double MapX(float worldX) const { return (D(worldX) - D(map_->centreX_)) * D(map_->scale_); }
-    float MapY(float worldY) const { return Store(-((D(worldY) - D(map_->centreY_)) * D(map_->scale_))); }
+    float MapY(float worldY) const { return static_cast<float>(-((D(worldY) - D(map_->centreY_)) * D(map_->scale_))); }
     double Zoom() const { return D(map_->zoom_); }
 
     // The place of a marked object, an exit or another player: the zoomed position when it lies
@@ -130,14 +121,14 @@ public:
     bool Place(float worldX, float worldY, float* x, float* y) const {
         double mapX = MapX(worldX);
         float mapY = MapY(worldY);
-        float zoomedX = Store(mapX * Zoom());
-        float zoomedY = Store(D(mapY) * Zoom());
+        float zoomedX = static_cast<float>(mapX * Zoom());
+        float zoomedY = static_cast<float>(D(mapY) * Zoom());
         if (!(LengthSquared2DUnrounded<double>(zoomedY, zoomedX) > kInnerRadius2)) {
             *x = zoomedX;
             *y = zoomedY;
             return true;
         }
-        float rimX = Store(mapX);
+        float rimX = static_cast<float>(mapX);
         if (!(D(mapY) * D(mapY) + D(rimX) * D(rimX) >= kRimRadius2)) return false;
         if (AbsBits(rimX) > kRimExtent) return false;
         if (AbsBits(mapY) > kRimExtent) return false;
@@ -149,10 +140,10 @@ public:
     // A square of half size 0.03 around (x, y): corners (-,-), (+,-), (-,+), (+,+).
     void PutSquare(float x, float y) {
         UiQuadBlock& b = Block();
-        float left = Store(D(x) - kSquareHalf);
-        float top = Store(D(y) - kSquareHalf);
-        float right = Store(D(x) + kSquareHalf);
-        float bottom = Store(D(y) + kSquareHalf);
+        float left = static_cast<float>(D(x) - kSquareHalf);
+        float top = static_cast<float>(D(y) - kSquareHalf);
+        float right = static_cast<float>(D(x) + kSquareHalf);
+        float bottom = static_cast<float>(D(y) + kSquareHalf);
         b.x[0] = left;
         b.y[0] = top;
         b.x[1] = right;
@@ -167,13 +158,13 @@ public:
     void PutDiamond(float x, float y) {
         UiQuadBlock& b = Block();
         b.x[0] = x;
-        b.y[0] = Store(D(y) - kArrowWing);
-        b.x[1] = Store(D(x) + kArrowWing);
+        b.y[0] = static_cast<float>(D(y) - kArrowWing);
+        b.x[1] = static_cast<float>(D(x) + kArrowWing);
         b.y[1] = y;
-        b.x[2] = Store(D(x) - kArrowWing);
+        b.x[2] = static_cast<float>(D(x) - kArrowWing);
         b.y[2] = y;
         b.x[3] = x;
-        b.y[3] = Store(D(y) + kArrowWing);
+        b.y[3] = static_cast<float>(D(y) + kArrowWing);
     }
 
     int indexPos() const { return indexPos_; }
@@ -224,7 +215,7 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
     double nx;
     double ny;
     if (length2 >= kTinyLength2) {
-        float length = Store(x87::fsqrt(length2));
+        float length = static_cast<float>(x87::fsqrt(length2));
         nx = D(dirX) / D(length);
         ny = D(dirY) / D(length);
     } else {
@@ -232,23 +223,23 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
         ny = 1.0f;
     }
 
-    float tipX = Store(nx * kArrowAhead + D(x));
-    float tipY = Store(ny * kArrowAhead + D(y));
+    float tipX = static_cast<float>(nx * kArrowAhead + D(x));
+    float tipY = static_cast<float>(ny * kArrowAhead + D(y));
     b.x[0] = tipX;
     b.y[0] = tipY;
     b.x[1] = tipX;
     b.y[1] = tipY;
 
     // The back corners: the direction turned by +-135 degrees (sums of the scaled components).
-    float sy = Store(ny * kDiagonal);
-    float sx = Store(nx * kDiagonal);
-    float leftX = Store(D(sy) - D(sx));
+    float sy = static_cast<float>(ny * kDiagonal);
+    float sx = static_cast<float>(nx * kDiagonal);
+    float leftX = static_cast<float>(D(sy) - D(sx));
     double leftY = nx * -kDiagonal - D(sy);   // kept on the FPU stack
-    b.x[2] = Store(D(leftX) * kArrowWing + D(x));
-    b.y[2] = Store(leftY * kArrowWing + D(y));
-    float rightY = Store(D(sx) - D(sy));
-    b.x[3] = Store(leftY * kArrowWing + D(x));
-    b.y[3] = Store(D(rightY) * kArrowWing + D(y));
+    b.x[2] = static_cast<float>(D(leftX) * kArrowWing + D(x));
+    b.y[2] = static_cast<float>(leftY * kArrowWing + D(y));
+    float rightY = static_cast<float>(D(sx) - D(sy));
+    b.x[3] = static_cast<float>(leftY * kArrowWing + D(x));
+    b.y[3] = static_cast<float>(D(rightY) * kArrowWing + D(y));
 }
 
 } // namespace
@@ -288,9 +279,9 @@ void CHudMap::BuildMarkers() {
         }
         double mapX = out.MapX(unit->position.x);
         float mapY = out.MapY(unit->position.y);
-        float x = Store(mapX * out.Zoom());
+        float x = static_cast<float>(mapX * out.Zoom());
         double zoomedY = D(mapY) * out.Zoom();   // the original stores it but squares the register
-        float y = Store(zoomedY);
+        float y = static_cast<float>(zoomedY);
         if (zoomedY * D(y) + D(x) * D(x) > kUnitRadius2) {
             out.Hide();
             continue;
@@ -434,14 +425,14 @@ void CHudMap::UpdateView() {
     double length2 = LengthSquared2DUnrounded<double>(facingX_, facingY_);
     if (length2 >= kTinyLength2) {
         double length = x87::fsqrt(length2);
-        facingX_ = Store(D(facingX_) / length);
-        facingY_ = Store(D(facingY_) / length);
+        facingX_ = static_cast<float>(D(facingX_) / length);
+        facingY_ = static_cast<float>(D(facingY_) / length);
     } else {
         facingX_ = 0.0f;
         facingY_ = 1.0f;
     }
     // The compass needle (scene object 10) turns about z.
-    float angle = Store(Fpatan(-D(facingX_), -D(facingY_)));
+    float angle = static_cast<float>(Fpatan(-D(facingX_), -D(facingY_)));
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
@@ -455,9 +446,9 @@ void CHudMap::UpdateView() {
     for (int i = 0; i < count; ++i) {
         const UiPointF& v = viewPolygon_.data[i];
         double x = D(v.x) / D(zoom_);
-        float y = Store(D(v.y) / D(zoom_));
-        points.data[i].x = Store(x / D(scale_) + D(centreX_));
-        points.data[i].y = Store(D(centreY_) - D(y) / D(scale_));
+        float y = static_cast<float>(D(v.y) / D(zoom_));
+        points.data[i].x = static_cast<float>(x / D(scale_) + D(centreX_));
+        points.data[i].y = static_cast<float>(D(centreY_) - D(y) / D(scale_));
     }
 
     // Clipped to the world rectangle: x >= 0, y >= 0, x <= width, y <= height.
@@ -465,14 +456,14 @@ void CHudMap::UpdateView() {
              [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
                  if (!Crosses(p.x, c.x, 0.0f)) return false;
                  out->x = 0.0f;
-                 out->y = Store(D(p.y) - (D(c.y) - D(p.y)) * D(p.x) / (D(c.x) - D(p.x)));
+                 out->y = static_cast<float>(D(p.y) - (D(c.y) - D(p.y)) * D(p.x) / (D(c.x) - D(p.x)));
                  return true;
              },
              [](const UiPointF& v) { return !(v.x >= 0.0f); });
     ClipPass(points,
              [](const UiPointF& p, const UiPointF& c, UiPointF* out) {
                  if (!Crosses(p.y, c.y, 0.0f)) return false;
-                 out->x = Store(D(p.x) - (D(c.x) - D(p.x)) * D(p.y) / (D(c.y) - D(p.y)));
+                 out->x = static_cast<float>(D(p.x) - (D(c.x) - D(p.x)) * D(p.y) / (D(c.y) - D(p.y)));
                  out->y = 0.0f;
                  return true;
              },
@@ -483,14 +474,14 @@ void CHudMap::UpdateView() {
              [width](const UiPointF& p, const UiPointF& c, UiPointF* out) {
                  if (!Crosses(p.x, c.x, width)) return false;
                  out->x = width;
-                 out->y = Store((D(width) - D(p.x)) * (D(c.y) - D(p.y)) / (D(c.x) - D(p.x)) + D(p.y));
+                 out->y = static_cast<float>((D(width) - D(p.x)) * (D(c.y) - D(p.y)) / (D(c.x) - D(p.x)) + D(p.y));
                  return true;
              },
              [width](const UiPointF& v) { return v.x > width; });
     ClipPass(points,
              [height](const UiPointF& p, const UiPointF& c, UiPointF* out) {
                  if (!Crosses(p.y, c.y, height)) return false;
-                 out->x = Store((D(height) - D(p.y)) * (D(c.x) - D(p.x)) / (D(c.y) - D(p.y)) + D(p.x));
+                 out->x = static_cast<float>((D(height) - D(p.y)) * (D(c.x) - D(p.x)) / (D(c.y) - D(p.y)) + D(p.x));
                  out->y = height;
                  return true;
              },
@@ -505,8 +496,8 @@ void CHudMap::UpdateView() {
     }
     area->SetUvCount(count);
     for (int i = 0; i < count; ++i) {
-        area->uvs_[i * 2] = Store(D(points.data[i].x) / D(textureSize_));
-        area->uvs_[i * 2 + 1] = Store(D(points.data[i].y) / D(textureSize_));
+        area->uvs_[i * 2] = static_cast<float>(D(points.data[i].x) / D(textureSize_));
+        area->uvs_[i * 2 + 1] = static_cast<float>(D(points.data[i].y) / D(textureSize_));
     }
     if (count > 2) {
         area->SetIndexCount((count - 2) * 3);
@@ -534,9 +525,9 @@ void CHudMap::UpdateView() {
         for (int k = 0; k < 4; ++k) {
             const UiPointF& v = points.data[q * 4 + k];
             double x = (D(v.x) - D(centreX_)) * D(scale_);
-            float y = Store(-((D(v.y) - D(centreY_)) * D(scale_)));
-            float mapY = Store(D(y) * D(zoom_));
-            area->quads_[q].x[k] = Store(x * D(zoom_));
+            float y = static_cast<float>(-((D(v.y) - D(centreY_)) * D(scale_)));
+            float mapY = static_cast<float>(D(y) * D(zoom_));
+            area->quads_[q].x[k] = static_cast<float>(x * D(zoom_));
             area->quads_[q].y[k] = mapY;
         }
     }
@@ -544,11 +535,11 @@ void CHudMap::UpdateView() {
 
     // The world's bounds (scene object 0), clamped to the map square [-1, 1].
     auto* bounds = reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]);
-    float left = Store(-D(centreX_) * D(scale_));
-    float top = Store(-(-D(centreY_) * D(scale_)));
+    float left = static_cast<float>(-D(centreX_) * D(scale_));
+    float top = static_cast<float>(-(-D(centreY_) * D(scale_)));
     double rightRaw = (D(worldWidth_) - D(centreX_)) * D(scale_);
-    float right = Store(rightRaw);
-    float bottom = Store(-((D(worldHeight_) - D(centreY_)) * D(scale_)));
+    float right = static_cast<float>(rightRaw);
+    float bottom = static_cast<float>(-((D(worldHeight_) - D(centreY_)) * D(scale_)));
     if (!(left >= -1.0f)) left = -1.0f;
     if (top > 1.0f) top = 1.0f;
     if (rightRaw > 1.0f) right = 1.0f;   // the original compares the value still on the FPU stack
@@ -567,10 +558,10 @@ void CHudMap::UpdateView() {
     b.y[2] = bottom;
     b.x[3] = right;
     b.y[3] = top;
-    float u0 = Store((D(left) / D(scale_) + D(centreX_)) / D(textureSize_));
-    float vTop = Store(D(Store(D(centreY_) - D(top) / D(scale_))) / D(textureSize_));
-    float u1 = Store((D(right) / D(scale_) + D(centreX_)) / D(textureSize_));
-    float vBottom = Store(D(Store(D(centreY_) - D(bottom) / D(scale_))) / D(textureSize_));
+    float u0 = static_cast<float>((D(left) / D(scale_) + D(centreX_)) / D(textureSize_));
+    float vTop = static_cast<float>(D(static_cast<float>(D(centreY_) - D(top) / D(scale_))) / D(textureSize_));
+    float u1 = static_cast<float>((D(right) / D(scale_) + D(centreX_)) / D(textureSize_));
+    float vBottom = static_cast<float>(D(static_cast<float>(D(centreY_) - D(bottom) / D(scale_))) / D(textureSize_));
     float* uv = bounds->uvs_;
     uv[0] = u0;
     uv[1] = vBottom;
@@ -607,7 +598,7 @@ BOOL CHudMap::OnWheel(int, int delta, int x, int y) {
     if (region < 0) return 1;
     if (region == 0) {
         double zoom = WheelZoomFactor(static_cast<short>(delta)) * D(zoom_);
-        zoom_ = Store(zoom);
+        zoom_ = static_cast<float>(zoom);
         if (zoom > D(zoomMax_)) std::memcpy(&zoom_, &zoomMax_, sizeof(zoom_));
         if (!(zoom_ >= 1.0f)) zoom_ = 1.0f;
     }

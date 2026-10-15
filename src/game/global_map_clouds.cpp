@@ -99,7 +99,7 @@ void CCloudNoise::Draw(std::uint16_t* pixels, float seconds) {
 EI_REPLACE_METHOD(0x00499F10, CCloudNoise::Draw);
 
 void CCloudNoise::SetRamp(int start, int width, float speed) {
-    volatile float base = static_cast<float>(width) * (1.0f / 255.0f);   // FSTP to a float
+    float base = static_cast<float>(width) * (1.0f / 255.0f);   // FSTP to a float
     rampStart_ = start;
     rampWidth_ = width;
     speed_ = speed;

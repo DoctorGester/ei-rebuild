@@ -45,8 +45,6 @@ using ObjectList = mfc::CList<void*>;
 
 } // namespace
 
-#pragma float_control(precise, on, push)
-
 void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     if (x0 > x1 || y0 > y1) return;
     if (x0 < 0) x0 = 0;
@@ -63,8 +61,8 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
     alignas(4) std::uint8_t scratch[0x34];
     for (int level = 0; level < kLevels; ++level) {
-        float h = StoreFloat(static_cast<float>(static_cast<double>(worlddata::LevelHeights()[level]) *
-                                                heightScale));
+        float h = static_cast<float>(static_cast<double>(worlddata::LevelHeights()[level]) *
+                                                heightScale);
         int levelHeight = x87::fistp(h);
         for (int y = oy0; y <= oy1; ++y)
             for (int x = ox0; x <= ox1; ++x) {
@@ -112,11 +110,11 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
     ObjectList objects{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     double halfW = static_cast<double>(ox1 - ox0) * GameFloat(0x0073B86C) + GameFloat(0x0073B84C);
     double halfH = static_cast<double>(oy1 - oy0) * GameFloat(0x0073B86C) + GameFloat(0x0073B84C);
-    float scale = StoreFloat(static_cast<float>(static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C)));
-    float radius = StoreFloat(static_cast<float>(x87::fsqrt(halfW * halfW + halfH * halfH) * scale));
+    float scale = static_cast<float>(static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C));
+    float radius = static_cast<float>(x87::fsqrt(halfW * halfW + halfH * halfH) * scale);
     float centre[2];
-    float cx = StoreFloat(static_cast<float>(static_cast<double>(ox0 + ox1) * scale * GameFloat(0x0073B86C)));
-    float cy = StoreFloat(static_cast<float>(static_cast<double>(oy0 + oy1) * scale * GameFloat(0x0073B86C)));
+    float cx = static_cast<float>(static_cast<double>(ox0 + ox1) * scale * GameFloat(0x0073B86C));
+    float cy = static_cast<float>(static_cast<double>(oy0 + oy1) * scale * GameFloat(0x0073B86C));
     centre[0] = cx;
     centre[1] = cy;
     CSectorMap* sectors = &sectorMap;
@@ -200,8 +198,8 @@ void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) 
     if (s->passage < 0 || lowest > s->top || highest < s->bottom) return;
     int lo = lowest > s->bottom ? lowest : s->bottom;
     int hi = highest < s->top ? highest : s->top;
-    float frac = StoreFloat(static_cast<float>(static_cast<double>(hi - lo) / (s->top - s->bottom)));
-    float added = StoreFloat(static_cast<float>(static_cast<double>(TableInt(worlddata::OccluderCosts(), type)) * frac));
+    float frac = static_cast<float>(static_cast<double>(hi - lo) / (s->top - s->bottom));
+    float added = static_cast<float>(static_cast<double>(TableInt(worlddata::OccluderCosts(), type)) * frac);
     s->cost += x87::fistp(added);
     float scale = worlddata::DampScale();
     s->passage = sectorOrder ? Damp(TableInt(worlddata::OccluderDamping(), type), scale, frac, s->passage)
@@ -285,8 +283,6 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     else row = cost >= 2 ? 1 : 0;
     return worlddata::MarkTable()[row * 16 + column];
 }
-
-#pragma float_control(pop)
 
 namespace {
 // 007916BC: 17 cell offsets {dy, dx}; the first 4 the direct neighbours, the other 13 the cells

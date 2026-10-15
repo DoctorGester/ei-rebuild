@@ -62,7 +62,7 @@ EI_REPLACE(0x005CB260, FindEnemiesHook);
 
 void AIBrain::FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius) {
     out->RemoveAll();
-    float radius2 = radius > kZero ? RoundToFloat(static_cast<double>(radius) * radius) : -1.0f;
+    float radius2 = radius > kZero ? static_cast<float>(static_cast<double>(radius) * radius) : -1.0f;
     for (auto* node = visible.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
         if (!other->IsHostileTo(self) || IsDead(other) || ReportsContains(&reports, nullptr, other)) continue;
@@ -95,7 +95,7 @@ CUnit* AIBrain::NearestEnemy(CUnit* self) {
         double dz = static_cast<double>(self->position.z) - other->position.z;
         double d2 = LengthSquaredUnrounded<Sum3::ZXY>(dx, dy, dz);
         if (!(d2 >= best)) {
-            best = RoundToFloat(d2);
+            best = static_cast<float>(d2);
             nearest = other;
         }
     }
@@ -113,7 +113,7 @@ void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
     double dx = static_cast<double>(self->position.x) - other->position.x;
     double dy = static_cast<double>(self->position.y) - other->position.y;
     double dz = static_cast<double>(self->position.z) - other->position.z;
-    float distance = RoundToFloat(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
+    float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
     AIBrain* theirBrain = theirs->Brain();
     bool attacksUs = (theirBrain->action == kActionAttack || theirBrain->action == kActionCast) &&
                      theirBrain->target == static_cast<CEngineObject*>(self);
@@ -160,7 +160,7 @@ bool IsNaN(double v) {
 // distance / range, at most 3 (NaN kept); 3 for a zero (or NaN) range.
 float Exposure(float distance, double range) {
     if (range == 0.0 || IsNaN(range)) return kMaxExposure;
-    float ratio = RoundToFloat(distance / range);
+    float ratio = static_cast<float>(distance / range);
     return !(ratio >= kMaxExposure) ? ratio : kMaxExposure;
 }
 
@@ -180,8 +180,8 @@ void AIBrain::MeasureExposure(UnitController* self, float* out) {
         double dx = static_cast<double>(other->position.x) - unit->position.x;
         double dy = static_cast<double>(other->position.y) - unit->position.y;
         double dz = static_cast<double>(other->position.z) - unit->position.z;
-        float distance = RoundToFloat(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
-        float sight = RoundToFloat(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
+        float distance = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)));
+        float sight = static_cast<float>(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
                                    theirs->stats.valuesB0[0].current * self->stats.valuesE0[0].current);
         if (!(distance >= sight)) {
             Vector3 theirEye;

@@ -20,6 +20,7 @@
 #include "player_messages.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "mod_folders.h"
 #include "world_map_files.h"
 
 #include "lib/crt.h"
@@ -370,12 +371,12 @@ int RestoreZone(PartyRecords* records, MapRecord* zoneRecord, const mfc::CString
 
     int entrance = records->entrance;
     if (entrance >= 0 && entrance < zoneRecord->exits.size) {
-        float now = StoreFloat(static_cast<float>(VariableGet(variables, game::Text(kGTime))));
+        float now = static_cast<float>(VariableGet(variables, game::Text(kGTime)));
         float left;
         {
             mfc::CString prefix(game::Text(kLeftPrefix));
             mfc::CString variable = prefix + zone;
-            left = StoreFloat(static_cast<float>(VariableGet(variables, variable)));
+            left = static_cast<float>(VariableGet(variables, variable));
         }
         int ticks = GameFtol((static_cast<double>(now) - left) * GameFloat(kTicksPerTime));
         if (ticks >= kMaxCatchUpTicks) ticks = kMaxCatchUpTicks;
@@ -688,7 +689,7 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
         mfc::CString variable = prefix + static_cast<const char*>(zone);
         VariableSet(variables, variable, 1.0f);
     }
-    float now = StoreFloat(static_cast<float>(VariableGet(variables, game::Text(kGTime))));
+    float now = static_cast<float>(VariableGet(variables, game::Text(kGTime)));
     {
         mfc::CString prefix(game::Text(kLeftPrefix));
         mfc::CString variable = prefix + zone;
@@ -2285,6 +2286,7 @@ void GameFlow::BuildZoneTable() {
     int more;
     {
         mfc::CString folder;
+        modfolders::SelectMaps(reinterpret_cast<const char*>(kQuestFilePattern), modfolders::MapsSite::ZoneTable);
         MapsFolderAt(&folder);
         mfc::CString pattern = folder + reinterpret_cast<const char*>(kQuestFilePattern);
         more = find.FindFile(pattern, 0);

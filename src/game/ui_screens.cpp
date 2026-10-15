@@ -431,7 +431,7 @@ int HeroSchoolSkill(void* stats, int school) {
 
 int HeroManaUnits(void* stats) {
     // The maximum is stored as a float (FSTP) before the division; the quotient is not rounded.
-    float maximum = StoreFloat(static_cast<float>(UnitStatsManaCurve(static_cast<UnitStats*>(stats))));
+    float maximum = static_cast<float>(UnitStatsManaCurve(static_cast<UnitStats*>(stats)));
     return GameFtol(maximum / StatsPeriod(stats));
 }
 

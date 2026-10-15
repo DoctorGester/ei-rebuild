@@ -18,7 +18,6 @@
 
 // The bounds must keep the original's order of operations, its float stores and its NaN
 // behaviour: values it keeps on the FPU stack are double locals, values it stores are floats.
-#pragma float_control(precise, on)
 
 namespace {
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;   // flags_

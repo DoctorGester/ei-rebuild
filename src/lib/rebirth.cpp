@@ -22,6 +22,7 @@ static_assert(sizeof(kNames) / sizeof(kNames[0]) == kPatchCount);
 bool g_followAddon = true;
 int g_pluginNPlayers = 7;
 int g_pluginPause = 1;
+char g_secondMaster[256];
 char g_queued[1024];                         // QueueSpec runs before any C++ object may be used
 const Implements* g_implements = nullptr;    // constant-initialised: registrations come first
 const LiveStolen* g_liveStolen = nullptr;
@@ -38,6 +39,9 @@ void SetPluginNPlayers(int players) { g_pluginNPlayers = players; }
 
 int PluginPause() { return g_pluginPause; }
 void SetPluginPause(int mode) { g_pluginPause = mode; }
+
+const char* PluginSecondMaster() { return g_secondMaster; }
+void SetPluginSecondMaster(const char* address) { strncpy_s(g_secondMaster, address, _TRUNCATE); }
 
 const char* Name(Patch p) { return kNames[static_cast<int>(p)]; }
 
@@ -64,6 +68,10 @@ bool ApplySpec(const char* spec) {
             ++p;
         }
         token[n] = 0;
+        if (_strnicmp(token, "SecondMaster=", 13) == 0) {
+            SetPluginSecondMaster(token + 13);
+            continue;
+        }
         bool on = true;
         if (char* eq = std::strchr(token, '=')) {
             on = eq[1] != '0';
@@ -91,6 +99,7 @@ void LoadSettings(const char* iniPath) {
         if (value >= 0) detail::g_enabled[i] = value != 0;
     }
     g_followAddon = GetPrivateProfileIntA("Rebirth", "FollowAddon", 1, iniPath) != 0;
+    GetPrivateProfileStringA("Rebirth", "SecondMaster", "", g_secondMaster, sizeof(g_secondMaster), iniPath);
     char env[1024];
     DWORD n = GetEnvironmentVariableA("EI_REBIRTH", env, sizeof(env));
     if (n > 0 && n < sizeof(env)) ApplySpec(env);

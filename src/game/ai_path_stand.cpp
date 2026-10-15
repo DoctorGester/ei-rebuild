@@ -82,8 +82,6 @@ __declspec(naked) void __fastcall OrderSetTurnUntil(AIPath*, void*, std::uint32_
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
-#pragma float_control(precise, on, push)
-
 // The common part; `time` is read after the reset (005B2190 passes the path's own +0x10).
 void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
     path->cells.RemoveAll();
@@ -100,14 +98,12 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
     double scale = static_cast<double>(GameFloat(0x0073B84C)) /
                    (static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C));
     const CMapObject* object = reinterpret_cast<const CMapObject*>(unit);
-    path->targetX = StoreFloat(static_cast<float>(scale * object->position.x));
-    path->targetY = StoreFloat(static_cast<float>(scale * object->position.y));
+    path->targetX = static_cast<float>(scale * object->position.x);
+    path->targetY = static_cast<float>(scale * object->position.y);
     Vector3 facing;
     FacingFromQuaternion(&object->orientation.w, &facing.x);
     AIPathStartOriginal(path, nullptr, &object->position, &facing, *time);
 }
-
-#pragma float_control(pop)
 
 } // namespace
 

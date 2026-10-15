@@ -11,10 +11,6 @@
 #include <bit>
 #include <cstring>
 
-// /fp:fast reassociates and distributes (e.g. (a - 25) + b became (a + b) - 25); the formulas here
-// must keep the original's order of operations.
-#pragma float_control(precise, on)
-
 namespace {
 constexpr float kZero = 0.0f;                                   // 0073B858
 constexpr float kOne = 1.0f;                                    // 0073B84C
@@ -372,7 +368,7 @@ double CUnit::BaseSpeed() {
 EI_REPLACE_METHOD(0x00530370, CUnit::BaseSpeed);
 
 double CUnit::ModeSpeed() {
-    volatile float speed = static_cast<float>(BaseSpeed());   // FSTP to a float local in the original
+    float speed = static_cast<float>(BaseSpeed());   // FSTP to a float local in the original
     if (moveMode != 0 && IsDead() == 0) {
         if (moveMode == 1) return speed * kSlowModeScale;
         return speed;
@@ -431,7 +427,7 @@ bool CUnit::AcceptsAnimationImpl(const void* entry) {
 EI_REPLACE_METHOD(0x00532DA0, CUnit::AcceptsAnimationImpl);
 
 double CUnit::AnimationRatio() {
-    volatile float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // FSTP to a float local
+    float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // FSTP to a float local
     return AnimationFactor(scale.z) / denominator;
 }
 EI_REPLACE_METHOD(0x00532E00, CUnit::AnimationRatio);

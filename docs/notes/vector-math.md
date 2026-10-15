@@ -46,7 +46,7 @@ stripped) at V1; treat them as +-10%. "Site" = one source line.
 | `float a[16]` / `[4][4]` | 29 | 17 | ui.h:1224 placement_, figure_mesh.h:19, renderer_init.cpp:157; render_mesh.cpp 6 |
 | `float a[12]` (3 rows of 4) | 3 | 3 | world.h MatrixRows, camera.h:99 CubicCurve3, figure_part_draw.cpp:530 |
 | `float a[2]` | 12 | 10 | renderer_strip.cpp, unit_ai_sight.cpp |
-| rounding-store helpers (`Store`, `StoreFloat`, `RoundToFloat`, `Round`, `F`) | 53 definitions, 2481 calls | 102 | particle_callbacks.cpp 935 calls |
+| rounding-store helpers (`Store`, `StoreFloat`, `RoundToFloat`, `Round`, `F`) | 53 definitions, 2481 calls | 102 | particle_callbacks.cpp 935 calls; all `static_cast<float>` since SV7d1a1 |
 | local `D(float)` helpers | 23 | | |
 | naked `Fpatan` / `CIacos` / `CIasin` copies | 8 / 5 | | ai_motion, ai_path, camera, combat_sight, core_transform_math, map_object_shadow, ui_hud_map, world_party |
 
@@ -129,7 +129,6 @@ All `__forceinline`, by value:
 | `TransformColumn<OX, OY, OZ>`, `TransformColumnNormal<...>` (Matrix4 or MatrixRows) | `M * v`: grouped `m[4i]*x, m[4i+1]*y, m[4i+2]*z`, then `+ m[4i+3]` |
 | `TransformColumnW<Sum3>` | the homogeneous w of `M * (v, 1)`: grouped `m[12]*x, m[13]*y, m[14]*z`, then `+ m[15]` |
 | `Conjugate(q)` | `(w, -x, -y, -z)` |
-| `RoundToFloat(double)` | volatile float store (replaces the local Store / StoreFloat / Round copies) |
 | `LengthSquared2DUnrounded<T>(x, y)`, `DistanceSquaredXYUnrounded<T>(a, b)` (V3b; precise off, nothing stored) | `x*x + y*y`; `dy = a.y - b.y`, then `dx`, `dx*dx + dy*dy`, in T (`double` where the site keeps the x87 value, `float` for float locals) |
 | `Dot2DUnrounded<T>(x, y, x2, y2)`, `DotUnrounded<Sum3, T>(x, y, z, x2, y2, z2)`, `LengthSquaredUnrounded<Sum3, T>(x, y, z)` (V3c; precise off, on the caller's scalars) | `x*x2 + y*y2`; the named grouping of the three products, in T |
 | `DotUnrounded<Sum3, T>(a, b)`, `LengthSquaredUnrounded<Sum3, T>(v)` (V3d; Vector3 forms of the above; T defaults to float since V3e) | the same sums on the members; `double` in a precise region (a float-typed result is rounded on return there) |
@@ -171,7 +170,7 @@ pragmas 116 mismatch).
 positions, chunk_stream.h `Float4` (Quaternion, still memcpy'd), Point, Vec3, UiVec3, V3, Quat, Quaternion4) are the vecmath
 types; 0049E800's forwarders are one `QuaternionSetAxisAngleOriginal` (originals_render.h); local helpers renamed where
 vecmath uses the name (`LengthDouble`, `DotUnrounded` / `CrossStored`, `LerpStored`). core_maths / object_maths /
-quaternion / matrix_math / maths use the operators, `Cross`, `Conjugate`, `RoundToFloat`. Kept written out: Dot 00401E00,
+quaternion / matrix_math / maths use the operators, `Cross`, `Conjugate`, `static_cast<float>` (was `RoundToFloat`). Kept written out: Dot 00401E00,
 Length 00401E20 and the squared axis lengths of FromAxisAngle / SetAngleAxis / SetAxisAngle (unrounded sums: a
 LengthSquaredXYZ version differed at 53 and 64 bits, hence the migration rule), quaternion products, AxisX/Y/Z,
 MatrixMultiply's per-element orders, Slerp.
@@ -354,7 +353,7 @@ identical, or only stack slots / scheduling / commuted FMUL operands.
   at 24 bits, which is what the bitwise wrappers see; different on 53-bit threads.
 - **53-bit threads.** Code running off the main thread (verify log "FPU precision ...") is where float helpers and the
   original's register values can differ; leave such functions explicit until checked.
-- **Transcendentals.** FPATAN / FSIN / FCOS / acos results are 64-bit regardless of precision; dropping a `RoundToFloat` the
+- **Transcendentals.** FPATAN / FSIN / FCOS / acos results are 64-bit regardless of precision; dropping a float store (`static_cast<float>`) the
   original performs flips results (X3). Keep every such store.
 - **Exponent range.** x87 intermediates do not overflow / underflow at float limits; float helpers do (huge or denormal
   inputs only).

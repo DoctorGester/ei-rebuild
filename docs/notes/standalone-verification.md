@@ -1708,3 +1708,18 @@ the 97 goldens the same and every decoded save as before.
 The suite's non-golden frames_basic, render_cpuwindows and render_present (vanilla) leave a saveb\scenario.sav whose
 screen block savefile_scenario.py reads 0x12 bytes too far (not SV7b2's readers; SV7d6).
 
+## SV7d1a1: the /fp:fast workarounds removed (2026-10-15)
+
+Under /fp:precise a `static_cast<float>`, a float variable and a float parameter or return round through memory (checked
+on a test file: a cast of a float-typed sum inside a double expression gets its FSTP/FLD), so the workarounds were
+second stores of rounded values. Removed: the 110 `float_control` pragmas outside vecmath.h (release and verify objects
+disassemble the same); `RoundToFloat` (262 calls), the per-file `Store` (29 copies, 1883 calls), `StoreFloat` (13
+copies, 485 calls), `Round`, `Rounded`, `StoreRounded`, `StoreScale` and figure_mesh's `F`, all now `static_cast<float>`
+(`StoreFloat(static_cast<float>(x))` one cast, 202 sites); 169 volatile float / Vector3 locals. The object diff of those
+steps drops the redundant FSTP/FLD pairs (HeightUnits, CameraSeconds, OutOfSightRange) and reschedules around them.
+Kept: vecmath.h's precise block (a guard for files built with other flags) and its precise-off block (it changes code);
+quaternion's `StoreDouble`, volatile doubles and `const volatile` constants (a double store or a run-time product,
+which precise does not give); the x87:: helpers; crt_x87's conditional `Round`.
+
+**Suite** (`work.py test SV7d1a1 --golden --jobs 4`, 128 runs): ALL PASS, no verify mismatches, 56 goldens the same;
+`--standalone --vanilla-only --golden` on the 44 scenarios with a vanilla golden: 44 the same.
