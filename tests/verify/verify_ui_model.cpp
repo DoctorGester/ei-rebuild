@@ -62,7 +62,7 @@ EI_VERIFY(0x005FC3D0, StopVerify, 0, s_unused);
 static void __fastcall ShowPartVerify(CUiModel* self, void*, const char* name, int show) {
     CObject3D* object = self->Figure();
     std::vector<std::uint32_t> before = PartFlags(object);
-    FigurePart* part = object->FindPart(name);
+    CFigureMesh* part = object->FindPart(name);
     self->CUiModel::ShowPart(name, show);
     std::vector<std::uint32_t> after = PartFlags(object);
     bool ok = before.size() == after.size();

@@ -26,8 +26,6 @@ constexpr int kDefaultUpdatePeriod = 55;
 // The autosave option (nonzero: save "savea" on entering a zone).
 bool AutoSaveEnabled() { return *reinterpret_cast<const int*>(0x0079BE7C) != 0; }
 const char* AutoSaveName() { return reinterpret_cast<const char*>(0x007942E8); }   // "savea"
-// The save game's stream (a memory stream object).
-CStream* SaveGameStream() { return reinterpret_cast<CStream*>(0x007AFDF8); }
 
 constexpr std::uint32_t kUnitSelected = 0x10;   // CEngineObject::flags_ of a selected party unit
 constexpr int kMessageLogChild = 9;
@@ -131,7 +129,7 @@ EI_REPLACE_METHOD(0x006364E0, CBattleScreenSetup::OnUnitLeft);
 // --- 00635080: slot 40 --------------------------------------------------------------------------
 
 void CBattleScreenSetup::SaveState() {
-    CStream* stream = SaveGameStream();
+    CStream* stream = GameSaveStream();
     UiDwordArray& party = Party();
     // The original collects the ids into a CDWordArray first; the bytes written are the same.
     int count = 0;

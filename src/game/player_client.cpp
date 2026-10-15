@@ -592,7 +592,7 @@ const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
 
 // FindPart, then RemovePart when there is one (the original inlines both calls).
 void RemovePartNamed(CObject3D* object, const char* name) {
-    if (FigurePart* part = object->FindPart(name)) object->RemovePart(part);
+    if (CFigureMesh* part = object->FindPart(name)) object->RemovePart(part);
 }
 
 } // namespace
@@ -685,7 +685,7 @@ int CPlayerClient::OnNewObject() {
         source->attachPoint = 0;
     }
     if (!isUnit) {
-        for (int i = 0; i < figure->parts.size; ++i) static_cast<FigurePart*>(figure->parts.data[i])->flags_ |= kPartFlagFigure;   // 00517910
+        for (int i = 0; i < figure->parts.size; ++i) static_cast<CFigureMesh*>(figure->parts.data[i])->flags_ |= kPartFlagFigure;   // 00517910
         created->flags_ |= kFlagNoParts;
     }
     CEngineObject* attached = figure->attached;

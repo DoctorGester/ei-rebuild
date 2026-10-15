@@ -29,7 +29,7 @@ constexpr std::uint32_t kRestPoseKind = 0x80590000;
 
 // A part is hidden while bit 0x80 of its flags is set.
 constexpr std::uint32_t kHidden = 0x80;
-void ShowFigurePart(FigurePart* part, int show) {
+void ShowFigurePart(CFigureMesh* part, int show) {
     auto* object = reinterpret_cast<CEngineObject*>(part);
     if (static_cast<std::uint8_t>(show)) object->flags_ &= ~kHidden;
     else object->flags_ |= kHidden;
@@ -87,14 +87,14 @@ EI_REPLACE_METHOD(0x005FC3D0, CUiModel::Stop);
 
 // 005FC4C0 (RET 8). The part named `name` (005169A0) shown or hidden (`show`'s low byte).
 void CUiModel::ShowPart(const char* name, int show) {
-    if (FigurePart* part = Figure()->FindPart(name)) ShowFigurePart(part, show);
+    if (CFigureMesh* part = Figure()->FindPart(name)) ShowFigurePart(part, show);
 }
 EI_REPLACE_METHOD(0x005FC4C0, CUiModel::ShowPart);
 
 // 005FC4F0 (RET 4). Every part (+0xD0) shown or hidden; null entries skipped.
 void CUiModel::ShowAllParts(int show) {
     for (int i = 0; i < Figure()->parts.size; ++i)
-        if (auto* part = static_cast<FigurePart*>(Figure()->parts.data[i])) ShowFigurePart(part, show);
+        if (auto* part = static_cast<CFigureMesh*>(Figure()->parts.data[i])) ShowFigurePart(part, show);
 }
 EI_REPLACE_METHOD(0x005FC4F0, CUiModel::ShowAllParts);
 
