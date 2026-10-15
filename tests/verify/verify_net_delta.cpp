@@ -1,93 +1,53 @@
 // Differential checks for net_delta.cpp.
 //
 // Everything here changes memory streams (headers, buffers that may be reallocated) and a few
-// globals. Each wrapper deep-copies the streams the function can touch (header plus a private copy
-// of the buffer from the game heap), points the globals at the copies, runs the original on the
-// copies, restores the globals and runs ours on the real objects. The streams must then match:
-// every header field except the buffer pointer, and the buffer contents up to the stream's size.
-// The globals must match too (pointers into the copied field compared by their offset). The
-// copies' buffers are freed afterwards.
+// globals. Ours runs first on the real objects: each wrapper keeps the streams the function can
+// touch in our memory (deltasnap::KeptStream / KeptField / KeptState: header plus bytes), runs ours,
+// then, inside a heap::Aside, makes twins from what it kept (a game-heap buffer each, outside the
+// reservation), points the globals at the twins, runs the original on them, frees the twins and puts
+// ours' globals back. The streams must then match: every header field except the buffer pointer, and
+// the buffer contents up to the stream's size. The globals must match too (pointers into the twin
+// field compared by their offset). Ours' blocks are then the only ones the check makes in the
+// reservation, where a --no-hooks run makes the original's (SV2f / SV2h / SV2h3).
 #include "verify.h"
 #include "delta_snapshot.h"
+#include "harness_heap.h"
 
 #include "../../src/game/ai_motion.h"
 #include "../../src/game/net_delta.h"
 #include "../../src/lib/crt.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 
-void* s_unused;
+namespace heap = ei::verify::heap;
 
-// --- Stream copies ---------------------------------------------------------------------------------
+using deltasnap::IsMemoryStream;
+using deltasnap::KeptField;
+using deltasnap::KeptState;
+using deltasnap::KeptStream;
+using deltasnap::SameStream;
+using deltasnap::TwinField;
+using deltasnap::TwinState;
+using deltasnap::TwinStream;
+
+void* s_unused;
 
 // Only memory streams (the two CMemoryStream vtables) are copied: another stream class (e.g. one over
 // a file) would share its underlying resource with the copy. Anything else runs ours only.
-bool IsMemoryStream(const BitStream* s) {
-    std::uintptr_t vtable;
-    std::memcpy(&vtable, s, sizeof(vtable));
-    return vtable == 0x0073BD90 || vtable == 0x0073C960;
-}
 bool IsMemoryField(const DeltaField* f) {
     return IsMemoryStream(&f->snapshot[0]) && IsMemoryStream(&f->snapshot[1]) && IsMemoryStream(&f->out[0]) &&
            IsMemoryStream(&f->out[1]);
 }
 
-void CloneStream(BitStream* dst, const BitStream* src) {
-    std::memcpy(dst, src, sizeof(BitStream));
-    if (!src->data_) return;
-    std::uint32_t bytes = src->capacity_ > src->size_ ? src->capacity_ : src->size_;
-    if (bytes == 0) bytes = 1;
-    dst->data_ = static_cast<std::uint8_t*>(gamecrt::operator_new(bytes));
-    std::memset(dst->data_, 0, bytes);
-    std::memcpy(dst->data_, src->data_, src->size_);
+// `size` bytes of `p` kept in our memory (at least one byte, for a buffer the original writes into).
+std::vector<std::uint8_t> KeepBytes(const void* p, std::size_t size) {
+    std::vector<std::uint8_t> bytes(size ? size : 1);
+    if (p && size) std::memcpy(bytes.data(), p, size);
+    return bytes;
 }
-
-void FreeStream(BitStream* s) {
-    if (s->data_) gamecrt::operator_delete(s->data_);
-    s->data_ = nullptr;
-}
-
-bool SameStream(const BitStream* a, const BitStream* b) {
-    constexpr std::size_t kData = offsetof(BitStream, data_);
-    const auto* x = reinterpret_cast<const unsigned char*>(a);
-    const auto* y = reinterpret_cast<const unsigned char*>(b);
-    if (std::memcmp(x, y, kData) != 0) return false;
-    if (std::memcmp(x + kData + 4, y + kData + 4, sizeof(BitStream) - kData - 4) != 0) return false;
-    if (a->size_ == 0) return true;
-    if (!a->data_ || !b->data_) return a->data_ == b->data_;
-    return std::memcmp(a->data_, b->data_, a->size_) == 0;
-}
-
-struct FieldCopy {
-    DeltaField field;
-    FieldCopy(const DeltaField* src) {
-        for (int i = 0; i < 2; ++i) {
-            CloneStream(&field.snapshot[i], &src->snapshot[i]);
-            CloneStream(&field.out[i], &src->out[i]);
-        }
-    }
-    ~FieldCopy() {
-        for (int i = 0; i < 2; ++i) {
-            FreeStream(&field.snapshot[i]);
-            FreeStream(&field.out[i]);
-        }
-    }
-    bool Same(const DeltaField* other) const {
-        for (int i = 0; i < 2; ++i) {
-            if (!SameStream(&field.snapshot[i], &other->snapshot[i])) return false;
-            if (!SameStream(&field.out[i], &other->out[i])) return false;
-        }
-        return true;
-    }
-};
-
-struct StreamCopy {
-    BitStream stream;
-    explicit StreamCopy(const BitStream* src) { CloneStream(&stream, src); }
-    ~StreamCopy() { FreeStream(&stream); }
-};
 
 // --- Globals -----------------------------------------------------------------------------------------
 
@@ -119,12 +79,12 @@ T* Map(T* p, const void* from, const void* to, std::size_t size) {
     return p;
 }
 
-// Globals after the original (on copies) and after ours (on the real objects) agree, with pointers
-// into the copied field / reader mapped back.
-bool SameGlobals(const Globals& expected, const Globals& actual, const DeltaField* copy, const DeltaField* real,
-                 const BitStream* readerCopy, const BitStream* realReader) {
-    BitStream* snapshot = Map(expected.snapshot, copy, real, sizeof(DeltaField));
-    BitStream* reader = expected.reader == readerCopy ? const_cast<BitStream*>(realReader) : expected.reader;
+// Globals after the original (on twins) and after ours (on the real objects) agree, with pointers
+// into the twin field / reader mapped back.
+bool SameGlobals(const Globals& expected, const Globals& actual, const DeltaField* twin, const DeltaField* real,
+                 const BitStream* readerTwin, const BitStream* realReader) {
+    BitStream* snapshot = Map(expected.snapshot, twin, real, sizeof(DeltaField));
+    BitStream* reader = readerTwin && expected.reader == readerTwin ? const_cast<BitStream*>(realReader) : expected.reader;
     return expected.keep0 == actual.keep0 && expected.keep1 == actual.keep1 && snapshot == actual.snapshot &&
            reader == actual.reader;
 }
@@ -135,9 +95,11 @@ bool SameGlobals(const Globals& expected, const Globals& actual, const DeltaFiel
 void(__fastcall* s_putBit)(BitStream*, void*, int);
 void __fastcall PutBitVerify(BitStream* self, void*, int bit) {
     if (!IsMemoryStream(self)) return self->PutBit((bit & 0xFF) != 0);
-    StreamCopy expected(self);
-    s_putBit(&expected.stream, nullptr, bit);
+    const KeptStream kept(self);
     self->PutBit((bit & 0xFF) != 0);
+    heap::Aside aside;
+    TwinStream expected;
+    s_putBit(expected.Make(kept), nullptr, bit);
     ei::verify::Check("BitStream::PutBit", true, SameStream(&expected.stream, self), "mask %d", self->bitMask_);
 }
 
@@ -147,9 +109,11 @@ void __fastcall PutBitVerify(BitStream* self, void*, int bit) {
 void(__fastcall* s_writeRaw)(const void*, std::uint32_t, BitStream*);
 void __fastcall WriteRawVerify(const void* data, std::uint32_t size, BitStream* out) {
     if (!IsMemoryStream(out)) return delta::WriteRaw(data, size, out);
-    StreamCopy expected(out);
-    s_writeRaw(data, size, &expected.stream);
+    const KeptStream kept(out);
     delta::WriteRaw(data, size, out);
+    heap::Aside aside;
+    TwinStream expected;
+    s_writeRaw(data, size, expected.Make(kept));
     ei::verify::Check("delta::WriteRaw", true, SameStream(&expected.stream, out), "size %u", size);
 }
 
@@ -157,9 +121,11 @@ void __fastcall WriteRawVerify(const void* data, std::uint32_t size, BitStream* 
 void(__fastcall* s_writeDiff)(const void*, const void*, std::uint32_t, BitStream*);
 void __fastcall WriteDiffVerify(const void* old, const void* data, std::uint32_t size, BitStream* out) {
     if (!IsMemoryStream(out)) return delta::WriteDiff(old, data, size, out);
-    StreamCopy expected(out);
-    s_writeDiff(old, data, size, &expected.stream);
+    const KeptStream kept(out);
     delta::WriteDiff(old, data, size, out);
+    heap::Aside aside;
+    TwinStream expected;
+    s_writeDiff(old, data, size, expected.Make(kept));
     ei::verify::Check("delta::WriteDiff", true, SameStream(&expected.stream, out), "size %u", size);
 }
 
@@ -167,18 +133,24 @@ void __fastcall WriteDiffVerify(const void* old, const void* data, std::uint32_t
 void(__fastcall* s_writeChannel)(BitStream*, const void*, std::uint32_t, int, BitStream*);
 void __fastcall WriteChannelVerify(BitStream* snapshot, const void* data, std::uint32_t size, int keep, BitStream* out) {
     if (!IsMemoryStream(snapshot) || !IsMemoryStream(out)) return delta::WriteDeltaChannel(snapshot, data, size, keep, out);
-    StreamCopy expectedSnapshot(snapshot);
-    StreamCopy expectedOut(out);
-    s_writeChannel(&expectedSnapshot.stream, data, size, keep, &expectedOut.stream);
+    const KeptStream keptSnapshot(snapshot);
+    const KeptStream keptOut(out);
     delta::WriteDeltaChannel(snapshot, data, size, keep, out);
+    heap::Aside aside;
+    TwinStream expectedSnapshot;
+    TwinStream expectedOut;
+    expectedSnapshot.Make(keptSnapshot);
+    expectedOut.Make(keptOut);
+    s_writeChannel(&expectedSnapshot.stream, data, size, keep, &expectedOut.stream);
     bool same = SameStream(&expectedSnapshot.stream, snapshot) && SameStream(&expectedOut.stream, out);
     ei::verify::Check("delta::WriteDeltaChannel", true, same, "size %u keep %d", size, keep);
 }
 
 // --- DeltaField: begin / end -------------------------------------------------------------------------
 
-// Runs `original` on a copy of the field (and of the reader when one is set), then `ours` on the
-// real field; compares the fields, the reader, the globals and the returned values (via `sameRet`).
+// Runs `ours` on the real field, then `original` on a twin of the field (and of the reader when one
+// is set) made from what was kept before ours; compares the fields, the reader, the globals and the
+// returned values (via `sameRet`).
 template <typename Original, typename Ours, typename SameRet>
 void CheckField(const char* name, DeltaField* self, Original original, Ours ours, SameRet sameRet) {
     const Globals before = Globals::Save();
@@ -186,22 +158,30 @@ void CheckField(const char* name, DeltaField* self, Original original, Ours ours
         ours(self);
         return;
     }
-    FieldCopy expected(self);
     BitStream* realReader = before.reader;
-    StreamCopy* readerCopy = realReader ? new StreamCopy(realReader) : nullptr;
+    const KeptField keptField(self);
+    KeptStream keptReader;
+    if (realReader) keptReader.Keep(realReader);
+
+    auto actualRet = ours(self);
+    const Globals actual = Globals::Save();
+
+    heap::Aside aside;
+    TwinField expected;
+    expected.Make(keptField);
+    TwinStream readerTwin;
     Globals scratch = before;
     scratch.snapshot = Map(before.snapshot, self, &expected.field, sizeof(DeltaField));
-    if (readerCopy) scratch.reader = &readerCopy->stream;
+    if (realReader) scratch.reader = readerTwin.Make(keptReader);
     scratch.Restore();
     auto expectedRet = original(&expected.field);
     const Globals after = Globals::Save();
-    before.Restore();
-    auto actualRet = ours(self);
-    bool same = expected.Same(self) && SameGlobals(after, Globals::Save(), &expected.field, self,
-                                                   readerCopy ? &readerCopy->stream : nullptr, realReader) &&
-                (!readerCopy || SameStream(&readerCopy->stream, realReader)) && sameRet(expectedRet, actualRet, &expected.field);
+    actual.Restore();
+
+    bool same = expected.Same(self) &&
+                SameGlobals(after, actual, &expected.field, self, realReader ? &readerTwin.stream : nullptr, realReader) &&
+                (!realReader || SameStream(&readerTwin.stream, realReader)) && sameRet(expectedRet, actualRet, &expected.field);
     ei::verify::Check(name, true, same, "");
-    delete readerCopy;
 }
 
 // 0047DB70 / 0047FA40: PUSH ESI (1), MOV ESI,ECX (2), PUSH 0 (2).
@@ -219,7 +199,7 @@ DeltaField* __fastcall BeginWriteBVerify(DeltaField* self, void*, int channel1On
     CheckField(
         "DeltaField::BeginWriteB", self, [&](DeltaField* f) { return s_beginWriteB(f, nullptr, channel1Only); },
         [&](DeltaField* f) { return f->BeginWriteB(channel1Only); },
-        [self](DeltaField* e, DeltaField* a, DeltaField* copy) { return e == copy && a == self; });
+        [self](DeltaField* e, DeltaField* a, DeltaField* twin) { return e == twin && a == self; });
     return self;
 }
 
@@ -238,7 +218,7 @@ DeltaField* __fastcall BeginReadBVerify(DeltaField* self, void*, int second, Bit
     CheckField(
         "DeltaField::BeginReadB", self, [&](DeltaField* f) { return s_beginReadB(f, nullptr, second, reader); },
         [&](DeltaField* f) { return f->BeginReadB(second, reader); },
-        [self](DeltaField* e, DeltaField* a, DeltaField* copy) { return e == copy && a == self; });
+        [self](DeltaField* e, DeltaField* a, DeltaField* twin) { return e == twin && a == self; });
     return self;
 }
 
@@ -281,9 +261,10 @@ void __fastcall WriteStringVerify(DeltaField* self, void*, const char* text) {
 
 // --- DeltaField: readers -------------------------------------------------------------------------------
 
-// Readers of a field: the original runs on a copy of the field, of the reader and (when it is not
-// part of this field) of the snapshot read against, writing its result into `expectedOut`; ours on
-// the real objects into `actualOut` (`size` bytes compared).
+// Readers of a field: ours on the real objects into `actualOut`; then the original on twins of the
+// field, of the reader and (when it is not part of this field) of the snapshot read against, writing
+// its result into a buffer of ours that starts with the bytes `actualOut` held before (`size` bytes
+// compared).
 template <typename Original, typename Ours>
 void CheckFieldRead(const char* name, DeltaField* self, void* actualOut, std::size_t size, Original original, Ours ours) {
     const Globals before = Globals::Save();
@@ -293,23 +274,31 @@ void CheckFieldRead(const char* name, DeltaField* self, void* actualOut, std::si
         return;
     }
     BitStream* outside = Inside(before.snapshot, self, sizeof(DeltaField)) ? nullptr : before.snapshot;
-    FieldCopy expected(self);
-    StreamCopy reader(before.reader);
-    StreamCopy* snapshotCopy = outside ? new StreamCopy(outside) : nullptr;
-    auto* buffer = static_cast<std::uint8_t*>(gamecrt::operator_new(size ? size : 1));
-    Globals scratch = before;
-    scratch.reader = &reader.stream;
-    scratch.snapshot = outside ? &snapshotCopy->stream : Map(before.snapshot, self, &expected.field, sizeof(DeltaField));
-    scratch.Restore();
-    original(&expected.field, buffer);
-    before.Restore();
+    const KeptField keptField(self);
+    const KeptStream keptReader(before.reader);
+    KeptStream keptOutside;
+    if (outside) keptOutside.Keep(outside);
+    std::vector<std::uint8_t> buffer = KeepBytes(actualOut, size);
+
     ours(actualOut);
+    const Globals actual = Globals::Save();
+
+    heap::Aside aside;
+    TwinField expected;
+    expected.Make(keptField);
+    TwinStream reader;
+    TwinStream snapshotTwin;
+    Globals scratch = before;
+    scratch.reader = reader.Make(keptReader);
+    scratch.snapshot = outside ? snapshotTwin.Make(keptOutside) : Map(before.snapshot, self, &expected.field, sizeof(DeltaField));
+    scratch.Restore();
+    original(&expected.field, buffer.data());
+    actual.Restore();
+
     bool same = expected.Same(self) && SameStream(&reader.stream, before.reader) &&
-                (!outside || SameStream(&snapshotCopy->stream, outside)) && std::memcmp(buffer, actualOut, size) == 0 &&
-                Globals::Save().snapshot == before.snapshot && Globals::Save().reader == before.reader;
+                (!outside || SameStream(&snapshotTwin.stream, outside)) && std::memcmp(buffer.data(), actualOut, size) == 0 &&
+                actual.snapshot == before.snapshot && actual.reader == before.reader;
     ei::verify::Check(name, true, same, "size %u", static_cast<unsigned>(size));
-    gamecrt::operator_delete(buffer);
-    delete snapshotCopy;
 }
 
 // 0047E000: SUB ESP,0xC (3), MOV [ESP+8],ECX (4).
@@ -355,7 +344,7 @@ void __fastcall WritePosition2DVerify(DeltaField* self, void*, const float* posi
         [&](DeltaField* f) { f->WritePosition2D(position); return 0; }, [](int, int, DeltaField*) { return true; });
 }
 
-// Typed writers (on a field copy) and readers (into scratch output).
+// Typed writers (on a field twin) and readers (into scratch output).
 template <typename Fn>
 void CheckWriter(const char* name, DeltaField* self, Fn call) {
     CheckField(
@@ -421,25 +410,31 @@ void __fastcall ReadFloat16x3Verify(DeltaField* self, void*, float* values) {
 int(__fastcall* s_getBit)(BitStream*);
 int __fastcall GetBitVerify(BitStream* reader) {
     if (!IsMemoryStream(reader)) return delta::GetBit(reader);
-    StreamCopy expected(reader);
-    int expectedBit = s_getBit(&expected.stream);
+    const KeptStream kept(reader);
     int actualBit = delta::GetBit(reader);
+    heap::Aside aside;
+    TwinStream expected;
+    int expectedBit = s_getBit(expected.Make(kept));
     ei::verify::Check("delta::GetBit", true, expectedBit == actualBit && SameStream(&expected.stream, reader), "%d / %d",
                       expectedBit, actualBit);
     return actualBit;
 }
 
-// 0047EB20: PUSH EBP (1), MOV EBP,[ESP+0xC] (4). Only AL is the result.
+// 0047EB20: PUSH EBP (1), MOV EBP,[ESP+0xC] (4). Only AL is the result. The original reads `old` as
+// it was before ours ran (it may be `data` itself) and writes into a buffer of ours that starts with
+// the bytes `data` held.
 int(__fastcall* s_readDiff)(const void*, void*, std::uint32_t, BitStream*);
 bool __fastcall ReadDiffVerify(const void* old, void* data, std::uint32_t size, BitStream* reader) {
     if (size > 0x10000 || !IsMemoryStream(reader)) return delta::ReadDiff(old, data, size, reader);
-    StreamCopy expected(reader);
-    auto* buffer = static_cast<std::uint8_t*>(gamecrt::operator_new(size ? size : 1));
-    bool expectedRet = (s_readDiff(old, buffer, size, &expected.stream) & 0xFF) != 0;
+    const KeptStream kept(reader);
+    const std::vector<std::uint8_t> keptOld = KeepBytes(old, size);
+    std::vector<std::uint8_t> buffer = KeepBytes(data, size);
     bool actualRet = delta::ReadDiff(old, data, size, reader);
-    bool same = expectedRet == actualRet && SameStream(&expected.stream, reader) && std::memcmp(buffer, data, size) == 0;
+    heap::Aside aside;
+    TwinStream expected;
+    bool expectedRet = (s_readDiff(old ? keptOld.data() : nullptr, buffer.data(), size, expected.Make(kept)) & 0xFF) != 0;
+    bool same = expectedRet == actualRet && SameStream(&expected.stream, reader) && std::memcmp(buffer.data(), data, size) == 0;
     ei::verify::Check("delta::ReadDiff", true, same, "size %u", size);
-    gamecrt::operator_delete(buffer);
     return actualRet;
 }
 
@@ -448,15 +443,16 @@ std::uint32_t(__fastcall* s_readRaw)(DeltaField*, void*, void*, std::uint32_t);
 std::uint32_t __fastcall ReadRawVerify(DeltaField* self, void*, void* data, std::uint32_t size) {
     BitStream* realReader = delta::Reader();
     if (!realReader || size > 0x10000 || !IsMemoryStream(realReader)) return self->ReadRaw(data, size);
-    StreamCopy reader(realReader);
-    auto* buffer = static_cast<std::uint8_t*>(gamecrt::operator_new(size ? size : 1));
-    delta::Reader() = &reader.stream;
-    std::uint32_t expected = s_readRaw(self, nullptr, buffer, size);
-    delta::Reader() = realReader;
+    const KeptStream kept(realReader);
+    std::vector<std::uint8_t> buffer = KeepBytes(data, size);
     std::uint32_t actual = self->ReadRaw(data, size);
-    bool same = expected == actual && SameStream(&reader.stream, realReader) && std::memcmp(buffer, data, size) == 0;
+    heap::Aside aside;
+    TwinStream reader;
+    delta::Reader() = reader.Make(kept);
+    std::uint32_t expected = s_readRaw(self, nullptr, buffer.data(), size);
+    delta::Reader() = realReader;
+    bool same = expected == actual && SameStream(&reader.stream, realReader) && std::memcmp(buffer.data(), data, size) == 0;
     ei::verify::Check("DeltaField::ReadRaw", true, same, "size %u: %u / %u", size, expected, actual);
-    gamecrt::operator_delete(buffer);
     return actual;
 }
 
@@ -477,45 +473,42 @@ bool SameStateHeader(const DeltaState* a, const DeltaState* b) {
            std::memcmp(&a->fieldCount_, &b->fieldCount_, kStateHeader - offsetof(DeltaState, fieldCount_)) == 0;
 }
 
-// 0047FB70: PUSH EBX (1), PUSH EDI (1), MOV EDI,ECX (2), XOR EBX,EBX (2). The field array is copied.
-void(__fastcall* s_reset)(DeltaState*);
-void __fastcall ResetVerify(DeltaState* self) {
-    bool memory = IsMemoryStream(&self->header_[0]) && IsMemoryStream(&self->header_[1]);
-    for (int i = 0; memory && self->fieldCount_ <= 64 && i < self->fieldCount_; ++i) memory = IsMemoryField(&self->fields_[i]);
-    if (self->fieldCount_ < 0 || self->fieldCount_ > 64 || !memory) {
-        self->Reset();
+// Runs `ours` on the real state, then `original` on a twin of the whole state (headers and every
+// field) made from what was kept before ours; the states and the globals must match.
+template <typename Original, typename Ours>
+void CheckState(const char* name, DeltaState* self, Original original, Ours ours) {
+    const KeptState kept(self);
+    if (!kept.valid()) {
+        ours(self);
         return;
     }
-    alignas(4) unsigned char raw[sizeof(DeltaState)];
-    auto* expected = reinterpret_cast<DeltaState*>(raw);
-    std::memcpy(expected, self, kStateHeader);
-    CloneStream(&expected->header_[0], &self->header_[0]);
-    CloneStream(&expected->header_[1], &self->header_[1]);
-    FieldCopy* fields[64] = {};
-    auto* array = static_cast<DeltaField*>(gamecrt::operator_new(sizeof(DeltaField) * (self->fieldCount_ + 1)));
-    for (int i = 0; i < self->fieldCount_; ++i) {
-        fields[i] = new FieldCopy(&self->fields_[i]);
-        std::memcpy(&array[i], &fields[i]->field, sizeof(DeltaField));
+    const int mode = self->mode_;
+    const Globals before = Globals::Save();
+    ours(self);
+    const Globals actual = Globals::Save();
+    if (self->fieldCount_ != kept.fieldCount()) {   // neither function changes the field count
+        ei::verify::Check(name, kept.fieldCount(), self->fieldCount_, "field count, mode %d", mode);
+        return;
     }
-    expected->fields_ = array;
-    s_reset(expected);
-    self->Reset();
-    bool same = SameStateHeader(expected, self) && SameStream(&expected->header_[0], &self->header_[0]) &&
-                SameStream(&expected->header_[1], &self->header_[1]);
-    for (int i = 0; i < self->fieldCount_; ++i) {
-        // The original resized the copies in `array`; their buffers are what must be freed.
-        std::memcpy(&fields[i]->field, &array[i], sizeof(DeltaField));
-        same = same && fields[i]->Same(&self->fields_[i]);
-        delete fields[i];
-    }
-    gamecrt::operator_delete(array);
-    FreeStream(&expected->header_[0]);
-    FreeStream(&expected->header_[1]);
-    ei::verify::Check("DeltaState::Reset", true, same, "fields %d", self->fieldCount_);
+    heap::Aside aside;
+    TwinState expected(kept);
+    before.Restore();
+    original(expected.get());
+    const Globals after = Globals::Save();
+    actual.Restore();
+    bool same = expected.Same(self) && after.keep0 == actual.keep0 && after.keep1 == actual.keep1 &&
+                after.snapshot == actual.snapshot && after.reader == actual.reader;
+    ei::verify::Check(name, true, same, "mode %d, %d fields", mode, self->fieldCount_);
+}
+
+// 0047FB70: PUSH EBX (1), PUSH EDI (1), MOV EDI,ECX (2), XOR EBX,EBX (2).
+void(__fastcall* s_reset)(DeltaState*);
+void __fastcall ResetVerify(DeltaState* self) {
+    CheckState("DeltaState::Reset", self, [](DeltaState* s) { s_reset(s); }, [](DeltaState* s) { s->Reset(); });
 }
 
 // 0047FBF0: PUSH EBX, PUSH EBP, PUSH EDI (3), MOV EDI,[ESP+0x10] (4). Only field `index` is touched:
-// the copy's array pointer is set so that its element `index` is the copied field.
+// the twin state's array pointer is set so that its element `index` is the twin field.
 DeltaField*(__fastcall* s_beginField)(DeltaState*, void*, int);
 DeltaField* __fastcall BeginFieldVerify(DeltaState* self, void*, int index) {
     if (!((1u << (index & 31)) & self->mask_)) {
@@ -529,16 +522,19 @@ DeltaField* __fastcall BeginFieldVerify(DeltaState* self, void*, int index) {
     alignas(4) unsigned char raw[kStateHeader];
     auto* state = reinterpret_cast<DeltaState*>(raw);
     std::memcpy(state, self, kStateHeader);
-    FieldCopy expected(real);
-    state->fields_ = &expected.field - index;
+    const KeptField kept(real);
     const Globals before = Globals::Save();
+    DeltaField* actualRet = self->BeginField(index);
+    const Globals actual = Globals::Save();
+    heap::Aside aside;
+    TwinField expected;
+    state->fields_ = expected.Make(kept) - index;
+    before.Restore();
     DeltaField* expectedRet = s_beginField(state, nullptr, index);
     const Globals after = Globals::Save();
-    before.Restore();
-    DeltaField* actualRet = self->BeginField(index);
+    actual.Restore();
     bool same = expectedRet == &expected.field && actualRet == real && expected.Same(real) &&
-                SameGlobals(after, Globals::Save(), &expected.field, real, nullptr, nullptr) &&
-                SameStateHeader(state, self);
+                SameGlobals(after, actual, &expected.field, real, nullptr, nullptr) && SameStateHeader(state, self);
     ei::verify::Check("DeltaState::BeginField", true, same, "index %d mode %d", index, self->mode_);
     return actualRet;
 }
@@ -553,26 +549,34 @@ void __fastcall SetModeVerify(DeltaState* self, void*, int deltaOnly) {
     ei::verify::Check("DeltaState::SetWriteMode", true, std::memcmp(raw, self, kStateHeader) == 0, "%d", deltaOnly);
 }
 
-// 0047FD80: PUSH ESI (1), MOV ESI,ECX (2), MOV ECX,[ESP+0xC] (4). The reader is copied.
+// 0047FD80: PUSH ESI (1), MOV ESI,ECX (2), MOV ECX,[ESP+0xC] (4). The original reads a twin of the
+// reader.
 int(__fastcall* s_beginRead)(DeltaState*, void*, int, BitStream*);
 int __fastcall BeginReadVerify(DeltaState* self, void*, int second, BitStream* reader) {
     if (!IsMemoryStream(reader)) return self->BeginRead(second, reader);
     alignas(4) unsigned char raw[kStateHeader];
     auto* state = reinterpret_cast<DeltaState*>(raw);
     std::memcpy(state, self, kStateHeader);
-    StreamCopy readerCopy(reader);
-    int expected = s_beginRead(state, nullptr, second, &readerCopy.stream);
+    const KeptStream kept(reader);
     int actual = self->BeginRead(second, reader);
-    state->reader_ = state->reader_ == &readerCopy.stream ? reader : nullptr;
-    bool same = expected == actual && std::memcmp(raw, self, kStateHeader) == 0 && SameStream(&readerCopy.stream, reader);
+    heap::Aside aside;
+    TwinStream readerTwin;
+    int expected = s_beginRead(state, nullptr, second, readerTwin.Make(kept));
+    state->reader_ = state->reader_ == &readerTwin.stream ? reader : nullptr;
+    bool same = expected == actual && std::memcmp(raw, self, kStateHeader) == 0 && SameStream(&readerTwin.stream, reader);
     ei::verify::Check("DeltaState::BeginRead", true, same, "%d", second);
     return actual;
 }
 
 // 0047FE90 (A-E1): SUB ESP,0xC (3), PUSH EBX, PUSH EBP, PUSH ESI (3). Side by side on the state
 // itself: copied, the original run, its result copied, the first copy put back, ours run. A state
-// with a stream that is not a memory stream runs ours only. Every write of an object's network
-// state ends with it (the world's updates, main thread).
+// with a stream that is not a memory stream runs ours only. Every write and read of an object's
+// network state ends with it (the world's updates, main thread).
+// Not ours first (SV2h2): the real state's buffers end as the first copy's blocks, made on every
+// call. Ours first on the real state with a twin for the original (CheckState, as Reset) keeps the
+// real blocks as in a --no-hooks run, but then console Rebirth (update 40, the script's #gobject)
+// and ui_widescreen_hud / _more Rebirth (update 80, cunit148's rotation by one ulp) part from their
+// goldens, which were recorded where ours' layout follows this order; see the notes (SV2h2).
 void(__fastcall* s_finish)(DeltaState*);
 void __fastcall FinishVerify(DeltaState* self) {
     deltasnap::StateCopy before(self);
@@ -588,9 +592,9 @@ void __fastcall FinishVerify(DeltaState* self) {
     ei::verify::Check("DeltaState::Finish", true, expected.Same(self), "mode %d, %d fields", mode, self->fieldCount_);
 }
 
-// 0047E340 (A-E1): PUSH ECX (1), LEA EAX,[ESP] (4). The original reads a copy of the reader into a
-// buffer of the same size; the buffers are compared by content and the readers must end alike. The
-// unit and effect readers call it on the client's updates.
+// 0047E340 (A-E1): PUSH ECX (1), LEA EAX,[ESP] (4). Ours reads the reader into `text`; the original a
+// twin of it into a buffer of the same size; the buffers are compared by content and the readers
+// must end alike. The unit and effect readers call it on the client's updates.
 void(__fastcall* s_readText)(DeltaField*, void*, char*, int);
 void __fastcall ReadTextVerify(DeltaField* self, void*, char* text, int size) {
     BitStream* realReader = delta::Reader();
@@ -598,16 +602,16 @@ void __fastcall ReadTextVerify(DeltaField* self, void*, char* text, int size) {
         self->ReadText(text, size);
         return;
     }
-    StreamCopy reader(realReader);
-    auto* buffer = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(size)));
-    buffer[0] = '\0';
-    delta::Reader() = &reader.stream;
-    s_readText(self, nullptr, buffer, size);
-    delta::Reader() = realReader;
+    const KeptStream kept(realReader);
     self->ReadText(text, size);
-    bool same = SameStream(&reader.stream, realReader) && std::strcmp(buffer, text) == 0;
-    ei::verify::Check("DeltaField::ReadText", true, same, "size %d: \"%.40s\" / \"%.40s\"", size, buffer, text);
-    gamecrt::operator_delete(buffer);
+    std::vector<char> buffer(static_cast<std::size_t>(size), '\0');
+    heap::Aside aside;
+    TwinStream reader;
+    delta::Reader() = reader.Make(kept);
+    s_readText(self, nullptr, buffer.data(), size);
+    delta::Reader() = realReader;
+    bool same = SameStream(&reader.stream, realReader) && std::strcmp(buffer.data(), text) == 0;
+    ei::verify::Check("DeltaField::ReadText", true, same, "size %d: \"%.40s\" / \"%.40s\"", size, buffer.data(), text);
 }
 
 } // namespace
@@ -651,8 +655,8 @@ EI_VERIFY(0x0047FD80, BeginReadVerify, 7, s_beginRead);
 // Unit state messages and the path message (0x0E) write it every time a unit's order or steps change
 // (every scenario with moving units); the client's reads run on the units' updates.
 
-// 005C7DB0 WriteState: SUB ESP,0xC (3), PUSH EBX (1), MOV EBX,[ESP+0x14] (4). The original writes into
-// a copy of the field; the fields are compared.
+// 005C7DB0 WriteState: SUB ESP,0xC (3), PUSH EBX (1), MOV EBX,[ESP+0x14] (4). Ours writes into the
+// field, the original into a twin of it made afterwards; the fields are compared.
 static void(__fastcall* s_pathWrite)(AIPath*, void*, DeltaField*);
 static void __fastcall PathWriteStateVerify(AIPath* self, void*, DeltaField* field) {
     CheckField(
@@ -661,9 +665,9 @@ static void __fastcall PathWriteStateVerify(AIPath* self, void*, DeltaField* fie
 }
 EI_VERIFY(0x005C7DB0, PathWriteStateVerify, 8, s_pathWrite);
 
-// 005C7FC0 ReadState: SUB ESP,0x20 (3), LEA EAX,[ESP+0xC] (4). The original reads from copies of the
-// field and the reader into a scratch path (empty steps); ours into the path. Compared: the field, the
-// reader, the order (0x20 bytes) and the steps.
+// 005C7FC0 ReadState: SUB ESP,0x20 (3), LEA EAX,[ESP+0xC] (4). Ours reads into the path first; then the
+// original from twins of the field and the reader (kept before ours) into a scratch path (empty
+// steps, freed afterwards). Compared: the field, the reader, the order (0x20 bytes) and the steps.
 static void(__fastcall* s_pathRead)(AIPath*, void*, DeltaField*);
 static void __fastcall PathReadStateVerify(AIPath* self, void*, DeltaField* field) {
     const Globals before = Globals::Save();
@@ -672,19 +676,25 @@ static void __fastcall PathReadStateVerify(AIPath* self, void*, DeltaField* fiel
         self->ReadState(field);
         return;
     }
-    FieldCopy expected(field);
-    StreamCopy reader(before.reader);
+    const KeptField keptField(field);
+    const KeptStream keptReader(before.reader);
+    self->ReadState(field);
+    const Globals actual = Globals::Save();
+
+    heap::Aside aside;
+    TwinField expected;
+    expected.Make(keptField);
+    TwinStream reader;
     alignas(4) unsigned char scratchBytes[sizeof(AIPath)] = {};
     auto* scratch = reinterpret_cast<AIPath*>(scratchBytes);
     scratch->steps.vtable = PathCellListVtable();
     scratch->steps.blockSize = 0x80;
     Globals scratchGlobals = before;
-    scratchGlobals.reader = &reader.stream;
+    scratchGlobals.reader = reader.Make(keptReader);
     scratchGlobals.snapshot = Map(before.snapshot, field, &expected.field, sizeof(DeltaField));
     scratchGlobals.Restore();
     s_pathRead(scratch, nullptr, &expected.field);
-    before.Restore();
-    self->ReadState(field);
+    actual.Restore();
     bool same = expected.Same(field) && SameStream(&reader.stream, before.reader) &&
                 std::memcmp(scratch, self, 0x20) == 0 && scratch->steps.count == self->steps.count;
     for (auto *a = scratch->steps.head, *b = self->steps.head; same && a && b; a = a->next, b = b->next)
