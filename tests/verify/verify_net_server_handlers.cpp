@@ -8,6 +8,8 @@
 //  - ServerSession::AnnounceToMaster (0041AA10): ours only (it sends a datagram and leaves nothing
 //    to read back; the session must be unchanged). Reached from the server's tick every
 //    announcement interval while a master host name is set (0079BED8); no scenario sets one.
+//  - ServerOnMemberChanged (0041BA20, S16c): ours only (it raises the message's version once).
+//    Reached when a party member message reaches the hosting server (net_lobby may).
 #include "verify.h"
 
 #include "../../src/game/net_classes.h"
@@ -18,6 +20,7 @@
 
 namespace net {
 void __fastcall ServerOnSay(ServerSession* server, SayMessage* message);
+void __fastcall ServerOnMemberChanged(ServerSession* server, Message* message);
 }
 
 namespace {
@@ -53,8 +56,15 @@ void __fastcall OnSayVerify(net::ServerSession* server, net::SayMessage* message
     std::uint32_t added = server->nextLine_ - before;
     ei::verify::Check("ServerOnSay", true, added <= 1, "%u lines", added);
 }
+
+void __fastcall MemberChangedVerify(net::ServerSession* server, net::Message* message) {
+    std::uint32_t before = message->version_;
+    net::ServerOnMemberChanged(server, message);
+    ei::verify::Check("ServerOnMemberChanged", before + 1, message->version_, "version");
+}
 } // namespace
 
 EI_VERIFY(0x0041ACA0, OnMasterVerify, 7, s_onMaster);
 EI_VERIFY(0x0041B1C0, OnSayVerify, 0, s_unused);
+EI_VERIFY(0x0041BA20, MemberChangedVerify, 0, s_unused);
 EI_VERIFY(0x0041AA10, AnnounceVerify, 0, s_unused);

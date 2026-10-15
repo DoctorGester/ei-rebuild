@@ -915,6 +915,8 @@ void GameFlow::RequestPartyZone6(const char* zone, const void* party) {
     PartyCopyFrom(RequestParty(), nullptr, party);
 }
 
+void GameFlow::DisconnectClient() { reinterpret_cast<CWorldClient*>(std::uintptr_t(0x007AF5B8))->DisconnectLocalPlayer(); }
+
 // ---- ReadAIGraph ----------------------------------------------------------------------------------
 
 namespace {
@@ -2349,6 +2351,7 @@ EI_REPLACE_METHOD(0x005816D0, GameFlow::RequestLoad);
 EI_REPLACE_METHOD(0x00581700, GameFlow::RequestZoneChange);
 EI_REPLACE_METHOD(0x00581730, GameFlow::RequestPartyZone5);
 EI_REPLACE_METHOD(0x00581760, GameFlow::RequestPartyZone6);
+EI_REPLACE_METHOD(0x00581620, GameFlow::DisconnectClient);
 EI_REPLACE_METHOD(0x0057F190, GameFlow::UpdateMultiplayerVariable);
 EI_REPLACE_METHOD(0x0057E6B0, GameFlow::MultiplayerZoneInto);
 EI_REPLACE_METHOD(0x0057F280, GameFlow::BeginMultiplayerGame);

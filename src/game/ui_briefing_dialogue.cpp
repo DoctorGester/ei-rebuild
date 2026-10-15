@@ -119,6 +119,22 @@ void CBriefingScreen::PlaySpeakerAnimation(CUnit* unit, bool talking, bool third
 }
 EI_REPLACE_METHOD(0x00607A60, CBriefingScreen::PlaySpeakerAnimation);
 
+// --- 006023F0 -----------------------------------------------------------------------------------
+
+// 006023F0 (no Ghidra function; S16c): SpeakerActionDone, the speakers' controllers' actionDone. When
+// a server unit's dialogue animation has ended, its client unit, when it is one of the briefing's
+// speakers, plays a listening animation again (once per entry). The active window is taken to be the
+// briefing screen unchecked, as the original does; the count is read again after each call.
+void __fastcall SpeakerAnimationDone(CUnit* serverUnit) {
+    if (!serverUnit) return;
+    auto* unit = reinterpret_cast<CUnit*>(WorldFindUnit(reinterpret_cast<void*>(0x007AF5B8), nullptr, serverUnit->id_));
+    if (!unit) return;
+    auto* screen = static_cast<CBriefingScreen*>(InterfaceActiveWindowOriginal(reinterpret_cast<CInterface3D*>(0x007C7D50)));
+    for (std::size_t i = 0; i < static_cast<std::size_t>(screen->speakersEnd_ - screen->speakers_); ++i)
+        if (screen->speakers_[i].unit == unit) screen->PlaySpeakerAnimation(unit, false, false);
+}
+EI_REPLACE(0x006023F0, SpeakerAnimationDone);
+
 // --- 00607BB0 -----------------------------------------------------------------------------------
 
 void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
