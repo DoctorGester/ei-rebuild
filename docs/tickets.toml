@@ -1673,6 +1673,18 @@ depends = ["S12b"]
 files = ["src/lib/stlp_algo.h", "src/game/stl_sorts.cpp", "config/library.csv"]
 note = "S12b registered 12 sort and 10 pair addresses (standalone.md, S12b groups 1-2); left: (1) the objectives window's CString quest sort 0064F310 / 0064F9A0 / 0064FBD0: its comparison (inlined in 0064FC90 and the other helpers) builds stlp::strings, makes pair<string, dword> 0064F880 and looks each up in the quest map 007C87B4 through 004CE110 (may insert), comparing +0x1C descending (a null entry first); every comparison allocates, so ours must make the same calls in the same order and a twin check must let ours allocate first (SV2f) or run ours alone with a start-up check on a scratch map. (2) The save list's SaveEntry sort 00657DF0 / 00657F10 and copy_backward 00657D50: SaveEntry copies allocate (CStringArray::Copy), so the copy / assign / destroy sequence must match STLport's exactly (the pivot copy, __linear_insert's value copy and the by-value argument of __unguarded_linear_insert); comparator 00658020 (saved time). (3) pair<const string, list<T>> 0069C1C0 (string copy, list copy through 0069D680). (4) The 82 library.csv rows named 'container instantiation' / 'unreviewed family' our code still forwards to (306 in all; the Connection's list rows the S12b note lists, the hero screen / lobby vector rows 0060A660 0060AB00 0060B330 0060B440 00613920 00619770 00619920 0061A240 0061A300, the item screen / global map rows 005F3140 005F32A0 005F9810 005F9980 005FA0E0 005FA400 005FA610 005FB7D0 00609E70 006316E0 0064B620), each read and ported by family. The sort helpers (median, partition, heap, linear insert) of every replaced loop are dead in both builds and need no port."
 
+[[ticket]]
+id = "S3e"
+title = "Rebirth: exit stops after MFC's thread state frees the handle maps"
+group = "standalone"
+note = "Seen in S3d on main too: on the Rebirth install the normal exit's log ends at 'verify CMapPtrToPtr::~CMapPtrToPtr: first call' (the _AFX_THREAD_STATE / module thread state destructor freeing afxMapHDC / afxMapHGDIOBJ under ~CThreadLocal 0070CC2D), then either an access violation in Riched20.dll (+64E5, reading 00000008; ui_main_menu-rebirth) or the game still running at ei_launch's 3 s limit (smoke-rebirth, console-rebirth): no 'verify total' lines are written. Vanilla exits cleanly. Find which DLL (Rebirth's addon / dinput proxy, Riched20) still holds MFC temporary objects or a window after the maps go, and whether it predates S8a's CMapPtrToPtr / CHandleMap ports (run with those registrations off)."
+
+[[ticket]]
+id = "S3f"
+title = "Standalone library: MFC constructors the static initialisers still call"
+group = "standalone"
+note = "After S3d the standalone check's only exit callee without code is 005DC080 (S12a). The static initialisers' MFC call targets still without code: the four simple exceptions' constructors 006E68C9 (CResourceException, 007C8C58), 006E6916 (CUserException, 007C8BC0), 006E6AEA (CMemoryException, 007C8DE8), 006E6B37 (CNotSupportedException, 007C8D50) (CSimpleException(BOOL) 0070205? then +0x0C / +0x10 cleared, the resource id at +0x94, the class's vtable; their destructors are S3d's, mfc_exception.cpp), CWnd(HWND) 00704546 on wndTop / wndBottom / wndTopMost / wndNoTopMost (mfc_window.h has CWnd and CCmdTarget's layout now), 0070B600, 0070DC4D and 00700674 (x5). Port at their addresses with start-up checks against the original's globals (they run before the hooks), as S3b / S3d did. docs/notes/standalone.md S3b, S3d."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
