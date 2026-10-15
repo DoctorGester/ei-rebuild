@@ -166,6 +166,10 @@ void __fastcall ListRemoveCounted(list<RefPtr>* self, void*, const RefPtr* value
 EI_REPLACE(0x00404A40, PlainList4::Insert);
 // 00405500: list<int>::clear (the base manager's id lists; S16, on the standalone boot path).
 EI_REPLACE(0x00405500, PlainList4::Clear);
+// 0040AA40 / 0040B390: erase(pos) and clear() of the chunk archive's saved objects (list<CRefObject*>;
+// S16).
+EI_REPLACE(0x0040AA40, PlainList4::Erase);
+EI_REPLACE(0x0040B390, PlainList4::Clear);
 EI_REPLACE(0x0040AA10, PlainList4::Insert);
 EI_REPLACE(0x0056EA80, PlainList4::Insert);
 EI_REPLACE(0x0068C560, PlainList4::Insert);

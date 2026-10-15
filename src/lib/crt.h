@@ -218,6 +218,10 @@ int __cdecl Vsprintf(char* buffer, const char* format, va_list args);           
 int __cdecl Fprintf(gamecrt::CrtFile* file, const char* format, ...);           // 006EAEB0
 int __cdecl Printf(const char* format, ...);                                    // 006E955F
 double __cdecl Atof(const char* text);                                          // 006E911A
+// sscanf (S16): MSVC 6's _input over the text for white space, literals, %% and the d i o u x p n c s [
+// conversions (no floats, no wide characters: they end the scan).
+int __cdecl Sscanf(const char* text, const char* format, ...);                  // 006EAEEC
+int __cdecl Vsscanf(const char* text, const char* format, va_list args);
 // vfprintf: formatted in memory, then one write through the game's fwrite (not registered).
 int __cdecl Vfprintf(gamecrt::CrtFile* file, const char* format, va_list args);
 // stdout (&_iob[1], 00798080).

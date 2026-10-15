@@ -134,6 +134,23 @@ BOOL __fastcall DeleteObjectVerify(CGdiObject* self) {
     return result;
 }
 
+// The game's ~CGdiObject copies (ticket S16): ours only; no handle left, CGdiObject's vtable.
+template <std::uintptr_t Address>
+BOOL __fastcall DestructVerify(CGdiObject* self) {
+    const HGDIOBJ before = self->handle;
+    const BOOL result = self->Destruct();
+    Check("~CGdiObject", true, !self->handle && self->vtable == CGdiObject::Vtable() && (before || !result), "%08X %p",
+          static_cast<unsigned>(Address), before);
+    return result;
+}
+// Their deleting destructors: ours only, this returned (the memory may be gone).
+template <std::uintptr_t Address>
+CGdiObject* __fastcall DeletingDestructVerify(CGdiObject* self, void*, unsigned flags) {
+    CGdiObject* result = self->DeletingDestruct(flags);
+    Check("~CGdiObject (deleting)", true, result == self, "%08X flags %u", static_cast<unsigned>(Address), flags);
+    return result;
+}
+
 CPen* __fastcall PenConstructVerify(CPen* self, void*, int style, int width, COLORREF colour) {
     CPen* result = self->Construct(style, width, colour);
     LOGPEN pen{};
@@ -240,6 +257,12 @@ EI_VERIFY(0x0070C028, CreateTempGdiObjectVerify, 0, s_unused);
 EI_VERIFY(0x0070A075, AttachVerify, 0, s_unused);
 EI_VERIFY(0x0070A0A2, DetachVerify, 0, s_unused);
 EI_VERIFY(0x0070A0CC, DeleteObjectVerify, 0, s_unused);
+EI_VERIFY(0x00444B30, DestructVerify<0x00444B30>, 0, s_unused);
+EI_VERIFY(0x00444B90, DestructVerify<0x00444B90>, 0, s_unused);
+EI_VERIFY(0x005FDDE0, DestructVerify<0x005FDDE0>, 0, s_unused);
+EI_VERIFY(0x00444B10, DeletingDestructVerify<0x00444B10>, 0, s_unused);
+EI_VERIFY(0x00444B70, DeletingDestructVerify<0x00444B70>, 0, s_unused);
+EI_VERIFY(0x005FDDC0, DeletingDestructVerify<0x005FDDC0>, 0, s_unused);
 EI_VERIFY(0x0070A0E2, PenConstructVerify, 0, s_unused);
 EI_VERIFY(0x0070BBE5, CreatePointFontVerify, 6, s_createPointFont);
 EI_VERIFY(0x0070BC2A, CreatePointFontIndirectVerify, 6, s_createPointFontIndirect);

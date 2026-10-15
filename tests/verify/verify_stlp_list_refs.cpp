@@ -241,6 +241,11 @@ struct PlainClear {
 
 using IdsClear = PlainClear<0x00405500, PlainList4>;
 EI_VERIFY(0x00405500, IdsClear::Verify, 0, s_unused);
+// The chunk archive's saved objects (list<CRefObject*>): erase and clear, ours only.
+using SavedErase = EraseCheck<0x0040AA40, PlainList4>;
+EI_VERIFY(0x0040AA40, SavedErase::Verify, 0, s_unused);
+using SavedClear = PlainClear<0x0040B390, PlainList4>;
+EI_VERIFY(0x0040B390, SavedClear::Verify, 0, s_unused);
 
 // insert(pos, x) of plain data: mov eax,[esp+0xC]; push eax (5 bytes).
 EI_VERIFY(0x00404A40, PlainInsert4<0x00404A40>::Verify, 5, PlainInsert4<0x00404A40>::original);

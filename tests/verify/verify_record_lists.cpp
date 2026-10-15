@@ -121,6 +121,8 @@ using TradesDestruct = EraseCheck<0x00424A40, Trades>;
 using TradesErase = EraseCheck<0x00429770, Trades>;
 using QueueErase = EraseCheck<0x004790F0, StreamQueue>;
 using QueueClear = EraseCheck<0x00479570, StreamQueue>;
+using ChunkErase = EraseCheck<0x0040A920, ChunkStack>;
+using ChunkClear = EraseCheck<0x0040B290, ChunkStack>;
 
 // --- The trade records ----------------------------------------------------------------------------
 
@@ -257,11 +259,13 @@ LineNode** __fastcall TitleInsertVerify(TitleLines::List* self, void*, LineNode*
 
 } // namespace
 
-// The chunk stack: insert(pos) against the original (sub esp,0x10; xor eax,eax: 5 bytes); push_back()
-// and pop_back() ours only.
+// The chunk stack: insert(pos) against the original (sub esp,0x10; xor eax,eax: 5 bytes); push_back(),
+// pop_back(), erase(pos) and clear() ours only.
 EI_VERIFY(0x0040A8D0, ChunkInsertDefaultVerify, 5, s_chunkInsertDefault);
 EI_VERIFY(0x0040A6B0, ChunkPushBackVerify, 0, s_unused);
 EI_VERIFY(0x0040A6D0, ChunkPopBackVerify, 0, s_unused);
+EI_VERIFY(0x0040A920, ChunkErase::Verify, 0, s_unused);
+EI_VERIFY(0x0040B290, ChunkClear::Clear, 0, s_unused);
 
 // The rest: ours only.
 EI_VERIFY(0x00424900, TradesInsertDefaultVerify, 0, s_unused);

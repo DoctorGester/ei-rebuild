@@ -43,6 +43,11 @@ public:
     // 004578B0 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
     CDirectInputMouse* DeletingDestruct(unsigned flags);
 
+    // The mouse data format Setup gives the device (dinput.lib's c_dfDIMouse, 00745D00, as a
+    // DIDATAFORMAT): ours, since game.exe keeps its object table (006E6180) in its code section,
+    // which the standalone image does not have. The objects name the game's GUID_XAxis / YAxis / ZAxis.
+    static const void* MouseDataFormat();
+
     void* vtable_;                   // +0x00
     std::uint32_t references_;       // +0x04 the count of holders (WinMain keeps one in 0079BA08)
     IDirectInput7A* input_;          // +0x08 counted

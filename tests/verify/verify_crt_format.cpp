@@ -7,6 +7,7 @@
 // - A start-up check runs both on a fixed battery: %e / %f / %g / %E / %G at precisions 0..20 with flags
 //   and widths on special and pseudo-random doubles, the integer, character and string conversions with
 //   their size prefixes, and atof on the formatted numbers and on hand-picked and random digit strings.
+// - sscanf (S16): ours only in the path; the start-up battery runs both on a set of formats and texts.
 // Reached by every scenario (sprintf builds file names and interface text; atof reads the map database,
 // scripts and settings); vsprintf through CString::Format; fprintf and printf only in debug paths.
 #include "verify.h"
@@ -138,6 +139,20 @@ double __cdecl AtofVerify(const char* text) {
 }
 // 006E911A: PUSH EBP; MOV EBP,ESP; SUB ESP,0x18 (6 bytes).
 EI_VERIFY(0x006E911A, AtofVerify, 6, s_atof);
+
+// sscanf (ticket S16): ours only in the path (the outputs' types are the format's); the start-up
+// battery runs both.
+// 006EAEEC: PUSH EBP; MOV EBP,ESP; SUB ESP,0x20 (6 bytes).
+int(__cdecl* s_sscanf)(const char*, const char*, ...);
+int __cdecl SscanfVerify(const char* text, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    const int result = libcrt::Vsscanf(text, format, args);
+    va_end(args);
+    Check("sscanf", true, true, "");
+    return result;
+}
+EI_VERIFY(0x006EAEEC, SscanfVerify, 6, s_sscanf);
 
 // ---- Start-up battery ----
 
@@ -314,12 +329,52 @@ void AtofBattery(const std::vector<double>& values) {
     }
 }
 
+// sscanf: every format on every text (none starts with %n: the original's last byte is unset until
+// the first read, so its end test then reads a stale stack value), three 64-byte outputs (filled 0xCC) for each side; the result
+// and the outputs' bytes compared.
+void SscanfBattery() {
+    static const char* const formats[] = {
+        "%x", "%dx%d", "%d", "%i", "%o", "%u", "%X", "%3d", "%2x", "%hd", "%ld", "%I64d", "%I64x", "%*d %d",
+        "%d%n", "%s", "%3s", "%c", "%3c", "%[a-z]", "%[^,],%d", "%[]a]", "%%%d", " %d", "%d ", "a%db",
+        "%p", "%lx", "%hc", "%*s%s", "%1i", "%0d", "%[0-9-]%s", "%[9-0]", "%x%x%x", "%d,%d,%d", "",
+    };
+    static const char* const texts[] = {
+        "", " ", "409", "0x1F", "0X1f", "-12", "+7", "12x34", "0", "0x", "-0x10", "  42abc", "abc", "zz,5", "%7",
+        "a3b", "1234567890123", "99999999999", "\t\n17", "0777", "08", "x", "hello world", "1-", "-", "+",
+        "]a]b", "ffffffff", "-2147483648", "12,34,56", " 0x0409", "00000409", "3-4 x",
+    };
+    int failures = 0, cases = 0;
+    for (const char* format : formats) {
+        for (const char* text : texts) {
+            unsigned char theirs[3][64], ours[3][64];
+            std::memset(theirs, 0xCC, sizeof theirs);
+            std::memset(ours, 0xCC, sizeof ours);
+            const int expected = s_sscanf(text, format, theirs[0], theirs[1], theirs[2]);
+            const int actual = libcrt::Sscanf(text, format, ours[0], ours[1], ours[2]);
+            ++cases;
+            if (expected != actual || std::memcmp(theirs, ours, sizeof theirs) != 0) {
+                if (++failures <= 10) {
+                    std::uint32_t a[3], b[3];
+                    for (int k = 0; k < 3; ++k) {
+                        std::memcpy(&a[k], theirs[k], 4);
+                        std::memcpy(&b[k], ours[k], 4);
+                    }
+                    Check("sscanf (startup)", expected, actual, "\"%s\" on \"%s\": %08X %08X %08X, ours %08X %08X %08X",
+                          format, text, a[0], a[1], a[2], b[0], b[1], b[2]);
+                }
+            }
+        }
+    }
+    if (failures == 0) Check("sscanf (startup)", true, true, "%d cases", cases);
+}
+
 void CrtFormatStartupCheck() {
     const std::vector<double> values = TestDoubles();
     FloatBattery(values);
     IntegerBattery();
     TextBattery();
     AtofBattery(values);
+    SscanfBattery();
 }
 EI_STARTUP_CHECK(CrtFormatStartupCheck);
 

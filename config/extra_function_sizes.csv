@@ -733,3 +733,4 @@ address,size,note
 0070D188,34,library function registered at its address (S3d; Ghidra size)
 00703EC8,43,library function registered at its address (S3d; Ghidra size)
 00704FE3,124,library function registered at its address (S3d; Ghidra size)
+006EAEEC,52,library function registered at its address (S16; sscanf, up to _access 006EAF20)

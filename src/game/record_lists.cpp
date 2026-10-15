@@ -7,10 +7,13 @@
 
 using namespace recordlist;
 
-// The chunk archive's stack: insert(pos) (RET 8), push_back() and pop_back().
+// The chunk archive's stack: insert(pos) (RET 8), push_back(), pop_back(), erase(pos), clear().
 EI_REPLACE(0x0040A8D0, ChunkStack::InsertDefault);
 EI_REPLACE(0x0040A6B0, ChunkStack::PushBackDefault);
 EI_REPLACE(0x0040A6D0, ChunkStack::PopBack);
+// erase(pos) and clear() (S16, on the standalone boot path: the archive's chunk reads).
+EI_REPLACE(0x0040A920, ChunkStack::Erase);
+EI_REPLACE(0x0040B290, ChunkStack::Clear);
 
 // The client's trade records: insert(pos) (RET 8), ~list() and erase(pos) (RET 8).
 EI_REPLACE(0x00424900, Trades::InsertDefault);
