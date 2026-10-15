@@ -1481,11 +1481,12 @@ done = "2026-10-15"
 id = "S3"
 title = "Standalone: the 748 static initialisers, generated"
 group = "standalone"
-status = "review"
+status = "done"
 size = 1
 files = ["tools/gen_static_init.py", "src/standalone/static_init.cpp"]
 note = "The .data list 00783004-00783BB0. A generator turns the 15 patterns (guarded atexit, stores, float folds, constructor + atexit) into C++ run in list order before WinMain in the standalone build; the 30 or so others by hand. Check: a verify-build start-up check evaluates the generated stores and float folds against what the original's initialisers left in memory at WinMain. No dependency."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "S4"
