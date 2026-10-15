@@ -77,7 +77,7 @@ EI_VERIFY(0x005E6B90, FadeStartVerify, 0, s_unused);
 static void __fastcall BattleDeactivateVerify(void* input) {
     auto* self = WindowFromInput<CBattleScreenSetup>(input);
     self->OnDeactivate();
-    bool ok = !self->unknown_1C0 && !self->unknown_1C1;
+    bool ok = !self->viewPressed_ && !self->boxSelecting_;
     for (std::uint8_t key : self->orderKeys_) ok = ok && key == 0;
     ei::verify::Check("CBattleScreenSetup::OnDeactivate", true, ok, "");
 }

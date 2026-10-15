@@ -46,8 +46,8 @@ EI_REPLACE_METHOD(0x005F6080, CBattleScreenSetup::PartyIds::Construct);
 
 BattleTargetQuery* BattleTargetQuery::Construct() {
     kind = 1;
-    unknown_4 = 0;
-    unknown_8 = 0;
+    id = 0;
+    level = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x005F5F90, BattleTargetQuery::Construct);

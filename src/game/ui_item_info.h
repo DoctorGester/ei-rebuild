@@ -82,7 +82,7 @@ struct ItemObjectCache {
     Node* header;
     std::uint32_t count;
     std::uint8_t compare;            // +0x08 the map's compare object (a byte the constructors copy)
-    std::uint8_t unknown_09[3];
+    std::uint8_t unused_09[3];
     std::uint32_t limit;             // +0x0C
 };
 static_assert(sizeof(ItemObjectCache) == 0x10);
@@ -113,7 +113,7 @@ struct ItemTurn {
     float angle;             // +0x08 radians, wrapped at 007C7D20 (2 pi)
     float speed;             // +0x0C
     bool flag;               // +0x10 set by a move into a list shown turning
-    std::uint8_t unknown_11[3];
+    std::uint8_t unused_11[3];
     float glow;              // +0x14 phase of the spell glow
 };
 static_assert(sizeof(ItemTurn) == 0x18);
@@ -204,7 +204,7 @@ public:
     float WeightDefault();
     int PriceDefault(CItem* item, int kind);
 
-    std::uint8_t unknown_148[0x164 - 0x148];
+    std::uint8_t unused_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_;      // +0x164
     CItem* hoveredItem_;             // +0x168 the item under the mouse (turns)
     CUiWindow* iconWindow_;          // +0x16C (005EDD80)
@@ -280,7 +280,7 @@ public:
     std::uint8_t itemList_[0x40];    // +0x150 an item list (0x70 bytes, 00661050 class); its
     CItem** items_;                  // +0x190   entries
     int itemCount_;                  // +0x194
-    std::uint8_t unknown_198[0x1C0 - 0x198];
+    std::uint8_t unused_198[0x1C0 - 0x198];
     int x_;                          // +0x1C0 layout position of the surface
     int y_;                          // +0x1C4
     mfc::CStringArray itemTexts_;    // +0x1C8 "infoitem_0" .. "infoitem_44"

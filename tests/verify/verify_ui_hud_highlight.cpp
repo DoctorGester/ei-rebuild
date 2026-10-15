@@ -86,7 +86,7 @@ EI_VERIFY(0x005E7060, SetScaleVerify, 6, s_setScale);
 static void(__fastcall* s_quickHighlight)(CHudQuickItems*, void*, int, int);
 static void __fastcall QuickHighlightVerify(CHudQuickItems* self, void*, int slot, int on) {
     SideBySide(
-        "CHudQuickItems::Highlight", self, self->unknown_14C, &self->selected_,
+        "CHudQuickItems::Highlight", self, self->shownCount_, &self->selected_,
         [&] { s_quickHighlight(self, nullptr, slot, on); }, [&] { self->CHudQuickItems::Highlight(slot, on); }, slot, on);
 }
 EI_VERIFY(0x0063CD20, QuickHighlightVerify, 5, s_quickHighlight);
@@ -137,13 +137,13 @@ static void(__fastcall* s_battleLeftDown)(void*, void*, int, int, int);
 static void __fastcall BattleLeftDownVerify(void* input, void*, int buttons, int x, int y) {
     auto* self = WindowFromInput<CBattleScreenSetup>(input);
     bool portraits = self->portraitMode_ != 0;
-    bool pressed = self->unknown_1C0;
+    bool pressed = self->viewPressed_;
     self->CBattleScreenSetup::OnLButtonDown(buttons, x, y);
     if (portraits) return;
-    bool started = self->unknown_1C0 && self->pressX_ == x && self->pressY_ == y && !self->unknown_1C1;
-    bool ok = pressed ? started : (self->inputHandled_ ? !self->unknown_1C0 : started);
+    bool started = self->viewPressed_ && self->pressX_ == x && self->pressY_ == y && !self->boxSelecting_;
+    bool ok = pressed ? started : (self->inputHandled_ ? !self->viewPressed_ : started);
     ei::verify::Check("CBattleScreenSetup::OnLButtonDown", true, ok, "(%d,%d) pressed %d handled %d press %d at %d,%d drag %d",
-                      x, y, pressed ? 1 : 0, self->inputHandled_ ? 1 : 0, self->unknown_1C0 ? 1 : 0, self->pressX_,
-                      self->pressY_, self->unknown_1C1 ? 1 : 0);
+                      x, y, pressed ? 1 : 0, self->inputHandled_ ? 1 : 0, self->viewPressed_ ? 1 : 0, self->pressX_,
+                      self->pressY_, self->boxSelecting_ ? 1 : 0);
 }
 EI_VERIFY(0x00638A40, BattleLeftDownVerify, 0, s_battleLeftDown);

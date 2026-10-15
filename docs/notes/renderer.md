@@ -625,6 +625,64 @@ a movie or a load (real seconds without a move) the cursor thread's clock stands
 frames catch up, and its 41 ms waits last that long (1.5 s of a 1.6 s stall were seen); a player's game has no such
 clock.
 
+### R10: harness runs of our code on our renderer; dgVoodoo for the original code only
+
+User's decision (2026-10-15): test runs of our code draw with our renderer, mainly because dgVoodoo runs that set a
+resolution must have the machine to themselves and serialised the suites.
+- `tools/run_all.py` `our_renderer()`: a run of our code (vanilla, Rebirth, with hooks) gets `EI_RENDER=new,present`
+  (run/vanilla and run/rebirth keep dgVoodoo's DLLs beside game.exe: the startup DirectX probe still goes through
+  them, PF3; nothing draws through them). dgVoodoo draws: the original code (`--no-hooks`, `--widescreen`'s
+  rebirth-nohooks and, see below, its hooked side; compare.py's original side), scenarios whose `render` step leaves out `present`
+  (`needs_old_device`: render_scene, render_terrain, render_movie, render_cpuwindows compare the old path's frame
+  with the new one), every hooked run with `--dgvoodoo` (run_all, compare.py), and a submitter's own `EI_RENDER`
+  without `present`. native as before.
+- Alone (`runs_alone`): only a dgVoodoo run with a `resolution` step. Our renderer changes no display mode (full
+  screen is a window over the monitor, R9c), so render_present_fullscreen / _window and ui_widescreen* run beside
+  others; work.py test stores that per run, the scheduler is unchanged. The minimise rerun (MINIMISED, SV1c) only
+  for dgVoodoo runs.
+- Reference cache (`reference_key`, `store_reference`, `reference_from_cache`): a passed run of the original code is
+  kept in `<main checkout>/build/reference/<scenario>-<install>/<key>/` (the run folder without harness_saves, plus
+  cached.json with run()'s results), the key being the scenario's last commit (`work.scenario_revs`, as WB6), the
+  install's files (run/<install>: names, sizes, times; dgVoodoo.conf by content), the tools of its `# prepare:`
+  lines, the clock override and the game's EI_* settings. A scenario with uncommitted edits is never cached.
+  `run()` copies a cached run into the run folder (a note "reference cache: <key> ..."; no time recorded) instead
+  of playing it; work.py test gives such a run alone = 0 and expected 1 s. Three keys kept per scenario and install.
+  `--fresh` (run_all, compare.py; compare.py always with `--runs` > 1) plays it again. Not in the key: the
+  harness itself (the verify build): after a harness change that alters what a reference run captures, `--fresh`.
+- The harness's `oldterrain` / `oldobjects` / `oldinterface on` are ignored with `present` (render.cpp
+  `OldPathSwitchable`, logged): render_scene and render_terrain on native turned the old path back on at
+  `world_again` with no device to draw into, and the new frame came out different (terrain darker, ~2.9% of the
+  pixels by up to 60; the old terrain path running beside the hand-over apparently changes what it hands over, not
+  looked into further: nothing turns it on under `present` now). With the
+  switches refused both pass on native and on our renderer (their old-path steps then do nothing).
+- The widescreen scenarios' 4K captures beside 15 other games took 45-60 s (alone 25-50 s): `timeout 90` in
+  ui_widescreen_hud / _more / _screens.
+- Plans never hold a run that would switch the real display (main's `switches_display`: `resolution WxH` with
+  `fullscreen 1`): such a scenario runs only on our renderer (left out without hooks, with `--dgvoodoo`, or with an
+  EI_RENDER without `present`). A scenario whose own `render` step says `new,present` is on our renderer whatever
+  else is set (the harness adds EI_RENDER's words to the step's).
+- A run of the original code never gets EI_RENDER (run_once drops it): with `present` the harness captured the new
+  renderer's frame, which nothing draws without our hooks (seen: empty reference frames).
+- `--widescreen` keeps its hooked side on dgVoodoo too (`wants_dgvoodoo`), so those 4 runs are still alone; only the
+  reference side comes from the cache. Cross-renderer frames (ours on our renderer against addon's on dgVoodoo, the
+  comparison's own masks) do not pass any useful tolerance: interface frames 0.2-0.6% of the pixels over 8
+  (largest 150-230: isolated pixels of the scene behind the panels, texture filtering, and the panels' edges),
+  menu 1.0% (largest 202), save 3.2% (229), world 20% (153: the sea's phase); at tolerance 64 still 0.15-0.97% for
+  menu / world / save / zt4. The same frames on dgVoodoo on both sides: 0-0.02% except load / options / save
+  (0.4-1.2%, already so on main). `EI_RENDER=new,present python tools\run_all.py --widescreen` still gives the
+  cross-renderer comparison on request. The per-frame comparisons (compare_frames.py, pure Python, 20-40 s per 4K
+  frame) now run 8 at once (`COMPARE_JOBS`): 33 frames in 64 s instead of ~6 minutes.
+- Timings (machine shared with other workers' batches): full suite (115 runs) 449 s with 6 alone runs (batch 139)
+  against 212 s with none (batch 149: everything of our code on our renderer); `--widescreen` 9.4 min (batch 143:
+  8 alone runs, 178 s of games, then ~6 min of serial comparisons) against an estimated ~4 min with the cache warm
+  (4 alone runs of ours, ~180 s; references copied, 0.1-0.5 s each; comparisons 64 s). Main's native suite: 91 runs
+  in 216 s, all passing with the `old*` fix.
+- Coverage moved: verify wrappers whose originals need DirectDraw run "ours only" without it (R9a2, R9b), and the
+  old path's draws are skipped under `present`; the default suite now exercises those comparisons only in the four
+  old-device scenarios. Run `--dgvoodoo` now and then (or before touching the old device path).
+- Seen once each in runs on our renderer and not on dgVoodoo: a one-record SectorData::Light mismatch
+  (ui_battle_commands vanilla twice, effects_bow rebirth; passed on the next runs): R10a.
+
 ### Before R9a (reference)
 
 The old device existed in the switch-over: the DirectDraw object (004EDD70), primary surface, render target and

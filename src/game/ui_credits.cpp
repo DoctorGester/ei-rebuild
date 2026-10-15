@@ -30,7 +30,7 @@ __declspec(naked) void __fastcall MovieCloseOriginal(CBinkVideo*) EI_ORIGINAL(0x
 
 // The display object's (00500960) +0x14: the colour the titles keep cleared.
 struct DisplayColour {
-    std::uint8_t unknown_00[0x14];
+    std::uint8_t unused_00[0x14];
     std::uint32_t colour;            // +0x14
 };
 DisplayColour* Display() { return static_cast<DisplayColour*>(DisplayObject()); }

@@ -47,7 +47,7 @@ void CCursor::Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, i
     position_.y = 0;
     motion_.y = 0;
     image_ = nullptr;
-    unknown_14 = 0;
+    imageSpare_ = 0;
     thread_ = nullptr;
     shape_ = -1;
     imageShown_ = 1;
@@ -217,7 +217,7 @@ void CCursor::Shutdown() {
     position_.y = 0;
     motion_.y = 0;
     image_ = nullptr;
-    unknown_14 = 0;
+    imageSpare_ = 0;
     thread_ = nullptr;
     shape_ = -1;
     mode_ = 0;

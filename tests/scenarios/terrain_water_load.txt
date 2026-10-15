@@ -23,6 +23,8 @@ console @AddUnitToServer("WaterMarker","WolfTutor","WaterMarker",Add(GetX(GetLea
 waitfor 5 IsAlive(GetObjectByName("WaterMarker"))
 load save1
 waitfor 15 Mul(Not(IsAlive(GetObjectByName("WaterMarker"))),IsGreater(HP(GetLeader()),0))
+# The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
+dump loaded_save1
 wait 1000
 report
 quit

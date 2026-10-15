@@ -1,0 +1,12 @@
+{
+  "scenario": "harness_digest",
+  "install": "vanilla",
+  "recorded": "2026-10-15",
+  "commit": "e1b2d7cf",
+  "digest_period": 20,
+  "left_out": " updateCountdown$",
+  "clear": "(?:^obj2 (hp|maxHp)$)",
+  "repeated_in": 4,
+  "reason": "SV3: first goldens of the suite; the original repeated in two runs and ours (hooks; Rebirth: flags following addon.dll) matched it in two",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50823 7a77de2ca062bf0f', orig2 'savea/mission.sav 50976 3b420b606db9703a'"
+}

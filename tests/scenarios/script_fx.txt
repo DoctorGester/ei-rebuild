@@ -43,6 +43,8 @@ wait 500
 load save1
 waitwindow 30 battle
 waitfor 20 IsGreater(HP(GetLeader()),0)
+# The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
+dump loaded_save1
 check IsAlive(GetLeader())
 report
 quit

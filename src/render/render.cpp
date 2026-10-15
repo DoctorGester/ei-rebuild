@@ -709,9 +709,20 @@ bool DrawOldTerrain() {
     return g_oldTerrain || !Active();
 }
 
+// The harness's oldterrain / oldobjects / oldinterface steps. With `present` the old path stays off: it has no
+// device to draw into (or its frame is replaced by the new one), and running it anyway changed the new frame
+// (render_scene's world / world_again in a native run: the terrain darker and the water's phase after "on").
+namespace {
+bool OldPathSwitchable(const char* step, bool on) {
+    if (!on || !g_present) return true;
+    ei::Log("render: '%s on' ignored: with 'present' the old path stays off", step);
+    return false;
+}
+} // namespace
+
 void SetDrawOldTerrain(bool on) {
     EnsureConfigured();
-    g_oldTerrain = on;
+    if (OldPathSwitchable("oldterrain", on)) g_oldTerrain = on;
 }
 
 bool DrawOldMeshes() {
@@ -726,12 +737,12 @@ bool DrawOldInterface() {
 
 void SetDrawOldObjects(bool on) {
     EnsureConfigured();
-    g_oldObjects = on;
+    if (OldPathSwitchable("oldobjects", on)) g_oldObjects = on;
 }
 
 void SetDrawOldInterface(bool on) {
     EnsureConfigured();
-    g_oldInterface = on;
+    if (OldPathSwitchable("oldinterface", on)) g_oldInterface = on;
 }
 
 void TexturePixels(const void* holder, const void* pixels, int width, int height, int pitch, int bitsPerPixel,

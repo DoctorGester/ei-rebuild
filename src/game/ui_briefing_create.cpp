@@ -402,7 +402,7 @@ void CBriefingScreen::MarkPeople() {
 
 void CBriefingScreen::LeaveIfExitOpen() {
     struct PartyRecords {
-        std::uint8_t unknown_00[0x30];
+        std::uint8_t unused_00[0x30];
         void* records;               // +0x30 the unit records (0x784 bytes each)
         int count;                   // +0x34
     };

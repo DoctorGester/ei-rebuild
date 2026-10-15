@@ -16,6 +16,8 @@
 # without the margin). Not captured: its scene is lit by the world's time, which differs between
 # the runs.
 deterministic
+# Beside 15 other games (on our renderer it no longer runs alone, R10) it took up to 50 s.
+timeout 90
 resolution desktop
 widescreen 1
 rebirthflags WideScreen

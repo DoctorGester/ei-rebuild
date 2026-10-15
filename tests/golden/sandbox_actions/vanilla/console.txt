@@ -1,0 +1,22 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Saved savea
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  1
+  1
+  1
+  1
+  1
+  1.90394
+  1
+  0
+  0
+  1
+  1

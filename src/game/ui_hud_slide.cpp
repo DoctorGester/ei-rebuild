@@ -184,8 +184,8 @@ void CHudMap::UpdateVanilla() {
     interface_->hudPanelsIn_[2] = slideDirection_ > 0.0f ? 1 : 0;
 
     // The "camera north" button (scene object 11) is lit while its time runs.
-    if (unknown_1B0 > 0.0f) unknown_1B0 = RoundToFloat(unknown_1B0 - WindowFrameTimeOriginal(this));
-    SetTint(sceneObjects_.data[11], unknown_1B0 > 0.0f ? 1.0f : 0.5f);
+    if (northTime_ > 0.0f) northTime_ = RoundToFloat(northTime_ - WindowFrameTimeOriginal(this));
+    SetTint(sceneObjects_.data[11], northTime_ > 0.0f ? 1.0f : 0.5f);
 }
 EI_REPLACE_METHOD(0x00642B40, CHudMap::UpdateVanilla);
 EI_REBIRTH_IMPLEMENTS(0x00642B40, ei::rebirth::Patch::WideScreen);
@@ -539,7 +539,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     view_ = 0;
     for (int i = 0; i < 2; ++i) SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? 1.0f : 0.5f);
     CallLayout();
-    unknown_1B0 = 0.0f;
+    northTime_ = 0.0f;
     widescreen::LeavePanel();        // addon's 10023359
 }
 EI_REPLACE_METHOD(0x00641F20, CHudMap::SetupVanilla);

@@ -62,7 +62,7 @@ counts. New scenarios target that list before the hook build is retired.
 |---|---|---|
 | SV1 | Deterministic runs that repeat: zone loading and the sound code's clocks on the virtual clock; every scenario passes `compare.py --runs 3` on both sides. Done 2026-10-14: virtual clock by default; what does not repeat yet is in open-questions.md | 1-2 |
 | SV2 | State digest and dump in the harness; golden record / compare commands; tests/golden layout | 1 |
-| SV3 | Record goldens for the suite (vanilla, Rebirth flags on and off); saves at checkpoints | 1 |
+| SV3 | Record goldens for the suite (vanilla, Rebirth flags on and off); saves at checkpoints. Done 2026-10-15: 42 goldens, `--golden` in run_all and work.py test (section SV3) | 1 |
 | SV4 | Function vector record mode and the replay test exe, for the families listed in section 3 | 2 |
 | SV5 | Coverage list, and scenarios for what it shows uncovered | 1+ |
 
@@ -151,6 +151,98 @@ purpose), the same console; Unit::ReadNetState 0 mismatches.
 Other wrappers that run an original after ours on live objects can do the same (the generators,
 or other shared state the original's run changes again); the plain-versus-verify trace finds them.
 
+## SV3: the suite's goldens (2026-10-15)
+
+**What a golden is** (tests/golden/<scenario>/<install>/, tools/golden.py): golden.json (date, commit, digest period,
+the fields left out and kept in clear, how many runs agreed, the reason), console.txt, digest.txt and dump_*.txt in
+**compact form**, and saves.txt when the saves repeat (below). The compact form is the digest's own record format with
+the world, the generators and the players field by field and every object as hashes of its fields (a unit: one hash
+each for `#place` (position, orientation, scale, cell, motion), `#vitals` (hit points, mana, regeneration, effects,
+death), `#ai` and `#unit`, the rest; other objects one `#`). A golden is 40-90 KB (the first record, ~780 objects, is
+most of it); the 42 goldens take 2.2 MB. A difference names the record, the object and the group; for the fields
+behind a hash, run the original again (its runs repeat) and `golden.py diff` the two full digests.
+
+**Saves at checkpoints:** the seven scenarios that load a save (ground_prints, levers, magic_traps, script_copy,
+script_fx, terrain_water_load, world_load) take `dump loaded_<save>` once the load is done: the loaded world field by
+field, kept as a compact dump. The saves' bytes are kept (saves.txt: size and hash of every `<save>/*.sav` but the
+thumbnail shot.sav) only when every run wrote the same bytes, and that never happened: mission.sav differs in size and
+bytes between two runs of the original in every scenario that saves (SV3b).
+
+**Known differences** (golden.py KNOWN, each with its ticket): fields kept in clear in compact digests and left out
+of comparisons with a golden (`compare --strict` keeps them), so a golden needs no re-recording when the ticket lands;
+the entry is dropped then. One so far: SV3a, the main menu world's unit 2 (unmoco2), whose hit points ours leaves
+unwritten (every hooked run's first record).
+
+**Recording** (period 20 world updates, `run_all.GOLDEN_PERIOD`):
+```
+set EI_DIGEST=20 & python tools\work.py test <ID> --no-hooks        (the original; twice)
+set EI_DIGEST=20 & python tools\work.py test <ID>                   (ours; twice)
+python tools\golden.py snapshot <scratch>\orig1                       (after each suite: orig1, orig2, ours1, ours2)
+python tools\golden.py record --install vanilla --runs <scratch>\orig1 <scratch>\orig2 <scratch>\ours1 <scratch>\ours2 --reason "..."
+python tools\golden.py record --install rebirth --runs ...            (the same folders)
+```
+`record` keeps a scenario only when the second run of the original and both of ours agree with the first run of the
+original in the console, every digest record and every dump (but the fields left out and the known differences).
+Without our hooks render_present_fullscreen is not run at all (it would switch the display mode; run_all.plan), and
+rebirth_flags (vanilla), render_device_lost and render_present_shot fail.
+
+**Checking:** `python tools\work.py test <ID> --golden [run_all args]` (or `run_all.py --golden`) runs the games with
+EI_DIGEST=20 and then compares every run that has a golden with it (golden.py compare): "goldens: N the same, M
+differ, ..." and GOLDENS THE SAME / GOLDENS DIFFER, which also sets the exit code. Native runs compare with the vanilla
+golden. The comparison runs in the `work.py test` process, after the batch, so the scheduler needs nothing new.
+Rebirth with the flags on is the default Rebirth run (FollowAddon: every flag follows what addon.dll applies) against
+the Rebirth golden (addon's code alone); with the flags off (`set EI_REBIRTH=FollowAddon=0`) the rewrites of what
+addon.dll patches are not installed, so addon's code runs there and the same Rebirth golden applies.
+
+**Covered (42):** vanilla 37: camera, console, harness_digest, hero_death, items, levers, net_lobby, objects_more,
+party_records, render_movie, render_movie_present, render_scene, render_terrain, render_titles_present,
+sandbox_actions, script_copy, script_parse, script_quest, smoke, spells_cast, ui_battle_spells, ui_container_input,
+ui_help, ui_hero_delete, ui_hero_screen, ui_hero_stats, ui_main_menu, ui_objectives, ui_options_bind, ui_order_move,
+ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens, ui_trade_restore, unit_create, world_load. Rebirth 5: console, harness_digest, items, script_parse, ui_help. Rebirth with the flags off
+(`set EI_REBIRTH=FollowAddon=0`): all five differ from the Rebirth golden at world update 40 (three more ISAAC draws;
+SV3c), so that configuration has no passing golden yet.
+
+**Speed 10:** 28 of the 37 vanilla goldens' scenarios (and 4 of the 5 Rebirth ones) have `speed 10`, whose handling on the virtual clock SV1i
+changes; their goldens are recorded with the old handling and need recording again after SV1i (the same four suites
+and `record`).
+
+**Not covered yet**, by the first run that differed from the first run of the original (`@N`: world update of the
+first differing record, then the fields; unmoto: the zone's two idle wolves, obj1936/1937):
+- *The original does not repeat* (46; the update-map countdown from heap addresses, SV1b, is the likely cause of
+  nearly all: idle units that think on other updates, so the generators' counts part): combat_more (console line 57);
+  effects @80 isaac.count; ground_prints @960 flags (hero); map_objects @560 isaac.count, ai.standCooldown (unmoto);
+  models @540 isaac.count, crt.rand; movement @540 isaac.count, ai.standCooldown (unmoto); particles @80 isaac.count,
+  ai.standCooldown (unmoto); render_present @280 isaac.count, ai.standCooldown (unmoto); sandbox_map (console line 4);
+  script_exec @560 crt.rand, regenTicks (unmoto); script_fx @60 isaac.count, ai.standCooldown (unmoto); spells @540
+  updateMap, isaac.count; spells_hero @620 isaac.count, regenTicks (unmoto); trader_stock @200 isaac.count;
+  ui_base_dialogue @100 isaac.count; ui_camp @580 isaac.count; ui_global_map_pick @320 isaac.count, crt.rand; ui_hud
+  @540 isaac.count; ui_mp_host @520 isaac.count; ui_trade_hold @100 isaac.count; ui_view_screen @220 isaac.count,
+  crt.rand; ui_widescreen_hud @280 isaac.count, crt.rand; ui_widescreen_more @660 isaac.count, regenTicks (wolf
+  obj1890); ui_widescreen_screens @380 updateMap, isaac.count; unit_ai @540 isaac.count; units @560 isaac.count;
+  world @280 isaac.count, ai.standCooldown (unmoto); world_client @560 isaac.count, regenTicks (unmoto);
+  zone_base_bz1g @100 isaac.count, crt.rand; zone_gz2g_traps @100 isaac.count; zone_gz3g @180 crt.rand. Rebirth:
+  effects_bow @320, frames_basic @200 updateMap, ground_prints @320, levers @320, map_objects @280, rebirth_flags
+  (console line 38: a group's unit order), trader_stock @300, ui_camp @580 flags (unmoto), ui_help_page @380, ui_hud
+  @460 ai.point (hero), ui_mp_host @500 (the hero's name: tteesstt / test), ui_trade_restore @100,
+  ui_widescreen_hud @440 pos.x (unmoto), ui_widescreen_more @900 updateMap, ui_widescreen_screens @1320; all with
+  isaac.count first but where named.
+- *Ours repeats but differs from the original, which repeated* (14; the same in ours1 and ours2, so not noise: the
+  heap layout with our hooks, SV1b, or a verify wrapper's side effect, SV1g): combat (console line 61, a hit);
+  effects_bow @120 isaac.count; frames_basic @280 and render_cpuwindows @280 isaac.count, ai.standCooldown (unmoto);
+  magic_traps @100 crt.rand; sound (console line 19: which wolf the hero sees); ui_battle_commands @260 ai.noticed
+  (hero); ui_camp_deals @140 isaac.count; ui_describe @180 and ui_help_page @380 isaac.count, ai.standCooldown
+  (unmoto); ui_quick_items @120 isaac.count; unit_ai_fear @100 isaac.count. Rebirth: ui_camp_deals @140,
+  ui_quick_items @120, ui_trade_hold @100, all isaac.count first.
+- *Ours does not repeat* (3): render_present_cpuwindows @260 isaac.count, terrain_water_load @340 crt.rand;
+  ui_widescreen (recorded, then dropped: after main's R10, our renderer by default, one of two runs took one more
+  frame by world update 600, isaac.count).
+- *No golden possible without our hooks:* rebirth_flags (vanilla; its flags), render_device_lost, render_present_shot,
+  render_present_fullscreen; render_present_window fails too and, like the three watchdog_* scenarios, never runs a
+  world update, so it writes no digest.
+
+When SV1b / SV1g land, run the four suites again and `record`: a scenario that repeats then gets its golden, and one
+that stops repeating is reported, not recorded.
+
 ## SV4: function vectors, record mode and replay (2026-10-15)
 
 **Record mode** (verify build, `EI_VECTORS=1` in the game's environment; `work.py test` passes it on). A
@@ -192,6 +284,38 @@ AxisZ (6) and SetIdentity (1); none of the seven scenarios reaches CubicSegment:
 (their checks are registered and wait for a scenario that does: SV5's coverage list). A corrupted copy
 (one bit of a Dot result, one of Refill's state) fails both records.
 
+**SV4a (2026-10-15): matrix maths, Range and the stat and damage formulas.**
+- `maths` also has MatrixMultiply (matrix_math.cpp), Quaternion::ToMatrix (before and after of all 16
+  elements, so the ones it leaves alone are checked) and MultiplyByConjugate (quaternion.cpp), the last
+  with the aliasing of its output.
+- `random` also has IsaacRandom::Range. The payload is the draw (results_[count_] after the call, which is
+  Next's result), min, max and the float result; the replay gives ours a generator that holds just that
+  draw, so the 4 KB generator is not recorded (Next and Refill cover it). Range moved from effects.cpp to
+  random.cpp, since effects.cpp does not link without the game.
+- `stats` (unit_stats.cpp, linked with src/lib/rebirth.cpp; Rebirth's patches stay off in the replay, the
+  vectors are vanilla): UnitStats::Period20, AttributeBase, AttributeWithBonus, SkillBase, WeaponSkill,
+  Reduce, ReduceKind1, LockKey::Opens, ResetDamageInfo, HasElementalDamage, ExcessDamage and MaxDamage. A
+  UnitStats is not copied whole: the payload has the fields the function reads (stat10/18/20, attributes,
+  skills, the six slots' kind, current, maximum and factor), the rest zero, so equal calls dedupe.
+  ExcessDamage and MaxDamage moved from unit_stat_small.cpp to unit_stats.cpp (unit_stat_small.cpp needs
+  net_delta.cpp, which needs the streams). Results the original leaves unrounded in ST0 are recorded as
+  doubles and compared bitwise.
+- Left out because their sources do not link without the game or read game memory: CTransformPipeline::
+  PushMatrix (the pipeline object), UnitStats::GetFactors, StrengthRatio/DexterityRatio, SkillWithBonus,
+  SkillLevelValue, Value6E8/6E9, SkillPrice and SchoolPrice (the game's settings at fixed addresses or the
+  skill databases), UnitParams::ProtectionBlock and WeaponSkillBonus (databases and settings),
+  UnitStats::PickLocation (the global generator). Each needs its globals passed in the payload and a
+  forwarder-free way to read them; a ticket for it is SV4d.
+- Recorded from 48 scenarios (the SV4 seven and items, hero screens, camp, spells,
+  scripts, models, particles, ...; vanilla): the new files are 145 KB. Reached: everything but
+  MultiplyByConjugate (called from the skeleton frames), ReduceKind1 (the AI's
+  target choice) and LockKey::Opens (lever and lock keys); none of the 48 reaches them; their checks are
+  registered and wait for scenarios (SV5's coverage list). Few distinct calls exist for AttributeBase (1),
+  AttributeWithBonus (1), WeaponSkill (1), Period20 (2), HasElementalDamage (1), ExcessDamage (1) and
+  ResetDamageInfo (1). The matrices replay bit for bit at 007F, so MatrixMultiply and ToMatrix need no
+  tolerance. Corrupted copies (one bit in a Reduce result, a matrix element, a Range result, a MaxDamage
+  result) fail.
+
 Adding a family: a payload header, a record file (one recorder per function, `Sampler(family, name,
 sizeof(payload), cap)`), a replay file, the family's sources in CMakeLists.txt's ei_vectors, then a record
 run and `vectors.py merge`. A family whose functions read game objects needs those objects' state in the
@@ -226,6 +350,58 @@ Two causes, not one.
   same build: with `speed 10` 81 s (timeout), without 26 s. The 78 other scenarios with `speed 10`
   keep it (their goldens are being recorded with it); SV1i looks at which of them wait on sound or
   timers.
+
+## SV1b: the heap, the update countdown and the nearby list (2026-10-15)
+
+combat, combat_more, sound and rebirth_flags did not repeat on the virtual clock, on either side.
+
+**The heap.** game.exe's CRT (VC6, statically linked) puts every malloc on a Win32 heap of its own
+(_crtheap 007CAF08, `HeapCreate(0, 0x1000, 0)` in _heap_init 006F54E6; on NT 5+ __heap_select 006F539E
+picks the system heap, so there is no small-block heap in front). Windows 8+ gives such a heap the
+low-fragmentation front end, which picks a bucket's free slot at random: the same calls get other
+addresses in every run. tests/verify/harness_heap.cpp, on the virtual clock and on both sides: the
+harness (static constructor, before the CRT starts; ei_launch starts the game suspended) patches game.exe's
+HeapCreate import so the CRT's heap is made with HEAP_NO_SERIALIZE (no front end), and HeapAlloc /
+HeapFree / HeapReAlloc / HeapSize / HeapDestroy take a critical section of the harness's for that heap.
+With it, three runs of the original are the same in every digest field of every record (combat 630,
+combat_more 635, sound 530 records, `--all-fields`); with `--clock virtual,lfheap` (the game's heap)
+combat's three consoles differ. Other threads that allocate from the CRT heap could still move
+addresses; none showed up.
+
+**The update countdown.** Each side now repeats, but ours and the original allocate differently (the
+verify wrappers run originals on scratch copies), so units sit at other addresses on the two sides,
+and the countdown (0x80 + bits 5..8 of the address) differs. The harness makes both sides spread it by
+the object's id (`id_ & 0xF`) instead: the eight original sites (`SAR r,5 / AND r,0xF` -> `MOV
+r,[r+0xC] / AND r,0xF`; 0058D4FA WakeUnitsAround, 0058D5E2 AddToUpdateMap, 0058D8F7 UpdateUnits,
+00592B14 / 00592C81 / 00593131 CreateObject, 005940DD InvokeAlarm, 00596BB1 the save's update map) and
+CWorldServer::UpdateCountdownFor in ours (world_server.cpp; AddToUpdateMap, UpdateUnits and
+CreateObject call it). Outside the harness it stays the address. golden.py no longer leaves the
+field out.
+
+**AIViewer::Refresh (005CA1D0), a rewrite bug.** With both, ours and the original still printed two
+"Unit A sees unit B" lines of one update in the other order (combat, combat_more, sound), with every
+digest field the same. The original inserts each unit near the viewer at the head of the brain's
+nearby list (an inlined AddHead); ours appended them (AddCountedTail), and See walks the list from the
+head. Fixed (unit_ai_sight.cpp). The wrapper (verify_unit_ai_sight.cpp) is ours-only and checks the
+list's members, not their order.
+
+**rebirth_flags** repeats on the fixed heap (the group order was by address). Its last difference
+was its own: `#DistancePointPoint(3,4)` printed the two floats addon's handler reads past its
+arguments (5, 1.#INF, or a NaN that made the variable's verify fail when stored); the scenario now
+checks `Not(IsLess(DistancePointPoint(3,4),0))`, true for any of them.
+
+Results (on top of SV1a): the four scenarios, three runs per side, repeat; combat, combat_more and
+sound print the same as the original. Left: in sound the digests part at update 272 in `crt.rand` only
+(StartIdleAnimation -> FindAnimation one frame earlier in ours, a client-side pick) without a
+difference in the console; obj2 (unmoco2)'s hit points are an unwritten field in ours (NaN / 2e14
+against NaN / 1.0 in the original's first record).
+
+What the repeatable heap changed elsewhere in the suite: the CRT heap can now begin right above
+game.exe's image (0x007F...), and netverify::BuiltCompare took everything below 0x800000 for an image
+address, so CBaseManager::ConstructBase's bucket pointers failed to pair (six scenarios); InImage (and
+ui_census's vtable range) now end at the image's real end, 0x007D7000. ui_hud under Rebirth: zone1's
+lone wolf (obj1804) reached the hero during the HUD walk and the "hero died" box covered the HUD on
+every run; the scenario now has the hero in god mode until its last check.
 
 ## SV1i: no more `speed 10` (2026-10-15)
 

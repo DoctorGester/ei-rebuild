@@ -237,15 +237,15 @@ void CHeroStatsPanel::DrawStats() {
             Down(&rect);
             // The weapon's figures (the unit's slot 50 of +0x240 fills them).
             struct WeaponInfo {
-                std::uint32_t unknown_00;
+                std::uint32_t unused_00;
                 std::uint32_t damageKind;    // +0x04
-                std::uint32_t unknown_08;
+                std::uint32_t unused_08;
                 float damageMin;             // +0x0C
                 float damageMax;             // +0x10
-                std::uint32_t unknown_14;
+                std::uint32_t unused_14;
                 int value18;                 // +0x18
                 int value1C;                 // +0x1C
-                std::uint8_t unknown_20[0x20];
+                std::uint8_t unused_20[0x20];
             } info;
             void* inner = Read<void*>(unit, 0x240);
             using InfoFn = void(__thiscall*)(void*, WeaponInfo*);

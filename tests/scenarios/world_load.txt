@@ -47,6 +47,8 @@ wait 1000
 # Load the new game's autosave: the spawned wolves are gone, the hero is back.
 load savea
 waitfor 20 Mul(Not(IsAlive(GetObjectByName("ZoneWolf3"))),IsGreater(HP(GetLeader()),0))
+# The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
+dump loaded_savea
 console @BlockUnit(GetLeader(),0)
 check Not(IsAlive(GetObjectByName("ZoneWolf1")))
 check Not(IsAlive(GetObjectByName("ZoneWolf8")))

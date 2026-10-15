@@ -18,14 +18,14 @@ void* s_unused;
 static void __fastcall BattleLeftDoubleVerify(void* input, void*, int buttons, int x, int y) {
     auto* self = WindowFromInput<CBattleScreenSetup>(input);
     bool portraits = self->portraitMode_ != 0;
-    bool pressed = self->unknown_1C0;
+    bool pressed = self->viewPressed_;
     self->CBattleScreenSetup::OnLeftDouble(buttons, x, y);
     if (portraits) return;
-    bool started = self->unknown_1C0 && self->pressX_ == x && self->pressY_ == y && !self->unknown_1C1;
-    bool ok = pressed ? started : (self->inputHandled_ ? !self->unknown_1C0 : started);
+    bool started = self->viewPressed_ && self->pressX_ == x && self->pressY_ == y && !self->boxSelecting_;
+    bool ok = pressed ? started : (self->inputHandled_ ? !self->viewPressed_ : started);
     ei::verify::Check("CBattleScreenSetup::OnLeftDouble", true, ok, "(%d,%d) pressed %d handled %d press %d drag %d", x,
-                      y, pressed ? 1 : 0, self->inputHandled_ ? 1 : 0, self->unknown_1C0 ? 1 : 0,
-                      self->unknown_1C1 ? 1 : 0);
+                      y, pressed ? 1 : 0, self->inputHandled_ ? 1 : 0, self->viewPressed_ ? 1 : 0,
+                      self->boxSelecting_ ? 1 : 0);
 }
 EI_VERIFY(0x00638AD0, BattleLeftDoubleVerify, 0, s_unused);
 

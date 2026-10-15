@@ -312,7 +312,7 @@ void CBriefingScreen::HideSpeaker(const char* name, int immediate, int time) {
         for (BriefingSpeaker* p = entry; p + 1 != speakersEnd_; ++p) {
             p->unit = p[1].unit;
             p->name = p[1].name;
-            p->unknown_08 = p[1].unknown_08;
+            p->spareFlag = p[1].spareFlag;
         }
         --speakersEnd_;
         speakersEnd_->name.~CString();

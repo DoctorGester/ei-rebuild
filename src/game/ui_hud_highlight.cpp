@@ -66,7 +66,7 @@ EI_REPLACE_METHOD(0x005E7060, CUiMesh::SetScale);
 
 void CHudQuickItems::Highlight(int slot, int on) {
     int sprite = regionItem_[slot];
-    if (sprite < 0 || sprite >= unknown_14C) return;
+    if (sprite < 0 || sprite >= shownCount_) return;
     CUiMesh* mesh = Sprite(this, sprite);
     if (slot < kBottomRow)
         SetSpriteScale(mesh, on ? kQuickScaleOn : kQuickScaleOff);

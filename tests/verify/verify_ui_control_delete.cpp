@@ -21,7 +21,7 @@ namespace {
 void* s_unused;
 
 bool BaseEmpty(const CUiWindow* w) {
-    return !w->blackMaterial_ && !w->whiteMaterial_ && !w->unknown_0F4 && !w->objects_.data && !w->sceneObjects_.data &&
+    return !w->blackMaterial_ && !w->whiteMaterial_ && !w->heldObject_ && !w->objects_.data && !w->sceneObjects_.data &&
            !w->surfaces_.data && !w->regions_.data && !w->models_.data;
 }
 void CheckDeleted(const char* name, const void* expected, const void* result, unsigned flags) {

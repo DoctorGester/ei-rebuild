@@ -61,7 +61,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     mfc::CString unused;
     unit_ = unit;
     ClearSceneObjects();
-    unknown_14C = 0;
+    shownCount_ = 0;
     selected_ = -1;
     for (int i = 0; i < 8; ++i) {
         regions_.data[i]->SetTip(0, 1, 0);
@@ -72,8 +72,8 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
 
     // The entry of the sprite just added.
     auto finish = [&](CEngineObject* item, bool own) {
-        EntriesSetSize(&entriesVtable_, nullptr, unknown_14C, -1);
-        Entry& entry = entries_[unknown_14C - 1];
+        EntriesSetSize(&entriesVtable_, nullptr, shownCount_, -1);
+        Entry& entry = entries_[shownCount_ - 1];
         entry.own = own;
         entry.id = item->id_;
         entry.item = item;
@@ -81,15 +81,15 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     // The sprite just added: placed in its row (x from 007428AC, 695; Rebirth moves it), its
     // region pointing at it, scaled, opaque.
     auto place = [&](int slot) {
-        CEngineObject* sprite = sceneObjects_.data[unknown_14C - 1];
+        CEngineObject* sprite = sceneObjects_.data[shownCount_ - 1];
         const float right = *reinterpret_cast<const volatile float*>(0x007428AC);
         if (slot < 4)
             SpritePlace(sprite, nullptr, right - static_cast<float>(slot * 50), 575.0f, 20.0f);
         else
             SpritePlace(sprite, nullptr, right - static_cast<float>(slot * 50 - 200), 525.0f, 20.0f);
-        int last = unknown_14C - 1;
+        int last = shownCount_ - 1;
         regionItem_[slot] = last;
-        if (last >= 0 && last < unknown_14C) {
+        if (last >= 0 && last < shownCount_) {
             CEngineObject* shown = sceneObjects_.data[last];
             SpriteScale(shown, nullptr, slot < 4 ? 0.55f : 0.85f);
             SceneMesh(last)->colour_ = 0xFF000000;
@@ -304,12 +304,12 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
             }
         }
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
-        if (screen->unknown_210 != ids.camera) {
+        if (screen->partyCamera_ != ids.camera) {
             CameraFollow(reinterpret_cast<void*>(0x0079B2A8), nullptr, ids.camera);
             BattleRefreshSelectionOriginal(screen);
         }
         IdsAssign(&screen->partyWithUnit_, nullptr, &ids.withUnit);
-        screen->unknown_210 = ids.camera;
+        screen->partyCamera_ = ids.camera;
         IdsAssign(&screen->partyWithout_, nullptr, &ids.without);
     }
     IdsDestroyB(&ids.without);
@@ -390,7 +390,7 @@ void CBattleScreenSetup::Update() {
 
     // The selection box: party units inside it are marked (flag 0x100 and their figure's slot 26
     // with 1), the others unmarked (with 0); dead ones (0x10) are left alone.
-    if (unknown_1C1) {
+    if (boxSelecting_) {
         std::uint8_t allocator = 0;
         List units;
         ListConstruct411850(&units, nullptr, &allocator);
@@ -437,15 +437,15 @@ void CBattleScreenSetup::Update() {
     }
 
     // The quest sound asked for.
-    if (unknown_1FC != 0) {
+    if (questSound_ != 0) {
         const char* sound = nullptr;
-        switch (unknown_1FC) {
+        switch (questSound_) {
         case 1: sound = reinterpret_cast<const char*>(0x007943B8); break;   // buttons\quest.wav
         case 2: sound = reinterpret_cast<const char*>(0x007943CC); break;   // buttons\subcomplete.wav
         case 3: sound = reinterpret_cast<const char*>(0x007943E4); break;   // buttons\complete.wav
         }
         if (sound) interface_->PlaySound(sound, 0);
-        unknown_1FC = 0;
+        questSound_ = 0;
     }
 }
 namespace {
@@ -484,13 +484,13 @@ __declspec(naked) void __fastcall SelectUnitAt(CBattleScreenSetup*, void*, CUnit
 
 void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     if (portraitMode_ != 0) return;
-    if (!unknown_1C0) {
+    if (!viewPressed_) {
         InputOf(this)->BaseLButtonUp(buttons, x, y);
         return;
     }
-    unknown_1C0 = false;
+    viewPressed_ = false;
     void* world = reinterpret_cast<void*>(kWorld);
-    if (!unknown_1C1 || IsNetworkClientOriginal()) {
+    if (!boxSelecting_ || IsNetworkClientOriginal()) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         int point[2] = {x, y};
         CUnit* unit = UnitAtPoint(world, nullptr, point);
@@ -553,7 +553,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
         }
     }
     BattleRefreshSelectionOriginal(this);
-    unknown_1C1 = false;
+    boxSelecting_ = false;
     FreeListNodes(&inside);
     if (inside.head) NodeFree(inside.head, 0xC);
     FreeListNodes(&units);
@@ -599,7 +599,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
     if (parts.size == 3) {
         const char* key;
         if (EqualOrNaN(value, complete)) {
-            if (unknown_1FC <= 3) unknown_1FC = 3;
+            if (questSound_ <= 3) questSound_ = 3;
             key = game::Text(0x007943A0);   // "combat_complete_quest"
         } else if (EqualOrNaN(value, failed)) {
             value = 1.0f;
@@ -665,8 +665,8 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
     }
     static_cast<CHudClock*>(clock_)->highlight_ = true;
     int sound = static_cast<int>(value);
-    if (unknown_1FC > sound) sound = unknown_1FC;
-    unknown_1FC = sound;
+    if (questSound_ > sound) sound = questSound_;
+    questSound_ = sound;
 }
 namespace {
 void __fastcall BattleScreenQuestVariable(CBattleScreenSetup* self, void*, const char* name, float value) {

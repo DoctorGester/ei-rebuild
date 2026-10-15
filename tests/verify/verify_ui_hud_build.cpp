@@ -152,7 +152,7 @@ static CHudQuickItems* __fastcall QuickItemsConstructVerify(CHudQuickItems* self
                                                             CBattleScreen* owner) {
     CHudQuickItems* result = self->Construct(ui, owner);
     bool ok = result == self && self->owner_ == owner && self->interface_ == ui && self->regions_.size == 8 &&
-              self->sceneObjects_.size == 0 && self->unknown_14C == 0 && self->selected_ == -1 && !self->unit_ &&
+              self->sceneObjects_.size == 0 && self->shownCount_ == 0 && self->selected_ == -1 && !self->unit_ &&
               !self->entries_ && self->entryCount_ == 0 && LabelCount(&self->labelsVtable_) == 12 &&
               SameRect(self->rect_, 520 + widescreen::EdgeShift(), 500, 720 + widescreen::EdgeShift(), 600);
     for (int i = 0; ok && i < 8; ++i) ok = self->regions_.data[i]->tip_ != nullptr && self->regionItem_[i] == -1;
@@ -164,17 +164,17 @@ static CHudQuickItems* __fastcall QuickItemsConstructVerify(CHudQuickItems* self
 EI_VERIFY(0x0063C800, QuickItemsConstructVerify, 0, s_unused);
 
 static void __fastcall QuickItemsAddVerify(CHudQuickItems* self, void*, const char* model, const char* image) {
-    int count = self->unknown_14C;
+    int count = self->shownCount_;
     int sprites = self->sceneObjects_.size;
     self->AddItem(model, image);
     if (count > 7) {
         // Full: nothing is added.
         ei::verify::Check("CHudQuickItems::AddItem full", true,
-                          self->unknown_14C == count && self->sceneObjects_.size == sprites, "count %d", count);
+                          self->shownCount_ == count && self->sceneObjects_.size == sprites, "count %d", count);
         return;
     }
-    bool ok = self->unknown_14C == count + 1 && self->sceneObjects_.size == sprites + 1;
-    ei::verify::Check("CHudQuickItems::AddItem", true, ok, "count %d -> %d, sprites %d -> %d", count, self->unknown_14C,
+    bool ok = self->shownCount_ == count + 1 && self->sceneObjects_.size == sprites + 1;
+    ei::verify::Check("CHudQuickItems::AddItem", true, ok, "count %d -> %d, sprites %d -> %d", count, self->shownCount_,
                       sprites, self->sceneObjects_.size);
     if (ok) CheckIcon("CHudQuickItems::AddItem picture", Sprite(self, sprites), count, 0x80);
 }

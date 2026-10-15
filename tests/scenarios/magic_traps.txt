@@ -42,6 +42,8 @@ waitfor 5 IsAlive(GetObjectByName("TrapMarker"))
 
 load save1
 waitfor 15 Mul(Not(IsAlive(GetObjectByName("TrapMarker"))),IsGreater(HP(GetLeader()),0))
+# The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
+dump loaded_save1
 check IsEqual(GetObjectID(GetObject(30004)),30004)
 check IsEqual(GetObjectID(GetObject(30001)),30001)
 report

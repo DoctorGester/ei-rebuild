@@ -6,6 +6,8 @@
 
 #include "ei/hook.h"
 
+#include <cstring>
+
 namespace {
 
 using namespace ei::vectors;
@@ -222,8 +224,53 @@ float __fastcall EvaluateRecord(const CubicSegment* self, void*, float t) {
     return result;
 }
 
+// 0049E950
+Recorded<ConjugateCall> g_conjugate("MultiplyByConjugate");
+Quaternion*(__fastcall* s_conjugate)(Quaternion*, const Quaternion*, const Quaternion*);
+Quaternion* __fastcall ConjugateRecord(Quaternion* out, const Quaternion* a, const Quaternion* b) {
+    auto v = Zeroed<ConjugateCall>();
+    v.a = *a;
+    v.b = *b;
+    v.alias = Alias(out, a, b);
+    std::uint16_t cw = ControlWord();
+    Quaternion* ret = s_conjugate(out, a, b);
+    v.out = *out;
+    g_conjugate.sampler.Offer(v, cw);
+    return ret;
+}
+
+// 004D9880 (matrix_math.cpp)
+Recorded<MatrixMultiplyCall> g_multiply("MatrixMultiply");
+void(__fastcall* s_multiply)(float*, void*, const float*, const float*);
+void __fastcall MultiplyRecord(float* out, void*, const float* a, const float* b) {
+    auto v = Zeroed<MatrixMultiplyCall>();
+    std::memcpy(v.a, a, sizeof(v.a));
+    std::memcpy(v.b, b, sizeof(v.b));
+    v.alias = Alias(out, a, b);
+    std::uint16_t cw = ControlWord();
+    s_multiply(out, nullptr, a, b);
+    std::memcpy(v.out, out, sizeof(v.out));
+    g_multiply.sampler.Offer(v, cw);
+}
+
+// 004D9AA0
+Recorded<ToMatrixCall> g_toMatrix("Quaternion::ToMatrix");
+void(__fastcall* s_toMatrix)(const Quaternion*, void*, float*);
+void __fastcall ToMatrixRecord(const Quaternion* self, void*, float* out) {
+    auto v = Zeroed<ToMatrixCall>();
+    v.q = *self;
+    std::memcpy(v.before, out, sizeof(v.before));
+    std::uint16_t cw = ControlWord();
+    s_toMatrix(self, nullptr, out);
+    std::memcpy(v.after, out, sizeof(v.after));
+    g_toMatrix.sampler.Offer(v, cw);
+}
+
 } // namespace
 
+EI_RECORD(0x0049E950, ConjugateRecord, 6, s_conjugate);
+EI_RECORD(0x004D9880, MultiplyRecord, 8, s_multiply);
+EI_RECORD(0x004D9AA0, ToMatrixRecord, 6, s_toMatrix);
 EI_RECORD(0x00401DE0, ConstructRecord, 6, s_construct);
 EI_RECORD(0x00401E00, DotRecord, 6, s_dot);
 EI_RECORD(0x00401E20, LengthRecord, 6, s_length);

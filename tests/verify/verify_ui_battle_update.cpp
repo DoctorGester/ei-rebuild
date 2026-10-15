@@ -33,7 +33,7 @@ void Append(std::vector<std::uint8_t>& out, const void* p, std::size_t n) {
 
 std::vector<std::uint8_t> QuickItemsState(CHudQuickItems* panel) {
     std::vector<std::uint8_t> out;
-    Append(out, &panel->unknown_14C, 4);
+    Append(out, &panel->shownCount_, 4);
     Append(out, &panel->selected_, 4);
     Append(out, &panel->unit_, 4);
     Append(out, &panel->entryCount_, 4);
@@ -70,7 +70,7 @@ static void __fastcall QuickItemsSetUnitVerify(CHudQuickItems* self, void*, CUni
             }
     }
     ei::verify::Check("CHudQuickItems::SetUnit", -1, at, "state byte %d differs (sizes %d/%d, sprites %d)", at,
-                      static_cast<int>(expected.size()), static_cast<int>(actual.size()), self->unknown_14C);
+                      static_cast<int>(expected.size()), static_cast<int>(actual.size()), self->shownCount_);
 }
 EI_VERIFY(0x0063D2B0, QuickItemsSetUnitVerify, 7, s_setUnit);
 
@@ -121,7 +121,7 @@ static void __fastcall BattleScreenUpdateVerify(CBattleScreenSetup* self) {
 
     self->Update();
 
-    ei::verify::Check("CBattleScreenSetup::Update", 0, self->unknown_1FC, "quest sound %d left", self->unknown_1FC);
+    ei::verify::Check("CBattleScreenSetup::Update", 0, self->questSound_, "quest sound %d left", self->questSound_);
     if (savedFlag && !self->savedFlag_) {
         ei::verify::Check("CBattleScreenSetup::Update", true, self->interface_->GetActiveWindow() != top,
                           "zone exit asked without a new window");
@@ -130,7 +130,7 @@ static void __fastcall BattleScreenUpdateVerify(CBattleScreenSetup* self) {
         ei::verify::Check("CBattleScreenSetup::Update", true, party->data == partyData && party->size == partySize,
                           "single player party changed (%d -> %d)", partySize, party->size);
     }
-    if (self->unknown_1C1) {
+    if (self->boxSelecting_) {
         std::vector<std::uintptr_t> inside = UnitsInBox(&self->selectionBox_);
         int wrong = -1;
         for (int i = 0; i < party->size && wrong < 0; ++i) {
@@ -156,15 +156,15 @@ static void* s_battleLButtonUp;
 static void __fastcall BattleScreenLButtonUpVerify(void* input, void*, int buttons, int x, int y) {
     auto* self = reinterpret_cast<CBattleScreenSetup*>(static_cast<std::uint8_t*>(input) - 0x94);
     int mode = self->portraitMode_;
-    bool pressed = self->unknown_1C0, dragging = self->unknown_1C1;
+    bool pressed = self->viewPressed_, dragging = self->boxSelecting_;
     self->OnLButtonUp(buttons, x, y);
     bool ok;
     if (mode != 0)
-        ok = self->unknown_1C0 == pressed && self->unknown_1C1 == dragging;
+        ok = self->viewPressed_ == pressed && self->boxSelecting_ == dragging;
     else
-        ok = !(pressed && self->unknown_1C0);
+        ok = !(pressed && self->viewPressed_);
     ei::verify::Check("CBattleScreenSetup::OnLButtonUp", true, ok, "mode %d, press %d/%d, drag %d/%d", mode,
-                      pressed ? 1 : 0, self->unknown_1C0 ? 1 : 0, dragging ? 1 : 0, self->unknown_1C1 ? 1 : 0);
+                      pressed ? 1 : 0, self->viewPressed_ ? 1 : 0, dragging ? 1 : 0, self->boxSelecting_ ? 1 : 0);
 }
 EI_VERIFY(0x00638B30, BattleScreenLButtonUpVerify, 0, s_battleLButtonUp);
 
@@ -179,7 +179,7 @@ static void __fastcall BattleScreenQuestVariableVerify(CBattleScreenSetup* self,
     auto* top = reinterpret_cast<std::uint8_t*>(self->topPanel_);
     const auto& log = *reinterpret_cast<const mfc::CString*>(top + 0x164);
     int before = log.GetLength();
-    int sound = self->unknown_1FC;
+    int sound = self->questSound_;
     self->OnQuestVariable(name, value);
     int after = log.GetLength();
     const char* tail = reinterpret_cast<const char*>(0x00794318);
@@ -187,10 +187,10 @@ static void __fastcall BattleScreenQuestVariableVerify(CBattleScreenSetup* self,
     bool grew = after >= before + tailLength &&
                 std::memcmp(static_cast<const char*>(log) + after - tailLength, tail, tailLength) == 0;
     bool pulsed = Get<std::uint8_t>(self->clock_, 0x158) != 0;
-    bool ok = after == before || (grew && pulsed && self->unknown_1FC >= sound);
+    bool ok = after == before || (grew && pulsed && self->questSound_ >= sound);
     ei::verify::Check("CBattleScreenSetup::OnQuestVariable", true, ok, "'%s' %g: text %d -> %d, clock %d, sound %d -> %d",
                       name ? name : "", static_cast<double>(value), before, after, pulsed ? 1 : 0, sound,
-                      self->unknown_1FC);
+                      self->questSound_);
 }
 EI_VERIFY(0x006369D0, BattleScreenQuestVariableVerify, 0, s_questVariable);
 

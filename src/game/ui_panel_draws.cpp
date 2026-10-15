@@ -182,7 +182,7 @@ void DrawSprite(CUiMesh* sprite, int pass, float x, float y) {
 CUiMesh* Highlight(CUiWindow* window) { return static_cast<CUiMesh*>(static_cast<void*>(window->sceneObjects_.data[4])); }
 
 struct SpellSlots {
-    std::uint8_t unknown_00[0x40];
+    std::uint8_t unused_00[0x40];
     CItem** items;                   // +0x40
     int count;                       // +0x44
 };

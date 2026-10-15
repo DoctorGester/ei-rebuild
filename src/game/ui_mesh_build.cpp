@@ -58,7 +58,7 @@ void ResetVertexColours(CUiMesh* mesh) {
 void SetVertex(CUiMesh* mesh, int index, int position, int uv) {
     UiMeshVertex& v = mesh->vertices_[index];
     v.position = static_cast<std::int16_t>(position);
-    v.unknown_2 = 0;
+    v.normal = 0;
     v.frame = static_cast<std::int16_t>(uv);
 }
 

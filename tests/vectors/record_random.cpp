@@ -11,6 +11,7 @@ using namespace ei::vectors;
 
 // The payloads are 4 KB and never repeat: no repeat check, a few per path.
 Sampler g_next("random", "IsaacRandom::Next", sizeof(random::Next), 12, 2);
+Sampler g_range("random", "IsaacRandom::Range", sizeof(random::Range), 256);
 Sampler g_refill("random", "IsaacRandom::Refill", sizeof(random::Refill), 8);
 
 // 004667F0. Bucket 1: the call that refilled (count_ was 0).
@@ -37,7 +38,23 @@ void __fastcall RefillRecord(IsaacRandom* rng) {
     g_refill.Offer(v, cw, 0, false);
 }
 
+// 00488970. The draw is results_[count_] afterwards (Next's own rule); the result is the float the
+// callers' stores see.
+float(__fastcall* s_range)(IsaacRandom*, void*, float, float);
+float __fastcall RangeRecord(IsaacRandom* rng, void*, float min, float max) {
+    auto v = Zeroed<random::Range>();
+    v.min = min;
+    v.max = max;
+    std::uint16_t cw = ControlWord();
+    float result = s_range(rng, nullptr, min, max);
+    v.result = result;
+    v.value = rng->results_[rng->count_ & 0xFF];
+    g_range.Offer(v, cw);
+    return result;
+}
+
 } // namespace
 
 EI_RECORD(0x004667F0, NextRecord, 6, s_next);
+EI_RECORD(0x00488970, RangeRecord, 6, s_range);
 EI_RECORD(0x0049EE70, RefillRecord, 6, s_refill);

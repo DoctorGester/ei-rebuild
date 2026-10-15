@@ -190,9 +190,20 @@ void CWorldServer::RemoveTimedObject(unsigned id) {
     if (auto* again = timedObjects_.map.Find(id)) timedObjects_.map.Erase(again);
 }
 
+namespace {
+bool g_countdownsById = false;   // SpreadUpdateCountdownsById (harness runs only)
+} // namespace
+
+int CWorldServer::UpdateCountdownFor(const CEngineObject* object) {
+    if (g_countdownsById) return (object->id_ & 0xF) + 0x80;
+    return ((reinterpret_cast<int>(object) >> 5) & 0xF) + 0x80;
+}
+
+void CWorldServer::SpreadUpdateCountdownsById() { g_countdownsById = true; }
+
 void CWorldServer::AddToUpdateMap(CEngineObject* unit) {
     // The unit's update slot.
-    ObjectSlots(unit)->updateCountdown = ((reinterpret_cast<int>(unit) >> 5) & 0xF) + 0x80;
+    ObjectSlots(unit)->updateCountdown = UpdateCountdownFor(unit);
     unsigned id = static_cast<unsigned>(unit->id_);
     updateMap_.Set(id, unit);
 }

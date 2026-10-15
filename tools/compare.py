@@ -5,7 +5,7 @@ any difference in the console output is a behaviour difference. Use it for code 
 wrappers can only check plausibility (functions that run once per call: AI ticks, TakeHit, loaders).
 
 usage: python tools/compare.py [scenario names or paths...] [--rebirth | --both] [--runs N] [--jobs N]
-                               [--clock virtual|real[,clocktrace][,randtrace]]
+                               [--clock virtual|real[,clocktrace][,randtrace]] [--dgvoodoo] [--fresh]
   scenarios  names in tests/scenarios (default: all); with --rebirth and no names, those that
              config/rebirth_scenarios.csv runs under Rebirth
   --rebirth  run under Rebirth instead of the vanilla install; --both: vanilla, then Rebirth
@@ -13,6 +13,9 @@ usage: python tools/compare.py [scenario names or paths...] [--rebirth | --both]
   --jobs N   games at once (default 4; run_all.py's machine-wide slots apply)
   --clock    override the scenarios' clock (default: as each scenario says); randtrace writes every
              random draw to randtrace.txt in each run's folder (find where two runs part)
+  --dgvoodoo our side on dgVoodoo too (run_all.py --dgvoodoo); by default it draws with our renderer
+  --fresh    play the original side again instead of taking it from run_all's reference cache (with
+             --runs N > 1 it is always played: it has to repeat itself)
 Each run writes to build\verify\runs\<scenario>-<install>-<original|ours><n>. A scenario's verdict
 is printed as soon as its runs are done.
 exit code: 0 every scenario repeats and matches, 1 otherwise, 2 a run produced no report
@@ -66,6 +69,8 @@ def main():
     ap.add_argument('--runs', type=int, default=1)
     ap.add_argument('--jobs', type=int, default=4)
     ap.add_argument('--clock')
+    ap.add_argument('--dgvoodoo', action='store_true')
+    ap.add_argument('--fresh', action='store_true')
     args = ap.parse_args()
     names = [os.path.splitext(os.path.basename(s))[0] for s in args.scenarios] or sorted(
         os.path.splitext(os.path.basename(p))[0] for p in glob.glob(os.path.join(ROOT, 'tests', 'scenarios', '*.txt')))
@@ -83,7 +88,8 @@ def main():
         futures = {}
         for n, i, hooks, k in runs:
             folder = f'{n}-{i}-{"ours" if hooks else "original"}{k}'
-            futures[pool.submit(run_all.run, n, i, hooks, folder, clock=args.clock)] = (n, i, hooks, k, folder)
+            futures[pool.submit(run_all.run, n, i, hooks, folder, clock=args.clock, dgvoodoo=args.dgvoodoo,
+                                fresh=args.fresh or args.runs > 1)] = (n, i, hooks, k, folder)
         for future in concurrent.futures.as_completed(futures):
             n, i, hooks, k, folder = futures[future]
             result, seconds, failures, counts, notes = future.result()

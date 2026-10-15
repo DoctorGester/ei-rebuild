@@ -245,8 +245,6 @@ constexpr int kUnitSleepCountdown = 0x174;   // CUnit +0x174: updates left befor
 int& SleepCountdown(CEngineObject* object) {
     return *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(object) + kUnitSleepCountdown);
 }
-// What AddToUpdateMap also writes: 0x80..0x8F updates, spread by the object's address.
-int WakeCountdown(const CEngineObject* object) { return ((reinterpret_cast<int>(object) >> 5) & 0xF) + 0x80; }
 } // namespace
 
 void CWorldServer::UpdateUnits() {
@@ -287,7 +285,7 @@ void CWorldServer::UpdateUnits() {
             if (controller[0x174] == 0 && controller[0x9B7] == 0 && controller[0xB0C] == 0)
                 DwordsSetAtGrow(&SleepingIds(), nullptr, SleepingIds().size, static_cast<unsigned>(object->id_));
             else
-                SleepCountdown(object) = WakeCountdown(object);
+                SleepCountdown(object) = UpdateCountdownFor(object);
         }
     }
 

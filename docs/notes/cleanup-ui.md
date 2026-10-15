@@ -82,3 +82,32 @@ Declarations:
 - `SpellRecord::unknown_1C` (power, radius, level, duration) and `ItemRecordHead::unknown_4C` can be named in item_db.h.
 - Behaviour note from batch 1: the hero list's rename writes the hero party's name (record +0x30 points at it), as the
   original does; no scenario renames a hero.
+
+## Unknown fields (ticket F3)
+
+Every `unknown_XXX` member of the interface (ui.h, ui_camp.h, ui_screens.h, ui_briefing.h, the other ui_*.h and the
+ui_*.cpp views, 132 in all) has a name now; layout unchanged. Alignment padding and blocks nothing in the rebuild
+touches are `unused_XXX` (the main menu's +0x168 / +0x174, the view screen's +0x164, the trade and statistics panels'
++0x148, the briefing's +0x258 and the interface's +0x10 were also checked in the original's slots: nothing reads
+them). The duplicate views keep their blocks as `unused_` with a pointer to the view that names them (CBattleScreen's
+to CBattleScreenSetup, CUiMesh's to CFigureMesh, whose layout it repeats up to +0x220). Named:
+
+- `CBattleScreenSetup`: `viewPressed_` (+0x1C0), `boxSelecting_` (+0x1C1), `questSound_` (+0x1FC), `partyCamera_`
+  (+0x210, the camera id between the two party id vectors, as `PartyIds::camera`); `spare_` (+0x164) is only
+  cleared by Create (00635250+9C4), no slot of the screen reads it.
+- `BattleTargetQuery` is laid out as a `LockKey` (unit.h): `kind` the mask (1), then `id` and `level` (0).
+- `CHudQuickItems::shownCount_` (+0x14C, the sprites added), `CHudMap::northTime_` (+0x1B0),
+  `UiMeshVertex::normal` (+2, MeshCorner's second index; the builders write 0).
+- Written, never read in the original (named `*Spare`): `CInterface3D::fpsSpare_` (+0x24, Create with the frame rate
+  fields; ShowFps / DrawOverlays read only +0x20 / +0x28 / +0x2C), `CUiMesh::tintSpare_` (+0x230, CreateSprite;
+  Draw 005E6D90 reads tint_ only), `CCursor::imageSpare_` (+0x14, Init and Shutdown 005E62E0; the frame step
+  005E52E0 reads image_'s +0x14, not the cursor's), `CMpConnectScreen::spare_` (+0x254, Create only),
+  `BriefingSpeaker::spareFlag` (+0x08, false when added; the vector's erase / insert copies it, nothing tests it).
+- `CUiWindow::heldObject_` (+0xF4): 0 from the constructor, released by the destructor with the two materials; no
+  writer identified among the window classes.
+- `TradeRecord::padAfterPerks` / `padAfterBought`: alignment bytes the trade panel's verify copies before comparing
+  whole records.
+
+How the readers were looked for: a capstone index of every `[reg+disp]` operand per function of the vanilla exe
+(config/functions.csv sizes), queried per class over its vtable slots and their direct callees in the class's
+address range. Readers through another object's pointer outside that range are not excluded by it.

@@ -57,7 +57,8 @@ wait 500
 
 # addon's arithmetic functions (AddNewScriptCommands): "#" lines print the value. Add, Mul, Max,
 # Min, And and Or take any number of arguments ('+'), Random a second one ('?'; with one it stays
-# the game's). DistancePointPoint reads two floats past its arguments (as in addon).
+# the game's). DistancePointPoint reads two floats past its arguments (as in addon): what lies
+# there changes from run to run (5, 1.#INF or a NaN), so only a test that holds for any of them.
 console #Add(1000,200,30,4)
 expect 1234
 console #Mul(2,3,7,11)
@@ -76,7 +77,7 @@ console #Add(Random(5000,5000),Random(7,3))
 expect 5007
 check IsLess(Random(10,20),20)
 console #Random(2)
-console #DistancePointPoint(3,4)
+check Not(IsLess(DistancePointPoint(3,4),0))
 
 # addon's string functions: "$" lines print a string through ConsoleString (addon's, any number of
 # texts), which evaluates string functions through the new CalcString.

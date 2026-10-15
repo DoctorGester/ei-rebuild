@@ -40,6 +40,8 @@ waitfor 5 IsAlive(GetObjectByName("LeverMarker"))
 
 load save1
 waitfor 15 Mul(Not(IsAlive(GetObjectByName("LeverMarker"))),IsGreater(HP(GetLeader()),0))
+# The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
+dump loaded_save1
 check IsEqual(GetObjectID(GetObject(1889)),1889)
 check IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv"))
 report

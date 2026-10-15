@@ -45,7 +45,7 @@ void* VariableGlue() { return reinterpret_cast<void*>(0x007AFEA4); }
 
 // The local player's unit records as the party order follows them (LocalPlayerData).
 struct LocalPartyRecords {
-    std::uint8_t unknown_00[0x30];
+    std::uint8_t unused_00[0x30];
     PartyUnitRecord* records;        // +0x30 0x784 bytes each, the unit's id at +0x1C
     int count;                       // +0x34
 };
