@@ -367,4 +367,10 @@ EI_REPLACE(0x00476430, SerializeCArray<OwnedDwordMaps>);   // SceneObjectArrayCl
 EI_REPLACE(0x006C4C90, SerializeCArray<AlignedArrays>);   // vtable 007441B4
 EI_REPLACE(0x00451A70, SerializeCArray<NamedStrings>);   // TextureNameArrayClass
 
+// Records with CStrings.
+EI_REPLACE(0x005FB120, SerializeCArray<GlobalMapZoneRecords>);    // GlobalMapZoneArrayClass
+EI_REPLACE(0x005FB380, SerializeCArray<GlobalMapPointRecords>);   // GlobalMapPointArrayClass
+EI_REPLACE(0x005FB5F0, SerializeCArray<GlobalMapPointRecords>);   // GlobalMapPathArrayClass
+EI_REPLACE(0x00557050, SerializeCArray<MemoryCallRecords>);       // MemoryRecordArrayClass
+
 } // namespace mfc::impl

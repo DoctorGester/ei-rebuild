@@ -314,6 +314,12 @@ void FreeAlignedAt(E* p) {
     if (data) lib::FreeAligned32(data);
 }
 
+// The CStrings at the given offsets set empty (the record zeroed first by EachElements).
+template <std::size_t Size, std::size_t... At>
+void InitStringsAt(Bytes<Size>* p) {
+    ((*reinterpret_cast<char**>(p->bytes + At) = PchNil()), ...);
+}
+
 template <std::size_t Size>
 using DeletedThroughObject = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, nullptr, DeleteThroughObject<Bytes<Size>>>>;
 template <std::size_t Size>
@@ -334,6 +340,15 @@ using MemoryRecords = StringsAt<0x18, 0x14>;
 using NamedRecords = StringsAt<0xC, 4>;
 using GlobalMapPoints = StringsAt<0x18, 0x14, 0x10>;
 using GlobalMapZones = StringsAt<0x10, 0xC, 8>;
+
+// Records whose CStrings SetSize sets empty and destroys (the global map's, 005FBF50 / 005FBD30 and
+// the like; a unit memory's call records, 00558D60 / 00558D00).
+template <std::size_t Size, std::size_t... At>
+using BuiltStringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, InitStringsAt<Size, At...>,
+                                                          DestroyStringsAt<Bytes<Size>, At...>>>;
+using GlobalMapZoneRecords = BuiltStringsAt<0x10, 0xC, 8>;
+using GlobalMapPointRecords = BuiltStringsAt<0x18, 0x14, 0x10>;
+using MemoryCallRecords = BuiltStringsAt<0x18, 0x14>;
 
 using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
 using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)

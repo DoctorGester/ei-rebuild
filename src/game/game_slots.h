@@ -58,6 +58,16 @@ using Commands = ArrayAbi<SSCCmd, EachElements<SSCCmd, nullptr, DestroyCommand>>
 using DeclList = ListAbi<ScriptDecl, EachElements<ScriptDecl, nullptr, DestroyDecl>>;
 using GroupList = ListAbi<ScriptGroup, EachElements<ScriptGroup, nullptr, gamearrays::DestroyGroup>>;
 
+// A command block's commands as SetSize builds them (004CE920: zeroed, then SSCCmd's constructor).
+inline void InitCommand(SSCCmd* p) { p->Construct(); }
+using BuiltCommands = ArrayAbi<SSCCmd, EachElements<SSCCmd, InitCommand, DestroyCommand>>;
+// The map database's zone records: built as 004607E0 builds them, destroyed by ZoneRecordDestruct.
+using ZoneRecordElement = mfc::impl::StringsAndArray<0x5C, 8, 0x48, mfc::impl::MapRecordItemsClass>;
+inline void DestroyZoneRecordElement(ZoneRecordElement* p) { zone::ZoneRecordDestruct(reinterpret_cast<MapRecord*>(p)); }
+using BuiltZoneRecords =
+    ArrayAbi<ZoneRecordElement, EachElements<ZoneRecordElement, mfc::impl::InitStringsAndArray<0x5C, 8, 0x48, mfc::impl::MapRecordItemsClass>,
+                                             DestroyZoneRecordElement>>;
+
 // ---- The instantiations' vtables (game data) -------------------------------------------------------
 
 struct ItemObjectListClass {   // a list of engine objects released through slot 4 (00427600)
