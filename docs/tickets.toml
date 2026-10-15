@@ -644,8 +644,9 @@ note = "Seen 2026-10-15: since SV1 made the virtual clock the default, sandbox_m
 id = "SV1g"
 title = "Verify wrappers that leave the verify build off the game's course"
 group = "verification"
-status = "queued"
+status = "running"
 note = "From SV1a: UnitReadNetStateVerify re-ran the original on live state without putting the random generators back, so the verify build's fights differed from the plain build. Find others the same way: random traces of the verify build against EI_PLAIN=1 per scenario (first draw that differs by value and frame), then a verified.txt bisection (standalone-verification.md, SV1a section). Fix each wrapper (put shared state back, or run ours only where the replay cannot be faithful)."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -1056,12 +1057,21 @@ done = "2026-10-15"
 id = "C9c"
 title = "map_object_shadow.cpp: what C9b left raw"
 group = "cleanup"
-status = "running"
+status = "done"
 size = 0.3
 model = "opus"
 files = ["src/game/map_object_shadow.cpp"]
 note = "From C9b (2026-10-15): the colour key read from CTexture::block_ (+0x60; for a keyed texture, flags 0x2000, its meaning needs recovering); reinterpret_cast<CUnit*>(object) to reach the controller (CObject3D / CMapObject relation); AlignedRecordBuffer and PointAt/PixelAt indexing (CLinkMesh::ProjectPart and RasterisePart take float* / int*, typing them changes signatures)."
 started = "2026-10-15"
+done = "2026-10-15"
+
+[[ticket]]
+id = "C9d"
+title = "Shadow callees: typed points, pixels and raster target"
+group = "cleanup"
+status = "queued"
+depends = ["C9c"]
+note = "From C9c (2026-10-15): CLinkMesh::ProjectPart / RasterisePart (slots 13 / 14) and 005A0CD0 / 005A0E80 take float* points, int* pixels and a void* target; typing them as Vector2*, RasterTriangle::Point* and RasterTarget* (move RasterTarget from map_object_shadow.cpp to texture.h) changes their signatures, so map_object_shadow.cpp still passes &Points()[n].x / &Pixels()[n].x."
 
 # ---------------------------------------------------------------- standalone and UTF-8
 

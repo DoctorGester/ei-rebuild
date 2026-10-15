@@ -122,6 +122,17 @@ def machine_slot(alone=False):
             _unlock(gate)
 
 
+def switches_display(scenario):
+    """Whether a scenario asks for full screen at a mode other than the desktop's (`resolution WxH` with
+    `fullscreen 1`). Only our renderer covers the monitor without changing the mode; the original's DirectDraw,
+    under dgVoodoo or not, switches the real display, which upsets the user's desktop. So such a scenario runs
+    only with our hooks (plan() leaves out its runs without them)."""
+    with open(scenario, encoding='cp1251', errors='replace') as f:
+        lines = f.read().splitlines()
+    mode = any(re.match(r'\s*resolution\s+(?!desktop\b)\S', l) for l in lines)
+    return mode and any(re.match(r'\s*fullscreen\s+1\b', l) for l in lines)
+
+
 def sets_display_mode(scenario):
     """Whether a scenario sets the display mode (a `resolution` step): it runs with no other game."""
     with open(scenario, encoding='cp1251', errors='replace') as f:
@@ -378,7 +389,13 @@ def plan(args, root=ROOT):
     if args.widescreen:
         names = args.scenarios or WIDESCREEN_SCENARIOS
         jobs = [(name, install) for name in names for install in ('rebirth', 'rebirth-nohooks')]
-    return jobs
+    path = lambda name: os.path.join(root, 'tests', 'scenarios', name + '.txt')
+    kept = [(n, i) for n, i in jobs if uses_hooks(i, args) or not switches_display(path(n))]
+    for n, i in jobs:
+        if (n, i) not in kept:
+            print(f'{n}-{i}: left out, full screen at its own mode without our renderer would switch the display',
+                  file=sys.stderr)
+    return kept
 
 
 def uses_hooks(install, args):

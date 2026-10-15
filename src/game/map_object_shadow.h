@@ -21,15 +21,6 @@ class CFigureMesh;   // figure_mesh.h
 struct VertexPacket;    // figure_mesh.h
 struct DecalTexCoord;   // ground_decal.h
 
-// A growable array of fixed-size records in 32-byte aligned storage (the block is kept at
-// data[-1]): the shadow code's three global work buffers.
-struct AlignedRecordBuffer {
-    void* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-
 struct tagRECT;   // windows.h
 #include "device_material.h"   // CDeviceMaterial, MaterialStage
 #include "material.h"   // CMaterial

@@ -76,5 +76,6 @@ rewritten address kept its hook and verify wrapper. The conventions are the ones
   - `LightViewMatrix` / `LightRotation` (004F1440 / 004F15C0) in the shadow;
   - `CallCreate3D`, kept deliberately so the verify wrapper runs.
 - `FigurePart` and `CFigureMesh` (figure_mesh.h) describe the same part: merge them.
-- `ColourKey` in the shadow reads the colour key from `CTexture::block_` (+0x60) through a `bit_cast`; the field should
-  get a name in texture.h.
+- The shadow's key texels (C9c): `RasterTriangle::keyTexels` takes `CTexture::block_` directly (see models.md, Layouts).
+- `CLinkMesh::ProjectPart` / `RasterisePart` and 005A0CD0 / 005A0E80 take `float*` points and `int*` pixels; typing them
+  (`Vector2*`, `RasterTriangle::Point*`, a `RasterTarget*` target) changes their signatures (follow-up C9d).
