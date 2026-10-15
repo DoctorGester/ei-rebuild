@@ -1,6 +1,6 @@
 // Checks for the briefing variables (src/game/world_briefing.cpp). The speaker and the variable
-// only read the briefing texts (each lookup opens its section again), so the original runs first
-// into a scratch string and the results are compared; MarkBriefing sets a variable, so only ours
+// only read the briefing texts (each lookup opens its section again), so ours runs, then the
+// original into a scratch string (SV2h1: ours allocates first) and the results are compared; MarkBriefing sets a variable, so only ours
 // runs and the variable is read back.
 #include "verify.h"
 
@@ -23,9 +23,9 @@ __declspec(naked) double __fastcall VariableGetAt(void*, void*, const char*) {
 
 mfc::CString* Compare(const char* what, StringFn original, mfc::CString* (__stdcall* ours)(mfc::CString*, const char*),
                       mfc::CString* out, const char* briefing) {
+    mfc::CString* result = ours(out, briefing);
     alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
     mfc::CString* expected = original(reinterpret_cast<mfc::CString*>(storage), briefing);
-    mfc::CString* result = ours(out, briefing);
     bool ok = result == out && std::strcmp(*result, *expected) == 0;
     ei::verify::Check(what, true, ok, "%s: %s (original %s)", briefing ? briefing : "", static_cast<const char*>(*result),
                       static_cast<const char*>(*expected));
@@ -104,9 +104,9 @@ mfc::CString* __stdcall SessionMapOriginalAdapter(mfc::CString* out, const char*
 
 // 005814C0: the same name as the original's.
 static mfc::CString* __stdcall SessionMapNameVerify(mfc::CString* out) {
+    mfc::CString* result = SessionMapNameInto(out);
     alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
     mfc::CString* expected = SessionMapOriginalAdapter(reinterpret_cast<mfc::CString*>(storage), nullptr);
-    mfc::CString* result = SessionMapNameInto(out);
     bool ok = result == out && std::strcmp(*result, *expected) == 0;
     ei::verify::Check("SessionMapNameInto", true, ok, "%s (original %s)", static_cast<const char*>(*result),
                       static_cast<const char*>(*expected));

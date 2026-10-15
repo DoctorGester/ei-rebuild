@@ -18,12 +18,13 @@ namespace {
 using TitleFn = mfc::CString*(__fastcall*)(CGlobalMap*, void*, mfc::CString*, const char*);
 using PositionFn = Vector3*(__fastcall*)(CGlobalMap*, void*, Vector3*, const char*);
 
-// The original's text into a scratch string, ours into `out`; the texts and results must agree.
+// Ours into `out`, then the original's text into a scratch string (SV2h1: ours allocates first); the
+// texts and results must agree.
 mfc::CString* CompareTitle(const char* name, TitleFn original, CGlobalMap* self, mfc::CString* out, const char* key,
                            mfc::CString* (CGlobalMap::*ours)(mfc::CString*, const char*)) {
+    mfc::CString* actual = (self->*ours)(out, key);
     alignas(4) std::uint8_t raw[sizeof(mfc::CString)];
     mfc::CString* expected = original(self, nullptr, reinterpret_cast<mfc::CString*>(raw), key);
-    mfc::CString* actual = (self->*ours)(out, key);
     const char* a = *actual;
     const char* e = *expected;
     ei::verify::Check(name, true, actual == out && std::strcmp(e, a) == 0, "\"%.40s\": \"%.80s\" / \"%.80s\"", key, e,

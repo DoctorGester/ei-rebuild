@@ -6,6 +6,7 @@
 #include "../../src/game/link_figure.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 
@@ -29,25 +30,27 @@ bool MorphIs(const CLinkMesh* mesh, float s, float t, float u) {
 
 } // namespace
 
-// 004DB9C0: PUSH ECX; MOV EAX,[EDX]; PUSH EBX; PUSH EBP (5 bytes). The original into a copy of the
-// string with its own cursor, then ours; text and cursor compared.
+// 004DB9C0: PUSH ECX; MOV EAX,[EDX]; PUSH EBX; PUSH EBP (5 bytes). Ours into the string, then the
+// original into a copy of the string's old contents (kept in our memory) with its own cursor
+// (SV2h1: ours allocates first); text and cursor compared.
 static void (__fastcall* s_readLinkString)(stlp::string*, const char**);
 static void __fastcall ReadLinkStringVerify(stlp::string* out, const char** cursor) {
-    stlp::string expected(*out);
+    const std::string kept = out->size() ? std::string(out->data(), out->size()) : std::string();
     const char* expectedCursor = *cursor;
-    s_readLinkString(&expected, &expectedCursor);
     ReadLinkString(out, cursor);
+    stlp::string expected(kept.data(), kept.data() + kept.size());
+    s_readLinkString(&expected, &expectedCursor);
     ei::verify::Check("ReadLinkString cursor", expectedCursor, *cursor, "%p");
     ei::verify::Check("ReadLinkString", true, expected == *out, "length %u", static_cast<unsigned>(out->size()));
 }
 EI_VERIFY(0x004DB9C0, ReadLinkStringVerify, 5, s_readLinkString);
 
-// 004F7370: PUSH -1; PUSH imm32 (7 bytes). The original into a scratch string, then ours.
+// 004F7370: PUSH -1; PUSH imm32 (7 bytes). Ours, then the original into a scratch string.
 static stlp::string* (__fastcall* s_copyName)(const CLinkMesh*, void*, stlp::string*);
 static stlp::string* __fastcall CopyNameVerify(const CLinkMesh* mesh, void*, stlp::string* out) {
+    stlp::string* actual = mesh->CopyName(out);
     alignas(stlp::string) unsigned char scratch[sizeof(stlp::string)];
     auto* expected = s_copyName(mesh, nullptr, reinterpret_cast<stlp::string*>(scratch));
-    stlp::string* actual = mesh->CopyName(out);
     ei::verify::Check("CLinkMesh::CopyName", true, actual == out && *expected == *out, "length %u",
                       static_cast<unsigned>(out->size()));
     expected->~string();

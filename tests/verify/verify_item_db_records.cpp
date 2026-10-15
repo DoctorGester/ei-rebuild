@@ -161,19 +161,20 @@ ItemRecordHead* __fastcall ConstructBaseVerify(ItemRecordHead* self) {
     return result;
 }
 
-// 006A9E40: PUSH -1; PUSH imm32 (7). The original into a scratch record (its three strings
-// destroyed afterwards), ours into the real one: the strings' texts and the bytes from +0x0C.
+// 006A9E40: PUSH -1; PUSH imm32 (7). Ours into the real record, then the original into a scratch
+// record (its three strings destroyed afterwards; SV2h1: ours allocates first): the strings' texts
+// and the bytes from +0x0C.
 MaterialRecordHead*(__fastcall* s_materialCopy)(MaterialRecordHead*, void*, const MaterialRecordHead*);
 MaterialRecordHead* __fastcall MaterialCopyVerify(MaterialRecordHead* self, void*, const MaterialRecordHead* source) {
+    MaterialRecordHead* result = self->CopyConstruct(source);
     alignas(4) unsigned char raw[sizeof(MaterialRecordHead)];
     auto* scratch = reinterpret_cast<MaterialRecordHead*>(raw);
     auto* expected = s_materialCopy(scratch, nullptr, source);
-    MaterialRecordHead* result = self->CopyConstruct(source);
     const bool same = result == self && expected == scratch && std::strcmp(scratch->key, self->key) == 0 &&
                       std::strcmp(scratch->soundName, self->soundName) == 0 && std::strcmp(scratch->name, self->name) == 0 &&
                       SameBytes(scratch, self, offsetof(MaterialRecordHead, number), sizeof(MaterialRecordHead));
     ei::verify::Check("MaterialRecordHead::CopyConstruct", true, same, "material '%s'", source->key);
-    for (const char** text : {&scratch->key, &scratch->soundName, &scratch->name})
+    for (const char** text : {&scratch->name, &scratch->soundName, &scratch->key})
         reinterpret_cast<mfc::CString*>(text)->~CString();
     return result;
 }
