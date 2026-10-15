@@ -68,7 +68,8 @@ EI_REPLACE(0x005CCD40, CallsHear);
 void __fastcall CallsAddClaim(AICallArray* calls, void*, std::uint32_t mask, int kind, const char* text) {
     mfc::CString copy;
     copy = text;
-    // The original leaves the point as its stack held it.
+    // The original leaves the point as its stack held it (saved as memory.callN.point); 0,0,0 is the
+    // canonical value, which the harness gives the original too (harness_save_leftovers.cpp, S20d).
     AppendCall(calls, Vector3{0.0f, 0.0f, 0.0f}, kind, mask, copy);
 }
 EI_REPLACE(0x005CCEA0, CallsAddClaim);

@@ -8,5 +8,5 @@
   "clear": null,
   "repeated_in": 2,
   "reason": "S20: recorded from two agreeing plain --no-hooks --fresh passes on main with SV7b7 and T2f; goldens of every scenario before the hook builds go",
-  "saves": "not kept: save savea/mission.sav: 8 fields differ; first: / obj338784 controller.brain.memory.call0.point.z: 1.31795238e-28 in the first run, 1.4287752e-28 in q2 / obj338785 controller.brain.memory.call0.point.z: 1.32006224e-28 in the first run, 1.43088506e-28 in q2"
+  "saves": "4 decoded saves (tools/savefile.py), the same in 2 runs"
 }
