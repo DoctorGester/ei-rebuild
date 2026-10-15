@@ -912,7 +912,7 @@ id = "SV2h1c"
 title = "Twin originals allocate outside the reservation heap"
 group = "verification"
 depends = ["SV2h1b"]
-note = "SV2h1b: after a save is loaded, gobject.i (gz1g's address-ordered Peasans group) follows which free region of the reservation heap is smallest when unit 1884 is made; a verify run makes ~8x the heap calls of a --no-hooks run, so any change to a check that allocates before a load can flip it (SV2h1's Tokenize order did, from main's paths only). Route the main thread's game-heap calls made while an original runs on a twin (the verify wrapper's call through its trampoline on scratch outputs) to harness_heap's second heap (frees and reallocs already go by address), so the reservation sees only the game's own blocks; then the twin order no longer matters for goldens. Check: terrain_water_load / ui_saveload_delete / world_load / magic_traps vanilla from main's paths (python E:/workspace/ei/tools/work.py test with EI_BUILD_DIR of build/verify's length, SV2h1b notes) against their goldens, SV2d."
+note = "Stopped 2026-10-15 (user: goldens go layout-independent instead). WIP on branch worktree-agent-a50c52d1587d9f27a (1a5f7317): harness_heap_twins.cpp, a third heap for originals run through verify trampolines; ~130 wrappers keep original blocks (pools, caches, originals the game keeps), so an aside around every trampoline is not enough."
 
 # ---------------------------------------------------------------- harness and suite
 
