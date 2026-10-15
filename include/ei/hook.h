@@ -100,6 +100,13 @@ void* MemberAddress(T member) {
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
 
+// Verification build (the harness's heap-order check, tests/verify/harness_heap_order.cpp): when set
+// before InstallHooks, called for every verify wrapper it installs, after the trampoline is built; it
+// returns where the game's jump goes (the wrapper, or a thunk in front of it) and may replace
+// *entry.original with a thunk in front of the trampoline.
+using VerifyInstallFn = void* (*)(const HookEntry& entry);
+void SetVerifyInstall(VerifyInstallFn fn);
+
 // The harness (verify build) patches `size` bytes of game code at `address` (`what`, a string
 // literal). Called before InstallHooks, it marks the functions holding the bytes as the harness's:
 // their registrations are left out as expected, not as unexpected skips.
