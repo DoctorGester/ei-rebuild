@@ -191,6 +191,27 @@ _mbschr 3.7M, _mbslwr 1.7M calls). Left for S4a-S4c: sprintf / vsprintf / fprint
 the _CI maths (register arguments), _CxxThrowException, the iostream operators, setlocale / _setmbcp,
 _ismbcdigit / _ismbcspace. (library.csv named 006EC8A8 _mbsupr: it lowers.)
 
+**S4a (2026-10-15).** sprintf 006E8715, vsprintf 006ECC47, fprintf 006EAEB0, printf 006E955F and atof
+006E911A registered in both builds (src/lib/crt_format.cpp). One `Output<Sink>` is VC6's _output
+(the __lookuptable state machine copied from 007476D0, flags, `%I64`, `%Z`, wide text through wctomb,
+"(null)", text kept between conversions). Floats are not "17 correct digits": `$I10_OUTPUT` builds them
+from a 12-byte long double (96-bit `__ld12mul` with its truncated partial products, the exe's power-of-ten
+tables 0079AE60 / 0079AFC0 copied), then `_fptostr` rounds that digit string half up; `_cftoe2` writes
+three exponent digits, infinities and NaNs come out as "1#INF" / "1#IND" / "1#QNAN" / "1#SNAN" (so
+"%.2f" of infinity is "1.#J"), -0 prints as 0. atof is `__strgtold12` (at most 24 digits; with more,
+the original bumps the 24th digit itself when it is 5 or more; exponents beyond 5200 saturate; 'd' / 'D'
+accepted) then `_ld12tod` (rounds up only when a bit after the one following the rounding bit is set,
+so ties and some values above them round down; double format at 0079ADE0: min exponent -1023).
+fprintf / printf format in memory and write once through the game's fwrite (S4b owns the stream code).
+The decimal point is read from 00797FE8 (LC_NUMERIC), classes from `_pctype`; single-byte paths only.
+Checks (tests/verify/verify_crt_format.cpp, all against the original): sprintf / vsprintf / fprintf /
+printf run the original _output 006F17D4 into a scratch string FILE and compare count and bytes; atof
+through its trampoline, bits. A start-up check runs ~135k cases (58 float formats on ~6,000 doubles
+incl. denormals, NaNs and random bit patterns, integer / char / string conversions, atof on formatted
+and random digit strings): 0 mismatches. Full suite (128 runs): 0 mismatches, only the pre-existing
+zone_gz15h_tornado rebirth timeout; fprintf / printf are not reached (debug output). Follow-up: S4a1
+(a function-vector family for the conversions).
+
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern
 (`EXIT_PATTERNS`: 83 `mov ecx, obj; jmp dtor`, 17 guarded by a flag bit (two encodings), 8 two calls on
