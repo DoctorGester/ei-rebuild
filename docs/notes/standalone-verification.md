@@ -1898,3 +1898,13 @@ zeroes whole; the rule was wrong. Close already writes the records in first-save
 which only the load path walks), so numbering keeps the format and the order; the loader maps any key. 00544B70 builds a
 stack step too but has no caller. savefile*.py now read every former rule as a value (the Reader keeps the rule tokens
 for later use; none is in use). Without the patch (EI_SAVE_LEFTOVERS=0) 83 steps in combat's saves had a non-zero padding.
+
+In hooked runs the step-list checks where the original's list stands (AddStep, AddEmote, BuildIdle, BuildMoveSteps)
+zero its byte 3 afterwards, as ours writes it (the harness patches are no-hooks only). Runs (54 golden scenarios x 2
+installs before the merges): two plain `--no-hooks --fresh` passes and EI_HEAP_JITTER 1 and 2 passes the same on
+every save with the exclusions gone; hooked and `--standalone` the same as them but the two vanilla widescreen runs
+(cunit129 flags, SV7b8a, no golden). Decoded saves re-recorded (`golden.py saves`) for 103 goldens: 87 from six
+no-hooks runs (two after merging main, the plain and jitter passes before), SV5a's and T2f's new 8 + 8 from two
+post-merge runs.
+After: hooked and `--standalone --golden` over the 62 golden scenarios (124 runs each) all pass, 115 goldens the
+same, 0 differ; the default hooked suite (144 runs) too.
