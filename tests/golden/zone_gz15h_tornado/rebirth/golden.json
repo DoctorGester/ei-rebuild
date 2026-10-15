@@ -1,0 +1,12 @@
+{
+  "scenario": "zone_gz15h_tornado",
+  "install": "rebirth",
+  "recorded": "2026-10-15",
+  "commit": "3afa947e",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 2,
+  "reason": "S20: recorded from two agreeing plain --no-hooks --fresh passes on main with SV7b7 (a third pass over the whole suite matched them); goldens of every scenario before the hook builds go",
+  "saves": "not kept: save savea/mission.sav: 8 fields differ; first: / obj338784 controller.brain.memory.call0.point.z: 1.47057462e-28 in the first run, 1.43902019e-28 in o4 / obj338785 controller.brain.memory.call0.point.z: 1.50196632e-28 in the first run, 1.47041188e-28 in o4"
+}

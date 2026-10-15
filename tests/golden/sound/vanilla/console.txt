@@ -1,0 +1,55 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Accepted player 0
+  party received on client
+  Unit 1936 new motivation Guard with power of 50
+  Unit 1937 new motivation Guard with power of 50
+  Unit 1000011214 new motivation Player with power of 10
+  Unit 1804 new motivation Patrol with power of 50
+  Unit 1890 new motivation Patrol with power of 50
+  Saved savea
+  Unit 1890 acknowledges with idleSound = AAn4XyU
+  1
+  Unit 1937 acknowledges with idleSound = AAn4XyU
+  Unit 1000012714 sees unit 1000011214 from 2.37171m distance
+  Unit 1000012714 new motivation Player with power of 10
+  Unit 1000012715 sees unit 1000011214 from 6.32456m distance
+  Unit 1000012715 new motivation Player with power of 10
+  Unit 1000011214 sees unit 1000012715 from 6.32456m distance
+  Unit 1000011214 sees unit 1000012714 from 2.37171m distance
+  1
+  1
+  Unit 1000012715 hear delayed sound: Unit 1000012714 claims that player 0 are enemies! 
+  Unit 1000011214 was attacked by 1000012714 skill=3.40282e+038 damage=10.43 destHL=RLeg
+  slashing passed damage = 5.45506
+  1
+  Unit 1000011214 was healed
+  Delayed sound: Unit 1000011214 heard unit 1000012715 from 5.221609m distance
+  0
+  0
+  0
+  0
+  Unit 1000012714 was attacked by 1000011214 skill=3.40282e+038 damage=11.999 destHL=RHand
+  impaling passed damage = 11.999 HL was crippled
+  0
+  0
+  Unit 1000011214 was attacked by 1000012715 skill=-3.40282e+038 damage=13.36 destHL=RLeg
+  Delayed sound: Unit 1000012714 heard unit 1000011214 from 1.835991m distance
+  Delayed sound: Unit 1000012715 heard unit 1000011214 from 2.492557m distance
+  Unit 1000012714 was attacked by 1000011214 skill=-3.40282e+038 damage=11.7112 destHL=Body
+  0
+  Unit 1000011214 was attacked by 1000012714 skill=-3.40282e+038 damage=8.56 destHL=Head!
+  0
+  0
+  Unit 1000012714 was attacked by 1000011214 skill=3.40282e+038 damage=9.51263 destHL=Head!
+  impaling passed damage = 9.51263 HL was crippled
+  Unit 1000012715 sees unit 1000012714 from 3.73456m distance
+  Unit 1000012714 sees unit 1000012715 from 3.73456m distance
+  Unit 1000012714 damaged to death
+  Unit 1000012715 sees corpse of unit 1000012714
+  Unit 1000012715 lost from sight unit 1000012714
+  Unit 1000011214 sees corpse of unit 1000012714
+  Unit 1000011214 lost from sight unit 1000012714
+  1
+  1
