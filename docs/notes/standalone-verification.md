@@ -1406,3 +1406,6 @@ no digest, console or dump differed, so the last step's speed word never changed
 equal the original's). `golden.py saves --runs <patched original> <ours>` re-recorded the 85 goldens' saves.txt (both
 runs decode to the same text; 17 store entries replaced); no digest was re-recorded. golden.py `saves` no longer stops
 on a golden without saves (it printed meta['saves'], which keep_saves leaves unset then).
+After merging main (SV7b3's zeroed statistics) the ground_prints goldens' saves were re-recorded the same way. The final
+`--golden --all-rebirth`: 95 goldens the same, levers and ui_saveload_delete (vanilla) differ only in the script's
+`#gobject` (address order, SV7b1); every save equal. Follow-up SV7d1a: audit other rewrites for the distributed sums.
