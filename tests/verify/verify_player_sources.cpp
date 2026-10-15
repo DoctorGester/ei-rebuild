@@ -63,7 +63,7 @@ void __fastcall HandleTakeNewVerify(CWorldHandle* self, void*, void* joined) {
     LinkList shadow = EmptyLike(list);
     s_handleTakeNew(copy, nullptr, &shadow);
     bool originalCleared = copy->pendingLink_ == nullptr;
-    self->CWorldHandle::TakeNew(joined);
+    self->CWorldHandle::TakeNewImpl(joined);
     bool same = originalCleared && self->pendingLink_ == nullptr && shadow.count == (link ? 1 : 0) &&
                 SameTail(&shadow, list, countBefore);
     Drop(&shadow);
@@ -100,7 +100,7 @@ void __fastcall SessionTakeNewVerify(netlink::DriverSession* self, void*, void* 
     s_sessionTakeNew(copy, nullptr, &shadow);
     bool originalEmptied = sentinel->next == sentinel && sentinel->prev == sentinel;
     stlp::deallocate(sentinel, sizeof(DriverNode));
-    self->DriverSession::TakeNew(joined);
+    self->DriverSession::TakeNewImpl(joined);
     bool same = originalEmptied && self->holders_->next == self->holders_ && self->holders_->prev == self->holders_ &&
                 SameTail(&shadow, list, countBefore);
     int appended = shadow.count;

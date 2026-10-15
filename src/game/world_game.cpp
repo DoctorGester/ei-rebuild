@@ -1032,7 +1032,7 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         std::memmove(decoder.input.begin(), data, size);
         TextDecodeOriginal(&decoder, nullptr, &script);
     } else if (StreamReadChunk(&scripts.s, nullptr, kScriptPlain, &text.s)) {
-        text.s.Seek(text.s.size_);
+        text.s.SeekImpl(text.s.size_);
         char zero = 0;
         text.s.Write(&zero, 1u);
         script = reinterpret_cast<const char*>(text.s.data_);

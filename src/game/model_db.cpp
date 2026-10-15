@@ -83,8 +83,6 @@ void TripleChunk(ChunkArchive* ar, int id, std::uint32_t* values) {
 }
 
 // The hooks of the records' slot 0 (a virtual: registered through these shims).
-void __fastcall PrintSerializeHook(PrintRecord* self, void*, ChunkArchive* ar) { self->PrintRecord::Serialize(ar); }
-void __fastcall Print2SerializeHook(PrintRecord2* self, void*, ChunkArchive* ar) { self->PrintRecord2::Serialize(ar); }
 
 // 006CC7F0: the terrain's water level `index` is set to `level` (thiscall on the world).
 __declspec(naked) void __fastcall ApplyWaterLevel(void* /*world*/, void*, int /*index*/, float /*level*/) EI_ORIGINAL(0x006CC7F0)
@@ -116,21 +114,21 @@ EI_REPLACE_METHOD(0x006DB8D0, ChunkArchive::SerializeAcks3);
 
 // ---- prints.db records ----------------------------------------------------------------------------
 
-void PrintRecord::Serialize(ChunkArchive* ar) {
+void PrintRecord::SerializeImpl(ChunkArchive* ar) {
     ar->StringField(1, &name);
     TripleChunk(ar, 2, values2);
     TripleChunk(ar, 3, values3);
 }
 
-void PrintRecord2::Serialize(ChunkArchive* ar) {
+void PrintRecord2::SerializeImpl(ChunkArchive* ar) {
     ar->StringField(1, &name);
     TripleChunk(ar, 2, values2);
     TripleChunk(ar, 3, values3);
     TripleChunk(ar, 10, values10);
 }
 
-EI_REPLACE(0x006D41D0, PrintSerializeHook);
-EI_REPLACE(0x006D4270, Print2SerializeHook);
+EI_REPLACE_METHOD(0x006D41D0, PrintRecord::SerializeImpl);
+EI_REPLACE_METHOD(0x006D4270, PrintRecord2::SerializeImpl);
 
 // ---- TweenArray ---------------------------------------------------------------------------------
 

@@ -781,6 +781,8 @@ public:
     int CreateServer();
     // 00546080. Virtual slot 5: ResetController (a tail jump).
     void ResetSlot();
+    // 00546470. Virtual slot 3 (Destroy): ResetController (a tail jump; CBaseManager::ReleaseObject).
+    void DestroyServer();
     // 005460A0. Virtual slot 39: the taming stage.
     int TameStage();
 

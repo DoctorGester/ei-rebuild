@@ -69,6 +69,15 @@ EI_REPLACE(0x004687D0, LightningGetClassName);
 int __fastcall LightningGetClassId(const CLightning*) { return kClassLightning; }
 EI_REPLACE(0x004687E0, LightningGetClassId);
 
+LightningSegment* LightningSegment::Construct() {
+    points.data = nullptr;
+    points.size = 0;
+    points.capacity = 0;
+    points.growBy = 0;
+    return this;
+}
+EI_REPLACE_METHOD(0x00468900, LightningSegment::Construct);
+
 void LightningSegment::Destruct() {
     if (points.data) LightningPointArray::Free(points.data);
 }

@@ -20,14 +20,11 @@ constexpr int kNoSound = -1;
 using RawArray = mfc::CArray<std::uint8_t>;
 } // namespace
 
-bool CMapObject::ApplyScience(int, int) {
+bool CMapObject::ApplyScienceImpl(int, int) {
     game::DebugLog("Science is applied on wrong object");
     return false;
 }
-bool __fastcall ApplyScienceHook(CMapObject* self, void*, int first, int second) {
-    return self->CMapObject::ApplyScience(first, second);
-}
-EI_REPLACE(0x0050F0F0, ApplyScienceHook);
+EI_REPLACE_METHOD(0x0050F0F0, CMapObject::ApplyScienceImpl);
 
 void CMapObject::FreeArray(void* array, int) {
     auto* raw = static_cast<RawArray*>(array);

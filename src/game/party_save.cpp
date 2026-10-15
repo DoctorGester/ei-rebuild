@@ -83,7 +83,7 @@ struct CopyStream {
 void CopyThrough(CParty* target, CParty* source) {
     CopyStream copy;
     source->SaveParty(&copy.stream, 1);
-    copy.stream.CMemoryStream::Seek(0);
+    copy.stream.CMemoryStream::SeekImpl(0);
     target->LoadParty(&copy.stream, 1);
 }
 

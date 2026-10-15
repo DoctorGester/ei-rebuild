@@ -259,5 +259,8 @@ AnyList::Node** __fastcall ListIteratorDecrement(AnyList::Node** it);
 void __fastcall ListSpliceOne(AnyList* self, void*, AnyList::Node* pos, AnyList* x, AnyList::Node* i);
 void __fastcall ListSpliceRange(AnyList* self, void*, AnyList::Node* pos, AnyList* x, AnyList::Node* first,
                                 AnyList::Node* last);
+// remove(value) of a list<int> (00511FB0; RET 4; S16a: the light factory's lit ids): every element equal
+// to *value (read again for each node) erased, through 00512030.
+void __fastcall ListRemoveInt(list<int>* self, void*, const int* value);
 
 } // namespace stlp

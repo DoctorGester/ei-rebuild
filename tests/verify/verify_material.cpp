@@ -150,7 +150,7 @@ int __fastcall ManagerCreateVerify(CMaterialManager* self) {
 }
 
 CEngineObject* __fastcall NewObjectVerify(CMaterialManager* self, void*, int type) {
-    CEngineObject* object = self->CMaterialManager::NewObject(type);
+    CEngineObject* object = self->CMaterialManager::NewObjectImpl(type);
     const auto* material = static_cast<const CMaterial*>(object);
     const bool ok = object && VtableOf(object) == CMaterial::kVtableAddress && object->type_ == type &&
                     object->id_ == -1 && object->refCount_ == 0 && ResetDone(material);

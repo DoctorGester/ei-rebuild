@@ -33,7 +33,7 @@ StringRep* __fastcall AddressStringVerify(const NetAddress* address, void*, Stri
 
 void __fastcall ReceiveVerify(SessionBase* self, void*, double dt) {
     std::uint32_t frame = self->frame_;
-    self->SessionBase::Tick(dt);
+    self->SessionBase::TickImpl(dt);
     ei::verify::Check("SessionBase::Tick", true, self->frame_ == frame + 1 && CurrentSession() == nullptr, "");
 }
 
@@ -46,17 +46,17 @@ ClientNode** __fastcall FindClientVerify(SessionBase* self, void*, ClientNode** 
 void __fastcall RemoveClientVerify(SessionBase* self, void*, ClientNode* node) {
     std::uint32_t before = self->ClientCount();
     bool present = node != self->clients_;
-    self->SessionBase::RemoveClient(node);
+    self->SessionBase::RemoveClientImpl(node);
     ei::verify::Check("SessionBase::RemoveClient", static_cast<int>(before) - (present ? 1 : 0), static_cast<int>(self->ClientCount()), "");
 }
 bool __fastcall OnUpdateVerify(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    bool known = self->SessionBase::OnUpdate(from, cursor);
+    bool known = self->SessionBase::OnUpdateImpl(from, cursor);
     ei::verify::Check("SessionBase::OnUpdate", true, true, "");
     return known;
 }
 void __fastcall OnLeaveVerify(SessionBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
     std::uint8_t* before = cursor->p;
-    self->SessionBase::OnLeave(from, cursor);
+    self->SessionBase::OnLeaveImpl(from, cursor);
     ei::verify::Check("SessionBase::OnLeave", 4, static_cast<int>(cursor->p - before), "");
 }
 

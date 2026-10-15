@@ -277,6 +277,7 @@ public:
     // controller's slot 40 runs; a text-key (party) unit then marks its sight on the client world
     // (0056D740): its VisionRange at the world's daylight (0055FC50), around its position.
     void AdvanceTime(float time) override;
+    void AdvanceTimeImpl(float time);   // body of the slot above (registered by member pointer)
 
     // 0052E940. Adds `mask` to the hostile mask (relationsA); marks part 11 changed when it grows.
     // Returns the new mask. (0052E970 sets the mask and tells the controller; not rewritten.)
@@ -303,6 +304,7 @@ public:
     std::uintptr_t SetFlag40000000Off(bool on);
     // 0052F7F0. Virtual slot 46: sets (stunned) or clears flags_ bit 0x1000000. Returns the new flags.
     std::uint32_t SetStunned(int on) override;
+    std::uint32_t SetStunnedImpl(int on);   // body of the slot above (registered by member pointer)
 
     // 0052EC10. Writes the item ids (+0x18) of the 4 weapons and then of the 7 armour pieces to
     // `out` (-1 for an empty slot).
@@ -376,6 +378,7 @@ public:
     // 00532DA0. Virtual slot 18: for hero units, whether the animation entry's flags (+0x18) have
     // the bits the controller asks for (0x10 by its slot 36, 0x20 by slot 37); true for other units.
     bool AcceptsAnimation(const void* entry) override;
+    bool AcceptsAnimationImpl(const void* entry);   // body of the slot above (registered by member pointer)
 
     // 00532E00. Ratio of the animation factors (00518D30) of the scale's and the base scale's z.
     double AnimationRatio();
@@ -399,14 +402,17 @@ public:
     // detached and released; returns the new reference count); others go to the map object's
     // 0050E890.
     std::uintptr_t AttachObject(CEngineObject* object) override;
+    std::uintptr_t AttachObjectImpl(CEngineObject* object);   // body of the slot above (registered by member pointer)
     // 0052EB50. Slot 32 (statistics changed): the map object's 0050E970 (packs the server
     // object's vitals into +0x17C), then the controller's slot 22. Returns 1.
     int StatsChanged() override;
     // 0052EB30. Slot 33: the controller's slot 19 with `value` (0 without a controller).
     std::uintptr_t ScaleEffectChanged(int value) override;
+    std::uintptr_t ScaleEffectChangedImpl(int value);   // body of the slot above (registered by member pointer)
     // 00530A20. Slot 35: a server controller (class 0x3E) copies `stats` in (00552F40). Returns
     // what is left in EAX (the controller's class id when it is not one).
     std::uintptr_t SetStats(const UnitStats* stats) override;
+    std::uintptr_t SetStatsImpl(const UnitStats* stats);   // body of the slot above (registered by member pointer)
     // 00530A50. Slot 37: the controller's slot 23.
     std::uintptr_t UpdateSizeClasses() override;
     // 005303A0. Slot 48 (another name, as CMapObject::GroundPoint): `out` = the position with z =
@@ -415,6 +421,7 @@ public:
     // 0052F740. Slot 51: stores `offset` (+0x320) and puts the unit on the ground (or, for
     // movement kind 2, on the water surface plus its z or the offset).
     void PlaceOnGround(float offset) override;
+    void PlaceOnGroundImpl(float offset);   // body of the slot above (registered by member pointer)
     // 00532A20. Sets the parameter block, the hit point maximum and the hit points from `stats`.
     void SetFromStats(UnitStats* stats);
 
@@ -453,6 +460,7 @@ public:
     // record's prototype name): fresh vitals and statistics (reset, then the owner's
     // BuildFromPrototype for `prototype`) packed into +0x17C and the parameters +0x330.
     void TakePrototype(const char* prototype) override;
+    void TakePrototypeImpl(const char* prototype);   // body of the slot above (registered by member pointer)
     // 00531110. Sends the equipment ids to the controller (slot 32: the 7 armour ids, slot 33:
     // the 4 weapon ids). Returns what slot 33 leaves in EAX.
     std::uintptr_t SendEquipment();

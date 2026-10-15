@@ -152,5 +152,7 @@ static_assert(sizeof(Ostream) == 8);   // the ios follows (Ios::DestructOstream)
 
 // The flush manipulator (00435000): stream->Flush().
 Ostream* __cdecl FlushManipulator(Ostream* stream);
+// The game's endl (004BA9F0, no Ghidra function; the console's lines, S16a): '\n', then Flush.
+Ostream* __cdecl EndlManipulator(Ostream* stream);
 
 } // namespace libcrt

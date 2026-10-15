@@ -102,8 +102,8 @@ SAVES_KNOWN = {
         "SV7d5: the corpse a unit's memory records first differs (ground_prints obj1000011214: 1195532174 / "
         "1195532175, the other way round under Rebirth)",
     r'^commands globals\.(groups\.3\.object[12]|objects\.2\.value)$':
-        "SV7a inventory: render_movie_present's script group \"Peasans\" is [1884, 699, 702] in the original and "
-        "[1884, 702, 699] in ours, so the loop variable i ends on the other id (member order follows memory)",
+        "SV7b1: render_movie_present's script group \"Peasans\" is [1884, 699, 702] in the original and "
+        "[1884, 702, 699] in ours, so the loop variable i ends on the other id (members in address order)",
 }
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'

@@ -44,7 +44,7 @@ static void __fastcall InitFromRecordVerify(CItem* self, void*, const itemdb::It
     char* bytes = reinterpret_cast<char*>(self) + 0x20;
     char before[0x28], ours[0x28];
     std::memcpy(before, bytes, sizeof(before));
-    self->CItem::InitFromRecord(record);
+    self->CItem::InitFromRecordImpl(record);
     std::memcpy(ours, bytes, sizeof(ours));
     std::memcpy(bytes, before, sizeof(before));
     s_initFromRecord(self, nullptr, record);

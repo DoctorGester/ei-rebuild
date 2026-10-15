@@ -93,23 +93,23 @@ mfc::CString PictureNameOf(const RecordTable& table, int stride, const char* con
 
 // --- Weapons and armors ---------------------------------------------------------------------------
 
-mfc::CString CItemWeapon::ModelName() { return ModelNameOf(Weapons(), kWeaponSize, kWeaponCodes, prototypeId_); }
+mfc::CString CItemWeapon::ModelNameImpl() { return ModelNameOf(Weapons(), kWeaponSize, kWeaponCodes, prototypeId_); }
 
-mfc::CString CItemWeapon::FirstListName() { return FirstListNameOf(Weapons(), kWeaponSize, prototypeId_); }
+mfc::CString CItemWeapon::FirstListNameImpl() { return FirstListNameOf(Weapons(), kWeaponSize, prototypeId_); }
 
-mfc::CString CItemWeapon::FigureName() { return HumanFigureName(this); }
+mfc::CString CItemWeapon::FigureNameImpl() { return HumanFigureName(this); }
 
-mfc::CString CItemWeapon::PictureName() {
+mfc::CString CItemWeapon::PictureNameImpl() {
     return PictureNameOf(Weapons(), kWeaponSize, kWeaponCodes, kWeaponPicture, prototypeId_);
 }
 
-mfc::CString CItemArmor::ModelName() { return ModelNameOf(Armors(), kArmorSize, kArmorCodes, prototypeId_); }
+mfc::CString CItemArmor::ModelNameImpl() { return ModelNameOf(Armors(), kArmorSize, kArmorCodes, prototypeId_); }
 
-mfc::CString CItemArmor::FirstListName() { return FirstListNameOf(Armors(), kArmorSize, prototypeId_); }
+mfc::CString CItemArmor::FirstListNameImpl() { return FirstListNameOf(Armors(), kArmorSize, prototypeId_); }
 
-mfc::CString CItemArmor::FigureName() { return HumanFigureName(this); }
+mfc::CString CItemArmor::FigureNameImpl() { return HumanFigureName(this); }
 
-mfc::CString CItemArmor::PictureName() {
+mfc::CString CItemArmor::PictureNameImpl() {
     return PictureNameOf(Armors(), kArmorSize, kArmorCodes, kArmorPicture, prototypeId_);
 }
 
@@ -151,7 +151,7 @@ EI_REPLACE(0x006A0CC0, WeaponBaseFigure);
 
 // --- Quick items, quest items, scrolls -----------------------------------------------------------
 
-mfc::CString CItemQuick::FigureName() {
+mfc::CString CItemQuick::FigureNameImpl() {
     mfc::CString name;
     const char* prototype = GetPrototype();
     if (prototype && gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Head(prototype)->materialClass)),
@@ -165,32 +165,32 @@ mfc::CString CItemQuick::FigureName() {
     return name;
 }
 
-mfc::CString CItemQuick::PictureName() {
+mfc::CString CItemQuick::PictureNameImpl() {
     mfc::CString name;
     name.Format(kQuickPicture, Number(GetPrototype()));
     return name;
 }
 
-mfc::CString CItemQuest::FigureName() {
+mfc::CString CItemQuest::FigureNameImpl() {
     mfc::CString name;
     name.Format(kQuestFigure, Number(GetPrototype()));
     return name;
 }
 
-mfc::CString CItemQuest::PictureName() {
+mfc::CString CItemQuest::PictureNameImpl() {
     mfc::CString name;
     name.Format(kQuestPicture, Number(GetPrototype()));
     return name;
 }
 
-mfc::CString CItemSpell::FigureName() {
+mfc::CString CItemSpell::FigureNameImpl() {
     const SpellRecord* prototype = SpellAt(PrototypeIndex(spell_->prototypeId_));
     mfc::CString name;
     name.Format(kSpellFigure, prototype->icon);
     return name;
 }
 
-mfc::CString CItemSpell::PictureName() { return mfc::CString(kSpellPicture); }
+mfc::CString CItemSpell::PictureNameImpl() { return mfc::CString(kSpellPicture); }
 
 // --- Loot ----------------------------------------------------------------------------------------
 
@@ -199,7 +199,7 @@ enum LootKind : std::uint32_t { kLootSelf = 0, kLootMaterial = 1, kLootRecord = 
 enum LootRecord : std::uint32_t { kRecordWeapon, kRecordArmor, kRecordQuick, kRecordSpell, kRecordModifier };
 } // namespace
 
-mfc::CString CItemLoot::FigureName() {
+mfc::CString CItemLoot::FigureNameImpl() {
     mfc::CString name;
     if (kind_ == kLootRecord) {
         switch (recordType_) {
@@ -235,7 +235,7 @@ mfc::CString CItemLoot::FigureName() {
     return name;
 }
 
-mfc::CString CItemLoot::PictureName() {
+mfc::CString CItemLoot::PictureNameImpl() {
     mfc::CString name;
     if (kind_ == kLootRecord) {
         switch (recordType_) {
@@ -271,69 +271,19 @@ mfc::CString CItemLoot::PictureName() {
 
 // --- The virtual slots' entry points (rule 4): the name built in the caller's result -------------
 
-namespace {
-mfc::CString* __fastcall WeaponModelNameHook(CItemWeapon* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemWeapon::ModelName());
-}
-mfc::CString* __fastcall WeaponFirstListNameHook(CItemWeapon* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemWeapon::FirstListName());
-}
-mfc::CString* __fastcall WeaponFigureNameHook(CItemWeapon* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemWeapon::FigureName());
-}
-mfc::CString* __fastcall WeaponPictureNameHook(CItemWeapon* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemWeapon::PictureName());
-}
-mfc::CString* __fastcall ArmorModelNameHook(CItemArmor* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemArmor::ModelName());
-}
-mfc::CString* __fastcall ArmorFirstListNameHook(CItemArmor* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemArmor::FirstListName());
-}
-mfc::CString* __fastcall ArmorFigureNameHook(CItemArmor* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemArmor::FigureName());
-}
-mfc::CString* __fastcall ArmorPictureNameHook(CItemArmor* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemArmor::PictureName());
-}
-mfc::CString* __fastcall QuickFigureNameHook(CItemQuick* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemQuick::FigureName());
-}
-mfc::CString* __fastcall QuickPictureNameHook(CItemQuick* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemQuick::PictureName());
-}
-mfc::CString* __fastcall QuestFigureNameHook(CItemQuest* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemQuest::FigureName());
-}
-mfc::CString* __fastcall QuestPictureNameHook(CItemQuest* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemQuest::PictureName());
-}
-mfc::CString* __fastcall SpellFigureNameHook(CItemSpell* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemSpell::FigureName());
-}
-mfc::CString* __fastcall SpellPictureNameHook(CItemSpell* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemSpell::PictureName());
-}
-mfc::CString* __fastcall LootFigureNameHook(CItemLoot* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemLoot::FigureName());
-}
-mfc::CString* __fastcall LootPictureNameHook(CItemLoot* self, void*, mfc::CString* out) {
-    return new (out) mfc::CString(self->CItemLoot::PictureName());
-}
-} // namespace
-EI_REPLACE(0x006A0840, WeaponModelNameHook);
-EI_REPLACE(0x006A0F70, WeaponFirstListNameHook);
-EI_REPLACE(0x006A2750, WeaponFigureNameHook);
-EI_REPLACE(0x006A27E0, WeaponPictureNameHook);
-EI_REPLACE(0x006A3240, ArmorModelNameHook);
-EI_REPLACE(0x006A36A0, ArmorFirstListNameHook);
-EI_REPLACE(0x006A3720, ArmorFigureNameHook);
-EI_REPLACE(0x006A37B0, ArmorPictureNameHook);
-EI_REPLACE(0x006A3CD0, QuickFigureNameHook);
-EI_REPLACE(0x006A4040, QuickPictureNameHook);
-EI_REPLACE(0x006A45C0, QuestFigureNameHook);
-EI_REPLACE(0x006A47B0, QuestPictureNameHook);
-EI_REPLACE(0x006A5820, SpellFigureNameHook);
-EI_REPLACE(0x006A58E0, SpellPictureNameHook);
-EI_REPLACE(0x006A4B90, LootFigureNameHook);
-EI_REPLACE(0x006A5030, LootPictureNameHook);
+EI_REPLACE_METHOD(0x006A0840, CItemWeapon::ModelNameImpl);
+EI_REPLACE_METHOD(0x006A0F70, CItemWeapon::FirstListNameImpl);
+EI_REPLACE_METHOD(0x006A2750, CItemWeapon::FigureNameImpl);
+EI_REPLACE_METHOD(0x006A27E0, CItemWeapon::PictureNameImpl);
+EI_REPLACE_METHOD(0x006A3240, CItemArmor::ModelNameImpl);
+EI_REPLACE_METHOD(0x006A36A0, CItemArmor::FirstListNameImpl);
+EI_REPLACE_METHOD(0x006A3720, CItemArmor::FigureNameImpl);
+EI_REPLACE_METHOD(0x006A37B0, CItemArmor::PictureNameImpl);
+EI_REPLACE_METHOD(0x006A3CD0, CItemQuick::FigureNameImpl);
+EI_REPLACE_METHOD(0x006A4040, CItemQuick::PictureNameImpl);
+EI_REPLACE_METHOD(0x006A45C0, CItemQuest::FigureNameImpl);
+EI_REPLACE_METHOD(0x006A47B0, CItemQuest::PictureNameImpl);
+EI_REPLACE_METHOD(0x006A5820, CItemSpell::FigureNameImpl);
+EI_REPLACE_METHOD(0x006A58E0, CItemSpell::PictureNameImpl);
+EI_REPLACE_METHOD(0x006A4B90, CItemLoot::FigureNameImpl);
+EI_REPLACE_METHOD(0x006A5030, CItemLoot::PictureNameImpl);

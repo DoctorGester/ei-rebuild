@@ -86,6 +86,11 @@ EI_REPLACE_METHOD(0x0042BEC0, Chunk::Construct);
 
 void Chunk::Destruct() { ei::SetVtable(this, kVtableAddress); }
 EI_REPLACE_METHOD(0x0042BEF0, Chunk::Destruct);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE_METHOD(0x0046C7E0, Chunk::Destruct);
+EI_REPLACE_METHOD(0x0046CBB0, Chunk::Destruct);
+EI_REPLACE_METHOD(0x0046D070, Chunk::Destruct);
 
 void Chunk::Advance(int bytes) {
     if (parent_) parent_->Advance(bytes);
@@ -384,3 +389,6 @@ void RootChunk::Destruct() {
     ei::SetVtable(this, Chunk::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x0042D270, RootChunk::Destruct);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE_METHOD(0x00596130, RootChunk::Destruct);

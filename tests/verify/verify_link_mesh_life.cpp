@@ -83,7 +83,7 @@ EI_VERIFY(0x004F2D40, DestructBaseVerify, 0, s_destructBase);
 // 004F2E20 / 004F2E00 (ours only; PUSH ESI, MOV ESI,ECX, then a CALL: no 5 stolen bytes): this.
 static void*(__fastcall* s_deleteThis)(CLinkMesh*, void*, unsigned);
 static void* __fastcall DeleteThisVerify(CLinkMesh* self, void*, unsigned flags) {
-    void* result = self->CLinkMesh::DeleteThis(flags);
+    void* result = self->CLinkMesh::DeleteThisImpl(flags);
     ei::verify::Check("CLinkMesh::DeleteThis", static_cast<void*>(self), result, "%p");
     return result;
 }

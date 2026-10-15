@@ -102,12 +102,12 @@ int __fastcall CreateVerify(CBaseManager* self) {
     return result;
 }
 BOOL __fastcall InitVerify(CBaseManager* self, void*, void* context) {
-    BOOL result = self->CBaseManager::Init(context);
+    BOOL result = self->CBaseManager::InitImpl(context);
     ei::verify::Check("CBaseManager::Init", true, result ? self->context_ == context : self->context_ == nullptr, "");
     return result;
 }
 int __fastcall ReleaseObjectVerify(CBaseManager* self, void*, CEngineObject* object) {
-    int result = self->CBaseManager::ReleaseObject(object);
+    int result = self->CBaseManager::ReleaseObjectImpl(object);
     ei::verify::Check("CBaseManager::ReleaseObject", true, true, "");
     return result;
 }
@@ -115,7 +115,7 @@ int __fastcall ReleaseObjectVerify(CBaseManager* self, void*, CEngineObject* obj
 // 00403730: ours only (it creates the object). The object must be registered under its id with
 // the manager as owner.
 CEngineObject* __fastcall CreateObjectVerify(CBaseManager* self, void*, int type, int id) {
-    CEngineObject* object = self->CBaseManager::CreateObject(type, id);
+    CEngineObject* object = self->CBaseManager::CreateObjectImpl(type, id);
     bool ok = !object || (object->owner_ == self && object->type_ == type && (id == -1 || object->id_ == id) &&
                           self->FindObject(static_cast<unsigned>(object->id_)) == object);
     ei::verify::Check("CBaseManager::CreateObject", true, ok, "type %d id %d", type, id);
@@ -159,11 +159,11 @@ void __fastcall FreeSparesVerify(CBaseManager* self) {
 
 // 004046E0 / 00404760 / 004047E0 / 00404860: ours only (they read or write the stream).
 void __fastcall LoadVerify(CBaseManager* self, void*, void* stream) {
-    self->CBaseManager::Load(stream);
+    self->CBaseManager::LoadImpl(stream);
     ei::verify::Check("CBaseManager::Load", true, true, "");
 }
 void __fastcall SaveVerify(CBaseManager* self, void*, void* stream) {
-    self->CBaseManager::Save(stream);
+    self->CBaseManager::SaveImpl(stream);
     ei::verify::Check("CBaseManager::Save", true, true, "");
 }
 void __fastcall LoadObjectsVerify(CBaseManager* self, void*, void* stream) {
@@ -215,28 +215,28 @@ void*(__fastcall* s_getFile)(CBaseManager*, void*, const char*, std::uint32_t*);
 int(__fastcall* s_closeFile)(CBaseManager*, void*, void*);
 BOOL(__fastcall* s_hasFile)(CBaseManager*, void*, const char*);
 BOOL __fastcall AddArchiveVerify(CBaseManager* self, void*, const char* path) {
-    BOOL actual = self->CBaseManager::AddArchive(path);
+    BOOL actual = self->CBaseManager::AddArchiveImpl(path);
     ei::verify::Check("CBaseManager::AddArchive", s_addArchive(self, nullptr, path), actual, "");
     return actual;
 }
 BOOL __fastcall RemoveArchiveVerify(CBaseManager* self, void*, const char* path) {
-    BOOL actual = self->CBaseManager::RemoveArchive(path);
+    BOOL actual = self->CBaseManager::RemoveArchiveImpl(path);
     ei::verify::Check("CBaseManager::RemoveArchive", s_removeArchive(self, nullptr, path), actual, "");
     return actual;
 }
 void* __fastcall GetFileVerify(CBaseManager* self, void*, const char* name, std::uint32_t* size) {
-    void* actual = self->CBaseManager::GetFile(name, size);
+    void* actual = self->CBaseManager::GetFileImpl(name, size);
     ei::verify::Check("CBaseManager::GetFile", s_getFile(self, nullptr, name, size), actual, "");
     return actual;
 }
 bool __fastcall CloseFileVerify(CBaseManager* self, void*, void* data) {
-    bool actual = self->CBaseManager::CloseFile(data);
+    bool actual = self->CBaseManager::CloseFileImpl(data);
     bool expected = (s_closeFile(self, nullptr, data) & 0xFF) != 0;
     ei::verify::Check("CBaseManager::CloseFile", expected, actual, "");
     return actual;
 }
 BOOL __fastcall HasFileVerify(CBaseManager* self, void*, const char* name) {
-    BOOL actual = self->CBaseManager::HasFile(name);
+    BOOL actual = self->CBaseManager::HasFileImpl(name);
     ei::verify::Check("CBaseManager::HasFile", s_hasFile(self, nullptr, name), actual, "");
     return actual;
 }

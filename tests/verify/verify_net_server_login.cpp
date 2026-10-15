@@ -1,4 +1,4 @@
-// Check for ServerBase::OnLogin (00443080, src/game/net_lobby.cpp; A-E2). Ours only: the handler
+// Check for ServerBase::OnLoginImpl (00443080, src/game/net_lobby.cpp; A-E2). Ours only: the handler
 // sends a packet and changes the joins list, so the original cannot run beside it.
 //
 // What must hold afterwards: with a wrong magic only the magic was read and the joins did not
@@ -42,7 +42,7 @@ void __fastcall ServerOnLoginVerify(net::ServerBase* self, void*, const net::Net
     int before = 0, after = 0;
     JoinOf(self, from, &before);
 
-    self->ServerBase::OnLogin(from, cursor);
+    self->ServerBase::OnLoginImpl(from, cursor);
 
     const net::PendingJoin* join = JoinOf(self, from, &after);
     const int read = static_cast<int>(cursor->p - start);

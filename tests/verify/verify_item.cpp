@@ -100,7 +100,7 @@ EI_VERIFY(0x006A2DE0, RollDamageVerify, 9, s_rollDamage);
 static BOOL(__fastcall* s_isSameAs)(CItemWeapon*, void*, CItemWeapon*);
 static BOOL __fastcall IsSameAsVerify(CItemWeapon* self, void*, CItemWeapon* other) {
     BOOL expected = s_isSameAs(self, nullptr, other);
-    ei::verify::Check("CItemWeapon::IsSameAs", expected, self->CItemWeapon::IsSameAs(other), "id %08X vs %08X", self->prototypeId_,
+    ei::verify::Check("CItemWeapon::IsSameAs", expected, self->CItemWeapon::IsSameAsImpl(other), "id %08X vs %08X", self->prototypeId_,
                       other->prototypeId_);
     return expected;
 }

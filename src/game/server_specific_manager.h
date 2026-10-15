@@ -29,6 +29,7 @@ public:
     // object (0x5128, 0066C540), 0x4B CTorchObjectSpec (constructed inline, then its Create);
     // null for any other type (0x4A too) or when the allocation fails.
     CEngineObject* NewObject(int type) override;
+    CEngineObject* NewObjectImpl(int type);   // body of the slot above (registered by member pointer)
 
     // 004D6900 constructor body (returns this), 004D6960 destructor body, 004D6940 slot 0's scalar
     // deleting destructor (returns this).

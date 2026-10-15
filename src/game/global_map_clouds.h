@@ -17,9 +17,11 @@ public:
     // 0: 0049A090 (RET 4). A 32 x 32 layer of smoothed value noise into `out` (1 KB), seeded by
     // three ISAAC words; the raw values go through `noise_`.
     virtual void MakeLayer(std::uint8_t* out);
+    void MakeLayerImpl(std::uint8_t* out);   // body of the slot above (registered by member pointer)
     // 1: 0049A220 (RET 8). Step `step` of building a frame into `out`: steps 1-4 make the layers
     // (slot 0), steps 7-14 each fill 32 rows from them; the others do nothing.
     virtual void Generate(std::uint8_t* out, int step);
+    void GenerateImpl(std::uint8_t* out, int step);   // body of the slot above (registered by member pointer)
     // 2: 00499E30 (base) / 0062EDA0 (the map's class).
     virtual CCloudNoise* DeletingDestruct(unsigned flags);
 

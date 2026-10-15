@@ -106,7 +106,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("units.udb", &size);
+    void* data = resource.Get()->CMappedResource::GetFileImpl("units.udb", &size);
     if (!data) return game::FatalError("Can't open units database\n");
 
     LocalStream local;
@@ -121,7 +121,7 @@ int UnitDatabase::Load(const char* folder, const char* archive) {
               &prototypes.byName, PrototypeMapAtOriginal);
     LoadTable(stream, kNpcsChunk, SerializeNpcsAt, &npcs, &levels, Begin(npcs), End(npcs), &npcs.byName, NpcMapAt);
 
-    resource.Get()->CMappedResource::CloseFile(data);
+    resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();
 
     // Every prototype's model by its name (the record's place in the model table, or -1).
@@ -151,7 +151,7 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
     if (!resource.Open(path))
         return game::FatalError("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("perks.pdb", &size);
+    void* data = resource.Get()->CMappedResource::GetFileImpl("perks.pdb", &size);
     if (!data) return game::FatalError("Can't open perks database\n");
 
     ChunkArchive ar;
@@ -180,7 +180,7 @@ int SkillDatabase::Load(const char* folder, const char* archive) {
             ar.LeaveChunk();
         }
         ar.Close(stream);
-        resource.Get()->CMappedResource::CloseFile(data);
+        resource.Get()->CMappedResource::CloseFileImpl(data);
         resource.Get()->CMappedResource::CloseResource();
     }
     ar.DestructLocal();

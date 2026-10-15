@@ -111,6 +111,20 @@ CLightning* __fastcall LightningDeletingVerify(CLightning* self, void*, unsigned
     return result;
 }
 
+// S16a: the original on a copy of the segment (it allocates nothing), then ours; the same bytes and
+// this back.
+LightningSegment*(__fastcall* s_segmentConstruct)(LightningSegment*);
+LightningSegment* __fastcall SegmentConstructVerify(LightningSegment* self) {
+    alignas(LightningSegment) unsigned char copy[sizeof(LightningSegment)];
+    std::memcpy(copy, self, sizeof copy);
+    LightningSegment* twin = reinterpret_cast<LightningSegment*>(copy);
+    LightningSegment* expected = s_segmentConstruct(twin);
+    LightningSegment* actual = self->Construct();
+    ei::verify::Check("LightningSegment::Construct", true,
+                      expected == twin && actual == self && std::memcmp(copy, self, sizeof copy) == 0, "");
+    return actual;
+}
+
 // The block is freed and the pointer left, as the original leaves it.
 void __fastcall SegmentDestructVerify(LightningSegment* self) {
     LightningPoint* before = self->points.data;
@@ -236,6 +250,7 @@ EI_VERIFY(0x004468B0, ForwardSpeedVerify, 7, s_forwardSpeed);
 EI_VERIFY(0x00461C60, HooverDeletingVerify, 0, s_unused);
 EI_VERIFY(0x004687F0, LightningDeletingVerify, 0, s_unused);
 EI_VERIFY(0x00468920, SegmentDestructVerify, 0, s_unused);
+EI_VERIFY(0x00468900, SegmentConstructVerify, 10, s_segmentConstruct);
 EI_VERIFY(0x004689D0, ManagerCreateVerify, 0, s_unused);
 EI_VERIFY(0x00446AF0, FakeUnitCreateVerify, 0, s_unused);
 EI_VERIFY(0x004467F0, TakeHitVerify, 0, s_unused);

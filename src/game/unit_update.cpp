@@ -77,8 +77,8 @@ std::uintptr_t CUnit::LoadFigures() {
 std::uintptr_t __fastcall UnitLoadFiguresHook(CUnit* self) { return self->CUnit::LoadFigures(); }
 EI_REPLACE(0x0052E910, UnitLoadFiguresHook);
 
-std::uintptr_t CUnit::AttachObject(CEngineObject* object) {
-    if (!object || object->type_ != kControllerType) return CMapObject::AttachObject(object);
+std::uintptr_t CUnit::AttachObjectImpl(CEngineObject* object) {
+    if (!object || object->type_ != kControllerType) return CMapObject::AttachObjectImpl(object);
     if (controller) {
         Controller()->unit_ = nullptr;
         controller->Release();
@@ -87,10 +87,7 @@ std::uintptr_t CUnit::AttachObject(CEngineObject* object) {
     static_cast<CUnitController*>(object)->unit_ = this;
     return static_cast<std::uintptr_t>(++controller->refCount_);
 }
-std::uintptr_t __fastcall UnitAttachObjectHook(CUnit* self, void*, CEngineObject* object) {
-    return self->CUnit::AttachObject(object);
-}
-EI_REPLACE(0x0052E870, UnitAttachObjectHook);
+EI_REPLACE_METHOD(0x0052E870, CUnit::AttachObjectImpl);
 
 int CUnit::StatsChanged() {
     PackVitals();
@@ -100,22 +97,18 @@ int CUnit::StatsChanged() {
 int __fastcall UnitStatsChangedHook(CUnit* self) { return self->CUnit::StatsChanged(); }
 EI_REPLACE(0x0052EB50, UnitStatsChangedHook);
 
-std::uintptr_t CUnit::ScaleEffectChanged(int value) {
+std::uintptr_t CUnit::ScaleEffectChangedImpl(int value) {
     if (!controller) return 0;
     return static_cast<std::uintptr_t>(Controller()->RefreshVitals(value));
 }
-std::uintptr_t __fastcall UnitScaleEffectChangedHook(CUnit* self, void*, int value) {
-    return self->CUnit::ScaleEffectChanged(value);
-}
-EI_REPLACE(0x0052EB30, UnitScaleEffectChangedHook);
+EI_REPLACE_METHOD(0x0052EB30, CUnit::ScaleEffectChangedImpl);
 
-std::uintptr_t CUnit::SetStats(const UnitStats* stats) {
+std::uintptr_t CUnit::SetStatsImpl(const UnitStats* stats) {
     int classId = controller->GetClassId();
     if (classId != kClassUnitServer) return static_cast<std::uintptr_t>(classId);
     return CallServerSetStats(controller, nullptr, stats);
 }
-std::uintptr_t __fastcall UnitSetStatsHook(CUnit* self, void*, const UnitStats* stats) { return self->CUnit::SetStats(stats); }
-EI_REPLACE(0x00530A20, UnitSetStatsHook);
+EI_REPLACE_METHOD(0x00530A20, CUnit::SetStatsImpl);
 
 std::uintptr_t CUnit::UpdateSizeClasses() { return Controller()->UpdateSizeClasses(); }
 std::uintptr_t __fastcall UnitUpdateSizeClassesHook(CUnit* self) { return self->CUnit::UpdateSizeClasses(); }
@@ -143,7 +136,7 @@ float* CUnit::StandPoint(float* out) {
 }
 EI_REPLACE_METHOD(0x005303A0, CUnit::StandPoint);
 
-void CUnit::PlaceOnGround(float offset) {
+void CUnit::PlaceOnGroundImpl(float offset) {
     float x = position.x;
     float y = position.y;
     heightOffset = offset;
@@ -158,8 +151,7 @@ void CUnit::PlaceOnGround(float offset) {
         position.z = static_cast<float>(world->GroundHeightAt(x, y));
     }
 }
-void __fastcall UnitPlaceOnGroundHook(CUnit* self, void*, float offset) { self->CUnit::PlaceOnGround(offset); }
-EI_REPLACE(0x0052F740, UnitPlaceOnGroundHook);
+EI_REPLACE_METHOD(0x0052F740, CUnit::PlaceOnGroundImpl);
 
 void CUnit::SetFromStats(UnitStats* stats) {
     CallPackStats(stats, nullptr, this, Params());

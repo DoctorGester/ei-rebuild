@@ -23,8 +23,10 @@ public:
     virtual void UpdateWorld(const Quaternion& parentRotation, const Vector3& parentPosition);
     // 16: 00401510. Writes the local transform to an MFC CFile (slot 14, Write).
     virtual void SaveTransform(void* file);
+    void SaveTransformImpl(void* file);   // body of the slot above (registered by member pointer)
     // 17: 00401540. Reads the local transform from an MFC CFile (slot 13, Read).
     virtual void LoadTransform(void* file);
+    void LoadTransformImpl(void* file);   // body of the slot above (registered by member pointer)
 
     // 00453400. Constructor body: base fields, identity rotations (positions left as they are),
     // vtable 0073BA38; returns this.

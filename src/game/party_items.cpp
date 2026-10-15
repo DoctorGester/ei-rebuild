@@ -70,7 +70,7 @@ CItem* CItem::Clone(CSpellManager* spells) {
 }
 EI_REPLACE_METHOD(0x0069FF70, CItem::Clone);
 
-BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
+BOOL CItem::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (target->type_ != type_) return 0;
     target->Destroy();
     target->prototypeId_ = prototypeId_;
@@ -92,14 +92,14 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
 __declspec(naked) BOOL CItem::CallCopyTo(CItem*, CSpellManager*) EI_ORIGINAL(0x0069FFC0)
 
 // The subclasses' slot 15: the base copy (through its address), then their own dwords.
-BOOL CItemWeapon::CopyTo(CItem* target, CSpellManager* spells) {
+BOOL CItemWeapon::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
     auto* weapon = static_cast<CItemWeapon*>(target);
     std::memcpy(&weapon->actionValue_, &actionValue_, sizeof(CItemWeapon) - offsetof(CItemWeapon, actionValue_));
     return 1;
 }
 
-BOOL CItemArmor::CopyTo(CItem* target, CSpellManager* spells) {
+BOOL CItemArmor::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
     auto* armor = static_cast<CItemArmor*>(target);
     std::memcpy(armor->absorb_, absorb_, sizeof(absorb_));
@@ -108,19 +108,19 @@ BOOL CItemArmor::CopyTo(CItem* target, CSpellManager* spells) {
     return 1;
 }
 
-BOOL CItemQuick::CopyTo(CItem* target, CSpellManager* spells) {
+BOOL CItemQuick::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
     static_cast<CItemQuick*>(target)->actionValue_ = actionValue_;
     return 1;
 }
 
-BOOL CItemQuest::CopyTo(CItem* target, CSpellManager* spells) {
+BOOL CItemQuest::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
     static_cast<CItemQuest*>(target)->questItemId_ = questItemId_;
     return 1;
 }
 
-BOOL CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
+BOOL CItemLoot::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
     auto* loot = static_cast<CItemLoot*>(target);
     loot->kind_ = kind_;
@@ -129,43 +129,19 @@ BOOL CItemLoot::CopyTo(CItem* target, CSpellManager* spells) {
     return 1;
 }
 
-BOOL CItemSpell::CopyTo(CItem* target, CSpellManager* spells) {
+BOOL CItemSpell::CopyToImpl(CItem* target, CSpellManager* spells) {
     if (!CallCopyTo(target, spells)) return 0;
     static_cast<CItemSpell*>(target)->actionValue_ = actionValue_;
     return 1;
 }
 
-namespace {
-// Slot 15's entry points (rule 4).
-BOOL __fastcall ItemCopyToHook(CItem* self, void*, CItem* target, CSpellManager* spells) {
-    return self->CItem::CopyTo(target, spells);
-}
-BOOL __fastcall WeaponCopyToHook(CItemWeapon* self, void*, CItem* target, CSpellManager* spells) {
-    return self->CItemWeapon::CopyTo(target, spells);
-}
-BOOL __fastcall ArmorCopyToHook(CItemArmor* self, void*, CItem* target, CSpellManager* spells) {
-    return self->CItemArmor::CopyTo(target, spells);
-}
-BOOL __fastcall QuickCopyToHook(CItemQuick* self, void*, CItem* target, CSpellManager* spells) {
-    return self->CItemQuick::CopyTo(target, spells);
-}
-BOOL __fastcall QuestCopyToHook(CItemQuest* self, void*, CItem* target, CSpellManager* spells) {
-    return self->CItemQuest::CopyTo(target, spells);
-}
-BOOL __fastcall LootCopyToHook(CItemLoot* self, void*, CItem* target, CSpellManager* spells) {
-    return self->CItemLoot::CopyTo(target, spells);
-}
-BOOL __fastcall SpellCopyToHook(CItemSpell* self, void*, CItem* target, CSpellManager* spells) {
-    return self->CItemSpell::CopyTo(target, spells);
-}
-} // namespace
-EI_REPLACE(0x0069FFC0, ItemCopyToHook);
-EI_REPLACE(0x006A0730, WeaponCopyToHook);
-EI_REPLACE(0x006A3140, ArmorCopyToHook);
-EI_REPLACE(0x006A3C50, QuickCopyToHook);
-EI_REPLACE(0x006A4540, QuestCopyToHook);
-EI_REPLACE(0x006A4B50, LootCopyToHook);
-EI_REPLACE(0x006A57F0, SpellCopyToHook);
+EI_REPLACE_METHOD(0x0069FFC0, CItem::CopyToImpl);
+EI_REPLACE_METHOD(0x006A0730, CItemWeapon::CopyToImpl);
+EI_REPLACE_METHOD(0x006A3140, CItemArmor::CopyToImpl);
+EI_REPLACE_METHOD(0x006A3C50, CItemQuick::CopyToImpl);
+EI_REPLACE_METHOD(0x006A4540, CItemQuest::CopyToImpl);
+EI_REPLACE_METHOD(0x006A4B50, CItemLoot::CopyToImpl);
+EI_REPLACE_METHOD(0x006A57F0, CItemSpell::CopyToImpl);
 
 // --- The party's items --------------------------------------------------------------------------
 

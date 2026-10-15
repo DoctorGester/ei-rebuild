@@ -112,5 +112,8 @@ EI_REPLACE_METHOD(0x00546450, CUnitServer::CreateServer);
 void CUnitServer::ResetSlot() { ResetController(); }
 EI_REPLACE_METHOD(0x00546080, CUnitServer::ResetSlot);
 
+void CUnitServer::DestroyServer() { ResetController(); }
+EI_REPLACE_METHOD(0x00546470, CUnitServer::DestroyServer);
+
 int CUnitServer::TameStage() { return tameStage; }
 EI_REPLACE_METHOD(0x005460A0, CUnitServer::TameStage);

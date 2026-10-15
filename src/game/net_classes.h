@@ -350,14 +350,23 @@ public:
 
     // 0: 004368D0 deleting destructor (DeletingDestruct); 1: Serialize (empty).
     virtual void RemoveClient(ClientNode* node);                                // 2: 00436CF0 (the sentinel is ignored)
+    void RemoveClientImpl(ClientNode* node);   // body of the slot above (registered by member pointer)
     virtual bool OnUpdate(const NetAddress* from, BufferCursor* cursor);      // 3: kind 0, 00437080
+    bool OnUpdateImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnGetInfo(const NetAddress* from, BufferCursor* cursor);     // 4: kind 3, 004371E0 (logs an error)
+    void OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnLogin(const NetAddress* from, BufferCursor* cursor);       // 5: kind 4, 00437210 (logs an error)
+    void OnLoginImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnLeave(const NetAddress* from, BufferCursor* cursor);       // 6: kind 1, 00437240
+    void OnLeaveImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnInfo(const NetAddress* from, BufferCursor* cursor);        // 7: kind 5, 004372B0 (logs an error)
+    void OnInfoImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnAccepted(const NetAddress* from, BufferCursor* cursor);    // 8: kind 6, 004372E0 (logs an error)
+    void OnAcceptedImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnRejected(const NetAddress* from, BufferCursor* cursor);    // 9: kind 7, 00437310 (logs an error)
+    void OnRejectedImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnMaster(const NetAddress* from, BufferCursor* cursor);      // 10: kind -1, 00437340 (logs an error)
+    void OnMasterImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     virtual void OnClientLost(Connection* connection);                        // 11: 004132B0 (empty): timed out or a bad update
     virtual void OnClientLeft(Connection* connection);                        // 12: 004132C0 (empty): sent a leave packet
     // 13: 004376D0. Appends what the connection being updated (CurrentConnection) should have to **out.
@@ -366,6 +375,7 @@ public:
     // datagrams to the handler slots, ticks the connections (dropping timed-out ones) and counts
     // the frame.
     virtual void Tick(double dt);
+    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
 
     // 00436770. The base constructor body; returns this.
     SessionBase* Construct();
@@ -454,13 +464,18 @@ public:
 
     // 0: 004132D0 deleting destructor (body 004132F0, DestructBase).
     bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override;    // 3: 004434F0
+    bool OnUpdateImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnGetInfo(const NetAddress* from, BufferCursor* cursor) override;   // 4: 00443060 (a ping)
+    void OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnLogin(const NetAddress* from, BufferCursor* cursor) override;     // 5: 00443080 (patched by Rebirth)
+    void OnLoginImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                                           // 14: 00443590
+    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     virtual void Describe(RefPtr* out) = 0;                                  // 15: this server's entry into *out
     // 16: 00443050 (admits everybody). Whether a client from `address` may join: `*password` (moved
     // past the password when one is checked) and `*reason` (1 full, 2 banned, 3 bad password).
     virtual bool Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason);
+    bool AdmitImpl(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason);   // body of the slot above (registered by member pointer)
 
     // 004132F0. The destructor body of this layer: the pending joins, then the session base.
     void DestructBase();
@@ -482,12 +497,19 @@ public:
 
     // 0: 00417A10 deleting destructor (DeletingDestruct).
     void OnMaster(const NetAddress* from, BufferCursor* cursor) override;    // 10: 0041ACA0
+    void OnMasterImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnClientLost(Connection* connection) override;                       // 11: 0041A700 (text 4)
+    void OnClientLostImpl(Connection* connection);   // body of the slot above (registered by member pointer)
     void OnClientLeft(Connection* connection) override;                       // 12: 0041A770 (text 1)
+    void OnClientLeftImpl(Connection* connection);   // body of the slot above (registered by member pointer)
     void CollectReplicated(ReplicatedVector** out) override;                  // 13: 00417EB0
+    void CollectReplicatedImpl(ReplicatedVector** out);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                                            // 14: 004182E0
+    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     void Describe(RefPtr* out) override;                                      // 15: 0041A7E0
+    void DescribeImpl(RefPtr* out);   // body of the slot above (registered by member pointer)
     bool Admit(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) override;   // 16: 0041A050
+    bool AdmitImpl(std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason);   // body of the slot above (registered by member pointer)
 
     // 00412D80. The constructor (the caller allocated 0x2600 bytes and cleared +4); returns this.
     ServerSession* Construct(std::uint32_t kind);
@@ -604,11 +626,17 @@ public:
 
     // 0: 0041C450 deleting destructor (body 0041C530, DestructBase).
     void RemoveClient(ClientNode* node) override;                               // 2: 004420E0
+    void RemoveClientImpl(ClientNode* node);   // body of the slot above (registered by member pointer)
     bool OnUpdate(const NetAddress* from, BufferCursor* cursor) override;      // 3: 004418F0
+    bool OnUpdateImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnInfo(const NetAddress* from, BufferCursor* cursor) override;        // 7: 00441D40
+    void OnInfoImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnAccepted(const NetAddress* from, BufferCursor* cursor) override;    // 8: 00441940
+    void OnAcceptedImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void OnRejected(const NetAddress* from, BufferCursor* cursor) override;    // 9: 00441B40
+    void OnRejectedImpl(const NetAddress* from, BufferCursor* cursor);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                                             // 14: 00442AD0
+    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     virtual void OnJoined();                                                   // 15: 0041C440 (empty)
     virtual void CreateEntry(RefPtr* out) = 0;                                 // 16: a new server entry into *out
 
@@ -693,9 +721,12 @@ public:
 
     // 0: 0041C8B0 deleting destructor (DeletingDestruct).
     void CollectReplicated(ReplicatedVector** out) override;   // 13: 0041D050
+    void CollectReplicatedImpl(ReplicatedVector** out);   // body of the slot above (registered by member pointer)
     void Tick(double dt) override;                             // 14: 0041CCD0
+    void TickImpl(double dt);   // body of the slot above (registered by member pointer)
     void OnJoined() override;                                  // 15: 0041D410
     void CreateEntry(RefPtr* out) override;                    // 16: 0041D420
+    void CreateEntryImpl(RefPtr* out);   // body of the slot above (registered by member pointer)
 
     // 0041BC40. The constructor (the caller allocated 0x2700 bytes and cleared +4); returns this.
     ClientSession* Construct();

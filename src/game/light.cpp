@@ -178,7 +178,7 @@ CLightFactory* CLightFactory::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x0068D970, CLightFactory::DeletingDestruct);
 
-CEngineObject* CLightFactory::NewObject(int type) {
+CEngineObject* CLightFactory::NewObjectImpl(int type) {
     if (type != kLightDefault && type != kLightPoint) {
         game::DebugLog(reinterpret_cast<const char*>(kUnknownLightType), type);
         return nullptr;
@@ -190,22 +190,16 @@ CEngineObject* CLightFactory::NewObject(int type) {
     return light;
 }
 
-CEngineObject* CLightFactory::CreateObject(int type, int id) {
-    CEngineObject* object = CBaseManager::CreateObject(type, id);
+CEngineObject* CLightFactory::CreateObjectImpl(int type, int id) {
+    CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
     object->flags_ &= ~kFlagCreatedLight;
     return object;
 }
 
 namespace {
-CEngineObject* __fastcall LightManagerNewObjectHook(CLightFactory* self, void*, int type) {
-    return self->CLightFactory::NewObject(type);
-}
-CEngineObject* __fastcall LightManagerCreateObjectHook(CLightFactory* self, void*, int type, int id) {
-    return self->CLightFactory::CreateObject(type, id);
-}
 } // namespace
-EI_REPLACE(0x0068DA40, LightManagerNewObjectHook);
-EI_REPLACE(0x0068DAD0, LightManagerCreateObjectHook);
+EI_REPLACE_METHOD(0x0068DA40, CLightFactory::NewObjectImpl);
+EI_REPLACE_METHOD(0x0068DAD0, CLightFactory::CreateObjectImpl);
 
 const char* __fastcall LightManagerClassName(CLightFactory*) {
     return reinterpret_cast<const char*>(kLightManagerClassName);

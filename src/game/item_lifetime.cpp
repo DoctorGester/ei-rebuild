@@ -169,7 +169,7 @@ CEngineObject* NewItem() {
 }
 } // namespace
 
-CEngineObject* CItemManager::NewObject(int kind) {
+CEngineObject* CItemManager::NewObjectImpl(int kind) {
     CEngineObject* object;
     switch (kind) {
     case 0x3004: object = NewItem<CItemWeapon>(); break;
@@ -187,9 +187,6 @@ CEngineObject* CItemManager::NewObject(int kind) {
 namespace {
 // Slots 2 and 14's entry points (rule 4).
 int __fastcall ItemManagerCreateHook(CItemManager* self) { return self->CItemManager::Create(); }
-CEngineObject* __fastcall ItemManagerNewObjectHook(CItemManager* self, void*, int kind) {
-    return self->CItemManager::NewObject(kind);
-}
 } // namespace
 EI_REPLACE(0x006AC780, ItemManagerCreateHook);
-EI_REPLACE(0x006AC810, ItemManagerNewObjectHook);
+EI_REPLACE_METHOD(0x006AC810, CItemManager::NewObjectImpl);
