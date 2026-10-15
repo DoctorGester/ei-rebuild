@@ -713,6 +713,28 @@ console). The image installs all five image-only registrations; `--standalone` b
 005AF580. Left: S8b (resource strings, the exceptions' error messages and ReportError, CFile's name
 slots 4-6; they need the module state's resource handle and game.exe's string table in the image).
 
+**S12b group 1 (2026-10-15).** STLport's sort internals moved from src/game/stl_sort.h to
+src/lib/stlp_algo.h (`stlp::Sort<T, Less>`: median of three returning a reference, the pivot copied
+once, unguarded partition and inserts, heap sort at depth 0, the final insertion sort), now for
+element types by value too. src/game/stl_sorts.cpp registers the sorts our code forwards to, 12
+addresses: the file chunks by index 0042A020 / 0042A150, CollectChanges's {object, priority} pairs
+by the object's address 0043F870 / 0043F9B0, the picking hits with DepthLess 00573740 / 00575BC0 /
+00576D40 (the original inlines the comparison in the scans; its sums only swap the first two terms,
+so `DepthLess::Less` serves), the battle screen's ids 0060B1E0 / 0064B750 (less<int>), the
+connection screen's server list by its sort key 0061EF60 / 0061F6F0 / 0061FB00 (keys 1-8 the column
+pairs, names by `_mbscmp`; copies only share the CStrings). Checks (tests/verify/verify_stl_sorts.cpp),
+all against the original: it sorts a copy, ours the range, the orders compared element by element
+(the original's recursion re-enters the wrapper); the unguarded insertion sorts copy from 16 before
+`first`; hits with a missing object or a non-finite depth go to the original alone (logged). The
+suite sorts short ranges only, so a start-up check sorts 300 random arrays of ids, pairs (equal
+objects, distinct priorities) and chunk pointers and 200 server lists (empty strings, keys 3-9)
+through the originals and ours, a quarter with depth limits that reach the heap sort. smoke,
+console, camera, combat, net_lobby, ui_mp_host: 0 mismatches. Their inner helpers (median,
+partition, heap, linear insert) are reached only from the replaced loops: dead in both builds. Not
+done: the objectives window's CString sort 0064F310 / 0064F9A0 / 0064FBD0 (its comparison builds
+strings and looks them up in the quest map 007C87B4, allocating on every call) and the save list's
+SaveEntry sort 00657DF0 / 00657F10 with copy_backward 00657D50 (its copies allocate CStringArrays).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

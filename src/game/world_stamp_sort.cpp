@@ -2,7 +2,7 @@
 // instantiated for node pointers with EntryIdLess.
 #include "world.h"
 
-#include "stl_sort.h"
+#include "lib/stlp_algo.h"
 
 #include "ei/hook.h"
 
@@ -15,7 +15,7 @@ struct ByStamp {
         return less.Less(static_cast<const std::uint8_t*>(a), static_cast<const std::uint8_t*>(b)) != 0;
     }
 };
-using StampSort = StlSort<void*, ByStamp>;
+using StampSort = stlp::Sort<void*, ByStamp>;
 } // namespace
 
 void __fastcall StampIntroSort(void** first, void** last, int, int depthLimit, const void*) {
