@@ -7,6 +7,7 @@
 #include "game_strings.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
+#include "../lib/stlp_tree_cstring.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -215,8 +216,9 @@ inline ConsoleWindow* TheConsoleWindow() { return *reinterpret_cast<ConsoleWindo
 // Console commands: void handler(CStringArray* args) with the arguments (lower case) in ECX.
 using CommandHandler = void(__fastcall*)(CStringArray* args);
 
-// STLport map<CString, CommandHandler> (red-black tree). The header node's parent is the root.
-using CommandMap = stlp::map<mfc::CString, CommandHandler>;
+// STLport map<CString, CommandHandler> (red-black tree, keys by _mbscmp). The header node's parent
+// is the root. Its members are registered by library_trees.cpp.
+using CommandMap = stlp::map<mfc::CString, CommandHandler, stlp::CStringLess>;
 using CommandNode = CommandMap::Node;
 static_assert(sizeof(CommandNode) == 0x18);
 

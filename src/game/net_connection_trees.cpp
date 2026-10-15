@@ -43,6 +43,12 @@ EI_REPLACE(0x0043ADC0, stlp::TreeAllocProxyConstruct);
 EI_REPLACE(0x0043B140, stlp::TreeAllocProxyConstruct);
 EI_REPLACE(0x0043B160, stlp::TreeAllocProxyConstruct);
 
+// Each tree's ~_Rb_tree (no direct callers in the exe).
+EI_REPLACE(0x00433710, net::trees::SentIds::Destroy);
+EI_REPLACE(0x004337B0, net::trees::Objects::Destroy);
+EI_REPLACE(0x004338F0, net::trees::Records::Destroy);
+EI_REPLACE(0x00433990, net::trees::Attached::Destroy);
+
 // The objects by sent id (0043A480, its node deallocate, is registered by stlp_vector.cpp).
 EI_REPLACE(0x004393C0, net::trees::SentIds::ConstructWith);
 EI_REPLACE(0x00437AA0, net::trees::SentIds::CopyConstruct);
