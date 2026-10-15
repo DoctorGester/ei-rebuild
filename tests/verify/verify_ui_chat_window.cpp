@@ -9,6 +9,8 @@
 #include "../../src/game/ui_briefing.h"
 #include "../../src/game/ui_screens.h"
 
+#include "ei/rebirth.h"
+
 namespace {
 void* s_unused;
 } // namespace
@@ -18,6 +20,9 @@ static CChatWindow* __fastcall ChatConstructVerify(CChatWindow* self, void*, CIn
     CChatWindow* result = self->Construct(ui);
     bool ok = result == self && self->vtable_ == reinterpret_cast<void**>(0x00741478) && self->surfaces_.size == 1 &&
               self->texts_.size == 6 && self->portraits_ == 0 && self->players_.size() == 0;
+    // EI_Plugin's NPlayers (00608D9D): the window starts at x 0 instead of 0x1D0.
+    ok = ok && self->rect_.left == (ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers) ? 0 : 0x1D0) &&
+         self->rect_.right == 800;
     ei::verify::Check("CChatWindow::Construct", true, ok, "surfaces %d texts %d", self->surfaces_.size, self->texts_.size);
     return result;
 }
