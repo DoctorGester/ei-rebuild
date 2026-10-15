@@ -1,0 +1,12 @@
+{
+  "scenario": "zone_gz15h_tornado",
+  "install": "vanilla",
+  "recorded": "2026-10-15",
+  "commit": "7e9f22f4",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": null,
+  "repeated_in": 2,
+  "reason": "S20 trial",
+  "saves": "not kept: save savea/mission.sav: 8 fields differ; first: / obj338784 controller.brain.memory.call0.point.z: 8.79983392e-29 in the first run, 8.40540346e-29 in o2 / obj338785 controller.brain.memory.call0.point.z: 8.80773504e-29 in the first run, 8.41330459e-29 in o2"
+}
