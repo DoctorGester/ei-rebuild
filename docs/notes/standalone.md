@@ -745,6 +745,30 @@ the original (stolen bytes) on memory archives: the stored bytes, and loads into
 shrinking objects. No suite scenario calls a Serialize. Left: S6c (33 Serialize whose elements are
 counted references or script records, about 20 destructors).
 
+**S12a (2026-10-15).** The rest of the exe's STLport maps (src/game/library_trees.*, one
+`TreeAbi` alias each, node sizes from each `_M_create_node`): the debug panel's map<string, string>,
+the .mob loader's tint lists (map<string, list<16-byte record>>, dead with 00481660's branch), a
+link mesh's part headers and ranges, the link loader's mesh cache (a multimap of counted
+references: `equal_range`, `insert_equal`), the item screens' model and texture caches (two copies
+of every member), the console's command maps and the interface's help topics (CString keys:
+`map`'s third argument is now the key order, `stlp::CStringLess` is `_mbscmp < 0`,
+stlp_tree_cstring.h), the "pers" texts and the global map's arrivals; 213 addresses, plus the four
+connection maps' destructors (00433710 ...) and the 0x30-byte list constructors 00478D50 / 00479150 /
+005F90E0 (library.csv calls them `_Rb_tree`; they build a list sentinel: stlp_list.cpp `List48`).
+`TreeElement` builds a pair from key and value (`Make`), so operator[] constructs its value in
+place and destroys the temporary once; `PairElement` destroys the value, then the key. New
+`TreeAbi` members: the pair's destructor and scalar deleting destructor, `_M_destroy_node`,
+`insert_equal`, `equal_range`; `TreeWordPairConstruct` (pair<dword, dword>). 004F4CD0
+(`LinkPartHeader()`, 0x50 bytes zeroed) and 005F8FC0 (the model cache's destructor in the item
+screens' unwinding: each model released, then the map) are plain functions. Six game-kind rows the
+tint-list map uses got library.csv rows (00482570 ... 004827C0). Checks
+(tests/verify/verify_library_trees.cpp, sharing tests/verify/stlp_tree_verify.h with the
+connection maps): the per-call wrappers as for S12 group 3, and a start-up script per map
+(4 x 400 steps through its registered originals - insert, hint insert, operator[], erase at a
+position, clear, destroy - and ours side by side; strings with high bytes, ASCII CStrings, lists by
+their elements, null references). Left in the ticket's ranges: 95 rows that are lists,
+hashtables, vectors, CArrays and unwind helpers (S12c).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,

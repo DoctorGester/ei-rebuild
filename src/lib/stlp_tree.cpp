@@ -1,6 +1,10 @@
 // STLport's _Rb_global<bool> (stlp_tree.h): the node-only algorithms every tree instantiation of
 // the exe shares, registered at their addresses. Checked by tests/verify/verify_stlp_tree.cpp.
 #include "stlp_tree.h"
+#include "stlp_tree_cstring.h"
+
+#include "crt.h"
+#include "mfc_string.h"
 
 #include "ei/hook.h"
 
@@ -229,3 +233,12 @@ EI_REPLACE(0x0043E300, stlp::rb::RotateLeft);
 EI_REPLACE(0x0043E350, stlp::rb::RotateRight);
 EI_REPLACE(0x0043FE90, stlp::rb::Rebalance);
 EI_REPLACE(0x0043D830, stlp::rb::RebalanceForErase);
+
+namespace stlp {
+
+bool CStringLess::Less(const mfc::CString& a, const mfc::CString& b) {
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(a)),
+                           reinterpret_cast<const unsigned char*>(static_cast<const char*>(b))) < 0;
+}
+
+} // namespace stlp

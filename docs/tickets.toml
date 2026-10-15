@@ -1647,6 +1647,15 @@ depends = ["S6a"]
 files = ["src/lib/mfc_slots.*", "src/game/game_slots.*", "tests/verify/verify_mfc_serialize.cpp", "tests/verify/verify_mfc_slots.cpp"]
 note = "From S6a. Serialize (slot 2), 33: lists of counted references whose loader builds, assigns and releases a temporary (00427690, 00571420, 004C9350, 0052C740, 005576C0, 00598FD0, 00599DF0, 00558100); script lists assigning records (004C61C0, 004C64C0, 004C6800, 004C7640, 004C7F60, 004C8640, 004C8F00, 004CA2E0, 004D63E0, 0059A4A0, 006BC920); arrays whose SetSize runs unported element constructors (0044FEF0, 00450160, 004507E0, 00451640, 00454A70, 004C2700 own SerializeElements<CString>, 004C52A0, 004C7820, 0050FC80, 00557960, 00571240, 005993A0, 006B5770, 006C4790). Use mfc_slots.h's SerializeC* with element types whose constructor / assignment / destructor match, and verify_mfc_serialize.cpp's start-up check (Mode 2 where destruction needs more than construction). Destructors + deleting destructors, about 20: CGdiObject / CFont 00444B30 00444B90 005FDDE0 (00444B10 00444B70 005FDDC0; need S8a's DeleteObject), ScriptSubCall arrays 004C5180 004CCF70 (004CB0D0 004CCF50), 004514B0 (004529F0), maps 00454510 00454830 00454CE0 (004543A0 00454810 00454CC0), DeltaField 0050FBC0 (00510160), Behaviour 00545BA0 (00556BE0), 00557890 (005587E0), MusicTheme 006B56C0 (006B5980), CacheEntry list 006BC870 (006BD190), 006C4690 (006C4E80), 006C4C40 (006C4EC0). 00646C25 / 00656464 are not functions (code addresses in data)."
 
+[[ticket]]
+id = "S12c"
+title = "Standalone library: the lists, hashtables, vectors and CArrays in S12a's ranges"
+group = "standalone"
+size = 1
+depends = ["S12a"]
+files = ["src/lib/stlp_list.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp", "src/lib/mfc_array.h", "config/library.csv"]
+note = "S12a ported the trees in its ranges (004337xx-0065A770); 95 library.csv rows there are not trees and stay unregistered. Lists: 00478F10 (~list<CMemoryStream>, unwind only) 00478FC0 00478FD0 00478FE0 00479130 004827D0 00482980 004829B0 00482CC0 004FB3B0 004FB3C0 004FB570 004FB730 004FB840 004FB8B0 004FBCF0 005F9570 005F9620 00482790; hashtables (S11 policies): 00482C30 00482DD0 00482DF0 004F6A50 004FB090 004FBB80 004FBC80 005E0C00 005E0D50 005E0E00; vectors and alloc proxies (S10 policies): 00482A80 00482BF0 00482D10 004FB290 004FB6A0 004FB6F0 004FB860 004FB9D0 004FBA40 005F8E00 005F9090 005FA8E0 00619600 006316C0 006317E0 006325E0 00632610 0060AA80 0060AAA0 004FB680; CArray / ConstructElements / two-CString records (with S6a's mfc_array.h): 005FB090 005FB120 005FB2F0 005FB380 005FB560 005FB5F0 005FB850 005FB870 005FB890 005FBD30 005FBD80 005FBDD0 005FBF50 005FBFB0 0060A870 0060A890 0060ABC0 00631E70 00631FF0; the rest need reading (some are in S12b's list: 005F8E90 005F92A0 005F94B0 005FB810): 00482440 004FB170 005F60B0 005F99B0 005F9C70 005F9F40 005FA2C0 005FA300 005FA360 005FA3C0 0060A010 0060A660 0060AB00 0060AB60 006342C0 005E0550 00445FC0 00482E90 004F69F0 005F9680 005FBE20 005FBCB0 0060ABE0 (one row each in config/library.csv)."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

@@ -28,6 +28,7 @@ using List16 = stlp::ListAbi<stlp::Opaque<8>>;
 using List24 = stlp::ListAbi<stlp::Opaque<16>>;
 using List40 = stlp::ListAbi<stlp::Opaque<32>>;
 using List352 = stlp::ListAbi<stlp::Opaque<0x158>>;
+using List48 = stlp::ListAbi<stlp::Opaque<0x28>>;
 
 template <std::uintptr_t A>
 struct IteratorCheck {
@@ -104,6 +105,7 @@ template <std::uintptr_t A> using Construct16 = ConstructCheck<A, List16>;
 template <std::uintptr_t A> using Construct24 = ConstructCheck<A, List24>;
 template <std::uintptr_t A> using Construct40 = ConstructCheck<A, List40>;
 template <std::uintptr_t A> using Construct352 = ConstructCheck<A, List352>;
+template <std::uintptr_t A> using Construct48 = ConstructCheck<A, List48>;
 
 // What a destructor or clear() leaves on the node pool: `freed` (in the order freed) pushed on
 // the free list for `bytes`, whose head was `top`.
@@ -223,6 +225,9 @@ EI_VERIFY(0x00634300, Construct24<0x00634300>::Verify, 7, Construct24<0x00634300
 EI_VERIFY(0x00562A80, Construct24<0x00562A80>::VerifyDefault, 7, Construct24<0x00562A80>::original);
 EI_VERIFY(0x0041FD30, Construct40<0x0041FD30>::Verify, 7, Construct40<0x0041FD30>::original);
 EI_VERIFY(0x004249E0, Construct352<0x004249E0>::Verify, 7, Construct352<0x004249E0>::original);
+EI_VERIFY(0x00478D50, Construct48<0x00478D50>::Verify, 7, Construct48<0x00478D50>::original);
+EI_VERIFY(0x00479150, Construct48<0x00479150>::Verify, 7, Construct48<0x00479150>::original);
+EI_VERIFY(0x005F90E0, Construct48<0x005F90E0>::Verify, 7, Construct48<0x005F90E0>::original);
 
 // Destructors of plain elements: ours only (stolen 0).
 EI_VERIFY(0x004A96A0, Destruct16<0x004A96A0>::Verify, 0, s_unused);
