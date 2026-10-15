@@ -1508,6 +1508,14 @@ status = "queued"
 depends = ["C9c"]
 note = "From C9c (2026-10-15): CLinkMesh::ProjectPart / RasterisePart (slots 13 / 14) and 005A0CD0 / 005A0E80 take float* points, int* pixels and a void* target; typing them as Vector2*, RasterTriangle::Point* and RasterTarget* (move RasterTarget from map_object_shadow.cpp to texture.h) changes their signatures, so map_object_shadow.cpp still passes &Points()[n].x / &Pixels()[n].x."
 
+[[ticket]]
+id = "C14"
+title = "Standard types instead of MFC / STLport containers and strings"
+group = "cleanup"
+status = "later"
+size = 5
+note = "Plan: docs/notes/standalone.md section 3, step 2 (discussed with the user 2026-10-13). After the hook build is retired (side-by-side checks need the shared layout): CArray to std::vector, CList to std::list, stlp::vector / list / map to their std twins, stlp::string and CString to one string type; the framework pieces (files, archives, GDI, exceptions) stay small classes of our own. Keep what must survive: hash_map iteration order where it feeds game logic, saves or network messages (39 stlp::hash_map uses; check each, the rest can be std::unordered_map), STLport sort order at sites where equal elements are visible (the objectives list), the CRT behaviour (_ftol, rand, sprintf digits), and the archive encoding of strings / arrays in saves and messages. Split into one ticket per family when started."
+
 # ---------------------------------------------------------------- standalone and UTF-8
 
 [[ticket]]
