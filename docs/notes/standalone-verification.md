@@ -915,3 +915,40 @@ checks of allocating functions: ours allocates first, the original's allocations
 
 Tool: `EI_HEAPSEQ=<update>` keeps the heap trace's events in memory (callers six deep) and writes heapseq.txt at that
 update, so tracing does not slow the run down.
+
+## SV2h: twin checks that allocate run ours first (2026-10-15)
+
+The SV2f rule applied across tests/verify (52 files): ours runs on the real object first and allocates first; the
+original runs afterwards on a twin built from bytes kept in our memory (std::vector or a stack struct), and the twin's
+blocks are freed. A twin that is allocated and freed with nothing kept in between is harmless; one alive while the
+kept side allocates is what moved the game's heap order. Patterns:
+
+- Keep, then clone: the input's header and used elements are copied into our memory before ours runs; the game-heap
+  copy the original needs (it may grow or free it) is made after (KeptSteps in combat_verify_util.h, KeptArray in
+  terrain_landscape / world_client_decals, KeptOptions, KeptPlan, KeptTween, ScratchArray::Make in script parse arrays,
+  Scratch::Keep in game_buffer / memory_stream / buffered_file, KeptStream in net_link / net_link_driver).
+- Factory swaps: when ours and the original each create an object (item links, unit AI, net connections, sessions,
+  unit mode slots), ours creates first.
+- Script groups and object lists: the group is kept with a reference on each object, so the objects stay alive while
+  ours runs; the clone made afterwards adopts those references (KeptGroup in verify_script / verify_world).
+- In-place writers whose original must keep the real result (AnimationSteps AddStep / AddEmote / SetStepFlags): the
+  original runs on the real list and ours on a copy made afterwards from the kept list.
+- Random and terrain state: the ISAAC generator and rand()'s seed are saved in our memory (no game-heap copy), ours
+  runs, its state is saved, the start is restored for the original, and ours' state is put back at the end (party
+  saves, planner, terrain sector Build).
+- Saves into memory streams: ours writes into the real stream, then the original into a scratch stream made after.
+
+The S4a1 note (start-up batteries that call a recorded function's trampoline, null in record mode): only
+verify_crt_format's battery calls one (atof), and S4a1 already guards it; nothing else needed a guard.
+
+Golden suite (128 runs, 4 at once) after each of the three commits: ALL PASS, 56 goldens the same, 0 differ.
+
+Not done (follow-ups SV2h1..SV2h3): CString outputs whose original writes a game-heap string first and the stream is
+put back (exit_area, mfc_file ReadLine / GetRoot, item_db, text_reader, unit_client_sounds, world, text_split,
+chunk_archive, script_load, ui_scrollbar, link_loader, map_spec, script_parse Qualify, ui_briefing, ui_global_map,
+world_briefing, party_items, model_names, mob_script_decoder, mfc_try, mfc_archive, mfc_string); the network delta
+coder's twin streams (net_delta, net_streams, net_coder, delta_snapshot.h) and the crt_streams batteries and
+directdraw_holder; and the checks that run the original on the real object with a snapshot restored before ours (UI
+side by side, WakeVerify), to be reviewed for which side's blocks survive. Pools (CString's CFixedAlloc, the STLport
+node allocator, MFC plexes) can still be refilled by a twin's free in a different order; no golden showed it.
+verify_mfc_array.cpp (S6a) and the STLport checks (S12) were left to their owners.
