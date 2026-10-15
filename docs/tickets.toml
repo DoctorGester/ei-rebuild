@@ -1153,7 +1153,7 @@ note = "From S20: run_all leaves render_present_fullscreen-vanilla out of --no-h
 id = "S20c"
 title = "ui_mp_host (vanilla, Rebirth), net_second_master and Rebirth rebirth_flags: hooked runs part from the original, standalone matches"
 group = "verification"
-note = "From S20, on main with SV7b7, T2f and SV7b2a: goldens from two agreeing --no-hooks passes exist and --standalone matches them (91 and 77 runs), but the hooked (verify) runs differ in the same way every run: ui_mp_host vanilla record 24 (update 500, bz1mpg) isaac.count 72 against 56 and 25 object hashes; net_second_master Rebirth record 21 (update 440) isaac.count 27 against 185; rebirth_flags Rebirth record 16 (update 340, gz1g) isaac.count 249 against 157 and obj1936 #ai. So the difference is in what the verify build adds (wrappers, harness patches) or in hooked-only code paths, not in our rewrites alone. The goldens were withheld to keep 'work.py test --golden' at 0 differ; the recordings are in git commit 4f6afaef (tests/golden/<scenario>/<install>; saves.txt there follows the rules before SV7b2a: restore with git checkout 4f6afaef -- <dir>, then python tools/golden.py saves <scenario> --install <install> --runs <two plain --no-hooks run snapshots>). Find the first differing draw with EI_HARNESS_CLOCK=virtual,randtrace and tools/randtrace.py, hooked against --no-hooks; related to SV1k (ui_mp_host)."
+note = "Coordinator: standalone already matches, so S21 (hook builds retired) can restore these four goldens (re-record saves under SV7b2a rules) without chasing the hooked difference; only chase it if S21 is delayed."
 
 [[ticket]]
 id = "S20d"
