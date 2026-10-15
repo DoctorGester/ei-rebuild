@@ -2,11 +2,11 @@
   "scenario": "ui_order_move",
   "install": "rebirth",
   "recorded": "2026-10-15",
-  "commit": "5d15174f",
+  "commit": "522baf9d",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj2 hp$)",
   "repeated_in": 4,
-  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
-  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 51214 906fb7392a70cd50', orig2 'savea/mission.sav 51245 ffad2e722ca2cc6a'"
+  "reason": "SV7b1: script groups ordered by object id in both the original (harness patch) and ours; was address order (gobject.i 702, now 1884)",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50981 30a847395cb0db13', orig2 'savea/mission.sav 50982 f09fefa15e376340'"
 }

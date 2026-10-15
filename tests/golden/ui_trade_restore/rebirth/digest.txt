@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 02106945 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 7DD3812E n 172
 + world world
 world tick 20
 world updates 20
@@ -144,7 +144,7 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
-obj2 hp nan:0xFFFFFFE7
+obj2 hp nan:0xFFFFFFF1
 obj2 #ai 713079FE
 obj2 #place 784FE175
 obj2 #unit 807D16EC
@@ -557,7 +557,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone gz1g hash 11AD3B3E n 832
+@ 1 update 40 frame 7 tick 40 zone gz1g hash EE44EF21 n 832
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -2550,7 +2550,7 @@ aievents height 25
 script #files 012FC665
 script #ggroup 393FB575
 script #globals A5413D6F
-script #gobject 7658611C
+script #gobject 3656F9F8
 script #inst AA0C8751
 script #instances 9EC34A1E
 client tick 40
@@ -2581,7 +2581,7 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place 49B2288E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 78F83B34 n 832
+@ 2 update 60 frame 11 tick 60 zone gz1g hash 8711EF2B n 832
 world tick 60
 world updates 60
 random isaac.count 232
@@ -2620,7 +2620,7 @@ cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
 cunit1000011214 #place A95B5B07
 cunit1000011214 #vitals 10A746BF
-@ 3 update 80 frame 15 tick 67 zone gz1g hash E1F9F3DB n 831
+@ 3 update 80 frame 15 tick 67 zone gz1g hash 177DA6C5 n 831
 world tick 67
 world updates 80
 world paused 1
@@ -2667,7 +2667,7 @@ missile0 # B4F73D5C
 missile1 # 46CAAA5C
 aievents tick 67
 script #ggroup 389CDF48
-script #gobject 584B72A1
+script #gobject 83A825DA
 script #inst B9171E66
 client tick 67
 client paused 1
@@ -2679,14 +2679,14 @@ cunit1804 #unit 618078DC
 cunit1100011214 #place 125B38F9
 cunit1100011214 #unit CD36ADAE
 cunit1100011214 #vitals 4A3A1FAE
-@ 4 update 100 frame 19 tick 67 zone gz1g hash 734CDB63 n 831
+@ 4 update 100 frame 19 tick 67 zone gz1g hash 85C88E7D n 831
 world updates 100
 random isaac.count 145
 client ticksRun 72
-@ 5 update 120 frame 23 tick 67 zone gz1g hash 5D0F6A5E n 831
+@ 5 update 120 frame 23 tick 67 zone gz1g hash AB8B3F40 n 831
 world updates 120
 client ticksRun 92
-@ 6 update 140 frame 27 tick 77 zone gz1g hash E4585E44 n 832
+@ 6 update 140 frame 27 tick 77 zone gz1g hash 6E633762 n 832
 world tick 77
 world updates 140
 world paused 0
