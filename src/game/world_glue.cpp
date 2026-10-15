@@ -95,7 +95,9 @@ EI_REPLACE(0x0055EA10, StoreStartFolder);
 namespace {
 constexpr double kHoursPerDay = 24.0;   // 0073D108
 const char kConstructionVariable[] = "constr.current";   // 00790384
-char& ZoneRequested() { return *reinterpret_cast<char*>(std::uintptr_t(0x007C7D94)); }
+// The interface's close-all flag (CInterface3D +0x44 at 007C7D50): every window closes before the next
+// input message or by the next pass (CloseAllPending 005F5AB0, Activate, Draw).
+char& CloseAllRequested() { return *reinterpret_cast<char*>(std::uintptr_t(0x007C7D94)); }
 float& MapEdgeFade() { return *reinterpret_cast<float*>(std::uintptr_t(0x0079BD34)); }
 const char* DefaultMusic() { return *reinterpret_cast<const char**>(std::uintptr_t(0x0079BECC)); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
@@ -235,13 +237,13 @@ void __stdcall GameLeaveThroughExit(int exit) {
 EI_REPLACE(0x00578AC0, GameLeaveThroughExit);
 
 void __stdcall GameSendLeave04(int value) {
-    ZoneRequested() = 1;
+    CloseAllRequested() = 1;
     LocalClient()->SendLeave04(value);
 }
 EI_REPLACE(0x00578B00, GameSendLeave04);
 
 void GameRejoin() {
-    ZoneRequested() = 1;
+    CloseAllRequested() = 1;
     LocalClient()->Rejoin();
 }
 EI_REPLACE(0x00578B20, GameRejoin);

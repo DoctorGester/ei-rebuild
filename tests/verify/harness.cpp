@@ -2456,6 +2456,28 @@ bool IsWinMainLoop(const void* returnAddress) {
     return ei::mainloop::g_site == Site::PeekBeforeFrame || ei::mainloop::g_site == Site::PeekAfterFrame;
 }
 
+// A pending close-all (CInterface3D +0x44, set by a screen request 00578B00 / 00578B20 or a leave
+// answer) is carried out by whichever comes first: the input dispatcher's first step
+// (CloseAllPending 005F5AB0) for the next message the main loop takes, or the next pass (the
+// server's answer through Activate, or Draw). Whether a message waits then (Miles' WM_TIMER,
+// WM_PAINT) is real time, and the close stops the playing sounds, which Terrain::PlayAmbience's
+// draws depend on (SV1j: ui_view_screen's `screen 7` closed in its own frame or the next). On the
+// virtual clock the main loop's peeks report no message while one is pending, so the next pass
+// always does it; after two frames (no pass took it up) messages go through again.
+unsigned g_closeAllHeldFrom = kNotReady;
+bool HoldMessagesForCloseAll(const void* returnAddress) {
+    if (!clock::Virtual() || !IsWinMainLoop(returnAddress) ||
+        !reinterpret_cast<CInterface3D*>(0x007C7D50)->closeAll_) {
+        g_closeAllHeldFrom = kNotReady;
+        return false;
+    }
+    if (g_closeAllHeldFrom == kNotReady) {
+        g_closeAllHeldFrom = g_frames;
+        clock::RandomNote("close-all pending: messages held until the next pass");
+    }
+    return g_frames < g_closeAllHeldFrom + 2;
+}
+
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
     SetMainThread();
     if (g_randomTrace) clock::InstallRandomTrace(&g_frames);
@@ -2477,6 +2499,10 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
         g_winMainLoop = IsWinMainLoop(_ReturnAddress());
         RunSteps();
         g_inStep = false;
+    }
+    if (HoldMessagesForCloseAll(_ReturnAddress())) {
+        RestoreAfterMinimise();
+        return FALSE;
     }
     const BOOL result = g_peekMessage(msg, hwnd, min, max, remove);
     RestoreAfterMinimise();
