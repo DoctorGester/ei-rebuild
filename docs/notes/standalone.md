@@ -884,8 +884,8 @@ scratch objects (fake counted objects that never reach zero); in the suite only 
 members 005E0C00 / 005E0D50 / 005E0E00 (console: 1411 skips), 005E0550 (console, once) and 005FBCB0 (S12a's console map check) are
 reached. smoke, console, items, world_load, models, ui_screens, ui_base_dialogue,
 ui_global_map_pick, ui_camp, ui_saveload, net_lobby, ui_main_menu, ui_mp_host, both installs: 26 pass,
-0 mismatches. Not taken: S12a's CArray rows (S6b/S6c, listed in the ticket's note) and the rows of
-S12d (0060A660, 0060AB00, 005F8E90, 005F92A0, 005F94B0, 005FB810). Unregistered twins outside the
+0 mismatches; after merging S12d the full `--golden` suite: 128 runs pass, 56 goldens the same, 0 mismatches. Not taken: S12a's CArray rows (S6b/S6c, listed in the ticket's note) and the rows of
+S12d (it ported 0060A660 and 0060AB00; 005F8E90, 005F92A0, 005F94B0 and 005FB810, "unreviewed family" rows, are still unregistered). Unregistered twins outside the
 ranges with the same instructions: 00429060, 00429DB0, 004298F0 (the RefPtr and held-object copies),
 004FAF10 (a char vector's ~_Vector_base), 0042B3C0, 0042B3F0, 00404D50, 004E15C0, 005E1560, 00457940,
 004FC0C0, 004217C0.
