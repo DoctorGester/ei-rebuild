@@ -1314,8 +1314,8 @@ reader (`savefile.py rules FILES` lists the reasons): `~junk` for bytes never se
 | `weightsTail` | ClassTemplate +0x34, archived with the nine weights, never set (004A6580, 004A7630) |
 | `templateN`, `recordN`, `N.object`, `identity` (scenario.sav) | ChunkArchive::SaveObjectRef 0040A440 writes the object's address as its key; the loader maps it to the object it creates |
 
-SV7b2 (below) made most of these rows values again: what is left are the step padding, the script area and
-arrow-hit padding, a sound's `nameTail`, the item stock's `stackTail` and the chunk archive's identities.
+SV7b2 (below) made most of these rows values again, SV7b2a the rest (step padding, script area and arrow-hit
+padding, a sound's `nameTail`, the item stock's `stackTail`, the chunk archive's identities): no rule is left.
 
 With these, two plain runs of the original decode to the same text in all 39 vanilla and 46 Rebirth saving scenarios
 (129 and 153 files), in the runs before and after merging main.
@@ -1678,7 +1678,7 @@ stack copy), the script areas' part padding (AddRect / AddRound), a sound's `nam
 `stackTail`. The chunk archive keys (`templateN`, `recordN`, `N.object`, `identity`) stay identities numbered by first
 appearance: writing ids instead would change no format the loader reads (it maps any key to the object it creates),
 but the keys are template / record / party addresses with no id, and the record order follows the pointer-keyed hash;
-it did not change in any pass below. SV7b2a holds these.
+it did not change in any pass below. SV7b2a settled these (section below).
 
 **Behaviour.** No digest, dump or console of the 97 goldens changed: in plain runs both leftovers were already what
 zero gives (waitFrame 0 from fresh heap pages, a Suspection point 0,0,0 / level 0), so the change only removes what the
@@ -1787,4 +1787,23 @@ tools/make_trap_mob.py describe them):
 vtable slots, the scene loader and its callees, the skin's lifetime and rewind, Quaternion::PreMultiplyConjugate and
 MultiplyByConjugate). MultiplyByConjugate's vector family (record, replay, ConjugateCall) was removed: it had no
 source and could not get one from the game. Its verify wrapper stays (ours against the original), never reached.
+
+## SV7b2a: the saves' last leftovers canonical, archive keys numbered (2026-10-15)
+
+**Sites** (the original in `EI_NO_HOOKS=1` runs, tests/verify/harness_save_leftovers.cpp: each sits in a function ours
+replaces; ours already wrote these values or does now; `EI_SAVE_LEFTOVERS=0` leaves the original):
+
+| Field | Original | How |
+| --- | --- | --- |
+| `stepN.padding` (AnimationStep +3) | the step constructor 00550A60 and the inline stack steps of AddStep 00544D01, AddEmote 00544D83, BuildOrderSteps 005504DB, BuildDeathAnimation 00550D0F, BuildIdle 00550DEA / 00550ED0, IdleAnimation 0055102D / 00551123, BuildMoveSteps 00551343 / 00551399, BuildTransition 00551869 | the flags byte store becomes a word store (stub), 00550A60's two byte stores one dword store (in place); ours: AnimationStep::Construct sets padding too |
+| `areas.N.partN.pad`, a round part's `y2` | AddRect 004B1EFF / AddRound 004B209F (isRect byte store; AddRound never sets y2) | dword stores (stub) |
+| a sound's `nameTail` | CEffectSound::Reset 006762C4 clears name_[0] (Construct resets too) | the whole char[0x100] zeroed (stub); ours memset |
+| the stock's modifier codes (`stackTail`) | ItemStock::SaveLists 0069BCD3: the code copy's sixth byte set, the fifth never | word store (stub); ours already stopped after four |
+| `templateN`, `recordN`, `N.object`, `identity` | SaveObjectRef 0040A440 / Close 0040A000 write the object's address | each object's number by first save (1, 2, ...): the CALLs at 0040A589 / 0040A205 (AppendChild) and 0040A2D3 (the index's WriteStreamChunk) redirected; ours keeps the number as the object map's value |
+
+The arrow hit's `pad` needed no patch: DeliverAttack copies the controller's pendingHit, which BuildAttackHit (0054F630)
+zeroes whole; the rule was wrong. Close already writes the records in first-save order (its saved list, not the hash,
+which only the load path walks), so numbering keeps the format and the order; the loader maps any key. 00544B70 builds a
+stack step too but has no caller. savefile*.py now read every former rule as a value (the Reader keeps the rule tokens
+for later use; none is in use). Without the patch (EI_SAVE_LEFTOVERS=0) 83 steps in combat's saves had a non-zero padding.
 
