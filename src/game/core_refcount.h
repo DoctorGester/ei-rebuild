@@ -9,6 +9,8 @@ class ChunkArchive;
 // derive from it directly; everything else through CRefObject below.
 class CRefCounted {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BB68);
+
     enum : std::uint8_t {
         kCopyOnShare = 0x01,    // flags6_: sharing makes a copy (the copy is marked too)
         kDetached = 0x80,       // flags7_: shut down by its owner; not shared any more
@@ -29,6 +31,8 @@ static_assert(sizeof(CRefCounted) == 8);
 // out-of-line copies are rewritten here.
 class CRefObject : public CRefCounted {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073BB58);
+
     virtual int OnShutdown() = 0;           // 2: the object is still shared and about to lose its owner
     virtual CRefObject* Clone() = 0;        // 3: the copy handed out when a kCopyOnShare object is shared
 

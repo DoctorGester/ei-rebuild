@@ -68,7 +68,7 @@ void ReleaseCounted(CRefObject* object) {
 
 // ---- CPlayerSource (0073F38C) ---------------------------------------------------------------------
 
-void CPlayerSource::DestructBase() { ei::SetVtable(this, kRefObjectRootVtable); }   // 0055F2E0
+void CPlayerSource::DestructBase() { ei::SetVtable(this, CRefCounted::kVtableAddress); }   // 0055F2E0
 EI_REPLACE_METHOD(0x0055F2E0, CPlayerSource::DestructBase);
 
 CPlayerSource* CPlayerSource::DeletingDestructBase(unsigned flags) {   // 0055F2F0
@@ -106,7 +106,7 @@ int CWorldHandle::OnShutdown() {   // 0055F1E0
 void CWorldHandle::Destruct() {   // 0055F280
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(pendingLink_);
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x0055F280, CWorldHandle::Destruct);
 
@@ -138,7 +138,7 @@ CClientHandle* CClientHandle::Clone() {   // 005626B0
 }
 
 int CClientHandle::OnShutdown() {   // 005626D0
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     ei::SetVtable(this, kVtableAddress);
     return 0;
 }
@@ -194,7 +194,7 @@ int DriverSession::OnShutdown() {   // 0055F6B0
     stlp::deallocate(holders_, sizeof(DriverNode));
     ClearDrivers(drivers_);
     stlp::deallocate(drivers_, sizeof(DriverNode));
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
     ei::SetVtable(this, CPlayerSource::kVtableAddress);
     drivers_ = NewSentinel();
     holders_ = NewSentinel();
@@ -208,7 +208,7 @@ void DriverSession::Destruct() {   // 0055F7B0
     stlp::deallocate(holders_, sizeof(DriverNode));
     ClearDrivers(drivers_);
     stlp::deallocate(drivers_, sizeof(DriverNode));
-    ei::SetVtable(this, kRefObjectRootVtable);
+    ei::SetVtable(this, CRefCounted::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x0055F7B0, DriverSession::Destruct);
 

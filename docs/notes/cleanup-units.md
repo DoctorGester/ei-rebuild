@@ -479,3 +479,19 @@ Spelling only: no signature, argument order or float grouping changed.
   check_thunks, check_registrations, check_cleanup, check_static_init, ei_vectors) on the tree merged with main.
   `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs, all PASS; 54 goldens the same, 2 differ (levers,
   ui_saveload_delete) only in script #gobject (heap layout, SV7b1's).
+
+## C11 batch 12: class homes for the shared vtables, the plain class statics respelled (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...`: 69 before, 20 after (tools/progress.py); check_cleanup raw addresses 714 before, 664 after.
+Spelling only: no signature, argument order or float grouping changed. The shared constants are gone and their ~70 uses
+(src and tests) name the class: `CRefCounted::kVtableAddress` (0073BB68, was `kRefObjectRootVtable`) and
+`CRefObject::kVtableAddress` (0073BB58, was `kRefValueVtable`) in core_refcount.h (core_streams.h now includes it);
+`GameBuffer::kGrowingVtableAddress` (0073D624) and `kViewBaseVtableAddress` (0073CA48, also `BufferedStream::kBaseVtableAddress`)
+beside `kViewVtableAddress`; `CMemoryStream::kQueueVtableAddress` (0073C960, was `netlink::kNodeStreamVtable` and the local
+`kQueueStreamVtable` copies of map_object_lifetime and two verify tests); `RootChunk::kMapObjectFileVtableAddress` (0073FAD4, the
+.mob root of world_zone). The new root statics are safe for unqualified `kVtableAddress` lookups: none of the 44 classes
+derived from CRefCounted / GameBuffer / CMemoryStream is nested, and no namespace-scope `kVtableAddress` exists. The 43 plain
+`kVtableAddress = 0x...` statics and `kViewVtableAddress` are now `std::uintptr_t(0x...)` (14 headers left the baseline).
+Left (20): `kNoElementTick` (stored as data), the hook/ and standalone/ image addresses (7), `kEmptyTextAddress` (game_strings.h),
+`kStateBlockAlpha`, `kMasterHost`, unit_ai's world / time / console, the candidates list and guard, the script queue, options' two
+float factors.

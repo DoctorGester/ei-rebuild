@@ -84,7 +84,9 @@ public:
         flags = 2;
     }
 
-    static constexpr std::uintptr_t kViewVtableAddress = 0x0073CA64;
+    static constexpr std::uintptr_t kGrowingVtableAddress = std::uintptr_t(0x0073D624);
+    static constexpr std::uintptr_t kViewVtableAddress = std::uintptr_t(0x0073CA64);
+    static constexpr std::uintptr_t kViewBaseVtableAddress = std::uintptr_t(0x0073CA48);   // the view's base
 
     // The growing buffer's non-virtual members (game_buffer.cpp).
     // 004DA7F0. Constructor: growing vtable, base 0, flags 6, a 0x20-byte block (cursor and high at
@@ -137,9 +139,7 @@ static_assert(offsetof(GameBuffer, begin) == 0x04);
 static_assert(offsetof(GameBuffer, flags) == 0x18);
 static_assert(sizeof(GameBuffer) == 0x1C);
 
-constexpr std::uintptr_t kGrowingBufferVtable = 0x0073D624;
 constexpr std::uintptr_t kBufferViewVtable = GameBuffer::kViewVtableAddress;
-constexpr std::uintptr_t kBufferViewBaseVtable = 0x0073CA48;
 
 // 0047D960: the base's vtable left (the view owns nothing).
 void __fastcall BufferViewDestruct(GameBuffer* self);

@@ -127,7 +127,7 @@ void* __fastcall ItemDeleteVerify(CItemManager* self, void*, unsigned flags) {
 
 void __fastcall SourceDestructVerify(CPlayerSource* self) {
     self->DestructBase();
-    ei::verify::Check("PlayerSourceDestructBase", kRefObjectRootVtable, VtableOf(self), "");
+    ei::verify::Check("PlayerSourceDestructBase", CRefCounted::kVtableAddress, VtableOf(self), "");
 }
 void* __fastcall SourceDeleteVerify(CPlayerSource* self, void*, unsigned flags) {
     void* result = self->DeletingDestructBase(flags);
@@ -189,7 +189,7 @@ void __fastcall ClientHandleTakeNewVerify(CClientHandle* self, void*, void* join
 
 void __fastcall HandleDestructVerify(CWorldHandle* self) {
     self->Destruct();
-    ei::verify::Check("CWorldHandle::Destruct", kRefObjectRootVtable, VtableOf(self), "");
+    ei::verify::Check("CWorldHandle::Destruct", CRefCounted::kVtableAddress, VtableOf(self), "");
 }
 void* __fastcall HandleDeleteVerify(CWorldHandle* self, void*, unsigned flags) {
     void* result = self->DeletingDestruct(flags);
@@ -239,7 +239,7 @@ int __fastcall SessionShutdownVerify(DriverSession* self) {
 
 void __fastcall SessionDestructVerify(DriverSession* self) {
     self->Destruct();
-    ei::verify::Check("DriverSession::Destruct", kRefObjectRootVtable, VtableOf(self), "");
+    ei::verify::Check("DriverSession::Destruct", CRefCounted::kVtableAddress, VtableOf(self), "");
 }
 void* __fastcall SessionDeleteVerify(DriverSession* self, void*, unsigned flags) {
     void* result = self->DeletingDestruct(flags);

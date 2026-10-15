@@ -414,7 +414,7 @@ int __fastcall DriverSendBytesVerify(DriverLink* self, void*, const void* data, 
         return actual;
     }
     GameBuffer& out = self->player_->reliableOut_;
-    if (VtableOf(&out) != kGrowingBufferVtable) return (self->DriverLink::SendBytes(data, size) ? 1 : 0);
+    if (VtableOf(&out) != GameBuffer::kGrowingVtableAddress) return (self->DriverLink::SendBytes(data, size) ? 1 : 0);
     alignas(8) std::uint8_t copy[sizeof(DriverLink)];
     std::memcpy(copy, self, sizeof(copy));
     std::memcpy(g_player, self->player_, sizeof(g_player));

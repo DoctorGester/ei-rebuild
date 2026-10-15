@@ -22,7 +22,7 @@ public:
     // database "<figure>.adb" of this manager (the world's map object manager), or null; a missing
     // database is reported to the debug log.
     FigureAnimation* FindFigureAnimation(const mfc::CString& figure, const char* name);
-    static constexpr std::uintptr_t kVtableAddress = 0x0073B870;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073B870);
 
     using ObjectMap = stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>;
     using ObjectList = mfc::CTypedPtrList<CEngineObject>;

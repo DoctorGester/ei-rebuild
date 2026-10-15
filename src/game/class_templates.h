@@ -16,7 +16,7 @@ class ChunkArchive;
 
 struct ClassTemplate {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D0C4);
-    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);   // the counted root
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);   // the counted root (CRefCounted)
 
     // 004A6580 (class_template_stock.cpp). Constructor body (+4 is left to the caller): the base
     // vtable, the two parties (CParty::Construct), the stocks (ItemStock::Construct on the items /

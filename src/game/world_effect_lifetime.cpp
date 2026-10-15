@@ -38,7 +38,7 @@ T* DeleteAfter(T* object, unsigned flags) {
 
 CMemoryStream* CMemoryStream::ConstructQueueStream() {
     Construct();
-    SetVtable(this, netlink::kNodeStreamVtable);
+    SetVtable(this, CMemoryStream::kQueueVtableAddress);
     return this;
 }
 EI_REPLACE_METHOD(0x0066C4F0, CMemoryStream::ConstructQueueStream);
