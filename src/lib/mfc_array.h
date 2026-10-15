@@ -83,6 +83,11 @@ struct ArrayAbi {
     static void __fastcall RemoveAt(Array* self, void*, int index, int count) { self->RemoveAt(index, count); }
     // ElementAt(nIndex) (RET 4).
     static T* __fastcall ElementAt(Array* self, void*, int index) { return &self->data[index]; }
+    // GetAt(nIndex) returning the element by value (RET 8: the hidden result pointer first; returns it).
+    static T* __fastcall GetAt(const Array* self, void*, T* result, int index) {
+        *result = self->data[index];
+        return result;
+    }
     // ConstructElements / DestructElements (__stdcall, RET 8).
     static void __stdcall ConstructElements(T* elements, int count) { E::Construct(elements, count); }
     static void __stdcall DestructElements(T* elements, int count) { E::Destruct(elements, count); }
@@ -263,6 +268,69 @@ void InitWithArray(WithArray<Size, ArrayAt, Class>* p) {
     ConstructHeader<Class>(p->bytes + ArrayAt);
 }
 
+// 40-byte placements: a quaternion at +0x10, identity (w first) after the zero fill (004CEE20).
+struct Placement40 {
+    std::uint8_t head[0x10];
+    float w, x, y, z;
+    std::uint8_t tail[8];
+};
+static_assert(sizeof(Placement40) == 0x28);
+inline void InitPlacement40(Placement40* p) {
+    p->w = 1.0f;
+    p->x = 0.0f;
+    p->y = 0.0f;
+    p->z = 0.0f;
+}
+
+// 12-byte path records: 0, then two indices -1 (00539910).
+struct PathRecord12 {
+    int value;
+    int first;
+    int second;
+};
+inline void InitPathRecord12(PathRecord12* p) {
+    p->value = 0;
+    p->first = -1;
+    p->second = -1;
+}
+
+// 20-byte effect sound records: 0, two handles -1, 0, a flag byte 0 (00512520).
+struct SoundRecord20 {
+    int value;
+    int first;
+    int second;
+    int extra;
+    std::uint8_t flag;
+    std::uint8_t padding[3];
+};
+static_assert(sizeof(SoundRecord20) == 0x14);
+inline void InitSoundRecord20(SoundRecord20* p) {
+    p->value = 0;
+    p->flag = 0;
+    p->first = -1;
+    p->second = -1;
+    p->extra = 0;
+}
+
+// A unit's animation step (12 bytes; game/combat.h's AnimationStep): the blank step after the zero
+// fill (00558AB0, 00550A60's values): animation and variant 0xFF, flags 0, duration -1, kind 0.
+struct AnimationStep12 {
+    std::uint8_t animation;
+    std::uint8_t variant;
+    std::uint8_t flags;
+    std::uint8_t padding;
+    int duration;
+    int kind;
+};
+static_assert(sizeof(AnimationStep12) == 0xC);
+inline void InitAnimationStep12(AnimationStep12* p) {
+    p->variant = 0xFF;
+    p->animation = 0xFF;
+    p->duration = -1;
+    p->kind = 0;
+    p->flags = 0;
+}
+
 // ---- The instantiations --------------------------------------------------------------------------
 
 using Plain4 = ArrayAbi<Bytes<4>>;
@@ -271,7 +339,10 @@ using Plain12 = ArrayAbi<Bytes<12>>;
 using Plain16 = ArrayAbi<Bytes<16>>;
 using Plain20 = ArrayAbi<Bytes<20>>;
 using Plain24 = ArrayAbi<Bytes<24>>;
+using Plain28 = ArrayAbi<Bytes<28>>;
 using Plain40 = ArrayAbi<Bytes<40>>;
+using Plain9C = ArrayAbi<Bytes<0x9C>>;
+using Floats = ArrayAbi<float>;
 
 using KeyFrames = ArrayAbi<KeyFrame40, InitElements<KeyFrame40, InitKeyFrame40>>;
 using NamedDwords = ArrayAbi<WithString<8, 4>, InitElements<WithString<8, 4>, InitWithString<8, 4>>>;
@@ -286,5 +357,40 @@ using BoneLinkArrays = ArrayAbi<WithArray<0x14, 0, BoneLinkArrayClass>,
                                 InitElements<WithArray<0x14, 0, BoneLinkArrayClass>, InitWithArray<0x14, 0, BoneLinkArrayClass>>>;
 using Patrols = ArrayAbi<WithArray<0x20, 0xC, WaypointArrayClass>,
                          InitElements<WithArray<0x20, 0xC, WaypointArrayClass>, InitWithArray<0x20, 0xC, WaypointArrayClass>>>;
+
+using Placements = ArrayAbi<Placement40, InitElements<Placement40, InitPlacement40>>;
+using PathRecords = ArrayAbi<PathRecord12, InitElements<PathRecord12, InitPathRecord12>>;
+using SoundRecords = ArrayAbi<SoundRecord20, InitElements<SoundRecord20, InitSoundRecord20>>;
+using AnimationSteps = ArrayAbi<AnimationStep12, InitElements<AnimationStep12, InitAnimationStep12>>;
+
+// A unit's animation list (game/combat.h's AnimationSteps): the steps' array (vtable 0073F01C) and a
+// dword copied along with them.
+struct AnimationStepList : AnimationSteps::Array {
+    int extra;   // +0x14
+};
+static_assert(sizeof(AnimationStepList) == 0x18);
+
+struct AnimationStepListAbi {
+    using Array = AnimationSteps::Array;
+    // 0054B260: the copy constructor (RET 4): the steps (SetSize to the source's count, then each
+    // step), then extra. Returns this.
+    static AnimationStepList* __fastcall CopyConstruct(AnimationStepList* self, void*, const AnimationStepList* source) {
+        CopyConstructSteps(self, nullptr, source);
+        self->extra = source->extra;
+        return self;
+    }
+    // 00556870: the same without extra (the steps' array alone).
+    static Array* __fastcall CopyConstructSteps(Array* self, void*, const Array* source) {
+        self->Construct(reinterpret_cast<std::uintptr_t>(AnimationStepsCopyClass::Vtable()));
+        self->Copy(*source);
+        return self;
+    }
+    // 005483C0: operator= (RET 4): Copy, then extra. Returns this.
+    static AnimationStepList* __fastcall Assign(AnimationStepList* self, void*, const AnimationStepList* source) {
+        self->Copy(*source);
+        self->extra = source->extra;
+        return self;
+    }
+};
 
 } // namespace mfc::impl

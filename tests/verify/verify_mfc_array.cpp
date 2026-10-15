@@ -129,6 +129,113 @@ struct TwinConstructElements {
     }
 };
 
+template <std::uintptr_t Address, typename Abi>
+struct TwinCopy {
+    using Array = typename Abi::Array;
+    static inline void(__fastcall* original)(Array*, void*, const Array*);
+    static void __fastcall Run(Array* self, void*, const Array* source) {
+        static const char* name = Name("Copy", Address);
+        Array twin = Twin(*self);
+        original(&twin, nullptr, source == self ? &twin : source);
+        Abi::Copy(self, nullptr, source);
+        Check(name, true, Same(twin, *self), "%d / %d", self->size, self->maxSize);
+        gamecrt::operator_delete(twin.data);
+    }
+};
+
+template <std::uintptr_t Address, typename Abi>
+struct TwinRemoveAt {
+    using Array = typename Abi::Array;
+    static inline void(__fastcall* original)(Array*, void*, int, int);
+    static void __fastcall Run(Array* self, void*, int index, int count) {
+        static const char* name = Name("RemoveAt", Address);
+        Array twin = Twin(*self);
+        original(&twin, nullptr, index, count);
+        Abi::RemoveAt(self, nullptr, index, count);
+        Check(name, true, Same(twin, *self), "%d, %d: %d", index, count, self->size);
+        gamecrt::operator_delete(twin.data);
+    }
+};
+
+// Reads: both on the same array.
+template <std::uintptr_t Address, typename Abi>
+struct TwinGetAt {
+    using Array = typename Abi::Array;
+    using T = typename Abi::Element;
+    static inline T*(__fastcall* original)(const Array*, void*, T*, int);
+    static T* __fastcall Run(const Array* self, void*, T* result, int index) {
+        static const char* name = Name("GetAt", Address);
+        T expected;
+        T* expectedResult = original(self, nullptr, &expected, index);
+        T* actual = Abi::GetAt(self, nullptr, result, index);
+        Check(name, true, expectedResult == &expected && actual == result && std::memcmp(&expected, result, sizeof(T)) == 0,
+              "%d", index);
+        return actual;
+    }
+};
+
+template <std::uintptr_t Address, typename Abi>
+struct TwinElementAt {
+    using Array = typename Abi::Array;
+    using T = typename Abi::Element;
+    static inline T*(__fastcall* original)(Array*, void*, int);
+    static T* __fastcall Run(Array* self, void*, int index) {
+        static const char* name = Name("ElementAt", Address);
+        T* expected = original(self, nullptr, index);
+        T* actual = Abi::ElementAt(self, nullptr, index);
+        Check(name, true, expected == actual, "%d", index);
+        return actual;
+    }
+};
+
+// The animation lists: the copy constructors on a fresh twin header, the assignment on a twin.
+bool SameList(const AnimationStepList& expected, const AnimationStepList& actual) {
+    return Same<AnimationStepList>(expected, actual) && expected.extra == actual.extra;
+}
+
+template <std::uintptr_t Address>
+struct TwinListCopyConstruct {
+    static inline AnimationStepList*(__fastcall* original)(AnimationStepList*, void*, const AnimationStepList*);
+    static AnimationStepList* __fastcall Run(AnimationStepList* self, void*, const AnimationStepList* source) {
+        static const char* name = Name("copy constructor", Address);
+        AnimationStepList twin{};
+        AnimationStepList* expected = original(&twin, nullptr, source);
+        AnimationStepList* result = AnimationStepListAbi::CopyConstruct(self, nullptr, source);
+        Check(name, true, SameList(twin, *self) && expected == &twin && result == self, "%d", self->size);
+        gamecrt::operator_delete(twin.data);
+        return result;
+    }
+};
+
+template <std::uintptr_t Address>
+struct TwinStepsCopyConstruct {
+    using Array = AnimationSteps::Array;
+    static inline Array*(__fastcall* original)(Array*, void*, const Array*);
+    static Array* __fastcall Run(Array* self, void*, const Array* source) {
+        static const char* name = Name("copy constructor", Address);
+        Array twin{};
+        Array* expected = original(&twin, nullptr, source);
+        Array* result = AnimationStepListAbi::CopyConstructSteps(self, nullptr, source);
+        Check(name, true, Same(twin, *self) && expected == &twin && result == self, "%d", self->size);
+        gamecrt::operator_delete(twin.data);
+        return result;
+    }
+};
+
+template <std::uintptr_t Address>
+struct TwinListAssign {
+    static inline AnimationStepList*(__fastcall* original)(AnimationStepList*, void*, const AnimationStepList*);
+    static AnimationStepList* __fastcall Run(AnimationStepList* self, void*, const AnimationStepList* source) {
+        static const char* name = Name("assignment", Address);
+        AnimationStepList twin = Twin(*self);
+        AnimationStepList* expected = original(&twin, nullptr, source == self ? &twin : source);
+        AnimationStepList* result = AnimationStepListAbi::Assign(self, nullptr, source);
+        Check(name, true, SameList(twin, *self) && expected == &twin && result == self, "%d", self->size);
+        gamecrt::operator_delete(twin.data);
+        return result;
+    }
+};
+
 template <std::uintptr_t Address, typename Class>
 struct TwinConstruct {
     using Array = mfc::CArray<Bytes<1>>;
@@ -309,3 +416,103 @@ using A004534F0 = TwinConstructElements<0x004534F0, BoneLinkArrays>;
 EI_VERIFY(0x004534F0, A004534F0::Run, 6, A004534F0::original);
 using A0045E180 = TwinConstructElements<0x0045E180, Patrols>;
 EI_VERIFY(0x0045E180, A0045E180::Run, 5, A0045E180::original);
+
+// Batch 2: the instantiations built by an out-of-line ConstructElements, Copy, GetAt, the animation lists.
+using A0046E970 = TwinSetSize<0x0046E970, Plain20>;
+EI_VERIFY(0x0046E970, A0046E970::Run, 5, A0046E970::original);
+using A0046EAD0 = TwinSetSize<0x0046EAD0, Plain12>;
+EI_VERIFY(0x0046EAD0, A0046EAD0::Run, 5, A0046EAD0::original);
+using A004C4CE0 = TwinSetSize<0x004C4CE0, Plain12>;
+EI_VERIFY(0x004C4CE0, A004C4CE0::Run, 5, A004C4CE0::original);
+using A005C86B0 = TwinSetSize<0x005C86B0, Plain12>;
+EI_VERIFY(0x005C86B0, A005C86B0::Run, 5, A005C86B0::original);
+using A004C59C0 = TwinSetSize<0x004C59C0, Plain8>;
+EI_VERIFY(0x004C59C0, A004C59C0::Run, 5, A004C59C0::original);
+using A0052C8E0 = TwinSetSize<0x0052C8E0, Plain8>;
+EI_VERIFY(0x0052C8E0, A0052C8E0::Run, 5, A0052C8E0::original);
+using A005B16D0 = TwinSetSize<0x005B16D0, Plain8>;
+EI_VERIFY(0x005B16D0, A005B16D0::Run, 5, A005B16D0::original);
+using A005BEC40 = TwinSetSize<0x005BEC40, Plain8>;
+EI_VERIFY(0x005BEC40, A005BEC40::Run, 5, A005BEC40::original);
+using A005C8560 = TwinSetSize<0x005C8560, Plain28>;
+EI_VERIFY(0x005C8560, A005C8560::Run, 5, A005C8560::original);
+using A0064EFD0 = TwinSetSize<0x0064EFD0, Plain28>;
+EI_VERIFY(0x0064EFD0, A0064EFD0::Run, 5, A0064EFD0::original);
+using A00450F20 = TwinSetSize<0x00450F20, KeyFrames>;
+EI_VERIFY(0x00450F20, A00450F20::Run, 5, A00450F20::original);
+using A0059C3D0 = TwinSetSize<0x0059C3D0, Placements>;
+EI_VERIFY(0x0059C3D0, A0059C3D0::Run, 5, A0059C3D0::original);
+using A00539580 = TwinSetSize<0x00539580, PathRecords>;
+EI_VERIFY(0x00539580, A00539580::Run, 5, A00539580::original);
+using A00512330 = TwinSetSize<0x00512330, SoundRecords>;
+EI_VERIFY(0x00512330, A00512330::Run, 5, A00512330::original);
+using A00557B80 = TwinSetSize<0x00557B80, AnimationSteps>;
+EI_VERIFY(0x00557B80, A00557B80::Run, 5, A00557B80::original);
+using A005C87F0 = TwinSetAtGrow<0x005C87F0, Plain12>;
+EI_VERIFY(0x005C87F0, A005C87F0::Run, 6, A005C87F0::original);
+using A0052CC50 = TwinSetAtGrow<0x0052CC50, Plain12>;
+EI_VERIFY(0x0052CC50, A0052CC50::Run, 6, A0052CC50::original);
+using A0064F160 = TwinSetAtGrow<0x0064F160, Plain28>;
+EI_VERIFY(0x0064F160, A0064F160::Run, 6, A0064F160::original);
+using A0059C510 = TwinSetAtGrow<0x0059C510, Placements>;
+EI_VERIFY(0x0059C510, A0059C510::Run, 6, A0059C510::original);
+using A00558950 = TwinSetAtGrow<0x00558950, AnimationSteps>;
+EI_VERIFY(0x00558950, A00558950::Run, 6, A00558950::original);
+using A005C8950 = TwinSetAtGrowByValue<0x005C8950, Floats>;
+EI_VERIFY(0x005C8950, A005C8950::Run, 6, A005C8950::original);
+using A005BDD70 = TwinAdd<0x005BDD70, Plain8>;
+EI_VERIFY(0x005BDD70, A005BDD70::Run, 6, A005BDD70::original);
+using A005C8400 = TwinAdd<0x005C8400, Plain12>;
+EI_VERIFY(0x005C8400, A005C8400::Run, 6, A005C8400::original);
+using A00557CC0 = TwinAdd<0x00557CC0, AnimationSteps>;
+EI_VERIFY(0x00557CC0, A00557CC0::Run, 6, A00557CC0::original);
+using A004C1A80 = TwinCopy<0x004C1A80, Floats>;
+EI_VERIFY(0x004C1A80, A004C1A80::Run, 5, A004C1A80::original);
+using A004CC4A0 = TwinCopy<0x004CC4A0, Plain8>;
+EI_VERIFY(0x004CC4A0, A004CC4A0::Run, 5, A004CC4A0::original);
+using A004CE2F0 = TwinCopy<0x004CE2F0, Plain20>;
+EI_VERIFY(0x004CE2F0, A004CE2F0::Run, 7, A004CE2F0::original);
+using A00556950 = TwinCopy<0x00556950, AnimationSteps>;
+EI_VERIFY(0x00556950, A00556950::Run, 5, A00556950::original);
+using A00558920 = TwinGetAt<0x00558920, Plain12>;
+EI_VERIFY(0x00558920, A00558920::Run, 7, A00558920::original);
+using A0046EFA0 = TwinGetAt<0x0046EFA0, Plain20>;
+EI_VERIFY(0x0046EFA0, A0046EFA0::Run, 7, A0046EFA0::original);
+using A00450750 = TwinElementAt<0x00450750, Plain9C>;
+EI_VERIFY(0x00450750, A00450750::Run, 7, A00450750::original);
+using A00557E20 = TwinRemoveAt<0x00557E20, AnimationSteps>;
+EI_VERIFY(0x00557E20, A00557E20::Run, 5, A00557E20::original);
+using A0054B260 = TwinListCopyConstruct<0x0054B260>;
+EI_VERIFY(0x0054B260, A0054B260::Run, 7, A0054B260::original);
+using A00556870 = TwinStepsCopyConstruct<0x00556870>;
+EI_VERIFY(0x00556870, A00556870::Run, 7, A00556870::original);
+using A005483C0 = TwinListAssign<0x005483C0>;
+EI_VERIFY(0x005483C0, A005483C0::Run, 5, A005483C0::original);
+using A0046F110 = TwinConstructElements<0x0046F110, Plain8>;
+EI_VERIFY(0x0046F110, A0046F110::Run, 5, A0046F110::original);
+using A004CD4A0 = TwinConstructElements<0x004CD4A0, Plain8>;
+EI_VERIFY(0x004CD4A0, A004CD4A0::Run, 5, A004CD4A0::original);
+using A00539980 = TwinConstructElements<0x00539980, Plain8>;
+EI_VERIFY(0x00539980, A00539980::Run, 5, A00539980::original);
+using A00558DB0 = TwinConstructElements<0x00558DB0, Plain8>;
+EI_VERIFY(0x00558DB0, A00558DB0::Run, 5, A00558DB0::original);
+using A0059E290 = TwinConstructElements<0x0059E290, Plain8>;
+EI_VERIFY(0x0059E290, A0059E290::Run, 5, A0059E290::original);
+using A0046F0E0 = TwinConstructElements<0x0046F0E0, Plain12>;
+EI_VERIFY(0x0046F0E0, A0046F0E0::Run, 5, A0046F0E0::original);
+using A004CCA50 = TwinConstructElements<0x004CCA50, Plain12>;
+EI_VERIFY(0x004CCA50, A004CCA50::Run, 5, A004CCA50::original);
+using A005338D0 = TwinConstructElements<0x005338D0, Plain12>;
+EI_VERIFY(0x005338D0, A005338D0::Run, 5, A005338D0::original);
+using A004CE5C0 = TwinConstructElements<0x004CE5C0, Plain20>;
+EI_VERIFY(0x004CE5C0, A004CE5C0::Run, 5, A004CE5C0::original);
+using A005338A0 = TwinConstructElements<0x005338A0, Plain28>;
+EI_VERIFY(0x005338A0, A005338A0::Run, 5, A005338A0::original);
+using A004CEE20 = TwinConstructElements<0x004CEE20, Placements>;
+EI_VERIFY(0x004CEE20, A004CEE20::Run, 5, A004CEE20::original);
+using A00539910 = TwinConstructElements<0x00539910, PathRecords>;
+EI_VERIFY(0x00539910, A00539910::Run, 6, A00539910::original);
+using A00512520 = TwinConstructElements<0x00512520, SoundRecords>;
+EI_VERIFY(0x00512520, A00512520::Run, 6, A00512520::original);
+using A00558AB0 = TwinConstructElements<0x00558AB0, AnimationSteps>;
+EI_VERIFY(0x00558AB0, A00558AB0::Run, 6, A00558AB0::original);

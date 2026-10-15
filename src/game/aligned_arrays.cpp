@@ -23,6 +23,7 @@ using Words = lib::AlignedArray<std::uint16_t>;
 using Dwords = lib::AlignedArray<std::uint32_t>;
 using Qwords = lib::AlignedArray<Blob<8>>;
 using Vectors = lib::AlignedArray<Blob<12>>;
+using Blocks16 = lib::AlignedArray<Blob<16>>;
 using Matrices = lib::AlignedArray<Blob<64>>;
 
 // ---- SetSize(n, growBy) ------------------------------------------------------------------------
@@ -40,6 +41,9 @@ EI_REPLACE_METHOD(0x00453100, Qwords::SetSize);
 EI_REPLACE_METHOD(0x0044F1D0, Vectors::SetSize);
 EI_REPLACE_METHOD(0x00475F40, Vectors::SetSize);   // the scene loader's instantiation
 EI_REPLACE_METHOD(0x0044F960, Matrices::SetSize);
+// Copies found among the CArray instantiations (S6): the AI map's pointer lists, the lightning points.
+EI_REPLACE_METHOD(0x0059CB50, Dwords::SetSize);
+EI_REPLACE_METHOD(0x00468C50, Blocks16::SetSize);
 
 // ---- Add(value) (the new element's index) ------------------------------------------------------
 EI_REPLACE_METHOD(0x0044FBB0, Qwords::Add);
@@ -53,6 +57,7 @@ void __fastcall DwordArraySetAtGrowRef(Dwords* a, void*, int index, const std::u
 EI_REPLACE(0x00452C40, DwordArraySetAtGrowRef);
 EI_REPLACE_METHOD(0x004538D0, Dwords::SetAtGrow);
 EI_REPLACE_METHOD(0x0051EE50, Dwords::SetAtGrow);   // byte-identical copy (A-U11)
+EI_REPLACE_METHOD(0x0059CCE0, Dwords::SetAtGrow);   // byte-identical copy (S6)
 EI_REPLACE_METHOD(0x00452AF0, Vectors::SetAtGrow);
 EI_REPLACE_METHOD(0x00476DD0, Qwords::SetAtGrow);
 
@@ -84,6 +89,8 @@ Blob<40>* __fastcall AllocateBlocks40(int count) { return lib::AlignedArray<Blob
 EI_REPLACE(0x00452D80, AllocateBlocks40);
 Blob<64>* __fastcall AllocateMatrices(int count) { return Matrices::Allocate(count); }
 EI_REPLACE(0x00452E70, AllocateMatrices);
+Blob<16>* __fastcall AllocateBlocks16(int count) { return Blocks16::Allocate(count); }
+EI_REPLACE(0x00468F70, AllocateBlocks16);   // the lightning points (S6)
 
 // ---- Destructors: the block freed (the pointer is left as it was) -------------------------------
 namespace {

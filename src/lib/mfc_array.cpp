@@ -111,4 +111,72 @@ EI_REPLACE(0x004607E0, MapRecords::ConstructElements);
 EI_REPLACE(0x004534F0, BoneLinkArrays::ConstructElements);
 EI_REPLACE(0x0045E180, Patrols::ConstructElements);
 
+// ---- Instantiations built by an out-of-line ConstructElements ------------------------------------
+//
+// The helper is the element policy's Construct (inlined in ours); the helpers are registered too.
+
+// SetSize.
+EI_REPLACE(0x0046E970, Plain20::SetSize);
+EI_REPLACE(0x0046EAD0, Plain12::SetSize);
+EI_REPLACE(0x004C4CE0, Plain12::SetSize);
+EI_REPLACE(0x005C86B0, Plain12::SetSize);
+EI_REPLACE(0x004C59C0, Plain8::SetSize);
+EI_REPLACE(0x0052C8E0, Plain8::SetSize);
+EI_REPLACE(0x005B16D0, Plain8::SetSize);
+EI_REPLACE(0x005BEC40, Plain8::SetSize);
+EI_REPLACE(0x005C8560, Plain28::SetSize);
+EI_REPLACE(0x0064EFD0, Plain28::SetSize);   // the zero fill inlined
+EI_REPLACE(0x00450F20, KeyFrames::SetSize);
+EI_REPLACE(0x0059C3D0, Placements::SetSize);
+EI_REPLACE(0x00539580, PathRecords::SetSize);
+EI_REPLACE(0x00512330, SoundRecords::SetSize);
+EI_REPLACE(0x00557B80, AnimationSteps::SetSize);
+
+// SetAtGrow (SetSize inlined): by reference; the step speeds' floats by value.
+EI_REPLACE(0x005C87F0, Plain12::SetAtGrow);
+EI_REPLACE(0x0052CC50, Plain12::SetAtGrow);
+EI_REPLACE(0x0064F160, Plain28::SetAtGrow);
+EI_REPLACE(0x0059C510, Placements::SetAtGrow);
+EI_REPLACE(0x00558950, AnimationSteps::SetAtGrow);
+EI_REPLACE(0x005C8950, Floats::SetAtGrowByValue);
+
+// Add (SetSize inlined).
+EI_REPLACE(0x005BDD70, Plain8::Add);
+EI_REPLACE(0x005C8400, Plain12::Add);
+EI_REPLACE(0x00557CC0, AnimationSteps::Add);
+
+// Copy (SetSize inlined, then each element assigned).
+EI_REPLACE(0x004C1A80, Floats::Copy);
+EI_REPLACE(0x004CC4A0, Plain8::Copy);
+EI_REPLACE(0x004CE2F0, Plain20::Copy);
+EI_REPLACE(0x00556950, AnimationSteps::Copy);
+
+// GetAt (by value), ElementAt, RemoveAt.
+EI_REPLACE(0x00558920, Plain12::GetAt);
+EI_REPLACE(0x0046EFA0, Plain20::GetAt);
+EI_REPLACE(0x00450750, Plain9C::ElementAt);
+EI_REPLACE(0x00557E20, AnimationSteps::RemoveAt);
+
+// The animation lists' copy constructors and assignment.
+EI_REPLACE(0x0054B260, AnimationStepListAbi::CopyConstruct);
+EI_REPLACE(0x00556870, AnimationStepListAbi::CopyConstructSteps);
+EI_REPLACE(0x005483C0, AnimationStepListAbi::Assign);
+
+// The ConstructElements helpers: the zero fill (some write zero fields again)...
+EI_REPLACE(0x0046F110, Plain8::ConstructElements);
+EI_REPLACE(0x004CD4A0, Plain8::ConstructElements);
+EI_REPLACE(0x00539980, Plain8::ConstructElements);
+EI_REPLACE(0x00558DB0, Plain8::ConstructElements);
+EI_REPLACE(0x0059E290, Plain8::ConstructElements);
+EI_REPLACE(0x0046F0E0, Plain12::ConstructElements);
+EI_REPLACE(0x004CCA50, Plain12::ConstructElements);
+EI_REPLACE(0x005338D0, Plain12::ConstructElements);
+EI_REPLACE(0x004CE5C0, Plain20::ConstructElements);
+EI_REPLACE(0x005338A0, Plain28::ConstructElements);
+// ... and the zero fill, then the element's constructor.
+EI_REPLACE(0x004CEE20, Placements::ConstructElements);
+EI_REPLACE(0x00539910, PathRecords::ConstructElements);
+EI_REPLACE(0x00512520, SoundRecords::ConstructElements);
+EI_REPLACE(0x00558AB0, AnimationSteps::ConstructElements);
+
 } // namespace mfc::impl
