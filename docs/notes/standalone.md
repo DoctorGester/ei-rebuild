@@ -212,6 +212,24 @@ and random digit strings): 0 mismatches. Full suite (128 runs): 0 mismatches, on
 zone_gz15h_tornado rebirth timeout; fprintf / printf are not reached (debug output). Follow-up: S4a1
 (a function-vector family for the conversions).
 
+**S4a1 (2026-10-15): function vectors for the conversions.** In the "crt" family (tests/vectors/
+crt_format_vectors.h, record_crt_format.cpp, replay_crt_format.cpp): the fixture "@CrtFormatLocale" (the
+decimal point 00797FE8 and _pctype's class words for 0..255, taken at the first call after the game set
+LC_CTYPE; a call under another locale is not recorded), "vsprintf" (sprintf's calls too: both run the
+original _output 006F17D4 on an unbounded string FILE, no trampolines) and "atof" (trampoline, 6 bytes).
+The recorder walks the format as _output does (its __lookuptable read from 007476D0) and stores the
+arguments read, in order (int, __int64, the double's bits, a %s text up to the precision, null); the
+replay lays them out as an x86 va_list. Not recorded: %n, %Z, wide text, outputs over 4 KB, and calls
+whose output overlaps the format or a text argument. crt_format.cpp now reads the locale through
+GameData and links into ei_vectors (its tolower for _forcdecpt answers from "@GameCrtCtype"; hook_stub's
+Standalone() is true there, so WideToBytes leaves the game CRT's errno alone). In record mode the
+start-up battery's atof part is skipped (the recorder holds 006E911A, the verify wrapper has no
+trampoline). Recorded from ui_hero_stats, ui_hud, items, ui_trade_hold, ui_camp, combat, spells_cast and
+ui_main_menu (vanilla): vsprintf 258 records (846 distinct of 1,705 kept per run; 58 with a float: %g,
+%.6g, %.1f, %*.*f, %f), atof 200 (220 distinct, all plain decimals: the game data has no exponents),
+19 KB in all; every record replays the same. Corrupted copies (one byte of a %.6g output, one bit of an
+atof result, the decimal point) fail.
+
 **S4b (2026-10-15).** Image only (`EI_REPLACE_STANDALONE`; the hook build keeps the exe's FILE table,
 descriptors and heap, which MFC's CStdioFile shares). Heap (crt.cpp): realloc 006ED69A, calloc 006F0317
 (count * size unchecked, as VC6), _msize 006EEC7B, _strdup 006EEC50 on the host heap, retried through the

@@ -82,6 +82,7 @@ add_executable(ei_vectors
     src/game/unit_stats.cpp
     src/lib/rebirth.cpp
     src/lib/crt.cpp
+    src/lib/crt_format.cpp
     src/lib/mfc.cpp)
 target_include_directories(ei_vectors PRIVATE include src)
 # EI_VECTORS_REPLAY: the game's data at fixed addresses comes from the checks' stand-in (src/game/game_data.h).
