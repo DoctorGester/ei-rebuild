@@ -550,6 +550,7 @@ public:
     CLinkFigureLoader* Construct(CTextureDevice* renderer, const stlp::string* folder);
     // 0: 004F6A30 (RET 4, returns this; A-S8). Destruct; freed when flags bit 0 is set.
     virtual void* DeleteThis(unsigned flags);
+    void* DeleteThisImpl(unsigned flags);   // body of the slot above (registered by member pointer)
     virtual int CacheSize();                    // 1: 004F6A20 (cache_'s count)
     virtual int CacheBytes();                   // 2: 004FAAA0 (each cached mesh's MemoryBytes summed; A-S8)
     // 3: 004F7150 (RET 0x18). Figure `name` with the parts `parts`: unless `fresh`, the first cached
@@ -557,13 +558,17 @@ public:
     // (MakeFigure). No reference is added for the caller.
     virtual CLinkMesh* LoadFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t,
                                   float u, bool fresh);
+    CLinkMesh* LoadFigureImpl(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t,
+                                  float u, bool fresh);   // body of the slot above (registered by member pointer)
     // 4: 004F7080 (RET 0x14). The same for a .lnk figure: a cached one, or LoadLinkFile.
     virtual CLinkMesh* LoadLink(const stlp::string* name, float s, float t, float u, bool fresh);
+    CLinkMesh* LoadLinkImpl(const stlp::string* name, float s, float t, float u, bool fresh);   // body of the slot above (registered by member pointer)
     virtual void ClearCache();                  // 5: 004F7020
     // 6: 004F75E0 (RET 0x10). `mesh` with new coefficients: a mesh others also hold (more than
     // two references) is looked up again through slot 4 by its name; otherwise its parts are
     // morphed in place (SetMorph, then 004F9E50 per part). Null stays null.
     virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
+    CLinkMesh* RemorphImpl(CLinkMesh* mesh, float s, float t, float u);   // body of the slot above (registered by member pointer)
 
     // 004F6D30. Opens `path` as a memory-mapped archive and appends it to the list, unless an
     // archive of that exact name is already open. Returns 1 on success or when already open.

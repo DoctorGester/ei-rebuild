@@ -260,3 +260,34 @@ differ in the registration thunks and the removed `xor edx, edx` at the callers,
   CFigureMesh Rasterise; the aimode:: shims (namespace-level helpers); the deleting destructors with imprecise self types
   (CUiWindow, CBaseManager / EffectManager, CObject3DSpecific server / WoundsMaterial / CCloudNoise).
 - Left: 1,131. The files S16a / S12f edit (lib/stlp_*, stl_sorts, library_*, world_sync) were not touched.
+
+## C11 batch 5: virtual-slot shims to `<Slot>Impl` members (2026-10-15)
+
+127 more shims became members (tools/progress.py: 1,132 before, 1,005 after). Spelling only: no signature, argument
+order or float grouping changed; the release objects differ in the registration thunks and the removed hook shim, as before.
+The pool this batch: the `*Hook` shims of virtual slots (`self->Class::Slot(args)`), where the virtual member already holds the
+body and the shim exists only because a pointer to a virtual member is a vtable thunk (rule 4).
+- Method: the body is renamed to a distinct non-virtual member `<Slot>Impl` (declared next to the virtual in the header,
+  "body of the slot above"), the shim is deleted and the address is registered with `EI_REPLACE_METHOD(addr, Class::SlotImpl)`.
+  The virtual declaration stays (the game's vtable dispatches to the hooked address; the C++ virtual is never defined now).
+  Qualified base calls (`CItem::Load(stream)` in the subclasses' Load) and the verify wrappers call `...Impl`; a call on a
+  value object (`file.stream.Write(...)` in world_map_files.cpp) is a static call and had to be renamed too (the linker finds
+  every such miss). check_thunks passes: the registered names are not virtual.
+- Converted (127): items: CItem and subclasses Load / Save (12), IsSameAs (6), InitFromRecord (6), CopyTo (7), GetUse (1),
+  the 16 name slots (ModelName / FirstListName / FigureName / PictureName; the shim built the string in the caller's result
+  with placement new, the member now returns it by value, which is the same hidden-pointer ABI); GroundPrint / Footprint /
+  BloodPrint Tick / Load / Save (8); CLinkMesh slots (14) and CLinkFigureLoader (4); net: SessionBase (10), ClientBase /
+  ServerBase (11), FileStream Read / Write, NetLink / LoopbackLink / ReplayLink / FramedLink Send / Receive (9); CMappedResource
+  and CMMIOResource (8); CResourceManager (5); CBaseManager Load / Save / Init / archive and file slots / CreateObject /
+  ReleaseObject (10).
+- Skipped, with the reason: shims whose call passes `*name` for a pointer parameter (CTransformObject CopyTransform /
+  CombineRotation / UpdateWorld, CEngineObject::CopyFrom, Terrain::CombineRotation: the member takes a reference, the shim a
+  pointer); CMemoryStream::Write (the shim returns `position_`, the slot is void); void* / uint8_t* selfs and the
+  `WindowFromInput` shims of ui_window_delete.cpp / ui_control_delete.cpp (the self is the input base subobject, not the
+  window); the deleting destructors with imprecise self types (CUiWindow, CBaseManager / EffectManager, CObject3DSpecific
+  server / WoundsMaterial / CCloudNoise: no precise class to hold the member yet); LightningManagerInit / VisFogManagerInit /
+  SessionTakeNew (the argument differs from the parameter); the call-through blocks (`XxxOriginal(a0, nullptr, a2)`).
+- Verify wrappers: tests that called `Class::Slot` qualified call `Class::SlotImpl` (verify_item_*, verify_party_items,
+  verify_ground_print, verify_link_*, verify_net_*, verify_resource*, verify_base_manager).
+- Left: 1,005. What remains is mostly the call-through blocks, `void*` selfs, pointer-to-pointer selfs, aliases of mfc / stlp
+  templates and the files S16a / S12g own.

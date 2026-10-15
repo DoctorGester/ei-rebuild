@@ -67,7 +67,7 @@ static CLinkMesh* __fastcall LoadFigureVerify(CLinkFigureLoader* self, void*, co
                                               const stlp::vector<stlp::string>* parts, float s, float t, float u,
                                               bool fresh) {
     const std::size_t before = self->cache_.size();
-    CLinkMesh* mesh = self->CLinkFigureLoader::LoadFigure(name, parts, s, t, u, fresh);
+    CLinkMesh* mesh = self->CLinkFigureLoader::LoadFigureImpl(name, parts, s, t, u, fresh);
     const std::size_t added = self->cache_.size() - before;
     const bool ok = SameName(mesh, name) && Cached(self, name, mesh) && added <= 1 && (!fresh || added == 1);
     ei::verify::Check("CLinkFigureLoader::LoadFigure", true, ok, "%s", name->data());
@@ -80,7 +80,7 @@ static CLinkMesh* (__fastcall* s_loadLink)(CLinkFigureLoader*, void*, const stlp
 static CLinkMesh* __fastcall LoadLinkVerify(CLinkFigureLoader* self, void*, const stlp::string* name, float s, float t,
                                             float u, bool fresh) {
     const std::size_t before = self->cache_.size();
-    CLinkMesh* mesh = self->CLinkFigureLoader::LoadLink(name, s, t, u, fresh);
+    CLinkMesh* mesh = self->CLinkFigureLoader::LoadLinkImpl(name, s, t, u, fresh);
     const std::size_t added = self->cache_.size() - before;
     const bool ok = SameName(mesh, name) && Cached(self, name, mesh) && added <= 1 && (!fresh || added == 1);
     ei::verify::Check("CLinkFigureLoader::LoadLink", true, ok, "%s", name->data());
@@ -95,7 +95,7 @@ static CLinkMesh* __fastcall RemorphVerify(CLinkFigureLoader* self, void*, CLink
     const bool shared = mesh && mesh->refCount_ > 2;
     stlp::string name;
     if (mesh) mesh->CopyName(&name);
-    CLinkMesh* result = self->CLinkFigureLoader::Remorph(mesh, s, t, u);
+    CLinkMesh* result = self->CLinkFigureLoader::RemorphImpl(mesh, s, t, u);
     bool ok;
     if (!mesh)
         ok = result == nullptr;
@@ -201,7 +201,7 @@ EI_VERIFY(0x004F6BD0, LoaderDestructVerify, 0, s_loaderDestruct);
 
 static void* (__fastcall* s_loaderDeleteThis)(CLinkFigureLoader*, void*, unsigned);
 static void* __fastcall LoaderDeleteThisVerify(CLinkFigureLoader* self, void*, unsigned flags) {
-    void* result = self->CLinkFigureLoader::DeleteThis(flags);
+    void* result = self->CLinkFigureLoader::DeleteThisImpl(flags);
     ei::verify::Check("CLinkFigureLoader::DeleteThis", static_cast<void*>(self), result, "%p");
     return result;
 }

@@ -256,16 +256,16 @@ EI_REPLACE_METHOD(0x00441740, ClientBase::SendJoin);
 // ---- Client: packets (slots 3, 7, 8, 9) and the connection's loss (slot 2) ---------------------
 
 // 004418F0 (slot 3): updates count only once joined.
-bool ClientBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
+bool ClientBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
     if (joinState_ != kJoined) {
         LogLine(0x0078405C);   // "Normal update when not in game"
         return false;
     }
-    return SessionBase::OnUpdate(from, cursor);
+    return SessionBase::OnUpdateImpl(from, cursor);
 }
 
 // 00441940 (slot 8, packet 6): the host accepted the join.
-void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
+void ClientBase::OnAcceptedImpl(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t id;
     std::memcpy(&id, cursor->p, 4);
     cursor->p += 4;
@@ -289,7 +289,7 @@ void ClientBase::OnAccepted(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // 00441B40 (slot 9, packet 7): the host refused the join (a reason byte follows the id).
-void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
+void ClientBase::OnRejectedImpl(const NetAddress* from, BufferCursor* cursor) {
     std::uint8_t* p = cursor->p;
     std::uint32_t id;
     std::memcpy(&id, p, 4);
@@ -317,7 +317,7 @@ void ClientBase::OnRejected(const NetAddress* from, BufferCursor* cursor) {
 // ping (now - the echoed time) and when to look again: local servers and those asked directly
 // soon, others from the list never; unknown servers neither local nor asked are ignored. A known
 // server's entry is replaced (and its reply kept in its query, if asked); a new one is appended.
-void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
+void ClientBase::OnInfoImpl(const NetAddress* from, BufferCursor* cursor) {
     RefPtr entry{nullptr};
     std::uint32_t echo, magic;
     cursor->ReadBytes(&echo, 4);
@@ -384,35 +384,20 @@ void ClientBase::OnInfo(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // 004420E0 (slot 2): removes a connection; when none is left the connection to the host is lost.
-void ClientBase::RemoveClient(ClientNode* node) {
+void ClientBase::RemoveClientImpl(ClientNode* node) {
     if (node == clients_) return;
-    SessionBase::RemoveClient(node);
+    SessionBase::RemoveClientImpl(node);
     if (clients_->next != clients_) return;
     LogLine(0x007841C4);   // "CONNECTION LOST"
     ei::Log("net: the client lost its connection to the host");   // not the game's (N0c)
     joinState_ = kNotJoined;
 }
 
-namespace {
-bool __fastcall ClientOnUpdateHook(ClientBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    return self->ClientBase::OnUpdate(from, cursor);
-}
-void __fastcall ClientOnAcceptedHook(ClientBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->ClientBase::OnAccepted(from, cursor);
-}
-void __fastcall ClientOnRejectedHook(ClientBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->ClientBase::OnRejected(from, cursor);
-}
-void __fastcall ClientOnInfoHook(ClientBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->ClientBase::OnInfo(from, cursor);
-}
-void __fastcall ClientRemoveClientHook(ClientBase* self, void*, ClientNode* node) { self->ClientBase::RemoveClient(node); }
-} // namespace
-EI_REPLACE(0x004418F0, ClientOnUpdateHook);
-EI_REPLACE(0x00441940, ClientOnAcceptedHook);
-EI_REPLACE(0x00441B40, ClientOnRejectedHook);
-EI_REPLACE(0x00441D40, ClientOnInfoHook);
-EI_REPLACE(0x004420E0, ClientRemoveClientHook);
+EI_REPLACE_METHOD(0x004418F0, ClientBase::OnUpdateImpl);
+EI_REPLACE_METHOD(0x00441940, ClientBase::OnAcceptedImpl);
+EI_REPLACE_METHOD(0x00441B40, ClientBase::OnRejectedImpl);
+EI_REPLACE_METHOD(0x00441D40, ClientBase::OnInfoImpl);
+EI_REPLACE_METHOD(0x004420E0, ClientBase::RemoveClientImpl);
 
 // ---- Client: the lobby's requests ---------------------------------------------------------------
 
@@ -612,7 +597,7 @@ EI_REPLACE_METHOD(0x00442A40, ClientBase::ServerAt);
 // 00442AD0 (slot 14): counts the servers' timeouts down; a server whose time ran out is dropped
 // unless asked directly (then its ping is reset). Then the session's receive step, and while
 // joining the request is repeated with a doubling interval until it passes the limit (0073BAA4).
-void ClientBase::Tick(double dt) {
+void ClientBase::TickImpl(double dt) {
     Node* node = Sentinel(servers_)->next;
     while (node != Sentinel(servers_)) {
         ServerEntry* e = EntryOf(node);
@@ -646,10 +631,7 @@ void ClientBase::Tick(double dt) {
     retryInterval_ = retryInterval_ + retryInterval_;
     retryTimer_ = retryInterval_;
 }
-namespace {
-void __fastcall ClientBaseTickHook(ClientBase* self, void*, double dt) { self->ClientBase::Tick(dt); }
-} // namespace
-EI_REPLACE(0x00442AD0, ClientBaseTickHook);
+EI_REPLACE_METHOD(0x00442AD0, ClientBase::TickImpl);
 
 // ---- Server base ------------------------------------------------------------------------------------
 
@@ -692,7 +674,7 @@ void ServerBase::SendInfo(const NetAddress* address, std::uint32_t echo) {
 EI_REPLACE_METHOD(0x00442C60, ServerBase::SendInfo);
 
 // 00443060 (slot 4, packet 3): a ping; the time it carries is echoed.
-void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
+void ServerBase::OnGetInfoImpl(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t echo;
     std::memcpy(&echo, cursor->p, 4);
     cursor->p += 4;
@@ -700,12 +682,12 @@ void ServerBase::OnGetInfo(const NetAddress* from, BufferCursor* cursor) {
 }
 
 // 00443050 (slot 16): admits everybody.
-bool ServerBase::Admit(std::uint32_t, const std::uint8_t**, std::uint8_t*) { return true; }
+bool ServerBase::AdmitImpl(std::uint32_t, const std::uint8_t**, std::uint8_t*) { return true; }
 
 // 004434F0 (slot 3): an update from a peer that is not connected yet but was told to join
 // becomes a connection (with the id and rate of its join), then counts.
-bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
-    if (SessionBase::OnUpdate(from, cursor)) return true;
+bool ServerBase::OnUpdateImpl(const NetAddress* from, BufferCursor* cursor) {
+    if (SessionBase::OnUpdateImpl(from, cursor)) return true;
     Node* sentinel = Sentinel(joins_);
     Node* node = sentinel->next;
     while (node != sentinel && !SameAddress(&ValueOf<PendingJoin>(node).address, from)) node = node->next;
@@ -714,12 +696,12 @@ bool ServerBase::OnUpdate(const NetAddress* from, BufferCursor* cursor) {
     AddClient(&join.address, join.id, join.rate);
     Node* out;
     JoinsErase(&joins_, nullptr, &out, node);
-    return SessionBase::OnUpdate(from, cursor);
+    return SessionBase::OnUpdateImpl(from, cursor);
 }
 
 // 00443590 (slot 14): ages the pending joins (dropping those older than 0073BF9C, logged), then
 // the session's receive step.
-void ServerBase::Tick(double dt) {
+void ServerBase::TickImpl(double dt) {
     Node* node = Sentinel(joins_)->next;
     while (node != Sentinel(joins_)) {
         float& age = ValueOf<PendingJoin>(node).age;
@@ -760,7 +742,7 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 // whatever the stack held, so the time the join may wait for its first update (ServerBase::Tick)
 // is not defined. Rebirth's FixProcessLogin (a jump at 004433D6) clears it; so does this body,
 // which is installed in the vanilla launch only.
-void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
+void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t magic;
     cursor->ReadBytes(&magic, 4);
     if (magic != magic_) return;
@@ -817,26 +799,11 @@ void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
     GrowingBufferDestruct(&b);
 }
 
-namespace {
-void __fastcall ServerOnLoginHook(ServerBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->ServerBase::OnLogin(from, cursor);
-}
-void __fastcall ServerOnGetInfoHook(ServerBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    self->ServerBase::OnGetInfo(from, cursor);
-}
-bool __fastcall ServerAdmitAllHook(ServerBase* self, void*, std::uint32_t address, const std::uint8_t** password, std::uint8_t* reason) {
-    return self->ServerBase::Admit(address, password, reason);
-}
-bool __fastcall ServerOnUpdateHook(ServerBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
-    return self->ServerBase::OnUpdate(from, cursor);
-}
-void __fastcall ServerBaseTickHook(ServerBase* self, void*, double dt) { self->ServerBase::Tick(dt); }
-} // namespace
-EI_REPLACE(0x00443080, ServerOnLoginHook);
-EI_REPLACE(0x00443060, ServerOnGetInfoHook);
-EI_REPLACE(0x00443050, ServerAdmitAllHook);
-EI_REPLACE(0x004434F0, ServerOnUpdateHook);
-EI_REPLACE(0x00443590, ServerBaseTickHook);
+EI_REPLACE_METHOD(0x00443080, ServerBase::OnLoginImpl);
+EI_REPLACE_METHOD(0x00443060, ServerBase::OnGetInfoImpl);
+EI_REPLACE_METHOD(0x00443050, ServerBase::AdmitImpl);
+EI_REPLACE_METHOD(0x004434F0, ServerBase::OnUpdateImpl);
+EI_REPLACE_METHOD(0x00443590, ServerBase::TickImpl);
 
 // ---- Saving the queries -----------------------------------------------------------------------
 

@@ -172,9 +172,6 @@ float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::
     return out;
 }
 
-namespace {
-
-} // namespace
 
 __declspec(naked) void ScreenHits::InsertOverflow(ScreenEntry*, const ScreenEntry*, int) EI_ORIGINAL(0x00573350)
 
@@ -1342,7 +1339,7 @@ int CWorldClient::Setup() {
     manager44_ = MakeCounted<CBaseManager>(0xB0, Construct42D690);
     static_cast<CBaseManager*>(manager44_)->Init(this);
     textureManager_ = MakeCounted<CTextureManager>(0xF0, Construct691140);
-    textureManager_->CBaseManager::Init(this);   // 004031B0 called directly
+    textureManager_->CBaseManager::InitImpl(this);   // 004031B0 called directly
     manager188_ = MakeCounted<CBaseManager>(0xD0, Construct68E3F0);
     manager188_->Init(this);
     manager190_ = MakeCounted<CBaseManager>(0xD8, Construct68D850);

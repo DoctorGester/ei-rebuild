@@ -43,7 +43,7 @@ CEngineObject* CPlayerManager::NewPlayer(int type) {
 }
 
 CEngineObject* CPlayerManager::CreateSessionPlayer() {
-    auto* player = static_cast<CPlayer*>(CBaseManager::CreateObject(kPlayerType, -1));
+    auto* player = static_cast<CPlayer*>(CBaseManager::CreateObjectImpl(kPlayerType, -1));
     if (!player) return nullptr;
     CBaseManager* specific = static_cast<CWorld*>(context_)->SpecificManager();
     player->SetConnection(static_cast<CPlayerConnection*>(specific->CreateObject(kConnectionType, -1)));
