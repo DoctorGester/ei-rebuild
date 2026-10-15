@@ -6,6 +6,7 @@
 #include "verify.h"
 
 #include "../../src/game/game_slots.h"
+#include "../../src/game/record_arrays.h"
 #include "../../src/lib/mfc_slots.h"
 
 #include <cstdio>
@@ -349,6 +350,20 @@ using S006CD6F0 = ArraySerialize<0x006CD6F0, Plain4, TerrainArrayAClass>;
 using S006CD8A0 = ArraySerialize<0x006CD8A0, Plain16, TerrainArrayBClass>;
 using S006CDA40 = ArraySerialize<0x006CDA40, Plain4, TerrainArrayCClass>;
 
+// S6c: the game records' arrays (record_arrays.h). Mode 2 where a destroyed copy would free what the
+// source owns (materials, nested calls) or reach further (figure parts, meshes, definitions).
+using S0044FEF0 = ArraySerialize<0x0044FEF0, recordarrays::FigureParts, FakeUnitPartArrayClass, 2>;
+using S00450160 = ArraySerialize<0x00450160, recordarrays::SceneMeshes, FakeUnitSceneRecordArrayClass, 2>;
+using S004507E0 = ArraySerialize<0x004507E0, recordarrays::Materials, FakeUnitRecord9CArrayClass, 2>;
+using S00451640 = ArraySerialize<0x00451640, recordarrays::SceneNodes, recordarrays::SceneNodeArrayClass, 1>;
+using S00454A70 = ArraySerialize<0x00454A70, recordarrays::FaceGroups, recordarrays::FaceGroupArrayClass, 1>;
+using S004C52A0 = ArraySerialize<0x004C52A0, recordarrays::SubCalls, recordarrays::SubCallArrayClass, 2>;
+using S004C7820 = ArraySerialize<0x004C7820, recordarrays::Definitions, gameslots::DefinitionArrayClass, 2>;
+using S0050FC80 = ArraySerialize<0x0050FC80, recordarrays::DeltaFields, recordarrays::DeltaFieldArrayClass, 1>;
+using S00557960 = ArraySerialize<0x00557960, recordarrays::Behaviours, recordarrays::BehaviourArrayClass, 1>;
+using S006B5770 = ArraySerialize<0x006B5770, recordarrays::Themes, recordarrays::ThemeArrayClass, 1>;
+using S006C4790 = ArraySerialize<0x006C4790, recordarrays::SectorVertices, recordarrays::SectorVertexArrayClass, 1>;
+
 void SerializeStartupCheck() {
     S00405190::Startup();
     S00427890::Startup();
@@ -465,6 +480,18 @@ void SerializeStartupCheck() {
     S006CD6F0::Startup();
     S006CD8A0::Startup();
     S006CDA40::Startup();
+    // S6c: the game records' arrays (record_arrays.h).
+    S0044FEF0::Startup();
+    S00450160::Startup();
+    S004507E0::Startup();
+    S00451640::Startup();
+    S00454A70::Startup();
+    S004C52A0::Startup();
+    S004C7820::Startup();
+    S0050FC80::Startup();
+    S00557960::Startup();
+    S006B5770::Startup();
+    S006C4790::Startup();
 }
 
 } // namespace
@@ -586,3 +613,14 @@ EI_VERIFY(0x006C4C90, S006C4C90::Run, 5, S006C4C90::original);
 EI_VERIFY(0x006CD6F0, S006CD6F0::Run, 5, S006CD6F0::original);
 EI_VERIFY(0x006CD8A0, S006CD8A0::Run, 5, S006CD8A0::original);
 EI_VERIFY(0x006CDA40, S006CDA40::Run, 5, S006CDA40::original);
+EI_VERIFY(0x0044FEF0, S0044FEF0::Run, 5, S0044FEF0::original);
+EI_VERIFY(0x00450160, S00450160::Run, 5, S00450160::original);
+EI_VERIFY(0x004507E0, S004507E0::Run, 5, S004507E0::original);
+EI_VERIFY(0x00451640, S00451640::Run, 5, S00451640::original);
+EI_VERIFY(0x00454A70, S00454A70::Run, 5, S00454A70::original);
+EI_VERIFY(0x004C52A0, S004C52A0::Run, 5, S004C52A0::original);
+EI_VERIFY(0x004C7820, S004C7820::Run, 5, S004C7820::original);
+EI_VERIFY(0x0050FC80, S0050FC80::Run, 5, S0050FC80::original);
+EI_VERIFY(0x00557960, S00557960::Run, 5, S00557960::original);
+EI_VERIFY(0x006B5770, S006B5770::Run, 5, S006B5770::original);
+EI_VERIFY(0x006C4790, S006C4790::Run, 5, S006C4790::original);

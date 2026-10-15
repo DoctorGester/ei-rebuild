@@ -243,6 +243,19 @@ struct OursArrayDestruct {
     }
 };
 
+// A list destructor: the vtable of `Class` left, no nodes, no blocks.
+template <std::uintptr_t Address, typename Abi, typename Class>
+struct OursListDestruct {
+    using List = typename Abi::List;
+    static inline void* original;
+    static void __fastcall Run(List* self) {
+        static const char* name = Name("list destructor", Address);
+        Abi::template Destruct<Class>(self);
+        Check(name, true,
+              self->vtable == Class::Vtable() && !self->head && !self->tail && self->count == 0 && !self->blocks, "");
+    }
+};
+
 // A scalar deleting destructor: run on an object whose vtable has it in slot 1, returns the object
 // and, when it keeps the memory, leaves the destructor's vtable.
 template <std::uintptr_t Address, auto Fn, typename Class>
@@ -539,3 +552,17 @@ using G00444B70 = OursGdiDelete<0x00444B70>;
 EI_VERIFY(0x00444B70, G00444B70::Run, 0, s_unused);
 using G005FDDC0 = OursGdiDelete<0x005FDDC0>;
 EI_VERIFY(0x005FDDC0, G005FDDC0::Run, 0, s_unused);
+
+// The terrain's vertex records and the sound cache's wave list (S6c).
+using O006C4690 = OursArrayDestruct<0x006C4690, SectorVertices, SectorVertexArrayClass>;
+EI_VERIFY(0x006C4690, O006C4690::Run, 0, s_unused);
+using O006BC870 = OursListDestruct<0x006BC870, gamelists::Waves, WaveListClass>;
+EI_VERIFY(0x006BC870, O006BC870::Run, 0, s_unused);
+using X006C4E80 = OursDelete<0x006C4E80, &SectorVertices::Destruct<SectorVertexArrayClass>, SectorVertexArrayClass>;
+EI_VERIFY(0x006C4E80, X006C4E80::Run, 0, s_unused);
+using X006BD190 = OursDelete<0x006BD190, &gamelists::Waves::Destruct<WaveListClass>, WaveListClass>;
+EI_VERIFY(0x006BD190, X006BD190::Run, 0, s_unused);
+
+// The behaviours' element constructor (S6c: their Serialize builds them).
+using A00558E10 = TwinConstructElements<0x00558E10, Behaviours>;
+EI_VERIFY(0x00558E10, A00558E10::Run, 10, A00558E10::original);

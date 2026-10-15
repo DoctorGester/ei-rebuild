@@ -17,6 +17,7 @@
 #include "game/scene_loader.h"
 #include "game/script.h"
 #include "game/sound.h"
+#include "game/terrain_sector.h"
 #include "game/world.h"
 
 namespace recordarrays {
@@ -83,9 +84,11 @@ struct ThemeArrayClass {   // CArray<MusicTheme> (CMusicSystem +0x1C)
 void __fastcall DestroyWave(WaveRecord* p);
 using Waves = ArrayAbi<WaveRecord, EachElements<WaveRecord, gamelists::InitWave, gamelists::DestroyWave>>;
 
-// A unit's behaviour records (0x4C bytes): the destructor body (0046C290; 00557890 inlines it).
+// A unit's behaviour records (0x4C bytes): built by the constructor (0045D5B0; ConstructElements
+// 00558E10), destroyed by the destructor body (0046C290; 00557890 inlines it).
+inline void InitBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourConstruct(p); }
 inline void DestroyBehaviour(mapspec::Behaviour* p) { mapspec::BehaviourDestruct(p); }
-using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour, nullptr, DestroyBehaviour>>;
+using Behaviours = ArrayAbi<mapspec::Behaviour, EachElements<mapspec::Behaviour, InitBehaviour, DestroyBehaviour>>;
 struct BehaviourArrayClass {   // CArray<Behaviour> (the server unit's brain)
     static void* Vtable() { return reinterpret_cast<void*>(0x0073F034); }
 };
@@ -154,5 +157,13 @@ struct TerrainAlignedArrayClass {   // the terrain's 16-byte records, an aligned
     static void* Vtable() { return reinterpret_cast<void*>(0x007441B4); }
 };
 using TerrainAlignedRecords = mfc::impl::AlignedBlockAt<0x10, 0>;
+struct WaveListClass {   // the sound cache's CList<WaveRecord> (destructor 006BC870)
+    static void* Vtable() { return reinterpret_cast<void*>(0x00744124); }
+};
+struct SectorVertexArrayClass {   // a terrain sector's vertex records (destructor 006C4690)
+    static void* Vtable() { return reinterpret_cast<void*>(0x00744184); }
+};
+// Each record's point lights returned to the pool (SectorVertex::ReleaseLights, inlined).
+using SectorVertices = ArrayAbi<terrain::SectorVertex, terrain::RecordElements>;
 
 } // namespace recordarrays

@@ -66,6 +66,7 @@ EI_REPLACE(0x006BE210, Waves::DestructElements);
 EI_REPLACE(0x006B90C0, DestroyWave);
 
 EI_REPLACE(0x00557890, Behaviours::Destruct<BehaviourArrayClass>);
+EI_REPLACE(0x00558E10, Behaviours::ConstructElements);
 
 // The position and the waypoints are copied as the dwords they are.
 mapspec::Patrol* __fastcall PatrolGetAt(const mfc::CArray<mapspec::Patrol>* self, void*, mapspec::Patrol* result,
@@ -221,6 +222,8 @@ EI_REPLACE(0x004CCF70, SubCalls::Destruct<SubCallBaseClass>);
 EI_REPLACE(0x0050FBC0, DeltaFields::Destruct<DeltaFieldArrayClass>);
 EI_REPLACE(0x00545BA0, Behaviours::Destruct<BehaviourArrayClass>);
 EI_REPLACE(0x006C4C40, TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>);
+EI_REPLACE(0x006C4690, SectorVertices::Destruct<SectorVertexArrayClass>);
+EI_REPLACE(0x006BC870, gamelists::Waves::Destruct<WaveListClass>);
 
 // Scalar deleting destructors (vtable slot 1).
 EI_REPLACE(0x004529F0, ScalarDelete<&SceneNodes::Destruct<SceneNodeArrayClass>>);
@@ -232,5 +235,22 @@ EI_REPLACE(0x005587E0, ScalarDelete<&Behaviours::Destruct<BehaviourArrayClass>>)
 EI_REPLACE(0x006B5980, ScalarDelete<&Themes::Destruct<ThemeArrayClass>>);
 EI_REPLACE(0x00454CC0, ScalarDelete<&scene::FaceGroupArrayDestruct>);
 EI_REPLACE(0x006C4EC0, ScalarDelete<&TerrainAlignedRecords::Destruct<TerrainAlignedArrayClass>>);
+EI_REPLACE(0x006C4E80, ScalarDelete<&SectorVertices::Destruct<SectorVertexArrayClass>>);
+EI_REPLACE(0x006BD190, ScalarDelete<&gamelists::Waves::Destruct<WaveListClass>>);
+
+// Serialize (vtable slot 2): afxtempl's with the raw element bytes (mfc_slots.h); loading sizes the
+// array through the instantiation's own SetSize, so its elements are built and destroyed as above.
+using mfc::impl::SerializeCArray;
+EI_REPLACE(0x0044FEF0, SerializeCArray<FigureParts>);
+EI_REPLACE(0x00450160, SerializeCArray<SceneMeshes>);
+EI_REPLACE(0x004507E0, SerializeCArray<Materials>);
+EI_REPLACE(0x00451640, SerializeCArray<SceneNodes>);
+EI_REPLACE(0x00454A70, SerializeCArray<FaceGroups>);
+EI_REPLACE(0x004C52A0, SerializeCArray<SubCalls>);
+EI_REPLACE(0x004C7820, SerializeCArray<Definitions>);
+EI_REPLACE(0x0050FC80, SerializeCArray<DeltaFields>);
+EI_REPLACE(0x00557960, SerializeCArray<Behaviours>);
+EI_REPLACE(0x006B5770, SerializeCArray<Themes>);
+EI_REPLACE(0x006C4790, SerializeCArray<SectorVertices>);
 
 } // namespace recordarrays
