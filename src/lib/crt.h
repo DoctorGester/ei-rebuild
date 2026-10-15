@@ -85,6 +85,7 @@ int __cdecl fseek(CrtFile* file, long offset, int origin);                      
 long __cdecl ftell(CrtFile* file);                                                   // 006E97C4
 std::size_t __cdecl fread(void* to, std::size_t size, std::size_t count, CrtFile* file);          // 006E8F35
 std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file); // 006E968B
+int __cdecl fflush(CrtFile* file);                                                   // 006ED534
 // A stream's file descriptor (the _fileno macro: FILE::_file, +0x10; in the standalone image the host
 // CRT's, libcrt::Fileno).
 int fileno(const CrtFile* file);
@@ -223,6 +224,66 @@ gamecrt::CrtFile* StandardOutput();
 // _output into `room` bytes (a string FILE of that size): the count, or -1 once the room runs out; a
 // terminator when it still fits.
 int FormatInto(char* buffer, std::size_t room, const char* format, va_list args);
+
+// The x87 entry points with register arguments (S4c, src/lib/crt_x87.cpp; standalone image only, the hook
+// build keeps the exe's x87 results). Each entry is called from assembly only (FtolEntry: ST0 in, EDX:EAX
+// out; CiAcosEntry / CiAsinEntry: ST0 in and out; CiPowEntry / CiFmodEntry: x in ST1, y in ST0, the result
+// in ST0) and calls the plain body beside it.
+std::int64_t __cdecl FtolEntry();                                                       // 006E853C _ftol
+double __cdecl CiAcosEntry();                                                     // 006E7320 _CIacos
+double __cdecl CiAsinEntry();                                                     // 006E83C0 _CIasin
+double __cdecl CiPowEntry();                                                      // 006E81A0 _CIpow
+double __cdecl CiFmodEntry();                                                     // 006E95AA _CIfmod
+// _ftol of an 80-bit value (10 bytes): the 64-bit truncation; NaN, infinity and |value| >= 2^63 give the
+// integer indefinite (0x8000000000000000), as FISTP with the invalid exception masked.
+std::int64_t __cdecl FtolExtended(const unsigned char* value);
+// The maths as the CRT computes it, under its control word (rounding to nearest, the caller's precision):
+// acos / asin by FPATAN of the root of (1 + x)(1 - x), pow by FYL2X / F2XM1 / FSCALE, fmod exact. Out of
+// the domain: the x87 indefinite.
+double __cdecl CiAcos(double x);
+double __cdecl CiAsin(double x);
+double __cdecl CiPow(double x, double y);
+double __cdecl CiFmod(double x, double y);
+
+// C++ exceptions (S4c, src/lib/crt_except.cpp). _CxxThrowException: RaiseException(0xE06D7363, not
+// continuable, {0x19930520, object, throw info}); the throw information is VC6's layout, which this
+// compiler's frame handler reads too (src/lib/mfc_try.h). Does not return.
+void __stdcall CxxThrowException(void* object, const void* throwInfo);         // 006E7819
+// MSVC 6's std::exception: the exe's vtable (00747290), the text, and whether the object owns (and frees)
+// it. The const char* constructor (006E7D02) has no callers.
+struct Exception {
+    Exception* Construct();                                   // 006E7CD5 exception(): no text
+    Exception* CopyConstruct(const Exception& source);        // 006E7D3F (RET 4)
+    Exception* Assign(const Exception& source);               // 006E7D89 operator= (RET 4)
+    void Destruct();                                          // 006E7DA8 ~exception
+    Exception* DeletingDestruct(unsigned flags);              // 006E7CE6 (vtable slot 0, RET 4)
+    const char* What() const;                                 // 006E7DBE (slot 1): "Unknown exception" without text
+
+    const void* vtable;
+    const char* text;
+    int ownsText;
+};
+static_assert(sizeof(Exception) == 12);
+
+// The locale (S4c, src/lib/crt_locale.cpp). setlocale and _setmbcp are the image's only (the hook build
+// keeps the exe's; the game's text manager sets LC_CTYPE from its "Font CharSet" option, then the
+// multibyte code page from it); LC_ALL is not ported (never called). InitMultibyteTable is the CRT
+// start-up's __initmbctable (006EA218: _setmbcp(_MB_CP_ANSI) once), for the image's start. InitCtype is
+// __init_ctype (006F47FB; LC_CTYPE's table builder, called by setlocale; 0 on success).
+struct LocaleId {   // VC6's LC_ID
+    unsigned short language;
+    unsigned short country;
+    unsigned short codePage;
+};
+static_assert(sizeof(LocaleId) == 6);
+char* __cdecl Setlocale(int category, const char* locale);                     // 006EA234
+int __cdecl Setmbcp(int codePage);                                              // 006E9E30
+void InitMultibyteTable();
+int InitCtype();
+// _ismbcdigit / _ismbcspace: a byte by _pctype, a double-byte character (lead byte high) by its class
+// in the multibyte code page (0 without one).
+int __cdecl Ismbcdigit(unsigned c);                                             // 006ECE1A
+int __cdecl Ismbcspace(unsigned c);                                             // 006ECEA9
 
 // The runtime the hook build keeps sharing with the exe (registered with EI_REPLACE_STANDALONE): the
 // heap (the modern CRT's in the image), operator new's handler loop, the atexit list and exit.

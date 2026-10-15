@@ -5,6 +5,7 @@
 
 #include "console.h"   // console::CStringArray
 #include "engine_object.h"
+#include "options.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -30,8 +31,6 @@ __declspec(naked) char* __cdecl GameSetLocale(int /*category*/, const char* /*lo
 __declspec(naked) int __cdecl GameSetMbcp(int /*codePage*/) EI_ORIGINAL(0x006E9E30)
 constexpr int kLocaleCtype = 2;     // LC_CTYPE
 constexpr int kMbcpLocale = -4;     // _MB_CP_LOCALE
-// The locale name the text manager sets: a pointer nothing writes (null).
-const char* LocaleName() { return *reinterpret_cast<const char* const*>(0x0079BE94); }
 
 void CloseAndDelete(CMappedResource* source) {
     source->CloseResource();
@@ -134,7 +133,9 @@ void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
 EI_REPLACE_METHOD(0x004DEFA0, CTextManager::ListKeys);
 
 int CTextManager::Create() {
-    GameSetLocale(kLocaleCtype, LocaleName());
+    // LC_CTYPE from the "Font CharSet" option ("english" unless the registry says otherwise), then the
+    // multibyte code page from it: the game's only locale set-up (docs/notes/standalone.md, S4c).
+    GameSetLocale(kLocaleCtype, options::TheOptions()->fontCharSet_);
     GameSetMbcp(kMbcpLocale);
     return 1;
 }

@@ -162,7 +162,7 @@ manager's setlocale query), so tolower / toupper take `_tolower_lk`'s path (LCMa
 `__lc_codepage`) and the compares fold bytes through a table of tolower rebuilt when the locale
 changes; character classes come from `_pctype`, lead bytes from `_mbctype`. Only single-byte paths
 are ported (`__mb_cur_max` 1, `__ismbcodepage` 0). In the standalone image that data is the C
-locale (ASCII case only) unless something sets it: who sets the hook build's locale is still open.
+locale (ASCII case only) until the game sets it (S4c: the text manager's Create, in both builds).
 Library functions have no Ghidra size in function_sizes.inc: each registered one is added to
 config/extra_function_sizes.csv (the installer skips an unknown start). Checks
 (tests/verify/verify_crt.cpp): against the original, memmove ours only; atoi against atol 006E804D;
@@ -234,6 +234,68 @@ local 32-bit times, size, name; the game never closes the handle) go through the
 bytes, the file afterwards), 12 _open flag sets, bad descriptors, _access, _findfirst; the heap ours only.
 smoke and ui_saveload, both installs: 0 mismatches. The image installs all 18; `--standalone` boot still
 stops at 0040AA80 (hash table resize, S11) before any file code.
+
+**S4c (2026-10-15), group 1: the x87 entries.** _ftol 006E853C, _CIacos 006E7320, _CIasin 006E83C0, _CIpow
+006E81A0 and _CIfmod 006E95AA take ST0 / ST1 and return in EDX:EAX or ST0; our src/game helpers call them
+through their addresses (`mov eax, addr; call eax`), so the image needs code there. src/lib/crt_x87.cpp:
+a naked entry each (arguments to the stack, a plain C++ body; ECX / EDX kept), image only
+(`EI_REPLACE_STANDALONE`: the hook build keeps the exe's x87 results and so its goldens);
+check_cleanup exempts that one file's `__asm`. _ftol decodes the 80-bit value with integers (exact for every
+input, the integer indefinite for NaN / infinity / |x| >= 2^63). The _CI bodies follow the CRT: its control word
+(006EF665) keeps the caller's precision and rounds to nearest, so the port computes at 53 bits and rounds the
+FADD / FSUB / FMUL / FSQRT results to the caller's precision (a float store at 24 bits); FPATAN is inlined by
+/fp:fast as in the original; pow splits y log2(x) as y k + y log2(m) with fma errors (FYL2X's 64-bit product),
+n by ties-to-even, 2^f by exp2, FSCALE by ldexp; the integer test on y rounds y / 2 at the caller's precision
+(an odd y beyond 2^24 tests even at 24 bits, as in the original); overflow follows the caller's rounding
+direction (DBL_MAX under chop); fmod is exact, +0 for a zero x, the indefinite for an infinite y. errno /
+_matherr are not reproduced (nothing reads them). Check (tests/verify/verify_crt_x87.cpp, start-up, against
+the originals still in place): 44,900 cases under five control words (24 / 53 / 64 bits, nearest / chop / up),
+FPU stack depth and control word after each; _ftol and fmod bit for bit, the _CI functions bit for bit under
+007F (the main thread's word, the float the callers store) and for special values; at 53 / 64 bits pow is
+within 4 + |y| / 2 double units and acos / asin within 4 (1,758 results not bit-equal), denormal results
+within tolerance (the original's _87except may flush them). smoke vanilla: 0 mismatches; the image installs
+all five.
+
+**S4c group 2: exceptions.** src/lib/crt_except.cpp, both builds (no state of their own): _CxxThrowException
+006E7819 raises 0xE06D7363 (not continuable, {0x19930520, object, ThrowInfo}) with the thrower's own
+ThrowInfo, so the exe's catch tables and ours (verify_mfc_try) both match it; MSVC 6 std::exception
+{vtable 00747290, text, owned} (constructor, copy, operator=, destructor, deleting destructor, what with
+"Unknown exception" 00747298). check_returns allows 006E7819 (it does not return). Check:
+tests/verify/verify_crt_except.cpp (constructor, copy and what against the originals; a start-up check drives
+all six, since the suite throws none).
+
+**S4c group 3: the locale.** Who sets `__lc_handle[LC_CTYPE]`: the game, in both builds. The text manager's
+Create (004DED20) calls setlocale(LC_CTYPE, the options' "Font CharSet" 0079BE94, "english" from the
+options constructor unless the registry has another) and _setmbcp(_MB_CP_LOCALE); "english" resolves to
+"English_United States.1252", handle 0x409, code page 1252 (the multibyte code page is already 1252 from
+the CRT start-up's `_setmbcp(_MB_CP_ANSI)`, so _setmbcp changes nothing on a 1252 system). The hook build
+keeps the exe's setlocale / _setmbcp (its remaining library code reads that state); the image gets ours
+(src/lib/crt_locale.cpp, `EI_REPLACE_STANDALONE`): getqloc.c's name search (EnumSystemLocalesA with
+the exe's abbreviation tables), _setlocale_set_cat, __init_ctype (class tables by GetStringTypeW, called
+directly: the category table's pointer is exe code), _setmbcp with setSBUpLow; and the image's start
+(src/hook/standalone.cpp) now runs the C initialiser __initmbctable (00783BC0) before the static
+initialisers. Left out: the locks, `__setlc_active`, setlocale(LC_ALL, ...) (never called), the Win9x
+paths. _ismbcdigit / _ismbcspace (both builds): `_pctype` for a byte (also `_isctype`'s answer),
+GetStringTypeW in the multibyte code page for a double-byte character. Check: tests/verify/
+verify_crt_locale.cpp, start-up: the class tests against the originals (every byte and 14 double-byte
+values, under 1252 and 932); _setmbcp for 22 code pages from two states, setlocale for 67 steps (49
+names incl. abbreviations, countries, code pages, Japanese 932, bad names; sequences ending in "C";
+queries), original then ours from the same state, every byte of the state and the class tables equal.
+
+**S4c group 4: the ostream inserters.** src/lib/crt_iostream.{h,cpp}, both builds (the streams are the
+game's): MSVC 6's old iostream layouts (streambuf with its 11 virtual slots, ios, ostream with its
+virtual base table and x_floatused) and operator<< for char 006FC0B0, unsigned 006FC14E, const char*
+006FC31D, double 006FC7FA, long 006FC91C, int 006FC9C6, the manipulator 00434FE0, ostream::flush 006FC346
+and the flush manipulator 00435000; opfx / osfx / writepad are internal (the exe's other callers keep the
+exe's). Numbers go through the game's sprintf as VC6 builds the format ("%%%s.%.0ug" for double, the
+precision capped at 15, 6 after the inline float inserter); the double's buffer is larger than VC6's 24
+bytes (a fixed value past 10^22 overruns it there). Check: tests/verify/verify_crt_iostream.cpp shadows
+every game call on scratch streams (original and ours, recording streambufs: bytes, streambuf calls, state,
+width) and runs a start-up battery of 9,191 insertions (25 formats x 7 streambuf behaviours); operator<<
+(const char*)'s original is rebuilt from the exe's opfx / writepad / osfx (no room for a trampoline);
+flush and the manipulators are ours only. Left for the image: the streams themselves (ostream(streambuf*)
+006FC42F, which the static initialisers call, the ios / streambuf constructors and destructors, the
+log's streambuf), fflush for ios::stdio.
 
 **S3a (2026-10-15).** The 130 exit functions no rewrite registered are generated too
 (src/standalone/static_exit.cpp, same tool): each is matched as a whole-function instruction pattern

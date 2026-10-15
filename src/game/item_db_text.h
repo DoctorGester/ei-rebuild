@@ -81,9 +81,8 @@ public:
     void ClearSources();
     // A-S11 (text_sources.cpp). 004DEFA0 (RET 8): the names matching `pattern` ("pers *") of every
     // archive into `out` (004DEC40 on sources_). 004DED20 (vtable slot 2, Create; the client
-    // world's set-up also calls it directly): the C runtime's multibyte code page set to the
-    // locale's (after a setlocale of LC_CTYPE with the null pointer at 0079BE94, a query that
-    // changes nothing); returns 1.
+    // world's set-up also calls it directly): setlocale(LC_CTYPE, the "Font CharSet" option,
+    // "english" by default), then the C runtime's multibyte code page set to the locale's; returns 1.
     void ListKeys(mfc::CStringArray* out, const char* pattern);
     int Create();
 
