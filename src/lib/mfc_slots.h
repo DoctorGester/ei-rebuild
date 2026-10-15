@@ -48,8 +48,16 @@ void __fastcall SerializeCArray(typename Abi::Array* self, void*, CArchive* ar) 
     else ar->Read(self->data, bytes);
 }
 
-// The count, then each element from the head. Loading reads each into a local and adds it at the
-// tail (the node's element constructed, then assigned).
+template <typename List>
+struct ListElements;
+template <typename T, typename E>
+struct ListElements<CList<T, E>> {
+    using Type = E;
+};
+
+// The count, then each element from the head. Loading reads each into a local (built as the
+// element's constructor builds it; plain data is left as it was) and adds it at the tail (the node's
+// element constructed, then assigned).
 template <typename Abi>
 void __fastcall SerializeCList(typename Abi::List* self, void*, CArchive* ar) {
     using T = typename Abi::Element;
@@ -59,6 +67,7 @@ void __fastcall SerializeCList(typename Abi::List* self, void*, CArchive* ar) {
     } else {
         for (unsigned long n = ar->ReadCount(); n--;) {
             T value;
+            ListElements<typename Abi::List>::Type::Construct(&value, 1);
             ar->Read(&value, sizeof(T));
             self->AddTail(value);
         }
@@ -349,6 +358,19 @@ using BuiltStringsAt = ArrayAbi<Bytes<Size>, EachElements<Bytes<Size>, InitStrin
 using GlobalMapZoneRecords = BuiltStringsAt<0x10, 0xC, 8>;
 using GlobalMapPointRecords = BuiltStringsAt<0x18, 0x14, 0x10>;
 using MemoryCallRecords = BuiltStringsAt<0x18, 0x14>;
+
+// AIAttention::Choose's 12-byte records: -1, then 0 (005DA2B0).
+struct Attention12 {
+    int id;
+    int value;
+    int extra;
+};
+inline void InitAttention12(Attention12* p) {
+    p->value = 0;
+    p->id = -1;
+}
+using AttentionList = ListAbi<Attention12, InitElements<Attention12, InitAttention12>>;
+using List30 = ListAbi<Bytes<0x30>>;
 
 using Plain36 = ArrayAbi<Bytes<36>>;   // the 36-byte smoothing steps (SmoothStepArrayClass)
 using Plain56 = ArrayAbi<Bytes<56>>;   // the frames' footprint parts (00519FC0 zeroes them twice)

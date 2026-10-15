@@ -373,4 +373,12 @@ EI_REPLACE(0x005FB380, SerializeCArray<GlobalMapPointRecords>);   // GlobalMapPo
 EI_REPLACE(0x005FB5F0, SerializeCArray<GlobalMapPointRecords>);   // GlobalMapPathArrayClass
 EI_REPLACE(0x00557050, SerializeCArray<MemoryCallRecords>);       // MemoryRecordArrayClass
 
+// More lists of plain elements (the AI's, the client maps' platforms) and AIAttention's records.
+EI_REPLACE(0x0056FEA0, SerializeCList<List4C>);          // PlatformListClass
+EI_REPLACE(0x005B1870, SerializeCList<List12>);          // BlockCostListClass
+EI_REPLACE(0x005BDF40, SerializeCList<List12>);          // WaypointListClass
+EI_REPLACE(0x005B1A00, SerializeCList<List8>);           // AiMapListClass
+EI_REPLACE(0x005CDC00, SerializeCList<List30>);          // StaticListClass
+EI_REPLACE(0x005D9A40, SerializeCList<AttentionList>);   // AttentionListClass
+
 } // namespace mfc::impl
