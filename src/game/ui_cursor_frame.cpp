@@ -26,7 +26,6 @@
 #include "lib/gameapi.h"
 #include "render/render.h"
 #include "originals_render.h"
-#include "../hook/log.h"   // TEMP R9c2
 
 #include <cstdint>
 #include <cstring>
@@ -93,13 +92,8 @@ bool OldPathDraws(const CCursor* self) {
 // (render::CursorBetweenFrames; nothing while the main thread's frames come often enough); the drawn
 // rectangle follows as the original's blits made it.
 void MoveBetweenFrames(CCursor* self) {
-    static int traced = 0;
-    DWORD t0 = GetTickCount();
     gameapi::EnterCriticalSection(&self->lock_);
-    DWORD t1 = GetTickCount();
     char moved = UpdatePosition(self);
-    DWORD t2 = GetTickCount();
-    if (traced < 400 && (t2 - t0 > 30 || moved)) { ++traced; ei::Log("TEMP cursor step: lock %lu ms, update %lu ms, moved %d", t1 - t0, t2 - t1, moved); }
     if (self->imageShown_ != 0 && moved != 0) {
         CursorImage* image = self->image_;
         render::CursorBetweenFrames(image->holder, image->saved, ToRender(self->from_), ToRender(self->rect_));
@@ -179,7 +173,6 @@ void __fastcall CursorThread(CCursor* self) {
     DWORD last = gameapi::timeGetTime();
     while (!self->stop_) {
         DWORD now = gameapi::timeGetTime();
-        { static DWORD lastReal = 0; DWORD r = GetTickCount(); if (lastReal && r - lastReal > 100) ei::Log("TEMP cursor loop gap %lu ms (virtual now %lu last %lu)", r - lastReal, now, last); lastReal = r; }
         if (now - last < kThreadPeriod) {
             gameapi::Sleep(kThreadPeriod - (now - last));
             continue;

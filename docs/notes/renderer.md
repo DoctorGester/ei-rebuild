@@ -555,7 +555,7 @@ standalone exe change; vanilla and Rebirth runs keep the original's probes and v
 
 What the original shows. The renderer's +4 bit 0 (read as "the software cursor bit" above) is the game's active flag
 (set by WinMain's activation, app_main.cpp), and the cursor runs in mode 2 with its thread whenever the options'
-FpsIndependentCursor is on (the default; 005DAEA0: mode 1 has no thread). The thread (005E5690) wakes every 41 ms
+FpsIndependentCursor (registry FPSIndependentCursor, options +0x80) is on (005DAEA0; mode 1 has no thread). The thread (005E5690) wakes every 41 ms
 and, when the image is shown (+0x0C) and 005E52E0 says the cursor moved or its frame stepped, puts the old place's
 background back on the primary and blits the composed cursor at the new place: the cursor moves at about 24 Hz
 whatever the frame rate, and on with no frames at all. It draws nothing while the image is hidden: every movie
@@ -612,10 +612,18 @@ of its own in 10 ms steps, so it moves while the main thread is away), `stall <m
 frame), `cursormark`, `cursorcheck <name>|- <min> [max]` (presents by the cursor thread since the mark within
 min..max; with a name the last composed frame goes to frames\<name>.bmp, the checks must have found no
 difference and its rectangle must sit at the mouse less the image's hot spot within 24 pixels, the cursor
-trailing the mouse by up to two of the thread's steps). Scenario `render_cursor_present`: a long frame in the main
-menu and in the game while the mouse glides (at least 10 presents each, about 36 seen), the loading screen of a new
-game (logged only: the work before the first loading step is a long frame with the cursor still shown) and a
-movie (at most 2 presents: the moments before the player hides the cursor).
+trailing the mouse by up to two of the thread's steps; it also logs the moves handed over and why some were not
+presented: picture not drawn yet, no frame, a frame within 40 ms, outside the frame), and the starter step
+`fpscursor 0|1` (the answer to the FPSIndependentCursor registry value: the test machine's is 0, mode 1, no
+thread, and the original then shows the cursor only in frames). Scenario `render_cursor_present`: a long frame in
+the main menu and in the game while the mouse glides (at least 10 presents each, 28-29 seen on vanilla, Rebirth and
+native, every composed frame matching, the cursor at the mouse less the hot spot), the loading screen of a new game
+(logged only: the work before the first loading step is a long frame with the cursor still shown) and a movie (at
+most 2 presents: the moments before the player hides the cursor; 0 seen). It runs on `realtime`: on the virtual
+clock other threads see the main thread's clock plus the real time since it last moved and never go back, so after
+a movie or a load (real seconds without a move) the cursor thread's clock stands still until the main thread's
+frames catch up, and its 41 ms waits last that long (1.5 s of a 1.6 s stall were seen); a player's game has no such
+clock.
 
 ### Before R9a (reference)
 

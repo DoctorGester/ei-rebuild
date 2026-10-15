@@ -13,7 +13,13 @@
 # image's hot spot. The thread exists only with the options' FPSIndependentCursor on (the game's default;
 # off, the cursor runs in mode 1 without it and the original draws the cursor only in frames): answered
 # 1 for this run ("fpscursor").
+#
+# On real time ("realtime"): on the virtual clock other threads see the main thread's clock plus the
+# real time since it last moved, never going back, so after a movie or a load (real seconds without a
+# move) the cursor thread's clock stands still until the main thread's frames catch up with it, and
+# its 41 ms waits last that long (seen: 1.5 s of a 1.6 s stall). A player's game is on real time.
 fpscursor 1
+realtime
 render new,present
 reject Script error
 waitmenu

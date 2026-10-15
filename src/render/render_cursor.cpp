@@ -497,11 +497,6 @@ bool CursorBetweenFrames(const void* imageHolder, const void* mask, const Rect& 
     }
     Hold hold(g_presentLock);
     ++g_info.calls;
-#if defined(EI_RENDER_VALIDATION)
-    if (g_info.calls <= 200)
-        ei::Log("render: cursor move %u at %d,%d (main thread's present %llu ms ago)", g_info.calls, to.left, to.top,
-                GetTickCount64() - g_lastPresent);
-#endif
     if (!cut) return Refused(Refusal::Picture);
     if (!g_kit.valid || !g_clean) return Refused(Refusal::NoFrame);
     if (GetTickCount64() - g_lastPresent < kBetweenFrames) return Refused(Refusal::Recent);
