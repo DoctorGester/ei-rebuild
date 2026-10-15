@@ -1,6 +1,7 @@
 // The spell column's unit (0063E820): a sprite and a tooltip per spell of the unit. See ui.h
 // (CHudSpellColumn::SetUnit) and docs/notes/ui.md ("Battle HUD panels").
 #include "ui.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -15,7 +16,6 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 template <typename T> T Get(const void* base, int offset) {
     T v;
@@ -75,50 +75,50 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
         if (data) {
             char* const* labels = labels_;
             mfc::CString line;
-            tip += GameText(0x00794520);   // " \n"
-            line.Format(GameText(0x00794500), labels[0], Truncate(Get<float>(data, 0x40)));   // "%s %d  "
+            tip += game::Text(0x00794520);   // " \n"
+            line.Format(game::Text(0x00794500), labels[0], Truncate(Get<float>(data, 0x40)));   // "%s %d  "
             tip += line;
-            line = GameText(0x0078DDEC);   // "Unknown"
-            description.Format(GameText(0x00792F50), Get<int>(SpellPrototypeOf(data), 0x10));   // "school_%d"
+            line = game::Text(0x0078DDEC);   // "Unknown"
+            description.Format(game::Text(0x00792F50), Get<int>(SpellPrototypeOf(data), 0x10));   // "school_%d"
             TextsGetString(TextManager(), nullptr, description, &line);
             line = mfc::operator+(mfc::operator+(mfc::operator+(*reinterpret_cast<const mfc::CString*>(&labels[1]),
-                                                                GameText(0x0078DA40)),   // " "
+                                                                game::Text(0x0078DA40)),   // " "
                                                  line),
-                                  GameText(0x00794520));
+                                  game::Text(0x00794520));
             tip += line;
             if (SpellPrototypeOf(data)[0x7B] == 0)
-                line.Format(GameText(0x00794508), labels[2], labels[12]);   // "%s %s  "
+                line.Format(game::Text(0x00794508), labels[2], labels[12]);   // "%s %s  "
             else
-                line.Format(GameText(0x00794500), labels[2], Truncate(Get<float>(data, 0x24)));
+                line.Format(game::Text(0x00794500), labels[2], Truncate(Get<float>(data, 0x24)));
             tip += line;
             const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
             float duration = Get<float>(data, 0x30);
             if (!(duration >= one))   // TEST AH,1: below 1 or NaN
-                line.Format(GameText(0x007944F8), labels[3], labels[8]);   // "%s %s \n"
+                line.Format(game::Text(0x007944F8), labels[3], labels[8]);   // "%s %s \n"
             else
-                line.Format(GameText(0x007944F0), labels[3], Truncate(duration));   // "%s %d \n"
+                line.Format(game::Text(0x007944F0), labels[3], Truncate(duration));   // "%s %d \n"
             tip += line;
-            line.Format(GameText(0x007944E4), labels[4], Truncate(Get<float>(data, 0x34)), labels[10]);   // "%s %d%s  "
+            line.Format(game::Text(0x007944E4), labels[4], Truncate(Get<float>(data, 0x34)), labels[10]);   // "%s %d%s  "
             tip += line;
             if (Get<std::uint32_t>(data, 0x3C) & 0x10000000) {
-                line.Format(GameText(0x007944F8), labels[5], labels[9]);
+                line.Format(game::Text(0x007944F8), labels[5], labels[9]);
             } else {
                 // The area: radius squared times pi (007423F8, a float).
                 float radius = Get<float>(data, 0x28);
                 double area = static_cast<double>(radius) * radius * *reinterpret_cast<const volatile float*>(0x007423F8);
-                line.Format(GameText(0x007944D8), labels[5], area, labels[10]);   // "%s %.1f%s \n"
+                line.Format(game::Text(0x007944D8), labels[5], area, labels[10]);   // "%s %.1f%s \n"
             }
             tip += line;
             std::uint32_t ticks = Get<std::uint32_t>(data, 0x20);
             if (ticks < 2) {
-                line.Format(GameText(0x00794508), labels[6], labels[8]);
+                line.Format(game::Text(0x00794508), labels[6], labels[8]);
             } else {
                 // Ticks to seconds (00740544, 1/15).
                 double seconds = x87::FromUnsigned(ticks) * *reinterpret_cast<const volatile float*>(0x00740544);
-                line.Format(GameText(0x007944CC), labels[6], seconds, labels[11]);   // "%s %.1f%s  "
+                line.Format(game::Text(0x007944CC), labels[6], seconds, labels[11]);   // "%s %.1f%s  "
             }
             tip += line;
-            line.Format(GameText(0x007944F0), labels[7], Get<int>(data, 0x38));
+            line.Format(game::Text(0x007944F0), labels[7], Get<int>(data, 0x38));
             tip += line;
         }
         // The region of the spell's index (the original does not count the missing ones).

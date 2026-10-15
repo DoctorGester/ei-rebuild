@@ -7,6 +7,7 @@
 // depth buffer is cleared to 1 again. The new renderer (src/render) gets the depth clears. See
 // docs/notes/ui.md ("Camp") and docs/notes/renderer.md.
 #include "item.h"
+#include "game_strings.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 
@@ -23,7 +24,6 @@ namespace {
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
 
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
@@ -62,13 +62,13 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surfac
         ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(grid->owner_), nullptr, pass, &cell);
         int pieces = static_cast<int>(cell.item->count_);
         if (pieces > 1) {
-            text.Format(Text(0x0078EEEC), pieces);
+            text.Format(game::Text(0x0078EEEC), pieces);
             RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
             surface->Draw(text, &r, 1, kTextColour, 2, 1);
         }
         if (!grid->flag_) {
             int price = static_cast<CCampPages*>(grid->owner_)->VirtualPrice(cell.item, kind);   // the camp
-            text.Format(Text(0x0078EEEC), price);
+            text.Format(game::Text(0x0078EEEC), price);
             RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
             surface->Draw(text, &r, 1, kTextColour, 1, 1);
         }

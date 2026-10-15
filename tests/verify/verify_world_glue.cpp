@@ -345,6 +345,6 @@ EI_VERIFY(0x00578D70, SetMapEdgeFadeVerify, 0, s_unused);
 static void __stdcall StartLocalSessionVerify(std::uint8_t* player) {
     GameStartLocalSession(player);
     auto* view = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView());
-    ei::verify::Check("GameStartLocalSession", true, view->localSession == 1 && view->partyTaken == 0, "");
+    ei::verify::Check("GameStartLocalSession", true, view->localSession == 1 && view->sendParty == 0, "");
 }
 EI_VERIFY(0x005793E0, StartLocalSessionVerify, 0, s_unused);

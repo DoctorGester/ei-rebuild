@@ -4,14 +4,17 @@
 // the target and calls it with the local player's zone. See docs/notes/ui.md ("Camp, global map,
 // hero screens").
 #include "ui_camp.h"
+#include "game_strings.h"
 
 #include "object_tables.h"
 #include "originals_ui.h"
 #include "ui.h"
 #include "ui_screens.h"
+#include "ui_widescreen.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -56,10 +59,9 @@ bool SameName(const char* a, const char* b) {
 // 006312C0 through its address, as the original click calls it (the check's wrapper runs).
 __declspec(naked) void __fastcall FindPathsOriginal(CGlobalMap*, void*, MapRecord* /*from*/) EI_ORIGINAL(0x006312C0)
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* MoveSound() { return GameText(0x00794180); }      // "buttons\globalmap\move.wav"
-const char* TransitSound() { return GameText(0x0079372C); }   // "buttons\globalmap\transit.wav"
-const char* OkSound() { return GameText(0x0079419C); }        // "buttons\globalmap\ok.wav"
+const char* MoveSound() { return game::Text(0x00794180); }      // "buttons\globalmap\move.wav"
+const char* TransitSound() { return game::Text(0x0079372C); }   // "buttons\globalmap\transit.wav"
+const char* OkSound() { return game::Text(0x0079419C); }        // "buttons\globalmap\ok.wav"
 // The client's glue objects (their members do not read them).
 void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
@@ -167,8 +169,9 @@ void CGlobalMap::OnLeftDown(int, int x, int y) {
         interface_->PlaySound(OkSound(), 0);
         link = region - kFirstLinkRegion;
     } else {
-        // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i.
-        const std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2, y / 2);
+        // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i; Rebirth's
+        // WideScreen takes the margin off its x (0062FB20: addon's code at 005FD237).
+        const std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2 - widescreen::PickShift(), y / 2);
         const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
         if (index < 0 || index >= zoneCount_ || zones_.data[index].state == 0) return;
         interface_->PlaySound(OkSound(), 0);
@@ -198,3 +201,4 @@ void __fastcall GlobalMapLeftDown(void* input, void*, int buttons, int x, int y)
 }
 } // namespace
 EI_REPLACE(0x0062F950, GlobalMapLeftDown);
+EI_REBIRTH_IMPLEMENTS(0x0062F950, ei::rebirth::Patch::WideScreen);

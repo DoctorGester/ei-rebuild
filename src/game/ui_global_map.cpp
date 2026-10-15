@@ -7,6 +7,7 @@
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
 // operation order is kept. Constants are read from the exe's memory, as the original does.
 #include "ui_camp.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "core_maths.h"
@@ -59,7 +60,6 @@ float Bits(std::uint32_t bits) {
 template <std::floating_point T> float Bits(T) = delete;
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // The game's _ftol (006E853C): truncation of the value in ST0.
 __declspec(naked) int __cdecl GameFtol(double) {
@@ -183,10 +183,6 @@ private:
 };
 
 // The rest (not rewritten).
-struct SaveStream {
-    void Resize(int size);                              // 004A54D0 (the save stream 007AFDF8)
-};
-void SaveStream::Resize(int a2) { StreamResizeOriginal((void*)this, nullptr, (std::uint32_t)a2); }
 struct SoundMixer {
     void ResetMusic() { MusicSystemStopOriginal(reinterpret_cast<CMusicSystem*>(this)); }   // 006B4F70 (the object at *007AF760)
 };
@@ -317,7 +313,7 @@ void AddMarkerRegion(CGlobalMap* map, CUiMesh* sprite) {
 void CGlobalMap::Create() {
     autosave_ = false;
     if (*reinterpret_cast<const int*>(0x007AFE1C) != 0)
-        reinterpret_cast<SaveStream*>(0x007AFDF8)->Resize(0);
+        GameSaveStream()->Resize(0);
     else if (reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player->lastScreen != 5)
         autosave_ = true;   // not back from the camp
     depth_ = Bits(0x41200000);     // 10
@@ -346,10 +342,10 @@ void CGlobalMap::Create() {
         std::memcpy(&position_, &position, 12);
     }
     const mfc::CString& allodName = *reinterpret_cast<const mfc::CString*>(&allod->name);
-    LoadTexture(mfc::operator+(allodName, GameText(0x0079415C)), 3, 0);   // <allod>Map
-    LoadTexture(mfc::operator+(allodName, GameText(0x00794158)), 3, 0);   // <allod>Sys
-    LoadTexture(mfc::operator+(allodName, GameText(0x00794150)), 3, 0);   // <allod>MapG
-    LoadTexture(GameText(0x00793380), 3, 0);                             // "saveload"
+    LoadTexture(mfc::operator+(allodName, game::Text(0x0079415C)), 3, 0);   // <allod>Map
+    LoadTexture(mfc::operator+(allodName, game::Text(0x00794158)), 3, 0);   // <allod>Sys
+    LoadTexture(mfc::operator+(allodName, game::Text(0x00794150)), 3, 0);   // <allod>MapG
+    LoadTexture(game::Text(0x00793380), 3, 0);                             // "saveload"
     CreateTexture(0x100, 0x100, 0x21);
     angle_ = 0.0f;
     {
@@ -394,7 +390,7 @@ void CGlobalMap::Create() {
         MapRecord* zone = ZoneAt(allod->zones[i]);
         if (zone->kind != 0 || !NonEmpty(zone->figure)) continue;
         ZonesSetAtGrowAt(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
-        variable.Format(GameText(0x00794148), zone->name);   // "z.%s"
+        variable.Format(game::Text(0x00794148), zone->name);   // "z.%s"
         zones_.data[zoneCount_].link = -1;
         zones_.data[zoneCount_].state = GameFtol(D(LocalPlayerVariable(variable)));
         *reinterpret_cast<mfc::CString*>(&zones_.data[zoneCount_].name) = *reinterpret_cast<mfc::CString*>(&zone->name);
@@ -412,7 +408,7 @@ void CGlobalMap::Create() {
 
     // The quests the player holds in each zone ("q.<zone>.<quest>" = 1).
     for (int i = 0; i < zoneCount_; ++i) {
-        variable.Format(GameText(0x00794140), zones_.data[i].name);   // "q.%s"
+        variable.Format(game::Text(0x00794140), zones_.data[i].name);   // "q.%s"
         reinterpret_cast<LocalPlayerOriginal*>(0x007AFEA5)->CopyVariables(variable, vars.Table());
         VariableIterator it;
         FloatTableBeginOriginal(vars.Table(), nullptr, &it);
@@ -463,7 +459,7 @@ void CGlobalMap::Create() {
         for (int e = 0; e < zone->exits.size; ++e) {
             MapRecord* way = FindZone(zone->exits.data[e].target);
             if (!way) continue;
-            variable.Format(GameText(0x00794148), way->name);   // "z.%s"
+            variable.Format(game::Text(0x00794148), way->name);   // "z.%s"
             if (way->kind != 2) continue;
             // FCOMP / TEST AH,0x40: equal to 2, or unordered.
             double state = D(LocalPlayerVariable(variable));
@@ -551,15 +547,15 @@ void CGlobalMap::Create() {
     }
 
     // The clock: "<save_day>  <day>,  <h>:<mm>" under the allod's title.
-    int minutes = GameFtol(D(LocalPlayerVariable(GameText(0x007420A4))) * D(GameFloat(0x0073F090)));   // gtime * 60
+    int minutes = GameFtol(D(LocalPlayerVariable(game::Text(0x007420A4))) * D(GameFloat(0x0073F090)));   // gtime * 60
     int day = minutes / 1440;
     minutes -= day * 1440;
     int hour = minutes / 60;
     minutes -= hour * 60;
     mfc::CString clock;
     mfc::CString dayText;
-    (*reinterpret_cast<CTextManager**>(0x007AF788))->GetString(GameText(0x00794134), &dayText);   // "save_day"
-    clock.Format(GameText(0x00794120), static_cast<const char*>(dayText), day + 1, hour, minutes);
+    (*reinterpret_cast<CTextManager**>(0x007AF788))->GetString(game::Text(0x00794134), &dayText);   // "save_day"
+    clock.Format(game::Text(0x00794120), static_cast<const char*>(dayText), day + 1, hour, minutes);
     {
         void* memory = gamecrt::operator_new(sizeof(CUiSurface));
         CUiSurface* text = memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 20, 20, 170, 70, 5, 1)
@@ -578,7 +574,7 @@ void CGlobalMap::Create() {
         CUiMesh* camp = AddSprite(0);
         camp->SetRectangle(3.0f, 100.0f, 15.0f, 525.0f, 107.0f, 585.0f, 2, 0x97, 0x5E, 0xD3);
         SetTexture(camp, builder.Texture(3));
-        noCamp_ = GameFtol(D(LocalPlayerVariable(GameText(0x00794114))));   // "i.nocamp"
+        noCamp_ = GameFtol(D(LocalPlayerVariable(game::Text(0x00794114))));   // "i.nocamp"
         if (noCamp_ == 1) camp->visible_ = 0;
         CUiMesh* left = AddSprite(0);
         left->SetRectangle(3.0f, 100.0f, 689.0f, 537.0f, 737.0f, 585.0f, 0x51, 0x37, 0x81, 0x67);
@@ -594,18 +590,18 @@ void CGlobalMap::Create() {
     fog_[1] = 1.0f;
     fog_[2] = 0.0f;
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(allod->name),
-                        reinterpret_cast<const unsigned char*>(GameText(0x00790244))) == 0) {   // "ingos"
+                        reinterpret_cast<const unsigned char*>(game::Text(0x00790244))) == 0) {   // "ingos"
         fog_[0] = Bits(0x3EBE0000);
         fog_[1] = Bits(0x3F020000);
         fog_[2] = Bits(0x3F200000);
     } else if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(allod->name),
-                               reinterpret_cast<const unsigned char*>(GameText(0x00790238))) == 0) {   // "suslanger"
+                               reinterpret_cast<const unsigned char*>(game::Text(0x00790238))) == 0) {   // "suslanger"
         fog_[0] = Bits(0x3EC80000);
         fog_[1] = Bits(0x3E480000);
         fog_[2] = Bits(0x3DB00000);
     }
     if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(allod->name),
-                        reinterpret_cast<const unsigned char*>(GameText(0x0079014C))) == 0)   // "gipat"
+                        reinterpret_cast<const unsigned char*>(game::Text(0x0079014C))) == 0)   // "gipat"
         gipat_ = true;
 
     selectPending_ = 1;
@@ -631,9 +627,9 @@ void CGlobalMap::Create() {
     }
     using UpdateFn = void(__thiscall*)(CUiWindow*);
     reinterpret_cast<UpdateFn>(vtable_[24])(this);   // slot 24 (+0x60)
-    windSound_ = interface_->PlaySound(GameText(0x007940F8), 1);   // buttons\globalmap\wind.wav
+    windSound_ = interface_->PlaySound(game::Text(0x007940F8), 1);   // buttons\globalmap\wind.wav
     if (autosave_) {
-        if (*reinterpret_cast<const int*>(0x0079BE7C) != 0) AutoSaveOriginal(GameText(0x007940F0), 1);   // "saveb"
+        if (*reinterpret_cast<const int*>(0x0079BE7C) != 0) AutoSaveOriginal(game::Text(0x007940F0), 1);   // "saveb"
         autosave_ = false;
     }
     interface_->ShowHelp(0);
@@ -785,7 +781,7 @@ void CGlobalMap::Update() {
             long hr = static_cast<IDirectDrawSurface7*>(holder->surface)
                           ->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc), DDLOCK_WAIT, nullptr);
             holder->result = hr;
-            if (hr != 0) FatalDirectX(hr, GameText(0x0078E30C));   // "Can't lock surface"
+            if (hr != 0) FatalDirectX(hr, game::Text(0x0078E30C));   // "Can't lock surface"
         }
         float seconds = Store(FrameTime(this));
         WeatherDrawOriginal(weather_, nullptr, reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
@@ -793,7 +789,7 @@ void CGlobalMap::Update() {
         if (!direct) {
             long hr = static_cast<IDirectDrawSurface7*>(holder->surface)->Unlock(nullptr);
             holder->result = hr;
-            if (hr != 0) FatalDirectX(hr, GameText(0x0078E2F4));   // "Can't unlock surface"
+            if (hr != 0) FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
         }
     }
     CursorSetShapeOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, dragging_ ? 0x16 : 0);

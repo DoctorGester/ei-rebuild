@@ -1,5 +1,6 @@
 // CFileRegistry: lookups in the game's binary registry files (see registry.h for the format).
 #include "registry.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "ei/hook.h"
@@ -12,9 +13,8 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* const kNotRegistry = Text(0x0079600C);   // "CFileRegistry::IsValid().\nThat is not registry file.\n"
-const char* const kWrongType = Text(0x00796044);     // "CFileRegistry::FindData().\nWrong type of entry.\n"
+const char* const kNotRegistry = game::Text(0x0079600C);   // "CFileRegistry::IsValid().\nThat is not registry file.\n"
+const char* const kWrongType = game::Text(0x00796044);     // "CFileRegistry::FindData().\nWrong type of entry.\n"
 
 // 006FD2F0 _strnicmp (the CRT's locale-aware one).
 __declspec(naked) int __cdecl StrNICmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006FD2F0)

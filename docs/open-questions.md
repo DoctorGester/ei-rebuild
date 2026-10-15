@@ -34,11 +34,23 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
   draw for draw up to where they part, and no clock read, step or sound start/end differs before it
   (clocktrace and the trace's notes). Not explained yet; a guess is memory layout (an order by heap
   address, or an unwritten field read). SV2's state digest would name the first field that differs.
+  **SV2 (2026-10-15) found one order by heap address:** a unit's update-map countdown (CMapObject
+  +0x174) is set to 0x80 + bits 5..8 of the unit's address (AddToUpdateMap 0058D5D0, CreateObject
+  005927C0), and it decides when an idle unit leaves the update map (UpdateUnits 0058D670). Two runs
+  of the original alone already differ there in a dozen units at the first record (`golden.py diff
+  --all-fields`). A unit that sleeps a few updates earlier or later thinks on other ticks; a likely
+  cause of the fights that part. The digest leaves the field out of comparisons by default.
 - **units, sandbox_actions: both sides repeat, ours differs.** The wolf that the hero fights dies
   sooner in ours: `waitfor 20 Not(IsAlive(GetObjectByName("Enemy1")))` is done after 400 ms of virtual
   time in ours and 700 ms in the original, every run (one "0" fewer in the console). A behaviour
   difference in the rewritten combat or AI. To find it: random traces side by side by value (the
   verify build draws more, its wrappers run the original on scratch copies), or SV2's digest.
+  SV2's own scenario (harness_digest: the hero walks 4 units) shows the same kind of thing: digests of
+  the original and ours agree in every field (but the countdown above) for 225 world updates, then
+  only the CRT's rand() state differs (from the record after update 230 on). The random traces show
+  why: the hero's animation pick (CUnit::FindAnimation 005301B0 -> 005190C0, three rand() draws)
+  for the third time comes before the record after world update 230 in ours and after it in the
+  original (both in frame 45), so ours picks one world update or more earlier.
 - **rebirth_flags** fails on the original by design (its `rebirthflags` steps need our code). Ours
   passes but does not repeat either, and that is a lead for the combat case: the script variables
   it prints list the units of a group in a different order from run to run (`Peasans : group =

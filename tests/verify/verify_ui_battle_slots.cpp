@@ -25,7 +25,6 @@ void* s_saveState;
 
 // --- The save stream's recorder ------------------------------------------------------------------
 
-CStream* SaveStream() { return reinterpret_cast<CStream*>(0x007AFDF8); }
 constexpr int kStreamSlots = 8;
 
 struct Recording {
@@ -43,14 +42,14 @@ void __fastcall RecordWrite(void*, void*, const void* buffer, std::uint32_t size
 // Runs `fn` with the save stream's writes going into `into`.
 template <typename Fn>
 void Recorded(Recording* into, Fn fn) {
-    void** real = *reinterpret_cast<void***>(SaveStream());
+    void** real = *reinterpret_cast<void***>(GameSaveStream());
     void* fake[kStreamSlots];
     std::memcpy(fake, real, sizeof(fake));
     fake[2] = reinterpret_cast<void*>(&RecordWrite);
     s_recording = into;
-    *reinterpret_cast<void***>(SaveStream()) = fake;
+    *reinterpret_cast<void***>(GameSaveStream()) = fake;
     fn();
-    *reinterpret_cast<void***>(SaveStream()) = real;
+    *reinterpret_cast<void***>(GameSaveStream()) = real;
     s_recording = nullptr;
 }
 
@@ -79,7 +78,7 @@ static void __fastcall SaveStateVerify(CBattleScreenSetup* self, void*) {
                       FirstDifference(expected, actual));
     std::size_t pos = 0;
     for (std::uint32_t size : expected.chunks) {
-        SaveStream()->Write(expected.bytes.data() + pos, size);
+        GameSaveStream()->Write(expected.bytes.data() + pos, size);
         pos += size;
     }
 }

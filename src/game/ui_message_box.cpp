@@ -1,6 +1,7 @@
 // The message box's and the difficulty question's input handlers (CMessageBox / CDifficultyBox,
 // ui.h; built in ui_layouts.cpp). See docs/notes/ui.md, section 4.
 #include "ui_screens.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -11,11 +12,10 @@
 
 namespace {
 
-const char* GameString(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 // The sound system is handed the game's own string pointers.
-const char* OkSound() { return GameString(0x00793A88); }       // "buttons\messbox\ok.wav"
-const char* CancelSound() { return GameString(0x007937E4); }   // "buttons\messbox\cancel.wav"
-const char* ExitMovie() { return GameString(0x0079422C); }     // "Movies\Exit.bik"
+const char* OkSound() { return game::Text(0x00793A88); }       // "buttons\messbox\ok.wav"
+const char* CancelSound() { return game::Text(0x007937E4); }   // "buttons\messbox\cancel.wav"
+const char* ExitMovie() { return game::Text(0x0079422C); }     // "Movies\Exit.bik"
 // The client glue object the original passes in ECX (not read).
 void* Glue() { return reinterpret_cast<void*>(0x007AFEA4); }
 

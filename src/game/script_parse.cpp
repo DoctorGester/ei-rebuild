@@ -6,6 +6,7 @@
 // keyword lookups are patched by Rebirth, and in verify builds each callee then runs through its
 // own wrapper.
 #include "script.h"
+#include "game_strings.h"
 #include "script_parse.h"
 #include "script_addon.h"
 
@@ -184,7 +185,7 @@ EI_REBIRTH_IMPLEMENTS(0x004D0B10, ei::rebirth::Patch::AddNewScriptCommands);
 const char* __fastcall KeywordName(int id) {
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k)
         if (k->id == id) return k->name;
-    return GameText(0x0078D848);   // "Unknown command"
+    return game::Text(0x0078D848);   // "Unknown command"
 }
 EI_REPLACE(0x004D0BA0, KeywordName);
 EI_REBIRTH_IMPLEMENTS(0x004D0BA0, ei::rebirth::Patch::AddNewScriptCommands);
@@ -193,7 +194,7 @@ EI_REBIRTH_IMPLEMENTS(0x004D0BA0, ei::rebirth::Patch::AddNewScriptCommands);
 
 ScriptToken* ScriptToken::Construct() {
     new (&text) mfc::CString;
-    text = GameText(0x0078BC6C);   // "None"
+    text = game::Text(0x0078BC6C);   // "None"
     line = -1;
     return this;
 }
@@ -265,7 +266,7 @@ BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
         if (Strncmp(buffer, CommentOpen(), std::strlen(CommentOpen())) == 0) {
             // Block comment: the search for the end starts after the token (so "/**/" written as
             // one token does not end it) and skips quoted text.
-            if (!*p) return Error(this, line, 1, GameText(0x0078D758), CommentClose());   // "End of file before '%s'"
+            if (!*p) return Error(this, line, 1, game::Text(0x0078D758), CommentClose());   // "End of file before '%s'"
             for (;;) {
                 const char c = *p;
                 if (c == '\n') ++line;
@@ -275,7 +276,7 @@ BOOL CScript::Tokenize(const mfc::CString& source, ScriptTokenList* tokens) {
                     break;
                 }
                 ++p;
-                if (!*p) return Error(this, line, 1, GameText(0x0078D758), CommentClose());
+                if (!*p) return Error(this, line, 1, game::Text(0x0078D758), CommentClose());
             }
             continue;
         }
@@ -310,14 +311,14 @@ EI_REPLACE_METHOD(0x004CF7A0, CScript::Tokenize);
 
 BOOL CScript::ExpectLexeme(const ScriptTokenList* tokens, ScriptPos* pos, int id) {
     ScriptPos node = *pos;
-    if (!node) return Error(this, tokens->tail->data.line, 1, GameText(0x0078D740));   // "Unexpected end of file"
+    if (!node) return Error(this, tokens->tail->data.line, 1, game::Text(0x0078D740));   // "Unexpected end of file"
     *pos = node->next;
     ScriptToken token;
     token.CopyConstruct(node->data);
     mfc::CString text(token.text);
     int found;
     ClassifyAt(text, &found, nullptr);
-    if (found != id) return Error(this, token.line, 2, GameText(0x0078D730), static_cast<const char*>(text));   // "Wrong lexeme %s"
+    if (found != id) return Error(this, token.line, 2, game::Text(0x0078D730), static_cast<const char*>(text));   // "Wrong lexeme %s"
     return 1;
 }
 EI_REPLACE_METHOD(0x004CF4D0, CScript::ExpectLexeme);
@@ -330,7 +331,7 @@ mfc::CString* CScript::QualifyName(mfc::CString* out, const mfc::CString& name) 
         return out;
     }
     mfc::CString qualified;
-    qualified.Format(GameText(0x0078DA38), FileCount(), static_cast<const char*>(name));   // "!%i!%s"
+    qualified.Format(game::Text(0x0078DA38), FileCount(), static_cast<const char*>(name));   // "!%i!%s"
     new (out) mfc::CString(qualified);
     return out;
 }

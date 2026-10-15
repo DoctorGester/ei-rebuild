@@ -60,11 +60,11 @@ void FpuCopy(float* dst, const float* src) {
 }
 
 template <typename T>
-void ReadField(AIStream* stream, T* field, unsigned size = sizeof(T)) { stream->Read(field, size); }
+void ReadField(CStream* stream, T* field, unsigned size = sizeof(T)) { stream->Read(field, size); }
 
 // The original's Save functions copy each scalar into a stack slot before writing it.
 template <typename T>
-void WriteCopy(AIStream* stream, const T& value, unsigned size = sizeof(T)) {
+void WriteCopy(CStream* stream, const T& value, unsigned size = sizeof(T)) {
     T copy = value;
     stream->Write(&copy, size);
 }
@@ -214,15 +214,15 @@ void GuardMode::Execute(AIBrain* brain) {
 }
 EI_REPLACE_METHOD(0x005D0BE0, GuardMode::Execute);
 
-void GuardMode::Load(AIStream* stream) {
+void GuardMode::Load(CStream* stream) {
     ReadField(stream, &radius);
     ReadField(stream, &wander);
     ReadField(stream, &point);
-    if (stream->version >= 0x66) ReadField(stream, &failures);
+    if (stream->version_ >= 0x66) ReadField(stream, &failures);
 }
 EI_REPLACE_METHOD(0x005D0EB0, GuardMode::Load);
 
-void GuardMode::Save(AIStream* stream) {
+void GuardMode::Save(CStream* stream) {
     WriteCopy(stream, radius);
     WriteCopy(stream, wander);
     stream->Write(&point, sizeof(Vector3));
@@ -274,7 +274,7 @@ PatrolPoint* PatrolMode::LastPoint() {
 }
 EI_REPLACE_METHOD(0x005D1690, PatrolMode::LastPoint);
 
-void PatrolMode::Load(AIStream* stream) {
+void PatrolMode::Load(CStream* stream) {
     int count;
     ReadField(stream, &count);
     PatrolPointArraySetSizeOriginal(&points, nullptr, count, -1);
@@ -289,14 +289,14 @@ void PatrolMode::Load(AIStream* stream) {
             ReadField(stream, &look.angle);
             ReadField(stream, &look.time);
             ReadField(stream, &look.wait);
-            if (stream->version >= 0x44) ReadField(stream, &look.stopFirst);
+            if (stream->version_ >= 0x44) ReadField(stream, &look.stopFirst);
         }
     }
     ReadField(stream, &current);
 }
 EI_REPLACE_METHOD(0x005D1930, PatrolMode::Load);
 
-void PatrolMode::Save(AIStream* stream) {
+void PatrolMode::Save(CStream* stream) {
     WriteCopy(stream, points.size);
     for (int i = 0; i < points.size; ++i) {
         PatrolPoint& point = points.data[i];
@@ -339,10 +339,10 @@ void SentryMode::Execute(AIBrain* brain) {
 }
 EI_REPLACE_METHOD(0x005D1B70, SentryMode::Execute);
 
-void SentryMode::Load(AIStream* stream) { stream->Read(&point, sizeof(Vector3)); }
+void SentryMode::Load(CStream* stream) { stream->Read(&point, sizeof(Vector3)); }
 EI_REPLACE_METHOD(0x005D1DA0, SentryMode::Load);
 
-void SentryMode::Save(AIStream* stream) { stream->Write(&point, sizeof(Vector3)); }
+void SentryMode::Save(CStream* stream) { stream->Write(&point, sizeof(Vector3)); }
 EI_REPLACE_METHOD(0x005D1DC0, SentryMode::Save);
 
 // --- Follow --------------------------------------------------------------------------------------
@@ -365,10 +365,10 @@ void FollowMode::OnObjectDeleted(CEngineObject* object) {
 }
 EI_REPLACE_METHOD(0x005D1DE0, FollowMode::OnObjectDeleted);
 
-void FollowMode::Load(AIStream* stream) { reinterpret_cast<AIRef*>(&leader)->Load(stream, WorldServer()); }
+void FollowMode::Load(CStream* stream) { reinterpret_cast<AIRef*>(&leader)->Load(stream, WorldServer()); }
 EI_REPLACE_METHOD(0x005D1E60, FollowMode::Load);
 
-void FollowMode::Save(AIStream* stream) { reinterpret_cast<AIRef*>(&leader)->Save(stream); }
+void FollowMode::Save(CStream* stream) { reinterpret_cast<AIRef*>(&leader)->Save(stream); }
 EI_REPLACE_METHOD(0x005D1E80, FollowMode::Save);
 
 // --- Suspection ----------------------------------------------------------------------------------
@@ -548,13 +548,13 @@ void AggressionMode::Execute(AIBrain* brain) {
 }
 EI_REPLACE_METHOD(0x005D2580, AggressionMode::Execute);
 
-void SuspectionMode::Load(AIStream* stream) {
+void SuspectionMode::Load(CStream* stream) {
     stream->Read(&point, sizeof(Vector3));
     stream->Read(&level, 4);
 }
 EI_REPLACE_METHOD(0x005D2330, SuspectionMode::Load);
 
-void SuspectionMode::Save(AIStream* stream) {
+void SuspectionMode::Save(CStream* stream) {
     stream->Write(&point, sizeof(Vector3));
     WriteCopy(stream, level);
 }
@@ -581,13 +581,13 @@ void AggressionMode::Leave(AIBrain* brain) {
 }
 EI_REPLACE_METHOD(0x005D2710, AggressionMode::Leave);
 
-void AggressionMode::Load(AIStream* stream) {
+void AggressionMode::Load(CStream* stream) {
     reinterpret_cast<AIRef*>(&enemy)->Load(stream, WorldServer());
     stream->Read(&fixed, 1);
 }
 EI_REPLACE_METHOD(0x005D2770, AggressionMode::Load);
 
-void AggressionMode::Save(AIStream* stream) {
+void AggressionMode::Save(CStream* stream) {
     reinterpret_cast<AIRef*>(&enemy)->Save(stream);
     stream->Write(&fixed, 1);
 }
@@ -618,18 +618,18 @@ EI_REPLACE_METHOD(0x005D3650, FearMode::Enter);
 void FearMode::Leave(AIBrain* brain) { brain->owner->busy = 0; }
 EI_REPLACE_METHOD(0x005D3680, FearMode::Leave);
 
-void FearMode::Load(AIStream* stream) {
+void FearMode::Load(CStream* stream) {
     ReadField(stream, &distance);
     ReadField(stream, &spread);
     ReadField(stream, &shelter);
-    if (stream->version >= 0x53) {
+    if (stream->version_ >= 0x53) {
         ReadField(stream, &flag);
-        if (stream->version >= 0x70) ReadField(stream, &fleePoint);
+        if (stream->version_ >= 0x70) ReadField(stream, &fleePoint);
     }
 }
 EI_REPLACE_METHOD(0x005D3690, FearMode::Load);
 
-void FearMode::Save(AIStream* stream) {
+void FearMode::Save(CStream* stream) {
     WriteCopy(stream, distance);
     WriteCopy(stream, spread);
     stream->Write(&shelter, sizeof(Vector3));
@@ -887,14 +887,14 @@ void PlayerMode::OnObjectDeleted(CEngineObject* object) {
 }
 EI_REPLACE_METHOD(0x005D37A0, PlayerMode::OnObjectDeleted);
 
-void PlayerMode::Load(AIStream* stream) {
+void PlayerMode::Load(CStream* stream) {
     // The save versions that wrote a group of objects after the mode.
     constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
     reinterpret_cast<AIRef*>(&target)->Load(stream, WorldServer());
     reinterpret_cast<AIRef*>(&leader)->Load(stream, WorldServer());
     stream->Read(&point, sizeof(Vector3));
     stream->Read(&state, 4);
-    if (stream->version >= kGroupFirst && stream->version < kGroupEnd) {
+    if (stream->version_ >= kGroupFirst && stream->version_ < kGroupEnd) {
         ScriptGroup group;
         group.vtable = scriptvtable::kRefs;
         group.data = nullptr;
@@ -907,7 +907,7 @@ void PlayerMode::Load(AIStream* stream) {
 }
 EI_REPLACE_METHOD(0x005D4CD0, PlayerMode::Load);
 
-void PlayerMode::Save(AIStream* stream) {
+void PlayerMode::Save(CStream* stream) {
     reinterpret_cast<AIRef*>(&target)->Save(stream);
     reinterpret_cast<AIRef*>(&leader)->Save(stream);
     stream->Write(&point, sizeof(Vector3));

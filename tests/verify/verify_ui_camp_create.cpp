@@ -1,17 +1,20 @@
-// Check for the vanilla body of the camp's Create (0060C870, src/game/ui_camp_create.cpp; A-I22).
-// Rebirth patches the function, so the installer hooks it in the vanilla launch only.
+// Check for the camp's Create (0060C870, src/game/ui_camp_create.cpp; A-I22). Rebirth's WideScreen
+// replaces the function (the original, then two curtains over the screen's margins), which the
+// rewrite reproduces, so it runs in both launches.
 //
 // Ours only: Create allocates the camp's panels, lists and the client world's hero units, so a
 // second run cannot be compared. What it leaves is read back: twelve regions, ten button sprites,
-// two surfaces, the panels every camp has, eight page titles, the first page by what the camp
+// two surfaces, the panels every camp has (with WideScreen two more sprites, the curtains: shown,
+// tint 0.3), eight page titles, the first page by what the camp
 // offers, a unit for every hero record and the records' ids put back.
-// Scenario: ui_camp opens the camp (and ui_camp_deals, ui_trade_hold, ui_describe), in the vanilla
-// launch.
+// Scenario: ui_camp opens the camp (and ui_camp_deals, ui_trade_hold, ui_describe; ui_widescreen
+// with WideScreen).
 #include "verify.h"
 
 #include "../../src/game/class_templates.h"
 #include "../../src/game/party.h"
 #include "../../src/game/ui_camp.h"
+#include "../../src/game/ui_widescreen.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/world.h"
 
@@ -20,6 +23,18 @@
 namespace {
 void* s_unused;
 constexpr int kIdsKept = 16;
+constexpr int kButtonSprites = 10;
+
+// WideScreen's curtains: sprites `first` and `first` + 1, shown or not, tint 0.3.
+bool CurtainsAre(const CUiWindow* window, int first, int visible) {
+    for (int i = first; i < first + 2; ++i) {
+        const CUiMesh* curtain = window->SceneMesh(i);
+        if (curtain->visible_ != visible || curtain->tint_[0] != 0.3f || curtain->tint_[1] != 0.3f ||
+            curtain->tint_[2] != 0.3f)
+            return false;
+    }
+    return true;
+}
 } // namespace
 
 static void __fastcall CampCreateVerify(CCampPages* self) {
@@ -33,7 +48,10 @@ static void __fastcall CampCreateVerify(CCampPages* self) {
     // No class template for the player's "constr.current": back to the world, nothing built.
     if (!self->constructor_ && self->regions_.size == 0) return;
 
-    bool built = self->regions_.size == 12 && self->sceneObjects_.size == 10 && self->surfaces_.size == 2 &&
+    const bool wide = widescreen::Active();
+    const int sprites = kButtonSprites + (wide ? 2 : 0);
+    bool built = self->regions_.size == 12 && self->sceneObjects_.size == sprites &&
+                 (!wide || CurtainsAre(self, kButtonSprites, 1)) && self->surfaces_.size == 2 &&
                  self->descPanel_ && self->statsPanel_ && self->helpPanel_ && self->itemStrip_ && self->equipment_ &&
                  self->equipment2_ && self->trade_ && self->pageTitles_.size == 8 && self->turning_ == 0 &&
                  !self->itemMade_ && !self->spellMade_;

@@ -28,8 +28,8 @@ namespace {
 
 void* NetworkLog() { return reinterpret_cast<void*>(flowdata::kNetLogStream); }
 
-// The player state's +0x24 (CPlayerServer::possessedId_): negative for the local players.
-bool IsLocal(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }
+// CPlayerServer::possessedId_ (+0x24) is -1 while no Possession spell has taken a unit.
+bool NoPendingPossession(const CPlayerServer* state) { return static_cast<int>(state->possessedId_) < 0; }
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
@@ -143,7 +143,7 @@ int CWorldServer::Update() {
     }
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         CPlayerServer* state = player->server;
-        if (!IsLocal(state)) continue;
+        if (!NoPendingPossession(state)) continue;
         ScriptGroup sum;
         InitGroup(&sum);
         GroupUnion(&sum, nullptr, &state->partyUnits_, &heroes);
@@ -156,7 +156,7 @@ int CWorldServer::Update() {
     }
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         CPlayerServer* state = player->server;
-        if (!IsLocal(state)) continue;
+        if (!NoPendingPossession(state)) continue;
         ScriptGroup& own = state->partyUnits_;
         GroupSetSize(&own, nullptr, heroes.size, -1);
         for (int i = 0; i < heroes.size; ++i) {

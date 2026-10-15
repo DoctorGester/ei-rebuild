@@ -48,9 +48,14 @@ hook and verify wrapper.
   map_spec*, net_coder, particle_create, resource_stream, script_runtime_helpers, torch_object, ui_camp_create, ui_create_screen, ui_exchange,
   ui_hero_screen_create, ui_layouts); `FpuCopyBits` (ReadVector3's FPU copy of a signalling NaN) stays until the x87
   cleanup.
-- Other layouts of these streams: `UnitStream` (`unit.h`), the `SaveStream` structs in `ui_battle_setup.cpp` / `ui_global_map.cpp`, the unit_ai stream,
-  `verify_magic_trap`'s wrapper, the remaining per-file `Text(0x...)` helpers, `TweenArray` (`model_db.cpp`, reads and writes through `ScriptStream`),
-  `hash_tables_400` / `atexit_400` raw views of the registry.
+- C5 (folded): `UnitStream` and the unit_ai `AIStream` are `CStream` (members `reading_` / `version_`; the verify capture, recording and replay
+  streams derive from `FakeStream`); the `SaveStream` structs of `ui_battle_setup.cpp` / `ui_global_map.cpp` are `CMemoryStream` at 007AFDF8;
+  `verify_magic_trap`'s `ReadRecorder` is `unitverify::ReadRecorder`; the 101 per-file string helpers (`Text`, `GameText`, `GameString`,
+  `TextAt`, `Letter`, and `console::GameText` / `device::Text` / script_parse's / spell_effect_internal's) are `game::Text` (`game_strings.h`).
+- Left: `TweenArray` (`model_db.cpp`, reads and writes through `ScriptStream`), `hash_tables_400` / `atexit_400` raw views of the registry,
+  the two `LocalFileStream` RAII wrappers (`ui_connect_screen.cpp`, `ui_saveload.cpp`; different interfaces over `netlink::FileStream`), the
+  per-file accessors of the save stream 007AFDF8 (`SaveGameStream` in `ui_battle_slots.cpp` / `ui_briefing.cpp`, `SaveStream` in
+  `ui_briefing_create.cpp`, the same in tests/verify) and the identical `SaveRecorder` / `RecordingStream` test classes.
 - Duplicate forwarders: `config/forwarder_duplicates.txt` and docs/originals-report.md. 007AF738 is the terrain in this layer
   but `LightManager()` elsewhere.
 
@@ -80,3 +85,7 @@ devirtualised.
   `effects_weather` the world's `SurfaceHeightAt` (slot 30; the double result plus 0.5 rounded once, as the original adds in ST0 and stores).
 - `CParticleSource::orientation` (+0x34, the identity after Reset); the emitters read the attachment's `CObject3D::orientation`; the sound
   manager's `emitters[index]`; `app_device_list` reads `ChunkArchive::loading_` and `Current()->occurrence`.
+
+## F5a (duplicate declarations)
+- `LeverRecord` (lever.h) is the only declaration of the lever table's record (CString members, spots as floats); app_device_list.cpp's `DeviceRecord` is gone.
+- bink_video.cpp's `SoundSystem` view is `CSoundManager` (`waveDriver`, +0x1C); `mapspec::Waypoint::wait` is `time`; world_update.cpp's `IsLocal` is `NoPendingPossession`; `LocalViewData::partyTaken` is `sendParty` (CPlayerClient::sendParty_, the same byte).

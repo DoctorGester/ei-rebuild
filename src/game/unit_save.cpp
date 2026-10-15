@@ -30,9 +30,6 @@ constexpr int kVersionSecondName = 0x6A;
 constexpr int kCarriedGrowMin = 4;
 constexpr int kCarriedGrowMax = 0x400;
 
-// The stream the slots get is the game's CStream (UnitStream declares the slots it uses).
-CStream* AsStream(UnitStream* stream) { return reinterpret_cast<CStream*>(stream); }
-
 // The record of prototype `index`, or null when out of range (the table holds 0x120-byte records
 // whose first field is the name CString).
 char* PrototypeAt(std::uint32_t index) { return unitdb::Prototypes().At(index, unitdb::kPrototypeSize); }
@@ -43,15 +40,15 @@ int PrototypeIndexOf(const char* record) {
 
 // Writes `value` from a stack copy, as the original does for most scalars.
 template <typename T>
-void WriteCopy(UnitStream* stream, T value) {
+void WriteCopy(CStream* stream, T value) {
     stream->Write(&value, sizeof(T));
 }
 
-void WriteString(UnitStream* stream, const char* text) {
+void WriteString(CStream* stream, const char* text) {
     stream->Write(text, static_cast<unsigned>(std::strlen(text) + 1));
 }
 
-void WriteItemIds(UnitStream* stream, CEngineObject* const* items, int count) {
+void WriteItemIds(CStream* stream, CEngineObject* const* items, int count) {
     for (int i = 0; i < count; ++i) WriteCopy<int>(stream, items[i] ? items[i]->id_ : -1);
 }
 
@@ -66,9 +63,9 @@ void* RawString::InitFrom(const char* text, void* alloc) { return ::StringInitFr
 
 namespace {
 // Reads a string and assigns it to `target` (the original's temporary is destroyed at once).
-void ReadStringInto(UnitStream* stream, mfc::CString& target) {
+void ReadStringInto(CStream* stream, mfc::CString& target) {
     alignas(4) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* read = StreamReadString(AsStream(stream), nullptr, storage);
+    mfc::CString* read = StreamReadString(stream, nullptr, storage);
     target = *read;
     read->~CString();
 }
@@ -89,7 +86,7 @@ CWorld* ContextWorld(CUnit* unit) { return static_cast<CWorld*>(unit->ManagerCon
 
 // Reads an item id and resolves it in the world's item manager (asked before each read), with a
 // counted reference.
-CEngineObject* ReadItem(CUnit* unit, UnitStream* stream) {
+CEngineObject* ReadItem(CUnit* unit, CStream* stream) {
     CEngineObject* manager = ContextWorld(unit)->ItemFactory();
     int id;
     stream->Read(&id, 4);
@@ -99,7 +96,7 @@ CEngineObject* ReadItem(CUnit* unit, UnitStream* stream) {
     return item;
 }
 
-void ReadItems(CUnit* unit, UnitStream* stream, CEngineObject** slots, int count) {
+void ReadItems(CUnit* unit, CStream* stream, CEngineObject** slots, int count) {
     for (int i = 0; i < count; ++i) slots[i] = ReadItem(unit, stream);
 }
 
@@ -156,8 +153,8 @@ void* PlayerById(CUnit* unit, int id) {
 }
 } // namespace
 
-void CUnit::LoadUnit(UnitStream* stream) {
-    LoadMapObject(AsStream(stream));
+void CUnit::LoadUnit(CStream* stream) {
+    LoadMapObject(stream);
     controller->Load(stream);
     flags_ &= ~kFlag800000;
     ReadStringInto(stream, scriptName);
@@ -178,7 +175,7 @@ void CUnit::LoadUnit(UnitStream* stream) {
     stream->Read(&pendingWeapon, 4);
     stream->Read(&dead, 4);
     stream->Read(&obstacle, 4);
-    Motion()->LoadState(AsStream(stream));
+    Motion()->LoadState(stream);
     stream->Read(&heightOffset, 4);
     stream->Read(&sizeClass, 4);
     stream->Read(&unitRadius, 4);
@@ -200,15 +197,15 @@ void CUnit::LoadUnit(UnitStream* stream) {
     for (int i = 0; i < count; ++i) carried[i] = ReadItem(this, stream);
     stream->Read(&standingHeight, 4);
 
-    if (stream->version < kVersionField438) return;
+    if (stream->version_ < kVersionField438) return;
     stream->Read(&fightAtWill, 4);
-    if (stream->version < kVersionPrototypeNames) return;
+    if (stream->version_ < kVersionPrototypeNames) return;
 
     mfc::CString prototypeName;
     ReadStringInto(stream, prototypeName);
     prototypeId_ = static_cast<std::uint32_t>(PrototypeIndexOf(PrototypeByName(prototypeName)));
     char* second;
-    if (stream->version < kVersionSecondName) {
+    if (stream->version_ < kVersionSecondName) {
         second = UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, prototypeName);
     } else {
         ReadStringInto(stream, prototypeName);
@@ -218,8 +215,8 @@ void CUnit::LoadUnit(UnitStream* stream) {
 }
 EI_REPLACE_METHOD(0x00531A80, CUnit::LoadUnit);
 
-void CUnit::SaveUnit(UnitStream* stream) {
-    SaveMapObject(AsStream(stream));
+void CUnit::SaveUnit(CStream* stream) {
+    SaveMapObject(stream);
     controller->Save(stream);
     WriteString(stream, scriptName);
     WriteCopy(stream, relationsA);
@@ -236,7 +233,7 @@ void CUnit::SaveUnit(UnitStream* stream) {
     WriteCopy(stream, pendingWeapon);
     WriteCopy(stream, dead);
     WriteCopy(stream, obstacle);
-    Motion()->SaveState(AsStream(stream));
+    Motion()->SaveState(stream);
     WriteCopy(stream, heightOffset);
     WriteCopy(stream, sizeClass);
     WriteCopy(stream, std::bit_cast<std::uint32_t>(unitRadius));

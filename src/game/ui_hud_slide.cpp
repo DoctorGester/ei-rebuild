@@ -9,6 +9,7 @@
 // ("Battle screen and its HUD panels"), docs/notes/items_spells.md ("A-H26") and
 // docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
+#include "game_strings.h"
 
 #include "item_db_text.h"       // GameTexts
 #include "map_object.h"
@@ -245,7 +246,6 @@ EI_REBIRTH_IMPLEMENTS(0x00647FB0, ei::rebirth::Patch::WideScreen);
 // --- 006456E0: the unit panel's setup ----------------------------------------------------------------
 
 namespace {
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 constexpr std::uintptr_t kArrowSprite = std::uintptr_t(0x007945B0);     // "in25arrow"
 constexpr std::uintptr_t kInfoTextFormat = std::uintptr_t(0x007945CC);  // "infounit_%d"
 constexpr std::uintptr_t kPartLabelKeys[4] = {
@@ -303,7 +303,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     edge->flags_ |= kPlainColour;
     edge->plainColour_ = 0xB4000000;
     // 2: the sling button.
-    CUiMesh* slingButton = AddSprite(GameText(kArrowSprite));
+    CUiMesh* slingButton = AddSprite(game::Text(kArrowSprite));
     slingButton->uOffset_ = 0.22265625f;
     slingButton->vOffset_ = 0.140625f;
     PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), SlingTurn(), -50.0f);
@@ -358,7 +358,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     mfc::CString key;
     mfc::CStringArray* infoTexts = &texts_;
     for (int i = 0; i < kInfoTexts; ++i) {
-        key.Format(GameText(kInfoTextFormat), i);
+        key.Format(game::Text(kInfoTextFormat), i);
         text.Empty();
         texts->GetString(key, &text);
         infoTexts->SetAtGrow(infoTexts->size, text);
@@ -366,7 +366,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     // A missing label keeps the text before it.
     mfc::CStringArray* labels = &partLabels_;
     for (std::uintptr_t labelKey : kPartLabelKeys) {
-        texts->GetString(GameText(labelKey), &text);
+        texts->GetString(game::Text(labelKey), &text);
         labels->SetAtGrow(labels->size, text);
     }
     for (int& icon : effectIcons_) icon = -1;
@@ -429,7 +429,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     } else {
         worldWidth_ = 32.0f;
         worldHeight_ = 32.0f;
-        LoadTexture(GameText(kDefaultPicture), kMapTextureKind, nullptr);
+        LoadTexture(game::Text(kDefaultPicture), kMapTextureKind, nullptr);
     }
     textureSize_ = worldWidth_ < worldHeight_ ? worldHeight_ : worldWidth_;
     scale_ = MapSide() / textureSize_;
@@ -501,7 +501,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     edge->SetRectangle(20.0f, 100.0f, 780.0f, 0.0f, 800.0f, 160.0f, 0, 0, 256, 256);
     SetPlain(edge, 0xB4000000);
     // 5: the sling button.
-    CUiMesh* slingButton = AddSprite(GameText(kArrowSprite));
+    CUiMesh* slingButton = AddSprite(game::Text(kArrowSprite));
     slingButton->uOffset_ = 0.22265625f;
     slingButton->vOffset_ = 0.140625f;
     PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), RoundToFloat(Pi() * SlingQuarter()), 850.0f);
@@ -512,7 +512,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 780.0f, 130.0f, 800.0f, 160.0f, 3, 0x3E, 0x17, 0x5C);
     Builder(AddSprite(nullptr))->Ring(10.0f, 60.0f, 700.0f, 80.0f, 66.0f, kOutlinePoints, 3.0f, 0x1B, 0x6B, 0x5B, 0x70);
     AddSprite(nullptr)->SetFrame(10.0f, 80.0f, 615.0f, -5.0f, 805.0f, 165.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
-    CUiMesh* needle = AddSprite(GameText(kArrowSprite));
+    CUiMesh* needle = AddSprite(game::Text(kArrowSprite));
     needle->uOffset_ = 0.22265625f;
     needle->vOffset_ = 0.140625f;
     SpritePlaceOriginal(needle, nullptr, 900.0f, 80.0f, FromBits(kSlingDepthBits));

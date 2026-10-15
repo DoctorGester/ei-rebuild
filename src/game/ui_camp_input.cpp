@@ -1,6 +1,7 @@
 // The camp's input side (buttons, keys), its message-result and help-topic slots (CCampPages,
 // ui_camp.h). See docs/notes/ui.md, section 5.
 #include "ui_camp.h"
+#include "game_strings.h"
 
 #include "unit.h"
 #include "world.h"
@@ -12,19 +13,18 @@
 
 namespace {
 
-const char* GameString(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* MoveSound() { return GameString(0x00793764); }   // "buttons\camp\move.wav"
+const char* MoveSound() { return game::Text(0x00793764); }   // "buttons\camp\move.wav"
 
 // The help topics of pages 0-6 (the game's strings).
 const char* PageHelpTopic(int page) {
     switch (page) {
-    case 0: return GameString(0x0079371C);   // "camp_weapons"
-    case 1: return GameString(0x00793710);   // "camp_skills"
-    case 2: return GameString(0x007936FC);   // "camp_spell_trade"
-    case 3: return GameString(0x007936E8);   // "camp_spell_constr"
-    case 4: return GameString(0x007936D8);   // "camp_item_trade"
-    case 5: return GameString(0x007936C4);   // "camp_item_constr"
-    case 6: return GameString(0x007936B8);   // "camp_repair"
+    case 0: return game::Text(0x0079371C);   // "camp_weapons"
+    case 1: return game::Text(0x00793710);   // "camp_skills"
+    case 2: return game::Text(0x007936FC);   // "camp_spell_trade"
+    case 3: return game::Text(0x007936E8);   // "camp_spell_constr"
+    case 4: return game::Text(0x007936D8);   // "camp_item_trade"
+    case 5: return game::Text(0x007936C4);   // "camp_item_constr"
+    case 6: return game::Text(0x007936B8);   // "camp_repair"
     default: return nullptr;
     }
 }

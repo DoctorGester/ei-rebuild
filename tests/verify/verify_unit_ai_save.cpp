@@ -3,6 +3,7 @@
 // Reached by saving and loading a game with AI units: ui_saveload (save, then load), and by
 // every new game's mode setup (ShareAssign through AddMode's callers is inlined; Load uses it).
 #include "verify.h"
+#include "fake_stream.h"
 
 #include "../../src/game/core_refcount.h"
 #include "../../src/game/unit_ai.h"
@@ -13,22 +14,6 @@
 
 namespace {
 void* s_unused;
-
-// An AIStream that records what is written (reads give nothing).
-class SaveRecorder : public AIStream {
-public:
-    explicit SaveRecorder(int fileVersion) {
-        reading = 0;
-        version = fileVersion;
-    }
-    void* DeletingDestruct(unsigned) override { return this; }
-    void Read(void*, unsigned) override {}
-    void Write(const void* buffer, unsigned size) override {
-        const auto* bytes = static_cast<const std::uint8_t*>(buffer);
-        written.insert(written.end(), bytes, bytes + size);
-    }
-    std::vector<std::uint8_t> written;
-};
 
 AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
 
@@ -51,9 +36,9 @@ bool ModesConsistent(AIBrain* brain) {
 // 005D8860 AIBrain::Save: PUSH ECX; PUSH EBX; PUSH EBP; PUSH ESI; MOV ESI,[ESP+0x14] (8 bytes).
 // The original into a recording stream, ours into another, the bytes compared; then ours into
 // the real stream. (The helpers' wrappers write the same way inside both.)
-static void(__fastcall* s_brainSave)(AIBrain*, void*, AIStream*);
-static void __fastcall BrainSaveVerify(AIBrain* self, void*, AIStream* stream) {
-    SaveRecorder expected(stream->version), actual(stream->version);
+static void(__fastcall* s_brainSave)(AIBrain*, void*, CStream*);
+static void __fastcall BrainSaveVerify(AIBrain* self, void*, CStream* stream) {
+    RecordingStream expected(stream->version_), actual(stream->version_);
     s_brainSave(self, nullptr, &expected);
     self->Save(&actual);
     ei::verify::Check("AIBrain::Save", true, expected.written == actual.written, "%d bytes (original %d)",
@@ -64,7 +49,7 @@ EI_VERIFY(0x005D8860, BrainSaveVerify, 8, s_brainSave);
 
 // 005D8310 AIBrain::Load: reads the stream, so ours only: the mode list is consistent and the
 // alarm records and looks hold their counts.
-static void __fastcall BrainLoadVerify(AIBrain* self, void*, AIStream* stream) {
+static void __fastcall BrainLoadVerify(AIBrain* self, void*, CStream* stream) {
     self->Load(stream);
     bool ok = ModesConsistent(self) && self->alarmRecords.size >= 0 && self->alarmRecords.maxSize >= self->alarmRecords.size &&
               self->looks.size >= 0 && self->looks.maxSize >= self->looks.size;
@@ -74,9 +59,9 @@ static void __fastcall BrainLoadVerify(AIBrain* self, void*, AIStream* stream) {
 EI_VERIFY(0x005D8310, BrainLoadVerify, 0, s_unused);
 
 // 005CC350 memory save: PUSH ECX; PUSH EBX; MOV EBX,ECX; PUSH EBP; PUSH ESI (6 bytes). As Save.
-static void(__fastcall* s_memorySave)(std::uint8_t*, void*, AIStream*);
-static void __fastcall MemorySaveVerify(std::uint8_t* memory, void*, AIStream* stream) {
-    SaveRecorder expected(stream->version), actual(stream->version);
+static void(__fastcall* s_memorySave)(std::uint8_t*, void*, CStream*);
+static void __fastcall MemorySaveVerify(std::uint8_t* memory, void*, CStream* stream) {
+    RecordingStream expected(stream->version_), actual(stream->version_);
     s_memorySave(memory, nullptr, &expected);
     BrainOfMemory(memory)->SaveMemory(&actual);
     ei::verify::Check("AIBrain::SaveMemory", true, expected.written == actual.written, "%d bytes (original %d)",
@@ -87,7 +72,7 @@ EI_VERIFY(0x005CC350, MemorySaveVerify, 6, s_memorySave);
 
 // 005CC1E0 memory load: ours only: the noticed kind was read (not left -1 unless saved so), the
 // reports hold objects or nothing and every call has its text.
-static void __fastcall MemoryLoadVerify(std::uint8_t* memory, void*, AIStream* stream) {
+static void __fastcall MemoryLoadVerify(std::uint8_t* memory, void*, CStream* stream) {
     AIBrain* brain = BrainOfMemory(memory);
     brain->LoadMemory(stream);
     bool ok = brain->reports.size >= 0 && brain->calls.size >= 0;
@@ -98,9 +83,9 @@ static void __fastcall MemoryLoadVerify(std::uint8_t* memory, void*, AIStream* s
 EI_VERIFY(0x005CC1E0, MemoryLoadVerify, 0, s_unused);
 
 // 005D91B0 SaveLooks: SUB ESP,0x14; PUSH EBX; MOV EBX,ECX (6 bytes). As Save.
-static void(__fastcall* s_saveLooks)(const AILookArray*, AIStream*);
-static void __fastcall SaveLooksVerify(const AILookArray* looks, AIStream* stream) {
-    SaveRecorder expected(stream->version), actual(stream->version);
+static void(__fastcall* s_saveLooks)(const AILookArray*, CStream*);
+static void __fastcall SaveLooksVerify(const AILookArray* looks, CStream* stream) {
+    RecordingStream expected(stream->version_), actual(stream->version_);
     s_saveLooks(looks, &expected);
     SaveLooks(looks, &actual);
     ei::verify::Check("SaveLooks", true, expected.written == actual.written, "%d looks: %d bytes (original %d)", looks->size,
@@ -110,7 +95,7 @@ static void __fastcall SaveLooksVerify(const AILookArray* looks, AIStream* strea
 EI_VERIFY(0x005D91B0, SaveLooksVerify, 6, s_saveLooks);
 
 // 005D9010 LoadLooks: ours only: the storage holds the count read.
-static void __fastcall LoadLooksVerify(AILookArray* looks, AIStream* stream) {
+static void __fastcall LoadLooksVerify(AILookArray* looks, CStream* stream) {
     LoadLooks(looks, stream);
     bool ok = looks->size >= 0 && looks->maxSize >= looks->size && (looks->size == 0 || looks->data);
     ei::verify::Check("LoadLooks", true, ok, "%d looks", looks->size);

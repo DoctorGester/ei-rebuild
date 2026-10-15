@@ -6,6 +6,7 @@
 // capture streams. Everything that releases references, calls other AI code or changes game state
 // runs ours only, followed by a consistency check.
 #include "verify.h"
+#include "fake_stream.h"
 
 #include "../../src/game/ai_alarm.h"
 #include "../../src/game/unit_ai.h"
@@ -24,62 +25,52 @@ std::uint32_t Bits(float f) {
 }
 
 // Streams for Load / Save (the version at +8 is copied from the real stream).
-class CaptureStream : public AIStream {
+class CaptureStream : public FakeStream {
 public:
-    explicit CaptureStream(const AIStream* real) {
-        reading = 0;
-        version = real ? real->version : 0;
-    }
-    void* DeletingDestruct(unsigned) override { return this; }
-    void Read(void*, unsigned) override {}
-    void Write(const void* buffer, unsigned size) override {
+    explicit CaptureStream(const CStream* real) { version_ = real ? real->version_ : 0; }
+    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
+    void Write(const void* buffer, std::uint32_t size) override {
         auto* p = static_cast<const unsigned char*>(buffer);
         bytes.insert(bytes.end(), p, p + size);
         chunks.push_back(size);
     }
-    void Forward(AIStream* stream) const {
+    void Forward(CStream* stream) const {
         std::size_t pos = 0;
-        for (unsigned size : chunks) {
+        for (std::uint32_t size : chunks) {
             stream->Write(bytes.data() + pos, size);
             pos += size;
         }
     }
     bool Same(const CaptureStream& other) const { return bytes == other.bytes && chunks == other.chunks; }
     std::vector<unsigned char> bytes;
-    std::vector<unsigned> chunks;
+    std::vector<std::uint32_t> chunks;
 };
 
-class RecordStream : public AIStream {
+class RecordStream : public FakeStream {
 public:
-    explicit RecordStream(AIStream* real) : real_(real) {
-        reading = 0;
-        version = real->version;
-    }
-    void* DeletingDestruct(unsigned) override { return this; }
-    void Read(void* buffer, unsigned size) override {
-        real_->Read(buffer, size);
+    explicit RecordStream(CStream* real) : real_(real) { version_ = real->version_; }
+    std::uint32_t Read(void* buffer, std::uint32_t size) override {
+        std::uint32_t result = real_->Read(buffer, size);
         auto* p = static_cast<const unsigned char*>(buffer);
         bytes.insert(bytes.end(), p, p + size);
+        return result;
     }
-    void Write(const void*, unsigned) override {}
+    void Write(const void*, std::uint32_t) override {}
     std::vector<unsigned char> bytes;
 
 private:
-    AIStream* real_;
+    CStream* real_;
 };
 
-class ReplayStream : public AIStream {
+class ReplayStream : public FakeStream {
 public:
-    ReplayStream(const AIStream* real, const std::vector<unsigned char>& bytes) : bytes_(bytes) {
-        reading = 0;
-        version = real->version;
-    }
-    void* DeletingDestruct(unsigned) override { return this; }
-    void Read(void* buffer, unsigned size) override {
-        for (unsigned i = 0; i < size; ++i)
+    ReplayStream(const CStream* real, const std::vector<unsigned char>& bytes) : bytes_(bytes) { version_ = real->version_; }
+    std::uint32_t Read(void* buffer, std::uint32_t size) override {
+        for (std::uint32_t i = 0; i < size; ++i)
             static_cast<unsigned char*>(buffer)[i] = pos_ < bytes_.size() ? bytes_[pos_++] : 0;
+        return size;
     }
-    void Write(const void*, unsigned) override {}
+    void Write(const void*, std::uint32_t) override {}
     bool Consumed() const { return pos_ == bytes_.size(); }
 
 private:
@@ -90,7 +81,7 @@ private:
 // Load: the original reads the real stream into a copy of the mode (recording the bytes), ours
 // replays them into the real mode; the modes must end up equal and all bytes consumed.
 template <typename Mode, typename Original>
-void SameLoad(const char* name, Mode* self, AIStream* stream, Original original) {
+void SameLoad(const char* name, Mode* self, CStream* stream, Original original) {
     Mode scratch;
     std::memcpy(&scratch, self, sizeof(Mode));
     RecordStream record(stream);
@@ -98,13 +89,13 @@ void SameLoad(const char* name, Mode* self, AIStream* stream, Original original)
     ReplayStream replay(stream, record.bytes);
     self->Load(&replay);
     bool same = std::memcmp(&scratch, self, sizeof(Mode)) == 0 && replay.Consumed();
-    ei::verify::Check(name, true, same, "%p version %d, %u bytes", self, stream->version,
+    ei::verify::Check(name, true, same, "%p version %d, %u bytes", self, stream->version_,
                       static_cast<unsigned>(record.bytes.size()));
 }
 
 // Save: both into capture streams; the original's writes go on to the real stream.
 template <typename Mode, typename Original>
-void SameSave(const char* name, Mode* self, AIStream* stream, Original original) {
+void SameSave(const char* name, Mode* self, CStream* stream, Original original) {
     CaptureStream expected(stream), actual(stream);
     original(self, &expected);
     self->Save(&actual);
@@ -313,16 +304,16 @@ static int __fastcall GuardSetVerify(GuardMode* self, void*, const Vector3* poin
 EI_VERIFY(0x005D0B70, GuardSetVerify, 5, s_guardSet);
 
 // 005D0EB0: PUSH ESI; MOV ESI,[ESP+8] (5 bytes).
-static void(__fastcall* s_guardLoad)(GuardMode*, void*, AIStream*);
-static void __fastcall GuardLoadVerify(GuardMode* self, void*, AIStream* stream) {
-    SameLoad("GuardMode::Load", self, stream, [](GuardMode* m, AIStream* s) { s_guardLoad(m, nullptr, s); });
+static void(__fastcall* s_guardLoad)(GuardMode*, void*, CStream*);
+static void __fastcall GuardLoadVerify(GuardMode* self, void*, CStream* stream) {
+    SameLoad("GuardMode::Load", self, stream, [](GuardMode* m, CStream* s) { s_guardLoad(m, nullptr, s); });
 }
 EI_VERIFY(0x005D0EB0, GuardLoadVerify, 5, s_guardLoad);
 
 // 005D0F00: PUSH ECX; PUSH ESI; MOV ESI,[ESP+0xC] (6 bytes).
-static void(__fastcall* s_guardSave)(GuardMode*, void*, AIStream*);
-static void __fastcall GuardSaveVerify(GuardMode* self, void*, AIStream* stream) {
-    SameSave("GuardMode::Save", self, stream, [](GuardMode* m, AIStream* s) { s_guardSave(m, nullptr, s); });
+static void(__fastcall* s_guardSave)(GuardMode*, void*, CStream*);
+static void __fastcall GuardSaveVerify(GuardMode* self, void*, CStream* stream) {
+    SameSave("GuardMode::Save", self, stream, [](GuardMode* m, CStream* s) { s_guardSave(m, nullptr, s); });
 }
 EI_VERIFY(0x005D0F00, GuardSaveVerify, 6, s_guardSave);
 
@@ -346,10 +337,10 @@ EI_VERIFY(0x005D16B0, PatrolEvaluateVerify, 6, s_patrolEvaluate);
 
 // 005D1930 PatrolMode::Load (A-W12): ours only (it resizes the owned arrays), the bytes read
 // recorded; from version 0x44 (the full look format) our Save must write the same bytes back.
-static void __fastcall PatrolLoadVerify(PatrolMode* self, void*, AIStream* stream) {
+static void __fastcall PatrolLoadVerify(PatrolMode* self, void*, CStream* stream) {
     RecordStream record(stream);
     self->Load(&record);
-    if (stream->version < 0x44) return;
+    if (stream->version_ < 0x44) return;
     CaptureStream written(stream);
     self->Save(&written);
     ei::verify::Check("PatrolMode::Load", true, written.bytes == record.bytes, "%p points %d, %u bytes", self,
@@ -445,9 +436,9 @@ EI_VERIFY(0x005D9590, PointCopyThunkVerify, 5, s_pointCopyThunk);
 
 // 005D1A40 PatrolMode::Save (A-W12): SUB ESP,0x14; PUSH EBX; PUSH EBP (5 bytes). Both into
 // capture streams.
-static void(__fastcall* s_patrolSave)(PatrolMode*, void*, AIStream*);
-static void __fastcall PatrolSaveVerify(PatrolMode* self, void*, AIStream* stream) {
-    SameSave("PatrolMode::Save", self, stream, [](PatrolMode* m, AIStream* s) { s_patrolSave(m, nullptr, s); });
+static void(__fastcall* s_patrolSave)(PatrolMode*, void*, CStream*);
+static void __fastcall PatrolSaveVerify(PatrolMode* self, void*, CStream* stream) {
+    SameSave("PatrolMode::Save", self, stream, [](PatrolMode* m, CStream* s) { s_patrolSave(m, nullptr, s); });
 }
 EI_VERIFY(0x005D1A40, PatrolSaveVerify, 5, s_patrolSave);
 
@@ -478,15 +469,15 @@ static int __fastcall SentrySetVerify(SentryMode* self, void*, const Vector3* po
 EI_VERIFY(0x005D1B50, SentrySetVerify, 7, s_sentrySet);
 
 // 005D1DA0 / 005D1DC0: MOV EAX,ECX; PUSH 0xC; MOV ECX,[ESP+8] (8 bytes).
-static void(__fastcall* s_sentryLoad)(SentryMode*, void*, AIStream*);
-static void __fastcall SentryLoadVerify(SentryMode* self, void*, AIStream* stream) {
-    SameLoad("SentryMode::Load", self, stream, [](SentryMode* m, AIStream* s) { s_sentryLoad(m, nullptr, s); });
+static void(__fastcall* s_sentryLoad)(SentryMode*, void*, CStream*);
+static void __fastcall SentryLoadVerify(SentryMode* self, void*, CStream* stream) {
+    SameLoad("SentryMode::Load", self, stream, [](SentryMode* m, CStream* s) { s_sentryLoad(m, nullptr, s); });
 }
 EI_VERIFY(0x005D1DA0, SentryLoadVerify, 8, s_sentryLoad);
 
-static void(__fastcall* s_sentrySave)(SentryMode*, void*, AIStream*);
-static void __fastcall SentrySaveVerify(SentryMode* self, void*, AIStream* stream) {
-    SameSave("SentryMode::Save", self, stream, [](SentryMode* m, AIStream* s) { s_sentrySave(m, nullptr, s); });
+static void(__fastcall* s_sentrySave)(SentryMode*, void*, CStream*);
+static void __fastcall SentrySaveVerify(SentryMode* self, void*, CStream* stream) {
+    SameSave("SentryMode::Save", self, stream, [](SentryMode* m, CStream* s) { s_sentrySave(m, nullptr, s); });
 }
 EI_VERIFY(0x005D1DC0, SentrySaveVerify, 8, s_sentrySave);
 
@@ -509,9 +500,9 @@ static void __fastcall FollowObjectDeletedVerify(FollowMode* self, void*, CEngin
 EI_VERIFY(0x005D1DE0, FollowObjectDeletedVerify, 0, s_unused);
 
 // 005D1E80: MOV EAX,[ESP+4]; ADD ECX,8 (7 bytes).
-static void(__fastcall* s_followSave)(FollowMode*, void*, AIStream*);
-static void __fastcall FollowSaveVerify(FollowMode* self, void*, AIStream* stream) {
-    SameSave("FollowMode::Save", self, stream, [](FollowMode* m, AIStream* s) { s_followSave(m, nullptr, s); });
+static void(__fastcall* s_followSave)(FollowMode*, void*, CStream*);
+static void __fastcall FollowSaveVerify(FollowMode* self, void*, CStream* stream) {
+    SameSave("FollowMode::Save", self, stream, [](FollowMode* m, CStream* s) { s_followSave(m, nullptr, s); });
 }
 EI_VERIFY(0x005D1E80, FollowSaveVerify, 7, s_followSave);
 
@@ -539,15 +530,15 @@ static void __fastcall SuspectionLeaveVerify(SuspectionMode* self, void*, AIBrai
 EI_VERIFY(0x005D2310, SuspectionLeaveVerify, 0, s_unused);
 
 // 005D2330 / 005D2360: PUSH ESI; MOV ESI,[ESP+8] (5 bytes).
-static void(__fastcall* s_suspectionLoad)(SuspectionMode*, void*, AIStream*);
-static void __fastcall SuspectionLoadVerify(SuspectionMode* self, void*, AIStream* stream) {
-    SameLoad("SuspectionMode::Load", self, stream, [](SuspectionMode* m, AIStream* s) { s_suspectionLoad(m, nullptr, s); });
+static void(__fastcall* s_suspectionLoad)(SuspectionMode*, void*, CStream*);
+static void __fastcall SuspectionLoadVerify(SuspectionMode* self, void*, CStream* stream) {
+    SameLoad("SuspectionMode::Load", self, stream, [](SuspectionMode* m, CStream* s) { s_suspectionLoad(m, nullptr, s); });
 }
 EI_VERIFY(0x005D2330, SuspectionLoadVerify, 5, s_suspectionLoad);
 
-static void(__fastcall* s_suspectionSave)(SuspectionMode*, void*, AIStream*);
-static void __fastcall SuspectionSaveVerify(SuspectionMode* self, void*, AIStream* stream) {
-    SameSave("SuspectionMode::Save", self, stream, [](SuspectionMode* m, AIStream* s) { s_suspectionSave(m, nullptr, s); });
+static void(__fastcall* s_suspectionSave)(SuspectionMode*, void*, CStream*);
+static void __fastcall SuspectionSaveVerify(SuspectionMode* self, void*, CStream* stream) {
+    SameSave("SuspectionMode::Save", self, stream, [](SuspectionMode* m, CStream* s) { s_suspectionSave(m, nullptr, s); });
 }
 EI_VERIFY(0x005D2360, SuspectionSaveVerify, 5, s_suspectionSave);
 
@@ -567,9 +558,9 @@ static void __fastcall AggressionLeaveVerify(AggressionMode* self, void*, AIBrai
 EI_VERIFY(0x005D2710, AggressionLeaveVerify, 0, s_unused);
 
 // 005D27A0: PUSH ESI; PUSH EDI; MOV EDI,[ESP+0xC] (6 bytes).
-static void(__fastcall* s_aggressionSave)(AggressionMode*, void*, AIStream*);
-static void __fastcall AggressionSaveVerify(AggressionMode* self, void*, AIStream* stream) {
-    SameSave("AggressionMode::Save", self, stream, [](AggressionMode* m, AIStream* s) { s_aggressionSave(m, nullptr, s); });
+static void(__fastcall* s_aggressionSave)(AggressionMode*, void*, CStream*);
+static void __fastcall AggressionSaveVerify(AggressionMode* self, void*, CStream* stream) {
+    SameSave("AggressionMode::Save", self, stream, [](AggressionMode* m, CStream* s) { s_aggressionSave(m, nullptr, s); });
 }
 EI_VERIFY(0x005D27A0, AggressionSaveVerify, 6, s_aggressionSave);
 
@@ -601,15 +592,15 @@ static void __fastcall FearLeaveVerify(FearMode* self, void*, AIBrain* brain) {
 EI_VERIFY(0x005D3680, FearLeaveVerify, 0, s_unused);
 
 // 005D3690: PUSH ESI; MOV ESI,[ESP+8] (5 bytes). 005D36F0: PUSH ECX; PUSH ESI; MOV ESI,[ESP+0xC] (6).
-static void(__fastcall* s_fearLoad)(FearMode*, void*, AIStream*);
-static void __fastcall FearLoadVerify(FearMode* self, void*, AIStream* stream) {
-    SameLoad("FearMode::Load", self, stream, [](FearMode* m, AIStream* s) { s_fearLoad(m, nullptr, s); });
+static void(__fastcall* s_fearLoad)(FearMode*, void*, CStream*);
+static void __fastcall FearLoadVerify(FearMode* self, void*, CStream* stream) {
+    SameLoad("FearMode::Load", self, stream, [](FearMode* m, CStream* s) { s_fearLoad(m, nullptr, s); });
 }
 EI_VERIFY(0x005D3690, FearLoadVerify, 5, s_fearLoad);
 
-static void(__fastcall* s_fearSave)(FearMode*, void*, AIStream*);
-static void __fastcall FearSaveVerify(FearMode* self, void*, AIStream* stream) {
-    SameSave("FearMode::Save", self, stream, [](FearMode* m, AIStream* s) { s_fearSave(m, nullptr, s); });
+static void(__fastcall* s_fearSave)(FearMode*, void*, CStream*);
+static void __fastcall FearSaveVerify(FearMode* self, void*, CStream* stream) {
+    SameSave("FearMode::Save", self, stream, [](FearMode* m, CStream* s) { s_fearSave(m, nullptr, s); });
 }
 EI_VERIFY(0x005D36F0, FearSaveVerify, 6, s_fearSave);
 
@@ -635,9 +626,9 @@ static void __fastcall PlayerSetLeaderVerify(PlayerMode* self, void*, AIBrain* b
 EI_VERIFY(0x005D3DE0, PlayerSetLeaderVerify, 0, s_unused);
 
 // 005D4DB0: PUSH ESI; MOV ESI,[ESP+8] (5 bytes).
-static void(__fastcall* s_playerSave)(PlayerMode*, void*, AIStream*);
-static void __fastcall PlayerSaveVerify(PlayerMode* self, void*, AIStream* stream) {
-    SameSave("PlayerMode::Save", self, stream, [](PlayerMode* m, AIStream* s) { s_playerSave(m, nullptr, s); });
+static void(__fastcall* s_playerSave)(PlayerMode*, void*, CStream*);
+static void __fastcall PlayerSaveVerify(PlayerMode* self, void*, CStream* stream) {
+    SameSave("PlayerMode::Save", self, stream, [](PlayerMode* m, CStream* s) { s_playerSave(m, nullptr, s); });
 }
 EI_VERIFY(0x005D4DB0, PlayerSaveVerify, 5, s_playerSave);
 
@@ -852,7 +843,7 @@ namespace {
 // `refs` are the offsets of the ids in the saved bytes; bytes past the saved ones (the old
 // versions' group) are not compared.
 template <typename Mode>
-void LoadThenSave(const char* name, Mode* self, AIStream* stream, std::initializer_list<std::size_t> refs) {
+void LoadThenSave(const char* name, Mode* self, CStream* stream, std::initializer_list<std::size_t> refs) {
     RecordStream record(stream);
     self->Load(&record);
     CaptureStream written(stream);
@@ -870,7 +861,7 @@ void LoadThenSave(const char* name, Mode* self, AIStream* stream, std::initializ
         }
         ok = emptied;
     }
-    ei::verify::Check(name, true, ok, "%p version %d: %u bytes read, %u saved", self, stream->version,
+    ei::verify::Check(name, true, ok, "%p version %d: %u bytes read, %u saved", self, stream->version_,
                       static_cast<unsigned>(record.bytes.size()), static_cast<unsigned>(written.bytes.size()));
 }
 } // namespace
@@ -878,15 +869,15 @@ void LoadThenSave(const char* name, Mode* self, AIStream* stream, std::initializ
 // 005D1E60 / 005D2770 / 005D4CD0 (slot 11 of Follow, Aggression and Player / Tamed). Reached when
 // a save is loaded (AIBrain::Load creates each mode and calls its slot 11); current saves are
 // past version 0x5D, so the Player mode's old group is not read.
-static void __fastcall FollowLoadVerify(FollowMode* self, void*, AIStream* stream) {
+static void __fastcall FollowLoadVerify(FollowMode* self, void*, CStream* stream) {
     LoadThenSave("FollowMode::Load", self, stream, {0});
 }
 EI_VERIFY(0x005D1E60, FollowLoadVerify, 0, s_unused);
-static void __fastcall AggressionLoadVerify(AggressionMode* self, void*, AIStream* stream) {
+static void __fastcall AggressionLoadVerify(AggressionMode* self, void*, CStream* stream) {
     LoadThenSave("AggressionMode::Load", self, stream, {0});
 }
 EI_VERIFY(0x005D2770, AggressionLoadVerify, 0, s_unused);
-static void __fastcall PlayerLoadVerify(PlayerMode* self, void*, AIStream* stream) {
+static void __fastcall PlayerLoadVerify(PlayerMode* self, void*, CStream* stream) {
     LoadThenSave("PlayerMode::Load", self, stream, {0, 4});
 }
 EI_VERIFY(0x005D4CD0, PlayerLoadVerify, 0, s_unused);
@@ -924,15 +915,15 @@ static void __fastcall AlarmRaiseVerify(AIAlarm* self, void*, int level) {
 }
 EI_VERIFY(0x005AEA60, AlarmRaiseVerify, 7, s_alarmRaise);
 
-static void(__fastcall* s_alarmLoad)(AIAlarm*, void*, AIStream*);
-static void __fastcall AlarmLoadVerify(AIAlarm* self, void*, AIStream* stream) {
-    SameLoad("AIAlarm::Load", self, stream, [](AIAlarm* a, AIStream* s) { s_alarmLoad(a, nullptr, s); });
+static void(__fastcall* s_alarmLoad)(AIAlarm*, void*, CStream*);
+static void __fastcall AlarmLoadVerify(AIAlarm* self, void*, CStream* stream) {
+    SameLoad("AIAlarm::Load", self, stream, [](AIAlarm* a, CStream* s) { s_alarmLoad(a, nullptr, s); });
 }
 EI_VERIFY(0x005AEC40, AlarmLoadVerify, 5, s_alarmLoad);
 
-static void(__fastcall* s_alarmSave)(AIAlarm*, void*, AIStream*);
-static void __fastcall AlarmSaveVerify(AIAlarm* self, void*, AIStream* stream) {
-    SameSave("AIAlarm::Save", self, stream, [](AIAlarm* a, AIStream* s) { s_alarmSave(a, nullptr, s); });
+static void(__fastcall* s_alarmSave)(AIAlarm*, void*, CStream*);
+static void __fastcall AlarmSaveVerify(AIAlarm* self, void*, CStream* stream) {
+    SameSave("AIAlarm::Save", self, stream, [](AIAlarm* a, CStream* s) { s_alarmSave(a, nullptr, s); });
 }
 EI_VERIFY(0x005AEC80, AlarmSaveVerify, 5, s_alarmSave);
 

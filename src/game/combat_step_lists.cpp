@@ -73,7 +73,7 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
 }
 EI_REPLACE_METHOD(0x00544E70, AnimationSteps::SameAs);
 
-void AnimationSteps::Load(UnitStream* stream) {
+void AnimationSteps::Load(CStream* stream) {
     // The original reads the count over its stream argument on the stack.
     int newCount = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
     stream->Read(&newCount, sizeof(newCount));
@@ -83,7 +83,7 @@ void AnimationSteps::Load(UnitStream* stream) {
 }
 EI_REPLACE_METHOD(0x00544EF0, AnimationSteps::Load);
 
-void AnimationSteps::Save(UnitStream* stream) {
+void AnimationSteps::Save(CStream* stream) {
     int written = count;
     stream->Write(&written, sizeof(written));
     for (int i = 0; i < count; ++i) stream->Write(&steps[i], sizeof(AnimationStep));

@@ -7,10 +7,11 @@
 // rewrite uses plain float maths). Scenarios: the battle screen's key releases (camera, ui_hud
 // keys: OnKeyUp), the escape menu opening over it (ui_screens: OnDeactivate), right clicks on the
 // view (ui_battle_commands' `clickunit ... r`: OnRightDown / OnRightUp) and ui_hud's wheel
-// (OnWheel, when no panel takes it). OnMouseMove (005EB210, Rebirth-patched: the vanilla launch
-// only) also selects a cursor shape, which is put back between the runs and compared; every mouse
-// move over the battle screen reaches it (ui_hud, ui_battle_commands; turning with the right
-// button held: ui_battle_commands' right drags).
+// (OnWheel, when no panel takes it). OnMouseMove (005EB210, Rebirth-patched: in a Rebirth launch
+// against addon's code, WideScreen's drag scaled without the margin) also selects a cursor shape,
+// which is put back between the runs and compared; every mouse move over the battle screen
+// reaches it (ui_hud, ui_battle_commands; turning with the right button held:
+// ui_battle_commands' right drags, ui_widescreen_screens' under Rebirth).
 #include "verify.h"
 
 #include "../../src/game/ui.h"

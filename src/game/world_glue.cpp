@@ -275,6 +275,6 @@ void __stdcall GameStartLocalSession(std::uint8_t* player) {
     CWorldClient* world = WorldClient();
     world->SetPlayer(player);
     reinterpret_cast<LocalViewData*>(world->LocalView())->localSession = 1;
-    reinterpret_cast<LocalViewData*>(world->LocalView())->partyTaken = 0;
+    reinterpret_cast<LocalViewData*>(world->LocalView())->sendParty = 0;
 }
 EI_REPLACE(0x005793E0, GameStartLocalSession);

@@ -3,6 +3,7 @@
 // object they made at +0x1C and its effect at +0x4C, are kept above the terrain when moved, and
 // save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Rewritten").
 #include "map_spec.h"
+#include "game_strings.h"
 #include "core_transform.h"
 #include "world_effect.h"
 
@@ -34,7 +35,6 @@ __declspec(naked) void __fastcall EffectNotifyAt(void*, void*, std::uintptr_t, s
 void* World() { return reinterpret_cast<void*>(0x007AFF60); }
 void* Effects() { return *reinterpret_cast<void**>(0x007AFFA8); }
 void SetVtable(void* p, std::uintptr_t vtable) { std::memcpy(p, &vtable, 4); }
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -57,8 +57,8 @@ void WriteVector(Chunk& c, std::uint32_t id, const Vector3& v) { c.WriteVector3(
 void Notify(void* self, std::uintptr_t kind, std::uintptr_t family) {
     alignas(mfc::CString) unsigned char second[sizeof(mfc::CString)];
     alignas(mfc::CString) unsigned char first[sizeof(mfc::CString)];
-    new (second) mfc::CString(Text(family));
-    new (first) mfc::CString(Text(kind));
+    new (second) mfc::CString(game::Text(family));
+    new (first) mfc::CString(game::Text(kind));
     std::uintptr_t a, b;
     std::memcpy(&a, first, 4);
     std::memcpy(&b, second, 4);
@@ -156,7 +156,7 @@ EI_REPLACE_METHOD(0x0046D520, ParticleSpec::ParticleSpecConstruct);
 
 // 0046D550 (slot 4): "Particle source".
 mfc::CString* ParticleSpec::ParticleSpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(Text(0x00787DF0));
+    new (out) mfc::CString(game::Text(0x00787DF0));
     return out;
 }
 EI_REPLACE_METHOD(0x0046D550, ParticleSpec::ParticleSpecTypeName);
@@ -228,7 +228,7 @@ EI_REPLACE_METHOD(0x0046D960, LightSpec::LightSpecConstruct);
 
 // 0046D9D0 (slot 4): "Light".
 mfc::CString* LightSpec::LightSpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(Text(0x00787E14));
+    new (out) mfc::CString(game::Text(0x00787E14));
     return out;
 }
 EI_REPLACE_METHOD(0x0046D9D0, LightSpec::LightSpecTypeName);
@@ -324,7 +324,7 @@ EI_REPLACE_METHOD(0x0046DF50, SoundSpec::SoundSpecDelete);
 
 // 0046DF20 (slot 4): "Sound".
 mfc::CString* SoundSpec::SoundSpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(Text(0x00787E2C));
+    new (out) mfc::CString(game::Text(0x00787E2C));
     return out;
 }
 EI_REPLACE_METHOD(0x0046DF20, SoundSpec::SoundSpecTypeName);

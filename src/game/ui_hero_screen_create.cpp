@@ -1,19 +1,23 @@
-// The multiplayer hero screen's Create as the unpatched game does it (00613EA0, CMpHeroScreen slot
-// 25). Rebirth patches the function for its wide layout (docs/rebirth-patched-functions.txt), so
-// this body is hooked in the vanilla launch only; nothing in the rewritten code calls it but the
-// screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
+// The multiplayer hero screen's Create (00613EA0, CMpHeroScreen slot 25). Rebirth's WideScreen
+// replaces the function with the original followed by two hidden curtain sprites over the screen's
+// margins (widescreen::AddCurtains), which this reproduces; EI_Plugin.asi patches it too
+// (EiPluginFixes, not reproduced), so it is hooked in the vanilla launch only; nothing in the
+// rewritten code calls it but the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
 // ui_hero_stats and ui_hero_delete open the screen (the main menu's Multiplayer button).
 #include "ui_screens.h"
+#include "game_strings.h"
 
 #include "core_transform.h"
 #include "item_db_text.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
+#include "ui_widescreen.h"
 #include "unit_create.h"
 #include "unit_db.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -29,7 +33,6 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
@@ -156,9 +159,9 @@ void AddFigure(VoiceList& voices, NameList& names, const UnitPrototypeRecord* pr
 
 void CMpHeroScreen::Create() {
     TheGameFlow()->UseResources(true);
-    window.LoadTexture(GameText(0x0079365C), kTextureKind, nullptr);   // "campinfo"
+    window.LoadTexture(game::Text(0x0079365C), kTextureKind, nullptr);   // "campinfo"
     CUiModel* model = window.AddModel();
-    model->CallLoad(GameText(0x0078A5C0), GameText(0x007939F0), GameText(0x007939FC));   // "unmoco2", "MainMenu00", "MainMenu00labels"
+    model->CallLoad(game::Text(0x0078A5C0), game::Text(0x007939F0), game::Text(0x007939FC));   // "unmoco2", "MainMenu00", "MainMenu00labels"
     model->SetScreenPosition(400.0f, 350.0f, 8.0f);
     {
         const Vector3 axis = {1.0f, 0.0f, 0.0f};
@@ -166,8 +169,8 @@ void CMpHeroScreen::Create() {
         model->object_->localRotation_ = *turn.SetAxisAngle(axis, MenuTurn());
     }
     model->ShowAllParts(0);
-    model->ShowPart(GameText(0x007939E8), 1);   // "but03"
-    model->ShowPart(GameText(0x007939D0), 1);   // "button03_multiplayer"
+    model->ShowPart(game::Text(0x007939E8), 1);   // "but03"
+    model->ShowPart(game::Text(0x007939D0), 1);   // "button03_multiplayer"
 
     // The nine regions every mode keeps (00615D30 places the first four and gives the tips).
     auto region = [this](int left, int top, int right, int bottom) {
@@ -184,7 +187,7 @@ void CMpHeroScreen::Create() {
     region(180, 184, 310, 208);
 
     reinterpret_cast<CItemScreen*>(this)->CreateBase();
-    window.LoadTexture(GameText(0x00793380), kTextureKind, nullptr);   // "saveload"
+    window.LoadTexture(game::Text(0x00793380), kTextureKind, nullptr);   // "saveload"
 
     auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
         CUiMesh* added = window.AddSprite(nullptr);
@@ -206,10 +209,10 @@ void CMpHeroScreen::Create() {
         frame->visible_ = 0;
     }
     // 3-6: the quarters of the frame around the figure.
-    window.LoadTexture(GameText(0x007939C8), kTextureKind, nullptr);   // "campm1"
-    window.LoadTexture(GameText(0x007939C0), kTextureKind, nullptr);   // "campm2"
-    window.LoadTexture(GameText(0x007939B8), kTextureKind, nullptr);   // "campm3"
-    window.LoadTexture(GameText(0x007939B0), kTextureKind, nullptr);   // "campm4"
+    window.LoadTexture(game::Text(0x007939C8), kTextureKind, nullptr);   // "campm1"
+    window.LoadTexture(game::Text(0x007939C0), kTextureKind, nullptr);   // "campm2"
+    window.LoadTexture(game::Text(0x007939B8), kTextureKind, nullptr);   // "campm3"
+    window.LoadTexture(game::Text(0x007939B0), kTextureKind, nullptr);   // "campm4"
     sprite(7.0f, 200.0f, 100.0f, 400.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture);
     sprite(7.0f, 400.0f, 100.0f, 600.0f, 300.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 1);
     sprite(7.0f, 200.0f, 300.0f, 400.0f, 500.0f, 0x1C, 0x1C, 0xE4, 0xE4)->texture_ = texture(kFirstQuarterTexture + 2);
@@ -303,8 +306,8 @@ void CMpHeroScreen::Create() {
     mfc::CString female;
     mfc::CString figureModel;
     mfc::CString label;
-    texts->GetString(GameText(0x007939A0), &male);     // "lmp_male_voice"
-    texts->GetString(GameText(0x0079398C), &female);   // "lmp_female_voice"
+    texts->GetString(game::Text(0x007939A0), &male);     // "lmp_male_voice"
+    texts->GetString(game::Text(0x0079398C), &female);   // "lmp_female_voice"
     NameList& men = *reinterpret_cast<NameList*>(&defaults_);
     NameList& women = *reinterpret_cast<NameList*>(&names_);
     VoiceList& maleVoices = *reinterpret_cast<VoiceList*>(&voiceLists_[0]);
@@ -337,12 +340,12 @@ void CMpHeroScreen::Create() {
             return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(figureModel)),
                                     reinterpret_cast<const unsigned char*>(name)) == 0;
         };
-        if (isModel(GameText(0x007908C8))) {   // "unhuma"
-            label.Format(GameText(0x00792F14), static_cast<const char*>(male), static_cast<int>(maleVoices.size()) + 1);   // "%s %d"
+        if (isModel(game::Text(0x007908C8))) {   // "unhuma"
+            label.Format(game::Text(0x00792F14), static_cast<const char*>(male), static_cast<int>(maleVoices.size()) + 1);   // "%s %d"
             AddFigure(maleVoices, men, prototype, label, creature()->voiced != 0);
         }
-        if (isModel(GameText(0x00792EA4))) {   // "unhufe"
-            label.Format(GameText(0x00792F14), static_cast<const char*>(female), static_cast<int>(femaleVoices.size()) + 1);
+        if (isModel(game::Text(0x00792EA4))) {   // "unhufe"
+            label.Format(game::Text(0x00792F14), static_cast<const char*>(female), static_cast<int>(femaleVoices.size()) + 1);
             AddFigure(femaleVoices, women, prototype, label, creature()->voiced != 0);
         }
     }
@@ -415,10 +418,10 @@ void CMpHeroScreen::Create() {
     SurfaceGetDC(commands);
     SurfaceClearOriginal(commands);
     const char* const commandKeys[] = {
-        GameText(0x0079397C),   // "lmp_pers_new"
-        GameText(0x0079396C),   // "lmp_pers_rename"
-        GameText(0x0079395C),   // "lmp_pers_delete"
-        GameText(0x00793948),   // "lmp_pers_redress"
+        game::Text(0x0079397C),   // "lmp_pers_new"
+        game::Text(0x0079396C),   // "lmp_pers_rename"
+        game::Text(0x0079395C),   // "lmp_pers_delete"
+        game::Text(0x00793948),   // "lmp_pers_redress"
     };
     int top = 16;
     for (const char* key : commandKeys) {
@@ -431,11 +434,16 @@ void CMpHeroScreen::Create() {
 
     // The saved heroes, from the "mp" folder of the game's data.
     MpHeroRoster* heroes = Heroes();
-    heroes->folder = GameDataPath() + GameText(0x00793944);   // "mp\"
+    heroes->folder = GameDataPath() + game::Text(0x00793944);   // "mp\"
     ReloadHeroesAt(heroes);
     RefreshHeroScroll();
     CallDrawHeroList();
     heroIndex_ = heroes->records.size() == 0 ? -1 : 0;
     HeroScreenSetModeOriginal(this, nullptr, kModeHeroList);
+    // Rebirth's WideScreen (addon's handler after the original): the curtains, hidden (sprites 19, 20).
+    widescreen::AddCurtains(&window, 0);
 }
 EI_REPLACE_METHOD(0x00613EA0, CMpHeroScreen::Create);
+// In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B), which
+// is not reproduced: the installer skips it there and addon's code runs.
+EI_REBIRTH_IMPLEMENTS(0x00613EA0, ei::rebirth::Patch::WideScreen);

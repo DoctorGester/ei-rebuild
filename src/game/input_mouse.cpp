@@ -2,6 +2,7 @@
 // acquired with the window's activation and polled by the cursor (A-H25). See ui_cursor.h.
 #define DIRECTINPUT_VERSION 0x0700
 #include "ui_cursor.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "originals_engine.h"
@@ -19,12 +20,11 @@ const GUID& DeviceInterfaceId() { return *reinterpret_cast<const GUID*>(std::uin
 const GUID& SystemMouseId() { return *reinterpret_cast<const GUID*>(std::uintptr_t(0x00744DD0)); }       // GUID_SysMouse
 const DIDATAFORMAT* MouseFormat() { return reinterpret_cast<const DIDATAFORMAT*>(std::uintptr_t(0x00745D00)); }   // c_dfDIMouse
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* const kNoInput = Text(0x00794C10);        // "Can't create direct input object\n"
-const char* const kNoDevice = Text(0x00794BE4);       // "Can't create direct input device for mouse\n"
-const char* const kNoFormat = Text(0x00794BBC);       // "Can't set data format for mouse device\n"
-const char* const kNoCooperation = Text(0x00794B8C);  // "Can't set cooperative level for mouse device\n"
-const char* const kNoAcquire = Text(0x00794B70);      // "Can't acquire mouse device\n"
+const char* const kNoInput = game::Text(0x00794C10);        // "Can't create direct input object\n"
+const char* const kNoDevice = game::Text(0x00794BE4);       // "Can't create direct input device for mouse\n"
+const char* const kNoFormat = game::Text(0x00794BBC);       // "Can't set data format for mouse device\n"
+const char* const kNoCooperation = game::Text(0x00794B8C);  // "Can't set cooperative level for mouse device\n"
+const char* const kNoAcquire = game::Text(0x00794B70);      // "Can't acquire mouse device\n"
 
 constexpr DWORD kInputVersion = 0x0700;
 

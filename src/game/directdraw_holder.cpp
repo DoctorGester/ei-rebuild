@@ -8,6 +8,7 @@
 // unwound on the way (the original's handlers free what the constructor had built), and every such
 // throw ends the game in WinMain.
 #include "device.h"
+#include "game_strings.h"
 
 #include "dx_errors.h"
 #include "originals_engine.h"    // FatalDirectX, game::FatalError
@@ -28,7 +29,6 @@
 
 namespace {
 
-using device::Text;
 
 constexpr std::uint32_t kEflagsId = 0x00200000;    // EFLAGS.ID: can be flipped when CPUID exists
 constexpr std::uint32_t kFeatureMmx = 0x00800000;  // CPUID.1:EDX bit 23
@@ -78,7 +78,7 @@ CDXSurface* NewHolderOf(CTextureDevice* device, IDirectDrawSurface7* surface) {
         DXSurfaceDescribeOriginal(holder);
         ++device::HolderCount();
     } else {
-        game::FatalError(Text(0x0078E73C));   // "Creating DXDDSurface from empty DDSurface!\n"
+        game::FatalError(game::Text(0x0078E73C));   // "Creating DXDDSurface from empty DDSurface!\n"
     }
     return holder;
 }
@@ -160,7 +160,7 @@ int __cdecl EnumerateDirectDrawDrivers() {
     drivers.ClearWith([](DirectDrawDriver* driver) { driver->~DirectDrawDriver(); });
     const HRESULT result = device::DirectDrawEnumerateExA(&DriverEnumCallback, &drivers,
                                                           DDENUM_ATTACHEDSECONDARYDEVICES | DDENUM_NONDISPLAYDEVICES);
-    if (result != 0) return game::FatalError(Text(0x0078E49C), result);   // "Can't enumerate direct draw drivers.\n"
+    if (result != 0) return game::FatalError(game::Text(0x0078E49C), result);   // "Can't enumerate direct draw drivers.\n"
     return 1;
 }
 EI_REPLACE(0x004EE4A0, EnumerateDirectDrawDrivers);
@@ -176,12 +176,12 @@ DirectDrawDriver* __cdecl FirstHardwareDirectDrawDriver() {
         HRESULT result = device::DirectDrawCreateEx(node->data.guid, reinterpret_cast<void**>(&ddraw),
                                                     device::IidDirectDraw7(), nullptr);
         // "Can't create IDirectDraw# object for driver \"%s\".\n"
-        if (result != 0) FatalDirectX(result, Text(0x0078E500), node->data.description.data());
+        if (result != 0) FatalDirectX(result, game::Text(0x0078E500), node->data.description.data());
         DDCAPS caps = {};
         caps.dwSize = sizeof(caps);
         result = ddraw->GetCaps(&caps, nullptr);
         // "Can't get caps from IDirectDraw# object for driver \"%s\".\n"
-        if (result != 0) FatalDirectX(result, Text(0x0078E4C4), node->data.description.data());
+        if (result != 0) FatalDirectX(result, game::Text(0x0078E4C4), node->data.description.data());
         if (ddraw) ddraw->Release();
         if ((caps.dwCaps & DDCAPS_3D) && (caps.ddsCaps.dwCaps & DDSCAPS_TEXTURE)) {
             if (caps.dwCaps2 & DDCAPS2_NONLOCALVIDMEM) return &node->data;
@@ -189,7 +189,7 @@ DirectDrawDriver* __cdecl FirstHardwareDirectDrawDriver() {
         }
     }
     if (found == drivers.End()) {
-        game::FatalError(Text(0x0078E534));   // "Can't find any driver with HW 3D.\n"
+        game::FatalError(game::Text(0x0078E534));   // "Can't find any driver with HW 3D.\n"
         ExitGame(-1);
     }
     return &found->data;
@@ -200,11 +200,11 @@ EI_REPLACE(0x004EE5D0, FirstHardwareDirectDrawDriver);
 
 void CTextureDevice::CreateDirectDraw(GUID* driver) {
     lastLoadResult_ = device::DirectDrawCreateEx(driver, &ddraw_, device::IidDirectDraw7(), nullptr);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E5CC));   // "Can't create IDirectDraw# object.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E5CC));   // "Can't create IDirectDraw# object.\n"
     driver_ = driver;
     modes_.ClearWith([](DDSURFACEDESC2*) {});
     lastLoadResult_ = device::EnumDisplayModes(device::DDraw(this), 0, nullptr, &modes_, &DisplayModeCallback);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E5AC));   // "Can't enumerate display modes.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E5AC));   // "Can't enumerate display modes.\n"
 }
 EI_REPLACE_METHOD(0x004EEA90, CTextureDevice::CreateDirectDraw);
 
@@ -212,24 +212,24 @@ void CTextureDevice::SetDisplayMode(int width, int height, int bitsPerPixel, int
     lastLoadResult_ = device::SetDisplayMode(device::DDraw(this), 
         static_cast<DWORD>(width), static_cast<DWORD>(height), static_cast<DWORD>(bitsPerPixel),
         static_cast<DWORD>(refreshRate), 0);
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E3D8));   // "Can't set display mode.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E3D8));   // "Can't set display mode.\n"
 }
 EI_REPLACE_METHOD(0x004EEBC0, CTextureDevice::SetDisplayMode);
 
 void CTextureDevice::RestoreDisplayMode() {
     if (!(flags_ & DDSCL_FULLSCREEN)) return;
     lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E47C));   // "Can't restore display mode.\n"
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E47C));   // "Can't restore display mode.\n"
 }
 EI_REPLACE_METHOD(0x004EEC60, CTextureDevice::RestoreDisplayMode);
 
 void CTextureDevice::SetCooperativeLevel(int fullScreen, const RECT* screen) {
     // "CDXDirectDraw::SetCooperativeLevel.\n No valid window handle.\n"
-    if (!window_) ThrowGameError(Text(0x0078E638));
+    if (!window_) ThrowGameError(game::Text(0x0078E638));
     flags_ = fullScreen ? (DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE) : DDSCL_NORMAL;
     lastLoadResult_ = device::SetCooperativeLevel(device::DDraw(this), window_, flags_ | DDSCL_FPUSETUP | DDSCL_MULTITHREADED);
     // "pDD->SetCooperativeLevel: DDSCL_FPUSETUP | dwCooperativeLevelFlags.\n"
-    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E5F0));
+    if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E5F0));
     if (screen) screen_ = *screen;
     else gameapi::SetRectEmpty(&screen_);
 }
@@ -239,8 +239,8 @@ EI_REPLACE_METHOD(0x004EECF0, CTextureDevice::SetCooperativeLevel);
 // is never released (its holder takes another).
 void CTextureDevice::CreateSurfaces(unsigned backBuffers, int for3D) {
     // "Probably, this is a PROGRAMMERS ERROR - too many back buffer surfaces requested (>10).\n"
-    if (backBuffers > 10) ThrowGameError(Text(0x0078E7D0));
-    if (backBuffers > 3) game::DebugLog(Text(0x0078E7A0));   // "Check correctness of the back buffer count!\n"
+    if (backBuffers > 10) ThrowGameError(game::Text(0x0078E7D0));
+    if (backBuffers > 3) game::DebugLog(game::Text(0x0078E7A0));   // "Check correctness of the back buffer count!\n"
     DDSURFACEDESC2 desc = {};
     desc.dwSize = sizeof(desc);
     desc.dwFlags = DDSD_CAPS;
@@ -263,7 +263,7 @@ void CTextureDevice::CreateSurfaces(unsigned backBuffers, int for3D) {
         IDirectDrawSurface7* back = nullptr;
         lastLoadResult_ = device::Surface(primary_)->GetAttachedSurface(&caps, &back);
         // "Can't get back buffer, attached to primary surface.\n"
-        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E768));
+        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E768));
         device::AssignHolder(renderTarget_, NewHolderOf(this, back));
         return;
     }
@@ -284,17 +284,17 @@ void CTextureDevice::CreateSurfaces(unsigned backBuffers, int for3D) {
     CDXSurface* primary = primary_;
     desc.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
     primary->result = device::Surface(primary)->GetPixelFormat(&desc.ddpfPixelFormat);
-    if (primary->result != 0 && !FatalDirectX(primary->result, Text(0x0078E714)))   // "Can't get pixel format from surface.\n"
-        ThrowGameError(Text(0x0078E6E4));   // "Can't get pixel format from primary surface.\n"
+    if (primary->result != 0 && !FatalDirectX(primary->result, game::Text(0x0078E714)))   // "Can't get pixel format from surface.\n"
+        ThrowGameError(game::Text(0x0078E6E4));   // "Can't get pixel format from primary surface.\n"
     device::AssignHolder(renderTarget_, NewHolder(this, &desc));
 
     CDXSurface* target = renderTarget_;
     desc = {};
     desc.dwSize = sizeof(desc);
     target->result = device::Surface(target)->GetSurfaceDesc(&desc);
-    if (target->result != 0 && !FatalDirectX(target->result, Text(0x0078E6C4)))   // "Can't get surface description.\n"
-        ThrowGameError(Text(0x0078E6A0));   // "pDXSRender->GetSurfaceDesc (back).\n"
-    if (!(desc.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY)) ThrowGameError(Text(0x0078E678));   // "Back buffer is not in video memory.\n"
+    if (target->result != 0 && !FatalDirectX(target->result, game::Text(0x0078E6C4)))   // "Can't get surface description.\n"
+        ThrowGameError(game::Text(0x0078E6A0));   // "pDXSRender->GetSurfaceDesc (back).\n"
+    if (!(desc.ddsCaps.dwCaps & DDSCAPS_VIDEOMEMORY)) ThrowGameError(game::Text(0x0078E678));   // "Back buffer is not in video memory.\n"
 }
 EI_REPLACE_METHOD(0x004EEE30, CTextureDevice::CreateSurfaces);
 
@@ -302,7 +302,7 @@ void CTextureDevice::DestructDirectDraw() {
     ei::SetVtable(this, 0x0073D770);
     if (flags_ & DDSCL_FULLSCREEN) {
         lastLoadResult_ = device::RestoreDisplayMode(device::DDraw(this));
-        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E47C));   // "Can't restore display mode.\n"
+        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E47C));   // "Can't restore display mode.\n"
     }
     if (converterLibrary_) gameapi::FreeLibrary(converterLibrary_);
     converterLibrary_ = nullptr;
@@ -344,19 +344,19 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
         processor.features2 = static_cast<std::uint32_t>(registers[2]);
     }
     if (!(processor.features & kFeatureMmx)) {
-        game::FatalError(Text(0x0078E348));   // "MMX required in this version !!!.\n"
+        game::FatalError(game::Text(0x0078E348));   // "MMX required in this version !!!.\n"
         ExitGame(-1);
     }
 
-    converterLibrary_ = gameapi::LoadLibraryA(Text(0x0078E46C));   // "2DintMMX.dll"
-    game::DebugLog(Text(0x0078E444));                        // "MMX graphics release library loaded.\n"
-    if (!converterLibrary_) ThrowGameError(Text(0x0078E36C));      // "Can't load 2D graphics library.\n"
+    converterLibrary_ = gameapi::LoadLibraryA(game::Text(0x0078E46C));   // "2DintMMX.dll"
+    game::DebugLog(game::Text(0x0078E444));                        // "MMX graphics release library loaded.\n"
+    if (!converterLibrary_) ThrowGameError(game::Text(0x0078E36C));      // "Can't load 2D graphics library.\n"
     using GetGraphicsProcessor = void*(__cdecl*)();
     const auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
-        gameapi::GetProcAddress(converterLibrary_, Text(0x0078E42C)));   // "GetGraphicsProcessor"
+        gameapi::GetProcAddress(converterLibrary_, game::Text(0x0078E42C)));   // "GetGraphicsProcessor"
     // "Loaded 2D graphics library have no function \"GetGraphicsProcessor\".\n"
-    if (!getProcessor) ThrowGameError(Text(0x0078E390));
-    game::DebugLog(Text(0x0078E3F4));   // "Acquiring graphics processor from graphics library.\n"
+    if (!getProcessor) ThrowGameError(game::Text(0x0078E390));
+    game::DebugLog(game::Text(0x0078E3F4));   // "Acquiring graphics processor from graphics library.\n"
     converter_ = getProcessor();
 
     // The switch-over (device.h): the new renderer presents; no DirectDraw object, display mode or
@@ -383,7 +383,7 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
         lastLoadResult_ = device::SetDisplayMode(device::DDraw(this), 
             static_cast<DWORD>(width), static_cast<DWORD>(height), static_cast<DWORD>(bitsPerPixel),
             static_cast<DWORD>(refreshRate), 0);
-        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, Text(0x0078E3D8));   // "Can't set display mode.\n"
+        if (lastLoadResult_ != 0) ThrowGameErrorResult(lastLoadResult_, game::Text(0x0078E3D8));   // "Can't set display mode.\n"
     }
     DeviceCreateSurfacesOriginal(this, nullptr, backBuffers, for3D);
 

@@ -15,7 +15,6 @@ namespace {
 
 constexpr int kNoObject = -1;
 
-AIStream* RefStream(CStream* stream) { return reinterpret_cast<AIStream*>(stream); }
 AIRef& Ref(CEngineObject*& object) { return *reinterpret_cast<AIRef*>(&object); }
 
 // One of the three counted effect objects by the id read (-1 none), looked up in the world's timed
@@ -42,8 +41,8 @@ void SaveEffectObject(CStream* stream, const CEngineObject* object) {
 void CSpellEffect::Load(CStream* stream) {
     world = LoadingProjectileWorld();
     stream->Read(&position, 12);
-    Ref(caster).Load(RefStream(stream), world);
-    Ref(target).Load(RefStream(stream), world);
+    Ref(caster).Load(stream, world);
+    Ref(target).Load(stream, world);
     stream->Read(&targetPoint, 12);
     stream->Read(&state, 4);
     Spell()->Load(stream);
@@ -64,8 +63,8 @@ EI_REPLACE_METHOD(0x0067E7D0, CSpellEffect::Load);
 
 void CSpellEffect::Save(CStream* stream) {
     stream->Write(&position, 12);
-    Ref(caster).Save(RefStream(stream));
-    Ref(target).Save(RefStream(stream));
+    Ref(caster).Save(stream);
+    Ref(target).Save(stream);
     stream->Write(&targetPoint, 12);
     stream->Write(&state, 4);
     Spell()->Save(stream);

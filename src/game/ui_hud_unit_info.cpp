@@ -3,6 +3,7 @@
 // panel's label table followed by values, drawn with the panel surface's text routine and moved
 // down 15 pixels. See docs/notes/ui.md ("Battle HUD panels").
 #include "console.h"
+#include "game_strings.h"
 #include "ui.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -20,20 +21,19 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
-const char* const kValuePair = Text(0x00792F08);     // "%s %d/%d"
-const char* const kMoveKey = Text(0x00794610);       // "move_%d"
-const char* const kSpeedLine = Text(0x00794604);     // "%s %.1f %s"
-const char* const kValueUnit = Text(0x00792F48);     // "%s %d%s"
-const char* const kValue = Text(0x00792F14);         // "%s %d"
-const char* const kDamageKey = Text(0x00792F70);     // "dmg_%d"
-const char* const kDamageLine = Text(0x00792EF0);    // "%s %d-%d %s"
-const char* const kSpace = Text(0x0078DA40);         // " "
-const char* const kStronger = Text(0x007945F4);      // "consider_more%d"
-const char* const kWeaker = Text(0x007945E4);        // "consider_less%d"
-const char* const kTwoTexts = Text(0x00792F34);      // "%s %s"
-const char* const kCampExp = Text(0x00793858);       // "camp_current_exp"
+const char* const kValuePair = game::Text(0x00792F08);     // "%s %d/%d"
+const char* const kMoveKey = game::Text(0x00794610);       // "move_%d"
+const char* const kSpeedLine = game::Text(0x00794604);     // "%s %.1f %s"
+const char* const kValueUnit = game::Text(0x00792F48);     // "%s %d%s"
+const char* const kValue = game::Text(0x00792F14);         // "%s %d"
+const char* const kDamageKey = game::Text(0x00792F70);     // "dmg_%d"
+const char* const kDamageLine = game::Text(0x00792EF0);    // "%s %d-%d %s"
+const char* const kSpace = game::Text(0x0078DA40);         // " "
+const char* const kStronger = game::Text(0x007945F4);      // "consider_more%d"
+const char* const kWeaker = game::Text(0x007945E4);        // "consider_less%d"
+const char* const kTwoTexts = game::Text(0x00792F34);      // "%s %s"
+const char* const kCampExp = game::Text(0x00793858);       // "camp_current_exp"
 
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr int kLineHeight = 15;

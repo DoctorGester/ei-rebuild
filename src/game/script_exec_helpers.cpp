@@ -260,7 +260,6 @@ static_assert(sizeof(QuestObjective) == 12);
 QuestObjective* QuestObjectives() { return *reinterpret_cast<QuestObjective**>(0x007AA60C); }
 int QuestObjectiveCount() { return *reinterpret_cast<int*>(0x007AA610); }
 mfc::CString& QuestName() { return *reinterpret_cast<mfc::CString*>(0x007AA61C); }   // QStart's name
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // 004D23A0 CScript::Load (rewritten; through its address so its verify wrapper runs).
 BOOL __fastcall LoadOrig(CScript* a0, void*, mfc::CString* a2, BOOL a3) { return (BOOL)ScriptLoadLine((void*)a0, nullptr, (const mfc::CString*)a2, (int)a3); }
@@ -294,7 +293,7 @@ void __fastcall ScriptQuestFinish(CScript* script) {
     mfc::CString text;
     for (int i = 0; i < QuestObjectiveCount() + 1; ++i) {
         mfc::CString line;
-        line.Format(Text(0x0078BB00), i);   // "DeclareScript Su%i()\n"
+        line.Format(game::Text(0x0078BB00), i);   // "DeclareScript Su%i()\n"
         text += line;
     }
     for (int i = 0; i < QuestObjectiveCount(); ++i) {
@@ -303,37 +302,37 @@ void __fastcall ScriptQuestFinish(CScript* script) {
         mfc::CString then;
         mfc::CString tail;
         const char* quest = QuestName();
-        head.Format(Text(0x0078BAEC), i);                              // "Script Su%i(if(\n"
-        then.Format(Text(0x0078BAB4), i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
+        head.Format(game::Text(0x0078BAEC), i);                              // "Script Su%i(if(\n"
+        then.Format(game::Text(0x0078BAB4), i + 1, quest, quest, i + 1);     // "\n)then(\nKillScript()..."
         if (i == QuestObjectiveCount() - 1) {
-            tail = Text(0x0078BAAC);                                   // ")\n)\n"
+            tail = game::Text(0x0078BAAC);                                   // ")\n)\n"
         } else {
             quest = QuestName();
-            tail.Format(Text(0x0078BA8C), quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
+            tail.Format(game::Text(0x0078BA8C), quest, quest, i + 2);        // "GSSetVar(0,\"q.%s.%s.%i\",1)..."
         }
         const QuestObjective& objective = QuestObjectives()[i];
         const char* argument = objective.text;
         switch (objective.type) {
         case 0xD7:   // QObjArea
-            condition.Format(Text(0x0078BA58), static_cast<double>(objective.value));
+            condition.Format(game::Text(0x0078BA58), static_cast<double>(objective.value));
             break;
         case 0xD8:   // QObjSeeObject
-            condition.Format(Text(0x0078BA1C), argument);
+            condition.Format(game::Text(0x0078BA1C), argument);
             break;
         case 0xD9:   // QObjSeeUnit
-            condition.Format(Text(0x0078BA08), argument);
+            condition.Format(game::Text(0x0078BA08), argument);
             break;
         case 0xDA:   // QObjKillUnit
-            condition.Format(Text(0x0078B9F0), argument);
+            condition.Format(game::Text(0x0078B9F0), argument);
             break;
         case 0xDB:   // QObjKillGroup
-            condition.Format(Text(0x0078B9D0), argument);
+            condition.Format(game::Text(0x0078B9D0), argument);
             break;
         case 0xDC:   // QObjUse
-            condition.Format(Text(0x0078B9AC), argument, static_cast<double>(objective.value));
+            condition.Format(game::Text(0x0078B9AC), argument, static_cast<double>(objective.value));
             break;
         case 0xDD:   // QObjGetItem
-            condition.Format(Text(0x0078B998), static_cast<double>(objective.value));
+            condition.Format(game::Text(0x0078B998), static_cast<double>(objective.value));
             break;
         default:
             break;
@@ -346,10 +345,10 @@ void __fastcall ScriptQuestFinish(CScript* script) {
     {
         mfc::CString last;
         const char* quest = QuestName();
-        last.Format(Text(0x0078B940), QuestObjectiveCount(), quest, quest, quest);
+        last.Format(game::Text(0x0078B940), QuestObjectiveCount(), quest, quest, quest);
         text += last;
     }
-    text += Text(0x0078B928);   // "WorldScript( Su0() )\n"
+    text += game::Text(0x0078B928);   // "WorldScript( Su0() )\n"
     LoadOrig(script, nullptr, &text, 1);
     QuestName() = game::EmptyText();   // the empty string constant
 }

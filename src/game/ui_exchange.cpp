@@ -1,6 +1,7 @@
 // The exchange between players (screen 9, CExchangeScreen; multiplayer only). See ui_screens.h and
 // docs/notes/ui.md, section 4.
 #include "item_db_text.h"
+#include "game_strings.h"
 #include "net_classes.h"
 #include "net_messages.h"
 #include "party.h"
@@ -114,7 +115,6 @@ EI_REPLACE_METHOD(0x0062D210, CExchangeScreen::OnExchangeDone);
 // --- 0062C250: Create (slot 25) --------------------------------------------------------------------
 
 namespace {
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
 
@@ -158,7 +158,7 @@ __declspec(naked) net::PartyMessage* __fastcall ClientFindPartyAt(net::ClientSes
 } // namespace
 
 void CExchangeScreen::Create() {
-    LoadTexture(GameText(0x0079365C), 3, nullptr);   // "campinfo"
+    LoadTexture(game::Text(0x0079365C), 3, nullptr);   // "campinfo"
     CUiRegion* region = AddRegion();
     region->CallSetRect(12, 450, 52, 490);
     region->SetTip(0xA028, 1, 0);
@@ -240,7 +240,7 @@ void CExchangeScreen::Create() {
                          : nullptr;
     AsContainer(this)->AddChild(moneyField_);
     EditFieldSetLookOriginal(moneyField_, nullptr, 1, 1, 1, 9, 0xFFFFFF, 0x31B3FF);
-    EditFieldSetTextOriginal(moneyField_, nullptr, GameText(0x0079B298));   // ""
+    EditFieldSetTextOriginal(moneyField_, nullptr, game::Text(0x0079B298));   // ""
 
     AddSurface(NewSurface(interface_, 0x19A, 0x1C2));
     AddSurface(NewSurface(interface_, 0x136, 0x15E));
@@ -291,11 +291,11 @@ BOOL CExchangeScreen::Draw(int pass) {
     CUiSurface* surface = surfaces_.data[0];
     SurfaceGetDC(surface);
     surface->Clear();
-    texts->GetString(GameText(0x007940C8), &text);   // "xch_current_money"
-    line.Format(GameText(0x00792F14), static_cast<const char*>(text), LocalParty()->Money());   // "%s %d"
+    texts->GetString(game::Text(0x007940C8), &text);   // "xch_current_money"
+    line.Format(game::Text(0x00792F14), static_cast<const char*>(text), LocalParty()->Money());   // "%s %d"
     RECT rect{0, 0, 200, 0x14};
     SurfaceDrawText(surface, nullptr, line, &rect, kAlignLeft, kWhite, 1, 1);
-    texts->GetString(GameText(0x007940BC), &text);   // "xch_accept"
+    texts->GetString(game::Text(0x007940BC), &text);   // "xch_accept"
     rect = RECT{0, 0x14, 200, 0x28};
     SurfaceDrawText(surface, nullptr, text, &rect, kAlignLeft, kWhite, 1, 1);
     SurfaceReleaseDC(surface);
@@ -304,7 +304,7 @@ BOOL CExchangeScreen::Draw(int pass) {
     surface = surfaces_.data[1];
     SurfaceGetDC(surface);
     surface->Clear();
-    texts->GetString(GameText(0x007940AC), &text);   // "xch_money_offer"
+    texts->GetString(game::Text(0x007940AC), &text);   // "xch_money_offer"
     rect = RECT{0x14, 0, 0xB4, 0x14};
     surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
     SurfaceReleaseDC(surface);
@@ -315,10 +315,10 @@ BOOL CExchangeScreen::Draw(int pass) {
     surface->Clear();
     net::PartyMessage* partner = ClientFindPartyAt(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
-        texts->GetString(GameText(0x00794098), &text);   // "xch_money_remote"
+        texts->GetString(game::Text(0x00794098), &text);   // "xch_money_remote"
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-        line.Format(GameText(0x0078EEEC), partnerOffer_->Money());   // "%d"
+        line.Format(game::Text(0x0078EEEC), partnerOffer_->Money());   // "%d"
         rect = RECT{0, 0x28, 200, 0x3C};
         SurfaceDrawText(surface, nullptr, line, &rect, kAlignLeft, kWhite, 1, 1);
     }
@@ -330,11 +330,11 @@ BOOL CExchangeScreen::Draw(int pass) {
     surface->Clear();
     partner = ClientFindPartyAt(client);
     if (partner && !(partner->flags7_ & CRefObject::kDetached)) {
-        texts->GetString(GameText(0x00794084), &text);   // "xch_remote_header"
+        texts->GetString(game::Text(0x00794084), &text);   // "xch_remote_header"
         rect = RECT{0x14, 0, 0xB4, 0x14};
         surface->DrawWrappedText(text, &rect, kWrapLines, 1, kWhite, 1, 1);
-        texts->GetString(ClientFindPartyAt(client)->accepted_ ? GameText(0x00794074)    // "xch_remote_ok"
-                                                              : GameText(0x00794060),   // "xch_remote_cancel"
+        texts->GetString(ClientFindPartyAt(client)->accepted_ ? game::Text(0x00794074)    // "xch_remote_ok"
+                                                              : game::Text(0x00794060),   // "xch_remote_cancel"
                          &text);
         rect = RECT{0, 0x28, 200, 0x3C};
         SurfaceDrawText(surface, nullptr, text, &rect, kAlignLeft, kGrey, 1, 1);

@@ -1,17 +1,21 @@
 // The help / message window's page (CHelpWindow::ShowPage, 00659420; A-H26): everything the
 // window shows is rebuilt from the texts for page page_ (see ui.h).
-// Rebirth patches it, so this is the vanilla body and installs in the vanilla launch only (rule
-// 9); our callers keep the forwarder in ui_help_window.cpp. Patched callees through their
+// Rebirth's WideScreen patches it (a context hook at +574: the pulsing frames of some tutorial
+// messages follow the battle screen's panels to the screen's edges), which this reproduces, so it
+// installs in both launches; our callers keep the forwarder in ui_help_window.cpp (rule 9). Patched callees through their
 // addresses: the surface's text 005FDE20, the sprites' Place 005E6FA0, SetRectangle 005E70E0 and
 // SetFrame 005E7D60, the regions' SetRect 005FC9E0. See docs/notes/items_spells.md ("A-H26").
 #include "ui.h"
+#include "game_strings.h"
 
 #include "item_db_text.h"
 #include "object_tables.h"      // FindCommandByKey
 #include "text_reader.h"
 #include "ui_gdi.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -21,10 +25,10 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string>
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 constexpr std::uintptr_t kTutorialSection = std::uintptr_t(0x00794A78);   // "tutorial "
 constexpr std::uintptr_t kScreenLine = std::uintptr_t(0x00794A70);        // "#screen"
 constexpr std::uintptr_t kPositionLine = std::uintptr_t(0x007941E0);      // "#position"
@@ -59,7 +63,7 @@ struct PageEntry {
 
 bool Same(const char* word, std::uintptr_t text) {
     return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(word),
-                            reinterpret_cast<const unsigned char*>(Text(text))) == 0;
+                            reinterpret_cast<const unsigned char*>(game::Text(text))) == 0;
 }
 
 void SetTint(CUiMesh* sprite, float value) { sprite->tint_[0] = sprite->tint_[1] = sprite->tint_[2] = value; }
@@ -82,6 +86,29 @@ void SetRectangle(CUiMesh* sprite, const RECT& rect, int u0, int v0, int u1, int
 
 void SetRegion(CUiRegion* region, const RECT& rect) { region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom); }
 
+// Rebirth's WideScreen (addon's handler 10023702, a context hook over the first AddSprite of a
+// "#rectangle" line at 00659994): on a message window (message_), the page "<text_>:<page_>" of the
+// zone tutorials whose frames point at the battle screen's left panels moves them left by the
+// layout's extra units, of those pointing at its right panels right (addon's two string sets, built
+// once from its literals 100AF5F0..100AF668; the frame's left and right, the original's locals
+// [ESP+0x64] / [ESP+0x58], change; top and bottom do not).
+constexpr const char* kLeftPanelPages[] = {"zt9:0", "zt12:0", "zt12:1", "zt13:0", "zt14:0", "zt14:2", "zt17:0", "zt20:0", "zt22:0"};
+constexpr const char* kRightPanelPages[] = {"zt3:2", "zt4:0", "zt4:1", "zt7:0", "zt10:0", "zt10:1", "zt18:0"};
+
+bool Listed(const std::string& page, const char* const* names, std::size_t count) {
+    for (std::size_t i = 0; i < count; ++i)
+        if (page == names[i]) return true;
+    return false;
+}
+
+int TutorialFrameShift(const CHelpWindow* window) {
+    if (!widescreen::Active() || !window->message_) return 0;
+    const std::string page = std::string(static_cast<const char*>(window->text_)) + ':' + std::to_string(window->page_);
+    if (Listed(page, kLeftPanelPages, std::size(kLeftPanelPages))) return -widescreen::EdgeShift();
+    if (Listed(page, kRightPanelPages, std::size(kRightPanelPages))) return widescreen::EdgeShift();
+    return 0;
+}
+
 } // namespace
 
 void CHelpWindow::ShowPageVanilla() {
@@ -95,7 +122,7 @@ void CHelpWindow::ShowPageVanilla() {
     console::CStringArray words;
     BOOL found;
     {
-        mfc::CString section = mfc::CString(Text(kTutorialSection)) + text_;
+        mfc::CString section = mfc::CString(game::Text(kTutorialSection)) + text_;
         found = TextOpen(texts, nullptr, section);
     }
     if (!found) {
@@ -104,7 +131,7 @@ void CHelpWindow::ShowPageVanilla() {
     }
     // The page's "#screen" line; the line after it is the page's title key.
     for (int i = page_ + 1; i != 0; --i) {
-        if (!TextFindLine(texts, nullptr, Text(kScreenLine))) {
+        if (!TextFindLine(texts, nullptr, game::Text(kScreenLine))) {
             interface_->SetPendingValue(0);
             return;
         }
@@ -117,7 +144,7 @@ void CHelpWindow::ShowPageVanilla() {
     RECT page{200, 50, 600, 560};
     bool rowsGiven = false;
     const char* resume = texts->cursor_;
-    if (TextFindLine(texts, nullptr, Text(kPositionLine))) {
+    if (TextFindLine(texts, nullptr, game::Text(kPositionLine))) {
         TextSplit(texts, nullptr, &words, 1);
         if (words.GetSize() > 3) {
             page.left = GameAtoi(words[1]);
@@ -158,7 +185,7 @@ void CHelpWindow::ShowPageVanilla() {
     RECT line{0, 8, width, 30};
     SurfaceDrawText(header, nullptr, lines_.data[page_], &line, 2, kTitleColour, DT_CENTER, 1);
     line = RECT{0, 30, width, 50};
-    text.Format(Text(kTitleFormat), static_cast<const char*>(title_), page_ + 1, lines_.size);
+    text.Format(game::Text(kTitleFormat), static_cast<const char*>(title_), page_ + 1, lines_.size);
     SurfaceDrawText(header, nullptr, text, &line, 1, kTitleColour, DT_CENTER, 1);
     SurfaceReleaseDC(header);
 
@@ -169,10 +196,11 @@ void CHelpWindow::ShowPageVanilla() {
         TextSplit(texts, nullptr, &words, 1);
         if (Same(words[0], kScreenLine)) break;
         if (Same(words[0], kRectangleLine) && words.GetSize() > 4) {
-            const int left = GameAtoi(words[1]);
             const int top = GameAtoi(words[2]);
-            const int right = GameAtoi(words[3]);
             const int bottom = GameAtoi(words[4]);
+            const int shift = TutorialFrameShift(this);
+            const int left = GameAtoi(words[1]) + shift;
+            const int right = GameAtoi(words[3]) + shift;
             CUiMesh* mark = AddSprite(nullptr);
             mark->SetFrame(3.0f, 100.0f, static_cast<float>(left), static_cast<float>(top), static_cast<float>(right),
                            static_cast<float>(bottom), 5.0f, 0, 0, 256, 256);
@@ -214,7 +242,7 @@ void CHelpWindow::ShowPageVanilla() {
                     const int cellX = pictures / 4 * kPictureSize;
                     const int cellY = pictures % 4 * kPictureSize;
                     {
-                        mfc::CString name = mfc::CString(Text(kPicturePrefix)) + entry.picture.data();
+                        mfc::CString name = mfc::CString(game::Text(kPicturePrefix)) + entry.picture.data();
                         CopyImage(objects_.data[1], name, kPictureSize, kPictureSize, kPictureSize, kPictureSize, cellX,
                                   cellY, 0, 0);
                     }
@@ -238,11 +266,11 @@ void CHelpWindow::ShowPageVanilla() {
             text.Empty();
             BOOL open;
             {
-                mfc::CString section = mfc::CString(Text(kTutorSection)) + entry.key.data();
+                mfc::CString section = mfc::CString(game::Text(kTutorSection)) + entry.key.data();
                 open = TextOpen(texts, nullptr, section);
             }
             if (open) TextReadToHash(texts, nullptr, &text, 1);
-            text.TrimRight(Text(kLineEnds));
+            text.TrimRight(game::Text(kLineEnds));
             int height = body->DrawWrappedText(text, &row, 100, 1, kTextColour, kWrapFormat, 1) * kRowHeight;
             // A text with a picture is at least as high as the picture's place.
             if (withPicture && height <= 80) height = 80;
@@ -287,8 +315,8 @@ void CHelpWindow::ShowPageVanilla() {
     }
     if (const char* key = static_cast<const char*>(FindCommandByKey(kHelpAction))) {
         mfc::CString hint;
-        texts->GetString(Text(kHelpKeyText), &hint);
-        hint += Text(kSpace);
+        texts->GetString(game::Text(kHelpKeyText), &hint);
+        hint += game::Text(kSpace);
         hint += key;
         RECT label{width / 3, 5, 2 * width / 3, 25};
         SurfaceDrawText(footer, nullptr, hint, &label, 0, kTitleColour, DT_CENTER, 1);
@@ -304,3 +332,4 @@ void CHelpWindow::ShowPageVanilla() {
     stlp::deallocate(entries.head, sizeof(stlp::list<PageEntry>::Node));
 }
 EI_REPLACE_METHOD(0x00659420, CHelpWindow::ShowPageVanilla);
+EI_REBIRTH_IMPLEMENTS(0x00659420, ei::rebirth::Patch::WideScreen);

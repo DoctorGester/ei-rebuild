@@ -1,8 +1,9 @@
-// The camp's Create as the unpatched game does it (0060C870, CCampPages slot 25). Rebirth patches
-// the function for its wide layout (docs/rebirth-patched-functions.txt), so this body is hooked in
-// the vanilla launch only; nothing in the rewritten code calls it but the screen's vtable. See
-// ui_camp.h and docs/notes/ui.md, section 3.
+// The camp's Create (0060C870, CCampPages slot 25). Rebirth's WideScreen replaces the function with
+// the original followed by two curtain sprites over the screen's margins (widescreen::AddCurtains),
+// which this reproduces, so it is hooked in both launches; nothing in the rewritten code calls it
+// but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "device.h"   // the old device's calls
+#include "game_strings.h"
 #include "ui_camp.h"
 
 #include "class_templates.h"
@@ -16,10 +17,12 @@
 #include "ui_briefing.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
+#include "ui_widescreen.h"
 #include "unit.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -40,7 +43,6 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 void** Vtable(std::uintptr_t address) { return reinterpret_cast<void**>(address); }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
@@ -161,13 +163,18 @@ double FramesNow() {
 } // namespace
 
 void CCampPages::Create() {
+    BuildPages();
+    widescreen::AddCurtains(this, 1);
+}
+
+void CCampPages::BuildPages() {
     spellConstructor_ = false;
     itemConstructor_ = false;
     spellParts_[0] = nullptr;
     itemParts_[0] = nullptr;
     SetServerFlagOriginal(1);
     constructor_ = nullptr;
-    int constructor = static_cast<int>(gamecrt::Ftol(LocalPlayerVariable(GameText(0x00790384))));   // "constr.current"
+    int constructor = static_cast<int>(gamecrt::Ftol(LocalPlayerVariable(game::Text(0x00790384))));   // "constr.current"
     if (constructor > 0) {
         constructor_ = ClassTemplatesFind(ClassTemplates(), nullptr, constructor);
         if (!constructor_) {
@@ -180,13 +187,13 @@ void CCampPages::Create() {
         spellParts_[0] = reinterpret_cast<CParty*>(constructor_->spells);
         itemParts_[0] = reinterpret_cast<CParty*>(constructor_->items);
     }
-    noConstructor_ = PlayerSwitch(GameText(0x007936AC));                      // "i.noconstr"
-    if (PlayerSwitch(GameText(0x00793698))) spellConstructor_ = false;        // "i.offspellconstr"
-    if (PlayerSwitch(GameText(0x00793688))) spellConstructor_ = true;         // "i.onspellconstr"
-    if (PlayerSwitch(GameText(0x00793678))) itemConstructor_ = false;         // "i.offitemconstr"
-    if (PlayerSwitch(GameText(0x00793668))) itemConstructor_ = true;          // "i.onitemconstr"
+    noConstructor_ = PlayerSwitch(game::Text(0x007936AC));                      // "i.noconstr"
+    if (PlayerSwitch(game::Text(0x00793698))) spellConstructor_ = false;        // "i.offspellconstr"
+    if (PlayerSwitch(game::Text(0x00793688))) spellConstructor_ = true;         // "i.onspellconstr"
+    if (PlayerSwitch(game::Text(0x00793678))) itemConstructor_ = false;         // "i.offitemconstr"
+    if (PlayerSwitch(game::Text(0x00793668))) itemConstructor_ = true;          // "i.onitemconstr"
 
-    LoadTexture(GameText(0x0079365C), 3, nullptr);   // "campinfo"
+    LoadTexture(game::Text(0x0079365C), 3, nullptr);   // "campinfo"
     // The regions: the two action buttons, the two hero turn areas, the eight page buttons (a
     // page the camp does not offer has no tip).
     auto region = [this](int left, int top, int right, int bottom, int tip) {
@@ -416,19 +423,19 @@ void CCampPages::Create() {
     mfc::CString title;
     auto& titles = pageTitles_;
     const char* const titleKeys[] = {
-        GameText(0x0079364C),   // "mode_weapons"
-        GameText(0x00793640),   // "mode_spells"
-        GameText(0x00793630),   // "mode_spelltrade"
-        GameText(0x0079361C),   // "mode_spellconstr"
-        GameText(0x0079360C),   // "mode_itemtrade"
-        GameText(0x007935FC),   // "mode_itemconstr"
-        GameText(0x007935EC),   // "mode_itemrepair"
+        game::Text(0x0079364C),   // "mode_weapons"
+        game::Text(0x00793640),   // "mode_spells"
+        game::Text(0x00793630),   // "mode_spelltrade"
+        game::Text(0x0079361C),   // "mode_spellconstr"
+        game::Text(0x0079360C),   // "mode_itemtrade"
+        game::Text(0x007935FC),   // "mode_itemconstr"
+        game::Text(0x007935EC),   // "mode_itemrepair"
     };
     for (const char* key : titleKeys) {
         texts->GetString(key, &title);
         titles.SetAtGrow(titles.size, title);
     }
-    titles.SetAtGrow(titles.size, GameText(0x0079239C));   // "quit"
+    titles.SetAtGrow(titles.size, game::Text(0x0079239C));   // "quit"
 
     page_ = itemConstructor_ ? kPageItemConstructor : spellConstructor_ ? kPageSpellConstructor : kPageEquipment;
     ShowPage(page_);
@@ -461,14 +468,14 @@ void CCampPages::Create() {
         BriefingPlayerName name;
         zone = reinterpret_cast<const MapRecord*>(MapDatabaseFind(GameMapDatabase(), nullptr, name));
     }
-    Music()->PlayConstructor(zone ? zone->allod : GameText(0x0079014C));   // "gipat"
+    Music()->PlayConstructor(zone ? zone->allod : game::Text(0x0079014C));   // "gipat"
 
     // Antialiasing while the camp shows, when the device does it without sorting (Close turns it off).
     CTextureDevice* display = RenderDeviceObject();
     D3DDEVICEDESC7 description = {};
     long result = device::GetCaps(static_cast<IDirect3DDevice7*>(display->d3dDevice_), &description);
     display->lastLoadResult_ = result;
-    if (result != 0) FatalDirectX(result, GameText(0x0078EE20));   // "Can't get device description."
+    if (result != 0) FatalDirectX(result, game::Text(0x0078EE20));   // "Can't get device description."
     if (description.dpcTriCaps.dwRasterCaps & D3DPRASTERCAPS_ANTIALIASSORTINDEPENDENT) {
         device::SetRenderState(static_cast<IDirect3DDevice7*>(RenderDeviceObject()->d3dDevice_), D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
         render::state::Render(D3DRENDERSTATE_ANTIALIAS, D3DANTIALIAS_SORTINDEPENDENT);
@@ -476,3 +483,4 @@ void CCampPages::Create() {
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x0060C870, CCampPages::Create);
+EI_REBIRTH_IMPLEMENTS(0x0060C870, ei::rebirth::Patch::WideScreen);

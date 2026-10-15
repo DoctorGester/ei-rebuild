@@ -45,7 +45,6 @@ constexpr std::uintptr_t kRewardSuffix = 0x00783D84;   // "_3"
 
 constexpr std::uint32_t kAwardDelay = 0x42700000;   // 60.0f
 
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 bool Live(const CRefObject* object) { return object && !(object->flags7_ & CRefObject::kDetached); }
 
 // RefPtr::Destroy as the callers inline it: the release is not null-checked after the shutdown.
@@ -194,7 +193,7 @@ void ServerSession::CompleteZone(const StringRep* zone) {
     }
 
     StringRep key;
-    StringPlusText(&key, zone, Text(kRewardSuffix));
+    StringPlusText(&key, zone, game::Text(kRewardSuffix));
     auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(reinterpret_cast<void*>(kMapRegistry), nullptr, &key));
     StringRepDestroy(&key);
     if (entry) {
@@ -267,7 +266,7 @@ void ServerSession::LeaveZone() {
         CStringDestroy(&title);
 
         StringRep key;
-        StringPlusText(&key, &static_cast<MapMessage*>(holder->ptr)->text_, Text(kMapSuffix));
+        StringPlusText(&key, &static_cast<MapMessage*>(holder->ptr)->text_, game::Text(kMapSuffix));
         const char* keyText = key.start;
         StringRep lookup;
         std::uint8_t allocator = 0;

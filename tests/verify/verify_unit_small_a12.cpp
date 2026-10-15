@@ -62,7 +62,7 @@ bool __fastcall ControllerFalse(CUnitController*, void*, int);
 const char* __fastcall ClientControllerClassName(CUnitClientSpecific*);
 int __fastcall ClientControllerClassId(CUnitClientSpecific*);
 void __fastcall ClientMotionChanged(CUnitClientSpecific* self);
-void __fastcall CountedListLoad(mfc::CTypedPtrList<CEngineObject>* list, AIStream* stream, void* context);
+void __fastcall CountedListLoad(mfc::CTypedPtrList<CEngineObject>* list, CStream* stream, void* context);
 
 namespace {
 void* s_unused;
@@ -346,7 +346,7 @@ static void __fastcall ClientMotionChangedVerify(CUnitClientSpecific* self) {
 }
 EI_VERIFY(0x00535B20, ClientMotionChangedVerify, 0, s_unused);
 
-static void __fastcall CountedListLoadVerify(mfc::CTypedPtrList<CEngineObject>* list, AIStream* stream, void* context) {
+static void __fastcall CountedListLoadVerify(mfc::CTypedPtrList<CEngineObject>* list, CStream* stream, void* context) {
     const int before = list->count;
     CountedListLoad(list, stream, context);
     ei::verify::Check("CountedListLoad", true, list->count >= before && (list->count == 0 || list->tail), "%d -> %d",

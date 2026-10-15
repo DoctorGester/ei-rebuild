@@ -17,7 +17,7 @@ constexpr int kStopFlagVersion = 0x44;      // looks carry their stop flag from 
 
 // The original's Save functions copy each scalar into a stack slot before writing it.
 template <typename T>
-void WriteCopy(AIStream* stream, const T& value) {
+void WriteCopy(CStream* stream, const T& value) {
     T copy = value;
     stream->Write(&copy, sizeof(T));
 }
@@ -25,7 +25,7 @@ void WriteCopy(AIStream* stream, const T& value) {
 AIBrain* BrainOfMemory(std::uint8_t* memory) { return reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory)); }
 
 // Each object's counted reference (its id) of a memory list.
-void SaveObjectList(mfc::CTypedPtrList<CEngineObject>& list, AIStream* stream) {
+void SaveObjectList(mfc::CTypedPtrList<CEngineObject>& list, CStream* stream) {
     WriteCopy(stream, list.count);
     for (auto* node = list.head; node;) {
         auto* next = node->next;
@@ -35,7 +35,7 @@ void SaveObjectList(mfc::CTypedPtrList<CEngineObject>& list, AIStream* stream) {
 }
 } // namespace
 
-void __fastcall LoadLooks(AILookArray* looks, AIStream* stream) {
+void __fastcall LoadLooks(AILookArray* looks, CStream* stream) {
     int count;
     stream->Read(&count, 4);
     looks->SetSize(count, -1);      // inlined by the original
@@ -44,12 +44,12 @@ void __fastcall LoadLooks(AILookArray* looks, AIStream* stream) {
         stream->Read(&look.angle, 4);
         stream->Read(&look.time, 4);
         stream->Read(&look.wait, 4);
-        if (stream->version >= kStopFlagVersion) stream->Read(&look.stopFirst, 1);
+        if (stream->version_ >= kStopFlagVersion) stream->Read(&look.stopFirst, 1);
     }
 }
 EI_REPLACE(0x005D9010, LoadLooks);
 
-void __fastcall SaveLooks(const AILookArray* looks, AIStream* stream) {
+void __fastcall SaveLooks(const AILookArray* looks, CStream* stream) {
     WriteCopy(stream, looks->size);
     for (int i = 0; i < looks->size; ++i) {
         const AILook& look = looks->data[i];
@@ -61,7 +61,7 @@ void __fastcall SaveLooks(const AILookArray* looks, AIStream* stream) {
 }
 EI_REPLACE(0x005D91B0, SaveLooks);
 
-void AIBrain::LoadMemory(AIStream* stream) {
+void AIBrain::LoadMemory(CStream* stream) {
     noticedKind = -1;
     CountedListLoadOriginal(&nearby, stream, WorldServer());
     CountedListLoadOriginal(&visible, stream, WorldServer());
@@ -90,7 +90,7 @@ void AIBrain::LoadMemory(AIStream* stream) {
     stream->Read(&noticedKind, 4);
 }
 
-void AIBrain::SaveMemory(AIStream* stream) {
+void AIBrain::SaveMemory(CStream* stream) {
     SaveObjectList(nearby, stream);
     SaveObjectList(visible, stream);
     SaveObjectList(seenCorpses, stream);
@@ -115,7 +115,7 @@ void AIBrain::SaveMemory(AIStream* stream) {
 }
 
 // The original's `this` is the memory at +0xD0.
-void __fastcall LoadMemoryHook(std::uint8_t* memory, void*, AIStream* stream) { BrainOfMemory(memory)->LoadMemory(stream); }
+void __fastcall LoadMemoryHook(std::uint8_t* memory, void*, CStream* stream) { BrainOfMemory(memory)->LoadMemory(stream); }
 EI_REPLACE(0x005CC1E0, LoadMemoryHook);
-void __fastcall SaveMemoryHook(std::uint8_t* memory, void*, AIStream* stream) { BrainOfMemory(memory)->SaveMemory(stream); }
+void __fastcall SaveMemoryHook(std::uint8_t* memory, void*, CStream* stream) { BrainOfMemory(memory)->SaveMemory(stream); }
 EI_REPLACE(0x005CC350, SaveMemoryHook);

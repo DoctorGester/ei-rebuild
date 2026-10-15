@@ -2,6 +2,7 @@
 // box answers, a unit leaving the party, game over, the "briefing" command, the chat window and the
 // saved state. See docs/notes/ui.md, "Briefing / base screen".
 #include "ui_briefing.h"
+#include "game_strings.h"
 
 #include "camera.h"
 #include "core_streams.h"
@@ -23,11 +24,8 @@ namespace {
 
 // The map edge fade (a float the zone screens set while they are open).
 float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
-// The save game's stream.
-CStream* SaveGameStream() { return reinterpret_cast<CStream*>(0x007AFDF8); }
 void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* TheGame() { return reinterpret_cast<void*>(0x007AFE20); }
-const char* GameString(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // The load window the game-over box opens (0x194 bytes, built inline).
 void** SaveLoadVtable() { return reinterpret_cast<void**>(0x00741388); }
@@ -227,10 +225,10 @@ EI_REPLACE_METHOD(0x00603010, CBriefingScreen::OnUnitLeft);
 // --- 00608C70: slot 31 --------------------------------------------------------------------------
 
 void CBriefingScreen::OnGameOver(int) {
-    interface_->PlaySound(GameString(0x00793528), 0);   // "buttons\gameover.wav"
+    interface_->PlaySound(game::Text(0x00793528), 0);   // "buttons\gameover.wav"
     void* memory = gamecrt::operator_new(sizeof(CMessageBox));
-    void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, GameString(0x0079350C),   // "game_over"
-                                                     GameString(0x00793518), kGameOverResult, 3, 1)       // "game_over_msg"
+    void* box = memory ? MessageBoxConstructOriginal(memory, nullptr, interface_, game::Text(0x0079350C),   // "game_over"
+                                                     game::Text(0x00793518), kGameOverResult, 3, 1)       // "game_over_msg"
                        : nullptr;
     InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
 }
@@ -255,7 +253,7 @@ EI_REPLACE_METHOD(0x00603090, CBriefingScreen::ShowChat);
 
 void CBriefingScreen::SaveState() {
     int zero = 0;
-    SaveGameStream()->Write(&zero, 4);
+    GameSaveStream()->Write(&zero, 4);
 }
 EI_REPLACE_METHOD(0x00602490, CBriefingScreen::SaveState);
 // 0062D330: the global map's slot 40, byte-identical (one zero dword).

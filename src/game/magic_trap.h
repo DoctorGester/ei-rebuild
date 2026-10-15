@@ -12,7 +12,7 @@
 #include <cstdint>
 
 struct MagicTrapRecord;
-struct UnitStream;
+class CStream;   // core_streams.h
 
 // A circle of a trap's area (0xC bytes).
 struct TrapCircle {
@@ -62,11 +62,11 @@ public:
     // none), the circles (count, then 12 bytes each), the units inside (count, then each id
     // through 0050E290), the points (count, then 8 bytes each), the period, countdown, +0x28C and
     // the sides.
-    void SaveTrap(UnitStream* stream);
+    void SaveTrap(CStream* stream);
     // 0052ADC0 (virtual slot 9, RET 4). Reads what SaveTrap writes: the spell found by id in the
     // spell manager (the context's slot 22, 00403F40), the circles and points through SetSize(n,
     // -1), the units inside appended by 0052AF20 (resolved in the trap's context).
-    void LoadTrap(UnitStream* stream);
+    void LoadTrap(CStream* stream);
 
     // 0052A100 (virtual slot 2, Create; the manager's CreateObject). The map object's Create
     // (0050E770), then as the constructor's tail: sides -1, flags_ |= 0x80040, the spell released,

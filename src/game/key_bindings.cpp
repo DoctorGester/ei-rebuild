@@ -4,6 +4,7 @@
 // (0x48-byte entries at 007857B0: slot, name, the key's display text) and the key names (0x10-byte
 // entries at 00787070: code, name). See docs/notes/app.md.
 #include "console.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -38,7 +39,6 @@ KeyName* KeyNames() { return reinterpret_cast<KeyName*>(0x00787070); }
 constexpr int kKeyNameCount = 60;
 signed char* Bindings() { return reinterpret_cast<signed char*>(0x0079BF70); }
 
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
 // 00700C05: operator+(CString, LPCTSTR).
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
@@ -46,7 +46,7 @@ mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, con
 // Opens the bindings file with `flags`; the path is a temporary CString, as in the original.
 bool OpenFile(console::CStdioFile& file, unsigned flags) {
     alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-    mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), GameDataPathString(), Text(0x00787C04));
+    mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), GameDataPathString(), game::Text(0x00787C04));
     bool opened = file.Open(*path, flags, nullptr) != 0;
     path->~CString();
     return opened;
@@ -108,7 +108,7 @@ void __cdecl SaveKeyBindings() {
         for (int key = 0; key < kKeyNameCount; ++key) {
             if (KeyNames()[key].code != code) continue;
             if (known) {
-                line.Format(Text(0x00787C18), Commands()[command].name, KeyNames()[key].name);
+                line.Format(game::Text(0x00787C18), Commands()[command].name, KeyNames()[key].name);
                 file.WriteString(line);
             }
             break;

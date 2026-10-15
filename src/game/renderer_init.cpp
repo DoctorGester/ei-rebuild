@@ -5,6 +5,7 @@
 // ambient colour, and creates the counted helper object at +0x24. Runs once at start-up. See
 // docs/notes/models.md ("Renderer creation").
 #include "device.h"   // the old device's calls
+#include "game_strings.h"
 #include "ei/hook.h"
 #include "render/render.h"
 #include "render/render_state.h"
@@ -81,8 +82,6 @@ __declspec(naked) void __fastcall RendererAddLight(CSceneRenderer*, void*, CLigh
 __declspec(naked) CRenderHelper* __fastcall HelperConstruct(void*, void*, IDirect3DDevice7* /*device*/,
                                                             std::uint32_t /*flag dword*/) EI_ORIGINAL(0x004FCA60)
 
-// A string in the game's data (the fatal error messages).
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // The capability records as the original reads them.
 static_assert(offsetof(D3DDEVICEDESC7, wMaxSimultaneousTextures) == 0xBA);
@@ -280,7 +279,7 @@ void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, Ga
         EnumerateDrivers();
         DirectDrawDriver* driver = FirstHardwareDriver();
         if (!driver) {
-            game::FatalError(GameText(0x0078E534));   // "Can't find any driver with HW 3D..."
+            game::FatalError(game::Text(0x0078E534));   // "Can't find any driver with HW 3D..."
             ExitGame(-1);
         }
         int index = settings->driverIndex_;
@@ -311,7 +310,7 @@ void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, Ga
     CTextureDevice* holder = renderer->device_;
     long result = device::GetCaps(static_cast<IDirect3DDevice7*>(holder->d3dDevice_), &deviceDesc);
     holder->lastLoadResult_ = result;
-    if (result != 0) FatalDirectX(result, GameText(0x0078EE20));   // "Can't get device description"
+    if (result != 0) FatalDirectX(result, game::Text(0x0078EE20));   // "Can't get device description"
     DDCAPS driverCaps = {};
     DDCAPS emulationCaps = {};
     driverCaps.dwSize = sizeof(DDCAPS);

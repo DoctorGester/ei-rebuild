@@ -4,9 +4,10 @@
 // is on again. Every scenario, every frame (the fade's step and draw only while a script fades:
 // zone changes, movies, the game's end).
 //
-// 005F5320 CInterface3D::DrawOverlays (Rebirth-patched: the vanilla launch only): ours only (it
+// 005F5320 CInterface3D::DrawOverlays (Rebirth-patched: hooked in both launches): ours only (it
 // draws and blits). Read back: a backdrop asked for is made (mode 1 -> 2 with the small copy kept,
-// 3 -> 4 with the old backdrop put aside), other modes stay; the frame count went up by one or
+// 3 -> 4 with the old backdrop put aside; with WideScreen a new full-size one covers the mode in
+// pixels), other modes stay; the frame count went up by one or
 // started again. Every frame of every scenario; the backdrop modes when a window opens over the
 // screen or over another window (ui_screens: the Esc menu and its dialogs).
 #include "verify.h"

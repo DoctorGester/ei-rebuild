@@ -2,6 +2,7 @@
 // its lifetime, the part sets (the figure's parts grouped by texture and material, which Draw
 // walks), the skin textures and the materials' lit state. Layouts: map_object_shadow.h.
 #include "map_object_shadow.h"
+#include "game_strings.h"
 
 #include "map_object_figures.h"
 #include "texture.h"
@@ -30,7 +31,6 @@ constexpr int kTypeBuildingLike = 0x35;             // CObject3D::type_: its tex
 constexpr std::uint32_t kTextureFlag2000 = 0x2000;
 
 const unsigned char* Bytes(const char* text) { return reinterpret_cast<const unsigned char*>(text); }
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // 004EBE60: *slot = value with counted references; the old one released (its slot 4).
 template <typename T>
@@ -245,7 +245,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
         textures[count] = set->texture;
         ++set->texture->refCount_;
     } else {
-        if (k == 0) game::DebugLog(Text(kSecondPrimarySetText), object->name, object->id_);
+        if (k == 0) game::DebugLog(game::Text(kSecondPrimarySetText), object->name, object->id_);
         partSets[k]->texture->type_ = kind;
         set = partSets[k];
     }
@@ -367,7 +367,7 @@ int CObject3DClientSpecific::SetSkins(const char* first, const char* second) {
         bool named;
         {
             mfc::CString copy(name);
-            named = gamecrt::mbsicmp(Bytes(copy), Bytes(Text(kNoneText))) != 0;
+            named = gamecrt::mbsicmp(Bytes(copy), Bytes(game::Text(kNoneText))) != 0;
         }
         if (!named) continue;
         TextureParts* set = partSets[k];
@@ -401,7 +401,7 @@ void CObject3DClientSpecific::ApplyMaterials() {
             material = materials[materialCursor];
         }
     }
-    if (gamecrt::mbscmp(Bytes(secondSkinName), Bytes(Text(kNoneText))) == 0)
+    if (gamecrt::mbscmp(Bytes(secondSkinName), Bytes(game::Text(kNoneText))) == 0)
         SetSkins(skinName, nullptr);
     else
         SetSkins(skinName, secondSkinName);

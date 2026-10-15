@@ -2,6 +2,7 @@
 // to page 0 for picked-up items (0064A4E0) and money (0064A630). The page display and layout are
 // in ui_hud_panels.cpp. See ui.h and docs/notes/items_spells.md.
 #include "ui.h"
+#include "game_strings.h"
 
 #include "item_db_text.h"
 #include "maths.h"
@@ -17,7 +18,6 @@
 namespace {
 
 float Pi() { return *reinterpret_cast<const volatile float*>(0x007423F8); }
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 float FloatFromBits(std::uint32_t bits) {
     float f;
@@ -66,7 +66,7 @@ void CHudTopPanel::Build(int page, int shown) {
     bar->flags_ |= 0x100;
     bar->plainColour_ = 0xB4000000;
 
-    CUiMesh* arrow = AddSprite(GameText(0x007945B0));   // "in25arrow"
+    CUiMesh* arrow = AddSprite(game::Text(0x007945B0));   // "in25arrow"
     arrow->uOffset_ = 0.22265625f;
     arrow->vOffset_ = 0.140625f;
     Quaternion turn;
@@ -88,13 +88,13 @@ void CHudTopPanel::AddPickedUp(CItem* item, int crippled) {
     mfc::CString name;
     mfc::CString kind;
     GameTexts()->FormatItemName(item, &name);
-    const char* key = static_cast<char>(crippled) ? GameText(0x00794634)    // "combat_crippled"
-                                                  : GameText(0x00794620);   // "combat_picked_up"
+    const char* key = static_cast<char>(crippled) ? game::Text(0x00794634)    // "combat_crippled"
+                                                  : game::Text(0x00794620);   // "combat_picked_up"
     GameTexts()->GetString(key, &kind);
     mfc::CString line(kind);
-    line += GameText(0x0078DA40);   // " "
+    line += game::Text(0x0078DA40);   // " "
     line += name;
-    line += GameText(0x00784340);   // "\n"
+    line += game::Text(0x00784340);   // "\n"
     name = line;
     PageText(0) += name;
     if (page_ == 0) LogAddTextOriginal(MessageLog(owner_), nullptr, name);
@@ -106,13 +106,13 @@ void CHudTopPanel::AddMoney(int money) {
     mfc::CString text;
     mfc::CString picked;
     mfc::CString format;
-    GameTexts()->GetString(GameText(0x00794620), &picked);   // "combat_picked_up"
-    GameTexts()->GetString(GameText(0x00794644), &format);   // "format_money"
+    GameTexts()->GetString(game::Text(0x00794620), &picked);   // "combat_picked_up"
+    GameTexts()->GetString(game::Text(0x00794644), &format);   // "format_money"
     text.Format(format, money);
     mfc::CString line(picked);
-    line += GameText(0x0078DA40);   // " "
+    line += game::Text(0x0078DA40);   // " "
     line += text;
-    line += GameText(0x00784340);   // "\n"
+    line += game::Text(0x00784340);   // "\n"
     text = line;
     PageText(0) += text;
     if (page_ == 0) LogAddTextOriginal(MessageLog(owner_), nullptr, text);

@@ -1,5 +1,6 @@
 // The map database loader (0045EA20). See map_database.h for the file format.
 #include "map_database.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "object_tables.h"
@@ -63,9 +64,8 @@ __declspec(naked) void __cdecl StoreRadians(void* /*out*/, const char* /*text*/)
     }
 }
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 bool Is(const char* word, std::uintptr_t text) {
-    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(word), reinterpret_cast<const unsigned char*>(GameText(text))) == 0;
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(word), reinterpret_cast<const unsigned char*>(game::Text(text))) == 0;
 }
 
 constexpr std::uintptr_t kAllodText = 0x00785768;     // "#allod"
@@ -293,12 +293,12 @@ void Loader::ExitLine(const char* word) {
         if (Count() > 0) Set<float>(Exit(), exit::kPassTime, static_cast<float>(GameAtof(Word(0))));
     } else if (Is(word, kViewText)) {
         Split();
-        words_.SetAtGrow(Count(), GameText(kZeroText));
+        words_.SetAtGrow(Count(), game::Text(kZeroText));
         StoreRadians(Exit() + exit::kView, Word(0));
     } else if (Is(word, kDeployAngleText)) {
         Set<std::uint8_t>(Exit(), exit::kHasDeployAngle, 1);
         Split();
-        words_.SetAtGrow(Count(), GameText(kZeroText));
+        words_.SetAtGrow(Count(), game::Text(kZeroText));
         StoreRadians(Exit() + exit::kDeployAngle, Word(0));
     }
 }

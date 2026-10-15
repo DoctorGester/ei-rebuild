@@ -28,7 +28,7 @@ using PlainArray = mfc::CArray<std::uint8_t>;
 // A waypoint (0x14 bytes).
 struct Waypoint {
     Vector3 position;            // +0x00
-    float wait;                  // +0x0C the look's turning time (AILook::time; chunk BBBE0003)
+    float time;                  // +0x0C the look's turning time (AILook::time; chunk BBBE0003)
     std::int16_t lookWait;       // +0x10 the wait after the look (AILook::wait; chunk BBBE0002)
     std::uint16_t stopFirst;     // +0x12 bit 0: AILook::stopFirst (chunk BBBE0004)
 };

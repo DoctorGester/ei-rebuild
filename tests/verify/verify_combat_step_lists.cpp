@@ -72,8 +72,8 @@ EI_VERIFY(0x00544E70, SameAsVerify, 5, s_sameAs);
 
 // 00544F60: PUSH ECX; PUSH ESI; MOV ESI,ECX; PUSH EDI (5 bytes). Both into capture streams,
 // compared; the original's bytes go on to the real stream.
-static void(__fastcall* s_saveSteps)(AnimationSteps*, void*, UnitStream*);
-static void __fastcall SaveStepsVerify(AnimationSteps* self, void*, UnitStream* stream) {
+static void(__fastcall* s_saveSteps)(AnimationSteps*, void*, CStream*);
+static void __fastcall SaveStepsVerify(AnimationSteps* self, void*, CStream* stream) {
     unitverify::CaptureStream expected(stream);
     unitverify::CaptureStream actual(stream);
     s_saveSteps(self, nullptr, &expected);
@@ -85,7 +85,7 @@ EI_VERIFY(0x00544F60, SaveStepsVerify, 5, s_saveSteps);
 
 // 00544EF0. Ours only (reads the stream). The list holds the count it read.
 static void* s_unusedLoadSteps;
-static void __fastcall LoadStepsVerify(AnimationSteps* self, void*, UnitStream* stream) {
+static void __fastcall LoadStepsVerify(AnimationSteps* self, void*, CStream* stream) {
     self->Load(stream);
     ei::verify::Check("AnimationSteps::Load", true, self->count >= 0 && (self->count == 0 || self->steps),
                       "%d steps", self->count);

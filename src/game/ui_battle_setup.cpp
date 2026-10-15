@@ -80,20 +80,8 @@ struct ContainerInputs {
 };
 void ContainerInputs::AddInput(void* input) { ContainerAddInputOriginal(this, nullptr, input); }
 
-// The game's save stream (global object at 007AFDF8, a CMemoryStream; version at 007AFE00, a
-// game being loaded at 007AFE1C).
-struct SaveStream {
-    void** vtable_;
-    void Read(void* buffer, int size) {
-        using ReadFn = void(__thiscall*)(SaveStream*, void*, int);
-        reinterpret_cast<ReadFn>(vtable_[1])(this, buffer, size);
-    }
-    void Seek(int position);                    // 004A5490
-    void Resize(int size);                      // 004A54D0
-};
-void SaveStream::Seek(int a0) { StreamSeekOriginal((void*)this, nullptr, (std::uint32_t)a0); }
-void SaveStream::Resize(int a2) { StreamResizeOriginal((void*)this, nullptr, (std::uint32_t)a2); }
-SaveStream* GameSaveStream() { return reinterpret_cast<SaveStream*>(0x007AFDF8); }
+// The game's save stream's version (at 007AFE00, its object GameSaveStream is at 007AFDF8) and a
+// game being loaded (at 007AFE1C).
 int SaveVersion() { return *reinterpret_cast<const int*>(0x007AFE00); }
 bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
 
@@ -137,7 +125,7 @@ void CBattleScreenSetup::Create() {
 
     if (LoadingGame()) {
         // The screen's part of the saved game.
-        SaveStream* stream = GameSaveStream();
+        CMemoryStream* stream = GameSaveStream();
         stream->Seek(0);
         int count;
         stream->Read(&count, 4);
@@ -151,7 +139,7 @@ void CBattleScreenSetup::Create() {
             int unused;
             stream->Read(&unused, 4);
             alignas(4) std::uint8_t raw[sizeof(mfc::CString)];
-            mfc::CString* text = StreamReadString(reinterpret_cast<CStream*>(stream), nullptr, raw);
+            mfc::CString* text = StreamReadString(stream, nullptr, raw);
             savedText = *text;
             text->~CString();
         }

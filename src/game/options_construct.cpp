@@ -9,6 +9,7 @@
 // layout, both lights' radius and a few values 00458DA0 does not touch. The master server's name
 // stays empty.
 #include "options.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 
@@ -19,20 +20,19 @@ namespace options {
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 } // namespace
 
 // The eighteen strings start empty (the members' own constructors, in the object's order).
 GameOptions::GameOptions() {
-    keyStatistics_ = GameText(0x00784B20);   // "Statistics Output Settings"
-    keyGame_ = GameText(0x00784B08);         // "Game Specific Settings"
-    keyTerrain_ = GameText(0x00784AF4);      // "Terrain Settings"
-    keyGeneral_ = GameText(0x00784AE0);      // "General Settings"
-    keyCamera_ = GameText(0x00784AD0);       // "Camera Settings"
-    keyShadows_ = GameText(0x00784AC0);      // "Shadow Settings"
-    keyPaths_ = GameText(0x00784AB0);        // "Path Settings"
-    keyNetwork_ = GameText(0x00784A9C);      // "Network Settings"
+    keyStatistics_ = game::Text(0x00784B20);   // "Statistics Output Settings"
+    keyGame_ = game::Text(0x00784B08);         // "Game Specific Settings"
+    keyTerrain_ = game::Text(0x00784AF4);      // "Terrain Settings"
+    keyGeneral_ = game::Text(0x00784AE0);      // "General Settings"
+    keyCamera_ = game::Text(0x00784AD0);       // "Camera Settings"
+    keyShadows_ = game::Text(0x00784AC0);      // "Shadow Settings"
+    keyPaths_ = game::Text(0x00784AB0);        // "Path Settings"
+    keyNetwork_ = game::Text(0x00784A9C);      // "Network Settings"
 
     driverIndex_ = 0;
     resolutionX_ = 800;
@@ -83,9 +83,9 @@ GameOptions::GameOptions() {
     enableFireprints_ = 1;
     enableBloodprintsRelight_ = 0;
 
-    workPath_ = GameText(0x00784A98);        // ".\"
-    resourcesPath_ = GameText(0x00784A90);   // ".\res\"
-    cdRomPath_ = GameText(0x00784A98);
+    workPath_ = game::Text(0x00784A98);        // ".\"
+    resourcesPath_ = game::Text(0x00784A90);   // ".\res\"
+    cdRomPath_ = game::Text(0x00784A98);
 
     createOutputInfo_ = 0;
     numberOfFrames_ = -1;
@@ -135,10 +135,10 @@ GameOptions::GameOptions() {
     toolTipTime_ = 0.5f;
     switchFilters_ = 1;
 
-    cdLabels_[0] = GameText(0x00784A88);     // "EICD1"
-    cdLabels_[1] = GameText(0x00784A80);     // "EICD2"
-    cdLabels_[2] = GameText(0x00784A78);     // "EICD3"
-    fontCharSet_ = GameText(0x00784A70);     // "english"
+    cdLabels_[0] = game::Text(0x00784A88);     // "EICD1"
+    cdLabels_[1] = game::Text(0x00784A80);     // "EICD2"
+    cdLabels_[2] = game::Text(0x00784A78);     // "EICD3"
+    fontCharSet_ = game::Text(0x00784A70);     // "english"
 
     keyboardLayout_ = 0x409;   // US English
     objectsLightingCoeff_ = 1.0f;
@@ -147,8 +147,8 @@ GameOptions::GameOptions() {
     difficulty_ = 0;
     difficultyStored_ = 0;
 
-    defaultMapName_ = GameText(0x007846F0);          // "none"
-    defaultStreamingSound_ = GameText(0x007846F0);
+    defaultMapName_ = game::Text(0x007846F0);          // "none"
+    defaultStreamingSound_ = game::Text(0x007846F0);
     fogNightStartDistance_ = 50.0f;
     fogDayStartDistance_ = 90.0f;
 }

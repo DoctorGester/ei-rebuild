@@ -1,20 +1,23 @@
 // The multiplayer hero screen's mode (CMpHeroScreen::SetModeVanilla 00615D30): the hero list (9), the new
-// hero (10) and its statistics page (11) laid out. Rebirth patches it, so this is the vanilla body
-// and it is hooked in the vanilla launch only; the screen's other members call it through their
+// hero (10) and its statistics page (11) laid out. Rebirth's WideScreen replaces it with the
+// original followed by the curtains' visibility (widescreen::ShowHeroCurtains), which this
+// reproduces, so it is hooked in both launches; the screen's other members call it through their
 // forwarder. See ui_screens.h and docs/notes/ui.md, section 5.
 #include "ui_screens.h"
+#include "game_strings.h"
 
 #include "ui_camp.h"
 #include "ui_item_info.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "originals_ui.h"
 
 #include <cstdint>
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 constexpr int kModeHeroList = 9;
 constexpr int kModeNewHero = 10;
@@ -85,8 +88,8 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
 
     CUiRegion** regions = window.regions_.data;
     if (mode == kModeHeroList) {
-        menu->ShowPart(GameText(0x007939E8), 1);   // "but03"
-        menu->ShowPart(GameText(0x007939D0), 1);   // "button03_multiplayer"
+        menu->ShowPart(game::Text(0x007939E8), 1);   // "but03"
+        menu->ShowPart(game::Text(0x007939D0), 1);   // "button03_multiplayer"
         Enable(heroScroll_, 1);
         for (int i = 0; i < window.sceneObjects_.size; ++i) Sprite(this, i)->visible_ = 1;
         ShowSprites(this, kFirstNewHeroSprite, kSpritesEnd, 0);
@@ -154,5 +157,8 @@ void CMpHeroScreen::SetModeVanilla(int mode) {
     InfoPanelDescribeOriginal(descPanel_, nullptr, nullptr);
     static_cast<CHeroStatsPanel*>(statsPanel_)->ShowStats(mode);
     mode_ = mode;
+    // Rebirth's WideScreen (addon's handler after the original): the curtains shown but on the list.
+    widescreen::ShowHeroCurtains(&window, mode);
 }
 EI_REPLACE_METHOD(0x00615D30, CMpHeroScreen::SetModeVanilla);
+EI_REBIRTH_IMPLEMENTS(0x00615D30, ei::rebirth::Patch::WideScreen);

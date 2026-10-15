@@ -8,6 +8,7 @@
 // allocate command blocks in the CScript (LoadScriptBody, LoadCommands, Load) run only ours and are
 // checked for consistency.
 #include "verify.h"
+#include "../../src/game/game_strings.h"
 
 #include "../../src/game/script.h"
 #include "../../src/game/script_parse.h"
@@ -274,7 +275,7 @@ static void __stdcall ConstructTokensVerify(ScriptToken* tokens, int count) {
     ConstructTokens(tokens, count);
     bool ok = true;
     for (int i = 0; i < count; ++i)
-        ok &= std::strcmp(tokens[i].text, GameText(0x0078BC6C)) == 0 && tokens[i].line == -1;
+        ok &= std::strcmp(tokens[i].text, game::Text(0x0078BC6C)) == 0 && tokens[i].line == -1;
     ei::verify::Check("ConstructTokens", true, ok, "%d", count);
 }
 EI_VERIFY(0x004CF380, ConstructTokensVerify, 0, s_unused);

@@ -2,6 +2,7 @@
 // side (lines, history depth, placement) is in console_window.cpp. See docs/notes/ui.md
 // ("Console window").
 #include "console.h"
+#include "game_strings.h"
 #include "ui_gdi.h"
 
 #include "lib/crt.h"
@@ -51,7 +52,7 @@ int Clamp(int value, int high) {
 
 // Width in pixels of the prompt and the first `count` characters of the input.
 int PromptWidth(GameDC* dc, const mfc::CString& input, int count) {
-    mfc::CString text = mfc::CString(GameText(kPromptText)) + Left(input, count);
+    mfc::CString text = mfc::CString(game::Text(kPromptText)) + Left(input, count);
     SIZE size;
     gameapi::GetTextExtentPoint32A(dc->hdc_, text, Length(text), &size);
     return size.cx;
@@ -272,7 +273,7 @@ void ConsoleWindow::OnChar(int key, int, int) {
         caret_ = 0;
         anchor_ = 0;
         ConsoleDrawInputOriginal(this);
-        AddTextAt(this, nullptr, (mfc::CString(GameText(kPromptText)) + commands_.data[0]) + GameText(kNewLine));
+        AddTextAt(this, nullptr, (mfc::CString(game::Text(kPromptText)) + commands_.data[0]) + game::Text(kNewLine));
         ExecuteAt(commands_.data[0]);
         return;
     }
@@ -346,12 +347,12 @@ void ConsoleWindow::DrawLines() {
         dc->DrawText(text, Length(text), &rect, kDrawLine);
     }
     if (scroll_ > 0) {
-        mfc::CString mark(GameText(kMoreText));
+        mfc::CString mark(game::Text(kMoreText));
         RECT rect{width_ - 0x12, height_ - 0x2E, width_ - 8, height_ - kInputHeight};
         dc->DrawText(mark, Length(mark), &rect, kDrawMark);
     }
     if (scroll_ < lines_.GetSize() - visibleLines_) {
-        mfc::CString mark(GameText(kMoreText));
+        mfc::CString mark(game::Text(kMoreText));
         RECT rect{width_ - 0x12, 8, width_ - 8, 0x17};
         dc->DrawText(mark, Length(mark), &rect, kDrawMark);
     }
@@ -382,7 +383,7 @@ void ConsoleWindow::DrawInput() {
     dc->SetTextColor(kInputText);
     dc->SetBkMode(TRANSPARENT);
     RECT rect{8, height_ - 0x17, width_ - 8, height_ - 3};
-    mfc::CString text = mfc::CString(GameText(kPromptText)) + input_;
+    mfc::CString text = mfc::CString(game::Text(kPromptText)) + input_;
     dc->DrawText(text, Length(text), &rect, kDrawLine);
     if (caretX < width_ - 0x10) {
         GamePen pen;

@@ -5,6 +5,7 @@
 // 00536670 / 005370F0 (CUnitClientSpecific::ComposeSkin), 00568800 (BuildUnitSkins). See
 // docs/notes/items_spells.md ("Composed textures").
 #include "texture.h"
+#include "game_strings.h"
 #include "unit_client_models.h"
 
 #include "ei/hook.h"
@@ -22,10 +23,9 @@
 namespace {
 
 const mfc::CString& GameFolder() { return *reinterpret_cast<const mfc::CString*>(0x007AF460); }
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* const kTextures = Text(0x0078FFE4);     // "textures\\"
-const char* const kMmp = Text(0x0078FB4C);          // ".mmp"
-const char* const kCantWrite = Text(0x00795FA4);    // "Can't open file \"%s\" to write result texture.\n"
+const char* const kTextures = game::Text(0x0078FFE4);     // "textures\\"
+const char* const kMmp = game::Text(0x0078FB4C);          // ".mmp"
+const char* const kCantWrite = game::Text(0x00795FA4);    // "Can't open file \"%s\" to write result texture.\n"
 
 constexpr std::uint32_t kMmpMagic = 0x504D4D;       // "MMP"
 constexpr unsigned kWriteCreate = 0x1001;           // CFile::modeCreate | modeWrite
@@ -33,8 +33,8 @@ constexpr unsigned kWriteCreate = 0x1001;           // CFile::modeCreate | modeW
 
 // The aligned byte allocation [004ECB50].
 std::uint8_t* AllocBytes(int count) { return lib::AlignedArray<std::uint8_t>::Allocate(count); }
-const char* const kCantFindLayer = Text(0x00795F74);    // "Can't find texture \"%s\" for layer composition.\n"
-const char* const kWrongLayerSize = Text(0x00795F4C);   // "Texture \"%s\" dimentions are incorrect.\n"
+const char* const kCantFindLayer = game::Text(0x00795F74);    // "Can't find texture \"%s\" for layer composition.\n"
+const char* const kWrongLayerSize = game::Text(0x00795F4C);   // "Texture \"%s\" dimentions are incorrect.\n"
 // 00693010 (CTextureManager::DrawLayers), called through its address so its wrapper runs.
 __declspec(naked) int __fastcall DrawLayers(void*, void*, std::uint32_t*, const console::CStringArray*, int)
     EI_ORIGINAL(0x00693010)

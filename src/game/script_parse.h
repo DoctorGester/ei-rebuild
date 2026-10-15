@@ -3,6 +3,7 @@
 // Helpers shared by the script loader files (script_parse.cpp, script_parse_load.cpp) and their
 // verify wrappers. Not part of the game's interface.
 
+#include "game_strings.h"
 #include "script.h"
 
 #include <cstddef>
@@ -28,8 +29,6 @@ inline StringOps& Ops(mfc::CString& s) { return reinterpret_cast<StringOps&>(s);
 // CString length (stored before the characters).
 inline int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
 
-// A string constant of game.exe (messages are passed by their original address).
-inline const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // 004CF470: formats the error message into the CScript's error text and sets code and line;
 // returns 0. (CScript::Error forwards to the original address.)

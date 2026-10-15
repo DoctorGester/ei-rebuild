@@ -41,6 +41,7 @@
 #include <psapi.h>
 #include <richedit.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
@@ -144,6 +145,10 @@ struct State {
     bool enabled = false, installed = false, modulesHooked = false;
     unsigned frame = 0;
     std::vector<CodeRange> code;
+    std::vector<std::pair<std::uintptr_t, std::uintptr_t>> data;   // readable non-executable sections
+    std::vector<std::uintptr_t> starts;   // sorted: function starts (BuildStarts)
+    std::vector<std::uintptr_t> taken;    // sorted: the starts whose address is stored somewhere (virtual methods, callbacks)
+    std::size_t startsFor = 0;            // code.size() when `starts` was built
     std::vector<PatchedModule> patched;
     std::set<std::uintptr_t> patchedBases;
     std::vector<PatchedVtable> vtables;
@@ -314,8 +319,12 @@ void AddCodeRanges(State& s, HMODULE module, char tag, const char* name) {
     const auto* nt = reinterpret_cast<const IMAGE_NT_HEADERS32*>(base + dos->e_lfanew);
     const IMAGE_SECTION_HEADER* section = IMAGE_FIRST_SECTION(nt);
     for (unsigned i = 0; i < nt->FileHeader.NumberOfSections; ++i, ++section) {
-        if (!(section->Characteristics & IMAGE_SCN_MEM_EXECUTE)) continue;
         std::uintptr_t begin = base + section->VirtualAddress;
+        if (!(section->Characteristics & IMAGE_SCN_MEM_EXECUTE)) {
+            if ((section->Characteristics & IMAGE_SCN_MEM_READ) && !(section->Characteristics & IMAGE_SCN_MEM_DISCARDABLE))
+                s.data.push_back({begin, begin + section->Misc.VirtualSize});
+            continue;
+        }
         s.code.push_back({begin, begin + section->Misc.VirtualSize, base, tag, name});
     }
 }
@@ -352,29 +361,198 @@ void AppendFrame(std::string& out, std::uintptr_t a, const CodeRange& r) {
     out += text;
 }
 
-// The hook's return address, then up to seven more return addresses found up the stack.
-std::string Chain(const State& s, void* const* frame) {
-    std::string out;
-    int count = 0;
-    auto first = reinterpret_cast<std::uintptr_t>(frame[0]);
-    if (const CodeRange* r = CodeAt(s, first)) {
-        AppendFrame(out, first, *r);
-        ++count;
-    } else {
-        out = "?";
-    }
-    const auto* tib = reinterpret_cast<const NT_TIB*>(NtCurrentTeb());
-    auto* const* top = reinterpret_cast<void* const*>(tib->StackBase);
-    for (void* const* p = frame + 1; p < top && p < frame + 128 && count < 8; ++p) {
-        auto a = reinterpret_cast<std::uintptr_t>(*p);
-        const CodeRange* r = CodeAt(s, a);
-        if (r && FollowsCall(a)) {
-            AppendFrame(out, a, *r);
-            ++count;
+const CodeRange* CodeContaining(const State& s, std::uintptr_t address) {
+    for (const CodeRange& r : s.code)
+        if (address >= r.begin && address < r.end) return &r;
+    return nullptr;
+}
+
+// Whether code may begin at `target`: after the padding between functions (MSVC6 pads with 90, newer
+// MSVC with CC) or right after a RET (C3, C2 imm16).
+bool AfterFunctionEnd(std::uintptr_t target) {
+    const auto* p = reinterpret_cast<const std::uint8_t*>(target);
+    return p[-1] == 0xCC || p[-1] == 0x90 || p[-1] == 0xC3 || (p[-3] == 0xC2 && p[-1] == 0x00);
+}
+
+// Follows the jump at the entry of a function (E9 rel32: an incremental link's thunk, a hook's
+// redirected entry; `mov eax, imm32; jmp eax`: EI_ORIGINAL's forwarders) to where it goes; 0 when the
+// code at `entry` is not such a jump.
+std::uintptr_t JumpTarget(std::uintptr_t entry) {
+    const auto* q = reinterpret_cast<const std::uint8_t*>(entry);
+    if (q[0] == 0xE9) return entry + 5 + *reinterpret_cast<const std::int32_t*>(entry + 1);
+    if (q[0] == 0xB8 && q[5] == 0xFF && q[6] == 0xE0) return *reinterpret_cast<const std::uintptr_t*>(entry + 1);
+    return 0;
+}
+
+// The function starts the stack walk validates against, from code with no symbols and no
+// disassembly: a value is a start when it lies in a code range, follows a function's end
+// (AfterFunctionEnd) and is the target of an E8 rel32 (called) or is stored as a 4-byte value in a
+// data section or in the code (a virtual method, a callback: `taken`); and every place a jump at
+// such a start leads. A stray byte pattern adds a start now and then (E8 in an immediate; a switch
+// table's label after a RET), which can reject a real frame, never accept a stale one; a function
+// nothing calls or stores (never reached through its own address) is missing, which only widens its
+// predecessor's span.
+void BuildStarts(State& s) {
+    if (s.startsFor == s.code.size()) return;
+    s.starts.clear();
+    s.taken.clear();
+    auto plausible = [&](std::uintptr_t target) {
+        const CodeRange* in = CodeContaining(s, target);
+        return in && target >= in->begin + 4 && AfterFunctionEnd(target);
+    };
+    for (const CodeRange& r : s.code) {
+        for (std::uintptr_t a = r.begin; a + 5 <= r.end; ++a) {
+            if (*reinterpret_cast<const std::uint8_t*>(a) == 0xE8) {
+                std::uintptr_t target = a + 5 + *reinterpret_cast<const std::int32_t*>(a + 1);
+                if (plausible(target)) s.starts.push_back(target);
+            }
+            std::uintptr_t value = *reinterpret_cast<const std::uintptr_t*>(a);   // immediates
+            if (plausible(value)) s.taken.push_back(value);
         }
     }
+    for (const auto& [begin, end] : s.data)
+        for (std::uintptr_t a = (begin + 3) & ~std::uintptr_t(3); a + 4 <= end; a += 4) {
+            std::uintptr_t value = *reinterpret_cast<const std::uintptr_t*>(a);
+            if (plausible(value)) s.taken.push_back(value);
+        }
+    std::sort(s.taken.begin(), s.taken.end());
+    s.taken.erase(std::unique(s.taken.begin(), s.taken.end()), s.taken.end());
+    std::vector<std::uintptr_t> landed;
+    for (std::uintptr_t entry : s.taken) {
+        s.starts.push_back(entry);
+        std::uintptr_t at = entry;
+        for (int hop = 0; hop < 6; ++hop) {
+            at = JumpTarget(at);
+            if (!at || !CodeContaining(s, at)) break;
+            landed.push_back(at);
+        }
+    }
+    s.taken.insert(s.taken.end(), landed.begin(), landed.end());
+    s.starts.insert(s.starts.end(), landed.begin(), landed.end());
+    std::sort(s.taken.begin(), s.taken.end());
+    s.taken.erase(std::unique(s.taken.begin(), s.taken.end()), s.taken.end());
+    std::sort(s.starts.begin(), s.starts.end());
+    s.starts.erase(std::unique(s.starts.begin(), s.starts.end()), s.starts.end());
+    s.startsFor = s.code.size();
+}
+
+// Whether the function holding `inner` has its address stored somewhere, so that a call through a
+// register or memory can lead to it.
+bool AddressTaken(const State& s, std::uintptr_t inner) {
+    auto next = std::upper_bound(s.starts.begin(), s.starts.end(), inner);
+    if (next == s.starts.begin()) return false;
+    return std::binary_search(s.taken.begin(), s.taken.end(), *(next - 1));
+}
+
+// Whether `inner` (a return address) lies in the function that begins at `entry`: the same code
+// range, and no function start in (entry, inner].
+bool InFunction(const State& s, std::uintptr_t entry, std::uintptr_t inner) {
+    const CodeRange* r = CodeContaining(s, entry);
+    if (!r || inner < entry || inner >= r->end) return false;
+    auto next = std::upper_bound(s.starts.begin(), s.starts.end(), entry);
+    return next == s.starts.end() || *next > inner;
+}
+
+// Whether the call before `a` is a direct one (E8 rel32): its target can be checked.
+bool IsDirectCall(std::uintptr_t a) { return reinterpret_cast<const std::uint8_t*>(a)[-5] == 0xE8; }
+
+// Whether the function at `entry` jumps (JMP rel32 as a tail call, after setting its arguments up)
+// into the function holding `inner`. No decoding: any E9 byte in the first 0x100 bytes of the
+// function counts, a stray one only lets a stale frame through that has such a function and a
+// target that lands exactly there.
+bool TailCallsInto(const State& s, std::uintptr_t entry, std::uintptr_t inner) {
+    auto next = std::upper_bound(s.starts.begin(), s.starts.end(), entry);
+    std::uintptr_t end = entry + 0x100;
+    if (next != s.starts.end() && *next < end) end = *next;
+    for (std::uintptr_t at = entry; at + 5 <= end; ++at) {
+        if (*reinterpret_cast<const std::uint8_t*>(at) != 0xE9) continue;
+        std::uintptr_t target = at + 5 + *reinterpret_cast<const std::int32_t*>(at + 1);
+        for (int hop = 0; hop < 6 && target && CodeContaining(s, target); ++hop) {
+            if (InFunction(s, target, inner)) return true;
+            target = JumpTarget(target);
+        }
+    }
+    return false;
+}
+
+// Whether the direct call before `a` leads into the function holding `inner`, a return address found
+// earlier up the stack. A stale return address (left in a frame's unwritten slot) follows a call
+// whose target is some other function. The entry may be a jump on the way (JumpTarget), and the
+// function may end by tail-calling the one holding `inner` (TailCallsInto).
+bool CallsInto(const State& s, std::uintptr_t a, std::uintptr_t inner) {
+    std::uintptr_t entry = a + *reinterpret_cast<const std::int32_t*>(a - 4);
+    for (int hop = 0; hop < 6; ++hop) {
+        if (!CodeContaining(s, entry)) return false;
+        if (InFunction(s, entry, inner) || TailCallsInto(s, entry, inner)) return true;
+        entry = JumpTarget(entry);
+        if (!entry) return false;
+    }
+    return false;
+}
+
+// The hook's return address (`frame[0]`, the real return address of the call being observed), then up
+// to seven more found up the stack.
+//
+// x86 code here has no frame pointers or unwind tables, so the stack is scanned for values that follow
+// a CALL (FollowsCall). The unwritten slots of live frames hold return addresses from earlier, deeper
+// calls, which would put stale callers into the chain. A value is therefore kept only when its call
+// can be tied to the frames found so far:
+// - a direct call must lead into the function holding the last kept frame (CallsInto), or, when
+//   frames after the last proven one are unproven, into the function holding one of them (the later
+//   ones were stale) or the last proven one;
+// - a call through a register or memory has no target to check. It is considered only when the
+//   function it would call (the one holding the frame before) has its address stored somewhere
+//   (AddressTaken), and is kept only once a later direct call proves it (or a frame above it); the
+//   unproven ones left at the end are dropped.
+std::string Chain(State& s, void* const* frame) {
+    BuildStarts(s);
+    struct Frame {
+        std::uintptr_t address;
+        const CodeRange* range;
+    };
+    std::vector<Frame> kept;       // proven, in stack order
+    std::vector<Frame> unproven;   // after the last proven frame
+    auto first = reinterpret_cast<std::uintptr_t>(frame[0]);
+    const CodeRange* firstRange = CodeAt(s, first);
+    if (firstRange) kept.push_back({first, firstRange});
+    std::uintptr_t anchor = first;
+    const auto* tib = reinterpret_cast<const NT_TIB*>(NtCurrentTeb());
+    auto* const* top = reinterpret_cast<void* const*>(tib->StackBase);
+    for (void* const* p = frame + 1; p < top && p < frame + 128 && kept.size() < 8; ++p) {
+        auto a = reinterpret_cast<std::uintptr_t>(*p);
+        const CodeRange* r = CodeAt(s, a);
+        if (!r || !FollowsCall(a)) continue;
+        if (!firstRange) {   // the observed call came from somewhere unknown: nothing to prove against
+            kept.push_back({a, r});
+            continue;
+        }
+        if (!IsDirectCall(a)) {
+            // The callee is the function holding the frame before: it must have its address stored
+            // somewhere. An import call (CALL [address]) leads into a DLL, never into this code
+            // (a callback comes back through the DLL's own frames, which this walk does not see).
+            const auto* code = reinterpret_cast<const std::uint8_t*>(a);
+            bool import = code[-6] == 0xFF && code[-5] == 0x15;
+            if (!import && AddressTaken(s, unproven.empty() ? anchor : unproven.back().address))
+                unproven.push_back({a, r});
+            continue;
+        }
+        // The latest of the unproven frames, else the proven one, that this call leads into.
+        int into = -2;   // -1: the last proven frame; i >= 0: unproven[i]
+        for (int i = int(unproven.size()) - 1; i >= 0 && into == -2; --i)
+            if (CallsInto(s, a, unproven[i].address)) into = i;
+        if (into == -2 && CallsInto(s, a, anchor)) into = -1;
+        if (into == -2) continue;
+        for (int i = 0; i <= into; ++i) kept.push_back(unproven[i]);
+        unproven.clear();
+        kept.push_back({a, r});
+        anchor = a;
+    }
+    if (kept.size() > 8) kept.resize(8);
+    std::string out = firstRange ? std::string() : std::string("?");
+    for (const Frame& f : kept) AppendFrame(out, f.address, *f.range);
     return out;
 }
+
 
 // --- rows -----------------------------------------------------------------------------------------
 

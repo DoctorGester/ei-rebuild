@@ -1,8 +1,9 @@
 // The interface manager's start (CInterface3D::Create 005F4990, called once by the application's
 // start with the renderer's device object): the screen size, the three fonts, the keyboard layout,
 // the console window, the debug information panel, the chat overlay, the fade and the help topics
-// seen (config\tutorial.ini). Rebirth patches it, so this is the vanilla body and it is hooked in
-// the vanilla launch only. See ui.h and docs/notes/ui.md, section 3.
+// seen (config\tutorial.ini). Rebirth's WideScreen changes the fonts' scale (addon's FMUL at +BF
+// reads its float at 005F4F81: widescreen::FontScale); hooked in both launches. See ui.h and
+// docs/notes/ui.md, section 3.
 #include "ui.h"
 
 #include "console.h"
@@ -10,8 +11,10 @@
 #include "text_split.h"
 #include "texture.h"
 #include "ui_gdi.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -24,7 +27,6 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 // The original keeps the fonts' scale in a float stack slot.
 float StoreScale(float value) {
@@ -34,7 +36,7 @@ float StoreScale(float value) {
 
 // The fonts: the face, the size the scale is measured with (tenths of a point) and each font's
 // share of the screen width.
-const char* FontFace() { return GameText(0x00793034); }   // "Times New Roman"
+const char* FontFace() { return game::Text(0x00793034); }   // "Times New Roman"
 constexpr int kMeasureSize = 750;
 constexpr int kFontShares[3] = {104, 112, 144};
 void** FontVtable() { return reinterpret_cast<void**>(0x0073BFB4); }
@@ -50,7 +52,7 @@ ui_gdi::GameFont* NewFont() {
 
 bool CreateFont(ui_gdi::GameFont* font, int size) {
     if (FontCreatePointOriginal(font, nullptr, size, FontFace(), nullptr)) return true;
-    game::FatalError(GameText(0x00793008));   // "CInterface3D::Create.\n Cannot create font.\n"
+    game::FatalError(game::Text(0x00793008));   // "CInterface3D::Create.\n Cannot create font.\n"
     return false;
 }
 
@@ -74,7 +76,7 @@ void ChooseKeyboardLayout() {
         char name[12];
         if (!gameapi::GetKeyboardLayoutNameA(name)) continue;
         unsigned id = 0;
-        gamecrt::sscanf(name, GameText(0x00793004), &id);   // "%x"
+        gamecrt::sscanf(name, game::Text(0x00793004), &id);   // "%x"
         id &= 0xFFFF;
         if (id == wanted) {
             found = i;
@@ -136,7 +138,7 @@ void CInterface3D::Create(CTextureDevice* device) {
     LOGFONTA measured;
     gameapi::GetObjectA(fonts_[0]->handle_, sizeof(measured), &measured);
     const int pixels = measured.lfHeight < 0 ? -measured.lfHeight : measured.lfHeight;
-    const float scale = StoreScale(static_cast<float>(pixels) * GameFloat(0x0073D09C));   // 0.01
+    const float scale = StoreScale(static_cast<float>(pixels) * widescreen::FontScale());   // 0.01 (0073D09C)
     if (fonts_[0]) fonts_[0]->Delete();
     for (int i = 0; i < 3; ++i) {
         fonts_[i] = NewFont();
@@ -202,3 +204,4 @@ void CInterface3D::Create(CTextureDevice* device) {
     disconnected_ = false;
 }
 EI_REPLACE_METHOD(0x005F4990, CInterface3D::Create);
+EI_REBIRTH_IMPLEMENTS(0x005F4990, ei::rebirth::Patch::WideScreen);

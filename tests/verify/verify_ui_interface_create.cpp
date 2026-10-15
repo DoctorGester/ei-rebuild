@@ -1,6 +1,7 @@
 // Check for the vanilla body of the interface's Create 005F4990 (A-I22,
-// src/game/ui_interface_create.cpp). Rebirth patches it, so the installer hooks it in the vanilla
-// launch only and this wrapper runs there.
+// src/game/ui_interface_create.cpp). Rebirth patches it (WideScreen's font scale), which the
+// rewrite reproduces, so it runs in both launches; with WideScreen the scale is checked against
+// the float addon wrote at 005F4F81 (verify_ui_widescreen.cpp).
 //
 // Ours only: it makes the fonts, the console window, the chat overlay and the fade, changes the
 // keyboard layout and runs once. Read back: the screen size is the render target's; the three

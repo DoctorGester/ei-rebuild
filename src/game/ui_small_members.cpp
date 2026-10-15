@@ -2,6 +2,7 @@
 // assignments, default slot answers, one-line setters and handlers. See ui.h, ui_camp.h,
 // ui_screens.h and docs/notes/ui.md.
 #include "console.h"
+#include "game_strings.h"
 #include "ui.h"
 #include "ui_briefing.h"
 #include "ui_camp.h"
@@ -21,7 +22,6 @@ namespace {
 mfc::CString& String(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 const mfc::CString& String(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 void* Vtable(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
 
@@ -101,7 +101,7 @@ EI_REPLACE_METHOD(0x006157C0, CUiItemStrip::FigureItemAt);
 bool CGlobalMap::MayTravel(int) { return true; }
 EI_REPLACE_METHOD(0x006316A0, CGlobalMap::MayTravel);
 
-const char* CGlobalMap::HelpTopic() { return noCamp_ == 1 ? GameText(0x0079416C) : GameText(0x00794160); }
+const char* CGlobalMap::HelpTopic() { return noCamp_ == 1 ? game::Text(0x0079416C) : game::Text(0x00794160); }
 EI_REPLACE_METHOD(0x0062EE70, CGlobalMap::HelpTopic);
 
 // --- One-line setters and readers ------------------------------------------------------------------------

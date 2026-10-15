@@ -70,7 +70,7 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 ### Widescreen and rendering (3 of 4 applied)
 
-- **WideScreen** (100 sites, single player; *first part implemented* (W1), W2-W4 to do: "WideScreen" below): with VIDEORESOLUTION wider
+- **WideScreen** (100 sites, single player; *implemented* (W1-W4: "WideScreen" below): with VIDEORESOLUTION wider
   than 4:3 the 800x600 interface layout is widened: layout widths 00742B08 (800.0) and 007428AC (695.0), `ScaleRectToScreen` /
   `ScalePointToScreen` (005F7CA0, 005F7D20), 005F7D60, `CUiRegion::SetRect` / `AddPoint`, sprite placement 005E6FA0, the camp and hero
   screens, the panel builders (0063C050 .. 00649910), panel immediates, the console and minimap rectangles, the cursor clip. These functions
@@ -217,7 +217,7 @@ of 005F7D20 (not rewritten). Details:
   005F7DA0 / 005F7E00, written over with its 194-byte #93) clear ECX, and its code at 005FDE94 (in 005FDE20, the text surfaces' draw)
   calls 005F7CA0 with ECX 0. The five hooks are `__fastcall` entries (`ScaleRectToScreenEntry` etc., ui.h) that take ECX 0 as "no
   interface": the wide scaling without the margin (with the flag off ECX 0 never comes).
-- In a Rebirth launch, until W2-W4 port the builders, addon's builders set the panel offset: the startup finds addon's variable (the
+- In a Rebirth launch, the panel offset is addon's variable (set by its builders until W3 ported them): the startup finds addon's variable (the
   operand of `ADD ECX,[m32]` / `ADD EAX,[m32]` in addon's SetRect, the JMP target at 005FC9E0, inside addon.dll) and our SetRect /
   AddPoint / Place read that one.
 - 005F7DA0 / 005F7E00 / 005F7E30 lie inside addon's #93 site, so their verify wrappers steal whole instructions of addon's code written
@@ -307,13 +307,50 @@ at 0 mismatches (e.g. ShowMode 3520 calls, Highlight, the setups and layouts). N
 the run_all it imported when it started, so `work.py test --widescreen` without names compares only the scenarios that copy knows;
 name them (or compare with `run_all.compare_widescreen`).
 
-**W4** (each needs its functions rewritten or the rewrite to declare the patch, and its frames compared):
-- **W4, the other screens and the input**: the camp and hero screens (0060C870 CCampPages::Create, 00613EA0 / 00615D30 CMpHeroScreen),
-  the help page 00659420+574, the global map 0062F950+1D0 and its mouse move 00630010 (+7C, +22C), the camera's mouse move 005EB210+39
-  (the last two call addon's no-margin entry 005F7DFE: `CInterface3D::CallScalePointFromScreenNoMargin` since W2), the cursor's
-  rectangles 005F5320 (+14A .. +251), the interface's creation 005F4990+BF and 005F4F81, 005FD237 (9 bytes), 004F1330+2A (AxisSwapMatrix, a device file).
+**Done (W4)**: the remaining 18 sites, each function with `EI_REBIRTH_IMPLEMENTS(..., WideScreen)` (the layout's two new
+values, `axisScale` and `fontScale`, are computed with the others in `widescreen::Compute`, as addon computes the floats it writes
+into the code):
+- The axis swap 004F1330+2A (device_helpers.cpp): m[0] is `width43 / width` (addon's `MOV DWORD PTR [EAX],imm32`, its float at
+  004F135C), so the 3D view drawn at the full width keeps 4:3 proportions; `widescreen::AxisScale`.
+- The fonts 005F4990+BF (ui_interface_create.cpp): the font scale `width * 0.0075f / height` (addon's FMUL at its float 005F4F81 in
+  place of 0.01 at 0073D09C; its constant is the float 0.0075 widened to a double, 0.0074999998: with the double 0.0075 the result
+  is one ulp off at 3840x2160); `widescreen::FontScale`.
+- The backdrop 005F5320 (+14A .. +251, ui_interface_draw.cpp): the full-size backdrop surface at the mode's size, flag 0 (addon's
+  Construct(..., 0, 0, width, height, 4, 0) in place of (..., 800, 600, 4, 1)). The CSV and the ticket called them "the cursor's
+  rectangles": they are the backdrop's.
+- The drags: the camera's mouse move 005EB210+39 and the global map's 00630010+7C call the no-margin entry
+  (`CallScalePointFromScreenNoMargin`); the map's pick picture is read at `x / 2 - margin / 2` (addon's 9 bytes at 005FD237, which its
+  redirected CALLs at 0063023C / 0062FB20 enter: `widescreen::PickShift`) in 00630010+22C and 0062F950+1D0.
+- The camp 0060C870 (ui_camp_create.cpp: `Create` is `BuildPages` and the curtains) and the multiplayer hero screen 00613EA0
+  (ui_hero_screen_create.cpp): addon's handlers (100234AB, 100235BA) run after the original and add two sprites, the curtains over
+  the margins: SetRectangle(2.0, 100.0, -margin, 0, 0, 600, ...) and (2.0, 100.0, 800, 0, 800 + margin, 600, ...) with the texture
+  coordinates (0xE3, 0x3E)-(0x100, 0xB0) and mirrored, tint 0.3, shown on the camp, hidden on the hero screen;
+  `widescreen::AddCurtains`. The hero screen's mode 00615D30 (ui_hero_screen_mode.cpp, addon's 100236C3 after it) shows them in every
+  mode but the hero list (9) when the screen has its 21 sprites: `widescreen::ShowHeroCurtains`.
+- The help page 00659420+574 (ui_help_page.cpp): a tutorial message's frames (`message_` set) named `"<text>:<page>"` in addon's two
+  lists move to the screen's edges: zt9:0, zt12:0, zt12:1, zt13:0, zt14:0, zt14:2, zt17:0, zt20:0, zt22:0 by `-extra`, zt3:2, zt4:0,
+  zt4:1, zt7:0, zt10:0, zt10:1, zt18:0 by `+extra` (both of the `#rectangle` line's x values; addon's 10023702 changes the locals
+  before the first AddSprite); `TutorialFrameShift`.
+- Not reproduced in a Rebirth launch: 00613EA0 also holds EI_Plugin's fixes (+D15, +E7B), so the installer keeps addon's code there
+  (as 0061D780 did until W2a); ours runs in a vanilla launch with the flag. Follow-up W4a.
+Verified: side by side in a Rebirth launch, against addon's code, the help page (with addon's handler), the axis swap, the
+camera's and the global map's mouse moves; ours only, the camp's and the hero screen's sprites (the curtains' rectangles, tint and
+visibility), the mode's curtains, the map's left button and the backdrop; the startup check compares addon's two floats (005F4F81,
+004F135C) with ours (the fonts' scale is the one at 005F4F81). Frames: `ui_widescreen_screens` (a fourth
+widescreen scenario: the hero list, two tutorial messages with frames on either side (zt4 pages 0 and 1, zt9), the global map's mouse
+moves and a right-button drag, for the wrappers: not captured, as in part one; the harness's new `rdown` / `rup`
+steps hold the right button) and the camp in `ui_widescreen`, compared by `run_all --widescreen`.
+2026-10-15: every frame of the four scenarios within the default tolerance (ui_widescreen_screens at most 0.004%, the camp
+0.017%, the multiplayer hero screen 0.000%), the W4 wrappers at 0 mismatches (the help page 3 calls, the camera's mouse move 334,
+the global map's drag 24 and its tip 5, DrawOverlays 304, the camp's Create, the hero screen's mode). The first run caught the
+font scale one ulp off (addon's 0.0075 is a float constant).
+The hero model in vertical strips (vanilla with the flag, the ticket's note): not seen after W4: the vanilla runs of the
+widescreen scenarios with the flag (`run_all --vanilla-only ui_widescreen ui_widescreen_more ui_widescreen_screens`) draw the new
+hero and the hero list whole, at the same places as addon's. Before W4 a vanilla launch with the flag widened the layout but kept
+the 800x600 backdrop (flagged as scaled) and the 3D view's x scale 1, the likely causes. The vanilla frames differ from Rebirth's in
+texture filtering (Rebirth's other settings), not in placement.
 
 ### Remaining work
 
-WideScreen W3-W4 (above); the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
+WideScreen's leftover (00613EA0 under Rebirth: W4a, above); the deferred NivalRegistry / Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
 layer); the multiplayer patches and EI_Plugin features (with multiplayer).

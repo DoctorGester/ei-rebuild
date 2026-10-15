@@ -19,7 +19,9 @@
 // movies' holders (004EF7B0) have no DirectDraw surface at all: nothing decodes into them and
 // BinkDDSurfaceType is not asked (OldPathDraws, SurfaceType).
 #include "bink_video.h"
+#include "game_strings.h"
 #include "device.h"   // device::SameSurface, device::WithoutDirectDraw
+#include "sound.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -44,7 +46,7 @@ using BinkOpenFn = BinkHeader*(__stdcall*)(const char*, unsigned);
 using BinkCloseFn = void(__stdcall*)(BinkHeader*);
 using BinkSurfaceTypeFn = unsigned(__stdcall*)(void*);
 using BinkVolumeFn = void(__stdcall*)(BinkHeader*, int);
-using BinkSoundSystemFn = void(__stdcall*)(void*, int);   // (open function, Miles driver)
+using BinkSoundSystemFn = void(__stdcall*)(void*, void*);   // (open function, Miles driver)
 using BinkGotoFn = void(__stdcall*)(BinkHeader*, unsigned, int);
 template <typename F>
 F Import(std::uintptr_t slot) {
@@ -74,13 +76,6 @@ long ComCall(void* object, int slot, Args... args) {
     return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
 }
 
-// The sound system (the global at 007AF784; also the loading screen's owner): +0x1C the Miles
-// driver handle.
-struct SoundSystem {
-    std::uint8_t unused_00[0x1C];
-    int milesDriver;            // +0x1C
-};
-
 // The loading screen's movie (005DA400): globals from 007C551C on.
 struct LoadingMovie {
     CDXSurface* holder;         // 007C551C
@@ -104,7 +99,7 @@ CRITICAL_SECTION* DeviceLock() { return &Global<CRITICAL_SECTION>(0x007AEE78); }
 CTextureDevice* DeviceObject() { return Global<CTextureDevice*>(0x007AF080); }
 void* Cursor() { return &Global<std::uint8_t>(0x007C7BD8); }
 void* RendererObject() { return &Global<std::uint8_t>(0x007AF060); }
-SoundSystem* Sound() { return Global<SoundSystem*>(0x007AF784); }
+CSoundManager* Sound() { return Global<CSoundManager*>(0x007AF784); }
 int MoviesMode() { return Global<int>(0x0079BCBC); }           // 0 off, 1 at size, 2 stretched to the width
 int MovieSound() { return Global<int>(0x0079BCC0); }
 int MovieVolume() { return Global<int>(0x0079BCC4); }          // percent
@@ -114,7 +109,6 @@ const char* LoadingMovieName() { return Global<const char*>(0x00791EE0); }
 LoadingMovie& Loading() { return Global<LoadingMovie>(0x007C551C); }
 // 00455F10 (fastcall, CL): sets the byte 00784751 (cleared while a timed movie plays).
 void SetFlag784751(std::uint8_t value) { Global<std::uint8_t>(0x00784751) = value; }
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 // 004800E0 (cdecl): a DirectX error report; nonzero to go on.
 // 0044C470 (cdecl): an error message; returns a value whose low byte the caller clears.
@@ -174,9 +168,9 @@ unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary) {
             long hr = ComCall(holder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
                               static_cast<void*>(nullptr));
             holder->result = hr;
-            if (hr != 0 && !FatalDirectX(hr, Text(0x0078E30C))) {   // "Can't lock surface"
+            if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E30C))) {   // "Can't lock surface"
                 // The original leaves the device lock held here.
-                return ErrorMessage(Text(0x0079234C)) & 0xFFFFFF00u;
+                return ErrorMessage(game::Text(0x0079234C)) & 0xFFFFFF00u;
             }
             // DDSURFACEDESC2: +0x08 height, +0x10 pitch, +0x24 the pixels.
             BinkCopyToBuffer()(bink, reinterpret_cast<void*>(desc[9]), static_cast<int>(desc[4]), static_cast<int>(desc[2]), 0, 0,
@@ -185,8 +179,8 @@ unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary) {
             gameapi::LeaveCriticalSection(DeviceLock());
             hr = ComCall(holder->surface, kUnlock, static_cast<void*>(nullptr));
             holder->result = hr;
-            if (hr != 0 && !FatalDirectX(hr, Text(0x0078E2F4)))   // "Can't unlock surface"
-                return ErrorMessage(Text(0x00792324)) & 0xFFFFFF00u;
+            if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E2F4)))   // "Can't unlock surface"
+                return ErrorMessage(game::Text(0x00792324)) & 0xFFFFFF00u;
             BinkNextFrame()(bink);
         }
     }
@@ -256,7 +250,7 @@ bool CopyFrameToSurface(CDXSurface* const* holderAt, BinkHeader* bink, unsigned 
     long hr = ComCall(holder->surface, kLock, static_cast<void*>(nullptr), static_cast<void*>(desc), kLockFlags,
                       static_cast<void*>(nullptr));
     holder->result = hr;
-    if (hr != 0 && !FatalDirectX(hr, Text(0x0078E30C))) return true;   // "Can't lock surface"
+    if (hr != 0 && !FatalDirectX(hr, game::Text(0x0078E30C))) return true;   // "Can't lock surface"
     // DDSURFACEDESC2: +0x08 height, +0x10 pitch, +0x24 the pixels.
     BinkCopyToBuffer()(bink, reinterpret_cast<void*>(desc[9]), static_cast<int>(desc[4]), static_cast<int>(desc[2]), 0, 0,
                        surfaceType);
@@ -264,7 +258,7 @@ bool CopyFrameToSurface(CDXSurface* const* holderAt, BinkHeader* bink, unsigned 
     gameapi::LeaveCriticalSection(DeviceLock());
     hr = ComCall(holder->surface, kUnlock, static_cast<void*>(nullptr));
     holder->result = hr;
-    return hr == 0 || FatalDirectX(hr, Text(0x0078E2F4));   // "Can't unlock surface"
+    return hr == 0 || FatalDirectX(hr, game::Text(0x0078E2F4));   // "Can't unlock surface"
 }
 
 } // namespace
@@ -294,10 +288,10 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     if (!MoviesMode()) return 1;
     const char* file = name ? name : "";   // the original copies it into a CString
     if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
-    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->milesDriver);
+    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
     BinkHeader* bink = BinkOpen()(file, 0);
     if (!bink) {
-        game::DebugLog(Text(0x007922F8), file);   // "Can't open (or bad format) video file %s."
+        game::DebugLog(game::Text(0x007922F8), file);   // "Can't open (or bad format) video file %s."
         return 1;
     }
     BinkSetVolume()(bink, MovieVolume() * 0x7FF6 / 100);
@@ -408,7 +402,7 @@ void __fastcall ShowLoadingMovie(int progress) {
     if (!movie.holder) {
         // (00694120 on the texture manager 007AF744 when there is one: an empty function.)
         std::string path = GameFolder();
-        path += Text(0x00784A4C);    // "Movies\"
+        path += game::Text(0x00784A4C);    // "Movies\"
         path += LoadingMovieName();  // progres.bik, or the zone's
         if (movie.bink) {
             BinkClose()(movie.bink);
@@ -416,7 +410,7 @@ void __fastcall ShowLoadingMovie(int progress) {
         }
         movie.bink = BinkOpen()(path.c_str(), 0);
         if (!movie.bink) {
-            game::DebugLog(Text(0x00791EE4), path.c_str());   // "Can't open video file \"%s\""
+            game::DebugLog(game::Text(0x00791EE4), path.c_str());   // "Can't open video file \"%s\""
             return;
         }
         RECT screen;
@@ -484,10 +478,10 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     if (bink) BinkClose()(bink);
     if (!MoviesMode()) return 0;
     if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
-    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->milesDriver);
+    if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
     bink = BinkOpen()(name, 0);
     if (!bink) {
-        game::DebugLog(Text(0x007922F8), name);   // "Can't open (or bad format) video file %s."
+        game::DebugLog(game::Text(0x007922F8), name);   // "Can't open (or bad format) video file %s."
         return 0;
     }
     CursorShowOriginal(Cursor(), nullptr, 0);

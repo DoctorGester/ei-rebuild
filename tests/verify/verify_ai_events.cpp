@@ -30,16 +30,6 @@ bool WheelConsistent(const AIEventTable* table, int* badSlot) {
     return true;
 }
 
-// A stream that keeps what is written.
-class RecordingStream : public FakeStream {
-public:
-    std::uint32_t Read(void*, std::uint32_t) override { return 0; }
-    void Write(const void* buffer, std::uint32_t size) override {
-        const auto* bytes = static_cast<const std::uint8_t*>(buffer);
-        written.insert(written.end(), bytes, bytes + size);
-    }
-    std::vector<std::uint8_t> written;
-};
 } // namespace
 
 // 005C9530 Advance: ours only (it moves events to the free list). Checked: the tick's 16 slots are

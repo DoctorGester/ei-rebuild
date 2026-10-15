@@ -1,6 +1,7 @@
 // How the client dresses a unit: armour figure parts and the composed skin texture. See
 // unit_client_models.h and docs/notes/units.md ("Creation, databases, save").
 #include "unit_client_models.h"
+#include "game_strings.h"
 
 #include "item_db.h"
 #include "map_object_figures.h"
@@ -37,9 +38,8 @@ constexpr int kSimpleLayers = 2;
 constexpr int kFlagDetailed = 0x100;
 constexpr int kFlagSimple = 0x80;
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-const char* const kHair = Text(0x0078FB38);        // "hr"
-const char* const kHead = Text(0x0078AD74);        // "hd"
+const char* const kHair = game::Text(0x0078FB38);        // "hr"
+const char* const kHead = game::Text(0x0078AD74);        // "hd"
 
 // The armour row of armour slot `slot`, or -1 when the slot has no figure parts.
 int RowOfSlot(int slot) {
@@ -114,10 +114,10 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
                                                              unitdb::kPrototypeSize);
             int hair = Prototype(prototype)->hair;
             if (hair == -1) continue;
-            part.Format(Text(0x0078FB0C), hair);   // "hr.%.2d"
+            part.Format(game::Text(0x0078FB0C), hair);   // "hr.%.2d"
         }
         CEngineObject* current = FindPart(unit, nullptr, part);
-        armourPart.Format(Text(0x0078FB14), static_cast<const char*>(part), ItemHead(armour)->number);
+        armourPart.Format(game::Text(0x0078FB14), static_cast<const char*>(part), ItemHead(armour)->number);
         if (MappedResourceFindEntryOriginal(static_cast<const CMappedResource*>(*static_cast<void**>(model)), nullptr, armourPart) != -1) {
             AddPart(unit, nullptr, armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) RemovePart(unit, nullptr, current);
@@ -173,7 +173,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
                                                              unitdb::kPrototypeSize);
             int hair = Prototype(prototype)->hair;
             if (hair == -1) continue;
-            part.Format(Text(0x0078FB0C), hair);   // "hr.%.2d"
+            part.Format(game::Text(0x0078FB0C), hair);   // "hr.%.2d"
         }
         PartArray parts{nullptr, 0, 0, 0};
         FindParts(unit, nullptr, part, &parts);
@@ -208,7 +208,7 @@ __declspec(naked) int __fastcall WeaponTypeOf(std::uint32_t) EI_ORIGINAL(0x006A2
 
 constexpr int kWeaponBow = 5;
 constexpr std::uint32_t kArrowPartFlag = 0x80;  // set in the arrow part's flags_
-const char* const kBowArrow = Text(0x0078FAF8);   // "rh3.arrow00"
+const char* const kBowArrow = game::Text(0x0078FAF8);   // "rh3.arrow00"
 
 std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
     return slot < 4 ? self->weaponIds[slot] : kNone;
@@ -325,9 +325,9 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
             if (SameName(plain, kHair)) {
                 int hair = Prototype(prototype)->hair;
                 if (hair == -1) continue;
-                gamecrt::sprintf(text, Text(0x0078FB24), hair, ItemHead(armour)->number);   // "hr.%.2d.armor%.2d"
+                gamecrt::sprintf(text, game::Text(0x0078FB24), hair, ItemHead(armour)->number);   // "hr.%.2d.armor%.2d"
             } else {
-                gamecrt::sprintf(text, Text(0x0078FB14), plain, ItemHead(armour)->number);  // "%s.armor%.2d"
+                gamecrt::sprintf(text, game::Text(0x0078FB14), plain, ItemHead(armour)->number);  // "%s.armor%.2d"
             }
             stlp::string name(text);
             names->push_back(name);
@@ -343,7 +343,7 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
             if (SameName(plain, kHair)) {
                 int hair = Prototype(prototype)->hair;
                 if (hair == -1) continue;
-                gamecrt::sprintf(text, Text(0x0078FB0C), hair);   // "hr.%.2d"
+                gamecrt::sprintf(text, game::Text(0x0078FB0C), hair);   // "hr.%.2d"
                 stlp::string name(text);
                 plainNames->push_back(name);
             } else {
@@ -445,7 +445,7 @@ void SetLayerBytes(SkinRequest& request, int bytes) {
 // "<prototype name><texture>.mmp" into `texture`, the way the original builds it.
 void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
     mfc::CString named = mfc::operator+(unit->name, texture);
-    mfc::CString withExtension = mfc::operator+(named, Text(0x0078FB4C));   // ".mmp"
+    mfc::CString withExtension = mfc::operator+(named, game::Text(0x0078FB4C));   // ".mmp"
     texture = withExtension;
 }
 
@@ -467,8 +467,8 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     const CUnit* unit = self->unit;
     int id = unit->id_;
     if (!detailed) {
-        unitKey.Format(Text(0x0078FB44), id);                    // "mo%ds"
-        prototypeKey.Format(Text(0x0078FB3C), unit->prototypeId_);  // "prot%ds"
+        unitKey.Format(game::Text(0x0078FB44), id);                    // "mo%ds"
+        prototypeKey.Format(game::Text(0x0078FB3C), unit->prototypeId_);  // "prot%ds"
         request.flags = kFlagSimple;
         if (self->armourIds[0] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[0]);
         std::uint32_t hand = unit->activeWeapon;
@@ -479,14 +479,14 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
         }
         return;
     }
-    unitKey.Format(Text(0x0078FB7C), id);                    // "mo%dp"
-    prototypeKey.Format(Text(0x0078FB74), unit->prototypeId_);  // "prot%dp"
+    unitKey.Format(game::Text(0x0078FB7C), id);                    // "mo%dp"
+    prototypeKey.Format(game::Text(0x0078FB74), unit->prototypeId_);  // "prot%dp"
     request.flags = kFlagDetailed;
     const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->prototypeId_), unitdb::kPrototypeSize);
     if (prototype)
-        texture.Format(Text(0x0078FB64), unit->name, Prototype(prototype)->skin);   // "%sskin_%.2d.mmp"
+        texture.Format(game::Text(0x0078FB64), unit->name, Prototype(prototype)->skin);   // "%sskin_%.2d.mmp"
     else
-        texture.Format(Text(0x0078FB54), unit->name);   // "%sskin_00.mmp"
+        texture.Format(game::Text(0x0078FB54), unit->name);   // "%sskin_00.mmp"
     AddTexture(request, texture);
     for (int k = 3; k < 7; ++k)
         if (self->armourIds[k] != kNone) AddArmourTexture(request, unit, texture, self->armourIds[k]);

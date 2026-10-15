@@ -48,7 +48,6 @@ std::uint32_t Bits(float f) {
     std::memcpy(&b, &f, 4);
     return b;
 }
-const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
 // A string chunk into `field` (the read string is a temporary, as in the original).
 void ReadInto(Chunk& c, mfc::CString& field) {
@@ -77,7 +76,7 @@ Spec* Spec::SpecConstruct() {
     new (&name) mfc::CString();
     new (&comment) mfc::CString();
     SetVtable(this, kSpecVtable);
-    mfc::CString none(Text(0x007846F0));   // "none"
+    mfc::CString none(game::Text(0x007846F0));   // "none"
     id = -1;
     spareId = -1;
     position = {0.0f, 0.0f, 0.0f};
@@ -109,7 +108,7 @@ EI_REPLACE_METHOD(0x00469E30, Spec::SpecDelete);
 
 // 00469DB0 (slot 4): "error".
 mfc::CString* Spec::SpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(Text(0x00787DC4));
+    new (out) mfc::CString(game::Text(0x00787DC4));
     return out;
 }
 EI_REPLACE_METHOD(0x00469DB0, Spec::SpecTypeName);
@@ -145,7 +144,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     new (&skinTexture) mfc::CString();
     StringArrayConstruct(&parts);
     SetVtable(this, kObjectVtable);
-    mfc::CString none(Text(0x007846F0));
+    mfc::CString none(game::Text(0x007846F0));
     base.kind = 1;
     parentId = 0;
     model = game::EmptyText();
@@ -337,7 +336,7 @@ EI_REPLACE_METHOD(0x0046AFB0, ObjectSpec::ObjectSpecApply);
 // 0046B090 (slot 4): the player number ("%i").
 mfc::CString* ObjectSpec::ObjectSpecTypeName(mfc::CString* out) {
     mfc::CString text;
-    text.Format(Text(0x007842D8), player);
+    text.Format(game::Text(0x007842D8), player);
     new (out) mfc::CString(text);
     return out;
 }
@@ -354,7 +353,7 @@ FlameSpec* FlameSpec::FlameSpecConstruct() {
     object.base.kind = 6;
     std::uint32_t volumeBits = 0x3F333333;   // 0.7f
     std::memcpy(&volume, &volumeBits, 4);
-    sound = Text(0x00787DCC);   // "nature\fire\small.wav"
+    sound = game::Text(0x00787DCC);   // "nature\fire\small.wav"
     return this;
 }
 EI_REPLACE_METHOD(0x0046B210, FlameSpec::FlameSpecConstruct);
@@ -459,7 +458,7 @@ EI_REPLACE_METHOD(0x0046B550, TrapSpec::TrapSpecDelete);
 
 // 0046B520 (slot 4): "MagicTrap".
 mfc::CString* TrapSpec::TrapSpecTypeName(mfc::CString* out) {
-    new (out) mfc::CString(Text(0x00787DE4));
+    new (out) mfc::CString(game::Text(0x00787DE4));
     return out;
 }
 EI_REPLACE_METHOD(0x0046B520, TrapSpec::TrapSpecTypeName);
@@ -614,7 +613,7 @@ ZoneDiplomacy* __fastcall DiplomacyConstruct(ZoneDiplomacy* self) {
     for (int i = 0; i < 32; ++i) self->relations[i][i] = 0;
     for (int i = 0; i < 32; ++i) {
         StringArraySetAtGrow(names, nullptr, names->size, game::EmptyText());
-        names->data[i].Format(Text(0x00787E44), i);   // "Player-%i"
+        names->data[i].Format(game::Text(0x00787E44), i);   // "Player-%i"
     }
     return self;
 }

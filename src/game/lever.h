@@ -4,6 +4,7 @@
 #include "map_object.h"
 #include "unit.h"   // LockKey
 
+#include "lib/mfc.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
@@ -26,14 +27,14 @@ static_assert(sizeof(LeverSpots) == 0x14);
 // whose field ids are given): the spot offsets are in the lever's own frame (along its facing's
 // X and Y axes).
 struct LeverRecord {
-    void* name;                 // +0x00 CString (field 0)
+    mfc::CString name;          // +0x00 (field 0)
     float spots[2][2];          // +0x04 (field 1) {along, across}
     std::uint32_t spotCount;    // +0x14 (2)
     float farScale;             // +0x18 (3) the spots' distance factor at +0xCC = 1
     std::uint32_t duration;     // +0x1C (4) a state change's default ticks (SetState)
-    void* text20;               // +0x20 CStrings (5-7)
-    const char* sound;          // +0x24 played while the lever moves (ReadLeverNetState)
-    void* text28;               // +0x28
+    mfc::CString text20;        // +0x20 (5-7)
+    mfc::CString sound;         // +0x24 played while the lever moves (ReadLeverNetState)
+    mfc::CString text28;        // +0x28
 };
 static_assert(sizeof(LeverRecord) == 0x2C);
 

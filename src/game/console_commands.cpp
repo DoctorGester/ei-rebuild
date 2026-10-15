@@ -38,7 +38,7 @@ int Mbsicmp(const char* a, const char* b) {
 }
 
 // Argument `i` equals `text` (_mbscmp).
-bool ArgIs(const CStringArray* args, int i, std::uintptr_t text) { return Mbscmp((*args)[i], GameText(text)) == 0; }
+bool ArgIs(const CStringArray* args, int i, std::uintptr_t text) { return Mbscmp((*args)[i], game::Text(text)) == 0; }
 // "1"/"on" and "0"/"off".
 bool ArgOn(const CStringArray* args, int i) { return ArgIs(args, i, 0x00787C00) || ArgIs(args, i, 0x007925E4); }
 bool ArgOff(const CStringArray* args, int i) { return ArgIs(args, i, 0x007856B8) || ArgIs(args, i, 0x0078D5E0); }
@@ -88,7 +88,7 @@ void __fastcall Help(CStringArray*) {
         0x00792A30, 0x00792A10, 0x007929F0, 0x00792998, 0x00792970, 0x00792928, 0x00792900,
         0x007928BC, 0x007928B4, 0x007928A4, 0x00792888, 0x0079285C, 0x00792850, 0x00792844,
     };
-    for (std::uintptr_t line : kLines) PrintLine(GameText(line));
+    for (std::uintptr_t line : kLines) PrintLine(game::Text(line));
 }
 EI_REPLACE(0x005DF5E0, Help);
 
@@ -104,7 +104,7 @@ void __fastcall DebugInfo(CStringArray* args) {
         if (ArgIs(args, 0, 0x007924F8) || ArgIs(args, 0, 0x007849E4))   // righttop, rt
             return SetDebugInfoRect(0x1FE, 10, 0x316, 0x122);
     }
-    PrintLine(GameText(0x007924DC));   // "Invalid debug info position"
+    PrintLine(game::Text(0x007924DC));   // "Invalid debug info position"
 }
 EI_REPLACE(0x005DD920, DebugInfo);
 
@@ -124,13 +124,13 @@ void __fastcall ConsolePos(CStringArray* args) {
         if (ArgIs(args, 0, 0x00792540) || ArgIs(args, 0, 0x0078BBD8))   // fullscreen, f
             return SetConsoleRect(0, 0, 0x320, 0x258);
     }
-    PrintLine(GameText(0x00792524));   // "Invalid console position"
+    PrintLine(game::Text(0x00792524));   // "Invalid console position"
 }
 EI_REPLACE(0x005DDBE0, ConsolePos);
 
 // 005DDF80: history <lines>.
 void __fastcall History(CStringArray* args) {
-    if (args->GetSize() == 0) return PrintLine(GameText(0x0079256C));   // "Invalid parameters"
+    if (args->GetSize() == 0) return PrintLine(game::Text(0x0079256C));   // "Invalid parameters"
     Interface()->SetConsoleHistory(GameAtoi((*args)[0]));
 }
 EI_REPLACE(0x005DDF80, History);
@@ -142,7 +142,7 @@ void __fastcall Filter(CStringArray* args) {
         static constexpr std::uintptr_t kLabels[] = {0x007925DC, 0x007925D0, 0x007925C4, 0x007925BC, 0x007925B0, 0x007925A8};
         GameOStream& os = Out();
         for (int i = 0; i < 6; ++i)   // "AI: on", "\nEVENT: off", ...
-            os << GameText(kLabels[i]) << GameText(FilterMask() & (1u << i) ? 0x007925E4 : 0x0078D5E0);
+            os << game::Text(kLabels[i]) << game::Text(FilterMask() & (1u << i) ? 0x007925E4 : 0x0078D5E0);
         return EndLine(os);
     }
     unsigned type;
@@ -154,7 +154,7 @@ void __fastcall Filter(CStringArray* args) {
     else if (ArgIs(args, 0, 0x00792580)) type = 0x10;       // unitacks
     else if (ArgIs(args, 0, 0x00792438)) type = 0x20;       // net
     else if (ArgIs(args, 0, 0x0078FE08)) type = ~0u;        // all
-    else return PrintLine(GameText(0x0079256C));            // "Invalid parameters"
+    else return PrintLine(game::Text(0x0079256C));            // "Invalid parameters"
     if (args->GetSize() <= 1) {
         FilterMask() = type;
     } else if (ArgOn(args, 1)) {
@@ -162,14 +162,14 @@ void __fastcall Filter(CStringArray* args) {
     } else if (ArgOff(args, 1)) {
         FilterMask() &= ~type;
     } else {
-        PrintLine(GameText(0x0079256C));
+        PrintLine(game::Text(0x0079256C));
     }
 }
 EI_REPLACE(0x005DDFE0, Filter);
 
 // 005DE460: show fps|managers|render_info|world_data 1|on|0|off (anything else: nothing).
 void __fastcall Show(CStringArray* args) {
-    if (args->GetSize() < 2) return PrintLine(GameText(0x00792634));   // 'Invalid number of parameters for command "show"'
+    if (args->GetSize() < 2) return PrintLine(game::Text(0x00792634));   // 'Invalid number of parameters for command "show"'
     void (CWorldClient::*on)();
     void (CWorldClient::*off)();
     if (ArgIs(args, 0, 0x007923F8)) {            // fps
@@ -185,7 +185,7 @@ void __fastcall Show(CStringArray* args) {
         on = &CWorldClient::ShowWorldData;
         off = &CWorldClient::HideWorldData;
     } else {
-        return PrintLine(GameText(0x007925E8));   // "Invalid parameters in command 'show'"
+        return PrintLine(game::Text(0x007925E8));   // "Invalid parameters in command 'show'"
     }
     if (ArgOn(args, 1)) (WorldClient()->*on)();
     else if (ArgOff(args, 1)) (WorldClient()->*off)();
@@ -195,13 +195,13 @@ EI_REPLACE(0x005DE460, Show);
 // 005DEA00: listvar <player> [file]: prints the player's global variables ("name = value") and
 // writes them to the file ("%s %g") when one is given. In a network game the local player is used.
 void __fastcall ListVar(CStringArray* args) {
-    if (args->GetSize() == 0) return PrintLine(GameText(0x007926A4));   // usage
+    if (args->GetSize() == 0) return PrintLine(game::Text(0x007926A4));   // usage
     WorldPlayer* player;
     if (IsNetworkClientOriginal())
         player = LocalPlayer();
     else
         player = GetPlayer(GameAtoi((*args)[0]));
-    if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
+    if (!player) return PrintLine(game::Text(0x00792690));   // "Wrong player number"
 
     mfc::CString line;
     CStdioFile file;
@@ -209,14 +209,14 @@ void __fastcall ListVar(CStringArray* args) {
     if (args->GetSize() > 1) {
         writing = file.Open((*args)[1], CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr);
         if (!writing)   // "Cannot open file <name> for writing"
-            EndLine(Out() << GameText(0x0079266C) << static_cast<const char*>((*args)[1]) << GameText(0x00792680));
+            EndLine(Out() << game::Text(0x0079266C) << static_cast<const char*>((*args)[1]) << game::Text(0x00792680));
     }
     VariableIterator it;
     FloatTableBeginOriginal(player->variables, nullptr, &it);
     while (it.node) {
-        EndLine((Out() << it.node->name << GameText(0x0078DA6C)).PutFloat(it.node->value));   // " = "
+        EndLine((Out() << it.node->name << game::Text(0x0078DA6C)).PutFloat(it.node->value));   // " = "
         if (writing) {
-            line.Format(GameText(0x00792664), it.node->name, static_cast<double>(it.node->value));   // "%s %g\n"
+            line.Format(game::Text(0x00792664), it.node->name, static_cast<double>(it.node->value));   // "%s %g\n"
             file.WriteString(line);
         }
         VariableNode* next = it.node->next;
@@ -229,17 +229,17 @@ EI_REPLACE(0x005DEA00, ListVar);
 
 // 005DEC90: loadvar <player> <file>: sets the variables of each "name value" line.
 void __fastcall LoadVar(CStringArray* args) {
-    if (args->GetSize() < 2) return PrintLine(GameText(0x007926E4));   // usage
+    if (args->GetSize() < 2) return PrintLine(game::Text(0x007926E4));   // usage
     WorldPlayer* player = GetPlayer(GameAtoi((*args)[0]));
-    if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
+    if (!player) return PrintLine(game::Text(0x00792690));   // "Wrong player number"
     CPlayerServer* state = player->server;
-    if (!state) return PrintLine(GameText(0x00792690));
+    if (!state) return PrintLine(game::Text(0x00792690));
 
     mfc::CString line;
     CStringArray parts;
     CStdioFile file;
     if (!file.Open((*args)[1], CStdioFile::modeRead, nullptr)) {   // "Cannot open file <name> for reading"
-        EndLine(Out() << GameText(0x0079266C) << static_cast<const char*>((*args)[1]) << GameText(0x007926D4));
+        EndLine(Out() << game::Text(0x0079266C) << static_cast<const char*>((*args)[1]) << game::Text(0x007926D4));
         return;
     }
     while (file.ReadString(line)) {
@@ -257,7 +257,7 @@ EI_REPLACE(0x005DEC90, LoadVar);
 // 005DEEE0: "Current FPS: " 1000 / last frame time (printed as float).
 void __fastcall LastFps(CStringArray*) {
     auto* timer = static_cast<CSceneRenderer*>(DisplayObject());
-    GameOStream& os = Out() << GameText(0x00792710);
+    GameOStream& os = Out() << game::Text(0x00792710);
     unsigned ms = timer->FrameTime();
     double fps = *reinterpret_cast<const float*>(0x0073C34C) / x87::FromUnsigned(ms);
     EndLine(os.PutFloat(fps));
@@ -269,13 +269,13 @@ EI_REPLACE(0x005DEEE0, LastFps);
 void __fastcall Exec(CStringArray* args) {
     mfc::CString line;
     mfc::CString name;
-    if (args->GetSize() == 0) return PrintLine(GameText(0x00792720));   // usage
+    if (args->GetSize() == 0) return PrintLine(game::Text(0x00792720));   // usage
     name = (*args)[0];
     Ops(name).TrimLeft('"');
     Ops(name).TrimRight('"');
     CStdioFile file;
     if (!file.Open(name, CStdioFile::typeText, nullptr)) {   // "Cannot open file <name> for reading"
-        EndLine(Out() << GameText(0x0079266C) << static_cast<const char*>((*args)[0]) << GameText(0x007926D4));
+        EndLine(Out() << game::Text(0x0079266C) << static_cast<const char*>((*args)[0]) << game::Text(0x007926D4));
         return;
     }
     while (file.ReadString(line)) ExecuteAt(line);
@@ -288,14 +288,14 @@ void __fastcall Give(CStringArray* args) {
     mfc::CString unused1;
     mfc::CString unused2;
     if (args->GetSize() < 2) {
-        PrintLine(GameText(0x007927A4));   // "IMPORTANT: use only from global map"
-        PrintLine(GameText(0x00792784));   // "give [NPlayer] money [NMoney]"
-        return PrintLine(GameText(0x00792768));
+        PrintLine(game::Text(0x007927A4));   // "IMPORTANT: use only from global map"
+        PrintLine(game::Text(0x00792784));   // "give [NPlayer] money [NMoney]"
+        return PrintLine(game::Text(0x00792768));
     }
     WorldPlayer* player = GetPlayer(GameAtoi((*args)[0]));
-    if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
+    if (!player) return PrintLine(game::Text(0x00792690));   // "Wrong player number"
     CPlayerServer* state = player->server;
-    if (!state) return PrintLine(GameText(0x00792690));
+    if (!state) return PrintLine(game::Text(0x00792690));
     if (ArgIs(args, 1, 0x00792760) && args->GetSize() > 2) {   // money
         int amount = GameAtoi((*args)[2]);
         player->Party()->Money() += amount;
@@ -313,42 +313,42 @@ void __fastcall Give(CStringArray* args) {
         InterfaceActiveWindowOriginal(Interface())->VirtualDebugFill();
         return;
     }
-    PrintLine(GameText(0x00792744));   // "Give what?"
+    PrintLine(game::Text(0x00792744));   // "Give what?"
 }
 EI_REPLACE(0x005DF0F0, Give);
 
 // 005DF5B0: lootall.
 void __fastcall LootAll(CStringArray*) {
-    PrintLine(GameText(0x00792838));   // "Looting..."
+    PrintLine(game::Text(0x00792838));   // "Looting..."
     WorldServer()->LootDeadUnits();
 }
 EI_REPLACE(0x005DF5B0, LootAll);
 
 // 005DF8E0: fadeout <milliseconds>.
 void __fastcall FadeOut(CStringArray* args) {
-    if (args->GetSize() <= 0) return PrintLine(GameText(0x00792B40));   // "FADEOUT nMillSec"
+    if (args->GetSize() <= 0) return PrintLine(game::Text(0x00792B40));   // "FADEOUT nMillSec"
     Interface()->fade_->Start(GameAtoi((*args)[0]));
-    PrintLine(GameText(0x00792B54));   // "Ok"
+    PrintLine(game::Text(0x00792B54));   // "Ok"
 }
 EI_REPLACE(0x005DF8E0, FadeOut);
 
 // 005DF9B0: net client|server|time 0/1 (traffic and timing output), net zone <name>.
 void __fastcall Net(CStringArray* args) {
     if (args->GetSize() != 2) {
-        PrintLine(GameText(0x00792BC8));
-        PrintLine(GameText(0x00792BA0));
-        return PrintLine(GameText(0x00792B70));
+        PrintLine(game::Text(0x00792BC8));
+        PrintLine(game::Text(0x00792BA0));
+        return PrintLine(game::Text(0x00792B70));
     }
-    if (Mbsicmp((*args)[0], GameText(0x00792B68)) == 0) {   // client
+    if (Mbsicmp((*args)[0], game::Text(0x00792B68)) == 0) {   // client
         mfc::CString value((*args)[1]);
         LocalPlayer()->logTraffic = GameAtoi(value);
     }
-    if (Mbsicmp((*args)[0], GameText(0x00792450)) == 0) {   // server
+    if (Mbsicmp((*args)[0], game::Text(0x00792450)) == 0) {   // server
         if (WorldPlayer* player = GetPlayer(0)) player->logTraffic = GameAtoi((*args)[1]);
     }
-    if (Mbsicmp((*args)[0], GameText(0x00792B60)) == 0)     // time
+    if (Mbsicmp((*args)[0], game::Text(0x00792B60)) == 0)     // time
         *reinterpret_cast<int*>(0x0079BC60) = GameAtoi((*args)[1]);
-    if (Mbsicmp((*args)[0], GameText(0x00792B58)) == 0 && ServerActive(Server())) {   // zone
+    if (Mbsicmp((*args)[0], game::Text(0x00792B58)) == 0 && ServerActive(Server())) {   // zone
         mfc::CString zone((*args)[1]);
         SessionCommand(Server(), nullptr, 0, zone);
     }
@@ -360,9 +360,9 @@ EI_REPLACE(0x005DF9B0, Net);
 namespace {
 void WriteSpeech(CStdioFileVirtuals* file, mfc::CString& line, const SpeechRecord& speech) {
     if (speech.text.size() == 0) return;
-    line.Format(GameText(0x00792BF4), speech.name.data());   // "#say %s\n"
+    line.Format(game::Text(0x00792BF4), speech.name.data());   // "#say %s\n"
     file->WriteString(line);
-    line.Format(GameText(0x00792BF0), speech.text.data());   // "%s\n"
+    line.Format(game::Text(0x00792BF0), speech.text.data());   // "%s\n"
     file->WriteString(line);
 }
 } // namespace
@@ -388,7 +388,7 @@ EI_REPLACE(0x005DFCE0, WriteEnvironmentSpeechLines);
 void __fastcall GenerateAcks(CStringArray*) {
     CStdioFile file;
     {
-        mfc::CString path = *GameDataPathString() + GameText(0x00792C00);   // "scenack.txt"
+        mfc::CString path = *GameDataPathString() + game::Text(0x00792C00);   // "scenack.txt"
         if (!file.Open(path, CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
     }
     CStdioFileVirtuals* out = file.Virtuals();
@@ -433,7 +433,7 @@ void __fastcall Days(CStringArray* args) {
                                 mfc::CTime now;
                                 long to = now.Construct(year2, month2, day2, 7, 1, 1, -1)->time_;
                                 int days = static_cast<int>((to - from) / 86400);
-                                EndLine(Out() << GameText(0x00792CA0) << days << GameText(0x00792CAC));   // "Your age: " " days"
+                                EndLine(Out() << game::Text(0x00792CA0) << days << game::Text(0x00792CAC));   // "Your age: " " days"
                                 return;
                             }
                         }
@@ -443,7 +443,7 @@ void __fastcall Days(CStringArray* args) {
         }
     }
     static constexpr std::uintptr_t kUsage[] = {0x00792C7C, 0x00792C60, 0x00792C48, 0x00792C3C, 0x00792C20, 0x00792C0C};
-    for (std::uintptr_t line : kUsage) PrintLine(GameText(line));
+    for (std::uintptr_t line : kUsage) PrintLine(game::Text(line));
 }
 EI_REPLACE(0x005E00D0, Days);
 
@@ -486,7 +486,7 @@ EI_REPLACE(0x005E06E0, Ban);
 
 // 005E0830: fps 1|on|0|off (anything else: nothing).
 void __fastcall Fps(CStringArray* args) {
-    if (args->GetSize() < 1) return PrintLine(GameText(0x00792CB4));   // 'Invalid number of parameters for command "FPS"'
+    if (args->GetSize() < 1) return PrintLine(game::Text(0x00792CB4));   // 'Invalid number of parameters for command "FPS"'
     if (ArgOn(args, 0)) Interface()->ShowFps(1);
     else if (ArgOff(args, 0)) Interface()->ShowFps(0);
 }
@@ -495,7 +495,7 @@ EI_REPLACE(0x005E0830, Fps);
 namespace {
 // rate / localrate: bytes per second, clamped to 500..100000.
 void SetRate(CStringArray* args, int* rate, std::uintptr_t usage) {
-    if (args->GetSize() != 1) return PrintLine(GameText(usage));
+    if (args->GetSize() != 1) return PrintLine(game::Text(usage));
     int value = GameAtoi((*args)[0]);
     if (value < 500) value = 500;
     else if (value > 100000) value = 100000;

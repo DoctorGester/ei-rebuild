@@ -6,6 +6,7 @@
 // wrapped); the screen's other members call it through its address. See ui_screens.h and
 // docs/notes/ui.md, section 5.
 #include "ui_screens.h"
+#include "game_strings.h"
 
 #include "net_classes.h"
 #include "ui_gdi.h"
@@ -22,7 +23,6 @@
 
 namespace {
 
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 // The colour the list's texts and the line are drawn in (00793AD8): set per row and for the
 // details, and left as it is for the next draw's titles.
 std::uint32_t& TextColour() { return *reinterpret_cast<std::uint32_t*>(0x00793AD8); }
@@ -161,7 +161,7 @@ void CMpConnectScreen::DrawListVanilla() {
         TextColour() = entry.state == kStateAsked ? kColourAsked : entry.state == kState2 ? kColourState2 : kColourPlain;
         if (index == 0) {
             // The new game: its name as typed.
-            text.Format(GameText(0x00792F34), label(7), nameEdit_->text_);   // "%s %s"
+            text.Format(game::Text(0x00792F34), label(7), nameEdit_->text_);   // "%s %s"
             if (extended)
                 DrawEllipsis(surface, text, &row, kFormatNoPrefix);
             else
@@ -175,16 +175,16 @@ void CMpConnectScreen::DrawListVanilla() {
                 Draw(surface, entry.name, &row, kFormatNoPrefix);
             }
             row.left = 142;
-            text.Format(GameText(0x00793BB8), entry.players, entry.maxPlayers);   // "%d/%d"
+            text.Format(game::Text(0x00793BB8), entry.players, entry.maxPlayers);   // "%d/%d"
             Draw(surface, text, &row, 0);
             row.left = 170;
             if (entry.gameType == kNewGameType)
-                text = GameText(0x00783D6C);   // "?"
+                text = game::Text(0x00783D6C);   // "?"
             else
-                text.Format(GameText(0x0079190C), allod(entry.gameType));   // "%s"
+                text.Format(game::Text(0x0079190C), allod(entry.gameType));   // "%s"
             Draw(surface, text, &row, 0);
             row.left = layout.rowLeftPing;
-            text.Format(GameText(0x0078EEEC), entry.ping);   // "%d"
+            text.Format(game::Text(0x0078EEEC), entry.ping);   // "%d"
             Draw(surface, text, &row, kFormatRight);
             row.left = 12;
         }
@@ -202,7 +202,7 @@ void CMpConnectScreen::DrawListVanilla() {
             Draw(surface, label(0), &row, 0);
             Down(&row);
             Down(&row);
-            text.Format(GameText(0x00792F14), label(2), maxPlayers_);   // "%s %d"
+            text.Format(game::Text(0x00792F14), label(2), maxPlayers_);   // "%s %d"
             Draw(surface, text, &row, 0);
             Down(&row);
             Down(&row);
@@ -219,7 +219,7 @@ void CMpConnectScreen::DrawListVanilla() {
             Down(&row);
             Draw(surface, label(17), &row, 0);
         } else {
-            text.Format(GameText(0x00792F34), label(0), static_cast<const char*>(entry.name));   // "%s %s"
+            text.Format(game::Text(0x00792F34), label(0), static_cast<const char*>(entry.name));   // "%s %s"
             if (extended) {
                 // addon: wrapped over up to three lines; the rectangle moves down by the extra lines.
                 int lines = surface->DrawWrappedText(text, &row, kDetailsNameLines, kFont, TextColour(), 0, 1);
@@ -229,26 +229,26 @@ void CMpConnectScreen::DrawListVanilla() {
                 Draw(surface, text, &row, 0);
             }
             Down(&row);
-            text.Format(GameText(0x00793BAC), label(1), entry.players, entry.maxPlayers);   // "%s %d / %d"
+            text.Format(game::Text(0x00793BAC), label(1), entry.players, entry.maxPlayers);   // "%s %d / %d"
             Draw(surface, text, &row, 0);
             Down(&row);
             if (entry.gameType == kNewGameType)
-                text = texts_[3] + GameText(0x00793BA8);   // " ?"
+                text = texts_[3] + game::Text(0x00793BA8);   // " ?"
             else
-                text.Format(GameText(0x00792F34), label(3), allod(entry.gameType));
+                text.Format(game::Text(0x00792F34), label(3), allod(entry.gameType));
             Draw(surface, text, &row, 0);
             Down(&row);
-            text.Format(GameText(0x00792F34), label(4), static_cast<const char*>(entry.description));
+            text.Format(game::Text(0x00792F34), label(4), static_cast<const char*>(entry.description));
             int lines = surface->DrawWrappedText(text, &row, 3, kFont, TextColour(), 0, 1);
             for (; lines != 0; --lines) Down(&row);
             net::StringRep address;
-            text.Format(GameText(0x00792F34), label(5), entry.address.ToString(&address)->start);
+            text.Format(game::Text(0x00792F34), label(5), entry.address.ToString(&address)->start);
             if (address.start) {
                 NodeDeallocateOriginal(address.start, static_cast<std::size_t>(address.eos - address.start));
             }
             Draw(surface, text, &row, 0);
             Down(&row);
-            text.Format(GameText(0x00792F14), label(6), entry.ping);
+            text.Format(game::Text(0x00792F14), label(6), entry.ping);
             Draw(surface, text, &row, 0);
             Down(&row);
             if (entry.password) {

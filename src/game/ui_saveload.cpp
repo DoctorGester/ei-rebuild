@@ -16,6 +16,7 @@
 // memory; in the switch-over ("present") they are written into and read from the memory only,
 // with no Lock (DirectPixels). Without the option everything is as the original.
 #include "ui.h"
+#include "game_strings.h"
 
 #include "console.h"
 #include "dx_surface.h"
@@ -44,7 +45,6 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 mfc::CString& Str(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
@@ -203,7 +203,7 @@ public:
         long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)
                       ->Lock(nullptr, reinterpret_cast<DDSURFACEDESC2*>(desc_), 0, nullptr);
         holder_->result = hr;
-        return hr == 0 || FatalDirectX(hr, Text(kCantLock)) != 0;
+        return hr == 0 || FatalDirectX(hr, game::Text(kCantLock)) != 0;
     }
     std::uint8_t* Bits() const { return reinterpret_cast<std::uint8_t*>(static_cast<std::uintptr_t>(desc_[9])); }
     void Mirror() const {
@@ -217,7 +217,7 @@ public:
         if (direct_) return;
         long hr = static_cast<IDirectDrawSurface7*>(holder_->surface)->Unlock(nullptr);
         holder_->result = hr;
-        if (hr != 0) FatalDirectX(hr, Text(kCantUnlock));
+        if (hr != 0) FatalDirectX(hr, game::Text(kCantUnlock));
     }
 
 private:
@@ -272,11 +272,11 @@ void CSaveLoadWindow::ShowPicture() {
         return;
     }
     mfc::CString folder;
-    folder.Format(Text(kSlotFolder), GameFolder(), entry->folder_);
+    folder.Format(game::Text(kSlotFolder), GameFolder(), entry->folder_);
     mfc::CFileFind find;
     BOOL found;
     {
-        mfc::CString path = folder + Text(kShotFile);
+        mfc::CString path = folder + game::Text(kShotFile);
         found = find.FindFile(path, 0);
     }
     if (!found) return;
@@ -286,7 +286,7 @@ void CSaveLoadWindow::ShowPicture() {
     if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
     mfc::CFile file;
     {
-        mfc::CString path = folder + Text(kShotFile);
+        mfc::CString path = folder + game::Text(kShotFile);
         file.Open(path, 0, nullptr);
     }
     file.Read(pixels.Bits(), kShotBytes);
@@ -315,7 +315,7 @@ constexpr std::uintptr_t kPlainFormat = std::uintptr_t(0x0079190C);     // "%s"
 __declspec(naked) mfc::CString* __fastcall EntryZoneTitle(SaveEntry*, void*, void* /*out*/) EI_ORIGINAL(0x00653BD0)
 
 bool SameFolder(const char* folder, std::uintptr_t name) {
-    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(folder), reinterpret_cast<const unsigned char*>(Text(name))) == 0;
+    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(folder), reinterpret_cast<const unsigned char*>(game::Text(name))) == 0;
 }
 } // namespace
 
@@ -323,21 +323,21 @@ void SaveEntry::MakeTitle(int) {
     mfc::CString quick;
     mfc::CString autoEnter;
     mfc::CString autoExit;
-    Texts()->GetString(Text(kQuickTitle), &quick);
-    Texts()->GetString(Text(kAutoEnterTitle), &autoEnter);
-    Texts()->GetString(Text(kAutoExitTitle), &autoExit);
+    Texts()->GetString(game::Text(kQuickTitle), &quick);
+    Texts()->GetString(game::Text(kAutoEnterTitle), &autoEnter);
+    Texts()->GetString(game::Text(kAutoExitTitle), &autoExit);
     mfc::CString& title = Str(title_);
     if (SameFolder(folder_, kQuickFolder)) {
-        title.Format(Text(kPlainFormat), static_cast<const char*>(quick));
+        title.Format(game::Text(kPlainFormat), static_cast<const char*>(quick));
     } else if (SameFolder(folder_, kAutoFolderA)) {
-        title.Format(Text(kPlainFormat), static_cast<const char*>(autoEnter));
+        title.Format(game::Text(kPlainFormat), static_cast<const char*>(autoEnter));
     } else if (SameFolder(folder_, kAutoFolderB)) {
-        title.Format(Text(kPlainFormat), static_cast<const char*>(autoExit));
+        title.Format(game::Text(kPlainFormat), static_cast<const char*>(autoExit));
     } else {
         alignas(mfc::CString) unsigned char zone[sizeof(mfc::CString)];
         EntryZoneTitle(this, nullptr, zone);
         auto* name = reinterpret_cast<mfc::CString*>(zone);
-        title.Format(Text(kPlainFormat), static_cast<const char*>(*name));
+        title.Format(game::Text(kPlainFormat), static_cast<const char*>(*name));
         name->~CString();
     }
 }
@@ -355,7 +355,7 @@ void CSaveLoadWindow::SaveGame() {
         int needed = SaveSpaceNeeded(kFlow);
         if (static_cast<double>(needed) > space) {
             void* memory = gamecrt::operator_new(0x180);
-            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, Text(kNoSpace), Text(kNoSpaceText),
+            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::Text(kNoSpace), game::Text(kNoSpaceText),
                                                           0x30000, 1, 1)
                                     : nullptr;
             InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
@@ -363,9 +363,9 @@ void CSaveLoadWindow::SaveGame() {
         }
     }
     mfc::CString folder;
-    folder.Format(Text(kSlotFolder), GameFolder(), entry->folder_);
+    folder.Format(game::Text(kSlotFolder), GameFolder(), entry->folder_);
     mfc::CString notice;
-    Texts()->GetString(Text(kNotifySaving), &notice);
+    Texts()->GetString(game::Text(kNotifySaving), &notice);
     ShowStatusText(kInterface, nullptr, notice);
     SaveGameAt(kFlow, nullptr, entry->folder_);
     CursorSetShape(kCursor, nullptr, 3);
@@ -373,7 +373,7 @@ void CSaveLoadWindow::SaveGame() {
     // info.sav: the new save's entry (the first) with the title being given.
     LocalFileStream info;
     {
-        mfc::CString path = folder + Text(kInfoFile);
+        mfc::CString path = folder + game::Text(kInfoFile);
         info.Open(path, kOpenWrite, 0);
     }
     if (nameTyped_)
@@ -407,7 +407,7 @@ void CSaveLoadWindow::SaveGame() {
         }
         mfc::CFile shot;
         {
-            mfc::CString path = folder + Text(kShotFile);
+            mfc::CString path = folder + game::Text(kShotFile);
             shot.Open(path, kOpenWrite, nullptr);
         }
         CFileWrite(&shot, nullptr, pixels.Bits(), kShotBytes);
@@ -424,7 +424,7 @@ EI_REPLACE_METHOD(0x00655550, CSaveLoadWindow::SaveGame);
 
 void CSaveLoadWindow::FillEntries() {
     mfc::CString pattern;
-    pattern.Format(Text(kSavePattern), GameFolder());
+    pattern.Format(game::Text(kSavePattern), GameFolder());
     mfc::CFileFind find;
     EntriesErase(EntryVector(this), nullptr, entriesBegin_, entriesEnd_);
     int highest = 0;     // the highest number after "save" in the folder names
@@ -447,12 +447,12 @@ void CSaveLoadWindow::FillEntries() {
         BOOL hasInfo;
         {
             mfc::CString folderPath = FilePath(find);
-            mfc::CString path = folderPath + Text(kInfoInFolder);
+            mfc::CString path = folderPath + game::Text(kInfoInFolder);
             hasInfo = infoFind.FindFile(path, 0);
         }
         if (!hasInfo) {
             entry->broken_ = true;
-            Str(entry->title_) = Text(kBrokenTitle);
+            Str(entry->title_) = game::Text(kBrokenTitle);
         } else {
             FindNext(infoFind);
             LocalFileStream info;
@@ -511,8 +511,8 @@ void CSaveLoadWindow::FillEntries() {
             EntryAssign(at, nullptr, &copy.e);
         }
         SaveEntry* entry = entriesBegin_;
-        Str(entry->folder_).Format(Text(kNewFolder), highest + 1);
-        entry->gameTime_ = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, Text(kGameTime)));
+        Str(entry->folder_).Format(game::Text(kNewFolder), highest + 1);
+        entry->gameTime_ = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::Text(kGameTime)));
         {
             alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
             mfc::CString* zone = PlayerZone(kGlue, nullptr, storage);
@@ -571,7 +571,7 @@ GameFlow* Flow() { return static_cast<GameFlow*>(kFlow); }
 // The save folder saves\<slot>\ under the game's folder.
 mfc::CString SlotFolder(const char* slot) {
     mfc::CString folder;
-    folder.Format(Text(kSlotFolder), GameFolder(), slot);
+    folder.Format(game::Text(kSlotFolder), GameFolder(), slot);
     return folder;
 }
 } // namespace
@@ -592,7 +592,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     CursorSetShape(kCursor, nullptr, 3);
     Interface()->serverFlag_ = static_cast<std::uint8_t>(ServerFlagOriginal());
     mfc::CString notice;
-    Texts()->GetString(Text(kNotifySaving), &notice);
+    Texts()->GetString(game::Text(kNotifySaving), &notice);
     ShowStatusText(kInterface, nullptr, notice);
     SaveGameAt(kFlow, nullptr, slot);
 
@@ -602,7 +602,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     mfc::CString zone;
     std::int32_t now;
     const std::int32_t savedAt = *CurrentTime(&now);
-    const float gameTime = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, Text(kGameTime)));
+    const float gameTime = static_cast<float>(HoverPlayerVariable(kGlue, nullptr, game::Text(kGameTime)));
     {
         alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
         mfc::CString* current = PlayerZone(kGlue, nullptr, storage);
@@ -613,7 +613,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
         map = *reinterpret_cast<const mfc::CString*>(&record->allod);
     mfc::CString folder = SlotFolder(slot);
     LocalFileStream info;
-    info.Open(folder + Text(kInfoFile), kOpenWrite, 0);
+    info.Open(folder + game::Text(kInfoFile), kOpenWrite, 0);
     StreamWriteHeader(&info.s, nullptr, kInfoMagic, kInfoVersion);
     info.Write(&gameTime, 4);
     info.WriteText(map);
@@ -625,7 +625,7 @@ void __fastcall QuickSave(const char* slot, char stepFrame) {
     // shot.sav: the copied screen at 256x192.
     std::uint16_t* pixels = surface->Rgb565Copy(kShotWidth, kShotHeight);
     mfc::CFile shot;
-    shot.Open(folder + Text(kShotFile), kOpenWrite, nullptr);
+    shot.Open(folder + game::Text(kShotFile), kOpenWrite, nullptr);
     CFileWrite(&shot, nullptr, pixels, kShotBytes);
     shot.Close();
     gamecrt::operator_delete(pixels);
@@ -642,7 +642,7 @@ void __fastcall QuickLoad(const char* slot) {
     mfc::CString folder = SlotFolder(slot);
     if (gamecrt::access(folder, 0) == -1) return;
     mfc::CString notice;
-    Texts()->GetString(Text(kNotifyLoading), &notice);
+    Texts()->GetString(game::Text(kNotifyLoading), &notice);
     ShowStatusText(kInterface, nullptr, notice);
     MenuSetOriginal(1);
     Flow()->RequestLoad(slot, 0);
@@ -720,7 +720,7 @@ void CSaveLoadWindow::LoadSelected() {
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     if (entriesBegin_[selected].broken_) return;
     mfc::CString notice;
-    Texts()->GetString(Text(kNotifyLoading), &notice);
+    Texts()->GetString(game::Text(kNotifyLoading), &notice);
     ShowStatusText(kInterface, nullptr, notice);
     MenuSetOriginal(1);
     interface_->PlaySound(kSoundOk, 0);
@@ -732,7 +732,7 @@ void CSaveLoadWindow::DeleteSave() {
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     mfc::CString folder;
-    folder.Format(Text(kFolderFormat), GameFolder(), entriesBegin_[selected].folder_);
+    folder.Format(game::Text(kFolderFormat), GameFolder(), entriesBegin_[selected].folder_);
     mfc::CFileFind find;
     BOOL more = find.FindFile(folder + kEveryFile, 0);
     while (more) {

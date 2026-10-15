@@ -292,6 +292,27 @@ class SchedTest(unittest.TestCase):
         b = work_sched.submit(self.db, 'T1', self.root, f'{self.root}/b', ['q'], runs, None, env=env)
         self.assertEqual(work_sched.batch_env(self.batch(b)), env)
 
+    def test_clock_reaches_the_game(self):
+        seen = []
+        def fake_subprocess_run(cmd, **kw):
+            seen.append(kw.get('env'))
+            return subprocess.CompletedProcess(cmd, 0, '', '')
+        scenarios = os.path.join(self.tmp, 'tests', 'scenarios')
+        os.makedirs(scenarios)
+        open(os.path.join(scenarios, 'x.txt'), 'w').close()
+        build = os.path.join(self.tmp, 'bld')
+        old_run = run_all.subprocess.run
+        run_all.subprocess.run = fake_subprocess_run
+        try:
+            run = {'scenario': 'x', 'install': 'vanilla', 'hooks': 1, 'folder': build + '/runs/x-vanilla'}
+            row = {'worktree': self.tmp, 'build': build, 'env': None}
+            work_sched.real_runner(dict(row, args=json.dumps(['x', '--clock', 'virtual,randtrace'])), run, 0, lambda n: None)
+            work_sched.real_runner(dict(row, args=json.dumps(['x'])), run, 0, lambda n: None)
+        finally:
+            run_all.subprocess.run = old_run
+        self.assertEqual(seen[0]['EI_HARNESS_CLOCK'], 'virtual,randtrace')
+        self.assertIsNone(seen[1])                                  # no --clock: the game inherits
+
     def test_game_environment_names(self):
         got = run_all.game_environment({'EI_PLAIN': '1', 'EI_PROFILE': '1', 'EI_BUILD_DIR': 'x', 'EI_HARNESS_SLOTS': '4',
                                         'EI_OUT_DIR': 'o', 'EI_HARNESS': 'h', 'PATH': 'p', 'WORK_DB': 'd'})

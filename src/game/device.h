@@ -5,6 +5,7 @@
 // through their COM interfaces as the original does: they are the boundary the new renderer sits
 // behind (docs/notes/renderer.md, sections 10 and 12).
 
+#include "game_strings.h"
 #include "device_switchover.h"   // device::WithoutDirectDraw
 #include "texture.h"
 
@@ -42,8 +43,6 @@ inline CRITICAL_SECTION* Lock() { return reinterpret_cast<CRITICAL_SECTION*>(0x0
 inline int& HolderCount() { return *reinterpret_cast<int*>(0x007AEE94); }
 // The texture manager (007AF744).
 inline CTextureManager* TextureManager() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
-// A string of the game's data.
-inline const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
 inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
 inline IDirectDraw7* DDraw(const CTextureDevice* device) { return static_cast<IDirectDraw7*>(device->ddraw_); }
