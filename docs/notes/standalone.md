@@ -874,6 +874,50 @@ in disabled.txt too, so not from S12b. The sort start-up check skips itself when
 (no trampoline). Left for S12d: the allocating sorts (objectives, save list), pair<string, list<T>>
 0069C1C0 and the unclassified container rows.
 
+**S12c (2026-10-15).** S12a's lists, hashtables, vectors and unwind helpers, 70 addresses on the
+shared shims (no new container code): lists (stlp_list.cpp) - begin / end 00478FC0 00478FD0 00478FE0,
+the 0x18-byte lists' constructors 004827D0 / 004FB3C0 and destructors 004829B0 / 00482CC0 (library.csv
+calls them clear), ~list of 16-byte nodes 005F9620, insert 00482980, `_M_create_node` 00482C30
+(`ListAbi::CreateNode`, new), the sentinel given back while a constructor unwinds 00482790 / 004FB840
+(`ListPutSentinel<32>`), iterator-- 004FB570 (`ListIteratorDecrement`), get_allocator 00479130 and
+the iterator's copy 004FB3B0 (the tree shims), the link loader's list<pair<string, dword>> (insert
+004FB730, create 004FB8B0, clear 004FBCF0; `StringDwordElement` in stlp_pair.h) and list<CString>'s
+create 005F9C70; pair<string, dword>(const string&, const dword&) 004FB170 (library.csv: string's copy
+constructor). Hashtables (stlp_hash.cpp): dword keys of 8 bytes - begin 004FB090 005E0C00, the
+iterator's constructor 00482DD0 005E0D50, `_M_skip_to_next` 005E0E00, ~hashtable 00482DF0 (unwind
+only); the link loader's figure sets (string keys, 20-byte nodes: pool sizes 17-24 share one free list)
+- ~hashtable 004F6A50, clear 004FBC80, skip 004FBB80, dead in the hook build (their caller 004F6BD0 is
+ours). Vectors (stlp_vector.cpp): the base constructor 00482A80 00619600 006316C0, ~_Vector_base of
+1, 4, 8 and 12-byte elements (10 addresses), deallocate(p, n) in both forms (11), `_M_fill_insert` of
+dwords 004FBA40, `_M_insert_overflow` of 8-byte pairs 006317E0 (from 006312C0) and its
+`uninitialized_copy` 006325E0 / `uninitialized_fill_n` 00632610 (`VectorAbi`, new). Game types
+(src/game/library_containers.*): ~list<CMemoryStream> 00478F10 (the loopback queue, unwind only),
+~list of a key and two CStrings 005F9570, the briefing's shown-item `_M_create_node` 0060A010, copy of
+its speakers 0060AB60 (CString operator=), the RefPtr `_Construct` 0060AA80 and `copy_backward`
+0060AAA0, a held engine object's `_Construct` 004FB680, CString's destructor 005F9680 / 005FBE20 (a
+jump to 00700970; library.csv calls the first exception::~exception) and scalar deleting destructor
+005FBCB0 / 0060ABE0, and four unwind helpers (00445FC0 a word's CString, 00482E90 clears a dword,
+005F60B0 two pointer vectors, 004F69F0 the counted root's vtable 0073C368), and 005E0550 (library.csv: a pointer iterator's operator-; it is CTime::operator-(CTimeSpan), 005E0400 calls it after a CTime constructor). Several library.csv
+names for these rows are wrong (destructors named clear, a list create named hashtable
+`_M_new_node`); the rows were left as they are (add-only). Checks
+(tests/verify/verify_library_containers.cpp): against the original - begin / end / get_allocator /
+iterator copy and --, the hashtable begin, iterator constructor and both skips, the vector base
+constructor, uninitialized_copy (into a scratch buffer), CTime - span; the list constructor, insert and create
+original first, its node back on the pool (LIFO), then ours (same node, same bytes); the frees with a
+trampoline original first, the block taken off its free list again, then ours; `_M_fill_insert` with
+room on a twin over a copy of the storage in our memory. Ours only (they destroy, release or copy
+CStrings and counted pointers): the destructors (the nodes on top of their free list in order), the
+pair<string, dword> list, the CString copies (the count one less when shared), the RefPtr copies
+(counts), the rest by their effect. A start-up check drives all 70 through their game addresses with
+scratch objects (fake counted objects that never reach zero); in the suite only the dword hashtable
+members 005E0C00 / 005E0D50 / 005E0E00 (console: 1411 skips), 005E0550 (console, once) and 005FBCB0 (S12a's console map check) are
+reached. smoke, console, items, world_load, models, ui_screens, ui_base_dialogue,
+ui_global_map_pick, ui_camp, ui_saveload, net_lobby, ui_main_menu, ui_mp_host, both installs: 26 pass,
+0 mismatches; after merging S12d the full `--golden` suite: 128 runs pass, 56 goldens the same, 0 mismatches. Not taken: S12a's CArray rows (S6b/S6c, listed in the ticket's note) and the rows of
+S12d (it ported 0060A660 and 0060AB00; 005F8E90, 005F92A0, 005F94B0 and 005FB810, "unreviewed family" rows, are still unregistered). Unregistered twins outside the
+ranges with the same instructions: 00429060, 00429DB0, 004298F0 (the RefPtr and held-object copies),
+004FAF10 (a char vector's ~_Vector_base), 0042B3C0, 0042B3F0, 00404D50, 004E15C0, 005E1560, 00457940,
+004FC0C0, 004217C0.
 **S12d (2026-10-15).** The allocating sorts (src/game/stl_sorts.cpp on `stlp::Sort<T, Less, Ops>`;
 stlp_algo.h now takes an element policy, `Held<T, Ops>` temporaries and `CopyBackward`, with every
 by-value copy, assignment and destruction where STLport's has them): the objectives window's quests
@@ -959,6 +1003,53 @@ initialisers without code 0 call targets, 0 exit functions, 0 exit callees; the 
 005AF580. In the image AfxCriticalInit and the locks run over the exe's data copy (zero, so first
 use initialises them).
 
+**S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
+hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
+quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return
+addresses as module+offset) before it ends a game hung after quit; it showed one thread left, in ntdll's
+process shutdown -> addon.dll's DLL_PROCESS_DETACH (addon+1022E, +101DB) -> addon+BCE5 -> CreateProcessA
+(through AcLayers' shim) -> USER32 -> win32u. addon+BCE5 starts `<system32>\CTFMon.exe` and waits up to 2 s for
+it when the starter switch `Settings\CtfMon` is 1 (it is here); the same switch makes addon send WM_DESTROY to
+the `CicLoaderWndClass` window (ctfmon) when it applies its patches, so every Rebirth run also ended the user's
+text input service. The harness answers CtfMon 0 in every run (tests/verify/harness_starter.cpp, through the
+advapi32 RegQueryValueExW slot it already answered for WideScreen; now patched in every run). After it, the full
+suite (128 runs) and render_present / render_movie_present / render_device_lost on Rebirth exit by themselves,
+and every Rebirth log ends with its `verify total` lines. The log's last "first call" (~CMapPtrToPtr) was only
+the last hooked function reached for the first time, not where it stopped. The Riched20 access violation of
+ui_main_menu-rebirth was not seen again in these runs. R9c6 and X32 are the same cause.
+
+**S8b (2026-10-15).** MFC's resource strings, the exceptions' error messages and CFile's name slots,
+17 addresses (size rows added, all Ghidra sizes). src/lib/mfc_resource: AfxLoadString 00702B92
+(LoadStringA on the module state's resource handle through the exe's import slot), AfxFormatStrings
+0070B1AD (lead bytes by _mbctype's _M1 bit; "%0" reads the pointer before the array, as the
+original), AfxFormatStrings(UINT) 0070B173 and AfxFormatString1 0070B2AC; mfc_string:
+CString::LoadString 00702B0E (`LoadResourceString`; CString(MAKEINTRESOURCE) now calls it directly);
+mfc_window: AfxMessageBox(UINT) 0070ACCC; mfc_exception: CException::ReportError 0070209C (slot 4 of
+all six exception vtables; the help context starts at 0 where the original's is unset), slot 3 of
+CFileException 00703135 / CArchiveException 0070A795 (prompt 0xF1A0 / 0xF1B0 + cause with the name,
+AFX_IDS_UNNAMED_FILE's text for none) and of the four simple exceptions 006FE346 with InitString
+006FE31D; mfc_file: CFile::GetFileName / GetFileTitle / GetFilePath 00702C31 / 00702CB3 / 00702D35,
+GetStatus 00702D64 (`CFileStatus`, 0x118 bytes), AfxGetFileName 0070D0D2 and AfxGetFileTitle 00701AC9
+(comdlg32's GetFileTitleA through import slot 0073B748; the thunk 006FC044 has no other caller and is
+not registered). The resource handle: the original's module state has instance and resource handles
+null (the game never runs AfxWinInit; a start-up check confirms it), so `ImageModuleState`'s null ones
+are already right: LoadStringA(NULL) loads from game.exe in a hooked run, and the image's LoadStringA
+wrapper (S14) maps NULL to game.exe loaded as a data file. game.exe's table has every MFC prompt the
+library loads (30 of the 32 ids the check asks for; the two missing are the check's made-up ids).
+Checks (tests/verify/verify_mfc_resource.cpp), ours first (SV2f / SV2h): LoadString, the format
+functions and the name getters fill the real string, the original a scratch one made afterwards; the
+cause messages into the caller's buffer and a host buffer; InitString and the simple exceptions'
+GetErrorMessage on a copy taken before ours ran (objects compared); GetStatus and the path parts into
+host memory. Ours only: AfxLoadString (a CALL in its first five bytes; buffer against length, the
+resource handle against the image's), AfxMessageBox(UINT) and ReportError (modal boxes). The suite
+reaches none of them (error paths), so a start-up check drives them through their addresses: 32 ids
+(also into an 8-byte buffer), nine format strings and four format ids, every file / archive cause with
+and without a name, copies of the four static exceptions (unloaded, loaded, a missing id), path parts
+of seven shapes and the three names of a temporary file (open, open without a name, closed). smoke,
+console, ui_main_menu, ui_saveload, both installs: 0 mismatches (AfxLoadString 222 calls,
+AfxFormatStrings 107, CFileException::GetErrorMessage 60). Not exercised: LoadString's growing loop
+(no string in the table comes within two bytes of 256).
+
 ## 3. Runtime: MFC, STLport, CRT
 
 MFC pieces in use are containers (`CArray` 470 qualified uses, lists 218, `CMap` 4), `CString` 2,546,
@@ -1040,3 +1131,10 @@ ANSI code page; file names (save names typed by the player) go to the ANSI file 
 Total 5-6 tickets. Byte-equality compares, hashing, copying and formatting (the large majority of
 string code) work unchanged on UTF-8. It cannot start before the port is complete: until then the
 original code reads the same strings.
+
+**S10c (2026-10-15).** 004AD640, the trader stock's recipe map pair destructor (pair<string, list<recipe*>>):
+`PairAbi::DestroyStringList` in src/lib/stlp_pair.cpp (the list's nodes in order and the sentinel back to
+the pool via `list::Destroy`, then the string's block); item_stock.cpp's `RecipePairDestroy` calls it.
+Verified ours only (verify_stlp_pair.cpp: the string block on top of its free list, the sentinel on top of
+the 0xC list unless the string's block shares it); reached by trader_stock (22 calls, 0 mismatches, both
+installs); items passes. The size row already existed (function_sizes.inc, 120).

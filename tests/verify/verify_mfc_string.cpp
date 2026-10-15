@@ -1,15 +1,25 @@
 // Checks for MFC's CString and CFixedAlloc (src/lib/mfc_string.cpp, ticket S5). Strings are plain
-// data: a function that reads or rewrites one runs as the original on a private copy (its own
-// buffer) and as ours on the caller's string, and the texts are compared; a function that builds a
+// data: a function that reads or rewrites one runs as ours on the caller's string and as the
+// original on a private copy (its own buffer), and the texts are compared; a function that builds a
 // new string (constructors, Mid, operator+) runs the original into scratch storage. The allocator,
 // the reference counting and the functions whose first five bytes hold a call run ours only, with
 // checks of the state they leave. Every string the game touches passes through these.
+//
+// The order (SV2f / SV2h1): no block of the original's is alive while ours allocates. Ours runs
+// first and the original's copy is made from the text kept in our memory afterwards, then freed.
+// The edits whose argument may be the string itself or point into it (assignments, appends,
+// AssignCopy, ConcatInPlace, TrimRight(const char*), FormatV) run the original first instead, on a
+// copy that is freed (its text kept in our memory) before ours runs: the string is unchanged while
+// the original reads the argument.
 #include "verify.h"
 
 #include "../../src/lib/mfc_string.h"
 
+#include <cstdio>
 #include <cstring>
 #include <new>
+#include <string>
+#include <type_traits>
 
 using mfc::impl::CFixedAlloc;
 using mfc::impl::CString;
@@ -19,16 +29,25 @@ namespace {
 
 using ei::verify::Check;
 
+const char* Text(const CString& s) { return static_cast<const char*>(s); }
+
+// A string's text (its length included) kept in our memory.
+std::string Keep(const CString& s) { return std::string(Text(s), static_cast<std::size_t>(s.GetLength())); }
+
 // The text and its length match (the bytes up to and with the terminator).
+bool Same(const std::string& expected, const CString& actual) {
+    return static_cast<int>(expected.size()) == actual.GetLength() &&
+           std::memcmp(expected.c_str(), Text(actual), expected.size() + 1) == 0;
+}
 bool Same(const CString& expected, const CString& actual) {
     int length = expected.GetLength();
     return length == actual.GetLength() &&
-           std::memcmp(static_cast<const char*>(expected), static_cast<const char*>(actual),
-                       static_cast<std::size_t>(length) + 1) == 0;
+           std::memcmp(Text(expected), Text(actual), static_cast<std::size_t>(length) + 1) == 0;
 }
 
 // A private copy with its own buffer (refs 1), for the original to run on.
-CString Twin(const CString& s) { return CString(static_cast<const char*>(s), s.GetLength()); }
+CString Twin(const std::string& text) { return CString(text.data(), static_cast<int>(text.size())); }
+CString Twin(const CString& s) { return CString(Text(s), s.GetLength()); }
 
 // Storage for a string the original constructs; Get() is valid once it has.
 struct Slot {
@@ -36,44 +55,40 @@ struct Slot {
     CString* Get() { return reinterpret_cast<CString*>(raw); }
 };
 
-const char* Text(const CString& s) { return static_cast<const char*>(s); }
-
 // ---- Construction and assignment ------------------------------------------------------------------
+
+// The constructors: ours into the caller's storage, then the original into a slot (freed again).
+template <typename Original, typename Ours>
+CString* CompareMade(const char* name, Original original, Ours ours, const char* detail) {
+    CString* result = ours();
+    Slot slot;
+    CString* expected = original(slot.Get());
+    Check(name, true, Same(*expected, *result), "%s\"%.60s\" (original \"%.60s\")", detail, Text(*result), Text(*expected));
+    expected->~CString();
+    return result;
+}
 
 using CopyFn = CString*(__fastcall*)(CString*, void*, const CString&);
 CopyFn s_copy;
 CString* __fastcall CopyConstructVerify(CString* self, void*, const CString& source) {
-    Slot slot;
-    CString* expected = s_copy(slot.Get(), nullptr, source);
-    CString* result = ::new (self) CString(source);
-    Check("CString::CString(const CString&)", true, Same(*expected, *result),
-          "\"%.60s\" (original \"%.60s\")", Text(*result), Text(*expected));
-    expected->~CString();
-    return result;
+    return CompareMade("CString::CString(const CString&)", [&](CString* slot) { return s_copy(slot, nullptr, source); },
+                       [&] { return ::new (self) CString(source); }, "");
 }
 
 using TextFn = CString*(__fastcall*)(CString*, void*, const char*);
 TextFn s_text;
 CString* __fastcall TextConstructVerify(CString* self, void*, const char* text) {
-    Slot slot;
-    CString* expected = s_text(slot.Get(), nullptr, text);
-    CString* result = ::new (self) CString(text);
-    Check("CString::CString(const char*)", true, Same(*expected, *result), "\"%.60s\" (original \"%.60s\")",
-          Text(*result), Text(*expected));
-    expected->~CString();
-    return result;
+    return CompareMade("CString::CString(const char*)", [&](CString* slot) { return s_text(slot, nullptr, text); },
+                       [&] { return ::new (self) CString(text); }, "");
 }
 
 using CountFn = CString*(__fastcall*)(CString*, void*, const char*, int);
 CountFn s_count;
 CString* __fastcall CountConstructVerify(CString* self, void*, const char* text, int length) {
-    Slot slot;
-    CString* expected = s_count(slot.Get(), nullptr, text, length);
-    CString* result = ::new (self) CString(text, length);
-    Check("CString::CString(const char*, int)", true, Same(*expected, *result), "%d: \"%.60s\"", length,
-          Text(*result));
-    expected->~CString();
-    return result;
+    char detail[16];
+    std::snprintf(detail, sizeof(detail), "%d: ", length);
+    return CompareMade("CString::CString(const char*, int)", [&](CString* slot) { return s_count(slot, nullptr, text, length); },
+                       [&] { return ::new (self) CString(text, length); }, detail);
 }
 
 // Ours only: the string is alive (a count of 0 would be a second release).
@@ -84,17 +99,22 @@ void __fastcall DestructVerify(CString* self) {
     Check("CString::~CString", true, refs != 0, "refs %ld", refs);
 }
 
-// The assignments and appends: the original on a twin of the target. The argument may be the
-// target itself or point into it; the original runs first, while the target is unchanged.
+// The assignments and appends: the original first, on a twin of the target, while the target is
+// unchanged (the argument may be the target itself or point into it); the twin's text is kept and
+// the twin freed, then ours edits the target.
 template <typename Arg>
 using EditFn = const CString*(__fastcall*)(CString*, void*, Arg);
 
 template <typename Arg, typename Edit>
 const CString* CompareEdit(const char* name, EditFn<Arg> original, CString* self, Arg arg, Edit edit) {
-    CString twin = Twin(*self);
-    original(&twin, nullptr, arg);
+    std::string expected;
+    {
+        CString twin = Twin(*self);
+        original(&twin, nullptr, arg);
+        expected = Keep(twin);
+    }
     edit(*self, arg);
-    Check(name, true, Same(twin, *self), "\"%.60s\" (original \"%.60s\")", Text(*self), Text(twin));
+    Check(name, true, Same(expected, *self), "\"%.60s\" (original \"%.60s\")", Text(*self), expected.c_str());
     return self;
 }
 
@@ -132,18 +152,14 @@ const CString* __fastcall AppendCharVerify(CString* self, void*, char c) {
     return CompareEdit<char>("CString::operator+=(char)", s_appendChar, self, c, [](CString& s, char a) { s += a; });
 }
 
-// operator+: the original into scratch storage.
+// operator+: ours into the caller's storage, then the original into a slot.
 template <typename A, typename B>
 using PlusFn = CString*(__stdcall*)(CString*, A, B);
 
 template <typename A, typename B>
 CString* ComparePlus(const char* name, PlusFn<A, B> original, CString* result, A a, B b) {
-    Slot slot;
-    CString* expected = original(slot.Get(), a, b);
-    ::new (result) CString(a + b);
-    Check(name, true, Same(*expected, *result), "\"%.60s\" (original \"%.60s\")", Text(*result), Text(*expected));
-    expected->~CString();
-    return result;
+    return CompareMade(
+        name, [&](CString* slot) { return original(slot, a, b); }, [&] { return ::new (result) CString(a + b); }, "");
 }
 
 PlusFn<const CString&, const CString&> s_plusStrings;
@@ -169,21 +185,24 @@ CString* __stdcall PlusCharStringVerify(CString* result, char a, const CString& 
 
 // ---- Buffers ------------------------------------------------------------------------------------
 
+// From here: ours on the string, then the original on a twin made from the text kept before.
 using VoidFn = void(__fastcall*)(CString*);
 VoidFn s_empty;
 void __fastcall EmptyVerify(CString* self) {
-    CString twin = Twin(*self);
-    s_empty(&twin);
+    const std::string kept = Keep(*self);
     self->Empty();
+    CString twin = Twin(kept);
+    s_empty(&twin);
     Check("CString::Empty", true, Same(twin, *self) && self->GetLength() == 0, "\"%.60s\"", Text(*self));
 }
 
 using BufferFn = char*(__fastcall*)(CString*, void*, int);
 BufferFn s_getBuffer;
 char* __fastcall GetBufferVerify(CString* self, void*, int minLength) {
-    CString twin = Twin(*self);
-    char* expected = s_getBuffer(&twin, nullptr, minLength);
+    const std::string kept = Keep(*self);
     char* result = self->GetBuffer(minLength);
+    CString twin = Twin(kept);
+    char* expected = s_getBuffer(&twin, nullptr, minLength);
     bool ok = Same(twin, *self) && expected == Text(twin) && result == Text(*self) &&
               self->GetData()->allocLength >= minLength && self->GetData()->refs <= 1;
     Check("CString::GetBuffer", true, ok, "%d: \"%.60s\" (original \"%.60s\")", minLength, Text(*self), Text(twin));
@@ -194,9 +213,10 @@ char* __fastcall GetBufferVerify(CString* self, void*, int minLength) {
 BufferFn s_setLength;
 char* __fastcall GetBufferSetLengthVerify(CString* self, void*, int length) {
     int kept = self->GetLength() < length ? self->GetLength() : length;
-    CString twin = Twin(*self);
-    char* expected = s_setLength(&twin, nullptr, length);
+    const std::string before = Keep(*self);
     char* result = self->GetBufferSetLength(length);
+    CString twin = Twin(before);
+    char* expected = s_setLength(&twin, nullptr, length);
     bool ok = twin.GetLength() == length && self->GetLength() == length && expected == Text(twin) &&
               result == Text(*self) && result[length] == '\0' &&
               std::memcmp(expected, result, static_cast<std::size_t>(kept)) == 0;
@@ -217,9 +237,10 @@ void __fastcall ReleaseBufferVerify(CString* self, void*, int newLength) {
 using LockFn = char*(__fastcall*)(CString*);
 LockFn s_lock;
 char* __fastcall LockBufferVerify(CString* self) {
-    CString twin = Twin(*self);
-    char* expected = s_lock(&twin);
+    const std::string kept = Keep(*self);
     char* result = self->LockBuffer();
+    CString twin = Twin(kept);
+    char* expected = s_lock(&twin);
     bool ok = Same(twin, *self) && expected == Text(twin) && result == Text(*self) &&
               twin.GetData()->refs == self->GetData()->refs;
     twin.UnlockBuffer();
@@ -227,14 +248,16 @@ char* __fastcall LockBufferVerify(CString* self) {
     return result;
 }
 
-// The twin carries the same count as the string (a locked string's -1 included).
+// The twin carries the count the string had (a locked string's -1 included).
 VoidFn s_unlock;
 void __fastcall UnlockBufferVerify(CString* self) {
-    CString twin = Twin(*self);
-    bool twinIsNil = twin.GetData() == mfc::impl::DataNil();
-    if (!twinIsNil) twin.GetData()->refs = self->GetData()->refs;
-    s_unlock(&twin);
+    const std::string kept = Keep(*self);
+    const long refs = self->GetData()->refs;
     self->UnlockBuffer();
+    CString twin = Twin(kept);
+    bool twinIsNil = twin.GetData() == mfc::impl::DataNil();
+    if (!twinIsNil) twin.GetData()->refs = refs;
+    s_unlock(&twin);
     bool ok = twinIsNil ? (self->GetData() == mfc::impl::DataNil() || self->GetData()->refs == 1)
                         : twin.GetData()->refs == self->GetData()->refs;
     if (!twinIsNil) twin.GetData()->refs = 1;
@@ -279,12 +302,12 @@ int __fastcall FindOneOfVerify(const CString* self, void*, const char* set) {
     return CompareFind("CString::FindOneOf", s_findOneOf, self, self->FindOneOf(set), set);
 }
 
-// Mid / Left / Right: the original into scratch storage.
+// Mid / Left / Right: ours into the caller's storage, then the original into a slot.
 template <typename Fn, typename Part, typename... Args>
 CString* CompareExtract(const char* name, Fn original, const CString* self, CString* result, Part part, Args... args) {
+    ::new (result) CString(part());
     Slot slot;
     CString* expected = original(self, nullptr, slot.Get(), args...);
-    ::new (result) CString(part());
     Check(name, true, Same(*expected, *result), "\"%.60s\" -> \"%.60s\" (original \"%.60s\")", Text(*self),
           Text(*result), Text(*expected));
     expected->~CString();
@@ -316,18 +339,19 @@ CString* __fastcall RightVerify(const CString* self, void*, CString* result, int
 using MbsLwrFn = unsigned char*(__cdecl*)(unsigned char*);
 // Ours only (a call within the first five bytes): against the CRT's _mbslwr on a twin.
 void __fastcall MakeLowerVerify(CString* self) {
-    CString twin = Twin(*self);
-    if (twin.GetLength()) reinterpret_cast<MbsLwrFn>(0x006EC8A8)(reinterpret_cast<unsigned char*>(twin.GetBuffer(0)));
+    std::string expected = Keep(*self);
     self->MakeLower();
-    Check("CString::MakeLower", true, Same(twin, *self), "\"%.60s\" (expected \"%.60s\")", Text(*self), Text(twin));
+    if (!expected.empty()) reinterpret_cast<MbsLwrFn>(0x006EC8A8)(reinterpret_cast<unsigned char*>(&expected[0]));
+    Check("CString::MakeLower", true, Same(expected, *self), "\"%.60s\" (expected \"%.60s\")", Text(*self), expected.c_str());
 }
 
 using RemoveFn = int(__fastcall*)(CString*, void*, char);
 RemoveFn s_remove;
 int __fastcall RemoveVerify(CString* self, void*, char c) {
-    CString twin = Twin(*self);
-    int expected = s_remove(&twin, nullptr, c);
+    const std::string kept = Keep(*self);
     int result = self->Remove(c);
+    CString twin = Twin(kept);
+    int expected = s_remove(&twin, nullptr, c);
     Check("CString::Remove", true, Same(twin, *self) && expected == result, "\"%.60s\" %d (original %d)", Text(*self),
           result, expected);
     return result;
@@ -335,64 +359,83 @@ int __fastcall RemoveVerify(CString* self, void*, char c) {
 
 VoidFn s_trimRight;
 void __fastcall TrimRightVerify(CString* self) {
-    CString twin = Twin(*self);
-    s_trimRight(&twin);
+    const std::string kept = Keep(*self);
     self->TrimRight();
+    CString twin = Twin(kept);
+    s_trimRight(&twin);
     Check("CString::TrimRight()", true, Same(twin, *self), "\"%.60s\" (original \"%.60s\")", Text(*self), Text(twin));
 }
 
+// The targets may point into the string: the original first, its twin freed before ours (as the
+// assignments).
 using TrimSetFn = void(__fastcall*)(CString*, void*, const char*);
 TrimSetFn s_trimRightSet;
 void __fastcall TrimRightSetVerify(CString* self, void*, const char* targets) {
-    CString twin = Twin(*self);
-    s_trimRightSet(&twin, nullptr, targets);
+    std::string expected;
+    {
+        CString twin = Twin(*self);
+        s_trimRightSet(&twin, nullptr, targets);
+        expected = Keep(twin);
+    }
     self->TrimRight(targets);
-    Check("CString::TrimRight(const char*)", true, Same(twin, *self), "\"%.60s\" (original \"%.60s\")", Text(*self),
-          Text(twin));
+    Check("CString::TrimRight(const char*)", true, Same(expected, *self), "\"%.60s\" (original \"%.60s\")", Text(*self),
+          expected.c_str());
 }
 
 // Ours only (a call within the first five bytes): the result is a prefix (TrimRight) or a suffix
 // (TrimLeft) of the text and no longer starts or ends with the target.
 void __fastcall TrimRightCharVerify(CString* self, void*, char target) {
-    CString before = Twin(*self);
+    const std::string before = Keep(*self);
     self->TrimRight(target);
     int length = self->GetLength();
-    bool ok = length <= before.GetLength() && std::memcmp(Text(before), Text(*self), static_cast<std::size_t>(length)) == 0 &&
+    bool ok = length <= static_cast<int>(before.size()) &&
+              std::memcmp(before.data(), Text(*self), static_cast<std::size_t>(length)) == 0 &&
               Text(*self)[length] == '\0' && (length == 0 || Text(*self)[length - 1] != target);
-    Check("CString::TrimRight(char)", true, ok, "\"%.60s\" -> \"%.60s\"", Text(before), Text(*self));
+    Check("CString::TrimRight(char)", true, ok, "\"%.60s\" -> \"%.60s\"", before.c_str(), Text(*self));
 }
 
 void __fastcall TrimLeftCharVerify(CString* self, void*, char target) {
-    CString before = Twin(*self);
+    const std::string before = Keep(*self);
     self->TrimLeft(target);
     int length = self->GetLength();
-    int cut = before.GetLength() - length;
-    bool ok = cut >= 0 && std::memcmp(Text(before) + cut, Text(*self), static_cast<std::size_t>(length) + 1) == 0 &&
+    int cut = static_cast<int>(before.size()) - length;
+    bool ok = cut >= 0 && std::memcmp(before.c_str() + cut, Text(*self), static_cast<std::size_t>(length) + 1) == 0 &&
               (length == 0 || Text(*self)[0] != target);
-    Check("CString::TrimLeft(char)", true, ok, "\"%.60s\" -> \"%.60s\"", Text(before), Text(*self));
+    Check("CString::TrimLeft(char)", true, ok, "\"%.60s\" -> \"%.60s\"", before.c_str(), Text(*self));
 }
 
 void __fastcall TrimLeftVerify(CString* self) {
-    CString before = Twin(*self);
+    const std::string before = Keep(*self);
     self->TrimLeft();
     int length = self->GetLength();
-    int cut = before.GetLength() - length;
-    bool ok = cut >= 0 && std::memcmp(Text(before) + cut, Text(*self), static_cast<std::size_t>(length) + 1) == 0 &&
+    int cut = static_cast<int>(before.size()) - length;
+    bool ok = cut >= 0 && std::memcmp(before.c_str() + cut, Text(*self), static_cast<std::size_t>(length) + 1) == 0 &&
               (length == 0 || Text(*self)[0] != ' ');
-    Check("CString::TrimLeft()", true, ok, "\"%.60s\" -> \"%.60s\"", Text(before), Text(*self));
+    Check("CString::TrimLeft()", true, ok, "\"%.60s\" -> \"%.60s\"", before.c_str(), Text(*self));
 }
 
 // ---- Formatting ---------------------------------------------------------------------------------
 
+// The arguments may point into the string: the original first, its twin freed before ours (as the
+// assignments); its text and buffer size kept.
 using FormatVFn = void(__fastcall*)(CString*, void*, const char*, va_list);
 FormatVFn s_formatV;
-void __fastcall FormatVVerify(CString* self, void*, const char* format, va_list arguments) {
-    CString twin = Twin(*self);
+struct Formatted {
+    std::string text;
+    int allocLength;
+};
+Formatted OriginalFormat(const CString& self, const char* format, va_list arguments) {
+    CString twin = Twin(self);
     s_formatV(&twin, nullptr, format, arguments);
+    return {Keep(twin), twin.GetData()->allocLength};
+}
+
+void __fastcall FormatVVerify(CString* self, void*, const char* format, va_list arguments) {
+    const Formatted expected = OriginalFormat(*self, format, arguments);
     self->FormatV(format, arguments);
-    bool ok = Same(twin, *self) && twin.GetData()->allocLength == self->GetData()->allocLength;
-    Check("CString::FormatV", true, ok, "\"%.60s\" (original \"%.60s\", buffers %d / %d)", Text(*self), Text(twin),
-          self->GetData()->allocLength, twin.GetData()->allocLength);
+    bool ok = Same(expected.text, *self) && expected.allocLength == self->GetData()->allocLength;
+    Check("CString::FormatV", true, ok, "\"%.60s\" (original \"%.60s\", buffers %d / %d)", Text(*self),
+          expected.text.c_str(), self->GetData()->allocLength, expected.allocLength);
 }
 
 // Format runs ours; the original's FormatV (when its wrapper is in) prints the same arguments again.
@@ -400,10 +443,10 @@ void __cdecl FormatVerify(CString* self, const char* format, ...) {
     va_list arguments;
     va_start(arguments, format);
     if (s_formatV) {
-        CString twin = Twin(*self);
-        s_formatV(&twin, nullptr, format, arguments);
+        const Formatted expected = OriginalFormat(*self, format, arguments);
         self->FormatV(format, arguments);
-        Check("CString::Format", true, Same(twin, *self), "\"%.60s\" (original \"%.60s\")", Text(*self), Text(twin));
+        Check("CString::Format", true, Same(expected.text, *self), "\"%.60s\" (original \"%.60s\")", Text(*self),
+              expected.text.c_str());
     } else {
         self->FormatV(format, arguments);
     }
@@ -457,9 +500,10 @@ void __stdcall ReleaseDataVerify(CStringData* data) {
 
 VoidFn s_copyBeforeWrite;
 void __fastcall CopyBeforeWriteVerify(CString* self) {
-    CString twin = Twin(*self);
-    s_copyBeforeWrite(&twin);
+    const std::string kept = Keep(*self);
     self->CopyBeforeWrite();
+    CString twin = Twin(kept);
+    s_copyBeforeWrite(&twin);
     Check("CString::CopyBeforeWrite", true, Same(twin, *self) && self->GetData()->refs <= 1, "\"%.60s\"", Text(*self));
 }
 
@@ -471,13 +515,13 @@ void __fastcall AllocBeforeWriteVerify(CString* self, void*, int length) {
     Check("CString::AllocBeforeWrite", true, ok, "%d", length);
 }
 
-// AllocCopy writes `dest` without releasing it: the original writes a scratch string.
+// AllocCopy writes `dest` without releasing it: ours writes it, then the original a scratch string.
 using AllocCopyFn = void(__fastcall*)(const CString*, void*, CString&, int, int, int);
 AllocCopyFn s_allocCopy;
 void __fastcall AllocCopyVerify(const CString* self, void*, CString& dest, int copyLength, int copyIndex, int extraLength) {
+    self->AllocCopy(dest, copyLength, copyIndex, extraLength);
     Slot slot;
     s_allocCopy(self, nullptr, *slot.Get(), copyLength, copyIndex, extraLength);
-    self->AllocCopy(dest, copyLength, copyIndex, extraLength);
     // The extra characters are not written: compare the copied ones and the length.
     CString& expected = *slot.Get();
     bool ok = expected.GetLength() == dest.GetLength() &&
@@ -486,36 +530,49 @@ void __fastcall AllocCopyVerify(const CString* self, void*, CString& dest, int c
     expected.~CString();
 }
 
+// The text may point into the string: the original first, its twin freed before ours (as the
+// assignments).
 using AssignCopyFn = void(__fastcall*)(CString*, void*, int, const char*);
 AssignCopyFn s_assignCopy;
 void __fastcall AssignCopyVerify(CString* self, void*, int length, const char* text) {
-    CString twin = Twin(*self);
-    s_assignCopy(&twin, nullptr, length, text);
+    std::string expected;
+    {
+        CString twin = Twin(*self);
+        s_assignCopy(&twin, nullptr, length, text);
+        expected = Keep(twin);
+    }
     self->AssignCopy(length, text);
-    Check("CString::AssignCopy", true, Same(twin, *self), "%d: \"%.60s\"", length, Text(*self));
+    Check("CString::AssignCopy", true, Same(expected, *self), "%d: \"%.60s\"", length, Text(*self));
 }
 
 // ConcatCopy writes over the string without releasing it, and leaves it alone for an empty
-// result: the original works on a scratch string that starts with the same pointer.
+// result: ours on the string, then the original on a scratch string that starts with the pointer
+// the string had (the texts may point into its buffer, which stays alive).
 using ConcatCopyFn = void(__fastcall*)(CString*, void*, int, const char*, int, const char*);
 ConcatCopyFn s_concatCopy;
 void __fastcall ConcatCopyVerify(CString* self, void*, int length1, const char* text1, int length2, const char* text2) {
     Slot slot;
     std::memcpy(slot.raw, self, sizeof(CString));
-    s_concatCopy(slot.Get(), nullptr, length1, text1, length2, text2);
     self->ConcatCopy(length1, text1, length2, text2);
+    s_concatCopy(slot.Get(), nullptr, length1, text1, length2, text2);
     CString& expected = *slot.Get();
     Check("CString::ConcatCopy", true, Same(expected, *self), "%d + %d: \"%.60s\"", length1, length2, Text(*self));
     if (length1 + length2 != 0) expected.~CString();
 }
 
+// The text may point into the string: the original first, its twin freed before ours (as the
+// appends).
 using ConcatInPlaceFn = void(__fastcall*)(CString*, void*, int, const char*);
 ConcatInPlaceFn s_concatInPlace;
 void __fastcall ConcatInPlaceVerify(CString* self, void*, int length, const char* text) {
-    CString twin = Twin(*self);
-    s_concatInPlace(&twin, nullptr, length, text);
+    std::string expected;
+    {
+        CString twin = Twin(*self);
+        s_concatInPlace(&twin, nullptr, length, text);
+        expected = Keep(twin);
+    }
     self->ConcatInPlace(length, text);
-    Check("CString::ConcatInPlace", true, Same(twin, *self), "%d: \"%.60s\"", length, Text(*self));
+    Check("CString::ConcatInPlace", true, Same(expected, *self), "%d: \"%.60s\"", length, Text(*self));
 }
 
 // ---- CFixedAlloc ----------------------------------------------------------------------------------

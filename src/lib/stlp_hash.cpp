@@ -147,6 +147,7 @@ EI_REPLACE(0x004A8B70, Map8::Destroy);
 EI_REPLACE(0x005984A0, Map8::Destroy);
 EI_REPLACE(0x004DB8A0, Set4::Destroy);
 EI_REPLACE(0x00668B70, Set4::Destroy);
+EI_REPLACE(0x00482DF0, Map8::Destroy);   // S12c: only an unwind funclet calls it
 
 // hash_set<int> of the client's party ids: insert_unique, its resize and _M_new_node (8-byte
 // nodes), clear.
@@ -178,6 +179,13 @@ EI_REPLACE(0x0040AD20, Map8::ConstructIterator);
 EI_REPLACE(0x005BE450, Map8::ConstructIterator);
 EI_REPLACE(0x006B0B10, Map8::ConstructIterator);
 EI_REPLACE(0x006B0B30, Map8::ConstructIterator);
+// S12c: the node is not read by begin() and the iterator's constructor (004FB090 the link loader's
+// figure sets, 005E0C00 / 005E0D50 the console's).
+EI_REPLACE(0x004FB090, Map8::Begin);
+EI_REPLACE(0x005E0C00, Map8::Begin);
+EI_REPLACE(0x00482DD0, Map8::ConstructIterator);
+EI_REPLACE(0x005E0D50, Map8::ConstructIterator);
+EI_REPLACE(0x005E0E00, Map8::SkipToNext);
 
 // String keys with a 4-byte mapped value (each _M_new_node takes 0x14-byte nodes; each clear()
 // pushes onto the 24-byte list).
@@ -299,6 +307,12 @@ EI_REPLACE(0x006BCE00, Str4::Clear);
 // ~hashtable() of string keys with a 4-byte mapped value (library.csv: "clear").
 EI_REPLACE(0x004A9010, Str4::Destroy);
 EI_REPLACE(0x006A6C20, Str4::Destroy);
+// S12c: the link loader's figure sets (hash_map<string, FigureModel*>): ~hashtable (only unwind
+// funclets call it), clear and the iterator's _M_skip_to_next, from its destructor 004F6BD0
+// (rewritten: link_loader.cpp inlines them).
+EI_REPLACE(0x004F6A50, Str4::Destroy);
+EI_REPLACE(0x004FBC80, Str4::Clear);
+EI_REPLACE(0x004FBB80, Str4::SkipToNext);
 
 // hash_map<CString, float> (the party's variables, NamedFloatTable): operator[], clear, the node
 // members, resize, the copies and the iterator's _M_skip_to_next.

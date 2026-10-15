@@ -139,6 +139,19 @@ struct PairCheck {
     // Ours only: the first string's block is freed last, so it is on top of its list.
     static bool FreedInOrder(const Text& first) { return OnTop(first.start, first.capacity); }
 
+    // pair<string, list>: the nodes, then the sentinel (the same size), then the string's block go
+    // back to the pool. The string's block is on top of its list; the sentinel is on top of its own
+    // unless the string's block is of the same size class (then it is the string's).
+    static void __fastcall DestroyStringList(stlp::StringListPair* self) {
+        Text first = Text::Of(self->first);
+        void* sentinel = self->second.head;
+        PairAbi::DestroyStringList(self);
+        constexpr std::size_t kNode = sizeof(stlp::list<void*>::Node);
+        bool shared = first.start && first.capacity <= 128 && FreeList(first.capacity) == FreeList(kNode);
+        ei::verify::Report(Name<A>("stlp::pair<string, list>::~pair"), (shared || OnTop(sentinel, kNode)) && FreedInOrder(first),
+                           "");
+    }
+
     static void __fastcall DestroyStrings(stlp::StringPair* self) {
         Text first = Text::Of(self->first);
         PairAbi::DestroyStrings(self);
@@ -165,3 +178,5 @@ EI_VERIFY(0x006BC140, PairCheck<0x006BC140>::ConstructStringDword, 7, PairCheck<
 EI_VERIFY(0x0064F880, PairCheck<0x0064F880>::ConstructStringDword, 7, PairCheck<0x0064F880>::original);
 EI_VERIFY(0x006A7710, PairCheck<0x006A7710>::ConstructStringDword, 7, PairCheck<0x006A7710>::original);
 EI_VERIFY(0x0069C1C0, PairCheck<0x0069C1C0>::ConstructStringList, 7, PairCheck<0x0069C1C0>::original);
+// PUSH ESI; MOV ESI,ECX; PUSH EDI; MOV EAX,[ESI+0xC] (7 bytes). Ours only.
+EI_VERIFY(0x004AD640, PairCheck<0x004AD640>::DestroyStringList, 7, PairCheck<0x004AD640>::original);

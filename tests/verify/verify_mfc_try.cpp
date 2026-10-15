@@ -1,11 +1,13 @@
 // Checks for the three functions with an MFC TRY / CATCH (A-E2; src/lib/mfc_try.h): the script
 // loader's text file reader 004D5880 (script_text_file.cpp) and CDib::Read 006D5910 / Write
 // 006D5AC0 (dib_file.cpp). Each wrapper compares with the original:
-// - ReadTextFile: the original into a scratch text, ours into the caller's; result and text.
+// - ReadTextFile: ours into the caller's text, then the original into a scratch text; result and
+//   text.
 // - CDib::Write: the original writes, the file is put back to where it was, ours writes; results
 //   and the file's position afterwards.
-// - CDib::Read: the original into a scratch bitmap, the file put back, ours into the caller's;
-//   results, the position, and (after a success) the header, the bits and the fields.
+// - CDib::Read: ours into the caller's bitmap, the file put back, the original into a scratch
+//   bitmap (freed again), the file left where ours ended; results, the position, and (after a
+//   success) the header, the bits and the fields. Ours reads (and allocates) first (SV2h1).
 //
 // No scenario reaches them (no script text files and no .bmp textures are loaded, and screenshots
 // are not taken), so a start-up check drives them through their addresses in a temporary folder:
@@ -49,9 +51,9 @@ bool SameText(const mfc::CString& a, const mfc::CString& b) {
 int(__fastcall* s_readTextFile)(const char*, mfc::CString*);
 
 int __fastcall ReadTextFileVerify(const char* path, mfc::CString* text) {
+    const int actual = scriptparse::ReadTextFile(path, text);
     mfc::CString expectedText;
     const int expected = s_readTextFile(path, &expectedText);
-    const int actual = scriptparse::ReadTextFile(path, text);
     ei::verify::Check("ReadTextFile", true, expected == actual && SameText(expectedText, *text),
                       "%s: result %d / %d, %d / %d characters", path, expected, actual, scriptparse::Length(expectedText),
                       scriptparse::Length(*text));
@@ -94,14 +96,15 @@ int(__fastcall* s_dibRead)(CDib*, void*, mfc::CFile*);
 
 int __fastcall DibReadVerify(CDib* self, void*, mfc::CFile* file) {
     const unsigned long start = Virtuals(file)->GetPosition();
+    const int actual = self->Read(file);
+    const unsigned long actualEnd = Virtuals(file)->GetPosition();
+    Virtuals(file)->Seek(static_cast<long>(start), FILE_BEGIN);
     CDib scratch;
     std::memset(&scratch, 0, sizeof(scratch));
     scratch.Construct();
     const int expected = s_dibRead(&scratch, nullptr, file);
     const unsigned long expectedEnd = Virtuals(file)->GetPosition();
-    Virtuals(file)->Seek(static_cast<long>(start), FILE_BEGIN);
-    const int actual = self->Read(file);
-    const unsigned long actualEnd = Virtuals(file)->GetPosition();
+    if (expectedEnd != actualEnd) Virtuals(file)->Seek(static_cast<long>(actualEnd), FILE_BEGIN);
     bool same = expected == actual && expectedEnd == actualEnd;
     if (same && actual) same = SameRead(scratch, *self);
     ei::verify::Check("CDib::Read", true, same, "result %d / %d, read %lu / %lu, image %u / %u bytes, %d / %d colours", expected, actual,

@@ -12,6 +12,16 @@
 
 namespace mfc::impl {
 
+// The virtual slots every exception class has (CObject's three, then CException's two); declared only.
+class __declspec(novtable) CExceptionVirtuals {
+public:
+    virtual void GetRuntimeClass();                                                 // 0
+    virtual void* DeletingDestructor(unsigned flags);                               // 1
+    virtual void Serialize();                                                       // 2
+    virtual BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext);   // 3
+    virtual int ReportError(unsigned type, unsigned error);                         // 4
+};
+
 // CException (8 bytes): vtable, m_bAutoDelete (a positive value: Delete frees the object).
 struct CException {
     void* vtable;
@@ -19,6 +29,10 @@ struct CException {
 
     CException* Construct();                        // 00702053: auto-delete on, no vtable written
     CException* ConstructAutoDelete(BOOL autoDeleteFlag);   // 0070205D CException(BOOL): no vtable written
+    // 0070209C (slot 4 of every exception class): the error message (slot 3) in a message box, or the
+    // prompt `error` (0: AFX_IDP_NO_ERROR_AVAILABLE) when there is none; the box's answer. The help
+    // context starts at 0 here (the original's is unset when slot 3 leaves it; the box ignores it).
+    int ReportError(unsigned type, unsigned error);
 };
 static_assert(sizeof(CException) == 8);
 
@@ -40,6 +54,12 @@ struct CSimpleException {
     CSimpleException* ConstructUser(BOOL autoDeleteFlag, unsigned id);           // 006E6916 (007C8BC0, 0xF024)
     CSimpleException* ConstructMemory(BOOL autoDeleteFlag, unsigned id);         // 006E6AEA (007C8DE8, 0xF023)
     CSimpleException* ConstructNotSupported(BOOL autoDeleteFlag, unsigned id);   // 006E6B37 (007C8D50, 0xF021)
+
+    // 006FE31D: the message loaded from string `resourceId` (initialized and loaded set).
+    void InitString();
+    // 006FE346 (slot 3 of the four classes): the message, loaded on first use, into `error` (empty when
+    // it did not load); help context 0. Returns whether it loaded.
+    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext);
 
 private:
     CSimpleException* Construct(BOOL autoDeleteFlag, unsigned id, void* classVtable);
@@ -70,6 +90,9 @@ struct CFileException {
     void InitEmpty();
     void Destruct();                                    // 006E6335
     CFileException* DeletingDestructor(unsigned flags); // 006E6319 (vtable slot 1)
+    // 00703135 (slot 3): prompt AFX_IDP_FILE_NONE + cause with the file's name (AFX_IDS_UNNAMED_FILE's
+    // text when it has none); the help context is that prompt's id. Always TRUE.
+    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext);
 };
 static_assert(sizeof(CFileException) == 0x14);
 
@@ -85,6 +108,8 @@ struct CArchiveException {
     static void* Vtable() { return reinterpret_cast<void*>(0x00746808); }
     void Destruct();                                        // 006E6BA1
     CArchiveException* DeletingDestructor(unsigned flags);  // 006E6B85 (vtable slot 1)
+    // 0070A795 (slot 3): as CFileException's, with AFX_IDP_ARCH_NONE + cause.
+    BOOL GetErrorMessage(char* error, unsigned maxError, unsigned* helpContext);
 };
 static_assert(sizeof(CArchiveException) == 0x10);
 

@@ -99,16 +99,16 @@ static void __fastcall SetRectVerify(CUiScrollbar* self, void*, const RECT* rect
 }
 EI_VERIFY(0x0065B490, SetRectVerify, 0, s_unused);
 
-// CUiScrollText::NextToken (0065D970; ui_scroll_text.cpp): side by side, the original's token into
-// a scratch string; the positions and (when not at the end) the tokens compared. Reached by every
+// CUiScrollText::NextToken (0065D970; ui_scroll_text.cpp): side by side, ours first, then the
+// original's token into a scratch string (SV2h1); the positions and (when not at the end) the tokens compared. Reached by every
 // text the message log and the quest logs add (Tokenize; ui_objectives, the HUD scenarios).
 // MOV EAX,FS:[0] (6 bytes).
 static int(__fastcall* s_nextToken)(CUiScrollText*, void*, const mfc::CString*, int, mfc::CString*);
 static int __fastcall NextTokenVerify(CUiScrollText* self, void*, const mfc::CString* text, int pos,
                                       mfc::CString* out) {
+    int actual = self->CUiScrollText::NextToken(text, pos, out);
     mfc::CString scratch;
     int expected = s_nextToken(self, nullptr, text, pos, &scratch);
-    int actual = self->CUiScrollText::NextToken(text, pos, out);
     bool ok = expected == actual && (actual == -1 || std::strcmp(scratch, *out) == 0);
     ei::verify::Check("CUiScrollText::NextToken", true, ok, "pos %d: %d / %d '%s' / '%s'", pos, expected, actual,
                       static_cast<const char*>(scratch), actual == -1 ? "" : static_cast<const char*>(*out));

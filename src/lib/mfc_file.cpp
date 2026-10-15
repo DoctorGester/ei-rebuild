@@ -140,6 +140,13 @@ char* Fullpath(char* out, const char* path, std::size_t size) {
 // '\\' or '/'.
 bool IsSeparator(char c) { return c == '\\' || c == '/'; }
 char* Next(char* p) { return const_cast<char*>(::MbsInc(p)); }
+const char* Next(const char* p) { return ::MbsInc(p); }
+
+// comdlg32's GetFileTitleA through the exe's import slot (gameapi.h covers the other DLLs).
+using GetFileTitleFn = short(WINAPI*)(const char*, char*, WORD);
+GetFileTitleFn& GetFileTitleImport() { return *reinterpret_cast<GetFileTitleFn*>(0x0073B748); }
+
+constexpr unsigned kMaxFileName = 256;   // _MAX_FNAME, the name getters' buffer
 
 // While armed, destroys a string when the frame unwinds: a constructor that throws leaves the
 // members it had built destroyed, as the original's unwind does.
@@ -215,6 +222,27 @@ BOOL __stdcall FullPath(char* out, const char* path) {
         }
     }
     return TRUE;
+}
+
+unsigned __stdcall AfxGetFileName(const char* path, char* name, unsigned max) {
+    const char* last = path;
+    for (const char* at = path; *at != '\0'; at = Next(at)) {
+        if (*at == '\\' || *at == '/' || *at == ':') last = Next(at);
+    }
+    if (!name) return static_cast<unsigned>(gameapi::lstrlenA(last) + 1);
+    gameapi::lstrcpynA(name, last, static_cast<int>(max));
+    return 0;
+}
+
+unsigned __stdcall AfxGetFileTitle(const char* path, char* title, unsigned max) {
+    char scratch[MAX_PATH];
+    char* into = title;
+    if (!into) {
+        into = scratch;
+        max = MAX_PATH;
+    }
+    if (GetFileTitleImport()(path, into, static_cast<WORD>(max)) != 0) return AfxGetFileName(path, title, max);
+    return title ? 0 : static_cast<unsigned>(gameapi::lstrlenA(into) + 1);
 }
 
 void* __fastcall FileRuntimeClass(const void*) { return FileClass(); }
@@ -334,6 +362,53 @@ unsigned long CFile::GetPosition() const {
     const DWORD position = gameapi::SetFilePointer(handle, 0, nullptr, FILE_CURRENT);
     if (position == INVALID_SET_FILE_POINTER) ThrowOsError(static_cast<long>(gameapi::GetLastError()), nullptr);
     return position;
+}
+
+BOOL CFile::GetStatus(CFileStatus& status) const {
+    std::memset(&status, 0, sizeof status);
+    gameapi::lstrcpynA(status.fullName, fileName, MAX_PATH);
+    if (handle == kNoFile) return TRUE;
+    FILETIME created, accessed, modified;
+    if (!gameapi::GetFileTime(handle, &created, &accessed, &modified)) return FALSE;
+    status.size = static_cast<long>(gameapi::GetFileSize(handle, nullptr));
+    if (status.size == -1) return FALSE;
+    if (fileName.IsEmpty()) {
+        status.attribute = 0;
+    } else {
+        const DWORD attributes = gameapi::GetFileAttributesA(fileName);
+        status.attribute = attributes == INVALID_FILE_ATTRIBUTES ? 0 : static_cast<BYTE>(attributes);
+    }
+    CTime converted;
+    status.created.time = converted.ConstructFileTime(created, -1)->time;
+    status.accessed.time = converted.ConstructFileTime(accessed, -1)->time;
+    status.modified.time = converted.ConstructFileTime(modified, -1)->time;
+    if (status.created.time == 0) status.created = status.modified;
+    if (status.accessed.time == 0) status.accessed = status.modified;
+    return TRUE;
+}
+
+CString CFile::GetFileName() const {
+    CFileStatus status;
+    GetStatus(status);
+    CString name;
+    AfxGetFileName(status.fullName, name.GetBuffer(kMaxFileName), kMaxFileName);
+    name.ReleaseBuffer(-1);
+    return name;
+}
+
+CString CFile::GetFileTitle() const {
+    CFileStatus status;
+    GetStatus(status);
+    CString title;
+    AfxGetFileTitle(status.fullName, title.GetBuffer(kMaxFileName), kMaxFileName);
+    title.ReleaseBuffer(-1);
+    return title;
+}
+
+CString CFile::GetFilePath() const {
+    CFileStatus status;
+    GetStatus(status);
+    return CString(status.fullName);
 }
 
 void CFile::Flush() {
@@ -734,6 +809,12 @@ EI_REPLACE_METHOD(0x0070108B, CFile::ConstructOpen);
 EI_REPLACE_METHOD(0x0070112B, CFile::Destruct);
 EI_REPLACE_METHOD(0x00701050, CFile::DeletingDestructor);
 EI_REPLACE_METHOD(0x007013B9, CFile::GetPosition);
+EI_REPLACE_METHOD(0x00702C31, CFile::GetFileName);
+EI_REPLACE_METHOD(0x00702CB3, CFile::GetFileTitle);
+EI_REPLACE_METHOD(0x00702D35, CFile::GetFilePath);
+EI_REPLACE_METHOD(0x00702D64, CFile::GetStatus);
+EI_REPLACE(0x0070D0D2, AfxGetFileName);
+EI_REPLACE(0x00701AC9, AfxGetFileTitle);
 EI_REPLACE_METHOD(0x006E6361, CFile::SetFilePath);
 EI_REPLACE_METHOD(0x007011E8, CFile::Open);
 EI_REPLACE_METHOD(0x00701173, CFile::Duplicate);
