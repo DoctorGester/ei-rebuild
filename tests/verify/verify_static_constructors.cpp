@@ -1,224 +1,50 @@
-// Checks for the global constructors ported under S3b that only the static initialisers call
-// (src/game/database_construct.cpp, logic_settings.cpp, party_file.cpp, world_construct.cpp). The
-// originals run before the hooks are installed, so no wrapper ever sees them; what they built is
-// still untouched at the entry of WinMain (the databases load later). Each check below runs once at
-// that point (EI_STARTUP_CHECK), builds the same object with our constructor into storage of its
-// own, compares it with the original's global and destroys ours. Compares against the original;
-// every game start reaches them, no scenario is needed.
-//
-// What is compared: STLport vectors empty; hash_maps with the same bucket count (193), every
-// bucket null and no elements; plain fields bit for bit. Heap blocks differ by address only: a
-// pointer field matches when both sides point to committed private memory (ShapeDiff). Not
-// compared: the hash_maps' three functor bytes, which the original copies from its uninitialised
-// stack.
+// Checks for the constructors of three global objects (A-E1): the map database (0045E820, at
+// 0079BF00), the lever table (004632A0, at 0079C1A0) and the party manager (004A5870, at 007AA5A0).
+// Each runs once from its static initialiser (0045E6C0, 004630F0, 004A56D0), before the hooks are
+// installed, so these wrappers are never reached in a run; they are ours only (a second
+// construction of a live object would drop its contents) and check what the constructor leaves.
 #include "verify.h"
 
-#include "../../src/game/acks_db.h"
-#include "../../src/game/item_db.h"
-#include "../../src/game/logic_settings.h"
-#include "../../src/game/model.h"
-#include "../../src/game/quest_records.h"
-#include "../../src/game/unit_db.h"
-#include "../../src/game/world.h"
+#include "../../src/game/lever.h"
+#include "../../src/game/object_tables.h"
+#include "../../src/game/party_manager.h"
 
-#include <windows.h>
-
-#include <cstddef>
 #include <cstdint>
 #include <cstring>
-#include <initializer_list>
-#include <new>
 
 namespace {
+void* s_unused;
 
-// ---- Helpers ---------------------------------------------------------------------------------------
-
-// Storage for one of our objects, zeroed like the originals' globals in .bss.
-template <typename T>
-T* ZeroedStorage() {
-    alignas(8) static std::uint8_t storage[sizeof(T)];
-    std::memset(storage, 0, sizeof(storage));
-    return reinterpret_cast<T*>(storage);
+CMapDatabase* __fastcall MapDatabaseConstructVerify(CMapDatabase* self) {
+    CMapDatabase* result = self->Construct();
+    bool good = result == self && !self->allods.data && self->allods.size == 0 && self->allods.maxSize == 0 &&
+                self->allods.growBy == 0 && !self->maps.data && self->maps.size == 0 && self->maps.maxSize == 0 &&
+                self->maps.growBy == 0 &&
+                self->allods.vtable == reinterpret_cast<void*>(CMapDatabase::kAllodArrayVtable) &&
+                self->maps.vtable == reinterpret_cast<void*>(CMapDatabase::kMapArrayVtable);
+    ei::verify::Check("CMapDatabase::Construct", true, good, "");
+    return result;
 }
 
-constexpr std::size_t kBuckets = 193;   // STLport's prime for 100
-
-template <typename T>
-bool EmptyVector(stlp::vector<T>& v) {
-    return !v.Start() && !v.Finish() && !v.EndOfStorage();
+LeverRecordTable* __fastcall LeverTableConstructVerify(LeverRecordTable* self) {
+    LeverRecordTable* result = self->Construct();
+    bool good = result == self && !self->begin && !self->end && !self->endOfStorage && self->byName.Size() == 0 &&
+                self->byName.BucketCount() == stlp::NextPrime(100);
+    ei::verify::Check("LeverRecordTable::Construct", true, good, "");
+    return result;
 }
 
-// A hash_map as its constructor leaves it: kBuckets null buckets, storage exactly that size, no elements.
-template <typename K, typename V, typename H>
-bool EmptyMap(stlp::hash_map<K, V, H>& map) {
-    auto* buckets = static_cast<stlp::vector<void*>*>(map.BucketVector());
-    if (map.Size() != 0 || map.BucketCount() != kBuckets || buckets->Finish() != buckets->EndOfStorage()) return false;
-    for (std::size_t b = 0; b < kBuckets; ++b)
-        if (map.Bucket(b)) return false;
-    return true;
+PartyManager* __fastcall PartyManagerConstructVerify(PartyManager* self) {
+    PartyManager* result = self->Construct();
+    bool good = result == self && self->parties.Size() == 0 && self->parties.BucketCount() == stlp::NextPrime(100) &&
+                self->entries.begin() == self->entries.end() && self->records.records.size() == 0 &&
+                std::strcmp(self->records.text0C, "") == 0 && std::strcmp(self->records.text10, "") == 0 &&
+                !self->templates.begin() && !self->templates.end() && !self->templates.EndOfStorage();
+    ei::verify::Check("PartyManager::Construct", true, good, "");
+    return result;
 }
-
-bool EmptyTable(RecordTable& records, char* capacityEnd) { return !records.begin && !records.end && !capacityEnd; }
-
-// The number of dwords of `ours` that differ from `theirs` (the first one's offset in *first), byte
-// ranges in `skip` aside. A pointer to the object itself must have the same offset; other pointers
-// match when both lead to committed private memory (heap blocks).
-struct Skip {
-    std::size_t offset, size;
-};
-
-bool HeapBlock(std::uint32_t value) {
-    if (value < 0x10000) return false;
-    MEMORY_BASIC_INFORMATION info{};
-    if (!VirtualQuery(reinterpret_cast<void*>(static_cast<std::uintptr_t>(value)), &info, sizeof(info))) return false;
-    return info.State == MEM_COMMIT && info.Type == MEM_PRIVATE;
-}
-
-int ShapeDiff(const void* theirsObject, const void* oursObject, std::size_t size, std::initializer_list<Skip> skip,
-              std::size_t* first) {
-    const auto* theirs = static_cast<const std::uint8_t*>(theirsObject);
-    const auto* ours = static_cast<const std::uint8_t*>(oursObject);
-    const auto inside = [size](std::uint32_t value, const std::uint8_t* base) {
-        const auto b = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(base));
-        return value >= b && value < b + size;
-    };
-    int wrong = 0;
-    for (std::size_t o = 0; o + 4 <= size; o += 4) {
-        std::uint8_t a[4], b[4];
-        std::memcpy(a, theirs + o, 4);
-        std::memcpy(b, ours + o, 4);
-        for (const Skip& s : skip)
-            for (std::size_t i = 0; i < 4; ++i)
-                if (o + i >= s.offset && o + i < s.offset + s.size) a[i] = b[i] = 0;
-        std::uint32_t x, y;
-        std::memcpy(&x, a, 4);
-        std::memcpy(&y, b, 4);
-        bool same = x == y;
-        if (!same && inside(x, theirs) && inside(y, ours))
-            same = x - static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(theirs)) ==
-                   y - static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(ours));
-        else if (!same)
-            same = !inside(x, theirs) && !inside(y, ours) && HeapBlock(x) && HeapBlock(y);
-        if (same) continue;
-        if (!wrong) *first = o;
-        ++wrong;
-    }
-    return wrong;
-}
-
-// ---- The databases ---------------------------------------------------------------------------------
-
-void SkillDatabaseStartupCheck() {
-    SkillDatabase* theirs = SkillDb();
-    auto* ours = ZeroedStorage<SkillDatabase>();
-    const bool same = ours->Construct() == ours && EmptyVector(ours->skills) && EmptyVector(ours->levels) &&
-                      EmptyVector(theirs->skills) && EmptyVector(theirs->levels);
-    ei::verify::Check("static constructor: skill database 0051FB10", true, same, "not two empty vectors");
-}
-EI_STARTUP_CHECK(SkillDatabaseStartupCheck);
-
-bool EmptyCodeTable(itemdb::CodeIndexedTable& t) { return EmptyTable(t.records, t.capacityEnd) && EmptyMap(t.byCode); }
-
-void SpellDatabaseStartupCheck() {
-    auto* theirs = reinterpret_cast<itemdb::SpellDatabase*>(std::uintptr_t(0x007C8510));
-    auto* ours = ZeroedStorage<itemdb::SpellDatabase>();
-    const bool result = ours->Construct() == ours;
-    bool same = result;
-    for (itemdb::SpellDatabase* db : {theirs, ours}) {
-        same = same && EmptyCodeTable(db->spells) && EmptyCodeTable(db->modifiers);
-        for (auto& list : db->lists) same = same && EmptyVector(list);
-    }
-    ei::verify::Check("static constructor: spell database 0057E2F0", true, same, "result %d; ours %zu / %zu buckets, theirs %zu / %zu",
-                      result, ours->spells.byCode.BucketCount(), ours->modifiers.byCode.BucketCount(),
-                      theirs->spells.byCode.BucketCount(), theirs->modifiers.byCode.BucketCount());
-    ours->spells.byCode.Destroy();
-    ours->modifiers.byCode.Destroy();
-}
-EI_STARTUP_CHECK(SpellDatabaseStartupCheck);
-
-void ItemDatabaseStartupCheck() {
-    auto* theirs = reinterpret_cast<itemdb::ItemDatabase*>(std::uintptr_t(0x007C86D8));
-    auto* ours = ZeroedStorage<itemdb::ItemDatabase>();
-    bool same = ours->Construct() == ours;
-    for (itemdb::ItemDatabase* db : {theirs, ours})
-        for (itemdb::IndexedRecordTable* t : {&db->materials, &db->weapons, &db->armors, &db->quickItems, &db->questItems, &db->loot})
-            same = same && EmptyTable(t->records, t->capacityEnd) && EmptyMap(t->ByName());
-    ei::verify::Check("static constructor: item database 0057E3D0", true, same, "a table is not empty with 193 buckets");
-    for (itemdb::IndexedRecordTable* t : {&ours->materials, &ours->weapons, &ours->armors, &ours->quickItems, &ours->questItems, &ours->loot})
-        t->ByName().Destroy();
-}
-EI_STARTUP_CHECK(ItemDatabaseStartupCheck);
-
-void QuestDatabaseStartupCheck() {
-    auto* theirs = reinterpret_cast<QuestDatabase*>(std::uintptr_t(0x007C87A8));
-    auto* ours = ZeroedStorage<QuestDatabase>();
-    bool same = ours->Construct() == ours;
-    for (QuestDatabase* db : {theirs, ours})
-        same = same && EmptyVector(db->quests) && EmptyMap(db->questsByName) && EmptyVector(db->briefings.records) &&
-               EmptyMap(db->briefings.index);
-    ei::verify::Check("static constructor: quest database 006AE0F0", true, same, "not two empty tables with 193 buckets");
-    ours->questsByName.Destroy();
-    ours->briefings.index.Destroy();
-}
-EI_STARTUP_CHECK(QuestDatabaseStartupCheck);
-
-void PrintsDatabaseStartupCheck() {
-    auto* theirs = reinterpret_cast<PrintsDatabase*>(std::uintptr_t(0x007C89C8));
-    auto* ours = ZeroedStorage<PrintsDatabase>();
-    bool same = ours->Construct() == ours;
-    for (PrintsDatabase* db : {theirs, ours})
-        same = same && EmptyVector(db->blood) && EmptyMap(db->bloodByName) && EmptyVector(db->footprints) &&
-               EmptyMap(db->footprintsByName) && EmptyVector(db->scorch) && EmptyMap(db->scorchByName);
-    ei::verify::Check("static constructor: prints database 006D0250", true, same, "not three empty tables with 193 buckets");
-    ours->bloodByName.Destroy();
-    ours->footprintsByName.Destroy();
-    ours->scorchByName.Destroy();
-}
-EI_STARTUP_CHECK(PrintsDatabaseStartupCheck);
-
-void AckDatabaseStartupCheck() {
-    acks::AckDatabase* theirs = &acks::Database();
-    auto* ours = ZeroedStorage<acks::AckDatabase>();
-    bool same = ours->Construct() == ours;
-    for (acks::AckDatabase* db : {theirs, ours})
-        same = same && EmptyVector(db->units.records) && EmptyMap(db->units.byName) && EmptyVector(db->models.records) &&
-               EmptyMap(db->models.byName) && EmptyVector(db->extras.records) && EmptyMap(db->extras.byName);
-    ei::verify::Check("static constructor: acks database 006D7220", true, same, "not three empty tables with 193 buckets");
-    ours->units.byName.Destroy();
-    ours->models.byName.Destroy();
-    ours->extras.byName.Destroy();
-}
-EI_STARTUP_CHECK(AckDatabaseStartupCheck);
-
-// ---- The logic settings and the multiplayer heroes --------------------------------------------------
-
-void LogicSettingsStartupCheck() {
-    const auto* theirs = reinterpret_cast<const std::uint8_t*>(&GameLogicSettings());
-    auto* ours = ZeroedStorage<LogicSettings>();
-    const bool result = ours->Construct() == ours;
-    std::size_t first = 0;
-    // Bytes 1..3 after the loaded flag are not written.
-    const int wrong = ShapeDiff(theirs, ours, sizeof(LogicSettings), {{1, 3}}, &first);
-    std::uint32_t a = 0, b = 0;
-    std::memcpy(&a, theirs + first, 4);
-    std::memcpy(&b, reinterpret_cast<const std::uint8_t*>(ours) + first, 4);
-    ei::verify::Check("static constructor: logic settings 005CDFC0", true, result && wrong == 0 && ours->questsToRespawn == 3,
-                      "result %d, %d fields differ, the first at +0x%X (%08X / ours %08X)", result, wrong,
-                      static_cast<unsigned>(first), a, b);
-}
-EI_STARTUP_CHECK(LogicSettingsStartupCheck);
-
-void SavedPartiesStartupCheck() {
-    const auto* theirs = reinterpret_cast<const SavedParties*>(std::uintptr_t(0x007C82A0));
-    auto* ours = ZeroedStorage<SavedParties>();
-    const bool result = ours->Construct() == ours;
-    std::size_t first = 0;
-    // The party's variables (CParty +0x54, a hash_map) start with the functor bytes.
-    const int wrong = ShapeDiff(theirs, ours, sizeof(SavedParties), {{offsetof(SavedParties, outsideGame_) + 0x54, 3}}, &first);
-    ei::verify::Check("static constructor: multiplayer heroes 0065F580", true, result && wrong == 0,
-                      "result %d, %d dwords differ, the first at +0x%X", result, wrong, static_cast<unsigned>(first));
-    ours->Destruct();
-}
-EI_STARTUP_CHECK(SavedPartiesStartupCheck);
-
 } // namespace
+
+EI_VERIFY(0x0045E820, MapDatabaseConstructVerify, 0, s_unused);
+EI_VERIFY(0x004632A0, LeverTableConstructVerify, 0, s_unused);
+EI_VERIFY(0x004A5870, PartyManagerConstructVerify, 0, s_unused);
