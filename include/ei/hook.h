@@ -23,7 +23,8 @@ struct HookEntry {
     void** original = nullptr; // receives the trampoline (original function) address
     bool verify = false;      // verification wrapper: takes precedence over a plain replacement
     bool record = false;      // vector recorder (EI_RECORD): installed only in record mode, then alone
-    bool shortFunction = false; // EI_REPLACE_SHORT: installed in the standalone image only
+    bool shortFunction = false; // EI_REPLACE_SHORT / EI_REPLACE_DISPATCH: installed in the standalone image only
+    bool dispatch = false;      // EI_REPLACE_DISPATCH: the replacement is a deliberate vtable dispatch
 };
 
 // Registers a replacement at static-initialisation time. Installed by InstallHooks().
@@ -55,6 +56,19 @@ struct ShortRegistrar {
     ShortRegistrar(std::uintptr_t address, void* replacement, const char* name)
         : registrar(address, replacement, name) {
         registrar.entry.shortFunction = true;
+    }
+};
+
+// A game function that is itself a bare vtable dispatch (MOV EAX,[ECX]; JMP [EAX+n]) to another slot:
+// the replacement is compiled to the same bytes. The hook build leaves it to the original (an
+// identical jump); the standalone image jumps to the replacement, and the installer checks that its
+// dispatch bytes equal the original's.
+struct DispatchRegistrar {
+    HookRegistrar registrar;
+    DispatchRegistrar(std::uintptr_t address, void* replacement, const char* name)
+        : registrar(address, replacement, name) {
+        registrar.entry.shortFunction = true;
+        registrar.entry.dispatch = true;
     }
 };
 
@@ -117,6 +131,11 @@ void InstallHooksAtWinMain();
 // Replace the method at `addr` with a C++ member function.
 #define EI_REPLACE_METHOD(addr, method) \
     static ::ei::HookRegistrar EI_CAT(ei_hook_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
+
+// Register a method whose body is a tail call through the vtable, the same dispatch as the original's
+// own (DestroyEffect, SpecRemove, SpecRefresh); see DispatchRegistrar. Standalone image only.
+#define EI_REPLACE_DISPATCH(addr, method) \
+    static ::ei::DispatchRegistrar EI_CAT(ei_dispatch_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
 
 // Replace the function under five bytes at `addr` in the standalone image only (ShortRegistrar).
 #define EI_REPLACE_SHORT(addr, fn) \

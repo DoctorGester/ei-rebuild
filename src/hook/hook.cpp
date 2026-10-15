@@ -142,12 +142,23 @@ static bool IsVirtualCallThunk(const void* replacement) {
            (code[3] == 0x20 || code[3] == 0x60 || code[3] == 0xA0);
 }
 
-// The first entry registered for `address` whose replacement or wrapper is such a thunk.
+// Whether the thunk `replacement` has the same bytes as the original code at `original`
+// (5 with a disp8, 4 with [EAX], 8 with a disp32).
+static bool SameDispatch(const void* replacement, const unsigned char* original) {
+    const auto* code = static_cast<const unsigned char*>(replacement);
+    for (int hops = 0; code[0] == 0xE9 && hops < 4; ++hops)
+        code += 5 + *reinterpret_cast<const std::int32_t*>(code + 1);
+    const int size = code[3] == 0x20 ? 4 : code[3] == 0x60 ? 5 : 8;
+    return original && std::memcmp(code, original, size) == 0;
+}
+
+// The first entry registered for `address` whose replacement or wrapper is such a thunk
+// (EI_REPLACE_DISPATCH entries are meant to be).
 static const HookEntry* ThunkEntryAt(std::uintptr_t address) {
     auto it = g_hooksByAddress.find(address);
     if (it == g_hooksByAddress.end()) return nullptr;
     for (const HookEntry* h : it->second)
-        if (IsVirtualCallThunk(h->replacement)) return h;
+        if (!h->dispatch && IsVirtualCallThunk(h->replacement)) return h;
     return nullptr;
 }
 
@@ -421,6 +432,11 @@ int InstallHooks() {
         if (const HookEntry* thunk = ThunkEntryAt(h->address)) {
             Log("SKIP %s at %08X: %s is a virtual-call thunk (register a non-virtual shim instead)", h->name,
                 static_cast<unsigned>(h->address), thunk->name);
+            continue;
+        }
+        if (h->dispatch && !SameDispatch(h->replacement, orig)) {
+            Log("SKIP %s at %08X: its dispatch bytes differ from the original's", h->name,
+                static_cast<unsigned>(h->address));
             continue;
         }
         if (h->stolen > 0) {

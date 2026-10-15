@@ -249,8 +249,7 @@ static int __fastcall CreateEffectVerify(CEffect* self) {
     return result;
 }
 EI_VERIFY(0x00675D10, CreateEffectVerify, 0, s_unused);
-static void __fastcall DestroyEffectVerify(CEffect* self) { self->DestroyEffect(); }
-EI_VERIFY(0x00675D40, DestroyEffectVerify, 0, s_unused);
+// 00675D40 DestroyEffect is a bare vtable dispatch (EI_REPLACE_DISPATCH): nothing to check.
 
 // 00675D50: MOV EDX,[ESP+4]; LEA EAX,[ECX+98h] (10 bytes).
 static void(__fastcall* s_setVelocity)(CEffect*, void*, const Vector3*);

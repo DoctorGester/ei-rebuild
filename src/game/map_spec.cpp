@@ -115,9 +115,9 @@ EI_REPLACE_METHOD(0x00469DB0, Spec::SpecTypeName);
 
 // 00469DE0 / 00469E00 (slots 6 and 8): slot 7.
 void Spec::SpecRemove() { Record()->ApplyObject(); }
-EI_REPLACE_METHOD(0x00469DE0, Spec::SpecRemove);
+EI_REPLACE_DISPATCH(0x00469DE0, Spec::SpecRemove);
 void Spec::SpecRefresh() { Record()->ApplyObject(); }
-EI_REPLACE_METHOD(0x00469E00, Spec::SpecRefresh);
+EI_REPLACE_DISPATCH(0x00469E00, Spec::SpecRefresh);
 
 // 00469F20 (slot 2): the object with the record's id.
 void* Spec::SpecWorldObject() { return ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, id); }
