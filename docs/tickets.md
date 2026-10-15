@@ -166,9 +166,9 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
+- **T2b** Hero attack on a removed target: PlayerMode::UpdateCombat verify mismatch (running since 2026-10-15; 1 session). Attack(hero, wolf) then RemoveUnitFromServer after 55-220 ms gives a mismatch (state 0 action 3). Possible rewrite bug; reproduce in a scratch scenario
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **T2a** ui_base_dialogue: Smith has no topics, dialogue never starts (ready; 1 session). OpenTopics adds regions only if topics exist; pick a person and quest state with topics so the dialogue screens are reached
-- **T2b** Hero attack on a removed target: PlayerMode::UpdateCombat verify mismatch (ready; 1 session). Attack(hero, wolf) then RemoveUnitFromServer after 55-220 ms gives a mismatch (state 0 action 3). Possible rewrite bug; reproduce in a scratch scenario
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.
 - **X22** render_present crashed once under 16 parallel runs (watch). Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface.
