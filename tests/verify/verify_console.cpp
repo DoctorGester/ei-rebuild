@@ -12,6 +12,7 @@
 
 #include "../../src/game/acks_db.h"
 #include "../../src/game/console.h"
+#include "../../src/game/player_messages.h"
 #include "../../src/game/world.h"
 #include "../../src/game/world_glue.h"
 #include "../../src/lib/crt.h"
@@ -311,6 +312,16 @@ void __fastcall MemUsageVerify(CStringArray* args) {
     OursOnly("MemUsage", &commands::MemUsage, args, [](const Captured& out) { return out.lines.empty() && out.pending.empty(); });
 }
 EI_VERIFY(0x005DF5A0, MemUsageVerify, 0, s_unused);
+// 005DFC10 (S16c; net_disconnect): ours only. Prints nothing; the client world's local view's owner
+// holds no link afterwards (CPlayer::Disconnect).
+void __fastcall DisconnectVerify(CStringArray* args) {
+    auto* client = reinterpret_cast<CWorldClient*>(std::uintptr_t(0x007AF5B8));
+    CPlayer* owner = client->Session()->localView->player_;
+    OursOnly("Disconnect", &commands::Disconnect, args, [&](const Captured& out) {
+        return out.lines.empty() && out.pending.empty() && owner->link_ == nullptr;
+    });
+}
+EI_VERIFY(0x005DFC10, DisconnectVerify, 0, s_unused);
 
 // 005DF5B0: ours only; prints "Looting..." first.
 void __fastcall LootAllVerify(CStringArray* args) {

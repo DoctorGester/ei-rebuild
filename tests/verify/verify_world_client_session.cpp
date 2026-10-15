@@ -3,7 +3,9 @@
 // consistency checks afterwards. Reached by every new game (StartZone / ProcessRequest call
 // SetPlayer, which runs CloseSession, ClearMaps and ResetZoneObjects) and every frame (the
 // application's pump 00566E20 / 00566E70); PlayRecording and JoinGameClient only by replays and
-// network games.
+// network games. DisconnectLocalPlayer (00566E00) and GameFlow::DisconnectClient (00581620): the
+// console's disconnect (S16c; net_disconnect) calls ours directly, so these wrappers run only for a
+// call from original code (none is left in the hook build).
 #include "verify.h"
 
 #include "../../src/game/net_link.h"
@@ -76,8 +78,27 @@ int __fastcall PumpIncomingCountVerify(CWorldClient* self) {
     return result;
 }
 
+// After a disconnect the local view's owner holds no link.
+CPlayer* ViewOwner(CWorldClient* self) { return self->Session()->localView->player_; }
+
+void __fastcall DisconnectLocalPlayerVerify(CWorldClient* self) {
+    CPlayer* owner = ViewOwner(self);
+    self->DisconnectLocalPlayer();
+    ei::verify::Check("CWorldClient::DisconnectLocalPlayer", true, owner->link_ == nullptr, "link %p",
+                      static_cast<void*>(owner->link_));
+}
+
+void __fastcall DisconnectClientVerify(GameFlow* self) {
+    CPlayer* owner = ViewOwner(reinterpret_cast<CWorldClient*>(std::uintptr_t(0x007AF5B8)));
+    self->DisconnectClient();
+    ei::verify::Check("GameFlow::DisconnectClient", true, owner->link_ == nullptr, "link %p",
+                      static_cast<void*>(owner->link_));
+}
+
 } // namespace
 
+EI_VERIFY(0x00566E00, DisconnectLocalPlayerVerify, 0, s_unused);
+EI_VERIFY(0x00581620, DisconnectClientVerify, 0, s_unused);
 EI_VERIFY(0x00565090, ResetZoneObjectsVerify, 0, s_unused);
 EI_VERIFY(0x0055F890, CloseSessionVerify, 0, s_unused);
 EI_VERIFY(0x00566CE0, SetPlayerVerify, 0, s_unused);

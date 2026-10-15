@@ -447,11 +447,36 @@ int wmain(int argc, wchar_t** argv) {
     }
     char line[512];
     bool pass = false;
-    while (std::fgets(line, sizeof(line), report)) {
-        std::fputs(line, stdout);
-        if (std::strncmp(line, "RESULT: PASS", 12) == 0) pass = true;
-    }
+    std::vector<std::string> lines;
+    while (std::fgets(line, sizeof(line), report)) lines.push_back(line);
     std::fclose(report);
+    // A game that ended by itself while its report still says RUNNING died before the harness could
+    // write a result (an INT3 of the standalone image before the missing-code report, a crash the
+    // harness did not see): the report gets the reason instead of a silent RUNNING (S16c).
+    if (!timedOut && !unkillable && !quitSeen) {
+        for (std::string& l : lines) {
+            if (l.compare(0, 15, "RESULT: RUNNING") != 0) continue;
+            char why[256];
+            if (code == static_cast<DWORD>(EXCEPTION_BREAKPOINT))
+                std::snprintf(why, sizeof(why), "FAILED: the game ended on a breakpoint (exit code %08lX) before the harness "
+                                                "wrote its result%s\n", code,
+                              standalone ? ": an INT3 of the standalone image with no code there (ei_hook.log, the run notes)" : "");
+            else
+                std::snprintf(why, sizeof(why), "FAILED: the game ended (exit code %lu, %08lX) before the harness wrote its "
+                                                "result\n", code, code);
+            l = std::string(why) + "RESULT: FAIL\n";
+            std::fwprintf(stderr, L"ei_launch: %hs", why);
+            if (FILE* rewrite = nullptr; _wfopen_s(&rewrite, reportPath.c_str(), L"w") == 0 && rewrite) {
+                for (const std::string& r : lines) std::fputs(r.c_str(), rewrite);
+                std::fclose(rewrite);
+            }
+            break;
+        }
+    }
+    for (const std::string& l : lines) {
+        std::fputs(l.c_str(), stdout);
+        if (l.compare(0, 12, "RESULT: PASS") == 0) pass = true;
+    }
     if (timedOut) return unkillable ? kExitUnkillable : kExitTimeout;
     return pass ? 0 : 1;
 }
