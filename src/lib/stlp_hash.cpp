@@ -125,6 +125,11 @@ EI_REPLACE(0x0040B2C0, Map8::FindOrInsert);
 EI_REPLACE(0x006BCFF0, Map8::FindOrInsert);
 EI_REPLACE(0x004E2E90, Map28::FindOrInsert);
 
+// erase(key): the fog's cell map (32-byte nodes) and the sound manager's deferred sounds (12-byte
+// nodes; S12e).
+EI_REPLACE(0x004E2F00, Map28::EraseKey);
+EI_REPLACE(0x006BD060, Map8::EraseKey);
+
 // erase(const_iterator): 3 instantiations of 12-byte nodes.
 EI_REPLACE(0x00405620, Map8::EraseIterator);
 EI_REPLACE(0x00405720, Map8::EraseIterator);
@@ -326,6 +331,8 @@ EI_REPLACE(0x00580900, CStrFloat::CopyConstruct);
 EI_REPLACE(0x004A8AD0, CStrFloat::Assign);
 EI_REPLACE(0x004AA950, CStrFloat::CopyFrom);
 EI_REPLACE(0x005E0DB0, CStrFloat::SkipToNext);
+// ~hashtable (the party records' variables, from the records' destructor; S12e).
+EI_REPLACE(0x00663330, CStrFloat::Destroy);
 
 // hash_map<string, list<void*>> (the item stock's recipes): ~hashtable, clear, find_or_insert.
 EI_REPLACE(0x004A8E60, StrList::Destroy);

@@ -91,6 +91,11 @@ struct TreeAbi {
     static void __fastcall DeallocateNodes(Map*, void*, Node* p, std::size_t n) {
         if (p) deallocate(p, n * sizeof(Node));
     }
+    // _STLP_alloc_proxy<Node>::allocate(n, hint) (e.g. 00619770; RET 8): n nodes' bytes from the
+    // pool (operator new above 128), null for none.
+    static Node* __fastcall AllocateNodes(Map*, void*, std::size_t n, const void* /*hint*/) {
+        return static_cast<Node*>(allocate(n * sizeof(Node)));
+    }
     // The same as a static member, p in ECX and n in EDX (e.g. 0043B280).
     static void __fastcall DeallocateNodesFast(Node* p, std::size_t n) {
         if (p) deallocate(p, n * sizeof(Node));

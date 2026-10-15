@@ -56,6 +56,47 @@ struct OwnCheck {
     }
 };
 
+// The hero screen's item caches (S12e): the original first, its header back on the pool, then ours:
+// the same header, its colour byte and links, the count and the limit (the compare byte is the
+// original's uninitialised stack byte).
+template <std::uintptr_t A>
+struct HeroCacheCheck {
+    static inline void* original = nullptr;
+    static HeroItemCache* __fastcall Construct(HeroItemCache* self) {
+        reinterpret_cast<decltype(&ConstructHeroItemCache)>(original)(self);
+        ItemCache::Node* theirs = self->map.end();
+        unsigned char head[16];
+        std::memcpy(head, theirs, sizeof(head));
+        std::size_t count = self->map.size();
+        std::uint32_t limit = self->limit;
+        stlp::deallocate(theirs, sizeof(ItemCache::Node));
+        HeroItemCache* result = ConstructHeroItemCache(self);
+        const auto* ours = reinterpret_cast<const unsigned char*>(self->map.end());
+        bool ok = result == self && self->map.end() == theirs && self->map.size() == count && self->limit == limit &&
+                  head[0] == ours[0] && std::memcmp(head + 4, ours + 4, sizeof(head) - 4) == 0;
+        ei::verify::Report(stlp_verify::Name<A>("hero item cache constructor"), ok, ok ? "" : "another header or words");
+        return result;
+    }
+};
+
+// allocate(n) of the caches' nodes (S12e): the original first; a pool block goes back and ours must
+// take the same one (operator new's need not come back).
+template <std::uintptr_t A>
+struct AllocateCheck {
+    static inline void* original = nullptr;
+    static ItemCache::Node* __fastcall Verify(ItemCache::Tree* self, void*, std::size_t n, const void* hint) {
+        std::size_t bytes = n * sizeof(ItemCache::Node);
+        ItemCache::Node* theirs = reinterpret_cast<decltype(&ItemCache::AllocateNodes)>(original)(self, nullptr, n, hint);
+        if (theirs) stlp::deallocate(theirs, bytes);
+        ItemCache::Node* ours = ItemCache::AllocateNodes(self, nullptr, n, hint);
+        bool ok = n == 0 ? !theirs && !ours : ours && (bytes > 128 || ours == theirs);
+        char detail[64] = "";
+        if (!ok) std::snprintf(detail, sizeof(detail), "%u nodes: %p, original's %p", static_cast<unsigned>(n), ours, theirs);
+        ei::verify::Report(stlp_verify::Name<A>("stlp::_STLP_alloc_proxy::allocate"), ok, detail);
+        return ours;
+    }
+};
+
 // --- Start-up check -----------------------------------------------------------------------------
 
 // Keys and values from small sets so inserts meet existing keys and erases find them. The string
@@ -352,6 +393,11 @@ EI_VERIFY(0x004FBD80, MeshCacheCheck<0x004FBD80>::InsertEqual, 5, MeshCacheCheck
 EI_VERIFY(0x004F7A80, MeshCacheCheck<0x004F7A80>::DestroyValue, 7, MeshCacheCheck<0x004F7A80>::original);
 EI_VERIFY(0x004FC6A0, MeshCacheCheck<0x004FC6A0>::DeletingDestroyValue, 0, MeshCacheCheck<0x004FC6A0>::original);
 EI_VERIFY(0x005F98F0, ItemCacheCheck<0x005F98F0>::Construct, 7, ItemCacheCheck<0x005F98F0>::original);
+// S12e: PUSH -1; PUSH <handler> (7 bytes).
+EI_VERIFY(0x00633F50, HeroCacheCheck<0x00633F50>::Construct, 7, HeroCacheCheck<0x00633F50>::original);
+EI_VERIFY(0x00633FF0, HeroCacheCheck<0x00633FF0>::Construct, 7, HeroCacheCheck<0x00633FF0>::original);
+// MOV EAX,[ESP+4]; TEST EAX,EAX (6 bytes).
+EI_VERIFY(0x00619770, AllocateCheck<0x00619770>::Verify, 6, AllocateCheck<0x00619770>::original);
 EI_VERIFY(0x005F9F80, ItemCacheCheck<0x005F9F80>::ConstructWith, 7, ItemCacheCheck<0x005F9F80>::original);
 EI_VERIFY(0x00619630, ItemCacheCheck<0x00619630>::ConstructWith, 7, ItemCacheCheck<0x00619630>::original);
 EI_VERIFY(0x005FA420, ItemCacheCheck<0x005FA420>::ConstructBase, 7, ItemCacheCheck<0x005FA420>::original);

@@ -66,6 +66,17 @@ mfc::impl::CTime* __fastcall TimeMinusSpan(const mfc::impl::CTime* self, void*, 
     return out;
 }
 
+namespace {
+void FreeStringBlock(net::StringRep& s) { stlp::deallocate(s.start, static_cast<std::size_t>(s.eos - s.start)); }
+} // namespace
+
+void __fastcall DestroyGameInfoRecord(net::GameInfoRecord* self) {
+    FreeStringBlock(self->description);
+    FreeStringBlock(self->name);
+}
+
+void __fastcall DestroyPrintName(PrintRecord* self) { self->name.~string(); }
+
 } // namespace libcontainers
 
 using namespace libcontainers;
@@ -94,3 +105,7 @@ EI_REPLACE(0x005F60B0, DestroyPointerVectors);
 EI_REPLACE(0x004F69F0, SetRootVtable);
 
 EI_REPLACE(0x005E0550, TimeMinusSpan);
+
+EI_REPLACE(0x0041AC30, DestroyGameInfoRecord);   // the server list's records (S12e)
+EI_REPLACE(0x006D29A0, DestroyPrintName);        // the print records' arrays (S12e)
+EI_REPLACE(0x006D29E0, DestroyPrintName);
