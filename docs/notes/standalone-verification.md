@@ -121,3 +121,32 @@ First results (harness_digest, 2026-10-15): the original repeats itself and ours
 other field; original against ours agree for 225 world updates, then only `random crt.rand` differs (an
 animation pick one update earlier in ours; open-questions.md). Note: `work.py test` drops run_all's
 `--clock`; set `EI_HARNESS_CLOCK=virtual,randtrace` in the environment instead.
+
+## SV1a: the verify build's wolf fight (2026-10-15)
+
+units and sandbox_actions: ours killed the wolf after 400 ms of virtual time, the original after 700 ms.
+Steps that found it, in order (worth repeating for the next such case):
+
+1. `EI_PLAIN=1` (no verify wrappers) against `--no-hooks`, with `randtrace`: the same step frames, the
+   same console, 700 ms. So the rewrite was exact; the verify build was not.
+2. Random traces of the verify build against the plain one: the first draw that differs (not only its
+   caller: the wrappers run originals, so callers differ everywhere) was an extra rand() in
+   AIViewer::Refresh (a sight countdown run out early); before it, a third animation pick
+   (FindAnimation 005301B0) in one unit's update where the plain build made two.
+3. A bisection over the ~5700 wrappers through builderifyerified.txt (a listed function runs
+   its plain replacement): enable half, see whether the fight ends at 400 ms; a run that crashes
+   (some wrappers call each other's trampolines) splits its half again. 13 runs named 0052EF90.
+
+Cause: `UnitReadNetStateVerify` (tests/verify/verify_net_state.cpp, ReadChecked) lets ours read a
+unit's delta state, puts the state, stream and delta globals back and has the original read it again.
+The random generators were not put back, so the animation field's restart (slot 14, 005352B0 ->
+005301B0) drew rand() again. Putting them back is not enough either: ours' change-driven reactions
+(skipped in the re-read) may draw first, and the re-read then picks its animation from other values
+and leaves that pick on the unit. Fix: a read in which ours draws from either generator runs ours
+only; otherwise the generators are put back for the original's re-read, compared (it must not draw
+either) and set to ours' state. Checked: units, sandbox_actions and harness_digest against the
+original with `EI_DIGEST=5` and `golden.py diff`: every record the same (but the fields left out on
+purpose), the same console; Unit::ReadNetState 0 mismatches.
+
+Other wrappers that run an original after ours on live objects can do the same (the generators,
+or other shared state the original's run changes again); the plain-versus-verify trace finds them.

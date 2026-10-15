@@ -40,17 +40,20 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
   of the original alone already differ there in a dozen units at the first record (`golden.py diff
   --all-fields`). A unit that sleeps a few updates earlier or later thinks on other ticks; a likely
   cause of the fights that part. The digest leaves the field out of comparisons by default.
-- **units, sandbox_actions: both sides repeat, ours differs.** The wolf that the hero fights dies
-  sooner in ours: `waitfor 20 Not(IsAlive(GetObjectByName("Enemy1")))` is done after 400 ms of virtual
-  time in ours and 700 ms in the original, every run (one "0" fewer in the console). A behaviour
-  difference in the rewritten combat or AI. To find it: random traces side by side by value (the
-  verify build draws more, its wrappers run the original on scratch copies), or SV2's digest.
-  SV2's own scenario (harness_digest: the hero walks 4 units) shows the same kind of thing: digests of
-  the original and ours agree in every field (but the countdown above) for 225 world updates, then
-  only the CRT's rand() state differs (from the record after update 230 on). The random traces show
-  why: the hero's animation pick (CUnit::FindAnimation 005301B0 -> 005190C0, three rand() draws)
-  for the third time comes before the record after world update 230 in ours and after it in the
-  original (both in frame 45), so ours picks one world update or more earlier.
+- **units, sandbox_actions: solved (SV1a, 2026-10-15).** The wolf died after 400 ms of virtual time in
+  ours against 700 ms in the original. Not the rewrite: with `EI_PLAIN=1` (no verify wrappers) ours
+  matched the original step for step. A bisection over the verify wrappers (verified.txt) named
+  `UnitReadNetStateVerify` (0052EF90, tests/verify/verify_net_state.cpp): after ours read a unit's
+  network state, the original read it again with the delta globals put back but not the random
+  generators, so the animation field's restart (slot 14 -> FindAnimation 005301B0) drew rand() a
+  second time, and every later draw (the AI's sight countdowns, the fight) moved. A read in which
+  ours draws now runs ours only. After the fix (digest every 5 updates, `golden.py diff`) units,
+  sandbox_actions and harness_digest match the original in every record and field but those left
+  out on purpose; SV2's harness_digest difference (only crt.rand from update 230 on, an animation
+  pick seemingly one update early) was the same wrapper. One earlier units run (before merging
+  main) still parted at world update 550, in the crawl after the fight (the world's update map, 14
+  against 15 entries), in the plain build as well: likely the update-map countdown above, which
+  follows the heap layout.
 - **rebirth_flags** fails on the original by design (its `rebirthflags` steps need our code). Ours
   passes but does not repeat either, and that is a lead for the combat case: the script variables
   it prints list the units of a group in a different order from run to run (`Peasans : group =

@@ -5,6 +5,7 @@
 // 29: the item spells recomputed) runs once per side.
 #include "verify.h"
 
+#include "combat_verify_util.h"
 #include "delta_snapshot.h"
 #include "ei/vcall.h"
 
@@ -63,7 +64,13 @@ EI_VERIFY(0x0050EAF0, MapObjectWriteNetStateVerify, 5, s_mapWrite);
 // stream and the globals are then put back and the original reads the same data again; the states,
 // the stream, the globals, the result and the fields the reader decodes are compared. The
 // original's run repeats idempotent side effects (the position, the effect array) and skips the
-// change-driven ones (stat reactions, a new player), whose old values ours already updated. ------
+// change-driven ones (stat reactions, a new player), whose old values ours already updated. A read
+// in which ours drew from the random generators (ISAAC, rand()) runs ours only: the re-read would
+// draw again (the animation field's restart picks an idle with rand(), slot 14 -> 005301B0), and
+// with the generators put back it would still pick from other values than ours whenever ours'
+// skipped reactions drew first; either way the unit's animation and every later draw left the
+// game's course (SV1a: the verify build's fights ended 300 ms early). The generators are put back
+// for the original's re-read and compared (it must draw nothing either). ------
 
 std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int first);
 std::uint32_t __fastcall UnitReadNetState(std::uint8_t* unit, void*, int first);
@@ -145,6 +152,8 @@ std::uint32_t ReadChecked(const char* name, ReadFn original, ReadFn ours, bool u
     BitStream savedReader;
     deltasnap::CloneStream(&savedReader, reader);
     const deltasnap::Globals before = deltasnap::Globals::Save();
+    combatverify::RandomState randomBefore;
+    randomBefore.Save();
     // A party unit's client controller (class 0x3D) snaps the unit's orientation to its path once
     // when its byte +0x76 is set, and clears it (00535850, from slot 41 after a path is read). Ours
     // consumes it; the original's second read would find it clear and keep the received
@@ -154,6 +163,12 @@ std::uint32_t ReadChecked(const char* name, ReadFn original, ReadFn ours, bool u
     std::uint8_t snapPending = clientController ? controller[0x76] : 0;
 
     std::uint32_t mine = ours(object, nullptr, first);
+    combatverify::RandomState randomMine;
+    randomMine.Save();
+    if (!randomMine.SameAs(randomBefore)) {
+        deltasnap::FreeStream(&savedReader);
+        return mine;
+    }
     deltasnap::StateCopy mineState(state);
     BitStream mineReader;
     deltasnap::CloneStream(&mineReader, reader);
@@ -164,8 +179,12 @@ std::uint32_t ReadChecked(const char* name, ReadFn original, ReadFn ours, bool u
     deltasnap::FreeStream(reader);
     std::memcpy(reader, &savedReader, sizeof(BitStream));
     before.Restore();
+    randomBefore.Restore();
     if (clientController) controller[0x76] = snapPending;
     std::uint32_t theirs = original(object, nullptr, first);
+    combatverify::RandomState randomTheirs;
+    randomTheirs.Save();
+    randomMine.Restore();
 
     const char* differs = nullptr;
     if (theirs != mine)
@@ -176,6 +195,8 @@ std::uint32_t ReadChecked(const char* name, ReadFn original, ReadFn ours, bool u
         differs = "received stream";
     else if (!(mineGlobals == deltasnap::Globals::Save()))
         differs = "delta globals";
+    else if (!randomTheirs.SameAs(randomMine))
+        differs = "random generators";
     else
         differs = Decode(object, unit).FirstDifference(mineFields);
     deltasnap::FreeStream(&mineReader);
