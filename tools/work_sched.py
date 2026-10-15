@@ -574,6 +574,11 @@ def cmd_test(db, args):
         sys.exit(f'work.py: {build}/ei_launch.exe is missing; build.cmd verify first')
     expected = work.expected_times(db, root, jobs, run_all.load_times())    # timing table, else run_times.json
     env = run_all.game_environment()
+    if ra.golden:
+        # The digest the goldens were recorded with; the comparison runs here, after the batch, so the
+        # scheduler gets run_all's arguments without --golden.
+        env['EI_DIGEST'] = str(run_all.GOLDEN_PERIOD)
+        argv = [a for a in argv if a != '--golden']
     runs = []
     for name, install in jobs:
         scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
@@ -593,7 +598,11 @@ def cmd_test(db, args):
     ensure_scheduler()
     print(run_all.HEADER)
     sys.stdout.flush()
-    return wait(db, batch, root, build)
+    code = wait(db, batch, root, build)
+    if ra.golden and code != 130:
+        ok = run_all.golden_check(jobs, root=root, build=build)
+        code = code or (0 if ok else 1)
+    return code
 
 
 def wait(db, batch, root, build):
