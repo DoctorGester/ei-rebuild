@@ -1887,7 +1887,7 @@ status = "queued"
 size = 1
 depends = ["S6"]
 files = ["src/lib/mfc_array.h", "src/game/game_arrays.cpp"]
-note = "What S6 left (docs/notes/standalone.md S6): SetSize / ConstructElements of the CFigure parts and scene records (0044FCD0, 00453240, 00453550, 004545C0, 00454F80: their element constructors are game code), the script command family (004C4FD0, 004C54A0, 004C6D10, 004CC0C0, 004CCCB0, 004CCD90, 004CD130, 004CD2B0, 004CD770, 004CE920, 004CEB80), DeltaField 0050FA30, the CMap-element arrays 00474DB0 / 00476F20 / 00477100 (after S7), music themes 006B56C0 / 006B59A0, cache entries 006BE210, the menu arrays 00631E70 / 00631FF0 (compiler callees 005FBD80 / 005FBDD0), GetAt by copy 0046EAB0 / 00584EA0, and the class destructors 004763C0, 00557890, 0058AA60, 00599330. Same pattern: EachElements with the element's own constructor / destructor called directly, verify per address."
+note = "What S6 left (docs/notes/standalone.md S6): SetSize / ConstructElements of the CFigure parts and scene records (0044FCD0, 00453240, 00453550, 004545C0, 00454F80: their element constructors are game code), the script command family (004C4FD0, 004C6D10, 004CC0C0, 004CCCB0, 004CCD90, 004CD130, 004CD2B0, 004CD770, 004CE920; S7a took 004C54A0 / 004CEB80 / 004CECB0) and the script DestructElements rows 004CD900 / 004CEC80 / 004CD740, DeltaField 0050FA30, the CMap-element arrays 00474DB0 / 00476F20 / 00477100 (after S7), music themes 006B56C0 / 006B59A0, wave records 006BE210 / 006BE240 / 006B90C0, the menu arrays 00631E70 / 00631FF0 (compiler callees 005FBD80 / 005FBDD0), GetAt by copy 0046EAB0 / 00584EA0, and the class destructors 004763C0, 00557890 (S13b took 0058AA60, 00599330). Same pattern: EachElements with the element's own constructor / destructor called directly, verify per address."
 
 [[ticket]]
 id = "S11a"
@@ -1903,20 +1903,20 @@ note = "S11 left the forwarded hash members whose values have their own copy / d
 id = "S7a"
 title = "Standalone library: the remaining script CList instantiations and CMap-element helpers"
 group = "standalone"
-status = "queued"
+status = "review"
 size = 1
 files = ["src/game/game_lists.h", "src/game/game_lists.cpp", "tests/verify/verify_mfc_list.cpp"]
-note = "Left by S7 (14 rows): script lists with game copy semantics: 004C69B0 ScriptDecl RemoveHead, 004C7A10 / 004C82B0 ScriptDefinition / ScriptRun RemoveHead (copy out), 004C7C90 ScriptDefinition AddHead, 004CDA30 / 004CD930 ScriptRun / ScriptDefinition NewNode (ConstructElements 004CECB0 / 004CEB80), 004C9210 ScriptObjectRef AddHead (zero, release old, set + addref), 004C9100 ScriptObjectRef RemoveTail (into the result, RET 4), 004C8CE0 / 004C8D80 ScriptGroup AddHead / AddTail (InitGroup then gamearrays::ObjectRefCopy), 004C8AF0 ScriptGroup RemoveTail (GroupGetAt-like copy, DestructBody); 004543E0 CMap destructor with owning values; 00454DB0 / 00454CE0 FaceGroup (0x18: CString + CDWordArray) ConstructElements and array destructor (vtable 0073C2BC). Also candidates: 006BE240 / 006BE210 / 006B90C0 (wave record Construct/DestructElements, string destroy). Use ListAbi with EachElements policies as in game_lists.h; ours-only checks."
+note = "Left by S7 (14 rows): script lists with game copy semantics: 004C69B0 ScriptDecl RemoveHead, 004C7A10 / 004C82B0 ScriptDefinition / ScriptRun RemoveHead (copy out), 004C7C90 ScriptDefinition AddHead, 004CDA30 / 004CD930 ScriptRun / ScriptDefinition NewNode (ConstructElements 004CECB0 / 004CEB80), 004C9210 ScriptObjectRef AddHead (zero, release old, set + addref), 004C9100 ScriptObjectRef RemoveTail (into the result, RET 4), 004C8CE0 / 004C8D80 ScriptGroup AddHead / AddTail (InitGroup then gamearrays::ObjectRefCopy), 004C8AF0 ScriptGroup RemoveTail (GroupGetAt-like copy, DestructBody); 004543E0 CMap destructor with owning values; 00454DB0 / 00454CE0 FaceGroup (0x18: CString + CDWordArray) ConstructElements and array destructor (vtable 0073C2BC). Also candidates: 006BE240 / 006BE210 / 006B90C0 (wave record Construct/DestructElements, string destroy). Use ListAbi with EachElements policies as in game_lists.h; ours-only checks. Done with S13b (2026-10-15, worktree agent-a5a12df1b10c5178b): all 14 list rows, 004C54A0, FaceGroup / SceneNode; wave records left to S6b."
 
 [[ticket]]
 id = "S13b"
 title = "Standalone: script and AI map destructors left by S13a"
 group = "standalone"
-status = "queued"
+status = "review"
 size = 1
 depends = ["S13a"]
 files = ["src/game/world_destructors.cpp", "src/game/originals_world.h"]
-note = "Left from S13a (docs/notes/standalone.md S13a). Forwarded from the world destructors: CScript's destructor 0058A140 (the first world script, +0x12874) and the MFC rows the server's inlined second-script destructor calls (004C92C0 004C8E20 004CB650 004C7560 004C8520 004C7E30 004CB310 004C6760 004C6410 004C6120 004CB150; S6b / S7 may own some), the AI map's destructor 0058A450 (688 bytes; hash / array members), and the client's sector grid resizes 00572450 / 005724F0. Verify ours-only like verify_world_destructors.cpp (the globals' exit functions and the start-up checks reach them)."
+note = "Left from S13a (docs/notes/standalone.md S13a). Forwarded from the world destructors: CScript's destructor 0058A140 (the first world script, +0x12874) and the MFC rows the server's inlined second-script destructor calls (004C92C0 004C8E20 004CB650 004C7560 004C8520 004C7E30 004CB310 004C6760 004C6410 004C6120 004CB150; S6b / S7 may own some), the AI map's destructor 0058A450 (688 bytes; hash / array members), and the client's sector grid resizes 00572450 / 005724F0. Verify ours-only like verify_world_destructors.cpp (the globals' exit functions and the start-up checks reach them). Done with S7a: CScript 0058A140 + 11 rows, AI map 0058A450, LocalSearch 0058AA60, sector array 00599330, grid Resize / Allocate (all four). Suite 128/128, 0 mismatches."
 
 # ---------------------------------------------------------------- Lua
 
