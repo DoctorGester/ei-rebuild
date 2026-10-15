@@ -978,6 +978,15 @@ group = "verification"
 depends = ["SV7a"]
 note = "SV7a family 6 (static). PointerHash containers keyed by address: model.h records_ (CRenderPreset*, iterated in render_helper.cpp:406), resource.h filesByData_. No golden field differed under jitter; check whether any iteration order reaches frames, sounds or state (frame-capture under jitter) and canonicalise if so."
 
+[[ticket]]
+id = "SV3l"
+title = "CInterface3D::Update check flakes: mouse 1920,1260"
+group = "verification"
+size = 0.25
+model = "sonnet"
+files = ["tests/verify/verify_ui_base.cpp"]
+note = "render_cursor_present vanilla failed twice on main (2026-10-15, after the SV3c1 merge) and once on S16a with 'MISMATCH CInterface3D::Update: mouse 1920,1260' (1 of ~10187). InterfaceUpdateVerify (tests/verify/verify_ui_base.cpp) compares the interface's mouse position with the window procedure's stored one (007C7C50/54) after Update; 1920,1260 is outside the game window, so a WM_MOUSEMOVE from the real cursor probably lands while a window's update pumps messages. Confirm (log both values), then make the check robust (compare against the stored value as of Update's own read, or skip when the stored value changed during the call). Harness inputs only; no game change."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
