@@ -1019,3 +1019,41 @@ vanilla, ui_mp_host both) and passed when run again.
 The other owners' files: verify_mfc_array.cpp's CArray<CString> checks run ours only; verify_stlp_hash's
 hash_map<CString, float> and verify_stlp_list_refs / verify_stlp_vector_objects copy or share keys (no CString output
 written by the original first). None of them needed this change.
+
+## SV2h1b: the three goldens SV2h1 parted on main (2026-10-15)
+
+After the SV2h1 merge main's `--golden` suite had render_terrain, terrain_water_load and ui_saveload_delete (vanilla)
+differ; in SV2h1's worktree and in this one all three stayed the same. Two causes:
+
+- **render_terrain** (`isaac.count` 116 against 69 at update 60, every other field the same) was the machine: that run's
+  ei_hook.log has "the game window was minimised (it had the foreground and lost it)" four times, and the device
+  restores that follow (CTextureManager::ReloadAll, SetDisplayMode: 5 calls, none in a quiet run) draw from ISAAC. It
+  passed alone and in every run below. SV1c (games not taking the foreground) is the ticket for it.
+- **terrain_water_load / ui_saveload_delete** (`script #gobject`: `gobject.i` 1884 against the original's 702 after
+  save1 is loaded, SV2d's field) follow the run's paths. Reproduced only with the main checkout's: `python
+  E:\workspace\ei\tools\work.py test ...` from the worktree (root = the main checkout: its run\ game.exe and scenario
+  paths) with `EI_BUILD_DIR` set to a verify build in a folder whose path is as long as `build\verify`
+  (`build\SV2h1b`); the same build run with the worktree's root kept 702. The game's start folder, save paths and the
+  like are CStrings, so their lengths decide which blocks later strings take.
+
+The mechanism (heap sequence, `EI_HEAPSEQ=125`, main's paths): `i` is the last unit of zone gz1g's Peasans group
+{699, 702, 1884}, kept in address order (SV2b). After the load 1884 (1248 bytes) is made when the heap has no small free
+blocks, so it takes the smallest free region that fits: in the original and in the runs that matched, one low in the
+reservation (0x74A568 / 0x7B5000 / 0x943378 from its start), below 699 and 702 (0xE2xxxx); in the parted runs one near
+the top (0xF68080). Which region is smallest is decided by everything freed before, so the result flips with small
+changes anywhere: undoing only the script commit, only the text commit, either half of the text commit's files, the
+item_db_records / chunk_archive / text_split group, or only CScript::Tokenize's check each brought 702 back (variant
+builds in build\SV2h1b\A..D, all from main's paths); undoing the MFC commit, script_load, text_reader, item_db or the
+parser checks (LoadFunction .. LoadDeclarations) did not.
+
+**Fix:** CScript::Tokenize's check (004CF7A0, verify_script_parse.cpp) is back in its pre-SV2h1 order: the original
+fills a scratch list, ours the real one while the scratch is alive, the scratch is freed last. Ours first with the
+scratch made and freed before ours ran (its texts kept in our memory) still gave 1884. Every other SV2h1 check keeps
+ours first. Checked: the three scenarios from main's paths and from the worktree's, all the same; full `--golden`
+suites from both (128 runs, 4 at once): all pass, 56 goldens the same, 0 differ.
+
+This does not make gobject.i after a load sturdy: a verify run makes about eight times the heap calls of a `--no-hooks`
+run (3.38 million against 0.42 million by update 125), so the free regions only happen to come out in the original's
+order, and the next change to a check that allocates before a load may flip it again (SV2d). A sturdier way is
+SV2h1c: the originals that run on twins allocate outside the reservation heap, so the reservation sees only the game's
+own blocks.

@@ -880,6 +880,13 @@ depends = ["SV2h1"]
 files = ["tests/verify/*"]
 note = "After the SV2h1 merge, work.py test MAIN --golden gives 3 differ (main 64e8a7b3); the S12c merge before it (4ebed089) keeps all 3 the same. render_terrain vanilla: isaac.count 69 in the golden, 116 in the run at world update 60 (more random draws). terrain_water_load and ui_saveload_delete vanilla: script #gobject 7658611C golden, 3656F9F8 run (from world update 125 / 260). Find the SV2h1 check (commits 8ceeef3a CString/CFile/CArchive/CDib, 4ae61deb game text, 1361af3e script load/parse) whose swap changes behaviour, fix it so the goldens stay the same, and check with work.py test --golden."
 
+[[ticket]]
+id = "SV2h1c"
+title = "Twin originals allocate outside the reservation heap"
+group = "verification"
+depends = ["SV2h1b"]
+note = "SV2h1b: after a save is loaded, gobject.i (gz1g's address-ordered Peasans group) follows which free region of the reservation heap is smallest when unit 1884 is made; a verify run makes ~8x the heap calls of a --no-hooks run, so any change to a check that allocates before a load can flip it (SV2h1's Tokenize order did, from main's paths only). Route the main thread's game-heap calls made while an original runs on a twin (the verify wrapper's call through its trampoline on scratch outputs) to harness_heap's second heap (frees and reallocs already go by address), so the reservation sees only the game's own blocks; then the twin order no longer matters for goldens. Check: terrain_water_load / ui_saveload_delete / world_load / magic_traps vanilla from main's paths (python E:/workspace/ei/tools/work.py test with EI_BUILD_DIR of build/verify's length, SV2h1b notes) against their goldens, SV2d."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]

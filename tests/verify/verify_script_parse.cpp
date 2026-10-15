@@ -299,17 +299,20 @@ EI_VERIFY(0x004CF380, ConstructTokensVerify, 0, s_unused);
 
 // ---- Lexer --------------------------------------------------------------------------------------
 
-// 004CF7A0: PUSH -1; PUSH imm32 (7 bytes). Ours fills the list, then the original a scratch list
-// (its texts freed last to first, then its blocks); tokens, result and error state are compared.
+// 004CF7A0: PUSH -1; PUSH imm32 (7 bytes). The original fills a scratch list first, ours the real one
+// while the scratch is alive, the scratch is freed last; tokens, result and error state are compared.
+// The one SV2h1 check kept in the old order (SV2h1b, docs/notes/standalone-verification.md): with
+// ours first, run from the main checkout (its shorter paths), the free blocks after a save is loaded
+// came out so that unit 1884 got the highest address of zone gz1g's Peasans group (ordered by
+// address) and the script's `i` ended on it, where the original's runs have 702. Ours first with the
+// scratch freed before ours ran did not bring 702 back either; this order does, from both paths.
 static BOOL(__fastcall* s_tokenize)(CScript*, void*, const mfc::CString*, ScriptTokenList*);
 static BOOL __fastcall TokenizeVerify(CScript* self, void*, const mfc::CString* text, ScriptTokenList* tokens) {
     ScriptTokenList scratch{tokens->vtable, nullptr, nullptr, 0, nullptr, nullptr, tokens->blockSize};
-    BOOL actual = self->Tokenize(*text, tokens);
-    ErrorState error = ErrorState::Take(self);
-    const OursError mine(self);
     BOOL expected = s_tokenize(self, nullptr, text, &scratch);
+    ErrorState error = ErrorState::Take(self);
+    BOOL actual = self->Tokenize(*text, tokens);
     bool ok = expected == actual && error == ErrorState::Take(self) && scratch.count == tokens->count;
-    mine.PutBack(self);
     int mismatch = -1, index = 0;
     for (auto *a = scratch.head, *b = tokens->head; ok && a && b; a = a->next, b = b->next, ++index)
         if (!SameText(a->data.text, b->data.text) || a->data.line != b->data.line) {
@@ -318,7 +321,6 @@ static BOOL __fastcall TokenizeVerify(CScript* self, void*, const mfc::CString* 
         }
     ei::verify::Check("CScript::Tokenize", true, ok, "%d vs %d, %d vs %d tokens, first difference %d", expected, actual,
                       scratch.count, tokens->count, mismatch);
-    for (auto* node = scratch.tail; node; node = node->prev) node->data.text.Empty();
     static_cast<TokenListAt&>(scratch).Destruct();
     return actual;
 }
