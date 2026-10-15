@@ -796,10 +796,11 @@ started = "2026-10-15"
 id = "SV3d"
 title = "Re-record the suite's goldens after SV1b, SV1i and SV2a"
 group = "verification"
-status = "queued"
+status = "running"
 size = 0.5
 model = "opus"
 note = "SV1i (2026-10-15) dropped speed 10 from 77 scenarios: 29 goldens on main now fail run_all --golden (camera, console, hero_death, items, levers, objects_more, party_records, render_movie, render_movie_present, render_scene, render_terrain, sandbox_actions, script_copy, script_parse, script_quest, spells_cast, ui_battle_spells, ui_container_input, ui_help, ui_objectives, ui_order_move, ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens, ui_trade_restore, unit_create, world_load). SV1b's repeatable heap should let many of SV3's 46 non-repeating runs repeat now. Wait for SV2a (digest fields) to land, then run SV3's recipe (two original runs, two of ours, golden.py record) over the whole suite and report coverage."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV1j"
