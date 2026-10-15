@@ -1986,6 +1986,15 @@ depends = ["S16d"]
 files = ["tools/find_vtables.py", "tools/dashboard_data.py", "config/vtables.csv"]
 note = "S16d found three strings read as code pointers (0074676C '%ld', 0074718C 'dde', 007474B8 'a/p'): find_vtables.py takes any .text value as a slot, so a regenerated vtables.csv brings _AFX_CTL3D_THREAD's 2nd slot and the 007474B8 row back (fixed by hand). Make it accept only function starts (functions.csv minus library.csv 'not a function' rows). dashboard_data.py counts the four 'not a function' library.csv rows in library_functions (a denominator nothing can reach); leave them out there (keep them out of the game count). standalone_gaps.py already skips them."
 
+[[ticket]]
+id = "S17a"
+title = "Standalone: one access violation in the draw list sort (camera, 1 of ~900 runs)"
+group = "standalone"
+size = 1
+depends = ["S17"]
+files = ["src/game/world_client_draw.cpp", "src/game/world_client_view.cpp", "src/game/world_rules.cpp"]
+note = "From S17. camera --standalone crashed once (batch 1235, run 33000, build at main 830d77a8; the retry passed; 0 in ~900 other standalone runs, 0 in hooked runs): C0000005 reading FF000094 in UnitOrderLess::Less (world_rules.cpp, Object3D(a)->attached at +0x94 with a = FF000000) under IntroSortByModel 005740D0 <- SortByModel <- CWorldClient::DrawPass <- Render, main thread, after 'key left; frames 5' (eax=esi=FF000000, ebx=edi=309CA954). An element read as FF000000 means the unguarded partition / linear insert ran off the frame list. Candidates: (1) an irreflexive comparison: Less ends with !(za >= zb) on viewPosition.z, so a NaN z (less(x, x) true) lets the unguarded scans run past either end; viewPosition is written only for objects in view (CollectVisible), never by the constructor (CObject3D::Construct 00515BD0 leaves +0x28), so an object listed only for its shadow before it was ever in view sorts on heap leftovers; in the image those come from the host heap, not the game's. Not confirmed: an S17 diagnostic (log NaN view z in SortByModel) saw none in 44 + 32 standalone runs, also with every image malloc filled with 0xFF. (2) memory overwritten under the list (another thread, the unlocked node allocator). Next: keep the NaN check as a verify-build check in SortByModel's wrapper (log the object and list), run the standalone suite repeatedly; if (1), give viewPosition a canonical start (zero in ours and in the original through a harness patch, as SV7b3) rather than changing the comparator."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]
