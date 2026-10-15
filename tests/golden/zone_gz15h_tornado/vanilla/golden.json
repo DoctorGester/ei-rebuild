@@ -8,5 +8,5 @@
   "clear": null,
   "repeated_in": 2,
   "reason": "S20: recorded from two agreeing plain --no-hooks --fresh passes (a third pass after merging main matched them); goldens of every scenario before the hook builds go",
-  "saves": "not kept: save savea/mission.sav: 8 fields differ; first: / obj338784 controller.brain.memory.call0.point.z: 8.79983392e-29 in the first run, 8.40540346e-29 in o2 / obj338785 controller.brain.memory.call0.point.z: 8.80773504e-29 in the first run, 8.41330459e-29 in o2"
+  "saves": "not kept: save savea/mission.sav: 8 fields differ; first: / obj338784 controller.brain.memory.call0.point.z: 9.08974415e-29 in the first run, 8.81364283e-29 in q2 / obj338785 controller.brain.memory.call0.point.z: 9.09824232e-29 in the first run, 8.822141e-29 in q2"
 }
