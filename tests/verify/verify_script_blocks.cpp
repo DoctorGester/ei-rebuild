@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <vector>
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -72,8 +73,9 @@ ScriptDecl* CheckBlock(const char* name, BlockFn original, BlockFn ours, CScript
     ScriptListNode* oldTail = list.tail;
     ScriptListNode* oldHead = list.head;
 
-    ScriptDecl* expected = original(scratch.Script(), nullptr);
+    // Ours first, so that its blocks land where the original's would without the check (SV2f).
     ScriptDecl* actual = ours(self, nullptr);
+    ScriptDecl* expected = original(scratch.Script(), nullptr);
 
     ScriptList& scratchList = Field<ScriptList>(scratch.bytes, offset);
     bool same = std::memcmp(expected, actual, sizeof(ScriptDecl)) == 0;
@@ -108,15 +110,22 @@ mfc::CArray<ScriptAreaPart>* __fastcall FindAreaVerify(CScript* self, void*, int
     auto& areas = Field<mfc::CArray<ScriptArea>>(self, 0x194);
     auto& copy = Field<mfc::CArray<ScriptArea>>(scratch.bytes, 0x194);
     copy = areas;
+    // The elements kept in our memory; ours runs first and the copy's block is made after it
+    // (SV2f).
+    std::vector<unsigned char> kept;
     if (areas.data) {
-        copy.data = static_cast<ScriptArea*>(
-            gamecrt::operator_new(static_cast<unsigned>(areas.maxSize) * sizeof(ScriptArea)));
-        std::memcpy(copy.data, areas.data, static_cast<unsigned>(areas.size) * sizeof(ScriptArea));
+        const auto* p = reinterpret_cast<const unsigned char*>(areas.data);
+        kept.assign(p, p + static_cast<unsigned>(areas.size) * sizeof(ScriptArea));
     }
     int oldSize = areas.size;
 
-    mfc::CArray<ScriptAreaPart>* expected = s_findArea(scratch.Script(), nullptr, id);
     mfc::CArray<ScriptAreaPart>* actual = self->FindArea(id);
+    if (copy.data) {
+        copy.data = static_cast<ScriptArea*>(
+            gamecrt::operator_new(static_cast<unsigned>(copy.maxSize) * sizeof(ScriptArea)));
+        if (!kept.empty()) std::memcpy(copy.data, kept.data(), kept.size());
+    }
+    mfc::CArray<ScriptAreaPart>* expected = s_findArea(scratch.Script(), nullptr, id);
 
     int expectedIndex = static_cast<int>(reinterpret_cast<ScriptArea*>(expected) - copy.data);
     int actualIndex = static_cast<int>(reinterpret_cast<ScriptArea*>(actual) - areas.data);
@@ -142,8 +151,8 @@ ScriptObjectRef* __fastcall NewTempObjectVerify(CScript* self, void*) {
     ScriptListNode* oldTail = list.tail;
     ScriptListNode* oldHead = list.head;
 
+    ScriptObjectRef* actual = self->NewTempObject();   // ours first (SV2f)
     ScriptObjectRef* expected = s_newTempObject(scratch.Script(), nullptr);
-    ScriptObjectRef* actual = self->NewTempObject();
 
     ScriptList& scratchList = Field<ScriptList>(scratch.bytes, 0x1CC);
     bool linked = LinkedAtTail(list, NodeOf(actual), oldTail, oldHead);

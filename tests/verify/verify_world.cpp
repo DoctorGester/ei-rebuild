@@ -71,21 +71,46 @@ void CompareSetter(const char* name, CWorldServer* server, Ours ours, Original o
                       theirs.dc, theirs.e4);
 }
 
-// A copy of a script group holding its own references (see verify_script.cpp).
-ScriptGroup CloneGroup(const ScriptGroup& g) {
-    ScriptGroup c{};
-    c.vtable = g.vtable;
-    c.growBy = g.growBy;
-    if (g.data) {
-        c.data = static_cast<ScriptObjectRef*>(gamecrt::operator_new(g.maxSize * 4));
-        for (int i = 0; i < g.maxSize; ++i) c.data[i].object = i < g.size ? g.data[i].object : nullptr;
-        for (int i = 0; i < g.size; ++i)
-            if (c.data[i].object) ++c.data[i].object->refCount_;
+// A script group's elements kept before ours runs, each holding a reference; Clone, after ours
+// ran, makes a copy on the game heap that adopts them (see verify_script.cpp's KeptGroup, SV2f).
+struct KeptGroup {
+    ScriptGroup header{};
+    std::vector<CEngineObject*> objects;
+    bool adopted = false;
+    explicit KeptGroup(const ScriptGroup& g) {
+        header.vtable = g.vtable;
+        header.growBy = g.growBy;
+        header.size = g.size;
+        header.maxSize = g.maxSize;
+        header.data = g.data;   // only tested for null
+        if (g.data) {
+            objects.resize(static_cast<std::size_t>(g.maxSize), nullptr);
+            for (int i = 0; i < g.size; ++i) objects[static_cast<std::size_t>(i)] = g.data[i].object;
+            for (int i = 0; i < g.size; ++i)
+                if (objects[static_cast<std::size_t>(i)]) ++objects[static_cast<std::size_t>(i)]->refCount_;
+        }
     }
-    c.size = g.size;
-    c.maxSize = g.maxSize;
-    return c;
-}
+    KeptGroup(const KeptGroup&) = delete;
+    KeptGroup& operator=(const KeptGroup&) = delete;
+    ~KeptGroup() {
+        if (adopted) return;
+        for (int i = 0; i < header.size && header.data; ++i)
+            if (objects[static_cast<std::size_t>(i)]) objects[static_cast<std::size_t>(i)]->Release();
+    }
+    ScriptGroup Clone() {
+        adopted = true;
+        ScriptGroup c{};
+        c.vtable = header.vtable;
+        c.growBy = header.growBy;
+        if (header.data) {
+            c.data = static_cast<ScriptObjectRef*>(gamecrt::operator_new(header.maxSize * 4));
+            for (int i = 0; i < header.maxSize; ++i) c.data[i].object = objects[static_cast<std::size_t>(i)];
+        }
+        c.size = header.size;
+        c.maxSize = header.maxSize;
+        return c;
+    }
+};
 
 void DestroyGroup(ScriptGroup& g) {
     if (g.data) {
@@ -153,13 +178,14 @@ static bool __fastcall IsSharedVerify(CWorldServer* self, void*, int objectId, i
 }
 EI_VERIFY(0x005949D0, IsSharedVerify, 9, s_isShared);
 
-// 00594A30: PUSH EBX; PUSH EBP; MOV EBP,[ESP+0x10] (6 bytes). Writes only the group: the original
-// fills a clone, ours the real group.
+// 00594A30: PUSH EBX; PUSH EBP; MOV EBP,[ESP+0x10] (6 bytes). Writes only the group: ours fills
+// the real group, then the original a clone (made after ours, SV2f).
 static void(__fastcall* s_collectShared)(CWorldServer*, void*, int, ScriptGroup*);
 static void __fastcall CollectSharedVerify(CWorldServer* self, void*, int playerId, ScriptGroup* group) {
-    ScriptGroup scratch = CloneGroup(*group);
-    s_collectShared(self, nullptr, playerId, &scratch);
+    KeptGroup before(*group);
     self->CollectSharedObjects(playerId, group);
+    ScriptGroup scratch = before.Clone();
+    s_collectShared(self, nullptr, playerId, &scratch);
     ei::verify::Check("CWorldServer::CollectSharedObjects", true, SameGroup(scratch, *group), "player %d size %d vs %d", playerId,
                       scratch.size, group->size);
     DestroyGroup(scratch);
@@ -444,8 +470,8 @@ static BOOL(__fastcall* s_partyInExit)(CWorldClient*, void*, const RecordPtrArra
 static BOOL __fastcall PartyInExitVerify(CWorldClient* self, void*, const RecordPtrArray* records, int exit,
                                          RecordPtrArray* inExit) {
     RecordPtrArray scratch{inExit->vtable, nullptr, 0, 0, 0};
+    BOOL actual = self->PartyInExit(records, exit, inExit);   // ours first (SV2f)
     BOOL expected = s_partyInExit(self, nullptr, records, exit, &scratch);
-    BOOL actual = self->PartyInExit(records, exit, inExit);
     bool same = expected == actual && scratch.size == inExit->size;
     for (int i = 0; same && i < scratch.size; ++i) same = scratch[i] == (*inExit)[i];
     ei::verify::Check("CWorldClient::PartyInExit", true, same, "exit %d: %d/%d, %d/%d listed", exit, expected, actual,
@@ -477,8 +503,8 @@ EI_VERIFY(0x00565380, OnQuestVariableVerify, 0, s_unused);
 static mfc::CString*(__fastcall* s_objectVariableName)(CWorldClient*, void*, mfc::CString*, const char*);
 static mfc::CString* __fastcall ObjectVariableNameVerify(CWorldClient* self, void*, mfc::CString* out, const char* name) {
     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+    mfc::CString* ours = self->ObjectVariableName(out, name);   // ours first (SV2f)
     auto* theirs = s_objectVariableName(self, nullptr, reinterpret_cast<mfc::CString*>(storage), name);
-    mfc::CString* ours = self->ObjectVariableName(out, name);
     ei::verify::Check("CWorldClient::ObjectVariableName", true, ours == out && std::strcmp(*theirs, *ours) == 0,
                       "%s: %s vs %s", name, static_cast<const char*>(*theirs), static_cast<const char*>(*ours));
     theirs->~CString();

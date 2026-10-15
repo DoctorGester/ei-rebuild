@@ -3,7 +3,7 @@
 // FindSightTarget writes only its output: the original into a scratch copy. CanActFrom is pure
 // (AL compared). PlanAction and CanPlanAction draw random numbers (the animation builders): ours
 // runs with the generators' state saved, then the state is restored and the original runs (into
-// a deep copy of the plan as it was); results, plans and generator states are compared.
+// a deep copy, made after ours, of the plan as it was, kept in our memory; SV2f); results, plans and generator states are compared.
 #include "verify.h"
 
 #include "combat_verify_util.h"
@@ -13,11 +13,17 @@
 namespace {
 using namespace combatverify;
 
-// A deep copy of a plan (its own steps array of the same capacity).
-void CopyPlan(OrderPlan* copy, const OrderPlan* plan) {
-    std::memcpy(copy, plan, sizeof(OrderPlan));
-    CopySteps(&copy->animation, &plan->animation);
-}
+// A plan kept in our memory before ours runs; CopyTo makes a deep copy (its own steps array of the
+// same capacity) after, so that ours' blocks land where they would without the check (SV2f).
+struct KeptPlan {
+    OrderPlan plan;
+    KeptSteps steps;
+    explicit KeptPlan(const OrderPlan* from) : steps(&from->animation) { std::memcpy(&plan, from, sizeof(OrderPlan)); }
+    void CopyTo(OrderPlan* copy) const {
+        std::memcpy(copy, &plan, sizeof(OrderPlan));
+        steps.CopyTo(&copy->animation);
+    }
+};
 
 // Plans compared without the steps pointer: everything from the count on, and the steps.
 int PlanDifference(const OrderPlan* a, const OrderPlan* b) {
@@ -64,14 +70,14 @@ EI_VERIFY(0x0054C2F0, CanActFromVerify, 6, s_canAct);
 
 // 0054CA40: PUSH EBP; MOV EBP,ESP; PUSH -1 (5 bytes).
 static bool __fastcall PlanActionVerify(CUnitServer* self, void*, const UnitAction* order, OrderPlan* plan) {
-    OrderPlan scratch, beforePlan;
-    CopyPlan(&scratch, plan);
-    CopyPlan(&beforePlan, plan);
+    KeptPlan beforePlan(plan);
     RandomState before, afterOurs, afterOriginal;
     before.Save();
     bool actual = self->PlanAction(order, plan);
     afterOurs.Save();
     before.Restore();
+    OrderPlan scratch;
+    beforePlan.CopyTo(&scratch);
     bool expected = s_plan(self, nullptr, order, &scratch);
     afterOriginal.Save();
     int diff = PlanDifference(&scratch, plan);
@@ -83,7 +89,7 @@ static bool __fastcall PlanActionVerify(CUnitServer* self, void*, const UnitActi
         // agrees with the original means the first run changed state the second one read.
         PlanTrace trace = LastPlanTrace();
         OrderPlan again;
-        CopyPlan(&again, &beforePlan);
+        beforePlan.CopyTo(&again);
         before.Restore();
         bool rerun = self->PlanAction(order, &again);
         afterOriginal.Restore();
@@ -100,7 +106,6 @@ static bool __fastcall PlanActionVerify(CUnitServer* self, void*, const UnitActi
         FreeSteps(&again.animation);
     }
     FreeSteps(&scratch.animation);
-    FreeSteps(&beforePlan.animation);
     return expected;
 }
 EI_VERIFY(0x0054CA40, PlanActionVerify, 5, s_plan);
