@@ -978,6 +978,15 @@ group = "verification"
 status = "queued"
 note = "SV6 full suite (4 jobs): the Rebirth run timed out twice at step 11 (wait 150000); alone it passes in 92 s (vanilla 50 s). Shorten the wait or raise the limit, or find what makes the Rebirth run slower."
 
+[[ticket]]
+id = "SV6b"
+title = "Rare under-load failures after SV6: SendResume mismatch, sound leader dead"
+group = "verification"
+status = "queued"
+size = 0.5
+files = ["tests/verify/verify_player_messages.cpp"]
+note = "Main suite after the SV6 merge (2026-10-15, 16 at once): CPlayerClient::SendResume (wrapper newly installed by SV6) mismatched once in render_cursor_present-rebirth ('client 02D3BFC0: size 1 vs 1': the compare message prints equal sizes, so the bytes or another field differ and the message hides which); sound-vanilla failed 'check IsAlive(GetLeader()) printed 0' once. Both passed on a re-run alone. Make the SendResume message name the differing field, then find the cause; check whether the sound failure repeats under load (several suites) before chasing it."
+
 # ---------------------------------------------------------------- harness and suite
 
 [[ticket]]
