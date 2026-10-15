@@ -1481,7 +1481,7 @@ done = "2026-10-15"
 id = "S3"
 title = "Standalone: the 748 static initialisers, generated"
 group = "standalone"
-status = "running"
+status = "review"
 size = 1
 files = ["tools/gen_static_init.py", "src/standalone/static_init.cpp"]
 note = "The .data list 00783004-00783BB0. A generator turns the 15 patterns (guarded atexit, stores, float folds, constructor + atexit) into C++ run in list order before WinMain in the standalone build; the 30 or so others by hand. Check: a verify-build start-up check evaluates the generated stores and float folds against what the original's initialisers left in memory at WinMain. No dependency."
@@ -1662,6 +1662,22 @@ status = "later"
 size = 0.5
 files = ["src/game/short_functions.cpp", "tools/gen_short_functions.py"]
 note = "S2 ported 45 of the 200 short functions as LoadDword<n> / MemberAddress<n> / LoadFloat<n> / ReturnThis, reading the object as dwords (the vtable each sits in is named in the comment). Where the class is declared in src/game, register a member getter instead (EI_REPLACE_SHORT with a method) and drop the generic one; gen_short_functions.py then skips it as ported elsewhere only if the check accepts EI_REPLACE_SHORT on methods. Cleanup only, no effect on the image."
+
+[[ticket]]
+id = "S3a"
+title = "Standalone: the static initialisers' exit functions"
+group = "standalone"
+status = "queued"
+depends = ["S3"]
+note = "130 of the 311 functions the static initialisers register with atexit have no code in the image (the standalone check logs them: 'exit function ... has no code yet'). Patterns: 83 'mov ecx, obj; jmp dtor', guarded variants (test/or of a flag bit, then the same), 14 'free the buffer at [p]-4 if set' (operator delete), refcount releases, eh vector destructor iterator, a WSACleanup loop. Extend tools/gen_static_init.py (conditional branches) or port by hand like src/game/atexit_400.cpp; registered with EI_REPLACE they also run at exit in the hook build. docs/notes/standalone.md S3."
+
+[[ticket]]
+id = "S3b"
+title = "Standalone: constructors only the static initialisers call"
+group = "standalone"
+status = "queued"
+depends = ["S3"]
+note = "Call targets of the generated static initialisers (src/standalone/static_init.cpp) that no library ticket covers, as the standalone check lists them: compiler-generated global constructors 0051FB10 (skill archive), 005612F0 (CWorldClient), 00589ED0 (CWorldServer), 0057E2F0 (spell tables), 0057E3D0 (item database), 0065F580 (multiplayer heroes), 006AE0F0 (quest database), 006D0250 (prints), 006D7220 (acks), 005CDFC0; MFC internals 006E6BCD (x10), 006E68C9, 006E6916, 006E6AEA, 006E6B37, 0070B600, 0070D1AA, 00704546 (x4), 0070DC4D, 00700674 (x5), 006FC42F (x8). Check first which S4-S12 already take (CString, CWordArray, CByteArray, CArray, CList, hashtable and stlp ctors 00455E50, 004ED540, 0056A410, 004DC830, 0066B320, 005E0A90; atexit, eh vector constructor, the WSAStartup thunk). Port with EI_REPLACE at the address and a verify start-up check where they build data. docs/notes/standalone.md S3."
 
 # ---------------------------------------------------------------- Lua
 
