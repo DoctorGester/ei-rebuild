@@ -6,6 +6,7 @@
 #include "verify.h"
 
 #include "../../src/game/terrain_sector.h"
+#include "../../src/hook/log.h"
 
 #include <cstring>
 #include <vector>
@@ -105,6 +106,14 @@ void __fastcall LightVerify(SectorData* self, void*, CLight* sun, Terrain* owner
     bool state = flagOriginal == self->hasSpecular && builtOriginal == self->built &&
                  stampOriginal == self->relightCountdown && sectorOriginal == owner->lightingSector &&
                  lxOriginal == owner->lightingX && lyOriginal == owner->lightingY;
+    if (first >= 0) {
+        const SectorVertex& a = original[first];
+        const SectorVertex& b = self->records.data[first];
+        ei::Log("SectorData::Light: %d record(s) differ; record %d original colour %08X specular %08X lit %.9g %.9g "
+                "%.9g, ours %08X %08X %.9g %.9g %.9g",
+                mismatches, first, a.colour, a.specular, a.lit.x, a.lit.y, a.lit.z, b.colour, b.specular, b.lit.x,
+                b.lit.y, b.lit.z);
+    }
     ei::verify::Check("SectorData::Light", 0, mismatches, "(%d, %d)-(%d, %d) skip %d: first record %d", x0, y0, x1, y1,
                       skipSun, first);
     ei::verify::Check("SectorData::Light", true, state, "flags / owner fields");

@@ -207,7 +207,7 @@ note = "R9c1 tests the recreation with render::LoseDevice (Present reported DXGI
 id = "R10"
 title = "Hooked harness runs on our renderer by default; dgVoodoo only for reference runs"
 group = "renderer"
-status = "running"
+status = "review"
 size = 0.8
 model = "opus"
 files = ["tools/run_all.py", "tools/work_sched.py", "tools/compare.py", "tests/verify/harness.cpp"]
@@ -222,6 +222,13 @@ status = "queued"
 size = 0.3
 model = "sonnet"
 note = "From R9c2 (2026-10-15): under Rebirth, render_present, render_movie_present, render_device_lost, render_present_shot and render_cursor_present end with 'game still running 3 s after the scenario quit; terminating it'. An older render_present-rebirth log on main stops at DestroyClassRegistry, so it likely predates R9c2. Find where the exit hangs and fix it."
+
+[[ticket]]
+id = "R10a"
+title = "SectorData::Light: a one-record verify mismatch in runs on our renderer (vanilla/Rebirth)"
+group = "renderer"
+status = "queued"
+note = "From R10: ui_battle_commands vanilla (twice, record 733, sector (0,0)-(32,32) skip 0) and effects_bow rebirth (record 950) failed with 1 SectorData::Light mismatch when run with EI_RENDER=new,present; the same scenarios passed in 4 other present runs, in native runs and in every dgVoodoo run on the board. The wrapper (verify_terrain_lighting.cpp) now logs both records' colour / specular / lit values at the first mismatch: catch one, see whether it is a one-step rounding edge (the wrapper's own caveat) or an input that changes between the two calls (x87 precision after the dgVoodoo DirectX probe, another thread)."
 
 # ---------------------------------------------------------------- native interface drawing
 

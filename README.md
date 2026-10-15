@@ -155,5 +155,10 @@ default 16; the whole suite takes about 2 minutes). Each run writes to its own f
 report and `harness_saves`, emptied first, so every run starts without saves or texture cache.
 For parallel runs the harness ignores other game windows (the game otherwise exits when it finds
 one), keeps the game active when it loses focus (it otherwise pauses), and opens data files for
-shared reading. A game that Windows gave the foreground and that lost it to a starting game is
-minimised by dgVoodoo, which can take its surfaces for good; a run that fails after that is run again. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.
+shared reading. Runs of our code draw with our renderer (`EI_RENDER=new,present`, no display mode
+change, so none needs the machine to itself); dgVoodoo draws the original code (`--no-hooks`,
+`--widescreen`'s reference, compare.py's original side), scenarios whose `render` step leaves out
+`present`, and everything with `--dgvoodoo` or `--widescreen` (its frames are compared with the original's). Passed runs of the original code are cached in
+`build\reference` by scenario commit and install (`--fresh` plays them again); docs/notes/renderer.md, R10.
+A game that Windows gave the foreground and that lost it to a starting game is
+minimised by dgVoodoo, which can take its surfaces for good; a dgVoodoo run that fails after that is run again. `python tools\resolve_crash.py build\verify\runs\<run>` reads a run's crash.

@@ -34,7 +34,8 @@ One process (`work.py scheduler`, started on demand by the first `test`, exits w
 machine's game slots (EI_HARNESS_SLOTS, 16). Batches run in submission order; a batch gets every
 free slot until its runs are all started, and the next batch only fills slots the earlier one cannot
 use (backfill). So one worker's suite finishes in about its own length instead of interleaving with
-three others. Runs that set the display mode still run alone. The runner is run_all's `run()`,
+three others. Runs that set the display mode still run alone (since R10 only dgVoodoo runs with a `resolution`
+step: runs of our code draw with our renderer, run_all.runs_alone; a reference run the cache holds is never alone). The runner is run_all's `run()`,
 pointed at the batch's worktree and build folder, so results and run folders stay where they are now.
 run_all without the scheduler keeps working (its slot locks are the same files), so the switch is gradual.
 
