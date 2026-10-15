@@ -15,18 +15,13 @@ Then SaveWorld's lists: the missiles (CSpellEffect::Save 0067E960), the AI event
 004557F0) and the countdowns (TweenSave 006D47E0).
 """
 
-ITEM_TYPES = {0x3004: 'weapon', 0x3005: 'armor', 0x3006: 'quick', 0x3007: 'loot', 0x3008: 'spellItem',
-              0x3009: 'quest'}
-
-
-def read_fixed_string(r, name, size):
+def read_fixed_string(r, name, size, why):
     """A char[size] buffer written whole: the text up to its terminator, the rest left out."""
     raw = r.raw(None, size)
     end = raw.find(b'\0')
     text = raw[:end if end >= 0 else size].decode('cp1251', 'replace')
     r.put(name, '"' + text.replace('\\', '\\\\').replace('"', '\\"') + '"')
-    r.excluded(name + 'Tail', 'junk', f'the bytes after the terminator of the {size:#x}-byte buffer: leftovers of '
-               'longer earlier texts, never read')
+    r.excluded(name + 'Tail', 'junk', why)
     r.put(name + 'Tail', '~junk')
 
 
@@ -35,7 +30,9 @@ def read_fixed_string(r, name, size):
 def read_sound(r):
     """CEffectSound::SaveState (006766D0)."""
     r.vec('position')
-    read_fixed_string(r, 'name', 0x100)
+    read_fixed_string(r, 'name', 0x100, 'CEffectSound::name_ (char[0x100]) past its terminator: Reset only clears '
+                      'name_[0], so the rest is operator new memory or the earlier name of a recycled spare; written '
+                      'whole')
     r.f32('volume')
     r.f32('radius')
     r.vec('velocity')
@@ -138,7 +135,8 @@ def read_damage(r, name):
         r.i32('hitKind')
         r.f32('backstabFactor')
         r.u8('calledShot')
-        r.junk('pad', 3, 'DamageInfo +0x39..+0x3B: padding after calledShot, written with the struct')
+        r.junk('pad', 3, 'DamageInfo +0x39..+0x3B: padding after calledShot; DeliverAttack (0054F450) copies the hit '
+               'whole from a stack DamageInfo, and it is written whole')
 
 
 def read_arrow_figure(r):
@@ -470,7 +468,8 @@ def read_script(r):
         for k in range(n):
             with r.scope(f'part{k}'):
                 r.u8('isRect')
-                r.junk('pad', 3, 'ScriptAreaPart +0x01..+0x03: padding after isRect, written with the struct')
+                r.junk('pad', 3, 'ScriptAreaPart +0x01..+0x03: AddRect / AddRound (004B1ED0 / 004B2070) set '
+                       'only the isRect byte of their stack part; the padding is stack leftovers copied with it')
                 r.f32('x')
                 r.f32('y')
                 r.f32('x2OrRadiusSquared')

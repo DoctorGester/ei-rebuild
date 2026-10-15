@@ -9,12 +9,13 @@ END_OF_OBJECTS = -0x521   # CBaseManager::SaveObjects' end mark (base_manager.cp
 
 PLAIN = {0x35: 'tree', 0x36: 'building', 0x37: 'stone', 0x38: 'stuff'}
 UNITS = (0x32, 0x33, 0x34, 0x39)
+BUILT_FLAGS = "+0x00: the only write is `|= 1` on ApplyPrototype's (00513B60) stack copies; GiveDefaults (00513630) and the Resets (00523370, 005233E0) leave it, so it holds whatever that stack held; nothing reads it"
 
 
 def read_vitals(r, name):
     """UnitVitals (0x58 bytes, unit.h), written raw."""
     with r.scope(name):
-        r.x32('builtFlags')
+        r.junk('builtFlags', 4, 'UnitVitals ' + BUILT_FLAGS)
         r.i32('regenTicks')
         for field in ('hp', 'maxHp', 'hpRegen', 'mana', 'maxMana', 'manaRegen'):
             r.f32(field)

@@ -91,68 +91,9 @@ def is_text_key(uid):
 
 
 def read_stats(r, name, text_key):
-    """UnitStats::SaveTo (00528800): the 0x704-byte block raw (unit.h UnitStats). `text_key`: the unit's id is a
-    text key (its fixedMaxHitPoints is never read)."""
-    f = r.f32
-    with r.scope(name):
-        r.x32('builtFlags')
-        for n in ('experience', 'spentExperience', 'stat10Base', 'stat10', 'stat18Base', 'stat18', 'stat20Base',
-                  'stat20', 'speedBase', 'speed', 'rateBase', 'rate'):
-            f(n)
-        for i in range(4):
-            f(f'modeSpeed{i}')
-        for n in ('sightCone', 'peripheralRange', 'sideCone', 'load', 'capacity', 'loadFactor', 'armsFactor'):
-            f(n)
-        r.i32('movementKind')
-        r.x32('modelField8')
-        r.i16('sizeClass')
-        r.junk('unused06A', 2, 'UnitStats +0x6A: the half after sizeClass, never set; the block is written raw')
-        r.i16('sizeClass20')
-        r.i16('sizeClass60')
-        for n in ('reach', 'attack', 'attackSpread', 'defence', 'combatSpeed', 'damage', 'damageSpread'):
-            f(n)
-        r.x32('prototypeField12')
-        for i in range(7):
-            f(f'damageWeight{i}')
-        r.i32('naturalWeapon')
-        for block in ('valuesB0', 'valuesE0'):
-            for i in range(6):
-                f(f'{block}.{i}.base')
-                f(f'{block}.{i}.current')
-        for s in range(6):
-            with r.scope(f'slot{s}'):
-                r.i32('type')
-                r.x32('vitalMask')
-                for k in range(3):
-                    with r.scope(f'layer{k}'):
-                        r.x32('layerMask')
-                        for i in range(7):
-                            f(f'absorb{i}')
-                        r.junk('spareAbsorb', 28, 'UnitStatLayer +0x20: Reset (005236A0) and the builders leave '
-                               'it, only ClearOuterLayers (005232B0) zeroes it (layers 1-2) and nothing reads it: '
-                               'stack or heap leftovers copied with the stats')
-                        r.i32('state')
-                        r.i32('spareA')
-                        r.i32('spareB')
-                r.i32('kind')
-                f('current')
-                f('maximum')
-                f('share')
-                f('factor')
-        r.put('attributes', r.take(3).hex())
-        r.put('skills', r.take(8).hex())
-        r.put('skillLevels', r.take(0x24).hex())
-        r.junk('skillLevelsPad', 1, 'UnitStats +0x6F7: the byte after the 36 skill levels, before flags; nothing '
-               'writes it (the skill price sums 0x24 levels, the trade panel copies 36): stack copies of the stats '
-               'carry leftovers there')
-        r.x32('flags')
-        if text_key:
-            r.junk('fixedMaxHitPoints', 4, 'UnitStats +0x6FC: read only for units whose id is not a text key '
-                   '(RecomputeHitPoints 005243D0, Recompute 00524560); a text-key unit\'s stats built on the stack '
-                   'leave leftovers there')
-        else:
-            f('fixedMaxHitPoints')
-        f('pendingExperience')
+    """UnitStats::SaveTo (00528800): the same block a unit writes, so savefile_unit's reader and rules."""
+    import savefile_unit
+    savefile_unit.read_stats(r, name, text_key)
 
 
 def _item_ids(r, name):

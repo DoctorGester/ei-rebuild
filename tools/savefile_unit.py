@@ -4,7 +4,23 @@ Map object types 0x32-0x34 and the fake unit 0x39 all save through CUnit::SaveUn
 keeps slot 10); a unit's controller on the server is CUnitServer (vtable 0073EF38, class 0x3E), whose Save is
 CUnitServer::SaveServer (005561C0, combat_save.cpp).
 """
+
 import savefile_objects as objects
+
+ONE_BITS = 0x3F800000       # 1.0f
+UNSET_SHELTER = 0xC4A42000  # -1313.0f, FearMode::Construct's "no shelter"
+
+
+def peek_u32(r, at=0):
+    """The dword `at` bytes ahead, unread (None past the end)."""
+    v = r.peek_i32(at)
+    return None if v is None else v & 0xFFFFFFFF
+
+
+def junk_vec(r, name, why, n=3):
+    with r.scope(name):
+        for i in range(n):
+            r.junk('xyzw'[i], 4, why)
 
 
 # ---- small records -------------------------------------------------------------------------------------
@@ -21,6 +37,7 @@ def read_step_list(r, name):
                 r.junk('padding', 1, 'AnimationStep +3: 00550A60 never sets the byte, the step carries a stack byte')
                 r.i32('duration')
                 r.i32('kind')
+    return count
 
 
 def read_path_cell(r, name):
@@ -34,7 +51,7 @@ def read_path_cell(r, name):
 def read_motion_order(r):
     """AIPath::SaveOrder (005C8370, ai_path_save.cpp): the MotionOrder, then its steps (8 bytes each)."""
     with r.scope('order'):
-        r.i32('kind')
+        kind = r.i32('kind')
         r.f32('x')
         r.f32('y')
         r.f32('angle')
@@ -45,19 +62,27 @@ def read_motion_order(r):
         count = r.i32('steps')
         for i in range(count):
             read_path_cell(r, f'step{i}')
+    return kind
 
 
 def read_path(r, name):
     """AIPath::SavePath (005B2570, ai_path_save.cpp): the cells, the order, the target, the goal, the flags,
-    the excluded blocks and the smoothing value."""
+    the excluded blocks and the smoothing value. Returns the order's kind."""
     with r.scope(name):
         count = r.i32('cells')
         for i in range(count):
             read_path_cell(r, f'cell{i}')
-        read_motion_order(r)
+        kind = read_motion_order(r)
+        x = peek_u32(r)
         r.f32('targetX')
+        y = peek_u32(r)
         r.f32('targetY')
-        r.vec('goal')
+        if x == 0 and y == 0:
+            junk_vec(r, 'goal', 'AIPath +0x60 goal while targetX/Y are 0 (the clear 005B23A0, no search since): only '
+                     'FindPath sets it (PathTo then +0x68), read only after a search (Replan, ReportPath); unset '
+                     'before the first one')
+        else:
+            r.vec('goal')
         r.u8('reached')
         r.u8('failed')
         r.u8('flag6E')
@@ -68,105 +93,135 @@ def read_path(r, name):
                 r.i32('x')
                 r.i32('y')
         r.i32('smoothing')
+    return kind
 
 
 def read_plan(r, name):
     """The current plan: AnimationSteps::Save (00544F60: the count, the steps, extra), then the plan's fields
     (SavePlanFields, combat_save.cpp)."""
     with r.scope(name):
-        read_step_list(r, 'animation')
+        steps = read_step_list(r, 'animation')
         r.i32('animation.extra')
         r.i32('startTime')
-        r.i32('endTime')
-        r.id('targetId')
+        end = r.i32('endTime')
+        target = r.id('targetId')
         r.i32('hitLocation')
         r.f32('rangeSq')
         r.u8('isCast')
         r.u8('notSkill')
         r.i32('castKind')
-        r.vec('direction')
+        if steps == 0 and end == 0 and target == -1:
+            junk_vec(r, 'direction', 'OrderPlan +0x38 direction of an empty plan (OrderPlanReset 00544FD0 / '
+                     'ResetController leave it): only PlanAction (0054CA40) sets it, for the plan it makes; unset '
+                     'before the first plan, a leftover after')
+        else:
+            r.vec('direction')
+
+
+ORDER_NO_SOURCE = (0, 2, 7, 8, 9, 11)   # UnitAction kinds whose setters leave +0x04
+ORDER_NO_POINT = (0, 7, 8, 9, 11)       # and +0x0C
 
 
 def read_order(r, name):
     """SaveOrder (combat_save.cpp): a UnitAction's kind, source, target id (AIRef::Save 0050E290), point,
     param, modifier and flag18."""
     with r.scope(name):
-        r.i32('kind')
-        r.x32('source')
+        kind = r.i32('kind')
+        if kind in ORDER_NO_SOURCE:
+            r.junk('source', 4, 'UnitAction +0x04 of an order of kind 0, 2, 7, 8, 9 or 11: none of their setters '
+                   '(OrderTurn, PlayAnimation, StopQueued, the resets 0054B230 / 00545F70) sets it; a leftover '
+                   'or never set')
+        else:
+            r.x32('source')
         r.id('target')
-        r.vec('point')
+        if kind in ORDER_NO_POINT:
+            junk_vec(r, 'point', 'UnitAction +0x0C of an order of kind 0, 7, 8, 9 or 11: their setters '
+                     '(PlayAnimation, StopQueued, the resets 0054B230 / 00545F70, ResetController) leave it; a '
+                     'leftover or never set')
+        else:
+            r.vec('point')
         r.i32('param')
         r.u8('modifier')
         r.u8('flag18')
 
 
-# UnitStats (unit.h, 0x704 bytes) by offset.
-def _stats_names():
-    names = {0x000: 'builtFlags', 0x004: ('f', 'experience'), 0x008: ('f', 'spentExperience')}
-    for i, n in enumerate(('stat10Base', 'stat10', 'stat18Base', 'stat18', 'stat20Base', 'stat20', 'speedBase',
-                           'speed', 'rateBase', 'rate')):
-        names[0x0C + 4 * i] = ('f', n)
-    for i in range(4):
-        names[0x34 + 4 * i] = ('f', f'modeSpeeds{i}')
-    for at, n in ((0x44, 'sightCone'), (0x48, 'peripheralRange'), (0x4C, 'sideCone'), (0x50, 'load'),
-                  (0x54, 'capacity'), (0x58, 'loadFactor'), (0x5C, 'armsFactor')):
-        names[at] = ('f', n)
-    names[0x60] = ('i', 'movementKind')
-    names[0x64] = 'modelField8'
-    # +0x68: sizeClass, unused_06A (int16 each); +0x6C: sizeClass20, sizeClass60 - kept as dwords
-    names[0x68] = 'sizeClass+unused6A'
-    names[0x6C] = 'sizeClass20+sizeClass60'
-    for i, n in enumerate(('reach', 'attack', 'attackSpread', 'defence', 'speedCombat', 'damage', 'damageSpread')):
-        names[0x70 + 4 * i] = ('f', n)
-    names[0x8C] = 'prototypeField12'
-    for i in range(7):
-        names[0x90 + 4 * i] = ('f', f'damageWeights{i}')
-    names[0xAC] = ('i', 'naturalWeapon')
-    for i in range(6):
-        names[0xB0 + 8 * i] = ('f', f'valuesB0_{i}.base')
-        names[0xB4 + 8 * i] = ('f', f'valuesB0_{i}.current')
-        names[0xE0 + 8 * i] = ('f', f'valuesE0_{i}.base')
-        names[0xE4 + 8 * i] = ('f', f'valuesE0_{i}.current')
-    for s in range(6):
-        base = 0x110 + 0xF4 * s
-        p = f'slot{s}.'
-        names[base] = ('i', p + 'type')
-        names[base + 4] = p + 'vitalMask'
-        for l in range(3):
-            lb = base + 8 + 0x48 * l
-            q = f'{p}layer{l}.'
-            names[lb] = q + 'layerMask'
-            for t in range(7):
-                names[lb + 4 + 4 * t] = ('f', f'{q}absorb{t}')
-                names[lb + 0x20 + 4 * t] = ('f', f'{q}spareAbsorb{t}')
-            names[lb + 0x3C] = ('i', q + 'state')
-            names[lb + 0x40] = q + 'spareA'
-            names[lb + 0x44] = q + 'spareB'
-        names[base + 0xE0] = ('i', p + 'kind')
-        for at, n in ((0xE4, 'current'), (0xE8, 'maximum'), (0xEC, 'share'), (0xF0, 'factor')):
-            names[base + at] = ('f', p + n)
-    # +0x6C8 attributes[3], skills[8], skillLevels[0x25] (bytes): dwords +6C8..+6F4 by offset
-    names[0x6F8] = 'flags'
-    names[0x6FC] = ('f', 'fixedMaxHitPoints')
-    names[0x700] = ('f', 'pendingExperience')
-    return names
+STATS_STACK = ('UnitStats is built as a stack copy (UnitStatsBuilder::ApplyPrototype 00513B60, the party records) '
+               'and UnitStats::Reset (005233E0) does not clear this')
 
 
-STATS_NAMES = _stats_names()
-
-
-def read_stats(r, name):
-    """UnitStats::SaveTo (00528800, unit_stats_io.cpp): the whole 0x704-byte block raw."""
+def read_stat_slot(r, name):
+    """A UnitStatSlot (unit.h, 0xF4 bytes) of the raw stats block."""
+    spare = ('UnitStatLayer +0x20..+0x3B spareAbsorb: nothing reads it, only ClearOuterLayers zeroes it; '
+             + STATS_STACK)
     with r.scope(name):
-        for at in range(0, 0x6C8, 4):
-            spec = STATS_NAMES.get(at, ('x', f'+{at:X}'))
-            spec = spec if isinstance(spec, tuple) else ('x', spec)
-            {'i': r.i32, 'u': r.u32, 'x': r.x32, 'f': r.f32}[spec[0]](spec[1])
+        r.i32('type')
+        r.x32('vitalMask')
+        for l in range(3):
+            with r.scope(f'layer{l}'):
+                r.x32('layerMask')
+                for t in range(7):
+                    r.f32(f'absorb{t}')
+                for t in range(7):
+                    r.junk(f'spareAbsorb{t}', 4, spare)
+                r.i32('state')
+                r.x32('spareA')
+                r.x32('spareB')
+        kind = r.i32('kind')
+        r.f32('current')
+        r.f32('maximum')
+        if kind == 0:
+            why = ('UnitStatSlot +0xEC/+0xF0 (share, factor) of an unused slot (kind 0): UnitStatSlot::Reset (00523600) '
+                   'leaves them and the builders set them only for the slots of the model; ' + STATS_STACK)
+            r.junk('share', 4, why)
+            r.junk('factor', 4, why)
+        else:
+            r.f32('share')
+            r.f32('factor')
+
+
+def read_stats(r, name, text_key):
+    """UnitStats::SaveTo (00528800, unit_stats_io.cpp): the whole 0x704-byte block (unit.h) raw."""
+    with r.scope(name):
+        r.junk('builtFlags', 4, 'UnitStats ' + objects.BUILT_FLAGS)
+        r.f32('experience')
+        r.f32('spentExperience')
+        for n in ('stat10Base', 'stat10', 'stat18Base', 'stat18', 'stat20Base', 'stat20', 'speedBase', 'speed',
+                  'rateBase', 'rate'):
+            r.f32(n)
+        for i in range(4):
+            r.f32(f'modeSpeeds{i}')
+        for n in ('sightCone', 'peripheralRange', 'sideCone', 'load', 'capacity', 'loadFactor', 'armsFactor'):
+            r.f32(n)
+        r.i32('movementKind')
+        r.x32('modelField8')
+        r.i16('sizeClass')
+        r.junk('unused6A', 2, 'UnitStats +0x6A: an int16 nothing writes; ' + STATS_STACK)
+        r.i16('sizeClass20')
+        r.i16('sizeClass60')
+        for n in ('reach', 'attack', 'attackSpread', 'defence', 'speedCombat', 'damage', 'damageSpread'):
+            r.f32(n)
+        r.x32('prototypeField12')
+        for i in range(7):
+            r.f32(f'damageWeights{i}')
+        r.i32('naturalWeapon')
+        for group in ('valuesB0', 'valuesE0'):
+            for i in range(6):
+                r.f32(f'{group}_{i}.base')
+                r.f32(f'{group}_{i}.current')
+        for s in range(6):
+            read_stat_slot(r, f'slot{s}')
         r.raw('attributes', 3)
         r.raw('skills', 8)
-        r.raw('skillLevels', 0x25)
+        r.raw('skillLevels', 0x24)
+        r.junk('skillLevels36', 1, 'UnitStats +0x6F7: the 37th skill level byte; Reset clears 36 (0x6D3..0x6F6), '
+               'the trade panel copies 36 and no skill reaches index 36; ' + STATS_STACK)
         r.x32('flags')
-        r.f32('fixedMaxHitPoints')
+        if text_key:
+            r.junk('fixedMaxHitPoints', 4, 'UnitStats +0x6FC of a text-key unit: RecomputeHitPoints (005243D0) reads '
+                   'it only for units without a text key, and the stats of a text-key unit come from its party record, '
+                   'which does not set it; ' + STATS_STACK)
+        else:
+            r.f32('fixedMaxHitPoints')
         r.f32('pendingExperience')
 
 
@@ -183,7 +238,7 @@ def read_damage_info(r, name):
         r.i32('hitKind')
         r.f32('backstabFactor')
         r.u8('calledShot')
-        r.junk('pad39', 3, 'DamageInfo +0x39..+0x3B: padding after calledShot, written with the raw block')
+        r.raw('pad39', 3)   # zeroed with the record by ResetController (memset); the builders write fields
 
 
 # ---- the AI brain (AIBrain::Save 005D8860, unit_ai_brain.cpp) --------------------------------------------
@@ -196,8 +251,9 @@ def read_look(r, name):
         r.u8('stopFirst')
 
 
-def read_mode(r, name):
-    """A mode: its type (slot 8), then its Save (slot 12; unit_ai_modes.cpp)."""
+def read_mode(r, name, thought):
+    """A mode: its type (slot 8), then its Save (slot 12; unit_ai_modes.cpp). `thought`: the brain's decay is
+    not 1.0 (AIBrain::Think 005D53B0 ran since the brain was set up or loaded)."""
     with r.scope(name):
         kind = r.i32('type')
         if kind == 0:       # GuardMode::Save 005D0F00
@@ -217,8 +273,17 @@ def read_mode(r, name):
         elif kind == 2:     # SentryMode::Save 005D1DC0
             r.vec('point')
         elif kind == 3:     # SuspectionMode::Save 005D2360
-            r.vec('point')
-            r.i32('level')
+            if not thought or peek_u32(r, 8) != 0:
+                why = ('SuspectionMode +0x08..+0x17 (point, level): the constructors (AddSuspectionMode, '
+                       'NewModeOfType, the script\'s) leave them; Evaluate (005D1E90, each Think past the inactive '
+                       'test) copies the noticed point with z 0 once it differs (unordered counts as the same, so a '
+                       'NaN x survives). Junk while the brain has not thought since it was set up or loaded (decay '
+                       '1.0) or point.z is not 0 (never copied)')
+                junk_vec(r, 'point', why)
+                r.junk('level', 4, why)
+            else:
+                r.vec('point')
+                r.i32('level')
         elif kind == 4:     # AggressionMode::Save 005D27A0
             r.id('enemy')
             r.u8('fixed')
@@ -232,9 +297,28 @@ def read_mode(r, name):
         elif kind == 7:     # FearMode::Save 005D36F0
             r.f32('distance')
             r.f32('spread')
-            r.vec('shelter')
+            with r.scope('shelter'):
+                x = peek_u32(r)
+                r.f32('x')
+                if x == UNSET_SHELTER:
+                    why = ('FearMode +0x14/+0x18 (shelter y, z) while x is -1313 (no shelter): FearMode::Construct '
+                           '(005D2850) sets only x')
+                    r.junk('y', 4, why)
+                    r.junk('z', 4, why)
+                else:
+                    r.f32('y')
+                    r.f32('z')
             r.u8('flag')
-            r.vec('fleePoint')
+            with r.scope('fleePoint'):
+                if peek_u32(r, 8) == 0:
+                    why = ('FearMode +0x1C/+0x20 (fleePoint x, y) while z is 0 (none pending): FearMode::Construct '
+                           '(005D2850) sets only z, and they are read only while z is 1')
+                    r.junk('x', 4, why)
+                    r.junk('y', 4, why)
+                else:
+                    r.f32('x')
+                    r.f32('y')
+                r.f32('z')
         elif kind == 10:    # FollowMode::Save 005D1E80
             r.id('leader')
         else:
@@ -330,6 +414,7 @@ def read_brain(r):
         r.f32('callRadius')
         r.f32('nearX')
         r.f32('nearY')
+        thought = peek_u32(r) != ONE_BITS
         r.f32('decay')
         r.vec('previousPosition')
         r.vec('position')
@@ -337,7 +422,7 @@ def read_brain(r):
         count = r.i32('modes')
         r.i32('currentMode')
         for i in range(count):
-            read_mode(r, f'mode{i}')
+            read_mode(r, f'mode{i}', thought)
         read_memory(r)
         r.u8('alerted')
         r.i8('alarm')
@@ -358,13 +443,14 @@ def read_brain(r):
 
 # ---- the controller (CUnitServer::SaveServer 005561C0, combat_save.cpp) ---------------------------------
 
-def read_controller(r):
+def read_controller(r, text_key):
+    """CUnitServer::SaveServer (005561C0). Returns the motion order's kind."""
     with r.scope('controller'):
         r.u8('frozen')
         r.u8('animationHeld')
         read_step_list(r, 'queue')
         r.i32('queue.extra')
-        read_path(r, 'motion')
+        motion_kind = read_path(r, 'motion')
         read_plan(r, 'plan')
         r.u8('keepHitDirection')
         r.u8('stoodBlocked')
@@ -374,18 +460,27 @@ def read_controller(r):
         r.i32('savedQueue.extra')
         r.x32('hitDirection')
         r.i32('state')
+        sneaking = 0
         for name in ('moveMode', 'moveMode2'):      # MoveModeState (8 bytes) raw
             with r.scope(name):
                 r.i32('mode')
                 r.u8('flag4')
-                r.u8('wasMode3')
-                r.junk('pad', 2, 'MoveModeState +6..+7: padding, written with the 8-byte record')
+                w = r.u8('wasMode3')
+                if name == 'moveMode':
+                    sneaking = w
+                r.junk('pad', 2, 'MoveModeState +6..+7: padding nothing writes (ResetController sets the fields), '
+                       'written with the 8-byte record')
         r.i32('nextAttackTime')
         r.i32('interceptTime')
-        r.i32('sneakWait')
+        if sneaking:
+            r.i32('sneakWait')
+        else:
+            r.junk('sneakWait', 4, 'CUnitServer +0x178 while moveMode.wasMode3 is 0: UpdateSneak (00548520) counts '
+                   'and reads it only while mode 3 is on and zeroes it when mode 3 starts, PathTo (00548700) zeroes '
+                   'it; neither the constructor nor ResetController sets it')
         read_order(r, 'action')
         read_order(r, 'action2')
-        read_stats(r, 'stats')
+        read_stats(r, 'stats', text_key)
         for i in range(4):
             r.f32(f'moveFactors{i}')
         r.i32('tameStage')
@@ -419,13 +514,14 @@ def read_controller(r):
         r.i32('boredTicks')
         read_damage_info(r, 'pendingHit')
         r.i32('waitFrame')
+    return motion_kind
 
 
 # ---- the unit ----------------------------------------------------------------------------------------------
 
-def read_unit_motion(r):
+def read_unit_motion(r, order_kind):
     """UnitMotion::SaveState (005C79B0, ai_motion.cpp): the trajectory points, the corners, the step speeds,
-    the turn values."""
+    the turn values. `order_kind`: the controller's motion order's kind."""
     with r.scope('motion'):
         count = r.i32('points')
         for i in range(count):
@@ -448,9 +544,18 @@ def read_unit_motion(r):
             r.f32(f'stepSpeed{i}')
         r.f32('speedScale')
         r.f32('baseTurnRate')
-        r.f32('turnRate')
+        why = ('UnitMotion +0x44/+0x4C (turnRate, turn) under a motion order of kind 0 or 3: only Build (005C67D0) '
+               'and SamplePath set them, for kinds 1, 2 and 4, and only those kinds read them (Sample 005C7430); '
+               'the unit (operator new) starts with them unset')
+        if order_kind in (0, 3):
+            r.junk('turnRate', 4, why)
+        else:
+            r.f32('turnRate')
         r.f32('startAngle')
-        r.f32('turn')
+        if order_kind in (0, 3):
+            r.junk('turn', 4, why)
+        else:
+            r.f32('turn')
 
 
 def read_items(r, name, n):
@@ -462,10 +567,13 @@ def read_items(r, name, n):
 def read_unit(r):
     """CUnit::SaveUnit (005321C0, unit_save.cpp)."""
     objects.read_map_object_base(r)
-    read_controller(r)
+    key = r.current[0].split('#')[0] if r.current else ''
+    oid = int(key[3:]) if key.startswith('obj') and key[3:].lstrip('-').isdigit() else -1
+    text_key = 1000000000 <= oid < 2000000000      # IsTextKey (004613A0)
+    order_kind = read_controller(r, text_key)
     r.string('scriptName')
     r.x32('relationsA')
-    r.i32('player')
+    player = r.i32('player')
     r.i32('side')
     r.i8('animationEntry')
     r.i8('secondEntry')
@@ -478,7 +586,7 @@ def read_unit(r):
     r.i32('pendingWeapon')
     r.i32('dead')
     r.i32('obstacle')
-    read_unit_motion(r)
+    read_unit_motion(r, order_kind)
     r.f32('heightOffset')
     r.i32('sizeClass')
     r.f32('unitRadius')
@@ -489,7 +597,11 @@ def read_unit(r):
     read_items(r, 'armor', 7)
     with r.scope('levels4C8'):
         for i in range(5):
-            r.f32(str(i))
+            if player == -1:
+                r.junk(str(i), 4, 'CUnit +0x4C8 of a unit without a player: only the party unit\'s memory update '
+                       '(005CB850 from UpdateServer) writes it; the unit (operator new) starts with it unset')
+            else:
+                r.f32(str(i))
     r.x32('relationsB')
     count = r.i32('carried')
     for i in range(count):
