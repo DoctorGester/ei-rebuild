@@ -465,3 +465,18 @@ static int __fastcall QueueScreenEntryVerify(CEngineObject* object, stlp::list<S
 }
 // 0056A370: SUB ESP,0x1C; PUSH ESI; MOV ESI,ECX (6 bytes).
 EI_VERIFY(0x0056A370, QueueScreenEntryVerify, 6, s_queueScreenEntry);
+
+// S16a, ours only (they free): the print lists' erase: out back holding the node that followed, linked
+// to the one that preceded.
+template <typename T, void** (__fastcall* Erase)(stlp::list<T>*, void*, void**, typename stlp::list<T>::Node*)>
+void** __fastcall ErasePrintVerify(stlp::list<T>* self, void*, void** out, typename stlp::list<T>::Node* pos) {
+    auto* next = pos->next;
+    auto* prev = pos->prev;
+    void** result = Erase(self, nullptr, out, pos);
+    const bool ok = result == out && *out == next && prev->next == next && next->prev == prev;
+    ei::verify::Report("CWorldClient print list erase", ok, ok ? "" : "the neighbours are not linked");
+    return result;
+}
+EI_VERIFY(0x00572550, (ErasePrintVerify<BloodPrint, &CWorldClient::EraseBloodPrint>), 0, s_unused);
+EI_VERIFY(0x00572580, (ErasePrintVerify<Footprint, &CWorldClient::EraseFootprint>), 0, s_unused);
+EI_VERIFY(0x005725B0, (ErasePrintVerify<GroundPrint, &CWorldClient::EraseScorchMark>), 0, s_unused);

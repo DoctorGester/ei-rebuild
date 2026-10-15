@@ -1640,6 +1640,13 @@ public:
     stlp::list<BloodPrint> bloodPrints_;
     stlp::list<Footprint> footprints_;
     stlp::list<GroundPrint> scorchMarks_;
+    // 00572550 / 00572580 / 005725B0 (RET 8; S16a, world_client.cpp): erase(pos) of the three lists:
+    // the node unlinked, its print destroyed (GroundPrint::Destruct), the node deleted (operator delete:
+    // the nodes are over 128 bytes); *out the node that followed it. Return out.
+    static void** __fastcall EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos);
+    static void** __fastcall EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos);
+    static void** __fastcall EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
+                                             stlp::list<GroundPrint>::Node* pos);
     int lightLevelsCountdown_;            // +0x1C4 time left before the blood prints are lit again (Segment); 0 after Setup
     RefPtr handle_;                       // +0x1C8 (vtable 0073F628)
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)

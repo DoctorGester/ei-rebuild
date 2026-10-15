@@ -16,6 +16,7 @@
 #include "../../src/game/unit_ai.h"
 #include "../../src/game/world.h"
 #include "../../src/game/world_effect.h"
+#include "../../src/lib/crt.h"
 
 #include <windows.h>
 
@@ -33,11 +34,6 @@
 namespace ei::verify::digest {
 
 namespace {
-
-// The CRT's per-thread data (_getptd, 006F00D1): +0x14 is rand()'s state (srand 006E77EA stores it
-// there). The game's main thread is the only one that draws.
-__declspec(naked) std::uint8_t* __cdecl CrtThreadData() EI_ORIGINAL(0x006F00D1)
-constexpr std::size_t kCrtRandState = 0x14;
 
 constexpr int kClassUnit = world::kClassUnit;   // 0x50
 constexpr int kClassMapObjectServer = 0x39;     // CMapObjectServer, a map object's server half
@@ -217,9 +213,9 @@ void ReadRandom(Builder& b) {
     b.Bits("isaac.c", r.c_);
     b.Bits("isaac.results", HashWords(r.results_, 256));
     b.Bits("isaac.memory", HashWords(r.memory_, 256));
-    std::uint32_t crt = 0;
-    std::memcpy(&crt, CrtThreadData() + kCrtRandState, 4);
-    b.Bits("crt.rand", crt);
+    // rand()'s state (the CRT's _holdrand, _getptd 006F00D1 +0x14 in the hook build; ours in the
+    // image). The game's main thread is the only one that draws.
+    b.Bits("crt.rand", libcrt::RandState());
 }
 
 void ReadPlayer(WorldPlayer* p, Builder& b) {

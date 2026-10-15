@@ -647,6 +647,7 @@ int __cdecl Rand() {
 EI_REPLACE(0x006E77F7, libcrt::Rand);
 
 void __cdecl Srand(unsigned seed) { RandSeed() = seed; }
+unsigned& RandState() { return RandSeed(); }
 EI_REPLACE(0x006E77EA, libcrt::Srand);
 
 // ---- Maths ----

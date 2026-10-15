@@ -184,6 +184,9 @@ double __cdecl Floor(double value);                                             
 // wrappers save and restore), in the standalone image a thread_local starting at 1.
 int __cdecl Rand();                                                             // 006E77F7
 void __cdecl Srand(unsigned seed);                                              // 006E77EA
+// The calling thread's seed itself (the harness's digest and random trace read it; S16a: the image has no
+// _getptd).
+unsigned& RandState();
 
 // Maths, plain C++ (rewrite guide rule 7), exact. (acos 006E7334, asin 006E83D4 and fmod 006E95A0
 // are CiAcos, CiAsin and StackFmod below, in the standalone image.)
