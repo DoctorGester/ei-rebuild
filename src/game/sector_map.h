@@ -134,6 +134,9 @@ public:
     // 0058A700 (reached by the AI map's unwinding and the deleting destructor). The destructor's
     // body: every sector destroyed (its slot 0, flags 0) and the array's storage freed.
     void DestructBody();
+    // 00599330 (thiscall on `sectors`; the AI map's destructor calls it): the array's vtable back,
+    // every sector destroyed, the storage freed.
+    static void __fastcall DestructSectors(mfc::CArray<Sector, SectorElements>* sectors);
     // 0058A780 (slot 0, RET 4): DestructBody, then operator delete when flags bit 0 is set.
     CSectorMap* DeletingDestruct(unsigned flags);
 

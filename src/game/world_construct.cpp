@@ -121,10 +121,10 @@ CWorldClient* CWorldClient::Construct() {
     // Both sector grids at 1 x 1 (Setup makes them 4 x 4).
     objectGrid_.unknown08_ = 1;
     objectGrid_.unknown0C_ = 1;
-    GridAllocate(&objectGrid_);
+    objectGrid_.Allocate();
     secondGrid_.unknown08_ = 1;
     secondGrid_.unknown0C_ = 1;
-    GridAllocate2(&secondGrid_);
+    secondGrid_.Allocate();
     new (&zoneName_) mfc::CString();
     bloodPrints_.Construct();
     footprints_.Construct();

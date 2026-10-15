@@ -38,7 +38,6 @@ __declspec(naked) void __fastcall DestroyOccluderGrid(void*, void*) EI_ORIGINAL(
 __declspec(naked) void __fastcall DestroyCellGrid(void*, void*) EI_ORIGINAL(0x005BD010)
 __declspec(naked) void __fastcall DestroyCellRowArray(void*, void*) EI_ORIGINAL(0x00599180)
 __declspec(naked) void __fastcall DestroyNodeGrid(void*, void*) EI_ORIGINAL(0x00598A60)
-__declspec(naked) void __fastcall DestroyLocalSearch(LocalSearch*, void*) EI_ORIGINAL(0x0058AA60)
 __declspec(naked) void __fastcall DestroyBlockSearch(BlockSearch*, void*) EI_ORIGINAL(0x00598AA0)
 __declspec(naked) void __fastcall DestroyNodeList(void*, void*) EI_ORIGINAL(0x005995E0)
 __declspec(naked) void __fastcall DestroyAreaList(void*, void*) EI_ORIGINAL(0x005997A0)
@@ -108,8 +107,9 @@ CAIMap* __fastcall ConstructAIMap(CAIMap* self) {
     return self;
 }
 
-// 005B5E10 (thiscall).
-void __fastcall ResetAIMap(CAIMap* self) {
+// 0058A450 (thiscall). The destructor inlines some member destructors the reset calls (same
+// effects).
+void __fastcall DestructAIMap(CAIMap* self) {
     DestroyEvents(self->Events(), nullptr);
     DestroyByteGrid(&self->marks, nullptr);
     DestroyOccluderGrid(&self->occluderBlock, nullptr);
@@ -124,7 +124,7 @@ void __fastcall ResetAIMap(CAIMap* self) {
     VectorDestroy(regions.regions, 0x10, 8, kRegionGridDestructor);
     VectorDestroy(regions.cells, 0x10, 8, kCellGridDestructor);
     VectorDestroy(regions.edges, 0x10, 8, kEdgeGridDestructor);
-    DestroyLocalSearch(&regions.local, nullptr);
+    regions.local.Destruct();
     DestroyBlockSearch(&regions.backward, nullptr);
     DestroyBlockSearch(&regions.forward, nullptr);
     DestroyNodeList(&self->unitLayerLarge.nodes, nullptr);
@@ -134,13 +134,19 @@ void __fastcall ResetAIMap(CAIMap* self) {
     DestroyCellSet(&self->bridges, nullptr);
     DestroyCellSet(&self->footprint, nullptr);
     self->sectorMap.vtable = reinterpret_cast<void*>(CSectorMap::kVtableAddress);
-    SectorArrayDestructOriginal(&self->sectorMap.sectors);
+    CSectorMap::DestructSectors(&self->sectorMap.sectors);
     DestroyBridgeMap(self->bridgeHeights, nullptr);
     DestroyTerrainTypes(&self->materials, nullptr);
     DestroyClimbTable(&self->climbSmall, nullptr);
     DestroyClimbTable(&self->climbLarge, nullptr);
+}
+
+// 005B5E10 (thiscall).
+void __fastcall ResetAIMap(CAIMap* self) {
+    DestructAIMap(self);
     if (self) ConstructAIMap(self);
 }
 
 EI_REPLACE(0x005B3C30, ConstructAIMap);
 EI_REPLACE(0x005B5E10, ResetAIMap);
+EI_REPLACE(0x0058A450, DestructAIMap);
