@@ -1123,3 +1123,16 @@ run (3.38 million against 0.42 million by update 125), so the free regions only 
 order, and the next change to a check that allocates before a load may flip it again (SV2d). A sturdier way is
 SV2h1c: the originals that run on twins allocate outside the reservation heap, so the reservation sees only the game's
 own blocks.
+
+## SV1c: harness games never take the foreground (2026-10-15)
+
+dgVoodoo's ddraw.dll activates the game window with its own user32 calls, which the game's import-table patches do not
+see, and a game that had the foreground and lost it to a starting game was minimised (the device restores that followed
+drew ISAAC numbers: SV2h1b's render_terrain). `noforeground::` in tests/verify/harness.cpp now patches user32 itself
+(hot patch, or the slot of exports that are only `jmp [slot]` into win32u: SetActiveWindow, SetFocus, SetWindowPos,
+ShowWindow) for every caller: SetForegroundWindow, BringWindowToTop, SetActiveWindow, SetFocus, SwitchToThisWindow do
+nothing, ShowWindow/SetWindowPos never activate (and ShowWindow ignores SW_MINIMIZE), top-level windows get
+WS_EX_NOACTIVATE from CreateWindowEx and SetWindowLong. With nothing activating the window it never got its first
+WM_ACTIVATE, so the harness sends it (ActivateWithoutForeground, once the device object exists), as the switch-over
+runs already needed. `Watch` logs when the game window becomes the foreground window: none of 2x128 suite runs did.
+run_all's MINIMISED rerun is gone. Two `--golden` suites: 128 runs each all pass, 56 goldens the same, no rerun.
