@@ -24,8 +24,6 @@ namespace {
 
 // MFC CStringArray (library).
 void __fastcall StringArrayAppend(mfc::CStringArray* a0, void*, const mfc::CStringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
-// MFC CArray helpers (library): SetSize of the 12-byte array, zeroing 8-byte elements.
-void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12SetSizeOriginal((void*)a0, nullptr, a2, a3); }
 
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
@@ -484,7 +482,7 @@ void TrapSpec::TrapSpecOnChunk() {
     case 0xBBAB0002: ReadInto(c, spell); break;
     case 0xBBAB0003: {
         std::uint32_t n = static_cast<std::uint32_t>(c.ReadInt());
-        AreasSetSize(&areas, nullptr, static_cast<int>(n), -1);
+        Array12SetSizeOriginal(&areas, nullptr, static_cast<int>(n), -1);
         for (std::uint32_t i = 0; i < n; ++i) {
             FileRead(c, areas.data + i * 12, 12);
             c.Advance(12);

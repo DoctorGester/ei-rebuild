@@ -105,7 +105,6 @@ __declspec(naked) void __fastcall StringsInsertRange(void*, void*, stlp::string*
 inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
 // STLport string members (as in figure_part_draw.cpp).
 inline void __fastcall StringInitRange(void* a0, void*, const char* a2, const char* a3, int a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
-void __fastcall StringEndOfStorage(void* a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal(a0, nullptr, a2, a3); }
 
 const std::uint8_t kAllocator = 0;
 
@@ -316,7 +315,7 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     alignas(4) char name[12];
     std::memset(name, 0, 2 * sizeof(char*));   // start and finish
     int zero = 0;
-    StringEndOfStorage(name + 8, nullptr, &kAllocator, &zero);
+    StringEndOfStorageOriginal(name + 8, nullptr, &kAllocator, &zero);
     const char* prefix = ModelPrefix(model);
     StringAssignSpan(name, nullptr, prefix, prefix + std::strlen(prefix));
     // The figure loader's slot 3 (LoadFigure; not fresh).

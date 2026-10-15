@@ -206,8 +206,6 @@ void CWorldServer::ResetZone() {
 namespace {
 
 void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOriginal((void*)a0); }
-// 0059A100. The shared-object element's object array destructor.
-void __fastcall ObjectPtrArrayDestruct(void* a0, void*) { CountedPtrArrayDestructOriginal(a0); }
 
 } // namespace
 
@@ -227,7 +225,7 @@ void CWorldServer::TeardownZone() {
 
     SharedObjectList& shared = sharedObjects_;
     for (auto* node = shared.head; node; node = node->next)
-        ObjectPtrArrayDestruct(&node->data.objects, nullptr);
+        CountedPtrArrayDestructOriginal(&node->data.objects);
     shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     aiMap_[2] = 0;   // CAIMap +0x172: refreshes off

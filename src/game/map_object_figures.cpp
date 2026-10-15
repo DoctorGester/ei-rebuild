@@ -50,9 +50,6 @@ void AnimationAddPart(void* state, void*, CFigureMesh* part) { AnimationStateAdd
 void AnimationSetScale(void* state, void*, std::uint32_t x, std::uint32_t y, std::uint32_t z) {
     AnimationStateSetScaleOriginal(state, nullptr, x, y, z);
 }
-// 005197B0. map<string, piece>::find on the figure's piece map at figure + 0x14: writes the node,
-// or the map's header when absent, to *out.
-void __fastcall FindPiece(void* a0, void*, const LinkHeaderMap::Node** a2, const stlp::string* a3) { StringMapFindOriginal(a0, nullptr, (void**)a2, (const void*)a3); }
 // Rewritten here, called through their game addresses so their verify wrappers stay in the path.
 __declspec(naked) std::uint32_t __fastcall ComputeBoundsAt(CObject3D*) EI_ORIGINAL(0x00518310)
 __declspec(naked) void __fastcall SetAtGrowAt(AlignedPtrArray*, void*, int, void*) EI_ORIGINAL(0x00519E80)
@@ -174,7 +171,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
             const LinkHeaderMap::Node* piece;
             {
                 stlp::string key(pieceName);
-                FindPiece(&figure->headers_, nullptr, &piece, &key);
+                StringMapFindOriginal(&figure->headers_, nullptr, (void**)&piece, &key);
             }
             part = static_cast<CFigureMesh*>(parts.data[i]);
             const ClipBounds& bounds = piece->second.bounds;

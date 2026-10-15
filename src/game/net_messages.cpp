@@ -24,13 +24,10 @@ namespace net {
 
 namespace {
 
-// --- STLport (library) ---------------------------------------------------------------------------
-void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
 // vector<RefPtr> of the file message: copy of the elements sharing them, deallocate.
 __declspec(naked) RefPtr* __fastcall SharedRefsCopy(const RefPtr* /*first*/, const RefPtr* /*last*/, RefPtr* /*result*/, std::uint32_t /*tag*/) EI_ORIGINAL(0x0042AE90)
 __declspec(naked) void __fastcall FileRefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x004251B0)
 // vector<RefPtr> of the party message: base constructor, copy, deallocate, resize.
-void* __fastcall RefsGetAllocator(const RefVector* a0, void*, void* a2) { return VectorGetAllocatorOriginal((const void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall RefsDeallocate(RefPtr** /*eos proxy*/, void*, RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00425210)
 __declspec(naked) void __fastcall RefsResize(RefVector* /*vector*/, void*, std::size_t /*n*/) EI_ORIGINAL(0x004200C0)
 // Counted pointer element destructors (deleting destructors called with 0).
@@ -100,7 +97,7 @@ void StringEmptyInline(StringRep& s) {
 void StringFree(StringRep& s) { stlp::deallocate(s.start, static_cast<std::size_t>(s.eos - s.start)); }
 void AssignEmptyText(StringRep& s) {
     const char* text = EmptyText();
-    StringAssignRange(&s, nullptr, text, text + std::strlen(text));
+    StringAssignRangeOriginal(&s, nullptr, text, text + std::strlen(text));
 }
 
 // An empty vector of counted pointers.
@@ -133,7 +130,7 @@ void PutString(BufferCursor* cursor, const StringRep& s) { PutBytes(cursor, s.st
 void TakeString(BufferCursor* cursor, StringRep& s) {
     const char* text = reinterpret_cast<const char*>(cursor->p);
     std::size_t length = std::strlen(text);
-    StringAssignRange(&s, nullptr, text, text + length);
+    StringAssignRangeOriginal(&s, nullptr, text, text + length);
     cursor->p += length + 1;
 }
 // Object references through the connection being written or read.
@@ -1007,7 +1004,7 @@ PartyMessage* PartyMessage::Clone() {   // 004176A0
     if (!p) return nullptr;
     CloneHeader(p, this);
     std::uint8_t allocator = 0;
-    const void* copy = RefsGetAllocator(&members_, nullptr, &allocator);
+    const void* copy = VectorGetAllocatorOriginal(&members_, nullptr, &allocator);
     VectorBaseConstruct(&p->members_, nullptr, static_cast<std::size_t>(members_.size()), copy);
     p->members_.Finish() = UninitializedCopy(members_.begin(), members_.end(), p->members_.begin(), 0);
     p->money_ = money_;

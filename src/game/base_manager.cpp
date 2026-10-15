@@ -81,7 +81,6 @@ __declspec(naked) void __fastcall IdsClear(IdList*) EI_ORIGINAL(0x00405500)
 // The positions table: find, erase(iterator), operator[] (two copies), remove by key (returning the
 // value).
 __declspec(naked) MapIterator<PositionMap>* __fastcall PositionsFind(PositionMap*, void*, MapIterator<PositionMap>* /*out*/, const int* /*key*/) EI_ORIGINAL(0x00405BB0)
-void __fastcall PositionsErase(PositionMap* a0, void*, PositionMap::Node* a2, const PositionMap* a3) { HashEraseOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3); }
 __declspec(naked) ObjectNode** __fastcall PositionAt2(PositionMap*, void*, const int* /*key*/) EI_ORIGINAL(0x004056A0)
 // The objects table: finds into an iterator (three copies), MFC-style Lookup / SetAt, operator[],
 // remove by key, erase(iterator), find-or-insert of a pair.
@@ -92,7 +91,6 @@ __declspec(naked) int __fastcall ObjectsLookup(ObjectMap*, void*, const int* /*k
 __declspec(naked) void __fastcall ObjectsSetAt(ObjectMap*, void*, const int* /*key*/, CEngineObject* const* /*value*/) EI_ORIGINAL(0x00404E80)
 __declspec(naked) CEngineObject** __fastcall ObjectsAt(ObjectMap*, void*, const int* /*key*/) EI_ORIGINAL(0x004055A0)
 __declspec(naked) CEngineObject* __fastcall ObjectsRemoveKey(ObjectMap*, void*, const int* /*key*/) EI_ORIGINAL(0x00404F20)
-void __fastcall ObjectsErase(ObjectMap* a0, void*, ObjectMap::Node* a2, const ObjectMap* a3) { ObjectsEraseOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3); }
 __declspec(naked) ObjectPair* __fastcall ObjectsFindOrInsert(ObjectMap*, void*, const ObjectPair*) EI_ORIGINAL(0x004065D0)
 // The spares table: finds into an iterator (two copies), operator[], begin, the next non-empty
 // bucket after a node (returns its head).
@@ -222,7 +220,7 @@ void ForgetPosition(CBaseManager* m, int id) {
     PositionsFind(&m->positions_, nullptr, &found, &key);
     if (!found.node) return;
     ObjectNode* node = found.node->value;
-    PositionsErase(&m->positions_, nullptr, found.node, found.table);
+    HashEraseOriginal(&m->positions_, nullptr, found.node, found.table);
     if (node) m->objectList_.RemoveAt(node);
 }
 
@@ -477,7 +475,7 @@ CEngineObject* CBaseManager::Unregister(int id) {
     CEngineObject* object = found.node->value;
     key = id;
     ObjectsFindIt3(&objects_, nullptr, &found, &key);
-    if (found.node) ObjectsErase(&objects_, nullptr, found.node, found.table);
+    if (found.node) ObjectsEraseOriginal(&objects_, nullptr, found.node, found.table);
     ForgetPosition(this, id);
     return object;
 }

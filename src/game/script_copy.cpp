@@ -125,9 +125,6 @@ EI_REPLACE(0x004CB220, ScriptFxSourceAssign);
 
 namespace {
 
-// Derived vtables of the arrays (set after each base constructor; the base vtable never stays).
-
-void __fastcall RefsSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
 // GetAt by value: CString (004C2680), a referenced ScriptObjectRef (004C21E0), a ScriptGroup copy
 // (004C3B00); __thiscall (out, index), returning out.
 void* __fastcall StringAt(const void* a0, void*, void* a2, int a3) { return ScriptStringAtOriginal(a0, nullptr, a2, a3); }
@@ -238,7 +235,7 @@ EI_REPLACE(0x004CBA00, ScriptNamesCopyConstruct);
 // reference of its own; the copy is released (all inline in the original).
 template <> ScriptNamedValues<ScriptObjectRef>* ScriptNamedValues<ScriptObjectRef>::CopyConstruct(const ScriptNamedValues<ScriptObjectRef>* other) {
     InitArray(&values, scriptvtable::kRefs);
-    RefsSetSize(&values, nullptr, other->values.size, -1);
+    PtrArraySetSize(&values, nullptr, other->values.size, -1);
     for (int i = 0; i < other->values.size; ++i) {
         ScriptObjectRef value;
         RefAt(&other->values, nullptr, &value, i);
@@ -263,7 +260,7 @@ template <> ScriptNamedValues<ScriptGroup>* ScriptNamedValues<ScriptGroup>::Copy
         ScriptGroup copy;
         GroupAt(&other->values, nullptr, &copy, i);
         ScriptGroup* group = &values.data[i];
-        RefsSetSize(group, nullptr, copy.size, -1);
+        PtrArraySetSize(group, nullptr, copy.size, -1);
         for (int k = 0; k < copy.size; ++k) {
             ScriptObjectRef member;
             RefAt(&copy, nullptr, &member, k);
@@ -292,7 +289,7 @@ ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
     NamesCopyConstructAt(&stringNames, nullptr, &other->stringNames);
 
     InitArray(&objects, scriptvtable::kRefs);
-    RefsSetSize(&objects, nullptr, other->objects.size, -1);
+    PtrArraySetSize(&objects, nullptr, other->objects.size, -1);
     for (int i = 0; i < other->objects.size; ++i) {
         ScriptObjectRef value;
         RefAt(&other->objects, nullptr, &value, i);

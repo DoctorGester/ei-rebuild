@@ -1248,7 +1248,6 @@ EI_REPLACE_METHOD(0x006B8600, CSoundManager::Play3D);
 namespace {
 // STLport string members (the instantiations the original calls).
 void __fastcall StringAssignTagged(void* a0, void*, const char* a2, const char* a3, int a4) { StringAssignTaggedOriginal(a0, nullptr, a2, a3, (const void*)a4); }
-void __fastcall StringCopy(void* a0, void*, const void* a2) { StringCopyConstructOriginal(a0, nullptr, a2); }
 // The cache map (CSoundManager + 0x870): find [out iterator, key], find-or-insert of a pair
 // [returns the pair], erase by key; the pair's constructor [key, value].
 struct CacheIter {
@@ -1312,7 +1311,7 @@ void CacheSet(CSoundManager* m, const std::uint32_t* key, WaveNode* node) {
 // A record copied out of a node (its own copy of the name).
 void CopyOut(WaveRecord* out, const WaveNode* node) {
     out->data = node->data.data;
-    StringCopy(out->name, nullptr, node->data.name);
+    StringCopyConstructOriginal(out->name, nullptr, node->data.name);
     out->lastUsed = node->data.lastUsed;
     out->size = node->data.size;
     out->uses = node->data.uses;
