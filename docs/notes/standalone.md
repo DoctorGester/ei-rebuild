@@ -1335,6 +1335,25 @@ full digest, dumps, decoded saves; scratch script build\S17\classify.py, golden.
   unguarded scans ran off the list. Candidate: a NaN `viewPosition.z` (never written for an object listed only
   for its shadow; Less is then not irreflexive). Not confirmed by a NaN check over 76 runs: S17a.
 
+**S17a (2026-10-15).** The cause is candidate (1). A probe (a sentinel view depth written by CObject3D::Construct,
+counted in the sorted lists; not kept) found unwritten depths in 115 of camera's 664 SortByModel calls: Shadow54 /
+ShadowOther entries listed for their shadow before they were ever in view, up to 13 of a 25-element list, mostly
+sharing a model with the rest (so their depths are compared). They sort on whatever the heap left at +0x28, which in
+the image is the host's malloc; a NaN there makes Less(x, x) true and a NaN pivot sends the unguarded partition off
+the list. Nothing else reads viewPosition.
+- Fix: the view position starts at zero, in ours (CObject3D::Construct) and in the original through a harness site
+  (harness_leftovers.cpp: CMapObject::Construct's CALL 0050E2F2 of 00515BD0, its one caller, zeroes it after the
+  original's construction; EI_LEFTOVERS bit 10). The comparator is unchanged. The constructor's verify zeroes the
+  object's +0x28 before comparing.
+- Check kept: `g_drawSortCheck` (world.h), called by DrawPass before each UnitOrderLess sort, installed by the verify
+  build (verify_world_client.cpp, ours only, so also in the image, which has no verify wrappers): `DrawPass sort list`
+  counts lists with a null element, no model or a NaN depth (bits) and logs the first five whole.
+- Goldens: none changed (97 `--no-hooks --fresh`, 97 hooked, 44 `--standalone`).
+- Runs: five `--standalone` suite passes (95 scenarios each, watchdog_* left out): 475 runs pass, 288,630 checked
+  sorts, 0 bad. Hooked suite with EI_HEAP_JITTER 1,fill / 2,fill / 3,fill (both installs, 571 runs): 263,386
+  checked sorts, 0 bad; one FAIL, combat_more Rebirth under 2,fill (the leader took no damage: the jitter's known AI
+  divergence, SV7d4), and timeouts that passed on retry. Scratch driver: build\S17a\passes.py.
+
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
 quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return

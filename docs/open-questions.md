@@ -124,7 +124,8 @@ vector, hence the mismatch. Fixed in the verify (NaN tested on the bits; reverse
 NaN ranges go to the original alone and are logged; mismatches now log keys and both orders).
 The algorithm was rechecked step by step against 005740D0, 00574390, 00577FC0 and 00577730
 (median of three, unguarded partition, recursion on the right part, depth limit, heap fallback,
-insertion threshold 16) with no difference found. Still open: where the NaN depths come from
-(look for "view stack depth" and the depth/position bits of "not orderable" lines).
+insertion threshold 16) with no difference found. Answered by S17a: the NaN depths are heap
+leftovers of objects listed only for their shadow before they were ever in view (CObject3D::Construct
+leaves +0x28); zeroed in ours and, through a harness site, in the original (docs/notes/standalone.md).
 
 - Original bug (fix candidate): CUnitClientSpecific::Level (00539160) returns INT_MIN for a unit with 0 experience (FISTP of ln 0 = -inf). Kept for now; see units.md.
