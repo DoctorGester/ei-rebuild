@@ -401,3 +401,24 @@ after; reinterpret_cast 6,145 before, 6,083 after. Spelling only: no signature, 
 - Verification: build verify and release with no errors or warnings on the merged tree, every check at 0 (check_stolen, check_x87,
   check_signatures, check_thunks, check_registrations: 4,774 method registrations, check_cleanup, ei_vectors).
   `work.py test C11 --golden --jobs 4`: 128 runs, all PASS; the 56 goldens are all the same.
+
+## C11 batch 9: the last own At() members and string constants with typed homes (2026-10-15)
+
+Files defining their own `At()`: 2 before, 0 after (tools/progress.py). `constexpr uintptr_t kX = 0x00...`: 249 before, 187 after.
+Spelling only: no signature, argument order or float grouping changed.
+- `RecordTable::At` (item_db.h) is now `RecordAt` (125 call sites in src/ and tests/, including the unqualified calls of
+  `UiRecordTable`, which derives from it; `UnitPrototypeTable::At` and `CMapPtrToPtr::At` are other classes and keep their name).
+  `CMap::At` (mfc_list.h, the hash map's `operator[]`) is now `ElementAt`, with `Abi::ElementAt` in mfc_slots.h and the mfc_list /
+  mfc_serialize verify tests. The verify-test files with their own `At<T>(object, offset)` helpers are not in the count (tests/).
+- String constants of five files moved into `game_strings.h` as accessors in a namespace each (they return `Text(address)`, so
+  ei_vectors still reads the stand-in data): `game::mapwords` (map_database, 23 words; "none" uses `NoneText()`),
+  `game::questwords` (quest_database, 10 names plus `ListKey(i)` for the six briefing list keys), `game::savewords` (ui_saveload,
+  12), `game::briefingwords` (world_briefing, 8), `game::zonetexts` (world_zone, 4 error texts), `game::equipmenttexts`
+  (unit_equipment, 4). The helpers that took the string's address as `uintptr_t` (map_database `Is`, quest_database
+  `ReadBriefingHeader` / `ReadListInline`) take `const char*`. `ListKey` is a switch, not an array of addresses, so
+  check_cleanup's raw-address count stays down (834 from 902 at the start of the batch).
+- Left (187): the families of batch 8 minus the strings above; menu_rects (its `Text(file ? kCantParse : kCantOpen)` needs a
+  small rewrite), net_session_tick / net_connection log texts, net_messages.h (17), spell_effect_internal.h and
+  world_effect_internal.h floats, class `kVtableAddress` statics, function addresses.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations, check_cleanup, ei_vectors); golden run below.
