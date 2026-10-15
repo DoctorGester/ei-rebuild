@@ -233,8 +233,7 @@ def read_template(r, key):
     with r.scope('weights'):
         for i in range(9):
             r.f32(str(i))
-    r.junk('weightsTail', 4, 'ClassTemplate +0x34: field 4 archives it with the nine weights (0x28 bytes); the '
-           'constructor (004A6580) and the builder (004A7630) never set it (heap leftovers)')
+    r.x32('weightsTail')   # SV7b2: zeroed before the constructor in both
     leave(r, end, 'field 4')
     bytes_end, end = stream_field(r, 5)
     read_party(r, f'{key}.items', 'the template\'s items party (CParty::SaveParty without variables)', False)

@@ -198,6 +198,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
     auto* memory = static_cast<ClassTemplate*>(gamecrt::operator_new(sizeof(ClassTemplate)));
     memory->refCount = 0;
     memory->refsHigh = 0;
+    std::memset(memory->weightsTail, 0, sizeof(memory->weightsTail));   // SV7b2: never set, saved
     ClassTemplate* t = memory ? TemplateConstruct(memory) : nullptr;
     t->type = type;
     t->flag0C = flag0C;

@@ -224,7 +224,11 @@ void AIBrain::AddGuardMode(const Vector3* point, float radius, float wander) {
 }
 EI_REPLACE_METHOD(0x005D6300, AIBrain::AddGuardMode);
 
-void AIBrain::AddSuspectionMode() { AddMode(NewMode<SuspectionMode>(aimode::kSuspectionVtable)); }
+void AIBrain::AddSuspectionMode() {
+    auto* mode = NewMode<SuspectionMode>(aimode::kSuspectionVtable);
+    if (mode) mode->ClearFields();   // SV7d4: not left as memory held them
+    AddMode(mode);
+}
 EI_REPLACE_METHOD(0x005D63B0, AIBrain::AddSuspectionMode);
 
 void AIBrain::AddAggressionMode() {
@@ -256,7 +260,10 @@ EI_REPLACE_METHOD(0x005D2850, FearMode::Construct);
 
 void AIBrain::AddFearMode(std::uint8_t flag) {
     auto* mode = NewMode<FearMode>(aimode::kFearVtable);
-    if (mode) mode->Construct(flag);    // inlined by the original
+    if (mode) {
+        mode->ClearFields();   // SV7b2: not left as memory held them
+        mode->Construct(flag);    // inlined by the original
+    }
     AddMode(mode);
 }
 EI_REPLACE_METHOD(0x005D6480, AIBrain::AddFearMode);

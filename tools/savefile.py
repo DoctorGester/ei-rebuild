@@ -382,7 +382,7 @@ def read_world(r):
     for i in range(5):
         with r.scope(f'alarm{i}'):
             r.u8('active')
-            r.junk('pad', 3, 'WorldAlarm +1..+3: padding after the active byte, written with the struct')
+            r.raw('pad', 3)   # LoadWorld (world_save.cpp) zeroes all five alarms before the map loads
             r.i32('time')
             r.f32('x')
             r.f32('y')
