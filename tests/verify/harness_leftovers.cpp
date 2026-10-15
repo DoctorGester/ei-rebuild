@@ -1,7 +1,8 @@
-// Never-set bytes zeroed in the original (harness_leftovers.h; tickets SV7b3, SV7b2, SV7d3, SV7d4).
+// Never-set bytes zeroed in the original (harness_leftovers.h; tickets SV7b3, SV7b2, SV7d3, SV7d4, S17a).
 #include "harness_leftovers.h"
 
 #include "../../src/game/class_templates.h"
+#include "../../src/game/map_object_figures.h"
 #include "../../src/game/originals_units.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_ai.h"
@@ -27,6 +28,7 @@ constexpr std::uintptr_t kOperatorNew = 0x007005AF;
 constexpr std::uintptr_t kSuspectionConstruct = 0x004BA610;   // ScriptSuspectionModeConstruct
 constexpr std::uintptr_t kFearConstruct = 0x005D2850;         // FearMode::Construct
 constexpr std::uintptr_t kTemplateConstruct = 0x004A6580;     // ClassTemplate::Construct
+constexpr std::uintptr_t kObject3DConstruct = 0x00515BD0;     // CObject3D::Construct
 
 void* __fastcall ZeroedVitalsReset(UnitVitals* vitals) {
     std::memset(vitals, 0, sizeof(UnitVitals));
@@ -79,8 +81,17 @@ ClassTemplate* __fastcall ZeroedTemplateConstruct(ClassTemplate* t) {
     return reinterpret_cast<TemplateConstructFn>(kTemplateConstruct)(t);
 }
 
+// CMapObject::Construct's call of CObject3D::Construct: the view position, which the constructor
+// leaves and the draw sorts read for objects listed only for their shadow, starts at zero as in ours
+// (S17a; zeroed after the construction).
+CObject3D* __fastcall ZeroedViewConstruct(CObject3D* object) {
+    CObject3D* result = reinterpret_cast<CObject3D*(__fastcall*)(CObject3D*)>(kObject3DConstruct)(object);
+    std::memset(&object->viewPosition, 0, sizeof(object->viewPosition));
+    return result;
+}
+
 // The families, one EI_LEFTOVERS bit each.
-enum Family { kStatsCopies, kServerObjects, kMapObjects, kSuspection, kFear, kTemplates, kFamilies };
+enum Family { kStatsCopies, kServerObjects, kMapObjects, kSuspection, kFear, kTemplates, kViewPositions, kFamilies };
 const char* const kFamilyNotes[kFamilies] = {
     "a unit statistics stack copy zeroed first, SV7b3",
     "a server object allocated zeroed, SV7b2 / SV7d3",
@@ -88,6 +99,7 @@ const char* const kFamilyNotes[kFamilies] = {
     "a Suspection mode's point and level zeroed first, SV7d4",
     "a Fear mode's fields zeroed first, SV7b2",
     "a class template's weights tail zeroed first, SV7b2",
+    "a new 3D object's view position zeroed, S17a",
 };
 
 struct Site {
@@ -162,6 +174,8 @@ const Site kSites[] = {
     {0x004A7CFE, kTemplateConstruct, kTemplateZeroed, kTemplates},
     {0x004A7DDA, kTemplateConstruct, kTemplateZeroed, kTemplates},
     {0x00457886, kTemplateConstruct, kTemplateZeroed, kTemplates},
+    // CMapObject::Construct 0050E2D0's call of CObject3D::Construct (S17a).
+    {0x0050E2F2, kObject3DConstruct, reinterpret_cast<const void*>(&ZeroedViewConstruct), kViewPositions},
 };
 
 bool Redirect(const Site& site) {

@@ -11,6 +11,8 @@
 #include "../../src/game/unit.h"
 #include "../../src/game/world.h"
 
+#include "ei/rebirth.h"
+
 #include <cstring>
 
 namespace {
@@ -576,7 +578,7 @@ static void __fastcall ClockOpenObjectivesVerify(CHudClock* self) {
 }
 EI_VERIFY(0x00648F10, ClockOpenObjectivesVerify, 0, s_unused);
 
-// 00648D70 (A-H26; Rebirth-patched, so hooked in the vanilla launch only): the clock's button
+// 00648D70 (A-H26; Rebirth's MPSpeedControl reproduced): the clock's button
 // release. It plays sounds, pauses the game and opens a window, so ours only; the wrapper works out
 // from the state before the call what the original's branches leave. Reached by a click on the
 // clock (the pause button, the two speed buttons, the objectives button); no scenario clicks there
@@ -595,7 +597,7 @@ static void __fastcall ClockMouseUpVerify(void* input, void*, int buttons, int x
     bool ok = CaptureReleased(captured, capture, w->interface_->mouseCapture_) &&
               w->inputHandled_ == (hit ? true : handled);
     const int periodAfter = *reinterpret_cast<int*>(0x0078FF34);
-    if (hit && (region == 1 || region == 2) && !network)
+    if (hit && (region == 1 || region == 2) && (!network || ei::rebirth::Enabled(ei::rebirth::Patch::MPSpeedControl)))
         ok = ok && w->fast_ == region - 1 && periodAfter == (region == 2 ? 27 : 55) &&
              w->interface_->fastGame_ == w->fast_;
     else

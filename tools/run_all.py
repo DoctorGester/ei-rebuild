@@ -17,8 +17,11 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
   --standalone     the standalone image instead of game.exe (ei_launch --standalone: build\\verify\\ei_standalone.exe
                    lays out run\\vanilla's game.exe without its code and loads ei_hook.dll; docs/notes/standalone.md)
                    on the vanilla install's data, with EI_RENDER=new,present like --native; install "standalone",
-                   run folders <scenario>-standalone. Without scenario names only the boot scenario (main menu,
-                   then quit). An address with no rewrite ends the run: "standalone: no code at ..." in failures
+                   run folders <scenario>-standalone; and on the Rebirth install's data with run\\rebirth's game.exe
+                   and the flags of config/ei_rebirth_standalone.ini as EI_REBIRTH (no addon.dll, no EI_Plugin.asi),
+                   install "standalone-rebirth" (Rebirth goldens), for the scenarios a Rebirth run would have
+                   (--vanilla-only / --rebirth-only: one of the two). Without scenario names only the boot scenario
+                   (main menu, then quit). An address with no rewrite ends the run: "standalone: no code at ..."
   renderers        Runs of our code (vanilla and Rebirth with hooks) draw with our renderer
                    (EI_RENDER=new,present: no DirectDraw device, its own swap chain, no display mode
                    change), so they never need the machine to themselves. dgVoodoo draws only the
@@ -72,6 +75,7 @@ import prepare_scenario
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud', 'ui_widescreen_screens']   # --widescreen without scenario names
 STANDALONE_SCENARIOS = ['boot']   # --standalone without scenario names
+STANDALONE_INSTALLS = ('standalone', 'standalone-rebirth')
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
 GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's goldens (--golden; tools/golden.py)
 # Runs go to <BUILD>/runs. <BUILD>/run_times.json keeps each run's seconds from the last suite: the
@@ -210,7 +214,7 @@ def our_renderer(scenario, install, hooks, dgvoodoo=False, environ=None):
     when it is set, else our renderer unless dgvoodoo (--dgvoodoo) or the scenario needs the old device. A
     scenario whose `render` step says `present` draws with ours whatever else is set (the harness adds EI_RENDER's
     words to the step's)."""
-    if install in ('native', 'standalone'):
+    if install == 'native' or install in STANDALONE_INSTALLS:
         return True
     if not hooks:
         return False
@@ -319,11 +323,15 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
         # Never the display mode: our renderer whatever the environment says.
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(run_dir(root), 'vanilla', 'game.exe'), '--standalone']
         env = dict(os.environ if env is None else env, EI_RENDER=OUR_RENDERER)
+    elif install == 'standalone-rebirth':
+        # ei_launch's default game folder is the Rebirth install's.
+        cmd += ['--exe', os.path.join(run_dir(root), 'rebirth', 'game.exe'), '--standalone']
+        env = dict(os.environ if env is None else env, EI_RENDER=OUR_RENDERER, EI_REBIRTH=standalone_rebirth_flags(root))
     elif os.path.exists(os.path.join(run_dir(root), 'rebirth', 'game.exe')):
         # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
         cmd += ['--exe', os.path.join(run_dir(root), 'rebirth', 'game.exe')]
     environ = os.environ if env is None else env
-    if install not in ('native', 'standalone') and 'EI_RENDER' not in environ and our_renderer(scenario, install, hooks, dgvoodoo, environ):
+    if install != 'native' and install not in STANDALONE_INSTALLS and 'EI_RENDER' not in environ and our_renderer(scenario, install, hooks, dgvoodoo, environ):
         env = dict(environ, EI_RENDER=OUR_RENDERER)    # dgVoodoo's DLLs stay beside game.exe; nothing draws through them
     elif not hooks and 'EI_RENDER' in environ:
         # The original code draws only through dgVoodoo: with the harness's capture taking the new renderer's frame
@@ -602,6 +610,23 @@ def compare_widescreen(name, out=None, root=ROOT, build=BUILD):
     return ok
 
 
+def standalone_rebirth_flags(root=ROOT):
+    """EI_REBIRTH for the standalone image on the Rebirth install: the patch names config/ei_rebirth_standalone.ini
+    sets to 1, comma-separated (what a hooked Rebirth launch's flags follow; S19)."""
+    names = []
+    with open(os.path.join(root, 'config', 'ei_rebirth_standalone.ini'), encoding='utf-8') as f:
+        for text in f:
+            m = re.match(r'\s*(\w+)\s*=\s*1\s*$', text)
+            if m and m.group(1) not in ('Default', 'FollowAddon', 'NPlayers', 'Pause'):
+                names.append(m.group(1))
+    return ','.join(names)
+
+
+def launch_install(install):
+    """The install run() is given for one of plan()'s: --widescreen's "rebirth-nohooks" is "rebirth" without hooks."""
+    return install[:-len('-nohooks')] if install.endswith('-nohooks') else install
+
+
 def rebirth_scenarios(names, root=ROOT):
     """The scenarios that also run under Rebirth: marked 1 in config/rebirth_scenarios.csv, or not in it."""
     path = os.path.join(root, 'config', 'rebirth_scenarios.csv')
@@ -652,15 +677,17 @@ def plan(args, root=ROOT):
         if args.no_hooks or args.widescreen or args.dgvoodoo:
             sys.exit('--standalone runs our code on our renderer: not with --no-hooks, --dgvoodoo or --widescreen')
         names = args.scenarios or STANDALONE_SCENARIOS
-        installs = ['standalone']
-    rebirth = set(names) if args.scenarios or args.all_rebirth or args.rebirth_only else rebirth_scenarios(names, root)
-    jobs = [(name, install) for name in names for install in installs if install != 'rebirth' or name in rebirth]
+        installs = ['standalone'] if args.vanilla_only else ['standalone-rebirth'] if args.rebirth_only else list(STANDALONE_INSTALLS)
+    rebirth = set(names) if args.scenarios or args.all_rebirth or args.rebirth_only or args.standalone \
+        else rebirth_scenarios(names, root)
+    jobs = [(name, install) for name in names for install in installs
+            if install not in ('rebirth', 'standalone-rebirth') or name in rebirth]
     if args.widescreen:
         names = args.scenarios or WIDESCREEN_SCENARIOS
         jobs = [(name, install) for name in names for install in ('rebirth', 'rebirth-nohooks')]
     path = lambda name: os.path.join(root, 'tests', 'scenarios', name + '.txt')
     kept = [(n, i) for n, i in jobs if not switches_display(path(n))
-            or our_renderer(path(n), i.split('-')[0], uses_hooks(i, args), wants_dgvoodoo(args))]
+            or our_renderer(path(n), launch_install(i), uses_hooks(i, args), wants_dgvoodoo(args))]
     for n, i in jobs:
         if (n, i) not in kept:
             print(f'{n}-{i}: left out, full screen at its own mode without our renderer would switch the display',
@@ -781,7 +808,8 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
     return ok
 
 
-GOLDEN_INSTALL = {'vanilla': 'vanilla', 'native': 'vanilla', 'standalone': 'vanilla', 'rebirth': 'rebirth', 'rebirth-nohooks': 'rebirth'}
+GOLDEN_INSTALL = {'vanilla': 'vanilla', 'native': 'vanilla', 'standalone': 'vanilla', 'standalone-rebirth': 'rebirth',
+                  'rebirth': 'rebirth', 'rebirth-nohooks': 'rebirth'}
 
 
 def golden_check(jobs, out=None, root=ROOT, build=BUILD):
@@ -824,7 +852,7 @@ def main():
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
         # (--widescreen's "rebirth-nohooks": Rebirth without our hooks, in its own folder)
-        futures = {pool.submit(run_with_retries, n, i.split('-')[0], uses_hooks(i, args), args.retries, f'{n}-{i}',
+        futures = {pool.submit(run_with_retries, n, launch_install(i), uses_hooks(i, args), args.retries, f'{n}-{i}',
                                functools.partial(run, clock=args.clock, dgvoodoo=wants_dgvoodoo(args), fresh=args.fresh),
                                keep_attempt): (n, i)
                    for n, i in order}

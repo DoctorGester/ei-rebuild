@@ -4,6 +4,8 @@
 // written.
 #include "crt_vectors.h"
 
+#include "ei/hook.h"
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -104,3 +106,63 @@ EI_VECTOR_CHECK_BYTES("@GameCrtCtype", CheckCtype);
 } // namespace
 
 } // namespace ei::vectors::crt
+
+// The game CRT's multibyte functions and atoi, which CString::FormatV reaches through its forwarders
+// (src/lib/mfc_string.cpp; the loader's QualifyName formats "!%i!%s"; vsprintf is crt_format.cpp's
+// port). The multibyte answers depend on the
+// code page's lead bytes, which no record holds, so only ASCII is answered (as every code page does)
+// and a byte above 0x7F stops the replay.
+namespace {
+
+[[noreturn]] void NotAscii(const char* what) {
+    std::fprintf(stderr, "ei_vectors: game CRT %s of a non-ASCII byte\n", what);
+    std::fflush(stderr);
+    std::exit(3);
+}
+
+unsigned char Ascii(unsigned c, const char* what) {
+    if (c > 0x7F) NotAscii(what);
+    return static_cast<unsigned char>(c);
+}
+
+std::size_t __cdecl ReplayMbclen(const unsigned char* c) {
+    Ascii(*c, "_mbclen");
+    return 1;
+}
+EI_REPLACE(0x006ECC98, ReplayMbclen);
+
+const char* __cdecl ReplayMbsinc(const char* p) {
+    Ascii(static_cast<unsigned char>(*p), "_mbsinc");
+    return p + 1;
+}
+EI_REPLACE(0x006E9947, ReplayMbsinc);
+
+int __cdecl ReplayIsmbcdigit(unsigned c) { return Ascii(c, "_ismbcdigit") >= '0' && c <= '9'; }
+EI_REPLACE(0x006ECE1A, ReplayIsmbcdigit);
+
+int __cdecl ReplayMbsncmp(const unsigned char* a, const unsigned char* b, std::size_t n) {
+    for (; n; --n, ++a, ++b) {
+        Ascii(*a, "_mbsncmp");
+        Ascii(*b, "_mbsncmp");
+        if (*a != *b) return *a < *b ? -1 : 1;
+        if (!*a) break;
+    }
+    return 0;
+}
+EI_REPLACE(0x006ECD2B, ReplayMbsncmp);
+
+// _mbscmp (the loader's name lookups): strcmp's -1 / 0 / 1 when no lead byte is met.
+int __cdecl ReplayMbscmp(const unsigned char* a, const unsigned char* b) {
+    for (;; ++a, ++b) {
+        Ascii(*a, "_mbscmp");
+        Ascii(*b, "_mbscmp");
+        if (*a != *b) return *a < *b ? -1 : 1;
+        if (!*a) return 0;
+    }
+}
+EI_REPLACE(0x006E848B, ReplayMbscmp);
+
+int __cdecl ReplayAtoi(const char* text) { return std::atoi(text); }
+EI_REPLACE(0x006E80D8, ReplayAtoi);
+
+} // namespace

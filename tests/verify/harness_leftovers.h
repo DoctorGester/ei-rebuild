@@ -30,6 +30,12 @@
 // keeps a Suspection point that compares the same and the lower level, so its leftovers picked the
 // brain's mode. Ours does the same (gamecrt::operator_new_zeroed, SuspectionMode / FearMode::
 // ClearFields).
+//
+// Also (S17a) CObject3D::Construct 00515BD0 leaves the view position (+0x28), which the draw sorts
+// read for an object listed only for its shadow before it was ever in view (a NaN there makes
+// UnitOrderLess irreflexive and STLport's unguarded scans run off the list). Ours zeroes it; its one
+// caller, CMapObject::Construct's CALL at 0050E2F2, goes through a harness function that zeroes it
+// after the original's construction (EI_LEFTOVERS family bit 6).
 
 namespace ei::verify::leftovers {
 

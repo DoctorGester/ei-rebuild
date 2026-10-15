@@ -140,17 +140,17 @@ ExtendedServerName,addon,0061D9FC,4,0061D780+27C,multiplayer,no,"(at 61D9F8)mov 
 ExtendedServerName,addon,0061DC9E,5,0061D780+51E,multiplayer,no,call 0x5fde20,call redirected to addon code,not started,
 ExtendedServerName,addon,0061DC7F,5,0061D780+4FF,multiplayer,no,call 0x5fde20,call redirected to addon code,not started,
 ExtendedServerName,addon,0061E009,5,0061D780+889,multiplayer,no,call 0x5fde20,call redirected to addon code,not started,
-NivalRegistry,addon,004568EA,4,00456440+4AA,resources/paths,yes,(at 4568E9)push 0x7848a8,PUSH operand 007848A8 -> addon's key string,"deferred: in WinMain 00456440 (not rewritten); rewrites read settings through the root 007AF450 it sets, so they follow it",
+NivalRegistry,addon,004568EA,4,00456440+4AA,resources/paths,yes,(at 4568E9)push 0x7848a8,PUSH operand 007848A8 -> addon's key string,"implemented: GameMain (src/game/app_main.cpp; S19): the image runs it, hooked Rebirth runs keep the original WinMain",
 AutoExec,addon,0057ABE1,5,0057ABA0+41,scripting/console,yes,call 0x5dc620,"CALL 005DC620 -> addon 1001DF57 (runs the Console AutoExec lines, then 005DC620)","implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp",
 AutoExec,addon,0057BD30,5,0057BD10+20,scripting/console,yes,call 0x5dc620,CALL 005DC620 -> addon 1001DF57,"implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp",
 AutoExec,addon,0057C9A3,5,0057C700+2A3,scripting/console,yes,call 0x5dc620,CALL 005DC620 -> addon 1001DF57,"implemented: new rewrites GameFlow::LoadGame 0057ABA0, GameFlow::StartNewGame 0057BD10, GameFlow::ProcessRequest 0057C700 (src/game/world_game.cpp); lines in src/game/console_addon.cpp",
-MQClient,addon,0041ED36,1,0041ECC0+76,multiplayer,no,(at 41ED35)jne 0x41ed46,operand replaced,not started,
-MQClient,addon,0041ED40,6,0041ECC0+80,multiplayer,no,je 0x41eefb,JMP to addon code (the replaced instructions are redone there),not started,
-MPSpeedControl,addon,0063A6D4,6,0063A560+174,multiplayer,no,jne 0x63b4c4,JMP to addon code (the replaced instructions are redone there),not started,
-MPSpeedControl,addon,0063A73A,6,0063A560+1DA,multiplayer,no,jne 0x63b4c4,JMP to addon code (the replaced instructions are redone there),not started,
-MPSpeedControl,addon,00648DFE,6,00648D70+8E,multiplayer,no,jne 0x648ec3,JMP to addon code (the replaced instructions are redone there),not started,
-MPSpeedControl,addon,00648E65,2,00648D70+F5,multiplayer,no,jne 0x648ec3,JMP to addon code (the replaced instructions are redone there),not started,
-PlayerNumbers,addon,0066C1C2,5,0066C180+42,multiplayer,partly,call 0x665a60,CALL 00665A60 -> addon 10021B4A,not started,
+MQClient,addon,0041ED36,1,0041ECC0+76,multiplayer,no,(at 41ED35)jne 0x41ed46,operand replaced,implemented: ClientOnFileChunk 0041ECC0 (src/game/net_client_handlers.cpp),
+MQClient,addon,0041ED40,6,0041ECC0+80,multiplayer,no,je 0x41eefb,JMP to addon code (the replaced instructions are redone there),implemented: ClientOnFileChunk 0041ECC0 (src/game/net_client_handlers.cpp),
+MPSpeedControl,addon,0063A6D4,6,0063A560+174,multiplayer,no,jne 0x63b4c4,JMP to addon code (the replaced instructions are redone there),implemented: BattleScreenKeyDown 0063A560 (src/game/ui_battle_keys.cpp),
+MPSpeedControl,addon,0063A73A,6,0063A560+1DA,multiplayer,no,jne 0x63b4c4,JMP to addon code (the replaced instructions are redone there),implemented: BattleScreenKeyDown 0063A560 (src/game/ui_battle_keys.cpp),
+MPSpeedControl,addon,00648DFE,6,00648D70+8E,multiplayer,no,jne 0x648ec3,JMP to addon code (the replaced instructions are redone there),implemented: CHudClock::OnMouseUp 00648D70 (src/game/ui_hud.cpp),
+MPSpeedControl,addon,00648E65,2,00648D70+F5,multiplayer,no,jne 0x648ec3,JMP to addon code (the replaced instructions are redone there),implemented: CHudClock::OnMouseUp 00648D70 (src/game/ui_hud.cpp),
+PlayerNumbers,addon,0066C1C2,5,0066C180+42,multiplayer,partly,call 0x665a60,CALL 00665A60 -> addon 10021B4A,implemented: CPlayerManager::CreateSessionPlayer 0066C180 (src/game/player_manager.cpp),
 AddNewScriptCommands,addon,004B4066,115,004B4030+36,scripting/console,yes,"push ebp; (+1)mov ebp, dword ptr [esp + 0xc]; (+5)push esi; (+6)mov esi, dword ptr [eax + 8]; (+9)push edi; (+10)push ebp; (+11)lea eax, [esi + 0x54]; (+14)mov ecx, esi; (+16)push eax; (+17)call 0x4b3f60; (+22)mov ecx, dword ptr [esp + 0x10]; (+26)lea edx, [esi + 0x68]; (+29)add ecx, 0xa0; (+35)push ecx; (+36)push edx; (+37)mov ecx, esi; (+39)call 0x4b3f60; (+44)mov eax, dword ptr [esi + 0x84]; (+50)xor edi, edi; (+52)test eax, eax; (+54)jle 0x4b40c6; (+56)push ebx; (+57)xor ebx, ebx; (+59)mov eax, dword ptr [esi + 0x80]; (+65)mov ecx, dword ptr [esp + 0x14]; (+69)add eax, ebx; (+71)push eax; (+72)push ebp; (+73)push ecx; (+74)mov ecx, esi; (+76)call 0x4b4030; (+81)mov eax, dword ptr [esi + 0x84]; (+87)inc edi; (+88)add ebx, 0xc; (+91)cmp edi, eax; (+93)jl 0x4b40a1; (+95)pop ebx; (+96)push 0x78b748; (+101)call 0x480080; (+106)add esp, 4; (+109)pop edi; (+110)pop esi; (+111)pop ebp; (+112)ret 0xc",JMP to addon code (the replaced instructions are redone there),"implemented: table, dispatch, '?'/'+', keyword rule and CalcString in src/game/script_addon.cpp, hooked from CalcParameters/CalcFloat/CalcObject (script_eval.cpp), Execute (script_exec.cpp), ClassifyToken/FunctionSignature/KeywordName/ScriptError (script_parse.cpp), LoadFunction/LoadCommands (script_parse_load.cpp) and the new rewrite SSCCmd::CalcGroup 004B5B00 (script_eval.cpp); handlers in src/game/script_addon_*.cpp",
 AddNewScriptCommands,addon,004B425A,5,004B41E0+7A,scripting/console,yes,"mov eax, dword ptr [esi]; (+2)add eax, -0x45",JMP to addon code (the replaced instructions are redone there),"implemented: table, dispatch, '?'/'+', keyword rule and CalcString in src/game/script_addon.cpp, hooked from CalcParameters/CalcFloat/CalcObject (script_eval.cpp), Execute (script_exec.cpp), ClassifyToken/FunctionSignature/KeywordName/ScriptError (script_parse.cpp), LoadFunction/LoadCommands (script_parse_load.cpp) and the new rewrite SSCCmd::CalcGroup 004B5B00 (script_eval.cpp); handlers in src/game/script_addon_*.cpp",
 AddNewScriptCommands,addon,004B5BAF,5,004B5B00+AF,scripting/console,yes,"mov eax, dword ptr [esi]; (+2)add eax, -0x59",JMP to addon code (the replaced instructions are redone there),"implemented: table, dispatch, '?'/'+', keyword rule and CalcString in src/game/script_addon.cpp, hooked from CalcParameters/CalcFloat/CalcObject (script_eval.cpp), Execute (script_exec.cpp), ClassifyToken/FunctionSignature/KeywordName/ScriptError (script_parse.cpp), LoadFunction/LoadCommands (script_parse_load.cpp) and the new rewrite SSCCmd::CalcGroup 004B5B00 (script_eval.cpp); handlers in src/game/script_addon_*.cpp",
@@ -217,7 +217,7 @@ ResOverride,addon,007432F4,4,data,resources/paths,yes,401b6700,data overwritten,
 MoviesPatch,addon,0073B720,4,data,resources/paths,yes,36063800,import slot binkw32!_BinkOpen@8 -> addon,"deferred: mod folders only, pass-through with the Standard mod (docs/notes/rebirth.md, ""Resources and paths"")",
 CameraPatch,addon,0040ED42,5,0040ECD0+72,resources/paths,yes,call 0x7011e8,call redirected to addon code,"deferred: mod folders only, pass-through with the Standard mod (docs/notes/rebirth.md, ""Resources and paths"")",
 StreamPatch,addon,006BB628,5,006BB3A0+288,resources/paths,yes,call 0x700b9f,call redirected to addon code,"deferred: mod folders only, pass-through with the Standard mod (docs/notes/rebirth.md, ""Resources and paths"")",
-FixProcessLogin,addon,004433D6,5,00443080+356,multiplayer,no,"push edx; (+1)mov dword ptr [esp + 0x54], ecx",JMP to a stub: clears [edx+0x18] then runs the two instructions,not started,
+FixProcessLogin,addon,004433D6,5,00443080+356,multiplayer,no,"push edx; (+1)mov dword ptr [esp + 0x54], ecx",JMP to a stub: clears [edx+0x18] then runs the two instructions,implemented: ServerBase::OnLoginImpl 00443080 (src/game/net_lobby.cpp; ours always clears the age),
 SetEiPluginMode,addon,0073AF10,4,data,infrastructure,no,00000000,mode word 0xAADD0080 for EI_Plugin.asi,not started,
 FixRepairPrice,addon,0060FB87,5,0060FAB0+D7,bug fix,yes,fmul dword ptr [edi + ebx*4 + 0x21c],"JMP to a stub written directly (no addon.log line): FMUL as before, then for kind 7 FADD the repair cost (to 0060FB92) instead of the FSUB at 0060FB8E",implemented: new rewrite CCampPages::Price 0060FAB0 (src/game/ui_camp.cpp),
 GameExeDebug,addon,0044C470,6,0044C470+0,infrastructure,no,,disabled here: JMP to addon's debug log writer,n/a: disabled in this install,
@@ -280,29 +280,29 @@ EiPluginNPlayers,EI_Plugin,006401D7,8,00640060+177,multiplayer,no,,bytes,inactiv
 EiPluginNPlayers,EI_Plugin,006401DF,3,00640060+17F,multiplayer,no,,bytes,inactive here; not started,nplayers>7
 EiPluginNPlayers,EI_Plugin,006401E2,4,00640060+182,multiplayer,no,,bytes,inactive here; not started,nplayers>7
 EiPluginNPlayers,EI_Plugin,00640240,4,00640060+1E0,multiplayer,no,,bytes,inactive here; not started,nplayers>7
-EiPluginPause,EI_Plugin,0066FAFE,4,0066FAC0+3E,multiplayer,no,,"JMP +0x62, NOPs",active here; not started,pause12
-EiPluginPause,EI_Plugin,0066FB62,14,data,multiplayer,no,,bytes,active here; not started,pause12
-EiPluginPause,EI_Plugin,0066FB10,5,0066FAC0+50,multiplayer,no,,"Pause=2 only: mov eax,[edx+0x1C]; nop",active here; not started,pause12
-EiPluginPause,EI_Plugin,0066FB2C,1,0066FAC0+6C,multiplayer,no,,JMP short,inactive here; not started,pause3
-EiPluginPause,EI_Plugin,005942C0,4,005942C0+0,multiplayer,no,,RET 4 at the start of CWorldServer::SetUnknown6C (rewritten),inactive here; not started,pause3
+EiPluginPause,EI_Plugin,0066FAFE,4,0066FAC0+3E,multiplayer,no,,"JMP +0x62, NOPs",active here; implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp; mode rebirth::PluginPause),pause12
+EiPluginPause,EI_Plugin,0066FB62,14,data,multiplayer,no,,bytes,active here; implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp),pause12
+EiPluginPause,EI_Plugin,0066FB10,5,0066FAC0+50,multiplayer,no,,"Pause=2 only: mov eax,[edx+0x1C]; nop",active here (written with Pause=2 only); implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp),pause12
+EiPluginPause,EI_Plugin,0066FB2C,1,0066FAC0+6C,multiplayer,no,,JMP short,inactive here; implemented: CPlayerServer::OnPause 0066FAC0 (src/game/player_server_orders.cpp),pause3
+EiPluginPause,EI_Plugin,005942C0,4,005942C0+0,multiplayer,no,,RET 4 at the start of CWorldServer::SetUnknown6C (rewritten),inactive here; implemented: CWorld::SetServerPaused 005942C0 (src/game/world_server.cpp),pause3
 EiPluginAutoAim,EI_Plugin,00637209,1,00637190+79,multiplayer,no,,0,inactive here; not started,always
 EiPluginAutoAim,EI_Plugin,005D45BD,1,005D4170+44D,multiplayer,no,,0,inactive here; not started,always
 EiPluginGraphGen,EI_Plugin,005955DD,5,00595480+15D,infrastructure,no,,CALL into the plugin (00595480 NewZone),inactive here; not started,always
 EiPluginTest,EI_Plugin,0065C9A8,2,0065C930+78,infrastructure,no,,bytes 5E 75,inactive here; not started,always
 EiPluginTest,EI_Plugin,00664BBC,5,00664B70+4C,infrastructure,no,,CALL into the plugin,inactive here; not started,always
 EiPluginTest,EI_Plugin,00553FB3,4,00553F40+73,infrastructure,no,,call target in CUnitServer::TakeHit (rewritten),inactive here; not started,withtest
-EiPluginNewMaster,EI_Plugin,006330A9,5,00632D70+339,multiplayer,no,,CALL into the plugin,active here; not started,newmaster|test
-EiPluginNewMaster,EI_Plugin,0045D330,42,0045C560+DD0,multiplayer,no,,NOPs: GameOptions::SaveToRegistry (rewritten) does not save the Master Server Name,active here; not started,always
-EiPluginNewMaster,EI_Plugin,0041ACB7,2,0041ACA0+17,multiplayer,no,,NOPs,active here; not started,always
-EiPluginNewMaster,EI_Plugin,0041ABDA,5,0041AA10+1CA,multiplayer,no,,CALL into the plugin,active here; not started,always
-EiPluginNewMaster,EI_Plugin,0061D138,5,0061D0D0+68,multiplayer,no,,CALL into the plugin,active here; not started,always
-EiPluginNewMaster,EI_Plugin,00440F9F,5,00440DE0+1BF,multiplayer,no,,CALL into the plugin,active here; not started,always
+EiPluginNewMaster,EI_Plugin,006330A9,5,00632D70+339,multiplayer,no,,CALL into the plugin,"active here; not reproduced: the plugin's second master server (hat.gipath.org: resolver thread, announcement copy, connect probe) waits for the user's port-or-drop decision (S19a)",newmaster|test
+EiPluginNewMaster,EI_Plugin,0045D330,42,0045C560+DD0,multiplayer,no,,NOPs: GameOptions::SaveToRegistry (rewritten) does not save the Master Server Name,active here; implemented: GameOptions::SaveToRegistry 0045C560 (src/game/options.cpp),always
+EiPluginNewMaster,EI_Plugin,0041ACB7,2,0041ACA0+17,multiplayer,no,,NOPs,active here; implemented: ServerSession::OnMasterImpl 0041ACA0 (src/game/net_server_handlers.cpp),always
+EiPluginNewMaster,EI_Plugin,0041ABDA,5,0041AA10+1CA,multiplayer,no,,CALL into the plugin,"active here; not reproduced: the plugin's second master server (hat.gipath.org: resolver thread, announcement copy, connect probe) waits for the user's port-or-drop decision (S19a)",always
+EiPluginNewMaster,EI_Plugin,0061D138,5,0061D0D0+68,multiplayer,no,,CALL into the plugin,"active here; not reproduced: the plugin's second master server (hat.gipath.org: resolver thread, announcement copy, connect probe) waits for the user's port-or-drop decision (S19a)",always
+EiPluginNewMaster,EI_Plugin,00440F9F,5,00440DE0+1BF,multiplayer,no,,CALL into the plugin,active here; implemented: MasterLinkTick 00440DE0 (src/game/net_socket_driver.cpp),always
 EiPluginScripts,EI_Plugin,0066C1C2,5,0066C180+42,scripting/console,no,,CALL into the plugin (addon's PlayerNumbers instead here),inactive here; not started,always
-EiPluginBriefings,EI_Plugin,005920FF,25,00592090+6F,multiplayer,no,,code replaced,active here; not started,always
-EiPluginBriefings,EI_Plugin,005920C3,1,00592090+33,multiplayer,no,,jump offset +0x14,active here; not started,always
-EiPluginBriefings,EI_Plugin,005920D5,1,00592090+45,multiplayer,no,,jump offset +0x14,active here; not started,always
-EiPluginBriefings,EI_Plugin,005920E9,1,00592090+59,multiplayer,no,,jump offset +0x14,active here; not started,always
-EiPluginBriefings,EI_Plugin,005920F0,1,00592090+60,multiplayer,no,,jump offset +0x14,active here; not started,always
+EiPluginBriefings,EI_Plugin,005920FF,25,00592090+6F,multiplayer,no,,code replaced,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
+EiPluginBriefings,EI_Plugin,005920C3,1,00592090+33,multiplayer,no,,jump offset +0x14,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
+EiPluginBriefings,EI_Plugin,005920D5,1,00592090+45,multiplayer,no,,jump offset +0x14,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
+EiPluginBriefings,EI_Plugin,005920E9,1,00592090+59,multiplayer,no,,jump offset +0x14,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
+EiPluginBriefings,EI_Plugin,005920F0,1,00592090+60,multiplayer,no,,jump offset +0x14,active here; implemented: CWorldServer::CompleteBriefing 00592090 (src/game/world_quests.cpp),always
 EiPluginFixes,EI_Plugin,00614BB5,22,00613EA0+D15,multiplayer,partly,,"cmp word [ecx+4],0x6566; jne; jmp; NOPs",active here; implemented in CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; W4a); the other sites not started,always
 EiPluginFixes,EI_Plugin,00614D1B,26,00613EA0+E7B,multiplayer,partly,,jmp; NOPs,active here; implemented in CMpHeroScreen::Create (src/game/ui_hero_screen_create.cpp; W4a); the other sites not started,always
 EiPluginFixes,EI_Plugin,005ED889,8,005ED7B0+D9,multiplayer,partly,,"cmp byte [ecx+4],0x66; je; jmp",active here; not started,always

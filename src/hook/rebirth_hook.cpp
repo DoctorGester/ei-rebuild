@@ -160,6 +160,7 @@ void DetectEiPlugin() {
     g_pluginNPlayers = nPlayers;
     rebirth::SetPluginNPlayers(nPlayers);
     g_pluginPause = pause;
+    if (pause != 0) rebirth::SetPluginPause(pause);
     g_pluginTest = test != 0;
     g_pluginNewMaster = newMaster != 0;
 }
@@ -285,6 +286,8 @@ void Detect(const std::vector<unsigned char>& file) {
 
 void SettingsOnly(const char* iniPath) {
     rebirth::SetPluginNPlayers(static_cast<int>(GetPrivateProfileIntA("Rebirth", "NPlayers", 7, iniPath)));
+    rebirth::SetPluginPause(static_cast<int>(GetPrivateProfileIntA("Rebirth", "Pause", 1, iniPath)));
+    for (int i = 0; i < rebirth::kPatchCount; ++i) g_rebirthLaunch |= rebirth::Enabled(static_cast<Patch>(i));
     Log("Rebirth: standalone image: the flags are ei_rebirth.ini's alone (no addon.dll, no EI_Plugin.asi)");
     LogFlagsOn();
 }

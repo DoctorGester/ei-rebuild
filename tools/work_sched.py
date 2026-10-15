@@ -223,7 +223,7 @@ def real_runner(batch, run, retries, on_attempt):
         on_attempt(next(attempts))
         return run_all.run(name, install, hooks, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
                            clock=clock, game_env=env, dgvoodoo=dgvoodoo, fresh=fresh)
-    return run_all.run_with_retries(run['scenario'], run['install'].split('-')[0], bool(run['hooks']), retries,
+    return run_all.run_with_retries(run['scenario'], run_all.launch_install(run['install']), bool(run['hooks']), retries,
                                     os.path.basename(run['folder']), runner=one,
                                     keep=lambda folder, attempt: run_all.keep_attempt(folder, attempt, build=batch['build']))
 
@@ -588,9 +588,9 @@ def cmd_test(db, args):
         hooks = run_all.uses_hooks(install, ra)
         # R10: only dgVoodoo runs that set a resolution are alone; a run of the original code the reference cache
         # holds plays no game (it is copied in a moment) and is expected to take no time
-        cached = not ra.fresh and run_all.cached_reference(name, install.split('-')[0], hooks, root, ra.clock, env)
+        cached = not ra.fresh and run_all.cached_reference(name, run_all.launch_install(install), hooks, root, ra.clock, env)
         runs.append({'scenario': name, 'install': install, 'hooks': hooks,
-                     'alone': not cached and run_all.runs_alone(scenario, install.split('-')[0], hooks, run_all.wants_dgvoodoo(ra), env),
+                     'alone': not cached and run_all.runs_alone(scenario, run_all.launch_install(install), hooks, run_all.wants_dgvoodoo(ra), env),
                      'expected': 1 if cached else expected[(name, install)],
                      'folder': work.norm(os.path.join(build, 'runs', f'{name}-{install}'))})
     batch = submit(db, args.id, root, build, argv, runs, os.getpid(), env=env)

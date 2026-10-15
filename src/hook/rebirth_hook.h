@@ -18,10 +18,11 @@ void Detect(const std::vector<unsigned char>& file);
 
 // In the standalone image instead of Detect: no addon.dll and no EI_Plugin.asi (the host and Miles keep
 // them out), so the flags are ei_rebirth.ini's (and EI_REBIRTH's) alone; EI_Plugin's player count for
-// EiPluginNPlayers is the ini's [Rebirth] NPlayers (default 7, the plugin's). Logs the flags.
+// EiPluginNPlayers is the ini's [Rebirth] NPlayers (default 7, the plugin's), its Pause mode [Rebirth] Pause
+// (default 1). Logs the flags.
 void SettingsOnly(const char* iniPath);
 
-// True when addon.dll or EI_Plugin.asi patch this launch.
+// True when addon.dll or EI_Plugin.asi patch this launch; in the standalone image, when a flag is on.
 bool RebirthLaunch();
 
 enum class Verdict {

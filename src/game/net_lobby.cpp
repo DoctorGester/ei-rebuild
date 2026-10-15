@@ -12,6 +12,7 @@
 #include "lib/stlp.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_script.h"
@@ -737,8 +738,8 @@ void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
 //
 // The original builds the new join on the stack and never sets its age (+0x18): the list gets
 // whatever the stack held, so the time the join may wait for its first update (ServerBase::Tick)
-// is not defined. Rebirth's FixProcessLogin (a jump at 004433D6) clears it; so does this body,
-// which is installed in the vanilla launch only.
+// is not defined. Rebirth's FixProcessLogin (a jump at 004433D6 to a stub that clears it) is what
+// this body always does: garbage cannot be reproduced, so the flag changes nothing here.
 void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
     std::uint32_t magic;
     cursor->ReadBytes(&magic, 4);
@@ -797,6 +798,7 @@ void ServerBase::OnLoginImpl(const NetAddress* from, BufferCursor* cursor) {
 }
 
 EI_REPLACE_METHOD(0x00443080, ServerBase::OnLoginImpl);
+EI_REBIRTH_IMPLEMENTS(0x00443080, ei::rebirth::Patch::FixProcessLogin);
 EI_REPLACE_METHOD(0x00443060, ServerBase::OnGetInfoImpl);
 EI_REPLACE_METHOD(0x00443050, ServerBase::AdmitImpl);
 EI_REPLACE_METHOD(0x004434F0, ServerBase::OnUpdateImpl);
