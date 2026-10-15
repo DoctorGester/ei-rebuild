@@ -24,5 +24,6 @@ bool __fastcall QuitGame(int exitCode);                     // 00455F20
 std::uint8_t __cdecl MovieMode();                           // 00455E20
 void __cdecl ScrambleObjects();                             // 00455BA0
 void __cdecl DelayedProtectionCheck();                      // 00455B50
+void __stdcall ConstructProtectionChecks();                 // 00455E50
 
 } // namespace app
