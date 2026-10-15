@@ -321,6 +321,14 @@ public:
     // constructor: the engine object's fields, the base vtable 0073F18C, no figure loader, helper,
     // session or managers, the clock at 0 and the empty countdown array. Returns this.
     CWorld* ConstructBase();
+    // 0055EC80 (S13a, world_destructors.cpp; also the end of the client's 00561B00 and the
+    // server's 0058AAD0). The destructor's body: the base vtable, DestroyManagers, then the members
+    // last to first (the countdown array's storage, the session and +0x5C as RefPtr::Destroy, the
+    // figure loader's reference) and CEngineObject's body.
+    void Destruct();
+    // 0055EC60 (slot 0 of the base vtable): Destruct, then operator delete when bit 0 of `flags`
+    // is set. Returns this.
+    CWorld* DeletingDestruct(unsigned flags);
 
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073F18C);
     static constexpr std::uintptr_t kCountdownsVtable = std::uintptr_t(0x0073F234);
