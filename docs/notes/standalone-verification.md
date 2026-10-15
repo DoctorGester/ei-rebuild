@@ -854,3 +854,6 @@ Shortening the wait would lose the coverage; no golden is recorded for it (the s
   differently from run to run: the AI messages' order varies under load), twice in main suites. The scenario
   removes Snd2 once Snd1 is dead. Nine repeats of sound + render_cursor_present (4 at once, other batches running)
   passed.
+- Full verify suite (128 runs, 4 at once) passed; zone_gz15h_tornado-vanilla passed on its retry after the first
+  attempt crashed at startup inside AIL_waveOutOpen (the harness's MutedWaveOutOpen from CSoundManager::Open, main
+  thread, EIP 00007EBC, no module): not seen before in the board's history; on watch (SV6c).
