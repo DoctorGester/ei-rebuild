@@ -1361,3 +1361,7 @@ ui_saveload_delete V+R, magic_traps R. Decoded saves (SV7d): two new store entri
 SV3a's ticket is settled differently from its note (both sides now give 1.0, not the original's NaN); SV3h
 (render_present_cpuwindows' other NaN, and the scenario- and install-dependent NaNs on SV2b's heap) is settled: the
 value no longer depends on the stack.
+
+After merging main, `--golden` (the suite, hooked, 128 runs): all pass, 54 goldens the same, 2 differ: levers and
+ui_saveload_delete (vanilla), `script #gobject` (`gobject.i` 702 / 1884 after the load: script group address order,
+SV7b1; ours' heap layout moved with main's changes). combat vanilla matched this time.
