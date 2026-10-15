@@ -1,6 +1,7 @@
 """Runs every harness scenario on the vanilla install and under Rebirth and prints a summary.
 
-usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth | --native] [--no-hooks]
+usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-only | --all-rebirth | --native | --standalone]
+                               [--no-hooks]
                                [--dgvoodoo] [--fresh] [--jobs N] [--retries N] [--clock virtual|real[,...]] [--golden]
                                [--verified-candidates N]
        python tools/run_all.py --widescreen [scenario names...]
@@ -13,6 +14,11 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    renderer presents through its own swap chain (docs/notes/renderer.md section 9);
                    scenarios that need the old device (below) run there too: their old-path steps
                    do nothing, and what is left checks the new frame alone
+  --standalone     the standalone image instead of game.exe (ei_launch --standalone: build\\verify\\ei_standalone.exe
+                   lays out run\\vanilla's game.exe without its code and loads ei_hook.dll; docs/notes/standalone.md)
+                   on the vanilla install's data, with EI_RENDER=new,present like --native; install "standalone",
+                   run folders <scenario>-standalone. Without scenario names only the boot scenario (main menu,
+                   then quit). An address with no rewrite ends the run: "standalone: no code at ..." in failures
   renderers        Runs of our code (vanilla and Rebirth with hooks) draw with our renderer
                    (EI_RENDER=new,present: no DirectDraw device, its own swap chain, no display mode
                    change), so they never need the machine to themselves. dgVoodoo draws only the
@@ -65,6 +71,7 @@ import prepare_scenario
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WIDESCREEN_SCENARIOS = ['ui_widescreen', 'ui_widescreen_more', 'ui_widescreen_hud', 'ui_widescreen_screens']   # --widescreen without scenario names
+STANDALONE_SCENARIOS = ['boot']   # --standalone without scenario names
 BUILD = os.environ.get('EI_BUILD_DIR') or os.path.join(ROOT, 'build', 'verify')   # EI_BUILD_DIR: another verify build (timing runs)
 GOLDEN_PERIOD = 20   # world updates between the digest records of the suite's goldens (--golden; tools/golden.py)
 # Runs go to <BUILD>/runs. <BUILD>/run_times.json keeps each run's seconds from the last suite: the
@@ -203,7 +210,7 @@ def our_renderer(scenario, install, hooks, dgvoodoo=False, environ=None):
     when it is set, else our renderer unless dgvoodoo (--dgvoodoo) or the scenario needs the old device. A
     scenario whose `render` step says `present` draws with ours whatever else is set (the harness adds EI_RENDER's
     words to the step's)."""
-    if install == 'native':
+    if install in ('native', 'standalone'):
         return True
     if not hooks:
         return False
@@ -329,11 +336,15 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
     elif install == 'native':
         cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(run_dir(root), 'native', 'game.exe')]
         env = dict(os.environ if env is None else env, EI_RENDER=OUR_RENDERER)
+    elif install == 'standalone':
+        # Never the display mode: our renderer whatever the environment says.
+        cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(run_dir(root), 'vanilla', 'game.exe'), '--standalone']
+        env = dict(os.environ if env is None else env, EI_RENDER=OUR_RENDERER)
     elif os.path.exists(os.path.join(run_dir(root), 'rebirth', 'game.exe')):
         # Rebirth's engine copied with our own dgVoodoo.conf (tools/setup_rebirth_run.cmd).
         cmd += ['--exe', os.path.join(run_dir(root), 'rebirth', 'game.exe')]
     environ = os.environ if env is None else env
-    if install != 'native' and 'EI_RENDER' not in environ and our_renderer(scenario, install, hooks, dgvoodoo, environ):
+    if install not in ('native', 'standalone') and 'EI_RENDER' not in environ and our_renderer(scenario, install, hooks, dgvoodoo, environ):
         env = dict(environ, EI_RENDER=OUR_RENDERER)    # dgVoodoo's DLLs stay beside game.exe; nothing draws through them
     elif not hooks and 'EI_RENDER' in environ:
         # The original code draws only through dgVoodoo: with the harness's capture taking the new renderer's frame
@@ -364,7 +375,8 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
         if m:
             counts[m.group(1).strip()] = (int(m.group(2)), int(m.group(3)))
     notes = [l for l in (proc.stdout + proc.stderr).splitlines()
-             if 'terminating' in l or 'not found' in l or 'open window' in l or 'still alive' in l]
+             if 'terminating' in l or 'not found' in l or 'open window' in l or 'still alive' in l
+             or l.startswith('ei_standalone: ') and 'imports resolved, 0 missing' not in l]
     if proc.returncode in (TIMEOUT_EXIT, UNKILLABLE_EXIT) or any(f.startswith(IN_GAME_TIMEOUT) for f in failures):
         result = 'TIMEOUT'
         if not failures:
@@ -630,6 +642,7 @@ def parse_args(argv=None):
     ap.add_argument('--rebirth-only', action='store_true')
     ap.add_argument('--all-rebirth', action='store_true')
     ap.add_argument('--native', action='store_true')
+    ap.add_argument('--standalone', action='store_true')
     ap.add_argument('--no-hooks', action='store_true')
     ap.add_argument('--dgvoodoo', action='store_true')
     ap.add_argument('--fresh', action='store_true')
@@ -656,6 +669,11 @@ def plan(args, root=ROOT):
         native = os.path.join(run_dir(root), 'native', 'game.exe')
         if not os.path.exists(native):
             sys.exit(f'{native} is missing: run tools\\setup_native_run.cmd first')
+    if args.standalone:
+        if args.no_hooks or args.widescreen or args.dgvoodoo:
+            sys.exit('--standalone runs our code on our renderer: not with --no-hooks, --dgvoodoo or --widescreen')
+        names = args.scenarios or STANDALONE_SCENARIOS
+        installs = ['standalone']
     rebirth = set(names) if args.scenarios or args.all_rebirth or args.rebirth_only else rebirth_scenarios(names, root)
     jobs = [(name, install) for name in names for install in installs if install != 'rebirth' or name in rebirth]
     if args.widescreen:
@@ -784,7 +802,7 @@ def summary(jobs, results, totals, args, elapsed, out=None, root=ROOT, build=BUI
     return ok
 
 
-GOLDEN_INSTALL = {'vanilla': 'vanilla', 'native': 'vanilla', 'rebirth': 'rebirth', 'rebirth-nohooks': 'rebirth'}
+GOLDEN_INSTALL = {'vanilla': 'vanilla', 'native': 'vanilla', 'standalone': 'vanilla', 'rebirth': 'rebirth', 'rebirth-nohooks': 'rebirth'}
 
 
 def golden_check(jobs, out=None, root=ROOT, build=BUILD):

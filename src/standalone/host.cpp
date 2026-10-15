@@ -146,6 +146,9 @@ bool BuildImage(const std::vector<unsigned char>& file, const IMAGE_NT_HEADERS32
 } // namespace
 
 int main(int argc, char** argv) {
+    // Under ei_launch --standalone stdout is a pipe: unbuffered, so a run that ends on an INT3 hit
+    // (TerminateProcess) loses none of it.
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
     std::string exe = R"(F:\games\Evil Islands (Rebirth)\starter\Engine\game.exe)";
     char self[MAX_PATH];
     GetModuleFileNameA(nullptr, self, MAX_PATH);

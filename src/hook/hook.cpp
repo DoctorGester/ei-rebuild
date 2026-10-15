@@ -256,12 +256,14 @@ static std::uint32_t FunctionSizeAt(std::uintptr_t address) {
     return it != end && it->address == address ? it->size : 0;
 }
 
-// The start of the known function at or before `address` (0 below the first one).
+// The start of the known function whose body holds `address`, or 0 (library code, which the table
+// leaves out).
 std::uintptr_t FunctionContaining(std::uintptr_t address) {
     const FunctionSize* end = kFunctionSizes + std::size(kFunctionSizes);
     const FunctionSize* it = std::upper_bound(kFunctionSizes, end, address,
         [](std::uintptr_t a, const FunctionSize& f) { return a < f.address; });
-    return it == kFunctionSizes ? 0 : (it - 1)->address;
+    if (it == kFunctionSizes || address >= (it - 1)->address + (it - 1)->size) return 0;
+    return (it - 1)->address;
 }
 
 // The bytes from `address` to the next known function start.
@@ -412,10 +414,21 @@ int InstallHooks() {
     const bool recording = !standalone && GetEnvironmentVariableA("EI_VECTORS", vectorsValue, sizeof(vectorsValue)) && vectorsValue[0] == '1';
     if (recording) Log("EI_VECTORS set: recording function vectors");
     IndexHooks();
+    // In the standalone image the code section is INT3 until the jumps go in: a registered address that
+    // already holds something else was patched by the harness (its fixed ISAAC seed at 0049F660), which in
+    // the hook build keeps it the same way (rebirth_hook::Check skips a patched start).
+    std::unordered_set<std::uintptr_t> patchedBefore;
+    if (standalone)
+        for (const HookEntry* h = g_hooks; h; h = h->next)
+            if (*reinterpret_cast<const unsigned char*>(h->address) != 0xCC) patchedBefore.insert(h->address);
     TextUnprotect text(nt);
     int installed = 0, shortLeft = 0;
     for (HookEntry* h = g_hooks; h; h = h->next) {
         if (IsDisabled(h->address)) continue;
+        if (patchedBefore.count(h->address)) {
+            Log("SKIP %s at %08X: patched before the hooks (the harness)", h->name, static_cast<unsigned>(h->address));
+            continue;
+        }
         if (h->shortFunction && !standalone) {
             ++shortLeft;
             continue;

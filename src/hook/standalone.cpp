@@ -9,6 +9,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <unordered_map>
 #include <utility>
@@ -22,19 +23,47 @@ std::uintptr_t FunctionContaining(std::uintptr_t address);              // hook.
 namespace {
 
 char g_exePath[MAX_PATH];
+void (*g_missingCodeHandler)(const char* what);
 
 // game.exe's code section (.text, 0x401000-0x73A670).
 constexpr std::uintptr_t kTextBegin = 0x00401000;
 constexpr std::uintptr_t kTextEnd = 0x0073A670;
 constexpr std::uintptr_t kWinMain = 0x00456440;
 
+// A code address as the log names it: inside game.exe's code plainly, elsewhere as module+offset.
+void DescribeCode(std::uintptr_t address, char* out, std::size_t size) {
+    HMODULE module = nullptr;
+    char path[MAX_PATH];
+    if ((address < kTextBegin || address >= kTextEnd) &&
+        GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                           reinterpret_cast<LPCSTR>(address), &module) &&
+        GetModuleFileNameA(module, path, MAX_PATH)) {
+        // "ei_hook+offset", as the harness's crash log has it (tools/resolve_crash.py).
+        const char* slash = std::strrchr(path, '\\');
+        const char* name = slash ? slash + 1 : path;
+        const char* dot = std::strrchr(name, '.');
+        std::snprintf(out, size, "%08X (%.*s+%X)", static_cast<unsigned>(address),
+                      static_cast<int>(dot ? dot - name : std::strlen(name)), name,
+                      static_cast<unsigned>(address - reinterpret_cast<std::uintptr_t>(module)));
+        return;
+    }
+    std::snprintf(out, size, "%08X", static_cast<unsigned>(address));
+}
+
 // Execution reached an address of game.exe's code with no rewrite: the INT3 filling the image there.
+// Its caller is the return address on the stack when the hit is a function's first byte (a call).
 LONG CALLBACK OnBreakpoint(EXCEPTION_POINTERS* e) {
     const EXCEPTION_RECORD* r = e->ExceptionRecord;
     const auto at = reinterpret_cast<std::uintptr_t>(r->ExceptionAddress);
     if (r->ExceptionCode != EXCEPTION_BREAKPOINT || at < kTextBegin || at >= kTextEnd) return EXCEPTION_CONTINUE_SEARCH;
-    Log("standalone: no code at %08X (in the function at %08X), called from %08X", static_cast<unsigned>(at),
-        static_cast<unsigned>(FunctionContaining(at)), static_cast<unsigned>(*reinterpret_cast<std::uint32_t*>(e->ContextRecord->Esp)));
+    const std::uintptr_t function = FunctionContaining(at);
+    char where[64], caller[160], what[256];
+    if (function) std::snprintf(where, sizeof(where), "in the game function at %08X", static_cast<unsigned>(function));
+    else strcpy_s(where, "library code");
+    DescribeCode(*reinterpret_cast<const std::uint32_t*>(e->ContextRecord->Esp), caller, sizeof(caller));
+    std::snprintf(what, sizeof(what), "no code at %08X (%s), [esp] %s", static_cast<unsigned>(at), where, caller);
+    Log("standalone: %s", what);
+    if (g_missingCodeHandler) g_missingCodeHandler(what);
     TerminateProcess(GetCurrentProcess(), 3);
     return EXCEPTION_CONTINUE_SEARCH;
 }
@@ -79,6 +108,8 @@ int CheckJumps() {
 bool Standalone() { return GetModuleHandleA(nullptr) != reinterpret_cast<HMODULE>(kImageBase); }
 
 const char* StandaloneExePath() { return g_exePath; }
+
+void SetMissingCodeHandler(void (*handler)(const char* what)) { g_missingCodeHandler = handler; }
 
 } // namespace ei
 
