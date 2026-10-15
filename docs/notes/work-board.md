@@ -6,9 +6,10 @@ published ticket board stays as it is (made from docs/tickets.toml).
 
 ## Split
 
-- **docs/tickets.toml** (git) keeps what a ticket is: title, group, depends, status, note. Unchanged.
+- **docs/tickets.toml** (git) keeps what a ticket is: title, group, depends, files, note. Since WB10 its
+  status is in the database (`ticket_status`).
 - **build/live/work.db** (SQLite, in the main checkout, outside git) keeps what is happening now:
-  assignments, progress notes, test batches and their runs. Every worktree finds it through
+  ticket status, assignments, progress notes, test batches and their runs. Every worktree finds it through
   `git rev-parse --git-common-dir`, so all checkouts share one database. SQLite in WAL mode with
   short transactions and a busy timeout serialises writers (item 7); the toml keeps its own
   check-before-write in tools/tickets.py and gains a lock file for the read-modify-write.
@@ -19,6 +20,7 @@ published ticket board stays as it is (made from docs/tickets.toml).
 - `note(ticket, time, author, text)`: progress lines from workers and the coordinator.
 - `batch(id, ticket, worktree, build, submitted, started, finished, state, args)`: one test request.
 - `run(batch, scenario, install, state, started, seconds, result, failures, folder)`: its games.
+- `ticket_status(ticket, status, started, done, changed, author)`: the ticket's status (WB10).
 
 ## Commands (tools/work.py, for workers and the coordinator)
 
@@ -263,3 +265,27 @@ arguments (<run_all's own argparse error>): <args>`; the board shows it and the 
 and exits 2. `work_sched.parse_batch_args` captures argparse's stderr. Submission already refused bad arguments:
 `cmd_test` runs `run_all.parse_args(argv)` before queuing (argparse prints the error, exit 2).
 Tested: tools/test_work_sched.py `test_unparseable_arguments_fail_the_batch`.
+
+## WB10: ticket status in the database; the ticket board live on :8765 (2026-10-15)
+
+Status (running, review, queued, later, watch, done) and its dates moved from docs/tickets.toml to schema 4's
+`ticket_status(ticket, status, started, done, changed, author)`; no row means queued. Writers: `work.py start ID`
+(running; started = today unless it already runs), `tickets.py set ID STATUS` from any checkout (running fills
+started, done fills done), `work.py done ID merged ...` (done = today; other `done` texts leave the status alone).
+Readers: tickets.py (docs/tickets.md and build/tickets/tickets.json as before), `work.py status ID`, the server.
+
+**Migration and old branches.** tickets.toml must not hold `status` / `started` / `done` lines: `tickets.py check`
+reports each one. Every tickets.py command that writes (no arguments, set, note, add) first moves them out under its
+lock: a ticket with no database row takes the line's values exactly (the one-time migration, and a ticket an old
+branch added), a ticket with a row keeps it and the line is dropped (an old branch's status edit is ignored; the
+command prints which). Until then readers fall back to a ticket's toml line when the database has no row.
+On main after the merge: `python tools/tickets.py` (on a copy of the real database it moved 422 lines of 207
+tickets, statuses and dates identical), then commit docs/tickets.toml and docs/tickets.md.
+
+**Live board.** `work.py serve` also serves the published ticket board page: `/tickets/` is
+tools/tickets_board/index.html, `/tickets/tickets.json` is tickets.py's board data with the database's statuses
+now (`live: true`; the page then fetches again every 5 s and redraws only on a change). The work board's header
+links to it. The published artifact still reads build/tickets/tickets.json.
+
+Tested: tools/test_tickets.py (temporary toml, markdown, lock and WORK_DB: migration keeps every status and date,
+old-branch lines, set / add / note, start and done, the live board before and after migration).
