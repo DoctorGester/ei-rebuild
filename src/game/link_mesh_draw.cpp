@@ -170,7 +170,7 @@ int DrawPartCommon(CLinkMesh* mesh, const stlp::string* name, int flags, CDXSurf
 
 // 004F3AD0 (slot 7, RET 0x14, AL). Both arrays sized to four per normal packet (their contents
 // dropped), then filled.
-bool CLinkMesh::FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
+bool CLinkMesh::FlatColoursImpl(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
                             ColourArray* colours, ColourArray* speculars) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
@@ -180,17 +180,13 @@ bool CLinkMesh::FlatColours(const stlp::string* name, std::uint32_t colour, std:
     Fill(*speculars, specular);
     return true;
 }
-bool __fastcall LinkMeshFlatColours(CLinkMesh* self, void*, const stlp::string* name, std::uint32_t colour,
-                                    std::uint32_t specular, ColourArray* colours, ColourArray* speculars) {
-    return self->CLinkMesh::FlatColours(name, colour, specular, colours, speculars);
-}
-EI_REPLACE(0x004F3AD0, LinkMeshFlatColours);
+EI_REPLACE_METHOD(0x004F3AD0, CLinkMesh::FlatColoursImpl);
 
 // 004F3870 (slot 8, RET 0x18, AL). The arrays sized as above; the transform object lights the
 // part into `colours` (LightMesh, with the material's light vector); every specular is the alpha
 // byte in the top byte, over the material's specular colour (components times 255, truncated by
 // _ftol and OR-ed in unmasked) when the material keeps its speculars.
-bool CLinkMesh::LightPart(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
+bool CLinkMesh::LightPartImpl(const stlp::string* name, const FigureLights* lights, CMaterial* material, int alpha,
                           ColourArray* colours, ColourArray* speculars) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return false;
@@ -216,68 +212,44 @@ bool CLinkMesh::LightPart(const stlp::string* name, const FigureLights* lights, 
     }
     return true;
 }
-bool __fastcall LinkMeshLightPart(CLinkMesh* self, void*, const stlp::string* name, const FigureLights* lights,
-                                  CMaterial* material, int alpha, ColourArray* colours, ColourArray* speculars) {
-    return self->CLinkMesh::LightPart(name, lights, material, alpha, colours, speculars);
-}
-EI_REPLACE(0x004F3870, LinkMeshLightPart);
+EI_REPLACE_METHOD(0x004F3870, CLinkMesh::LightPartImpl);
 
 // ---- 9-12: the draws -------------------------------------------------------------------------------
 
 // 004F3C60 (slot 9, RET 0x1C).
-int CLinkMesh::DrawPartMoved(const stlp::string* name, int flags, ColourArray* colours, ColourArray* speculars,
+int CLinkMesh::DrawPartMovedImpl(const stlp::string* name, int flags, ColourArray* colours, ColourArray* speculars,
                              lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, offsets, u, v);
 }
-int __fastcall LinkMeshDrawPartMoved(CLinkMesh* self, void*, const stlp::string* name, int flags, ColourArray* colours,
-                                     ColourArray* speculars, lib::AlignedArray<Vector3>* offsets, std::uint32_t u,
-                                     std::uint32_t v) {
-    return self->CLinkMesh::DrawPartMoved(name, flags, colours, speculars, offsets, u, v);
-}
-EI_REPLACE(0x004F3C60, LinkMeshDrawPartMoved);
+EI_REPLACE_METHOD(0x004F3C60, CLinkMesh::DrawPartMovedImpl);
 
 // 004F3FA0 (slot 10, RET 0x18).
-int CLinkMesh::DrawPart(const stlp::string* name, int flags, ColourArray* colours, ColourArray* speculars,
+int CLinkMesh::DrawPartImpl(const stlp::string* name, int flags, ColourArray* colours, ColourArray* speculars,
                         std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, nullptr, nullptr, false, colours, speculars, nullptr, u, v);
 }
-int __fastcall LinkMeshDrawPart(CLinkMesh* self, void*, const stlp::string* name, int flags, ColourArray* colours,
-                                ColourArray* speculars, std::uint32_t u, std::uint32_t v) {
-    return self->CLinkMesh::DrawPart(name, flags, colours, speculars, u, v);
-}
-EI_REPLACE(0x004F3FA0, LinkMeshDrawPart);
+EI_REPLACE_METHOD(0x004F3FA0, CLinkMesh::DrawPartImpl);
 
 // 004F42D0 (slot 11, RET 0x24).
-int CLinkMesh::DrawPartMovedTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
+int CLinkMesh::DrawPartMovedTexturedImpl(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                      ColourArray* colours, ColourArray* speculars,
                                      lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, offsets, u, v);
 }
-int __fastcall LinkMeshDrawPartMovedTextured(CLinkMesh* self, void*, const stlp::string* name, int flags,
-                                             CDXSurface* first, CDXSurface* second, ColourArray* colours,
-                                             ColourArray* speculars, lib::AlignedArray<Vector3>* offsets,
-                                             std::uint32_t u, std::uint32_t v) {
-    return self->CLinkMesh::DrawPartMovedTextured(name, flags, first, second, colours, speculars, offsets, u, v);
-}
-EI_REPLACE(0x004F42D0, LinkMeshDrawPartMovedTextured);
+EI_REPLACE_METHOD(0x004F42D0, CLinkMesh::DrawPartMovedTexturedImpl);
 
 // 004F4150 (slot 12, RET 0x20).
-int CLinkMesh::DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
+int CLinkMesh::DrawPartTexturedImpl(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                 ColourArray* colours, ColourArray* speculars, std::uint32_t u, std::uint32_t v) {
     return DrawPartCommon(this, name, flags, first, second, true, colours, speculars, nullptr, u, v);
 }
-int __fastcall LinkMeshDrawPartTextured(CLinkMesh* self, void*, const stlp::string* name, int flags, CDXSurface* first,
-                                        CDXSurface* second, ColourArray* colours, ColourArray* speculars,
-                                        std::uint32_t u, std::uint32_t v) {
-    return self->CLinkMesh::DrawPartTextured(name, flags, first, second, colours, speculars, u, v);
-}
-EI_REPLACE(0x004F4150, LinkMeshDrawPartTextured);
+EI_REPLACE_METHOD(0x004F4150, CLinkMesh::DrawPartTexturedImpl);
 
 // ---- 13 / 14: the shadow ---------------------------------------------------------------------------
 
 // 004F4680 (slot 13, RET 0x14). The part's positions (moved by `offsets` when it has any) through
 // the transform object's flat projection; four points per packet.
-int CLinkMesh::ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
+int CLinkMesh::ProjectPartImpl(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
                            float* points, float* bounds) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
@@ -287,17 +259,13 @@ int CLinkMesh::ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>*
     pipeline_->ProjectFlat(matrix, positions, points, r.vertices.count, bounds);
     return r.vertices.count << 2;
 }
-int __fastcall LinkMeshProjectPart(CLinkMesh* self, void*, const stlp::string* name, lib::AlignedArray<Vector3>* offsets,
-                                   const float* matrix, float* points, float* bounds) {
-    return self->CLinkMesh::ProjectPart(name, offsets, matrix, points, bounds);
-}
-EI_REPLACE(0x004F4680, LinkMeshProjectPart);
+EI_REPLACE_METHOD(0x004F4680, CLinkMesh::ProjectPartImpl);
 
 // 004F4850 (slot 14, RET 0xC). The part's texture coordinates times 255 (as floats, rounded to the
 // nearest integer), then every triangle's corners - the projected point of the corner's position
 // and the texture point of its coordinate - handed to the pixel converter's rasteriser at the
 // start of `target`.
-int CLinkMesh::RasterisePart(const stlp::string* name, int* pixels, void* target) {
+int CLinkMesh::RasterisePartImpl(const stlp::string* name, int* pixels, void* target) {
     const LinkRangeMap::Node* node = ranges_.find(*name);
     if (node == ranges_.end()) return 0;
     const LinkPartRanges& r = node->second;
@@ -326,7 +294,4 @@ int CLinkMesh::RasterisePart(const stlp::string* name, int* pixels, void* target
     }
     return r.vertices.count << 2;
 }
-int __fastcall LinkMeshRasterisePart(CLinkMesh* self, void*, const stlp::string* name, int* pixels, void* target) {
-    return self->CLinkMesh::RasterisePart(name, pixels, target);
-}
-EI_REPLACE(0x004F4850, LinkMeshRasterisePart);
+EI_REPLACE_METHOD(0x004F4850, CLinkMesh::RasterisePartImpl);

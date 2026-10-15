@@ -20,7 +20,7 @@ void CompareNames(const char* name, Item* item, const mfc::CString& expected, co
     static mfc::CString*(__fastcall* s_##Class##Method)(Class*, void*, mfc::CString*);                        \
     static mfc::CString* __fastcall Class##Method##Verify(Class* self, void*, mfc::CString* result) {         \
         s_##Class##Method(self, nullptr, result);                                                              \
-        mfc::CString actual = self->Class::Method();                                                           \
+        mfc::CString actual = self->Class::Method##Impl();                                                           \
         CompareNames(#Class "::" #Method, self, *result, actual);                                              \
         return result;                                                                                         \
     }

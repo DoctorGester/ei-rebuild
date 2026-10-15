@@ -191,7 +191,7 @@ CEngineObject* CLightFactory::NewObject(int type) {
 }
 
 CEngineObject* CLightFactory::CreateObject(int type, int id) {
-    CEngineObject* object = CBaseManager::CreateObject(type, id);
+    CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
     object->flags_ &= ~kFlagCreatedLight;
     return object;
 }

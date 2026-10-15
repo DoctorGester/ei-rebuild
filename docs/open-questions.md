@@ -82,8 +82,10 @@ scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suit
   RestoreAfterMinimise) and the second the exclusive mode, which a background window does not get
   back (the renderer's own restore, 00504780, hung). The run ends on "Can't begin scene" / "Can't lock
   surface" (DDERR_SURFACELOST). Seen only in ours, on the last run of a scenario (it lives longest).
-  run_all.run runs such a run again, up to twice. A cure would keep harness games from ever taking
-  the foreground (dgVoodoo's own activation at SetCooperativeLevel gives it to them).
+  SV1c: harness games never take the foreground now (harness.cpp `noforeground::` patches user32's
+  SetForegroundWindow, SetActiveWindow, SetFocus, BringWindowToTop, SwitchToThisWindow, ShowWindow, SetWindowPos,
+  SetWindowLong and CreateWindowEx for every caller in the process, dgVoodoo's included; the game window gets its
+  WM_ACTIVATE from the harness instead), and run_all no longer runs such a run again.
 - **Start-up hangs on a busy machine.** With many games on the machine (other workers' suites), some
   runs on either side and either clock hang before the main menu until the 60 s limit: the main
   thread is in DirectSound's device open inside Miles' waveOutOpen (mss32 -> DSOUND, stack at the

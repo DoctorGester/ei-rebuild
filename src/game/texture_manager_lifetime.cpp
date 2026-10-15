@@ -94,7 +94,7 @@ CTextureManager* CTextureManager::DeletingDestruct(unsigned flags) {
 EI_REPLACE_METHOD(0x00691230, CTextureManager::DeletingDestruct);
 
 CEngineObject* CTextureManager::CreateObject(int type, int id) {
-    CEngineObject* object = CBaseManager::CreateObject(type, id);
+    CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
     object->flags_ |= CreateFlag(type);
     return object;
 }

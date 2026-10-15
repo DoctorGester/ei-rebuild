@@ -40,13 +40,16 @@ public:
     // 0: 006CECD0. One tick: life - 1, both half sizes grow by `growth_`, alpha = (1 - max(t, 0))
     // * alphaScale with t = (lifetime - life) / lifetime. Returns the life left.
     virtual int Tick();
+    int TickImpl();   // body of the slot above (registered by member pointer)
     // 1: 006CF4F0 (RET 4). Reads what Save writes (the texture looked up again by its name);
     // the geometry is made again (built_ cleared).
     virtual void Load(CStream* stream);
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     // 2: 006CF370 (RET 4). Writes the position, half sizes, growth, life (2 bytes), texture name
     // (with its terminator), uv offset and scale, both angles, lit (1 byte), alpha scale,
     // lifetime and colour.
     virtual void Save(CStream* stream);
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
 
     // 006CFEA0 (RET 0x20). A scorch mark ("fireprints") at (x, y): a random quarter of the 2 x 2
     // texture, turned by the same quarter; white, lit as the terrain says. Returns this.
@@ -112,7 +115,9 @@ public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F760);
 
     void Load(CStream* stream) override;   // 1: 006CFE60 (RET 4): GroundPrint's, then scale_, kind_
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     void Save(CStream* stream) override;   // 2: 006CFE10 (RET 4): the same order
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
 
     // 006CFBA0 (RET 0x30). A footprint at (x, y): `tile` picks the texture's eighth (low 3 bits
     // across, bits 3..15 down; bit 16 the left foot's half); `kind` -1 "footprints", else
@@ -134,8 +139,11 @@ public:
     // 0: 006CFA20. While spreading (spreadTicks_ counts down) the geometry is made again every
     // tick, after that the growth stops; the angle turns by spin_; then GroundPrint's tick.
     int Tick() override;
+    int TickImpl();   // body of the slot above (registered by member pointer)
     void Load(CStream* stream) override;   // 1: 006CFB40 (RET 4): GroundPrint's, then spin, spread, kind, fresh
+    void LoadImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     void Save(CStream* stream) override;   // 2: 006CFAC0 (RET 4)
+    void SaveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
 
     // 006CF660 (RET 0x28). A blood print ("bloodprints") of `halfSize` growing to `fullSize` in
     // min(life / 2, 45) ticks: `tile` bits 0 / 16 pick the quarter across, bits 1..15 / 17.. down;

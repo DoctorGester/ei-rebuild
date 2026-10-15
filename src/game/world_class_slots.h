@@ -79,6 +79,6 @@ void __fastcall WorldClientMoveObject(CWorldClient*, void*, CEngineObject* objec
 void __fastcall WorldClientMoveObject2(CWorldClient*, void*, CEngineObject* object, const float* position);
 
 // 00562D70 / 00562DA0 (RET 4): slot 13 (Init) of the lightning and fog managers passes its
-// argument to CBaseManager::Init (004031B0).
+// argument to CBaseManager::InitImpl (004031B0).
 int __fastcall LightningManagerInit(ClientListManager*, void*, void* context);
 int __fastcall VisFogManagerInit(ClientArrayManager*, void*, void* context);

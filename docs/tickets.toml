@@ -622,7 +622,7 @@ title = "Saved games differ byte for byte between runs of the original"
 group = "verification"
 size = 0.5
 files = ["tools/golden.py"]
-note = "From SV3: harness_saves/<save>/mission.sav (size and bytes) differs between two --no-hooks runs of the same scenario in every scenario that saves, so goldens keep the saves only as the state after loading them (dump steps). Find what a save holds that the digest leaves out (likely the update-map countdown from heap addresses, or other heap bytes), then keep the saves' hashes or a decoded field list in the goldens (golden.py saves())."
+note = "Taken over by SV7d."
 
 [[ticket]]
 id = "SV3c"
@@ -807,7 +807,7 @@ note = "SV6b's full suite, zone_gz15h_tornado-vanilla first attempt: C0000005 at
 id = "SV2d"
 title = "gobject.i after loading a save: 1884 in ours, 702 in the original"
 group = "verification"
-note = "From SV2b: on the one-reservation harness heap, world_load and magic_traps (vanilla) part at world update 140 / 160 in script gobject.i (zone1's Peasans group, address-ordered: the original's last member is 702, ours 1884; both repeat). The units are made again by the load, so ours' blocks before them differ from the original's (verify wrappers' scratch copies, our own temporaries). Compare the two sides' heap traces (EI_HARNESS_CLOCK=virtual,heaptrace, EI_HEAPTRACE=160) around the units' allocations (# obj lines) and find which extra or missing block puts 1884 above 702."
+note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
 
 [[ticket]]
 id = "SV2e"
@@ -861,7 +861,7 @@ title = "Delta coder and stream twins: ours first"
 group = "verification"
 depends = ["SV2h"]
 files = ["tests/verify/verify_net_delta.cpp", "tests/verify/verify_net_streams.cpp", "tests/verify/verify_net_coder.cpp", "tests/verify/delta_snapshot.h", "tests/verify/verify_crt_streams.cpp", "tests/verify/verify_directdraw_holder.cpp"]
-note = "SV2h left the network delta coder's checks (net_delta FieldCopy / StreamCopy / CloneStream, net_streams, net_coder, delta_snapshot.h): the twin bit streams and buffers are game-heap blocks made before either side runs. Keep the bytes in our memory, run ours, then clone for the original (the KeptStream pattern of verify_net_link). Also review the crt_streams start-up batteries and directdraw_holder for the same order. Check with work.py test --golden."
+note = "Merged 2026-10-15 as stopped (layout-independent goldens instead): ours-first + heap::Aside in net delta / streams / coder / directdraw checks, with real fixes (ReadDiff copy of old, CheckFieldRead seeding, delta globals restored, twin ownership). FinishVerify and ReadChecked stay original-first."
 
 [[ticket]]
 id = "SV2h3"
@@ -877,7 +877,7 @@ title = "Heap-order holes: the original first on a game-heap copy (render, data,
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_figure_bone_lifetime.cpp", "tests/verify/verify_figure_mesh.cpp", "tests/verify/verify_models.cpp", "tests/verify/verify_link_figure.cpp", "tests/verify/verify_ground_decal.cpp", "tests/verify/verify_ground_print.cpp", "tests/verify/verify_effects_weather_draw.cpp", "tests/verify/verify_render_helper.cpp", "tests/verify/verify_ini_file.cpp", "tests/verify/verify_registry.cpp", "tests/verify/verify_item_constructor.cpp", "tests/verify/verify_item_parts.cpp", "tests/verify/verify_core_stream_chunks.cpp", "tests/verify/verify_acks_db.cpp", "tests/verify/verify_ai_area_lists.cpp", "tests/verify/verify_unit_client_models.cpp", "tests/verify/verify_unit_item_lists.cpp", "tests/verify/verify_world_client_maps.cpp", "tests/verify/verify_world_save.cpp", "tests/verify/verify_player_sources.cpp", "tests/verify/verify_object3d_figure_setup.cpp", "tests/verify/verify_unit_ai_sight.cpp", "tests/verify/verify_aligned_arrays.cpp", "tests/verify/verify_dib.cpp", "tests/verify/verify_device_object.cpp", "tests/verify/verify_magic_trap.cpp", "tests/verify/verify_console.cpp", "tests/verify/verify_text_keys.cpp"]
-note = "SV2h3's heap-order check (EI_HEAPORDER=1, harness_heap_order.cpp; notes SV2h3) finds about 90 wrappers in these files that still run the original first on a game-heap copy and free it after ours allocated (pattern hole in heaporder.txt): FigureBone::Construct, CFigureMesh LoadFig / LoadOld / Resize, CModel Resize, the link figure loader, ground decal Begin / Reserve, AddBlood / AddFootprint / AddScorch, weather PrepareBuffers, the INI and registry readers, the item name lists, ReadTagged / FindTagged, the acks records, FillAreaLists, CollectItems, world save / ReadAIGraph, console Tokenize, the text key lists. Apply the SV2f rule (ours first, the copy made after from bytes kept in our memory, freed), and make the copy, the original's run on it and its free inside a heap::Aside (harness_heap.h), so the twin's blocks stay out of the reservation. Done when EI_HEAPORDER over the vanilla suite shows no hole in these files and --golden passes."
+note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
 
 
 [[ticket]]
@@ -886,7 +886,7 @@ title = "Heap-order holes: UI checks that run the same object twice or restore a
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_ui_battle_update.cpp", "tests/verify/verify_ui_hud_tips.cpp", "tests/verify/verify_ui_spell_column.cpp", "tests/verify/verify_ui_camp_stats.cpp", "tests/verify/verify_ui_hud_setup.cpp", "tests/verify/verify_ui_hud_panels.cpp", "tests/verify/verify_ui_scroll_text.cpp", "tests/verify/verify_ui_item_strip.cpp", "tests/verify/verify_ui_trade_panel.cpp", "tests/verify/verify_ui_trade_panel_input.cpp", "tests/verify/verify_ui_help_page.cpp", "tests/verify/verify_ui_connect_screen.cpp", "tests/verify/verify_ui_item_info.cpp", "tests/verify/verify_ui_hud_portraits.cpp"]
-note = "From SV2h3's heap-order check (EI_HEAPORDER=1; notes SV2h3): side-by-side UI checks whose second run allocates before the first run's blocks are freed. CHudQuickItems / WeaponBar / ActionColumn / SpellColumn::SetUnit and CHeroStatsPanel::SetHero run the original and then ours on the same panel with no restore, and ours' SetTip makes its tooltip before freeing the original's; the clock's and move panel's setups leave a list the original added to, emptied (its CPlex freed) only after ours allocated; CHudPanels / CUiScrollText Layout, the item strip, trade lists, help page, connect screen, DamageLists show holes too. Each needs a twin, or a restore that frees everything the first run made before the second allocates. Done when EI_HEAPORDER shows no hole in these files and --golden passes."
+note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
 
 
 [[ticket]]
@@ -895,7 +895,7 @@ title = "Heap-order check: both sides keep blocks (twin leaks, caches) and the h
 group = "verification"
 depends = ["SV2h3"]
 files = ["tests/verify/verify_ui_tooltip.cpp", "tests/verify/verify_map_database.cpp", "tests/verify/verify_particle_render.cpp", "tests/verify/verify_particle_create.cpp", "tests/verify/verify_terrain_map_load.cpp", "tests/verify/verify_resource_stream.cpp", "tests/verify/verify_sound_lifetime.cpp", "tests/verify/verify_mfc_gdi.cpp", "tests/verify/verify_net_server.cpp", "tests/verify/verify_ui_options.cpp", "tests/verify/verify_ui_saveload_list.cpp", "tests/verify/verify_ui_surface.cpp", "tests/verify/verify_ui_text_draw.cpp", "tests/verify/verify_ui_interface_glue.cpp", "tests/verify/harness_heap_order.cpp"]
-note = "From SV2h3's heap-order check (pattern both / kept in heaporder.txt; notes SV2h3): CUiTooltip::Construct's scratch run leaves 4 materials per call (DestroyBody does not release them: a leak and a heap shift); CMapDatabase LoadAll / Load, particle Draw / CreateForType, LoadMap, ListFiles, ListWaveFiles, CreatePointFont, the server constructor, ShowFps's capture and the options / save list / edit checks keep blocks on both sides. Also: many examples show 64-byte CPlex blocks from CMapPtrToPtr::At (MFC's temporary handle map) in the reservation, which the harness means to send to the growable heap (InHandleMap): check whether the thunks hide FromHandle's return from its stack scan or whether these are another map. Done when each is fixed or explained."
+note = "Superseded by SV7 (user 2026-10-15: goldens independent of heap layout; twin order no longer matters)."
 
 
 [[ticket]]
@@ -912,7 +912,29 @@ id = "SV2h1c"
 title = "Twin originals allocate outside the reservation heap"
 group = "verification"
 depends = ["SV2h1b"]
-note = "SV2h1b: after a save is loaded, gobject.i (gz1g's address-ordered Peasans group) follows which free region of the reservation heap is smallest when unit 1884 is made; a verify run makes ~8x the heap calls of a --no-hooks run, so any change to a check that allocates before a load can flip it (SV2h1's Tokenize order did, from main's paths only). Route the main thread's game-heap calls made while an original runs on a twin (the verify wrapper's call through its trampoline on scratch outputs) to harness_heap's second heap (frees and reallocs already go by address), so the reservation sees only the game's own blocks; then the twin order no longer matters for goldens. Check: terrain_water_load / ui_saveload_delete / world_load / magic_traps vanilla from main's paths (python E:/workspace/ei/tools/work.py test with EI_BUILD_DIR of build/verify's length, SV2h1b notes) against their goldens, SV2d."
+note = "Superseded by SV7."
+
+[[ticket]]
+id = "SV7"
+title = "Goldens independent of heap layout"
+group = "verification"
+size = 2
+note = "User 2026-10-15: exact heap layouts are not worth preserving (the standalone's allocator and the STL cleanup change them). Goldens (digest of world / generators / players / object field hashes, dumps, saves) must not depend on addresses. Steps: (a) SV7a: a harness heap jitter mode and two --no-hooks runs of each scenario with different layouts; every digest / dump field that differs is address-dependent game behaviour: inventory the sites (orders by pointer, pointer-keyed hash iteration, uninitialised reads). (b) canonicalise each site by object id in both the original (harness patch, as the update countdown already is) and ours, kept in the standalone as a determinism fix. (c) re-record goldens with jitter on; ours must match under any layout, path or check order. (d) decoded saves (field by field, SV3b) as checkpoint comparisons. Replaces the SV2h line (twin ordering for heap layout): SV2h1c, SV2h3a-c, SV2d go when this lands."
+
+[[ticket]]
+id = "SV7a"
+title = "Heap jitter: find the game's address-dependent behaviour"
+group = "verification"
+size = 1
+depends = ["SV2h3"]
+note = "First step of SV7. Add a harness heap mode (EI_HEAP_JITTER=<seed>, tests/verify/harness_heap.*) that changes block addresses without changing the game's calls (e.g. a seeded pad before each block or a shifted reservation base, both sides alike). Run every golden scenario --no-hooks with two or three seeds (and no jitter), diff digests and dumps (tools/golden.py diff), and list each field that differs with the code site that makes it address-dependent (decompile the reader: sort / set / map by pointer, hash of a pointer, uninitialised memory, the update countdown already patched). Deliver the inventory in docs/notes/standalone-verification.md (SV7a) and one follow-up ticket per site family for the id-based fix. No fixes in this ticket beyond the jitter mode."
+
+[[ticket]]
+id = "SV7d"
+title = "Saves in goldens, decoded field by field"
+group = "verification"
+size = 1
+note = "Step (d) of SV7, takes over SV3b. Saves (harness_saves/<save>/*.sav) differ byte for byte between two --no-hooks runs of the original, so goldens keep only their size/hash note. Decode the save format (the game's own Save/Load: world, units, items, scripts, players) into a field list with ids instead of pointers, find which bytes differ between runs (uninitialised padding, address-derived values) and leave them out by rule, then have golden.py compare decoded saves at each checkpoint and name the first differing field. Must not depend on heap layout (SV7a's jitter mode, when merged, should leave decoded saves equal)."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -1198,7 +1220,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "batch 4: 103 shims converted (22 class B, 81 class A; progress 1,234 -> 1,131). verify and release clean, check_stolen/x87/signatures/thunks 0, work.py test C11 --golden: 128 runs ALL PASS, goldens 56 the same 0 differ. Notes in docs/notes/cleanup-units.md."
+note = "batch 5: 127 virtual-slot Hook shims converted to <Slot>Impl members (items, ground prints, link mesh/loader, net session/lobby/link, resources, base manager); progress 1,132 -> 1,005. verify and release clean, check_stolen/x87/signatures/thunks 0, work.py test C11 --golden: 128 runs ALL PASS, goldens 56 the same 0 differ. Notes in docs/notes/cleanup-units.md."
 
 [[ticket]]
 id = "C12"

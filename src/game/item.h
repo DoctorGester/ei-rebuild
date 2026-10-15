@@ -61,20 +61,25 @@ public:
     // of the manager context, slot 22, and counts it), +0x48 and +0x40, four bytes each, in that
     // order.
     void Load(void* stream) override;
+    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
     void Save(void* stream) override;
+    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
     // 006A0490. Slot 13 (the subclasses call it first): takes the item's values from a database
     // record (see CItemConstructor::Build): +0x34 price, +0x38, +0x3C, +0x40 charge (current and
     // maximum), +0x44, +0x48 (+0x20 and +0x24); charge rate 0.001.
     virtual void InitFromRecord(const itemdb::ItemRecordHead* record);
+    void InitFromRecordImpl(const itemdb::ItemRecordHead* record);   // body of the slot above (registered by member pointer)
     // 0069FE90 (item_slots.cpp). Slot 14's base body: 1 for the item itself; else the same kind,
     // packed id, values +0x40 and (equal or unordered floats) +0x20..+0x2C, +0x34..+0x3C, and both
     // without a spell or both with one of the same packed id and modifiers.
     virtual BOOL IsSameAs(CItem* other);
+    BOOL IsSameAsImpl(CItem* other);   // body of the slot above (registered by member pointer)
     // 0069FFC0 (RET 8; slot 15's base body; party_items.cpp). Gives `target`, when it is of the
     // same kind, this item's packed id and values +0x20..+0x40 (after its Destroy, slot 3), a copy
     // of the attached spell (CSpell::Clone with `spells`; or none) and a count (+0x48) of 1.
     // Returns 0 for another kind, else 1.
     virtual BOOL CopyTo(CItem* target, CSpellManager* spells);
+    BOOL CopyToImpl(CItem* target, CSpellManager* spells);   // body of the slot above (registered by member pointer)
     // 004622F0 (four bytes, not hooked). Slot 16: the base price (CItemLoot's depends on what it
     // stands for).
     virtual float GetPrice();
@@ -206,25 +211,34 @@ public:
 
     // 006A06C0. Virtual slot 14: the same item as `other` (base comparison plus the weapon fields).
     BOOL IsSameAs(CItem* other) override;
+    BOOL IsSameAsImpl(CItem* other);   // body of the slot above (registered by member pointer)
 
     // Names built from the prototype (item_names.cpp; virtual slots 17-20). Slot 17: the model
     // name "<type>_<number>.<material name>.<variant>" (type "sw", "ax", ...; empty without a
     // prototype or material). Slot 18: the first string of the prototype's string list (+0x20),
     // else "". Slot 19: "unhuma" + slot 17. Slot 20: the picture name "initwe<type><number>weapon".
     mfc::CString ModelName() override;       // 006A0840
+    mfc::CString ModelNameImpl();   // body of the slot above (registered by member pointer)
     mfc::CString FirstListName() override;   // 006A0F70
+    mfc::CString FirstListNameImpl();   // body of the slot above (registered by member pointer)
     mfc::CString FigureName() override;      // 006A2750
+    mfc::CString FigureNameImpl();   // body of the slot above (registered by member pointer)
     mfc::CString PictureName() override;     // 006A27E0
+    mfc::CString PictureNameImpl();   // body of the slot above (registered by member pointer)
 
     // 006A0730 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C..+0x58.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    BOOL CopyToImpl(CItem* target, CSpellManager* spells);   // body of the slot above (registered by member pointer)
     // 006A0540 (item_lifetime.cpp). CItem's, then +0x4C 0 and the three floats -1.0.
     CItemWeapon* Construct();
     // 006A0660 (slot 13; item_slots.cpp). CItem::InitFromRecord, then damage, spread and +0x58.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
+    void InitFromRecordImpl(const itemdb::ItemRecordHead* record);   // body of the slot above (registered by member pointer)
     // 006A2E60 / 006A2EB0 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C..+0x58.
     void Load(void* stream) override;
+    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
     void Save(void* stream) override;
+    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
 
     std::uint32_t actionValue_;         // +0x4C 0 after construction; CUnitServer::ScaledItemValue scales it by 15 / the rate, the hit takes it (DamageInfo +0x1C)
     float damage_;          // +0x50 prototype +0x90
@@ -247,22 +261,31 @@ public:
     // The same four names as CItemWeapon's (item_names.cpp), with the armor types ("hl", "pl",
     // ...) and the picture name "initar<type><number>armor".
     mfc::CString ModelName() override;       // 006A3240
+    mfc::CString ModelNameImpl();   // body of the slot above (registered by member pointer)
     mfc::CString FirstListName() override;   // 006A36A0
+    mfc::CString FirstListNameImpl();   // body of the slot above (registered by member pointer)
     mfc::CString FigureName() override;      // 006A3720
+    mfc::CString FigureNameImpl();   // body of the slot above (registered by member pointer)
     mfc::CString PictureName() override;     // 006A37B0
+    mfc::CString PictureNameImpl();   // body of the slot above (registered by member pointer)
 
     // 006A3140 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then absorb_ and layerMask_.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    BOOL CopyToImpl(CItem* target, CSpellManager* spells);   // body of the slot above (registered by member pointer)
     // 006A2F20 (item_lifetime.cpp). CItem's, then absorb_ and layerMask_ 0.
     CItemArmor* Construct();
     // 006A3070 (slot 13; item_slots.cpp). CItem::InitFromRecord, then the two absorption rows.
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
+    void InitFromRecordImpl(const itemdb::ItemRecordHead* record);   // body of the slot above (registered by member pointer)
     // 006A30D0 (slot 14). CItem::IsSameAs, then absorb_ and layerMask_ equal as dwords.
     BOOL IsSameAs(CItem* other) override;
+    BOOL IsSameAsImpl(CItem* other);   // body of the slot above (registered by member pointer)
     // 006A3A70 / 006A3AA0 (slots 9 / 10; item_save.cpp). CItem's, then the two absorption rows
     // (0x1C bytes each; layerMask_ is not saved).
     void Load(void* stream) override;
+    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
     void Save(void* stream) override;
+    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
 
     // What the piece adds to the body slots it covers (UnitStats::AddArmourLayer): [0] for the
     // first covered slot, [1] for the others.
@@ -280,19 +303,26 @@ public:
     // 006A3CD0. Slot 19: "qitem<number>.<material name>" when the prototype's +0x10 name is not
     // "none" ("uq" for a material out of range), else "qitem<number>" (-1 without a prototype).
     mfc::CString FigureName() override;
+    mfc::CString FigureNameImpl();   // body of the slot above (registered by member pointer)
     // 006A4040. Slot 20: "initqi<number>item".
     mfc::CString PictureName() override;
+    mfc::CString PictureNameImpl();   // body of the slot above (registered by member pointer)
     // 006A3C50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    BOOL CopyToImpl(CItem* target, CSpellManager* spells);   // body of the slot above (registered by member pointer)
     // 006A3AD0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
     CItemQuick* Construct();
     // 006A3BE0 / 006A3C20 (slots 13 / 14, also the scrolls'; item_slots.cpp). The base's, then
     // +0x4C (prototype +0x70).
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
+    void InitFromRecordImpl(const itemdb::ItemRecordHead* record);   // body of the slot above (registered by member pointer)
     BOOL IsSameAs(CItem* other) override;
+    BOOL IsSameAsImpl(CItem* other);   // body of the slot above (registered by member pointer)
     // 006A3C80 / 006A3CA0 (slots 9 / 10, also the scrolls'; item_save.cpp). CItem's, then +0x4C.
     void Load(void* stream) override;
+    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
     void Save(void* stream) override;
+    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
 
     std::uint32_t actionValue_;         // +0x4C the record's value70 (CUnitServer::ScaledItemValue)
 };
@@ -304,21 +334,29 @@ public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743F04);
 
     mfc::CString FigureName() override;    // 006A45C0 "quitem<number>"
+    mfc::CString FigureNameImpl();   // body of the slot above (registered by member pointer)
     mfc::CString PictureName() override;   // 006A47B0 "initqu<number>item"
+    mfc::CString PictureNameImpl();   // body of the slot above (registered by member pointer)
     // 006A4540 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    BOOL CopyToImpl(CItem* target, CSpellManager* spells);   // body of the slot above (registered by member pointer)
     // 006A43A0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
     CItemQuest* Construct();
     // 006A44D0 / 006A4510 (slots 13 / 14; item_slots.cpp). The base's, then +0x4C (prototype
     // +0x6C, the category).
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
+    void InitFromRecordImpl(const itemdb::ItemRecordHead* record);   // body of the slot above (registered by member pointer)
     BOOL IsSameAs(CItem* other) override;
+    BOOL IsSameAsImpl(CItem* other);   // body of the slot above (registered by member pointer)
     // 006A4570 / 006A4590 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C.
     void Load(void* stream) override;
+    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
     void Save(void* stream) override;
+    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
     // 006A43C0 (RET 4; slot 21; item_slots.cpp, A-H25). Fills `out` with (8, the id, 0) and
     // returns it; the other classes share 004623C0, which writes three zeros.
     ItemUse* GetUse(ItemUse* out) override;
+    ItemUse* GetUseImpl(ItemUse* out);   // body of the slot above (registered by member pointer)
 
     // +0x4C the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
     // player's quest items, the zone's wanted list.
@@ -334,10 +372,13 @@ public:
 
     // 006A5820. Slot 19: "spell<+0x60 of the carried spell's prototype>" (no null checks).
     mfc::CString FigureName() override;
+    mfc::CString FigureNameImpl();   // body of the slot above (registered by member pointer)
     // 006A58E0 (A-H25). Slot 20: "initqi1item".
     mfc::CString PictureName() override;
+    mfc::CString PictureNameImpl();   // body of the slot above (registered by member pointer)
     // 006A57F0 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    BOOL CopyToImpl(CItem* target, CSpellManager* spells);   // body of the slot above (registered by member pointer)
     // 006A56E0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
     CItemSpell* Construct();
 
@@ -357,24 +398,31 @@ public:
     // armors, "qitem", "prototype" (spells, +0x60), "modifier" + number), "material<index>", or
     // "litem<number>" for the loot itself.
     mfc::CString FigureName() override;
+    mfc::CString FigureNameImpl();   // body of the slot above (registered by member pointer)
     // 006A5030. Slot 20, the picture: "initwe..." / "initar..." / "initqi..." for records,
     // "initqi1item" for spells and modifiers, "initlimt<index>item" for materials,
     // "initlitr<number>item" for the loot itself.
     mfc::CString PictureName() override;
+    mfc::CString PictureNameImpl();   // body of the slot above (registered by member pointer)
     // 006A4B50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then kind_, recordType_, index_.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
+    BOOL CopyToImpl(CItem* target, CSpellManager* spells);   // body of the slot above (registered by member pointer)
     // 006A49A0 (item_lifetime.cpp). CItem's and the vtable (kind, record type and index are left
     // as they are).
     CItemLoot* Construct();
     // 006A4AB0 / 006A4B00 (slots 13 / 14; item_slots.cpp). The base's, then kind_, recordType_
     // and index_ (prototype +0x6C..+0x74).
     void InitFromRecord(const itemdb::ItemRecordHead* record) override;
+    void InitFromRecordImpl(const itemdb::ItemRecordHead* record);   // body of the slot above (registered by member pointer)
     BOOL IsSameAs(CItem* other) override;
+    BOOL IsSameAsImpl(CItem* other);   // body of the slot above (registered by member pointer)
     // 006A5630 / 006A5680 (slots 9 / 10; item_save.cpp). CItem's, then kind_, recordType_ and
     // index_. Load reads the first two through the stack slot of `stream` (a read that writes
     // nothing leaves the pointer's value, then the previous value).
     void Load(void* stream) override;
+    void LoadImpl(void* stream);   // body of the slot above (registered by member pointer)
     void Save(void* stream) override;
+    void SaveImpl(void* stream);   // body of the slot above (registered by member pointer)
 
     std::uint32_t kind_;       // +0x4C 0 own price, 1 material, 2 record of recordType_
     std::uint32_t recordType_;  // +0x50 0 weapon, 1 armor, 2 quick item, 3 spell, 4 spell modifier

@@ -1,4 +1,4 @@
-// Differential check for CResourceManager::HasFile (no side effects).
+// Differential check for CResourceManager::HasFileImpl (no side effects).
 #include "verify.h"
 
 #include "../../src/game/resource_manager.h"
@@ -8,7 +8,7 @@ static BOOL(__fastcall* s_hasFile)(CResourceManager*, void*, const char*);
 
 static BOOL __fastcall HasFileVerify(CResourceManager* self, void*, const char* name) {
     BOOL expected = s_hasFile(self, nullptr, name);
-    BOOL actual = self->CResourceManager::HasFile(name);
+    BOOL actual = self->CResourceManager::HasFileImpl(name);
     ei::verify::Check("CResourceManager::HasFile", expected, actual, "\"%s\"", name);
     return expected;
 }

@@ -83,7 +83,7 @@ int PrintsDatabase::Load(const char* folder) {
     LocalResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("prints.db", &size);
+    void* data = resource.Get()->CMappedResource::GetFileImpl("prints.db", &size);
     if (!data) return game::FatalError("Can't open terrain prints database\n");
 
     LocalStream local;
@@ -99,7 +99,7 @@ int PrintsDatabase::Load(const char* folder) {
     LoadTable(stream, kScorchChunk, SerializePrintsAt, &scorch, data,
               [&] { FileRecords(scorch, scorchByName, name); });
 
-    resource.Get()->CMappedResource::CloseFile(data);
+    resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();
     return 1;
 }
@@ -114,7 +114,7 @@ int AckDatabase::Load(const char* folder) {
     LocalResource resource;
     if (!OpenDatabase(resource, base)) return ReportNoDatabase(base);
     std::uint32_t size;
-    void* data = resource.Get()->CMappedResource::GetFile("acks.db", &size);
+    void* data = resource.Get()->CMappedResource::GetFileImpl("acks.db", &size);
     if (!data) return game::FatalError("Can't open acks database\n");
 
     LocalStream local;
@@ -131,7 +131,7 @@ int AckDatabase::Load(const char* folder) {
     LoadTable(stream, kExtraAcksChunk, SerializeAcks3At, &extras, &models,
               [&] { FileRecords(extras.records, extras.byName, name); });
 
-    resource.Get()->CMappedResource::CloseFile(data);
+    resource.Get()->CMappedResource::CloseFileImpl(data);
     resource.Get()->CMappedResource::CloseResource();
 
     // Every record's map from the ack kind to the list it says it from.

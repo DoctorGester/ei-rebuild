@@ -100,7 +100,7 @@ __declspec(naked) inline void* __fastcall NamedTableConstructOriginal(void* /*ta
 // 006714A0: CMappedResource's destructor body at its original address. Rebirth patches it (it then runs Rebirth's
 // version); in the vanilla launch the address leads to CMappedResource::Destroy.
 __declspec(naked) inline void __fastcall MappedResourceDestroyOriginal(CMappedResource*) EI_ORIGINAL(0x006714A0)
-// 00671730: CMappedResource::OpenResource (RET 8) at its address: Rebirth patches it (rule 9).
+// 00671730: CMappedResource::OpenResourceImpl (RET 8) at its address: Rebirth patches it (rule 9).
 __declspec(naked) inline int __fastcall MappedResourceOpenOriginal(CMappedResource*, void*, const char* /*path*/, int /*writable*/)
     EI_ORIGINAL(0x00671730)
 // 004645A0 (ChunkArchive::Destruct, chunk_archive.cpp), through its address: the chunk archive's out-of-line destructor

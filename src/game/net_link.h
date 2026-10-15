@@ -49,7 +49,9 @@ public:
 
     ~FileStream() override {}                                           // 0: 00477F90 (DeletingDestruct)
     std::uint32_t Read(void* buffer, std::uint32_t size) override;     // 1: 00477F00 (a short read clears ok_)
+    std::uint32_t ReadImpl(void* buffer, std::uint32_t size);   // body of the slot above (registered by member pointer)
     void Write(const void* buffer, std::uint32_t size) override;       // 2: 00477F30
+    void WriteImpl(const void* buffer, std::uint32_t size);   // body of the slot above (registered by member pointer)
     void Seek(std::uint32_t position) override;                        // 3: 00477F50 (SeekFrom)
     std::uint32_t Size() override;                                     // 4: 00477F70 (the file's length)
     std::uint32_t Position() override;                                 // 5: 00477F80
@@ -110,7 +112,9 @@ public:
     virtual bool HasIncoming() = 0;             // 6
     virtual int IncomingCount();                // 7: 00478000 (1 when HasIncoming)
     virtual bool Send(CStream* stream);         // 8: 00478100 (dropped: true)
+    bool SendImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     virtual bool Receive(CStream* stream);      // 9: 00478110 (records the stream: true)
+    bool ReceiveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     virtual void Pump();                        // 10: 00478010 (empty)
     virtual void Disconnect() = 0;              // 11
     virtual int Unknown12();                    // 12: 00478020 (0)
@@ -155,7 +159,9 @@ public:
     bool HasIncoming() override;                // 6: 00478750
     int IncomingCount() override;               // 7: 00478760
     bool Send(CStream* stream) override;        // 8: 00478220 (a copy on the peer's queue)
+    bool SendImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     bool Receive(CStream* stream) override;     // 9: 00478270 (the front of the queue)
+    bool ReceiveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     void Disconnect() override;                 // 11: 00478140
 
     // 004782E0 (thiscall with an unused this, RET 4). Two links joined to each other; the first goes
@@ -189,6 +195,7 @@ public:
     bool Alive() override;                      // 5: 00478C30 (the recording has more to read)
     bool HasIncoming() override;                // 6: 00478C50 (the same code)
     bool Receive(CStream* stream) override;     // 9: 00478C70
+    bool ReceiveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     void Disconnect() override;                 // 11: 00478C90 (closes the recording)
 
     // 00478960 (thiscall with an unused this, RET 4). A replay link reading the recording `path`.
@@ -215,7 +222,9 @@ public:
     bool HasIncoming() override;                // 6: 0047B9F0 (a whole message in the inbox)
     int IncomingCount() override;               // 7: 0047BA40
     bool Send(CStream* stream) override;        // 8: 0047BAD0 (framed, then SendBytes)
+    bool SendImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     bool Receive(CStream* stream) override;     // 9: 0047BB70 (a memory stream)
+    bool ReceiveImpl(CStream* stream);   // body of the slot above (registered by member pointer)
     virtual bool SendBytes(const void* data, std::uint32_t size) = 0;   // 13
 
     // 00479B90 (also inlined). The inbox's buffer freed, then the record stream; the root vtable

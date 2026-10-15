@@ -46,10 +46,10 @@ bool __fastcall FlatColoursVerify(CLinkMesh* self, void*, const stlp::string* na
     ColourArray expectedColours{};
     ColourArray expectedSpeculars{};
     bool expected = s_flatColours(self, nullptr, name, colour, specular, &expectedColours, &expectedSpeculars);
-    bool result = self->CLinkMesh::FlatColours(name, colour, specular, colours, speculars);
+    bool result = self->CLinkMesh::FlatColoursImpl(name, colour, specular, colours, speculars);
     bool same = expected == result &&
                 (!result || (SameContents(expectedColours, *colours) && SameContents(expectedSpeculars, *speculars)));
-    ei::verify::Check("CLinkMesh::FlatColours (004F3AD0)", true, same, "%s: %d / %d, sizes %d / %d", name->data(),
+    ei::verify::Check("CLinkMesh::FlatColoursImpl (004F3AD0)", true, same, "%s: %d / %d, sizes %d / %d", name->data(),
                       expected ? 1 : 0, result ? 1 : 0, expectedColours.size, colours->size);
     expectedColours.FreeData();
     expectedSpeculars.FreeData();
@@ -151,7 +151,7 @@ bool __fastcall LightPartVerify(CLinkMesh* self, void*, const stlp::string* name
     bool sameCalls = TappedPipeline(
         self,
         [&] {
-            result = self->CLinkMesh::LightPart(name, lights, material, alpha, colours, speculars);
+            result = self->CLinkMesh::LightPartImpl(name, lights, material, alpha, colours, speculars);
             if (!result) return;
             ourSizes[0] = colours->size;
             ourSizes[1] = speculars->size;
@@ -164,7 +164,7 @@ bool __fastcall LightPartVerify(CLinkMesh* self, void*, const stlp::string* name
                (ourSpeculars.empty() ||
                 std::memcmp(ourSpeculars.data(), speculars->data, ourSpeculars.size() * 4) == 0);
     }
-    ei::verify::Check("CLinkMesh::LightPart (004F3870)", true, same, "%s: %d / %d, calls same %d, sizes %d %d",
+    ei::verify::Check("CLinkMesh::LightPartImpl (004F3870)", true, same, "%s: %d / %d, calls same %d, sizes %d %d",
                       name->data(), expected ? 1 : 0, result ? 1 : 0, sameCalls ? 1 : 0, colours->size,
                       speculars->size);
     return result;
@@ -179,9 +179,9 @@ int __fastcall ProjectPartVerify(CLinkMesh* self, void*, const stlp::string* nam
     int result = 0;
     int expected = 0;
     bool sameCalls = TappedPipeline(
-        self, [&] { result = self->CLinkMesh::ProjectPart(name, offsets, matrix, points, bounds); },
+        self, [&] { result = self->CLinkMesh::ProjectPartImpl(name, offsets, matrix, points, bounds); },
         [&] { expected = s_projectPart(self, nullptr, name, offsets, matrix, points, bounds); });
-    ei::verify::Check("CLinkMesh::ProjectPart (004F4680)", true, sameCalls && expected == result,
+    ei::verify::Check("CLinkMesh::ProjectPartImpl (004F4680)", true, sameCalls && expected == result,
                       "%s: %d / %d, calls same %d, %d offsets", name->data(), expected, result, sameCalls ? 1 : 0,
                       offsets->size);
     return result;
@@ -242,8 +242,8 @@ int(__fastcall* s_drawMoved)(CLinkMesh*, void*, const stlp::string*, int, Colour
 int __fastcall DrawPartMovedVerify(CLinkMesh* self, void*, const stlp::string* name, int flags, ColourArray* colours,
                                    ColourArray* speculars, OffsetArray* offsets, std::uint32_t u, std::uint32_t v) {
     return CheckDraw(
-        "CLinkMesh::DrawPartMoved (004F3C60)", self, name, flags,
-        [&] { return self->CLinkMesh::DrawPartMoved(name, flags, colours, speculars, offsets, u, v); },
+        "CLinkMesh::DrawPartMovedImpl (004F3C60)", self, name, flags,
+        [&] { return self->CLinkMesh::DrawPartMovedImpl(name, flags, colours, speculars, offsets, u, v); },
         [&] { return s_drawMoved(self, nullptr, name, flags, colours, speculars, offsets, u, v); });
 }
 
@@ -253,8 +253,8 @@ int(__fastcall* s_draw)(CLinkMesh*, void*, const stlp::string*, int, ColourArray
 int __fastcall DrawPartVerify(CLinkMesh* self, void*, const stlp::string* name, int flags, ColourArray* colours,
                               ColourArray* speculars, std::uint32_t u, std::uint32_t v) {
     return CheckDraw(
-        "CLinkMesh::DrawPart (004F3FA0)", self, name, flags,
-        [&] { return self->CLinkMesh::DrawPart(name, flags, colours, speculars, u, v); },
+        "CLinkMesh::DrawPartImpl (004F3FA0)", self, name, flags,
+        [&] { return self->CLinkMesh::DrawPartImpl(name, flags, colours, speculars, u, v); },
         [&] { return s_draw(self, nullptr, name, flags, colours, speculars, u, v); });
 }
 
@@ -266,9 +266,9 @@ int __fastcall DrawPartMovedTexturedVerify(CLinkMesh* self, void*, const stlp::s
                                            ColourArray* speculars, OffsetArray* offsets, std::uint32_t u,
                                            std::uint32_t v) {
     return CheckDraw(
-        "CLinkMesh::DrawPartMovedTextured (004F42D0)", self, name, flags,
+        "CLinkMesh::DrawPartMovedTexturedImpl (004F42D0)", self, name, flags,
         [&] {
-            return self->CLinkMesh::DrawPartMovedTextured(name, flags, first, second, colours, speculars, offsets, u, v);
+            return self->CLinkMesh::DrawPartMovedTexturedImpl(name, flags, first, second, colours, speculars, offsets, u, v);
         },
         [&] {
             return s_drawMovedTextured(self, nullptr, name, flags, first, second, colours, speculars, offsets, u, v);
@@ -282,8 +282,8 @@ int __fastcall DrawPartTexturedVerify(CLinkMesh* self, void*, const stlp::string
                                       CDXSurface* second, ColourArray* colours, ColourArray* speculars,
                                       std::uint32_t u, std::uint32_t v) {
     return CheckDraw(
-        "CLinkMesh::DrawPartTextured (004F4150)", self, name, flags,
-        [&] { return self->CLinkMesh::DrawPartTextured(name, flags, first, second, colours, speculars, u, v); },
+        "CLinkMesh::DrawPartTexturedImpl (004F4150)", self, name, flags,
+        [&] { return self->CLinkMesh::DrawPartTexturedImpl(name, flags, first, second, colours, speculars, u, v); },
         [&] { return s_drawTextured(self, nullptr, name, flags, first, second, colours, speculars, u, v); });
 }
 
@@ -325,7 +325,7 @@ int __fastcall RasterisePartVerify(CLinkMesh* self, void*, const stlp::string* n
     void* real = device->converter_;
     ConverterTap tap{ConverterTapVtable(), static_cast<CPixelConverter*>(real), true, 0, 0};
     device->converter_ = &tap;
-    int result = self->CLinkMesh::RasterisePart(name, pixels, target);
+    int result = self->CLinkMesh::RasterisePartImpl(name, pixels, target);
     ConverterTap ours = tap;
     tap.forward = false;
     tap.calls = 0;
@@ -333,7 +333,7 @@ int __fastcall RasterisePartVerify(CLinkMesh* self, void*, const stlp::string* n
     int expected = s_rasterisePart(self, nullptr, name, pixels, target);
     device->converter_ = real;
     bool same = expected == result && ours.calls == tap.calls && ours.sum == tap.sum;
-    ei::verify::Check("CLinkMesh::RasterisePart (004F4850)", true, same, "%s: %d / %d, %d / %d triangles", name->data(),
+    ei::verify::Check("CLinkMesh::RasterisePartImpl (004F4850)", true, same, "%s: %d / %d, %d / %d triangles", name->data(),
                       expected, result, tap.calls, ours.calls);
     return result;
 }

@@ -399,7 +399,7 @@ R StreamSlot(const char* name, FileStream* self, Ours ours, Original original) {
 unsigned(__fastcall* s_fsRead)(FileStream*, void*, void*, unsigned);
 unsigned __fastcall FileStreamReadVerify(FileStream* self, void*, void* buffer, unsigned count) {
     return StreamSlot<unsigned>(
-        "FileStreamRead", self, [&](FileStream* s) { return s->FileStream::Read(buffer, count); },
+        "FileStreamRead", self, [&](FileStream* s) { return s->FileStream::ReadImpl(buffer, count); },
         [&](FileStream* s) { return s_fsRead(s, nullptr, buffer, count); });
 }
 
@@ -409,7 +409,7 @@ void __fastcall FileStreamWriteVerify(FileStream* self, void*, const void* buffe
     StreamSlot<int>(
         "FileStreamWrite", self,
         [&](FileStream* s) {
-            s->FileStream::Write(buffer, count);
+            s->FileStream::WriteImpl(buffer, count);
             return 0;
         },
         [&](FileStream* s) {
@@ -492,7 +492,7 @@ int __fastcall LinkIncomingCountVerify(NetLink* self) {
 bool(__fastcall* s_linkSend)(NetLink*, void*, void*);
 bool __fastcall LinkSendVerify(NetLink* self, void*, void* stream) {
     bool expected = s_linkSend(self, nullptr, stream);
-    bool actual = self->NetLink::Send(static_cast<CStream*>(stream));
+    bool actual = self->NetLink::SendImpl(static_cast<CStream*>(stream));
     ei::verify::Check("LinkSend", expected, actual, "");
     return actual;
 }
@@ -504,13 +504,13 @@ bool SameLinkHeader(const void* a, const void* b) { return std::memcmp(a, b, off
 bool(__fastcall* s_linkRecord)(NetLink*, void*, void*);
 bool __fastcall LinkRecordVerify(NetLink* self, void*, void* stream) {
     bool writes = self->recording_ && !self->skipNext_;
-    if (writes && !IsMemoryStream(stream)) return self->NetLink::Receive(static_cast<CStream*>(stream));
+    if (writes && !IsMemoryStream(stream)) return self->NetLink::ReceiveImpl(static_cast<CStream*>(stream));
     alignas(8) std::uint8_t copy[sizeof(NetLink)];
     std::memcpy(copy, self, sizeof(copy));
     auto* link = reinterpret_cast<NetLink*>(copy);
     if (!writes) {
         bool expected = s_linkRecord(link, nullptr, stream);
-        bool actual = self->NetLink::Receive(static_cast<CStream*>(stream));
+        bool actual = self->NetLink::ReceiveImpl(static_cast<CStream*>(stream));
         ei::verify::Check("LinkRecord", true, expected == actual && SameLinkHeader(copy, self), "");
         return actual;
     }
@@ -519,7 +519,7 @@ bool __fastcall LinkRecordVerify(NetLink* self, void*, void* stream) {
     bool actual = false;
     bool expected = false;
     RunRecorded(
-        self->record_.file_, link->record_.file_, [&] { actual = self->NetLink::Receive(static_cast<CStream*>(stream)); },
+        self->record_.file_, link->record_.file_, [&] { actual = self->NetLink::ReceiveImpl(static_cast<CStream*>(stream)); },
         [&] {
             source.Make(keptSource);
             expected = s_linkRecord(link, nullptr, source.get());
@@ -687,13 +687,13 @@ bool(__fastcall* s_send)(LoopbackLink*, void*, void*);
 bool __fastcall LoopbackSendVerify(LoopbackLink* self, void*, void* stream) {
     if (!PeerAlive(self)) {
         bool expected = s_send(self, nullptr, stream);
-        bool actual = self->LoopbackLink::Send(static_cast<CStream*>(stream));
+        bool actual = self->LoopbackLink::SendImpl(static_cast<CStream*>(stream));
         ei::verify::Check("LoopbackSend", expected, actual, "no peer");
         return actual;
     }
-    if (!IsMemoryStream(stream)) return self->LoopbackLink::Send(static_cast<CStream*>(stream));
+    if (!IsMemoryStream(stream)) return self->LoopbackLink::SendImpl(static_cast<CStream*>(stream));
     KeptStream keptSource(static_cast<CMemoryStream*>(stream));
-    bool actual = self->LoopbackLink::Send(static_cast<CStream*>(stream));
+    bool actual = self->LoopbackLink::SendImpl(static_cast<CStream*>(stream));
     CMemoryStream source;
     keptSource.CloneTo(&source);   // after ours (SV2f)
 
@@ -723,11 +723,11 @@ bool(__fastcall* s_receive)(LoopbackLink*, void*, void*);
 bool __fastcall LoopbackReceiveVerify(LoopbackLink* self, void*, void* stream) {
     if (self->queue_->next == self->queue_) {
         bool expected = s_receive(self, nullptr, stream);
-        bool actual = self->LoopbackLink::Receive(static_cast<CStream*>(stream));
+        bool actual = self->LoopbackLink::ReceiveImpl(static_cast<CStream*>(stream));
         ei::verify::Check("LoopbackReceive", expected, actual, "empty");
         return actual;
     }
-    if (!IsMemoryStream(stream) || !IsMemoryStream(&self->queue_->next->stream)) return self->LoopbackLink::Receive(static_cast<CStream*>(stream));
+    if (!IsMemoryStream(stream) || !IsMemoryStream(&self->queue_->next->stream)) return self->LoopbackLink::ReceiveImpl(static_cast<CStream*>(stream));
     int before = QueueCount(self->queue_);
 
     // The original's link: a copy whose queue holds a copy of the front stream (pool nodes: its
@@ -763,14 +763,14 @@ bool __fastcall LoopbackReceiveVerify(LoopbackLink* self, void*, void* stream) {
     };
     if (self->recording_ && !self->skipNext_) {
         RunRecorded(
-            self->record_.file_, scratchSelf->record_.file_, [&] { actual = self->LoopbackLink::Receive(static_cast<CStream*>(stream)); },
+            self->record_.file_, scratchSelf->record_.file_, [&] { actual = self->LoopbackLink::ReceiveImpl(static_cast<CStream*>(stream)); },
             [&] {
                 setUp();
                 expected = s_receive(scratchSelf, nullptr, target.get());
             },
             compare);
     } else {
-        actual = self->LoopbackLink::Receive(static_cast<CStream*>(stream));
+        actual = self->LoopbackLink::ReceiveImpl(static_cast<CStream*>(stream));
         setUp();
         expected = s_receive(scratchSelf, nullptr, target.get());
         compare(true);
@@ -891,7 +891,7 @@ int __fastcall ReplayHasIncomingVerify(ReplayLink* self) {
 // the result, the target and the link's header compared.
 bool(__fastcall* s_replayReceive)(ReplayLink*, void*, void*);
 bool __fastcall ReplayReceiveVerify(ReplayLink* self, void*, void* stream) {
-    if (!IsMemoryStream(stream)) return self->ReplayLink::Receive(static_cast<CStream*>(stream));
+    if (!IsMemoryStream(stream)) return self->ReplayLink::ReceiveImpl(static_cast<CStream*>(stream));
     alignas(8) std::uint8_t copy[sizeof(ReplayLink)];
     std::memcpy(copy, self, sizeof(copy));
     auto* link = reinterpret_cast<ReplayLink*>(copy);
@@ -900,7 +900,7 @@ bool __fastcall ReplayReceiveVerify(ReplayLink* self, void*, void* stream) {
     bool actual = false;
     bool expected = false;
     RunRecorded(
-        self->replay_.file_, link->replay_.file_, [&] { actual = self->ReplayLink::Receive(static_cast<CStream*>(stream)); },
+        self->replay_.file_, link->replay_.file_, [&] { actual = self->ReplayLink::ReceiveImpl(static_cast<CStream*>(stream)); },
         [&] {
             target.Make(keptTarget);
             expected = s_replayReceive(link, nullptr, target.get());

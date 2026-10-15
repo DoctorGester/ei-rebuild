@@ -1,12 +1,17 @@
 // Checks for directdraw_holder.cpp and the two CDXSurface ports of dx_surface.cpp (A-S13). All on
 // the main thread, at start-up (every scenario) unless noted.
 //  - Side by side:
-//    004EE4A0 (driver list): the original fills the list, its drivers are noted, ours fills it again.
-//    004ED610 (its callback; reached through the original 004EE4A0 above): the original appends to a
-//      scratch list, ours to the real one; the two new records are compared.
+//    004EE4A0 (driver list): ours fills the list, its drivers are noted, then, inside a heap::Aside
+//      (no block of the reservation moves), the original fills a twin list put in the global's place
+//      (freed; the real list put back).
+//    004ED610 (its callback; reached through the original 004EE4A0 above, on the twin list): ours
+//      appends to the list it is given, then the original to a scratch list (inside a heap::Aside,
+//      freed); the two new records are compared.
 //    004EE5D0 (the hardware driver): no state; the two results compared.
 //    004EEA90 (the DirectDraw object and its display modes): the original into a scratch object
-//      (its DirectDraw object released again), then ours; the mode lists compared.
+//      inside a heap::Aside (its DirectDraw object released again and its mode list freed before
+//      ours runs: nothing of it is alive, nor was any of it in the reservation), then ours; the mode
+//      lists compared.
 //    004EFEA0 (a holder's size from its surface): the holder's size and result put back in between.
 //    004EFA60 (a holder from a description): ours first; for the first 48 descriptions that are not
 //      a primary surface the original then makes a second surface into a scratch holder, the two
@@ -21,6 +26,7 @@
 //    What 004EDD70 and its parts leave is also compared between a run with ours and a run with the
 //    originals through the device-state lines (verify_device_state.h).
 #include "verify.h"
+#include "harness_heap.h"
 
 #include "../../src/game/device.h"
 #include "../../src/game/dx_surface.h"
@@ -58,26 +64,41 @@ std::vector<DriverCopy> Drivers(const stlp::list<DirectDrawDriver>& list) {
     return drivers;
 }
 
-// 004EE4A0: MOV EAX,[007AEE64] (5).
+// 004EE4A0: MOV EAX,[007AEE64] (5). Ours fills the list first; the original then fills a twin list
+// put in the global's place (its sentinel, nodes and strings allocated after ours' and freed), and
+// the real list is put back.
 int(__cdecl* s_enumerateDrivers)();
 int __cdecl EnumerateDriversVerify() {
-    const int expected = s_enumerateDrivers();
-    const std::vector<DriverCopy> original = Drivers(DirectDrawDrivers());
+    stlp::list<DirectDrawDriver>& drivers = DirectDrawDrivers();
     const int result = EnumerateDirectDrawDrivers();
-    const std::vector<DriverCopy> ours = Drivers(DirectDrawDrivers());
+    const std::vector<DriverCopy> ours = Drivers(drivers);
+    const stlp::list<DirectDrawDriver> real = drivers;
+    std::vector<DriverCopy> original;
+    int expected;
+    {
+        ei::verify::heap::Aside aside;
+        drivers.Construct();
+        expected = s_enumerateDrivers();
+        original = Drivers(drivers);
+        drivers.ClearWith([](DirectDrawDriver* driver) { driver->~DirectDrawDriver(); });
+        drivers.Destroy();
+    }
+    drivers = real;
     ei::verify::Check("EnumerateDrivers (004EE4A0)", true, result == expected && ours == original,
                       "result %d / %d, drivers %u / %u", expected, result, static_cast<unsigned>(original.size()),
                       static_cast<unsigned>(ours.size()));
     return result;
 }
 
-// 004ED610: PUSH -1 (2), PUSH 0071BAC3 (5).
+// 004ED610: PUSH -1 (2), PUSH 0071BAC3 (5). Ours appends first; the original then to a scratch list
+// (freed).
 BOOL(__stdcall* s_driverCallback)(GUID*, char*, char*, void*, HMONITOR);
 BOOL __stdcall DriverCallbackVerify(GUID* guid, char* description, char* name, void* context, HMONITOR monitor) {
+    const BOOL result = DriverEnumCallback(guid, description, name, context, monitor);
+    ei::verify::heap::Aside aside;
     stlp::list<DirectDrawDriver> scratch;
     scratch.Construct();
     const BOOL expected = s_driverCallback(guid, description, name, &scratch, monitor);
-    const BOOL result = DriverEnumCallback(guid, description, name, context, monitor);
     const auto& drivers = *static_cast<const stlp::list<DirectDrawDriver>*>(context);
     const std::vector<DriverCopy> original = Drivers(scratch);
     const DirectDrawDriver& added = drivers.End()->prev->data;
@@ -133,12 +154,17 @@ void __fastcall CreateDirectDrawVerify(CTextureDevice* self, void*, GUID* driver
     alignas(CTextureDevice) static std::uint8_t storage[sizeof(CTextureDevice)];
     std::memset(storage, 0, sizeof(storage));
     auto* scratch = reinterpret_cast<CTextureDevice*>(storage);
-    scratch->modes_.Construct();
-    s_createDirectDraw(scratch, nullptr, driver);
-    const std::vector<ModeCopy> expected = Modes(scratch);
-    const bool originalMade = scratch->ddraw_ && scratch->lastLoadResult_ == 0 && scratch->driver_ == driver;
-    if (scratch->ddraw_) device::DDraw(scratch)->Release();
-    scratch->modes_.Destroy();
+    std::vector<ModeCopy> expected;
+    bool originalMade;
+    {
+        ei::verify::heap::Aside aside;
+        scratch->modes_.Construct();
+        s_createDirectDraw(scratch, nullptr, driver);
+        expected = Modes(scratch);
+        originalMade = scratch->ddraw_ && scratch->lastLoadResult_ == 0 && scratch->driver_ == driver;
+        if (scratch->ddraw_) device::DDraw(scratch)->Release();
+        scratch->modes_.Destroy();
+    }
 
     self->CreateDirectDraw(driver);
     const std::vector<ModeCopy> modes = Modes(self);
