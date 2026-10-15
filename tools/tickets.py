@@ -127,6 +127,10 @@ def loaded(db):
     """load() with the database's statuses filled in and the states derived; the toml's problems included."""
     data, groups, tickets, problems = load()
     problems += with_status(tickets, work.ticket_statuses(db))
+    running = dict(db.execute('SELECT ticket, model FROM assignment WHERE ended IS NULL AND model IS NOT NULL'))
+    for t in tickets:   # the model a running worker was actually given (`work.py start --model`) over the planned one
+        if t.get('id') in running:
+            t['model'] = running[t['id']]
     derive(tickets)
     return data, groups, tickets, problems
 
