@@ -14,6 +14,7 @@
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
+#include "../lib/stlp_pair.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "originals_engine.h"
@@ -460,7 +461,7 @@ namespace {
 // bucket 0069D0E0 (thiscall on the iterator, still on the last node). Its list: constructor
 // 0069C680 (an allocator argument), destructor 0069C830, end 0069C2E0 (RET 4: the iterator by
 // hidden pointer), insert 0069C2F0 (result, position, &value); the pair: constructor 0069C1C0
-// (the record, whose name starts it, and &list), destructor 004AD640.
+// (the record, whose name starts it, and &list), destructor 004AD640 (stlp_pair.cpp).
 __declspec(naked) void __fastcall RecipeMapClear(void*) EI_ORIGINAL(0x004AAEB0)
 __declspec(naked) StockRecipeEntry* __fastcall RecipeMapInsert(void*, void*, const void* /*pair*/) EI_ORIGINAL(0x0069D130)
 struct RecipeIterator {
@@ -476,7 +477,7 @@ __declspec(naked) void __fastcall RecipeListInsert(StockList*, void*, StockListN
     EI_ORIGINAL(0x0069C2F0)
 __declspec(naked) void __fastcall RecipePairConstruct(void*, void*, const stlp::string* /*key*/, const StockList*)
     EI_ORIGINAL(0x0069C1C0)
-__declspec(naked) void __fastcall RecipePairDestroy(void*) EI_ORIGINAL(0x004AD640)
+void __fastcall RecipePairDestroy(void* pair) { stlp::PairAbi::DestroyStringList(static_cast<stlp::StringListPair*>(pair)); }
 // The modifier map (+0x64, STLport map<string, modifier*>): clear 004AB2B0, operator[] with a
 // {key, null} pair 0069D1E0 (returns the node's pair: the value at +0xC).
 __declspec(naked) void __fastcall ModifierMapClear(void*) EI_ORIGINAL(0x004AB2B0)
