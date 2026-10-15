@@ -16,8 +16,10 @@
 // capture through GDI is not used: with dgVoodoo the window shows a DXGI swap chain, which GDI
 // reads back as black, and in full screen the window is not on the desktop at all.
 #include "harness_capture.h"
+#include "harness_hooks.h"
 
 #include "../../src/hook/log.h"
+#include "ei/main_loop.h"
 #include "../../src/render/render.h"
 
 #include <windows.h>
@@ -289,6 +291,12 @@ void __fastcall CaptureThenCursorLock(void* cursor) {
 bool Install() {
     static int installed = -1;
     if (installed >= 0) return installed != 0;
+    // The rewritten frame step's hook point (harness_hooks.h), and in game.exe the original's CALL.
+    if (HookPointsOnly()) {
+        ei::mainloop::g_harnessHooks.cursorLock = &CaptureThenCursorLock;
+        installed = 1;
+        return true;
+    }
     auto* p = reinterpret_cast<unsigned char*>(kCursorLockCall);
     std::int32_t rel = 0;
     std::memcpy(&rel, p + 1, 4);
@@ -303,6 +311,7 @@ bool Install() {
     std::memcpy(p + 1, &rel, 4);
     VirtualProtect(p + 1, 4, old, &old);
     FlushInstructionCache(GetCurrentProcess(), p, 5);
+    ei::mainloop::g_harnessHooks.cursorLock = &CaptureThenCursorLock;
     installed = 1;
     return true;
 }
