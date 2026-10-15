@@ -222,3 +222,4 @@ address,size,note
 00704471,27,exit function of a static initialiser (tools/gen_static_init.py; no Ghidra function)
 007044AF,27,exit function of a static initialiser (tools/gen_static_init.py; no Ghidra function)
 007044ED,27,exit function of a static initialiser (tools/gen_static_init.py; no Ghidra function)
+004387D0,64,STLport vector<T>::~vector of 8-byte elements (no Ghidra function)
