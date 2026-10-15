@@ -28,6 +28,14 @@ StringPair* __fastcall PairAbi::ConstructStrings(StringPair* self, void*, const 
     return self;
 }
 
+StringListPair* __fastcall PairAbi::ConstructStringList(StringListPair* self, void*, const string* first,
+                                                        const list<void*>* second) {
+    new (&self->first) string(*first);
+    self->second.Construct();
+    list<void*>::InsertRange(self->second.End(), second->First(), second->End());
+    return self;
+}
+
 void __fastcall PairAbi::DestroyStrings(StringPair* self) {
     self->second.~string();
     self->first.~string();
@@ -51,5 +59,6 @@ EI_REPLACE(0x006BC140, PairAbi::ConstructStringDword);
 EI_REPLACE(0x0064F880, PairAbi::ConstructStringDword);
 EI_REPLACE(0x006A7710, PairAbi::ConstructStringDword);
 EI_REPLACE(0x00445170, PairAbi::ConstructStrings);
+EI_REPLACE(0x0069C1C0, PairAbi::ConstructStringList);
 EI_REPLACE(0x00445040, PairAbi::DestroyStrings);
 EI_REPLACE(0x004457F0, PairAbi::DeletingDestructor);

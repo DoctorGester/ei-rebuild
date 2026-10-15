@@ -5,6 +5,8 @@
 // - The string pairs' constructors: the original builds into the caller's memory, its blocks go
 //   back on top of their free lists (the last allocated first), then ours: the same blocks (blocks
 //   above 128 bytes come from operator new and may differ), lengths, capacities, bytes and dword.
+// - pair<string, list> (S12d): ours first, then the original into a scratch pair (see
+//   ConstructStringList).
 // - The destructors free blocks, so ours runs alone: each freed pool block must be on top of its
 //   free list afterwards when it is the last freed of its size.
 #include "verify.h"
@@ -16,6 +18,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -101,6 +104,38 @@ struct PairCheck {
         return self;
     }
 
+    // Ours first (SV2f: a twin check of an allocating function), then the original into a scratch
+    // pair whose blocks go back on their free lists in reverse (the nodes from the last, the
+    // sentinel, the string); the string's length, capacity and bytes and the list's elements
+    // compared, ours linked both ways.
+    static stlp::StringListPair* __fastcall ConstructStringList(stlp::StringListPair* self, void*, const stlp::string* first,
+                                                                const stlp::list<void*>* second) {
+        stlp::StringListPair* result = PairAbi::ConstructStringList(self, nullptr, first, second);
+        alignas(stlp::StringListPair) unsigned char storage[sizeof(stlp::StringListPair)];
+        auto* theirs = reinterpret_cast<stlp::StringListPair*>(storage);
+        stlp::StringListPair* theirResult =
+            Original<decltype(&PairAbi::ConstructStringList)>()(theirs, nullptr, first, second);
+        Text theirText = Text::Of(theirs->first);
+        Text ourText = Text::Of(self->first);
+        bool same = result == self && theirResult == theirs && theirText.size == ourText.size &&
+                    theirText.capacity == ourText.capacity &&
+                    std::memcmp(theirText.bytes, ourText.bytes, sizeof(theirText.bytes)) == 0;
+        using Node = stlp::list<void*>::Node;
+        std::vector<Node*> theirNodes;
+        for (Node* n = theirs->second.First(); n != theirs->second.End(); n = n->next) theirNodes.push_back(n);
+        const Node* ours = self->second.First();
+        for (Node* n : theirNodes) {
+            same = same && ours != self->second.End() && ours->data == n->data && ours->prev->next == ours;
+            if (ours != self->second.End()) ours = ours->next;
+        }
+        same = same && ours == self->second.End() && self->second.End()->prev->next == self->second.End();
+        for (auto n = theirNodes.rbegin(); n != theirNodes.rend(); ++n) stlp::deallocate(*n, sizeof(Node));
+        stlp::deallocate(theirs->second.head, sizeof(Node));
+        theirText.Free();
+        ei::verify::Report(Name<A>("stlp::pair<string, list>::pair"), same, "");
+        return result;
+    }
+
     // Ours only: the first string's block is freed last, so it is on top of its list.
     static bool FreedInOrder(const Text& first) { return OnTop(first.start, first.capacity); }
 
@@ -130,6 +165,7 @@ EI_VERIFY(0x006BC140, PairCheck<0x006BC140>::ConstructStringDword, 7, PairCheck<
 EI_VERIFY(0x0064F880, PairCheck<0x0064F880>::ConstructStringDword, 7, PairCheck<0x0064F880>::original);
 EI_VERIFY(0x006A7710, PairCheck<0x006A7710>::ConstructStringDword, 7, PairCheck<0x006A7710>::original);
 EI_VERIFY(0x00445170, PairCheck<0x00445170>::ConstructStrings, 7, PairCheck<0x00445170>::original);
+EI_VERIFY(0x0069C1C0, PairCheck<0x0069C1C0>::ConstructStringList, 7, PairCheck<0x0069C1C0>::original);
 // Ours only: 00445040 PUSH ESI; MOV ESI,ECX; MOV EAX,[ESI+0xC]; 004457F0 starts with a CALL at +3.
 EI_VERIFY(0x00445040, PairCheck<0x00445040>::DestroyStrings, 0, s_unused);
 EI_VERIFY(0x004457F0, PairCheck<0x004457F0>::DeletingDestructor, 0, s_unused);

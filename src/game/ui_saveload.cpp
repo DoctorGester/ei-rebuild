@@ -124,7 +124,8 @@ __declspec(naked) void __fastcall EntriesInsertOverflow(void* /*vector*/, void*,
                                                         unsigned /*count*/) EI_ORIGINAL(0x006579C0)
 __declspec(naked) SaveEntry* __fastcall EntriesErase(void* /*vector*/, void*, SaveEntry*, SaveEntry*) EI_ORIGINAL(0x006578F0)
 // The sort (STLport's introsort loop and final insertion sort; `order` the empty comparison object
-// passed by value, `tag` the null value-type pointer).
+// passed by value, `tag` the null value-type pointer) and copy_backward, called at their addresses
+// (stl_sorts.cpp, SaveIntroSort ...).
 __declspec(naked) void __fastcall EntriesSortLoop(SaveEntry*, SaveEntry*, void* /*tag*/, int /*depth*/, int /*order*/)
     EI_ORIGINAL(0x00657DF0)
 __declspec(naked) void __fastcall EntriesFinalSort(SaveEntry*, SaveEntry*, int /*order*/) EI_ORIGINAL(0x00657F10)
