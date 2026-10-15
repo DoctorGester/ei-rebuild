@@ -1,6 +1,0 @@
-save1/info.sav c6c7d963815deb5f
-save1/mission.sav f195d16777d084c2
-save1/scenario.sav 8fd13912fd360c65
-savea/info.sav 1a6467a48a11b9cd
-savea/mission.sav 52e6768427fae293
-savea/scenario.sav 6a9215527aa15dac

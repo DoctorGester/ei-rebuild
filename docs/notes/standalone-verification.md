@@ -1760,3 +1760,17 @@ Vectors: `LockKey::Opens` 8 records (tests/vectors/data/stats), replayed with 0 
 Goldens: not recorded. The original and ours each repeat, but ours differs from the original at update 60 in
 `isaac.count` and zone1's idle wolf obj1936 `ai.standCooldown` (ours took 250, 11 and 180 draws against the original's
 57 in three runs: the SV1j family, ours flipping), so `golden.py record` refuses it.
+
+## S20: goldens for every scenario before the hooks go (2026-10-15)
+
+45 goldens added (31 vanilla, 14 Rebirth), each from two agreeing plain `--no-hooks --fresh` passes (digest, dumps, console,
+saves) and a third pass after merging main. ui_widescreen and ui_widescreen_screens have Rebirth goldens only. Ours (hooked and
+`--standalone`, both installs) matches every one of them except twelve, whose goldens were recorded and then withheld so that
+`work.py test --golden` stays at 0 differ (the recordings are in commit c117730a; S20c): effects, models, particles,
+script_fx, sound, unit_create, zone_gz2g_traps, ui_mp_host (vanilla and Rebirth), and Rebirth's net_second_master, rebirth_flags and
+zone_gz15h_tornado. Ours alternates between runs in isaac.count / crt.rand in most of them (SV1k, SV3j, S20c).
+
+Without a golden, by cause: T2f (ui_base_dialogue, ui_base_topic V+R, zone_base_bz1g); the `rebirthflags` scenarios on vanilla by
+rule (net_second_master, rebirth_flags, the four ui_widescreen*); watchdog_main / _dump / _ei_launch (meant to time out); the
+renderer-only scenarios the original cannot pass (render_cursor_present V+R, render_device_lost, render_present_shot V+R,
+render_present_window: S20a); render_present_fullscreen (no run of the original, S20b).
