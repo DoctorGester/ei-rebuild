@@ -2,11 +2,11 @@
   "scenario": "camera",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "8243b613",
+  "commit": "a753e3d6",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 2,
-  "reason": "SV7b1: script groups ordered by object id in both the original (harness patch) and ours; was address order (gobject.i 702, now 1884); with SV7b3's zeroed statistics and SV7d / SV7d2's decoded saves",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+  "repeated_in": 6,
+  "reason": "SV7b2/SV7d3/SV7d4: server and map objects allocated zeroed, Suspection / Fear modes and class template tails zeroed in the original (harness) and ours; decoded saves compare those fields again",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 6 runs"
 }

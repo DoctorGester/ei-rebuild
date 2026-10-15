@@ -1265,6 +1265,9 @@ reader (`savefile.py rules FILES` lists the reasons): `~junk` for bytes never se
 | `weightsTail` | ClassTemplate +0x34, archived with the nine weights, never set (004A6580, 004A7630) |
 | `templateN`, `recordN`, `N.object`, `identity` (scenario.sav) | ChunkArchive::SaveObjectRef 0040A440 writes the object's address as its key; the loader maps it to the object it creates |
 
+SV7b2 (below) made most of these rows values again: what is left are the step padding, the script area and
+arrow-hit padding, a sound's `nameTail`, the item stock's `stackTail` and the chunk archive's identities.
+
 With these, two plain runs of the original decode to the same text in all 39 vanilla and 46 Rebirth saving scenarios
 (129 and 153 files), in the runs before and after merging main.
 
@@ -1514,3 +1517,53 @@ order settles each.
 SV7d2's plain path cell words: all 85 goldens of saving scenarios differed from main's only in their saves (mission.sav's
 script globals in 83, seenCorpses in 4); the digests were already the id order's. SAVES_KNOWN is empty now (main had
 removed SV7d1's and SV7d2's entries, this branch the three SV7b1 ones).
+
+## SV7b2 / SV7d3 / SV7d4: never-set object fields start zeroed (2026-10-15)
+
+**The canonical value is zero**, as for SV7b3, in ours (kept in the standalone as a determinism fix) and in the original
+through tests/verify/harness_leftovers.cpp (every harness run; each CALL redirected to a harness function that zeroes
+first, then calls the original target; `EI_LEFTOVERS=<hex mask>` now picks families, not sites):
+
+| Family | Original sites | Ours | Fields it settles |
+| --- | --- | --- | --- |
+| server objects | the five `operator new` calls of CServerSpecificManager::NewObjectImpl 004D6970 (player server, 3D object server, CMapObjectServer, CUnitServer, torch spec) | NewObjectImpl: gamecrt::operator_new_zeroed (lib/crt.h) | `controller.waitFrame` (SV7d3: ResolveBlocker waits while CurrentFrame() < waitFrame + 2), `action*.source` / `.point`, `plan.direction`, `motion.goal`, `sneakWait`, `moveMode*.pad`, the controller's `stats.*` with SV7b3, `server.vitals.builtFlags` |
+| map objects | the eleven `operator new` calls of CMapObjectManager::CreateObject 00512730 | CreateObject: operator_new_zeroed | `levels4C8` of units without a player, `motion.turn` / `turnRate` under motion kinds 0 and 3 |
+| Suspection modes | AddSuspectionMode's `operator new` (005D63B5); the calls of 004BA610 from ApplyBehaviour 005D6630 and SSCCmd::Execute (UMAg, UMStandard, UMSuspection: seven) | SuspectionMode::ClearFields in AddSuspectionMode, ApplyBehaviour and ModeCalls::Suspicion (script_exec.cpp) | `brain.modeN.point` / `.level` (SV7d4: Evaluate keeps a point that compares the same, a NaN always does, and the lower level, which picks the brain's mode) |
+| Fear modes | AddFearMode's `operator new` (005D6485); the calls of FearMode::Construct 005D2850 from ApplyBehaviour (three) and SSCCmd::Execute (five) | FearMode::ClearFields in AddFearMode, NewFear (unit_ai_alarm.cpp), ModeCalls::Fear | `shelter.y/z`, `fleePoint.x/y` |
+| class templates | the ten calls of ClassTemplate::Construct 004A6580 (the party manager's builder 004A7630, CreateClassTemplate 00457850): `weightsTail` zeroed first | AddTemplate, CreateClassTemplate | `weightsTail` (scenario.sav) |
+
+The harness's noted-patch table (src/hook/hook.cpp) grows from 64 to 256: with these 60 sites it overflowed, and hooked
+runs then skipped four or five registrations whose bytes another harness patch held ("unexpected SKIP").
+
+**Rules removed** (savefile_unit.py, savefile_objects.py, savefile_scenario.py, savefile.py): every row of SV7d's table
+above but the four below, so those fields are compared again. `alarmN.pad` was a value all along: LoadWorld zeroes the
+five alarms before a map loads. Still left out, for they come from stack copies with no call to redirect: the step
+padding (BuildTransition 005516D0, BuildOrderSteps 00550100 and BuildAttackSteps 0054F970 construct their stack steps
+inline; ours zero them, and NextAnimation's blank step now too), the arrow hit's DamageInfo padding (DeliverAttack's
+stack copy), the script areas' part padding (AddRect / AddRound), a sound's `nameTail` and the item stock's
+`stackTail`. The chunk archive keys (`templateN`, `recordN`, `N.object`, `identity`) stay identities numbered by first
+appearance: writing ids instead would change no format the loader reads (it maps any key to the object it creates),
+but the keys are template / record / party addresses with no id, and the record order follows the pointer-keyed hash;
+it did not change in any pass below. SV7b2a holds these.
+
+**Behaviour.** No digest, dump or console of the 97 goldens changed: in plain runs both leftovers were already what
+zero gives (waitFrame 0 from fresh heap pages, a Suspection point 0,0,0 / level 0), so the change only removes what the
+layout could decide. Under jitter it does: the `2,fill` / `3,fill` divergence at world update 40 that SV7d noted on
+SV7d4 (isaac.count, ai.decay of obj1804 / obj1890 / obj1936) is gone from vanilla but for one run (ui_saveload_delete,
+isaac.count 38 / 161: SV7b7's signature), while 16 Rebirth runs of `3,fill` still part there (isaac.count 169 / 89, the
+same three units): a leftover only Rebirth's path reads (SV7b7).
+
+**Passes** (after merging main with SV7b1, SV7d1, SV7d2; the 53 golden scenarios on both installs, 106 runs each,
+golden.py diff of every digest and dump against the first plain pass, then every decoded save):
+
+| Pass | Digests differ | Saves differ |
+| --- | --- | --- |
+| second plain `--no-hooks` | 0 | 0 |
+| EI_HEAP_JITTER=1 | 1 (ui_screens vanilla: unmoco2 `rot`, no golden) | 0 |
+| EI_HEAP_JITTER=2 | 3 (ui_hero_screen, ui_hero_stats, ui_screens vanilla: unmoco2 `rot`, no golden) | 0 |
+| EI_HEAP_JITTER=3,fill | 18: 16 Rebirth and ui_saveload_delete vanilla at update 40 (SV7b7), ui_container_input Rebirth unmoco2 `rot` | only in those |
+| ours (hooked) | 6 vanilla menu units without a golden (`rot` in the last place, cunit129 flags 0xA2 / 0x4A2) | 0 |
+
+**Goldens re-recorded**, all 97, from the plain pass and every other pass that agreed with it (79 from six runs; the 18
+above from five, without `3,fill`): only saves.txt changed (85 goldens), 34 decoded saves of the store replaced.
+
