@@ -10,4 +10,8 @@ HookRegistrar::HookRegistrar(std::uintptr_t address, void* replacement, const ch
 HookRegistrar::HookRegistrar(std::uintptr_t address, void* wrapper, const char* name, int stolen, void** original)
     : entry{address, wrapper, name, nullptr, stolen, original, true} {}
 
+// ei_vectors runs without game.exe: code that would write the exe's own runtime data in the hook build
+// (the game CRT's errno, libcrt::WideToBytes) leaves it alone, as in the standalone image.
+bool Standalone() { return true; }
+
 } // namespace ei

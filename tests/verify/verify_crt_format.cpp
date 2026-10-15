@@ -274,6 +274,9 @@ void AtofOne(const char* text) {
 }
 
 void AtofBattery(const std::vector<double>& values) {
+    // Record mode (EI_VECTORS=1, tests/vectors/record_crt_format.cpp): the recorder is the only hook at
+    // 006E911A, so this wrapper has no trampoline to the original.
+    if (!s_atof) return;
     static const char* const kTexts[] = {
         "", " ", "abc", "1", "-1", "+1", ".5", "-.5", "+.5e+3", "1.", "1e10", "1E-10", "1d5", "1D+5", "1e", "1e+", "1e-",
         "  \t\n12", "\r\n-7.25x", "0x1A", "1e5000", "-1e5000", "1e-5000", "1e-400", "1e-320", "1e308", "2e308",
