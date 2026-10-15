@@ -1946,6 +1946,14 @@ depends = ["S16c"]
 files = ["tools/standalone_gaps.py", "src/lib/mfc_*.cpp", "src/lib/crt*.cpp"]
 note = "S16c's tools/standalone_gaps.py data lists 226 function starts referenced from game.exe's .rdata/.data that nothing registers (game code: none left). Nearly all are MFC class vtable slots (CWnd, CWinThread, CCmdTarget, CFile, CException ... 00702596-0070DD05) and CRT tables (__exit 006E8DB8 at 007978E0, 006F47FB at 007978A8, 006F01E4 / 006F02B3, the _initterm entry 006EA218 at 00783BC0 run by the host); plus 00460110, the deleting destructor of the map database's CArray<MapRecord> (vtable 0073C3E8, a global: never deleted through the vtable), and two false rows (00646C25, 00656464: strings read as code pointers, library.csv). None is reached by the 98-scenario --standalone suite. Decide per vtable whether the image can call it (the game makes no CWnd; CWinThread is replaced by the host's threads, S16) and port or list as unreachable; also the 13 forwarders to the exe's CRT file / time functions and _getptd / CWnd::DestroyWindow that run only in the hook build (behind ei::Standalone())."
 
+[[ticket]]
+id = "S16e"
+title = "Tooling: vtable slots must be function starts; library.csv 'not a function' rows out of the library count"
+group = "standalone"
+depends = ["S16d"]
+files = ["tools/find_vtables.py", "tools/dashboard_data.py", "config/vtables.csv"]
+note = "S16d found three strings read as code pointers (0074676C '%ld', 0074718C 'dde', 007474B8 'a/p'): find_vtables.py takes any .text value as a slot, so a regenerated vtables.csv brings _AFX_CTL3D_THREAD's 2nd slot and the 007474B8 row back (fixed by hand). Make it accept only function starts (functions.csv minus library.csv 'not a function' rows). dashboard_data.py counts the four 'not a function' library.csv rows in library_functions (a denominator nothing can reach); leave them out there (keep them out of the game count). standalone_gaps.py already skips them."
+
 # ---------------------------------------------------------------- Lua
 
 [[ticket]]

@@ -1276,6 +1276,44 @@ of what the image could still hit as INT3.
 After merging main: `work.py test S16c --golden --jobs 4` 128 runs pass, 56 goldens the same; all 98
 scenarios pass under `--standalone`.
 
+**S16d (2026-10-15).** What standalone_gaps.py listed, decided per vtable and table. The rule: the image
+runs none of game.exe's code (INT3 wherever nothing is registered), so a table entry or vtable slot is
+reached only when our code calls through it: a virtual call of ours on an object the image makes with
+that vtable, or a read of the table by our code. `config/standalone_unreachable.csv` holds each decision
+with its reason (one line per vtable, data range or address); the tool counts those as "listed
+unreachable" and prints the rest as open, `--listed` prints the reasons, `--check` exits 1 on an open
+entry or a config line that covers nothing (and it warns about a listed address that got registered).
+Before: 13 forwarders, 5 code literals, 226 data references open; after: 0 open (13 / 5 / 223 listed).
+- Ported: 0070058F `AfxNewHandler`, the initial value of `_afxNewHandler` (00796E14) that
+  libcrt::OperatorNew calls when an allocation fails (it throws the static CMemoryException).
+  `mfc::impl::DefaultNewHandler`, image only like CriticalNewHandler; the handle map start-up check
+  throws it and catches the CMemoryException (ours only). Size row by hand (8 bytes, Ghidra's body).
+- Listed, with the reason: the 13 forwarders and the five code-byte reads (hook build only); CObject's
+  GetRuntimeClass 007005E3 in game vtables and every MFC slot 0 (nothing of ours asks an object for its
+  runtime class: no IsKindOf, no CArchive object serialisation, handlers catch by C++ type); _purecall
+  006E73EB (a bug only; the INT3 report names the caller); 00460110; the slots of MFC classes the image
+  makes but never calls virtually (CDC only inside CreateTempDC, CTempDC / CTempGdiObject destructors
+  run only by CHandleMap::DeleteTemp, which the image never runs, CPen members destroyed inline, the
+  four static exceptions not auto-deleted, the image's CWinThread freed without a virtual call, the four
+  static CWnds without handles, CHandleMap never deleted); classes never made (CClientDC / CWindowDC /
+  CPaintDC, CRgn, CMemFile, CPtrArray / CPtrList, CTempWnd, CCmdUI, CWinApp and its menus, MFC's state
+  objects, type_info, ostream_withassign); and the CRT / MFC tables (CWnd's message map, CRT SEH scope
+  tables, _FPinit, __lc_category's __init_ctype (our setlocale calls InitCtype directly), _aexit_rtn,
+  the __xi entry __initmbctable (the host calls InitMultibyteTable), the EH handler pointers,
+  _cfltcvt_tab).
+- False rows: the tool now drops library.csv's "not a function" rows from the function starts (00646C25
+  and 00656464, strings read as code pointers). vtables.csv: _AFX_CTL3D_THREAD has one slot (its
+  "second" was the string "%ld" at 0074676C) and the one-slot row 007474B8 is gone (strftime's "a/p",
+  read as a pointer into the middle of 00702F61's body; listed as data). library.csv: the rows 0055C730
+  and 00561B00 had unquoted commas in their names (the library column read " memmove)" and " then the
+  members destructors)"); quoted. Left for S16e: find_vtables.py should take only function starts as
+  slots (a regenerated vtables.csv brings both false rows back), and the dashboard's library count
+  includes the four "not a function" rows.
+After merging main: `work.py test S16d --golden --jobs 4` 128 runs pass, 54 goldens the same, 2 differ
+(levers, ui_saveload_delete vanilla: script #gobject only, the known heap-layout difference); all 98
+scenarios pass under `--standalone` (render_cursor_present passed on its retry: the first attempt's
+cursor check saw the cursor away from the mouse).
+
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
 quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return

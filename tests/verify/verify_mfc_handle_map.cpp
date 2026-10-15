@@ -319,7 +319,7 @@ void HandleMapCheck() {
 }
 
 void ThrowCheck() {
-    bool memory = false, resource = false, critical = false;
+    bool memory = false, resource = false, critical = false, initial = false;
     try {
         ThrowMemoryAt();
     } catch (::CMemoryException* thrown) {
@@ -335,8 +335,13 @@ void ThrowCheck() {
     } catch (::CMemoryException*) {
         critical = true;
     }
-    Check("AfxThrowMemoryException / AfxThrowResourceException / AfxCriticalNewHandler (caught)", true, memory && resource && critical, "%d %d %d",
-          memory, resource, critical);
+    try {
+        mfc::impl::DefaultNewHandler(16);
+    } catch (::CMemoryException* thrown) {
+        initial = reinterpret_cast<mfc::impl::CException*>(thrown)->autoDelete == 0;
+    }
+    Check("AfxThrowMemoryException / AfxThrowResourceException / AfxCriticalNewHandler / AfxNewHandler (caught)", true,
+          memory && resource && critical && initial, "%d %d %d %d", memory, resource, critical, initial);
 }
 
 void HandleMapStartupCheck() {
