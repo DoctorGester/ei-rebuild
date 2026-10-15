@@ -327,7 +327,7 @@ declaration and the registration; it skipped what did not match and the linker f
 
 ## C11 batch 7: free bodies of virtual slots to members (2026-10-15)
 
-46 more shims became members (tools/progress.py: 952 before, 906 after). Spelling only: no signature, argument order or float
+47 more shims became members (tools/progress.py: 952 before, 905 after on this branch; 908 with main's merged in). Spelling only: no signature, argument order or float
 grouping changed. This batch took the free `__fastcall Fn(T* self, void*, ...)` bodies of slots that had no member yet: the body
 moved into a non-virtual member (`<Slot>Impl`, or the slot's own name where the class has no virtual of that name), declared next
 to the virtual it implements ("body of the slot above") or at the top of the class, registered with `EI_REPLACE_METHOD`, and the
@@ -336,7 +336,7 @@ local of the same name exists; comments and strings untouched; a function inside
 member); the builds found the rest. A member of a named namespace needs qualified helper names (`misc400::New`, `unitdb::Destroy...`),
 a helper of the same name as a member needs `::` (`::DrawStrip`, `::DrawRain`, `::UpdateRegionTips`), and a parameter or local that
 hides a data member is a C4458 warning here (renamed: `newName`, `parameterName`, `currentWorld`, `currentMode`).
-- Converted (46): CSceneRenderer SetFogColourState / SetBlend / CreateRenderer / DrawRectangle / DrawSprites / DrawStrip (the ribbon
+- Converted (47): CSceneRenderer SetFogColourState / SetBlend / CreateRenderer / DrawRectangle / DrawSprites / DrawStrip (the ribbon
   draw) / DrawTriangles / Polyline; CLightningManager NewObject and CLightning Draw; ClientArrayManager (vis fog) NewObject / Draw;
   CRainSnow Draw; CUiContainer DrawContainer (00600EF0) and DrawChildren (00600F70), CBriefingScreen, CMainMenu and CHeroEquipPanel
   Draw; CUnit TakeHit / ObjectDeleted / SetScriptName and CMapObject SetVisibilityMode; CWorldClient MoveObject / MoveObject2;
@@ -359,5 +359,9 @@ hides a data member is a C4458 warning here (renamed: `newName`, `parameterName`
   WoundsMaterial, CCloudNoise base); string_map.cpp's panel (the class is file-local, `void*` selfs); the UI input shims and the
   other `void*` selfs; ReadMobChunks / LoadMobFile (free functions over the generic `Chunk` reader); the acks / ChunkArchive field
   readers; the rest are `XxxOriginal` call-through blocks and aliases of mfc / stlp templates.
-- Left: 906. What is left is almost only call-through blocks, UI input and `void*` selfs and template aliases: the pool of free
+- Left: 905. What is left is almost only call-through blocks, UI input and `void*` selfs and template aliases: the pool of free
   bodies with a known class is used up.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations: 4,774 method registrations). `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs,
+  all PASS; of the 56 goldens one differs, render_movie_present (vanilla), only in the script `#gobject` field (a heap-layout
+  field, SV7's); not chased.
