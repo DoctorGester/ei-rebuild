@@ -70,7 +70,7 @@ AREAS = [
 ]
 
 COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
-REPLACE = re.compile(r'EI_REPLACE(?:_METHOD)?\(\s*0x([0-9A-Fa-f]+)')
+REPLACE = re.compile(r'EI_REPLACE(?:_METHOD|_SHORT)?\(\s*0x([0-9A-Fa-f]+)')
 HANDLER = re.compile(r'UI_(?:INPUT|WHEEL)_HANDLER\(\s*0x([0-9A-Fa-f]+)')
 ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
 CLEANUP = {
@@ -177,7 +177,7 @@ def file_stats(path, text):
             for a in ORIGINAL.findall(code):
                 cleanup['forwarder_sites'] += 1
                 origins.append(int(a, 16))
-            if not path.startswith('src/hook/'):
+            if not path.startswith(('src/hook/', 'src/standalone/')):
                 for k, rx in CLEANUP.items():
                     cleanup[k] += len(rx.findall(code))
                 for k, n in ratchet_counts(path, text).items():

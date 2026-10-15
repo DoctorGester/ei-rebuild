@@ -15,7 +15,7 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 console @GodMode(0,1)
 check IsLess(DistanceUnitPoint(GetLeader(),23,138.5),8)
 check IsEqual(GetObjectID(GetObject(4515)),4515)
-wait 3000
+wait 2300
 check IsAlive(GetLeader())
 report
 quit

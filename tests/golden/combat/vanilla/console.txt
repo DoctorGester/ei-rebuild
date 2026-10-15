@@ -1,0 +1,116 @@
+  Activated!
+  Cannot open file autoexec.cfg for reading
+  0
+  Accepted player 0
+  party received on client
+  Unit 1936 new motivation Guard with power of 50
+  Unit 1937 new motivation Guard with power of 50
+  Unit 1000011214 new motivation Player with power of 10
+  Unit 1804 new motivation Patrol with power of 50
+  Unit 1890 new motivation Patrol with power of 50
+  Saved savea
+  Unit 1890 acknowledges with idleSound = AAn4XyU
+  1
+  Unit 1000275419 sees unit 1000011214 from 2.37171m distance
+  Unit 1000275419 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000275419 from 2.37171m distance
+  1
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  0
+  Unit 1000275419 was attacked by 1000011214 skill=3.40282e+038 damage=11.7439 destHL=RHand
+  impaling passed damage = 11.7439 HL was crippled
+  Unit 1000275419 damaged to death
+  Unit 1000011214 sees corpse of unit 1000275419
+  Unit 1000011214 lost from sight unit 1000275419
+  1
+  1
+  38.7939
+  Unit 1000275420 sees unit 1000011214 from 1.97454m distance
+  Unit 1000275420 new motivation Player with power of 10
+  1
+  Unit 1000011214 sees unit 1000275420 from 1.97454m distance
+  1
+  1
+  Unit 1000275420 sees unit 1000275419 with peripheral vision
+  Unit 1000275420 sees corpse of unit 1000275419
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=13.6 destHL=RLeg
+  0
+  0
+  0
+  0
+  Unit 1936 acknowledges with idleSound = AAn4XyU
+  0
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=-3.40282e+038 damage=9.48 destHL=LLeg
+  0
+  0
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  0
+  0
+  0
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=12.52 destHL=Body
+  slashing passed damage = 10.0325
+  1
+  28.661
+  Unit 1000011214 was healed
+  Unit 1804 acknowledges with idleSound = AAn4XyU
+  0
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=9.67717 destHL=Head!
+  0
+  0
+  Unit 1936 acknowledges with idleSound = AAn4XyU
+  Delayed sound: Unit 1000275420 heard unit 1000011214 from 1.440063m distance
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=13.0687 destHL=Head!
+  0
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=10.57 destHL=Body
+  slashing passed damage = 8.08253
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=11.3451 destHL=RHand
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  0
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=12.5395 destHL=Body
+  0
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=-3.40282e+038 damage=9.87109 destHL=Body
+  0
+  Unit 1000011214 was attacked by 1000275420 skill=3.40282e+038 damage=8.75 destHL=LHand
+  slashing passed damage = 6.26253
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=10.529 destHL=LHand
+  impaling passed damage = 10.529 HL was crippled
+  0
+  0
+  Delayed sound: Unit 1000011214 heard unit 1000275420 from 1.440063m distance
+  0
+  Unit 1000275420 was attacked by 1000011214 skill=3.40282e+038 damage=11.5838 destHL=Body
+  impaling passed damage = 11.5838 HL was crippled
+  Unit 1000275419 sees unit 1000011214 from 1.97454m distance
+  Unit 1000275419 sees unit 1000275420 from 0.556578m distance
+  Unit 1000275420 damaged to death
+  1
+  Unit 1000011214 sees corpse of unit 1000275420
+  Unit 1000011214 lost from sight unit 1000275420
+  25.8694
+  1

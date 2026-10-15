@@ -672,3 +672,4 @@ address,size,name,evidence
 004F0A20,57,FUN_004f0a20,referenced only from dead code 004EE760 (call at 004EEA1A); the stlp allocator's deallocate of n 0x10C-byte elements
 004F0A90,38,FUN_004f0a90,"referenced only from dead code 004EE760 (call at 004EE9E6); stlp list plumbing, byte-identical to the library 00438660"
 004F0AE0,30,FUN_004f0ae0,referenced only from dead code 004EE760 (call at 004EEA0E); a scalar deleting destructor over the library 004EDA30
+00656D69,1,FUN_00656d69,"S2: not a function start: its byte CF is the ModRM of MOV ECX,EDI (8B CF) at 00656D68 inside RefreshList 006567A0; the dwords 00656D69 in the data are coincidental (unaligned, or vtables.csv row 00746E60 of the library)"

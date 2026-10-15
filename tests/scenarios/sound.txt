@@ -48,7 +48,7 @@ console @CastSpellUnit("healing{e2;e2;e2;e2}",GetX(GetLeader()),GetY(GetLeader()
 console @Attack(GetLeader(),GetObjectByName("Snd1"))
 waitfor 20 Not(IsAlive(GetObjectByName("Snd1")))
 # The death's own updates (OnUnitDied, DeathEffect, the AI's reset).
-wait 3000
+wait 2000
 expect elayed sound
 check IsAlive(GetLeader())
 report

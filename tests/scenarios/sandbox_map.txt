@@ -11,6 +11,6 @@ console thingamabob
 newgame
 waitfor 15 IsGreater(HP(GetLeader()),0)
 waitfor 45 Not(IsUnitBlocked(GetLeader()))
-wait 10000
+wait 1000
 report
 quit

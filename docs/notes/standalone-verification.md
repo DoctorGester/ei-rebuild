@@ -248,6 +248,25 @@ A full vanilla sweep (plain against verify, both with randtrace) after the fix, 
   not converge: a set of 22 effect wrappers turned it on, none of its halves or quarters did, and the
   same 22 then ran like plain once. The frame the server's answer lands in depends on real time
   (follow-up SV1j); the verify build's extra work only makes the early answer likelier.
+
+## SV1j: a pending close-all and real window messages (2026-10-15)
+
+Not the server's answer: 00578B00 / 00578B20 set the interface's close-all flag (007C7D94 is
+CInterface3D +0x44, world_glue's `CloseAllRequested`) before the message goes out. The windows close,
+and the playing sounds stop (CBattleScreenSetup::Close -> CSoundManager::StopAll), at whichever comes
+first: the input dispatcher's first step (CloseAllPending 005F5AB0) for the next message WinMain's loop
+takes, or the next pass (the answer's CreateScreen -> Activate, else Draw). A step runs in the
+after-frame PeekMessageA, so whether a real message (Miles' WM_TIMER, WM_PAINT) waits right after it is
+real time; the verify build, slower, nearly always had one. The same holds for a click that asks for
+a screen. Stacks from the random trace's new caller list on "sound ended by the game" notes (the
+calls found by scanning the stack, game.exe addresses and ei_hook+offset; resolve with ei_hook.map).
+
+Harness fix (harness.cpp HoldMessagesForCloseAll): on the virtual clock, while the flag is set, the
+main loop's peeks report no message, so the next pass always does the close; after two frames
+(no pass took it up) messages pass again. After it ui_view_screen and ui_trade_hold, trader_stock,
+ui_camp, ui_camp_deals, ui_describe, ui_global_map_pick, world, world_client, spells_hero,
+script_exec, effects_bow, ui_quick_items, ui_trade_restore, render_device_lost make every draw in the
+same frame plain against verify and plain against plain (two runs each, vanilla).
 - Other early ones, not bisected: effects (frame 12), objects_more (CLightning::Start, 12), script_fx
   (8), ui_mp_host (96, SaveParty), unit_create's rand (12: protection checks against the animation
   pick order; the bisection blamed every part), zone_base_bz1g, zone_gz2g_traps. Several of these also
@@ -303,13 +322,12 @@ Rebirth with the flags on is the default Rebirth run (FollowAddon: every flag fo
 the Rebirth golden (addon's code alone); with the flags off (`set EI_REBIRTH=FollowAddon=0`) the rewrites of what
 addon.dll patches are not installed, so addon's code runs there and the same Rebirth golden applies.
 
-**Covered (42):** vanilla 37: camera, console, harness_digest, hero_death, items, levers, net_lobby, objects_more,
+**Covered (42; superseded by SV3d's re-recording below):** vanilla 37: camera, console, harness_digest, hero_death, items, levers, net_lobby, objects_more,
 party_records, render_movie, render_movie_present, render_scene, render_terrain, render_titles_present,
 sandbox_actions, script_copy, script_parse, script_quest, smoke, spells_cast, ui_battle_spells, ui_container_input,
 ui_help, ui_hero_delete, ui_hero_screen, ui_hero_stats, ui_main_menu, ui_objectives, ui_options_bind, ui_order_move,
 ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens, ui_trade_restore, unit_create, world_load. Rebirth 5: console, harness_digest, items, script_parse, ui_help. Rebirth with the flags off
-(`set EI_REBIRTH=FollowAddon=0`): all five differ from the Rebirth golden at world update 40 (three more ISAAC draws;
-SV3c), so that configuration has no passing golden yet.
+(`set EI_REBIRTH=FollowAddon=0`): all ten Rebirth goldens hold too since SV3c (below).
 
 **Speed 10:** 28 of the 37 vanilla goldens' scenarios (and 4 of the 5 Rebirth ones) have `speed 10`, whose handling on the virtual clock SV1i
 changes; their goldens are recorded with the old handling and need recording again after SV1i (the same four suites
@@ -683,3 +701,104 @@ modes that only zone units take (SV5a).
 and the original's "acknowledges with idleSound" line missing in ours), ui_base_topic (the original
 does not repeat at update 80 in bz1g) and world_loot (the original does not repeat at update 200,
 isaac.count, with the same console). zone_gz15h_tornado was not tried (69 s per run).
+
+
+## SV3d: the goldens recorded again (2026-10-15)
+
+After SV1b (repeatable heap), SV1i (no `speed 10`), SV2a (digest 2) and SV3a (unmoco2's hit points), SV3's recipe over
+the whole suite (orig twice with `--fresh`, ours twice, EI_DIGEST=20, 4 games at once): **56 goldens** in digest 2,
+vanilla 46: camera, combat, combat_more, console, ground_prints, harness_digest, hero_death, items, levers, magic_traps,
+map_objects, movement, net_lobby, objects_more, party_records, render_movie, render_movie_present, render_scene,
+render_terrain, render_titles_present, sandbox_actions, sandbox_map, script_copy, script_parse, script_quest, smoke,
+spells, spells_cast, terrain_water_load, ui_battle_commands, ui_battle_spells, ui_help, ui_hero_delete, ui_objectives,
+ui_options_bind, ui_order_move, ui_quest_notice, ui_saveload, ui_saveload_delete, ui_screens, ui_trade_restore,
+unit_ai, unit_ai_fear, units, world, world_load; Rebirth 10: console, ground_prints, harness_digest, items, levers,
+map_objects, script_parse, ui_help, ui_widescreen_hud, ui_widescreen_more. ui_main_menu, ui_hero_screen and
+ui_hero_stats keep their digest-1 goldens (the four runs match them; digest 2 parts in cunit2's rotation, SV3f).
+ui_container_input's and unit_create's old goldens no longer hold (SV1i; not re-recorded) and are to be dropped.
+cunit2's vitals now agree with the original everywhere, so KNOWN keeps only SV2b's entry. A fifth suite with `--golden`
+(ours, 117 runs): 59 the same, the two stale ones differ.
+
+Repeats: the original 87 of 106 passing runs, ours 98 of 114. Not recorded (by the first difference; `@N` world update):
+- *SV1j family* (isaac.count first, with zone1's idle wolf obj1936 `ai.standCooldown` and/or the hero's client
+  `animationStart` a few ms apart; both sides flip between the same alternatives, so a harness timing leak, not a
+  rewrite): effects, effects_bow (both), frames_basic (rebirth), particles, rebirth_flags (rebirth), spells_hero,
+  trader_stock (both), ui_camp (both), ui_camp_deals (both), ui_describe, ui_global_map_pick, ui_help_page (rebirth),
+  ui_quick_items (both), ui_trade_hold (both), ui_trade_restore (rebirth), ui_view_screen, ui_widescreen_screens
+  (rebirth), script_fx, zone_base_bz1g, ui_mp_host (both); crt.rand only in the original's own runs: ui_base_dialogue,
+  unit_create (SV2c), zone_gz3g.
+- *Ours against the original, real:* stored script runs keep the instance as kill flag (SV3e: frames_basic,
+  render_cpuwindows, render_present, ui_base_dialogue, ui_help_page, ui_hud both, world_client, zone_base_bz1g,
+  ui_mp_host); client unit rotation by an ulp (SV3f: ui_main_menu, ui_hero_stats, ui_hero_screen, ui_container_input,
+  ui_widescreen*, script_exec); cunit129 flag 0x400 (SV3g: ui_widescreen, _hud, _more, _screens vanilla); obj2 hp NaN
+  payload (SV3h: render_present_cpuwindows); zone_gz3g's VSS#i#val between our runs (SV3i, SV2b on vanilla); crt.rand
+  (SV3j: sound, zone_gz2g_traps, models).
+- *Fail without our hooks:* rebirth_flags (vanilla), render_cursor_present (both: no cursor-thread presents without our
+  renderer), render_device_lost, render_present_shot (both), render_present_window; render_present_fullscreen is not run.
+
+## T2: remaining fixed waits and the weak scenarios (2026-10-15)
+
+T1's follow-ups. Coverage was compared with run.counts in work.db (batch 280/303 against the final
+suite, batch 438): no scenario lost a function that is not on the flaky list (TellParties, ManaCurve,
+OnUnitLeft, SoundStreamRead, speech and attack-param groups).
+
+- run_all keeps the first attempt's log on a retry: `keep_attempt` copies ei_hook.log and
+  harness_report.txt to `runs/<folder>-attemptN` before the next try, and the PASS* note says where
+  (work_sched passes the batch's build). Test: `Retries.test_failed_attempt_is_kept`.
+- combat_more reaches `CUnitServer::EndOrder`: four wolves of player 6 placed 14 tiles away with
+  the hero on GodMode, `Attack` by the hero, then `SetCPFast` moves the targets out of reach (the
+  target is out of reach in UpdateState).
+- ui_hero_delete reaches DeleteHero: the defaults button (region 4) clears the name field, so the
+  name is typed after it, then regions 1, 1, 7 and `waitwindow 10 msgbox`, enter. Golden recorded again.
+- Fixed waits became waits on state or shorter waits in sandbox_map, hero_death, unit_ai_fear,
+  spells_hero, spells_cast, movement, effects_bow, particles, objects_more, sandbox_actions, sound,
+  zone_gz3g, zone_gz2g_traps, effects, map_objects, units, ui_mp_host, levers, ui_hud, ui_trade_hold,
+  ui_global_map_pick, ui_saveload_delete. The four ui_widescreen scenarios: `wait 6000` is now
+  `waitmenu` + `wait 5200` (the menu is up after 825 ms; 5200 keeps the frame count, so the menu's
+  late draws and the world's random draws stay as they were).
+- Lesson: any change in frame count reshuffles the ISAAC draws. Functions driven by them (the
+  zone1 storm, wolf pathing, the bored remark) are lost when a wait is cut, even if the wait only
+  looks idle. Cuts that lost a function were taken back (spells, models, unit_create,
+  terrain_water_load, unit_ai, ground_prints, rebirth_flags, ui_base_dialogue, world_client).
+- `PickEnvironmentSpeech` stays unreached reliably: only the server's bored remark (boredTicks > 500,
+  then 1 in 1001 per update) calls it. T2c.
+- Numbers: frames (GameFlow::UpdateMultiplayerVariable calls) 115765 -> 112876 over the 117 runs
+  (-2.5%), because most of a run is its start. Wall seconds are too noisy under load to compare
+  (batch 280 1586 s with 4 at once, batch 438 2050 s while other batches ran; the suite itself took
+  148 s of scheduler time on idle slots).
+- Open: ui_base_dialogue (Smith has no topics, T2a), a hero attack on a removed target gives a
+  PlayerMode::UpdateCombat mismatch (T2b), goldens to record again (T2d), rebirth_flags'
+  `DistancePointPoint(3,4)` check prints 0 on a first run now and then (T2e, unchanged scenario).
+
+## SV3c: Rebirth with the flags off (2026-10-15)
+
+With `FollowAddon=0` every Rebirth golden parted at world update 40 (three ISAAC draws more). The random traces of the
+original and ours (flags off) parted in the new game's load: ours filled fewer terrain tiles (terrain FillTiles draws)
+before SaveParty drew. Cause: `GameRender` (00578910) called our `CWorldClient::Render` directly, so with the flag off
+our Render drew the terrain at the vanilla radius 100 while addon's patched 00569E40 (LandscapeDrawRadius, the starter
+setting) was what the original runs; the terrain view loads the sectors within the radius. Rule 9 again: a rewrite
+calling a Rebirth-patched function must go through its address.
+
+A scan of ei_hook.dll for direct calls to rewrites of the functions in docs/rebirth-patched-functions.txt (capstone over
+.text, incremental-link thunks followed, callers named from ei_hook.map) found three more, all now through their
+addresses: `CHudPortraits::OnMouseUp` -> 00638EF0 SelectUnit (FixSpellSelfCasting; `SelectUnitAt` moved to
+originals_ui.h), `CWorldServer::RemoveAllUnits` -> 005935C0 RemoveObject (FixRemoveMapObject), `GameSetUnitHeight` ->
+005C11D0 CSectorMap::Move (FixMoveObject). The other hits are verify wrappers, a function calling itself, the script
+parser / evaluator family (one flag, skipped or hooked together), and two calls the original inlines: ProcessRequest's
+StartNewGame (0057BD10's steps inlined in 0057C700) and CMMIOResource::Destroy's base destructor. Inlined calls are not
+seen by such a scan.
+
+Checked: flags off, the ten Rebirth goldens the same (console's random trace makes every draw of the original's in the
+same frame); flags on and vanilla, 19 goldens of 12 scenarios the same.
+
+
+## SV3e: stored script runs clear their kill flag (2026-10-15)
+
+004BC420 sets its local run's kill flag to 0 after Execute returns unfinished, before the copy into the run list
+(`local_b0 = 0`); ours kept the instance (script_exec_run.cpp now clears it; the verify wrapper checks for null, ours only).
+The script group of digest 2 no longer differs in the nine scenarios: ours match the original wherever the original
+repeats. Recorded (SV3's recipe, 9 scenarios x 2 installs): ui_hud vanilla, world_client vanilla and rebirth.
+The others stay out for other causes: the SV1j family (isaac.count/standCooldown; crt.rand in the original's own runs)
+for frames_basic, render_cpuwindows, render_present, ui_base_dialogue, ui_help_page, ui_mp_host, zone_base_bz1g rebirth;
+zone_base_bz1g vanilla also shows SV3f's rotation ulp; ui_hud rebirth differs from the original from world update 40 in
+the script global gobject.i (702 in the original, 1884 in ours; both repeat), SV3k.

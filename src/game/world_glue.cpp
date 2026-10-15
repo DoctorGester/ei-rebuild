@@ -15,7 +15,9 @@
 #include "sound.h"
 #include "terrain.h"
 #include "unit.h"
+#include "originals_ai.h"
 #include "originals_engine.h"
+#include "originals_world.h"
 
 #include <cmath>
 
@@ -95,7 +97,9 @@ EI_REPLACE(0x0055EA10, StoreStartFolder);
 namespace {
 constexpr double kHoursPerDay = 24.0;   // 0073D108
 const char kConstructionVariable[] = "constr.current";   // 00790384
-char& ZoneRequested() { return *reinterpret_cast<char*>(std::uintptr_t(0x007C7D94)); }
+// The interface's close-all flag (CInterface3D +0x44 at 007C7D50): every window closes before the next
+// input message or by the next pass (CloseAllPending 005F5AB0, Activate, Draw).
+char& CloseAllRequested() { return *reinterpret_cast<char*>(std::uintptr_t(0x007C7D94)); }
 float& MapEdgeFade() { return *reinterpret_cast<float*>(std::uintptr_t(0x0079BD34)); }
 const char* DefaultMusic() { return *reinterpret_cast<const char**>(std::uintptr_t(0x0079BECC)); }
 constexpr std::uint32_t kClientRecordingCamera = 0x10;   // CWorldClient flags_
@@ -137,7 +141,7 @@ void __stdcall GameSetUnitHeight(int id, float z) {
     // FCOMP with TEST AH,0x40: nothing when the heights are equal or unordered.
     if (!(unit->position.z < z) && !(unit->position.z > z)) return;
     Vector3 target = {unit->position.x, unit->position.y, z};
-    world->Sectors()->Move(unit, &target);
+    SectorMapMove(world->Sectors(), nullptr, unit, &target);   // 005C11D0: Rebirth patches it (rule 9)
     unit->MarkChanged(2);
 }
 EI_REPLACE(0x00578760, GameSetUnitHeight);
@@ -187,7 +191,8 @@ EI_REPLACE(0x00578880, GameShowCameraPath);
 std::uint32_t GameCameraPathPlaying() { return WorldClient()->camera_->flags_ & CCamera::kPlaying; }
 EI_REPLACE(0x005788B0, GameCameraPathPlaying);
 
-int GameRender() { return WorldClient()->Render(); }
+// 00569E40 through its address: Rebirth patches it (LandscapeDrawRadius; rule 9).
+int GameRender() { return ClientRenderOriginal(WorldClient()); }
 EI_REPLACE(0x00578910, GameRender);
 
 void __stdcall GameStopSounds(int stopStream) { WorldClient()->sounds_->StopAll(static_cast<std::uint8_t>(stopStream) != 0); }
@@ -235,13 +240,13 @@ void __stdcall GameLeaveThroughExit(int exit) {
 EI_REPLACE(0x00578AC0, GameLeaveThroughExit);
 
 void __stdcall GameSendLeave04(int value) {
-    ZoneRequested() = 1;
+    CloseAllRequested() = 1;
     LocalClient()->SendLeave04(value);
 }
 EI_REPLACE(0x00578B00, GameSendLeave04);
 
 void GameRejoin() {
-    ZoneRequested() = 1;
+    CloseAllRequested() = 1;
     LocalClient()->Rejoin();
 }
 EI_REPLACE(0x00578B20, GameRejoin);

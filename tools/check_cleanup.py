@@ -97,7 +97,7 @@ EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set stru
           'float_control pragma': 'src/lib/vecmath.h', 'hand-written vector maths': 'src/lib/vecmath.h'}
 # A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...)/UI_INPUT_HANDLER(...) is how hooks are
 # written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
-REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|VERIFY|REBIRTH_IMPLEMENTS)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
+REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|REPLACE_SHORT|REPLACE_DISPATCH|VERIFY|REBIRTH_IMPLEMENTS)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
 
 
 def strip_comments(text):
@@ -108,7 +108,8 @@ def strip_comments(text):
 def counts():
     out = {}
     for path in glob.glob(os.path.join(ROOT, 'src', '**', '*.*'), recursive=True):
-        if not path.endswith(('.cpp', '.h', '.inc')) or os.sep + 'hook' + os.sep in path:
+        # The hook framework and the standalone host describe the exe's layout, not game code.
+        if not path.endswith(('.cpp', '.h', '.inc')) or any(os.sep + d + os.sep in path for d in ('hook', 'standalone')):
             continue
         text = strip_comments(open(path, encoding='utf-8', errors='replace').read())
         rel = os.path.relpath(path, ROOT).replace(os.sep, '/')

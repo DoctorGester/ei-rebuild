@@ -476,9 +476,6 @@ namespace {
 // The world (007AF5B8, thiscall): 00565E40 (RET 4) the unit at a screen point (x, y), 00566100
 // (RET 4) with 0 clears the selection (the selected units' flag 0x10 and marks).
 CUnit* UnitAtPoint(void* world, void*, int* point) { return WorldUnitAtPointOriginal(world, nullptr, point); }
-// 00638EF0 (thiscall on the battle screen, RET 0xC; Rebirth-patched, rewritten in ui_hud.cpp):
-// the click on a unit or a point.
-__declspec(naked) void __fastcall SelectUnitAt(CBattleScreenSetup*, void*, CUnit*, int, int) EI_ORIGINAL(0x00638EF0)
 
 } // namespace
 

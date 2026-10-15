@@ -12,7 +12,7 @@ console @GSSetVar(0,"lx",GetX(GetLeader())) GSSetVar(0,"ly",GetY(GetLeader()))
 console @CreateLightning(951,GSGetVar(0,"lx"),GSGetVar(0,"ly"),25,Add(GSGetVar(0,"lx"),3),GSGetVar(0,"ly"),0,5)
 console @CreateLightning(952,Add(GSGetVar(0,"lx"),-3),GSGetVar(0,"ly"),25,GSGetVar(0,"lx"),Add(GSGetVar(0,"ly"),2),0,0)
 console @CreateLightning(953,GSGetVar(0,"lx"),Add(GSGetVar(0,"ly"),-3),25,Add(GSGetVar(0,"lx"),2),GSGetVar(0,"ly"),0,-7)
-wait 3000
+wait 1500
 console @DeleteLightning(951) DeleteLightning(952) DeleteLightning(953)
 wait 500
 

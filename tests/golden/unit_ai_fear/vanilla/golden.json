@@ -1,0 +1,12 @@
+{
+  "scenario": "unit_ai_fear",
+  "install": "vanilla",
+  "recorded": "2026-10-15",
+  "commit": "eb3af83e",
+  "digest_period": 20,
+  "left_out": null,
+  "clear": "(?:^script gobject\\.i$)",
+  "repeated_in": 4,
+  "reason": "SV3d: re-recorded after SV1b (repeatable heap), SV1i (no speed 10), SV2a (digest 2) and SV3a",
+  "saves": "not kept: saves: differs from line 2: the first run 'savea/mission.sav 50374 4d866535774bdd92', orig2 'savea/mission.sav 50426 2d44e961e28c8ff1'"
+}

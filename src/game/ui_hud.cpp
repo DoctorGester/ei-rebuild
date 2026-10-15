@@ -349,7 +349,8 @@ void CHudPortraits::OnMouseUp(int, int x, int y) {
     if (region < 0) return;
     inputHandled_ = true;
     CBattleScreen* owner = owner_;
-    if (region < owner->partyCount_) owner->SelectUnit(owner->party_[region], 0, 0);
+    // 00638EF0 through its address: Rebirth patches it (FixSpellSelfCasting; rule 9).
+    if (region < owner->partyCount_) SelectUnitAt(owner, nullptr, owner->party_[region], 0, 0);
 }
 UI_INPUT_HANDLER(0x00641E20, CHudPortraits, OnMouseUp);
 

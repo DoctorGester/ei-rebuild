@@ -73,6 +73,27 @@ DWORD FindMainThread() {
 }
 
 DWORD g_mainThread = 0;
+FILE* g_randomFile = nullptr;   // the random trace (InstallRandomTrace)
+std::uintptr_t g_selfBase = 0, g_selfEnd = 0;   // ei_hook.dll's image (set with it)
+bool InGameCode(std::uintptr_t a) { return a >= 0x00401000 && a < 0x00730000; }
+bool InHookCode(std::uintptr_t a) { return a >= g_selfBase + 0x1000 && a < g_selfEnd; }
+
+// The calls on the current stack (random trace notes): the game has no frame pointers, so every word
+// that points into game.exe's or ei_hook.dll's code just after a call instruction.
+void CallerStack(char* out, std::size_t size) {
+    int used = 0;
+    out[0] = 0;
+    const auto* word = reinterpret_cast<const std::uintptr_t*>(_AddressOfReturnAddress());
+    for (int i = 0; i < 2048 && used + 12 < static_cast<int>(size); ++i) {
+        const std::uintptr_t a = word[i];
+        if (!InGameCode(a) && !InHookCode(a)) continue;
+        const auto* code = reinterpret_cast<const unsigned char*>(a);
+        if (!(code[-5] == 0xE8 || code[-6] == 0xFF || code[-2] == 0xFF || code[-3] == 0xFF)) continue;
+        if (InGameCode(a)) used += std::snprintf(out + used, size - used, " %08X", unsigned(a));
+        else used += std::snprintf(out + used, size - used, " ei_hook+%X", unsigned(a - g_selfBase));
+    }
+}
+
 void FindMainThreadOnce() {
     if (g_mainThread) return;
     g_mainThread = FindMainThread();
@@ -279,8 +300,11 @@ void __stdcall TimedEndSample(void* sample) {
     g_ailEndSample(sample);
     EnterCriticalSection(&g_voiceLock);
     Voice& v = VoiceOf(sample);
-    if (v.running && !v.forever)
-        RandomNote("sound ended by the game at %lu: end %lu", g_now, v.end);
+    if (v.running && !v.forever && g_randomFile) {
+        char stack[400];
+        CallerStack(stack, sizeof(stack));
+        RandomNote("sound ended by the game at %lu: end %lu;%s", g_now, v.end, stack);
+    }
     v.running = false;
     LeaveCriticalSection(&g_voiceLock);
 }
@@ -398,7 +422,7 @@ SRWLOCK g_traceLock = SRWLOCK_INIT;
 bool g_tracing = false;
 
 void DescribeAddress(std::uintptr_t a, char* out, std::size_t size) {
-    if (a >= 0x00401000 && a < 0x00730000) {
+    if (InGameCode(a)) {
         std::snprintf(out, size, "%08X", unsigned(a));
         return;
     }
@@ -724,9 +748,7 @@ namespace {
 
 constexpr std::uintptr_t kIsaacNext = 0x004667F0;
 const unsigned* g_traceFrames = nullptr;
-FILE* g_randomFile = nullptr;
 unsigned g_randomFrame = ~0u;
-std::uintptr_t g_selfBase = 0, g_selfEnd = 0;
 CRITICAL_SECTION g_randomLock;
 
 // One draw: "<frame> [(other thread) ][ei_hook+]<caller> <value>[ <what>] #<where>". <where> is the

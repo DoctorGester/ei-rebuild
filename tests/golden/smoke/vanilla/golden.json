@@ -2,10 +2,10 @@
   "scenario": "smoke",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "e1b2d7cf",
+  "commit": "eb3af83e",
   "digest_period": 20,
-  "left_out": " updateCountdown$",
-  "clear": "(?:^obj2 (hp|maxHp)$)",
+  "left_out": null,
+  "clear": "(?:^script gobject\\.i$)",
   "repeated_in": 4,
-  "reason": "SV3: first goldens of the suite; the original repeated in two runs and ours (hooks; Rebirth: flags following addon.dll) matched it in two"
+  "reason": "SV3d: re-recorded after SV1b (repeatable heap), SV1i (no speed 10), SV2a (digest 2) and SV3a"
 }
