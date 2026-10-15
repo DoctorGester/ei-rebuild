@@ -1311,7 +1311,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "Batch 8 merged 2026-10-15: address constants 369 to 249, own At() files 4 to 2 (left by family in docs/notes/cleanup-units.md, C11 batch 8). Next batch: RecordTable::At -> RecordAt and CMap::At -> ElementAt renames (about 110 call sites), then constants with no typed home yet."
+note = "Batch 9 merged 2026-10-15: own At() files 2 to 0 (RecordAt / ElementAt renames), address constants 249 to 187 (string accessors per file in game_strings.h), check_cleanup raw addresses 902 to 834. Left (187): menu_rects, net log texts and net_messages.h, effect float constants, class kVtableAddress statics, function addresses (docs/notes/cleanup-units.md, C11 batch 9)."
 
 [[ticket]]
 id = "C12"
