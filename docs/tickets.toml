@@ -577,10 +577,11 @@ done = "2026-10-15"
 id = "SV3"
 title = "Record goldens for the suite"
 group = "verification"
-status = "queued"
+status = "running"
 size = 1
 depends = ["SV2"]
 note = "Vanilla, Rebirth flags on and off; saves at checkpoints."
+started = "2026-10-15"
 
 [[ticket]]
 id = "SV4"
