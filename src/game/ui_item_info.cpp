@@ -19,6 +19,7 @@
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -300,7 +301,8 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
     out->SetSize(0, -1);
     mfc::CString value, above, below, key, text;
     float threshold = values[6];
-    if (integer)
+    // EI_Plugin's Fixes (005F1401): the jump over the integer format is always taken.
+    if (integer && !ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginFixes))
         value.Format(game::Text(0x0078EEEC), FtolOf(threshold));   // "%d"
     else
         value.Format(game::Text(0x00792F78), D(threshold));        // "%.1f"
@@ -325,6 +327,7 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
     out->SetAtGrow(out->GetSize(), below);
 }
 EI_REPLACE(0x005F13A0, ItemDamageLists);
+EI_REBIRTH_IMPLEMENTS(0x005F13A0, ei::rebirth::Patch::EiPluginFixes);
 
 namespace {
 void DamageLists(const float* values, CStringArray* out, char integer) { ItemDamageLists(values, out, integer); }

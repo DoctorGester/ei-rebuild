@@ -146,7 +146,7 @@ The plugin checks game.exe (PE header word at +0x150 is 0x2EC226), refuses when 
 writable and patches 006B6272. Its first call reads `EI_Plugin.ini` and addon's mode word (0xAADDxxxx: bit 0 PK, 1 NPlayers = 6, 2 Pause,
 3 AutoAim, 4 GraphGen, 5 Test, 6 NewMaster, 7 Scripts, 8 Briefings, 9 Fixes off). Active here (multiplayer): NPlayers (player count bytes
 in the lobby code; W2b, W4b), Pause, NewMaster, Briefings (S19a, below), Fixes (0x66-byte checks in 00613EA0, 005ED7B0, 006091C0, 006407E0,
-JMPs in 005F13A0, 006093B7, 00640C97, NOPs in 00536100; W4a, W4b). Scripts is off (addon's AddNewScriptCommands / PlayerNumbers instead); PK,
+JMPs in 005F13A0, 006093B7, 00640C97, NOPs in 00536100; W4a, W4b: all reproduced). Scripts is off (addon's AddNewScriptCommands / PlayerNumbers instead); PK,
 AutoAim, GraphGen, Test off. It updates itself from hat.gipath.org (a signed manifest, then a new EI_Plugin.asi), so its patch set may change.
 
 S19a (installer at EI_Plugin.asi +0x28DD .. +0x29F9 and +0x2FD0):
@@ -395,7 +395,35 @@ SetPosition) `max(n, 1) - 1`; `maxPlayers_` stays 6. `ei::rebirth::PluginNPlayer
 ini reading (default 7, the plugin's). Verified ours only (no server answers; the screen is built once by ui_mp_host): the verify
 wrapper re-derives the slider's rectangle, maximum and position and the field's rectangle, classes, font and length from the flags.
 
+**Done (W4b)**: the rest of EI_Plugin's Fixes (installer at EI_Plugin.asi +0x2E60 and +0x2FD0..: `100031F0`, `10003220`, `10003110`) and
+NPlayers (+0x2C80, and +0x2D20 for more than 7 players), each behind its flag and declared:
+- *Sex of a face* (`EiPluginFixes`, 005ED889 `CItemScreen::FaceNames` for 005ED7B0, 00609427 `CChatWindow::ShowPlayers` 006091C0, 006408E6 and
+  00640D2F `CHudPortraits::Rebuild` 006407E0): the two strcmp tests ("unhuma" -> "m", "unhufe" -> "f", else the string kept) become
+  `cmp byte [name+4], 0x66`: a model whose fifth character is 'f' gives "f", every other one "m" (always assigned: the original's `sex`
+  carried over from the last face when the model was neither). `pluginfixes::ModelIsFemale` (src/game/plugin_fixes.h).
+- *Unknown unit prototype* (006093B7 in ShowPlayers, 00640C97 in Rebuild; the plugin's stubs 100031F0 / 10003220 call 10003110 when the
+  prototype map's `operator[]` inserted a null for a player's prototype name): the prototype becomes the value of the head of the first
+  bucket (bucket order, chains not walked) of the unit prototype map whose name has none of "NPC", "Human", "Orc", "Undead", "Male",
+  "Female" in it (case-insensitive substring; an empty name qualifies). `pluginfixes::FallbackPrototype`. Nothing in the shipped data
+  reaches it (every player's prototype exists), so it is ours only and unreached.
+- 005F13A0 `ItemDamageLists` (005F1401: `je` -> `jmp`): the integer form ("%d") is never taken, the threshold is always "%.1f".
+- 00536100 `CUnitClientSpecific::RefreshSkins` (00536132: the `jne` over the body is NOPed): every unit is refreshed, not only the hero (0x32).
+- *NPlayers* (n = `PluginNPlayers()`, 7 here): 00640069 `CHudPortraits::AddPortrait` `mov edi, 6` -> `max(n, 7)`: the portraits' column is
+  `count % max(n, 7)`; 00608D9D / 00608DE4 `CChatWindow::Construct`: the window's left edge and its surface's x 0x1D0 -> 0; 006095FB
+  `CChatWindow::Update`: the first status column 0x118 -> 0x2E8 (= 0x118 + 0x1D0: the surface is at 0 now). 006095A0 is not in the ticket's list
+  but holds a site of the feature, so it is declared too.
+- *More than 7 players* (`+0x2D20`: six more sites in AddPortrait 0064016B..00640240, inactive here): not reproduced. The installer
+  (`Check` in rebirth_hook.cpp) skips a function holding such a site while NPlayers > 7 ("EI_Plugin.asi patches ... for more than 7 players"),
+  so a Rebirth launch with a larger NPlayers keeps the original there; the standalone image treats NPlayers above 7 as 7 in the portraits.
+Verified: the wrappers compare with the patched original where they did before (DrawHeroFace compares the face's model state, so a wrong
+sex letter would show as another texture; ItemDamageLists compares the three lines) and check ours otherwise: Construct's rectangle,
+Rebuild's picture sex letter ("face<m|f>NN") against the unit's name. Reached (Rebirth runs, all 0 mismatches): ui_hero_screen / ui_hero_delete / ui_hero_stats
+(DrawHeroFace), ui_describe / ui_hud (ItemDamageLists), most scenarios (RefreshSkins, Rebuild's party half, AddPortrait), ui_mp_host
+(Construct 1 call, ShowPlayers 2, Update 43). Not reached by any scenario: the prototype fallbacks (006093B7, 00640C97), Rebuild's
+players half (00640D2F: a client player without a live unit), the sex rule for a model other than "unhuma" / "unhufe", and
+RefreshSkins for a non-hero is reached only if a scenario's non-hero client unit gets that far (no wrapper tells).
+
 ### Remaining work
 
 WideScreen has no leftovers; the deferred Maps / ResOverride / Movies / Camera / StreamPatch group (with the standalone resource
-layer, S19b); EI_Plugin's Fixes and NPlayers leftovers (W4b); NewMaster's second master server (the user's decision, S19a).
+layer, S19b); NPlayers above 7 (AddPortrait's six sites); NewMaster's second master server (the user's decision, S19a).

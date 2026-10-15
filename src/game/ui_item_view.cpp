@@ -7,6 +7,7 @@
 // operand order (precise floating point), constants are read from the exe's memory.
 #include "ui_item_info.h"
 #include "game_strings.h"
+#include "plugin_fixes.h"
 
 #include "dx_surface.h"
 #include "item.h"
@@ -14,6 +15,7 @@
 #include "spell.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "render/render_state.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
@@ -524,9 +526,10 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     }
     mfc::CString sex;
     const char* figureModel = Get<const char*>(figure, 0xE8);
-    if (SameText(figureModel, game::Text(0x007908C8)))          // "unhuma"
+    const bool fixes = pluginfixes::Enabled();   // EI_Plugin's Fixes (005ED889): the model's fifth character
+    if (fixes ? !pluginfixes::ModelIsFemale(figureModel) : SameText(figureModel, game::Text(0x007908C8)))   // "unhuma"
         sex = game::Text(0x00792EAC);                                   // "m"
-    else if (SameText(figureModel, game::Text(0x00792EA4)))     // "unhufe"
+    else if (fixes || SameText(figureModel, game::Text(0x00792EA4)))     // "unhufe"
         sex = game::Text(0x0078BBD8);                                   // "f"
     model->Format(game::Text(0x00792E94), figureModel, Get<int>(unit, 0x10) + 1);         // "infa%sme%dface"
     texture->Format(game::Text(0x00792E88), static_cast<const char*>(sex), Get<int>(unit, 0x0C));   // "face%s%02d"
@@ -573,6 +576,8 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     AsSprite(model)->Draw(pass);
 }
 EI_REPLACE_METHOD(0x005ED7B0, CItemScreen::DrawHeroFace);
+// EI_Plugin.asi patches the sex test of the face's picture (005ED889) in a Rebirth launch.
+EI_REBIRTH_IMPLEMENTS(0x005ED7B0, ei::rebirth::Patch::EiPluginFixes);
 
 // --- 005EC020: an item's figure texture -------------------------------------------------------------
 

@@ -450,6 +450,14 @@ size = 0.5
 model = "sonnet"
 note = "From W4a/W2b (2026-10-15): EiPluginFixes still addon's in 005ED7B0, 006091C0, 006407E0, 005F13A0, 00536100 and 006093B7/00640C97; EiPluginNPlayers at 00640060 and 00608D20 (ei::rebirth::PluginNPlayers() exists now). Same approach as W4a: read EI_Plugin.asi's installer, reproduce behind the flag, declare it on the hook, verify in a Rebirth launch."
 
+[[ticket]]
+id = "W4c"
+title = "EI_Plugin NPlayers above 7: AddPortrait's six sites"
+group = "widescreen"
+size = 0.25
+model = "sonnet"
+note = "From W4b: AddPortrait (00640060) holds six sites active only when EI_Plugin.ini NPlayers > 7; not reproduced. A Rebirth launch with NPlayers > 7 keeps the original there (rebirth_hook Check skips the function); the standalone treats NPlayers > 7 as 7 in the portraits. Port if anyone plays with more than 7."
+
 # ---------------------------------------------------------------- unknown fields
 
 [[ticket]]
