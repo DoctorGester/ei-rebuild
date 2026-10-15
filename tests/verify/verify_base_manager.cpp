@@ -69,7 +69,7 @@ void __fastcall CopyVerify(CEngineObject* self, void*, const CEngineObject* othe
     alignas(4) unsigned char scratch[sizeof(CEngineObject)];
     std::memcpy(scratch, self, sizeof(scratch));
     s_copy(reinterpret_cast<CEngineObject*>(scratch), nullptr, other);
-    self->CEngineObject::CopyFrom(*other);
+    self->CopyFromImpl(*other);
     ei::verify::Check("CEngineObject::CopyFrom", true, std::memcmp(scratch, self, sizeof(scratch)) == 0, "");
 }
 

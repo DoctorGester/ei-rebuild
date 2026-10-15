@@ -74,11 +74,11 @@ PlayerMode* PlayerMode::ResetTamed() {
 }
 EI_REPLACE_METHOD(0x00551EC0, PlayerMode::ResetTamed);
 
-int __fastcall aimode::PlayerPriority(AIMode*, void*, AIBrain*) { return kPlayerPriority; }
-EI_REPLACE(0x00552090, aimode::PlayerPriority);
+int AIMode::PlayerPriority(AIBrain*) { return kPlayerPriority; }
+EI_REPLACE_METHOD(0x00552090, AIMode::PlayerPriority);
 
-int __fastcall aimode::TamedPriority(AIMode*, void*, AIBrain*) { return kTamedPriority; }
-EI_REPLACE(0x00552140, aimode::TamedPriority);
+int AIMode::TamedPriority(AIBrain*) { return kTamedPriority; }
+EI_REPLACE_METHOD(0x00552140, AIMode::TamedPriority);
 
 int __fastcall aimode::PlayerType(AIMode*) { return kModePlayer; }
 EI_REPLACE(0x005520A0, aimode::PlayerType);

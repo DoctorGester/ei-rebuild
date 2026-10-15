@@ -280,11 +280,24 @@ EI_VERIFY(0x005FDFA0, DrawWrappedVerify, 7, s_drawWrapped);
 
 // 005F57C0: ours only (it closes, deletes and activates windows). Checked afterwards: the mouse
 // position is the one the window procedure stored (007C7C50). The pending flag and the queued
-// window are not checked: the windows' own updates, which run last, may raise them again.
+// window are not checked: the windows' own updates, which run last, may raise them again. The
+// stored position is also written by the window procedure while Update's window updates pump
+// messages (a real-cursor WM_MOUSEMOVE, e.g. outside the window at 1920,1260): when it changed
+// during the call, Update's own read cannot be told from the new value and a mismatch is not counted.
 void __fastcall InterfaceUpdateVerify(CInterface3D* self, void*) {
+    const volatile int* storedX = reinterpret_cast<const volatile int*>(0x007C7C50);
+    const volatile int* storedY = reinterpret_cast<const volatile int*>(0x007C7C54);
+    int beforeX = *storedX, beforeY = *storedY;
     self->Update();
-    bool ok = self->mouseX_ == *reinterpret_cast<int*>(0x007C7C50) && self->mouseY_ == *reinterpret_cast<int*>(0x007C7C54);
-    ei::verify::Check("CInterface3D::Update", true, ok, "mouse %d,%d", self->mouseX_, self->mouseY_);
+    int afterX = *storedX, afterY = *storedY;
+    bool ok = self->mouseX_ == afterX && self->mouseY_ == afterY;
+    if (!ok && (beforeX != afterX || beforeY != afterY)) {
+        ei::Log("verify CInterface3D::Update: the stored mouse position changed during the call (%d,%d -> %d,%d, "
+                "interface %d,%d): not compared", beforeX, beforeY, afterX, afterY, self->mouseX_, self->mouseY_);
+        return;
+    }
+    ei::verify::Check("CInterface3D::Update", true, ok, "mouse %d,%d (stored %d,%d)", self->mouseX_, self->mouseY_,
+                      afterX, afterY);
 }
 EI_VERIFY(0x005F57C0, InterfaceUpdateVerify, 0, s_unused);
 

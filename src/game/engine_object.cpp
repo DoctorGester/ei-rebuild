@@ -10,7 +10,7 @@
 #include "lib/crt.h"
 
 // 00402D40 (slot 1).
-void CEngineObject::CopyFrom(const CEngineObject& other) {
+void CEngineObject::CopyFromImpl(const CEngineObject& other) {
     flags_ = other.flags_;
     type_ = other.type_;
     prototypeId_ = other.prototypeId_;
@@ -27,9 +27,6 @@ const char* CEngineObject::GetName() { return reinterpret_cast<const char*>(0x00
 const char* CEngineObject::GetDescription() { return reinterpret_cast<const char*>(0x00783BF8); }
 
 namespace {
-void __fastcall CopyFromHook(CEngineObject* self, void*, const CEngineObject* other) {
-    self->CEngineObject::CopyFrom(*other);
-}
 // The original leaves `this` in EAX, or what the manager's slot 24 leaves there.
 int __fastcall ReleaseHook(CEngineObject* self) {
     if (--self->refCount_ == 0) return self->owner_->ReleaseObject(self);
@@ -38,7 +35,7 @@ int __fastcall ReleaseHook(CEngineObject* self) {
 const char* __fastcall GetNameHook(CEngineObject* self) { return self->CEngineObject::GetName(); }
 const char* __fastcall GetDescriptionHook(CEngineObject* self) { return self->CEngineObject::GetDescription(); }
 } // namespace
-EI_REPLACE(0x00402D40, CopyFromHook);
+EI_REPLACE_METHOD(0x00402D40, CEngineObject::CopyFromImpl);
 EI_REPLACE(0x00455980, ReleaseHook);
 EI_REPLACE(0x00402CE0, GetNameHook);
 EI_REPLACE(0x00402CF0, GetDescriptionHook);

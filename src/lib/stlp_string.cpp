@@ -86,7 +86,7 @@ char* __fastcall StringAbi::Erase(string* self, void*, char* first, char* last) 
 
 string* __fastcall StringAbi::Substr(const string* self, void*, string* out, std::size_t pos, std::size_t n) {
     std::size_t size = self->size();
-    if (pos > size) StringThrowOutOfRangeOriginal();
+    if (pos > size) ThrowOutOfRange();
     std::size_t length = std::min(size - pos, n);
     out->InitRange(self->start_ + pos, self->start_ + pos + length);
     return out;
@@ -134,6 +134,63 @@ string* __fastcall StringAbi::DeletingDestructor(string* self, void*, unsigned f
 
 using stlp::StringAbi;
 
+namespace stlp {
+
+void __fastcall StringAbi::AllocateBlock(string* self, void*, std::size_t n) {
+    self->start_ = self->finish_ = static_cast<char*>(allocate(n));
+    self->eos_ = self->start_ + n;
+}
+
+void StringAbi::Join(string* out, const string& a, const char* first, const char* last) {
+    string joined;
+    string::Reserve(joined, a.size() + static_cast<std::size_t>(last - first) + 1);
+    joined.Append(a.start_, a.finish_);
+    joined.Append(first, last);
+    out->InitRange(joined.start_, joined.finish_);
+}
+
+string* __fastcall StringAbi::PlusText(string* out, const string* a, const char* text) {
+    Join(out, *a, text, text + std::strlen(text));
+    return out;
+}
+
+string* __fastcall StringAbi::PlusString(string* out, const string* a, const string* b) {
+    Join(out, *a, b->start_, b->finish_);
+    return out;
+}
+
+bool __fastcall StringAbi::Equals(const string* a, const string* b) { return *a == *b; }
+
+namespace {
+
+// MSVC 6's out_of_range (0x10C bytes): std::exception, then __Named_exception's name.
+struct OutOfRange {
+    libcrt::Exception base;
+    char name[0x100];
+};
+static_assert(sizeof(OutOfRange) == 0x10C);
+
+const void* NamedExceptionVtable() { return reinterpret_cast<const void*>(0x0073B994); }
+const void* OutOfRangeVtable() { return reinterpret_cast<const void*>(0x0073BE8C); }
+const void* OutOfRangeThrowInfo() { return reinterpret_cast<const void*>(0x0074C640); }
+const char* BasicStringText() { return reinterpret_cast<const char*>(0x00783CCC); }   // "basic_string"
+
+} // namespace
+
+void __fastcall ThrowOutOfRange() {
+    const string what(BasicStringText());
+    OutOfRange error;
+    error.base.Construct();
+    error.base.vtable = NamedExceptionVtable();
+    gamecrt::strncpy(error.name, what.data(), sizeof(error.name));
+    error.name[sizeof(error.name) - 1] = 0;
+    error.base.vtable = OutOfRangeVtable();
+    libcrt::CxxThrowException(&error, OutOfRangeThrowInfo());
+    __assume(0);
+}
+
+} // namespace stlp
+
 EI_REPLACE(0x00428DF0, StringAbi::RangeInitialize);
 EI_REPLACE(0x00428F10, StringAbi::RangeInitialize);
 EI_REPLACE(0x0042A2B0, StringAbi::RangeInitializeTagged);
@@ -160,3 +217,9 @@ EI_REPLACE(0x0069BF10, StringAbi::PushBack);
 EI_REPLACE(0x00445780, StringAbi::Less);
 EI_REPLACE(0x00445810, StringAbi::Compare);
 EI_REPLACE(0x004DDC90, StringAbi::DeletingDestructor);
+// S12g: the net code's string members.
+EI_REPLACE(0x00424E40, StringAbi::AllocateBlock);
+EI_REPLACE(0x00427D60, StringAbi::PlusText);
+EI_REPLACE(0x00427E80, StringAbi::PlusString);
+EI_REPLACE(0x00427FA0, StringAbi::Equals);
+EI_REPLACE(0x004410A0, stlp::ThrowOutOfRange);

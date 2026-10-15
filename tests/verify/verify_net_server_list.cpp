@@ -4,14 +4,10 @@
 
 #include "../../src/game/net_classes.h"
 
-namespace net {
-void __fastcall ServerListRead(void* client, void*, GameBuffer* in);
-}
-
 namespace {
 void* s_unused;
 void __fastcall ServerListReadVerify(void* client, void*, GameBuffer* in) {
-    net::ServerListRead(client, nullptr, in);
+    static_cast<net::ClientSession*>(client)->ReadServerListImpl(in);
     ei::verify::Check("ServerListRead", true, true, "");
 }
 } // namespace

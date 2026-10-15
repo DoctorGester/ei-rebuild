@@ -8,6 +8,8 @@
 //    reported when it runs. Runs at exit (atexit 0051FB40).
 #include "verify.h"
 
+#include "../../src/game/unit_db.h"
+
 #include <cstdint>
 
 struct UnitModelRecord;
@@ -22,8 +24,6 @@ namespace unitdb {
 void __fastcall DestroyModelRecord(UnitModelRecord* record);
 void __fastcall DestroyModelSlot(UnitModelSlot* slot);
 void __fastcall DestroyLevelRecord(UnitLevelRecord* record);
-UnitLevelRecord* __fastcall DeleteLevelRecord(UnitLevelRecord* self, void*, unsigned flags);
-UnitPrototypeRecord* __fastcall DeletePrototypeRecord(UnitPrototypeRecord* self, void*, unsigned flags);
 void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last);
 struct UnitDatabase;
 struct RecordTable;
@@ -151,13 +151,13 @@ static void __fastcall DestroyLevelRecordVerify(UnitLevelRecord* record) {
 }
 EI_VERIFY(0x0053EFF0, DestroyLevelRecordVerify, 0, s_unused);
 static UnitLevelRecord* __fastcall DeleteLevelRecordVerify(UnitLevelRecord* self, void*, unsigned flags) {
-    UnitLevelRecord* result = unitdb::DeleteLevelRecord(self, nullptr, flags);
+    UnitLevelRecord* result = self->DeleteScalar(flags);
     ei::verify::Check("DeleteLevelRecord", true, result == self, "flags %u", flags);
     return result;
 }
 EI_VERIFY(0x00540840, DeleteLevelRecordVerify, 0, s_unused);
 static UnitPrototypeRecord* __fastcall DeletePrototypeRecordVerify(UnitPrototypeRecord* self, void*, unsigned flags) {
-    UnitPrototypeRecord* result = unitdb::DeletePrototypeRecord(self, nullptr, flags);
+    UnitPrototypeRecord* result = self->DeleteScalar(flags);
     ei::verify::Check("DeletePrototypeRecord", true, result == self, "flags %u", flags);
     return result;
 }

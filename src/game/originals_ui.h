@@ -692,7 +692,7 @@ __declspec(naked) inline int __fastcall InterfaceScaleRectFromScreenOriginal(con
                                                                               tagRECT* /*rect*/) EI_ORIGINAL(0x005F7DA0)
 // 005FD120 (rewritten as UiSurfaceRelease; plain RET): the CUiSurface's destructor body (releases its DC and surface).
 __declspec(naked) inline void __fastcall SurfaceReleaseContentsOriginal(CUiSurface* /*surface*/) EI_ORIGINAL(0x005FD120)
-// 00600EF0 (rewritten as UiContainerDraw; RET 4): CUiContainer's draw of its children for pass `pass`. Returns 1.
+// 00600EF0 (rewritten as CUiContainer::DrawContainerImpl; RET 4): CUiContainer's draw of its children for pass `pass`. Returns 1.
 __declspec(naked) inline int __fastcall ContainerDrawOriginal(CUiWindow* /*container*/, void*, int /*pass*/)
     EI_ORIGINAL(0x00600EF0)
 // 00601110 (rewritten as UiContainerInput::OnLeftDown; RET 0xC): the container's input side (window + 0x94) handles the

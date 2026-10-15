@@ -4,6 +4,7 @@
 
 #include "link_figure.h"
 #include "originals_gameplay.h"
+#include "party.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -90,6 +91,34 @@ void __fastcall InsertHeroRecordsOverflow(HeroRecords* self, void*, MpHeroRecord
     self->InsertOverflow<HeroRecordElement>(pos, *x, n);
 }
 
+void SpeakerElement::Construct(BriefingSpeaker* to, const BriefingSpeaker& from) {
+    to->unit = from.unit;
+    new (&to->name) mfc::CString(from.name);
+    to->spareFlag = from.spareFlag;
+}
+
+void __fastcall ConstructSpeaker(BriefingSpeaker* p, const BriefingSpeaker* value) {
+    if (p) SpeakerElement::Construct(p, *value);
+}
+
+void __fastcall InsertSpeakersOverflow(Speakers* self, void*, BriefingSpeaker* pos, const BriefingSpeaker* x,
+                                       std::size_t n) {
+    self->InsertOverflow<SpeakerElement>(pos, *x, n);
+}
+
+void __fastcall DestroyTradeRecord(net::TradeRecord* self) {
+    self->parties[2].Party()->DestructBody();
+    self->parties[1].Party()->DestructBody();
+    self->parties[0].Party()->DestructBody();
+}
+
+AddressList::Node** __fastcall FindAddressByHost(AddressList::Node** out, void*, AddressList::Node* first,
+                                                 AddressList::Node* last, const net::NetAddress* value) {
+    while (first != last && first->data.ip != value->ip) first = first->next;
+    *out = first;
+    return out;
+}
+
 } // namespace libcontainers
 
 using namespace libcontainers;
@@ -105,6 +134,8 @@ EI_REPLACE(0x0060AB60, CopySpeakers);          // from the speakers' erase (0060
 EI_REPLACE(0x0060AA80, ConstructRefPtr);       // same instructions as 00429060
 EI_REPLACE(0x0060AAA0, CopyBackwardRefPtrs);   // same instructions as 00429DB0
 EI_REPLACE(0x004FB680, ConstructHeldObject);   // same instructions as 004298F0; called by 004F77C0
+EI_REPLACE(0x00429060, ConstructRefPtr);       // S12g: the client's parties
+EI_REPLACE(0x004298F0, ConstructHeldObject);   // S12g
 
 EI_REPLACE(0x005F9680, DestroyCString);   // library.csv: exception::~exception
 EI_REPLACE(0x005FBE20, DestroyCString);
@@ -123,3 +154,7 @@ EI_REPLACE(0x0041AC30, DestroyGameInfoRecord);   // the server list's records (S
 EI_REPLACE(0x006D29A0, DestroyPrintName);        // the print records' arrays (S12e)
 EI_REPLACE(0x006D29E0, DestroyPrintName);
 EI_REPLACE(0x00619920, InsertHeroRecordsOverflow);   // the heroes and saved parties (S12f)
+EI_REPLACE(0x0060AB00, ConstructSpeaker);             // S12g: the briefing's speakers
+EI_REPLACE(0x0060A660, InsertSpeakersOverflow);
+EI_REPLACE(0x00424DB0, DestroyTradeRecord);           // S12g: the client's trade records
+EI_REPLACE(0x00427FF0, FindAddressByHost);            // S12g: the server's banned addresses

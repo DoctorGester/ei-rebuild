@@ -149,6 +149,7 @@ public:
     // from it and the world position (CTransformObject::WorldMatrix inlined; UpdateWorld calls this
     // before it moves the position, so the matrix holds the position of the update before).
     void CombineRotation(const Quaternion& parent) override;
+    void CombineRotationImpl(const Quaternion& parent);   // body of the slot above (registered by member pointer)
     // 006C9290 (RET 4, from the zone load 00567AB0). The frames between sun updates; negative: no
     // countdown, otherwise the countdown is raised to the interval.
     void SetLightInterval(int frames);

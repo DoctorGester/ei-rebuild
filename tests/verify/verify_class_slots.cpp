@@ -35,13 +35,9 @@ const char* __fastcall LightningGetClassName(const CLightning*);
 int __fastcall LightningGetClassId(const CLightning*);
 int __fastcall FakeUnitCreate(scene::FakeUnitScene* self);
 const char* __fastcall FakeUnitGetClassName(const CUnit*);
-int __fastcall UnitTakeHit(CUnit* unit, void*, DamageInfo* hit, CEngineObject* attacker, CEngineObject* source);
-void __fastcall UnitObjectDeleted(CUnit* unit, void*, CEngineObject* object);
 float __fastcall UnitForwardSpeed(CUnit* unit);
-const mfc::CString* __fastcall UnitSetScriptName(CUnit* unit, void*, const char* name);
 int __fastcall UnitRefreshWounds(CUnit* unit);
 std::uintptr_t __fastcall UnitMoveFactorsChanged(CUnit* unit);
-std::uintptr_t __fastcall MapObjectSetVisibilityMode(CMapObject* object, void*, int mode);
 
 namespace {
 void* s_unused;
@@ -148,19 +144,19 @@ int __fastcall FakeUnitCreateVerify(scene::FakeUnitScene* self) {
 
 int __fastcall TakeHitVerify(CUnit* self, void*, DamageInfo* hit, CEngineObject* attacker, CEngineObject* source) {
     CEngineObject* controller = self->controller;
-    int result = UnitTakeHit(self, nullptr, hit, attacker, source);
+    int result = self->TakeHitImpl(hit, attacker, source);
     ei::verify::Check("CUnit slot 31 (TakeHit)", true, controller != nullptr, "result %d", result);
     return result;
 }
 
 void __fastcall ObjectDeletedVerify(CUnit* self, void*, CEngineObject* object) {
     CEngineObject* controller = self->controller;
-    UnitObjectDeleted(self, nullptr, object);
+    self->ObjectDeletedImpl(object);
     ei::verify::Check("CUnit slot 56 (ObjectDeleted)", true, self->controller == controller, "");
 }
 
 const mfc::CString* __fastcall SetScriptNameVerify(CUnit* self, void*, const char* name) {
-    const mfc::CString* result = UnitSetScriptName(self, nullptr, name);
+    const mfc::CString* result = self->SetScriptNameImpl(name);
     bool good = result == reinterpret_cast<const mfc::CString*>(&self->scriptName) &&
                 std::strcmp(self->scriptName, name ? name : "") == 0;
     ei::verify::Check("CUnit slot 61 (SetScriptName)", true, good, "\"%.40s\"", name ? name : "(null)");
@@ -182,7 +178,7 @@ std::uintptr_t __fastcall MoveFactorsChangedVerify(CUnit* self) {
 
 std::uintptr_t __fastcall SetVisibilityModeVerify(CMapObject* self, void*, int mode) {
     CEngineObject* companion = self->companion;
-    std::uintptr_t result = MapObjectSetVisibilityMode(self, nullptr, mode);
+    std::uintptr_t result = self->SetVisibilityModeImpl(mode);
     ei::verify::Check("map object slot 47 (SetVisibilityMode)", true, self->companion == companion, "mode %d", mode);
     return result;
 }

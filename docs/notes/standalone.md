@@ -1020,6 +1020,61 @@ and the saved parties' reload; the topics in no run (only a network client's bri
 the opt-in check above); 00613920 through ItemStock::GenerateSpells
 (trader_stock).
 
+**S12g (2026-10-15).** The library functions our code still forwarded to (tools/dashboard_data.py's
+forwarders_to_library): 48 on main when it started; S16a took 21 of them (the client maps' list
+members, 005593D0's helpers, the counted_ptr copies / release of the party records, the light
+factory's remove, the trade row's copy constructor 0062A310), so this ticket did the other 27,
+00429080 (stlp::copy of counted_ptr) among them once S16a was merged: the same code as 004AB910,
+registered with S16a's `stlp::CopyAssigned` and its check. forwarders_to_library is 0 after the
+merge; S16b's three standalone stops (0069D9A0, 00657C60, 00424E40) are among them. Strings
+(stlp_string.cpp): `_M_allocate_block` 00424E40, both `operator+` 00427D60 / 00427E80 (`Join`: a
+temporary reserved for exactly both parts and the terminator, `out` made as a copy of it, the
+temporary freed), `operator==` 00427FA0 and `__stl_throw_out_of_range` 004410A0 (`ThrowOutOfRange`:
+"basic_string" as a string, MSVC 6's out_of_range built on the stack - std::exception, the
+__Named_exception vtable 0073B994 and its 256-byte name, then out_of_range's 0073BE8C - and thrown
+with the exe's throw information 0074C640; Substr and the socket driver call it directly now).
+Vectors (stlp_vector.cpp): `_M_allocate_and_copy` of pointers 0069D9A0 / 0069DC70 / 0069DDD0, of 24
+bytes 00573520 and of strings 0053D7F0; `uninitialized_copy` of counted 0042AF80 and shared
+0042AE90 references; the memmove copy of chars 004193D0; and three element helpers in stlp_vector.h
+(`ConstructDefaultAt`, `ConstructCopyAt`, `CopyAssignTagged`) for the lobby's queries 00443E30 /
+00443FF0 and the save list 00657C60 (record_vectors.cpp). Lists (stlp_list.cpp): ~list of the client's servers 00421A50 (SharedRef) and
+of the server's keyed references 004238B0 (CountedEntry), insert(pos, first, last) of SharedRef
+00560430 and CountedRef 00560460. library_containers.cpp: the counted / held `_Construct` copies
+00429060 / 004298F0 (the same code as 0060AA80 / 004FB680), the briefing speakers' `_Construct`
+0060AB00 and `_M_insert_overflow` 0060A660 (`SpeakerElement`: the unit, CString's copy, the flag
+byte), the client's trade record destructor 00424DB0 (the three CParty destructor bodies, the
+traded party first; `net::TradeRecord`) and the banned addresses' find_if 00427FF0 (the first node
+whose address has the value's host; the port is not compared).
+
+Checks, ours first (SV2f): `operator==`, the find and the char copy are pure and compare with the
+original; `_M_allocate_block` and the pointer / 24-byte `_M_allocate_and_copy` keep the existing
+pattern (one block: the original's goes back to the pool and ours must take it). Both `operator+`
+make two blocks, so a twin run on game blocks would reorder the pool; ours runs on the real output
+(checked by effect), then the original into a scratch string while `stlp_verify::OwnBlocks`
+(stlp_list_verify.h) has eight blocks of our memory on top of every node allocator free list: the
+original takes and gives back only those, and they are taken off again (the lists checked to be as
+before). A start-up check runs the operators, `operator==` and `_M_allocate_block` against the
+originals under the same OwnBlocks, and throws out_of_range both ways, caught by an SEH filter that
+keeps the thrown object's 0x10C bytes and the throw information; the two must be equal and the
+temporary string's block back on its list after each unwind. The rest run ours only by effect: the
+string vector copy (texts, own blocks), the reference copies (pointers; counted: one more
+reference per copy; shared: null / clone / same as Share decides), the list range inserts (links
+and copies), the list destructors (the sentinel on top of its list), the queries, save entries and
+speakers by text, the trade record (revisions kept, the three parties down to one vtable); 00429080
+shares S16a's 004AB910 check. The string start-up check returns at once when a trampoline is null
+(the address in disabled.txt, record mode): the first bisect build crashed there.
+
+Reached in the `--golden` suite (128 runs, 0 mismatches): 00424E40, 00427D60 and 004193D0 in every
+run, 0069D9A0 / 0069DC70 / 0069DDD0 (trader stock), 00427FF0 and 00421A50 / 004238B0 (ui_mp_host),
+0060A660 (briefing), 00657C60 and 00427FA0 once; the start-up checks in every run. Not reached (the
+multiplayer client's paths and rare members): 00427E80, 00573520, 0053D7F0, 0042AF80, 0042AE90,
+00443E30, 00443FF0, 00560430, 00560460, 00429060, 004298F0, 0060AB00, 00424DB0; 004410A0 only by
+the start-up check. Goldens: from main's paths (EI_BUILD_DIR = build\S12g\v under the main checkout,
+SV2h1b) 56 the same, 0 differ; from the worktree's paths render_movie_present (vanilla) parts at
+update 40 (`script #gobject`), and so does main's own verify DLL (13:49, after SV7a) and this build
+with all 27 addresses in disabled.txt, both run from the worktree at a path as long as build\verify:
+the path-length case of SV2h1b, not these functions (SV7 takes the layout dependence).
+
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
 extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
 006E6B7D take decoded sizes, Ghidra's run past the RET). src/lib/mfc_state: CThreadSlotData::FreeSlot
@@ -1154,6 +1209,36 @@ ui_options_bind and ui_global_map_pick (29 of the 32 sampled; the rest not run s
 filed as S16b: 0069D9A0 (ui_camp_deals: the item stock's pointer vector allocate-and-copy), 00657C60
 (ui_saveload_delete: the save entries' copy constructor), 00424E40 (ui_mp_host: the net strings' block
 allocation).
+
+**S16b (2026-10-15).** The three stops S16a left (0069D9A0, 00657C60, 00424E40) came with S12g from main
+(also 00427D60 / 00427FA0, the net strings' operator+ and ==; 00421A50, ~list<SharedRef>; 0069DC70 /
+0069DDD0, the stock's spell and modifier vectors' allocate-and-copy; 0060A660 / 0060AB00, the briefing
+speakers' insert overflow and _Construct), which this branch had ported the same way and dropped at the
+merge. Then every scenario was run under `--standalone` and the loop continued. Ported here, each at its
+address with a check (ours only unless said):
+- 005DF3A0 / 005DF490 / 005DF5A0: the console's join, server and memusage (console_commands.cpp; no
+  Ghidra functions, size rows by hand). join / server build a one-member party on the stack (Construct,
+  AddMember("F", "Human Hero", "Hercules" / "Serv")), hand it with the map name to the flow's request 5 / 6
+  (00581730 / 00581760), destroy it; server prints "Starting up a server" first; with not exactly one
+  argument the usage line (server's says "Join has 1 parameter, map name", as the original). memusage is a
+  jump to an empty function: ours is empty. The check: usage alone, or the flow's state and target after.
+  net_lobby reaches server. disconnect (005DFC10, a jump to 00581620 -> the client world's 00566E00) is
+  not reached by any scenario and stays unported (S16c).
+- 005E52A0: the cursor thread's AfxBeginThread procedure (CursorThread, exit code 0; ui_cursor_frame.cpp).
+- 005B80D0: counted_ptr's release, the exit function of 007C2F64 (RefPtrRelease, like 004A5D70).
+- 006B89B0: the sound loader's AIL_decompress_ASI callback (sound_manager.cpp
+  `SoundDecompressCallback`): at state 1 it sets "Requested bit width" 16, "Requested sample rate" 44100,
+  "Requested # of channels" 2 through the decoder's setter; returns 1. The check records the setter's calls
+  through a stand-in (1223 calls in ui_base_topic, 0 mismatches).
+- 004389C0 / 004336D0: ~_Vector_base of 4- and 2-byte elements (the session's handler vectors, the
+  connection's id pools; the latter only at exit), against the original's free.
+- ui_widescreen*: the image died silently at the startup action (`RESULT: RUNNING`, no INT3 report):
+  WideScreen's Startup parses VIDEORESOLUTION with sscanf before the hooks are in, and the image had no code
+  at 006EAEEC yet. Resolution() now calls libcrt::Sscanf directly (the same _input, S16's battery).
+All 98 scenarios pass under `--standalone` (`work.py test S16b <all> --standalone --jobs 4`). Hooked
+vanilla runs of net_lobby, console, render_cursor_present, ui_base_topic, ui_camp_deals, ui_mp_host and
+ui_widescreen: 0 mismatches. Risk seen: an INT3 hit before the missing-code handler is active (startup
+actions, static initialisers) is not reported; it ends the run as RUNNING with nothing logged.
 
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario

@@ -317,6 +317,44 @@ void __fastcall Give(CStringArray* args) {
 }
 EI_REPLACE(0x005DF0F0, Give);
 
+namespace {
+// join / server (S16b): a party with one member ("F", "Human Hero", `extra`) on the stack, handed
+// to the game flow's request 5 / 6 (00581730 / 00581760: a copy of it) with the map name.
+template <void (GameFlow::*Request)(const char*, const void*)>
+void RequestWithParty(CStringArray* args, std::uintptr_t extra) {
+    alignas(CParty) unsigned char storage[sizeof(CParty)];
+    CParty* party = reinterpret_cast<CParty*>(storage);
+    party->Construct();
+    party->AddMember(game::Text(0x00787B98), game::Text(0x0078B0FC), game::Text(extra));   // "F", "Human Hero"
+    {
+        mfc::CString map((*args)[0]);
+        (reinterpret_cast<GameFlow*>(0x007AFE20)->*Request)(map, party);
+    }
+    party->DestructBody();
+}
+} // namespace
+
+// 005DF3A0 (no Ghidra function; S16b): join <map>: the flow's request 5 with a party of one
+// ("Hercules").
+void __fastcall Join(CStringArray* args) {
+    if (args->GetSize() != 1) return PrintLine(game::Text(0x007927D4));   // "Join has 1 parameter, server name"
+    RequestWithParty<&GameFlow::RequestPartyZone5>(args, 0x007927C8);
+}
+EI_REPLACE(0x005DF3A0, Join);
+
+// 005DF490 (no Ghidra function; S16b): server <map>: "Starting up a server", then the flow's
+// request 6 with a party of one ("Serv").
+void __fastcall HostServer(CStringArray* args) {
+    if (args->GetSize() != 1) return PrintLine(game::Text(0x00792818));   // "Join has 1 parameter, map name"
+    PrintLine(game::Text(0x00792800));
+    RequestWithParty<&GameFlow::RequestPartyZone6>(args, 0x007927F8);
+}
+EI_REPLACE(0x005DF490, HostServer);
+
+// 005DF5A0 (a jump to the empty 00455CD0; S16b): memusage does nothing.
+void __fastcall MemUsage(CStringArray*) {}
+EI_REPLACE(0x005DF5A0, MemUsage);
+
 // 005DF5B0: lootall.
 void __fastcall LootAll(CStringArray*) {
     PrintLine(game::Text(0x00792838));   // "Looting..."

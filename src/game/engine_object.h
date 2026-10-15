@@ -16,6 +16,7 @@ public:
 
     virtual ~CEngineObject();                          // 0: 00402D20 (scalar deleting destructor)
     virtual void CopyFrom(const CEngineObject& other); // 1: 00402D40 (flags_, type_, prototypeId_)
+    void CopyFromImpl(const CEngineObject& other);   // body of the slot above (registered by member pointer)
     virtual int Create() = 0;                          // 2
     virtual void Destroy() = 0;                        // 3
     virtual void Release();                            // 4: 00455980 (refcount; the owner releases it at 0)

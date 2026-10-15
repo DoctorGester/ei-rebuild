@@ -324,6 +324,36 @@ struct ZoneTableText {
     }
 };
 
+// S12g: the element helpers compiled out of line (ours only, by their texts).
+// 00443E30: _Construct(p) of a query: a zero address and an empty growing reply buffer.
+void __fastcall QueryDefaultVerify(net::Query* p) {
+    stlp::ConstructDefaultAt<net::Query, QueryElement>(p);
+    bool ok = true;
+    if (p) {
+        const auto* address = reinterpret_cast<const std::uint8_t*>(&p->address);
+        for (std::size_t i = 0; i < sizeof(p->address); ++i) ok = ok && address[i] == 0;
+        ok = ok && p->reply.begin && p->reply.cur == p->reply.begin && p->reply.high == p->reply.begin;
+    }
+    ei::verify::Report("stlp::_Construct(Query) 00443E30", ok, ok ? "" : "not an empty query");
+}
+// 00443FF0: __copy of queries (erase's tail moved down): each element assigned from its source.
+net::Query* __fastcall QueryCopyVerify(const net::Query* first, const net::Query* last, net::Query* out,
+                                       const void* tag, const void* distance) {
+    std::vector<std::string> expected;
+    for (const net::Query* p = first; p < last; ++p) expected.push_back(QueryText::Of(*p));
+    net::Query* end = stlp::CopyAssignTagged<net::Query, QueryElement>(first, last, out, tag, distance);
+    bool ok = end == out + expected.size();
+    for (std::size_t i = 0; ok && i < expected.size(); ++i) ok = QueryText::Of(out[i]) == expected[i];
+    ei::verify::Report("stlp::__copy(Query) 00443FF0", ok, ok ? "" : "other queries");
+    return end;
+}
+// 00657C60: _Construct(p, x) of a save list entry.
+void __fastcall SaveEntryConstructVerify(SaveEntry* p, const SaveEntry* x) {
+    stlp::ConstructCopyAt<SaveEntry, SaveEntryElement>(p, x);
+    bool ok = !p || SaveEntryText::Of(*p) == SaveEntryText::Of(*x);
+    ei::verify::Report("stlp::_Construct(SaveEntry) 00657C60", ok, ok ? "" : "another entry");
+}
+
 template <std::uintptr_t A> using SaveEntries = ModelCheck<A, SaveEntryVector, SaveEntryText>;
 template <std::uintptr_t A> using MpAddresses = ModelCheck<A, MpAddressVector, MpAddressText>;
 template <std::uintptr_t A> using TradeRowChecks = ModelCheck<A, TradeRowVector, TradeRowText>;
@@ -432,6 +462,10 @@ EI_VERIFY(0x006579C0, SaveEntries<0x006579C0>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x0061EC40, MpAddresses<0x0061EC40>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x00629E60, TradeRowChecks<0x00629E60>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x00652930, OptionBindings<0x00652930>::InsertOverflow, 0, s_unused);
+// S12g: the element helpers (the lobby's queries, the save list).
+EI_VERIFY(0x00443E30, QueryDefaultVerify, 0, s_unused);
+EI_VERIFY(0x00443FF0, QueryCopyVerify, 0, s_unused);
+EI_VERIFY(0x00657C60, SaveEntryConstructVerify, 0, s_unused);
 
 // The game flow's zone table (built when a game starts).
 EI_VERIFY(0x00587480, ZoneTableChecks<0x00587480>::InsertOverflow, 0, s_unused);

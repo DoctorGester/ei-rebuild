@@ -178,15 +178,19 @@ DressedUnitRecord* __fastcall ConstructHead(DressedUnitRecord* self) {
 
 void __fastcall DestroyHead(DressedUnitRecord* self) { DressedUnitElement::Destroy(self); }
 
-FiguredUnitRecord* __fastcall CopyFigured(FiguredUnitRecord* self, void*, const FiguredUnitRecord* from) {
-    FiguredUnitElement::Construct(self, *from);
-    return self;
+} // namespace unitset
+
+FiguredUnitRecord* FiguredUnitRecord::CopyConstruct(const FiguredUnitRecord* from) {
+    FiguredUnitElement::Construct(this, *from);
+    return this;
 }
 
-DressedUnitRecord* __fastcall CopyDressed(DressedUnitRecord* self, void*, const DressedUnitRecord* from) {
-    DressedUnitElement::Construct(self, *from);
-    return self;
+DressedUnitRecord* DressedUnitRecord::CopyConstruct(const DressedUnitRecord* from) {
+    DressedUnitElement::Construct(this, *from);
+    return this;
 }
+
+namespace unitset {
 
 bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, const std::uint32_t* other) {
     for (; first != last; ++first, ++other)
@@ -210,8 +214,8 @@ using Ids = stlp::VectorAbi<std::uint32_t>;
 // The records: the head's constructor and destructor, the copies, equal() of two id ranges.
 EI_REPLACE(0x00559DB0, unitset::ConstructHead);
 EI_REPLACE(0x00559DE0, unitset::DestroyHead);
-EI_REPLACE(0x0055A860, unitset::CopyFigured);
-EI_REPLACE(0x0055A9F0, unitset::CopyDressed);
+EI_REPLACE_METHOD(0x0055A860, FiguredUnitRecord::CopyConstruct);
+EI_REPLACE_METHOD(0x0055A9F0, DressedUnitRecord::CopyConstruct);
 EI_REPLACE(0x0055D020, unitset::EqualIds);
 
 // The tables: a group's pair, hash_map(), its copy and destructor; the groups' find_or_insert and

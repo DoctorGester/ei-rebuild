@@ -15,28 +15,28 @@
 
 // 00501AB0 (thiscall on the renderer, RET 4). Sets FOGCOLOR; a failure is a fatal error (its
 // result returned), else 1.
-int __fastcall RendererSetFogColour(CSceneRenderer* renderer, void*, std::uint32_t colour) {
-    IDirect3DDevice7* d3d = device::D3D(renderer->device_);
+int CSceneRenderer::SetFogColourStateImpl(std::uint32_t colour) {
+    IDirect3DDevice7* d3d = device::D3D(device_);
     long hr = device::SetRenderState(d3d, D3DRENDERSTATE_FOGCOLOR, colour);
     render::state::Render(D3DRENDERSTATE_FOGCOLOR, colour);
     if (hr != 0) return game::FatalError(reinterpret_cast<const char*>(0x0078EE40), colour);   // "Can't set fog color 0x%X"
     return 1;
 }
-EI_REPLACE(0x00501AB0, RendererSetFogColour);
+EI_REPLACE_METHOD(0x00501AB0, CSceneRenderer::SetFogColourStateImpl);
 
 // 00501C60 (thiscall on the renderer, RET 8). Sets SRCBLEND, then DESTBLEND (D3DBLEND values: the
 // particle draw 00498940 passes 5, 2 for additive sources and 5, 6 to go back). A failure is
 // reported (004800E0, its result returned; DESTBLEND is then not set), else 1.
-int __fastcall RendererSetBlend(CSceneRenderer* renderer, void*, std::uint32_t source, std::uint32_t dest) {
-    long hr = device::SetRenderState(device::D3D(renderer->device_), D3DRENDERSTATE_SRCBLEND, source);
+int CSceneRenderer::SetBlendImpl(std::uint32_t source, std::uint32_t dest) {
+    long hr = device::SetRenderState(device::D3D(device_), D3DRENDERSTATE_SRCBLEND, source);
     render::state::Render(D3DRENDERSTATE_SRCBLEND, source);
     if (hr != 0) return FatalDirectX(hr, reinterpret_cast<const char*>(0x0078EE88));   // "Can't set source alpha blend mode."
-    hr = device::SetRenderState(device::D3D(renderer->device_), D3DRENDERSTATE_DESTBLEND, dest);
+    hr = device::SetRenderState(device::D3D(device_), D3DRENDERSTATE_DESTBLEND, dest);
     render::state::Render(D3DRENDERSTATE_DESTBLEND, dest);
     if (hr != 0) return FatalDirectX(hr, reinterpret_cast<const char*>(0x0078EE5C));   // "Can't set destination alpha blend mode."
     return 1;
 }
-EI_REPLACE(0x00501C60, RendererSetBlend);
+EI_REPLACE_METHOD(0x00501C60, CSceneRenderer::SetBlendImpl);
 
 // 004EB170 (thiscall on the device object, RET 4). The current material (material_, counted; the
 // old one released through its slot 0 when its count reaches 0); without a material stage 1's
