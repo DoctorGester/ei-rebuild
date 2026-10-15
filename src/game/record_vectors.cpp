@@ -53,6 +53,7 @@ EI_REPLACE(0x004439C0, QueryVector::InsertOverflow);   // 0x2C
 EI_REPLACE(0x00443BF0, QueryVector::Assign);
 EI_REPLACE(0x004442B0, QueryVector::EraseRange);
 EI_REPLACE(0x00444090, QueryVector::ResizeDefault);
+EI_REPLACE(0x0041F7F0, QueryVector::Destruct);   // ~vector (the client's queries)
 
 // The party manager's entries (resize(n), RET 4).
 EI_REPLACE(0x004ADAA0, PartyEntryVector::ResizeDefault);   // 0x14

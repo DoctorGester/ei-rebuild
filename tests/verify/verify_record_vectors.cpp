@@ -373,6 +373,7 @@ EI_VERIFY(0x004439C0, Queries<0x004439C0>::InsertOverflow, 0, s_unused);
 EI_VERIFY(0x00443BF0, Queries<0x00443BF0>::Assign, 0, s_unused);
 EI_VERIFY(0x004442B0, Queries<0x004442B0>::EraseRange, 0, s_unused);
 EI_VERIFY(0x00444090, Queries<0x00444090>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x0041F7F0, Queries<0x0041F7F0>::Destruct, 0, s_unused);
 
 // The party manager's entries (loaded with a save).
 EI_VERIFY(0x004ADAA0, PartyEntries<0x004ADAA0>::ResizeDefault, 0, s_unused);
