@@ -48,7 +48,7 @@ ServerSession* __fastcall ServerConstructVerify(ServerSession* self, void*, std:
 // 00417EB0: SUB ESP,0x10 (3), PUSH EBX (1), PUSH EBP (1).
 void(__fastcall* s_collect)(ServerSession*, void*, ReplicatedVector**);
 void __fastcall ServerCollectVerify(ServerSession* self, void*, ReplicatedVector** out) {
-    auto ours = [](ServerSession* session, void*, ReplicatedVector** to) { session->ServerSession::CollectReplicated(to); };
+    auto ours = [](ServerSession* session, void*, ReplicatedVector** to) { session->ServerSession::CollectReplicatedImpl(to); };
     netverify::CheckCollect("ServerCollectReplicated", self, out, ours, s_collect);
 }
 

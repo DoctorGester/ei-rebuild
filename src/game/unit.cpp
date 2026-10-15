@@ -152,7 +152,7 @@ std::uintptr_t CUnit::SetFlag40000000Off(bool on) {
 }
 EI_REPLACE_METHOD(0x0052EBE0, CUnit::SetFlag40000000Off);
 
-std::uint32_t CUnit::SetStunned(int on) {
+std::uint32_t CUnit::SetStunnedImpl(int on) {
     if (on) {
         flags_ |= 0x1000000u;
     } else {
@@ -160,8 +160,7 @@ std::uint32_t CUnit::SetStunned(int on) {
     }
     return flags_;
 }
-std::uint32_t __fastcall UnitSetStunnedHook(CUnit* self, void*, int on) { return self->CUnit::SetStunned(on); }
-EI_REPLACE(0x0052F7F0, UnitSetStunnedHook);
+EI_REPLACE_METHOD(0x0052F7F0, CUnit::SetStunnedImpl);
 
 // --- Equipment -------------------------------------------------------------------------------
 
@@ -422,17 +421,14 @@ float CUnit::ActionSpeed(const FigureAnimation* entry) {
 }
 EI_REPLACE_METHOD(0x005327D0, CUnit::ActionSpeed);
 
-bool CUnit::AcceptsAnimation(const void* entry) {
+bool CUnit::AcceptsAnimationImpl(const void* entry) {
     if (type_ != kUnitTypeHero) return true;
     std::uint32_t required = 0;
     if (Controller()->HasOtherArmour()) required = 0x10;
     if (Controller()->HasMainArmour()) required |= 0x20;
     return (static_cast<const FigureAnimation*>(entry)->flags & required) == required;
 }
-bool __fastcall UnitAcceptsAnimationHook(CUnit* self, void*, const void* entry) {
-    return self->CUnit::AcceptsAnimation(entry);
-}
-EI_REPLACE(0x00532DA0, UnitAcceptsAnimationHook);
+EI_REPLACE_METHOD(0x00532DA0, CUnit::AcceptsAnimationImpl);
 
 double CUnit::AnimationRatio() {
     volatile float denominator = static_cast<float>(AnimationFactor(baseScale.z));   // FSTP to a float local

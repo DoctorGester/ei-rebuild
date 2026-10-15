@@ -130,6 +130,11 @@ BOOL __fastcall RemoveAllArchivesHook(CResourceManager* self) { return self->CRe
 void __fastcall FreeAllFilesHook(CResourceManager* self) { self->CResourceManager::FreeAllFiles(); }
 } // namespace
 EI_REPLACE(0x00674F40, DestroyHook);
+// The compiler's jump thunks to it (functions.csv "thunk" rows; S16a: the standalone image has no
+// code at them): the same replacement, so their calls skip its check.
+EI_REPLACE(0x00512720, DestroyHook);
+EI_REPLACE(0x0068E8F0, DestroyHook);
+EI_REPLACE(0x006AC800, DestroyHook);
 EI_REPLACE_METHOD(0x00675050, CResourceManager::AddArchiveImpl);
 EI_REPLACE_METHOD(0x00675200, CResourceManager::RemoveArchiveImpl);
 EI_REPLACE(0x00675340, RemoveAllArchivesHook);

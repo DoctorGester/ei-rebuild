@@ -12,10 +12,19 @@
 
 struct UnitModelRecord;
 struct UnitModelSlot;
+struct UnitLevelRecord;
+struct UnitPrototypeRecord;
+namespace mfc {
+class CString;
+} // namespace mfc
 
 namespace unitdb {
 void __fastcall DestroyModelRecord(UnitModelRecord* record);
 void __fastcall DestroyModelSlot(UnitModelSlot* slot);
+void __fastcall DestroyLevelRecord(UnitLevelRecord* record);
+UnitLevelRecord* __fastcall DeleteLevelRecord(UnitLevelRecord* self, void*, unsigned flags);
+UnitPrototypeRecord* __fastcall DeletePrototypeRecord(UnitPrototypeRecord* self, void*, unsigned flags);
+void __fastcall DestroyStringRange(mfc::CString* first, mfc::CString* last);
 struct UnitDatabase;
 struct RecordTable;
 struct SkillDatabase;
@@ -133,3 +142,28 @@ static void __fastcall DestroyModelSlotVerify(UnitModelSlot* slot) {
     ei::verify::Check("DestroyModelSlot", true, true, "");
 }
 EI_VERIFY(0x0053F010, DestroyModelSlotVerify, 0, s_unused);
+
+// S16a, all ours only (counted; they free): the level record's destructor, the level and prototype
+// records' scalar deleting destructors (this back), and the CString range destructor.
+static void __fastcall DestroyLevelRecordVerify(UnitLevelRecord* record) {
+    unitdb::DestroyLevelRecord(record);
+    ei::verify::Check("DestroyLevelRecord", true, true, "");
+}
+EI_VERIFY(0x0053EFF0, DestroyLevelRecordVerify, 0, s_unused);
+static UnitLevelRecord* __fastcall DeleteLevelRecordVerify(UnitLevelRecord* self, void*, unsigned flags) {
+    UnitLevelRecord* result = unitdb::DeleteLevelRecord(self, nullptr, flags);
+    ei::verify::Check("DeleteLevelRecord", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x00540840, DeleteLevelRecordVerify, 0, s_unused);
+static UnitPrototypeRecord* __fastcall DeletePrototypeRecordVerify(UnitPrototypeRecord* self, void*, unsigned flags) {
+    UnitPrototypeRecord* result = unitdb::DeletePrototypeRecord(self, nullptr, flags);
+    ei::verify::Check("DeletePrototypeRecord", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x005407E0, DeletePrototypeRecordVerify, 0, s_unused);
+static void __fastcall DestroyStringRangeVerify(mfc::CString* first, mfc::CString* last) {
+    unitdb::DestroyStringRange(first, last);
+    ei::verify::Check("DestroyStringRange", true, first <= last, "");
+}
+EI_VERIFY(0x005214B0, DestroyStringRangeVerify, 0, s_unused);

@@ -50,14 +50,15 @@ bool IsInfinite(std::uint64_t bits) { return Exponent(bits) == 0x7FF && (bits & 
 // masked, the caller's precision kept, so their FADD / FSUB / FMUL / FSQRT round to the caller's
 // precision (24 bits on the game's main thread). The bodies compute at 53 bits and round with Round where
 // the original's instructions round. (FYL2X, F2XM1, FPATAN and FPREM ignore the precision.)
+// (_hypot computes at 64 bits: `precision`.)
 class MathControlWord {
 public:
-    MathControlWord() {
+    explicit MathControlWord(unsigned precision = _PC_53) {
         __control87_2(0, 0, &saved_, nullptr);
         single_ = (saved_ & _MCW_PC) == _PC_24;
         rounding_ = saved_ & _MCW_RC;
         unsigned ignored;
-        __control87_2(_RC_NEAR | _PC_53 | _MCW_EM, _MCW_RC | _MCW_PC | _MCW_EM, &ignored, nullptr);
+        __control87_2(_RC_NEAR | precision | _MCW_EM, _MCW_RC | _MCW_PC | _MCW_EM, &ignored, nullptr);
     }
     ~MathControlWord() {
         unsigned ignored;
@@ -282,6 +283,59 @@ double __cdecl StackFmod(double x, double y) {
     return AddExtended(loadedX, loadedY);
 }
 
+namespace {
+
+// x + y of two doubles on the x87 (FLD, FADD: a NaN's propagation as the CRT's _handle_qnan2 has it).
+__declspec(naked) double __cdecl AddOnX87(double /*x*/, double /*y*/) {
+    __asm {
+        fld qword ptr [esp + 4]
+        fadd qword ptr [esp + 12]
+        ret
+    }
+}
+
+} // namespace
+
+// _hypothlp's steps under its control word 133F (64 bits, to nearest), each result stored to a double as
+// the original stores it (so rounded twice: volatile keeps the stores): |x| and |y| over the larger, the
+// sum of their squares, its root, then the root's and the larger's mantissas (_decomp: [0.5, 1))
+// multiplied and given the exponents' sum (_set_exp, exact while the result is a normal double; below
+// that, the masked underflow's denormalised result, cut off).
+double __cdecl Hypot(double x, double y) {
+    const std::uint64_t xBits = Bits(x);
+    const std::uint64_t yBits = Bits(y);
+    if (Exponent(xBits) == 0x7FF || Exponent(yBits) == 0x7FF) {
+        if (IsNan(xBits) || IsNan(yBits)) return AddOnX87(x, y);
+        return FromBits(kInfinity);
+    }
+    const double sizeX = std::fabs(x);
+    const double sizeY = std::fabs(y);
+    const double larger = sizeY > sizeX ? sizeY : sizeX;
+    if (larger == 0.0) return 0.0;
+    const MathControlWord control(_PC_64);
+    const volatile double a = sizeX / larger;
+    const volatile double b = sizeY / larger;
+    const volatile double sum = a * a + b * b;
+    const volatile double root = std::sqrt(sum);
+    int rootExponent = 0;
+    int largerExponent = 0;
+    const double rootMantissa = std::frexp(root, &rootExponent);
+    const volatile double product = rootMantissa * std::frexp(larger, &largerExponent);
+    int productExponent = 0;
+    const double productMantissa = std::frexp(product, &productExponent);
+    const int exponent = productExponent + rootExponent + largerExponent;   // result = mantissa 2^exponent
+    if (exponent < -1021) {
+        // Below the normal range: the masked underflow's denormalised result, the 53-bit significand
+        // shifted down with the dropped bits cut off (not rounded).
+        const std::uint64_t significand = static_cast<std::uint64_t>(std::ldexp(productMantissa, 53));
+        const int shift = -1021 - exponent;
+        return FromBits(shift >= 64 ? 0 : significand >> shift);
+    }
+    const double result = std::ldexp(product, rootExponent + largerExponent);
+    if (IsInfinite(Bits(result))) return control.Overflow(false);
+    return result;
+}
+
 // ---- The register entries ----
 
 __declspec(naked) std::int64_t __cdecl FtolEntry() {
@@ -333,6 +387,7 @@ EI_REPLACE_STANDALONE(0x006E83C0, libcrt::CiAsinEntry);
 EI_REPLACE_STANDALONE(0x006E7334, libcrt::CiAcos);
 EI_REPLACE_STANDALONE(0x006E83D4, libcrt::CiAsin);
 EI_REPLACE_STANDALONE(0x006E95A0, libcrt::StackFmod);
+EI_REPLACE_STANDALONE(0x006FD026, libcrt::Hypot);   // S16a
 
 // ST1 = x, ST0 = y.
 __declspec(naked) double __cdecl CiPowEntry() {

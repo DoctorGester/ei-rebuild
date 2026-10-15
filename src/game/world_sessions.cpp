@@ -143,7 +143,7 @@ int CClientHandle::OnShutdown() {   // 005626D0
     return 0;
 }
 
-void CClientHandle::TakeNew(void* joined) {   // 00562700
+void CClientHandle::TakeNewImpl(void* joined) {   // 00562700
     auto* links = static_cast<mfc::CList<RefPtr>*>(joined);
     for (auto* node = links->head; node; node = node->next) ReleaseCounted(node->data.ptr);
     links->RemoveAll();
@@ -152,11 +152,10 @@ void CClientHandle::TakeNew(void* joined) {   // 00562700
 namespace {
 int __fastcall ClientHandleShutdownHook(CClientHandle* self) { return self->CClientHandle::OnShutdown(); }
 CClientHandle* __fastcall ClientHandleCloneHook(CClientHandle* self) { return self->CClientHandle::Clone(); }
-void __fastcall ClientHandleTakeNewHook(CClientHandle* self, void*, void* joined) { self->CClientHandle::TakeNew(joined); }
 } // namespace
 EI_REPLACE(0x005626D0, ClientHandleShutdownHook);
 EI_REPLACE(0x005626B0, ClientHandleCloneHook);
-EI_REPLACE(0x00562700, ClientHandleTakeNewHook);
+EI_REPLACE_METHOD(0x00562700, CClientHandle::TakeNewImpl);
 
 // ---- netlink::DriverSession (0073F3A8) ------------------------------------------------------------
 

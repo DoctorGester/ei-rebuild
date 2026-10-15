@@ -151,7 +151,7 @@ EI_REPLACE_METHOD(0x0041BC40, ClientSession::Construct);
 // 0041D050 (slot 13). What the server receives from this client: the local player's login
 // (+0x2600), the timed objects (+0x2604, value at +0xC) and the file requests (+0x25E8), and our
 // trade offer (+0x260C) with its members. All priority 1.
-void ClientSession::CollectReplicated(ReplicatedVector** out) {
+void ClientSession::CollectReplicatedImpl(ReplicatedVector** out) {
     ClientSession* self = this;
     PushReplicated(*out, self->player_.ptr, 1);
     auto* timers = static_cast<TimedNode*>(self->timers_);
@@ -169,10 +169,7 @@ void ClientSession::CollectReplicated(ReplicatedVector** out) {
     }
 }
 namespace {
-void __fastcall ClientCollectReplicatedHook(ClientSession* self, void*, ReplicatedVector** out) {
-    self->ClientSession::CollectReplicated(out);
-}
 } // namespace
-EI_REPLACE(0x0041D050, ClientCollectReplicatedHook);
+EI_REPLACE_METHOD(0x0041D050, ClientSession::CollectReplicatedImpl);
 
 } // namespace net

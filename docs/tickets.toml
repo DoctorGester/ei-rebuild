@@ -1220,7 +1220,7 @@ id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
 model = "sonnet"
-note = "batch 5: 127 virtual-slot Hook shims converted to <Slot>Impl members (items, ground prints, link mesh/loader, net session/lobby/link, resources, base manager); progress 1,132 -> 1,005. verify and release clean, check_stolen/x87/signatures/thunks 0, work.py test C11 --golden: 128 runs ALL PASS, goldens 56 the same 0 differ. Notes in docs/notes/cleanup-units.md."
+note = "Batch 6 merged 2026-10-15: 64 virtual-slot shims to Impl members; 952 shims left. The virtual-slot forwarder pool is used up; what is left is mostly call-through blocks, UI input shims, free __fastcall bodies of slots with no member yet, and shims that dereference a pointer parameter (see docs/notes/cleanup-units.md, C11 batch 6)."
 
 [[ticket]]
 id = "C12"
@@ -1489,7 +1489,7 @@ size = 2
 model = "opus"
 depends = ["S16"]
 files = ["tools/run_all.py", "tests/golden"]
-note = "Needs S15a too (the harness's call-site patches inside original code: frame capture, held updates, update countdowns) before standalone goldens can compare."
+note = "Needs S15a too (done). Wait for SV7's layout-independent goldens (SV7c): the standalone heap differs from the original's, so comparing against today's goldens only shows heap-layout fields."
 
 [[ticket]]
 id = "S18"
@@ -1824,6 +1824,14 @@ group = "standalone"
 size = 1
 depends = ["S12f"]
 note = "tools/dashboard_data.py counts 102 distinct EI_ORIGINAL targets that are library code (config/library.csv) with no code of ours at the address (forwarders_to_library; 2026-10-15). Each is a stop for the standalone image as soon as a caller runs. List them (forwarded addresses minus game and minus registered), group by family (MFC, STLport, CRT, allocator new/delete 007005AF/007005D8 which only the standalone registers), port and register them at their library addresses with checks under SV2f (ours first), and file what does not fit. Avoid S16a's current boot-stop functions."
+
+[[ticket]]
+id = "S16b"
+title = "Standalone: the next stops after the zone (0069D9A0, 00657C60, 00424E40) and the rest of the suite"
+group = "standalone"
+depends = ["S16a"]
+files = ["src/game/item_stock.cpp", "src/game/ui_saveload.cpp", "src/game/originals_library.h"]
+note = "S16a's loop left three stops (docs/notes/standalone.md S16a): 0069D9A0 (ui_camp_deals: the item stock's vector<char*> allocate-and-copy, from item_stock.cpp AssignPointers), 00657C60 (ui_saveload_delete: SaveEntry's copy constructor, from CSaveLoadWindow::FillEntries), 00424E40 (ui_mp_host: the net strings' StringAllocateBlock, from net::StringEmpty). Grep main first (S12e / S12f work on STLport rows). Then run the scenarios not yet run standalone (work.py test S16b <names> --standalone --jobs 4; 32 of 98 sampled so far) and continue the loop."
 
 # ---------------------------------------------------------------- Lua
 

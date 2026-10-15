@@ -93,7 +93,7 @@ CTextureManager* CTextureManager::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x00691230, CTextureManager::DeletingDestruct);
 
-CEngineObject* CTextureManager::CreateObject(int type, int id) {
+CEngineObject* CTextureManager::CreateObjectImpl(int type, int id) {
     CEngineObject* object = CBaseManager::CreateObjectImpl(type, id);
     object->flags_ |= CreateFlag(type);
     return object;
@@ -102,13 +102,10 @@ CEngineObject* CTextureManager::CreateObject(int type, int id) {
 namespace {
 int __fastcall TextureManagerCreateHook(CTextureManager* self) { return self->CTextureManager::Create(); }
 void __fastcall TextureManagerDestroyHook(CTextureManager* self) { self->CTextureManager::Destroy(); }
-CEngineObject* __fastcall TextureManagerCreateObjectHook(CTextureManager* self, void*, int type, int id) {
-    return self->CTextureManager::CreateObject(type, id);
-}
 } // namespace
 EI_REPLACE(0x00691500, TextureManagerCreateHook);
 EI_REPLACE(0x00691630, TextureManagerDestroyHook);
-EI_REPLACE(0x00691AA0, TextureManagerCreateObjectHook);
+EI_REPLACE_METHOD(0x00691AA0, CTextureManager::CreateObjectImpl);
 
 const char* __fastcall TextureManagerClassName(CTextureManager*) { return reinterpret_cast<const char*>(kClassName); }
 int __fastcall TextureManagerClassId(CTextureManager*) { return 0x26; }

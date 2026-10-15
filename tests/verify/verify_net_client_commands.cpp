@@ -58,7 +58,7 @@ void __fastcall SendCommandVerify(net::ClientSession* self, void*, int kind, con
 }
 
 void __fastcall DescribeVerify(net::ClientSession* self, void*, RefPtr* out) {
-    self->ClientSession::CreateEntry(out);
+    self->ClientSession::CreateEntryImpl(out);
     bool ok = out->ptr != nullptr;
     if (ok) {
         std::uint32_t kind;

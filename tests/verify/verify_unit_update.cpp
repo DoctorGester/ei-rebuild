@@ -76,7 +76,7 @@ EI_VERIFY(0x00530A50, UpdateSizeClassesVerify, 0, s_unused);
 
 static std::uintptr_t __fastcall ScaleEffectChangedVerify(CUnit* self, void*, int value) {
     bool hadController = self->controller != nullptr;
-    std::uintptr_t result = self->CUnit::ScaleEffectChanged(value);
+    std::uintptr_t result = self->CUnit::ScaleEffectChangedImpl(value);
     ei::verify::Check("CUnit::ScaleEffectChanged", true, hadController || result == 0, "");
     return result;
 }
@@ -84,7 +84,7 @@ EI_VERIFY(0x0052EB30, ScaleEffectChangedVerify, 0, s_unused);
 
 static std::uintptr_t __fastcall SetServerStatsVerify(CUnit* self, void*, const UnitStats* stats) {
     int classId = self->controller->GetClassId();
-    std::uintptr_t result = self->CUnit::SetStats(stats);
+    std::uintptr_t result = self->CUnit::SetStatsImpl(stats);
     ei::verify::Check("CUnit::SetServerStats", true, classId == 0x3E || result == static_cast<std::uintptr_t>(classId),
                       "class %X", classId);
     return result;
@@ -102,7 +102,7 @@ EI_VERIFY(0x0052E910, LoadUnitFiguresVerify, 0, s_unused);
 // 0052E870: ours only; a controller-type companion is attached both ways and referenced.
 static std::uintptr_t __fastcall AttachCompanionVerify(CUnit* self, void*, CEngineObject* companion) {
     bool isController = companion && companion->type_ == 0x48;
-    std::uintptr_t result = self->CUnit::AttachObject(companion);
+    std::uintptr_t result = self->CUnit::AttachObjectImpl(companion);
     bool ok = !isController ||
               (self->controller == companion &&
                *reinterpret_cast<CUnit**>(reinterpret_cast<char*>(companion) + 0x1C) == self &&
@@ -138,7 +138,7 @@ EI_VERIFY(0x005303A0, StandPointVerify, 5, s_standPoint);
 // 0052F740: PUSH ECX; MOV EAX,[ESP+8] (5 bytes).
 static void(__fastcall* s_placeOnGround)(CUnit*, void*, float);
 static void __fastcall PlaceOnGroundVerify(CUnit* self, void*, float offset) {
-    SameUnit("CUnit::PlaceUnitOnGround", self, [&] { self->CUnit::PlaceOnGround(offset); },
+    SameUnit("CUnit::PlaceUnitOnGround", self, [&] { self->CUnit::PlaceOnGroundImpl(offset); },
              [&] { s_placeOnGround(self, nullptr, offset); });
 }
 EI_VERIFY(0x0052F740, PlaceOnGroundVerify, 5, s_placeOnGround);

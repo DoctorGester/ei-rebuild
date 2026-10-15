@@ -184,6 +184,9 @@ double __cdecl Floor(double value);                                             
 // wrappers save and restore), in the standalone image a thread_local starting at 1.
 int __cdecl Rand();                                                             // 006E77F7
 void __cdecl Srand(unsigned seed);                                              // 006E77EA
+// The calling thread's seed itself (the harness's digest and random trace read it; S16a: the image has no
+// _getptd).
+unsigned& RandState();
 
 // Maths, plain C++ (rewrite guide rule 7), exact. (acos 006E7334, asin 006E83D4 and fmod 006E95A0
 // are CiAcos, CiAsin and StackFmod below, in the standalone image.)
@@ -205,6 +208,9 @@ void __stdcall DestroyElements(void* array, std::size_t size, int count, Element
 // both builds.
 void* __fastcall NodeAllocate(std::size_t bytes);                               // 00405950
 void __fastcall NodeDeallocate(void* p, std::size_t bytes);                     // 00404D70
+// Copies that skip a null block: fastcall (0043B310) and stdcall (00426450, RET 8).
+void __fastcall NodeDeallocateChecked(void* p, std::size_t bytes);             // 0043B310
+void __stdcall NodeDeallocateCheckedStd(void* p, std::size_t bytes);           // 00426450
 void* __fastcall NodeRefill(std::size_t bytes);                                 // 004060E0 (_S_refill)
 char* __fastcall NodeChunkAlloc(std::size_t size, int* count);                  // 00406B70 (_S_chunk_alloc)
 
@@ -253,6 +259,12 @@ double __cdecl CiFmod(double x, double y);
 // fmod 006E95A0 (the stack-argument entry; standalone image only): CiFmod, but a NaN argument comes
 // in through the CRT's loader (006F2DAE), which garbles its payload's low bits.
 double __cdecl StackFmod(double x, double y);
+// _hypot 006FD026 (standalone image only; S16a: the camera, the strips, the client maps): the larger size
+// m of |x| and |y| times the root of (x / m)^2 + (y / m)^2, each step at 64 bits then stored to a double,
+// as _hypothlp (006FD060) computes it under its control word 133F (to nearest) whatever the caller's; an
+// overflow as the caller's rounding direction has it, a NaN argument as x87 addition propagates it, an
+// infinity otherwise +infinity.
+double __cdecl Hypot(double x, double y);
 
 // C++ exceptions (S4c, src/lib/crt_except.cpp). _CxxThrowException: RaiseException(0xE06D7363, not
 // continuable, {0x19930520, object, throw info}); the throw information is VC6's layout, which this

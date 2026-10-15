@@ -183,7 +183,7 @@ int __fastcall ClientHandleShutdownVerify(CClientHandle* self) {
 void __fastcall ClientHandleTakeNewVerify(CClientHandle* self, void*, void* joined) {
     auto* links = static_cast<mfc::CList<RefPtr>*>(joined);
     int before = links->count;
-    self->CClientHandle::TakeNew(joined);
+    self->CClientHandle::TakeNewImpl(joined);
     bool ok = links->head == nullptr && links->tail == nullptr && links->count == 0 && links->blocks == nullptr;
     ei::verify::Check("CClientHandle::TakeNew", true, ok, "%d links", before);
 }

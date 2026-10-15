@@ -549,7 +549,7 @@ int CPlayerServer::OnPartyUpdate() {
     LocalStream block;
     CMemoryStream& in = ReceivedMessages();
     in.ReadSized(block.Get());
-    block.Get()->CMemoryStream::Seek(0);
+    block.Get()->CMemoryStream::SeekImpl(0);
     if (in.ok_) Owner()->Party()->LoadParty(block.Get(), 0);
     return 1;
 }

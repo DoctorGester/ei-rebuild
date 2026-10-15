@@ -158,7 +158,7 @@ void CTextureManager::SetDevice(CTextureDevice* device) {
 }
 EI_REPLACE_METHOD(0x006913A0, CTextureManager::SetDevice);
 
-CEngineObject* CTextureManager::NewObject(int type) {
+CEngineObject* CTextureManager::NewObjectImpl(int type) {
     void* memory = gamecrt::operator_new(sizeof(CTexture));
     if (!memory) return nullptr;
     auto* texture = static_cast<CTexture*>(memory);
@@ -183,10 +183,7 @@ CEngineObject* CTextureManager::NewObject(int type) {
     texture->type_ = type;
     return texture;
 }
-CEngineObject* __fastcall TextureNewObjectHook(CTextureManager* self, void*, int type) {
-    return self->CTextureManager::NewObject(type);
-}
-EI_REPLACE(0x00691810, TextureNewObjectHook);
+EI_REPLACE_METHOD(0x00691810, CTextureManager::NewObjectImpl);
 // The extra block's out-of-line SetSize.
 EI_REPLACE_METHOD(0x00694300, lib::AlignedArray<std::uint8_t>::SetSize);
 

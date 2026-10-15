@@ -273,10 +273,12 @@ public:
     // 1: 004FD2A0 (RET 0xC). Records the state blocks of `states` and keeps the new preset (as
     // built-in preset `index` when that is below 9). `singleStage`: at most one texture stage.
     virtual CRenderPreset* Record(const stlp::vector<RenderPresetRecord::State>* states, int index, bool singleStage);
+    CRenderPreset* RecordImpl(const stlp::vector<RenderPresetRecord::State>* states, int index, bool singleStage);   // body of the slot above (registered by member pointer)
     // 2: 004FDB00 (RET 4). The record of `preset`, if there is one: slot 3 with its preset.
     virtual void ReleasePreset(CRenderPreset* preset);
     // 3: 004FD9D0 (RET 4). Deletes the preset's state blocks and drops its record.
     virtual void ReleaseBlock(CRenderPreset* preset);
+    void ReleaseBlockImpl(CRenderPreset* preset);   // body of the slot above (registered by member pointer)
     // 4: 004FDB50 (RET 4). The preset of `preset`'s record, or null without a record.
     virtual void* PresetBlock(CRenderPreset* preset);
     // 5: 004FDBA0 (RET 4). Preset `index` of the nine at +0x10C, or null beyond them.
@@ -312,6 +314,7 @@ public:
     // 1: 00500AA0 (RET 4; renderer_lifetime.cpp). Destructor body (00500AC0), then operator delete
     // when bit 0 of `flags` is set. Returns this.
     virtual void* DeleteRenderer(unsigned flags);
+    void* DeleteRendererImpl(unsigned flags);   // body of the slot above (registered by member pointer)
     virtual void Unknown2();   // 2: 00500B70 (the creation, renderer_init.cpp)
     // 3: 005019F0 (renderer_lifetime.cpp). The base part's DestroyBase, flags_ bit 1 cleared, the
     // helper and the device object dropped (each set to null, then released).
@@ -323,6 +326,7 @@ public:
     // 7: 00501CC0 (RET 4). Sets the colour the next draws are tinted with (kept at +0x18 and in the
     // device object's colour_), the transform object's ambient from it (SetBaseColour).
     virtual void SetColour(std::uint32_t colour);
+    void SetColourImpl(std::uint32_t colour);   // body of the slot above (registered by member pointer)
     // 8: 00501A40 (EAX 1). Clears the render target and the depth (and the stencil when the device
     // has one) to the fog colour and 1.
     virtual int ClearFrame();
@@ -331,6 +335,7 @@ public:
     virtual void Unknown10();
     // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
     virtual int SetTexture(int stage, void* texture);
+    int SetTextureImpl(int stage, void* texture);   // body of the slot above (registered by member pointer)
     // 12: 00501BB0 (RET 0x10; renderer_triangles.cpp). Draws pre-transformed vertices (D3DTLVERTEX,
     // FVF 0x1C4) as an indexed triangle list with the current state. Returns 1.
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);
@@ -339,14 +344,19 @@ public:
     // textures, unless it is hidden (flags +8 bit 0x80). Returns 1.
     virtual int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
                               CTexture* textureA, CTexture* textureB);
+    int DrawFigureLitImpl(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
+                              CTexture* textureA, CTexture* textureB);   // body of the slot above (registered by member pointer)
     // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
     // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
     // rectangle drawn, `material` (null, or an interface sprite's material) is passed on. The second
     // and third arguments are not read there.
     virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
                            tagRECT* screen);
+    int DrawFigureImpl(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
+                           tagRECT* screen);   // body of the slot above (registered by member pointer)
     // 15: 00501CE0 (RET 4). Draws a line list (0049B780 with the pipeline and the device object).
     virtual void DrawLineList(void* lines);
+    void DrawLineListImpl(void* lines);   // body of the slot above (registered by member pointer)
     // 16 (six arguments). Draws a strip along `points` (a lightning segment's aligned points) of
     // `width` with the bound texture: `visibility` the bounds' clip result, the texture's `length`
     // and `offset` along it (0 and 0: untextured lengthwise), `slant` 0.25 at every call known.
@@ -635,6 +645,7 @@ static_assert(sizeof(CLinkFigureLoader) == 0x34);
 // constructed and destroyed by the game's vector code.
 struct PrintRecord {
     virtual void Serialize(ChunkArchive* ar);   // 0: 006D41D0
+    void SerializeImpl(ChunkArchive* ar);   // body of the slot above (registered by member pointer)
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744264);
 
@@ -648,6 +659,7 @@ static_assert(sizeof(PrintRecord) == 0x28);
 // The second record type of prints.db. vtable 00744268. 0x34 bytes.
 struct PrintRecord2 {
     virtual void Serialize(ChunkArchive* ar);   // 0: 006D4270
+    void SerializeImpl(ChunkArchive* ar);   // body of the slot above (registered by member pointer)
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744268);
 

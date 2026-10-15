@@ -346,9 +346,6 @@ void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOrigi
 __declspec(naked) int __fastcall PendingLookup(PendingMap*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)
 __declspec(naked) void __fastcall PendingListRemoveAt(mfc::CList<CEngineObject*>*, void*, void*) EI_ORIGINAL(0x005704A0)
 __declspec(naked) int __fastcall ParticlesTickAt(CParticleManager*, void*, char) EI_ORIGINAL(0x00498480)
-__declspec(naked) void __fastcall EffectListErase0(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572550)
-__declspec(naked) void __fastcall EffectListErase1(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572580)
-__declspec(naked) void __fastcall EffectListErase2(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x005725B0)
 // 0068D730 CLight::GetIntensityAt (spell.h), unrounded in ST0.
 __declspec(naked) double __fastcall LightIntensityAt(CLight*, void*, const void*) EI_ORIGINAL(0x0068D730)
 __declspec(naked) void __fastcall MapTick(CTextureManager*) EI_ORIGINAL(0x00694020)
@@ -364,9 +361,10 @@ float SelectLess(float a, float b, float ifLess, float otherwise) {
 }
 
 // One effect list: the records whose slot 0 returns 0 are erased (through the list's own erase).
-using EraseFn = void(__fastcall*)(void*, void*, void**, void*);
 template <typename T>
-void RunEffects(stlp::list<T>& list, EraseFn erase) {
+using EraseFn = void**(__fastcall*)(stlp::list<T>*, void*, void**, typename stlp::list<T>::Node*);
+template <typename T>
+void RunEffects(stlp::list<T>& list, EraseFn<T> erase) {
     auto* head = list.head;
     for (auto* node = head->next; node != head;) {
         auto* current = node;
@@ -386,7 +384,33 @@ void EndWalk(ObjectListIterator& it) {
     }
 }
 
+// erase(pos) of a print list (nodes from operator new).
+template <typename T>
+void** ErasePrint(void** out, typename stlp::list<T>::Node* pos) {
+    auto* next = pos->next;
+    auto* prev = pos->prev;
+    prev->next = next;
+    next->prev = prev;
+    pos->data.GroundPrint::Destruct();
+    gamecrt::operator_delete(pos);
+    *out = next;
+    return out;
+}
+
 } // namespace
+
+void** CWorldClient::EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos) {
+    return ErasePrint<BloodPrint>(out, pos);
+}
+void** CWorldClient::EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos) {
+    return ErasePrint<Footprint>(out, pos);
+}
+void** CWorldClient::EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out, stlp::list<GroundPrint>::Node* pos) {
+    return ErasePrint<GroundPrint>(out, pos);
+}
+EI_REPLACE(0x00572550, CWorldClient::EraseBloodPrint);
+EI_REPLACE(0x00572580, CWorldClient::EraseFootprint);
+EI_REPLACE(0x005725B0, CWorldClient::EraseScorchMark);
 
 int CWorldClient::Segment() {
     ObjectListIterator objectsIt{nullptr, nullptr};   // [ebp-0x58]
@@ -455,9 +479,9 @@ int CWorldClient::Segment() {
     if (particleManager_) ParticlesTickAt(particleManager_, nullptr, static_cast<char>(paused_));
     if (!paused_) {
         // The three print lists (std::list, sentinel head): finished ones (slot 0 returns 0) go.
-        RunEffects(bloodPrints_, EffectListErase0);
-        RunEffects(footprints_, EffectListErase1);
-        RunEffects(scorchMarks_, EffectListErase2);
+        RunEffects(bloodPrints_, &EraseBloodPrint);
+        RunEffects(footprints_, &EraseFootprint);
+        RunEffects(scorchMarks_, &EraseScorchMark);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
             lightLevelsCountdown_ -= worlddata::WorldUpdatePeriod();
             if (lightLevelsCountdown_ <= 0) {

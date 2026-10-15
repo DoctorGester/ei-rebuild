@@ -37,7 +37,7 @@ EI_VERIFY(0x006926F0, LoadTextureFromVerify, 0, s_unused);
 // requested type: CTexture's vtable, the base fields cleared, an empty name, no surface or block,
 // an empty extra block and a pixel format with only its size (0x20).
 static CEngineObject* __fastcall NewObjectVerify(CTextureManager* self, void*, int type) {
-    CEngineObject* object = self->CTextureManager::NewObject(type);
+    CEngineObject* object = self->CTextureManager::NewObjectImpl(type);
     auto* t = static_cast<CTexture*>(object);
     bool ok = !t || (*reinterpret_cast<std::uintptr_t*>(t) == CTexture::kVtableAddress && t->refCount_ == 0 &&
                      t->id_ == -1 && t->flags_ == 0 && t->owner_ == nullptr && t->type_ == type && t->name_[0] == 0 &&

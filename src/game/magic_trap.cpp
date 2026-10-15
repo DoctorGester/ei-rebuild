@@ -483,7 +483,7 @@ void MagicTrap::FireAtOccupants() {
 }
 EI_REPLACE_METHOD(0x0052AB30, MagicTrap::FireAtOccupants);
 
-int MagicTrap::ForgetObject(CEngineObject* object) {
+int MagicTrap::ForgetObjectImpl(CEngineObject* object) {
     for (UnitList::Node* node = inside.head; node;) {
         UnitList::Node* next = node->next;
         if (node->data == object) {
@@ -503,7 +503,4 @@ int MagicTrap::ForgetObject(CEngineObject* object) {
     }
     return 0;
 }
-int __fastcall ForgetObjectHook(MagicTrap* self, void*, CEngineObject* object) {
-    return self->MagicTrap::ForgetObject(object);
-}
-EI_REPLACE(0x0052AC90, ForgetObjectHook);
+EI_REPLACE_METHOD(0x0052AC90, MagicTrap::ForgetObjectImpl);

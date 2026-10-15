@@ -33,7 +33,7 @@ void __fastcall OnMasterVerify(net::ServerSession* self, void*, const net::NetAd
     std::uint8_t* expectedPosition = cursor->p;
     self->masterToken_ = savedValue;
     cursor->p = savedPosition;
-    self->ServerSession::OnMaster(from, cursor);
+    self->ServerSession::OnMasterImpl(from, cursor);
     ei::verify::Check("ServerSession::OnMaster", expectedValue, self->masterToken_, "the kept dword");
     ei::verify::Check("ServerSession::OnMaster", static_cast<int>(expectedPosition - savedPosition),
                       static_cast<int>(cursor->p - savedPosition), "bytes read");

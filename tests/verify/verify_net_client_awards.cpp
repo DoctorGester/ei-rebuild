@@ -20,7 +20,7 @@ void __fastcall ApplyAwardsVerify(net::ClientSession* self) {
 }
 
 void __fastcall TickVerify(net::ClientSession* self, void*, double dt) {
-    self->ClientSession::Tick(dt);
+    self->ClientSession::TickImpl(dt);
     bool ok = true;
     void** sentinel = static_cast<void**>(self->timers_);
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0])) {

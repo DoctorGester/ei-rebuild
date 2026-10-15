@@ -47,6 +47,7 @@ class Terrain;
 class CCamera;   // camera.h
 class CMaterial;   // material.h
 class CStream;   // core_streams.h
+class CUnit;     // unit.h
 class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (CFigureMesh +0x188)
 class CFileRegistry;   // registry.h
@@ -266,9 +267,11 @@ public:
     // that fmod(tick * secondsPerTick + base, 24) = hours). The server's 0058EEA0 also updates the
     // players' times first (game kinds 1 and 3), marks them dirty (4) and updates the weather.
     virtual void SetTime(float hours);
+    void SetTimeImpl(float hours);   // body of the slot above (registered by member pointer)
     // 32 (world_time.cpp). 0055FB50: seconds per tick become 1 / speed (0: stopped; negative: the
     // setting 0079BE5C) times 1/15, keeping the time of day (slot 31). The server's 0058EEE0 as above.
     virtual void SetTimeSpeed(float speed);
+    void SetTimeSpeedImpl(float speed);   // body of the slot above (registered by member pointer)
     virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
     // 35: client 005619A0 (+0x190, a CLightManager), server 0. The client's Segment walks its objects.
@@ -470,7 +473,9 @@ public:
     void MarkPlayersDirty(std::uint32_t mask);
     // world_time.cpp. 0058EEA0 / 0058EEE0: slots 31 / 32 (see CWorld).
     void SetTime(float hours) override;
+    void SetTimeImpl(float hours);   // body of the slot above (registered by member pointer)
     void SetTimeSpeed(float speed) override;
+    void SetTimeSpeedImpl(float speed);   // body of the slot above (registered by member pointer)
     // 0058EE20 (world_time.cpp; script and .mob weather). SetWind with the strength clamped to
     // 0..1 (NaN: 0), then the players marked dirty (8).
     void ChangeWind(const Vector3* direction, float strength);
@@ -982,10 +987,18 @@ static_assert(sizeof(PlatformSet) == 0x38);
 // 005986B0, 005593D0 adds a unit) and the client reads back as its unit looks (unit_looks.h): the
 // figured records grouped by prototype (each group an STLport hash_map keyed by three packed
 // 10-bit values), and the dressed records by prototype. All three maps hash a key to itself
-// (0055C5C0 and the iterators' 0055B9D0 / 0055B500). Only the writer is rewritten
-// (world_unit_set.cpp).
+// (0055C5C0 and the iterators' 0055B9D0 / 0055B500). The writer is world_unit_set.cpp, Add
+// world_unit_set_add.cpp (S16a).
 using FiguredUnitMap = stlp::hash_map<unsigned, FiguredUnitRecord, stlp::IntHash>;
 struct UnitSet {
+    // 005593D0 (RET 4). Adds `unit`'s looks: its prototype (the low word of prototypeId_), the
+    // figure's scale and, for a hero (type_ 0x32), the item ids of its 7 worn pieces and 4 weapons
+    // (0xFFFFFFFF for none or an id out of the tables) and its active weapon; other units get
+    // extraWeapon 0xFF and the texts their companion holds at +0x84 (see the .cpp). A figured record
+    // of the same prototype, scale key and ids gets modelNumber -1, else the record (modelNumber
+    // the unit's id) joins its prototype's group; then the same for a dressed record of the same
+    // prototype and ids.
+    void Add(CUnit* unit);
     // 00559E60 (RET 4). Writes the set to `stream` (its slot 2 writes bytes): the number of figured
     // records; per record its head (00558FA0), the morph coefficients, its name count and each
     // name with its terminator; the number of dressed records and per record a 16-bit prototype,
@@ -997,6 +1010,22 @@ struct UnitSet {
 };
 static_assert(offsetof(UnitSet, dressed) == 0x14);
 static_assert(sizeof(UnitSet) == 0x28);
+
+// The record helpers 005593D0 was compiled with (world_unit_set_add.cpp).
+namespace unitset {
+// 00559DB0 (plain RET): a record head's two id lists empty. Returns this.
+DressedUnitRecord* __fastcall ConstructHead(DressedUnitRecord* self);
+// 00559DE0: a record head's destructor: the extra weapons' storage, then the items'.
+void __fastcall DestroyHead(DressedUnitRecord* self);
+// 0055A860 / 0055A9F0 (RET 4): the copy constructors of the figured and dressed records. Return this.
+FiguredUnitRecord* __fastcall CopyFigured(FiguredUnitRecord* self, void*, const FiguredUnitRecord* from);
+DressedUnitRecord* __fastcall CopyDressed(DressedUnitRecord* self, void*, const DressedUnitRecord* from);
+// 0055D020 (RET 4): equal(first, last, other) of two id ranges (AL).
+bool __fastcall EqualIds(const std::uint32_t* first, const std::uint32_t* last, const std::uint32_t* other);
+// 0051FAD0 (RET 4): the scalar deleting destructor of a CString (the name vector's element loop
+// calls it with 0). Returns this.
+mfc::CString* __fastcall DeleteName(mfc::CString* self, void*, unsigned flags);
+} // namespace unitset
 
 // 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads
 // the zone's two unit look lists from `stream` (slot 1 reads bytes): a count, then per figured
@@ -1091,6 +1120,7 @@ public:
     int OnShutdown() override;          // 2: 0055F1E0 (the link released; built again in place)
     CWorldHandle* Clone() override;     // 3: 0055F1A0 (the same link, counted)
     void TakeNew(void* joined) override;   // 6: 00478880 (the pending link appended, then dropped here; player_sources.cpp)
+    void TakeNewImpl(void* joined);   // body of the slot above (registered by member pointer)
 
     // 0055F280. The link released, the root vtable left.
     void Destruct();
@@ -1113,17 +1143,22 @@ public:
     // 6: 00562700 (RET 4). The client takes no connections: every link of the list is released
     // and the list emptied (its blocks freed).
     void TakeNew(void* joined) override;
+    void TakeNewImpl(void* joined);   // body of the slot above (registered by member pointer)
 };
 static_assert(sizeof(CClientHandle) == 8);
 
 // A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
 struct ScreenEntry {
-    std::uint32_t unused_00;
+    int classId;                          // +0x00 the object's class id (slot 12)
     unsigned objectId;                    // +0x04 the object, in the map object manager
     std::int32_t rect[4];                 // +0x08 RECT on the screen
 };
 static_assert(sizeof(ScreenEntry) == 0x18);
 using ScreenEntryNode = stlp::list<ScreenEntry>::Node;
+// 0056A370 (no Ghidra function; called through a mem_fun1 by the frame's draw pass, EAX 1 when
+// queued). An object whose screen rectangle is valid (flags 0x20) and that is not hidden (0x40)
+// puts its class id, id and that rectangle (CObject3D::dirtyRect) at the end of `queued`.
+int __fastcall QueueScreenEntry(CEngineObject* object, stlp::list<ScreenEntry>* queued);
 
 // The STLport vector<ScreenEntry> the pickers fill (CWorldClient + 0xF4). Its _M_insert_overflow
 // (00573350) is the instantiation's own (world_client_maps.cpp); push_back as the collectors inline
@@ -1611,6 +1646,13 @@ public:
     stlp::list<BloodPrint> bloodPrints_;
     stlp::list<Footprint> footprints_;
     stlp::list<GroundPrint> scorchMarks_;
+    // 00572550 / 00572580 / 005725B0 (RET 8; S16a, world_client.cpp): erase(pos) of the three lists:
+    // the node unlinked, its print destroyed (GroundPrint::Destruct), the node deleted (operator delete:
+    // the nodes are over 128 bytes); *out the node that followed it. Return out.
+    static void** __fastcall EraseBloodPrint(stlp::list<BloodPrint>*, void*, void** out, stlp::list<BloodPrint>::Node* pos);
+    static void** __fastcall EraseFootprint(stlp::list<Footprint>*, void*, void** out, stlp::list<Footprint>::Node* pos);
+    static void** __fastcall EraseScorchMark(stlp::list<GroundPrint>*, void*, void** out,
+                                             stlp::list<GroundPrint>::Node* pos);
     int lightLevelsCountdown_;            // +0x1C4 time left before the blood prints are lit again (Segment); 0 after Setup
     RefPtr handle_;                       // +0x1C8 (vtable 0073F628)
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)

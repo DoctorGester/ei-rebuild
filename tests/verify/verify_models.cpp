@@ -292,6 +292,11 @@ static void __fastcall SerializeAcks3Verify(ChunkArchive* ar, void*, int id, voi
 }
 EI_VERIFY(0x006DB8D0, SerializeAcks3Verify, 0, s_unused);
 
+// The scratch records below are constructed here, which emits their vtables; the virtual Serialize has no
+// other definition now (the game's slot runs SerializeImpl), so it forwards for the vtable's sake.
+void PrintRecord::Serialize(ChunkArchive* ar) { SerializeImpl(ar); }
+void PrintRecord2::Serialize(ChunkArchive* ar) { SerializeImpl(ar); }
+
 // Record Serialize (slot 0) when loading: reading leaves the archive as it was, so the original
 // reads into a scratch copy and ours into the real record; the fields and the name are compared.
 // Saving writes, so it runs ours only. Ours is called qualified (a virtual call would come back
@@ -301,7 +306,7 @@ template <typename Record>
 static void SerializeRecordVerify(const char* name, void(__fastcall* original)(Record*, void*, ChunkArchive*), Record* self,
                                   ChunkArchive* ar) {
     if (!ar->loading_) {
-        self->Record::Serialize(ar);
+        self->Record::SerializeImpl(ar);
         return;
     }
     // The scratch name must be a real STLport string: a default-constructed stlp::string has no
@@ -313,7 +318,7 @@ static void SerializeRecordVerify(const char* name, void(__fastcall* original)(R
     scratch.name.~string();
     new (&scratch.name) stlp::string(self->name);
     original(&scratch, nullptr, ar);
-    self->Record::Serialize(ar);
+    self->Record::SerializeImpl(ar);
     bool same = scratch.name == self->name &&
                 std::memcmp(reinterpret_cast<char*>(&scratch) + 0x10, reinterpret_cast<char*>(self) + 0x10, sizeof(Record) - 0x10) == 0;
     ei::verify::Check(name, true, same, "\"%.*s\" vs \"%.*s\"", static_cast<int>(scratch.name.size()), scratch.name.data(),

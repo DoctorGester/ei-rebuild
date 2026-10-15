@@ -87,15 +87,12 @@ int CMapObject::NotifyCompanion() {
 }
 EI_REPLACE_METHOD(0x0050E930, CMapObject::NotifyCompanion);
 
-void CMapObject::TakePrototype(const char* prototype) {
+void CMapObject::TakePrototypeImpl(const char* prototype) {
     UnitVitals vitals;   // not cleared: the builder fills what Pack reads
     reinterpret_cast<UnitStatsBuilder*>(owner_)->BuildFromPrototype(&vitals, nullptr, prototype);
     vitals.Pack(PackedVitals());
 }
-void __fastcall TakePrototypeHook(CMapObject* self, void*, const char* prototype) {
-    self->CMapObject::TakePrototype(prototype);
-}
-EI_REPLACE(0x0050E9B0, TakePrototypeHook);
+EI_REPLACE_METHOD(0x0050E9B0, CMapObject::TakePrototypeImpl);
 
 void CMapObject::WriteFullState() {
     DeltaState* state = NetState();
@@ -132,8 +129,8 @@ mfc::CString* CMapObject::SetSecondName(const char* text) {
 }
 EI_REPLACE_METHOD(0x0050F150, CMapObject::SetSecondName);
 
-void CMapObject::SaveTransformSlot(void* file) { Transform()->CTransformObject::SaveTransform(file); }
+void CMapObject::SaveTransformSlot(void* file) { Transform()->CTransformObject::SaveTransformImpl(file); }
 EI_REPLACE_METHOD(0x00516350, CMapObject::SaveTransformSlot);
 
-void CMapObject::LoadTransformSlot(void* file) { Transform()->CTransformObject::LoadTransform(file); }
+void CMapObject::LoadTransformSlot(void* file) { Transform()->CTransformObject::LoadTransformImpl(file); }
 EI_REPLACE_METHOD(0x00516360, CMapObject::LoadTransformSlot);

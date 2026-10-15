@@ -375,3 +375,23 @@ static TradeRow* __fastcall RowDeleteVerify(TradeRow* self, void*, int flags) {
     return result;
 }
 EI_VERIFY(0x0062A7C0, RowDeleteVerify, 0, s_unused);
+
+// --- 0062A310: a row's copy constructor (S16a: the trade lists' push_back). Ours first, then the
+// original into a scratch row (it allocates: the strings' references), compared field by field, the
+// scratch row destroyed. 0062A310: PUSH -1; PUSH handler (7 bytes).
+namespace {
+TradeRow*(__fastcall* s_rowCopy)(TradeRow*, void*, const TradeRow*);
+} // namespace
+static TradeRow* __fastcall RowCopyVerify(TradeRow* self, void*, const TradeRow* from) {
+    TradeRow* result = self->CopyConstruct(from);
+    alignas(TradeRow) unsigned char scratch[sizeof(TradeRow)] = {};
+    TradeRow* twin = reinterpret_cast<TradeRow*>(scratch);
+    TradeRow* expected = s_rowCopy(twin, nullptr, from);
+    const bool ok = result == self && expected == twin && twin->name == self->name && twin->key == self->key &&
+                    twin->nextKey == self->nextKey && twin->price == self->price && twin->level == self->level &&
+                    twin->learnable == self->learnable;
+    twin->Destroy();
+    ei::verify::Check("TradeRow::CopyConstruct", true, ok, "price %d level %d", self->price, self->level);
+    return result;
+}
+EI_VERIFY(0x0062A310, RowCopyVerify, 7, s_rowCopy);

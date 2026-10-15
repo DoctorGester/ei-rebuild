@@ -429,7 +429,9 @@ int InstallHooks() {
 
     if (!standalone) DumpPatchedFunctions(file);
     LoadVerifiedList();
-    LoadDisabledList();
+    // The standalone image has no original to fall back on: a disabled rewrite runs there (S16a).
+    if (standalone) Log("standalone: disabled.txt not applied (no original to run)");
+    else LoadDisabledList();
     if (!g_disabled.empty()) Log("%u function(s) disabled (disabled.txt): the original runs", unsigned(g_disabled.size()));
     if (!g_verified.empty()) Log("%u function(s) marked verified: running without verify wrappers", unsigned(g_verified.size()));
 

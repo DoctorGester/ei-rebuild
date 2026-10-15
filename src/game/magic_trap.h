@@ -90,6 +90,7 @@ public:
     // every entry of the units inside that refers to `object` (the reference released and
     // cleared, the node freed; the last one empties the list as RemoveAll). Returns 0 (EAX).
     int ForgetObject(CEngineObject* object) override;
+    int ForgetObjectImpl(CEngineObject* object);   // body of the slot above (registered by member pointer)
 
     // 0052A2C0 (RET 4). Sets the trap up from its zone record (the zone loader 005927C0): the
     // sides, the spell made from the record's text by the spell manager (the context's slot 22,
