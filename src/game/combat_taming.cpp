@@ -34,7 +34,6 @@ __declspec(naked) void __fastcall PlayerTakeUnit(char*) EI_ORIGINAL(0x00665D20)
 // The brain (unit_ai.cpp, controller + 0x980): 005D3760 the player mode's constructor (0x24
 // bytes), 005D5F60 AddMode, 005D6140 RemoveMode(kind), 005D7790 StopAction.
 void* __fastcall ModePlayerConstruct(void* a0) { return ModePlayerConstructOriginal(a0); }
-void __fastcall BrainAddMode(void* a0, void*, void* a2) { BrainAddModeOriginal(a0, nullptr, a2); }
 void __fastcall BrainRemoveMode(void* a0, void*, int a2) { BrainRemoveModeOriginal(a0, nullptr, a2); }
 // 0052B030 a reference's release; MFC CPlex::FreeDataChain.
 void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
@@ -105,7 +104,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
             ModePlayerConstruct(mode);
             ei::SetVtable(mode, std::uintptr_t(0x0073F0C4));   // the player mode's vtable
         }
-        BrainAddMode(&brain, nullptr, mode);
+        BrainAddModeOriginal(&brain, nullptr, mode);
         ClearReferenceList<false>(Brain()->seenCorpses);
         ClearReferenceList<true>(Brain()->corpses);
         Stage(this) = 3;

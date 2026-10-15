@@ -2,11 +2,11 @@
   "scenario": "ui_widescreen_more",
   "install": "rebirth",
   "recorded": "2026-10-15",
-  "commit": "8243b613",
+  "commit": "53a3e76f",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 2,
-  "reason": "SV7b1: script groups ordered by object id in both the original (harness patch) and ours; was address order (gobject.i 702, now 1884); with SV7b3's zeroed statistics and SV7d / SV7d2's decoded saves",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
+  "repeated_in": 5,
+  "reason": "SV7b4a: the shadow's turn undone exactly (orientation kept and restored) in the original (harness) and ours; recorded with EI_HEAP_JITTER 1, 2, 3,fill and our hooks agreeing",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 5 runs"
 }

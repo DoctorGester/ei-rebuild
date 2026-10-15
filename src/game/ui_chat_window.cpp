@@ -313,12 +313,6 @@ void CChatWindow::OnMouseMove(int, int x, int y) {
 }
 
 namespace {
-void __fastcall ChatWindowLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CChatWindow>(input)->OnLButtonDown(buttons, x, y);
-}
-void __fastcall ChatWindowMouseMove(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CChatWindow>(input)->OnMouseMove(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x006097E0, ChatWindowLButtonDown);
-EI_REPLACE(0x00609900, ChatWindowMouseMove);
+EI_REPLACE_METHOD(0x006097E0, InputForward<&CChatWindow::OnLButtonDown>::Call);
+EI_REPLACE_METHOD(0x00609900, InputForward<&CChatWindow::OnMouseMove>::Call);

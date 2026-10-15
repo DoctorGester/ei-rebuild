@@ -85,12 +85,6 @@ bool FindField(ChunkArchive* a, int id, Ref* child) {
     return a->FindChild(current, id, child, current->occurrence);
 }
 
-// STLport string pieces used by StringField's inlined assign: erase(first, last) and the
-// range append (its third argument is the string again).
-void __fastcall StringErase(stlp::string* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall StringAppendRange(stlp::string* s, void*, const char* first, const char* last, stlp::string* same) {
-    StringAppendTailOriginal(s, nullptr, first, last, same);
-}
 
 // string::assign(text, text + strlen(text)) as StringField inlines it: overwrite in place and cut
 // the rest, or overwrite the whole string and append the remainder.
@@ -100,10 +94,10 @@ void AssignText(stlp::string* s, const char* text) {
     char* start = const_cast<char*>(s->data());
     if (length <= size) {
         std::memcpy(start, text, length);
-        StringErase(s, nullptr, start + length, start + size);
+        StringEraseOriginal(s, nullptr, start + length, start + size);
     } else {
         std::memcpy(start, text, size);
-        StringAppendRange(s, nullptr, text + size, text + length, s);
+        StringAppendTailOriginal(s, nullptr, text + size, text + length, s);
     }
 }
 

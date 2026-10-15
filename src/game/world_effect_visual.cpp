@@ -21,7 +21,6 @@ __declspec(naked) void __fastcall AssignSource(CParticleSource** /*slot*/, void*
 // CParticleSource (effects.cpp, through the game addresses).
 inline void* __fastcall CreateSource(void* manager, void*, int type) { return ParticleCreateSourceOriginal(manager, nullptr, type); }
 __declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*factor*/) EI_ORIGINAL(0x00485480)
-void __fastcall AttachSource(void* a0, void*, void* a2) { ParticleSourceAttachOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)
 // 0056D4C0 (world client 007AF5B8): a scorch mark on the ground. All arguments are float bits.
 __declspec(naked) void __fastcall AddScorch(void*, void*, std::uint32_t /*x*/, std::uint32_t /*y*/, std::uint32_t /*outer*/, std::uint32_t /*inner*/, std::uint32_t /*angle*/, std::uint32_t /*alpha*/) EI_ORIGINAL(0x0056D4C0)
@@ -419,7 +418,7 @@ void CEffectParticle::Spawn() {
     float baseSize;
     std::memcpy(&baseSize, &source_->baseSize, 4);
     ScaleSource(source_, nullptr, StoreFloat(size_ / baseSize));
-    AttachSource(source_, nullptr, nullptr);
+    ParticleSourceAttachOriginal(source_, nullptr, nullptr);
     CopyThroughFpu(&source_->alpha, &alpha_);
     CopyThroughFpu(&source_->typeParam, &param164_);
     ParticleAttachAt(this);
@@ -499,7 +498,7 @@ void CEffectParticle::Attach() {
     void* object = FindObject(ObjectManager(), nullptr, attachedTo_);
     Vector3 saved;
     std::memcpy(&saved, &source_->position, sizeof(Vector3));
-    AttachSource(source_, nullptr, object);
+    ParticleSourceAttachOriginal(source_, nullptr, object);
     if (object == nullptr) std::memcpy(&source_->position, &saved, sizeof(Vector3));
 }
 

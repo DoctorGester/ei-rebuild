@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; dump walked
 # compact (tools/golden.py): objects as hashes of their fields
-@ 43 update 240 frame 48 tick 240 zone gz1g hash 8AA73E5D n 791
+@ 43 update 240 frame 48 tick 240 zone gz1g hash 4B4CE67C n 791
 + world world
 world tick 240
 world updates 240
@@ -1931,6 +1931,6 @@ cunit1884 #place AE30F036
 cunit1884 #unit 13B71E29
 cunit1884 #vitals C3E01DE4
 + cunit1000011214 80 unhuma ""
-cunit1000011214 #place 05202B91
+cunit1000011214 #place 17BACC87
 cunit1000011214 #unit 88D3C81B
 cunit1000011214 #vitals 7D2D89BA

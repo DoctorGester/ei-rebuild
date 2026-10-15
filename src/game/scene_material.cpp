@@ -15,12 +15,6 @@
 namespace scene {
 namespace {
 
-// MFC members not in lib/mfc.h (library): CString::operator+=(char), Find(char), Left / Right
-// (returned by value: the result is constructed in `out`), CStringArray constructor, destructor,
-// SetAtGrow.
-void __fastcall AppendChar(mfc::CString* a0, void*, char a2) { CStringAppendCharOriginal((void*)a0, nullptr, a2); }
-inline int __fastcall FindChar(const mfc::CString* s, void*, char c) { return CStringFindCharOriginal(s, nullptr, c); }
-void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 
 bool Is(const mfc::CString& s, std::uintptr_t text) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s)),
@@ -48,11 +42,11 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
     mfc::CString rest(name);
     mfc::CStringArray parts;
     StringArrayConstruct(&parts);
-    AppendChar(&rest, nullptr, '.');
-    for (int dot = FindChar(&rest, nullptr, '.'); dot != -1; dot = FindChar(&rest, nullptr, '.')) {
+    CStringAppendCharOriginal(&rest, nullptr, '.');
+    for (int dot = CStringFindCharOriginal(&rest, nullptr, '.'); dot != -1; dot = CStringFindCharOriginal(&rest, nullptr, '.')) {
         {
             mfc::CString part = rest.Left(dot);
-            StringArraySetAtGrow(&parts, nullptr, parts.size, &part);
+            StringArraySetAtGrowStringOriginal(&parts, nullptr, parts.size, &part);
         }
         mfc::CString tail = rest.Right(rest.GetLength() - dot - 1);
         rest = tail;

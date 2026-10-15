@@ -44,8 +44,6 @@ std::uint8_t& Guards() { return *reinterpret_cast<std::uint8_t*>(0x007C88A0); }
 std::uint8_t& ClipGuards() { return *reinterpret_cast<std::uint8_t*>(0x007C88C8); }
 
 // The statics' constructors and exit handlers.
-inline void __fastcall WordArraySetSize(mfc::CArray<std::uint16_t>* a, void*, int n, int g) { WordArraySetSizeOriginal(a, nullptr, n, g); }
-inline void __fastcall ByteArraySetSize(mfc::CArray<std::uint8_t>* a, void*, int n, int g) { ByteArraySetSizeOriginal(a, nullptr, n, g); }
 void(__cdecl* const kFreeUsed)() = reinterpret_cast<void(__cdecl*)()>(0x006C1300);
 void(__cdecl* const kFreeRenumber)() = reinterpret_cast<void(__cdecl*)()>(0x006C1320);
 void(__cdecl* const kDestroyFlags)() = reinterpret_cast<void(__cdecl*)()>(0x006C1340);
@@ -248,9 +246,9 @@ int terrain::SectorData::DrawPage(void* context, void* /*unused*/, int page, int
         int vertexTotal = VerticesPerTile(lod) * tileCount;
         int indexCapacity = TrianglesPerTile(lod) * tileCount * 3;
         SizeVertices(vertexTotal * 4);
-        ByteArraySetSize(&Flags(), nullptr, vertexTotal * 4, -1);
-        WordArraySetSize(&Indices(), nullptr, indexCapacity, -1);
-        WordArraySetSize(&ClippedIndices(), nullptr, indexCapacity * 4, -1);
+        ByteArraySetSizeOriginal(&Flags(), nullptr, vertexTotal * 4, -1);
+        WordArraySetSizeOriginal(&Indices(), nullptr, indexCapacity, -1);
+        WordArraySetSizeOriginal(&ClippedIndices(), nullptr, indexCapacity * 4, -1);
         FillVertices(lod, list.data, tileCount, vertexTotal);
 
         // The tile edge flags are only looked at when a neighbouring quarter is coarser.

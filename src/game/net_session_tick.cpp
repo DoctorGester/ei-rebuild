@@ -26,8 +26,6 @@ LogStream* LogStream::Apply(void* manipulator) { return static_cast<LogStream*>(
 
 namespace {
 
-// 0040C770: STLport string destructor; 00426450: the string allocator's deallocate(p, n).
-inline void __fastcall StringDeallocate(void*, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 // 004DA170: reading past the buffer's end (zeroes the target, sets error bit 3).
 
 
@@ -98,7 +96,7 @@ void SessionBase::TickImpl(double dt) {
                 StringRep address;
                 const char* text = connection->address_.ToString(&address)->start;
                 LogAddress(game::nettexts::Timeout(), text);
-                StringDeallocate(&address.eos, nullptr, address.start, static_cast<std::size_t>(address.eos - address.start));
+                StringDeallocateOriginal(address.start, static_cast<std::size_t>(address.eos - address.start));
             }
             OnClientLost(connection);
             RemoveClient(node);

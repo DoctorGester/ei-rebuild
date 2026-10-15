@@ -116,8 +116,8 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
             float angle = StoreFloat(static_cast<float>(x87::FromUnsigned(random->Next()) * kAngleScale));
             double roll = x87::FromUnsigned(random->Next());
             wait = StoreFloat(static_cast<float>((wander - minWait) * roll * kUnitScale + minWait));
-            float sine = StoreFloat(static_cast<float>(std::sin(angle)));
-            dx = StoreFloat(static_cast<float>(std::cos(angle) + direction->x));
+            float sine = StoreFloat(static_cast<float>(x87::fsin(angle)));
+            dx = StoreFloat(static_cast<float>(x87::fcos(angle) + direction->x));
             dy = StoreFloat(sine + direction->y);
             if (tries-- < 0) break;
             Vector3 reach{StoreFloat(dx + dx), StoreFloat(dy + dy), StoreFloat(direction->z + direction->z)};
@@ -126,7 +126,7 @@ void AIBrain::PlanLooks(AIMoveOrder* order, const Vector3* direction, float wand
             if (sight == kOne || x87::IsNaN(sight)) break;
         }
         AILook look{};
-        look.angle = StoreFloat(static_cast<float>(std::atan2(dy, dx)));
+        look.angle = StoreFloat(static_cast<float>(x87::fpatan(dy, dx)));
         look.time = 0.0f;
         look.wait = wait;
         look.stopFirst = far;
@@ -177,7 +177,7 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
         double ux = self->position.x - out->x;
         double uy = self->position.y - out->y;
         double uz = self->position.z - out->z;
-        float distance = StoreFloat(static_cast<float>(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz))));
+        float distance = StoreFloat(static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(ux, uy, uz))));
         float range = StoreFloat(distance * kRangePerDistance + kRangeBase);
         bool found = map->FindPath(self, out, &local.path, range, 0.0f);
         // A path much longer than the way there (smoothing) counts as none.
@@ -209,7 +209,7 @@ void AIBrain::UpdateFollow() {
                      StoreFloat(leader->position.z - self->position.z)};
     int now = WorldTick();
     float distance = StoreFloat(static_cast<float>(
-        std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z))));
+        x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(toLeader.x, toLeader.y, toLeader.z))));
     UnitController* leaderController = ControllerOf(leader);
     float walkTime = StoreFloat(distance * kRangePerDistance + kRangeBase);
 
@@ -271,7 +271,7 @@ void AIBrain::UpdateFollow() {
     Vector3 side{StoreFloat(static_cast<float>(-along)), across, 0.0f};
     double lengthSq = static_cast<double>(side.y) * side.y + along * along;
     if (!(lengthSq > 0.0)) return;
-    double scale = kSideOffset / std::sqrt(lengthSq);
+    double scale = kSideOffset / x87::fsqrt(lengthSq);
     side.x = StoreFloat(static_cast<float>(scale * -along));
     side.y = StoreFloat(static_cast<float>(scale * side.y));
     side.z = StoreFloat(static_cast<float>(side.z * scale));
@@ -316,7 +316,7 @@ bool PlayerMode::PathClear(AIBrain* brain, const Vector3* from, const Vector3* t
     double dz = from->z - to->z;
     CUnit* unit = brain->owner->unit;
     Vector3 saved = *PositionOf(unit);
-    float range = StoreFloat(static_cast<float>(2.0 * std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))));
+    float range = StoreFloat(static_cast<float>(2.0 * x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz))));
     SectorMapMove(WorldServer()->Sectors(), nullptr, unit, from);
     bool found = AIMap()->FindPath(unit, to, &local.path, range, 0.0f);
     SectorMapMove(WorldServer()->Sectors(), nullptr, unit, &saved);

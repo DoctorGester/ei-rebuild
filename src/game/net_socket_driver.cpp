@@ -42,8 +42,6 @@ __declspec(naked) int __stdcall WsSelect(int, void*, void*, void*, const void*) 
 constexpr std::uint32_t kNoSocket = 0xFFFFFFFFu;
 constexpr long kNonBlocking = static_cast<long>(0x8004667E);   // FIONBIO
 const void* SelectTimeout() { return reinterpret_cast<const void*>(0x0079B928); }
-
-inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) { GameBufferGrowOriginal((void*)a0, nullptr, a2); }
 // STLport (library): vector<sockaddr_in>::_M_insert_overflow (pos, value, n).
 __declspec(naked) void __fastcall AddressesInsertOverflow(void* /*vector*/, void*, void* /*pos*/, const void* /*value*/, unsigned /*n*/) EI_ORIGINAL(0x00441180)
 
@@ -248,7 +246,7 @@ bool SocketDriver::Receive(NetAddress* from, GameBuffer* buffer) {
         std::memset(from->zero, 0, sizeof(from->zero));
         buffer->cur = buffer->begin;
         buffer->high = buffer->begin + n;
-        if (buffer->high > buffer->end) GameBufferGrow(buffer, nullptr, static_cast<std::uint32_t>(n));
+        if (buffer->high > buffer->end) GameBufferGrowOriginal(buffer, nullptr, static_cast<std::uint32_t>(n));
     }
     return n >= 0;
 }

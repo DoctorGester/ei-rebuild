@@ -15,8 +15,6 @@
 namespace net {
 
 namespace {
-
-void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, const char* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 // STLport vector<RefPtr> (library): constructor with an allocator, erase(first, last),
 // insert(pos, n, value).
 __declspec(naked) void __fastcall ChunkVectorConstruct(RefVector* /*vector*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x0041FF90)
@@ -61,7 +59,7 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
     std::int32_t size = data->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(data->begin)) +
                         static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(data->high));
     std::int32_t chunkCount = (size + kChunkSize - 1) / kChunkSize;
-    if (name != &file->name_) StringAssign(&file->name_, nullptr, name->start, name->finish, name->start);
+    if (name != &file->name_) StringAssignTaggedOriginal(&file->name_, nullptr, name->start, name->finish, name->start);
     file->size_ = size;
     file->chunkCount_ = static_cast<std::uint16_t>(chunkCount);
 

@@ -141,8 +141,5 @@ void CHeroStatsPanel::OnLButtonDown(int, int x, int y) {
     }
 }
 namespace {
-void __fastcall StatsPanelLButtonDown(void* input, void*, int buttons, int x, int y) {
-    WindowFromInput<CHeroStatsPanel>(input)->OnLButtonDown(buttons, x, y);
-}
 } // namespace
-EI_REPLACE(0x00624790, StatsPanelLButtonDown);
+EI_REPLACE_METHOD(0x00624790, InputForward<&CHeroStatsPanel::OnLButtonDown>::Call);

@@ -37,7 +37,6 @@ static_assert(sizeof(WaypointNode) == 0x14);
 
 // 00556D10 (RET 4) / 00556D40: the region list's constructor (block size) and RemoveAll.
 void __fastcall RegionListConstruct(PathCellList* a0, void*, int a2) { CellListConstructOriginal((void*)a0, nullptr, a2); }
-void __fastcall ListRemoveAll(void* a0, void*) { CellListRemoveAllOriginal(a0); }
 // 005B0D90 (RET 0x1C, AL). The region map's chain of regions from (fromX, fromY) to (toX, toY),
 // avoiding the blocks in `excluded` (AIPath::excludedBlocks).
 __declspec(naked) bool __fastcall RegionChain(CRegionMap*, void*, int, int, int, int, int, PathCellList*,
@@ -54,9 +53,6 @@ bool __fastcall SearchBegin(void* a0, void*, CUnit* a2, int a3, int a4, int a5, 
 __declspec(naked) bool __fastcall SearchContinue(void*, void*, int, int, int, int, int) EI_ORIGINAL(0x005C25D0)
 __declspec(naked) bool __fastcall SearchReached(void*, void*, int, int) EI_ORIGINAL(0x005C31A0)
 __declspec(naked) void __fastcall SearchCommit(void*, void*) EI_ORIGINAL(0x005C2A30)
-void __fastcall SearchReset(void* a0, void*) { LocalSearchResetOriginal(a0); }
-// 005B16D0 (RET 8). The excluded regions' CArray<{int x, y}>::SetSize.
-inline void __fastcall ExcludedSetSize(BlockPointArray* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 // 005B9A20 (RET 0xC). Builds the path cells to (toX, toY) from the search into `cells`.
 __declspec(naked) void __fastcall BuildCells(CAIMap*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005B9A20)
 // 006E727B. atexit, for the function-local spiral cache.
@@ -87,11 +83,11 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         GameAtExit(reinterpret_cast<void (*)()>(0x005BA3F0));
     }
     int sizeClass = unit->sizeClass;
-    ListRemoveAll(&path->cells, nullptr);
+    CellListRemoveAllOriginal(&path->cells);
     bool ok = RegionChain(&regionMap, nullptr, sizeClass, fromX, fromY, toX, toY, &chain, &path->excludedBlocks);
     if (!ok || chain.count * 8 > maxCells) {
         chain.vtable = PathCellListVtable();
-        ListRemoveAll(&chain, nullptr);
+        CellListRemoveAllOriginal(&chain);
         return false;
     }
     PrepareChain(this, nullptr, &chain);
@@ -220,7 +216,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             float ty = StoreFloat(static_cast<float>(static_cast<double>(bestY) + Half()));
             path->targetY = ty;
         } else {
-            SearchReset(search, nullptr);
+            LocalSearchResetOriginal(search);
             bool retried = false;
             if (static_cast<char>(retry)) {
                 // Exclude the failing waypoint's region and plan again.
@@ -229,7 +225,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 int y = bad->data.y;
                 BlockPointArray* excluded = &path->excludedBlocks;
                 int size = excluded->size;
-                ExcludedSetSize(excluded, nullptr, size + 1, -1);
+                PointArraySetSizeOriginal(excluded, nullptr, size + 1, -1);
                 BlockPoint* data = excluded->data;
                 data[size].x = x;
                 data[size].y = y;
@@ -247,7 +243,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
         PathCellList::Node* first = path->cells.head;
         if (first->data.x != fromX || first->data.y != fromY) result = false;
     }
-    SearchReset(search, nullptr);
+    LocalSearchResetOriginal(search);
     DestroyList(waypoints, mfc::impl::WaypointListClass::Vtable());
     DestroyList(chain, PathCellListVtable());
     return result;

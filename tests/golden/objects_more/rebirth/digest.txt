@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 78C951A2 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 9BCE8CC2 n 172
 + world world
 world tick 20
 world updates 20
@@ -541,11 +541,11 @@ cunit2 #place 05174B21
 cunit2 #unit CA7CD47D
 cunit2 #vitals 02033E21
 + cunit129 80 unanwibo ""
-cunit129 #place A93B71E5
+cunit129 #place CC95DED6
 cunit129 #unit F0D31922
 cunit129 #vitals B073BCC9
 + cunit148 80 unanwiwo ""
-cunit148 #place 40A0CCA1
+cunit148 #place CE270717
 cunit148 #unit 41270B60
 cunit148 #vitals C17C1FEE
 + cunit187 80 unmoog1 ""
@@ -556,7 +556,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone gz1g hash EE44EF21 n 832
+@ 1 update 40 frame 7 tick 40 zone gz1g hash D32311C6 n 832
 world tick 40
 world updates 40
 world timeBase 5.97222233
@@ -2577,10 +2577,10 @@ cunit1884 #place 1A54E793
 cunit1884 #unit 13B71E29
 cunit1884 #vitals C3E01DE4
 + cunit1000011214 80 unhuma ""
-cunit1000011214 #place 49B2288E
+cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 28FCEE96 n 835
+@ 2 update 60 frame 11 tick 60 zone gz1g hash DAF2A877 n 835
 world tick 60
 world updates 60
 world timedObjects 7
@@ -2626,8 +2626,8 @@ cunit699 #place CF311CCC
 cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
-cunit1000011214 #place A95B5B07
-@ 3 update 80 frame 15 tick 80 zone gz1g hash 067C7199 n 832
+cunit1000011214 #place FF01FC81
+@ 3 update 80 frame 15 tick 80 zone gz1g hash A4424360 n 832
 world tick 80
 world updates 80
 world timedObjects 4
@@ -2664,8 +2664,7 @@ client tick 80
 client ticksRun 52
 cunit1804 #place DF969219
 cunit1804 #unit 618078DC
-cunit1000011214 #place 8080375C
-@ 4 update 100 frame 19 tick 100 zone gz1g hash 4153CC2E n 836
+@ 4 update 100 frame 19 tick 100 zone gz1g hash 47616A7A n 836
 world tick 100
 world updates 100
 world objects 816
@@ -2717,7 +2716,6 @@ client objects 768
 client units 6
 client synchronised 7
 cunit1804 #place 0B0BC947
-cunit1000011214 #place 2DF71267
 + cunit1000303300 80 unanwiwo "LtWolf"
 cunit1000303300 #place 94928309
 cunit1000303300 #unit 6C671ED4
@@ -2757,5 +2755,4 @@ aievents tick 120
 client tick 120
 client ticksRun 92
 cunit1804 #place 5D944E41
-cunit1000011214 #place FF01FC81
 cunit1000303300 #place B3D01634

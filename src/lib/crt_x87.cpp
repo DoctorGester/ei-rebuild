@@ -10,6 +10,7 @@
 #include "crt.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 
 #include <cfloat>
 #include <cmath>
@@ -135,8 +136,8 @@ double ArcCosineOrSine(double x, bool sine) {
     const MathControlWord control;
     const double sum = control.Round(1.0 + x);
     const double difference = control.Round(1.0 - x);
-    const double root = control.Round(std::sqrt(control.Round(sum * difference)));
-    return sine ? std::atan2(x, root) : std::atan2(root, x);
+    const double root = control.Round(x87::fsqrt(control.Round(sum * difference)));
+    return sine ? x87::fpatan(x, root) : x87::fpatan(root, x);
 }
 
 // _powhlp (006F1527) for an infinite x or y (neither a NaN): the C limits; |x| == 1 to an infinite power is
@@ -316,7 +317,7 @@ double __cdecl Hypot(double x, double y) {
     const volatile double a = sizeX / larger;
     const volatile double b = sizeY / larger;
     const volatile double sum = a * a + b * b;
-    const volatile double root = std::sqrt(sum);
+    const volatile double root = x87::fsqrt(sum);
     int rootExponent = 0;
     int largerExponent = 0;
     const double rootMantissa = std::frexp(root, &rootExponent);

@@ -132,7 +132,7 @@ bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHer
         double dz = static_cast<double>(self->position.z) - target->position.z;
         double dy = static_cast<double>(self->position.y) - target->position.y;
         double dx = static_cast<double>(self->position.x) - target->position.x;
-        float distance = RoundToFloat(std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
+        float distance = RoundToFloat(x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(dx, dy, dz)));
         float range = RoundToFloat(self->ScaledValue(distance));
         float targetRadius = RoundToFloat(MapObject(target)->Radius());
         float minDistance = RoundToFloat(static_cast<double>(MapObject(self)->Radius()) + targetRadius);
@@ -262,7 +262,7 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
         reach = option->range;
         scale = 10.0f;
     }
-    float beyond = RoundToFloat(std::sqrt(DistanceSquaredXYUnrounded<double>(candidate->position, *from)) - reach);
+    float beyond = RoundToFloat(x87::fsqrt(DistanceSquaredXYUnrounded<double>(candidate->position, *from)) - reach);
     float penalty = !(kZero >= beyond) ? beyond : kZero;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;
     if (!(result >= threshold)) return result;

@@ -180,7 +180,9 @@ change, so none needs the machine to itself); dgVoodoo draws the original code (
 `present`, and everything with `--dgvoodoo` or `--widescreen` (its frames are compared with the original's). Passed runs of the original code are cached in
 `build\reference` by scenario commit and install (`--fresh` plays them again); docs/notes/renderer.md, R10.
 `--standalone` runs `ei_standalone.exe` instead of game.exe (install `standalone`: run\vanilla's game.exe laid
-out without its code, the vanilla data, our renderer; `ei_launch --standalone`), by default the `boot` scenario;
+out without its code, the vanilla data, our renderer; `ei_launch --standalone`) and on the Rebirth install
+(`standalone-rebirth`: run\rebirth's game.exe, the Rebirth data and goldens, the flags of
+`config/ei_rebirth_standalone.ini`; `--vanilla-only` / `--rebirth-only` pick one), by default the `boot` scenario;
 an address with no rewrite yet ends the run with `standalone: no code at ...` (docs/notes/standalone.md).
 Harness games never take the foreground (harness.cpp, `noforeground::`: the activating user32 calls are patched for every
 caller in the process, windows are made without activation), so a starting game cannot minimise another through dgVoodoo's

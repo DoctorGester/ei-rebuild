@@ -97,7 +97,6 @@ __declspec(naked) std::int32_t* __stdcall CurrentTime(std::int32_t* /*out*/) EI_
 // a zero into a new CString at `out` / into the CString `out`).
 void __fastcall StreamWriteHeader(void* a0, void*, unsigned a2, unsigned a3) { StreamWriteHeaderOriginal(a0, nullptr, a2, a3); }
 bool __fastcall StreamReadHeader(void* a0, void*, unsigned a2, unsigned a3, int a4) { return StreamReadHeaderOriginal(a0, nullptr, a2, (int)a3, a4); }
-void __fastcall StreamReadInto(void* a0, void*, mfc::CString* a2) { StreamReadCStringOriginal(a0, nullptr, (void*)a2); }
 
 // The list's entries (SaveEntry, ui.h) and its STLport vector at +0x164 (begin, end, capacity).
 __declspec(naked) void __fastcall EntryConstruct(SaveEntry* /*at*/, const SaveEntry* /*from*/) EI_ORIGINAL(0x00657C60)
@@ -455,14 +454,14 @@ void CSaveLoadWindow::FillEntries() {
                     Str(entry->map_) = *map;
                     map->~CString();
                 }
-                StreamReadInto(&info.s, nullptr, &Str(entry->zone_));
+                StreamReadCStringOriginal(&info.s, nullptr, (void*)(&Str(entry->zone_)));
                 // +8 of the stream: the version the header read.
                 if (static_cast<int>(info.s.version_) > 1) {
                     std::int32_t savedAt;
                     info.Read(&savedAt, 4);
                     entry->savedAt_ = savedAt;
                 }
-                if (static_cast<int>(info.s.version_) > 2) StreamReadInto(&info.s, nullptr, &Str(entry->title_));
+                if (static_cast<int>(info.s.version_) > 2) StreamReadCStringOriginal(&info.s, nullptr, (void*)(&Str(entry->title_)));
             }
             info.Close();
             if (console::Length(Str(entry->title_)) == 0) EntryMakeTitle(entry, nullptr, 1);

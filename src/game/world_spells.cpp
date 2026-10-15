@@ -40,10 +40,7 @@ constexpr std::uint32_t kFarAway = 0x7E967699;           // 1e38f
 const CSpell* AsSpell(const void* spell) { return static_cast<const CSpell*>(spell); }
 
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
-
-inline void __fastcall UnitListRemoveAll(UnitList* l, void*) { PtrListRemoveAllOriginal(l); }
 UnitList::Node* __fastcall UnitListNewNode(UnitList* a0, void*, UnitList::Node* a2, UnitList::Node* a3) { return (UnitList::Node*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
-void __fastcall UnitListFreeNode(UnitList* a0, void*, UnitList::Node* a2) { UnitListFreeNodeOriginal((void*)a0, nullptr, (void*)a2); }
 // 004B3330 (RET 4). ScriptGroup::Contains (script_group.cpp), through its address.
 // 0054BBC0 (RET 0x10). Whether the spell (EDX) may hit `target` (ECX = the world).
 __declspec(naked) bool __fastcall SpellReaches(CWorldServer*, const void* /*spell*/, CEngineObject* /*caster*/,
@@ -79,7 +76,7 @@ void RemoveNode(UnitList& list, UnitList::Node* node) {
     else node->next->prev = node->prev;
     node->next = list.free;
     list.free = node;
-    if (--list.count == 0) UnitListRemoveAll(&list, nullptr);
+    if (--list.count == 0) PtrListRemoveAllOriginal(&list);
 }
 
 void Unlink(UnitList& list, UnitList::Node* node) {
@@ -207,7 +204,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         }
         if (!best) break;
         Unlink(units, bestNode);
-        UnitListFreeNode(&units, nullptr, bestNode);
+        UnitListFreeNodeOriginal(&units, nullptr, bestNode);
 
         bool hit;
         if (!caster) {

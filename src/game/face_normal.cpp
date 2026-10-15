@@ -37,7 +37,7 @@ void MeshFace::ComputeNormal(const PointBuffer* positions) {
     float az = StoreFloat(static_cast<double>(p2.z) - origin.z);   // kept as a float
     double lengthA = LengthSquaredUnrounded<Sum3::ZYX, double>(ax, ay, az);
     if (lengthA > kMinimumSquare) {
-        double inverse = 1.0 / std::sqrt(lengthA);
+        double inverse = 1.0 / x87::fsqrt(lengthA);
         ax *= inverse;
         ay *= inverse;
         az = StoreFloat(az * inverse);
@@ -48,7 +48,7 @@ void MeshFace::ComputeNormal(const PointBuffer* positions) {
     double bz = static_cast<double>(p0.z) - origin.z;
     double lengthB = LengthSquaredUnrounded<Sum3::ZYX>(bx, by, bz);
     if (lengthB > kMinimumSquare) {
-        double inverse = 1.0 / std::sqrt(lengthB);
+        double inverse = 1.0 / x87::fsqrt(lengthB);
         bx *= inverse;
         by *= inverse;
         bz *= inverse;
@@ -61,7 +61,7 @@ void MeshFace::ComputeNormal(const PointBuffer* positions) {
     const double x = normal.x;
     const double y = normal.y;
     const double z = normal.z;
-    const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
+    const double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
     if (length == 0.0 || x87::IsNaN(static_cast<float>(length))) {   // FCOM 0; C3: equal or unordered
         std::memcpy(&normal, &DegenerateNormal(), sizeof(Vector3));
     } else {

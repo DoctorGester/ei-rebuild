@@ -725,6 +725,9 @@ public:
     // 005FE910 and 11 more (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBase,
     // then the memory freed when bit 0 of `flags` is set; returns this.
     CUiWindow* UiWindowDelete(unsigned flags);
+    // 0060E3C0 (slot 0 of the trade panel; ui_window_delete.cpp). TradePanelDestroy, then the memory
+    // freed when bit 0 of `flags` is set; returns this.
+    CUiWindow* TradePanelDelete(unsigned flags);
     // 005FE700 (RET 4). Constructor: the engine object base, an empty window of `ui` (arrays, the
     // rectangle and +0xA0..+0xD7 zeroed, rotation from 007C7E58), two materials of the manager
     // 007AF740 (+0xF0 white, +0xEC black; one reference each), enabled (+0xE8 = 1, then slot 19
