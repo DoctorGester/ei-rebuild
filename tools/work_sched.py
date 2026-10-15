@@ -224,7 +224,8 @@ def real_runner(batch, run, retries, on_attempt):
         return run_all.run(name, install, hooks, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
                            clock=clock, game_env=env, dgvoodoo=dgvoodoo, fresh=fresh)
     return run_all.run_with_retries(run['scenario'], run['install'].split('-')[0], bool(run['hooks']), retries,
-                                    os.path.basename(run['folder']), runner=one)
+                                    os.path.basename(run['folder']), runner=one,
+                                    keep=lambda folder, attempt: run_all.keep_attempt(folder, attempt, build=batch['build']))
 
 
 PRIORITY_UNKNOWN = 60   # seconds a run with no timing counts for in batch_priority

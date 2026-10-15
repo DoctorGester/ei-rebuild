@@ -10,6 +10,8 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
 console @InflictDamage(GetLeader(),100000)
 # The death and the game-over messages take some 150 world updates.
-wait 10000
+# The death and the game-over box come some 150 world updates later.
+waitwindow 20 msgbox
+frames 5
 report
 quit

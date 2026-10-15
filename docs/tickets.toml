@@ -943,10 +943,11 @@ note = "waitmenu / waitwindow / waitunit / frames; about 40% fewer game-seconds 
 id = "T2"
 title = "T1 follow-ups: remaining fixed waits and weak scenarios"
 group = "harness"
-status = "running"
+status = "done"
 depends = ["T1"]
 note = "8-10 s waits in ground_prints, sandbox_map, particles, map_objects, movement; world_client waits for the battle window; ui_help's clickregion hits a window with no regions; ui_hero_delete's question never appears; run_all keeps the first attempt's log on retry; ui_widescreen's wait 6000 (after SV1). No longer reached reliably: ScriptFloats/Strings/Objects/GroupsConstruct on load, acks::PickEnvironmentSpeech, CUnitServer::EndOrder."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "X36"
@@ -1175,6 +1176,46 @@ status = "done"
 files = ["tools/work_sched.py", "tools/test_work_sched.py"]
 note = "User 2026-10-15: workers should wait 3-5 min on average. Over the last 5 h a batch waited median 88 s, mean 185 s, p90 530 s for its first game; in FIFO a one-run batch waited for a whole suite ahead of it to start. batch_priority: queued expected seconds over the slots, less seconds waited. Alone runs still gather only for the earliest batch. Done in 9388af96."
 done = "2026-10-15"
+
+[[ticket]]
+id = "T2a"
+title = "ui_base_dialogue: Smith has no topics, dialogue never starts"
+group = "harness"
+status = "queued"
+size = 1
+note = "OpenTopics adds regions only if topics exist; pick a person and quest state with topics so the dialogue screens are reached"
+
+[[ticket]]
+id = "T2b"
+title = "Hero attack on a removed target: PlayerMode::UpdateCombat verify mismatch"
+group = "harness"
+status = "queued"
+size = 1
+note = "Attack(hero, wolf) then RemoveUnitFromServer after 55-220 ms gives a mismatch (state 0 action 3). Possible rewrite bug; reproduce in a scratch scenario"
+
+[[ticket]]
+id = "T2c"
+title = "PickEnvironmentSpeech coverage (random bored remark)"
+group = "harness"
+status = "later"
+size = 1
+note = "Reached only by the server's bored remark (1 in 1001 per update after 500 bored ticks), so no scenario reaches it reliably. Cover it with a SV4 vector recorder or a forced ISAAC state"
+
+[[ticket]]
+id = "T2d"
+title = "Goldens to record again after T2 scenario timing changes"
+group = "harness"
+status = "queued"
+size = 1
+note = "hero_death, sandbox_actions, spells_cast, levers and others whose scenario waits changed; world_client battle-window waitwindow idea (adds frames, loses ContinuePath) also open"
+
+[[ticket]]
+id = "T2e"
+title = "rebirth_flags: check Not(IsLess(DistancePointPoint(3,4),0)) prints 0 on a first run now and then"
+group = "harness"
+status = "queued"
+size = 1
+note = "Seen as PASS* in batch 438 on both installs and FAIL on vanilla in 398 and 406; scenario unchanged by T2. DistancePointPoint with two arguments is probably reading stale values"
 
 # ---------------------------------------------------------------- cleanup
 

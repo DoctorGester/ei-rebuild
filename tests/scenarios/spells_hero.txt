@@ -74,7 +74,7 @@ click 780 450
 wait 200
 clickunit HeroWolf2
 # Long enough for the fog to end (FogDestroy).
-wait 16500
+wait 9000
 check IsAlive(GetLeader())
 report
 quit

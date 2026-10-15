@@ -2,8 +2,9 @@
 # typed, the default attributes, create 006186F0, the statistics page's next 00617A50 writes
 # <n>.mp into the run's overlay and selects it in the list), then region 7 asks "lmp_deletepers"
 # and Enter answers OK: the screen's slot 27 (00615940) deletes it (00617E40; the records move
-# down with 0061A350). Unconfirmed: that the typed name reaches the name field and that the
-# default attributes add up to the points the create button wants.
+# down with 0061A350). The defaults button (region 4) empties the name field, so the name is typed after it;
+# the create button (region 1) wants a name and attributes that add up to the points. The run reaches
+# CMpHeroScreen::CreateHero, AddNewHero, MpHeroRecord::WriteFile, the message box and DeleteHero.
 reject Script error
 waitmenu
 clickregion 5
@@ -11,6 +12,9 @@ waitwindow 15 heroes
 wait 500
 clickregion 5
 frames 10
+# Back to the defaults first (region 4 also empties the name field), then the name.
+clickregion 4
+frames 5
 key t
 frames 3
 key e
@@ -19,17 +23,17 @@ key s
 frames 3
 key t
 frames 5
-clickregion 4
-frames 5
+# Create (the statistics page), then its next button writes the hero and selects it in the list.
 clickregion 1
 frames 10
 clickregion 1
 frames 10
+# Delete asks first; Enter answers OK.
 clickregion 7
-frames 10
+waitwindow 10 msgbox
 key enter
 frames 10
 key esc
-wait 1000
+waitmenu
 report
 quit

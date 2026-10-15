@@ -32,11 +32,11 @@ check IsEqual(GetObjectID(GetObject(1330)),1330)
 console @ActivateTrap(GetObject(1327),0)
 console @AddUnitToServer("TrapWolf","WolfTutor","TrapWolf",43,104,0)
 waitfor 5 IsAlive(GetObjectByName("TrapWolf"))
-wait 1000
+wait 600
 check IsAlive(GetObjectByName("TrapWolf"))
 console @ActivateTrap(GetObject(1327),1)
 waitfor 5 IsDead(GetObjectByName("TrapWolf"))
-wait 2000
+wait 1000
 check IsEqual(GetObjectID(GetObject(1327)),1327)
 check IsAlive(GetLeader())
 report

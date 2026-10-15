@@ -674,3 +674,37 @@ Repeats: the original 87 of 106 passing runs, ours 98 of 114. Not recorded (by t
   (SV3j: sound, zone_gz2g_traps, models).
 - *Fail without our hooks:* rebirth_flags (vanilla), render_cursor_present (both: no cursor-thread presents without our
   renderer), render_device_lost, render_present_shot (both), render_present_window; render_present_fullscreen is not run.
+
+## T2: remaining fixed waits and the weak scenarios (2026-10-15)
+
+T1's follow-ups. Coverage was compared with run.counts in work.db (batch 280/303 against the final
+suite, batch 438): no scenario lost a function that is not on the flaky list (TellParties, ManaCurve,
+OnUnitLeft, SoundStreamRead, speech and attack-param groups).
+
+- run_all keeps the first attempt's log on a retry: `keep_attempt` copies ei_hook.log and
+  harness_report.txt to `runs/<folder>-attemptN` before the next try, and the PASS* note says where
+  (work_sched passes the batch's build). Test: `Retries.test_failed_attempt_is_kept`.
+- combat_more reaches `CUnitServer::EndOrder`: four wolves of player 6 placed 14 tiles away with
+  the hero on GodMode, `Attack` by the hero, then `SetCPFast` moves the targets out of reach (the
+  target is out of reach in UpdateState).
+- ui_hero_delete reaches DeleteHero: the defaults button (region 4) clears the name field, so the
+  name is typed after it, then regions 1, 1, 7 and `waitwindow 10 msgbox`, enter. Golden recorded again.
+- Fixed waits became waits on state or shorter waits in sandbox_map, hero_death, unit_ai_fear,
+  spells_hero, spells_cast, movement, effects_bow, particles, objects_more, sandbox_actions, sound,
+  zone_gz3g, zone_gz2g_traps, effects, map_objects, units, ui_mp_host, levers, ui_hud, ui_trade_hold,
+  ui_global_map_pick, ui_saveload_delete. The four ui_widescreen scenarios: `wait 6000` is now
+  `waitmenu` + `wait 5200` (the menu is up after 825 ms; 5200 keeps the frame count, so the menu's
+  late draws and the world's random draws stay as they were).
+- Lesson: any change in frame count reshuffles the ISAAC draws. Functions driven by them (the
+  zone1 storm, wolf pathing, the bored remark) are lost when a wait is cut, even if the wait only
+  looks idle. Cuts that lost a function were taken back (spells, models, unit_create,
+  terrain_water_load, unit_ai, ground_prints, rebirth_flags, ui_base_dialogue, world_client).
+- `PickEnvironmentSpeech` stays unreached reliably: only the server's bored remark (boredTicks > 500,
+  then 1 in 1001 per update) calls it. T2c.
+- Numbers: frames (GameFlow::UpdateMultiplayerVariable calls) 115765 -> 112876 over the 117 runs
+  (-2.5%), because most of a run is its start. Wall seconds are too noisy under load to compare
+  (batch 280 1586 s with 4 at once, batch 438 2050 s while other batches ran; the suite itself took
+  148 s of scheduler time on idle slots).
+- Open: ui_base_dialogue (Smith has no topics, T2a), a hero attack on a removed target gives a
+  PlayerMode::UpdateCombat mismatch (T2b), goldens to record again (T2d), rebirth_flags'
+  `DistancePointPoint(3,4)` check prints 0 on a first run now and then (T2e, unchanged scenario).

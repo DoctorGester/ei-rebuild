@@ -21,7 +21,10 @@ resolution desktop
 widescreen 1
 rebirthflags WideScreen
 reject Script error
-wait 6000
+# The main menu's draws that only come in its fifth second, and its world's random draws, keep the old sequence
+# (this was a wait 6000 from the start; the menu is up after 825 ms).
+waitmenu
+wait 5200
 
 # The hero on zone1, the camera settled.
 console thingamabob

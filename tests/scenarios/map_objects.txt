@@ -17,7 +17,7 @@ console @BlockUnit(GetLeader(),0)
 # Effects on the hero count down each world update; shrink rescales him.
 console @CastSpellUnit("speed{d1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
 console @CastSpellUnit("shrink{e2;e2;d2;d1}",GetX(GetLeader()),GetY(GetLeader()),GetLeader())
-wait 2000
+wait 1000
 check IsAlive(GetLeader())
 
 # A wolf: spawned 5 east of the hero, walked back towards him, turned, put down elsewhere.
@@ -28,7 +28,7 @@ console @GSSetVar(0,"wx",GetX(GetObjectByName("Wolf1")))
 # wolf a moment, and repeat the order once.
 wait 1000
 console @MoveToPoint(GetObjectByName("Wolf1"),Add(GetX(GetLeader()),2),GetY(GetLeader()))
-wait 2000
+wait 1000
 console @MoveToPoint(GetObjectByName("Wolf1"),Add(GetX(GetLeader()),2),GetY(GetLeader()))
 waitfor 15 IsLess(GetX(GetObjectByName("Wolf1")),Sub(GSGetVar(0,"wx"),2))
 console @RotateTo(GetObjectByName("Wolf1"),GetX(GetLeader()),Add(GetY(GetLeader()),5))

@@ -20,7 +20,10 @@ resolution desktop
 widescreen 1
 rebirthflags WideScreen
 reject Script error
-wait 6000
+# The main menu's draws that only come in its fifth second, and its world's random draws, keep the old sequence
+# (this was a wait 6000 from the start; the menu is up after 825 ms).
+waitmenu
+wait 5200
 
 # The multiplayer hero screen (main menu region 5), a new hero (its region 5) with the name field;
 # Esc back to the list and to the main menu. Nothing touches the network (ui_hero_screen).

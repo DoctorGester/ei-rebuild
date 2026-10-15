@@ -58,5 +58,46 @@ console @Attack(GetLeader(),GetObjectByName("Archer1"))
 waitfor 20 Not(IsAlive(GetObjectByName("Archer1")))
 expect damaged to death
 check IsAlive(GetLeader())
+
+# An attack that ends before it lands (CUnitServer::EndOrder, 00549690: UpdateState finds the acting
+# unit's target out of reach): the hero attacks wolves that are put down 14 units away a few world
+# updates later (wait 55 is one update); the right moment differs with the wolf's turn and step, so
+# four tries, the delays 3, 4, 6 and 8 updates.
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("Far0","WolfTutor","Far0",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Far0"))
+console @SetPlayer(GetObjectByName("Far0"),6)
+console @UMClear(GetObjectByName("Far0"))
+console @Attack(GetLeader(),GetObjectByName("Far0"))
+wait 165
+console @SetCPFast(GetObjectByName("Far0"),Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),0),GetZValue(Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),0)))
+wait 300
+console @AddUnitToServer("Far1","WolfTutor","Far1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Far1"))
+console @SetPlayer(GetObjectByName("Far1"),6)
+console @UMClear(GetObjectByName("Far1"))
+console @Attack(GetLeader(),GetObjectByName("Far1"))
+wait 220
+console @SetCPFast(GetObjectByName("Far1"),Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),2),GetZValue(Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),2)))
+wait 300
+console @AddUnitToServer("Far2","WolfTutor","Far2",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Far2"))
+console @SetPlayer(GetObjectByName("Far2"),6)
+console @UMClear(GetObjectByName("Far2"))
+console @Attack(GetLeader(),GetObjectByName("Far2"))
+wait 330
+console @SetCPFast(GetObjectByName("Far2"),Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),4),GetZValue(Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),4)))
+wait 300
+console @AddUnitToServer("Far3","WolfTutor","Far3",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("Far3"))
+console @SetPlayer(GetObjectByName("Far3"),6)
+console @UMClear(GetObjectByName("Far3"))
+console @Attack(GetLeader(),GetObjectByName("Far3"))
+wait 440
+console @SetCPFast(GetObjectByName("Far3"),Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),6),GetZValue(Add(GSGetVar(0,"hx"),14),Add(GSGetVar(0,"hy"),6)))
+wait 300
+check IsAlive(GetLeader())
 report
 quit

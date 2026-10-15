@@ -72,10 +72,10 @@ key end
 key backspace
 frames 5
 key enterchar
-wait 1500
+wait 1000
 key backspace
 frames 5
-wait 2000
+wait 800
 waitwindow 3 briefing
 report
 quit

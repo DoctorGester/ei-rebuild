@@ -38,13 +38,14 @@ check IsEnemy(GetObjectByName("BowWolf1"),0)
 waitunit 10 BowWolf1
 check Not(IsUnitBlocked(GetLeader()))
 clickunit BowWolf1
-wait 10000
+# The first click selects the wolf; the second one starts the attack.
+wait 8000
 clickunit BowWolf1
 waitfor 20 Not(IsAlive(GetObjectByName("BowWolf1")))
 # A click on the body: the hero searches it (OrderSearchBody, Loot).
 clickunit BowWolf1
 # The hero walks to the body and loots it.
-wait 5500
+wait 3500
 check IsAlive(GetLeader())
 report
 quit
