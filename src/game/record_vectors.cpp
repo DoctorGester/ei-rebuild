@@ -41,3 +41,9 @@ EI_REPLACE(0x00520C20, SkillLevelVector::Clear);
 // A zone's unit looks (world_unit_set.cpp's lists; resize(n), RET 4).
 EI_REPLACE(0x0055A400, FiguredUnitVector::ResizeDefault);     // 0x3C
 EI_REPLACE(0x0055A580, DressedUnitVector::ResizeDefault);     // 0x24
+
+// prints.db's tables and acks.db's speech lists (resize(n), RET 4; loaded at startup).
+EI_REPLACE(0x006D26E0, PrintVector::ResizeDefault);           // 0x28
+EI_REPLACE(0x006D2830, Print2Vector::ResizeDefault);          // 0x34
+EI_REPLACE(0x006E4560, SpeechVector::ResizeDefault);          // 0x28
+EI_REPLACE(0x006E47F0, EnvironmentSpeechVector::ResizeDefault);   // 0x2C

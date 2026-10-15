@@ -7,8 +7,10 @@
 
 #include "../../src/game/record_vectors.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 namespace {
@@ -136,6 +138,37 @@ struct DressedUnitText {
     static std::string Of(const DressedUnitRecord& r) { return Ids(r.items) + Ids(r.extraWeapons); }
 };
 
+// prints.db's records: the vtable, the name and the values; acks.db's speeches: the strings (and
+// the environment flags).
+template <typename R>
+struct PrintText {
+    static std::string Of(const R& r) {
+        std::uintptr_t vtable;
+        std::memcpy(&vtable, &r, sizeof(vtable));
+        std::string text = Text(r.name);
+        char value[16];
+        std::snprintf(value, sizeof(value), "|%08X", static_cast<unsigned>(vtable));
+        text += value;
+        const std::uint32_t* values = r.values2;
+        for (std::size_t i = 0; i < (sizeof(R) - offsetof(R, values2)) / 4; ++i) {
+            std::snprintf(value, sizeof(value), ",%08X", values[i]);
+            text += value;
+        }
+        return text;
+    }
+};
+std::string SpeechOf(const SpeechRecord& r) { return Text(r.sound) + "|" + Text(r.text) + "|" + Text(r.name); }
+struct SpeechText {
+    static std::string Of(const SpeechRecord& r) { return SpeechOf(r); }
+};
+struct EnvironmentSpeechText {
+    static std::string Of(const acks::EnvironmentSpeech& r) { return SpeechOf(r.speech); }
+};
+
+template <std::uintptr_t A> using Prints = ModelCheck<A, PrintVector, PrintText<PrintRecord>>;
+template <std::uintptr_t A> using Prints2 = ModelCheck<A, Print2Vector, PrintText<PrintRecord2>>;
+template <std::uintptr_t A> using Speeches = ModelCheck<A, SpeechVector, SpeechText>;
+template <std::uintptr_t A> using EnvironmentSpeeches = ModelCheck<A, EnvironmentSpeechVector, EnvironmentSpeechText>;
 template <std::uintptr_t A> using FiguredUnits = ModelCheck<A, FiguredUnitVector, FiguredUnitText>;
 template <std::uintptr_t A> using DressedUnits = ModelCheck<A, DressedUnitVector, DressedUnitText>;
 template <std::uintptr_t A> using UnitPrototypes = ModelCheck<A, UnitPrototypeVector, UnitPrototypeText>;
@@ -189,3 +222,9 @@ EI_VERIFY(0x00520C20, SkillLevels<0x00520C20>::Clear, 0, s_unused);
 // A zone's unit looks (resize(n) while a zone's units load).
 EI_VERIFY(0x0055A400, FiguredUnits<0x0055A400>::ResizeDefault, 0, s_unused);
 EI_VERIFY(0x0055A580, DressedUnits<0x0055A580>::ResizeDefault, 0, s_unused);
+
+// prints.db and acks.db (loaded at startup).
+EI_VERIFY(0x006D26E0, Prints<0x006D26E0>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x006D2830, Prints2<0x006D2830>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x006E4560, Speeches<0x006E4560>::ResizeDefault, 0, s_unused);
+EI_VERIFY(0x006E47F0, EnvironmentSpeeches<0x006E47F0>::ResizeDefault, 0, s_unused);

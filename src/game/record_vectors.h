@@ -5,15 +5,21 @@
 // VectorAbi types record_vectors.cpp registers at the instantiations' addresses
 // (tests/verify/verify_record_vectors.cpp checks them). docs/notes/standalone.md, S10a.
 
+#include "acks_db.h"
 #include "item_db.h"
+#include "model.h"
 #include "quest_records.h"
 #include "record_members.h"
 #include "unit_db.h"
 #include "unit_looks.h"
 
+#include "ei/vcall.h"
 #include "lib/stlp_vector.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
+#include <new>
 
 // A unit model's body slot as its record's copies copy it, found by argument-dependent lookup from
 // records::Memberwise (the slot constructor 0053F000 leaves the level name empty).
@@ -206,6 +212,63 @@ struct DressedUnitElement : records::Memberwise<DressedUnitRecord, &DressedUnitR
 
 using FiguredUnitVector = stlp::VectorAbi<FiguredUnitRecord, FiguredUnitElement>;
 using DressedUnitVector = stlp::VectorAbi<DressedUnitRecord, DressedUnitElement>;
+
+// ---- prints.db (model.h; model_db.cpp's 006D26E0 / 006D2830) ------------------------------------
+
+// The prints' records: the copies and the defaults set the record's vtable; the name, then the
+// value triples (copied as they are, zero by default). The destructor (006D29A0 / 006D29E0) only
+// returns the name's storage; the vtable stays.
+template <typename R>
+struct PrintElement {
+    static void Construct(R* to, const R& from) {
+        ei::SetVtable(to, R::kVtableAddress);
+        new (&to->name) stlp::string(from.name);
+        std::memcpy(Values(*to), Values(from), sizeof(R) - offsetof(R, values2));
+    }
+    static void Assign(R& to, const R& from) {
+        to.name.AssignFrom(from.name);
+        std::memcpy(Values(to), Values(from), sizeof(R) - offsetof(R, values2));
+    }
+    static void Default(R* p) {
+        stlp::StringElement::Default(&p->name);
+        std::memset(Values(*p), 0, sizeof(R) - offsetof(R, values2));
+        ei::SetVtable(p, R::kVtableAddress);
+    }
+    static void Destroy(R* p) { p->name.~string(); }
+
+private:
+    static void* Values(R& r) { return r.values2; }
+    static const void* Values(const R& r) { return r.values2; }
+};
+
+using PrintVector = stlp::VectorAbi<PrintRecord, PrintElement<PrintRecord>>;
+using Print2Vector = stlp::VectorAbi<PrintRecord2, PrintElement<PrintRecord2>>;
+
+// ---- acks.db's speech lists (acks_db.h; acks_db.cpp's 006E4560 / 006E47F0) ----------------------
+
+// A speech: memberwise (the chance left as it is by default); the destructor (006E3330) the
+// strings from the last.
+struct SpeechElement : records::Memberwise<SpeechRecord, &SpeechRecord::chance, &SpeechRecord::sound,
+                                           &SpeechRecord::text, &SpeechRecord::name> {
+    static void Destroy(SpeechRecord* p) { p->~SpeechRecord(); }
+};
+// The speech, then the environment flags.
+struct EnvironmentSpeechElement {
+    using R = acks::EnvironmentSpeech;
+    static void Construct(R* to, const R& from) {
+        SpeechElement::Construct(&to->speech, from.speech);
+        to->environment = from.environment;
+    }
+    static void Assign(R& to, const R& from) {
+        SpeechElement::Assign(to.speech, from.speech);
+        to.environment = from.environment;
+    }
+    static void Default(R* p) { SpeechElement::Default(&p->speech); }
+    static void Destroy(R* p) { SpeechElement::Destroy(&p->speech); }
+};
+
+using SpeechVector = stlp::VectorAbi<SpeechRecord, SpeechElement>;
+using EnvironmentSpeechVector = stlp::VectorAbi<acks::EnvironmentSpeech, EnvironmentSpeechElement>;
 
 // ---- The quest database (quest_records.h) ------------------------------------------------------
 
