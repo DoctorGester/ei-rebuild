@@ -809,6 +809,34 @@ in disabled.txt too, so not from S12b. The sort start-up check skips itself when
 (no trampoline). Left for S12d: the allocating sorts (objectives, save list), pair<string, list<T>>
 0069C1C0 and the unclassified container rows.
 
+**S12d (2026-10-15).** The allocating sorts (src/game/stl_sorts.cpp on `stlp::Sort<T, Less, Ops>`;
+stlp_algo.h now takes an element policy, `Held<T, Ops>` temporaries and `CopyBackward`, with every
+by-value copy, assignment and destruction where STLport's has them): the objectives window's quests
+0064F310 / 0064F9A0 / 0064FBD0 (`ByQuestOrder`: each comparison is QuestTable::Find of both names,
+which adds a missing name, so the allocations are the original's; a name without a record compares
+true even against itself) and the save list 00657DF0 / 00657F10 with copy_backward 00657D50
+(`SaveEntryOps`: CopyConstruct / Assign / Destruct). Every save helper tests 00658020
+(a.savedAt < b.savedAt) and takes the other branch, so the order is `!(a < b)`, newest first, and
+equal times compare true both ways (not a strict weak ordering). pair<string, list<T>> 0069C1C0 in
+stlp_pair.cpp. Checks run ours first (SV2f), the original after it on a twin: the quests on a copy of
+the CStrings (the lookups only find now), the saves on key-only entries (empty strings and arrays,
+the position in the game time) compared by each entry's strings, time, flag and arrays; a quest range
+with a name without a record, or more than 16 saves with two equal times, is sorted by ours alone and
+logged (the unguarded scans could leave it). copy_backward ours only. A start-up check sorts 340
+save lists with distinct times (40 with small arrays: sizes and capacities compared). The
+container rows: list begin / end 00438640 00438820 / 00437F20 00438650 00438830, the iterator's copy
+004387C0 and decrement 00439A60, splice 004380C0 / 00438770 (checked on twins of both lists' nodes),
+the 0x10C / 0x120-node lists' constructors 00439CE0 / 00439960, ~list 00439D40, clear 0043D420 and
+erase 00438660 (operator new / delete), plain erase by node size (16: 0040AA40 00512030 0056DFB0; 24:
+0040A920 00411540 004437D0; 32: 005392F0; 40: 00443730) and clear (00405500 0040B390, 24: 0040B290),
+vector<uint16> insert_overflow 0043B530, vector<8 bytes> erase 00439DD0, frees by element size
+(00439D80 0053B7A0 0053BEB0 0069C9D0 00613630 0056FB80), and the out-of-line `_Construct` 0043D7E0 /
+0043D7F0 / 0064B620 and copies 0043B360 (memmove) / 0043DC80 (stlp_vector.h `ConstructAt`,
+`CopyTrivial`, `CopyElements`). Left (S12e): the connection's lists whose elements own something
+(SentPacket's items, the freed-id batches' vectors: copy constructors, default inserts, erase, clear,
+~list), its find_if and counted-pointer init, two plain hashtable erases, a hashtable clear and two
+constructors, three vector-member destructors and the hero screen's string sorts and vector members.
+
 **S3d (2026-10-15).** The MFC callees of the exit functions, 21 addresses (size rows in
 extra_function_sizes.csv: library functions need one even with a Ghidra function; 0070CAD2 and
 006E6B7D take decoded sizes, Ghidra's run past the RET). src/lib/mfc_state: CThreadSlotData::FreeSlot

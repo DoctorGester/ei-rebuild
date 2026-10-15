@@ -14,6 +14,10 @@
 namespace net {
 class FileChunkMessage;
 }
+namespace mfc {
+class CString;
+}
+struct SaveEntry;
 
 namespace stl_sorts {
 
@@ -50,5 +54,29 @@ void __fastcall IdFinalSort(int* first, int* last);
 void __fastcall ServerIntroSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry* tag, int depth, int key);
 void __fastcall ServerInsertionSort(MpAddressEntry* first, MpAddressEntry* last, int key);
 void __fastcall ServerUnguardedInsertionSort(MpAddressEntry* first, MpAddressEntry* last, MpAddressEntry* tag, int key);
+
+// The objectives window's quests (ui_objectives.cpp, the names of the shown zone's "q.<zone>.<quest>"
+// variables) by their quest record's order (+0x1C), the highest first and a name without a record
+// before all (also before itself: the original's scans run off the range then). Every comparison
+// looks both names up in the quest table 007C87B4 (QuestTable::Find, which adds a null entry for a
+// new name), the first argument's first: the original inlines that lookup in each helper (a string
+// key, a {key, null} pair, find_or_insert, the pair and the key freed), every copy allocating
+// alike. Copies of the CStrings only share them. 0064F310 (RET 0xC) __introsort_loop, 0064F9A0
+// (RET 4) __insertion_sort, 0064FBD0 (RET 8) __unguarded_insertion_sort.
+void __fastcall QuestIntroSort(mfc::CString* first, mfc::CString* last, void* tag, int depth, int comp);
+void __fastcall QuestInsertionSort(mfc::CString* first, mfc::CString* last, int comp);
+void __fastcall QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* last, void* tag, int comp);
+
+// The save / load list (ui_saveload.cpp) by the saved time (+0x08, signed), the newest first: the
+// comparison is !(a < b) (00658020 is the less), so equal times compare true both ways (not a strict
+// weak ordering: with two saves of the same time the unguarded scans can leave the range, in the
+// original as here). A SaveEntry copy allocates (its CStringArrays), so every copy, assignment and
+// destruction is STLport's (stlp::Held, SaveEntryOps): the copy constructor 00656640, operator=
+// 006538E0 (inlined in the helpers, the same calls) and the destructor 00656720. 00657DF0 (RET 0xC)
+// __introsort_loop, 00657F10 (RET 4) __final_insertion_sort; 00657D50 (RET 4) copy_backward
+// (first, last, result end), returning the first element written.
+void __fastcall SaveIntroSort(SaveEntry* first, SaveEntry* last, void* tag, int depth, int comp);
+void __fastcall SaveFinalSort(SaveEntry* first, SaveEntry* last, int comp);
+SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result);
 
 } // namespace stl_sorts
