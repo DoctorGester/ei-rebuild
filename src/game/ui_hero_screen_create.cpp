@@ -74,9 +74,9 @@ float MenuTurn() { return GameFloat(0x007C7F14) * GameFloat(0x0073CDF4); }
 // The saved heroes' reload (00662FB0, plain RET): Rebirth-patched, so through its address (as the
 // screen's mode, 00615D30, originals_ui.h).
 __declspec(naked) void __fastcall ReloadHeroesAt(MpHeroRoster*) EI_ORIGINAL(0x00662FB0)
-// std::sort over a vector<CString> (operator<: _mbscmp), the library's instantiation: the introsort
-// loop (first, last, (T*)0, depth limit; RET 8) and the final insertion sort (first, last; plain
-// RET).
+// std::sort over a vector<CString> (operator<: _mbscmp), the library's instantiation at its
+// addresses (stl_sorts.cpp, NameIntroSort / NameFinalSort, so their checks run): the introsort loop
+// (first, last, (T*)0, depth limit; RET 8) and the final insertion sort (first, last; plain RET).
 __declspec(naked) void __fastcall IntroSortLoop(mfc::CString* /*first*/, mfc::CString* /*last*/, mfc::CString*,
                                                 int /*depth*/) EI_ORIGINAL(0x0061A240)
 __declspec(naked) void __fastcall FinalInsertionSort(mfc::CString* /*first*/, mfc::CString* /*last*/)

@@ -129,6 +129,7 @@ void __stdcall SampleTerrain(const Vector3* p, const Vector3* unused1, const Vec
 // inside a circle, 0x200 the alternate limits.
 class CCamera : public CTransformObject {
 public:
+    CCamera* DeleteScalar(unsigned flags);
     void GetRange(std::uint32_t* a, std::uint32_t* b, std::uint32_t* c) const;
     // camera_object.cpp. 0040E910 (RET 4): starts recording into ".\camera\" + `name` (1 when the file
     // can be made). 0040ECB0: stops recording (the file name emptied); returns 1.

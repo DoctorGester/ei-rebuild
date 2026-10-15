@@ -92,10 +92,7 @@ BOOL CCreditsScreen::Draw(int pass) {
     }
     return reinterpret_cast<CUiContainer*>(this)->DrawContainer(pass);
 }
-namespace {
-BOOL __fastcall CreditsDraw(CCreditsScreen* self, void*, int pass) { return self->Draw(pass); }
-} // namespace
-EI_REPLACE(0x0062BD80, CreditsDraw);
+EI_REPLACE_METHOD(0x0062BD80, CCreditsScreen::Draw);
 
 // --- 0062BD00: the close ---------------------------------------------------------------------------
 

@@ -19,8 +19,6 @@
 
 CEngineObject* __fastcall EngineObjectConstruct(CEngineObject* self);
 void __fastcall TransformDestruct(CTransformObject* self);
-CTransformObject* __fastcall TransformDeletingDestructor(CTransformObject* self, void*, unsigned flags);
-CCamera* __fastcall CameraDeletingDestructor(CCamera* self, void*, unsigned flags);
 const Vector3* __fastcall CameraAnchor(const CCamera* self);
 int __fastcall CameraCloseFile(CCamera* self);
 int __fastcall CameraCreate(CCamera* self);
@@ -51,7 +49,7 @@ void __fastcall TransformDestructVerify(CTransformObject* self) {
 }
 CTransformObject* __fastcall TransformDeleteVerify(CTransformObject* self, void*, unsigned flags) {
     ei::verify::Check("TransformDeletingDestructor", true, true, "");
-    return TransformDeletingDestructor(self, nullptr, flags);
+    return self->DeleteScalar(flags);
 }
 
 // 0040C8B0: PUSH -1 (2), PUSH imm32 (5).
@@ -78,7 +76,7 @@ void __fastcall CameraDestructVerify(CCamera* self) {
 }
 CCamera* __fastcall CameraDeleteVerify(CCamera* self, void*, unsigned flags) {
     ei::verify::Check("CameraDeletingDestructor", true, true, "");
-    return CameraDeletingDestructor(self, nullptr, flags);
+    return self->DeleteScalar(flags);
 }
 
 // Slots: MOV EAX,imm32 (5).

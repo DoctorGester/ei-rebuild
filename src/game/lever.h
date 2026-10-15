@@ -27,6 +27,10 @@ static_assert(sizeof(LeverSpots) == 0x14);
 // whose field ids are given): the spot offsets are in the lever's own frame (along its facing's
 // X and Y axes).
 struct LeverRecord {
+    LeverRecord* Assign(const LeverRecord* from);
+    LeverRecord* CopyConstruct(const LeverRecord* from);
+    LeverRecord* DeleteScalar(unsigned flags);
+    void Archive(ChunkArchive* archive);
     mfc::CString name;          // +0x00 (field 0)
     float spots[2][2];          // +0x04 (field 1) {along, across}
     std::uint32_t spotCount;    // +0x14 (2)

@@ -13,6 +13,10 @@ const char* __fastcall DirectXErrorText(long result);
 // The error object the device layer throws (a C++ throw, throw info 00759908; vtable 0073CAB4, its
 // base's 0073CAB0, one slot each: the deleting destructor). 0xC bytes from operator new.
 struct GameError {
+    GameError* DeleteScalarBase(int flags);
+    // 004815B0 / 00481580 (slot 0 of 0073CAB4 / 0073CAB0, RET 4): the destructor (the base's inlined),
+    // then operator delete when `flags` bit 0 is set; returns the object.
+    GameError* DeleteScalar(int flags);
     void* vtable;
     char* message;      // +0x04 operator new copy of the formatted text
     long result;        // +0x08 the DirectX result (set by 00480300 only)
@@ -33,7 +37,3 @@ GameError* GameErrorFormatResult(GameError* error, long result, const char* form
 [[noreturn]] void ThrowGameErrorResult(long result, const char* format, ...);
 // 004815D0. The base vtable, the message freed.
 void __fastcall GameErrorDestruct(GameError* error);
-// 004815B0 / 00481580 (slot 0 of 0073CAB4 / 0073CAB0, RET 4): the destructor (the base's inlined),
-// then operator delete when `flags` bit 0 is set; returns the object.
-GameError* __fastcall GameErrorDeletingDestruct(GameError* error, void*, int flags);
-GameError* __fastcall GameErrorBaseDeletingDestruct(GameError* error, void*, int flags);

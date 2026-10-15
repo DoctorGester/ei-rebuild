@@ -12,6 +12,13 @@
 //   freed on top of their free lists in order, the copies holding what they were copied from.
 // A start-up check drives every address once with scratch objects (most are reached only from
 // unwind funclets or from callers we rewrote).
+// - S12f: the party file entries' _M_insert_overflow (00619920) runs ours only: each record copy is
+//   CParty's copy constructor, which saves the party with a fresh ISAAC key and makes item and spell
+//   managers, so a twin run of the original would draw and allocate more than the game does (ours
+//   allocates alone, SV2f). Checked by effect: the size and capacity, the file names in order (the
+//   n inserted ones at the position) and the old block replaced; each party copy is checked by
+//   006613C0's own wrapper (the copies go through its address). Not in the start-up check (copies
+//   draw ISAAC keys); the hero list and the saved parties' reload reach it (ui_hero_*).
 #include "verify.h"
 
 #include "stlp_list_verify.h"
@@ -27,6 +34,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace {
@@ -1021,6 +1029,32 @@ EI_VERIFY(0x006317E0, InsertOverflow8<0x006317E0>::Verify, 0, s_unused);
 EI_VERIFY(0x006325E0, Uninitialized8<0x006325E0>::Copy, 6, Uninitialized8<0x006325E0>::original);
 EI_VERIFY(0x00632610, Uninitialized8<0x00632610>::Fill, 0, s_unused);
 
+// 00619920 (S12f), ours only (see the top).
+static void __fastcall HeroRecordsInsertOverflowVerify(libcontainers::HeroRecords* self, void*, MpHeroRecord* pos,
+                                                       const MpHeroRecord* x, std::size_t n) {
+    std::vector<std::string> expected;
+    for (const MpHeroRecord* p = self->begin(); p != pos; ++p) expected.emplace_back(static_cast<const char*>(p->file));
+    for (std::size_t i = 0; i < n; ++i) expected.emplace_back(static_cast<const char*>(x->file));
+    for (const MpHeroRecord* p = pos; p != self->end(); ++p) expected.emplace_back(static_cast<const char*>(p->file));
+    std::size_t old = self->size();
+    const MpHeroRecord* oldStart = self->begin();
+    libcontainers::InsertHeroRecordsOverflow(self, nullptr, pos, x, n);
+    int mismatch = -1;
+    for (std::size_t i = 0; i < expected.size() && i < self->size(); ++i)
+        if (expected[i] != static_cast<const char*>((*self)[i].file)) {
+            mismatch = static_cast<int>(i);
+            break;
+        }
+    bool ok = self->size() == old + n && self->Capacity() == old + (old > n ? old : n) && mismatch < 0 &&
+              (old == 0 || self->begin() != oldStart);
+    char detail[128] = "";
+    if (!ok)
+        std::snprintf(detail, sizeof(detail), "%u + %u records: size %u, capacity %u, first name difference %d",
+                      static_cast<unsigned>(old), static_cast<unsigned>(n), static_cast<unsigned>(self->size()),
+                      static_cast<unsigned>(self->Capacity()), mismatch);
+    ei::verify::Report("vector<MpHeroRecord>::_M_insert_overflow 00619920", ok, detail);
+}
+
 // Pairs, algorithms and helpers over game types: ours only.
 EI_VERIFY(0x004FB170, PairConstruct<0x004FB170>::Verify, 0, s_unused);
 EI_VERIFY(0x0060AB60, GameAlgorithms<0x0060AB60>::CopySpeakers, 0, s_unused);
@@ -1043,3 +1077,5 @@ EI_VERIFY(0x006D29A0, PrintNameFree<0x006D29A0>::Verify, 6, PrintNameFree<0x006D
 EI_VERIFY(0x006D29E0, PrintNameFree<0x006D29E0>::Verify, 6, PrintNameFree<0x006D29E0>::original);
 // CTime - CTimeSpan: mov ecx,[ecx]; mov eax,[esp+8] (6 bytes), against the original.
 EI_VERIFY(0x005E0550, TimeMinus<0x005E0550>::Verify, 6, TimeMinus<0x005E0550>::original);
+// S12f: the party file entries' insert overflow, ours only.
+EI_VERIFY(0x00619920, HeroRecordsInsertOverflowVerify, 0, s_unused);

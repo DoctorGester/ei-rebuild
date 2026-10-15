@@ -1120,6 +1120,7 @@ using UiItemList = lib::AlignedArray<CItem*>;
 // 0x164 bytes; ui_hero_panels.cpp).
 class CTradeGrid : public CUiItemPanel {
 public:
+    int DrawGrid(int pass);
     // 006270A0. Builds the grid over 200..600 x 100..500: the cell pictures (textures trade1..4 by
     // quarter), their frames, a region per cell, and the surface. `spells` chooses the price kinds
     // (0/1 for the spell constructor, 4/5 for the item one).

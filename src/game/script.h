@@ -218,6 +218,7 @@ static_assert(sizeof(ScriptAreaPart) == 0x14);
 
 // A point light slot (CScript::pointLights_, 256 slots).
 struct ScriptPointLight {
+    ScriptPointLight* DeleteScalar(unsigned flags);
     // 004B17F0 (script_effects.cpp). The effect object leaves the world's timed objects and is released;
     // the slot is cleared.
     void ScriptPointLightDestruct();

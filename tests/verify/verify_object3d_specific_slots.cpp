@@ -129,7 +129,6 @@ static int __fastcall ClientIdVerify(CObject3DClientSpecific* self) {
 EI_VERIFY(0x0051AD60, ClientIdVerify, 5, s_clientId);
 
 void __fastcall SpecificBaseDestruct(CObject3DClientSpecific* self);
-CObject3DClientSpecific* __fastcall SpecificBaseDelete(CObject3DClientSpecific* self, void*, unsigned flags);
 static void __fastcall BaseDestructVerify(CObject3DClientSpecific* self) {
     SpecificBaseDestruct(self);
     bool ok = !self->object && *reinterpret_cast<const std::uintptr_t*>(self) == CEngineObject::kVtableAddress;
@@ -137,7 +136,7 @@ static void __fastcall BaseDestructVerify(CObject3DClientSpecific* self) {
 }
 EI_VERIFY(0x0051AD00, BaseDestructVerify, 0, s_unusedRegister);
 static CObject3DClientSpecific* __fastcall BaseDeleteVerify(CObject3DClientSpecific* self, void*, unsigned flags) {
-    CObject3DClientSpecific* result = SpecificBaseDelete(self, nullptr, flags);
+    CObject3DClientSpecific* result = self->DeleteScalar(flags);
     ei::verify::Check("CObject3DSpecific::DeletingDestruct", static_cast<void*>(self), static_cast<void*>(result), "");
     return result;
 }

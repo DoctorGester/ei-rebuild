@@ -17,6 +17,9 @@ class FileChunkMessage;
 namespace mfc {
 class CString;
 }
+namespace stlp {
+class string;
+}
 struct SaveEntry;
 
 namespace stl_sorts {
@@ -78,5 +81,21 @@ void __fastcall QuestUnguardedInsertionSort(mfc::CString* first, mfc::CString* l
 void __fastcall SaveIntroSort(SaveEntry* first, SaveEntry* last, void* tag, int depth, int comp);
 void __fastcall SaveFinalSort(SaveEntry* first, SaveEntry* last, int comp);
 SaveEntry* __fastcall SaveCopyBackward(SaveEntry* first, SaveEntry* last, SaveEntry* result);
+
+// A network client's briefing topics (ui_briefing_topics.cpp, a vector<string>) by _stricmp of the
+// texts. A copy allocates (string's copy constructor 004A8930, the swap's string(first, last)), so
+// every copy, assignment (assign(first, last) 0042A4F0) and destruction is STLport's
+// (stlp::StringElement); the partition (0060B990) takes the pivot by value and frees it before it
+// returns. The comparison object is empty (the caller passes the person's id in its slot).
+// 0060B330 (RET 0xC) __introsort_loop, 0060B440 (RET 4) __final_insertion_sort.
+void __fastcall TopicIntroSort(stlp::string* first, stlp::string* last, int tag, int depth, int comp);
+void __fastcall TopicFinalSort(stlp::string* first, stlp::string* last, int comp);
+
+// The multiplayer hero screen's figure names (ui_hero_screen_create.cpp, a vector<CString>) by
+// CString's operator< (_mbscmp). Copies only share the strings. 0061A240 (RET 8)
+// __introsort_loop (first, last, the null value-type tag, the depth limit; no comparison object),
+// 0061A300 (plain RET) __final_insertion_sort.
+void __fastcall NameIntroSort(mfc::CString* first, mfc::CString* last, mfc::CString* tag, int depth);
+void __fastcall NameFinalSort(mfc::CString* first, mfc::CString* last);
 
 } // namespace stl_sorts

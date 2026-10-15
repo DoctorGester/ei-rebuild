@@ -41,7 +41,7 @@ public:
         return 0;
     }
     std::uint8_t* Seek(std::int32_t position) override {
-        return growing_ ? GrowingBufferSeek(this, nullptr, position) : BufferViewSeek(this, nullptr, position);
+        return growing_ ? SeekGrowing(position) : SeekView(position);
     }
 
     bool Reserved() const { return reserved_; }

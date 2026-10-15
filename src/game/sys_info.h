@@ -35,6 +35,7 @@ inline ProcessorInfo* TheProcessorInfo() { return reinterpret_cast<ProcessorInfo
 void ReadProcessorInfo();
 
 struct CSysInfo : CEngineObject {
+    CSysInfo* DeleteScalar(unsigned flags);
     static constexpr int kClassId = 0xD;
     // flags_ bits.
     static constexpr std::uint32_t kMmx = 0x8;       // always set by Collect

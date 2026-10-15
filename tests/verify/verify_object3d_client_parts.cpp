@@ -37,10 +37,7 @@
 #include <cstring>
 
 void __fastcall MatrixSetIdentity(Matrix4* matrix);
-int __fastcall SpecificBaseDraw(CObject3DSpecific*, void*, void*, int*);
-int __fastcall SpecificBaseZero(CObject3DSpecific*, void*, void*);
 void __fastcall SpecificBaseNothing(CObject3DSpecific*);
-void __fastcall SpecificBaseIgnore(CObject3DSpecific*, void*, int);
 CObject3DSpecific* __fastcall Object3DServerConstruct(CObject3DSpecific* self);
 void __fastcall Object3DServerDestruct(CObject3DSpecific* self);
 CObject3DSpecific* __fastcall Object3DServerDelete(CObject3DSpecific* self, void*, unsigned flags);
@@ -314,14 +311,14 @@ EI_VERIFY(0x0051E1C0, SetIdentityVerify, 6, s_setIdentity);
 // --- The base half's empty slots and the server half ----------------------------------------------------
 
 static int __fastcall BaseDrawVerify(CObject3DSpecific* self, void*, void* context, int* dirty) {
-    int result = SpecificBaseDraw(self, nullptr, context, dirty);
+    int result = self->DrawNothing(context, dirty);
     ei::verify::Check("CObject3DSpecific::Draw", 0, result, "");
     return result;
 }
 EI_VERIFY(0x0051AC60, BaseDrawVerify, 0, s_unused);
 
 static int __fastcall BaseZeroVerify(CObject3DSpecific* self, void*, void* value) {
-    int result = SpecificBaseZero(self, nullptr, value);
+    int result = self->ReturnZero(value);
     ei::verify::Check("CObject3DSpecific empty slot", 0, result, "");
     return result;
 }
@@ -336,7 +333,7 @@ EI_VERIFY(0x0051F2B0, BaseZeroVerify, 0, s_unused);
 EI_VERIFY(0x0051F2A0, BaseZeroVerify, 0, s_unused);
 
 static void __fastcall BaseIgnoreVerify(CObject3DSpecific* self, void*, int value) {
-    SpecificBaseIgnore(self, nullptr, value);
+    self->IgnoreArgument(value);
     ei::verify::Check("CObject3DSpecific ignored slot", true, true, "");
 }
 EI_VERIFY(0x0051ACC0, BaseIgnoreVerify, 0, s_unused);

@@ -39,12 +39,12 @@ void __fastcall ControllerDestruct(CUnitController* self) {
 EI_REPLACE(0x00533DB0, ControllerDestruct);
 
 // 00533D90 (slot 0, RET 4).
-CUnitController* __fastcall ControllerDelete(CUnitController* self, void*, unsigned flags) {
-    ControllerDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CUnitController* CUnitController::DeleteScalar(unsigned flags) {
+    ControllerDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x00533D90, ControllerDelete);
+EI_REPLACE_METHOD(0x00533D90, CUnitController::DeleteScalar);
 
 // 00533DD0 (slot 2): no unit; 1. 00533DE0 (slot 3): no unit.
 int __fastcall ControllerCreate(CUnitController* self) {
@@ -85,22 +85,22 @@ EI_REPLACE(0x00535580, ControllerNothing);
 
 // RET 4, nothing: slots 14 (RestartAnimation), 18 (PlayerChanged), 40 (AdvanceTime), 42
 // (ObjectDeleted; the client's too) and 47 (Wound).
-void __fastcall ControllerIgnore(CUnitController*, void*, int) {}
-EI_REPLACE(0x00533BA0, ControllerIgnore);
-EI_REPLACE(0x00533BC0, ControllerIgnore);
-EI_REPLACE(0x00533CC0, ControllerIgnore);
-EI_REPLACE(0x00533CE0, ControllerIgnore);
-EI_REPLACE(0x00533D30, ControllerIgnore);
+void CUnitController::IgnoreArgument(int) {}
+EI_REPLACE_METHOD(0x00533BA0, CUnitController::IgnoreArgument);
+EI_REPLACE_METHOD(0x00533BC0, CUnitController::IgnoreArgument);
+EI_REPLACE_METHOD(0x00533CC0, CUnitController::IgnoreArgument);
+EI_REPLACE_METHOD(0x00533CE0, CUnitController::IgnoreArgument);
+EI_REPLACE_METHOD(0x00533D30, CUnitController::IgnoreArgument);
 
 // RET 8, nothing: slots 32 (SetArmourModels), 33 (SetWeaponModels) and 51 (Say).
-void __fastcall ControllerIgnoreTwo(CUnitController*, void*, int, int) {}
-EI_REPLACE(0x00533C60, ControllerIgnoreTwo);
-EI_REPLACE(0x00533C70, ControllerIgnoreTwo);
-EI_REPLACE(0x00533D60, ControllerIgnoreTwo);
+void CUnitController::IgnoreTwoArguments(int, int) {}
+EI_REPLACE_METHOD(0x00533C60, CUnitController::IgnoreTwoArguments);
+EI_REPLACE_METHOD(0x00533C70, CUnitController::IgnoreTwoArguments);
+EI_REPLACE_METHOD(0x00533D60, CUnitController::IgnoreTwoArguments);
 
 // 00533D20 (slot 46 StatChanged, RET 0xC): nothing.
-void __fastcall ControllerIgnoreThree(CUnitController*, void*, int, int, int) {}
-EI_REPLACE(0x00533D20, ControllerIgnoreThree);
+void CUnitController::IgnoreThreeArguments(int, int, int) {}
+EI_REPLACE_METHOD(0x00533D20, CUnitController::IgnoreThreeArguments);
 
 // 0: slots 29 (RefreshEquipment), 30 (RefreshModel), 31 (RefreshWounds) and 39 (TamingStage; the
 // client's too).
@@ -111,18 +111,18 @@ EI_REPLACE(0x00533C50, ControllerZero);
 EI_REPLACE(0x00533CB0, ControllerZero);
 
 // 0 with one argument (RET 4): slots 19 (RefreshVitals) and 21 (Heal); the client's too.
-int __fastcall ControllerZeroOne(CUnitController*, void*, int) { return 0; }
-EI_REPLACE(0x00533BD0, ControllerZeroOne);
-EI_REPLACE(0x00533BF0, ControllerZeroOne);
+int CUnitController::ReturnZeroOne(int) { return 0; }
+EI_REPLACE_METHOD(0x00533BD0, CUnitController::ReturnZeroOne);
+EI_REPLACE_METHOD(0x00533BF0, CUnitController::ReturnZeroOne);
 
 // 00533BE0 (slot 20 TakeHit, RET 0xC; the client's too): 0.
-int __fastcall ControllerZeroThree(CUnitController*, void*, int, int, int) { return 0; }
-EI_REPLACE(0x00533BE0, ControllerZeroThree);
+int CUnitController::ReturnZeroThree(int, int, int) { return 0; }
+EI_REPLACE_METHOD(0x00533BE0, CUnitController::ReturnZeroThree);
 
 // False in AL (RET 4): slots 34 (WeaponAdded) and 35 (RemoveWeaponModel).
-bool __fastcall ControllerFalse(CUnitController*, void*, int) { return false; }
-EI_REPLACE(0x00533C80, ControllerFalse);
-EI_REPLACE(0x00533C90, ControllerFalse);
+bool CUnitController::ReturnFalse(int) { return false; }
+EI_REPLACE_METHOD(0x00533C80, CUnitController::ReturnFalse);
+EI_REPLACE_METHOD(0x00533C90, CUnitController::ReturnFalse);
 
 // --- The client controller -------------------------------------------------------------------------------
 

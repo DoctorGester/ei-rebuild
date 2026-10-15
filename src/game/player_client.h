@@ -281,6 +281,5 @@ static_assert(offsetof(CPlayerClient, decompressor_) == 0x28B0);
 // 00666EC0 / 00666F70 (RET 4) and 00666F90 / 00666FA0 (player_client.cpp, A-H21): CPlayerConnection's
 // own destructor body and deleting destructor; CPlayerClient's class name and id.
 void __fastcall ConnectionDestructBody(CPlayerConnection* self);
-CPlayerConnection* __fastcall ConnectionDeletingDestruct(CPlayerConnection* self, void*, unsigned flags);
 const char* __fastcall PlayerClientClassName(CPlayerClient*);
 int __fastcall PlayerClientClassId(CPlayerClient*);

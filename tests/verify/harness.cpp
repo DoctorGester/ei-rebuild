@@ -896,6 +896,7 @@ void WriteReport() {
     digest::Flush();
     ei::vectors::Flush();
     if (census::Enabled()) census::Write();
+    heap::WriteOrderReport();
     FILE* f = nullptr;
     if (fopen_s(&f, g_reportPath, "w") != 0 || !f) return;
     unsigned long mismatches = 0;
@@ -1593,12 +1594,23 @@ int WINAPI HarnessMessageBoxW(HWND, LPCWSTR text, LPCWSTR caption, UINT) {
 }
 
 // Hot patch: user32's exports start with "mov edi, edi" after five bytes of padding. The padding
-// becomes a JMP to the replacement and the first two bytes a short jump back to it.
-void HotPatch(const char* name, void* replacement) {
+// becomes a JMP to the replacement and the first two bytes a short jump back to it. Returns the
+// original function (its code after the "mov edi, edi"), nullptr when the prologue is not that.
+void* HotPatch(const char* name, void* replacement) {
     auto* p = reinterpret_cast<unsigned char*>(GetProcAddress(GetModuleHandleA("user32.dll"), name));
+    if (p && p[0] == 0xFF && p[1] == 0x25) {
+        // Some exports are only "jmp dword ptr [slot]" into win32u: the slot is swapped instead.
+        auto** slot = *reinterpret_cast<void***>(p + 2);
+        DWORD old;
+        VirtualProtect(slot, sizeof(*slot), PAGE_READWRITE, &old);
+        void* original = *slot;
+        *slot = replacement;
+        VirtualProtect(slot, sizeof(*slot), old, &old);
+        return original;
+    }
     if (!p || p[0] != 0x8B || p[1] != 0xFF) {
         Log("harness: cannot hot-patch %s (unexpected prologue)", name);
-        return;
+        return nullptr;
     }
     DWORD old;
     VirtualProtect(p - 5, 7, PAGE_EXECUTE_READWRITE, &old);
@@ -1609,7 +1621,101 @@ void HotPatch(const char* name, void* replacement) {
     p[1] = 0xF9;
     VirtualProtect(p - 5, 7, old, &old);
     FlushInstructionCache(GetCurrentProcess(), p - 5, 7);
+    return p + 2;
 }
+
+// No window of a harness game takes the foreground (SV1c). The game's own calls are kept from it
+// by its import table (NoForeground, ShowWithoutActivating, CreateWithoutActivating above), but
+// dgVoodoo's ddraw.dll, loaded into the process, activates the game window at SetCooperativeLevel
+// with its own calls, and a game that had the foreground and lost it to a starting game is
+// minimised by dgVoodoo (RestoreAfterMinimise): the device restores that follow draw random numbers
+// and shifted a golden. So the user32 functions themselves are patched, for every caller in the
+// process: the activating calls do nothing, and windows are made and shown without being activated.
+// A window that cannot be activated is not given the foreground when the one in front closes.
+namespace noforeground {
+BOOL WINAPI SetForeground(HWND) { return TRUE; }
+BOOL WINAPI BringToTop(HWND) { return TRUE; }
+HWND WINAPI SetActive(HWND window) { return window; }
+HWND WINAPI SetFocusTo(HWND window) { return window; }
+void WINAPI SwitchTo(HWND, BOOL) {}
+
+using ShowWindowFn = decltype(&::ShowWindow);
+using SetWindowPosFn = decltype(&::SetWindowPos);
+using SetWindowLongFn = LONG(WINAPI*)(HWND, int, LONG);
+using CreateWindowExAFn = decltype(&::CreateWindowExA);
+using CreateWindowExWFn = decltype(&::CreateWindowExW);
+ShowWindowFn g_show;
+SetWindowPosFn g_setWindowPos;
+SetWindowLongFn g_setWindowLongA, g_setWindowLongW;
+CreateWindowExAFn g_createA;
+CreateWindowExWFn g_createW;
+
+BOOL WINAPI Show(HWND window, int command) {
+    switch (command) {
+    case SW_SHOWNORMAL: case SW_SHOW: case SW_RESTORE: case SW_SHOWDEFAULT: command = SW_SHOWNOACTIVATE; break;
+    case SW_SHOWMAXIMIZED: command = SW_SHOWNA; break;
+    case SW_MINIMIZE: case SW_SHOWMINIMIZED: return TRUE;   // a harness game is never minimised, except by its focus step
+    default: break;
+    }
+    return g_show(window, command);
+}
+BOOL WINAPI SetPos(HWND window, HWND after, int x, int y, int w, int h, UINT flags) {
+    return g_setWindowPos(window, after, x, y, w, h, flags | SWP_NOACTIVATE);
+}
+bool TopLevel(DWORD style, HWND parent) { return !parent && !(style & WS_CHILD); }
+LONG KeepNoActivate(HWND window, int index, LONG value) {
+    if (index == GWL_EXSTYLE && TopLevel(static_cast<DWORD>(GetWindowLongA(window, GWL_STYLE)), GetParent(window)))
+        value |= WS_EX_NOACTIVATE;
+    return value;
+}
+LONG WINAPI SetLongA(HWND window, int index, LONG value) {
+    return g_setWindowLongA(window, index, KeepNoActivate(window, index, value));
+}
+LONG WINAPI SetLongW(HWND window, int index, LONG value) {
+    return g_setWindowLongW(window, index, KeepNoActivate(window, index, value));
+}
+HWND WINAPI CreateA(DWORD exStyle, LPCSTR cls, LPCSTR name, DWORD style, int x, int y, int w, int h, HWND parent,
+                    HMENU menu, HINSTANCE instance, LPVOID param) {
+    if (TopLevel(style, parent)) exStyle |= WS_EX_NOACTIVATE;
+    return g_createA(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
+}
+HWND WINAPI CreateW(DWORD exStyle, LPCWSTR cls, LPCWSTR name, DWORD style, int x, int y, int w, int h, HWND parent,
+                    HMENU menu, HINSTANCE instance, LPVOID param) {
+    if (TopLevel(style, parent)) exStyle |= WS_EX_NOACTIVATE;
+    return g_createW(exStyle, cls, name, style, x, y, w, h, parent, menu, instance, param);
+}
+
+template <typename T>
+void Patch(const char* name, T replacement, T* original = nullptr) {
+    void* trampoline = HotPatch(name, reinterpret_cast<void*>(replacement));
+    if (original) *original = reinterpret_cast<T>(trampoline);
+}
+
+void Install() {
+    Patch("SetForegroundWindow", &SetForeground);
+    Patch("BringWindowToTop", &BringToTop);
+    Patch("SetActiveWindow", &SetActive);
+    Patch("SetFocus", &SetFocusTo);
+    Patch("SwitchToThisWindow", &SwitchTo);
+    Patch("ShowWindow", &Show, &g_show);
+    Patch("SetWindowPos", &SetPos, &g_setWindowPos);
+    Patch("SetWindowLongA", &SetLongA, &g_setWindowLongA);
+    Patch("SetWindowLongW", &SetLongW, &g_setWindowLongW);
+    Patch("CreateWindowExA", &CreateA, &g_createA);
+    Patch("CreateWindowExW", &CreateW, &g_createW);
+}
+
+// Whether the game window is the foreground window, logged when it changes: it never should be.
+void Watch(HWND window) {
+    static bool foreground = false;
+    const bool now = GetForegroundWindow() == window;
+    if (now == foreground) return;
+    foreground = now;
+    Log("harness: the game window %s the foreground window (style %08X, ex style %08X)",
+        now ? "is now" : "is no longer", unsigned(GetWindowLongA(window, GWL_STYLE)),
+        unsigned(GetWindowLongA(window, GWL_EXSTYLE)));
+}
+}  // namespace noforeground
 
 std::string FocusStep(const std::string& argument);
 std::string WindowSizeStep(const std::string& argument);
@@ -2334,8 +2440,9 @@ int WINAPI TracedAilStartup() {
 // front, so the harness keeps every game active: it subclasses the window and drops the
 // deactivation (and minimise) messages.
 WNDPROC g_gameWindowProc;
-// A game that Windows gave the foreground (when the window in front closed) and that then loses it
-// to a starting game is minimised by dgVoodoo, in the middle of a pass, and its surfaces are lost:
+// (Harness games no longer take the foreground, noforeground:: above, so this is now only the focus off
+// step's minimise.) A game that Windows gave the foreground (when the window in front closed) and that
+// then lost it to a starting game was minimised by dgVoodoo, in the middle of a pass, and its surfaces are lost:
 // the pass's BeginScene failed with DDERR_SURFACELOST ("Can't begin scene") and the run ended on the
 // game's error box. The game itself restores its surfaces only when it is activated again (the main
 // loop's RestoreAllSurfaces, 00457140), which the harness's always-active window never sees. So the
@@ -2351,7 +2458,7 @@ void RestoreAfterMinimise() {
     if (!g_minimised) return;
     if (g_restoresLeft == 50) {
         g_showWindow(g_minimised, SW_SHOWNOACTIVATE);
-        Log("harness: the game window was minimised (it had the foreground and lost it): shown again");
+        Log("harness: the game window was minimised (a focus off step, or the user): shown again");
     }
     CTextureDevice* device = RenderDeviceObject();
     if (device && device->ddraw_) {
@@ -2363,10 +2470,10 @@ void RestoreAfterMinimise() {
         if (result == DDERR_NOEXCLUSIVEMODE) {
             // A second minimise soon after the first also takes the exclusive mode away, and getting
             // it back (the renderer's restore after a switch back, 00504780) hangs while the window
-            // is in the background: the run ends on the game's lost-surface box, and run_all.py runs
-            // it again.
+            // is in the background: the run ends on the game's lost-surface box. (Harness games no longer
+            // take the foreground, noforeground::, so this should not be seen.)
             Log("harness: the exclusive mode was lost with the foreground; the run ends on the game's lost-surface "
-                "box and run_all.py runs it again");
+                "box");
             g_minimised = nullptr;
             return;
         }
@@ -2386,17 +2493,18 @@ LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam
     return CallWindowProcA(g_gameWindowProc, window, message, wParam, lParam);
 }
 
-// The window is shown and made without activating it (ShowWithoutActivating); under dgVoodoo its
-// exclusive cooperative level activates the window all the same (WM_ACTIVATE, which sets the game's
-// active flag 0079BC5C and starts its frames). Without DirectDraw (the switch-over, device.h) nothing
-// does, and the game never draws a frame: once the device object exists and the game is not active,
-// the harness sends the activation a foreground start would have given (ticket R9a2).
-void ActivateWithoutDirectDraw(HWND window) {
+// The window is shown and made without activating it, and nothing in the process brings it to the
+// front (ShowWithoutActivating, noforeground::), so Windows never sends it the WM_ACTIVATE that
+// sets the game's active flag 0079BC5C and starts its frames. (Under dgVoodoo its exclusive
+// cooperative level used to activate the window; without DirectDraw, the switch-over in device.h,
+// nothing did.) Once the device object exists and the game is not active, the harness sends the
+// activation a foreground start would have given (tickets R9a2, SV1c).
+void ActivateWithoutForeground(HWND window) {
     static bool sent = false;
-    if (sent || !device::WithoutDirectDraw() || !*reinterpret_cast<void**>(0x007AF080)) return;
+    if (sent || !*reinterpret_cast<void**>(0x007AF080)) return;
     sent = true;
     if (*reinterpret_cast<std::uint8_t*>(0x0079BC5C)) return;
-    Log("harness: the game window activated (the switch-over has no DirectDraw to activate it)");
+    Log("harness: the game window activated (nothing activates it: harness games never take the foreground)");
     SendMessageA(window, WM_ACTIVATE, WA_ACTIVE, 0);
 }
 
@@ -2439,12 +2547,13 @@ std::string WindowSizeStep(const std::string& argument) {
 void KeepGameWindowActive() {
     HWND window = GameWindow();
     if (!window) return;
+    noforeground::Watch(window);
     if (!g_gameWindowProc) {
         g_gameWindowProc = reinterpret_cast<WNDPROC>(
             SetWindowLongPtrA(window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(&AlwaysActiveWindowProc)));
         Log("harness: the game window stays active when it loses focus");
     }
-    ActivateWithoutDirectDraw(window);
+    ActivateWithoutForeground(window);
 }
 
 // Posted input reaches the game only through its main loop (WinMain 00456440: PeekMessageA, then
@@ -2630,6 +2739,7 @@ struct Harness {
         ei::SetMissingCodeHandler(&EndRunOnMissingCode);
         HotPatch("MessageBoxA", reinterpret_cast<void*>(&HarnessMessageBoxA));
         HotPatch("MessageBoxW", reinterpret_cast<void*>(&HarnessMessageBoxW));
+        noforeground::Install();
         // A crash must end the run: no Windows Error Reporting dialog, which freezes every thread
         // (the watchdog included) until someone closes it.
         SetErrorMode(GetErrorMode() | SEM_NOGPFAULTERRORBOX | SEM_FAILCRITICALERRORS);
@@ -2681,6 +2791,7 @@ struct Harness {
             if (!g_keepHeap) heap::Install();   // the CRT's heap gives the same addresses every run (harness_heap.h)
             if (!g_keepHeap && g_heapTrace) heap::StartTrace(g_selfBase, g_selfEnd);
             if (!g_keepHeap && !g_heapTrace) heap::StartSequence(g_selfBase, g_selfEnd);
+            if (!g_keepHeap) heap::StartOrderCheck(g_selfBase, g_selfEnd);   // EI_HEAPORDER (harness_heap_order.cpp)
             render::SetWaitForVsync(false);   // frames need not wait for the display (run\native)
             PatchSlot(kGetLocalTimeSlot, &FixedTime, g_getLocalTime);
             PatchSlot(kGetSystemTimeSlot, &FixedTime, g_getSystemTime);

@@ -136,13 +136,13 @@ GameBuffer* __fastcall DeletingVerify(GameBuffer* self, void*, unsigned flags) {
     Scratch actual(self);
     actual.CloneBlock();
     Scratch expected(actual.bytes);
-    GameBuffer* ret = GrowingBufferDeletingDestructor(actual.get(), nullptr, flags & ~1u);
+    GameBuffer* ret = actual.get()->DeleteGrowing(flags & ~1u);
     std::uintptr_t vtable;
     std::memcpy(&vtable, actual.bytes, 4);
     bool same = ret == actual.get() && vtable == kBufferViewBaseVtable &&
                 std::memcmp(expected.bytes + 4, actual.bytes + 4, sizeof(GameBuffer) - 4) == 0;
     ei::verify::Check("GrowingBufferDeletingDestructor", true, same, "flags %u", flags);
-    return GrowingBufferDeletingDestructor(self, nullptr, flags);
+    return self->DeleteGrowing(flags);
 }
 
 // 004DA850: MOV [ECX],imm32 (6).
@@ -182,11 +182,11 @@ void(__fastcall* s_reserveRead)(GameBuffer*, void*, std::int32_t);
 void(__fastcall* s_reserveWrite)(GameBuffer*, void*, std::int32_t);
 void __fastcall ReserveReadVerify(GameBuffer* self, void*, std::int32_t size) {
     CheckGrowth("GrowingBufferReserve@004DA630", self, static_cast<std::uint32_t>(size),
-                [&](GameBuffer* s) { s_reserveRead(s, nullptr, size); }, [&] { GrowingBufferReserve(self, nullptr, size); });
+                [&](GameBuffer* s) { s_reserveRead(s, nullptr, size); }, [&] { self->ReserveGrowing(size); });
 }
 void __fastcall ReserveWriteVerify(GameBuffer* self, void*, std::int32_t size) {
     CheckGrowth("GrowingBufferReserve@004DA6B0", self, static_cast<std::uint32_t>(size),
-                [&](GameBuffer* s) { s_reserveWrite(s, nullptr, size); }, [&] { GrowingBufferReserve(self, nullptr, size); });
+                [&](GameBuffer* s) { s_reserveWrite(s, nullptr, size); }, [&] { self->ReserveGrowing(size); });
 }
 
 // 004DA740: PUSH ECX, PUSH EBX (2), MOV EBX,ECX (2), PUSH EBP (1). The written bytes are compared too.
@@ -196,7 +196,7 @@ int __fastcall WriteMoreVerify(GameBuffer* self, void*, const void* from, std::u
     expected.Keep();
     std::uint32_t kept = Capacity(self);
     std::uint32_t at = Offset(self, self->cur);
-    int actualRet = GrowingBufferWriteMore(self, nullptr, from, size);
+    int actualRet = self->WriteMoreGrowing(from, size);
     expected.CloneBlock();
     int expectedRet = s_writeMore(expected.get(), nullptr, from, size);
     bool same = expectedRet == actualRet && SameRelative(expected.get(), self, kept) &&
@@ -213,14 +213,14 @@ std::uint8_t* __fastcall SeekVerify(GameBuffer* self, void*, std::int32_t positi
     bool grows = self->begin + position > self->end;
     if (!grows) {
         std::uint8_t* expectedRet = s_seek(expected.get(), nullptr, position);
-        std::uint8_t* actualRet = GrowingBufferSeek(self, nullptr, position);
+        std::uint8_t* actualRet = self->SeekGrowing(position);
         ei::verify::Check("GrowingBufferSeek", true, expectedRet == actualRet && expected.Same(self), "position %d",
                           position);
         return actualRet;
     }
     expected.Keep();
     std::uint32_t kept = Capacity(self);
-    std::uint8_t* actualRet = GrowingBufferSeek(self, nullptr, position);
+    std::uint8_t* actualRet = self->SeekGrowing(position);
     expected.CloneBlock();
     std::uint8_t* expectedRet = s_seek(expected.get(), nullptr, position);
     bool same = expectedRet == actualRet && SameRelative(expected.get(), self, kept);
@@ -234,7 +234,7 @@ using NothingFn = int(__fastcall*)(GameBuffer*, void*, const void*, std::uint32_
 NothingFn s_nothing1, s_nothing2, s_nothing3;
 int CheckNothing(const char* name, NothingFn original, GameBuffer* self, const void* data, std::uint32_t size) {
     int expected = original(self, nullptr, data, size);
-    int actual = BufferNothingMore(self, nullptr, data, size);
+    int actual = self->NothingMore(data, size);
     ei::verify::Check(name, expected, actual, "");
     return actual;
 }

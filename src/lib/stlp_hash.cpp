@@ -232,6 +232,7 @@ EI_REPLACE(0x0069D290, stlp::RecordNamed);
 EI_REPLACE(0x0069D380, stlp::RecordNamed);
 EI_REPLACE(0x006AD580, stlp::RecordNamed);
 EI_REPLACE(0x00613820, stlp::RecordNamed);
+EI_REPLACE(0x00613920, stlp::RecordNamed);   // S12f: the spell prototypes (007C8510), find_or_insert 00613C20
 
 // find_or_insert(obj): 15 instantiations.
 EI_REPLACE(0x004ACC10, Str4::FindOrInsert);

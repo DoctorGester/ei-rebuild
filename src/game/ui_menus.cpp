@@ -198,20 +198,14 @@ void __fastcall SaveLoadMouseDown(void* input, void*, int buttons, int x, int y)
 void __fastcall SaveLoadDoubleClick(void* input, void*, int buttons, int x, int y) {
     FromInput<CSaveLoadWindow>(input)->OnDoubleClick(buttons, x, y);
 }
-BOOL __fastcall SaveLoadDraw(CSaveLoadWindow* self, void*, int pass) { return self->CSaveLoadWindow::Draw(pass); }
-void __fastcall SaveLoadUpdate(CSaveLoadWindow* self, void*) { self->CSaveLoadWindow::Update(); }
-void __fastcall SaveLoadCloseDialog(CSaveLoadWindow* self, void*) { self->CSaveLoadWindow::CloseDialog(); }
-void __fastcall SaveLoadDialogResult(CSaveLoadWindow* self, void*, int result) {
-    self->CSaveLoadWindow::OnDialogResult(result);
-}
 } // namespace
 
 EI_REPLACE(0x00654660, SaveLoadMouseDown);
 EI_REPLACE(0x006547B0, SaveLoadDoubleClick);
-EI_REPLACE(0x006544A0, SaveLoadDraw);
-EI_REPLACE(0x006545E0, SaveLoadUpdate);
-EI_REPLACE(0x00654430, SaveLoadCloseDialog);
-EI_REPLACE(0x00654450, SaveLoadDialogResult);
+EI_REPLACE_METHOD(0x006544A0, CSaveLoadWindow::Draw);
+EI_REPLACE_METHOD(0x006545E0, CSaveLoadWindow::Update);
+EI_REPLACE_METHOD(0x00654430, CSaveLoadWindow::CloseDialog);
+EI_REPLACE_METHOD(0x00654450, CSaveLoadWindow::OnDialogResult);
 
 // --- Options window ----------------------------------------------------------------------------
 
@@ -383,20 +377,14 @@ void __fastcall OptionsMouseDown(void* input, void*, int buttons, int x, int y) 
 void __fastcall OptionsDoubleClick(void* input, void*, int buttons, int x, int y) {
     FromInput<COptionsWindow>(input)->OnDoubleClick(buttons, x, y);
 }
-BOOL __fastcall OptionsDraw(COptionsWindow* self, void*, int pass) { return self->COptionsWindow::Draw(pass); }
-void __fastcall OptionsRedraw(COptionsWindow* self, void*) { self->COptionsWindow::Redraw(); }
-void __fastcall OptionsDialogResult(COptionsWindow* self, void*, int result) {
-    self->COptionsWindow::OnDialogResult(result);
-}
-const char* __fastcall OptionsHelpTopic(COptionsWindow* self, void*) { return self->COptionsWindow::HelpTopic(); }
 } // namespace
 
 EI_REPLACE(0x00650C20, OptionsMouseDown);
 EI_REPLACE(0x00650D70, OptionsDoubleClick);
-EI_REPLACE(0x00650920, OptionsDraw);
-EI_REPLACE(0x00650A20, OptionsRedraw);
-EI_REPLACE(0x006508E0, OptionsDialogResult);
-EI_REPLACE(0x00650900, OptionsHelpTopic);
+EI_REPLACE_METHOD(0x00650920, COptionsWindow::Draw);
+EI_REPLACE_METHOD(0x00650A20, COptionsWindow::Redraw);
+EI_REPLACE_METHOD(0x006508E0, COptionsWindow::OnDialogResult);
+EI_REPLACE_METHOD(0x00650900, COptionsWindow::HelpTopic);
 EI_REPLACE_METHOD(0x00650A30, COptionsWindow::Update);
 
 // --- 0062B180: the destructor body ------------------------------------------------------------------

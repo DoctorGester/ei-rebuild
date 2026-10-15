@@ -432,26 +432,26 @@ namespace {
 void SetVtable(GameBuffer* b, std::uintptr_t vtable) { ei::SetVtable(b, vtable); }
 } // namespace
 
-std::uint8_t* __fastcall BufferViewSeek(GameBuffer* self, void*, std::int32_t position) {
-    self->cur = self->begin + position;
-    return self->cur;
+std::uint8_t* GameBuffer::SeekView(std::int32_t position) {
+    cur = begin + position;
+    return cur;
 }
-EI_REPLACE(0x0047D930, BufferViewSeek);
+EI_REPLACE_METHOD(0x0047D930, GameBuffer::SeekView);
 
 void __fastcall BufferViewDestruct(GameBuffer* self) { SetVtable(self, kBufferViewBaseVtable); }
 EI_REPLACE(0x0047D960, BufferViewDestruct);
 EI_REPLACE(0x004DA850, BufferViewDestruct);   // byte-identical copy (reached when unwinding)
 
-void* __fastcall BufferViewDeletingDestructor(GameBuffer* self, void*, unsigned flags) {
-    BufferViewDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+void* GameBuffer::DeleteView(unsigned deleteFlags) {
+    BufferViewDestruct(this);
+    if (deleteFlags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0047D940, BufferViewDeletingDestructor);
+EI_REPLACE_METHOD(0x0047D940, GameBuffer::DeleteView);
 
-void* __fastcall BufferViewBaseDeletingDestructor(GameBuffer* self, void*, unsigned flags) {
-    SetVtable(self, kBufferViewBaseVtable);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+void* GameBuffer::DeleteViewBase(unsigned deleteFlags) {
+    SetVtable(this, kBufferViewBaseVtable);
+    if (deleteFlags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0047D910, BufferViewBaseDeletingDestructor);
+EI_REPLACE_METHOD(0x0047D910, GameBuffer::DeleteViewBase);

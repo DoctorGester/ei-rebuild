@@ -28,12 +28,9 @@
 #include <cstdint>
 #include <cstring>
 
-// class_slots.cpp (no header declares the shims).
-CHoover* __fastcall HooverDeletingDestruct(CHoover* self, void*, unsigned flags);
 int __fastcall HooverCreate(CHoover*);
 const char* __fastcall HooverGetClassName(const CHoover*);
 int __fastcall HooverGetClassId(const CHoover*);
-CLightning* __fastcall LightningDeletingDestruct(CLightning* self, void*, unsigned flags);
 const char* __fastcall LightningGetClassName(const CLightning*);
 int __fastcall LightningGetClassId(const CLightning*);
 int __fastcall FakeUnitCreate(scene::FakeUnitScene* self);
@@ -45,8 +42,6 @@ const mfc::CString* __fastcall UnitSetScriptName(CUnit* unit, void*, const char*
 int __fastcall UnitRefreshWounds(CUnit* unit);
 std::uintptr_t __fastcall UnitMoveFactorsChanged(CUnit* unit);
 std::uintptr_t __fastcall MapObjectSetVisibilityMode(CMapObject* object, void*, int mode);
-mfc::CString* __fastcall ItemNoName(CItem*, void*, mfc::CString* out);
-ItemUse* __fastcall ItemNoUse(CItem*, void*, ItemUse* out);
 
 namespace {
 void* s_unused;
@@ -105,13 +100,13 @@ float __fastcall ForwardSpeedVerify(CUnit* self) {
 }
 
 CHoover* __fastcall HooverDeletingVerify(CHoover* self, void*, unsigned flags) {
-    CHoover* result = HooverDeletingDestruct(self, nullptr, flags);
+    CHoover* result = self->DeleteScalar(flags);
     ei::verify::Check("CHoover deleting destructor", true, result == self, "flags %u", flags);
     return result;
 }
 
 CLightning* __fastcall LightningDeletingVerify(CLightning* self, void*, unsigned flags) {
-    CLightning* result = LightningDeletingDestruct(self, nullptr, flags);
+    CLightning* result = self->DeleteScalar(flags);
     ei::verify::Check("CLightning deleting destructor", true, result == self, "flags %u", flags);
     return result;
 }
@@ -196,7 +191,7 @@ std::uintptr_t __fastcall SetVisibilityModeVerify(CMapObject* self, void*, int m
 void CheckNoName(int slot, CItem* self, const mfc::CString* expected) {
     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
     auto* ours = reinterpret_cast<mfc::CString*>(storage);
-    mfc::CString* result = ItemNoName(self, nullptr, ours);
+    mfc::CString* result = self->EmptyName(ours);
     bool same = result == ours && std::strcmp(*expected, *ours) == 0 && ours->GetLength() == 0;
     ei::verify::Check("CItem base name slot", true, same, "slot %d: \"%.40s\"", slot,
                       static_cast<const char*>(*expected));
@@ -233,7 +228,7 @@ ItemUse*(__fastcall* s_noUse)(CItem*, void*, ItemUse*);
 ItemUse* __fastcall NoUseVerify(CItem* self, void*, ItemUse* out) {
     ItemUse expected;
     ItemUse* expectedResult = s_noUse(self, nullptr, &expected);
-    ItemUse* result = ItemNoUse(self, nullptr, out);
+    ItemUse* result = self->NoUse(out);
     bool same = expectedResult == &expected && result == out && std::memcmp(&expected, out, sizeof expected) == 0;
     ei::verify::Check("CItem base slot 21 (no use)", true, same, "");
     return result;

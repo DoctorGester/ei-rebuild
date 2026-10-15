@@ -7,7 +7,7 @@
 //    object is a global: no caller).
 #include "verify.h"
 
-struct CSysInfo;
+#include "../../src/game/sys_info.h"
 
 // sys_info.cpp (no header declares the shims).
 int __fastcall SysInfoCreate(CSysInfo* self);
@@ -15,7 +15,6 @@ void __fastcall SysInfoDestroy(CSysInfo* self);
 const char* __fastcall SysInfoClassName(CSysInfo* self);
 int __fastcall SysInfoClassId(CSysInfo* self);
 void __fastcall SysInfoDestruct(CSysInfo* self);
-CSysInfo* __fastcall SysInfoDelete(CSysInfo* self, void*, unsigned flags);
 void __cdecl SysInfoAtExit();
 
 namespace {
@@ -57,7 +56,7 @@ void __fastcall DestructVerify(CSysInfo* self) {
 }
 
 CSysInfo* __fastcall DeleteVerify(CSysInfo* self, void*, unsigned flags) {
-    CSysInfo* result = SysInfoDelete(self, nullptr, flags);
+    CSysInfo* result = self->DeleteScalar(flags);
     ei::verify::Check("CSysInfo deleting destructor (004DE8B0)", static_cast<void*>(self), static_cast<void*>(result),
                       "flags %u", flags);
     return result;

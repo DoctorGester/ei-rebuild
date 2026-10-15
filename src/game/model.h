@@ -221,6 +221,7 @@ class CTexture;   // texture.h
 // (vtable 0073D880; its base's, 0073D888, has the pure slot 1.)
 class __declspec(novtable) CRenderPreset {
 public:
+    void* DeleteScalar(unsigned flags);
     virtual void* DeleteThis(unsigned flags);   // 0: 004FD880 (the destructor body 004FD8B0)
     virtual unsigned Index();                   // 1: 004FD870 (too short to hook). index_.
 
@@ -261,6 +262,11 @@ struct IDirect3DDevice7;
 // render_helper.cpp has all of it (A-S11 the slots that only read the tables, A-S12 the rest).
 class __declspec(novtable) CRenderHelper {
 public:
+    bool BuiltInStatesOf(unsigned index, stlp::vector<RenderPresetRecord::State>* out);
+    bool PresetStatesOf(CRenderPreset* preset, stlp::vector<RenderPresetRecord::State>* out);
+    CRenderPreset* PresetAt(unsigned index);
+    void* PresetBlockOf(CRenderPreset* preset);
+    void ReleasePresetRecord(CRenderPreset* preset);
     static constexpr unsigned kPresetCount = 9;
 
     virtual void* DeleteThis(unsigned flags);   // 0: 004FCC20 (the destructor body 004FCD50)

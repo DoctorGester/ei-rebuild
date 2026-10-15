@@ -34,6 +34,9 @@ HookRegistrar::HookRegistrar(std::uintptr_t address, void* wrapper, const char* 
     g_hooks = &entry;
 }
 
+static VerifyInstallFn g_verifyInstall = nullptr;
+void SetVerifyInstall(VerifyInstallFn fn) { g_verifyInstall = fn; }
+
 static StartupCheck* g_startupChecks = nullptr;
 
 static StartupAction* g_startupActions = nullptr;
@@ -569,9 +572,11 @@ int InstallHooks() {
         DWORD old = 0;
         const bool inText = text.Contains(h->address, 5);
         if (!inText) VirtualProtect(target, 5, PAGE_EXECUTE_READWRITE, &old);
+        // The harness's heap-order check may put a thunk in front of a verify wrapper (and its trampoline).
+        void* const jumpTo = h->verify && g_verifyInstall ? g_verifyInstall(*h) : h->replacement;
         target[0] = 0xE9; // JMP rel32
         std::int32_t rel = static_cast<std::int32_t>(
-            reinterpret_cast<std::uintptr_t>(h->replacement) - (h->address + 5));
+            reinterpret_cast<std::uintptr_t>(jumpTo) - (h->address + 5));
         std::memcpy(target + 1, &rel, 4);
         if (!inText) VirtualProtect(target, 5, old, &old);
         FlushInstructionCache(GetCurrentProcess(), target, 5);

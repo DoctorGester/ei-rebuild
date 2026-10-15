@@ -23,11 +23,7 @@
 
 #include <cstring>
 
-void __fastcall MapObjectIgnore(CMapObject*, void*, int);
 int __fastcall MapObjectZero(CMapObject*);
-int __fastcall MapObjectAcceptsKey(CMapObject*, void*, const void*);
-bool __fastcall MapObjectAcceptsAnimation(CMapObject*, void*, const void*);
-int __fastcall MapObjectScaleEffectChanged(CMapObject*, void*, int);
 int __fastcall MapObjectKeyId(CMapObject*);
 float __fastcall MapObjectMoveSpeed(CMapObject*);
 float __fastcall MapObjectRadius(CMapObject*);
@@ -37,7 +33,7 @@ void* s_unused;
 } // namespace
 
 static void __fastcall IgnoreVerify(CMapObject* self, void*, int value) {
-    MapObjectIgnore(self, nullptr, value);
+    self->IgnoreArgument(value);
     ei::verify::Check("CMapObject empty slot (one argument)", true, true, "");
 }
 EI_VERIFY(0x0050E410, IgnoreVerify, 0, s_unused);
@@ -55,14 +51,14 @@ EI_VERIFY(0x0050F0D0, ZeroVerify, 0, s_unused);
 EI_VERIFY(0x0050E4F0, ZeroVerify, 0, s_unused);
 
 static int __fastcall AcceptsKeyVerify(CMapObject* self, void*, const void* key) {
-    int result = MapObjectAcceptsKey(self, nullptr, key);
+    int result = self->AcceptsNoKey(key);
     ei::verify::Check("CMapObject::AcceptsKey", 0, result, "");
     return result;
 }
 EI_VERIFY(0x0050F110, AcceptsKeyVerify, 0, s_unused);
 
 static bool __fastcall AcceptsAnimationVerify(CMapObject* self, void*, const void* animation) {
-    bool result = MapObjectAcceptsAnimation(self, nullptr, animation);
+    bool result = self->AcceptsAnyAnimation(animation);
     ei::verify::Check("CMapObject::AcceptsAnimation", true, result, "");
     return result;
 }
@@ -72,7 +68,7 @@ EI_VERIFY(0x0050E400, AcceptsAnimationVerify, 0, s_unused);
 static int(__fastcall* s_scaleEffectChanged)(CMapObject*, void*, int);
 static int __fastcall ScaleEffectChangedVerify(CMapObject* self, void*, int scaleEffect) {
     int expected = s_scaleEffectChanged(self, nullptr, scaleEffect);
-    ei::verify::Check("CMapObject::ScaleEffectChanged", expected, MapObjectScaleEffectChanged(self, nullptr, scaleEffect),
+    ei::verify::Check("CMapObject::ScaleEffectChanged", expected, self->ScaleEffectChangedDefault(scaleEffect),
                       "");
     return expected;
 }

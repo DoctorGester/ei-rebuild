@@ -85,13 +85,5 @@ CItem* CConstructorPage::ItemMakerItemAt(int x, int y, int* topic) {
     return nullptr;
 }
 
-namespace {
-CItem* __fastcall SpellMakerItemAt(CConstructorPage* self, void*, int x, int y, int* topic) {
-    return self->SpellMakerItemAt(x, y, topic);
-}
-CItem* __fastcall ItemMakerItemAt(CConstructorPage* self, void*, int x, int y, int* topic) {
-    return self->ItemMakerItemAt(x, y, topic);
-}
-} // namespace
-EI_REPLACE(0x00628B50, SpellMakerItemAt);
-EI_REPLACE(0x006298B0, ItemMakerItemAt);
+EI_REPLACE_METHOD(0x00628B50, CConstructorPage::SpellMakerItemAt);
+EI_REPLACE_METHOD(0x006298B0, CConstructorPage::ItemMakerItemAt);

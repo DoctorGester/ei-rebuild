@@ -337,6 +337,15 @@ void PushReplicatedInline(ReplicatedVector* v, void* object, std::uint8_t priori
 // that byte.
 class __declspec(novtable) SessionBase : public CRefCounted {
 public:
+    void RegisterTradeHandler(int channel, void* handler);
+    void RegisterAwardHandler(int channel, void* handler);
+    void RegisterChunkHandler(int channel, void* handler);
+    void RegisterFileHandler(int channel, void* handler);
+    void RegisterVariableHandler(int channel, void* handler);
+    void RegisterMapHandler(int channel, void* handler);
+    void RegisterMemberHandler(int channel, void* handler);
+    void RegisterPartyHandler(int channel, void* handler);
+    void RegisterRequestHandler(int channel, void* handler);
     static constexpr std::uintptr_t kVtableAddress = 0x0073BF5C;
 
     // 0: 004368D0 deleting destructor (DeletingDestruct); 1: Serialize (empty).

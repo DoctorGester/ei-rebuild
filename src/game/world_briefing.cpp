@@ -196,7 +196,7 @@ void ShareQuestFile(const char* path, const char* name) {
     const std::int32_t size = static_cast<std::int32_t>(source.file.high - source.file.begin) + source.file.base;
     data->Seek(0);
     std::uint8_t* to = data->BeginWrite(size);
-    net::BufferRead(&source.file, nullptr, to, static_cast<unsigned>(size));
+    source.file.ReadBytes(to, static_cast<unsigned>(size));
     data->cur = to + size;
     data->Commit();
     stlp::string listed(name);

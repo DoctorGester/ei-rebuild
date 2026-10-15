@@ -42,6 +42,11 @@ static_assert(sizeof(CRefObject) == 8);
 
 // An owning pointer to a CRefObject (one dword).
 struct RefPtr {
+    RefPtr* AssignCounted(const RefPtr* other);
+    RefPtr* CopyPlain(const RefPtr* other);
+    RefPtr* CopyShared(const RefPtr* other);
+    RefPtr* DeleteReleased(unsigned flags);
+    RefPtr* DeleteDestroyed(unsigned flags);
     RefPtr* FromRawCounted(CRefObject* object);
     // 004A5D50 / 004ABE30 (RET 4; S16a): counted_ptr<T>'s copy constructor: from's object, one more
     // reference. Returns this.

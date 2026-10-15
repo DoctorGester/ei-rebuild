@@ -43,18 +43,9 @@
 #include <cstring>
 #include <vector>
 
-// render_helper.cpp (no header declares the shims).
-bool __fastcall RenderHelperPresetStates(CRenderHelper* self, void*, CRenderPreset* preset,
-                                         stlp::vector<RenderPresetRecord::State>* out);
 MatrixStack* __fastcall MatrixStackConstruct(MatrixStack* self);
 void __fastcall TransformPipelineDestruct(CTransformPipeline* self);
-void __fastcall RenderHelperReleasePreset(CRenderHelper* self, void*, CRenderPreset* preset);
-void* __fastcall RenderHelperPresetBlock(CRenderHelper* self, void*, CRenderPreset* preset);
-CRenderPreset* __fastcall RenderHelperPreset(CRenderHelper* self, void*, unsigned index);
-bool __fastcall RenderHelperBuiltInStates(CRenderHelper* self, void*, unsigned index,
-                                          stlp::vector<RenderPresetRecord::State>* out);
 void __fastcall RenderPresetDestruct(CRenderPreset* self);
-void* __fastcall RenderPresetDelete(CRenderPreset* self, void*, unsigned flags);
 void* __fastcall RenderBaseDelete(void* self, void*, unsigned flags);
 void* __fastcall DeviceDelete(void* self, void*, unsigned flags);
 void* __fastcall DirectDrawHolderDelete(void* self, void*, unsigned flags);
@@ -367,7 +358,7 @@ CRenderHelper* __fastcall ConstructVerify(CRenderHelper* self, void*, IDirect3DD
 
 void __fastcall ReleasePresetVerify(CRenderHelper* self, void*, CRenderPreset* preset) {
     bool known = self->records_.Find(preset) != nullptr;
-    RenderHelperReleasePreset(self, nullptr, preset);
+    self->ReleasePresetRecord(preset);
     ei::verify::Check("CRenderHelper slot 2 (004FDB00)", true, true, "known %d", known ? 1 : 0);
 }
 
@@ -375,7 +366,7 @@ void __fastcall ReleasePresetVerify(CRenderHelper* self, void*, CRenderPreset* p
 void*(__fastcall* s_presetBlock)(CRenderHelper*, void*, CRenderPreset*);
 void* __fastcall PresetBlockVerify(CRenderHelper* self, void*, CRenderPreset* preset) {
     void* expected = s_presetBlock(self, nullptr, preset);
-    void* result = RenderHelperPresetBlock(self, nullptr, preset);
+    void* result = self->PresetBlockOf(preset);
     ei::verify::Check("CRenderHelper slot 4 (004FDB50)", expected, result, "preset %p", static_cast<void*>(preset));
     return result;
 }
@@ -384,7 +375,7 @@ void* __fastcall PresetBlockVerify(CRenderHelper* self, void*, CRenderPreset* pr
 CRenderPreset*(__fastcall* s_preset)(CRenderHelper*, void*, unsigned);
 CRenderPreset* __fastcall PresetVerify(CRenderHelper* self, void*, unsigned index) {
     CRenderPreset* expected = s_preset(self, nullptr, index);
-    CRenderPreset* result = RenderHelperPreset(self, nullptr, index);
+    CRenderPreset* result = self->PresetAt(index);
     ei::verify::Check("CRenderHelper::Preset (004FDBA0)", static_cast<void*>(expected), static_cast<void*>(result),
                       "index %u", index);
     return result;
@@ -396,7 +387,7 @@ bool __fastcall PresetStatesVerify(CRenderHelper* self, void*, CRenderPreset* pr
                                    stlp::vector<RenderPresetRecord::State>* out) {
     stlp::vector<RenderPresetRecord::State> expected;
     bool expectedResult = s_presetStates(self, nullptr, preset, &expected);
-    bool result = RenderHelperPresetStates(self, nullptr, preset, out);
+    bool result = self->PresetStatesOf(preset, out);
     bool same = expectedResult == result;
     if (same && result) {
         same = expected.size() == out->size() &&
@@ -412,7 +403,7 @@ bool __fastcall PresetStatesVerify(CRenderHelper* self, void*, CRenderPreset* pr
 bool __fastcall BuiltInStatesVerify(CRenderHelper* self, void*, unsigned index,
                                     stlp::vector<RenderPresetRecord::State>* out) {
     bool possible = index < CRenderHelper::kPresetCount && self->presets_[index] != nullptr;
-    bool result = RenderHelperBuiltInStates(self, nullptr, index, out);
+    bool result = self->BuiltInStatesOf(index, out);
     ei::verify::Check("CRenderHelper slot 7 (004FDD80)", true, possible || !result, "index %u result %d", index,
                       result ? 1 : 0);
     return result;
@@ -433,7 +424,9 @@ void* DeleteCheck(const char* name, T* self, unsigned flags) {
     return result;
 }
 void* __fastcall PresetDeleteVerify(CRenderPreset* self, void*, unsigned flags) {
-    return DeleteCheck<CRenderPreset, RenderPresetDelete>("CRenderPreset deleting destructor (004FD880)", self, flags);
+    void* result = self->DeleteScalar(flags);
+    ei::verify::Check("CRenderPreset deleting destructor (004FD880)", static_cast<void*>(self), result, "flags %u", flags);
+    return result;
 }
 void* __fastcall BaseDeleteVerify(void* self, void*, unsigned flags) {
     return DeleteCheck<void, RenderBaseDelete>("renderer base deleting destructor (004FCD30 / 004FD900)", self, flags);

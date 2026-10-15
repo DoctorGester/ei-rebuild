@@ -239,13 +239,6 @@ def game_environment(environ=None):
             if k.startswith('EI_') and k not in NOT_GAME_ENV}
 
 
-# A game window that had the foreground (Windows hands it to another game when the one in front
-# closes) and lost it to a starting game is minimised by dgVoodoo, which takes its surfaces and,
-# when that comes twice, its exclusive mode: the run ends on the game's "surface memory is gone"
-# box (harness.cpp, RestoreAfterMinimise). That is the machine, not the code: such a run is run again.
-MINIMISED = 'harness: the game window was minimised'
-MINIMISED_RERUNS = 2
-
 # A run past its time limit. ei_launch exits with TIMEOUT_EXIT when it had to end the game itself and
 # UNKILLABLE_EXIT when the game stayed alive after TerminateProcess (a thread stuck in a driver call); the
 # game's own watchdog writes this failure into the report.
@@ -290,8 +283,7 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
     submitters' batches. It goes to the subprocess only; os.environ stays as it is.
     dgvoodoo: a run of our code draws through dgVoodoo instead of our renderer (our_renderer).
     A run of the original code (no hooks) is taken from the reference cache when it holds it (reference_key),
-    unless fresh; a passed one is put there.
-    A dgVoodoo run that fails after dgVoodoo minimised its window is run again (MINIMISED)."""
+    unless fresh; a passed one is put there."""
     folder = folder or f'{name}-{install}'
     scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
     environ = os.environ if game_env is None else game_env
@@ -300,24 +292,11 @@ def run(name, install, hooks, folder=None, root=ROOT, build=BUILD, take_slot=Tru
         cached = reference_from_cache(name, install, key, os.path.join(build, 'runs', folder))
         if cached:
             return cached
-    on_dgvoodoo = not our_renderer(scenario, install, hooks, dgvoodoo, environ)
-    for attempt in range(MINIMISED_RERUNS + 1):
-        result, seconds, failures, counts, notes = run_once(name, install, hooks, folder, root, build, take_slot, clock,
-                                                            game_env, dgvoodoo)
-        if result == 'PASS' or attempt == MINIMISED_RERUNS or not on_dgvoodoo or not minimised(build, folder):
-            break
-        print(f'  {folder}: {result} after dgVoodoo minimised the window; running it again', flush=True)
+    result, seconds, failures, counts, notes = run_once(name, install, hooks, folder, root, build, take_slot, clock,
+                                                        game_env, dgvoodoo)
     if key and result == 'PASS':
         store_reference(name, install, key, os.path.join(build, 'runs', folder), (result, seconds, failures, counts, notes))
     return result, seconds, failures, counts, notes
-
-
-def minimised(build, folder):
-    path = os.path.join(build, 'runs', folder, 'ei_hook.log')
-    with contextlib.suppress(OSError):
-        with open(path, encoding='cp1251', errors='replace') as f:
-            return any(MINIMISED in line for line in f)
-    return False
 
 
 def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_env, dgvoodoo=False):

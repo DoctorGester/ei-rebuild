@@ -30,6 +30,32 @@ struct StringRep;
 
 class __declspec(novtable) GameBuffer {
 public:
+    void* DeleteViewBase(unsigned deleteFlags);
+    // 0047D940 (slot 5, RET 4) and the base's 0047D910 (slot 5 of 0073CA48, RET 4): deleting
+    // destructors (the base's vtable left; freed when bit 0 of `flags` is set). Return `self`.
+    void* DeleteView(unsigned deleteFlags);
+    // The fixed view's own slots (free functions registered at their addresses, rewrite-guide rule 4).
+    // 0047D930 (slot 6, RET 4): the cursor moved to `position` bytes from the start; returns it.
+    std::uint8_t* SeekView(std::int32_t position);
+    // 004DA8F0 (slot 5, RET 4): DestructGrowing, freed when bit 0 of `flags` is set; returns `self`.
+    GameBuffer* DeleteGrowing(unsigned deleteFlags);
+    // The growing buffer's slots (game_buffer.cpp).
+    // 004DA630 / 004DA6B0 (slots 0 / 1, RET 4, byte-identical): always moves the contents to a new
+    // block of (base - begin + cur + size) * 2 + 0x40 bytes (callers test the room first).
+    void ReserveGrowing(std::int32_t size);
+    // 004DA860 (slot 6, RET 4): `high` raised to the cursor, the cursor moved to begin + position; past
+    // `end` the contents move to a block of position * 2 + 0x40 bytes. Returns the cursor, or the new
+    // capacity when it grew (EAX as the original leaves it).
+    std::uint8_t* SeekGrowing(std::int32_t position);
+    // 004DA740 (slot 4, RET 8): grows as Reserve, then copies `size` bytes to the cursor; returns `size`.
+    int WriteMoreGrowing(const void* from, std::uint32_t size);
+    // 004DA5A0 / 004DA5B0 (view slots 3 / 4) and 004DA730 (growing slot 3), RET 8: 0.
+    int NothingMore(const void*, std::uint32_t);
+    // 00401340
+    unsigned ReadBytes(void* to, unsigned size);
+    // The byte buffer's read helpers (net_game_info.cpp).
+    // 00401310
+    GameBuffer* CopyOut(void* to, unsigned size);
     GameBuffer() {}
     GameBuffer(const GameBuffer& other) { std::memcpy(static_cast<void*>(this), &other, sizeof(GameBuffer)); }
     GameBuffer& operator=(const GameBuffer& other) {
@@ -113,30 +139,9 @@ constexpr std::uintptr_t kGrowingBufferVtable = 0x0073D624;
 constexpr std::uintptr_t kBufferViewVtable = GameBuffer::kViewVtableAddress;
 constexpr std::uintptr_t kBufferViewBaseVtable = 0x0073CA48;
 
-// The fixed view's own slots (free functions registered at their addresses, rewrite-guide rule 4).
-// 0047D930 (slot 6, RET 4): the cursor moved to `position` bytes from the start; returns it.
-std::uint8_t* __fastcall BufferViewSeek(GameBuffer* self, void*, std::int32_t position);
 // 0047D960: the base's vtable left (the view owns nothing).
 void __fastcall BufferViewDestruct(GameBuffer* self);
-// 0047D940 (slot 5, RET 4) and the base's 0047D910 (slot 5 of 0073CA48, RET 4): deleting
-// destructors (the base's vtable left; freed when bit 0 of `flags` is set). Return `self`.
-void* __fastcall BufferViewDeletingDestructor(GameBuffer* self, void*, unsigned flags);
-void* __fastcall BufferViewBaseDeletingDestructor(GameBuffer* self, void*, unsigned flags);
-// 004DA5A0 / 004DA5B0 (view slots 3 / 4) and 004DA730 (growing slot 3), RET 8: 0.
-int __fastcall BufferNothingMore(GameBuffer* self, void*, const void* data, std::uint32_t size);
 
-// The growing buffer's slots (game_buffer.cpp).
-// 004DA630 / 004DA6B0 (slots 0 / 1, RET 4, byte-identical): always moves the contents to a new
-// block of (base - begin + cur + size) * 2 + 0x40 bytes (callers test the room first).
-void __fastcall GrowingBufferReserve(GameBuffer* self, void*, std::int32_t size);
-// 004DA740 (slot 4, RET 8): grows as Reserve, then copies `size` bytes to the cursor; returns `size`.
-int __fastcall GrowingBufferWriteMore(GameBuffer* self, void*, const void* from, std::uint32_t size);
-// 004DA860 (slot 6, RET 4): `high` raised to the cursor, the cursor moved to begin + position; past
-// `end` the contents move to a block of position * 2 + 0x40 bytes. Returns the cursor, or the new
-// capacity when it grew (EAX as the original leaves it).
-std::uint8_t* __fastcall GrowingBufferSeek(GameBuffer* self, void*, std::int32_t position);
-// 004DA8F0 (slot 5, RET 4): DestructGrowing, freed when bit 0 of `flags` is set; returns `self`.
-GameBuffer* __fastcall GrowingBufferDeletingDestructor(GameBuffer* self, void*, unsigned flags);
 
 // A cursor over a GameBuffer (0x18 bytes) that reads and writes bytes and LSB-first bit fields.
 // Bits are collected in `acc`; a byte is reserved at `bytePtr` when a field starts in a new

@@ -395,7 +395,7 @@ void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message
                 std::memcpy(buffer.cur, data, FileChunkMessage::kDataSize);
                 buffer.cur += FileChunkMessage::kDataSize;
             } else {
-                GrowingBufferWriteMore(&buffer, nullptr, data, FileChunkMessage::kDataSize);
+                buffer.WriteMoreGrowing(data, FileChunkMessage::kDataSize);
             }
         }
         // The buffer rewound and its written length set to the file's (the last chunk is padded).

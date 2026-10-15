@@ -13,10 +13,6 @@
 
 namespace net {
 
-// The handler registration templates (net_handler_registrars.cpp).
-void __fastcall RegisterRequestHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterPartyHandler(SessionBase* self, void*, int channel, void* handler);
-void __fastcall RegisterMemberHandler(SessionBase* self, void*, int channel, void* handler);
 
 namespace {
 
@@ -84,12 +80,12 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     AddHandlerFor<CommandMessage>(0, Handler(0x0041B2A0));
     AddHandlerFor<FileRequestMessage>(0, Handler(0x0041B690));
 
-    RegisterRequestHandler(this, nullptr, 2, Handler(0x0041B720));
-    RegisterPartyHandler(this, nullptr, 0, Handler(0x0041B7A0));
-    RegisterPartyHandler(this, nullptr, 1, Handler(0x0041B970));
-    RegisterPartyHandler(this, nullptr, 2, Handler(0x0041BA30));
-    RegisterMemberHandler(this, nullptr, 0, Handler(0x0041BA20));
-    RegisterMemberHandler(this, nullptr, 1, Handler(0x0041BA20));
+    RegisterRequestHandler(2, Handler(0x0041B720));
+    RegisterPartyHandler(0, Handler(0x0041B7A0));
+    RegisterPartyHandler(1, Handler(0x0041B970));
+    RegisterPartyHandler(2, Handler(0x0041BA30));
+    RegisterMemberHandler(0, Handler(0x0041BA20));
+    RegisterMemberHandler(1, Handler(0x0041BA20));
 
     nextLine_ = 0;
     kind_ = kind;

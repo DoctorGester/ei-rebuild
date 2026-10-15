@@ -182,6 +182,13 @@ class CUnit;
 // objects.
 class CUnitController : public CEngineObject {
 public:
+    bool ReturnFalse(int);
+    int ReturnZeroThree(int, int, int);
+    int ReturnZeroOne(int);
+    void IgnoreThreeArguments(int, int, int);
+    void IgnoreTwoArguments(int, int);
+    void IgnoreArgument(int);
+    CUnitController* DeleteScalar(unsigned flags);
     virtual void FiguresLoaded();           // 13: client 005344E0, base 00533B90
     virtual void RestartAnimation(float time);  // 14: client 005352B0 (the animations the unit names at +0x254 / +0x255 from frame `time`)
     virtual void Unused15();                // 15: empty everywhere (base 00533BB0, client 00535580)

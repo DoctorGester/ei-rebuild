@@ -349,12 +349,12 @@ void __fastcall UnitSpecDestruct(UnitSpec* self) {
 EI_REPLACE(0x0046C140, UnitSpecDestruct);
 
 // 0046C120 (slot 10).
-UnitSpec* __fastcall UnitSpecDelete(UnitSpec* self, void*, unsigned flags) {
-    UnitSpecDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+UnitSpec* UnitSpec::DeleteScalar(unsigned flags) {
+    UnitSpecDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0046C120, UnitSpecDelete);
+EI_REPLACE_METHOD(0x0046C120, UnitSpec::DeleteScalar);
 
 // 0046C2F0: the destructor of the block at +0x210 (the five string lists; reached only when an
 // exception unwinds the constructor).

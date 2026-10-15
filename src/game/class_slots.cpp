@@ -36,12 +36,12 @@ int& LightningNoiseLoaded() { return *reinterpret_cast<int*>(0x007A9694); }
 // ---- CHoover (vtable 0073C434) --------------------------------------------------------------------
 
 // 00461C60, slot 0 (RET 4): the destructor body, then operator delete when bit 0 of `flags` is set.
-CHoover* __fastcall HooverDeletingDestruct(CHoover* self, void*, unsigned flags) {
-    self->Destruct();
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CHoover* CHoover::DeleteScalar(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x00461C60, HooverDeletingDestruct);
+EI_REPLACE_METHOD(0x00461C60, CHoover::DeleteScalar);
 
 // 00461C90, slot 2 (Create): 1.
 int __fastcall HooverCreate(CHoover*) { return 1; }
@@ -56,12 +56,12 @@ EI_REPLACE(0x00461C50, HooverGetClassId);
 // ---- CLightning (vtable 0073C550) and its manager (0073F5B8) --------------------------------------
 
 // 004687F0, slot 0 (RET 4).
-CLightning* __fastcall LightningDeletingDestruct(CLightning* self, void*, unsigned flags) {
-    LightningDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+CLightning* CLightning::DeleteScalar(unsigned flags) {
+    LightningDestruct(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004687F0, LightningDeletingDestruct);
+EI_REPLACE_METHOD(0x004687F0, CLightning::DeleteScalar);
 
 // 004687D0 / 004687E0, slots 11 / 12.
 const char* __fastcall LightningGetClassName(const CLightning*) { return kLightningName; }
@@ -162,20 +162,20 @@ EI_REPLACE(0x004467C0, MapObjectSetVisibilityMode);
 
 // 00462300 / 00462330 / 00462360 / 00462390 (RET 4; four identical copies), slots 17-20: the names
 // a plain item does not have. An empty text built in the caller's result, which is returned.
-mfc::CString* __fastcall ItemNoName(CItem*, void*, mfc::CString* out) {
+mfc::CString* CItem::EmptyName(mfc::CString* out) {
     return new (out) mfc::CString(game::EmptyText());
 }
-EI_REPLACE(0x00462300, ItemNoName);
-EI_REPLACE(0x00462330, ItemNoName);
-EI_REPLACE(0x00462360, ItemNoName);
-EI_REPLACE(0x00462390, ItemNoName);
+EI_REPLACE_METHOD(0x00462300, CItem::EmptyName);
+EI_REPLACE_METHOD(0x00462330, CItem::EmptyName);
+EI_REPLACE_METHOD(0x00462360, CItem::EmptyName);
+EI_REPLACE_METHOD(0x00462390, CItem::EmptyName);
 
 // 004623C0 (RET 4), slot 21, which every class but the quest item keeps: the caller's result
 // zeroed and returned. (Slot 16, 004622F0, is four bytes and cannot be hooked.)
-ItemUse* __fastcall ItemNoUse(CItem*, void*, ItemUse* out) {
+ItemUse* CItem::NoUse(ItemUse* out) {
     out->kind = 0;
     out->value = 0;
     out->extra = 0;
     return out;
 }
-EI_REPLACE(0x004623C0, ItemNoUse);
+EI_REPLACE_METHOD(0x004623C0, CItem::NoUse);

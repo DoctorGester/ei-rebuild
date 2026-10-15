@@ -40,6 +40,8 @@ struct ItemUse {
 // Base of every item (vtable 00743DA4, 22 slots).
 class CItem : public CEngineObject {
 public:
+    ItemUse* NoUse(ItemUse* out);
+    mfc::CString* EmptyName(mfc::CString* out);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743DA4);
 
     // The virtual slots in vtable order (the subclasses override them and call CItem's first;
@@ -498,6 +500,7 @@ public:
 // and every party make one). Only the functions rewritten here are declared; context_ (+0xAC) is
 // its manager context (slot 16: the item constructor, slot 22: the spell manager).
 struct CItemManager : CResourceManager {
+    CItemManager* DeleteScalar(unsigned flags);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F25C);
     static constexpr std::size_t kSize = 0xBC;
 
