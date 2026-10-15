@@ -24,7 +24,6 @@ __declspec(naked) void** __fastcall List25B4Erase(void* /*list*/, void*, void** 
 // through its address).
 __declspec(naked) void __fastcall ServerAnnounceToMaster(ServerSession* /*self*/) EI_ORIGINAL(0x0041AA10)
 
-constexpr std::uintptr_t kAnnouncePeriod = 0x0073BB20;   // seconds between announcements
 constexpr std::uintptr_t kMasterHost = 0x0079BED8;       // char*: the master server's host name
 
 bool Live(const void* object) {
@@ -64,7 +63,7 @@ void ServerSession::TickImpl(double dt) {
     if (!public_) return;
     announceTimer_ = static_cast<float>(announceTimer_ - dt);
     if (!(announceTimer_ >= worlddata::Zero())) {   // run out (or NaN)
-        std::memcpy(&announceTimer_, reinterpret_cast<const void*>(kAnnouncePeriod), 4);
+        std::memcpy(&announceTimer_, &worlddata::AnnouncePeriodRef(), 4);
         const auto* host = *reinterpret_cast<const unsigned char* const*>(kMasterHost);
         if (gamecrt::mbscmp(host, reinterpret_cast<const unsigned char*>(game::EmptyText())) != 0) ServerAnnounceToMaster(this);
     }

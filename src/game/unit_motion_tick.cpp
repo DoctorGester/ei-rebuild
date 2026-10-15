@@ -11,6 +11,7 @@
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "player_messages.h"
+#include "world_data.h"
 #include "unit.h"
 #include "world.h"
 
@@ -193,7 +194,6 @@ CUnitServer* ServerControllerOf(CUnit* unit) { return static_cast<CUnitServer*>(
 int CurrentFrame() { return *reinterpret_cast<const int*>(0x007AFFC4); }
 int GameMode() { return *reinterpret_cast<const int*>(0x007C2CC4); }
 
-constexpr std::uintptr_t kQueueWaitLimit = 0x0073F090;   // squared distance a blocking ally may be away
 constexpr int kStateIdle = 0;
 constexpr int kStateCasting = 5;
 constexpr int kBlockedReplan = 1;
@@ -317,7 +317,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
                       blocker->sizeClass == self->sizeClass && other->state != kStateCasting;
     if (sameAttack) {
         auto* target = static_cast<CMapObject*>(c->action.target);
-        sameAttack = FartherThan(&target->position.x, &self->position.x, reinterpret_cast<const float*>(kQueueWaitLimit));
+        sameAttack = FartherThan(&target->position.x, &self->position.x, &worlddata::QueueWaitLimitRef());
     }
     if (sameAttack) {
         // Both go for the same target: wait behind the other unless the waiting would go round in a

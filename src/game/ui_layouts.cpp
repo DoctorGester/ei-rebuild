@@ -282,11 +282,6 @@ __declspec(naked) void __fastcall ConstructBindingList(void*, void*, void*) EI_O
 __declspec(naked) void __fastcall ConstructSettingList(void*, void*, void*) EI_ORIGINAL(0x0062B5E0)
 CUiWindow* __fastcall ConstructMessageBox(void* a0, void*, CInterface3D* a2, const char* a3, const char* a4, int a5, int a6, int a7) { return (CUiWindow*)MessageBoxConstructOriginal(a0, nullptr, a2, a3, a4, a5, a6, a7); }
 
-constexpr std::uintptr_t kSaveLoadVtable = 0x00741388;
-constexpr std::uintptr_t kSaveLoadInputVtable = 0x00741354;
-constexpr std::uintptr_t kOptionsVtable = 0x00741FAC;
-constexpr std::uintptr_t kOptionsInputVtable = 0x00741F78;
-
 void SetVtables(CUiWindow* window, std::uintptr_t main, std::uintptr_t input) {
     window->vtable_ = reinterpret_cast<void**>(main);
     window->inputVtable_ = reinterpret_cast<void**>(input);
@@ -303,7 +298,7 @@ CSaveLoadWindow* NewSaveLoadWindow(CInterface3D* ui) {
     w->isSave_ = false;
     w->sliding_ = false;
     new (static_cast<void*>(&w->name_)) mfc::CString();
-    SetVtables(w, kSaveLoadVtable, kSaveLoadInputVtable);
+    SetVtables(w, CSaveLoadWindow::kVtableAddress, CSaveLoadWindow::kInputVtableAddress);
     return w;
 }
 
@@ -318,7 +313,7 @@ COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
     ConstructSettingList(&w->settings_, nullptr, &allocator[1]);
     w->sliding_ = false;
     w->groupNames_.Construct();
-    SetVtables(w, kOptionsVtable, kOptionsInputVtable);
+    SetVtables(w, COptionsWindow::kVtableAddress, COptionsWindow::kInputVtableAddress);
     return w;
 }
 } // namespace

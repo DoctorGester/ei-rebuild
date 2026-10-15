@@ -1271,10 +1271,11 @@ With these, two plain runs of the original decode to the same text in all 39 van
 **Ours against the original** (`--no-hooks` runs against hooked runs, and the `--golden` suite): the same text but for these, left out of
 golden comparisons by golden.py SAVES_KNOWN (each with its ticket; `compare --strict` keeps them):
 
-- SV7d1: a Fear mode's `distance` is 10.0 in the original and 9.99999714 or 9.99999619 in ours (camera obj1804 and
-  others, every run), Rebirth magic_traps obj1890's `spread` 3.26337504 / 3.26337481.
-- SV7d2: one path step's flags (`controller.motion.order.stepN.flags`, so UnitMotion's `stepSpeedN` and its point's
-  speed) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310.
+- SV7d1 (fixed, section SV7d1/SV7d2 below): a Fear mode's `distance` is 10.0 in the original and 9.99999714 or
+  9.99999619 in ours (camera obj1804 and others, every run), Rebirth magic_traps obj1890's `spread` 3.26337504 /
+  3.26337481.
+- SV7d2 (fixed, below): one path step's flags (`controller.motion.order.stepN.flags`, so UnitMotion's `stepSpeedN` and
+  its point's speed) are 0x2664 in ours where the original has 0x1417, 0x2963 or 0x4310.
 - SV7b1: the zone script group "Peasans" in render_movie_present is [1884, 699, 702] in the original and
   [1884, 702, 699] in ours, so the loop variable `i` ends on the other id; and ground_prints obj1000011214's
   `seenCorpses` swap (PartySync rebuilds them from a ScriptGroup). Both are address order: the original swaps them too
@@ -1365,3 +1366,151 @@ value no longer depends on the stack.
 After merging main, `--golden` (the suite, hooked, 128 runs): all pass, 54 goldens the same, 2 differ: levers and
 ui_saveload_delete (vanilla), `script #gobject` (`gobject.i` 702 / 1884 after the load: script group address order,
 SV7b1; ours' heap layout moved with main's changes). combat vanilla matched this time.
+
+## SV7b4 / SV3f: the client orientation ulp, not found (2026-10-15)
+
+**Tools** (tests/verify/harness_watch.h, all off by default): `EI_WATCH_CUNIT=<id>` logs every write of a client unit's
+orientation to watch.txt (debug registers on the main thread: code, value, callers); `EI_WATCH_ADDR=<hex>[,from,to]` one
+dword's reads and writes; experiments `EI_STACK_SCRUB=<byte>[,from,to[,skipFrom,skipTo]]` (fill the stack below the
+server update's caller after each world update) and `EI_SPIN_US=<n>` (busy-wait there instead).
+
+**Writers of cunit148's orientation** (ui_container_input, Rebirth, --no-hooks): SetHeading 00402220 from
+ClientPlaceOnPath 00535850 (00535A38), and the shadow's round trip in DrawShadow 0051CE60 (0051D479 PreMultiply 004018A0
+by the light's turn, 0051D4E0 PreMultiply by its conjugate, from the object draw 0056BC46). The round trip is not exact:
+each re-rendered shadow moves the quaternion by an ulp (3F76BBF2 -> 3F76BBF3 at update 5). Rebirth's ObjectsDrawRadius
+draws the menu unit (and its shadow) where vanilla does not, hence Rebirth only.
+
+**What decides it is not found.** Seed 1's difference (cunit148 #place at update 80; also ui_widescreen_more and
+render_titles_present) repeats, and so does the golden without jitter, but almost any extra work on the main thread
+after each world update makes the jitter run match the golden again: EI_DIGEST=1, the orientation watch, a stack
+scrub of 0..16 KB with any byte (00, FF, 01, 3F, 41, C1, 80, 2A; plain runs stay the same as the golden too), the same
+scrub with any one 1 KB chunk left out, and EI_SPIN_US=1 (a 1 us busy wait, which writes only a few hundred bytes of
+stack in QueryPerformanceCounter). Scrubbing only 0..8 KB or only 8..16 KB does not. So it is neither one stack slot
+nor a plain timing threshold that the bisection could isolate; the trail goes to whatever the jitter run's main-thread
+state (stack below the main loop, FPU, timing of the stream / Miles threads) does to how often the shadow is re-rendered
+or what ClientPlaceOnPath starts from. SV3f (ours against the original, hooked runs) is likely the same effect: the
+hooked build changes all of these. Stopped here as bounded (coordinator); follow-up SV7b4a.
+
+The original's main-thread clock reads are all virtual (EI_HARNESS_CLOCK=virtual,clocktrace): only Miles
+(QueryPerformanceCounter on its own thread) and the game's sound stream thread (006BB910, timeGetTime / Sleep(100))
+read time on their own.
+
+## SV7d1 / SV7d2: the two real differences the decoded saves found (2026-10-15)
+
+**SV7d1, the Fear mode's distance and spread** (FearMode::Evaluate 005D2960, unit_ai_fear.cpp). The original computes
+`(distance * 30 + default) * (1/31)` and `(spread + spread + 3) * (1/3)` in that order (005D3066, 005D2985). Under
+`/fp:fast` MSVC distributed both: `distance * (30/31) + default * (1/31)` and `spread * (2/3) + 1`. The repeated
+update `(30x + 10) / 31` has a wide flat neighbourhood around 10 (a step under half an ulp leaves the value as it
+is), so the two groupings settle on different fixed points: 10.0 in the original, 9.99999714 in ours. The sums now go
+through the volatile float store first (exact at the main thread's 24-bit precision). Rule 7's warning about
+`static_cast<float>` not rounding under /fp:fast has a twin here: an unrounded `(a + b) * c` may be distributed.
+The verify wrapper's CheckNear (a few ulps) let this through.
+
+**SV7d2, path cells' speed words** (PathCell +4: `flags`, the step's speed word, and `terrainBits`). The original's
+path builders give every cell they create a stack slot they never write: SearchPathTo (005C3200, called by
+JoinLocalSearches) gets SearchBest's saved ESI, the forward search's address 0x007B2664; BuildCells (005B9A20) the row
+offset SearchCommit left (the emulation that was in ai_plan.cpp's CommitLeg); PathSmoother::Smooth (005C46C0) gives
+the rebuilt tail [entry-0x3C] (JoinLocalSearches' `open`, the meeting cell's cost, after the local route; 0, the
+waypoint list's freed blocks, after PlanLongPath) and the other rebuilt cells [entry-0x50] (FindPath's saved EBP, or the
+waypoint list's vtable 0x0073FD9C). SetStepSpeeds (005BA400) rewrites both words of every step but the last, so the
+last step's speed word stays the leftover: it is saved (`order.stepN.flags`, UnitMotion's `stepSpeedN`, `pointN.speed`)
+and read only by a single-cell trajectory (SubdivideSegment's one-cell case; SamplePath reads `from.speed`, never the
+last point's). Ours kept the old tail's word (0x2664) in the smoother.
+
+Per the user's decision (2026-10-15: leftover memory is not worth preserving), every builder now gives its cells the
+plain words: speed 0x200 (what FindPath gives a single-cell path and AIPath::SetStepSpeeds a follow path), terrain bits
+0 (`kPlainStepSpeed`, `SetPlainCellWords`, ai_map.h). Ours: JoinLocalSearches after the join, BuildCellsTo, Smooth's
+rebuilt cells. The original, in harness runs (tests/verify/harness_path_cells.cpp): the CALLs of SearchPathTo
+(005B97A6, 005B97BC), BuildCells (005BA337) and Smooth (005BB8C5) go through wrappers that set the plain words after
+the call (each builder clears its list first; FindPath's cells are all plain before the smoothing). Smooth's verify
+wrapper checks ours only for the plain words. Both SAVES_KNOWN entries are gone.
+
+
+**Verification and the goldens' saves.** `--no-hooks --golden --fresh` (vanilla, then `--rebirth-only --all-rebirth`)
+with the harness patch: all 85 goldens of saving scenarios (39 vanilla, 46 Rebirth) differed only in the last step's
+`order.stepN.flags`, `stepSpeedN` and `pointN.speed` (e.g. camera obj1804 0x1417 -> 0x200, obj1890 0x2963 -> 0x200);
+no digest, console or dump differed, so the last step's speed word never changed behaviour in the suite. Our hooked
+`--golden --all-rebirth` run differed from the goldens in exactly the same fields (the Fear distance and spread now
+equal the original's). `golden.py saves --runs <patched original> <ours>` re-recorded the 85 goldens' saves.txt (both
+runs decode to the same text; 17 store entries replaced); no digest was re-recorded. golden.py `saves` no longer stops
+on a golden without saves (it printed meta['saves'], which keep_saves leaves unset then).
+After merging main (SV7b3's zeroed statistics) the ground_prints goldens' saves were re-recorded the same way. The final
+`--golden --all-rebirth`: 95 goldens the same, levers and ui_saveload_delete (vanilla) differ only in the script's
+`#gobject` (address order, SV7b1); every save equal. Follow-up SV7d1a: audit other rewrites for the distributed sums.
+
+## SV7b1: script groups ordered by object id (2026-10-15)
+
+**The site.** A script group (ScriptGroup, script.h) keeps its members sorted without duplicates, and the game sorts by
+object address: the comparator 004B2D80 (CMP / SBB on the two pointers, for GameQsort in Sort 004B2D60 and Load
+004B3360; ScriptVars::Load 004B3AD0 and 004C40D0 reach it through Sort), the binary search of Insert 004B2EF0
+(callers: InsertAll, SSCCmd::CalcGroup / Execute, CPlayerServer::UpdateHeroesGroup, CWorldServer::CollectSharedObjects,
+CSpellEffect::UpdateLasting) and the merges of Union 004B2620, Difference 004B2920 and Intersection 004B2B60. Nothing
+else reads the order as sorted: IndexOf, Remove, Contains and RemoveDeleted search linearly.
+
+**The order now.** Null first, then CEngineObject::id_ (+0xC, signed; the id the script engine itself saves and loads
+groups by, ScriptObjectRef::Save / Load). Ties cannot happen: the world's id map (CWorldServer +0x12D74, FindObject
+00593AA0) holds one object per id, CBaseManager::NextFreeId hands out the highest id + 1 (the random search only past
+2,000,000,000), and an object keeps its id while a group references it (a released object goes back to the spares
+with id -1 only at reference count 0). Only objects outside the registry have id -1, and scripts cannot name them. The
+harness stub logs the first tie it meets ("share id"); none in the 106 runs of each pass below.
+
+- Ours (script_group.cpp): ScriptGroup::After decides every comparison (the qsort comparator CompareMembers, Insert,
+  the merges): by address as the game, by IdAfter once ScriptGroup::OrderById is called (the harness, at heap::Install's
+  point) and always in the standalone (ei::Standalone), where it stays as a determinism fix.
+- The original (tests/verify/harness_script_order.cpp, harness runs on the virtual clock unless `lfheap`): the
+  comparator's start becomes a JMP to an id comparator of ours, and each inline comparison a JMP to a naked stub that
+  redoes the replaced instructions, compares by id (EAX / ECX / EDX kept) and jumps back to the original's equal /
+  above / below path: Union 004B27B2 (8 bytes: CMP EDI,EDX / MOV [ESP+20],EDX / JNZ), Difference 004B2A9A (7: MOV
+  ECX,[ECX+EDX*4] / CMP / JNZ), Intersection 004B2CEE (7: MOV EAX,[EAX+EDX*4] / CMP / JNZ), Insert 004B2F27 (10: CMP /
+  JZ / JBE). The bytes are checked before patching.
+- When: at the first message loop pass (PeekMessageHook), after InstallHooks, not with the countdown sites before it.
+  A patch noted with NoteHarnessPatch leaves our registrations of the functions holding it out, and an unnoted one
+  makes rebirth_hook::Check skip them as patched by another mod; patched afterwards, ours stay installed and their
+  verify wrappers' trampolines run the patched body. No group exists before a world loads.
+- verify_script.cpp / verify_script_exec.cpp: `Sorted` follows ScriptGroup::After.
+
+**Goldens.** The 97 goldens `--no-hooks --golden`: 85 changed (every gz1g scenario: `script #gobject`, gobject.i is
+1884 from world update 40 on, where the address order gave 702 without jitter), 12 the same (no zone or no group).
+Re-recorded from four agreeing passes: two plain `--no-hooks`, `--no-hooks` with EI_HEAP_JITTER=2, and with our hooks.
+Against the plain pass (golden.py diff, `obj2 hp` left out, SV7b3):
+
+| Pass | Differ | What |
+| --- | --- | --- |
+| second plain | 0 | |
+| seed 1 | 3 (Rebirth) | render_titles_present, ui_container_input, ui_widescreen_more: cunit148 unanwiwo `rot` 1 ulp at update 80 (SV7b4) |
+| seed 2 | 3 (vanilla, no vanilla golden) | ui_hero_screen, ui_hero_stats, ui_screens: menu unit cunit2 unmoco2 `rot`, repeats with seed 2 (SV7b8) |
+| `3,fill` | 8 (vanilla) | at update 40 `isaac.count` 38 / 161 and unmoto obj1937's path; two repeats hit other scenarios (render_terrain, ui_quest_notice; levers, ui_trade_restore), seed 3 without fill none: an uninitialised read, not an order (SV7b7) |
+| ours (hooked) | 4 (vanilla, no vanilla golden) | ui_container_input, ui_screens, ui_widescreen_hud, ui_widescreen_more: menu units' `rot` in the last place, cunit129 flags 0xA2 / 0x4A2 |
+
+No `script` field differs in any pass: the group order no longer follows the layout. ScriptGroup::Union (32178 calls)
+and Sort (196) compared ours with the patched original without a mismatch; Insert, Difference, Intersection and Load
+were not reached from original code in hooked runs (their callers are ours).
+
+**SV3i and SV2d.** zone_gz3g (vanilla): two plain `--no-hooks` runs, one with seed 1 and two with our hooks agree in
+every record (`gobject.VSS#i#val` 3353 in all, where SV3i saw 3353 / 3357 between our runs and 3363 / 3371 between the
+original's). SV2d (gobject.i 1884 in ours, 702 in the original after a load) is gone: 1884 on both sides. Both set
+done. Follow-ups: SV7b7 (the `3,fill` uninitialised read), SV7b8 (the seed-2 vanilla menu unit orientation).
+
+**After SV7d (merge of main).** The 85 goldens were recorded again from two fresh plain `--no-hooks` runs so that they
+keep SV7d's decoded saves: the digests were the same as above, only the saves changed (mission.sav's script globals:
+"Peasans" saved as [699, 702, 1884], `i` on 1884, where address order gave [1884, 699, 702] and 702). 17 save texts
+of the shared store replaced. golden.py SAVES_KNOWN's two SV7b1 entries (the Peasans order, ground_prints'
+`seenCorpses` order, which PartySync rebuilds from a ScriptGroup) are dropped: ours and the original now save the same
+order (SV7d5 settled).
+
+**Final check (after the merge).** `work.py test SV7b1 --golden --jobs 4`: every run passed but ui_mp_host (vanilla
+and Rebirth TIMEOUT; passed alone right after: it hosts on UDP 8888, which a game of another batch can hold, N0c); the
+56 goldens it reaches the same, saves included, with SAVES_KNOWN's SV7b1 entries gone (SV7d5 done). `--no-hooks
+--golden` with EI_HEAP_JITTER=1 over all 97: 96 the same; ui_battle_spells (vanilla) differed once in two units'
+hashes at update 180 and matched in two more seed-1 runs and a plain one.
+
+**After SV7b3 (second merge of main).** Recorded again from two fresh plain `--no-hooks` runs on top of SV7b3's zeroed
+unit statistics: 81 goldens differed from main's only in `script #gobject` (and two in mission.sav's script globals);
+hero_death, movement, ui_screens and world_load (Rebirth) already matched. SAVES_KNOWN's three SV7b1 entries on main
+(seenCorpses, render_movie_present's "Peasans", Rebirth ui_widescreen_more's group 5 [1901, 1913]) are dropped: id
+order settles each.
+
+**After SV7d1 / SV7d2 (third merge of main).** Recorded again from two fresh plain `--no-hooks` runs, so the saves carry
+SV7d2's plain path cell words: all 85 goldens of saving scenarios differed from main's only in their saves (mission.sav's
+script globals in 83, seenCorpses in 4); the digests were already the id order's. SAVES_KNOWN is empty now (main had
+removed SV7d1's and SV7d2's entries, this branch the three SV7b1 ones).

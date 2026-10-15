@@ -22,7 +22,7 @@ static_assert(sizeof(ArchiveEntry) == 16);
 // fills with 00691200: probably a slot this class adds, not declared yet). resource_manager.cpp.
 class CResourceManager : public CBaseManager {
 public:
-    static constexpr std::uintptr_t kVtableAddress = 0x00743338;
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743338);
 
     // Slot 0 is the scalar deleting destructor 00674DD0 (DeletingDestruct).
     // 3: 00674F40. Closes and deletes every archive, then CBaseManager::Destroy.

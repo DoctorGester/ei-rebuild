@@ -141,6 +141,21 @@ struct PathCellElements {
 using PathCellList = mfc::CList<PathCell, PathCellElements>;
 static_assert(sizeof(PathCellList::Node) == 0x10);
 
+// The speed word and terrain bits a path builder gives its cells (SV7d2): the plain step speed, no
+// terrain bits. The originals leave stack leftovers there (SearchPathTo 005C3200 the caller's
+// register, BuildCells 005B9A20 a search's row offset, PathSmoother::Smooth 005C46C0 the open cost
+// or a list vtable); the harness patches them to this too (tests/verify/harness_path_cells.cpp).
+// SetStepSpeeds rewrites both words of every step but the last, whose speed word becomes
+// UnitMotion's last step speed (read only by a single-cell trajectory).
+constexpr std::uint16_t kPlainStepSpeed = 0x200;
+inline void SetPlainCellWords(PathCell* cell) {
+    cell->flags = kPlainStepSpeed;
+    cell->terrainBits = 0;
+}
+inline void SetPlainCellWords(PathCellList* list) {
+    for (PathCellList::Node* node = list->head; node; node = node->next) SetPlainCellWords(&node->data);
+}
+
 // 005C5DA0 (thiscall, RET 4; ai_path_cells.cpp). Appends copies of `other`'s cells to `list`.
 void __fastcall PathCellsAppend(PathCellList* list, void*, const PathCellList* other);
 // 005C5E60 (thiscall, RET 4). Constructs `out` (blocks of 0x80) holding `list`'s cells in reverse

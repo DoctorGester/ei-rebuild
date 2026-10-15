@@ -1,5 +1,6 @@
 // Connections of the network sessions: object replication. See net_connection.h.
 #include "net_connection.h"
+#include "at_exit_functions.h"
 #include "game_strings.h"
 
 #include "core_refcount.h"
@@ -104,7 +105,6 @@ __declspec(naked) void* __fastcall ReplicatedErase(ReplicatedVector* /*v*/, void
 __declspec(naked) void __fastcall ReplicatedSortLoop(Replicated* /*first*/, Replicated* /*last*/, void* /*tag*/, int /*depth*/,
                                                      void* /*compare*/) EI_ORIGINAL(0x0043F870)
 __declspec(naked) void __fastcall ReplicatedSortFinish(Replicated* /*first*/, Replicated* /*last*/, void* /*compare*/) EI_ORIGINAL(0x0043F9B0)
-constexpr std::uintptr_t kReplicatedDestroyAtExit = 0x00434980;
 // 0079B8D0 / 0079B8DC: CollectChanges's static vector of {object, priority} and its guard.
 ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
 std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(0x0079B8DC); }
@@ -115,11 +115,9 @@ inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) {
 
 
 // "text\n" and a flush to the network log, when there is one.
-void LogLine(std::uintptr_t text) {
-    if (LogStream* log = NetLog()) log->Put(game::Text(text))->PutChar('\n')->Flush();
+void LogLine(const char* text) {
+    if (LogStream* log = NetLog()) log->Put(text)->PutChar('\n')->Flush();
 }
-constexpr std::uintptr_t kSkipUpdate = 0x00783EB0;   // "SKIP update, newer version of object"
-constexpr std::uintptr_t kSkipRemove = 0x00783E78;   // "SKIP remove, newer version of object"
 
 // 00419CC0 (inlined helper of the buffers): `high` follows `cur` upwards.
 void UpdateHigh(GameBuffer* b) {
@@ -451,7 +449,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
             return true;
         }
         if (found->second.version >= version) {
-            LogLine(kSkipRemove);
+            LogLine(game::nettexts::SkipRemove());
             return true;
         }
         RefPtr* slot = &found->second.object;
@@ -486,7 +484,7 @@ bool Connection::ReadRecord(BufferCursor* cursor, std::uint32_t version) {
 
     if (found->second.version >= version) {
         // Older than what was applied: read it into a throwaway object to skip its bytes.
-        LogLine(kSkipUpdate);
+        LogLine(game::nettexts::SkipUpdate());
         RefPtr scratch;
         scratch.Share(CurrentSession()->types_.Create(type & 0xFF));
         ReadObject(scratch.ptr, cursor);
@@ -528,7 +526,7 @@ void Connection::Track(Replicated* item) {
     // A new entry (vtable 0073BF4C) with no version and no id yet.
     auto* entry = NewMessageMemory<ReplicaEntry>();
     if (entry) {
-        ei::SetVtable(entry, kRefValueVtable);
+        ei::SetVtable(entry, CRefObject::kVtableAddress);
         RefPtrFromRawOriginal(&entry->object_, nullptr, nullptr);
         ei::SetVtable(entry, ReplicaEntry::kVtableAddress);
         entry->version_ = 0;
@@ -596,7 +594,7 @@ void Connection::CollectChanges() {
         StaticReplicatedGuard() |= 1;
         char allocator = 0;
         ReplicatedConstruct(&items, nullptr, &allocator);
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kReplicatedDestroyAtExit));
+        GameAtExit(atexit400::DestroyGlobalVector);
     }
     ReplicatedErase(&items, nullptr, items.begin(), items.end());
     ReplicatedVector* target = &items;
@@ -787,8 +785,6 @@ EI_REPLACE_METHOD(0x00435820, Connection::ReadObjectRef);
 namespace net {
 
 namespace {
-constexpr std::uintptr_t kTooOld = 0x00783E5C;      // "SKIP too old update, dif "
-constexpr std::uintptr_t kDuplicate = 0x00783E3C;   // "DUPLICATE update received from "
 } // namespace
 
 void Connection::Acknowledge(std::uint16_t sequence) {
@@ -846,7 +842,7 @@ bool Connection::Accept(std::uint32_t sequence) {
     std::uint32_t newest = lastReceived_;
     if (sequence + 0x20 < newest) {
         if (LogStream* log = NetLog())
-            log->Put(game::Text(kTooOld))->PutInt(static_cast<int>(newest - sequence))->PutChar('\n')->Flush();
+            log->Put(game::nettexts::TooOld())->PutInt(static_cast<int>(newest - sequence))->PutChar('\n')->Flush();
         return false;
     }
     if (!(newest > sequence)) newest = sequence;
@@ -856,7 +852,7 @@ bool Connection::Accept(std::uint32_t sequence) {
             if (NetLog()) {
                 StringRep peer;
                 const char* text = address_.ToString(&peer)->start;
-                NetLog()->Put(game::Text(kDuplicate))->Put(text)->PutChar('\n')->Flush();
+                NetLog()->Put(game::nettexts::Duplicate())->Put(text)->PutChar('\n')->Flush();
                 if (peer.start) stlp::deallocate(peer.start, static_cast<std::size_t>(peer.eos - peer.start));
             }
             return false;

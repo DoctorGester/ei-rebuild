@@ -2,6 +2,7 @@
 // Suspection, Aggression, CorpseWatcher, Fear and Player. The registered addresses are the vtable
 // targets, so every mode object of the game runs these.
 #include "unit_ai.h"
+#include "at_exit_functions.h"
 
 #include "player_messages.h"
 #include "random.h"
@@ -128,7 +129,6 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
 // built by 004C96A0.
 constexpr std::uintptr_t kCandidates = 0x007C54C8;
 constexpr std::uintptr_t kCandidatesGuard = 0x007C54E4;
-constexpr std::uintptr_t kCandidatesDestructor = 0x005D2570;
 
 } // namespace
 
@@ -503,7 +503,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     if (!(*guard & 1)) {
         *guard |= 1;
         PtrListConstructOriginal(reinterpret_cast<mfc::CList<void*>*>(kCandidates), nullptr, 10);
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kCandidatesDestructor));
+        GameAtExit(ei::static_init::Exit005D2570);
     }
     CUnit* self = brain->owner->unit;
     brain->CollectEnemies(self, reinterpret_cast<void*>(kCandidates));

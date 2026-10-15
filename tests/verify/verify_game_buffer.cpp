@@ -139,7 +139,7 @@ GameBuffer* __fastcall DeletingVerify(GameBuffer* self, void*, unsigned flags) {
     GameBuffer* ret = actual.get()->DeleteGrowing(flags & ~1u);
     std::uintptr_t vtable;
     std::memcpy(&vtable, actual.bytes, 4);
-    bool same = ret == actual.get() && vtable == kBufferViewBaseVtable &&
+    bool same = ret == actual.get() && vtable == GameBuffer::kViewBaseVtableAddress &&
                 std::memcmp(expected.bytes + 4, actual.bytes + 4, sizeof(GameBuffer) - 4) == 0;
     ei::verify::Check("GrowingBufferDeletingDestructor", true, same, "flags %u", flags);
     return self->DeleteGrowing(flags);

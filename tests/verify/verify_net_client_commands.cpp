@@ -72,7 +72,7 @@ double __fastcall BufferRatioVerify(net::ClientSession* self, void*, GameBuffer*
     std::uintptr_t vtable;
     std::memcpy(&vtable, buffer, 4);
     std::uint8_t* first = buffer->begin + 4;
-    bool known = vtable == kGrowingBufferVtable || vtable == kBufferViewVtable;
+    bool known = vtable == GameBuffer::kGrowingVtableAddress || vtable == kBufferViewVtable;
     if (!known || first > buffer->end || first > (buffer->cur > buffer->high ? buffer->cur : buffer->high)) {
         double result = self->BufferRatioImpl(buffer);
         ei::verify::Check("ClientBufferRatio (ours only)", true, true, "");

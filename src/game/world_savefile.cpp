@@ -115,7 +115,7 @@ void __fastcall SaveFileWrite(void* fileStream, unsigned magic, int version, voi
             }
         }   // the decoder's cursor ends here, then `check` and `packed` go
     }
-    ei::SetVtable(&view, kBufferViewBaseVtable);
+    ei::SetVtable(&view, GameBuffer::kViewBaseVtableAddress);
 }
 
 bool __fastcall SaveFileRead(void* outStream, unsigned magic, int minimum, int maximum, void* fileStream) {

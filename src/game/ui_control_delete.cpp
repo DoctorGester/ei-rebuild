@@ -7,6 +7,7 @@
 #include "ui_screens.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
@@ -19,7 +20,6 @@ constexpr std::uintptr_t kSpinVtable = std::uintptr_t(0x00742D5C);
 constexpr std::uintptr_t kSpinInputVtable = std::uintptr_t(0x00742D28);
 constexpr std::uintptr_t kEditFieldVtable = std::uintptr_t(0x00742DF4);
 constexpr std::uintptr_t kEditFieldInputVtable = std::uintptr_t(0x00742DC0);
-constexpr std::uintptr_t kTokenVtable = std::uintptr_t(0x00742F24);   // the tokens' base
 
 template <typename T>
 T* FreeIfAsked(T* self, unsigned flags) {
@@ -121,7 +121,7 @@ EI_REPLACE(0x0065EAC0, TooltipInputDelete);
 
 // 0065D8A0: the base token (00742F24; its body inlined: the base vtable written).
 UiTextToken* UiTextToken::TextTokenDelete(unsigned flags) {
-    vtable_ = reinterpret_cast<void*>(kTokenVtable);
+    ei::SetVtable(this, UiTextToken::kVtableAddress);
     return FreeIfAsked(this, flags);
 }
 EI_REPLACE_METHOD(0x0065D8A0, UiTextToken::TextTokenDelete);

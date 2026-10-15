@@ -71,6 +71,7 @@ static_assert(sizeof(LoadedFile) == 0x1C);
 // vtable 007432E0.
 class CMappedResource {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x007432E0);
     // Virtual methods, in vtable order.
     virtual ~CMappedResource();                                       // 0: 006713A0 / 006714A0
     virtual BOOL OpenResource(const char* path, BOOL writable);       // 1: 00671730
@@ -116,6 +117,7 @@ static_assert(sizeof(CMappedResource) == 0x58);
 // Maps the whole archive into memory; GetFile returns pointers into the mapping. vtable 00743300.
 class CMMIOResource : public CMappedResource {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743300);
     // 006721D0 / 006722F0 / 006722D0 (resource_stream.cpp): constructor, destructor body and
     // scalar deleting destructor.
     CMMIOResource* Construct();

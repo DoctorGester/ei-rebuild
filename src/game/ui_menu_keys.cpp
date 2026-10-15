@@ -30,11 +30,6 @@ constexpr int kMaxNameLength = 60;       // characters of a typed save name
 constexpr int kMaxNameWidth = 0xB2;      // its width limit in pixels (font 1)
 constexpr int kScanEsc = 1;              // the scan code that gives up a key binding
 
-constexpr std::uintptr_t kQuickSave = 0x007933AC;       // "saveq"
-constexpr std::uintptr_t kAutoSaveA = 0x007942E8;       // "savea"
-constexpr std::uintptr_t kAutoSaveB = 0x007940F0;       // "saveb"
-constexpr std::uintptr_t kKeyMapped = 0x00794874;       // "key_already_mapped"
-constexpr std::uintptr_t kKeyMappedText = 0x00794888;   // "key_already_mapped_msg"
 
 constexpr std::uint32_t kCloseSaveLoad = 0x100001;
 constexpr std::uint32_t kCloseOptions = 0x110001;
@@ -61,9 +56,9 @@ __declspec(naked) void CSaveLoadWindow::CallShowSelection() EI_ORIGINAL(0x006554
 
 bool CSaveLoadWindow::IsReservedSave(int index) {
     const unsigned char* folder = reinterpret_cast<const unsigned char*>(entriesBegin_[index].folder_);
-    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::Text(kQuickSave))) == 0) return true;
-    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::Text(kAutoSaveA))) == 0) return true;
-    return gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::Text(kAutoSaveB))) == 0;
+    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::QuickSave())) == 0) return true;
+    if (gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveA())) == 0) return true;
+    return gamecrt::mbsicmp(folder, reinterpret_cast<const unsigned char*>(game::menukeytexts::AutoSaveB())) == 0;
 }
 
 // --- 00655430 ------------------------------------------------------------------------------------
@@ -256,12 +251,12 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         if (other != bindings_.end() && other != nullptr && other != binding) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
             void* memory = gamecrt::operator_new(0x180);
-            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::Text(kKeyMapped),
-                                                          game::Text(kKeyMappedText), 0x10000, 3, 1)
+            CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, game::menukeytexts::KeyMapped(),
+                                                          game::menukeytexts::KeyMappedText(), 0x10000, 3, 1)
                                     : nullptr;
             mfc::CString format;
             mfc::CString message;
-            Texts()->GetString(game::Text(kKeyMappedText), &format);
+            Texts()->GetString(game::menukeytexts::KeyMappedText(), &format);
             message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
             // The box's text (a null box is written through, as in the original).
             *reinterpret_cast<mfc::CString*>(&static_cast<CMessageBox*>(box)->text_) = static_cast<const char*>(message);

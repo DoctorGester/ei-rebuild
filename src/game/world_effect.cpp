@@ -107,7 +107,7 @@ void CEffect::SetVelocity(const Vector3* velocity) {
 
 Vector3* CEffect::Position(void*) { return &localPosition_; }
 
-double CEffect::DefaultRadius() { return ConstAt(kDefaultRadius); }
+double CEffect::DefaultRadius() { return ConstAt(worlddata::DefaultRadius()); }
 
 // --- CEffectSound --------------------------------------------------------------------------------
 

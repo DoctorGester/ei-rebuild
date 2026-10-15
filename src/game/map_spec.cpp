@@ -22,14 +22,6 @@ namespace mapspec {
 
 namespace {
 
-constexpr std::uintptr_t kSpecVtable = 0x0073C5C4;
-constexpr std::uintptr_t kObjectVtable = 0x0073C5F0;
-constexpr std::uintptr_t kFlameVtable = 0x0073C620;
-constexpr std::uintptr_t kTrapVtable = 0x0073C650;
-constexpr std::uintptr_t kLeverVtable = 0x0073C6B0;
-constexpr std::uintptr_t kAreasVtable = 0x0073C68C;      // CArray (12-byte elements)
-constexpr std::uintptr_t kTargetsVtable = 0x0073C680;    // CArray (8-byte elements)
-
 // MFC CStringArray (library).
 void __fastcall StringArrayAppend(mfc::CStringArray* a0, void*, const mfc::CStringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
 // MFC CArray helpers (library): SetSize of the 12-byte array, zeroing 8-byte elements.
@@ -74,7 +66,7 @@ Spec* Spec::SpecConstruct() {
     rotation = {1.0f, 0.0f, 0.0f, 0.0f};
     new (&name) mfc::CString();
     new (&comment) mfc::CString();
-    ei::SetVtable(this, kSpecVtable);
+    ei::SetVtable(this, kVtableAddress);
     mfc::CString none(game::Text(0x007846F0));   // "none"
     id = -1;
     spareId = -1;
@@ -90,7 +82,7 @@ EI_REPLACE_METHOD(0x00469CA0, Spec::SpecConstruct);
 
 // 00469E50: the destructor body.
 void Spec::SpecDestruct() {
-    ei::SetVtable(this, kSpecVtable);
+    ei::SetVtable(this, kVtableAddress);
     comment.~CString();
     name.~CString();
     chunk.Destruct();
@@ -142,7 +134,7 @@ ObjectSpec* ObjectSpec::ObjectSpecConstruct() {
     new (&parentIname) mfc::CString();
     new (&skinTexture) mfc::CString();
     StringArrayConstruct(&parts);
-    ei::SetVtable(this, kObjectVtable);
+    ei::SetVtable(this, kVtableAddress);
     mfc::CString none(game::Text(0x007846F0));
     base.kind = 1;
     parentId = 0;
@@ -165,7 +157,7 @@ EI_REPLACE_METHOD(0x0046A5C0, ObjectSpec::ObjectSpecConstruct);
 
 // 0046AEB0: the destructor body.
 void ObjectSpec::ObjectSpecDestruct() {
-    ei::SetVtable(this, kObjectVtable);
+    ei::SetVtable(this, kVtableAddress);
     StringArrayDestruct(&parts);
     skinTexture.~CString();
     parentIname.~CString();
@@ -348,7 +340,7 @@ FlameSpec* FlameSpec::FlameSpecConstruct() {
     object.ObjectSpecConstruct();
     new (&sound) mfc::CString();
     offset = {0.0f, 0.0f, 0.0f};
-    ei::SetVtable(this, kFlameVtable);
+    ei::SetVtable(this, kVtableAddress);
     object.base.kind = 6;
     std::uint32_t volumeBits = 0x3F333333;   // 0.7f
     std::memcpy(&volume, &volumeBits, 4);
@@ -359,7 +351,7 @@ EI_REPLACE_METHOD(0x0046B210, FlameSpec::FlameSpecConstruct);
 
 // 0046B120: the destructor body.
 void FlameSpec::FlameSpecDestruct() {
-    ei::SetVtable(this, kFlameVtable);
+    ei::SetVtable(this, kVtableAddress);
     sound.~CString();
     object.ObjectSpecDestruct();
 }
@@ -423,14 +415,14 @@ TrapSpec* TrapSpec::TrapSpecConstruct() {
     areas.growBy = 0;
     areas.maxSize = 0;
     areas.size = 0;
-    ei::SetVtable(&areas, kAreasVtable);
+    ei::SetVtable(&areas, mfc::impl::TrapAreasArrayClass::Vtable());
     targets.data = nullptr;
     targets.growBy = 0;
     targets.maxSize = 0;
     targets.size = 0;
-    ei::SetVtable(&targets, kTargetsVtable);
+    ei::SetVtable(&targets, mfc::impl::TrapTargetsArrayClass::Vtable());
     interval = 15;
-    ei::SetVtable(this, kTrapVtable);
+    ei::SetVtable(this, kVtableAddress);
     object.base.kind = 7;
     return this;
 }
@@ -528,7 +520,7 @@ LeverSpec* LeverSpec::LeverSpecConstruct() {
     cycled = 0;
     castOnce = 0;
     field04 = 0;
-    ei::SetVtable(this, kLeverVtable);
+    ei::SetVtable(this, kVtableAddress);
     object.base.kind = 8;
     return this;
 }

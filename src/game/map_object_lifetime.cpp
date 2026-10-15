@@ -37,8 +37,6 @@ constexpr std::uintptr_t kPartListVtable = std::uintptr_t(0x0073DE4C);
 constexpr std::uintptr_t kFrameArrayVtable = std::uintptr_t(0x0073DE40);
 constexpr std::uintptr_t kEffectArrayVtable = std::uintptr_t(0x0073DBA0);
 constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073DB94);
-// CMemoryStream's second vtable (the network queue's streams, 0073C960).
-constexpr std::uintptr_t kQueueStreamVtable = std::uintptr_t(0x0073C960);
 constexpr std::uintptr_t kCarriedArrayVtable = std::uintptr_t(0x0073EB84);
 // The unit motion's arrays (UnitMotion: points, waypoints, step speeds) while constructed / destroyed.
 constexpr std::uintptr_t kMotionPointsVtable = std::uintptr_t(0x0073EB9C);
@@ -223,13 +221,13 @@ CMapObject* CMapObject::Construct() {
     SetVtable(stream, kMemoryStreamVtable);
     stream->data_ = nullptr;
     stream->Reset();
-    SetVtable(stream, kQueueStreamVtable);
+    SetVtable(stream, CMemoryStream::kQueueVtableAddress);
     stream = &records->header_[1];
     stream->ConstructBase();
     SetVtable(stream, kMemoryStreamVtable);
     stream->data_ = nullptr;
     stream->Reset();
-    SetVtable(stream, kQueueStreamVtable);
+    SetVtable(stream, CMemoryStream::kQueueVtableAddress);
     ResetNetRecords(records);
     SetVtable(this, CMapObject::kVtableAddress);
     companion = nullptr;

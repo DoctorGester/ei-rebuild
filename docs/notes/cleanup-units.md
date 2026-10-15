@@ -422,3 +422,79 @@ Spelling only: no signature, argument order or float grouping changed.
   world_effect_internal.h floats, class `kVtableAddress` statics, function addresses.
 - Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
   check_thunks, check_registrations, check_cleanup, ei_vectors) on the tree merged with main. `work.py test C11 --golden --jobs 4`: 128 runs, all PASS; the 56 goldens are all the same.
+
+## C11 batch 10: network and menu texts, effect and AI float constants (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...`: 187 before, 118 after (tools/progress.py); check_cleanup raw addresses 834 before, 765 after.
+Spelling only: no signature, argument order or float grouping changed.
+- Strings in `game_strings.h`: `game::menutexts` (menu_rects: `menus.reg` and its two errors; the `Text(file ? kCantParse : kCantOpen)`
+  became `file ? CantParse() : CantOpen()` passed to `FatalError`), `game::nettexts` (17 log lines of net_session_tick and
+  net_connection, including the six literal "Can't handle ..." texts; `LogAddress` / `LogText` / `LogConnection` / `LogLine` take
+  `const char*`, the connection's "after" text is `nullptr` when absent), `game::menukeytexts` (ui_menu_keys), `game::consoletexts`,
+  `game::weathertexts` (the two thunderstorm script formats), and `NewLineText()` / `PathSuffixText()` (ui_console_window, ui_text,
+  net_server_map).
+- Floats in `world_data.h` (`worlddata`): 22 effect constants of spell_effect_internal.h, spell_effect_update.cpp and
+  world_effect_internal.h (`OneRef`, `AcidRayScale`, `StrikeHeight`, `ScorchAlpha`, ...) return `const float&` (`ExeFloatRef`), so
+  `ConstAt` / `ConstPtr` of both effect headers take a `const float&`; `PowerScaled` / `LightRiseScaled` too. ui_mesh_build,
+  ai_line_step, ai_footprint_shapes lost their local `GameFloat`; `AnnouncePeriodRef` and `QueueWaitLimitRef` keep the memcpy / pointer
+  argument; the ai_refresh tables are `LevelHeights()`, `OccluderCosts()`, `OccluderDamping()`, `MarkTable()`, `DampScale()`. The unused
+  `kPi` of ui_mesh_build was dropped.
+- Left (118): class `kVtableAddress` statics (about 75, net_messages.h's 17 among them), vtables with no home (map_spec*, ui_layouts,
+  ui_scroll_text, resource_stream, magic_trap, lightning_start, misc_400, fake_unit), function addresses (at-exit destructors,
+  eh-vector callbacks), globals (script queue, candidates, master host, state block alpha), options' two float factors (they feed
+  naked `FtolProduct` / `StoreUnsignedProduct` that take an address), tests/ and hook/standalone files.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations, check_cleanup, ei_vectors) on the tree merged with main. See the golden result below.
+- `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs, ALL PASS; 54 goldens the same, 2 differ (levers, ui_saveload_delete) only in script #gobject (heap layout, SV7's).
+
+## C11 batch 11: homes for the homeless vtables, at-exit and eh-vector callbacks by function (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...`: 118 before, 69 after (tools/progress.py); check_cleanup raw addresses 765 before, 714 after.
+Spelling only: no signature, argument order or float grouping changed.
+- Vtables on their class as `static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x...)` (the spelling of ai_map.h and
+  the other class statics; check_cleanup does not count it, so a header gains no raw address): the record structs of map_spec.h
+  (`Spec`, `ObjectSpec`, `FlameSpec`, `TrapSpec`, `LeverSpec`, `EffectSpec`, `ParticleSpec`, `LightSpec`, `SoundSpec`), the three chunk
+  classes of map_spec_unit.cpp (`WaypointChunk`, `PatrolChunk`, `BehaviourChunk`, empty classes on `TargetChunk`; `StartChild` is a
+  template on them), `MagicTrap`, `CLightning`, `CClientSpecificManager` (misc_400), `scene::FakeUnitScene`, `CSaveLoadWindow` and
+  `COptionsWindow` (also `kInputVtableAddress`), `UiTextToken` / `UiFormatToken` / `UiWordToken`, `CResourceBase`, `CResourceStream`,
+  `CMMIOResource`, `CMappedResource` (resource.cpp's two raw stores became `ei::SetVtable`), `CParticleSource`, `ConsoleStreambuf`
+  (its verify test too). Array vtables are `mfc::impl::TrapAreasArrayClass` (map_spec's areas and the magic trap's circles),
+  `TrapTargetsArrayClass` (targets, points) and `BehaviourPatrolsArrayClass` (mfc_slots.h). The files lost their local
+  `SetVtable` helpers (map_spec_effect, resource_stream, magic_trap's `VtableOf`); the cheat word is
+  `game::consoletexts::CheatWord()`. The unused `kMappedResourceVtable` of resource_stream.cpp was dropped.
+- Callbacks by function: `src/game/at_exit_functions.h` declares what the function-local statics register with `GameAtExit`:
+  `atexit400::DestroyGlobalVector` (net_connection), `ei::static_init::Exit004E1C50` / `Exit005D2570` / `Exit0058DA00` /
+  `Exit0058DA20` (the generated exit functions: effects_weather, unit_ai_modes, world_tick) and `ei::short_functions::Ret` (the wake
+  cache). The eh-vector iterators take `void*` and the functions themselves: `LightningSegment::Construct` / `Destruct` through two
+  `__fastcall` wrappers (lightning_start), `DestroyModelSlot` (unit_db_destroy), `stlp::VectorAbi<void*>::DestroyBase` (the handler
+  vectors), and in net_connection_life `IdPoolConstruct`, an id pool destructor wrapper on `VectorAbi<uint16_t>::DestroyBase`, and
+  `net::trees::Entries::Construct` / `Destroy` (a `Callback()` helper makes the `void*`).
+- Left (69): 43 class `kVtableAddress` statics written as plain `0x...` (the class's home already) and 26 others: net_coder.h /
+  core_streams.h / net_link.h shared vtable constants (`kRefObjectRootVtable`, `kRefValueVtable`, `kGrowingBufferVtable`,
+  `kBufferViewBaseVtable`, `kNodeStreamVtable`: used by 30 files, each needs a class home first); `kNoElementTick`
+  (particle_create: the address is stored into the particle type, so it must stay the original's), `kCall` / `kWinMain` / image
+  addresses (hook/ and standalone/), `kStateBlockAlpha`, `kMasterHost`, unit_ai's world and console, the candidates list and the
+  script queue, options' two float factors.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations, check_cleanup, check_static_init, ei_vectors) on the tree merged with main.
+  `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs, all PASS; 54 goldens the same, 2 differ (levers,
+  ui_saveload_delete) only in script #gobject (heap layout, SV7b1's).
+
+## C11 batch 12: class homes for the shared vtables, the plain class statics respelled (2026-10-15)
+
+`constexpr uintptr_t kX = 0x00...`: 69 before, 20 after (tools/progress.py); check_cleanup raw addresses 714 before, 664 after.
+Spelling only: no signature, argument order or float grouping changed. The shared constants are gone and their ~70 uses
+(src and tests) name the class: `CRefCounted::kVtableAddress` (0073BB68, was `kRefObjectRootVtable`) and
+`CRefObject::kVtableAddress` (0073BB58, was `kRefValueVtable`) in core_refcount.h (core_streams.h now includes it);
+`GameBuffer::kGrowingVtableAddress` (0073D624) and `kViewBaseVtableAddress` (0073CA48, also `BufferedStream::kBaseVtableAddress`)
+beside `kViewVtableAddress`; `CMemoryStream::kQueueVtableAddress` (0073C960, was `netlink::kNodeStreamVtable` and the local
+`kQueueStreamVtable` copies of map_object_lifetime and two verify tests); `RootChunk::kMapObjectFileVtableAddress` (0073FAD4, the
+.mob root of world_zone). The new root statics are safe for unqualified `kVtableAddress` lookups: none of the 44 classes
+derived from CRefCounted / GameBuffer / CMemoryStream is nested, and no namespace-scope `kVtableAddress` exists. The 43 plain
+`kVtableAddress = 0x...` statics and `kViewVtableAddress` are now `std::uintptr_t(0x...)` (14 headers left the baseline).
+Left (20): `kNoElementTick` (stored as data), the hook/ and standalone/ image addresses (7), `kEmptyTextAddress` (game_strings.h),
+`kStateBlockAlpha`, `kMasterHost`, unit_ai's world / time / console, the candidates list and guard, the script queue, options' two
+float factors.
+Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+check_thunks, check_registrations, check_cleanup, check_static_init, ei_vectors). `work.py test C11 --golden --jobs 4` on the
+merged tree: 128 runs, all PASS; 56 goldens the same, 0 differ.

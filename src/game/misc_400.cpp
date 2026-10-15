@@ -6,14 +6,13 @@
 #include "net_coder.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstdint>
 #include <cstring>
 
 namespace misc400 {
-
-constexpr std::uintptr_t kManagerVtable = 0x0073BECC;
 
 // The constructors of the objects 0042D700 makes (outside this range; each returns this). Named by
 // the vtable each one sets.
@@ -33,13 +32,13 @@ CEngineObject* New(std::size_t size, void* (__fastcall* construct)(void*)) {
 // 0042D690: the base manager constructed, then this class's vtable. Returns this.
 CBaseManager* __fastcall ManagerConstruct(CBaseManager* self) {
     self->ConstructBase();
-    std::memcpy(self, &kManagerVtable, 4);
+    ei::SetVtable(self, CClientSpecificManager::kVtableAddress);
     return self;
 }
 
 // 0042D6F0: the destructor body: this class's vtable, then the base manager's body (a tail call).
 void __fastcall ManagerDestruct(CBaseManager* self) {
-    std::memcpy(self, &kManagerVtable, 4);
+    ei::SetVtable(self, CClientSpecificManager::kVtableAddress);
     self->DestructBody();
 }
 

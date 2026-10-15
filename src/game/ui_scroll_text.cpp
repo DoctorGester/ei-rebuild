@@ -17,9 +17,6 @@
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
 namespace {
-constexpr std::uintptr_t kFormatVtable = 0x00742F28;
-constexpr std::uintptr_t kTokenVtable = 0x00742F24;   // the base, replaced by the word's
-constexpr std::uintptr_t kWordVtable = 0x00742F20;
 constexpr int kFormatType = 1, kWordType = 2;
 constexpr COLORREF kDefaultColour = 0xA7D7E4;
 constexpr COLORREF kConstructedColour = 0x1C8DC;     // the format token constructor's colour
@@ -113,7 +110,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
             if (!format) {
                 format = static_cast<UiFormatToken*>(gamecrt::operator_new(sizeof(UiFormatToken)));
                 if (format) {
-                    ei::SetVtable(format, kFormatVtable);
+                    ei::SetVtable(format, UiFormatToken::kVtableAddress);
                     format->type_ = kFormatType;
                     format->newline_ = false;
                     format->colour_ = kConstructedColour;
@@ -141,11 +138,11 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
         if (word) {
             auto* w = static_cast<UiWordToken*>(gamecrt::operator_new(sizeof(UiWordToken)));
             if (w) {
-                ei::SetVtable(w, kTokenVtable);
+                ei::SetVtable(w, UiTextToken::kVtableAddress);   // the base, replaced by the word's
                 w->type_ = 0;
                 w->text_ = *reinterpret_cast<char**>(0x00796E48);   // afxEmptyString
                 w->type_ = kWordType;
-                ei::SetVtable(w, kWordVtable);
+                ei::SetVtable(w, UiWordToken::kVtableAddress);
                 w->width_ = 0;
             }
             SIZE size = TextExtent(interface_, token, font);
@@ -430,13 +427,13 @@ EI_REPLACE_METHOD(0x0065AFE0, CUiScrollbar::SetMaximum);
 
 // --- The tokens' destructors ---------------------------------------------------------------------
 
-void UiTextToken::DestroyBase() { vtable_ = reinterpret_cast<void*>(kTokenVtable); }
+void UiTextToken::DestroyBase() { ei::SetVtable(this, UiTextToken::kVtableAddress); }
 EI_REPLACE_METHOD(0x0065D8E0, UiTextToken::DestroyBase);
 EI_REPLACE_METHOD(0x0065D960, UiTextToken::DestroyBase);
 
 void UiWordToken::DestroyWord() {
-    vtable_ = reinterpret_cast<void*>(kWordVtable);
+    ei::SetVtable(this, kVtableAddress);
     reinterpret_cast<mfc::CString*>(&text_)->~CString();
-    vtable_ = reinterpret_cast<void*>(kTokenVtable);
+    ei::SetVtable(this, UiTextToken::kVtableAddress);
 }
 EI_REPLACE_METHOD(0x0065D910, UiWordToken::DestroyWord);

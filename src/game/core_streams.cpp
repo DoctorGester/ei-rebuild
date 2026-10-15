@@ -34,7 +34,7 @@ void __fastcall MemoryStreamClearHook(CMemoryStream* self) { self->CMemoryStream
 
 // --- CRefObject root / reference-counted value -------------------------------------------------
 
-void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, kRefObjectRootVtable); }
+void __fastcall RefObjectDestructBase(void* self) { SetVtable(self, CRefCounted::kVtableAddress); }
 EI_REPLACE(0x00412720, RefObjectDestructBase);
 EI_REPLACE(0x00413430, RefObjectDestructBase);   // byte-identical copy
 EI_REPLACE(0x005ED7A0, RefObjectDestructBase);   // byte-identical copy (interface)
@@ -45,14 +45,14 @@ EI_REPLACE(0x0058FBE0, RefObjectDestructBase);
 EI_REPLACE(0x005B3590, RefObjectDestructBase);   // A-W14: the unit shape's base destructor (005B3570 calls it)
 
 void* __fastcall RefObjectDeletingDestructor(void* self, void*, unsigned flags) {
-    SetVtable(self, kRefObjectRootVtable);
+    SetVtable(self, CRefCounted::kVtableAddress);
     return DeleteIf(self, flags);
 }
 EI_REPLACE(0x00412730, RefObjectDeletingDestructor);
 EI_REPLACE(0x005B3570, RefObjectDeletingDestructor);   // S13: the unit shape's (calls its copy 005B3590)
 
 void* __fastcall RefValueConstructBase(void* self) {
-    SetVtable(self, kRefValueVtable);
+    SetVtable(self, CRefObject::kVtableAddress);
     return self;
 }
 EI_REPLACE(0x00419720, RefValueConstructBase);

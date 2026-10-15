@@ -188,7 +188,7 @@ void CheckMade(const char* name, const void* made, std::uintptr_t vtable, std::u
     }                                                                                                      \
     void __fastcall Cls##DestructVerify(Cls* self) {                                                       \
         self->Destruct();                                                                                  \
-        ei::verify::Check(#Cls "::Destruct", true, VtableOf(self) == kRefObjectRootVtable, "");            \
+        ei::verify::Check(#Cls "::Destruct", true, VtableOf(self) == CRefCounted::kVtableAddress, "");            \
     }
 
 // Write and read side by side.
@@ -264,7 +264,7 @@ int __fastcall ServerEntryResetVerify(ServerEntry* self) {
 }
 void __fastcall ServerEntryDestructVerify(ServerEntry* self) {
     self->Destruct();
-    ei::verify::Check("ServerEntry::Destruct", true, VtableOf(self) == kRefObjectRootVtable, "");
+    ei::verify::Check("ServerEntry::Destruct", true, VtableOf(self) == CRefCounted::kVtableAddress, "");
 }
 
 #undef EI_MESSAGE_LIFETIME_VERIFY

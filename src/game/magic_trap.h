@@ -44,6 +44,7 @@ static_assert(sizeof(TrapPoints) == 0x14);
 
 class MagicTrap : public CMapObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073E63C);
     // 00529DD0. The constructor (the factory 00512730, class id 0x3B): the map object (0050E2D0),
     // no spell, the two arrays (circles vtable 0073C68C, points 0073C680) and the list of units
     // inside (vtable 0073E730, blocks of 10) empty, the vtable 0073E63C; then the map object's

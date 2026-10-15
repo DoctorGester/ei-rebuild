@@ -50,7 +50,6 @@ void __fastcall NamesFree(StringRep* a0, std::size_t a1) { NodeFree12Original((v
 inline void __fastcall StringDeallocate(char**, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 
-constexpr std::uintptr_t kPathSuffix = 0x00783D74;
 
 std::uint32_t* VariableCounter() { return reinterpret_cast<std::uint32_t*>(0x0079B608); }
 
@@ -156,7 +155,7 @@ void ServerSession::SetMap(const StringRep* name) {
     StringPlusString(&a2, &prefix2, name);
     StringPlusText(&b2, &a2, game::Text(flowdata::kDot));
     StringPlusString(&c2, &b2, name);
-    StringPlusText(&path2, &c2, game::Text(kPathSuffix));
+    StringPlusText(&path2, &c2, game::PathSuffixText());
     SetVariable(&path2, 1.0f);
     StlStringDestroy(&path2);
     StlStringDestroy(&c2);

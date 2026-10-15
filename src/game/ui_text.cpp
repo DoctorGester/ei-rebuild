@@ -49,7 +49,6 @@ int CharAt(const char* p) {
     return value + static_cast<signed char>(*q);
 }
 
-constexpr std::uintptr_t kNewline = 0x00784340;   // "\n" appended to flush the last line
 
 } // namespace
 
@@ -59,7 +58,7 @@ int CUiSurface::DrawWrappedText(const char* text, const RECT* rect, int maxLines
     int width = rect->right - rect->left;
     mfc::CString ch, word, line;
     mfc::CString source(text);
-    source += game::Text(kNewline);
+    source += game::NewLineText();
     console::CStringArray lines;
     // Words collect characters up to a space or newline; a word that would make the line wider
     // than the rectangle starts a new line (a newline then also ends the word's line).

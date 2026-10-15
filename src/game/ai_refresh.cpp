@@ -6,6 +6,7 @@
 #include "ai_map.h"
 
 #include "core_maths.h"
+#include "world_data.h"
 
 #include "lib/mfc.h"
 
@@ -15,7 +16,6 @@
 
 namespace {
 
-constexpr std::uintptr_t kLevelHeights = 0x007912BC;   // 8 floats
 constexpr int kLevels = 8;
 
 // The special areas of a standing level: levels 5 and 6 use the second list, 7 the third, the
@@ -63,7 +63,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
     alignas(4) std::uint8_t scratch[0x34];
     for (int level = 0; level < kLevels; ++level) {
-        float h = StoreFloat(static_cast<float>(static_cast<double>(reinterpret_cast<const float*>(kLevelHeights)[level]) *
+        float h = StoreFloat(static_cast<float>(static_cast<double>(worlddata::LevelHeights()[level]) *
                                                 heightScale));
         int levelHeight = x87::fistp(h);
         for (int y = oy0; y <= oy1; ++y)
@@ -144,10 +144,6 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
 
 namespace {
 
-constexpr std::uintptr_t kCostTable = 0x007912A4;    // int per occluder type: cost added by full cover
-constexpr std::uintptr_t kDampTable = 0x007912B0;    // int per occluder type: the damping exponent
-constexpr std::uintptr_t kDampScale = 0x007C2F8C;    // float
-constexpr std::uintptr_t kMarkTable = 0x00791164;    // 5 rows x 16 dwords
 
 // The scratch state CellMark builds (0x18 bytes used).
 struct MarkState {
@@ -186,7 +182,7 @@ __declspec(naked) int __cdecl Damp(int /*table*/, float /*a*/, float /*b*/, int 
     }
 }
 
-int TableInt(std::uintptr_t table, int i) { return reinterpret_cast<const int*>(table)[i]; }
+int TableInt(const int* table, int i) { return table[i]; }
 
 // One occluder of type `type` spanning heights [lowest, highest] against the cell's column.
 // `dampFirst`: the order of the two factors of the exponent (the two callers differ).
@@ -205,11 +201,11 @@ void Occlude(MarkState* s, int type, int lowest, int highest, bool sectorOrder) 
     int lo = lowest > s->bottom ? lowest : s->bottom;
     int hi = highest < s->top ? highest : s->top;
     float frac = StoreFloat(static_cast<float>(static_cast<double>(hi - lo) / (s->top - s->bottom)));
-    float added = StoreFloat(static_cast<float>(static_cast<double>(TableInt(kCostTable, type)) * frac));
+    float added = StoreFloat(static_cast<float>(static_cast<double>(TableInt(worlddata::OccluderCosts(), type)) * frac));
     s->cost += x87::fistp(added);
-    float scale = *reinterpret_cast<const volatile float*>(kDampScale);
-    s->passage = sectorOrder ? Damp(TableInt(kDampTable, type), scale, frac, s->passage)
-                             : Damp(TableInt(kDampTable, type), frac, scale, s->passage);
+    float scale = worlddata::DampScale();
+    s->passage = sectorOrder ? Damp(TableInt(worlddata::OccluderDamping(), type), scale, frac, s->passage)
+                             : Damp(TableInt(worlddata::OccluderDamping(), type), frac, scale, s->passage);
 }
 
 } // namespace
@@ -287,7 +283,7 @@ std::uint32_t CAIMap::CellMark(void* scratch, int level, int levelHeight, int x,
     if (cost >= 10) row = cost >= 0x23 ? 4 : 3;
     else if (cost >= 3) row = 2;
     else row = cost >= 2 ? 1 : 0;
-    return reinterpret_cast<const std::uint32_t*>(kMarkTable)[row * 16 + column];
+    return worlddata::MarkTable()[row * 16 + column];
 }
 
 #pragma float_control(pop)

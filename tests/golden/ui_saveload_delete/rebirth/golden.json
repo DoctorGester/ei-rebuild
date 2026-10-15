@@ -2,11 +2,11 @@
   "scenario": "ui_saveload_delete",
   "install": "rebirth",
   "recorded": "2026-10-15",
-  "commit": "39d56af7",
+  "commit": "8243b613",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 4,
-  "reason": "SV7b3: unit statistics stack copies zeroed in the original (harness) and ours; the passes left out part on script group order (gobject.i 699/702/1884, SV7b1); agreeing: orig0 j1 j2 ours1",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 4 runs"
+  "repeated_in": 2,
+  "reason": "SV7b1: script groups ordered by object id in both the original (harness patch) and ours; was address order (gobject.i 702, now 1884); with SV7b3's zeroed statistics and SV7d / SV7d2's decoded saves",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }

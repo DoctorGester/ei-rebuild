@@ -1276,6 +1276,65 @@ of what the image could still hit as INT3.
 After merging main: `work.py test S16c --golden --jobs 4` 128 runs pass, 56 goldens the same; all 98
 scenarios pass under `--standalone`.
 
+**S16d (2026-10-15).** What standalone_gaps.py listed, decided per vtable and table. The rule: the image
+runs none of game.exe's code (INT3 wherever nothing is registered), so a table entry or vtable slot is
+reached only when our code calls through it: a virtual call of ours on an object the image makes with
+that vtable, or a read of the table by our code. `config/standalone_unreachable.csv` holds each decision
+with its reason (one line per vtable, data range or address); the tool counts those as "listed
+unreachable" and prints the rest as open, `--listed` prints the reasons, `--check` exits 1 on an open
+entry or a config line that covers nothing (and it warns about a listed address that got registered).
+Before: 13 forwarders, 5 code literals, 226 data references open; after: 0 open (13 / 5 / 223 listed).
+- Ported: 0070058F `AfxNewHandler`, the initial value of `_afxNewHandler` (00796E14) that
+  libcrt::OperatorNew calls when an allocation fails (it throws the static CMemoryException).
+  `mfc::impl::DefaultNewHandler`, image only like CriticalNewHandler; the handle map start-up check
+  throws it and catches the CMemoryException (ours only). Size row by hand (8 bytes, Ghidra's body).
+- Listed, with the reason: the 13 forwarders and the five code-byte reads (hook build only); CObject's
+  GetRuntimeClass 007005E3 in game vtables and every MFC slot 0 (nothing of ours asks an object for its
+  runtime class: no IsKindOf, no CArchive object serialisation, handlers catch by C++ type); _purecall
+  006E73EB (a bug only; the INT3 report names the caller); 00460110; the slots of MFC classes the image
+  makes but never calls virtually (CDC only inside CreateTempDC, CTempDC / CTempGdiObject destructors
+  run only by CHandleMap::DeleteTemp, which the image never runs, CPen members destroyed inline, the
+  four static exceptions not auto-deleted, the image's CWinThread freed without a virtual call, the four
+  static CWnds without handles, CHandleMap never deleted); classes never made (CClientDC / CWindowDC /
+  CPaintDC, CRgn, CMemFile, CPtrArray / CPtrList, CTempWnd, CCmdUI, CWinApp and its menus, MFC's state
+  objects, type_info, ostream_withassign); and the CRT / MFC tables (CWnd's message map, CRT SEH scope
+  tables, _FPinit, __lc_category's __init_ctype (our setlocale calls InitCtype directly), _aexit_rtn,
+  the __xi entry __initmbctable (the host calls InitMultibyteTable), the EH handler pointers,
+  _cfltcvt_tab).
+- False rows: the tool now drops library.csv's "not a function" rows from the function starts (00646C25
+  and 00656464, strings read as code pointers). vtables.csv: _AFX_CTL3D_THREAD has one slot (its
+  "second" was the string "%ld" at 0074676C) and the one-slot row 007474B8 is gone (strftime's "a/p",
+  read as a pointer into the middle of 00702F61's body; listed as data). library.csv: the rows 0055C730
+  and 00561B00 had unquoted commas in their names (the library column read " memmove)" and " then the
+  members destructors)"); quoted. Left for S16e: find_vtables.py should take only function starts as
+  slots (a regenerated vtables.csv brings both false rows back), and the dashboard's library count
+  includes the four "not a function" rows.
+After merging main: `work.py test S16d --golden --jobs 4` 128 runs pass, 54 goldens the same, 2 differ
+(levers, ui_saveload_delete vanilla: script #gobject only, the known heap-layout difference); all 98
+scenarios pass under `--standalone` (render_cursor_present passed on its retry: the first attempt's
+cursor check saw the cursor away from the mouse).
+
+**S17 (2026-10-15).** The suite against the goldens: `work.py test S17 --standalone --golden --jobs 4 <the 44
+scenarios with a vanilla golden>` (standalone runs use the vanilla goldens), next to the same scenarios hooked
+(`--vanilla-only --golden`) from the same build, and each standalone run against its hooked twin directly (console,
+full digest, dumps, decoded saves; scratch script build\S17\classify.py, golden.py's compare_folders).
+- Before SV7b1 / SV7d1 / SV7d2 reached main (two builds): 13 and then 18 of 44 standalone goldens differed, the
+  hooked runs 2 (levers, ui_saveload_delete). Every differing field was SV7b1's script group address order:
+  `script #gobject` (`gobject.i` 699 / 702 / 1884) and the saves' `globals.groups.3/5.objectN` and
+  `globals.objects.2.value` (one, ui_help's group 3 `object0`, outside SAVES_KNOWN's pattern). Under `--strict`
+  also SV7d1 (Fear `distance`, 172 field lines) and SV7d2 (path step flags, 249) in 39 scenarios, the same in
+  hooked runs. Standalone against hooked: only the script group order, which follows the heap layout, so the
+  image's other heap (the host's malloc) only reorders more groups. No standalone-only behaviour difference.
+- After merging main with SV7b1, SV7d1 and SV7d2: 44 of 44 the same, three passes (KNOWN and SAVES_KNOWN are
+  empty), hooked 44 of 44; standalone and hooked runs are identical in every record, dump and decoded field.
+  SV7b2 / SV7d3 / SV7d4's fields stay left out by savefile.py's rules (`~junk`, `~addr`), not compared.
+- A 0xFF fill of every block the image's malloc hands out (a temporary EI_ variable, not kept) changed no
+  golden field either.
+- One crash, not repeated: camera's first attempt (1 of about 900 standalone runs) hit an access violation in
+  UnitOrderLess::Less under the draw list sort (IntroSortByModel 005740D0), an element read as FF000000: the
+  unguarded scans ran off the list. Candidate: a NaN `viewPosition.z` (never written for an object listed only
+  for its shadow; Less is then not irreflexive). Not confirmed by a NaN check over 76 runs: S17a.
+
 **S3e (2026-10-15).** The Rebirth exit hang was not ours and not MFC's: the original code with `--no-hooks`
 hung the same way (143 of the 146 cached Rebirth reference runs ended "still running 3 s after the scenario
 quit"; only main-menu runs got out). ei_launch now writes `exit_hang.txt` (each thread's EIP and return

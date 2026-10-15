@@ -51,7 +51,7 @@ void CopyContents(GameBuffer* self, const GameBuffer* from) {
 
 GameBuffer* GameBuffer::ConstructGrowing() {
     base = 0;
-    SetVtable(this, kGrowingBufferVtable);
+    SetVtable(this, GameBuffer::kGrowingVtableAddress);
     flags = kGrowingFlags;
     auto* block = static_cast<std::uint8_t*>(gamecrt::operator_new(kInitialBytes));
     end = block + kInitialBytes;
@@ -64,7 +64,7 @@ EI_REPLACE_METHOD(0x004DA7F0, GameBuffer::ConstructGrowing);
 
 GameBuffer* GameBuffer::ConstructCopy(const GameBuffer* from) {
     base = 0;
-    SetVtable(this, kGrowingBufferVtable);
+    SetVtable(this, GameBuffer::kGrowingVtableAddress);
     CopyContents(this, from);
     return this;
 }
@@ -78,9 +78,9 @@ GameBuffer* GameBuffer::AssignFrom(const GameBuffer* from) {
 EI_REPLACE_METHOD(0x004DAA80, GameBuffer::AssignFrom);
 
 void GameBuffer::DestructGrowing() {
-    SetVtable(this, kGrowingBufferVtable);
+    SetVtable(this, GameBuffer::kGrowingVtableAddress);
     gamecrt::operator_delete(begin);
-    SetVtable(this, kBufferViewBaseVtable);
+    SetVtable(this, GameBuffer::kViewBaseVtableAddress);
 }
 EI_REPLACE_METHOD(0x004DA910, GameBuffer::DestructGrowing);
 

@@ -2,11 +2,11 @@
   "scenario": "render_movie",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "39d56af7",
+  "commit": "8243b613",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 5,
-  "reason": "SV7b3: unit statistics stack copies zeroed in the original (harness) and ours; recorded with EI_HEAP_JITTER 1, 2, 3,fill agreeing",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 5 runs"
+  "repeated_in": 2,
+  "reason": "SV7b1: script groups ordered by object id in both the original (harness patch) and ours; was address order (gobject.i 702, now 1884); with SV7b3's zeroed statistics and SV7d / SV7d2's decoded saves",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }
