@@ -162,6 +162,8 @@ void InitRun(ScriptRun* p) { p->vars.ScriptVarsConstruct(); }
 
 EI_REPLACE(0x004CEB80, DefinitionArray::ConstructElements);
 EI_REPLACE(0x004CECB0, RunArray::ConstructElements);
+// CScript's definitions (+0x8C; script load and reset): S16, on the standalone boot path.
+EI_REPLACE(0x004CD770, DefinitionArray::SetSize);
 EI_REPLACE(0x004CD930, Definitions::NewNode);
 EI_REPLACE(0x004CDA30, Runs::NewNode);
 

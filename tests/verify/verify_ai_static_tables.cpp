@@ -47,9 +47,31 @@ constexpr int kSmoothTables = 81;
 constexpr int kSpiralOffsets = 441;
 constexpr std::size_t kShapeBuckets = 193;
 
+} // namespace
+
+// 005C4210 (the tables' constructor; MOV EAX,ECX; MOV EDX,imm32: 7). Only the static initialiser's
+// vector constructor calls it, before the hooks; the start-up check below drives it once. The
+// original constructs a probe, ours the table: every byte and the returned this compared.
+static SmoothTable*(__fastcall* s_constructTable)(SmoothTable*);
+static SmoothTable* __fastcall ConstructTableVerify(SmoothTable* self) {
+    alignas(SmoothTable) unsigned char scratch[sizeof(SmoothTable)];
+    std::memset(scratch, 0xCD, sizeof(scratch));
+    auto* probe = reinterpret_cast<SmoothTable*>(scratch);
+    SmoothTable* expected = s_constructTable(probe);
+    std::memset(static_cast<void*>(self), 0xCD, sizeof(SmoothTable));
+    SmoothTable* actual = self->Construct();
+    ei::verify::Check("SmoothTable::Construct", true,
+                      expected == probe && actual == self && std::memcmp(probe, self, sizeof(SmoothTable)) == 0, "%p", self);
+    return actual;
+}
+EI_VERIFY(0x005C4210, ConstructTableVerify, 7, s_constructTable);
+
+namespace {
+
 void SmoothTablesStartupCheck() {
     static SmoothTable ours[kSmoothTables];
-    for (SmoothTable& table : ours) table.Construct();
+    ConstructTableVerify(&ours[0]);
+    for (int i = 1; i < kSmoothTables; ++i) ours[i].Construct();
     BuildSmoothTablesAt(ours);
 
     const SmoothTable* theirs = SmoothTables();

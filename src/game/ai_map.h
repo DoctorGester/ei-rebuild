@@ -623,8 +623,8 @@ using SmoothEdgeArray = mfc::CArray<SmoothEdge>;     // vtable 0073FE28
 // built by the static initialiser 005C42B0 at 007C3058.
 struct SmoothTable {
     // The three arrays empty: what the initialiser's vector constructor (005C41C0, callback
-    // 005C4210) leaves in each table before 005C42B0 fills them.
-    void Construct();
+    // 005C4210) leaves in each table before 005C42B0 fills them. Returns this (MOV EAX,ECX).
+    SmoothTable* Construct();
     // 005C4250 (the callback of the vector destructor the initialiser registers with atexit). The
     // three arrays' storage freed, the last member first.
     void Destruct();

@@ -145,6 +145,20 @@ template <> SearchGrid<std::uint32_t>* SearchGrid<std::uint32_t>::Construct(int 
 }
 EI_REPLACE_METHOD(0x005BCF00, SearchGrid<std::uint32_t>::Construct);
 
+void __fastcall ConstructEdgeGrid(SearchGrid<std::int16_t>* grid) {
+    grid->width = 1;
+    grid->height = 1;
+    AllocateEdgeGrid(grid);
+}
+EI_REPLACE(0x005AF580, ConstructEdgeGrid);
+
+void __fastcall ConstructRepresentativeGrid(SearchGrid<std::uint8_t>* grid) {
+    grid->width = 1;
+    grid->height = 1;
+    AllocateZeroedByteGrid(grid);
+}
+EI_REPLACE(0x005AF590, ConstructRepresentativeGrid);
+
 void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid) {
     grid->width = 1;
     grid->height = 1;

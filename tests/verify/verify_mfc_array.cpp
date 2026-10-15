@@ -8,6 +8,7 @@
 #include "verify.h"
 
 #include "../../src/game/game_arrays.h"
+#include "../../src/game/game_lists.h"
 #include "../../src/lib/mfc_array.h"
 
 #include <cstdio>
@@ -617,6 +618,9 @@ using A004C3980 = TwinSetSizeGrow<0x004C3980, gamearrays::Groups>;
 EI_VERIFY(0x004C3980, A004C3980::Run, 5, A004C3980::original);
 using A004CDF40 = TwinSetSizeGrow<0x004CDF40, gamearrays::Objectives>;
 EI_VERIFY(0x004CDF40, A004CDF40::Run, 5, A004CDF40::original);
+// 004CD770: CScript's definitions (game_lists.cpp; script load grows, reset empties). MOV EAX,[ESP+8]; PUSH EBX (5).
+using A004CD770 = TwinSetSizeGrow<0x004CD770, ArrayAbi<ScriptDefinition, gamelists::DefinitionElements>>;
+EI_VERIFY(0x004CD770, A004CD770::Run, 5, A004CD770::original);
 using A005121B0 = TwinSetSizeGrow<0x005121B0, gamearrays::Particles>;
 EI_VERIFY(0x005121B0, A005121B0::Run, 5, A005121B0::original);
 using A00452DF0 = OursDestructElements<0x00452DF0, gamearrays::BlocksAt8>;

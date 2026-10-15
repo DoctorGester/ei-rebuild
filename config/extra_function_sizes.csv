@@ -628,3 +628,6 @@ address,size,note
 0070965F,53,library function registered at its address (S8; Ghidra size)
 0070BADA,42,library function registered at its address (S8; Ghidra size)
 0070BB04,76,library function registered at its address (S8; Ghidra size)
+005AF580,16,region map edge grid default constructor (no Ghidra function)
+005AF590,16,region map representative-cell grid default constructor (no Ghidra function)
+005C4210,58,SmoothTable constructor (the path smoother tables; vector constructor callback) (no Ghidra function)

@@ -57,6 +57,13 @@ private:
 };
 static_assert(sizeof(CString) == 4);
 
+// operator<(const CString&, const CString&) (afx.inl): Compare, i.e. _mbscmp, below zero. The order
+// of the exe's maps with CString keys (the console's commands, console_command_map.cpp).
+inline bool operator<(const CString& a, const CString& b) {
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(a)),
+                           reinterpret_cast<const unsigned char*>(static_cast<const char*>(b))) < 0;
+}
+
 // CFile (0x10 bytes): vtable, OS handle, close-on-delete flag, file name. The game calls these
 // methods non-virtually, so the forwarders are plain members.
 class CFile {
