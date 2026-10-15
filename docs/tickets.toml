@@ -759,11 +759,12 @@ done = "2026-10-15"
 id = "SV3a"
 title = "Main menu unit 2 (unmoco2): ours leaves its hit points unwritten"
 group = "verification"
-status = "running"
+status = "done"
 size = 0.5
 files = ["tools/golden.py"]
 note = "From SV3: every hooked run's first digest record (zone -, the main menu world) has obj2 (unmoco2) hp nan:0xFFFFFFFF and maxHp heap bytes (9.07788734e+12 or 2.04619825e+14); the original has nan:0xFFC00000 and 1.0 in every run. Other menu units match. Find the rewrite that creates or loads that unit's server half (CreateObject / unit stats for a unit without a database entry). Listed in tools/golden.py KNOWN, so goldens leave it out; drop the entry when fixed (golden.py compare --strict shows it)."
 started = "2026-10-15"
+done = "2026-10-15"
 
 [[ticket]]
 id = "SV3b"

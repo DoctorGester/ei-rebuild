@@ -70,13 +70,9 @@ ADDRESS_DEPENDENT = None
 # patterns. A compact digest keeps these fields in clear next to the hashes, and the comparison with a golden
 # leaves them out (unless --strict), so the golden needs no re-recording when the ticket lands; drop the entry then.
 KNOWN = {
-    r'^obj2 (hp|maxHp)$': "SV3a: the main menu world's unit 2 (unmoco2): ours leaves its hit points unwritten "
-                          "(nan:0xFFFFFFFF and heap bytes), the original has nan:0xFFC00000 and 1.0",
-    r'^cunit2 (hp|maxHp|mana|maxMana)$': "SV3a: the same unit in the client world: its packed vitals follow the unwritten "
-                                         "ones (ours maxHp 20, mana 20; the original 1 and 0)",
     r'^script gobject\.i$': "SV2b: Rebirth with our hooks: zone1's script variable i (the last of an address-ordered "
                             "group) is unit 702 or 1884 between our runs; the original's is 702",
-}
+}   # SV3a's main menu unit unmoco2 (obj2 / cunit2 hit points) fixed 2026-10-15
 HEADER = re.compile(r'@ (\d+) update (\d+) frame (\d+) tick (-?\d+) zone (\S+) hash ([0-9A-F]{8})')
 COMPACT = '# compact'
 SAVES = 'harness_saves'
