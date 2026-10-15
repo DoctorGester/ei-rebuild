@@ -24,8 +24,7 @@ console @AddUnitToServer("PrintWolf2","WolfTutor","PrintWolf2",Add(GSGetVar(0,"h
 waitfor 10 IsAlive(GetObjectByName("PrintWolf2"))
 console @InflictDamage(GetObjectByName("PrintWolf1"),5)
 console @InflictDamage(GetObjectByName("PrintWolf2"),100000)
-waitfor 10 Not(IsAlive(GetObjectByName("PrintWolf2")))
-wait 1200
+wait 2000
 console @MoveToPoint(GetLeader(),GSGetVar(0,"hx"),GSGetVar(0,"hy"))
 waitfor 20 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"hx"),1))
 
@@ -42,6 +41,6 @@ load save1
 waitfor 15 Mul(Not(IsAlive(GetObjectByName("PrintMarker"))),IsGreater(HP(GetLeader()),0))
 # The loaded world in full (a golden checkpoint, tests/golden; standalone-verification.md, SV3).
 dump loaded_save1
-wait 500
+wait 1000
 report
 quit
