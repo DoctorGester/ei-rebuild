@@ -1356,3 +1356,10 @@ were not reached from original code in hooked runs (their callers are ours).
 every record (`gobject.VSS#i#val` 3353 in all, where SV3i saw 3353 / 3357 between our runs and 3363 / 3371 between the
 original's). SV2d (gobject.i 1884 in ours, 702 in the original after a load) is gone: 1884 on both sides. Both set
 done. Follow-ups: SV7b7 (the `3,fill` uninitialised read), SV7b8 (the seed-2 vanilla menu unit orientation).
+
+**After SV7d (merge of main).** The 85 goldens were recorded again from two fresh plain `--no-hooks` runs so that they
+keep SV7d's decoded saves: the digests were the same as above, only the saves changed (mission.sav's script globals:
+"Peasans" saved as [699, 702, 1884], `i` on 1884, where address order gave [1884, 699, 702] and 702). 17 save texts
+of the shared store replaced. golden.py SAVES_KNOWN's two SV7b1 entries (the Peasans order, ground_prints'
+`seenCorpses` order, which PartySync rebuilds from a ScriptGroup) are dropped: ours and the original now save the same
+order (SV7d5 settled).

@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 1D5FE46C n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 7DD3812E n 172
 + world world
 world tick 20
 world updates 20
@@ -144,7 +144,7 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
-obj2 hp nan:0xFFFFFFFE
+obj2 hp nan:0xFFFFFFF1
 obj2 #ai 713079FE
 obj2 #place 784FE175
 obj2 #unit 807D16EC
@@ -557,7 +557,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 40 zone - hash 3A6A2141 n 172
+@ 1 update 40 frame 7 tick 40 zone - hash 0C69DF0E n 172
 world tick 40
 world updates 40
 random isaac.count 60
@@ -587,7 +587,7 @@ cunit148 #place 5B57E87B
 cunit148 #unit D6FFF600
 cunit187 #place DAAE4E15
 cunit388 #place 9A3E625A
-@ 2 update 60 frame 11 tick 60 zone - hash AD7EB6BF n 172
+@ 2 update 60 frame 11 tick 60 zone - hash 9DFB8F7A n 172
 world tick 60
 world updates 60
 random isaac.count 230
@@ -617,7 +617,7 @@ cunit148 #place F4001718
 cunit148 #unit A13719CF
 cunit187 #place D260E701
 cunit388 #place CC64C5DC
-@ 3 update 80 frame 15 tick 80 zone - hash FBCB9B4B n 172
+@ 3 update 80 frame 15 tick 80 zone - hash 9B47FE09 n 172
 world tick 80
 world updates 80
 random isaac.count 170
@@ -646,7 +646,7 @@ cunit148 #place BBFA71BE
 cunit148 #unit C73DF77E
 cunit187 #place 7589EF30
 cunit388 #place 7D666D45
-@ 4 update 100 frame 19 tick 100 zone - hash 0C40CDE6 n 172
+@ 4 update 100 frame 19 tick 100 zone - hash 3A4333A9 n 172
 world tick 100
 world updates 100
 random isaac.count 114
@@ -676,7 +676,7 @@ cunit129 #unit 9ABF5A88
 cunit148 #place 6B7C650D
 cunit148 #unit FEF293E2
 cunit388 #place CC64C5DC
-@ 5 update 120 frame 23 tick 120 zone - hash 2F0B8ECC n 172
+@ 5 update 120 frame 23 tick 120 zone - hash 1F8EB709 n 172
 world tick 120
 world updates 120
 random isaac.count 41
@@ -707,7 +707,7 @@ cunit148 #place CA1C2A8C
 cunit148 #unit DC1197FA
 cunit187 #place 8FD72F05
 cunit388 #place FC8FF737
-@ 6 update 140 frame 27 tick 140 zone - hash 07855B44 n 172
+@ 6 update 140 frame 27 tick 140 zone - hash 67093E06 n 172
 world tick 140
 world updates 140
 random isaac.count 3
@@ -734,7 +734,7 @@ cunit129 #place 158137C1
 cunit148 #place 192F888E
 cunit187 #place DAAE4E15
 cunit388 #place 9A3E625A
-@ 7 update 160 frame 31 tick 160 zone - hash 894AEA9F n 172
+@ 7 update 160 frame 31 tick 160 zone - hash BF4914D0 n 172
 world tick 160
 world updates 160
 random isaac.count 230
@@ -762,7 +762,7 @@ cunit129 #unit 79DFAFC5
 cunit148 #place DCF35C60
 cunit187 #place 283E2734
 cunit388 #place CC64C5DC
-@ 8 update 180 frame 35 tick 170 zone - hash B7DB154B n 172
+@ 8 update 180 frame 35 tick 170 zone - hash D7577009 n 172
 world tick 170
 world updates 180
 world paused 1
@@ -791,7 +791,7 @@ cunit129 #place E1F8D4D4
 cunit129 #unit F0D31922
 cunit187 #place 8FD72F05
 cunit388 #place 8897FDFF
-@ 9 update 200 frame 39 tick 180 zone - hash 43C73A0D n 172
+@ 9 update 200 frame 39 tick 180 zone - hash 734203C8 n 172
 world tick 180
 world updates 200
 world paused 0
@@ -820,7 +820,7 @@ cunit129 #place 2DB1494D
 cunit148 #place 0E33923F
 cunit187 #place 283E2734
 cunit388 #place CC64C5DC
-@ 10 update 220 frame 43 tick 180 zone - hash 9CEB1CC4 n 172
+@ 10 update 220 frame 43 tick 180 zone - hash AC6E2501 n 172
 world updates 220
 world paused 1
 random isaac.count 160
@@ -835,15 +835,15 @@ client ticksRun 217
 cunit129 #place E57877E6
 cunit148 #place 77051CC6
 cunit187 #place 4D908807
-@ 11 update 240 frame 47 tick 180 zone - hash 665C6FC7 n 172
+@ 11 update 240 frame 47 tick 180 zone - hash 56D95602 n 172
 world updates 240
 random isaac.count 84
 client ticksRun 237
-@ 12 update 260 frame 51 tick 180 zone - hash F41FF50C n 172
+@ 12 update 260 frame 51 tick 180 zone - hash C49ACCC9 n 172
 world updates 260
 random isaac.count 28
 client ticksRun 257
-@ 13 update 280 frame 55 tick 190 zone - hash 1D1E4386 n 172
+@ 13 update 280 frame 55 tick 190 zone - hash 2B1DBDC9 n 172
 world tick 190
 world updates 280
 world paused 0

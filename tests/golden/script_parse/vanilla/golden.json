@@ -2,11 +2,11 @@
   "scenario": "script_parse",
   "install": "vanilla",
   "recorded": "2026-10-15",
-  "commit": "5d15174f",
+  "commit": "f2ca24f0",
   "digest_period": 20,
   "left_out": null,
   "clear": "(?:^obj2 hp$)",
-  "repeated_in": 4,
-  "reason": "SV2b: the harness heap (one fixed reservation for the main thread's small blocks) changed every run's layout",
+  "repeated_in": 2,
+  "reason": "SV7b1: script groups ordered by object id in both the original (harness patch) and ours; was address order (gobject.i 702, now 1884); saves decoded (SV7d)",
   "saves": "3 decoded saves (tools/savefile.py), the same in 2 runs"
 }

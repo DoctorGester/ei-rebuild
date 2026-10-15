@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install vanilla; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 993FCE21 n 68
+@ 0 update 20 frame 3 tick 20 zone - hash 5498D7F7 n 68
 + world world
 world tick 20
 world updates 20
@@ -144,7 +144,7 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
-obj2 hp nan:0xFFFFFFFD
+obj2 hp nan:0xFFFFFFF1
 obj2 #ai 9BF9CB43
 obj2 #place 784FE175
 obj2 #unit 807D16EC

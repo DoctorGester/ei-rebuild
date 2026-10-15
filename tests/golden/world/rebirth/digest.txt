@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 9CF322A6 n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 7C3BF590 n 172
 + world world
 world tick 20
 world updates 20
@@ -144,7 +144,7 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
-obj2 hp nan:0xFFFFFFFB
+obj2 hp nan:0xFFFFFFF2
 obj2 #ai 713079FE
 obj2 #place 784FE175
 obj2 #unit 807D16EC

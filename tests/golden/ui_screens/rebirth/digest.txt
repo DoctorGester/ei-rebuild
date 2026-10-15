@@ -1,6 +1,6 @@
 # ei state digest 2; groups timed,missile,aievents,script,client,cunit; hooks off; install rebirth; every 20 world updates
 # compact (tools/golden.py): objects as hashes of their fields
-@ 0 update 20 frame 3 tick 20 zone - hash 7E8CE12E n 172
+@ 0 update 20 frame 3 tick 20 zone - hash 0ED1B81D n 172
 + world world
 world tick 20
 world updates 20
@@ -144,7 +144,7 @@ player0 partyItems 0
 player0 members 0
 player0 entrance 0
 + obj2 80 unmoco2 ""
-obj2 hp nan:0xFFFFFFF9
+obj2 hp nan:0xFFFFFFE9
 obj2 #ai 713079FE
 obj2 #place 784FE175
 obj2 #unit 807D16EC
@@ -557,7 +557,7 @@ cunit187 #vitals 1DDF30F4
 cunit388 #place 22FE5018
 cunit388 #unit 88A27EBC
 cunit388 #vitals 1F5A7471
-@ 1 update 40 frame 7 tick 20 zone - hash D13756F9 n 173
+@ 1 update 40 frame 7 tick 20 zone - hash B1814420 n 173
 world updates 40
 world paused 1
 random isaac.count 161
@@ -583,15 +583,15 @@ cunit388 #place 322B9A6A
 cunit1000011214 #place 125B38F9
 cunit1000011214 #unit 34C2C7CD
 cunit1000011214 #vitals 68D49C6E
-@ 2 update 60 frame 11 tick 20 zone - hash 114A56E2 n 173
+@ 2 update 60 frame 11 tick 20 zone - hash 71FC443B n 173
 world updates 60
 random isaac.count 121
 client ticksRun 57
-@ 3 update 80 frame 15 tick 20 zone - hash D00A626D n 173
+@ 3 update 80 frame 15 tick 20 zone - hash B0BC70B4 n 173
 world updates 80
 random isaac.count 41
 client ticksRun 77
-@ 4 update 100 frame 19 tick 30 zone - hash 14A7FD3A n 172
+@ 4 update 100 frame 19 tick 30 zone - hash 17B543EA n 172
 world tick 30
 world updates 100
 world paused 0
