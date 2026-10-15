@@ -281,6 +281,23 @@ The suite reaches 106 of the 160 (most server-side award and trade lists not). T
 the free list: a wrong element size corrupts the pool of another size (005392C0 holds 20 bytes in a
 32-byte node). Left: S9a (15 with element types not ported yet).
 
+**S9a (2026-10-15).** The last 15 list instantiations, over game records (src/game/record_lists.h /
+.cpp; stlp_list.h got `InsertDefault` (insert(pos): T() made by `E::Default`, copied, destroyed),
+`InsertRange`, `PushBackDefault`, `PopBack`, and a static `Insert`, so 0062C090's unread ECX is never
+used). Policies: the chunk stack's Ref (Reset as T()), the client's trade records (CParty copy /
+construct / destructor body, last party destroyed first), the link queue's memory streams, the link
+figure loader's pair<string, CMMIOResource*> (T(): string reserved for 8 bytes) and the titles'
+lines (two CStrings). The prints' node copies start from GroundPrint's copy constructor, now ported
+and registered (00571FC0: the name copied, the texture counted, the geometry arrays' headers shared,
+vtable 0073F778). Quirk kept: the queue stream copy (00479410) calls the new stream's Read (slot 1)
+with the source's buffer, so the source gets the new block's uninitialised bytes, as in the original.
+Checks (tests/verify/verify_record_lists.cpp): 0040A8D0 against the original (same node, same Ref;
+the three unused bytes are stack garbage), the rest ours only. Full suite (128 runs) ALL PASS, 0
+mismatches; 12 of 16 reached (not: trade insert 00424900 / erase 00429770, which need a finished
+multiplayer trade; the queue's range insert 004795B0; 00571FC0 at its address, whose only callers
+are the node copies, which call ours directly). The trade nodes are TradeRecordNode in net_classes.h
+(fields inline), the queue's QueueNode (net_link.h): the list types and these agree only by size.
+
 **S13 (2026-10-15).** Compiler-written helpers of game types: 46 of the 49 forwarded rows and 9
 of the 17 data-pointed ones registered. Record destructors (item, spell, skill, quest and ack
 records; save entries), copies and assignments (save entries, music themes, zone exits, face groups,
