@@ -82,6 +82,9 @@ public:
     virtual void Flush();                                             // 4: 00671390 (empty)
     virtual void* GetFile(const char* name, std::uint32_t* size);     // 5: 00671B40
     void* GetFileImpl(const char* name, std::uint32_t* size);   // body of the slot above (registered by member pointer)
+    // GetFileImpl without Rebirth's ResOverride (in the standalone image GetFileImpl goes through
+    // mod_folders.h, which calls this one on the game's and the mod's archives).
+    void* GetFilePlain(const char* name, std::uint32_t* size);
     virtual bool CloseFile(void* data);                               // 6: 00671E00
     bool CloseFileImpl(void* data);   // body of the slot above (registered by member pointer)
     virtual void FreeAllFiles();                                      // 7: 00672040
@@ -98,6 +101,8 @@ public:
     // match `pattern` (drive, directory, name and extension matched separately with * and ?), or
     // with every name when `pattern` is null.
     void ListFiles(void* stringArray, const char* pattern) const;
+    // ListFiles without Rebirth's ResOverride (see GetFilePlain).
+    void ListFilesPlain(void* stringArray, const char* pattern) const;
 
     ResHeader header_;           // +0x04
     ResEntry* entries_;          // +0x14

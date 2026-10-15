@@ -417,7 +417,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
             std::memcpy(&value, reinterpret_cast<const std::uint8_t*>(&step) + 1, 4);
             StepsEmote(&steps, nullptr, value);
         } else if (step.variant == 0xFF) {
-            AnimationStep blank;
+            AnimationStep blank{};   // SV7b2: padding 0, not a stack byte (the harness zeroes the original's)
             StepsAdd(&steps, nullptr, StepBlank(&blank));
             AnimationStep& last = steps.steps[steps.count - 1];
             last.animation = step.animation;

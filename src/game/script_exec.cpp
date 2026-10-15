@@ -257,10 +257,19 @@ __declspec(naked) ModeCalls* ModeCalls::Guard(const Vector3*, float, float) EI_O
 __declspec(naked) ModeCalls* ModeCalls::Follow(CEngineObject*) EI_ORIGINAL(0x004BA450)
 __declspec(naked) ModeCalls* ModeCalls::Patrol() EI_ORIGINAL(0x005D0F60)
 ModeCalls* ModeCalls::Player() { return (ModeCalls*)ModePlayerConstructOriginal((void*)this); }
-__declspec(naked) ModeCalls* ModeCalls::Fear(int) EI_ORIGINAL(0x005D2850)
+// Fear and Suspicion zero the mode's fields first (SV7b2, SV7d4: FearMode / SuspectionMode::ClearFields).
+ModeCalls* ModeCalls::Fear(int on) {
+    auto* mode = reinterpret_cast<FearMode*>(this);
+    mode->ClearFields();
+    return reinterpret_cast<ModeCalls*>(mode->Construct(static_cast<std::uint8_t>(on)));
+}
 __declspec(naked) ModeCalls* ModeCalls::Aggression() EI_ORIGINAL(0x004BA710)
 __declspec(naked) ModeCalls* ModeCalls::Revenge(int) EI_ORIGINAL(0x004BA830)
-__declspec(naked) ModeCalls* ModeCalls::Suspicion() EI_ORIGINAL(0x004BA610)
+ModeCalls* ModeCalls::Suspicion() {
+    auto* mode = reinterpret_cast<SuspectionMode*>(this);
+    mode->ClearFields();
+    return reinterpret_cast<ModeCalls*>(mode->ScriptSuspectionModeConstruct());
+}
 __declspec(naked) ModeCalls* ModeCalls::CorpseWatcher() EI_ORIGINAL(0x004BA920)
 
 // operator new for a mode: the command writes 0 to +4 (the reference count) before testing the

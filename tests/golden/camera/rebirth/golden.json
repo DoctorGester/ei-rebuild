@@ -2,11 +2,11 @@
   "scenario": "camera",
   "install": "rebirth",
   "recorded": "2026-10-15",
-  "commit": "53a3e76f",
+  "commit": "4bd070fa",
   "digest_period": 20,
   "left_out": null,
   "clear": null,
-  "repeated_in": 5,
-  "reason": "SV7b4a: the shadow's turn undone exactly (orientation kept and restored) in the original (harness) and ours; recorded with EI_HEAP_JITTER 1, 2, 3,fill and our hooks agreeing",
-  "saves": "3 decoded saves (tools/savefile.py), the same in 5 runs"
+  "repeated_in": 6,
+  "reason": "SV7b2/SV7d3/SV7d4: server and map objects allocated zeroed, Suspection / Fear modes and class template tails zeroed in the original (harness) and ours; decoded saves compare those fields again",
+  "saves": "3 decoded saves (tools/savefile.py), the same in 6 runs"
 }

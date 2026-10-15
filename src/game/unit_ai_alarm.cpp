@@ -49,7 +49,9 @@ Mode* NewInline() {
 
 AIMode* NewFear(std::uint8_t flag) {
     auto* fear = NewCounted<FearMode>();
-    return fear ? fear->Construct(flag) : nullptr;
+    if (!fear) return nullptr;
+    fear->ClearFields();   // SV7b2: not left as memory held them
+    return fear->Construct(flag);
 }
 
 AIMode* NewCorpseWatcher() {
@@ -166,6 +168,7 @@ void AIBrain::ApplyBehaviour(const AIAlarmRecord* record, int slot) {
             }
             AddMode(fight);
             auto* suspection = NewCounted<SuspectionMode>();
+            if (suspection) suspection->ClearFields();   // SV7d4: not left as memory held them
             AddMode(suspection ? suspection->ScriptSuspectionModeConstruct() : nullptr);
             AddMode(NewCorpseWatcher());
             AddMode(NewFear(0));

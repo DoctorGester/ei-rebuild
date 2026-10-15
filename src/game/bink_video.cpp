@@ -20,6 +20,7 @@
 // BinkDDSurfaceType is not asked (OldPathDraws, SurfaceType).
 #include "bink_video.h"
 #include "game_strings.h"
+#include "mod_folders.h"
 #include "device.h"   // device::SameSurface, device::WithoutDirectDraw
 #include "sound.h"
 #include "texture.h"
@@ -63,6 +64,12 @@ BinkVolumeFn BinkSetVolume() { return Import<BinkVolumeFn>(0x0073B730); }
 BinkSoundSystemFn BinkSetSoundSystem() { return Import<BinkSoundSystemFn>(0x0073B734); }
 void* BinkOpenMiles() { return Import<void*>(0x0073B738); }
 BinkGotoFn BinkGoto() { return Import<BinkGotoFn>(0x0073B714); }
+// BinkOpen, as the import slot reaches it: with Rebirth's MoviesPatch (addon's slot) the mod's
+// Movies\ copy when there is one. In a hooked Rebirth launch the slot is addon's already.
+BinkHeader* OpenBink(const char* name, unsigned flags) {
+    if (modfolders::Active(ei::rebirth::Patch::MoviesPatch)) return BinkOpen()(modfolders::MovieFile(name).c_str(), flags);
+    return BinkOpen()(name, flags);
+}
 
 constexpr int kLock = 25, kUnlock = 32, kBlt = 5;            // IDirectDrawSurface7 slots
 constexpr unsigned long kLockFlags = 0x21;                   // DDLOCK_WAIT | DDLOCK_NOSYSLOCK
@@ -289,7 +296,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     const char* file = name ? name : "";   // the original copies it into a CString
     if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
     if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
-    BinkHeader* bink = BinkOpen()(file, 0);
+    BinkHeader* bink = OpenBink(file, 0);
     if (!bink) {
         game::DebugLog(game::Text(0x007922F8), file);   // "Can't open (or bad format) video file %s."
         return 1;
@@ -408,7 +415,7 @@ void __fastcall ShowLoadingMovie(int progress) {
             BinkClose()(movie.bink);
             movie.bink = nullptr;
         }
-        movie.bink = BinkOpen()(path.c_str(), 0);
+        movie.bink = OpenBink(path.c_str(), 0);
         if (!movie.bink) {
             game::DebugLog(game::Text(0x00791EE4), path.c_str());   // "Can't open video file \"%s\""
             return;
@@ -479,7 +486,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     if (!MoviesMode()) return 0;
     if (loadingStep) LoadingStepOriginal(Sound(), nullptr, 1);
     if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->waveDriver);
-    bink = BinkOpen()(name, 0);
+    bink = OpenBink(name, 0);
     if (!bink) {
         game::DebugLog(game::Text(0x007922F8), name);   // "Can't open (or bad format) video file %s."
         return 0;

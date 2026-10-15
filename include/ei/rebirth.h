@@ -19,6 +19,7 @@
 //     Default=0             ; every flag not named below
 //     FixLeversActivate=1   ; any name from rebirth_patches.inc
 //     FollowAddon=1         ; Rebirth launches: flags = what the mods applied (default 1)
+//     SecondMaster=         ; EI_Plugin NewMaster's second master server, host[:port] (default empty: none)
 #pragma once
 
 #include <cstdint>
@@ -52,6 +53,13 @@ void SetPluginNPlayers(int players);
 // the hook DLL has read the ini; CPlayerServer::OnPause, CWorld::SetPaused).
 int PluginPause();
 void SetPluginPause(int mode);
+
+// The second master server of EI_Plugin's NewMaster (Patch::EiPluginNewMaster; the plugin's own is
+// hat.gipath.org:28004): "host[:port]" (port 28004 when left out), from ei_rebirth.ini [Rebirth]
+// SecondMaster or a spec's "SecondMaster=<address>". Empty (the default, and every harness run that
+// does not name one): no second master at all, the game's own code (net_second_master.h).
+const char* PluginSecondMaster();
+void SetPluginSecondMaster(const char* address);
 
 const char* Name(Patch p);
 bool FromName(const char* name, Patch* out);

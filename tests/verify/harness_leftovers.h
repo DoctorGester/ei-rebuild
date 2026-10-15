@@ -1,7 +1,7 @@
 #pragma once
 
-// Stack copies of unit statistics start zeroed in the original too (verify build, every harness run;
-// ticket SV7b3, docs/notes/standalone-verification.md).
+// Never-set bytes start zeroed in the original too (verify build, every harness run; tickets SV7b3,
+// SV7b2, SV7d3, SV7d4, docs/notes/standalone-verification.md).
 //
 // The functions that build a unit's statistics (UnitStats, 0x704 bytes) and vitals (UnitVitals, 0x58)
 // do it in stack copies that their resets do not fully clear: UnitStats::Reset 005233E0 leaves the
@@ -19,13 +19,24 @@
 // CParty::AddMember 006628D0's stack record (0x784 bytes, whose statistics BuildNpcStats 00513DA0
 // fills: the party members' and so the heroes' statistics). Left alone: the resets of blocks that
 // live in objects (CUnitServer::ResetController 00546480, the CMapObjectServer lifetime
-// 00515610..005157E0).
+// 00515610..005157E0); their objects start zeroed instead (below).
+//
+// Heap blocks whose constructors leave fields (SV7b2, SV7d3, SV7d4): the objects of the two factories
+// (CServerSpecificManager::NewObjectImpl 004D6970: CUnitServer's waitFrame, which ResolveBlocker
+// reads; CMapObjectManager::CreateObject 00512730: a unit's levels4C8 and motion turn fields) are
+// allocated zeroed (each operator new call redirected), and so are the Suspection and Fear modes
+// (AddSuspectionMode / AddFearMode allocate them zeroed; the calls of their constructors 004BA610 /
+// 005D2850 from ApplyBehaviour 005D6630 and the script zero their fields first): Evaluate 005D1E90
+// keeps a Suspection point that compares the same and the lower level, so its leftovers picked the
+// brain's mode. Ours does the same (gamecrt::operator_new_zeroed, SuspectionMode / FearMode::
+// ClearFields). These families are patched only with EI_NO_HOOKS=1: every site sits in a function ours
+// replaces, and a harness patch in a body makes InstallHooks leave the rewrite out.
 //
 // Also (S17a) CObject3D::Construct 00515BD0 leaves the view position (+0x28), which the draw sorts
 // read for an object listed only for its shadow before it was ever in view (a NaN there makes
 // UnitOrderLess irreflexive and STLport's unguarded scans run off the list). Ours zeroes it; its one
 // caller, CMapObject::Construct's CALL at 0050E2F2, goes through a harness function that zeroes it
-// after the original's construction (EI_LEFTOVERS bit 10).
+// after the original's construction (EI_LEFTOVERS family bit 6).
 
 namespace ei::verify::leftovers {
 

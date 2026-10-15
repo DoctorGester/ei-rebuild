@@ -3,6 +3,7 @@
 // resource_manager.cpp). See resource_stream.h and docs/notes/models.md.
 
 #include "resource_stream.h"
+#include "mod_folders.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -193,7 +194,16 @@ int __fastcall WildcardMatch(const char* name, const char* pattern, int emptyPat
     return *name == '\0' ? 1 : 0;
 }
 
+// Rebirth's ResOverride sends every call of 00674AC0 to addon.
 void CMappedResource::ListFiles(void* stringArray, const char* pattern) const {
+    if (modfolders::Active(ei::rebirth::Patch::ResOverride)) {
+        modfolders::ListFiles(this, static_cast<mfc::CStringArray*>(stringArray), pattern);
+        return;
+    }
+    ListFilesPlain(stringArray, pattern);
+}
+
+void CMappedResource::ListFilesPlain(void* stringArray, const char* pattern) const {
     StringArraySetSize(stringArray, nullptr, 0, -1);
     for (std::uint32_t i = 0; i < header_.count; ++i) {
         const ResEntry& entry = entries_[i];
