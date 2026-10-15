@@ -1708,6 +1708,12 @@ the 97 goldens the same and every decoded save as before.
 The suite's non-golden frames_basic, render_cpuwindows and render_present (vanilla) leave a saveb\scenario.sav whose
 screen block savefile_scenario.py reads 0x12 bytes too far (not SV7b2's readers; SV7d6).
 
+SV7d6 (fixed): a save made over the briefing screen or the global map has that window as its bottom window, whose slot 40
+(CBriefingScreen::SaveState 00602490, global map 0062D330) writes one zero dword; the reader assumed the battle screen
+(at least 19 bytes). savefile_scenario.read_screen now takes a 4-byte block as that zero dword, and Reader.limit makes a read
+that crosses a block's end fail at the field (the screen block sets it). 132 runs ALL PASS, all 792 saves of the latest runs
+decode, `--golden` 56 the same (no golden's saves changed: none of the golden scenarios has such a save).
+
 ## SV7d1a1: the /fp:fast workarounds removed (2026-10-15)
 
 Under /fp:precise a `static_cast<float>`, a float variable and a float parameter or return round through memory (checked
