@@ -4262,10 +4262,10 @@ cunit1319 #vitals B073BCC9
 - cunit1884
 cunit1000011214 #place 874F5533
 cunit1000011214 #unit 7102B221
-@ 3 update 80 frame 15 tick 80 zone gz2g hash 728D605C n 758
+@ 3 update 80 frame 15 tick 80 zone gz2g hash CF947BD9 n 758
 world tick 80
 world updates 80
-random isaac.count 251
+random isaac.count 253
 random isaac.a 0xE0BE9F73
 random isaac.b 0x3E16A568
 random isaac.c 0x000000A5
@@ -4300,12 +4300,12 @@ cunit1318 #unit 4A5B9D50
 cunit1319 #place C757F346
 cunit1000011214 #place 355B1A31
 cunit1000011214 #unit BDC9121C
-@ 4 update 100 frame 19 tick 100 zone gz2g hash 6CE7E215 n 759
+@ 4 update 100 frame 19 tick 100 zone gz2g hash FD79B2ED n 759
 world tick 100
 world updates 100
 world objects 742
 world mapObjects 35
-random isaac.count 155
+random isaac.count 81
 random isaac.a 0xD5B3E892
 random isaac.b 0x277315EF
 random isaac.c 0x000000CA
@@ -4329,7 +4329,7 @@ obj1000011214 #vitals 97F70322
 + obj1008110175 80 unanwiwo "TrapWolf"
 obj1008110175 #ai 74AFE709
 obj1008110175 #place 88184F21
-obj1008110175 #unit 2D107F69
+obj1008110175 #unit 95D755C9
 obj1008110175 #vitals BB277587
 missile0 # 295FD92B
 aievents tick 100
@@ -4342,10 +4342,10 @@ cunit1318 #place F006FBCC
 cunit1318 #unit B594689A
 cunit1319 #place 1CE00126
 cunit1000011214 #place 9CF5C016
-@ 5 update 120 frame 23 tick 120 zone gz2g hash 99D336DC n 759
+@ 5 update 120 frame 23 tick 120 zone gz2g hash D4DABB1D n 759
 world tick 120
 world updates 120
-random isaac.count 242
+random isaac.count 159
 random isaac.a 0x85202D2F
 random isaac.b 0x1F642872
 random isaac.c 0x000000F0
@@ -4376,13 +4376,13 @@ cunit1318 #place 6E53CA3E
 cunit1318 #unit F003593E
 cunit1319 #place CEF5BAC5
 cunit1319 #unit E2D84C1D
-@ 6 update 140 frame 27 tick 140 zone gz2g hash 8516BD26 n 761
+@ 6 update 140 frame 27 tick 140 zone gz2g hash 753EF614 n 761
 world tick 140
 world updates 140
 world timedObjects 7
 world updateMap 18
 world projectiles 2
-random isaac.count 131
+random isaac.count 21
 random isaac.a 0x0E6436FA
 random isaac.b 0xFA04F67F
 random isaac.c 0x00000113
@@ -4422,10 +4422,10 @@ cunit1316 #place 9F44F8DE
 cunit1318 #place D48434C5
 cunit1319 #place 38CBA49E
 cunit1319 #unit FEA2530C
-@ 7 update 160 frame 31 tick 160 zone gz2g hash 6E8DFEF0 n 761
+@ 7 update 160 frame 31 tick 160 zone gz2g hash B3D29273 n 761
 world tick 160
 world updates 160
-random isaac.count 217
+random isaac.count 96
 random isaac.a 0x0225C21D
 random isaac.b 0x378A1FAC
 random isaac.c 0x00000139

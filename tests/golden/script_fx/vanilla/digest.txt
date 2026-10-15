@@ -2188,11 +2188,11 @@ cunit1884 #vitals C3E01DE4
 cunit1000011214 #place DFCF543E
 cunit1000011214 #unit C6081760
 cunit1000011214 #vitals 7D2D89BA
-@ 2 update 60 frame 11 tick 60 zone gz1g hash 164544F3 n 796
+@ 2 update 60 frame 11 tick 60 zone gz1g hash E24580BE n 796
 world tick 60
 world updates 60
 world timedObjects 5
-random isaac.count 78
+random isaac.count 3
 random isaac.a 0xD6D32AC7
 random isaac.b 0x9FDE1422
 random isaac.c 0x00000060
@@ -2212,7 +2212,7 @@ obj1884 #vitals AE7756AD
 obj1890 #ai 8A11B3AB
 obj1890 #place EB4FC5ED
 obj1890 #vitals B1788B7B
-obj1936 #ai 973A43FA
+obj1936 #ai 4A227578
 obj1936 #vitals C03850B1
 obj1937 #ai FB401A49
 obj1937 #place 019E10CC
@@ -2240,10 +2240,10 @@ cunit1804 #place C2A14CCD
 cunit1804 #unit D72CA4CA
 cunit1884 #place AE30F036
 cunit1000011214 #place FF01FC81
-@ 3 update 80 frame 15 tick 60 zone gz1g hash 75296704 n 796
+@ 3 update 80 frame 15 tick 60 zone gz1g hash B4E71DA0 n 796
 world updates 80
 world paused 1
-random isaac.count 127
+random isaac.count 50
 random isaac.a 0x1221988F
 random isaac.b 0x83229635
 random isaac.c 0x00000063
@@ -2261,18 +2261,23 @@ client tick 61
 client paused 1
 client ticksRun 52
 cunit1804 #unit 618078DC
-@ 4 update 100 frame 19 tick 60 zone gz1g hash 8990B2AF n 796
+@ 4 update 100 frame 19 tick 60 zone gz1g hash CF11F273 n 796
 world updates 100
-random isaac.count 48
+random isaac.count 229
+random isaac.a 0xECA6E0E3
+random isaac.b 0xBCC65BB7
+random isaac.c 0x00000064
+random isaac.results 0xDF3A412A
+random isaac.memory 0x876F431D
 player0 lastTick 60
 player0 var.gtime 6.03666687
 client ticksRun 72
-@ 5 update 120 frame 23 tick 61 zone gz1g hash AF54EC3D n 796
+@ 5 update 120 frame 23 tick 61 zone gz1g hash D544F5A3 n 796
 world tick 61
 world updates 122
 world paused 0
 world updateMap 15
-random isaac.count 189
+random isaac.count 76
 random isaac.a 0x738E3241
 random isaac.b 0x20B919E8
 random isaac.c 0x0000009D
@@ -2360,15 +2365,15 @@ cunit1804 #place F6F6DFDB
 cunit1884 #place A0547F59
 cunit1000011214 #place B5FCCE44
 cunit1000011214 #unit 0AC3B75D
-@ 6 update 140 frame 27 tick 81 zone gz1g hash 5D060536 n 796
+@ 6 update 140 frame 27 tick 81 zone gz1g hash 22AE4D85 n 796
 world tick 81
 world updates 142
-random isaac.count 130
-random isaac.a 0x327F2164
-random isaac.b 0x1EB02DCD
-random isaac.c 0x000000C3
-random isaac.results 0x5CCCDF2E
-random isaac.memory 0x063F3DCA
+random isaac.count 209
+random isaac.a 0x4D9FC9DE
+random isaac.b 0x002E329C
+random isaac.c 0x000000C4
+random isaac.results 0xDEF30F11
+random isaac.memory 0xD60EF05D
 random crt.rand 0x2C35A18C
 player0 lastTick 67
 player0 var.gtime 6.04444456

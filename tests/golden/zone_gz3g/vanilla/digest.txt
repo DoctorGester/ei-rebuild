@@ -6427,7 +6427,7 @@ cunit4767 #place D6A10A71
 cunit4768 #place 8923EC5B
 cunit4768 #unit CAC08105
 cunit1000011214 #place FCC5B9F3
-@ 5 update 120 frame 23 tick 120 zone gz3g hash A277272D n 1224
+@ 5 update 120 frame 23 tick 120 zone gz3g hash 8C95DB17 n 1224
 world tick 120
 world updates 120
 random isaac.count 49
@@ -6436,7 +6436,7 @@ random isaac.b 0x0757EFE9
 random isaac.c 0x0000018B
 random isaac.results 0x127FA4D1
 random isaac.memory 0x41336479
-random crt.rand 0x6BBFC942
+random crt.rand 0x0A22CAFD
 obj3326 #ai 2A459A6B
 obj3326 #unit C2BEE7C6
 obj3326 #vitals 4B2BF9AC
@@ -6536,7 +6536,7 @@ obj4721 #ai 02E29E7B
 obj4721 #place 94BFBD52
 obj4721 #unit 2C0B99F7
 obj4721 #vitals 7D5B47AE
-obj4722 #ai 143F5BE9
+obj4722 #ai 77AC773E
 obj4722 #place F7C0C66B
 obj4722 #vitals 7D5B47AE
 obj4747 #ai 5DC17A58
