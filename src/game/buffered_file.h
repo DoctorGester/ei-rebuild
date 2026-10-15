@@ -95,6 +95,3 @@ public:
 static_assert(offsetof(BufferedFile, file) == 0x1C);
 static_assert(sizeof(BufferedFile) == 0x20);
 
-
-// 004DA580 / 004DA590 (slots 0 / 1 of the fixed view, vtable 0073CA64; RET 4): nothing to reserve.
-void __fastcall BufferViewReserve(GameBuffer* self, void*, std::int32_t size);

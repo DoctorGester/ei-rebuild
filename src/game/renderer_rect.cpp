@@ -33,10 +33,9 @@ void Count(CTextureDevice* device, int vertices, int primitives) {
 } // namespace
 
 // 005041F0. Returns 0 when the rectangle is inverted (right < left or bottom < top), else 1.
-int __fastcall RendererRectangle(CSceneRenderer* renderer, void*, int left, int top, int right, int bottom, char alpha,
-                                 char outline) {
+int CSceneRenderer::DrawRectangleImpl(int left, int top, int right, int bottom, char alpha, char outline) {
     if (right < left || bottom < top) return 0;
-    CTextureDevice* device = renderer->device_;
+    CTextureDevice* device = device_;
     std::uint32_t colour = static_cast<std::uint32_t>(static_cast<std::uint8_t>(alpha)) << 24;
     // With the outline the fill stays a pixel inside it.
     float inset = outline ? 1.0f : 0.0f;
@@ -100,4 +99,4 @@ int __fastcall RendererRectangle(CSceneRenderer* renderer, void*, int left, int 
     render::state::Render(kZBias, 0);
     return 1;
 }
-EI_REPLACE(0x005041F0, RendererRectangle);
+EI_REPLACE_METHOD(0x005041F0, CSceneRenderer::DrawRectangleImpl);

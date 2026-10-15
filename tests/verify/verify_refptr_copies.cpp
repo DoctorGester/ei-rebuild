@@ -536,7 +536,6 @@ static void* s_unusedCopyCounted;
 // S16a, ours only (they count and may delete): counted_ptr<T>'s copy constructor (the object and
 // one more reference), its deleting destructor (this back) and copy(first, last, out) (each
 // holder the source's object, the end of the copy back).
-RefPtr* __fastcall RefPtrDelete(RefPtr* self, void*, unsigned flags);   // refptr_copies.cpp
 static RefPtr* __fastcall CopyCountedVerify(RefPtr* self, void*, const RefPtr* from) {
     CRefObject* object = from->ptr;
     const int before = object ? object->refs_ : 0;
@@ -548,7 +547,7 @@ static RefPtr* __fastcall CopyCountedVerify(RefPtr* self, void*, const RefPtr* f
 EI_VERIFY(0x004A5D50, CopyCountedVerify, 0, s_unusedCopyCounted);
 EI_VERIFY(0x004ABE30, CopyCountedVerify, 0, s_unusedCopyCounted);
 static RefPtr* __fastcall RefPtrDeleteVerify(RefPtr* self, void*, unsigned flags) {
-    RefPtr* result = RefPtrDelete(self, nullptr, flags);
+    RefPtr* result = self->DeleteScalar(flags);
     ei::verify::Check("RefPtrDelete", true, result == self, "flags %u", flags);
     return result;
 }

@@ -68,7 +68,7 @@ void SetStageOps(CTextureDevice* device, DWORD op) {
 
 // 005045D0 (thiscall on the renderer, RET 8). Fewer than two points: 0. Else the strip in
 // `colour` (opaque), the vertices in a temporary array; returns 1.
-int __fastcall RendererPolyline(CSceneRenderer* renderer, void*, const ScreenPoints* points, std::uint32_t colour) {
+int CSceneRenderer::PolylineImpl(const ScreenPoints* points, std::uint32_t colour) {
     int count = points->count;
     if (count < 2) return 0;
     LineVertex* vertices = NewVertices(count);
@@ -81,14 +81,14 @@ int __fastcall RendererPolyline(CSceneRenderer* renderer, void*, const ScreenPoi
         v.colour = colour | 0xFF000000u;
         v.specular = 0xFF000000u;
     }
-    CTextureDevice* device = renderer->device_;
+    CTextureDevice* device = device_;
     SetStageOps(device, kOpDisable);
-    DrawStrip(device, vertices, count);
+    ::DrawStrip(device, vertices, count);
     SetStageOps(device, kOpModulate);
     DeleteVertices(vertices);
     return 1;
 }
-EI_REPLACE(0x005045D0, RendererPolyline);
+EI_REPLACE_METHOD(0x005045D0, CSceneRenderer::PolylineImpl);
 
 // 0049B4B0 (fastcall: the device object, the points; `colour` on the stack, RET 4). Flat shaded
 // (Gouraud again after); returns the last SetRenderState's result.

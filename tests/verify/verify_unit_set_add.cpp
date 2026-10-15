@@ -271,7 +271,7 @@ EI_VERIFY(0x00559DE0, DestroyHeadVerify, 0, s_unused);
 
 // 0055A860 / 0055A9F0 (ours only): the copy holds the same fields, ids and names in storage of its own.
 static FiguredUnitRecord* __fastcall CopyFiguredVerify(FiguredUnitRecord* self, void*, const FiguredUnitRecord* from) {
-    FiguredUnitRecord* result = unitset::CopyFigured(self, nullptr, from);
+    FiguredUnitRecord* result = self->CopyConstruct(from);
     bool ok = result == self && Keep(0, *self) == Keep(0, *from) &&
               (from->armourIds.size() == 0 || self->armourIds.begin() != from->armourIds.begin());
     ei::verify::Report("FiguredUnitRecord::FiguredUnitRecord(const&)", ok, ok ? "" : "not a copy");
@@ -280,7 +280,7 @@ static FiguredUnitRecord* __fastcall CopyFiguredVerify(FiguredUnitRecord* self, 
 EI_VERIFY(0x0055A860, CopyFiguredVerify, 0, s_unused);
 
 static DressedUnitRecord* __fastcall CopyDressedVerify(DressedUnitRecord* self, void*, const DressedUnitRecord* from) {
-    DressedUnitRecord* result = unitset::CopyDressed(self, nullptr, from);
+    DressedUnitRecord* result = self->CopyConstruct(from);
     bool ok = result == self && Keep(0, *self) == Keep(0, *from) &&
               (from->items.size() == 0 || self->items.begin() != from->items.begin());
     ei::verify::Report("DressedUnitRecord::DressedUnitRecord(const&)", ok, ok ? "" : "not a copy");

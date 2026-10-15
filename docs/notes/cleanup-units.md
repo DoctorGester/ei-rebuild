@@ -324,3 +324,44 @@ declaration and the registration; it skipped what did not match and the linker f
   RendererSetFogColour / SetBlend, UiContainerDraw ...: these are class-A conversions, a member to add and the body to move).
 - Left: 941. The virtual-slot forwarders are used up; the rest is call-through blocks, UI input and `void*` selfs, mfc / stlp
   aliases, and free bodies that need a member added first.
+
+## C11 batch 7: free bodies of virtual slots to members (2026-10-15)
+
+47 more shims became members (tools/progress.py: 952 before, 905 after on this branch; 908 with main's merged in). Spelling only: no signature, argument order or float
+grouping changed. This batch took the free `__fastcall Fn(T* self, void*, ...)` bodies of slots that had no member yet: the body
+moved into a non-virtual member (`<Slot>Impl`, or the slot's own name where the class has no virtual of that name), declared next
+to the virtual it implements ("body of the slot above") or at the top of the class, registered with `EI_REPLACE_METHOD`, and the
+verify wrappers call the member. A script did the move (the `self->x` of the body became `x`, or `this->x` where a parameter or
+local of the same name exists; comments and strings untouched; a function inside a `namespace` closes and reopens it around the
+member); the builds found the rest. A member of a named namespace needs qualified helper names (`misc400::New`, `unitdb::Destroy...`),
+a helper of the same name as a member needs `::` (`::DrawStrip`, `::DrawRain`, `::UpdateRegionTips`), and a parameter or local that
+hides a data member is a C4458 warning here (renamed: `newName`, `parameterName`, `currentWorld`, `currentMode`).
+- Converted (47): CSceneRenderer SetFogColourState / SetBlend / CreateRenderer / DrawRectangle / DrawSprites / DrawStrip (the ribbon
+  draw) / DrawTriangles / Polyline; CLightningManager NewObject and CLightning Draw; ClientArrayManager (vis fog) NewObject / Draw;
+  CRainSnow Draw; CUiContainer DrawContainer (00600EF0) and DrawChildren (00600F70), CBriefingScreen, CMainMenu and CHeroEquipPanel
+  Draw; CUnit TakeHit / ObjectDeleted / SetScriptName and CMapObject SetVisibilityMode; CWorldClient MoveObject / MoveObject2;
+  UnitLevelRecord and UnitPrototypeRecord DeleteScalar; FiguredUnitRecord / DressedUnitRecord CopyConstruct; RefPtr DeleteScalar;
+  GameBuffer ReserveView (the fixed view's empty reserve, two addresses); AIMode Priority50 / EnterIdle / ClearAction /
+  LookAroundExecute / PlayerPriority / TamedPriority (the shared mode slots, out of `namespace aimode`); ScriptDefinition
+  AddParameterImpl; ClientSession ReadServerListImpl and BufferRatioImpl (a double returned in ST0, as before). The pointer
+  parameters dereferenced by the old shims (CTransformObject CopyTransform / CombineRotation / UpdateWorld, Terrain
+  CombineRotation, CEngineObject CopyFrom): the member takes a reference where the shim took a pointer, which is the same
+  argument; the members were renamed to `...Impl`, the shims deleted, the qualified base calls (`CTransformObject::CombineRotation
+  (parent)` in Terrain and CObject3D) and verify wrappers call `...Impl`.
+- New classes: `CClientSpecificManager` and `CEffectManager` (base_manager.h, both empty subclasses of CBaseManager) hold the
+  object factory 0042D700 and 0067E170 and, for the effect manager, its deleting destructor 0055F380. Nothing else about their
+  vtables is declared; the other slots of those managers stay free functions.
+- Skipped, with the reason: RasteriseFigureMesh (a parameter type, `IntPoint`, is local to the .cpp); FakeUnitLoadScene (the
+  helpers are in `namespace fakeunit` behind a typedef of the scene); WindowDrawBlended / WindowDrawAlphaRef (the class of
+  0062EFC0 / 0065A6D0 is not known); EquipBuild / QuickStripBuild (`int` to `bool` glue); AIViewer / AIAttention hooks (the shim
+  converts a memory pointer to the brain); CMemoryStream::Write and DriverLink::SendBytes (the shim returns a value for a void
+  slot / `bool ? 1 : 0`); the deleting destructors of imprecise classes (CUiWindow trade panel, CObject3DSpecific server,
+  WoundsMaterial, CCloudNoise base); string_map.cpp's panel (the class is file-local, `void*` selfs); the UI input shims and the
+  other `void*` selfs; ReadMobChunks / LoadMobFile (free functions over the generic `Chunk` reader); the acks / ChunkArchive field
+  readers; the rest are `XxxOriginal` call-through blocks and aliases of mfc / stlp templates.
+- Left: 905. What is left is almost only call-through blocks, UI input and `void*` selfs and template aliases: the pool of free
+  bodies with a known class is used up.
+- Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+  check_thunks, check_registrations: 4,774 method registrations). `work.py test C11 --golden --jobs 4` on the merged tree: 128 runs,
+  all PASS; of the 56 goldens one differs, render_movie_present (vanilla), only in the script `#gobject` field (a heap-layout
+  field, SV7's); not chased.

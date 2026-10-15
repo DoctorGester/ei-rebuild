@@ -89,12 +89,12 @@ EI_REPLACE(0x004A5D70, RefPtrRelease);   // counted_ptr<T>'s destructor (S16a: t
 
 // 004AB960 (RET 4; S16a): counted_ptr<T>'s scalar deleting destructor (the release, then operator
 // delete when bit 0 of `flags` is set). Returns the holder.
-RefPtr* __fastcall RefPtrDelete(RefPtr* self, void*, unsigned flags) {
-    RefPtrRelease(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+RefPtr* RefPtr::DeleteScalar(unsigned flags) {
+    RefPtrRelease(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x004AB960, RefPtrDelete);
+EI_REPLACE_METHOD(0x004AB960, RefPtr::DeleteScalar);
 
 // The same release of the counted pointer at +4 (the destructor of a pair whose second member is
 // the RefPtr). 4 copies.

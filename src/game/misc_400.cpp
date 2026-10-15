@@ -47,19 +47,23 @@ void __fastcall ManagerDestruct(CBaseManager* self) {
 const char* __fastcall ManagerClassName(const CBaseManager*) { return reinterpret_cast<const char*>(0x00783DD8); }
 int __fastcall ManagerClassId(const CBaseManager*) { return 0x30; }
 
+} // namespace misc400
+
 // 0042D700 (slot 14): a new object of `type` ('E' .. 'K'), or null for 'J', any other type or a
 // failed allocation.
-CEngineObject* __fastcall ManagerNewObject(CBaseManager*, void*, int type) {
+CEngineObject* CClientSpecificManager::NewObjectImpl(int type) {
     switch (type) {
-    case 'E': return New(0x3C, Construct73FB10);
-    case 'F': return New(0xFC, Construct73DE90);
-    case 'G': return New(0x58, ConstructMapObjectClientSpecific);
-    case 'H': return New(0xDC, Construct73ECD8);
-    case 'I': return New(0x50F8, Construct743180);
-    case 'K': return New(0x64, Construct73E954);
+    case 'E': return misc400::New(0x3C, misc400::Construct73FB10);
+    case 'F': return misc400::New(0xFC, misc400::Construct73DE90);
+    case 'G': return misc400::New(0x58, misc400::ConstructMapObjectClientSpecific);
+    case 'H': return misc400::New(0xDC, misc400::Construct73ECD8);
+    case 'I': return misc400::New(0x50F8, misc400::Construct743180);
+    case 'K': return misc400::New(0x64, misc400::Construct73E954);
     default: return nullptr;
     }
 }
+
+namespace misc400 {
 
 // 00406B30 / 00406B50: memory for `count` words / dwords plus 0x24 bytes, the start aligned to 32
 // bytes with the block's address in the dword before it (vertex and index arrays; freed through
@@ -91,7 +95,7 @@ EI_REPLACE(0x0042D690, misc400::ManagerConstruct);
 EI_REPLACE(0x0042D6F0, misc400::ManagerDestruct);
 EI_REPLACE(0x0042D6B0, misc400::ManagerClassName);
 EI_REPLACE(0x0042D6C0, misc400::ManagerClassId);
-EI_REPLACE(0x0042D700, misc400::ManagerNewObject);
+EI_REPLACE_METHOD(0x0042D700, CClientSpecificManager::NewObjectImpl);
 EI_REPLACE(0x00406B30, misc400::AlignedWords);
 EI_REPLACE(0x00406B50, misc400::AlignedDwords);
 EI_REPLACE_METHOD(0x00430FC0, BufferCursor::Start);
