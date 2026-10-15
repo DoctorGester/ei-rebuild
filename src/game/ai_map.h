@@ -405,6 +405,9 @@ struct LocalSearch {
     // 005B3FF0 (RET 4; the constructor; ai_grids.cpp). 1 x 1 node and level grids, no map rows, no
     // map; then Attach(owner, false) when `owner` is not null. Returns this.
     LocalSearch* Construct(CAIMap* owner);
+    // 0058AA60 (ai_grids.cpp). The destructor: the row table's vtable back and its storage freed,
+    // then the level and node grids freed.
+    void Destruct();
 
     bool active;                        // +0x00
     bool levelsSaved;                   // +0x01 the window's cell levels are in `levels`
@@ -1040,6 +1043,9 @@ static_assert(offsetof(CAIMap, marks) == 0x26B8);
 static_assert(sizeof(CAIMap) == 0x26C8);   // the AI events follow (Events)
 // 005B3C30 (thiscall; ai_map_construct.cpp; the world server's constructor 00589ED0). Returns self.
 CAIMap* __fastcall ConstructAIMap(CAIMap* self);
+// 0058A450 (thiscall; ai_map_construct.cpp; the world server's destructor 0058AAD0). Every member
+// destroyed in reverse order (the reset 005B5E10 without the constructor after).
+void __fastcall DestructAIMap(CAIMap* self);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {

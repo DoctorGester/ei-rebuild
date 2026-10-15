@@ -57,29 +57,52 @@ void DefaultMember(stlp::vector<T>& to) {
     to.ConstructEmpty();
 }
 
+// Plain data: copied as bytes, left as it is by default. Not the members above, whatever the type
+// traits say (an stlp::vector is trivially copyable to them: its copy constructor is deleted, its
+// copy assignment the implicit one), nor arrays of them. A trivially copyable record with copies of
+// its own (CopyMember / AssignMember / DefaultMember found by argument-dependent lookup) specialises
+// this to false, so arrays of it go element by element too.
 template <typename T>
-std::enable_if_t<std::is_trivially_copyable_v<T>> CopyMember(T& to, const T& from) {
-    std::memcpy(&to, &from, sizeof(T));
-}
+struct IsPlain : std::bool_constant<std::is_trivially_copyable_v<T>> {};
+template <>
+struct IsPlain<mfc::CString> : std::false_type {};
+template <>
+struct IsPlain<stlp::string> : std::false_type {};
 template <typename T>
-std::enable_if_t<std::is_trivially_copyable_v<T>> AssignMember(T& to, const T& from) {
-    std::memcpy(&to, &from, sizeof(T));
-}
-template <typename T>
-std::enable_if_t<std::is_trivially_copyable_v<T>> DefaultMember(T&) {}
-
+struct IsPlain<stlp::vector<T>> : std::false_type {};
 template <typename T, std::size_t N>
-std::enable_if_t<!std::is_trivially_copyable_v<T>> CopyMember(T (&to)[N], const T (&from)[N]) {
+struct IsPlain<T[N]> : IsPlain<T> {};
+template <typename T>
+constexpr bool kPlain = IsPlain<T>::value;
+
+template <typename T>
+std::enable_if_t<kPlain<T>> CopyMember(T& to, const T& from) {
+    std::memcpy(&to, &from, sizeof(T));
+}
+template <typename T>
+std::enable_if_t<kPlain<T>> AssignMember(T& to, const T& from) {
+    std::memcpy(&to, &from, sizeof(T));
+}
+template <typename T>
+std::enable_if_t<kPlain<T>> DefaultMember(T&) {}
+
+// Arrays of the rest: element by element (an element type with no policy does not compile).
+template <typename T, std::size_t N>
+std::enable_if_t<!kPlain<T>> CopyMember(T (&to)[N], const T (&from)[N]) {
     for (std::size_t i = 0; i < N; ++i) CopyMember(to[i], from[i]);
 }
 template <typename T, std::size_t N>
-std::enable_if_t<!std::is_trivially_copyable_v<T>> AssignMember(T (&to)[N], const T (&from)[N]) {
+std::enable_if_t<!kPlain<T>> AssignMember(T (&to)[N], const T (&from)[N]) {
     for (std::size_t i = 0; i < N; ++i) AssignMember(to[i], from[i]);
 }
 template <typename T, std::size_t N>
-std::enable_if_t<!std::is_trivially_copyable_v<T>> DefaultMember(T (&to)[N]) {
+std::enable_if_t<!kPlain<T>> DefaultMember(T (&to)[N]) {
     for (std::size_t i = 0; i < N; ++i) DefaultMember(to[i]);
 }
+
+static_assert(std::is_trivially_copyable_v<stlp::vector<int>[2]> && !kPlain<stlp::vector<int>[2]>,
+              "arrays of vectors go element by element");
+static_assert(!kPlain<mfc::CString[2][3]> && kPlain<int[4]>);
 
 // The copy constructor, operator= and resize(n) default of R over the members M (member pointers,
 // declaration order). The destructor is the record's own (its S13 or earlier port).

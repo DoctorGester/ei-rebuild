@@ -1,17 +1,20 @@
 """The work board's live database: who works on which ticket where, their progress notes, and test batches.
 
 usage: python tools/work.py start ID [--worktree P] [--branch B] [--agent A]
-                                            assign the ticket to this checkout (cwd) and its branch
+                                            assign the ticket to this checkout (cwd) and its branch;
+                                            its status becomes running (started: today)
        python tools/work.py note ID TEXT... [--author A]
                                             a progress line
        python tools/work.py status [ID]     open assignments, last notes and commits, batches (one screen);
                                             with ID: that ticket's assignments, notes and batches
        python tools/work.py done ID [TEXT...]
                                             end the ticket's assignment (the coordinator, at merge); TEXT
-                                            becomes a last note
+                                            becomes a last note; TEXT starting with "merged" also sets
+                                            the ticket's status to done (done: today)
        python tools/work.py db              where the database is, and its schema version
        python tools/work.py serve [--port 8765]
                                             the live board on http://127.0.0.1:PORT/ (tools/work_board/)
+                                            and the ticket board, live, on /tickets/
        python tools/work.py test ID [run_all args]
                                             run_all's runs as one batch through the scheduler; waits,
                                             prints run_all's lines and summary, returns its exit code
@@ -21,7 +24,7 @@ The database is build/live/work.db in the MAIN checkout (found from any worktree
 `git rev-parse --git-common-dir`), so every checkout shares it; WORK_DB overrides the path (tests).
 SQLite in WAL mode: readers never wait, writers take short BEGIN IMMEDIATE transactions and wait for
 each other through the busy timeout. docs/tickets.toml stays what a ticket is; this keeps what is
-happening now. Schema and commands: docs/notes/work-board.md.
+happening now, ticket status included (table ticket_status, written by start, done and tickets.py set). Schema and commands: docs/notes/work-board.md.
 """
 import argparse, contextlib, datetime, os, re, sqlite3, statistics, subprocess, sys, time
 
@@ -119,6 +122,18 @@ MIGRATIONS = [
         batch        INTEGER                -- the scheduler's batch; NULL for a plain run_all
     );
     CREATE INDEX timing_lookup ON timing(scenario, install, scenario_rev, id);
+    """,
+    # 4 (WB10): a ticket's status, moved out of docs/tickets.toml (which keeps the ticket's text). No row: queued.
+    # tickets.py fills it once from the toml's status / started / done lines (migrate_ticket_status).
+    """
+    CREATE TABLE ticket_status (
+        ticket    TEXT PRIMARY KEY,
+        status    TEXT NOT NULL,         -- running, review, queued, later, watch, done (tickets.STATUSES)
+        started   TEXT,                  -- YYYY-MM-DD: set when it goes running
+        done      TEXT,                  -- YYYY-MM-DD: set when it goes done
+        changed   TEXT NOT NULL,         -- now() of the last change
+        author    TEXT
+    );
     """,
 ]
 
@@ -291,6 +306,49 @@ def record_time(db, scenario, install, root, seconds, batch=None):
                    (scenario, install, rev, round(seconds, 1), now(), batch))
 
 
+# ---- ticket status (WB10): the database keeps it, docs/tickets.toml the ticket's text
+
+def ticket_statuses(db):
+    """{ticket: {status, started, done}} for every ticket the database has a status for (the others are queued)."""
+    return {r['ticket']: {'status': r['status'], 'started': r['started'], 'done': r['done']}
+            for r in db.execute('SELECT ticket, status, started, done FROM ticket_status')}
+
+
+def set_ticket_status(db, ticket, status, author=None, today=None):
+    """running fills started with today (kept while it already runs), done fills done. Returns the old row or {}."""
+    today = today or datetime.date.today().isoformat()
+    with transaction(db):
+        row = db.execute('SELECT * FROM ticket_status WHERE ticket = ?', (ticket,)).fetchone()
+        old = dict(row) if row else {}
+        started, done = old.get('started'), old.get('done')
+        if status == 'running' and old.get('status') != 'running':
+            started = today
+        if status == 'done':
+            done = today
+        db.execute('INSERT INTO ticket_status (ticket, status, started, done, changed, author) VALUES (?, ?, ?, ?, ?, ?) '
+                   'ON CONFLICT(ticket) DO UPDATE SET status = excluded.status, started = excluded.started, '
+                   'done = excluded.done, changed = excluded.changed, author = excluded.author',
+                   (ticket, status, started, done, now(), author))
+    return old
+
+
+def migrate_ticket_status(db, toml_status, author='tickets.toml'):
+    """The once-only move out of the toml. toml_status: {ticket: {status, started, done}} as its lines say. A ticket
+    the database has no row for gets exactly those; one it has keeps its own (the line came from an old branch).
+    Returns (migrated ids, ignored ids)."""
+    migrated, ignored = [], []
+    with transaction(db):
+        have = {r[0] for r in db.execute('SELECT ticket FROM ticket_status')}
+        for ticket, v in toml_status.items():
+            if ticket in have:
+                ignored.append(ticket)
+                continue
+            db.execute('INSERT INTO ticket_status (ticket, status, started, done, changed, author) VALUES (?, ?, ?, ?, ?, ?)',
+                       (ticket, v.get('status') or 'queued', v.get('started'), v.get('done'), now(), author))
+            migrated.append(ticket)
+    return migrated, ignored
+
+
 # ---- tickets.toml (titles; whether an id exists)
 
 def toml_tickets():
@@ -359,16 +417,17 @@ def cmd_start(db, args):
         if old and old['worktree'] == worktree:
             db.execute('UPDATE assignment SET branch = ?, agent = ? WHERE id = ?', (branch, agent, old['id']))
             print(f'{args.id}: already assigned to {agent} since {old["started"]} ({worktree}, {branch})')
-            return 0
-        t = now()
-        if old:
-            db.execute('UPDATE assignment SET ended = ? WHERE id = ?', (t, old['id']))
-            db.execute('INSERT INTO note (ticket, time, author, text) VALUES (?, ?, ?, ?)',
-                       (args.id, t, agent, f'took over from {old["agent"]} ({old["worktree"]})'))
-            print(f'{args.id}: was assigned to {old["agent"]} ({old["worktree"]}) since {old["started"]}; taken over')
-        db.execute('INSERT INTO assignment (ticket, worktree, branch, agent, started) VALUES (?, ?, ?, ?, ?)',
-                   (args.id, worktree, branch, agent, t))
-    print(f'{args.id}: assigned to {agent} ({worktree}, {branch})')
+        else:
+            t = now()
+            if old:
+                db.execute('UPDATE assignment SET ended = ? WHERE id = ?', (t, old['id']))
+                db.execute('INSERT INTO note (ticket, time, author, text) VALUES (?, ?, ?, ?)',
+                           (args.id, t, agent, f'took over from {old["agent"]} ({old["worktree"]})'))
+                print(f'{args.id}: was assigned to {old["agent"]} ({old["worktree"]}) since {old["started"]}; taken over')
+            db.execute('INSERT INTO assignment (ticket, worktree, branch, agent, started) VALUES (?, ?, ?, ?, ?)',
+                       (args.id, worktree, branch, agent, t))
+            print(f'{args.id}: assigned to {agent} ({worktree}, {branch})')
+    set_ticket_status(db, args.id, 'running', agent)
     return 0
 
 
@@ -384,18 +443,23 @@ def cmd_note(db, args):
 
 def cmd_done(db, args):
     author = default_author(db, here()[0])
+    merged = bool(args.text) and args.text[0].split()[0].lower() == 'merged'
     with transaction(db):
         old = db.execute('SELECT * FROM assignment WHERE ticket = ? AND ended IS NULL', (args.id,)).fetchone()
-        if not old:
-            print(f'{args.id}: no open assignment')
-            return 1
         t = now()
-        db.execute('UPDATE assignment SET ended = ? WHERE id = ?', (t, old['id']))
-        if args.text:
+        if old:
+            db.execute('UPDATE assignment SET ended = ? WHERE id = ?', (t, old['id']))
+        if args.text and (old or merged):
             db.execute('INSERT INTO note (ticket, time, author, text) VALUES (?, ?, ?, ?)',
                        (args.id, t, author, ' '.join(args.text)))
-    print(f'{args.id}: assignment of {old["agent"]} ended after {age(old["started"])}')
-    return 0
+    if old:
+        print(f'{args.id}: assignment of {old["agent"]} ended after {age(old["started"])}')
+    else:
+        print(f'{args.id}: no open assignment')
+    if merged:      # `done ID merged ...`: the ticket is done too
+        set_ticket_status(db, args.id, 'done', author)
+        print(f'{args.id}: status done')
+    return 0 if old or merged else 1
 
 
 def batch_line(db, b):
@@ -434,7 +498,8 @@ def cmd_status(db, args):
 
 def status_one(db, ticket, tickets):
     t = tickets.get(ticket)
-    print(f'{ticket}: {t["title"]} ({t["status"]})' if t else f'{ticket}: not in docs/tickets.toml')
+    s = ticket_statuses(db).get(ticket) or {'status': (t or {}).get('status') or 'queued'}
+    print(f'{ticket}: {t["title"]} ({s["status"]})' if t else f'{ticket}: not in docs/tickets.toml ({s["status"]})')
     for a in db.execute('SELECT * FROM assignment WHERE ticket = ? ORDER BY id', (ticket,)):
         span = f'since {a["started"]} ({age(a["started"])})' if not a['ended'] else f'{a["started"]} to {a["ended"]}'
         print(f'  {"open " if not a["ended"] else "ended"} {a["agent"]}  {span}\n        {a["worktree"]}  {a["branch"]}')
@@ -458,7 +523,7 @@ def status_one(db, ticket, tickets):
 def cmd_db(db, args):
     print(db_path())
     print(f'schema {db.execute("PRAGMA user_version").fetchone()[0]}, journal {db.execute("PRAGMA journal_mode").fetchone()[0]}')
-    for table in ('assignment', 'note', 'batch', 'run', 'process'):
+    for table in ('assignment', 'note', 'batch', 'run', 'process', 'timing', 'ticket_status'):
         print(f'  {table:<10} {db.execute(f"SELECT count(*) FROM {table}").fetchone()[0]} rows')
     return 0
 

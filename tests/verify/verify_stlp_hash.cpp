@@ -18,6 +18,7 @@
 
 #include "stlp_list_verify.h"
 
+#include "../../src/game/game_hashes.h"
 #include "../../src/lib/stlp_hash.h"
 
 #include <cstdint>
@@ -104,7 +105,17 @@ struct KeyText {
     explicit KeyText(const stlp::string& key) {
         std::snprintf(text, sizeof(text), "\"%.40s\"", key.size() ? key.data() : "");
     }
+    explicit KeyText(const mfc::CString& key) { std::snprintf(text, sizeof(text), "\"%.40s\"", static_cast<const char*>(key)); }
+    explicit KeyText(const ShapeCacheHandle& key) {
+        std::uint32_t height;
+        std::memcpy(&height, &key.height, sizeof(height));
+        std::snprintf(text, sizeof(text), "%08X height %08X", static_cast<unsigned>(key.key), static_cast<unsigned>(height));
+    }
 };
+
+// A CString's reference count (CStringData::nRefs, before the length). The empty string's shared
+// data and a locked buffer hold -1: those cannot be retained.
+long& RefsOf(const mfc::CString& s) { return reinterpret_cast<long*>(const_cast<char*>(static_cast<const char*>(s)))[-3]; }
 
 // A string's words (start, finish, end of storage): its block and the block's size.
 struct StringWords {
@@ -150,6 +161,18 @@ struct Trail {
     void AddString(const stlp::string& s) {
         StringWords w = StringWords::Of(s);
         Add(w.start, static_cast<std::size_t>(w.eos - w.start));
+    }
+    // For checks of ours only: blocks above 128 bytes (operator delete) are left out.
+    void AddIfPooled(void* p, std::size_t bytes) {
+        if (bytes <= 128) Add(p, bytes);
+    }
+    void AddStringIfPooled(const stlp::string& s) {
+        StringWords w = StringWords::Of(s);
+        AddIfPooled(w.start, static_cast<std::size_t>(w.eos - w.start));
+    }
+    template <typename T>
+    void AddStorage(stlp::vector<T>& v) {
+        AddIfPooled(v.Start(), static_cast<std::size_t>(v.EndOfStorage() - v.Start()) * sizeof(T));
     }
     // True when all were on top; otherwise the ones taken off are freed again.
     bool Undo() const {
@@ -403,7 +426,7 @@ struct HashCheck {
             Node* found = self->Find(key);
             std::uintptr_t mapped = 0;
             if constexpr (std::is_same_v<Key, stlp::string>) {
-                if (found) std::memcpy(&mapped, found->value.mapped, sizeof(mapped));
+                if (byValue && found) std::memcpy(&mapped, &found->value.mapped, sizeof(mapped));
             }
             bool ok = found && (byValue ? result == mapped : result >= Word(found) && result < Word(found) + sizeof(Node));
             if (!ok) std::snprintf(detail, sizeof(detail), "key %s: result %08X, node %p", KeyText(key).text, static_cast<unsigned>(result), found);
@@ -687,6 +710,304 @@ stlp::TableWithDword* __fastcall ConstructTableWithDword(stlp::TableWithDword* s
     return result;
 }
 
+// --- S11a: values with their own copy and destruction ------------------------------------------
+
+using CStrFloat = stlp::HashtableAbi<stlp::CStringFloatTraits>;
+using StrList = stlp::HashtableAbi<stlp::StringListTraits>;
+using FiguredGroups = stlp::HashtableAbi<gamehash::FiguredGroupsTraits>;
+using Dressed = stlp::HashtableAbi<gamehash::DressedTraits>;
+template <std::uintptr_t A> using CF = HashCheck<A, CStrFloat>;
+template <std::uintptr_t A> using SL = HashCheck<A, StrList>;
+template <std::uintptr_t A> using SH = HashCheck<A, gamehash::ShapeAbi>;
+
+// The pool blocks a value's destruction frees, in order (ours-only checks; blocks above 128 bytes
+// are left out).
+void AddValueBlocks(Trail&, const stlp::CStringFloat&) {}   // the CString's block is MFC's
+void AddValueBlocks(Trail& trail, stlp::StringKeyed<4>& v) { trail.AddStringIfPooled(v.key); }
+void AddValueBlocks(Trail& trail, stlp::StringList& v) {
+    using ListNode = stlp::list<void*>::Node;
+    for (ListNode* n = v.mapped.First(); n != v.mapped.End(); n = n->next) trail.Add(n, sizeof(ListNode));
+    trail.Add(v.mapped.head, sizeof(ListNode));
+    trail.AddStringIfPooled(v.key);
+}
+void AddValueBlocks(Trail& trail, stlp::DwordKeyedObject<DressedUnitRecord>& v) {
+    trail.AddStorage(v.mapped.extraWeapons);
+    trail.AddStorage(v.mapped.items);
+}
+void AddValueBlocks(Trail& trail, stlp::DwordKeyedObject<FiguredUnitRecord>& v) {
+    trail.AddStorage(recordvec::FiguredUnitElement::NamesOf(v.mapped));   // the names are MFC's blocks
+    trail.AddStorage(v.mapped.weaponIds);
+    trail.AddStorage(v.mapped.armourIds);
+}
+// A party frees many blocks of its own, none from the nodes' list (checked: a mismatch says otherwise).
+void AddValueBlocks(Trail&, stlp::DwordKeyedObject<PartyInPlace>&) {}
+// The node blocks of a table (each value's blocks first) and its bucket storage when `storage`.
+template <typename Table>
+void AddTableBlocks(Trail& trail, Table& t, bool storage);
+void AddValueBlocks(Trail& trail, stlp::DwordKeyedObject<gamehash::FiguredTable>& v) { AddTableBlocks(trail, v.mapped, true); }
+template <typename Table>
+void AddTableBlocks(Trail& trail, Table& t, bool storage) {
+    for (std::size_t b = 0; b < t.BucketCount(); ++b) {
+        for (auto* n = t.BucketVector()[b]; n; n = n->next) {
+            AddValueBlocks(trail, n->value);
+            trail.Add(n, sizeof(*n));
+        }
+    }
+    if (storage) trail.AddStorage(t.BucketVector());
+}
+
+// clear() / ~hashtable() of ours alone: no elements, null buckets, and the blocks freed in order
+// (each value's, then its node; bucket by bucket, each chain from its head; then the storage).
+template <std::uintptr_t A, typename Abi>
+struct ClearOurs {
+    using Table = typename Abi::Table;
+    static void Run(const char* name, Table* self, bool storage) {
+        Trail trail;
+        AddTableBlocks(trail, *self, storage);
+        bool empty = true;
+        if (storage) {
+            Abi::Destroy(self);
+        } else {
+            Abi::Clear(self);
+            for (std::size_t b = 0; b < self->BucketCount(); ++b) empty = empty && self->BucketVector()[b] == nullptr;
+        }
+        bool freed = trail.Undo();
+        if (freed) trail.Redo();
+        bool ok = freed && empty && self->Count() == 0;
+        ei::verify::Report(name, ok, ok ? "" : freed ? "elements left" : "other blocks freed, or in another order");
+    }
+    static void __fastcall Clear(Table* self) { Run(Name<A>("stlp::hashtable::clear"), self, false); }
+    static void __fastcall Destroy(Table* self) { Run(Name<A>("stlp::hashtable::~hashtable"), self, true); }
+};
+
+template <std::uintptr_t A> using ClearStr4 = ClearOurs<A, Str4>;
+template <std::uintptr_t A> using ClearStrList = ClearOurs<A, StrList>;
+template <std::uintptr_t A> using ClearParties = ClearOurs<A, gamehash::PartyAbi>;
+template <std::uintptr_t A> using ClearFigured = ClearOurs<A, FiguredGroups>;
+template <std::uintptr_t A> using ClearDressed = ClearOurs<A, Dressed>;
+
+// --- hash_map<CString, float> ---
+
+// Every key's reference retained (true), or none when one cannot be (the empty string's data or a
+// locked buffer).
+template <typename Table>
+bool RetainAll(Table* t) {
+    for (std::size_t b = 0; b < t->BucketCount(); ++b)
+        for (auto* n = t->BucketVector()[b]; n; n = n->next)
+            if (RefsOf(n->value.key) < 1) return false;
+    for (std::size_t b = 0; b < t->BucketCount(); ++b)
+        for (auto* n = t->BucketVector()[b]; n; n = n->next) ++RefsOf(n->value.key);
+    return true;
+}
+
+template <std::uintptr_t A>
+struct CStringFloatCheck {
+    using Check = CF<A>;
+    using Table = CStrFloat::Table;
+    using Node = CStrFloat::Node;
+    static inline void* original = nullptr;
+    template <typename Fn> static Fn Original() { return reinterpret_cast<Fn>(original); }
+
+    // operator[]: as find_or_insert (the temporary pair only shares the key's text: no pool blocks).
+    static void* __fastcall Subscript(Table* self, void*, const mfc::CString* key) {
+        void* result = nullptr;
+        Check::CheckInsert(
+            Name<A>("stlp::hash_map::operator[]"), self, *key,
+            [&] { return Word(Original<decltype(&CStrFloat::SubscriptKey)>()(self, nullptr, key)); },
+            [&] { return Word(result = CStrFloat::SubscriptKey(self, nullptr, key)); });
+        return result;
+    }
+    // clear(): each key retained first, so the original's release leaves its string; the nodes it
+    // freed are taken back and ours runs (and releases for good). Ours alone when a key cannot be
+    // retained.
+    static void __fastcall Clear(Table* self) {
+        if (!RetainAll(self)) {
+            ClearOurs<A, CStrFloat>::Clear(self);
+            return;
+        }
+        Check::CheckFrees(
+            Name<A>("stlp::hashtable::clear"), self, nullptr, [&] { Original<decltype(&CStrFloat::Clear)>()(self); },
+            [&] { CStrFloat::Clear(self); });
+    }
+    // _M_delete_node: as clear, for the one node.
+    static void __fastcall DeleteNode(Table* self, void*, Node* n) {
+        if (!n || RefsOf(n->value.key) < 1) {
+            void* top = *FreeList(sizeof(Node));
+            CStrFloat::DeleteNode(self, nullptr, n);
+            bool ok = !n || (*FreeList(sizeof(Node)) == n && *reinterpret_cast<void**>(n) == top);
+            ei::verify::Report(Name<A>("stlp::hashtable::_M_delete_node"), ok, ok ? "" : "the node is not on top of its free list");
+            return;
+        }
+        ++RefsOf(n->value.key);
+        Check::CheckFrees(
+            Name<A>("stlp::hashtable::_M_delete_node"), nullptr, n,
+            [&] { Original<decltype(&CStrFloat::DeleteNode)>()(self, nullptr, n); }, [&] { CStrFloat::DeleteNode(self, nullptr, n); });
+    }
+
+    // The copies (ours only): the same bucket count, count and functor bytes as the source, each
+    // chain the same keys (the same shared text) and value bits in order, in nodes of their own.
+    static bool SameAs(Table* self, const Table* source) {
+        Table* from = const_cast<Table*>(source);
+        bool ok = self->BucketCount() == from->BucketCount() && self->Count() == from->Count() &&
+                  std::memcmp(self->Functors(), from->Functors(), 3) == 0;
+        for (std::size_t b = 0; ok && b < self->BucketCount(); ++b) {
+            Node* mine = self->BucketVector()[b];
+            Node* theirs = from->BucketVector()[b];
+            for (; ok && mine && theirs; mine = mine->next, theirs = theirs->next)
+                ok = mine != theirs && static_cast<const char*>(mine->value.key) == static_cast<const char*>(theirs->value.key) &&
+                     std::memcmp(&mine->value.mapped, &theirs->value.mapped, sizeof(float)) == 0;
+            ok = ok && !mine && !theirs;
+        }
+        return ok;
+    }
+    static Table* __fastcall CopyConstruct(Table* self, void*, const Table* source) {
+        Table* result = CStrFloat::CopyConstruct(self, nullptr, source);
+        bool ok = result == self && SameAs(self, source);
+        ei::verify::Report(Name<A>("stlp::hashtable::hashtable(const hashtable&)"), ok, ok ? "" : "not a copy of the source");
+        return result;
+    }
+    static Table* __fastcall Assign(Table* self, void*, const Table* source) {
+        Table* result = CStrFloat::Assign(self, nullptr, source);
+        bool ok = result == self && SameAs(self, source);
+        ei::verify::Report(Name<A>("stlp::hashtable::operator="), ok, ok ? "" : "not a copy of the source");
+        return result;
+    }
+    static void __fastcall CopyFrom(Table* self, void*, const Table* source) {
+        CStrFloat::CopyFrom(self, nullptr, source);
+        bool ok = SameAs(self, source);
+        ei::verify::Report(Name<A>("stlp::hashtable::_M_copy_from"), ok, ok ? "" : "not a copy of the source");
+    }
+};
+
+// --- hash_map<int, CParty> (ours only: a party's copy and destruction cannot be undone) ---
+
+template <std::uintptr_t A>
+struct PartyCheck {
+    using Table = gamehash::PartyTable;
+    using Node = Table::Node;
+    // operator[]: the key's node afterwards (one more element when it was not there); the result
+    // its party.
+    static PartyInPlace* __fastcall At(Table* self, void*, const std::uint32_t* key) {
+        bool had = self->Find(*key) != nullptr;
+        std::size_t count = self->Count();
+        PartyInPlace* result = gamehash::PartyAt(self, nullptr, key);
+        Node* found = self->Find(*key);
+        bool ok = found && result == &found->value.mapped && self->Count() == count + (had ? 0 : 1);
+        char detail[64] = "";
+        if (!ok) std::snprintf(detail, sizeof(detail), "key %s: result %p, node %p", KeyText(*key).text, result, found);
+        ei::verify::Report(Name<A>("stlp::hash_map::operator[]"), ok, detail);
+        return result;
+    }
+    // _M_delete_node: the node on top of its free list.
+    static void __fastcall DeleteNode(Table* self, void*, Node* n) {
+        gamehash::PartyAbi::DeleteNode(self, nullptr, n);
+        bool ok = !n || *FreeList(sizeof(Node)) == n;
+        ei::verify::Report(Name<A>("stlp::hashtable::_M_delete_node"), ok, ok ? "" : "the node is not on top of its free list");
+    }
+};
+
+// --- The unit shapes' cache ---
+
+template <std::uintptr_t A>
+struct ShapeCheck {
+    using Check = SH<A>;
+    using Table = gamehash::ShapeTable;
+    using Node = Table::Node;
+    using Abi = gamehash::ShapeAbi;
+    static inline void* original = nullptr;
+    template <typename Fn> static Fn Original() { return reinterpret_cast<Fn>(original); }
+
+    // 005BCCB0: the original on a copy of the handle, ours on the handle.
+    static ShapeCacheHandle* __fastcall InitHandle(ShapeCacheHandle* self) {
+        ShapeCacheHandle theirs;
+        std::memcpy(&theirs, self, sizeof(theirs));
+        bool returned = Original<decltype(&gamehash::InitShapeHandle)>()(&theirs) == &theirs;
+        ShapeCacheHandle* result = gamehash::InitShapeHandle(self);
+        bool ok = returned && result == self && std::memcmp(&theirs, self, sizeof(theirs)) == 0;
+        ei::verify::Report(Name<A>("ShapeCacheHandle::Init"), ok, ok ? "" : "other words");
+        return result;
+    }
+    // operator[]: the new pair holds a null RefPtr and the handle's reference, which deleting the
+    // node gives back, so it is compared with the original's as find_or_insert of plain data is.
+    static RefPtr* __fastcall Slot(Table* self, void*, const ShapeCacheHandle* handle) {
+        RefPtr* result = nullptr;
+        Check::CheckInsert(
+            Name<A>("stlp::hash_map::operator[]"), self, *handle,
+            [&] { return Word(Original<decltype(&gamehash::ShapeSlot)>()(self, nullptr, handle)); },
+            [&] { return Word(result = gamehash::ShapeSlot(self, nullptr, handle)); });
+        return result;
+    }
+    // find_or_insert: a new pair shares its shape (which marks it copy-on-share), so an insert runs
+    // ours alone (the key found at the result, one more element); a lookup is compared with the
+    // original.
+    using ShapePair = gamehash::ShapePair;
+    static ShapePair* __fastcall FindOrInsert(Table* self, void*, const ShapePair* obj) {
+        const char* name = Name<A>("stlp::hashtable::find_or_insert");
+        if (Check::WouldRehash(self) || !self->Find(obj->key)) {
+            std::size_t count = self->Count();
+            ShapePair* result = Abi::FindOrInsert(self, nullptr, obj);
+            Node* found = self->Find(obj->key);
+            bool ok = found && result == &found->value && self->Count() == count + 1;
+            ei::verify::Report(name, ok, ok ? "" : "the new pair is not the key's");
+            return result;
+        }
+        ShapePair* theirs = Original<decltype(&Abi::FindOrInsert)>()(self, nullptr, obj);
+        ShapePair* ours = Abi::FindOrInsert(self, nullptr, obj);
+        ei::verify::Check(name, Word(theirs), Word(ours), "key %s", KeyText(obj->key).text);
+        return ours;
+    }
+};
+
+// hash_map<int, unsigned>::operator[] of the bridge heights: the original's new value is the
+// caller's stack dword after the key (ours zero); ours gets the original's before the compare.
+template <std::uintptr_t A>
+struct BridgeCheck {
+    static inline void* original = nullptr;
+    static void* __fastcall Subscript(stlp::hashtable<stlp::DwordKeyTraits<8>>* self, void*, const std::uint32_t* key) {
+        void* result = nullptr;
+        bool theirsRan = false;
+        std::uint32_t value = 0;
+        H8<A>::CheckInsert(
+            Name<A>("stlp::hash_map::operator[]"), self, *key,
+            [&] {
+                void* theirs = reinterpret_cast<decltype(&Map8::Subscript)>(original)(self, nullptr, key);
+                std::memcpy(&value, theirs, sizeof(value));
+                theirsRan = true;
+                return Word(theirs);
+            },
+            [&] {
+                result = Map8::Subscript(self, nullptr, key);
+                if (theirsRan) std::memcpy(result, &value, sizeof(value));
+                return Word(result);
+            });
+        return result;
+    }
+};
+
+// hash_map<string, list<void*>>::clear against the original: per node its list's nodes, the
+// list's sentinel, the string, then the node, taken off their lists again before ours runs.
+template <std::uintptr_t A>
+struct StringListCheck {
+    static inline void* original = nullptr;
+    static void __fastcall Clear(StrList::Table* self) {
+        using ListNode = stlp::list<void*>::Node;
+        Trail trail;
+        for (std::size_t b = 0; b < self->BucketCount(); ++b) {
+            for (StrList::Node* n = self->BucketVector()[b]; n; n = n->next) {
+                stlp::list<void*>& list = n->value.mapped;
+                for (ListNode* e = list.First(); e != list.End(); e = e->next) trail.Add(e, sizeof(ListNode));
+                trail.Add(list.head, sizeof(ListNode));
+                trail.AddString(n->value.key);
+                trail.Add(n, sizeof(*n));
+            }
+        }
+        SL<A>::CheckTrail(
+            Name<A>("stlp::hashtable::clear"), self, trail,
+            [&] { reinterpret_cast<decltype(&StrList::Clear)>(original)(self); return std::uintptr_t{0}; },
+            [&] { StrList::Clear(self); return std::uintptr_t{0}; });
+    }
+};
+
 } // namespace
 
 // Construction.
@@ -905,3 +1226,34 @@ EI_VERIFY(0x006A7340, S4<0x006A7340>::ClearStrings, 6, S4<0x006A7340>::original)
 EI_VERIFY(0x006B0520, S4<0x006B0520>::ClearStrings, 6, S4<0x006B0520>::original);
 EI_VERIFY(0x006B0590, S4<0x006B0590>::ClearStrings, 6, S4<0x006B0590>::original);
 EI_VERIFY(0x006BCE00, S4<0x006BCE00>::ClearStrings, 6, S4<0x006BCE00>::original);
+
+// S11a: hash_map<CString, float>.
+EI_VERIFY(0x004613C0, CStringFloatCheck<0x004613C0>::Subscript, 7, CStringFloatCheck<0x004613C0>::original);
+EI_VERIFY(0x00461540, CStringFloatCheck<0x00461540>::Clear, 6, CStringFloatCheck<0x00461540>::original);
+EI_VERIFY(0x004615B0, CF<0x004615B0>::NewNode, 5, CF<0x004615B0>::original);
+EI_VERIFY(0x004616A0, CStringFloatCheck<0x004616A0>::DeleteNode, 5, CStringFloatCheck<0x004616A0>::original);
+EI_VERIFY(0x00461750, CF<0x00461750>::Resize, 7, CF<0x00461750>::original);
+EI_VERIFY(0x004A8A50, CStringFloatCheck<0x004A8A50>::CopyConstruct, 0, s_unused);
+EI_VERIFY(0x00580900, CStringFloatCheck<0x00580900>::CopyConstruct, 0, s_unused);
+EI_VERIFY(0x004A8AD0, CStringFloatCheck<0x004A8AD0>::Assign, 0, s_unused);
+EI_VERIFY(0x004AA950, CStringFloatCheck<0x004AA950>::CopyFrom, 0, s_unused);
+EI_VERIFY(0x005E0DB0, CF<0x005E0DB0>::SkipToNext, 6, CF<0x005E0DB0>::original);
+
+// S11a: string keys: the destructors of 4-byte values (ours only); hash_map<string, list<void*>>.
+EI_VERIFY(0x004A9010, ClearStr4<0x004A9010>::Destroy, 0, s_unused);
+EI_VERIFY(0x006A6C20, ClearStr4<0x006A6C20>::Destroy, 0, s_unused);
+EI_VERIFY(0x004A8E60, ClearStrList<0x004A8E60>::Destroy, 0, s_unused);
+EI_VERIFY(0x004AAEB0, StringListCheck<0x004AAEB0>::Clear, 6, StringListCheck<0x004AAEB0>::original);
+EI_VERIFY(0x0069D130, SL<0x0069D130>::FindOrInsert, 6, SL<0x0069D130>::original);
+
+// S11a: game values (ours only), the shape cache, the bridge heights.
+EI_VERIFY(0x004A91B0, PartyCheck<0x004A91B0>::At, 0, s_unused);
+EI_VERIFY(0x004ABA70, PartyCheck<0x004ABA70>::DeleteNode, 0, s_unused);
+EI_VERIFY(0x004AD050, ClearParties<0x004AD050>::Clear, 0, s_unused);
+EI_VERIFY(0x005986B0, ClearFigured<0x005986B0>::Destroy, 0, s_unused);
+EI_VERIFY(0x00598860, ClearDressed<0x00598860>::Destroy, 0, s_unused);
+EI_VERIFY(0x005BCCB0, ShapeCheck<0x005BCCB0>::InitHandle, 9, ShapeCheck<0x005BCCB0>::original);
+EI_VERIFY(0x005BE090, ShapeCheck<0x005BE090>::Slot, 7, ShapeCheck<0x005BE090>::original);
+EI_VERIFY(0x005BE320, SH<0x005BE320>::Find, 5, SH<0x005BE320>::original);
+EI_VERIFY(0x005BE730, ShapeCheck<0x005BE730>::FindOrInsert, 5, ShapeCheck<0x005BE730>::original);
+EI_VERIFY(0x005BCDE0, BridgeCheck<0x005BCDE0>::Subscript, 7, BridgeCheck<0x005BCDE0>::original);

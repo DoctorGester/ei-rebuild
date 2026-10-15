@@ -13,10 +13,14 @@
 //    scenario reaches it (the list is empty).
 //  - CEngineObject::ReleaseAndDelete: ours only (it can delete the object); an object that stays
 //    has one reference less. Reached when a 3D object's attachment is replaced (map_objects).
+//  - ConstructProtectionChecks: the static initialiser runs it before the hooks, so a start-up
+//    check runs the original and ours on the global (its list put back after): an empty list, the
+//    same sentinel from the pool.
 #include "verify.h"
 
 #include "../../src/game/app_helpers.h"
 #include "../../src/game/engine_object.h"
+#include "../../src/lib/stlp_alloc.h"
 
 #include <cstdint>
 
@@ -84,8 +88,34 @@ void __fastcall ReleaseVerify(CEngineObject* self) {
     ei::verify::Check("CEngineObject::ReleaseAndDelete", true, before == 1 || self->refCount_ == before - 1, "refs %d",
                       before);
 }
+// 00455E50: PUSH -1 (2), PUSH imm32 (5).
+void(__stdcall* s_constructChecks)();
+bool EmptyList(const app::ProtectionCheckList& list) {
+    return list.head && list.head->next == list.head && list.head->prev == list.head;
+}
+void __stdcall ConstructChecksVerify() {
+    app::ConstructProtectionChecks();
+    ei::verify::Check("app::ConstructProtectionChecks", true, EmptyList(app::ProtectionChecks()), "");
+}
+void ConstructChecksStartupCheck() {
+    app::ProtectionCheckList& checks = app::ProtectionChecks();
+    app::ProtectionCheckList::Node* kept = checks.head;
+    s_constructChecks();
+    app::ProtectionCheckList::Node* expected = checks.head;
+    bool expectedEmpty = EmptyList(checks);
+    stlp::deallocate(expected, sizeof(*expected));
+    app::ConstructProtectionChecks();
+    app::ProtectionCheckList::Node* actual = checks.head;
+    bool ok = expectedEmpty && EmptyList(checks) && actual == expected;
+    stlp::deallocate(actual, sizeof(*actual));
+    checks.head = kept;
+    ei::verify::Check("app::ConstructProtectionChecks", true, ok, "sentinel %p, original %p",
+                      static_cast<const void*>(actual), static_cast<const void*>(expected));
+}
 } // namespace
 
+EI_STARTUP_CHECK(ConstructChecksStartupCheck);
+EI_VERIFY(0x00455E50, ConstructChecksVerify, 7, s_constructChecks);
 EI_VERIFY(0x00455A90, DiskFreeVerify, 6, s_diskFree);
 EI_VERIFY(0x00455F10, SetQuitVerify, 6, s_setQuit);
 EI_VERIFY(0x00455F20, QuitVerify, 0, s_unused);

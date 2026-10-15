@@ -1192,21 +1192,6 @@ __declspec(naked) void __fastcall Construct4E3C20(void*) EI_ORIGINAL(0x004E3C20)
 // vector<ScreenEntry>::_M_allocate_and_copy [00573520: count, first, last].
 __declspec(naked) ScreenEntry* __fastcall EntriesAllocateCopy(ScreenHits*, void*, int, ScreenEntry*, ScreenEntry*)
     EI_ORIGINAL(0x00573520)
-// The sector grids: resize [00572450 / 005724F0 (width, height)], the cells' vector deleting
-// destructor [00572B30 / 00572C50 (flags)], the allocation (originals_world.h).
-__declspec(naked) void __fastcall GridResize(SectorGrid*, void*, int, int) EI_ORIGINAL(0x00572450)
-__declspec(naked) void __fastcall GridResize2(SectorGrid*, void*, int, int) EI_ORIGINAL(0x005724F0)
-__declspec(naked) void __fastcall CellsDelete(SectorList*, void*, int) EI_ORIGINAL(0x00572B30)
-__declspec(naked) void __fastcall CellsDelete2(SectorList*, void*, int) EI_ORIGINAL(0x00572C50)
-
-// A cell's list destroyed (STLport's list<counted pointer>::~list, 0056DEF0 / 00572E90): each
-// object released (slot 4) and its node returned to the pool, the sentinel last.
-void DestroySectorList(SectorList* list) {
-    list->ClearWith([](CEngineObject** object) {
-        if (*object) (*object)->Release();
-    });
-    stlp::deallocate(list->head, sizeof(SectorListNode));
-}
 
 std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
 
@@ -1220,19 +1205,13 @@ T* MakeCounted(std::size_t size, void* (__fastcall* construct)(void*)) {
     return object;
 }
 
-// The grid set to 4 x 4 cells, reallocated unless its storage already has that size.
-void GridToFour(SectorGrid& grid, void (__fastcall* resize)(SectorGrid*, void*, int, int),
-                void (__fastcall* deleteCells)(SectorList*, void*, int), void (__fastcall* allocate)(SectorGrid*)) {
-    resize(&grid, nullptr, 1, 1);
+// The grid set to 4 x 4 cells, reallocated unless its storage already has that size (the second
+// resize inlined).
+void GridToFour(SectorGrid& grid) {
+    grid.Resize(1, 1);
     grid.width_ = 4;
     grid.height_ = 4;
-    if (grid.unknown08_ != 4 || grid.unknown0C_ != 4) {
-        if (grid.cells_) deleteCells(grid.cells_, nullptr, 3);
-        gamecrt::operator_delete(grid.rows_);
-        grid.unknown08_ = 4;
-        grid.unknown0C_ = 4;
-        allocate(&grid);
-    }
+    grid.Resize(4, 4);
 }
 
 // A reference on every object of `manager` (the original keeps the walk's iterator on the heap).
@@ -1251,6 +1230,13 @@ void ReferenceEveryObject(CBaseManager* manager) {
 
 } // namespace
 
+void DestroySectorList(SectorList* list) {
+    list->ClearWith([](CEngineObject** object) {
+        if (*object) (*object)->Release();
+    });
+    stlp::deallocate(list->head, sizeof(SectorListNode));
+}
+
 SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flags) {
     if (flags & 2) {
         int* block = reinterpret_cast<int*>(cells) - 1;   // new[]'s element count
@@ -1264,6 +1250,33 @@ SectorList* __fastcall SectorListsDelete(SectorList* cells, void*, unsigned flag
 }
 EI_REPLACE(0x00572B30, SectorListsDelete);
 EI_REPLACE(0x00572C50, SectorListsDelete);
+
+void SectorGrid::Allocate() {
+    const int count = unknown08_ * unknown0C_;
+    auto* block = static_cast<int*>(gamecrt::operator_new(static_cast<std::size_t>(count) * sizeof(SectorList) + 4));
+    SectorList* cells = nullptr;
+    if (block) {
+        *block = count;
+        cells = reinterpret_cast<SectorList*>(block + 1);
+        for (int i = 0; i < count; ++i) cells[i].Construct();
+    }
+    cells_ = cells;
+    rows_ = static_cast<SectorList**>(gamecrt::operator_new(static_cast<std::size_t>(unknown0C_) * sizeof(SectorList*)));
+    for (int y = 0; y < unknown0C_; ++y) rows_[y] = cells_ + y * unknown08_;
+}
+EI_REPLACE_METHOD(0x00572820, SectorGrid::Allocate);
+EI_REPLACE_METHOD(0x005728D0, SectorGrid::Allocate);
+
+void SectorGrid::Resize(int width, int height) {
+    if (unknown08_ == width && unknown0C_ == height) return;
+    if (cells_) SectorListsDelete(cells_, nullptr, 3);
+    gamecrt::operator_delete(rows_);
+    unknown08_ = width;
+    unknown0C_ = height;
+    Allocate();
+}
+EI_REPLACE_METHOD(0x00572450, SectorGrid::Resize);
+EI_REPLACE_METHOD(0x005724F0, SectorGrid::Resize);
 
 int CWorldClient::Setup() {
     WorldCreateManagers(this);
@@ -1439,8 +1452,8 @@ int CWorldClient::Setup() {
     unused84_ = -100000;
     cave_ = 0;
     partyDanger_ = 0;
-    GridToFour(secondGrid_, GridResize2, CellsDelete2, GridAllocate2);
-    GridToFour(objectGrid_, GridResize, CellsDelete, GridAllocate);
+    GridToFour(secondGrid_);
+    GridToFour(objectGrid_);
     ticksRun_ = 0;
     lightLevelsCountdown_ = 0;
     return 1;
@@ -1643,13 +1656,13 @@ constexpr int kCave = 1;
 
 // A sector grid sized for the terrain, in cells of 16: emptied to one cell first, the new size
 // stored, then allocated.
-void FitGrid(SectorGrid& grid, void(__fastcall* resize)(SectorGrid*, void*, int, int), const Terrain* terrain) {
+void FitGrid(SectorGrid& grid, const Terrain* terrain) {
     const std::uint32_t height = static_cast<std::uint32_t>(x87::fistp(terrain->height));
     const std::uint32_t width = static_cast<std::uint32_t>(x87::fistp(terrain->width));
-    resize(&grid, nullptr, 1, 1);
+    grid.Resize(1, 1);
     grid.height_ = height >> 4;
     grid.width_ = width >> 4;
-    resize(&grid, nullptr, static_cast<int>(width >> 4), static_cast<int>(height >> 4));
+    grid.Resize(static_cast<int>(width >> 4), static_cast<int>(height >> 4));
 }
 
 // The zone of the local player as the map database knows it, or null.
@@ -1726,8 +1739,8 @@ int CWorldClient::LoadZone(CStream* block) {
     if (!LandscapeLoadMapOriginal(terrain, nullptr, map, allod, cave == kCave))
         return game::FatalError(worlddata::CantLoadTerrainFormat(), static_cast<const char*>(map));
 
-    FitGrid(objectGrid_, GridResize, terrain);
-    FitGrid(secondGrid_, GridResize2, terrain);
+    FitGrid(objectGrid_, terrain);
+    FitGrid(secondGrid_, terrain);
     if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~kLandscapeWaves;
     if (cave == kCave) terrain->landscapeFlags |= kLandscapeWaves;
     if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~kLandscapeSelfShadowing;

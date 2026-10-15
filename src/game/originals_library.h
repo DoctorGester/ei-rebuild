@@ -28,6 +28,8 @@ __declspec(naked) inline void* __fastcall StringInitEmpty(void* /*string*/) EI_O
 __declspec(naked) inline void* __fastcall StringInitWithAllocator(void* /*string*/, void*, const void* /*alloc*/)
     EI_ORIGINAL(0x004217E0)
 __declspec(naked) inline void __fastcall StringBufferFree(void* /*string*/) EI_ORIGINAL(0x00425040)
+// __stl_throw_out_of_range("basic_string"): basic_string::substr's out_of_range, thrown.
+__declspec(naked) inline void __fastcall StringThrowOutOfRangeOriginal() EI_ORIGINAL(0x004410A0)
 __declspec(naked) inline void __fastcall StringAssignSpan(void* /*string*/, void*, const char* /*first*/, const char* /*last*/)
     EI_ORIGINAL(0x00428F10)
 // MSVC 6 iostream ostream members on the game's streams: operator<<(manipulator function) 00434FE0,
@@ -471,8 +473,6 @@ __declspec(naked) inline void* __fastcall PtrListNewNode573290Original(void* /*l
     EI_ORIGINAL(0x00573290)
 __declspec(naked) inline void __fastcall CountedPtrArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x0059A100)
 __declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0059C890)
-// 00599330: CArray<Sector>'s destructor (each element's destructor slot with flags 0, the storage freed; plain RET).
-__declspec(naked) inline void __fastcall SectorArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x00599330)
 // MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
 // result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
 // 006E6722 GetFilePath(out) (RET 4, EAX = out). The constructor, destructor, FindFile and GetFilePath are mfc::CFileFind's

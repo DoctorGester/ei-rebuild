@@ -107,4 +107,9 @@ EI_REPLACE(0x0059B8F0, ObjectPtrCopy);
 // The script's point lights.
 EI_REPLACE(0x004C5CB0, PointLights::SetSize);
 
+// CScript's arrays' destructors (S13b; CScript::Destruct, world_destructors.cpp).
+EI_REPLACE(0x004CB150, PointLights::Destruct<PointLightArrayClass>);
+EI_REPLACE(0x004CB650, Areas::Destruct<AreaArrayClass>);
+EI_REPLACE(0x004CB310, Definitions::Destruct<DefinitionArrayClass>);
+
 } // namespace gamearrays

@@ -106,6 +106,8 @@ public:
     virtual void Abort();                                              // 17
     virtual void Flush();                                              // 18
     virtual void Close();                                              // 19: 00701403
+    // 20: 0070150F (0: no buffer of its own; CArchive reads and writes through the file then).
+    virtual unsigned GetBufferPtr(unsigned command, unsigned count, void** start, void** end);
 };
 
 // The virtual slots every MFC 4.2 CObject has (a CArray's, for example), for callers that dispatch
@@ -140,9 +142,9 @@ public:
     virtual void GetRuntimeClass();                         // 0: 0070BE5E
     virtual void DeletingDestructor();                      // 1: 006E6391
     virtual void Serialize();                               // 2
-    virtual void GetFileName();                             // 3: 006E684B
-    virtual void GetFilePath();                             // 4: 006E6722
-    virtual void GetFileTitle();                            // 5: 006E67BA
+    virtual CString GetFileName() const;                    // 3: 006E684B
+    virtual CString GetFilePath() const;                    // 4: 006E6722
+    virtual CString GetFileTitle() const;                   // 5: 006E67BA
     virtual void GetFileURL();                              // 6
     virtual void GetRoot();                                 // 7
     virtual void GetTime8();                                // 8
@@ -153,6 +155,9 @@ public:
     virtual void GetTime13();                               // 13
     virtual BOOL MatchesMask(unsigned long mask) const;     // 14: 006E6513 (file attribute bits)
     virtual BOOL IsDots() const;                            // 15: 006E661A
+    virtual BOOL FindFile(const char* pattern, unsigned long flags);   // 16: 006E6433
+    virtual BOOL FindNextFile();                            // 17: 006E6653
+    virtual BOOL CloseContext();                            // 18: 006E6429
 };
 
 // CTime (a time_t). No constructor, so it can be a plain local: Construct is the constructor.

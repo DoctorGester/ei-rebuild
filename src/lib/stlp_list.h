@@ -84,15 +84,33 @@ struct list {
         E::Copy(&node->data, x);
         return node;
     }
-    // insert(pos, x) (e.g. 00404A40): _M_create_node(x), linked in before `pos`.
+    // insert(pos, x) (e.g. 00404A40): _M_create_node(x), linked in before `pos`. The list itself
+    // is not read.
     template <typename E = Element<T>>
-    Node* Insert(Node* pos, const T& x) {
+    static Node* Insert(Node* pos, const T& x) {
         Node* node = CreateNode<E>(x);
         node->next = pos;
         node->prev = pos->prev;
         pos->prev->next = node;
         pos->prev = node;
         return node;
+    }
+    // insert(pos) (e.g. 0040A8D0): insert(pos, T()). The default element is made on the stack
+    // (E::Default), copied into the new node as insert(pos, x) copies, then destroyed (E::Destroy).
+    template <typename E = Element<T>>
+    static Node* InsertDefault(Node* pos) {
+        alignas(T) unsigned char storage[sizeof(T)];
+        T* value = reinterpret_cast<T*>(storage);
+        E::Default(value);
+        Node* node = Insert<E>(pos, *value);
+        E::Destroy(value);
+        return node;
+    }
+    // insert(pos, first, last) (e.g. 004795B0): a copy of each element of [first, last) inserted
+    // before `pos`, in order.
+    template <typename E = Element<T>>
+    static void InsertRange(Node* pos, const Node* first, const Node* last) {
+        for (; first != last; first = first->next) Insert<E>(pos, first->data);
     }
     // erase(pos) (e.g. 00420290): unlinked first, then the element destroyed and the node returned
     // to the pool; returns the node that followed it.
@@ -163,13 +181,27 @@ struct ListAbi {
     static void __fastcall Destruct(List* self) { self->template Release<E>(); }
     // clear() (e.g. 00427100).
     static void __fastcall Clear(List* self) { self->template Clear<E>(); }
-    // insert(pos, x) (e.g. 00404A40; RET 0xC).
-    static Node** __fastcall Insert(List* self, void*, Node** out, Node* pos, const T* x) {
-        *out = self->template Insert<E>(pos, *x);
+    // insert(pos, x) (e.g. 00404A40; RET 0xC). The list is not read (0062C090 is called with any
+    // ECX).
+    static Node** __fastcall Insert(List*, void*, Node** out, Node* pos, const T* x) {
+        *out = List::template Insert<E>(pos, *x);
         return out;
     }
+    // insert(pos) (e.g. 0040A8D0; RET 8): insert(pos, T()).
+    static Node** __fastcall InsertDefault(List*, void*, Node** out, Node* pos) {
+        *out = List::template InsertDefault<E>(pos);
+        return out;
+    }
+    // insert(pos, first, last) (e.g. 004795B0; RET 0xC).
+    static void __fastcall InsertRange(List*, void*, Node* pos, const Node* first, const Node* last) {
+        List::template InsertRange<E>(pos, first, last);
+    }
     // push_back(x) (e.g. 004207C0; RET 4): insert(end(), x).
-    static void __fastcall PushBack(List* self, void*, const T* x) { self->template Insert<E>(self->head, *x); }
+    static void __fastcall PushBack(List* self, void*, const T* x) { List::template Insert<E>(self->head, *x); }
+    // push_back() (0040A6B0): insert(end()).
+    static void __fastcall PushBackDefault(List* self) { List::template InsertDefault<E>(self->head); }
+    // pop_back() (0040A6D0): erase(--end()).
+    static void __fastcall PopBack(List* self) { List::template Erase<E>(self->head->prev); }
     // erase(pos) (e.g. 00420290; RET 8): the list itself is not read.
     static Node** __fastcall Erase(List*, void*, Node** out, Node* pos) {
         *out = List::template Erase<E>(pos);

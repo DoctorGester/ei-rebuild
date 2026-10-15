@@ -247,6 +247,14 @@ public:
     // AddTerrainTriangle per cell, through the original 004D8490).
     void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
 
+    // 00562B80 (S13a, world_destructors.cpp). The destructor's body: the vtable, Destroy, the
+    // members last to first (the water level arrays, the ambient set's text, the aligned arrays'
+    // blocks, the light table, the sector cache, the archive, the texts), then CTransformObject's
+    // (its vtable, CEngineObject's body).
+    void Destruct();
+    // 00562B60 (slot 0): Destruct, then operator delete when bit 0 of `flags` is set. Returns this.
+    Terrain* DeletingDestruct(unsigned flags);
+
     Matrix4 drawMatrix;             // +0x054 the draw passes' matrix (rotation, position in the last column)
     // +0x094 1 water waves, 2 animated tiles, 4 fade the light at the map edges, 8 ambient sounds,
     // 0x10 sun shadows.

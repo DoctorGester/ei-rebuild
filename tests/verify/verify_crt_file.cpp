@@ -2,16 +2,18 @@
 // build leaves them to the exe (EI_REPLACE_STANDALONE), so a start-up check runs ours beside the
 // originals (the forwarders in crt.h) on scratch files in a folder of its own under %TEMP%:
 // - fopen in 20 modes (translation, update, append, the letters VC6 stops at), then the same reads,
-//   seeks, tells and writes on each side's own copy of the file: every result, the bytes read, and the
-//   file's bytes after fclose (a text file opened for update loses a trailing Ctrl-Z);
+//   seeks, tells, writes and fflush (S4d; also of every stream) on each side's own copy of the file:
+//   every result, the bytes read, and the file's bytes after fclose (a text file opened for update loses
+//   a trailing Ctrl-Z);
 // - _open with 12 flag sets (created read-only, exclusive, missing), _filelength, _lseek, _read, _write,
-//   _close the same way, and bad descriptors;
+//   _close the same way, and bad descriptors (a case that differs is run again on new files, CheckCase);
 // - _access (modes 0, 2, 4, 6 on a file, a read-only file, a folder, a missing path) and _findfirst
 //   (attributes, times, size, name), against the original.
 // The heap ports are checked ours only: calloc zeroed, realloc keeps the bytes and frees at size 0,
 // _msize, _strdup. Run at start-up by every verify scenario (smoke reaches it).
 #include "verify.h"
 
+#include "../../src/hook/log.h"
 #include "../../src/lib/crt.h"
 
 #include <windows.h>
@@ -36,9 +38,10 @@ struct Streams {
     long(__cdecl* tell)(gamecrt::CrtFile*);
     std::size_t(__cdecl* read)(void*, std::size_t, std::size_t, gamecrt::CrtFile*);
     std::size_t(__cdecl* write)(const void*, std::size_t, std::size_t, gamecrt::CrtFile*);
+    int(__cdecl* flush)(gamecrt::CrtFile*);
 };
-const Streams kOriginalStreams{gamecrt::fopen, gamecrt::fclose, gamecrt::fseek, gamecrt::ftell, gamecrt::fread, gamecrt::fwrite};
-const Streams kOurStreams{libcrt::Fopen, libcrt::Fclose, libcrt::Fseek, libcrt::Ftell, libcrt::Fread, libcrt::Fwrite};
+const Streams kOriginalStreams{gamecrt::fopen, gamecrt::fclose, gamecrt::fseek, gamecrt::ftell, gamecrt::fread, gamecrt::fwrite, gamecrt::fflush};
+const Streams kOurStreams{libcrt::Fopen, libcrt::Fclose, libcrt::Fseek, libcrt::Ftell, libcrt::Fread, libcrt::Fwrite, libcrt::Fflush};
 
 // The descriptor functions of one side.
 struct Descriptors {
@@ -72,43 +75,59 @@ void MakeFile(const std::string& path, const char* bytes) {
     CloseHandle(file);
 }
 
-// The file's bytes (then its read-only bit), or -1 when it is missing.
-Trace FileState(const std::string& path) {
+// The file's bytes (then its read-only bit), -1 when it is missing, -2 (then the bit) when it cannot be
+// read; `error` gets GetLastError of a failed open or read.
+Trace FileState(const std::string& path, DWORD& error) {
     Trace state;
+    error = 0;
     const DWORD attributes = GetFileAttributesA(path.c_str());
     if (attributes == INVALID_FILE_ATTRIBUTES) return {-1};
-    // A scanner can hold a just-written file for a moment (seen once under load: ours read as empty).
-    HANDLE file = INVALID_HANDLE_VALUE;
-    for (int attempt = 0; attempt < 50; ++attempt) {
-        file = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
-        if (file != INVALID_HANDLE_VALUE || GetLastError() != ERROR_SHARING_VIOLATION) break;
-        Sleep(10);
+    const HANDLE file =
+        CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+    char buffer[256];
+    DWORD got = 0;
+    if (file == INVALID_HANDLE_VALUE || !ReadFile(file, buffer, sizeof buffer, &got, nullptr)) {
+        error = GetLastError();
+        state.push_back(-2);
+    } else {
+        for (DWORD i = 0; i < got; ++i) state.push_back(buffer[i]);
     }
-    if (file != INVALID_HANDLE_VALUE) {
-        char buffer[256];
-        DWORD got = 0;
-        if (ReadFile(file, buffer, sizeof buffer, &got, nullptr))
-            for (DWORD i = 0; i < got; ++i) state.push_back(buffer[i]);
-        CloseHandle(file);
-    }
+    if (file != INVALID_HANDLE_VALUE) CloseHandle(file);
     state.push_back((attributes & FILE_ATTRIBUTE_READONLY) ? 1 : 0);
     return state;
 }
 
-void CompareTraces(const char* name, const char* what, const Trace& expected, const Trace& actual) {
+// Where two traces first differ, as "step N: <original>, ours <ours> (sizes)".
+std::string FirstDifference(const Trace& expected, const Trace& actual) {
     std::size_t first = 0;
     while (first < expected.size() && first < actual.size() && expected[first] == actual[first]) ++first;
-    const bool same = expected.size() == actual.size() && first == expected.size();
-    Check(name, true, same, "%s: step %u: %ld, ours %ld (%u / %u steps)", what, static_cast<unsigned>(first),
-          first < expected.size() ? expected[first] : -999L, first < actual.size() ? actual[first] : -999L,
-          static_cast<unsigned>(expected.size()), static_cast<unsigned>(actual.size()));
+    char text[96];
+    std::snprintf(text, sizeof text, "step %u: %ld, ours %ld (%u / %u steps)", static_cast<unsigned>(first),
+                  first < expected.size() ? expected[first] : -999L, first < actual.size() ? actual[first] : -999L,
+                  static_cast<unsigned>(expected.size()), static_cast<unsigned>(actual.size()));
+    return text;
 }
 
-Trace StreamScript(const Streams& s, const std::string& path, const char* mode) {
+void CompareTraces(const char* name, const char* what, const Trace& expected, const Trace& actual) {
+    Check(name, true, expected == actual, "%s: %s", what, FirstDifference(expected, actual).c_str());
+}
+
+// One side's run of a case: the script's trace, GetLastError when its open failed, and the file afterwards.
+struct Side {
+    Trace trace;
+    DWORD openError = 0;
+    Trace state;
+    DWORD stateError = 0;
+};
+
+Trace StreamScript(const Streams& s, const std::string& path, const char* mode, DWORD& openError) {
     Trace trace;
     gamecrt::CrtFile* file = s.open(path.c_str(), mode);
     trace.push_back(file != nullptr);
-    if (!file) return trace;
+    if (!file) {
+        openError = GetLastError();
+        return trace;
+    }
     const auto tell = [&] { trace.push_back(s.tell(file)); };
     const auto read = [&](std::size_t count) {
         char buffer[64] = {};
@@ -135,21 +154,28 @@ Trace StreamScript(const Streams& s, const std::string& path, const char* mode) 
     read(2);
     seek(2, SEEK_SET);
     write("A\nB");
+    trace.push_back(s.flush(file));
+    tell();
     seek(0, SEEK_CUR);
     read(4);
     seek(0, SEEK_END);
     write("end\n");
+    trace.push_back(s.flush(file));
+    trace.push_back(s.flush(nullptr));
     seek(0, SEEK_SET);
     read(60);
     trace.push_back(s.close(file));
     return trace;
 }
 
-Trace DescriptorScript(const Descriptors& d, const std::string& path, int flags, int permissions) {
+Trace DescriptorScript(const Descriptors& d, const std::string& path, int flags, int permissions, DWORD& openError) {
     Trace trace;
     const int fd = d.open(path.c_str(), flags, permissions);
     trace.push_back(fd >= 0);
-    if (fd < 0) return trace;
+    if (fd < 0) {
+        openError = GetLastError();
+        return trace;
+    }
     const auto read = [&](unsigned count) {
         char buffer[64] = {};
         const int got = d.read(fd, buffer, count);
@@ -178,34 +204,62 @@ Trace BadDescriptors(const Descriptors& d) {
 
 int g_fileNumber = 0;
 
-void CheckStreams(const char* mode, const char* contents) {
-    const int number = ++g_fileNumber;
-    const std::string original = PathOf("o", number);
-    const std::string ours = PathOf("u", number);
-    if (contents) {
-        MakeFile(original, contents);
-        MakeFile(ours, contents);
+// Runs a case on a fresh pair of scratch files (o<n> for the original, u<n> for ours) and compares the
+// script traces and the files afterwards. A case that differs runs again on a new pair, at most
+// kAttempts times in all, each difference logged: a difference of the checked code repeats, the
+// machine's does not. The one seen (S4b1): a truncating open ("w", _O_TRUNC) of the file MakeFile has
+// just written, then a write past the end. The gap reads back as the old bytes instead of zeros, about
+// once in 4000 when several processes do this at once, with plain CreateFileA / WriteFile too (likely a
+// scanner still holding the new file's pages); either side can get it.
+// `run(ours, path, openError)` runs one side's script.
+template <typename Run>
+void CheckCase(const char* openName, const char* closeName, const char* what, const char* contents, Run run) {
+    constexpr int kAttempts = 3;
+    Side original;
+    Side ours;
+    for (int attempt = 1;; ++attempt) {
+        const int number = ++g_fileNumber;
+        const std::string originalPath = PathOf("o", number);
+        const std::string oursPath = PathOf("u", number);
+        if (contents) {
+            MakeFile(originalPath, contents);
+            MakeFile(oursPath, contents);
+        }
+        original = Side{};
+        ours = Side{};
+        original.trace = run(false, originalPath, original.openError);
+        ours.trace = run(true, oursPath, ours.openError);
+        original.state = FileState(originalPath, original.stateError);
+        ours.state = FileState(oursPath, ours.stateError);
+        if ((original.trace == ours.trace && original.state == ours.state) || attempt == kAttempts) break;
+        ei::Log("crt file check: %s %s differs on attempt %d (files %d): script %s, open errors %lu / %lu; file %s, "
+                "read errors %lu / %lu; trying a new pair",
+                openName, what, attempt, number, FirstDifference(original.trace, ours.trace).c_str(), original.openError,
+                ours.openError, FirstDifference(original.state, ours.state).c_str(), original.stateError, ours.stateError);
+        Sleep(50);
     }
+    CompareTraces(openName, what, original.trace, ours.trace);
+    CompareTraces(closeName, what, original.state, ours.state);
+}
+
+const char* ContentsName(const char* contents) {
+    return contents ? (contents == kText ? "text" : "Ctrl-Z end") : "missing";
+}
+
+void CheckStreams(const char* mode, const char* contents) {
     char what[64];
-    std::snprintf(what, sizeof what, "\"%s\" on %s", mode, contents ? (contents == kText ? "text" : "Ctrl-Z end") : "missing");
-    CompareTraces("fopen", what, StreamScript(kOriginalStreams, original, mode), StreamScript(kOurStreams, ours, mode));
-    CompareTraces("fclose", what, FileState(original), FileState(ours));
+    std::snprintf(what, sizeof what, "\"%s\" on %s", mode, ContentsName(contents));
+    CheckCase("fopen", "fclose", what, contents, [mode](bool oursSide, const std::string& path, DWORD& openError) {
+        return StreamScript(oursSide ? kOurStreams : kOriginalStreams, path, mode, openError);
+    });
 }
 
 void CheckDescriptors(int flags, int permissions, const char* contents) {
-    const int number = ++g_fileNumber;
-    const std::string original = PathOf("o", number);
-    const std::string ours = PathOf("u", number);
-    if (contents) {
-        MakeFile(original, contents);
-        MakeFile(ours, contents);
-    }
     char what[64];
-    std::snprintf(what, sizeof what, "flags %04X on %s", static_cast<unsigned>(flags),
-                  contents ? (contents == kText ? "text" : "Ctrl-Z end") : "missing");
-    CompareTraces("_open", what, DescriptorScript(kOriginalDescriptors, original, flags, permissions),
-                  DescriptorScript(kOurDescriptors, ours, flags, permissions));
-    CompareTraces("_close", what, FileState(original), FileState(ours));
+    std::snprintf(what, sizeof what, "flags %04X on %s", static_cast<unsigned>(flags), ContentsName(contents));
+    CheckCase("_open", "_close", what, contents, [flags, permissions](bool oursSide, const std::string& path, DWORD& openError) {
+        return DescriptorScript(oursSide ? kOurDescriptors : kOriginalDescriptors, path, flags, permissions, openError);
+    });
 }
 
 void CheckAccess(const std::string& path) {

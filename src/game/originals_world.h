@@ -17,20 +17,12 @@ class Terrain;
 namespace net { class ClientSession; }
 namespace mfc { class CString; }
 struct ObjectIdMap;
-struct SectorGrid;
 struct WorldPlayer;
 struct CDiplomacy;
 struct Vector3;
 struct VertexPacket;
 struct DecalTexCoord;
 namespace lib { template <typename T> struct AlignedArray; }
-
-// 00572820 / 005728D0 (plain RET): the client's sector grids' storage (world.h SectorGrid) for its
-// +0x08 x +0x0C cells: one list per cell (operator new, the count before them, the list instantiation's
-// constructor through the eh vector iterator), then the row pointers. The constructor 005612F0 and
-// Setup (1 x 1, then 4 x 4).
-__declspec(naked) inline void __fastcall GridAllocate(SectorGrid* /*grid*/) EI_ORIGINAL(0x00572820)
-__declspec(naked) inline void __fastcall GridAllocate2(SectorGrid* /*grid*/) EI_ORIGINAL(0x005728D0)
 
 // 0047B670 (plain RET): an object id map with its highest id (the world's, the player's known objects): every
 // object released (slot 4) until a null one, the nodes freed, count and highest id 0.

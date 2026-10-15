@@ -513,6 +513,11 @@ struct SpellDatabase {
     // 0057CB50 and reload 0057DEE0). Both tables (CodeIndexedTable::Construct), the three lists
     // empty. Returns this.
     SpellDatabase* Construct();
+    // 0057CE80 (S13a, database_reset.cpp; the compiler's destruction and construction in place,
+    // which the resource switch 0057CB50 runs). The three lists from the last (records in order,
+    // then the storage), the modifiers and the spells (the index's nodes and buckets, then the
+    // records and their storage); then Construct.
+    void Reset();
 
     CodeIndexedTable spells;                    // +0x00 kSpellSize records
     CodeIndexedTable modifiers;                 // +0x20 kSpellModifierSize
@@ -535,6 +540,10 @@ struct ItemDatabase {
     // 0057E3D0 (database_construct.cpp; the static initialiser 006A6540, the resource switch and
     // reload). The six tables from the first (IndexedRecordTable::Construct). Returns this.
     ItemDatabase* Construct();
+    // 0057D340 (S13a, database_reset.cpp; the compiler's destruction and construction in place,
+    // which the resource switch 0057CB50 runs). The tables from the last to the first as
+    // DestructBody destroys them, but through the library's containers; then Construct.
+    void Reset();
 
     IndexedRecordTable materials;   // +0x00 kMaterialSize records
     IndexedRecordTable weapons;     // +0x20 kWeaponSize

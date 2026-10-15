@@ -14,7 +14,9 @@
 #include <type_traits>
 
 #include "stlp_alloc.h"
+#include "stlp_deque.h"
 #include "stlp_list.h"
+#include "stlp_tree.h"
 #include "stlp_vector.h"
 
 namespace stlp {
@@ -65,6 +67,8 @@ public:
     }
 
 private:
+    friend struct StringAbi;   // the exe's members at their addresses (stlp_string.h)
+
     void InitRange(const char* first, const char* last);
     void Release() {
         if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_));
@@ -93,256 +97,8 @@ struct StringElement {
     }
 };
 
-// vector<T>: stlp_vector.h, list<T>: stlp_list.h (included at the top).
-
-// deque<T> (0x28 bytes): the start and finish iterators (cur, first, last, node), the map of node
-// pointers and its size; the allocator proxies are empty bytes inside the map words. Nodes hold
-// 512 / sizeof(T) elements (one for larger T). Only trivially destructible T: the game's
-// instantiations here destroy nothing. Instantiations: the camera's view stack (0x24-byte entries,
-// camera.h keeps its own layout), the material's (0x10-byte, material.h).
-template <typename T>
-class deque {
-public:
-    static constexpr std::size_t kPerNode = sizeof(T) < 512 ? 512 / sizeof(T) : 1;
-    static constexpr std::size_t kNodeBytes = kPerNode * sizeof(T);
-    static_assert(std::is_trivially_destructible_v<T>);
-
-    struct Iterator {
-        T* cur;
-        T* first;
-        T* last;
-        T** node;
-        void SetNode(T** n) {
-            node = n;
-            first = *n;
-            last = first + kPerNode;
-        }
-    };
-
-    bool empty() const { return finish_.cur == start_.cur; }
-    std::size_t size() const {
-        return static_cast<std::size_t>(finish_.node - start_.node - 1) * kPerNode +
-               static_cast<std::size_t>(finish_.cur - finish_.first) + static_cast<std::size_t>(start_.last - start_.cur);
-    }
-    const Iterator& Start() const { return start_; }
-    const Iterator& Finish() const { return finish_; }
-    T** Map() const { return map_; }
-    std::size_t MapSize() const { return mapSize_; }
-
-    // The constructor deque(n) with _M_initialize_map(n) (e.g. 0068E0B0 / 0068E1C0 / 0068E320): a
-    // map of max(8, nodes + 2) slots from the pool, the nodes for `n` elements in its middle.
-    void Construct(std::size_t n = 0) {
-        std::size_t nodes = n / kPerNode + 1;
-        mapSize_ = nodes + 2 > 8 ? nodes + 2 : 8;
-        map_ = static_cast<T**>(allocate(mapSize_ * sizeof(T*)));
-        T** nstart = map_ + (mapSize_ - nodes) / 2;
-        T** nfinish = nstart + nodes;
-        for (T** p = nstart; p < nfinish; ++p) *p = static_cast<T*>(allocate(kNodeBytes));
-        start_.SetNode(nstart);
-        finish_.SetNode(nfinish - 1);
-        start_.cur = start_.first;
-        finish_.cur = finish_.first + n % kPerNode;
-    }
-
-    // pop_back(): the finish steps back; leaving an emptied node frees it (_M_pop_back_aux).
-    void pop_back() {
-        if (finish_.cur != finish_.first) {
-            --finish_.cur;
-            return;
-        }
-        deallocate(finish_.first, kNodeBytes);
-        finish_.SetNode(finish_.node - 1);
-        finish_.cur = finish_.last - 1;
-    }
-
-    // back(): the element before the finish (in the node before it when the finish opens a node).
-    T& back() {
-        T* p = finish_.cur != finish_.first ? finish_.cur : *(finish_.node - 1) + kPerNode;
-        return p[-1];
-    }
-
-    // push_back(x): constructed at the finish while the node has room for another after it; else
-    // _M_push_back_aux (e.g. 0051E840): the map makes room for one more node pointer
-    // (_M_reallocate_map(1, false), 004A39C0), a new node follows and the finish opens it.
-    void push_back(const T& x) {
-        if (finish_.cur != finish_.last - 1) {
-            if (finish_.cur) *finish_.cur = x;
-            ++finish_.cur;
-            return;
-        }
-        T value = x;
-        if (mapSize_ - static_cast<std::size_t>(finish_.node - map_) < 2) ReallocateMap(1, false);
-        finish_.node[1] = static_cast<T*>(allocate(kNodeBytes));
-        if (finish_.cur) *finish_.cur = value;
-        finish_.SetNode(finish_.node + 1);
-        finish_.cur = finish_.first;
-    }
-
-    // _M_reallocate_map (004A39C0): room for `add` more node pointers at the back (or the front):
-    // the used pointers are recentred in a map more than twice as large as needed, else moved to a
-    // new map of size + max(size, add) + 2 slots.
-    void ReallocateMap(std::size_t add, bool atFront) {
-        std::size_t oldNodes = static_cast<std::size_t>(finish_.node - start_.node) + 1;
-        std::size_t newNodes = oldNodes + add;
-        T** newStart;
-        if (mapSize_ > 2 * newNodes) {
-            newStart = map_ + (mapSize_ - newNodes) / 2 + (atFront ? add : 0);
-            std::memmove(newStart, start_.node, oldNodes * sizeof(T*));
-        } else {
-            std::size_t newSize = mapSize_ + (mapSize_ < add ? add : mapSize_) + 2;
-            T** newMap = static_cast<T**>(allocate(newSize * sizeof(T*)));
-            newStart = newMap + (newSize - newNodes) / 2 + (atFront ? add : 0);
-            std::memcpy(newStart, start_.node, oldNodes * sizeof(T*));
-            if (map_) deallocate(map_, mapSize_ * sizeof(T*));
-            map_ = newMap;
-            mapSize_ = newSize;
-        }
-        start_.SetNode(newStart);
-        finish_.SetNode(newStart + oldNodes - 1);
-    }
-
-    // `while (!empty()) pop_back();`, as the game inlines it to empty a deque.
-    void PopAll() {
-        while (!empty()) pop_back();
-    }
-
-    // ~deque (e.g. 0068DD40): every node from start to finish, then the map, back to the pool.
-    void Destroy() {
-        if (!map_) return;
-        for (T** p = start_.node; p < finish_.node + 1; ++p) deallocate(*p, kNodeBytes);
-        deallocate(map_, mapSize_ * sizeof(T*));
-    }
-
-private:
-    Iterator start_;
-    Iterator finish_;
-    T** map_;
-    std::size_t mapSize_;
-};
-
-// map<K, V> (_Rb_tree, 0xC bytes): the header node (allocated by the owner's constructor; its
-// parent is the root, its left / right children the leftmost / rightmost node), the element count,
-// the empty compare object (one byte). Keys are ordered by operator<. Only the lookups are written
-// here; inserting and erasing (node allocation, rebalancing) stay with each instantiation's own
-// code, forwarded with this type (e.g. the global map's 006316E0 insert with a hint).
-template <typename K, typename V>
-class map {
-public:
-    struct Node {
-        std::uint32_t color;   // +0x00 (a bool and padding)
-        Node* parent;          // +0x04
-        Node* left;            // +0x08
-        Node* right;           // +0x0C
-        K first;               // +0x10
-        V second;
-    };
-
-    map() = default;
-    map(const map&) = delete;
-
-    Node* end() const { return header_; }
-    std::size_t size() const { return count_; }
-
-    // lower_bound (e.g. 00631C80): the first node whose key is not less than `key`, or end().
-    Node* lower_bound(const K& key) const {
-        Node* result = header_;
-        for (Node* n = header_->parent; n;) {
-            if (n->first < key) {
-                n = n->right;
-            } else {
-                result = n;
-                n = n->left;
-            }
-        }
-        return result;
-    }
-    // find (e.g. 00631C20): the node holding `key`, or end().
-    Node* find(const K& key) const {
-        Node* n = lower_bound(key);
-        return n == header_ || key < n->first ? header_ : n;
-    }
-    // upper_bound: the first node whose key is greater than `key`, or end(). With lower_bound, the
-    // equal range of a multimap (e.g. 004FB5E0).
-    Node* upper_bound(const K& key) const {
-        Node* result = header_;
-        for (Node* n = header_->parent; n;) {
-            if (key < n->first) {
-                result = n;
-                n = n->left;
-            } else {
-                n = n->right;
-            }
-        }
-        return result;
-    }
-    // clear()'s end, once the nodes are freed by the owner's code: the header links to itself, no
-    // root, no elements.
-    void ResetToEmpty() {
-        header_->left = header_;
-        header_->parent = nullptr;
-        header_->right = header_;
-        count_ = 0;
-    }
-    // The owner's constructor (e.g. 004F4F30 / 004F51B0 + 004F5190): a header node from the node
-    // pool, red, no root, its left / right linked to itself; no elements.
-    void Construct() {
-        header_ = static_cast<Node*>(allocate(sizeof(Node)));
-        header_->color = 0;
-        header_->parent = nullptr;
-        header_->left = header_;
-        header_->right = header_;
-        count_ = 0;
-    }
-    // clear() (e.g. 004F50E0): every node destroyed (EraseSubtree) and the tree emptied; nothing
-    // happens when there are no elements.
-    void Clear() {
-        if (count_ == 0) return;
-        EraseSubtree(header_->parent);
-        ResetToEmpty();
-    }
-    // The destructor: Clear, then the header node back to the pool (e.g. 004F53B0 / 004F5360).
-    void Destroy() {
-        Clear();
-        deallocate(header_, sizeof(Node));
-    }
-    // _M_erase (e.g. 004F53F0): the right subtrees recursively, the left spine iteratively; each
-    // node's key and value destroyed and the node returned to the pool.
-    static void EraseSubtree(Node* n) {
-        while (n) {
-            EraseSubtree(n->right);
-            Node* left = n->left;
-            n->first.~K();
-            n->second.~V();
-            deallocate(n, sizeof(Node));
-            n = left;
-        }
-    }
-    // The element count and the compare byte by reference, for owners whose constructors set them
-    // by hand (the connection's trees).
-    std::size_t& Count() { return count_; }
-    std::uint8_t& Compare() { return compare_; }
-    // The first node in key order (end() when empty) and the in-order successor (0043DBE0).
-    Node* begin() const { return header_->left; }
-    static Node* Next(Node* n) {
-        if (n->right) {
-            n = n->right;
-            while (n->left) n = n->left;
-            return n;
-        }
-        Node* up = n->parent;
-        while (n == up->right) {
-            n = up;
-            up = up->parent;
-        }
-        return n->right != up ? up : n;
-    }
-
-private:
-    Node* header_ = nullptr;
-    std::size_t count_ = 0;
-    std::uint8_t compare_ = 0;
-    std::uint8_t unused_09[3] = {};
-};
+// vector<T>: stlp_vector.h, list<T>: stlp_list.h, deque<T>: stlp_deque.h, map<K, V>: stlp_tree.h
+// (included at the top).
 
 // Hash for pointer keys: the pointer value itself.
 struct PointerHash {
