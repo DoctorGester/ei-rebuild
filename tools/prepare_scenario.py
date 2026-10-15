@@ -13,12 +13,12 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 PREFIX = '# prepare:'
 
 
-def prepare(scenario, saves):
+def prepare(scenario, saves, tools=TOOLS):
     for line in open(scenario, encoding='utf-8', errors='replace'):
         if not line.startswith(PREFIX):
             continue
         tool, *args = line[len(PREFIX):].split()
-        subprocess.run([sys.executable, os.path.join(TOOLS, tool), saves, *args], check=True,
+        subprocess.run([sys.executable, os.path.join(tools, tool), saves, *args], check=True,
                        capture_output=True)
 
 

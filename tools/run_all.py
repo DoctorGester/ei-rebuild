@@ -308,7 +308,7 @@ def run_once(name, install, hooks, folder, root, build, take_slot, clock, game_e
     out = os.path.join(build, 'runs', folder or f'{name}-{install}')
     shutil.rmtree(out, ignore_errors=True)
     os.makedirs(out, exist_ok=True)
-    prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'))   # "# prepare:" lines
+    prepare_scenario.prepare(scenario, os.path.join(out, 'harness_saves'), os.path.join(root, 'tools'))   # "# prepare:" lines (the checkout's own tools)
     cmd = [os.path.join(build, 'ei_launch.exe'), '--harness', scenario, '--out', out]
     env = None
     if game_env is not None:
