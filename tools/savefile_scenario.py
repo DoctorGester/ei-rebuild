@@ -8,11 +8,11 @@ stream,
 The party readers (read_party and what it calls) serve the players of mission.sav too (savefile_players.py).
 
 The chunk archive (chunk_archive.cpp, ChunkArchive::Close 0040A000) is three top-level chunks: 1 the root chunk's
-data, 0 the index (class id, object pointer per saved object), 2 the object records (per object a chunk 1 with
-field 0 the object pointer and chunk 1 its Serialize). A chunk's children are an id byte, a length (one byte len*2,
-or a dword len*2|1) and the bytes. Objects (the class templates, the party records) are referred to by their
-address (SaveObjectRef 0040A440): the loader maps the saved address to the object it creates from the index, so
-the addresses are identities.
+data, 0 the index (class id, key per saved object), 2 the object records (per object a chunk 1 with field 0
+the key and chunk 1 its Serialize). A chunk's children are an id byte, a length (one byte len*2, or a dword
+len*2|1) and the bytes. Objects (the class templates, the party records) are referred to by their key
+(SaveObjectRef 0040A440): the original wrote the object's address, ours and the harnessed original its number by
+first save (SV7b2a); the loader maps any key to the object it creates from the index.
 """
 import struct
 
@@ -77,10 +77,6 @@ def stream_field(r, fid):
     if bytes_end - r.p != size:
         r.fail(f'stream field of {bytes_end - r.p} bytes, its size field says {size}')
     return bytes_end, end
-
-
-WHY_OBJECT = ('ChunkArchive::SaveObjectRef (0040A440) writes the object\'s address; the loader (Open 00409AE0, '
-              'ObjectRef 0040A5A0) maps it to the object the index creates for it')
 
 
 # ---- the party (CParty, party_save.cpp) ------------------------------------------------------------
@@ -270,14 +266,8 @@ def read_stock(r):
     with r.scope('modifiers'):
         n = r.i32('count')
         for i in range(n):
-            # The code is a CString of a stack copy of the record's four code bytes whose fifth byte is never
-            # set (the sixth is 0): a four-letter code carries one or two stack bytes after it.
-            text = r.string(None)
-            r.put(str(i), '"' + text[:4] + '"')
-            if len(text) > 4:
-                r.excluded(f'{i}.stackTail', 'junk', 'ItemStock::SaveLists (0069BAC0): the fifth byte of the '
-                           'modifier code\'s stack copy is never set; it shows after a four-letter code')
-                r.put(f'{i}.stackTail', '~junk')
+            # A CString of a stack copy of the record's four code bytes (SV7b2a: its fifth byte 0 in both).
+            r.string(str(i))
 
 
 def read_record(r, key):
@@ -337,7 +327,7 @@ def read_party_manager(r):
     templates = chunk(r, 1)                 # SerializeClassTemplates (004ACDC0)
     n = 0
     while r.p < templates:
-        field(r, 1, f'template{n}', 'identity', WHY_OBJECT)
+        field(r, 1, f'template{n}', 'i32')
         n += 1
     leave(r, templates)
     leave(r, end)
@@ -345,7 +335,7 @@ def read_party_manager(r):
     records = chunk(r, 1)
     n = 0
     while r.p < records:
-        field(r, 1, f'record{n}', 'identity', WHY_OBJECT)
+        field(r, 1, f'record{n}', 'i32')
         n += 1
     leave(r, records)
     field(r, 2, 'text0C', 'string')
@@ -353,14 +343,15 @@ def read_party_manager(r):
     leave(r, end)
     leave(r, root_end, 'the root chunk')
 
-    # Top-level chunk 0: the index, per saved object its class id and its address.
-    r.entity('partyManager.index', 'the archive\'s index: per object its class and its identity')
+    # Top-level chunk 0: the index, per saved object its class id and its key: its number by first save
+    # (SV7b2a; the original wrote its address, ChunkArchive::SaveObjectRef 0040A440).
+    r.entity('partyManager.index', 'the archive\'s index: per object its class and its key')
     end = chunk(r, 0)
     classes = []
     i = 0
     while r.p < end:
         cid = r.i32(f'{i}.class')
-        r.identity(f'{i}.object', WHY_OBJECT)
+        r.i32(f'{i}.object')
         classes.append(cid)
         i += 1
     leave(r, end, 'the index')
@@ -386,7 +377,7 @@ def read_party_manager(r):
         r.entity(key, 'ClassTemplate (class 1)' if kind == 'template' else 'PartyRecord (class 2)')
         here = r.p
         r.p = at
-        r.identity('identity', WHY_OBJECT)  # field 0: the address the index names it by
+        r.i32('identity')   # field 0: the key the index names it by
         r.p = here
         (read_template if kind == 'template' else read_record)(r, key)
         leave(r, body, f'{key} record')

@@ -279,9 +279,18 @@ void ChunkArchive::StreamField(int id, CMemoryStream* s) {
 }
 EI_REPLACE_METHOD(0x00409640, ChunkArchive::StreamField);
 
+// The number a save gives an object: its place in the saved list (1, 2, ...), kept as the map's
+// value. The original wrote the object's address as its key (the loader maps any key to the object
+// it creates); numbers by first save keep the saves free of heap layout (SV7b2a; the harness makes
+// the original number them too, harness_save_leftovers.cpp).
+std::uint32_t SavedNumber(const ChunkArchive* a, const CRefObject* object) {
+    const ObjectMap::Node* node = a->objects_.Find(reinterpret_cast<std::uint32_t>(object));
+    return node ? reinterpret_cast<std::uint32_t>(node->value) : 0;
+}
+
 // An object pointer field. An object not yet in the map joins the saved list (written by Close)
-// and the map (value: the archive). Writing then stores the pointer; reading looks the field up
-// and ignores it.
+// and the map (value: its number while saving, the archive while loading, as the original). Writing
+// then stores the number; reading looks the field up and ignores it.
 void ChunkArchive::SaveObjectRef(int id, CRefObject* object) {
     std::uint32_t key = reinterpret_cast<std::uint32_t>(object);
     if (!objects_.Find(key)) {   // inlined find
@@ -290,10 +299,13 @@ void ChunkArchive::SaveObjectRef(int id, CRefObject* object) {
         SavedNode* added;
         SavedInsert(&saved_, nullptr, &added, end, &object);
         ObjectPair pair{key, nullptr};
-        ObjectsAt(&objects_, nullptr, &pair)->value = reinterpret_cast<CRefObject*>(this);
+        CRefObject*& value = ObjectsAt(&objects_, nullptr, &pair)->value;
+        value = loading_ ? reinterpret_cast<CRefObject*>(this)
+                         : reinterpret_cast<CRefObject*>(static_cast<std::uintptr_t>(objects_.Size()));
     }
     if (!loading_) {
-        AppendChild(Current(), id, &object, 4);
+        std::uint32_t number = SavedNumber(this, object);
+        AppendChild(Current(), id, &number, 4);
         return;
     }
     Ref child;
@@ -504,15 +516,16 @@ void ChunkArchive::Close(CStream* stream) {
             ClassIdIterator none;
             MapIteratorConstruct(&none, nullptr, nullptr, classIds);
             std::int32_t classId = found.node == none.node ? -1 : found.node->value;
+            std::uint32_t number = SavedNumber(this, object);   // the original wrote the address
             index->Write(&classId, 4);
-            index->Write(&object, 4);
+            index->Write(&number, 4);
             Ref* record = PushRecordChunk(this);
             if (loading_) {
                 Ref field;
                 field.Reset();
                 object = FindChild(record, 0, &field, record->occurrence) ? *reinterpret_cast<CRefObject**>(Data() + field.offset) : nullptr;
             } else {
-                AppendChild(record, 0, &object, 4);
+                AppendChild(record, 0, &number, 4);
             }
             if (EnterChunk(1)) {
                 object->Serialize(this);

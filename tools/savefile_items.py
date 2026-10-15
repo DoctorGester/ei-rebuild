@@ -15,14 +15,14 @@ Then SaveWorld's lists: the missiles (CSpellEffect::Save 0067E960), the AI event
 004557F0) and the countdowns (TweenSave 006D47E0).
 """
 
-def read_fixed_string(r, name, size, why):
-    """A char[size] buffer written whole: the text up to its terminator, the rest left out."""
+def read_fixed_string(r, name, size):
+    """A char[size] buffer written whole: the text up to its terminator, then the rest (0: all zero)."""
     raw = r.raw(None, size)
     end = raw.find(b'\0')
     text = raw[:end if end >= 0 else size].decode('cp1251', 'replace')
     r.put(name, '"' + text.replace('\\', '\\\\').replace('"', '\\"') + '"')
-    r.excluded(name + 'Tail', 'junk', why)
-    r.put(name + 'Tail', '~junk')
+    tail = raw[end + 1:] if end >= 0 else b''
+    r.put(name + 'Tail', tail.rstrip(b'\0').hex() or '0')
 
 
 # ---- timed objects (world_effect*.cpp) ------------------------------------------------------------------
@@ -30,9 +30,7 @@ def read_fixed_string(r, name, size, why):
 def read_sound(r):
     """CEffectSound::SaveState (006766D0)."""
     r.vec('position')
-    read_fixed_string(r, 'name', 0x100, 'CEffectSound::name_ (char[0x100]) past its terminator: Reset only clears '
-                      'name_[0], so the rest is operator new memory or the earlier name of a recycled spare; written '
-                      'whole')
+    read_fixed_string(r, 'name', 0x100)   # SV7b2a: Reset zeroes all of name_ (the original only name_[0])
     r.f32('volume')
     r.f32('radius')
     r.vec('velocity')
@@ -135,8 +133,7 @@ def read_damage(r, name):
         r.i32('hitKind')
         r.f32('backstabFactor')
         r.u8('calledShot')
-        r.junk('pad', 3, 'DamageInfo +0x39..+0x3B: padding after calledShot; DeliverAttack (0054F450) copies the hit '
-               'whole from a stack DamageInfo, and it is written whole')
+        r.raw('pad', 3)   # the pending hit DeliverAttack copies is zeroed whole by BuildAttackHit (0054F630)
 
 
 def read_arrow_figure(r):
@@ -468,8 +465,7 @@ def read_script(r):
         for k in range(n):
             with r.scope(f'part{k}'):
                 r.u8('isRect')
-                r.junk('pad', 3, 'ScriptAreaPart +0x01..+0x03: AddRect / AddRound (004B1ED0 / 004B2070) set '
-                       'only the isRect byte of their stack part; the padding is stack leftovers copied with it')
+                r.raw('pad', 3)   # SV7b2a: AddRect / AddRound's stack part, zeroed (and a round part's y2)
                 r.f32('x')
                 r.f32('y')
                 r.f32('x2OrRadiusSquared')
