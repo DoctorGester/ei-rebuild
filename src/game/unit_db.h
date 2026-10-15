@@ -356,6 +356,9 @@ struct SkillDatabase {
     // switch 0057CB50 runs): the level records destroyed (00520DE0) and their storage freed, then
     // the skills (00520D20 through their deleting destructor 00521FA0 with 0); both vectors empty.
     void Reset();
+    // 0051FB10 (database_construct.cpp; the static initialiser 0051FAF0). Both vectors empty.
+    // Returns this.
+    SkillDatabase* Construct();
 
     stlp::vector<SkillRecord> skills;        // +0x00
     stlp::vector<SkillLevelRecord> levels;   // +0x0C

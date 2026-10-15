@@ -13,8 +13,11 @@ struct LogicSettings {
     // that is missing keeps the current value. The difficulty arrays start at 1.0 and take up to
     // three values each.
     void Load(const char* path);
+    // 005CDFC0 (the static initialiser 005CDFB0; Ghidra has no function there). The defaults Load
+    // keeps for a missing key, not loaded. Returns this.
+    LogicSettings* Construct();
 
-    bool loaded;                        // +0x00 never set by Load
+    bool loaded;                       // +0x00 never set by Load
     std::uint8_t unused_01[3];
     // [Logic]
     float guardStayTime;                // +0x04

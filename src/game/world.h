@@ -69,6 +69,8 @@ struct ObjectIdMap {
     // 0047B670 (A-E1; object_id_map.cpp). Releases every object up to the first empty entry, frees
     // the nodes (the buckets stay) and clears maxId. The player's maps of sent objects use it too.
     void ReleaseAll();
+    // The constructor as the worlds inline it (world_construct.cpp): 100 buckets (193), maxId 0.
+    void Construct();
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
@@ -608,6 +610,13 @@ public:
     // reset and the game state cleared: +0x15C, the day-time value, alarms, the kind, the start
     // position, the day factor (1), loaded_ and +0x13C.
     void ResetState();
+    // world_construct.cpp
+    // 00589ED0 (the static initialiser 00589BE0). The constructor: the base (ConstructBase), the
+    // members' constructors in order (the zone exits, the update map, the strings and .mob list, the
+    // messages registry, the AI map, both scripts, the diplomacy, the id maps, the zone header (a
+    // queue stream), the three lists), the vtable 0073F928, then ResetState. Returns this.
+    CWorldServer* Construct();
+
     // world_server_life.cpp
     // 0058AE10, vtable slot 2 (Create; called by WinMain). Teardown (slot 3) first, then the
     // managers (WorldCreateManagers), the messages registry (text folder + "SMessBase.reg"), the
@@ -829,6 +838,7 @@ public:
     // commandsA_ is the zone's CScript (script.h, 0x1F8 bytes): its globals_ hold the "Heroes" group.
     CScript* MainScript() { return reinterpret_cast<CScript*>(commandsA_); }
     std::uint8_t commandsB_[0x12C64 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
+    CScript* SecondScript() { return reinterpret_cast<CScript*>(commandsB_); }
     CDiplomacy diplomacy_;                // +0x12C64 (object_diplomacy.h)
     // +0x12D64 the session kind: 1 single player, 3 no range test, 4 network; 1 or 3: SaveWorld
     // updates the players' "gtime" first. Joining players take it (WorldPlayer::sessionKind).
@@ -1504,6 +1514,13 @@ public:
     // 0x12. Without the file the object is referenced and released again.
     void LoadSky();
 
+    // 005612F0 (world_construct.cpp; the static initialiser 00560620). The constructor: the base
+    // (ConstructBase), the members' constructors in order (the zone exits, the counted array, the
+    // lists and maps, both sector grids at 1 x 1, the ground print lists, the platform set, the rain
+    // and snow layer (cleared), the selection list, the window's names), the flags 0x3DC0, the vtable
+    // 0073F41C and the fields it zeroes. Returns this.
+    CWorldClient* Construct();
+
     // The local session (+0x20C) as the maps read it.
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }
 
@@ -1527,7 +1544,7 @@ public:
     ScreenEntry* hitCursor_;              // +0x100 PickAt's walk, left on the entry it returns
     std::uint8_t unused_104[0x108 - 0x104];
     stlp::hash_map<unsigned, void*, stlp::IntHash> lineLists_;   // +0x108 line lists by key (DrawLineLists)
-    std::uint8_t unused_11C[0x120 - 0x11C];
+    int lastLineListKey_;                 // +0x11C the last line list key handed out (00569B60); 0 from the constructor
     SectorGrid objectGrid_;               // +0x120 the objects by sector (slot 41 moves them)
     // +0x138 ObjectsInRange's cell range and its walk's cursor.
     std::uint32_t rangeFirstX_, rangeFirstY_, rangeLastX_, rangeLastY_, rangeX_, rangeY_;
@@ -1564,7 +1581,7 @@ public:
     CCamera* camera_;                     // +0x210 the view camera (DrawPass, Render)
     std::uint8_t unused_214[0x224 - 0x214];
     char* texturePath_;                   // +0x224 CString: <data path>textures\ (Setup)
-    std::uint8_t unused_228[0x22C - 0x228];
+    int constant228_;                     // +0x228 10 from the constructor; nothing in the exe reads it
     // +0x22C / +0x3AC / +0x52C the light colours by hour (0..23; r, g, b, 1) from the lights table's
     // [sunlight], [ambient] and [sky] sections (LoadLights).
     LightColour sunlight_[24];
@@ -1582,7 +1599,7 @@ public:
     // EnvironmentFlags 0x400 instead of 0x200).
     int cave_;
     int partyDanger_;                     // +0x6E4 0 after Setup; the party state's danger (message 0x60: 2 fighting)
-    std::uint8_t unused_6E8[0x6EC - 0x6E8];
+    int constant6E8_;                     // +0x6E8 0 from the constructor; nothing in the exe reads it
     int ticksRun_;                        // +0x6EC Segment's count; AddObject fades units in (slot 43) when >= 1
     float tickFraction_;                  // +0x6F0 added to the tick for the units' time (network client)
     // +0x6F4 the rain / snow layer. CRainSnow is abstract here like every engine object, so the
@@ -1593,8 +1610,14 @@ public:
     const CRainSnow* RainSnow() const { return reinterpret_cast<const CRainSnow*>(rainSnow_); }
     stlp::list<void*> list7BC_;           // +0x7BC (nodes of 0xC bytes; pool free 00498C40)
     int worldValue_;                      // +0x7C0 -1; message 0x12 sets it (SetWorldValue); the exe never reads it
-    std::uint8_t unused_7C4[0x7D0 - 0x7C4];
+    int constants7C4_[3];                 // +0x7C4 0 from the constructor; nothing in the exe reads them
     void* cursor_;                        // +0x7D0 HCURSOR wincurs\Df0000.cur
+    // +0x7D4 .. +0x7E0 the window's names, set by the constructor and freed by the destructor only:
+    // "EvilIslands", "EvilIslandsClass", "EvilIslands", "EvilIslands Paused".
+    mfc::CString appName_;
+    mfc::CString windowClass_;
+    mfc::CString windowTitle_;
+    mfc::CString pausedTitle_;
 };
 static_assert(offsetof(CWorldClient, unused84_) == 0x84);
 static_assert(offsetof(CWorldClient, countedA0_) == 0xA0);
@@ -1633,6 +1656,9 @@ static_assert(offsetof(CWorldClient, textureManager_) == 0x18C);
 static_assert(offsetof(CWorldClient, numbers_) == 0x1B4);
 static_assert(offsetof(CWorldClient, sunlight_) == 0x22C);
 static_assert(offsetof(CWorldClient, sky_) == 0x52C);
+static_assert(offsetof(CWorldClient, constant228_) == 0x228 && offsetof(CWorldClient, constant6E8_) == 0x6E8);
+static_assert(offsetof(CWorldClient, lastLineListKey_) == 0x11C && offsetof(CWorldClient, constants7C4_) == 0x7C4);
+static_assert(offsetof(CWorldClient, appName_) == 0x7D4 && sizeof(CWorldClient) == 0x7E4);
 
 // MatrixRows (the first three rows of a 4x4 matrix; Transform 00560E10) is in src/lib/vecmath.h.
 
@@ -1847,6 +1873,10 @@ struct SavedParties {
     // game (+0x10) as an MpHeroRecord (file name, then the party), every entry, the vector's
     // storage back to the node allocator, the folder name.
     void Destruct();
+    // 0065F580 (party_file.cpp; the static initialiser 0065F2A0). An empty folder name and vector,
+    // the party outside a game as an MpHeroRecord (the party 00661050, an empty file name). Returns
+    // this.
+    SavedParties* Construct();
 
     char* folder_;               // +0x00 CString
     SavedPartyEntry* entries_;      // +0x04 vector<SavedPartyEntry>: start, finish, end of storage

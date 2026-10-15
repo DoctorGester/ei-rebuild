@@ -1038,6 +1038,8 @@ static_assert(offsetof(CAIMap, cells) == 0x269C);
 static_assert(offsetof(CAIMap, occluders) == 0x26AC);
 static_assert(offsetof(CAIMap, marks) == 0x26B8);
 static_assert(sizeof(CAIMap) == 0x26C8);   // the AI events follow (Events)
+// 005B3C30 (thiscall; ai_map_construct.cpp; the world server's constructor 00589ED0). Returns self.
+CAIMap* __fastcall ConstructAIMap(CAIMap* self);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {

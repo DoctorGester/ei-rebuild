@@ -82,6 +82,9 @@ struct QuestDatabase {
     // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the
     // file cannot be opened.
     int Load(const char* folder);
+    // 006AE0F0 (database_construct.cpp; the static initialiser 006ADF10). Both vectors empty, both
+    // indexes with 100 buckets (193). Returns this.
+    QuestDatabase* Construct();
 
     stlp::vector<QuestRecord> quests;   // +0x00
     QuestIndex questsByName;            // +0x0C
