@@ -24,6 +24,14 @@ struct StringDwordPair {
 };
 static_assert(sizeof(StringDwordPair) == 0x10);
 
+// The list element policy (stlp_list.h) of pair<const string, dword> (the link loader's archive
+// list: _M_create_node 004FB8B0, clear 004FBCF0): copied by the pair's constructor, destroyed by
+// freeing the string's block.
+struct StringDwordElement {
+    static void Copy(StringDwordPair* to, const StringDwordPair& from);
+    static void Destroy(StringDwordPair* p) { p->first.~string(); }
+};
+
 // pair<const string, string>.
 struct StringPair {
     string first;
@@ -51,6 +59,9 @@ struct PairAbi {
     // inlined: a sentinel, then insert(end(), first, last) (0069D680), one node per element in order.
     static StringListPair* __fastcall ConstructStringList(StringListPair* self, void*, const string* first,
                                                           const list<void*>* second);
+    // ~pair() (004AD640; plain RET): the list's nodes and sentinel back to the pool (the nodes in
+    // order), then the string's block.
+    static void __fastcall DestroyStringList(StringListPair* self);
     // ~pair() (00445040; plain RET): the second string's block freed, then the first's.
     static void __fastcall DestroyStrings(StringPair* self);
     // The scalar deleting destructor (004457F0; RET 4): ~pair, then operator delete when bit 0 is set.

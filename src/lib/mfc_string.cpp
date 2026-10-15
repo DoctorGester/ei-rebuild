@@ -3,6 +3,7 @@
 
 #include "ei/hook.h"
 #include "gameapi.h"
+#include "mfc_resource.h"
 #include "game/originals_library.h"   // GameAtoi, MbsInc
 
 #include <cstring>
@@ -29,9 +30,6 @@ __declspec(naked) int __cdecl IsMbcDigit(unsigned) EI_ORIGINAL(0x006ECE1A)      
 __declspec(naked) int __cdecl IsMbcSpace(unsigned) EI_ORIGINAL(0x006ECEA9)                     // _ismbcspace
 __declspec(naked) std::size_t __cdecl WcsLen(const wchar_t*) EI_ORIGINAL(0x006EC6D5)          // wcslen
 __declspec(naked) int __cdecl VSPrintF(char*, const char*, va_list) EI_ORIGINAL(0x006ECC47)   // vsprintf
-
-// CString::LoadString(UINT) (MFC's resource loading; S8).
-__declspec(naked) BOOL __fastcall LoadStringOriginal(CString*, void*, unsigned) EI_ORIGINAL(0x00702B0E)
 
 // The string helpers take the CRT's char arguments the way the library passes them.
 const uchar* U(const char* p) { return reinterpret_cast<const uchar*>(p); }
@@ -123,7 +121,7 @@ CString::CString(const CString& source) {
 CString::CString(const char* text) {
     Init();
     if (text && HIWORD(reinterpret_cast<std::uintptr_t>(text)) == 0) {
-        LoadStringOriginal(this, nullptr, LOWORD(reinterpret_cast<std::uintptr_t>(text)));
+        LoadResourceString(LOWORD(reinterpret_cast<std::uintptr_t>(text)));
     } else if (text) {
         int length = gameapi::lstrlenA(text);
         if (length != 0) {
@@ -199,6 +197,26 @@ void CString::Empty() {
     if (GetData()->dataLength == 0) return;
     if (GetData()->refs >= 0) Release();
     else *this = "";
+}
+
+// A fixed buffer first; a string that may not have fit (within two bytes of the end) is loaded again
+// into the string's own buffer, 256 bytes larger each time, until it fits.
+BOOL CString::LoadResourceString(unsigned id) {
+    constexpr int kStep = 256;
+    constexpr unsigned kFudge = 2;   // CHAR_FUDGE
+    char fixed[kStep];
+    int length = AfxLoadString(id, fixed, kStep);
+    if (static_cast<unsigned>(kStep) - static_cast<unsigned>(length) > kFudge) {
+        *this = fixed;
+        return length > 0;
+    }
+    int size = kStep;
+    do {
+        size += kStep;
+        length = AfxLoadString(id, GetBuffer(size - 1), static_cast<unsigned>(size));
+    } while (size - length <= static_cast<int>(kFudge));
+    ReleaseBuffer(-1);
+    return length > 0;
 }
 
 void CString::CopyBeforeWrite() {
@@ -749,6 +767,7 @@ EI_REPLACE(0x00700C79, shim::PlusTextString);
 EI_REPLACE(0x006FD56E, shim::PlusStringChar);
 EI_REPLACE(0x006FD5D0, shim::PlusCharString);
 EI_REPLACE_METHOD(0x007008FB, CString::Empty);
+EI_REPLACE_METHOD(0x00702B0E, CString::LoadResourceString);
 EI_REPLACE_METHOD(0x00700DA0, CString::GetBuffer);
 EI_REPLACE_METHOD(0x00700DEF, CString::ReleaseBuffer);
 EI_REPLACE_METHOD(0x00700E17, CString::GetBufferSetLength);

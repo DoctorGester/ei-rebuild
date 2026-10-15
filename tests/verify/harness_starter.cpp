@@ -20,6 +20,15 @@ char g_resolution[32];      // "WxH", empty: the registry's
 int g_wideScreen = -1;      // 0 / 1, -1: the registry's
 int g_fullScreen = -1;      // 0 / 1, -1: the registry's
 int g_fpsCursor = -1;       // FPSIndependentCursor 0 / 1, -1: the registry's
+bool g_settingsGiven = false;   // one of the four is set for the run: addon.dll's reads are logged
+
+// Rebirth's starter switch CtfMon (Settings\CtfMon, read by addon.dll) is always off in a harness run (S3e).
+// On, addon closes the text input service's window (class CicLoaderWndClass: ctfmon) when it applies its
+// patches, and its DLL_PROCESS_DETACH starts <system32>\CTFMon.exe again and waits up to 2 s for it: every
+// run ended the user's input service (the new one dies with the run's job object), and the exit stood in
+// that CreateProcess, under the loader lock, until ei_launch ended the game 3 s after the scenario quit.
+// Nothing in the game or in the patches reads the switch.
+constexpr DWORD kCtfMon = 0;
 
 bool SetResolution(const char* text) {
     if (_stricmp(text, "desktop") == 0) {
@@ -38,6 +47,13 @@ bool SetResolution(const char* text) {
 // The answer for a value name, as a registry value: true when the run overrides it.
 bool Answer(const char* name, DWORD* type, const BYTE** data, DWORD* size, DWORD* dword) {
     if (!name) return false;
+    if (_stricmp(name, "CtfMon") == 0) {
+        *dword = kCtfMon;
+        *type = REG_DWORD;
+        *data = reinterpret_cast<const BYTE*>(dword);
+        *size = 4;
+        return true;
+    }
     if (g_resolution[0] && _stricmp(name, "VideoResolution") == 0) {
         *type = REG_SZ;
         *data = reinterpret_cast<const BYTE*>(g_resolution);
@@ -107,13 +123,13 @@ LSTATUS WINAPI QueryW(HKEY key, LPCWSTR name, LPDWORD reserved, LPDWORD type, LP
     DWORD answerType, answerSize, dword;
     const BYTE* answer;
     if (Answer(narrow, &answerType, &answer, &answerSize, &dword)) {
-        Log("harness: RegQueryValueExW %s: answered", narrow);
+        Log("harness: RegQueryValueExW %s: answered", narrow);   // CtfMon in every Rebirth run, once
         if (answerType != REG_SZ) return Fill(answerType, answer, answerSize, type, data, size);
         wchar_t wide[32];
         int chars = MultiByteToWideChar(CP_ACP, 0, reinterpret_cast<const char*>(answer), -1, wide, 32);
         return Fill(REG_SZ, wide, static_cast<DWORD>(chars * sizeof(wchar_t)), type, data, size);
     }
-    if (g_addonReads++ < 64) Log("harness: RegQueryValueExW %s", narrow);
+    if (g_settingsGiven && g_addonReads++ < 64) Log("harness: RegQueryValueExW %s", narrow);
     return g_queryW(key, name, reserved, type, data, size);
 }
 
@@ -170,11 +186,14 @@ void Install() {
         Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
     n = GetEnvironmentVariableA("EI_WIDESCREEN", value, sizeof(value));
     if (g_wideScreen < 0 && n && n < sizeof(value)) g_wideScreen = std::atoi(value) != 0 ? 1 : 0;
-    if (!g_resolution[0] && g_wideScreen < 0 && g_fullScreen < 0 && g_fpsCursor < 0) return;
-    Log("harness: starter settings for this run: resolution %s, WideScreen %s, FullScreen %s, FPSIndependentCursor %s",
-        g_resolution[0] ? g_resolution : "(registry)", g_wideScreen < 0 ? "(registry)" : g_wideScreen ? "1" : "0",
-        g_fullScreen < 0 ? "(registry)" : g_fullScreen ? "1" : "0", g_fpsCursor < 0 ? "(registry)" : g_fpsCursor ? "1" : "0");
-    PatchSlot(reinterpret_cast<decltype(&::RegQueryValueExA)*>(kRegQueryValueExASlot), &QueryA, g_queryA);
+    g_settingsGiven = g_resolution[0] || g_wideScreen >= 0 || g_fullScreen >= 0 || g_fpsCursor >= 0;
+    if (g_settingsGiven) {
+        Log("harness: starter settings for this run: resolution %s, WideScreen %s, FullScreen %s, FPSIndependentCursor %s",
+            g_resolution[0] ? g_resolution : "(registry)", g_wideScreen < 0 ? "(registry)" : g_wideScreen ? "1" : "0",
+            g_fullScreen < 0 ? "(registry)" : g_fullScreen ? "1" : "0", g_fpsCursor < 0 ? "(registry)" : g_fpsCursor ? "1" : "0");
+        PatchSlot(reinterpret_cast<decltype(&::RegQueryValueExA)*>(kRegQueryValueExASlot), &QueryA, g_queryA);
+    }
+    // addon.dll's slot always: its CtfMon switch is answered in every run.
     if (void** slot = Advapi32QueryWSlot())
         PatchSlot(reinterpret_cast<decltype(&::RegQueryValueExW)*>(slot), &QueryW, g_queryW);
     else

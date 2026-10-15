@@ -85,6 +85,9 @@ public:
     bool IsEmpty() const { return GetData()->dataLength == 0; }
     operator const char*() const { return data_; }
     void Empty();                                   // 007008FB
+    // CString::LoadString (00702B0E): string `id` of game.exe's table (mfc_resource.h); FALSE when it
+    // is missing or empty (the string is then empty).
+    BOOL LoadResourceString(unsigned id);
 
     char* GetBuffer(int minLength);                 // 00700DA0
     void ReleaseBuffer(int newLength);              // 00700DEF (-1: up to the terminator)

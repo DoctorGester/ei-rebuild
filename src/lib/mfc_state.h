@@ -170,7 +170,9 @@ constexpr std::size_t kNextClassOffset = 0x14;
 
 // AfxGetModuleState (0070CE8C): the calling thread's module state. The hook build calls the
 // original's; the image registers ImageModuleState at that address: one module state for the
-// process, nothing in it but the class list.
+// process, nothing in it but the class list. Its instance and resource handles stay null, as the
+// original's do (the game never runs AfxWinInit): AfxLoadString (mfc_resource.h) loads from the null
+// handle, which the image's LoadStringA maps to game.exe.
 ModuleState* __cdecl AfxGetModuleState();
 ModuleState* __cdecl ImageModuleState();
 

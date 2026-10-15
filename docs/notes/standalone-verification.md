@@ -984,3 +984,38 @@ directdraw_holder; and the checks that run the original on the real object with 
 side by side, WakeVerify), to be reviewed for which side's blocks survive. Pools (CString's CFixedAlloc, the STLport
 node allocator, MFC plexes) can still be refilled by a twin's free in a different order; no golden showed it.
 verify_mfc_array.cpp (S6a) and the STLport checks (S12) were left to their owners.
+
+## SV2h1: CString outputs run ours first (2026-10-15)
+
+The SV2h rule carried to the checks whose output is a CString (MFC's CFixedAlloc pools or a game-heap block for
+longer texts), 23 files. Ours runs first on the real output; the original runs after into a scratch string, which is
+freed again. Where a stream or cursor is read, its position is kept, put back for the original, and ours' end put
+back after (only when the two differ, so a passing check costs no extra seek). Patterns:
+
+- Kept text: an input that the call rewrites in place (TrimLeft, MakeLower, ReplaceChar, PeekWord, ReadLine, ...)
+  is copied into a std::string (our heap) before ours runs; the original's scratch CString is assigned from it
+  afterwards. `KeepText` and `EmptyBackwards` in tests/verify/kept_strings.h.
+- Pools are LIFO: scratch strings (and the scratch CStringArray's elements, `EmptyBackwards`) are freed last to
+  first, so a 64/128/256/512-character free list ends as it began.
+- Original first, twin freed, then ours: kept only where the original edits a string that may alias its argument
+  (mfc_string's assign / append / Concat / TrimRight(set) / AssignCopy, and CFile::Open's file name and exception
+  text). The twin's block is gone before ours allocates, which leaves the pool as it was.
+- Error texts (script_parse): `OursError` holds a shared copy of the script's error text, code and line after ours;
+  the original's write then allocates a new buffer, and putting ours' back frees it. ErrorState (a std::string) is
+  what is compared.
+- Script loads (script_load): ours reads with the recording stream, the original replays into a scratch built after
+  ours (VarsConstruct / CmdConstruct moved after).
+- Aliased outputs (item_db GetString / GetItemTexts): when the input name points into the output's old buffer, the
+  original gets the matching offset into the kept text.
+
+Left as they were: world GetZoneExit / PlayerName (shared buffers, nothing allocated), chunk_archive Field / Enter /
+Resize, CDib::Write, CFile::Read / ReadString(char*), script_parse CmdConstruct (no string written).
+
+The first golden run (mfc_string alone) had `levers vanilla` differ at record 7 (`script #gobject`); three levers runs
+again were all the same, so that one was the run, not the change. Golden suite with all
+23 files (128 runs, 4 at once): 56 goldens the same, 0 differ; three runs timed out under load (ui_describe
+vanilla, ui_mp_host both) and passed when run again.
+
+The other owners' files: verify_mfc_array.cpp's CArray<CString> checks run ours only; verify_stlp_hash's
+hash_map<CString, float> and verify_stlp_list_refs / verify_stlp_vector_objects copy or share keys (no CString output
+written by the original first). None of them needed this change.

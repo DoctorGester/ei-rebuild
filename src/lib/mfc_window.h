@@ -87,5 +87,8 @@ static_assert(sizeof(CWnd) == 0x3C);
 // AfxMessageBox(LPCTSTR, UINT type, UINT helpId): MessageBoxA's answer. MB_ICONEXCLAMATION is added
 // to an OK, OK / Cancel, Yes / No / Cancel or Yes / No box that names no icon.
 int __stdcall MessageBoxText(const char* text, unsigned type, unsigned helpId);   // 0070AC94
+// AfxMessageBox(UINT id, UINT type, UINT helpId): the box with string `id` of game.exe's table (empty
+// when it is missing; the original only traces that). A help id of -1 means `id`.
+int __stdcall MessageBoxId(unsigned promptId, unsigned type, unsigned helpId);    // 0070ACCC
 
 } // namespace mfc::impl

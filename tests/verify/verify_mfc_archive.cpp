@@ -1,8 +1,8 @@
 // Checks for MFC's CArchive buffer and string operators (src/lib/mfc_archive.cpp, ticket S8). The
 // archive functions move the buffer and the file, so they run ours only, with checks of what they
 // leave (the bytes a store put and a load took, the buffer's bounds). CString's assignment from a wide
-// string and _wcstombsz are pure: the original runs into scratch storage and the results are
-// compared. A start-up check stores values of every width, counts and strings (short, 0xFF+, 0xFFFE+)
+// string and _wcstombsz are pure: ours runs, then the original into scratch storage, and the
+// results are compared. A start-up check stores values of every width, counts and strings (short, 0xFF+, 0xFFFE+)
 // through a small buffer into a file in a private temporary folder, loads them back, loads a wide
 // string and runs off the end (endOfFile).
 #include "verify.h"
@@ -129,12 +129,13 @@ CArchive& __stdcall LoadTextVerify(CArchive& ar, CString& text) {
 
 // ---- Wide strings ----------------------------------------------------------------------------------
 
-// 00700B20: PUSH EBX; MOV EBX,[ESP+8] (5 bytes). The original into a fresh string.
+// 00700B20: PUSH EBX; MOV EBX,[ESP+8] (5 bytes). Ours into the string, then the original into a fresh
+// one (SV2h1: no block of the original's alive while ours allocates).
 CString*(__fastcall* s_assignWide)(CString*, void*, const wchar_t*);
 CString* __fastcall AssignWideVerify(CString* self, void*, const wchar_t* text) {
+    CString* result = mfc::impl::AssignWide(self, nullptr, text);
     CString expected;
     s_assignWide(&expected, nullptr, text);
-    CString* result = mfc::impl::AssignWide(self, nullptr, text);
     Check("CString::operator=(LPCWSTR)", true, result == self && std::strcmp(Text(expected), Text(*self)) == 0,
           "\"%.80s\" (original \"%.80s\")", Text(*self), Text(expected));
     return result;

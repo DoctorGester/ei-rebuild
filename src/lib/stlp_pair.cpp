@@ -22,6 +22,10 @@ StringDwordPair* __fastcall PairAbi::ConstructStringDword(StringDwordPair* self,
     return self;
 }
 
+void StringDwordElement::Copy(StringDwordPair* to, const StringDwordPair& from) {
+    PairAbi::ConstructStringDword(to, nullptr, &from.first, &from.second);
+}
+
 StringPair* __fastcall PairAbi::ConstructStrings(StringPair* self, void*, const string* first, const string* second) {
     new (&self->first) string(*first);
     new (&self->second) string(*second);
@@ -34,6 +38,11 @@ StringListPair* __fastcall PairAbi::ConstructStringList(StringListPair* self, vo
     self->second.Construct();
     list<void*>::InsertRange(self->second.End(), second->First(), second->End());
     return self;
+}
+
+void __fastcall PairAbi::DestroyStringList(StringListPair* self) {
+    self->second.Destroy();
+    self->first.~string();
 }
 
 void __fastcall PairAbi::DestroyStrings(StringPair* self) {
@@ -58,4 +67,6 @@ EI_REPLACE(0x00689950, PairAbi::ConstructStringDword);
 EI_REPLACE(0x006BC140, PairAbi::ConstructStringDword);
 EI_REPLACE(0x0064F880, PairAbi::ConstructStringDword);
 EI_REPLACE(0x006A7710, PairAbi::ConstructStringDword);
+EI_REPLACE(0x004FB170, PairAbi::ConstructStringDword);   // the link loader's (library.csv: string's copy constructor)
 EI_REPLACE(0x0069C1C0, PairAbi::ConstructStringList);
+EI_REPLACE(0x004AD640, PairAbi::DestroyStringList);

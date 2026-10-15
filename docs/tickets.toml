@@ -191,7 +191,7 @@ title = "Rebirth present-mode runs: game still running 3 s after the scenario qu
 group = "renderer"
 size = 0.3
 model = "sonnet"
-note = "From R9c2 (2026-10-15): under Rebirth, render_present, render_movie_present, render_device_lost, render_present_shot and render_cursor_present end with 'game still running 3 s after the scenario quit; terminating it'. An older render_present-rebirth log on main stops at DestroyClassRegistry, so it likely predates R9c2. Find where the exit hangs and fix it."
+note = "Same cause as S3e (merged 2026-10-15): Rebirth's addon.dll starts CTFMon.exe from DLL_PROCESS_DETACH when the starter setting CtfMon is 1; the harness now answers CtfMon = 0, and the full suite has no 'still running after quit' lines. Closed."
 
 [[ticket]]
 id = "R10a"
@@ -902,7 +902,7 @@ note = "Windows crashed twice (NVIDIA hang, bugcheck 0x133) with 24 games; EI_HA
 id = "X32"
 title = "Rebirth runs: game still running 10 s after quit"
 group = "harness"
-note = "Since 2026-10-13; runs pass. Suspects: wrappers that fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct). Not a dialog (message boxes are caught)."
+note = "Same cause as S3e (merged 2026-10-15): Rebirth's addon.dll starts CTFMon.exe from DLL_PROCESS_DETACH when the starter setting CtfMon is 1; the harness now answers CtfMon = 0, and the full suite has no 'still running after quit' lines. Closed."
 
 [[ticket]]
 id = "X30"
@@ -1686,7 +1686,7 @@ group = "standalone"
 size = 1
 depends = ["S12a"]
 files = ["src/lib/stlp_list.cpp", "src/lib/stlp_hash.cpp", "src/lib/stlp_vector.cpp", "src/lib/mfc_array.h", "config/library.csv"]
-note = "S12a ported the trees in its ranges (004337xx-0065A770); 95 library.csv rows there are not trees and stay unregistered. Lists: 00478F10 (~list<CMemoryStream>, unwind only) 00478FC0 00478FD0 00478FE0 00479130 004827D0 00482980 004829B0 00482CC0 004FB3B0 004FB3C0 004FB570 004FB730 004FB840 004FB8B0 004FBCF0 005F9570 005F9620 00482790; hashtables (S11 policies): 00482C30 00482DD0 00482DF0 004F6A50 004FB090 004FBB80 004FBC80 005E0C00 005E0D50 005E0E00; vectors and alloc proxies (S10 policies): 00482A80 00482BF0 00482D10 004FB290 004FB6A0 004FB6F0 004FB860 004FB9D0 004FBA40 005F8E00 005F9090 005FA8E0 00619600 006316C0 006317E0 006325E0 00632610 0060AA80 0060AAA0 004FB680; CArray / ConstructElements / two-CString records (with S6a's mfc_array.h): 005FB090 005FB120 005FB2F0 005FB380 005FB560 005FB5F0 005FB850 005FB870 005FB890 005FBD30 005FBD80 005FBDD0 005FBF50 005FBFB0 0060A870 0060A890 0060ABC0 00631E70 00631FF0; the rest need reading (some are in S12b's list: 005F8E90 005F92A0 005F94B0 005FB810): 00482440 004FB170 005F60B0 005F99B0 005F9C70 005F9F40 005FA2C0 005FA300 005FA360 005FA3C0 0060A010 0060A660 0060AB00 0060AB60 006342C0 005E0550 00445FC0 00482E90 004F69F0 005F9680 005FBE20 005FBCB0 0060ABE0 (one row each in config/library.csv)."
+note = "S12a ported the trees in its ranges (004337xx-0065A770); 95 library.csv rows there are not trees and stay unregistered. Lists: 00478F10 (~list<CMemoryStream>, unwind only) 00478FC0 00478FD0 00478FE0 00479130 004827D0 00482980 004829B0 00482CC0 004FB3B0 004FB3C0 004FB570 004FB730 004FB840 004FB8B0 004FBCF0 005F9570 005F9620 00482790; hashtables (S11 policies): 00482C30 00482DD0 00482DF0 004F6A50 004FB090 004FBB80 004FBC80 005E0C00 005E0D50 005E0E00; vectors and alloc proxies (S10 policies): 00482A80 00482BF0 00482D10 004FB290 004FB6A0 004FB6F0 004FB860 004FB9D0 004FBA40 005F8E00 005F9090 005FA8E0 00619600 006316C0 006317E0 006325E0 00632610 0060AA80 0060AAA0 004FB680; CArray / ConstructElements / two-CString records (with S6a's mfc_array.h): 005FB090 005FB120 005FB2F0 005FB380 005FB560 005FB5F0 005FB850 005FB870 005FB890 005FBD30 005FBD80 005FBDD0 005FBF50 005FBFB0 0060A870 0060A890 0060ABC0 00631E70 00631FF0; the rest need reading (some are in S12b's list: 005F8E90 005F92A0 005F94B0 005FB810): 00482440 004FB170 005F60B0 005F99B0 005F9C70 005F9F40 005FA2C0 005FA300 005FA360 005FA3C0 0060A010 0060A660 0060AB00 0060AB60 006342C0 005E0550 00445FC0 00482E90 004F69F0 005F9680 005FBE20 005FBCB0 0060ABE0 (one row each in config/library.csv). Left for S6b/S6c (CArray rows in S12a's ranges, not taken while S6b works in mfc_array.h): 005FB090 005FB120 005FB2F0 005FB380 005FB560 005FB5F0 005FB850 005FB870 005FB890 005FBD30 005FBD80 005FBDD0 005FBF50 005FBFB0 0060A870 0060A890 0060ABC0 00631E70 00631FF0 (005FB090, 005FB2F0, 005FB560 already registered in mfc_slots.cpp). Left for S12d: 0060A660 0060AB00 005F8E90 005F92A0 005F94B0 005FB810. Unregistered twins outside the ranges: 0042B3C0 0042B3F0 00429060 00429DB0 004298F0 00404D50 004E15C0 005E1560 00457940 004FAF10 004FC0C0 004217C0."
 
 [[ticket]]
 id = "S12d"
@@ -1701,7 +1701,7 @@ note = "S12b registered 12 sort and 10 pair addresses (standalone.md, S12b group
 id = "S3e"
 title = "Rebirth: exit stops after MFC's thread state frees the handle maps"
 group = "standalone"
-note = "Seen in S3d on main too: on the Rebirth install the normal exit's log ends at 'verify CMapPtrToPtr::~CMapPtrToPtr: first call' (the _AFX_THREAD_STATE / module thread state destructor freeing afxMapHDC / afxMapHGDIOBJ under ~CThreadLocal 0070CC2D), then either an access violation in Riched20.dll (+64E5, reading 00000008; ui_main_menu-rebirth) or the game still running at ei_launch's 3 s limit (smoke-rebirth, console-rebirth): no 'verify total' lines are written. Vanilla exits cleanly. Find which DLL (Rebirth's addon / dinput proxy, Riched20) still holds MFC temporary objects or a window after the maps go, and whether it predates S8a's CMapPtrToPtr / CHandleMap ports (run with those registrations off)."
+note = "Cause: Rebirth's addon.dll CtfMon switch (Settings\\CtfMon=1) restarts CTFMon.exe from its DLL_PROCESS_DETACH; also hung the original with --no-hooks. Harness answers CtfMon 0; ei_launch writes exit_hang.txt for a hung exit. Covers R9c6 and X32."
 
 [[ticket]]
 id = "S3f"
