@@ -687,8 +687,12 @@ unsigned g_randomFrame = ~0u;
 std::uintptr_t g_selfBase = 0, g_selfEnd = 0;
 CRITICAL_SECTION g_randomLock;
 
-// One draw: "<frame> [(other thread) ][ei_hook+]<caller> <value>[ <what>]".
-void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what) {
+// One draw: "<frame> [(other thread) ][ei_hook+]<caller> <value>[ <what>] #<where>". <where> is the
+// generator's state after the draw: ISAAC's position in its stream (c_ * 256 + 255 - count_; c_
+// counts the refills), rand()'s seed. Verify wrappers that run both sides put the generators back
+// between them, so one draw can show up twice; the position tells a repeat from a new draw
+// (tools/randtrace.py, SV1g).
+void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what, std::uint32_t where) {
     const bool ours = caller >= g_selfBase && caller < g_selfEnd;
     EnterCriticalSection(&g_randomLock);
     const unsigned frame = *g_traceFrames;
@@ -696,8 +700,8 @@ void WriteDraw(std::uintptr_t caller, std::uint32_t value, const char* what) {
         std::fflush(g_randomFile);
         g_randomFrame = frame;
     }
-    std::fprintf(g_randomFile, "%u %s%s%X %08X%s\n", frame, OnMainThread() ? "" : "(other thread) ", ours ? "ei_hook+" : "",
-                 unsigned(ours ? caller - g_selfBase : caller), value, what);
+    std::fprintf(g_randomFile, "%u %s%s%X %08X%s #%X\n", frame, OnMainThread() ? "" : "(other thread) ", ours ? "ei_hook+" : "",
+                 unsigned(ours ? caller - g_selfBase : caller), value, what, unsigned(where));
     LeaveCriticalSection(&g_randomLock);
 }
 
@@ -709,7 +713,7 @@ std::uint32_t __fastcall TracedNext(IsaacRandom* self, void*) {
     }
     const std::uint32_t value = self->results_[self->count_];
     WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), value,
-              self == &IsaacRandom::Global() ? "" : " (another generator)");
+              self == &IsaacRandom::Global() ? "" : " (another generator)", self->c_ * 256u + 255u - self->count_);
     return value;
 }
 
@@ -723,7 +727,7 @@ int __cdecl TracedRand() {
     auto& hold = *reinterpret_cast<std::uint32_t*>(data + kHoldRand);
     hold = hold * 0x343FDu + 0x269EC3u;
     const int value = static_cast<int>((hold >> 16) & 0x7FFF);
-    WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), static_cast<std::uint32_t>(value), " rand()");
+    WriteDraw(reinterpret_cast<std::uintptr_t>(_ReturnAddress()), static_cast<std::uint32_t>(value), " rand()", hold);
     return value;
 }
 
