@@ -495,3 +495,6 @@ derived from CRefCounted / GameBuffer / CMemoryStream is nested, and no namespac
 Left (20): `kNoElementTick` (stored as data), the hook/ and standalone/ image addresses (7), `kEmptyTextAddress` (game_strings.h),
 `kStateBlockAlpha`, `kMasterHost`, unit_ai's world / time / console, the candidates list and guard, the script queue, options' two
 float factors.
+Verification: build verify and release with no errors or warnings, every check at 0 (check_stolen, check_x87, check_signatures,
+check_thunks, check_registrations, check_cleanup, check_static_init, ei_vectors). `work.py test C11 --golden --jobs 4` on the
+merged tree: 128 runs, all PASS; 56 goldens the same, 0 differ.
