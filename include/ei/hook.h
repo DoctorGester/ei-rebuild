@@ -23,6 +23,7 @@ struct HookEntry {
     void** original = nullptr; // receives the trampoline (original function) address
     bool verify = false;      // verification wrapper: takes precedence over a plain replacement
     bool record = false;      // vector recorder (EI_RECORD): installed only in record mode, then alone
+    bool shortFunction = false; // EI_REPLACE_SHORT: installed in the standalone image only
 };
 
 // Registers a replacement at static-initialisation time. Installed by InstallHooks().
@@ -43,6 +44,17 @@ struct RecordRegistrar {
         : registrar(address, recorder, name, stolen, original) {
         registrar.entry.verify = false;
         registrar.entry.record = true;
+    }
+};
+
+// A game function under five bytes (src/game/short_functions.cpp): too short for a jump in game.exe,
+// so the hook build leaves it to the original; the standalone image, where the next function leaves
+// room, jumps to the replacement.
+struct ShortRegistrar {
+    HookRegistrar registrar;
+    ShortRegistrar(std::uintptr_t address, void* replacement, const char* name)
+        : registrar(address, replacement, name) {
+        registrar.entry.shortFunction = true;
     }
 };
 
@@ -105,6 +117,10 @@ void InstallHooksAtWinMain();
 // Replace the method at `addr` with a C++ member function.
 #define EI_REPLACE_METHOD(addr, method) \
     static ::ei::HookRegistrar EI_CAT(ei_hook_, __LINE__)(addr, ::ei::MemberAddress(&method), #method)
+
+// Replace the function under five bytes at `addr` in the standalone image only (ShortRegistrar).
+#define EI_REPLACE_SHORT(addr, fn) \
+    static ::ei::ShortRegistrar EI_CAT(ei_short_, __LINE__)(addr, reinterpret_cast<void*>(&fn), #fn)
 
 // Define a function body that forwards to original code not rewritten yet. Works for any calling
 // convention (including __thiscall methods) because it is a bare jump with the stack untouched.

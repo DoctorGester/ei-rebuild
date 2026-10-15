@@ -1440,7 +1440,7 @@ note = "ei_standalone.exe linked at 0x200000 (fixed), reserving 0x400000-0x7D700
 id = "S2"
 title = "Standalone: the 201 unported functions under five bytes"
 group = "standalone"
-status = "running"
+status = "review"
 size = 1
 files = ["src/game/short_functions.cpp", "include/ei/hook.h", "src/hook/hook.cpp", "tools/gen_short_functions.py"]
 note = "All 201 left are under 5 bytes (ret, xor eax,eax; ret, ret 4, ...); 154 are vtable slots. Port them (generated from their bytes where the pattern is plain), registered with a short-function flag: the hook build skips them as now, the standalone image stubs them (each has 5 bytes of room). Check: a tool compares each port's kind with the exe's bytes. No dependency. S1 found: the 67 rewritten short functions (and 83 registrations at starts the size table does not know) already get jumps in the image; this ticket is about the 201 with no rewrite."
@@ -1615,6 +1615,15 @@ status = "queued"
 size = 0.5
 files = ["src/game/effects.cpp", "src/game/map_spec.cpp", "src/game/ai_path.cpp"]
 note = "From S1's check run: three registrations through a virtual-call thunk are skipped in both builds (CEffect::DestroyEffect 00675D40, Spec::SpecRefresh 00469E00, Spec::SpecRemove 00469DE0): register non-virtual shims so the image (and the hook build) get them. Three addresses are registered twice with different functions (00558CA0 CountedRefDelete / AIRefDelete, 00558CC0 CallRecordDelete / AICallRecordDelete, 0054EAC0 PathConstructSteps / AIPath::ConstructSteps): keep one. No dependency. Where (the files field is a guess): map_spec.cpp, world_effect.cpp, ai_path_cells.cpp, combat_small_records.cpp, world_deleting_destructors.cpp."
+
+[[ticket]]
+id = "S2a"
+title = "Short getters as named members"
+group = "standalone"
+status = "later"
+size = 0.5
+files = ["src/game/short_functions.cpp", "tools/gen_short_functions.py"]
+note = "S2 ported 45 of the 200 short functions as LoadDword<n> / MemberAddress<n> / LoadFloat<n> / ReturnThis, reading the object as dwords (the vtable each sits in is named in the comment). Where the class is declared in src/game, register a member getter instead (EI_REPLACE_SHORT with a method) and drop the generic one; gen_short_functions.py then skips it as ported elsewhere only if the check accepts EI_REPLACE_SHORT on methods. Cleanup only, no effect on the image."
 
 # ---------------------------------------------------------------- Lua
 

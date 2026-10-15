@@ -35,7 +35,7 @@ def main():
         for f in files:
             if f.endswith('.cpp'):
                 text = open(os.path.join(dirpath, f), encoding='utf-8').read()
-                replaced |= {int(a, 16) for a in re.findall(r'(?:EI_REPLACE(?:_METHOD)?|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)', text)}
+                replaced |= {int(a, 16) for a in re.findall(r'(?:EI_REPLACE(?:_METHOD|_SHORT)?|UI_(?:INPUT|WHEEL)_HANDLER)\(\s*0x([0-9A-Fa-f]+)', text)}
     verified = set()
     for line in open(os.path.join(ROOT, 'tests', 'verify', 'verified.txt')):
         m = re.match(r'([0-9A-Fa-f]{8})\b', line)
@@ -147,7 +147,7 @@ HOOK_ERA_COUNTS = [
     # The interface input shims (UI_INPUT_HANDLER / UI_WHEEL_HANDLER, ui_hud.cpp) register through
     # EI_REPLACE inside the macro, so each use counts as one registration like the replaced-function
     # count above.
-    ('EI_REPLACE registrations', r'\b(?:EI_REPLACE(?:_METHOD)?|(?<!#define )UI_(?:INPUT|WHEEL)_HANDLER)\s*\('),
+    ('EI_REPLACE registrations', r'\b(?:EI_REPLACE(?:_METHOD|_SHORT)?|(?<!#define )UI_(?:INPUT|WHEEL)_HANDLER)\s*\('),
 ]
 
 
