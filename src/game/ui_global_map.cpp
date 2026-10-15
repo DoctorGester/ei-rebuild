@@ -81,10 +81,10 @@ struct AllodView {
     char* questMarker;               // +0x0C
     char* island;                    // +0x10 the island model
     char* armor;                     // +0x14
-    std::uint8_t unknown_18[4];
+    std::uint8_t unused_18[4];
     int* zones;                      // +0x1C indices into the map database's maps
     int zoneCount;                   // +0x20
-    std::uint8_t unknown_24[0x2C - 0x24];
+    std::uint8_t unused_24[0x2C - 0x24];
 };
 static_assert(sizeof(AllodView) == 0x2C);
 

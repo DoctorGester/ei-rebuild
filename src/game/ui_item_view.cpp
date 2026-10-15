@@ -610,7 +610,7 @@ struct TextureSurface {
     void* vtable;
     int references;
     long result;                 // +0x08
-    std::uint8_t unknown_0C[4];
+    std::uint8_t unused_0C[4];
     void** surface;              // +0x10 IDirectDrawSurface7
 };
 

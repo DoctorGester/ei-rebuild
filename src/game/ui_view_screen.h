@@ -54,6 +54,6 @@ public:
     // 0062AA40 (slot 26). The camera free again.
     void OnClose();
 
-    std::uint8_t unknown_164[4];
+    std::uint8_t unused_164[4];
 };
 static_assert(sizeof(CViewScreen) == 0x168);

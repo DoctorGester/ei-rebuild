@@ -41,7 +41,7 @@ mfc::CString* PlaceTitle(mfc::CString* out, const char* prefix, const char* name
 // The display object (00500960): +0x14 the colour weather entries 0-3 set (the pick render of
 // 00630670 clears it while it draws).
 struct DisplayColours {
-    std::uint8_t unknown_00[0x14];
+    std::uint8_t unused_00[0x14];
     std::uint32_t colour;            // +0x14 ARGB
 };
 DisplayColours* Display() { return static_cast<DisplayColours*>(DisplayObject()); }

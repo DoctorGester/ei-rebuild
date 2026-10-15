@@ -123,9 +123,9 @@ int CUiMesh::CreateSprite() {
     tint_[0] = 1.0f;
     tint_[1] = 1.0f;
     tint_[2] = 1.0f;
-    unknown_230[0] = 0.0f;
-    unknown_230[1] = 0.0f;
-    unknown_230[2] = 0.0f;
+    tintSpare_[0] = 0.0f;
+    tintSpare_[1] = 0.0f;
+    tintSpare_[2] = 0.0f;
     orientation_ = IdentityOrientation();
     position_.x = 0.0f;
     position_.y = 0.0f;
@@ -151,7 +151,7 @@ EI_REPLACE_METHOD(0x005EA210, CUiMesh::SetQuadCount);
 
 void CUiMesh::SetVertexCount(int count) {
     Vertices().SetSize(count);
-    for (int i = 0; i < count; ++i) vertices_[i].unknown_2 = 0;
+    for (int i = 0; i < count; ++i) vertices_[i].normal = 0;
 }
 EI_REPLACE_METHOD(0x005EA600, CUiMesh::SetVertexCount);
 

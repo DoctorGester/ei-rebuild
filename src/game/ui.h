@@ -62,7 +62,7 @@ struct CScreenFade {
     float rate_;                     // +0x00 alpha per millisecond
     float alpha_;                    // +0x04 0..255
     std::uint8_t active_;            // +0x08 fading
-    std::uint8_t unknown_09[3];
+    std::uint8_t unused_09[3];
     DWORD lastTime_;                 // +0x0C timeGetTime of the last step
     std::uint8_t letterbox_;         // +0x10 the bars are shown
 };
@@ -283,33 +283,33 @@ public:
     int height_;                     // +0x04 screen height
     struct UiRenderer* renderer_;    // +0x08 (its +0x54 is the Direct3D 7 device)
     void* mouseCapture_;             // +0x0C input side (window +0x94) that took the button press
-    std::uint8_t unknown_10[0x14 - 0x10];
+    std::uint8_t unused_10[0x14 - 0x10];
     console::ConsoleWindow* console_;   // +0x14 the console window (shown while its +0x7A is set)
     CScreenFade* fade_;              // +0x18
     CChatOverlay* root_;             // +0x1C the chat overlay; updated after the top window every frame
     CUiSurface* fpsSurface_;         // +0x20 the frame rate's surface while shown (ShowFps)
-    int unknown_24;                  // +0x24 cleared by Create
+    int fpsSpare_;                   // +0x24 0 from Create with the frame rate fields; nothing reads it
     DWORD fpsTime_;                  // +0x28 when the frame rate was last worked out (DrawOverlays)
     int fpsFrames_;                  // +0x2C frames since then
     // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
     // set (the containers' slots 20, 22 and 23).
     bool drawing_;
-    std::uint8_t unknown_31[0x34 - 0x31];
+    std::uint8_t unused_31[0x34 - 0x31];
     CUiWindow** stackBegin_;         // +0x34 stack of active windows (STLport vector)
     CUiWindow** stackEnd_;           // +0x38
     CUiWindow** stackCapacity_;      // +0x3C
     CUiWindow* queuedWindow_;        // +0x40 activated by the next frame update (005F57C0)
     bool closeAll_;                  // +0x44 every window is closed (005F5AB0)
-    std::uint8_t unknown_45[0x48 - 0x45];
+    std::uint8_t unused_45[0x48 - 0x45];
     std::uint32_t pendingValue_;     // +0x48
     bool pendingFlag_;               // +0x4C
-    std::uint8_t unknown_4D[0x50 - 0x4D];
+    std::uint8_t unused_4D[0x50 - 0x4D];
     int backdropMode_;               // +0x50 the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
     CUiSurface* backdrop_;           // +0x54
     CUiSurface* secondBackdrop_;     // +0x58
     void* block5C_;                  // +0x5C freed by the shutdown with operator delete (writer not identified)
     std::uint8_t serverFlag_;        // +0x60 the server flag kept for the first window (PushWindow)
-    std::uint8_t unknown_61[0x64 - 0x61];
+    std::uint8_t unused_61[0x64 - 0x61];
     CUiSurface* statusSurface_;      // +0x64 only while ShowStatusText runs
     int mouseX_;                     // +0x68 mouse position in screen coordinates
     int mouseY_;                     // +0x6C
@@ -327,7 +327,7 @@ public:
     bool rightDown_;                 // +0x80 the right button is held
     // +0x81 the top window is asked every frame (slot 35) until it agrees ("autosave" sets it).
     bool pollTop_;
-    std::uint8_t unknown_82[0x84 - 0x82];
+    std::uint8_t unused_82[0x84 - 0x82];
     stlp::list<mfc::CString> messages_;   // +0x84 queued message texts (ShowMessage takes the first)
     bool disconnected_;              // +0x88 a network client lost the server (the frame shows a message)
     // +0x89..+0x97: the state saved with a game (LoadState), cleared by ResetSavedState. The HUD
@@ -459,7 +459,7 @@ public:
     RECT bounds_;                    // +0x14
     bool rectOnly_;                  // +0x24
     bool enabled_;                   // +0x25
-    std::uint8_t unknown_26[2];
+    std::uint8_t unused_26[2];
     int offsetX_;                    // +0x28 subtracted from tested points
     int offsetY_;                    // +0x2C
     CUiTooltip* tip_;                // +0x30
@@ -573,7 +573,7 @@ struct UiDrawPass {
     }
 
     void** vtable_;
-    std::uint8_t unknown_04[0x18 - 0x04];
+    std::uint8_t unused_04[0x18 - 0x04];
     std::uint32_t colour_;           // +0x18
 };
 static_assert(offsetof(UiDrawPass, colour_) == 0x18);
@@ -729,7 +729,7 @@ public:
     CUiWindow* Construct(CInterface3D* ui);
 
     void** vtable_;
-    std::uint8_t unknown_004[0x94 - 0x004];   // CTransformObject members and more
+    std::uint8_t unused_004[0x94 - 0x004];   // CTransformObject members and more
     // The input side starts at +0x94: {vtable, interface, handled flag}. Its handlers get `this`
     // = window + 0x94. Slots: 2 button down, 3 button up, 4 mouse move, 7 double click, 9 key
     // down, 12 wheel; each takes (buttons or key, x, y) in screen pixels.
@@ -900,12 +900,13 @@ public:
     void** inputVtable_;                      // +0x94 secondary vtable (input handlers)
     CInterface3D* interface_;                 // +0x98
     bool inputHandled_;                       // +0x9C set by a handler that used the event
-    std::uint8_t unknown_09D[0xD8 - 0x09D];
+    std::uint8_t unused_09D[0xD8 - 0x09D];
     RECT rect_;                               // +0xD8 layout coordinates
     int enabled_;                             // +0xE8
     CEngineObject* blackMaterial_;            // +0xEC given to every sprite (AddSprite)
     CEngineObject* whiteMaterial_;            // +0xF0
-    CEngineObject* unknown_0F4;               // +0xF4 released by the destructor
+    CEngineObject* heldObject_;               // +0xF4 0 from the constructor, released by the destructor
+                                              //       with the two materials (writer not identified)
     UiPtrArray<CEngineObject> objects_;       // +0xF8 referenced objects
     UiPtrArray<CEngineObject> sceneObjects_;  // +0x108
     UiPtrArray<CUiSurface> surfaces_;         // +0x118
@@ -1102,13 +1103,13 @@ struct UiRenderer {
     void FlushBatchA();
     void FlushBatchB();
 
-    std::uint8_t unknown_00[0x08];
+    std::uint8_t unused_00[0x08];
     long result_;                    // +0x08 the last device call's result
-    std::uint8_t unknown_0C[0x54 - 0x0C];
+    std::uint8_t unused_0C[0x54 - 0x0C];
     UiD3DDevice* device_;            // +0x54
-    std::uint8_t unknown_58[0x90 - 0x58];
+    std::uint8_t unused_58[0x90 - 0x58];
     std::uint32_t caps_;             // +0x90 (0x4000 with stencil_: the depth buffer has a stencil)
-    std::uint8_t unknown_94[0x9C - 0x94];
+    std::uint8_t unused_94[0x9C - 0x94];
     int stencil_;                    // +0x9C
 };
 static_assert(offsetof(UiRenderer, caps_) == 0x90);
@@ -1150,10 +1151,10 @@ public:
     void SetPendingAction(int mode, int slot, int item);
 
     UiPtrArray<CUiWindow> children_; // +0x148 the container's child windows ([9] the message log)
-    std::uint8_t unknown_158[0x16C - 0x158];
+    std::uint8_t unused_158[0x16C - 0x158];   // CBattleScreenSetup (ui_camp.h): spare_ +0x164, the party array +0x168
     CUnit** party_;                  // +0x16C the player's units shown as portraits
     int partyCount_;                 // +0x170
-    std::uint8_t unknown_174[0x17C - 0x174];
+    std::uint8_t unused_174[0x17C - 0x174];   // the party array's capacity and growth
     int pendingAction_;              // +0x17C what the next click on the view does (SelectUnit)
     int pendingSlot_;                // +0x180 its spell, quick item or action button, or -1
     int pendingItem_;                // +0x184 the player's item id (mode 6), the action (7, 8), or -1
@@ -1164,14 +1165,14 @@ public:
     std::uint8_t exitPending_;       // +0x18C
     // +0x18D the order modifier keys held (key actions 0x11..0x16; CBattleScreenSetup::orderKeys_).
     std::uint8_t orderKeys_[6];
-    std::uint8_t unknown_193;
+    std::uint8_t unused_193;
     CHudWeaponBar* weaponBar_;       // +0x194
     CHudQuickItems* quickItems_;     // +0x198
     CHudSpellColumn* spellColumn_;   // +0x19C
     CHudActionColumn* actionColumn_; // +0x1A0
     CHudPortraits* portraits_;       // +0x1A4
     CHudUnitPanel* unitPanel_;       // +0x1A8
-    std::uint8_t unknown_1AC[0x220 - 0x1AC];
+    std::uint8_t unused_1AC[0x220 - 0x1AC];   // CBattleScreenSetup: map_ .. targetQuery_
     // +0x220 the key a player's item gives (its slot 21) when it starts mode 6; SelectUnit hands
     // it to the target's AcceptsKey (map object slot 42).
     LockKey itemUseKey_;
@@ -1320,7 +1321,7 @@ public:
     // An item shown (12 bytes, MFC CArray at +0x158).
     struct Entry {
         bool own;                    // +0 one of the unit's quick items (else the player's)
-        std::uint8_t unknown_1[3];
+        std::uint8_t unused_1[3];
         int id;                      // +4 the item's +0xC
         CEngineObject* item;         // +8
     };
@@ -1334,7 +1335,7 @@ public:
     CHudQuickItems* HudQuickItemsDelete(unsigned flags);
 
     CBattleScreen* owner_;           // +0x148
-    int unknown_14C;                 // +0x14C sprites added (the shown entries)
+    int shownCount_;                 // +0x14C sprites added (the shown entries)
     int selected_;                   // +0x150
     CUnit* unit_;                    // +0x154
     void* entriesVtable_;            // +0x158 CArray<Entry>
@@ -1498,7 +1499,7 @@ struct HudPortraitSlot {
     Quaternion wobbleTarget_;        // +0x5C
     float wobbleSpeed_;              // +0x6C
     bool hasPlayer_;                 // +0x70 a multiplayer player without a unit here (no bars)
-    std::uint8_t unknown_71[3];
+    std::uint8_t unused_71[3];
     int playerId_;                   // +0x74 that player's serial (PlayerMessage +0x30), else -1
 
     // The three CString members.
@@ -1512,7 +1513,7 @@ static_assert(offsetof(HudPortraitSlot, wobbleTarget_) == 0x5C);
 
 // A figure prototype (the records of the map at 007AF3A4); only the model name the faces use.
 struct FigurePrototypeRecord {
-    std::uint8_t unknown_000[0xE8];
+    std::uint8_t unused_000[0xE8];
     const char* model;               // +0xE8 e.g. "unhuma", "unhufe"
 };
 static_assert(offsetof(FigurePrototypeRecord, model) == 0xE8);
@@ -1562,7 +1563,7 @@ public:
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C
-    std::uint8_t unknown_150[0x158 - 0x150];
+    std::uint8_t unused_150[0x158 - 0x150];
     HudPortraitSlot* slots_;         // +0x158 STLport vector
     HudPortraitSlot* slotsEnd_;      // +0x15C
     HudPortraitSlot* slotsCapacity_; // +0x160
@@ -1585,7 +1586,7 @@ struct UiTexel {
 static_assert(sizeof(UiQuadBlock) == 0x40);
 struct UiMeshVertex {
     std::int16_t position;           // +0 vertex number
-    std::int16_t unknown_2;
+    std::int16_t normal;             // +2 MeshCorner's second index (figure_mesh.h); the builders write 0
     std::int16_t frame;              // +4 texture frame (the minimap's marker kinds)
 };
 static_assert(sizeof(UiMeshVertex) == 6);
@@ -1673,25 +1674,25 @@ public:
     // orientation (007C7CD8), position (0, 0, 10), both colours 0xFF000000, visible. Returns 1.
     int CreateSprite();
 
-    std::uint8_t unknown_000[0x08];
+    std::uint8_t unused_000[0x08];
     std::uint32_t flags_;            // +0x08 engine object flags (0x100: drawn in the plain colour +0xD4)
-    std::uint8_t unknown_00C[0x1C - 0x0C];
+    std::uint8_t unused_00C[0x1C - 0x0C];
     Vector3 position_;               // +0x1C (Place)
-    std::uint8_t unknown_028[0x34 - 0x28];
+    std::uint8_t unused_028[0x34 - 0x28];
     Quaternion orientation_;         // +0x34 (the HUD's face models turn with it)
-    std::uint8_t unknown_044[0x54 - 0x44];
+    std::uint8_t unused_044[0x54 - 0x44];
     Matrix4 placement_;              // +0x54 row-major 4x4: orientation and position (Draw writes it)
-    std::uint8_t unknown_094[0xCC - 0x94];
+    std::uint8_t unused_094[0xCC - 0x94];   // CFigureMesh (figure_mesh.h): drawer_, object_, buffers_
     float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
     std::uint32_t plainColour_;      // +0xD4 ARGB (the global map's layers and its pick render)
     std::uint32_t colour_;           // +0xD8 ARGB (the HUD buttons: 0xFF404040 highlighted, 0xFF000000 not)
-    std::uint8_t unknown_0DC[0x138 - 0xDC];
+    std::uint8_t unused_0DC[0x138 - 0xDC];   // CFigureMesh: spareDC_, poseMatrix_, name_, directory_, offsets_
     // The figure mesh's per-normal colour arrays (CFigureMesh::colorsA_ / colorsB_, figure_mesh.h);
     // the shape builders size them to four entries.
     lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138
     lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148
-    std::uint8_t unknown_158[0x1C0 - 0x158];
+    std::uint8_t unused_158[0x1C0 - 0x158];   // CFigureMesh: materialValue_ .. boxPivot_
     UiQuadBlock* quads_;             // +0x1C0
     int quadCount_;                  // +0x1C4
     int quadCapacity_;               // +0x1C8
@@ -1703,7 +1704,7 @@ public:
     int vertexCount_;                // +0x1E4
     int vertexCapacity_;             // +0x1E8
     int vertexGrowBy_;               // +0x1EC
-    std::uint8_t unknown_1F0[0x200 - 0x1F0];
+    std::uint8_t unused_1F0[0x200 - 0x1F0];   // CFigureMesh: words_
     std::uint16_t* indices_;         // +0x200
     int indexCount_;                 // +0x204
     int indexCapacity_;              // +0x208
@@ -1714,7 +1715,7 @@ public:
     int uvGrowBy_;                   // +0x21C
     int visible_;                    // +0x220
     float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
-    float unknown_230[3];            // +0x230 zero (Create)
+    float tintSpare_[3];             // +0x230 0 from CreateSprite; Draw reads only tint_ (nothing reads it)
     // A row-major 4x4 matrix applied after the placement (Draw); its diagonal elements 0, 5 and 10
     // are the scale 005E7060 sets (the same value in all three).
     Matrix4 scaleMatrix_;            // +0x23C
@@ -1765,7 +1766,7 @@ public:
     // buttons dim; nothing else). Otherwise by region: 0 the sling (direction turned, the slide
     // starts), 1 / 2 a point of the map (the layout point's offset from (700, 80) over halfSide_,
     // on the round map also over the zoom, over scale_ about the centre; inside the world the
-    // camera stops following and focuses there), 5 "camera north" (heading 0, unknown_1B0 0.5);
+    // camera stops following and focuses there), 5 "camera north" (heading 0, northTime_ 0.5);
     // any region marks the input handled.
     void OnMouseUp(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);   // 00645610
@@ -1796,7 +1797,7 @@ public:
     // second; UpdateView and BuildMarkers; a running slide advances (0.3 s for the whole way,
     // eased), the panel is laid out and the sling button (scene object 5) turned and placed for
     // the direction; the interface's "map shown" flag (+0x8B) follows the direction; the "camera
-    // north" time (unknown_1B0) counts down, scene object 11 tinted 1 while it runs and 0.5 after.
+    // north" time (northTime_) counts down, scene object 11 tinted 1 while it runs and 0.5 after.
     void UpdateVanilla();
     // 00641F20 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched, WideScreen reproduced behind its flag, W3: the panel at the
     // screen's right edge; the battle screen's build calls it through the address). Sets the new
@@ -1826,7 +1827,7 @@ public:
     float slide_;                    // +0x1A4 0..1: how far the panel has slid (offset_ = travel_ eased)
     float slideDirection_;           // +0x1A8 +1 / -1
     int view_;                       // +0x1AC 1 or 2 while a view button is held (scene objects 6 and 7), else 0
-    float unknown_1B0;               // +0x1B0 0.5 when the "camera north" key turns the camera; the
+    float northTime_;                // +0x1B0 0.5 when the "camera north" key turns the camera; the
                                      //        frame update (00642B40) counts it down
 };
 static_assert(offsetof(CHudMap, centreX_) == 0x14C);
@@ -1836,7 +1837,7 @@ static_assert(offsetof(CHudMap, viewPolygon_) == 0x178 && offsetof(CHudMap, visi
 static_assert(offsetof(CHudMap, view_) == 0x1AC);
 static_assert(offsetof(CHudMap, sliding_) == 0x198 && offsetof(CHudMap, slide_) == 0x1A4);
 static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
-static_assert(offsetof(CHudMap, unknown_1B0) == 0x1B0);
+static_assert(offsetof(CHudMap, northTime_) == 0x1B0);
 
 // Unit panel (set up by 006456E0, vtables 007426F8 / 007426C4; 0..185 x 0..225). Regions: 0
 // the sling button, 1-4 the body parts, 5 the whole panel.
@@ -2200,7 +2201,7 @@ public:
     // sprites at it.
     float depth_;
     bool moved_;                     // +0x180
-    std::uint8_t unknown_181[3];
+    std::uint8_t unused_181[3];
     int state_;                      // +0x184 0 idle, 1 dragging the thumb, 2 up, 3 down
     float accumulated_;              // +0x188 scrolled amount not yet applied
 };
@@ -2259,7 +2260,7 @@ struct UiTextToken {
 struct UiFormatToken : UiTextToken {
     bool newline_;                   // +0x08 a line break (a newline token, or a font change after
                                      //       the first token)
-    std::uint8_t unknown_09[3];
+    std::uint8_t unused_09[3];
     int font_;                       // +0x0C interface font
     COLORREF colour_;                // +0x10
 };
@@ -2384,7 +2385,7 @@ public:
     mfc::CStringArray texts_;        // +0x148
     int value_;                      // +0x15C
     bool changed_;                   // +0x160
-    std::uint8_t unknown_161[3];
+    std::uint8_t unused_161[3];
     RECT layout_;                    // +0x164 the constructor's rectangle
 };
 static_assert(offsetof(CUiSpin, value_) == 0x15C);
@@ -2414,7 +2415,7 @@ struct SaveEntry {
     char* zone_;                     // +0x14 CString: the zone
     mfc::CStringArray stringArrays_[2];  // +0x18, +0x2C copied with the entry
     bool broken_;                    // +0x40 no info.sav: titled "Error Save", no picture
-    std::uint8_t unknown_41[3];
+    std::uint8_t unused_41[3];
 };
 static_assert(sizeof(SaveEntry) == 0x44);
 static_assert(offsetof(SaveEntry, zone_) == 0x14);
@@ -2531,7 +2532,7 @@ public:
     int firstVisible_;               // +0x174 list scroll position
     bool isSave_;                    // +0x178 save (not load) window
     bool sliding_;                   // +0x179 sliding in; input is ignored meanwhile
-    std::uint8_t unknown_17A[2];
+    std::uint8_t unused_17A[2];
     float slide_;                    // +0x17C 0..1
     CUiScrollbar* scrollbar_;        // +0x180
     CEngineObject* dialog_;          // +0x184 the save window's picture of the game for the new save
@@ -2539,7 +2540,7 @@ public:
                                      //        The name is from an earlier reading.)
     char* name_;                     // +0x188 CString: the save name being edited
     bool nameTyped_;                 // +0x18C
-    std::uint8_t unknown_18D[3];
+    std::uint8_t unused_18D[3];
     int cursor_;                     // +0x190 caret position in name_
 };
 static_assert(offsetof(CSaveLoadWindow, selected_) == 0x170);
@@ -2585,7 +2586,7 @@ static_assert(sizeof(OptionSetting) == 0x14);
 // An exit shown on the objectives window's zone picture (0x1C bytes, CArray at +0x188).
 struct ObjectiveExit {
     bool flag_;                      // +0x00 a known distance (global map), or the zone variable is not 1
-    std::uint8_t unknown_01[3];
+    std::uint8_t unused_01[3];
     int exit_;                       // +0x04 index in the zone's exit list
     float distance_;                 // +0x08
     float x_;                        // +0x0C centre of the exit rectangle (world units)
@@ -2700,7 +2701,7 @@ static_assert(sizeof(CObjectivesWindow) == 0x1F0);
 // The game's table of key names (0x48 bytes each, 88 of them from 007857B0 to 00787070).
 struct UiKeyName {
     int scan_;                       // +0x00 scan code
-    std::uint8_t unknown_04[4];
+    std::uint8_t unused_04[4];
     char name_[0x40];                // +0x08
 };
 static_assert(sizeof(UiKeyName) == 0x48);
@@ -2813,11 +2814,11 @@ public:
     OptionRow rows_[14];             // +0x384
     bool waitingForKey_;             // +0x3F4 a key binding row waits for the new key
     bool sliding_;                   // +0x3F5
-    std::uint8_t unknown_3F6[2];
+    std::uint8_t unused_3F6[2];
     float slide_;                    // +0x3F8
     mfc::CStringArray groupNames_;   // +0x3FC the option groups' titles
     bool displayModeChanged_;        // +0x410 a display mode setting (7-9) changed
-    std::uint8_t unknown_411[3];
+    std::uint8_t unused_411[3];
     const UiKeyName* pressedKey_;    // +0x414 the key pressed for a binding row (OnKeyDown; Build
                                      //        clears it)
 };
@@ -2878,7 +2879,7 @@ public:
     RECT area_;                      // +0x148 the surface's layout rectangle
     std::uint32_t charClasses_;      // +0x158 classes OnChar takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
     std::uint8_t centred_;           // +0x15C 0 from the constructor; SetLook's mode: the text is drawn centred
-    std::uint8_t unknown_15D[3];
+    std::uint8_t unused_15D[3];
     int font_;                       // +0x160 interface font
     int maxLength_;                  // +0x164
     COLORREF colour_;                // +0x168 the text's colour
@@ -2888,7 +2889,7 @@ public:
     bool editing_;                   // +0x178 an edit key was pressed (the first one sets it)
     bool focused_;                   // +0x179 keys are taken only while set
     bool changed_;                   // +0x17A the text changed
-    std::uint8_t unknown_17B;
+    std::uint8_t unused_17B;
 };
 static_assert(offsetof(CUiEditField, caret_) == 0x174);
 static_assert(offsetof(CUiEditField, changed_) == 0x17A);
@@ -2996,7 +2997,7 @@ public:
     void ShowPageVanilla();
 
     bool message_;                       // +0x164 a message window (ShowMessage), not help
-    std::uint8_t unknown_165[3];
+    std::uint8_t unused_165[3];
     mfc::CString text_;                  // +0x168 the message, or the help topic
     mfc::CString title_;                 // +0x16C
     mfc::CStringArray lines_;            // +0x170 the pages' texts
@@ -3083,7 +3084,7 @@ public:
 
     stlp::list<ChatLine> lines_;     // +0x148
     bool chatOpen_;                  // +0x14C a multiplayer client's chat line is open (it takes the keys)
-    std::uint8_t unknown_14D[3];
+    std::uint8_t unused_14D[3];
     mfc::CString typed_;             // +0x150
     int caret_;                      // +0x154 in the typed line (characters)
 };

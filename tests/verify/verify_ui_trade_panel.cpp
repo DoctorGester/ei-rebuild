@@ -282,8 +282,8 @@ static void __fastcall TradeSnapshotVerify(CTradePanel* self) {
     TradeRecord expected = record;
     record = before;
     self->SnapshotRecord();
-    expected.unknown_2B = record.unknown_2B;
-    std::memcpy(expected.unknown_39, record.unknown_39, sizeof(expected.unknown_39));
+    expected.padAfterPerks = record.padAfterPerks;
+    std::memcpy(expected.padAfterBought, record.padAfterBought, sizeof(expected.padAfterBought));
     ei::verify::Check("CTradePanel::SnapshotRecord", 0, std::memcmp(&expected, &record, sizeof(record)), "record %d",
                       self->recordIndex_);
 }

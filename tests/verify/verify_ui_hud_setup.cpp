@@ -135,7 +135,7 @@ struct UnitPanelFields {
     float slide;
     float direction;
     int bodyPart;
-    std::uint8_t unknown14C[4];
+    std::uint8_t shownUnit[4];
     CUnit* hoverUnit;
     int effectIcons[6];
 };
@@ -148,7 +148,7 @@ UnitPanelFields TakeFields(const CHudUnitPanel* p) {
     f.slide = p->slide_;
     f.direction = p->slideDirection_;
     f.bodyPart = p->bodyPart_;
-    std::memcpy(f.unknown14C, &p->shownUnit_, sizeof(f.unknown14C));
+    std::memcpy(f.shownUnit, &p->shownUnit_, sizeof(f.shownUnit));
     f.hoverUnit = p->hoverUnit_;
     std::memcpy(f.effectIcons, p->effectIcons_, sizeof(f.effectIcons));
     return f;
@@ -161,7 +161,7 @@ void PutFields(CHudUnitPanel* p, const UnitPanelFields& f) {
     p->slide_ = f.slide;
     p->slideDirection_ = f.direction;
     p->bodyPart_ = f.bodyPart;
-    std::memcpy(&p->shownUnit_, f.unknown14C, sizeof(f.unknown14C));
+    std::memcpy(&p->shownUnit_, f.shownUnit, sizeof(f.shownUnit));
     p->hoverUnit_ = f.hoverUnit;
     std::memcpy(p->effectIcons_, f.effectIcons, sizeof(f.effectIcons));
 }
@@ -214,7 +214,7 @@ static void __fastcall UnitPanelSetupVerify(CHudUnitPanel* self, void*, int body
                         expectedFields.sliding == actualFields.sliding && expectedFields.offset == actualFields.offset &&
                         expectedFields.travel == actualFields.travel && expectedFields.slide == actualFields.slide &&
                         expectedFields.direction == actualFields.direction && expectedFields.bodyPart == actualFields.bodyPart &&
-                        std::memcmp(expectedFields.unknown14C, actualFields.unknown14C, sizeof(actualFields.unknown14C)) == 0 &&
+                        std::memcmp(expectedFields.shownUnit, actualFields.shownUnit, sizeof(actualFields.shownUnit)) == 0 &&
                         expectedFields.hoverUnit == actualFields.hoverUnit &&
                         std::memcmp(expectedFields.effectIcons, actualFields.effectIcons, sizeof(actualFields.effectIcons)) == 0;
     const bool rest = self->surfaces_.size == expectedSurfaces && StringsOf(InfoTexts(self)) == expectedTexts &&
@@ -253,7 +253,7 @@ MapFields TakeFields(const CHudMap* p) {
     f.slide = p->slide_;
     f.direction = p->slideDirection_;
     f.view = p->view_;
-    f.northTime = p->unknown_1B0;
+    f.northTime = p->northTime_;
     return f;
 }
 
@@ -265,7 +265,7 @@ void PutFields(CHudMap* p, const MapFields& f) {
     p->slide_ = f.slide;
     p->slideDirection_ = f.direction;
     p->view_ = f.view;
-    p->unknown_1B0 = f.northTime;
+    p->northTime_ = f.northTime;
 }
 
 bool SameFields(const MapFields& a, const MapFields& b) {

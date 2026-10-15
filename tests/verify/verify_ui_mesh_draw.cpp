@@ -89,7 +89,7 @@ struct QuadExtra {
 };
 struct VertexExtra {
     bool keeps = false;
-    bool operator()(const UiMeshVertex& v) const { return v.unknown_2 == 0; }
+    bool operator()(const UiMeshVertex& v) const { return v.normal == 0; }
 };
 } // namespace
 

@@ -185,7 +185,7 @@ void __fastcall MapUpdateVerify(CHudMap* self) {
     const int sliding = self->sliding_;
     const int offset = self->offset_;
     const float slide = self->slide_;
-    const float north = self->unknown_1B0;
+    const float north = self->northTime_;
     const double time = WindowFrameTimeOriginal(self);
 
     self->UpdateVanilla();
@@ -222,9 +222,9 @@ void __fastcall MapUpdateVerify(CHudMap* self) {
                       self->offset_, static_cast<double>(self->slideDirection_));
 
     const float wantNorth = north > 0.0f ? static_cast<float>(north - time) : north;
-    ei::verify::CheckNear("CHudMap::Update", wantNorth, self->unknown_1B0, "the north time from %g",
+    ei::verify::CheckNear("CHudMap::Update", wantNorth, self->northTime_, "the north time from %g",
                           static_cast<double>(north));
-    const float tint = self->unknown_1B0 > 0.0f ? 1.0f : 0.5f;
+    const float tint = self->northTime_ > 0.0f ? 1.0f : 0.5f;
     const float* shown = Sprite(self, 11)->tint_;
     ei::verify::Check("CHudMap::Update", true, shown[0] == tint && shown[1] == tint && shown[2] == tint,
                       "the north button's tint %g", static_cast<double>(shown[0]));

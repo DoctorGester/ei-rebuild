@@ -822,7 +822,7 @@ void CMpConnectScreen::Create() {
     }
 
     TheGameFlow()->StartClient();
-    unknown_254 = 0;
+    spare_ = 0;
     // The address book: the queries the client asks.
     LocalQueries book;
     LocalArchive local;

@@ -56,12 +56,12 @@ __declspec(naked) void __fastcall DescriptionLines(void*, console::CStringArray*
 
 // What the unit's controller (+0x240, slot 50) reports for the info panel (0x20 bytes).
 struct CombatInfo {
-    int unknown_00;
+    int unused_00;
     std::uint32_t damageType;       // +0x04 below 7: "dmg_<n>" names it
-    int unknown_08;
+    int unused_08;
     float damageMin;                // +0x0C
     float damageMax;                // +0x10
-    int unknown_14;
+    int unused_14;
     int attack;                     // +0x18
     int defence;                    // +0x1C
 };
