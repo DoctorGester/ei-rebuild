@@ -12,14 +12,17 @@
 // (construct, assign, append, erase, reserve, push_back, substr, copy), after every step the same
 // bytes, length and capacity.
 // S12g: _M_allocate_block builds (the original first, its block freed); operator== is pure;
-// both operator+ run ours only per call (two blocks each: a temporary and the result, which the
-// original's run could not hand back in order) and against the original in a start-up check;
+// both operator+ run ours on the real output first (checked by effect), then the original into a
+// scratch string while blocks of our memory lie on top of the free lists (stlp_verify::OwnBlocks;
+// the game's pooled blocks are not touched, so the two blocks each run makes cannot be reordered);
+// a start-up check runs them, operator== and _M_allocate_block against the originals the same way.
 // __stl_throw_out_of_range is driven by that start-up check too (no scenario takes a substr past
 // the end): each throw caught by a filter that keeps the thrown object's 0x10C bytes and its throw
 // information, the two compared, and the temporary string's block back on its free list after the
 // unwind.
 #include "verify.h"
 
+#include "harness_heap.h"
 #include "stlp_list_verify.h"
 
 #include "../../src/lib/stlp_string.h"
@@ -287,17 +290,35 @@ struct StringCheck {
                           static_cast<unsigned>(Capacity(out)));
         ei::verify::Report(Name<A>(kind), ok, detail);
     }
+    // Then the original into a scratch string while our blocks lie on the free lists (the result and
+    // the temporary both pooled: at most 127 bytes and the terminator), compared and freed.
+    template <typename Theirs>
+    static void Twin(const char* kind, const stlp::string& ours, Theirs theirs) {
+        if (Size(ours) + 2 > 128 || GetCurrentThreadId() != ei::verify::heap::MainThread()) return;
+        alignas(4) unsigned char storage[sizeof(stlp::string)];
+        auto* scratch = reinterpret_cast<stlp::string*>(storage);
+        stlp_verify::OwnBlocks own;
+        theirs(scratch);
+        bool same = State::Of(*scratch).SameText(State::Of(ours));
+        if (StringAbi::Start(*scratch)) stlp::deallocate(StringAbi::Start(*scratch), Capacity(*scratch));
+        bool restored = own.Restore();
+        ei::verify::Report(Name<A>(kind), same && restored, same ? (restored ? "" : "the free lists") : "another string");
+    }
     static stlp::string* __fastcall PlusText(stlp::string* out, const stlp::string* a, const char* text) {
         const char* head = StringAbi::Start(*a);
         const std::size_t headSize = Size(*a);
         const std::size_t tailSize = std::strlen(text);
         stlp::string* result = StringAbi::PlusText(out, a, text);
         Joined("stlp::operator+(string, const char*)", *out, head, headSize, text, tailSize);
+        Twin("stlp::operator+(string, const char*)", *out,
+             [&](stlp::string* s) { Original<decltype(&StringAbi::PlusText)>()(s, a, text); });
         return result;
     }
     static stlp::string* __fastcall PlusString(stlp::string* out, const stlp::string* a, const stlp::string* b) {
         stlp::string* result = StringAbi::PlusString(out, a, b);
         Joined("stlp::operator+(string, string)", *out, StringAbi::Start(*a), Size(*a), StringAbi::Start(*b), Size(*b));
+        Twin("stlp::operator+(string, string)", *out,
+             [&](stlp::string* s) { Original<decltype(&StringAbi::PlusString)>()(s, a, b); });
         return result;
     }
 };
@@ -473,6 +494,9 @@ void StringJoinStartupCheck() {
     auto* b = reinterpret_cast<stlp::string*>(storage[1]);
     auto* theirs = reinterpret_cast<stlp::string*>(storage[2]);
     auto* ours = reinterpret_cast<stlp::string*>(storage[3]);
+    // Every string below takes our blocks (at most five per list at once), so the game's pools are
+    // neither refilled nor reordered by the check.
+    stlp_verify::OwnBlocks own;
     int failed = -1;
     for (int i = 0; i < 16; ++i) {
         StringAbi::ConstructFromText(a, nullptr, kTexts[i / 4], &allocator);
@@ -521,6 +545,7 @@ void StringJoinStartupCheck() {
     if (!unwound) std::snprintf(where, sizeof(where), "the free list's top %p, was %p", *list, top);
     ei::verify::Report("stlp::__stl_throw_out_of_range start-up (original against ours)",
                        SameThrow(expected, actual) && unwound, where);
+    ei::verify::Report("stlp::basic_string S12g start-up: the free lists as before", own.Restore(), "");
 }
 
 } // namespace
