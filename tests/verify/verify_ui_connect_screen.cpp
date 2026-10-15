@@ -10,6 +10,8 @@
 #include "../../src/game/ui.h"
 #include "../../src/game/ui_screens.h"
 
+#include "ei/rebirth.h"
+
 #include <cstring>
 
 namespace {
@@ -319,7 +321,8 @@ static void __fastcall DrawListVerify(CMpConnectScreen* self) {
 }
 EI_VERIFY(0x0061D780, DrawListVerify, 7, s_drawList);
 
-// 0061B2C0 CMpConnectScreen::Create (Rebirth-patched: the vanilla launch only): ours only (it
+// 0061B2C0 CMpConnectScreen::Create (Rebirth-patched: addon's ExtendedServerName sites and
+// EI_Plugin's NPlayers are reproduced, W2b; reached by ui_mp_host): ours only (it
 // loads textures and a model, makes children and starts the network client). Read back, as the
 // differences Create makes: 29 regions (10 controls, 4 game type tabs, 15 rows), 18 sprites, two
 // surfaces, three children, 4 allod names and 22 texts; the new game's defaults and row 0
@@ -341,5 +344,25 @@ static void __fastcall ConnectCreateVerify(CMpConnectScreen* self) {
                        self->sortKey_ == 0 && !self->joining_ && self->scroll_ && self->playersSlider_ && self->nameEdit_;
     ei::verify::Check("CMpConnectScreen::Create state", true, state, "players %d type %d unlisted %d selected %d",
                       self->maxPlayers_, self->gameType_, self->unlisted_ ? 1 : 0, self->selected_);
+    // The Rebirth patches' values (W2b), re-derived here from the flags: ExtendedServerName makes the
+    // slider's rectangle and the name field 680 wide at the right and the field take classes 15, font 0
+    // and 50 characters; EI_Plugin's NPlayers the slider's maximum max(n, 7) - 1 and position max(n, 1) - 1.
+    const bool extended = ei::rebirth::Enabled(ei::rebirth::Patch::ExtendedServerName);
+    const bool plugin = ei::rebirth::Enabled(ei::rebirth::Patch::EiPluginNPlayers);
+    const int players = ei::rebirth::PluginNPlayers();
+    const int right = extended ? 680 : 650;
+    const int maximum = plugin ? (players < 7 ? 7 : players) - 1 : 5;
+    const int position = plugin ? (players < 1 ? 1 : players) - 1 : 5;
+    const CUiEditField* edit = self->nameEdit_;
+    const CUiSlider* slider = self->playersSlider_;
+    const bool patched = slider->rect_.right == right && edit->area_.right == right && slider->maxPosition_ == maximum &&
+                         slider->position_ == position && edit->charClasses_ == (extended ? 15u : 3u) &&
+                         edit->font_ == (extended ? 0 : 1) && edit->maxLength_ == (extended ? 50 : 10);
+    ei::verify::Check("CMpConnectScreen::Create patched values", true, patched,
+                      "ExtendedServerName %d NPlayers %d: slider right %d max %d position %d, field right %d classes %u font %d "
+                      "length %d",
+                      extended ? 1 : 0, plugin ? 1 : 0, static_cast<int>(slider->rect_.right), slider->maxPosition_,
+                      slider->position_, static_cast<int>(edit->area_.right), edit->charClasses_, edit->font_,
+                      edit->maxLength_);
 }
 EI_VERIFY(0x0061B2C0, ConnectCreateVerify, 0, s_unused);

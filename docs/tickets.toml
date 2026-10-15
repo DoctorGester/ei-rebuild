@@ -474,21 +474,23 @@ done = "2026-10-14"
 id = "W2b"
 title = "Connect screen Create 0061B2C0: addon's ExtendedServerName sites"
 group = "widescreen"
-status = "queued"
+status = "running"
 size = 0.3
 model = "sonnet"
 files = ["src/game/ui_connect_screen.cpp", "config/rebirth_patches.csv"]
 note = "From W2a (2026-10-14): the connect list draw now reproduces ExtendedServerName, but Create 0061B2C0 still carries addon's sites (field sizes, 0061BB51 and neighbours) plus the 0061B5CE float. Same approach as W2a: read addon's live bytes, gate on Patch::ExtendedServerName, compare in ui_mp_host under Rebirth."
+started = "2026-10-15"
 
 [[ticket]]
 id = "W4a"
 title = "Hero screen 00613EA0 under Rebirth: EiPluginFixes with WideScreen"
 group = "widescreen"
-status = "queued"
+status = "running"
 size = 0.5
 model = "sonnet"
 depends = ["W4"]
 note = "W4 added WideScreen's curtains to CMpHeroScreen::Create (00613EA0) but a Rebirth launch skips the hook: the function also holds EI_Plugin's EiPluginFixes at +D15 (00614BB5, cmp word [ecx+4],0x6566; jne; jmp) and +E7B (00614D1B, jmp; NOPs), not reproduced. Reproduce both behind their flag (EI_REBIRTH_IMPLEMENTS both), then compare in a Rebirth launch (ui_widescreen_more's new hero, ui_widescreen_screens' hero list) with run_all --widescreen."
+started = "2026-10-15"
 
 # ---------------------------------------------------------------- unknown fields
 

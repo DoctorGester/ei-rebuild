@@ -158,6 +158,7 @@ void DetectEiPlugin() {
     set(Patch::EiPluginFixes, fixes != 0);
     set(Patch::EiPluginUnload, false);
     g_pluginNPlayers = nPlayers;
+    rebirth::SetPluginNPlayers(nPlayers);
     g_pluginPause = pause;
     g_pluginTest = test != 0;
     g_pluginNewMaster = newMaster != 0;
