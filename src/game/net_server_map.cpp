@@ -27,7 +27,6 @@ namespace {
 // string(const char*, alloc), string(alloc), range assign, assign(first, last, tag), destructors.
 __declspec(naked) StringRep* __fastcall StringPlusString(StringRep* /*out*/, const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00427E80)
 static StringRep* StringFromText(StringRep* s, void*, const char* text, const void* alloc) { return static_cast<StringRep*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, void* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 
 // The queued message (vtable 0073BCD0, built by 00418C30) and its string member assignment, the
 // counted pointer helpers, the list push_back.
@@ -47,7 +46,6 @@ inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLo
 // buffer free the string destructor inlines.
 __declspec(naked) void __fastcall NamesProxyConstruct(void* /*eos*/, void*, const void* /*alloc*/, StringRep* const* /*value*/) EI_ORIGINAL(0x004263D0)
 void __fastcall NamesFree(StringRep* a0, std::size_t a1) { NodeFree12Original((void*)a0, a1); }
-inline void __fastcall StringDeallocate(char**, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 void __fastcall NodeFree(void* a0, std::size_t a1) { StlNodeFreeOriginal(a0, a1); }
 
 
@@ -102,8 +100,8 @@ void ServerSession::SetMap(const StringRep* name) {
         holder->Share(mapMessage);
     }
     auto* current = static_cast<MapMessage*>(holder->ptr);
-    if (name != &current->text_) StringAssign(&current->text_, nullptr, name->start, name->finish, mapMessage);
-    if (name != &mapName_) StringAssign(&mapName_, nullptr, name->start, name->finish, mapMessage);
+    if (name != &current->text_) StringAssignTaggedOriginal(&current->text_, nullptr, name->start, name->finish, mapMessage);
+    if (name != &mapName_) StringAssignTaggedOriginal(&mapName_, nullptr, name->start, name->finish, mapMessage);
 
     void* world = TheGameFlow();
     FlowRegisterQuestsOriginal(world, nullptr, name->start);
@@ -195,7 +193,7 @@ void ServerSession::QueueMapList() {
         void* ref;
         List25ACPushBack(&queuedMaps_, nullptr, RefFromRaw(&ref, message));
         RefClear(&ref);
-        StringDeallocate(&key.eos, nullptr, key.start, static_cast<std::size_t>(key.eos - key.start));
+        StringDeallocateOriginal(key.start, static_cast<std::size_t>(key.eos - key.start));
         FlowLoadZoneQuests(flow, nullptr, zone->start);
     }
     for (StringRep* zone = zones.start; zone != zones.finish; ++zone) StringRepDestroy(zone);

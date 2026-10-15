@@ -109,9 +109,6 @@ __declspec(naked) void __fastcall ReplicatedSortFinish(Replicated* /*first*/, Re
 ReplicatedVector& StaticReplicated() { return *reinterpret_cast<ReplicatedVector*>(0x0079B8D0); }
 std::uint8_t& StaticReplicatedGuard() { return *reinterpret_cast<std::uint8_t*>(0x0079B8DC); }
 
-// --- Not rewritten yet ---------------------------------------------------------------------------
-// 004DA5C0: the growing buffer makes room for `size` bytes.
-inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) { GameBufferGrowOriginal((void*)a0, nullptr, a2); }
 
 
 // "text\n" and a flush to the network log, when there is one.
@@ -240,7 +237,7 @@ void Connection::QueueHeader(int budget) {
         std::memmove(reliableOut_.begin, reliableOut_.begin + size, static_cast<std::size_t>(remaining));
         reliableOut_.cur = reliableOut_.begin;
         reliableOut_.high = reliableOut_.begin + remaining;
-        if (reliableOut_.high > reliableOut_.end) GameBufferGrow(&reliableOut_, nullptr, static_cast<std::uint32_t>(remaining));
+        if (reliableOut_.high > reliableOut_.end) GameBufferGrowOriginal(&reliableOut_, nullptr, static_cast<std::uint32_t>(remaining));
         headerSequence_ = static_cast<std::uint16_t>(headerSequence_ + size);
         return;
     }

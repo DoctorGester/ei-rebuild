@@ -498,7 +498,6 @@ __declspec(naked) void __fastcall WorldSetCave(CWorldServer*, void*, int) EI_ORI
 __declspec(naked) bool __fastcall AddressInit(void*, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
 __declspec(naked) const char* const* __fastcall AddressFormat(void*, void*, void* /*out string*/) EI_ORIGINAL(0x00435010)
 __declspec(naked) void __fastcall HostRecordConstruct(net::HostMessage*, void*) EI_ORIGINAL(0x004186E0)
-void __fastcall HostStringAssign(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall ServerSendText(void*, void*, int /*message*/, const char*) EI_ORIGINAL(0x0041A500)
 
 // A session or a replicated record is usable: there, and not detached by its owner.
@@ -530,9 +529,9 @@ void AnnounceHost(const char* zone) {
     }
     const char* text1 = formatted;
     auto* shared = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
-    HostStringAssign(&shared->address_, nullptr, text1, text1 + std::strlen(text1));
+    StringAssignRangeOriginal(&shared->address_, nullptr, text1, text1 + std::strlen(text1));
     shared = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
-    HostStringAssign(&shared->zone_, nullptr, zone, zone + std::strlen(zone));
+    StringAssignRangeOriginal(&shared->zone_, nullptr, zone, zone + std::strlen(zone));
     ServerSendText(net::GameServer(), nullptr, kServerMessageZone, zone);
 }
 
@@ -1150,8 +1149,6 @@ __declspec(naked) bool __fastcall AddressSet(void*, void*, const char*, int) EI_
 __declspec(naked) void __fastcall BufferPut(GameBuffer*, void*, const void*, int) EI_ORIGINAL(0x00436C60)
 // 00442980 (RET 8). The client connects to an address with a hello buffer.
 __declspec(naked) void __fastcall ClientConnect(void*, void*, void*, GameBuffer*) EI_ORIGINAL(0x00442980)
-// 00426A80 (RET 8). STLport string assign [first, last).
-void __fastcall StringAssignRange(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
 // 0041A140 (RET 4) / 00417E10 (RET 4). The server's password / whether it is listed.
 __declspec(naked) void __fastcall ServerSetPassword(void*, void*, const char*) EI_ORIGINAL(0x0041A140)
 __declspec(naked) void __fastcall ServerSetPublic(void*, void*, int) EI_ORIGINAL(0x00417E10)
@@ -1188,7 +1185,7 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     }
     LocalLogin()->host_ = 1;
     const char* shown = name && *name ? name : game::Text(kServerName);
-    StringAssignRange(&net::GameServer()->name_, nullptr, shown, shown + std::strlen(shown));
+    StringAssignRangeOriginal(&net::GameServer()->name_, nullptr, shown, shown + std::strlen(shown));
     net::GameServer()->maxPlayers_ = value25E0;
     if (password && *password) ServerSetPassword(net::GameServer(), nullptr, password);
     ServerSetPublic(net::GameServer(), nullptr, unlisted == 0);
@@ -1229,8 +1226,6 @@ __declspec(naked) void __fastcall SessionListDestruct(void*, void*) EI_ORIGINAL(
 // 0066C180. The player list makes a new player. 00665990 (RET 4): the player takes a connection.
 WorldPlayer* __fastcall PlayersAdd(void* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal(a0); }
 __declspec(naked) void __fastcall PlayerAttach(WorldPlayer*, void*, void*) EI_ORIGINAL(0x00665990)
-// 006FC9C6 (RET 4). ostream << long.
-inline void* __fastcall OstreamPutLong(void* s, void*, long v) { return OstreamPutLongOriginal(s, nullptr, v); }
 
 } // namespace
 
@@ -1257,7 +1252,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         player->sessionKind = sessionKind_;
         std::memcpy(&player->server->lastPosition_, &startPosition_, 12);
         int id = player->id;
-        void* log = OstreamPutLong(OstreamPutString(kNetLog, nullptr, game::Text(kAcceptedPlayer)), nullptr, id);
+        void* log = OstreamPutLongOriginal(OstreamPutString(kNetLog, nullptr, game::Text(kAcceptedPlayer)), nullptr, id);
         OstreamManipulate(OstreamPutChar(log, nullptr, '\n'), nullptr, kFlush);
         node = next;
     }
@@ -1291,8 +1286,6 @@ struct OutStrings {
     stlp::string* finish;
     stlp::string* end;
 };
-// 004DCE90 (RET 0xC). vector<string>::_M_insert_overflow(pos, value, count).
-void __fastcall OutInsertOverflow(OutStrings* a0, void*, stlp::string* a2, const stlp::string* a3, unsigned a4) { StringVectorInsertOverflowOriginal((void*)a0, nullptr, (void*)a2, (const void*)a3, a4); }
 
 bool SameText(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
@@ -1347,7 +1340,7 @@ void __stdcall PickZones(void* outArg, int id, const char* exclude) {
             new (out->finish) stlp::string(name);
             ++out->finish;
         } else {
-            OutInsertOverflow(out, nullptr, out->finish, &name, 1);
+            StringVectorInsertOverflowOriginal(out, nullptr, out->finish, &name, 1);
         }
     }
 }
@@ -1914,12 +1907,8 @@ namespace {
 
 // 0057DEE0 (RET 4). The flow's party setup step (1 here).
 void __fastcall FlowPartyStep(GameFlow* flow, void*, int step) { FlowPartyStepOriginal(flow, nullptr, step); }
-// 00661FB0. The party outside a game (007C82B0) resets its members.
-// 00426A80 (RET 8). STLport string assign(first, last) (the second call is inlined in the
-// original, the same algorithm).
-void __fastcall RangeAssign(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
 
-void AssignText(net::StringRep* field, const char* text) { RangeAssign(field, nullptr, text, text + std::strlen(text)); }
+void AssignText(net::StringRep* field, const char* text) { StringAssignRangeOriginal(field, nullptr, text, text + std::strlen(text)); }
 
 } // namespace
 

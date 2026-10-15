@@ -1563,3 +1563,30 @@ our code draws the wider view, every part is lit and 0x4A2 stays. Rebirth's orig
 keeps 0x4A2 too, and a copy of the menu part without the `rebirthflags` line gives 0xA2 hooked as well. So ours is
 right; the vanilla original simply has no WideScreen. The four ui_widescreen* scenarios get Rebirth goldens only:
 `golden.py record` now refuses a vanilla golden for a scenario with a `rebirthflags` line.
+
+## SV7d1a: /fp:precise instead of /fp:fast (2026-10-15)
+
+The project default is `/arch:IA32 /fp:precise` now (CMakeLists.txt). `/fp:fast` regrouped sums and folded constants
+across them (SV7d1's Fear distance; with fast, the scan below also found `limit * limit` of PlayerMode::UpdateCombat
+005D4170 folded into `reach^2 * 1.21` and the tornado's random speed `r * 2^-32 * 0.048` into one constant). Under
+precise the grouping written is the grouping compiled; the rounding stores it adds change nothing on the 24-bit main
+thread. Precise calls the modern CRT for `std::sqrt / sin / cos / atan2 / exp / log / log10` (fast had inlined
+FSQRT, FSIN, FCOS, FPATAN, the F2XM1 sequence, FYL2X): 86 calls in 45 files now use `x87::fsqrt / fsin / fcos /
+fpatan / fexp` and the new `x87::flog / flog10` (FLDLN2 / FLDLG2; FYL2X, as VC6 inlines them: Level 00539160, the
+skill price, the standalone's static initialisers). The CRT calls left are the ones fast had too (acos, fmod, pow).
+The 87 `float_control(precise, on)` pragmas and the volatile store helpers written against fast are redundant now
+(left for a follow-up).
+
+**Constant products.** A product of two constants the original computes at run time (FLD; FMUL / FDIV of doubles) is
+rounded to 24 bits there; the compiler folds it to a double. `tools/check_fp_fold.py` (build.cmd, release and verify)
+lists the x87 constants of each rewrite that the original function never loads and fails on such doubles. Three:
+terrain::Sine's 256 / pi (Animate 006C3E80: FLD 256.0; FDIV pi), CBriefingScreen::NextPhrase 00604C50's and
+CWorldClient::UpdateLighting 00566360's pi * (1/180). Each is the float the original's product gives now (checked with
+exact arithmetic: rounding the double product to float gives the same value). Under precise the sun's double pi/180 moved
+three menu units' orientations by 1-2 ulps in ui_widescreen_hud / ui_widescreen_more (Rebirth; found by bisecting
+files, then reverting each constant); with the float the goldens are the same again.
+
+**Suite** (`work.py test SV7d1a --golden --jobs 4`, 128 runs): ALL PASS, 0 verify mismatches in 7.9e9 checked calls
+(main's last 138 runs: 0); goldens 54 the same, levers and ui_saveload_delete differ only in `#gobject` (SV7b1, as on
+main). No golden re-recorded. After merging main (SV7b1, SV7b4a's re-recorded goldens): 128 runs ALL PASS, 0 verify
+mismatches, all 56 goldens the same; `--standalone --golden` on the 44 scenarios with a vanilla golden: 44 the same.

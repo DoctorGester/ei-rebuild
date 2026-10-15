@@ -885,9 +885,9 @@ int PlatformSet::AddFace(const Vector3* a, const Vector3* b, const Vector3* c, c
     *out = record;
     float ux = b->x - a->x, uy = b->y - a->y, uz = b->z - a->z;
     float vx = c->x - a->x, vy = c->y - a->y, vz = c->z - a->z;
-    float lengthU = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz));
+    float lengthU = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(ux, uy, uz)));
     record->sizeU = lengthU;
-    float lengthV = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz));
+    float lengthV = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(vx, vy, vz)));
     record->sizeV = lengthV;
     std::memcpy(&record->normal, normal, 12);
     std::memcpy(&record->origin, a, 12);
@@ -1157,8 +1157,6 @@ namespace {
 // MFC: operator+(const CString&, LPCTSTR) [00700C05, __stdcall, the result constructed in `out`],
 // CString::operator=(const CString&) [00700AA9], operator=(LPCTSTR) [00700AF9], ~CString [00700970].
 void* __stdcall CStringConcat(void* a0, const void* a1, const char* a2) { return CStringConcatTextOriginal((mfc::CString*)a0, (const mfc::CString*)a1, a2); }
-void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
-inline void __fastcall CStringAssignText(void* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 // The lights table loader [00563930 (file name)], the text resources [004DEDB0 on +0x1D0 (path)].
 __declspec(naked) int __fastcall LoadLightsAt(void*, void*, const char*) EI_ORIGINAL(0x00563930)
 __declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)
@@ -1282,7 +1280,7 @@ int CWorldClient::Setup() {
     WorldCreateManagers(this);
     void* path;
     CStringConcat(&path, worlddata::DataPathString(), worlddata::TexturesFolderText());
-    CStringAssign(&texturePath_, nullptr, &path);
+    CStringAssignOriginal(&texturePath_, nullptr, &path);
     CStringDestroy(&path);
     LoadLightsAt(this, nullptr, worlddata::LightsTableText());
     lightingMark_ = 0;
@@ -1334,7 +1332,7 @@ int CWorldClient::Setup() {
     }
     terrain_ = terrain;
     ++terrain->refCount_;
-    CStringAssignText(&zoneName_, nullptr, worlddata::GipathText());
+    CStringAssignTextOriginal(&zoneName_, nullptr, worlddata::GipathText());
 
     manager44_ = MakeCounted<CBaseManager>(0xB0, Construct42D690);
     static_cast<CBaseManager*>(manager44_)->Init(this);

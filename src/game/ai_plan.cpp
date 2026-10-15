@@ -55,8 +55,6 @@ __declspec(naked) bool __fastcall SearchContinue(void*, void*, int, int, int, in
 __declspec(naked) bool __fastcall SearchReached(void*, void*, int, int) EI_ORIGINAL(0x005C31A0)
 __declspec(naked) void __fastcall SearchCommit(void*, void*) EI_ORIGINAL(0x005C2A30)
 void __fastcall SearchReset(void* a0, void*) { LocalSearchResetOriginal(a0); }
-// 005B16D0 (RET 8). The excluded regions' CArray<{int x, y}>::SetSize.
-inline void __fastcall ExcludedSetSize(BlockPointArray* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 // 005B9A20 (RET 0xC). Builds the path cells to (toX, toY) from the search into `cells`.
 __declspec(naked) void __fastcall BuildCells(CAIMap*, void*, int, int, PathCellList*) EI_ORIGINAL(0x005B9A20)
 // 006E727B. atexit, for the function-local spiral cache.
@@ -229,7 +227,7 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
                 int y = bad->data.y;
                 BlockPointArray* excluded = &path->excludedBlocks;
                 int size = excluded->size;
-                ExcludedSetSize(excluded, nullptr, size + 1, -1);
+                PointArraySetSizeOriginal(excluded, nullptr, size + 1, -1);
                 BlockPoint* data = excluded->data;
                 data[size].x = x;
                 data[size].y = y;

@@ -15,11 +15,7 @@
 namespace net {
 
 namespace {
-
-void __fastcall StringAssignText(StringRep* a0, void*, const char* a2) { StringAssignCStrOriginal((void*)a0, nullptr, a2); }
-void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, void* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
 __declspec(naked) void __fastcall RecordDestroy(GameInfoRecord* /*record*/) EI_ORIGINAL(0x0041AC30)
-inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) { GameBufferGrowOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall CoderConstruct(void* /*coder*/) EI_ORIGINAL(0x0042FCA0)
 __declspec(naked) void __fastcall CoderDecompress(void* /*coder*/, void*, GameBuffer* /*in*/, GameBuffer* /*out*/) EI_ORIGINAL(0x00430960)
 __declspec(naked) std::uint32_t __fastcall CursorEnd(BufferCursor* /*cursor*/) EI_ORIGINAL(0x0041D930)
@@ -66,7 +62,7 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
         BufferUpdateHigh(&buffer);
         std::uint8_t* begin = buffer.begin;
         buffer.cur = begin;
-        if (begin > buffer.end) GameBufferGrow(&buffer, nullptr, 0);
+        if (begin > buffer.end) GameBufferGrowOriginal(&buffer, nullptr, 0);
         for (;;) {
             if (buffer.cur > buffer.high) buffer.high = buffer.cur;
             if (Offset(buffer, buffer.cur) >= Offset(buffer, buffer.high) || (buffer.flags & 8)) {
@@ -79,9 +75,9 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
                 StringInitEmpty(&entry->name_);
                 StringInitEmpty(&entry->description_);
                 ei::SetVtable(entry, ServerEntry::kVtableAddress);
-                StringAssignText(&entry->name_, nullptr, game::QuestionMarkText());
+                StringAssignCStrOriginal(&entry->name_, nullptr, game::QuestionMarkText());
                 entry->kind_ = 4;
-                StringAssignText(&entry->description_, nullptr, game::QuestionMarkText());
+                StringAssignCStrOriginal(&entry->description_, nullptr, game::QuestionMarkText());
                 entry->players_ = 0;
                 entry->maxPlayers_ = 0;
                 entry->password_ = 0;
@@ -93,10 +89,10 @@ void ClientSession::ReadServerListImpl(GameBuffer* in) {
             entry->maxPlayers_ = record->maxPlayers;
             entry->players_ = record->players;
             StringRep* name = &entry->name_;
-            if (&record->name != name) StringAssign(name, nullptr, record->name.start, record->name.finish, entry);
+            if (&record->name != name) StringAssignTaggedOriginal(name, nullptr, record->name.start, record->name.finish, entry);
             StringRep* description = &entry->description_;
             if (&record->description != description)
-                StringAssign(description, nullptr, record->description.start, record->description.finish, entry);
+                StringAssignTaggedOriginal(description, nullptr, record->description.start, record->description.finish, entry);
             ClientAddServer(this, nullptr, entry);
         }
     }

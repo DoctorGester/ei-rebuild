@@ -26,14 +26,11 @@ namespace {
 
 // STLport strings and lists (library instantiations).
 inline void __fastcall StringRangeInitTag(StringRep* a0, void*, const char* a2, const char* a3, std::uint32_t a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
-void __fastcall StringAllocProxy(char** a0, void*, const void* a2, char* const* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, (const void*)a3); }
 __declspec(naked) char* __fastcall CopyTrivial(const char* /*first*/, const char* /*last*/, char* /*result*/) EI_ORIGINAL(0x004193D0)
-void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void** __fastcall ClientsBegin(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219E0)
 __declspec(naked) void** __fastcall ClientsEnd(void* /*list*/, void*, void** /*out*/) EI_ORIGINAL(0x004219F0)
 __declspec(naked) void __fastcall CountClients(int* /*count*/, void*, void* /*first*/, void* /*last*/) EI_ORIGINAL(0x00429040)
 __declspec(naked) void __fastcall FreeNode(void* /*node*/, std::size_t /*n*/) EI_ORIGINAL(0x00426920)
-inline void __fastcall StringDeallocate(char**, void*, char* a2, std::size_t a3) { StringDeallocateOriginal(a2, a3); }
 // The pending awards (+0x25B4): push_back of {delay, award}.
 __declspec(naked) void __fastcall AwardsPushBack(void* /*list*/, void*, const void* /*entry*/) EI_ORIGINAL(0x00422F70)
 
@@ -107,17 +104,17 @@ void ServerSession::QueueAward(CRefObject* connection, int kind, float value, St
     const char* last = text.finish;
     char* d = to->start;
     if (first == last) {
-        StringErase(to, nullptr, d, to->finish);
+        StringEraseOriginal(to, nullptr, d, to->finish);
     } else {
         for (;;) {
             if (d == to->finish) {
                 if (first != last) StringAppend(to, nullptr, first, last, connection);
-                else StringErase(to, nullptr, d, to->finish);
+                else StringEraseOriginal(to, nullptr, d, to->finish);
                 break;
             }
             *d++ = *first++;
             if (first == last) {
-                StringErase(to, nullptr, d, to->finish);
+                StringEraseOriginal(to, nullptr, d, to->finish);
                 break;
             }
         }
@@ -162,7 +159,7 @@ void ServerSession::AwardHost(const std::uint8_t* entry, bool withFinal) {
                 text.finish = nullptr;
                 char* none = nullptr;
                 std::uint8_t allocator = 0;
-                StringAllocProxy(&text.eos, nullptr, &allocator, &none);
+                StringEndOfStorageOriginal(&text.eos, nullptr, &allocator, &none);
                 StringRangeInitTag(&text, nullptr, item, item + std::strlen(item), withFinal);
                 QueueAward(connection, 2, 0.0f, text);
                 ++i;
@@ -275,7 +272,7 @@ void ServerSession::LeaveZone() {
         StringAssignSpan(&lookup, nullptr, keyText, keyText + std::strlen(keyText));
         auto* entry = static_cast<std::uint8_t*>(*MapRegistryFind(worlddata::QuestBriefings(), nullptr, &lookup));
         StlStringDestroy(&lookup);
-        StringDeallocate(&key.eos, nullptr, key.start, static_cast<std::size_t>(key.eos - key.start));
+        StringDeallocateOriginal(key.start, static_cast<std::size_t>(key.eos - key.start));
         if (entry) AwardHost(entry, true);
     }
 

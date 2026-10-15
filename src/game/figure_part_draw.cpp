@@ -54,12 +54,6 @@ std::uint32_t AnimatedDrawerFlags() { return *reinterpret_cast<const std::uint32
 // 0068D280 (CLight::SetLitColors): a light's colours for a material and the ambient level (float bits).
 __declspec(naked) void __fastcall LightForMaterial(CLight*, void*, CMaterial* /*material*/, std::uint32_t /*ambient*/)
     EI_ORIGINAL(0x0068D280)
-// The device's mesh draws (device_mesh.cpp): DrawMesh / DrawMesh2, originals_render.h.
-// STLport string members: 004217E0 string(allocator), 00425080 the end-of-storage member from an
-// allocator and a value, 00428F10 assign(first, last), 0042A3D0 range initialisation (first, last,
-// tag), destructors 00425040 and 0040C770 (two instantiations).
-void __fastcall StringEndOfStorage(char** a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, a3); }
-inline void __fastcall StringInitRange(RawString* a0, void*, const char* a2, const char* a3, const void* a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
 // 005197B0: map<string, LinkPartHeader>::find on a figure's part headers: the node to *out.
 void __fastcall FindPiece(LinkHeaderMap* a0, void*, LinkHeaderMap::Node** a2, const RawString* a3) {
     StringMapFindOriginal(a0, nullptr, reinterpret_cast<void**>(a2), a3);
@@ -616,12 +610,12 @@ void DrawThroughFigure(Part& part) {
     RawString s;
     if (moved || part.Textured()) {
         StringInitWithAllocator(&s, nullptr, Allocator(part));
-        StringInitRange(&s, nullptr, name, name + std::strlen(name), part.material);
+        StringInitRangeOriginal(&s, nullptr, name, name + std::strlen(name), part.material);
     } else {
         s.start = nullptr;
         s.finish = nullptr;
         int zero = 0;
-        StringEndOfStorage(&s.eos, nullptr, Allocator(part), &zero);
+        StringEndOfStorageOriginal(&s.eos, nullptr, Allocator(part), &zero);
         StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
     }
     mesh = part.Mesh();
@@ -650,7 +644,7 @@ void DrawThroughFigure(Part& part) {
         key.start = nullptr;
         key.finish = nullptr;
         int zero = 0;
-        StringEndOfStorage(&key.eos, nullptr, Allocator(part), &zero);
+        StringEndOfStorageOriginal(&key.eos, nullptr, Allocator(part), &zero);
         StringAssignSpan(&key, nullptr, pieceName, pieceName + std::strlen(pieceName));
         LinkHeaderMap::Node* node = nullptr;
         FindPiece(&part.figure->headers_, nullptr, &node, &key);

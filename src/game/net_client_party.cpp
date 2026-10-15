@@ -22,7 +22,6 @@ namespace net {
 namespace {
 
 // STLport vector<RefPtr> plumbing (library instantiations) and the message stream constructor.
-void* __fastcall VectorGetAllocator(RefVector* a0, void*, void* a2) { return VectorGetAllocatorOriginal((const void*)a0, nullptr, a2); }
 __declspec(naked) RefPtr* __fastcall VectorErase(RefVector* /*vector*/, void*, RefPtr* /*first*/, RefPtr* /*last*/) EI_ORIGINAL(0x00421ED0)
 __declspec(naked) void __fastcall RefPtrConstructCopy(RefPtr* /*at*/, const RefPtr* /*from*/) EI_ORIGINAL(0x00429060)
 __declspec(naked) void __fastcall VectorInsertOverflow(RefVector* /*vector*/, void*, RefPtr* /*pos*/, const RefPtr* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00426F00)
@@ -90,7 +89,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
 
     // A copy of the old messages, then the list emptied.
     std::uint8_t allocator = 0;
-    const void* allocatorCopy = VectorGetAllocator(messages, nullptr, &allocator);
+    const void* allocatorCopy = VectorGetAllocatorOriginal(messages, nullptr, &allocator);
     RefVector previous;
     VectorBaseConstruct(&previous, nullptr, static_cast<std::size_t>(messages->size()), allocatorCopy);
     previous.Finish() = UninitializedCopy(messages->begin(), messages->end(), previous.begin(), 0);

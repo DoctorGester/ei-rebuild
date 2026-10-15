@@ -18,16 +18,12 @@ namespace {
 // `size` bytes (missing ones read as zero), a CString field, entering / leaving chunk `id`.
 // Not rewritten: 0052DF40 (ArchiveCStringsOriginal, originals_library.h); 0052D6A0, four dwords
 // as fields 0..3; 0052D6F0, a model's body slot as fields 0..3.
-void __fastcall ArchiveStrings(ChunkArchive* ar, void*, int id, CStringVector* strings, ChunkArchive* unused) {
-    ArchiveCStringsOriginal(ar, nullptr, id, strings, unused);
-}
 __declspec(naked) void __fastcall FourDwords(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6A0)
 __declspec(naked) void __fastcall ModelSlot(UnitModelSlot*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6F0)
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
 // chunk [00409A60, rewritten in chunk_archive.cpp], emptying a vector<CString> [0052E010] and
 // resizing it [0051F5B0].
 void __fastcall StringsClear(CStringVector* a0) { CStringVectorClearOriginal((void*)a0); }
-void __fastcall StringsResize(CStringVector* a0, void*, std::uint32_t a2) { CStringVectorResizeOriginal((void*)a0, nullptr, a2); }
 
 void Dword(ChunkArchive* ar, int id, void* data) { ArchiveField(ar, nullptr, id, data, 4); }
 
@@ -39,7 +35,7 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
     if (ar->loading_) {
         StringsClear(strings);
         count = ArchiveCount(ar, nullptr, 1);
-        StringsResize(strings, nullptr, static_cast<std::uint32_t>(count));
+        CStringVectorResizeOriginal(strings, nullptr, static_cast<std::uint32_t>(count));
     } else {
         count = static_cast<int>(strings->size());
     }
@@ -89,10 +85,10 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
         FourDwords(&secondGold, nullptr, ar);
         ArchiveLeave(ar);
     }
-    ArchiveStrings(ar, nullptr, 0x1D, &lootItems, ar);
+    ArchiveCStringsOriginal(ar, nullptr, 0x1D, &lootItems, ar);
     ArchiveField(ar, nullptr, 0x1E, skills3to5, sizeof(skills3to5));
-    ArchiveStrings(ar, nullptr, 0x1F, &spellNames, ar);
-    ArchiveStrings(ar, nullptr, 0x20, &armourNames, ar);
+    ArchiveCStringsOriginal(ar, nullptr, 0x1F, &spellNames, ar);
+    ArchiveCStringsOriginal(ar, nullptr, 0x20, &armourNames, ar);
     ArchiveString(ar, nullptr, 0x21, &weaponName);
     Dword(ar, 0x22, &panelViewSize);
     Dword(ar, 0x23, &height);
@@ -127,11 +123,11 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
         }
     }
     ArchiveString(ar, nullptr, 0x1E, &figureName);
-    ArchiveStrings(ar, nullptr, 0x1F, &field1F, ar);
-    ArchiveStrings(ar, nullptr, 0x20, &field20, ar);
+    ArchiveCStringsOriginal(ar, nullptr, 0x1F, &field1F, ar);
+    ArchiveCStringsOriginal(ar, nullptr, 0x20, &field20, ar);
     Dword(ar, 0x21, &height);
     ArchiveString(ar, nullptr, 0x22, &soundFolder);
-    ArchiveStrings(ar, nullptr, 0x23, &soundNames, ar);
+    ArchiveCStringsOriginal(ar, nullptr, 0x23, &soundNames, ar);
     ArchiveField(ar, nullptr, 0x24, actionSpeeds, sizeof(actionSpeeds));
     Dword(ar, 0x25, &idleSoundChance);
     Dword(ar, 0x26, &attackSoundChance);
@@ -159,7 +155,7 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 5, &stats[2]);
     ArchiveField(ar, nullptr, 6, attributes, sizeof(attributes));
     ArchiveField(ar, nullptr, 7, skills, sizeof(skills));
-    ArchiveStrings(ar, nullptr, 8, &skillNames, ar);
+    ArchiveCStringsOriginal(ar, nullptr, 8, &skillNames, ar);
     InlineStrings(ar, 9, &startWeapons);
     InlineStrings(ar, 10, &startQuickItems);
     InlineStrings(ar, 11, &startSpells);

@@ -91,7 +91,7 @@ void CLightning::Start(const Vector3* from, const Vector3* to, float power, bool
         main_.width = 4.0f;
         for (int i = 0; i < 6; ++i) {
             float dx = from->x - to->x, dy = from->y - to->y, dz = from->z - to->z;
-            float reach = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C52C);
+            float reach = static_cast<float>(x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX>(dx, dy, dz)) * GameFloat(0x0073C52C));
             float low = -reach;
             const double scale = GameDouble(0x0073C468);
             float offsetY = static_cast<float>((reach - low) * x87::FromUnsigned(Rng()->Next()) * scale + low);

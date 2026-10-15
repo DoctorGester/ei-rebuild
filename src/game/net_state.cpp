@@ -149,9 +149,6 @@ void __fastcall UnitWriteNetState(std::uint8_t* object) {
 
 namespace {
 
-// The object's position setter [00517700], its world [00455950], the effect array's
-// CArray::SetSize [0050FE70, on +0x194 (size, grow by)].
-void __fastcall EffectsSetSize(void* a0, void*, int a2, int a3) { EffectArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
 // A companion (+0x170) as its virtual interface.
 CMapObjectCompanion* CompanionOf(CEngineObject* companion) { return static_cast<CMapObjectCompanion*>(companion); }
@@ -205,7 +202,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
     std::uint32_t countWord = 0;   // (one byte read into a word whose upper bytes the original leaves)
     field->ReadDelta(&countWord, 1);
     int count = static_cast<int>(countWord & 0xFF);
-    EffectsSetSize(&self->effectsVtable, nullptr, count, -1);
+    EffectArraySetSizeOriginal(&self->effectsVtable, nullptr, count, -1);
     for (int i = 0; i < self->effectCount; ++i) {
         MapEffect* effect = &self->effects[i];
         effect->ticksLeft = 0;
@@ -233,7 +230,6 @@ __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) E
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
 void __fastcall PlayerRemoveUnit(void* a0, void*, void* a2) { PlayerRemoveUnitOriginal(a0, nullptr, a2); }
 void __fastcall PlayerAddUnit(void* a0, void*, void* a2) { PlayerAddUnitOriginal(a0, nullptr, a2); }
-void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 
 constexpr float kStatEpsilon = 1e-4f;            // 0073CD44
 
@@ -341,7 +337,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
     if (DeltaField* field = state->BeginField(9)) {
         void* text;
         void* read = FieldReadString(field, nullptr, &text);
-        CStringAssign(&unit->scriptName, nullptr, read);
+        CStringAssignOriginal(&unit->scriptName, nullptr, read);
         CStringDestroy(&text);
         complete &= SnapshotConsumed();
         field->EndField();

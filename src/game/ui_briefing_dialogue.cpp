@@ -138,8 +138,8 @@ EI_REPLACE(0x006023F0, SpeakerAnimationDone);
 // --- 00607BB0 -----------------------------------------------------------------------------------
 
 void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, float height) {
-    float cosAngle = StoreFloat(static_cast<float>(std::cos(angle)));
-    float sinAngle = StoreFloat(static_cast<float>(std::sin(angle)));
+    float cosAngle = StoreFloat(static_cast<float>(x87::fcos(angle)));
+    float sinAngle = StoreFloat(static_cast<float>(x87::fsin(angle)));
     Vector3 eye{};
     double x;   // the facing, kept unrounded as the original does
     double y;
@@ -179,7 +179,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
         x = facing.x;
         y = facing.y;
     }
-    double length = std::sqrt(LengthSquared2DUnrounded(y, x));
+    double length = x87::fsqrt(LengthSquared2DUnrounded(y, x));
     // FCOM with zero, TEST AH,0x40: a NaN length is left alone too.
     if (!(length == 0.0) && !x87::IsNaN(static_cast<float>(length))) {
         double inverse = 1.0 / length;
@@ -220,7 +220,7 @@ void Sink(CUnit* unit) {
 void CBriefingScreen::ViewPreset(int preset) {
     double dx = static_cast<double>(places_[kLeaderPlace].x) - places_[kPersonPlace].x;
     double dy = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
-    float apart = StoreFloat(static_cast<float>(std::sqrt(LengthSquared2DUnrounded(dy, dx))));
+    float apart = StoreFloat(static_cast<float>(x87::fsqrt(LengthSquared2DUnrounded(dy, dx))));
     auto view = [this](CUnit* unit, float angle, float distance, float height) {
         BriefingViewSpeakerOriginal(this, nullptr, unit, StoreFloat(angle), StoreFloat(distance), height);
     };

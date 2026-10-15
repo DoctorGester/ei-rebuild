@@ -18,15 +18,6 @@ namespace net {
 
 namespace {
 
-void __fastcall StringAssignText(StringRep* a0, void*, const char* a2) { StringAssignCStrOriginal((void*)a0, nullptr, a2); }
-// STLport strings (library): reserve(n) with an allocator, assign(first, last, tag),
-// assign(first, last), erase(first, last), append(first, last, tag).
-inline void __fastcall StringReserve(StringRep* a0, void*, const void* a2, std::size_t a3) { StringReserveOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall StringAssign(StringRep* a0, void*, const char* a2, const char* a3, const void* a4) { StringAssignTaggedOriginal((void*)a0, nullptr, a2, a3, a4); }
-void __fastcall StringAssignRange(StringRep* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall StringAppendTag(StringRep* a0, void*, const char* a2, const char* a3, const void* a4) { StringAppendRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
-
 
 
 } // namespace
@@ -39,23 +30,23 @@ void ServerSession::DescribeImpl(RefPtr* out) {
     if (entry) {
         entry->ConstructBase();
         std::uint8_t allocator = 0;
-        StringReserve(&entry->name_, nullptr, &allocator, 8);
+        StringReserveOriginal(&entry->name_, nullptr, &allocator, 8);
         *entry->name_.finish = 0;
         StringInitEmpty(&entry->description_);
         ei::SetVtable(entry, ServerEntry::kVtableAddress);
-        StringAssignText(&entry->name_, nullptr, game::QuestionMarkText());
+        StringAssignCStrOriginal(&entry->name_, nullptr, game::QuestionMarkText());
         entry->kind_ = 4;
-        StringAssignText(&entry->description_, nullptr, game::QuestionMarkText());
+        StringAssignCStrOriginal(&entry->description_, nullptr, game::QuestionMarkText());
         entry->players_ = 0;
         entry->maxPlayers_ = 0;
         entry->password_ = 0;
     }
     StringRep* name = &entry->name_;
-    if (&name_ != name) StringAssign(name, nullptr, name_.start, name_.finish, out);
+    if (&name_ != name) StringAssignTaggedOriginal(name, nullptr, name_.start, name_.finish, out);
     entry->kind_ = kind_;
     StringRep* description = &entry->description_;
     const char* empty = game::EmptyText();
-    StringAssignRange(description, nullptr, empty, empty + std::strlen(empty));
+    StringAssignRangeOriginal(description, nullptr, empty, empty + std::strlen(empty));
 
     CRefObject* map = map_.ptr;
     if (map && !(map->flags7_ & CRefObject::kDetached)) {
@@ -66,10 +57,10 @@ void ServerSession::DescribeImpl(RefPtr* out) {
         std::size_t size = static_cast<std::size_t>(description->finish - description->start);
         if (length <= size) {
             std::memcpy(description->start, text, length);
-            StringErase(description, nullptr, description->start + length, description->finish);
+            StringEraseOriginal(description, nullptr, description->start + length, description->finish);
         } else {
             std::memcpy(description->start, text, size);
-            StringAppendTag(description, nullptr, text + (description->finish - description->start), end, out);
+            StringAppendRangeOriginal(description, nullptr, text + (description->finish - description->start), end, out);
         }
         CStringDestroy(&title);
     }

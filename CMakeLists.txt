@@ -12,9 +12,10 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 option(EI_VERIFY "Build ei_hook with differential verification wrappers" OFF)
 
 # x87 floating point, as in the original: SSE rounds differently and would change behaviour.
-# /fp:fast matches VC6's default x87 codegen (values stay in 80-bit registers, returns are not
-# re-rounded to float); /fp:precise inserts extra rounding stores the original never did.
-add_compile_options(/arch:IA32 /fp:fast /W4 /permissive- /utf-8)
+# /fp:precise (SV7d1a): /fp:fast regrouped sums and folded constants across them, which drifted by
+# an ulp (SV7d1). Precise's extra rounding stores change nothing on the main thread, which runs
+# at 24-bit precision; it calls the CRT for sqrt/sin/cos/atan2/exp/log, so game code uses x87::.
+add_compile_options(/arch:IA32 /fp:precise /W4 /permissive- /utf-8)
 
 file(GLOB EI_GAME_SOURCES CONFIGURE_DEPENDS src/game/*.cpp src/lib/*.cpp)
 

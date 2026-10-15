@@ -22,13 +22,8 @@ constexpr int kClassQuestItem = 0x14;                     // given to player 0 i
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // MFC list helpers instantiated in the exe (not rewritten).
-inline void __fastcall PtrListRemoveAll(ObjectList* a0, void*) { PtrListRemoveAllNodesOriginal((void*)a0); }
-inline void __fastcall PtrListDestruct(ObjectList* a0, void*) { PtrListDestructOriginal((void*)a0); }
-void __fastcall LootListRemoveAll(ObjectList* a0, void*) { ItemListRemoveAllOriginal((void*)a0); }
 __declspec(naked) void __fastcall LootListDestruct(ObjectList*, void*) EI_ORIGINAL(0x00558470)
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
-void __fastcall PtrListConstruct(ObjectList* a0, void*, int a2) { ItemListConstructOriginal((void*)a0, nullptr, a2); }
-void __fastcall PtrListAddTail(ObjectList* a0, void*, CEngineObject* a2) { PtrListAddTailOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) void __fastcall PtrListRemoveAt(ObjectList*, void*, ObjectList::Node*) EI_ORIGINAL(0x0059A680)
 __declspec(naked) CEngineObject** __fastcall PtrListGetNext(ObjectList*, void*, ObjectList::Node** /*position*/)
     EI_ORIGINAL(0x0059A670)
@@ -68,16 +63,16 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
     // 00429F10); the others destroy them (00558470 / 00427830).
     auto abandon = [&]() {
         third.vtable = mfc::impl::LootListClass::Vtable();
-        LootListRemoveAll(&third, nullptr);
+        ItemListRemoveAllOriginal(&third);
         second.vtable = mfc::impl::ItemListClass::Vtable();
-        PtrListRemoveAll(&second, nullptr);
+        PtrListRemoveAllNodesOriginal(&second);
         items.vtable = mfc::impl::ItemListClass::Vtable();
-        PtrListRemoveAll(&items, nullptr);
+        PtrListRemoveAllNodesOriginal(&items);
     };
     auto destroy = [&]() {
         LootListDestruct(&third, nullptr);
-        PtrListDestruct(&second, nullptr);
-        PtrListDestruct(&items, nullptr);
+        PtrListDestructOriginal(&second);
+        PtrListDestructOriginal(&items);
     };
 
     if (!player) {
@@ -135,12 +130,12 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         }
         if (first) {
             ObjectList quest;
-            PtrListConstruct(&quest, nullptr, 10);
+            ItemListConstructOriginal(&quest, nullptr, 10);
             for (ObjectList::Node* node = items.head; node;) {
                 ObjectList::Node* next = node->next;
                 CEngineObject* item = node->data;
                 if (item->GetClassId() == kClassQuestItem) {
-                    PtrListAddTail(&quest, nullptr, item);
+                    PtrListAddTailOriginal(&quest, nullptr, item);
                     PtrListRemoveAt(&items, nullptr, node);
                 }
                 node = next;
@@ -148,7 +143,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             if (quest.count > 0) PlayerGiveItems(first, nullptr, &quest, 0);
             for (ObjectList::Node* position = quest.head; position;)
                 (*PtrListGetNext(&quest, nullptr, &position))->Release();
-            PtrListDestruct(&quest, nullptr);
+            PtrListDestructOriginal(&quest);
         }
     }
     player->Party()->Money() += gold;

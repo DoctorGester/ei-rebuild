@@ -49,7 +49,6 @@ static_assert(offsetof(CDebugPanel, entries_) == 0x04 && offsetof(CDebugPanel, u
 __declspec(naked) Node** __fastcall LowerBound(StringMap*, void*, Node** /*out*/, const stlp::string*) EI_ORIGINAL(0x004456E0)
 __declspec(naked) Node** __fastcall Find(StringMap*, void*, Node** /*out*/, const stlp::string*) EI_ORIGINAL(0x00445620)
 __declspec(naked) bool __fastcall Less(const stlp::string* /*a*/, const stlp::string* /*b*/) EI_ORIGINAL(0x00445780)
-inline void __fastcall StringReserve(stlp::string* a0, void*, const void* a2, std::size_t a3) { StringReserveOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const stlp::string*, const stlp::string*) EI_ORIGINAL(0x00445170)
 __declspec(naked) Node** __fastcall InsertHint(StringMap*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
@@ -91,7 +90,7 @@ void __fastcall StringTableSet(void* self, void*, const char* key, const char* v
         KeyString emptyStorage;
         auto* empty = reinterpret_cast<stlp::string*>(emptyStorage.storage);
         char alloc;
-        StringReserve(empty, nullptr, &alloc, 8);
+        StringReserveOriginal(empty, nullptr, &alloc, 8);
         *const_cast<char*>(empty->data()) = 0;
         alignas(4) std::uint8_t pair[sizeof(stlp::string) * 2];
         PairConstruct(pair, nullptr, k, empty);

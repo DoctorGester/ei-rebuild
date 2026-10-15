@@ -84,8 +84,8 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
         // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
         // a float ULP in about one call in ten, and at a heading of +-pi (where 00402220 jumps from
         // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.
-        float current = Store(std::atan2(-static_cast<double>(axis.y), -static_cast<double>(axis.x)));
-        float target = Store(std::atan2(static_cast<double>(direction.y), static_cast<double>(direction.x)));
+        float current = Store(x87::fpatan(-static_cast<double>(axis.y), -static_cast<double>(axis.x)));
+        float target = Store(x87::fpatan(static_cast<double>(direction.y), static_cast<double>(direction.x)));
         for (;;) {
             float gap = target - current;
             gap = gap < 0 ? -gap : gap;
@@ -96,10 +96,10 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
             else
                 target = FullTurn() + target;
         }
-        double weight = std::exp(static_cast<double>(rate * kDecay));
+        double weight = x87::fexp(static_cast<double>(rate * kDecay));
         double heading = (1.0 - weight) * target + weight * current;
-        direction.x = static_cast<float>(std::cos(heading));
-        direction.y = static_cast<float>(std::sin(heading));
+        direction.x = static_cast<float>(x87::fcos(heading));
+        direction.y = static_cast<float>(x87::fsin(heading));
         direction.z = 0.0f;
         TransformSetHeading(reinterpret_cast<CTransformObject*>(unit), nullptr, &direction.x);
     }
@@ -126,7 +126,7 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     float span = database->length;
     if (!(x87::IsNaN(span) || span == 0.0f))
         frames = ((database->end - database->start) * unit->scale.z + database->start) / span;
-    double moved = std::sqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction.x, direction.y, direction.z));
+    double moved = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(direction.x, direction.y, direction.z));
     double numerator = moved * speed * kAnimationRate;
     double denominator = (1.0f / (kCellScale * kHalf)) * (static_cast<double>(frames) * length);
     unit->animationSpeed = static_cast<float>(numerator / denominator);

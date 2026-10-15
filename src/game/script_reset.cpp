@@ -23,8 +23,6 @@ namespace {
 
 // CList::RemoveHead / RemoveTail instantiations (__thiscall, the element returned through a
 // hidden pointer: copy-constructed into `out`, the node freed).
-void* __fastcall InstancesRemoveHead(void* a0, void*, void* a2) { return ScriptInstancesRemoveHeadOriginal(a0, nullptr, a2); }
-void* __fastcall RunsRemoveHead(void* a0, void*, void* a2) { return ScriptRunsRemoveHeadOriginal(a0, nullptr, a2); }
 __declspec(naked) void* __fastcall BlocksRemoveHead(void*, void*, void* /*out*/) EI_ORIGINAL(0x004C69B0)
 void* __fastcall TempGroupsRemoveTail(void* a0, void*, void* a2) { return TempGroupsRemoveTailOriginal(a0, nullptr, a2); }
 void* __fastcall TempObjectsRemoveTail(void* a0, void*, void* a2) { return TempObjectsRemoveTailOriginal(a0, nullptr, a2); }
@@ -38,7 +36,6 @@ __declspec(naked) void __fastcall FxSourceDestroy(void*, void*, int) EI_ORIGINAL
 __declspec(naked) void __fastcall ParticleDestroy(void*, void*, int) EI_ORIGINAL(0x004CE270)
 __declspec(naked) void __stdcall LightningElementsDestruct(void*, int) EI_ORIGINAL(0x004CD690)
 // CArray::SetSize (__thiscall (size, growBy)): areas, definitions; a temporary group.
-void __fastcall GroupSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall FloatsClear(void*) EI_ORIGINAL(0x004C1650)
 __declspec(naked) void __fastcall StringsClear(void*) EI_ORIGINAL(0x004C16B0)
 __declspec(naked) void __fastcall ObjectsClear(void*) EI_ORIGINAL(0x004C1700)
@@ -76,11 +73,11 @@ void __fastcall ScriptReset(CScript* script) {
     alignas(4) unsigned char element[sizeof(ScriptDefinition)];
     static_assert(sizeof(ScriptDefinition) >= sizeof(ScriptRun));
     while (script->instances_.count != 0) {
-        InstancesRemoveHead(&script->instances_, nullptr, element);
+        ScriptInstancesRemoveHeadOriginal(&script->instances_, nullptr, element);
         DefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
     }
     while (script->runs_.count != 0) {
-        RunsRemoveHead(&script->runs_, nullptr, element);
+        ScriptRunsRemoveHeadOriginal(&script->runs_, nullptr, element);
         VarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
     }
 
@@ -99,7 +96,7 @@ void __fastcall ScriptReset(CScript* script) {
         TempGroupsRemoveTail(&groups, nullptr, element);
         GroupDestruct(element);
     }
-    GroupSetSize(&groups.tail->data, nullptr, 0, -1);
+    PtrArraySetSize(&groups.tail->data, nullptr, 0, -1);
     auto& objects = script->tempObjects_;
     while (objects.count > 1) {
         TempObjectsRemoveTail(&objects, nullptr, element);
@@ -150,7 +147,7 @@ void __fastcall ScriptDefinitionReset(ScriptDefinition* definition) {
     NamesSetSizeOriginal(&vars.floatNames, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars.strings, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars.stringNames, nullptr, 0, -1);
-    GroupSetSize(&vars.objects, nullptr, 0, -1);
+    PtrArraySetSize(&vars.objects, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars.objectNames, nullptr, 0, -1);
     GroupValuesSetSize(&vars.groups, nullptr, 0, -1);
     NamesSetSizeOriginal(&vars.groupNames, nullptr, 0, -1);
